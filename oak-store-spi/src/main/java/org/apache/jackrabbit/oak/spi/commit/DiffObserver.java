@@ -23,10 +23,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Abstract base class for observers that use a content diff to determine
- * what changed between two consecutive observed states of the repository.
- * Subclasses just need to provide the diff handler by implementing the
- * {@link #getRootDiff(NodeState, NodeState, CommitInfo)} method.
+ * Abstract base class for observers that use a content diff to determine what changed between two
+ * consecutive observed states of the repository. Subclasses just need to provide the diff handler
+ * by implementing the {@link #getRootDiff(NodeState, NodeState, CommitInfo)} method.
  */
 public abstract class DiffObserver implements Observer {
 
@@ -36,19 +35,19 @@ public abstract class DiffObserver implements Observer {
      * Returns the diff handler to be used for the given content change.
      *
      * @param before state of the repository before this changes
-     * @param after state of the repository after this changes
-     * @param info local commit information, or {@code null} if not available
+     * @param after  state of the repository after this changes
+     * @param info   local commit information, or {@code null} if not available
      * @return diff handler for this change
      */
     protected abstract NodeStateDiff getRootDiff(
-            @NotNull NodeState before, @NotNull NodeState after,
-            @NotNull CommitInfo info);
+        @NotNull NodeState before, @NotNull NodeState after,
+        @NotNull CommitInfo info);
 
     //----------------------------------------------------------< Observer >--
 
     @Override
     public final synchronized void contentChanged(
-            @NotNull NodeState root, @NotNull CommitInfo info) {
+        @NotNull NodeState root, @NotNull CommitInfo info) {
         checkNotNull(root);
         if (before != null) {
             NodeStateDiff diff = getRootDiff(before, root, info);

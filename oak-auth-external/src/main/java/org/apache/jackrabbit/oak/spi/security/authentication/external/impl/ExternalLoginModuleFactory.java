@@ -19,8 +19,6 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 import java.util.Map;
 import javax.management.MalformedObjectNameException;
 import javax.security.auth.spi.LoginModule;
-
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.felix.jaas.LoginModuleFactory;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
@@ -31,6 +29,7 @@ import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.ReferenceCardinality;
 import org.apache.felix.scr.annotations.ReferencePolicy;
 import org.apache.felix.scr.annotations.Service;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.commons.jmx.JmxUtil;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
@@ -49,14 +48,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Implements a LoginModuleFactory that creates {@link ExternalLoginModule}s and allows to configure login modules
- * via OSGi config.
+ * Implements a LoginModuleFactory that creates {@link ExternalLoginModule}s and allows to configure
+ * login modules via OSGi config.
  */
 @Component(
-        label = "Apache Jackrabbit Oak External Login Module",
-        metatype = true,
-        policy = ConfigurationPolicy.REQUIRE,
-        configurationFactory = true
+    label = "Apache Jackrabbit Oak External Login Module",
+    metatype = true,
+    policy = ConfigurationPolicy.REQUIRE,
+    configurationFactory = true
 )
 @Service
 public class ExternalLoginModuleFactory implements LoginModuleFactory, SyncHandlerMapping {
@@ -65,42 +64,50 @@ public class ExternalLoginModuleFactory implements LoginModuleFactory, SyncHandl
 
     @SuppressWarnings("UnusedDeclaration")
     @Property(
-            intValue = 150,
-            label = "JAAS Ranking",
-            description = "Specifying the ranking (i.e. sort order) of this login module entry. The entries are sorted " +
-                    "in a descending order (i.e. higher value ranked configurations come first)."
+        intValue = 150,
+        label = "JAAS Ranking",
+        description =
+            "Specifying the ranking (i.e. sort order) of this login module entry. The entries are sorted "
+                +
+                "in a descending order (i.e. higher value ranked configurations come first)."
     )
     public static final String JAAS_RANKING = LoginModuleFactory.JAAS_RANKING;
 
     @SuppressWarnings("UnusedDeclaration")
     @Property(
-            value = "SUFFICIENT",
-            label = "JAAS Control Flag",
-            description = "Property specifying whether or not a LoginModule is REQUIRED, REQUISITE, SUFFICIENT or " +
-                    "OPTIONAL. Refer to the JAAS configuration documentation for more details around the meaning of " +
-                    "these flags."
+        value = "SUFFICIENT",
+        label = "JAAS Control Flag",
+        description =
+            "Property specifying whether or not a LoginModule is REQUIRED, REQUISITE, SUFFICIENT or "
+                +
+                "OPTIONAL. Refer to the JAAS configuration documentation for more details around the meaning of "
+                +
+                "these flags."
     )
     public static final String JAAS_CONTROL_FLAG = LoginModuleFactory.JAAS_CONTROL_FLAG;
 
     @SuppressWarnings("UnusedDeclaration")
     @Property(
-            label = "JAAS Realm",
-            description = "The realm name (or application name) against which the LoginModule  is be registered. If no " +
-                    "realm name is provided then LoginModule is registered with a default realm as configured in " +
-                    "the Felix JAAS configuration."
+        label = "JAAS Realm",
+        description =
+            "The realm name (or application name) against which the LoginModule  is be registered. If no "
+                +
+                "realm name is provided then LoginModule is registered with a default realm as configured in "
+                +
+                "the Felix JAAS configuration."
     )
     public static final String JAAS_REALM_NAME = LoginModuleFactory.JAAS_REALM_NAME;
 
     @Property(
-            label = "Identity Provider Name",
-            description = "Name of the identity provider (for example: 'ldap')."
+        label = "Identity Provider Name",
+        description = "Name of the identity provider (for example: 'ldap')."
     )
     public static final String PARAM_IDP_NAME = SyncHandlerMapping.PARAM_IDP_NAME;
 
     @Property(
-            value = DefaultSyncConfig.DEFAULT_NAME,
-            label = "Sync Handler Name",
-            description = "Name of the sync handler."
+        value = DefaultSyncConfig.DEFAULT_NAME,
+        label = "Sync Handler Name",
+        description = "Name of the sync handler."
     )
     public static final String PARAM_SYNC_HANDLER_NAME = SyncHandlerMapping.PARAM_SYNC_HANDLER_NAME;
 
@@ -129,8 +136,10 @@ public class ExternalLoginModuleFactory implements LoginModuleFactory, SyncHandl
     private Registration mbeanRegistration;
 
     //----------------------------------------------------< SCR integration >---
+
     /**
      * Activates the LoginModuleFactory service
+     *
      * @param context the component context
      */
     @SuppressWarnings("UnusedDeclaration")
@@ -168,7 +177,7 @@ public class ExternalLoginModuleFactory implements LoginModuleFactory, SyncHandl
     }
 
     @SuppressWarnings("UnusedDeclaration")
-    public void unbindSecurityProvider(SecurityProvider securityProvider)  {
+    public void unbindSecurityProvider(SecurityProvider securityProvider) {
         this.securityProvider = null;
         unregisterSyncMBean();
     }
@@ -203,7 +212,8 @@ public class ExternalLoginModuleFactory implements LoginModuleFactory, SyncHandl
             return;
         }
         if (contentRepository == null || securityProvider == null) {
-            log.debug("Cannot register SynchronizationMBean; waiting for references to ContentRepository|SecurityProvider.");
+            log.debug(
+                "Cannot register SynchronizationMBean; waiting for references to ContentRepository|SecurityProvider.");
             return;
         }
 
@@ -214,10 +224,12 @@ public class ExternalLoginModuleFactory implements LoginModuleFactory, SyncHandl
             String idpName = osgiConfig.getConfigValue(PARAM_IDP_NAME, "");
             String sncName = osgiConfig.getConfigValue(PARAM_SYNC_HANDLER_NAME, "");
 
-            SyncMBeanImpl bean = new SyncMBeanImpl(contentRepository, securityProvider, syncManager, sncName, idpManager, idpName);
+            SyncMBeanImpl bean = new SyncMBeanImpl(contentRepository, securityProvider, syncManager,
+                sncName, idpManager, idpName);
             Map<String, String> properties = ImmutableMap.of("handler", sncName, "idp", idpName);
-            mbeanRegistration = whiteboard.register(SynchronizationMBean.class, bean, 
-                    JmxUtil.createObjectNameMap("UserManagement", "External Identity Synchronization Management", properties));
+            mbeanRegistration = whiteboard.register(SynchronizationMBean.class, bean,
+                JmxUtil.createObjectNameMap("UserManagement",
+                    "External Identity Synchronization Management", properties));
             log.debug("Registration of SynchronizationMBean completed");
         } catch (MalformedObjectNameException e) {
             log.error("Unable to register SynchronizationMBean", e);
@@ -237,6 +249,7 @@ public class ExternalLoginModuleFactory implements LoginModuleFactory, SyncHandl
     }
 
     //-------------------------------------------------< LoginModuleFactory >---
+
     /**
      * {@inheritDoc}
      *

@@ -29,33 +29,37 @@ import org.apache.lucene.search.Explanation;
 
 /**
  * Model of the information gain based on the ratio of two Bernoulli processes.
+ *
  * @lucene.experimental
  */
 public class AfterEffectB extends AfterEffect {
 
-  /** Sole constructor: parameter-free */
-  public AfterEffectB() {}
+    /**
+     * Sole constructor: parameter-free
+     */
+    public AfterEffectB() {
+    }
 
-  @Override
-  public final float score(BasicStats stats, float tfn) {
-    long F = stats.getTotalTermFreq()+1;
-    long n = stats.getDocFreq()+1;
-    return (F + 1) / (n * (tfn + 1));
-  }
-  
-  @Override
-  public final Explanation explain(BasicStats stats, float tfn) {
-    Explanation result = new Explanation();
-    result.setDescription(getClass().getSimpleName() + ", computed from: ");
-    result.setValue(score(stats, tfn));
-    result.addDetail(new Explanation(tfn, "tfn"));
-    result.addDetail(new Explanation(stats.getTotalTermFreq(), "totalTermFreq"));
-    result.addDetail(new Explanation(stats.getDocFreq(), "docFreq"));
-    return result;
-  }
+    @Override
+    public final float score(BasicStats stats, float tfn) {
+        long F = stats.getTotalTermFreq() + 1;
+        long n = stats.getDocFreq() + 1;
+        return (F + 1) / (n * (tfn + 1));
+    }
 
-  @Override
-  public String toString() {
-    return "B";
-  }
+    @Override
+    public final Explanation explain(BasicStats stats, float tfn) {
+        Explanation result = new Explanation();
+        result.setDescription(getClass().getSimpleName() + ", computed from: ");
+        result.setValue(score(stats, tfn));
+        result.addDetail(new Explanation(tfn, "tfn"));
+        result.addDetail(new Explanation(stats.getTotalTermFreq(), "totalTermFreq"));
+        result.addDetail(new Explanation(stats.getDocFreq(), "docFreq"));
+        return result;
+    }
+
+    @Override
+    public String toString() {
+        return "B";
+    }
 }

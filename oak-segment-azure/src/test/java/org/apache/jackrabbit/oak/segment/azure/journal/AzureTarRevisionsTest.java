@@ -17,16 +17,14 @@
 package org.apache.jackrabbit.oak.segment.azure.journal;
 
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
-
-import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzuriteDockerRule;
-import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
-import org.apache.jackrabbit.oak.segment.file.TarRevisionsTest;
-import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
-import org.junit.Before;
-import org.junit.ClassRule;
-
 import java.io.IOException;
 import java.net.URISyntaxException;
+import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzuriteDockerRule;
+import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
+import org.apache.jackrabbit.oak.segment.file.TarRevisionsTest;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
+import org.junit.Before;
+import org.junit.ClassRule;
 
 public class AzureTarRevisionsTest extends TarRevisionsTest {
 

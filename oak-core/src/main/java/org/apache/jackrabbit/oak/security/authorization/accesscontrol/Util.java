@@ -20,7 +20,6 @@ import java.security.Principal;
 import java.util.Set;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.AccessControlPolicy;
-
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;

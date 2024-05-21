@@ -26,7 +26,6 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.util.Iterator;
-
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.SegmentWriter;
@@ -64,7 +63,8 @@ public class DefaultStandbyReferenceReaderTest {
             writer.flush();
 
             DefaultStandbyReferencesReader reader = new DefaultStandbyReferencesReader(store);
-            Iterable<String> references = reader.readReferences(id.getSegmentId().asUUID().toString());
+            Iterable<String> references = reader.readReferences(
+                id.getSegmentId().asUUID().toString());
             assertFalse(references.iterator().hasNext());
         }
     }
@@ -83,7 +83,8 @@ public class DefaultStandbyReferenceReaderTest {
             writer.flush();
 
             DefaultStandbyReferencesReader reader = new DefaultStandbyReferencesReader(store);
-            Iterator<String> i = reader.readReferences(b.getSegmentId().asUUID().toString()).iterator();
+            Iterator<String> i = reader.readReferences(b.getSegmentId().asUUID().toString())
+                                       .iterator();
             assertTrue(i.hasNext());
             assertEquals(a.getSegmentId().asUUID().toString(), i.next());
             assertFalse(i.hasNext());

@@ -31,9 +31,9 @@ public abstract class NodeStoreFixture {
     private Whiteboard whiteboard = new DefaultWhiteboard();
 
     /**
-     * Creates a new empty {@link NodeStore} instance. An implementation must
-     * ensure the returned node store is indeed empty and is independent from
-     * instances returned from previous calls to this method.
+     * Creates a new empty {@link NodeStore} instance. An implementation must ensure the returned
+     * node store is indeed empty and is independent from instances returned from previous calls to
+     * this method.
      *
      * @return a new node store instance.
      */
@@ -41,7 +41,7 @@ public abstract class NodeStoreFixture {
 
     /**
      * Create a new cluster node that is attached to the same backend storage.
-     * 
+     *
      * @param clusterNodeId the cluster node id
      * @return the node store, or null if clustering is not supported
      */

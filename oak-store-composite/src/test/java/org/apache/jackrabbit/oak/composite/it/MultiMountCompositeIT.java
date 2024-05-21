@@ -37,7 +37,8 @@ import static org.junit.Assert.assertTrue;
 import static org.ops4j.pax.exam.CoreOptions.options;
 
 /**
- * Validates composite multi-mount configuration using {@link org.apache.jackrabbit.oak.composite.MountInfoConfig}.
+ * Validates composite multi-mount configuration using
+ * {@link org.apache.jackrabbit.oak.composite.MountInfoConfig}.
  */
 @RunWith(PaxExam.class)
 @ExamReactorStrategy(PerMethod.class)
@@ -59,15 +60,20 @@ public class MultiMountCompositeIT extends CompositeTestSupport {
 
     @Test
     public void compositeNodeStoreWithMultipleReadOnlyMounts() {
-        assertEquals("Node store should be a CompositeNodeStore", "CompositeNodeStore", store.getClass().getSimpleName());
+        assertEquals("Node store should be a CompositeNodeStore", "CompositeNodeStore",
+            store.getClass().getSimpleName());
 
         NodeState root = store.getRoot();
         ImmutableSet<String> expectedNodes = ImmutableSet.of("content", "apps", "libs");
         ImmutableSet<String> actualNodes = ImmutableSet.copyOf(root.getChildNodeNames());
-        assertTrue("Expected nodes " + expectedNodes + ", but was " + actualNodes, actualNodes.containsAll(expectedNodes));
+        assertTrue("Expected nodes " + expectedNodes + ", but was " + actualNodes,
+            actualNodes.containsAll(expectedNodes));
 
-        assertTrue("'apps' mount should be mounted", root.getChildNode("apps").getChildNode("appsMount").exists());
-        assertTrue("'libs' path should be mounted", root.getChildNode("libs").getChildNode("libsMount").exists());
-        assertTrue("'global' mount should be mounted", root.getChildNode("content").getChildNode("globalMount").exists());
+        assertTrue("'apps' mount should be mounted",
+            root.getChildNode("apps").getChildNode("appsMount").exists());
+        assertTrue("'libs' path should be mounted",
+            root.getChildNode("libs").getChildNode("libsMount").exists());
+        assertTrue("'global' mount should be mounted",
+            root.getChildNode("content").getChildNode("globalMount").exists());
     }
 }

@@ -16,17 +16,15 @@
  */
 package org.apache.jackrabbit.j2ee;
 
+import java.util.Enumeration;
+import java.util.Iterator;
+import java.util.Properties;
+import javax.servlet.ServletConfig;
+import javax.servlet.ServletException;
 import org.apache.commons.beanutils.BeanMap;
 import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.Enumeration;
-import java.util.Iterator;
-import java.util.Properties;
-
-import javax.servlet.ServletConfig;
-import javax.servlet.ServletException;
 
 /**
  * Abstract configuration class that is based on a bean map.
@@ -44,6 +42,7 @@ public abstract class AbstractConfig {
 
     /**
      * Initializes the configuration with values from the given properties
+     *
      * @param props the configuration properties
      */
     public void init(Properties props) throws ServletException {
@@ -57,7 +56,7 @@ public abstract class AbstractConfig {
                 }
             } catch (Exception e) {
                 throw new ServletExceptionWithCause(
-                        "Invalid configuration property: " + name, e);
+                    "Invalid configuration property: " + name, e);
             }
         }
     }
@@ -73,7 +72,7 @@ public abstract class AbstractConfig {
                 }
             } catch (Exception e) {
                 throw new ServletExceptionWithCause(
-                        "Invalid servlet configuration option: " + name, e);
+                    "Invalid servlet configuration option: " + name, e);
             }
         }
     }
@@ -82,7 +81,7 @@ public abstract class AbstractConfig {
         StringBuffer ret = new StringBuffer();
         String[] elems = Text.explode(name, delim);
         ret.append(elems[0]);
-        for (int i=1; i<elems.length; i++) {
+        for (int i = 1; i < elems.length; i++) {
             ret.append(elems[i].substring(0, 1).toUpperCase());
             ret.append(elems[i].substring(1));
         }

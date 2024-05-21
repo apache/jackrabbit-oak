@@ -22,35 +22,32 @@ import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
-
+import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import org.apache.jackrabbit.guava.common.collect.Maps;
-
 /**
- * A document corresponds to a node stored in the DocumentNodeStore. A document
- * contains all the revisions of a node stored in the {@link DocumentStore}.
+ * A document corresponds to a node stored in the DocumentNodeStore. A document contains all the
+ * revisions of a node stored in the {@link DocumentStore}.
  */
 public class Document implements CacheValue {
 
     /**
-     * The name of the field that contains the document id (the primary key /
-     * the key). The id uniquely identifies a document within a collection. The
-     * requirements and limits of the id are documented in the
-     * {@link DocumentStore} class.
-     * 
-     * For nodes, the document id contains the depth of the path (0 for root, 1
-     * for children of the root), and then the path.
+     * The name of the field that contains the document id (the primary key / the key). The id
+     * uniquely identifies a document within a collection. The requirements and limits of the id are
+     * documented in the {@link DocumentStore} class.
+     * <p>
+     * For nodes, the document id contains the depth of the path (0 for root, 1 for children of the
+     * root), and then the path.
      */
     public static final String ID = "_id";
 
     /**
-     * The modification count on the document. This field is optional and a
-     * {@link DocumentStore} implementation may use it to keep track of how many
-     * times a document is modified. See also {@link #getModCount()}.
+     * The modification count on the document. This field is optional and a {@link DocumentStore}
+     * implementation may use it to keep track of how many times a document is modified. See also
+     * {@link #getModCount()}.
      */
     public static final String MOD_COUNT = "_modCount";
 
@@ -66,7 +63,7 @@ public class Document implements CacheValue {
 
     /**
      * Get the id (the primary key) of this document.
-     * 
+     *
      * @return the id or <code>null</code> if none is set.
      */
     @Nullable
@@ -76,9 +73,8 @@ public class Document implements CacheValue {
 
     /**
      * Get the modification count of this document.
-     * 
-     * @return the count or <code>null</code> if
-     *         none is set.
+     *
+     * @return the count or <code>null</code> if none is set.
      */
     @Nullable
     public Long getModCount() {
@@ -99,7 +95,7 @@ public class Document implements CacheValue {
     /**
      * Sets the data for the given <code>key</code>.
      *
-     * @param key the key.
+     * @param key   the key.
      * @param value the value to set.
      * @return the previous value or <code>null</code> if there was none.
      */
@@ -134,9 +130,8 @@ public class Document implements CacheValue {
     }
 
     /**
-     * Seals this document and turns it into an immutable object. Any attempt
-     * to modify this document afterwards will result in an
-     * {@link UnsupportedOperationException}.
+     * Seals this document and turns it into an immutable object. Any attempt to modify this
+     * document afterwards will result in an {@link UnsupportedOperationException}.
      */
     public void seal() {
         if (!sealed.getAndSet(true)) {
@@ -153,6 +148,7 @@ public class Document implements CacheValue {
 
     /**
      * Determines if this document is sealed or not
+     *
      * @return true if document is sealed.
      */
     public boolean isSealed() {
@@ -185,27 +181,27 @@ public class Document implements CacheValue {
     }
 
     /**
-     * Transform and seal the data of this document. That is, the data becomes
-     * immutable and transformation may be performed on the data.
+     * Transform and seal the data of this document. That is, the data becomes immutable and
+     * transformation may be performed on the data.
      *
-     * @param map the map to transform.
-     * @param key the key for the given map or <code>null</code> if the map
-     *            is the top level data map.
-     * @param level the level. Zero for the top level map, one for an entry in
-     *              the top level map, etc.
+     * @param map   the map to transform.
+     * @param key   the key for the given map or <code>null</code> if the map is the top level data
+     *              map.
+     * @param level the level. Zero for the top level map, one for an entry in the top level map,
+     *              etc.
      * @return the transformed and sealed map.
      */
     @NotNull
     protected Map<?, ?> transformAndSeal(@NotNull Map<Object, Object> map,
-                                         @Nullable String key,
-                                         int level) {
+        @Nullable String key,
+        int level) {
         for (Map.Entry<Object, Object> entry : map.entrySet()) {
             Object value = entry.getValue();
             if (value instanceof Map) {
                 @SuppressWarnings("unchecked")
                 Map<Object, Object> childMap = (Map<Object, Object>) value;
                 entry.setValue(transformAndSeal(
-                        childMap, entry.getKey().toString(), level + 1));
+                    childMap, entry.getKey().toString(), level + 1));
             }
         }
         if (map instanceof NavigableMap) {

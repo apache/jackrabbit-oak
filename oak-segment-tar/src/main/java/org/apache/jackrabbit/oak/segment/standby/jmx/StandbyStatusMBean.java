@@ -21,6 +21,7 @@ import org.apache.jackrabbit.oak.api.jmx.Description;
 import org.jetbrains.annotations.NotNull;
 
 public interface StandbyStatusMBean {
+
     String JMX_NAME = "org.apache.jackrabbit.oak:name=Status,type=\"Standby\"";
     String STATUS_INITIALIZING = "initializing";
     String STATUS_STOPPED = "stopped";

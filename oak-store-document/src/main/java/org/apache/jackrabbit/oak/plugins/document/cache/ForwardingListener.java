@@ -23,12 +23,12 @@ import org.apache.jackrabbit.guava.common.cache.RemovalListener;
 import org.apache.jackrabbit.guava.common.cache.RemovalNotification;
 
 /**
- * Listener which forwards the notifications to a delegate. It is used to bridge
- * multiple instances.
- *
+ * Listener which forwards the notifications to a delegate. It is used to bridge multiple
+ * instances.
  */
 public class ForwardingListener<K, V>
-        implements RemovalListener<K, V> {
+    implements RemovalListener<K, V> {
+
     private RemovalListener<K, V> delegate;
 
     public ForwardingListener() {

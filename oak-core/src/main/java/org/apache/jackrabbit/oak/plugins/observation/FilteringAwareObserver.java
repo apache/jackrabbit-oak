@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.plugins.observation;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * A FilteringAwareObserver is the stateless-variant of an Observer which gets an explicit before as

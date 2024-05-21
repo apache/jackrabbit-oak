@@ -19,14 +19,13 @@
 package org.apache.jackrabbit.oak.segment.file;
 
 import java.util.concurrent.atomic.AtomicInteger;
-
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * A {@link GCListener} that adds a prefix to every log message and delegates to
- * another {@link GCListener}. The message prefix includes a number, which can
- * be used as a unique counter to group together related log messages.
+ * A {@link GCListener} that adds a prefix to every log message and delegates to another
+ * {@link GCListener}. The message prefix includes a number, which can be used as a unique counter
+ * to group together related log messages.
  */
 class PrefixedGCListener implements GCListener {
 

@@ -86,18 +86,19 @@ public class UtilsTest {
     public void getPreviousIdFor() {
         Revision r = new Revision(System.currentTimeMillis(), 0, 0);
         assertEquals("2:p/" + r.toString() + "/0",
-                Utils.getPreviousIdFor(Path.ROOT, r, 0));
+            Utils.getPreviousIdFor(Path.ROOT, r, 0));
         assertEquals("3:p/test/" + r.toString() + "/1",
-                Utils.getPreviousIdFor(Path.fromString("/test"), r, 1));
+            Utils.getPreviousIdFor(Path.fromString("/test"), r, 1));
         assertEquals("15:p/a/b/c/d/e/f/g/h/i/j/k/l/m/" + r.toString() + "/3",
-                Utils.getPreviousIdFor(Path.fromString("/a/b/c/d/e/f/g/h/i/j/k/l/m"), r, 3));
+            Utils.getPreviousIdFor(Path.fromString("/a/b/c/d/e/f/g/h/i/j/k/l/m"), r, 3));
     }
 
     @Test
-    public void previousDoc() throws Exception{
+    public void previousDoc() throws Exception {
         Revision r = new Revision(System.currentTimeMillis(), 0, 0);
         assertTrue(Utils.isPreviousDocId(Utils.getPreviousIdFor(Path.ROOT, r, 0)));
-        assertTrue(Utils.isPreviousDocId(Utils.getPreviousIdFor(Path.fromString("/a/b/c/d/e/f/g/h/i/j/k/l/m"), r, 3)));
+        assertTrue(Utils.isPreviousDocId(
+            Utils.getPreviousIdFor(Path.fromString("/a/b/c/d/e/f/g/h/i/j/k/l/m"), r, 3)));
         assertFalse(Utils.isPreviousDocId(Utils.getIdFromPath("/a/b")));
         assertFalse(Utils.isPreviousDocId("foo"));
         assertFalse(Utils.isPreviousDocId("0:"));
@@ -107,8 +108,10 @@ public class UtilsTest {
     public void leafPreviousDoc() throws Exception {
         Revision r = new Revision(System.currentTimeMillis(), 0, 0);
         assertTrue(Utils.isLeafPreviousDocId(Utils.getPreviousIdFor(Path.ROOT, r, 0)));
-        assertTrue(Utils.isLeafPreviousDocId(Utils.getPreviousIdFor(Path.fromString("/a/b/c/d/e/f/g/h/i/j/k/l/m"), r, 0)));
-        assertFalse(Utils.isLeafPreviousDocId(Utils.getPreviousIdFor(Path.fromString("/a/b/c/d/e/f/g/h/i/j/k/l/m"), r, 3)));
+        assertTrue(Utils.isLeafPreviousDocId(
+            Utils.getPreviousIdFor(Path.fromString("/a/b/c/d/e/f/g/h/i/j/k/l/m"), r, 0)));
+        assertFalse(Utils.isLeafPreviousDocId(
+            Utils.getPreviousIdFor(Path.fromString("/a/b/c/d/e/f/g/h/i/j/k/l/m"), r, 3)));
         assertFalse(Utils.isLeafPreviousDocId(Utils.getIdFromPath("/a/b")));
         assertFalse(Utils.isLeafPreviousDocId("foo"));
         assertFalse(Utils.isLeafPreviousDocId("0:"));
@@ -116,14 +119,16 @@ public class UtilsTest {
     }
 
     @Test
-    public void getParentIdFromLowerLimit() throws Exception{
-        assertEquals("1:/foo",Utils.getParentIdFromLowerLimit(Utils.getKeyLowerLimit(Path.fromString("/foo"))));
-        assertEquals("1:/foo",Utils.getParentIdFromLowerLimit("2:/foo/bar"));
+    public void getParentIdFromLowerLimit() throws Exception {
+        assertEquals("1:/foo",
+            Utils.getParentIdFromLowerLimit(Utils.getKeyLowerLimit(Path.fromString("/foo"))));
+        assertEquals("1:/foo", Utils.getParentIdFromLowerLimit("2:/foo/bar"));
     }
 
     @Test
-    public void getParentId() throws Exception{
-        Path longPath = Path.fromString(PathUtils.concat("/"+Strings.repeat("p", Utils.PATH_LONG + 1), "foo"));
+    public void getParentId() throws Exception {
+        Path longPath = Path.fromString(
+            PathUtils.concat("/" + Strings.repeat("p", Utils.PATH_LONG + 1), "foo"));
         assertTrue(Utils.isLongPath(longPath));
 
         assertNull(Utils.getParentId(Utils.getIdFromPath(longPath)));
@@ -185,7 +190,7 @@ public class UtilsTest {
     }
 
     @Test
-    public void getDepthFromId() throws Exception{
+    public void getDepthFromId() throws Exception {
         assertEquals(1, Utils.getDepthFromId("1:/x"));
         assertEquals(2, Utils.getDepthFromId("2:/x"));
         assertEquals(10, Utils.getDepthFromId("10:/x"));
@@ -215,7 +220,7 @@ public class UtilsTest {
             performance_revisionToStringOne();
         }
     }
-    
+
     private static void performance_revisionToStringOne() {
         Revision r = new Revision(System.currentTimeMillis(), 0, 0);
         int dummy = 0;
@@ -266,7 +271,7 @@ public class UtilsTest {
             store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
             assertEquals(1001 /* root + 1000 children */, Iterables.size(
-                    Utils.getAllDocuments(store.getDocumentStore())));
+                Utils.getAllDocuments(store.getDocumentStore())));
         } finally {
             store.dispose();
         }
@@ -284,28 +289,28 @@ public class UtilsTest {
         assertEquals(Long.MIN_VALUE, revTime);
 
         revs = ImmutableList.of(
-                Revision.fromString("r1-0-1"),
-                Revision.fromString("r2-0-2"));
+            Revision.fromString("r1-0-1"),
+            Revision.fromString("r2-0-2"));
         revTime = Utils.getMaxExternalTimestamp(revs, localClusterId);
         assertEquals(2, revTime);
 
         revs = ImmutableList.of(
-                Revision.fromString("r3-0-1"),
-                Revision.fromString("r2-0-2"));
+            Revision.fromString("r3-0-1"),
+            Revision.fromString("r2-0-2"));
         revTime = Utils.getMaxExternalTimestamp(revs, localClusterId);
         assertEquals(2, revTime);
 
         revs = ImmutableList.of(
-                Revision.fromString("r1-0-1"),
-                Revision.fromString("r2-0-2"),
-                Revision.fromString("r2-0-3"));
+            Revision.fromString("r1-0-1"),
+            Revision.fromString("r2-0-2"),
+            Revision.fromString("r2-0-3"));
         revTime = Utils.getMaxExternalTimestamp(revs, localClusterId);
         assertEquals(2, revTime);
 
         revs = ImmutableList.of(
-                Revision.fromString("r1-0-1"),
-                Revision.fromString("r3-0-2"),
-                Revision.fromString("r2-0-3"));
+            Revision.fromString("r1-0-1"),
+            Revision.fromString("r3-0-2"),
+            Revision.fromString("r2-0-3"));
         revTime = Utils.getMaxExternalTimestamp(revs, localClusterId);
         assertEquals(3, revTime);
     }
@@ -318,8 +323,8 @@ public class UtilsTest {
         assertEquals(17, Utils.getMinTimestampForDiff(to, from, new RevisionVector()));
 
         RevisionVector minRevs = new RevisionVector(
-                new Revision(7, 0, 1),
-                new Revision(4, 0, 2));
+            new Revision(7, 0, 1),
+            new Revision(4, 0, 2));
         assertEquals(17, Utils.getMinTimestampForDiff(from, to, minRevs));
         assertEquals(17, Utils.getMinTimestampForDiff(to, from, minRevs));
 
@@ -389,7 +394,8 @@ public class UtilsTest {
             assertThat(c.getTime(), is(greaterThan(lastRev2.getTimestamp())));
 
             assertFalse(customizer.getLogs().isEmpty());
-            assertThat(customizer.getLogs().iterator().next(), containsString("Detected clock differences"));
+            assertThat(customizer.getLogs().iterator().next(),
+                containsString("Detected clock differences"));
         } finally {
             customizer.finished();
         }
@@ -481,7 +487,7 @@ public class UtilsTest {
             r.nextBytes(data);
             // compare against commons codec implementation
             assertEquals(Hex.encodeHexString(data),
-                    Utils.encodeHexString(data, new StringBuilder()).toString());
+                Utils.encodeHexString(data, new StringBuilder()).toString());
         }
     }
 
@@ -499,17 +505,21 @@ public class UtilsTest {
         assertFalse(Utils.isLocalChange(new RevisionVector(r11), new RevisionVector(r11), 1));
         assertTrue(Utils.isLocalChange(new RevisionVector(r11), new RevisionVector(r21), 1));
         assertFalse(Utils.isLocalChange(new RevisionVector(r11), new RevisionVector(r11, r12), 1));
-        assertFalse(Utils.isLocalChange(new RevisionVector(r11, r12), new RevisionVector(r11, r12), 1));
-        assertFalse(Utils.isLocalChange(new RevisionVector(r11, r12), new RevisionVector(r11, r22), 1));
-        assertFalse(Utils.isLocalChange(new RevisionVector(r11, r12), new RevisionVector(r21, r22), 1));
-        assertTrue(Utils.isLocalChange(new RevisionVector(r11, r12), new RevisionVector(r21, r12), 1));
+        assertFalse(
+            Utils.isLocalChange(new RevisionVector(r11, r12), new RevisionVector(r11, r12), 1));
+        assertFalse(
+            Utils.isLocalChange(new RevisionVector(r11, r12), new RevisionVector(r11, r22), 1));
+        assertFalse(
+            Utils.isLocalChange(new RevisionVector(r11, r12), new RevisionVector(r21, r22), 1));
+        assertTrue(
+            Utils.isLocalChange(new RevisionVector(r11, r12), new RevisionVector(r21, r12), 1));
     }
 
     @Test
     public void abortingIterableIsCloseable() throws Exception {
         AtomicBoolean closed = new AtomicBoolean(false);
         Iterable<String> iterable = CloseableIterable.wrap(
-                Collections.emptyList(), () -> closed.set(true));
+            Collections.emptyList(), () -> closed.set(true));
         Utils.closeIfCloseable(Utils.abortingIterable(iterable, s -> true));
         assertTrue(closed.get());
     }
@@ -606,7 +616,7 @@ public class UtilsTest {
     }
 
     private static ClusterNodeInfoDocument mockedClusterNodeInfo(int clusterId,
-                                                                 long startTime) {
+        long startTime) {
         ClusterNodeInfoDocument info = Mockito.mock(ClusterNodeInfoDocument.class);
         Mockito.when(info.getClusterId()).thenReturn(clusterId);
         Mockito.when(info.getStartTime()).thenReturn(startTime);

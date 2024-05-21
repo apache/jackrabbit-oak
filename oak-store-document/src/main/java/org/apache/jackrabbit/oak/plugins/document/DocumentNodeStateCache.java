@@ -23,10 +23,12 @@ package org.apache.jackrabbit.oak.plugins.document;
 import org.jetbrains.annotations.Nullable;
 
 public interface DocumentNodeStateCache {
+
     DocumentNodeStateCache NOOP = new DocumentNodeStateCache() {
         @Override
-        public AbstractDocumentNodeState getDocumentNodeState(Path path, @Nullable RevisionVector rootRevision,
-                                                        RevisionVector lastRev) {
+        public AbstractDocumentNodeState getDocumentNodeState(Path path,
+            @Nullable RevisionVector rootRevision,
+            RevisionVector lastRev) {
             return null;
         }
 
@@ -39,18 +41,19 @@ public interface DocumentNodeStateCache {
     /**
      * Get the node for the given path and revision.
      *
-     * @param path the path of the node.
+     * @param path         the path of the node.
      * @param rootRevision revision of root NodeState
-     * @param lastRev last revision of the node at given path
-     *
-     * @return nodeState at given path or null. If given revision is not present or the
-     * path is not cached then <code>null</code> would be returned
+     * @param lastRev      last revision of the node at given path
+     * @return nodeState at given path or null. If given revision is not present or the path is not
+     * cached then <code>null</code> would be returned
      */
     @Nullable
-    AbstractDocumentNodeState getDocumentNodeState(Path path, RevisionVector rootRevision, RevisionVector lastRev);
+    AbstractDocumentNodeState getDocumentNodeState(Path path, RevisionVector rootRevision,
+        RevisionVector lastRev);
 
     /**
      * Determines if given path is cached by this implementation
+     *
      * @param path path to check
      * @return true if given path is cached
      */

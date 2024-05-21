@@ -28,7 +28,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-
 import org.apache.jackrabbit.oak.OakBaseTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -40,6 +39,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class NodeStateTest extends OakBaseTest {
+
     private NodeState state;
 
     private long initialCount;

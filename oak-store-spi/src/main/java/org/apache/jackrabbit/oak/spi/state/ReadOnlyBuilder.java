@@ -20,7 +20,6 @@ import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull
 
 import java.io.IOException;
 import java.io.InputStream;
-
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -28,8 +27,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * A node builder that throws an {@link UnsupportedOperationException} on
- * all attempts to modify the given base state.
+ * A node builder that throws an {@link UnsupportedOperationException} on all attempts to modify the
+ * given base state.
  */
 public class ReadOnlyBuilder implements NodeBuilder {
 
@@ -74,12 +73,14 @@ public class ReadOnlyBuilder implements NodeBuilder {
         return false;
     }
 
-    @Override @NotNull
+    @Override
+    @NotNull
     public NodeState getNodeState() {
         return state;
     }
 
-    @Override @NotNull
+    @Override
+    @NotNull
     public NodeState getBaseState() {
         return state;
     }
@@ -100,7 +101,8 @@ public class ReadOnlyBuilder implements NodeBuilder {
         return state.getChildNodeNames();
     }
 
-    @Override @NotNull
+    @Override
+    @NotNull
     public NodeBuilder setChildNode(@NotNull String name, @NotNull NodeState nodeState) {
         throw unsupported();
     }
@@ -141,22 +143,26 @@ public class ReadOnlyBuilder implements NodeBuilder {
         return state.getBoolean(name);
     }
 
-    @Override @Nullable
+    @Override
+    @Nullable
     public String getString(@NotNull String name) {
         return state.getString(name);
     }
 
-    @Override @Nullable
+    @Override
+    @Nullable
     public String getName(@NotNull String name) {
         return state.getName(name);
     }
 
-    @Override @NotNull
+    @Override
+    @NotNull
     public Iterable<String> getNames(@NotNull String name) {
         return state.getNames(name);
     }
 
-    @Override @NotNull
+    @Override
+    @NotNull
     public NodeBuilder removeProperty(String name) {
         throw unsupported();
     }
@@ -190,12 +196,14 @@ public class ReadOnlyBuilder implements NodeBuilder {
         }
     }
 
-    @Override @NotNull
+    @Override
+    @NotNull
     public NodeBuilder getChildNode(@NotNull String name) {
         return new ReadOnlyBuilder(state.getChildNode(name));
     }
 
-    @Override @NotNull
+    @Override
+    @NotNull
     public NodeBuilder setChildNode(@NotNull String name) {
         throw unsupported();
     }

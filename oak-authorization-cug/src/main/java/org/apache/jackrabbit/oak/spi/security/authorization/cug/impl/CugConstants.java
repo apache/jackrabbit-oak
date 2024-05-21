@@ -37,26 +37,25 @@ interface CugConstants {
     String REP_CUG_POLICY = "rep:cugPolicy";
 
     /**
-     * The name of the hidden property that stores information about nested
-     * CUG policy nodes.
+     * The name of the hidden property that stores information about nested CUG policy nodes.
      */
     String HIDDEN_NESTED_CUGS = ":nestedCugs";
 
     /**
-     * The name of the hidden property that stores information about the number
-     * of CUG roots located close to the root node.
+     * The name of the hidden property that stores information about the number of CUG roots located
+     * close to the root node.
      */
     String HIDDEN_TOP_CUG_CNT = ":topCugCnt";
 
     /**
-     * The name of the property that stores the principal names that are allowed
-     * to access the restricted area defined by the CUG (closed user group).
+     * The name of the property that stores the principal names that are allowed to access the
+     * restricted area defined by the CUG (closed user group).
      */
     String REP_PRINCIPAL_NAMES = "rep:principalNames";
 
     /**
-     * Name of the configuration option that specifies the subtrees that allow
-     * to define closed user groups.
+     * Name of the configuration option that specifies the subtrees that allow to define closed user
+     * groups.
      *
      * <ul>
      *     <li>Value Type: String</li>
@@ -67,8 +66,8 @@ interface CugConstants {
     String PARAM_CUG_SUPPORTED_PATHS = "cugSupportedPaths";
 
     /**
-     * Name of the configuration option that specifies if CUG content must
-     * be respected for permission evaluation.
+     * Name of the configuration option that specifies if CUG content must be respected for
+     * permission evaluation.
      *
      * <ul>
      *     <li>Value Type: boolean</li>

@@ -33,7 +33,6 @@ import java.util.List;
 import java.util.Random;
 import java.util.TreeSet;
 import java.util.function.Function;
-
 import org.apache.commons.io.LineIterator;
 import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.guava.common.base.Splitter;
@@ -45,7 +44,7 @@ import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
 public class FileLineDifferenceIteratorTest {
-    
+
     @Test
     public void testRandomized() throws Exception {
         Random r = new Random(0);
@@ -66,21 +65,21 @@ public class FileLineDifferenceIteratorTest {
             String m = marked.toString().replaceAll("[ \\[\\]]", "");
             String a = all.toString().replaceAll("[ \\[\\]]", "");
             assertDiff(m, a,
-                    new ArrayList<String>(diff));
+                new ArrayList<String>(diff));
         }
     }
 
     @Test
     public void testNoDiff() throws Exception {
-        assertDiff("a,b,c", "a,b,c", Collections.<String> emptyList());
-        assertDiff("a,b,c,d,f", "a,b,f", Collections.<String> emptyList());
+        assertDiff("a,b,c", "a,b,c", Collections.<String>emptyList());
+        assertDiff("a,b,c,d,f", "a,b,f", Collections.<String>emptyList());
     }
 
     @Test
     public void testSimpleDiff() throws Exception {
         assertDiff("a,b", "a,b,c", asList("c"));
-        assertDiff("a,b", "", Collections.<String> emptyList());
-        assertDiff("", "", Collections.<String> emptyList());
+        assertDiff("a,b", "", Collections.<String>emptyList());
+        assertDiff("", "", Collections.<String>emptyList());
         assertDiff("", "a", asList("a"));
         assertDiff("", "a, b", asList("a", "b"));
     }
@@ -131,7 +130,7 @@ public class FileLineDifferenceIteratorTest {
         assertTransformed("a:1,b:2,d:3,e:4,f:5", "a:z,b:y,c:x,f:w", asList("c:x"));
         assertTransformed("a,b,d,e,f", "a,b,c,f,h", asList("c", "h"));
         assertTransformed("3:1,7:6", "2:0,3:6,5:3,9:1", asList("2:0", "5:3", "9:1"));
-        assertTransformed("", "", Collections.<String> emptyList());
+        assertTransformed("", "", Collections.<String>emptyList());
         assertTransformed("", "a, b", asList("a", "b"));
         assertTransformed("", "a:4, b:1", asList("a:4", "b:1"));
     }
@@ -159,12 +158,14 @@ public class FileLineDifferenceIteratorTest {
         return escaped;
     }
 
-    private static void assertReverseDiff(String marked, String all, List<String> diff) throws IOException {
+    private static void assertReverseDiff(String marked, String all, List<String> diff)
+        throws IOException {
         Iterator<String> itr = createItr(all, marked);
         assertThat("marked: " + marked + " all: " + all, ImmutableList.copyOf(itr), is(diff));
     }
 
-    private static void assertDiff(String marked, String all, List<String> diff) throws IOException {
+    private static void assertDiff(String marked, String all, List<String> diff)
+        throws IOException {
         Iterator<String> itr = createItr(marked, all);
         assertThat("marked: " + marked + " all: " + all, ImmutableList.copyOf(itr), is(diff));
     }
@@ -179,10 +180,12 @@ public class FileLineDifferenceIteratorTest {
         return new LineIterator(new StringReader(lines));
     }
 
-    private static void assertTransformed(String marked, String all, List<String> diff) throws IOException {
+    private static void assertTransformed(String marked, String all, List<String> diff)
+        throws IOException {
         Iterator<String> itr = new FileLineDifferenceIterator(lineItr(marked), lineItr(all),
             new Function<String, String>() {
-                @Nullable @Override
+                @Nullable
+                @Override
                 public String apply(@Nullable String input) {
                     if (input != null) {
                         return input.split(":")[0];

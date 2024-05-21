@@ -19,10 +19,6 @@
 
 package org.apache.jackrabbit.oak.segment.test.proxy;
 
-import java.io.Closeable;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
@@ -30,6 +26,9 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import java.io.Closeable;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class NetworkErrorProxy implements Closeable {
 
@@ -44,10 +43,12 @@ public class NetworkErrorProxy implements Closeable {
     });
 
     private final EventLoopGroup worker = new NioEventLoopGroup(0, r -> {
-        return new Thread(r, String.format("proxy-worker-%d", workerThreadNumber.getAndIncrement()));
+        return new Thread(r,
+            String.format("proxy-worker-%d", workerThreadNumber.getAndIncrement()));
     });
 
-    public NetworkErrorProxy(int inboundPort, String outboundHost, int outboundPort, int flipPosition, int skipPosition, int skipLength) throws InterruptedException {
+    public NetworkErrorProxy(int inboundPort, String outboundHost, int outboundPort,
+        int flipPosition, int skipPosition, int skipLength) throws InterruptedException {
         ServerBootstrap b = new ServerBootstrap()
             .group(boss, worker)
             .channel(NioServerSocketChannel.class)
@@ -55,7 +56,9 @@ public class NetworkErrorProxy implements Closeable {
 
                 @Override
                 public void initChannel(SocketChannel ch) throws Exception {
-                    ch.pipeline().addLast(new ForwardHandler(outboundHost, outboundPort, flipPosition, skipPosition, skipLength));
+                    ch.pipeline().addLast(
+                        new ForwardHandler(outboundHost, outboundPort, flipPosition, skipPosition,
+                            skipLength));
                 }
 
             });

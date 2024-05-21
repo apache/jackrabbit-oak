@@ -26,17 +26,15 @@ package org.apache.lucene.util.packed;
  */
 
 import java.io.IOException;
-
 import org.apache.lucene.store.DataOutput;
 
 /**
  * A writer for large sequences of longs.
  * <p>
- * The sequence is divided into fixed-size blocks and for each block, the
- * difference between each value and the minimum value of the block is encoded
- * using as few bits as possible. Memory usage of this class is proportional to
- * the block size. Each block has an overhead between 1 and 10 bytes to store
- * the minimum value and the number of bits per value of the block.
+ * The sequence is divided into fixed-size blocks and for each block, the difference between each
+ * value and the minimum value of the block is encoded using as few bits as possible. Memory usage
+ * of this class is proportional to the block size. Each block has an overhead between 1 and 10
+ * bytes to store the minimum value and the number of bits per value of the block.
  * <p>
  * Format:
  * <ul>
@@ -59,55 +57,57 @@ import org.apache.lucene.store.DataOutput;
  *     bits per value. They are the subtraction of the original values and
  *     MinValue
  * </ul>
+ *
+ * @lucene.internal
  * @see BlockPackedReaderIterator
  * @see BlockPackedReader
- * @lucene.internal
  */
 public final class BlockPackedWriter extends AbstractBlockPackedWriter {
 
-  /**
-   * Sole constructor.
-   * @param blockSize the number of values of a single block, must be a power of 2
-   */
-  public BlockPackedWriter(DataOutput out, int blockSize) {
-    super(out, blockSize);
-  }
-
-  protected void flush() throws IOException {
-    assert off > 0;
-    long min = Long.MAX_VALUE, max = Long.MIN_VALUE;
-    for (int i = 0; i < off; ++i) {
-      min = Math.min(values[i], min);
-      max = Math.max(values[i], max);
+    /**
+     * Sole constructor.
+     *
+     * @param blockSize the number of values of a single block, must be a power of 2
+     */
+    public BlockPackedWriter(DataOutput out, int blockSize) {
+        super(out, blockSize);
     }
 
-    final long delta = max - min;
-    final int bitsRequired = delta < 0 ? 64 : delta == 0L ? 0 : PackedInts.bitsRequired(delta);
-    if (bitsRequired == 64) {
-      // no need to delta-encode
-      min = 0L;
-    } else if (min > 0L) {
-      // make min as small as possible so that writeVLong requires fewer bytes
-      min = Math.max(0L, max - PackedInts.maxValue(bitsRequired));
-    }
-
-    final int token = (bitsRequired << BPV_SHIFT) | (min == 0 ? MIN_VALUE_EQUALS_0 : 0);
-    out.writeByte((byte) token);
-
-    if (min != 0) {
-      writeVLong(out, zigZagEncode(min) - 1);
-    }
-
-    if (bitsRequired > 0) {
-      if (min != 0) {
+    protected void flush() throws IOException {
+        assert off > 0;
+        long min = Long.MAX_VALUE, max = Long.MIN_VALUE;
         for (int i = 0; i < off; ++i) {
-          values[i] -= min;
+            min = Math.min(values[i], min);
+            max = Math.max(values[i], max);
         }
-      }
-      writeValues(bitsRequired);
-    }
 
-    off = 0;
-  }
+        final long delta = max - min;
+        final int bitsRequired = delta < 0 ? 64 : delta == 0L ? 0 : PackedInts.bitsRequired(delta);
+        if (bitsRequired == 64) {
+            // no need to delta-encode
+            min = 0L;
+        } else if (min > 0L) {
+            // make min as small as possible so that writeVLong requires fewer bytes
+            min = Math.max(0L, max - PackedInts.maxValue(bitsRequired));
+        }
+
+        final int token = (bitsRequired << BPV_SHIFT) | (min == 0 ? MIN_VALUE_EQUALS_0 : 0);
+        out.writeByte((byte) token);
+
+        if (min != 0) {
+            writeVLong(out, zigZagEncode(min) - 1);
+        }
+
+        if (bitsRequired > 0) {
+            if (min != 0) {
+                for (int i = 0; i < off; ++i) {
+                    values[i] -= min;
+                }
+            }
+            writeValues(bitsRequired);
+        }
+
+        off = 0;
+    }
 
 }

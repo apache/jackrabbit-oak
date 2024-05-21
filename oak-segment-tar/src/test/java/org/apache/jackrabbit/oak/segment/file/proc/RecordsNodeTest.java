@@ -28,7 +28,6 @@ import java.util.Collections;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.segment.file.proc.Proc.Backend;
 import org.apache.jackrabbit.oak.segment.file.proc.Proc.Backend.Record;
@@ -42,7 +41,8 @@ public class RecordsNodeTest {
         when(record.getNumber()).thenReturn(1);
 
         Backend backend = mock(Backend.class);
-        when(backend.getSegmentRecords("s")).thenReturn(Optional.of(Collections.singletonList(record)));
+        when(backend.getSegmentRecords("s")).thenReturn(
+            Optional.of(Collections.singletonList(record)));
 
         assertTrue(new RecordsNode(backend, "s").hasChildNode("1"));
     }
@@ -52,15 +52,15 @@ public class RecordsNodeTest {
         Set<Integer> numbers = Sets.newHashSet(1, 2, 3);
 
         Set<Record> records = numbers.stream()
-            .map(RecordsNodeTest::newRecord)
-            .collect(Collectors.toSet());
+                                     .map(RecordsNodeTest::newRecord)
+                                     .collect(Collectors.toSet());
 
         Backend backend = mock(Backend.class);
         when(backend.getSegmentRecords("s")).thenReturn(Optional.of(records));
 
         Set<String> names = numbers.stream()
-            .map(Object::toString)
-            .collect(Collectors.toSet());
+                                   .map(Object::toString)
+                                   .collect(Collectors.toSet());
 
         assertEquals(names, Sets.newHashSet(new RecordsNode(backend, "s").getChildNodeNames()));
     }

@@ -16,9 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 
-import static org.junit.Assert.*;
+import org.junit.Test;
 
 public class MetricsFormatterTest {
 

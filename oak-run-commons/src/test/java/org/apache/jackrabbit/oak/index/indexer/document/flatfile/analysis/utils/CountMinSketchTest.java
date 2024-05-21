@@ -23,7 +23,6 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
 import java.util.Random;
-
 import org.junit.Test;
 
 public class CountMinSketchTest {
@@ -91,7 +90,8 @@ public class CountMinSketchTest {
                         long expectedPercent = (int) (100. * counts[i] / size);
                         long estPercent = (int) (100. * e / size);
                         if (debug) {
-                            System.out.println("  " + i + " estimated " + e + " = " + estPercent + "%; real "
+                            System.out.println(
+                                "  " + i + " estimated " + e + " = " + estPercent + "%; real "
                                     + counts[i] + " = " + expectedPercent + "%");
                         }
                         double err = estPercent - expectedPercent;
@@ -141,6 +141,7 @@ public class CountMinSketchTest {
     }
 
     static class CountSketchError {
+
         double stdDevEntryEstimation;
 
         @Override

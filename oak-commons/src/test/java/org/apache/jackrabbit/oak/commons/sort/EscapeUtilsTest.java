@@ -19,53 +19,52 @@
 
 package org.apache.jackrabbit.oak.commons.sort;
 
-import java.util.Random;
-
-import org.apache.commons.lang3.RandomStringUtils;
-import org.junit.Test;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+
+import java.util.Random;
+import org.apache.commons.lang3.RandomStringUtils;
+import org.junit.Test;
 
 public class EscapeUtilsTest {
 
     @Test
-    public void noOp() throws Exception{
+    public void noOp() throws Exception {
         assertEquals(null, EscapeUtils.escapeLineBreak(null));
         assertEquals("abc", EscapeUtils.escapeLineBreak("abc"));
         assertEquals("", EscapeUtils.escapeLineBreak(""));
         assertEquals("some text with multi byte 田中 characters.",
-                EscapeUtils.escapeLineBreak("some text with multi byte 田中 characters."));
+            EscapeUtils.escapeLineBreak("some text with multi byte 田中 characters."));
     }
 
     @Test
-    public void testEscape() throws Exception{
+    public void testEscape() throws Exception {
         assertEquals("ab\\nc\\r", EscapeUtils.escapeLineBreak("ab\nc\r"));
         assertEquals("a\\\\z", EscapeUtils.escapeLineBreak("a\\z"));
         assertEquals("some text with multi \\nbyte 田中 characters.",
-                EscapeUtils.escapeLineBreak("some text with multi \nbyte 田中 characters."));
+            EscapeUtils.escapeLineBreak("some text with multi \nbyte 田中 characters."));
     }
 
     @Test
-    public void noOpUnEscape() throws Exception{
+    public void noOpUnEscape() throws Exception {
         assertEquals(null, EscapeUtils.unescapeLineBreaks(null));
         assertEquals("abc", EscapeUtils.unescapeLineBreaks("abc"));
         assertEquals("abc\b", EscapeUtils.unescapeLineBreaks("abc\b"));
         assertEquals("", EscapeUtils.unescapeLineBreaks(""));
         assertEquals("some text with multi byte 田中 characters.",
-                EscapeUtils.unescapeLineBreaks("some text with multi byte 田中 characters."));
+            EscapeUtils.unescapeLineBreaks("some text with multi byte 田中 characters."));
     }
 
     @Test
-    public void testUnEscape() throws Exception{
+    public void testUnEscape() throws Exception {
         assertEquals("ab\nc\r", EscapeUtils.unescapeLineBreaks("ab\\nc\\r"));
         assertEquals("a\\z", EscapeUtils.unescapeLineBreaks("a\\\\z"));
         assertEquals("some text with multi \nbyte 田中 characters.",
-                EscapeUtils.unescapeLineBreaks("some text with multi \\nbyte 田中 characters."));
+            EscapeUtils.unescapeLineBreaks("some text with multi \\nbyte 田中 characters."));
     }
 
     @Test
-    public void testEscapeUnEscape() throws Exception{
+    public void testEscapeUnEscape() throws Exception {
         assertEscape("ab\nc\r");
         assertEscape("a\\z");
         assertEscape("a\\\\z\nc");
@@ -73,12 +72,12 @@ public class EscapeUtilsTest {
     }
 
     @Test(expected = IllegalStateException.class)
-    public void invalidUnEscape() throws Exception{
+    public void invalidUnEscape() throws Exception {
         EscapeUtils.unescapeLineBreaks("abc\\");
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void invalidUnEscape2() throws Exception{
+    public void invalidUnEscape2() throws Exception {
         //Pass an unescaped string. In an escaped string a literal '\'
         // would always be escaped
         EscapeUtils.unescapeLineBreaks("abc\\k\\n");
@@ -113,7 +112,7 @@ public class EscapeUtilsTest {
         }
     }
 
-    private static void assertEscape(String text){
+    private static void assertEscape(String text) {
         String result = EscapeUtils.unescapeLineBreaks(EscapeUtils.escapeLineBreak(text));
         assertEquals(text, result);
     }

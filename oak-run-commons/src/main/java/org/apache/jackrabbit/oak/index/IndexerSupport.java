@@ -19,6 +19,9 @@
 
 package org.apache.jackrabbit.oak.index;
 
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
@@ -26,12 +29,10 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
-
-import org.apache.commons.io.FileUtils;
-import org.apache.felix.inventory.Format;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
-
+import org.apache.commons.io.FileUtils;
+import org.apache.felix.inventory.Format;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
@@ -50,19 +51,16 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-
 public class IndexerSupport {
+
     private final Logger log = LoggerFactory.getLogger(getClass());
     /**
-     * Directory name in output directory under which indexes are
-     * stored
+     * Directory name in output directory under which indexes are stored
      */
     public static final String LOCAL_INDEX_ROOT_DIR = "indexes";
     /**
-     * Checkpoint value which indicate that head state needs to be used
-     * This would be mostly used for testing purpose
+     * Checkpoint value which indicate that head state needs to be used This would be mostly used
+     * for testing purpose
      */
     private static final String HEAD_AS_CHECKPOINT = "head";
 
@@ -120,27 +118,33 @@ public class IndexerSupport {
             log.warn("Using head state for indexing. Such an index cannot be imported back");
         } else {
             checkpointedState = indexHelper.getNodeStore().retrieve(checkpoint);
-            checkNotNull(checkpointedState, "Not able to retrieve revision referred via checkpoint [%s]", checkpoint);
+            checkNotNull(checkpointedState,
+                "Not able to retrieve revision referred via checkpoint [%s]", checkpoint);
             checkpointInfo = indexHelper.getNodeStore().checkpointInfo(checkpoint);
         }
         return checkpointedState;
     }
 
-    public void updateIndexDefinitions(NodeBuilder rootBuilder) throws IOException, CommitFailedException {
+    public void updateIndexDefinitions(NodeBuilder rootBuilder)
+        throws IOException, CommitFailedException {
         if (indexDefinitions != null) {
             new IndexDefinitionUpdater(indexDefinitions).apply(rootBuilder);
         }
     }
 
     protected void dumpIndexDefinitions(NodeStore nodeStore) throws IOException {
-        IndexDefinitionPrinter printer = new IndexDefinitionPrinter(nodeStore, indexHelper.getIndexPathService());
-        printer.setFilter("{\"properties\":[\"*\", \"-:childOrder\"],\"nodes\":[\"*\", \"-:index-definition\", \"-:data\", \"-:suggest-data\"]}");
-        PrinterDumper dumper = new PrinterDumper(getLocalIndexDir(), IndexDefinitionUpdater.INDEX_DEFINITIONS_JSON,
-                false, Format.JSON, printer);
+        IndexDefinitionPrinter printer = new IndexDefinitionPrinter(nodeStore,
+            indexHelper.getIndexPathService());
+        printer.setFilter(
+            "{\"properties\":[\"*\", \"-:childOrder\"],\"nodes\":[\"*\", \"-:index-definition\", \"-:data\", \"-:suggest-data\"]}");
+        PrinterDumper dumper = new PrinterDumper(getLocalIndexDir(),
+            IndexDefinitionUpdater.INDEX_DEFINITIONS_JSON,
+            false, Format.JSON, printer);
         dumper.dump();
     }
 
-    public void switchIndexLanesAndReindexFlag(NodeStore copyOnWriteStore) throws CommitFailedException, IOException {
+    public void switchIndexLanesAndReindexFlag(NodeStore copyOnWriteStore)
+        throws CommitFailedException, IOException {
         NodeState root = copyOnWriteStore.getRoot();
         NodeBuilder builder = root.builder();
         updateIndexDefinitions(builder);
@@ -155,10 +159,12 @@ public class IndexerSupport {
         }
 
         copyOnWriteStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        log.info("Switched the async lane for indexes at {} to {} and marked them for reindex", indexHelper.getIndexPaths(), REINDEX_LANE);
+        log.info("Switched the async lane for indexes at {} to {} and marked them for reindex",
+            indexHelper.getIndexPaths(), REINDEX_LANE);
     }
 
-    public void postIndexWork(NodeStore copyOnWriteStore) throws CommitFailedException, IOException {
+    public void postIndexWork(NodeStore copyOnWriteStore)
+        throws CommitFailedException, IOException {
         switchIndexLanesBack(copyOnWriteStore);
         dumpIndexDefinitions(copyOnWriteStore);
     }
@@ -173,7 +179,8 @@ public class IndexerSupport {
         }
 
         copyOnWriteStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        log.info("Switched the async lane for indexes at {} back to there original lanes", indexHelper.getIndexPaths());
+        log.info("Switched the async lane for indexes at {} back to there original lanes",
+            indexHelper.getIndexPaths());
     }
 
     public Map<String, String> getCheckpointInfo() {
@@ -203,7 +210,8 @@ public class IndexerSupport {
 
         for (String indexPath : indexHelper.getIndexPaths()) {
             NodeBuilder idxBuilder = IndexerSupport.childBuilder(builder, indexPath, false);
-            IndexDefinition indexDf = indexDefBuilder.defn(idxBuilder.getNodeState()).indexPath(indexPath).root(root).build();
+            IndexDefinition indexDf = indexDefBuilder.defn(idxBuilder.getNodeState())
+                                                     .indexPath(indexPath).root(root).build();
             indexDefinitions.add(indexDf);
         }
         return indexDefinitions;
@@ -222,22 +230,32 @@ public class IndexerSupport {
     }
 
     /**
-     * @param indexDefinitions set of IndexDefinition to be used to calculate the Path Predicate
-     * @param typeToRepositoryPath Function to convert type <T> to valid repository path of type <String>
+     * @param indexDefinitions     set of IndexDefinition to be used to calculate the Path
+     *                             Predicate
+     * @param typeToRepositoryPath Function to convert type <T> to valid repository path of type
+     *                             <String>
      * @param <T>
-     * @return filter predicate based on the include/exclude path rules of the given set of index definitions.
+     * @return filter predicate based on the include/exclude path rules of the given set of index
+     * definitions.
      */
-    public <T> Predicate<T> getFilterPredicate(Set<IndexDefinition> indexDefinitions, Function<T, String> typeToRepositoryPath) {
-        return t -> indexDefinitions.stream().anyMatch(indexDef -> indexDef.getPathFilter().filter(typeToRepositoryPath.apply(t)) != PathFilter.Result.EXCLUDE);
+    public <T> Predicate<T> getFilterPredicate(Set<IndexDefinition> indexDefinitions,
+        Function<T, String> typeToRepositoryPath) {
+        return t -> indexDefinitions.stream().anyMatch(
+            indexDef -> indexDef.getPathFilter().filter(typeToRepositoryPath.apply(t))
+                != PathFilter.Result.EXCLUDE);
     }
 
     /**
-     * @param pattern Pattern for a custom excludes regex based on which paths would be filtered out
-     * @param typeToRepositoryPath Function to convert type <T> to valid repository path of type <String>
+     * @param pattern              Pattern for a custom excludes regex based on which paths would be
+     *                             filtered out
+     * @param typeToRepositoryPath Function to convert type <T> to valid repository path of type
+     *                             <String>
      * @param <T>
-     * @return Return a predicate that should test true for all paths that do not match the provided regex pattern.
+     * @return Return a predicate that should test true for all paths that do not match the provided
+     * regex pattern.
      */
-    public <T> Predicate<T> getFilterPredicateBasedOnCustomRegex(Pattern pattern, Function<T, String> typeToRepositoryPath) {
+    public <T> Predicate<T> getFilterPredicateBasedOnCustomRegex(Pattern pattern,
+        Function<T, String> typeToRepositoryPath) {
         return t -> !pattern.matcher(typeToRepositoryPath.apply(t)).find();
     }
 }

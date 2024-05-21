@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.benchmark;
 
 import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
+
 import java.io.File;
 import javax.jcr.Repository;
 import org.apache.jackrabbit.oak.Oak;
@@ -41,13 +42,13 @@ import org.slf4j.LoggerFactory;
  * use of the {@link WikipediaImport} to use a Wikipedia dump for content injestion.
  * </p>
  * <p>
- * Suggested dump: 
- * <a href="https://dumps.wikimedia.org/enwiki/20150403/enwiki-20150403-pages-articles.xml.bz2">https://dumps.wikimedia.org/enwiki/20150403/enwiki-20150403-pages-articles.xml.bz2</a>
+ * Suggested dump: <a
+ * href="https://dumps.wikimedia.org/enwiki/20150403/enwiki-20150403-pages-articles.xml.bz2">https://dumps.wikimedia.org/enwiki/20150403/enwiki-20150403-pages-articles.xml.bz2</a>
  * </p>
  * <p>
  * Usage example:
  * </p>
- * 
+ *
  * <pre>
  * java -Druntime=900 -Dlogback.configurationFile=logback-benchmark.xml \
  *      -jar ~/.m2/repository/org/apache/jackrabbit/oak-run/1.4-SNAPSHOT/oak-run-1.4-SNAPSHOT.jar \
@@ -59,7 +60,9 @@ import org.slf4j.LoggerFactory;
  * </p>
  */
 public class LucenePropertyFTIndexedContentAvailability extends PropertyFullTextTest {
-    private static final Logger LOG = LoggerFactory.getLogger(LucenePropertyFTIndexedContentAvailability.class);
+
+    private static final Logger LOG = LoggerFactory.getLogger(
+        LucenePropertyFTIndexedContentAvailability.class);
     private String currentFixtureName;
 
     @Override
@@ -74,9 +77,9 @@ public class LucenePropertyFTIndexedContentAvailability extends PropertyFullText
 
 
     public LucenePropertyFTIndexedContentAvailability(final File dump,
-                                                      final boolean flat,
-                                                      final boolean doReport,
-                                                      final Boolean storageEnabled) {
+        final boolean flat,
+        final boolean doReport,
+        final Boolean storageEnabled) {
         super(dump, flat, doReport, storageEnabled);
     }
 
@@ -93,7 +96,8 @@ public class LucenePropertyFTIndexedContentAvailability extends PropertyFullText
                        .with(new LuceneIndexEditorProvider())
                        .with((new LuceneInitializerHelper("luceneGlobal", storageEnabled)).async())
                        // the WikipediaImporter set a property `title`
-                       .with(new FullTextPropertyInitialiser("luceneTitle", of("title"), LuceneIndexConstants.TYPE_LUCENE).async())
+                       .with(new FullTextPropertyInitialiser("luceneTitle", of("title"),
+                           LuceneIndexConstants.TYPE_LUCENE).async())
                        .withAsyncIndexing("async", 5);
                     return new Jcr(oak);
                 }

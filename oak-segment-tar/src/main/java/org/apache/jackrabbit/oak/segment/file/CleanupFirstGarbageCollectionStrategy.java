@@ -40,7 +40,8 @@ class CleanupFirstGarbageCollectionStrategy extends AbstractGarbageCollectionStr
 
     @Override
     CompactionStrategy getTailCompactionStrategy() {
-        return new FallbackCompactionStrategy(new TailCompactionStrategy(), new FullCompactionStrategy());
+        return new FallbackCompactionStrategy(new TailCompactionStrategy(),
+            new FullCompactionStrategy());
     }
 
     @Override
@@ -49,8 +50,10 @@ class CleanupFirstGarbageCollectionStrategy extends AbstractGarbageCollectionStr
     }
 
     @Override
-    void run(Context context, EstimationStrategy estimationStrategy, CompactionStrategy compactionStrategy) throws IOException {
-        super.run(context, estimationStrategy, new CleanupFirstCompactionStrategy(context, compactionStrategy));
+    void run(Context context, EstimationStrategy estimationStrategy,
+        CompactionStrategy compactionStrategy) throws IOException {
+        super.run(context, estimationStrategy,
+            new CleanupFirstCompactionStrategy(context, compactionStrategy));
     }
 
 }

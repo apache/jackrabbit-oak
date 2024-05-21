@@ -65,7 +65,7 @@ public class DocumentNodeStoreServiceTest {
     private String repoHome;
 
     @Before
-    public void setUp() throws  Exception {
+    public void setUp() throws Exception {
         assumeTrue(MongoUtils.isAvailable());
         context.registerService(StatisticsProvider.class, StatisticsProvider.NOOP);
         context.registerInjectActivateService(preset);
@@ -95,13 +95,13 @@ public class DocumentNodeStoreServiceTest {
     @Test
     public void persistentCacheWithRepositoryHome() {
         assertPersistentCachePath(FilenameUtils.concat(repoHome, "cache"),
-                "cache", repoHome);
+            "cache", repoHome);
     }
 
     @Test
     public void journalCacheWithRepositoryHome() {
         assertJournalCachePath(FilenameUtils.concat(repoHome, "diff-cache"),
-                "diff-cache", repoHome);
+            "diff-cache", repoHome);
     }
 
     @Test
@@ -168,7 +168,8 @@ public class DocumentNodeStoreServiceTest {
         MockOsgi.setConfigForPid(context.bundleContext(), PID, config);
         MockOsgi.activate(service, context.bundleContext());
         boolean jobScheduled = false;
-        for (Runnable r : context.getServices(Runnable.class, "(scheduler.expression=\\*/5 \\* \\* \\* \\* ?)")) {
+        for (Runnable r : context.getServices(Runnable.class,
+            "(scheduler.expression=\\*/5 \\* \\* \\* \\* ?)")) {
             jobScheduled |= r.getClass().equals(DocumentNodeStoreService.RevisionGCJob.class);
         }
         assertTrue(jobScheduled);
@@ -191,9 +192,9 @@ public class DocumentNodeStoreServiceTest {
     }
 
     @Test
-    public void persistentCacheExclude() throws Exception{
+    public void persistentCacheExclude() throws Exception {
         Map<String, Object> config = newConfig(repoHome);
-        config.put("persistentCacheIncludes", new String[] {"/a/b", "/c/d ", null});
+        config.put("persistentCacheIncludes", new String[]{"/a/b", "/c/d ", null});
         MockOsgi.setConfigForPid(context.bundleContext(), PID, config);
         MockOsgi.activate(service, context.bundleContext());
 
@@ -207,8 +208,8 @@ public class DocumentNodeStoreServiceTest {
     @Test
     public void preset() throws Exception {
         MockOsgi.setConfigForPid(context.bundleContext(),
-                Configuration.PRESET_PID,
-                DocumentNodeStoreServiceConfiguration.PROP_SO_KEEP_ALIVE, true);
+            Configuration.PRESET_PID,
+            DocumentNodeStoreServiceConfiguration.PROP_SO_KEEP_ALIVE, true);
         MockOsgi.activate(preset, context.bundleContext());
 
         MockOsgi.setConfigForPid(context.bundleContext(), PID, newConfig(repoHome));
@@ -224,8 +225,8 @@ public class DocumentNodeStoreServiceTest {
     @Test
     public void presetOverride() throws Exception {
         MockOsgi.setConfigForPid(context.bundleContext(),
-                Configuration.PRESET_PID,
-                DocumentNodeStoreServiceConfiguration.PROP_SO_KEEP_ALIVE, true);
+            Configuration.PRESET_PID,
+            DocumentNodeStoreServiceConfiguration.PROP_SO_KEEP_ALIVE, true);
         MockOsgi.activate(preset, context.bundleContext());
 
         Map<String, Object> config = newConfig(repoHome);
@@ -300,7 +301,7 @@ public class DocumentNodeStoreServiceTest {
         LeaseFailureHandler leaseFailureHandler = clusterInfo.getLeaseFailureHandler();
         assertNotNull(leaseFailureHandler);
         assertEquals(0, counter.get());
-        for(int i = 0; i < 10; i++) {
+        for (int i = 0; i < 10; i++) {
             // now the custom LeaseFailureHandler should be used,
             // which just increments a counter.
             // but more importantly: it should no longer fail,
@@ -379,8 +380,8 @@ public class DocumentNodeStoreServiceTest {
     }
 
     private void assertPersistentCachePath(String expectedPath,
-                                           String persistentCache,
-                                           String repoHome) {
+        String persistentCache,
+        String repoHome) {
         Map<String, Object> config = newConfig(repoHome);
         config.put("persistentCache", persistentCache);
         config.put("journalCache", "-");
@@ -388,8 +389,8 @@ public class DocumentNodeStoreServiceTest {
     }
 
     private void assertJournalCachePath(String expectedPath,
-                                        String journalCache,
-                                        String repoHome) {
+        String journalCache,
+        String repoHome) {
         Map<String, Object> config = newConfig(repoHome);
         config.put("journalCache", journalCache);
         config.put("persistentCache", "-");
@@ -397,7 +398,7 @@ public class DocumentNodeStoreServiceTest {
     }
 
     private void assertCachePath(String expectedPath,
-                                 Map<String, Object> config) {
+        Map<String, Object> config) {
         assertFalse(new File(expectedPath).exists());
 
         MockOsgi.setConfigForPid(context.bundleContext(), PID, config);
@@ -409,23 +410,23 @@ public class DocumentNodeStoreServiceTest {
     }
 
     private void assertNoPersistentCachePath(String unexpectedPath,
-                                             String persistentCache,
-                                             String repoHome) {
+        String persistentCache,
+        String repoHome) {
         Map<String, Object> config = newConfig(repoHome);
         config.put("persistentCache", persistentCache);
         assertNoCachePath(unexpectedPath, config);
     }
 
     private void assertNoJournalCachePath(String unexpectedPath,
-                                          String journalCache,
-                                          String repoHome) {
+        String journalCache,
+        String repoHome) {
         Map<String, Object> config = newConfig(repoHome);
         config.put("journalCache", journalCache);
         assertNoCachePath(unexpectedPath, config);
     }
 
     private void assertNoCachePath(String unexpectedPath,
-                                   Map<String, Object> config) {
+        Map<String, Object> config) {
         assertFalse(new File(unexpectedPath).exists());
         MockOsgi.setConfigForPid(context.bundleContext(), PID, config);
         MockOsgi.activate(service, context.bundleContext());

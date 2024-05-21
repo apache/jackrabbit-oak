@@ -19,9 +19,10 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
+
 import java.io.File;
 import java.io.IOException;
-
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.plugins.index.importer.IndexImporterProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
@@ -34,12 +35,11 @@ import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.store.IOContext;
 
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
-
 public class LuceneIndexImporter implements IndexImporterProvider {
+
     private GarbageCollectableBlobStore blobStore;
 
-    public LuceneIndexImporter(){
+    public LuceneIndexImporter() {
 
     }
 
@@ -48,7 +48,8 @@ public class LuceneIndexImporter implements IndexImporterProvider {
     }
 
     @Override
-    public void importIndex(NodeState root, NodeBuilder definitionBuilder, File indexDir) throws IOException {
+    public void importIndex(NodeState root, NodeBuilder definitionBuilder, File indexDir)
+        throws IOException {
         LocalIndexDir localIndex = new LocalIndexDir(indexDir);
 
         //TODO The indexFormatVersion would be considered latest. Need to be revisited
@@ -56,9 +57,10 @@ public class LuceneIndexImporter implements IndexImporterProvider {
 
         definitionBuilder.getChildNode(IndexDefinition.STATUS_NODE).remove();
 
-        ReindexOperations reindexOps = new ReindexOperations(root, definitionBuilder, localIndex.getJcrPath(),
-                new LuceneIndexDefinition.Builder());
-        LuceneIndexDefinition definition = (LuceneIndexDefinition)reindexOps.apply(true);
+        ReindexOperations reindexOps = new ReindexOperations(root, definitionBuilder,
+            localIndex.getJcrPath(),
+            new LuceneIndexDefinition.Builder());
+        LuceneIndexDefinition definition = (LuceneIndexDefinition) reindexOps.apply(true);
 
         for (File dir : localIndex.dir.listFiles(File::isDirectory)) {
             String jcrName = localIndex.indexMeta.getJcrNameFromFSName(dir.getName());
@@ -77,8 +79,9 @@ public class LuceneIndexImporter implements IndexImporterProvider {
         this.blobStore = blobStore;
     }
 
-    private void copyDirectory(LuceneIndexDefinition definition, NodeBuilder definitionBuilder, String jcrName, File dir)
-            throws IOException {
+    private void copyDirectory(LuceneIndexDefinition definition, NodeBuilder definitionBuilder,
+        String jcrName, File dir)
+        throws IOException {
         try (Closer closer = Closer.create()) {
             Directory sourceDir = FSDirectory.open(dir);
             closer.register(sourceDir);
@@ -89,7 +92,8 @@ public class LuceneIndexImporter implements IndexImporterProvider {
             // //others as is
             definitionBuilder.getChildNode(jcrName).remove();
 
-            Directory targetDir = new OakDirectory(definitionBuilder, jcrName, definition, false, blobStore);
+            Directory targetDir = new OakDirectory(definitionBuilder, jcrName, definition, false,
+                blobStore);
             closer.register(targetDir);
 
             for (String file : sourceDir.listAll()) {

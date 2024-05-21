@@ -25,7 +25,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
-
 import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.oak.commons.json.JsonObject;
@@ -47,21 +46,24 @@ final class Utils {
 
     private static final int TAR_SEGMENT_CACHE_SIZE = Integer.getInteger("cache", 256);
 
-    private Utils() {}
-
-    static ReadOnlyFileStore openReadOnlyFileStore(File path, BlobStore blobStore) throws IOException, InvalidFileStoreVersionException {
-        return fileStoreBuilder(isValidFileStoreOrFail(path))
-                .withSegmentCacheSize(TAR_SEGMENT_CACHE_SIZE)
-                .withMemoryMapping(TAR_STORAGE_MEMORY_MAPPED)
-                .withBlobStore(blobStore)
-                .buildReadOnly();
+    private Utils() {
     }
 
-    static ReadOnlyFileStore openReadOnlyFileStore(File path) throws IOException, InvalidFileStoreVersionException {
+    static ReadOnlyFileStore openReadOnlyFileStore(File path, BlobStore blobStore)
+        throws IOException, InvalidFileStoreVersionException {
         return fileStoreBuilder(isValidFileStoreOrFail(path))
-                .withSegmentCacheSize(TAR_SEGMENT_CACHE_SIZE)
-                .withMemoryMapping(TAR_STORAGE_MEMORY_MAPPED)
-                .buildReadOnly();
+            .withSegmentCacheSize(TAR_SEGMENT_CACHE_SIZE)
+            .withMemoryMapping(TAR_STORAGE_MEMORY_MAPPED)
+            .withBlobStore(blobStore)
+            .buildReadOnly();
+    }
+
+    static ReadOnlyFileStore openReadOnlyFileStore(File path)
+        throws IOException, InvalidFileStoreVersionException {
+        return fileStoreBuilder(isValidFileStoreOrFail(path))
+            .withSegmentCacheSize(TAR_SEGMENT_CACHE_SIZE)
+            .withMemoryMapping(TAR_STORAGE_MEMORY_MAPPED)
+            .buildReadOnly();
     }
 
     static BlobStore newBasicReadOnlyBlobStore() {
@@ -73,13 +75,14 @@ final class Utils {
 
         if (journal.exists()) {
             try (JournalReader journalReader = new JournalReader(journal)) {
-                Iterator<String> revisionIterator = Iterators.transform(journalReader, new Function<JournalEntry, String>() {
-                    @NotNull
-                    @Override
-                    public String apply(JournalEntry entry) {
-                        return entry.getRevision();
-                    }
-                });
+                Iterator<String> revisionIterator = Iterators.transform(journalReader,
+                    new Function<JournalEntry, String>() {
+                        @NotNull
+                        @Override
+                        public String apply(JournalEntry entry) {
+                            return entry.getRevision();
+                        }
+                    });
                 return newArrayList(revisionIterator);
             } catch (Exception e) {
                 e.printStackTrace();

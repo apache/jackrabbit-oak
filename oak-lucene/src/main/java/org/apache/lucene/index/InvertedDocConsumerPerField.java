@@ -29,22 +29,22 @@ import java.io.IOException;
 
 abstract class InvertedDocConsumerPerField {
 
-  // Called once per field, and is given all IndexableField
-  // occurrences for this field in the document.  Return
-  // true if you wish to see inverted tokens for these
-  // fields:
-  abstract boolean start(IndexableField[] fields, int count) throws IOException;
+    // Called once per field, and is given all IndexableField
+    // occurrences for this field in the document.  Return
+    // true if you wish to see inverted tokens for these
+    // fields:
+    abstract boolean start(IndexableField[] fields, int count) throws IOException;
 
-  // Called before a field instance is being processed
-  abstract void start(IndexableField field);
-  
-  // Called once per inverted token
-  abstract void add() throws IOException;
+    // Called before a field instance is being processed
+    abstract void start(IndexableField field);
 
-  // Called once per field per document, after all IndexableFields
-  // are inverted
-  abstract void finish() throws IOException;
+    // Called once per inverted token
+    abstract void add() throws IOException;
 
-  // Called on hitting an aborting exception
-  abstract void abort();
+    // Called once per field per document, after all IndexableFields
+    // are inverted
+    abstract void finish() throws IOException;
+
+    // Called on hitting an aborting exception
+    abstract void abort();
 }

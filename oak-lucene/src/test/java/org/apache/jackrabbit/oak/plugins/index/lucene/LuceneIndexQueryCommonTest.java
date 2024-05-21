@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import java.io.File;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import org.apache.jackrabbit.oak.InitialContentHelper;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.plugins.index.IndexQueryCommonTest;
@@ -24,13 +27,9 @@ import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
-import java.io.File;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 /**
- * Tests the query engine using the default index implementation: the
- * {@link LuceneIndexProvider}
+ * Tests the query engine using the default index implementation: the {@link LuceneIndexProvider}
  */
 public class LuceneIndexQueryCommonTest extends IndexQueryCommonTest {
 
@@ -40,8 +39,10 @@ public class LuceneIndexQueryCommonTest extends IndexQueryCommonTest {
 
     @Override
     protected ContentRepository createRepository() {
-        LuceneTestRepositoryBuilder luceneTestRepositoryBuilder = new LuceneTestRepositoryBuilder(executorService, temporaryFolder);
-        luceneTestRepositoryBuilder.setNodeStore(new MemoryNodeStore(InitialContentHelper.INITIAL_CONTENT));
+        LuceneTestRepositoryBuilder luceneTestRepositoryBuilder = new LuceneTestRepositoryBuilder(
+            executorService, temporaryFolder);
+        luceneTestRepositoryBuilder.setNodeStore(
+            new MemoryNodeStore(InitialContentHelper.INITIAL_CONTENT));
         repositoryOptionsUtil = luceneTestRepositoryBuilder.build();
         indexOptions = new LuceneIndexOptions();
         return repositoryOptionsUtil.getOak().createContentRepository();

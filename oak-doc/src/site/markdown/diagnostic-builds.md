@@ -24,7 +24,7 @@ environment in order to assess whether it actually solves the issues.
 What you are aiming is to eventually produce a bundle in the format
 of, for example, `oak-core-1.0.22-R2707077`.
 
-Let's see it through examples. We'll consider the case for **Branches** 
+Let's see it through examples. We'll consider the case for **Branches**
 and **Trunk**.
 
 ## Trunk
@@ -50,12 +50,12 @@ This means you'll produce a bundle with a version of
 `1.15-R9c7d7bf569`.
 
 **Note that the produced version is lower then the official release
-  you're working on. 1.15 vs 1.16.0**
-  
+you're working on. 1.15 vs 1.16.0**
+
 **Note to use the '-R' (uppercase) instead of '-r' (lowercase) as it
-  will be lower than '-SNAPSHOT'. Doing otherwise will result in
-  troubles when trying to apply a '-SNAPSHOT' version on top of the
-  internal build**
+will be lower than '-SNAPSHOT'. Doing otherwise will result in
+troubles when trying to apply a '-SNAPSHOT' version on top of the
+internal build**
 
 If you're in doubt about what versioning and how OSGi or Maven will
 behave have a look at the
@@ -86,12 +86,12 @@ This means you'll produce a bundle with a version of
 `1.0.22-R9c7d7bf569`.
 
 **Note that the produced version is lower then the official release
-  you're working on. 1.0.22 vs 1.0.23**
-  
+you're working on. 1.0.22 vs 1.0.23**
+
 **Note to use the '-R' (uppercase) instead of '-r' (lowercase) as it
-  will be lower than '-SNAPSHOT'. Doing otherwise will result in
-  troubles when trying to apply a '-SNAPSHOT' version on top of the
-  internal build**
+will be lower than '-SNAPSHOT'. Doing otherwise will result in
+troubles when trying to apply a '-SNAPSHOT' version on top of the
+internal build**
 
 If you're in doubt about what versioning and how OSGi or Maven will
 behave have a look at the
@@ -103,8 +103,8 @@ fix is going to be released.
 
 ### Changing the version in all the poms.
 
-Now. From our examples above you either want to produce `1.0.22-R9c7d7bf569`` 
-or `1.15-R9c7d7bf569`. For sake of simplicity we'll detail only the `1.0.22-R9c7d7bf569` 
+Now. From our examples above you either want to produce `1.0.22-R9c7d7bf569``
+or `1.15-R9c7d7bf569`. For sake of simplicity we'll detail only the `1.0.22-R9c7d7bf569`
 case. For `1.15-R9c7d7bf569` you simply have to change the version.
 
 Go into `oak-parent` and issue the following maven command.

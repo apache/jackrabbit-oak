@@ -16,6 +16,10 @@
  */
 package org.apache.jackrabbit.oak.spi.security.privilege;
 
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+import javax.jcr.security.AccessControlException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -25,21 +29,16 @@ import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import javax.jcr.security.AccessControlException;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
-
 /**
  * Privilege management related utility methods.
  */
 public final class PrivilegeUtil implements PrivilegeConstants {
 
-    private PrivilegeUtil() {}
+    private PrivilegeUtil() {
+    }
 
     /**
-     * Returns the root tree for all privilege definitions stored in the content
-     * repository.
+     * Returns the root tree for all privilege definitions stored in the content repository.
      *
      * @return The privileges root.
      */
@@ -49,9 +48,8 @@ public final class PrivilegeUtil implements PrivilegeConstants {
     }
 
     /**
-     * Reads the privilege definition stored in the specified definition tree.
-     * Note, that this utility does not check the existence nor the node type
-     * of the specified tree.
+     * Reads the privilege definition stored in the specified definition tree. Note, that this
+     * utility does not check the existence nor the node type of the specified tree.
      *
      * @param definitionTree An existing tree storing a privilege definition.
      * @return A new instance of {@code PrivilegeDefinition}.
@@ -70,14 +68,15 @@ public final class PrivilegeUtil implements PrivilegeConstants {
 
     /**
      * Convert the given JCR privilege names to Oak names.
-     * 
-     * @param jcrNames The JCR names of privileges
+     *
+     * @param jcrNames       The JCR names of privileges
      * @param namePathMapper The {@link NamePathMapper} to use for the conversion.
      * @return A set of Oak names
      * @throws AccessControlException If the given JCR names cannot be converted.
      */
     @NotNull
-    public static Set<String> getOakNames(@Nullable String[] jcrNames, @NotNull NamePathMapper namePathMapper) throws AccessControlException {
+    public static Set<String> getOakNames(@Nullable String[] jcrNames,
+        @NotNull NamePathMapper namePathMapper) throws AccessControlException {
         Set<String> oakNames;
         if (jcrNames == null || jcrNames.length == 0) {
             oakNames = Collections.emptySet();
@@ -93,14 +92,16 @@ public final class PrivilegeUtil implements PrivilegeConstants {
 
     /**
      * Convert the given JCR privilege name to an Oak name.
-     * 
-     * @param jcrName The JCR name of a privilege.
+     *
+     * @param jcrName        The JCR name of a privilege.
      * @param namePathMapper The {@link NamePathMapper} to use for the conversion.
      * @return the Oak name of the given privilege.
-     * @throws AccessControlException If the specified name is null or cannot be resolved to an Oak name.
+     * @throws AccessControlException If the specified name is null or cannot be resolved to an Oak
+     *                                name.
      */
     @NotNull
-    public static String getOakName(@Nullable String jcrName, @NotNull NamePathMapper namePathMapper) throws AccessControlException {
+    public static String getOakName(@Nullable String jcrName,
+        @NotNull NamePathMapper namePathMapper) throws AccessControlException {
         if (jcrName == null) {
             throw new AccessControlException("Invalid privilege name 'null'");
         }

@@ -33,44 +33,44 @@ import static org.apache.jackrabbit.oak.spi.state.ConflictType.DELETE_DELETED_NO
 import static org.apache.jackrabbit.oak.spi.state.ConflictType.DELETE_DELETED_PROPERTY;
 
 import java.util.LinkedList;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * A {@code CompositeConflictHandler} delegates conflict handling
- * to multiple backing handlers. The backing handlers are invoked in
- * the inverse order they have been installed until a handler returning
- * a valid resolution (i.e. not {@code IGNORED)} is found. If for a certain
- * conflict none of the backing handlers returns a valid resolution
- * this implementation throws an {@code IllegalStateException}.
+ * A {@code CompositeConflictHandler} delegates conflict handling to multiple backing handlers. The
+ * backing handlers are invoked in the inverse order they have been installed until a handler
+ * returning a valid resolution (i.e. not {@code IGNORED)} is found. If for a certain conflict none
+ * of the backing handlers returns a valid resolution this implementation throws an
+ * {@code IllegalStateException}.
  */
 public class CompositeConflictHandler implements ThreeWayConflictHandler {
+
     private final LinkedList<ThreeWayConflictHandler> handlers;
 
     /**
-     * Create a new {@code CompositeConflictHandler} with an initial set of
-     * backing handler. Use {@link #addHandler(ThreeWayConflictHandler)} to add additional
-     * handlers.
-     * @param handlers  the backing handlers
+     * Create a new {@code CompositeConflictHandler} with an initial set of backing handler. Use
+     * {@link #addHandler(ThreeWayConflictHandler)} to add additional handlers.
+     *
+     * @param handlers the backing handlers
      */
     public CompositeConflictHandler(@NotNull Iterable<ThreeWayConflictHandler> handlers) {
         this.handlers = newLinkedList(checkNotNull(handlers));
     }
 
     /**
-     * Create a new {@code CompositeConflictHandler} with no backing handlers.
-     * backing handler. Use {@link #addHandler(ThreeWayConflictHandler)} to add handlers.
+     * Create a new {@code CompositeConflictHandler} with no backing handlers. backing handler. Use
+     * {@link #addHandler(ThreeWayConflictHandler)} to add handlers.
      */
     public CompositeConflictHandler() {
         this.handlers = newLinkedList();
     }
 
     /**
-     * Add a new backing conflict handler. The new handler takes precedence
-     * over all currently installed handlers.
+     * Add a new backing conflict handler. The new handler takes precedence over all currently
+     * installed handlers.
+     *
      * @param handler
      * @return this
      */
@@ -81,7 +81,8 @@ public class CompositeConflictHandler implements ThreeWayConflictHandler {
 
     @NotNull
     @Override
-    public Resolution addExistingProperty(@NotNull NodeBuilder parent, @NotNull PropertyState ours, @NotNull PropertyState theirs) {
+    public Resolution addExistingProperty(@NotNull NodeBuilder parent, @NotNull PropertyState ours,
+        @NotNull PropertyState theirs) {
         for (ThreeWayConflictHandler handler : handlers) {
             Resolution resolution = handler.addExistingProperty(parent, ours, theirs);
             if (resolution != IGNORED) {
@@ -89,12 +90,13 @@ public class CompositeConflictHandler implements ThreeWayConflictHandler {
             }
         }
         throw new IllegalStateException("No conflict handler for " +
-                ADD_EXISTING_PROPERTY + " conflict");
+            ADD_EXISTING_PROPERTY + " conflict");
     }
 
     @NotNull
     @Override
-    public Resolution changeDeletedProperty(@NotNull NodeBuilder parent, @NotNull PropertyState ours, @NotNull PropertyState base) {
+    public Resolution changeDeletedProperty(@NotNull NodeBuilder parent,
+        @NotNull PropertyState ours, @NotNull PropertyState base) {
         for (ThreeWayConflictHandler handler : handlers) {
             Resolution resolution = handler.changeDeletedProperty(parent, ours, base);
             if (resolution != IGNORED) {
@@ -102,13 +104,14 @@ public class CompositeConflictHandler implements ThreeWayConflictHandler {
             }
         }
         throw new IllegalStateException("No conflict handler for " +
-                CHANGE_DELETED_PROPERTY + " conflict");
+            CHANGE_DELETED_PROPERTY + " conflict");
     }
 
     @NotNull
     @Override
-    public Resolution changeChangedProperty(@NotNull NodeBuilder parent, @NotNull PropertyState ours, @NotNull PropertyState theirs,
-                                            @NotNull PropertyState base) {
+    public Resolution changeChangedProperty(@NotNull NodeBuilder parent,
+        @NotNull PropertyState ours, @NotNull PropertyState theirs,
+        @NotNull PropertyState base) {
         for (ThreeWayConflictHandler handler : handlers) {
             Resolution resolution = handler.changeChangedProperty(parent, ours, theirs, base);
             if (resolution != IGNORED) {
@@ -116,12 +119,13 @@ public class CompositeConflictHandler implements ThreeWayConflictHandler {
             }
         }
         throw new IllegalStateException("No conflict handler for " +
-                CHANGE_CHANGED_PROPERTY + " conflict");
+            CHANGE_CHANGED_PROPERTY + " conflict");
     }
 
     @NotNull
     @Override
-    public Resolution deleteDeletedProperty(@NotNull NodeBuilder parent, @NotNull PropertyState base) {
+    public Resolution deleteDeletedProperty(@NotNull NodeBuilder parent,
+        @NotNull PropertyState base) {
         for (ThreeWayConflictHandler handler : handlers) {
             Resolution resolution = handler.deleteDeletedProperty(parent, base);
             if (resolution != IGNORED) {
@@ -129,12 +133,13 @@ public class CompositeConflictHandler implements ThreeWayConflictHandler {
             }
         }
         throw new IllegalStateException("No conflict handler for " +
-                DELETE_DELETED_PROPERTY + " conflict");
+            DELETE_DELETED_PROPERTY + " conflict");
     }
 
     @NotNull
     @Override
-    public Resolution deleteChangedProperty(@NotNull NodeBuilder parent, @NotNull PropertyState theirs, @NotNull PropertyState base) {
+    public Resolution deleteChangedProperty(@NotNull NodeBuilder parent,
+        @NotNull PropertyState theirs, @NotNull PropertyState base) {
         for (ThreeWayConflictHandler handler : handlers) {
             Resolution resolution = handler.deleteChangedProperty(parent, theirs, base);
             if (resolution != IGNORED) {
@@ -142,12 +147,13 @@ public class CompositeConflictHandler implements ThreeWayConflictHandler {
             }
         }
         throw new IllegalStateException("No conflict handler for " +
-                DELETE_CHANGED_PROPERTY + " conflict");
+            DELETE_CHANGED_PROPERTY + " conflict");
     }
 
     @NotNull
     @Override
-    public Resolution addExistingNode(@NotNull NodeBuilder parent, @NotNull String name, @NotNull NodeState ours, @NotNull NodeState theirs) {
+    public Resolution addExistingNode(@NotNull NodeBuilder parent, @NotNull String name,
+        @NotNull NodeState ours, @NotNull NodeState theirs) {
         for (ThreeWayConflictHandler handler : handlers) {
             Resolution resolution = handler.addExistingNode(parent, name, ours, theirs);
             if (resolution != IGNORED) {
@@ -155,12 +161,13 @@ public class CompositeConflictHandler implements ThreeWayConflictHandler {
             }
         }
         throw new IllegalStateException("No conflict handler for " +
-                ADD_EXISTING_NODE + " conflict");
+            ADD_EXISTING_NODE + " conflict");
     }
 
     @NotNull
     @Override
-    public Resolution changeDeletedNode(@NotNull NodeBuilder parent, @NotNull String name, @NotNull NodeState ours, @NotNull NodeState base) {
+    public Resolution changeDeletedNode(@NotNull NodeBuilder parent, @NotNull String name,
+        @NotNull NodeState ours, @NotNull NodeState base) {
         for (ThreeWayConflictHandler handler : handlers) {
             Resolution resolution = handler.changeDeletedNode(parent, name, ours, base);
             if (resolution != IGNORED) {
@@ -168,12 +175,13 @@ public class CompositeConflictHandler implements ThreeWayConflictHandler {
             }
         }
         throw new IllegalStateException("No conflict handler for " +
-                CHANGE_DELETED_NODE + " conflict");
+            CHANGE_DELETED_NODE + " conflict");
     }
 
     @NotNull
     @Override
-    public Resolution deleteChangedNode(@NotNull NodeBuilder parent, @NotNull String name, @NotNull NodeState theirs, @NotNull NodeState base) {
+    public Resolution deleteChangedNode(@NotNull NodeBuilder parent, @NotNull String name,
+        @NotNull NodeState theirs, @NotNull NodeState base) {
         for (ThreeWayConflictHandler handler : handlers) {
             Resolution resolution = handler.deleteChangedNode(parent, name, theirs, base);
             if (resolution != IGNORED) {
@@ -181,12 +189,13 @@ public class CompositeConflictHandler implements ThreeWayConflictHandler {
             }
         }
         throw new IllegalStateException("No conflict handler for " +
-                DELETE_CHANGED_NODE + " conflict");
+            DELETE_CHANGED_NODE + " conflict");
     }
 
     @NotNull
     @Override
-    public Resolution deleteDeletedNode(@NotNull NodeBuilder parent, @NotNull String name, @NotNull NodeState base) {
+    public Resolution deleteDeletedNode(@NotNull NodeBuilder parent, @NotNull String name,
+        @NotNull NodeState base) {
         for (ThreeWayConflictHandler handler : handlers) {
             Resolution resolution = handler.deleteDeletedNode(parent, name, base);
             if (resolution != IGNORED) {
@@ -194,6 +203,6 @@ public class CompositeConflictHandler implements ThreeWayConflictHandler {
             }
         }
         throw new IllegalStateException("No conflict handler for " +
-                DELETE_DELETED_NODE + " conflict");
+            DELETE_DELETED_NODE + " conflict");
     }
 }

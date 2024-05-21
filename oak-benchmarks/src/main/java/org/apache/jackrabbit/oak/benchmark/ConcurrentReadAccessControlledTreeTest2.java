@@ -23,22 +23,21 @@ import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.Privilege;
-
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.UserManager;
 
 /**
- * Concurrently reads random items from the deep tree where every 100th node
- * is access controlled and each policy node contains 100 ACEs for different
- * principals.
+ * Concurrently reads random items from the deep tree where every 100th node is access controlled
+ * and each policy node contains 100 ACEs for different principals.
  */
 public class ConcurrentReadAccessControlledTreeTest2 extends ConcurrentReadDeepTreeTest {
 
     int counter = 0;
     final List<Principal> principals = new ArrayList<Principal>();
 
-    public ConcurrentReadAccessControlledTreeTest2(boolean runAsAdmin, int itemsToRead, boolean doReport) {
+    public ConcurrentReadAccessControlledTreeTest2(boolean runAsAdmin, int itemsToRead,
+        boolean doReport) {
         super(runAsAdmin, itemsToRead, doReport);
     }
 
@@ -59,10 +58,11 @@ public class ConcurrentReadAccessControlledTreeTest2 extends ConcurrentReadDeepT
     protected void visitingNode(Node node, int i) throws RepositoryException {
         super.visitingNode(node, i);
         AccessControlManager acMgr = node.getSession().getAccessControlManager();
-        Privilege[] privileges = new Privilege[] {
-                acMgr.privilegeFromName(Privilege.JCR_READ),
-                acMgr.privilegeFromName(Privilege.JCR_READ_ACCESS_CONTROL)
-        };        if (!node.getPath().contains("rep:policy")) {
+        Privilege[] privileges = new Privilege[]{
+            acMgr.privilegeFromName(Privilege.JCR_READ),
+            acMgr.privilegeFromName(Privilege.JCR_READ_ACCESS_CONTROL)
+        };
+        if (!node.getPath().contains("rep:policy")) {
             if (++counter == 100) {
                 addPolicy(acMgr, node, privileges, principals);
                 counter = 0;

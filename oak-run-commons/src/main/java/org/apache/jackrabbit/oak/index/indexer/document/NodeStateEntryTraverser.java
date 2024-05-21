@@ -19,6 +19,15 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document;
 
+import static java.util.Collections.emptyList;
+import static java.util.Collections.singleton;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.concat;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
+
+import java.io.Closeable;
+import java.io.IOException;
+import java.util.Iterator;
+import java.util.function.Consumer;
 import org.apache.jackrabbit.guava.common.collect.FluentIterable;
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
@@ -33,39 +42,32 @@ import org.apache.jackrabbit.oak.plugins.document.mongo.TraversingRange;
 import org.apache.jackrabbit.oak.plugins.document.util.CloseableIterable;
 import org.jetbrains.annotations.NotNull;
 
-import java.io.Closeable;
-import java.io.IOException;
-import java.util.Iterator;
-import java.util.function.Consumer;
-
-import static java.util.Collections.emptyList;
-import static java.util.Collections.singleton;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.concat;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
-
 public class NodeStateEntryTraverser implements Iterable<NodeStateEntry>, Closeable {
+
     private final Closer closer = Closer.create();
     private final RevisionVector rootRevision;
     private final DocumentNodeStore documentNodeStore;
     private final MongoDocumentStore documentStore;
     /**
-     * Traverse only those node states which have been modified on or after lower limit
-     * and before the upper limit of this range.
+     * Traverse only those node states which have been modified on or after lower limit and before
+     * the upper limit of this range.
      */
     private final TraversingRange traversingRange;
 
-    private Consumer<String> progressReporter = id -> {};
+    private Consumer<String> progressReporter = id -> {
+    };
 
     private final String id;
 
     public NodeStateEntryTraverser(String id, DocumentNodeStore documentNodeStore,
-                                   MongoDocumentStore documentStore) {
+        MongoDocumentStore documentStore) {
         this(id, documentNodeStore.getHeadRevision(), documentNodeStore, documentStore,
-                new TraversingRange(new LastModifiedRange(0, Long.MAX_VALUE), null));
+            new TraversingRange(new LastModifiedRange(0, Long.MAX_VALUE), null));
     }
 
-    public NodeStateEntryTraverser(String id, RevisionVector rootRevision, DocumentNodeStore documentNodeStore,
-                                   MongoDocumentStore documentStore, TraversingRange traversingRange) {
+    public NodeStateEntryTraverser(String id, RevisionVector rootRevision,
+        DocumentNodeStore documentNodeStore,
+        MongoDocumentStore documentStore, TraversingRange traversingRange) {
         this.id = id;
         this.rootRevision = rootRevision;
         this.documentNodeStore = documentNodeStore;
@@ -96,8 +98,8 @@ public class NodeStateEntryTraverser implements Iterable<NodeStateEntry>, Closea
     @SuppressWarnings("Guava")
     private Iterable<NodeStateEntry> getIncludedDocs() {
         return FluentIterable.from(getDocsFilteredByPath())
-                .filter(doc -> includeDoc(doc))
-                .transformAndConcat(doc -> getEntries(doc));
+                             .filter(doc -> includeDoc(doc))
+                             .transformAndConcat(doc -> getEntries(doc));
     }
 
     private boolean includeDoc(NodeDocument doc) {
@@ -106,6 +108,7 @@ public class NodeStateEntryTraverser implements Iterable<NodeStateEntry>, Closea
 
     /**
      * Returns the modification range corresponding to node states which are traversed by this.
+     *
      * @return {@link LastModifiedRange}
      */
     public TraversingRange getDocumentTraversalRange() {
@@ -124,16 +127,17 @@ public class NodeStateEntryTraverser implements Iterable<NodeStateEntry>, Closea
         }
 
         return transform(
-                concat(singleton(nodeState),
-                    nodeState.getAllBundledNodesStates()),
-                dns -> {
-                    NodeStateEntry.NodeStateEntryBuilder builder =  new NodeStateEntry.NodeStateEntryBuilder(dns, dns.getPath().toString());
-                    if (doc.getModified() != null) {
-                        builder.withLastModified(doc.getModified());
-                    }
-                    builder.withID(doc.getId());
-                    return builder.build();
+            concat(singleton(nodeState),
+                nodeState.getAllBundledNodesStates()),
+            dns -> {
+                NodeStateEntry.NodeStateEntryBuilder builder = new NodeStateEntry.NodeStateEntryBuilder(
+                    dns, dns.getPath().toString());
+                if (doc.getModified() != null) {
+                    builder.withLastModified(doc.getModified());
                 }
+                builder.withID(doc.getId());
+                return builder.build();
+            }
         );
     }
 
@@ -145,7 +149,7 @@ public class NodeStateEntryTraverser implements Iterable<NodeStateEntry>, Closea
 
     private CloseableIterable<NodeDocument> findAllDocuments() {
         return new MongoDocumentTraverser(documentStore)
-                .getAllDocuments(Collection.NODES, traversingRange, this::reportProgress);
+            .getAllDocuments(Collection.NODES, traversingRange, this::reportProgress);
     }
 
     private boolean reportProgress(String id) {

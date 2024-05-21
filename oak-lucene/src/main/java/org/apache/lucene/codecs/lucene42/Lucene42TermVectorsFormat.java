@@ -38,10 +38,9 @@ import org.apache.lucene.util.packed.PackedInts;
 /**
  * Lucene 4.2 {@link TermVectorsFormat term vectors format}.
  * <p>
- * Very similarly to {@link Lucene41StoredFieldsFormat}, this format is based
- * on compressed chunks of data, with document-level granularity so that a
- * document can never span across distinct chunks. Moreover, data is made as
- * compact as possible:<ul>
+ * Very similarly to {@link Lucene41StoredFieldsFormat}, this format is based on compressed chunks
+ * of data, with document-level granularity so that a document can never span across distinct
+ * chunks. Moreover, data is made as compact as possible:<ul>
  * <li>textual data is compressed using the very light,
  * <a href="http://code.google.com/p/lz4/">LZ4</a> compression algorithm,
  * <li>binary data is written using fixed-size blocks of
@@ -126,13 +125,16 @@ import org.apache.lucene.util.packed.PackedInts;
  * </ul>
  * </li>
  * </ol>
+ *
  * @lucene.experimental
  */
 public final class Lucene42TermVectorsFormat extends CompressingTermVectorsFormat {
 
-  /** Sole constructor. */
-  public Lucene42TermVectorsFormat() {
-    super("Lucene41StoredFields", "", CompressionMode.FAST, 1 << 12);
-  }
+    /**
+     * Sole constructor.
+     */
+    public Lucene42TermVectorsFormat() {
+        super("Lucene41StoredFields", "", CompressionMode.FAST, 1 << 12);
+    }
 
 }

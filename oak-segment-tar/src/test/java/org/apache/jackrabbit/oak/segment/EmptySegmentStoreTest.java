@@ -22,10 +22,10 @@ import static org.apache.jackrabbit.oak.segment.SegmentStore.EMPTY_STORE;
 import static org.junit.Assert.assertFalse;
 
 import java.io.IOException;
-
 import org.junit.Test;
 
 public class EmptySegmentStoreTest {
+
     @Test
     public void containsSegment() {
         assertFalse(EMPTY_STORE.containsSegment(SegmentId.NULL));

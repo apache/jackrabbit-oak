@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.writer;
 import org.apache.lucene.index.IndexWriterConfig;
 
 public class LuceneIndexWriterConfig {
+
     /**
      * This property will be used to set Lucene's IndexWriter.maxBufferedDeleteTerms
      * IndexWriter.maxBufferedDeleteTerms is used to flush buffered data to lucene index.
@@ -36,9 +37,9 @@ public class LuceneIndexWriterConfig {
 
     private final double ramBufferSizeMB;
     private final int maxBufferedDeleteTerms = Integer.getInteger(MAX_BUFFERED_DELETE_TERMS_KEY,
-            IndexWriterConfig.DISABLE_AUTO_FLUSH);
+        IndexWriterConfig.DISABLE_AUTO_FLUSH);
     private final int ramPerThreadHardLimitMB = Integer.getInteger(RAM_PER_THREAD_HARD_LIMIT_MB_KEY,
-            IndexWriterConfig.DEFAULT_RAM_PER_THREAD_HARD_LIMIT_MB);
+        IndexWriterConfig.DEFAULT_RAM_PER_THREAD_HARD_LIMIT_MB);
 
     public LuceneIndexWriterConfig() {
         this(IndexWriterConfig.DEFAULT_RAM_BUFFER_SIZE_MB);

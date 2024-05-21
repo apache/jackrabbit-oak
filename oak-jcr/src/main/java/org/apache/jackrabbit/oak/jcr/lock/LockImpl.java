@@ -22,11 +22,10 @@ import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.lock.Lock;
 import javax.jcr.lock.LockException;
-
+import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.session.NodeImpl;
 import org.apache.jackrabbit.oak.jcr.session.SessionContext;
-import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.session.operation.NodeOperation;
 import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
 import org.jetbrains.annotations.NotNull;
@@ -76,13 +75,13 @@ public final class LockImpl implements Lock {
     @Override
     public boolean isLive() {
         return context.getSession().isLive() && getSessionDelegate().safePerform(
-                new NodeOperation<Boolean>(delegate, "isLive") {
-                    @NotNull
-                    @Override
-                    public Boolean perform() {
-                        return node.holdsLock(false);
-                    }
-                });
+            new NodeOperation<Boolean>(delegate, "isLive") {
+                @NotNull
+                @Override
+                public Boolean perform() {
+                    return node.holdsLock(false);
+                }
+            });
     }
 
 
@@ -101,7 +100,7 @@ public final class LockImpl implements Lock {
                     // acquire the lock token and thus release the lock.
                     return null;
                 } else if (node.isLockOwner(
-                        context.getSessionDelegate().getAuthInfo().getUserID())) {
+                    context.getSessionDelegate().getAuthInfo().getUserID())) {
                     // The JCR spec allows the implementation to return the
                     // lock token even when the current session isn't already
                     // holding it. We use this feature to allow all sessions
@@ -125,27 +124,29 @@ public final class LockImpl implements Lock {
 
     @Override
     public boolean isSessionScoped() {
-        return getSessionDelegate().safePerform(new NodeOperation<Boolean>(delegate, "isSessionScoped") {
-            @NotNull
-            @Override
-            public Boolean perform() {
-                String path = node.getPath();
-                return context.getSessionScopedLocks().contains(path);
-            }
-        });
+        return getSessionDelegate().safePerform(
+            new NodeOperation<Boolean>(delegate, "isSessionScoped") {
+                @NotNull
+                @Override
+                public Boolean perform() {
+                    String path = node.getPath();
+                    return context.getSessionScopedLocks().contains(path);
+                }
+            });
     }
 
     @Override
     public boolean isLockOwningSession() {
-        return getSessionDelegate().safePerform(new NodeOperation<Boolean>(delegate, "isLockOwningSessions") {
-            @NotNull
-            @Override
-            public Boolean perform() {
-                String path = node.getPath();
-                return context.getSessionScopedLocks().contains(path)
+        return getSessionDelegate().safePerform(
+            new NodeOperation<Boolean>(delegate, "isLockOwningSessions") {
+                @NotNull
+                @Override
+                public Boolean perform() {
+                    String path = node.getPath();
+                    return context.getSessionScopedLocks().contains(path)
                         || context.getOpenScopedLocks().contains(path);
-            }
-        });
+                }
+            });
     }
 
     @Override

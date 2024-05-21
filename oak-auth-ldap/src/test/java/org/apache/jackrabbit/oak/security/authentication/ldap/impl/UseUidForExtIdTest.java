@@ -17,18 +17,17 @@
 
 package org.apache.jackrabbit.oak.security.authentication.ldap.impl;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
+import javax.jcr.SimpleCredentials;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalGroup;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
-
-import javax.jcr.SimpleCredentials;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 
 public class UseUidForExtIdTest extends AbstractLdapIdentityProviderTest {
 
@@ -55,7 +54,8 @@ public class UseUidForExtIdTest extends AbstractLdapIdentityProviderTest {
 
     @Test
     public void testAuthenticateCaseInsensitive() throws Exception {
-        SimpleCredentials creds = new SimpleCredentials(TEST_USER1_UID.toUpperCase(), "pass".toCharArray());
+        SimpleCredentials creds = new SimpleCredentials(TEST_USER1_UID.toUpperCase(),
+            "pass".toCharArray());
         assertAuthenticate(idp, creds, TEST_USER1_UID.toUpperCase(), TEST_USER1_DN);
     }
 

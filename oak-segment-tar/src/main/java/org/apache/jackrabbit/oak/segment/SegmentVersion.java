@@ -25,8 +25,7 @@ import static java.util.EnumSet.allOf;
 import org.apache.jackrabbit.guava.common.primitives.UnsignedBytes;
 
 /**
- * Version of the segment storage format. <ul> <li>12 = all oak-segment-tar
- * versions</li> </ul>
+ * Version of the segment storage format. <ul> <li>12 = all oak-segment-tar versions</li> </ul>
  */
 public enum SegmentVersion {
 

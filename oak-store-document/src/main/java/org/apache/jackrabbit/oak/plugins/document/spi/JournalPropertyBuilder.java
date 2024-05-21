@@ -22,20 +22,19 @@ package org.apache.jackrabbit.oak.plugins.document.spi;
 import org.jetbrains.annotations.Nullable;
 
 public interface JournalPropertyBuilder<T extends JournalProperty> {
+
     /**
      * Adds the JournalProperty instance fetched from CommitInfo to this builder
      */
     void addProperty(@Nullable T journalProperty);
 
     /**
-     * Returns a string representation state of the builder which
-     * would be stored in JournalEntry
+     * Returns a string representation state of the builder which would be stored in JournalEntry
      */
     String buildAsString();
 
     /**
-     * Adds the serialized form of journal property (as build from #buildAsString)
-     * call
+     * Adds the serialized form of journal property (as build from #buildAsString) call
      */
     void addSerializedProperty(@Nullable String serializedProperty);
 

@@ -30,52 +30,52 @@ import org.apache.lucene.util.BytesRef;
 
 /**
  * <p>
- * Field that stores
- * a per-document {@link BytesRef} value, indexed for
- * sorting.  Here's an example usage:
- * 
+ * Field that stores a per-document {@link BytesRef} value, indexed for sorting.  Here's an example
+ * usage:
+ *
  * <pre class="prettyprint">
  *   document.add(new SortedBytesDocValuesField(name, new BytesRef("hello")));
  * </pre>
- * 
+ *
  * <p>
- * If you also need to store the value, you should add a
- * separate {@link StoredField} instance.
- * 
+ * If you also need to store the value, you should add a separate {@link StoredField} instance.
+ *
  * @see SortedDocValues
  * @deprecated Use {@link SortedDocValuesField} instead.
- * */
+ */
 @Deprecated
 public class SortedBytesDocValuesField extends SortedDocValuesField {
 
-  /**
-   * Type for sorted bytes DocValues: all with the same length
-   */
-  public static final FieldType TYPE_FIXED_LEN = SortedDocValuesField.TYPE;
+    /**
+     * Type for sorted bytes DocValues: all with the same length
+     */
+    public static final FieldType TYPE_FIXED_LEN = SortedDocValuesField.TYPE;
 
-  /**
-   * Type for sorted bytes DocValues: can have variable lengths
-   */
-  public static final FieldType TYPE_VAR_LEN = SortedDocValuesField.TYPE;
+    /**
+     * Type for sorted bytes DocValues: can have variable lengths
+     */
+    public static final FieldType TYPE_VAR_LEN = SortedDocValuesField.TYPE;
 
-  /**
-   * Create a new fixed or variable-length sorted DocValues field.
-   * @param name field name
-   * @param bytes binary content
-   * @throws IllegalArgumentException if the field name is null
-   */
-  public SortedBytesDocValuesField(String name, BytesRef bytes) {
-    super(name, bytes);
-  }
+    /**
+     * Create a new fixed or variable-length sorted DocValues field.
+     *
+     * @param name  field name
+     * @param bytes binary content
+     * @throws IllegalArgumentException if the field name is null
+     */
+    public SortedBytesDocValuesField(String name, BytesRef bytes) {
+        super(name, bytes);
+    }
 
-  /**
-   * Create a new fixed or variable length sorted DocValues field.
-   * @param name field name
-   * @param bytes binary content
-   * @param isFixedLength (ignored)
-   * @throws IllegalArgumentException if the field name is null
-   */
-  public SortedBytesDocValuesField(String name, BytesRef bytes, boolean isFixedLength) {
-    super(name, bytes);
-  }
+    /**
+     * Create a new fixed or variable length sorted DocValues field.
+     *
+     * @param name          field name
+     * @param bytes         binary content
+     * @param isFixedLength (ignored)
+     * @throws IllegalArgumentException if the field name is null
+     */
+    public SortedBytesDocValuesField(String name, BytesRef bytes, boolean isFixedLength) {
+        super(name, bytes);
+    }
 }

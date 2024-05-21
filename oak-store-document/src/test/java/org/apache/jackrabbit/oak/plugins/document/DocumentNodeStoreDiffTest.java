@@ -81,12 +81,12 @@ public class DocumentNodeStoreDiffTest extends AbstractMongoConnectionTest {
     }
 
     private static NodeState merge(NodeStore store, NodeBuilder builder)
-            throws CommitFailedException {
+        throws CommitFailedException {
         return store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
-    
+
     private static class Diff extends DefaultNodeStateDiff {
-        
+
         static void perform(NodeState before, NodeState after) {
             after.compareAgainstBaseState(before, new Diff());
         }
@@ -98,8 +98,8 @@ public class DocumentNodeStoreDiffTest extends AbstractMongoConnectionTest {
 
         @Override
         public boolean childNodeChanged(String name,
-                                        NodeState before,
-                                        NodeState after) {
+            NodeState before,
+            NodeState after) {
             return after.compareAgainstBaseState(before, this);
         }
 

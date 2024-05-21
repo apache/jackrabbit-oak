@@ -28,9 +28,8 @@ package org.apache.lucene.codecs;
 /**
  * A codec that forwards all its method calls to another codec.
  * <p>
- * Extend this class when you need to reuse the functionality of an existing
- * codec. For example, if you want to build a codec that redefines Lucene46's
- * {@link LiveDocsFormat}:
+ * Extend this class when you need to reuse the functionality of an existing codec. For example, if
+ * you want to build a codec that redefines Lucene46's {@link LiveDocsFormat}:
  * <pre class="prettyprint">
  *   public final class CustomCodec extends FilterCodec {
  *
@@ -44,67 +43,68 @@ package org.apache.lucene.codecs;
  *
  *   }
  * </pre>
- * 
+ *
  * <p><em>Please note:</em> Don't call {@link Codec#forName} from
- * the no-arg constructor of your own codec. When the SPI framework
- * loads your own Codec as SPI component, SPI has not yet fully initialized!
- * If you want to extend another Codec, instantiate it directly by calling
- * its constructor.
- * 
+ * the no-arg constructor of your own codec. When the SPI framework loads your own Codec as SPI
+ * component, SPI has not yet fully initialized! If you want to extend another Codec, instantiate it
+ * directly by calling its constructor.
+ *
  * @lucene.experimental
  */
 public abstract class FilterCodec extends Codec {
 
-  /** The codec to filter. */
-  protected final Codec delegate;
-  
-  /** Sole constructor. When subclassing this codec,
-   * create a no-arg ctor and pass the delegate codec
-   * and a unique name to this ctor.
-   */
-  protected FilterCodec(String name, Codec delegate) {
-    super(name);
-    this.delegate = delegate;
-  }
+    /**
+     * The codec to filter.
+     */
+    protected final Codec delegate;
 
-  @Override
-  public DocValuesFormat docValuesFormat() {
-    return delegate.docValuesFormat();
-  }
+    /**
+     * Sole constructor. When subclassing this codec, create a no-arg ctor and pass the delegate
+     * codec and a unique name to this ctor.
+     */
+    protected FilterCodec(String name, Codec delegate) {
+        super(name);
+        this.delegate = delegate;
+    }
 
-  @Override
-  public FieldInfosFormat fieldInfosFormat() {
-    return delegate.fieldInfosFormat();
-  }
+    @Override
+    public DocValuesFormat docValuesFormat() {
+        return delegate.docValuesFormat();
+    }
 
-  @Override
-  public LiveDocsFormat liveDocsFormat() {
-    return delegate.liveDocsFormat();
-  }
+    @Override
+    public FieldInfosFormat fieldInfosFormat() {
+        return delegate.fieldInfosFormat();
+    }
 
-  @Override
-  public NormsFormat normsFormat() {
-    return delegate.normsFormat();
-  }
+    @Override
+    public LiveDocsFormat liveDocsFormat() {
+        return delegate.liveDocsFormat();
+    }
 
-  @Override
-  public PostingsFormat postingsFormat() {
-    return delegate.postingsFormat();
-  }
+    @Override
+    public NormsFormat normsFormat() {
+        return delegate.normsFormat();
+    }
 
-  @Override
-  public SegmentInfoFormat segmentInfoFormat() {
-    return delegate.segmentInfoFormat();
-  }
+    @Override
+    public PostingsFormat postingsFormat() {
+        return delegate.postingsFormat();
+    }
 
-  @Override
-  public StoredFieldsFormat storedFieldsFormat() {
-    return delegate.storedFieldsFormat();
-  }
+    @Override
+    public SegmentInfoFormat segmentInfoFormat() {
+        return delegate.segmentInfoFormat();
+    }
 
-  @Override
-  public TermVectorsFormat termVectorsFormat() {
-    return delegate.termVectorsFormat();
-  }
+    @Override
+    public StoredFieldsFormat storedFieldsFormat() {
+        return delegate.storedFieldsFormat();
+    }
+
+    @Override
+    public TermVectorsFormat termVectorsFormat() {
+        return delegate.termVectorsFormat();
+    }
 
 }

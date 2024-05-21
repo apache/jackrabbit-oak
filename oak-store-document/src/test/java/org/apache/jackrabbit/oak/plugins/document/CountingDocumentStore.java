@@ -81,18 +81,21 @@ public class CountingDocumentStore implements DocumentStore {
     public <T extends Document> T find(Collection<T> collection, String key) {
         getStats(collection).numFindCalls++;
         if (printStacks) {
-            new Exception("find [" + getStats(collection).numFindCalls + "] (" + collection + ") " + key).printStackTrace();
+            new Exception("find [" + getStats(collection).numFindCalls + "] (" + collection + ") "
+                + key).printStackTrace();
         }
         return rewrap(collection, delegate.find(collection, key));
     }
 
     @Override
     public <T extends Document> T find(Collection<T> collection,
-                                       String key,
-                                       int maxCacheAge) {
+        String key,
+        int maxCacheAge) {
         getStats(collection).numFindCalls++;
         if (printStacks) {
-            new Exception("find [" + getStats(collection).numFindCalls + "] (" + collection + ") " + key + " [max: " + maxCacheAge + "]").printStackTrace();
+            new Exception(
+                "find [" + getStats(collection).numFindCalls + "] (" + collection + ") " + key
+                    + " [max: " + maxCacheAge + "]").printStackTrace();
         }
         return rewrap(collection, delegate.find(collection, key, maxCacheAge));
     }
@@ -100,12 +103,14 @@ public class CountingDocumentStore implements DocumentStore {
     @NotNull
     @Override
     public <T extends Document> List<T> query(Collection<T> collection,
-                                              String fromKey,
-                                              String toKey,
-                                              int limit) {
+        String fromKey,
+        String toKey,
+        int limit) {
         getStats(collection).numQueryCalls++;
         if (printStacks) {
-            new Exception("query1 [" + getStats(collection).numQueryCalls + "] (" + collection + ") " + fromKey + ", to " + toKey + ". limit " + limit).printStackTrace();
+            new Exception(
+                "query1 [" + getStats(collection).numQueryCalls + "] (" + collection + ") "
+                    + fromKey + ", to " + toKey + ". limit " + limit).printStackTrace();
         }
         return rewrap(collection, delegate.query(collection, fromKey, toKey, limit));
     }
@@ -113,71 +118,74 @@ public class CountingDocumentStore implements DocumentStore {
     @NotNull
     @Override
     public <T extends Document> List<T> query(Collection<T> collection,
-                                              String fromKey,
-                                              String toKey,
-                                              String indexedProperty,
-                                              long startValue,
-                                              int limit) {
+        String fromKey,
+        String toKey,
+        String indexedProperty,
+        long startValue,
+        int limit) {
         getStats(collection).numQueryCalls++;
         if (printStacks) {
-            new Exception("query2 [" + getStats(collection).numQueryCalls + "] (" + collection + ") " + fromKey + ", to " + toKey + ". limit " + limit).printStackTrace();
+            new Exception(
+                "query2 [" + getStats(collection).numQueryCalls + "] (" + collection + ") "
+                    + fromKey + ", to " + toKey + ". limit " + limit).printStackTrace();
         }
-        return rewrap(collection, delegate.query(collection, fromKey, toKey, indexedProperty, startValue, limit));
+        return rewrap(collection,
+            delegate.query(collection, fromKey, toKey, indexedProperty, startValue, limit));
     }
 
     @Override
     public <T extends Document> void remove(Collection<T> collection,
-                                            String key) {
+        String key) {
         getStats(collection).numRemoveCalls++;
         delegate.remove(collection, key);
     }
 
     @Override
     public <T extends Document> void remove(Collection<T> collection,
-                                            List<String> keys) {
+        List<String> keys) {
         getStats(collection).numRemoveCalls++;
         delegate.remove(collection, keys);
     }
 
     @Override
     public <T extends Document> int remove(Collection<T> collection,
-                                           Map<String, Long> toRemove) {
+        Map<String, Long> toRemove) {
         getStats(collection).numRemoveCalls++;
         return delegate.remove(collection, toRemove);
     }
 
     @Override
     public <T extends Document> int remove(Collection<T> collection,
-                                           String indexedProperty, long startValue, long endValue)
-            throws DocumentStoreException {
+        String indexedProperty, long startValue, long endValue)
+        throws DocumentStoreException {
         getStats(collection).numRemoveCalls++;
         return delegate.remove(collection, indexedProperty, startValue, endValue);
     }
 
     @Override
     public <T extends Document> boolean create(Collection<T> collection,
-                                               List<UpdateOp> updateOps) {
+        List<UpdateOp> updateOps) {
         getStats(collection).numCreateOrUpdateCalls++;
         return delegate.create(collection, updateOps);
     }
 
     @Override
     public <T extends Document> T createOrUpdate(Collection<T> collection,
-                                                 UpdateOp update) {
+        UpdateOp update) {
         getStats(collection).numCreateOrUpdateCalls++;
         return rewrap(collection, delegate.createOrUpdate(collection, update));
     }
 
     @Override
     public <T extends Document> List<T> createOrUpdate(Collection<T> collection,
-                                                       List<UpdateOp> updateOps) {
+        List<UpdateOp> updateOps) {
         getStats(collection).numCreateOrUpdateCalls++;
         return rewrap(collection, delegate.createOrUpdate(collection, updateOps));
     }
 
     @Override
     public <T extends Document> T findAndUpdate(Collection<T> collection,
-                                                UpdateOp update) {
+        UpdateOp update) {
         getStats(collection).numCreateOrUpdateCalls++;
         return rewrap(collection, delegate.findAndUpdate(collection, update));
     }
@@ -194,7 +202,7 @@ public class CountingDocumentStore implements DocumentStore {
 
     @Override
     public <T extends Document> void invalidateCache(Collection<T> collection,
-                                                     String key) {
+        String key) {
         delegate.invalidateCache(collection, key);
     }
 
@@ -205,7 +213,7 @@ public class CountingDocumentStore implements DocumentStore {
 
     @Override
     public <T extends Document> T getIfCached(Collection<T> collection,
-                                              String key) {
+        String key) {
         return rewrap(collection, delegate.getIfCached(collection, key));
     }
 
@@ -245,7 +253,7 @@ public class CountingDocumentStore implements DocumentStore {
     }
 
     private <T extends Document> List<T> rewrap(Collection<T> collection,
-                                                List<T> docs) {
+        List<T> docs) {
         List<T> docList = new ArrayList<>(docs.size());
         for (T d : docs) {
             docList.add(rewrap(collection, d));
@@ -255,7 +263,7 @@ public class CountingDocumentStore implements DocumentStore {
 
     @Override
     public <T extends Document> void prefetch(Collection<T> collection,
-            Iterable<String> keys) {
+        Iterable<String> keys) {
         delegate.prefetch(collection, keys);
     }
 }

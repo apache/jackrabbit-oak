@@ -18,47 +18,49 @@ package org.apache.jackrabbit.oak.spi.security.user.action;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
-
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.tree.TreeAware;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
-import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
  * {@code PasswordChangeAction} asserts that the upon
  * {@link #onPasswordChange(org.apache.jackrabbit.api.security.user.User, String,
- * org.apache.jackrabbit.oak.api.Root, org.apache.jackrabbit.oak.namepath.NamePathMapper)}
- * a different, non-null password is specified.
+ * org.apache.jackrabbit.oak.api.Root, org.apache.jackrabbit.oak.namepath.NamePathMapper)} a
+ * different, non-null password is specified.
  *
  * @see org.apache.jackrabbit.api.security.user.User#changePassword(String)
  * @see org.apache.jackrabbit.api.security.user.User#changePassword(String, String)
- *
  * @since OAK 1.0
  */
 public class PasswordChangeAction extends AbstractAuthorizableAction {
 
     //-------------------------------------------------< AuthorizableAction >---
     @Override
-    public void onPasswordChange(@NotNull User user, @Nullable String newPassword, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException {
+    public void onPasswordChange(@NotNull User user, @Nullable String newPassword,
+        @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException {
         if (newPassword == null) {
             throw new ConstraintViolationException("Expected a new password that is not null.");
         }
         String pwHash = getPasswordHash(root, user);
         if (PasswordUtil.isSame(pwHash, newPassword)) {
-            throw new ConstraintViolationException("New password is identical to the old password.");
+            throw new ConstraintViolationException(
+                "New password is identical to the old password.");
         }
     }
 
     //------------------------------------------------------------< private >---
     @Nullable
-    private static String getPasswordHash(@NotNull Root root, @NotNull User user) throws RepositoryException {
-        Tree tree = (user instanceof TreeAware) ? ((TreeAware)user).getTree() : root.getTree(user.getPath());
+    private static String getPasswordHash(@NotNull Root root, @NotNull User user)
+        throws RepositoryException {
+        Tree tree = (user instanceof TreeAware) ? ((TreeAware) user).getTree()
+            : root.getTree(user.getPath());
         return TreeUtil.getString(tree, UserConstants.REP_PASSWORD);
     }
 }

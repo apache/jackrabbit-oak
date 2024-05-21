@@ -31,8 +31,9 @@ public class SolrServerRegistry {
     private static final Map<String, SolrClient> searchingServerRegistry = new HashMap<String, SolrClient>();
     private static final Map<String, SolrClient> indexingServerRegistry = new HashMap<String, SolrClient>();
 
-    public static void register(@NotNull SolrServerConfiguration configuration, @NotNull SolrClient solrServer,
-                                @NotNull Strategy strategy) {
+    public static void register(@NotNull SolrServerConfiguration configuration,
+        @NotNull SolrClient solrServer,
+        @NotNull Strategy strategy) {
         switch (strategy) {
             case INDEXING:
                 synchronized (indexingServerRegistry) {
@@ -48,7 +49,8 @@ public class SolrServerRegistry {
     }
 
     @Nullable
-    public static SolrClient get(@NotNull SolrServerConfiguration configuration, @NotNull Strategy strategy) {
+    public static SolrClient get(@NotNull SolrServerConfiguration configuration,
+        @NotNull Strategy strategy) {
         switch (strategy) {
             case INDEXING:
                 synchronized (indexingServerRegistry) {
@@ -62,7 +64,8 @@ public class SolrServerRegistry {
         return null;
     }
 
-    public static void unregister(SolrServerConfiguration configuration, @NotNull Strategy strategy) {
+    public static void unregister(SolrServerConfiguration configuration,
+        @NotNull Strategy strategy) {
         switch (strategy) {
             case INDEXING:
                 synchronized (indexingServerRegistry) {

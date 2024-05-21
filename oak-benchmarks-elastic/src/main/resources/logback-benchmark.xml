@@ -33,7 +33,7 @@
 
   <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
     <file>${user.home}/tmp/logs/oak.log</file>
-    
+
     <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
       <!-- daily rollover -->
       <fileNamePattern>${user.home}/tmp/logs/oak.%d.log.gz</fileNamePattern>
@@ -52,12 +52,12 @@
 
   <!-- Display info messages from the benchmark suite -->
   <logger name="org.apache.jackrabbit.oak.benchmark" level="INFO"/>
-  <logger name="org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate" level="DEBUG" />
-  <logger name="org.apache.jackrabbit.oak.plugins.index.IndexUpdate" level="DEBUG" />
+  <logger name="org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate" level="DEBUG"/>
+  <logger name="org.apache.jackrabbit.oak.plugins.index.IndexUpdate" level="DEBUG"/>
 
   <root level="error">
     <!-- <appender-ref ref="STDOUT" /> -->
-    <appender-ref ref="FILE" />
+    <appender-ref ref="FILE"/>
   </root>
 
 </configuration>

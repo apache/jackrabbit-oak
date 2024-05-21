@@ -30,8 +30,9 @@ public class RDBConnectionHandlerTest {
 
     @Test
     public void logging() throws Exception {
-        LogCustomizer customLogs = LogCustomizer.forLogger(RDBConnectionHandler.class.getName()).enable(Level.TRACE)
-                .contains("while obtaining new").create();
+        LogCustomizer customLogs = LogCustomizer.forLogger(RDBConnectionHandler.class.getName())
+                                                .enable(Level.TRACE)
+                                                .contains("while obtaining new").create();
         DataSource ds = RDBDataSourceFactory.forJdbcUrl("jdbc:h2:mem:", "", "");
         Connection c1 = null, c2 = null, c3 = null;
 

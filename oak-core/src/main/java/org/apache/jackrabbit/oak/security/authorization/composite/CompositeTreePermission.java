@@ -16,6 +16,10 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.composite;
 
+import static org.apache.jackrabbit.oak.security.authorization.composite.CompositeAuthorizationConfiguration.CompositionType.AND;
+import static org.apache.jackrabbit.oak.security.authorization.composite.CompositeAuthorizationConfiguration.CompositionType.OR;
+import static org.apache.jackrabbit.oak.security.authorization.composite.Util.doEvaluate;
+
 import java.util.function.Supplier;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -29,10 +33,6 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermi
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import static org.apache.jackrabbit.oak.security.authorization.composite.CompositeAuthorizationConfiguration.CompositionType.AND;
-import static org.apache.jackrabbit.oak.security.authorization.composite.CompositeAuthorizationConfiguration.CompositionType.OR;
-import static org.apache.jackrabbit.oak.security.authorization.composite.Util.doEvaluate;
 
 /**
  * {@code TreePermission} implementation that combines multiple {@code TreePermission}

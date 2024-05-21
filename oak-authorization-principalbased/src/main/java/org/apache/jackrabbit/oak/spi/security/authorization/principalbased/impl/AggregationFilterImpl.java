@@ -28,24 +28,29 @@ import java.security.Principal;
 import java.util.Set;
 
 public class AggregationFilterImpl implements AggregationFilter {
-    
+
     @Override
-    public boolean stop(@NotNull AggregatedPermissionProvider permissionProvider, @NotNull Set<Principal> principals) {
+    public boolean stop(@NotNull AggregatedPermissionProvider permissionProvider,
+        @NotNull Set<Principal> principals) {
         // validation of principals already took place before creating 'PrincipalBasedPermissionProvider'
         return permissionProvider instanceof PrincipalBasedPermissionProvider;
     }
 
     @Override
-    public boolean stop(@NotNull JackrabbitAccessControlManager accessControlManager, @NotNull Set<Principal> principals) {
+    public boolean stop(@NotNull JackrabbitAccessControlManager accessControlManager,
+        @NotNull Set<Principal> principals) {
         try {
-            return accessControlManager instanceof PrincipalBasedAccessControlManager && ((PrincipalBasedAccessControlManager) accessControlManager).canHandle(principals);
+            return accessControlManager instanceof PrincipalBasedAccessControlManager
+                && ((PrincipalBasedAccessControlManager) accessControlManager).canHandle(
+                principals);
         } catch (AccessControlException e) {
             return false;
         }
     }
 
     @Override
-    public boolean stop(@NotNull AccessControlManager accessControlManager, @Nullable String absPath) {
+    public boolean stop(@NotNull AccessControlManager accessControlManager,
+        @Nullable String absPath) {
         return false;
     }
 }

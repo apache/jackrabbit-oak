@@ -21,13 +21,12 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 import javax.jcr.RepositoryException;
-
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
-import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.test.NotExecutableException;
 import org.junit.Test;
 
@@ -103,7 +102,7 @@ public class EveryoneGroupTest extends AbstractUserTest {
         assertFalse(everyone.addMember(getTestUser(superuser)));
         assertFalse(everyone.removeMember(getTestUser(superuser)));
 
-        Group anotherGroup =  null;
+        Group anotherGroup = null;
         try {
             anotherGroup = userMgr.createGroup("testGroup");
             superuser.save();

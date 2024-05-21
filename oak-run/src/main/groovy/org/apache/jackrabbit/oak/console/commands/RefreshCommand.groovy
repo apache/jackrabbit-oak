@@ -24,7 +24,7 @@ import org.codehaus.groovy.tools.shell.ComplexCommandSupport
 import org.codehaus.groovy.tools.shell.Groovysh
 
 @CompileStatic
-class RefreshCommand extends ComplexCommandSupport{
+class RefreshCommand extends ComplexCommandSupport {
     public static final String COMMAND_NAME = 'refresh'
 
     public RefreshCommand(Groovysh shell) {
@@ -46,7 +46,7 @@ class RefreshCommand extends ComplexCommandSupport{
         io.out.println("Session refreshed")
     }
 
-    ConsoleSession getSession(){
-        return (ConsoleSession)variables.session
+    ConsoleSession getSession() {
+        return (ConsoleSession) variables.session
     }
 }

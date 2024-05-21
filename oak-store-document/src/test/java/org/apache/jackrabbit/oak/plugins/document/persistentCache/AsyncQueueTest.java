@@ -39,6 +39,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
+
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
@@ -66,16 +67,19 @@ public class AsyncQueueTest {
         FileUtils.deleteDirectory(new File("target/cacheTest"));
         pCache = new PersistentCache("target/cacheTest");
         final AtomicReference<NodeCache<PathRev, StringValue>> nodeCacheRef = new AtomicReference<NodeCache<PathRev, StringValue>>();
-        CacheLIRS<PathRev, StringValue> cache = new CacheLIRS.Builder<PathRev, StringValue>().maximumSize(1).evictionCallback(new CacheLIRS.EvictionCallback<PathRev, StringValue>() {
+        CacheLIRS<PathRev, StringValue> cache = new CacheLIRS.Builder<PathRev, StringValue>().maximumSize(
+            1).evictionCallback(new CacheLIRS.EvictionCallback<PathRev, StringValue>() {
             @Override
-            public void evicted(@NotNull PathRev key, @Nullable StringValue value, @NotNull RemovalCause cause) {
+            public void evicted(@NotNull PathRev key, @Nullable StringValue value,
+                @NotNull RemovalCause cause) {
                 if (nodeCacheRef.get() != null) {
                     nodeCacheRef.get().evicted(key, value, cause);
                 }
             }
         }).build();
-        nodeCache = (NodeCache<PathRev, StringValue>) pCache.wrap(builderProvider.newBuilder().getNodeStore(),
-                null, cache,  CacheType.NODE);
+        nodeCache = (NodeCache<PathRev, StringValue>) pCache.wrap(
+            builderProvider.newBuilder().getNodeStore(),
+            null, cache, CacheType.NODE);
         nodeCacheRef.set(nodeCache);
 
         CacheWriteQueueWrapper writeQueue = new CacheWriteQueueWrapper(nodeCache.writeQueue);
@@ -92,7 +96,7 @@ public class AsyncQueueTest {
             pCache.close();
         }
     }
-    
+
     @Test
     public void unusedItemsShouldntBePersisted() {
         PathRev k = generatePathRev();
@@ -136,13 +140,13 @@ public class AsyncQueueTest {
 
     private static class CacheWriteQueueWrapper extends CacheWriteQueue<PathRev, StringValue> {
 
-        private final CacheWriteQueue<PathRev, StringValue>  wrapped;
+        private final CacheWriteQueue<PathRev, StringValue> wrapped;
 
         private final List<PathRev> putActions = newArrayList();
 
         private final List<PathRev> invalidateActions = newArrayList();
 
-        public CacheWriteQueueWrapper(CacheWriteQueue<PathRev, StringValue>  wrapped) {
+        public CacheWriteQueueWrapper(CacheWriteQueue<PathRev, StringValue> wrapped) {
             super(null, null, null);
             this.wrapped = wrapped;
         }

@@ -19,12 +19,14 @@
 
 package org.apache.jackrabbit.oak.plugins.document;
 
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.SortedMap;
 import java.util.concurrent.atomic.AtomicInteger;
-
+import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
@@ -35,14 +37,10 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.collect.Maps;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-
 
 /**
- * Checkpoints provide details around which revision are to be kept. These
- * are stored in Settings collection.
+ * Checkpoints provide details around which revision are to be kept. These are stored in Settings
+ * collection.
  */
 class Checkpoints {
 
@@ -51,14 +49,13 @@ class Checkpoints {
     private static final String ID = "checkpoint";
 
     /**
-     * Property name to store all checkpoint data. The data is either stored as
-     * Revision => expiryTime or Revision => JSON with expiryTime and info.
+     * Property name to store all checkpoint data. The data is either stored as Revision =>
+     * expiryTime or Revision => JSON with expiryTime and info.
      */
     private static final String PROP_CHECKPOINT = "data";
 
     /**
-     * Number of create calls after which old expired checkpoints entries would
-     * be removed
+     * Number of create calls after which old expired checkpoints entries would be removed
      */
     static final int CLEANUP_INTERVAL = 100;
 
@@ -92,10 +89,11 @@ class Checkpoints {
     }
 
     public Revision create(long lifetimeInMillis,
-                           @NotNull Map<String, String> info,
-                           @NotNull Revision revision) {
+        @NotNull Map<String, String> info,
+        @NotNull Revision revision) {
         if (revision.getTimestamp() > nodeStore.getClock().getTime()) {
-            throw new IllegalArgumentException("Cannot create checkpoint with a revision in the future: " + revision);
+            throw new IllegalArgumentException(
+                "Cannot create checkpoint with a revision in the future: " + revision);
         }
         long endTime = Utils.sum(nodeStore.getClock().getTime(), lifetimeInMillis);
         create(revision, new Info(endTime, null, info));
@@ -113,8 +111,7 @@ class Checkpoints {
      *
      * <p>It also performs cleanup of expired checkpoint
      *
-     * @return oldest valid checkpoint registered. Might return null if no valid
-     * checkpoint found
+     * @return oldest valid checkpoint registered. Might return null if no valid checkpoint found
      */
     @SuppressWarnings("unchecked")
     @Nullable
@@ -122,7 +119,7 @@ class Checkpoints {
         //Get uncached doc
         SortedMap<Revision, Info> checkpoints = getCheckpoints();
 
-        if(checkpoints.isEmpty()){
+        if (checkpoints.isEmpty()) {
             LOG.debug("No checkpoint registered so far");
             return null;
         }
@@ -151,7 +148,7 @@ class Checkpoints {
                 LOG.debug("Purged {} expired checkpoints", op.getChanges().size());
             } catch (UnsupportedOperationException uoe) {
                 LOG.info("getOldestRevisionToKeep : could not clean up expired checkpoints"
-                        + " due to exception : " + uoe, uoe);
+                    + " due to exception : " + uoe, uoe);
             }
         }
 
@@ -179,13 +176,13 @@ class Checkpoints {
      * Retrieves the head revision for the given {@code checkpoint}.
      *
      * @param checkpoint the checkpoint reference.
-     * @return the head revision associated with the checkpoint or {@code null}
-     *      if there is no such checkpoint.
+     * @return the head revision associated with the checkpoint or {@code null} if there is no such
+     * checkpoint.
      * @throws IllegalArgumentException if the checkpoint is malformed.
      */
     @Nullable
     RevisionVector retrieve(@NotNull String checkpoint)
-            throws IllegalArgumentException {
+        throws IllegalArgumentException {
         Revision r;
         try {
             r = Revision.fromString(checkNotNull(checkpoint));
@@ -231,8 +228,8 @@ class Checkpoints {
      * Triggers collection of expired checkpoints createCounter exceeds certain size
      */
     private void performCleanupIfRequired() {
-        if(createCounter.get() > CLEANUP_INTERVAL){
-            synchronized (cleanupLock){
+        if (createCounter.get() > CLEANUP_INTERVAL) {
+            synchronized (cleanupLock) {
                 getOldestRevisionToKeep();
                 createCounter.set(0);
             }
@@ -256,8 +253,8 @@ class Checkpoints {
 
     private RevisionVector expand(Revision checkpoint) {
         LOG.warn("Expanding {} single revision checkpoint into a " +
-                "RevisionVector. Please make sure all cluster nodes run " +
-                "with the same Oak version.", checkpoint);
+            "RevisionVector. Please make sure all cluster nodes run " +
+            "with the same Oak version.", checkpoint);
         // best effort conversion
         Map<Integer, Revision> revs = Maps.newHashMap();
         RevisionVector head = nodeStore.getHeadRevision();
@@ -285,8 +282,8 @@ class Checkpoints {
         private final Map<String, String> info;
 
         private Info(long expiryTime,
-                     @Nullable  RevisionVector checkpoint,
-                     @NotNull Map<String, String> info) {
+            @Nullable RevisionVector checkpoint,
+            @NotNull Map<String, String> info) {
             this.expiryTime = expiryTime;
             this.checkpoint = checkpoint;
             this.info = Collections.unmodifiableMap(info);
@@ -303,7 +300,7 @@ class Checkpoints {
                 String key = reader.readString();
                 if (!EXPIRES.equals(key)) {
                     throw new IllegalArgumentException("First entry in the " +
-                            "checkpoint info must be the expires date: " + info);
+                        "checkpoint info must be the expires date: " + info);
                 }
                 reader.read(':');
                 expiryTime = Long.parseLong(reader.readString());
@@ -343,9 +340,8 @@ class Checkpoints {
         }
 
         /**
-         * The revision vector associated with this checkpoint or {@code null}
-         * if this checkpoint was created with a version of Oak, which did not
-         * yet support revision vectors.
+         * The revision vector associated with this checkpoint or {@code null} if this checkpoint
+         * was created with a version of Oak, which did not yet support revision vectors.
          *
          * @return the revision vector checkpoint or {@code null}.
          */

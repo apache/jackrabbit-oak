@@ -20,9 +20,8 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
-
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 
 /**
  * VersionConstants... TODO
@@ -65,90 +64,88 @@ public interface VersionConstants extends JcrConstants {
     /**
      * Quote from JSR 283 Section "15.12.3 Activity Storage"<p>
      * <p>
-     * Activities are persisted as nodes of type nt:activity under system-generated
-     * node names in activity storage below /jcr:system/jcr:activities.<br>
-     * Similar to the /jcr:system/jcr:versionStorage subgraph, the activity storage
-     * is a single repository wide store, but is reflected into each workspace.
+     * Activities are persisted as nodes of type nt:activity under system-generated node names in
+     * activity storage below /jcr:system/jcr:activities.<br> Similar to the
+     * /jcr:system/jcr:versionStorage subgraph, the activity storage is a single repository wide
+     * store, but is reflected into each workspace.
      */
     String ACTIVITIES_PATH = '/' + JCR_SYSTEM + '/' + JCR_ACTIVITIES;
 
     /**
      * Quote from JSR 283 Section "15.13.2 Configuration Proxy Nodes"<p>
      * <p>
-     * Each configuration in a given workspace is represented by a distinct proxy
-     * node of type nt:configuration located in configuration storage within the
-     * same workspace under /jcr:system/jcr:configurations/. The configuration
-     * storage in a particular workspace is specific to that workspace. It is
-     * not a common repository-wide store mirrored into each workspace, as is
-     * the case with version storage.
+     * Each configuration in a given workspace is represented by a distinct proxy node of type
+     * nt:configuration located in configuration storage within the same workspace under
+     * /jcr:system/jcr:configurations/. The configuration storage in a particular workspace is
+     * specific to that workspace. It is not a common repository-wide store mirrored into each
+     * workspace, as is the case with version storage.
      */
     String CONFIGURATIONS_PATH = '/' + JCR_SYSTEM + '/' + JCR_CONFIGURATIONS;
 
     /**
      * Quote from JSR 283 Section "3.13.8 Version Storage"<p>
      * <p>
-     * Version histories are stored in a single, repository-wide version storage
-     * mutable and readable through the versioning API.
-     * Under full versioning the version storage data must, additionally, be
-     * reflected in each workspace as a protected subgraph [...] located below
+     * Version histories are stored in a single, repository-wide version storage mutable and
+     * readable through the versioning API. Under full versioning the version storage data must,
+     * additionally, be reflected in each workspace as a protected subgraph [...] located below
      * /jcr:system/jcr:versionStorage.
      */
     String VERSION_STORE_PATH = '/' + JCR_SYSTEM + '/' + JCR_VERSIONSTORAGE;
 
     Collection<String> SYSTEM_PATHS = Collections.unmodifiableList(Arrays.asList(
-            ACTIVITIES_PATH,
-            CONFIGURATIONS_PATH,
-            VERSION_STORE_PATH
+        ACTIVITIES_PATH,
+        CONFIGURATIONS_PATH,
+        VERSION_STORE_PATH
     ));
 
     Collection<String> VERSION_PROPERTY_NAMES = Collections.unmodifiableList(Arrays.asList(
-            JCR_ACTIVITY,
-            JCR_ACTIVITY_TITLE,
-            JCR_BASEVERSION,
-            JCR_CHILD_VERSION_HISTORY,
-            JCR_CONFIGURATION,
-            JCR_COPIED_FROM,
-            JCR_FROZENMIXINTYPES,
-            JCR_FROZENPRIMARYTYPE,
-            JCR_FROZENUUID,
-            JCR_ISCHECKEDOUT,
-            JCR_MERGEFAILED,
-            JCR_PREDECESSORS,
-            JCR_ROOT,
-            JCR_SUCCESSORS,
-            JCR_VERSIONABLEUUID,
-            JCR_VERSIONHISTORY
+        JCR_ACTIVITY,
+        JCR_ACTIVITY_TITLE,
+        JCR_BASEVERSION,
+        JCR_CHILD_VERSION_HISTORY,
+        JCR_CONFIGURATION,
+        JCR_COPIED_FROM,
+        JCR_FROZENMIXINTYPES,
+        JCR_FROZENPRIMARYTYPE,
+        JCR_FROZENUUID,
+        JCR_ISCHECKEDOUT,
+        JCR_MERGEFAILED,
+        JCR_PREDECESSORS,
+        JCR_ROOT,
+        JCR_SUCCESSORS,
+        JCR_VERSIONABLEUUID,
+        JCR_VERSIONHISTORY
     ));
 
     Collection<String> VERSION_NODE_NAMES = Collections.unmodifiableList(Arrays.asList(
-            JCR_ACTIVITIES,
-            JCR_CONFIGURATIONS,
-            JCR_FROZENNODE,
-            JCR_ROOTVERSION,
-            JCR_VERSIONLABELS
+        JCR_ACTIVITIES,
+        JCR_CONFIGURATIONS,
+        JCR_FROZENNODE,
+        JCR_ROOTVERSION,
+        JCR_VERSIONLABELS
     ));
 
     Collection<String> VERSION_NODE_TYPE_NAMES = Collections.unmodifiableList(Arrays.asList(
-            NT_ACTIVITY,
-            NT_CONFIGURATION,
-            NT_FROZENNODE,
-            NT_VERSION,
-            NT_VERSIONEDCHILD,
-            NT_VERSIONHISTORY,
-            NT_VERSIONLABELS,
-            REP_ACTIVITIES,
-            REP_CONFIGURATIONS
+        NT_ACTIVITY,
+        NT_CONFIGURATION,
+        NT_FROZENNODE,
+        NT_VERSION,
+        NT_VERSIONEDCHILD,
+        NT_VERSIONHISTORY,
+        NT_VERSIONLABELS,
+        REP_ACTIVITIES,
+        REP_CONFIGURATIONS
     ));
 
     Set<String> VERSION_STORE_ROOT_NAMES = ImmutableSet.of(
-            JcrConstants.JCR_VERSIONSTORAGE,
-            VersionConstants.JCR_CONFIGURATIONS,
-            VersionConstants.JCR_ACTIVITIES);
+        JcrConstants.JCR_VERSIONSTORAGE,
+        VersionConstants.JCR_CONFIGURATIONS,
+        VersionConstants.JCR_ACTIVITIES);
 
     Set<String> VERSION_STORE_NT_NAMES = ImmutableSet.of(
-            VersionConstants.REP_VERSIONSTORAGE,
-            VersionConstants.REP_ACTIVITIES,
-            VersionConstants.REP_CONFIGURATIONS
+        VersionConstants.REP_VERSIONSTORAGE,
+        VersionConstants.REP_ACTIVITIES,
+        VersionConstants.REP_CONFIGURATIONS
     );
 
     // flag indicating the version store has been initialized

@@ -66,7 +66,8 @@ import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isCommitted;
 class SplitOperations {
 
     private static final Logger LOG = LoggerFactory.getLogger(SplitOperations.class);
-    private static final int GARBAGE_LIMIT = Integer.getInteger("oak.documentMK.garbage.limit", 1000);
+    private static final int GARBAGE_LIMIT = Integer.getInteger("oak.documentMK.garbage.limit",
+        1000);
     private static final Predicate<Long> BINARY_FOR_SPLIT_THRESHOLD = new Predicate<Long>() {
         @Override
         public boolean apply(Long input) {
@@ -98,10 +99,10 @@ class SplitOperations {
     private UpdateOp main;
 
     private SplitOperations(@NotNull final NodeDocument doc,
-                            @NotNull final RevisionContext context,
-                            @NotNull final RevisionVector headRev,
-                            @NotNull final Function<String, Long> binarySize,
-                            int numRevsThreshold) {
+        @NotNull final RevisionContext context,
+        @NotNull final RevisionVector headRev,
+        @NotNull final Function<String, Long> binarySize,
+        int numRevsThreshold) {
         this.doc = checkNotNull(doc);
         this.context = checkNotNull(context);
         this.binarySize = checkNotNull(binarySize);
@@ -113,44 +114,42 @@ class SplitOperations {
             @Override
             public Boolean get() {
                 return doc.getLiveRevision(context, headRev,
-                        Maps.<Revision, String>newHashMap(),
-                        new LastRevs(headRev)) != null;
+                    Maps.<Revision, String>newHashMap(),
+                    new LastRevs(headRev)) != null;
             }
         });
     }
 
     /**
-     * Creates a list of update operations in case the given document requires
-     * a split. A caller must explicitly pass a head revision even though it
-     * is available through the {@link RevisionContext}. The given head revision
-     * must reflect a head state before {@code doc} was retrieved from the
-     * document store. This is important in order to maintain consistency.
+     * Creates a list of update operations in case the given document requires a split. A caller
+     * must explicitly pass a head revision even though it is available through the
+     * {@link RevisionContext}. The given head revision must reflect a head state before {@code doc}
+     * was retrieved from the document store. This is important in order to maintain consistency.
      * See OAK-3081 for details.
      *
-     * @param doc a main document.
-     * @param context the revision context.
-     * @param headRevision the head revision before the document was retrieved
-     *                     from the document store.
-     * @param binarySize a function that returns the binary size of the given
-     *                   JSON property value String.
+     * @param doc              a main document.
+     * @param context          the revision context.
+     * @param headRevision     the head revision before the document was retrieved from the document
+     *                         store.
+     * @param binarySize       a function that returns the binary size of the given JSON property
+     *                         value String.
      * @param numRevsThreshold only split off at least this number of revisions.
-     * @return list of update operations. An empty list indicates the document
-     *          does not require a split.
-     * @throws IllegalArgumentException if the given document is a split
-     *                                  document.
+     * @return list of update operations. An empty list indicates the document does not require a
+     * split.
+     * @throws IllegalArgumentException if the given document is a split document.
      */
     @NotNull
     static List<UpdateOp> forDocument(@NotNull NodeDocument doc,
-                                      @NotNull RevisionContext context,
-                                      @NotNull RevisionVector headRevision,
-                                      @NotNull Function<String, Long> binarySize,
-                                      int numRevsThreshold) {
+        @NotNull RevisionContext context,
+        @NotNull RevisionVector headRevision,
+        @NotNull Function<String, Long> binarySize,
+        int numRevsThreshold) {
         if (doc.isSplitDocument()) {
             throw new IllegalArgumentException(
-                    "Not a main document: " + doc.getId());
+                "Not a main document: " + doc.getId());
         }
         return new SplitOperations(doc, context, headRevision,
-                binarySize, numRevsThreshold).create();
+            binarySize, numRevsThreshold).create();
 
     }
 
@@ -164,7 +163,7 @@ class SplitOperations {
         garbage = Maps.newHashMap();
         changes = Sets.newHashSet();
         committedChanges = Maps.newHashMap();
-        
+
         collectLocalChanges(committedChanges, changes);
 
         // revisions of the most recent committed changes on this document
@@ -183,7 +182,7 @@ class SplitOperations {
 
         // remove stale references to previous docs
         disconnectStalePrevDocs();
-        
+
         // remove garbage
         removeGarbage();
 
@@ -200,16 +199,16 @@ class SplitOperations {
         // only consider if there are enough commits,
         // unless document is really big
         return doc.getLocalRevisions().size() + doc.getLocalCommitRoot().size() > numRevsThreshold
-                || doc.getMemory() >= DOC_SIZE_THRESHOLD
-                || previous.size() >= PREV_SPLIT_FACTOR
-                || !doc.getStalePrev().isEmpty()
-                || doc.hasBinary();
+            || doc.getMemory() >= DOC_SIZE_THRESHOLD
+            || previous.size() >= PREV_SPLIT_FACTOR
+            || !doc.getStalePrev().isEmpty()
+            || doc.hasBinary();
     }
 
     /**
-     * Populate the {@link #splitRevs} with the revisions of the committed
-     * changes that will be moved to a previous document. For each property,
-     * all but the most recent change will be moved.
+     * Populate the {@link #splitRevs} with the revisions of the committed changes that will be
+     * moved to a previous document. For each property, all but the most recent change will be
+     * moved.
      */
     private void populateSplitRevs() {
         for (NavigableMap<Revision, String> splitMap : committedChanges.values()) {
@@ -219,7 +218,7 @@ class SplitOperations {
                 splitMap.remove(r);
                 splitRevs.addAll(splitMap.keySet());
                 hasBinaryToSplit |= hasBinaryPropertyForSplit(splitMap.values())
-                        && nodeExistsAtHeadRevision.get();
+                    && nodeExistsAtHeadRevision.get();
                 mostRecentRevs.add(r);
             }
             if (splitMap.isEmpty()) {
@@ -237,12 +236,11 @@ class SplitOperations {
     }
 
     /**
-     * Collect _revisions and _commitRoot entries that can be moved to a
-     * previous document.
+     * Collect _revisions and _commitRoot entries that can be moved to a previous document.
      */
     private void collectRevisionsAndCommitRoot() {
         NavigableMap<Revision, String> revisions =
-                new TreeMap<Revision, String>(StableRevisionComparator.INSTANCE);
+            new TreeMap<Revision, String>(StableRevisionComparator.INSTANCE);
         for (Map.Entry<Revision, String> entry : doc.getLocalRevisions().entrySet()) {
             if (splitRevs.contains(entry.getKey())) {
                 revisions.put(entry.getKey(), entry.getValue());
@@ -255,7 +253,7 @@ class SplitOperations {
                     continue;
                 }
                 if (isCommitted(context.getCommitValue(entry.getKey(), doc))
-                        && !mostRecentRevs.contains(entry.getKey())) {
+                    && !mostRecentRevs.contains(entry.getKey())) {
                     // this is a commit root for changes in other documents
                     revisions.put(entry.getKey(), entry.getValue());
                     numValues++;
@@ -266,15 +264,15 @@ class SplitOperations {
         }
         committedChanges.put(REVISIONS, revisions);
         NavigableMap<Revision, String> commitRoot =
-                new TreeMap<Revision, String>(StableRevisionComparator.INSTANCE);
+            new TreeMap<Revision, String>(StableRevisionComparator.INSTANCE);
         boolean mostRecent = true;
         for (Map.Entry<Revision, String> entry : doc.getLocalCommitRoot().entrySet()) {
             Revision r = entry.getKey();
             if (splitRevs.contains(r)) {
                 commitRoot.put(r, entry.getValue());
                 numValues++;
-            } else if (r.getClusterId() == context.getClusterId() 
-                    && !changes.contains(r)) {
+            } else if (r.getClusterId() == context.getClusterId()
+                && !changes.contains(r)) {
                 // OAK-2528: _commitRoot entry without associated change
                 // consider all but most recent as garbage (OAK-3333, OAK-4050)
                 if (mostRecent && isCommitted(context.getCommitValue(r, doc))) {
@@ -330,29 +328,28 @@ class SplitOperations {
                 // released. While this leaves garbage split doc slightly longer than
                 // absolutely necessary, it is a rather simple and robust mechanism.
                 setIntermediateDocProps(intermediate,
-                        Revision.newRevision(context.getClusterId()));
+                    Revision.newRevision(context.getClusterId()));
                 splitOps.add(intermediate);
             }
         }
     }
 
     /**
-     * Creates split {@link UpdateOp} if there is enough data to split off. The
-     * {@link UpdateOp} for the new previous document is placed into the list of
-     * {@link #splitOps}. The {@link UpdateOp} for the main document is not
-     * added to the list but rather returned.
+     * Creates split {@link UpdateOp} if there is enough data to split off. The {@link UpdateOp} for
+     * the new previous document is placed into the list of {@link #splitOps}. The {@link UpdateOp}
+     * for the main document is not added to the list but rather returned.
      *
-     * @return the UpdateOp for the main document or {@code null} if there is
-     *          not enough data to split.
+     * @return the UpdateOp for the main document or {@code null} if there is not enough data to
+     * split.
      */
     @Nullable
     private UpdateOp createSplitOps() {
         UpdateOp main = null;
         // check if we have enough data to split off
         if (high != null && low != null
-                && (numValues >= numRevsThreshold
-                || doc.getMemory() > DOC_SIZE_THRESHOLD
-                || hasBinaryToSplit)) {
+            && (numValues >= numRevsThreshold
+            || doc.getMemory() > DOC_SIZE_THRESHOLD
+            || hasBinaryToSplit)) {
             // enough changes to split off
             // move to another document
             main = new UpdateOp(id, false);
@@ -392,7 +389,7 @@ class SplitOperations {
             // released. While this leaves garbage split doc slightly longer than
             // absolutely necessary, it is a rather simple and robust mechanism.
             setSplitDocProps(doc, oldDoc, old,
-                    Revision.newRevision(context.getClusterId()));
+                Revision.newRevision(context.getClusterId()));
             splitOps.add(old);
 
             if (numValues < numRevsThreshold) {
@@ -409,9 +406,9 @@ class SplitOperations {
     }
 
     /**
-     * Returns a histogram of the height of the previous documents referenced
-     * by this document. This only includes direct references and not indirectly
-     * referenced previous documents through intermediate previous docs.
+     * Returns a histogram of the height of the previous documents referenced by this document. This
+     * only includes direct references and not indirectly referenced previous documents through
+     * intermediate previous docs.
      *
      * @return histogram of the height of the previous documents.
      */
@@ -434,18 +431,17 @@ class SplitOperations {
     }
 
     /**
-     * Collects all local property changes committed by the current
-     * cluster node.
+     * Collects all local property changes committed by the current cluster node.
      *
      * @param committedLocally local changes committed by the current cluster node.
-     * @param changes all revisions of local changes (committed and uncommitted).
+     * @param changes          all revisions of local changes (committed and uncommitted).
      */
     private void collectLocalChanges(
-            Map<String, NavigableMap<Revision, String>> committedLocally,
-            Set<Revision> changes) {
+        Map<String, NavigableMap<Revision, String>> committedLocally,
+        Set<Revision> changes) {
         for (String property : filter(doc.keySet(), PROPERTY_OR_DELETED)) {
             NavigableMap<Revision, String> splitMap
-                    = new TreeMap<Revision, String>(StableRevisionComparator.INSTANCE);
+                = new TreeMap<Revision, String>(StableRevisionComparator.INSTANCE);
             committedLocally.put(property, splitMap);
             Map<Revision, String> valueMap = doc.getLocalMap(property);
             // collect committed changes of this cluster node
@@ -463,7 +459,7 @@ class SplitOperations {
             }
         }
     }
-    
+
     private boolean isGarbage(Revision rev) {
         // use headRevision as passed in the constructor instead
         // of the head revision from the RevisionContext. see OAK-3081
@@ -474,7 +470,7 @@ class SplitOperations {
         // garbage if not part of an active branch
         return context.getBranches().getBranchCommit(rev) == null;
     }
-    
+
     private void addGarbage(Revision rev, String property) {
         if (garbageCount > GARBAGE_LIMIT) {
             return;
@@ -503,7 +499,7 @@ class SplitOperations {
             NodeDocument.removeStalePrevious(main, r);
 
             if (ranges.containsKey(r)
-                    && entry.getValue().equals(String.valueOf(ranges.get(r).height))) {
+                && entry.getValue().equals(String.valueOf(ranges.get(r).height))) {
                 NodeDocument.removePrevious(main, r);
             } else {
                 // reference was moved to an intermediate doc
@@ -513,7 +509,7 @@ class SplitOperations {
                 NodeDocument intermediate = doc.findPrevReferencingDoc(r, height);
                 if (intermediate == null) {
                     LOG.warn("Split document {} not referenced anymore. Main document is {}",
-                            getPreviousIdFor(doc.getPath(), r, height), id);
+                        getPreviousIdFor(doc.getPath(), r, height), id);
                 } else {
                     UpdateOp op = new UpdateOp(intermediate.getId(), false);
                     NodeDocument.removePrevious(op, r);
@@ -523,7 +519,7 @@ class SplitOperations {
 
         }
     }
-    
+
     private void removeGarbage() {
         if (garbage.isEmpty()) {
             return;
@@ -558,12 +554,12 @@ class SplitOperations {
      * Set various split document related flag/properties
      *
      * @param mainDoc main document from which split document is being created
-     * @param old updateOp of the old document created via split
-     * @param oldDoc old document created via split
-     * @param maxRev max revision stored in the split document oldDoc
+     * @param old     updateOp of the old document created via split
+     * @param oldDoc  old document created via split
+     * @param maxRev  max revision stored in the split document oldDoc
      */
     private static void setSplitDocProps(NodeDocument mainDoc, NodeDocument oldDoc,
-                                         UpdateOp old, Revision maxRev) {
+        UpdateOp old, Revision maxRev) {
         setSplitDocMaxRev(old, maxRev);
 
         SplitDocType type = SplitDocType.DEFAULT;
@@ -587,7 +583,7 @@ class SplitOperations {
      * Set various properties for intermediate split document
      *
      * @param intermediate updateOp of the intermediate doc getting created
-     * @param maxRev max revision stored in the intermediate
+     * @param maxRev       max revision stored in the intermediate
      */
     private static void setIntermediateDocProps(UpdateOp intermediate, Revision maxRev) {
         setSplitDocMaxRev(intermediate, maxRev);
@@ -597,13 +593,14 @@ class SplitOperations {
     //----------------------------< internal modifiers >------------------------
 
     private static void setSplitDocType(@NotNull UpdateOp op,
-                                        @NotNull SplitDocType type) {
+        @NotNull SplitDocType type) {
         checkNotNull(op).set(NodeDocument.SD_TYPE, type.type);
     }
 
     private static void setSplitDocMaxRev(@NotNull UpdateOp op,
-                                          @NotNull Revision maxRev) {
-        checkNotNull(op).set(NodeDocument.SD_MAX_REV_TIME_IN_SECS, NodeDocument.getModifiedInSecs(maxRev.getTimestamp()));
+        @NotNull Revision maxRev) {
+        checkNotNull(op).set(NodeDocument.SD_MAX_REV_TIME_IN_SECS,
+            NodeDocument.getModifiedInSecs(maxRev.getTimestamp()));
     }
 
 }

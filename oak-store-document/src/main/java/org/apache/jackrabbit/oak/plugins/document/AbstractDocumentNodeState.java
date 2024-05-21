@@ -33,9 +33,10 @@ import org.slf4j.LoggerFactory;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 public abstract class AbstractDocumentNodeState extends AbstractNodeState {
+
     private static final PerfLogger perfLogger = new PerfLogger(
-            LoggerFactory.getLogger(AbstractDocumentNodeState.class.getName()
-                    + ".perf"));
+        LoggerFactory.getLogger(AbstractDocumentNodeState.class.getName()
+            + ".perf"));
 
     public abstract Path getPath();
 
@@ -46,20 +47,18 @@ public abstract class AbstractDocumentNodeState extends AbstractNodeState {
     public abstract boolean isFromExternalChange();
 
     /**
-     * Creates a copy of this {@code DocumentNodeState} with the
-     * {@link #getRootRevision()} set to the given {@code root} revision. This method
-     * returns {@code this} instance if the given {@code root} revision is
-     * the same as the one in this instance and the {@link #isFromExternalChange()}
-     * flags are equal.
+     * Creates a copy of this {@code DocumentNodeState} with the {@link #getRootRevision()} set to
+     * the given {@code root} revision. This method returns {@code this} instance if the given
+     * {@code root} revision is the same as the one in this instance and the
+     * {@link #isFromExternalChange()} flags are equal.
      *
-     * @param root the root revision for the copy of this node state.
-     * @param externalChange if the {@link #isFromExternalChange()} flag must be
-     *                       set on the returned node state.
-     * @return a copy of this node state with the given root revision and
-     *          external change flag.
+     * @param root           the root revision for the copy of this node state.
+     * @param externalChange if the {@link #isFromExternalChange()} flag must be set on the returned
+     *                       node state.
+     * @return a copy of this node state with the given root revision and external change flag.
      */
     public abstract AbstractDocumentNodeState withRootRevision(@NotNull RevisionVector root,
-                                               boolean externalChange);
+        boolean externalChange);
 
     public abstract boolean hasNoChildren();
 
@@ -107,7 +106,7 @@ public abstract class AbstractDocumentNodeState extends AbstractNodeState {
             return EmptyNodeState.compareAgainstEmptyState(this, diff);
         } else if (base instanceof AbstractDocumentNodeState) {
             AbstractDocumentNodeState mBase = (AbstractDocumentNodeState) base;
-            if (getPath().equals(mBase.getPath())){
+            if (getPath().equals(mBase.getPath())) {
                 if (revisionEquals(mBase)) {
                     // no differences
                     return true;
@@ -119,11 +118,11 @@ public abstract class AbstractDocumentNodeState extends AbstractNodeState {
                     } finally {
                         if (start > 0) {
                             perfLogger
-                                    .end(start,
-                                            1,
-                                            "compareAgainstBaseState, path={}, lastRevision={}, base.path={}, base.lastRevision={}",
-                                            getPath(), getLastRevision(),
-                                            mBase.getPath(), mBase.getLastRevision());
+                                .end(start,
+                                    1,
+                                    "compareAgainstBaseState, path={}, lastRevision={}, base.path={}, base.lastRevision={}",
+                                    getPath(), getLastRevision(),
+                                    mBase.getPath(), mBase.getLastRevision());
                         }
                     }
                 }
@@ -143,16 +142,14 @@ public abstract class AbstractDocumentNodeState extends AbstractNodeState {
     //------------------------------< internal >--------------------------------
 
     /**
-     * Returns {@code true} if this state is equal to the {@code other} state
-     * by inspecting the root and last revision. Two node states are guaranteed
-     * to be equal if their root revisions are equal (even if the two revisions
-     * have different branch flags) or their last revisions are equal. This
-     * method may return {@code false} even if the actual states are in fact
-     * equal!
+     * Returns {@code true} if this state is equal to the {@code other} state by inspecting the root
+     * and last revision. Two node states are guaranteed to be equal if their root revisions are
+     * equal (even if the two revisions have different branch flags) or their last revisions are
+     * equal. This method may return {@code false} even if the actual states are in fact equal!
      *
      * @param other the other state to compare with.
-     * @return {@code true} if this state is equal to the {@code other} state
-     *      based on the root and last revisions.
+     * @return {@code true} if this state is equal to the {@code other} state based on the root and
+     * last revisions.
      */
     private boolean revisionEquals(AbstractDocumentNodeState other) {
         if (this.getRootRevision().asTrunkRevision()
@@ -160,6 +157,6 @@ public abstract class AbstractDocumentNodeState extends AbstractNodeState {
             return true;
         }
         return this.getLastRevision() != null
-                && this.getLastRevision().equals(other.getLastRevision());
+            && this.getLastRevision().equals(other.getLastRevision());
     }
 }

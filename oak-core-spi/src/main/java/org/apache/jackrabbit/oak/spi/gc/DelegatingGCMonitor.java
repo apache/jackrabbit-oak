@@ -23,19 +23,19 @@ import java.util.Collection;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * This {@link GCMonitor} implementation simply delegates all its call
- * to registered monitors.
+ * This {@link GCMonitor} implementation simply delegates all its call to registered monitors.
  */
 public class DelegatingGCMonitor implements GCMonitor {
+
     private final Set<GCMonitor> gcMonitors;
 
     /**
      * New instance with an initial set of delegates (which cannot be unregistered).
+     *
      * @param gcMonitors
      */
     public DelegatingGCMonitor(@NotNull Collection<? extends GCMonitor> gcMonitors) {
@@ -47,14 +47,15 @@ public class DelegatingGCMonitor implements GCMonitor {
      * New instance without any delegate.
      */
     public DelegatingGCMonitor() {
-        this(ConcurrentHashMap.newKeySet() );
+        this(ConcurrentHashMap.newKeySet());
     }
 
     /**
      * Register a {@link GCMonitor}.
+     *
      * @param gcMonitor
-     * @return  a {@link Registration} instance, which removes the registered
-     *          {@code GCMonitor} instance when called.
+     * @return a {@link Registration} instance, which removes the registered {@code GCMonitor}
+     * instance when called.
      */
     public Registration registerGCMonitor(@NotNull final GCMonitor gcMonitor) {
         gcMonitors.add(Objects.requireNonNull(gcMonitor));
@@ -107,7 +108,7 @@ public class DelegatingGCMonitor implements GCMonitor {
             gcMonitor.cleaned(reclaimedSize, currentSize);
         }
     }
-    
+
     @Override
     public void updateStatus(String status) {
         for (GCMonitor gcMonitor : gcMonitors) {

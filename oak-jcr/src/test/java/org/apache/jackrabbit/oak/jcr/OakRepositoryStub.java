@@ -16,25 +16,22 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import static org.apache.jackrabbit.oak.commons.FixturesHelper.getFixtures;
+
 import java.security.Principal;
 import java.util.Properties;
-
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-
 import org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture;
 import org.apache.jackrabbit.test.NotExecutableException;
 import org.apache.jackrabbit.test.RepositoryStub;
 import org.apache.jackrabbit.test.RepositoryStubException;
 
-import static org.apache.jackrabbit.oak.commons.FixturesHelper.getFixtures;
-
 /**
- * A generic Oak repository stub implementation that delegates to a specific
- * backend configured using the fixtures mechanism.
+ * A generic Oak repository stub implementation that delegates to a specific backend configured
+ * using the fixtures mechanism.
  */
 public class OakRepositoryStub extends BaseRepositoryStub {
 
@@ -52,18 +49,18 @@ public class OakRepositoryStub extends BaseRepositoryStub {
 
     @Override
     public Principal getKnownPrincipal(Session session)
-            throws RepositoryException {
+        throws RepositoryException {
         return delegate.getKnownPrincipal(session);
     }
 
     @Override
     public Principal getUnknownPrincipal(Session session)
-            throws RepositoryException, NotExecutableException {
+        throws RepositoryException, NotExecutableException {
         return delegate.getUnknownPrincipal(session);
     }
 
     private static RepositoryStub newDelegate(Properties settings)
-            throws RepositoryException {
+        throws RepositoryException {
         // use first fixture for stub with segment-tar as default
         Fixture f = Iterables.getFirst(getFixtures(), Fixture.SEGMENT_TAR);
         if (f == Fixture.DOCUMENT_MEM) {

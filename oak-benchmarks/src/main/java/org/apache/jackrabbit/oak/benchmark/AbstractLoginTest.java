@@ -24,7 +24,6 @@ import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 import javax.jcr.security.Privilege;
 import javax.security.auth.login.Configuration;
-
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -66,7 +65,8 @@ abstract class AbstractLoginTest extends AbstractTest {
         this(runAsUser, runWithToken, noIterations, NO_CACHE);
     }
 
-    public AbstractLoginTest(String runAsUser, boolean runWithToken, int noIterations, long expiration) {
+    public AbstractLoginTest(String runAsUser, boolean runWithToken, int noIterations,
+        long expiration) {
         super();
         this.runAsUser = runAsUser;
         this.runWithToken = runWithToken;
@@ -84,7 +84,8 @@ abstract class AbstractLoginTest extends AbstractTest {
     public void beforeSuite() throws Exception {
         Session s = loginAdministrative();
         try {
-            AccessControlUtils.addAccessControlEntry(s, "/", EveryonePrincipal.getInstance(), new String[]{Privilege.JCR_READ}, true);
+            AccessControlUtils.addAccessControlEntry(s, "/", EveryonePrincipal.getInstance(),
+                new String[]{Privilege.JCR_READ}, true);
             if (USER.equals(runAsUser)) {
                 ((JackrabbitSession) s).getUserManager().createUser(USER, USER);
             }
@@ -98,7 +99,8 @@ abstract class AbstractLoginTest extends AbstractTest {
     public void afterSuite() throws Exception {
         Session s = loginAdministrative();
         try {
-            Authorizable authorizable = ((JackrabbitSession) s).getUserManager().getAuthorizable(USER);
+            Authorizable authorizable = ((JackrabbitSession) s).getUserManager()
+                                                               .getAuthorizable(USER);
             if (authorizable != null) {
                 authorizable.remove();
                 s.save();
@@ -126,8 +128,9 @@ abstract class AbstractLoginTest extends AbstractTest {
                         ConfigurationParameters conf;
                         ConfigurationParameters iterations = ConfigurationParameters.EMPTY;
                         if (noIterations != DEFAULT_ITERATIONS) {
-                            iterations = ConfigurationParameters.of(UserConstants.PARAM_PASSWORD_HASH_ITERATIONS,
-                                    noIterations);
+                            iterations = ConfigurationParameters.of(
+                                UserConstants.PARAM_PASSWORD_HASH_ITERATIONS,
+                                noIterations);
                         }
                         ConfigurationParameters cache = ConfigurationParameters.EMPTY;
                         if (expiration > 0) {
@@ -136,25 +139,29 @@ abstract class AbstractLoginTest extends AbstractTest {
 
                         if (runWithToken) {
                             conf = ConfigurationParameters.of(
-                                    TokenConfiguration.NAME, iterations,
-                                    UserConfiguration.NAME, cache);
+                                TokenConfiguration.NAME, iterations,
+                                UserConfiguration.NAME, cache);
                         } else {
                             conf = ConfigurationParameters.of(
-                                    UserConfiguration.NAME, ConfigurationParameters.of(iterations, cache));
+                                UserConfiguration.NAME,
+                                ConfigurationParameters.of(iterations, cache));
                         }
                         conf = prepare(conf);
-                        SecurityProvider sp = SecurityProviderBuilder.newBuilder().with(conf).build();
+                        SecurityProvider sp = SecurityProviderBuilder.newBuilder().with(conf)
+                                                                     .build();
                         return new Jcr(oak).with(sp);
                     }
                 });
             } else {
-                throw new UnsupportedOperationException("Not yet supported -> Change repository.xml to configure no of iterations.");
+                throw new UnsupportedOperationException(
+                    "Not yet supported -> Change repository.xml to configure no of iterations.");
             }
         }
         return super.createRepository(fixture);
     }
 
-    private Credentials buildCredentials(Repository repository, Credentials credentials) throws RepositoryException {
+    private Credentials buildCredentials(Repository repository, Credentials credentials)
+        throws RepositoryException {
         Credentials creds;
         if ("admin".equals(runAsUser)) {
             creds = credentials;
@@ -164,7 +171,8 @@ abstract class AbstractLoginTest extends AbstractTest {
             creds = new SimpleCredentials(USER, USER.toCharArray());
         }
         if (runWithToken) {
-            Configuration.setConfiguration(ConfigurationUtil.getJackrabbit2Configuration(ConfigurationParameters.EMPTY));
+            Configuration.setConfiguration(
+                ConfigurationUtil.getJackrabbit2Configuration(ConfigurationParameters.EMPTY));
             if (creds instanceof SimpleCredentials) {
                 SimpleCredentials sc = (SimpleCredentials) creds;
                 sc.setAttribute(".token", "");

@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.plugins.index.property;
 import java.util.Collections;
 import java.util.Set;
 import java.util.regex.Pattern;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;

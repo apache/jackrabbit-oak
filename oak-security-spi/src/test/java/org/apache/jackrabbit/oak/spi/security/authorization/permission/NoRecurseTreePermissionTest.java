@@ -16,13 +16,13 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.permission;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
 
 public class NoRecurseTreePermissionTest {
 
@@ -66,7 +66,7 @@ public class NoRecurseTreePermissionTest {
 
     @Test
     public void testToString() {
-        assertEquals(noRecurse.toString(),  TreePermission.NO_RECOURSE.toString());
+        assertEquals(noRecurse.toString(), TreePermission.NO_RECOURSE.toString());
         assertNotEquals(noRecurse.toString(), TreePermission.EMPTY.toString());
     }
 }

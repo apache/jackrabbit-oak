@@ -17,10 +17,9 @@
 
 package org.apache.jackrabbit.oak.segment.standby.codec;
 
-import java.util.List;
-
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToMessageEncoder;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,8 +28,10 @@ public class GetReferencesRequestEncoder extends MessageToMessageEncoder<GetRefe
     private final Logger log = LoggerFactory.getLogger(GetReferencesRequestEncoder.class);
 
     @Override
-    protected void encode(ChannelHandlerContext ctx, GetReferencesRequest msg, List<Object> out) throws Exception {
-        log.debug("Sending request from client {} for references of segment {}", msg.getClientId(), msg.getSegmentId());
+    protected void encode(ChannelHandlerContext ctx, GetReferencesRequest msg, List<Object> out)
+        throws Exception {
+        log.debug("Sending request from client {} for references of segment {}", msg.getClientId(),
+            msg.getSegmentId());
         out.add(Messages.newGetReferencesRequest(msg.getClientId(), msg.getSegmentId()));
     }
 

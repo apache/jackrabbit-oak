@@ -24,7 +24,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermi
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 
-abstract class AbstractTreePermission implements TreePermission  {
+abstract class AbstractTreePermission implements TreePermission {
 
     private final Tree tree;
     private final TreeType type;
@@ -47,19 +47,22 @@ abstract class AbstractTreePermission implements TreePermission  {
     }
 
     @Override
-    public @NotNull TreePermission getChildPermission(@NotNull String childName, @NotNull NodeState childState) {
+    public @NotNull TreePermission getChildPermission(@NotNull String childName,
+        @NotNull NodeState childState) {
         return getPermissionProvider().getTreePermission(childName, childState, this);
     }
 
     @Override
     public boolean canRead() {
-        long permission = (type == TreeType.ACCESS_CONTROL) ? Permissions.READ_ACCESS_CONTROL : Permissions.READ_NODE;
+        long permission = (type == TreeType.ACCESS_CONTROL) ? Permissions.READ_ACCESS_CONTROL
+            : Permissions.READ_NODE;
         return getPermissionProvider().isGranted(tree, null, permission);
     }
 
     @Override
     public boolean canRead(@NotNull PropertyState property) {
-        long permission = (type == TreeType.ACCESS_CONTROL) ? Permissions.READ_ACCESS_CONTROL : Permissions.READ_PROPERTY;
+        long permission = (type == TreeType.ACCESS_CONTROL) ? Permissions.READ_ACCESS_CONTROL
+            : Permissions.READ_PROPERTY;
         return getPermissionProvider().isGranted(tree, property, permission);
     }
 

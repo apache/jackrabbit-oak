@@ -22,8 +22,8 @@ package org.apache.jackrabbit.oak.plugins.document;
 class MergeStats {
 
     /**
-     * The number of documents in this merge. This is the number of documents
-     * that were created or updated by a merge.
+     * The number of documents in this merge. This is the number of documents that were created or
+     * updated by a merge.
      */
     int numDocuments;
 }

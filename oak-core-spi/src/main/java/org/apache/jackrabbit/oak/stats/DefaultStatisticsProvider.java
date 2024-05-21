@@ -22,17 +22,17 @@ package org.apache.jackrabbit.oak.stats;
 import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
-
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.api.stats.RepositoryStatistics;
 import org.apache.jackrabbit.api.stats.RepositoryStatistics.Type;
+import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.stats.RepositoryStatisticsImpl;
 
 public final class DefaultStatisticsProvider implements StatisticsProvider {
+
     private final RepositoryStatisticsImpl repoStats;
     private final Map<String, SimpleStats> statsMeters = Maps.newHashMap();
 
-    public DefaultStatisticsProvider(ScheduledExecutorService executor){
+    public DefaultStatisticsProvider(ScheduledExecutorService executor) {
         this.repoStats = new RepositoryStatisticsImpl(executor);
     }
 
@@ -61,15 +61,17 @@ public final class DefaultStatisticsProvider implements StatisticsProvider {
         return getStats(name, true, SimpleStats.Type.HISTOGRAM, options);
     }
 
-    private synchronized SimpleStats getStats(String type, boolean resetValueEachSecond, SimpleStats.Type statsType,
-                                              StatsOptions options){
+    private synchronized SimpleStats getStats(String type, boolean resetValueEachSecond,
+        SimpleStats.Type statsType,
+        StatsOptions options) {
         Type enumType = Type.getType(type);
         SimpleStats stats = statsMeters.get(type);
-        if (stats == null){
+        if (stats == null) {
             if (enumType != null) {
                 stats = new SimpleStats(repoStats.getCounter(enumType), statsType);
             } else if (options.isTimeSeriesEnabled()) {
-                stats = new SimpleStats(repoStats.getCounter(type, resetValueEachSecond), statsType);
+                stats = new SimpleStats(repoStats.getCounter(type, resetValueEachSecond),
+                    statsType);
             } else {
                 stats = new SimpleStats(new AtomicLong(), statsType);
             }

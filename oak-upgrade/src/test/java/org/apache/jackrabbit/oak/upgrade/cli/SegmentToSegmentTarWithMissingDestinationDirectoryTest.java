@@ -16,13 +16,12 @@
  */
 package org.apache.jackrabbit.oak.upgrade.cli;
 
+import java.io.IOException;
 import org.apache.jackrabbit.oak.upgrade.cli.container.NodeStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.container.SegmentNodeStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.container.SegmentTarNodeStoreContainer;
 
-import java.io.IOException;
-
-public class SegmentToSegmentTarWithMissingDestinationDirectoryTest  extends AbstractOak2OakTest {
+public class SegmentToSegmentTarWithMissingDestinationDirectoryTest extends AbstractOak2OakTest {
 
     private final NodeStoreContainer source;
 
@@ -33,7 +32,8 @@ public class SegmentToSegmentTarWithMissingDestinationDirectoryTest  extends Abs
         destination = getSegmentTarNodeStoreContainerWithMissingDirectory();
     }
 
-    private SegmentTarNodeStoreContainer getSegmentTarNodeStoreContainerWithMissingDirectory() throws IOException {
+    private SegmentTarNodeStoreContainer getSegmentTarNodeStoreContainerWithMissingDirectory()
+        throws IOException {
         SegmentTarNodeStoreContainer segmentTarNodeStoreContainer = new SegmentTarNodeStoreContainer();
         segmentTarNodeStoreContainer.getDirectory().delete();
         return segmentTarNodeStoreContainer;
@@ -51,7 +51,7 @@ public class SegmentToSegmentTarWithMissingDestinationDirectoryTest  extends Abs
 
     @Override
     protected String[] getArgs() {
-        return new String[] { source.getDescription(), destination.getDescription() };
+        return new String[]{source.getDescription(), destination.getDescription()};
     }
 
     @Override

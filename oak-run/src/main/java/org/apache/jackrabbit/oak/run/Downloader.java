@@ -18,11 +18,6 @@
  */
 package org.apache.jackrabbit.oak.run;
 
-import org.apache.jackrabbit.guava.common.util.concurrent.ThreadFactoryBuilder;
-import org.apache.jackrabbit.oak.commons.IOUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.Closeable;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -46,9 +41,14 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import org.apache.jackrabbit.guava.common.util.concurrent.ThreadFactoryBuilder;
+import org.apache.jackrabbit.oak.commons.IOUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
- * Generic concurrent file downloader which uses Java NIO channels to potentially leverage OS internal optimizations.
+ * Generic concurrent file downloader which uses Java NIO channels to potentially leverage OS
+ * internal optimizations.
  */
 public class Downloader implements Closeable {
 
@@ -69,8 +69,9 @@ public class Downloader implements Closeable {
         this(concurrency, connectTimeoutMs, readTimeoutMs, 3, 100L, false, 10_000, null, 16384);
     }
 
-    public Downloader(int concurrency, int connectTimeoutMs, int readTimeoutMs, int maxRetries, long retryInitialInterval,
-                      boolean failOnError, int slowLogThreshold, String checksumAlgorithm, int bufferSize) {
+    public Downloader(int concurrency, int connectTimeoutMs, int readTimeoutMs, int maxRetries,
+        long retryInitialInterval,
+        boolean failOnError, int slowLogThreshold, String checksumAlgorithm, int bufferSize) {
         if (concurrency <= 0 || concurrency > 1000) {
             throw new IllegalArgumentException("concurrency range must be between 1 and 1000");
         }
@@ -101,44 +102,48 @@ public class Downloader implements Closeable {
         this.bufferSize = bufferSize;
 
         this.executorService = new ThreadPoolExecutor(
-                (int) Math.ceil(concurrency * .1), concurrency, 60L, TimeUnit.SECONDS,
-                new LinkedBlockingQueue<>(),
-                new ThreadFactoryBuilder()
-                        .setNameFormat("downloader-%d")
-                        .setDaemon(true)
-                        .build()
+            (int) Math.ceil(concurrency * .1), concurrency, 60L, TimeUnit.SECONDS,
+            new LinkedBlockingQueue<>(),
+            new ThreadFactoryBuilder()
+                .setNameFormat("downloader-%d")
+                .setDaemon(true)
+                .build()
         );
         this.responses = new ArrayList<>();
     }
 
     public void offer(Item item) {
         responses.add(
-                this.executorService.submit(new RetryingCallable<>(new DownloaderWorker(item)))
+            this.executorService.submit(new RetryingCallable<>(new DownloaderWorker(item)))
         );
     }
 
     public DownloadReport waitUntilComplete() {
         List<ItemResponse> itemResponses = responses.stream()
-                .map(itemResponseFuture -> {
-                    try {
-                        return itemResponseFuture.get();
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                        throw new RuntimeException("thread waiting for the response was interrupted", e);
-                    } catch (ExecutionException e) {
-                        if (failOnError) {
-                            throw new RuntimeException("execution failed, e");
-                        } else {
-                            LOG.error("Failure downloading item", e);
-                            return ItemResponse.FAILURE;
-                        }
-                    }
-                }).collect(Collectors.toList());
+                                                    .map(itemResponseFuture -> {
+                                                        try {
+                                                            return itemResponseFuture.get();
+                                                        } catch (InterruptedException e) {
+                                                            Thread.currentThread().interrupt();
+                                                            throw new RuntimeException(
+                                                                "thread waiting for the response was interrupted",
+                                                                e);
+                                                        } catch (ExecutionException e) {
+                                                            if (failOnError) {
+                                                                throw new RuntimeException(
+                                                                    "execution failed, e");
+                                                            } else {
+                                                                LOG.error(
+                                                                    "Failure downloading item", e);
+                                                                return ItemResponse.FAILURE;
+                                                            }
+                                                        }
+                                                    }).collect(Collectors.toList());
 
         return new DownloadReport(
-                itemResponses.stream().filter(r -> !r.failed).count(),
-                itemResponses.stream().filter(r -> r.failed).count(),
-                itemResponses.stream().filter(r -> !r.failed).mapToLong(r -> r.size).sum()
+            itemResponses.stream().filter(r -> !r.failed).count(),
+            itemResponses.stream().filter(r -> r.failed).count(),
+            itemResponses.stream().filter(r -> !r.failed).mapToLong(r -> r.size).sum()
         );
     }
 
@@ -175,7 +180,7 @@ public class Downloader implements Closeable {
 
             long size = 0;
             try (InputStream inputStream = sourceUrl.getInputStream();
-                 FileOutputStream outputStream = new FileOutputStream(destinationPath.toFile())) {
+                FileOutputStream outputStream = new FileOutputStream(destinationPath.toFile())) {
                 byte[] buffer = new byte[bufferSize];
                 int bytesRead;
                 while ((bytesRead = inputStream.read(buffer)) != -1) {
@@ -201,15 +206,19 @@ public class Downloader implements Closeable {
                 // legacy algorithms that are case-sensitive. Using equalsIgnoreCase can be considered safe here.
                 if (!checksum.equalsIgnoreCase(item.checksum)) {
                     Files.deleteIfExists(destinationPath);
-                    throw new IOException("Checksum does not match! Expected: " + item.checksum + ", Actual: " + checksum);
+                    throw new IOException(
+                        "Checksum does not match! Expected: " + item.checksum + ", Actual: "
+                            + checksum);
                 }
             }
 
             long elapsed = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - t0);
             if (slowLogThreshold > 0 && elapsed >= slowLogThreshold) {
-                LOG.warn("{} [{}] downloaded in {} ms", item.source, IOUtils.humanReadableByteCount(size), elapsed);
+                LOG.warn("{} [{}] downloaded in {} ms", item.source,
+                    IOUtils.humanReadableByteCount(size), elapsed);
             } else {
-                LOG.debug("{} [{}] downloaded in {} ms", item.source, IOUtils.humanReadableByteCount(size), elapsed);
+                LOG.debug("{} [{}] downloaded in {} ms", item.source,
+                    IOUtils.humanReadableByteCount(size), elapsed);
             }
             return ItemResponse.success(size);
         }
@@ -217,12 +226,13 @@ public class Downloader implements Closeable {
         @Override
         public String toString() {
             return "DownloaderWorker{" +
-                    "item=" + item +
-                    '}';
+                "item=" + item +
+                '}';
         }
     }
 
     private class RetryingCallable<V> implements Callable<V> {
+
         private final Callable<V> callable;
 
         public RetryingCallable(Callable<V> callable) {
@@ -241,29 +251,34 @@ public class Downloader implements Closeable {
                 } catch (IOException e) {
                     retried++;
                     exceptions.compute(e.getClass().getSimpleName() + " - " + e.getMessage(),
-                            (key, val) -> val == null ? 1 : val + 1
+                        (key, val) -> val == null ? 1 : val + 1
                     );
 
                     // Throw exception if number of tries has been reached
                     if (retried == Downloader.this.maxRetries) {
                         // Get a string of all exceptions that were thrown
                         StringBuilder summary = new StringBuilder();
-                        for (Map.Entry<String, Integer> entry: exceptions.entrySet()) {
-                            summary.append("\n\t").append(entry.getValue()).append("x: ").append(entry.getKey());
+                        for (Map.Entry<String, Integer> entry : exceptions.entrySet()) {
+                            summary.append("\n\t").append(entry.getValue()).append("x: ")
+                                   .append(entry.getKey());
                         }
 
                         throw new RetryException(retried, summary.toString(), e);
                     } else {
                         // simple exponential backoff mechanism
-                        long waitTime = (long) (Math.pow(2, retried) * Downloader.this.retryInitialInterval);
-                        LOG.warn("Callable {}. Retrying statement after {} ms; number of times failed: {}",
-                                callable, waitTime, retried, e);
+                        long waitTime = (long) (Math.pow(2, retried)
+                            * Downloader.this.retryInitialInterval);
+                        LOG.warn(
+                            "Callable {}. Retrying statement after {} ms; number of times failed: {}",
+                            callable, waitTime, retried, e);
                         try {
                             Thread.sleep(waitTime);
-                        } catch (InterruptedException ignore) {}
+                        } catch (InterruptedException ignore) {
+                        }
                     }
                 } catch (Exception e) {
-                    throw new RuntimeException("Callable " + callable + " threw an unrecoverable exception", e);
+                    throw new RuntimeException(
+                        "Callable " + callable + " threw an unrecoverable exception", e);
                 }
             }
         }
@@ -285,6 +300,7 @@ public class Downloader implements Closeable {
     }
 
     public static class Item {
+
         public String source;
         public String destination;
         public String checksum;
@@ -292,14 +308,15 @@ public class Downloader implements Closeable {
         @Override
         public String toString() {
             return "Item{" +
-                    "source='" + source + '\'' +
-                    ", destination='" + destination + '\'' +
-                    (checksum != null ? ", checksum='" + checksum + '\'' : "") +
-                    '}';
+                "source='" + source + '\'' +
+                ", destination='" + destination + '\'' +
+                (checksum != null ? ", checksum='" + checksum + '\'' : "") +
+                '}';
         }
     }
 
     private static class ItemResponse {
+
         public static final ItemResponse FAILURE = new ItemResponse(true, -1);
         public final boolean failed;
         public final long size;
@@ -315,6 +332,7 @@ public class Downloader implements Closeable {
     }
 
     public static class DownloadReport {
+
         public final long successes;
         public final long failures;
         public final long totalBytesTransferred;

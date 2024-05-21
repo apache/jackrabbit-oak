@@ -32,12 +32,14 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
-
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.guava.common.base.Stopwatch;
+import org.apache.jackrabbit.guava.common.cache.AbstractCache;
 import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.guava.common.cache.CacheLoader;
 import org.apache.jackrabbit.guava.common.cache.RemovalCause;
 import org.apache.jackrabbit.guava.common.cache.Weigher;
+import org.apache.jackrabbit.guava.common.io.Closeables;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
 import org.apache.jackrabbit.oak.cache.CacheLIRS.EvictionCallback;
 import org.apache.jackrabbit.oak.cache.CacheStats;
@@ -49,19 +51,18 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.cache.AbstractCache;
-import org.apache.jackrabbit.guava.common.io.Closeables;
-
 /**
+ *
  */
 public class FileCache extends AbstractCache<String, File> implements Closeable {
+
     /**
      * Logger instance.
      */
     private static final Logger LOG = LoggerFactory.getLogger(FileCache.class);
 
-    private static final int SEGMENT_COUNT = Integer.getInteger("oak.blob.fileCache.segmentCount", 1);
+    private static final int SEGMENT_COUNT = Integer.getInteger("oak.blob.fileCache.segmentCount",
+        1);
 
     protected static final String DOWNLOAD_DIR = "download";
 
@@ -87,17 +88,21 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
      * Convert the size calculation to KB to support max file size of 2 TB
      */
     private static final Weigher<String, File> weigher = new Weigher<String, File>() {
-        @Override public int weigh(String key, File value) {
+        @Override
+        public int weigh(String key, File value) {
             // convert to number of 4 KB blocks
             return Math.round(value.length() / (4 * 1024));
-        }};
+        }
+    };
 
     //Rough estimate of the in-memory key, value pair
     private static final Weigher<String, File> memWeigher = new Weigher<String, File>() {
-        @Override public int weigh(String key, File value) {
+        @Override
+        public int weigh(String key, File value) {
             return (StringUtils.estimateMemoryUsage(key) +
                 StringUtils.estimateMemoryUsage(value.getAbsolutePath()) + 48);
-        }};
+        }
+    };
 
     private FileCache(long maxSize /* bytes */, File root,
         final CacheLoader<String, InputStream> loader, @Nullable final ExecutorService executor) {
@@ -109,7 +114,8 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
         long size = Math.round(maxSize / (1024L * 4));
 
         cacheLoader = new CacheLoader<String, File>() {
-            @Override public File load(String key) throws Exception {
+            @Override
+            public File load(String key) throws Exception {
                 // Fetch from local cache directory and if not found load from backend
                 File cachedFile = DataStoreCacheUtils.getFile(key, cacheRoot);
                 if (cachedFile.exists()) {
@@ -151,7 +157,8 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
                     } catch (IOException e) {
                         LOG.info("Cached file deletion failed after eviction", e);
                     }
-                }})
+                }
+            })
             .build();
 
         this.cacheStats =
@@ -177,42 +184,49 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
         }
         return new FileCache() {
 
-            private final Cache<?,?> cache = new CacheLIRS<>(0);
+            private final Cache<?, ?> cache = new CacheLIRS<>(0);
 
-            @Override public void put(String key, File file) {
+            @Override
+            public void put(String key, File file) {
             }
 
-            @Override public boolean containsKey(String key) {
+            @Override
+            public boolean containsKey(String key) {
                 return false;
             }
 
-            @Nullable @Override public File getIfPresent(String key) {
+            @Nullable
+            @Override
+            public File getIfPresent(String key) {
                 return null;
             }
 
-            @Override public File get(String key) throws IOException {
+            @Override
+            public File get(String key) throws IOException {
                 return null;
             }
 
-            @Override public void invalidate(Object key) {
+            @Override
+            public void invalidate(Object key) {
             }
 
-            @Override public DataStoreCacheStatsMBean getStats() {
+            @Override
+            public DataStoreCacheStatsMBean getStats() {
                 return new FileCacheStats(cache, weigher, memWeigher, 0);
             }
 
-            @Override public void close() {
+            @Override
+            public void close() {
             }
         };
     }
 
     /**
-     * Puts the given key and file into the cache.
-     * The file is moved to the cache. So, the original file
-     * won't be available after this operation. It can be retrieved
-     * using {@link #getIfPresent(String)}.
+     * Puts the given key and file into the cache. The file is moved to the cache. So, the original
+     * file won't be available after this operation. It can be retrieved using
+     * {@link #getIfPresent(String)}.
      *
-     * @param key of the file
+     * @param key  of the file
      * @param file to put into cache
      */
     @Override
@@ -232,7 +246,8 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
             }
             cache.put(key, cached);
         } catch (IOException e) {
-            LOG.error("Exception adding id [{}] with file [{}] to cache, root cause: {}", key, file, e.getMessage());
+            LOG.error("Exception adding id [{}] with file [{}] to cache, root cause: {}", key, file,
+                e.getMessage());
             LOG.debug("Root cause", e);
         }
     }
@@ -292,6 +307,7 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
      * Called to initialize the in-memory cache from the fs folder
      */
     private class CacheBuildJob implements Callable {
+
         @Override
         public Integer call() {
             Stopwatch watch = Stopwatch.createStarted();
@@ -311,26 +327,30 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
 
         // Iterate over all files in the cache folder
         long count = FileTreeTraverser.depthFirstPostOrder(cacheRoot)
-                .filter(file -> file.isFile() &&
-                        !normalizeNoEndSeparator(file.getParent()).equals(cacheRoot.getAbsolutePath())
-                )
-                .flatMap(toBeSyncedFile -> {
-                    try {
-                        put(toBeSyncedFile.getName(), toBeSyncedFile, false);
-                        LOG.trace("Added file [{}} to in-memory cache", toBeSyncedFile);
-                        return Stream.of(toBeSyncedFile);
-                    } catch (Exception e) {
-                        LOG.error("Error in putting cached file in map[{}]", toBeSyncedFile);
-                        return Stream.empty();
-                    }
-                })
-                .count();
+                                      .filter(file -> file.isFile() &&
+                                          !normalizeNoEndSeparator(file.getParent()).equals(
+                                              cacheRoot.getAbsolutePath())
+                                      )
+                                      .flatMap(toBeSyncedFile -> {
+                                          try {
+                                              put(toBeSyncedFile.getName(), toBeSyncedFile, false);
+                                              LOG.trace("Added file [{}} to in-memory cache",
+                                                  toBeSyncedFile);
+                                              return Stream.of(toBeSyncedFile);
+                                          } catch (Exception e) {
+                                              LOG.error("Error in putting cached file in map[{}]",
+                                                  toBeSyncedFile);
+                                              return Stream.empty();
+                                          }
+                                      })
+                                      .count();
         LOG.trace("[{}] files put in im-memory cache", count);
         return (int) count;
     }
 }
 
 class FileCacheStats extends CacheStats implements DataStoreCacheStatsMBean {
+
     private static final long KB = 4 * 1024;
     private final Weigher<Object, Object> memWeigher;
     private final Weigher<Object, Object> weigher;
@@ -338,7 +358,8 @@ class FileCacheStats extends CacheStats implements DataStoreCacheStatsMBean {
 
     /**
      * Construct the cache stats object.
-     *  @param cache     the cache
+     *
+     * @param cache     the cache
      * @param weigher   the weigher used to estimate the current weight
      * @param maxWeight the maximum weight
      */

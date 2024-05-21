@@ -26,65 +26,73 @@ package org.apache.lucene.search;
  */
 
 import java.io.IOException;
-
 import org.apache.lucene.index.AtomicReaderContext;
 import org.apache.lucene.util.Bits;
 
-/** 
- * Constrains search results to only match those which also match a provided
- * query.  
+/**
+ * Constrains search results to only match those which also match a provided query.
  *
  * <p> This could be used, for example, with a {@link NumericRangeQuery} on a suitably
  * formatted date field to implement date filtering.  One could re-use a single
- * CachingWrapperFilter(QueryWrapperFilter) that matches, e.g., only documents modified 
- * within the last week.  This would only need to be reconstructed once per day.
+ * CachingWrapperFilter(QueryWrapperFilter) that matches, e.g., only documents modified within the
+ * last week.  This would only need to be reconstructed once per day.
  */
 public class QueryWrapperFilter extends Filter {
-  private final Query query;
 
-  /** Constructs a filter which only matches documents matching
-   * <code>query</code>.
-   */
-  public QueryWrapperFilter(Query query) {
-    if (query == null)
-      throw new NullPointerException("Query may not be null");
-    this.query = query;
-  }
-  
-  /** returns the inner Query */
-  public final Query getQuery() {
-    return query;
-  }
+    private final Query query;
 
-  @Override
-  public DocIdSet getDocIdSet(final AtomicReaderContext context, final Bits acceptDocs) throws IOException {
-    // get a private context that is used to rewrite, createWeight and score eventually
-    final AtomicReaderContext privateContext = context.reader().getContext();
-    final Weight weight = new IndexSearcher(privateContext).createNormalizedWeight(query);
-    return new DocIdSet() {
-      @Override
-      public DocIdSetIterator iterator() throws IOException {
-        return weight.scorer(privateContext, true, false, acceptDocs);
-      }
-      @Override
-      public boolean isCacheable() { return false; }
-    };
-  }
+    /**
+     * Constructs a filter which only matches documents matching
+     * <code>query</code>.
+     */
+    public QueryWrapperFilter(Query query) {
+        if (query == null) {
+            throw new NullPointerException("Query may not be null");
+        }
+        this.query = query;
+    }
 
-  @Override
-  public String toString() {
-    return "QueryWrapperFilter(" + query + ")";
-  }
+    /**
+     * returns the inner Query
+     */
+    public final Query getQuery() {
+        return query;
+    }
 
-  @Override
-  public boolean equals(Object o) {
-    if (!(o instanceof QueryWrapperFilter))
-      return false;
-    return this.query.equals(((QueryWrapperFilter)o).query);
-  }
+    @Override
+    public DocIdSet getDocIdSet(final AtomicReaderContext context, final Bits acceptDocs)
+        throws IOException {
+        // get a private context that is used to rewrite, createWeight and score eventually
+        final AtomicReaderContext privateContext = context.reader().getContext();
+        final Weight weight = new IndexSearcher(privateContext).createNormalizedWeight(query);
+        return new DocIdSet() {
+            @Override
+            public DocIdSetIterator iterator() throws IOException {
+                return weight.scorer(privateContext, true, false, acceptDocs);
+            }
 
-  @Override
-  public int hashCode() {
-    return query.hashCode() ^ 0x923F64B9;
-  }
+            @Override
+            public boolean isCacheable() {
+                return false;
+            }
+        };
+    }
+
+    @Override
+    public String toString() {
+        return "QueryWrapperFilter(" + query + ")";
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (!(o instanceof QueryWrapperFilter)) {
+            return false;
+        }
+        return this.query.equals(((QueryWrapperFilter) o).query);
+    }
+
+    @Override
+    public int hashCode() {
+        return query.hashCode() ^ 0x923F64B9;
+    }
 }

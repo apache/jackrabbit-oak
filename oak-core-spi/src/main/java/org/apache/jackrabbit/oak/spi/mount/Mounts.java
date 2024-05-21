@@ -19,18 +19,16 @@
 
 package org.apache.jackrabbit.oak.spi.mount;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
+import static java.util.Arrays.asList;
+import static java.util.Collections.singletonList;
 
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-
-import static java.util.Arrays.asList;
-import static java.util.Collections.singletonList;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 
 /**
  * Provides helper methods for creating {@link MountInfoProvider} instances.
- *
  */
 public final class Mounts {
 
@@ -74,8 +72,7 @@ public final class Mounts {
     };
 
     /**
-     * Default Mount info which indicates that no explicit mount is created for
-     * given path
+     * Default Mount info which indicates that no explicit mount is created for given path
      */
     private static Mount DEFAULT_MOUNT = new DefaultMount();
 
@@ -84,7 +81,7 @@ public final class Mounts {
         private final Collection<Mount> mounts;
 
         DefaultMount() {
-            this(Collections.<Mount> emptySet());
+            this(Collections.<Mount>emptySet());
         }
 
         DefaultMount(Collection<Mount> mounts) {
@@ -154,7 +151,7 @@ public final class Mounts {
 
     /**
      * Returns a {@link MountInfoProvider} which is configured only with the default Mount
-     * 
+     *
      * @return the default MountInfoProvider
      */
     public static MountInfoProvider defaultMountInfoProvider() {
@@ -163,10 +160,10 @@ public final class Mounts {
 
     /**
      * Creates a new Builder instance for configuring more complex mount setups
-     * 
+     *
      * @return a new builder instance
      */
-    public static Builder newBuilder(){
+    public static Builder newBuilder() {
         return new Builder();
     }
 
@@ -174,6 +171,7 @@ public final class Mounts {
      * Provides a fluent API from creating {@link MountInfoProvider} instances
      */
     public static final class Builder {
+
         private final List<Mount> mounts = Lists.newArrayListWithCapacity(1);
 
         private Builder() {
@@ -181,8 +179,8 @@ public final class Mounts {
 
         /**
          * Adds a new read-write {@link Mount} with the specified name and paths
-         * 
-         * @param name the name of the mount
+         *
+         * @param name  the name of the mount
          * @param paths the paths handled by the mount
          * @return this builder instance
          */
@@ -193,8 +191,8 @@ public final class Mounts {
 
         /**
          * Adds a new read-only Mount with the specified name and paths
-         * 
-         * @param name the name of the mount
+         *
+         * @param name  the name of the mount
          * @param paths the paths handled by the mount
          * @return this builder instance
          */
@@ -205,21 +203,23 @@ public final class Mounts {
 
         /**
          * Adds a new Mount instance with the specified parameters
-         * 
-         * @param name the name of the mount
-         * @param readOnly true for read-only paths, false otherwise
-         * @param pathsSupportingFragments the paths supporting fragments, see {@link Mount#getPathFragmentName()}
-         * @param paths the paths handled by the mount
+         *
+         * @param name                     the name of the mount
+         * @param readOnly                 true for read-only paths, false otherwise
+         * @param pathsSupportingFragments the paths supporting fragments, see
+         *                                 {@link Mount#getPathFragmentName()}
+         * @param paths                    the paths handled by the mount
          * @return this builder instance
          */
-        public Builder mount(String name, boolean readOnly, List<String> pathsSupportingFragments, List<String> paths) {
+        public Builder mount(String name, boolean readOnly, List<String> pathsSupportingFragments,
+            List<String> paths) {
             mounts.add(new MountInfo(name, readOnly, pathsSupportingFragments, paths));
             return this;
         }
 
         /**
          * Creates a new {@link MountInfoProvider}
-         * 
+         *
          * @return a newly-created MountInfoProvider
          */
         public MountInfoProvider build() {

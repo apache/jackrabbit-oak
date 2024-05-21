@@ -20,15 +20,13 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.utils
 
 import java.util.ArrayList;
 import java.util.HashMap;
-
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 
 /**
  * A class that remembers the top k entries.
- *
- * Internally, the top entries are kept in a list, as well as in a hash map.
- * Also, a count-min sketch data structure is used for an approximate count per
- * entry.
+ * <p>
+ * Internally, the top entries are kept in a list, as well as in a hash map. Also, a count-min
+ * sketch data structure is used for an approximate count per entry.
  */
 public class TopKValues {
 
@@ -156,6 +154,7 @@ public class TopKValues {
     }
 
     static class TopEntry {
+
         long count;
         final String value;
         int index;

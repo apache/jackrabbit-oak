@@ -26,9 +26,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.zip.CRC32;
-
 import org.apache.jackrabbit.guava.common.base.Charsets;
-
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.junit.Test;
 
@@ -74,41 +72,42 @@ public class BinaryReferencesIndexLoaderTest {
     @Test
     public void testLoadV1() throws Exception {
         Buffer entries = Buffer.allocate(512)
-            // First generation
-            .putInt(1)
-            .putInt(2)
-            // First generation, first segment
-            .putLong(1).putLong(1)
-            .putInt(2)
-            .putInt(length("1.1.1")).put(bytes("1.1.1"))
-            .putInt(length("1.1.2")).put(bytes("1.1.2"))
-            // First generation, second segment
-            .putLong(1).putLong(2)
-            .putInt(2)
-            .putInt(length("1.2.1")).put(bytes("1.2.1"))
-            .putInt(length("1.2.2")).put(bytes("1.2.2"))
-            // Second generation
-            .putInt(2)
-            .putInt(2)
-            // Second generation, second segment
-            .putLong(2).putLong(1)
-            .putInt(2)
-            .putInt(length("2.1.1")).put(bytes("2.1.1"))
-            .putInt(length("2.1.2")).put(bytes("2.1.2"))
-            // Second generation, second segment
-            .putLong(2).putLong(2)
-            .putInt(2)
-            .putInt(length("2.2.1")).put(bytes("2.2.1"))
-            .putInt(length("2.2.2")).put(bytes("2.2.2"));
+                               // First generation
+                               .putInt(1)
+                               .putInt(2)
+                               // First generation, first segment
+                               .putLong(1).putLong(1)
+                               .putInt(2)
+                               .putInt(length("1.1.1")).put(bytes("1.1.1"))
+                               .putInt(length("1.1.2")).put(bytes("1.1.2"))
+                               // First generation, second segment
+                               .putLong(1).putLong(2)
+                               .putInt(2)
+                               .putInt(length("1.2.1")).put(bytes("1.2.1"))
+                               .putInt(length("1.2.2")).put(bytes("1.2.2"))
+                               // Second generation
+                               .putInt(2)
+                               .putInt(2)
+                               // Second generation, second segment
+                               .putLong(2).putLong(1)
+                               .putInt(2)
+                               .putInt(length("2.1.1")).put(bytes("2.1.1"))
+                               .putInt(length("2.1.2")).put(bytes("2.1.2"))
+                               // Second generation, second segment
+                               .putLong(2).putLong(2)
+                               .putInt(2)
+                               .putInt(length("2.2.1")).put(bytes("2.2.1"))
+                               .putInt(length("2.2.2")).put(bytes("2.2.2"));
         entries.flip();
 
-        Buffer buffer = Buffer.allocate(entries.remaining() + BinaryReferencesIndexLoaderV1.FOOTER_SIZE);
+        Buffer buffer = Buffer.allocate(
+            entries.remaining() + BinaryReferencesIndexLoaderV1.FOOTER_SIZE);
         buffer.duplicate()
-            .put(entries.duplicate())
-            .putInt(checksum(entries))
-            .putInt(2)
-            .putInt(entries.remaining() + BinaryReferencesIndexLoaderV1.FOOTER_SIZE)
-            .putInt(BinaryReferencesIndexLoaderV1.MAGIC);
+              .put(entries.duplicate())
+              .putInt(checksum(entries))
+              .putInt(2)
+              .putInt(entries.remaining() + BinaryReferencesIndexLoaderV1.FOOTER_SIZE)
+              .putInt(BinaryReferencesIndexLoaderV1.MAGIC);
 
         BinaryReferencesIndex index = loadIndex(buffer);
 
@@ -146,41 +145,42 @@ public class BinaryReferencesIndexLoaderTest {
     @Test
     public void testLoadV2() throws Exception {
         Buffer entries = Buffer.allocate(512)
-            // First generation
-            .putInt(1).putInt(2).put((byte) 0)
-            .putInt(2)
-            // First generation, first segment
-            .putLong(1).putLong(1)
-            .putInt(2)
-            .putInt(length("1.1.1")).put(bytes("1.1.1"))
-            .putInt(length("1.1.2")).put(bytes("1.1.2"))
-            // First generation, second segment
-            .putLong(1).putLong(2)
-            .putInt(2)
-            .putInt(length("1.2.1")).put(bytes("1.2.1"))
-            .putInt(length("1.2.2")).put(bytes("1.2.2"))
-            // Second generation
-            .putInt(3).putInt(4).put((byte) 1)
-            .putInt(2)
-            // Second generation, second segment
-            .putLong(2).putLong(1)
-            .putInt(2)
-            .putInt(length("2.1.1")).put(bytes("2.1.1"))
-            .putInt(length("2.1.2")).put(bytes("2.1.2"))
-            // Second generation, second segment
-            .putLong(2).putLong(2)
-            .putInt(2)
-            .putInt(length("2.2.1")).put(bytes("2.2.1"))
-            .putInt(length("2.2.2")).put(bytes("2.2.2"));
+                               // First generation
+                               .putInt(1).putInt(2).put((byte) 0)
+                               .putInt(2)
+                               // First generation, first segment
+                               .putLong(1).putLong(1)
+                               .putInt(2)
+                               .putInt(length("1.1.1")).put(bytes("1.1.1"))
+                               .putInt(length("1.1.2")).put(bytes("1.1.2"))
+                               // First generation, second segment
+                               .putLong(1).putLong(2)
+                               .putInt(2)
+                               .putInt(length("1.2.1")).put(bytes("1.2.1"))
+                               .putInt(length("1.2.2")).put(bytes("1.2.2"))
+                               // Second generation
+                               .putInt(3).putInt(4).put((byte) 1)
+                               .putInt(2)
+                               // Second generation, second segment
+                               .putLong(2).putLong(1)
+                               .putInt(2)
+                               .putInt(length("2.1.1")).put(bytes("2.1.1"))
+                               .putInt(length("2.1.2")).put(bytes("2.1.2"))
+                               // Second generation, second segment
+                               .putLong(2).putLong(2)
+                               .putInt(2)
+                               .putInt(length("2.2.1")).put(bytes("2.2.1"))
+                               .putInt(length("2.2.2")).put(bytes("2.2.2"));
         entries.flip();
 
-        Buffer buffer = Buffer.allocate(entries.remaining() + BinaryReferencesIndexLoaderV2.FOOTER_SIZE);
+        Buffer buffer = Buffer.allocate(
+            entries.remaining() + BinaryReferencesIndexLoaderV2.FOOTER_SIZE);
         buffer.duplicate()
-            .put(entries.duplicate())
-            .putInt(checksum(entries))
-            .putInt(2)
-            .putInt(entries.remaining() + BinaryReferencesIndexLoaderV2.FOOTER_SIZE)
-            .putInt(BinaryReferencesIndexLoaderV2.MAGIC);
+              .put(entries.duplicate())
+              .putInt(checksum(entries))
+              .putInt(2)
+              .putInt(entries.remaining() + BinaryReferencesIndexLoaderV2.FOOTER_SIZE)
+              .putInt(BinaryReferencesIndexLoaderV2.MAGIC);
 
         BinaryReferencesIndex index = loadIndex(buffer);
 

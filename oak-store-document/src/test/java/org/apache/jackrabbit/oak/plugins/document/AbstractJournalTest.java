@@ -66,7 +66,7 @@ public abstract class AbstractJournalTest {
 
     protected Set<String> choose(List<String> paths, int howMany) {
         final Set<String> result = new HashSet<String>();
-        while(result.size()<howMany) {
+        while (result.size() < howMany) {
             result.add(paths.get(random.nextInt(paths.size())));
         }
         return result;
@@ -74,7 +74,7 @@ public abstract class AbstractJournalTest {
 
     protected List<String> createRandomPaths(int depth, int avgChildrenPerLevel, int num) {
         final Set<String> result = new HashSet<String>();
-        while(result.size()<num) {
+        while (result.size() < num) {
             result.add(createRandomPath(depth, avgChildrenPerLevel));
         }
         return new ArrayList<String>(result);
@@ -82,7 +82,7 @@ public abstract class AbstractJournalTest {
 
     protected String createRandomPath(int depth, int avgChildrenPerLevel) {
         StringBuilder sb = new StringBuilder();
-        for(int i=0; i<depth; i++) {
+        for (int i = 0; i < depth; i++) {
             sb.append("/");
             sb.append("r").append(random.nextInt(avgChildrenPerLevel));
         }
@@ -91,18 +91,19 @@ public abstract class AbstractJournalTest {
 
     protected void assertDocCache(DocumentNodeStore ns, boolean expected, String path) {
         String id = Utils.getIdFromPath(path);
-        boolean exists = ns.getDocumentStore().getIfCached(Collection.NODES, id)!=null;
-        if (exists!=expected) {
+        boolean exists = ns.getDocumentStore().getIfCached(Collection.NODES, id) != null;
+        if (exists != expected) {
             if (expected) {
-                fail("assertDocCache: did not find in cache even though expected: "+path);
+                fail("assertDocCache: did not find in cache even though expected: " + path);
             } else {
-                fail("assertDocCache: found in cache even though not expected: "+path);
+                fail("assertDocCache: found in cache even though not expected: " + path);
             }
         }
     }
 
-    protected void setProperty(DocumentNodeStore ns, String path, String key, String value, boolean runBgOpsAfterCreation) throws
-            CommitFailedException {
+    protected void setProperty(DocumentNodeStore ns, String path, String key, String value,
+        boolean runBgOpsAfterCreation) throws
+        CommitFailedException {
         NodeBuilder rootBuilder = ns.getRoot().builder();
         doGetOrCreate(rootBuilder, path).setProperty(key, value);
         ns.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
@@ -111,9 +112,10 @@ public abstract class AbstractJournalTest {
         }
     }
 
-    protected void getOrCreate(DocumentNodeStore ns, List<String> paths, boolean runBgOpsAfterCreation) throws CommitFailedException {
+    protected void getOrCreate(DocumentNodeStore ns, List<String> paths,
+        boolean runBgOpsAfterCreation) throws CommitFailedException {
         NodeBuilder rootBuilder = ns.getRoot().builder();
-        for(String path:paths) {
+        for (String path : paths) {
             doGetOrCreate(rootBuilder, path);
         }
         ns.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
@@ -122,7 +124,8 @@ public abstract class AbstractJournalTest {
         }
     }
 
-    protected void getOrCreate(DocumentNodeStore ns, String path, boolean runBgOpsAfterCreation) throws CommitFailedException {
+    protected void getOrCreate(DocumentNodeStore ns, String path, boolean runBgOpsAfterCreation)
+        throws CommitFailedException {
         NodeBuilder rootBuilder = ns.getRoot().builder();
         doGetOrCreate(rootBuilder, path);
         ns.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
@@ -133,7 +136,7 @@ public abstract class AbstractJournalTest {
 
     protected NodeBuilder doGetOrCreate(NodeBuilder builder, String path) {
         String[] parts = path.split("/");
-        for(int i=1; i<parts.length; i++) {
+        for (int i = 1; i < parts.length; i++) {
             builder = builder.child(parts[i]);
         }
         return builder;
@@ -141,30 +144,37 @@ public abstract class AbstractJournalTest {
 
     protected void assertJournalEntries(DocumentNodeStore ds, String... expectedChanges) {
         List<String> exp = new LinkedList<String>(asList(expectedChanges));
-        for(boolean branch : new Boolean[]{false, true}) {
+        for (boolean branch : new Boolean[]{false, true}) {
             String fromKey = JournalEntry.asId(new Revision(0, 0, ds.getClusterId(), branch));
-            String toKey = JournalEntry.asId(new Revision(System.currentTimeMillis()+1000, 0, ds.getClusterId(), branch));
-            List<JournalEntry> entries = ds.getDocumentStore().query(Collection.JOURNAL, fromKey, toKey, expectedChanges.length+5);
-            if (entries.size()>0) {
+            String toKey = JournalEntry.asId(
+                new Revision(System.currentTimeMillis() + 1000, 0, ds.getClusterId(), branch));
+            List<JournalEntry> entries = ds.getDocumentStore()
+                                           .query(Collection.JOURNAL, fromKey, toKey,
+                                               expectedChanges.length + 5);
+            if (entries.size() > 0) {
                 for (JournalEntry journalEntry : entries) {
                     if (!exp.remove(journalEntry.get("_c"))) {
-                        fail("Found an unexpected change: " + journalEntry.get("_c") + ", while all I expected was: " + asList(expectedChanges));
+                        fail("Found an unexpected change: " + journalEntry.get("_c")
+                            + ", while all I expected was: " + asList(expectedChanges));
                     }
                 }
             }
         }
-        if (exp.size()>0) {
-            fail("Did not find all expected changes, left over: "+exp+" (from original list which is: "+asList(expectedChanges)+")");
+        if (exp.size() > 0) {
+            fail("Did not find all expected changes, left over: " + exp
+                + " (from original list which is: " + asList(expectedChanges) + ")");
         }
     }
 
     protected int countJournalEntries(DocumentNodeStore ds, int max) {
         int total = 0;
-        for(boolean branch : new Boolean[]{false, true}) {
+        for (boolean branch : new Boolean[]{false, true}) {
             String fromKey = JournalEntry.asId(new Revision(0, 0, ds.getClusterId(), branch));
-            String toKey = JournalEntry.asId(new Revision(System.currentTimeMillis()+1000, 0, ds.getClusterId(), branch));
-            List<JournalEntry> entries = ds.getDocumentStore().query(Collection.JOURNAL, fromKey, toKey, max);
-            total+=entries.size();
+            String toKey = JournalEntry.asId(
+                new Revision(System.currentTimeMillis() + 1000, 0, ds.getClusterId(), branch));
+            List<JournalEntry> entries = ds.getDocumentStore()
+                                           .query(Collection.JOURNAL, fromKey, toKey, max);
+            total += entries.size();
         }
         return total;
     }
@@ -178,11 +188,11 @@ public abstract class AbstractJournalTest {
     }
 
     protected DocumentMK createMK(int clusterId, int asyncDelay,
-                                  DocumentStore ds, BlobStore bs) {
+        DocumentStore ds, BlobStore bs) {
         builder = newDocumentMKBuilder();
         return register(builder.setDocumentStore(ds)
-                .setBlobStore(bs).setClusterId(clusterId)
-                .setAsyncDelay(asyncDelay).open());
+                               .setBlobStore(bs).setClusterId(clusterId)
+                               .setAsyncDelay(asyncDelay).open());
     }
 
     protected DocumentMK register(DocumentMK mk) {
@@ -191,12 +201,13 @@ public abstract class AbstractJournalTest {
     }
 
     protected final class TestBuilder extends DocumentMK.Builder {
+
         CountingDocumentStore actualStore;
         CountingDiffCache actualDiffCache;
 
         @Override
         public DocumentStore getDocumentStore() {
-            if (actualStore==null) {
+            if (actualStore == null) {
                 actualStore = new CountingDocumentStore(super.getDocumentStore());
             }
             return actualStore;
@@ -204,7 +215,7 @@ public abstract class AbstractJournalTest {
 
         @Override
         public DiffCache getDiffCache(int clusterId) {
-            if (actualDiffCache==null) {
+            if (actualDiffCache == null) {
                 actualDiffCache = new CountingDiffCache(this);
             }
             return actualDiffCache;

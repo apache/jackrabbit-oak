@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.spi.whiteboard;
 
 import java.util.List;
-
 import org.osgi.annotation.versioning.ProviderType;
 
 /**

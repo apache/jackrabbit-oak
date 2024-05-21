@@ -16,6 +16,10 @@
  */
 package org.apache.jackrabbit.oak.spi.security;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authentication.OpenAuthenticationConfiguration;
@@ -25,10 +29,6 @@ import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
-
 public class OpenSecurityProviderTest {
 
     private final OpenSecurityProvider securityProvider = new OpenSecurityProvider();
@@ -36,17 +36,20 @@ public class OpenSecurityProviderTest {
     @Test
     public void testGetParameters() {
         assertSame(ConfigurationParameters.EMPTY, securityProvider.getParameters(null));
-        assertSame(ConfigurationParameters.EMPTY, securityProvider.getParameters(AuthorizationConfiguration.NAME));
+        assertSame(ConfigurationParameters.EMPTY,
+            securityProvider.getParameters(AuthorizationConfiguration.NAME));
     }
 
     @Test
     public void testGetAuthorizationConfiguration() {
-        assertTrue(securityProvider.getConfiguration(AuthorizationConfiguration.class) instanceof OpenAuthorizationConfiguration);
+        assertTrue(securityProvider.getConfiguration(
+            AuthorizationConfiguration.class) instanceof OpenAuthorizationConfiguration);
     }
 
     @Test
     public void testGetAuthenticationConfiguration() {
-        assertTrue(securityProvider.getConfiguration(AuthenticationConfiguration.class) instanceof OpenAuthenticationConfiguration);
+        assertTrue(securityProvider.getConfiguration(
+            AuthenticationConfiguration.class) instanceof OpenAuthenticationConfiguration);
     }
 
     @Test(expected = IllegalArgumentException.class)

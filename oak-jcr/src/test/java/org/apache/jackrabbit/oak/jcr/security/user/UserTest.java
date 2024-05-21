@@ -23,7 +23,6 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 import javax.jcr.UnsupportedRepositoryOperationException;
-
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.User;
@@ -90,19 +89,22 @@ public class UserTest extends AbstractUserTest {
     @Test
     public void testChangePassword() throws RepositoryException, NotExecutableException {
         try {
-            String hash = getNode(user, superuser).getProperty(UserConstants.REP_PASSWORD).getString();
+            String hash = getNode(user, superuser).getProperty(UserConstants.REP_PASSWORD)
+                                                  .getString();
 
             user.changePassword("changed");
             superuser.save();
 
-            assertFalse(hash.equals(getNode(user, superuser).getProperty(UserConstants.REP_PASSWORD).getString()));
+            assertFalse(hash.equals(
+                getNode(user, superuser).getProperty(UserConstants.REP_PASSWORD).getString()));
         } catch (Exception e) {
             // success
         }
     }
 
     @Test
-    public void testChangePasswordWithInvalidOldPassword() throws RepositoryException, NotExecutableException {
+    public void testChangePasswordWithInvalidOldPassword()
+        throws RepositoryException, NotExecutableException {
         try {
             user.changePassword("changed", "wrongOldPw");
             superuser.save();
@@ -113,14 +115,17 @@ public class UserTest extends AbstractUserTest {
     }
 
     @Test
-    public void testChangePasswordWithOldPassword() throws RepositoryException, NotExecutableException {
+    public void testChangePasswordWithOldPassword()
+        throws RepositoryException, NotExecutableException {
         try {
-            String hash = getNode(user, superuser).getProperty(UserConstants.REP_PASSWORD).getString();
+            String hash = getNode(user, superuser).getProperty(UserConstants.REP_PASSWORD)
+                                                  .getString();
 
             user.changePassword("changed", testPw);
             superuser.save();
 
-            assertFalse(hash.equals(getNode(user, superuser).getProperty(UserConstants.REP_PASSWORD).getString()));
+            assertFalse(hash.equals(
+                getNode(user, superuser).getProperty(UserConstants.REP_PASSWORD).getString()));
         } finally {
             user.changePassword(testPw);
             superuser.save();
@@ -133,7 +138,8 @@ public class UserTest extends AbstractUserTest {
         superuser.save();
 
         // make sure the user can login with the new pw
-        Session s = getHelper().getRepository().login(new SimpleCredentials(user.getID(), "changed".toCharArray()));
+        Session s = getHelper().getRepository()
+                               .login(new SimpleCredentials(user.getID(), "changed".toCharArray()));
         s.logout();
     }
 
@@ -145,7 +151,8 @@ public class UserTest extends AbstractUserTest {
             superuser.save();
 
             // make sure the user can login with the new pw
-            Session s = getHelper().getRepository().login(new SimpleCredentials(user.getID(), "changed".toCharArray()));
+            Session s = getHelper().getRepository().login(
+                new SimpleCredentials(user.getID(), "changed".toCharArray()));
             s.logout();
         } finally {
             user.changePassword(testPw);
@@ -159,7 +166,8 @@ public class UserTest extends AbstractUserTest {
             user.changePassword("changed");
             superuser.save();
 
-            Session s = getHelper().getRepository().login(new SimpleCredentials(user.getID(), testPw.toCharArray()));
+            Session s = getHelper().getRepository().login(
+                new SimpleCredentials(user.getID(), testPw.toCharArray()));
             s.logout();
             fail("user pw has changed. login must fail.");
         } catch (LoginException e) {
@@ -173,7 +181,8 @@ public class UserTest extends AbstractUserTest {
             user.changePassword("changed", testPw);
             superuser.save();
 
-            Session s = getHelper().getRepository().login(new SimpleCredentials(user.getID(), testPw.toCharArray()));
+            Session s = getHelper().getRepository().login(
+                new SimpleCredentials(user.getID(), testPw.toCharArray()));
             s.logout();
             fail("superuser pw has changed. login must fail.");
         } catch (LoginException e) {
@@ -208,17 +217,20 @@ public class UserTest extends AbstractUserTest {
         // user must still be retrievable from user manager
         assertNotNull(getUserManager(superuser).getAuthorizable(user.getID()));
         // ... and from principal manager as well
-        assertTrue(((JackrabbitSession) superuser).getPrincipalManager().hasPrincipal(user.getPrincipal().getName()));
+        assertTrue(((JackrabbitSession) superuser).getPrincipalManager()
+                                                  .hasPrincipal(user.getPrincipal().getName()));
     }
 
     @Test
-    public void testAccessPrincipalOfDisabledUser()  throws Exception {
+    public void testAccessPrincipalOfDisabledUser() throws Exception {
         user.disable("readonly user is disabled!");
         superuser.save();
 
         Principal principal = user.getPrincipal();
-        assertTrue(((JackrabbitSession) superuser).getPrincipalManager().hasPrincipal(principal.getName()));
-        assertEquals(principal, ((JackrabbitSession) superuser).getPrincipalManager().getPrincipal(principal.getName()));
+        assertTrue(((JackrabbitSession) superuser).getPrincipalManager()
+                                                  .hasPrincipal(principal.getName()));
+        assertEquals(principal, ((JackrabbitSession) superuser).getPrincipalManager()
+                                                               .getPrincipal(principal.getName()));
     }
 
     @Test
@@ -233,7 +245,8 @@ public class UserTest extends AbstractUserTest {
         assertNull(user.getDisabledReason());
 
         // -> login must succeed again
-        getHelper().getRepository().login(new SimpleCredentials(user.getID(), "pw".toCharArray())).logout();
+        getHelper().getRepository().login(new SimpleCredentials(user.getID(), "pw".toCharArray()))
+                   .logout();
     }
 
     @Test
@@ -243,7 +256,8 @@ public class UserTest extends AbstractUserTest {
 
         // -> login must fail
         try {
-            Session ss = getHelper().getRepository().login(new SimpleCredentials(user.getID(), "pw".toCharArray()));
+            Session ss = getHelper().getRepository()
+                                    .login(new SimpleCredentials(user.getID(), "pw".toCharArray()));
             ss.logout();
             fail("A disabled user must not be allowed to login any more");
         } catch (LoginException e) {

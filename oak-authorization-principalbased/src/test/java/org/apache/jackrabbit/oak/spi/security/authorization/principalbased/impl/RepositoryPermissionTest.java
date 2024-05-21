@@ -55,9 +55,11 @@ public class RepositoryPermissionTest extends AbstractPrincipalBasedTest {
         return NamePathMapper.DEFAULT;
     }
 
-    private void setupPermissions(@Nullable String effectivePath, @NotNull String... privNames) throws Exception {
+    private void setupPermissions(@Nullable String effectivePath, @NotNull String... privNames)
+        throws Exception {
         // set principal-based policy for 'testPrincipal'
-        setupPrincipalBasedAccessControl(getTestSystemUser().getPrincipal(), effectivePath, privNames);
+        setupPrincipalBasedAccessControl(getTestSystemUser().getPrincipal(), effectivePath,
+            privNames);
         if (root.hasPendingChanges()) {
             root.commit();
         }
@@ -65,7 +67,8 @@ public class RepositoryPermissionTest extends AbstractPrincipalBasedTest {
 
     @Test
     public void testGetRepositoryPermissionsTwice() {
-        assertSame(permissionProvider.getRepositoryPermission(), permissionProvider.getRepositoryPermission());
+        assertSame(permissionProvider.getRepositoryPermission(),
+            permissionProvider.getRepositoryPermission());
     }
 
     @Test
@@ -93,7 +96,8 @@ public class RepositoryPermissionTest extends AbstractPrincipalBasedTest {
 
     @Test
     public void testIsGrantedNoPermissions() {
-        assertTrue(permissionProvider.getRepositoryPermission().isGranted(Permissions.NO_PERMISSION));
+        assertTrue(
+            permissionProvider.getRepositoryPermission().isGranted(Permissions.NO_PERMISSION));
     }
 
     @Test
@@ -116,10 +120,12 @@ public class RepositoryPermissionTest extends AbstractPrincipalBasedTest {
         permissionProvider.refresh();
 
         assertFalse(permissionProvider.getRepositoryPermission().isGranted(NAMESPACE_MANAGEMENT));
-        assertFalse(permissionProvider.getRepositoryPermission().isGranted(NAMESPACE_MANAGEMENT| NODE_TYPE_DEFINITION_MANAGEMENT));
+        assertFalse(permissionProvider.getRepositoryPermission().isGranted(
+            NAMESPACE_MANAGEMENT | NODE_TYPE_DEFINITION_MANAGEMENT));
         assertFalse(permissionProvider.getRepositoryPermission().isGranted(Permissions.ALL));
 
-        assertTrue(permissionProvider.getRepositoryPermission().isGranted(NODE_TYPE_DEFINITION_MANAGEMENT));
+        assertTrue(permissionProvider.getRepositoryPermission()
+                                     .isGranted(NODE_TYPE_DEFINITION_MANAGEMENT));
     }
 
     @Test
@@ -142,7 +148,8 @@ public class RepositoryPermissionTest extends AbstractPrincipalBasedTest {
 
         assertTrue(permissionProvider.hasPrivileges(null, JCR_NAMESPACE_MANAGEMENT));
 
-        assertFalse(permissionProvider.hasPrivileges(null, JCR_NAMESPACE_MANAGEMENT, JCR_WORKSPACE_MANAGEMENT));
+        assertFalse(permissionProvider.hasPrivileges(null, JCR_NAMESPACE_MANAGEMENT,
+            JCR_WORKSPACE_MANAGEMENT));
         assertFalse(permissionProvider.hasPrivileges(null, JCR_NODE_TYPE_DEFINITION_MANAGEMENT));
     }
 }

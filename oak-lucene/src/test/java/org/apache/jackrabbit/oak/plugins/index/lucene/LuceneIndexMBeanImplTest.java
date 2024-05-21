@@ -26,7 +26,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
-
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.lucene.analysis.Analyzer;
@@ -61,7 +60,7 @@ public class LuceneIndexMBeanImplTest {
         });
         NodeStore nodeStore = mock(NodeStore.class);
         luceneIndexMBean = new LuceneIndexMBeanImpl(tracker, nodeStore, null,
-                new File("target/index"), null);
+            new File("target/index"), null);
     }
 
     private IndexWriter addNodeIndex(String path) throws IOException {
@@ -70,14 +69,17 @@ public class LuceneIndexMBeanImplTest {
         IndexWriterConfig config = new IndexWriterConfig(Version.LUCENE_47, analyzer);
         IndexWriter writer = new IndexWriter(directory, config);
         LuceneIndexNode indexNode = mock(LuceneIndexNode.class);
-        when(indexNode.getSearcher()).thenAnswer(inv -> new IndexSearcher(DirectoryReader.open(directory)));
+        when(indexNode.getSearcher()).thenAnswer(
+            inv -> new IndexSearcher(DirectoryReader.open(directory)));
         indexes.put(path, indexNode);
         return writer;
     }
 
-    private void assertTermsMatch(String expectedFile, String[] actualTermsResult) throws IOException {
+    private void assertTermsMatch(String expectedFile, String[] actualTermsResult)
+        throws IOException {
         String[] expectedTermsResult = IOUtils
-                .readLines(getClass().getResourceAsStream(expectedFile), StandardCharsets.UTF_8).toArray(new String[0]);
+            .readLines(getClass().getResourceAsStream(expectedFile), StandardCharsets.UTF_8)
+            .toArray(new String[0]);
         assertArrayEquals(expectedTermsResult, actualTermsResult);
     }
 
@@ -95,21 +97,21 @@ public class LuceneIndexMBeanImplTest {
         }
         indexWriter.close();
         String[] stringValues = luceneIndexMBean.getFieldTermsInfo(INDEX_PATH, "string",
-                "java.lang.String", 10);
+            "java.lang.String", 10);
         assertTermsMatch("LuceneIndexMBeanImplTest-expected-string-field.txt", stringValues);
 
         String[] intValues = luceneIndexMBean.getFieldTermsInfo(INDEX_PATH, "int",
-                "int", 10);
+            "int", 10);
         assertTermsMatch("LuceneIndexMBeanImplTest-expected-int-field.txt", intValues);
         intValues = luceneIndexMBean.getFieldTermsInfo(INDEX_PATH, "int",
-                "java.lang.Integer", 10);
+            "java.lang.Integer", 10);
         assertTermsMatch("LuceneIndexMBeanImplTest-expected-int-field.txt", intValues);
 
         String[] longValues = luceneIndexMBean.getFieldTermsInfo(INDEX_PATH, "long",
-                "long", 10);
+            "long", 10);
         assertTermsMatch("LuceneIndexMBeanImplTest-expected-long-field.txt", longValues);
         longValues = luceneIndexMBean.getFieldTermsInfo(INDEX_PATH, "long",
-                "java.lang.Long", 10);
+            "java.lang.Long", 10);
         assertTermsMatch("LuceneIndexMBeanImplTest-expected-long-field.txt", longValues);
     }
 

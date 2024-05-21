@@ -18,6 +18,8 @@
  */
 package org.apache.jackrabbit.oak.indexversion;
 
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexName;
@@ -31,8 +33,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.util.ISO8601;
 import org.jetbrains.annotations.NotNull;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
 public class PurgeOldVersionUtils {
 
@@ -60,7 +60,8 @@ public class PurgeOldVersionUtils {
      * @param path
      * @throws CommitFailedException recursively deletes child nodes under path
      */
-    public static void recursiveDeleteHiddenChildNodes(NodeStore store, String path) throws CommitFailedException {
+    public static void recursiveDeleteHiddenChildNodes(NodeStore store, String path)
+        throws CommitFailedException {
         NodeState nodeState = NodeStateUtils.getNode(store.getRoot(), path);
         Iterable<String> childNodeNames = nodeState.getChildNodeNames();
         for (String childNodeName : childNodeNames) {
@@ -68,7 +69,8 @@ public class PurgeOldVersionUtils {
                 if (childNodeName.startsWith(IndexDefinition.HIDDEN_OAK_MOUNT_PREFIX)) {
                     continue;
                 }
-                RecursiveDelete recursiveDelete = new RecursiveDelete(store, EmptyHook.INSTANCE, () -> CommitInfo.EMPTY);
+                RecursiveDelete recursiveDelete = new RecursiveDelete(store, EmptyHook.INSTANCE,
+                    () -> CommitInfo.EMPTY);
                 recursiveDelete.run(path + "/" + childNodeName);
             }
         }
@@ -79,7 +81,8 @@ public class PurgeOldVersionUtils {
      * @param repositoryIndexPath
      * @return true if baseIndexName at  commandlineIndexPath and repositoryIndexPath are equal
      */
-    public static boolean isBaseIndexEqual(String commandlineIndexPath, String repositoryIndexPath) {
+    public static boolean isBaseIndexEqual(String commandlineIndexPath,
+        String repositoryIndexPath) {
         if (PathUtils.getName(PathUtils.getParentPath(commandlineIndexPath)).equals(OAK_INDEX)) {
             String commandlineIndexBaseName = IndexName.parse(commandlineIndexPath).getBaseName();
             String repositoryIndexBaseName = IndexName.parse(repositoryIndexPath).getBaseName();
@@ -95,7 +98,8 @@ public class PurgeOldVersionUtils {
      * @param repositoryIndexPath
      * @return true if repositoryIndexPath is child of commandlineIndexPath
      */
-    public static boolean isIndexChildNode(String commandlineIndexPath, String repositoryIndexPath) {
+    public static boolean isIndexChildNode(String commandlineIndexPath,
+        String repositoryIndexPath) {
         if (PathUtils.getName(commandlineIndexPath).equals(OAK_INDEX)) {
             if (repositoryIndexPath.startsWith(commandlineIndexPath)) {
                 return true;

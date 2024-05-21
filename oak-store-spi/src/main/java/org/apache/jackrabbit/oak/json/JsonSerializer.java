@@ -25,20 +25,16 @@ import static org.apache.jackrabbit.oak.api.Type.LONG;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.regex.Pattern;
-
-import org.jetbrains.annotations.NotNull;
 import javax.jcr.PropertyType;
-
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
@@ -49,6 +45,7 @@ import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.ReadOnlyBuilder;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,6 +53,7 @@ import org.slf4j.LoggerFactory;
  * Utility class for serializing node and property states to JSON.
  */
 public class JsonSerializer {
+
     private static final Logger log = LoggerFactory.getLogger(JsonSerializer.class);
 
     public static final String DEFAULT_FILTER_EXPRESSION =
@@ -81,8 +79,8 @@ public class JsonSerializer {
     private final boolean catchExceptions;
 
     private JsonSerializer(
-            JsopWriter json, int depth, long offset, int maxChildNodes,
-            JsonFilter filter, BlobSerializer blobs, boolean catchExceptions) {
+        JsopWriter json, int depth, long offset, int maxChildNodes,
+        JsonFilter filter, BlobSerializer blobs, boolean catchExceptions) {
         this.json = checkNotNull(json);
         this.depth = depth;
         this.offset = offset;
@@ -93,39 +91,39 @@ public class JsonSerializer {
     }
 
     public JsonSerializer(
-            int depth, long offset, int maxChildNodes,
-            String filter, BlobSerializer blobs) {
+        int depth, long offset, int maxChildNodes,
+        String filter, BlobSerializer blobs) {
         this(new JsopBuilder(), depth, offset, maxChildNodes,
-                new JsonFilter(filter), blobs, false);
+            new JsonFilter(filter), blobs, false);
     }
 
     public JsonSerializer(JsopWriter json,
-            int depth, long offset, int maxChildNodes,
-            String filter, BlobSerializer blobs) {
+        int depth, long offset, int maxChildNodes,
+        String filter, BlobSerializer blobs) {
         this(json, depth, offset, maxChildNodes,
-                new JsonFilter(filter), blobs, false);
+            new JsonFilter(filter), blobs, false);
     }
 
     public JsonSerializer(JsopWriter json,
-                          int depth, long offset, int maxChildNodes,
-                          String filter, BlobSerializer blobs, boolean catchExceptions) {
+        int depth, long offset, int maxChildNodes,
+        String filter, BlobSerializer blobs, boolean catchExceptions) {
         this(json, depth, offset, maxChildNodes,
             new JsonFilter(filter), blobs, catchExceptions);
     }
 
     public JsonSerializer(JsopWriter json, BlobSerializer blobs) {
         this(json, Integer.MAX_VALUE, 0, Integer.MAX_VALUE,
-                DEFAULT_FILTER, blobs, false);
+            DEFAULT_FILTER, blobs, false);
     }
 
     public JsonSerializer(JsopWriter json, String filter, BlobSerializer blobs) {
         this(json, Integer.MAX_VALUE, 0, Integer.MAX_VALUE,
-                new JsonFilter(filter), blobs, false);
+            new JsonFilter(filter), blobs, false);
     }
 
     protected JsonSerializer getChildSerializer() {
         return new JsonSerializer(
-                json, depth - 1, 0, maxChildNodes, filter, blobs, catchExceptions);
+            json, depth - 1, 0, maxChildNodes, filter, blobs, catchExceptions);
     }
 
     public void serialize(NodeState node) {
@@ -144,7 +142,9 @@ public class JsonSerializer {
                         serialize(property);
                     } catch (Throwable t) {
                         if (catchExceptions) {
-                            String message = "Cannot read property value " + basePath + "/" + name + " : " + t.getMessage();
+                            String message =
+                                "Cannot read property value " + basePath + "/" + name + " : "
+                                    + t.getMessage();
                             log.error(message);
                             json.value(ERROR_JSON_VALUE_PREFIX + message);
                         } else {
@@ -186,7 +186,8 @@ public class JsonSerializer {
         json.endObject();
     }
 
-    private Iterable<? extends ChildNodeEntry> getChildNodeEntries(NodeState node, String basePath) {
+    private Iterable<? extends ChildNodeEntry> getChildNodeEntries(NodeState node,
+        String basePath) {
         PropertyState order = node.getProperty(":childOrder");
         if (order != null) {
             List<String> names = ImmutableList.copyOf(order.getValue(NAMES));
@@ -196,7 +197,8 @@ public class JsonSerializer {
                     entries.add(new MemoryChildNodeEntry(name, node.getChildNode(name)));
                 } catch (Throwable t) {
                     if (catchExceptions) {
-                        String message = "Cannot read node " + basePath + "/" + name + " : " + t.getMessage();
+                        String message =
+                            "Cannot read node " + basePath + "/" + name + " : " + t.getMessage();
                         log.error(message);
 
                         // return a placeholder child node entry for tracking the error into the JSON
@@ -209,7 +211,8 @@ public class JsonSerializer {
                             @NotNull
                             @Override
                             public Iterable<? extends PropertyState> getProperties() {
-                                return Collections.singleton(new StringPropertyState(ERROR_JSON_KEY, ERROR_JSON_VALUE_PREFIX + message));
+                                return Collections.singleton(new StringPropertyState(ERROR_JSON_KEY,
+                                    ERROR_JSON_VALUE_PREFIX + message));
                             }
 
                             @Override
@@ -219,7 +222,8 @@ public class JsonSerializer {
 
                             @NotNull
                             @Override
-                            public NodeState getChildNode(@NotNull String name) throws IllegalArgumentException {
+                            public NodeState getChildNode(@NotNull String name)
+                                throws IllegalArgumentException {
                                 return EmptyNodeState.MISSING_NODE;
                             }
 
@@ -261,7 +265,7 @@ public class JsonSerializer {
             } else {
                 // type-safe encoding of an empty array
                 json.value(TypeCodes.EMPTY_ARRAY
-                        + PropertyType.nameFromValue(type.tag()));
+                    + PropertyType.nameFromValue(type.tag()));
             }
         }
     }
@@ -281,7 +285,7 @@ public class JsonSerializer {
         } else if (type == BINARY) {
             Blob blob = property.getValue(BINARY, index);
             json.value(TypeCodes.encode(type.tag(), blobs.serialize(blob)));
-        } else  {
+        } else {
             String value = property.getValue(STRING, index);
             if (type != STRING || TypeCodes.split(value) != -1) {
                 value = TypeCodes.encode(type.tag(), value);
@@ -340,7 +344,7 @@ public class JsonSerializer {
         }
 
         private static void readPatterns(JsopTokenizer tokenizer, List<Pattern> includes,
-                List<Pattern> excludes) {
+            List<Pattern> excludes) {
             tokenizer.read('[');
             for (boolean first = true; !tokenizer.matches(']'); first = false) {
                 if (!first) {
@@ -384,7 +388,7 @@ public class JsonSerializer {
         }
 
         private static boolean include(
-                String name, List<Pattern> includes, List<Pattern> excludes) {
+            String name, List<Pattern> includes, List<Pattern> excludes) {
             for (Pattern include : includes) {
                 if (include.matcher(name).matches()) {
                     for (Pattern exclude : excludes) {

@@ -24,12 +24,10 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Test {@link CachingDataStore} with AzureBlobStoreBackend and with very small size (@link
- * {@link LocalCache}.
- * It requires to pass azure config file via system property  or system properties by prefixing with 'ds.'.
- * See details @ {@link AzureDataStoreUtils}.
- * For e.g. -Dconfig=/opt/cq/azure.properties. Sample azure properties located at
+ * {@link LocalCache}. It requires to pass azure config file via system property  or system
+ * properties by prefixing with 'ds.'. See details @ {@link AzureDataStoreUtils}. For e.g.
+ * -Dconfig=/opt/cq/azure.properties. Sample azure properties located at
  * src/test/resources/azure.properties
-
  */
 public class TestAzureDSWithSmallCache extends TestAzureDS {
 

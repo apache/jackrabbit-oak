@@ -64,27 +64,25 @@ public interface FulltextIndexConstants {
     String EXPERIMENTAL_STORAGE = "oak.experimental.storage";
 
     /**
-     * Determines if full text indexing is enabled for this index definition.
-     * Default is true
+     * Determines if full text indexing is enabled for this index definition. Default is true
      */
     String FULL_TEXT_ENABLED = "fulltextEnabled";
 
     /**
-     * Only include properties with name in this set. If this property is defined
-     * then {@code excludePropertyNames} would be ignored
+     * Only include properties with name in this set. If this property is defined then
+     * {@code excludePropertyNames} would be ignored
      */
     String INCLUDE_PROPERTY_NAMES = "includePropertyNames";
 
     /**
-     * Type of the property being indexed defined as part of property definition
-     * under the given index definition. Refer to {@link javax.jcr.PropertyType}
-     * constants for the possible values
+     * Type of the property being indexed defined as part of property definition under the given
+     * index definition. Refer to {@link javax.jcr.PropertyType} constants for the possible values
      */
     String PROP_TYPE = "type";
 
     /**
-     * Defines properties which would be used for ordering. If range queries are to
-     * be performed with same property then it must be part of include list also
+     * Defines properties which would be used for ordering. If range queries are to be performed
+     * with same property then it must be part of include list also
      */
     String ORDERED_PROP_NAMES = "orderedProps";
 
@@ -94,9 +92,8 @@ public interface FulltextIndexConstants {
     String BLOB_SIZE = "blobSize";
 
     /**
-     * Native function name associated with this index definition. Any query can
-     * use this as the function name to ensure that this index gets used for invoking
-     * the index
+     * Native function name associated with this index definition. Any query can use this as the
+     * function name to ensure that this index gets used for invoking the index
      */
     String FUNC_NAME = "functionName";
 
@@ -157,24 +154,24 @@ public interface FulltextIndexConstants {
     String EVALUATE_PATH_RESTRICTION = "evaluatePathRestrictions";
 
     /**
-     * The property name to specify a regular expression for property value in index definition. If this property is present
-     * in index definition, then only those properties would be added to index whose value matches the regex defined by
-     * this property.
+     * The property name to specify a regular expression for property value in index definition. If
+     * this property is present in index definition, then only those properties would be added to
+     * index whose value matches the regex defined by this property.
      */
     String PROP_VALUE_REGEX = "valueRegex";
 
     /**
-     * The property name to specify a regular expression for query text. If this property is present in an index definition,
-     * then those queries whose search text doesn't match this pattern but are still using the index will log a warning.
-     * If this property is not specified, but {@link #PROP_VALUE_REGEX} is specified, that property is also used for the use
-     * case specified here.
+     * The property name to specify a regular expression for query text. If this property is present
+     * in an index definition, then those queries whose search text doesn't match this pattern but
+     * are still using the index will log a warning. If this property is not specified, but
+     * {@link #PROP_VALUE_REGEX} is specified, that property is also used for the use case specified
+     * here.
      */
     String PROP_QUERY_FILTER_REGEX = "queryFilterRegex";
 
     /**
-     * Experimental config to restrict which property type gets indexed at
-     * property definition level. Mostly index rule level #INCLUDE_PROPERTY_TYPES
-     * should be sufficient
+     * Experimental config to restrict which property type gets indexed at property definition
+     * level. Mostly index rule level #INCLUDE_PROPERTY_TYPES should be sufficient
      */
     String PROP_INCLUDED_TYPE = "oak.experimental.includePropertyTypes";
 
@@ -191,19 +188,21 @@ public interface FulltextIndexConstants {
     String AGG_PRIMARY_TYPE = "primaryType";
 
     /**
-     * Name of property which stores the aggregate include pattern like <code>jcr:content/metadata</code>
+     * Name of property which stores the aggregate include pattern like
+     * <code>jcr:content/metadata</code>
      */
     String AGG_PATH = "path";
 
     /**
-     * Limit for maximum number of reaggregates allowed. For example if there is an aggregate of nt:folder
-     * and it also includes nt:folder then aggregation would traverse down until this limit is hit
+     * Limit for maximum number of reaggregates allowed. For example if there is an aggregate of
+     * nt:folder and it also includes nt:folder then aggregation would traverse down until this
+     * limit is hit
      */
     String AGG_RECURSIVE_LIMIT = "reaggregateLimit";
 
     /**
-     * Boolean property indicating that separate fulltext field should be created for
-     * node represented by this pattern
+     * Boolean property indicating that separate fulltext field should be created for node
+     * represented by this pattern
      */
     String AGG_RELATIVE_NODE = "relativeNode";
 
@@ -213,8 +212,8 @@ public interface FulltextIndexConstants {
 
 
     /**
-     * Config node which include Tika related configuration
-     * Its value should match {@link FieldNames#NODE_NAME}
+     * Config node which include Tika related configuration Its value should match
+     * {@link FieldNames#NODE_NAME}
      */
     String TIKA = "tika";
 
@@ -236,16 +235,14 @@ public interface FulltextIndexConstants {
     String TIKA_MAPPED_TYPE = "mappedType";
 
     /**
-     * The maximum number of terms that will be indexed for a single field in a
-     * document.  This limits the amount of memory required for indexing, so that
-     * collections with very large files will not crash the indexing process by
-     * running out of memory.
+     * The maximum number of terms that will be indexed for a single field in a document.  This
+     * limits the amount of memory required for indexing, so that collections with very large files
+     * will not crash the indexing process by running out of memory.
      * <p>
-     * Note that this effectively truncates large documents, excluding from the
-     * index terms that occur further in the document.  If you know your source
-     * documents are large, be sure to set this value high enough to accommodate
-     * the expected size.  If you set it to Integer.MAX_VALUE, then the only limit
-     * is your memory, but you should anticipate an OutOfMemoryError.
+     * Note that this effectively truncates large documents, excluding from the index terms that
+     * occur further in the document.  If you know your source documents are large, be sure to set
+     * this value high enough to accommodate the expected size.  If you set it to Integer.MAX_VALUE,
+     * then the only limit is your memory, but you should anticipate an OutOfMemoryError.
      * <p>
      * By default, no more than 10,000 terms will be indexed for a field.
      */
@@ -287,20 +284,20 @@ public interface FulltextIndexConstants {
     String PROP_SIMILARITY_TAGS = "similarityTags";
 
     /**
-     * Property definition config indicating that null check support should be
-     * enabled for this property
+     * Property definition config indicating that null check support should be enabled for this
+     * property
      */
     String PROP_NULL_CHECK_ENABLED = "nullCheckEnabled";
 
     /**
-     * Property definition config indicating that this property would be used with
-     * 'IS NOT NULL' constraint
+     * Property definition config indicating that this property would be used with 'IS NOT NULL'
+     * constraint
      */
     String PROP_NOT_NULL_CHECK_ENABLED = "notNullCheckEnabled";
 
     /**
-     * IndexRule level config to indicate that Node name should also be index
-     * to support fn:name() queries
+     * IndexRule level config to indicate that Node name should also be index to support fn:name()
+     * queries
      */
     String INDEX_NODE_NAME = "indexNodeName";
 
@@ -322,8 +319,7 @@ public interface FulltextIndexConstants {
     String SUGGEST_ANALYZED = "suggestAnalyzed";
 
     /**
-     * Integer property indicating that the index should be
-     * used in compat mode to specific version
+     * Integer property indicating that the index should be used in compat mode to specific version
      */
     String COMPAT_MODE = "compatVersion";
 
@@ -338,8 +334,8 @@ public interface FulltextIndexConstants {
     String MERGE_POLICY_NAME = "mergePolicy";
 
     /**
-     * Optional (index definition) property indicating whether facets should be ACL checked.
-     * Default is true
+     * Optional (index definition) property indicating whether facets should be ACL checked. Default
+     * is true
      */
     String PROP_SECURE_FACETS = "secure";
 
@@ -359,14 +355,13 @@ public interface FulltextIndexConstants {
 
     /**
      * Optional (index definition) property indicating max number of facets that will be retrieved
-     * in query
-     * Default is {@link IndexDefinition#DEFAULT_FACET_COUNT}
+     * in query Default is {@link IndexDefinition#DEFAULT_FACET_COUNT}
      */
     String PROP_FACETS_TOP_CHILDREN = "topChildren";
 
     /**
-     * Optional (property definition) property indicating whether facets should be created
-     * for this property
+     * Optional (property definition) property indicating whether facets should be created for this
+     * property
      */
     String PROP_FACETS = "facets";
 
@@ -386,34 +381,32 @@ public interface FulltextIndexConstants {
     String PROP_REFRESH_DEFN = "refresh";
 
     /**
-     * Long property that keep seed for random number generation. One example usage of this is
-     * to randomly sample query results to statistically check for ACLs to extrapolate facet
-     * counts
+     * Long property that keep seed for random number generation. One example usage of this is to
+     * randomly sample query results to statistically check for ACLs to extrapolate facet counts
      */
     String PROP_RANDOM_SEED = "seed";
 
     /**
-     * Boolean property to indicate that nodes nodetype matching indexRule name
-     * should be indexed
+     * Boolean property to indicate that nodes nodetype matching indexRule name should be indexed
      */
     String PROP_INDEX_NODE_TYPE = "nodeTypeIndex";
 
     /**
-     * The property of an index. If the given node or property exists, then the
-     * index is used for queries; otherwise, it is not used (returns infinite
-     * cost). The value is: nodes, the path. For properties, the path of the node, then '@' property.
+     * The property of an index. If the given node or property exists, then the index is used for
+     * queries; otherwise, it is not used (returns infinite cost). The value is: nodes, the path.
+     * For properties, the path of the node, then '@' property.
      */
     String USE_IF_EXISTS = "useIfExists";
 
     /**
-     * Boolean property to enable or disable indexing of binaries for similarity searches.
-     * By default the value of this property is true.
+     * Boolean property to enable or disable indexing of binaries for similarity searches. By
+     * default the value of this property is true.
      */
     String INDEX_SIMILARITY_BINARIES = "indexSimilarityBinaries";
 
     /**
-     * Boolean property to enable or disable indexing of strings for similarity searches.
-     * By default the value of this property is true.
+     * Boolean property to enable or disable indexing of strings for similarity searches. By default
+     * the value of this property is true.
      */
     String INDEX_SIMILARITY_STRINGS = "indexSimilarityStrings";
 
@@ -439,10 +432,11 @@ public interface FulltextIndexConstants {
     String INDEX_ORIGINAL_TERM = "indexOriginalTerm";
 
     /**
-     * Internal version of the index definition for specific index type. Index version is an information that might be
-     * needed from an outside process that does not have visibility to the specific index module.
+     * Internal version of the index definition for specific index type. Index version is an
+     * information that might be needed from an outside process that does not have visibility to the
+     * specific index module.
      */
     Map<String, String> INDEX_VERSION_BY_TYPE = Map.of(
-            "elasticsearch", "1.1.0"
+        "elasticsearch", "1.1.0"
     );
 }

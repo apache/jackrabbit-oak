@@ -21,9 +21,10 @@ package org.apache.jackrabbit.oak.jcr.binary.fixtures.nodestore;
 import java.io.File;
 import java.io.IOException;
 import javax.jcr.RepositoryException;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.core.data.DataStore;
+import org.apache.jackrabbit.guava.common.collect.HashBasedTable;
+import org.apache.jackrabbit.guava.common.collect.Table;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.binary.fixtures.datastore.DataStoreFixture;
 import org.apache.jackrabbit.oak.jcr.binary.util.BinaryAccessDSGCFixture;
@@ -42,13 +43,9 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.collect.HashBasedTable;
-import org.apache.jackrabbit.guava.common.collect.Table;
-
 /**
- * Creates a repository with
- * - SegmentNodeStore, storing data in-memory
- * - an optional DataStore provided by DataStoreFixture
+ * Creates a repository with - SegmentNodeStore, storing data in-memory - an optional DataStore
+ * provided by DataStoreFixture
  */
 public class SegmentMemoryNodeStoreFixture extends NodeStoreFixture implements ComponentHolder,
     BinaryAccessDSGCFixture {
@@ -76,9 +73,10 @@ public class SegmentMemoryNodeStoreFixture extends NodeStoreFixture implements C
 
             File fileStoreRoot = FixtureUtils.createTempFolder();
             FileStoreBuilder fileStoreBuilder = FileStoreBuilder.fileStoreBuilder(fileStoreRoot)
-                .withNodeDeduplicationCacheSize(16384)
-                .withMaxFileSize(256)
-                .withMemoryMapping(false);
+                                                                .withNodeDeduplicationCacheSize(
+                                                                    16384)
+                                                                .withMaxFileSize(256)
+                                                                .withMemoryMapping(false);
 
             File dataStoreFolder = null;
             BlobStore blobStore = null;
@@ -118,14 +116,16 @@ public class SegmentMemoryNodeStoreFixture extends NodeStoreFixture implements C
     @Override
     public void dispose(NodeStore nodeStore) {
         try {
-            File fileStoreRoot = (File) components.get(nodeStore, FileStore.class.getName() + ":root");
+            File fileStoreRoot = (File) components.get(nodeStore,
+                FileStore.class.getName() + ":root");
             FileUtils.deleteQuietly(fileStoreRoot);
 
             DataStore dataStore = (DataStore) components.get(nodeStore, DataStore.class.getName());
             if (dataStore != null && dataStoreFixture != null) {
                 dataStoreFixture.dispose(dataStore);
 
-                File dataStoreFolder = (File) components.get(nodeStore, DataStore.class.getName() + ":folder");
+                File dataStoreFolder = (File) components.get(nodeStore,
+                    DataStore.class.getName() + ":folder");
                 FileUtils.deleteQuietly(dataStoreFolder);
             }
         } finally {
@@ -136,7 +136,7 @@ public class SegmentMemoryNodeStoreFixture extends NodeStoreFixture implements C
     @Override
     public void compactStore(NodeStore nodeStore) {
         FileStore fileStore = get(nodeStore, FileStore.class.getName());
-        for (int i = 0; i< SegmentGCOptions.defaultGCOptions().getRetainedGenerations(); i++) {
+        for (int i = 0; i < SegmentGCOptions.defaultGCOptions().getRetainedGenerations(); i++) {
             fileStore.compactFull();
         }
     }

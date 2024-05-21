@@ -16,6 +16,10 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
+import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+
+import java.util.List;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -44,12 +48,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.List;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
-
-class ExternalUserValidatorProvider extends ValidatorProvider implements ExternalIdentityConstants  {
+class ExternalUserValidatorProvider extends ValidatorProvider implements ExternalIdentityConstants {
 
     private static final Logger log = LoggerFactory.getLogger(ExternalUserValidatorProvider.class);
 
@@ -59,50 +58,56 @@ class ExternalUserValidatorProvider extends ValidatorProvider implements Externa
     private final Context aggregatedCtx;
     private final IdentityProtectionType protectionType;
     private final ProtectionConfig protectionConfig;
-    
+
     private Root rootBefore;
     private Root rootAfter;
-    
+
     ExternalUserValidatorProvider(@NotNull RootProvider rootProvider,
-                                  @NotNull TreeProvider treeProvider,
-                                  @NotNull SecurityProvider securityProvider,
-                                  @NotNull IdentityProtectionType protectionType,
-                                  @NotNull ProtectionConfig protectionConfig) {
+        @NotNull TreeProvider treeProvider,
+        @NotNull SecurityProvider securityProvider,
+        @NotNull IdentityProtectionType protectionType,
+        @NotNull ProtectionConfig protectionConfig) {
         checkArgument(protectionType != IdentityProtectionType.NONE);
         this.rootProvider = rootProvider;
         this.treeProvider = treeProvider;
         this.protectionType = protectionType;
         this.protectionConfig = protectionConfig;
 
-        this.authorizableRootPath = UserUtil.getAuthorizableRootPath(securityProvider.getParameters(UserConfiguration.NAME), AuthorizableType.AUTHORIZABLE);
+        this.authorizableRootPath = UserUtil.getAuthorizableRootPath(
+            securityProvider.getParameters(UserConfiguration.NAME), AuthorizableType.AUTHORIZABLE);
         aggregatedCtx = new AggregatedContext(securityProvider);
-        
+
     }
 
     @Override
-    protected @NotNull Validator getRootValidator(NodeState before, NodeState after, CommitInfo info) {
+    protected @NotNull Validator getRootValidator(NodeState before, NodeState after,
+        CommitInfo info) {
         this.rootBefore = rootProvider.createReadOnlyRoot(before);
         this.rootAfter = rootProvider.createReadOnlyRoot(after);
-        return new SubtreeValidator(new ExternalUserValidator(), Iterables.toArray(PathUtils.elements(authorizableRootPath), String.class));
+        return new SubtreeValidator(new ExternalUserValidator(),
+            Iterables.toArray(PathUtils.elements(authorizableRootPath), String.class));
     }
-    
+
     private class ExternalUserValidator extends DefaultValidator {
-        
+
         private Tree parentBefore;
         private Tree parentAfter;
-        
+
         boolean isExternalIdentity = false;
-        
-        private ExternalUserValidator() {}
-        
-        private ExternalUserValidator(@NotNull ExternalUserValidator parentValidator, @NotNull Tree parentBefore, @NotNull Tree parentAfter) {
+
+        private ExternalUserValidator() {
+        }
+
+        private ExternalUserValidator(@NotNull ExternalUserValidator parentValidator,
+            @NotNull Tree parentBefore, @NotNull Tree parentAfter) {
             this.parentBefore = parentBefore;
             this.parentAfter = parentAfter;
 
             setExternalIdentity(parentValidator, parentBefore);
         }
 
-        private ExternalUserValidator(@NotNull ExternalUserValidator parentValidator, @NotNull Tree parent, boolean isBefore) {
+        private ExternalUserValidator(@NotNull ExternalUserValidator parentValidator,
+            @NotNull Tree parent, boolean isBefore) {
             if (isBefore) {
                 this.parentBefore = parent;
                 setExternalIdentity(parentValidator, parentBefore);
@@ -111,7 +116,7 @@ class ExternalUserValidatorProvider extends ValidatorProvider implements Externa
                 setExternalIdentity(parentValidator, parentAfter);
             }
         }
-        
+
         @Override
         public void propertyAdded(PropertyState after) throws CommitFailedException {
             Tree afterTree = getParentAfter();
@@ -120,19 +125,24 @@ class ExternalUserValidatorProvider extends ValidatorProvider implements Externa
             }
 
             if (isModifyingExternalIdentity(isExternalIdentity, afterTree, after)) {
-                String msg = String.format("Attempt to add property '%s' to protected external identity node '%s'", after.getName(), afterTree.getPath());
+                String msg = String.format(
+                    "Attempt to add property '%s' to protected external identity node '%s'",
+                    after.getName(), afterTree.getPath());
                 handleViolation(msg);
             }
         }
 
         @Override
-        public void propertyChanged(PropertyState before, PropertyState after) throws CommitFailedException {
+        public void propertyChanged(PropertyState before, PropertyState after)
+            throws CommitFailedException {
             Tree beforeTree = getParentBefore();
             if (definedSecurityContext(beforeTree, before)) {
                 return;
             }
             if (isModifyingExternalIdentity(isExternalIdentity, beforeTree, before)) {
-                String msg = String.format("Attempt to modify property '%s' at protected external identity node '%s'", before.getName(), beforeTree.getPath());
+                String msg = String.format(
+                    "Attempt to modify property '%s' at protected external identity node '%s'",
+                    before.getName(), beforeTree.getPath());
                 handleViolation(msg);
             }
         }
@@ -144,13 +154,16 @@ class ExternalUserValidatorProvider extends ValidatorProvider implements Externa
                 return;
             }
             if (isModifyingExternalIdentity(isExternalIdentity, beforeTree, before)) {
-                String msg = String.format("Attempt to delete property '%s' from protected external identity node '%s'", before.getName(), beforeTree.getPath());
+                String msg = String.format(
+                    "Attempt to delete property '%s' from protected external identity node '%s'",
+                    before.getName(), beforeTree.getPath());
                 handleViolation(msg);
             }
         }
 
         @Override
-        public @Nullable Validator childNodeAdded(String name, NodeState after) throws CommitFailedException {
+        public @Nullable Validator childNodeAdded(String name, NodeState after)
+            throws CommitFailedException {
             Tree afterParent = getParentAfter();
             Tree afterTree = treeProvider.createReadOnlyTree(afterParent, name, after);
             if (definedSecurityContext(afterTree, null)) {
@@ -158,11 +171,14 @@ class ExternalUserValidatorProvider extends ValidatorProvider implements Externa
             }
 
             if (isExternalIdentity(afterTree)) {
-                String msg = String.format("Attempt to add protected external identity '%s'", afterTree.getPath());
+                String msg = String.format("Attempt to add protected external identity '%s'",
+                    afterTree.getPath());
                 handleViolation(msg);
                 return null;
             } else if (isModifyingExternalIdentity(isExternalIdentity, afterTree, null)) {
-                String msg = String.format("Attempt to add node '%s' to protected external identity node '%s'", name, afterParent.getPath());
+                String msg = String.format(
+                    "Attempt to add node '%s' to protected external identity node '%s'", name,
+                    afterParent.getPath());
                 handleViolation(msg);
                 return null;
             } else if (UserUtil.isType(afterTree, AuthorizableType.AUTHORIZABLE)) {
@@ -174,10 +190,11 @@ class ExternalUserValidatorProvider extends ValidatorProvider implements Externa
         }
 
         @Override
-        public @Nullable Validator childNodeChanged(String name, NodeState before, NodeState after) {
+        public @Nullable Validator childNodeChanged(String name, NodeState before,
+            NodeState after) {
             Tree beforeTree = treeProvider.createReadOnlyTree(getParentBefore(), name, before);
             Tree afterTree = treeProvider.createReadOnlyTree(getParentAfter(), name, after);
-            
+
             if (definedSecurityContext(beforeTree, null)) {
                 return null;
             }
@@ -185,68 +202,77 @@ class ExternalUserValidatorProvider extends ValidatorProvider implements Externa
         }
 
         @Override
-        public @Nullable Validator childNodeDeleted(String name, NodeState before) throws CommitFailedException {
+        public @Nullable Validator childNodeDeleted(String name, NodeState before)
+            throws CommitFailedException {
             Tree beforeTree = treeProvider.createReadOnlyTree(getParentBefore(), name, before);
             if (definedSecurityContext(beforeTree, null)) {
                 return null;
             }
-            
+
             if (isExternalIdentity(beforeTree)) {
                 // attempt to remove an external identity
-                String msg = String.format("Attempt to remove protected external identity '%s'", beforeTree.getPath());
+                String msg = String.format("Attempt to remove protected external identity '%s'",
+                    beforeTree.getPath());
                 handleViolation(msg);
                 return null;
             }
-            
+
             if (isModifyingExternalIdentity(isExternalIdentity, beforeTree, null)) {
                 // attempt to remove a node below an external user/group
-                String msg = String.format("Attempt to remove node '%s' from protected external identity", beforeTree.getPath());
+                String msg = String.format(
+                    "Attempt to remove node '%s' from protected external identity",
+                    beforeTree.getPath());
                 handleViolation(msg);
                 return null;
             }
-            
+
             // descend into subtree to spot any removal of external user/group or it's subtree
             return new ExternalUserValidator(this, beforeTree, true);
         }
-        
-        private void setExternalIdentity(@NotNull ExternalUserValidator parentValidator, @NotNull Tree parent) {
+
+        private void setExternalIdentity(@NotNull ExternalUserValidator parentValidator,
+            @NotNull Tree parent) {
             if (parentValidator.isExternalIdentity) {
                 this.isExternalIdentity = true;
             } else {
                 this.isExternalIdentity = isExternalIdentity(parent);
             }
         }
-        
+
         private boolean isExternalIdentity(@NotNull Tree tree) {
-            return UserUtil.isType(tree, AuthorizableType.AUTHORIZABLE) && tree.hasProperty(REP_EXTERNAL_ID);
+            return UserUtil.isType(tree, AuthorizableType.AUTHORIZABLE) && tree.hasProperty(
+                REP_EXTERNAL_ID);
         }
-        
+
         private @NotNull Tree getParentBefore() {
             if (parentBefore == null) {
                 parentBefore = rootBefore.getTree(authorizableRootPath);
             }
             return parentBefore;
         }
-        
+
         private @NotNull Tree getParentAfter() {
             if (parentAfter == null) {
                 parentAfter = rootAfter.getTree(authorizableRootPath);
             }
             return parentAfter;
         }
-        
-        private boolean isModifyingExternalIdentity(boolean insideAuthorizable, @NotNull Tree tree, @Nullable PropertyState propertyState) {
+
+        private boolean isModifyingExternalIdentity(boolean insideAuthorizable, @NotNull Tree tree,
+            @Nullable PropertyState propertyState) {
             return insideAuthorizable && isProtected(tree, propertyState);
         }
 
         /**
-         * Adding mixin types that define security-related content as this is not a 
-         * modification of the user/group that is exposed through user-mgt API. Note however, that editing non-security
-         * related mixins would still fail as the child items defined by the mixin type cannot be written.
-         * 
-         * Any other nodes/properties are considered protected depending on the configured {@link ProtectionConfig}.
-         * 
-         * @param tree The tree
+         * Adding mixin types that define security-related content as this is not a modification of
+         * the user/group that is exposed through user-mgt API. Note however, that editing
+         * non-security related mixins would still fail as the child items defined by the mixin type
+         * cannot be written.
+         * <p>
+         * Any other nodes/properties are considered protected depending on the configured
+         * {@link ProtectionConfig}.
+         *
+         * @param tree          The tree
          * @param propertyState The property to be tested
          * @return {@code true} if the given property is protected
          */
@@ -260,15 +286,16 @@ class ExternalUserValidatorProvider extends ValidatorProvider implements Externa
                 return protectionConfig.isProtectedProperty(tree, propertyState);
             }
         }
-        
-        private boolean definedSecurityContext(@NotNull Tree tree, @Nullable PropertyState propertyState) {
+
+        private boolean definedSecurityContext(@NotNull Tree tree,
+            @Nullable PropertyState propertyState) {
             if (propertyState != null) {
                 return aggregatedCtx.definesProperty(tree, propertyState);
             } else {
                 return aggregatedCtx.definesTree(tree);
             }
         }
-        
+
         private void handleViolation(@NotNull String msg) throws CommitFailedException {
             if (protectionType == IdentityProtectionType.WARN) {
                 log.warn(msg);
@@ -278,11 +305,11 @@ class ExternalUserValidatorProvider extends ValidatorProvider implements Externa
             }
         }
     }
-    
+
     private static final class AggregatedContext extends Context.Default {
-        
+
         List<Context> ctxs;
-        
+
         private AggregatedContext(@NotNull SecurityProvider securityProvider) {
             ImmutableList.Builder<Context> builder = ImmutableList.builder();
             for (SecurityConfiguration sc : securityProvider.getConfigurations()) {

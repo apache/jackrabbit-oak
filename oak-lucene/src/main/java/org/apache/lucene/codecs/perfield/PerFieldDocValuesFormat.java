@@ -32,7 +32,6 @@ import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.TreeMap;
-
 import org.apache.lucene.codecs.DocValuesConsumer;
 import org.apache.lucene.codecs.DocValuesFormat;
 import org.apache.lucene.codecs.DocValuesProducer;
@@ -52,284 +51,305 @@ import org.apache.lucene.util.RamUsageEstimator;
 /**
  * Enables per field docvalues support.
  * <p>
- * Note, when extending this class, the name ({@link #getName}) is 
- * written into the index. In order for the field to be read, the
- * name must resolve to your implementation via {@link #forName(String)}.
- * This method uses Java's 
+ * Note, when extending this class, the name ({@link #getName}) is written into the index. In order
+ * for the field to be read, the name must resolve to your implementation via
+ * {@link #forName(String)}. This method uses Java's
  * {@link ServiceLoader Service Provider Interface} to resolve format names.
  * <p>
- * Files written by each docvalues format have an additional suffix containing the 
- * format name. For example, in a per-field configuration instead of <tt>_1.dat</tt> 
- * filenames would look like <tt>_1_Lucene40_0.dat</tt>.
- * @see ServiceLoader
+ * Files written by each docvalues format have an additional suffix containing the format name. For
+ * example, in a per-field configuration instead of <tt>_1.dat</tt> filenames would look like
+ * <tt>_1_Lucene40_0.dat</tt>.
+ *
  * @lucene.experimental
+ * @see ServiceLoader
  */
 
 public abstract class PerFieldDocValuesFormat extends DocValuesFormat {
-  /** Name of this {@link PostingsFormat}. */
-  public static final String PER_FIELD_NAME = "PerFieldDV40";
 
-  /** {@link FieldInfo} attribute name used to store the
-   *  format name for each field. */
-  public static final String PER_FIELD_FORMAT_KEY = PerFieldDocValuesFormat.class.getSimpleName() + ".format";
+    /**
+     * Name of this {@link PostingsFormat}.
+     */
+    public static final String PER_FIELD_NAME = "PerFieldDV40";
 
-  /** {@link FieldInfo} attribute name used to store the
-   *  segment suffix name for each field. */
-  public static final String PER_FIELD_SUFFIX_KEY = PerFieldDocValuesFormat.class.getSimpleName() + ".suffix";
+    /**
+     * {@link FieldInfo} attribute name used to store the format name for each field.
+     */
+    public static final String PER_FIELD_FORMAT_KEY =
+        PerFieldDocValuesFormat.class.getSimpleName() + ".format";
 
-  
-  /** Sole constructor. */
-  public PerFieldDocValuesFormat() {
-    super(PER_FIELD_NAME);
-  }
+    /**
+     * {@link FieldInfo} attribute name used to store the segment suffix name for each field.
+     */
+    public static final String PER_FIELD_SUFFIX_KEY =
+        PerFieldDocValuesFormat.class.getSimpleName() + ".suffix";
 
-  @Override
-  public final DocValuesConsumer fieldsConsumer(SegmentWriteState state) throws IOException {
-    return new FieldsWriter(state);
-  }
 
-  static class ConsumerAndSuffix implements Closeable {
-    DocValuesConsumer consumer;
-    int suffix;
-    
-    @Override
-    public void close() throws IOException {
-      consumer.close();
-    }
-  }
-    
-  private class FieldsWriter extends DocValuesConsumer {
-
-    private final Map<DocValuesFormat,ConsumerAndSuffix> formats = new HashMap<DocValuesFormat,ConsumerAndSuffix>();
-    private final Map<String,Integer> suffixes = new HashMap<String,Integer>();
-    
-    private final SegmentWriteState segmentWriteState;
-    
-    public FieldsWriter(SegmentWriteState state) {
-      segmentWriteState = state;
-    }
-    
-    @Override
-    public void addNumericField(FieldInfo field, Iterable<Number> values) throws IOException {
-      getInstance(field).addNumericField(field, values);
+    /**
+     * Sole constructor.
+     */
+    public PerFieldDocValuesFormat() {
+        super(PER_FIELD_NAME);
     }
 
     @Override
-    public void addBinaryField(FieldInfo field, Iterable<BytesRef> values) throws IOException {
-      getInstance(field).addBinaryField(field, values);
+    public final DocValuesConsumer fieldsConsumer(SegmentWriteState state) throws IOException {
+        return new FieldsWriter(state);
     }
 
-    @Override
-    public void addSortedField(FieldInfo field, Iterable<BytesRef> values, Iterable<Number> docToOrd) throws IOException {
-      getInstance(field).addSortedField(field, values, docToOrd);
-    }
+    static class ConsumerAndSuffix implements Closeable {
 
-    @Override
-    public void addSortedSetField(FieldInfo field, Iterable<BytesRef> values, Iterable<Number> docToOrdCount, Iterable<Number> ords) throws IOException {
-      getInstance(field).addSortedSetField(field, values, docToOrdCount, ords);
-    }
+        DocValuesConsumer consumer;
+        int suffix;
 
-    private DocValuesConsumer getInstance(FieldInfo field) throws IOException {
-      DocValuesFormat format = null;
-      if (field.getDocValuesGen() != -1) {
-        final String formatName = field.getAttribute(PER_FIELD_FORMAT_KEY);
-        // this means the field never existed in that segment, yet is applied updates
-        if (formatName != null) {
-          format = DocValuesFormat.forName(formatName);
+        @Override
+        public void close() throws IOException {
+            consumer.close();
         }
-      }
-      if (format == null) {
-        format = getDocValuesFormatForField(field.name);
-      }
-      if (format == null) {
-        throw new IllegalStateException("invalid null DocValuesFormat for field=\"" + field.name + "\"");
-      }
-      final String formatName = format.getName();
-      
-      String previousValue = field.putAttribute(PER_FIELD_FORMAT_KEY, formatName);
-      assert field.getDocValuesGen() != -1 || previousValue == null: "formatName=" + formatName + " prevValue=" + previousValue;
-      
-      Integer suffix = null;
-      
-      ConsumerAndSuffix consumer = formats.get(format);
-      if (consumer == null) {
-        // First time we are seeing this format; create a new instance
+    }
 
-        if (field.getDocValuesGen() != -1) {
-          final String suffixAtt = field.getAttribute(PER_FIELD_SUFFIX_KEY);
-          // even when dvGen is != -1, it can still be a new field, that never
-          // existed in the segment, and therefore doesn't have the recorded
-          // attributes yet.
-          if (suffixAtt != null) {
-            suffix = Integer.valueOf(suffixAtt);
-          }
+    private class FieldsWriter extends DocValuesConsumer {
+
+        private final Map<DocValuesFormat, ConsumerAndSuffix> formats = new HashMap<DocValuesFormat, ConsumerAndSuffix>();
+        private final Map<String, Integer> suffixes = new HashMap<String, Integer>();
+
+        private final SegmentWriteState segmentWriteState;
+
+        public FieldsWriter(SegmentWriteState state) {
+            segmentWriteState = state;
         }
-        
-        if (suffix == null) {
-          // bump the suffix
-          suffix = suffixes.get(formatName);
-          if (suffix == null) {
-            suffix = 0;
-          } else {
-            suffix = suffix + 1;
-          }
+
+        @Override
+        public void addNumericField(FieldInfo field, Iterable<Number> values) throws IOException {
+            getInstance(field).addNumericField(field, values);
         }
-        suffixes.put(formatName, suffix);
-        
-        final String segmentSuffix = getFullSegmentSuffix(segmentWriteState.segmentSuffix,
-                                                          getSuffix(formatName, Integer.toString(suffix)));
-        consumer = new ConsumerAndSuffix();
-        consumer.consumer = format.fieldsConsumer(new SegmentWriteState(segmentWriteState, segmentSuffix));
-        consumer.suffix = suffix;
-        formats.put(format, consumer);
-      } else {
-        // we've already seen this format, so just grab its suffix
-        assert suffixes.containsKey(formatName);
-        suffix = consumer.suffix;
-      }
-      
-      previousValue = field.putAttribute(PER_FIELD_SUFFIX_KEY, Integer.toString(suffix));
-      assert field.getDocValuesGen() != -1 || previousValue == null : "suffix=" + Integer.toString(suffix) + " prevValue=" + previousValue;
 
-      // TODO: we should only provide the "slice" of FIS
-      // that this DVF actually sees ...
-      return consumer.consumer;
-    }
+        @Override
+        public void addBinaryField(FieldInfo field, Iterable<BytesRef> values) throws IOException {
+            getInstance(field).addBinaryField(field, values);
+        }
 
-    @Override
-    public void close() throws IOException {
-      // Close all subs
-      IOUtils.close(formats.values());
-    }
-  }
-  
-  static String getSuffix(String formatName, String suffix) {
-    return formatName + "_" + suffix;
-  }
+        @Override
+        public void addSortedField(FieldInfo field, Iterable<BytesRef> values,
+            Iterable<Number> docToOrd) throws IOException {
+            getInstance(field).addSortedField(field, values, docToOrd);
+        }
 
-  static String getFullSegmentSuffix(String outerSegmentSuffix, String segmentSuffix) {
-    if (outerSegmentSuffix.length() == 0) {
-      return segmentSuffix;
-    } else {
-      return outerSegmentSuffix + "_" + segmentSuffix;
-    }
-  }
+        @Override
+        public void addSortedSetField(FieldInfo field, Iterable<BytesRef> values,
+            Iterable<Number> docToOrdCount, Iterable<Number> ords) throws IOException {
+            getInstance(field).addSortedSetField(field, values, docToOrdCount, ords);
+        }
 
-  private class FieldsReader extends DocValuesProducer {
-
-    private final Map<String,DocValuesProducer> fields = new TreeMap<String,DocValuesProducer>();
-    private final Map<String,DocValuesProducer> formats = new HashMap<String,DocValuesProducer>();
-
-    public FieldsReader(final SegmentReadState readState) throws IOException {
-
-      // Read _X.per and init each format:
-      boolean success = false;
-      try {
-        // Read field name -> format name
-        for (FieldInfo fi : readState.fieldInfos) {
-          if (fi.hasDocValues()) {
-            final String fieldName = fi.name;
-            final String formatName = fi.getAttribute(PER_FIELD_FORMAT_KEY);
-            if (formatName != null) {
-              // null formatName means the field is in fieldInfos, but has no docvalues!
-              final String suffix = fi.getAttribute(PER_FIELD_SUFFIX_KEY);
-              assert suffix != null;
-              DocValuesFormat format = DocValuesFormat.forName(formatName);
-              String segmentSuffix = getFullSegmentSuffix(readState.segmentSuffix, getSuffix(formatName, suffix));
-              if (!formats.containsKey(segmentSuffix)) {
-                formats.put(segmentSuffix, format.fieldsProducer(new SegmentReadState(readState, segmentSuffix)));
-              }
-              fields.put(fieldName, formats.get(segmentSuffix));
+        private DocValuesConsumer getInstance(FieldInfo field) throws IOException {
+            DocValuesFormat format = null;
+            if (field.getDocValuesGen() != -1) {
+                final String formatName = field.getAttribute(PER_FIELD_FORMAT_KEY);
+                // this means the field never existed in that segment, yet is applied updates
+                if (formatName != null) {
+                    format = DocValuesFormat.forName(formatName);
+                }
             }
-          }
+            if (format == null) {
+                format = getDocValuesFormatForField(field.name);
+            }
+            if (format == null) {
+                throw new IllegalStateException(
+                    "invalid null DocValuesFormat for field=\"" + field.name + "\"");
+            }
+            final String formatName = format.getName();
+
+            String previousValue = field.putAttribute(PER_FIELD_FORMAT_KEY, formatName);
+            assert
+                field.getDocValuesGen() != -1 || previousValue == null :
+                "formatName=" + formatName + " prevValue=" + previousValue;
+
+            Integer suffix = null;
+
+            ConsumerAndSuffix consumer = formats.get(format);
+            if (consumer == null) {
+                // First time we are seeing this format; create a new instance
+
+                if (field.getDocValuesGen() != -1) {
+                    final String suffixAtt = field.getAttribute(PER_FIELD_SUFFIX_KEY);
+                    // even when dvGen is != -1, it can still be a new field, that never
+                    // existed in the segment, and therefore doesn't have the recorded
+                    // attributes yet.
+                    if (suffixAtt != null) {
+                        suffix = Integer.valueOf(suffixAtt);
+                    }
+                }
+
+                if (suffix == null) {
+                    // bump the suffix
+                    suffix = suffixes.get(formatName);
+                    if (suffix == null) {
+                        suffix = 0;
+                    } else {
+                        suffix = suffix + 1;
+                    }
+                }
+                suffixes.put(formatName, suffix);
+
+                final String segmentSuffix = getFullSegmentSuffix(segmentWriteState.segmentSuffix,
+                    getSuffix(formatName, Integer.toString(suffix)));
+                consumer = new ConsumerAndSuffix();
+                consumer.consumer = format.fieldsConsumer(
+                    new SegmentWriteState(segmentWriteState, segmentSuffix));
+                consumer.suffix = suffix;
+                formats.put(format, consumer);
+            } else {
+                // we've already seen this format, so just grab its suffix
+                assert suffixes.containsKey(formatName);
+                suffix = consumer.suffix;
+            }
+
+            previousValue = field.putAttribute(PER_FIELD_SUFFIX_KEY, Integer.toString(suffix));
+            assert
+                field.getDocValuesGen() != -1 || previousValue == null :
+                "suffix=" + Integer.toString(suffix) + " prevValue=" + previousValue;
+
+            // TODO: we should only provide the "slice" of FIS
+            // that this DVF actually sees ...
+            return consumer.consumer;
         }
-        success = true;
-      } finally {
-        if (!success) {
-          IOUtils.closeWhileHandlingException(formats.values());
+
+        @Override
+        public void close() throws IOException {
+            // Close all subs
+            IOUtils.close(formats.values());
         }
-      }
     }
 
-    private FieldsReader(FieldsReader other) {
+    static String getSuffix(String formatName, String suffix) {
+        return formatName + "_" + suffix;
+    }
 
-      Map<DocValuesProducer,DocValuesProducer> oldToNew = new IdentityHashMap<DocValuesProducer,DocValuesProducer>();
-      // First clone all formats
-      for(Map.Entry<String,DocValuesProducer> ent : other.formats.entrySet()) {
-        DocValuesProducer values = ent.getValue();
-        formats.put(ent.getKey(), values);
-        oldToNew.put(ent.getValue(), values);
-      }
+    static String getFullSegmentSuffix(String outerSegmentSuffix, String segmentSuffix) {
+        if (outerSegmentSuffix.length() == 0) {
+            return segmentSuffix;
+        } else {
+            return outerSegmentSuffix + "_" + segmentSuffix;
+        }
+    }
 
-      // Then rebuild fields:
-      for(Map.Entry<String,DocValuesProducer> ent : other.fields.entrySet()) {
-        DocValuesProducer producer = oldToNew.get(ent.getValue());
-        assert producer != null;
-        fields.put(ent.getKey(), producer);
-      }
+    private class FieldsReader extends DocValuesProducer {
+
+        private final Map<String, DocValuesProducer> fields = new TreeMap<String, DocValuesProducer>();
+        private final Map<String, DocValuesProducer> formats = new HashMap<String, DocValuesProducer>();
+
+        public FieldsReader(final SegmentReadState readState) throws IOException {
+
+            // Read _X.per and init each format:
+            boolean success = false;
+            try {
+                // Read field name -> format name
+                for (FieldInfo fi : readState.fieldInfos) {
+                    if (fi.hasDocValues()) {
+                        final String fieldName = fi.name;
+                        final String formatName = fi.getAttribute(PER_FIELD_FORMAT_KEY);
+                        if (formatName != null) {
+                            // null formatName means the field is in fieldInfos, but has no docvalues!
+                            final String suffix = fi.getAttribute(PER_FIELD_SUFFIX_KEY);
+                            assert suffix != null;
+                            DocValuesFormat format = DocValuesFormat.forName(formatName);
+                            String segmentSuffix = getFullSegmentSuffix(readState.segmentSuffix,
+                                getSuffix(formatName, suffix));
+                            if (!formats.containsKey(segmentSuffix)) {
+                                formats.put(segmentSuffix, format.fieldsProducer(
+                                    new SegmentReadState(readState, segmentSuffix)));
+                            }
+                            fields.put(fieldName, formats.get(segmentSuffix));
+                        }
+                    }
+                }
+                success = true;
+            } finally {
+                if (!success) {
+                    IOUtils.closeWhileHandlingException(formats.values());
+                }
+            }
+        }
+
+        private FieldsReader(FieldsReader other) {
+
+            Map<DocValuesProducer, DocValuesProducer> oldToNew = new IdentityHashMap<DocValuesProducer, DocValuesProducer>();
+            // First clone all formats
+            for (Map.Entry<String, DocValuesProducer> ent : other.formats.entrySet()) {
+                DocValuesProducer values = ent.getValue();
+                formats.put(ent.getKey(), values);
+                oldToNew.put(ent.getValue(), values);
+            }
+
+            // Then rebuild fields:
+            for (Map.Entry<String, DocValuesProducer> ent : other.fields.entrySet()) {
+                DocValuesProducer producer = oldToNew.get(ent.getValue());
+                assert producer != null;
+                fields.put(ent.getKey(), producer);
+            }
+        }
+
+        @Override
+        public NumericDocValues getNumeric(FieldInfo field) throws IOException {
+            DocValuesProducer producer = fields.get(field.name);
+            return producer == null ? null : producer.getNumeric(field);
+        }
+
+        @Override
+        public BinaryDocValues getBinary(FieldInfo field) throws IOException {
+            DocValuesProducer producer = fields.get(field.name);
+            return producer == null ? null : producer.getBinary(field);
+        }
+
+        @Override
+        public SortedDocValues getSorted(FieldInfo field) throws IOException {
+            DocValuesProducer producer = fields.get(field.name);
+            return producer == null ? null : producer.getSorted(field);
+        }
+
+        @Override
+        public SortedSetDocValues getSortedSet(FieldInfo field) throws IOException {
+            DocValuesProducer producer = fields.get(field.name);
+            return producer == null ? null : producer.getSortedSet(field);
+        }
+
+        @Override
+        public Bits getDocsWithField(FieldInfo field) throws IOException {
+            DocValuesProducer producer = fields.get(field.name);
+            return producer == null ? null : producer.getDocsWithField(field);
+        }
+
+        @Override
+        public void close() throws IOException {
+            IOUtils.close(formats.values());
+        }
+
+        @Override
+        public DocValuesProducer clone() {
+            return new FieldsReader(this);
+        }
+
+        @Override
+        public long ramBytesUsed() {
+            long size = 0;
+            for (Map.Entry<String, DocValuesProducer> entry : formats.entrySet()) {
+                size += (entry.getKey().length() * RamUsageEstimator.NUM_BYTES_CHAR) +
+                    entry.getValue().ramBytesUsed();
+            }
+            return size;
+        }
     }
 
     @Override
-    public NumericDocValues getNumeric(FieldInfo field) throws IOException {
-      DocValuesProducer producer = fields.get(field.name);
-      return producer == null ? null : producer.getNumeric(field);
+    public final DocValuesProducer fieldsProducer(SegmentReadState state) throws IOException {
+        return new FieldsReader(state);
     }
 
-    @Override
-    public BinaryDocValues getBinary(FieldInfo field) throws IOException {
-      DocValuesProducer producer = fields.get(field.name);
-      return producer == null ? null : producer.getBinary(field);
-    }
-
-    @Override
-    public SortedDocValues getSorted(FieldInfo field) throws IOException {
-      DocValuesProducer producer = fields.get(field.name);
-      return producer == null ? null : producer.getSorted(field);
-    }
-
-    @Override
-    public SortedSetDocValues getSortedSet(FieldInfo field) throws IOException {
-      DocValuesProducer producer = fields.get(field.name);
-      return producer == null ? null : producer.getSortedSet(field);
-    }
-    
-    @Override
-    public Bits getDocsWithField(FieldInfo field) throws IOException {
-      DocValuesProducer producer = fields.get(field.name);
-      return producer == null ? null : producer.getDocsWithField(field);
-    }
-
-    @Override
-    public void close() throws IOException {
-      IOUtils.close(formats.values());
-    }
-
-    @Override
-    public DocValuesProducer clone() {
-      return new FieldsReader(this);
-    }
-
-    @Override
-    public long ramBytesUsed() {
-      long size = 0;
-      for (Map.Entry<String,DocValuesProducer> entry : formats.entrySet()) {
-        size += (entry.getKey().length() * RamUsageEstimator.NUM_BYTES_CHAR) + 
-            entry.getValue().ramBytesUsed();
-      }
-      return size;
-    }
-  }
-
-  @Override
-  public final DocValuesProducer fieldsProducer(SegmentReadState state) throws IOException {
-    return new FieldsReader(state);
-  }
-
-  /** 
-   * Returns the doc values format that should be used for writing 
-   * new segments of <code>field</code>.
-   * <p>
-   * The field to format mapping is written to the index, so
-   * this method is only invoked when writing, not when reading. */
-  public abstract DocValuesFormat getDocValuesFormatForField(String field);
+    /**
+     * Returns the doc values format that should be used for writing new segments of
+     * <code>field</code>.
+     * <p>
+     * The field to format mapping is written to the index, so this method is only invoked when
+     * writing, not when reading.
+     */
+    public abstract DocValuesFormat getDocValuesFormatForField(String field);
 }

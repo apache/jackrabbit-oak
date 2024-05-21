@@ -16,21 +16,21 @@
  */
 package org.apache.jackrabbit.oak.benchmark.authorization;
 
-import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
-import org.jetbrains.annotations.NotNull;
-
+import java.util.Random;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.Privilege;
-import java.util.Random;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
+import org.jetbrains.annotations.NotNull;
 
 public class RefreshHasPrivPermHasItemGetItemTest extends AbstractHasItemGetItemTest {
 
     private final Random r = new Random();
     private Privilege[] privs;
 
-    public RefreshHasPrivPermHasItemGetItemTest(int itemsToRead, int numberOfACEs, int numberOfGroups, boolean doReport) {
+    public RefreshHasPrivPermHasItemGetItemTest(int itemsToRead, int numberOfACEs,
+        int numberOfGroups, boolean doReport) {
         super(itemsToRead, numberOfACEs, numberOfGroups, doReport);
     }
 
@@ -38,7 +38,8 @@ public class RefreshHasPrivPermHasItemGetItemTest extends AbstractHasItemGetItem
     protected void beforeSuite() throws Exception {
         super.beforeSuite();
 
-        privs = new Privilege[] {adminSession.getAccessControlManager().privilegeFromName(PrivilegeConstants.JCR_MODIFY_PROPERTIES)};
+        privs = new Privilege[]{adminSession.getAccessControlManager().privilegeFromName(
+            PrivilegeConstants.JCR_MODIFY_PROPERTIES)};
 
     }
 
@@ -49,7 +50,8 @@ public class RefreshHasPrivPermHasItemGetItemTest extends AbstractHasItemGetItem
     }
 
     @Override
-    void additionalOperations(@NotNull String path, @NotNull Session s, @NotNull AccessControlManager acMgr) {
+    void additionalOperations(@NotNull String path, @NotNull Session s,
+        @NotNull AccessControlManager acMgr) {
         try {
             if (r.nextBoolean()) {
                 s.hasPermission(path, Session.ACTION_SET_PROPERTY);

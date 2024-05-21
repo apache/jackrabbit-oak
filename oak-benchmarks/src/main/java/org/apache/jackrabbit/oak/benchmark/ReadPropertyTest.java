@@ -16,20 +16,18 @@
  */
 package org.apache.jackrabbit.oak.benchmark;
 
+import com.codahale.metrics.Metric;
+import com.codahale.metrics.MetricFilter;
+import com.codahale.metrics.Slf4jReporter;
 import java.lang.management.ManagementFactory;
 import java.util.Collections;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-
 import javax.jcr.Node;
 import javax.jcr.Repository;
 import javax.jcr.Session;
 import javax.management.MBeanServer;
-
-import com.codahale.metrics.Metric;
-import com.codahale.metrics.MetricFilter;
-import com.codahale.metrics.Slf4jReporter;
 import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.fixture.JcrCreator;
@@ -42,11 +40,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * {@code ReadPropertyTest} implements a performance test, which reads
- * three properties: one with a jcr prefix, one with the empty prefix and a
- * third one, which does not exist.
+ * {@code ReadPropertyTest} implements a performance test, which reads three properties: one with a
+ * jcr prefix, one with the empty prefix and a third one, which does not exist.
  */
 public class ReadPropertyTest extends AbstractTest {
+
     private final Logger log = LoggerFactory.getLogger(getClass());
     private Session session;
 
@@ -56,7 +54,7 @@ public class ReadPropertyTest extends AbstractTest {
     protected void beforeSuite() throws Exception {
         session = getRepository().login(getCredentials());
         root = session.getRootNode().addNode(
-                getClass().getSimpleName() + TEST_ID, "nt:unstructured");
+            getClass().getSimpleName() + TEST_ID, "nt:unstructured");
         root.setProperty("property", "value");
         session.save();
     }
@@ -79,8 +77,8 @@ public class ReadPropertyTest extends AbstractTest {
 
     @Override
     protected Repository[] createRepository(RepositoryFixture fixture) throws Exception {
-        if (fixture instanceof OakRepositoryFixture){
-            return ((OakRepositoryFixture)fixture).setUpCluster(1, new JcrCreator(){
+        if (fixture instanceof OakRepositoryFixture) {
+            return ((OakRepositoryFixture) fixture).setUpCluster(1, new JcrCreator() {
                 @Override
                 public Jcr customize(Oak oak) {
                     boolean enableMetrics = Boolean.getBoolean("enableMetrics");
@@ -88,22 +86,32 @@ public class ReadPropertyTest extends AbstractTest {
                         log.info("Enabling Metrics integration");
                         MBeanServer server = ManagementFactory.getPlatformMBeanServer();
                         ScheduledExecutorService executor =
-                                MoreExecutors.getExitingScheduledExecutorService(new ScheduledThreadPoolExecutor(1));
-                        MetricStatisticsProvider statsProvider = new MetricStatisticsProvider(server, executor);
+                            MoreExecutors.getExitingScheduledExecutorService(
+                                new ScheduledThreadPoolExecutor(1));
+                        MetricStatisticsProvider statsProvider = new MetricStatisticsProvider(
+                            server, executor);
                         oak.getWhiteboard().register(StatisticsProvider.class,
-                                statsProvider, Collections.emptyMap());
+                            statsProvider, Collections.emptyMap());
 
-                        final Slf4jReporter reporter = Slf4jReporter.forRegistry(statsProvider.getRegistry())
-                                .outputTo(LoggerFactory.getLogger("org.apache.jackrabbit.oak.metrics"))
-                                .convertRatesTo(TimeUnit.SECONDS)
-                                .filter(new MetricFilter() {
-                                    @Override
-                                    public boolean matches(String name, Metric metric) {
-                                        return name.startsWith("SESSION_READ");
-                                    }
-                                })
-                                .convertDurationsTo(TimeUnit.MICROSECONDS)
-                                .build();
+                        final Slf4jReporter reporter = Slf4jReporter.forRegistry(
+                                                                        statsProvider.getRegistry())
+                                                                    .outputTo(
+                                                                        LoggerFactory.getLogger(
+                                                                            "org.apache.jackrabbit.oak.metrics"))
+                                                                    .convertRatesTo(
+                                                                        TimeUnit.SECONDS)
+                                                                    .filter(new MetricFilter() {
+                                                                        @Override
+                                                                        public boolean matches(
+                                                                            String name,
+                                                                            Metric metric) {
+                                                                            return name.startsWith(
+                                                                                "SESSION_READ");
+                                                                        }
+                                                                    })
+                                                                    .convertDurationsTo(
+                                                                        TimeUnit.MICROSECONDS)
+                                                                    .build();
                         reporter.start(30, TimeUnit.SECONDS);
                     }
                     return new Jcr(oak);

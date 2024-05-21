@@ -43,7 +43,8 @@ import junitx.util.PrivateAccessor;
 
 public class Sweep2TestHelper {
 
-    static void testPre18UpgradeSimulations(DocumentNodeStore ns, DocumentMKBuilderProvider builderProvider) {
+    static void testPre18UpgradeSimulations(DocumentNodeStore ns,
+        DocumentMKBuilderProvider builderProvider) {
         // make sure the DocumentNodeStore is disposed before testing if this hasn't been done yet
         ns.dispose();
 
@@ -55,7 +56,8 @@ public class Sweep2TestHelper {
         testPre18UpgradeSimulations(memStore, builderProvider);
     }
 
-    static void testPre18UpgradeSimulations(MemoryDocumentStore memStore, DocumentMKBuilderProvider builderProvider) {
+    static void testPre18UpgradeSimulations(MemoryDocumentStore memStore,
+        DocumentMKBuilderProvider builderProvider) {
         doTestPre18Upgrade(memStore.copy(), builderProvider.newBuilder(), false);
         doTestPre18Upgrade(memStore.copy(), builderProvider.newBuilder(), true);
     }
@@ -63,7 +65,7 @@ public class Sweep2TestHelper {
     static MemoryDocumentStore getMemoryDocumentStore(DocumentNodeStore ns) {
         DocumentStore ds = ns.getDocumentStore();
         if (ds instanceof LeaseCheckDocumentStoreWrapper) {
-            LeaseCheckDocumentStoreWrapper w = (LeaseCheckDocumentStoreWrapper)ds;
+            LeaseCheckDocumentStoreWrapper w = (LeaseCheckDocumentStoreWrapper) ds;
             try {
                 ds = (DocumentStore) PrivateAccessor.getField(w, "delegate");
             } catch (NoSuchFieldException e) {
@@ -71,7 +73,8 @@ public class Sweep2TestHelper {
             }
         }
         if (!(ds instanceof MemoryDocumentStore)) {
-            throw new IllegalStateException("only supporting MemoryDocumentStore for this test for now - DocumentStore cloning not yet generally supported");
+            throw new IllegalStateException(
+                "only supporting MemoryDocumentStore for this test for now - DocumentStore cloning not yet generally supported");
         }
 
         MemoryDocumentStore memStore = (MemoryDocumentStore) ds;
@@ -85,11 +88,13 @@ public class Sweep2TestHelper {
      * <li>if simulatePreFixUpgrade then simulate an upgrade to a version post 1.8 but without a fix for the branch commit problem</li>
      * <li>upgrade to a fixed version</li>
      * </ol>
+     *
      * @param ns
      * @param newBuilder
      * @param simulatePreFixUpgrade if true, simulate step 2 as well, if false, leave out that step
      */
-    private static void doTestPre18Upgrade(MemoryDocumentStore memStore, DocumentMK.Builder newBuilder, boolean simulatePreFixUpgrade) {
+    private static void doTestPre18Upgrade(MemoryDocumentStore memStore,
+        DocumentMK.Builder newBuilder, boolean simulatePreFixUpgrade) {
         // step 2 : keep a copy in memStoreOriginal for debugging purpose
         MemoryDocumentStore memStoreOriginal = memStore.copy();
 
@@ -97,8 +102,8 @@ public class Sweep2TestHelper {
         // by doing another restart/shutdown cycle
         MemoryDocumentStore memStoreOriginalAdjusted = memStoreOriginal.copy();
         DocumentNodeStore ns = newBuilder
-                .setClusterId(1)
-                .setDocumentStore(memStoreOriginalAdjusted).build();
+            .setClusterId(1)
+            .setDocumentStore(memStoreOriginalAdjusted).build();
         ns.dispose();
 
         // step 4 : simulate any existing content changes done so far having happened pre 1.8
@@ -115,8 +120,8 @@ public class Sweep2TestHelper {
         if (simulatePreFixUpgrade) {
             NodeDocumentSweeper.SWEEP_ONE_PREDICATE = Utils.PROPERTY_OR_DELETED;
             ns = newBuilder
-                    .setClusterId(1)
-                    .setDocumentStore(memStore).build();
+                .setClusterId(1)
+                .setDocumentStore(memStore).build();
             ns.dispose();
             // put back the fix asap
             NodeDocumentSweeper.SWEEP_ONE_PREDICATE = Utils.PROPERTY_OR_DELETED_OR_COMMITROOT_OR_REVISIONS;
@@ -128,13 +133,14 @@ public class Sweep2TestHelper {
         // step 7 : startup new instance (1.8+) - thanks to the above simulatePre18Behaviour
         //          this will now run backgroundSweep()/forceBackgroundSweep()
         ns = newBuilder
-                .setAsyncDelay(1)
-                .setClusterId(1)
-                .setDocumentStore(memStore).build();
+            .setAsyncDelay(1)
+            .setClusterId(1)
+            .setDocumentStore(memStore).build();
 
         assertTrue("sweep2 was too slow", waitForSweep2Done(ns, 10000));
 
-        for (NodeDocument originalNode : memStoreOriginalAdjusted.query(NODES, NodeDocument.MIN_ID_VALUE, NodeDocument.MAX_ID_VALUE, Integer.MAX_VALUE)) {
+        for (NodeDocument originalNode : memStoreOriginalAdjusted.query(NODES,
+            NodeDocument.MIN_ID_VALUE, NodeDocument.MAX_ID_VALUE, Integer.MAX_VALUE)) {
             NodeDocument actualNode = memStore.find(NODES, originalNode.getId());
 
             assertBranchCommitsEqual(ns, ns.getSweepRevisions(), originalNode, actualNode);
@@ -144,8 +150,9 @@ public class Sweep2TestHelper {
 
     private static boolean waitForSweep2Done(DocumentNodeStore ns, long maxWaitMillis) {
         final long timeout = System.currentTimeMillis() + maxWaitMillis;
-        while(System.currentTimeMillis() < timeout) {
-            Sweep2StatusDocument sweep2StatusDoc = Sweep2StatusDocument.readFrom(ns.getDocumentStore());
+        while (System.currentTimeMillis() < timeout) {
+            Sweep2StatusDocument sweep2StatusDoc = Sweep2StatusDocument.readFrom(
+                ns.getDocumentStore());
             if (sweep2StatusDoc != null && sweep2StatusDoc.isSwept()) {
                 return true;
             }
@@ -158,21 +165,22 @@ public class Sweep2TestHelper {
         return false;
     }
 
-    private static void assertBranchCommitsEqual(RevisionContext rc, RevisionVector sweepRevs, NodeDocument expectedNode, NodeDocument actualNode) {
+    private static void assertBranchCommitsEqual(RevisionContext rc, RevisionVector sweepRevs,
+        NodeDocument expectedNode, NodeDocument actualNode) {
         Set<Revision> expectedBcs = new HashSet<>(expectedNode.getValueMap("_bc").keySet());
         Set<Revision> actualBcs = new HashSet<>(actualNode.getValueMap("_bc").keySet());
         if (!expectedBcs.equals(actualBcs) && expectedBcs.containsAll(actualBcs)) {
             // there might have to be more bc than we actually have.
             // check if they have been swept
             Iterator<Revision> it = expectedBcs.iterator();
-            while(it.hasNext()) {
+            while (it.hasNext()) {
                 Revision expectedBc = it.next();
                 if (!sweepRevs.isRevisionNewer(expectedBc)) {
                     it.remove();
                 }
             }
             it = actualBcs.iterator();
-            while(it.hasNext()) {
+            while (it.hasNext()) {
                 Revision actualBc = it.next();
                 if (!sweepRevs.isRevisionNewer(actualBc)) {
                     it.remove();
@@ -183,17 +191,20 @@ public class Sweep2TestHelper {
                 return;
             }
         }
-        assertEquals("\"_bc\" mismatch on " + expectedNode.getId(), expectedNode.getValueMap("_bc").keySet(), actualNode.getValueMap("_bc").keySet());
+        assertEquals("\"_bc\" mismatch on " + expectedNode.getId(),
+            expectedNode.getValueMap("_bc").keySet(), actualNode.getValueMap("_bc").keySet());
     }
 
     /**
      * Remove data from the store bringing it to a pre Oak 1.8 state
+     *
      * @param store
      */
     static void revertToPre18State(DocumentStore store) {
         // A : remove all "_bc"
         for (NodeDocument nodeDocument :
-            store.query(NODES, NodeDocument.MIN_ID_VALUE, NodeDocument.MAX_ID_VALUE, Integer.MAX_VALUE)) {
+            store.query(NODES, NodeDocument.MIN_ID_VALUE, NodeDocument.MAX_ID_VALUE,
+                Integer.MAX_VALUE)) {
             UpdateOp removeBc = new UpdateOp(nodeDocument.getId(), false);
             removeBc.remove("_bc");
             assertNotNull(store.findAndUpdate(Collection.NODES, removeBc));
@@ -213,18 +224,17 @@ public class Sweep2TestHelper {
     }
 
     /**
-     * Removes the "sweep2Status" from the settings collection as well
-     * as emptying the "_sweepRev" from the "0:/" root if desired.
+     * Removes the "sweep2Status" from the settings collection as well as emptying the "_sweepRev"
+     * from the "0:/" root if desired.
      * <p/>
-     * The reason for emptying the "_sweepRev", and not straight removing it,
-     * is that it has an influence on whether Sweep2Helper.isSweep2Necessary
-     * considers a sweep2 necessary or not: if it's not there, then the
-     * repository never saw a sweep1 - if it is there, then it did.
-     * Now for the latter, if it saw a sweep1, the sweep2 is only done
-     * for clusterIds in that list, not for all. But some of the tests
-     * would like to have sweep2 done for other clusterIds as well.
-     * So this is to account for that fact.
-     * @param store the store on which to do the modifications
+     * The reason for emptying the "_sweepRev", and not straight removing it, is that it has an
+     * influence on whether Sweep2Helper.isSweep2Necessary considers a sweep2 necessary or not: if
+     * it's not there, then the repository never saw a sweep1 - if it is there, then it did. Now for
+     * the latter, if it saw a sweep1, the sweep2 is only done for clusterIds in that list, not for
+     * all. But some of the tests would like to have sweep2 done for other clusterIds as well. So
+     * this is to account for that fact.
+     *
+     * @param store         the store on which to do the modifications
      * @param emptySweepRev whether or not "_sweepRev" should be emptied.
      */
     static void removeSweep2Status(DocumentStore store, boolean emptySweepRev) {
@@ -244,26 +254,26 @@ public class Sweep2TestHelper {
     }
 
     /**
-     * This simulates the provided store having done the changes
-     * "pre 1.8" - ie it "ages" the document in a way that it looks
-     * like they were applied "pre 1.8".
+     * This simulates the provided store having done the changes "pre 1.8" - ie it "ages" the
+     * document in a way that it looks like they were applied "pre 1.8".
      * <p/>
-     * The way this is done is to remove all the "_bc" entries
-     * (as they didn't exist before 1.8) - *and then* doing a normal sweep (ie "sweep1")
+     * The way this is done is to remove all the "_bc" entries (as they didn't exist before 1.8) -
+     * *and then* doing a normal sweep (ie "sweep1")
      */
-    static DocumentNodeStore applyPre18Aging(DocumentStore memStore, DocumentMKBuilderProvider builderProvider, int newClusterId) {
-        return applyPre18Aging(memStore, builderProvider, new int[] {newClusterId}).get(0);
+    static DocumentNodeStore applyPre18Aging(DocumentStore memStore,
+        DocumentMKBuilderProvider builderProvider, int newClusterId) {
+        return applyPre18Aging(memStore, builderProvider, new int[]{newClusterId}).get(0);
     }
 
     /**
-     * This simulates the provided store having done the changes
-     * "pre 1.8" - ie it "ages" the document in a way that it looks
-     * like they were applied "pre 1.8".
+     * This simulates the provided store having done the changes "pre 1.8" - ie it "ages" the
+     * document in a way that it looks like they were applied "pre 1.8".
      * <p/>
-     * The way this is done is to remove all the "_bc" entries
-     * (as they didn't exist before 1.8) - *and then* doing a normal sweep (ie "sweep1")
+     * The way this is done is to remove all the "_bc" entries (as they didn't exist before 1.8) -
+     * *and then* doing a normal sweep (ie "sweep1")
      */
-    static List<DocumentNodeStore> applyPre18Aging(DocumentStore memStore, DocumentMKBuilderProvider builderProvider, int... newClusterId) {
+    static List<DocumentNodeStore> applyPre18Aging(DocumentStore memStore,
+        DocumentMKBuilderProvider builderProvider, int... newClusterId) {
         revertToPre18State(memStore);
 
         // mark as swept2 to avoid a proper sweep2, only makes sense for testing
@@ -274,8 +284,8 @@ public class Sweep2TestHelper {
         List<DocumentNodeStore> nss = new LinkedList<>();
         for (int aClusterId : newClusterId) {
             DocumentNodeStore ns = builder
-                    .setClusterId(aClusterId)
-                    .setDocumentStore(memStore).build();
+                .setClusterId(aClusterId)
+                .setDocumentStore(memStore).build();
             nss.add(ns);
         }
         NodeDocumentSweeper.SWEEP_ONE_PREDICATE = Utils.PROPERTY_OR_DELETED_OR_COMMITROOT_OR_REVISIONS;
@@ -284,7 +294,9 @@ public class Sweep2TestHelper {
     }
 
     static List<Path> scanForMissingBranchCommits(DocumentNodeStore ns) {
-        List<NodeDocument> nodes = ns.getDocumentStore().query(Collection.NODES, NodeDocument.MIN_ID_VALUE, NodeDocument.MAX_ID_VALUE, Integer.MAX_VALUE);
+        List<NodeDocument> nodes = ns.getDocumentStore()
+                                     .query(Collection.NODES, NodeDocument.MIN_ID_VALUE,
+                                         NodeDocument.MAX_ID_VALUE, Integer.MAX_VALUE);
         List<Path> paths = new LinkedList<>();
         for (NodeDocument nodeDocument : nodes) {
             if (nodeDocument.isSplitDocument()) {
@@ -304,8 +316,8 @@ public class Sweep2TestHelper {
     static boolean containsMissingBranchCommit(DocumentNodeStore ns, NodeDocument nodeDocument) {
         final RevisionVector emptySweepRevision = new RevisionVector();
         CommitValueResolver cvr = new CachingCommitValueResolver(
-                0 /* to make sure each commit value is calculated explicitly, separately */,
-                () -> emptySweepRevision);
+            0 /* to make sure each commit value is calculated explicitly, separately */,
+            () -> emptySweepRevision);
         MissingBcSweeper2 sweeper = new MissingBcSweeper2(ns, cvr, null, new AtomicBoolean(false));
         final List<Map<Path, UpdateOp>> updatesList = new LinkedList<>();
         sweeper.sweep2(Arrays.asList(nodeDocument), new NodeDocumentSweepListener() {

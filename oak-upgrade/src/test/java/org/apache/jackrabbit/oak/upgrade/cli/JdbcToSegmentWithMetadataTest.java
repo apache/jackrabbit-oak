@@ -16,11 +16,10 @@
  */
 package org.apache.jackrabbit.oak.upgrade.cli;
 
+import java.io.IOException;
 import org.apache.jackrabbit.oak.upgrade.cli.container.JdbcNodeStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.container.NodeStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.container.SegmentNodeStoreContainer;
-
-import java.io.IOException;
 
 public class JdbcToSegmentWithMetadataTest extends AbstractOak2OakTest {
 
@@ -45,8 +44,8 @@ public class JdbcToSegmentWithMetadataTest extends AbstractOak2OakTest {
 
     @Override
     protected String[] getArgs() {
-        return new String[] { "--src-user", "sa", "--src-password", "pwd", source.getDescription(),
-                destination.getDescription() , "--add-secondary-metadata"};
+        return new String[]{"--src-user", "sa", "--src-password", "pwd", source.getDescription(),
+            destination.getDescription(), "--add-secondary-metadata"};
     }
 
     @Override

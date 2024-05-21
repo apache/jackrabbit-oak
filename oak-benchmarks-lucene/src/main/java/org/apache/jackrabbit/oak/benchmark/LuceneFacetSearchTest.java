@@ -17,6 +17,14 @@
 package org.apache.jackrabbit.oak.benchmark;
 
 
+import java.io.File;
+import java.io.IOException;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import javax.jcr.Repository;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.fixture.JcrCreator;
@@ -29,15 +37,6 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProvider;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
-
-import javax.jcr.Repository;
-import java.io.File;
-import java.io.IOException;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 public class LuceneFacetSearchTest extends FacetSearchTest {
 
@@ -64,10 +63,10 @@ public class LuceneFacetSearchTest extends FacetSearchTest {
                 public Jcr customize(Oak oak) {
                     LuceneIndexProvider provider = createLuceneIndexProvider();
                     oak.with((QueryIndexProvider) provider)
-                            .with((Observer) provider)
-                            .with(new LuceneIndexEditorProvider())
-                            .with(new FacetSearchTest.FacetIndexInitializer(indexName, propMap,
-                                    LuceneIndexConstants.TYPE_LUCENE, getFacetMode()));
+                       .with((Observer) provider)
+                       .with(new LuceneIndexEditorProvider())
+                       .with(new FacetSearchTest.FacetIndexInitializer(indexName, propMap,
+                           LuceneIndexConstants.TYPE_LUCENE, getFacetMode()));
                     return new Jcr(oak);
                 }
             });

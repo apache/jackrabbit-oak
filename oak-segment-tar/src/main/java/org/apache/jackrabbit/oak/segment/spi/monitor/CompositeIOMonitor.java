@@ -18,26 +18,27 @@
 
 package org.apache.jackrabbit.oak.segment.spi.monitor;
 
+import static java.util.Collections.emptySet;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.guava.common.collect.Sets.newConcurrentHashSet;
-import static java.util.Collections.emptySet;
 
 import java.io.File;
 import java.util.Set;
-
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * This {@link IOMonitor} instance delegates all calls to all
- * {@code IOMonitor} instances registered.
+ * This {@link IOMonitor} instance delegates all calls to all {@code IOMonitor} instances
+ * registered.
  */
 public class CompositeIOMonitor implements IOMonitor {
+
     private final Set<IOMonitor> ioMonitors;
 
     /**
      * Create a new {@code CompositeIOMonitor} instance delegating the passed {@code ioMonitors}
-     * @param ioMonitors  {@link IOMonitor} instances to delegate to
+     *
+     * @param ioMonitors {@link IOMonitor} instances to delegate to
      */
     public CompositeIOMonitor(@NotNull Iterable<? extends IOMonitor> ioMonitors) {
         this.ioMonitors = newConcurrentHashSet(checkNotNull(ioMonitors));
@@ -51,12 +52,12 @@ public class CompositeIOMonitor implements IOMonitor {
     }
 
     /**
-     * Register a {@code IOMonitor} instance to which this {@code CompositeIOMonitor}
-     * will delegate all its calls until {@link Registration#unregister()} is called
-     * on the return {@code Registration}.
+     * Register a {@code IOMonitor} instance to which this {@code CompositeIOMonitor} will delegate
+     * all its calls until {@link Registration#unregister()} is called on the return
+     * {@code Registration}.
      *
-     * @param ioMonitor  {@code IOMonitor} to delegate to
-     * @return  a {@code Registration} for {@code ioMonitor}.
+     * @param ioMonitor {@code IOMonitor} to delegate to
+     * @return a {@code Registration} for {@code ioMonitor}.
      */
     @NotNull
     public Registration registerIOMonitor(@NotNull IOMonitor ioMonitor) {
@@ -67,19 +68,19 @@ public class CompositeIOMonitor implements IOMonitor {
     @Override
     public void beforeSegmentRead(File file, long msb, long lsb, int length) {
         ioMonitors.forEach(ioMonitor ->
-           ioMonitor.beforeSegmentRead(file, msb, lsb, length));
+            ioMonitor.beforeSegmentRead(file, msb, lsb, length));
     }
 
     @Override
     public void afterSegmentRead(File file, long msb, long lsb, int length, long elapsed) {
         ioMonitors.forEach(ioMonitor ->
-           ioMonitor.afterSegmentRead(file, msb, lsb, length, elapsed));
+            ioMonitor.afterSegmentRead(file, msb, lsb, length, elapsed));
     }
 
     @Override
     public void beforeSegmentWrite(File file, long msb, long lsb, int length) {
         ioMonitors.forEach(ioMonitor ->
-           ioMonitor.beforeSegmentWrite(file, msb, lsb, length));
+            ioMonitor.beforeSegmentWrite(file, msb, lsb, length));
     }
 
     @Override

@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.composite;
 
+import java.util.List;
+import java.util.function.Function;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -36,9 +38,6 @@ import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import java.util.List;
-import java.util.function.Function;
 
 /**
  * Permission provider implementation that aggregates a list of different provider implementations.

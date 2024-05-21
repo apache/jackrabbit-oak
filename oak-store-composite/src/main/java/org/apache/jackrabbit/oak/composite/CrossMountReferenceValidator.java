@@ -48,19 +48,29 @@ public class CrossMountReferenceValidator extends DefaultValidator {
 
     private final Logger LOG = LoggerFactory.getLogger(CrossMountReferenceValidator.class);
 
-    /** Parent editor, or {@code null} if this is the root editor. */
+    /**
+     * Parent editor, or {@code null} if this is the root editor.
+     */
     private final CrossMountReferenceValidator parent;
 
-    /** Name of this node, or {@code null} for the root node. */
+    /**
+     * Name of this node, or {@code null} for the root node.
+     */
     private final String name;
 
-    /** Path of this editor, built lazily in {@link #getPath()}. */
+    /**
+     * Path of this editor, built lazily in {@link #getPath()}.
+     */
     private String path;
 
-    /** UUID -> referencable node path */
+    /**
+     * UUID -> referencable node path
+     */
     private final Map<String, String> newReferencableNodes;
 
-    /** UUID -> referencing node */
+    /**
+     * UUID -> referencing node
+     */
     private final Multimap<String, String> newReferences;
 
     private final MountInfoProvider mip;
@@ -83,7 +93,8 @@ public class CrossMountReferenceValidator extends DefaultValidator {
         this.failOnDetection = parent.failOnDetection;
     }
 
-    public CrossMountReferenceValidator(NodeState root, MountInfoProvider mip, boolean failOnDetection) {
+    public CrossMountReferenceValidator(NodeState root, MountInfoProvider mip,
+        boolean failOnDetection) {
         this.name = null;
         this.parent = null;
         this.path = "/";
@@ -91,18 +102,19 @@ public class CrossMountReferenceValidator extends DefaultValidator {
         this.newReferencableNodes = newHashMap();
         this.newReferences = ArrayListMultimap.create();
         this.uuidDefinition = root.getChildNode(INDEX_DEFINITIONS_NAME).getChildNode("uuid");
-        this.uuidStores = Multiplexers.getStrategies(true, mip, uuidDefinition, INDEX_CONTENT_NODE_NAME);
+        this.uuidStores = Multiplexers.getStrategies(true, mip, uuidDefinition,
+            INDEX_CONTENT_NODE_NAME);
         this.failOnDetection = failOnDetection;
     }
 
     @Override
     public void enter(NodeState before, NodeState after)
-            throws CommitFailedException {
+        throws CommitFailedException {
     }
 
     @Override
     public void leave(NodeState before, NodeState after)
-            throws CommitFailedException {
+        throws CommitFailedException {
         if (parent != null) {
             return;
         }
@@ -119,9 +131,11 @@ public class CrossMountReferenceValidator extends DefaultValidator {
                 if (!m1.equals(m2)) {
                     if (failOnDetection) {
                         throw new CommitFailedException(INTEGRITY, 1,
-                                "Unable to reference the node [" + passivePath + "] from node [" + activePath + "]. Referencing across the mounts is not allowed.");
+                            "Unable to reference the node [" + passivePath + "] from node ["
+                                + activePath + "]. Referencing across the mounts is not allowed.");
                     } else {
-                        LOG.warn("Detected a cross-mount reference: {} -> {}", activePath, passivePath);
+                        LOG.warn("Detected a cross-mount reference: {} -> {}", activePath,
+                            passivePath);
                     }
                 }
             }
@@ -142,13 +156,13 @@ public class CrossMountReferenceValidator extends DefaultValidator {
 
     @Override
     public void propertyAdded(PropertyState after)
-            throws CommitFailedException {
+        throws CommitFailedException {
         checkProperty(after);
     }
 
     @Override
     public void propertyChanged(PropertyState before, PropertyState after)
-            throws CommitFailedException {
+        throws CommitFailedException {
         checkProperty(after);
     }
 
@@ -173,14 +187,14 @@ public class CrossMountReferenceValidator extends DefaultValidator {
 
     @Override
     public Validator childNodeAdded(String name, NodeState after)
-            throws CommitFailedException {
+        throws CommitFailedException {
         return new CrossMountReferenceValidator(this, name);
     }
 
     @Override
     public Validator childNodeChanged(
-            String name, NodeState before, NodeState after)
-            throws CommitFailedException {
+        String name, NodeState before, NodeState after)
+        throws CommitFailedException {
         return new CrossMountReferenceValidator(this, name);
     }
 

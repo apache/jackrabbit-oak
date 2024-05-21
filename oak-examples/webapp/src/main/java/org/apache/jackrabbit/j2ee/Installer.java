@@ -16,19 +16,17 @@
  */
 package org.apache.jackrabbit.j2ee;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Properties;
-
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Provides very basic installation capabilities.
@@ -95,7 +93,7 @@ public class Installer {
      * todo: to be configured
      */
     private final String configTemplate =
-            "/WEB-INF/templates/repository-config.json";
+        "/WEB-INF/templates/repository-config.json";
 
     /**
      * the place for the bootstrap properties template
@@ -105,8 +103,9 @@ public class Installer {
 
     /**
      * Creates a new installer
+     *
      * @param bootstrapConfigFile the location for the config file
-     * @param context the servlet context for accessing resources
+     * @param context             the servlet context for accessing resources
      */
     public Installer(File bootstrapConfigFile, ServletContext context) {
         this.bootstrapConfigFile = bootstrapConfigFile;
@@ -118,12 +117,11 @@ public class Installer {
      *
      * @param req the servlet request with the input parameters
      * @return the installation return code
-     *
      * @throws ServletException if a servlet error occurs.
-     * @throws IOException if an I/O error occurs.
+     * @throws IOException      if an I/O error occurs.
      */
     public int installRepository(HttpServletRequest req)
-            throws ServletException, IOException {
+        throws ServletException, IOException {
         String repHome = req.getParameter("repository_home");
         String mode = req.getParameter("mode");
 
@@ -137,7 +135,8 @@ public class Installer {
             // Test internal folder repository existence and not home because home is already created
             // by org.apache.jackrabbit.server.remoting.davex.JcrRemotingServlet
             if (config.exists()) {
-                log.error("Trying to install new repository config '{}' but already exists", config);
+                log.error("Trying to install new repository config '{}' but already exists",
+                    config);
                 return C_CONFIG_EXISTS;
             }
             log.info("Creating new repository home '{}'", repHome);
@@ -146,16 +145,19 @@ public class Installer {
             try {
                 installRepositoryConfig(config);
             } catch (IOException e) {
-                log.error("Error while installing new repository config '{}': {}", config, e.toString());
+                log.error("Error while installing new repository config '{}': {}", config,
+                    e.toString());
                 return C_BOOTSTRAP_EXISTS;
             }
         } else {
             if (!home.exists()) {
-                log.error("Trying to use existing repository home '{}' but does not exists", repHome);
+                log.error("Trying to use existing repository home '{}' but does not exists",
+                    repHome);
                 return C_HOME_MISSING;
             }
             if (!config.exists()) {
-                log.error("Trying to use existing repository config '{}' but does not exists", config);
+                log.error("Trying to use existing repository config '{}' but does not exists",
+                    config);
                 return C_CONFIG_MISSING;
             }
         }
@@ -163,7 +165,8 @@ public class Installer {
         try {
             installBootstrap(bootstrapConfigFile, repHome);
         } catch (IOException e) {
-            log.error("Error while installing '{}': {}", bootstrapConfigFile.getPath(), e.toString());
+            log.error("Error while installing '{}': {}", bootstrapConfigFile.getPath(),
+                e.toString());
             return C_INSTALL_ERROR;
         }
         return C_INSTALL_OK;
@@ -171,6 +174,7 @@ public class Installer {
 
     /**
      * Installs the repository config file from the template
+     *
      * @param dest the destination location
      * @throws IOException if an I/O error occurs.
      */
@@ -192,12 +196,13 @@ public class Installer {
 
     /**
      * Installs the bootstrap config file from the template
-     * @param dest the destination location
+     *
+     * @param dest    the destination location
      * @param repHome the repository home location
      * @throws IOException if an I/O error occurs
      */
     private void installBootstrap(File dest, String repHome)
-            throws IOException {
+        throws IOException {
         log.info("Creating new bootstrap properties: {}", dest.getPath());
         InputStream in = context.getResourceAsStream(bootstrapTemplate);
         Properties props = new Properties();

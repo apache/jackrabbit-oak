@@ -19,13 +19,12 @@
 
 package org.apache.jackrabbit.oak.segment.file;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static java.lang.String.format;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.oak.segment.file.PrintableBytes.newPrintableBytes;
 
 import java.util.ArrayList;
 import java.util.List;
-
 import org.apache.jackrabbit.oak.segment.file.GCJournal.GCJournalEntry;
 
 class FullSizeDeltaEstimationStrategy implements EstimationStrategy {
@@ -33,17 +32,20 @@ class FullSizeDeltaEstimationStrategy implements EstimationStrategy {
     @Override
     public EstimationResult estimate(Context context) {
         if (context.getSizeDelta() == 0) {
-            return new EstimationResult(true, "Estimation skipped because the size delta value equals 0");
+            return new EstimationResult(true,
+                "Estimation skipped because the size delta value equals 0");
         }
 
         long previousSize = readPreviousSize(context);
 
         if (previousSize < 0) {
-            return new EstimationResult(true, "Estimation skipped because of missing gc journal data (expected on first run)");
+            return new EstimationResult(true,
+                "Estimation skipped because of missing gc journal data (expected on first run)");
         }
 
         if (previousIsTail(context)) {
-            return new EstimationResult(true, "Detected previous garbage collection of type tail so running full garbage collection now.");
+            return new EstimationResult(true,
+                "Detected previous garbage collection of type tail so running full garbage collection now.");
         }
 
         long gain = context.getCurrentSize() - previousSize;
@@ -83,7 +85,8 @@ class FullSizeDeltaEstimationStrategy implements EstimationStrategy {
             if (a.getGcGeneration().getFullGeneration() < b.getGcGeneration().getFullGeneration()) {
                 return 1;
             }
-            return Integer.compare(a.getGcGeneration().getGeneration(), b.getGcGeneration().getGeneration());
+            return Integer.compare(a.getGcGeneration().getGeneration(),
+                b.getGcGeneration().getGeneration());
         });
 
         return entries.iterator().next().getRepoSize();

@@ -23,7 +23,6 @@ import java.util.Set;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.nodetype.PropertyDefinition;
-
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.api.Root;
@@ -66,17 +65,22 @@ class CugImporter implements ProtectedPropertyImporter, CugConstants {
 
     //----------------------------------------------< ProtectedItemImporter >---
     @Override
-    public boolean init(@NotNull Session session, @NotNull Root root, @NotNull NamePathMapper namePathMapper, boolean isWorkspaceImport, int uuidBehavior, @NotNull ReferenceChangeTracker referenceTracker, @NotNull SecurityProvider securityProvider) {
+    public boolean init(@NotNull Session session, @NotNull Root root,
+        @NotNull NamePathMapper namePathMapper, boolean isWorkspaceImport, int uuidBehavior,
+        @NotNull ReferenceChangeTracker referenceTracker,
+        @NotNull SecurityProvider securityProvider) {
         if (initialized) {
             throw new IllegalStateException("Already initialized");
         }
         try {
-            ConfigurationParameters config = securityProvider.getConfiguration(AuthorizationConfiguration.class).getParameters();
+            ConfigurationParameters config = securityProvider.getConfiguration(
+                AuthorizationConfiguration.class).getParameters();
             supportedPaths = CugUtil.getSupportedPaths(config, mountInfoProvider);
             importBehavior = CugUtil.getImportBehavior(config);
 
             if (isWorkspaceImport) {
-                PrincipalConfiguration pConfig = securityProvider.getConfiguration(PrincipalConfiguration.class);
+                PrincipalConfiguration pConfig = securityProvider.getConfiguration(
+                    PrincipalConfiguration.class);
                 principalManager = pConfig.getPrincipalManager(root, namePathMapper);
             } else {
                 principalManager = ((JackrabbitSession) session).getPrincipalManager();
@@ -96,8 +100,10 @@ class CugImporter implements ProtectedPropertyImporter, CugConstants {
     //------------------------------------------< ProtectedPropertyImporter >---
 
     @Override
-    public boolean handlePropInfo(@NotNull Tree parent, @NotNull PropInfo protectedPropInfo, @NotNull PropertyDefinition def) {
-        if (CugUtil.definesCug(parent) && isValid(protectedPropInfo, def) && CugUtil.isSupportedPath(parent.getPath(), supportedPaths)) {
+    public boolean handlePropInfo(@NotNull Tree parent, @NotNull PropInfo protectedPropInfo,
+        @NotNull PropertyDefinition def) {
+        if (CugUtil.definesCug(parent) && isValid(protectedPropInfo, def)
+            && CugUtil.isSupportedPath(parent.getPath(), supportedPaths)) {
             Set<String> principalNames = new HashSet<>();
             for (TextValue txtValue : protectedPropInfo.getTextValues()) {
                 String principalName = txtValue.getString();
@@ -112,7 +118,8 @@ class CugImporter implements ProtectedPropertyImporter, CugConstants {
                             principalNames.add(principalName);
                             break;
                         default: // ImportBehavior.ABORT
-                            throw new AccessControlException("Unknown principal '" + principalName + "'.");
+                            throw new AccessControlException(
+                                "Unknown principal '" + principalName + "'.");
                     }
                 } else {
                     principalNames.add(principalName);
@@ -127,10 +134,12 @@ class CugImporter implements ProtectedPropertyImporter, CugConstants {
 
     @Override
     public void propertiesCompleted(@NotNull Tree protectedParent) throws IllegalStateException {
-        if (CugUtil.definesCug(protectedParent) && !protectedParent.hasProperty(REP_PRINCIPAL_NAMES)) {
+        if (CugUtil.definesCug(protectedParent) && !protectedParent.hasProperty(
+            REP_PRINCIPAL_NAMES)) {
             // remove the rep:cugPolicy node if mandatory property is missing
             // (which may also happen upon an attempt to create a cug at an unsupported path).
-            log.debug("Removing incomplete rep:cugPolicy node (due to missing mandatory property or unsupported path).");
+            log.debug(
+                "Removing incomplete rep:cugPolicy node (due to missing mandatory property or unsupported path).");
             protectedParent.remove();
         }
     }
@@ -138,7 +147,8 @@ class CugImporter implements ProtectedPropertyImporter, CugConstants {
     //--------------------------------------------------------------------------
     private static boolean isValid(@NotNull PropInfo propInfo, @NotNull PropertyDefinition def) {
         if (REP_PRINCIPAL_NAMES.equals(propInfo.getName())) {
-            return def.isMultiple() && NT_REP_CUG_POLICY.equals(def.getDeclaringNodeType().getName());
+            return def.isMultiple() && NT_REP_CUG_POLICY.equals(
+                def.getDeclaringNodeType().getName());
         }
         return false;
     }

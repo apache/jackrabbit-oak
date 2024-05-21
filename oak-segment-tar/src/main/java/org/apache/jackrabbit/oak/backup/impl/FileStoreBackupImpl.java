@@ -23,7 +23,6 @@ import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreB
 
 import java.io.File;
 import java.io.IOException;
-
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.backup.FileStoreBackup;
 import org.apache.jackrabbit.oak.segment.ClassicCompactor;
@@ -35,10 +34,10 @@ import org.apache.jackrabbit.oak.segment.SegmentReader;
 import org.apache.jackrabbit.oak.segment.SegmentWriter;
 import org.apache.jackrabbit.oak.segment.WriterCacheManager;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
+import org.apache.jackrabbit.oak.segment.file.CompactionWriter;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.GCNodeWriteMonitor;
-import org.apache.jackrabbit.oak.segment.file.CompactionWriter;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.file.cancel.Canceller;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
@@ -51,10 +50,12 @@ public class FileStoreBackupImpl implements FileStoreBackup {
 
     private static final Logger log = LoggerFactory.getLogger(FileStoreBackupImpl.class);
 
-    public static final boolean USE_FAKE_BLOBSTORE = Boolean.getBoolean("oak.backup.UseFakeBlobStore");
+    public static final boolean USE_FAKE_BLOBSTORE = Boolean.getBoolean(
+        "oak.backup.UseFakeBlobStore");
 
     @Override
-    public void backup(@NotNull SegmentReader reader, @NotNull Revisions revisions, @NotNull File destination) throws IOException, InvalidFileStoreVersionException {
+    public void backup(@NotNull SegmentReader reader, @NotNull Revisions revisions,
+        @NotNull File destination) throws IOException, InvalidFileStoreVersionException {
         Stopwatch watch = Stopwatch.createStarted();
         SegmentGCOptions gcOptions = SegmentGCOptions.defaultGCOptions().setOffline();
 
@@ -73,22 +74,24 @@ public class FileStoreBackupImpl implements FileStoreBackup {
         try {
             GCGeneration gen = current.getRecordId().getSegmentId().getGcGeneration();
             SegmentBufferWriter bufferWriter = new SegmentBufferWriter(
-                    backup.getSegmentIdProvider(),
-                    backup.getReader(),
-                    "b",
-                    gen
+                backup.getSegmentIdProvider(),
+                backup.getReader(),
+                "b",
+                gen
             );
             SegmentWriter writer = new DefaultSegmentWriter(
-                    backup,
-                    backup.getReader(),
-                    backup.getSegmentIdProvider(),
-                    backup.getBlobStore(),
-                    new WriterCacheManager.Default(),
-                    bufferWriter,
-                    backup.getBinariesInlineThreshold()
+                backup,
+                backup.getReader(),
+                backup.getSegmentIdProvider(),
+                backup.getBlobStore(),
+                new WriterCacheManager.Default(),
+                bufferWriter,
+                backup.getBinariesInlineThreshold()
             );
-            CompactionWriter compactionWriter = new CompactionWriter(backup.getReader(), backup.getBlobStore(), gen, writer);
-            ClassicCompactor compactor = new ClassicCompactor(compactionWriter, GCNodeWriteMonitor.EMPTY);
+            CompactionWriter compactionWriter = new CompactionWriter(backup.getReader(),
+                backup.getBlobStore(), gen, writer);
+            ClassicCompactor compactor = new ClassicCompactor(compactionWriter,
+                GCNodeWriteMonitor.EMPTY);
             SegmentNodeState head = backup.getHead();
             SegmentNodeState after = compactor.compactUp(head, current, Canceller.newCanceller());
             compactionWriter.flush();
@@ -101,10 +104,10 @@ public class FileStoreBackupImpl implements FileStoreBackup {
         }
 
         backup = fileStoreBuilder(destination)
-                .withDefaultMemoryMapping()
-                .withGCOptions(gcOptions)
-                .withStrictVersionCheck(true)
-                .build();
+            .withDefaultMemoryMapping()
+            .withGCOptions(gcOptions)
+            .withStrictVersionCheck(true)
+            .build();
 
         try {
             cleanup(backup);

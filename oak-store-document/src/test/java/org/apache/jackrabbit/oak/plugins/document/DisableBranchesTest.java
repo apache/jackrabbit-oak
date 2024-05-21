@@ -49,15 +49,16 @@ public class DisableBranchesTest {
     private static final String REGEX = "^Background operations stats.* num:([^0]\\d*).*";
 
     private LogCustomizer logCustomizer = LogCustomizer.forLogger(
-            DocumentNodeStore.class.getName())
-            .enable(Level.DEBUG).matchesRegex(REGEX).create();
+                                                           DocumentNodeStore.class.getName())
+                                                       .enable(Level.DEBUG).matchesRegex(REGEX)
+                                                       .create();
 
     private DocumentNodeStore ns;
 
     @Before
     public void before() {
         ns = builderProvider.newBuilder().setAsyncDelay(0)
-                .disableBranches().getNodeStore();
+                            .disableBranches().getNodeStore();
     }
 
     @After
@@ -122,7 +123,7 @@ public class DisableBranchesTest {
     }
 
     private static NodeState merge(NodeStore store, NodeBuilder root)
-            throws CommitFailedException {
+        throws CommitFailedException {
         return store.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 }

@@ -20,60 +20,64 @@ Password Expiry and Force Initial Password Change
 
 ### General
 
-Since version 1.1.0 Oak provides functionality to expire passwords of users as 
+Since version 1.1.0 Oak provides functionality to expire passwords of users as
 well as force users to change their password upon initial (first-time) login.
 
 ### Password Expiry
 
-Administrators may configure passwords to expire within a configurable 
+Administrators may configure passwords to expire within a configurable
 amount of time (days). A user whose password has expired will no longer
 be able to obtain a session/login.
 
 ### Force Initial Password Change
 
 An administrator may configure the system such that a user is forced to
-set a new password upon first login. This is a special form of Password 
-Expiry above, in that upon creation a user account's password 
+set a new password upon first login. This is a special form of Password
+Expiry above, in that upon creation a user account's password
 is expired by default. Upon initial login, the user will not be able
 to obtain a session/login and the password needs to be changed prior
-to a next attempt. For specifying the new password, the initial password 
+to a next attempt. For specifying the new password, the initial password
 has to be provided.
 
 <a name="configuration"></a>
+
 ### Configuration
 
-An administrator may enable password expiry and initial password change 
+An administrator may enable password expiry and initial password change
 via the `org.apache.jackrabbit.oak.security.user.UserConfigurationImpl`
 OSGi configuration. By default both features are disabled.
 
 The following configuration options are supported:
 
-| Parameter                         | Type    | Default  | Description                                |
-|-----------------------------------|---------|----------|--------------------------------------------|
-| `PARAM_PASSWORD_MAX_AGE`          | int     | 0        | Number of days until the password expires. |
-| `PARAM_PASSWORD_INITIAL_CHANGE`   | boolean | false    | boolean flag to enable initial pw change.  |
-| `PARAM_PASSWORD_EXPIRY_FOR_ADMIN` | boolean | false    | flag to enable pw expiry for admin user.   |
+| Parameter                         | Type    | Default | Description                                |
+|-----------------------------------|---------|---------|--------------------------------------------|
+| `PARAM_PASSWORD_MAX_AGE`          | int     | 0       | Number of days until the password expires. |
+| `PARAM_PASSWORD_INITIAL_CHANGE`   | boolean | false   | boolean flag to enable initial pw change.  |
+| `PARAM_PASSWORD_EXPIRY_FOR_ADMIN` | boolean | false   | flag to enable pw expiry for admin user.   |
 
 Note:
 
-- Maximum Password Age (`maxPasswordAge`) will only be enabled when a value greater 0 is set (expiration time in days).
-- Change Password On First Login (`initialPasswordChange`): When enabled, forces users to change their password upon first login.
+- Maximum Password Age (`maxPasswordAge`) will only be enabled when a value greater 0 is set (
+  expiration time in days).
+- Change Password On First Login (`initialPasswordChange`): When enabled, forces users to change
+  their password upon first login.
 
 <a name="how"></a>
+
 ### How it works
 
 #### Definition of Expired Password
 
 An expired password is defined as follows:
 
-- The current date-time is after or on the date-time + maxPasswordAge 
+- The current date-time is after or on the date-time + maxPasswordAge
   specified in a `rep:passwordLastModified` property
 - OR: Expiry and/or Enforce Password Change is enabled, but no
   `rep:passwordLastModified` property exists
 
 For the above, a password node `rep:pw` and a property `rep:passwordLastModified`,
-governed by a new `rep:Password` node type and located in the user's home, have 
-been introduced, leaving open future enhancements to password management 
+governed by a new `rep:Password` node type and located in the user's home, have
+been introduced, leaving open future enhancements to password management
 (such as password policies, history, et al):
 
 #### Representation in the Repository
@@ -89,13 +93,13 @@ been introduced, leaving open future enhancements to password management
     [rep:User]  > rep:Authorizable, rep:Impersonatable
         + rep:pwd (rep:Password) = rep:Password protected
         ...
-        
+
 The `rep:pw` node and the `rep:passwordLastModified` property are defined
-protected in order to guard against the user modifying (overcoming) her 
-password expiry. The new sub-node also has the advantage of allowing repository 
+protected in order to guard against the user modifying (overcoming) her
+password expiry. The new sub-node also has the advantage of allowing repository
 consumers to e.g. register specific commit hooks / actions on such a node.
 
-In the future the `rep:password` property on the user node may be migrated 
+In the future the `rep:password` property on the user node may be migrated
 to the `rep:pw` sub-node.
 
 #### User Creation
@@ -106,10 +110,10 @@ property will be interpreted as immediate expiry of the password. When
 subsequently the user changes her password via `User#changePassword`, the
 `rep:passwordLastModified` property is set and henceforth interpreted.
 
-#### Authentication 
+#### Authentication
 
 A login module must throw a `javax.security.auth.login.CredentialExpiredException`
-upon encountering an expired password. A consumer implementation can then 
+upon encountering an expired password. A consumer implementation can then
 differentiate between a failed login (due to a wrong password specified) and an
 expired password, allowing the consumer to take action, e.g. to redirect to a
 change password form.
@@ -122,18 +126,18 @@ if now is after or on the date-time specified by the value.
 In the case of `initialPasswordChange` a password is considered expired if no
 `rep:passwordLastModified` property can be found on login.
 
-Both expiry and force initial password change are checked *after* regular 
+Both expiry and force initial password change are checked *after* regular
 credentials verification, so as to prevent an attacker identifying valid users
 by being redirected to a change password form upon expiry.
 
 ##### UserAuthenticationFactory
 
-As described with section [User Management: The Default Implementation](default.html#pluggability) 
+As described with section [User Management: The Default Implementation](default.html#pluggability)
 it is possible to change the default implementation of the `UserAuthenticationFactory`
 by pluggin a custom implementation at runtime.
 
-It's important to note that the authentication related part of password expiry is 
-handled by the [Authentication] implementation exposed by the default [UserAuthenticationFactory]. 
+It's important to note that the authentication related part of password expiry is
+handled by the [Authentication] implementation exposed by the default [UserAuthenticationFactory].
 Replacing the factory will ultimately disable the password expiry feature
 unless a custom implementation respects and enforces the constraints explained
 before.
@@ -163,13 +167,13 @@ Should the [Password History feature](history.html) be enabled, and - for the
 above password change - a password already in the history be used, the change
 will fail and the login still throw a [CredentialExpiredException]. In order
 for consumers of the exception to become aware that the credentials are
-still considered expired, and that the password was not changed due to the 
+still considered expired, and that the password was not changed due to the
 new password having been found in the password history, the credentials object
 is fitted with an additional attribute with name `PasswordHistoryException`.
 
 This attribute may contain the following two values:
 
-- _"New password was found in password history."_ or 
+- _"New password was found in password history."_ or
 - _"New password is identical to the current password."_
 
 #### XML Import
@@ -182,7 +186,7 @@ configuration. If they're enabled, the imported property will be used in the
 normal login process as described above. If not enabled, the imported property
 will have no effect.
 
-On the other hand, if the imported user already exists, potentially existing 
+On the other hand, if the imported user already exists, potentially existing
 `rep:passwordLastModified` properties will be overwritten with the value from
 the import. If password expiry is enabled, this may cause passwords to expire
 earlier or later than anticipated, governed by the new value. Also, an import
@@ -195,17 +199,25 @@ potential need to enable password expiry/force initial password change for the
 imported data to make sense, and/or the effect on already existing/overwritten
 data.
 
-With the changes made in the light of [OAK-8408](https://issues.apache.org/jira/browse/OAK-8408) 
+With the changes made in the light of [OAK-8408](https://issues.apache.org/jira/browse/OAK-8408)
 the following rules apply when importing a user without an extra `rep:pw` node:
 
-- if `initialPasswordChange` is enabled, `rep:passwordLastModified` will never be set irrespective if the user node is 
+- if `initialPasswordChange` is enabled, `rep:passwordLastModified` will never be set irrespective
+  if the user node is
   new or modified. i.e. the user will be force to change the pw upon login.
-- if `pw-expiry` is enabled, `rep:passwordLastModified` will only be set for a new user node (but not if node gets modified).
-  this ensures that the password will expire but doesn't reset the expiry when changing an existing user with XML import.
-- if both `initialPasswordChange` and `pw-expiry` are enabled, the rules for `initialPasswordChange` apply.
+- if `pw-expiry` is enabled, `rep:passwordLastModified` will only be set for a new user node (but
+  not if node gets modified).
+  this ensures that the password will expire but doesn't reset the expiry when changing an existing
+  user with XML import.
+- if both `initialPasswordChange` and `pw-expiry` are enabled, the rules for `initialPasswordChange`
+  apply.
 
 <!-- hidden references -->
+
 [SimpleCredentials]: https://s.apache.org/jcr-2.0-javadoc/javax/jcr/SimpleCredentials.html
+
 [CredentialExpiredException]: https://docs.oracle.com/javase/7/docs/api/javax/security/auth/login/CredentialExpiredException.html
+
 [UserAuthenticationFactory]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/user/UserAuthenticationFactory.html
+
 [Authentication]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/Authentication.html

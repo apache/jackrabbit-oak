@@ -20,10 +20,9 @@ import javax.security.auth.Subject;
 import javax.security.auth.login.LoginException;
 
 /**
- * Interface version of the JAAS {@link javax.security.auth.login.LoginContext}
- * class. It is used to make integration of non-JAAS authentication components
- * easier while still retaining full JAAS support. The {@link JaasLoginContext}
- * class acts as a bridge that connects the JAAS
+ * Interface version of the JAAS {@link javax.security.auth.login.LoginContext} class. It is used to
+ * make integration of non-JAAS authentication components easier while still retaining full JAAS
+ * support. The {@link JaasLoginContext} class acts as a bridge that connects the JAAS
  * {@link javax.security.auth.login.LoginContext} class with this interface.
  */
 public interface LoginContext {

@@ -19,9 +19,16 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.property;
 
+import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
+import static org.apache.jackrabbit.oak.commons.PathUtils.isAbsolute;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.PROPERTY_INDEX;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.PROP_HEAD_BUCKET;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.PROP_PREVIOUS_BUCKET;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.uniquePropertyIndex;
+import static org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexUtil.encode;
+
 import java.util.Collections;
 import java.util.Set;
-
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyValue;
@@ -35,15 +42,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
-import static org.apache.jackrabbit.oak.commons.PathUtils.isAbsolute;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.PROPERTY_INDEX;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.PROP_HEAD_BUCKET;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.PROP_PREVIOUS_BUCKET;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.uniquePropertyIndex;
-import static org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexUtil.encode;
-
 public class HybridPropertyIndexLookup {
+
     private static final Logger log = LoggerFactory.getLogger(HybridPropertyIndexLookup.class);
     private final String indexPath;
     private final NodeState indexState;
@@ -51,11 +51,11 @@ public class HybridPropertyIndexLookup {
     private final boolean prependPathPrefix;
 
     public HybridPropertyIndexLookup(String indexPath, NodeState indexState) {
-       this(indexPath, indexState, "", false);
+        this(indexPath, indexState, "", false);
     }
 
     public HybridPropertyIndexLookup(String indexPath, NodeState indexState,
-                                     String pathPrefix, boolean prependPathPrefix) {
+        String pathPrefix, boolean prependPathPrefix) {
         this.indexPath = indexPath;
         this.indexState = indexState;
         this.pathPrefix = pathPrefix;
@@ -65,13 +65,14 @@ public class HybridPropertyIndexLookup {
     /**
      * Performs query based on provided property restriction
      *
-     * @param filter filter from the query being performed
-     * @param propertyName actual property name which may or may not be same as
-     *                     property name in property restriction
-     * @param restriction property restriction matching given property
+     * @param filter       filter from the query being performed
+     * @param propertyName actual property name which may or may not be same as property name in
+     *                     property restriction
+     * @param restriction  property restriction matching given property
      * @return iterable consisting of absolute paths as per index content
      */
-    public Iterable<String> query(Filter filter, String propertyName, Filter.PropertyRestriction restriction) {
+    public Iterable<String> query(Filter filter, String propertyName,
+        Filter.PropertyRestriction restriction) {
         //The propertyName may differ from name in restriction. For e.g. for relative properties
         //the restriction property name can be 'jcr:content/status' while the index has indexed
         //for 'status'
@@ -97,7 +98,8 @@ public class HybridPropertyIndexLookup {
         String indexName = indexPath + "(" + propertyName + ")";
         Iterable<String> result;
         if (uniquePropertyIndex(propIndexNode)) {
-            result = queryUnique(filter, indexName, propIndexRootNode, propIdxNodeName, encodedValues);
+            result = queryUnique(filter, indexName, propIndexRootNode, propIdxNodeName,
+                encodedValues);
         } else {
             result = querySimple(filter, indexName, propIndexNode, encodedValues);
         }
@@ -113,22 +115,23 @@ public class HybridPropertyIndexLookup {
         return paths;
     }
 
-    private static Iterable<String> queryUnique(Filter filter, String indexName, NodeState propIndexRootNode,
-                                                String propIdxNodeName, Set<String> values) {
+    private static Iterable<String> queryUnique(Filter filter, String indexName,
+        NodeState propIndexRootNode,
+        String propIdxNodeName, Set<String> values) {
         UniqueEntryStoreStrategy s = new UniqueEntryStoreStrategy(propIdxNodeName);
         return s.query(filter, indexName, propIndexRootNode, values);
     }
 
     private Iterable<String> querySimple(Filter filter, String indexName, NodeState propIndexNode,
-                                         Set<String> values) {
+        Set<String> values) {
         return Iterables.concat(
-                queryBucket(filter, indexName, propIndexNode, PROP_HEAD_BUCKET, values),
-                queryBucket(filter, indexName, propIndexNode, PROP_PREVIOUS_BUCKET, values)
+            queryBucket(filter, indexName, propIndexNode, PROP_HEAD_BUCKET, values),
+            queryBucket(filter, indexName, propIndexNode, PROP_PREVIOUS_BUCKET, values)
         );
     }
 
     private Iterable<String> queryBucket(Filter filter, String indexName, NodeState propIndexNode,
-                                         String bucketPropName, Set<String> values) {
+        String bucketPropName, Set<String> values) {
         String bucketName = propIndexNode.getString(bucketPropName);
         if (bucketName == null) {
             return Collections.emptyList();
@@ -139,7 +142,8 @@ public class HybridPropertyIndexLookup {
             return Collections.emptyList();
         }
 
-        ContentMirrorStoreStrategy s = new ContentMirrorStoreStrategy(bucketName, pathPrefix, prependPathPrefix);
+        ContentMirrorStoreStrategy s = new ContentMirrorStoreStrategy(bucketName, pathPrefix,
+            prependPathPrefix);
         return s.query(filter, indexName, propIndexNode, bucketName, values);
     }
 }

@@ -18,22 +18,20 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
-
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.security.InvalidKeyException;
+import java.util.Properties;
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzuriteDockerRule;
 import org.apache.jackrabbit.oak.segment.spi.persistence.ManifestFile;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
-
-import java.io.IOException;
-import java.net.URISyntaxException;
-import java.security.InvalidKeyException;
-import java.util.Properties;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 
 public class AzureManifestFileTest {
 
@@ -49,7 +47,8 @@ public class AzureManifestFileTest {
 
     @Test
     public void testManifest() throws URISyntaxException, IOException {
-        ManifestFile manifestFile = new AzurePersistence(container.getDirectoryReference("oak")).getManifestFile();
+        ManifestFile manifestFile = new AzurePersistence(
+            container.getDirectoryReference("oak")).getManifestFile();
         assertFalse(manifestFile.exists());
 
         Properties props = new Properties();

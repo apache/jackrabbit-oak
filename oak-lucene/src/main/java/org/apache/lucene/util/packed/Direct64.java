@@ -27,89 +27,90 @@ package org.apache.lucene.util.packed;
  * limitations under the License.
  */
 
+import java.io.IOException;
+import java.util.Arrays;
 import org.apache.lucene.store.DataInput;
 import org.apache.lucene.util.RamUsageEstimator;
 
-import java.io.IOException;
-import java.util.Arrays;
-
 /**
  * Direct wrapping of 64-bits values to a backing array.
+ *
  * @lucene.internal
  */
 final class Direct64 extends PackedInts.MutableImpl {
-  final long[] values;
 
-  Direct64(int valueCount) {
-    super(valueCount, 64);
-    values = new long[valueCount];
-  }
+    final long[] values;
 
-  Direct64(int packedIntsVersion, DataInput in, int valueCount) throws IOException {
-    this(valueCount);
-    for (int i = 0; i < valueCount; ++i) {
-      values[i] = in.readLong();
+    Direct64(int valueCount) {
+        super(valueCount, 64);
+        values = new long[valueCount];
     }
-  }
 
-  @Override
-  public long get(final int index) {
-    return values[index];
-  }
+    Direct64(int packedIntsVersion, DataInput in, int valueCount) throws IOException {
+        this(valueCount);
+        for (int i = 0; i < valueCount; ++i) {
+            values[i] = in.readLong();
+        }
+    }
 
-  @Override
-  public void set(final int index, final long value) {
-    values[index] = (value);
-  }
+    @Override
+    public long get(final int index) {
+        return values[index];
+    }
 
-  @Override
-  public long ramBytesUsed() {
-    return RamUsageEstimator.alignObjectSize(
-        RamUsageEstimator.NUM_BYTES_OBJECT_HEADER
-        + 2 * RamUsageEstimator.NUM_BYTES_INT     // valueCount,bitsPerValue
-        + RamUsageEstimator.NUM_BYTES_OBJECT_REF) // values ref
-        + RamUsageEstimator.sizeOf(values);
-  }
+    @Override
+    public void set(final int index, final long value) {
+        values[index] = (value);
+    }
 
-  @Override
-  public void clear() {
-    Arrays.fill(values, 0L);
-  }
+    @Override
+    public long ramBytesUsed() {
+        return RamUsageEstimator.alignObjectSize(
+            RamUsageEstimator.NUM_BYTES_OBJECT_HEADER
+                + 2 * RamUsageEstimator.NUM_BYTES_INT     // valueCount,bitsPerValue
+                + RamUsageEstimator.NUM_BYTES_OBJECT_REF) // values ref
+            + RamUsageEstimator.sizeOf(values);
+    }
 
-  @Override
-  public Object getArray() {
-    return values;
-  }
+    @Override
+    public void clear() {
+        Arrays.fill(values, 0L);
+    }
 
-  @Override
-  public boolean hasArray() {
-    return true;
-  }
+    @Override
+    public Object getArray() {
+        return values;
+    }
 
-  @Override
-  public int get(int index, long[] arr, int off, int len) {
-    assert len > 0 : "len must be > 0 (got " + len + ")";
-    assert index >= 0 && index < valueCount;
-    assert off + len <= arr.length;
+    @Override
+    public boolean hasArray() {
+        return true;
+    }
 
-    final int gets = Math.min(valueCount - index, len);
-    System.arraycopy(values, index, arr, off, gets);
-    return gets;
-  }
+    @Override
+    public int get(int index, long[] arr, int off, int len) {
+        assert len > 0 : "len must be > 0 (got " + len + ")";
+        assert index >= 0 && index < valueCount;
+        assert off + len <= arr.length;
 
-  @Override
-  public int set(int index, long[] arr, int off, int len) {
-    assert len > 0 : "len must be > 0 (got " + len + ")";
-    assert index >= 0 && index < valueCount;
-    assert off + len <= arr.length;
+        final int gets = Math.min(valueCount - index, len);
+        System.arraycopy(values, index, arr, off, gets);
+        return gets;
+    }
 
-    final int sets = Math.min(valueCount - index, len);
-    System.arraycopy(arr, off, values, index, sets);
-    return sets;
-  }
+    @Override
+    public int set(int index, long[] arr, int off, int len) {
+        assert len > 0 : "len must be > 0 (got " + len + ")";
+        assert index >= 0 && index < valueCount;
+        assert off + len <= arr.length;
 
-  @Override
-  public void fill(int fromIndex, int toIndex, long val) {
-    Arrays.fill(values, fromIndex, toIndex, val);
-  }
+        final int sets = Math.min(valueCount - index, len);
+        System.arraycopy(arr, off, values, index, sets);
+        return sets;
+    }
+
+    @Override
+    public void fill(int fromIndex, int toIndex, long val) {
+        Arrays.fill(values, fromIndex, toIndex, val);
+    }
 }

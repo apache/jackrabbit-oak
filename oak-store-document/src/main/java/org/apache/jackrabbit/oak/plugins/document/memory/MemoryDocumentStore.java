@@ -21,6 +21,8 @@ import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Condition.newE
 import static org.apache.jackrabbit.oak.plugins.document.UpdateUtils.assertUnconditional;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateUtils.checkConditions;
 
+import com.mongodb.ReadPreference;
+import com.mongodb.WriteConcern;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -30,7 +32,6 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-
 import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.base.Splitter;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
@@ -52,12 +53,8 @@ import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import com.mongodb.ReadPreference;
-import com.mongodb.WriteConcern;
-
 /**
- * Emulates a MongoDB store (possibly consisting of multiple shards and
- * replicas).
+ * Emulates a MongoDB store (possibly consisting of multiple shards and replicas).
  */
 public class MemoryDocumentStore implements DocumentStore {
 
@@ -65,25 +62,25 @@ public class MemoryDocumentStore implements DocumentStore {
      * The 'nodes' collection.
      */
     private ConcurrentSkipListMap<String, NodeDocument> nodes =
-            new ConcurrentSkipListMap<String, NodeDocument>();
+        new ConcurrentSkipListMap<String, NodeDocument>();
 
     /**
      * The 'clusterNodes' collection.
      */
     private ConcurrentSkipListMap<String, Document> clusterNodes =
-            new ConcurrentSkipListMap<String, Document>();
+        new ConcurrentSkipListMap<String, Document>();
 
     /**
      * The 'settings' collection.
      */
     private ConcurrentSkipListMap<String, Document> settings =
-            new ConcurrentSkipListMap<String, Document>();
+        new ConcurrentSkipListMap<String, Document>();
 
     /**
      * The 'externalChanges' collection.
      */
     private ConcurrentSkipListMap<String, JournalEntry> externalChanges =
-            new ConcurrentSkipListMap<String, JournalEntry>();
+        new ConcurrentSkipListMap<String, JournalEntry>();
 
     private final ReadWriteLock rwLock = new ReentrantReadWriteLock();
 
@@ -99,16 +96,17 @@ public class MemoryDocumentStore implements DocumentStore {
 
     private static final Key KEY_MODIFIED = new Key(MODIFIED_IN_SECS, null);
 
-    private static final long SIZE_LIMIT = SystemPropertySupplier.create("memoryds.size.limit", -1).get();
+    private static final long SIZE_LIMIT = SystemPropertySupplier.create("memoryds.size.limit", -1)
+                                                                 .get();
 
     public MemoryDocumentStore() {
         this(false);
     }
 
     public MemoryDocumentStore(boolean maintainModCount) {
-        metadata = ImmutableMap.<String,String>builder()
-                        .put("type", "memory")
-                        .build();
+        metadata = ImmutableMap.<String, String>builder()
+                               .put("type", "memory")
+                               .build();
         this.maintainModCount = maintainModCount;
     }
 
@@ -132,20 +130,20 @@ public class MemoryDocumentStore implements DocumentStore {
     @Override
     @NotNull
     public <T extends Document> List<T> query(Collection<T> collection,
-                                String fromKey,
-                                String toKey,
-                                int limit) {
+        String fromKey,
+        String toKey,
+        int limit) {
         return query(collection, fromKey, toKey, null, 0, limit);
     }
 
     @Override
     @NotNull
     public <T extends Document> List<T> query(Collection<T> collection,
-                                String fromKey,
-                                String toKey,
-                                String indexedProperty,
-                                long startValue,
-                                int limit) {
+        String fromKey,
+        String toKey,
+        String indexedProperty,
+        long startValue,
+        int limit) {
         Lock lock = rwLock.readLock();
         lock.lock();
         try {
@@ -165,7 +163,8 @@ public class MemoryDocumentStore implements DocumentStore {
                             continue;
                         }
                     } else if (value != null) {
-                        throw new DocumentStoreException("unexpected type for property " + indexedProperty + ": "
+                        throw new DocumentStoreException(
+                            "unexpected type for property " + indexedProperty + ": "
                                 + value.getClass());
                     }
                 }
@@ -193,7 +192,7 @@ public class MemoryDocumentStore implements DocumentStore {
 
     @Override
     public <T extends Document> void remove(Collection<T> collection, List<String> keys) {
-        for(String key : keys){
+        for (String key : keys) {
             remove(collection, key);
         }
     }
@@ -208,7 +207,8 @@ public class MemoryDocumentStore implements DocumentStore {
             try {
                 T doc = map.get(entry.getKey());
                 Condition c = newEqualsCondition(entry.getValue());
-                if (doc != null && checkConditions(doc, Collections.singletonMap(KEY_MODIFIED, c))) {
+                if (doc != null && checkConditions(doc,
+                    Collections.singletonMap(KEY_MODIFIED, c))) {
                     if (map.remove(entry.getKey()) != null) {
                         num++;
                     }
@@ -222,8 +222,8 @@ public class MemoryDocumentStore implements DocumentStore {
 
     @Override
     public <T extends Document> int remove(Collection<T> collection,
-                                    final String indexedProperty, final long startValue, final long endValue)
-            throws DocumentStoreException {
+        final String indexedProperty, final long startValue, final long endValue)
+        throws DocumentStoreException {
         ConcurrentSkipListMap<String, T> map = getMap(collection);
         int num = map.size();
 
@@ -253,7 +253,8 @@ public class MemoryDocumentStore implements DocumentStore {
     }
 
     @Override
-    public <T extends Document> List<T> createOrUpdate(Collection<T> collection, List<UpdateOp> updateOps) {
+    public <T extends Document> List<T> createOrUpdate(Collection<T> collection,
+        List<UpdateOp> updateOps) {
         List<T> result = new ArrayList<T>(updateOps.size());
         for (UpdateOp update : updateOps) {
             result.add(createOrUpdate(collection, update));
@@ -280,7 +281,7 @@ public class MemoryDocumentStore implements DocumentStore {
     }
 
     private <T extends Document> void copyDocuments(Collection<T> collection,
-                                                    MemoryDocumentStore target) {
+        MemoryDocumentStore target) {
         ConcurrentSkipListMap<String, T> from = getMap(collection);
         ConcurrentSkipListMap<String, T> to = target.getMap(collection);
 
@@ -299,7 +300,8 @@ public class MemoryDocumentStore implements DocumentStore {
      * @return the map
      */
     @SuppressWarnings("unchecked")
-    protected <T extends Document> ConcurrentSkipListMap<String, T> getMap(Collection<T> collection) {
+    protected <T extends Document> ConcurrentSkipListMap<String, T> getMap(
+        Collection<T> collection) {
         if (collection == Collection.NODES) {
             return (ConcurrentSkipListMap<String, T>) nodes;
         } else if (collection == Collection.CLUSTER_NODES) {
@@ -310,14 +312,14 @@ public class MemoryDocumentStore implements DocumentStore {
             return (ConcurrentSkipListMap<String, T>) externalChanges;
         } else {
             throw new IllegalArgumentException(
-                    "Unknown collection: " + collection.toString());
+                "Unknown collection: " + collection.toString());
         }
     }
 
     @Nullable
     private <T extends Document> T internalCreateOrUpdate(Collection<T> collection,
-                                                          UpdateOp update,
-                                                          boolean checkConditions) {
+        UpdateOp update,
+        boolean checkConditions) {
         ConcurrentSkipListMap<String, T> map = getMap(collection);
         T oldDoc;
 
@@ -352,7 +354,7 @@ public class MemoryDocumentStore implements DocumentStore {
 
     @Override
     public <T extends Document> boolean create(Collection<T> collection,
-                                               List<UpdateOp> updateOps) {
+        List<UpdateOp> updateOps) {
         Lock lock = rwLock.writeLock();
         lock.lock();
         try {
@@ -419,7 +421,8 @@ public class MemoryDocumentStore implements DocumentStore {
         }
         lastReadWriteMode = readWriteMode;
         try {
-            Map<String, String> map = Splitter.on(", ").withKeyValueSeparator(":").split(readWriteMode);
+            Map<String, String> map = Splitter.on(", ").withKeyValueSeparator(":")
+                                              .split(readWriteMode);
             String read = map.get("read");
             if (read != null) {
                 ReadPreference readPref = ReadPreference.valueOf(read);
@@ -461,11 +464,13 @@ public class MemoryDocumentStore implements DocumentStore {
     @Override
     public Map<String, String> getStats() {
         return ImmutableMap.<String, String>builder()
-                .put(Collection.NODES.toString(), String.valueOf(nodes.size()))
-                .put(Collection.CLUSTER_NODES.toString(), String.valueOf(clusterNodes.size()))
-                .put(Collection.SETTINGS.toString(), String.valueOf(settings.size()))
-                .put(Collection.JOURNAL.toString(), String.valueOf(externalChanges.size()))
-                .build();
+                           .put(Collection.NODES.toString(), String.valueOf(nodes.size()))
+                           .put(Collection.CLUSTER_NODES.toString(),
+                               String.valueOf(clusterNodes.size()))
+                           .put(Collection.SETTINGS.toString(), String.valueOf(settings.size()))
+                           .put(Collection.JOURNAL.toString(),
+                               String.valueOf(externalChanges.size()))
+                           .build();
     }
 
     @Override
@@ -479,8 +484,9 @@ public class MemoryDocumentStore implements DocumentStore {
             int size = doc.getMemory();
             if (size >= SIZE_LIMIT) {
                 throw new DocumentStoreException(
-                        String.format("Resulting size for _id '%s' is %d, exceeding configured size limit of %d. Diagnostics: %s.",
-                                doc.getId(), size, SIZE_LIMIT, Utils.mapEntryDiagnostics(doc.entrySet())));
+                    String.format(
+                        "Resulting size for _id '%s' is %d, exceeding configured size limit of %d. Diagnostics: %s.",
+                        doc.getId(), size, SIZE_LIMIT, Utils.mapEntryDiagnostics(doc.entrySet())));
             }
         }
     }

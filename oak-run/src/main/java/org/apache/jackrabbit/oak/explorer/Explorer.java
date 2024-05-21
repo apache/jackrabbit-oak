@@ -18,19 +18,29 @@
  */
 package org.apache.jackrabbit.oak.explorer;
 
-import joptsimple.OptionParser;
-import joptsimple.OptionSet;
-import joptsimple.OptionSpec;
-import org.apache.commons.io.IOUtils;
-
-import javax.swing.*;
-import javax.swing.UIManager.LookAndFeelInfo;
-import java.awt.*;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.io.IOException;
 import java.util.List;
+import javax.swing.JFrame;
+import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JSeparator;
+import javax.swing.JSplitPane;
+import javax.swing.JTextArea;
+import javax.swing.UIManager;
+import javax.swing.UIManager.LookAndFeelInfo;
+import joptsimple.OptionParser;
+import joptsimple.OptionSet;
+import joptsimple.OptionSpec;
+import org.apache.commons.io.IOUtils;
 
 /**
  * NodeStore explorer
@@ -55,8 +65,10 @@ public class Explorer {
 
     public static void main(String[] args) throws IOException {
         OptionParser parser = new OptionParser();
-        OptionSpec skipSizeCheck = parser.accepts("skip-size-check", "Don't compute the size of the records");
-        OptionSpec<String> nonOptions = parser.nonOptions("path to repository").ofType(String.class);
+        OptionSpec skipSizeCheck = parser.accepts("skip-size-check",
+            "Don't compute the size of the records");
+        OptionSpec<String> nonOptions = parser.nonOptions("path to repository")
+                                              .ofType(String.class);
         OptionSet options = parser.parse(args);
 
         if (options.valuesOf(nonOptions).isEmpty()) {
@@ -77,7 +89,8 @@ public class Explorer {
 
     private final ExplorerBackend backend;
 
-    private Explorer(final String path, ExplorerBackend backend, final boolean skipSizeCheck) throws IOException {
+    private Explorer(final String path, ExplorerBackend backend, final boolean skipSizeCheck)
+        throws IOException {
         this.backend = backend;
 
         javax.swing.SwingUtilities.invokeLater(new Runnable() {
@@ -117,7 +130,7 @@ public class Explorer {
         c.weighty = 1;
 
         JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,
-                new JScrollPane(treePanel), new JScrollPane(log));
+            new JScrollPane(treePanel), new JScrollPane(log));
         splitPane.setDividerLocation(0.3);
         content.add(new JScrollPane(splitPane), c);
         frame.getContentPane().add(content);
@@ -145,9 +158,9 @@ public class Explorer {
             public void actionPerformed(ActionEvent ev) {
                 List<String> revs = backend.readRevisions();
                 String s = (String) JOptionPane.showInputDialog(frame,
-                        "Revert to a specified revision", "Time Machine",
-                        JOptionPane.PLAIN_MESSAGE, null, revs.toArray(),
-                        revs.get(0));
+                    "Revert to a specified revision", "Time Machine",
+                    JOptionPane.PLAIN_MESSAGE, null, revs.toArray(),
+                    revs.get(0));
                 if (s != null && treePanel.revert(s)) {
                     frame.setTitle("Explore " + path + " @" + s);
                 }
@@ -161,9 +174,9 @@ public class Explorer {
             public void actionPerformed(ActionEvent ev) {
                 List<String> tarFiles = backend.getTarFiles();
                 String s = (String) JOptionPane.showInputDialog(frame,
-                        "Choose a tar file", "Tar File Info",
-                        JOptionPane.PLAIN_MESSAGE, null, tarFiles.toArray(),
-                        tarFiles.get(0));
+                    "Choose a tar file", "Tar File Info",
+                    JOptionPane.PLAIN_MESSAGE, null, tarFiles.toArray(),
+                    tarFiles.get(0));
                 if (s != null) {
                     treePanel.printTarInfo(s);
                 }
@@ -176,8 +189,8 @@ public class Explorer {
             @Override
             public void actionPerformed(ActionEvent ev) {
                 String s = JOptionPane.showInputDialog(frame,
-                        "Segment References\nUsage: <segmentId>",
-                        "Segment References", JOptionPane.PLAIN_MESSAGE);
+                    "Segment References\nUsage: <segmentId>",
+                    "Segment References", JOptionPane.PLAIN_MESSAGE);
                 if (s != null) {
                     treePanel.printSegmentReferences(s);
                 }
@@ -190,8 +203,8 @@ public class Explorer {
             @Override
             public void actionPerformed(ActionEvent ev) {
                 String s = JOptionPane.showInputDialog(frame,
-                        "SegmentNodeState diff\nUsage: <recordId> <recordId> [<path>]",
-                        "SegmentNodeState diff", JOptionPane.PLAIN_MESSAGE);
+                    "SegmentNodeState diff\nUsage: <recordId> <recordId> [<path>]",
+                    "SegmentNodeState diff", JOptionPane.PLAIN_MESSAGE);
                 if (s != null) {
                     treePanel.printDiff(s);
                 }

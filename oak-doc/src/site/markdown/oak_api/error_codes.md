@@ -26,22 +26,22 @@ information about the issue. This page is an informal registry of common error c
 
 #### Node type validation
 
-| OakConstraint000x | Primary and mixin type information                       |
-|-------------------|----------------------------------------------------------|
-| 0001              | The primary type X does not exist                        |
-| 0002              | Mixin type X used as the primary type                    |
-| 0003              | Abstract type X used as the primary type                 |
-| 0004              | No default primary type available for child node X       |
-| 0005              | The mixin type X does not exist                          |
-| 0006              | Primary type X used as a mixin type                      |
-| 0007              | Abstract type X used as a mixin type                     |
+| OakConstraint000x | Primary and mixin type information                 |
+|-------------------|----------------------------------------------------|
+| 0001              | The primary type X does not exist                  |
+| 0002              | Mixin type X used as the primary type              |
+| 0003              | Abstract type X used as the primary type           |
+| 0004              | No default primary type available for child node X |
+| 0005              | The mixin type X does not exist                    |
+| 0006              | Primary type X used as a mixin type                |
+| 0007              | Abstract type X used as a mixin type               |
 
-| OakConstraint002x | Presence of mandatory items                              |
-|-------------------|----------------------------------------------------------|
-| 0021              | Mandatory property X not included in a new node          |
-| 0022              | Mandatory property X can not be removed                  |
-| 0025              | Mandatory child node X not included in a new node        |
-| 0026              | Mandatory child node X can not be removed                |
+| OakConstraint002x | Presence of mandatory items                       |
+|-------------------|---------------------------------------------------|
+| 0021              | Mandatory property X not included in a new node   |
+| 0022              | Mandatory property X can not be removed           |
+| 0025              | Mandatory child node X not included in a new node |
+| 0026              | Mandatory child node X can not be removed         |
 
 #### User Validation
 
@@ -54,7 +54,6 @@ see section [Privilege Management](../security/privilege/default.html#validation
 #### Token Validation
 
 see section [Token Management](../security/authentication/tokenmanagement.html#validation)
-
 
 ### Type Access
 
@@ -73,4 +72,5 @@ see section [Access Control Management](../security/accesscontrol/default.html#v
 see section [Closed User Groups](../security/authorization/cug.html#validation)
 
 <!-- hidden references -->
+
 [OAK-764]: https://issues.apache.org/jira/browse/OAK-764

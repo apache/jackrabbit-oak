@@ -26,21 +26,19 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.function.Function;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.LineIterator;
-import org.apache.jackrabbit.oak.commons.FileIOUtils;
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.collect.PeekingIterator;
+import org.apache.jackrabbit.oak.commons.FileIOUtils;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * FileLineDifferenceIterator class which iterates over the difference of 2 files line by line.
- *
- * If there is a scope for lines in the files containing line break characters it should be
- * ensured that both the files are written with
+ * <p>
+ * If there is a scope for lines in the files containing line break characters it should be ensured
+ * that both the files are written with
  * {@link FileIOUtils#writeAsLine(BufferedWriter, String, boolean)} with true to escape line break
  * characters.
  */
@@ -48,17 +46,21 @@ public class FileLineDifferenceIterator implements Closeable, Iterator<String> {
 
     private final Impl delegate;
 
-    public FileLineDifferenceIterator(LineIterator marked, LineIterator available, @Nullable Function<String, String> transformer)
-            throws IOException {
+    public FileLineDifferenceIterator(LineIterator marked, LineIterator available,
+        @Nullable Function<String, String> transformer)
+        throws IOException {
         this.delegate = new Impl(marked, available, transformer);
     }
 
-    public FileLineDifferenceIterator(File marked, File available, @Nullable Function<String, String> transformer)
-            throws IOException {
-        this(FileUtils.lineIterator(marked, UTF_8.toString()), FileUtils.lineIterator(available, UTF_8.toString()), transformer);
+    public FileLineDifferenceIterator(File marked, File available,
+        @Nullable Function<String, String> transformer)
+        throws IOException {
+        this(FileUtils.lineIterator(marked, UTF_8.toString()),
+            FileUtils.lineIterator(available, UTF_8.toString()), transformer);
     }
 
-    public FileLineDifferenceIterator(LineIterator marked, LineIterator available) throws IOException {
+    public FileLineDifferenceIterator(LineIterator marked, LineIterator available)
+        throws IOException {
         this(marked, available, null);
     }
 
@@ -90,8 +92,9 @@ public class FileLineDifferenceIterator implements Closeable, Iterator<String> {
             }
         };
 
-        public Impl(LineIterator marked, LineIterator available, @Nullable Function<String, String> transformer)
-                throws IOException {
+        public Impl(LineIterator marked, LineIterator available,
+            @Nullable Function<String, String> transformer)
+            throws IOException {
             this.marked = marked;
             this.peekMarked = Iterators.peekingIterator(marked);
             this.all = available;
@@ -135,7 +138,8 @@ public class FileLineDifferenceIterator implements Closeable, Iterator<String> {
                 diff = all.next();
                 while (peekMarked.hasNext()) {
                     String marked = peekMarked.peek();
-                    int comparisonResult = transformer.apply(diff).compareTo(transformer.apply((marked)));
+                    int comparisonResult = transformer.apply(diff)
+                                                      .compareTo(transformer.apply((marked)));
                     if (comparisonResult > 0) {
                         // Extra entries in marked. Ignore them and move on
                         peekMarked.next();

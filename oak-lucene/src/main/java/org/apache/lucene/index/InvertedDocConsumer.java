@@ -30,15 +30,21 @@ import java.util.Map;
 
 abstract class InvertedDocConsumer {
 
-  /** Abort (called after hitting AbortException) */
-  abstract void abort();
+    /**
+     * Abort (called after hitting AbortException)
+     */
+    abstract void abort();
 
-  /** Flush a new segment */
-  abstract void flush(Map<String, InvertedDocConsumerPerField> fieldsToFlush, SegmentWriteState state) throws IOException;
+    /**
+     * Flush a new segment
+     */
+    abstract void flush(Map<String, InvertedDocConsumerPerField> fieldsToFlush,
+        SegmentWriteState state) throws IOException;
 
-  abstract InvertedDocConsumerPerField addField(DocInverterPerField docInverterPerField, FieldInfo fieldInfo);
+    abstract InvertedDocConsumerPerField addField(DocInverterPerField docInverterPerField,
+        FieldInfo fieldInfo);
 
-  abstract void startDocument() throws IOException;
+    abstract void startDocument() throws IOException;
 
-  abstract void finishDocument() throws IOException;
+    abstract void finishDocument() throws IOException;
 }

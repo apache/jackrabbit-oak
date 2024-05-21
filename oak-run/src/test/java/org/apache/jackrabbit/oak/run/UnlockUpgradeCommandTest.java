@@ -18,6 +18,12 @@
  */
 package org.apache.jackrabbit.oak.run;
 
+import static org.apache.jackrabbit.oak.plugins.document.FormatVersion.versionOf;
+import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBuilder.newMongoDocumentNodeStoreBuilder;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
+
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
@@ -31,12 +37,6 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
-
-import static org.apache.jackrabbit.oak.plugins.document.FormatVersion.versionOf;
-import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBuilder.newMongoDocumentNodeStoreBuilder;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeTrue;
 
 public class UnlockUpgradeCommandTest {
 
@@ -76,13 +76,13 @@ public class UnlockUpgradeCommandTest {
         MongoConnection c = connectionFactory.getConnection();
         MongoUtils.dropCollections(c.getDBName());
         return builderProvider.newBuilder()
-                .setMongoDB(c.getMongoClient(), c.getDBName()).getNodeStore();
+                              .setMongoDB(c.getMongoClient(), c.getDBName()).getNodeStore();
     }
 
     private void resetFormatVersion(FormatVersion v) {
         MongoConnection c = connectionFactory.getConnection();
         DocumentStore s = new MongoDocumentStore(c.getMongoClient(),
-                c.getDatabase(), newMongoDocumentNodeStoreBuilder());
+            c.getDatabase(), newMongoDocumentNodeStoreBuilder());
         s.remove(Collection.SETTINGS, "version");
         assertTrue(v.writeTo(s));
         s.dispose();

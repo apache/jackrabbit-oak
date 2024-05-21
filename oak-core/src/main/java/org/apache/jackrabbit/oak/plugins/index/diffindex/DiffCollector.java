@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.plugins.index.diffindex;
 
 import java.util.Set;
-
 import org.apache.jackrabbit.oak.spi.query.Filter;
 
 /**

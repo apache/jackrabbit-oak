@@ -71,7 +71,7 @@ public class DocumentNodeStoreBackgroundUpdateTest {
         DocumentStore store = new MemoryDocumentStore() {
             @Override
             public <T extends Document> T findAndUpdate(Collection<T> collection,
-                                                        UpdateOp update) {
+                UpdateOp update) {
                 if (!update.getId().equals(Utils.getIdFromPath(Path.ROOT))) {
                     return super.findAndUpdate(collection, update);
                 }
@@ -89,8 +89,9 @@ public class DocumentNodeStoreBackgroundUpdateTest {
 
         int clusterId = 1;
         DocumentNodeStore ns = builderProvider.newBuilder().setAsyncDelay(0)
-                .setClusterId(clusterId).clock(clock).setDocumentStore(failingStore)
-                .build();
+                                              .setClusterId(clusterId).clock(clock)
+                                              .setDocumentStore(failingStore)
+                                              .build();
         NodeBuilder builder = ns.getRoot().builder();
         builder.child("node");
         merge(ns, builder);
@@ -133,8 +134,8 @@ public class DocumentNodeStoreBackgroundUpdateTest {
 
         // restart on non-failing store and immediately dispose to trigger recovery
         builderProvider.newBuilder().setAsyncDelay(0)
-                .setClusterId(clusterId).clock(clock).setDocumentStore(store)
-                .build().dispose();
+                       .setClusterId(clusterId).clock(clock).setDocumentStore(store)
+                       .build().dispose();
 
         // let the background update finish
         rwLock.writeLock().unlock();

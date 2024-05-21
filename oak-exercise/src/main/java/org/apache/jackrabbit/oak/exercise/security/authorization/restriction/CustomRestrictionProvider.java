@@ -16,6 +16,10 @@
  */
 package org.apache.jackrabbit.oak.exercise.security.authorization.restriction;
 
+import java.util.Map;
+import java.util.Set;
+import javax.jcr.RepositoryException;
+import javax.jcr.Value;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionDefinition;
@@ -30,11 +34,6 @@ import org.osgi.service.component.annotations.Deactivate;
 import org.osgi.service.component.annotations.Modified;
 import org.osgi.service.metatype.annotations.Designate;
 import org.osgi.service.metatype.annotations.ObjectClassDefinition;
-
-import javax.jcr.RepositoryException;
-import javax.jcr.Value;
-import java.util.Map;
-import java.util.Set;
 
 /**
  * EXERCISE: complete the implementation
@@ -57,14 +56,16 @@ public class CustomRestrictionProvider implements RestrictionProvider {
 
     @NotNull
     @Override
-    public Restriction createRestriction(@Nullable String oakPath, @NotNull String oakName, @NotNull Value value) throws RepositoryException {
+    public Restriction createRestriction(@Nullable String oakPath, @NotNull String oakName,
+        @NotNull Value value) throws RepositoryException {
         // EXERCISE
         return null;
     }
 
     @NotNull
     @Override
-    public Restriction createRestriction(@Nullable String oakPath, @NotNull String oakName, @NotNull Value... values) throws RepositoryException {
+    public Restriction createRestriction(@Nullable String oakPath, @NotNull String oakName,
+        @NotNull Value... values) throws RepositoryException {
         // EXERCISE
         return null;
     }
@@ -77,13 +78,15 @@ public class CustomRestrictionProvider implements RestrictionProvider {
     }
 
     @Override
-    public void writeRestrictions(@Nullable String oakPath, @NotNull Tree aceTree, @NotNull Set<Restriction> restrictions) throws RepositoryException {
+    public void writeRestrictions(@Nullable String oakPath, @NotNull Tree aceTree,
+        @NotNull Set<Restriction> restrictions) throws RepositoryException {
         // EXERCISE
 
     }
 
     @Override
-    public void validateRestrictions(@Nullable String oakPath, @NotNull Tree aceTree) throws RepositoryException {
+    public void validateRestrictions(@Nullable String oakPath, @NotNull Tree aceTree)
+        throws RepositoryException {
         // EXERCISE
 
     }
@@ -97,7 +100,8 @@ public class CustomRestrictionProvider implements RestrictionProvider {
 
     @NotNull
     @Override
-    public RestrictionPattern getPattern(@Nullable String oakPath, @NotNull Set<Restriction> restrictions) {
+    public RestrictionPattern getPattern(@Nullable String oakPath,
+        @NotNull Set<Restriction> restrictions) {
         // EXERCISE
         return null;
     }

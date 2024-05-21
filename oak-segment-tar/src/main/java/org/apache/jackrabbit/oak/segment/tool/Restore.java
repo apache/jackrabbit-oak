@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.segment.tool;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
 import java.io.File;
-
 import org.apache.jackrabbit.oak.backup.FileStoreRestore;
 import org.apache.jackrabbit.oak.backup.impl.FileStoreRestoreImpl;
 

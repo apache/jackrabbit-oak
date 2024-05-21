@@ -19,29 +19,26 @@ package org.apache.jackrabbit.oak.benchmark;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
-
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.nodetype.NodeTypeManager;
-
+import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 
-import org.apache.jackrabbit.guava.common.collect.Maps;
-
 /**
- * Test for measuring the performance of setting a single property and
- * saving the change.
+ * Test for measuring the performance of setting a single property and saving the change.
  */
 public class SetPropertyTest extends AbstractTest {
 
     /**
-     * Map holding node to be tested (below testNodeName) per current running fixture, per thread.
-     * A simpler structure holding nodes on a per thread basis is not enough, as runs with concurrencyLevel==1 
-     * and warm-up in {@link AbstractTest} are done from the same thread (re-using it between fixtures).
+     * Map holding node to be tested (below testNodeName) per current running fixture, per thread. A
+     * simpler structure holding nodes on a per thread basis is not enough, as runs with
+     * concurrencyLevel==1 and warm-up in {@link AbstractTest} are done from the same thread
+     * (re-using it between fixtures).
      */
-    private Map<String, Map<Thread,Node>> map = new HashMap<>();
-    
+    private Map<String, Map<Thread, Node>> map = new HashMap<>();
+
     String testNodeName = "test" + TEST_ID;
 
     @Override
@@ -55,7 +52,7 @@ public class SetPropertyTest extends AbstractTest {
     @Override
     public void beforeTest() throws RepositoryException {
         Map<Thread, Node> nodes = getOrCreateNodesMap();
-        
+
         Thread t = Thread.currentThread();
         Node node = nodes.get(t);
         if (node == null) {
@@ -71,7 +68,7 @@ public class SetPropertyTest extends AbstractTest {
     @Override
     public void runTest() throws Exception {
         Map<Thread, Node> nodes = getOrCreateNodesMap();
-        
+
         Node node = nodes.get(Thread.currentThread());
         Session session = node.getSession();
         for (int i = 0; i < 1000; i++) {
@@ -89,7 +86,7 @@ public class SetPropertyTest extends AbstractTest {
     }
 
     private String getUnstructuredNodeType(Session s)
-            throws RepositoryException {
+        throws RepositoryException {
         NodeTypeManager ntMgr = s.getWorkspace().getNodeTypeManager();
         if (ntMgr.hasNodeType("oak:Unstructured")) {
             return "oak:Unstructured";
@@ -97,7 +94,7 @@ public class SetPropertyTest extends AbstractTest {
             return "nt:unstructured";
         }
     }
-    
+
     private Map<Thread, Node> getOrCreateNodesMap() {
         RepositoryFixture currentFixture = getCurrentFixture();
         if (currentFixture == null) {
@@ -105,7 +102,7 @@ public class SetPropertyTest extends AbstractTest {
         }
 
         String currentFixtureName = currentFixture.toString();
-        
+
         Map<Thread, Node> nodes = map.get(currentFixtureName);
         if (nodes == null) {
             nodes = Maps.newIdentityHashMap();

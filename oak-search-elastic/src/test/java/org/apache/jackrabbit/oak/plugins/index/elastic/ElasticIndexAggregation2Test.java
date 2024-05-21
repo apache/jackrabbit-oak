@@ -16,6 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
+import static org.junit.Assert.fail;
+
+import java.io.IOException;
+import java.io.InputStream;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
@@ -35,16 +39,11 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.jetbrains.annotations.NotNull;
 import org.junit.ClassRule;
 
-import java.io.IOException;
-import java.io.InputStream;
-
-import static org.junit.Assert.fail;
-
 public class ElasticIndexAggregation2Test extends IndexAggregation2CommonTest {
 
     @ClassRule
     public static final ElasticConnectionRule elasticRule = new ElasticConnectionRule(
-            ElasticTestUtils.ELASTIC_CONNECTION_STRING);
+        ElasticTestUtils.ELASTIC_CONNECTION_STRING);
 
 
     private final ElasticTestRepositoryBuilder builder;
@@ -60,51 +59,52 @@ public class ElasticIndexAggregation2Test extends IndexAggregation2CommonTest {
         indexOptions = new ElasticIndexOptions();
 
         return new Oak()
-                .with(new InitialContent() {
+            .with(new InitialContent() {
 
-                    @Override
-                    public void initialize(@NotNull NodeBuilder builder) {
-                        super.initialize(builder);
+                @Override
+                public void initialize(@NotNull NodeBuilder builder) {
+                    super.initialize(builder);
 
-                        // registering additional node types for wider testing
-                        InputStream stream = null;
-                        try {
-                            stream = Thread.currentThread().getContextClassLoader().getResource("test_nodetypes.cnd").openStream();
-                            NodeState base = builder.getNodeState();
-                            NodeStore store = new MemoryNodeStore(base);
+                    // registering additional node types for wider testing
+                    InputStream stream = null;
+                    try {
+                        stream = Thread.currentThread().getContextClassLoader()
+                                       .getResource("test_nodetypes.cnd").openStream();
+                        NodeState base = builder.getNodeState();
+                        NodeStore store = new MemoryNodeStore(base);
 
-                            Root root = RootFactory.createSystemRoot(store, new EditorHook(
-                                    new CompositeEditorProvider(new NamespaceEditorProvider(),
-                                            new TypeEditorProvider())), null, null, null);
+                        Root root = RootFactory.createSystemRoot(store, new EditorHook(
+                            new CompositeEditorProvider(new NamespaceEditorProvider(),
+                                new TypeEditorProvider())), null, null, null);
 
-                            NodeTypeRegistry.register(root, stream, "testing node types");
+                        NodeTypeRegistry.register(root, stream, "testing node types");
 
-                            NodeState target = store.getRoot();
-                            target.compareAgainstBaseState(base, new ApplyDiff(builder));
-                        } catch (Exception e) {
-                            LOG.error("Error while registering required node types. Failing here", e);
-                            fail("Error while registering required node types");
-                        } finally {
-                            printNodeTypes(builder);
-                            if (stream != null) {
-                                try {
-                                    stream.close();
-                                } catch (IOException e) {
-                                    LOG.debug("Ignoring exception on stream closing.", e);
-                                }
+                        NodeState target = store.getRoot();
+                        target.compareAgainstBaseState(base, new ApplyDiff(builder));
+                    } catch (Exception e) {
+                        LOG.error("Error while registering required node types. Failing here", e);
+                        fail("Error while registering required node types");
+                    } finally {
+                        printNodeTypes(builder);
+                        if (stream != null) {
+                            try {
+                                stream.close();
+                            } catch (IOException e) {
+                                LOG.debug("Ignoring exception on stream closing.", e);
                             }
                         }
-
                     }
 
-                })
-                .with(builder.getSecurityProvider())
-                .with(builder.indexTracker)
-                .with(builder.getEditorProvider())
-                .with(builder.getIndexProvider())
-                .with(builder.getIndexEditorProvider())
-                .with(builder.getQueryIndexProvider())
-                .with(builder.getQueryEngineSettings())
-                .createContentRepository();
+                }
+
+            })
+            .with(builder.getSecurityProvider())
+            .with(builder.indexTracker)
+            .with(builder.getEditorProvider())
+            .with(builder.getIndexProvider())
+            .with(builder.getIndexEditorProvider())
+            .with(builder.getQueryIndexProvider())
+            .with(builder.getQueryEngineSettings())
+            .createContentRepository();
     }
 }

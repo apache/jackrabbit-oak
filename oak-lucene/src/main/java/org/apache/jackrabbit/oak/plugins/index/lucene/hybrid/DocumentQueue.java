@@ -19,6 +19,8 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
+
 import java.io.Closeable;
 import java.io.IOException;
 import java.lang.Thread.UncaughtExceptionHandler;
@@ -32,7 +34,6 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
-
 import org.apache.jackrabbit.guava.common.collect.ArrayListMultimap;
 import org.apache.jackrabbit.guava.common.collect.ListMultimap;
 import org.apache.jackrabbit.guava.common.collect.Lists;
@@ -51,12 +52,12 @@ import org.apache.lucene.index.IndexableField;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-
 public class DocumentQueue implements Closeable, IndexingQueue {
+
     private static final PerfLogger PERF_LOGGER =
-            new PerfLogger(LoggerFactory.getLogger(DocumentQueue.class.getName() + ".perf"));
-    private static final LuceneDoc STOP = LuceneDoc.forUpdate("", "", Collections.<IndexableField>emptyList());
+        new PerfLogger(LoggerFactory.getLogger(DocumentQueue.class.getName() + ".perf"));
+    private static final LuceneDoc STOP = LuceneDoc.forUpdate("", "",
+        Collections.<IndexableField>emptyList());
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final IndexTracker tracker;
     private final BlockingQueue<LuceneDoc> docsQueue;
@@ -65,11 +66,11 @@ public class DocumentQueue implements Closeable, IndexingQueue {
     private final MeterStats added;
     private final MeterStats dropped;
     private final Striped<Lock> locks = Striped.lock(64);
-    private UncaughtExceptionHandler delegate = (t, e) -> {};
+    private UncaughtExceptionHandler delegate = (t, e) -> {
+    };
 
     /**
-     * Time in millis for which add call to queue
-     * would wait before dropping off
+     * Time in millis for which add call to queue would wait before dropping off
      */
     private final long queueOfferTimeoutMillis;
 
@@ -91,8 +92,8 @@ public class DocumentQueue implements Closeable, IndexingQueue {
     private volatile NotifyingFutureTask currentTask = NotifyingFutureTask.completed();
 
     /**
-     * Completion handler: set the current task to the next task and schedules that one
-     * on the background thread.
+     * Completion handler: set the current task to the next task and schedules that one on the
+     * background thread.
      */
     private final Runnable completionHandler = new Runnable() {
         private final Callable<Void> task = new Callable<Void>() {
@@ -141,10 +142,11 @@ public class DocumentQueue implements Closeable, IndexingQueue {
 
     public DocumentQueue(int maxQueueSize, IndexTracker tracker, Executor executor) {
         this(maxQueueSize, LuceneIndexProviderService.PROP_HYBRID_QUEUE_TIMEOUT_DEFAULT,
-                tracker, executor, StatisticsProvider.NOOP);
+            tracker, executor, StatisticsProvider.NOOP);
     }
 
-    public DocumentQueue(int maxQueueSize, long queueOfferTimeoutMillis, IndexTracker tracker, Executor executor, StatisticsProvider sp) {
+    public DocumentQueue(int maxQueueSize, long queueOfferTimeoutMillis, IndexTracker tracker,
+        Executor executor, StatisticsProvider sp) {
         this.docsQueue = new LinkedBlockingDeque<>(maxQueueSize);
         this.tracker = tracker;
         this.executor = executor;
@@ -155,12 +157,12 @@ public class DocumentQueue implements Closeable, IndexingQueue {
     }
 
     @Override
-    public boolean addIfNotFullWithoutWait(LuceneDoc doc){
+    public boolean addIfNotFullWithoutWait(LuceneDoc doc) {
         checkState(!stopped);
         boolean added = docsQueue.offer(doc);
         if (added) {
             queueSizeStats.inc();
-            if (log.isTraceEnabled()){
+            if (log.isTraceEnabled()) {
                 log.trace("Adding {} without wait to queue at size {}", doc, docsQueue.size());
             }
         }
@@ -168,7 +170,7 @@ public class DocumentQueue implements Closeable, IndexingQueue {
     }
 
     @Override
-    public boolean add(LuceneDoc doc){
+    public boolean add(LuceneDoc doc) {
         checkState(!stopped);
         boolean added = false;
         try {
@@ -180,7 +182,7 @@ public class DocumentQueue implements Closeable, IndexingQueue {
 
         if (added) {
             queueSizeStats.inc();
-            if (log.isTraceEnabled()){
+            if (log.isTraceEnabled()) {
                 log.trace("Adding {} to queue at size {}", doc, docsQueue.size());
             }
         } else {
@@ -203,14 +205,15 @@ public class DocumentQueue implements Closeable, IndexingQueue {
     }
 
     /**
-     * Delegate handled which can be used by test to check for
-     * any exception occurring in queue processing
+     * Delegate handled which can be used by test to check for any exception occurring in queue
+     * processing
      */
     public void setExceptionHandler(UncaughtExceptionHandler delegate) {
         this.delegate = delegate;
     }
 
-    private void addDocsToIndex(Map<String, Collection<LuceneDoc>> docsPerIndex, boolean docsFromQueue) {
+    private void addDocsToIndex(Map<String, Collection<LuceneDoc>> docsPerIndex,
+        boolean docsFromQueue) {
         //If required it can optimized by indexing diff indexes in parallel
         //Something to consider if it becomes a bottleneck
         for (Map.Entry<String, Collection<LuceneDoc>> e : docsPerIndex.entrySet()) {
@@ -231,13 +234,13 @@ public class DocumentQueue implements Closeable, IndexingQueue {
         }
     }
 
-    List<LuceneDoc> getQueuedDocs(){
+    List<LuceneDoc> getQueuedDocs() {
         List<LuceneDoc> docs = Lists.newArrayList();
         docs.addAll(docsQueue);
         return docs;
     }
 
-    private void processDocs(String indexPath, Iterable<LuceneDoc> docs, boolean docsFromQueue){
+    private void processDocs(String indexPath, Iterable<LuceneDoc> docs, boolean docsFromQueue) {
 
         //Drop the write call if stopped
         if (stopped) {
@@ -250,7 +253,7 @@ public class DocumentQueue implements Closeable, IndexingQueue {
             return;
         }
 
-        try{
+        try {
             LuceneIndexWriter writer = indexNode.getLocalWriter();
             boolean docAdded = false;
             for (LuceneDoc doc : docs) {
@@ -258,10 +261,10 @@ public class DocumentQueue implements Closeable, IndexingQueue {
                     //IndexDefinition per LuceneIndexNode might have changed and local
                     //indexing is disabled. Ignore
                     log.debug("No local IndexWriter found for index [{}]. Skipping index " +
-                            "entry for [{}]", indexPath, doc.docPath);
+                        "entry for [{}]", indexPath, doc.docPath);
                     return;
                 }
-                if (doc.isProcessed()){
+                if (doc.isProcessed()) {
                     //Skip already processed doc entry
                     continue;
                 } else {
@@ -282,7 +285,7 @@ public class DocumentQueue implements Closeable, IndexingQueue {
         } catch (Exception e) {
             //For now we just log it. Later we need to see if frequent error then to
             //temporarily disable indexing for this index
-            log.warn("Error occurred while indexing index [{}]",indexPath, e);
+            log.warn("Error occurred while indexing index [{}]", indexPath, e);
             delegate.uncaughtException(Thread.currentThread(), e);
         } finally {
             indexNode.release();

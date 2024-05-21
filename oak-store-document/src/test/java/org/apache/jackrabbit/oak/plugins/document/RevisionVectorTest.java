@@ -392,10 +392,10 @@ public class RevisionVectorTest {
     }
 
     @Test
-    public void fromString() throws Exception{
+    public void fromString() throws Exception {
         RevisionVector rv = new RevisionVector(
-                new Revision(1, 0, 1),
-                new Revision(2, 0, 2)
+            new Revision(1, 0, 1),
+            new Revision(2, 0, 2)
         );
 
         String rvstr = rv.asString();
@@ -411,8 +411,8 @@ public class RevisionVectorTest {
         assertEquals("", sb.toString());
 
         rv = new RevisionVector(
-                new Revision(1, 0, 1),
-                new Revision(2, 0, 2)
+            new Revision(1, 0, 1),
+            new Revision(2, 0, 2)
         );
         rv.toStringBuilder(sb);
         assertEquals(rv.toString(), sb.toString());
@@ -423,8 +423,8 @@ public class RevisionVectorTest {
         RevisionVector rv = new RevisionVector();
         assertEquals(0, rv.getDimensions());
         rv = new RevisionVector(
-                new Revision(1, 0, 1),
-                new Revision(2, 0, 2)
+            new Revision(1, 0, 1),
+            new Revision(2, 0, 2)
         );
         assertEquals(2, rv.getDimensions());
         rv = rv.remove(1);

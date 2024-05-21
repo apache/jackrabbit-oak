@@ -16,12 +16,18 @@
  */
 package org.apache.jackrabbit.oak.jcr.version;
 
+import static org.apache.jackrabbit.JcrConstants.JCR_CREATED;
+import static org.apache.jackrabbit.JcrConstants.JCR_ISCHECKEDOUT;
+import static org.apache.jackrabbit.JcrConstants.JCR_VERSIONLABELS;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
+
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.version.LabelExistsVersionException;
 import javax.jcr.version.VersionException;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
@@ -31,18 +37,11 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
-import org.apache.jackrabbit.oak.plugins.version.ReadOnlyVersionManager;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.apache.jackrabbit.oak.plugins.version.ReadOnlyVersionManager;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.util.ISO8601;
 import org.jetbrains.annotations.NotNull;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-import static org.apache.jackrabbit.JcrConstants.JCR_CREATED;
-import static org.apache.jackrabbit.JcrConstants.JCR_ISCHECKEDOUT;
-import static org.apache.jackrabbit.JcrConstants.JCR_VERSIONLABELS;
 
 /**
  * {@code ReadWriteVersionManager}...
@@ -61,10 +60,9 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
     }
 
     /**
-     * Called by the write methods to refresh the state of the possible
-     * session associated with this instance. The default implementation
-     * of this method does nothing, but a subclass can use this callback
-     * to keep a session in sync with the persisted version changes.
+     * Called by the write methods to refresh the state of the possible session associated with this
+     * instance. The default implementation of this method does nothing, but a subclass can use this
+     * callback to keep a session in sync with the persisted version changes.
      *
      * @throws RepositoryException if the session could not be refreshed
      */
@@ -88,42 +86,41 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
     @NotNull
     protected ReadOnlyNodeTypeManager getNodeTypeManager() {
         return ReadOnlyNodeTypeManager.getInstance(
-                sessionDelegate.getRoot(), NamePathMapper.DEFAULT);
+            sessionDelegate.getRoot(), NamePathMapper.DEFAULT);
     }
 
     /**
-     * Performs a checkin on a versionable tree and returns the tree that
-     * represents the created version.
+     * Performs a checkin on a versionable tree and returns the tree that represents the created
+     * version.
      *
      * @param versionable the versionable node to check in.
      * @return the created version.
-     * @throws InvalidItemStateException if the current root has pending
-     *                                   changes.
-     * @throws UnsupportedRepositoryOperationException
-     *                                   if the versionable tree isn't actually
-     *                                   versionable.
-     * @throws RepositoryException       if an error occurs while checking the
-     *                                   node type of the tree.
+     * @throws InvalidItemStateException               if the current root has pending changes.
+     * @throws UnsupportedRepositoryOperationException if the versionable tree isn't actually
+     *                                                 versionable.
+     * @throws RepositoryException                     if an error occurs while checking the node
+     *                                                 type of the tree.
      */
     @NotNull
     public Tree checkin(@NotNull Tree versionable)
-            throws RepositoryException, InvalidItemStateException,
-            UnsupportedRepositoryOperationException {
+        throws RepositoryException, InvalidItemStateException,
+        UnsupportedRepositoryOperationException {
         if (sessionDelegate.hasPendingChanges()) {
             throw new InvalidItemStateException("Unable to perform checkin. " +
-                    "Session has pending changes.");
+                "Session has pending changes.");
         }
         if (!isVersionable(versionable)) {
             throw new UnsupportedRepositoryOperationException(
-                    versionable.getPath() + " is not versionable");
+                versionable.getPath() + " is not versionable");
         }
         if (isCheckedOut(versionable)) {
             Tree baseVersion = getExistingBaseVersion(versionable);
             versionable.setProperty(JCR_ISCHECKEDOUT, Boolean.FALSE, Type.BOOLEAN);
             PropertyState created = baseVersion.getProperty(JCR_CREATED);
-            long c = created == null ? 0 : ISO8601.parse(created.getValue(Type.DATE)).getTimeInMillis();
+            long c =
+                created == null ? 0 : ISO8601.parse(created.getValue(Type.DATE)).getTimeInMillis();
             try {
-                long last = Math.max(c,  clock.getTimeIncreasing());
+                long last = Math.max(c, clock.getTimeIncreasing());
                 // wait for clock to change so that the new version has a distinct
                 // timestamp from the last checkin performed by this VersionManager
                 // see https://issues.apache.org/jira/browse/OAK-7512
@@ -145,31 +142,30 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
     /**
      * Performs a checkout on a versionable tree.
      *
-     * @param workspaceRoot a fresh workspace root without pending changes.
+     * @param workspaceRoot   a fresh workspace root without pending changes.
      * @param versionablePath the absolute path to the versionable node to check out.
-     * @throws UnsupportedRepositoryOperationException
-     *                             if the versionable tree isn't actually
-     *                             versionable.
-     * @throws RepositoryException if an error occurs while checking the
-     *                             node type of the tree.
-     * @throws IllegalStateException if the workspaceRoot has pending changes.
-     * @throws IllegalArgumentException if the {@code versionablePath} is
-     *                             not absolute.
+     * @throws UnsupportedRepositoryOperationException if the versionable tree isn't actually
+     *                                                 versionable.
+     * @throws RepositoryException                     if an error occurs while checking the node
+     *                                                 type of the tree.
+     * @throws IllegalStateException                   if the workspaceRoot has pending changes.
+     * @throws IllegalArgumentException                if the {@code versionablePath} is not
+     *                                                 absolute.
      */
     public void checkout(@NotNull Root workspaceRoot,
-                         @NotNull String versionablePath)
-            throws UnsupportedRepositoryOperationException,
-            InvalidItemStateException, RepositoryException {
+        @NotNull String versionablePath)
+        throws UnsupportedRepositoryOperationException,
+        InvalidItemStateException, RepositoryException {
         checkState(!workspaceRoot.hasPendingChanges());
         checkArgument(PathUtils.isAbsolute(versionablePath));
         Tree versionable = workspaceRoot.getTree(versionablePath);
         if (!isVersionable(versionable)) {
             throw new UnsupportedRepositoryOperationException(
-                    versionable.getPath() + " is not versionable");
+                versionable.getPath() + " is not versionable");
         }
         if (!isCheckedOut(versionable)) {
             versionable.setProperty(JCR_ISCHECKEDOUT,
-                    Boolean.TRUE, Type.BOOLEAN);
+                Boolean.TRUE, Type.BOOLEAN);
             try {
                 workspaceRoot.commit();
                 refresh();
@@ -181,12 +177,12 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
     }
 
     public void addVersionLabel(@NotNull VersionStorage versionStorage,
-                                @NotNull String versionHistoryOakRelPath,
-                                @NotNull String versionIdentifier,
-                                @NotNull String oakVersionLabel,
-                                boolean moveLabel) throws RepositoryException {
+        @NotNull String versionHistoryOakRelPath,
+        @NotNull String versionIdentifier,
+        @NotNull String oakVersionLabel,
+        boolean moveLabel) throws RepositoryException {
         Tree versionHistory = TreeUtil.getTree(checkNotNull(versionStorage.getTree()),
-                checkNotNull(versionHistoryOakRelPath));
+            checkNotNull(versionHistoryOakRelPath));
         Tree labels = checkNotNull(versionHistory).getChild(JCR_VERSIONLABELS);
         PropertyState existing = labels.getProperty(checkNotNull(oakVersionLabel));
         if (existing != null) {
@@ -194,7 +190,7 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
                 labels.removeProperty(existing.getName());
             } else {
                 throw new LabelExistsVersionException("Version label '"
-                        + oakVersionLabel + "' already exists on this version history");
+                    + oakVersionLabel + "' already exists on this version history");
             }
         }
         labels.setProperty(oakVersionLabel, versionIdentifier, Type.REFERENCE);
@@ -208,15 +204,15 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
     }
 
     public void removeVersionLabel(@NotNull VersionStorage versionStorage,
-                                   @NotNull String versionHistoryOakRelPath,
-                                   @NotNull String oakVersionLabel)
-            throws RepositoryException {
+        @NotNull String versionHistoryOakRelPath,
+        @NotNull String oakVersionLabel)
+        throws RepositoryException {
         Tree versionHistory = TreeUtil.getTree(checkNotNull(versionStorage.getTree()),
-                checkNotNull(versionHistoryOakRelPath));
+            checkNotNull(versionHistoryOakRelPath));
         Tree labels = checkNotNull(versionHistory).getChild(JCR_VERSIONLABELS);
         if (!labels.hasProperty(oakVersionLabel)) {
             throw new VersionException("Version label " + oakVersionLabel +
-                    " does not exist on this version history");
+                " does not exist on this version history");
         }
         labels.removeProperty(oakVersionLabel);
         try {
@@ -229,16 +225,18 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
     }
 
     public void removeVersion(@NotNull VersionStorage versionStorage,
-                              @NotNull String versionHistoryOakRelPath,
-                              @NotNull String oakVersionName)
-            throws RepositoryException {
+        @NotNull String versionHistoryOakRelPath,
+        @NotNull String oakVersionName)
+        throws RepositoryException {
         Tree versionHistory = TreeUtil.getTree(versionStorage.getTree(), versionHistoryOakRelPath);
         if (versionHistory == null || !versionHistory.exists()) {
-            throw new VersionException("Version history " + versionHistoryOakRelPath + " does not exist on this version storage");
+            throw new VersionException("Version history " + versionHistoryOakRelPath
+                + " does not exist on this version storage");
         }
         Tree version = versionHistory.getChild(oakVersionName);
         if (!version.exists()) {
-            throw new VersionException("Version " + oakVersionName + " does not exist on this version history");
+            throw new VersionException(
+                "Version " + oakVersionName + " does not exist on this version history");
         }
         version.remove();
         try {
@@ -257,7 +255,8 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
     private Tree getExistingBaseVersion(@NotNull Tree versionableTree) throws RepositoryException {
         Tree baseVersion = getBaseVersion(versionableTree);
         if (baseVersion == null) {
-            throw new IllegalStateException("Base version does not exist for " + versionableTree.getPath());
+            throw new IllegalStateException(
+                "Base version does not exist for " + versionableTree.getPath());
         }
         return baseVersion;
     }

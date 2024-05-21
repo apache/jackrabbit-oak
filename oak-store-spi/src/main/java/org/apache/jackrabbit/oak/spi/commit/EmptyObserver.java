@@ -20,9 +20,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Basic content change observer that doesn't do anything. Useful as a
- * "null object" for cases where another observer has not been configured,
- * thus avoiding an extra {@code null} check when invoking the observer.
+ * Basic content change observer that doesn't do anything. Useful as a "null object" for cases where
+ * another observer has not been configured, thus avoiding an extra {@code null} check when invoking
+ * the observer.
  */
 public class EmptyObserver implements Observer {
 
@@ -33,7 +33,7 @@ public class EmptyObserver implements Observer {
 
     @Override
     public void contentChanged(
-            @NotNull NodeState root, @NotNull CommitInfo info) {
+        @NotNull NodeState root, @NotNull CommitInfo info) {
         // do nothing
     }
 

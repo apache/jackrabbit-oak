@@ -19,13 +19,6 @@ package org.apache.jackrabbit.oak.plugins.index.elastic.query.async.facets;
 import co.elastic.clients.elasticsearch.core.search.Hit;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticRequestHandler;
-import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticResponseHandler;
-import org.apache.jackrabbit.oak.plugins.index.elastic.query.async.ElasticResponseListener;
-import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,13 +28,22 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticRequestHandler;
+import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticResponseHandler;
+import org.apache.jackrabbit.oak.plugins.index.elastic.query.async.ElasticResponseListener;
+import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
- * An {@link ElasticFacetProvider} that subscribes to Elastic SearchHit events to return only accessible facets.
+ * An {@link ElasticFacetProvider} that subscribes to Elastic SearchHit events to return only
+ * accessible facets.
  */
-class ElasticSecureFacetAsyncProvider implements ElasticFacetProvider, ElasticResponseListener.SearchHitListener {
+class ElasticSecureFacetAsyncProvider implements ElasticFacetProvider,
+    ElasticResponseListener.SearchHitListener {
 
-    private static final Logger LOG = LoggerFactory.getLogger(ElasticSecureFacetAsyncProvider.class);
+    private static final Logger LOG = LoggerFactory.getLogger(
+        ElasticSecureFacetAsyncProvider.class);
 
     private final Set<String> facetFields;
     private final Map<String, Map<String, Integer>> accessibleFacetCounts = new ConcurrentHashMap<>();
@@ -51,9 +53,9 @@ class ElasticSecureFacetAsyncProvider implements ElasticFacetProvider, ElasticRe
     private Map<String, List<FulltextIndex.Facet>> facets;
 
     ElasticSecureFacetAsyncProvider(
-            ElasticRequestHandler elasticRequestHandler,
-            ElasticResponseHandler elasticResponseHandler,
-            Predicate<String> isAccessible
+        ElasticRequestHandler elasticRequestHandler,
+        ElasticResponseHandler elasticResponseHandler,
+        Predicate<String> isAccessible
     ) {
         this.elasticResponseHandler = elasticResponseHandler;
         this.isAccessible = isAccessible;
@@ -74,7 +76,7 @@ class ElasticSecureFacetAsyncProvider implements ElasticFacetProvider, ElasticRe
     public boolean on(Hit<ObjectNode> searchHit) {
         final String path = elasticResponseHandler.getPath(searchHit);
         if (path != null && isAccessible.test(path)) {
-            for (String field: facetFields) {
+            for (String field : facetFields) {
                 JsonNode value = searchHit.source().get(field);
                 if (value != null) {
                     accessibleFacetCounts.compute(field, (column, facetValues) -> {
@@ -97,21 +99,30 @@ class ElasticSecureFacetAsyncProvider implements ElasticFacetProvider, ElasticRe
     public void endData() {
         // create Facet objects, order by count (desc) and then by label (asc)
         facets = accessibleFacetCounts.entrySet()
-                .stream()
-                .collect(Collectors.toMap
-                        (Map.Entry::getKey, x -> x.getValue().entrySet()
-                                .stream()
-                                .map(e -> new FulltextIndex.Facet(e.getKey(), e.getValue()))
-                                .sorted((f1, f2) -> {
-                                    int f1Count = f1.getCount();
-                                    int f2Count = f2.getCount();
-                                    if (f1Count == f2Count) {
-                                        return f1.getLabel().compareTo(f2.getLabel());
-                                    } else return f2Count - f1Count;
-                                })
-                                .collect(Collectors.toList())
-                        )
-                );
+                                      .stream()
+                                      .collect(Collectors.toMap
+                                                             (Map.Entry::getKey,
+                                                                 x -> x.getValue().entrySet()
+                                                                       .stream()
+                                                                       .map(
+                                                                           e -> new FulltextIndex.Facet(
+                                                                               e.getKey(),
+                                                                               e.getValue()))
+                                                                       .sorted((f1, f2) -> {
+                                                                           int f1Count = f1.getCount();
+                                                                           int f2Count = f2.getCount();
+                                                                           if (f1Count == f2Count) {
+                                                                               return f1.getLabel()
+                                                                                        .compareTo(
+                                                                                            f2.getLabel());
+                                                                           } else {
+                                                                               return f2Count
+                                                                                   - f1Count;
+                                                                           }
+                                                                       })
+                                                                       .collect(Collectors.toList())
+                                                             )
+                                      );
         LOG.trace("End data {}", facets);
         latch.countDown();
     }

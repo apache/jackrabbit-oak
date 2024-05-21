@@ -17,9 +17,7 @@
 package org.apache.jackrabbit.api.jmx;
 
 import java.util.Map;
-
 import javax.jcr.RepositoryException;
-
 import org.osgi.annotation.versioning.ProviderType;
 
 /**
@@ -33,16 +31,16 @@ public interface ManagedRepositoryMBean {
     /**
      * Returns the name of this repository implementation.
      *
-     * @see javax.jcr.Repository#REP_NAME_DESC
      * @return name of this repository implementation
+     * @see javax.jcr.Repository#REP_NAME_DESC
      */
     String getName();
 
     /**
      * Returns the version of this repository implementation.
      *
-     * @see javax.jcr.Repository#REP_VERSION_DESC
      * @return version of this repository implementation
+     * @see javax.jcr.Repository#REP_VERSION_DESC
      */
     String getVersion();
 

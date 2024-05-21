@@ -33,68 +33,69 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 
 class JournalPropertyHandler {
+
     private final Map<String, JournalPropertyBuilder<JournalProperty>> builders = Maps.newHashMap();
 
     public JournalPropertyHandler(List<JournalPropertyService> services) {
-        for (JournalPropertyService srv : services){
+        for (JournalPropertyService srv : services) {
             String name = srv.getName();
             if (!builders.containsKey(name)) {
                 builders.put(name, srv.newBuilder());
             } else {
                 throw new IllegalStateException("Duplicate JournalPropertyService found " +
-                        "for name - " + name + " Currently known services " + services);
+                    "for name - " + name + " Currently known services " + services);
             }
         }
     }
 
-    public void readFrom(CommitInfo info){
+    public void readFrom(CommitInfo info) {
         CommitContext commitContext = (CommitContext) info.getInfo().get(CommitContext.NAME);
 
         //Even if commit content is null do a callback to builder to indicate
         //that it may miss out on some data collection
-        if (commitContext == null){
-            for (JournalPropertyBuilder<?> builder : builders.values()){
+        if (commitContext == null) {
+            for (JournalPropertyBuilder<?> builder : builders.values()) {
                 builder.addProperty(null);
             }
             return;
         }
 
-        for (Map.Entry<String,JournalPropertyBuilder<JournalProperty>> e : builders.entrySet()){
+        for (Map.Entry<String, JournalPropertyBuilder<JournalProperty>> e : builders.entrySet()) {
             JournalPropertyBuilder<JournalProperty> builder = e.getValue();
             builder.addProperty(getEntry(commitContext, e.getKey()));
         }
     }
 
-    public void readFrom(JournalEntry entry){
-        for (Map.Entry<String,JournalPropertyBuilder<JournalProperty>> e : builders.entrySet()){
+    public void readFrom(JournalEntry entry) {
+        for (Map.Entry<String, JournalPropertyBuilder<JournalProperty>> e : builders.entrySet()) {
             JournalPropertyBuilder<JournalProperty> builder = e.getValue();
             String name = Utils.escapePropertyName(e.getKey());
             builder.addSerializedProperty((String) entry.get(name));
         }
     }
 
-    public void addTo(CommitContext commitContext){
-        for (Map.Entry<String,JournalPropertyBuilder<JournalProperty>> e : builders.entrySet()){
+    public void addTo(CommitContext commitContext) {
+        for (Map.Entry<String, JournalPropertyBuilder<JournalProperty>> e : builders.entrySet()) {
             JournalPropertyBuilder<JournalProperty> builder = e.getValue();
             commitContext.set(e.getKey(), builder.build());
         }
     }
 
-    public void addTo(UpdateOp op){
-        for (Map.Entry<String,JournalPropertyBuilder<JournalProperty>> e : builders.entrySet()){
+    public void addTo(UpdateOp op) {
+        for (Map.Entry<String, JournalPropertyBuilder<JournalProperty>> e : builders.entrySet()) {
             JournalPropertyBuilder<JournalProperty> builder = e.getValue();
             String name = Utils.escapePropertyName(e.getKey());
             op.set(name, builder.buildAsString());
         }
     }
 
-    private static JournalProperty getEntry(CommitContext cc, String name){
+    private static JournalProperty getEntry(CommitContext cc, String name) {
         Object o = cc.get(name);
-        if (o == null){
+        if (o == null) {
             return null;
         }
         checkArgument(o instanceof JournalProperty, "CommitContext entry for name [%s] " +
-                "having value [%s] is not of type JournalEntry", name, o);
+            "having value [%s] is not of type JournalEntry", name, o);
         return (JournalProperty) o;
     }
 

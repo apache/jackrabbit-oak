@@ -44,11 +44,11 @@ import org.junit.Test;
  * Tests the revision class
  */
 public class RevisionTest {
-    
+
     @Test
     public void invalid() {
         // revisions need to start with "br" or "r"
-        for(String s : "1234,b,bb,".split(",")) {
+        for (String s : "1234,b,bb,".split(",")) {
             try {
                 Revision.fromString(s);
                 fail("Expected: Invalid revision id exception for " + s);
@@ -57,19 +57,19 @@ public class RevisionTest {
             }
         }
     }
-    
+
     @Test
     public void edgeCases() {
         assertEquals("br0-0-0", new Revision(0, 0, 0, true).toString());
         Random rand = new Random(0);
         for (int i = 0; i < 1000; i++) {
             Revision r = new Revision(rand.nextLong(), rand.nextInt(),
-                    rand.nextInt(), rand.nextBoolean());
+                rand.nextInt(), rand.nextBoolean());
             assertEquals(r.toString(), Revision.fromString(r.toString()).toString());
         }
         for (int i = 0; i < 1000; i++) {
             Revision r = new Revision(rand.nextInt(10), rand.nextInt(10),
-                    rand.nextInt(10), rand.nextBoolean());
+                rand.nextInt(10), rand.nextBoolean());
             assertEquals(r.toString(), Revision.fromString(r.toString()).toString());
         }
     }
@@ -81,7 +81,7 @@ public class RevisionTest {
             // System.out.println(r);
             String rs = r.toString();
             Revision r2 = Revision.fromString(rs);
-            if(!rs.equals(r2.toString())) {
+            if (!rs.equals(r2.toString())) {
                 r2 = Revision.fromString(rs);
                 assertEquals(rs, r2.toString());
             }
@@ -166,7 +166,7 @@ public class RevisionTest {
         List<Thread> threads = new ArrayList<Thread>();
         final AtomicBoolean stop = new AtomicBoolean();
         final Set<Revision> set = Collections
-                .synchronizedSet(new HashSet<Revision>());
+            .synchronizedSet(new HashSet<Revision>());
         final Revision[] duplicate = new Revision[1];
         for (int i = 0; i < 20; i++) {
             Thread thread = new Thread(new Runnable() {
@@ -263,6 +263,7 @@ public class RevisionTest {
         for (Thread t : workers) {
             t.join();
         }
-        assertTrue(String.format("Duplicate rev seen %s %n Seen %s", duplicates, seenRevs), duplicates.isEmpty());
+        assertTrue(String.format("Duplicate rev seen %s %n Seen %s", duplicates, seenRevs),
+            duplicates.isEmpty());
     }
 }

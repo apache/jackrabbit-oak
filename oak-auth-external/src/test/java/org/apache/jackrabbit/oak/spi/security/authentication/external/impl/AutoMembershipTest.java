@@ -16,6 +16,13 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
+import java.util.Collection;
+import javax.jcr.ValueFactory;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
@@ -34,22 +41,14 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import javax.jcr.ValueFactory;
-import java.util.Collection;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-
 public @RunWith(Parameterized.class)
 class AutoMembershipTest extends AbstractExternalAuthTest {
 
     @Parameterized.Parameters(name = "name={1}")
     public static Collection<Object[]> parameters() {
         return Lists.newArrayList(
-                new Object[]{true, "DynamicSync=true"},
-                new Object[]{false, "DynamicSync=false"});
+            new Object[]{true, "DynamicSync=true"},
+            new Object[]{false, "DynamicSync=false"});
     }
 
     private final boolean dynamicSync;
@@ -60,7 +59,7 @@ class AutoMembershipTest extends AbstractExternalAuthTest {
     private User externalUser;
     private Group externalGroup;
     private Group testGroup;
-    
+
     public AutoMembershipTest(boolean dynamicSync, @NotNull String name) {
         this.dynamicSync = dynamicSync;
     }
@@ -69,34 +68,35 @@ class AutoMembershipTest extends AbstractExternalAuthTest {
     public void before() throws Exception {
         super.before();
 
-        // inject user-configuration as well as sync-handler and sync-hander-mapping to have get dynamic-membership 
+        // inject user-configuration as well as sync-handler and sync-hander-mapping to have get dynamic-membership
         // providers registered.
         context.registerInjectActivateService(getUserConfiguration());
         registerSyncHandler(syncConfigAsMap(), idp.getName());
-        
+
         r = getSystemRoot();
         userManager = getUserManager(r);
 
         // create automembership groups
         groupAutomembership = userManager.createGroup("groupAutomembership");
         userAutomembership = userManager.createGroup("userAutomembership1");
-        
+
         Group groupInherited = userManager.createGroup("groupInherited");
         groupInherited.addMembers("groupAutomembership", "userAutomembership");
-        
+
         TestIdentityProvider tidp = (TestIdentityProvider) idp;
         tidp.addUser(new TestIdentityProvider.TestUser("externalUser", idp.getName()));
         tidp.addGroup(new TestIdentityProvider.TestGroup("externalGroup", idp.getName()));
 
         ValueFactory valueFactory = getValueFactory(r);
         SyncContext syncCtx = (dynamicSync) ?
-                new DynamicSyncContext(syncConfig, idp, userManager, valueFactory) :
-                new DefaultSyncContext(syncConfig, idp, userManager, valueFactory);
+            new DynamicSyncContext(syncConfig, idp, userManager, valueFactory) :
+            new DefaultSyncContext(syncConfig, idp, userManager, valueFactory);
 
         assertEquals(SyncResult.Status.ADD, syncCtx.sync(idp.getUser("externalUser")).getStatus());
-        assertEquals(SyncResult.Status.ADD, syncCtx.sync(idp.getGroup("externalGroup")).getStatus());
+        assertEquals(SyncResult.Status.ADD,
+            syncCtx.sync(idp.getGroup("externalGroup")).getStatus());
         r.commit();
-        
+
         externalUser = userManager.getAuthorizable("externalUser", User.class);
         externalGroup = userManager.getAuthorizable("externalGroup", Group.class);
         assertNotNull(externalUser);
@@ -127,7 +127,7 @@ class AutoMembershipTest extends AbstractExternalAuthTest {
         config.user().setDynamicMembership(dynamicSync);
         config.group().setDynamicGroups(dynamicSync);
         config.group().setAutoMembership("groupAutomembership");
-        config.user().setAutoMembership("userAutomembership1","userAutomembership2");
+        config.user().setAutoMembership("userAutomembership1", "userAutomembership2");
         return config;
     }
 
@@ -141,7 +141,7 @@ class AutoMembershipTest extends AbstractExternalAuthTest {
         r.commit();
         return testGroup;
     }
-    
+
     @Test
     public void testIsDeclaredMemberConfiguredUserAutoMembership() throws Exception {
         assertFalse(userAutomembership.isDeclaredMember(getTestUser()));
@@ -254,7 +254,7 @@ class AutoMembershipTest extends AbstractExternalAuthTest {
         // add 'automembership-group' as nested members
         testGroup.addMember(userAutomembership);
         r.commit();
-        
+
         assertFalse(base.isDeclaredMember(externalUser));
         assertTrue(base.isMember(externalUser));
     }

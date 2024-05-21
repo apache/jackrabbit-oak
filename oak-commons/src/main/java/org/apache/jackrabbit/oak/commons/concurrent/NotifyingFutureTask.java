@@ -25,15 +25,15 @@ import java.util.concurrent.FutureTask;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * A {@link Future} that accepts completion listener. The listener is invoked
- * once the future's computation is {@linkplain Future#isDone() complete}.
- * If the computation has already completed when the listener is added, the
- * listener will execute immediately.
+ * A {@link Future} that accepts completion listener. The listener is invoked once the future's
+ * computation is {@linkplain Future#isDone() complete}. If the computation has already completed
+ * when the listener is added, the listener will execute immediately.
  *
  * <p>Listener is invoked synchronously on the same thread which is used to
  * executed the Future</p>
  */
 public class NotifyingFutureTask extends FutureTask<Void> {
+
     private final AtomicBoolean completed = new AtomicBoolean(false);
 
     private volatile Runnable onComplete;
@@ -47,13 +47,14 @@ public class NotifyingFutureTask extends FutureTask<Void> {
     }
 
     /**
-     * Set the on complete handler. The handler will run exactly once after
-     * the task terminated. If the task has already terminated at the time of
-     * this method call the handler will execute immediately.
+     * Set the on complete handler. The handler will run exactly once after the task terminated. If
+     * the task has already terminated at the time of this method call the handler will execute
+     * immediately.
      * <p>
-     * Note: there is no guarantee to which handler will run when the method
-     * is called multiple times with different arguments.
+     * Note: there is no guarantee to which handler will run when the method is called multiple
+     * times with different arguments.
      * </p>
+     *
      * @param onComplete listener to invoke upon completion
      */
     public void onComplete(Runnable onComplete) {

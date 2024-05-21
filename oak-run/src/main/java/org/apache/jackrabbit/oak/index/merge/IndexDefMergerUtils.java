@@ -28,7 +28,6 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.stream.Collectors;
-
 import org.apache.jackrabbit.oak.commons.json.JsonObject;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.plugins.index.IndexName;
@@ -39,47 +38,53 @@ import org.apache.jackrabbit.oak.plugins.index.IndexName;
 public class IndexDefMergerUtils {
 
     private static HashSet<String> IGNORE_LEVEL_0 = new HashSet<>(Arrays.asList(
-            "reindex", "refresh", "seed", "reindexCount"));
+        "reindex", "refresh", "seed", "reindexCount"));
     private static HashSet<String> USE_PRODUCT_PROPERTY = new HashSet<>(Arrays.asList(
-            "jcr:created", "jcr:lastModified", "jcr:uuid", "jcr:createdBy", "jcr:lastModifiedBy", "jcr:createdBy"));
+        "jcr:created", "jcr:lastModified", "jcr:uuid", "jcr:createdBy", "jcr:lastModifiedBy",
+        "jcr:createdBy"));
     private static HashSet<String> USE_PRODUCT_CHILD_LEVEL_0 = new HashSet<>(Arrays.asList(
-            "tika"));
+        "tika"));
 
     /**
      * Merge index definition changes.
      *
-     * @param path the path of the change itself (e.g.  /oak:index/lucene-1/indexRules/acme)
-     * @param ancestor the common ancestor (the old product index, e.g. lucene)
-     * @param customName the name of the node of the customized index (e.g. /oak:index/lucene-1-custom-1)
-     * @param custom the latest customized version (e.g. lucene-1-custom-1)
-     * @param product the latest product index (e.g. lucene-2)
-     * @param productName the name of the node of the latest product index (e.g. /oak:index/lucene-2)
+     * @param path        the path of the change itself (e.g.  /oak:index/lucene-1/indexRules/acme)
+     * @param ancestor    the common ancestor (the old product index, e.g. lucene)
+     * @param customName  the name of the node of the customized index (e.g.
+     *                    /oak:index/lucene-1-custom-1)
+     * @param custom      the latest customized version (e.g. lucene-1-custom-1)
+     * @param product     the latest product index (e.g. lucene-2)
+     * @param productName the name of the node of the latest product index (e.g.
+     *                    /oak:index/lucene-2)
      * @return the merged index definition (e.g. lucene-2-custom-1)
      */
-    public static JsonObject merge(String path, JsonObject ancestor, String customName, JsonObject custom, JsonObject product, String productName) {
+    public static JsonObject merge(String path, JsonObject ancestor, String customName,
+        JsonObject custom, JsonObject product, String productName) {
         ArrayList<String> conflicts = new ArrayList<>();
         JsonObject merged = merge(path, 0, ancestor, custom, product, conflicts);
         if (!conflicts.isEmpty()) {
             throw new UnsupportedOperationException("Conflicts detected: " + conflicts);
         }
         merged.getProperties().put("merges", "[" +
-                JsopBuilder.encode(productName) + ", " +
-                JsopBuilder.encode(customName) + "]");
+            JsopBuilder.encode(productName) + ", " +
+            JsopBuilder.encode(customName) + "]");
         return merged;
     }
 
-    private static JsonObject merge(String path, int level, JsonObject ancestor, JsonObject custom, JsonObject product,
-            ArrayList<String> conflicts) {
+    private static JsonObject merge(String path, int level, JsonObject ancestor, JsonObject custom,
+        JsonObject product,
+        ArrayList<String> conflicts) {
         Objects.requireNonNull(conflicts);
         return mergeNoNull(path, level,
-                        ancestor == null ? new JsonObject() : ancestor,
-                        custom == null ? new JsonObject() : custom,
-                        product == null ? new JsonObject() : product,
-                        conflicts);
+            ancestor == null ? new JsonObject() : ancestor,
+            custom == null ? new JsonObject() : custom,
+            product == null ? new JsonObject() : product,
+            conflicts);
     }
 
-    private static JsonObject mergeNoNull(String path, int level, JsonObject ancestor, JsonObject custom, JsonObject product,
-            ArrayList<String> conflicts) {
+    private static JsonObject mergeNoNull(String path, int level, JsonObject ancestor,
+        JsonObject custom, JsonObject product,
+        ArrayList<String> conflicts) {
         Objects.requireNonNull(ancestor);
         Objects.requireNonNull(custom);
         Objects.requireNonNull(product);
@@ -115,7 +120,8 @@ public class IndexDefMergerUtils {
                 // ignore hidden nodes
                 continue;
             }
-            JsonObject result = mergeChild(path + "/" + k, k, level, ancestor, custom, product, conflicts);
+            JsonObject result = mergeChild(path + "/" + k, k, level, ancestor, custom, product,
+                conflicts);
             if (result != null) {
                 merged.getChildren().put(k, result);
             }
@@ -125,19 +131,20 @@ public class IndexDefMergerUtils {
     }
 
     private static void addAllProperties(JsonObject source, LinkedHashMap<String, Boolean> target) {
-        for(String k : source.getProperties().keySet()) {
-            target.put(k,  true);
+        for (String k : source.getProperties().keySet()) {
+            target.put(k, true);
         }
     }
 
     private static void addAllChildren(JsonObject source, LinkedHashMap<String, Boolean> target) {
-        for(String k : source.getChildren().keySet()) {
-            target.put(k,  true);
+        for (String k : source.getChildren().keySet()) {
+            target.put(k, true);
         }
     }
 
-    private static String mergeProperty(String path, String property, JsonObject ancestor, JsonObject custom, JsonObject product,
-            ArrayList<String> conflicts) {
+    private static String mergeProperty(String path, String property, JsonObject ancestor,
+        JsonObject custom, JsonObject product,
+        ArrayList<String> conflicts) {
         if (USE_PRODUCT_PROPERTY.contains(property)) {
             return product.getProperties().get(property);
         }
@@ -149,14 +156,17 @@ public class IndexDefMergerUtils {
         } else if (Objects.equals(ap, cp)) {
             return pp;
         } else {
-            conflicts.add("Could not merge value; path=" + path + " property=" + property + "; ancestor=" + ap + "; custom=" + cp
+            conflicts.add(
+                "Could not merge value; path=" + path + " property=" + property + "; ancestor=" + ap
+                    + "; custom=" + cp
                     + "; product=" + pp);
             return ap;
         }
     }
 
-    private static JsonObject mergeChild(String path, String child, int level, JsonObject ancestor, JsonObject custom, JsonObject product,
-            ArrayList<String> conflicts) {
+    private static JsonObject mergeChild(String path, String child, int level, JsonObject ancestor,
+        JsonObject custom, JsonObject product,
+        ArrayList<String> conflicts) {
         JsonObject a = ancestor.getChildren().get(child);
         JsonObject c = custom.getChildren().get(child);
         JsonObject p = product.getChildren().get(child);
@@ -182,9 +192,9 @@ public class IndexDefMergerUtils {
     }
 
     /**
-     * For indexes that were modified both by the customer and in the product, merge
-     * the changes, and create a new index.
-     *
+     * For indexes that were modified both by the customer and in the product, merge the changes,
+     * and create a new index.
+     * <p>
      * The new index (if any) is stored in the "newIndexes" object.
      *
      * @param newIndexes the new indexes
@@ -201,11 +211,13 @@ public class IndexDefMergerUtils {
         // repository currently. so this new index won't be used;
         // instead, lucene-2 will be used
 
-        List<IndexName> newNames = newIndexes.getChildren().keySet().stream().map(s -> IndexName.parse(s))
-                .collect(Collectors.toList());
+        List<IndexName> newNames = newIndexes.getChildren().keySet().stream()
+                                             .map(s -> IndexName.parse(s))
+                                             .collect(Collectors.toList());
         Collections.sort(newNames);
-        List<IndexName> allNames = allIndexes.getChildren().keySet().stream().map(s -> IndexName.parse(s))
-                .collect(Collectors.toList());
+        List<IndexName> allNames = allIndexes.getChildren().keySet().stream()
+                                             .map(s -> IndexName.parse(s))
+                                             .collect(Collectors.toList());
         Collections.sort(allNames);
         HashMap<String, JsonObject> mergedMap = new HashMap<>();
         for (IndexName n : newNames) {
@@ -217,17 +229,20 @@ public class IndexDefMergerUtils {
                         // ignore older versions of indexes
                         continue;
                     }
-                    JsonObject latestCustomized = allIndexes.getChildren().get(latest.getNodeName());
-                    JsonObject latestAncestor = allIndexes.getChildren().get(ancestor.getNodeName());
+                    JsonObject latestCustomized = allIndexes.getChildren()
+                                                            .get(latest.getNodeName());
+                    JsonObject latestAncestor = allIndexes.getChildren()
+                                                          .get(ancestor.getNodeName());
                     JsonObject newProduct = newIndexes.getChildren().get(n.getNodeName());
                     try {
                         JsonObject merged = merge(
-                                "", latestAncestor,
-                                latest.getNodeName(), latestCustomized,
-                                newProduct, n.getNodeName());
+                            "", latestAncestor,
+                            latest.getNodeName(), latestCustomized,
+                            newProduct, n.getNodeName());
                         mergedMap.put(n.nextCustomizedName(), merged);
                     } catch (UnsupportedOperationException e) {
-                        throw new UnsupportedOperationException("Index: " + n.getNodeName() + ": " + e.getMessage(), e);
+                        throw new UnsupportedOperationException(
+                            "Index: " + n.getNodeName() + ": " + e.getMessage(), e);
                     }
                 }
             }

@@ -50,7 +50,8 @@ public class ReadBinaryPropertiesTest extends AbstractTest<Void> {
     }
 
     /**
-     * Compute depth necessary for the tree to contain {@code maxNodes}, given {@link #MAX_CHILDREN_PER_NODE} children for each node.
+     * Compute depth necessary for the tree to contain {@code maxNodes}, given
+     * {@link #MAX_CHILDREN_PER_NODE} children for each node.
      */
     private static int computeDepth(int maxNodes) {
         double nodes = 0;

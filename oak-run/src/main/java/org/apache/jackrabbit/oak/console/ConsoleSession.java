@@ -18,14 +18,12 @@ package org.apache.jackrabbit.oak.console;
 
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-
+import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.jetbrains.annotations.NotNull;
-
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Light weight session to a NodeStore, holding context information.
@@ -47,8 +45,8 @@ public class ConsoleSession {
     }
 
     /**
-     * Returns the current working path. This method will return the path
-     * of the root node if none is set explicity.
+     * Returns the current working path. This method will return the path of the root node if none
+     * is set explicity.
      *
      * @return the current working path.
      */
@@ -84,8 +82,8 @@ public class ConsoleSession {
     }
 
     /**
-     * Retrieves the root node from a previously created checkpoint. The root
-     * node is available with {@link #getRoot()}.
+     * Retrieves the root node from a previously created checkpoint. The root node is available with
+     * {@link #getRoot()}.
      *
      * @param checkpoint the checkpoint reference.
      */
@@ -94,8 +92,8 @@ public class ConsoleSession {
     }
 
     /**
-     * Returns the currently set root node. If {@link #isAutoRefresh()} is set,
-     * a fresh root node is retrieved from the store.
+     * Returns the currently set root node. If {@link #isAutoRefresh()} is set, a fresh root node is
+     * retrieved from the store.
      *
      * @return the current root node.
      */
@@ -134,8 +132,7 @@ public class ConsoleSession {
     }
 
     /**
-     * Enables or disables auto-refresh of the root node state on
-     * {@link #getRoot()}.
+     * Enables or disables auto-refresh of the root node state on {@link #getRoot()}.
      *
      * @param enable enables or disables auto-refresh.
      */
@@ -149,7 +146,7 @@ public class ConsoleSession {
 
     /**
      * @return <code>true</code> if auto-refresh is enabled; <code>false</code>
-     *          otherwise.
+     * otherwise.
      */
     public boolean isAutoRefresh() {
         return context.containsKey("auto-refresh");

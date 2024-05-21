@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr;
 
+import static org.junit.Assert.assertTrue;
+
 import java.io.File;
 import java.io.IOException;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.DefaultSolrConfiguration;
@@ -28,13 +30,11 @@ import org.apache.solr.client.solrj.SolrClient;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import static org.junit.Assert.assertTrue;
-
 /**
  * Utility class for tests
  */
 public class TestUtils
-        implements SolrServerProvider, OakSolrConfigurationProvider {
+    implements SolrServerProvider, OakSolrConfigurationProvider {
 
     static final String SOLR_HOME_PATH = "/solr";
 
@@ -42,7 +42,7 @@ public class TestUtils
         try {
             File file = new File(TestUtils.class.getResource(SOLR_HOME_PATH).toURI());
             EmbeddedSolrServerConfiguration configuration = new EmbeddedSolrServerConfiguration(
-                    file.getAbsolutePath(), "oak");
+                file.getAbsolutePath(), "oak");
             EmbeddedSolrServerProvider provider = new EmbeddedSolrServerProvider(configuration);
 
             return provider.getSolrServer();

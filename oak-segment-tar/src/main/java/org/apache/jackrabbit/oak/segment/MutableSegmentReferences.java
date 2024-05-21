@@ -23,7 +23,6 @@ import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -51,13 +50,11 @@ class MutableSegmentReferences implements SegmentReferences {
     }
 
     /**
-     * Generate a reference or return the existing reference for the provided
-     * segment ID.
+     * Generate a reference or return the existing reference for the provided segment ID.
      *
-     * @param id an instance of {@link SegmentId}. It should not be {@code
-     *           null}.
-     * @return a reference to the provided segment ID. The reference number is
-     * strictly greater than zero.
+     * @param id an instance of {@link SegmentId}. It should not be {@code null}.
+     * @return a reference to the provided segment ID. The reference number is strictly greater than
+     * zero.
      */
     int addOrReference(SegmentId id) {
         Integer number = numbers.get(id);
@@ -81,11 +78,9 @@ class MutableSegmentReferences implements SegmentReferences {
     }
 
     /**
-     * Return the number of references (segment IDs) accessible from this
-     * instance.
+     * Return the number of references (segment IDs) accessible from this instance.
      *
-     * @return the number of references (segment IDs) accessible from this
-     * instance.
+     * @return the number of references (segment IDs) accessible from this instance.
      */
     int size() {
         synchronized (lock) {
@@ -97,8 +92,8 @@ class MutableSegmentReferences implements SegmentReferences {
      * Check if a reference exists for a provided segment ID.
      *
      * @param id The segment ID to check for a reference.
-     * @return {@code true} if a reference exists for the provided segment ID,
-     * {@code false} otherwise.
+     * @return {@code true} if a reference exists for the provided segment ID, {@code false}
+     * otherwise.
      */
     boolean contains(SegmentId id) {
         boolean contains = numbers.containsKey(id);

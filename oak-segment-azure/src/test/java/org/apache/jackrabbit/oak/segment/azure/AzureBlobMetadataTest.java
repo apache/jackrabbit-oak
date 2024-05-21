@@ -16,27 +16,28 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.util.Collections;
 import java.util.HashMap;
-
-import static org.junit.Assert.*;
-
 import org.apache.jackrabbit.oak.segment.remote.RemoteBlobMetadata;
 import org.apache.jackrabbit.oak.segment.remote.RemoteSegmentArchiveEntry;
+import org.junit.Test;
 
 public class AzureBlobMetadataTest {
 
     @Test
     public void toIndexEntry_caseInsensitive() {
         HashMap<String, String> metadata = new HashMap<>();
-        metadata.put(RemoteBlobMetadata.METADATA_SEGMENT_UUID.toUpperCase(), "97290085-b1a5-4fb9-ae77-db6d13177537");
+        metadata.put(RemoteBlobMetadata.METADATA_SEGMENT_UUID.toUpperCase(),
+            "97290085-b1a5-4fb9-ae77-db6d13177537");
         metadata.put(RemoteBlobMetadata.METADATA_SEGMENT_POSITION.toUpperCase(), "3");
         metadata.put(RemoteBlobMetadata.METADATA_SEGMENT_GENERATION.toUpperCase(), "50");
         metadata.put(RemoteBlobMetadata.METADATA_SEGMENT_FULL_GENERATION.toUpperCase(), "60");
         metadata.put(RemoteBlobMetadata.METADATA_SEGMENT_COMPACTED.toUpperCase(), "true");
-        RemoteSegmentArchiveEntry azureSegmentArchiveEntry = AzureBlobMetadata.toIndexEntry(metadata, 5);
+        RemoteSegmentArchiveEntry azureSegmentArchiveEntry = AzureBlobMetadata.toIndexEntry(
+            metadata, 5);
 
         assertEquals(-7554506325726244935L, azureSegmentArchiveEntry.getMsb());
         assertEquals(-5874985927363300041L, azureSegmentArchiveEntry.getLsb());

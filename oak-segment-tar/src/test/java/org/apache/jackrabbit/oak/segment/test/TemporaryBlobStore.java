@@ -17,14 +17,13 @@
 
 package org.apache.jackrabbit.oak.segment.test;
 
+import java.io.IOException;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.FileDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.junit.rules.ExternalResource;
 import org.junit.rules.TemporaryFolder;
-
-import java.io.IOException;
 
 public class TemporaryBlobStore extends ExternalResource {
 

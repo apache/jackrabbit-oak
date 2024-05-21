@@ -34,13 +34,10 @@ public class BloomFilter {
     }
 
     /**
-     * Construct a Bloom filter. With a fpp of 0.01, the memory usage is roughly 1
-     * byte per entry.
+     * Construct a Bloom filter. With a fpp of 0.01, the memory usage is roughly 1 byte per entry.
      *
-     * @param bytes the size in number of bytes (eg. 64_000_000 for 64 MB memory
-     *              usage)
-     * @param fpp   the false-positive probability (eg. 0.01 for a 1% false-positive
-     *              probability)
+     * @param bytes the size in number of bytes (eg. 64_000_000 for 64 MB memory usage)
+     * @param fpp   the false-positive probability (eg. 0.01 for a 1% false-positive probability)
      * @return the Bloom filter
      */
     public static BloomFilter construct(long n, double fpp) {
@@ -62,9 +59,10 @@ public class BloomFilter {
     }
 
     /**
-     * Calculate the number of bits needed for a Bloom filter, given a number of entries and the k parameter.
+     * Calculate the number of bits needed for a Bloom filter, given a number of entries and the k
+     * parameter.
      *
-     * @param n the number of entries (eg. 1_000_000)
+     * @param n   the number of entries (eg. 1_000_000)
      * @param fpp the false positive probability (eg. 0.01)
      * @return the bits needed
      */
@@ -73,8 +71,8 @@ public class BloomFilter {
     }
 
     /**
-     * Calculate the maximum number of entries in the set, given the the memory size
-     * in bits, and a target false positive probability.
+     * Calculate the maximum number of entries in the set, given the the memory size in bits, and a
+     * target false positive probability.
      *
      * @param bits the number of bits (eg. 10_000_000)
      * @param fpp  the false positive probability (eg. 0.01)
@@ -99,8 +97,8 @@ public class BloomFilter {
     /**
      * Add an entry.
      *
-     * @param hash the hash value (need to be a high quality hash code, with all
-     *             bits having high entropy)
+     * @param hash the hash value (need to be a high quality hash code, with all bits having high
+     *             entropy)
      */
     public void add(long hash) {
         long a = (hash >>> 32) | (hash << 32);
@@ -114,10 +112,10 @@ public class BloomFilter {
     /**
      * Whether the entry may be in the set.
      *
-     * @param hash the hash value (need to be a high quality hash code, with all
-     *             bits having high entropy)
-     * @return true if the entry was added, or, with a certain false positive
-     *         probability, even if it was not added
+     * @param hash the hash value (need to be a high quality hash code, with all bits having high
+     *             entropy)
+     * @return true if the entry was added, or, with a certain false positive probability, even if
+     * it was not added
      */
     public boolean mayContain(long hash) {
         long a = (hash >>> 32) | (hash << 32);
@@ -145,8 +143,8 @@ public class BloomFilter {
     }
 
     /**
-     * Get the estimated entry count (number of distinct items added). This
-     * operation is relatively slow, as it loops over all the entries.
+     * Get the estimated entry count (number of distinct items added). This operation is relatively
+     * slow, as it loops over all the entries.
      *
      * @return the estimated entry count, or Long.MAX_VALUE if the number can not be estimated.
      */

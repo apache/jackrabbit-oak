@@ -18,20 +18,19 @@
  */
 package org.apache.jackrabbit.oak.index;
 
+import static org.apache.jackrabbit.commons.JcrUtils.getOrCreateByPath;
+
+import java.io.File;
+import java.io.IOException;
+import javax.jcr.Node;
+import javax.jcr.PropertyType;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
-
-import javax.jcr.Node;
-import javax.jcr.PropertyType;
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-import java.io.File;
-import java.io.IOException;
-
-import static org.apache.jackrabbit.commons.JcrUtils.getOrCreateByPath;
 
 public abstract class AbstractIndexTestCommand {
 
@@ -51,8 +50,9 @@ public abstract class AbstractIndexTestCommand {
         createTestData("/testNode/a", "foo", 100, "nt:base", asyncIndex);
     }
 
-    protected void createTestData(String basePath, String propName, int count, String nodeType, boolean asyncIndex)
-            throws IOException, RepositoryException {
+    protected void createTestData(String basePath, String propName, int count, String nodeType,
+        boolean asyncIndex)
+        throws IOException, RepositoryException {
         if (fixture == null) {
             this.fixture = getRepositoryFixture(temporaryFolder.newFolder());
         }
@@ -61,22 +61,25 @@ public abstract class AbstractIndexTestCommand {
         addTestContent(fixture, basePath, propName, count);
     }
 
-    protected void addTestContent(IndexRepositoryFixture fixture, String basePath, String propName, int count)
-            throws IOException, RepositoryException {
+    protected void addTestContent(IndexRepositoryFixture fixture, String basePath, String propName,
+        int count)
+        throws IOException, RepositoryException {
         Session session = fixture.getAdminSession();
         for (int i = 0; i < count; i++) {
-            getOrCreateByPath(basePath+i,
-                    "oak:Unstructured", session).setProperty(propName, "bar");
+            getOrCreateByPath(basePath + i,
+                "oak:Unstructured", session).setProperty(propName, "bar");
         }
         session.save();
         session.logout();
     }
 
-    protected void addSuggestContent(IndexRepositoryFixture fixture, String basePath, String propName, int count) throws RepositoryException, IOException {
+    protected void addSuggestContent(IndexRepositoryFixture fixture, String basePath,
+        String propName, int count) throws RepositoryException, IOException {
         Session session = fixture.getAdminSession();
         for (int i = 0; i < count; i++) {
             JcrUtils.getOrCreateByPath(basePath + i,
-                    "oak:Unstructured", session).setProperty(propName, "suggest Property " + i + basePath);
+                        "oak:Unstructured", session)
+                    .setProperty(propName, "suggest Property " + i + basePath);
         }
         session.save();
         session.logout();
@@ -87,14 +90,16 @@ public abstract class AbstractIndexTestCommand {
         //so add them to declaringNodeTypes
         Session session = fixture.getAdminSession();
         Node nodeType = session.getNode("/oak:index/nodetype");
-        nodeType.setProperty(IndexConstants.DECLARING_NODE_TYPES, new String[] {"oak:QueryIndexDefinition"}, PropertyType.NAME);
+        nodeType.setProperty(IndexConstants.DECLARING_NODE_TYPES,
+            new String[]{"oak:QueryIndexDefinition"}, PropertyType.NAME);
         session.save();
         session.logout();
     }
 
     protected abstract IndexRepositoryFixture getRepositoryFixture(File dir);
 
-    protected abstract void createIndex(String nodeType, String propName, boolean asyncIndex) throws IOException,
-            RepositoryException;
+    protected abstract void createIndex(String nodeType, String propName, boolean asyncIndex)
+        throws IOException,
+        RepositoryException;
 
 }

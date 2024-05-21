@@ -19,6 +19,8 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -29,17 +31,15 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
-
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.jetbrains.annotations.Nullable;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
 /**
  * Represents the index metadata file content as present in index-details.txt
  */
 final class IndexMeta implements Comparable<IndexMeta> {
+
     public static final String DIR_PREFIX = "dir.";
     final String indexPath;
     final long creationTime;
@@ -67,7 +67,7 @@ final class IndexMeta implements Comparable<IndexMeta> {
         this.properties = new HashMap<>(Maps.fromProperties(p));
     }
 
-    public void addDirectoryMapping(String jcrDirName, String fsDirName){
+    public void addDirectoryMapping(String jcrDirName, String fsDirName) {
         properties.put(keyFromFSDirName(fsDirName), jcrDirName);
     }
 
@@ -75,7 +75,7 @@ final class IndexMeta implements Comparable<IndexMeta> {
     public String getJcrNameFromFSName(String fsDirName) {
         String nameKey = keyFromFSDirName(fsDirName);
         for (Map.Entry<String, String> e : properties.entrySet()) {
-            if (nameKey.equals(e.getKey())){
+            if (nameKey.equals(e.getKey())) {
                 return e.getValue();
             }
         }
@@ -83,13 +83,13 @@ final class IndexMeta implements Comparable<IndexMeta> {
     }
 
     /**
-     * Returns the file system name for the given JCR name which
-     * represents a directory on the file system
+     * Returns the file system name for the given JCR name which represents a directory on the file
+     * system
      */
     @Nullable
     public String getFSNameFromJCRName(String jcrDirName) {
         for (Map.Entry<String, String> e : properties.entrySet()) {
-            if (e.getKey().startsWith(DIR_PREFIX) && jcrDirName.equals(e.getValue())){
+            if (e.getKey().startsWith(DIR_PREFIX) && jcrDirName.equals(e.getValue())) {
                 return e.getKey().substring(DIR_PREFIX.length());
             }
         }

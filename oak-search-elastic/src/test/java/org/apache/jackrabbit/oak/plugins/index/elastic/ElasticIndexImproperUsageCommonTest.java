@@ -26,12 +26,13 @@ public class ElasticIndexImproperUsageCommonTest extends IndexImproperUsageCommo
 
     @ClassRule
     public static final ElasticConnectionRule elasticRule =
-            new ElasticConnectionRule(ElasticTestUtils.ELASTIC_CONNECTION_STRING);
+        new ElasticConnectionRule(ElasticTestUtils.ELASTIC_CONNECTION_STRING);
 
     @Override
     protected ContentRepository createRepository() {
         indexOptions = new ElasticIndexOptions();
-        ElasticTestRepositoryBuilder elasticTestRepositoryBuilder = new ElasticTestRepositoryBuilder(elasticRule);
+        ElasticTestRepositoryBuilder elasticTestRepositoryBuilder = new ElasticTestRepositoryBuilder(
+            elasticRule);
         QueryEngineSettings queryEngineSettings = new QueryEngineSettings();
         queryEngineSettings.setStrictPathRestriction(StrictPathRestriction.WARN.name());
         elasticTestRepositoryBuilder.setQueryEngineSettings(queryEngineSettings);

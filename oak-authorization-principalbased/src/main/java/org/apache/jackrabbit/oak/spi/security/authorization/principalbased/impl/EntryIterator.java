@@ -36,7 +36,8 @@ final class EntryIterator extends AbstractLazyIterator<PermissionEntry> {
     // the next oak path for which to retrieve permission entries
     private String nextPath;
 
-    EntryIterator(@NotNull String path, @NotNull Predicate<PermissionEntry> predicate, @NotNull EntryCache entryCache) {
+    EntryIterator(@NotNull String path, @NotNull Predicate<PermissionEntry> predicate,
+        @NotNull EntryCache entryCache) {
         this.nextPath = path;
         this.predicate = predicate;
         this.entryCache = entryCache;

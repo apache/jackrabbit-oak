@@ -16,33 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.restriction;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
-import org.apache.jackrabbit.oak.plugins.value.jcr.ValueFactoryImpl;
-import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-import org.junit.Before;
-import org.junit.Test;
-
-import javax.jcr.RepositoryException;
-import javax.jcr.Value;
-import javax.jcr.ValueFactory;
-import javax.jcr.security.AccessControlException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
@@ -61,25 +34,61 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import javax.jcr.RepositoryException;
+import javax.jcr.Value;
+import javax.jcr.ValueFactory;
+import javax.jcr.security.AccessControlException;
+import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.apache.jackrabbit.oak.plugins.value.jcr.ValueFactoryImpl;
+import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.junit.Before;
+import org.junit.Test;
+
 public class CompositeRestrictionProviderTest implements AccessControlConstants {
 
     private static final String NAME_LONGS = "longs";
     private static final String NAME_BOOLEAN = "boolean";
 
-    private static final Restriction GLOB_RESTRICTION = new RestrictionImpl(PropertyStates.createProperty(REP_GLOB, "*"), false);
-    private static final Restriction NT_PREFIXES_RESTRICTION = new RestrictionImpl(PropertyStates.createProperty(REP_PREFIXES, ImmutableList.of(), Type.STRINGS), false);
-    private static final Restriction MANDATORY_BOOLEAN_RESTRICTION = new RestrictionImpl(PropertyStates.createProperty(NAME_BOOLEAN, true, Type.BOOLEAN), true);
-    private static final Restriction LONGS_RESTRICTION = new RestrictionImpl(PropertyStates.createProperty(NAME_LONGS, ImmutableList.of(Long.MAX_VALUE), Type.LONGS), false);
-    private static final Restriction UNKNOWN_RESTRICTION = new RestrictionImpl(PropertyStates.createProperty("unknown", "string"), false);
+    private static final Restriction GLOB_RESTRICTION = new RestrictionImpl(
+        PropertyStates.createProperty(REP_GLOB, "*"), false);
+    private static final Restriction NT_PREFIXES_RESTRICTION = new RestrictionImpl(
+        PropertyStates.createProperty(REP_PREFIXES, ImmutableList.of(), Type.STRINGS), false);
+    private static final Restriction MANDATORY_BOOLEAN_RESTRICTION = new RestrictionImpl(
+        PropertyStates.createProperty(NAME_BOOLEAN, true, Type.BOOLEAN), true);
+    private static final Restriction LONGS_RESTRICTION = new RestrictionImpl(
+        PropertyStates.createProperty(NAME_LONGS, ImmutableList.of(Long.MAX_VALUE), Type.LONGS),
+        false);
+    private static final Restriction UNKNOWN_RESTRICTION = new RestrictionImpl(
+        PropertyStates.createProperty("unknown", "string"), false);
 
-    private final AbstractRestrictionProvider rp1 = spy(createRestrictionProvider(GLOB_RESTRICTION.getDefinition(), NT_PREFIXES_RESTRICTION.getDefinition()));
-    private final AbstractRestrictionProvider rp2 = spy(createRestrictionProvider(MANDATORY_BOOLEAN_RESTRICTION.getDefinition(), LONGS_RESTRICTION.getDefinition()));
+    private final AbstractRestrictionProvider rp1 = spy(
+        createRestrictionProvider(GLOB_RESTRICTION.getDefinition(),
+            NT_PREFIXES_RESTRICTION.getDefinition()));
+    private final AbstractRestrictionProvider rp2 = spy(
+        createRestrictionProvider(MANDATORY_BOOLEAN_RESTRICTION.getDefinition(),
+            LONGS_RESTRICTION.getDefinition()));
 
     private final Set<String> supported = ImmutableSet.of(
-            MANDATORY_BOOLEAN_RESTRICTION.getDefinition().getName(),
-            LONGS_RESTRICTION.getDefinition().getName(),
-            REP_PREFIXES,
-            REP_GLOB);
+        MANDATORY_BOOLEAN_RESTRICTION.getDefinition().getName(),
+        LONGS_RESTRICTION.getDefinition().getName(),
+        REP_PREFIXES,
+        REP_GLOB);
     private final RestrictionProvider provider = CompositeRestrictionProvider.newInstance(rp1, rp2);
 
     private final ValueFactory vf = new ValueFactoryImpl(mock(Root.class), NamePathMapper.DEFAULT);
@@ -90,21 +99,25 @@ public class CompositeRestrictionProviderTest implements AccessControlConstants 
         verify(rp2).setComposite(((CompositeRestrictionProvider) provider));
         reset(rp1, rp2);
     }
-    
+
     @NotNull
-    private AbstractRestrictionProvider createRestrictionProvider(@NotNull RestrictionDefinition... supportedDefinitions) {
+    private AbstractRestrictionProvider createRestrictionProvider(
+        @NotNull RestrictionDefinition... supportedDefinitions) {
         return createRestrictionProvider(null, null, supportedDefinitions);
     }
 
     @NotNull
-    private AbstractRestrictionProvider createRestrictionProvider(@Nullable RestrictionPattern pattern, @Nullable Restriction toRead, @NotNull RestrictionDefinition... supportedDefinitions) {
+    private AbstractRestrictionProvider createRestrictionProvider(
+        @Nullable RestrictionPattern pattern, @Nullable Restriction toRead,
+        @NotNull RestrictionDefinition... supportedDefinitions) {
         ImmutableMap.Builder<String, RestrictionDefinition> builder = ImmutableMap.builder();
         for (RestrictionDefinition def : supportedDefinitions) {
             builder.put(def.getName(), def);
         }
         return new AbstractRestrictionProvider(builder.build()) {
             @Override
-            public @NotNull Set<Restriction> readRestrictions(@Nullable String oakPath, @NotNull Tree aceTree) {
+            public @NotNull Set<Restriction> readRestrictions(@Nullable String oakPath,
+                @NotNull Tree aceTree) {
                 if (toRead != null) {
                     return ImmutableSet.of(toRead);
                 } else {
@@ -120,7 +133,8 @@ public class CompositeRestrictionProviderTest implements AccessControlConstants 
 
             @NotNull
             @Override
-            public RestrictionPattern getPattern(@Nullable String oakPath, @NotNull Set<Restriction> restrictions) {
+            public RestrictionPattern getPattern(@Nullable String oakPath,
+                @NotNull Set<Restriction> restrictions) {
                 return getPattern();
             }
 
@@ -137,7 +151,9 @@ public class CompositeRestrictionProviderTest implements AccessControlConstants 
     private Tree getAceTree(Restriction... restrictions) {
         Tree restrictionsTree = mock(Tree.class);
         when(restrictionsTree.getName()).thenReturn(REP_RESTRICTIONS);
-        when(restrictionsTree.getProperty(JcrConstants.JCR_PRIMARYTYPE)).thenReturn(PropertyStates.createProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_RESTRICTIONS, Type.NAME));
+        when(restrictionsTree.getProperty(JcrConstants.JCR_PRIMARYTYPE)).thenReturn(
+            PropertyStates.createProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_RESTRICTIONS,
+                Type.NAME));
         List<PropertyState> properties = new ArrayList<>();
         for (Restriction r : restrictions) {
             String name = r.getDefinition().getName();
@@ -145,11 +161,13 @@ public class CompositeRestrictionProviderTest implements AccessControlConstants 
             when(restrictionsTree.hasProperty(name)).thenReturn(true);
             properties.add(r.getProperty());
         }
-        when(restrictionsTree.getProperties()).thenReturn((Iterable)properties);
+        when(restrictionsTree.getProperties()).thenReturn((Iterable) properties);
         when(restrictionsTree.exists()).thenReturn(true);
 
         Tree ace = mock(Tree.class);
-        when(ace.getProperty(JcrConstants.JCR_PRIMARYTYPE)).thenReturn(PropertyStates.createProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_GRANT_ACE, Type.NAME));
+        when(ace.getProperty(JcrConstants.JCR_PRIMARYTYPE)).thenReturn(
+            PropertyStates.createProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_GRANT_ACE,
+                Type.NAME));
         when(ace.getChild(REP_RESTRICTIONS)).thenReturn(restrictionsTree);
         when(ace.exists()).thenReturn(true);
 
@@ -158,7 +176,8 @@ public class CompositeRestrictionProviderTest implements AccessControlConstants 
 
     @Test
     public void testEmpty() {
-        assertSame(RestrictionProvider.EMPTY, CompositeRestrictionProvider.newInstance(Collections.emptySet()));
+        assertSame(RestrictionProvider.EMPTY,
+            CompositeRestrictionProvider.newInstance(Collections.emptySet()));
     }
 
     @Test
@@ -168,18 +187,22 @@ public class CompositeRestrictionProviderTest implements AccessControlConstants 
 
     @Test
     public void testNewInstance() {
-        RestrictionProvider crp = CompositeRestrictionProvider.newInstance(ImmutableSet.of(rp1, rp2));
+        RestrictionProvider crp = CompositeRestrictionProvider.newInstance(
+            ImmutableSet.of(rp1, rp2));
         RestrictionProvider crp2 = CompositeRestrictionProvider.newInstance(rp1, rp2);
 
-        assertEquals(crp.getSupportedRestrictions("/testPath"), crp2.getSupportedRestrictions("/testPath"));
+        assertEquals(crp.getSupportedRestrictions("/testPath"),
+            crp2.getSupportedRestrictions("/testPath"));
     }
 
     @Test
     public void testGetSupportedRestrictions() {
-        String[] paths = new String[] {null, "/testPath"};
+        String[] paths = new String[]{null, "/testPath"};
         for (String path : paths) {
             Set<RestrictionDefinition> defs = provider.getSupportedRestrictions(path);
-            int expectedSize = rp1.getSupportedRestrictions(path).size() + rp2.getSupportedRestrictions(path).size();
+            int expectedSize =
+                rp1.getSupportedRestrictions(path).size() + rp2.getSupportedRestrictions(path)
+                                                               .size();
             assertEquals(expectedSize, defs.size());
             assertTrue(defs.containsAll(rp1.getSupportedRestrictions(path)));
             assertTrue(defs.containsAll(rp2.getSupportedRestrictions(path)));
@@ -189,9 +212,9 @@ public class CompositeRestrictionProviderTest implements AccessControlConstants 
     @Test
     public void testCreateRestriction() throws Exception {
         Map<String, Value> valid = ImmutableMap.of(
-                NAME_BOOLEAN, vf.createValue(true),
-                NAME_LONGS, vf.createValue(10),
-                REP_GLOB, vf.createValue("*")
+            NAME_BOOLEAN, vf.createValue(true),
+            NAME_LONGS, vf.createValue(10),
+            REP_GLOB, vf.createValue("*")
         );
         for (Map.Entry<String, Value> entry : valid.entrySet()) {
             provider.createRestriction("/testPath", entry.getKey(), entry.getValue());
@@ -208,8 +231,8 @@ public class CompositeRestrictionProviderTest implements AccessControlConstants 
     @Test
     public void testCreateInvalidRestriction() throws Exception {
         Map<String, Value> invalid = ImmutableMap.of(
-                NAME_BOOLEAN, vf.createValue("wrong_type"),
-                REP_GLOB, vf.createValue(true)
+            NAME_BOOLEAN, vf.createValue("wrong_type"),
+            REP_GLOB, vf.createValue(true)
         );
         for (Map.Entry<String, Value> entry : invalid.entrySet()) {
             String name = entry.getKey();
@@ -225,8 +248,8 @@ public class CompositeRestrictionProviderTest implements AccessControlConstants 
     @Test
     public void testMvCreateRestriction() throws RepositoryException {
         Map<String, Value[]> valid = ImmutableMap.of(
-                NAME_LONGS, new Value[] {vf.createValue(100)},
-                REP_PREFIXES, new Value[] {vf.createValue("prefix"), vf.createValue("prefix2")}
+            NAME_LONGS, new Value[]{vf.createValue(100)},
+            REP_PREFIXES, new Value[]{vf.createValue("prefix"), vf.createValue("prefix2")}
         );
         for (Map.Entry<String, Value[]> entry : valid.entrySet()) {
             provider.createRestriction("/testPath", entry.getKey(), entry.getValue());
@@ -237,15 +260,15 @@ public class CompositeRestrictionProviderTest implements AccessControlConstants 
 
     @Test(expected = AccessControlException.class)
     public void testCreateMvRestrictionWithInvalidPath() throws Exception {
-        provider.createRestriction(null, REP_PREFIXES, new Value[] {vf.createValue("jcr")});
+        provider.createRestriction(null, REP_PREFIXES, new Value[]{vf.createValue("jcr")});
     }
 
     @Test
     public void testCreateInvalidMvRestriction() throws Exception {
         Map<String, Value[]> invalid = ImmutableMap.of(
-                NAME_BOOLEAN, new Value[] {vf.createValue(true), vf.createValue(false)},
-                NAME_LONGS, new Value[] {vf.createValue("wrong_type")},
-                REP_PREFIXES, new Value[] {vf.createValue(true)}
+            NAME_BOOLEAN, new Value[]{vf.createValue(true), vf.createValue(false)},
+            NAME_LONGS, new Value[]{vf.createValue("wrong_type")},
+            REP_PREFIXES, new Value[]{vf.createValue(true)}
         );
         for (Map.Entry<String, Value[]> entry : invalid.entrySet()) {
             String name = entry.getKey();
@@ -260,7 +283,8 @@ public class CompositeRestrictionProviderTest implements AccessControlConstants 
 
     @Test
     public void testReadRestrictions() {
-        Tree aceTree = getAceTree(NT_PREFIXES_RESTRICTION, MANDATORY_BOOLEAN_RESTRICTION, UNKNOWN_RESTRICTION);
+        Tree aceTree = getAceTree(NT_PREFIXES_RESTRICTION, MANDATORY_BOOLEAN_RESTRICTION,
+            UNKNOWN_RESTRICTION);
 
         Set<Restriction> restrictions = provider.readRestrictions("/test", aceTree);
         assertEquals(2, restrictions.size());
@@ -282,9 +306,12 @@ public class CompositeRestrictionProviderTest implements AccessControlConstants 
     @Test
     public void testWriteRestrictions() throws Exception {
         Tree aceTree = getAceTree();
-        provider.writeRestrictions("/test", aceTree, ImmutableSet.of(LONGS_RESTRICTION, GLOB_RESTRICTION));
-        verify(rp1, times(1)).writeRestrictions("/test", aceTree, Collections.singleton(GLOB_RESTRICTION));
-        verify(rp2, times(1)).writeRestrictions("/test", aceTree, Collections.singleton(LONGS_RESTRICTION));
+        provider.writeRestrictions("/test", aceTree,
+            ImmutableSet.of(LONGS_RESTRICTION, GLOB_RESTRICTION));
+        verify(rp1, times(1)).writeRestrictions("/test", aceTree,
+            Collections.singleton(GLOB_RESTRICTION));
+        verify(rp2, times(1)).writeRestrictions("/test", aceTree,
+            Collections.singleton(LONGS_RESTRICTION));
     }
 
     @Test(expected = AccessControlException.class)
@@ -295,16 +322,21 @@ public class CompositeRestrictionProviderTest implements AccessControlConstants 
 
     @Test(expected = AccessControlException.class)
     public void testValidateRestrictionsWrongType() throws Exception {
-        Tree aceTree = getAceTree(new RestrictionImpl(PropertyStates.createProperty(MANDATORY_BOOLEAN_RESTRICTION.getDefinition().getName(), "string"), true));
+        Tree aceTree = getAceTree(new RestrictionImpl(
+            PropertyStates.createProperty(MANDATORY_BOOLEAN_RESTRICTION.getDefinition().getName(),
+                "string"), true));
         provider.validateRestrictions("/test", aceTree);
     }
 
     @Test(expected = AccessControlException.class)
     public void testValidateRestrictionsInvalidDefinition() throws Exception {
-        Restriction rWithInvalidDefinition = new RestrictionImpl(PropertyStates.createProperty(REP_GLOB, ImmutableList.of("str", "str2"), Type.STRINGS), false);
+        Restriction rWithInvalidDefinition = new RestrictionImpl(
+            PropertyStates.createProperty(REP_GLOB, ImmutableList.of("str", "str2"), Type.STRINGS),
+            false);
         Tree aceTree = getAceTree(rWithInvalidDefinition, MANDATORY_BOOLEAN_RESTRICTION);
 
-        RestrictionProvider rp = createRestrictionProvider(null, rWithInvalidDefinition, GLOB_RESTRICTION.getDefinition());
+        RestrictionProvider rp = createRestrictionProvider(null, rWithInvalidDefinition,
+            GLOB_RESTRICTION.getDefinition());
         RestrictionProvider cp = CompositeRestrictionProvider.newInstance(rp, rp2);
         cp.validateRestrictions("/test", aceTree);
     }
@@ -313,7 +345,8 @@ public class CompositeRestrictionProviderTest implements AccessControlConstants 
     public void testValidateRestrictionsUnsupported() throws Exception {
         Tree aceTree = getAceTree(UNKNOWN_RESTRICTION, NT_PREFIXES_RESTRICTION);
 
-        RestrictionProvider rp = createRestrictionProvider(null, UNKNOWN_RESTRICTION, GLOB_RESTRICTION.getDefinition());
+        RestrictionProvider rp = createRestrictionProvider(null, UNKNOWN_RESTRICTION,
+            GLOB_RESTRICTION.getDefinition());
         RestrictionProvider cp = CompositeRestrictionProvider.newInstance(rp, rp2);
         cp.validateRestrictions("/test", aceTree);
     }
@@ -330,8 +363,8 @@ public class CompositeRestrictionProviderTest implements AccessControlConstants 
         when(aceTree.getChild(REP_RESTRICTIONS).exists()).thenReturn(false);
 
         CompositeRestrictionProvider.newInstance(
-                rp1,
-                createRestrictionProvider(LONGS_RESTRICTION.getDefinition())
+            rp1,
+            createRestrictionProvider(LONGS_RESTRICTION.getDefinition())
         ).validateRestrictions("/test", aceTree);
     }
 
@@ -341,8 +374,8 @@ public class CompositeRestrictionProviderTest implements AccessControlConstants 
         when(aceTree.getChild(REP_RESTRICTIONS).exists()).thenReturn(true);
 
         CompositeRestrictionProvider.newInstance(
-                rp1,
-                createRestrictionProvider(null, GLOB_RESTRICTION, LONGS_RESTRICTION.getDefinition())
+            rp1,
+            createRestrictionProvider(null, GLOB_RESTRICTION, LONGS_RESTRICTION.getDefinition())
         ).validateRestrictions("/test", aceTree);
     }
 
@@ -356,69 +389,86 @@ public class CompositeRestrictionProviderTest implements AccessControlConstants 
         when(aceTree.getChild(REP_RESTRICTIONS).exists()).thenReturn(false);
 
         when(aceTree.hasProperty(NAME_BOOLEAN)).thenReturn(true);
-        when(aceTree.getProperty(NAME_BOOLEAN)).thenReturn(MANDATORY_BOOLEAN_RESTRICTION.getProperty());
+        when(aceTree.getProperty(NAME_BOOLEAN)).thenReturn(
+            MANDATORY_BOOLEAN_RESTRICTION.getProperty());
         properties.add(MANDATORY_BOOLEAN_RESTRICTION.getProperty());
-        when(aceTree.getProperties()).thenReturn((Iterable)properties);
+        when(aceTree.getProperties()).thenReturn((Iterable) properties);
 
         provider.validateRestrictions("/test", aceTree);
     }
 
     @Test
     public void testGetRestrictionPatternEmptyComposite() {
-        assertSame(RestrictionPattern.EMPTY, CompositeRestrictionProvider.newInstance().getPattern("/test", ImmutableSet.of(GLOB_RESTRICTION)));
+        assertSame(RestrictionPattern.EMPTY, CompositeRestrictionProvider.newInstance()
+                                                                         .getPattern("/test",
+                                                                             ImmutableSet.of(
+                                                                                 GLOB_RESTRICTION)));
     }
 
 
     @Test
     public void testGetRestrictionPatternSingleEmpty() {
         assertSame(RestrictionPattern.EMPTY, CompositeRestrictionProvider.newInstance(
-                createRestrictionProvider(RestrictionPattern.EMPTY, null)).
-                getPattern("/test", ImmutableSet.of(GLOB_RESTRICTION)));
+                                                                             createRestrictionProvider(RestrictionPattern.EMPTY, null)).
+                                                                         getPattern("/test",
+                                                                             ImmutableSet.of(
+                                                                                 GLOB_RESTRICTION)));
     }
 
     @Test
     public void testGetRestrictionPatternAllEmpty() {
         assertSame(RestrictionPattern.EMPTY, CompositeRestrictionProvider.newInstance(
-                createRestrictionProvider(RestrictionPattern.EMPTY, null),
-                createRestrictionProvider(RestrictionPattern.EMPTY, null)).
-                getPattern("/test", getAceTree(NT_PREFIXES_RESTRICTION)));
+                                                                             createRestrictionProvider(RestrictionPattern.EMPTY, null),
+                                                                             createRestrictionProvider(RestrictionPattern.EMPTY, null)).
+                                                                         getPattern("/test",
+                                                                             getAceTree(
+                                                                                 NT_PREFIXES_RESTRICTION)));
     }
 
     @Test
     public void testGetRestrictionPattern() {
         RestrictionPattern pattern = mock(RestrictionPattern.class);
-        RestrictionProvider rp1 = spy(createRestrictionProvider(pattern, null, LONGS_RESTRICTION.getDefinition()));
-        RestrictionProvider rp2 = spy(createRestrictionProvider(RestrictionPattern.EMPTY, null, GLOB_RESTRICTION.getDefinition()));
+        RestrictionProvider rp1 = spy(
+            createRestrictionProvider(pattern, null, LONGS_RESTRICTION.getDefinition()));
+        RestrictionProvider rp2 = spy(createRestrictionProvider(RestrictionPattern.EMPTY, null,
+            GLOB_RESTRICTION.getDefinition()));
         RestrictionProvider cp = CompositeRestrictionProvider.newInstance(rp1, rp2);
-        
+
         assertSame(pattern, cp.getPattern("/test", getAceTree(LONGS_RESTRICTION)));
         assertSame(pattern, cp.getPattern("/test", getAceTree(GLOB_RESTRICTION)));
-        
+
         verify(rp1, never()).readRestrictions(anyString(), any(Tree.class));
         verify(rp2, never()).readRestrictions(anyString(), any(Tree.class));
     }
 
     @Test
     public void testGetCompositeRestrictionPattern() {
-        RestrictionProvider rp1 = spy(createRestrictionProvider(mock(RestrictionPattern.class), null, NT_PREFIXES_RESTRICTION.getDefinition()));
-        RestrictionProvider rp2 = spy(createRestrictionProvider(mock(RestrictionPattern.class), null, MANDATORY_BOOLEAN_RESTRICTION.getDefinition()));
+        RestrictionProvider rp1 = spy(
+            createRestrictionProvider(mock(RestrictionPattern.class), null,
+                NT_PREFIXES_RESTRICTION.getDefinition()));
+        RestrictionProvider rp2 = spy(
+            createRestrictionProvider(mock(RestrictionPattern.class), null,
+                MANDATORY_BOOLEAN_RESTRICTION.getDefinition()));
 
         RestrictionProvider cp = CompositeRestrictionProvider.newInstance(rp1, rp2);
-        assertTrue(cp.getPattern("/test", getAceTree(LONGS_RESTRICTION)) instanceof CompositePattern);
-        
+        assertTrue(
+            cp.getPattern("/test", getAceTree(LONGS_RESTRICTION)) instanceof CompositePattern);
+
         verify(rp1, never()).readRestrictions(anyString(), any(Tree.class));
         verify(rp2, never()).readRestrictions(anyString(), any(Tree.class));
     }
-    
+
     @Test
     public void testGetRestrictionPatternFromSet() {
         Restriction r = mock(Restriction.class);
-        RestrictionProvider rp1 = spy(createRestrictionProvider(mock(RestrictionPattern.class), r, NT_PREFIXES_RESTRICTION.getDefinition()));
-        RestrictionProvider rp2 = spy(createRestrictionProvider(mock(RestrictionPattern.class), r, MANDATORY_BOOLEAN_RESTRICTION.getDefinition()));
+        RestrictionProvider rp1 = spy(createRestrictionProvider(mock(RestrictionPattern.class), r,
+            NT_PREFIXES_RESTRICTION.getDefinition()));
+        RestrictionProvider rp2 = spy(createRestrictionProvider(mock(RestrictionPattern.class), r,
+            MANDATORY_BOOLEAN_RESTRICTION.getDefinition()));
 
         RestrictionProvider cp = CompositeRestrictionProvider.newInstance(rp1, rp2);
         reset(rp1, rp2);
-        
+
         RestrictionPattern pattern = cp.getPattern("/test", Collections.singleton(r));
 
         assertTrue(pattern instanceof CompositePattern);
@@ -433,13 +483,15 @@ public class CompositeRestrictionProviderTest implements AccessControlConstants 
     public void testGetRestrictionPatternFromSetWithEmptyPattern() {
         Restriction r = mock(Restriction.class);
         RestrictionPattern p = mock(RestrictionPattern.class);
-        
-        RestrictionProvider rp1 = spy(createRestrictionProvider(p, r, NT_PREFIXES_RESTRICTION.getDefinition()));
-        RestrictionProvider rp3 = spy(createRestrictionProvider(RestrictionPattern.EMPTY, r, MANDATORY_BOOLEAN_RESTRICTION.getDefinition()));
+
+        RestrictionProvider rp1 = spy(
+            createRestrictionProvider(p, r, NT_PREFIXES_RESTRICTION.getDefinition()));
+        RestrictionProvider rp3 = spy(createRestrictionProvider(RestrictionPattern.EMPTY, r,
+            MANDATORY_BOOLEAN_RESTRICTION.getDefinition()));
 
         RestrictionProvider cp = CompositeRestrictionProvider.newInstance(rp1, rp3);
         reset(rp1, rp3);
-        
+
         RestrictionPattern pattern = cp.getPattern("/test", Collections.singleton(r));
 
         assertFalse(pattern instanceof CompositePattern);
@@ -448,16 +500,19 @@ public class CompositeRestrictionProviderTest implements AccessControlConstants 
         verify(rp3).getPattern(anyString(), any(Set.class));
         verifyNoMoreInteractions(rp1, rp3);
     }
-    
+
     @Test
     public void testAggregateNotAware() throws Exception {
         RestrictionProvider provider1 = mock(RestrictionProvider.class);
         RestrictionProvider provider2 = mock(RestrictionProvider.class);
-        
+
         RestrictionProvider cp = CompositeRestrictionProvider.newInstance(provider1, provider2);
         cp.validateRestrictions("/test", mock(Tree.class));
-        
-        doThrow(new AccessControlException("unsupportedrestriction")).when(provider1).validateRestrictions(anyString(), any(Tree.class));
+
+        doThrow(new AccessControlException("unsupportedrestriction")).when(provider1)
+                                                                     .validateRestrictions(
+                                                                         anyString(),
+                                                                         any(Tree.class));
         try {
             cp.validateRestrictions("/test", mock(Tree.class));
             fail();

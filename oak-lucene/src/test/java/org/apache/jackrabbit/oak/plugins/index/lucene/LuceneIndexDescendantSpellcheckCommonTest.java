@@ -16,6 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import java.io.File;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import javax.jcr.Repository;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.index.IndexDescendantSpellcheckCommonTest;
@@ -23,11 +27,6 @@ import org.apache.jackrabbit.oak.plugins.index.LuceneIndexOptions;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
-
-import javax.jcr.Repository;
-import java.io.File;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 public class LuceneIndexDescendantSpellcheckCommonTest extends IndexDescendantSpellcheckCommonTest {
 
@@ -38,7 +37,8 @@ public class LuceneIndexDescendantSpellcheckCommonTest extends IndexDescendantSp
     @Override
     protected Repository createJcrRepository() {
         indexOptions = new LuceneIndexOptions();
-        repositoryOptionsUtil = new LuceneTestRepositoryBuilder(executorService, temporaryFolder).build();
+        repositoryOptionsUtil = new LuceneTestRepositoryBuilder(executorService,
+            temporaryFolder).build();
         Oak oak = repositoryOptionsUtil.getOak();
         Jcr jcr = new Jcr(oak);
         return jcr.createRepository();

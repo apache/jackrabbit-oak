@@ -16,17 +16,16 @@
  */
 package org.apache.jackrabbit.oak.spi.whiteboard;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.junit.Before;
-import org.junit.Test;
+import static java.util.Collections.singletonMap;
+import static java.util.stream.Collectors.toSet;
+import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
+import static org.junit.Assert.assertEquals;
 
 import java.util.Map;
 import java.util.Set;
-
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
-import static java.util.Collections.singletonMap;
-import static java.util.stream.Collectors.toSet;
-import static org.junit.Assert.assertEquals;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
+import org.junit.Before;
+import org.junit.Test;
 
 public class DefaultWhiteboardTest {
 
@@ -42,8 +41,10 @@ public class DefaultWhiteboardTest {
         whiteboard.register(Service1.class, new Service1("s1"), ImmutableMap.of());
         whiteboard.register(Service2.class, new Service2("s2"), ImmutableMap.of("role", "myrole"));
         whiteboard.register(Service3.class, new Service3("s3_1"), ImmutableMap.of());
-        whiteboard.register(Service3.class, new Service3("s3_2"), ImmutableMap.of("role", "myrole"));
-        whiteboard.register(Service3.class, new Service3("s3_3"), ImmutableMap.of("role", "myotherrole", "id", 1024));
+        whiteboard.register(Service3.class, new Service3("s3_2"),
+            ImmutableMap.of("role", "myrole"));
+        whiteboard.register(Service3.class, new Service3("s3_3"),
+            ImmutableMap.of("role", "myotherrole", "id", 1024));
 
         assertEquals(of("s1"), track(Service1.class));
         assertEquals(of("s1"), track(Service1.class, singletonMap("role", null)));
@@ -57,7 +58,8 @@ public class DefaultWhiteboardTest {
         assertEquals(of("s3_1"), track(Service3.class, singletonMap("role", null)));
         assertEquals(of("s3_2"), track(Service3.class, ImmutableMap.of("role", "myrole")));
         assertEquals(of("s3_3"), track(Service3.class, ImmutableMap.of("role", "myotherrole")));
-        assertEquals(of("s3_3"), track(Service3.class, ImmutableMap.of("role", "myotherrole", "id", "1024")));
+        assertEquals(of("s3_3"),
+            track(Service3.class, ImmutableMap.of("role", "myotherrole", "id", "1024")));
         assertEquals(of("s3_3"), track(Service3.class, ImmutableMap.of("id", "1024")));
         assertEquals(of(), track(Service3.class, ImmutableMap.of("id", "2048")));
     }
@@ -75,11 +77,16 @@ public class DefaultWhiteboardTest {
 
     @Test
     public void unregister() {
-        Registration r1 = whiteboard.register(Service1.class, new Service1("s1"), ImmutableMap.of());
-        Registration r2 = whiteboard.register(Service2.class, new Service2("s2"), ImmutableMap.of("role", "myrole"));
-        Registration r3_1 = whiteboard.register(Service3.class, new Service3("s3_1"), ImmutableMap.of());
-        Registration r3_2 = whiteboard.register(Service3.class, new Service3("s3_2"), ImmutableMap.of("role", "myrole"));
-        Registration r3_3 = whiteboard.register(Service3.class, new Service3("s3_3"), ImmutableMap.of("role", "myotherrole", "id", 1024));
+        Registration r1 = whiteboard.register(Service1.class, new Service1("s1"),
+            ImmutableMap.of());
+        Registration r2 = whiteboard.register(Service2.class, new Service2("s2"),
+            ImmutableMap.of("role", "myrole"));
+        Registration r3_1 = whiteboard.register(Service3.class, new Service3("s3_1"),
+            ImmutableMap.of());
+        Registration r3_2 = whiteboard.register(Service3.class, new Service3("s3_2"),
+            ImmutableMap.of("role", "myrole"));
+        Registration r3_3 = whiteboard.register(Service3.class, new Service3("s3_3"),
+            ImmutableMap.of("role", "myotherrole", "id", 1024));
 
         assertEquals(of("s1"), track(Service1.class));
         r1.unregister();
@@ -117,6 +124,7 @@ public class DefaultWhiteboardTest {
     }
 
     public abstract static class Service {
+
         private final String id;
 
         private Service(String id) {
@@ -129,18 +137,21 @@ public class DefaultWhiteboardTest {
     }
 
     private final static class Service1 extends Service {
+
         private Service1(String id) {
             super(id);
         }
     }
 
     private final static class Service2 extends Service {
+
         private Service2(String id) {
             super(id);
         }
     }
 
     private final static class Service3 extends Service {
+
         private Service3(String id) {
             super(id);
         }

@@ -29,16 +29,21 @@ import java.io.IOException;
 import java.util.Map;
 
 abstract class DocFieldConsumer {
-  /** Called when DocumentsWriterPerThread decides to create a new
-   *  segment */
-  abstract void flush(Map<String, DocFieldConsumerPerField> fieldsToFlush, SegmentWriteState state) throws IOException;
 
-  /** Called when an aborting exception is hit */
-  abstract void abort();
+    /**
+     * Called when DocumentsWriterPerThread decides to create a new segment
+     */
+    abstract void flush(Map<String, DocFieldConsumerPerField> fieldsToFlush,
+        SegmentWriteState state) throws IOException;
 
-  abstract void startDocument() throws IOException;
+    /**
+     * Called when an aborting exception is hit
+     */
+    abstract void abort();
 
-  abstract DocFieldConsumerPerField addField(FieldInfo fi);
+    abstract void startDocument() throws IOException;
 
-  abstract void finishDocument() throws IOException;
+    abstract DocFieldConsumerPerField addField(FieldInfo fi);
+
+    abstract void finishDocument() throws IOException;
 }

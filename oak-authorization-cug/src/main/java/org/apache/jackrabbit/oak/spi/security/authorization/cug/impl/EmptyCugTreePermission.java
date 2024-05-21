@@ -22,16 +22,18 @@ import org.apache.jackrabbit.oak.plugins.tree.TreeType;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Same as {@link org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission#EMPTY}
- * from a permission point of view but indicating that it refers to a tree that
- * potentially contains a CUG in the subtree thus forcing continued evaluation,
- * where as {@link org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission#EMPTY}
- * indicates that this permission model will never grant access in the subtree
- * and thus can be ignored.
+ * Same as
+ * {@link org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission#EMPTY} from
+ * a permission point of view but indicating that it refers to a tree that potentially contains a
+ * CUG in the subtree thus forcing continued evaluation, where as
+ * {@link org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission#EMPTY}
+ * indicates that this permission model will never grant access in the subtree and thus can be
+ * ignored.
  */
 final class EmptyCugTreePermission extends AbstractTreePermission {
 
-    EmptyCugTreePermission(@NotNull Tree tree, @NotNull TreeType type, @NotNull CugPermissionProvider permissionProvider) {
+    EmptyCugTreePermission(@NotNull Tree tree, @NotNull TreeType type,
+        @NotNull CugPermissionProvider permissionProvider) {
         super(tree, type, permissionProvider);
     }
 

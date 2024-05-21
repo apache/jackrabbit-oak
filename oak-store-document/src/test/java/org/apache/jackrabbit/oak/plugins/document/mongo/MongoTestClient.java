@@ -38,7 +38,7 @@ class MongoTestClient extends MongoClient {
     @Override
     public MongoDatabase getDatabase(String databaseName) {
         return new MongoTestDatabase(super.getDatabase(databaseName),
-                beforeQueryException, beforeUpdateException, afterUpdateException);
+            beforeQueryException, beforeUpdateException, afterUpdateException);
     }
 
     void setExceptionBeforeQuery(String msg) {

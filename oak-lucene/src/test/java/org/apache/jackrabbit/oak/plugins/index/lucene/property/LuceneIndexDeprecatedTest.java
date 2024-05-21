@@ -23,14 +23,21 @@ import static org.apache.jackrabbit.oak.spi.commit.CommitInfo.EMPTY;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.LoggerContext;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.Appender;
+import ch.qos.logback.core.read.ListAppender;
+import ch.qos.logback.core.spi.FilterReply;
 import java.util.List;
-
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.InitialContentHelper;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexTracker;
-import org.apache.jackrabbit.oak.plugins.index.lucene.LucenePropertyIndex;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LucenePropertyIndex;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.query.NodeStateNodeTypeInfoProvider;
@@ -48,16 +55,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-
-import ch.qos.logback.classic.Level;
-import ch.qos.logback.classic.Logger;
-import ch.qos.logback.classic.LoggerContext;
-import ch.qos.logback.classic.spi.ILoggingEvent;
-import ch.qos.logback.core.Appender;
-import ch.qos.logback.core.read.ListAppender;
-import ch.qos.logback.core.spi.FilterReply;
-
 /**
  * Test the Property2 index mechanism.
  */
@@ -68,7 +65,7 @@ public class LuceneIndexDeprecatedTest {
     private NodeState root;
     private NodeBuilder rootBuilder;
     private static final EditorHook HOOK = new EditorHook(
-            new IndexUpdateProvider(new LuceneIndexEditorProvider()));
+        new IndexUpdateProvider(new LuceneIndexEditorProvider()));
 
     @Before
     public void setup() throws Exception {
@@ -80,8 +77,8 @@ public class LuceneIndexDeprecatedTest {
     @Test
     public void deprecated() throws Exception {
         NodeBuilder index = newLucenePropertyIndexDefinition(
-                rootBuilder.child(INDEX_DEFINITIONS_NAME),
-                "foo", ImmutableSet.of("foo"), null);
+            rootBuilder.child(INDEX_DEFINITIONS_NAME),
+            "foo", ImmutableSet.of("foo"), null);
         index.setProperty(IndexConstants.INDEX_DEPRECATED, false);
         commit();
         for (int i = 0; i < MANY; i++) {
@@ -120,9 +117,9 @@ public class LuceneIndexDeprecatedTest {
         luceneIndex.query(plan, root);
 
         assertEquals("[[WARN] This index is deprecated: /oak:index/foo; " +
-                "it is used for query Filter(query=" +
-                "SELECT * FROM [nt:base], path=*, property=[foo=[x10]]). " +
-                "Please change the query or the index definitions.]", appender.list.toString());
+            "it is used for query Filter(query=" +
+            "SELECT * FROM [nt:base], path=*, property=[foo=[x10]]). " +
+            "Please change the query or the index definitions.]", appender.list.toString());
 
         index = rootBuilder.child(INDEX_DEFINITIONS_NAME).child("foo");
         index.removeProperty(IndexConstants.INDEX_DEPRECATED);
@@ -153,7 +150,8 @@ public class LuceneIndexDeprecatedTest {
         NodeTypeInfoProvider nodeTypes = new NodeStateNodeTypeInfoProvider(root);
         NodeTypeInfo type = nodeTypes.getNodeTypeInfo(nodeTypeName);
         SelectorImpl selector = new SelectorImpl(type, nodeTypeName);
-        return new FilterImpl(selector, "SELECT * FROM [" + nodeTypeName + "]", new QueryEngineSettings());
+        return new FilterImpl(selector, "SELECT * FROM [" + nodeTypeName + "]",
+            new QueryEngineSettings());
     }
 
     private ListAppender<ILoggingEvent> createAndRegisterAppender() {
@@ -168,7 +166,7 @@ public class LuceneIndexDeprecatedTest {
         return appender;
     }
 
-    private void deregisterAppender(Appender<ILoggingEvent> appender){
+    private void deregisterAppender(Appender<ILoggingEvent> appender) {
         rootLogger().detachAppender(appender);
     }
 
@@ -184,7 +182,7 @@ public class LuceneIndexDeprecatedTest {
         }
     }
 
-    private static LoggerContext getContext(){
+    private static LoggerContext getContext() {
         return (LoggerContext) LoggerFactory.getILoggerFactory();
     }
 

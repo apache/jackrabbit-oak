@@ -23,7 +23,7 @@ mechanism. Deployments in managed environments like OSGi should use the native
 construction/configuration mechanism of the environment.
 
 First, we construct a Repository instance.
-Both the `Oak` and the `Jcr` classes support `with()` methods, 
+Both the `Oak` and the `Jcr` classes support `with()` methods,
 so you can easily extend the repository with custom functionality if you like.
 To construct an in-memory repository, use:
 
@@ -58,9 +58,9 @@ the default username/password combination), use:
             root.addNode("hello").setProperty("count", 1);
         }
         session.save();
-        
+
 To logout and close the backend store, use:
-        
+
         session.logout();
         // depending on NodeStore implementation either:
         // close FileStore

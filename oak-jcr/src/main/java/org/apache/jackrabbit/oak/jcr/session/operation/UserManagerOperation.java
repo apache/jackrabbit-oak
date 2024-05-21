@@ -20,18 +20,19 @@
 package org.apache.jackrabbit.oak.jcr.session.operation;
 
 import javax.jcr.RepositoryException;
-
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.jetbrains.annotations.NotNull;
 
 public abstract class UserManagerOperation<T> extends SessionOperation<T> {
+
     private final SessionDelegate delegate;
 
     protected UserManagerOperation(@NotNull SessionDelegate delegate, @NotNull String name) {
         this(delegate, name, false);
     }
 
-    protected UserManagerOperation(@NotNull SessionDelegate delegate, @NotNull String name, boolean update) {
+    protected UserManagerOperation(@NotNull SessionDelegate delegate, @NotNull String name,
+        boolean update) {
         super(name, update);
         this.delegate = delegate;
     }

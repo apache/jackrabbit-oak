@@ -16,13 +16,12 @@
  */
 package org.apache.jackrabbit.oak.stats;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.concurrent.ScheduledExecutorService;
-
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -33,19 +32,20 @@ import org.slf4j.LoggerFactory;
  * {@link Clock.Fast} for speeding up the operation.
  */
 public class StopwatchLogger implements Closeable {
+
     private static final Logger LOG = LoggerFactory.getLogger(StopwatchLogger.class);
 
     private final ScheduledExecutorService executor = newSingleThreadScheduledExecutor();
     private final String clazz;
-    
+
     private Clock clock;
     private Logger customLog;
-    
+
     private long start;
-    
+
     /**
      * Create a class with the provided class.
-     * 
+     *
      * @param clazz
      */
     public StopwatchLogger(@NotNull final String clazz) {
@@ -54,7 +54,7 @@ public class StopwatchLogger implements Closeable {
 
     /**
      * instantiate a class with the provided class
-     * 
+     *
      * @param clazz
      */
     public StopwatchLogger(@NotNull final Class<?> clazz) {
@@ -64,7 +64,7 @@ public class StopwatchLogger implements Closeable {
     /**
      * Instantiate a class with the provided class and custom logger. The provided logger, if not
      * null, will be then used for tracking down times
-     * 
+     *
      * @param customLog
      * @param clazz
      */
@@ -91,19 +91,19 @@ public class StopwatchLogger implements Closeable {
         clock = new Clock.Fast(executor);
         start = clock.getTimeMonotonic();
     }
-    
+
     /**
      * track of an intermediate time without stopping the ticking.
-     * 
+     *
      * @param message
      */
     public void split(@Nullable final String message) {
         track(this, message);
     }
-    
+
     /**
      * track the time and stop the clock.
-     * 
+     *
      * @param message
      */
     public void stop(@Nullable final String message) {
@@ -113,29 +113,29 @@ public class StopwatchLogger implements Closeable {
 
     /**
      * convenience method for tracking the messages
-     * 
+     *
      * @param customLog a potential custom logger. If null the static instance will be used
-     * @param clock the clock used for tracking.
-     * @param clazz the class to be used during the tracking of times
-     * @param message a custom message for the tracking.
+     * @param clock     the clock used for tracking.
+     * @param clazz     the class to be used during the tracking of times
+     * @param message   a custom message for the tracking.
      */
     private static void track(@NotNull final StopwatchLogger swl,
-                              @Nullable final String message) {
+        @Nullable final String message) {
 
         checkNotNull(swl);
-        
+
         if (swl.isEnabled()) {
             Logger l = swl.getLogger();
-            
+
             if (swl.clock == null) {
                 l.debug("{} - clock has not been started yet.", swl.clazz);
             } else {
                 Clock c = swl.clock;
-                
+
                 l.debug(
                     "{} - {} {}ms",
-                    new Object[] { checkNotNull(swl.clazz), message == null ? "" : message,
-                                  c.getTimeMonotonic() - swl.start});
+                    new Object[]{checkNotNull(swl.clazz), message == null ? "" : message,
+                        c.getTimeMonotonic() - swl.start});
             }
         }
     }
@@ -143,26 +143,26 @@ public class StopwatchLogger implements Closeable {
     @Override
     public void close() throws IOException {
         try {
-            executor.shutdownNow();            
+            executor.shutdownNow();
         } catch (Throwable t) {
             LOG.error("Error while shutting down the scheduler.", t);
         }
     }
-    
+
     /**
      * @return true if the clock has been started. False otherwise.
      */
     public boolean isStarted() {
         return clock != null;
     }
-    
+
     private Logger getLogger() {
-        return (customLog == null) ? LOG :  customLog;
+        return (customLog == null) ? LOG : customLog;
     }
-    
+
     /**
      * @return true whether the provided appender has DEBUG enabled and therefore asked to track
-     *         times.
+     * times.
      */
     public boolean isEnabled() {
         return getLogger().isDebugEnabled();

@@ -24,18 +24,18 @@ import java.lang.annotation.Inherited;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
-
 import javax.management.DescriptorKey;
 
 /**
  * Produces a description that will be used by JMX metadata.
  */
 @Target({ElementType.TYPE, ElementType.CONSTRUCTOR, ElementType.METHOD,
-        ElementType.PARAMETER})
+    ElementType.PARAMETER})
 @Retention(RetentionPolicy.RUNTIME)
 @Inherited
 @Documented
 public @interface Description {
+
     String NAME = "description";
 
     @DescriptorKey(NAME)

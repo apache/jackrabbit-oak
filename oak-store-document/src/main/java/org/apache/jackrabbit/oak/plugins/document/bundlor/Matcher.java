@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.plugins.document.bundlor;
 
 public interface Matcher {
+
     Matcher NON_MATCHING = new Matcher() {
         @Override
         public Matcher next(String name) {
@@ -66,8 +67,7 @@ public interface Matcher {
     boolean isMatch();
 
     /**
-     * Relative node path from the bundling root if
-     * there was a match
+     * Relative node path from the bundling root if there was a match
      */
     String getMatchedPath();
 
@@ -77,10 +77,8 @@ public interface Matcher {
     int depth();
 
     /**
-     * Returns true if matcher for all immediate child node
-     * would also be a matching matcher. This would be the
-     * case if IncludeMatcher with '*' or '**' as pattern for
-     * child nodes
+     * Returns true if matcher for all immediate child node would also be a matching matcher. This
+     * would be the case if IncludeMatcher with '*' or '**' as pattern for child nodes
      */
     boolean matchesAllChildren();
 }

@@ -23,9 +23,11 @@ import org.apache.jackrabbit.oak.api.blob.BlobUploadOptions;
 import org.jetbrains.annotations.NotNull;
 
 public class DataRecordUploadOptions {
+
     private boolean domainOverrideIgnored;
 
-    public static DataRecordUploadOptions fromBlobUploadOptions(@NotNull final BlobUploadOptions options) {
+    public static DataRecordUploadOptions fromBlobUploadOptions(
+        @NotNull final BlobUploadOptions options) {
         return new DataRecordUploadOptions(options.isDomainOverrideIgnored());
     }
 

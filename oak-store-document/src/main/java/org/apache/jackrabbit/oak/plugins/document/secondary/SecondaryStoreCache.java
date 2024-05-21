@@ -39,6 +39,7 @@ import org.slf4j.LoggerFactory;
 
 
 public class SecondaryStoreCache implements DocumentNodeStateCache, SecondaryStoreRootObserver {
+
     private final Logger log = LoggerFactory.getLogger(getClass());
     private static final AbstractDocumentNodeState[] EMPTY = new AbstractDocumentNodeState[0];
     private final NodeStore store;
@@ -56,25 +57,32 @@ public class SecondaryStoreCache implements DocumentNodeStateCache, SecondarySto
     private volatile AbstractDocumentNodeState[] previousRoots = EMPTY;
 
     public SecondaryStoreCache(NodeStore nodeStore, NodeStateDiffer differ, PathFilter pathFilter,
-                               StatisticsProvider statisticsProvider) {
+        StatisticsProvider statisticsProvider) {
         this.differ = differ;
         this.store = nodeStore;
         this.pathFilter = pathFilter;
-        this.unknownPaths = statisticsProvider.getMeter("DOCUMENT_CACHE_SEC_UNKNOWN", StatsOptions.DEFAULT);
-        this.knownMissed = statisticsProvider.getMeter("DOCUMENT_CACHE_SEC_KNOWN_MISSED", StatsOptions.DEFAULT);
-        this.knownMissedOld = statisticsProvider.getMeter("DOCUMENT_CACHE_SEC_KNOWN_MISSED_OLD", StatsOptions.DEFAULT);
-        this.knownMissedNew = statisticsProvider.getMeter("DOCUMENT_CACHE_SEC_KNOWN_MISSED_NEW", StatsOptions.DEFAULT);
-        this.knownMissedInRange = statisticsProvider.getMeter("DOCUMENT_CACHE_SEC_KNOWN_MISSED_IN_RANGE", StatsOptions
+        this.unknownPaths = statisticsProvider.getMeter("DOCUMENT_CACHE_SEC_UNKNOWN",
+            StatsOptions.DEFAULT);
+        this.knownMissed = statisticsProvider.getMeter("DOCUMENT_CACHE_SEC_KNOWN_MISSED",
+            StatsOptions.DEFAULT);
+        this.knownMissedOld = statisticsProvider.getMeter("DOCUMENT_CACHE_SEC_KNOWN_MISSED_OLD",
+            StatsOptions.DEFAULT);
+        this.knownMissedNew = statisticsProvider.getMeter("DOCUMENT_CACHE_SEC_KNOWN_MISSED_NEW",
+            StatsOptions.DEFAULT);
+        this.knownMissedInRange = statisticsProvider.getMeter(
+            "DOCUMENT_CACHE_SEC_KNOWN_MISSED_IN_RANGE", StatsOptions
                 .DEFAULT);
-        this.headRevMatched = statisticsProvider.getMeter("DOCUMENT_CACHE_SEC_HEAD", StatsOptions.DEFAULT);
-        this.prevRevMatched = statisticsProvider.getMeter("DOCUMENT_CACHE_SEC_OLD", StatsOptions.DEFAULT);
+        this.headRevMatched = statisticsProvider.getMeter("DOCUMENT_CACHE_SEC_HEAD",
+            StatsOptions.DEFAULT);
+        this.prevRevMatched = statisticsProvider.getMeter("DOCUMENT_CACHE_SEC_OLD",
+            StatsOptions.DEFAULT);
         this.queue = EvictingQueue.create(maxSize);
     }
 
     @Nullable
     @Override
     public AbstractDocumentNodeState getDocumentNodeState(Path path, RevisionVector rootRevision,
-                                                          RevisionVector lastRev) {
+        RevisionVector lastRev) {
         //TODO We might need skip the calls if they occur due to SecondaryStoreObserver
         //doing the diff or in the startup when we try to sync the state
         String p = path.toString();
@@ -84,28 +92,29 @@ public class SecondaryStoreCache implements DocumentNodeStateCache, SecondarySto
             return null;
         }
 
-        if (!DelegatingDocumentNodeState.hasMetaProps(store.getRoot())){
+        if (!DelegatingDocumentNodeState.hasMetaProps(store.getRoot())) {
             return null;
         }
 
-        AbstractDocumentNodeState currentRoot = DelegatingDocumentNodeState.wrap(store.getRoot(), differ);
+        AbstractDocumentNodeState currentRoot = DelegatingDocumentNodeState.wrap(store.getRoot(),
+            differ);
 
         //If the root rev is < lastRev then secondary store is lagging and would
         //not have the matching result
-        if (lastRev.compareTo(currentRoot.getLastRevision()) > 0){
+        if (lastRev.compareTo(currentRoot.getLastRevision()) > 0) {
             return null;
         }
 
         AbstractDocumentNodeState nodeState = findByMatchingLastRev(currentRoot, path, lastRev);
-        if (nodeState != null){
+        if (nodeState != null) {
             headRevMatched.mark();
             return nodeState;
         }
 
         AbstractDocumentNodeState matchingRoot = findMatchingRoot(rootRevision);
-        if (matchingRoot != null){
+        if (matchingRoot != null) {
             NodeState state = NodeStateUtils.getNode(matchingRoot, p);
-            if (state.exists()){
+            if (state.exists()) {
                 AbstractDocumentNodeState docState = asDocState(state);
                 prevRevMatched.mark();
                 return docState;
@@ -122,19 +131,20 @@ public class SecondaryStoreCache implements DocumentNodeStateCache, SecondarySto
     }
 
     @Nullable
-    private AbstractDocumentNodeState findByMatchingLastRev(AbstractDocumentNodeState root, Path path,
-                                                      RevisionVector lastRev){
+    private AbstractDocumentNodeState findByMatchingLastRev(AbstractDocumentNodeState root,
+        Path path,
+        RevisionVector lastRev) {
         NodeState state = root;
 
         for (String name : path.elements()) {
             state = state.getChildNode(name);
 
-            if (!state.exists()){
+            if (!state.exists()) {
                 return null;
             }
 
             //requested lastRev is > current node lastRev then no need to check further
-            if (lastRev.compareTo(asDocState(state).getLastRevision()) > 0){
+            if (lastRev.compareTo(asDocState(state).getLastRevision()) > 0) {
                 return null;
             }
         }
@@ -150,7 +160,7 @@ public class SecondaryStoreCache implements DocumentNodeStateCache, SecondarySto
 
     @Nullable
     private AbstractDocumentNodeState findMatchingRoot(RevisionVector rr) {
-        if (isEmpty()){
+        if (isEmpty()) {
             return null;
         }
 
@@ -159,18 +169,18 @@ public class SecondaryStoreCache implements DocumentNodeStateCache, SecondarySto
         AbstractDocumentNodeState latest = roots[roots.length - 1];
         AbstractDocumentNodeState oldest = roots[0];
 
-        if (rr.compareTo(latest.getRootRevision()) > 0){
+        if (rr.compareTo(latest.getRootRevision()) > 0) {
             knownMissedNew.mark();
             return null;
         }
 
-        if (rr.compareTo(oldest.getRootRevision()) < 0){
+        if (rr.compareTo(oldest.getRootRevision()) < 0) {
             knownMissedOld.mark();
             return null;
         }
 
         AbstractDocumentNodeState result = findMatchingRoot(roots, rr);
-        if (result != null){
+        if (result != null) {
             return result;
         }
         knownMissedInRange.mark();
@@ -179,7 +189,7 @@ public class SecondaryStoreCache implements DocumentNodeStateCache, SecondarySto
 
     @Override
     public void contentChanged(@NotNull AbstractDocumentNodeState root) {
-        synchronized (queue){
+        synchronized (queue) {
             //TODO Possibly can be improved
             queue.add(root);
             previousRoots = queue.toArray(EMPTY);
@@ -191,7 +201,8 @@ public class SecondaryStoreCache implements DocumentNodeStateCache, SecondarySto
     }
 
 
-    static AbstractDocumentNodeState findMatchingRoot(AbstractDocumentNodeState[] roots, RevisionVector key) {
+    static AbstractDocumentNodeState findMatchingRoot(AbstractDocumentNodeState[] roots,
+        RevisionVector key) {
         int low = 0;
         int high = roots.length - 1;
 
@@ -213,7 +224,7 @@ public class SecondaryStoreCache implements DocumentNodeStateCache, SecondarySto
     }
 
     private static AbstractDocumentNodeState asDocState(NodeState state) {
-        return (AbstractDocumentNodeState)state;
+        return (AbstractDocumentNodeState) state;
     }
 
 }

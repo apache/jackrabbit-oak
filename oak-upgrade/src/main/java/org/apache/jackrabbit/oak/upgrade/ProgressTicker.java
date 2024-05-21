@@ -20,5 +20,6 @@
 package org.apache.jackrabbit.oak.upgrade;
 
 public interface ProgressTicker {
+
     String tick();
 }

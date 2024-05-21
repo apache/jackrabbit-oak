@@ -16,23 +16,23 @@
   -->
 <configuration>
 
-    <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
-        <encoder>
-            <pattern>%date{HH:mm:ss.SSS} %-5level %-40([%thread] %F:%L) %msg%n</pattern>
-        </encoder>
-    </appender>
+  <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <pattern>%date{HH:mm:ss.SSS} %-5level %-40([%thread] %F:%L) %msg%n</pattern>
+    </encoder>
+  </appender>
 
-    <appender name="file" class="ch.qos.logback.core.FileAppender">
-        <file>target/unit-tests.log</file>
-        <encoder>
-            <pattern>%date{HH:mm:ss.SSS} %-5level %-40([%thread] %F:%L) %msg%n</pattern>
-        </encoder>
-    </appender>
+  <appender name="file" class="ch.qos.logback.core.FileAppender">
+    <file>target/unit-tests.log</file>
+    <encoder>
+      <pattern>%date{HH:mm:ss.SSS} %-5level %-40([%thread] %F:%L) %msg%n</pattern>
+    </encoder>
+  </appender>
 
-    <logger name="org.apache.jackrabbit.oak.plugins.index.search.spi.query" level="TRACE"/>
+  <logger name="org.apache.jackrabbit.oak.plugins.index.search.spi.query" level="TRACE"/>
 
-    <root level="INFO">
-        <appender-ref ref="file"/>
-    </root>
+  <root level="INFO">
+    <appender-ref ref="file"/>
+  </root>
 
 </configuration>

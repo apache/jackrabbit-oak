@@ -20,7 +20,6 @@ import java.util.ArrayList;
 import java.util.List;
 import javax.jcr.observation.Event;
 import javax.jcr.observation.ObservationManager;
-
 import org.apache.jackrabbit.test.api.observation.EventResult;
 import org.junit.Test;
 
@@ -53,8 +52,9 @@ public class ObservationTest extends AbstractEvaluationTest {
             Event[] evts = listener.getEvents(DEFAULT_WAIT_TIMEOUT);
             for (Event evt : evts) {
                 if (evt.getType() == Event.NODE_REMOVED &&
-                        evt.getPath().equals(childNPath)) {
-                    fail("TestUser does not have READ permission below " + path + " -> events below must not show up.");
+                    evt.getPath().equals(childNPath)) {
+                    fail("TestUser does not have READ permission below " + path
+                        + " -> events below must not show up.");
                 }
             }
         } finally {
@@ -128,7 +128,7 @@ public class ObservationTest extends AbstractEvaluationTest {
             Event[] evts = listener.getEvents(DEFAULT_WAIT_TIMEOUT);
             for (Event evt : evts) {
                 if (evt.getType() == Event.NODE_REMOVED &&
-                        evt.getPath().equals(childNPath)) {
+                    evt.getPath().equals(childNPath)) {
                     fail("TestUser does not have READ permission on " + childNPath);
                 }
             }

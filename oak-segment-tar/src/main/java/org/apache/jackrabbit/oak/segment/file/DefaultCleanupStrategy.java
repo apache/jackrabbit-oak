@@ -24,9 +24,7 @@ import static org.apache.jackrabbit.oak.segment.file.PrintableBytes.newPrintable
 
 import java.io.IOException;
 import java.util.List;
-
 import org.apache.jackrabbit.guava.common.base.Joiner;
-import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.oak.segment.file.tar.CleanupContext;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.apache.jackrabbit.oak.segment.file.tar.TarFiles;
@@ -46,12 +44,15 @@ class DefaultCleanupStrategy implements CleanupStrategy {
         // to clear stale weak references in the SegmentTracker
         System.gc();
 
-        TarFiles.CleanupResult cleanupResult = context.getTarFiles().cleanup(newCleanupContext(context));
+        TarFiles.CleanupResult cleanupResult = context.getTarFiles()
+                                                      .cleanup(newCleanupContext(context));
         if (cleanupResult.isInterrupted()) {
             context.getGCListener().info("cleanup interrupted");
         }
-        context.getSegmentTracker().clearSegmentIdTables(cleanupResult.getReclaimedSegmentIds(), context.getSegmentEvictionReason());
-        context.getGCListener().info("cleanup marking files for deletion: {}", toFileNames(cleanupResult.getRemovableFiles()));
+        context.getSegmentTracker().clearSegmentIdTables(cleanupResult.getReclaimedSegmentIds(),
+            context.getSegmentEvictionReason());
+        context.getGCListener().info("cleanup marking files for deletion: {}",
+            toFileNames(cleanupResult.getRemovableFiles()));
 
         long finalSize = size(context);
         long reclaimedSize = cleanupResult.getReclaimedSize();
@@ -60,11 +61,11 @@ class DefaultCleanupStrategy implements CleanupStrategy {
         GCJournal gcJournal = context.getGCJournal();
         if (gcJournal != null) {
             gcJournal.persist(
-                    reclaimedSize,
-                    finalSize,
-                    getGcGeneration(context),
-                    context.getCompactionMonitor().getCompactedNodes(),
-                    context.getCompactedRootId()
+                reclaimedSize,
+                finalSize,
+                getGcGeneration(context),
+                context.getCompactionMonitor().getCompactedNodes(),
+                context.getCompactedRootId()
             );
         }
         context.getGCListener().cleaned(reclaimedSize, finalSize);
@@ -79,7 +80,7 @@ class DefaultCleanupStrategy implements CleanupStrategy {
 
     private static CleanupContext newCleanupContext(Context context) {
         return new DefaultCleanupContext(context.getSegmentTracker(), context.getReclaimer(),
-                context.getCompactedRootId());
+            context.getCompactedRootId());
     }
 
     private static String toFileNames(@NotNull List<String> files) {

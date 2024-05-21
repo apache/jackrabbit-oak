@@ -16,18 +16,18 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
-import java.math.BigDecimal;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.api.Type.DECIMAL;
 
+import java.math.BigDecimal;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.value.Conversions;
 import org.apache.jackrabbit.oak.plugins.value.Conversions.Converter;
 import org.jetbrains.annotations.NotNull;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.api.Type.DECIMAL;
-
 public class DecimalPropertyState extends SinglePropertyState<BigDecimal> {
+
     private final BigDecimal value;
 
     public DecimalPropertyState(@NotNull String name, @NotNull BigDecimal value) {
@@ -37,12 +37,13 @@ public class DecimalPropertyState extends SinglePropertyState<BigDecimal> {
 
     /**
      * Create a {@code PropertyState} from a decimal.
+     *
      * @param name  The name of the property state
-     * @param value  The value of the property state
-     * @return  The new property state of type {@link Type#DECIMAL}
+     * @param value The value of the property state
+     * @return The new property state of type {@link Type#DECIMAL}
      */
     public static PropertyState decimalProperty(
-            @NotNull String name, @NotNull BigDecimal value) {
+        @NotNull String name, @NotNull BigDecimal value) {
         return new DecimalPropertyState(name, value);
     }
 

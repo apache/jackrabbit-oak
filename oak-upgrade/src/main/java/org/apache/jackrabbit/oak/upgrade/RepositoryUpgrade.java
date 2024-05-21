@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.upgrade;
 
+import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.copyOf;
@@ -25,10 +26,11 @@ import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithC
 import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
 import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.guava.common.collect.Sets.union;
-import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.oak.plugins.migration.FilteringNodeState.ALL;
 import static org.apache.jackrabbit.oak.plugins.migration.FilteringNodeState.NONE;
 import static org.apache.jackrabbit.oak.plugins.migration.NodeStateCopier.copyProperties;
+import static org.apache.jackrabbit.oak.plugins.migration.version.VersionCopier.copyVersionStorage;
+import static org.apache.jackrabbit.oak.plugins.migration.version.VersionHistoryUtil.getVersionStorage;
 import static org.apache.jackrabbit.oak.plugins.name.Namespaces.addCustomMapping;
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_ALL;
@@ -45,7 +47,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-
 import javax.jcr.NamespaceException;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
@@ -57,14 +58,6 @@ import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.nodetype.NodeTypeTemplate;
 import javax.jcr.nodetype.PropertyDefinitionTemplate;
 import javax.jcr.security.Privilege;
-
-import org.apache.jackrabbit.guava.common.base.Charsets;
-import org.apache.jackrabbit.guava.common.base.Function;
-import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.collect.HashBiMap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.core.RepositoryContext;
@@ -78,6 +71,14 @@ import org.apache.jackrabbit.core.nodetype.NodeTypeRegistry;
 import org.apache.jackrabbit.core.query.lucene.FieldNames;
 import org.apache.jackrabbit.core.security.authorization.PrivilegeRegistry;
 import org.apache.jackrabbit.core.security.user.UserManagerImpl;
+import org.apache.jackrabbit.guava.common.base.Charsets;
+import org.apache.jackrabbit.guava.common.base.Function;
+import org.apache.jackrabbit.guava.common.base.Stopwatch;
+import org.apache.jackrabbit.guava.common.collect.HashBiMap;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
+import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -91,16 +92,16 @@ import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.reference.ReferenceEditorProvider;
 import org.apache.jackrabbit.oak.plugins.migration.FilteringNodeState;
-import org.apache.jackrabbit.oak.upgrade.nodestate.NameFilteringNodeState;
 import org.apache.jackrabbit.oak.plugins.migration.NodeStateCopier;
 import org.apache.jackrabbit.oak.plugins.migration.report.LoggingReporter;
 import org.apache.jackrabbit.oak.plugins.migration.report.ReportingNodeState;
-import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
-import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
-import org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants;
+import org.apache.jackrabbit.oak.plugins.migration.version.VersionCopyConfiguration;
+import org.apache.jackrabbit.oak.plugins.migration.version.VersionHistoryUtil;
+import org.apache.jackrabbit.oak.plugins.migration.version.VersionableEditor;
+import org.apache.jackrabbit.oak.plugins.migration.version.VersionablePropertiesEditor;
 import org.apache.jackrabbit.oak.plugins.name.Namespaces;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
-import org.apache.jackrabbit.oak.InitialContent;
+import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.ReadWriteNodeTypeManager;
 import org.apache.jackrabbit.oak.plugins.value.jcr.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder;
@@ -110,9 +111,11 @@ import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
+import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.commit.ProgressNotificationEditor;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
+import org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -123,13 +126,10 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.upgrade.nodestate.NameFilteringNodeState;
 import org.apache.jackrabbit.oak.upgrade.security.AuthorizableFolderEditor;
 import org.apache.jackrabbit.oak.upgrade.security.GroupEditorProvider;
 import org.apache.jackrabbit.oak.upgrade.security.RestrictionEditorProvider;
-import org.apache.jackrabbit.oak.plugins.migration.version.VersionCopyConfiguration;
-import org.apache.jackrabbit.oak.plugins.migration.version.VersionHistoryUtil;
-import org.apache.jackrabbit.oak.plugins.migration.version.VersionableEditor;
-import org.apache.jackrabbit.oak.plugins.migration.version.VersionablePropertiesEditor;
 import org.apache.jackrabbit.spi.Name;
 import org.apache.jackrabbit.spi.QNodeDefinition;
 import org.apache.jackrabbit.spi.QNodeTypeDefinition;
@@ -147,9 +147,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.apache.jackrabbit.oak.plugins.migration.version.VersionCopier.copyVersionStorage;
-import static org.apache.jackrabbit.oak.plugins.migration.version.VersionHistoryUtil.getVersionStorage;
 
 public class RepositoryUpgrade {
 
@@ -208,28 +205,28 @@ public class RepositoryUpgrade {
     VersionCopyConfiguration versionCopyConfiguration = new VersionCopyConfiguration();
 
     /**
-     * Copies the contents of the repository in the given source directory
-     * to the given target node store.
+     * Copies the contents of the repository in the given source directory to the given target node
+     * store.
      *
      * @param source source repository directory
      * @param target target node store
      * @throws RepositoryException if the copy operation fails
      */
     public static void copy(File source, NodeStore target)
-            throws RepositoryException {
+        throws RepositoryException {
         copy(RepositoryConfig.create(source), target);
     }
 
     /**
-     * Copies the contents of the repository with the given configuration
-     * to the given target node builder.
+     * Copies the contents of the repository with the given configuration to the given target node
+     * builder.
      *
      * @param source source repository configuration
      * @param target target node store
      * @throws RepositoryException if the copy operation fails
      */
     public static void copy(RepositoryConfig source, NodeStore target)
-            throws RepositoryException {
+        throws RepositoryException {
         RepositoryContext context = RepositoryContext.create(source);
         try {
             new RepositoryUpgrade(context, target).copy(null);
@@ -239,9 +236,8 @@ public class RepositoryUpgrade {
     }
 
     /**
-     * Creates a tool for copying the full contents of the source repository
-     * to the given target repository. Any existing content in the target
-     * repository will be overwritten.
+     * Creates a tool for copying the full contents of the source repository to the given target
+     * repository. Any existing content in the target repository will be overwritten.
      *
      * @param source source repository context
      * @param target target node store
@@ -300,8 +296,8 @@ public class RepositoryUpgrade {
     }
 
     /**
-     * Returns the list of custom CommitHooks to be applied before the final
-     * type validation, reference and indexing hooks.
+     * Returns the list of custom CommitHooks to be applied before the final type validation,
+     * reference and indexing hooks.
      *
      * @return the list of custom CommitHooks
      */
@@ -310,8 +306,8 @@ public class RepositoryUpgrade {
     }
 
     /**
-     * Sets the list of custom CommitHooks to be applied before the final
-     * type validation, reference and indexing hooks.
+     * Sets the list of custom CommitHooks to be applied before the final type validation, reference
+     * and indexing hooks.
      *
      * @param customCommitHooks the list of custom CommitHooks
      */
@@ -320,8 +316,8 @@ public class RepositoryUpgrade {
     }
 
     /**
-     * Sets the paths that should be included when the source repository
-     * is copied to the target repository.
+     * Sets the paths that should be included when the source repository is copied to the target
+     * repository.
      *
      * @param includes Paths to be included in the copy.
      */
@@ -330,8 +326,8 @@ public class RepositoryUpgrade {
     }
 
     /**
-     * Sets the paths that should be excluded when the source repository
-     * is copied to the target repository.
+     * Sets the paths that should be excluded when the source repository is copied to the target
+     * repository.
      *
      * @param excludes Paths to be excluded from the copy.
      */
@@ -340,8 +336,8 @@ public class RepositoryUpgrade {
     }
 
     /**
-     * Sets the paths that should be merged when the source repository
-     * is copied to the target repository.
+     * Sets the paths that should be merged when the source repository is copied to the target
+     * repository.
      *
      * @param merges Paths to be merged during copy.
      */
@@ -350,35 +346,29 @@ public class RepositoryUpgrade {
     }
 
     /**
-     * Configures the version storage copy. Be default all versions are copied.
-     * One may disable it completely by setting {@code null} here or limit it to
-     * a selected date range: {@code <minDate, now()>}.
-     * 
-     * @param minDate
-     *            minimum date of the versions to copy or {@code null} to
-     *            disable the storage version copying completely. Default value:
-     *            {@code 1970-01-01 00:00:00}.
+     * Configures the version storage copy. Be default all versions are copied. One may disable it
+     * completely by setting {@code null} here or limit it to a selected date range:
+     * {@code <minDate, now()>}.
+     *
+     * @param minDate minimum date of the versions to copy or {@code null} to disable the storage
+     *                version copying completely. Default value: {@code 1970-01-01 00:00:00}.
      */
     public void setCopyVersions(Calendar minDate) {
         versionCopyConfiguration.setCopyVersions(minDate);
     }
 
     /**
-     * Configures copying of the orphaned version histories (eg. ones that are
-     * not referenced by the existing nodes). By default all orphaned version
-     * histories are copied. One may disable it completely by setting
-     * {@code null} here or limit it to a selected date range:
+     * Configures copying of the orphaned version histories (eg. ones that are not referenced by the
+     * existing nodes). By default all orphaned version histories are copied. One may disable it
+     * completely by setting {@code null} here or limit it to a selected date range:
      * {@code <minDate, now()>}. <br>
      * <br>
-     * Please notice, that this option is overriden by the
-     * {@link #setCopyVersions(Calendar)}. You can't copy orphaned versions
-     * older than set in {@link #setCopyVersions(Calendar)} and if you set
-     * {@code null} there, this option will be ignored.
-     * 
-     * @param minDate
-     *            minimum date of the orphaned versions to copy or {@code null}
-     *            to not copy them at all. Default value:
-     *            {@code 1970-01-01 00:00:00}.
+     * Please notice, that this option is overriden by the {@link #setCopyVersions(Calendar)}. You
+     * can't copy orphaned versions older than set in {@link #setCopyVersions(Calendar)} and if you
+     * set {@code null} there, this option will be ignored.
+     *
+     * @param minDate minimum date of the orphaned versions to copy or {@code null} to not copy them
+     *                at all. Default value: {@code 1970-01-01 00:00:00}.
      */
     public void setCopyOrphanedVersions(Calendar minDate) {
         versionCopyConfiguration.setCopyOrphanedVersions(minDate);
@@ -387,12 +377,11 @@ public class RepositoryUpgrade {
     /**
      * Copies the full content from the source to the target repository.
      * <p>
-     * The source repository <strong>must not be modified</strong> while
-     * the copy operation is running to avoid an inconsistent copy.
+     * The source repository <strong>must not be modified</strong> while the copy operation is
+     * running to avoid an inconsistent copy.
      * <p>
-     * Note that both the source and the target repository must be closed
-     * during the copy operation as this method requires exclusive access
-     * to the repositories.
+     * Note that both the source and the target repository must be closed during the copy operation
+     * as this method requires exclusive access to the repositories.
      *
      * @param initializer optional extra repository initializer to use
      * @throws RepositoryException if the copy operation fails
@@ -406,16 +395,20 @@ public class RepositoryUpgrade {
         logger.info("Copying repository content from {} to Oak", config.getHomeDir());
         try {
             NodeBuilder targetBuilder = target.getRoot().builder();
-            if (VersionHistoryUtil.getVersionStorage(targetBuilder).exists() && !versionCopyConfiguration.skipOrphanedVersionsCopy()) {
-                logger.warn("The version storage on destination already exists. Orphaned version histories will be skipped.");
+            if (VersionHistoryUtil.getVersionStorage(targetBuilder).exists()
+                && !versionCopyConfiguration.skipOrphanedVersionsCopy()) {
+                logger.warn(
+                    "The version storage on destination already exists. Orphaned version histories will be skipped.");
                 versionCopyConfiguration.setCopyOrphanedVersions(null);
             }
             final Root upgradeRoot = new UpgradeRoot(targetBuilder);
 
             String workspaceName =
-                    source.getRepositoryConfig().getDefaultWorkspaceName();
+                source.getRepositoryConfig().getDefaultWorkspaceName();
             SecurityProvider security = SecurityProviderBuilder.newBuilder()
-                    .with(mapSecurityConfig(config.getSecurityConfig())).build();
+                                                               .with(mapSecurityConfig(
+                                                                   config.getSecurityConfig()))
+                                                               .build();
 
             if (skipInitialization) {
                 logger.info("Skipping the repository initialization");
@@ -431,12 +424,16 @@ public class RepositoryUpgrade {
                 for (SecurityConfiguration sc : security.getConfigurations()) {
                     RepositoryInitializer ri = sc.getRepositoryInitializer();
                     ri.initialize(targetBuilder);
-                    logger.debug("Repository initializer '" + ri.getClass().getName() + "' completed", config.getHomeDir());
+                    logger.debug(
+                        "Repository initializer '" + ri.getClass().getName() + "' completed",
+                        config.getHomeDir());
                 }
                 for (SecurityConfiguration sc : security.getConfigurations()) {
                     WorkspaceInitializer wi = sc.getWorkspaceInitializer();
                     wi.initialize(targetBuilder, workspaceName);
-                    logger.debug("Workspace initializer '" + wi.getClass().getName() + "' completed", config.getHomeDir());
+                    logger.debug(
+                        "Workspace initializer '" + wi.getClass().getName() + "' completed",
+                        config.getHomeDir());
                 }
             }
 
@@ -467,22 +464,25 @@ public class RepositoryUpgrade {
 
                 // migrate privileges
                 logger.info("Copying registered privileges");
-                PrivilegeConfiguration privilegeConfiguration = security.getConfiguration(PrivilegeConfiguration.class);
-                copyCustomPrivileges(privilegeConfiguration.getPrivilegeManager(upgradeRoot, NamePathMapper.DEFAULT));
+                PrivilegeConfiguration privilegeConfiguration = security.getConfiguration(
+                    PrivilegeConfiguration.class);
+                copyCustomPrivileges(privilegeConfiguration.getPrivilegeManager(upgradeRoot,
+                    NamePathMapper.DEFAULT));
                 logger.debug("Privilege registration completed.");
 
                 // Triggers compilation of type information, which we need for
                 // the type predicates used by the bulk  copy operations below.
                 new TypeEditorProvider(false).getRootEditor(
-                        targetBuilder.getBaseState(), targetBuilder.getNodeState(), targetBuilder, null);
+                    targetBuilder.getBaseState(), targetBuilder.getNodeState(), targetBuilder,
+                    null);
             }
 
             final NodeState reportingSourceRoot = ReportingNodeState.wrap(
-                    JackrabbitNodeState.createRootNodeState(
-                            source, workspaceName, targetBuilder.getNodeState(), 
-                            uriToPrefix, copyBinariesByReference, skipOnError
-                    ),
-                    new LoggingReporter(logger, "Migrating", LOG_NODE_COPY, -1)
+                JackrabbitNodeState.createRootNodeState(
+                    source, workspaceName, targetBuilder.getNodeState(),
+                    uriToPrefix, copyBinariesByReference, skipOnError
+                ),
+                new LoggingReporter(logger, "Migrating", LOG_NODE_COPY, -1)
             );
             final NodeState sourceRoot;
             if (filterLongNames) {
@@ -496,16 +496,20 @@ public class RepositoryUpgrade {
             logger.info("Copying workspace content");
             copyWorkspace(sourceRoot, targetBuilder, workspaceName);
             targetBuilder.getNodeState(); // on TarMK this does call triggers the actual copy
-            logger.info("Upgrading workspace content completed in {}s ({})", watch.elapsed(TimeUnit.SECONDS), watch);
+            logger.info("Upgrading workspace content completed in {}s ({})",
+                watch.elapsed(TimeUnit.SECONDS), watch);
 
             if (!versionCopyConfiguration.skipOrphanedVersionsCopy()) {
                 logger.info("Copying version storage");
                 watch.reset().start();
-                copyVersionStorage(targetBuilder, getVersionStorage(sourceRoot), getVersionStorage(targetBuilder), versionCopyConfiguration);
+                copyVersionStorage(targetBuilder, getVersionStorage(sourceRoot),
+                    getVersionStorage(targetBuilder), versionCopyConfiguration);
                 targetBuilder.getNodeState(); // on TarMK this does call triggers the actual copy
-                logger.info("Version storage copied in {}s ({})", watch.elapsed(TimeUnit.SECONDS), watch);
+                logger.info("Version storage copied in {}s ({})", watch.elapsed(TimeUnit.SECONDS),
+                    watch);
             } else {
-                logger.info("Skipping the version storage as the copyOrphanedVersions is set to false");
+                logger.info(
+                    "Skipping the version storage as the copyOrphanedVersions is set to false");
             }
 
             watch.reset().start();
@@ -514,22 +518,22 @@ public class RepositoryUpgrade {
             List<CommitHook> hooks = newArrayList();
 
             UserConfiguration userConf =
-                    security.getConfiguration(UserConfiguration.class);
+                security.getConfiguration(UserConfiguration.class);
             String groupsPath = userConf.getParameters().getConfigValue(
-                    UserConstants.PARAM_GROUP_PATH,
-                    UserConstants.DEFAULT_GROUP_PATH);
+                UserConstants.PARAM_GROUP_PATH,
+                UserConstants.DEFAULT_GROUP_PATH);
             String usersPath = userConf.getParameters().getConfigValue(
-                    UserConstants.PARAM_USER_PATH,
-                    UserConstants.DEFAULT_USER_PATH);
+                UserConstants.PARAM_USER_PATH,
+                UserConstants.DEFAULT_USER_PATH);
 
             // hooks specific to the upgrade, need to run first
             hooks.add(new EditorHook(new CompositeEditorProvider(
-                    new RestrictionEditorProvider(),
-                    new GroupEditorProvider(groupsPath),
-                    // copy referenced version histories
-                    new VersionableEditor.Provider(sourceRoot, workspaceName, versionCopyConfiguration),
-                    new SameNameSiblingsEditor.Provider(),
-                    AuthorizableFolderEditor.provider(groupsPath, usersPath)
+                new RestrictionEditorProvider(),
+                new GroupEditorProvider(groupsPath),
+                // copy referenced version histories
+                new VersionableEditor.Provider(sourceRoot, workspaceName, versionCopyConfiguration),
+                new SameNameSiblingsEditor.Provider(),
+                AuthorizableFolderEditor.provider(groupsPath, usersPath)
             )));
 
             // this editor works on the VersionableEditor output, so it can't be
@@ -551,8 +555,10 @@ public class RepositoryUpgrade {
                 createIndexEditorProvider()
             )));
 
-            target.merge(targetBuilder, new LoggingCompositeHook(hooks, source, overrideEarlyShutdown()), CommitInfo.EMPTY);
-            logger.info("Processing commit hooks completed in {}s ({})", watch.elapsed(TimeUnit.SECONDS), watch);
+            target.merge(targetBuilder,
+                new LoggingCompositeHook(hooks, source, overrideEarlyShutdown()), CommitInfo.EMPTY);
+            logger.info("Processing commit hooks completed in {}s ({})",
+                watch.elapsed(TimeUnit.SECONDS), watch);
 
             removeVersions();
 
@@ -564,10 +570,15 @@ public class RepositoryUpgrade {
 
     private void removeVersions() throws CommitFailedException {
         NodeState root = target.getRoot();
-        boolean frozenNodeReferenceable = org.apache.jackrabbit.oak.plugins.version.Utils.isFrozenNodeReferenceable(root);
-        NodeState wrappedRoot = FilteringNodeState.wrap(PathUtils.ROOT_PATH, root, includePaths, excludePaths, FilteringNodeState.NONE, FilteringNodeState.NONE, frozenNodeReferenceable);
+        boolean frozenNodeReferenceable = org.apache.jackrabbit.oak.plugins.version.Utils.isFrozenNodeReferenceable(
+            root);
+        NodeState wrappedRoot = FilteringNodeState.wrap(PathUtils.ROOT_PATH, root, includePaths,
+            excludePaths, FilteringNodeState.NONE, FilteringNodeState.NONE,
+            frozenNodeReferenceable);
         NodeState versionStorage = getVersionStorage(root);
-        List<String> versionablesToStrip = VersionHistoryUtil.getVersionableNodes(wrappedRoot, versionStorage, new TypePredicate(root, JcrConstants.MIX_VERSIONABLE), versionCopyConfiguration.getVersionsMinDate());
+        List<String> versionablesToStrip = VersionHistoryUtil.getVersionableNodes(wrappedRoot,
+            versionStorage, new TypePredicate(root, JcrConstants.MIX_VERSIONABLE),
+            versionCopyConfiguration.getVersionsMinDate());
         if (!versionablesToStrip.isEmpty()) {
             logger.info("Removing version histories for included paths");
             NodeBuilder newRoot = VersionHistoryUtil.removeVersions(root, versionablesToStrip);
@@ -586,7 +597,7 @@ public class RepositoryUpgrade {
             return false;
         }
         if (c.isCopyVersions() && !c.skipOrphanedVersionsCopy()
-                && c.getOrphanedMinDate().after(c.getVersionsMinDate())) {
+            && c.getOrphanedMinDate().after(c.getVersionsMinDate())) {
             logger.info("Overriding early shutdown to false because of the copy versions settings");
             return false;
         }
@@ -600,10 +611,11 @@ public class RepositoryUpgrade {
     static EditorProvider createTypeEditorProvider() {
         return new EditorProvider() {
             @Override
-            public Editor getRootEditor(NodeState before, NodeState after, NodeBuilder builder, CommitInfo info)
-                    throws CommitFailedException {
+            public Editor getRootEditor(NodeState before, NodeState after, NodeBuilder builder,
+                CommitInfo info)
+                throws CommitFailedException {
                 Editor rootEditor = new TypeEditorProvider(false)
-                        .getRootEditor(before, after, builder, info);
+                    .getRootEditor(before, after, builder, info);
                 return ProgressNotificationEditor.wrap(rootEditor, logger, "Checking node types:");
             }
 
@@ -618,23 +630,26 @@ public class RepositoryUpgrade {
         final ProgressTicker ticker = new AsciiArtTicker();
         return new EditorProvider() {
             @Override
-            public Editor getRootEditor(NodeState before, NodeState after, NodeBuilder builder, CommitInfo info) {
+            public Editor getRootEditor(NodeState before, NodeState after, NodeBuilder builder,
+                CommitInfo info) {
                 IndexEditorProvider editorProviders = new CompositeIndexEditorProvider(
-                        new ReferenceEditorProvider(),
-                        new PropertyIndexEditorProvider());
+                    new ReferenceEditorProvider(),
+                    new PropertyIndexEditorProvider());
 
-                return new IndexUpdate(editorProviders, null, after, builder, new IndexUpdateCallback() {
-                    String progress = "Updating indexes ";
-                    long t0;
-                    @Override
-                    public void indexUpdate() {
-                        long t = System.currentTimeMillis();
-                        if (t - t0 > 2000) {
-                            logger.info("{} {}", progress, ticker.tick());
-                            t0 = t ;
+                return new IndexUpdate(editorProviders, null, after, builder,
+                    new IndexUpdateCallback() {
+                        String progress = "Updating indexes ";
+                        long t0;
+
+                        @Override
+                        public void indexUpdate() {
+                            long t = System.currentTimeMillis();
+                            if (t - t0 > 2000) {
+                                logger.info("{} {}", progress, ticker.tick());
+                                t0 = t;
+                            }
                         }
-                    }
-                });
+                    });
             }
 
             @Override
@@ -646,28 +661,30 @@ public class RepositoryUpgrade {
 
     protected ConfigurationParameters mapSecurityConfig(SecurityConfig config) {
         ConfigurationParameters loginConfig = mapConfigurationParameters(
-                config.getLoginModuleConfig(),
-                LoginModuleConfig.PARAM_ADMIN_ID, UserConstants.PARAM_ADMIN_ID,
-                LoginModuleConfig.PARAM_ANONYMOUS_ID, UserConstants.PARAM_ANONYMOUS_ID);
+            config.getLoginModuleConfig(),
+            LoginModuleConfig.PARAM_ADMIN_ID, UserConstants.PARAM_ADMIN_ID,
+            LoginModuleConfig.PARAM_ANONYMOUS_ID, UserConstants.PARAM_ANONYMOUS_ID);
         ConfigurationParameters userConfig;
         if (config.getSecurityManagerConfig() == null) {
             userConfig = ConfigurationParameters.EMPTY;
         } else {
             userConfig = mapConfigurationParameters(
-                    config.getSecurityManagerConfig().getUserManagerConfig(),
-                    UserManagerImpl.PARAM_USERS_PATH, UserConstants.PARAM_USER_PATH,
-                    UserManagerImpl.PARAM_GROUPS_PATH, UserConstants.PARAM_GROUP_PATH,
-                    UserManagerImpl.PARAM_DEFAULT_DEPTH, UserConstants.PARAM_DEFAULT_DEPTH,
-                    UserManagerImpl.PARAM_PASSWORD_HASH_ALGORITHM, UserConstants.PARAM_PASSWORD_HASH_ALGORITHM,
-                    UserManagerImpl.PARAM_PASSWORD_HASH_ITERATIONS, UserConstants.PARAM_PASSWORD_HASH_ITERATIONS);
+                config.getSecurityManagerConfig().getUserManagerConfig(),
+                UserManagerImpl.PARAM_USERS_PATH, UserConstants.PARAM_USER_PATH,
+                UserManagerImpl.PARAM_GROUPS_PATH, UserConstants.PARAM_GROUP_PATH,
+                UserManagerImpl.PARAM_DEFAULT_DEPTH, UserConstants.PARAM_DEFAULT_DEPTH,
+                UserManagerImpl.PARAM_PASSWORD_HASH_ALGORITHM,
+                UserConstants.PARAM_PASSWORD_HASH_ALGORITHM,
+                UserManagerImpl.PARAM_PASSWORD_HASH_ITERATIONS,
+                UserConstants.PARAM_PASSWORD_HASH_ITERATIONS);
         }
         return ConfigurationParameters.of(ImmutableMap.of(
-                UserConfiguration.NAME,
-                ConfigurationParameters.of(loginConfig, userConfig)));
+            UserConfiguration.NAME,
+            ConfigurationParameters.of(loginConfig, userConfig)));
     }
 
     protected ConfigurationParameters mapConfigurationParameters(
-            BeanConfig config, String... mapping) {
+        BeanConfig config, String... mapping) {
         Map<String, String> map = newHashMap();
         if (config != null) {
             Properties properties = config.getParameters();
@@ -692,17 +709,17 @@ public class RepositoryUpgrade {
     }
 
     /**
-     * Copies the registered namespaces to the target repository, and returns
-     * the internal namespace index mapping used in bundle serialization.
+     * Copies the registered namespaces to the target repository, and returns the internal namespace
+     * index mapping used in bundle serialization.
      *
-     * @param targetRoot root builder of the target store
+     * @param targetRoot  root builder of the target store
      * @param uriToPrefix namespace URI to prefix mapping
      * @throws RepositoryException
      */
     private void copyNamespaces(
-            NodeBuilder targetRoot,
-            Map<String, String> uriToPrefix)
-            throws RepositoryException {
+        NodeBuilder targetRoot,
+        Map<String, String> uriToPrefix)
+        throws RepositoryException {
         NodeBuilder system = targetRoot.child(JCR_SYSTEM);
         NodeBuilder namespaces = system.child(NamespaceConstants.REP_NAMESPACES);
 
@@ -758,7 +775,8 @@ public class RepositoryUpgrade {
                 continue;
             }
 
-            if (PrivilegeBits.BUILT_IN.containsKey(privilegeName) || JCR_ALL.equals(privilegeName)) {
+            if (PrivilegeBits.BUILT_IN.containsKey(privilegeName) || JCR_ALL.equals(
+                privilegeName)) {
                 // Ignore built in privileges as those have been installed by the PrivilegesInitializer already
                 logger.debug("Built-in privilege -> ignore.");
             } else if (privilege.isAggregate()) {
@@ -778,16 +796,17 @@ public class RepositoryUpgrade {
                 Privilege aggrPriv = it.next();
 
                 List<String> aggrNames = Lists.transform(
-                        ImmutableList.copyOf(aggrPriv.getDeclaredAggregatePrivileges()),
-                        new Function<Privilege, String>() {
-                            @Nullable
-                            @Override
-                            public String apply(@Nullable Privilege input) {
-                                return (input == null) ? null : input.getName();
-                            }
-                        });
+                    ImmutableList.copyOf(aggrPriv.getDeclaredAggregatePrivileges()),
+                    new Function<Privilege, String>() {
+                        @Nullable
+                        @Override
+                        public String apply(@Nullable Privilege input) {
+                            return (input == null) ? null : input.getName();
+                        }
+                    });
                 if (allAggregatesRegistered(pMgr, aggrNames)) {
-                    pMgr.registerPrivilege(aggrPriv.getName(), aggrPriv.isAbstract(), aggrNames.toArray(new String[aggrNames.size()]));
+                    pMgr.registerPrivilege(aggrPriv.getName(), aggrPriv.isAbstract(),
+                        aggrNames.toArray(new String[aggrNames.size()]));
                     it.remove();
                     logger.info("- " + aggrPriv.getName());
                     progress = true;
@@ -805,11 +824,14 @@ public class RepositoryUpgrade {
             for (Privilege p : customAggrPrivs) {
                 invalid.append(p.getName()).append('|');
             }
-            throw new RepositoryException("Failed to register custom privileges. The following privileges contained an invalid aggregation:" + invalid);
+            throw new RepositoryException(
+                "Failed to register custom privileges. The following privileges contained an invalid aggregation:"
+                    + invalid);
         }
     }
 
-    private boolean hasPrivilege(PrivilegeManager pMgr, String privilegeName) throws RepositoryException {
+    private boolean hasPrivilege(PrivilegeManager pMgr, String privilegeName)
+        throws RepositoryException {
         final Privilege[] registeredPrivileges = pMgr.getRegisteredPrivileges();
         for (Privilege registeredPrivilege : registeredPrivileges) {
             if (registeredPrivilege.getName().equals(privilegeName)) {
@@ -819,7 +841,8 @@ public class RepositoryUpgrade {
         return false;
     }
 
-    private static boolean allAggregatesRegistered(PrivilegeManager privilegeManager, List<String> aggrNames) {
+    private static boolean allAggregatesRegistered(PrivilegeManager privilegeManager,
+        List<String> aggrNames) {
         for (String name : aggrNames) {
             try {
                 privilegeManager.getPrivilege(name);
@@ -830,7 +853,8 @@ public class RepositoryUpgrade {
         return true;
     }
 
-    private void copyNodeTypes(NodeTypeManager ntMgr, ValueFactory valueFactory) throws RepositoryException {
+    private void copyNodeTypes(NodeTypeManager ntMgr, ValueFactory valueFactory)
+        throws RepositoryException {
         NodeTypeRegistry sourceRegistry = source.getNodeTypeRegistry();
         List<NodeTypeTemplate> templates = Lists.newArrayList();
         for (Name name : sourceRegistry.getRegisteredNodeTypes()) {
@@ -844,7 +868,8 @@ public class RepositoryUpgrade {
         ntMgr.registerNodeTypes(templates.toArray(new NodeTypeTemplate[templates.size()]), true);
     }
 
-    private NodeTypeTemplate createNodeTypeTemplate(ValueFactory valueFactory, NodeTypeManager ntMgr, String oakName, QNodeTypeDefinition def) throws RepositoryException {
+    private NodeTypeTemplate createNodeTypeTemplate(ValueFactory valueFactory,
+        NodeTypeManager ntMgr, String oakName, QNodeTypeDefinition def) throws RepositoryException {
         NodeTypeTemplate tmpl = ntMgr.createNodeTypeTemplate();
         tmpl.setName(oakName);
         tmpl.setAbstract(def.isAbstract());
@@ -868,7 +893,8 @@ public class RepositoryUpgrade {
 
         List<PropertyDefinitionTemplate> propertyDefinitionTemplates = tmpl.getPropertyDefinitionTemplates();
         for (QPropertyDefinition qpd : def.getPropertyDefs()) {
-            PropertyDefinitionTemplate pdt = createPropertyDefinitionTemplate(valueFactory, ntMgr, qpd);
+            PropertyDefinitionTemplate pdt = createPropertyDefinitionTemplate(valueFactory, ntMgr,
+                qpd);
             propertyDefinitionTemplates.add(pdt);
         }
 
@@ -882,7 +908,8 @@ public class RepositoryUpgrade {
         return tmpl;
     }
 
-    private NodeDefinitionTemplate createNodeDefinitionTemplate(NodeTypeManager ntMgr, QNodeDefinition def) throws RepositoryException {
+    private NodeDefinitionTemplate createNodeDefinitionTemplate(NodeTypeManager ntMgr,
+        QNodeDefinition def) throws RepositoryException {
         NodeDefinitionTemplate tmpl = ntMgr.createNodeDefinitionTemplate();
 
         Name name = def.getName();
@@ -909,7 +936,8 @@ public class RepositoryUpgrade {
         return tmpl;
     }
 
-    private PropertyDefinitionTemplate createPropertyDefinitionTemplate(ValueFactory valueFactory, NodeTypeManager ntMgr, QPropertyDefinition def) throws RepositoryException {
+    private PropertyDefinitionTemplate createPropertyDefinitionTemplate(ValueFactory valueFactory,
+        NodeTypeManager ntMgr, QPropertyDefinition def) throws RepositoryException {
         PropertyDefinitionTemplate tmpl = ntMgr.createPropertyDefinitionTemplate();
 
         Name name = def.getName();
@@ -937,7 +965,8 @@ public class RepositoryUpgrade {
 
         QValue[] qValues = def.getDefaultValues();
         if (qValues != null) {
-            NamePathResolver npResolver = new DefaultNamePathResolver(source.getNamespaceRegistry());
+            NamePathResolver npResolver = new DefaultNamePathResolver(
+                source.getNamespaceRegistry());
             Value[] vs = new Value[qValues.length];
             for (int i = 0; i < qValues.length; i++) {
                 vs[i] = ValueFormat.getJCRValue(qValues[i], npResolver, valueFactory);
@@ -949,18 +978,20 @@ public class RepositoryUpgrade {
     }
 
     private String copyWorkspace(NodeState sourceRoot, NodeBuilder targetRoot, String workspaceName)
-            throws RepositoryException {
+        throws RepositoryException {
         final Set<String> includes = calculateEffectiveIncludePaths(includePaths, sourceRoot);
-        final Set<String> excludes = union(copyOf(this.excludePaths), of("/jcr:system/jcr:versionStorage"));
+        final Set<String> excludes = union(copyOf(this.excludePaths),
+            of("/jcr:system/jcr:versionStorage"));
         final Set<String> merges = union(copyOf(this.mergePaths), of("/jcr:system"));
 
-        logger.info("Copying workspace {} [i: {}, e: {}, m: {}]", workspaceName, includes, excludes, merges);
+        logger.info("Copying workspace {} [i: {}, e: {}, m: {}]", workspaceName, includes, excludes,
+            merges);
 
         NodeStateCopier.builder()
-                .include(includes)
-                .exclude(excludes)
-                .merge(merges)
-                .copy(sourceRoot, targetRoot);
+                       .include(includes)
+                       .exclude(excludes)
+                       .merge(merges)
+                       .copy(sourceRoot, targetRoot);
 
         if (includePaths.contains("/")) {
             copyProperties(sourceRoot, targetRoot);
@@ -969,7 +1000,8 @@ public class RepositoryUpgrade {
         return workspaceName;
     }
 
-    static Set<String> calculateEffectiveIncludePaths(Set<String> includePaths, NodeState sourceRoot) {
+    static Set<String> calculateEffectiveIncludePaths(Set<String> includePaths,
+        NodeState sourceRoot) {
         if (!includePaths.contains("/")) {
             return copyOf(includePaths);
         }
@@ -1016,7 +1048,9 @@ public class RepositoryUpgrade {
             session.logout();
         }
         if (longNameFound) {
-            logger.error("Node with a long name has been found. Please fix the content or rerun the migration with {} option.", SKIP_NAME_CHECK);
+            logger.error(
+                "Node with a long name has been found. Please fix the content or rerun the migration with {} option.",
+                SKIP_NAME_CHECK);
             throw new RepositoryException("Node with a long name has been found.");
         }
     }
@@ -1045,13 +1079,14 @@ public class RepositoryUpgrade {
     }
 
     static class LoggingCompositeHook implements CommitHook {
+
         private final Collection<CommitHook> hooks;
         private boolean started = false;
         private final boolean earlyShutdown;
         private final RepositoryContext source;
 
         public LoggingCompositeHook(Collection<CommitHook> hooks,
-                  RepositoryContext source, boolean earlyShutdown) {
+            RepositoryContext source, boolean earlyShutdown) {
             this.hooks = hooks;
             this.earlyShutdown = earlyShutdown;
             this.source = source;
@@ -1059,7 +1094,8 @@ public class RepositoryUpgrade {
 
         @NotNull
         @Override
-        public NodeState processCommit(NodeState before, NodeState after, CommitInfo info) throws CommitFailedException {
+        public NodeState processCommit(NodeState before, NodeState after, CommitInfo info)
+            throws CommitFailedException {
             NodeState newState = after;
             Stopwatch watch = Stopwatch.createStarted();
             if (earlyShutdown && source != null && !started) {

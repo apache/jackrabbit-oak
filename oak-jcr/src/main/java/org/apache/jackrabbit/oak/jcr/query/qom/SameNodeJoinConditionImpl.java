@@ -30,7 +30,7 @@ public class SameNodeJoinConditionImpl extends JoinConditionImpl implements Same
     private final String selector2Path;
 
     public SameNodeJoinConditionImpl(String selector1Name, String selector2Name,
-            String selector2Path) {
+        String selector2Path) {
         this.selector1Name = selector1Name;
         this.selector2Name = selector2Name;
         this.selector2Path = selector2Path;

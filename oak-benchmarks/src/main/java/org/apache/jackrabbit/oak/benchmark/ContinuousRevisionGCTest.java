@@ -18,28 +18,25 @@ package org.apache.jackrabbit.oak.benchmark;
 
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
-
 import javax.jcr.Node;
 import javax.jcr.Repository;
 import javax.jcr.Session;
-
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
-
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 /**
- * Similar to {@link RevisionGCTest} but runs continuously and performs
- * periodic RevisionGC (every 10 seconds).
+ * Similar to {@link RevisionGCTest} but runs continuously and performs periodic RevisionGC (every
+ * 10 seconds).
  */
 public class ContinuousRevisionGCTest extends RevisionGCTest {
 
     @Override
     protected void run(Repository repository, NodeStore nodeStore)
-            throws Exception {
+        throws Exception {
         Thread t = new Thread(new Writer(createSession(repository)));
         t.start();
 
-        for (;;) {
+        for (; ; ) {
             Thread.sleep(TimeUnit.SECONDS.toMillis(10));
             Stopwatch sw = Stopwatch.createStarted();
             String result = revisionGC(nodeStore);

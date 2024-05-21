@@ -20,7 +20,6 @@
 package org.apache.jackrabbit.oak.segment.file.proc;
 
 import java.util.Collections;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;

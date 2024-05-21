@@ -28,6 +28,10 @@ import co.elastic.clients.elasticsearch.indices.PutIndicesSettingsResponse;
 import co.elastic.clients.elasticsearch.indices.UpdateAliasesRequest;
 import co.elastic.clients.elasticsearch.indices.UpdateAliasesResponse;
 import co.elastic.clients.json.JsonpUtils;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Set;
+import java.util.UUID;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
@@ -46,12 +50,8 @@ import org.jetbrains.annotations.TestOnly;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Set;
-import java.util.UUID;
-
 class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
+
     private static final Logger LOG = LoggerFactory.getLogger(ElasticIndexWriter.class);
 
     private final ElasticIndexTracker indexTracker;
@@ -62,10 +62,10 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
     private final String indexName;
 
     ElasticIndexWriter(@NotNull ElasticIndexTracker indexTracker,
-                       @NotNull ElasticConnection elasticConnection,
-                       @NotNull ElasticIndexDefinition indexDefinition,
-                       @NotNull NodeBuilder definitionBuilder,
-                       boolean reindex, CommitInfo commitInfo) {
+        @NotNull ElasticConnection elasticConnection,
+        @NotNull ElasticIndexDefinition indexDefinition,
+        @NotNull NodeBuilder definitionBuilder,
+        boolean reindex, CommitInfo commitInfo) {
         this.indexTracker = indexTracker;
         this.elasticConnection = elasticConnection;
         this.indexDefinition = indexDefinition;
@@ -76,20 +76,26 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
         // old index until the new one gets enabled) during incremental reindexing
         if (this.reindex) {
             try {
-                long seed = indexDefinition.indexNameSeed == 0L ? UUID.randomUUID().getMostSignificantBits() : indexDefinition.indexNameSeed;
+                long seed =
+                    indexDefinition.indexNameSeed == 0L ? UUID.randomUUID().getMostSignificantBits()
+                        : indexDefinition.indexNameSeed;
                 // merge gets called on node store later in the indexing flow
                 definitionBuilder.setProperty(ElasticIndexDefinition.PROP_INDEX_NAME_SEED, seed);
                 // let's store the current mapping version in the index definition
-                definitionBuilder.setProperty(ElasticIndexDefinition.PROP_INDEX_MAPPING_VERSION, ElasticIndexHelper.MAPPING_VERSION);
+                definitionBuilder.setProperty(ElasticIndexDefinition.PROP_INDEX_MAPPING_VERSION,
+                    ElasticIndexHelper.MAPPING_VERSION);
 
                 indexName = ElasticIndexNameHelper.
-                        getRemoteIndexName(elasticConnection.getIndexPrefix(), indexDefinition.getIndexPath(), seed);
+                    getRemoteIndexName(elasticConnection.getIndexPrefix(),
+                        indexDefinition.getIndexPath(), seed);
 
                 provisionIndex();
             } catch (IOException e) {
                 throw new IllegalStateException("Unable to provision index", e);
             }
-        } else indexName = indexDefinition.getIndexAlias();
+        } else {
+            indexName = indexDefinition.getIndexAlias();
+        }
         boolean waitForESAcknowledgement = true;
         PropertyState async = indexDefinition.getDefinitionNodeState().getProperty("async");
         if (async != null) {
@@ -99,20 +105,22 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
             // If the IndexDefinition has a property async-previous set, this implies it's being called from oak-run for offline-reindex.
             // we need to set waitForESAcknowledgement = false only in the second case i.e.
             // when this is a part of commit hook due to async property having a value nrt
-            if (!(commitInfo.getInfo().containsKey(IndexConstants.CHECKPOINT_CREATION_TIME) || AsyncLaneSwitcher.isLaneSwitched(definitionBuilder))) {
+            if (!(commitInfo.getInfo().containsKey(IndexConstants.CHECKPOINT_CREATION_TIME)
+                || AsyncLaneSwitcher.isLaneSwitched(definitionBuilder))) {
                 waitForESAcknowledgement = false;
             }
         }
 
         this.bulkProcessorHandler = ElasticBulkProcessorHandler
-                .getBulkProcessorHandler(elasticConnection, indexName, indexDefinition, definitionBuilder, commitInfo, waitForESAcknowledgement);
+            .getBulkProcessorHandler(elasticConnection, indexName, indexDefinition,
+                definitionBuilder, commitInfo, waitForESAcknowledgement);
     }
 
     @TestOnly
     ElasticIndexWriter(@NotNull ElasticIndexTracker indexTracker,
-                       @NotNull ElasticConnection elasticConnection,
-                       @NotNull ElasticIndexDefinition indexDefinition,
-                       @NotNull ElasticBulkProcessorHandler bulkProcessorHandler) {
+        @NotNull ElasticConnection elasticConnection,
+        @NotNull ElasticIndexDefinition indexDefinition,
+        @NotNull ElasticBulkProcessorHandler bulkProcessorHandler) {
         this.indexTracker = indexTracker;
         this.elasticConnection = elasticConnection;
         this.indexDefinition = indexDefinition;
@@ -152,10 +160,13 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
         if (indexNode != null) {
             ElasticIndexStatistics stats = indexNode.getIndexStatistics();
             try {
-                indexTracker.getElasticMetricHandler().markDocuments(indexName, indexNode.getIndexStatistics().numDocs());
-                indexTracker.getElasticMetricHandler().markSize(indexName, stats.primaryStoreSize(), stats.storeSize());
+                indexTracker.getElasticMetricHandler()
+                            .markDocuments(indexName, indexNode.getIndexStatistics().numDocs());
+                indexTracker.getElasticMetricHandler()
+                            .markSize(indexName, stats.primaryStoreSize(), stats.storeSize());
             } catch (Exception e) {
-                LOG.warn("Unable to store metrics for {}", indexNode.getDefinition().getIndexPath(), e);
+                LOG.warn("Unable to store metrics for {}", indexNode.getDefinition().getIndexPath(),
+                    e);
             } finally {
                 indexNode.release();
             }
@@ -170,7 +181,8 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
             return;
         }
 
-        final CreateIndexRequest request = ElasticIndexHelper.createIndexRequest(indexName, indexDefinition);
+        final CreateIndexRequest request = ElasticIndexHelper.createIndexRequest(indexName,
+            indexDefinition);
         if (LOG.isDebugEnabled()) {
             StringBuilder sb = new StringBuilder();
             JsonpUtils.toString(request, sb);
@@ -179,14 +191,17 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
         // create the new index
         try {
             final CreateIndexResponse response = esClient.create(request);
-            LOG.info("Created index {}. Response acknowledged: {}", indexName, response.acknowledged());
-            checkResponseAcknowledgement(response, "Create index call not acknowledged for index " + indexName);
+            LOG.info("Created index {}. Response acknowledged: {}", indexName,
+                response.acknowledged());
+            checkResponseAcknowledgement(response,
+                "Create index call not acknowledged for index " + indexName);
         } catch (ElasticsearchException ese) {
             // We already check index existence as first thing in this method, if we get here it means we have got into
             // a conflict (eg: multiple cluster nodes provision concurrently).
             // Elasticsearch does not have a CREATE IF NOT EXIST, need to inspect exception
             // https://github.com/elastic/elasticsearch/issues/19862
-            if (ese.status() == 400 && ese.getMessage().contains("resource_already_exists_exception")) {
+            if (ese.status() == 400 && ese.getMessage()
+                                          .contains("resource_already_exists_exception")) {
                 LOG.warn("Index {} already exists. Ignoring error", indexName);
             } else {
                 throw ese;
@@ -201,51 +216,66 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
             throw new IllegalStateException("cannot enable an index that does not exist");
         }
 
-        PutIndicesSettingsRequest request = ElasticIndexHelper.enableIndexRequest(indexName, indexDefinition);
+        PutIndicesSettingsRequest request = ElasticIndexHelper.enableIndexRequest(indexName,
+            indexDefinition);
         if (LOG.isDebugEnabled()) {
             LOG.debug("Updating Index Settings with request {}", request);
         }
         PutIndicesSettingsResponse response = client.putSettings(request);
-        LOG.info("Updated settings for index {}. Response acknowledged: {}", indexName, response.acknowledged());
-        checkResponseAcknowledgement(response, "Update index settings call not acknowledged for index " + indexName);
+        LOG.info("Updated settings for index {}. Response acknowledged: {}", indexName,
+            response.acknowledged());
+        checkResponseAcknowledgement(response,
+            "Update index settings call not acknowledged for index " + indexName);
 
         // update the alias
         GetAliasResponse aliasResponse = client.getAlias(garb ->
-                garb.index(indexDefinition.getIndexAlias()).ignoreUnavailable(true));
+            garb.index(indexDefinition.getIndexAlias()).ignoreUnavailable(true));
 
         UpdateAliasesRequest updateAliasesRequest = UpdateAliasesRequest.of(rb -> {
-            aliasResponse.result().forEach((idx, idxAliases) -> rb.actions(ab -> // remove old aliases
-                    ab.remove(rab -> rab.index(idx).aliases(new ArrayList<>(idxAliases.aliases().keySet()))))
-            );
-            return rb.actions(ab -> ab.add(aab -> aab.index(indexName).alias(indexDefinition.getIndexAlias()))); // add new one
+            aliasResponse.result()
+                         .forEach((idx, idxAliases) -> rb.actions(ab -> // remove old aliases
+                             ab.remove(rab -> rab.index(idx).aliases(
+                                 new ArrayList<>(idxAliases.aliases().keySet()))))
+                         );
+            return rb.actions(ab -> ab.add(
+                aab -> aab.index(indexName).alias(indexDefinition.getIndexAlias()))); // add new one
         });
         UpdateAliasesResponse updateAliasesResponse = client.updateAliases(updateAliasesRequest);
-        checkResponseAcknowledgement(updateAliasesResponse, "Update alias call not acknowledged for alias "
+        checkResponseAcknowledgement(updateAliasesResponse,
+            "Update alias call not acknowledged for alias "
                 + indexDefinition.getIndexAlias());
-        LOG.info("Updated alias {} to index {}. Response acknowledged: {}", indexDefinition.getIndexAlias(),
-                indexName, updateAliasesResponse.acknowledged());
+        LOG.info("Updated alias {} to index {}. Response acknowledged: {}",
+            indexDefinition.getIndexAlias(),
+            indexName, updateAliasesResponse.acknowledged());
 
         // once the alias has been updated, we can safely remove the old index
         deleteOldIndices(client, aliasResponse.result().keySet());
     }
 
-    private void checkResponseAcknowledgement(AcknowledgedResponseBase response, String exceptionMessage) {
+    private void checkResponseAcknowledgement(AcknowledgedResponseBase response,
+        String exceptionMessage) {
         if (!response.acknowledged()) {
             throw new IllegalStateException(exceptionMessage);
         }
     }
 
-    private void checkResponseAcknowledgement(CreateIndexResponse response, String exceptionMessage) {
+    private void checkResponseAcknowledgement(CreateIndexResponse response,
+        String exceptionMessage) {
         if (!response.acknowledged()) {
             throw new IllegalStateException(exceptionMessage);
         }
     }
 
-    private void deleteOldIndices(ElasticsearchIndicesClient indicesClient, Set<String> indices) throws IOException {
-        if (indices.isEmpty())
+    private void deleteOldIndices(ElasticsearchIndicesClient indicesClient, Set<String> indices)
+        throws IOException {
+        if (indices.isEmpty()) {
             return;
-        DeleteIndexResponse deleteIndexResponse = indicesClient.delete(db -> db.index(new ArrayList<>(indices)));
-        checkResponseAcknowledgement(deleteIndexResponse, "Delete index call not acknowledged for indices " + indices);
-        LOG.info("Deleted indices {}. Response acknowledged: {}", indices, deleteIndexResponse.acknowledged());
+        }
+        DeleteIndexResponse deleteIndexResponse = indicesClient.delete(
+            db -> db.index(new ArrayList<>(indices)));
+        checkResponseAcknowledgement(deleteIndexResponse,
+            "Delete index call not acknowledged for indices " + indices);
+        LOG.info("Deleted indices {}. Response acknowledged: {}", indices,
+            deleteIndexResponse.acknowledged());
     }
 }

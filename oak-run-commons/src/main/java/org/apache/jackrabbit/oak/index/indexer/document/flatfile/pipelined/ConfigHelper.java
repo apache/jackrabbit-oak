@@ -22,6 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ConfigHelper {
+
     private static final Logger LOG = LoggerFactory.getLogger(PipelinedStrategy.class);
 
     public static int getSystemPropertyAsInt(String name, int defaultValue) {

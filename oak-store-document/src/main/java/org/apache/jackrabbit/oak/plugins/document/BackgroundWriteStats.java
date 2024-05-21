@@ -34,13 +34,13 @@ class BackgroundWriteStats {
     @Override
     public String toString() {
         return "clean:" + clean +
-                ", split:" + split +
-                ", refresh:" + refresh +
-                ", sweep:" + sweep +
-                ", lock:" + lock +
-                ", write:" + write +
-                ", num:" + num +
-                ", calls:" + calls +
-                ", totalWriteTime:" + totalWriteTime;
+            ", split:" + split +
+            ", refresh:" + refresh +
+            ", sweep:" + sweep +
+            ", lock:" + lock +
+            ", write:" + write +
+            ", num:" + num +
+            ", calls:" + calls +
+            ", totalWriteTime:" + totalWriteTime;
     }
 }

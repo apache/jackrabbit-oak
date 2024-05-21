@@ -16,6 +16,12 @@
  */
 package org.apache.jackrabbit.oak.segment.remote;
 
+import java.io.IOException;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.remote.queue.SegmentWriteAction;
 import org.apache.jackrabbit.oak.segment.remote.queue.SegmentWriteQueue;
@@ -24,21 +30,16 @@ import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveWriter;
 import org.jetbrains.annotations.NotNull;
 
-import java.io.IOException;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
-
 public abstract class AbstractRemoteSegmentArchiveWriter implements SegmentArchiveWriter {
+
     protected final IOMonitor ioMonitor;
 
     protected final FileStoreMonitor monitor;
 
     protected final Optional<SegmentWriteQueue> queue;
 
-    protected Map<UUID, RemoteSegmentArchiveEntry> index = Collections.synchronizedMap(new LinkedHashMap<>());
+    protected Map<UUID, RemoteSegmentArchiveEntry> index = Collections.synchronizedMap(
+        new LinkedHashMap<>());
 
     protected int entries;
 
@@ -51,16 +52,19 @@ public abstract class AbstractRemoteSegmentArchiveWriter implements SegmentArchi
     public AbstractRemoteSegmentArchiveWriter(IOMonitor ioMonitor, FileStoreMonitor monitor) {
         this.ioMonitor = ioMonitor;
         this.monitor = monitor;
-        this.queue = SegmentWriteQueue.THREADS > 0 ? Optional.of(new SegmentWriteQueue(this::doWriteArchiveEntry))
-                : Optional.empty();
+        this.queue = SegmentWriteQueue.THREADS > 0 ? Optional.of(
+            new SegmentWriteQueue(this::doWriteArchiveEntry))
+            : Optional.empty();
     }
 
     @Override
-    public void writeSegment(long msb, long lsb, @NotNull byte[] data, int offset, int size, int generation,
-            int fullGeneration, boolean compacted) throws IOException {
+    public void writeSegment(long msb, long lsb, @NotNull byte[] data, int offset, int size,
+        int generation,
+        int fullGeneration, boolean compacted) throws IOException {
         created = true;
 
-        RemoteSegmentArchiveEntry entry = new RemoteSegmentArchiveEntry(msb, lsb, entries++, size, generation, fullGeneration, compacted);
+        RemoteSegmentArchiveEntry entry = new RemoteSegmentArchiveEntry(msb, lsb, entries++, size,
+            generation, fullGeneration, compacted);
         if (queue.isPresent()) {
             queue.get().addToQueue(entry, data, offset, size);
         } else {
@@ -159,23 +163,29 @@ public abstract class AbstractRemoteSegmentArchiveWriter implements SegmentArchi
 
     /**
      * Writes a segment to the remote storage.
+     *
      * @param indexEntry, the archive index entry to write
-     * @param data, the actual bytes in the entry
-     * @param offset,  the start offset in the data.
-     * @param size, the number of bytes to write.
+     * @param data,       the actual bytes in the entry
+     * @param offset,     the start offset in the data.
+     * @param size,       the number of bytes to write.
      */
-    protected abstract void doWriteArchiveEntry(RemoteSegmentArchiveEntry indexEntry, byte[] data, int offset, int size) throws IOException;
+    protected abstract void doWriteArchiveEntry(RemoteSegmentArchiveEntry indexEntry, byte[] data,
+        int offset, int size) throws IOException;
 
     /**
      * Reads a segment from remote storage into a buffer.
+     *
      * @param indexEntry, the archive index entry to read
      * @return th buffer containing the segment bytes
      */
-    protected abstract Buffer doReadArchiveEntry(RemoteSegmentArchiveEntry indexEntry) throws IOException;
+    protected abstract Buffer doReadArchiveEntry(RemoteSegmentArchiveEntry indexEntry)
+        throws IOException;
 
     /**
-     * Writes a data file inside the archive. This entry is not a segment. Its full name is given by archive name + extension.
-     * @param data, bytes to write
+     * Writes a data file inside the archive. This entry is not a segment. Its full name is given by
+     * archive name + extension.
+     *
+     * @param data,      bytes to write
      * @param extension, the extension of the data file
      */
     protected abstract void doWriteDataFile(byte[] data, String extension) throws IOException;

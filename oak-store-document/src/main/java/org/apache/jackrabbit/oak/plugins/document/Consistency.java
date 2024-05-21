@@ -35,17 +35,17 @@ public class Consistency {
     /**
      * Creates a new consistency check for the given {@code NodeDocument}.
      *
-     * @param root the current root node state to use for the check.
+     * @param root     the current root node state to use for the check.
      * @param document the document to check.
      */
     public Consistency(@NotNull DocumentNodeState root,
-                       @NotNull NodeDocument document) {
+        @NotNull NodeDocument document) {
         this.root = requireNonNull(root);
         this.document = requireNonNull(document);
     }
 
     public void check(@NotNull DocumentNodeStore ns,
-                      @NotNull Result collector) {
+        @NotNull Result collector) {
         requireNonNull(ns);
         requireNonNull(collector);
 
@@ -85,9 +85,8 @@ public class Consistency {
     public interface Result {
 
         /**
-         * Called when the consistency check identified an inconsistency. The
-         * reported {@code Revision} identifies the associated change with
-         * the inconsistency.
+         * Called when the consistency check identified an inconsistency. The reported
+         * {@code Revision} identifies the associated change with the inconsistency.
          *
          * @param revision the revision of the change.
          */
@@ -95,13 +94,13 @@ public class Consistency {
     }
 
     /**
-     * Compare the properties of both {@link NodeState}s and return {@code true}
-     * if they are equal, otherwise {@code false}.
+     * Compare the properties of both {@link NodeState}s and return {@code true} if they are equal,
+     * otherwise {@code false}.
      *
      * @param a a node state
      * @param b another node state
-     * @return {@code true} if properties on both {@code NodeState}s are equal,
-     *      {@code false} otherwise.
+     * @return {@code true} if properties on both {@code NodeState}s are equal, {@code false}
+     * otherwise.
      */
     private static boolean equalProperties(NodeState a, NodeState b) {
         if (a.getPropertyCount() != b.getPropertyCount()) {
@@ -116,8 +115,8 @@ public class Consistency {
     }
 
     private void identifyChanges(@NotNull RevisionContext context,
-                                 @NotNull NodeState state,
-                                 @NotNull Result result) {
+        @NotNull NodeState state,
+        @NotNull Result result) {
         if (state instanceof DocumentNodeState) {
             DocumentNodeState traversedState = (DocumentNodeState) state;
             // must not have any committed changes between lastRevision on
@@ -126,8 +125,8 @@ public class Consistency {
             RevisionVector rootRevision = traversedState.getRootRevision();
             for (Revision r : document.getLocalCommitRoot().keySet()) {
                 if (!rootRevision.isRevisionNewer(r)
-                        && lastRevision.isRevisionNewer(r)
-                        && Utils.isCommitted(context.getCommitValue(r, document))) {
+                    && lastRevision.isRevisionNewer(r)
+                    && Utils.isCommitted(context.getCommitValue(r, document))) {
                     // committed change after lastRevision, but not newer
                     // than root revision
                     result.inconsistent(r);

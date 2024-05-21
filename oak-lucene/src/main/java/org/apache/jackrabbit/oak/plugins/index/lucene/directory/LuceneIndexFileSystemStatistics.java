@@ -34,7 +34,8 @@ public class LuceneIndexFileSystemStatistics implements Runnable {
     private static final String LOCAL_INDEX_DIR_SIZE = "LOCAL_INDEX_DIR_SIZE";
     private final Logger log = LoggerFactory.getLogger(getClass());
 
-    public LuceneIndexFileSystemStatistics(StatisticsProvider statsProvider, IndexCopier indexCopier) {
+    public LuceneIndexFileSystemStatistics(StatisticsProvider statsProvider,
+        IndexCopier indexCopier) {
         this.statisticsProvider = statsProvider;
         this.indexCopier = indexCopier;
     }
@@ -46,11 +47,13 @@ public class LuceneIndexFileSystemStatistics implements Runnable {
 
     private void calculateLocalIndexDirSize() {
         long localIndexDirSize = indexCopier.getLocalIndexDirSize();
-        CounterStats indexDirectorySizeStats = statisticsProvider.getCounterStats(LOCAL_INDEX_DIR_SIZE, StatsOptions.DEFAULT);
+        CounterStats indexDirectorySizeStats = statisticsProvider.getCounterStats(
+            LOCAL_INDEX_DIR_SIZE, StatsOptions.DEFAULT);
         long deltaInSize = localIndexDirSize - indexDirectorySizeStats.getCount();
         if (deltaInSize != 0) {
             indexDirectorySizeStats.inc(deltaInSize);
-            log.debug("index directory size stats updated; size {} delta {}", localIndexDirSize, deltaInSize);
+            log.debug("index directory size stats updated; size {} delta {}", localIndexDirSize,
+                deltaInSize);
         }
     }
 }

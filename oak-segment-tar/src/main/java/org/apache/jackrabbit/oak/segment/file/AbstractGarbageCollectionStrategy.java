@@ -25,7 +25,6 @@ import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCStatus.IDLE;
 import java.io.IOException;
 import java.util.List;
 import java.util.function.Supplier;
-
 import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.oak.segment.Revisions;
 import org.apache.jackrabbit.oak.segment.SegmentCache;
@@ -95,20 +94,24 @@ abstract class AbstractGarbageCollectionStrategy implements GarbageCollectionStr
         ));
     }
 
-    void run(Context context, EstimationStrategy estimationStrategy, CompactionStrategy compactionStrategy) throws IOException {
+    void run(Context context, EstimationStrategy estimationStrategy,
+        CompactionStrategy compactionStrategy) throws IOException {
         try {
             context.getGCListener().info("started");
 
             long dt = System.currentTimeMillis() - context.getLastSuccessfulGC();
 
             if (dt < context.getGCBackOff()) {
-                context.getGCListener().skipped("skipping garbage collection as it already ran less than {} hours ago ({} s).", context.getGCBackOff() / 3600000, dt / 1000);
+                context.getGCListener().skipped(
+                    "skipping garbage collection as it already ran less than {} hours ago ({} s).",
+                    context.getGCBackOff() / 3600000, dt / 1000);
                 return;
             }
 
             boolean sufficientEstimatedGain = true;
             if (context.getGCOptions().isEstimationDisabled()) {
-                context.getGCListener().info("estimation skipped because it was explicitly disabled");
+                context.getGCListener()
+                       .info("estimation skipped because it was explicitly disabled");
             } else if (context.getGCOptions().isPaused()) {
                 context.getGCListener().info("estimation skipped because compaction is paused");
             } else {
@@ -116,7 +119,8 @@ abstract class AbstractGarbageCollectionStrategy implements GarbageCollectionStr
                 context.getGCListener().updateStatus(ESTIMATION.message());
 
                 PrintableStopwatch watch = PrintableStopwatch.createStarted();
-                EstimationResult estimation = estimationStrategy.estimate(newEstimationStrategyContext(context));
+                EstimationResult estimation = estimationStrategy.estimate(
+                    newEstimationStrategyContext(context));
                 sufficientEstimatedGain = estimation.isGcNeeded();
                 String gcLog = estimation.getGcLog();
                 if (sufficientEstimatedGain) {
@@ -127,15 +131,18 @@ abstract class AbstractGarbageCollectionStrategy implements GarbageCollectionStr
             }
 
             if (sufficientEstimatedGain) {
-                try (GCMemoryBarrier ignored = new GCMemoryBarrier(context.getSufficientMemory(), context.getGCListener(), context.getGCOptions())) {
+                try (GCMemoryBarrier ignored = new GCMemoryBarrier(context.getSufficientMemory(),
+                    context.getGCListener(), context.getGCOptions())) {
                     if (context.getGCOptions().isPaused()) {
                         context.getGCListener().skipped("compaction paused");
                     } else if (!context.getSufficientMemory().get()) {
                         context.getGCListener().skipped("compaction skipped. Not enough memory");
                     } else {
-                        CompactionResult compactionResult = compactionStrategy.compact(newCompactionStrategyContext(context));
+                        CompactionResult compactionResult = compactionStrategy.compact(
+                            newCompactionStrategyContext(context));
                         if (compactionResult.isSuccess()) {
-                            context.getSuccessfulGarbageCollectionListener().onSuccessfulGarbageCollection();
+                            context.getSuccessfulGarbageCollectionListener()
+                                   .onSuccessfulGarbageCollection();
                         } else {
                             context.getGCListener().info("cleaning up after failed compaction");
                         }
@@ -153,7 +160,8 @@ abstract class AbstractGarbageCollectionStrategy implements GarbageCollectionStr
         return context.getRevisions().getHead().getSegmentId().getGcGeneration();
     }
 
-    public List<String> cleanup(Context context, CompactionResult compactionResult) throws IOException {
+    public List<String> cleanup(Context context, CompactionResult compactionResult)
+        throws IOException {
         return getCleanupStrategy().cleanup(newCleanupStrategyContext(context, compactionResult));
     }
 
@@ -264,7 +272,8 @@ abstract class AbstractGarbageCollectionStrategy implements GarbageCollectionStr
         };
     }
 
-    private CleanupStrategy.Context newCleanupStrategyContext(Context context, CompactionResult compactionResult) {
+    private CleanupStrategy.Context newCleanupStrategyContext(Context context,
+        CompactionResult compactionResult) {
         return new CleanupStrategy.Context() {
 
             @Override

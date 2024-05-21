@@ -38,7 +38,11 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
-
+import joptsimple.internal.Strings;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.filefilter.FileFilterUtils;
+import org.apache.felix.cm.file.ConfigurationHandler;
+import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
@@ -47,11 +51,6 @@ import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.collect.Sets;
-import joptsimple.internal.Strings;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.filefilter.FileFilterUtils;
-import org.apache.felix.cm.file.ConfigurationHandler;
-import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants;
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureDataStoreUtils;
 import org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants;
@@ -81,6 +80,7 @@ import org.slf4j.LoggerFactory;
  * Tests for {@link DataStoreCheckCommand}
  */
 public class DataStoreCheckTest {
+
     private static final Logger log = LoggerFactory.getLogger(DataStoreCheckTest.class);
 
     @Rule
@@ -125,8 +125,7 @@ public class DataStoreCheckTest {
             setupDataStore = new DataStoreBlobStore(ds);
             cfgFilePath = createTempConfig(temporaryFolder.newFile(), props);
             dsOption = "azureblobds";
-        }
-        else {
+        } else {
             OakFileDataStore delegate = new OakFileDataStore();
             dsPath = temporaryFolder.newFolder().getAbsolutePath();
             delegate.setPath(dsPath);
@@ -144,10 +143,10 @@ public class DataStoreCheckTest {
         File storeFile = temporaryFolder.newFolder();
         storePath = storeFile.getAbsolutePath();
         FileStore fileStore = FileStoreBuilder.fileStoreBuilder(storeFile)
-                .withBlobStore(setupDataStore)
-                .withMaxFileSize(256)
-                .withSegmentCacheSize(64)
-                .build();
+                                              .withBlobStore(setupDataStore)
+                                              .withMaxFileSize(256)
+                                              .withSegmentCacheSize(64)
+                                              .build();
         NodeStore store = SegmentNodeStoreBuilders.builder(fileStore).build();
 
         /* Create nodes with blobs stored in DS*/
@@ -162,7 +161,7 @@ public class DataStoreCheckTest {
             while (idIter.hasNext()) {
                 String chunk = idIter.next();
                 blobsAdded.add(chunk);
-                blobsAddedWithNodes.put(chunk, "/c"+i+"/x");
+                blobsAddedWithNodes.put(chunk, "/c" + i + "/x");
             }
             a.child("c" + i).setProperty("x", b);
         }
@@ -235,7 +234,8 @@ public class DataStoreCheckTest {
 
         assertFileEquals(dump, "[id]", encodedIds(blobsAdded, dsOption));
         assertFileEquals(dump, "[ref]",
-            encodedIdsAndPath(Sets.union(blobsAdded, Sets.newHashSet(deletedBlobId)), dsOption, blobsAddedWithNodes));
+            encodedIdsAndPath(Sets.union(blobsAdded, Sets.newHashSet(deletedBlobId)), dsOption,
+                blobsAddedWithNodes));
         assertFileEquals(dump, "[consistency]",
             encodedIdsAndPath(Sets.newHashSet(deletedBlobId), dsOption, blobsAddedWithNodes));
     }
@@ -260,14 +260,16 @@ public class DataStoreCheckTest {
         assertEquals(2, count);
 
         // artificially put the deleted id in the tracked .del file
-        FileIOUtils.writeStrings(Iterators.singletonIterator(activeDeletedBlobId), delTracker, false);
+        FileIOUtils.writeStrings(Iterators.singletonIterator(activeDeletedBlobId), delTracker,
+            false);
 
         setupDataStore.close();
 
         testAllParams(dump, repoHome);
 
         assertFileEquals(dump, "[id]", blobsAdded);
-        assertFileEquals(dump, "[ref]", Sets.union(blobsAdded, Sets.newHashSet(deletedBlobId, activeDeletedBlobId)));
+        assertFileEquals(dump, "[ref]",
+            Sets.union(blobsAdded, Sets.newHashSet(deletedBlobId, activeDeletedBlobId)));
         assertFileEquals(dump, "[consistency]", Sets.newHashSet(deletedBlobId));
     }
 
@@ -291,7 +293,8 @@ public class DataStoreCheckTest {
         assertEquals(2, count);
 
         // artificially put the deleted id in the tracked .del file
-        FileIOUtils.writeStrings(Iterators.singletonIterator(activeDeletedBlobId), delTracker, false);
+        FileIOUtils.writeStrings(Iterators.singletonIterator(activeDeletedBlobId), delTracker,
+            false);
 
         setupDataStore.close();
 
@@ -299,7 +302,9 @@ public class DataStoreCheckTest {
 
         assertFileEquals(dump, "[id]", encodedIds(blobsAdded, dsOption));
         assertFileEquals(dump, "[ref]",
-            encodedIdsAndPath(Sets.union(blobsAdded, Sets.newHashSet(deletedBlobId, activeDeletedBlobId)), dsOption,
+            encodedIdsAndPath(
+                Sets.union(blobsAdded, Sets.newHashSet(deletedBlobId, activeDeletedBlobId)),
+                dsOption,
                 blobsAddedWithNodes));
         assertFileEquals(dump, "[consistency]",
             encodedIdsAndPath(Sets.newHashSet(deletedBlobId), dsOption, blobsAddedWithNodes));
@@ -317,15 +322,18 @@ public class DataStoreCheckTest {
 
     private void testAllParams(File dump, File repoHome) throws Exception {
         List<String> argsList = Lists
-            .newArrayList("--id", "--ref", "--consistency", "--" + dsOption, cfgFilePath, "--store", storePath,
+            .newArrayList("--id", "--ref", "--consistency", "--" + dsOption, cfgFilePath, "--store",
+                storePath,
                 "--dump", dump.getAbsolutePath(), "--repoHome", repoHome.getAbsolutePath());
         DataStoreCheckCommand.checkDataStore(argsList.toArray(new String[0]));
     }
 
     private void testAllParamsVerbose(File dump, File repoHome) throws Exception {
         List<String> argsList = Lists
-            .newArrayList("--id", "--ref", "--consistency", "--" + dsOption, cfgFilePath, "--store", storePath,
-                "--dump", dump.getAbsolutePath(), "--repoHome", repoHome.getAbsolutePath(), "--verbose");
+            .newArrayList("--id", "--ref", "--consistency", "--" + dsOption, cfgFilePath, "--store",
+                storePath,
+                "--dump", dump.getAbsolutePath(), "--repoHome", repoHome.getAbsolutePath(),
+                "--verbose");
         DataStoreCheckCommand.checkDataStore(argsList.toArray(new String[0]));
     }
 
@@ -337,13 +345,15 @@ public class DataStoreCheckTest {
             .newArrayList("--" + dsOption, cfgFilePath, "--store", storePath,
                 "--dump", dump.getAbsolutePath());
         log.info("Running testMissinOpParams: {}", argsList);
-        testIncorrectParams(argsList, Lists.newArrayList("Missing required option(s)", "id", "ref", "consistency"));
+        testIncorrectParams(argsList,
+            Lists.newArrayList("Missing required option(s)", "id", "ref", "consistency"));
     }
 
     public void testTarNoDSOption(File dump) throws Exception {
         List<String> argsList = Lists
             .newArrayList("--id", "--ref", "--consistency", "--nods", "--store", storePath,
-                "--dump", dump.getAbsolutePath(), "--repoHome", temporaryFolder.newFolder().getAbsolutePath());
+                "--dump", dump.getAbsolutePath(), "--repoHome",
+                temporaryFolder.newFolder().getAbsolutePath());
         DataStoreCheckCommand.checkDataStore(argsList.toArray(new String[0]));
     }
 
@@ -353,8 +363,10 @@ public class DataStoreCheckTest {
         File dump = temporaryFolder.newFolder();
         List<String> argsList = Lists
             .newArrayList("--id", "--ref", "--consistency", "--store", storePath,
-                "--dump", dump.getAbsolutePath(), "--repoHome", temporaryFolder.newFolder().getAbsolutePath());
-        testIncorrectParams(argsList, Lists.newArrayList("Operation not defined for SegmentNodeStore without external datastore"));
+                "--dump", dump.getAbsolutePath(), "--repoHome",
+                temporaryFolder.newFolder().getAbsolutePath());
+        testIncorrectParams(argsList, Lists.newArrayList(
+            "Operation not defined for SegmentNodeStore without external datastore"));
 
     }
 
@@ -364,12 +376,14 @@ public class DataStoreCheckTest {
         File dump = temporaryFolder.newFolder();
         List<String> argsList = Lists
             .newArrayList("--consistency", "--" + dsOption, cfgFilePath,
-                "--dump", dump.getAbsolutePath(), "--repoHome", temporaryFolder.newFolder().getAbsolutePath());
+                "--dump", dump.getAbsolutePath(), "--repoHome",
+                temporaryFolder.newFolder().getAbsolutePath());
         testIncorrectParams(argsList, Lists.newArrayList("Missing required option(s) [store]"));
 
         argsList = Lists
             .newArrayList("--ref", "--" + dsOption, cfgFilePath,
-                "--dump", dump.getAbsolutePath(), "--repoHome", temporaryFolder.newFolder().getAbsolutePath());
+                "--dump", dump.getAbsolutePath(), "--repoHome",
+                temporaryFolder.newFolder().getAbsolutePath());
         testIncorrectParams(argsList, Lists.newArrayList("Missing required option(s) [store]"));
     }
 
@@ -379,9 +393,11 @@ public class DataStoreCheckTest {
         File dump = temporaryFolder.newFolder();
         List<String> argsList = Lists
             .newArrayList("--ref", "--store", storePath,
-                "--dump", dump.getAbsolutePath(), "--track", "--repoHome", temporaryFolder.newFolder().getAbsolutePath());
+                "--dump", dump.getAbsolutePath(), "--track", "--repoHome",
+                temporaryFolder.newFolder().getAbsolutePath());
         testIncorrectParams(argsList,
-            Lists.newArrayList("Option(s) [track] are unavailable given other options on the command line"));
+            Lists.newArrayList(
+                "Option(s) [track] are unavailable given other options on the command line"));
     }
 
     @Test
@@ -404,7 +420,8 @@ public class DataStoreCheckTest {
         testIncorrectParams(argsList, Lists.newArrayList("Missing required option(s) [repoHome]"));
     }
 
-    public static void testIncorrectParams(List<String> argList, ArrayList<String> assertMsg) throws Exception {
+    public static void testIncorrectParams(List<String> argList, ArrayList<String> assertMsg)
+        throws Exception {
         ByteArrayOutputStream buffer = new ByteArrayOutputStream();
         System.setErr(new PrintStream(buffer, true, UTF_8.toString()));
 
@@ -445,17 +462,22 @@ public class DataStoreCheckTest {
 
     private static Set<String> encodedIds(Set<String> ids, String dsOption) {
         return Sets.newHashSet(Iterators.transform(ids.iterator(), new Function<String, String>() {
-            @Nullable @Override public String apply(@Nullable String input) {
-                return DataStoreCheckCommand.encodeId(input, "--"+dsOption);
+            @Nullable
+            @Override
+            public String apply(@Nullable String input) {
+                return DataStoreCheckCommand.encodeId(input, "--" + dsOption);
             }
         }));
     }
 
-    private static Set<String> encodedIdsAndPath(Set<String> ids, String dsOption, Map<String, String> blobsAddedWithNodes) {
+    private static Set<String> encodedIdsAndPath(Set<String> ids, String dsOption,
+        Map<String, String> blobsAddedWithNodes) {
         return Sets.newHashSet(Iterators.transform(ids.iterator(), new Function<String, String>() {
-            @Nullable @Override public String apply(@Nullable String input) {
+            @Nullable
+            @Override
+            public String apply(@Nullable String input) {
                 return Joiner.on(",").join(
-                    DataStoreCheckCommand.encodeId(input, "--"+dsOption),
+                    DataStoreCheckCommand.encodeId(input, "--" + dsOption),
                     blobsAddedWithNodes.get(input));
             }
         }));

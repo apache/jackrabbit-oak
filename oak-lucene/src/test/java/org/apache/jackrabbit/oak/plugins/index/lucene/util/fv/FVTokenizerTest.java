@@ -16,77 +16,79 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene.util.fv;
 
+import static org.junit.Assert.assertEquals;
+
 import java.io.StringReader;
 import java.util.LinkedList;
 import java.util.List;
-
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.util.Version;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
 
 /**
  * Tests for {@link FVTokenizer}
  */
 public class FVTokenizerTest {
 
-  @Test
-  public void testTokenizeWithSpaces() throws Exception {
-      TokenStream stream = new FVTokenizer(Version.LUCENE_47, new StringReader("0.10 0.20 0.30 0.40"));
-      stream.reset();
-      List<String> expectedTokens = new LinkedList<>();
-      expectedTokens.add("0.10");
-      expectedTokens.add("0.20");
-      expectedTokens.add("0.30");
-      expectedTokens.add("0.40");
-      int i = 0;
-      while (stream.incrementToken()) {
-          CharTermAttribute charTermAttribute = stream.getAttribute(CharTermAttribute.class);
-          String token = new String(charTermAttribute.buffer(), 0, charTermAttribute.length());
-          assertEquals(expectedTokens.get(i), token);
-          i++;
-      }
-      stream.close();
-  }
+    @Test
+    public void testTokenizeWithSpaces() throws Exception {
+        TokenStream stream = new FVTokenizer(Version.LUCENE_47,
+            new StringReader("0.10 0.20 0.30 0.40"));
+        stream.reset();
+        List<String> expectedTokens = new LinkedList<>();
+        expectedTokens.add("0.10");
+        expectedTokens.add("0.20");
+        expectedTokens.add("0.30");
+        expectedTokens.add("0.40");
+        int i = 0;
+        while (stream.incrementToken()) {
+            CharTermAttribute charTermAttribute = stream.getAttribute(CharTermAttribute.class);
+            String token = new String(charTermAttribute.buffer(), 0, charTermAttribute.length());
+            assertEquals(expectedTokens.get(i), token);
+            i++;
+        }
+        stream.close();
+    }
 
-  @Test
-  public void testTokenizeWithCommas() throws Exception {
-      TokenStream stream = new FVTokenizer(Version.LUCENE_47, new StringReader("0.10,0.20,0.30,0.40"));
-      stream.reset();
-      List<String> expectedTokens = new LinkedList<>();
-      expectedTokens.add("0.10");
-      expectedTokens.add("0.20");
-      expectedTokens.add("0.30");
-      expectedTokens.add("0.40");
-      int i = 0;
-      while (stream.incrementToken()) {
-          CharTermAttribute charTermAttribute = stream.getAttribute(CharTermAttribute.class);
-          String token = new String(charTermAttribute.buffer(), 0, charTermAttribute.length());
-          assertEquals(expectedTokens.get(i), token);
-          i++;
-      }
-      stream.close();
-  }
+    @Test
+    public void testTokenizeWithCommas() throws Exception {
+        TokenStream stream = new FVTokenizer(Version.LUCENE_47,
+            new StringReader("0.10,0.20,0.30,0.40"));
+        stream.reset();
+        List<String> expectedTokens = new LinkedList<>();
+        expectedTokens.add("0.10");
+        expectedTokens.add("0.20");
+        expectedTokens.add("0.30");
+        expectedTokens.add("0.40");
+        int i = 0;
+        while (stream.incrementToken()) {
+            CharTermAttribute charTermAttribute = stream.getAttribute(CharTermAttribute.class);
+            String token = new String(charTermAttribute.buffer(), 0, charTermAttribute.length());
+            assertEquals(expectedTokens.get(i), token);
+            i++;
+        }
+        stream.close();
+    }
 
-  @Test
-  public void testTokenizeWithCommasAndSpaces() throws Exception {
-      TokenStream stream = new FVTokenizer(Version.LUCENE_47, new StringReader("0.10, 0.20, 0.30, 0.40"));
-      stream.reset();
-      List<String> expectedTokens = new LinkedList<>();
-      expectedTokens.add("0.10");
-      expectedTokens.add("0.20");
-      expectedTokens.add("0.30");
-      expectedTokens.add("0.40");
-      int i = 0;
-      while (stream.incrementToken()) {
-          CharTermAttribute charTermAttribute = stream.getAttribute(CharTermAttribute.class);
-          String token = new String(charTermAttribute.buffer(), 0, charTermAttribute.length());
-          assertEquals(expectedTokens.get(i), token);
-          i++;
-      }
-      stream.close();
-  }
+    @Test
+    public void testTokenizeWithCommasAndSpaces() throws Exception {
+        TokenStream stream = new FVTokenizer(Version.LUCENE_47,
+            new StringReader("0.10, 0.20, 0.30, 0.40"));
+        stream.reset();
+        List<String> expectedTokens = new LinkedList<>();
+        expectedTokens.add("0.10");
+        expectedTokens.add("0.20");
+        expectedTokens.add("0.30");
+        expectedTokens.add("0.40");
+        int i = 0;
+        while (stream.incrementToken()) {
+            CharTermAttribute charTermAttribute = stream.getAttribute(CharTermAttribute.class);
+            String token = new String(charTermAttribute.buffer(), 0, charTermAttribute.length());
+            assertEquals(expectedTokens.get(i), token);
+            i++;
+        }
+        stream.close();
+    }
 
 }

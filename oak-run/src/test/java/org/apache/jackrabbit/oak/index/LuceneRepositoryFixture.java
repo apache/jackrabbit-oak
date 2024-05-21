@@ -20,8 +20,6 @@
 package org.apache.jackrabbit.oak.index;
 
 import java.io.File;
-import java.io.IOException;
-
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProvider;
@@ -44,7 +42,7 @@ public class LuceneRepositoryFixture extends IndexRepositoryFixture {
         LuceneIndexEditorProvider ep = new LuceneIndexEditorProvider();
         LuceneIndexProvider provider = new LuceneIndexProvider();
         oak.with((QueryIndexProvider) provider)
-                .with((Observer) provider)
-                .with(ep);
+           .with((Observer) provider)
+           .with(ep);
     }
 }

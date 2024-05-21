@@ -26,7 +26,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-
 import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
@@ -37,10 +36,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Persists the repository size and the reclaimed size following a cleanup
- * operation in the {@code gc.log} file with the format:
- * 'repoSize, reclaimedSize, timestamp, gc generation, gc full generation (since Oak 1.8),
- * number of nodes compacted, root id (since Oak 1.8)'.
+ * Persists the repository size and the reclaimed size following a cleanup operation in the
+ * {@code gc.log} file with the format: 'repoSize, reclaimedSize, timestamp, gc generation, gc full
+ * generation (since Oak 1.8), number of nodes compacted, root id (since Oak 1.8)'.
  */
 public class GCJournal {
 
@@ -55,10 +53,9 @@ public class GCJournal {
     }
 
     /**
-     * Persists the repository stats (current size, reclaimed size, gc
-     * generation, number of compacted nodes) following a cleanup operation for
-     * a successful compaction. NOOP if the gcGeneration is the same as the one
-     * persisted previously.
+     * Persists the repository stats (current size, reclaimed size, gc generation, number of
+     * compacted nodes) following a cleanup operation for a successful compaction. NOOP if the
+     * gcGeneration is the same as the one persisted previously.
      *
      * @param reclaimedSize size reclaimed by cleanup
      * @param repoSize      current repo size
@@ -67,7 +64,7 @@ public class GCJournal {
      * @param root          record id of the compacted root node
      */
     public synchronized void persist(long reclaimedSize, long repoSize,
-            @NotNull GCGeneration gcGeneration, long nodes, @NotNull String root
+        @NotNull GCGeneration gcGeneration, long nodes, @NotNull String root
     ) {
         GCJournalEntry current = read();
         if (current.getGcGeneration().equals(gcGeneration)) {
@@ -76,7 +73,7 @@ public class GCJournal {
             return;
         }
         latest = new GCJournalEntry(repoSize, reclaimedSize,
-                System.currentTimeMillis(), gcGeneration, nodes, checkNotNull(root));
+            System.currentTimeMillis(), gcGeneration, nodes, checkNotNull(root));
         try {
             journalFile.writeLine(latest.toString());
         } catch (IOException e) {
@@ -123,7 +120,7 @@ public class GCJournal {
     public static class GCJournalEntry {
 
         static final GCJournalEntry EMPTY = new GCJournalEntry(
-                -1, -1, -1, GCGeneration.NULL, -1, RecordId.NULL.toString10());
+            -1, -1, -1, GCGeneration.NULL, -1, RecordId.NULL.toString10());
 
         private final long repoSize;
 
@@ -140,7 +137,7 @@ public class GCJournal {
         private final String root;
 
         public GCJournalEntry(long repoSize, long reclaimedSize, long ts,
-                @NotNull GCGeneration gcGeneration, long nodes, @NotNull String root
+            @NotNull GCGeneration gcGeneration, long nodes, @NotNull String root
         ) {
             this.repoSize = repoSize;
             this.reclaimedSize = reclaimedSize;
@@ -153,13 +150,13 @@ public class GCJournal {
         @Override
         public String toString() {
             return Joiner.on(",").join(
-                    repoSize,
-                    reclaimedSize,
-                    ts,
-                    gcGeneration.getGeneration(),
-                    gcGeneration.getFullGeneration(),
-                    nodes,
-                    root
+                repoSize,
+                reclaimedSize,
+                ts,
+                gcGeneration.getGeneration(),
+                gcGeneration.getFullGeneration(),
+                nodes,
+                root
             );
         }
 
@@ -185,7 +182,7 @@ public class GCJournal {
                 root = RecordId.NULL.toString10();
             }
             return new GCJournalEntry(repoSize, reclaimedSize, ts,
-                    newGCGeneration(generation, fullGeneration, false), nodes, root);
+                newGCGeneration(generation, fullGeneration, false), nodes, root);
         }
 
         @Nullable

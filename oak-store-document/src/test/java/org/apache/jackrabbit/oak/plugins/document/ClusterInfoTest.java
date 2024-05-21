@@ -48,18 +48,18 @@ public class ClusterInfoTest {
         ClusterNodeInfo.setClock(clock);
 
         DocumentNodeStore ns1 = new DocumentMK.Builder().
-                setDocumentStore(mem).
-                setAsyncDelay(0).
-                setLeaseCheckMode(LeaseCheckMode.DISABLED).
-                setClusterId(1).
-                getNodeStore();
+            setDocumentStore(mem).
+            setAsyncDelay(0).
+            setLeaseCheckMode(LeaseCheckMode.DISABLED).
+            setClusterId(1).
+            getNodeStore();
         DocumentNodeStore ns2 = new DocumentMK.Builder().
-                setDocumentStore(mem).
-                setAsyncDelay(0).
-                setLeaseCheckMode(LeaseCheckMode.DISABLED).
-                setClusterId(2).
-                getNodeStore();
-        // Bring the current time forward to after the leaseTime which would have been 
+            setDocumentStore(mem).
+            setAsyncDelay(0).
+            setLeaseCheckMode(LeaseCheckMode.DISABLED).
+            setClusterId(2).
+            getNodeStore();
+        // Bring the current time forward to after the leaseTime which would have been
         // updated in the DocumentNodeStore initialization.
         clock.waitUntil(clock.getTime() + ns1.getClusterInfo().getLeaseTime());
 
@@ -69,7 +69,7 @@ public class ClusterInfoTest {
         ns2.getClusterInfo().setLeaseUpdateInterval(0);
 
         List<ClusterNodeInfoDocument> list = mem.query(
-                Collection.CLUSTER_NODES, "0", "a", Integer.MAX_VALUE);
+            Collection.CLUSTER_NODES, "0", "a", Integer.MAX_VALUE);
         assertEquals(2, list.size());
 
         assertNull(mem.getReadPreference());
@@ -107,10 +107,10 @@ public class ClusterInfoTest {
         ClusterNodeInfo.setClock(clock);
 
         DocumentNodeStore ns = new DocumentMK.Builder().
-                setDocumentStore(mem).
-                setAsyncDelay(0).
-                setLeaseCheckMode(LeaseCheckMode.DISABLED).
-                getNodeStore();
+            setDocumentStore(mem).
+            setAsyncDelay(0).
+            setLeaseCheckMode(LeaseCheckMode.DISABLED).
+            getNodeStore();
 
         ClusterNodeInfo info = ns.getClusterInfo();
         assertNotNull(info);
@@ -119,7 +119,8 @@ public class ClusterInfoTest {
         long leaseEnd = getLeaseEndTime(ns);
 
         // wait a bit, 1sec less than leaseUpdateTime (10sec-1sec by default)
-        clock.waitUntil(clock.getTime() + ClusterNodeInfo.DEFAULT_LEASE_UPDATE_INTERVAL_MILLIS - 1000);
+        clock.waitUntil(
+            clock.getTime() + ClusterNodeInfo.DEFAULT_LEASE_UPDATE_INTERVAL_MILLIS - 1000);
 
         // must not renew lease right now
         ns.renewClusterIdLease();
@@ -137,8 +138,8 @@ public class ClusterInfoTest {
 
     private static long getLeaseEndTime(DocumentNodeStore nodeStore) {
         ClusterNodeInfoDocument doc = nodeStore.getDocumentStore().find(
-                Collection.CLUSTER_NODES,
-                String.valueOf(nodeStore.getClusterId()));
+            Collection.CLUSTER_NODES,
+            String.valueOf(nodeStore.getClusterId()));
         assertNotNull(doc);
         return doc.getLeaseEndTime();
     }
@@ -163,19 +164,20 @@ public class ClusterInfoTest {
         useAbandoned(true, true);
     }
 
-    public void useAbandoned(boolean firstInvisible, boolean secondInvisible) throws InterruptedException {
+    public void useAbandoned(boolean firstInvisible, boolean secondInvisible)
+        throws InterruptedException {
         Clock clock = new Clock.Virtual();
         clock.waitUntil(System.currentTimeMillis());
         ClusterNodeInfo.setClock(clock);
         MemoryDocumentStore mem = new MemoryDocumentStore();
 
         DocumentNodeStore ns1 = new DocumentMK.Builder().
-                setDocumentStore(mem).
-                clock(clock).
-                setAsyncDelay(0).
-                setLeaseCheckMode(LeaseCheckMode.DISABLED).
-                setClusterInvisible(firstInvisible).
-                getNodeStore();
+            setDocumentStore(mem).
+            clock(clock).
+            setAsyncDelay(0).
+            setLeaseCheckMode(LeaseCheckMode.DISABLED).
+            setClusterInvisible(firstInvisible).
+            getNodeStore();
 
         DocumentStore ds = ns1.getDocumentStore();
         int cid = ns1.getClusterId();
@@ -183,7 +185,8 @@ public class ClusterInfoTest {
         ClusterNodeInfoDocument cnid = ds.find(Collection.CLUSTER_NODES, "" + cid);
         assertNotNull(cnid);
         assertEquals(ClusterNodeState.ACTIVE.toString(), cnid.get(ClusterNodeInfo.STATE));
-        assertEquals("Cluster should have been " + firstInvisible, firstInvisible, cnid.isInvisible());
+        assertEquals("Cluster should have been " + firstInvisible, firstInvisible,
+            cnid.isInvisible());
         ns1.dispose();
 
         long waitFor = 2000;
@@ -196,25 +199,26 @@ public class ClusterInfoTest {
 
         // try restart
         ns1 = new DocumentMK.Builder().
-                setDocumentStore(mem).
-                clock(clock).
-                setAsyncDelay(0).
-                setLeaseCheckMode(LeaseCheckMode.DISABLED).
-                setClusterInvisible(secondInvisible).
-                getNodeStore();
- 
+            setDocumentStore(mem).
+            clock(clock).
+            setAsyncDelay(0).
+            setLeaseCheckMode(LeaseCheckMode.DISABLED).
+            setClusterInvisible(secondInvisible).
+            getNodeStore();
+
         assertEquals("should have re-used existing cluster id", cid, ns1.getClusterId());
 
         cnid = ds.find(Collection.CLUSTER_NODES, "" + cid);
         assertNotNull(cnid);
         assertEquals(ClusterNodeState.ACTIVE.toString(), cnid.get(ClusterNodeInfo.STATE));
-        assertEquals("Cluster should have been " + secondInvisible, secondInvisible, cnid.isInvisible());
+        assertEquals("Cluster should have been " + secondInvisible, secondInvisible,
+            cnid.isInvisible());
 
         ns1.dispose();
     }
 
     @After
-    public void tearDown(){
+    public void tearDown() {
         ClusterNodeInfo.resetClockToDefault();
     }
 }

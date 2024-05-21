@@ -23,10 +23,9 @@ import org.osgi.annotation.versioning.ConsumerType;
 /**
  * A query to match {@link Authorizable}s. Pass an instance of this interface to
  * {@link UserManager#findAuthorizables(Query)}.
- *
- * The following query finds all users named 'Bob' which have the word
- * 'engineer' in its description and returns them in ascending order wrt. to
- * the name.
+ * <p>
+ * The following query finds all users named 'Bob' which have the word 'engineer' in its description
+ * and returns them in ascending order wrt. to the name.
  *
  * <pre>
  *  Iterator&lt;Authorizable&gt; result = userMgr.findAuthorizables(new Query() {
@@ -47,8 +46,9 @@ public interface Query {
 
     /**
      * Build the query using a {@link QueryBuilder}.
-     * @param builder  A query builder for building the query.
-     * @param <T>  Opaque type of the query builder.
+     *
+     * @param builder A query builder for building the query.
+     * @param <T>     Opaque type of the query builder.
      */
     <T> void build(@NotNull QueryBuilder<T> builder);
 }

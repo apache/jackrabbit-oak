@@ -18,14 +18,23 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import com.mongodb.BasicDBObject;
+import com.mongodb.DBObject;
+import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.model.Filters;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
-
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.guava.common.base.Function;
+import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.cache.Cache;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.primitives.Longs;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -37,20 +46,9 @@ import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.bson.conversions.Bson;
 import org.jetbrains.annotations.Nullable;
 
-import org.apache.jackrabbit.guava.common.base.Function;
-import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.primitives.Longs;
-import com.mongodb.BasicDBObject;
-import com.mongodb.DBObject;
-import com.mongodb.client.FindIterable;
-import com.mongodb.client.MongoCollection;
-import com.mongodb.client.model.Filters;
-
 /**
- * Helper class to access package private method of DocumentNodeStore and other
- * classes in this package.
+ * Helper class to access package private method of DocumentNodeStore and other classes in this
+ * package.
  */
 public class DocumentNodeStoreHelper {
 
@@ -72,13 +70,13 @@ public class DocumentNodeStoreHelper {
     }
 
     public static VersionGarbageCollector createVersionGC(
-            DocumentNodeStore nodeStore, VersionGCSupport gcSupport) {
+        DocumentNodeStore nodeStore, VersionGCSupport gcSupport) {
         return new VersionGarbageCollector(nodeStore, gcSupport);
     }
 
     private static Iterable<BlobReferences> scan(DocumentNodeStore store,
-                                                 Comparator<BlobReferences> comparator,
-                                                 int num) {
+        Comparator<BlobReferences> comparator,
+        int num) {
         long totalGarbage = 0;
         Iterable<NodeDocument> docs = getDocuments(store.getDocumentStore());
         PriorityQueue<BlobReferences> queue = new PriorityQueue<BlobReferences>(num, comparator);
@@ -108,7 +106,7 @@ public class DocumentNodeStoreHelper {
     }
 
     private static BlobReferences collectReferences(NodeDocument doc,
-                                                    DocumentNodeStore ns) {
+        DocumentNodeStore ns) {
         long blobSize = 0;
         long garbageSize = 0;
         int numBlobs = 0;
@@ -147,19 +145,20 @@ public class DocumentNodeStoreHelper {
             // optimized implementation for MongoDocumentStore
             final MongoDocumentStore mds = (MongoDocumentStore) store;
             MongoCollection<BasicDBObject> dbCol = MongoDocumentStoreHelper.getDBCollection(
-                    mds, Collection.NODES);
+                mds, Collection.NODES);
             Bson query = Filters.eq(NodeDocument.HAS_BINARY_FLAG, NodeDocument.HAS_BINARY_VAL);
             FindIterable<BasicDBObject> cursor = dbCol.find(query);
             return Iterables.transform(cursor, new Function<DBObject, NodeDocument>() {
                 @Nullable
                 @Override
                 public NodeDocument apply(DBObject input) {
-                    return MongoDocumentStoreHelper.convertFromDBObject(mds, Collection.NODES, input);
+                    return MongoDocumentStoreHelper.convertFromDBObject(mds, Collection.NODES,
+                        input);
                 }
             });
         } else {
             return Utils.getSelectedDocuments(store,
-                    NodeDocument.HAS_BINARY_FLAG, NodeDocument.HAS_BINARY_VAL);
+                NodeDocument.HAS_BINARY_FLAG, NodeDocument.HAS_BINARY_VAL);
         }
     }
 
@@ -173,7 +172,7 @@ public class DocumentNodeStoreHelper {
     }
 
     private static void loadValue(String v, java.util.Collection<Blob> blobs,
-                                  DocumentNodeStore nodeStore) {
+        DocumentNodeStore nodeStore) {
         JsopReader reader = new JsopTokenizer(v);
         PropertyState p;
         if (reader.matches('[')) {
@@ -202,10 +201,10 @@ public class DocumentNodeStoreHelper {
         final boolean exists;
 
         public BlobReferences(Path path,
-                              long blobSize,
-                              int numBlobs,
-                              long garbageSize,
-                              boolean exists) {
+            long blobSize,
+            int numBlobs,
+            long garbageSize,
+            boolean exists) {
             this.path = path;
             this.blobSize = blobSize;
             this.garbageSize = garbageSize;
@@ -216,9 +215,9 @@ public class DocumentNodeStoreHelper {
         @Override
         public String toString() {
             String s = FileUtils.byteCountToDisplaySize(blobSize) + "\t"
-                    + FileUtils.byteCountToDisplaySize(garbageSize) + "\t"
-                    + numBlobs + "\t"
-                    + path;
+                + FileUtils.byteCountToDisplaySize(garbageSize) + "\t"
+                + numBlobs + "\t"
+                + path;
             if (!exists) {
                 s += "\t(deleted)";
             }
@@ -227,7 +226,7 @@ public class DocumentNodeStoreHelper {
     }
 
     private static class BlobGarbageSizeComparator
-            implements Comparator<BlobReferences> {
+        implements Comparator<BlobReferences> {
 
         @Override
         public int compare(BlobReferences o1, BlobReferences o2) {

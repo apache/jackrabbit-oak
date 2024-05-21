@@ -18,6 +18,9 @@
  */
 package org.apache.jackrabbit.oak.composite;
 
+import static org.junit.Assert.assertTrue;
+
+import java.util.List;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
@@ -34,13 +37,8 @@ import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
-
-import java.util.List;
-
-import static org.junit.Assert.assertTrue;
 
 public class CompositeNodeStoreClusterObservationTest {
 
@@ -78,7 +76,8 @@ public class CompositeNodeStoreClusterObservationTest {
         builder.child("test").setProperty("foo", "bar");
         merge(store, builder);
 
-        assertTrue("Node added event not observed for local change", observer.added.containsKey("/test"));
+        assertTrue("Node added event not observed for local change",
+            observer.added.containsKey("/test"));
     }
 
     @Test
@@ -92,7 +91,8 @@ public class CompositeNodeStoreClusterObservationTest {
         remote.runBackgroundOperations();
         globalStore.runBackgroundOperations();
 
-        assertTrue("Node added event not observed for remote change", observer.added.containsKey("/test"));
+        assertTrue("Node added event not observed for remote change",
+            observer.added.containsKey("/test"));
     }
 
     @Test
@@ -119,14 +119,18 @@ public class CompositeNodeStoreClusterObservationTest {
         builder.getChildNode("test").child("test3").setProperty("foo", "bar");
         merge(store, builder);
 
-        assertTrue("Node added event not observed for local change before remote change", observer.added.containsKey("/test"));
-        assertTrue("Node added event not observed for local change before remote change", observer.added.containsKey("/test/test1"));
-        assertTrue("Node added event not observed for remote change", observer.added.containsKey("/test/test2"));
-        assertTrue("Node added event not observed for local change after remote change", observer.added.containsKey("/test/test3"));
+        assertTrue("Node added event not observed for local change before remote change",
+            observer.added.containsKey("/test"));
+        assertTrue("Node added event not observed for local change before remote change",
+            observer.added.containsKey("/test/test1"));
+        assertTrue("Node added event not observed for remote change",
+            observer.added.containsKey("/test/test2"));
+        assertTrue("Node added event not observed for local change after remote change",
+            observer.added.containsKey("/test/test3"));
     }
 
     private static void merge(NodeStore store, NodeBuilder builder)
-            throws CommitFailedException {
+        throws CommitFailedException {
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 
@@ -141,9 +145,9 @@ public class CompositeNodeStoreClusterObservationTest {
     }
 
     private DocumentNodeStore createNodeStore(int clusterId,
-                                              DocumentStore ds, BlobStore bs) {
+        DocumentStore ds, BlobStore bs) {
         return builderProvider.newBuilder().setDocumentStore(ds)
-                .setBlobStore(bs).setClusterId(clusterId)
-                .setAsyncDelay(0).build();
+                              .setBlobStore(bs).setClusterId(clusterId)
+                              .setAsyncDelay(0).build();
     }
 }

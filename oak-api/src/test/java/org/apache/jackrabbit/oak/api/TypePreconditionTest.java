@@ -17,12 +17,12 @@
 
 package org.apache.jackrabbit.oak.api;
 
+import static org.junit.Assert.assertEquals;
+
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
-
-import static org.junit.Assert.assertEquals;
 
 @RunWith(Parameterized.class)
 public class TypePreconditionTest {
@@ -30,19 +30,19 @@ public class TypePreconditionTest {
     @Parameters(name = "{0}/{1}")
     public static Object[][] getTypes() {
         return new Object[][]{
-                {Type.BINARIES, Type.BINARY},
-                {Type.BOOLEANS, Type.BOOLEAN},
-                {Type.DATES, Type.DATE},
-                {Type.DECIMALS, Type.DECIMAL},
-                {Type.DOUBLES, Type.DOUBLE},
-                {Type.LONGS, Type.LONG},
-                {Type.NAMES, Type.NAME},
-                {Type.PATHS, Type.PATH},
-                {Type.REFERENCES, Type.REFERENCE},
-                {Type.STRINGS, Type.STRING},
-                {Type.UNDEFINEDS, Type.UNDEFINED},
-                {Type.URIS, Type.URI},
-                {Type.WEAKREFERENCES, Type.WEAKREFERENCE}
+            {Type.BINARIES, Type.BINARY},
+            {Type.BOOLEANS, Type.BOOLEAN},
+            {Type.DATES, Type.DATE},
+            {Type.DECIMALS, Type.DECIMAL},
+            {Type.DOUBLES, Type.DOUBLE},
+            {Type.LONGS, Type.LONG},
+            {Type.NAMES, Type.NAME},
+            {Type.PATHS, Type.PATH},
+            {Type.REFERENCES, Type.REFERENCE},
+            {Type.STRINGS, Type.STRING},
+            {Type.UNDEFINEDS, Type.UNDEFINED},
+            {Type.URIS, Type.URI},
+            {Type.WEAKREFERENCES, Type.WEAKREFERENCE}
         };
     }
 

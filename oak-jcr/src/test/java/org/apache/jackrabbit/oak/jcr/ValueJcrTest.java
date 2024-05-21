@@ -25,8 +25,7 @@ import org.apache.jackrabbit.core.value.PathTest;
 public class ValueJcrTest extends TestCase {
 
     /**
-     * Returns a <code>Test</code> suite that executes all tests inside this
-     * package.
+     * Returns a <code>Test</code> suite that executes all tests inside this package.
      */
     public static Test suite() {
         TestSuite suite = new TestSuite("JCR value tests");

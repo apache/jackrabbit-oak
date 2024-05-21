@@ -19,6 +19,8 @@
 
 package org.apache.jackrabbit.oak.index;
 
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
@@ -30,7 +32,6 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoService;
@@ -55,9 +56,8 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-
 public class IndexHelper implements Closeable {
+
     private final Logger log = LoggerFactory.getLogger(getClass());
     protected final NodeStore store;
     protected final File outputDir;
@@ -75,12 +75,14 @@ public class IndexHelper implements Closeable {
 
 
     IndexHelper(NodeStore store, BlobStore blobStore, Whiteboard whiteboard,
-                File outputDir, File workDir, List<String> indexPaths) {
+        File outputDir, File workDir, List<String> indexPaths) {
         this.store = store;
         this.blobStore = blobStore;
         this.whiteboard = whiteboard;
-        this.statisticsProvider = checkNotNull(WhiteboardUtils.getService(whiteboard, StatisticsProvider.class));
-        this.indexReporter = checkNotNull(WhiteboardUtils.getService(whiteboard, IndexingReporter.class));
+        this.statisticsProvider = checkNotNull(
+            WhiteboardUtils.getService(whiteboard, StatisticsProvider.class));
+        this.indexReporter = checkNotNull(
+            WhiteboardUtils.getService(whiteboard, IndexingReporter.class));
         this.outputDir = outputDir;
         this.workDir = workDir;
         this.indexPaths = List.copyOf(indexPaths);
@@ -140,7 +142,8 @@ public class IndexHelper implements Closeable {
 
     @Nullable
     public GarbageCollectableBlobStore getGCBlobStore() {
-        return blobStore instanceof GarbageCollectableBlobStore ? (GarbageCollectableBlobStore) blobStore : null;
+        return blobStore instanceof GarbageCollectableBlobStore
+            ? (GarbageCollectableBlobStore) blobStore : null;
     }
 
     @Nullable
@@ -175,10 +178,10 @@ public class IndexHelper implements Closeable {
 
     private ThreadPoolExecutor createExecutor() {
         ThreadPoolExecutor executor = new ThreadPoolExecutor(0, 5, 60L, TimeUnit.SECONDS,
-                new LinkedBlockingQueue<Runnable>(), new ThreadFactory() {
+            new LinkedBlockingQueue<Runnable>(), new ThreadFactory() {
             private final AtomicInteger counter = new AtomicInteger();
             private final Thread.UncaughtExceptionHandler handler =
-                    (t, e) -> log.warn("Error occurred in asynchronous processing ", e);
+                (t, e) -> log.warn("Error occurred in asynchronous processing ", e);
 
             @Override
             public Thread newThread(@NotNull Runnable r) {

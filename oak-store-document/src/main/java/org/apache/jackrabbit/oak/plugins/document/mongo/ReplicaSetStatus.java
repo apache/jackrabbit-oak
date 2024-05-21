@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
+import com.mongodb.ServerAddress;
+import com.mongodb.event.ServerHeartbeatSucceededEvent;
+import com.mongodb.event.ServerMonitorListenerAdapter;
 import java.util.Collection;
 import java.util.Date;
 import java.util.Deque;
@@ -27,11 +30,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import com.mongodb.ServerAddress;
-import com.mongodb.event.ServerHeartbeatSucceededEvent;
-import com.mongodb.event.ServerMonitorListenerAdapter;
-
 import org.bson.BsonArray;
 import org.bson.BsonDocument;
 import org.jetbrains.annotations.Nullable;
@@ -39,13 +37,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Keeps track of the status of a replica set based on information provided
- * by heartbeat events. This status provides a replica set lag estimate, which
- * can be used to decide whether secondaries are sufficiently up-to-date and
- * read operations can be sent to a secondary. This is particularly useful when
- * causal consistent client sessions are used with the MongoDB Java driver. Read
- * operations shouldn't be sent to a secondary when it lags too much behind,
- * otherwise the read operation will block until it was able to catch up.
+ * Keeps track of the status of a replica set based on information provided by heartbeat events.
+ * This status provides a replica set lag estimate, which can be used to decide whether secondaries
+ * are sufficiently up-to-date and read operations can be sent to a secondary. This is particularly
+ * useful when causal consistent client sessions are used with the MongoDB Java driver. Read
+ * operations shouldn't be sent to a secondary when it lags too much behind, otherwise the read
+ * operation will block until it was able to catch up.
  */
 public class ReplicaSetStatus extends ServerMonitorListenerAdapter {
 
@@ -160,8 +157,8 @@ public class ReplicaSetStatus extends ServerMonitorListenerAdapter {
 
     private static List<ServerAddress> hostsFrom(ServerHeartbeatSucceededEvent event) {
         return event.getReply().getArray("hosts", new BsonArray()).stream()
-                .map(bsonValue -> new ServerAddress(bsonValue.asString().getValue()))
-                .collect(Collectors.toList());
+                    .map(bsonValue -> new ServerAddress(bsonValue.asString().getValue()))
+                    .collect(Collectors.toList());
     }
 
     private static Date localTimeFrom(ServerHeartbeatSucceededEvent event) {
@@ -175,6 +172,6 @@ public class ReplicaSetStatus extends ServerMonitorListenerAdapter {
             return null;
         }
         return new Date(reply.getDocument("lastWrite")
-                .getDateTime("lastWriteDate").getValue());
+                             .getDateTime("lastWriteDate").getValue());
     }
 }

@@ -22,17 +22,18 @@ import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_COUNT;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.createIndexDefinition;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
+import java.util.List;
+import java.util.Set;
 import javax.jcr.query.Query;
-
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
@@ -51,9 +52,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import java.util.List;
-import java.util.Set;
-
 /**
  * Tests indexing and queries when using the composite node store.
  */
@@ -70,12 +68,12 @@ public class CompositeNodeStoreQueryTest extends CompositeNodeStoreQueryTestBase
         NodeBuilder b;
         NodeBuilder readOnlyBuilder = readOnlyStore.getRoot().builder();
         b = createIndexDefinition(readOnlyBuilder.child(INDEX_DEFINITIONS_NAME), "foo",
-                true, false, Set.of("foo"), null);
+            true, false, Set.of("foo"), null);
         NodeBuilder globalBuilder = globalStore.getRoot().builder();
         b = createIndexDefinition(globalBuilder.child(INDEX_DEFINITIONS_NAME), "foo",
-                true, false, Set.of("foo"), null);
+            true, false, Set.of("foo"), null);
         EditorHook hook = new EditorHook(
-                new IndexUpdateProvider(new PropertyIndexEditorProvider().with(mip)));
+            new IndexUpdateProvider(new PropertyIndexEditorProvider().with(mip)));
         readOnlyStore.merge(readOnlyBuilder, hook, CommitInfo.EMPTY);
         globalStore.merge(globalBuilder, hook, CommitInfo.EMPTY);
         root.commit();
@@ -96,10 +94,10 @@ public class CompositeNodeStoreQueryTest extends CompositeNodeStoreQueryTestBase
         root = session.getLatestRoot();
         qe = root.getQueryEngine();
         assertThat(
-                executeQuery("explain /jcr:root//*[@foo = 'bar']", "xpath", false).toString(),
-                containsString("/oak:index/foo"));
+            executeQuery("explain /jcr:root//*[@foo = 'bar']", "xpath", false).toString(),
+            containsString("/oak:index/foo"));
         assertEquals("[/readOnly/node-0, /readOnly/node-1, /readOnly/node-2]",
-                executeQuery("/jcr:root//*[@foo = 'bar']", "xpath").toString());
+            executeQuery("/jcr:root//*[@foo = 'bar']", "xpath").toString());
 
         // add nodes in the read-write area
         builder = store.getRoot().builder();
@@ -112,9 +110,10 @@ public class CompositeNodeStoreQueryTest extends CompositeNodeStoreQueryTestBase
         // run a query
         assertEquals("[/content/node-0, /content/node-1, /content/node-2, " +
                 "/readOnly/node-0, /readOnly/node-1, /readOnly/node-2]",
-                executeQuery("/jcr:root//*[@foo = 'bar']", "xpath").toString());
-        assertThat(executeQuery("explain /jcr:root/content//*[@foo = 'bar']", "xpath", false).toString(),
-                containsString("/oak:index/foo"));
+            executeQuery("/jcr:root//*[@foo = 'bar']", "xpath").toString());
+        assertThat(
+            executeQuery("explain /jcr:root/content//*[@foo = 'bar']", "xpath", false).toString(),
+            containsString("/oak:index/foo"));
 
         // remove all data
         builder = store.getRoot().builder();
@@ -124,7 +123,7 @@ public class CompositeNodeStoreQueryTest extends CompositeNodeStoreQueryTestBase
 
         // run a query
         assertEquals("[]",
-                executeQuery("/jcr:root/content//*[@foo = 'bar']", "xpath").toString());
+            executeQuery("/jcr:root/content//*[@foo = 'bar']", "xpath").toString());
     }
 
     @Test
@@ -143,7 +142,7 @@ public class CompositeNodeStoreQueryTest extends CompositeNodeStoreQueryTestBase
         b.setProperty(TYPE_PROPERTY_NAME, NodeReferenceConstants.TYPE);
 
         EditorHook hook = new EditorHook(
-                new IndexUpdateProvider(new ReferenceEditorProvider().with(mip)));
+            new IndexUpdateProvider(new ReferenceEditorProvider().with(mip)));
         readOnlyStore.merge(readOnlyBuilder, hook, CommitInfo.EMPTY);
         globalStore.merge(globalBuilder, hook, CommitInfo.EMPTY);
         root.commit();
@@ -151,7 +150,8 @@ public class CompositeNodeStoreQueryTest extends CompositeNodeStoreQueryTestBase
         NodeBuilder builder;
         builder = readOnlyStore.getRoot().builder();
         for (int i = 0; i < 3; i++) {
-            builder.child("readOnly").child("node-" + i).setProperty(createProperty("foo", "u1", Type.REFERENCE));
+            builder.child("readOnly").child("node-" + i)
+                   .setProperty(createProperty("foo", "u1", Type.REFERENCE));
         }
         readOnlyStore.merge(builder, hook, CommitInfo.EMPTY);
         root.commit();
@@ -167,12 +167,14 @@ public class CompositeNodeStoreQueryTest extends CompositeNodeStoreQueryTestBase
         root = session.getLatestRoot();
         qe = root.getQueryEngine();
         assertThat(executeQuery("explain select * from [nt:base] " +
-                "where property([*], 'Reference') = cast('u1' as reference)", Query.JCR_SQL2, false).toString(),
-                containsString("/* reference"));
+                    "where property([*], 'Reference') = cast('u1' as reference)", Query.JCR_SQL2,
+                false).toString(),
+            containsString("/* reference"));
         // expected: also /readOnly/node-0 .. 2
         assertEquals("[/a/x, /readOnly/node-0, /readOnly/node-1, /readOnly/node-2]",
-                executeQuery("select [jcr:path] from [nt:base] " +
-                        "where property([*], 'Reference') = cast('u1' as reference)", Query.JCR_SQL2).toString());
+            executeQuery("select [jcr:path] from [nt:base] " +
+                    "where property([*], 'Reference') = cast('u1' as reference)",
+                Query.JCR_SQL2).toString());
 
     }
 
@@ -182,11 +184,11 @@ public class CompositeNodeStoreQueryTest extends CompositeNodeStoreQueryTestBase
         b.setProperty(TYPE_PROPERTY_NAME, LuceneIndexConstants.TYPE_LUCENE);
         b.setProperty(FulltextIndexConstants.COMPAT_MODE, IndexFormatVersion.V2.getVersion());
         b.setProperty(IndexConstants.ASYNC_PROPERTY_NAME,
-                List.of("async", "nrt"), Type.STRINGS);
+            List.of("async", "nrt"), Type.STRINGS);
         NodeBuilder foo = b.child(FulltextIndexConstants.INDEX_RULES)
-                .child("nt:base")
-                .child(FulltextIndexConstants.PROP_NODE)
-                .child("asyncFoo");
+                           .child("nt:base")
+                           .child(FulltextIndexConstants.PROP_NODE)
+                           .child("asyncFoo");
         foo.setProperty(FulltextIndexConstants.PROP_NAME, "asyncFoo");
         foo.setProperty(FulltextIndexConstants.PROP_PROPERTY_INDEX, true);
     }
@@ -207,9 +209,10 @@ public class CompositeNodeStoreQueryTest extends CompositeNodeStoreQueryTestBase
         NodeBuilder globalBuilder = globalStore.getRoot().builder();
         createLuceneIndex(globalBuilder);
 
-        LuceneIndexEditorProvider iep = new LuceneIndexEditorProvider(indexCopier, indexTracker, null, null, mip);
+        LuceneIndexEditorProvider iep = new LuceneIndexEditorProvider(indexCopier, indexTracker,
+            null, null, mip);
         EditorHook hook = new EditorHook(
-                new IndexUpdateProvider(iep, "async", false));
+            new IndexUpdateProvider(iep, "async", false));
         readOnlyStore.merge(readOnlyBuilder, hook, CommitInfo.EMPTY);
         globalStore.merge(globalBuilder, hook, CommitInfo.EMPTY);
         root.commit();
@@ -221,11 +224,14 @@ public class CompositeNodeStoreQueryTest extends CompositeNodeStoreQueryTestBase
         NodeBuilder builder;
         builder = store.getRoot().builder();
 
-        builder.child(INDEX_DEFINITIONS_NAME).child("lucene").setProperty(REINDEX_PROPERTY_NAME,true);
+        builder.child(INDEX_DEFINITIONS_NAME).child("lucene")
+               .setProperty(REINDEX_PROPERTY_NAME, true);
         store.merge(builder, hook, CommitInfo.EMPTY);
         root.commit();
 
-        assertEquals(builder.child(INDEX_DEFINITIONS_NAME).child("lucene").getProperty(REINDEX_COUNT).getValue(Type.STRING),"2");
+        assertEquals(
+            builder.child(INDEX_DEFINITIONS_NAME).child("lucene").getProperty(REINDEX_COUNT)
+                   .getValue(Type.STRING), "2");
     }
 
     @Test
@@ -245,9 +251,10 @@ public class CompositeNodeStoreQueryTest extends CompositeNodeStoreQueryTestBase
         NodeBuilder globalBuilder = globalStore.getRoot().builder();
         createLuceneIndex(globalBuilder);
 
-        LuceneIndexEditorProvider iep = new LuceneIndexEditorProvider(indexCopier, indexTracker, null, null, mip);
+        LuceneIndexEditorProvider iep = new LuceneIndexEditorProvider(indexCopier, indexTracker,
+            null, null, mip);
         EditorHook hook = new EditorHook(
-                new IndexUpdateProvider(iep, "async", false));
+            new IndexUpdateProvider(iep, "async", false));
 
         readOnlyStore.merge(readOnlyBuilder, hook, CommitInfo.EMPTY);
         globalStore.merge(globalBuilder, hook, CommitInfo.EMPTY);
@@ -264,10 +271,10 @@ public class CompositeNodeStoreQueryTest extends CompositeNodeStoreQueryTestBase
         indexTracker.update(store.getRoot());
 
         assertThat(
-                executeQuery("explain /jcr:root//*[@asyncFoo = 'bar']", "xpath", false).toString(),
-                containsString("/oak:index/lucene"));
+            executeQuery("explain /jcr:root//*[@asyncFoo = 'bar']", "xpath", false).toString(),
+            containsString("/oak:index/lucene"));
         assertEquals("[/readOnly/node-0, /readOnly/node-1, /readOnly/node-2]",
-                executeQuery("/jcr:root//*[@asyncFoo = 'bar']", "xpath").toString());
+            executeQuery("/jcr:root//*[@asyncFoo = 'bar']", "xpath").toString());
 
         // add nodes in the read-write area
         NodeBuilder builder = store.getRoot().builder();
@@ -279,11 +286,11 @@ public class CompositeNodeStoreQueryTest extends CompositeNodeStoreQueryTestBase
 
         // run a query
         assertThat(
-                executeQuery("explain /jcr:root//*[@asyncFoo = 'bar']", "xpath", false).toString(),
-                containsString("/oak:index/lucene"));
+            executeQuery("explain /jcr:root//*[@asyncFoo = 'bar']", "xpath", false).toString(),
+            containsString("/oak:index/lucene"));
         assertEquals("[/content/node-0, /content/node-1, /content/node-2, " +
                 "/readOnly/node-0, /readOnly/node-1, /readOnly/node-2]",
-                executeQuery("/jcr:root//*[@asyncFoo = 'bar']", "xpath").toString());
+            executeQuery("/jcr:root//*[@asyncFoo = 'bar']", "xpath").toString());
 
         // remove all data
         builder = store.getRoot().builder();
@@ -293,7 +300,7 @@ public class CompositeNodeStoreQueryTest extends CompositeNodeStoreQueryTestBase
 
         // run a query
         assertEquals("[]",
-                executeQuery("/jcr:root/content//*[@asyncFoo = 'bar']", "xpath").toString());
+            executeQuery("/jcr:root/content//*[@asyncFoo = 'bar']", "xpath").toString());
 
     }
 

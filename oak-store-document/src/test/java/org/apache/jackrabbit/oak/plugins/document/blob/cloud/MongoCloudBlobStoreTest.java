@@ -28,6 +28,7 @@ import org.junit.Test;
  * Tests the {@link CloudBlobStore} implementation.
  */
 public class MongoCloudBlobStoreTest extends AbstractBlobStoreTest {
+
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
         try {

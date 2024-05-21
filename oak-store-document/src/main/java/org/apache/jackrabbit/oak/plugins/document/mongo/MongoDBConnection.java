@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.plugins.document.util.MongoConnection.readConcernLevel;
+
 import com.mongodb.BasicDBObject;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientOptions;
@@ -24,18 +27,13 @@ import com.mongodb.ReadConcernLevel;
 import com.mongodb.client.ClientSession;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
-
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.plugins.document.util.MongoConnection.readConcernLevel;
-
 /**
- * Simple struct that contains {@code MongoClient}, {@code MongoDatabase} and
- * {@code MongoStatus}.
+ * Simple struct that contains {@code MongoClient}, {@code MongoDatabase} and {@code MongoStatus}.
  */
 final class MongoDBConnection {
 
@@ -48,9 +46,9 @@ final class MongoDBConnection {
     private final MongoSessionFactory sessionFactory;
 
     MongoDBConnection(@NotNull MongoClient client,
-                      @NotNull MongoDatabase database,
-                      @NotNull MongoStatus status,
-                      @NotNull MongoClock clock) {
+        @NotNull MongoDatabase database,
+        @NotNull MongoStatus status,
+        @NotNull MongoClock clock) {
         this.client = checkNotNull(client);
         this.db = checkNotNull(database);
         this.status = checkNotNull(status);
@@ -59,10 +57,10 @@ final class MongoDBConnection {
     }
 
     static MongoDBConnection newMongoDBConnection(@NotNull String uri,
-                                                  @NotNull String name,
-                                                  @NotNull MongoClock clock,
-                                                  int socketTimeout,
-                                                  boolean socketKeepAlive) {
+        @NotNull String name,
+        @NotNull MongoClock clock,
+        int socketTimeout,
+        boolean socketKeepAlive) {
         CompositeServerMonitorListener serverMonitorListener = new CompositeServerMonitorListener();
         MongoClientOptions.Builder options = MongoConnection.getDefaultBuilder();
         options.addServerMonitorListener(serverMonitorListener);
@@ -78,8 +76,8 @@ final class MongoDBConnection {
             db = db.withWriteConcern(MongoConnection.getDefaultWriteConcern(client));
         }
         if (status.isMajorityReadConcernSupported()
-                && status.isMajorityReadConcernEnabled()
-                && !MongoConnection.hasReadConcern(uri)) {
+            && status.isMajorityReadConcernEnabled()
+            && !MongoConnection.hasReadConcern(uri)) {
             db = db.withReadConcern(MongoConnection.getDefaultReadConcern(client, db));
         }
         return new MongoDBConnection(client, db, status, clock);
@@ -120,25 +118,28 @@ final class MongoDBConnection {
     }
 
     /**
-     * Checks read and write concern on the {@code MongoDatabase} and logs warn
-     * messages when they differ from the recommended values.
+     * Checks read and write concern on the {@code MongoDatabase} and logs warn messages when they
+     * differ from the recommended values.
      */
     void checkReadWriteConcern() {
         if (!MongoConnection.isSufficientWriteConcern(client, db.getWriteConcern())) {
             LOG.warn("Insufficient write concern: {} At least {} is recommended.",
-                    db.getWriteConcern(), MongoConnection.getDefaultWriteConcern(client));
+                db.getWriteConcern(), MongoConnection.getDefaultWriteConcern(client));
         }
         if (status.isMajorityReadConcernSupported() && !status.isMajorityReadConcernEnabled()) {
-            LOG.warn("The read concern should be enabled on mongod using --enableMajorityReadConcern");
-        } else if (status.isMajorityReadConcernSupported() && !MongoConnection.isSufficientReadConcern(client, db.getReadConcern())) {
+            LOG.warn(
+                "The read concern should be enabled on mongod using --enableMajorityReadConcern");
+        } else if (status.isMajorityReadConcernSupported()
+            && !MongoConnection.isSufficientReadConcern(client, db.getReadConcern())) {
             ReadConcernLevel currentLevel = readConcernLevel(db.getReadConcern());
-            ReadConcernLevel recommendedLevel = readConcernLevel(MongoConnection.getDefaultReadConcern(client, db));
+            ReadConcernLevel recommendedLevel = readConcernLevel(
+                MongoConnection.getDefaultReadConcern(client, db));
             if (currentLevel == null) {
                 LOG.warn("Read concern hasn't been set. At least {} is recommended.",
-                        recommendedLevel);
+                    recommendedLevel);
             } else {
                 LOG.warn("Insufficient read concern: {}}. At least {} is recommended.",
-                        currentLevel, recommendedLevel);
+                    currentLevel, recommendedLevel);
             }
         }
     }

@@ -34,7 +34,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
@@ -58,7 +57,8 @@ public class TarFileTest {
 
     @Before
     public void setUp() throws IOException {
-        archiveManager = new SegmentTarManager(folder.newFolder(), new FileStoreMonitorAdapter(), new IOMonitorAdapter(), false, false);
+        archiveManager = new SegmentTarManager(folder.newFolder(), new FileStoreMonitorAdapter(),
+            new IOMonitorAdapter(), false, false);
     }
 
     protected long getWriteAndReadExpectedSize() {
@@ -122,7 +122,7 @@ public class TarFileTest {
     @Test
     public void testWriteAndReadBinaryReferences() throws Exception {
         try (TarWriter writer = new TarWriter(archiveManager, "data00000a.tar")) {
-            writer.writeEntry(0x00, 0x00, new byte[] {0x01, 0x02, 0x3}, 0, 3, generation(0));
+            writer.writeEntry(0x00, 0x00, new byte[]{0x01, 0x02, 0x3}, 0, 3, generation(0));
 
             writer.addBinaryReference(generation(1), new UUID(1, 0), "r0");
             writer.addBinaryReference(generation(1), new UUID(1, 1), "r1");
@@ -166,7 +166,8 @@ public class TarFileTest {
 
             reader.getBinaryReferences().forEach((generation, full, compacted, id, reference) -> {
                 actual
-                    .computeIfAbsent(newGCGeneration(generation, full, compacted), x -> new HashMap<>())
+                    .computeIfAbsent(newGCGeneration(generation, full, compacted),
+                        x -> new HashMap<>())
                     .computeIfAbsent(id, x -> new HashSet<>())
                     .add(reference);
             });
@@ -178,10 +179,10 @@ public class TarFileTest {
     @Test
     public void binaryReferencesIndexShouldBeTrimmedDownOnSweep() throws Exception {
         try (TarWriter writer = new TarWriter(archiveManager, "data00000a.tar")) {
-            writer.writeEntry(1, 1, new byte[] {1}, 0, 1, generation(1));
-            writer.writeEntry(1, 2, new byte[] {1}, 0, 1, generation(1));
-            writer.writeEntry(2, 1, new byte[] {1}, 0, 1, generation(2));
-            writer.writeEntry(2, 2, new byte[] {1}, 0, 1, generation(2));
+            writer.writeEntry(1, 1, new byte[]{1}, 0, 1, generation(1));
+            writer.writeEntry(1, 2, new byte[]{1}, 0, 1, generation(1));
+            writer.writeEntry(2, 1, new byte[]{1}, 0, 1, generation(2));
+            writer.writeEntry(2, 2, new byte[]{1}, 0, 1, generation(2));
 
             writer.addBinaryReference(generation(1), new UUID(1, 1), "a");
             writer.addBinaryReference(generation(1), new UUID(1, 2), "b");
@@ -207,12 +208,14 @@ public class TarFileTest {
                 references.put(generation(2), two);
 
                 Map<GCGeneration, Map<UUID, Set<String>>> actual = new HashMap<>();
-                swept.getBinaryReferences().forEach((generation, full, compacted, uuid, reference) -> {
-                    actual
-                        .computeIfAbsent(newGCGeneration(generation, full, compacted), x -> new HashMap<>())
-                        .computeIfAbsent(uuid, x -> new HashSet<>())
-                        .add(reference);
-                });
+                swept.getBinaryReferences()
+                     .forEach((generation, full, compacted, uuid, reference) -> {
+                         actual
+                             .computeIfAbsent(newGCGeneration(generation, full, compacted),
+                                 x -> new HashMap<>())
+                             .computeIfAbsent(uuid, x -> new HashSet<>())
+                             .add(reference);
+                     });
 
                 assertEquals(references, actual);
             }
@@ -222,7 +225,7 @@ public class TarFileTest {
     @Test
     public void binaryReferencesIndexShouldContainCompleteGCGeneration() throws Exception {
         try (TarWriter writer = new TarWriter(archiveManager, "data00000a.tar")) {
-            writer.writeEntry(0x00, 0x00, new byte[] {0x01, 0x02, 0x3}, 0, 3, generation(0));
+            writer.writeEntry(0x00, 0x00, new byte[]{0x01, 0x02, 0x3}, 0, 3, generation(0));
             writer.addBinaryReference(newGCGeneration(1, 2, false), new UUID(1, 2), "r1");
             writer.addBinaryReference(newGCGeneration(3, 4, true), new UUID(3, 4), "r2");
         }
@@ -231,9 +234,10 @@ public class TarFileTest {
             expected.add(newGCGeneration(1, 2, false));
             expected.add(newGCGeneration(3, 4, true));
             Set<GCGeneration> actual = new HashSet<>();
-            reader.getBinaryReferences().forEach((generation, full, compacted, segment, reference) -> {
-                actual.add(newGCGeneration(generation, full, compacted));
-            });
+            reader.getBinaryReferences()
+                  .forEach((generation, full, compacted, segment, reference) -> {
+                      actual.add(newGCGeneration(generation, full, compacted));
+                  });
             assertEquals(expected, actual);
         }
     }
@@ -241,12 +245,12 @@ public class TarFileTest {
     @Test
     public void graphShouldBeTrimmedDownOnSweep() throws Exception {
         try (TarWriter writer = new TarWriter(archiveManager, "data00000a.tar")) {
-            writer.writeEntry(1, 1, new byte[] {1}, 0, 1, generation(1));
-            writer.writeEntry(1, 2, new byte[] {1}, 0, 1, generation(1));
-            writer.writeEntry(1, 3, new byte[] {1}, 0, 1, generation(1));
-            writer.writeEntry(2, 1, new byte[] {1}, 0, 1, generation(2));
-            writer.writeEntry(2, 2, new byte[] {1}, 0, 1, generation(2));
-            writer.writeEntry(2, 3, new byte[] {1}, 0, 1, generation(2));
+            writer.writeEntry(1, 1, new byte[]{1}, 0, 1, generation(1));
+            writer.writeEntry(1, 2, new byte[]{1}, 0, 1, generation(1));
+            writer.writeEntry(1, 3, new byte[]{1}, 0, 1, generation(1));
+            writer.writeEntry(2, 1, new byte[]{1}, 0, 1, generation(2));
+            writer.writeEntry(2, 2, new byte[]{1}, 0, 1, generation(2));
+            writer.writeEntry(2, 3, new byte[]{1}, 0, 1, generation(2));
 
             writer.addGraphEdge(new UUID(1, 1), new UUID(1, 2));
             writer.addGraphEdge(new UUID(1, 2), new UUID(1, 3));

@@ -34,14 +34,10 @@ public class BinaryReferencesIndex {
         /**
          * Consume an entry from a binary references index.
          *
-         * @param generation The generation of the segment containing the binary
-         *                   reference.
-         * @param full       The full generation of the segment containing the
-         *                   binary reference.
-         * @param compacted  {@code true} if the segment was created by a
-         *                   compaction operation.
-         * @param segment    The identifier of the segment containing the binary
-         *                   reference.
+         * @param generation The generation of the segment containing the binary reference.
+         * @param full       The full generation of the segment containing the binary reference.
+         * @param compacted  {@code true} if the segment was created by a compaction operation.
+         * @param segment    The identifier of the segment containing the binary reference.
          * @param reference  The binary reference.
          */
         void consume(int generation, int full, boolean compacted, UUID segment, String reference);

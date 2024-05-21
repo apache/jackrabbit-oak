@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.stats;
 
 public interface Counting {
+
     /**
      * Returns the current count.
      *

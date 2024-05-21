@@ -18,13 +18,12 @@
  */
 package org.apache.jackrabbit.oak.segment.file;
 
-import org.apache.jackrabbit.oak.segment.spi.persistence.ManifestFile;
-
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Properties;
+import org.apache.jackrabbit.oak.segment.spi.persistence.ManifestFile;
 
 public class LocalManifestFile implements ManifestFile {
 

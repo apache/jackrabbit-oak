@@ -16,6 +16,17 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol;
 
+import static org.junit.Assert.assertSame;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
+
+import java.util.Collections;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -30,18 +41,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import java.util.Collections;
-
-import static org.junit.Assert.assertSame;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.CALLS_REAL_METHODS;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.withSettings;
-
 public class PermissionAwareTest extends AbstractAccessControlTest {
 
     private final PermissionProvider permissionProvider = mock(PermissionProvider.class);
@@ -53,30 +52,40 @@ public class PermissionAwareTest extends AbstractAccessControlTest {
 
     @Before
     public void before() throws Exception {
-        ContentSession cs = when(mock(ContentSession.class).getAuthInfo()).thenReturn(AuthInfo.EMPTY).getMock();
+        ContentSession cs = when(mock(ContentSession.class).getAuthInfo()).thenReturn(
+            AuthInfo.EMPTY).getMock();
         when(cs.getWorkspaceName()).thenReturn("wsp");
 
-        awareRoot = when(mock(Root.class, withSettings().extraInterfaces(PermissionAware.class)).getContentSession()).thenReturn(cs).getMock();
+        awareRoot = when(mock(Root.class,
+            withSettings().extraInterfaces(PermissionAware.class)).getContentSession()).thenReturn(
+            cs).getMock();
         when(((PermissionAware) awareRoot).getPermissionProvider()).thenReturn(permissionProvider);
 
         unawareRoot = when(mock(Root.class).getContentSession()).thenReturn(cs).getMock();
 
         PrivilegeManager privilegeManager = mock(PrivilegeManager.class);
         PrivilegeConfiguration privilegeConfiguration = Mockito.mock(PrivilegeConfiguration.class);
-        when(privilegeConfiguration.getPrivilegeManager(any(Root.class), any(NamePathMapper.class))).thenReturn(privilegeManager);
+        when(privilegeConfiguration.getPrivilegeManager(any(Root.class),
+            any(NamePathMapper.class))).thenReturn(privilegeManager);
 
-        AuthorizationConfiguration authorizationConfiguration = mock(AuthorizationConfiguration.class);
-        when(authorizationConfiguration.getPermissionProvider(unawareRoot, "wsp", Collections.emptySet())).thenReturn(permissionProvider);
+        AuthorizationConfiguration authorizationConfiguration = mock(
+            AuthorizationConfiguration.class);
+        when(authorizationConfiguration.getPermissionProvider(unawareRoot, "wsp",
+            Collections.emptySet())).thenReturn(permissionProvider);
 
         securityProvider = mock(SecurityProvider.class);
-        when(securityProvider.getConfiguration(PrivilegeConfiguration.class)).thenReturn(privilegeConfiguration);
-        when(securityProvider.getConfiguration(AuthorizationConfiguration.class)).thenReturn(authorizationConfiguration);
+        when(securityProvider.getConfiguration(PrivilegeConfiguration.class)).thenReturn(
+            privilegeConfiguration);
+        when(securityProvider.getConfiguration(AuthorizationConfiguration.class)).thenReturn(
+            authorizationConfiguration);
     }
 
     @Test
     public void testGetPermissionProviderRootAware() {
         PermissionAware pa = (PermissionAware) awareRoot;
-        AbstractAccessControlManager acMgr = mock(AbstractAccessControlManager.class, withSettings().useConstructor(awareRoot, getNamePathMapper(), securityProvider).defaultAnswer(CALLS_REAL_METHODS));
+        AbstractAccessControlManager acMgr = mock(AbstractAccessControlManager.class,
+            withSettings().useConstructor(awareRoot, getNamePathMapper(), securityProvider)
+                          .defaultAnswer(CALLS_REAL_METHODS));
         verify(pa, never()).getPermissionProvider();
 
         assertSame(permissionProvider, acMgr.getPermissionProvider());
@@ -88,7 +97,9 @@ public class PermissionAwareTest extends AbstractAccessControlTest {
 
     @Test
     public void testGetPermissionProviderRootNotAware() {
-        AbstractAccessControlManager acMgr = mock(AbstractAccessControlManager.class, withSettings().useConstructor(unawareRoot, getNamePathMapper(), securityProvider).defaultAnswer(CALLS_REAL_METHODS));
+        AbstractAccessControlManager acMgr = mock(AbstractAccessControlManager.class,
+            withSettings().useConstructor(unawareRoot, getNamePathMapper(), securityProvider)
+                          .defaultAnswer(CALLS_REAL_METHODS));
         assertSame(permissionProvider, acMgr.getPermissionProvider());
         verify(permissionProvider, never()).refresh();
 

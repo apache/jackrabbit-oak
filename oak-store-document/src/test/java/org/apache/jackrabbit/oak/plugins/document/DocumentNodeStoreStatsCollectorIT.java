@@ -45,10 +45,12 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 public class DocumentNodeStoreStatsCollectorIT {
+
     @Rule
     public DocumentMKBuilderProvider builderProvider = new DocumentMKBuilderProvider();
 
-    private DocumentNodeStoreStatsCollector statsCollector = mock(DocumentNodeStoreStatsCollector.class);
+    private DocumentNodeStoreStatsCollector statsCollector = mock(
+        DocumentNodeStoreStatsCollector.class);
 
     private Clock clock;
 
@@ -64,12 +66,12 @@ public class DocumentNodeStoreStatsCollectorIT {
         ClusterNodeInfo.setClock(clock);
         store = new MemoryDocumentStore();
         nodeStore = builderProvider.newBuilder()
-                .clock(clock)
-                .setDocumentStore(store)
-                .setAsyncDelay(0)
-                .setNodeStoreStatsCollector(statsCollector)
-                .setUpdateLimit(10)
-                .getNodeStore();
+                                   .clock(clock)
+                                   .setDocumentStore(store)
+                                   .setAsyncDelay(0)
+                                   .setNodeStoreStatsCollector(statsCollector)
+                                   .setUpdateLimit(10)
+                                   .getNodeStore();
         // do not retry failed merges
         nodeStore.setMaxBackOffMillis(0);
     }
@@ -108,9 +110,9 @@ public class DocumentNodeStoreStatsCollectorIT {
         CommitHook failingHook = new CommitHook() {
             @Override
             public NodeState processCommit(NodeState before, NodeState after,
-                                           CommitInfo info) throws CommitFailedException {
+                CommitInfo info) throws CommitFailedException {
 
-                throw new CommitFailedException(CommitFailedException.MERGE, 0 , "");
+                throw new CommitFailedException(CommitFailedException.MERGE, 0, "");
 
             }
         };
@@ -121,7 +123,7 @@ public class DocumentNodeStoreStatsCollectorIT {
         try {
             nodeStore.merge(nb1, failingHook, CommitInfo.EMPTY);
             fail();
-        } catch (CommitFailedException ignore){
+        } catch (CommitFailedException ignore) {
 
         }
 
@@ -157,14 +159,14 @@ public class DocumentNodeStoreStatsCollectorIT {
     public void externalChangesLag() throws Exception {
         // start a second cluster node
         DocumentNodeStore ns2 = builderProvider.newBuilder()
-                .setDocumentStore(store)
-                .clock(clock)
-                .setClusterId(2)
-                .setAsyncDelay(0)
-                .getNodeStore();
+                                               .setDocumentStore(store)
+                                               .clock(clock)
+                                               .setClusterId(2)
+                                               .setAsyncDelay(0)
+                                               .getNodeStore();
         ns2.runBackgroundOperations();
         nodeStore.runBackgroundOperations();
-        
+
         NodeBuilder nb = ns2.getRoot().builder();
         nb.child("test");
         merge(ns2, nb);
@@ -179,9 +181,9 @@ public class DocumentNodeStoreStatsCollectorIT {
         nodeStore.runBackgroundReadOperations();
 
         verify(statsCollector).doneBackgroundRead(argThat(
-                // a bit more than 2000 ms
-                stats -> stats.externalChangesLag > lag
-                        && stats.externalChangesLag - lag < 100
+            // a bit more than 2000 ms
+            stats -> stats.externalChangesLag > lag
+                && stats.externalChangesLag - lag < 100
         ));
     }
 

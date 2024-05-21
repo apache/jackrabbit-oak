@@ -18,10 +18,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.commit;
 
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.spi.commit.CompositeConflictHandler;
 import org.apache.jackrabbit.oak.spi.commit.ConflictHandlers;
-
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 
 /**
  * Utility class providing conflict handlers used for JCR.

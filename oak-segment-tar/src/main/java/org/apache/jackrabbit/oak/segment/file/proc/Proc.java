@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.segment.file.proc;
 
 import java.io.InputStream;
 import java.util.Optional;
-
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -59,6 +58,7 @@ public class Proc {
         }
 
         interface Record {
+
             int getNumber();
 
             String getSegmentId();

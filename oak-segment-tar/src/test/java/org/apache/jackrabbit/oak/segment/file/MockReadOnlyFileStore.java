@@ -18,6 +18,8 @@
  */
 package org.apache.jackrabbit.oak.segment.file;
 
+import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
+
 import java.io.File;
 import java.io.IOException;
 import org.apache.jackrabbit.oak.segment.Segment;
@@ -26,19 +28,20 @@ import org.apache.jackrabbit.oak.segment.SegmentNotFoundException;
 import org.apache.jackrabbit.oak.segment.file.tar.TarPersistence;
 import org.jetbrains.annotations.NotNull;
 
-import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
-
 public class MockReadOnlyFileStore extends ReadOnlyFileStore {
+
     private int failAfterReadSegmentCount;
     private int readSegmentCount = 0;
 
     @NotNull
-    public static MockReadOnlyFileStore buildMock(File path, File journalFile) throws InvalidFileStoreVersionException, IOException {
+    public static MockReadOnlyFileStore buildMock(File path, File journalFile)
+        throws InvalidFileStoreVersionException, IOException {
         TarPersistence persistence = new TarPersistence(path, journalFile);
         ReadOnlyRevisions revisions = new ReadOnlyRevisions(persistence);
         MockReadOnlyFileStore store;
         try {
-            store = new MockReadOnlyFileStore(fileStoreBuilder(path).withCustomPersistence(persistence));
+            store = new MockReadOnlyFileStore(
+                fileStoreBuilder(path).withCustomPersistence(persistence));
         } catch (InvalidFileStoreVersionException | IOException e) {
             try {
                 revisions.close();
@@ -50,16 +53,17 @@ public class MockReadOnlyFileStore extends ReadOnlyFileStore {
         store.bind(revisions);
         return store;
     }
-    
-    
-    MockReadOnlyFileStore(FileStoreBuilder builder) throws InvalidFileStoreVersionException, IOException {
+
+
+    MockReadOnlyFileStore(FileStoreBuilder builder)
+        throws InvalidFileStoreVersionException, IOException {
         super(builder);
     }
 
     public void failAfterReadSegmentCount(int count) {
         this.failAfterReadSegmentCount = count;
     }
-    
+
     @Override
     public @NotNull Segment readSegment(SegmentId id) {
         readSegmentCount++;

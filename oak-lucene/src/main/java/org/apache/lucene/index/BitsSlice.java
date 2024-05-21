@@ -33,29 +33,30 @@ import org.apache.lucene.util.Bits;
  * @lucene.internal
  */
 final class BitsSlice implements Bits {
-  private final Bits parent;
-  private final int start;
-  private final int length;
 
-  // start is inclusive; end is exclusive (length = end-start)
-  public BitsSlice(Bits parent, ReaderSlice slice) {
-    this.parent = parent;
-    this.start = slice.start;
-    this.length = slice.length;
-    assert length >= 0: "length=" + length;
-  }
-    
-  @Override
-  public boolean get(int doc) {
-    if (doc >= length) {
-      throw new RuntimeException("doc " + doc + " is out of bounds 0 .. " + (length-1));
+    private final Bits parent;
+    private final int start;
+    private final int length;
+
+    // start is inclusive; end is exclusive (length = end-start)
+    public BitsSlice(Bits parent, ReaderSlice slice) {
+        this.parent = parent;
+        this.start = slice.start;
+        this.length = slice.length;
+        assert length >= 0 : "length=" + length;
     }
-    assert doc < length: "doc=" + doc + " length=" + length;
-    return parent.get(doc+start);
-  }
 
-  @Override
-  public int length() {
-    return length;
-  }
+    @Override
+    public boolean get(int doc) {
+        if (doc >= length) {
+            throw new RuntimeException("doc " + doc + " is out of bounds 0 .. " + (length - 1));
+        }
+        assert doc < length : "doc=" + doc + " length=" + length;
+        return parent.get(doc + start);
+    }
+
+    @Override
+    public int length() {
+        return length;
+    }
 }

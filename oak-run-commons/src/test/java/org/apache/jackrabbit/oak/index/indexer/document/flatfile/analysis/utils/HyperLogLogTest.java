@@ -57,37 +57,39 @@ public class HyperLogLogTest {
             double avg = Math.sqrt(averageOverRange(m, 30_000, testCount, false, 2));
             int min, max;
             switch (m) {
-            case 8:
-                min = 16;
-                max = 17;
-                break;
-            case 16:
-                min = 22;
-                max = 23;
-                break;
-            case 32:
-                min = 15;
-                max = 16;
-                break;
-            case 64:
-                min = 10;
-                max = 11;
-                break;
-            case 128:
-                min = 7;
-                max = 8;
-                break;
-            default:
-                min = 0;
-                max = 0;
-                break;
+                case 8:
+                    min = 16;
+                    max = 17;
+                    break;
+                case 16:
+                    min = 22;
+                    max = 23;
+                    break;
+                case 32:
+                    min = 15;
+                    max = 16;
+                    break;
+                case 64:
+                    min = 10;
+                    max = 11;
+                    break;
+                case 128:
+                    min = 7;
+                    max = 8;
+                    break;
+                default:
+                    min = 0;
+                    max = 0;
+                    break;
             }
             // System.out.println(type + " expected " + min + ".." + max + " got " + avg);
-            assertTrue("m " + m + " expected " + min + ".." + max + " got " + avg, min < avg && avg < max);
+            assertTrue("m " + m + " expected " + min + ".." + max + " got " + avg,
+                min < avg && avg < max);
         }
     }
 
-    private static double averageOverRange(int m, long maxSize, int testCount, boolean debug, double exponent) {
+    private static double averageOverRange(int m, long maxSize, int testCount, boolean debug,
+        double exponent) {
         double sum = 0;
         int count = 0;
         for (long size = 1; size <= 20; size++) {
@@ -155,11 +157,11 @@ public class HyperLogLogTest {
         int biasP = (int) (100 * (sum / testCount / runs / size) - 100);
         if (debug) {
             System.out.println("m " + m + " size " + size + " relStdDev% " + (int) relStdDevP +
-                    " range " + min + ".." + max +
-                    " biasFirst% " + biasFirstP +
-                    " bias% " + biasP +
-                    " avg " + (sum / testCount / runs) +
-                    " time " + nsPerItem);
+                " range " + min + ".." + max +
+                " biasFirst% " + biasFirstP +
+                " bias% " + biasP +
+                " avg " + (sum / testCount / runs) +
+                " time " + nsPerItem);
         }
         // we try to reduce the relStdDevP, make sure there are no large values
         // (trying to reduce sumSquareError directly

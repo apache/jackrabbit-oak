@@ -23,7 +23,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
-
 import net.jpountz.lz4.LZ4FrameOutputStream;
 
 /**
@@ -39,7 +38,8 @@ public class NodeStreamConverter {
 
     public static void convert(String sourceFileName, String targetFileName) throws IOException {
         try (NodeLineReader in = NodeLineReader.open(sourceFileName)) {
-            try (OutputStream fileOut = new BufferedOutputStream(new FileOutputStream(targetFileName))) {
+            try (OutputStream fileOut = new BufferedOutputStream(
+                new FileOutputStream(targetFileName))) {
                 try (OutputStream out = new LZ4FrameOutputStream(fileOut)) {
                     while (true) {
                         NodeData node = in.readNode();
@@ -55,7 +55,7 @@ public class NodeStreamConverter {
 
     private static void writeNode(OutputStream out, NodeData node) throws IOException {
         writeVarInt(out, node.getPathElements().size());
-        for(String s : node.getPathElements()) {
+        for (String s : node.getPathElements()) {
             writeString(out, s);
         }
         writeVarInt(out, node.getProperties().size());
@@ -89,7 +89,7 @@ public class NodeStreamConverter {
      * Write a variable size int.
      *
      * @param out the output stream
-     * @param x the value
+     * @param x   the value
      * @throws IOException if some data could not be written
      */
     public static void writeVarInt(OutputStream out, int x) throws IOException {

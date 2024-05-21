@@ -16,9 +16,9 @@
  */
 package org.apache.jackrabbit.oak.security.internal;
 
-import java.util.Set;
-
 import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
+
+import java.util.Set;
 
 /**
  * Represents a preconditions set that may be satisfied by adding the right candidates.

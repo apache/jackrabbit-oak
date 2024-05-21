@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.segment.standby.server;
 
 import java.io.IOException;
 import java.io.InputStream;
-
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,19 +47,19 @@ class DefaultStandbyBlobReader implements StandbyBlobReader {
 
         return null;
     }
-    
+
     @Override
     public long getBlobLength(String blobId) {
         if (store == null) {
             return -1L;
         }
-        
+
         try {
             return store.getBlobLength(blobId);
         } catch (IOException e) {
             log.warn("Error while reading blob content", e);
         }
-     
+
         return -1L;
     }
 }

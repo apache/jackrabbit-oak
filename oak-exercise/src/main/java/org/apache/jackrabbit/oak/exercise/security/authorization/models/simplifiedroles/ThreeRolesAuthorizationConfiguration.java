@@ -16,6 +16,15 @@
  */
 package org.apache.jackrabbit.oak.exercise.security.authorization.models.simplifiedroles;
 
+import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_SECURITY_NAME;
+
+import java.io.ByteArrayInputStream;
+import java.security.Principal;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import javax.jcr.RepositoryException;
+import javax.jcr.security.AccessControlManager;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
@@ -59,48 +68,45 @@ import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.jcr.RepositoryException;
-import javax.jcr.security.AccessControlManager;
-import java.io.ByteArrayInputStream;
-import java.security.Principal;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_SECURITY_NAME;
-
-@Component(service = {AuthorizationConfiguration.class, org.apache.jackrabbit.oak.spi.security.SecurityConfiguration.class},
-        property = OAK_SECURITY_NAME + "=org.apache.jackrabbit.oak.exercise.security.authorization.models.simplifiedroles.ThreeRolesAuthorizationConfiguration",
-        immediate = true,
-        configurationPolicy = ConfigurationPolicy.REQUIRE)
+@Component(service = {AuthorizationConfiguration.class,
+    org.apache.jackrabbit.oak.spi.security.SecurityConfiguration.class},
+    property = OAK_SECURITY_NAME
+        + "=org.apache.jackrabbit.oak.exercise.security.authorization.models.simplifiedroles.ThreeRolesAuthorizationConfiguration",
+    immediate = true,
+    configurationPolicy = ConfigurationPolicy.REQUIRE)
 @Designate(ocd = ThreeRolesAuthorizationConfiguration.Configuration.class)
-public class ThreeRolesAuthorizationConfiguration extends ConfigurationBase implements AuthorizationConfiguration, ThreeRolesConstants {
+public class ThreeRolesAuthorizationConfiguration extends ConfigurationBase implements
+    AuthorizationConfiguration, ThreeRolesConstants {
 
     @ObjectClassDefinition(name = "Apache Jackrabbit Oak ThreeRolesAuthorizationConfiguration (Oak Exercises)")
     @interface Configuration {
+
         @AttributeDefinition(
-                name = "Supported Paths", description = "Define paths where this simplified authorization model is supported.")
+            name = "Supported Paths", description = "Define paths where this simplified authorization model is supported.")
         int supportedPath();
 
         @AttributeDefinition(
-                name = "Ranking",
-                description = "Ranking of this configuration in a setup with multiple authorization configurations.")
+            name = "Ranking",
+            description = "Ranking of this configuration in a setup with multiple authorization configurations.")
         int configurationRanking() default 10;
     }
 
-    private static final Logger log = LoggerFactory.getLogger(ThreeRolesAuthorizationConfiguration.class);
+    private static final Logger log = LoggerFactory.getLogger(
+        ThreeRolesAuthorizationConfiguration.class);
     private static final String PARAM_SUPPORTED_PATHS = "supportedPath";
 
     private String supportedPath;
 
     @Activate
     private void activate(Map<String, Object> properties) {
-        supportedPath = PropertiesUtil.toString(properties.get(PARAM_SUPPORTED_PATHS), (String) null);
+        supportedPath = PropertiesUtil.toString(properties.get(PARAM_SUPPORTED_PATHS),
+            (String) null);
     }
 
     @Modified
     private void modified(Map<String, Object> properties) {
-        supportedPath = PropertiesUtil.toString(properties.get(PARAM_SUPPORTED_PATHS), (String) null);
+        supportedPath = PropertiesUtil.toString(properties.get(PARAM_SUPPORTED_PATHS),
+            (String) null);
     }
 
     @Deactivate
@@ -110,7 +116,8 @@ public class ThreeRolesAuthorizationConfiguration extends ConfigurationBase impl
 
     @NotNull
     @Override
-    public AccessControlManager getAccessControlManager(@NotNull Root root, @NotNull NamePathMapper namePathMapper) {
+    public AccessControlManager getAccessControlManager(@NotNull Root root,
+        @NotNull NamePathMapper namePathMapper) {
         return new ThreeRolesAccessControlManager(root, supportedPath, getSecurityProvider());
     }
 
@@ -122,11 +129,13 @@ public class ThreeRolesAuthorizationConfiguration extends ConfigurationBase impl
 
     @NotNull
     @Override
-    public PermissionProvider getPermissionProvider(@NotNull Root root, @NotNull String workspaceName, @NotNull Set<Principal> principals) {
+    public PermissionProvider getPermissionProvider(@NotNull Root root,
+        @NotNull String workspaceName, @NotNull Set<Principal> principals) {
         if (supportedPath == null) {
             return EmptyPermissionProvider.getInstance();
         } else {
-            return new ThreeRolesPermissionProvider(root, principals, supportedPath, getContext(), getRootProvider());
+            return new ThreeRolesPermissionProvider(root, principals, supportedPath, getContext(),
+                getRootProvider());
         }
     }
 
@@ -140,24 +149,28 @@ public class ThreeRolesAuthorizationConfiguration extends ConfigurationBase impl
     @Override
     public RepositoryInitializer getRepositoryInitializer() {
         String cnd = "<rep='internal'>\n" +
-                     "["+MIX_REP_THREE_ROLES_POLICY+"] \n   mixin\n " +
-                     "  +"+REP_3_ROLES_POLICY+" ("+NT_REP_THREE_ROLES_POLICY+") protected IGNORE\n\n" +
-                     "["+NT_REP_THREE_ROLES_POLICY+"] > "+ AccessControlConstants.NT_REP_POLICY+"\n" +
-                     "  - "+REP_READERS +" (STRING) multiple protected IGNORE\n" +
-                     "  - "+REP_EDITORS+" (STRING) multiple protected IGNORE\n" +
-                     "  - "+REP_OWNERS+" (STRING) multiple protected IGNORE";
+            "[" + MIX_REP_THREE_ROLES_POLICY + "] \n   mixin\n " +
+            "  +" + REP_3_ROLES_POLICY + " (" + NT_REP_THREE_ROLES_POLICY + ") protected IGNORE\n\n"
+            +
+            "[" + NT_REP_THREE_ROLES_POLICY + "] > " + AccessControlConstants.NT_REP_POLICY + "\n" +
+            "  - " + REP_READERS + " (STRING) multiple protected IGNORE\n" +
+            "  - " + REP_EDITORS + " (STRING) multiple protected IGNORE\n" +
+            "  - " + REP_OWNERS + " (STRING) multiple protected IGNORE";
         return builder -> {
             NodeState base = builder.getNodeState();
             NodeStore store = new MemoryNodeStore(base);
 
             Root root = getRootProvider().createSystemRoot(store,
-                    new EditorHook(new CompositeEditorProvider(new NamespaceEditorProvider(), new TypeEditorProvider())));
+                new EditorHook(new CompositeEditorProvider(new NamespaceEditorProvider(),
+                    new TypeEditorProvider())));
 
             try {
-                if (!ReadOnlyNodeTypeManager.getInstance(root, NamePathMapper.DEFAULT).hasNodeType(MIX_REP_THREE_ROLES_POLICY)) {
-                    NodeTypeRegistry.register(root, new ByteArrayInputStream(cnd.getBytes()), "oak exercise");
-                        NodeState target = store.getRoot();
-                        target.compareAgainstBaseState(base, new ApplyDiff(builder));
+                if (!ReadOnlyNodeTypeManager.getInstance(root, NamePathMapper.DEFAULT)
+                                            .hasNodeType(MIX_REP_THREE_ROLES_POLICY)) {
+                    NodeTypeRegistry.register(root, new ByteArrayInputStream(cnd.getBytes()),
+                        "oak exercise");
+                    NodeState target = store.getRoot();
+                    target.compareAgainstBaseState(base, new ApplyDiff(builder));
                 }
             } catch (RepositoryException e) {
                 log.error(e.getMessage());
@@ -167,10 +180,12 @@ public class ThreeRolesAuthorizationConfiguration extends ConfigurationBase impl
 
     @NotNull
     @Override
-    public List<? extends ValidatorProvider> getValidators(@NotNull String workspaceName, @NotNull Set<Principal> principals, @NotNull MoveTracker moveTracker) {
+    public List<? extends ValidatorProvider> getValidators(@NotNull String workspaceName,
+        @NotNull Set<Principal> principals, @NotNull MoveTracker moveTracker) {
         return ImmutableList.of(new ValidatorProvider() {
             @Override
-            protected Validator getRootValidator(NodeState before, NodeState after, CommitInfo info) {
+            protected Validator getRootValidator(NodeState before, NodeState after,
+                CommitInfo info) {
                 // EXERCISE: write a validator that meets the following requirements:
                 // 1. check that the item names defined with the node types are only used within the scope of the 2 node types
                 // 2. check that the policies are never nested.

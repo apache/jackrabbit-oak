@@ -20,7 +20,6 @@ import javax.jcr.Node;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 import javax.jcr.security.Privilege;
-
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
@@ -37,7 +36,8 @@ public class ManyUserReadTest extends ReadDeepTreeTest {
     private final int numberOfMembers = 10;
     private final boolean randomUser;
 
-    protected ManyUserReadTest(boolean runAsAdmin, int itemsToRead, boolean doReport, boolean randomUser) {
+    protected ManyUserReadTest(boolean runAsAdmin, int itemsToRead, boolean doReport,
+        boolean randomUser) {
         super(runAsAdmin, itemsToRead, doReport, !randomUser);
         this.randomUser = randomUser;
     }
@@ -48,41 +48,45 @@ public class ManyUserReadTest extends ReadDeepTreeTest {
 
         UserManager userManager = ((JackrabbitSession) adminSession).getUserManager();
         for (int i = 0; i < numberOfUsers; i++) {
-            User user = userManager.createUser("user"+i, "user"+i);
-            AccessControlUtils.addAccessControlEntry(adminSession, user.getPath(), user.getPrincipal(), new String[] {Privilege.JCR_ALL}, true);
+            User user = userManager.createUser("user" + i, "user" + i);
+            AccessControlUtils.addAccessControlEntry(adminSession, user.getPath(),
+                user.getPrincipal(), new String[]{Privilege.JCR_ALL}, true);
 
             Node userNode = adminSession.getNode(user.getPath());
             Node n = userNode.addNode("public");
             n.setProperty("prop", "value");
             String path = n.getPath();
-            AccessControlUtils.addAccessControlEntry(adminSession, path, EveryonePrincipal.getInstance(), new String[]{Privilege.JCR_READ}, true);
+            AccessControlUtils.addAccessControlEntry(adminSession, path,
+                EveryonePrincipal.getInstance(), new String[]{Privilege.JCR_READ}, true);
             allPaths.add(path);
             allPaths.add(path + "/prop");
 
             Group g = userManager.createGroup("group" + i);
-            AccessControlUtils.addAccessControlEntry(adminSession, g.getPath(), g.getPrincipal(), new String[] {Privilege.JCR_READ}, true);
+            AccessControlUtils.addAccessControlEntry(adminSession, g.getPath(), g.getPrincipal(),
+                new String[]{Privilege.JCR_READ}, true);
 
             n = userNode.addNode("semi");
             n.setProperty("prop", "value");
             path = n.getPath();
-            AccessControlUtils.addAccessControlEntry(adminSession, path, g.getPrincipal(), new String[]{Privilege.JCR_READ}, true);
+            AccessControlUtils.addAccessControlEntry(adminSession, path, g.getPrincipal(),
+                new String[]{Privilege.JCR_READ}, true);
             allPaths.add(path);
             allPaths.add(path + "/prop");
 
             userNode.addNode("private").setProperty("prop", "value");
             adminSession.save();
         }
-        System.out.println("Setup "+numberOfUsers+" users");
+        System.out.println("Setup " + numberOfUsers + " users");
 
         for (int i = 0; i < numberOfUsers; i++) {
-            Group g = (Group) userManager.getAuthorizable("group"+i);
+            Group g = (Group) userManager.getAuthorizable("group" + i);
             for (int j = 0; j < numberOfMembers; j++) {
                 g.addMember(userManager.getAuthorizable("user" + getIndex()));
             }
             adminSession.save();
         }
 
-        System.out.println("Setup group membership ("+numberOfMembers+" members per group)");
+        System.out.println("Setup group membership (" + numberOfMembers + " members per group)");
         System.out.println("All Paths : " + allPaths.size());
 
         AccessControlUtils.denyAllToEveryone(adminSession, "/rep:security/rep:authorizables");
@@ -99,7 +103,7 @@ public class ManyUserReadTest extends ReadDeepTreeTest {
         if (runAsAdmin) {
             return loginWriter();
         } else {
-            String userId = (randomUser) ? "user"+getIndex() : "user1";
+            String userId = (randomUser) ? "user" + getIndex() : "user1";
             SimpleCredentials sc = new SimpleCredentials(userId, userId.toCharArray());
             return login(sc);
         }

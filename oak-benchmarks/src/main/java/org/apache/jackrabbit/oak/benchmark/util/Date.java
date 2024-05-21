@@ -34,27 +34,27 @@ public enum Date {
      * what could be considered the current timestamp
      */
     NOW(Calendar.getInstance()),
-    
+
     /**
      * given {@code NOW} less 2 hours
      */
     LAST_2_HRS(add(NOW.getCalendar(), Calendar.HOUR_OF_DAY, -2)),
-    
+
     /**
      * given {@code NOW} less 24 hours
      */
     LAST_24_HRS(add(NOW.getCalendar(), Calendar.HOUR_OF_DAY, -24)),
-    
+
     /**
      * given {@code NOW} less 1 week
      */
-    LAST_7_DAYS(add(NOW.getCalendar(), Calendar.HOUR_OF_DAY, -24*7)),
-    
+    LAST_7_DAYS(add(NOW.getCalendar(), Calendar.HOUR_OF_DAY, -24 * 7)),
+
     /**
      * given {@code NOW} less 1 month
      */
     LAST_MONTH(add(NOW.getCalendar(), Calendar.MONTH, -1)),
-    
+
     /**
      * given {@code NOW} less 1 year
      */
@@ -62,9 +62,9 @@ public enum Date {
 
     /**
      * perform math on the provided calendar and return it.
-     * 
-     * @param cal the calendar to add value to
-     * @param field the field to change
+     *
+     * @param cal    the calendar to add value to
+     * @param field  the field to change
      * @param amount the amount to be added
      * @return the changed calendar
      */
@@ -73,13 +73,13 @@ public enum Date {
         return cal;
     }
 
-    
+
     private final Calendar cal;
-    
+
     Date(Calendar cal) {
         this.cal = cal;
     }
-    
+
     public Calendar getCalendar() {
         // duplicating the calendar for allowing safe operations from consumers
         Calendar c = Calendar.getInstance();
@@ -94,21 +94,21 @@ public enum Date {
     private static final List<Date> VALUES = Collections.unmodifiableList(Arrays.asList(values()));
     private static final int SIZE = VALUES.size();
     private static final Random RND = new Random(30);
-    
+
     /**
      * return a random Date
-     * 
+     *
      * @return the date
      */
     public static Date randomDate() {
         return VALUES.get(RND.nextInt(SIZE));
     }
-    
+
     public static String convertToISO_8601_2000(Calendar cal) {
-      SimpleDateFormat format = new SimpleDateFormat(
-          "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
-      format.setTimeZone(TimeZone.getTimeZone("GMT"));
-      return format.format(cal.getTime());
+        SimpleDateFormat format = new SimpleDateFormat(
+            "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+        format.setTimeZone(TimeZone.getTimeZone("GMT"));
+        return format.format(cal.getTime());
     }
 }
 

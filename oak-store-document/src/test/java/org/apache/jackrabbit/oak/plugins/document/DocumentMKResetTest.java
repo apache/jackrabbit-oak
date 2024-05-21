@@ -49,7 +49,8 @@ public class DocumentMKResetTest extends BaseDocumentMKTest {
         try {
             mk.reset(rev, rev);
             fail("DocumentStoreException expected");
-        } catch (DocumentStoreException expected) {}
+        } catch (DocumentStoreException expected) {
+        }
     }
 
     @Test
@@ -60,7 +61,8 @@ public class DocumentMKResetTest extends BaseDocumentMKTest {
         try {
             mk.reset(rev, base);
             fail("DocumentStoreException expected");
-        } catch (DocumentStoreException expected) {}
+        } catch (DocumentStoreException expected) {
+        }
     }
 
     @Test
@@ -71,7 +73,8 @@ public class DocumentMKResetTest extends BaseDocumentMKTest {
         try {
             mk.reset(rev, mk.branch(null));
             fail("DocumentStoreException expected");
-        } catch (DocumentStoreException expected) {}
+        } catch (DocumentStoreException expected) {
+        }
     }
 
     @Test
@@ -80,7 +83,8 @@ public class DocumentMKResetTest extends BaseDocumentMKTest {
         try {
             mk.reset(rev, rev);
             fail("DocumentStoreException expected");
-        } catch (DocumentStoreException expected) {}
+        } catch (DocumentStoreException expected) {
+        }
     }
 
     @Test
@@ -92,7 +96,8 @@ public class DocumentMKResetTest extends BaseDocumentMKTest {
         try {
             mk.reset(branch, rev);
             fail("DocumentStoreException expected");
-        } catch (DocumentStoreException expected) {}
+        } catch (DocumentStoreException expected) {
+        }
     }
 
     @Test
@@ -183,7 +188,7 @@ public class DocumentMKResetTest extends BaseDocumentMKTest {
         NodeDocument foo = store.find(NODES, getIdFromPath("/foo"));
         assertNotNull(foo);
         assertTrue(foo.getLocalCommitRoot().containsKey(
-                Revision.fromString(b1).asTrunkRevision()));
+            Revision.fromString(b1).asTrunkRevision()));
 
         addNodes(null, "/foo/bar");
 
@@ -193,7 +198,7 @@ public class DocumentMKResetTest extends BaseDocumentMKTest {
         foo = store.find(NODES, getIdFromPath("/foo"));
         assertNotNull(foo);
         assertFalse(foo.getLocalCommitRoot().containsKey(
-                Revision.fromString(b1).asTrunkRevision()));
+            Revision.fromString(b1).asTrunkRevision()));
     }
 
     @Test
@@ -207,7 +212,7 @@ public class DocumentMKResetTest extends BaseDocumentMKTest {
         NodeDocument foo = store.find(NODES, getIdFromPath("/foo"));
         assertNotNull(foo);
         assertTrue(foo.getLocalCommitRoot().containsKey(
-                Revision.fromString(b1).asTrunkRevision()));
+            Revision.fromString(b1).asTrunkRevision()));
 
         addNodes(null, "/foo/bar");
 

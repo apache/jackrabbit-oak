@@ -19,9 +19,9 @@
 
 package org.apache.jackrabbit.oak.segment.file;
 
-import static org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors.listeningDecorator;
 import static java.util.concurrent.Executors.newFixedThreadPool;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors.listeningDecorator;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -34,7 +34,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
-
 import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Functions;
 import org.apache.jackrabbit.guava.common.util.concurrent.ListenableFuture;
@@ -42,9 +41,9 @@ import org.apache.jackrabbit.guava.common.util.concurrent.ListeningExecutorServi
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.SegmentNodeBuilder;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
-import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 import org.apache.jackrabbit.oak.segment.SegmentReader;
 import org.apache.jackrabbit.oak.segment.file.tar.TarPersistence;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.After;
@@ -54,6 +53,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 public class TarRevisionsTest {
+
     private FileStore store;
     private TarRevisions revisions;
     private SegmentReader reader;
@@ -71,7 +71,8 @@ public class TarRevisionsTest {
 
     @Before
     public void setup() throws Exception {
-        store = FileStoreBuilder.fileStoreBuilder(getFileStoreFolder()).withCustomPersistence(getPersistence()).build();
+        store = FileStoreBuilder.fileStoreBuilder(getFileStoreFolder())
+                                .withCustomPersistence(getPersistence()).build();
         revisions = store.getRevisions();
         reader = store.getReader();
         store.flush();
@@ -158,7 +159,7 @@ public class TarRevisionsTest {
 
     @Test
     public void concurrentSetHeadFromFunction()
-    throws InterruptedException, ExecutionException, TimeoutException {
+        throws InterruptedException, ExecutionException, TimeoutException {
         ListeningExecutorService executor = listeningDecorator(newFixedThreadPool(2));
         try {
             ListenableFuture<Boolean> t1 = executor.submit(new Callable<Boolean>() {
@@ -199,7 +200,7 @@ public class TarRevisionsTest {
 
     @Test
     public void setFromFunctionBlocks()
-    throws ExecutionException, InterruptedException, TimeoutException {
+        throws ExecutionException, InterruptedException, TimeoutException {
         ListeningExecutorService executor = listeningDecorator(newFixedThreadPool(2));
         try {
             final CountDownLatch latch = new CountDownLatch(1);
@@ -215,7 +216,8 @@ public class TarRevisionsTest {
             try {
                 t1.get(500, MILLISECONDS);
                 fail("SetHead from function should block");
-            } catch (TimeoutException expected) {}
+            } catch (TimeoutException expected) {
+            }
 
             ListenableFuture<Boolean> t2 = executor.submit(new Callable<Boolean>() {
                 @Override

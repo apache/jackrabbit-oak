@@ -16,6 +16,25 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
+import static org.apache.jackrabbit.JcrConstants.JCR_CONTENT;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
+import static org.apache.jackrabbit.JcrConstants.NT_FILE;
+import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
+import static org.apache.jackrabbit.oak.api.QueryEngine.NO_BINDINGS;
+import static org.apache.jackrabbit.oak.api.Type.NAME;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.stream.StreamSupport;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Result;
@@ -34,27 +53,8 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.stream.StreamSupport;
-
-import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
-import static org.apache.jackrabbit.JcrConstants.JCR_CONTENT;
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
-import static org.apache.jackrabbit.JcrConstants.NT_FILE;
-import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
-import static org.apache.jackrabbit.oak.api.QueryEngine.NO_BINDINGS;
-import static org.apache.jackrabbit.oak.api.Type.NAME;
-import static org.apache.jackrabbit.oak.api.Type.STRING;
-import static org.apache.jackrabbit.oak.api.Type.STRINGS;
-import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-
 public abstract class IndexAggregation2CommonTest extends AbstractQueryTest {
+
     protected static final Logger LOG = LoggerFactory.getLogger(IndexAggregation2CommonTest.class);
 
     private static final String NT_TEST_PAGE = "test:Page";
@@ -77,18 +77,20 @@ public abstract class IndexAggregation2CommonTest extends AbstractQueryTest {
                 .newRuleWithName(NT_TEST_PAGECONTENT, List.of("*", "*/*", "*/*/*", "*/*/*/*"))
                 .newRuleWithName(NT_TEST_ASSET, List.of("jcr:content"))
                 .newRuleWithName(
-                        NT_TEST_ASSETCONTENT,
-                        List.of("metadata", "renditions", "renditions/original", "comments",
-                                "renditions/original/jcr:content"))
+                    NT_TEST_ASSETCONTENT,
+                    List.of("metadata", "renditions", "renditions/original", "comments",
+                        "renditions/original/jcr:content"))
                 .newRuleWithName("rep:User", List.of("profile"));
 
         Tree originalInclude = indexDefn.getChild(FulltextIndexConstants.AGGREGATES)
-                .getChild(NT_TEST_ASSET).addChild("includeOriginal");
+                                        .getChild(NT_TEST_ASSET).addChild("includeOriginal");
         originalInclude.setProperty(FulltextIndexConstants.AGG_RELATIVE_NODE, true);
-        originalInclude.setProperty(FulltextIndexConstants.AGG_PATH, "jcr:content/renditions/original");
+        originalInclude.setProperty(FulltextIndexConstants.AGG_PATH,
+            "jcr:content/renditions/original");
 
         Tree includeSingleRel = indexDefn.getChild(FulltextIndexConstants.AGGREGATES)
-                .getChild(NT_TEST_ASSET).addChild("includeFirstLevelChild");
+                                         .getChild(NT_TEST_ASSET)
+                                         .addChild("includeFirstLevelChild");
         includeSingleRel.setProperty(FulltextIndexConstants.AGG_RELATIVE_NODE, true);
         includeSingleRel.setProperty(FulltextIndexConstants.AGG_PATH, "firstLevelChild");
 
@@ -105,23 +107,23 @@ public abstract class IndexAggregation2CommonTest extends AbstractQueryTest {
 
     protected static QueryIndex.NodeAggregator getNodeAggregator() {
         return new SimpleNodeAggregator()
-                .newRuleWithName(NT_FILE, List.of("jcr:content"))
-                .newRuleWithName(NT_TEST_PAGE, List.of("jcr:content"))
-                .newRuleWithName(NT_TEST_PAGECONTENT, List.of("*", "*/*", "*/*/*", "*/*/*/*"))
-                .newRuleWithName(NT_TEST_ASSET, List.of("jcr:content"))
-                .newRuleWithName(
-                        NT_TEST_ASSETCONTENT,
-                        List.of("metadata", "renditions", "renditions/original", "comments",
-                                "renditions/original/jcr:content"))
-                .newRuleWithName("rep:User", List.of("profile"));
+            .newRuleWithName(NT_FILE, List.of("jcr:content"))
+            .newRuleWithName(NT_TEST_PAGE, List.of("jcr:content"))
+            .newRuleWithName(NT_TEST_PAGECONTENT, List.of("*", "*/*", "*/*/*", "*/*/*/*"))
+            .newRuleWithName(NT_TEST_ASSET, List.of("jcr:content"))
+            .newRuleWithName(
+                NT_TEST_ASSETCONTENT,
+                List.of("metadata", "renditions", "renditions/original", "comments",
+                    "renditions/original/jcr:content"))
+            .newRuleWithName("rep:User", List.of("profile"));
     }
 
     @Test
     public void oak2226() throws Exception {
         setTraversalEnabled(false);
         final String statement = "/jcr:root/content//element(*, test:Asset)[" +
-                "(jcr:contains(., 'mountain')) " +
-                "and (jcr:contains(jcr:content/metadata/@format, 'image'))]";
+            "(jcr:contains(., 'mountain')) " +
+            "and (jcr:contains(jcr:content/metadata/@format, 'image'))]";
         Tree content = root.getTree("/").addChild("content");
         List<String> expected = new ArrayList<>();
 
@@ -151,7 +153,6 @@ public abstract class IndexAggregation2CommonTest extends AbstractQueryTest {
          *      }
          *  }
          */
-
 
         // adding a node with 'mountain' property
         Tree node = content.addChild("node");
@@ -184,13 +185,13 @@ public abstract class IndexAggregation2CommonTest extends AbstractQueryTest {
     public void oak2249() throws Exception {
         setTraversalEnabled(false);
         final String statement = "//element(*, test:Asset)[ " +
-                "( " +
-                "jcr:contains(., 'summer') " +
-                "or " +
-                "jcr:content/metadata/@tags = 'namespace:season/summer' " +
-                ") and " +
-                "jcr:contains(jcr:content/metadata/@format, 'image') " +
-                "]";
+            "( " +
+            "jcr:contains(., 'summer') " +
+            "or " +
+            "jcr:content/metadata/@tags = 'namespace:season/summer' " +
+            ") and " +
+            "jcr:contains(jcr:content/metadata/@format, 'image') " +
+            "]";
 
         Tree content = root.getTree("/").addChild("content");
         List<String> expected = new ArrayList<>();
@@ -225,10 +226,10 @@ public abstract class IndexAggregation2CommonTest extends AbstractQueryTest {
     public void indexRelativeNode() throws Exception {
         setTraversalEnabled(false);
         final String statement = "//element(*, test:Asset)[ " +
-                "jcr:contains(., 'summer') " +
-                "and jcr:contains(jcr:content/renditions/original, 'fox')" +
-                "and jcr:contains(jcr:content/metadata/@format, 'image') " +
-                "]";
+            "jcr:contains(., 'summer') " +
+            "and jcr:contains(jcr:content/renditions/original, 'fox')" +
+            "and jcr:contains(jcr:content/metadata/@format, 'image') " +
+            "]";
 
         Tree content = root.getTree("/").addChild("content");
         List<String> expected = new ArrayList<>();
@@ -239,8 +240,10 @@ public abstract class IndexAggregation2CommonTest extends AbstractQueryTest {
 
         Tree original = metadata.getParent().addChild("renditions").addChild("original");
         original.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_FILE);
-        original.addChild("jcr:content").setProperty(PropertyStates.createProperty(JcrConstants.JCR_MIMETYPE, "text/plain"));
-        original.addChild("jcr:content").setProperty(PropertyStates.createProperty("jcr:data", "fox jumps".getBytes()));
+        original.addChild("jcr:content").setProperty(
+            PropertyStates.createProperty(JcrConstants.JCR_MIMETYPE, "text/plain"));
+        original.addChild("jcr:content")
+                .setProperty(PropertyStates.createProperty("jcr:data", "fox jumps".getBytes()));
 
         expected.add("/content/tagged");
         root.commit();
@@ -248,8 +251,10 @@ public abstract class IndexAggregation2CommonTest extends AbstractQueryTest {
         assertEventually(() -> assertQuery(statement, "xpath", expected));
 
         //Update the re-aggregated node and with that parent should be get updated
-        Tree originalContent = TreeUtil.getTree(root.getTree("/"), "/content/tagged/jcr:content/renditions/original/jcr:content");
-        originalContent.setProperty(PropertyStates.createProperty("jcr:data", "kiwi jumps".getBytes()));
+        Tree originalContent = TreeUtil.getTree(root.getTree("/"),
+            "/content/tagged/jcr:content/renditions/original/jcr:content");
+        originalContent.setProperty(
+            PropertyStates.createProperty("jcr:data", "kiwi jumps".getBytes()));
         root.commit();
         assertEventually(() -> assertQuery(statement, "xpath", List.of()));
         setTraversalEnabled(true);
@@ -259,7 +264,7 @@ public abstract class IndexAggregation2CommonTest extends AbstractQueryTest {
     public void indexSingleRelativeNode() throws Exception {
         setTraversalEnabled(false);
         final String statement = "//element(*, test:Asset)[ " +
-                "jcr:contains(firstLevelChild, 'summer') ]";
+            "jcr:contains(firstLevelChild, 'summer') ]";
 
         Tree content = root.getTree("/").addChild("content");
         Tree page = content.addChild("pages");
@@ -280,11 +285,13 @@ public abstract class IndexAggregation2CommonTest extends AbstractQueryTest {
         Tree content = root.getTree("/").addChild("content");
         Tree pageContent = createPageStructure(content, "foo");
         // contains 'aliq' but not 'tinc'
-        pageContent.setProperty("bar", "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Quisque aliquet odio varius odio "
+        pageContent.setProperty("bar",
+            "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Quisque aliquet odio varius odio "
                 + "imperdiet, non egestas ex consectetur. Fusce congue ac augue quis finibus. Sed vulputate sollicitudin neque, nec "
                 + "lobortis nisl varius eget.");
         // doesn't contain 'aliq' but 'tinc'
-        pageContent.getParent().setProperty("bar", "Donec lacinia luctus leo, sed rutrum nulla. Sed sed hendrerit turpis. Donec ex quam, "
+        pageContent.getParent().setProperty("bar",
+            "Donec lacinia luctus leo, sed rutrum nulla. Sed sed hendrerit turpis. Donec ex quam, "
                 + "bibendum et metus at, tristique tincidunt leo. Nam at elit ligula. Etiam ullamcorper, elit sit amet varius molestie, "
                 + "nisl ex egestas libero, quis elementum enim mi a quam.");
 
@@ -299,7 +306,8 @@ public abstract class IndexAggregation2CommonTest extends AbstractQueryTest {
 
             PropertyValue excerptValue = firstHit.getValue("rep:excerpt");
             assertNotNull(excerptValue);
-            assertNotEquals("Excerpt for '" + term + "' is not supposed to be empty.", "", excerptValue.getValue(STRING));
+            assertNotEquals("Excerpt for '" + term + "' is not supposed to be empty.", "",
+                excerptValue.getValue(STRING));
         }
     }
 
@@ -331,7 +339,7 @@ public abstract class IndexAggregation2CommonTest extends AbstractQueryTest {
      * @return the {@code metadata} node. See above for details
      */
     private static Tree createAssetStructure(@NotNull final Tree parent,
-                                             @NotNull final String nodeName) {
+        @NotNull final String nodeName) {
         if (nodeName.isEmpty()) {
             throw new IllegalArgumentException("nodeName cannot be null or empty");
         }
@@ -370,7 +378,7 @@ public abstract class IndexAggregation2CommonTest extends AbstractQueryTest {
      * @return the {@code jcr:content} node. See above for details
      */
     private static Tree createPageStructure(@NotNull final Tree parent,
-                                            @NotNull final String nodeName) {
+        @NotNull final String nodeName) {
         if (nodeName.isEmpty()) {
             throw new IllegalArgumentException("nodeName cannot be null or empty");
         }
@@ -390,13 +398,14 @@ public abstract class IndexAggregation2CommonTest extends AbstractQueryTest {
         if (LOG.isDebugEnabled()) {
             NodeBuilder namespace = builder.child(JCR_SYSTEM).child(JCR_NODE_TYPES);
             StreamSupport.stream(namespace.getChildNodeNames().spliterator(), false)
-                    .sorted()
-                    .forEach(LOG::debug);
+                         .sorted()
+                         .forEach(LOG::debug);
         }
     }
 
     protected void assertEventually(Runnable r) {
         TestUtil.assertEventually(r,
-                ((repositoryOptionsUtil.isAsync() ? repositoryOptionsUtil.defaultAsyncIndexingTimeInSeconds : 0) + 3000) * 5);
+            ((repositoryOptionsUtil.isAsync()
+                ? repositoryOptionsUtil.defaultAsyncIndexingTimeInSeconds : 0) + 3000) * 5);
     }
 }

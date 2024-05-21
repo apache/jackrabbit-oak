@@ -19,12 +19,18 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
+import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
-
-import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorContext;
@@ -36,11 +42,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
-import static org.junit.Assert.*;
-
 public class IndexRootDirectoryTest {
+
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
 
@@ -55,7 +58,7 @@ public class IndexRootDirectoryTest {
     }
 
     @Test
-    public void getIndexDirOldFormat() throws Exception{
+    public void getIndexDirOldFormat() throws Exception {
         File f1 = dir.getIndexDir(getDefn(), "/a/b", "default");
         assertFalse(LocalIndexDir.isIndexDir(f1));
 
@@ -69,7 +72,7 @@ public class IndexRootDirectoryTest {
     }
 
     @Test
-    public void newFormat() throws Exception{
+    public void newFormat() throws Exception {
         LuceneIndexEditorContext.configureUniqueId(builder);
         File f1 = dir.getIndexDir(getDefn(), "/a/b", "default");
         File f2 = dir.getIndexDir(getDefn(), "/a/b", "default");
@@ -77,7 +80,7 @@ public class IndexRootDirectoryTest {
     }
 
     @Test
-    public void reindexCaseWithSamePath() throws Exception{
+    public void reindexCaseWithSamePath() throws Exception {
         LuceneIndexEditorContext.configureUniqueId(builder);
         File f1 = dir.getIndexDir(getDefn(), "/a/b", "default");
 
@@ -94,7 +97,7 @@ public class IndexRootDirectoryTest {
     }
 
     @Test
-    public void allLocalIndexes() throws Exception{
+    public void allLocalIndexes() throws Exception {
         LuceneIndexEditorContext.configureUniqueId(builder);
         File fa1 = dir.getIndexDir(getDefn(), "/a", "default");
         LuceneIndexEditorContext.configureUniqueId(resetBuilder());
@@ -113,20 +116,22 @@ public class IndexRootDirectoryTest {
     }
 
     @Test
-    public void indexFolderName() throws Exception{
+    public void indexFolderName() throws Exception {
         assertEquals("abc", IndexRootDirectory.getIndexFolderBaseName("/abc"));
         assertEquals("abc12", IndexRootDirectory.getIndexFolderBaseName("/abc12"));
         assertEquals("xyabc12", IndexRootDirectory.getIndexFolderBaseName("/xy:abc12"));
         assertEquals("xyabc12", IndexRootDirectory.getIndexFolderBaseName("/xy:abc#^&12"));
         assertEquals("xyabc12", IndexRootDirectory.getIndexFolderBaseName("/oak:index/xy:abc12"));
-        assertEquals("content_xyabc12", IndexRootDirectory.getIndexFolderBaseName("/content/oak:index/xy:abc12"));
-        assertEquals("sales_xyabc12", IndexRootDirectory.getIndexFolderBaseName("/content/sales/oak:index/xy:abc12"));
+        assertEquals("content_xyabc12",
+            IndexRootDirectory.getIndexFolderBaseName("/content/oak:index/xy:abc12"));
+        assertEquals("sales_xyabc12",
+            IndexRootDirectory.getIndexFolderBaseName("/content/sales/oak:index/xy:abc12"));
         assertEquals("appsales_xyabc12", IndexRootDirectory.getIndexFolderBaseName
-                ("/content/app:sales/oak:index/xy:abc12"));
+                                                               ("/content/app:sales/oak:index/xy:abc12"));
     }
 
     @Test
-    public void longFileName() throws Exception{
+    public void longFileName() throws Exception {
         String longName = Strings.repeat("x", IndexRootDirectory.MAX_NAME_LENGTH);
         assertEquals(longName, IndexRootDirectory.getIndexFolderBaseName(longName));
 
@@ -135,7 +140,7 @@ public class IndexRootDirectoryTest {
     }
 
     @Test
-    public void gcIndexDirs() throws Exception{
+    public void gcIndexDirs() throws Exception {
         //Create an old format directory
         File fa0 = dir.getIndexDir(getDefn(), "/a", "default");
 
@@ -178,7 +183,7 @@ public class IndexRootDirectoryTest {
     }
 
     @Test
-    public void gcIndexDirsOnStart() throws Exception{
+    public void gcIndexDirsOnStart() throws Exception {
         File fa0 = dir.getIndexDir(getDefn(), "/a", "default");
 
         configureUniqueId();
@@ -197,7 +202,7 @@ public class IndexRootDirectoryTest {
     }
 
     @Test
-    public void gcNRTDirsOnStart() throws Exception{
+    public void gcNRTDirsOnStart() throws Exception {
         configureUniqueId();
 
         File fa0 = dir.getIndexDir(getDefn(), "/a", "default");
@@ -216,17 +221,17 @@ public class IndexRootDirectoryTest {
         return builder;
     }
 
-    private void configureUniqueId(){
+    private void configureUniqueId() {
         LuceneIndexEditorContext.configureUniqueId(resetBuilder());
     }
 
-    private LuceneIndexDefinition getDefn(){
+    private LuceneIndexDefinition getDefn() {
         return new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
     }
 
-    private static LocalIndexDir getDir(String jcrPath, List<LocalIndexDir> dirs){
-        for (LocalIndexDir dir : dirs){
-            if (dir.getJcrPath().equals(jcrPath)){
+    private static LocalIndexDir getDir(String jcrPath, List<LocalIndexDir> dirs) {
+        for (LocalIndexDir dir : dirs) {
+            if (dir.getJcrPath().equals(jcrPath)) {
                 return dir;
             }
         }

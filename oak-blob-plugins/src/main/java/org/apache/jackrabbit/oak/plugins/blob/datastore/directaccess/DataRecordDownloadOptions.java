@@ -22,64 +22,62 @@ package org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Set;
-
-import org.apache.jackrabbit.oak.api.blob.BlobDownloadOptions;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.jackrabbit.guava.common.base.Charsets;
 import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.Sets;
+import org.apache.jackrabbit.oak.api.blob.BlobDownloadOptions;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
- * Contains download options for downloading a data record directly from a
- * storage location using the direct download feature.
+ * Contains download options for downloading a data record directly from a storage location using
+ * the direct download feature.
  */
 public class DataRecordDownloadOptions {
+
     static final String DISPOSITION_TYPE_INLINE = "inline";
     static final String DISPOSITION_TYPE_ATTACHMENT = "attachment";
 
     private static final char[] hex = {
-            '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'
+        '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'
     };
     private static final Set<Character> rfc5987AllowedChars = Sets.newHashSet(
-            '0','1','2','3','4','5','6','7','8','9',
-                    'a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z',
-                    'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z',
-                    '!','#','$','&','+','-','.','^','_','`','|','~'
+        '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+        'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r',
+        's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
+        'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R',
+        'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
+        '!', '#', '$', '&', '+', '-', '.', '^', '_', '`', '|', '~'
     );
 
     /**
-     * Create an instance of this class directly from a {@link
-     * BlobDownloadOptions} instance.
+     * Create an instance of this class directly from a {@link BlobDownloadOptions} instance.
      *
-     * @param downloadOptions The download options to use to initialize this
-     *         instance.
+     * @param downloadOptions The download options to use to initialize this instance.
      * @return The new instance of this class.
      */
     public static DataRecordDownloadOptions fromBlobDownloadOptions(
-            @NotNull BlobDownloadOptions downloadOptions) {
+        @NotNull BlobDownloadOptions downloadOptions) {
         return new DataRecordDownloadOptions(
-                downloadOptions.getMediaType(),
-                downloadOptions.getCharacterEncoding(),
-                downloadOptions.getFileName(),
-                downloadOptions.getDispositionType(),
-                downloadOptions.isDomainOverrideIgnored()
+            downloadOptions.getMediaType(),
+            downloadOptions.getCharacterEncoding(),
+            downloadOptions.getFileName(),
+            downloadOptions.getDispositionType(),
+            downloadOptions.isDomainOverrideIgnored()
         );
     }
 
     /**
-     * Provides a default implementation of this class.  Clients should use this
-     * instance when they have no options to specify and are willing to accept
-     * the service provider default behavior.
+     * Provides a default implementation of this class.  Clients should use this instance when they
+     * have no options to specify and are willing to accept the service provider default behavior.
      */
     public static DataRecordDownloadOptions DEFAULT =
-            new DataRecordDownloadOptions(null,
-                    null,
-                    null,
-                    DISPOSITION_TYPE_INLINE,
-                    false);
+        new DataRecordDownloadOptions(null,
+            null,
+            null,
+            DISPOSITION_TYPE_INLINE,
+            false);
 
     private final String mediaType;
     private final String characterEncoding;
@@ -91,52 +89,50 @@ public class DataRecordDownloadOptions {
     private String contentDispositionHeader = null;
 
     private DataRecordDownloadOptions(final String mediaType,
-                                      final String characterEncoding,
-                                      final String fileName,
-                                      final String dispositionType,
-                                      boolean domainOverrideIgnored) {
+        final String characterEncoding,
+        final String fileName,
+        final String dispositionType,
+        boolean domainOverrideIgnored) {
         this.mediaType = mediaType;
         this.characterEncoding = characterEncoding;
         this.fileName = fileName;
         this.dispositionType = Strings.isNullOrEmpty(dispositionType) ?
-                DISPOSITION_TYPE_INLINE :
-                dispositionType;
+            DISPOSITION_TYPE_INLINE :
+            dispositionType;
         this.domainOverrideIgnored = domainOverrideIgnored;
     }
 
     /**
-     * Generate the correct HTTP {@code Content-Type} header value from the
-     * {@link #mediaType} and {@link #characterEncoding} in this class, if set.
+     * Generate the correct HTTP {@code Content-Type} header value from the {@link #mediaType} and
+     * {@link #characterEncoding} in this class, if set.
      * <p>
-     * If {@link #mediaType} has not been given a value, this method will return
-     * {@code null}.
+     * If {@link #mediaType} has not been given a value, this method will return {@code null}.
      *
-     * @return The correct value for a {@code Content-Type} header, or {@code
-     *         null} if the {@link #mediaType} has not been specified.
+     * @return The correct value for a {@code Content-Type} header, or {@code null} if the
+     * {@link #mediaType} has not been specified.
      */
     @Nullable
     public String getContentTypeHeader() {
         if (Strings.isNullOrEmpty(contentTypeHeader)) {
             if (!Strings.isNullOrEmpty(mediaType)) {
                 contentTypeHeader = Strings.isNullOrEmpty(characterEncoding) ?
-                        mediaType :
-                        Joiner.on("; charset=").join(mediaType, characterEncoding);
+                    mediaType :
+                    Joiner.on("; charset=").join(mediaType, characterEncoding);
             }
         }
         return contentTypeHeader;
     }
 
     /**
-     * Generate the correct HTTP {@code Content-Disposition} header value from
-     * the {@link #fileName} and {@link #dispositionType} in this class, if set.
+     * Generate the correct HTTP {@code Content-Disposition} header value from the {@link #fileName}
+     * and {@link #dispositionType} in this class, if set.
      * <p>
-     * A value will be returned if the file name has been set, OR if the
-     * disposition type has been explicitly set to "attachment".  Otherwise
-     * {@code null} will be returned.
+     * A value will be returned if the file name has been set, OR if the disposition type has been
+     * explicitly set to "attachment".  Otherwise {@code null} will be returned.
      *
-     * @return The correct value for a {@code Content-Disposition} header, or
-     *         {@code null} if the {@link #fileName} has not been specified and
-     *         the {@link #dispositionType} has not been set to "attachment".
+     * @return The correct value for a {@code Content-Disposition} header, or {@code null} if the
+     * {@link #fileName} has not been specified and the {@link #dispositionType} has not been set to
+     * "attachment".
      */
     @Nullable
     public String getContentDispositionHeader() {
@@ -146,9 +142,9 @@ public class DataRecordDownloadOptions {
                 if (Strings.isNullOrEmpty(dispositionType)) {
                     dispositionType = DISPOSITION_TYPE_INLINE;
                 }
-                contentDispositionHeader = formatContentDispositionHeader(dispositionType, fileName, rfc8187Encode(fileName));
-            }
-            else if (DISPOSITION_TYPE_ATTACHMENT.equals(this.dispositionType)) {
+                contentDispositionHeader = formatContentDispositionHeader(dispositionType, fileName,
+                    rfc8187Encode(fileName));
+            } else if (DISPOSITION_TYPE_ATTACHMENT.equals(this.dispositionType)) {
                 contentDispositionHeader = DISPOSITION_TYPE_ATTACHMENT;
             }
         }
@@ -156,18 +152,18 @@ public class DataRecordDownloadOptions {
     }
 
     private String formatContentDispositionHeader(@NotNull final String dispositionType,
-                                                  @NotNull final String fileName,
-                                                  @Nullable final String rfc8187EncodedFileName) {
+        @NotNull final String fileName,
+        @Nullable final String rfc8187EncodedFileName) {
         Charset ISO_8859_1 = Charsets.ISO_8859_1;
         String iso_8859_1_fileName = new String(
-                ISO_8859_1.encode(fileName).array(),
-                ISO_8859_1
+            ISO_8859_1.encode(fileName).array(),
+            ISO_8859_1
         ).replace("\"", "\\\"");
         return null != rfc8187EncodedFileName ?
-                String.format("%s; filename=\"%s\"; filename*=UTF-8''%s",
-                        dispositionType, iso_8859_1_fileName, rfc8187EncodedFileName) :
-                String.format("%s; filename=\"%s\"",
-                        dispositionType, iso_8859_1_fileName);
+            String.format("%s; filename=\"%s\"; filename*=UTF-8''%s",
+                dispositionType, iso_8859_1_fileName, rfc8187EncodedFileName) :
+            String.format("%s; filename=\"%s\"",
+                dispositionType, iso_8859_1_fileName);
     }
 
     private String rfc8187Encode(@NotNull final String input) {
@@ -177,8 +173,7 @@ public class DataRecordDownloadOptions {
             char c = (char) b;
             if (rfc5987AllowedChars.contains(c)) {
                 sb.append(c);
-            }
-            else {
+            } else {
                 sb.append('%');
                 sb.append(hex[0x0F & (b >>> 4)]);
                 sb.append(hex[b & 0x0F]);
@@ -228,10 +223,12 @@ public class DataRecordDownloadOptions {
     }
 
     /**
-     * Indicates whether the data store should ignore any configured download
-     * domain override value when generating the signed download URI.
+     * Indicates whether the data store should ignore any configured download domain override value
+     * when generating the signed download URI.
      *
      * @return true if the domain override should be ignored; false otherwise.
      */
-    public boolean isDomainOverrideIgnored() { return domainOverrideIgnored; }
+    public boolean isDomainOverrideIgnored() {
+        return domainOverrideIgnored;
+    }
 }

@@ -21,22 +21,20 @@ package org.apache.jackrabbit.oak.jcr.query;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
-
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.Result.SizePrecision;
 
 /**
- * An iterator that pre-fetches a number of items in order to calculate the size
- * of the result if possible. This iterator loads at least a number of items,
- * and then tries to load some more items until the timeout is reached or the
- * maximum number of entries are read.
+ * An iterator that pre-fetches a number of items in order to calculate the size of the result if
+ * possible. This iterator loads at least a number of items, and then tries to load some more items
+ * until the timeout is reached or the maximum number of entries are read.
  * <p>
  * Prefetching is only done when size() is called.
- * 
+ *
  * @param <K> the iterator data type
  */
 public class PrefetchIterator<K> implements Iterator<K> {
-    
+
     private final Iterator<K> it;
     private final long minPrefetch, timeout, maxPrefetch;
     private final boolean fastSize;
@@ -47,8 +45,8 @@ public class PrefetchIterator<K> implements Iterator<K> {
 
     /**
      * Create a new iterator.
-     * 
-     * @param it the base iterator
+     *
+     * @param it      the base iterator
      * @param options the prefetch options to use
      */
     PrefetchIterator(Iterator<K> it, PrefetchOptions options) {
@@ -94,10 +92,10 @@ public class PrefetchIterator<K> implements Iterator<K> {
     }
 
     /**
-     * Get the size if known. This call might pre-fetch data. The returned value
-     * is unknown if the actual size is larger than the number of pre-fetched
-     * elements, unless the end of the iterator has been reached already.
-     * 
+     * Get the size if known. This call might pre-fetch data. The returned value is unknown if the
+     * actual size is larger than the number of pre-fetched elements, unless the end of the iterator
+     * has been reached already.
+     *
      * @return the size, or -1 if unknown
      */
     public long size() {
@@ -145,46 +143,46 @@ public class PrefetchIterator<K> implements Iterator<K> {
         }
         return size;
     }
-    
+
     /**
      * The options to use for prefetching.
      */
     public static class PrefetchOptions {
-        
+
         // uses the "simple" named-parameter pattern
         // see also http://stackoverflow.com/questions/1988016/named-parameter-idiom-in-java
-        
+
         /**
          * The minimum number of rows / nodes to pre-fetch.
          */
         long min = 20;
-        
+
         /**
          * The maximum number of rows / nodes to pre-fetch.
          */
         long max = 100;
-        
+
         /**
-         * The maximum number of milliseconds to prefetch rows / nodes
-         * (ignored if fastSize is set).
+         * The maximum number of milliseconds to prefetch rows / nodes (ignored if fastSize is
+         * set).
          */
         long timeout = 100;
-        
+
         /**
          * The size if known, or -1 if not (prefetching is only required if -1).
          */
         long size;
-        
+
         /**
          * Whether or not the expected size should be read from the result.
          */
         boolean fastSize;
-        
+
         /**
          * The result (optional) to get the size from, in case the fast size options is set.
          */
         Result fastSizeCallback;
-        
+
         {
             String s = System.getProperty("oak.queryMinPrefetch");
             if (s != null) {
@@ -196,7 +194,7 @@ public class PrefetchIterator<K> implements Iterator<K> {
                 }
             }
         }
-        
+
     }
 
 }

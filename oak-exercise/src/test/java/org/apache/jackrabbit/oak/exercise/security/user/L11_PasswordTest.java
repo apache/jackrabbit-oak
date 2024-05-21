@@ -16,19 +16,18 @@
  */
 package org.apache.jackrabbit.oak.exercise.security.user;
 
+import static org.apache.jackrabbit.oak.exercise.ExerciseUtility.TEST_PW;
+
 import javax.jcr.Credentials;
 import javax.jcr.Node;
 import javax.jcr.Property;
 import javax.jcr.RepositoryException;
-
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.exercise.ExerciseUtility;
 import org.apache.jackrabbit.oak.exercise.security.user.action.L2_AuthorizableActionTest;
 import org.apache.jackrabbit.test.AbstractJCRTest;
-
-import static org.apache.jackrabbit.oak.exercise.ExerciseUtility.TEST_PW;
 
 /**
  * <pre>

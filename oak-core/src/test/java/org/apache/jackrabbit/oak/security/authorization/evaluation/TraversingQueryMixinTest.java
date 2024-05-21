@@ -19,8 +19,6 @@ package org.apache.jackrabbit.oak.security.authorization.evaluation;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 
-import javax.jcr.RepositoryException;
-
 public class TraversingQueryMixinTest extends AbstractQueryTest {
 
     @Override

@@ -23,7 +23,6 @@ import javax.jcr.NoSuchWorkspaceException;
 import javax.jcr.RepositoryException;
 import javax.security.auth.login.Configuration;
 import javax.security.auth.login.LoginException;
-
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.junit.Test;
@@ -123,10 +122,12 @@ public class L3_LoginModuleTest extends AbstractSecurityTest {
     }
 
     @Test
-    public void testCustomCredentialsLogin() throws LoginException, RepositoryException, IOException {
+    public void testCustomCredentialsLogin()
+        throws LoginException, RepositoryException, IOException {
         String loginID = null; // EXERCISE
         String pw = null;      // EXERCISE
-        ContentSession contentSession = login(new CustomCredentials(loginID, pw, Collections.EMPTY_MAP));
+        ContentSession contentSession = login(
+            new CustomCredentials(loginID, pw, Collections.EMPTY_MAP));
 
         // EXERCISE: add verification of the AuthInfo according to your implementation of the custom login module.
 

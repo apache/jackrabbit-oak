@@ -20,7 +20,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import javax.jcr.NamespaceRegistry;
-
 import org.apache.jackrabbit.JcrConstants;
 
 /**
@@ -51,28 +50,28 @@ public interface NamespaceConstants {
      * Reserved namespace prefixes as defined in jackrabbit 2
      */
     Collection<String> RESERVED_PREFIXES = Collections.unmodifiableList(Arrays.asList(
-            NamespaceRegistry.PREFIX_XML,
-            NamespaceRegistry.PREFIX_JCR,
-            NamespaceRegistry.PREFIX_NT,
-            NamespaceRegistry.PREFIX_MIX,
-            PREFIX_XMLNS,
-            PREFIX_REP,
-            PREFIX_SV,
-            PREFIX_OAK
+        NamespaceRegistry.PREFIX_XML,
+        NamespaceRegistry.PREFIX_JCR,
+        NamespaceRegistry.PREFIX_NT,
+        NamespaceRegistry.PREFIX_MIX,
+        PREFIX_XMLNS,
+        PREFIX_REP,
+        PREFIX_SV,
+        PREFIX_OAK
     ));
 
     /**
      * Reserved namespace URIs as defined in jackrabbit 2
      */
     Collection<String> RESERVED_URIS = Collections.unmodifiableList(Arrays.asList(
-            NamespaceRegistry.NAMESPACE_XML,
-            NamespaceRegistry.NAMESPACE_JCR,
-            NamespaceRegistry.NAMESPACE_NT,
-            NamespaceRegistry.NAMESPACE_MIX,
-            NAMESPACE_XMLNS,
-            NAMESPACE_REP,
-            NAMESPACE_SV,
-            NAMESPACE_OAK
+        NamespaceRegistry.NAMESPACE_XML,
+        NamespaceRegistry.NAMESPACE_JCR,
+        NamespaceRegistry.NAMESPACE_NT,
+        NamespaceRegistry.NAMESPACE_MIX,
+        NAMESPACE_XMLNS,
+        NAMESPACE_REP,
+        NAMESPACE_SV,
+        NAMESPACE_OAK
     ));
 
     // index nodes for faster lookup

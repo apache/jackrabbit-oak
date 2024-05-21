@@ -16,19 +16,18 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.credentials;
 
-import java.util.Map;
-import java.util.Set;
-import javax.jcr.Credentials;
-import javax.jcr.SimpleCredentials;
-
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.junit.Test;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+
+import java.util.Map;
+import java.util.Set;
+import javax.jcr.Credentials;
+import javax.jcr.SimpleCredentials;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
+import org.junit.Test;
 
 public class SimpleCredentialsSupportTest {
 
@@ -47,7 +46,8 @@ public class SimpleCredentialsSupportTest {
     public void testGetUserId() {
         assertNull(credentialsSupport.getUserId(new TestCredentials()));
         assertNull(credentialsSupport.getUserId(new SimpleCredentials(null, new char[0])));
-        assertEquals("uid", credentialsSupport.getUserId(new SimpleCredentials("uid", new char[0])));
+        assertEquals("uid",
+            credentialsSupport.getUserId(new SimpleCredentials("uid", new char[0])));
     }
 
     @Test
@@ -61,7 +61,8 @@ public class SimpleCredentialsSupportTest {
         assertNotNull(attributes);
         assertTrue(attributes.isEmpty());
 
-        Map<String, ?> expected = ImmutableMap.of("a", "a", "b", Boolean.TRUE, "c", new TestCredentials());
+        Map<String, ?> expected = ImmutableMap.of("a", "a", "b", Boolean.TRUE, "c",
+            new TestCredentials());
         expected.forEach((key, value) -> sc.setAttribute(key, value));
 
         attributes = credentialsSupport.getAttributes(sc);
@@ -78,7 +79,8 @@ public class SimpleCredentialsSupportTest {
 
         SimpleCredentials sc = new SimpleCredentials("uid", new char[0]);
 
-        Map<String, ?> expected = ImmutableMap.of("a", "a", "b", Boolean.TRUE, "c", new TestCredentials());
+        Map<String, ?> expected = ImmutableMap.of("a", "a", "b", Boolean.TRUE, "c",
+            new TestCredentials());
         credentialsSupport.setAttributes(sc, expected);
 
         expected.forEach((key, value) -> assertEquals(value, sc.getAttribute(key)));
@@ -91,8 +93,11 @@ public class SimpleCredentialsSupportTest {
 
     @Test
     public void testSetAttributesFalse() {
-        assertFalse(credentialsSupport.setAttributes(new Credentials() {}, ImmutableMap.of("a", "value")));
+        assertFalse(credentialsSupport.setAttributes(new Credentials() {
+        }, ImmutableMap.of("a", "value")));
     }
 
-    private static final class TestCredentials implements Credentials {}
+    private static final class TestCredentials implements Credentials {
+
+    }
 }

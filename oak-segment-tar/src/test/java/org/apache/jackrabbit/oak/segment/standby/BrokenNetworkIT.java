@@ -24,7 +24,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
 import java.io.File;
-
 import org.apache.jackrabbit.oak.commons.junit.TemporaryPort;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
@@ -48,8 +47,8 @@ public class BrokenNetworkIT extends TestBase {
 
     @Rule
     public RuleChain chain = RuleChain.outerRule(folder)
-        .around(serverFileStore)
-        .around(clientFileStore1);
+                                      .around(serverFileStore)
+                                      .around(clientFileStore1);
 
     @Rule
     public TemporaryPort serverPort = new TemporaryPort();
@@ -68,20 +67,20 @@ public class BrokenNetworkIT extends TestBase {
 
         try (
             StandbyServerSync serverSync = StandbyServerSync.builder()
-                .withPort(serverPort.getPort())
-                .withFileStore(serverStore)
-                .withBlobChunkSize(MB)
-                .withSecureConnection(false)
-                .build();
+                                                            .withPort(serverPort.getPort())
+                                                            .withFileStore(serverStore)
+                                                            .withBlobChunkSize(MB)
+                                                            .withSecureConnection(false)
+                                                            .build();
             StandbyClientSync clientSync = StandbyClientSync.builder()
-                .withHost(getServerHost())
-                .withPort(serverPort.getPort())
-                .withFileStore(clientStore)
-                .withSecureConnection(false)
-                .withReadTimeoutMs(getClientTimeout())
-                .withAutoClean(false)
-                .withSpoolFolder(folder.newFolder())
-                .build()
+                                                            .withHost(getServerHost())
+                                                            .withPort(serverPort.getPort())
+                                                            .withFileStore(clientStore)
+                                                            .withSecureConnection(false)
+                                                            .withReadTimeoutMs(getClientTimeout())
+                                                            .withAutoClean(false)
+                                                            .withSpoolFolder(folder.newFolder())
+                                                            .build()
         ) {
             serverSync.start();
             clientSync.run();
@@ -101,20 +100,20 @@ public class BrokenNetworkIT extends TestBase {
 
         try (
             StandbyServerSync serverSync = StandbyServerSync.builder()
-                .withPort(serverPort.getPort())
-                .withFileStore(storeS)
-                .withBlobChunkSize(MB)
-                .withSecureConnection(true)
-                .build();
+                                                            .withPort(serverPort.getPort())
+                                                            .withFileStore(storeS)
+                                                            .withBlobChunkSize(MB)
+                                                            .withSecureConnection(true)
+                                                            .build();
             StandbyClientSync clientSync = StandbyClientSync.builder()
-                .withHost(getServerHost())
-                .withPort(serverPort.getPort())
-                .withFileStore(storeC)
-                .withSecureConnection(true)
-                .withReadTimeoutMs(getClientTimeout())
-                .withAutoClean(false)
-                .withSpoolFolder(folder.newFolder())
-                .build()
+                                                            .withHost(getServerHost())
+                                                            .withPort(serverPort.getPort())
+                                                            .withFileStore(storeC)
+                                                            .withSecureConnection(true)
+                                                            .withReadTimeoutMs(getClientTimeout())
+                                                            .withAutoClean(false)
+                                                            .withSpoolFolder(folder.newFolder())
+                                                            .build()
         ) {
             serverSync.start();
             clientSync.run();
@@ -173,7 +172,8 @@ public class BrokenNetworkIT extends TestBase {
         useProxy(true, 0, 0, 575, false);
     }
 
-    private void useProxy(boolean ssl, int skipPosition, int skipBytes, int flipPosition, boolean intermediateChange) throws Exception {
+    private void useProxy(boolean ssl, int skipPosition, int skipBytes, int flipPosition,
+        boolean intermediateChange) throws Exception {
         FileStore serverStore = serverFileStore.fileStore();
         FileStore clientStore = clientFileStore1.fileStore();
 
@@ -183,27 +183,29 @@ public class BrokenNetworkIT extends TestBase {
 
         try (
             StandbyServerSync serverSync = StandbyServerSync.builder()
-                .withPort(serverPort.getPort())
-                .withFileStore(serverStore)
-                .withBlobChunkSize(MB)
-                .withSecureConnection(ssl)
-                .build()
+                                                            .withPort(serverPort.getPort())
+                                                            .withFileStore(serverStore)
+                                                            .withBlobChunkSize(MB)
+                                                            .withSecureConnection(ssl)
+                                                            .build()
         ) {
             serverSync.start();
 
             File spoolFolder = folder.newFolder();
 
             try (
-                NetworkErrorProxy ignored = new NetworkErrorProxy(proxyPort.getPort(), getServerHost(), serverPort.getPort(), flipPosition, skipPosition, skipBytes);
+                NetworkErrorProxy ignored = new NetworkErrorProxy(proxyPort.getPort(),
+                    getServerHost(), serverPort.getPort(), flipPosition, skipPosition, skipBytes);
                 StandbyClientSync clientSync = StandbyClientSync.builder()
-                    .withHost(getServerHost())
-                    .withPort(proxyPort.getPort())
-                    .withFileStore(clientStore)
-                    .withSecureConnection(ssl)
-                    .withReadTimeoutMs(getClientTimeout())
-                    .withAutoClean(false)
-                    .withSpoolFolder(spoolFolder)
-                    .build()
+                                                                .withHost(getServerHost())
+                                                                .withPort(proxyPort.getPort())
+                                                                .withFileStore(clientStore)
+                                                                .withSecureConnection(ssl)
+                                                                .withReadTimeoutMs(
+                                                                    getClientTimeout())
+                                                                .withAutoClean(false)
+                                                                .withSpoolFolder(spoolFolder)
+                                                                .build()
             ) {
                 clientSync.run();
             }
@@ -216,18 +218,19 @@ public class BrokenNetworkIT extends TestBase {
             }
 
             try (StandbyClientSync clientSync = StandbyClientSync.builder()
-                 .withHost(getServerHost())
-                 .withPort(serverPort.getPort())
-                 .withFileStore(clientStore)
-                 .withSecureConnection(ssl)
-                 .withReadTimeoutMs(getClientTimeout())
-                 .withAutoClean(false)
-                 .withSpoolFolder(spoolFolder)
-                 .build()
+                                                                 .withHost(getServerHost())
+                                                                 .withPort(serverPort.getPort())
+                                                                 .withFileStore(clientStore)
+                                                                 .withSecureConnection(ssl)
+                                                                 .withReadTimeoutMs(
+                                                                     getClientTimeout())
+                                                                 .withAutoClean(false)
+                                                                 .withSpoolFolder(spoolFolder)
+                                                                 .build()
             ) {
-                 clientSync.run();
+                clientSync.run();
             }
-    }
+        }
 
         assertEquals("stores are not equal", serverStore.getHead(), clientStore.getHead());
     }

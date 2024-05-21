@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.segment.file.tar.index;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 
 import java.io.IOException;
-
 import org.apache.jackrabbit.oak.segment.util.ReaderAtEnd;
 
 /**
@@ -29,8 +28,8 @@ import org.apache.jackrabbit.oak.segment.util.ReaderAtEnd;
 public class IndexLoader {
 
     /**
-     * Create a new {@link IndexLoader} for the specified block size. The block
-     * size is used to validate different data items in the index.
+     * Create a new {@link IndexLoader} for the specified block size. The block size is used to
+     * validate different data items in the index.
      *
      * @param blockSize The block size. It must be strictly positive.
      * @return An instance of {@link IndexLoader}.
@@ -54,16 +53,14 @@ public class IndexLoader {
     }
 
     /**
-     * Load and validate the index. The index is loaded by looking backwards at
-     * a TAR file. This method relies on an instance of {@link ReaderAtEnd}
-     * which is positioned at the end of the index in the TAR file.
+     * Load and validate the index. The index is loaded by looking backwards at a TAR file. This
+     * method relies on an instance of {@link ReaderAtEnd} which is positioned at the end of the
+     * index in the TAR file.
      *
      * @param reader an instance of {@link ReaderAtEnd}.
      * @return An instance of {@link Index}.
-     * @throws IOException           If an I/O error occurs while reading the
-     *                               index.
-     * @throws InvalidIndexException If a validation error occurs while checking
-     *                               the index.
+     * @throws IOException           If an I/O error occurs while reading the index.
+     * @throws InvalidIndexException If a validation error occurs while checking the index.
      */
     public Index loadIndex(ReaderAtEnd reader) throws IOException, InvalidIndexException {
         switch (readMagic(reader)) {

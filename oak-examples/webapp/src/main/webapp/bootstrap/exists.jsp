@@ -13,16 +13,19 @@
   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
   See the License for the specific language governing permissions and
   limitations under the License.
---%><%@page import="org.apache.jackrabbit.util.Text"%><%
-request.setAttribute("title", "Content Repository Exists");
-%><jsp:include page="../header.jsp"/>
+--%>
+<%@page import="org.apache.jackrabbit.util.Text" %>
+<%
+    request.setAttribute("title", "Content Repository Exists");
+%>
+<jsp:include page="../header.jsp"/>
 <p>The repository home directory or configuration already exists.</p>
 <p>
-You have chosen to create a <b>new</b> repository but the specified home
-directory or the configuration file already exist.
+    You have chosen to create a <b>new</b> repository but the specified home
+    directory or the configuration file already exist.
 </p>
 <p>
-Please specify a correct location or choose to reuse an existing repository.
+    Please specify a correct location or choose to reuse an existing repository.
 </p>
 <p><a href="<%= Text.encodeIllegalXMLCharacters(request.getContextPath()) %>/admin">back</a></p>
 <jsp:include page="../footer.jsp"/>

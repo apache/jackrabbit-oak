@@ -18,6 +18,9 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document;
 
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
+
+import java.util.concurrent.TimeUnit;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.index.IndexHelper;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
@@ -36,16 +39,12 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
-
 import org.jetbrains.annotations.Nullable;
 
-import java.util.concurrent.TimeUnit;
-
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
-
 public class ElasticIndexerProvider implements NodeStateIndexerProvider {
+
     private final ExtractedTextCache textCache =
-            new ExtractedTextCache(FileUtils.ONE_MB * 5, TimeUnit.HOURS.toSeconds(5));
+        new ExtractedTextCache(FileUtils.ONE_MB * 5, TimeUnit.HOURS.toSeconds(5));
     private final IndexHelper indexHelper;
     private final ElasticIndexWriterFactory indexWriterFactory;
     private final ElasticConnection connection;
@@ -53,27 +52,37 @@ public class ElasticIndexerProvider implements NodeStateIndexerProvider {
     public ElasticIndexerProvider(IndexHelper indexHelper, ElasticConnection connection) {
         this.indexHelper = indexHelper;
         this.indexWriterFactory = new ElasticIndexWriterFactory(connection,
-                new ElasticIndexTracker(connection, new ElasticMetricHandler(StatisticsProvider.NOOP)));
+            new ElasticIndexTracker(connection, new ElasticMetricHandler(StatisticsProvider.NOOP)));
         this.connection = connection;
     }
 
 
     @Override
-    public @Nullable NodeStateIndexer getIndexer(@NotNull String type, @NotNull String indexPath, @NotNull NodeBuilder definition, @NotNull NodeState root, IndexingProgressReporter progressReporter) {
-        if (!ElasticIndexDefinition.TYPE_ELASTICSEARCH.equals(definition.getString(TYPE_PROPERTY_NAME))) {
+    public @Nullable NodeStateIndexer getIndexer(@NotNull String type, @NotNull String indexPath,
+        @NotNull NodeBuilder definition, @NotNull NodeState root,
+        IndexingProgressReporter progressReporter) {
+        if (!ElasticIndexDefinition.TYPE_ELASTICSEARCH.equals(
+            definition.getString(TYPE_PROPERTY_NAME))) {
             return null;
         }
-        ElasticIndexDefinition idxDefinition = (ElasticIndexDefinition) new ElasticIndexDefinition.Builder(connection.getIndexPrefix()).
-                root(root).indexPath(indexPath).defn(definition.getNodeState()).reindex().build();
+        ElasticIndexDefinition idxDefinition = (ElasticIndexDefinition) new ElasticIndexDefinition.Builder(
+            connection.getIndexPrefix()).
+            root(root).indexPath(indexPath).defn(definition.getNodeState()).reindex().build();
 
-        FulltextIndexWriter<ElasticDocument> indexWriter = indexWriterFactory.newInstance(idxDefinition, definition, CommitInfo.EMPTY, true);
-        FulltextBinaryTextExtractor textExtractor = new FulltextBinaryTextExtractor(textCache, idxDefinition, true);
+        FulltextIndexWriter<ElasticDocument> indexWriter = indexWriterFactory.newInstance(
+            idxDefinition, definition, CommitInfo.EMPTY, true);
+        FulltextBinaryTextExtractor textExtractor = new FulltextBinaryTextExtractor(textCache,
+            idxDefinition, true);
 
-        ElasticIndexTracker indexTracker = new ElasticIndexTracker(connection, new ElasticMetricHandler(StatisticsProvider.NOOP));
-        ElasticIndexEditorProvider elasticIndexEditorProvider = new ElasticIndexEditorProvider(indexTracker, connection, null);
-        return new ElasticIndexer(idxDefinition, textExtractor, definition, progressReporter, indexWriter, elasticIndexEditorProvider, indexHelper);
+        ElasticIndexTracker indexTracker = new ElasticIndexTracker(connection,
+            new ElasticMetricHandler(StatisticsProvider.NOOP));
+        ElasticIndexEditorProvider elasticIndexEditorProvider = new ElasticIndexEditorProvider(
+            indexTracker, connection, null);
+        return new ElasticIndexer(idxDefinition, textExtractor, definition, progressReporter,
+            indexWriter, elasticIndexEditorProvider, indexHelper);
     }
 
     @Override
-    public void close() {}
+    public void close() {
+    }
 }

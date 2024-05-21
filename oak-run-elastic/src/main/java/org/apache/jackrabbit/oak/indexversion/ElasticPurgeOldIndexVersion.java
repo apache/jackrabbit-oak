@@ -18,8 +18,11 @@
  */
 package org.apache.jackrabbit.oak.indexversion;
 
+import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition.TYPE_ELASTICSEARCH;
+
 import co.elastic.clients.elasticsearch.indices.DeleteIndexResponse;
 import co.elastic.clients.elasticsearch.indices.ElasticsearchIndicesClient;
+import java.io.IOException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexName;
@@ -30,11 +33,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-
-import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition.TYPE_ELASTICSEARCH;
-
 public class ElasticPurgeOldIndexVersion extends PurgeOldIndexVersion {
+
     private static final Logger LOG = LoggerFactory.getLogger(ElasticPurgeOldIndexVersion.class);
 
     private final String indexPrefix;
@@ -45,7 +45,8 @@ public class ElasticPurgeOldIndexVersion extends PurgeOldIndexVersion {
     private final String apiSecretId;
     private long SEED_VALUE;
 
-    public ElasticPurgeOldIndexVersion(String indexPrefix, String scheme, String host, int port, String apiKeyId, String apiSecretId) {
+    public ElasticPurgeOldIndexVersion(String indexPrefix, String scheme, String host, int port,
+        String apiKeyId, String apiSecretId) {
         super();
         this.indexPrefix = indexPrefix;
         this.scheme = scheme;
@@ -63,12 +64,13 @@ public class ElasticPurgeOldIndexVersion extends PurgeOldIndexVersion {
     @Override
     protected void postDeleteOp(String idxPath) {
         final ElasticConnection.Builder.BuildStep buildStep = ElasticConnection.newBuilder()
-                .withIndexPrefix(indexPrefix)
-                .withConnectionParameters(
-                        scheme,
-                        host,
-                        port
-                );
+                                                                               .withIndexPrefix(
+                                                                                   indexPrefix)
+                                                                               .withConnectionParameters(
+                                                                                   scheme,
+                                                                                   host,
+                                                                                   port
+                                                                               );
         final ElasticConnection coordinate;
         if (apiKeyId != null && apiSecretId != null) {
             coordinate = buildStep.withApiKeys(apiKeyId, apiSecretId).build();
@@ -78,16 +80,19 @@ public class ElasticPurgeOldIndexVersion extends PurgeOldIndexVersion {
 
         closer.register(coordinate);
 
-        String remoteIndexName = ElasticIndexNameHelper.getRemoteIndexName(indexPrefix, idxPath, SEED_VALUE);
+        String remoteIndexName = ElasticIndexNameHelper.getRemoteIndexName(indexPrefix, idxPath,
+            SEED_VALUE);
 
         ElasticsearchIndicesClient client = coordinate.getClient().indices();
         DeleteIndexResponse deleteIndexResponse;
         try {
             deleteIndexResponse = client.delete(db -> db.index(remoteIndexName));
-            LOG.info("Deleted index operation called on {}. Response acknowledged: {}", remoteIndexName, deleteIndexResponse.acknowledged());
+            LOG.info("Deleted index operation called on {}. Response acknowledged: {}",
+                remoteIndexName, deleteIndexResponse.acknowledged());
             if (!deleteIndexResponse.acknowledged()) {
                 LOG.warn("Delete index call not acknowledged for index {}. " +
-                        "This could potentially mean the index is left in dangling state on ES cluster and needs to be removed manually", remoteIndexName);
+                        "This could potentially mean the index is left in dangling state on ES cluster and needs to be removed manually",
+                    remoteIndexName);
             }
         } catch (IOException e) {
             LOG.error("Exception while deleting index {}", remoteIndexName, e);

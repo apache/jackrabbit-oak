@@ -24,10 +24,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 
 /**
- * A {@code NodeStateDiff} that cancels itself when a condition occurs. The
- * condition is represented by an externally provided instance of {@code
- * Supplier}. If the {@code Supplier} returns {@code true}, the diffing process
- * will be canceled at the first possible occasion.
+ * A {@code NodeStateDiff} that cancels itself when a condition occurs. The condition is represented
+ * by an externally provided instance of {@code Supplier}. If the {@code Supplier} returns
+ * {@code true}, the diffing process will be canceled at the first possible occasion.
  */
 public class CancelableDiff implements NodeStateDiff {
 

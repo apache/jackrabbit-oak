@@ -22,7 +22,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 import java.io.File;
-
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.junit.Rule;
 import org.junit.Test;
@@ -42,16 +41,18 @@ public class DefaultStandbyHeadReaderTest {
         try (FileStore store = newFileStore()) {
             store.flush();
             DefaultStandbyHeadReader reader = new DefaultStandbyHeadReader(store, 0L);
-            assertEquals(store.getRevisions().getPersistedHead().toString(), reader.readHeadRecordId());
+            assertEquals(store.getRevisions().getPersistedHead().toString(),
+                reader.readHeadRecordId());
         }
     }
-    
+
     @Test
     public void shouldWaitForFlushAndReturnHeadSegmentId() throws Exception {
         try (FileStore store = newFileStore()) {
             DefaultStandbyHeadReader reader = new DefaultStandbyHeadReader(store, 10_000L);
             assertNotNull(reader.readHeadRecordId());
-            assertEquals(store.getRevisions().getPersistedHead().toString(), reader.readHeadRecordId());
+            assertEquals(store.getRevisions().getPersistedHead().toString(),
+                reader.readHeadRecordId());
         }
     }
 

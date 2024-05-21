@@ -25,7 +25,6 @@ import java.util.Dictionary;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.concurrent.atomic.AtomicBoolean;
-
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.junit.Test;
 import org.osgi.framework.BundleContext;
@@ -56,7 +55,7 @@ public class OsgiWhiteboardTest {
             public void unregister() {
                 if (unregistered.get()) {
                     throw new IllegalStateException(
-                            "Service already unregistered.");
+                        "Service already unregistered.");
                 }
                 unregistered.set(true);
             }
@@ -72,10 +71,10 @@ public class OsgiWhiteboardTest {
         };
 
         when(
-                bundleContext.registerService(Runnable.class, r,
-                        new Hashtable<String, Object>())).thenReturn(sr);
+            bundleContext.registerService(Runnable.class, r,
+                new Hashtable<String, Object>())).thenReturn(sr);
         Registration reg = w.register(Runnable.class, r,
-                new HashMap<String, Object>());
+            new HashMap<String, Object>());
         reg.unregister();
 
         assertTrue(unregistered.get());

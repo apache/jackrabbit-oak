@@ -20,9 +20,8 @@
 package org.apache.jackrabbit.oak.exporter;
 
 import java.io.File;
-
-import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import joptsimple.OptionParser;
+import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.run.cli.CommonOptions;
 import org.apache.jackrabbit.oak.run.cli.NodeStoreFixture;
 import org.apache.jackrabbit.oak.run.cli.NodeStoreFixtureProvider;
@@ -30,6 +29,7 @@ import org.apache.jackrabbit.oak.run.cli.Options;
 import org.apache.jackrabbit.oak.run.commons.Command;
 
 public class NodeStateExportCommand implements Command {
+
     public static final String NAME = "export";
 
     private final String summary = "Exports NodeState as json";
@@ -66,7 +66,7 @@ public class NodeStateExportCommand implements Command {
             serializer.serialize(dir);
 
             System.out.printf("Export the nodes under path [%s] to file [%s] in %s%n",
-                    eo.getPath(), dir.getAbsolutePath(), w);
+                eo.getPath(), dir.getAbsolutePath(), w);
 
         }
     }

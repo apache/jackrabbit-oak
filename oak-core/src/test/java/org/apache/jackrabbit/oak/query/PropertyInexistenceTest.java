@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.query;
 
+import java.util.List;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.Oak;
@@ -28,8 +29,6 @@ import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.util.List;
 
 public class PropertyInexistenceTest extends AbstractQueryTest {
 

@@ -19,13 +19,11 @@ package org.apache.jackrabbit.oak.jcr.security.authorization;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-
 import javax.jcr.AccessDeniedException;
 import javax.jcr.Node;
 import javax.jcr.Session;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.Privilege;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
@@ -45,9 +43,9 @@ public class WriteTest extends AbstractEvaluationTest {
      */
     @Test
     public void testAddNodeWithRelativePath() throws Exception {
-        Privilege[] privileges = privilegesFromNames(new String[] {
-                Privilege.JCR_ADD_CHILD_NODES,
-                Privilege.JCR_NODE_TYPE_MANAGEMENT
+        Privilege[] privileges = privilegesFromNames(new String[]{
+            Privilege.JCR_ADD_CHILD_NODES,
+            Privilege.JCR_NODE_TYPE_MANAGEMENT
         });
         allow(childNPath, EveryonePrincipal.getInstance(), privileges);
 
@@ -62,9 +60,9 @@ public class WriteTest extends AbstractEvaluationTest {
     @Test
     public void testAddChildNodeAndSetProperty() throws Exception {
         // give 'testUser' ADD_CHILD_NODES|MODIFY_PROPERTIES privileges at 'path'
-        Privilege[] privileges = privilegesFromNames(new String[] {
-                Privilege.JCR_ADD_CHILD_NODES,
-                Privilege.JCR_MODIFY_PROPERTIES
+        Privilege[] privileges = privilegesFromNames(new String[]{
+            Privilege.JCR_ADD_CHILD_NODES,
+            Privilege.JCR_MODIFY_PROPERTIES
         });
         allow(path, privileges);
         /*
@@ -78,7 +76,8 @@ public class WriteTest extends AbstractEvaluationTest {
          - REMOVE permission for child node
         */
         String nonExChildPath = path + "/anyItem";
-        String actions = getActions(Session.ACTION_READ, Session.ACTION_ADD_NODE, Session.ACTION_SET_PROPERTY);
+        String actions = getActions(Session.ACTION_READ, Session.ACTION_ADD_NODE,
+            Session.ACTION_SET_PROPERTY);
         assertTrue(testSession.hasPermission(nonExChildPath, actions));
         assertFalse(testSession.hasPermission(nonExChildPath, Session.ACTION_REMOVE));
 
@@ -108,7 +107,8 @@ public class WriteTest extends AbstractEvaluationTest {
         // must have read-only access on 'testN' and it's sibling
         assertTrue(testSession.hasPermission(path, Session.ACTION_READ));
         assertFalse(testSession.hasPermission(path,
-                getActions(Session.ACTION_ADD_NODE, Session.ACTION_SET_PROPERTY, Session.ACTION_REMOVE)));
+            getActions(Session.ACTION_ADD_NODE, Session.ACTION_SET_PROPERTY,
+                Session.ACTION_REMOVE)));
         assertReadOnly(siblingPath);
     }
 
@@ -143,8 +143,8 @@ public class WriteTest extends AbstractEvaluationTest {
     @Test
     public void testRemove3() throws Exception {
         // add 'remove_node' and 'remove_child_nodes' privilege at 'path'
-        Privilege[] privs = privilegesFromNames(new String[] {
-                Privilege.JCR_REMOVE_CHILD_NODES, Privilege.JCR_REMOVE_NODE
+        Privilege[] privs = privilegesFromNames(new String[]{
+            Privilege.JCR_REMOVE_CHILD_NODES, Privilege.JCR_REMOVE_NODE
         });
         allow(path, privs);
         /*
@@ -181,7 +181,8 @@ public class WriteTest extends AbstractEvaluationTest {
         assertFalse(testSession.hasPermission(path, javax.jcr.Session.ACTION_REMOVE));
 
         assertTrue(testSession.hasPermission(childNPath, javax.jcr.Session.ACTION_REMOVE));
-        assertTrue(testAcMgr.hasPrivileges(childNPath, new Privilege[] {rmChildNodes[0], rmNode[0]}));
+        assertTrue(
+            testAcMgr.hasPrivileges(childNPath, new Privilege[]{rmChildNodes[0], rmNode[0]}));
 
         testSession.getNode(childNPath).remove();
         testSession.save();
@@ -233,7 +234,7 @@ public class WriteTest extends AbstractEvaluationTest {
     public void testRemove6() throws Exception {
         // add 'remove_child_nodes' and 'remove_node' privilege at 'path'
         Privilege[] privs = privilegesFromNames(new String[]{
-                Privilege.JCR_REMOVE_CHILD_NODES, Privilege.JCR_REMOVE_NODE
+            Privilege.JCR_REMOVE_CHILD_NODES, Privilege.JCR_REMOVE_NODE
         });
         allow(path, privs);
         // ... but deny 'remove_node' at childNPath
@@ -248,8 +249,10 @@ public class WriteTest extends AbstractEvaluationTest {
         assertFalse(testSession.hasPermission(path, Session.ACTION_REMOVE));
         assertFalse(testSession.hasPermission(childNPath, Session.ACTION_REMOVE));
 
-        assertTrue(testAcMgr.hasPrivileges(childNPath, privilegesFromNames(new String[] {Privilege.JCR_READ, Privilege.JCR_REMOVE_CHILD_NODES})));
-        assertFalse(testAcMgr.hasPrivileges(childNPath, privilegesFromName(Privilege.JCR_REMOVE_NODE)));
+        assertTrue(testAcMgr.hasPrivileges(childNPath, privilegesFromNames(
+            new String[]{Privilege.JCR_READ, Privilege.JCR_REMOVE_CHILD_NODES})));
+        assertFalse(
+            testAcMgr.hasPrivileges(childNPath, privilegesFromName(Privilege.JCR_REMOVE_NODE)));
         try {
             testSession.getNode(childNPath).remove();
             testSession.save();
@@ -266,7 +269,7 @@ public class WriteTest extends AbstractEvaluationTest {
 
         // add 'remove_child_nodes' and 'remove_node' privilege at 'path'
         Privilege[] privs = privilegesFromNames(new String[]{
-                Privilege.JCR_REMOVE_CHILD_NODES, Privilege.JCR_REMOVE_NODE
+            Privilege.JCR_REMOVE_CHILD_NODES, Privilege.JCR_REMOVE_NODE
         });
         allow(path, privs);
         // ... but deny 'remove_node' at childNPath
@@ -279,8 +282,10 @@ public class WriteTest extends AbstractEvaluationTest {
         String subtreePath = subtree.getPath();
         assertFalse(testSession.hasPermission(subtreePath, Session.ACTION_REMOVE));
 
-        assertTrue(testAcMgr.hasPrivileges(subtreePath, privilegesFromNames(new String[] {Privilege.JCR_READ, Privilege.JCR_REMOVE_CHILD_NODES})));
-        assertFalse(testAcMgr.hasPrivileges(subtreePath, privilegesFromName(Privilege.JCR_REMOVE_NODE)));
+        assertTrue(testAcMgr.hasPrivileges(subtreePath, privilegesFromNames(
+            new String[]{Privilege.JCR_READ, Privilege.JCR_REMOVE_CHILD_NODES})));
+        assertFalse(
+            testAcMgr.hasPrivileges(subtreePath, privilegesFromName(Privilege.JCR_REMOVE_NODE)));
         try {
             testSession.getNode(subtreePath).remove();
             testSession.save();
@@ -313,7 +318,8 @@ public class WriteTest extends AbstractEvaluationTest {
          - but both privileges (remove_node, remove_child_nodes) are present.
          */
         assertFalse(testSession.hasPermission(childNPath, javax.jcr.Session.ACTION_REMOVE));
-        assertTrue(testAcMgr.hasPrivileges(childNPath, new Privilege[] {rmChildNodes[0], rmNode[0]}));
+        assertTrue(
+            testAcMgr.hasPrivileges(childNPath, new Privilege[]{rmChildNodes[0], rmNode[0]}));
         try {
             testSession.getNode(childNPath).remove();
             testSession.save();
@@ -349,7 +355,8 @@ public class WriteTest extends AbstractEvaluationTest {
          - node at subtreePath can be removed.
          */
         assertTrue(testSession.hasPermission(subtreePath, javax.jcr.Session.ACTION_REMOVE));
-        assertTrue(testAcMgr.hasPrivileges(subtreePath, new Privilege[] {rmChildNodes[0], rmNode[0]}));
+        assertTrue(
+            testAcMgr.hasPrivileges(subtreePath, new Privilege[]{rmChildNodes[0], rmNode[0]}));
         testSession.getNode(subtreePath).remove();
         superuser.save();
     }
@@ -369,7 +376,8 @@ public class WriteTest extends AbstractEvaluationTest {
          - remove permission must be granted at childNPath
          */
         assertTrue(testSession.hasPermission(childNPath, Session.ACTION_REMOVE));
-        assertTrue(testAcMgr.hasPrivileges(childNPath, new Privilege[]{rmChildNodes[0], rmNode[0]}));
+        assertTrue(
+            testAcMgr.hasPrivileges(childNPath, new Privilege[]{rmChildNodes[0], rmNode[0]}));
         testSession.getNode(childNPath).remove();
         testSession.save();
     }
@@ -421,9 +429,9 @@ public class WriteTest extends AbstractEvaluationTest {
     }
 
     /**
-     * the ADD_CHILD_NODES privileges assigned on a node to a specific principal
-     * grants the corresponding user the permission to add nodes below the
-     * target node but not 'at' the target node.
+     * the ADD_CHILD_NODES privileges assigned on a node to a specific principal grants the
+     * corresponding user the permission to add nodes below the target node but not 'at' the target
+     * node.
      *
      * @throws Exception If an error occurs.
      */
@@ -438,7 +446,7 @@ public class WriteTest extends AbstractEvaluationTest {
            - testSession can add child-nodes below path
          */
         assertFalse(testSession.hasPermission(path, Session.ACTION_ADD_NODE));
-        assertTrue(testSession.hasPermission(path+"/anychild", Session.ACTION_ADD_NODE));
+        assertTrue(testSession.hasPermission(path + "/anychild", Session.ACTION_ADD_NODE));
         assertTrue(testSession.hasPermission(childNPath, Session.ACTION_ADD_NODE));
     }
 
@@ -468,9 +476,11 @@ public class WriteTest extends AbstractEvaluationTest {
         assertFalse(testAcMgr.hasPrivileges(path, allPrivileges));
         assertFalse(testAcMgr.hasPrivileges(path, lockPrivileges));
 
-        List<Privilege> remainingprivs = new ArrayList<Privilege>(Arrays.asList(allPrivileges[0].getAggregatePrivileges()));
+        List<Privilege> remainingprivs = new ArrayList<Privilege>(
+            Arrays.asList(allPrivileges[0].getAggregatePrivileges()));
         remainingprivs.remove(lockPrivileges[0]);
-        assertTrue(testAcMgr.hasPrivileges(path, remainingprivs.toArray(new Privilege[remainingprivs.size()])));
+        assertTrue(testAcMgr.hasPrivileges(path,
+            remainingprivs.toArray(new Privilege[remainingprivs.size()])));
     }
 
     @Test
@@ -493,7 +503,8 @@ public class WriteTest extends AbstractEvaluationTest {
         Node n = testSession.getNode(path);
         // give 'add_child_nodes' and 'nt-management' privilege
         // -> not sufficient privileges for a reorder
-        allow(path, privilegesFromNames(new String[] {Privilege.JCR_ADD_CHILD_NODES, Privilege.JCR_NODE_TYPE_MANAGEMENT}));
+        allow(path, privilegesFromNames(
+            new String[]{Privilege.JCR_ADD_CHILD_NODES, Privilege.JCR_NODE_TYPE_MANAGEMENT}));
 
         try {
             n.orderBefore(Text.getName(childNPath2), Text.getName(childNPath));
@@ -509,8 +520,8 @@ public class WriteTest extends AbstractEvaluationTest {
         Node n = testSession.getNode(path);
         // give 'add_child_nodes', 'nt-management' and 'remove_child_nodes' at
         // 'path' -> reorder must succeed
-        allow(path, privilegesFromNames(new String[] {Privilege.JCR_ADD_CHILD_NODES,
-                Privilege.JCR_REMOVE_CHILD_NODES, Privilege.JCR_NODE_TYPE_MANAGEMENT}));
+        allow(path, privilegesFromNames(new String[]{Privilege.JCR_ADD_CHILD_NODES,
+            Privilege.JCR_REMOVE_CHILD_NODES, Privilege.JCR_NODE_TYPE_MANAGEMENT}));
 
         n.orderBefore(Text.getName(childNPath2), Text.getName(childNPath));
         testSession.save();
@@ -521,7 +532,7 @@ public class WriteTest extends AbstractEvaluationTest {
      */
     @Test
     public void testRemovalJCR242() throws Exception {
-        Privilege[] allPriv = privilegesFromNames(new String[] {Privilege.JCR_ALL});
+        Privilege[] allPriv = privilegesFromNames(new String[]{Privilege.JCR_ALL});
 
         /* grant ALL privilege for testUser at 'path' */
         allow(path, testUser.getPrincipal(), allPriv);
@@ -545,7 +556,6 @@ public class WriteTest extends AbstractEvaluationTest {
         deny(path, testUser.getPrincipal(), readWritePrivileges);
         /* allow READ/WRITE privilege for testUser at 'childNPath' */
         allow(childNPath, testUser.getPrincipal(), readWritePrivileges);
-
 
         assertFalse(testSession.nodeExists(path));
 
@@ -620,8 +630,8 @@ public class WriteTest extends AbstractEvaluationTest {
     }
 
     /**
-     * @since OAK 1.0 : removal of node doesn't require remove permission on
-     * all child nodes (diff to jackrabbit core)
+     * @since OAK 1.0 : removal of node doesn't require remove permission on all child nodes (diff
+     * to jackrabbit core)
      */
     @Test
     public void testRemoveNodeWithInvisibleNonRemovableChild() throws Exception {
@@ -642,8 +652,8 @@ public class WriteTest extends AbstractEvaluationTest {
     }
 
     /**
-     * @since OAK 1.0 : removal of node doesn't require remove permission on
-     * all child nodes (diff to jackrabbit core)
+     * @since OAK 1.0 : removal of node doesn't require remove permission on all child nodes (diff
+     * to jackrabbit core)
      */
     @Test
     public void testRemoveNodeWithNonRemovableChild() throws Exception {
@@ -674,7 +684,8 @@ public class WriteTest extends AbstractEvaluationTest {
         /* allow READ/WRITE privilege for testUser at 'path' */
         allow(path, testUser.getPrincipal(), readWritePrivileges);
         /* deny READ privilege at invisible property. (removal is still granted) */
-        deny(subtreePath, testUser.getPrincipal(), privilegesFromName(PrivilegeConstants.REP_READ_PROPERTIES));
+        deny(subtreePath, testUser.getPrincipal(),
+            privilegesFromName(PrivilegeConstants.REP_READ_PROPERTIES));
 
         assertTrue(testSession.nodeExists(childNPath));
         assertTrue(testSession.hasPermission(childNPath, Session.ACTION_REMOVE));
@@ -688,8 +699,8 @@ public class WriteTest extends AbstractEvaluationTest {
     }
 
     /**
-     * @since OAK 1.0 : removal of node doesn't require remove permission on
-     * all child items (diff to jackrabbit core)
+     * @since OAK 1.0 : removal of node doesn't require remove permission on all child items (diff
+     * to jackrabbit core)
      */
     @Test
     public void testRemoveNodeWithInvisibleNonRemovableProperty() throws Exception {
@@ -703,9 +714,9 @@ public class WriteTest extends AbstractEvaluationTest {
         allow(path, testUser.getPrincipal(), readWritePrivileges);
         /* deny READ/REMOVE property privileges at subtree. */
         deny(subtreePath, testUser.getPrincipal(),
-                privilegesFromNames(new String[] {
-                        PrivilegeConstants.REP_READ_PROPERTIES,
-                        PrivilegeConstants.REP_REMOVE_PROPERTIES}));
+            privilegesFromNames(new String[]{
+                PrivilegeConstants.REP_READ_PROPERTIES,
+                PrivilegeConstants.REP_REMOVE_PROPERTIES}));
 
         assertTrue(testSession.nodeExists(childNPath));
         assertTrue(testSession.hasPermission(childNPath, Session.ACTION_REMOVE));
@@ -719,8 +730,8 @@ public class WriteTest extends AbstractEvaluationTest {
     }
 
     /**
-     * @since OAK 1.0 : removal of node doesn't require remove permission on
-     * all child items (diff to jackrabbit core)
+     * @since OAK 1.0 : removal of node doesn't require remove permission on all child items (diff
+     * to jackrabbit core)
      */
     @Test
     public void testRemoveNodeWithNonRemovableProperty() throws Exception {
@@ -733,7 +744,8 @@ public class WriteTest extends AbstractEvaluationTest {
         /* allow READ/WRITE privilege for testUser at 'path' */
         allow(path, testUser.getPrincipal(), readWritePrivileges);
         /* deny REMOVE_PROPERTY privilege at subtree. */
-        deny(subtreePath, testUser.getPrincipal(), privilegesFromName(PrivilegeConstants.REP_REMOVE_PROPERTIES));
+        deny(subtreePath, testUser.getPrincipal(),
+            privilegesFromName(PrivilegeConstants.REP_REMOVE_PROPERTIES));
 
         assertTrue(testSession.nodeExists(childNPath));
         assertTrue(testSession.hasPermission(childNPath, Session.ACTION_REMOVE));

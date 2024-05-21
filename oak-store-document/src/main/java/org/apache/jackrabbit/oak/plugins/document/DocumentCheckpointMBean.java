@@ -36,6 +36,7 @@ import static org.apache.jackrabbit.oak.plugins.document.Checkpoints.Info;
  * {@code CheckpointMBean} implementation for the {@code DocumentNodeStore}.
  */
 public class DocumentCheckpointMBean extends AbstractCheckpointMBean {
+
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final DocumentNodeStore store;
 
@@ -53,7 +54,7 @@ public class DocumentCheckpointMBean extends AbstractCheckpointMBean {
             Date created = new Date(checkpoint.getKey().getTimestamp());
             Date expires = new Date(info.getExpiryTime());
             tab.put(id, toCompositeData(
-                    id, created.toString(), expires.toString(), info.get()));
+                id, created.toString(), expires.toString(), info.get()));
         }
     }
 
@@ -66,7 +67,7 @@ public class DocumentCheckpointMBean extends AbstractCheckpointMBean {
             minTimestamp = Math.min(minTimestamp, checkpoint.getKey().getTimestamp());
         }
 
-        return (minTimestamp==Long.MAX_VALUE)?0:minTimestamp;
+        return (minTimestamp == Long.MAX_VALUE) ? 0 : minTimestamp;
     }
 
     @Override

@@ -17,13 +17,14 @@
 package org.apache.jackrabbit.oak.plugins.index.solr.configuration;
 
 import java.util.Arrays;
-
 import org.apache.jackrabbit.oak.plugins.index.solr.server.RemoteSolrServerProvider;
 
 /**
- * {@link org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfiguration} for the {@link org.apache.jackrabbit.oak.plugins.index.solr.server.RemoteSolrServerProvider}
+ * {@link org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfiguration} for
+ * the {@link org.apache.jackrabbit.oak.plugins.index.solr.server.RemoteSolrServerProvider}
  */
-public class RemoteSolrServerConfiguration extends SolrServerConfiguration<RemoteSolrServerProvider> {
+public class RemoteSolrServerConfiguration extends
+    SolrServerConfiguration<RemoteSolrServerProvider> {
 
     private final String solrConfDir;
     private final int socketTimeout;
@@ -34,8 +35,9 @@ public class RemoteSolrServerConfiguration extends SolrServerConfiguration<Remot
     private final int solrShardsNo;
     private final int solrReplicationFactor;
 
-    public RemoteSolrServerConfiguration(String solrZkHost, String solrCollection, int solrShardsNo, int solrReplicationFactor,
-                                         String solrConfDir, int socketTimeout, int connectionTimeout, String... solrHttpUrls) {
+    public RemoteSolrServerConfiguration(String solrZkHost, String solrCollection, int solrShardsNo,
+        int solrReplicationFactor,
+        String solrConfDir, int socketTimeout, int connectionTimeout, String... solrHttpUrls) {
         this.socketTimeout = socketTimeout;
         this.connectionTimeout = connectionTimeout;
         this.solrHttpUrls = solrHttpUrls;
@@ -81,14 +83,14 @@ public class RemoteSolrServerConfiguration extends SolrServerConfiguration<Remot
     @Override
     public String toString() {
         return "RemoteSolrServerConfiguration{" +
-                "solrConfDir='" + solrConfDir + '\'' +
-                ", socketTimeout=" + socketTimeout +
-                ", connectionTimeout=" + connectionTimeout +
-                ", solrHttpUrls=" + Arrays.toString(solrHttpUrls) +
-                ", solrZkHost='" + solrZkHost + '\'' +
-                ", solrCollection='" + solrCollection + '\'' +
-                ", solrShardsNo=" + solrShardsNo +
-                ", solrReplicationFactor=" + solrReplicationFactor +
-                '}';
+            "solrConfDir='" + solrConfDir + '\'' +
+            ", socketTimeout=" + socketTimeout +
+            ", connectionTimeout=" + connectionTimeout +
+            ", solrHttpUrls=" + Arrays.toString(solrHttpUrls) +
+            ", solrZkHost='" + solrZkHost + '\'' +
+            ", solrCollection='" + solrCollection + '\'' +
+            ", solrShardsNo=" + solrShardsNo +
+            ", solrReplicationFactor=" + solrReplicationFactor +
+            '}';
     }
 }

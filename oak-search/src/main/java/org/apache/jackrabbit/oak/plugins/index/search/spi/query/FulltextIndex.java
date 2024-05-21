@@ -18,6 +18,18 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.search.spi.query;
 
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvancedQueryIndex;
+import static org.apache.jackrabbit.oak.spi.query.QueryIndex.NativeQueryIndex;
+
+import java.io.IOException;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.function.Predicate;
+import javax.jcr.PropertyType;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.primitives.Chars;
 import org.apache.jackrabbit.oak.api.PropertyValue;
@@ -49,27 +61,13 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.jcr.PropertyType;
-import java.io.IOException;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.function.Predicate;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-import static org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvancedQueryIndex;
-import static org.apache.jackrabbit.oak.spi.query.QueryIndex.NativeQueryIndex;
-
 /**
  * Provides an abstract QueryIndex that does lookups against a fulltext index
  *
  * @see QueryIndex
- *
  */
 public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, NativeQueryIndex,
-        AdvanceFulltextQueryIndex {
+    AdvanceFulltextQueryIndex {
 
     private static final Logger LOG = LoggerFactory.getLogger(FulltextIndex.class);
 
@@ -85,11 +83,12 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
 
     protected abstract Predicate<NodeState> getIndexDefinitionPredicate();
 
-    protected abstract String getFulltextRequestString(IndexPlan plan, IndexNode indexNode, NodeState rootState);
+    protected abstract String getFulltextRequestString(IndexPlan plan, IndexNode indexNode,
+        NodeState rootState);
 
     /**
-     * Whether replaced indexes (that is, if a new version of the index is
-     * available) should be filtered out.
+     * Whether replaced indexes (that is, if a new version of the index is available) should be
+     * filtered out.
      *
      * @return true if yes (e.g. in a blue-green deployment model)
      */
@@ -97,14 +96,14 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
 
     /**
      * Whether the isActiveIndex check should run during filtering of replaced indexes.
-     *
      */
     protected abstract boolean runIsActiveIndexCheck();
 
     /**
      * Returns the {@link FulltextIndexPlanner} for the specified arguments
      */
-    protected FulltextIndexPlanner getPlanner(IndexNode indexNode, String path, Filter filter, List<OrderEntry> sortOrder) {
+    protected FulltextIndexPlanner getPlanner(IndexNode indexNode, String path, Filter filter,
+        List<OrderEntry> sortOrder) {
         return new FulltextIndexPlanner(indexNode, path, filter, sortOrder);
     }
 
@@ -114,11 +113,13 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
     }
 
     @Override
-    public List<IndexPlan> getPlans(Filter filter, List<OrderEntry> sortOrder, NodeState rootState) {
+    public List<IndexPlan> getPlans(Filter filter, List<OrderEntry> sortOrder,
+        NodeState rootState) {
         Collection<String> indexPaths = new IndexLookup(rootState, getIndexDefinitionPredicate())
-                .collectIndexNodePaths(filter);
+            .collectIndexNodePaths(filter);
         if (filterReplacedIndexes()) {
-            indexPaths = IndexName.filterReplacedIndexes(indexPaths, rootState, runIsActiveIndexCheck());
+            indexPaths = IndexName.filterReplacedIndexes(indexPaths, rootState,
+                runIsActiveIndexCheck());
         }
         List<IndexPlan> plans = Lists.newArrayListWithCapacity(indexPaths.size());
         for (String path : indexPaths) {
@@ -158,7 +159,8 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
     public String getPlanDescription(IndexPlan plan, NodeState root) {
         Filter filter = plan.getFilter();
         IndexNode index = acquireIndexNode(plan);
-        checkState(index != null, "The fulltext index of type " + getType() + "  index is not available");
+        checkState(index != null,
+            "The fulltext index of type " + getType() + "  index is not available");
         try {
             FullTextExpression ft = filter.getFullTextConstraint();
             StringBuilder sb = new StringBuilder();
@@ -167,7 +169,8 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
             sb.append("    indexDefinition: ").append(path).append("\n");
             sb.append("    estimatedEntries: ").append(plan.getEstimatedEntryCount()).append("\n");
             // luceneQuery / elasticQuery
-            sb.append("    ").append(getType()).append("Query: ").append(getFulltextRequestString(plan, index, root)).append("\n");
+            sb.append("    ").append(getType()).append("Query: ")
+              .append(getFulltextRequestString(plan, index, root)).append("\n");
             if (plan.getSortOrder() != null && !plan.getSortOrder().isEmpty()) {
                 sb.append("    sortOrder: ").append(plan.getSortOrder()).append("\n");
             }
@@ -232,9 +235,8 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
     }
 
     /**
-     * In a fulltext term for jcr:contains(foo, 'bar') 'foo'
-     * is the property name. While in jcr:contains(foo/*, 'bar')
-     * 'foo' is node name
+     * In a fulltext term for jcr:contains(foo, 'bar') 'foo' is the property name. While in
+     * jcr:contains(foo/*, 'bar') 'foo' is node name
      *
      * @return true if the term is related to node
      */
@@ -280,10 +282,11 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
     /**
      * Following chars are used as operators in Lucene Query and should be escaped
      */
-    private static final char[] QUERY_OPERATORS = {':' , '/', '!', '&', '|', '='};
+    private static final char[] QUERY_OPERATORS = {':', '/', '!', '&', '|', '='};
 
     /**
-     * Following logic is taken from org.apache.jackrabbit.core.query.lucene.JackrabbitQueryParser#parse(java.lang.String)
+     * Following logic is taken from
+     * org.apache.jackrabbit.core.query.lucene.JackrabbitQueryParser#parse(java.lang.String)
      */
     public static String rewriteQueryText(String textsearch) {
         // replace escaped ' with just '
@@ -331,6 +334,7 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
     }
 
     public static class FulltextResultRow {
+
         public final String path;
         public final double score;
         public final String suggestion;
@@ -340,7 +344,7 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
         private final FacetProvider facetProvider;
 
         public FulltextResultRow(String path, double score, Map<String, String> excerpts,
-                                 FacetProvider facetProvider, String explanation) {
+            FacetProvider facetProvider, String explanation) {
             this.explanation = explanation;
             this.excerpts = excerpts;
             this.facetProvider = facetProvider;
@@ -351,7 +355,7 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
         }
 
         public FulltextResultRow(String suggestion, long weight) {
-            this(suggestion, (double)weight);
+            this(suggestion, (double) weight);
         }
 
         public FulltextResultRow(String suggestion, double weight) {
@@ -383,12 +387,13 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
     }
 
     public interface FacetProvider {
+
         List<Facet> getFacets(int numberOfFacets, String columnName) throws IOException;
     }
 
     /**
-     * A cursor over Fulltext results. The result includes the path,
-     * and the jcr:score pseudo-property as returned by Lucene.
+     * A cursor over Fulltext results. The result includes the path, and the jcr:score
+     * pseudo-property as returned by Lucene.
      */
     protected static class FulltextPathCursor implements Cursor {
 
@@ -407,8 +412,9 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
         // (so we don't have to extend the PathCursor)
         FulltextResultRow currentRowInPathIterator;
 
-        public FulltextPathCursor(final Iterator<FulltextResultRow> it, final IteratorRewoundStateProvider iterStateProvider,
-                                  final IndexPlan plan, QueryLimits settings, SizeEstimator sizeEstimator) {
+        public FulltextPathCursor(final Iterator<FulltextResultRow> it,
+            final IteratorRewoundStateProvider iterStateProvider,
+            final IndexPlan plan, QueryLimits settings, SizeEstimator sizeEstimator) {
             pathPrefix = plan.getPathPrefix();
             this.sizeEstimator = sizeEstimator;
             Iterator<String> pathIterator = new Iterator<String>() {
@@ -432,10 +438,12 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
                     if (readCount % TRAVERSING_WARNING == 0) {
                         Cursors.checkReadLimit(readCount, settings);
                         if (readCount == 2 * TRAVERSING_WARNING) {
-                            log.warn("Index-Traversed {} nodes with filter {}", readCount, plan.getFilter(),
-                                    new Exception("call stack"));
+                            log.warn("Index-Traversed {} nodes with filter {}", readCount,
+                                plan.getFilter(),
+                                new Exception("call stack"));
                         } else {
-                            log.warn("Index-Traversed {} nodes with filter {}", readCount, plan.getFilter());
+                            log.warn("Index-Traversed {} nodes with filter {}", readCount,
+                                plan.getFilter());
                         }
                     }
                     return currentRowInPathIterator.path;
@@ -491,7 +499,8 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
         private final String pathPrefix;
         private final int numberOfFacets;
 
-        IndexResultRow(IndexRow pathRow, FulltextResultRow row, String pathPrefix, int numberOfFacets) {
+        IndexResultRow(IndexRow pathRow, FulltextResultRow row, String pathPrefix,
+            int numberOfFacets) {
             this.pathRow = pathRow;
             this.resultRow = row;
             this.pathPrefix = pathPrefix;
@@ -523,7 +532,8 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
             if (QueryConstants.JCR_SCORE.equals(columnName)) {
                 return PropertyValues.newDouble(resultRow.score);
             }
-            if (QueryConstants.REP_SPELLCHECK.equals(columnName) || QueryConstants.REP_SUGGEST.equals(columnName)) {
+            if (QueryConstants.REP_SPELLCHECK.equals(columnName)
+                || QueryConstants.REP_SUGGEST.equals(columnName)) {
                 return PropertyValues.newString(resultRow.suggestion);
             }
             if (QueryConstants.OAK_SCORE_EXPLANATION.equals(columnName)) {
@@ -556,9 +566,12 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
             return pathRow.getValue(columnName);
         }
 
-    };
+    }
+
+    ;
 
     public interface IteratorRewoundStateProvider {
+
         int rewoundCount();
     }
 
@@ -578,6 +591,7 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
 
         /**
          * get the facet label
+         *
          * @return a label
          */
         @NotNull
@@ -587,6 +601,7 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
 
         /**
          * get the facet count
+         *
          * @return an integer
          */
         public int getCount() {
@@ -596,15 +611,19 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
         @Override
         public String toString() {
             return "Facet{" +
-                    "label='" + label + '\'' +
-                    ", count=" + count +
-                    '}';
+                "label='" + label + '\'' +
+                ", count=" + count +
+                '}';
         }
 
         @Override
         public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
             Facet facet = (Facet) o;
             return Objects.equals(label, facet.label);
         }
@@ -617,9 +636,9 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
 
     /**
      * Get the facet name from a column name.
-     *
-     * This method silently assumes(!) that the column name starts with "rep:facet("
-     * and ends with ")".
+     * <p>
+     * This method silently assumes(!) that the column name starts with "rep:facet(" and ends with
+     * ")".
      *
      * @param columnName the column name, e.g. "rep:facet(abc)"
      * @return the facet name, e.g. "abc"

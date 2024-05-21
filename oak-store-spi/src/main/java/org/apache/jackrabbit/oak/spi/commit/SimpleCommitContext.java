@@ -19,20 +19,20 @@
 
 package org.apache.jackrabbit.oak.spi.commit;
 
-import java.util.Map;
-
-import org.apache.jackrabbit.guava.common.collect.Maps;
-
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
+import java.util.Map;
+import org.apache.jackrabbit.guava.common.collect.Maps;
+
 public class SimpleCommitContext implements CommitContext {
+
     private final Map<String, Object> attrs = Maps.newHashMap();
 
     @Override
     public String toString() {
-    	return "CommitContext[attrs="+attrs+"]";
+        return "CommitContext[attrs=" + attrs + "]";
     }
-    
+
     @Override
     public void set(String name, Object value) {
         attrs.put(checkNotNull(name), value);
@@ -48,7 +48,7 @@ public class SimpleCommitContext implements CommitContext {
         attrs.remove(checkNotNull(name));
     }
 
-    void clear(){
+    void clear() {
         attrs.clear();
     }
 }

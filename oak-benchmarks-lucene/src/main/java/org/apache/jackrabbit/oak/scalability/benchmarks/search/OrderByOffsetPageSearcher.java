@@ -20,13 +20,14 @@ package org.apache.jackrabbit.oak.scalability.benchmarks.search;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.query.QueryManager;
-
 import org.apache.jackrabbit.oak.scalability.suites.ScalabilityAbstractSuite.ExecutionContext;
 
 /**
- * Simulates offset pagination over the search {@link org.apache.jackrabbit.oak.scalability.benchmarks.search.OrderBySearcher}
+ * Simulates offset pagination over the search
+ * {@link org.apache.jackrabbit.oak.scalability.benchmarks.search.OrderBySearcher}
  */
 public class OrderByOffsetPageSearcher extends OrderBySearcher {
+
     @Override
     protected void search(QueryManager qm, ExecutionContext context) throws RepositoryException {
         processResultsOffsetPagination(qm, context);

@@ -23,69 +23,70 @@ package org.apache.lucene.store;
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 import java.io.IOException;
 
 /**
  * A {@link RateLimiter rate limiting} {@link IndexOutput}
- * 
+ *
  * @lucene.internal
  */
 final class RateLimitedIndexOutput extends BufferedIndexOutput {
-  
-  private final IndexOutput delegate;
-  private final BufferedIndexOutput bufferedDelegate;
-  private final RateLimiter rateLimiter;
 
-  RateLimitedIndexOutput(final RateLimiter rateLimiter, final IndexOutput delegate) {
-    // TODO should we make buffer size configurable
-    if (delegate instanceof BufferedIndexOutput) {
-      bufferedDelegate = (BufferedIndexOutput) delegate;
-      this.delegate = delegate;
-    } else {
-      this.delegate = delegate;
-      bufferedDelegate = null;
+    private final IndexOutput delegate;
+    private final BufferedIndexOutput bufferedDelegate;
+    private final RateLimiter rateLimiter;
+
+    RateLimitedIndexOutput(final RateLimiter rateLimiter, final IndexOutput delegate) {
+        // TODO should we make buffer size configurable
+        if (delegate instanceof BufferedIndexOutput) {
+            bufferedDelegate = (BufferedIndexOutput) delegate;
+            this.delegate = delegate;
+        } else {
+            this.delegate = delegate;
+            bufferedDelegate = null;
+        }
+        this.rateLimiter = rateLimiter;
     }
-    this.rateLimiter = rateLimiter;
-  }
-  
-  @Override
-  protected void flushBuffer(byte[] b, int offset, int len) throws IOException {
-    rateLimiter.pause(len);
-    if (bufferedDelegate != null) {
-      bufferedDelegate.flushBuffer(b, offset, len);
-    } else {
-      delegate.writeBytes(b, offset, len);
+
+    @Override
+    protected void flushBuffer(byte[] b, int offset, int len) throws IOException {
+        rateLimiter.pause(len);
+        if (bufferedDelegate != null) {
+            bufferedDelegate.flushBuffer(b, offset, len);
+        } else {
+            delegate.writeBytes(b, offset, len);
+        }
+
     }
-    
-  }
-  
-  @Override
-  public long length() throws IOException {
-    return delegate.length();
-  }
 
-  @Override
-  public void seek(long pos) throws IOException {
-    flush();
-    delegate.seek(pos);
-  }
-
-
-  @Override
-  public void flush() throws IOException {
-    try {
-      super.flush();
-    } finally { 
-      delegate.flush();
+    @Override
+    public long length() throws IOException {
+        return delegate.length();
     }
-  }
 
-  @Override
-  public void close() throws IOException {
-    try {
-      super.close();
-    } finally {
-      delegate.close();
+    @Override
+    public void seek(long pos) throws IOException {
+        flush();
+        delegate.seek(pos);
     }
-  }
+
+
+    @Override
+    public void flush() throws IOException {
+        try {
+            super.flush();
+        } finally {
+            delegate.flush();
+        }
+    }
+
+    @Override
+    public void close() throws IOException {
+        try {
+            super.close();
+        } finally {
+            delegate.close();
+        }
+    }
 }

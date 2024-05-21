@@ -18,15 +18,6 @@
  */
 package org.apache.jackrabbit.oak.spi.toggle;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
-import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
-import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
-import org.junit.Rule;
-import org.junit.Test;
-
 import static org.apache.jackrabbit.oak.spi.toggle.Feature.newFeature;
 import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.Matchers.empty;
@@ -35,6 +26,14 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+
+import java.util.ArrayList;
+import java.util.List;
+import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
+import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
+import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
+import org.junit.Rule;
+import org.junit.Test;
 
 public class FeatureToggleTest {
 
@@ -73,7 +72,7 @@ public class FeatureToggleTest {
     @Test
     public void registerMultiple() {
         try (Feature f1 = newFeature("my.t1", whiteboard);
-             Feature f2 = newFeature("my.t2", whiteboard)) {
+            Feature f2 = newFeature("my.t2", whiteboard)) {
             assertFalse(f1.isEnabled());
             assertFalse(f2.isEnabled());
             List<FeatureToggle> toggles = getFeatureToggles();
@@ -100,6 +99,6 @@ public class FeatureToggleTest {
 
     private List<FeatureToggle> getFeatureToggles() {
         return WhiteboardUtils.getServices(
-                whiteboard, FeatureToggle.class);
+            whiteboard, FeatureToggle.class);
     }
 }

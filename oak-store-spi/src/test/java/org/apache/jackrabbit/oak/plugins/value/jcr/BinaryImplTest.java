@@ -16,13 +16,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.value.jcr;
 
+import static org.junit.Assert.assertNull;
+
 import org.apache.jackrabbit.api.binary.BinaryDownloadOptions;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.StringPropertyState;
 import org.junit.Test;
-
-import static org.junit.Assert.assertNull;
 
 public class BinaryImplTest {
 

@@ -18,24 +18,24 @@
  */
 package org.apache.jackrabbit.oak.scalability.benchmarks.search;
 
-import org.apache.jackrabbit.oak.scalability.suites.ScalabilityBlobSearchSuite;
-import org.apache.jackrabbit.oak.scalability.suites.ScalabilityNodeSuite;
-import org.apache.jackrabbit.oak.scalability.suites.ScalabilityAbstractSuite.ExecutionContext;
-import org.jetbrains.annotations.NotNull;
-
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
 import javax.jcr.query.QueryResult;
 import javax.jcr.query.RowIterator;
+import org.apache.jackrabbit.oak.scalability.suites.ScalabilityAbstractSuite.ExecutionContext;
+import org.apache.jackrabbit.oak.scalability.suites.ScalabilityBlobSearchSuite;
+import org.apache.jackrabbit.oak.scalability.suites.ScalabilityNodeSuite;
+import org.jetbrains.annotations.NotNull;
 
 /**
- * Splits the search in {@link org.apache.jackrabbit.oak.scalability.benchmarks.search.OrderBySearcher} to multiple
+ * Splits the search in
+ * {@link org.apache.jackrabbit.oak.scalability.benchmarks.search.OrderBySearcher} to multiple
  * queries and unions the results.
- *
  */
 public class SplitOrderBySearcher extends OrderBySearcher {
+
     @Override
     protected void search(QueryManager qm, ExecutionContext context)
         throws RepositoryException {
@@ -73,11 +73,12 @@ public class SplitOrderBySearcher extends OrderBySearcher {
         StringBuilder statement = new StringBuilder("/jcr:root/");
 
         statement.append(
-            ((String) context.getMap().get(ScalabilityBlobSearchSuite.CTX_ROOT_NODE_NAME_PROP)))
-            .append("//element(*, ")
-            .append(context.getMap().get(ScalabilityNodeSuite.CTX_ACT_NODE_TYPE_PROP)).append(")");
+                     ((String) context.getMap().get(ScalabilityBlobSearchSuite.CTX_ROOT_NODE_NAME_PROP)))
+                 .append("//element(*, ")
+                 .append(context.getMap().get(ScalabilityNodeSuite.CTX_ACT_NODE_TYPE_PROP))
+                 .append(")");
         statement.append("[(").append("@").append(ScalabilityNodeSuite.SORT_PROP).append("= 'true'")
-            .append(")]");
+                 .append(")]");
 
         LOG.debug("{}", statement);
 

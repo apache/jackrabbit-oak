@@ -22,7 +22,6 @@ import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
-
 import org.apache.jackrabbit.oak.exercise.security.user.L15_RepositoryWithoutAnonymousTest;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.test.AbstractJCRTest;
@@ -131,7 +130,8 @@ public class L5_GuestLoginTest extends AbstractJCRTest {
 
         // EXERCISE: how to you need to modify the test-case that this would work?
 
-        Session anonymousUserSession = repository.login(new SimpleCredentials(anonymousID, new char[0]));
+        Session anonymousUserSession = repository.login(
+            new SimpleCredentials(anonymousID, new char[0]));
         assertEquals(UserConstants.DEFAULT_ANONYMOUS_ID, testSession.getUserID());
     }
 

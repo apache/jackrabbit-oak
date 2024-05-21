@@ -23,28 +23,28 @@ import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.Value;
-
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Query;
 import org.apache.jackrabbit.api.security.user.QueryBuilder;
 import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 /**
- * Tests to assert that all user mgt methods that include name/path conversion
- * from JCR to OAK and back are properly implemented.
+ * Tests to assert that all user mgt methods that include name/path conversion from JCR to OAK and
+ * back are properly implemented.
  */
 public class RemappingTest extends AbstractUserTest {
 
     private Session session;
     private Authorizable authorizable;
 
-    private List<String> unmappedPaths = ImmutableList.of("uTest:property", "uTest:node/uTest:property2");
+    private List<String> unmappedPaths = ImmutableList.of("uTest:property",
+        "uTest:node/uTest:property2");
     private List<String> mappedPaths = ImmutableList.of("my:property", "my:node/my:property2");
     private Value nameValue;
 
@@ -52,7 +52,8 @@ public class RemappingTest extends AbstractUserTest {
     protected void setUp() throws Exception {
         super.setUp();
 
-        superuser.getWorkspace().getNamespaceRegistry().registerNamespace("uTest", "http://jackrabbit-oak.apache.org");
+        superuser.getWorkspace().getNamespaceRegistry()
+                 .registerNamespace("uTest", "http://jackrabbit-oak.apache.org");
         Value value = superuser.getValueFactory().createValue("value");
         nameValue = superuser.getValueFactory().createValue("uTest:value", PropertyType.NAME);
         for (String relPath : unmappedPaths) {
@@ -102,10 +103,12 @@ public class RemappingTest extends AbstractUserTest {
         superuser.save();
         session.refresh(false);
 
-        Map<String, String> m = ImmutableMap.of("prop", "true", "my:property", "value", "my:node/my:property2", "value");
+        Map<String, String> m = ImmutableMap.of("prop", "true", "my:property", "value",
+            "my:node/my:property2", "value");
         for (String relPath : m.keySet()) {
             String value = m.get(relPath);
-            Iterator<Authorizable> result = getUserManager(session).findAuthorizables(relPath, value);
+            Iterator<Authorizable> result = getUserManager(session).findAuthorizables(relPath,
+                value);
             assertTrue(result.hasNext());
             assertEquals(user.getID(), result.next().getID());
         }
@@ -119,10 +122,12 @@ public class RemappingTest extends AbstractUserTest {
         superuser.save();
         session.refresh(false);
 
-        Map<String, String> m = ImmutableMap.of("my:property", "my:value", "my:node/my:property2", "my:value");
+        Map<String, String> m = ImmutableMap.of("my:property", "my:value", "my:node/my:property2",
+            "my:value");
         for (String relPath : m.keySet()) {
             String value = m.get(relPath);
-            Iterator<Authorizable> result = getUserManager(session).findAuthorizables(relPath, value);
+            Iterator<Authorizable> result = getUserManager(session).findAuthorizables(relPath,
+                value);
             assertTrue(result.hasNext());
             assertEquals(user.getID(), result.next().getID());
         }
@@ -136,10 +141,12 @@ public class RemappingTest extends AbstractUserTest {
         superuser.save();
         session.refresh(false);
 
-        Map<String, String> m = ImmutableMap.of("my:property", "my:value", "my:node/my:property2", "my:value");
+        Map<String, String> m = ImmutableMap.of("my:property", "my:value", "my:node/my:property2",
+            "my:value");
         for (String relPath : m.keySet()) {
             String value = m.get(relPath);
-            Iterator<Authorizable> result = getUserManager(session).findAuthorizables(relPath, value, UserManager.SEARCH_TYPE_USER);
+            Iterator<Authorizable> result = getUserManager(session).findAuthorizables(relPath,
+                value, UserManager.SEARCH_TYPE_USER);
             assertTrue(result.hasNext());
             assertEquals(user.getID(), result.next().getID());
         }
@@ -150,7 +157,7 @@ public class RemappingTest extends AbstractUserTest {
         Iterator<Authorizable> result = getUserManager(session).findAuthorizables(new Query() {
             public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setCondition(builder.
-                            eq("@my:property", vf.createValue("value")));
+                    eq("@my:property", vf.createValue("value")));
             }
         });
 
@@ -207,7 +214,7 @@ public class RemappingTest extends AbstractUserTest {
     public void testGetProperty() throws Exception {
         for (String relPath : unmappedPaths) {
             user.setProperty(relPath, nameValue);
-            user.setProperty(relPath, new Value[] {nameValue});
+            user.setProperty(relPath, new Value[]{nameValue});
         }
         superuser.save();
         session.refresh(false);
@@ -240,7 +247,7 @@ public class RemappingTest extends AbstractUserTest {
     public void testSetProperty() throws Exception {
         for (String relPath : mappedPaths) {
             authorizable.setProperty(relPath, nameValue);
-            authorizable.setProperty(relPath, new Value[] {nameValue});
+            authorizable.setProperty(relPath, new Value[]{nameValue});
         }
     }
 
@@ -255,7 +262,7 @@ public class RemappingTest extends AbstractUserTest {
             }
 
             try {
-                authorizable.setProperty(relPath, new Value[] {nameValue});
+                authorizable.setProperty(relPath, new Value[]{nameValue});
                 fail();
             } catch (RepositoryException e) {
                 // success

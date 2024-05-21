@@ -23,9 +23,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashSet;
 import java.util.Set;
-
 import javax.xml.parsers.DocumentBuilder;
-
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.tika.exception.TikaException;
 import org.apache.tika.mime.MediaType;
@@ -46,7 +44,7 @@ public class TikaParserConfig {
      * @return set of MediaTypes which are not indexed
      */
     public static Set<MediaType> getNonIndexedMediaTypes(InputStream configStream) throws
-            TikaException, IOException, SAXException {
+        TikaException, IOException, SAXException {
         Set<MediaType> result = new HashSet<>();
         Element element = getBuilder().parse(configStream).getDocumentElement();
         NodeList nodes = element.getElementsByTagName("parsers");

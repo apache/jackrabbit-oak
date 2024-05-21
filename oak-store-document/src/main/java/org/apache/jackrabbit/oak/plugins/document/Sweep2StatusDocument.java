@@ -44,7 +44,7 @@ public class Sweep2StatusDocument {
 
     public static Sweep2StatusDocument readFrom(DocumentStore documentStore) {
         Document doc = documentStore.find(Collection.SETTINGS, SWEEP2_STATUS_ID,
-                -1 /* -1; avoid caching */);
+            -1 /* -1; avoid caching */);
         if (doc == null) {
             return null;
         } else {
@@ -54,11 +54,13 @@ public class Sweep2StatusDocument {
 
     /**
      * Acquires the sweep2 lock.
+     *
      * @param documentStore
      * @param clusterId
-     * @param forceSweepingStatus if false uses the default way to set the sweep2-status,
-     * if set to true (force-)sets sweep2-status to 'sweeping'.
-     * the latter can be used if the caller knows a sweeping is necessary and wants to skip the 'checking' phase explicitly
+     * @param forceSweepingStatus if false uses the default way to set the sweep2-status, if set to
+     *                            true (force-)sets sweep2-status to 'sweeping'. the latter can be
+     *                            used if the caller knows a sweeping is necessary and wants to skip
+     *                            the 'checking' phase explicitly
      * @return <ul>
      * <li>
      * -1 if a sweep2 is definitely not necessary (already swept)
@@ -71,9 +73,9 @@ public class Sweep2StatusDocument {
      * </ul>
      */
     public static long acquireOrUpdateSweep2Lock(DocumentStore documentStore,
-            int clusterId, boolean forceSweepingStatus) {
+        int clusterId, boolean forceSweepingStatus) {
         Document existingStatusDoc = documentStore.find(Collection.SETTINGS, SWEEP2_STATUS_ID,
-                -1 /* -1; avoid caching */);
+            -1 /* -1; avoid caching */);
         UpdateOp updateOp = new UpdateOp(SWEEP2_STATUS_ID, true);
         updateOp.set(LOCK_PROPERTY, clusterId);
         ArrayList<UpdateOp> updateOps = new ArrayList<UpdateOp>();
@@ -86,16 +88,19 @@ public class Sweep2StatusDocument {
                 updateOp.set(STATUS_PROPERTY, STATUS_VALUE_CHECKING);
             } else {
                 // this is unusual - let's log for debugging
-                LOG.warn("acquireOrUpdateSweep2Lock: forced new sweep2 lock directly to state sweeping");
+                LOG.warn(
+                    "acquireOrUpdateSweep2Lock: forced new sweep2 lock directly to state sweeping");
                 updateOp.set(STATUS_PROPERTY, STATUS_VALUE_SWEEPING);
             }
             updateOp.set(MOD_COUNT_PROPERTY, 1L);
             if (!documentStore.create(Collection.SETTINGS, updateOps)) {
-                LOG.info("acquireOrUpdateSweep2Lock: another instance just acquired the (new) sweep2 lock a few moments ago.");
+                LOG.info(
+                    "acquireOrUpdateSweep2Lock: another instance just acquired the (new) sweep2 lock a few moments ago.");
                 return 0;
             } else {
                 LOG.info("acquireOrUpdateSweep2Lock: sweep2 status set to "
-                        + (forceSweepingStatus ? "sweeping" : "checking") + ", locked for clusterId=" + clusterId);
+                    + (forceSweepingStatus ? "sweeping" : "checking") + ", locked for clusterId="
+                    + clusterId);
                 return 1;
             }
         } else {
@@ -122,14 +127,18 @@ public class Sweep2StatusDocument {
             final long newModCount = existingStatusDoc.getModCount() + 1;
             updateOp.set(MOD_COUNT_PROPERTY, newModCount);
             if (documentStore.findAndUpdate(Collection.SETTINGS, updateOp) == null) {
-                LOG.info("acquireOrUpdateSweep2Lock: another instance just acquired the (expired) sweep2 lock a few moments ago");
+                LOG.info(
+                    "acquireOrUpdateSweep2Lock: another instance just acquired the (expired) sweep2 lock a few moments ago");
                 return 0;
             } else {
                 if (forceSweepingStatus) {
-                    LOG.info("acquireOrUpdateSweep2Lock: sweep2 status set to sweeping, relocked for clusterId=" + clusterId);
+                    LOG.info(
+                        "acquireOrUpdateSweep2Lock: sweep2 status set to sweeping, relocked for clusterId="
+                            + clusterId);
                 } else {
                     LOG.info("acquireOrUpdateSweep2Lock: sweep2 status unchanged (is "
-                            + existingStatusDoc.get(STATUS_PROPERTY) + "), relocked for clusterId=" + clusterId);
+                        + existingStatusDoc.get(STATUS_PROPERTY) + "), relocked for clusterId="
+                        + clusterId);
                 }
                 return newModCount;
             }
@@ -137,17 +146,18 @@ public class Sweep2StatusDocument {
     }
 
     /**
-     * Release the sweep2 lock and record swept2 successful.
-     * Note that the clusterId is only for recording purpose - this method
-     * makes no checks on the current owner of the lock
+     * Release the sweep2 lock and record swept2 successful. Note that the clusterId is only for
+     * recording purpose - this method makes no checks on the current owner of the lock
+     *
      * @param documentStore
      * @param clusterId
-     * @return true if the sweep2 status is now marked swept(2) - false if that failed
-     * (in the latter case the caller can consider retrying the acquire/sweep2/release sequence)
+     * @return true if the sweep2 status is now marked swept(2) - false if that failed (in the
+     * latter case the caller can consider retrying the acquire/sweep2/release sequence)
      */
-    public static boolean forceReleaseSweep2LockAndMarkSwept(DocumentStore documentStore, int clusterId) {
+    public static boolean forceReleaseSweep2LockAndMarkSwept(DocumentStore documentStore,
+        int clusterId) {
         Document existing = documentStore.find(Collection.SETTINGS, SWEEP2_STATUS_ID,
-                -1 /* -1; avoid caching */);
+            -1 /* -1; avoid caching */);
 
         if (existing == null) {
             // we directly mark the sweep2 as done if no sweep2 is even necessary.
@@ -161,10 +171,13 @@ public class Sweep2StatusDocument {
             ArrayList<UpdateOp> updateOps = new ArrayList<UpdateOp>();
             updateOps.add(updateOp);
             if (!documentStore.create(Collection.SETTINGS, updateOps)) {
-                LOG.info("forceReleaseSweep2LockAndMarkSwept: another instance just wanted to mark sweep2 as done a few moments ago too.");
+                LOG.info(
+                    "forceReleaseSweep2LockAndMarkSwept: another instance just wanted to mark sweep2 as done a few moments ago too.");
                 return false;
             } else {
-                LOG.info("forceReleaseSweep2LockAndMarkSwept: sweep2 status set to swept by clusterId=" + clusterId);
+                LOG.info(
+                    "forceReleaseSweep2LockAndMarkSwept: sweep2 status set to swept by clusterId="
+                        + clusterId);
                 return true;
             }
         } else {
@@ -173,7 +186,8 @@ public class Sweep2StatusDocument {
             // (force) mark it as done.
             // unless it was already marked as swept - in that case we leave it as is.
             if (new Sweep2StatusDocument(existing).isSwept()) {
-                LOG.info("forceReleaseSweep2LockAndMarkSwept: sweep2 status was already marked swept previously");
+                LOG.info(
+                    "forceReleaseSweep2LockAndMarkSwept: sweep2 status was already marked swept previously");
                 return true;
             }
             UpdateOp updateOp = new UpdateOp(SWEEP2_STATUS_ID, false);
@@ -184,10 +198,12 @@ public class Sweep2StatusDocument {
                 updateOp.remove(LOCK_PROPERTY);
             }
             if (documentStore.findAndUpdate(Collection.SETTINGS, updateOp) == null) {
-                LOG.info("forceReleaseSweep2LockAndMarkSwept: another instance just wanted to mark sweep2 as done a few moments ago too.");
+                LOG.info(
+                    "forceReleaseSweep2LockAndMarkSwept: another instance just wanted to mark sweep2 as done a few moments ago too.");
                 Sweep2StatusDocument status = readFrom(documentStore);
                 if (status == null) {
-                    LOG.warn("forceReleaseSweep2LockAndMarkSwept: no existing sweep2 status after updating failed");
+                    LOG.warn(
+                        "forceReleaseSweep2LockAndMarkSwept: no existing sweep2 status after updating failed");
                     return false;
                 } else {
                     // so, someone else force-marked as swept in between, if that succeeded
@@ -195,7 +211,9 @@ public class Sweep2StatusDocument {
                     return status.isSwept();
                 }
             } else {
-                LOG.info("forceReleaseSweep2LockAndMarkSwept: sweep2 status set to swept by clusterId=" + clusterId);
+                LOG.info(
+                    "forceReleaseSweep2LockAndMarkSwept: sweep2 status set to swept by clusterId="
+                        + clusterId);
                 return true;
             }
         }
@@ -237,7 +255,8 @@ public class Sweep2StatusDocument {
 
     @Override
     public String toString() {
-        return "Sweep2StatusDocument(status=" + doc.get(STATUS_PROPERTY) + ",lockClusterId=" + getLockClusterId() + ",lockValue=" + getLockValue()+")";
+        return "Sweep2StatusDocument(status=" + doc.get(STATUS_PROPERTY) + ",lockClusterId="
+            + getLockClusterId() + ",lockValue=" + getLockValue() + ")";
     }
 
 }

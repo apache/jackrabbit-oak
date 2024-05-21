@@ -22,10 +22,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
-
 import javax.jcr.Node;
 import javax.jcr.Session;
-
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
@@ -34,7 +32,8 @@ import org.junit.Test;
 
 public class ConcurrentIndexUpdateIT extends AbstractRepositoryTest {
 
-    private static final boolean ENABLED = Boolean.getBoolean(ConcurrentIndexUpdateIT.class.getSimpleName());
+    private static final boolean ENABLED = Boolean.getBoolean(
+        ConcurrentIndexUpdateIT.class.getSimpleName());
 
     private static final int NUM_WRITERS = 3;
     private static final String TEST_PATH = "/test/folder";
@@ -112,7 +111,7 @@ public class ConcurrentIndexUpdateIT extends AbstractRepositoryTest {
     }
 
     private static void runTest(Node n, int id, AtomicLong counter)
-            throws Exception {
+        throws Exception {
         for (int i = 0; i < 10000; i++) {
             Node child = n.addNode("node-" + id, "nt:unstructured");
             n.getSession().save();

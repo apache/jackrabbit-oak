@@ -35,9 +35,9 @@ class AmnesiaDiffCache extends DiffCache {
 
     @Override
     public String getChanges(@NotNull RevisionVector from,
-                             @NotNull RevisionVector to,
-                             @NotNull Path path,
-                             @Nullable Loader loader) {
+        @NotNull RevisionVector to,
+        @NotNull Path path,
+        @Nullable Loader loader) {
         if (loader != null) {
             return loader.call();
         }

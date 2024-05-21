@@ -21,20 +21,22 @@ package org.apache.jackrabbit.oak.stats;
 
 import java.io.Closeable;
 import java.util.concurrent.TimeUnit;
-
 import org.osgi.annotation.versioning.ProviderType;
 
 @ProviderType
-public interface TimerStats extends Stats, Counting{
+public interface TimerStats extends Stats, Counting {
+
     /**
      * A timing context.
      *
      * @see TimerStats#time()
      */
     interface Context extends Closeable {
+
         /**
-         * Updates the timer with the difference between current and start time. Call to this method will
-         * not reset the start time. Multiple calls result in multiple updates.
+         * Updates the timer with the difference between current and start time. Call to this method
+         * will not reset the start time. Multiple calls result in multiple updates.
+         *
          * @return the elapsed time in nanoseconds
          */
         long stop();

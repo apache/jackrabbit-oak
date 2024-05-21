@@ -42,7 +42,8 @@ import java.util.Map.Entry;
 import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
 import static org.apache.jackrabbit.stats.TimeSeriesStatsUtil.asCompositeData;
 
-public class CompositeNodeStoreStats implements CompositeNodeStoreStatsMBean, CompositeNodeStoreMonitor {
+public class CompositeNodeStoreStats implements CompositeNodeStoreStatsMBean,
+    CompositeNodeStoreMonitor {
 
     public static final String STRING_CACHE_SIZE = "STRING_CACHE_SIZE";
 
@@ -74,18 +75,24 @@ public class CompositeNodeStoreStats implements CompositeNodeStoreStatsMBean, Co
 
     private final String prefix;
 
-    public CompositeNodeStoreStats(StatisticsProvider statisticsProvider, String prefix, boolean countPaths) {
+    public CompositeNodeStoreStats(StatisticsProvider statisticsProvider, String prefix,
+        boolean countPaths) {
         this(statisticsProvider, prefix, countPaths, 100, Long.MAX_VALUE / 2);
     }
 
-    public CompositeNodeStoreStats(StatisticsProvider statisticsProvider, String prefix, boolean countPaths, long nodePathCountSizeLimit, long nodePathCountValueLimit) {
+    public CompositeNodeStoreStats(StatisticsProvider statisticsProvider, String prefix,
+        boolean countPaths, long nodePathCountSizeLimit, long nodePathCountValueLimit) {
         this.statisticsProvider = statisticsProvider;
 
-        this.stringCacheSize = statisticsProvider.getCounterStats(prefix + STRING_CACHE_SIZE, StatsOptions.DEFAULT);
-        this.nodePathDepths = statisticsProvider.getHistogram(prefix + NODE_PATH_DEPTH, StatsOptions.METRICS_ONLY);
+        this.stringCacheSize = statisticsProvider.getCounterStats(prefix + STRING_CACHE_SIZE,
+            StatsOptions.DEFAULT);
+        this.nodePathDepths = statisticsProvider.getHistogram(prefix + NODE_PATH_DEPTH,
+            StatsOptions.METRICS_ONLY);
 
-        this.nodeSwitchToDefaultMount = statisticsProvider.getCounterStats(prefix + NODE_SWITCH_TO_DEFAULT_MOUNT, StatsOptions.DEFAULT);
-        this.nodeSwitchToNonDefaultMount = statisticsProvider.getCounterStats(prefix + NODE_SWITCH_TO_NON_DEFAULT_MOUNT, StatsOptions.DEFAULT);
+        this.nodeSwitchToDefaultMount = statisticsProvider.getCounterStats(
+            prefix + NODE_SWITCH_TO_DEFAULT_MOUNT, StatsOptions.DEFAULT);
+        this.nodeSwitchToNonDefaultMount = statisticsProvider.getCounterStats(
+            prefix + NODE_SWITCH_TO_NON_DEFAULT_MOUNT, StatsOptions.DEFAULT);
 
         this.nodePathCounts = newHashMap();
         this.maxNodePathCount = 0;
@@ -152,7 +159,8 @@ public class CompositeNodeStoreStats implements CompositeNodeStoreStatsMBean, Co
         boolean removeZeros = false;
         if (newValue == 1) {
             if (nodePathCounts.size() >= nodePathCountSizeLimit) {
-                nodePathCounts.entrySet().stream().forEach(e -> nodePathCounts.put(e.getKey(), e.getValue() - 1));
+                nodePathCounts.entrySet().stream()
+                              .forEach(e -> nodePathCounts.put(e.getKey(), e.getValue() - 1));
                 maxNodePathCount--;
                 removeZeros = true;
             }
@@ -160,7 +168,8 @@ public class CompositeNodeStoreStats implements CompositeNodeStoreStatsMBean, Co
         if (maxNodePathCount < newValue) {
             maxNodePathCount = newValue;
             if (maxNodePathCount >= nodePathCountValueLimit) {
-                nodePathCounts.entrySet().stream().forEach(e -> nodePathCounts.put(e.getKey(), e.getValue() / 2));
+                nodePathCounts.entrySet().stream()
+                              .forEach(e -> nodePathCounts.put(e.getKey(), e.getValue() / 2));
                 maxNodePathCount /= 2;
                 removeZeros = true;
             }
@@ -176,36 +185,37 @@ public class CompositeNodeStoreStats implements CompositeNodeStoreStatsMBean, Co
         }
     }
 
-    private TabularData pathsTable(Map<String, Long> paths, String name, String description) throws OpenDataException {
+    private TabularData pathsTable(Map<String, Long> paths, String name, String description)
+        throws OpenDataException {
         CompositeType pathRowType = new CompositeType("compositePath", "Path",
-                new String[]{"count", "path"},
-                new String[]{"count", "path"},
-                new OpenType[]{SimpleType.LONG, SimpleType.STRING});
-
+            new String[]{"count", "path"},
+            new String[]{"count", "path"},
+            new OpenType[]{SimpleType.LONG, SimpleType.STRING});
 
         TabularDataSupport tabularData = new TabularDataSupport(
-                new TabularType(name,
-                        description,
-                        pathRowType,
-                        new String[]{"path"}
-                ));
+            new TabularType(name,
+                description,
+                pathRowType,
+                new String[]{"path"}
+            ));
 
         paths.entrySet()
-                .stream()
-                .sorted(Comparator.<Entry<String, Long>>comparingLong(Entry::getValue).reversed())
-                .map(e -> {
-                    Map<String, Object> m = newHashMap();
-                    m.put("count", e.getValue());
-                    m.put("path", e.getKey());
-                    return m;
-                })
-                .map(d -> mapToCompositeData(pathRowType, d))
-                .forEach(tabularData::put);
+             .stream()
+             .sorted(Comparator.<Entry<String, Long>>comparingLong(Entry::getValue).reversed())
+             .map(e -> {
+                 Map<String, Object> m = newHashMap();
+                 m.put("count", e.getValue());
+                 m.put("path", e.getKey());
+                 return m;
+             })
+             .map(d -> mapToCompositeData(pathRowType, d))
+             .forEach(tabularData::put);
 
         return tabularData;
     }
 
-    private static CompositeData mapToCompositeData(CompositeType compositeType, Map<String, Object> data) {
+    private static CompositeData mapToCompositeData(CompositeType compositeType,
+        Map<String, Object> data) {
         try {
             return new CompositeDataSupport(compositeType, data);
         } catch (OpenDataException e) {

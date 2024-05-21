@@ -37,9 +37,10 @@ import static org.junit.Assert.assertTrue;
 import static org.ops4j.pax.exam.CoreOptions.options;
 
 /**
- * Ensures previous composite configuration using {@link org.apache.jackrabbit.oak.composite.MountInfoProviderService} still works.
- * This test should be removed once the deprecated properties in  {@link org.apache.jackrabbit.oak.composite.MountInfoProviderService} are 
- * removed.
+ * Ensures previous composite configuration using
+ * {@link org.apache.jackrabbit.oak.composite.MountInfoProviderService} still works. This test
+ * should be removed once the deprecated properties in
+ * {@link org.apache.jackrabbit.oak.composite.MountInfoProviderService} are removed.
  */
 @RunWith(PaxExam.class)
 @ExamReactorStrategy(PerMethod.class)
@@ -48,7 +49,7 @@ public class BackwardCompatibleMountCompositeIT extends CompositeTestSupport {
     @Configuration
     public Option[] configuration() {
         NodeStoresInitializer.initTestStores();
-        
+
         return options(baseConfiguration());
     }
 
@@ -62,15 +63,20 @@ public class BackwardCompatibleMountCompositeIT extends CompositeTestSupport {
 
     @Test
     public void compositeNodeStoreCreatedFromDeprecatedConfiguration() {
-        assertEquals("Node store should be a CompositeNodeStore", "CompositeNodeStore", store.getClass().getSimpleName());
-        
+        assertEquals("Node store should be a CompositeNodeStore", "CompositeNodeStore",
+            store.getClass().getSimpleName());
+
         NodeState root = store.getRoot();
         ImmutableSet<String> expectedNodes = ImmutableSet.of("content", "apps", "libs");
         ImmutableSet<String> actualNodes = ImmutableSet.copyOf(root.getChildNodeNames());
-        assertTrue("Expected nodes " + expectedNodes + ", but was " + actualNodes, actualNodes.containsAll(expectedNodes));
+        assertTrue("Expected nodes " + expectedNodes + ", but was " + actualNodes,
+            actualNodes.containsAll(expectedNodes));
 
-        assertTrue("'libs' path should be mounted", root.getChildNode("libs").getChildNode("libsMount").exists());
-        assertTrue("'apps' mount should be mounted", root.getChildNode("apps").getChildNode("libsMount").exists());
-        assertTrue("'global' mount should be mounted", root.getChildNode("content").getChildNode("globalMount").exists());
+        assertTrue("'libs' path should be mounted",
+            root.getChildNode("libs").getChildNode("libsMount").exists());
+        assertTrue("'apps' mount should be mounted",
+            root.getChildNode("apps").getChildNode("libsMount").exists());
+        assertTrue("'global' mount should be mounted",
+            root.getChildNode("content").getChildNode("globalMount").exists());
     }
 }

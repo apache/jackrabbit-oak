@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.api;
 
 import javax.jcr.Value;
-
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -28,12 +27,11 @@ import org.jetbrains.annotations.Nullable;
 public interface Descriptors {
 
     /**
-     * Returns a string array holding all descriptor keys available for this
-     * implementation, both the standard descriptors defined by the string
-     * constants in this interface and any implementation-specific descriptors.
-     * Used in conjunction with {@link #getValue(String key)} and
-     * {@link #getValues(String key)} to query information about this
-     * repository implementation.
+     * Returns a string array holding all descriptor keys available for this implementation, both
+     * the standard descriptors defined by the string constants in this interface and any
+     * implementation-specific descriptors. Used in conjunction with {@link #getValue(String key)}
+     * and {@link #getValues(String key)} to query information about this repository
+     * implementation.
      *
      * @return a string array holding all descriptor keys.
      */
@@ -41,9 +39,9 @@ public interface Descriptors {
     String[] getKeys();
 
     /**
-     * Returns {@code true} if {@code key} is a standard descriptor
-     * defined by the string constants in this interface and {@code false}
-     * if it is either a valid implementation-specific key or not a valid key.
+     * Returns {@code true} if {@code key} is a standard descriptor defined by the string constants
+     * in this interface and {@code false} if it is either a valid implementation-specific key or
+     * not a valid key.
      *
      * @param key a descriptor key.
      * @return whether {@code key} is a standard descriptor.
@@ -51,8 +49,8 @@ public interface Descriptors {
     boolean isStandardDescriptor(@NotNull String key);
 
     /**
-     * Returns {@code true} if {@code key} is a valid single-value
-     * descriptor; otherwise returns {@code false}
+     * Returns {@code true} if {@code key} is a valid single-value descriptor; otherwise returns
+     * {@code false}
      *
      * @param key a descriptor key.
      * @return whether the specified descriptor is multi-valued.
@@ -61,10 +59,9 @@ public interface Descriptors {
     boolean isSingleValueDescriptor(@NotNull String key);
 
     /**
-     * The value of a single-value descriptor is found by passing the key for
-     * that descriptor to this method. If {@code key} is the key of a
-     * multi-value descriptor or not a valid key this method returns
-     * {@code null}.
+     * The value of a single-value descriptor is found by passing the key for that descriptor to
+     * this method. If {@code key} is the key of a multi-value descriptor or not a valid key this
+     * method returns {@code null}.
      *
      * @param key a descriptor key.
      * @return The value of the indicated descriptor
@@ -73,11 +70,10 @@ public interface Descriptors {
     Value getValue(@NotNull String key);
 
     /**
-     * The value array of a multi-value descriptor is found by passing the key
-     * for that descriptor to this method. If {@code key} is the key of a
-     * single-value descriptor then this method returns that value as an array
-     * of size one. If {@code key} is not a valid key this method returns
-     * {@code null}.
+     * The value array of a multi-value descriptor is found by passing the key for that descriptor
+     * to this method. If {@code key} is the key of a single-value descriptor then this method
+     * returns that value as an array of size one. If {@code key} is not a valid key this method
+     * returns {@code null}.
      *
      * @param key a descriptor key.
      * @return the value array for the indicated descriptor

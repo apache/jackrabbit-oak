@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.segment.file.proc;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -29,14 +28,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
-
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Sets;
-import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.segment.file.proc.Proc.Backend;
-import org.apache.jackrabbit.oak.segment.file.proc.Proc.Backend.Segment;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
 public class ReferencesNodeTest {
@@ -58,7 +51,8 @@ public class ReferencesNodeTest {
         Backend backend = mock(Backend.class);
         when(backend.getSegmentReferences("s")).thenReturn(Optional.of(references));
 
-        assertEquals(Sets.newHashSet(references), Sets.newHashSet(new ReferencesNode(backend, "s").getChildNodeNames()));
+        assertEquals(Sets.newHashSet(references),
+            Sets.newHashSet(new ReferencesNode(backend, "s").getChildNodeNames()));
     }
 
 }

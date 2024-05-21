@@ -26,16 +26,15 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 /**
  * Applies a category of consistency checks specific to {@linkplain NodeStore} mounts
- * 
- * <p>Checks are only performed on non-default mounts.</p>
- * 
- * <p>Named 'Checker' to clarify that it is not a Validator in the Oak sense.</p> 
  *
+ * <p>Checks are only performed on non-default mounts.</p>
+ *
+ * <p>Named 'Checker' to clarify that it is not a Validator in the Oak sense.</p>
  */
 public interface MountedNodeStoreChecker<T> {
-    
+
     public T createContext(NodeStore globalStore, MountInfoProvider mip);
-    
+
     boolean check(MountedNodeStore mountedStore, Tree tree, ErrorHolder errorHolder, T context);
 
 }

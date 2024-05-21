@@ -19,7 +19,19 @@
 
 package org.apache.jackrabbit.oak.plugins.tika;
 
+import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import com.beust.jcommander.internal.Maps;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import org.apache.jackrabbit.guava.common.collect.FluentIterable;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Sets;
@@ -39,20 +51,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
 public class TextPopulatorTest {
+
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
@@ -83,7 +83,8 @@ public class TextPopulatorTest {
         dataMap.put("/untrimmed", " untrimmed ");
 
         FSDirectory directory = FSDirectory.open(indexDir);
-        IndexWriterConfig config = new IndexWriterConfig(Version.LUCENE_47, new OakAnalyzer(Version.LUCENE_47));
+        IndexWriterConfig config = new IndexWriterConfig(Version.LUCENE_47,
+            new OakAnalyzer(Version.LUCENE_47));
         try (IndexWriter writer = new IndexWriter(directory, config)) {
             for (Map.Entry<String, String> data : dataMap.entrySet()) {
                 writer.addDocument(createLuceneDocument(data.getKey(), data.getValue()));
@@ -94,13 +95,13 @@ public class TextPopulatorTest {
         }
     }
 
-    private void setupCSV(String ... paths) throws IOException {
+    private void setupCSV(String... paths) throws IOException {
         BinaryResourceProvider brp = new FakeBinaryResourceProvider(paths);
         CSVFileGenerator generator = new CSVFileGenerator(csv);
         generator.generate(brp.getBinaries("/"));
     }
 
-    private List<Field> createLuceneDocument(@NotNull String path, String ... values) {
+    private List<Field> createLuceneDocument(@NotNull String path, String... values) {
         List<Field> fields = Lists.newArrayList();
         for (String value : values) {
             if (value != null) {
@@ -120,7 +121,7 @@ public class TextPopulatorTest {
 
         textPopulator.populate(csv, indexDir);
         assertEquals("Repeated call for already processed stuff shouldn't process anything more",
-                2, stats.ignored);
+            2, stats.ignored);
 
         assertConsistentStatsAndWriter();
         assertStatsInvariants();
@@ -132,7 +133,7 @@ public class TextPopulatorTest {
 
         textPopulator.populate(csv, indexDir);
         assertEquals("Store generation didn't trim data", "untrimmed",
-                textWriter.data.get(FakeBinaryResourceProvider.getBlobId("/untrimmed")));
+            textWriter.data.get(FakeBinaryResourceProvider.getBlobId("/untrimmed")));
 
         assertConsistentStatsAndWriter();
         assertStatsInvariants();
@@ -144,10 +145,11 @@ public class TextPopulatorTest {
 
         textPopulator.populate(csv, indexDir);
         assertEquals("Indexed data reporting errored extraction not marked as error",
-                1, stats.errored);
+            1, stats.errored);
 
         textPopulator.populate(csv, indexDir);
-        assertEquals("Repeated run for indexed error shouldn't get processed again", 1, stats.ignored);
+        assertEquals("Repeated run for indexed error shouldn't get processed again", 1,
+            stats.ignored);
 
         assertConsistentStatsAndWriter();
         assertStatsInvariants();
@@ -159,10 +161,11 @@ public class TextPopulatorTest {
 
         textPopulator.populate(csv, indexDir);
         assertEquals("Indexed data for empty extraction not marked as empty",
-                1, stats.empty);
+            1, stats.empty);
 
         textPopulator.populate(csv, indexDir);
-        assertEquals("Repeated run for empty extraction shouldn't get processed again", 1, stats.ignored);
+        assertEquals("Repeated run for empty extraction shouldn't get processed again", 1,
+            stats.ignored);
 
         assertConsistentStatsAndWriter();
         assertStatsInvariants();
@@ -174,11 +177,11 @@ public class TextPopulatorTest {
 
         textPopulator.populate(csv, indexDir);
         assertEquals("Indexed data for untrimmed empty extraction not marked as empty",
-                1, stats.empty);
+            1, stats.empty);
 
         textPopulator.populate(csv, indexDir);
         assertEquals("Repeated run for untrimmed empty extraction shouldn't get processed again",
-                1, stats.ignored);
+            1, stats.ignored);
 
         assertConsistentStatsAndWriter();
         assertStatsInvariants();
@@ -190,10 +193,11 @@ public class TextPopulatorTest {
 
         textPopulator.populate(csv, indexDir);
         assertEquals("Multi FT field in a doc not marked as error",
-                1, stats.errored);
+            1, stats.errored);
 
         textPopulator.populate(csv, indexDir);
-        assertEquals("Repeated run for multi FT error should get processed again", 0, stats.ignored);
+        assertEquals("Repeated run for multi FT error should get processed again", 0,
+            stats.ignored);
 
         assertStatsInvariants();
     }
@@ -204,7 +208,7 @@ public class TextPopulatorTest {
 
         textPopulator.populate(csv, indexDir);
         assertEquals("No FT field in a doc not marked as error",
-                1, stats.errored);
+            1, stats.errored);
 
         textPopulator.populate(csv, indexDir);
         assertEquals("Repeated run for no FT error should get processed again", 0, stats.ignored);
@@ -218,31 +222,35 @@ public class TextPopulatorTest {
 
         textPopulator.populate(csv, indexDir);
         assertEquals("No indexed doc not marked as error",
-                1, stats.errored);
+            1, stats.errored);
 
         textPopulator.populate(csv, indexDir);
-        assertEquals("Repeated run for no indexed doc error should get processed again", 0, stats.ignored);
+        assertEquals("Repeated run for no indexed doc error should get processed again", 0,
+            stats.ignored);
 
         assertStatsInvariants();
     }
 
     private void assertConsistentStatsAndWriter() {
-        assertEquals("Num blobs processed by text writer didn't process same not same as reported in stats",
-                textWriter.processed.size(), stats.processed);
+        assertEquals(
+            "Num blobs processed by text writer didn't process same not same as reported in stats",
+            textWriter.processed.size(), stats.processed);
 
     }
 
     private void assertStatsInvariants() {
         assertTrue("Read (" + stats.read + ") !=" +
-                        " Processed (" + stats.processed + ") + Ignored (" + stats.ignored + ")",
-                stats.read == stats.processed + stats.ignored);
+                " Processed (" + stats.processed + ") + Ignored (" + stats.ignored + ")",
+            stats.read == stats.processed + stats.ignored);
 
         assertTrue("Processed (" + stats.processed + ") !=" +
-                        " Empty (" + stats.empty + ") + Errored (" + stats.errored + ") + Parsed (" + stats.parsed + ")",
-                stats.processed == stats.empty + stats.errored + stats.parsed);
+                " Empty (" + stats.empty + ") + Errored (" + stats.errored + ") + Parsed ("
+                + stats.parsed + ")",
+            stats.processed == stats.empty + stats.errored + stats.parsed);
     }
 
     private static class FakeTextWriter implements TextWriter {
+
         final Set<String> processed = Sets.newHashSet();
         final Map<String, String> data = Maps.newHashMap();
 
@@ -269,11 +277,13 @@ public class TextPopulatorTest {
     }
 
     private static class FakeBinaryResourceProvider implements BinaryResourceProvider {
+
         private List<BinaryResource> binaries = Lists.newArrayList();
 
-        FakeBinaryResourceProvider(String ... paths) {
+        FakeBinaryResourceProvider(String... paths) {
             for (String path : paths) {
-                binaries.add(new BinaryResource(new StringByteSource(""), null, null, path, getBlobId(path)));
+                binaries.add(new BinaryResource(new StringByteSource(""), null, null, path,
+                    getBlobId(path)));
             }
         }
 
@@ -294,6 +304,7 @@ public class TextPopulatorTest {
     }
 
     private static class StringByteSource extends ByteSource {
+
         private final String data;
 
         StringByteSource(String data) {

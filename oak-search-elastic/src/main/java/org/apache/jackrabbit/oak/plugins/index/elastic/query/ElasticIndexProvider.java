@@ -16,14 +16,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.query;
 
+import java.util.Collections;
+import java.util.List;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexTracker;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
-
-import java.util.Collections;
-import java.util.List;
 
 public class ElasticIndexProvider implements QueryIndexProvider {
 

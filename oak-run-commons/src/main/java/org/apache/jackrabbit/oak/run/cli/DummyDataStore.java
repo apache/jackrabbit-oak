@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.run.cli;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-
 import org.apache.jackrabbit.core.data.AbstractDataRecord;
 import org.apache.jackrabbit.core.data.AbstractDataStore;
 import org.apache.jackrabbit.core.data.DataIdentifier;
@@ -30,11 +29,11 @@ import org.apache.jackrabbit.oak.plugins.blob.datastore.OakFileDataStore;
 
 /**
  * DataStore implementation which creates empty files matching given identifier.
- *
- * This can be use to try migration of repositories where DataStore size is large
- * and cannot be accessed as transferring them would take quite a bit of time. As migration
- * does not involve accessing the actual binary content and only binary identifiers are
- * transferred it should enable us to get past the migration phase
+ * <p>
+ * This can be use to try migration of repositories where DataStore size is large and cannot be
+ * accessed as transferring them would take quite a bit of time. As migration does not involve
+ * accessing the actual binary content and only binary identifiers are transferred it should enable
+ * us to get past the migration phase
  */
 public class DummyDataStore extends OakFileDataStore {
 

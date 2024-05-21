@@ -18,10 +18,9 @@ package org.apache.jackrabbit.oak.spi.security.privilege;
 
 import java.util.Map;
 import java.util.Set;
-
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.JcrConstants;
 
 /**
  * Internal name constants used for the privilege management.
@@ -50,10 +49,11 @@ public interface PrivilegeConstants {
     String REP_NEXT = "rep:next";
 
     /**
-     * The internal names of all property definitions that are associated with
-     * the {@link #NT_REP_PRIVILEGE rep:Privilege} node type
+     * The internal names of all property definitions that are associated with the
+     * {@link #NT_REP_PRIVILEGE rep:Privilege} node type
      */
-    Set<String> PRIVILEGE_PROPERTY_NAMES = ImmutableSet.of(REP_IS_ABSTRACT, REP_AGGREGATES, REP_NEXT);
+    Set<String> PRIVILEGE_PROPERTY_NAMES = ImmutableSet.of(REP_IS_ABSTRACT, REP_AGGREGATES,
+        REP_NEXT);
 
     /**
      * Internal (oak) path for the privilege store.
@@ -76,8 +76,8 @@ public interface PrivilegeConstants {
     Set<String> PRIVILEGE_NODETYPE_NAMES = ImmutableSet.of(NT_REP_PRIVILEGES, NT_REP_PRIVILEGE);
 
     /**
-     * Name of the privilege definition property that stores the internal representation
-     * of this privilege.
+     * Name of the privilege definition property that stores the internal representation of this
+     * privilege.
      */
     String REP_BITS = "rep:bits";
 
@@ -88,12 +88,14 @@ public interface PrivilegeConstants {
     String JCR_READ = "jcr:read";
 
     /**
-     * Internal (oak) name of the {@link javax.jcr.security.Privilege#JCR_MODIFY_PROPERTIES} privilege
+     * Internal (oak) name of the {@link javax.jcr.security.Privilege#JCR_MODIFY_PROPERTIES}
+     * privilege
      */
     String JCR_MODIFY_PROPERTIES = "jcr:modifyProperties";
 
     /**
-     * Internal (oak) name of the {@link javax.jcr.security.Privilege#JCR_ADD_CHILD_NODES} privilege
+     * Internal (oak) name of the {@link javax.jcr.security.Privilege#JCR_ADD_CHILD_NODES}
+     * privilege
      */
     String JCR_ADD_CHILD_NODES = "jcr:addChildNodes";
 
@@ -103,7 +105,8 @@ public interface PrivilegeConstants {
     String JCR_REMOVE_NODE = "jcr:removeNode";
 
     /**
-     * Internal (oak) name of the {@link javax.jcr.security.Privilege#JCR_REMOVE_CHILD_NODES} privilege
+     * Internal (oak) name of the {@link javax.jcr.security.Privilege#JCR_REMOVE_CHILD_NODES}
+     * privilege
      */
     String JCR_REMOVE_CHILD_NODES = "jcr:removeChildNodes";
 
@@ -113,37 +116,44 @@ public interface PrivilegeConstants {
     String JCR_WRITE = "jcr:write";
 
     /**
-     * Internal (oak) name of the {@link javax.jcr.security.Privilege#JCR_READ_ACCESS_CONTROL} privilege
+     * Internal (oak) name of the {@link javax.jcr.security.Privilege#JCR_READ_ACCESS_CONTROL}
+     * privilege
      */
     String JCR_READ_ACCESS_CONTROL = "jcr:readAccessControl";
 
     /**
-     * Internal (oak) name of the {@link javax.jcr.security.Privilege#JCR_MODIFY_ACCESS_CONTROL} privilege
+     * Internal (oak) name of the {@link javax.jcr.security.Privilege#JCR_MODIFY_ACCESS_CONTROL}
+     * privilege
      */
     String JCR_MODIFY_ACCESS_CONTROL = "jcr:modifyAccessControl";
 
     /**
-     * Internal (oak) name of the {@link javax.jcr.security.Privilege#JCR_LOCK_MANAGEMENT} privilege
+     * Internal (oak) name of the {@link javax.jcr.security.Privilege#JCR_LOCK_MANAGEMENT}
+     * privilege
      */
     String JCR_LOCK_MANAGEMENT = "jcr:lockManagement";
 
     /**
-     * Internal (oak) name of the {@link javax.jcr.security.Privilege#JCR_VERSION_MANAGEMENT} privilege
+     * Internal (oak) name of the {@link javax.jcr.security.Privilege#JCR_VERSION_MANAGEMENT}
+     * privilege
      */
     String JCR_VERSION_MANAGEMENT = "jcr:versionManagement";
 
     /**
-     * Internal (oak) name of the {@link javax.jcr.security.Privilege#JCR_NODE_TYPE_MANAGEMENT} privilege
+     * Internal (oak) name of the {@link javax.jcr.security.Privilege#JCR_NODE_TYPE_MANAGEMENT}
+     * privilege
      */
     String JCR_NODE_TYPE_MANAGEMENT = "jcr:nodeTypeManagement";
 
     /**
-     * Internal (oak) name of the {@link javax.jcr.security.Privilege#JCR_RETENTION_MANAGEMENT} privilege
+     * Internal (oak) name of the {@link javax.jcr.security.Privilege#JCR_RETENTION_MANAGEMENT}
+     * privilege
      */
     String JCR_RETENTION_MANAGEMENT = "jcr:retentionManagement";
 
     /**
-     * Internal (oak) name of the {@link javax.jcr.security.Privilege#JCR_LIFECYCLE_MANAGEMENT} privilege
+     * Internal (oak) name of the {@link javax.jcr.security.Privilege#JCR_LIFECYCLE_MANAGEMENT}
+     * privilege
      */
     String JCR_LIFECYCLE_MANAGEMENT = "jcr:lifecycleManagement";
 
@@ -230,23 +240,26 @@ public interface PrivilegeConstants {
      * The internal names of all built-in privileges that are not aggregates.
      */
     Set<String> NON_AGGREGATE_PRIVILEGES = ImmutableSet.of(
-            REP_READ_NODES, REP_READ_PROPERTIES,
-                        REP_ADD_PROPERTIES, REP_ALTER_PROPERTIES, REP_REMOVE_PROPERTIES,
-                        JCR_ADD_CHILD_NODES, JCR_REMOVE_CHILD_NODES, JCR_REMOVE_NODE,
-                        JCR_READ_ACCESS_CONTROL, JCR_MODIFY_ACCESS_CONTROL, JCR_NODE_TYPE_MANAGEMENT,
-                        JCR_VERSION_MANAGEMENT, JCR_LOCK_MANAGEMENT, JCR_LIFECYCLE_MANAGEMENT,
-                        JCR_RETENTION_MANAGEMENT, JCR_WORKSPACE_MANAGEMENT, JCR_NODE_TYPE_DEFINITION_MANAGEMENT,
-                        JCR_NAMESPACE_MANAGEMENT, REP_PRIVILEGE_MANAGEMENT, REP_USER_MANAGEMENT, REP_INDEX_DEFINITION_MANAGEMENT
+        REP_READ_NODES, REP_READ_PROPERTIES,
+        REP_ADD_PROPERTIES, REP_ALTER_PROPERTIES, REP_REMOVE_PROPERTIES,
+        JCR_ADD_CHILD_NODES, JCR_REMOVE_CHILD_NODES, JCR_REMOVE_NODE,
+        JCR_READ_ACCESS_CONTROL, JCR_MODIFY_ACCESS_CONTROL, JCR_NODE_TYPE_MANAGEMENT,
+        JCR_VERSION_MANAGEMENT, JCR_LOCK_MANAGEMENT, JCR_LIFECYCLE_MANAGEMENT,
+        JCR_RETENTION_MANAGEMENT, JCR_WORKSPACE_MANAGEMENT, JCR_NODE_TYPE_DEFINITION_MANAGEMENT,
+        JCR_NAMESPACE_MANAGEMENT, REP_PRIVILEGE_MANAGEMENT, REP_USER_MANAGEMENT,
+        REP_INDEX_DEFINITION_MANAGEMENT
 
     );
 
     /**
-     * The internal names and aggregation definition of all built-in privileges
-     * that are aggregates (except for jcr:all).
+     * The internal names and aggregation definition of all built-in privileges that are aggregates
+     * (except for jcr:all).
      */
     Map<String, String[]> AGGREGATE_PRIVILEGES = ImmutableMap.of(
-            JCR_READ, new String[]{REP_READ_NODES, REP_READ_PROPERTIES},
-            JCR_MODIFY_PROPERTIES, new String[]{REP_ADD_PROPERTIES, REP_ALTER_PROPERTIES, REP_REMOVE_PROPERTIES},
-            JCR_WRITE, new String[]{JCR_MODIFY_PROPERTIES, JCR_ADD_CHILD_NODES, JCR_REMOVE_CHILD_NODES, JCR_REMOVE_NODE},
-            REP_WRITE, new String[]{JCR_WRITE, JCR_NODE_TYPE_MANAGEMENT});
+        JCR_READ, new String[]{REP_READ_NODES, REP_READ_PROPERTIES},
+        JCR_MODIFY_PROPERTIES,
+        new String[]{REP_ADD_PROPERTIES, REP_ALTER_PROPERTIES, REP_REMOVE_PROPERTIES},
+        JCR_WRITE, new String[]{JCR_MODIFY_PROPERTIES, JCR_ADD_CHILD_NODES, JCR_REMOVE_CHILD_NODES,
+            JCR_REMOVE_NODE},
+        REP_WRITE, new String[]{JCR_WRITE, JCR_NODE_TYPE_MANAGEMENT});
 }

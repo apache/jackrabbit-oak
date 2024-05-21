@@ -23,10 +23,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * This component is activated when a configuration for the deprecated {@code
- * StandbyStoreService} from {@code oak-segment} is detected. When this
- * component is activated, it prints a detailed error message describing the
- * detected problem and hinting at a possible solution.
+ * This component is activated when a configuration for the deprecated {@code StandbyStoreService}
+ * from {@code oak-segment} is detected. When this component is activated, it prints a detailed
+ * error message describing the detected problem and hinting at a possible solution.
  */
 @Component(
     configurationPolicy = ConfigurationPolicy.REQUIRE,
@@ -34,7 +33,8 @@ import org.slf4j.LoggerFactory;
 )
 public class StandbyStoreServiceDeprecationError {
 
-    private static final Logger logger = LoggerFactory.getLogger(StandbyStoreServiceDeprecationError.class);
+    private static final Logger logger = LoggerFactory.getLogger(
+        StandbyStoreServiceDeprecationError.class);
 
     private static final String OLD_PID = "org.apache.jackrabbit.oak.plugins.segment.standby.store.StandbyStoreService";
 

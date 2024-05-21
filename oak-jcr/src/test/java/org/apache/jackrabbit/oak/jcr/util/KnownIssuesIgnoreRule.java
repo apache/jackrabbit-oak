@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.jcr.util;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.StringTokenizer;
-
 import org.apache.jackrabbit.test.AbstractJCRTest;
 import org.apache.jackrabbit.test.JCRTestResult;
 import org.junit.Assume;
@@ -28,23 +27,24 @@ import org.junit.runners.model.FrameworkMethod;
 import org.junit.runners.model.Statement;
 
 /**
- * Evaluates the system properties "known.issues" and "known.issues.override" to skip failing for certain test method failures.
- * This is the JUnit4 equivalent of {@link JCRTestResult} which is used by the JUnit3 base class {@link AbstractJCRTest}.
+ * Evaluates the system properties "known.issues" and "known.issues.override" to skip failing for
+ * certain test method failures. This is the JUnit4 equivalent of {@link JCRTestResult} which is
+ * used by the JUnit3 base class {@link AbstractJCRTest}.
  */
 public class KnownIssuesIgnoreRule implements MethodRule {
 
     /**
-     * Set of Strings that identify the test methods that currently fails but
-     * are recognized as known issues. Those will not be reported as errors.
+     * Set of Strings that identify the test methods that currently fails but are recognized as
+     * known issues. Those will not be reported as errors.
      */
     private static final Set<String> KNOWN_ISSUES = tokenize("known.issues");
     private static final Set<String> KNOWN_ISSUES_OVERRIDE = tokenize("known.issues.override");
 
     // copied from https://github.com/apache/jackrabbit/blob/ed3124e5fe223dada33ce6ddf53bc666063c3f2f/jackrabbit-jcr-tests/src/main/java/org/apache/jackrabbit/test/JCRTestResult.java#L161-L177
+
     /**
-     * Takes the named system property and returns the set of string tokens
-     * in the property value. Returns an empty set if the named property does
-     * not exist.
+     * Takes the named system property and returns the set of string tokens in the property value.
+     * Returns an empty set if the named property does not exist.
      *
      * @param name name of the system property
      * @return set of string tokens
@@ -58,11 +58,12 @@ public class KnownIssuesIgnoreRule implements MethodRule {
         }
         return tokens;
     }
-    
+
     // similar to https://github.com/apache/jackrabbit/blob/ed3124e5fe223dada33ce6ddf53bc666063c3f2f/jackrabbit-jcr-tests/src/main/java/org/apache/jackrabbit/test/JCRTestResult.java#L179-L215
+
     /**
-     * Checks if a variation of the name of the given test case is included
-     * in the given set of token. The tested variations are:
+     * Checks if a variation of the name of the given test case is included in the given set of
+     * token. The tested variations are:
      * <ul>
      *   <li>package name</li>
      *   <li>non-qualified class name</li>
@@ -72,11 +73,11 @@ public class KnownIssuesIgnoreRule implements MethodRule {
      *   <li>fully-qualified method name</li>
      * </ul>
      *
-     * @param tokens set of string tokens
-     * @param className the fully qualified class name
+     * @param tokens     set of string tokens
+     * @param className  the fully qualified class name
      * @param methodName the method name
      * @return <code>true</code> if the test case name is included,
-     *         <code>false</code> otherwise
+     * <code>false</code> otherwise
      */
     private static boolean contains(Set<String> tokens, String className, String methodName) {
         int i = className.lastIndexOf('.');
@@ -95,11 +96,11 @@ public class KnownIssuesIgnoreRule implements MethodRule {
                 || tokens.contains(className + "#" + methodName);
         }
     }
-   
+
     // similar to https://github.com/apache/jackrabbit/blob/ed3124e5fe223dada33ce6ddf53bc666063c3f2f/jackrabbit-jcr-tests/src/main/java/org/apache/jackrabbit/test/JCRTestResult.java#L217-L231
     private static boolean isKnownIssue(String className, String methodName) {
         return contains(KNOWN_ISSUES, className, methodName)
-                && !contains(KNOWN_ISSUES_OVERRIDE, className, methodName);
+            && !contains(KNOWN_ISSUES_OVERRIDE, className, methodName);
     }
 
 
@@ -122,7 +123,8 @@ public class KnownIssuesIgnoreRule implements MethodRule {
 
         @Override
         public void evaluate() throws Throwable {
-            Assume.assumeTrue("Test is ignored through system property 'known.issues'!", !isKnownIssue(className, methodName));
+            Assume.assumeTrue("Test is ignored through system property 'known.issues'!",
+                !isKnownIssue(className, methodName));
             base.evaluate();
         }
     }

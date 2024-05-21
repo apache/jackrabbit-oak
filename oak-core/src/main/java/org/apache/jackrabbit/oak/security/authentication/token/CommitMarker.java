@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.security.authentication.token;
 
 import java.util.Collections;
 import java.util.Map;
-
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.jetbrains.annotations.NotNull;
 

@@ -24,7 +24,6 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstant
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.SuggestHelper;
@@ -40,15 +39,20 @@ import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.SerialMergeScheduler;
 
 public class IndexWriterUtils {
-    private static final int INDEX_WRITER_MAX_MERGE = Integer.getInteger("oak.indexer.writerMaxMerges", 1);
-    private static final int INDEX_WRITER_MAX_THREAD = Integer.getInteger("oak.indexer.writerMaxThreads", 1);
 
-    public static IndexWriterConfig getIndexWriterConfig(LuceneIndexDefinition definition, boolean remoteDir){
+    private static final int INDEX_WRITER_MAX_MERGE = Integer.getInteger(
+        "oak.indexer.writerMaxMerges", 1);
+    private static final int INDEX_WRITER_MAX_THREAD = Integer.getInteger(
+        "oak.indexer.writerMaxThreads", 1);
+
+    public static IndexWriterConfig getIndexWriterConfig(LuceneIndexDefinition definition,
+        boolean remoteDir) {
         return getIndexWriterConfig(definition, remoteDir, new LuceneIndexWriterConfig());
     }
 
-    public static IndexWriterConfig getIndexWriterConfig(LuceneIndexDefinition definition, boolean remoteDir,
-                                                         LuceneIndexWriterConfig writerConfig) {
+    public static IndexWriterConfig getIndexWriterConfig(LuceneIndexDefinition definition,
+        boolean remoteDir,
+        LuceneIndexWriterConfig writerConfig) {
         // FIXME: Hack needed to make Lucene work in an OSGi environment
         Thread thread = Thread.currentThread();
         ClassLoader loader = thread.getContextClassLoader();
@@ -56,12 +60,14 @@ public class IndexWriterUtils {
         try {
             Analyzer definitionAnalyzer = definition.getAnalyzer();
             Map<String, Analyzer> analyzers = new HashMap<String, Analyzer>();
-            analyzers.put(FieldNames.SPELLCHECK, new ShingleAnalyzerWrapper(LuceneIndexConstants.ANALYZER, 3));
+            analyzers.put(FieldNames.SPELLCHECK,
+                new ShingleAnalyzerWrapper(LuceneIndexConstants.ANALYZER, 3));
             for (IndexDefinition.IndexingRule r : definition.getDefinedRules()) {
                 List<PropertyDefinition> similarityProperties = r.getSimilarityProperties();
                 for (PropertyDefinition pd : similarityProperties) {
                     if (pd.useInSimilarity) {
-                        analyzers.put(FieldNames.createSimilarityFieldName(pd.name), new LSHAnalyzer());
+                        analyzers.put(FieldNames.createSimilarityFieldName(pd.name),
+                            new LSHAnalyzer());
                     }
                 }
             }
@@ -75,7 +81,8 @@ public class IndexWriterUtils {
                 config.setMergeScheduler(new SerialMergeScheduler());
             } else {
                 ConcurrentMergeScheduler concurrentMergeScheduler = new ConcurrentMergeScheduler();
-                concurrentMergeScheduler.setMaxMergesAndThreads(INDEX_WRITER_MAX_MERGE, INDEX_WRITER_MAX_THREAD);
+                concurrentMergeScheduler.setMaxMergesAndThreads(INDEX_WRITER_MAX_MERGE,
+                    INDEX_WRITER_MAX_THREAD);
                 config.setMergeScheduler(concurrentMergeScheduler);
             }
             if (definition.getCodec() != null) {

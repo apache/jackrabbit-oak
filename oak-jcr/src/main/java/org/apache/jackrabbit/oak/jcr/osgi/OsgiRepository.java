@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.jcr.osgi;
 import javax.jcr.Credentials;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.jcr.repository.RepositoryImpl;
@@ -35,18 +34,18 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 public class OsgiRepository extends RepositoryImpl {
 
     public OsgiRepository(ContentRepository repository,
-                          Whiteboard whiteboard,
-                          SecurityProvider securityProvider,
-                          int observationQueueLength,
-                          CommitRateLimiter commitRateLimiter,
-                          boolean fastQueryResultSize) {
-        super(repository, whiteboard, securityProvider, observationQueueLength, 
-                commitRateLimiter, fastQueryResultSize, true);
+        Whiteboard whiteboard,
+        SecurityProvider securityProvider,
+        int observationQueueLength,
+        CommitRateLimiter commitRateLimiter,
+        boolean fastQueryResultSize) {
+        super(repository, whiteboard, securityProvider, observationQueueLength,
+            commitRateLimiter, fastQueryResultSize, true);
     }
 
     @Override
     public Session login(Credentials credentials, String workspace)
-            throws RepositoryException {
+        throws RepositoryException {
         // TODO: The context class loader hack below shouldn't be needed
         // with a properly OSGi-compatible JAAS implementation
         Thread thread = Thread.currentThread();

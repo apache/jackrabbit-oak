@@ -26,8 +26,7 @@ import org.apache.jackrabbit.util.Text;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Utility class to determine the top-level CUG paths as recorded on the root
- * node.
+ * Utility class to determine the top-level CUG paths as recorded on the root node.
  */
 class TopLevelPaths implements CugConstants {
 
@@ -84,8 +83,10 @@ class TopLevelPaths implements CugConstants {
         if (hiddenTopCnt != null) {
             cnt = hiddenTopCnt.getValue(Type.LONG);
             if (cnt <= MAX_CNT) {
-                PropertyState hidden = root.getTree(PathUtils.ROOT_PATH).getProperty(HIDDEN_NESTED_CUGS);
-                paths = (hidden == null) ? new String[0] : Iterables.toArray(hidden.getValue(Type.STRINGS), String.class);
+                PropertyState hidden = root.getTree(PathUtils.ROOT_PATH)
+                                           .getProperty(HIDDEN_NESTED_CUGS);
+                paths = (hidden == null) ? new String[0]
+                    : Iterables.toArray(hidden.getValue(Type.STRINGS), String.class);
             } else {
                 paths = new String[0];
             }

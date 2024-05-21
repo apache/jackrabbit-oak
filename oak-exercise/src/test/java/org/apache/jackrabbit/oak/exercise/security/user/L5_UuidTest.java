@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.exercise.security.user;
 
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.Authorizable;

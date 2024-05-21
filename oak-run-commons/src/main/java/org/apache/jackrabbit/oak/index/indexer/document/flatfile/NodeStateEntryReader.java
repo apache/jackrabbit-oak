@@ -19,6 +19,8 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
+import static org.apache.jackrabbit.oak.commons.StringUtils.estimateMemoryUsage;
+
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry.NodeStateEntryBuilder;
 import org.apache.jackrabbit.oak.json.BlobDeserializer;
@@ -27,9 +29,8 @@ import org.apache.jackrabbit.oak.plugins.blob.serializer.BlobIdSerializer;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
-import static org.apache.jackrabbit.oak.commons.StringUtils.estimateMemoryUsage;
-
 public class NodeStateEntryReader {
+
     private final BlobDeserializer blobDeserializer;
 
     public NodeStateEntryReader(BlobStore blobStore) {
@@ -39,7 +40,8 @@ public class NodeStateEntryReader {
     public NodeStateEntry read(String line) {
         String[] parts = NodeStateEntryWriter.getParts(line);
         long memUsage = estimateMemoryUsage(parts[0]) + estimateMemoryUsage(parts[1]);
-        return new NodeStateEntryBuilder(parseState(parts[1]), parts[0]).withMemUsage(memUsage).build();
+        return new NodeStateEntryBuilder(parseState(parts[1]), parts[0]).withMemUsage(memUsage)
+                                                                        .build();
     }
 
     protected NodeState parseState(String part) {

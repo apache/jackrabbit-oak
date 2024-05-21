@@ -16,6 +16,14 @@
  */
 package org.apache.jackrabbit.oak.plugins.tree;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.jackrabbit.JcrConstants;
@@ -28,14 +36,6 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 public class TreeTypeProviderTest extends AbstractTreeTest {
 
     private TreeTypeProvider typeProvider;
@@ -45,7 +45,7 @@ public class TreeTypeProviderTest extends AbstractTreeTest {
     @Before
     public void before() throws Exception {
         super.before();
-        typeProvider = new TreeTypeProvider(new TreeContext(){
+        typeProvider = new TreeTypeProvider(new TreeContext() {
 
             @Override
             public boolean definesProperty(@NotNull Tree parent, @NotNull PropertyState property) {
@@ -78,15 +78,19 @@ public class TreeTypeProviderTest extends AbstractTreeTest {
         tests.add(new TypeTest("/content", TreeType.DEFAULT));
         tests.add(new TypeTest('/' + JcrConstants.JCR_SYSTEM, TreeType.DEFAULT));
         tests.add(new TypeTest(NodeTypeConstants.NODE_TYPES_PATH, TreeType.DEFAULT));
-        tests.add(new TypeTest(NodeTypeConstants.NODE_TYPES_PATH + "/rep:system/rep:namedChildNodeDefinitions/jcr:versionStorage", TreeType.DEFAULT));
-        tests.add(new TypeTest(NodeTypeConstants.NODE_TYPES_PATH + "/rep:system/rep:namedChildNodeDefinitions/jcr:activities", TreeType.DEFAULT));
-        tests.add(new TypeTest(NodeTypeConstants.NODE_TYPES_PATH + "/rep:system/rep:namedChildNodeDefinitions/jcr:configurations", TreeType.DEFAULT));
+        tests.add(new TypeTest(NodeTypeConstants.NODE_TYPES_PATH
+            + "/rep:system/rep:namedChildNodeDefinitions/jcr:versionStorage", TreeType.DEFAULT));
+        tests.add(new TypeTest(NodeTypeConstants.NODE_TYPES_PATH
+            + "/rep:system/rep:namedChildNodeDefinitions/jcr:activities", TreeType.DEFAULT));
+        tests.add(new TypeTest(NodeTypeConstants.NODE_TYPES_PATH
+            + "/rep:system/rep:namedChildNodeDefinitions/jcr:configurations", TreeType.DEFAULT));
 
         tests.add(new TypeTest("/:hidden", TreeType.HIDDEN));
         tests.add(new TypeTest("/:hidden/child", TreeType.HIDDEN, TreeType.HIDDEN));
 
         tests.add(new TypeTest("/oak:index/nodetype/:index", TreeType.HIDDEN));
-        tests.add(new TypeTest("/oak:index/nodetype/:index/child", TreeType.HIDDEN, TreeType.HIDDEN));
+        tests.add(
+            new TypeTest("/oak:index/nodetype/:index/child", TreeType.HIDDEN, TreeType.HIDDEN));
 
         for (String versionPath : VersionConstants.SYSTEM_PATHS) {
             tests.add(new TypeTest(versionPath, TreeType.VERSION));
@@ -104,14 +108,16 @@ public class TreeTypeProviderTest extends AbstractTreeTest {
     @Test
     public void testGetTypeWithParentType() {
         for (TypeTest test : tests) {
-            assertEquals(test.path, test.type, typeProvider.getType(mockTree(test.path, true), test.parentType));
+            assertEquals(test.path, test.type,
+                typeProvider.getType(mockTree(test.path, true), test.parentType));
         }
     }
 
     @Test
     public void testGetTypeWithDefaultParentType() {
         for (TypeTest test : tests) {
-            TreeType typeIfParentDefault = typeProvider.getType(mockTree(test.path, true), TreeType.DEFAULT);
+            TreeType typeIfParentDefault = typeProvider.getType(mockTree(test.path, true),
+                TreeType.DEFAULT);
 
             if (TreeType.DEFAULT == test.parentType) {
                 assertEquals(test.path, test.type, typeIfParentDefault);
@@ -187,7 +193,7 @@ public class TreeTypeProviderTest extends AbstractTreeTest {
         private TypeTest(@NotNull String path, TreeType type) {
             this(path, type, TreeType.DEFAULT);
         }
-        
+
         private TypeTest(@NotNull String path, TreeType type, TreeType parentType) {
             this.path = path;
             this.type = type;

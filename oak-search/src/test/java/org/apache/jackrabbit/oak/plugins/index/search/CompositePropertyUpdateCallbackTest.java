@@ -18,17 +18,15 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.search;
 
-import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.jetbrains.annotations.Nullable;
-import org.junit.Test;
+import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
 
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-
-import static org.junit.Assert.fail;
-import static org.mockito.Mockito.mock;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.junit.Test;
 
 /**
  * Tests for {@link CompositePropertyUpdateCallback}
@@ -39,7 +37,8 @@ public class CompositePropertyUpdateCallbackTest {
     public void testNullCollectionNotAllowed() {
         try {
             new CompositePropertyUpdateCallback(null);
-            fail("creating a CompositePropertyUpdateCallback with null delegates should not be allowed");
+            fail(
+                "creating a CompositePropertyUpdateCallback with null delegates should not be allowed");
         } catch (Throwable t) {
             // ok
         }
@@ -47,7 +46,8 @@ public class CompositePropertyUpdateCallbackTest {
 
     @Test
     public void testEmptyCollection() throws CommitFailedException {
-        CompositePropertyUpdateCallback compositePropertyUpdateCallback = new CompositePropertyUpdateCallback(Collections.emptyList());
+        CompositePropertyUpdateCallback compositePropertyUpdateCallback = new CompositePropertyUpdateCallback(
+            Collections.emptyList());
         String path = "/foo";
         String relativePath = "bar";
         PropertyDefinition pd = mock(PropertyDefinition.class);
@@ -62,7 +62,8 @@ public class CompositePropertyUpdateCallbackTest {
         List<PropertyUpdateCallback> delegates = new LinkedList<>();
         delegates.add(mock(PropertyUpdateCallback.class));
         delegates.add(mock(PropertyUpdateCallback.class));
-        CompositePropertyUpdateCallback compositePropertyUpdateCallback = new CompositePropertyUpdateCallback(delegates);
+        CompositePropertyUpdateCallback compositePropertyUpdateCallback = new CompositePropertyUpdateCallback(
+            delegates);
         String path = "/foo";
         String relativePath = "bar";
         PropertyDefinition pd = mock(PropertyDefinition.class);
@@ -76,7 +77,8 @@ public class CompositePropertyUpdateCallbackTest {
         List<PropertyUpdateCallback> delegates = new LinkedList<>();
         delegates.add(mock(PropertyUpdateCallback.class));
         delegates.add(mock(PropertyUpdateCallback.class));
-        CompositePropertyUpdateCallback compositePropertyUpdateCallback = new CompositePropertyUpdateCallback(delegates);
+        CompositePropertyUpdateCallback compositePropertyUpdateCallback = new CompositePropertyUpdateCallback(
+            delegates);
         compositePropertyUpdateCallback.done();
     }
 }

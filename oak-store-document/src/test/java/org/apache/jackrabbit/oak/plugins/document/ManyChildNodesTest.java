@@ -33,8 +33,7 @@ import org.apache.jackrabbit.guava.common.collect.Maps;
 import static org.junit.Assert.assertTrue;
 
 /**
- * Checks that traversing over many child nodes requests them in batches with
- * an upper limit.
+ * Checks that traversing over many child nodes requests them in batches with an upper limit.
  */
 public class ManyChildNodesTest {
 
@@ -60,11 +59,11 @@ public class ManyChildNodesTest {
         int maxFetchSize = DocumentNodeState.MAX_FETCH_SIZE + 1;
         for (Map.Entry<String, Integer> e : store.queries.entrySet()) {
             assertTrue(e.getValue() + " > " + maxFetchSize,
-                    e.getValue() <= maxFetchSize);
+                e.getValue() <= maxFetchSize);
         }
         mk.dispose();
     }
-    
+
     // OAK-2448
     @Test
     public void nodeChildrenCache() throws Exception {
@@ -74,10 +73,10 @@ public class ManyChildNodesTest {
             builder.child("c-" + i);
         }
         ns.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        
+
         // must not create entries for each child node
         assertTrue(ns.getNodeChildrenCacheStats().getElementCount() < 1000);
-        
+
         ns.dispose();
     }
 
@@ -88,9 +87,9 @@ public class ManyChildNodesTest {
         @NotNull
         @Override
         public <T extends Document> List<T> query(Collection<T> collection,
-                                                  String fromKey,
-                                                  String toKey,
-                                                  int limit) {
+            String fromKey,
+            String toKey,
+            int limit) {
             if (collection == Collection.NODES) {
                 queries.put(fromKey, limit);
             }

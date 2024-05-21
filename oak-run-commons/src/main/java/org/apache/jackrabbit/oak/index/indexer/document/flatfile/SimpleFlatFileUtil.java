@@ -28,7 +28,6 @@ import java.io.Writer;
 import java.nio.file.Files;
 import java.util.Comparator;
 import java.util.stream.StreamSupport;
-
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -38,8 +37,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * This util class can be used to export a tree (eg entire repository) to a flat
- * file, without index dependency/involvement.
+ * This util class can be used to export a tree (eg entire repository) to a flat file, without index
+ * dependency/involvement.
  */
 public class SimpleFlatFileUtil {
 
@@ -73,20 +72,20 @@ public class SimpleFlatFileUtil {
     private void addEntryAndTraverseChildren(NodeState ns) throws IOException {
         addEntry(ns);
         StreamSupport.stream(ns.getChildNodeEntries().spliterator(), false)
-                .sorted(Comparator.comparing(ChildNodeEntry::getName)).forEach(e -> {
-                    try {
-                        addEntryAndTraverseChildren(e.getNodeState());
-                    } catch (IOException e1) {
-                        // NOSONAR
-                        throw new RuntimeException(e1);
-                    }
-                });
+                     .sorted(Comparator.comparing(ChildNodeEntry::getName)).forEach(e -> {
+                         try {
+                             addEntryAndTraverseChildren(e.getNodeState());
+                         } catch (IOException e1) {
+                             // NOSONAR
+                             throw new RuntimeException(e1);
+                         }
+                     });
     }
 
     private void addEntry(NodeState ns) throws IOException {
         DocumentNodeState dns = (DocumentNodeState) ns;
         NodeStateEntry e = new NodeStateEntry.NodeStateEntryBuilder(dns,
-                dns.getPath().toString()).build();
+            dns.getPath().toString()).build();
         String path = e.getPath();
         if (NodeStateUtils.isHiddenPath(path)) {
             // skip

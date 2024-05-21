@@ -17,13 +17,15 @@
 
 package org.apache.jackrabbit.oak.security.authentication.ldap;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-
 import org.apache.jackrabbit.oak.security.authentication.ldap.impl.LdapIdentityProvider;
 import org.apache.jackrabbit.oak.security.authentication.ldap.impl.LdapProviderConfig;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalGroup;
@@ -37,9 +39,6 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 public class LargeLdapProviderTest {
 
@@ -98,20 +97,20 @@ public class LargeLdapProviderTest {
 
     protected static LdapIdentityProvider createIDP() {
         providerConfig = new LdapProviderConfig()
-                .setName(IDP_NAME)
-                .setHostname("127.0.0.1")
-                .setPort(proxy.port)
-                .setBindDN(USER_DN)
-                .setBindPassword(USER_PWD)
-                .setGroupMemberAttribute("member");
+            .setName(IDP_NAME)
+            .setHostname("127.0.0.1")
+            .setPort(proxy.port)
+            .setBindDN(USER_DN)
+            .setBindPassword(USER_PWD)
+            .setGroupMemberAttribute("member");
 
         providerConfig.getUserConfig()
-                .setBaseDN(AbstractServer.EXAMPLE_DN)
-                .setObjectClasses("inetOrgPerson");
+                      .setBaseDN(AbstractServer.EXAMPLE_DN)
+                      .setObjectClasses("inetOrgPerson");
 
         providerConfig.getGroupConfig()
-                .setBaseDN(AbstractServer.EXAMPLE_DN)
-                .setObjectClasses(InternalLdapServer.GROUP_CLASS_ATTR);
+                      .setBaseDN(AbstractServer.EXAMPLE_DN)
+                      .setObjectClasses(InternalLdapServer.GROUP_CLASS_ATTR);
 
         providerConfig.getAdminPoolConfig().setMaxActive(0);
         providerConfig.getUserPoolConfig().setMaxActive(0);
@@ -146,9 +145,10 @@ public class LargeLdapProviderTest {
         assertIfEquals("Test users", TEST_MEMBERS, refs);
     }
 
-    public static void assertIfEquals(String message, String[] expected, Iterable<ExternalIdentityRef> result) {
+    public static void assertIfEquals(String message, String[] expected,
+        Iterable<ExternalIdentityRef> result) {
         List<String> dns = new LinkedList<String>();
-        for (ExternalIdentityRef ref: result) {
+        for (ExternalIdentityRef ref : result) {
             dns.add(ref.getId());
         }
         Collections.sort(dns);

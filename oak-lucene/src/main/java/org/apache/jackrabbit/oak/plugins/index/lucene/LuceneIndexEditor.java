@@ -22,8 +22,8 @@ import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexEd
 import org.apache.lucene.document.Document;
 
 /**
- * {@link IndexEditor} implementation that is responsible for keeping the
- * {@link LuceneIndex} up to date
+ * {@link IndexEditor} implementation that is responsible for keeping the {@link LuceneIndex} up to
+ * date
  *
  * @see LuceneIndex
  */

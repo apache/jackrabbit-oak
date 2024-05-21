@@ -99,7 +99,8 @@ public class CommitDiffTest {
         assertThat(changes, hasKey(new Key(MODIFIED_IN_SECS, null)));
         assertThat(changes, hasKey(new Key(JCR_PRIMARYTYPE, r)));
         assertThat(changes, hasKey(new Key(META_PROP_PATTERN, r)));
-        assertThat(changes, hasEntry(new Key(META_PROP_BUNDLED_CHILD, r), new Operation(SET_MAP_ENTRY, "true")));
+        assertThat(changes,
+            hasEntry(new Key(META_PROP_BUNDLED_CHILD, r), new Operation(SET_MAP_ENTRY, "true")));
         // changes for jcr:content child node
         assertThat(changes, hasKey(new Key(JCR_CONTENT + "/" + JCR_PRIMARYTYPE, r)));
         assertThat(changes, hasKey(new Key(JCR_CONTENT + "/" + JCR_DATA, r)));
@@ -123,8 +124,10 @@ public class CommitDiffTest {
         assertThat(changes, hasKey(new Key("_deletedOnce", null)));
         assertThat(changes, hasKey(new Key(MODIFIED_IN_SECS, null)));
         assertThat(changes, hasKey(new Key(JCR_PRIMARYTYPE, r)));
-        assertThat(changes, hasEntry(new Key(META_PROP_PATTERN, r), new Operation(SET_MAP_ENTRY, null)));
-        assertThat(changes, hasEntry(new Key(META_PROP_BUNDLED_CHILD, r), new Operation(SET_MAP_ENTRY, null)));
+        assertThat(changes,
+            hasEntry(new Key(META_PROP_PATTERN, r), new Operation(SET_MAP_ENTRY, null)));
+        assertThat(changes,
+            hasEntry(new Key(META_PROP_BUNDLED_CHILD, r), new Operation(SET_MAP_ENTRY, null)));
         // changes for jcr:content child node
         assertThat(changes, hasKey(new Key(JCR_CONTENT + "/" + JCR_PRIMARYTYPE, r)));
         assertThat(changes, hasKey(new Key(JCR_CONTENT + "/" + JCR_DATA, r)));

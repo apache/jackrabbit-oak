@@ -17,8 +17,6 @@
 package org.apache.jackrabbit.oak.plugins.index.solr.osgi;
 
 import java.util.List;
-
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Deactivate;
@@ -27,6 +25,7 @@ import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.ReferenceCardinality;
 import org.apache.felix.scr.annotations.ReferencePolicy;
 import org.apache.felix.scr.annotations.ReferencePolicyOption;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.AggregateIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfigurationProvider;
@@ -61,29 +60,34 @@ public class SolrQueryIndexProviderService {
     private OakSolrConfigurationProvider oakSolrConfigurationProvider;
 
     @Reference(cardinality = ReferenceCardinality.MANDATORY_UNARY,
-            policyOption = ReferencePolicyOption.GREEDY,
-            policy = ReferencePolicy.DYNAMIC
+        policyOption = ReferencePolicyOption.GREEDY,
+        policy = ReferencePolicy.DYNAMIC
     )
     private volatile QueryIndex.NodeAggregator nodeAggregator;
 
     @Property(boolValue = QUERY_TIME_AGGREGATION_DEFAULT, label = "query time aggregation",
-            description = "enable query time aggregation for Solr index")
+        description = "enable query time aggregation for Solr index")
     private static final String QUERY_TIME_AGGREGATION = "query.aggregation";
 
     @SuppressWarnings("UnusedDeclaration")
     @Activate
     protected void activate(ComponentContext componentContext) {
         Object value = componentContext.getProperties().get(QUERY_TIME_AGGREGATION);
-        boolean queryTimeAggregation = PropertiesUtil.toBoolean(value, QUERY_TIME_AGGREGATION_DEFAULT);
+        boolean queryTimeAggregation = PropertiesUtil.toBoolean(value,
+            QUERY_TIME_AGGREGATION_DEFAULT);
         if (solrServerProvider != null && oakSolrConfigurationProvider != null) {
-            QueryIndexProvider solrQueryIndexProvider = new SolrQueryIndexProvider(solrServerProvider,
-                    oakSolrConfigurationProvider, nodeAggregator);
-            log.debug("creating Solr query index provider {} query time aggregation", queryTimeAggregation ? "with" : "without");
+            QueryIndexProvider solrQueryIndexProvider = new SolrQueryIndexProvider(
+                solrServerProvider,
+                oakSolrConfigurationProvider, nodeAggregator);
+            log.debug("creating Solr query index provider {} query time aggregation",
+                queryTimeAggregation ? "with" : "without");
             if (queryTimeAggregation) {
                 solrQueryIndexProvider = AggregateIndexProvider.wrap(solrQueryIndexProvider);
             }
 
-            regs.add(componentContext.getBundleContext().registerService(QueryIndexProvider.class.getName(), solrQueryIndexProvider, null));
+            regs.add(componentContext.getBundleContext()
+                                     .registerService(QueryIndexProvider.class.getName(),
+                                         solrQueryIndexProvider, null));
         }
     }
 

@@ -24,7 +24,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
 import java.io.File;
-
 import org.apache.jackrabbit.oak.commons.junit.TemporaryPort;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
@@ -50,8 +49,8 @@ public class RecoverTestIT extends TestBase {
 
     @Rule
     public RuleChain chain = RuleChain.outerRule(folder)
-            .around(serverFileStore)
-            .around(clientFileStore);
+                                      .around(serverFileStore)
+                                      .around(clientFileStore);
 
     @Test
     public void testLocalChanges() throws Exception {
@@ -63,26 +62,27 @@ public class RecoverTestIT extends TestBase {
 
         try (
             StandbyServerSync serverSync = StandbyServerSync.builder()
-                .withPort(serverPort.getPort())
-                .withFileStore(storeS)
-                .withBlobChunkSize(MB)
-                .build();
+                                                            .withPort(serverPort.getPort())
+                                                            .withFileStore(storeS)
+                                                            .withBlobChunkSize(MB)
+                                                            .build();
             StandbyClientSync cl = StandbyClientSync.builder()
-                .withHost(getServerHost())
-                .withPort(serverPort.getPort())
-                .withFileStore(storeC)
-                .withSecureConnection(false)
-                .withReadTimeoutMs(getClientTimeout())
-                .withAutoClean(false)
-                .withSpoolFolder(folder.newFolder())
-                .build()
+                                                    .withHost(getServerHost())
+                                                    .withPort(serverPort.getPort())
+                                                    .withFileStore(storeC)
+                                                    .withSecureConnection(false)
+                                                    .withReadTimeoutMs(getClientTimeout())
+                                                    .withAutoClean(false)
+                                                    .withSpoolFolder(folder.newFolder())
+                                                    .build()
         ) {
             serverSync.start();
             store = SegmentNodeStoreBuilders.builder(storeS).build();
             addTestContent(store, "server");
             storeS.flush();
 
-            assertFalse("stores are not expected to be equal", storeS.getHead().equals(storeC.getHead()));
+            assertFalse("stores are not expected to be equal",
+                storeS.getHead().equals(storeC.getHead()));
             cl.run();
             assertEquals(storeS.getHead(), storeC.getHead());
         }

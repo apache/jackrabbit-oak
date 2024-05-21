@@ -17,23 +17,6 @@
  */
 package org.apache.jackrabbit.oak.segment.remote.persistentcache;
 
-import org.apache.jackrabbit.oak.commons.Buffer;
-import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
-import org.junit.After;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.Test;
-
-import redis.embedded.RedisServer;
-import redis.embedded.core.ExecutableProviderBuilder;
-
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
-import java.util.UUID;
-
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -42,6 +25,21 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.util.UUID;
+import org.apache.jackrabbit.oak.commons.Buffer;
+import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
+import org.junit.After;
+import org.junit.Assume;
+import org.junit.Before;
+import org.junit.Test;
+import redis.embedded.RedisServer;
+import redis.embedded.core.ExecutableProviderBuilder;
 
 public class PersistentRedisCacheTest extends AbstractPersistentCacheTest {
 
@@ -52,10 +50,13 @@ public class PersistentRedisCacheTest extends AbstractPersistentCacheTest {
 
     @Before
     public void setUp() throws Exception {
-        Path redisTempExecutable = new ExecutableProviderBuilder().addProvidedVersions().build().get().toPath();
-        Path redisTargetExecutable = new File("target", redisTempExecutable.getFileName().toString()).toPath();
+        Path redisTempExecutable = new ExecutableProviderBuilder().addProvidedVersions().build()
+                                                                  .get().toPath();
+        Path redisTargetExecutable = new File("target",
+            redisTempExecutable.getFileName().toString()).toPath();
         Files.copy(redisTempExecutable, redisTargetExecutable, StandardCopyOption.REPLACE_EXISTING);
-        redisServer = RedisServer.newRedisServer().setting("maxmemory 768mb").bind(REDIS_HOST).executableProvider(redisTargetExecutable::toFile).build();
+        redisServer = RedisServer.newRedisServer().setting("maxmemory 768mb").bind(REDIS_HOST)
+                                 .executableProvider(redisTargetExecutable::toFile).build();
         try {
             redisServer.start();
         } catch (IOException e) {
@@ -65,16 +66,16 @@ public class PersistentRedisCacheTest extends AbstractPersistentCacheTest {
         ioMonitorAdapter = mock(IOMonitorAdapter.class);
 
         persistentCache = new PersistentRedisCache(
-                REDIS_HOST,
-                port,
-                -1,
-                10000,
-                1000,
-                10,
-                2000,
-                200000,
-                0,
-                ioMonitorAdapter
+            REDIS_HOST,
+            port,
+            -1,
+            10000,
+            1000,
+            10,
+            2000,
+            200000,
+            0,
+            ioMonitorAdapter
         );
     }
 
@@ -93,7 +94,8 @@ public class PersistentRedisCacheTest extends AbstractPersistentCacheTest {
         persistentCache.readSegment(msb, lsb, () -> null);
 
         //Segment not in cache, monitor methods not invoked
-        verify(ioMonitorAdapter, never()).afterSegmentRead(any(), anyLong(), anyLong(), anyInt(), anyLong());
+        verify(ioMonitorAdapter, never()).afterSegmentRead(any(), anyLong(), anyLong(), anyInt(),
+            anyLong());
 
         persistentCache.writeSegment(msb, lsb, Buffer.wrap("segment_content".getBytes()));
 
@@ -101,6 +103,7 @@ public class PersistentRedisCacheTest extends AbstractPersistentCacheTest {
 
         persistentCache.readSegment(msb, lsb, () -> null);
 
-        verify(ioMonitorAdapter, times(1)).afterSegmentRead(any(), eq(msb), eq(lsb), anyInt(), anyLong());
+        verify(ioMonitorAdapter, times(1)).afterSegmentRead(any(), eq(msb), eq(lsb), anyInt(),
+            anyLong());
     }
 }

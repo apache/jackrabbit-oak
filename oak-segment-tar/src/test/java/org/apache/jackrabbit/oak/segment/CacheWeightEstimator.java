@@ -29,7 +29,6 @@ import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.Map.Entry;
 import java.util.UUID;
 import java.util.function.Supplier;
-
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
 import org.apache.jackrabbit.oak.commons.Buffer;
@@ -43,14 +42,15 @@ import org.junit.Test;
 /**
  * Test/Utility class to measure size in memory for common segment-tar objects.
  * <p>
- * The test is <b>disabled</b> by default, to run it you need to set the
- * {@code CacheWeightsTest} system property:<br>
+ * The test is <b>disabled</b> by default, to run it you need to set the {@code CacheWeightsTest}
+ * system property:<br>
  * {@code mvn clean test -Dtest=CacheWeightEstimator -Dtest.opts.memory=-Xmx2G}
  * </p>
  * <p>
  * To collect the results check the
  * {@code org.apache.jackrabbit.oak.segment.CacheWeightsTest-output.txt} file:<br>
- * {@code cat target/surefire-reports/org.apache.jackrabbit.oak.segment.CacheWeightEstimator-output.txt}
+ * {@code cat
+ * target/surefire-reports/org.apache.jackrabbit.oak.segment.CacheWeightEstimator-output.txt}
  * </p>
  */
 public class CacheWeightEstimator {
@@ -112,9 +112,11 @@ public class CacheWeightEstimator {
     Space losses: 0 bytes internal + 0 bytes external = 0 bytes total
 
      */
-    /** Only run if explicitly asked to via -Dtest=SegmentCompactionIT */
+    /**
+     * Only run if explicitly asked to via -Dtest=SegmentCompactionIT
+     */
     private static final boolean ENABLED =
-            CacheWeightEstimator.class.getSimpleName().equals(getProperty("test"));
+        CacheWeightEstimator.class.getSimpleName().equals(getProperty("test"));
 
     private final MemoryStore store;
 
@@ -151,7 +153,7 @@ public class CacheWeightEstimator {
                 objects[i] = o;
             }
             long weight = CacheWeights.OBJECT_HEADER_SIZE * count;
-            return new SimpleImmutableEntry<>(objects, new Long[] {(long) count, weight});
+            return new SimpleImmutableEntry<>(objects, new Long[]{(long) count, weight});
         };
         runTest(factory, "Object[x" + count + "]");
     }
@@ -174,7 +176,7 @@ public class CacheWeightEstimator {
                 weight += o.estimateMemoryUsage();
                 objects[i] = o;
             }
-            return new SimpleImmutableEntry<>(objects, new Long[] {(long) count, weight});
+            return new SimpleImmutableEntry<>(objects, new Long[]{(long) count, weight});
         };
         String name = "SegmentId";
         if (gcInfo) {
@@ -204,7 +206,7 @@ public class CacheWeightEstimator {
                 weight += o.estimateMemoryUsage();
                 objects[i] = o;
             }
-            return new SimpleImmutableEntry<>(objects, new Long[] {(long) count, weight});
+            return new SimpleImmutableEntry<>(objects, new Long[]{(long) count, weight});
         };
         String name = "RecordId";
         if (gcInfo) {
@@ -228,10 +230,10 @@ public class CacheWeightEstimator {
                 cache.put(k, v);
             }
             long weight = cache.estimateCurrentWeight();
-            return new SimpleImmutableEntry<>(cache, new Long[] {(long) count, weight});
+            return new SimpleImmutableEntry<>(cache, new Long[]{(long) count, weight});
         };
         runTest(factory, "StringCache[x" + count
-                + "|RecordCache<String, RecordId>]");
+            + "|RecordCache<String, RecordId>]");
     }
 
     @Test
@@ -243,17 +245,18 @@ public class CacheWeightEstimator {
         final boolean gcInfo = true;
         Supplier<Entry<Object, Long[]>> factory = () -> {
             int size = (int) PriorityCache.nextPowerOfTwo(count);
-            PriorityCache<String, RecordId> cache = PriorityCache.factory(size, new CacheWeights.NodeCacheWeigher()).get();
+            PriorityCache<String, RecordId> cache = PriorityCache.factory(size,
+                new CacheWeights.NodeCacheWeigher()).get();
             for (int i = 0; i < count; ++i) {
                 String k = randomString(keySize);
                 RecordId v = randomRecordId(gcInfo);
                 cache.put(k, v, 0, (byte) 0);
             }
             long weight = cache.estimateCurrentWeight();
-            return new SimpleImmutableEntry<>(cache, new Long[] {(long) count, weight});
+            return new SimpleImmutableEntry<>(cache, new Long[]{(long) count, weight});
         };
         runTest(factory, "NodeCache[x" + count
-                + "|PriorityCache<String, RecordId>]");
+            + "|PriorityCache<String, RecordId>]");
     }
 
     @Test
@@ -268,7 +271,7 @@ public class CacheWeightEstimator {
                 weight += o.estimateMemoryUsage();
                 objects[i] = o;
             }
-            return new SimpleImmutableEntry<>(objects, new Long[] {(long) count, weight});
+            return new SimpleImmutableEntry<>(objects, new Long[]{(long) count, weight});
         };
         runTest(factory, "Segment[x" + count + "|" + bufferSize + "]");
     }
@@ -287,9 +290,10 @@ public class CacheWeightEstimator {
             AbstractCacheStats stats = cache.getCacheStats();
             long elements = stats.getElementCount();
             long weight = stats.estimateCurrentWeight();
-            return new SimpleImmutableEntry<>(cache, new Long[] {elements, weight});
+            return new SimpleImmutableEntry<>(cache, new Long[]{elements, weight});
         };
-        runTest(factory, "SegmentCache[x" + cacheSizeMB + "MB|" + bufferSize + "|Cache<SegmentId, Segment>]");
+        runTest(factory,
+            "SegmentCache[x" + cacheSizeMB + "MB|" + bufferSize + "|Cache<SegmentId, Segment>]");
     }
 
     @Test
@@ -304,14 +308,15 @@ public class CacheWeightEstimator {
                 weight += StringUtils.estimateMemoryUsage(s);
                 objects[i] = s;
             }
-            return new SimpleImmutableEntry<>(objects, new Long[] {(long) count, weight});
+            return new SimpleImmutableEntry<>(objects, new Long[]{(long) count, weight});
         };
         runTest(factory, "String[x" + count + "|" + length + "]");
     }
 
     private SegmentId randomSegmentId(boolean withGc) {
         UUID u = UUID.randomUUID();
-        SegmentId id = new SegmentId(store, u.getMostSignificantBits(), u.getLeastSignificantBits());
+        SegmentId id = new SegmentId(store, u.getMostSignificantBits(),
+            u.getLeastSignificantBits());
         if (withGc) {
             id.reclaimed(randomString(80));
         }
@@ -372,8 +377,10 @@ public class CacheWeightEstimator {
         long perItemHeapEstimate = heapEstimate / count;
 
         System.out.printf(":: %s Test\n", name);
-        System.out.printf("measured heap usage:  %d bytes. %d bytes per item\n", heapDelta, perItemHeap);
-        System.out.printf("estimated heap usage: %d bytes. %d bytes per item\n", heapEstimate, perItemHeapEstimate);
+        System.out.printf("measured heap usage:  %d bytes. %d bytes per item\n", heapDelta,
+            perItemHeap);
+        System.out.printf("estimated heap usage: %d bytes. %d bytes per item\n", heapEstimate,
+            perItemHeapEstimate);
         double percentageOff = 100 * ((double) heapEstimate / (double) heapDelta - 1);
         if (percentageOff < 0) {
             System.out.printf("estimated heap usage is %.2f%% to low\n", -percentageOff);

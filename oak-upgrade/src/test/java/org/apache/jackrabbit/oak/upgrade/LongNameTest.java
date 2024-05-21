@@ -16,6 +16,18 @@
  */
 package org.apache.jackrabbit.oak.upgrade;
 
+import static org.junit.Assert.fail;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Random;
+import javax.jcr.Node;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import javax.jcr.SimpleCredentials;
 import org.apache.jackrabbit.core.RepositoryContext;
 import org.apache.jackrabbit.core.RepositoryImpl;
 import org.apache.jackrabbit.core.config.RepositoryConfig;
@@ -41,19 +53,6 @@ import org.junit.runners.Parameterized;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.jcr.Node;
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-import javax.jcr.SimpleCredentials;
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Random;
-
-import static org.junit.Assert.fail;
-
 @RunWith(Parameterized.class)
 public class LongNameTest {
 
@@ -63,10 +62,10 @@ public class LongNameTest {
     public static Collection<Object[]> data() {
         List<Object[]> params = new ArrayList<Object[]>();
 
-        params.add(new Object[] { "Short parent, short name", 349, 150, false });
-        params.add(new Object[] { "Short parent, long name", 349, 151, false });
-        params.add(new Object[] { "Long parent, short name", 350, 150, false });
-        params.add(new Object[] { "Long parent, long name", 350, 151, true });
+        params.add(new Object[]{"Short parent, short name", 349, 150, false});
+        params.add(new Object[]{"Short parent, long name", 349, 151, false});
+        params.add(new Object[]{"Long parent, short name", 350, 150, false});
+        params.add(new Object[]{"Long parent, long name", 350, 151, true});
 
         return params;
     }
@@ -80,14 +79,16 @@ public class LongNameTest {
     @Rule
     public final TemporaryFolder crxRepo = new TemporaryFolder(new File("target"));
 
-    public LongNameTest(String name, int parentPathLength, int nodeNameLength, boolean shouldBeSkipped) {
+    public LongNameTest(String name, int parentPathLength, int nodeNameLength,
+        boolean shouldBeSkipped) {
         this.parentPath = generatePath(parentPathLength);
         this.nodeName = generateNodeName(nodeNameLength);
         this.shouldBeSkipped = shouldBeSkipped;
     }
 
     @Test
-    public void testMigrationToDocStore() throws IOException, CommitFailedException, RepositoryException {
+    public void testMigrationToDocStore()
+        throws IOException, CommitFailedException, RepositoryException {
         SegmentNodeStore src = SegmentNodeStoreBuilders.builder(new MemoryStore()).build();
         createNodes(src);
 
@@ -125,12 +126,15 @@ public class LongNameTest {
 
     @Test
     @Ignore
-    public void testUpgradeToDocStore() throws IOException, CommitFailedException, RepositoryException {
+    public void testUpgradeToDocStore()
+        throws IOException, CommitFailedException, RepositoryException {
         File root = crxRepo.newFolder();
         File source = new File(root, "source");
         source.mkdirs();
-        RepositoryImpl sourceRepository = RepositoryContext.create(RepositoryConfig.install(source)).getRepository();
-        Session session = sourceRepository.login(new SimpleCredentials("admin", "admin".toCharArray()));
+        RepositoryImpl sourceRepository = RepositoryContext.create(RepositoryConfig.install(source))
+                                                           .getRepository();
+        Session session = sourceRepository.login(
+            new SimpleCredentials("admin", "admin".toCharArray()));
         try {
             Node node = session.getRootNode();
             for (String s : PathUtils.elements(parentPath)) {
@@ -150,7 +154,8 @@ public class LongNameTest {
         try {
             upgrade.copy(null);
             if (shouldBeSkipped) {
-                fail("Jackrabbit2 Lucene index should be used to inform about the node with long name");
+                fail(
+                    "Jackrabbit2 Lucene index should be used to inform about the node with long name");
             }
         } catch (Exception e) {
             if (!shouldBeSkipped) {

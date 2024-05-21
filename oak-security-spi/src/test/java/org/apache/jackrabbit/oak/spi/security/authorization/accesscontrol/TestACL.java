@@ -23,9 +23,8 @@ import java.util.Map;
 import javax.jcr.Value;
 import javax.jcr.security.AccessControlEntry;
 import javax.jcr.security.Privilege;
-
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.jetbrains.annotations.NotNull;
@@ -40,18 +39,18 @@ public class TestACL extends AbstractAccessControlList {
     private final RestrictionProvider restrictionProvider;
 
     public TestACL(@Nullable String jcrPath,
-                   @NotNull RestrictionProvider restrictionProvider,
-                   @NotNull NamePathMapper namePathMapper,
-                   @NotNull List<JackrabbitAccessControlEntry> entries) {
+        @NotNull RestrictionProvider restrictionProvider,
+        @NotNull NamePathMapper namePathMapper,
+        @NotNull List<JackrabbitAccessControlEntry> entries) {
         super((jcrPath == null) ? null : namePathMapper.getOakPath(jcrPath), namePathMapper);
         this.entries.addAll(entries);
         this.restrictionProvider = restrictionProvider;
     }
 
     public TestACL(@Nullable String jcrPath,
-                   @NotNull RestrictionProvider restrictionProvider,
-                   @NotNull NamePathMapper namePathMapper,
-                   @NotNull JackrabbitAccessControlEntry... entry) {
+        @NotNull RestrictionProvider restrictionProvider,
+        @NotNull NamePathMapper namePathMapper,
+        @NotNull JackrabbitAccessControlEntry... entry) {
         this(jcrPath, restrictionProvider, namePathMapper, Lists.newArrayList(entry));
     }
 
@@ -66,12 +65,15 @@ public class TestACL extends AbstractAccessControlList {
     }
 
     @Override
-    public boolean addEntry(@NotNull Principal principal, @NotNull Privilege[] privileges, boolean isAllow, @Nullable Map<String, Value> restrictions, @Nullable Map<String, Value[]> mvRestrictions) {
+    public boolean addEntry(@NotNull Principal principal, @NotNull Privilege[] privileges,
+        boolean isAllow, @Nullable Map<String, Value> restrictions,
+        @Nullable Map<String, Value[]> mvRestrictions) {
         return false;
     }
 
     @Override
-    public void orderBefore(@NotNull AccessControlEntry srcEntry, @Nullable AccessControlEntry destEntry) {
+    public void orderBefore(@NotNull AccessControlEntry srcEntry,
+        @Nullable AccessControlEntry destEntry) {
         throw new UnsupportedOperationException();
     }
 

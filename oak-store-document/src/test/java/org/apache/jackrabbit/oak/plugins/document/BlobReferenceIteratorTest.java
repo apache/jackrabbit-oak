@@ -68,19 +68,19 @@ public class BlobReferenceIteratorTest {
         this.fixture = fixture;
     }
 
-    @Parameterized.Parameters(name="{0}")
+    @Parameterized.Parameters(name = "{0}")
     public static java.util.Collection<Object[]> fixtures() {
         List<Object[]> fixtures = Lists.newArrayList();
-        fixtures.add(new Object[] { new DocumentStoreFixture.MemoryFixture() });
+        fixtures.add(new Object[]{new DocumentStoreFixture.MemoryFixture()});
 
         DocumentStoreFixture mongo = new DocumentStoreFixture.MongoFixture();
         if (mongo.isAvailable()) {
-            fixtures.add(new Object[] { mongo });
+            fixtures.add(new Object[]{mongo});
         }
 
         DocumentStoreFixture rdb = new DocumentStoreFixture.RDBFixture();
         if (rdb.isAvailable()) {
-            fixtures.add(new Object[] { rdb });
+            fixtures.add(new Object[]{rdb});
         }
         return fixtures;
     }
@@ -89,7 +89,8 @@ public class BlobReferenceIteratorTest {
     public void setUp() throws Exception {
         if (fixture instanceof DocumentStoreFixture.RDBFixture) {
             ((DocumentStoreFixture.RDBFixture) fixture).setRDBOptions(
-                    new RDBOptions().tablePrefix("T" + Long.toHexString(System.currentTimeMillis())).dropTablesOnClose(true));
+                new RDBOptions().tablePrefix("T" + Long.toHexString(System.currentTimeMillis()))
+                                .dropTablesOnClose(true));
         }
         clock = new Clock.Virtual();
         clock.waitUntil(System.currentTimeMillis());
@@ -102,12 +103,12 @@ public class BlobReferenceIteratorTest {
 
     private DocumentNodeStore newDocumentNodeStore(int clusterId) {
         return new DocumentMK.Builder()
-                .setLeaseCheckMode(LeaseCheckMode.DISABLED)
-                .clock(clock)
-                .setDocumentStore(wrap(fixture.createDocumentStore(clusterId)))
-                .setClusterId(clusterId)
-                .setAsyncDelay(0)
-                .getNodeStore();
+            .setLeaseCheckMode(LeaseCheckMode.DISABLED)
+            .clock(clock)
+            .setDocumentStore(wrap(fixture.createDocumentStore(clusterId)))
+            .setClusterId(clusterId)
+            .setAsyncDelay(0)
+            .getNodeStore();
     }
 
     @After
@@ -133,7 +134,8 @@ public class BlobReferenceIteratorTest {
             store.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         }
 
-        List<ReferencedBlob> collectedBlobs = ImmutableList.copyOf(store.getReferencedBlobsIterator());
+        List<ReferencedBlob> collectedBlobs = ImmutableList.copyOf(
+            store.getReferencedBlobsIterator());
         assertEquals(blobs.size(), collectedBlobs.size());
         assertEquals(new HashSet<>(blobs), new HashSet<>(collectedBlobs));
     }

@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.util;
 
-final class NodeStateCopyUtils extends org.apache.jackrabbit.oak.plugins.index.search.util.NodeStateCopyUtils {
+final class NodeStateCopyUtils extends
+    org.apache.jackrabbit.oak.plugins.index.search.util.NodeStateCopyUtils {
 
 }

@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.plugins.index.importer;
 
 import java.io.File;
 import java.io.IOException;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;

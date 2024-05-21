@@ -25,9 +25,9 @@ import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Helper class exposing static factories for reclaimers. A reclaimer
- * is a predicate used during the cleanup phase of garbage collection
- * to decide whether a segment of a given generation is reclaimable.
+ * Helper class exposing static factories for reclaimers. A reclaimer is a predicate used during the
+ * cleanup phase of garbage collection to decide whether a segment of a given generation is
+ * reclaimable.
  */
 class Reclaimers {
 
@@ -54,26 +54,29 @@ class Reclaimers {
      * retained generations.
      * <p>
      * In the case of {@link GCType#FULL FULL} a segment is reclaimable if its
-     * {@link GCGeneration#getFullGeneration() full generation} is at least {@code retainedGenerations}
-     * in the past wrt. {@code referenceGeneration} <em>or</em> if its
-     * {@link GCGeneration#getGeneration() generation} is at least {@code retainedGenerations} in the
-     * past wrt. {@code referenceGeneration} and it not a {@link GCGeneration#isCompacted() compacted segment}.
+     * {@link GCGeneration#getFullGeneration() full generation} is at least
+     * {@code retainedGenerations} in the past wrt. {@code referenceGeneration} <em>or</em> if its
+     * {@link GCGeneration#getGeneration() generation} is at least {@code retainedGenerations} in
+     * the past wrt. {@code referenceGeneration} and it not a
+     * {@link GCGeneration#isCompacted() compacted segment}.
      * <p>
      * In the case of {@link GCType#TAIL TAIL} a segment is reclaimable if its
-     * {@link GCGeneration#getGeneration() generation} is at least {@code retainedGenerations} in the
-     * past wrt. {@code referenceGeneration} <em>and</em> the segment is not in the same tail as
+     * {@link GCGeneration#getGeneration() generation} is at least {@code retainedGenerations} in
+     * the past wrt. {@code referenceGeneration} <em>and</em> the segment is not in the same tail as
      * segments of the {@code referenceGeneration}. A segment is in the same tail as another segment
-     * if it is a {@link GCGeneration#isCompacted() compacted segment} <em>and</em> both segments have
-     * the same {@code full generation}.
+     * if it is a {@link GCGeneration#isCompacted() compacted segment} <em>and</em> both segments
+     * have the same {@code full generation}.
      *
-     * @param lastGCType  type of the most recent GC operation. {@link GCType#FULL} if unknown.
-     * @param referenceGeneration  generation used as reference for determining the age of other segments.
-     * @param retainedGenerations  number of generations to retain.
+     * @param lastGCType          type of the most recent GC operation. {@link GCType#FULL} if
+     *                            unknown.
+     * @param referenceGeneration generation used as reference for determining the age of other
+     *                            segments.
+     * @param retainedGenerations number of generations to retain.
      */
     static Predicate<GCGeneration> newOldReclaimer(
-            @NotNull GCType lastGCType,
-            @NotNull final GCGeneration referenceGeneration,
-            int retainedGenerations) {
+        @NotNull GCType lastGCType,
+        @NotNull final GCGeneration referenceGeneration,
+        int retainedGenerations) {
 
         switch (checkNotNull(lastGCType)) {
             case FULL:
@@ -86,8 +89,8 @@ class Reclaimers {
     }
 
     private static Predicate<GCGeneration> newOldFullReclaimer(
-            @NotNull final GCGeneration referenceGeneration,
-            int retainedGenerations) {
+        @NotNull final GCGeneration referenceGeneration,
+        int retainedGenerations) {
         return new Predicate<GCGeneration>() {
 
             @Override
@@ -100,24 +103,25 @@ class Reclaimers {
             }
 
             private boolean isOldFull(GCGeneration generation) {
-                return referenceGeneration.compareFullGenerationWith(generation) >= retainedGenerations;
+                return referenceGeneration.compareFullGenerationWith(generation)
+                    >= retainedGenerations;
             }
 
             @Override
             public String toString() {
                 return String.format(
-                        "(full generation older than %d.%d, with %d retained generations)",
-                        referenceGeneration.getGeneration(),
-                        referenceGeneration.getFullGeneration(),
-                        retainedGenerations
+                    "(full generation older than %d.%d, with %d retained generations)",
+                    referenceGeneration.getGeneration(),
+                    referenceGeneration.getFullGeneration(),
+                    retainedGenerations
                 );
             }
         };
     }
 
     private static Predicate<GCGeneration> newOldTailReclaimer(
-            @NotNull final GCGeneration referenceGeneration,
-            int retainedGenerations) {
+        @NotNull final GCGeneration referenceGeneration,
+        int retainedGenerations) {
         return new Predicate<GCGeneration>() {
 
             @Override
@@ -131,16 +135,16 @@ class Reclaimers {
 
             private boolean sameCompactedTail(GCGeneration generation) {
                 return generation.isCompacted()
-                        && generation.getFullGeneration() == referenceGeneration.getFullGeneration();
+                    && generation.getFullGeneration() == referenceGeneration.getFullGeneration();
             }
 
             @Override
             public String toString() {
                 return String.format(
-                        "(generation older than %d.%d, with %d retained generations and not in the same compacted tail)",
-                        referenceGeneration.getGeneration(),
-                        referenceGeneration.getFullGeneration(),
-                        retainedGenerations
+                    "(generation older than %d.%d, with %d retained generations and not in the same compacted tail)",
+                    referenceGeneration.getGeneration(),
+                    referenceGeneration.getFullGeneration(),
+                    retainedGenerations
                 );
             }
 
@@ -149,16 +153,19 @@ class Reclaimers {
 
     /**
      * Create an exact reclaimer. An exact reclaimer reclaims only segment of on single generation.
-     * @param referenceGeneration  the generation to collect.
-     * @return  a new instance of an exact reclaimer for segments with their generation
-     *          matching {@code referenceGeneration}.
+     *
+     * @param referenceGeneration the generation to collect.
+     * @return a new instance of an exact reclaimer for segments with their generation matching
+     * {@code referenceGeneration}.
      */
-    static Predicate<GCGeneration> newExactReclaimer(@NotNull final GCGeneration referenceGeneration) {
+    static Predicate<GCGeneration> newExactReclaimer(
+        @NotNull final GCGeneration referenceGeneration) {
         return new Predicate<GCGeneration>() {
             @Override
             public boolean apply(GCGeneration generation) {
                 return generation.equals(referenceGeneration);
             }
+
             @Override
             public String toString() {
                 return "(generation==" + referenceGeneration + ")";

@@ -17,9 +17,8 @@
 package org.apache.jackrabbit.oak.spi.security.authorization.permission;
 
 import java.util.Set;
-
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
@@ -41,13 +40,15 @@ public interface PermissionConstants {
     String REP_PRIVILEGE_BITS = "rep:privileges";
     String REP_NUM_PERMISSIONS = "rep:numPermissions";
 
-    Set<String> PERMISSION_NODETYPE_NAMES = ImmutableSet.of(NT_REP_PERMISSIONS, NT_REP_PERMISSION_STORE);
+    Set<String> PERMISSION_NODETYPE_NAMES = ImmutableSet.of(NT_REP_PERMISSIONS,
+        NT_REP_PERMISSION_STORE);
     Set<String> PERMISSION_NODE_NAMES = ImmutableSet.of(REP_PERMISSION_STORE);
-    Set<String> PERMISSION_PROPERTY_NAMES = ImmutableSet.of(REP_ACCESS_CONTROLLED_PATH, REP_PRIVILEGE_BITS, REP_IS_ALLOW);
+    Set<String> PERMISSION_PROPERTY_NAMES = ImmutableSet.of(REP_ACCESS_CONTROLLED_PATH,
+        REP_PRIVILEGE_BITS, REP_IS_ALLOW);
 
     /**
-     * Configuration parameter to enforce backwards compatible permission
-     * validation with respect to user management and node removal:
+     * Configuration parameter to enforce backwards compatible permission validation with respect to
+     * user management and node removal:
      *
      * <ul>
      *     <li>User Management: As of OAK 1.0 creation/removal of user and
@@ -61,13 +62,13 @@ public interface PermissionConstants {
      *     removal of a node only succeeded if all child items (nodes and properties)
      *     could be removed.</li>
      * </ul>
-     *
+     * <p>
      * In order to enforce backwards compatible behavior of the listed permissions
      * above the access control configuration setup needs to contain the
      * {@code #PARAM_PERMISSIONS_JR2} configuration parameter whose value is
      * expected to be a comma separated string of permission names for which
      * backwards compatible behavior should be turned on.<p>
-     *
+     * <p>
      * Currently the following values are respected:
      * <ul>
      *     <li>"USER_MANAGEMENT" : to avoid enforcing {@link org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions#USER_MANAGEMENT}
@@ -75,28 +76,29 @@ public interface PermissionConstants {
      *     <li>"REMOVE_NODE" : to enforce permission checks for all items located
      *     in the subtree in case of removal.</li>
      * </ul>
+     *
      * @since OAK 1.0
      */
     String PARAM_PERMISSIONS_JR2 = "permissionsJr2";
 
     /**
-     * Value of the {@link #PARAM_PERMISSIONS_JR2} configuration parameter that
-     * contains all value entries.
+     * Value of the {@link #PARAM_PERMISSIONS_JR2} configuration parameter that contains all value
+     * entries.
      */
-    String VALUE_PERMISSIONS_JR2 = Permissions.getString(Permissions.USER_MANAGEMENT | Permissions.REMOVE_NODE);
+    String VALUE_PERMISSIONS_JR2 = Permissions.getString(
+        Permissions.USER_MANAGEMENT | Permissions.REMOVE_NODE);
 
     /**
-     * Configuration parameter specifying additional principals that should be
-     * treated as 'administrator' thus get granted full permissions on the
-     * complete repository content.
+     * Configuration parameter specifying additional principals that should be treated as
+     * 'administrator' thus get granted full permissions on the complete repository content.
      *
      * @since OAK 1.0
      */
     String PARAM_ADMINISTRATIVE_PRINCIPALS = "administrativePrincipals";
 
     /**
-     * Configuration parameter to enable full read access to regular nodes and
-     * properties at the specified paths.
+     * Configuration parameter to enable full read access to regular nodes and properties at the
+     * specified paths.
      *
      * @since OAK 1.0
      */
@@ -108,8 +110,8 @@ public interface PermissionConstants {
      * @since OAK 1.0
      */
     Set<String> DEFAULT_READ_PATHS = ImmutableSet.of(
-            NamespaceConstants.NAMESPACES_PATH,
-            NodeTypeConstants.NODE_TYPES_PATH,
-            PrivilegeConstants.PRIVILEGES_PATH
+        NamespaceConstants.NAMESPACES_PATH,
+        NodeTypeConstants.NODE_TYPES_PATH,
+        PrivilegeConstants.PRIVILEGES_PATH
     );
 }

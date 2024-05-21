@@ -24,15 +24,16 @@ import javax.jcr.Session;
 import javax.jcr.util.TraversingItemVisitor;
 
 /**
- * Concurrently reads random items from the deep tree and traverses the the
- * subtree until {@code MAX_LEVEL} is reached, which is currently set to 10.
+ * Concurrently reads random items from the deep tree and traverses the the subtree until
+ * {@code MAX_LEVEL} is reached, which is currently set to 10.
  */
 public class ConcurrentTraversalTest extends ManyUserReadTest {
 
     /* number of levels to traverse */
     private static final int MAX_LEVEL = 10;
 
-    protected ConcurrentTraversalTest(boolean runAsAdmin, int itemsToRead, boolean doReport, boolean randomUser) {
+    protected ConcurrentTraversalTest(boolean runAsAdmin, int itemsToRead, boolean doReport,
+        boolean randomUser) {
         super(runAsAdmin, itemsToRead, doReport, randomUser);
     }
 
@@ -66,7 +67,10 @@ public class ConcurrentTraversalTest extends ManyUserReadTest {
             }
             long end = System.currentTimeMillis();
             if (doReport) {
-                System.out.println("Session " + testSession.getUserID() + " reading " + (cnt-noAccess) + " (Nodes: "+ nodeCnt +"; Properties: "+propertyCnt+") completed in " + (end - start));
+                System.out.println(
+                    "Session " + testSession.getUserID() + " reading " + (cnt - noAccess)
+                        + " (Nodes: " + nodeCnt + "; Properties: " + propertyCnt + ") completed in "
+                        + (end - start));
             }
         } finally {
             if (logout) {

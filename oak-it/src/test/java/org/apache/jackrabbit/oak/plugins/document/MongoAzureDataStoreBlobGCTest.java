@@ -20,6 +20,9 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import static org.junit.Assume.assumeTrue;
 
+import java.io.File;
+import java.util.Date;
+import java.util.Properties;
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants;
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureDataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
@@ -27,10 +30,6 @@ import org.apache.jackrabbit.oak.plugins.document.blob.ds.MongoDataStoreBlobGCTe
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
-
-import java.io.File;
-import java.util.Date;
-import java.util.Properties;
 
 /**
  * Tests DataStoreGC with Mongo and Azure
@@ -58,8 +57,9 @@ public class MongoAzureDataStoreBlobGCTest extends MongoDataStoreBlobGCTest {
         blobStore = new DataStoreBlobStore(
             AzureDataStoreUtils.getAzureDataStore(props, root.getAbsolutePath()));
         mk = new DocumentMK.Builder().clock(getTestClock())
-                .setMongoDB(mongoConnection.getMongoClient(), mongoConnection.getDBName())
-                .setBlobStore(blobStore).open();
+                                     .setMongoDB(mongoConnection.getMongoClient(),
+                                         mongoConnection.getDBName())
+                                     .setBlobStore(blobStore).open();
     }
 
     @After

@@ -16,9 +16,11 @@
  */
 package org.apache.jackrabbit.oak.upgrade.util;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+
 import java.util.ArrayList;
 import java.util.List;
-
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -26,14 +28,10 @@ import javax.jcr.version.Version;
 import javax.jcr.version.VersionHistory;
 import javax.jcr.version.VersionIterator;
 import javax.jcr.version.VersionManager;
-
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.migration.version.VersionCopyConfiguration;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 
 public class VersionCopyTestUtils {
 
@@ -51,14 +49,14 @@ public class VersionCopyTestUtils {
     }
 
     public static Node getOrAddNodeWithMixins(Node parent, String name, String mixinType)
-            throws RepositoryException {
+        throws RepositoryException {
         final Node node = getOrAddNode(parent, name);
         node.addMixin(mixinType);
         return node;
     }
 
     public static String createLabeledVersions(Node node)
-            throws RepositoryException, InterruptedException {
+        throws RepositoryException, InterruptedException {
         final Session session = node.getSession();
         final VersionManager versionManager = session.getWorkspace().getVersionManager();
         node.setProperty("version", "root");
@@ -84,11 +82,13 @@ public class VersionCopyTestUtils {
         final VersionIterator versions = history.getAllVersions();
         assertFalse(versions.nextVersion().getFrozenNode().hasProperty("version")); // root
         for (final String label : LABELS) {
-            assertEquals(label, versions.nextVersion().getFrozenNode().getProperty("version").getString());
+            assertEquals(label,
+                versions.nextVersion().getFrozenNode().getProperty("version").getString());
         }
     }
 
     public interface VersionCopySetup {
+
         void setup(VersionCopyConfiguration config);
     }
 }

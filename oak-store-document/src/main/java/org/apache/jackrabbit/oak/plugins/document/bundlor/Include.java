@@ -19,60 +19,62 @@
 
 package org.apache.jackrabbit.oak.plugins.document.bundlor;
 
-import java.util.List;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkElementIndex;
 
+import java.util.List;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkElementIndex;
-
 /**
- * Include represents a single path pattern which captures the path which
- * needs to be included in bundling. Path patterns can be like below.
+ * Include represents a single path pattern which captures the path which needs to be included in
+ * bundling. Path patterns can be like below.
  * <ul>
  *     <li>* - Match any immediate child</li>
  *     <li>*\/* - Match child with any name upto 2 levels of depth</li>
  *     <li>jcr:content - Match immediate child with name jcr:content</li>
  *     <li>jcr:content\/** - Match jcr:content and all its child</li>
  * </ul>
- *
+ * <p>
  * The last path element can specify a directive. Supported directive
  * <ul>
  *     <li>all - Include all nodes under given path</li>
  * </ul>
  */
 public class Include {
+
     //TODO Restrict to * and have * == **
     private static final String STAR = "*";
     private static final String STAR_STAR = "**";
 
     enum Directive {ALL, NONE}
+
     private final String[] elements;
     private final Directive directive;
     private final String pattern;
 
-    public Include(String pattern){
+    public Include(String pattern) {
         List<String> pathElements = ImmutableList.copyOf(PathUtils.elements(pattern));
         List<String> elementList = Lists.newArrayListWithCapacity(pathElements.size());
         Directive directive = Directive.NONE;
         for (int i = 0; i < pathElements.size(); i++) {
             String e = pathElements.get(i);
             int indexOfColon = e.indexOf(";");
-            if (indexOfColon > 0){
+            if (indexOfColon > 0) {
                 directive = Directive.valueOf(e.substring(indexOfColon + 1).toUpperCase());
                 e = e.substring(0, indexOfColon);
             }
 
-            if (STAR_STAR.equals(e)){
+            if (STAR_STAR.equals(e)) {
                 e = STAR;
                 directive = Directive.ALL;
             }
 
             elementList.add(e);
 
-            if (directive != Directive.NONE && i < pathElements.size() - 1){
-                throw new IllegalArgumentException("Directive can only be specified for last path segment ["+pattern+"]");
+            if (directive != Directive.NONE && i < pathElements.size() - 1) {
+                throw new IllegalArgumentException(
+                    "Directive can only be specified for last path segment [" + pattern + "]");
             }
         }
 
@@ -83,7 +85,7 @@ public class Include {
 
     public boolean match(String relativePath) {
         Matcher m = createMatcher();
-        for (String e : PathUtils.elements(relativePath)){
+        for (String e : PathUtils.elements(relativePath)) {
             m = m.next(e);
         }
         return m.isMatch();
@@ -107,11 +109,11 @@ public class Include {
     }
 
     /**
-     * Matches node name against pattern at given depth.
-     * Depth here would be 1 based with 0 for root depth
+     * Matches node name against pattern at given depth. Depth here would be 1 based with 0 for root
+     * depth
      *
      * @param nodeName nodeName to match
-     * @param depth depth in path
+     * @param depth    depth in path
      * @return true if nodeName matched against pattern at given depth
      */
     public boolean match(String nodeName, int depth) {
@@ -121,7 +123,7 @@ public class Include {
         return STAR.equals(e) || nodeName.equals(e);
     }
 
-    public boolean matchAny(int depth){
+    public boolean matchAny(int depth) {
         int elementIndex = depth - 1;
         checkElementIndex(elementIndex, elements.length);
         return STAR.equals(elements[elementIndex]);

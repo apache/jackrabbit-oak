@@ -18,14 +18,12 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.util.Collections;
 import java.util.List;
-
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
- * A LuceneIndexProvider that return a LuceneIndex with a really low cost, so
- * that it tries to guarantee its usage in the queries
- * 
+ * A LuceneIndexProvider that return a LuceneIndex with a really low cost, so that it tries to
+ * guarantee its usage in the queries
  */
 public class LowCostLuceneIndexProvider extends LuceneIndexProvider {
 
@@ -35,6 +33,7 @@ public class LowCostLuceneIndexProvider extends LuceneIndexProvider {
     }
 
     private static class LowCostLuceneIndex extends LuceneIndex {
+
         public LowCostLuceneIndex(IndexTracker tracker, NodeAggregator aggregator) {
             super(tracker, aggregator);
         }
@@ -45,15 +44,17 @@ public class LowCostLuceneIndexProvider extends LuceneIndexProvider {
         }
 
         @Override
-        public List<IndexPlan> getPlans(Filter filter, List<OrderEntry> sortOrder, NodeState rootState) {
-            String indexPath = LuceneIndexLookupUtil.getOldFullTextIndexPath(rootState, filter, tracker);
-            if (indexPath == null){
+        public List<IndexPlan> getPlans(Filter filter, List<OrderEntry> sortOrder,
+            NodeState rootState) {
+            String indexPath = LuceneIndexLookupUtil.getOldFullTextIndexPath(rootState, filter,
+                tracker);
+            if (indexPath == null) {
                 return Collections.emptyList();
             }
             return Collections.singletonList(planBuilder(filter)
-                    .setCostPerExecution(getMinimumCost())
-                    .setAttribute(ATTR_INDEX_PATH, indexPath)
-                    .build());
+                .setCostPerExecution(getMinimumCost())
+                .setAttribute(ATTR_INDEX_PATH, indexPath)
+                .build());
         }
     }
 }

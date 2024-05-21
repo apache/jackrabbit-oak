@@ -26,109 +26,118 @@ package org.apache.lucene.util.fst;
  */
 
 import java.io.IOException;
-
 import org.apache.lucene.util.ArrayUtil;
 import org.apache.lucene.util.BytesRef;
 
-/** Enumerates all input (BytesRef) + output pairs in an
- *  FST.
+/**
+ * Enumerates all input (BytesRef) + output pairs in an FST.
  *
-  * @lucene.experimental
-*/
+ * @lucene.experimental
+ */
 
 public final class BytesRefFSTEnum<T> extends FSTEnum<T> {
-  private final BytesRef current = new BytesRef(10);
-  private final InputOutput<T> result = new InputOutput<T>();
-  private BytesRef target;
 
-  /** Holds a single input (BytesRef) + output pair. */
-  public static class InputOutput<T> {
-    public BytesRef input;
-    public T output;
-  }
+    private final BytesRef current = new BytesRef(10);
+    private final InputOutput<T> result = new InputOutput<T>();
+    private BytesRef target;
 
-  /** doFloor controls the behavior of advance: if it's true
-   *  doFloor is true, advance positions to the biggest
-   *  term before target.  */
-  public BytesRefFSTEnum(FST<T> fst) {
-    super(fst);
-    result.input = current;
-    current.offset = 1;
-  }
+    /**
+     * Holds a single input (BytesRef) + output pair.
+     */
+    public static class InputOutput<T> {
 
-  public InputOutput<T> current() {
-    return result;
-  }
-
-  public InputOutput<T> next() throws IOException {
-    //System.out.println("  enum.next");
-    doNext();
-    return setResult();
-  }
-
-  /** Seeks to smallest term that's >= target. */
-  public InputOutput<T> seekCeil(BytesRef target) throws IOException {
-    this.target = target;
-    targetLength = target.length;
-    super.doSeekCeil();
-    return setResult();
-  }
-
-  /** Seeks to biggest term that's <= target. */
-  public InputOutput<T> seekFloor(BytesRef target) throws IOException {
-    this.target = target;
-    targetLength = target.length;
-    super.doSeekFloor();
-    return setResult();
-  }
-
-  /** Seeks to exactly this term, returning null if the term
-   *  doesn't exist.  This is faster than using {@link
-   *  #seekFloor} or {@link #seekCeil} because it
-   *  short-circuits as soon the match is not found. */
-  public InputOutput<T> seekExact(BytesRef target) throws IOException {
-    this.target = target;
-    targetLength = target.length;
-    if (super.doSeekExact()) {
-      assert upto == 1+target.length;
-      return setResult();
-    } else {
-      return null;
+        public BytesRef input;
+        public T output;
     }
-  }
 
-  @Override
-  protected int getTargetLabel() {
-    if (upto-1 == target.length) {
-      return FST.END_LABEL;
-    } else {
-      return target.bytes[target.offset + upto - 1] & 0xFF;
+    /**
+     * doFloor controls the behavior of advance: if it's true doFloor is true, advance positions to
+     * the biggest term before target.
+     */
+    public BytesRefFSTEnum(FST<T> fst) {
+        super(fst);
+        result.input = current;
+        current.offset = 1;
     }
-  }
 
-  @Override
-  protected int getCurrentLabel() {
-    // current.offset fixed at 1
-    return current.bytes[upto] & 0xFF;
-  }
-
-  @Override
-  protected void setCurrentLabel(int label) {
-    current.bytes[upto] = (byte) label;
-  }
-
-  @Override
-  protected void grow() {
-    current.bytes = ArrayUtil.grow(current.bytes, upto+1);
-  }
-
-  private InputOutput<T> setResult() {
-    if (upto == 0) {
-      return null;
-    } else {
-      current.length = upto-1;
-      result.output = output[upto];
-      return result;
+    public InputOutput<T> current() {
+        return result;
     }
-  }
+
+    public InputOutput<T> next() throws IOException {
+        //System.out.println("  enum.next");
+        doNext();
+        return setResult();
+    }
+
+    /**
+     * Seeks to smallest term that's >= target.
+     */
+    public InputOutput<T> seekCeil(BytesRef target) throws IOException {
+        this.target = target;
+        targetLength = target.length;
+        super.doSeekCeil();
+        return setResult();
+    }
+
+    /**
+     * Seeks to biggest term that's <= target.
+     */
+    public InputOutput<T> seekFloor(BytesRef target) throws IOException {
+        this.target = target;
+        targetLength = target.length;
+        super.doSeekFloor();
+        return setResult();
+    }
+
+    /**
+     * Seeks to exactly this term, returning null if the term doesn't exist.  This is faster than
+     * using {@link #seekFloor} or {@link #seekCeil} because it short-circuits as soon the match is
+     * not found.
+     */
+    public InputOutput<T> seekExact(BytesRef target) throws IOException {
+        this.target = target;
+        targetLength = target.length;
+        if (super.doSeekExact()) {
+            assert upto == 1 + target.length;
+            return setResult();
+        } else {
+            return null;
+        }
+    }
+
+    @Override
+    protected int getTargetLabel() {
+        if (upto - 1 == target.length) {
+            return FST.END_LABEL;
+        } else {
+            return target.bytes[target.offset + upto - 1] & 0xFF;
+        }
+    }
+
+    @Override
+    protected int getCurrentLabel() {
+        // current.offset fixed at 1
+        return current.bytes[upto] & 0xFF;
+    }
+
+    @Override
+    protected void setCurrentLabel(int label) {
+        current.bytes[upto] = (byte) label;
+    }
+
+    @Override
+    protected void grow() {
+        current.bytes = ArrayUtil.grow(current.bytes, upto + 1);
+    }
+
+    private InputOutput<T> setResult() {
+        if (upto == 0) {
+            return null;
+        } else {
+            current.length = upto - 1;
+            result.output = output[upto];
+            return result;
+        }
+    }
 }

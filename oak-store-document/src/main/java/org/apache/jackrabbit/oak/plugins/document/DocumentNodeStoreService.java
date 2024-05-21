@@ -127,8 +127,8 @@ import org.slf4j.LoggerFactory;
  * The OSGi service to start/stop a DocumentNodeStore instance.
  */
 @Component(
-        configurationPolicy = ConfigurationPolicy.REQUIRE,
-        configurationPid = {Configuration.PID})
+    configurationPolicy = ConfigurationPolicy.REQUIRE,
+    configurationPid = {Configuration.PID})
 public class DocumentNodeStoreService {
 
     private static final long MB = 1024 * 1024;
@@ -144,11 +144,11 @@ public class DocumentNodeStoreService {
     static final boolean DEFAULT_CUSTOM_BLOB_STORE = false;
     public static final String CONTINUOUS_RGC_EXPR = "*/5 * * * * ?";
     public static final String CLASSIC_RGC_EXPR = "0 0 2 * * ?";
-    public static final long DEFAULT_RGC_TIME_LIMIT_SECS = 3*60*60; // default is 3 hours
+    public static final long DEFAULT_RGC_TIME_LIMIT_SECS = 3 * 60 * 60; // default is 3 hours
     public static final double DEFAULT_RGC_DELAY_FACTOR = 0;
     private static final String DESCRIPTION = "oak.nodestore.description";
-    static final long DEFAULT_JOURNAL_GC_INTERVAL_MILLIS = 5*60*1000; // default is 5min
-    static final long DEFAULT_JOURNAL_GC_MAX_AGE_MILLIS = 24*60*60*1000; // default is 24hours
+    static final long DEFAULT_JOURNAL_GC_INTERVAL_MILLIS = 5 * 60 * 1000; // default is 5min
+    static final long DEFAULT_JOURNAL_GC_MAX_AGE_MILLIS = 24 * 60 * 60 * 1000; // default is 24hours
     static final boolean DEFAULT_PREFETCH_EXTERNAL_CHANGES = false;
     private static final String DEFAULT_PROP_HOME = "./repository";
     static final long DEFAULT_MAX_REPLICATION_LAG = 6 * 60 * 60;
@@ -250,7 +250,7 @@ public class DocumentNodeStoreService {
     protected void activate(ComponentContext context, Configuration config) throws Exception {
         closer = Closer.create();
         this.config = DocumentNodeStoreServiceConfiguration.create(context,
-                configurationAdmin, preset.configuration, config);
+            configurationAdmin, preset.configuration, config);
         this.context = context;
         whiteboard = new OsgiWhiteboard(context.getBundleContext());
         executor = new WhiteboardExecutor();
@@ -268,15 +268,19 @@ public class DocumentNodeStoreService {
     private void registerNodeStoreIfPossible() throws IOException {
         // disallow attempts to restart (OAK-3420)
         if (deactivationTimestamp != 0) {
-            log.info("DocumentNodeStore was already unregistered ({}ms ago)", System.currentTimeMillis() - deactivationTimestamp);
+            log.info("DocumentNodeStore was already unregistered ({}ms ago)",
+                System.currentTimeMillis() - deactivationTimestamp);
         } else if (context == null) {
             log.info("Component still not activated. Ignoring the initialization call");
         } else if (customBlobStore && blobStore == null) {
-            log.info("Custom BlobStore use enabled. DocumentNodeStoreService would be initialized when "
+            log.info(
+                "Custom BlobStore use enabled. DocumentNodeStoreService would be initialized when "
                     + "BlobStore would be available");
-        } else if (documentStoreType == DocumentStoreType.RDB && (dataSource == null || blobDataSource == null)) {
+        } else if (documentStoreType == DocumentStoreType.RDB && (dataSource == null
+            || blobDataSource == null)) {
             log.info("DataSource use enabled. DocumentNodeStoreService would be initialized when "
-                    + "DataSource would be available (currently available: nodes: {}, blobs: {})", dataSource, blobDataSource);
+                    + "DataSource would be available (currently available: nodes: {}, blobs: {})",
+                dataSource, blobDataSource);
         } else {
             registerNodeStore();
         }
@@ -287,14 +291,18 @@ public class DocumentNodeStoreService {
         if (documentStoreType == DocumentStoreType.RDB) {
             RDBDocumentNodeStoreBuilder builder = newRDBDocumentNodeStoreBuilder();
             configureBuilder(builder);
-            checkNotNull(dataSource, "DataStore type set [%s] but DataSource reference not initialized", PROP_DS_TYPE);
+            checkNotNull(dataSource,
+                "DataStore type set [%s] but DataSource reference not initialized", PROP_DS_TYPE);
             if (!customBlobStore) {
-                checkNotNull(blobDataSource, "DataStore type set [%s] but BlobDataSource reference not initialized", PROP_DS_TYPE);
+                checkNotNull(blobDataSource,
+                    "DataStore type set [%s] but BlobDataSource reference not initialized",
+                    PROP_DS_TYPE);
                 builder.setRDBConnection(dataSource, blobDataSource);
                 log.info("Connected to datasources {} {}", dataSource, blobDataSource);
             } else {
                 if (blobDataSource != null && blobDataSource != dataSource) {
-                    log.info("Ignoring blobDataSource {} as custom blob store takes precedence.", blobDataSource);
+                    log.info("Ignoring blobDataSource {} as custom blob store takes precedence.",
+                        blobDataSource);
                 }
                 builder.setRDBConnection(dataSource);
                 log.info("Connected to datasource {}", dataSource);
@@ -306,19 +314,23 @@ public class DocumentNodeStoreService {
             boolean soKeepAlive = config.socketKeepAlive();
 
             MongoClientURI mongoURI = new MongoClientURI(uri);
-            String persistentCache = resolvePath(config.persistentCache(), DEFAULT_PERSISTENT_CACHE);
+            String persistentCache = resolvePath(config.persistentCache(),
+                DEFAULT_PERSISTENT_CACHE);
             String journalCache = resolvePath(config.journalCache(), DEFAULT_JOURNAL_CACHE);
 
             if (log.isInfoEnabled()) {
                 // Take care around not logging the uri directly as it
                 // might contain passwords
-                log.info("Starting DocumentNodeStore with host={}, db={}, cache size (MB)={}, persistentCache={}, " +
-                                "journalCache={}, blobCacheSize (MB)={}, maxReplicationLagInSecs={}, " +
-                                "clusterIdReuseDelayAfterRecoveryMillis={}, recoveryDelayMillis={}",
-                        mongoURI.getHosts(), db, config.cache(), persistentCache,
-                        journalCache, config.blobCacheSize(), config.maxReplicationLagInSecs(),
-                        config.clusterIdReuseDelayAfterRecoveryMillis(), config.recoveryDelayMillis());
-                log.info("Mongo Connection details {}", MongoConnection.toString(mongoURI.getOptions()));
+                log.info(
+                    "Starting DocumentNodeStore with host={}, db={}, cache size (MB)={}, persistentCache={}, "
+                        +
+                        "journalCache={}, blobCacheSize (MB)={}, maxReplicationLagInSecs={}, " +
+                        "clusterIdReuseDelayAfterRecoveryMillis={}, recoveryDelayMillis={}",
+                    mongoURI.getHosts(), db, config.cache(), persistentCache,
+                    journalCache, config.blobCacheSize(), config.maxReplicationLagInSecs(),
+                    config.clusterIdReuseDelayAfterRecoveryMillis(), config.recoveryDelayMillis());
+                log.info("Mongo Connection details {}",
+                    MongoConnection.toString(mongoURI.getOptions()));
             }
 
             MongoDocumentNodeStoreBuilder builder = newMongoDocumentNodeStoreBuilder();
@@ -333,11 +345,11 @@ public class DocumentNodeStoreService {
             log.info("Connected to database '{}'", db);
         }
 
-        if (!customBlobStore){
+        if (!customBlobStore) {
             defaultBlobStore = mkBuilder.getBlobStore();
             log.info("Registering the BlobStore with ServiceRegistry");
             blobStoreReg = context.getBundleContext().registerService(BlobStore.class.getName(),
-                    defaultBlobStore , null);
+                defaultBlobStore, null);
         }
 
         //Set wrapping blob store after setting the DB
@@ -359,19 +371,19 @@ public class DocumentNodeStoreService {
             loggingGCMonitor = new LoggingGCMonitor(vgcLogger);
         }
         mkBuilder.setGCMonitor(new DelegatingGCMonitor(
-                newArrayList(gcMonitor, loggingGCMonitor)));
+            newArrayList(gcMonitor, loggingGCMonitor)));
         mkBuilder.setRevisionGCMaxAge(TimeUnit.SECONDS.toMillis(config.versionGcMaxAgeInSecs()));
 
         nodeStore = mkBuilder.build();
 
-        // ensure a clusterId is initialized 
+        // ensure a clusterId is initialized
         // and expose it as 'oak.clusterid' repository descriptor
         GenericDescriptors clusterIdDesc = new GenericDescriptors();
-        clusterIdDesc.put(ClusterRepositoryInfo.OAK_CLUSTERID_REPOSITORY_DESCRIPTOR_KEY, 
-                new SimpleValueFactory().createValue(
-                        ClusterRepositoryInfo.getOrCreateId(nodeStore)), true, false);
+        clusterIdDesc.put(ClusterRepositoryInfo.OAK_CLUSTERID_REPOSITORY_DESCRIPTOR_KEY,
+            new SimpleValueFactory().createValue(
+                ClusterRepositoryInfo.getOrCreateId(nodeStore)), true, false);
         whiteboard.register(Descriptors.class, clusterIdDesc, Collections.emptyMap());
-        
+
         // If a shared data store register the repo id in the data store
         if (SharedDataStoreUtils.isShared(blobStore)) {
             String repoId = null;
@@ -389,11 +401,10 @@ public class DocumentNodeStoreService {
                 }
                 ((BlobTrackingStore) blobStore).addTracker(
                     BlobIdTracker.build(getRepositoryHome(), repoId,
-                            config.blobTrackSnapshotIntervalInSecs(),
-                            (SharedDataStore) blobStore));
+                        config.blobTrackSnapshotIntervalInSecs(),
+                        (SharedDataStore) blobStore));
             }
         }
-
 
         registerJMXBeans(nodeStore, mkBuilder);
         registerLastRevRecoveryJob(nodeStore);
@@ -413,14 +424,14 @@ public class DocumentNodeStoreService {
         if (isNodeStoreProvider()) {
             registerNodeStoreProvider(nodeStore);
             serviceClasses = new String[]{
-                    DocumentNodeStore.class.getName(),
-                    Clusterable.class.getName()
+                DocumentNodeStore.class.getName(),
+                Clusterable.class.getName()
             };
         } else {
             serviceClasses = new String[]{
-                    NodeStore.class.getName(),
-                    DocumentNodeStore.class.getName(),
-                    Clusterable.class.getName()
+                NodeStore.class.getName(),
+                DocumentNodeStore.class.getName(),
+                Clusterable.class.getName()
             };
         }
 
@@ -448,7 +459,8 @@ public class DocumentNodeStoreService {
                     log.error("handleLeaseFailure: stopped {}.", bundleName);
                     // plan A worked, perfect!
                 } catch (BundleException e) {
-                    log.error("handleLeaseFailure: exception while stopping " + bundleName + ": " + e, e);
+                    log.error(
+                        "handleLeaseFailure: exception while stopping " + bundleName + ": " + e, e);
                     // plan B: stop only DocumentNodeStoreService (to stop the background threads)
                     log.error("handleLeaseFailure: stopping DocumentNodeStoreService...");
                     context.disableComponent(DocumentNodeStoreService.class.getName());
@@ -462,62 +474,66 @@ public class DocumentNodeStoreService {
     private void configureBuilder(DocumentNodeStoreBuilder<?> builder) {
         String persistentCache = resolvePath(config.persistentCache(), DEFAULT_PERSISTENT_CACHE);
         String journalCache = resolvePath(config.journalCache(), DEFAULT_JOURNAL_CACHE);
-        final Tracker<LeaseFailureHandler> leaseFailureHandlerTracker = whiteboard.track(LeaseFailureHandler.class);
+        final Tracker<LeaseFailureHandler> leaseFailureHandlerTracker = whiteboard.track(
+            LeaseFailureHandler.class);
         builder.setStatisticsProvider(statisticsProvider).
-                setExecutor(executor).
-                memoryCacheSize(config.cache() * MB).
-                memoryCacheDistribution(
-                        config.nodeCachePercentage(),
-                        config.prevDocCachePercentage(),
-                        config.childrenCachePercentage(),
-                        config.diffCachePercentage()).
-                setCacheSegmentCount(config.cacheSegmentCount()).
-                setCacheStackMoveDistance(config.cacheStackMoveDistance()).
-                setBundlingDisabled(config.bundlingDisabled()).
-                setJournalPropertyHandlerFactory(journalPropertyHandlerFactory).
-                setLeaseCheckMode(ClusterNodeInfo.DEFAULT_LEASE_CHECK_DISABLED ? LeaseCheckMode.DISABLED : LeaseCheckMode.valueOf(config.leaseCheckMode())).
-                setPrefetchFeature(prefetchFeature).
-                setDocStoreThrottlingFeature(docStoreThrottlingFeature).
-                setNoChildOrderCleanupFeature(noChildOrderCleanupFeature).
-                setCancelInvalidationFeature(cancelInvalidationFeature).
-                setThrottlingEnabled(config.throttlingEnabled()).
-                setSuspendTimeoutMillis(config.suspendTimeoutMillis()).
-                setClusterIdReuseDelayAfterRecovery(config.clusterIdReuseDelayAfterRecoveryMillis()).
-                setRecoveryDelayMillis(config.recoveryDelayMillis()).
-                setLeaseFailureHandler(new LeaseFailureHandler() {
+               setExecutor(executor).
+               memoryCacheSize(config.cache() * MB).
+               memoryCacheDistribution(
+                   config.nodeCachePercentage(),
+                   config.prevDocCachePercentage(),
+                   config.childrenCachePercentage(),
+                   config.diffCachePercentage()).
+               setCacheSegmentCount(config.cacheSegmentCount()).
+               setCacheStackMoveDistance(config.cacheStackMoveDistance()).
+               setBundlingDisabled(config.bundlingDisabled()).
+               setJournalPropertyHandlerFactory(journalPropertyHandlerFactory).
+               setLeaseCheckMode(
+                   ClusterNodeInfo.DEFAULT_LEASE_CHECK_DISABLED ? LeaseCheckMode.DISABLED
+                       : LeaseCheckMode.valueOf(config.leaseCheckMode())).
+               setPrefetchFeature(prefetchFeature).
+               setDocStoreThrottlingFeature(docStoreThrottlingFeature).
+               setNoChildOrderCleanupFeature(noChildOrderCleanupFeature).
+               setCancelInvalidationFeature(cancelInvalidationFeature).
+               setThrottlingEnabled(config.throttlingEnabled()).
+               setSuspendTimeoutMillis(config.suspendTimeoutMillis()).
+               setClusterIdReuseDelayAfterRecovery(config.clusterIdReuseDelayAfterRecoveryMillis()).
+               setRecoveryDelayMillis(config.recoveryDelayMillis()).
+               setLeaseFailureHandler(new LeaseFailureHandler() {
 
-                    private final LeaseFailureHandler defaultLeaseFailureHandler = createDefaultLeaseFailureHandler();
+                   private final LeaseFailureHandler defaultLeaseFailureHandler = createDefaultLeaseFailureHandler();
 
-                    @Override
-                    public void handleLeaseFailure() {
-                        boolean handled = false;
-                        try {
-                            if (leaseFailureHandlerTracker != null) {
-                                final List<LeaseFailureHandler> handlers = leaseFailureHandlerTracker.getServices();
-                                if (handlers != null && handlers.size() > 0) {
-                                    // go through the list, but only execute the first one
-                                    for (LeaseFailureHandler handler : handlers) {
-                                        if (handler != null) {
-                                            log.info("handleLeaseFailure: invoking handler " + handler);
-                                            handler.handleLeaseFailure();
-                                            handled = true;
-                                            break;
-                                        }
-                                    }
-                                }
-                            }
-                        } finally {
-                            if (!handled) {
-                                log.info("handleLeaseFailure: invoking default handler");
-                                defaultLeaseFailureHandler.handleLeaseFailure();
-                            }
-                        }
-                    }
-                }).
-                setPrefetchExternalChanges(config.prefetchExternalChanges()).
-                setUpdateLimit(config.updateLimit()).
-                setJournalGCMaxAge(config.journalGCMaxAge()).
-                setNodeCachePathPredicate(createCachePredicate());
+                   @Override
+                   public void handleLeaseFailure() {
+                       boolean handled = false;
+                       try {
+                           if (leaseFailureHandlerTracker != null) {
+                               final List<LeaseFailureHandler> handlers = leaseFailureHandlerTracker.getServices();
+                               if (handlers != null && handlers.size() > 0) {
+                                   // go through the list, but only execute the first one
+                                   for (LeaseFailureHandler handler : handlers) {
+                                       if (handler != null) {
+                                           log.info(
+                                               "handleLeaseFailure: invoking handler " + handler);
+                                           handler.handleLeaseFailure();
+                                           handled = true;
+                                           break;
+                                       }
+                                   }
+                               }
+                           }
+                       } finally {
+                           if (!handled) {
+                               log.info("handleLeaseFailure: invoking default handler");
+                               defaultLeaseFailureHandler.handleLeaseFailure();
+                           }
+                       }
+                   }
+               }).
+               setPrefetchExternalChanges(config.prefetchExternalChanges()).
+               setUpdateLimit(config.updateLimit()).
+               setJournalGCMaxAge(config.journalGCMaxAge()).
+               setNodeCachePathPredicate(createCachePredicate());
 
         if (!Strings.isNullOrEmpty(persistentCache)) {
             builder.setPersistentCache(persistentCache);
@@ -528,14 +544,16 @@ public class DocumentNodeStoreService {
 
         //Set blobstore before setting the document store
         if (customBlobStore && !isWrappingCustomBlobStore()) {
-            checkNotNull(blobStore, "Use of custom BlobStore enabled via  [%s] but blobStore reference not " +
+            checkNotNull(blobStore,
+                "Use of custom BlobStore enabled via  [%s] but blobStore reference not " +
                     "initialized", CUSTOM_BLOB_STORE);
             builder.setBlobStore(blobStore);
         }
 
         // set throttling stats collector only if throttling is enabled
         if (isThrottlingEnabled(builder)) {
-            builder.setThrottlingStatsCollector(new ThrottlingStatsCollectorImpl(statisticsProvider));
+            builder.setThrottlingStatsCollector(
+                new ThrottlingStatsCollectorImpl(statisticsProvider));
         }
 
         // initialize the (global) recoveryDelayMillis
@@ -607,9 +625,9 @@ public class DocumentNodeStoreService {
         Dictionary<String, Object> props = new Hashtable<>();
         props.put(NodeStoreProvider.ROLE, config.role());
         nodeStoreReg = context.getBundleContext().registerService(
-                NodeStoreProvider.class.getName(),
-                (NodeStoreProvider) () -> ns,
-                props);
+            NodeStoreProvider.class.getName(),
+            (NodeStoreProvider) () -> ns,
+            props);
         log.info("Registered NodeStoreProvider backed by DocumentNodeStore");
     }
 
@@ -619,7 +637,7 @@ public class DocumentNodeStoreService {
             observerTracker.stop();
         }
 
-        if (journalPropertyHandlerFactory != null){
+        if (journalPropertyHandlerFactory != null) {
             journalPropertyHandlerFactory.stop();
         }
 
@@ -639,13 +657,13 @@ public class DocumentNodeStoreService {
     }
 
     @Reference(name = "blobStore",
-            cardinality = ReferenceCardinality.OPTIONAL,
-            policy = ReferencePolicy.DYNAMIC,
-            target = ONLY_STANDALONE_TARGET
+        cardinality = ReferenceCardinality.OPTIONAL,
+        policy = ReferencePolicy.DYNAMIC,
+        target = ONLY_STANDALONE_TARGET
     )
     @SuppressWarnings("UnusedDeclaration")
     protected void bindBlobStore(BlobStore blobStore) throws IOException {
-        if (defaultBlobStore == blobStore){
+        if (defaultBlobStore == blobStore) {
             return;
         }
         log.info("Initializing DocumentNodeStore with BlobStore [{}]", blobStore);
@@ -655,7 +673,7 @@ public class DocumentNodeStoreService {
 
     @SuppressWarnings("UnusedDeclaration")
     protected void unbindBlobStore(BlobStore blobStore) {
-        if (defaultBlobStore == blobStore){
+        if (defaultBlobStore == blobStore) {
             return;
         }
         this.blobStore = null;
@@ -663,14 +681,15 @@ public class DocumentNodeStoreService {
     }
 
     @Reference(name = "dataSource",
-            cardinality = ReferenceCardinality.OPTIONAL,
-            policy = ReferencePolicy.DYNAMIC,
-            target = "(datasource.name=oak)"
+        cardinality = ReferenceCardinality.OPTIONAL,
+        policy = ReferencePolicy.DYNAMIC,
+        target = "(datasource.name=oak)"
     )
     @SuppressWarnings("UnusedDeclaration")
     protected void bindDataSource(DataSource dataSource) throws IOException {
         if (this.dataSource != null) {
-            log.info("Ignoring bindDataSource [{}] because dataSource [{}] is already bound", dataSource, this.dataSource);
+            log.info("Ignoring bindDataSource [{}] because dataSource [{}] is already bound",
+                dataSource, this.dataSource);
         } else {
             log.info("Initializing DocumentNodeStore with dataSource [{}]", dataSource);
             this.dataSource = dataSource;
@@ -681,9 +700,11 @@ public class DocumentNodeStoreService {
     @SuppressWarnings("UnusedDeclaration")
     protected void unbindDataSource(DataSource dataSource) {
         if (this.dataSource != dataSource) {
-            log.info("Ignoring unbindDataSource [{}] because dataSource is bound to [{}]", dataSource, this.dataSource);
+            log.info("Ignoring unbindDataSource [{}] because dataSource is bound to [{}]",
+                dataSource, this.dataSource);
         } else {
-            log.info("Unregistering DocumentNodeStore because dataSource [{}] was unbound", dataSource);
+            log.info("Unregistering DocumentNodeStore because dataSource [{}] was unbound",
+                dataSource);
             this.dataSource = null;
             unregisterNodeStore();
         }
@@ -693,15 +714,17 @@ public class DocumentNodeStoreService {
     private DocumentStoreType documentStoreType;
 
     @Reference(name = "blobDataSource",
-            cardinality = ReferenceCardinality.OPTIONAL,
-            policy = ReferencePolicy.DYNAMIC,
-            target = "(datasource.name=oak)"
+        cardinality = ReferenceCardinality.OPTIONAL,
+        policy = ReferencePolicy.DYNAMIC,
+        target = "(datasource.name=oak)"
     )
     @SuppressWarnings("UnusedDeclaration")
     protected void bindBlobDataSource(DataSource dataSource) throws IOException {
         if (this.blobDataSource != null) {
-            log.info("Ignoring bindBlobDataSource [{}] because blobDataSource [{}] is already bound", dataSource,
-                    this.blobDataSource);
+            log.info(
+                "Ignoring bindBlobDataSource [{}] because blobDataSource [{}] is already bound",
+                dataSource,
+                this.blobDataSource);
         } else {
             log.info("Initializing DocumentNodeStore with blobDataSource [{}]", dataSource);
             this.blobDataSource = dataSource;
@@ -712,29 +735,32 @@ public class DocumentNodeStoreService {
     @SuppressWarnings("UnusedDeclaration")
     protected void unbindBlobDataSource(DataSource dataSource) {
         if (this.blobDataSource != dataSource) {
-            log.info("Ignoring unbindBlobDataSource [{}] because dataSource is bound to [{}]", dataSource, this.blobDataSource);
+            log.info("Ignoring unbindBlobDataSource [{}] because dataSource is bound to [{}]",
+                dataSource, this.blobDataSource);
         } else {
-            log.info("Unregistering DocumentNodeStore because blobDataSource [{}] was unbound", dataSource);
+            log.info("Unregistering DocumentNodeStore because blobDataSource [{}] was unbound",
+                dataSource);
             this.blobDataSource = null;
             unregisterNodeStore();
         }
     }
 
     @Reference(name = "nodeStateCache",
-            cardinality = ReferenceCardinality.OPTIONAL,
-            policy = ReferencePolicy.DYNAMIC
+        cardinality = ReferenceCardinality.OPTIONAL,
+        policy = ReferencePolicy.DYNAMIC
     )
     @SuppressWarnings("UnusedDeclaration")
     protected void bindNodeStateCache(DocumentNodeStateCache nodeStateCache) throws IOException {
-       if (nodeStore != null){
-           log.info("Registered DocumentNodeStateCache [{}] with DocumentNodeStore", nodeStateCache);
-           nodeStore.setNodeStateCache(nodeStateCache);
-       }
+        if (nodeStore != null) {
+            log.info("Registered DocumentNodeStateCache [{}] with DocumentNodeStore",
+                nodeStateCache);
+            nodeStore.setNodeStateCache(nodeStateCache);
+        }
     }
 
     @SuppressWarnings("UnusedDeclaration")
     protected void unbindNodeStateCache(DocumentNodeStateCache nodeStateCache) {
-        if (nodeStore != null){
+        if (nodeStore != null) {
             nodeStore.setNodeStateCache(DocumentNodeStateCache.NOOP);
         }
     }
@@ -753,7 +779,7 @@ public class DocumentNodeStoreService {
         //NodeStore service. This ensures that if any other component
         //like SecondaryStoreCache depends on this then it remains active
         //untill DocumentNodeStore get deactivated
-        if (blobStoreReg != null){
+        if (blobStoreReg != null) {
             blobStoreReg.unregister();
             blobStoreReg = null;
         }
@@ -769,8 +795,9 @@ public class DocumentNodeStoreService {
         }
     }
 
-    private void registerJMXBeans(final DocumentNodeStore store, DocumentNodeStoreBuilder<?> mkBuilder) throws
-            IOException {
+    private void registerJMXBeans(final DocumentNodeStore store,
+        DocumentNodeStoreBuilder<?> mkBuilder) throws
+        IOException {
         registerCacheStatsMBean(store.getNodeCacheStats());
         registerCacheStatsMBean(store.getNodeChildrenCacheStats());
         for (CacheStats cs : store.getDiffCacheStats()) {
@@ -785,20 +812,20 @@ public class DocumentNodeStoreService {
 
         if (!isNodeStoreProvider()) {
             addRegistration(
-                    registerMBean(whiteboard,
-                            CheckpointMBean.class,
-                            new DocumentCheckpointMBean(store),
-                            CheckpointMBean.TYPE,
-                            "Document node store checkpoint management")
+                registerMBean(whiteboard,
+                    CheckpointMBean.class,
+                    new DocumentCheckpointMBean(store),
+                    CheckpointMBean.TYPE,
+                    "Document node store checkpoint management")
             );
         }
 
         addRegistration(
-                registerMBean(whiteboard,
-                        DocumentNodeStoreMBean.class,
-                        store.getMBean(),
-                        DocumentNodeStoreMBean.TYPE,
-                        "Document node store management")
+            registerMBean(whiteboard,
+                DocumentNodeStoreMBean.class,
+                store.getMBean(),
+                DocumentNodeStoreMBean.TYPE,
+                "Document node store management")
         );
 
         if (mkBuilder.getBlobStoreCacheStats() != null) {
@@ -807,23 +834,23 @@ public class DocumentNodeStoreService {
 
         if (mkBuilder.getDocumentStoreStatsCollector() instanceof DocumentStoreStatsMBean) {
             addRegistration(
-                    registerMBean(whiteboard,
-                            DocumentStoreStatsMBean.class,
-                            (DocumentStoreStatsMBean) mkBuilder.getDocumentStoreStatsCollector(),
-                            DocumentStoreStatsMBean.TYPE,
-                            "DocumentStore Statistics")
+                registerMBean(whiteboard,
+                    DocumentStoreStatsMBean.class,
+                    (DocumentStoreStatsMBean) mkBuilder.getDocumentStoreStatsCollector(),
+                    DocumentStoreStatsMBean.TYPE,
+                    "DocumentStore Statistics")
             );
         }
 
         // register persistent cache stats
         Map<String, PersistentCacheStats> persistenceCacheStats = mkBuilder.getPersistenceCacheStats();
-        for (PersistentCacheStats pcs: persistenceCacheStats.values()) {
+        for (PersistentCacheStats pcs : persistenceCacheStats.values()) {
             addRegistration(
-                    registerMBean(whiteboard,
-                            PersistentCacheStatsMBean.class,
-                            pcs,
-                            PersistentCacheStatsMBean.TYPE,
-                            pcs.getName())
+                registerMBean(whiteboard,
+                    PersistentCacheStatsMBean.class,
+                    pcs,
+                    PersistentCacheStatsMBean.TYPE,
+                    pcs.getName())
             );
         }
 
@@ -831,62 +858,63 @@ public class DocumentNodeStoreService {
         final long blobGcMaxAgeInSecs = config.blobGcMaxAgeInSecs();
 
         if (store.getBlobStore() instanceof GarbageCollectableBlobStore) {
-            BlobGarbageCollector gc = store.createBlobGarbageCollector(blobGcMaxAgeInSecs, 
-                                                        ClusterRepositoryInfo.getOrCreateId(nodeStore),
-                                                        whiteboard, statisticsProvider);
+            BlobGarbageCollector gc = store.createBlobGarbageCollector(blobGcMaxAgeInSecs,
+                ClusterRepositoryInfo.getOrCreateId(nodeStore),
+                whiteboard, statisticsProvider);
             addRegistration(registerMBean(whiteboard, BlobGCMBean.class, new BlobGC(gc, executor),
-                    BlobGCMBean.TYPE, "Document node store blob garbage collection"));
+                BlobGCMBean.TYPE, "Document node store blob garbage collection"));
         }
 
-        Runnable startGC = new RevisionGCJob(store, versionGcMaxAgeInSecs, 0, DEFAULT_RGC_DELAY_FACTOR);
+        Runnable startGC = new RevisionGCJob(store, versionGcMaxAgeInSecs, 0,
+            DEFAULT_RGC_DELAY_FACTOR);
         Runnable cancelGC = () -> store.getVersionGarbageCollector().cancel();
         Supplier<String> status = () -> store.getVersionGarbageCollector().getStatus();
         RevisionGC revisionGC = new RevisionGC(startGC, cancelGC, status, executor);
         addRegistration(registerMBean(whiteboard, RevisionGCMBean.class, revisionGC,
-                RevisionGCMBean.TYPE, "Document node store revision garbage collection"));
+            RevisionGCMBean.TYPE, "Document node store revision garbage collection"));
 
         addRegistration(registerMBean(whiteboard, RevisionGCStatsMBean.class,
-                store.getVersionGarbageCollector().getRevisionGCStats(),
-                RevisionGCStatsMBean.TYPE,
-                "Document node store revision garbage collection statistics"));
+            store.getVersionGarbageCollector().getRevisionGCStats(),
+            RevisionGCStatsMBean.TYPE,
+            "Document node store revision garbage collection statistics"));
 
         BlobStoreStats blobStoreStats = mkBuilder.getBlobStoreStats();
         if (!customBlobStore && blobStoreStats != null) {
             addRegistration(registerMBean(whiteboard,
-                    BlobStoreStatsMBean.class,
-                    blobStoreStats,
-                    BlobStoreStatsMBean.TYPE,
-                    ds.getClass().getSimpleName()));
+                BlobStoreStatsMBean.class,
+                blobStoreStats,
+                BlobStoreStatsMBean.TYPE,
+                ds.getClass().getSimpleName()));
         }
 
-        if (!mkBuilder.isBundlingDisabled()){
+        if (!mkBuilder.isBundlingDisabled()) {
             addRegistration(registerMBean(whiteboard,
-                    BackgroundObserverMBean.class,
-                    store.getBundlingConfigHandler().getMBean(),
-                    BackgroundObserverMBean.TYPE,
-                    "BundlingConfigObserver"));
+                BackgroundObserverMBean.class,
+                store.getBundlingConfigHandler().getMBean(),
+                BackgroundObserverMBean.TYPE,
+                "BundlingConfigObserver"));
         }
     }
 
     private void registerCacheStatsMBean(CacheStats cacheStats) {
         addRegistration(registerMBean(whiteboard, CacheStatsMBean.class,
-                cacheStats, CacheStatsMBean.TYPE, cacheStats.getName()));
+            cacheStats, CacheStatsMBean.TYPE, cacheStats.getName()));
     }
 
     private void registerLastRevRecoveryJob(final DocumentNodeStore nodeStore) {
         long leaseTime = toLong(context.getProperties().get(PROP_REV_RECOVERY_INTERVAL),
-                ClusterNodeInfo.DEFAULT_LEASE_UPDATE_INTERVAL_MILLIS);
+            ClusterNodeInfo.DEFAULT_LEASE_UPDATE_INTERVAL_MILLIS);
         addRegistration(scheduleWithFixedDelay(whiteboard,
-                new LastRevRecoveryJob(nodeStore), TimeUnit.MILLISECONDS.toSeconds(leaseTime),
-                false/*runOnSingleClusterNode*/, true /*use dedicated pool*/));
+            new LastRevRecoveryJob(nodeStore), TimeUnit.MILLISECONDS.toSeconds(leaseTime),
+            false/*runOnSingleClusterNode*/, true /*use dedicated pool*/));
     }
 
     private void registerJournalGC(final DocumentNodeStore nodeStore) {
         addRegistration(scheduleWithFixedDelay(whiteboard,
-                new JournalGCJob(nodeStore),
-                jobPropertiesFor(JournalGCJob.class),
-                TimeUnit.MILLISECONDS.toSeconds(config.journalGCInterval()),
-                true/*runOnSingleClusterNode*/, true /*use dedicated pool*/));
+            new JournalGCJob(nodeStore),
+            jobPropertiesFor(JournalGCJob.class),
+            TimeUnit.MILLISECONDS.toSeconds(config.journalGCInterval()),
+            true/*runOnSingleClusterNode*/, true /*use dedicated pool*/));
     }
 
     private void registerVersionGCJob(final DocumentNodeStore nodeStore) {
@@ -900,17 +928,17 @@ public class DocumentNodeStoreService {
         long versionGCTimeLimitInSecs = config.versionGCTimeLimitInSecs();
         double versionGCDelayFactor = config.versionGCDelayFactor();
         addRegistration(scheduleWithFixedDelay(whiteboard,
-                new RevisionGCJob(nodeStore, versionGcMaxAgeInSecs,
-                        versionGCTimeLimitInSecs, versionGCDelayFactor),
-                props, MODIFIED_IN_SECS_RESOLUTION, true, true));
+            new RevisionGCJob(nodeStore, versionGcMaxAgeInSecs,
+                versionGCTimeLimitInSecs, versionGCDelayFactor),
+            props, MODIFIED_IN_SECS_RESOLUTION, true, true));
     }
 
     private void registerDocumentStoreMetrics(DocumentStore store) {
         if (store instanceof MongoDocumentStore) {
             addRegistration(scheduleWithFixedDelay(whiteboard,
-                    new MongoDocumentStoreMetrics((MongoDocumentStore) store, statisticsProvider),
-                    jobPropertiesFor(MongoDocumentStoreMetrics.class),
-                    TimeUnit.MINUTES.toSeconds(1), false, true));
+                new MongoDocumentStoreMetrics((MongoDocumentStore) store, statisticsProvider),
+                jobPropertiesFor(MongoDocumentStoreMetrics.class),
+                TimeUnit.MINUTES.toSeconds(1), false, true));
         }
     }
 
@@ -987,9 +1015,9 @@ public class DocumentNodeStoreService {
         private VersionGCStats stats;
 
         RevisionGCJob(DocumentNodeStore ns,
-                      long versionGcMaxAgeInSecs,
-                      long versionGCTimeLimitInSecs,
-                      double versionGCDelayFactor) {
+            long versionGcMaxAgeInSecs,
+            long versionGCTimeLimitInSecs,
+            double versionGCDelayFactor) {
             this.nodeStore = ns;
             this.versionGCMaxAgeInSecs = versionGcMaxAgeInSecs;
             this.versionGCTimeLimitInSecs = versionGCTimeLimitInSecs;
@@ -1000,7 +1028,9 @@ public class DocumentNodeStoreService {
         @Override
         public void run() {
             VersionGarbageCollector gc = nodeStore.getVersionGarbageCollector();
-            gc.setOptions(gc.getOptions().withMaxDuration(TimeUnit.SECONDS, versionGCTimeLimitInSecs).withDelayFactor(versionGCDelayFactor));
+            gc.setOptions(
+                gc.getOptions().withMaxDuration(TimeUnit.SECONDS, versionGCTimeLimitInSecs)
+                  .withDelayFactor(versionGCDelayFactor));
             try {
                 VersionGCStats s = gc.gc(versionGCMaxAgeInSecs, TimeUnit.SECONDS);
                 stats.addRun(s);
@@ -1014,9 +1044,8 @@ public class DocumentNodeStoreService {
         }
 
         /**
-         * Returns the result of the last revision GC run. This method throws
-         * an {@link UncheckedExecutionException} if the last run failed with an
-         * exception.
+         * Returns the result of the last revision GC run. This method throws an
+         * {@link UncheckedExecutionException} if the last run failed with an exception.
          *
          * @return result of the last revision GC run.
          */
@@ -1036,7 +1065,7 @@ public class DocumentNodeStoreService {
         private void maybeLogStats() {
             if (nodeStore.getClock().getTime() > lastLogTime + LOG_INTERVAL) {
                 LOGGER.info("Garbage collector stats since {}: {}",
-                        Utils.timestampToString(lastLogTime), stats);
+                    Utils.timestampToString(lastLogTime), stats);
                 resetStats();
             }
         }
@@ -1077,8 +1106,8 @@ public class DocumentNodeStoreService {
     }
 
     @Component(
-            service = Preset.class,
-            configurationPid = Configuration.PRESET_PID)
+        service = Preset.class,
+        configurationPid = Configuration.PRESET_PID)
     public static class Preset {
 
         Configuration configuration;

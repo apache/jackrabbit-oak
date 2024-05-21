@@ -184,7 +184,8 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
             NodeDocument d2 = result2.get(id);
             if (d1 != null) {
                 if (d2 != null) {
-                    fail("found " + id + " in both result sets, modcounts are: " + d1.getModCount() + "/" + d2.getModCount());
+                    fail("found " + id + " in both result sets, modcounts are: " + d1.getModCount()
+                        + "/" + d2.getModCount());
                 }
             } else {
                 assertNotNull("id " + id + " is in neither result set", d2);
@@ -276,7 +277,7 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
         NodeDocument d = ds1.find(Collection.NODES, id);
         assertNotNull(d);
         Long mc = d.getModCount();
- 
+
         ds2.remove(Collection.NODES, id);
 
         UpdateOp op2 = new UpdateOp(id, true);
@@ -387,11 +388,15 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
             }
             ds.createOrUpdate(NODES, ops);
 
-            LogCustomizer logCustomizerJDBC = LogCustomizer.forLogger(RDBDocumentStoreJDBC.class.getName()).enable(Level.TRACE)
-                    .matchesRegex("update: batch result.*").create();
+            LogCustomizer logCustomizerJDBC = LogCustomizer.forLogger(
+                                                               RDBDocumentStoreJDBC.class.getName()).enable(Level.TRACE)
+                                                           .matchesRegex("update: batch result.*")
+                                                           .create();
             logCustomizerJDBC.starting();
-            LogCustomizer logCustomizer = LogCustomizer.forLogger(RDBDocumentStore.class.getName()).enable(Level.TRACE)
-                    .matchesRegex("bulkUpdate: success.*").create();
+            LogCustomizer logCustomizer = LogCustomizer.forLogger(RDBDocumentStore.class.getName())
+                                                       .enable(Level.TRACE)
+                                                       .matchesRegex("bulkUpdate: success.*")
+                                                       .create();
             logCustomizer.starting();
 
             try {
@@ -416,11 +421,14 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
                 ds.createOrUpdate(NODES, ops);
 
                 assertTrue(logCustomizer.getLogs().size() == 1);
-                assertTrue(logCustomizer.getLogs().get(0).contains("failure for [" + modifiedRow + ", " + deletedRow + "]"));
+                assertTrue(logCustomizer.getLogs().get(0).contains(
+                    "failure for [" + modifiedRow + ", " + deletedRow + "]"));
                 // System.out.println(logCustomizer.getLogs());
                 assertTrue(logCustomizerJDBC.getLogs().size() == 1);
-                assertTrue(logCustomizerJDBC.getLogs().get(0).contains("0 (for " + modifiedRow + " (1)"));
-                assertTrue(logCustomizerJDBC.getLogs().get(0).contains("0 (for " + deletedRow + " (1)"));
+                assertTrue(
+                    logCustomizerJDBC.getLogs().get(0).contains("0 (for " + modifiedRow + " (1)"));
+                assertTrue(
+                    logCustomizerJDBC.getLogs().get(0).contains("0 (for " + deletedRow + " (1)"));
                 // System.out.println(logCustomizerJDBC.getLogs());
             } finally {
                 logCustomizer.finished();

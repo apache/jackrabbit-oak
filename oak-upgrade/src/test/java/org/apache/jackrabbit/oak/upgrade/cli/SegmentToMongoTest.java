@@ -20,7 +20,6 @@ import static org.apache.jackrabbit.oak.upgrade.cli.container.MongoNodeStoreCont
 import static org.junit.Assume.assumeTrue;
 
 import java.io.IOException;
-
 import org.apache.jackrabbit.oak.upgrade.cli.container.MongoNodeStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.container.NodeStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.container.SegmentNodeStoreContainer;
@@ -49,7 +48,7 @@ public class SegmentToMongoTest extends AbstractOak2OakTest {
 
     @Override
     protected String[] getArgs() {
-        return new String[] { source.getDescription(), destination.getDescription() };
+        return new String[]{source.getDescription(), destination.getDescription()};
     }
 
     @Override

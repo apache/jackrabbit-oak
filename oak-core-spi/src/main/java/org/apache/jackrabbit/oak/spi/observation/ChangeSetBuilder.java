@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.spi.observation;
 
 import java.util.Set;
-
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.jetbrains.annotations.Nullable;
@@ -50,16 +49,18 @@ public class ChangeSetBuilder {
 
     @Override
     public String toString() {
-        return "ChangeSetBuilder{parentPaths[maxDepth:" + maxPathDepth + "]=" + parentPaths + ", propertyNames="
-                + propertyNames + ", parentNodeNames=" + parentNodeNames + ", parentNodeTypes=" + parentNodeTypes
-                + ", allNodeTypes=" + allNodeTypes + "}";
+        return "ChangeSetBuilder{parentPaths[maxDepth:" + maxPathDepth + "]=" + parentPaths
+            + ", propertyNames="
+            + propertyNames + ", parentNodeNames=" + parentNodeNames + ", parentNodeTypes="
+            + parentNodeTypes
+            + ", allNodeTypes=" + allNodeTypes + "}";
     }
 
     public boolean isParentPathOverflown() {
         return parentPathOverflow;
     }
 
-    public ChangeSetBuilder addParentPath(String path){
+    public ChangeSetBuilder addParentPath(String path) {
         path = getPathWithMaxDepth(path, maxPathDepth);
         parentPathOverflow = addAndCheckOverflow(parentPaths, path, maxItems, parentPathOverflow);
         return this;
@@ -70,7 +71,8 @@ public class ChangeSetBuilder {
     }
 
     public ChangeSetBuilder addParentNodeName(String parentNodeName) {
-        parentNodeNameOverflow = addAndCheckOverflow(parentNodeNames, parentNodeName, maxItems, parentNodeNameOverflow);
+        parentNodeNameOverflow = addAndCheckOverflow(parentNodeNames, parentNodeName, maxItems,
+            parentNodeNameOverflow);
         return this;
     }
 
@@ -78,15 +80,16 @@ public class ChangeSetBuilder {
         return parentNodeTypeOverflow;
     }
 
-    public ChangeSetBuilder addParentNodeTypes(Iterable<String> nodeTypes){
-        for (String nodeType : nodeTypes){
+    public ChangeSetBuilder addParentNodeTypes(Iterable<String> nodeTypes) {
+        for (String nodeType : nodeTypes) {
             addParentNodeType(nodeType);
         }
         return this;
     }
 
     public ChangeSetBuilder addParentNodeType(String parentNodeType) {
-        parentNodeTypeOverflow = addAndCheckOverflow(parentNodeTypes, parentNodeType, maxItems, parentNodeTypeOverflow);
+        parentNodeTypeOverflow = addAndCheckOverflow(parentNodeTypes, parentNodeType, maxItems,
+            parentNodeTypeOverflow);
         return this;
     }
 
@@ -95,22 +98,25 @@ public class ChangeSetBuilder {
     }
 
     public ChangeSetBuilder addPropertyName(String propertyName) {
-        propertyNameOverflow = addAndCheckOverflow(propertyNames, propertyName, maxItems, propertyNameOverflow);
+        propertyNameOverflow = addAndCheckOverflow(propertyNames, propertyName, maxItems,
+            propertyNameOverflow);
         return this;
     }
+
     public boolean isAllNodeTypeOverflown() {
         return allNodeTypeOverflow;
     }
 
-    public ChangeSetBuilder addNodeTypes(Iterable<String> nodeTypes){
-        for (String nodeType : nodeTypes){
+    public ChangeSetBuilder addNodeTypes(Iterable<String> nodeTypes) {
+        for (String nodeType : nodeTypes) {
             addNodeType(nodeType);
         }
         return this;
     }
 
     public ChangeSetBuilder addNodeType(String nodeType) {
-        allNodeTypeOverflow = addAndCheckOverflow(allNodeTypes, nodeType, maxItems, allNodeTypeOverflow);
+        allNodeTypeOverflow = addAndCheckOverflow(allNodeTypes, nodeType, maxItems,
+            allNodeTypeOverflow);
         return this;
     }
 
@@ -118,8 +124,8 @@ public class ChangeSetBuilder {
         return maxPathDepth;
     }
 
-    public ChangeSetBuilder add(@Nullable ChangeSet cs){
-        if (cs == null){
+    public ChangeSetBuilder add(@Nullable ChangeSet cs) {
+        if (cs == null) {
             parentPathOverflow = true;
             parentNodeNameOverflow = true;
             parentNodeTypeOverflow = true;
@@ -128,40 +134,40 @@ public class ChangeSetBuilder {
             return this;
         }
 
-        if (cs.getParentPaths() == null){
+        if (cs.getParentPaths() == null) {
             parentPathOverflow = true;
         } else {
             addPathFromChangeSet(cs);
         }
 
-        if (cs.getParentNodeNames() == null){
+        if (cs.getParentNodeNames() == null) {
             parentNodeNameOverflow = true;
         } else {
-            for (String parentNodeName : cs.getParentNodeNames()){
+            for (String parentNodeName : cs.getParentNodeNames()) {
                 addParentNodeName(parentNodeName);
             }
         }
 
-        if (cs.getParentNodeTypes() == null){
+        if (cs.getParentNodeTypes() == null) {
             parentNodeTypeOverflow = true;
         } else {
-            for (String parentNodeType : cs.getParentNodeTypes()){
+            for (String parentNodeType : cs.getParentNodeTypes()) {
                 addParentNodeType(parentNodeType);
             }
         }
 
-        if (cs.getPropertyNames() == null){
+        if (cs.getPropertyNames() == null) {
             propertyNameOverflow = true;
         } else {
-            for (String propertyName : cs.getPropertyNames()){
+            for (String propertyName : cs.getPropertyNames()) {
                 addPropertyName(propertyName);
             }
         }
 
-        if (cs.getAllNodeTypes() == null){
+        if (cs.getAllNodeTypes() == null) {
             allNodeTypeOverflow = true;
         } else {
-            for (String nodeType : cs.getAllNodeTypes()){
+            for (String nodeType : cs.getAllNodeTypes()) {
                 addNodeType(nodeType);
             }
         }
@@ -171,10 +177,10 @@ public class ChangeSetBuilder {
 
     public ChangeSet build() {
         return new ChangeSet(maxPathDepth, parentPathOverflow ? null : parentPaths,
-                parentNodeNameOverflow ? null : parentNodeNames,
-                parentNodeTypeOverflow ? null : parentNodeTypes,
-                propertyNameOverflow ? null : propertyNames,
-                allNodeTypeOverflow ? null : allNodeTypes);
+            parentNodeNameOverflow ? null : parentNodeNames,
+            parentNodeTypeOverflow ? null : parentNodeTypes,
+            propertyNameOverflow ? null : propertyNames,
+            allNodeTypeOverflow ? null : allNodeTypes);
     }
 
     private void addPathFromChangeSet(ChangeSet cs) {
@@ -183,23 +189,23 @@ public class ChangeSetBuilder {
         //If maxDepth of ChangeSet being added is less than current
         //then truncate path in current set to that depth and change
         //maxPathDepth to one from ChangeSet
-        if (maxDepthInChangeSet < maxPathDepth){
+        if (maxDepthInChangeSet < maxPathDepth) {
             Set<String> existingPathSet = Sets.newHashSet(parentPaths);
             parentPaths.clear();
-            for (String existingPath : existingPathSet){
-               parentPaths.add(getPathWithMaxDepth(existingPath, maxDepthInChangeSet));
+            for (String existingPath : existingPathSet) {
+                parentPaths.add(getPathWithMaxDepth(existingPath, maxDepthInChangeSet));
             }
             maxPathDepth = maxDepthInChangeSet;
         }
 
-        for (String pathFromChangeSet : cs.getParentPaths()){
+        for (String pathFromChangeSet : cs.getParentPaths()) {
             addParentPath(getPathWithMaxDepth(pathFromChangeSet, maxPathDepth));
         }
     }
 
-    private static String getPathWithMaxDepth(String path, int maxDepth){
+    private static String getPathWithMaxDepth(String path, int maxDepth) {
         int depth = PathUtils.getDepth(path);
-        if (depth <= maxDepth){
+        if (depth <= maxDepth) {
             return path;
         }
         return PathUtils.getAncestorPath(path, depth - maxDepth);
@@ -210,12 +216,13 @@ public class ChangeSetBuilder {
      *
      * @return true if dataSet size is at maxSize i.e. overflow condition reached
      */
-    private static boolean addAndCheckOverflow(Set<String> dataSet, String data, int maxSize, boolean overflow) {
+    private static boolean addAndCheckOverflow(Set<String> dataSet, String data, int maxSize,
+        boolean overflow) {
         if (overflow) {
             return true;
         } else {
             dataSet.add(data);
-            if (dataSet.size() > maxSize){
+            if (dataSet.size() > maxSize) {
                 dataSet.clear();
                 return true;
             }

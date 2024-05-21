@@ -16,6 +16,20 @@
  */
 package org.apache.jackrabbit.oak.exercise.security.authorization.principalbased;
 
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_MODIFY_PROPERTIES;
+import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_READ;
+import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_READ_ACCESS_CONTROL;
+import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_WRITE;
+import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.REP_ADD_PROPERTIES;
+import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.REP_READ_NODES;
+import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.REP_READ_PROPERTIES;
+import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.REP_REMOVE_PROPERTIES;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
+import java.security.Principal;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.authorization.PrincipalAccessControlList;
@@ -33,21 +47,6 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.security.Principal;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_MODIFY_PROPERTIES;
-import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_READ;
-import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_READ_ACCESS_CONTROL;
-import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_WRITE;
-import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.REP_ADD_PROPERTIES;
-import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.REP_READ_NODES;
-import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.REP_READ_PROPERTIES;
-import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.REP_REMOVE_PROPERTIES;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 /**
  * <pre>
@@ -99,12 +98,15 @@ public class L3_PermissionEvaluationTest extends AbstractPrincipalBasedTest {
     public void before() throws Exception {
         super.before();
 
-        systemUserPrincipal1 = getSystemUserPrincipal("systemUser1", getSupportedIntermediatePath());
-        systemUserPrincipal2 = getSystemUserPrincipal("systemUser2", getSupportedIntermediatePath());
+        systemUserPrincipal1 = getSystemUserPrincipal("systemUser1",
+            getSupportedIntermediatePath());
+        systemUserPrincipal2 = getSystemUserPrincipal("systemUser2",
+            getSupportedIntermediatePath());
         userPrincipal = getRegularUserPrincipal();
         groupPrincipal = getGroupPrincipal();
 
-        Tree testTree = TreeUtil.addChild(root.getTree(PathUtils.ROOT_PATH), "test", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        Tree testTree = TreeUtil.addChild(root.getTree(PathUtils.ROOT_PATH), "test",
+            NodeTypeConstants.NT_OAK_UNSTRUCTURED);
         testTree.setProperty("prop", "value");
 
         testPath = getNamePathMapper().getJcrPath(testTree.getPath());
@@ -125,27 +127,33 @@ public class L3_PermissionEvaluationTest extends AbstractPrincipalBasedTest {
     }
 
     private void setupAccessControl() throws Exception {
-        JackrabbitAccessControlManager compositeAcMgr = (JackrabbitAccessControlManager) getConfig(AuthorizationConfiguration.class).getAccessControlManager(root, getNamePathMapper());
+        JackrabbitAccessControlManager compositeAcMgr = (JackrabbitAccessControlManager) getConfig(
+            AuthorizationConfiguration.class).getAccessControlManager(root, getNamePathMapper());
 
-        PrincipalAccessControlList pacl = checkNotNull(getApplicablePrincipalAccessControlList(compositeAcMgr, systemUserPrincipal1));
+        PrincipalAccessControlList pacl = checkNotNull(
+            getApplicablePrincipalAccessControlList(compositeAcMgr, systemUserPrincipal1));
         pacl.addEntry(testPath, privilegesFromNames(REP_READ_NODES));
         compositeAcMgr.setPolicy(pacl.getPath(), pacl);
 
-        pacl = checkNotNull(getApplicablePrincipalAccessControlList(compositeAcMgr, systemUserPrincipal2));
+        pacl = checkNotNull(
+            getApplicablePrincipalAccessControlList(compositeAcMgr, systemUserPrincipal2));
         pacl.addEntry(testPath, privilegesFromNames(REP_READ_PROPERTIES, REP_ADD_PROPERTIES));
         compositeAcMgr.setPolicy(pacl.getPath(), pacl);
 
-        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(compositeAcMgr, testPath);
+        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(compositeAcMgr,
+            testPath);
         acl.addAccessControlEntry(groupPrincipal, privilegesFromNames(JCR_READ));
         acl.addAccessControlEntry(systemUserPrincipal1, privilegesFromNames(JCR_WRITE));
-        acl.addAccessControlEntry(systemUserPrincipal2, privilegesFromNames(JCR_READ_ACCESS_CONTROL));
+        acl.addAccessControlEntry(systemUserPrincipal2,
+            privilegesFromNames(JCR_READ_ACCESS_CONTROL));
         acl.addEntry(userPrincipal, privilegesFromNames(REP_REMOVE_PROPERTIES), false);
         compositeAcMgr.setPolicy(acl.getPath(), acl);
     }
 
     @NotNull
     private PermissionProvider getPermissionProvider(@NotNull ContentSession cs) {
-        return getConfig(AuthorizationConfiguration.class).getPermissionProvider(cs.getLatestRoot(), cs.getWorkspaceName(), cs.getAuthInfo().getPrincipals());
+        return getConfig(AuthorizationConfiguration.class).getPermissionProvider(cs.getLatestRoot(),
+            cs.getWorkspaceName(), cs.getAuthInfo().getPrincipals());
     }
 
     @Test

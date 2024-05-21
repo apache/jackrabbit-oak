@@ -25,7 +25,6 @@ import java.io.BufferedWriter;
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.List;
-
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
@@ -75,8 +74,8 @@ public class SimpleFlatFileUtilTest {
         SimpleFlatFileUtil.createFlatFileFor(dns.getRoot(), bw);
         bw.close();
         assertEquals(
-                "/|{\"prop\":\"value\"}" + LINE_SEPARATOR + "/child|{}" + LINE_SEPARATOR,
-                sw.toString());
+            "/|{\"prop\":\"value\"}" + LINE_SEPARATOR + "/child|{}" + LINE_SEPARATOR,
+            sw.toString());
     }
 
     @Test
@@ -89,7 +88,7 @@ public class SimpleFlatFileUtilTest {
         SimpleFlatFileUtil.createFlatFileFor(dns.getRoot(), bw);
         bw.close();
         assertEquals("/|{\"a\":\"z\",\"c\":\"t\",\"g\":\"a\"}" + LINE_SEPARATOR,
-                sw.toString());
+            sw.toString());
     }
 
     @Test
@@ -105,6 +104,6 @@ public class SimpleFlatFileUtilTest {
         SimpleFlatFileUtil.createFlatFileFor(dns.getRoot(), bw);
         bw.close();
         assertEquals("/|{\":childOrder\":[\"nam:a\",\"nam:x\",\"nam:c\"],\"b\":\"2\"}"
-                + LINE_SEPARATOR, sw.toString());
+            + LINE_SEPARATOR, sw.toString());
     }
 }

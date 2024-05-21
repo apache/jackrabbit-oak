@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.spi.commit;
 
 public interface BackgroundObserverMBean {
+
     String TYPE = "BackgroundObserverStats";
 
     int getQueueSize();

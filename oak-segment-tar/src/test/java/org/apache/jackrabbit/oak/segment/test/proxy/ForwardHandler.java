@@ -17,9 +17,6 @@
 
 package org.apache.jackrabbit.oak.segment.test.proxy;
 
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
@@ -29,6 +26,8 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,25 +62,26 @@ class ForwardHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         group = new NioEventLoopGroup(0, r -> {
-            return new Thread(r, String.format("forward-handler-%d", threadNumber.getAndIncrement()));
+            return new Thread(r,
+                String.format("forward-handler-%d", threadNumber.getAndIncrement()));
         });
         Bootstrap b = new Bootstrap()
-                .group(group)
-                .channel(NioSocketChannel.class)
-                .handler(new ChannelInitializer<SocketChannel>() {
+            .group(group)
+            .channel(NioSocketChannel.class)
+            .handler(new ChannelInitializer<SocketChannel>() {
 
-                    @Override
-                    public void initChannel(SocketChannel ch) throws Exception {
-                        if (flipPosition >= 0) {
-                            ch.pipeline().addLast(new FlipHandler(flipPosition));
-                        }
-                        if (skipBytes > 0) {
-                            ch.pipeline().addLast(new SkipHandler(skipPosition, skipBytes));
-                        }
-                        ch.pipeline().addLast(new BackwardHandler(ctx.channel()));
+                @Override
+                public void initChannel(SocketChannel ch) throws Exception {
+                    if (flipPosition >= 0) {
+                        ch.pipeline().addLast(new FlipHandler(flipPosition));
                     }
+                    if (skipBytes > 0) {
+                        ch.pipeline().addLast(new SkipHandler(skipPosition, skipBytes));
+                    }
+                    ch.pipeline().addLast(new BackwardHandler(ctx.channel()));
+                }
 
-                });
+            });
         remote = b.connect(targetHost, targetPort).sync().channel();
     }
 

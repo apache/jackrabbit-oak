@@ -160,9 +160,9 @@ public class CollisionCleanupTest {
 
     private DocumentNodeStore newDocumentNodeStore(int clusterId) {
         DocumentNodeStore ns = builderProvider.newBuilder()
-                .setClusterId(clusterId).setAsyncDelay(0)
-                .setUpdateLimit(100)
-                .setDocumentStore(store).build();
+                                              .setClusterId(clusterId).setAsyncDelay(0)
+                                              .setUpdateLimit(100)
+                                              .setDocumentStore(store).build();
         // do not retry on conflicts
         ns.setMaxBackOffMillis(0);
         return ns;

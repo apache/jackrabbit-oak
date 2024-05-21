@@ -19,9 +19,8 @@
 
 package org.apache.jackrabbit.oak.plugins.metric;
 
-import java.util.concurrent.TimeUnit;
-
 import com.codahale.metrics.Timer;
+import java.util.concurrent.TimeUnit;
 import org.apache.jackrabbit.oak.stats.TimerStats;
 
 final class TimerImpl implements TimerStats {

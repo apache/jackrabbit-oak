@@ -20,6 +20,10 @@ package org.apache.jackrabbit.oak.plugins.document.mongo;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.client.MongoCollection;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
@@ -28,11 +32,6 @@ import org.bson.BsonInt64;
 import org.bson.BsonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
 
 public class DocumentStoreSplitter {
 
@@ -44,15 +43,17 @@ public class DocumentStoreSplitter {
         this.mongoStore = mongoStore;
     }
 
-    public <T extends Document> List<Long> split(Collection<T> collection, long modifiedSinceLowerLimit, int parts) {
+    public <T extends Document> List<Long> split(Collection<T> collection,
+        long modifiedSinceLowerLimit, int parts) {
         MongoCollection<BasicDBObject> dbCollection = mongoStore.getDBCollection(collection);
         BsonDocument query = new BsonDocument();
-        query.append(NodeDocument.MODIFIED_IN_SECS, new BsonDocument().append("$ne", new BsonNull()));
+        query.append(NodeDocument.MODIFIED_IN_SECS,
+            new BsonDocument().append("$ne", new BsonNull()));
         long oldest;
         Iterator<BasicDBObject> cursor;
         if (modifiedSinceLowerLimit <= 0) {
             cursor = dbCollection.find(query).sort(new BsonDocument(NodeDocument.MODIFIED_IN_SECS,
-                    new BsonInt64(1))).limit(1).iterator();
+                new BsonInt64(1))).limit(1).iterator();
             if (!cursor.hasNext()) {
                 return Collections.emptyList();
             }
@@ -61,7 +62,7 @@ public class DocumentStoreSplitter {
             oldest = modifiedSinceLowerLimit;
         }
         cursor = dbCollection.find(query).sort(new BsonDocument(NodeDocument.MODIFIED_IN_SECS,
-                new BsonInt64(-1))).limit(1).iterator();
+            new BsonInt64(-1))).limit(1).iterator();
         if (!cursor.hasNext()) {
             return Collections.emptyList();
         }
@@ -71,19 +72,20 @@ public class DocumentStoreSplitter {
 
     public static List<Long> simpleSplit(long start, long end, int parts) {
         if (end < start) {
-            throw new IllegalArgumentException("start(" + start + ") can't be greater than end (" + end + ")");
+            throw new IllegalArgumentException(
+                "start(" + start + ") can't be greater than end (" + end + ")");
         }
         if (start == end) {
             return Collections.singletonList(start);
         }
         if (parts > end - start) {
             log.debug("Adjusting parts according to given range {} - {}", start, end);
-            parts = (int)(end - start);
+            parts = (int) (end - start);
         }
-        long stepSize = (end - start)/parts;
+        long stepSize = (end - start) / parts;
         List<Long> steps = new ArrayList<>();
         StringBuilder splitPoints = new StringBuilder();
-        for (long i = start; i <= end; i+=stepSize) {
+        for (long i = start; i <= end; i += stepSize) {
             steps.add(i);
             splitPoints.append(" ").append(i);
         }

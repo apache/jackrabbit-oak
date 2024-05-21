@@ -86,8 +86,8 @@ There are four kinds of files stored in a TAR file:
   catalog of blobs (i.e. value records) referenced by segments in this TAR file.
   This catalog is indexed by the generation of the segments it contains.
 
-- graph: this file has a name ending in `.gph` and contains the segment graph 
-  of all the segments in this tar file. The graph is represented as an adjacency 
+- graph: this file has a name ending in `.gph` and contains the segment graph
+  of all the segments in this tar file. The graph is represented as an adjacency
   list of UUIDs.
 
 - index: this file has a name ending in `.idx` and contains a sorted list of
@@ -97,7 +97,7 @@ There are four kinds of files stored in a TAR file:
 
 Before delving into further details, a few words on how Oak names TAR files. The
 convention is to always start with a `data00000a.tar` file. As data is written
-to the repository, new TAR files are added with increasing numbers, thus ending 
+to the repository, new TAR files are added with increasing numbers, thus ending
 up with `data00001a.tar`, `data00002a.tar` and so on.
 
 Each time a compaction cycle ends, there is a cleanup phase in which segments
@@ -112,7 +112,7 @@ bottom entries. Reading the entries from the bottom of the file, you encounter
 first the index, then the graph, then the binary references and finally the
 segment files. The idea is that the index must be read first, because it provides
 a fast tool to locate segments in the rest of the file. Next comes the graph,
-that describes how segments relate to each other. Then the binary references 
+that describes how segments relate to each other. Then the binary references
 index is stored. Last come the segments, whose relative order can be ignored.
 
 At the same time, the layout of the TAR file allows fast append-only operations
@@ -170,7 +170,7 @@ The data segment header is divided in three parts:
     - empty bytes (10 bytes): reserved for future use.
 
 - second part of the header is a variable list of references to external segments.
-  Here there will be a list of UUIDs - one per referenced segment - matching the 
+  Here there will be a list of UUIDs - one per referenced segment - matching the
   number of references specified in the first part of the header.
 
 - the third and last part of the header consists of a list of record header
@@ -196,7 +196,7 @@ and their format.
 ## Binary references files
 
 The binary references file represents an index of binary references (blobs) in a
-TAR file. This index groups the references by generation first and segment ID 
+TAR file. This index groups the references by generation first and segment ID
 next.
 
 The format of the binary references file is optimized for reading. The file is
@@ -220,7 +220,7 @@ The binary references header contains the following fields:
 - checksum (4 bytes): a CRC2 checksum of the content of the binary references
   file.
 
-Immediately after the graph header, the index data is stored. The storage scheme 
+Immediately after the graph header, the index data is stored. The storage scheme
 used is the following:
 
 - generation of all the following segments.

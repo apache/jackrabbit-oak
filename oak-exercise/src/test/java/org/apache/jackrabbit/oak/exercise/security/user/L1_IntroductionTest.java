@@ -55,4 +55,5 @@ import org.apache.jackrabbit.test.AbstractJCRTest;
  * </pre>
  */
 public class L1_IntroductionTest extends AbstractJCRTest {
+
 }

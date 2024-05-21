@@ -20,19 +20,17 @@ import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.Privilege;
-
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 
 /**
- * Concurrently reads random items from the deep tree where every 10th node is
- * access controlled.
+ * Concurrently reads random items from the deep tree where every 10th node is access controlled.
  */
 public class ConcurrentReadAccessControlledTreeTest extends ConcurrentReadDeepTreeTest {
 
     int counter = 0;
 
     public ConcurrentReadAccessControlledTreeTest(
-            boolean runAsAdmin, int itemsToRead, boolean doReport) {
+        boolean runAsAdmin, int itemsToRead, boolean doReport) {
         super(runAsAdmin, itemsToRead, doReport);
     }
 
@@ -42,9 +40,9 @@ public class ConcurrentReadAccessControlledTreeTest extends ConcurrentReadDeepTr
         String path = node.getPath();
         if (!path.contains("rep:policy")) {
             AccessControlManager acMgr = node.getSession().getAccessControlManager();
-            Privilege[] privileges = new Privilege[] {
-                    acMgr.privilegeFromName(Privilege.JCR_READ),
-                    acMgr.privilegeFromName(Privilege.JCR_READ_ACCESS_CONTROL)
+            Privilege[] privileges = new Privilege[]{
+                acMgr.privilegeFromName(Privilege.JCR_READ),
+                acMgr.privilegeFromName(Privilege.JCR_READ_ACCESS_CONTROL)
             };
             if (++counter == 10) {
                 addPolicy(acMgr, node, privileges, EveryonePrincipal.getInstance());

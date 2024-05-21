@@ -16,8 +16,13 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
-import java.util.List;
+import static org.apache.jackrabbit.oak.commons.PathUtils.ROOT_PATH;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 
+import java.util.List;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.Root;
@@ -31,15 +36,10 @@ import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.util.Text;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.oak.commons.PathUtils.ROOT_PATH;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
-
 public class TopLevelPathTest extends AbstractCugTest {
 
-    private static final List<String> PATHS = ImmutableList.of(ROOT_PATH, SUPPORTED_PATH, SUPPORTED_PATH + "/subtree", SUPPORTED_PATH3, UNSUPPORTED_PATH, INVALID_PATH);
+    private static final List<String> PATHS = ImmutableList.of(ROOT_PATH, SUPPORTED_PATH,
+        SUPPORTED_PATH + "/subtree", SUPPORTED_PATH3, UNSUPPORTED_PATH, INVALID_PATH);
 
     @Test
     public void testHasAnyNoCug() {
@@ -50,7 +50,8 @@ public class TopLevelPathTest extends AbstractCugTest {
 
     @Test
     public void testHasAnyWithCug() throws Exception {
-        Tree tree = TreeUtil.addChild(root.getTree(SUPPORTED_PATH3), "child", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        Tree tree = TreeUtil.addChild(root.getTree(SUPPORTED_PATH3), "child",
+            NodeTypeConstants.NT_OAK_UNSTRUCTURED);
         createCug(tree.getPath(), EveryonePrincipal.getInstance());
         root.commit();
 
@@ -68,9 +69,10 @@ public class TopLevelPathTest extends AbstractCugTest {
     }
 
     @Test
-    public void testContainsWithCug()  throws Exception {
+    public void testContainsWithCug() throws Exception {
         String cugPath = TreeUtil
-                .addChild(root.getTree(SUPPORTED_PATH3), "child", NodeTypeConstants.NT_OAK_UNSTRUCTURED).getPath();
+            .addChild(root.getTree(SUPPORTED_PATH3), "child", NodeTypeConstants.NT_OAK_UNSTRUCTURED)
+            .getPath();
         createCug(cugPath, EveryonePrincipal.getInstance());
         root.commit();
 
@@ -122,7 +124,8 @@ public class TopLevelPathTest extends AbstractCugTest {
     @Test
     public void testMayContainWithCug() throws Exception {
         String cugPath = TreeUtil
-                .addChild(root.getTree(SUPPORTED_PATH3), "child", NodeTypeConstants.NT_OAK_UNSTRUCTURED).getPath();
+            .addChild(root.getTree(SUPPORTED_PATH3), "child", NodeTypeConstants.NT_OAK_UNSTRUCTURED)
+            .getPath();
         createCug(cugPath, EveryonePrincipal.getInstance());
         root.commit();
 
@@ -136,8 +139,8 @@ public class TopLevelPathTest extends AbstractCugTest {
         assertTrue(tlp.contains(cugPath));
 
         CugPermissionProvider cugPermProvider = createCugPermissionProvider(
-                        ImmutableSet.of(SUPPORTED_PATH, SUPPORTED_PATH2, SUPPORTED_PATH3),
-                        getTestUser().getPrincipal(), EveryonePrincipal.getInstance());
+            ImmutableSet.of(SUPPORTED_PATH, SUPPORTED_PATH2, SUPPORTED_PATH3),
+            getTestUser().getPrincipal(), EveryonePrincipal.getInstance());
 
         Tree t = readOnlyRoot.getTree(ROOT_PATH);
         TreePermission rootTp = cugPermProvider.getTreePermission(t, TreePermission.EMPTY);
@@ -150,7 +153,7 @@ public class TopLevelPathTest extends AbstractCugTest {
             assertCugPermission(tp, Text.isDescendantOrEqual(SUPPORTED_PATH3, t.getPath()));
         }
 
-        for (String p : new String[] {SUPPORTED_PATH, SUPPORTED_PATH2, UNSUPPORTED_PATH }) {
+        for (String p : new String[]{SUPPORTED_PATH, SUPPORTED_PATH2, UNSUPPORTED_PATH}) {
             tp = getTreePermission(readOnlyRoot, p, cugPermProvider);
             assertSame(p, TreePermission.NO_RECOURSE, tp);
         }
@@ -171,8 +174,8 @@ public class TopLevelPathTest extends AbstractCugTest {
         assertFalse(tlp.contains(SUPPORTED_PATH3));
 
         CugPermissionProvider cugPermProvider = createCugPermissionProvider(
-                ImmutableSet.of(SUPPORTED_PATH, SUPPORTED_PATH2, SUPPORTED_PATH3),
-                getTestUser().getPrincipal(), EveryonePrincipal.getInstance());
+            ImmutableSet.of(SUPPORTED_PATH, SUPPORTED_PATH2, SUPPORTED_PATH3),
+            getTestUser().getPrincipal(), EveryonePrincipal.getInstance());
 
         Tree t = readOnlyRoot.getTree(PathUtils.ROOT_PATH);
         TreePermission rootTp = cugPermProvider.getTreePermission(t, TreePermission.EMPTY);
@@ -185,10 +188,11 @@ public class TopLevelPathTest extends AbstractCugTest {
             assertCugPermission(tp, Text.isDescendantOrEqual(SUPPORTED_PATH, t.getPath()));
         }
 
-        tp = getTreePermission(readOnlyRoot, Text.getAbsoluteParent(SUPPORTED_PATH3, 0), cugPermProvider);
+        tp = getTreePermission(readOnlyRoot, Text.getAbsoluteParent(SUPPORTED_PATH3, 0),
+            cugPermProvider);
         assertSame(TreePermission.NO_RECOURSE, tp);
 
-        for (String p : new String[] {SUPPORTED_PATH2, UNSUPPORTED_PATH }) {
+        for (String p : new String[]{SUPPORTED_PATH2, UNSUPPORTED_PATH}) {
             tp = getTreePermission(readOnlyRoot, p, cugPermProvider);
             assertSame(p, TreePermission.NO_RECOURSE, tp);
         }
@@ -196,10 +200,12 @@ public class TopLevelPathTest extends AbstractCugTest {
 
     @Test
     public void testMissingHiddenNestedCugProperty() {
-        MemoryNodeBuilder nb = new MemoryNodeBuilder(getTreeProvider().asNodeState(root.getTree(PathUtils.ROOT_PATH)));
+        MemoryNodeBuilder nb = new MemoryNodeBuilder(
+            getTreeProvider().asNodeState(root.getTree(PathUtils.ROOT_PATH)));
         nb.setProperty(HIDDEN_TOP_CUG_CNT, 4);
 
-        TopLevelPaths tlp = new TopLevelPaths(getRootProvider().createReadOnlyRoot(nb.getNodeState()));
+        TopLevelPaths tlp = new TopLevelPaths(
+            getRootProvider().createReadOnlyRoot(nb.getNodeState()));
         assertFalse(tlp.contains(SUPPORTED_PATH));
     }
 }

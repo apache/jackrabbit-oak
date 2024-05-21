@@ -16,25 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.commons.io.IOUtils;
-import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.oak.api.Result;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
-import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
-import org.apache.jackrabbit.oak.plugins.nodetype.write.NodeTypeRegistry;
-import org.apache.jackrabbit.oak.query.AbstractQueryTest;
-import org.apache.jackrabbit.util.ISO8601;
-import org.junit.Test;
-
-import javax.jcr.PropertyType;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Arrays;
-import java.util.Calendar;
-
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
@@ -50,6 +31,24 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Arrays;
+import java.util.Calendar;
+import javax.jcr.PropertyType;
+import org.apache.commons.io.IOUtils;
+import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.oak.api.Result;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.plugins.nodetype.write.NodeTypeRegistry;
+import org.apache.jackrabbit.oak.query.AbstractQueryTest;
+import org.apache.jackrabbit.util.ISO8601;
+import org.junit.Test;
+
 public abstract class PropertyIndexCommonTest extends AbstractQueryTest {
 
     protected IndexOptions indexOptions;
@@ -57,12 +56,14 @@ public abstract class PropertyIndexCommonTest extends AbstractQueryTest {
 
     protected void assertEventually(Runnable r) {
         TestUtil.assertEventually(r,
-                ((repositoryOptionsUtil.isAsync() ? repositoryOptionsUtil.defaultAsyncIndexingTimeInSeconds : 0) + 3000) * 5);
+            ((repositoryOptionsUtil.isAsync()
+                ? repositoryOptionsUtil.defaultAsyncIndexingTimeInSeconds : 0) + 3000) * 5);
     }
 
     @Test
     public void testBulkProcessorFlushLimit() throws Exception {
-        indexOptions.setIndex(root, "test1", indexOptions.createIndex(indexOptions.createIndexDefinitionBuilder(), false, "propa"));
+        indexOptions.setIndex(root, "test1",
+            indexOptions.createIndex(indexOptions.createIndexDefinitionBuilder(), false, "propa"));
 
         Tree test = root.getTree("/").addChild("test");
         for (int i = 1; i < 249; i++) {
@@ -96,8 +97,11 @@ public abstract class PropertyIndexCommonTest extends AbstractQueryTest {
 
     @Test
     public void indexSelection() throws Exception {
-        indexOptions.setIndex(root, "test1", indexOptions.createIndex(indexOptions.createIndexDefinitionBuilder(), false, "propa", "propb"));
-        indexOptions.setIndex(root, "test2", indexOptions.createIndex(indexOptions.createIndexDefinitionBuilder(), false, "propc"));
+        indexOptions.setIndex(root, "test1",
+            indexOptions.createIndex(indexOptions.createIndexDefinitionBuilder(), false, "propa",
+                "propb"));
+        indexOptions.setIndex(root, "test2",
+            indexOptions.createIndex(indexOptions.createIndexDefinitionBuilder(), false, "propc"));
 
         Tree test = root.getTree("/").addChild("test");
         test.addChild("a").setProperty("propa", "foo");
@@ -110,18 +114,21 @@ public abstract class PropertyIndexCommonTest extends AbstractQueryTest {
         String propaQuery = "select [jcr:path] from [nt:base] where [propa] = 'foo'";
 
         assertEventually(() -> {
-            IndexDefinitionBuilder builder = indexOptions.createIndex(indexOptions.createIndexDefinitionBuilder(), false);
+            IndexDefinitionBuilder builder = indexOptions.createIndex(
+                indexOptions.createIndexDefinitionBuilder(), false);
             builder.includedPaths("/test")
-                    .indexRule("nt:base")
-                    .property("nodeName", PROPDEF_PROP_NODE_NAME);
+                   .indexRule("nt:base")
+                   .property("nodeName", PROPDEF_PROP_NODE_NAME);
             indexOptions.setIndex(root, "test1", builder);
             assertThat(explain(propaQuery), containsString("/oak:index/test1"));
             assertThat(explain("select [jcr:path] from [nt:base] where [propc] = 'foo'"),
-                    containsString("/oak:index/test2"));
+                containsString("/oak:index/test2"));
 
             assertQuery(propaQuery, Arrays.asList("/test/a", "/test/b"));
-            assertQuery("select [jcr:path] from [nt:base] where [propa] = 'foo2'", singletonList("/test/c"));
-            assertQuery("select [jcr:path] from [nt:base] where [propc] = 'foo'", singletonList("/test/d"));
+            assertQuery("select [jcr:path] from [nt:base] where [propa] = 'foo2'",
+                singletonList("/test/c"));
+            assertQuery("select [jcr:path] from [nt:base] where [propc] = 'foo'",
+                singletonList("/test/d"));
         });
     }
 
@@ -131,8 +138,8 @@ public abstract class PropertyIndexCommonTest extends AbstractQueryTest {
         IndexDefinitionBuilder builder = indexOptions.createIndexDefinitionBuilder();
         builder.noAsync();
         builder.includedPaths("/test")
-                .indexRule("nt:base")
-                .property("nodeName", PROPDEF_PROP_NODE_NAME);
+               .indexRule("nt:base")
+               .property("nodeName", PROPDEF_PROP_NODE_NAME);
         indexOptions.setIndex(root, "test1", builder);
         root.commit();
 
@@ -155,7 +162,8 @@ public abstract class PropertyIndexCommonTest extends AbstractQueryTest {
 
             assertQuery(queryPrefix + "LOCALNAME() = 'bar'", singletonList("/test/sc/bar"));
             assertQuery(queryPrefix + "LOCALNAME() LIKE 'foo'", singletonList("/test/foo"));
-            assertQuery(queryPrefix + "LOCALNAME() LIKE 'camel%'", singletonList("/test/camelCase"));
+            assertQuery(queryPrefix + "LOCALNAME() LIKE 'camel%'",
+                singletonList("/test/camelCase"));
 
             assertQuery(queryPrefix + "NAME() = 'bar'", singletonList("/test/sc/bar"));
             assertQuery(queryPrefix + "NAME() LIKE 'foo'", singletonList("/test/foo"));
@@ -165,20 +173,24 @@ public abstract class PropertyIndexCommonTest extends AbstractQueryTest {
 
     @Test
     public void emptyIndex() throws Exception {
-        indexOptions.setIndex(root, "test1", indexOptions.createIndex(indexOptions.createIndexDefinitionBuilder(), false, "propa", "propb"));
+        indexOptions.setIndex(root, "test1",
+            indexOptions.createIndex(indexOptions.createIndexDefinitionBuilder(), false, "propa",
+                "propb"));
         root.commit();
 
         Tree test = root.getTree("/").addChild("test");
         test.addChild("a");
         test.addChild("b");
         root.commit();
-        assertEventually(() -> assertThat(explain("select [jcr:path] from [nt:base] where [propa] = 'foo'"),
+        assertEventually(
+            () -> assertThat(explain("select [jcr:path] from [nt:base] where [propa] = 'foo'"),
                 containsString("/oak:index/test1")));
     }
 
     @Test
     public void sizeQuery() throws Exception {
-        indexOptions.setIndex(root, "test1", indexOptions.createIndex(indexOptions.createIndexDefinitionBuilder(), false, "propa"));
+        indexOptions.setIndex(root, "test1",
+            indexOptions.createIndex(indexOptions.createIndexDefinitionBuilder(), false, "propa"));
         root.commit();
 
         Tree test = root.getTree("/").addChild("test");
@@ -188,7 +200,8 @@ public abstract class PropertyIndexCommonTest extends AbstractQueryTest {
 
         assertEventually(() -> {
             try {
-                Result result = executeQuery("select [jcr:path] from [nt:base] where [propa] = 'foo'", SQL2, NO_BINDINGS);
+                Result result = executeQuery(
+                    "select [jcr:path] from [nt:base] where [propa] = 'foo'", SQL2, NO_BINDINGS);
                 assertThat(result.getSize(Result.SizePrecision.APPROXIMATION, 0), is(1L));
             } catch (ParseException e) {
                 throw new RuntimeException(e);
@@ -202,7 +215,8 @@ public abstract class PropertyIndexCommonTest extends AbstractQueryTest {
 
         assertEventually(() -> {
             try {
-                Result result = executeQuery("select [jcr:path] from [nt:base] where [propa] = 'foo'", SQL2, NO_BINDINGS);
+                Result result = executeQuery(
+                    "select [jcr:path] from [nt:base] where [propa] = 'foo'", SQL2, NO_BINDINGS);
                 assertThat(result.getSize(Result.SizePrecision.APPROXIMATION, 0), is(2L));
             } catch (ParseException e) {
                 throw new RuntimeException(e);
@@ -212,7 +226,8 @@ public abstract class PropertyIndexCommonTest extends AbstractQueryTest {
 
     @Test
     public void propertyExistenceQuery() throws Exception {
-        indexOptions.setIndex(root, "test1", indexOptions.createIndex(indexOptions.createIndexDefinitionBuilder(),
+        indexOptions.setIndex(root, "test1",
+            indexOptions.createIndex(indexOptions.createIndexDefinitionBuilder(),
                 false, "propa", "propb"));
         root.commit();
 
@@ -221,16 +236,19 @@ public abstract class PropertyIndexCommonTest extends AbstractQueryTest {
         test.addChild("b").setProperty("propa", "c");
         test.addChild("c").setProperty("propb", "e");
         root.commit();
-        assertEventually(() -> assertQuery("select [jcr:path] from [nt:base] where propa is not null",
+        assertEventually(
+            () -> assertQuery("select [jcr:path] from [nt:base] where propa is not null",
                 Arrays.asList("/test/a", "/test/b")));
     }
 
     @Test
     public void propertyExistenceQueryWithNullCheck() throws Exception {
-        NodeTypeRegistry.register(root, IOUtils.toInputStream(TestUtil.TEST_NODE_TYPE), "test nodeType");
+        NodeTypeRegistry.register(root, IOUtils.toInputStream(TestUtil.TEST_NODE_TYPE),
+            "test nodeType");
 
         Tree idx = indexOptions.setIndex(root, "test1",
-                indexOptions.createIndex(indexOptions.createIndexDefinitionBuilder(), TestUtil.NT_TEST, false, "propa", "propb"));
+            indexOptions.createIndex(indexOptions.createIndexDefinitionBuilder(), TestUtil.NT_TEST,
+                false, "propa", "propb"));
         Tree props = TestUtil.newRulePropTree(idx, TestUtil.NT_TEST);
         Tree prop = props.addChild(TestUtil.unique("prop"));
         prop.setProperty(PROP_NAME, "propa");
@@ -246,7 +264,8 @@ public abstract class PropertyIndexCommonTest extends AbstractQueryTest {
 
         String query = "select [jcr:path] from [oak:TestNode] where [propa] is not null";
         String explanation = explain(query);
-        assertThat(explanation, containsString(propertyExistenceQueryWithNullCheckExpectedExplain()));
+        assertThat(explanation,
+            containsString(propertyExistenceQueryWithNullCheckExpectedExplain()));
         assertEventually(() -> assertQuery(query, Arrays.asList("/test/a", "/test/b")));
     }
 
@@ -256,10 +275,12 @@ public abstract class PropertyIndexCommonTest extends AbstractQueryTest {
 
     @Test
     public void propertyNonExistenceQuery() throws Exception {
-        NodeTypeRegistry.register(root, IOUtils.toInputStream(TestUtil.TEST_NODE_TYPE), "test nodeType");
+        NodeTypeRegistry.register(root, IOUtils.toInputStream(TestUtil.TEST_NODE_TYPE),
+            "test nodeType");
 
         Tree idx = indexOptions.setIndex(root, "test1",
-                indexOptions.createIndex(indexOptions.createIndexDefinitionBuilder(), TestUtil.NT_TEST, false, "propa", "propb"));
+            indexOptions.createIndex(indexOptions.createIndexDefinitionBuilder(), TestUtil.NT_TEST,
+                false, "propa", "propb"));
         Tree props = TestUtil.newRulePropTree(idx, TestUtil.NT_TEST);
         Tree prop = props.addChild(TestUtil.unique("prop"));
         prop.setProperty(PROP_NAME, "propa");
@@ -305,21 +326,25 @@ public abstract class PropertyIndexCommonTest extends AbstractQueryTest {
         d.setProperty("date", "2020-12-07T10:23:33.933-09:00", Type.DATE);
         root.commit();
 
-        assertEventually(() -> assertQuery("select [jcr:path] from [nt:base] where date > CAST('2020-12-06T12:32:35.886Z' AS DATE)",
-                Arrays.asList("/test/a", "/test/b", "/test/c", "/test/d")));
-        assertEventually(() -> assertQuery("select [jcr:path] from [nt:base] where date > CAST('2020-12-07T12:32:35.886Z' AS DATE) " +
-                        "and date < CAST('2020-12-07T20:32:35.886Z' AS DATE)",
-                Arrays.asList("/test/b", "/test/d")));
-        assertEventually(() -> assertQuery("select [jcr:path] from [nt:base] where date < CAST('2020-12-07T11:23:33.933-09:00' AS DATE)",
-                Arrays.asList("/test/a", "/test/b", "/test/d")));
+        assertEventually(() -> assertQuery(
+            "select [jcr:path] from [nt:base] where date > CAST('2020-12-06T12:32:35.886Z' AS DATE)",
+            Arrays.asList("/test/a", "/test/b", "/test/c", "/test/d")));
+        assertEventually(() -> assertQuery(
+            "select [jcr:path] from [nt:base] where date > CAST('2020-12-07T12:32:35.886Z' AS DATE) "
+                +
+                "and date < CAST('2020-12-07T20:32:35.886Z' AS DATE)",
+            Arrays.asList("/test/b", "/test/d")));
+        assertEventually(() -> assertQuery(
+            "select [jcr:path] from [nt:base] where date < CAST('2020-12-07T11:23:33.933-09:00' AS DATE)",
+            Arrays.asList("/test/a", "/test/b", "/test/d")));
     }
 
     @Test
     public void likeQueriesWithString() throws Exception {
         indexOptions.setIndex(
-                root,
-                "test1",
-                indexOptions.createIndex(indexOptions.createIndexDefinitionBuilder(), false, "propa")
+            root,
+            "test1",
+            indexOptions.createIndex(indexOptions.createIndexDefinitionBuilder(), false, "propa")
         );
 
         Tree test = root.getTree("/").addChild("test");
@@ -329,32 +354,33 @@ public abstract class PropertyIndexCommonTest extends AbstractQueryTest {
         test.addChild("d").setProperty("propa", "alice");
         root.commit();
 
-        assertEventually(() -> assertQuery("select [jcr:path] from [nt:base] where propa like 'hum%'",
+        assertEventually(
+            () -> assertQuery("select [jcr:path] from [nt:base] where propa like 'hum%'",
                 ImmutableList.of("/test/a", "/test/c")));
         assertQuery("select [jcr:path] from [nt:base] where propa like '%ty'",
-                ImmutableList.of("/test/a", "/test/b"));
+            ImmutableList.of("/test/a", "/test/b"));
         assertQuery("select [jcr:path] from [nt:base] where propa like '%ump%'",
-                ImmutableList.of("/test/a", "/test/b", "/test/c"));
+            ImmutableList.of("/test/a", "/test/b", "/test/c"));
         assertQuery("select [jcr:path] from [nt:base] where propa like '_ump%'",
-                ImmutableList.of("/test/a", "/test/b", "/test/c"));
+            ImmutableList.of("/test/a", "/test/b", "/test/c"));
         assertQuery("select [jcr:path] from [nt:base] where propa like 'a_ice%'",
-                ImmutableList.of("/test/d"));
+            ImmutableList.of("/test/d"));
         assertQuery("select [jcr:path] from [nt:base] where propa like 'a_i_e%'",
-                ImmutableList.of("/test/d"));
+            ImmutableList.of("/test/d"));
         assertQuery("select [jcr:path] from [nt:base] where propa like '_____'",
-                ImmutableList.of("/test/c", "/test/d"));
+            ImmutableList.of("/test/c", "/test/d"));
         assertQuery("select [jcr:path] from [nt:base] where propa like 'h%y'",
-                ImmutableList.of("/test/a", "/test/c"));
+            ImmutableList.of("/test/a", "/test/c"));
         assertQuery("select [jcr:path] from [nt:base] where propa like 'humpy'",
-                ImmutableList.of("/test/c"));
+            ImmutableList.of("/test/c"));
     }
 
     @Test
     public void likeQueriesWithEscapedChars() throws Exception {
         indexOptions.setIndex(
-                root,
-                "test1",
-                indexOptions.createIndex(indexOptions.createIndexDefinitionBuilder(), false, "propa")
+            root,
+            "test1",
+            indexOptions.createIndex(indexOptions.createIndexDefinitionBuilder(), false, "propa")
         );
         Tree test = root.getTree("/").addChild("test");
         test.addChild("a").setProperty("propa", "foo%");
@@ -369,48 +395,51 @@ public abstract class PropertyIndexCommonTest extends AbstractQueryTest {
         root.commit();
 
         assertEventually(() ->
-                assertQuery("select [jcr:path] from [nt:base] where propa like 'foo%'",
-                        ImmutableList.of("/test/a", "/test/c", "/test/d", "/test/f", "/test/g", "/test/h", "/test/i"))
+            assertQuery("select [jcr:path] from [nt:base] where propa like 'foo%'",
+                ImmutableList.of("/test/a", "/test/c", "/test/d", "/test/f", "/test/g", "/test/h",
+                    "/test/i"))
         );
 
         assertQuery("select [jcr:path] from [nt:base] where propa like '%oo%'",
-                ImmutableList.of("/test/a", "/test/c", "/test/d", "/test/e", "/test/f", "/test/g", "/test/h", "/test/i"));
+            ImmutableList.of("/test/a", "/test/c", "/test/d", "/test/e", "/test/f", "/test/g",
+                "/test/h", "/test/i"));
         assertQuery("select [jcr:path] from [nt:base] where propa like 'foo\\%'",
-                ImmutableList.of("/test/a"));
+            ImmutableList.of("/test/a"));
         assertQuery("select [jcr:path] from [nt:base] where propa like '%oo\\%'",
-                ImmutableList.of("/test/a"));
+            ImmutableList.of("/test/a"));
         assertQuery("select [jcr:path] from [nt:base] where propa like '%oo\\%%'",
-                ImmutableList.of("/test/a", "/test/c", "/test/g"));
+            ImmutableList.of("/test/a", "/test/c", "/test/g"));
         assertQuery("select [jcr:path] from [nt:base] where propa like '\\%b%'",
-                ImmutableList.of("/test/b"));
+            ImmutableList.of("/test/b"));
         assertQuery("select [jcr:path] from [nt:base] where propa like 'foo_'",
-                ImmutableList.of("/test/a", "/test/d"));
+            ImmutableList.of("/test/a", "/test/d"));
         assertQuery("select [jcr:path] from [nt:base] where propa like '_oo_'",
-                ImmutableList.of("/test/a", "/test/d"));
+            ImmutableList.of("/test/a", "/test/d"));
         assertQuery("select [jcr:path] from [nt:base] where propa like 'foo\\_'",
-                ImmutableList.of("/test/d"));
+            ImmutableList.of("/test/d"));
         assertQuery("select [jcr:path] from [nt:base] where propa like '%oo\\_'",
-                ImmutableList.of("/test/d"));
+            ImmutableList.of("/test/d"));
         assertQuery("select [jcr:path] from [nt:base] where propa like '%oo\\_%'",
-                ImmutableList.of("/test/d", "/test/f"));
+            ImmutableList.of("/test/d", "/test/f"));
         assertQuery("select [jcr:path] from [nt:base] where propa like '%oo\\%\\_%'",
-                ImmutableList.of("/test/g"));
+            ImmutableList.of("/test/g"));
         assertQuery("select [jcr:path] from [nt:base] where propa like 'foo\\\\bar'",
-                ImmutableList.of("/test/h"));
+            ImmutableList.of("/test/h"));
         assertQuery("select [jcr:path] from [nt:base] where propa like '%\\\\%'",
-                ImmutableList.of("/test/h", "/test/i"));
+            ImmutableList.of("/test/h", "/test/i"));
         assertQuery("select [jcr:path] from [nt:base] where propa like '%\\\\\\%%'",
-                ImmutableList.of("/test/i"));
+            ImmutableList.of("/test/i"));
     }
 
     @Test
     public void rangeQueriesWithBeforeEpoch() throws Exception {
         Tree idx = indexOptions.setIndex(
-                root,
-                "test1",
-                indexOptions.createIndex(indexOptions.createIndexDefinitionBuilder(), false, "propa")
+            root,
+            "test1",
+            indexOptions.createIndex(indexOptions.createIndexDefinitionBuilder(), false, "propa")
         );
-        Tree propIdx = idx.getChild("indexRules").getChild("nt:base").getChild(PROP_NODE).getChild("propa");
+        Tree propIdx = idx.getChild("indexRules").getChild("nt:base").getChild(PROP_NODE)
+                          .getChild("propa");
         propIdx.setProperty(FulltextIndexConstants.PROP_TYPE, PropertyType.TYPENAME_DATE);
         root.commit();
 
@@ -421,27 +450,35 @@ public abstract class PropertyIndexCommonTest extends AbstractQueryTest {
         root.commit();
 
         assertEventually(() -> {
-            assertQuery("select [jcr:path] from [nt:base] where [propa] >= " + dt("15/02/1768"), asList("/test/b", "/test/c"));
-            assertQuery("select [jcr:path] from [nt:base] where [propa] <=" + dt("15/03/1769"), asList("/test/b", "/test/a"));
-            assertQuery("select [jcr:path] from [nt:base] where [propa] < " + dt("14/03/1769"), singletonList("/test/a"));
-            assertQuery("select [jcr:path] from [nt:base] where [propa] <> " + dt("14/03/1769"), asList("/test/a", "/test/c"));
-            assertQuery("select [jcr:path] from [nt:base] where [propa] > " + dt("15/02/1768") + " and [propa] < " + dt("13/04/1770"), singletonList("/test/b"));
-            assertQuery("select [jcr:path] from [nt:base] where propa is not null", asList("/test/a", "/test/b", "/test/c"));
+            assertQuery("select [jcr:path] from [nt:base] where [propa] >= " + dt("15/02/1768"),
+                asList("/test/b", "/test/c"));
+            assertQuery("select [jcr:path] from [nt:base] where [propa] <=" + dt("15/03/1769"),
+                asList("/test/b", "/test/a"));
+            assertQuery("select [jcr:path] from [nt:base] where [propa] < " + dt("14/03/1769"),
+                singletonList("/test/a"));
+            assertQuery("select [jcr:path] from [nt:base] where [propa] <> " + dt("14/03/1769"),
+                asList("/test/a", "/test/c"));
+            assertQuery("select [jcr:path] from [nt:base] where [propa] > " + dt("15/02/1768")
+                + " and [propa] < " + dt("13/04/1770"), singletonList("/test/b"));
+            assertQuery("select [jcr:path] from [nt:base] where propa is not null",
+                asList("/test/a", "/test/b", "/test/c"));
         });
     }
 
     @Test
     public void dateQueryWithEmptyValue() throws Exception {
         Tree idx = indexOptions.setIndex(
-                root,
-                "test1",
-                indexOptions.createIndex(indexOptions.createIndexDefinitionBuilder(), false, "textField", "imageLaunchDate")
+            root,
+            "test1",
+            indexOptions.createIndex(indexOptions.createIndexDefinitionBuilder(), false,
+                "textField", "imageLaunchDate")
         );
         Tree aggregates = idx.addChild("aggregates").addChild("nt:base");
         Tree include0 = aggregates.addChild("include0");
         include0.setProperty("path", "jcr:content/metadata/product", Type.STRING);
 
-        Tree dateField = idx.getChild("indexRules").getChild("nt:base").getChild(PROP_NODE).getChild("imageLaunchDate");
+        Tree dateField = idx.getChild("indexRules").getChild("nt:base").getChild(PROP_NODE)
+                            .getChild("imageLaunchDate");
         dateField.setProperty("name", "jcr:content/metadata/product/imageLaunchDate");
         dateField.setProperty(FulltextIndexConstants.PROP_TYPE, PropertyType.TYPENAME_DATE);
         dateField.setProperty(FulltextIndexConstants.PROP_ORDERED, true);
@@ -454,17 +491,21 @@ public abstract class PropertyIndexCommonTest extends AbstractQueryTest {
         content.setProperty("imageLaunchDate", "", Type.STRING);
         root.commit();
 
-        assertEventually(() -> assertQuery("select [jcr:path] from [nt:base] where [textField] = 'foo'", singletonList("/test/a")));
+        assertEventually(
+            () -> assertQuery("select [jcr:path] from [nt:base] where [textField] = 'foo'",
+                singletonList("/test/a")));
     }
 
     @Test
     public void inQueryWithUnparseableValue() throws Exception {
         Tree idx = indexOptions.setIndex(
-                root,
-                "test1",
-                indexOptions.createIndex(indexOptions.createIndexDefinitionBuilder(), false, "booleanField")
+            root,
+            "test1",
+            indexOptions.createIndex(indexOptions.createIndexDefinitionBuilder(), false,
+                "booleanField")
         );
-        Tree booleanField = idx.getChild("indexRules").getChild("nt:base").getChild(PROP_NODE).getChild("booleanField");
+        Tree booleanField = idx.getChild("indexRules").getChild("nt:base").getChild(PROP_NODE)
+                               .getChild("booleanField");
         booleanField.setProperty(FulltextIndexConstants.PROP_TYPE, PropertyType.TYPENAME_BOOLEAN);
         root.commit();
 
@@ -473,9 +514,14 @@ public abstract class PropertyIndexCommonTest extends AbstractQueryTest {
         root.commit();
 
         assertEventually(() -> {
-            assertQuery("select [jcr:path] from [nt:base] where [booleanField] in('true', 'True')", singletonList("/test/a"));
-            assertQuery("select [jcr:path] from [nt:base] where [booleanField] in('true', 'InvalidBool')", singletonList("/test/a"));
-            assertQuery("select [jcr:path] from [nt:base] where [booleanField] in('foo', 'InvalidBool')", emptyList());
+            assertQuery("select [jcr:path] from [nt:base] where [booleanField] in('true', 'True')",
+                singletonList("/test/a"));
+            assertQuery(
+                "select [jcr:path] from [nt:base] where [booleanField] in('true', 'InvalidBool')",
+                singletonList("/test/a"));
+            assertQuery(
+                "select [jcr:path] from [nt:base] where [booleanField] in('foo', 'InvalidBool')",
+                emptyList());
         });
     }
 

@@ -35,14 +35,12 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
-
+import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.util.UTF8Encoder;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.LoggerFactory;
-
-import org.apache.jackrabbit.guava.common.base.Joiner;
 
 /**
  * Convenience methods dealing with JDBC specifics.
@@ -90,11 +88,14 @@ public class RDBJDBCTools {
         }
     }
 
-    private static @NotNull String checkLegalTableName(@NotNull String tableName) throws IllegalArgumentException {
+    private static @NotNull String checkLegalTableName(@NotNull String tableName)
+        throws IllegalArgumentException {
         for (int i = 0; i < tableName.length(); i++) {
             char c = tableName.charAt(i);
-            if (!((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || (c == '_'))) {
-                throw new IllegalArgumentException("Invalid character '" + c + "' in table name '" + tableName + "'");
+            if (!((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || (c
+                == '_'))) {
+                throw new IllegalArgumentException(
+                    "Invalid character '" + c + "' in table name '" + tableName + "'");
             }
         }
         return tableName;
@@ -102,12 +103,12 @@ public class RDBJDBCTools {
 
     /**
      * Creates a table name based on an optional prefix and a base name.
-     * 
-     * @throws IllegalArgumentException
-     *             upon illegal characters in name
+     *
+     * @throws IllegalArgumentException upon illegal characters in name
      */
-    protected static @NotNull String createTableName(@NotNull String prefix, @NotNull String basename)
-            throws IllegalArgumentException {
+    protected static @NotNull String createTableName(@NotNull String prefix,
+        @NotNull String basename)
+        throws IllegalArgumentException {
         String p = checkLegalTableName(prefix);
         String b = checkLegalTableName(basename);
         if (p.length() != 0 && !p.endsWith("_")) {
@@ -144,11 +145,12 @@ public class RDBJDBCTools {
         return String.format("%s (%d)", name, isolationLevel);
     }
 
-    private static String dumpColumnMeta(String columnName, int type, String typeName, int precision) {
+    private static String dumpColumnMeta(String columnName, int type, String typeName,
+        int precision) {
         boolean skipPrecision = precision == 0 || (type == Types.SMALLINT && precision == 5)
-                || (type == Types.BIGINT && precision == 19);
+            || (type == Types.BIGINT && precision == 19);
         return skipPrecision ? String.format("%s %s", columnName, typeName)
-                : String.format("%s %s(%d)", columnName, typeName, precision);
+            : String.format("%s %s(%d)", columnName, typeName, precision);
     }
 
     /**
@@ -157,14 +159,16 @@ public class RDBJDBCTools {
     protected static String dumpResultSetMeta(ResultSetMetaData met) {
         try {
             StringBuilder sb = new StringBuilder();
-            sb.append(String.format("%s.%s: ", met.getSchemaName(1).trim(), met.getTableName(1).trim()));
+            sb.append(
+                String.format("%s.%s: ", met.getSchemaName(1).trim(), met.getTableName(1).trim()));
             Map<String, Integer> types = new TreeMap<String, Integer>();
             for (int i = 1; i <= met.getColumnCount(); i++) {
                 if (i > 1) {
                     sb.append(", ");
                 }
                 sb.append(
-                        dumpColumnMeta(met.getColumnName(i), met.getColumnType(i), met.getColumnTypeName(i), met.getPrecision(i)));
+                    dumpColumnMeta(met.getColumnName(i), met.getColumnType(i),
+                        met.getColumnTypeName(i), met.getPrecision(i)));
                 types.put(met.getColumnTypeName(i), met.getColumnType(i));
             }
             sb.append(" /* " + types.toString() + " */");
@@ -199,8 +203,9 @@ public class RDBJDBCTools {
         String state = ex.getSQLState();
         if (state != null) {
             for (String sp : statePrefix) {
-                if (state.startsWith(sp))
+                if (state.startsWith(sp)) {
                     return true;
+                }
             }
         }
         return false;
@@ -208,25 +213,18 @@ public class RDBJDBCTools {
 
     /**
      * Generate database + driver version diagnostics.
-     * 
-     * @param md
-     *            metadata object
-     * @param dbmax
-     *            minimal DB major version number (where {@code -1} disables the
-     *            check)
-     * @param dbmin
-     *            minimal DB minor version number
-     * @param drmax
-     *            minimal driver major version number (where {@code -1} disables
-     *            the check)
-     * @param drmin
-     *            minimal driver minor version number
-     * @param dbname
-     *            database type
+     *
+     * @param md     metadata object
+     * @param dbmax  minimal DB major version number (where {@code -1} disables the check)
+     * @param dbmin  minimal DB minor version number
+     * @param drmax  minimal driver major version number (where {@code -1} disables the check)
+     * @param drmin  minimal driver minor version number
+     * @param dbname database type
      * @return diagnostics (empty when there's nothing to complain about)
      */
-    protected static String versionCheck(DatabaseMetaData md, int dbmax, int dbmin, int drmax, int drmin, String dbname)
-            throws SQLException {
+    protected static String versionCheck(DatabaseMetaData md, int dbmax, int dbmin, int drmax,
+        int drmin, String dbname)
+        throws SQLException {
         StringBuilder result = new StringBuilder();
 
         if (dbmax != -1) {
@@ -235,7 +233,8 @@ public class RDBJDBCTools {
 
             if (maj < dbmax || (maj == dbmax && min < dbmin)) {
                 result.append(
-                        "Unsupported " + dbname + " version: " + maj + "." + min + ", expected at least " + dbmax + "." + dbmin);
+                    "Unsupported " + dbname + " version: " + maj + "." + min
+                        + ", expected at least " + dbmax + "." + dbmin);
             }
         }
 
@@ -247,7 +246,9 @@ public class RDBJDBCTools {
                 if (result.length() != 0) {
                     result.append(", ");
                 }
-                result.append("Unsupported " + dbname + " driver version: " + md.getDriverName() + " " + maj + "." + min
+                result.append(
+                    "Unsupported " + dbname + " driver version: " + md.getDriverName() + " " + maj
+                        + "." + min
                         + ", expected at least " + drmax + "." + drmin);
             }
         }
@@ -257,24 +258,21 @@ public class RDBJDBCTools {
 
     /**
      * Generate database version diagnostics.
-     * 
-     * @param md
-     *            metadata object
-     * @param dbmax
-     *            minimal DB major version number (where {@code -1} disables the
-     *            check)
-     * @param dbmin
-     *            minimal DB minor version number
-     * @param dbname
-     *            database type
+     *
+     * @param md     metadata object
+     * @param dbmax  minimal DB major version number (where {@code -1} disables the check)
+     * @param dbmin  minimal DB minor version number
+     * @param dbname database type
      * @return diagnostics (empty when there's nothing to complain about)
      */
-    protected static String versionCheck(DatabaseMetaData md, int dbmax, int dbmin, String dbname) throws SQLException {
+    protected static String versionCheck(DatabaseMetaData md, int dbmax, int dbmin, String dbname)
+        throws SQLException {
         return versionCheck(md, dbmax, dbmin, -1, -1, dbname);
     }
 
     /**
      * Closes a {@link Statement}, logging potential problems.
+     *
      * @return null
      */
     protected static <T extends Statement> T closeStatement(@Nullable T stmt) {
@@ -290,6 +288,7 @@ public class RDBJDBCTools {
 
     /**
      * Closes a {@link ResultSet}, logging potential problems.
+     *
      * @return null
      */
     protected static ResultSet closeResultSet(@Nullable ResultSet rs) {
@@ -305,14 +304,13 @@ public class RDBJDBCTools {
     }
 
     /**
-     * Provides a component for a {@link PreparedStatement} and a method for
-     * setting the parameters within this component
+     * Provides a component for a {@link PreparedStatement} and a method for setting the parameters
+     * within this component
      */
     public interface PreparedStatementComponent {
 
         /**
-         * @return a string suitable for inclusion into a
-         *         {@link PreparedStatement}
+         * @return a string suitable for inclusion into a {@link PreparedStatement}
          */
         @NotNull
         public String getStatementComponent();
@@ -320,11 +318,9 @@ public class RDBJDBCTools {
         /**
          * Set the parameters need by the statement component returned by
          * {@link #getStatementComponent()}
-         * 
-         * @param stmt
-         *            the statement
-         * @param startIndex
-         *            of first parameter to set
+         *
+         * @param stmt       the statement
+         * @param startIndex of first parameter to set
          * @return index of next parameter to set
          * @throws SQLException
          */
@@ -332,22 +328,18 @@ public class RDBJDBCTools {
     }
 
     /**
-     * Appends following SQL condition to the builder: {@code ID in (?,?,?)}.
-     * The field name {@code ID} and the number of place holders is
-     * configurable. If the number of place holders is greater than
-     * {@code maxListLength}, then the condition will have following form:
+     * Appends following SQL condition to the builder: {@code ID in (?,?,?)}. The field name
+     * {@code ID} and the number of place holders is configurable. If the number of place holders is
+     * greater than {@code maxListLength}, then the condition will have following form:
      * {@code (ID in (?,?,?) or ID in (?,?,?) or ID in (?,?))}
      *
-     * @param builder
-     *            the condition will be appended here
-     * @param field
-     *            name of the field
-     * @param placeholdersCount
-     *            how many ? should be included
-     * @param maxListLength
-     *            what's the max number of ? in one list
+     * @param builder           the condition will be appended here
+     * @param field             name of the field
+     * @param placeholdersCount how many ? should be included
+     * @param maxListLength     what's the max number of ? in one list
      */
-    protected static void appendInCondition(StringBuilder builder, String field, int placeholdersCount, int maxListLength) {
+    protected static void appendInCondition(StringBuilder builder, String field,
+        int placeholdersCount, int maxListLength) {
         if (placeholdersCount == 1) {
             builder.append(field).append(" = ?");
         } else if (placeholdersCount > 0) {
@@ -377,7 +369,8 @@ public class RDBJDBCTools {
         }
     }
 
-    private static void appendInCondition(StringBuilder builder, String field, int placeholdersCount) {
+    private static void appendInCondition(StringBuilder builder, String field,
+        int placeholdersCount) {
         builder.append(field).append(" in (");
         Joiner.on(',').appendTo(builder, limit(cycle('?'), placeholdersCount));
         builder.append(')');
@@ -385,13 +378,17 @@ public class RDBJDBCTools {
 
     // see <https://issues.apache.org/jira/browse/OAK-3843>
     public static final int MAX_IN_CLAUSE = Integer
-            .getInteger("org.apache.jackrabbit.oak.plugins.document.rdb.RDBJDBCTools.MAX_IN_CLAUSE", 2048);
+        .getInteger("org.apache.jackrabbit.oak.plugins.document.rdb.RDBJDBCTools.MAX_IN_CLAUSE",
+            2048);
 
-    public static PreparedStatementComponent createInStatement(final String fieldName, final Collection<String> values,
-            final boolean binary) {
+    public static PreparedStatementComponent createInStatement(final String fieldName,
+        final Collection<String> values,
+        final boolean binary) {
 
         if (values.size() > MAX_IN_CLAUSE) {
-            throw new IllegalArgumentException("Maximum size of IN clause allowed is " + MAX_IN_CLAUSE + ", but " + values.size() + " was requested");
+            throw new IllegalArgumentException(
+                "Maximum size of IN clause allowed is " + MAX_IN_CLAUSE + ", but " + values.size()
+                    + " was requested");
         }
 
         return new PreparedStatementComponent() {
@@ -425,12 +422,14 @@ public class RDBJDBCTools {
             }
         };
     }
-    
+
     private static DocumentStoreException.Type exceptionTypeFor(Exception cause) {
-        return (cause instanceof SQLTransientException) ? DocumentStoreException.Type.TRANSIENT : DocumentStoreException.Type.GENERIC;
+        return (cause instanceof SQLTransientException) ? DocumentStoreException.Type.TRANSIENT
+            : DocumentStoreException.Type.GENERIC;
     }
-    
-    public static DocumentStoreException asDocumentStoreException(@NotNull Exception cause, @NotNull String message) {
+
+    public static DocumentStoreException asDocumentStoreException(@NotNull Exception cause,
+        @NotNull String message) {
         return new DocumentStoreException(message, cause, exceptionTypeFor(cause));
     }
 }

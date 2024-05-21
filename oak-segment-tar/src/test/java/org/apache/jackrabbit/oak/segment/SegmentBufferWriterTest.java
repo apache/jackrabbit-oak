@@ -27,7 +27,6 @@ import java.io.File;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
@@ -132,7 +131,8 @@ public class SegmentBufferWriterTest {
             } catch (IllegalArgumentException e) {
                 error = Optional.of(e);
             }
-            assertEquals("Record too big: type=BLOCK, size=262101, recordIds=0, total=262104", error.map(Exception::getMessage).orElse(null));
+            assertEquals("Record too big: type=BLOCK, size=262101, recordIds=0, total=262104",
+                error.map(Exception::getMessage).orElse(null));
         }
     }
 

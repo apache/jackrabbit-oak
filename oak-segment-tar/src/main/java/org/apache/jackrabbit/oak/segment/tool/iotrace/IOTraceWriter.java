@@ -19,23 +19,23 @@
 package org.apache.jackrabbit.oak.segment.tool.iotrace;
 
 import java.io.Flushable;
-
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Instances of {@code IOTraceWriter} are responsible for persisting
- * io traces.
+ * Instances of {@code IOTraceWriter} are responsible for persisting io traces.
  */
 public interface IOTraceWriter extends Flushable {
 
     /**
      * Persist a {@code header}
+     *
      * @param header
      */
     void writeHeader(@NotNull String header);
 
     /**
      * Persist a {@code entry}
+     *
      * @param entry
      */
     void writeEntry(@NotNull String entry);

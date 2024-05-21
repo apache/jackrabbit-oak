@@ -63,6 +63,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 public class BundledDocumentDifferTest {
+
     @Rule
     public DocumentMKBuilderProvider builderProvider = new DocumentMKBuilderProvider();
     private DocumentNodeStore store;
@@ -76,31 +77,31 @@ public class BundledDocumentDifferTest {
         journalDisabledProp = System.getProperty(SYS_PROP_DISABLE_JOURNAL);
         System.setProperty(SYS_PROP_DISABLE_JOURNAL, "true");
         store = builderProvider
-                .newBuilder()
-                .memoryCacheSize(0)
-                .getNodeStore();
+            .newBuilder()
+            .memoryCacheSize(0)
+            .getNodeStore();
         NodeState registryState = BundledTypesRegistry.builder()
-                .forType("app:Asset")
-                .include("jcr:content")
-                .include("jcr:content/metadata")
-                .include("jcr:content/renditions")
-                .include("jcr:content/renditions/**")
-                .build();
+                                                      .forType("app:Asset")
+                                                      .include("jcr:content")
+                                                      .include("jcr:content/metadata")
+                                                      .include("jcr:content/renditions")
+                                                      .include("jcr:content/renditions/**")
+                                                      .build();
 
         NodeBuilder builder = store.getRoot().builder();
         new InitialContent().initialize(builder);
         BundlingConfigInitializer.INSTANCE.initialize(builder);
         builder.getChildNode("jcr:system")
-                .getChildNode(DOCUMENT_NODE_STORE)
-                .getChildNode(BUNDLOR)
-                .setChildNode("app:Asset", registryState.getChildNode("app:Asset"));
+               .getChildNode(DOCUMENT_NODE_STORE)
+               .getChildNode(BUNDLOR)
+               .setChildNode("app:Asset", registryState.getChildNode("app:Asset"));
         merge(store, builder);
         differ = new BundledDocumentDiffer(store);
         store.runBackgroundOperations();
     }
 
     @After
-    public void resetJournalUsage(){
+    public void resetJournalUsage() {
         if (journalDisabledProp != null) {
             System.setProperty(SYS_PROP_DISABLE_JOURNAL, journalDisabledProp);
         } else {
@@ -139,7 +140,7 @@ public class BundledDocumentDifferTest {
     }
 
     @Test
-    public void diffWithSecondary() throws Exception{
+    public void diffWithSecondary() throws Exception {
         configureSecondary();
         NodeBuilder builder = createContentStructure();
         NodeState r1 = merge(store, builder);
@@ -156,13 +157,14 @@ public class BundledDocumentDifferTest {
     }
 
     @Test
-    public void diffFewChildren() throws Exception{
+    public void diffFewChildren() throws Exception {
         NodeBuilder builder = createContentStructure();
         NodeState r1 = merge(store, builder);
 
         builder = store.getRoot().builder();
         childBuilder(builder, "/test/book.jpg/jcr:content").setProperty("foo", "bar");
-        childBuilder(builder, "/test/book.jpg/jcr:content/renditions/newChild2").setProperty("foo", "bar");
+        childBuilder(builder, "/test/book.jpg/jcr:content/renditions/newChild2").setProperty("foo",
+            "bar");
         childBuilder(builder, "/test/book.jpg/newChild1");
         NodeState r2 = merge(store, builder);
 
@@ -183,7 +185,7 @@ public class BundledDocumentDifferTest {
     }
 
     @Test
-    public void jsopDiff() throws Exception{
+    public void jsopDiff() throws Exception {
         JsopWriter w = new JsopBuilder();
         differ.diffChildren(of("a", "b"), of("b", "c"), w);
 
@@ -197,13 +199,13 @@ public class BundledDocumentDifferTest {
         NodeBuilder builder = store.getRoot().builder();
         NodeBuilder appNB = newNode("app:Asset");
         createChild(appNB,
-                "jcr:content",
-                "jcr:content/comments", //not bundled
-                "jcr:content/metadata",
-                "jcr:content/metadata/xmp", //not bundled
-                "jcr:content/renditions", //includes all
-                "jcr:content/renditions/original",
-                "jcr:content/renditions/original/jcr:content"
+            "jcr:content",
+            "jcr:content/comments", //not bundled
+            "jcr:content/metadata",
+            "jcr:content/metadata/xmp", //not bundled
+            "jcr:content/renditions", //includes all
+            "jcr:content/renditions/original",
+            "jcr:content/renditions/original/jcr:content"
         );
 
         builder.child("test").setChildNode("book.jpg", appNB.getNodeState());
@@ -211,6 +213,7 @@ public class BundledDocumentDifferTest {
     }
 
     private static class CollectingDiff extends DefaultNodeStateDiff {
+
         private ListMultimap<String, String> changes = ArrayListMultimap.create();
 
         @Override
@@ -237,16 +240,17 @@ public class BundledDocumentDifferTest {
         }
     }
 
-    private DocumentNodeState dns(NodeState root, String path){
+    private DocumentNodeState dns(NodeState root, String path) {
         return asDocumentState(NodeStateUtils.getNode(root, path));
     }
 
-    private AbstractDocumentNodeState adns(NodeState root, String path){
+    private AbstractDocumentNodeState adns(NodeState root, String path) {
         return (AbstractDocumentNodeState) NodeStateUtils.getNode(root, path);
     }
 
-    private SecondaryStoreCache configureSecondary(){
-        SecondaryStoreBuilder builder = createBuilder(new PathFilter(of("/"), Collections.<String>emptyList()));
+    private SecondaryStoreCache configureSecondary() {
+        SecondaryStoreBuilder builder = createBuilder(
+            new PathFilter(of("/"), Collections.<String>emptyList()));
         builder.metaPropNames(DocumentNodeStore.META_PROP_NAMES);
         SecondaryStoreCache cache = builder.buildCache();
         SecondaryStoreObserver observer = builder.buildObserver(cache);

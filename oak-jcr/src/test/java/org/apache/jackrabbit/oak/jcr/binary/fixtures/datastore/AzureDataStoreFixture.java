@@ -18,11 +18,12 @@
  */
 package org.apache.jackrabbit.oak.jcr.binary.fixtures.datastore;
 
+import com.microsoft.azure.storage.StorageException;
+import com.microsoft.azure.storage.blob.CloudBlobContainer;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
-
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants;
@@ -35,24 +36,24 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.blob.CloudBlobContainer;
-
 /**
- * Fixture for AzureDataStore based on an azure.properties config file. It creates
- * a new temporary Azure Blob Container for each DataStore created.
- *
- * Note: when using this, it's highly recommended to reuse the NodeStores across multiple tests (using
- * {@link org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest#AbstractRepositoryTest(NodeStoreFixture, boolean) AbstractRepositoryTest(fixture, true)})
- * otherwise it will be slower and can lead to out of memory issues if there are many tests.
+ * Fixture for AzureDataStore based on an azure.properties config file. It creates a new temporary
+ * Azure Blob Container for each DataStore created.
+ * <p>
+ * Note: when using this, it's highly recommended to reuse the NodeStores across multiple tests
+ * (using
+ * {@link
+ * org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest#AbstractRepositoryTest(NodeStoreFixture,
+ * boolean) AbstractRepositoryTest(fixture, true)}) otherwise it will be slower and can lead to out
+ * of memory issues if there are many tests.
  *
  * <p>
- * Test buckets are named "direct-binary-test-...". If some did not get cleaned up, you can
- * list them using the aws cli with this command:
+ * Test buckets are named "direct-binary-test-...". If some did not get cleaned up, you can list
+ * them using the aws cli with this command:
  * <pre>
  *     az storage container list --output table | grep direct-binary-test-
  * </pre>
- *
+ * <p>
  * And after checking, delete them all in one go with this command:
  * <pre>
  *     az storage container list --output table | grep direct-binary-test- | cut -d " " -f 1 | xargs -n 1 -I {} sh -c 'az storage container delete -n {}'
@@ -67,14 +68,17 @@ public class AzureDataStoreFixture implements DataStoreFixture {
     private Map<DataStore, CloudBlobContainer> containers = new HashMap<>();
 
     public AzureDataStoreFixture() {
-        azProps = FixtureUtils.loadDataStoreProperties("azure.config", "azure.properties", ".azure");
+        azProps = FixtureUtils.loadDataStoreProperties("azure.config", "azure.properties",
+            ".azure");
     }
 
     @Override
     public boolean isAvailable() {
         if (azProps == null) {
-            log.warn("Skipping Azure DataStore fixture because no AZ properties file was found given by " +
-                "'azure.config' system property or named 'azure.properties' or '~/.azure/azure.properties'.");
+            log.warn(
+                "Skipping Azure DataStore fixture because no AZ properties file was found given by "
+                    +
+                    "'azure.config' system property or named 'azure.properties' or '~/.azure/azure.properties'.");
             return false;
         }
         return true;
@@ -99,7 +103,8 @@ public class AzureDataStoreFixture implements DataStoreFixture {
 
             // create new properties since azProps is shared for all created DataStores
             Properties clonedAzProps = new Properties(azProps);
-            clonedAzProps.setProperty(AzureConstants.AZURE_BLOB_CONTAINER_NAME, container.getName());
+            clonedAzProps.setProperty(AzureConstants.AZURE_BLOB_CONTAINER_NAME,
+                container.getName());
 
             // setup Oak DS
             AzureDataStore dataStore = new AzureDataStore();
@@ -110,7 +115,9 @@ public class AzureDataStoreFixture implements DataStoreFixture {
             return dataStore;
 
         } catch (DataStoreException | StorageException e) {
-            throw new AssertionError("Azure DataStore fixture fails because of issue with Azure config or connection", e);
+            throw new AssertionError(
+                "Azure DataStore fixture fails because of issue with Azure config or connection",
+                e);
         }
     }
 

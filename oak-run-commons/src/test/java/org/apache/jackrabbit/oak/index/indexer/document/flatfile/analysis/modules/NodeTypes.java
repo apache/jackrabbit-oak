@@ -24,13 +24,11 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
-
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeData;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeProperty;
 
 /**
- * A collector of node types.
- * This is for demonstration purposes only.
+ * A collector of node types. This is for demonstration purposes only.
  */
 public class NodeTypes implements StatsCollector {
 
@@ -70,7 +68,7 @@ public class NodeTypes implements StatsCollector {
 
     public List<String> getRecords() {
         List<String> result = new ArrayList<>();
-        for(Entry<String, NodeType> e : map.entrySet()) {
+        for (Entry<String, NodeType> e : map.entrySet()) {
             result.add(e.getKey() + ": " + e.getValue());
         }
         return result;
@@ -85,6 +83,7 @@ public class NodeTypes implements StatsCollector {
     }
 
     static class NodeType {
+
         String name;
         boolean isMixin;
         String[] superTypes;
@@ -93,9 +92,10 @@ public class NodeTypes implements StatsCollector {
         ArrayList<String> allTypes = new ArrayList<>();
 
         public String toString() {
-            return name + " " + (isMixin ? "(mixin) " : "") + " super " + Arrays.toString(superTypes) +
-                    " primarySub " + Arrays.toString(primarySubTypes) +
-                    " mixinSub " + Arrays.toString(mixinSubTypes);
+            return name + " " + (isMixin ? "(mixin) " : "") + " super " + Arrays.toString(
+                superTypes) +
+                " primarySub " + Arrays.toString(primarySubTypes) +
+                " mixinSub " + Arrays.toString(mixinSubTypes);
         }
     }
 

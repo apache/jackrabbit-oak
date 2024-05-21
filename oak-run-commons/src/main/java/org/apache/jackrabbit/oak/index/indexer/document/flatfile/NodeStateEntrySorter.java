@@ -19,13 +19,12 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
-import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.FilenameUtils;
-import org.apache.jackrabbit.oak.commons.Compression;
-import org.apache.jackrabbit.oak.commons.sort.ExternalSort;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static org.apache.commons.io.FileUtils.ONE_GB;
+import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
+import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createReader;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createWriter;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.sizeOf;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -35,15 +34,16 @@ import java.nio.charset.Charset;
 import java.util.Comparator;
 import java.util.List;
 import java.util.function.Function;
-
-import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
-import static org.apache.commons.io.FileUtils.ONE_GB;
-import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createReader;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createWriter;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.sizeOf;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
+import org.apache.jackrabbit.guava.common.base.Stopwatch;
+import org.apache.jackrabbit.oak.commons.Compression;
+import org.apache.jackrabbit.oak.commons.sort.ExternalSort;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class NodeStateEntrySorter {
+
     private final Logger log = LoggerFactory.getLogger(getClass());
     private static final int DEFAULTMAXTEMPFILES = 1024;
     private final File nodeStateFile;
@@ -56,11 +56,13 @@ public class NodeStateEntrySorter {
     private long actualFileSize;
     private Compression algorithm = Compression.NONE;
 
-    public NodeStateEntrySorter(Comparator<Iterable<String>> pathComparator, File nodeStateFile, File workDir) {
+    public NodeStateEntrySorter(Comparator<Iterable<String>> pathComparator, File nodeStateFile,
+        File workDir) {
         this(pathComparator, nodeStateFile, workDir, getSortedFileName(nodeStateFile));
     }
 
-    public NodeStateEntrySorter(Comparator<Iterable<String>> pathComparator, File nodeStateFile, File workDir, File sortedFile) {
+    public NodeStateEntrySorter(Comparator<Iterable<String>> pathComparator, File nodeStateFile,
+        File workDir, File sortedFile) {
         this.nodeStateFile = nodeStateFile;
         this.workDir = workDir;
         this.sortedFile = sortedFile;
@@ -87,17 +89,22 @@ public class NodeStateEntrySorter {
     public void sort() throws IOException {
         long estimatedMemory = estimateAvailableMemory();
         long memory = Math.min(estimatedMemory, maxMemory);
-        log.info("Sorting with memory {} (estimated {})", humanReadableByteCount(memory), humanReadableByteCount(estimatedMemory));
+        log.info("Sorting with memory {} (estimated {})", humanReadableByteCount(memory),
+            humanReadableByteCount(estimatedMemory));
         Stopwatch w = Stopwatch.createStarted();
 
-        Comparator<NodeStateHolder> comparator = (e1, e2) -> pathComparator.compare(e1.getPathElements(), e2.getPathElements());
-        Function<String, NodeStateHolder> func1 = (line) -> line == null ? null : new SimpleNodeStateHolder(line);
-        Function<NodeStateHolder, String> func2 = holder -> holder == null ? null : holder.getLine();
+        Comparator<NodeStateHolder> comparator = (e1, e2) -> pathComparator.compare(
+            e1.getPathElements(), e2.getPathElements());
+        Function<String, NodeStateHolder> func1 = (line) -> line == null ? null
+            : new SimpleNodeStateHolder(line);
+        Function<NodeStateHolder, String> func2 = holder -> holder == null ? null
+            : holder.getLine();
 
         List<File> sortedFiles = sortInBatch(memory, comparator, func1, func2);
 
-        log.info("Batch sorting done in {} with {} files of size {} to merge", w, sortedFiles.size(),
-                humanReadableByteCount(sizeOf(sortedFiles)));
+        log.info("Batch sorting done in {} with {} files of size {} to merge", w,
+            sortedFiles.size(),
+            humanReadableByteCount(sizeOf(sortedFiles)));
 
         if (deleteOriginal) {
             log.info("Removing the original file {}", nodeStateFile.getAbsolutePath());
@@ -112,38 +119,39 @@ public class NodeStateEntrySorter {
         log.info("Sorting completed in {}", w);
     }
 
-    private void mergeSortedFiles(Comparator<NodeStateHolder> comparator, Function<String, NodeStateHolder> func1,
-                                  Function<NodeStateHolder, String> func2, List<File> sortedFiles) throws IOException {
-        try(BufferedWriter writer = createWriter(sortedFile, algorithm)) {
+    private void mergeSortedFiles(Comparator<NodeStateHolder> comparator,
+        Function<String, NodeStateHolder> func1,
+        Function<NodeStateHolder, String> func2, List<File> sortedFiles) throws IOException {
+        try (BufferedWriter writer = createWriter(sortedFile, algorithm)) {
             ExternalSort.mergeSortedFiles(sortedFiles,
-                    writer,
-                    comparator,
-                    charset,
-                    true, //distinct
-                    algorithm,
-                    func2,
-                    func1
+                writer,
+                comparator,
+                charset,
+                true, //distinct
+                algorithm,
+                func2,
+                func1
 
             );
         }
     }
 
     private List<File> sortInBatch(long memory, Comparator<NodeStateHolder> comparator,
-                                   Function<String, NodeStateHolder> func1,
-                                   Function<NodeStateHolder, String> func2) throws IOException {
+        Function<String, NodeStateHolder> func1,
+        Function<NodeStateHolder, String> func2) throws IOException {
         try (BufferedReader reader = createReader(nodeStateFile, algorithm)) {
             return ExternalSort.sortInBatch(reader,
-                    actualFileSize,
-                    comparator, //Comparator to use
-                    DEFAULTMAXTEMPFILES,
-                    memory,
-                    charset, //charset
-                    workDir,  //temp directory where intermediate files are created
-                    true, //distinct
-                    0,
-                    algorithm,
-                    func2,
-                    func1
+                actualFileSize,
+                comparator, //Comparator to use
+                DEFAULTMAXTEMPFILES,
+                memory,
+                charset, //charset
+                workDir,  //temp directory where intermediate files are created
+                true, //distinct
+                0,
+                algorithm,
+                func2,
+                func1
             );
         }
     }
@@ -159,9 +167,9 @@ public class NodeStateEntrySorter {
     }
 
     /**
-     * This method calls the garbage collector and then returns the free
-     * memory. This avoids problems with applications where the GC hasn't
-     * reclaimed memory and reports no available memory.
+     * This method calls the garbage collector and then returns the free memory. This avoids
+     * problems with applications where the GC hasn't reclaimed memory and reports no available
+     * memory.
      *
      * @return available memory
      */

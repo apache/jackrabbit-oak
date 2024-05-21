@@ -16,19 +16,17 @@
  */
 package org.apache.jackrabbit.oak.upgrade.cli.container;
 
+import com.mongodb.Mongo;
+import com.mongodb.MongoClient;
+import com.mongodb.MongoClientURI;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
-
+import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.upgrade.cli.node.MongoFactory;
 import org.junit.Assume;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import org.apache.jackrabbit.guava.common.io.Closer;
-import com.mongodb.Mongo;
-import com.mongodb.MongoClient;
-import com.mongodb.MongoClientURI;
 
 public class MongoNodeStoreContainer implements NodeStoreContainer {
 
@@ -37,7 +35,7 @@ public class MongoNodeStoreContainer implements NodeStoreContainer {
     private static final Logger LOG = LoggerFactory.getLogger(MongoNodeStoreContainer.class);
 
     private static final String MONGO_URI = System.getProperty("oak.mongo.uri",
-            "mongodb://localhost:27017/oak-migration");
+        "mongodb://localhost:27017/oak-migration");
 
     private static final AtomicInteger DATABASE_SUFFIX = new AtomicInteger(1);
 

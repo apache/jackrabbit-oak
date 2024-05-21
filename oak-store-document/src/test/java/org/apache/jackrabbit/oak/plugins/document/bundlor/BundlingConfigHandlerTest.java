@@ -36,11 +36,12 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 public class BundlingConfigHandlerTest {
+
     private BundlingConfigHandler configHandler = new BundlingConfigHandler();
     private MemoryNodeStore nodeStore = new MemoryNodeStore();
 
     @Test
-    public void defaultSetup() throws Exception{
+    public void defaultSetup() throws Exception {
         assertNotNull(configHandler.getRegistry());
         assertNotNull(configHandler.newBundlingHandler());
 
@@ -49,7 +50,7 @@ public class BundlingConfigHandlerTest {
     }
 
     @Test
-    public void detectRegistryUpdate() throws Exception{
+    public void detectRegistryUpdate() throws Exception {
         configHandler.initialize(nodeStore, newDirectExecutorService());
         addBundlorConfigForAsset();
 
@@ -63,7 +64,7 @@ public class BundlingConfigHandlerTest {
         NodeBuilder builder = nodeStore.getRoot().builder();
         NodeBuilder bundlor = builder.child("jcr:system").child(DOCUMENT_NODE_STORE).child(BUNDLOR);
         bundlor.child("app:Asset").setProperty(DocumentBundlor.PROP_PATTERN,
-                singletonList("metadata"), Type.STRINGS);
+            singletonList("metadata"), Type.STRINGS);
         nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 

@@ -75,7 +75,8 @@ public class BulkCreateOrUpdateClusterTest extends AbstractMultiDocumentStoreTes
             final DocumentStore selectedDs = i % 2 == 0 ? this.ds1 : this.ds2;
             final List<UpdateOp> threadUpdates = new ArrayList<UpdateOp>(amountPerThread);
             for (int j = 0; j < amountPerThread; j++) {
-                String id = this.getClass().getName() + ".testConcurrentNoConflict" + (j + i * amountPerThread);
+                String id = this.getClass().getName() + ".testConcurrentNoConflict" + (j
+                    + i * amountPerThread);
                 UpdateOp up = new UpdateOp(id, true);
                 up.set("prop", 200 + i + j);
                 threadUpdates.add(up);
@@ -85,14 +86,14 @@ public class BulkCreateOrUpdateClusterTest extends AbstractMultiDocumentStoreTes
             threads.add(new Thread() {
                 public void run() {
                     try {
-                        for (NodeDocument d : selectedDs.createOrUpdate(Collection.NODES, threadUpdates)) {
+                        for (NodeDocument d : selectedDs.createOrUpdate(Collection.NODES,
+                            threadUpdates)) {
                             if (d == null) {
                                 continue;
                             }
                             oldDocs.put(d.getId(), d);
                         }
-                    }
-                    catch (Exception ex) {
+                    } catch (Exception ex) {
                         exceptions.add(ex);
                     }
                 }
@@ -110,7 +111,8 @@ public class BulkCreateOrUpdateClusterTest extends AbstractMultiDocumentStoreTes
         }
 
         if (!exceptions.isEmpty()) {
-            String msg = exceptions.size() + " out of " + threadCount +  " failed with exceptions, the first being: " + exceptions.iterator().next();
+            String msg = exceptions.size() + " out of " + threadCount
+                + " failed with exceptions, the first being: " + exceptions.iterator().next();
             fail(msg);
         }
 
@@ -169,8 +171,7 @@ public class BulkCreateOrUpdateClusterTest extends AbstractMultiDocumentStoreTes
                 public void run() {
                     try {
                         selectedDs.createOrUpdate(Collection.NODES, threadUpdates);
-                    }
-                    catch (Exception ex) {
+                    } catch (Exception ex) {
                         exceptions.add(ex);
                     }
                 }
@@ -191,7 +192,8 @@ public class BulkCreateOrUpdateClusterTest extends AbstractMultiDocumentStoreTes
         }
 
         if (!exceptions.isEmpty()) {
-            String msg = exceptions.size() + " out of " + threadCount +  " failed with exceptions, the first being: " + exceptions.iterator().next();
+            String msg = exceptions.size() + " out of " + threadCount
+                + " failed with exceptions, the first being: " + exceptions.iterator().next();
             fail(msg);
         }
 
@@ -210,8 +212,10 @@ public class BulkCreateOrUpdateClusterTest extends AbstractMultiDocumentStoreTes
 
     @Test
     public void testSimpleConflictHandling() {
-        LogCustomizer logCustomizer = LogCustomizer.forLogger(RDBDocumentStore.class.getName()).enable(Level.DEBUG)
-                .contains("invalidating cache and retrying").create();
+        LogCustomizer logCustomizer = LogCustomizer.forLogger(RDBDocumentStore.class.getName())
+                                                   .enable(Level.DEBUG)
+                                                   .contains("invalidating cache and retrying")
+                                                   .create();
         logCustomizer.starting();
 
         try {
@@ -231,7 +235,8 @@ public class BulkCreateOrUpdateClusterTest extends AbstractMultiDocumentStoreTes
                 UpdateOp op3a = new UpdateOp(id3, true);
                 op3a.set("foo", 1);
 
-                List<NodeDocument> resulta = ds1.createOrUpdate(Collection.NODES, Lists.newArrayList(op1a, op2a, op3a));
+                List<NodeDocument> resulta = ds1.createOrUpdate(Collection.NODES,
+                    Lists.newArrayList(op1a, op2a, op3a));
                 assertEquals(3, resulta.size());
             }
 
@@ -240,7 +245,7 @@ public class BulkCreateOrUpdateClusterTest extends AbstractMultiDocumentStoreTes
                 op2b.increment("foo", 1);
                 NodeDocument prev2 = ds2.createOrUpdate(Collection.NODES, op2b);
                 assertNotNull(prev2);
-                assertEquals(1L, ((Long)prev2.get("foo")).longValue());
+                assertEquals(1L, ((Long) prev2.get("foo")).longValue());
             }
 
             {
@@ -251,7 +256,8 @@ public class BulkCreateOrUpdateClusterTest extends AbstractMultiDocumentStoreTes
                 UpdateOp op3c = new UpdateOp(id3, true);
                 op3c.increment("foo", 1);
 
-                List<NodeDocument> resultc = ds1.createOrUpdate(Collection.NODES, Lists.newArrayList(op1c, op2c, op3c));
+                List<NodeDocument> resultc = ds1.createOrUpdate(Collection.NODES,
+                    Lists.newArrayList(op1c, op2c, op3c));
                 assertEquals(3, resultc.size());
                 for (NodeDocument d : resultc) {
                     Long fooval = (Long) d.get("foo");
@@ -263,8 +269,7 @@ public class BulkCreateOrUpdateClusterTest extends AbstractMultiDocumentStoreTes
                 // for RDB, verify that the cache invalidation was reached
                 assertEquals(1, logCustomizer.getLogs().size());
             }
-        }
-        finally {
+        } finally {
             logCustomizer.finished();
         }
     }

@@ -18,8 +18,10 @@
  */
 package org.apache.jackrabbit.oak.index;
 
-import org.apache.jackrabbit.guava.common.io.Closer;
+import java.io.Closeable;
+import java.io.IOException;
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
@@ -34,10 +36,8 @@ import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
-import java.io.Closeable;
-import java.io.IOException;
-
 public class ElasticIndexImporterSupport extends IndexImporterSupportBase implements Closeable {
+
     private final String indexPrefix;
     private final String scheme;
     private final String host;
@@ -46,9 +46,9 @@ public class ElasticIndexImporterSupport extends IndexImporterSupportBase implem
     private final String apiSecretId;
     protected final Closer closer = Closer.create();
 
-    public ElasticIndexImporterSupport(IndexHelper indexHelper ,String indexPrefix, String scheme,
-                                       String host, int port,
-                                       String apiKeyId, String apiSecretId) {
+    public ElasticIndexImporterSupport(IndexHelper indexHelper, String indexPrefix, String scheme,
+        String host, int port,
+        String apiKeyId, String apiSecretId) {
         super(indexHelper);
         this.indexPrefix = indexPrefix;
         this.scheme = scheme;
@@ -62,9 +62,9 @@ public class ElasticIndexImporterSupport extends IndexImporterSupportBase implem
     protected IndexEditorProvider createIndexEditorProvider() {
         MountInfoProvider mip = indexHelper.getMountInfoProvider();
         return new CompositeIndexEditorProvider(
-                createElasticEditorProvider(),
-                new PropertyIndexEditorProvider().with(mip),
-                new ReferenceEditorProvider().with(mip)
+            createElasticEditorProvider(),
+            new PropertyIndexEditorProvider().with(mip),
+            new ReferenceEditorProvider().with(mip)
         );
     }
 
@@ -75,12 +75,13 @@ public class ElasticIndexImporterSupport extends IndexImporterSupportBase implem
 
     private IndexEditorProvider createElasticEditorProvider() {
         final ElasticConnection.Builder.BuildStep buildStep = ElasticConnection.newBuilder()
-                .withIndexPrefix(indexPrefix)
-                .withConnectionParameters(
-                        scheme,
-                        host,
-                        port
-                );
+                                                                               .withIndexPrefix(
+                                                                                   indexPrefix)
+                                                                               .withConnectionParameters(
+                                                                                   scheme,
+                                                                                   host,
+                                                                                   port
+                                                                               );
         final ElasticConnection connection;
         if (apiKeyId != null && apiSecretId != null) {
             connection = buildStep.withApiKeys(apiKeyId, apiSecretId).build();
@@ -89,9 +90,10 @@ public class ElasticIndexImporterSupport extends IndexImporterSupportBase implem
         }
         closer.register(connection);
         ElasticIndexTracker indexTracker = new ElasticIndexTracker(connection,
-                new ElasticMetricHandler(StatisticsProvider.NOOP));
-        ElasticIndexEditorProvider editorProvider = new ElasticIndexEditorProvider(indexTracker, connection,
-                new ExtractedTextCache(10 * FileUtils.ONE_MB, 100));
+            new ElasticMetricHandler(StatisticsProvider.NOOP));
+        ElasticIndexEditorProvider editorProvider = new ElasticIndexEditorProvider(indexTracker,
+            connection,
+            new ExtractedTextCache(10 * FileUtils.ONE_MB, 100));
         return editorProvider;
     }
 

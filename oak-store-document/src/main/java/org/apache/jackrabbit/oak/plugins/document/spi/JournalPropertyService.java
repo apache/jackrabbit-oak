@@ -20,8 +20,7 @@
 package org.apache.jackrabbit.oak.plugins.document.spi;
 
 /**
- * Each component which needs to add a property to JournalEntry
- * should register this service
+ * Each component which needs to add a property to JournalEntry should register this service
  */
 public interface JournalPropertyService {
 

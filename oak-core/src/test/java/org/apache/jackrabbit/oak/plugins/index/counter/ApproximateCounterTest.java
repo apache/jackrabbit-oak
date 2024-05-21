@@ -20,8 +20,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Random;
-
-import org.apache.jackrabbit.oak.plugins.index.counter.ApproximateCounter;
 import org.junit.Test;
 
 public class ApproximateCounterTest {

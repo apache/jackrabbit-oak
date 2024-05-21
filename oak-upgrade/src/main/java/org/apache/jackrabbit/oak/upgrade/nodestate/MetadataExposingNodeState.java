@@ -16,18 +16,17 @@
  */
 package org.apache.jackrabbit.oak.upgrade.nodestate;
 
+import static org.apache.jackrabbit.oak.plugins.document.secondary.DelegatingDocumentNodeState.PROP_LAST_REV;
+import static org.apache.jackrabbit.oak.plugins.document.secondary.DelegatingDocumentNodeState.PROP_REVISION;
+import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
+
+import java.util.ArrayList;
+import java.util.List;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.AbstractDocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.migration.AbstractDecoratedNodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
-
-import java.util.ArrayList;
-import java.util.List;
-import static org.apache.jackrabbit.oak.plugins.document.secondary.DelegatingDocumentNodeState.PROP_LAST_REV;
-import static org.apache.jackrabbit.oak.plugins.document.secondary.DelegatingDocumentNodeState.PROP_REVISION;
-import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 
 public class MetadataExposingNodeState extends AbstractDecoratedNodeState {
 
@@ -38,9 +37,11 @@ public class MetadataExposingNodeState extends AbstractDecoratedNodeState {
 
         metadataProperties = new ArrayList<>(2);
         if (documentNodeState.getPath().isRoot()) {
-            metadataProperties.add(createProperty(PROP_REVISION, documentNodeState.getRootRevision().asString()));
+            metadataProperties.add(
+                createProperty(PROP_REVISION, documentNodeState.getRootRevision().asString()));
         }
-        metadataProperties.add(createProperty(PROP_LAST_REV, documentNodeState.getLastRevision().asString()));
+        metadataProperties.add(
+            createProperty(PROP_LAST_REV, documentNodeState.getLastRevision().asString()));
     }
 
     @NotNull

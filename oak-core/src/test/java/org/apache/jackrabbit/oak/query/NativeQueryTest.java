@@ -22,7 +22,6 @@ import static org.junit.Assert.assertFalse;
 
 import java.text.ParseException;
 import java.util.Iterator;
-
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Type;

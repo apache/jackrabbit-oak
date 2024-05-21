@@ -16,9 +16,10 @@
  *
  */
 
+
 import org.apache.jackrabbit.oak.segment.SegmentNodeBuilder
-import org.apache.jackrabbit.oak.spi.commit.EmptyHook
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo
+import org.apache.jackrabbit.oak.spi.commit.EmptyHook
 
 void addNodes(SegmentNodeBuilder builder, int count, int depth) {
     if (depth > 0) {

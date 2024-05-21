@@ -20,7 +20,6 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import javax.management.openmbean.TabularData;
-
 import org.osgi.annotation.versioning.ProviderType;
 
 /**
@@ -29,6 +28,7 @@ import org.osgi.annotation.versioning.ProviderType;
 @SuppressWarnings("UnusedDeclaration")
 @ProviderType
 public interface CopyOnReadStatsMBean {
+
     String TYPE = "IndexCopierStats";
 
     TabularData getIndexPathMapping();

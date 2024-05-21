@@ -109,8 +109,7 @@ final class DocumentPropertyState implements PropertyState {
     }
 
     /**
-     * Returns the raw un-parsed value as passed to the constructor of this
-     * property state.
+     * Returns the raw un-parsed value as passed to the constructor of this property state.
      *
      * @return the raw un-parsed value.
      */
@@ -128,11 +127,11 @@ final class DocumentPropertyState implements PropertyState {
         } else if (object instanceof DocumentPropertyState) {
             DocumentPropertyState other = (DocumentPropertyState) object;
             return this.name.equals(other.name)
-                    && this.value.equals(other.value);
+                && this.value.equals(other.value);
         }
         // fall back to default equality check in AbstractPropertyState
         return object instanceof PropertyState
-                && AbstractPropertyState.equal(parsed(), (PropertyState) object);
+            && AbstractPropertyState.equal(parsed(), (PropertyState) object);
     }
 
     @Override
@@ -161,8 +160,9 @@ final class DocumentPropertyState implements PropertyState {
 
     /**
      * Read a {@code PropertyState} from a {@link JsopReader}
-     * @param name  The name of the property state
-     * @param reader  The reader
+     *
+     * @param name   The name of the property state
+     * @param reader The reader
      * @return new property state
      */
     PropertyState readProperty(String name, JsopReader reader) {
@@ -172,8 +172,8 @@ final class DocumentPropertyState implements PropertyState {
     /**
      * Read a {@code PropertyState} from a {@link JsopReader}.
      *
-     * @param name the name of the property state
-     * @param store the store
+     * @param name   the name of the property state
+     * @param store  the store
      * @param reader the reader
      * @return new property state
      */
@@ -192,7 +192,8 @@ final class DocumentPropertyState implements PropertyState {
         } else if (reader.matches(JsopReader.STRING)) {
             String jsonString = reader.getToken();
             if (jsonString.startsWith(TypeCodes.EMPTY_ARRAY)) {
-                int type = PropertyType.valueFromName(jsonString.substring(TypeCodes.EMPTY_ARRAY.length()));
+                int type = PropertyType.valueFromName(
+                    jsonString.substring(TypeCodes.EMPTY_ARRAY.length()));
                 return PropertyStates.createProperty(name, emptyList(), Type.fromTag(type, true));
             }
             int split = TypeCodes.split(jsonString);
@@ -201,7 +202,7 @@ final class DocumentPropertyState implements PropertyState {
                 String value = TypeCodes.decodeName(split, jsonString);
                 if (type == PropertyType.BINARY) {
 
-                    return  BinaryPropertyState.binaryProperty(name, store.getBlobFromBlobId(value));
+                    return BinaryPropertyState.binaryProperty(name, store.getBlobFromBlobId(value));
                 } else {
                     return createProperty(name, StringCache.get(value), type);
                 }
@@ -216,7 +217,7 @@ final class DocumentPropertyState implements PropertyState {
     /**
      * Read a multi valued {@code PropertyState} from a {@link JsopReader}.
      *
-     * @param name the name of the property state
+     * @param name   the name of the property state
      * @param reader the reader
      * @return new property state
      */
@@ -227,12 +228,13 @@ final class DocumentPropertyState implements PropertyState {
     /**
      * Read a multi valued {@code PropertyState} from a {@link JsopReader}.
      *
-     * @param name the name of the property state
-     * @param store the store
+     * @param name   the name of the property state
+     * @param store  the store
      * @param reader the reader
      * @return new property state
      */
-    static PropertyState readArrayProperty(String name, DocumentNodeStore store, JsopReader reader) {
+    static PropertyState readArrayProperty(String name, DocumentNodeStore store,
+        JsopReader reader) {
         int type = PropertyType.STRING;
         List<Object> values = Lists.newArrayList();
         while (!reader.matches(']')) {

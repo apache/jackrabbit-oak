@@ -16,12 +16,11 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
-import java.security.AccessControlException;
+import static org.junit.Assert.fail;
 
+import java.security.AccessControlException;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.junit.Test;
-
-import static org.junit.Assert.fail;
 
 public class CugImportAbortTest extends CugImportBaseTest {
 

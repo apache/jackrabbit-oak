@@ -19,11 +19,17 @@
 
 package org.apache.jackrabbit.oak.segment.azure.fixture;
 
-import org.apache.jackrabbit.guava.common.io.Files;
 import com.microsoft.azure.storage.CloudStorageAccount;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
 import com.microsoft.azure.storage.blob.CloudBlobDirectory;
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.security.InvalidKeyException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
@@ -32,20 +38,17 @@ import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
-import java.io.IOException;
-import java.net.URISyntaxException;
-import java.security.InvalidKeyException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
-
 public class SegmentAzureFixture extends NodeStoreFixture {
 
-    private static final String AZURE_CONNECTION_STRING = System.getProperty("oak.segment.azure.connection", "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1;");
+    private static final String AZURE_CONNECTION_STRING = System.getProperty(
+        "oak.segment.azure.connection",
+        "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1;");
 
-    private static final String AZURE_CONTAINER = System.getProperty("oak.segment.azure.container", "oak");
+    private static final String AZURE_CONTAINER = System.getProperty("oak.segment.azure.container",
+        "oak");
 
-    private static final String AZURE_ROOT_PATH = System.getProperty("oak.segment.azure.rootPath", "/oak");
+    private static final String AZURE_ROOT_PATH = System.getProperty("oak.segment.azure.rootPath",
+        "/oak");
 
     private Map<NodeStore, FileStore> fileStoreMap = new HashMap<>();
 
@@ -73,7 +76,8 @@ public class SegmentAzureFixture extends NodeStoreFixture {
         }
 
         try {
-            FileStore fileStore = FileStoreBuilder.fileStoreBuilder(Files.createTempDir()).withCustomPersistence(persistence).build();
+            FileStore fileStore = FileStoreBuilder.fileStoreBuilder(Files.createTempDir())
+                                                  .withCustomPersistence(persistence).build();
             NodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
             fileStoreMap.put(nodeStore, fileStore);
             containerMap.put(nodeStore, container);

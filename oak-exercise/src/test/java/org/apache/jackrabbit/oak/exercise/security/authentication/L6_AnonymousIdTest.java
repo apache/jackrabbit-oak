@@ -16,16 +16,15 @@
  */
 package org.apache.jackrabbit.oak.exercise.security.authentication;
 
+import static org.junit.Assert.assertEquals;
+
 import javax.jcr.GuestCredentials;
 import javax.jcr.RepositoryException;
 import javax.security.auth.login.LoginException;
-
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
 
 /**
  * <pre>

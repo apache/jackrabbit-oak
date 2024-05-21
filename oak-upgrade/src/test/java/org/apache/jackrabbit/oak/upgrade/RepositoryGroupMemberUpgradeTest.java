@@ -18,15 +18,17 @@
  */
 package org.apache.jackrabbit.oak.upgrade;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
 import java.io.InputStream;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
-
 import javax.jcr.Node;
 import javax.jcr.Session;
 import javax.jcr.nodetype.NodeType;
-
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -34,10 +36,6 @@ import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
 public class RepositoryGroupMemberUpgradeTest extends AbstractRepositoryUpgradeTest {
 
@@ -88,8 +86,10 @@ public class RepositoryGroupMemberUpgradeTest extends AbstractRepositoryUpgradeT
                 assertNotNull(grp);
                 Node grpNode = session.getNode(grp.getPath());
                 NodeType nt = grpNode.getPrimaryNodeType();
-                assertEquals("Migrated group needs to be rep:Group", UserConstants.NT_REP_GROUP, nt.getName());
-                assertTrue("Migrated group needs to be new node type", nt.isNodeType(UserConstants.NT_REP_MEMBER_REFERENCES));
+                assertEquals("Migrated group needs to be rep:Group", UserConstants.NT_REP_GROUP,
+                    nt.getName());
+                assertTrue("Migrated group needs to be new node type",
+                    nt.isNodeType(UserConstants.NT_REP_MEMBER_REFERENCES));
             }
         } finally {
             session.logout();
@@ -113,7 +113,8 @@ public class RepositoryGroupMemberUpgradeTest extends AbstractRepositoryUpgradeT
                 Iterator<Authorizable> declaredMembers = grp.getDeclaredMembers();
                 while (declaredMembers.hasNext()) {
                     Authorizable auth = declaredMembers.next();
-                    assertTrue("group must have member " + auth.getID(), testUsers.remove(auth.getID()));
+                    assertTrue("group must have member " + auth.getID(),
+                        testUsers.remove(auth.getID()));
                 }
                 assertEquals("group must have all members", 0, testUsers.size());
             }
@@ -139,9 +140,11 @@ public class RepositoryGroupMemberUpgradeTest extends AbstractRepositoryUpgradeT
                 Iterator<Group> groupIterator = user.declaredMemberOf();
                 while (groupIterator.hasNext()) {
                     Group grp = groupIterator.next();
-                    assertTrue("user must be member of group " + grp.getID(), groups.remove(grp.getID()));
+                    assertTrue("user must be member of group " + grp.getID(),
+                        groups.remove(grp.getID()));
                 }
-                assertEquals("user " + user.getID() + " must be member of all groups", 0, groups.size());
+                assertEquals("user " + user.getID() + " must be member of all groups", 0,
+                    groups.size());
             }
         } finally {
             session.logout();

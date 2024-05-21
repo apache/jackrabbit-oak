@@ -16,14 +16,19 @@
  */
 package org.apache.jackrabbit.oak.security.authentication.ldap;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.login.LoginException;
-
 import org.apache.directory.server.constants.ServerDNConstants;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.UserManager;
@@ -48,13 +53,6 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 public abstract class LdapLoginTestBase extends ExternalLoginTestBase {
 
@@ -86,14 +84,14 @@ public abstract class LdapLoginTestBase extends ExternalLoginTestBase {
         for (int i = 0; i < NUM_CONCURRENT_LOGINS * 2; i++) {
             final String userId = "user-" + i;
             userDN = proxy.addUser(userId, "test", userId, USER_PWD);
-            if (i%2 == 0) {
-                CONCURRENT_GROUP_TEST_USERS[i/2] = userId;
+            if (i % 2 == 0) {
+                CONCURRENT_GROUP_TEST_USERS[i / 2] = userId;
                 proxy.addMember(GROUP_DN, userDN);
             } else {
-                CONCURRENT_TEST_USERS[i/2] = userId;
+                CONCURRENT_TEST_USERS[i / 2] = userId;
             }
         }
-   }
+    }
 
     @AfterClass
     public static void afterClass() throws Exception {
@@ -139,19 +137,19 @@ public abstract class LdapLoginTestBase extends ExternalLoginTestBase {
     @NotNull
     protected ExternalIdentityProvider createIDP() {
         LdapProviderConfig cfg = new LdapProviderConfig()
-                .setName("ldap")
-                .setHostname("127.0.0.1")
-                .setPort(proxy.port)
-                .setBindDN(ServerDNConstants.ADMIN_SYSTEM_DN)
-                .setBindPassword(InternalLdapServer.ADMIN_PW)
-                .setGroupMemberAttribute(InternalLdapServer.GROUP_MEMBER_ATTR);
+            .setName("ldap")
+            .setHostname("127.0.0.1")
+            .setPort(proxy.port)
+            .setBindDN(ServerDNConstants.ADMIN_SYSTEM_DN)
+            .setBindPassword(InternalLdapServer.ADMIN_PW)
+            .setGroupMemberAttribute(InternalLdapServer.GROUP_MEMBER_ATTR);
 
         cfg.getUserConfig()
-                .setBaseDN(AbstractServer.EXAMPLE_DN)
-                .setObjectClasses("inetOrgPerson");
+           .setBaseDN(AbstractServer.EXAMPLE_DN)
+           .setObjectClasses("inetOrgPerson");
         cfg.getGroupConfig()
-                .setBaseDN(AbstractServer.EXAMPLE_DN)
-                .setObjectClasses(InternalLdapServer.GROUP_CLASS_ATTR);
+           .setBaseDN(AbstractServer.EXAMPLE_DN)
+           .setObjectClasses(InternalLdapServer.GROUP_CLASS_ATTR);
 
         cfg.getAdminPoolConfig().setMaxActive(0);
         cfg.getUserPoolConfig().setMaxActive(0);
@@ -263,7 +261,9 @@ public abstract class LdapLoginTestBase extends ExternalLoginTestBase {
         // create user upfront in order to test update mode
         Authorizable user = userManager.createUser(USER_ID, null);
         ExternalUser externalUser = idp.getUser(USER_ID);
-        user.setProperty("rep:externalId", new ValueFactoryImpl(root, NamePathMapper.DEFAULT).createValue(externalUser.getExternalId().getString()));
+        user.setProperty("rep:externalId",
+            new ValueFactoryImpl(root, NamePathMapper.DEFAULT).createValue(
+                externalUser.getExternalId().getString()));
         root.commit();
 
         ContentSession cs = null;
@@ -313,7 +313,8 @@ public abstract class LdapLoginTestBase extends ExternalLoginTestBase {
             AuthInfo ai = cs.getAuthInfo();
 
             root.refresh();
-            PrincipalProvider pp = getSecurityProvider().getConfiguration(PrincipalConfiguration.class).getPrincipalProvider(root, NamePathMapper.DEFAULT);
+            PrincipalProvider pp = getSecurityProvider().getConfiguration(
+                PrincipalConfiguration.class).getPrincipalProvider(root, NamePathMapper.DEFAULT);
             Set<? extends Principal> expected = pp.getPrincipals(USER_ID);
             assertEquals(3, expected.size());
             assertEquals(expected, ai.getPrincipals());
@@ -359,10 +360,10 @@ public abstract class LdapLoginTestBase extends ExternalLoginTestBase {
         assertConcurrentLogin(CONCURRENT_GROUP_TEST_USERS);
     }
 
-    private void assertConcurrentLogin(String [] users) throws Exception {
+    private void assertConcurrentLogin(String[] users) throws Exception {
         final List<Exception> exceptions = new ArrayList<Exception>();
         List<Thread> workers = new ArrayList<Thread>();
-        for (String userId: users) {
+        for (String userId : users) {
             final String uid = userId;
             workers.add(new Thread(() -> {
                 try {

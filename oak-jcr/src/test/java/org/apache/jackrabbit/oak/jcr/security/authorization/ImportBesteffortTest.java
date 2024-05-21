@@ -16,21 +16,20 @@
  */
 package org.apache.jackrabbit.oak.jcr.security.authorization;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import java.security.Principal;
 import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlEntry;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.Privilege;
-
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 public class ImportBesteffortTest extends ImportIgnoreTest {
 
@@ -69,6 +68,7 @@ public class ImportBesteffortTest extends ImportIgnoreTest {
                 return "anotherUnknown";
             }
         };
-        AccessControlUtils.addAccessControlEntry(adminSession, target.getPath(), unknown, new String[] {Privilege.JCR_READ}, true);
+        AccessControlUtils.addAccessControlEntry(adminSession, target.getPath(), unknown,
+            new String[]{Privilege.JCR_READ}, true);
     }
 }

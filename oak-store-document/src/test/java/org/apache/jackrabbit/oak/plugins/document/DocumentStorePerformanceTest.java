@@ -38,13 +38,14 @@ import org.slf4j.LoggerFactory;
 /**
  * Tests measuring the performance of various {@link DocumentStore} operations.
  * <p>
- * These tests are disabled by default due to their long running time. On the command line
- * specify {@code -DDocumentStorePerformanceTest=true} to enable them.
+ * These tests are disabled by default due to their long running time. On the command line specify
+ * {@code -DDocumentStorePerformanceTest=true} to enable them.
  */
 public class DocumentStorePerformanceTest extends AbstractMultiDocumentStoreTest {
 
     private static final Logger LOG = LoggerFactory.getLogger(DocumentStorePerformanceTest.class);
-    private static final boolean ENABLED = Boolean.getBoolean(DocumentStorePerformanceTest.class.getSimpleName());
+    private static final boolean ENABLED = Boolean.getBoolean(
+        DocumentStorePerformanceTest.class.getSimpleName());
 
     @BeforeClass
     public static void assumeEnabled() {
@@ -86,7 +87,8 @@ public class DocumentStorePerformanceTest extends AbstractMultiDocumentStoreTest
             ids.clear();
             List<UpdateOp> ups = new ArrayList<UpdateOp>();
             for (int i = 0; i < amount; i++) {
-                String id = this.getClass().getName() + ".testCreatePerf-" + size + "-" + cnt + "-" + i;
+                String id =
+                    this.getClass().getName() + ".testCreatePerf-" + size + "-" + cnt + "-" + i;
                 UpdateOp up = new UpdateOp(id, true);
                 up.set("foo", pval);
                 ups.add(up);
@@ -98,8 +100,9 @@ public class DocumentStorePerformanceTest extends AbstractMultiDocumentStoreTest
             cnt += 1;
         }
 
-        LOG.info("document creation with property of size " + size + " and batch size " + amount + " for " + super.dsname + " was "
-                + cnt + " in " + duration + "ms (" + (cnt / (duration / 1000f)) + "/s)");
+        LOG.info("document creation with property of size " + size + " and batch size " + amount
+            + " for " + super.dsname + " was "
+            + cnt + " in " + duration + "ms (" + (cnt / (duration / 1000f)) + "/s)");
     }
 
     @Test
@@ -109,7 +112,8 @@ public class DocumentStorePerformanceTest extends AbstractMultiDocumentStoreTest
 
     @Test
     public void testPerfCollectionPagingUnCached() {
-        testPerfCollectionPaging(this.getClass().getName() + ".testPerfCollectionPagingUnCached", true);
+        testPerfCollectionPaging(this.getClass().getName() + ".testPerfCollectionPagingUnCached",
+            true);
     }
 
     private void testPerfCollectionPaging(String name, boolean invalidateCache) {
@@ -141,13 +145,15 @@ public class DocumentStorePerformanceTest extends AbstractMultiDocumentStoreTest
         int found = 0;
         while (System.currentTimeMillis() < end) {
             long now = System.currentTimeMillis();
-            List<NodeDocument> result = super.ds.query(Collection.NODES, sid, cid + "X", fetchcount);
+            List<NodeDocument> result = super.ds.query(Collection.NODES, sid, cid + "X",
+                fetchcount);
             if (super.ds.getCacheStats() != null && result.size() > 0) {
                 // check freshness of returned documents
                 long created = result.get(0).getLastCheckTime();
                 assertTrue(
-                        "'getLastCheckTime' timestamp of NodeDocument too old (" + created + " vs " + now + ") (on " + super.dsname + ")",
-                        created >= now);
+                    "'getLastCheckTime' timestamp of NodeDocument too old (" + created + " vs "
+                        + now + ") (on " + super.dsname + ")",
+                    created >= now);
             }
             found += result.size();
             if (result.size() < fetchcount) {
@@ -158,9 +164,8 @@ public class DocumentStorePerformanceTest extends AbstractMultiDocumentStoreTest
                 assertEquals(nodecount, found);
                 found = 0;
                 fetchcount = initialFetchCount;
-            }
-            else {
-                sid = result.get(result.size() -1).getId();
+            } else {
+                sid = result.get(result.size() - 1).getId();
                 if (fetchcount < maxFetchCount) {
                     fetchcount *= 2;
                 }
@@ -171,7 +176,9 @@ public class DocumentStorePerformanceTest extends AbstractMultiDocumentStoreTest
             }
         }
 
-        LOG.info("collection lookups " + (invalidateCache ? "(uncached) " : "") + super.dsname + " was " + cnt + " in " + duration
+        LOG.info(
+            "collection lookups " + (invalidateCache ? "(uncached) " : "") + super.dsname + " was "
+                + cnt + " in " + duration
                 + "ms (" + (cnt / (duration / 1000f)) + "/s)");
     }
 
@@ -216,12 +223,12 @@ public class DocumentStorePerformanceTest extends AbstractMultiDocumentStoreTest
         for (int i = 0; i < nodecount; i++) {
             NodeDocument d = super.ds.find(Collection.NODES, bid + "-" + i);
             assertNotNull(d);
-            Map<Revision, String> m = (Map<Revision, String>)d.get("_lastRev");
+            Map<Revision, String> m = (Map<Revision, String>) d.get("_lastRev");
             assertEquals("iteration-" + (cnt - 1), m.get(cr));
         }
 
         LOG.info("batch update for _lastRev for " + super.dsname + " was "
-                + cnt + " in " + duration + "ms (" + (cnt / (duration / 1000f)) + "/s)");
+            + cnt + " in " + duration + "ms (" + (cnt / (duration / 1000f)) + "/s)");
     }
 
     @Test
@@ -257,8 +264,9 @@ public class DocumentStorePerformanceTest extends AbstractMultiDocumentStoreTest
             cnt += 1;
         }
 
-        LOG.info("big doc read " + (cached ? "" : "(after invalidate) ") + "from " + super.dsname + " was " + cnt + " in "
-                + duration + "ms (" + (cnt / (duration / 1000f)) + "/s)");
+        LOG.info("big doc read " + (cached ? "" : "(after invalidate) ") + "from " + super.dsname
+            + " was " + cnt + " in "
+            + duration + "ms (" + (cnt / (duration / 1000f)) + "/s)");
     }
 
     @Test
@@ -283,7 +291,8 @@ public class DocumentStorePerformanceTest extends AbstractMultiDocumentStoreTest
         long cnt = 0;
         Set<Revision> expectedRevs = new HashSet<Revision>();
 
-        String id = this.getClass().getName() + ".testUpdatePerf" + (growing ? "Growing" : "") + "-" + size;
+        String id =
+            this.getClass().getName() + ".testUpdatePerf" + (growing ? "Growing" : "") + "-" + size;
         removeMe.add(id);
 
         while (System.currentTimeMillis() < end) {
@@ -309,11 +318,13 @@ public class DocumentStorePerformanceTest extends AbstractMultiDocumentStoreTest
 
         if (growing) {
             NodeDocument result = super.ds.find(Collection.NODES, id, 0);
-            Map<Revision, Object> m = (Map<Revision, Object>)result.get("foo");
+            Map<Revision, Object> m = (Map<Revision, Object>) result.get("foo");
             assertEquals("number of revisions", expectedRevs.size(), m.size());
             assertTrue(m.keySet().equals(expectedRevs));
         }
 
-        LOG.info("document updates with property of size " + size + (growing ? " (growing)" : "") + " for " + super.dsname + " was " + cnt + " in " + duration + "ms (" + (cnt / (duration / 1000f)) + "/s)");
+        LOG.info("document updates with property of size " + size + (growing ? " (growing)" : "")
+            + " for " + super.dsname + " was " + cnt + " in " + duration + "ms (" + (cnt / (duration
+            / 1000f)) + "/s)");
     }
 }

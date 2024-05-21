@@ -17,10 +17,9 @@
 
 package org.apache.jackrabbit.oak.segment.standby.server;
 
-import java.io.InputStream;
-
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
+import java.io.InputStream;
 import org.apache.jackrabbit.oak.segment.standby.codec.GetBlobRequest;
 import org.apache.jackrabbit.oak.segment.standby.codec.GetBlobResponse;
 import org.slf4j.Logger;
@@ -44,7 +43,8 @@ class GetBlobRequestHandler extends SimpleChannelInboundHandler<GetBlobRequest> 
         long length = reader.getBlobLength(msg.getBlobId());
 
         if (in == null || length == -1L) {
-            log.debug("Blob {} not found, discarding request from client {}", msg.getBlobId(), msg.getClientId());
+            log.debug("Blob {} not found, discarding request from client {}", msg.getBlobId(),
+                msg.getClientId());
             return;
         }
 

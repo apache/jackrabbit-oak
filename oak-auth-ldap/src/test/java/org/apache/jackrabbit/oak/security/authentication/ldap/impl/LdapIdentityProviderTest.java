@@ -17,25 +17,6 @@
 
 package org.apache.jackrabbit.oak.security.authentication.ldap.impl;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.directory.api.util.Strings;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalGroup;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityException;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
-import org.hamcrest.Matchers;
-import org.junit.Test;
-
-import javax.jcr.SimpleCredentials;
-import javax.security.auth.login.LoginException;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
-
 import static org.apache.jackrabbit.oak.security.authentication.ldap.impl.LdapProviderConfig.PARAM_USER_EXTRA_FILTER_DEFAULT;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertArrayEquals;
@@ -45,6 +26,24 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
+import javax.jcr.SimpleCredentials;
+import javax.security.auth.login.LoginException;
+import org.apache.directory.api.util.Strings;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalGroup;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityException;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
+import org.hamcrest.Matchers;
+import org.junit.Test;
 
 public class LdapIdentityProviderTest extends AbstractLdapIdentityProviderTest {
 
@@ -63,7 +62,9 @@ public class LdapIdentityProviderTest extends AbstractLdapIdentityProviderTest {
         Iterator<ExternalUser> users = idp.listUsers();
         Iterator<String> ids = Iterators.transform(users, externalUser -> externalUser.getId());
 
-        Set<String> expectedIds = ImmutableSet.of(TEST_USER0_UID, TEST_USER1_UID, TEST_USER5_UID, "hnelson", "thardy", "tquist", "fchristi", "wbush", "cbuckley", "jhallett", "mchrysta", "wbligh", "jfryer");
+        Set<String> expectedIds = ImmutableSet.of(TEST_USER0_UID, TEST_USER1_UID, TEST_USER5_UID,
+            "hnelson", "thardy", "tquist", "fchristi", "wbush", "cbuckley", "jhallett", "mchrysta",
+            "wbligh", "jfryer");
         assertEquals(expectedIds, ImmutableSet.copyOf(ids));
     }
 
@@ -73,13 +74,15 @@ public class LdapIdentityProviderTest extends AbstractLdapIdentityProviderTest {
         Iterator<ExternalUser> users = idp.listUsers();
         Iterator<String> ids = Iterators.transform(users, externalUser -> externalUser.getId());
 
-        Set<String> expectedIds = ImmutableSet.of(TEST_USER0_UID, TEST_USER1_UID, TEST_USER5_UID, "hnelson", "thardy", "tquist", "fchristi", "wbush", "cbuckley", "jhallett", "mchrysta", "wbligh", "jfryer");
+        Set<String> expectedIds = ImmutableSet.of(TEST_USER0_UID, TEST_USER1_UID, TEST_USER5_UID,
+            "hnelson", "thardy", "tquist", "fchristi", "wbush", "cbuckley", "jhallett", "mchrysta",
+            "wbligh", "jfryer");
         assertEquals(expectedIds, ImmutableSet.copyOf(ids));
     }
 
     /**
-     * Test case to reproduce OAK-3396 where an ldap user entry
-     * without a uid caused a NullpointerException in LdapIdentityProvider.createUser
+     * Test case to reproduce OAK-3396 where an ldap user entry without a uid caused a
+     * NullpointerException in LdapIdentityProvider.createUser
      */
     @Test
     public void testListUsersWithMissingUid() throws Exception {
@@ -89,7 +92,7 @@ public class LdapIdentityProviderTest extends AbstractLdapIdentityProviderTest {
         // make sure we got a result
         assertTrue(users.hasNext());
         // without the LdapInvalidAttributeValueException a NPE would result here:
-        while(users.hasNext()) {
+        while (users.hasNext()) {
             ExternalUser user = users.next();
             // the 'Faulty Entry' of the ERRONEOUS_LDIF should be filtered out
             // (by LdapIdentityProvider.listUsers.getNext())
@@ -101,7 +104,7 @@ public class LdapIdentityProviderTest extends AbstractLdapIdentityProviderTest {
     public void testGetUserByUserId() throws Exception {
         ExternalUser user = idp.getUser(TEST_USER1_UID);
         assertNotNull("User 1 must exist", user);
-        assertEquals("User Ref", TEST_USER1_DN, ((LdapUser)user).getEntry().getDn().getName());
+        assertEquals("User Ref", TEST_USER1_DN, ((LdapUser) user).getEntry().getDn().getName());
     }
 
     @Test
@@ -111,15 +114,18 @@ public class LdapIdentityProviderTest extends AbstractLdapIdentityProviderTest {
 
         Map<String, ?> properties = user.getProperties();
         assertThat((Map<String, Collection<String>>) properties,
-                Matchers.<String, Collection<String>>hasEntry(
-                        Matchers.equalTo("objectclass"),
-                        Matchers.containsInAnyOrder( "inetOrgPerson", "top", "person", "organizationalPerson")));
+            Matchers.<String, Collection<String>>hasEntry(
+                Matchers.equalTo("objectclass"),
+                Matchers.containsInAnyOrder("inetOrgPerson", "top", "person",
+                    "organizationalPerson")));
         assertThat(properties, Matchers.<String, Object>hasEntry("uid", "hhornblo"));
         assertThat(properties, Matchers.<String, Object>hasEntry("givenname", "Horatio"));
-        assertThat(properties, Matchers.<String, Object>hasEntry("description", "Capt. Horatio Hornblower, R.N"));
+        assertThat(properties,
+            Matchers.<String, Object>hasEntry("description", "Capt. Horatio Hornblower, R.N"));
         assertThat(properties, Matchers.<String, Object>hasEntry("sn", "Hornblower"));
 
-        assertThat(properties, Matchers.not(Matchers.<String, Object>hasEntry("mail", "hhornblo@royalnavy.mod.uk")));
+        assertThat(properties,
+            Matchers.not(Matchers.<String, Object>hasEntry("mail", "hhornblo@royalnavy.mod.uk")));
     }
 
     @Test
@@ -129,7 +135,8 @@ public class LdapIdentityProviderTest extends AbstractLdapIdentityProviderTest {
 
     @Test
     public void testAuthenticateCaseInsensitive() throws Exception {
-        SimpleCredentials creds = new SimpleCredentials(TEST_USER1_UID.toUpperCase(), "pass".toCharArray());
+        SimpleCredentials creds = new SimpleCredentials(TEST_USER1_UID.toUpperCase(),
+            "pass".toCharArray());
         assertAuthenticate(idp, creds, TEST_USER1_DN, TEST_USER1_DN);
     }
 
@@ -146,7 +153,8 @@ public class LdapIdentityProviderTest extends AbstractLdapIdentityProviderTest {
 
     @Test
     public void testAuthenticateMissing() throws Exception {
-        SimpleCredentials creds = new SimpleCredentials("foobar" + TEST_USER1_UID, "pass".toCharArray());
+        SimpleCredentials creds = new SimpleCredentials("foobar" + TEST_USER1_UID,
+            "pass".toCharArray());
         ExternalUser user = idp.authenticate(creds);
         assertNull("Authenticate must return NULL for unknown user", user);
     }
@@ -177,7 +185,8 @@ public class LdapIdentityProviderTest extends AbstractLdapIdentityProviderTest {
     public void testGetGroupByName() throws Exception {
         ExternalGroup group = idp.getGroup(TEST_GROUP1_NAME);
         assertNotNull("Group 1 must exist", group);
-        assertEquals("Group Ref", TEST_GROUP1_DN, ((LdapIdentity)group).getEntry().getDn().getName());
+        assertEquals("Group Ref", TEST_GROUP1_DN,
+            ((LdapIdentity) group).getEntry().getDn().getName());
     }
 
     @Test
@@ -200,7 +209,8 @@ public class LdapIdentityProviderTest extends AbstractLdapIdentityProviderTest {
     public void testGetDeclaredMembers() throws Exception {
         ExternalGroup gr = idp.getGroup(TEST_GROUP1_NAME);
         Iterable<ExternalIdentityRef> memberrefs = gr.getDeclaredMembers();
-        Iterable<String> memberIds = Iterables.transform(memberrefs, externalIdentityRef -> externalIdentityRef.getId());
+        Iterable<String> memberIds = Iterables.transform(memberrefs,
+            externalIdentityRef -> externalIdentityRef.getId());
 
         Set<String> expected = ImmutableSet.copyOf(TEST_GROUP1_MEMBERS);
         assertEquals(expected, ImmutableSet.copyOf(memberIds));
@@ -237,7 +247,8 @@ public class LdapIdentityProviderTest extends AbstractLdapIdentityProviderTest {
 
         ExternalUser user = idp.getUser(TEST_USER1_UID);
         Iterable<ExternalIdentityRef> groupRefs = user.getDeclaredGroups();
-        Iterable<String> groupIds = Iterables.transform(groupRefs, externalIdentityRef -> externalIdentityRef.getId());
+        Iterable<String> groupIds = Iterables.transform(groupRefs,
+            externalIdentityRef -> externalIdentityRef.getId());
         assertEquals(ImmutableSet.copyOf(TEST_USER1_GROUPS), ImmutableSet.copyOf(groupIds));
     }
 
@@ -254,7 +265,8 @@ public class LdapIdentityProviderTest extends AbstractLdapIdentityProviderTest {
         providerConfig.getUserConfig().setMakeDnPath(true);
         ExternalUser user = idp.getUser(TEST_USER1_UID);
         assertNotNull("User 1 must exist", user);
-        assertEquals("Intermediate path must be the split dn", TEST_USER1_PATH, user.getIntermediatePath());
+        assertEquals("Intermediate path must be the split dn", TEST_USER1_PATH,
+            user.getIntermediatePath());
     }
 
     @Test
@@ -262,13 +274,15 @@ public class LdapIdentityProviderTest extends AbstractLdapIdentityProviderTest {
         providerConfig.getUserConfig().setMakeDnPath(true);
         ExternalUser user = idp.getUser(TEST_USER5_UID);
         assertNotNull("User 5 must exist", user);
-        assertEquals("Intermediate path must be the split dn", TEST_USER5_PATH, user.getIntermediatePath());
+        assertEquals("Intermediate path must be the split dn", TEST_USER5_PATH,
+            user.getIntermediatePath());
     }
 
     @Test
     public void testRemoveEmptyString() throws Exception {
-        providerConfig.setCustomAttributes(new String[] {"a", Strings.EMPTY_STRING, "b" });
-        assertArrayEquals("Array must not contain empty strings", new String[] {"a", "b" }, providerConfig.getCustomAttributes());
+        providerConfig.setCustomAttributes(new String[]{"a", Strings.EMPTY_STRING, "b"});
+        assertArrayEquals("Array must not contain empty strings", new String[]{"a", "b"},
+            providerConfig.getCustomAttributes());
     }
 
     @Test
@@ -296,7 +310,8 @@ public class LdapIdentityProviderTest extends AbstractLdapIdentityProviderTest {
         Iterator<ExternalGroup> groups = idp.listGroups();
         Iterator<String> ids = Iterators.transform(groups, externalGroup -> externalGroup.getId());
 
-        Set<String> expectedIds = ImmutableSet.of(TEST_GROUP1_NAME, TEST_GROUP2_NAME, TEST_GROUP3_NAME, "Administrators");
+        Set<String> expectedIds = ImmutableSet.of(TEST_GROUP1_NAME, TEST_GROUP2_NAME,
+            TEST_GROUP3_NAME, "Administrators");
         assertEquals(expectedIds, ImmutableSet.copyOf(ids));
     }
 
@@ -307,7 +322,8 @@ public class LdapIdentityProviderTest extends AbstractLdapIdentityProviderTest {
         Iterator<ExternalGroup> groups = idp.listGroups();
         Iterator<String> ids = Iterators.transform(groups, externalGroup -> externalGroup.getId());
 
-        Set<String> expectedIds = ImmutableSet.of(TEST_GROUP1_NAME, TEST_GROUP2_NAME, TEST_GROUP3_NAME, "Administrators");
+        Set<String> expectedIds = ImmutableSet.of(TEST_GROUP1_NAME, TEST_GROUP2_NAME,
+            TEST_GROUP3_NAME, "Administrators");
         assertEquals(expectedIds, ImmutableSet.copyOf(ids));
     }
 }

@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.segment.file.cancel;
 
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.junit.Assert;
 import org.junit.Test;
@@ -59,15 +58,16 @@ public class CancellerTest {
     @Test
     public void falseConditionShouldCheckParent() {
         Cancellation c = Canceller.newCanceller()
-            .withCondition("parent", () -> true)
-            .withCondition("child", () -> false)
-            .check();
+                                  .withCondition("parent", () -> true)
+                                  .withCondition("child", () -> false)
+                                  .check();
         assertCancelled(c, "parent");
     }
 
     @Test
     public void expiredTimeoutShouldCancel() throws Exception {
-        Canceller canceller = Canceller.newCanceller().withTimeout("reason", 1, TimeUnit.MILLISECONDS);
+        Canceller canceller = Canceller.newCanceller()
+                                       .withTimeout("reason", 1, TimeUnit.MILLISECONDS);
         Thread.sleep(10);
         Cancellation c = canceller.check();
         assertCancelled(c, "reason");
@@ -82,27 +82,27 @@ public class CancellerTest {
     @Test
     public void validTimeoutShouldCheckParent() {
         Cancellation c = Canceller.newCanceller()
-            .withCondition("parent", () -> true)
-            .withTimeout("child", 1, TimeUnit.DAYS)
-            .check();
+                                  .withCondition("parent", () -> true)
+                                  .withTimeout("child", 1, TimeUnit.DAYS)
+                                  .check();
         assertCancelled(c, "parent");
     }
 
     @Test
     public void shortCircuitShouldCancelWhenParentCancel() {
         Cancellation c = Canceller.newCanceller()
-            .withCondition("reason", () -> true)
-            .withShortCircuit()
-            .check();
+                                  .withCondition("reason", () -> true)
+                                  .withShortCircuit()
+                                  .check();
         assertCancelled(c, "reason");
     }
 
     @Test
     public void shortCircuitShouldNotCancelWhenParentDoesNotCancel() {
         Cancellation c = Canceller.newCanceller()
-            .withCondition("reason", () -> false)
-            .withShortCircuit()
-            .check();
+                                  .withCondition("reason", () -> false)
+                                  .withShortCircuit()
+                                  .check();
         assertNotCancelled(c);
     }
 
@@ -110,8 +110,8 @@ public class CancellerTest {
     public void shortCircuitShouldBreakCircuitWithParentOnFailure() {
         MutableBoolean b = new MutableBoolean(false);
         Canceller c = Canceller.newCanceller()
-            .withCondition("reason", b::booleanValue)
-            .withShortCircuit();
+                               .withCondition("reason", b::booleanValue)
+                               .withShortCircuit();
         assertNotCancelled(c.check());
         b.setValue(true);
         assertCancelled(c.check(), "reason");

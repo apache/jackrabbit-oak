@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.jcr.delegate;
 
 import javax.jcr.Credentials;
 import javax.jcr.RepositoryException;
-
 import org.apache.jackrabbit.api.security.user.Impersonation;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
@@ -29,8 +28,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * This implementation of {@code User} delegates back to a
- * delegatee wrapping each call into a {@link SessionOperation} closure.
+ * This implementation of {@code User} delegates back to a delegatee wrapping each call into a
+ * {@link SessionOperation} closure.
  *
  * @see SessionDelegate#perform(SessionOperation)
  */
@@ -118,7 +117,8 @@ final class UserDelegator extends AuthorizableDelegator implements User {
     }
 
     @Override
-    public void changePassword(@Nullable final String password, @NotNull final String oldPassword) throws RepositoryException {
+    public void changePassword(@Nullable final String password, @NotNull final String oldPassword)
+        throws RepositoryException {
         sessionDelegate.performVoid(new SessionOperation<Void>("changePassword", true) {
             @Override
             public void performVoid() throws RepositoryException {

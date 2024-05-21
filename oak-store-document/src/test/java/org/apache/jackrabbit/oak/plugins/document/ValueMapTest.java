@@ -124,7 +124,7 @@ public class ValueMapTest {
         NodeDocument doc = store.find(NODES, rootId);
         assertNotNull(doc);
         List<NodeDocument> prevDocs = Lists.newArrayList(
-                doc.getPreviousDocs("p1", null));
+            doc.getPreviousDocs("p1", null));
         assertEquals(2, prevDocs.size());
         assertEquals(Utils.getPreviousIdFor(ROOT, r31, 0), prevDocs.get(0).getId());
         assertEquals(Utils.getPreviousIdFor(ROOT, r42, 0), prevDocs.get(1).getId());
@@ -135,14 +135,14 @@ public class ValueMapTest {
         }
         assertEquals(Arrays.asList(r51, r31, r22, r12), revs);
     }
-    
+
     // OAK-2433
     @Test
     public void mergeSorted() throws Exception {
         DocumentNodeStore store = new DocumentMK.Builder().setAsyncDelay(0).getNodeStore();
         DocumentStore docStore = store.getDocumentStore();
         String id = Utils.getIdFromPath("/");
-        
+
         List<NodeBuilder> branches = Lists.newArrayList();
         int i = 0;
         while (docStore.find(NODES, id).getPreviousRanges().size() < 2) {
@@ -165,7 +165,7 @@ public class ValueMapTest {
             }
             store.runBackgroundOperations();
         }
-        
+
         NodeDocument doc = docStore.find(NODES, id);
         Iterators.size(doc.getValueMap(NodeDocument.REVISIONS).entrySet().iterator());
 
@@ -176,7 +176,7 @@ public class ValueMapTest {
     @Test
     public void mergeSorted1() throws Exception {
         MemoryDocumentStore store = new MemoryDocumentStore();
-        
+
         Revision r1 = new Revision(1, 0, 1); // prev2
         Revision r2 = new Revision(2, 0, 1); // prev2
         Revision r3 = new Revision(3, 0, 1); // root
@@ -187,7 +187,7 @@ public class ValueMapTest {
 
         Range range1 = new Range(r7, r5, 0);
         Range range2 = new Range(r4, r1, 0);
-        
+
         String prevId1 = Utils.getPreviousIdFor(ROOT, range1.high, 0);
         UpdateOp prevOp1 = new UpdateOp(prevId1, true);
         NodeDocument.setRevision(prevOp1, r5, "c");
@@ -205,9 +205,9 @@ public class ValueMapTest {
         NodeDocument.setRevision(op, r6, "c");
         NodeDocument.setPrevious(op, range1);
         NodeDocument.setPrevious(op, range2);
-        
+
         store.create(NODES, Lists.newArrayList(op, prevOp1, prevOp2));
-        
+
         NodeDocument doc = store.find(NODES, rootId);
         Iterators.size(doc.getValueMap(NodeDocument.REVISIONS).entrySet().iterator());
     }

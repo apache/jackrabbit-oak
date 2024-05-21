@@ -27,12 +27,16 @@ public class SegmentNodeStoreServiceDeprecationErrorTest {
 
     @Test
     public void testComponentDescriptor() throws Exception {
-        ComponentDescriptor cd = ComponentDescriptor.open(getClass().getResourceAsStream("/OSGI-INF/org.apache.jackrabbit.oak.segment.osgi.SegmentNodeStoreServiceDeprecationError.xml"));
-        assertTrue(cd.hasName("org.apache.jackrabbit.oak.segment.osgi.SegmentNodeStoreServiceDeprecationError"));
+        ComponentDescriptor cd = ComponentDescriptor.open(getClass().getResourceAsStream(
+            "/OSGI-INF/org.apache.jackrabbit.oak.segment.osgi.SegmentNodeStoreServiceDeprecationError.xml"));
+        assertTrue(cd.hasName(
+            "org.apache.jackrabbit.oak.segment.osgi.SegmentNodeStoreServiceDeprecationError"));
         assertTrue(cd.hasRequireConfigurationPolicy());
         assertTrue(cd.hasActivateMethod("activate"));
-        assertTrue(cd.hasConfigurationPid("org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStoreService"));
-        assertTrue(cd.hasImplementationClass("org.apache.jackrabbit.oak.segment.osgi.SegmentNodeStoreServiceDeprecationError"));
+        assertTrue(cd.hasConfigurationPid(
+            "org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStoreService"));
+        assertTrue(cd.hasImplementationClass(
+            "org.apache.jackrabbit.oak.segment.osgi.SegmentNodeStoreServiceDeprecationError"));
     }
 
 }

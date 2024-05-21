@@ -16,26 +16,31 @@
  */
 package org.apache.jackrabbit.oak.spi.xml;
 
-import org.junit.Test;
-
 import static org.junit.Assert.assertEquals;
+
+import org.junit.Test;
 
 public class ImportBehaviorTest {
 
     @Test
     public void testValueFromString() {
-       assertEquals(ImportBehavior.ABORT, ImportBehavior.valueFromString(ImportBehavior.NAME_ABORT));
-       assertEquals(ImportBehavior.IGNORE, ImportBehavior.valueFromString(ImportBehavior.NAME_IGNORE));
-       assertEquals(ImportBehavior.BESTEFFORT, ImportBehavior.valueFromString(ImportBehavior.NAME_BESTEFFORT));
-       assertEquals(ImportBehavior.ABORT, ImportBehavior.valueFromString("invalid"));
+        assertEquals(ImportBehavior.ABORT,
+            ImportBehavior.valueFromString(ImportBehavior.NAME_ABORT));
+        assertEquals(ImportBehavior.IGNORE,
+            ImportBehavior.valueFromString(ImportBehavior.NAME_IGNORE));
+        assertEquals(ImportBehavior.BESTEFFORT,
+            ImportBehavior.valueFromString(ImportBehavior.NAME_BESTEFFORT));
+        assertEquals(ImportBehavior.ABORT, ImportBehavior.valueFromString("invalid"));
     }
 
 
     @Test
     public void testNameFromValue() {
         assertEquals(ImportBehavior.NAME_ABORT, ImportBehavior.nameFromValue(ImportBehavior.ABORT));
-        assertEquals(ImportBehavior.NAME_IGNORE, ImportBehavior.nameFromValue(ImportBehavior.IGNORE));
-        assertEquals(ImportBehavior.NAME_BESTEFFORT, ImportBehavior.nameFromValue(ImportBehavior.BESTEFFORT));
+        assertEquals(ImportBehavior.NAME_IGNORE,
+            ImportBehavior.nameFromValue(ImportBehavior.IGNORE));
+        assertEquals(ImportBehavior.NAME_BESTEFFORT,
+            ImportBehavior.nameFromValue(ImportBehavior.BESTEFFORT));
     }
 
     @Test(expected = IllegalArgumentException.class)

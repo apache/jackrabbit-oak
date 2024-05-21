@@ -16,10 +16,12 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.jmx;
 
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+
 import java.lang.reflect.Field;
 import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.Configuration;
-
 import org.apache.felix.jaas.boot.ProxyLoginModule;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
@@ -33,9 +35,6 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.SyncM
 import org.apache.sling.testing.mock.osgi.MockOsgi;
 import org.junit.Test;
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-
 public class SynMBeanImplOSGiTest extends ExternalLoginTestBase {
 
     private ExternalLoginModuleFactory externalLoginModuleFactory;
@@ -45,7 +44,8 @@ public class SynMBeanImplOSGiTest extends ExternalLoginTestBase {
         super.before();
 
         context.registerService(SyncManager.class, new SyncManagerImpl(whiteboard));
-        context.registerService(ExternalIdentityProviderManager.class, new ExternalIDPManagerImpl(whiteboard));
+        context.registerService(ExternalIdentityProviderManager.class,
+            new ExternalIDPManagerImpl(whiteboard));
 
         externalLoginModuleFactory = new ExternalLoginModuleFactory();
 
@@ -68,10 +68,10 @@ public class SynMBeanImplOSGiTest extends ExternalLoginTestBase {
             @Override
             public AppConfigurationEntry[] getAppConfigurationEntry(String s) {
                 AppConfigurationEntry entry = new AppConfigurationEntry(
-                        //Use ProxyLoginModule so that factory mode can be used
-                        ProxyLoginModule.class.getName(),
-                        AppConfigurationEntry.LoginModuleControlFlag.REQUIRED,
-                        options);
+                    //Use ProxyLoginModule so that factory mode can be used
+                    ProxyLoginModule.class.getName(),
+                    AppConfigurationEntry.LoginModuleControlFlag.REQUIRED,
+                    options);
                 return new AppConfigurationEntry[]{entry};
             }
         };
@@ -126,7 +126,8 @@ public class SynMBeanImplOSGiTest extends ExternalLoginTestBase {
         assertSyncBeanRegistration(externalLoginModuleFactory, false);
     }
 
-    private static void assertSyncBeanRegistration(ExternalLoginModuleFactory externalLoginModuleFactory, boolean exists) throws Exception {
+    private static void assertSyncBeanRegistration(
+        ExternalLoginModuleFactory externalLoginModuleFactory, boolean exists) throws Exception {
         Field f = ExternalLoginModuleFactory.class.getDeclaredField("mbeanRegistration");
         f.setAccessible(true);
 

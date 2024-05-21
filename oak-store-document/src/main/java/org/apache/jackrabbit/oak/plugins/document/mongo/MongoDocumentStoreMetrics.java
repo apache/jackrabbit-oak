@@ -16,21 +16,19 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
-import java.util.Set;
-import java.util.TreeSet;
+import static org.apache.jackrabbit.oak.stats.StatsOptions.METRICS_ONLY;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import com.mongodb.BasicDBObject;
 import com.mongodb.MongoException;
-
+import java.util.Set;
+import java.util.TreeSet;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.stats.CounterStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.apache.jackrabbit.oak.stats.StatsOptions.METRICS_ONLY;
 
 /**
  * Implementation specific metrics exposed by the {@link MongoDocumentStore}.
@@ -40,7 +38,8 @@ public final class MongoDocumentStoreMetrics implements Runnable {
     private static final Logger LOG = LoggerFactory.getLogger(MongoDocumentStoreMetrics.class);
 
     private static final ImmutableList<Collection<? extends Document>> COLLECTIONS = ImmutableList.of(
-            Collection.NODES, Collection.JOURNAL, Collection.CLUSTER_NODES, Collection.SETTINGS, Collection.BLOBS
+        Collection.NODES, Collection.JOURNAL, Collection.CLUSTER_NODES, Collection.SETTINGS,
+        Collection.BLOBS
     );
 
     private final MongoDocumentStore store;
@@ -48,7 +47,7 @@ public final class MongoDocumentStoreMetrics implements Runnable {
     private final StatisticsProvider statsProvider;
 
     public MongoDocumentStoreMetrics(MongoDocumentStore store,
-                                     StatisticsProvider statsProvider) {
+        StatisticsProvider statsProvider) {
         this.store = store;
         this.statsProvider = statsProvider;
     }
@@ -82,7 +81,8 @@ public final class MongoDocumentStoreMetrics implements Runnable {
             updateCounter(getDBCounter("fsUsedSize"), dbStats.fsUsedSize);
             updateCounter(getDBCounter("fsTotalSize"), dbStats.fsTotalSize);
 
-            updateCounter(getDocumentStoreCounter("mongoWriteExceptions"), store.getAmountOfMongoWriteExceptions());
+            updateCounter(getDocumentStoreCounter("mongoWriteExceptions"),
+                store.getAmountOfMongoWriteExceptions());
         } catch (MongoException e) {
             LOG.warn("Updating counters failed: {}", e.toString());
         }
@@ -93,9 +93,10 @@ public final class MongoDocumentStoreMetrics implements Runnable {
     }
 
     private CollectionStats getStats(Collection<? extends Document> c)
-            throws MongoException {
+        throws MongoException {
         CollectionStats stats = new CollectionStats();
-        BasicDBObject result = new BasicDBObject(store.getDatabase().runCommand(new org.bson.Document("collStats", c.toString())));
+        BasicDBObject result = new BasicDBObject(
+            store.getDatabase().runCommand(new org.bson.Document("collStats", c.toString())));
         stats.count = result.getLong("count", 0);
         stats.size = result.getLong("size", 0);
         stats.storageSize = result.getLong("storageSize", 0);
@@ -105,14 +106,15 @@ public final class MongoDocumentStoreMetrics implements Runnable {
 
     private DatabaseStats getDBStats() throws MongoException {
         DatabaseStats stats = new DatabaseStats();
-        BasicDBObject result = new BasicDBObject(store.getDatabase().runCommand(new org.bson.Document("dbStats", 1)));
+        BasicDBObject result = new BasicDBObject(
+            store.getDatabase().runCommand(new org.bson.Document("dbStats", 1)));
         stats.fsUsedSize = result.getLong("fsUsedSize", 0);
         stats.fsTotalSize = result.getLong("fsTotalSize", 0);
         return stats;
     }
 
     private CounterStats getCounter(Collection<? extends Document> c,
-                                    String name) {
+        String name) {
         String counterName = "MongoDB." + c.toString() + "." + name;
         return statsProvider.getCounterStats(counterName, METRICS_ONLY);
     }
@@ -128,6 +130,7 @@ public final class MongoDocumentStoreMetrics implements Runnable {
     }
 
     private static final class CollectionStats {
+
         long count;
         long size;
         long storageSize;
@@ -135,6 +138,7 @@ public final class MongoDocumentStoreMetrics implements Runnable {
     }
 
     private static final class DatabaseStats {
+
         long fsUsedSize;
         long fsTotalSize;
     }

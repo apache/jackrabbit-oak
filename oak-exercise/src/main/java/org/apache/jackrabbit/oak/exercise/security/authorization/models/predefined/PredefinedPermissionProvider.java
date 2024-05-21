@@ -66,13 +66,15 @@ class PredefinedPermissionProvider implements PermissionProvider {
 
     @NotNull
     @Override
-    public TreePermission getTreePermission(@NotNull Tree tree, @NotNull TreePermission parentPermission) {
+    public TreePermission getTreePermission(@NotNull Tree tree,
+        @NotNull TreePermission parentPermission) {
         // EXERCISE: complete PermissionProvider implementation
         return TreePermission.EMPTY;
     }
 
     @Override
-    public boolean isGranted(@NotNull Tree tree, @Nullable PropertyState property, long permissions) {
+    public boolean isGranted(@NotNull Tree tree, @Nullable PropertyState property,
+        long permissions) {
         // EXERCISE: complete PermissionProvider implementation
         return false;
     }

@@ -23,7 +23,6 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
-
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -36,12 +35,13 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Simplistic 'Root' implementation around the {@code NodeBuilder} used for the
- * repository upgrade in order to be able to make use of existing functionality
- * like privilege and node type registration without attempting to properly
- * implement the full contract of the {@link Root} interface.
+ * Simplistic 'Root' implementation around the {@code NodeBuilder} used for the repository upgrade
+ * in order to be able to make use of existing functionality like privilege and node type
+ * registration without attempting to properly implement the full contract of the {@link Root}
+ * interface.
  */
 class UpgradeRoot implements Root {
+
     private final NodeBuilderTree rootTree;
 
     UpgradeRoot(NodeBuilder nodeBuilder) {

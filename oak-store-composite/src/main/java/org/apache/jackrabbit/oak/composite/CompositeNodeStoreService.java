@@ -69,9 +69,9 @@ public class CompositeNodeStoreService {
     @Reference(cardinality = ReferenceCardinality.MANDATORY_UNARY, policy = ReferencePolicy.STATIC)
     private MountInfoProvider mountInfoProvider;
 
-    @Reference(cardinality = ReferenceCardinality.MANDATORY_MULTIPLE, policy = ReferencePolicy.DYNAMIC, bind = "bindNodeStore", unbind = "unbindNodeStore", referenceInterface = NodeStoreProvider.class, target="(!(service.pid=org.apache.jackrabbit.oak.composite.CompositeNodeStore))")
+    @Reference(cardinality = ReferenceCardinality.MANDATORY_MULTIPLE, policy = ReferencePolicy.DYNAMIC, bind = "bindNodeStore", unbind = "unbindNodeStore", referenceInterface = NodeStoreProvider.class, target = "(!(service.pid=org.apache.jackrabbit.oak.composite.CompositeNodeStore))")
     private List<NodeStoreWithProps> nodeStores = new ArrayList<>();
-    
+
     @Reference
     private NodeStoreChecks checks;
 
@@ -79,19 +79,19 @@ public class CompositeNodeStoreService {
     private StatisticsProvider statisticsProvider = StatisticsProvider.NOOP;
 
     @Property(label = "Enable node store checks",
-            description = "Whether the composite node store constraints should be checked before start",
-            boolValue = true
+        description = "Whether the composite node store constraints should be checked before start",
+        boolValue = true
     )
     private static final String ENABLE_CHECKS = "enableChecks";
 
     @Property(label = "Pre-populate seed mount",
-            description = "Setting this parameter to a mount name will enable pre-populating the empty default store"
+        description = "Setting this parameter to a mount name will enable pre-populating the empty default store"
     )
     private static final String PROP_SEED_MOUNT = "seedMount";
 
     @Property(label = "Gather path statistics",
-            description = "Whether the CompositeNodeStoreStatsMBean should gather information about the most popular paths (may be expensive)",
-            boolValue = false
+        description = "Whether the CompositeNodeStoreStatsMBean should gather information about the most popular paths (may be expensive)",
+        boolValue = false
     )
     private static final String PATH_STATS = "pathStats";
 
@@ -112,7 +112,8 @@ public class CompositeNodeStoreService {
     private boolean enableChecks;
 
     @Activate
-    protected void activate(ComponentContext context, Map<String, ?> config) throws IOException, CommitFailedException {
+    protected void activate(ComponentContext context, Map<String, ?> config)
+        throws IOException, CommitFailedException {
         this.context = context;
         seedMount = PropertiesUtil.toString(config.get(PROP_SEED_MOUNT), null);
         pathStats = PropertiesUtil.toBoolean(config.get(PATH_STATS), false);
@@ -130,10 +131,12 @@ public class CompositeNodeStoreService {
             return; // already registered
         }
 
-        NodeStoreWithProps globalNs = nodeStores.stream().filter(this::isGlobalNodeStore).findFirst().orElse(null);
+        NodeStoreWithProps globalNs = nodeStores.stream().filter(this::isGlobalNodeStore)
+                                                .findFirst().orElse(null);
 
         if (globalNs == null) {
-            LOG.info("Composite node store registration is deferred until there's a global node store registered in OSGi");
+            LOG.info(
+                "Composite node store registration is deferred until there's a global node store registered in OSGi");
             return;
         } else {
             LOG.info("Found global node store: {}", globalNs.getDescription());
@@ -144,7 +147,8 @@ public class CompositeNodeStoreService {
         }
         LOG.info("Node stores for all configured mounts are available");
 
-        CompositeNodeStore.Builder builder = new CompositeNodeStore.Builder(mountInfoProvider, globalNs.getNodeStoreProvider().getNodeStore());
+        CompositeNodeStore.Builder builder = new CompositeNodeStore.Builder(mountInfoProvider,
+            globalNs.getNodeStoreProvider().getNodeStore());
         nodeStoresInUse.add(globalNs.getNodeStoreProvider());
 
         if (enableChecks) {
@@ -165,17 +169,21 @@ public class CompositeNodeStoreService {
             nodeStoresInUse.add(ns.getNodeStoreProvider());
 
             if (mountName.equals(seedMount)) {
-                new InitialContentMigrator(globalNs.nodeStore.getNodeStore(), ns.getNodeStoreProvider().getNodeStore(), mountInfoProvider.getMountByName(seedMount)).migrate();
+                new InitialContentMigrator(globalNs.nodeStore.getNodeStore(),
+                    ns.getNodeStoreProvider().getNodeStore(),
+                    mountInfoProvider.getMountByName(seedMount)).migrate();
             }
         }
 
-        CompositeNodeStoreStats nodeStateStats = new CompositeNodeStoreStats(statisticsProvider, "NODE_STATE", pathStats);
-        CompositeNodeStoreStats nodeBuilderStats = new CompositeNodeStoreStats(statisticsProvider, "NODE_BUILDER", pathStats);
+        CompositeNodeStoreStats nodeStateStats = new CompositeNodeStoreStats(statisticsProvider,
+            "NODE_STATE", pathStats);
+        CompositeNodeStoreStats nodeBuilderStats = new CompositeNodeStoreStats(statisticsProvider,
+            "NODE_BUILDER", pathStats);
         builder.with(nodeStateStats, nodeBuilderStats);
 
         Dictionary<String, Object> props = new Hashtable<>();
         props.put(Constants.SERVICE_PID, CompositeNodeStore.class.getName());
-        props.put("oak.nodestore.description", new String[] { "nodeStoreType=compositeStore" } );
+        props.put("oak.nodestore.description", new String[]{"nodeStoreType=compositeStore"});
 
         CompositeNodeStore store = builder.build();
 
@@ -186,37 +194,39 @@ public class CompositeNodeStoreService {
 
         mbeanRegistrations = Closer.create();
         registerMBean(whiteboard,
-                CheckpointMBean.class,
-                new CompositeCheckpointMBean(store),
-                CheckpointMBean.TYPE,
-                "Composite node store checkpoint management");
+            CheckpointMBean.class,
+            new CompositeCheckpointMBean(store),
+            CheckpointMBean.TYPE,
+            "Composite node store checkpoint management");
         registerMBean(whiteboard,
-                CompositeNodeStoreStatsMBean.class,
-                nodeStateStats,
-                CompositeNodeStoreStatsMBean.TYPE,
-                "Composite node store statistics (node state)");
+            CompositeNodeStoreStatsMBean.class,
+            nodeStateStats,
+            CompositeNodeStoreStatsMBean.TYPE,
+            "Composite node store statistics (node state)");
         registerMBean(whiteboard,
-                CompositeNodeStoreStatsMBean.class,
-                nodeBuilderStats,
-                CompositeNodeStoreStatsMBean.TYPE,
-                "Composite node store statistics (node builder)");
+            CompositeNodeStoreStatsMBean.class,
+            nodeBuilderStats,
+            CompositeNodeStoreStatsMBean.TYPE,
+            "Composite node store statistics (node builder)");
 
         LOG.info("Registering the composite node store");
         nsReg = context.getBundleContext().registerService(
-                NodeStore.class.getName(),
-                store,
-                props);
+            NodeStore.class.getName(),
+            store,
+            props);
     }
 
     private boolean allMountsAvailable(MountInfoProvider mountInfoProvider) {
         Set<String> availableMounts = nodeStores.stream()
-            .map(this::getMountName)
-            .filter(Objects::nonNull)
-            .collect(toSet());
+                                                .map(this::getMountName)
+                                                .filter(Objects::nonNull)
+                                                .collect(toSet());
 
         for (Mount mount : mountInfoProvider.getNonDefaultMounts()) {
             if (!availableMounts.contains(mount.getName())) {
-                LOG.info("Composite node store registration is deferred until there's mount {} registered in OSGi", mount.getName());
+                LOG.info(
+                    "Composite node store registration is deferred until there's mount {} registered in OSGi",
+                    mount.getName());
                 return false;
             }
         }
@@ -225,7 +235,7 @@ public class CompositeNodeStoreService {
     }
 
     private <T> void registerMBean(Whiteboard whiteboard,
-                          Class<T> iface, T bean, String type, String name) {
+        Class<T> iface, T bean, String type, String name) {
         Registration reg = WhiteboardUtils.registerMBean(whiteboard, iface, bean, type, name);
         mbeanRegistrations.register(reg::unregister);
     }
@@ -260,7 +270,8 @@ public class CompositeNodeStoreService {
     }
 
     @SuppressWarnings("unused")
-    protected void bindNodeStore(NodeStoreProvider ns, Map<String, ?> config) throws IOException, CommitFailedException {
+    protected void bindNodeStore(NodeStoreProvider ns, Map<String, ?> config)
+        throws IOException, CommitFailedException {
         NodeStoreWithProps newNs = new NodeStoreWithProps(ns, config);
         nodeStores.add(newNs);
 
@@ -313,7 +324,7 @@ public class CompositeNodeStoreService {
 
         public String getDescription() {
             return PropertiesUtil.toString(getProps().get("oak.nodestore.description"),
-                    getNodeStoreProvider().getClass().toString());
+                getNodeStoreProvider().getClass().toString());
         }
     }
 }

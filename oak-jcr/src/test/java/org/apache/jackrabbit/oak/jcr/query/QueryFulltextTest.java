@@ -18,10 +18,10 @@
  */
 package org.apache.jackrabbit.oak.jcr.query;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
@@ -31,7 +31,6 @@ import javax.jcr.query.QueryManager;
 import javax.jcr.query.QueryResult;
 import javax.jcr.query.Row;
 import javax.jcr.query.RowIterator;
-
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest;
 import org.junit.Test;
@@ -108,27 +107,28 @@ public class QueryFulltextTest extends AbstractRepositoryTest {
         session.save();
 
         String sql2 = "select [jcr:path] as [path] from [nt:base] " +
-                "where contains([text], 'hello OR hallo') order by [jcr:path]";
+            "where contains([text], 'hello OR hallo') order by [jcr:path]";
 
         Query q;
 
         q = qm.createQuery("explain " + sql2, Query.JCR_SQL2);
 
-        assertThat(getResult(q.execute(), "plan"), containsString("[nt:base] as [nt:base] /* traverse\n"
+        assertThat(getResult(q.execute(), "plan"),
+            containsString("[nt:base] as [nt:base] /* traverse\n"
                 + "    allNodes (warning: slow)\n"));
 
         // verify the result
         // uppercase "OR" mean logical "or"
         q = qm.createQuery(sql2, Query.JCR_SQL2);
         assertEquals("/testroot/node1, /testroot/node2, /testroot/node3",
-                getResult(q.execute(), "path"));
+            getResult(q.execute(), "path"));
 
         // lowercase "or" mean search for the term "or"
         sql2 = "select [jcr:path] as [path] from [nt:base] " +
-                "where contains([text], 'hello or hallo') order by [jcr:path]";
+            "where contains([text], 'hello or hallo') order by [jcr:path]";
         q = qm.createQuery(sql2, Query.JCR_SQL2);
         assertEquals("",
-                getResult(q.execute(), "path"));
+            getResult(q.execute(), "path"));
 
     }
 

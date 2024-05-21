@@ -28,7 +28,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.function.Function;
-
 import org.apache.commons.io.LineIterator;
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
@@ -36,18 +35,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Implements a {@link java.io.Closeable} wrapper over a {@link LineIterator}.
- * Also has a transformer to transform the output. If the underlying file is
- * provided then it deletes the file on {@link #close()}.
- *
- * If there is a scope for lines in the file containing line break characters it
- * should be ensured that the files is written with
- * {@link FileIOUtils#writeAsLine(BufferedWriter, String, boolean)} with true to escape
- * line break characters and should be properly unescaped on read. A custom
+ * Implements a {@link java.io.Closeable} wrapper over a {@link LineIterator}. Also has a
+ * transformer to transform the output. If the underlying file is provided then it deletes the file
+ * on {@link #close()}.
+ * <p>
+ * If there is a scope for lines in the file containing line break characters it should be ensured
+ * that the files is written with {@link FileIOUtils#writeAsLine(BufferedWriter, String, boolean)}
+ * with true to escape line break characters and should be properly unescaped on read. A custom
  * transformer can also be provided to unescape.
  *
- * @param <T>
- *            the type of elements in the iterator
+ * @param <T> the type of elements in the iterator
  */
 public class BurnOnCloseFileIterator<T> implements Closeable, Iterator<T> {
 
@@ -59,7 +56,8 @@ public class BurnOnCloseFileIterator<T> implements Closeable, Iterator<T> {
         this.delegate = new Impl<T>(iterator, null, transformer);
     }
 
-    public BurnOnCloseFileIterator(Iterator<String> iterator, File backingFile, Function<String, T> transformer) {
+    public BurnOnCloseFileIterator(Iterator<String> iterator, File backingFile,
+        Function<String, T> transformer) {
         this.delegate = new Impl<T>(iterator, backingFile, transformer);
     }
 
@@ -87,14 +85,16 @@ public class BurnOnCloseFileIterator<T> implements Closeable, Iterator<T> {
     }
 
     public static BurnOnCloseFileIterator<String> wrap(Iterator<String> iter, File backingFile) {
-        return new BurnOnCloseFileIterator<String>(iter, backingFile, new Function<String, String>() {
-            public String apply(String s) {
-                return s;
-            }
-        });
+        return new BurnOnCloseFileIterator<String>(iter, backingFile,
+            new Function<String, String>() {
+                public String apply(String s) {
+                    return s;
+                }
+            });
     }
 
     private static class Impl<T> extends AbstractIterator<T> implements Closeable {
+
         private final Iterator<String> iterator;
         private final Function<String, T> transformer;
         private final File backingFile;

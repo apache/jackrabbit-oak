@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.spi.blob.split;
 
 import java.io.IOException;
 import java.io.InputStream;
-
 import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.slf4j.Logger;
@@ -41,7 +40,8 @@ public class DefaultSplitBlobStore implements SplitBlobStore {
 
     private final BlobIdSet migratedBlobs;
 
-    public DefaultSplitBlobStore(String repositoryDir, BlobStore oldBlobStore, BlobStore newBlobStore) {
+    public DefaultSplitBlobStore(String repositoryDir, BlobStore oldBlobStore,
+        BlobStore newBlobStore) {
         this.oldBlobStore = oldBlobStore;
         this.newBlobStore = newBlobStore;
         this.migratedBlobs = new BlobIdSet(repositoryDir, "migrated_blobs.txt");
@@ -61,7 +61,7 @@ public class DefaultSplitBlobStore implements SplitBlobStore {
     /**
      * Ignores the options provided and delegates to {@link #writeBlob(InputStream)}.
      *
-     * @param in the input stream to write
+     * @param in      the input stream to write
      * @param options the options to use
      * @return
      * @throws IOException
@@ -72,7 +72,8 @@ public class DefaultSplitBlobStore implements SplitBlobStore {
     }
 
     @Override
-    public int readBlob(String blobId, long pos, byte[] buff, int off, int length) throws IOException {
+    public int readBlob(String blobId, long pos, byte[] buff, int off, int length)
+        throws IOException {
         return chooseBlobStoreByBlobId(blobId).readBlob(blobId, pos, buff, off, length);
     }
 

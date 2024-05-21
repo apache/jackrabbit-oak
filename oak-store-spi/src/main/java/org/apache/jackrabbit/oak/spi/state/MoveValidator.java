@@ -25,6 +25,7 @@ import org.jetbrains.annotations.Nullable;
 
 /**
  * A validator that also receives notifications about moved nodes.
+ *
  * @see MoveDetector
  */
 public interface MoveValidator extends Validator {
@@ -32,11 +33,10 @@ public interface MoveValidator extends Validator {
     /**
      * Called when a moved node has been detected.
      *
-     * @param sourcePath  path of the node before the move
-     * @param name        name of the node after the move
-     * @param moved       the node state moved here
-     * @throws CommitFailedException  if validation fails.
-     * remove
+     * @param sourcePath path of the node before the move
+     * @param name       name of the node after the move
+     * @param moved      the node state moved here
+     * @throws CommitFailedException if validation fails. remove
      */
     void move(String name, String sourcePath, NodeState moved) throws CommitFailedException;
 
@@ -46,7 +46,8 @@ public interface MoveValidator extends Validator {
 
     @Override
     @Nullable
-    MoveValidator childNodeChanged(String name, NodeState before, NodeState after) throws CommitFailedException;
+    MoveValidator childNodeChanged(String name, NodeState before, NodeState after)
+        throws CommitFailedException;
 
     @Override
     @Nullable

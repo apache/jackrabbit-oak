@@ -29,12 +29,14 @@ interface Constants {
     String NT_REP_PRINCIPAL_POLICY = "rep:PrincipalPolicy";
 
     /**
-     * The primary node type name of the entries inside the principal based access control policy node.
+     * The primary node type name of the entries inside the principal based access control policy
+     * node.
      */
     String NT_REP_PRINCIPAL_ENTRY = "rep:PrincipalEntry";
 
     /**
-     * The primary node type name of the restrictions node associated with entries inside the principal based access control policy node.
+     * The primary node type name of the restrictions node associated with entries inside the
+     * principal based access control policy node.
      */
     String NT_REP_RESTRICTIONS = "rep:Restrictions";
 
@@ -44,34 +46,39 @@ interface Constants {
     String REP_PRINCIPAL_POLICY = "rep:principalPolicy";
 
     /**
-     * The name of the mandatory principal name property associated with the principal based access control policy.
+     * The name of the mandatory principal name property associated with the principal based access
+     * control policy.
      */
     String REP_PRINCIPAL_NAME = "rep:principalName";
 
     /**
-     * The name of the mandatory path property of a given entry in a principal based access control policy.
-     * It will store an absolute path or empty string for the repository-level
+     * The name of the mandatory path property of a given entry in a principal based access control
+     * policy. It will store an absolute path or empty string for the repository-level
      */
     String REP_EFFECTIVE_PATH = "rep:effectivePath";
 
     /**
-     * The name of the mandatory principal property of a given entry in a principal based access control policy.
+     * The name of the mandatory principal property of a given entry in a principal based access
+     * control policy.
      */
     String REP_PRIVILEGES = "rep:privileges";
 
     /**
-     * The name of the optional restriction node associated with a given entry in a principal based access control policy.
+     * The name of the optional restriction node associated with a given entry in a principal based
+     * access control policy.
      */
     String REP_RESTRICTIONS = "rep:restrictions";
 
     /**
-     * Value to be used for the {@code rep:effectivePath} property in case of repository level permissions (analog to passing
-     * null to {@code AccessControlManager.getEffectivePolicies(String)}.
+     * Value to be used for the {@code rep:effectivePath} property in case of repository level
+     * permissions (analog to passing null to
+     * {@code AccessControlManager.getEffectivePolicies(String)}.
      */
     String REPOSITORY_PERMISSION_PATH = "";
 
     /**
-     * Name of the optional configuration parameter to enable the {@code AggregationFilter} for this model.
+     * Name of the optional configuration parameter to enable the {@code AggregationFilter} for this
+     * model.
      */
     String PARAM_ENABLE_AGGREGATION_FILTER = "enableAggregationFilter";
 }

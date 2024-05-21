@@ -18,18 +18,16 @@
  */
 package org.apache.jackrabbit.oak.benchmark;
 
-import javax.jcr.Node;
-import javax.jcr.Session;
-import javax.jcr.security.AccessControlManager;
-
-import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
-
 import static javax.jcr.security.Privilege.JCR_READ;
 import static org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils.addAccessControlEntry;
 
+import javax.jcr.Node;
+import javax.jcr.Session;
+import javax.jcr.security.AccessControlManager;
+import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
+
 /**
- * {@code GetPoliciesTest} implements a performance test, which get policies from the
- * repository.
+ * {@code GetPoliciesTest} implements a performance test, which get policies from the repository.
  */
 public class GetPoliciesTest extends AbstractTest {
 
@@ -42,16 +40,16 @@ public class GetPoliciesTest extends AbstractTest {
     protected void beforeSuite() throws Exception {
         session = loginWriter();
         testRoot = session.getRootNode().addNode(
-                getClass().getSimpleName() + TEST_ID, "nt:unstructured");
+            getClass().getSimpleName() + TEST_ID, "nt:unstructured");
 
         Node n = testRoot.addNode("node1");
         path = n.getPath();
         addAccessControlEntry(session, n.getPath(),
-                EveryonePrincipal.getInstance(), new String[] { JCR_READ },
-                true);
-        
+            EveryonePrincipal.getInstance(), new String[]{JCR_READ},
+            true);
+
         session.save();
-        
+
         testRoot = loginWriter().getNode(testRoot.getPath());
         acm = testRoot.getSession().getAccessControlManager();
     }

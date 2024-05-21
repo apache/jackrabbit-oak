@@ -23,7 +23,6 @@ import static org.junit.Assume.assumeTrue;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.junit.After;
@@ -34,15 +33,16 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Emulates behavior similar to an import of many nodes (batched).
- *
- * These tests are disabled by default due to their long running time. On the command line
- * specify {@code -DPackageImportIT=true} to enable them.
+ * <p>
+ * These tests are disabled by default due to their long running time. On the command line specify
+ * {@code -DPackageImportIT=true} to enable them.
  */
 
 public class PackageImportIT extends AbstractRepositoryTest {
 
     private static final Logger LOG = LoggerFactory.getLogger(PackageImportIT.class);
-    private static final boolean ENABLED = Boolean.getBoolean(PackageImportIT.class.getSimpleName());
+    private static final boolean ENABLED = Boolean.getBoolean(
+        PackageImportIT.class.getSimpleName());
 
     public PackageImportIT(NodeStoreFixture fixture) {
         super(fixture);
@@ -64,8 +64,10 @@ public class PackageImportIT extends AbstractRepositoryTest {
         Node root = session.getRootNode();
         testNode = root.addNode(TEST_NODE);
         session.save();
-        LOG.info("Starting test for{}. Duration: {}, batch size: {}, referenceable: {}, update.limit: {}.", super.fixture, DURATION,
-                BATCHSIZE, !NOTREFERENCEABLE, Integer.getInteger("update.limit"));
+        LOG.info(
+            "Starting test for{}. Duration: {}, batch size: {}, referenceable: {}, update.limit: {}.",
+            super.fixture, DURATION,
+            BATCHSIZE, !NOTREFERENCEABLE, Integer.getInteger("update.limit"));
     }
 
     @After
@@ -96,8 +98,9 @@ public class PackageImportIT extends AbstractRepositoryTest {
             }
             testNode.getSession().save();
             long elapsed = System.currentTimeMillis() - start;
-            LOG.info("Saved {} nodes ({}) in {}ms ({})", BATCHSIZE, NOTREFERENCEABLE ? "not referenceable" : "referenceable",
-                    elapsed, super.fixture);
+            LOG.info("Saved {} nodes ({}) in {}ms ({})", BATCHSIZE,
+                NOTREFERENCEABLE ? "not referenceable" : "referenceable",
+                elapsed, super.fixture);
             total += BATCHSIZE;
         }
         LOG.info("A total of {} nodes were saved ({}).", total, super.fixture);

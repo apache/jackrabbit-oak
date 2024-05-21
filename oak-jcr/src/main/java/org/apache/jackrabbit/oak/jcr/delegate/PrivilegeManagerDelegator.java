@@ -19,26 +19,26 @@
 
 package org.apache.jackrabbit.oak.jcr.delegate;
 
+import javax.jcr.RepositoryException;
+import javax.jcr.security.Privilege;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import javax.jcr.RepositoryException;
-import javax.jcr.security.Privilege;
-
 /**
- * This implementation of {@code PrivilegeManager} delegates back to a
- * delegatee wrapping each call into a {@link SessionOperation} closure.
+ * This implementation of {@code PrivilegeManager} delegates back to a delegatee wrapping each call
+ * into a {@link SessionOperation} closure.
  *
  * @see SessionDelegate#perform(SessionOperation)
  */
 public class PrivilegeManagerDelegator implements PrivilegeManager {
-    
+
     private final PrivilegeManager pm;
     private final SessionDelegate delegate;
 
-    public PrivilegeManagerDelegator(@NotNull SessionDelegate delegate, @NotNull PrivilegeManager pm) {
+    public PrivilegeManagerDelegator(@NotNull SessionDelegate delegate,
+        @NotNull PrivilegeManager pm) {
         this.pm = pm;
         this.delegate = delegate;
     }
@@ -68,7 +68,9 @@ public class PrivilegeManagerDelegator implements PrivilegeManager {
 
     @NotNull
     @Override
-    public Privilege registerPrivilege(@NotNull final String privilegeName, final boolean isAbstract, @Nullable final String[] declaredAggregateNames) throws RepositoryException {
+    public Privilege registerPrivilege(@NotNull final String privilegeName,
+        final boolean isAbstract, @Nullable final String[] declaredAggregateNames)
+        throws RepositoryException {
         return delegate.perform(new SessionOperation<Privilege>("registerPrivilege", true) {
             @NotNull
             @Override

@@ -39,23 +39,29 @@ public class MongoDBConfigTest {
     @Test
     public void defaultCollectionStorageOptions() {
         Bson bson = getCollectionStorageOptions(Collections.emptyMap());
-        BsonDocument bsonDocument = bson.toBsonDocument(BasicDBObject.class, MongoClient.getDefaultCodecRegistry());
-        String  configuredCompressor = bsonDocument.getDocument(STORAGE_ENGINE).getString(STORAGE_CONFIG).getValue();
+        BsonDocument bsonDocument = bson.toBsonDocument(BasicDBObject.class,
+            MongoClient.getDefaultCodecRegistry());
+        String configuredCompressor = bsonDocument.getDocument(STORAGE_ENGINE)
+                                                  .getString(STORAGE_CONFIG).getValue();
         assertTrue(configuredCompressor.indexOf(CollectionCompressor.SNAPPY.getName()) > 0);
 
     }
 
-    @Test (expected = IllegalArgumentException.class)
+    @Test(expected = IllegalArgumentException.class)
     public void invalidCollectionStorageOptions() {
-        getCollectionStorageOptions(Collections.singletonMap(COLLECTION_COMPRESSION_TYPE, "Invalid"));
+        getCollectionStorageOptions(
+            Collections.singletonMap(COLLECTION_COMPRESSION_TYPE, "Invalid"));
         fail("Should fail with IllegalArgumentException due to Invalid Compressor");
     }
 
     @Test
     public void overrideDefaultCollectionStorageOptions() {
-        Bson bson = getCollectionStorageOptions(Collections.singletonMap(COLLECTION_COMPRESSION_TYPE, "zstd"));
-        BsonDocument bsonDocument = bson.toBsonDocument(BasicDBObject.class, MongoClient.getDefaultCodecRegistry());
-        String  configuredCompressor = bsonDocument.getDocument(STORAGE_ENGINE).getString(STORAGE_CONFIG).getValue();
+        Bson bson = getCollectionStorageOptions(
+            Collections.singletonMap(COLLECTION_COMPRESSION_TYPE, "zstd"));
+        BsonDocument bsonDocument = bson.toBsonDocument(BasicDBObject.class,
+            MongoClient.getDefaultCodecRegistry());
+        String configuredCompressor = bsonDocument.getDocument(STORAGE_ENGINE)
+                                                  .getString(STORAGE_CONFIG).getValue();
 
         assertTrue(configuredCompressor.indexOf(CollectionCompressor.ZSTD.getName()) > 0);
     }

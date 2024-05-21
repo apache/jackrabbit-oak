@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.plugins.nodetype.constraint;
 
 import java.util.function.Predicate;
-
 import javax.jcr.Value;
 
 public class ReferenceConstraint implements Predicate<Value> {

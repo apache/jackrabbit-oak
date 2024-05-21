@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.getServices;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -25,7 +27,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
 import javax.jcr.PathNotFoundException;
@@ -39,11 +40,6 @@ import javax.jcr.observation.EventIterator;
 import javax.jcr.observation.EventListener;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.Privilege;
-
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.jmx.EventListenerMBean;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
@@ -51,6 +47,9 @@ import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.fixture.DocumentMongoFixture;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
@@ -67,8 +66,6 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.getServices;
 
 @Ignore("Ignore long running ObservationQueueTest")
 public class ObservationQueueTest extends AbstractClusterTest {
@@ -149,12 +146,16 @@ public class ObservationQueueTest extends AbstractClusterTest {
             public NodeStore createNodeStore(int clusterNodeId) {
                 MongoConnection c = MongoUtils.getConnection("oak-test");
                 return new DocumentMK.Builder().setClusterId(clusterNodeId)
-                        .setMongoDB(c.getMongoClient(), c.getDBName())
-                        .setPersistentCache("target/persistentCache" + clusterNodeId + ",time,size=128")
-                        .setJournalCache("target/journalCache" + clusterNodeId + ",time,size=128")
-                        .memoryCacheSize(128 * MB)
-                        .setExecutor(Executors.newCachedThreadPool())
-                        .getNodeStore();
+                                               .setMongoDB(c.getMongoClient(), c.getDBName())
+                                               .setPersistentCache(
+                                                   "target/persistentCache" + clusterNodeId
+                                                       + ",time,size=128")
+                                               .setJournalCache(
+                                                   "target/journalCache" + clusterNodeId
+                                                       + ",time,size=128")
+                                               .memoryCacheSize(128 * MB)
+                                               .setExecutor(Executors.newCachedThreadPool())
+                                               .getNodeStore();
             }
         };
     }
@@ -166,8 +167,9 @@ public class ObservationQueueTest extends AbstractClusterTest {
         s.save();
         AccessControlManager acMgr = s.getAccessControlManager();
         JackrabbitAccessControlList tmpl = AccessControlUtils.getAccessControlList(acMgr, "/");
-        tmpl.addEntry(user.getPrincipal(), new Privilege[]{acMgr.privilegeFromName(Privilege.JCR_ALL)},
-                true, Collections.<String, Value>emptyMap());
+        tmpl.addEntry(user.getPrincipal(),
+            new Privilege[]{acMgr.privilegeFromName(Privilege.JCR_ALL)},
+            true, Collections.<String, Value>emptyMap());
         acMgr.setPolicy(tmpl.getPath(), tmpl);
         s.save();
     }
@@ -196,7 +198,7 @@ public class ObservationQueueTest extends AbstractClusterTest {
         private final Random r;
 
         public Reader(Session s)
-                throws RepositoryException {
+            throws RepositoryException {
             super(s);
             this.r = new Random();
         }
@@ -267,7 +269,7 @@ public class ObservationQueueTest extends AbstractClusterTest {
         }
 
         void createNodes(Node parent, AtomicInteger remaining, int depth)
-                throws RepositoryException {
+            throws RepositoryException {
             depth--;
             for (int i = 0; i < 3 && remaining.get() > 0; i++) {
                 Node n = parent.addNode("node-" + i);
@@ -286,13 +288,13 @@ public class ObservationQueueTest extends AbstractClusterTest {
         private final AtomicInteger queueLength;
 
         public Observer(Session s, AtomicInteger queueLength)
-                throws RepositoryException {
+            throws RepositoryException {
             super(s);
             this.queueLength = queueLength;
             s.getWorkspace().getObservationManager()
-                    .addEventListener(this,
-                            Event.NODE_ADDED | Event.PROPERTY_ADDED,
-                            "/", true, null, null, false);
+             .addEventListener(this,
+                 Event.NODE_ADDED | Event.PROPERTY_ADDED,
+                 "/", true, null, null, false);
         }
 
         @Override
@@ -331,8 +333,8 @@ public class ObservationQueueTest extends AbstractClusterTest {
         private final AtomicLong commitCounter;
 
         QueueLogger(List<Whiteboard> whiteboards,
-                    AtomicInteger queueLength,
-                    AtomicLong commitCounter) {
+            AtomicInteger queueLength,
+            AtomicLong commitCounter) {
             super(null);
             this.whiteboards = whiteboards;
             this.queueLength = queueLength;
@@ -346,7 +348,7 @@ public class ObservationQueueTest extends AbstractClusterTest {
                 stats.add(queueStats(w));
             }
             LOG.info("Observation queue stats: {}, commits: {}",
-                    stats, commitCounter.get());
+                stats, commitCounter.get());
             Thread.sleep(1000);
         }
 

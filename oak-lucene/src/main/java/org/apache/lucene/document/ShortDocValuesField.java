@@ -29,35 +29,35 @@ import org.apache.lucene.index.NumericDocValues;
 
 /**
  * <p>
- * Field that stores a per-document <code>short</code> value for scoring, 
- * sorting or value retrieval. Here's an example usage:
- * 
+ * Field that stores a per-document <code>short</code> value for scoring, sorting or value
+ * retrieval. Here's an example usage:
+ *
  * <pre class="prettyprint">
  *   document.add(new ShortDocValuesField(name, (short) 22));
  * </pre>
- * 
+ *
  * <p>
- * If you also need to store the value, you should add a
- * separate {@link StoredField} instance.
- * 
+ * If you also need to store the value, you should add a separate {@link StoredField} instance.
+ *
  * @see NumericDocValues
  * @deprecated use {@link NumericDocValuesField} instead.
- * */
+ */
 @Deprecated
 public class ShortDocValuesField extends NumericDocValuesField {
 
-  /** 
-   * Creates a new DocValues field with the specified 16-bit short value 
-   * @param name field name
-   * @param value 16-bit short value
-   * @throws IllegalArgumentException if the field name is null
-   */
-  public ShortDocValuesField(String name, short value) {
-    super(name, value);
-  }
+    /**
+     * Creates a new DocValues field with the specified 16-bit short value
+     *
+     * @param name  field name
+     * @param value 16-bit short value
+     * @throws IllegalArgumentException if the field name is null
+     */
+    public ShortDocValuesField(String name, short value) {
+        super(name, value);
+    }
 
-  @Override
-  public void setShortValue(short value) {
-    setLongValue(value);
-  }
+    @Override
+    public void setShortValue(short value) {
+        setLongValue(value);
+    }
 }

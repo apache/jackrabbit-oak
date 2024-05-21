@@ -25,8 +25,6 @@ import javax.jcr.Node;
 import javax.jcr.NodeIterator;
 import javax.jcr.query.Query;
 import javax.jcr.security.Privilege;
-
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -34,6 +32,7 @@ import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
@@ -45,9 +44,8 @@ import org.junit.Test;
 /**
  * Testing permission evaluation for user management operations.
  *
- * @since OAK 1.0 As of OAK user mgt related operations require a specific
- *        user management permission (unless the system in configured to behave like
- *        jackrabbit 2x).
+ * @since OAK 1.0 As of OAK user mgt related operations require a specific user management
+ * permission (unless the system in configured to behave like jackrabbit 2x).
  */
 public class UserManagementTest extends AbstractEvaluationTest {
 
@@ -62,7 +60,8 @@ public class UserManagementTest extends AbstractEvaluationTest {
 
         // setup default permissions
         String authPath = "/rep:security/rep:authorizables";
-        AccessControlUtils.addAccessControlEntry(superuser, authPath, EveryonePrincipal.getInstance(), privilegesFromName(Privilege.JCR_READ), true);
+        AccessControlUtils.addAccessControlEntry(superuser, authPath,
+            EveryonePrincipal.getInstance(), privilegesFromName(Privilege.JCR_READ), true);
         superuser.save();
     }
 
@@ -131,7 +130,8 @@ public class UserManagementTest extends AbstractEvaluationTest {
     @Test
     public void testCreateUser2() throws Exception {
         UserManager testUserMgr = getUserManager(testSession);
-        Privilege[] privs = privilegesFromNames(new String[]{PrivilegeConstants.REP_USER_MANAGEMENT, PrivilegeConstants.REP_WRITE});
+        Privilege[] privs = privilegesFromNames(
+            new String[]{PrivilegeConstants.REP_USER_MANAGEMENT, PrivilegeConstants.REP_WRITE});
         allow("/", privs);
 
         // creating user should succeed
@@ -152,7 +152,8 @@ public class UserManagementTest extends AbstractEvaluationTest {
     @Test
     public void testCreateGroup2() throws Exception {
         UserManager testUserMgr = getUserManager(testSession);
-        Privilege[] privs = privilegesFromNames(new String[]{PrivilegeConstants.REP_USER_MANAGEMENT, PrivilegeConstants.REP_WRITE});
+        Privilege[] privs = privilegesFromNames(
+            new String[]{PrivilegeConstants.REP_USER_MANAGEMENT, PrivilegeConstants.REP_WRITE});
         allow("/", privs);
 
         // creating group should succeed
@@ -178,21 +179,26 @@ public class UserManagementTest extends AbstractEvaluationTest {
     @Test
     public void testCreateWithIntermediateReadDeny() throws Exception {
         String path = UserConstants.DEFAULT_GROUP_PATH + "/a/b/c";
-        Node groupRoot = JcrUtils.getOrCreateByPath(path, UserConstants.NT_REP_AUTHORIZABLE_FOLDER, superuser);
+        Node groupRoot = JcrUtils.getOrCreateByPath(path, UserConstants.NT_REP_AUTHORIZABLE_FOLDER,
+            superuser);
         superuser.save();
 
         try {
             deny(UserConstants.DEFAULT_GROUP_PATH, privilegesFromName(Privilege.JCR_READ));
 
-            Privilege[] privs = privilegesFromNames(new String[]{Privilege.JCR_READ, PrivilegeConstants.REP_USER_MANAGEMENT, PrivilegeConstants.REP_WRITE});
+            Privilege[] privs = privilegesFromNames(
+                new String[]{Privilege.JCR_READ, PrivilegeConstants.REP_USER_MANAGEMENT,
+                    PrivilegeConstants.REP_WRITE});
             allow(path, privs);
 
-            Group gr = getUserManager(testSession).createGroup(groupId, new PrincipalImpl(groupId), "a/b/c");
+            Group gr = getUserManager(testSession).createGroup(groupId, new PrincipalImpl(groupId),
+                "a/b/c");
             testSession.save();
         } finally {
             superuser.refresh(false);
             superuser.getNode(UserConstants.DEFAULT_GROUP_PATH + "/a").remove();
-            JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, UserConstants.DEFAULT_GROUP_PATH);
+            JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr,
+                UserConstants.DEFAULT_GROUP_PATH);
             if (acl != null) {
                 acMgr.removePolicy(UserConstants.DEFAULT_GROUP_PATH, acl);
             }
@@ -209,15 +215,19 @@ public class UserManagementTest extends AbstractEvaluationTest {
         try {
             deny(UserConstants.DEFAULT_GROUP_PATH, privilegesFromName(Privilege.JCR_READ));
 
-            Privilege[] privs = privilegesFromNames(new String[]{Privilege.JCR_READ, PrivilegeConstants.REP_USER_MANAGEMENT, PrivilegeConstants.REP_WRITE});
+            Privilege[] privs = privilegesFromNames(
+                new String[]{Privilege.JCR_READ, PrivilegeConstants.REP_USER_MANAGEMENT,
+                    PrivilegeConstants.REP_WRITE});
             allow(path, privs);
 
-            Group gr = getUserManager(testSession).createGroup(groupId, new PrincipalImpl(groupId), "a/b/c");
+            Group gr = getUserManager(testSession).createGroup(groupId, new PrincipalImpl(groupId),
+                "a/b/c");
             testSession.save();
         } finally {
             superuser.refresh(false);
             superuser.getNode(UserConstants.DEFAULT_GROUP_PATH + "/a").remove();
-            JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, UserConstants.DEFAULT_GROUP_PATH);
+            JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr,
+                UserConstants.DEFAULT_GROUP_PATH);
             if (acl != null) {
                 acMgr.removePolicy(UserConstants.DEFAULT_GROUP_PATH, acl);
             }
@@ -362,8 +372,8 @@ public class UserManagementTest extends AbstractEvaluationTest {
 
         // testSession has user-mgt permission -> removal should succeed.
         Privilege[] privs = privilegesFromNames(new String[]{
-                PrivilegeConstants.REP_USER_MANAGEMENT,
-                PrivilegeConstants.REP_WRITE});
+            PrivilegeConstants.REP_USER_MANAGEMENT,
+            PrivilegeConstants.REP_WRITE});
         allow("/", privs);
 
         UserManager testUserMgr = getUserManager(testSession);
@@ -428,17 +438,19 @@ public class UserManagementTest extends AbstractEvaluationTest {
 
     /**
      * @see <a href="https://issues.apache.org/jira/browse/JCR-3412">JCR-3412 :
-     *      UserManager.findAuthorizables() does not work, if session does not have
-     *      read access to common root of all user and groups. </a>
+     * UserManager.findAuthorizables() does not work, if session does not have read access to common
+     * root of all user and groups. </a>
      */
     @Test
     public void testFindAuthorizables() throws Exception {
         String home = Text.getRelativeParent(UserConstants.DEFAULT_USER_PATH, 1);
         deny(home, privilegesFromName(PrivilegeConstants.JCR_READ));
-        allow(getUserManager(superuser).getAuthorizable(testSession.getUserID()).getPath(), privilegesFromName(PrivilegeConstants.JCR_ALL));
+        allow(getUserManager(superuser).getAuthorizable(testSession.getUserID()).getPath(),
+            privilegesFromName(PrivilegeConstants.JCR_ALL));
 
         UserManager testUserMgr = getUserManager(testSession);
-        Iterator<Authorizable> result = testUserMgr.findAuthorizables(UserConstants.REP_PRINCIPAL_NAME, null, UserManager.SEARCH_TYPE_USER);
+        Iterator<Authorizable> result = testUserMgr.findAuthorizables(
+            UserConstants.REP_PRINCIPAL_NAME, null, UserManager.SEARCH_TYPE_USER);
 
         Set<String> ids = new HashSet<String>();
         while (result.hasNext()) {
@@ -446,10 +458,13 @@ public class UserManagementTest extends AbstractEvaluationTest {
         }
         assertFalse(ids.isEmpty());
 
-        NodeIterator nodeIterator = testSession.getWorkspace().getQueryManager().createQuery("/jcr:root//element(*,rep:User)", Query.XPATH).execute().getNodes();
+        NodeIterator nodeIterator = testSession.getWorkspace().getQueryManager()
+                                               .createQuery("/jcr:root//element(*,rep:User)",
+                                                   Query.XPATH).execute().getNodes();
         assertTrue(nodeIterator.hasNext());
         while (nodeIterator.hasNext()) {
-            String userId = nodeIterator.nextNode().getProperty(UserConstants.REP_AUTHORIZABLE_ID).getString();
+            String userId = nodeIterator.nextNode().getProperty(UserConstants.REP_AUTHORIZABLE_ID)
+                                        .getString();
             if (!ids.remove(userId)) {
                 fail("UserId " + userId + " missing in result set.");
             }

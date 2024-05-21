@@ -49,12 +49,11 @@ class UnmergedBranches {
     private final List<Branch> branches = new CopyOnWriteArrayList<Branch>();
 
     /**
-     * Queue for {@link BranchReference} when the
-     * {@link DocumentNodeStoreBranch} associated with a {@link Branch} is only
-     * weakly reachable.
+     * Queue for {@link BranchReference} when the {@link DocumentNodeStoreBranch} associated with a
+     * {@link Branch} is only weakly reachable.
      */
-    private final ReferenceQueue<Object> queue = 
-            new ReferenceQueue<Object>();
+    private final ReferenceQueue<Object> queue =
+        new ReferenceQueue<Object>();
 
     /**
      * Set to <code>true</code> once initialized.
@@ -65,8 +64,8 @@ class UnmergedBranches {
      * Initialize with un-merged branches from <code>store</code> for this
      * <code>clusterId</code>.
      *
-     * @param store the document store.
-     * @param context the revision context.
+     * @param store     the document store.
+     * @param context   the revision context.
      * @param batchSize the batch size to purge uncommitted revisions & collisions
      */
     void init(DocumentStore store, RevisionContext context, int batchSize) {
@@ -74,30 +73,36 @@ class UnmergedBranches {
             throw new IllegalStateException("already initialized");
         }
         // since this is called only to bootup, no need to check for lastWrittenRootRev
-        purgeUnmergedBranchCommitAndCollisionMarkers(store, context.getClusterId(), batchSize, c -> true);
+        purgeUnmergedBranchCommitAndCollisionMarkers(store, context.getClusterId(), batchSize,
+            c -> true);
     }
 
     /**
      * purge un-merged branch commits and collision markers for
      * <code>clusterId</code>.
      *
-     * @param store the document store.
-     * @param clusterId the clusterId of document store.
-     * @param batchSize the batch size to purge uncommitted revisions & collisions
-     * @param olderThanLastWrittenRootRevPredicate {@link java.util.function.Predicate} to filter revisions older than lastWrittenRootRev
+     * @param store                                the document store.
+     * @param clusterId                            the clusterId of document store.
+     * @param batchSize                            the batch size to purge uncommitted revisions &
+     *                                             collisions
+     * @param olderThanLastWrittenRootRevPredicate {@link java.util.function.Predicate} to filter
+     *                                             revisions older than lastWrittenRootRev
      */
-    void purgeUnmergedBranchCommitAndCollisionMarkers(final DocumentStore store, final int clusterId, final int batchSize,
-                                                      final Predicate<Revision> olderThanLastWrittenRootRevPredicate) {
+    void purgeUnmergedBranchCommitAndCollisionMarkers(final DocumentStore store,
+        final int clusterId, final int batchSize,
+        final Predicate<Revision> olderThanLastWrittenRootRevPredicate) {
 
         NodeDocument doc = store.find(Collection.NODES, Utils.getIdFromPath(Path.ROOT));
         if (doc == null) {
             return;
         }
-        int purgeCount = doc.purgeUncommittedRevisions(clusterId, batchSize, olderThanLastWrittenRootRevPredicate);
+        int purgeCount = doc.purgeUncommittedRevisions(clusterId, batchSize,
+            olderThanLastWrittenRootRevPredicate);
         if (purgeCount > 0) {
             log.info("Purged [{}] uncommitted branch revision entries", purgeCount);
         }
-        purgeCount = doc.purgeCollisionMarkers(clusterId, batchSize, olderThanLastWrittenRootRevPredicate);
+        purgeCount = doc.purgeCollisionMarkers(clusterId, batchSize,
+            olderThanLastWrittenRootRevPredicate);
         if (purgeCount > 0) {
             log.info("Purged [{}] collision markers", purgeCount);
         }
@@ -106,25 +111,24 @@ class UnmergedBranches {
     /**
      * Create a branch with an initial commit revision.
      *
-     * @param base the base revision of the branch (must be a non-branch revision).
+     * @param base    the base revision of the branch (must be a non-branch revision).
      * @param initial the initial commit to the branch (must be a branch revision).
-     * @param guard an optional guard object controlling the life time of this
-     *              branch. When {@code guard} becomes weakly reachable, the
-     *              branch will at some point later be considered orphaned.
-     *              Orphaned branches can be retrieved with
-     *              {@link #pollOrphanedBranch()}.
+     * @param guard   an optional guard object controlling the life time of this branch. When
+     *                {@code guard} becomes weakly reachable, the branch will at some point later be
+     *                considered orphaned. Orphaned branches can be retrieved with
+     *                {@link #pollOrphanedBranch()}.
      * @return the branch.
-     * @throws IllegalArgumentException if {@code base} is a branch revision
-     *          or {@code initial} is not a branch revision.
+     * @throws IllegalArgumentException if {@code base} is a branch revision or {@code initial} is
+     *                                  not a branch revision.
      */
     @NotNull
     Branch create(@NotNull RevisionVector base,
-                  @NotNull Revision initial,
-                  @Nullable Object guard) {
+        @NotNull Revision initial,
+        @Nullable Object guard) {
         checkArgument(!checkNotNull(base).isBranch(),
-                "base is not a trunk revision: %s", base);
+            "base is not a trunk revision: %s", base);
         checkArgument(checkNotNull(initial).isBranch(),
-                "initial is not a branch revision: %s", initial);
+            "initial is not a branch revision: %s", initial);
         SortedSet<Revision> commits = new TreeSet<Revision>(StableRevisionComparator.INSTANCE);
         commits.add(initial);
         Branch b = new Branch(commits, base, queue, guard);
@@ -133,8 +137,8 @@ class UnmergedBranches {
     }
 
     /**
-     * Returns the branch, which contains the given revision or <code>null</code>
-     * if there is no such branch.
+     * Returns the branch, which contains the given revision or <code>null</code> if there is no
+     * such branch.
      *
      * @param r a revision.
      * @return the branch containing the given revision or <code>null</code>.
@@ -154,8 +158,7 @@ class UnmergedBranches {
     }
 
     /**
-     * Returns {@code true} if the given revision is the base of an unmerged
-     * branch.
+     * Returns {@code true} if the given revision is the base of an unmerged branch.
      *
      * @param r the base revision of a branch.
      * @return {@code true} if such a branch exists, {@code false} otherwise.
@@ -174,8 +177,7 @@ class UnmergedBranches {
     }
 
     /**
-     * Returns the branch commit with the given revision or {@code null} if
-     * it doesn't exists.
+     * Returns the branch commit with the given revision or {@code null} if it doesn't exists.
      *
      * @param r a revision.
      * @return the branch commit or {@code null} if it doesn't exist.
@@ -193,6 +195,7 @@ class UnmergedBranches {
 
     /**
      * Removes the given branch.
+     *
      * @param b the branch to remove.
      */
     void remove(Branch b) {
@@ -202,13 +205,13 @@ class UnmergedBranches {
     /**
      * Count of currently unmerged branches
      */
-    int size(){
+    int size() {
         return branches.size();
     }
 
     /**
-     * Polls for an orphaned branch. The implementation will remove the branch
-     * from the internal list of unmerged branches.
+     * Polls for an orphaned branch. The implementation will remove the branch from the internal
+     * list of unmerged branches.
      *
      * @return an orphaned branch or {@code null} if there is none at this time.
      */

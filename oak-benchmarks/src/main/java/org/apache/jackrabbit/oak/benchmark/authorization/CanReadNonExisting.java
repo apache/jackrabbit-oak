@@ -24,7 +24,6 @@ import javax.jcr.Node;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 import javax.jcr.security.Privilege;
-
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
@@ -34,16 +33,15 @@ import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 
 /**
- * Tests the behavior of the permission cache when faced with lots of paths that
- * have no relevant policies for the current session (but may have other
- * policies). For more info see OAK-7860.
+ * Tests the behavior of the permission cache when faced with lots of paths that have no relevant
+ * policies for the current session (but may have other policies). For more info see OAK-7860.
  */
 public class CanReadNonExisting extends AbstractTest {
 
     static final String uid = "u0";
 
     static final int contentNodes = 10000;
-    
+
     @Override
     public void beforeSuite() throws Exception {
         super.beforeSuite();
@@ -52,7 +50,8 @@ public class CanReadNonExisting extends AbstractTest {
         int groupCount = 255;
 
         Session s = loginAdministrative();
-        addAccessControlEntry(s, "/", EveryonePrincipal.getInstance(), new String[] { Privilege.JCR_READ }, false);
+        addAccessControlEntry(s, "/", EveryonePrincipal.getInstance(),
+            new String[]{Privilege.JCR_READ}, false);
 
         // PermissionCacheBuilder#MAX_PATHS_SIZE + 1
         int extraPolicies = 11;
@@ -67,17 +66,20 @@ public class CanReadNonExisting extends AbstractTest {
 
             User eye = userManager.createUser("eye", "eye");
             User u = userManager.createUser(uid, uid);
-            addAccessControlEntry(s, u.getPath(), u.getPrincipal(), new String[] { JCR_READ }, true);
+            addAccessControlEntry(s, u.getPath(), u.getPrincipal(), new String[]{JCR_READ}, true);
             for (int i = 0; i < extraPolicies; i++) {
-                addAccessControlEntry(s, "/extras/" + i, u.getPrincipal(), new String[] { JCR_READ }, true);
+                addAccessControlEntry(s, "/extras/" + i, u.getPrincipal(), new String[]{JCR_READ},
+                    true);
             }
 
             for (int i = 1; i <= groupCount; i++) {
                 Group g = userManager.createGroup(new PrincipalImpl("g" + i));
                 g.addMember(u);
-                addAccessControlEntry(s, g.getPath(), g.getPrincipal(), new String[] { JCR_READ }, true);
+                addAccessControlEntry(s, g.getPath(), g.getPrincipal(), new String[]{JCR_READ},
+                    true);
                 for (int j = 0; j < extraPolicies; j++) {
-                    addAccessControlEntry(s, "/extras/" + j, g.getPrincipal(), new String[] { JCR_READ }, true);
+                    addAccessControlEntry(s, "/extras/" + j, g.getPrincipal(),
+                        new String[]{JCR_READ}, true);
                 }
                 s.save();
             }
@@ -85,7 +87,7 @@ public class CanReadNonExisting extends AbstractTest {
             Node content = s.getNode("/").addNode("content");
             for (int i = 0; i < contentNodes; i++) {
                 String p = content.addNode(i + "").getPath();
-                addAccessControlEntry(s, p, eye.getPrincipal(), new String[] { JCR_READ }, true);
+                addAccessControlEntry(s, p, eye.getPrincipal(), new String[]{JCR_READ}, true);
             }
             s.save();
 

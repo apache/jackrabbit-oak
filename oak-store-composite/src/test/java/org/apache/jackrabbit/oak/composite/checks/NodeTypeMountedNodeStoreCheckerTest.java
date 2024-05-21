@@ -41,58 +41,64 @@ public class NodeTypeMountedNodeStoreCheckerTest {
 
     @Test(expected = IllegalRepositoryStateException.class)
     public void referenceableNodeIsDetected() throws CommitFailedException {
-        
+
         MemoryNodeStore root = new MemoryNodeStore();
         MemoryNodeStore mount = new MemoryNodeStore();
-        
+
         NodeBuilder builder = mount.getRoot().builder();
         builder.child("first")
-            .setProperty(PropertyStates.createProperty(JcrConstants.JCR_MIXINTYPES, 
-                Collections.singletonList(JcrConstants.MIX_REFERENCEABLE), Type.NAMES))
-            .setProperty(JcrConstants.JCR_UUID, UUID.randomUUID().toString());
-        
+               .setProperty(PropertyStates.createProperty(JcrConstants.JCR_MIXINTYPES,
+                   Collections.singletonList(JcrConstants.MIX_REFERENCEABLE), Type.NAMES))
+               .setProperty(JcrConstants.JCR_UUID, UUID.randomUUID().toString());
+
         mount.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        
+
         MountInfoProvider mip = Mounts.newBuilder()
-                .readOnlyMount("first", "/first")
-                .build();
-        
-        NodeTypeMountedNodeStoreChecker checker = new NodeTypeMountedNodeStoreChecker(JcrConstants.MIX_REFERENCEABLE, "test error");
+                                      .readOnlyMount("first", "/first")
+                                      .build();
+
+        NodeTypeMountedNodeStoreChecker checker = new NodeTypeMountedNodeStoreChecker(
+            JcrConstants.MIX_REFERENCEABLE, "test error");
         Context context = checker.createContext(root, mip);
         ErrorHolder errorHolder = new ErrorHolder();
-        
-        checker.check(new MountedNodeStore(mip.getMountByName("first"), mount), TreeFactory.createReadOnlyTree(mount.getRoot()).getChild("first"), errorHolder, context);
-        
+
+        checker.check(new MountedNodeStore(mip.getMountByName("first"), mount),
+            TreeFactory.createReadOnlyTree(mount.getRoot()).getChild("first"), errorHolder,
+            context);
+
         errorHolder.end();
     }
-    
+
     @Test
     public void referenceableNodeInWhitelistIsSkipped() throws CommitFailedException {
-        
+
         MemoryNodeStore root = new MemoryNodeStore();
         MemoryNodeStore mount = new MemoryNodeStore();
-        
+
         NodeBuilder builder = mount.getRoot().builder();
         builder.child("first")
-        .setProperty(PropertyStates.createProperty(JcrConstants.JCR_PRIMARYTYPE, 
-                JcrConstants.NT_RESOURCE, Type.NAME))
-        .setProperty(PropertyStates.createProperty(JcrConstants.JCR_MIXINTYPES, 
-                Collections.singletonList(JcrConstants.MIX_REFERENCEABLE), Type.NAMES))
-        .setProperty(JcrConstants.JCR_UUID, UUID.randomUUID().toString());
-        
+               .setProperty(PropertyStates.createProperty(JcrConstants.JCR_PRIMARYTYPE,
+                   JcrConstants.NT_RESOURCE, Type.NAME))
+               .setProperty(PropertyStates.createProperty(JcrConstants.JCR_MIXINTYPES,
+                   Collections.singletonList(JcrConstants.MIX_REFERENCEABLE), Type.NAMES))
+               .setProperty(JcrConstants.JCR_UUID, UUID.randomUUID().toString());
+
         mount.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        
+
         MountInfoProvider mip = Mounts.newBuilder()
-                .readOnlyMount("first", "/first")
-                .build();
-        
-        NodeTypeMountedNodeStoreChecker checker = new NodeTypeMountedNodeStoreChecker(JcrConstants.MIX_REFERENCEABLE, "test error", 
-                JcrConstants.NT_RESOURCE);
+                                      .readOnlyMount("first", "/first")
+                                      .build();
+
+        NodeTypeMountedNodeStoreChecker checker = new NodeTypeMountedNodeStoreChecker(
+            JcrConstants.MIX_REFERENCEABLE, "test error",
+            JcrConstants.NT_RESOURCE);
         Context context = checker.createContext(root, mip);
         ErrorHolder errorHolder = new ErrorHolder();
-        
-        checker.check(new MountedNodeStore(mip.getMountByName("first"), mount), TreeFactory.createReadOnlyTree(mount.getRoot()).getChild("first"), errorHolder, context);
-        
+
+        checker.check(new MountedNodeStore(mip.getMountByName("first"), mount),
+            TreeFactory.createReadOnlyTree(mount.getRoot()).getChild("first"), errorHolder,
+            context);
+
         errorHolder.end();
     }
 }

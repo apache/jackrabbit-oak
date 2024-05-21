@@ -24,52 +24,58 @@ import java.util.List;
 /**
  * Stats Collector for throttling operation.
  * <p>
- * It's implementation are required to provide the time taken for implementing each operation while throttling is ON.
+ * It's implementation are required to provide the time taken for implementing each operation while
+ * throttling is ON.
  */
 public interface ThrottlingStatsCollector {
 
     /**
      * Called when a document is created in the given collection
+     *
      * @param throttlingTimeNanos time taken
-     * @param collection the collection
-     * @param ids list of ids request to be created
-     * @param insertSuccess true if the insert was successful
+     * @param collection          the collection
+     * @param ids                 list of ids request to be created
+     * @param insertSuccess       true if the insert was successful
      */
-    void doneCreate(long throttlingTimeNanos, Collection<? extends Document> collection, List<String> ids, boolean insertSuccess);
+    void doneCreate(long throttlingTimeNanos, Collection<? extends Document> collection,
+        List<String> ids, boolean insertSuccess);
 
     /**
      * Called when multiple document are either created or updated.
      *
      * @param throttlingTimeNanos time taken
-     * @param collection the collection
-     * @param ids list of ids request to be created or updated
+     * @param collection          the collection
+     * @param ids                 list of ids request to be created or updated
      */
-    void doneCreateOrUpdate(long throttlingTimeNanos, Collection<? extends Document> collection, List<String> ids);
+    void doneCreateOrUpdate(long throttlingTimeNanos, Collection<? extends Document> collection,
+        List<String> ids);
 
     /**
-     * Called when a update operation was completed which affected single
-     * document.
+     * Called when a update operation was completed which affected single document.
+     *
      * @param throttlingTimeNanos time taken
-     * @param collection the collection
-     * @param key collection which got updated or inserted
-     * @param newEntry true if the document was newly created due to given operation
-     * @param success true if the update was success
-     * @param retryCount number of retries done to get the update
+     * @param collection          the collection
+     * @param key                 collection which got updated or inserted
+     * @param newEntry            true if the document was newly created due to given operation
+     * @param success             true if the update was success
+     * @param retryCount          number of retries done to get the update
      */
-    void doneFindAndModify(long throttlingTimeNanos, Collection<? extends Document> collection, String key, boolean newEntry,
-                           boolean success, int retryCount);
+    void doneFindAndModify(long throttlingTimeNanos, Collection<? extends Document> collection,
+        String key, boolean newEntry,
+        boolean success, int retryCount);
 
     /**
-     * Called when a update operation was completed which could have affected multiple
-     * documents.
+     * Called when a update operation was completed which could have affected multiple documents.
+     *
      * @param throttlingTimeNanos time taken
-     * @param collection the collection
-     * @param ids List of document ids which got updated
-     * @param success true if the update was success
-     * @param retryCount number of retries done to get the update
+     * @param collection          the collection
+     * @param ids                 List of document ids which got updated
+     * @param success             true if the update was success
+     * @param retryCount          number of retries done to get the update
      */
-    void doneFindAndModify(long throttlingTimeNanos, Collection<? extends Document> collection, List<String> ids,
-                           boolean success, int retryCount);
+    void doneFindAndModify(long throttlingTimeNanos, Collection<? extends Document> collection,
+        List<String> ids,
+        boolean success, int retryCount);
 
     /**
      * Called when a remove operation for documents was completed.

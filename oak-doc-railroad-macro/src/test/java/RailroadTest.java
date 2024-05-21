@@ -19,6 +19,7 @@ import org.apache.jackrabbit.oak.doc.doxia.jcr.Railroad;
 import org.junit.Test;
 
 public class RailroadTest {
+
     @Test
     public void main() throws Exception {
         String fileName = "src/test/grammar/test.csv";

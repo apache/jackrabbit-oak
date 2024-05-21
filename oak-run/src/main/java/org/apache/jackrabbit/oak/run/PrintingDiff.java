@@ -17,8 +17,8 @@
 
 package org.apache.jackrabbit.oak.run;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 import static org.apache.commons.io.FileUtils.byteCountToDisplaySize;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 import static org.apache.jackrabbit.oak.api.Type.BINARIES;
 import static org.apache.jackrabbit.oak.api.Type.BINARY;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
@@ -28,7 +28,6 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 
 import java.io.PrintWriter;
-
 import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -102,7 +101,7 @@ final class PrintingDiff implements NodeStateDiff {
         String p = concat(path, name);
         pw.println("+ " + p);
         return after.compareAgainstBaseState(EMPTY_NODE, new PrintingDiff(
-                pw, p));
+            pw, p));
     }
 
     @Override
@@ -110,7 +109,7 @@ final class PrintingDiff implements NodeStateDiff {
         String p = concat(path, name);
         pw.println("^ " + p);
         return after.compareAgainstBaseState(before,
-                new PrintingDiff(pw, p));
+            new PrintingDiff(pw, p));
     }
 
     @Override

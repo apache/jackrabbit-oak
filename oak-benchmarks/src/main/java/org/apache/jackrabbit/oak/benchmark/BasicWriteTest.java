@@ -19,25 +19,23 @@ package org.apache.jackrabbit.oak.benchmark;
 import java.io.ByteArrayInputStream;
 import java.util.Calendar;
 import java.util.Random;
-
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
 /**
- * Simple test case which adds a basic hierarchy of 3 nodes (nt:folder, nt:file
- * and nt:resource) and 3 properties (jcr:mimeType, jcr:lastModified and
- * jcr:data). The binary data accounts for 5MB and is randomly generated for
- * each run.
+ * Simple test case which adds a basic hierarchy of 3 nodes (nt:folder, nt:file and nt:resource) and
+ * 3 properties (jcr:mimeType, jcr:lastModified and jcr:data). The binary data accounts for 5MB and
+ * is randomly generated for each run.
  */
 public class BasicWriteTest extends AbstractTest {
+
     private static final int MB = 1024 * 1024;
     private Session session;
     private Node root;
 
     /**
-     * Iteration counter used to avoid the slit document edge case in
-     * DocumentMK.
+     * Iteration counter used to avoid the slit document edge case in DocumentMK.
      */
     private int iteration = 0;
 
@@ -56,7 +54,7 @@ public class BasicWriteTest extends AbstractTest {
     @Override
     protected void runTest() throws Exception {
         final int blobSize = 5 * MB;
-        
+
         Node file = root.addNode("server", "nt:file");
 
         byte[] data = new byte[blobSize];

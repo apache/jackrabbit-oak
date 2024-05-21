@@ -23,8 +23,8 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
-
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.guava.common.base.Preconditions;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryReader;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryWriter;
@@ -34,8 +34,6 @@ import org.h2.mvstore.MVStoreTool;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import org.apache.jackrabbit.guava.common.base.Preconditions;
 
 /**
  * A persistent linked list that internally uses the MVStore.
@@ -52,8 +50,8 @@ public class PersistedLinkedList implements NodeStateEntryList {
     private final NodeStateEntryReader reader;
     private final String storeFileName;
     private final int compactStoreMillis = Integer.getInteger(
-            COMPACT_STORE_MILLIS_NAME,
-            60 * 1000);
+        COMPACT_STORE_MILLIS_NAME,
+        60 * 1000);
 
     private MVStore store;
     private MVMap<Long, String> map;
@@ -65,17 +63,19 @@ public class PersistedLinkedList implements NodeStateEntryList {
     private long lastCompact;
     private long cacheHits, cacheMisses;
 
-    public PersistedLinkedList(String fileName, NodeStateEntryWriter writer, NodeStateEntryReader reader, int cacheSize) {
+    public PersistedLinkedList(String fileName, NodeStateEntryWriter writer,
+        NodeStateEntryReader reader, int cacheSize) {
         LOG.info("Opening store " + fileName);
         this.storeFileName = fileName;
         this.cache =
-                new LinkedHashMap<Long, NodeStateEntry>(cacheSize + 1, .75F, true) {
-            private static final long serialVersionUID = 1L;
-            @Override
-            public boolean removeEldestEntry(Map.Entry<Long, NodeStateEntry> eldest) {
-                return size() > cacheSize;
-            }
-        };
+            new LinkedHashMap<Long, NodeStateEntry>(cacheSize + 1, .75F, true) {
+                private static final long serialVersionUID = 1L;
+
+                @Override
+                public boolean removeEldestEntry(Map.Entry<Long, NodeStateEntry> eldest) {
+                    return size() > cacheSize;
+                }
+            };
         File oldFile = new File(fileName);
         if (oldFile.exists()) {
             LOG.info("Deleting " + fileName);
@@ -108,7 +108,7 @@ public class PersistedLinkedList implements NodeStateEntryList {
         long now = System.currentTimeMillis();
         if (now >= lastLog + 10000) {
             LOG.info("Entries: " + size + " map size: " + map.sizeAsLong() + " file size: "
-                    + sizeBytes + " bytes");
+                + sizeBytes + " bytes");
             lastLog = now;
         }
         boolean compactNow = now >= lastCompact + compactStoreMillis;

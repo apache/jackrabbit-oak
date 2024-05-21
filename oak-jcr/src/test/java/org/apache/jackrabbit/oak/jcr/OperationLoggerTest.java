@@ -19,31 +19,29 @@
 
 package org.apache.jackrabbit.oak.jcr;
 
-import java.io.ByteArrayInputStream;
-
-import javax.jcr.Binary;
-import javax.jcr.Node;
-import javax.jcr.query.Query;
-import javax.jcr.query.QueryManager;
-import javax.jcr.query.QueryResult;
-
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
+import java.io.ByteArrayInputStream;
+import javax.jcr.Binary;
+import javax.jcr.Node;
+import javax.jcr.query.Query;
+import javax.jcr.query.QueryManager;
+import javax.jcr.query.QueryResult;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.test.AbstractJCRTest;
 import org.slf4j.LoggerFactory;
 
 /**
- * Testcase which asserts on some std log statements. These statement
- * are picked by tooling outside of Oak so act like a weak contract to
- * honour.
+ * Testcase which asserts on some std log statements. These statement are picked by tooling outside
+ * of Oak so act like a weak contract to honour.
  */
 public class OperationLoggerTest extends AbstractJCRTest {
+
     private final String[] OPS_LOGGERS = {
-            "org.apache.jackrabbit.oak.jcr.operations"
+        "org.apache.jackrabbit.oak.jcr.operations"
     };
     private static final String OPS_QUERY = "org.apache.jackrabbit.oak.jcr.operations.query";
     private static final String OPS_BINARY = "org.apache.jackrabbit.oak.jcr.operations.binary";
@@ -59,7 +57,7 @@ public class OperationLoggerTest extends AbstractJCRTest {
         Node node1 = testRootNode.addNode(nodeName1);
         //Log batch size is 100
         for (int i = 0; i < 200; i++) {
-            node1.addNode("foo"+i, "oak:Unstructured").setProperty("foo", "bar");
+            node1.addNode("foo" + i, "oak:Unstructured").setProperty("foo", "bar");
         }
         superuser.save();
 
@@ -73,8 +71,8 @@ public class OperationLoggerTest extends AbstractJCRTest {
 
         boolean queryStmtLog = false;
         boolean queryIterationLog = false;
-        for (ILoggingEvent e : logs.list){
-            if (OPS_QUERY.equals(e.getLoggerName())){
+        for (ILoggingEvent e : logs.list) {
+            if (OPS_QUERY.equals(e.getLoggerName())) {
                 if (e.getMessage().contains("Executed query")) {
                     assertEquals(stmt, e.getArgumentArray()[0]);
                     assertTrue(e.getArgumentArray()[1] instanceof Number);
@@ -90,7 +88,7 @@ public class OperationLoggerTest extends AbstractJCRTest {
         assertTrue("Did not find query iteration log", queryIterationLog);
     }
 
-    public void testBinaryLogger() throws Exception{
+    public void testBinaryLogger() throws Exception {
         Node node1 = testRootNode.addNode(nodeName1);
 
         start();
@@ -100,8 +98,8 @@ public class OperationLoggerTest extends AbstractJCRTest {
         stop();
 
         boolean binaryLog = false;
-        for (ILoggingEvent e : logs.list){
-            if (e.getLoggerName().startsWith(OPS_BINARY)){
+        for (ILoggingEvent e : logs.list) {
+            if (e.getLoggerName().startsWith(OPS_BINARY)) {
                 if (e.getMessage().contains("Created binary property")) {
                     assertEquals(Long.valueOf(data.length), e.getArgumentArray()[0]);
                     binaryLog = true;

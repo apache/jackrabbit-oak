@@ -31,13 +31,12 @@ import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.util.Properties;
 import java.util.Random;
-
-import org.apache.jackrabbit.guava.common.io.ByteSource;
-import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.FileDataStore;
+import org.apache.jackrabbit.guava.common.io.ByteSource;
+import org.apache.jackrabbit.guava.common.io.Files;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -67,7 +66,7 @@ public class LengthCachingDataStoreTest {
     }
 
     @Test
-    public void configDelegate() throws Exception{
+    public void configDelegate() throws Exception {
         //1. Store the config in a file
         Properties p = new Properties();
         p.setProperty("minRecordLength", "4972");
@@ -86,7 +85,7 @@ public class LengthCachingDataStoreTest {
     }
 
     @Test
-    public void delegateRecordTest() throws Exception{
+    public void delegateRecordTest() throws Exception {
         FileDataStore ds = new FileDataStore();
         byte[] data = bytes(ds.getMinRecordLength() + 10);
         ds.init(tempFolder.getRoot().getAbsolutePath());
@@ -109,7 +108,7 @@ public class LengthCachingDataStoreTest {
     }
 
     @Test
-    public void writeBackNewEntries() throws Exception{
+    public void writeBackNewEntries() throws Exception {
         //1. Add some entries to FDS
         FileDataStore fds1 = new FileDataStore();
         File fds1Dir = tempFolder.newFolder();
@@ -158,8 +157,8 @@ public class LengthCachingDataStoreTest {
     }
 
     @Test
-    public void referenceHandling() throws Exception{
-        int minSize =  new FileDataStore().getMinRecordLength();
+    public void referenceHandling() throws Exception {
+        int minSize = new FileDataStore().getMinRecordLength();
         LengthCachingDataStore fds = new LengthCachingDataStore();
         fds.setDelegateClass(FileDataStore.class.getName());
         fds.init(tempFolder.newFolder().getAbsolutePath());
@@ -167,7 +166,8 @@ public class LengthCachingDataStoreTest {
 
         DataRecord dr1 = fds.addRecord(byteStream(minSize + 10));
         assertNotNull(fds.getRecordFromReference(dr1.getReference()));
-        assertEquals(dr1.getIdentifier(), fds.getRecordFromReference(dr1.getReference()).getIdentifier());
+        assertEquals(dr1.getIdentifier(),
+            fds.getRecordFromReference(dr1.getReference()).getIdentifier());
     }
 
     private InputStream byteStream(int size) {

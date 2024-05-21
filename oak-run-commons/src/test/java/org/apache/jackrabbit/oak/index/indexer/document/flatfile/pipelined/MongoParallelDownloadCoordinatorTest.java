@@ -18,16 +18,17 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
+import static org.junit.Assert.assertEquals;
+
+import java.util.ArrayList;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.junit.Test;
 
-import java.util.ArrayList;
-
-import static org.junit.Assert.*;
-
 public class MongoParallelDownloadCoordinatorTest {
+
     static class NodeDocumentArrayBuilder {
+
         private final ArrayList<NodeDocument> list = new ArrayList<>();
         private final MemoryDocumentStore docStore = new MemoryDocumentStore();
 
@@ -54,17 +55,17 @@ public class MongoParallelDownloadCoordinatorTest {
         var m = new MongoParallelDownloadCoordinator();
 
         NodeDocument[] ascendingOrderBatch = NodeDocumentArrayBuilder.create()
-                .add(1L, "a")
-                .add(2L, "b")
-                .add(3L, "c")
-                .build();
+                                                                     .add(1L, "a")
+                                                                     .add(2L, "b")
+                                                                     .add(3L, "c")
+                                                                     .build();
 
         NodeDocument[] descendingOrderBatch = NodeDocumentArrayBuilder.create()
-                .add(10L, "z")
-                .add(9L, "y")
-                .add(8L, "x")
-                .add(7L, "w")
-                .build();
+                                                                      .add(10L, "z")
+                                                                      .add(9L, "y")
+                                                                      .add(8L, "x")
+                                                                      .add(7L, "w")
+                                                                      .build();
 
         assertEquals(3, m.extendLowerRange(ascendingOrderBatch, ascendingOrderBatch.length));
         assertEquals(4, m.extendUpperRange(descendingOrderBatch, descendingOrderBatch.length));
@@ -78,15 +79,15 @@ public class MongoParallelDownloadCoordinatorTest {
         var m = new MongoParallelDownloadCoordinator();
 
         NodeDocument[] ascendingOrderBatch = NodeDocumentArrayBuilder.create()
-                .add(1L, "a")
-                .add(2L, "b")
-                .add(3L, "c")
-                .build();
+                                                                     .add(1L, "a")
+                                                                     .add(2L, "b")
+                                                                     .add(3L, "c")
+                                                                     .build();
 
         NodeDocument[] descendingOrderBatch = NodeDocumentArrayBuilder.create()
-                .add(4L, "e")
-                .add(3L, "d")
-                .build();
+                                                                      .add(4L, "e")
+                                                                      .add(3L, "d")
+                                                                      .build();
 
         assertEquals(3, m.extendLowerRange(ascendingOrderBatch, ascendingOrderBatch.length));
         assertEquals(2, m.extendUpperRange(descendingOrderBatch, descendingOrderBatch.length));
@@ -99,14 +100,14 @@ public class MongoParallelDownloadCoordinatorTest {
     public void descendingBatchLastElementEqualsBottomRangeTop() {
         var m = new MongoParallelDownloadCoordinator();
         NodeDocument[] ascendingOrderBatch = NodeDocumentArrayBuilder.create()
-                .add(1L, "a")
-                .add(2L, "b")
-                .add(3L, "c")
-                .build();
+                                                                     .add(1L, "a")
+                                                                     .add(2L, "b")
+                                                                     .add(3L, "c")
+                                                                     .build();
         NodeDocument[] descendingOrderBatch = NodeDocumentArrayBuilder.create()
-                .add(4L, "d")
-                .add(3L, "c")
-                .build();
+                                                                      .add(4L, "d")
+                                                                      .add(3L, "c")
+                                                                      .build();
 
         assertEquals(3, m.extendLowerRange(ascendingOrderBatch, ascendingOrderBatch.length));
         assertEquals(1, m.extendUpperRange(descendingOrderBatch, descendingOrderBatch.length));
@@ -119,16 +120,16 @@ public class MongoParallelDownloadCoordinatorTest {
     public void intersectionPartial() {
         var m = new MongoParallelDownloadCoordinator();
         NodeDocument[] ascendingOrderBatch = NodeDocumentArrayBuilder.create()
-                .add(1L, "a")
-                .add(2L, "b")
-                .add(3L, "c")
-                .build();
+                                                                     .add(1L, "a")
+                                                                     .add(2L, "b")
+                                                                     .add(3L, "c")
+                                                                     .build();
 
         NodeDocument[] descendingOrderBatch = NodeDocumentArrayBuilder.create()
-                .add(4L, "z")
-                .add(3L, "y")
-                .add(2L, "x")
-                .build();
+                                                                      .add(4L, "z")
+                                                                      .add(3L, "y")
+                                                                      .add(2L, "x")
+                                                                      .build();
 
         // Should add all elements
         assertEquals(3, m.extendLowerRange(ascendingOrderBatch, ascendingOrderBatch.length));
@@ -143,15 +144,15 @@ public class MongoParallelDownloadCoordinatorTest {
     public void intersectionFull() {
         var m = new MongoParallelDownloadCoordinator();
         NodeDocument[] ascendingOrderBatch = NodeDocumentArrayBuilder.create()
-                .add(1L, "a")
-                .add(2L, "b")
-                .add(3L, "c")
-                .build();
+                                                                     .add(1L, "a")
+                                                                     .add(2L, "b")
+                                                                     .add(3L, "c")
+                                                                     .build();
 
         NodeDocument[] descendingOrderBatch = NodeDocumentArrayBuilder.create()
-                .add(2L, "z")
-                .add(1L, "x")
-                .build();
+                                                                      .add(2L, "z")
+                                                                      .add(1L, "x")
+                                                                      .build();
 
         // Should add all elements
         assertEquals(3, m.extendLowerRange(ascendingOrderBatch, ascendingOrderBatch.length));
@@ -162,7 +163,8 @@ public class MongoParallelDownloadCoordinatorTest {
         assertDownloadPositionEquals(Long.MAX_VALUE, null, m.getUpperRangeBottom());
     }
 
-    private void assertDownloadPositionEquals(long expectedModified, String expectedId, MongoParallelDownloadCoordinator.DownloadPosition actualPosition) {
+    private void assertDownloadPositionEquals(long expectedModified, String expectedId,
+        MongoParallelDownloadCoordinator.DownloadPosition actualPosition) {
         assertEquals(expectedId, actualPosition.lastId);
         assertEquals(expectedModified, actualPosition.lastModified);
     }

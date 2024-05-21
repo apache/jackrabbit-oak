@@ -16,6 +16,14 @@
  */
 package org.apache.jackrabbit.oak.benchmark.authorization;
 
+import java.security.Principal;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import javax.jcr.security.Privilege;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
@@ -25,15 +33,6 @@ import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-import javax.jcr.security.Privilege;
-import java.security.Principal;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 
 public class Utils {
 
@@ -57,7 +56,9 @@ public class Utils {
         }
     }
 
-    public static boolean addEntry(@NotNull JackrabbitAccessControlManager acMgr, @NotNull Principal principal, @NotNull String path, @NotNull Privilege[] privileges) throws RepositoryException {
+    public static boolean addEntry(@NotNull JackrabbitAccessControlManager acMgr,
+        @NotNull Principal principal, @NotNull String path, @NotNull Privilege[] privileges)
+        throws RepositoryException {
         JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, path);
         if (acl == null) {
             throw new IllegalStateException("No policy to setup ACE.");
@@ -69,7 +70,8 @@ public class Utils {
         return added;
     }
 
-    public static void removePrincipals(@NotNull Set<Principal> principalSet, @NotNull Session session) throws RepositoryException {
+    public static void removePrincipals(@NotNull Set<Principal> principalSet,
+        @NotNull Session session) throws RepositoryException {
         UserManager userManager = ((JackrabbitSession) session).getUserManager();
         for (Principal p : principalSet) {
             Authorizable a = userManager.getAuthorizable(p);

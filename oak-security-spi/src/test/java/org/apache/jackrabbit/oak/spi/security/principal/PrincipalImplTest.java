@@ -16,17 +16,16 @@
  */
 package org.apache.jackrabbit.oak.spi.security.principal;
 
-import org.apache.jackrabbit.api.security.principal.JackrabbitPrincipal;
-import org.junit.Test;
-
-import java.security.Principal;
-import java.util.ArrayList;
-import java.util.List;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+
+import java.security.Principal;
+import java.util.ArrayList;
+import java.util.List;
+import org.apache.jackrabbit.api.security.principal.JackrabbitPrincipal;
+import org.junit.Test;
 
 /**
  * PrincipalImplTest...

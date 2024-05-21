@@ -24,7 +24,7 @@ import java.util.Map;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.broadcast.DynamicBroadcastConfig;
 
 public class DocumentBroadcastConfig implements DynamicBroadcastConfig {
-    
+
     private final DocumentNodeStore documentNodeStore;
 
     public DocumentBroadcastConfig(DocumentNodeStore documentNodeStore) {
@@ -40,7 +40,8 @@ public class DocumentBroadcastConfig implements DynamicBroadcastConfig {
     @Override
     public List<Map<String, String>> getClientInfo() {
         ArrayList<Map<String, String>> list = new ArrayList<Map<String, String>>();
-        for (ClusterNodeInfoDocument doc : ClusterNodeInfoDocument.all(documentNodeStore.getDocumentStore())) {
+        for (ClusterNodeInfoDocument doc : ClusterNodeInfoDocument.all(
+            documentNodeStore.getDocumentStore())) {
             if (!doc.isActive() || doc.isInvisible()) {
                 continue;
             }

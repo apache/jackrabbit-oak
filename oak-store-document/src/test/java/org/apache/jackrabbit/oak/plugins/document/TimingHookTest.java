@@ -36,8 +36,8 @@ public class TimingHookTest {
     public void commitTime() throws CommitFailedException {
         AtomicLong processingTime = new AtomicLong();
         TimingHook.wrap(
-                (before, after, info) -> sleep(),
-                (time, unit) -> processingTime.set(unit.toMillis(time))
+            (before, after, info) -> sleep(),
+            (time, unit) -> processingTime.set(unit.toMillis(time))
         ).processCommit(EMPTY_NODE, EMPTY_NODE, CommitInfo.EMPTY);
         // lower bound for processing time is accuracy on Windows (10 ms)
         // because Thread.sleep() may actually sleep less than the specified

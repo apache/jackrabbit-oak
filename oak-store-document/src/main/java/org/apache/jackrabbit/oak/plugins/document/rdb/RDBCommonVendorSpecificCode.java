@@ -27,7 +27,6 @@ import java.sql.Statement;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,7 +38,8 @@ public enum RDBCommonVendorSpecificCode {
 
     DB2() {
         @Override
-        public Map<String, String> getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
+        public Map<String, String> getAdditionalDiagnostics(RDBConnectionHandler ch,
+            String tableName) {
             Connection con = null;
             PreparedStatement stmt = null;
             ResultSet rs = null;
@@ -51,7 +51,8 @@ public enum RDBCommonVendorSpecificCode {
                 String conSchema = ch.getSchema(con);
 
                 StringBuilder sb = new StringBuilder();
-                sb.append("SELECT CODEPAGE, COLLATIONSCHEMA, COLLATIONNAME, TABSCHEMA FROM SYSCAT.COLUMNS WHERE COLNAME=? and COLNO=0 AND UPPER(TABNAME)=UPPER(?)");
+                sb.append(
+                    "SELECT CODEPAGE, COLLATIONSCHEMA, COLLATIONNAME, TABSCHEMA FROM SYSCAT.COLUMNS WHERE COLNAME=? and COLNO=0 AND UPPER(TABNAME)=UPPER(?)");
                 if (conSchema != null) {
                     conSchema = conSchema.trim();
                     sb.append(" AND UPPER(TABSCHEMA)=UPPER(?)");
@@ -85,7 +86,8 @@ public enum RDBCommonVendorSpecificCode {
 
     MSSQL() {
         @Override
-        public Map<String, String> getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
+        public Map<String, String> getAdditionalDiagnostics(RDBConnectionHandler ch,
+            String tableName) {
             Connection con = null;
             PreparedStatement stmt = null;
             ResultSet rs = null;
@@ -93,7 +95,8 @@ public enum RDBCommonVendorSpecificCode {
             try {
                 con = ch.getROConnection();
                 String cat = con.getCatalog();
-                stmt = con.prepareStatement("SELECT collation_name, create_date FROM sys.databases WHERE name=?");
+                stmt = con.prepareStatement(
+                    "SELECT collation_name, create_date FROM sys.databases WHERE name=?");
                 stmt.setString(1, cat);
                 rs = stmt.executeQuery();
                 while (rs.next()) {
@@ -116,7 +119,8 @@ public enum RDBCommonVendorSpecificCode {
 
     MYSQL() {
         @Override
-        public Map<String, String> getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
+        public Map<String, String> getAdditionalDiagnostics(RDBConnectionHandler ch,
+            String tableName) {
             Connection con = null;
             PreparedStatement stmt = null;
             ResultSet rs = null;
@@ -132,7 +136,7 @@ public enum RDBCommonVendorSpecificCode {
                 rs.close();
                 stmt.close();
                 stmt = con.prepareStatement(
-                        "SHOW VARIABLES WHERE variable_name LIKE 'character\\_set\\_%' OR variable_name LIKE 'collation%' OR variable_name = 'max_allowed_packet'");
+                    "SHOW VARIABLES WHERE variable_name LIKE 'character\\_set\\_%' OR variable_name LIKE 'collation%' OR variable_name = 'max_allowed_packet'");
                 rs = stmt.executeQuery();
                 while (rs.next()) {
                     result.put(rs.getString(1), rs.getString(2));
@@ -153,7 +157,8 @@ public enum RDBCommonVendorSpecificCode {
 
     ORACLE() {
         @Override
-        public Map<String, String> getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
+        public Map<String, String> getAdditionalDiagnostics(RDBConnectionHandler ch,
+            String tableName) {
             Connection con = null;
             Statement stmt = null;
             ResultSet rs = null;
@@ -162,7 +167,8 @@ public enum RDBCommonVendorSpecificCode {
                 con = ch.getROConnection();
                 stmt = con.createStatement();
                 rs = stmt
-                        .executeQuery("SELECT PARAMETER, VALUE from NLS_DATABASE_PARAMETERS WHERE PARAMETER IN ('NLS_COMP', 'NLS_CHARACTERSET')");
+                    .executeQuery(
+                        "SELECT PARAMETER, VALUE from NLS_DATABASE_PARAMETERS WHERE PARAMETER IN ('NLS_COMP', 'NLS_CHARACTERSET')");
                 while (rs.next()) {
                     result.put(rs.getString(1), rs.getString(2));
                 }
@@ -181,7 +187,8 @@ public enum RDBCommonVendorSpecificCode {
 
     POSTGRES() {
         @Override
-        public Map<String, String> getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
+        public Map<String, String> getAdditionalDiagnostics(RDBConnectionHandler ch,
+            String tableName) {
             Connection con = null;
             PreparedStatement stmt = null;
             ResultSet rs = null;
@@ -189,7 +196,8 @@ public enum RDBCommonVendorSpecificCode {
             try {
                 con = ch.getROConnection();
                 String cat = con.getCatalog();
-                stmt = con.prepareStatement("SELECT pg_encoding_to_char(encoding), datcollate FROM pg_database WHERE datname=?");
+                stmt = con.prepareStatement(
+                    "SELECT pg_encoding_to_char(encoding), datcollate FROM pg_database WHERE datname=?");
                 stmt.setString(1, cat);
                 rs = stmt.executeQuery();
                 while (rs.next()) {

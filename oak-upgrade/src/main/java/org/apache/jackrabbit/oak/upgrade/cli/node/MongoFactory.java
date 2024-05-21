@@ -16,19 +16,17 @@
  */
 package org.apache.jackrabbit.oak.upgrade.cli.node;
 
+import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBuilder.newMongoDocumentNodeStoreBuilder;
+
+import com.mongodb.MongoClient;
+import com.mongodb.MongoClientURI;
+import java.io.IOException;
+import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-
-import org.apache.jackrabbit.guava.common.io.Closer;
-import com.mongodb.MongoClient;
-import com.mongodb.MongoClientURI;
-
-import java.io.IOException;
-
-import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBuilder.newMongoDocumentNodeStoreBuilder;
 
 public class MongoFactory extends DocumentFactory {
 
@@ -47,7 +45,8 @@ public class MongoFactory extends DocumentFactory {
     @Override
     public NodeStore create(BlobStore blobStore, Closer closer) throws IOException {
         System.setProperty(DocumentNodeStore.SYS_PROP_DISABLE_JOURNAL, "true");
-        MongoDocumentNodeStoreBuilder builder = baseConfiguration(newMongoDocumentNodeStoreBuilder(), cacheSize);
+        MongoDocumentNodeStoreBuilder builder = baseConfiguration(
+            newMongoDocumentNodeStoreBuilder(), cacheSize);
         builder.setMongoDB(createClient(closer), getDBName());
         if (blobStore != null) {
             builder.setBlobStore(blobStore);
@@ -84,9 +83,10 @@ public class MongoFactory extends DocumentFactory {
     public boolean hasExternalBlobReferences() throws IOException {
         Closer closer = Closer.create();
         try {
-            MongoBlobStore mongoBlobStore = new MongoBlobStore(createClient(closer).getDatabase(getDBName()));
+            MongoBlobStore mongoBlobStore = new MongoBlobStore(
+                createClient(closer).getDatabase(getDBName()));
             return !mongoBlobStore.getAllChunkIds(0).hasNext();
-        } catch(Throwable e) {
+        } catch (Throwable e) {
             throw closer.rethrow(e);
         } finally {
             closer.close();

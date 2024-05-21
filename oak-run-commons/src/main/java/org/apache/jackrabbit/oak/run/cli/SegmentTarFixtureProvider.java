@@ -19,17 +19,16 @@
 
 package org.apache.jackrabbit.oak.run.cli;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static java.util.Collections.emptyMap;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.getService;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-
-import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
@@ -44,9 +43,11 @@ import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
 class SegmentTarFixtureProvider {
 
-    static NodeStore configureSegment(Options options, BlobStore blobStore, Whiteboard wb, Closer closer, boolean readOnly)
-            throws IOException, InvalidFileStoreVersionException {
-        StatisticsProvider statisticsProvider = checkNotNull(getService(wb, StatisticsProvider.class));
+    static NodeStore configureSegment(Options options, BlobStore blobStore, Whiteboard wb,
+        Closer closer, boolean readOnly)
+        throws IOException, InvalidFileStoreVersionException {
+        StatisticsProvider statisticsProvider = checkNotNull(
+            getService(wb, StatisticsProvider.class));
 
         String pathOrUri = options.getOptionBean(CommonOptions.class).getStoreArg();
         ToolUtils.SegmentStoreType segmentStoreType = ToolUtils.storeTypeFromPathOrUri(pathOrUri);
@@ -62,7 +63,8 @@ class SegmentTarFixtureProvider {
             builder = fileStoreBuilder(new File(pathOrUri)).withMaxFileSize(256);
         }
 
-        FileStoreTarBuilderCustomizer customizer = getService(wb, FileStoreTarBuilderCustomizer.class);
+        FileStoreTarBuilderCustomizer customizer = getService(wb,
+            FileStoreTarBuilderCustomizer.class);
         if (customizer != null) {
             customizer.customize(builder);
         }
@@ -74,16 +76,16 @@ class SegmentTarFixtureProvider {
         NodeStore nodeStore;
         if (readOnly) {
             ReadOnlyFileStore fileStore = builder
-                    .withStatisticsProvider(statisticsProvider)
-                    .buildReadOnly();
+                .withStatisticsProvider(statisticsProvider)
+                .buildReadOnly();
             closer.register(fileStore);
             nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
             wb.register(ReadOnlyFileStore.class, fileStore, emptyMap());
         } else {
             FileStore fileStore = builder
-                    .withStrictVersionCheck(true)
-                    .withStatisticsProvider(statisticsProvider)
-                    .build();
+                .withStrictVersionCheck(true)
+                .withStatisticsProvider(statisticsProvider)
+                .build();
             closer.register(fileStore);
             nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
             wb.register(FileStore.class, fileStore, emptyMap());

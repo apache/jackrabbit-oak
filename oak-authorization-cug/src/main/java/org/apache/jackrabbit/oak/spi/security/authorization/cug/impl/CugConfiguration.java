@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
+import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_SECURITY_NAME;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.Principal;
@@ -25,7 +27,6 @@ import java.util.Map;
 import java.util.Set;
 import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlManager;
-
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.Root;
@@ -66,43 +67,45 @@ import org.osgi.service.metatype.annotations.AttributeDefinition;
 import org.osgi.service.metatype.annotations.Designate;
 import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 
-import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_SECURITY_NAME;
-
 @Component(
-        service = {AuthorizationConfiguration.class, SecurityConfiguration.class},
-        property = OAK_SECURITY_NAME + "=org.apache.jackrabbit.oak.spi.security.authorization.cug.impl.CugConfiguration",
-        configurationPolicy = ConfigurationPolicy.REQUIRE)
+    service = {AuthorizationConfiguration.class, SecurityConfiguration.class},
+    property = OAK_SECURITY_NAME
+        + "=org.apache.jackrabbit.oak.spi.security.authorization.cug.impl.CugConfiguration",
+    configurationPolicy = ConfigurationPolicy.REQUIRE)
 @Designate(ocd = CugConfiguration.Configuration.class)
-public class CugConfiguration extends ConfigurationBase implements AuthorizationConfiguration, CugConstants {
+public class CugConfiguration extends ConfigurationBase implements AuthorizationConfiguration,
+    CugConstants {
 
     @ObjectClassDefinition(name = "Apache Jackrabbit Oak CUG Configuration",
-            description = "Authorization configuration dedicated to setup and evaluate 'Closed User Group' permissions.")
+        description = "Authorization configuration dedicated to setup and evaluate 'Closed User Group' permissions.")
     @interface Configuration {
+
         @AttributeDefinition(
-                name = "Supported Paths",
-                description = "Paths under which CUGs can be created and will be evaluated.",
-                cardinality = Integer.MAX_VALUE)
+            name = "Supported Paths",
+            description = "Paths under which CUGs can be created and will be evaluated.",
+            cardinality = Integer.MAX_VALUE)
         String[] cugSupportedPaths() default {};
 
         @AttributeDefinition(
-                name = "CUG Evaluation Enabled",
-                description = "Flag to enable the evaluation of the configured CUG policies.")
+            name = "CUG Evaluation Enabled",
+            description = "Flag to enable the evaluation of the configured CUG policies.")
         boolean cugEnabled() default false;
 
         @AttributeDefinition(
-                name = "Ranking",
-                description = "Ranking of this configuration in a setup with multiple authorization configurations.")
+            name = "Ranking",
+            description = "Ranking of this configuration in a setup with multiple authorization configurations.")
         int configurationRanking() default 200;
     }
 
     /**
-     * Reference to services implementing {@link org.apache.jackrabbit.oak.spi.security.authorization.cug.CugExclude}.
+     * Reference to services implementing
+     * {@link org.apache.jackrabbit.oak.spi.security.authorization.cug.CugExclude}.
      */
     private CugExclude exclude;
 
     /**
-     * Reference to service implementing {@link MountInfoProvider} to make the
-     * CUG authorization model multiplexing aware.
+     * Reference to service implementing {@link MountInfoProvider} to make the CUG authorization
+     * model multiplexing aware.
      */
     private MountInfoProvider mountInfoProvider = Mounts.defaultMountInfoProvider();
 
@@ -119,8 +122,10 @@ public class CugConfiguration extends ConfigurationBase implements Authorization
 
     @NotNull
     @Override
-    public AccessControlManager getAccessControlManager(@NotNull Root root, @NotNull NamePathMapper namePathMapper) {
-        return new CugAccessControlManager(root, namePathMapper, getSecurityProvider(), supportedPaths, getExclude(), getRootProvider());
+    public AccessControlManager getAccessControlManager(@NotNull Root root,
+        @NotNull NamePathMapper namePathMapper) {
+        return new CugAccessControlManager(root, namePathMapper, getSecurityProvider(),
+            supportedPaths, getExclude(), getRootProvider());
     }
 
     @NotNull
@@ -131,14 +136,17 @@ public class CugConfiguration extends ConfigurationBase implements Authorization
 
     @NotNull
     @Override
-    public PermissionProvider getPermissionProvider(@NotNull Root root, @NotNull String workspaceName, @NotNull Set<Principal> principals) {
+    public PermissionProvider getPermissionProvider(@NotNull Root root,
+        @NotNull String workspaceName, @NotNull Set<Principal> principals) {
         ConfigurationParameters params = getParameters();
         boolean enabled = params.getConfigValue(CugConstants.PARAM_CUG_ENABLED, false);
 
         if (!enabled || supportedPaths.isEmpty() || getExclude().isExcluded(principals)) {
             return EmptyPermissionProvider.getInstance();
         } else {
-            return new CugPermissionProvider(root, workspaceName, principals, supportedPaths, getSecurityProvider().getConfiguration(AuthorizationConfiguration.class).getContext(), getRootProvider(), getTreeProvider());
+            return new CugPermissionProvider(root, workspaceName, principals, supportedPaths,
+                getSecurityProvider().getConfiguration(AuthorizationConfiguration.class)
+                                     .getContext(), getRootProvider(), getTreeProvider());
         }
     }
 
@@ -171,7 +179,8 @@ public class CugConfiguration extends ConfigurationBase implements Authorization
 
     @NotNull
     @Override
-    public List<? extends ValidatorProvider> getValidators(@NotNull String workspaceName, @NotNull Set<Principal> principals, @NotNull MoveTracker moveTracker) {
+    public List<? extends ValidatorProvider> getValidators(@NotNull String workspaceName,
+        @NotNull Set<Principal> principals, @NotNull MoveTracker moveTracker) {
         return ImmutableList.of(new CugValidatorProvider());
     }
 
@@ -206,7 +215,7 @@ public class CugConfiguration extends ConfigurationBase implements Authorization
         activate(properties);
     }
 
-    @Reference(name="mountInfoProvider")
+    @Reference(name = "mountInfoProvider")
     public void bindMountInfoProvider(MountInfoProvider mountInfoProvider) {
         this.mountInfoProvider = mountInfoProvider;
     }
@@ -217,7 +226,7 @@ public class CugConfiguration extends ConfigurationBase implements Authorization
         this.mountInfoProvider = null;
     }
 
-    @Reference(name="exclude", cardinality = ReferenceCardinality.MANDATORY)
+    @Reference(name = "exclude", cardinality = ReferenceCardinality.MANDATORY)
     public void bindExclude(CugExclude exclude) {
         this.exclude = exclude;
     }
@@ -242,7 +251,8 @@ public class CugConfiguration extends ConfigurationBase implements Authorization
                 }
             };
             if (!ntMgr.hasNodeType(NT_REP_CUG_POLICY)) {
-                try (InputStream stream = CugConfiguration.class.getResourceAsStream("cug_nodetypes.cnd")) {
+                try (InputStream stream = CugConfiguration.class.getResourceAsStream(
+                    "cug_nodetypes.cnd")) {
                     NodeTypeRegistry.register(root, stream, "cug node types");
                     return true;
                 }

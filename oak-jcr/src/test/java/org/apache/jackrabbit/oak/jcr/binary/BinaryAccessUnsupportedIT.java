@@ -24,16 +24,14 @@ import static org.junit.Assert.assertNull;
 import java.net.URI;
 import java.util.Collection;
 import java.util.Collections;
-
 import javax.jcr.Binary;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
-
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.api.JackrabbitValueFactory;
 import org.apache.jackrabbit.api.binary.BinaryDownload;
 import org.apache.jackrabbit.api.binary.BinaryDownloadOptions;
 import org.apache.jackrabbit.api.binary.BinaryUpload;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.blob.BlobAccessProvider;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest;
@@ -51,12 +49,13 @@ import org.junit.Test;
 import org.junit.runners.Parameterized;
 
 /**
- * Test binary upload / download capabilities of the {@link JackrabbitValueFactory} interface when the underlying
- * implementation does not support these features.  If the underlying doesn't support these features the implementation
- * will return null when the methods are called and clients are expected to check for null to determine if the
- * features are supported.
+ * Test binary upload / download capabilities of the {@link JackrabbitValueFactory} interface when
+ * the underlying implementation does not support these features.  If the underlying doesn't support
+ * these features the implementation will return null when the methods are called and clients are
+ * expected to check for null to determine if the features are supported.
  */
 public class BinaryAccessUnsupportedIT extends AbstractRepositoryTest {
+
     private JackrabbitValueFactory uploadProvider;
 
     @Parameterized.Parameters(name = "{0}")
@@ -89,7 +88,7 @@ public class BinaryAccessUnsupportedIT extends AbstractRepositoryTest {
         BlobStore blobStore = getNodeStoreComponent(BlobStore.class);
         if (blobStore != null && blobStore instanceof BlobAccessProvider) {
             wb.register(BlobAccessProvider.class, (BlobAccessProvider) blobStore,
-                    Collections.emptyMap());
+                Collections.emptyMap());
 
         }
 
@@ -98,7 +97,7 @@ public class BinaryAccessUnsupportedIT extends AbstractRepositoryTest {
 
     @Test
     public void testInitiateUploadUnsupportedReturnsNull() throws Exception {
-        BinaryUpload upload = uploadProvider.initiateBinaryUpload(1024*20, 10);
+        BinaryUpload upload = uploadProvider.initiateBinaryUpload(1024 * 20, 10);
         assertNull(upload);
     }
 
@@ -110,7 +109,7 @@ public class BinaryAccessUnsupportedIT extends AbstractRepositoryTest {
 
     @Test
     public void testGetDownloadURIUnsupportedReturnsNull() throws Exception {
-        Content content = Content.createRandom(1024*20);
+        Content content = Content.createRandom(1024 * 20);
         Binary binary = storeBinaryAndRetrieve(getAdminSession(), "/my_path", content);
 
         // the returned binary could not be implementing BinaryDownload...

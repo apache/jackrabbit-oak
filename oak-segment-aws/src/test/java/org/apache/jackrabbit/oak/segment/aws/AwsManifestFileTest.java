@@ -22,13 +22,11 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import com.amazonaws.services.s3.AmazonS3;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.Date;
 import java.util.Properties;
-
-import com.amazonaws.services.s3.AmazonS3;
-
 import org.apache.jackrabbit.oak.segment.spi.persistence.ManifestFile;
 import org.junit.Before;
 import org.junit.ClassRule;

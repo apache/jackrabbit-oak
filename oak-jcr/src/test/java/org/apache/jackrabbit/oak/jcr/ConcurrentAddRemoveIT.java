@@ -22,18 +22,16 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.junit.Test;
 
 /**
- * Concurrently adds and removes the same node. Either the operation must
- * succeed or throw an InvalidItemStateException.
+ * Concurrently adds and removes the same node. Either the operation must succeed or throw an
+ * InvalidItemStateException.
  */
 public class ConcurrentAddRemoveIT extends AbstractRepositoryTest {
 
@@ -52,7 +50,7 @@ public class ConcurrentAddRemoveIT extends AbstractRepositoryTest {
         List<Thread> worker = new ArrayList<Thread>();
         for (int i = 0; i < NUM_WORKERS; i++) {
             worker.add(new Thread(new Worker(
-                    createAdminSession(), test.getPath(), exceptions)));
+                createAdminSession(), test.getPath(), exceptions)));
         }
         getAdminSession().save();
         for (Thread t : worker) {

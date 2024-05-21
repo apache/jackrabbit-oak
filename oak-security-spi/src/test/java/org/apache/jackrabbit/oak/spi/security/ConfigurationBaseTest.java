@@ -16,17 +16,18 @@
  */
 package org.apache.jackrabbit.oak.spi.security;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertSame;
+
 import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
 import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertSame;
-
 public class ConfigurationBaseTest {
 
-    private final ConfigurationBase base = new ConfigurationBase() {};
+    private final ConfigurationBase base = new ConfigurationBase() {
+    };
 
     @Test(expected = IllegalStateException.class)
     public void testGetSecurityProvider() {
@@ -85,7 +86,8 @@ public class ConfigurationBaseTest {
     public void testNonOsgiConstructor() {
         SecurityProvider sp = new OpenSecurityProvider();
         ConfigurationParameters config = ConfigurationParameters.of("a", "value");
-        ConfigurationBase base = new ConfigurationBase(sp, config){};
+        ConfigurationBase base = new ConfigurationBase(sp, config) {
+        };
 
         assertSame(sp, base.getSecurityProvider());
         assertSame(config, base.getParameters());

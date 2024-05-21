@@ -26,7 +26,6 @@ package org.apache.lucene.codecs.lucene40;
  */
 
 import java.io.IOException;
-
 import org.apache.lucene.codecs.BlockTreeTermsReader;
 import org.apache.lucene.codecs.BlockTreeTermsWriter;
 import org.apache.lucene.codecs.CodecUtil;
@@ -35,15 +34,13 @@ import org.apache.lucene.codecs.FieldsProducer;
 import org.apache.lucene.codecs.PostingsFormat;
 import org.apache.lucene.codecs.PostingsReaderBase;
 import org.apache.lucene.codecs.PostingsWriterBase;
-import org.apache.lucene.index.DocsEnum; // javadocs
-import org.apache.lucene.index.FieldInfo.IndexOptions; // javadocs
-import org.apache.lucene.index.FieldInfos; // javadocs
+import org.apache.lucene.index.DocsEnum;
+import org.apache.lucene.index.FieldInfo.IndexOptions;
 import org.apache.lucene.index.SegmentReadState;
 import org.apache.lucene.index.SegmentWriteState;
-import org.apache.lucene.store.DataOutput; // javadocs
-import org.apache.lucene.util.fst.FST; // javadocs
+import org.apache.lucene.store.DataOutput;
 
-/** 
+/**
  * Lucene 4.0 Postings format.
  * <p>
  * Files:
@@ -66,7 +63,7 @@ import org.apache.lucene.util.fst.FST; // javadocs
  * </p>
  *
  * <p>NOTE: The term dictionary can plug into different postings implementations:
- * the postings writer/reader are actually responsible for encoding 
+ * the postings writer/reader are actually responsible for encoding
  * and decoding the Postings Metadata and Term Metadata sections described here:</p>
  * <ul>
  *    <li>Postings Metadata --&gt; Header, SkipInterval, MaxSkipLevels, SkipMinimum</li>
@@ -79,16 +76,16 @@ import org.apache.lucene.util.fst.FST; // javadocs
  * <ul>
  *    <li>Header is a {@link CodecUtil#writeHeader CodecHeader} storing the version information
  *        for the postings.</li>
- *    <li>SkipInterval is the fraction of TermDocs stored in skip tables. It is used to accelerate 
- *        {@link DocsEnum#advance(int)}. Larger values result in smaller indexes, greater 
- *        acceleration, but fewer accelerable cases, while smaller values result in bigger indexes, 
+ *    <li>SkipInterval is the fraction of TermDocs stored in skip tables. It is used to accelerate
+ *        {@link DocsEnum#advance(int)}. Larger values result in smaller indexes, greater
+ *        acceleration, but fewer accelerable cases, while smaller values result in bigger indexes,
  *        less acceleration (in case of a small value for MaxSkipLevels) and more accelerable cases.
  *        </li>
- *    <li>MaxSkipLevels is the max. number of skip levels stored for each term in the .frq file. A 
- *        low value results in smaller indexes but less acceleration, a larger value results in 
- *        slightly larger indexes but greater acceleration. See format of .frq file for more 
+ *    <li>MaxSkipLevels is the max. number of skip levels stored for each term in the .frq file. A
+ *        low value results in smaller indexes but less acceleration, a larger value results in
+ *        slightly larger indexes but greater acceleration. See format of .frq file for more
  *        information about skip levels.</li>
- *    <li>SkipMinimum is the minimum document frequency a term must have in order to write any 
+ *    <li>SkipMinimum is the minimum document frequency a term must have in order to write any
  *        skip data at all.</li>
  *    <li>FreqDelta determines the position of this term's TermFreqs within the .frq
  *        file. In particular, it is the difference between the position of this term's
@@ -106,7 +103,7 @@ import org.apache.lucene.util.fst.FST; // javadocs
  * </ul>
  * <a name="Termindex" id="Termindex"></a>
  * <h3>Term Index</h3>
- * <p>The .tip file contains an index into the term dictionary, so that it can be 
+ * <p>The .tip file contains an index into the term dictionary, so that it can be
  * accessed randomly.  See {@link BlockTreeTermsWriter} for more details on the format.</p>
  * <a name="Frequencies" id="Frequencies"></a>
  * <h3>Frequencies</h3>
@@ -148,7 +145,7 @@ import org.apache.lucene.util.fst.FST; // javadocs
  * DocSkip represents the difference from the previous value in the sequence. If
  * payloads and/or offsets are enabled for the term's field, then DocSkip/2 represents the
  * difference from the previous value in the sequence. In this case when
- * DocSkip is odd, then PayloadLength and/or OffsetLength are stored indicating the length of 
+ * DocSkip is odd, then PayloadLength and/or OffsetLength are stored indicating the length of
  * the last payload/offset before the SkipInterval<sup>th</sup> document in TermPositions.</p>
  * <p>PayloadLength indicates the length of the last payload.</p>
  * <p>OffsetLength indicates the length of the last offset (endOffset-startOffset).</p>
@@ -218,8 +215,9 @@ import org.apache.lucene.util.fst.FST; // javadocs
  * If OffsetDelta is odd, then the length (endOffset-startOffset) differs from the
  * previous occurrence and an OffsetLength follows. Offset data is only written for
  * {@link IndexOptions#DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS}.</p>
- * 
- *  @deprecated Only for reading old 4.0 segments */
+ * <p>
+ *  @deprecated Only for reading old 4.0 segments
+ */
 
 // TODO: this class could be created by wrapping
 // BlockTreeTermsDict around Lucene40PostingsBaseFormat; ie
@@ -227,64 +225,78 @@ import org.apache.lucene.util.fst.FST; // javadocs
 @Deprecated
 public class Lucene40PostingsFormat extends PostingsFormat {
 
-  /** minimum items (terms or sub-blocks) per block for BlockTree */
-  protected final int minBlockSize;
-  /** maximum items (terms or sub-blocks) per block for BlockTree */
-  protected final int maxBlockSize;
+    /**
+     * minimum items (terms or sub-blocks) per block for BlockTree
+     */
+    protected final int minBlockSize;
+    /**
+     * maximum items (terms or sub-blocks) per block for BlockTree
+     */
+    protected final int maxBlockSize;
 
-  /** Creates {@code Lucene40PostingsFormat} with default
-   *  settings. */
-  public Lucene40PostingsFormat() {
-    this(BlockTreeTermsWriter.DEFAULT_MIN_BLOCK_SIZE, BlockTreeTermsWriter.DEFAULT_MAX_BLOCK_SIZE);
-  }
-
-  /** Creates {@code Lucene40PostingsFormat} with custom
-   *  values for {@code minBlockSize} and {@code
-   *  maxBlockSize} passed to block terms dictionary.
-   *  @see BlockTreeTermsWriter#BlockTreeTermsWriter(SegmentWriteState,PostingsWriterBase,int,int) */
-  private Lucene40PostingsFormat(int minBlockSize, int maxBlockSize) {
-    super("Lucene40");
-    this.minBlockSize = minBlockSize;
-    assert minBlockSize > 1;
-    this.maxBlockSize = maxBlockSize;
-  }
-
-  @Override
-  public FieldsConsumer fieldsConsumer(SegmentWriteState state) throws IOException {
-    throw new UnsupportedOperationException("this codec can only be used for reading");
-  }
-
-  @Override
-  public FieldsProducer fieldsProducer(SegmentReadState state) throws IOException {
-    PostingsReaderBase postings = new Lucene40PostingsReader(state.directory, state.fieldInfos, state.segmentInfo, state.context, state.segmentSuffix);
-
-    boolean success = false;
-    try {
-      FieldsProducer ret = new BlockTreeTermsReader(
-                                                    state.directory,
-                                                    state.fieldInfos,
-                                                    state.segmentInfo,
-                                                    postings,
-                                                    state.context,
-                                                    state.segmentSuffix,
-                                                    state.termsIndexDivisor);
-      success = true;
-      return ret;
-    } finally {
-      if (!success) {
-        postings.close();
-      }
+    /**
+     * Creates {@code Lucene40PostingsFormat} with default settings.
+     */
+    public Lucene40PostingsFormat() {
+        this(BlockTreeTermsWriter.DEFAULT_MIN_BLOCK_SIZE,
+            BlockTreeTermsWriter.DEFAULT_MAX_BLOCK_SIZE);
     }
-  }
 
-  /** Extension of freq postings file */
-  static final String FREQ_EXTENSION = "frq";
+    /**
+     * Creates {@code Lucene40PostingsFormat} with custom values for {@code minBlockSize} and
+     * {@code maxBlockSize} passed to block terms dictionary.
+     *
+     * @see BlockTreeTermsWriter#BlockTreeTermsWriter(SegmentWriteState, PostingsWriterBase, int,
+     * int)
+     */
+    private Lucene40PostingsFormat(int minBlockSize, int maxBlockSize) {
+        super("Lucene40");
+        this.minBlockSize = minBlockSize;
+        assert minBlockSize > 1;
+        this.maxBlockSize = maxBlockSize;
+    }
 
-  /** Extension of prox postings file */
-  static final String PROX_EXTENSION = "prx";
+    @Override
+    public FieldsConsumer fieldsConsumer(SegmentWriteState state) throws IOException {
+        throw new UnsupportedOperationException("this codec can only be used for reading");
+    }
 
-  @Override
-  public String toString() {
-    return getName() + "(minBlockSize=" + minBlockSize + " maxBlockSize=" + maxBlockSize + ")";
-  }
+    @Override
+    public FieldsProducer fieldsProducer(SegmentReadState state) throws IOException {
+        PostingsReaderBase postings = new Lucene40PostingsReader(state.directory, state.fieldInfos,
+            state.segmentInfo, state.context, state.segmentSuffix);
+
+        boolean success = false;
+        try {
+            FieldsProducer ret = new BlockTreeTermsReader(
+                state.directory,
+                state.fieldInfos,
+                state.segmentInfo,
+                postings,
+                state.context,
+                state.segmentSuffix,
+                state.termsIndexDivisor);
+            success = true;
+            return ret;
+        } finally {
+            if (!success) {
+                postings.close();
+            }
+        }
+    }
+
+    /**
+     * Extension of freq postings file
+     */
+    static final String FREQ_EXTENSION = "frq";
+
+    /**
+     * Extension of prox postings file
+     */
+    static final String PROX_EXTENSION = "prx";
+
+    @Override
+    public String toString() {
+        return getName() + "(minBlockSize=" + minBlockSize + " maxBlockSize=" + maxBlockSize + ")";
+    }
 }

@@ -64,8 +64,7 @@ public class Revisions {
         }
 
         /**
-         * The file where the output of this command is stored. this parameter
-         * is mandatory.
+         * The file where the output of this command is stored. this parameter is mandatory.
          *
          * @param out the output file.
          * @return this builder.

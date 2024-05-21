@@ -19,12 +19,12 @@
 
 package org.apache.jackrabbit.oak.segment;
 
+import static java.util.concurrent.Executors.newSingleThreadExecutor;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.jackrabbit.guava.common.collect.Maps.newConcurrentMap;
 import static org.apache.jackrabbit.guava.common.collect.Sets.intersection;
 import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.guava.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
-import static java.util.concurrent.Executors.newSingleThreadExecutor;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -37,7 +37,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeoutException;
-
 import org.apache.jackrabbit.oak.segment.WriteOperationHandler.WriteOperation;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
@@ -50,6 +49,7 @@ import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class SegmentBufferWriterPoolTest {
+
     private final MemoryStore store = new MemoryStore();
 
     private final RecordId rootId = store.getRevisions().getHead();
@@ -58,7 +58,7 @@ public class SegmentBufferWriterPoolTest {
 
     private final SegmentBufferWriterPool pool;
 
-    private final ExecutorService[] executors = new ExecutorService[] {
+    private final ExecutorService[] executors = new ExecutorService[]{
         newSingleThreadExecutor(), newSingleThreadExecutor(), newSingleThreadExecutor()};
 
     @Parameterized.Parameters
@@ -66,10 +66,11 @@ public class SegmentBufferWriterPoolTest {
         return Arrays.asList(SegmentBufferWriterPool.PoolType.values());
     }
 
-    public SegmentBufferWriterPoolTest(SegmentBufferWriterPool.PoolType poolType) throws IOException {
+    public SegmentBufferWriterPoolTest(SegmentBufferWriterPool.PoolType poolType)
+        throws IOException {
         pool = SegmentBufferWriterPool.factory(
-                store.getSegmentIdProvider(), store.getReader(), "", () -> gcGeneration)
-                .newPool(poolType);
+                                          store.getSegmentIdProvider(), store.getReader(), "", () -> gcGeneration)
+                                      .newPool(poolType);
     }
 
     @After
@@ -79,7 +80,8 @@ public class SegmentBufferWriterPoolTest {
         }
     }
 
-    private Future<RecordId> execute(GCGeneration gcGeneration, final WriteOperation op, int executor) {
+    private Future<RecordId> execute(GCGeneration gcGeneration, final WriteOperation op,
+        int executor) {
         return executors[executor].submit(new Callable<RecordId>() {
             @Override
             public RecordId call() throws Exception {
@@ -88,9 +90,11 @@ public class SegmentBufferWriterPoolTest {
         });
     }
 
-    private WriteOperation createOp(final String key, final ConcurrentMap<String, SegmentBufferWriter> map) {
+    private WriteOperation createOp(final String key,
+        final ConcurrentMap<String, SegmentBufferWriter> map) {
         return new WriteOperation() {
-            @NotNull @Override
+            @NotNull
+            @Override
             public RecordId execute(@NotNull SegmentBufferWriter writer) {
                 map.put(key, writer);
                 return rootId;

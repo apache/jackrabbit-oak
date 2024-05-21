@@ -16,12 +16,11 @@
  */
 package org.apache.jackrabbit.oak.security.user.monitor;
 
+import java.util.Collections;
+import java.util.Map;
 import org.apache.jackrabbit.oak.stats.Monitor;
 import org.jetbrains.annotations.NotNull;
 import org.osgi.annotation.versioning.ProviderType;
-
-import java.util.Collections;
-import java.util.Map;
 
 @ProviderType
 public interface UserMonitor extends Monitor<UserMonitor> {

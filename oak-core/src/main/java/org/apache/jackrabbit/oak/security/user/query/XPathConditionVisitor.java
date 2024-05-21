@@ -16,16 +16,15 @@
  */
 package org.apache.jackrabbit.oak.security.user.query;
 
-import javax.jcr.RepositoryException;
+import static org.apache.jackrabbit.oak.security.user.Utils.canImpersonateAllUsers;
 
+import javax.jcr.RepositoryException;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.jetbrains.annotations.NotNull;
-
-import static org.apache.jackrabbit.oak.security.user.Utils.canImpersonateAllUsers;
 
 /**
  * XPATH based condition visitor.

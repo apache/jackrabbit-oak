@@ -18,13 +18,19 @@
  */
 package org.apache.jackrabbit.oak.plugins.blob;
 
+import static org.apache.commons.io.IOUtils.closeQuietly;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.jackrabbit.guava.common.util.concurrent.Futures;
@@ -42,17 +48,11 @@ import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestName;
 
-import static org.apache.commons.io.IOUtils.closeQuietly;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-
 /**
  * - Tests for {@link FileCache}
  */
 public class FileCacheTest extends AbstractDataStoreCacheTest {
+
     private static final String ID_PREFIX = "12345";
     private FileCache cache;
     private File root;
@@ -69,6 +69,7 @@ public class FileCacheTest extends AbstractDataStoreCacheTest {
     public TestName testName = new TestName();
 
     CountDownLatch afterExecuteLatch;
+
     @Before
     public void setup() throws Exception {
         LOG.info("Started setup");
@@ -149,6 +150,7 @@ public class FileCacheTest extends AbstractDataStoreCacheTest {
 
     /**
      * Load and get from cache.
+     *
      * @throws Exception
      */
     @Test
@@ -167,6 +169,7 @@ public class FileCacheTest extends AbstractDataStoreCacheTest {
 
     /**
      * Explicitly put in cache.
+     *
      * @throws Exception
      */
     @Test
@@ -197,6 +200,7 @@ public class FileCacheTest extends AbstractDataStoreCacheTest {
 
     /**
      * Retrieves same file concurrently.
+     *
      * @throws Exception
      */
     @Test
@@ -231,12 +235,13 @@ public class FileCacheTest extends AbstractDataStoreCacheTest {
 
     /**
      * Retrieves different files concurrently.
+     *
      * @throws Exception
      */
     @Test
     public void getDifferentConcurrent() throws Exception {
         LOG.info("Started getDifferentConcurrent");
-        
+
         cache = FileCache.build(4 * 1024/* KB */, root, loader, null);
         closer.register(cache);
 
@@ -271,6 +276,7 @@ public class FileCacheTest extends AbstractDataStoreCacheTest {
 
     /**
      * Retrieve and put different files concurrently.
+     *
      * @throws Exception
      */
     @Test
@@ -308,6 +314,7 @@ public class FileCacheTest extends AbstractDataStoreCacheTest {
 
     /**
      * evict explicitly.
+     *
      * @throws Exception
      */
     @Test
@@ -327,6 +334,7 @@ public class FileCacheTest extends AbstractDataStoreCacheTest {
 
     /**
      * evict implicitly.
+     *
      * @throws Exception
      */
     @Test
@@ -335,7 +343,7 @@ public class FileCacheTest extends AbstractDataStoreCacheTest {
 
         cache = FileCache.build(60 * 1024/* KB */, root, loader, null);
         closer.register(cache);
-        
+
         for (int i = 0; i < 15; i++) {
             File f = createFile(i, loader, cache, folder);
             assertCache(i, cache, f);
@@ -352,6 +360,7 @@ public class FileCacheTest extends AbstractDataStoreCacheTest {
 
     /**
      * test eviction on replacement.
+     *
      * @throws Exception
      */
     @Test
@@ -371,6 +380,7 @@ public class FileCacheTest extends AbstractDataStoreCacheTest {
 
     /**
      * Retrieve and invalidate concurrently.
+     *
      * @throws Exception
      */
     @Test
@@ -415,6 +425,7 @@ public class FileCacheTest extends AbstractDataStoreCacheTest {
 
     /**
      * Trigger build cache on start.
+     *
      * @throws Exception
      */
     @Test
@@ -448,6 +459,7 @@ public class FileCacheTest extends AbstractDataStoreCacheTest {
 
     /**
      * Trigger upgrade cache on start.
+     *
      * @throws Exception
      */
     @Test
@@ -484,13 +496,16 @@ public class FileCacheTest extends AbstractDataStoreCacheTest {
         LOG.info("Finished upgrade");
     }
 
-    /**------------------------------ Helper methods --------------------------------------------**/
+    /**
+     * ------------------------------ Helper methods --------------------------------------------
+     **/
 
     private static SettableFuture<File> retrieveThread(ListeningExecutorService executor,
         final String id, final FileCache cache, final CountDownLatch start) {
         final SettableFuture<File> future = SettableFuture.create();
         executor.submit(new Runnable() {
-            @Override public void run() {
+            @Override
+            public void run() {
                 try {
                     LOG.info("Waiting for start retrieve");
                     start.await();
@@ -507,12 +522,12 @@ public class FileCacheTest extends AbstractDataStoreCacheTest {
     }
 
 
-
     private static SettableFuture<Boolean> putThread(ListeningExecutorService executor,
         final int seed, final File f, final FileCache cache, final CountDownLatch start) {
         final SettableFuture<Boolean> future = SettableFuture.create();
         executor.submit(new Runnable() {
-            @Override public void run() {
+            @Override
+            public void run() {
                 try {
                     LOG.info("Waiting for start to put");
                     start.await();
@@ -545,7 +560,8 @@ public class FileCacheTest extends AbstractDataStoreCacheTest {
         assertTrue(Files.equal(f, cached));
     }
 
-    private static File createFile(int seed, TestCacheLoader loader, FileCache cache, TemporaryFolder folder)
+    private static File createFile(int seed, TestCacheLoader loader, FileCache cache,
+        TemporaryFolder folder)
         throws Exception {
         return createFile(seed, loader, cache, folder, 4 * 1024);
     }

@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.spi.blob;
 
 import java.io.IOException;
 import java.io.InputStream;
-
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -28,8 +27,7 @@ import org.jetbrains.annotations.Nullable;
 public interface BlobStore extends AutoCloseable {
 
     /**
-     * Write a blob from an input stream.
-     * This method closes the input stream.
+     * Write a blob from an input stream. This method closes the input stream.
      *
      * @param in the input stream
      * @return the blob id
@@ -37,10 +35,10 @@ public interface BlobStore extends AutoCloseable {
     String writeBlob(InputStream in) throws IOException;
 
     /**
-     * Write a blob from an input stream with specified options.
-     * This method closes the input stream.
+     * Write a blob from an input stream with specified options. This method closes the input
+     * stream.
      *
-     * @param in the input stream to write
+     * @param in      the input stream to write
      * @param options the options to use
      * @return
      * @throws IOException
@@ -49,11 +47,11 @@ public interface BlobStore extends AutoCloseable {
 
     /**
      * Read a number of bytes from a blob.
-     * 
+     *
      * @param blobId the blob id
-     * @param pos the position within the blob
-     * @param buff the target byte array
-     * @param off the offset within the target array
+     * @param pos    the position within the blob
+     * @param buff   the target byte array
+     * @param off    the offset within the target array
      * @param length the number of bytes to read
      * @return the number of bytes read
      */
@@ -61,18 +59,17 @@ public interface BlobStore extends AutoCloseable {
 
     /**
      * Get the length of the blob.
-     * 
+     *
      * @param blobId the blob id
      * @return the length
      */
     long getBlobLength(String blobId) throws IOException;
 
     /**
-     * Returns a new stream for given blobId. The streams returned from
-     * multiple calls to this method are byte wise equals. That is,
-     * subsequent calls to {@link java.io.InputStream#read() read}
-     * return the same sequence of bytes as long as neither call throws
-     * an exception.
+     * Returns a new stream for given blobId. The streams returned from multiple calls to this
+     * method are byte wise equals. That is, subsequent calls to
+     * {@link java.io.InputStream#read() read} return the same sequence of bytes as long as neither
+     * call throws an exception.
      *
      * @param blobId the blob id
      * @return a new stream for given blobId
@@ -80,9 +77,8 @@ public interface BlobStore extends AutoCloseable {
     InputStream getInputStream(String blobId) throws IOException;
 
     /**
-     * Returns the blobId that referred by the given binary reference.
-     * Returns {@code null} if the reference is invalid, for example if it
-     * points to a blob that does not exist.
+     * Returns the blobId that referred by the given binary reference. Returns {@code null} if the
+     * reference is invalid, for example if it points to a blob that does not exist.
      *
      * @param reference binary reference
      * @return matching blobId, or {@code null}
@@ -91,8 +87,8 @@ public interface BlobStore extends AutoCloseable {
     String getBlobId(@NotNull String reference);
 
     /**
-     * Returns a secure reference to blob referred by blobid, or {@code null} if no such
-     * reference is available.
+     * Returns a secure reference to blob referred by blobid, or {@code null} if no such reference
+     * is available.
      *
      * @param blobId blobId referring the blob for which reference is required
      * @return binary reference, or {@code null}

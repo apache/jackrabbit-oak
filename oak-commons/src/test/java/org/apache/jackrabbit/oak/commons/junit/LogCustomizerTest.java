@@ -24,13 +24,11 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
+import ch.qos.logback.classic.Level;
 import java.util.List;
-
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import ch.qos.logback.classic.Level;
 
 /**
  * Tests for the LogCustomizer class
@@ -38,14 +36,14 @@ import ch.qos.logback.classic.Level;
 public class LogCustomizerTest {
 
     private static final Logger LOG = LoggerFactory
-            .getLogger(LogCustomizerTest.class);
+        .getLogger(LogCustomizerTest.class);
 
     @Test
     public void testLogs1() {
         LogCustomizer custom = LogCustomizer
-                .forLogger(
-                        "org.apache.jackrabbit.oak.commons.junit.LogCustomizerTest")
-                .enable(Level.DEBUG).create();
+            .forLogger(
+                "org.apache.jackrabbit.oak.commons.junit.LogCustomizerTest")
+            .enable(Level.DEBUG).create();
 
         try {
             custom.starting();
@@ -53,7 +51,7 @@ public class LogCustomizerTest {
             List<String> logs = custom.getLogs();
             assertTrue(logs.size() == 1);
             assertThat("logs were recorded by custom logger", logs.toString(),
-                    containsString("test message"));
+                containsString("test message"));
         } finally {
             custom.finished();
         }
@@ -62,9 +60,9 @@ public class LogCustomizerTest {
     @Test
     public void testLogs2() {
         LogCustomizer custom = LogCustomizer
-                .forLogger(
-                        "org.apache.jackrabbit.oak.commons.junit.LogCustomizerTest")
-                .enable(Level.DEBUG).filter(Level.INFO).create();
+            .forLogger(
+                "org.apache.jackrabbit.oak.commons.junit.LogCustomizerTest")
+            .enable(Level.DEBUG).filter(Level.INFO).create();
 
         try {
             custom.starting();
@@ -81,9 +79,9 @@ public class LogCustomizerTest {
     @Test
     public void testExactMatch() {
         LogCustomizer custom = LogCustomizer
-                .forLogger("org.apache.jackrabbit.oak.commons.junit.LogCustomizerTest")
-                .exactlyMatches("Test Message")
-                .create();
+            .forLogger("org.apache.jackrabbit.oak.commons.junit.LogCustomizerTest")
+            .exactlyMatches("Test Message")
+            .create();
 
         try {
             custom.starting();
@@ -106,9 +104,9 @@ public class LogCustomizerTest {
     @Test
     public void testContainsMatch() {
         LogCustomizer custom = LogCustomizer
-                .forLogger("org.apache.jackrabbit.oak.commons.junit.LogCustomizerTest")
-                .contains("Test Message")
-                .create();
+            .forLogger("org.apache.jackrabbit.oak.commons.junit.LogCustomizerTest")
+            .contains("Test Message")
+            .create();
 
         try {
             custom.starting();
@@ -136,9 +134,9 @@ public class LogCustomizerTest {
     @Test
     public void testRegexMatch() {
         LogCustomizer custom = LogCustomizer
-                .forLogger("org.apache.jackrabbit.oak.commons.junit.LogCustomizerTest")
-                .matchesRegex("^Length is [0-9]* units.$")
-                .create();
+            .forLogger("org.apache.jackrabbit.oak.commons.junit.LogCustomizerTest")
+            .matchesRegex("^Length is [0-9]* units.$")
+            .create();
 
         try {
             custom.starting();

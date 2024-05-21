@@ -16,6 +16,10 @@
  */
 package org.apache.jackrabbit.oak.upgrade.security;
 
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
+import static org.apache.jackrabbit.oak.api.Type.NAME;
+
 import java.util.Set;
 import java.util.TreeSet;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -32,10 +36,6 @@ import org.apache.jackrabbit.util.Text;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
-import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
-import static org.apache.jackrabbit.oak.api.Type.NAME;
 
 class GroupEditor extends DefaultEditor {
 
@@ -70,7 +70,8 @@ class GroupEditor extends DefaultEditor {
     @Override
     public void leave(NodeState before, NodeState after) throws CommitFailedException {
         if (currentGroup != null && currentGroup.path.equals(state.path)) {
-            log.info("scanned group {}, {} members", currentGroup.path, currentGroup.members.size());
+            log.info("scanned group {}, {} members", currentGroup.path,
+                currentGroup.members.size());
             writer.setMembers(state.builder, currentGroup.members);
             currentGroup = null;
         }
@@ -87,13 +88,14 @@ class GroupEditor extends DefaultEditor {
         String nt = after.getName(JCR_PRIMARYTYPE);
         if (nt == null) {
             throw new CommitFailedException(
-                    CONSTRAINT, 34, JCR_PRIMARYTYPE + " missing at " + state.path);
+                CONSTRAINT, 34, JCR_PRIMARYTYPE + " missing at " + state.path);
         }
 
         if (UserConstants.NT_REP_GROUP.equals(nt)) {
             if (currentGroup != null) {
-                log.error("rep:Group within rep:Group not supported during upgrade. current group: {}, overwriting group: {}",
-                        currentGroup.path, state.path);
+                log.error(
+                    "rep:Group within rep:Group not supported during upgrade. current group: {}, overwriting group: {}",
+                    currentGroup.path, state.path);
             }
             currentGroup = new EditorGroup(state.path);
             currentGroup.addMembers(after.getProperty(UserConstants.REP_MEMBERS));
@@ -114,7 +116,8 @@ class GroupEditor extends DefaultEditor {
 
     @Override
     public Editor childNodeDeleted(String name, NodeState before) {
-        throw new IllegalStateException("deleted node during upgrade copy not expected: " + state.path + "/" + name);
+        throw new IllegalStateException(
+            "deleted node during upgrade copy not expected: " + state.path + "/" + name);
     }
 
     private static class State {
@@ -164,14 +167,14 @@ class GroupEditor extends DefaultEditor {
 
         private void addMembers(PropertyState repMembers) {
             if (repMembers != null) {
-                for (String ref: repMembers.getValue(Type.WEAKREFERENCES)) {
+                for (String ref : repMembers.getValue(Type.WEAKREFERENCES)) {
                     members.add(ref);
                 }
             }
         }
 
         private void addMembers(NodeState node) {
-            for (PropertyState prop: node.getProperties()) {
+            for (PropertyState prop : node.getProperties()) {
                 if (prop.getType() == Type.WEAKREFERENCE) {
                     members.add(prop.getValue(Type.WEAKREFERENCE));
                 }
@@ -182,9 +185,10 @@ class GroupEditor extends DefaultEditor {
     private static class UpgradeMembershipWriter {
 
         /**
-         * Sets the given set of members to the specified group. this method is only used by the migration code.
+         * Sets the given set of members to the specified group. this method is only used by the
+         * migration code.
          *
-         * @param group node builder of group
+         * @param group   node builder of group
          * @param members set of content ids to set
          */
         public void setMembers(@NotNull NodeBuilder group, @NotNull Set<String> members) {
@@ -211,7 +215,8 @@ class GroupEditor extends DefaultEditor {
                     if (refList == null) {
                         // create intermediate structure
                         refList = group.child(UserConstants.REP_MEMBERS_LIST);
-                        refList.setProperty(JCR_PRIMARYTYPE, UserConstants.NT_REP_MEMBER_REFERENCES_LIST, NAME);
+                        refList.setProperty(JCR_PRIMARYTYPE,
+                            UserConstants.NT_REP_MEMBER_REFERENCES_LIST, NAME);
                     }
                     node = refList.child(String.valueOf(numNodes++));
                     node.setProperty(JCR_PRIMARYTYPE, UserConstants.NT_REP_MEMBER_REFERENCES, NAME);

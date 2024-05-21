@@ -18,19 +18,18 @@
  */
 package org.apache.jackrabbit.oak.segment.file.tar;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static java.nio.channels.FileChannel.MapMode.READ_ONLY;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.channels.FileChannel;
-
 import org.apache.jackrabbit.oak.commons.Buffer;
 
 /**
- * A wrapper around either memory mapped files or random access files, to allow
- * reading from a file.
+ * A wrapper around either memory mapped files or random access files, to allow reading from a
+ * file.
  */
 abstract class FileAccess {
 
@@ -127,8 +126,8 @@ abstract class FileAccess {
     }
 
     /**
-     * The implementation that uses random access file (reads are synchronized)
-     * and off heap access.
+     * The implementation that uses random access file (reads are synchronized) and off heap
+     * access.
      */
     static class RandomOffHeap extends Random {
 

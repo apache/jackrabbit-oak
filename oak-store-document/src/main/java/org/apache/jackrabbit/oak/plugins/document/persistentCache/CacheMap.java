@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.plugins.document.persistentCache;
 
 import java.util.Map;
-
 import org.h2.mvstore.MVMap;
 import org.h2.mvstore.MVMap.Builder;
 import org.slf4j.Logger;
@@ -26,11 +25,10 @@ import org.slf4j.LoggerFactory;
 /**
  * A cache map. This map supports re-opening the store if this is needed.
  * <p>
- * Note that a failure to open the underlying store will be handled gracefully,
- * in that the {@code CacheMap} can be constructed, but will not actually cache
- * anything. The same is true for the case where the underlying store starts to
- * fail and can not be re-opened.
- * 
+ * Note that a failure to open the underlying store will be handled gracefully, in that the
+ * {@code CacheMap} can be constructed, but will not actually cache anything. The same is true for
+ * the case where the underlying store starts to fail and can not be re-opened.
+ *
  * @param <K> the key type
  * @param <V> the value type
  */
@@ -78,7 +76,7 @@ public class CacheMap<K, V> {
     }
 
     public V put(K key, V value) {
-        for (int i = 0;; i++) {
+        for (int i = 0; ; i++) {
             if (closed) {
                 return null;
             }
@@ -91,7 +89,7 @@ public class CacheMap<K, V> {
     }
 
     public V get(Object key) {
-        for (int i = 0;; i++) {
+        for (int i = 0; ; i++) {
             if (closed) {
                 return null;
             }
@@ -104,7 +102,7 @@ public class CacheMap<K, V> {
     }
 
     public boolean containsKey(Object key) {
-        for (int i = 0;; i++) {
+        for (int i = 0; ; i++) {
             if (closed) {
                 return false;
             }
@@ -117,7 +115,7 @@ public class CacheMap<K, V> {
     }
 
     public V remove(Object key) {
-        for (int i = 0;; i++) {
+        for (int i = 0; ; i++) {
             if (closed) {
                 return null;
             }
@@ -130,7 +128,7 @@ public class CacheMap<K, V> {
     }
 
     public void clear() {
-        for (int i = 0;; i++) {
+        for (int i = 0; ; i++) {
             if (closed) {
                 return;
             }

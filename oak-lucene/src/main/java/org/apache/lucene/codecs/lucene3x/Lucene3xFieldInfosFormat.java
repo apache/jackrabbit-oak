@@ -26,28 +26,28 @@ package org.apache.lucene.codecs.lucene3x;
  */
 
 import java.io.IOException;
-
 import org.apache.lucene.codecs.FieldInfosFormat;
 import org.apache.lucene.codecs.FieldInfosReader;
 import org.apache.lucene.codecs.FieldInfosWriter;
 
 /**
  * Lucene3x ReadOnly FieldInfosFromat implementation
- * @deprecated (4.0) This is only used to read indexes created
- * before 4.0.
+ *
  * @lucene.experimental
+ * @deprecated (4.0) This is only used to read indexes created before 4.0.
  */
 @Deprecated
 class Lucene3xFieldInfosFormat extends FieldInfosFormat {
-  private final FieldInfosReader reader = new Lucene3xFieldInfosReader();
-  
-  @Override
-  public FieldInfosReader getFieldInfosReader() throws IOException {
-    return reader;
-  }
 
-  @Override
-  public FieldInfosWriter getFieldInfosWriter() throws IOException {
-    throw new UnsupportedOperationException("this codec can only be used for reading");
-  }
+    private final FieldInfosReader reader = new Lucene3xFieldInfosReader();
+
+    @Override
+    public FieldInfosReader getFieldInfosReader() throws IOException {
+        return reader;
+    }
+
+    @Override
+    public FieldInfosWriter getFieldInfosWriter() throws IOException {
+        throw new UnsupportedOperationException("this codec can only be used for reading");
+    }
 }

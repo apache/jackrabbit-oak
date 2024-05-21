@@ -22,14 +22,16 @@ import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Coordinates the two parallel download streams used to download from Mongo when parallelDump is enabled. One stream
- * downloads in ascending order the other in descending order. This class keeps track of the top limit of the ascending
- * stream and of the bottom limit of the descending stream, and determines if the streams have crossed. This indicates
- * that the download completed and the two threads should stop.
+ * Coordinates the two parallel download streams used to download from Mongo when parallelDump is
+ * enabled. One stream downloads in ascending order the other in descending order. This class keeps
+ * track of the top limit of the ascending stream and of the bottom limit of the descending stream,
+ * and determines if the streams have crossed. This indicates that the download completed and the
+ * two threads should stop.
  */
 class MongoParallelDownloadCoordinator {
 
     static class DownloadPosition implements Comparable<DownloadPosition> {
+
         final long lastModified;
         final String lastId;
 
@@ -51,9 +53,9 @@ class MongoParallelDownloadCoordinator {
         @Override
         public String toString() {
             return "DownloadPosition{" +
-                    "lastModified=" + lastModified +
-                    ", lastId='" + lastId + '\'' +
-                    '}';
+                "lastModified=" + lastModified +
+                ", lastId='" + lastId + '\'' +
+                '}';
         }
     }
 
@@ -69,21 +71,25 @@ class MongoParallelDownloadCoordinator {
     }
 
     /**
-     * Extends the lower range of downloaded documents with the documents in the given batch and returns the index of
-     * the first/lowest document in this batch that was already downloaded by the descending download thread.
+     * Extends the lower range of downloaded documents with the documents in the given batch and
+     * returns the index of the first/lowest document in this batch that was already downloaded by
+     * the descending download thread.
      * <p>
-     * That is, if this method returns i, then the documents in the range batch[0:i) were not yet downloaded by the
-     * descending downloader, but batch[i] and above were already downloaded. The following are degenerate cases:
+     * That is, if this method returns i, then the documents in the range batch[0:i) were not yet
+     * downloaded by the descending downloader, but batch[i] and above were already downloaded. The
+     * following are degenerate cases:
      * <p>
-     * If i==0 then all documents of this batch were already downloaded. That is, b[0] >= upperRangeBottom.
-     * If i==sizeOfBatch then none of the documents were downloaded. That is, b[sizeOfBatch-i] < upperRangeBottom.
+     * If i==0 then all documents of this batch were already downloaded. That is, b[0] >=
+     * upperRangeBottom. If i==sizeOfBatch then none of the documents were downloaded. That is,
+     * b[sizeOfBatch-i] < upperRangeBottom.
      * <p>
      * <p>
      * The batch must be in ascending order of (_modified, _id).
      * <p>
      * Updates the lower range top to b[i].
      *
-     * @param batch The batch of documents to be added to the lower range, must be in ascending order
+     * @param batch The batch of documents to be added to the lower range, must be in ascending
+     *              order
      */
     public synchronized int extendLowerRange(NodeDocument[] batch, int sizeOfBatch) {
         // batch must be in ascending order
@@ -106,10 +112,12 @@ class MongoParallelDownloadCoordinator {
     }
 
     /**
-     * Extends the upper range of downloaded documents with the documents in the given batch and returns the index of
-     * the first/highest document in this batch that was already downloaded by the ascending download thread.
+     * Extends the upper range of downloaded documents with the documents in the given batch and
+     * returns the index of the first/highest document in this batch that was already downloaded by
+     * the ascending download thread.
      *
-     * @param batch The batch of documents to be added to the upper range, must be in descending order
+     * @param batch The batch of documents to be added to the upper range, must be in descending
+     *              order
      */
     public synchronized int extendUpperRange(NodeDocument[] batch, int sizeOfBatch) {
         // batch must be in descending order
@@ -131,8 +139,8 @@ class MongoParallelDownloadCoordinator {
     @Override
     public String toString() {
         return "MongoParallelDownloadCoordinator{" +
-                "lowerRangeTop=" + lowerRangeTop +
-                ", upperRangeBottom=" + upperRangeBottom +
-                '}';
+            "lowerRangeTop=" + lowerRangeTop +
+            ", upperRangeBottom=" + upperRangeBottom +
+            '}';
     }
 }

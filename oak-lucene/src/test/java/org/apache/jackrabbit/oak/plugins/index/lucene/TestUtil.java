@@ -19,9 +19,9 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import static org.apache.jackrabbit.JcrConstants.JCR_CONTENT;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
-import static org.apache.jackrabbit.JcrConstants.JCR_CONTENT;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
@@ -34,10 +34,8 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import javax.jcr.PropertyType;
 import javax.jcr.Repository;
-
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitRepository;
@@ -76,6 +74,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class TestUtil {
+
     private static final AtomicInteger COUNTER = new AtomicInteger();
 
     public static final String NT_TEST = "oak:TestNode";
@@ -85,20 +84,23 @@ public class TestUtil {
 
     public static void useV2(NodeBuilder idxNb) {
         if (!IndexFormatVersion.getDefault().isAtLeast(IndexFormatVersion.V2)) {
-            idxNb.setProperty(FulltextIndexConstants.COMPAT_MODE, IndexFormatVersion.V2.getVersion());
+            idxNb.setProperty(FulltextIndexConstants.COMPAT_MODE,
+                IndexFormatVersion.V2.getVersion());
         }
     }
 
     public static void useV2(Tree idxTree) {
         if (!IndexFormatVersion.getDefault().isAtLeast(IndexFormatVersion.V2)) {
-            idxTree.setProperty(FulltextIndexConstants.COMPAT_MODE, IndexFormatVersion.V2.getVersion());
+            idxTree.setProperty(FulltextIndexConstants.COMPAT_MODE,
+                IndexFormatVersion.V2.getVersion());
         }
     }
 
     public static NodeBuilder newLuceneIndexDefinitionV2(
         @NotNull NodeBuilder index, @NotNull String name,
         @Nullable Set<String> propertyTypes) {
-        NodeBuilder nb = LuceneIndexHelper.newLuceneIndexDefinition(index, name, propertyTypes, null, null, null);
+        NodeBuilder nb = LuceneIndexHelper.newLuceneIndexDefinition(index, name, propertyTypes,
+            null, null, null);
         useV2(nb);
         return nb;
     }
@@ -168,6 +170,7 @@ public class TestUtil {
     }
 
     static class AggregatorBuilder {
+
         private final Tree aggs;
 
         private AggregatorBuilder(Tree indexDefn) {
@@ -177,7 +180,8 @@ public class TestUtil {
         AggregatorBuilder newRuleWithName(String primaryType, List<String> includes) {
             Tree agg = aggs.addChild(primaryType);
             for (String include : includes) {
-                agg.addChild(unique("include")).setProperty(FulltextIndexConstants.AGG_PATH, include);
+                agg.addChild(unique("include"))
+                   .setProperty(FulltextIndexConstants.AGG_PATH, include);
             }
             return this;
         }
@@ -198,7 +202,8 @@ public class TestUtil {
         NodeState base = ModifiedNodeState.squeeze(builder.getNodeState());
         NodeStore store = new MemoryNodeStore(base);
         Root root = RootFactory.createSystemRoot(store,
-            new EditorHook(new CompositeEditorProvider(new NamespaceEditorProvider(), new TypeEditorProvider())),
+            new EditorHook(new CompositeEditorProvider(new NamespaceEditorProvider(),
+                new TypeEditorProvider())),
             null, null, null);
         NodeTypeRegistry.register(root, IOUtils.toInputStream(nodeTypeDefn), "test node types");
         NodeState target = store.getRoot();
@@ -211,7 +216,8 @@ public class TestUtil {
         return t;
     }
 
-    public static NodeBuilder createNodeWithType(NodeBuilder builder, String nodeName, String typeName) {
+    public static NodeBuilder createNodeWithType(NodeBuilder builder, String nodeName,
+        String typeName) {
         builder = builder.child(nodeName);
         builder.setProperty(JcrConstants.JCR_PRIMARYTYPE, typeName, Type.NAME);
         return builder;
@@ -229,11 +235,11 @@ public class TestUtil {
     public static Tree createFulltextIndex(Tree index, String name) throws CommitFailedException {
         Tree def = index.addChild(INDEX_DEFINITIONS_NAME).addChild(name);
         def.setProperty(JcrConstants.JCR_PRIMARYTYPE,
-                INDEX_DEFINITIONS_NODE_TYPE, Type.NAME);
+            INDEX_DEFINITIONS_NODE_TYPE, Type.NAME);
         def.setProperty(TYPE_PROPERTY_NAME, LuceneIndexConstants.TYPE_LUCENE);
         def.setProperty(REINDEX_PROPERTY_NAME, true);
         def.setProperty(createProperty(FulltextIndexConstants.INCLUDE_PROPERTY_TYPES,
-                of(PropertyType.TYPENAME_STRING, PropertyType.TYPENAME_BINARY), STRINGS));
+            of(PropertyType.TYPENAME_STRING, PropertyType.TYPENAME_BINARY), STRINGS));
         return index.getChild(INDEX_DEFINITIONS_NAME).getChild(name);
     }
 
@@ -253,7 +259,8 @@ public class TestUtil {
         return tree;
     }
 
-    public static int createFile(Directory dir, String fileName, String content) throws IOException {
+    public static int createFile(Directory dir, String fileName, String content)
+        throws IOException {
         byte[] data = content.getBytes();
         IndexOutput o = dir.createOutput(fileName, IOContext.DEFAULT);
         o.writeBytes(data, data.length);
@@ -262,7 +269,8 @@ public class TestUtil {
     }
 
     private static PropertyState createAsyncProperty(String indexingMode) {
-        return createProperty(IndexConstants.ASYNC_PROPERTY_NAME, of(indexingMode, "async"), STRINGS);
+        return createProperty(IndexConstants.ASYNC_PROPERTY_NAME, of(indexingMode, "async"),
+            STRINGS);
     }
 
     private static PropertyState createAsyncProperty(IndexingMode indexingMode) {
@@ -278,10 +286,12 @@ public class TestUtil {
     }
 
     public static class OptionalEditorProvider implements EditorProvider {
+
         public EditorProvider delegate;
 
         @Override
-        public Editor getRootEditor(NodeState before, NodeState after, NodeBuilder builder, CommitInfo info)
+        public Editor getRootEditor(NodeState before, NodeState after, NodeBuilder builder,
+            CommitInfo info)
             throws CommitFailedException {
             if (delegate != null) {
                 return delegate.getRootEditor(before, after, builder, info);

@@ -16,10 +16,10 @@
  */
 package org.apache.jackrabbit.oak.security.internal;
 
-import org.junit.Test;
-
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+
+import org.junit.Test;
 
 public class PreconditionsTest {
 

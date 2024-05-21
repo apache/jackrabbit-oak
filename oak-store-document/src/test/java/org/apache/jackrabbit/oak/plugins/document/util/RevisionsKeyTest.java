@@ -30,8 +30,8 @@ public class RevisionsKeyTest {
     @Test
     public void fromAsString() {
         RevisionsKey k1 = new RevisionsKey(
-                new RevisionVector(new Revision(1, 0, 1)),
-                new RevisionVector(new Revision(2, 1, 2)));
+            new RevisionVector(new Revision(1, 0, 1)),
+            new RevisionVector(new Revision(2, 1, 2)));
         RevisionsKey k2 = RevisionsKey.fromString(k1.asString());
         assertEquals(k1, k2);
     }

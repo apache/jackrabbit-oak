@@ -16,8 +16,13 @@
  */
 package org.apache.jackrabbit.oak.benchmark.util;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
-import org.apache.jackrabbit.guava.common.collect.Lists;
+import java.util.Arrays;
+import javax.jcr.Node;
+import javax.jcr.Property;
+import javax.jcr.PropertyType;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import javax.jcr.Value;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
@@ -26,36 +31,25 @@ import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvi
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.jetbrains.annotations.Nullable;
 
-import javax.jcr.Node;
-import javax.jcr.Property;
-import javax.jcr.PropertyType;
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-import javax.jcr.Value;
-
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-
 /**
  * A simple utility class for Oak indexes.
  */
 public class OakIndexUtils {
-    
+
     /**
      * A property index
      */
     public static class PropertyIndex {
-        
+
         private String indexName;
-        
+
         private String propertyName;
-        
+
         private String[] nodeTypeNames;
 
         /**
          * Set the index name. If not set, the index name is the property name.
-         * 
+         *
          * @param indexName the index name
          * @return this
          */
@@ -66,7 +60,7 @@ public class OakIndexUtils {
 
         /**
          * Set the property name. This field is mandatory.
-         * 
+         *
          * @param propertyName the property name
          * @return this
          */
@@ -77,7 +71,7 @@ public class OakIndexUtils {
 
         /**
          * Restrict the node types.
-         * 
+         *
          * @param nodeTypeNames the list of declaring node types
          * @return this
          */
@@ -91,24 +85,24 @@ public class OakIndexUtils {
          * <p>
          * If this is not a Oak repository, this method does nothing.
          * <p>
-         * If a matching index already exists, this method verifies that the
-         * definition matches. If no such index exists, a new one is created.
-         * 
+         * If a matching index already exists, this method verifies that the definition matches. If
+         * no such index exists, a new one is created.
+         *
          * @param session the session to use for creating the index
          * @return the index node
-         * @throws RepositoryException if writing to the repository failed, the
-         *             index definition is incorrect, or if such an index exists
-         *             but is not compatible with this definition (for example,
-         *             a different property is indexed)
+         * @throws RepositoryException if writing to the repository failed, the index definition is
+         *                             incorrect, or if such an index exists but is not compatible
+         *                             with this definition (for example, a different property is
+         *                             indexed)
          */
         public @Nullable Node create(Session session) throws RepositoryException {
-           return create(session,PropertyIndexEditorProvider.TYPE);
+            return create(session, PropertyIndexEditorProvider.TYPE);
         }
-        
-        public @Nullable Node create(Session session,String indexType) throws RepositoryException {
-           Node index;
-           if (!session.getWorkspace().getNodeTypeManager().hasNodeType(
-                        "oak:QueryIndexDefinition")) {
+
+        public @Nullable Node create(Session session, String indexType) throws RepositoryException {
+            Node index;
+            if (!session.getWorkspace().getNodeTypeManager().hasNodeType(
+                "oak:QueryIndexDefinition")) {
                 // not an Oak repository
                 return null;
             }
@@ -133,8 +127,8 @@ public class OakIndexUtils {
             Node root = session.getRootNode();
             Node indexDef;
             if (!root.hasNode(IndexConstants.INDEX_DEFINITIONS_NAME)) {
-                indexDef = root.addNode(IndexConstants.INDEX_DEFINITIONS_NAME, 
-                        JcrConstants.NT_UNSTRUCTURED);
+                indexDef = root.addNode(IndexConstants.INDEX_DEFINITIONS_NAME,
+                    JcrConstants.NT_UNSTRUCTURED);
                 session.save();
             } else {
                 indexDef = root.getNode(IndexConstants.INDEX_DEFINITIONS_NAME);
@@ -147,14 +141,14 @@ public class OakIndexUtils {
                     Property p = index.getProperty(IndexConstants.UNIQUE_PROPERTY_NAME);
                     if (p.getBoolean()) {
                         throw new RepositoryException(
-                                "Index already exists, but is unique");
+                            "Index already exists, but is unique");
                     }
                 }
                 String type = index.getProperty(
-                        IndexConstants.TYPE_PROPERTY_NAME).getString();
+                    IndexConstants.TYPE_PROPERTY_NAME).getString();
                 if (!type.equals(indexType)) {
                     throw new RepositoryException(
-                            "Index already exists, but is of type " + type);
+                        "Index already exists, but is of type " + type);
                 }
                 Value[] v = index.getProperty(IndexConstants.PROPERTY_NAMES).getValues();
                 if (v.length != 1) {
@@ -163,11 +157,12 @@ public class OakIndexUtils {
                         list[i] = v[i].getString();
                     }
                     throw new RepositoryException(
-                            "Index already exists, but is not just one property, but " + Arrays.toString(list));
+                        "Index already exists, but is not just one property, but "
+                            + Arrays.toString(list));
                 }
                 if (!propertyName.equals(v[0].getString())) {
                     throw new RepositoryException(
-                            "Index already exists, but is for property " + v[0].getString());
+                        "Index already exists, but is for property " + v[0].getString());
                 }
                 if (index.hasProperty(IndexConstants.DECLARING_NODE_TYPES)) {
                     v = index.getProperty(IndexConstants.DECLARING_NODE_TYPES).getValues();
@@ -176,26 +171,27 @@ public class OakIndexUtils {
                         list[i] = v[i].getString();
                     }
                     Arrays.sort(list);
-                    if (Arrays.equals(list,  nodeTypeNames)) {
+                    if (Arrays.equals(list, nodeTypeNames)) {
                         throw new RepositoryException(
-                                "Index already exists, but with different node types: " + Arrays.toString(list));
+                            "Index already exists, but with different node types: "
+                                + Arrays.toString(list));
                     }
                 } else if (nodeTypeNames != null) {
                     throw new RepositoryException(
-                            "Index already exists, but without node type restriction");
+                        "Index already exists, but without node type restriction");
                 }
                 // matches
                 return index;
             }
             index = indexDef.addNode(indexName, IndexConstants.INDEX_DEFINITIONS_NODE_TYPE);
             index.setProperty(IndexConstants.TYPE_PROPERTY_NAME, indexType);
-            index.setProperty(IndexConstants.REINDEX_PROPERTY_NAME, 
-                    true);
-            index.setProperty(IndexConstants.PROPERTY_NAMES, 
-                    new String[] { propertyName }, PropertyType.NAME);
+            index.setProperty(IndexConstants.REINDEX_PROPERTY_NAME,
+                true);
+            index.setProperty(IndexConstants.PROPERTY_NAMES,
+                new String[]{propertyName}, PropertyType.NAME);
             if (nodeTypeNames != null) {
                 index.setProperty(IndexConstants.DECLARING_NODE_TYPES,
-                        nodeTypeNames);
+                    nodeTypeNames);
             }
             session.save();
             return index;
@@ -205,27 +201,27 @@ public class OakIndexUtils {
     /**
      * Helper method to create or update a property index definition.
      *
-     * @param session the session
+     * @param session             the session
      * @param indexDefinitionName the name of the node for the index definition
-     * @param propertyNames the list of properties to index
-     * @param unique if unique or not
-     * @param enclosingNodeTypes the enclosing node types
+     * @param propertyNames       the list of properties to index
+     * @param unique              if unique or not
+     * @param enclosingNodeTypes  the enclosing node types
      * @return the node just created
      * @throws RepositoryException the repository exception
      */
     public static Node propertyIndexDefinition(Session session, String indexDefinitionName,
-            String[] propertyNames, boolean unique,
-            String[] enclosingNodeTypes) throws RepositoryException {
-        
+        String[] propertyNames, boolean unique,
+        String[] enclosingNodeTypes) throws RepositoryException {
+
         Node root = session.getRootNode();
         Node indexDefRoot = JcrUtils.getOrAddNode(root, IndexConstants.INDEX_DEFINITIONS_NAME,
-                NodeTypeConstants.NT_UNSTRUCTURED);
+            NodeTypeConstants.NT_UNSTRUCTURED);
         Node indexDef = JcrUtils.getOrAddNode(indexDefRoot, indexDefinitionName,
-                IndexConstants.INDEX_DEFINITIONS_NODE_TYPE);
+            IndexConstants.INDEX_DEFINITIONS_NODE_TYPE);
         indexDef.setProperty(IndexConstants.TYPE_PROPERTY_NAME, PropertyIndexEditorProvider.TYPE);
         indexDef.setProperty(IndexConstants.REINDEX_PROPERTY_NAME, true);
         indexDef.setProperty(IndexConstants.PROPERTY_NAMES, propertyNames,
-                PropertyType.NAME);
+            PropertyType.NAME);
         indexDef.setProperty(IndexConstants.UNIQUE_PROPERTY_NAME, unique);
 
         if (enclosingNodeTypes != null && enclosingNodeTypes.length != 0) {
@@ -233,7 +229,7 @@ public class OakIndexUtils {
                 PropertyType.NAME);
         }
         session.save();
-        
+
         return indexDef;
     }
 
@@ -241,13 +237,13 @@ public class OakIndexUtils {
     /**
      * Helper method to create or update an ordered index definition.
      *
-     * @param session the session
+     * @param session             the session
      * @param indexDefinitionName the name of the node for the index definition
-     * @param async whether the indexing is async or not
-     * @param propertyNames the list of properties to index
-     * @param unique if unique or not
-     * @param enclosingNodeTypes the enclosing node types
-     * @param direction the direction
+     * @param async               whether the indexing is async or not
+     * @param propertyNames       the list of properties to index
+     * @param unique              if unique or not
+     * @param enclosingNodeTypes  the enclosing node types
+     * @param direction           the direction
      * @return the node just created
      * @throws RepositoryException the repository exception
      */

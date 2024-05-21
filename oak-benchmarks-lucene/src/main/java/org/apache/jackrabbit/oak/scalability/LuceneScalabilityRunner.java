@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.scalability;
 
+import java.util.Arrays;
 import org.apache.jackrabbit.oak.benchmark.util.Date;
 import org.apache.jackrabbit.oak.scalability.benchmarks.search.AggregateNodeSearcher;
 import org.apache.jackrabbit.oak.scalability.benchmarks.search.ConcurrentReader;
@@ -44,43 +45,42 @@ import org.apache.jackrabbit.oak.scalability.suites.ScalabilityBlobSearchSuite;
 import org.apache.jackrabbit.oak.scalability.suites.ScalabilityNodeRelationshipSuite;
 import org.apache.jackrabbit.oak.scalability.suites.ScalabilityNodeSuite;
 
-import java.util.Arrays;
-
 public class LuceneScalabilityRunner extends ScalabilityRunner {
 
     public static void main(String[] args) throws Exception {
         initOptionSet(args);
         ScalabilityRunner.addToScalabilitySuiteList(
-                Arrays.asList(
-                        new ScalabilityBlobSearchSuite(scalabilityOptions.getWithStorage().value(options))
-                                .addBenchmarks(new FullTextSearcher(),
-                                        new NodeTypeSearcher(),
-                                        new FormatSearcher(),
-                                        new FacetSearcher(),
-                                        new LastModifiedSearcher(Date.LAST_2_HRS),
-                                        new LastModifiedSearcher(Date.LAST_24_HRS),
-                                        new LastModifiedSearcher(Date.LAST_7_DAYS),
-                                        new LastModifiedSearcher(Date.LAST_MONTH),
-                                        new LastModifiedSearcher(Date.LAST_YEAR),
-                                        new OrderByDate()),
-                        new ScalabilityNodeSuite(scalabilityOptions.getWithStorage().value(options))
-                                .addBenchmarks(new OrderBySearcher(),
-                                        new SplitOrderBySearcher(),
-                                        new OrderByOffsetPageSearcher(),
-                                        new SplitOrderByOffsetPageSearcher(),
-                                        new OrderByKeysetPageSearcher(),
-                                        new SplitOrderByKeysetPageSearcher(),
-                                        new MultiFilterOrderBySearcher(),
-                                        new MultiFilterSplitOrderBySearcher(),
-                                        new MultiFilterOrderByOffsetPageSearcher(),
-                                        new MultiFilterSplitOrderByOffsetPageSearcher(),
-                                        new MultiFilterOrderByKeysetPageSearcher(),
-                                        new MultiFilterSplitOrderByKeysetPageSearcher(),
-                                        new ConcurrentReader(),
-                                        new ConcurrentWriter()),
-                        new ScalabilityNodeRelationshipSuite(scalabilityOptions.getWithStorage().value(options))
-                                .addBenchmarks(new AggregateNodeSearcher())
-                )
+            Arrays.asList(
+                new ScalabilityBlobSearchSuite(scalabilityOptions.getWithStorage().value(options))
+                    .addBenchmarks(new FullTextSearcher(),
+                        new NodeTypeSearcher(),
+                        new FormatSearcher(),
+                        new FacetSearcher(),
+                        new LastModifiedSearcher(Date.LAST_2_HRS),
+                        new LastModifiedSearcher(Date.LAST_24_HRS),
+                        new LastModifiedSearcher(Date.LAST_7_DAYS),
+                        new LastModifiedSearcher(Date.LAST_MONTH),
+                        new LastModifiedSearcher(Date.LAST_YEAR),
+                        new OrderByDate()),
+                new ScalabilityNodeSuite(scalabilityOptions.getWithStorage().value(options))
+                    .addBenchmarks(new OrderBySearcher(),
+                        new SplitOrderBySearcher(),
+                        new OrderByOffsetPageSearcher(),
+                        new SplitOrderByOffsetPageSearcher(),
+                        new OrderByKeysetPageSearcher(),
+                        new SplitOrderByKeysetPageSearcher(),
+                        new MultiFilterOrderBySearcher(),
+                        new MultiFilterSplitOrderBySearcher(),
+                        new MultiFilterOrderByOffsetPageSearcher(),
+                        new MultiFilterSplitOrderByOffsetPageSearcher(),
+                        new MultiFilterOrderByKeysetPageSearcher(),
+                        new MultiFilterSplitOrderByKeysetPageSearcher(),
+                        new ConcurrentReader(),
+                        new ConcurrentWriter()),
+                new ScalabilityNodeRelationshipSuite(
+                    scalabilityOptions.getWithStorage().value(options))
+                    .addBenchmarks(new AggregateNodeSearcher())
+            )
         );
 
     }

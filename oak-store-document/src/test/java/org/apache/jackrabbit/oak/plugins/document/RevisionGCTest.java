@@ -49,7 +49,7 @@ public class RevisionGCTest {
         this.fixture = fixture;
     }
 
-    @Parameterized.Parameters(name="{0}")
+    @Parameterized.Parameters(name = "{0}")
     public static java.util.Collection<Object[]> fixtures() throws IOException {
         return DocumentStoreFixture.getFixtures();
     }
@@ -60,11 +60,11 @@ public class RevisionGCTest {
         clock.waitUntil(System.currentTimeMillis());
         Revision.setClock(clock);
         store = new DocumentMK.Builder()
-                .clock(clock)
-                .setLeaseCheckMode(LeaseCheckMode.LENIENT)
-                .setDocumentStore(fixture.createDocumentStore())
-                .setAsyncDelay(0)
-                .getNodeStore();
+            .clock(clock)
+            .setLeaseCheckMode(LeaseCheckMode.LENIENT)
+            .setDocumentStore(fixture.createDocumentStore())
+            .setAsyncDelay(0)
+            .getNodeStore();
         gc = store.getVersionGarbageCollector();
     }
 
@@ -104,7 +104,7 @@ public class RevisionGCTest {
     }
 
     private void merge(NodeBuilder builder)
-            throws Exception {
+        throws Exception {
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 

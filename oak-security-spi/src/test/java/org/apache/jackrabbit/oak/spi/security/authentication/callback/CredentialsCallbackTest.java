@@ -16,11 +16,10 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.callback;
 
-import javax.jcr.Credentials;
-
-import org.junit.Test;
-
 import static org.junit.Assert.assertSame;
+
+import javax.jcr.Credentials;
+import org.junit.Test;
 
 public class CredentialsCallbackTest {
 
@@ -28,7 +27,8 @@ public class CredentialsCallbackTest {
     public void testCallback() {
         CredentialsCallback cb = new CredentialsCallback();
 
-        Credentials creds = new Credentials() {};
+        Credentials creds = new Credentials() {
+        };
         cb.setCredentials(creds);
 
         assertSame(creds, cb.getCredentials());

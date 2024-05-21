@@ -23,4 +23,5 @@ package org.apache.jackrabbit.oak.stats;
  * A tag interface to indicate that a class is a Stat.
  */
 public interface Stats {
+
 }

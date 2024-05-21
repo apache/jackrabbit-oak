@@ -31,7 +31,6 @@ import static org.junit.Assert.assertTrue;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
-
 import javax.jcr.Node;
 import javax.jcr.Property;
 import javax.jcr.PropertyIterator;
@@ -44,7 +43,6 @@ import javax.jcr.observation.Event;
 import javax.jcr.observation.EventIterator;
 import javax.jcr.observation.EventListener;
 import javax.jcr.observation.ObservationManager;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
@@ -60,15 +58,16 @@ import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class ObservationRefreshTest extends AbstractRepositoryTest {
+
     public static final int ALL_EVENTS = NODE_ADDED | NODE_REMOVED | NODE_MOVED | PROPERTY_ADDED |
-            PROPERTY_REMOVED | PROPERTY_CHANGED | PERSIST;
+        PROPERTY_REMOVED | PROPERTY_CHANGED | PERSIST;
     private static final String TEST_NODE = "test_node";
     private static final String TEST_NODE_TYPE = "oak:Unstructured";
     private static final String REFERENCEABLE_NODE = "\"referenceable\"";
     private static final String TEST_PATH = '/' + TEST_NODE;
     private static final String TEST_TYPE = "mix:test";
 
-    private static final long CONDITION_TIMEOUT = 10*60*1000;
+    private static final long CONDITION_TIMEOUT = 10 * 60 * 1000;
 
     private Session observingSession;
     private ObservationManager observationManager;
@@ -102,9 +101,10 @@ public class ObservationRefreshTest extends AbstractRepositoryTest {
 
         session.save();
 
-        Map<String,Object> attrs = new HashMap<String, Object>();
+        Map<String, Object> attrs = new HashMap<String, Object>();
         attrs.put(RepositoryImpl.REFRESH_INTERVAL, 0);
-        observingSession = ((JackrabbitRepository) getRepository()).login(new SimpleCredentials("admin", "admin".toCharArray()), null, attrs);
+        observingSession = ((JackrabbitRepository) getRepository()).login(
+            new SimpleCredentials("admin", "admin".toCharArray()), null, attrs);
         observationManager = observingSession.getWorkspace().getObservationManager();
     }
 
@@ -119,7 +119,7 @@ public class ObservationRefreshTest extends AbstractRepositoryTest {
         observationManager.addEventListener(listener, ALL_EVENTS, "/", true, null, null, false);
         try {
             Node n = getAdminSession().getNode(TEST_PATH);
-            for (int i=0; i<1000; i++) {
+            for (int i = 0; i < 1000; i++) {
                 n.addNode("n" + i);
                 n.getSession().save();
             }
@@ -132,7 +132,7 @@ public class ObservationRefreshTest extends AbstractRepositoryTest {
             assertEquals("", listener.error);
             assertEquals("added nodes", 1000, listener.numAdded);
 
-            for (int i=0; i<1000; i++) {
+            for (int i = 0; i < 1000; i++) {
                 n.getNode("n" + i).remove();
                 n.getSession().save();
             }
@@ -145,7 +145,7 @@ public class ObservationRefreshTest extends AbstractRepositoryTest {
             assertEquals("", listener.error);
             assertEquals("removed nodes", 1000, listener.numRemoved);
 
-            for (int i=0; i<100; i++) {
+            for (int i = 0; i < 100; i++) {
                 n.setProperty("test" + i, "foo");
                 n.getSession().save();
             }
@@ -158,7 +158,7 @@ public class ObservationRefreshTest extends AbstractRepositoryTest {
             assertEquals("", listener.error);
             assertEquals("properties added", 1100, listener.numPropsAdded);
 
-            for (int i=0; i<100; i++) {
+            for (int i = 0; i < 100; i++) {
                 n.setProperty("test" + i, i);
                 n.getSession().save();
             }
@@ -171,29 +171,29 @@ public class ObservationRefreshTest extends AbstractRepositoryTest {
             assertEquals("", listener.error);
             assertEquals("properties modified", 100, listener.numPropsModified);
 
-            for (int i=0; i<10; i++) {
+            for (int i = 0; i < 10; i++) {
                 n.setProperty("test100", "foo");
                 n.getSession().save();
                 assertTrue("Gave up waiting for events",
-                        listener.waitFor(CONDITION_TIMEOUT, new Condition() {
-                            @Override
-                            public boolean evaluate() {
-                                return listener.test100Exists;
-                            }
-                        }));
+                    listener.waitFor(CONDITION_TIMEOUT, new Condition() {
+                        @Override
+                        public boolean evaluate() {
+                            return listener.test100Exists;
+                        }
+                    }));
                 n.getProperty("test100").remove();
                 n.getSession().save();
                 assertTrue("Gave up waiting for events",
-                        listener.waitFor(CONDITION_TIMEOUT, new Condition() {
-                            @Override
-                            public boolean evaluate() {
-                                return !listener.test100Exists;
-                            }
-                        }));
+                    listener.waitFor(CONDITION_TIMEOUT, new Condition() {
+                        @Override
+                        public boolean evaluate() {
+                            return !listener.test100Exists;
+                        }
+                    }));
             }
             assertEquals("", listener.error);
 
-            for (int i=0; i<100; i++) {
+            for (int i = 0; i < 100; i++) {
                 n.getProperty("test" + i).remove();
                 n.getSession().save();
             }
@@ -205,13 +205,13 @@ public class ObservationRefreshTest extends AbstractRepositoryTest {
             });
             assertEquals("", listener.error);
             assertEquals("properties removed", 1100, listener.numPropsRemoved);
-        }
-        finally {
+        } finally {
             observationManager.removeEventListener(listener);
         }
     }
 
     private interface Condition {
+
         boolean evaluate();
     }
 
@@ -253,7 +253,8 @@ public class ObservationRefreshTest extends AbstractRepositoryTest {
                         }
                     }
                     if (event.getType() == Event.PROPERTY_ADDED) {
-                        Node node = observingSession.getNode(Text.getRelativeParent(event.getPath(), 1));
+                        Node node = observingSession.getNode(
+                            Text.getRelativeParent(event.getPath(), 1));
                         PropertyIterator iter = node.getProperties();
                         boolean ok = false;
                         while (iter.hasNext()) {
@@ -308,7 +309,7 @@ public class ObservationRefreshTest extends AbstractRepositoryTest {
         }
 
         synchronized boolean waitFor(long timeout, Condition c)
-                throws InterruptedException {
+            throws InterruptedException {
             long end = System.currentTimeMillis() + timeout;
             long remaining = end - System.currentTimeMillis();
             while (remaining > 0) {

@@ -16,17 +16,16 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.junit.Test;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import org.junit.Test;
 
 public class SupportedPathsTest {
 
@@ -79,7 +78,8 @@ public class SupportedPathsTest {
     public void testRootPath() {
         SupportedPaths supportedPaths = new SupportedPaths(ImmutableSet.of("/"));
 
-        List<String> paths = ImmutableList.of("/", "/content", "/jcr:system", "/testRoot", "/some/other/path", "/content/a", "/content/a/b");
+        List<String> paths = ImmutableList.of("/", "/content", "/jcr:system", "/testRoot",
+            "/some/other/path", "/content/a", "/content/a/b");
 
         for (String path : paths) {
             assertTrue(path, supportedPaths.includes(path));
@@ -91,7 +91,8 @@ public class SupportedPathsTest {
     public void testEmpty() {
         SupportedPaths supportedPaths = new SupportedPaths(ImmutableSet.of());
 
-        List<String> paths = ImmutableList.of("/", "/content", "/jcr:system", "/testRoot", "/some/other/path", "/content/a", "/content/a/b");
+        List<String> paths = ImmutableList.of("/", "/content", "/jcr:system", "/testRoot",
+            "/some/other/path", "/content/a", "/content/a/b");
 
         for (String path : paths) {
             assertFalse(path, supportedPaths.includes(path));

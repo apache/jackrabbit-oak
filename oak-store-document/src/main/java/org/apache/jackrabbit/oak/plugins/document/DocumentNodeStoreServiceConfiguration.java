@@ -36,9 +36,9 @@ import org.osgi.service.component.ComponentContext;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
 /**
- * Configuration for the {@link DocumentNodeStoreService}. Access is provided
- * via {@link Configuration}, while internally the implementation considers
- * entries in the following sequence:
+ * Configuration for the {@link DocumentNodeStoreService}. Access is provided via
+ * {@link Configuration}, while internally the implementation considers entries in the following
+ * sequence:
  * <ul>
  *     <li>Framework/system properties, potentially with mapped names. See
  *          {@link #frameworkPropertyNameFor(String)}.</li>
@@ -63,8 +63,7 @@ final class DocumentNodeStoreServiceConfiguration {
     private static final String FWK_PROP_URI = "oak.mongo.uri";
 
     /**
-     * Name of framework property to configure Mongo Database name
-     * to use
+     * Name of framework property to configure Mongo Database name to use
      */
     private static final String FWK_PROP_DB = "oak.mongo.db";
 
@@ -74,8 +73,8 @@ final class DocumentNodeStoreServiceConfiguration {
     private static final String FWK_PROP_SO_KEEP_ALIVE = "oak.mongo.socketKeepAlive";
 
     /**
-     * Name of framework property to configure socket timeout for lease update
-     * operations on MongoDB.
+     * Name of framework property to configure socket timeout for lease update operations on
+     * MongoDB.
      */
     private static final String FWK_PROP_MONGO_LEASE_SO_TIMEOUT = "oak.mongo.leaseSocketTimeout";
 
@@ -92,31 +91,30 @@ final class DocumentNodeStoreServiceConfiguration {
     static final String PROP_UPDATE_LIMIT = "updateLimit";
 
     /**
-     * Special mapping of property names to framework properties. All other
-     * property names are mapped to framework properties by prefixing them with
-     * {@link #DEFAULT_FWK_PREFIX}.
+     * Special mapping of property names to framework properties. All other property names are
+     * mapped to framework properties by prefixing them with {@link #DEFAULT_FWK_PREFIX}.
      */
     private static final Map<String, String> FWK_PROP_MAPPING = new ImmutableMap.Builder<String, String>()
-            .put(PROP_DB, FWK_PROP_DB)
-            .put(PROP_URI, FWK_PROP_URI)
-            .put(PROP_HOME, PROP_HOME)
-            .put(PROP_SO_KEEP_ALIVE, FWK_PROP_SO_KEEP_ALIVE)
-            .put(PROP_LEASE_SO_TIMEOUT, FWK_PROP_MONGO_LEASE_SO_TIMEOUT)
-            .put(PROP_UPDATE_LIMIT, FWK_PROP_UPDATE_LIMIT)
-            .build();
+        .put(PROP_DB, FWK_PROP_DB)
+        .put(PROP_URI, FWK_PROP_URI)
+        .put(PROP_HOME, PROP_HOME)
+        .put(PROP_SO_KEEP_ALIVE, FWK_PROP_SO_KEEP_ALIVE)
+        .put(PROP_LEASE_SO_TIMEOUT, FWK_PROP_MONGO_LEASE_SO_TIMEOUT)
+        .put(PROP_UPDATE_LIMIT, FWK_PROP_UPDATE_LIMIT)
+        .build();
 
     private DocumentNodeStoreServiceConfiguration() {
     }
 
     static Configuration create(ComponentContext context,
-                                ConfigurationAdmin configurationAdmin,
-                                Configuration preset,
-                                Configuration configuration)
-            throws IOException {
+        ConfigurationAdmin configurationAdmin,
+        Configuration preset,
+        Configuration configuration)
+        throws IOException {
         return (Configuration) Proxy.newProxyInstance(
-                DocumentNodeStoreServiceConfiguration.class.getClassLoader(),
-                new Class[]{Configuration.class},
-                new ConfigurationHandler(context, configurationAdmin, preset, configuration)
+            DocumentNodeStoreServiceConfiguration.class.getClassLoader(),
+            new Class[]{Configuration.class},
+            new ConfigurationHandler(context, configurationAdmin, preset, configuration)
         );
     }
 
@@ -145,9 +143,9 @@ final class DocumentNodeStoreServiceConfiguration {
         private final Set<String> configurationKeys;
 
         ConfigurationHandler(ComponentContext context,
-                             ConfigurationAdmin configurationAdmin,
-                             Configuration preset,
-                             Configuration configuration) throws IOException {
+            ConfigurationAdmin configurationAdmin,
+            Configuration preset,
+            Configuration configuration) throws IOException {
             this.context = checkNotNull(context);
             this.preset = checkNotNull(preset);
             this.configuration = checkNotNull(configuration);
@@ -155,9 +153,10 @@ final class DocumentNodeStoreServiceConfiguration {
         }
 
         private static Set<String> getConfigurationKeys(ConfigurationAdmin configurationAdmin)
-                throws IOException {
+            throws IOException {
             Set<String> keys = new HashSet<>();
-            org.osgi.service.cm.Configuration c = configurationAdmin.getConfiguration(Configuration.PID);
+            org.osgi.service.cm.Configuration c = configurationAdmin.getConfiguration(
+                Configuration.PID);
             for (Object k : Collections.list(c.getProperties().keys())) {
                 keys.add(k.toString());
             }
@@ -166,7 +165,7 @@ final class DocumentNodeStoreServiceConfiguration {
 
         @Override
         public Object invoke(Object proxy, Method method, Object[] args)
-                throws Throwable {
+            throws Throwable {
             String name = method.getName().replaceAll("_", ".");
             Configuration c;
             if (configurationKeys.contains(name)) {
@@ -177,7 +176,7 @@ final class DocumentNodeStoreServiceConfiguration {
             Object value = method.invoke(c);
             // check if this is overridden by a framework property
             String frameworkProp = OsgiUtil.lookup(
-                    context.getBundleContext(), frameworkPropertyNameFor(name));
+                context.getBundleContext(), frameworkPropertyNameFor(name));
             if (frameworkProp != null) {
                 value = tryCoerce(frameworkProp, method.getReturnType(), value);
             }

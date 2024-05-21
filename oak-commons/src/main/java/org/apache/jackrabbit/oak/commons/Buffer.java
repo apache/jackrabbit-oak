@@ -29,18 +29,16 @@ import java.nio.charset.Charset;
 import java.util.zip.CRC32;
 
 /**
- * This is a wrapper around {@link ByteBuffer}. It maintains the same semantics
- * and mechanisms of the {@link ByteBuffer}.
+ * This is a wrapper around {@link ByteBuffer}. It maintains the same semantics and mechanisms of
+ * the {@link ByteBuffer}.
  * <p>
- * Java 9 introduced API changes to some methods in {@link ByteBuffer}. Instead
- * of returning instances of {@link java.nio.Buffer Buffer}, those methods were
- * rewritten to return instances of {@link ByteBuffer} instead. While this is
- * perfectly fine at compile time, running "modern" code on Java 8 and earlier
- * throws {@link NoSuchMethodError}. In order to prevent occurrences of this
- * exceptions in the future, {@link Buffer} is used consistently in place of
- * {@link ByteBuffer}. Since it is not possible to directly convert a {@link
- * Buffer} into a {@link ByteBuffer} and the other way around, {@link Buffer}
- * makes it less likely to develop dangerous code in the future.
+ * Java 9 introduced API changes to some methods in {@link ByteBuffer}. Instead of returning
+ * instances of {@link java.nio.Buffer Buffer}, those methods were rewritten to return instances of
+ * {@link ByteBuffer} instead. While this is perfectly fine at compile time, running "modern" code
+ * on Java 8 and earlier throws {@link NoSuchMethodError}. In order to prevent occurrences of this
+ * exceptions in the future, {@link Buffer} is used consistently in place of {@link ByteBuffer}.
+ * Since it is not possible to directly convert a {@link Buffer} into a {@link ByteBuffer} and the
+ * other way around, {@link Buffer} makes it less likely to develop dangerous code in the future.
  */
 final public class Buffer {
 
@@ -50,7 +48,8 @@ final public class Buffer {
         this.buffer = buffer;
     }
 
-    public static Buffer map(FileChannel channel, MapMode mode, long position, long size) throws IOException {
+    public static Buffer map(FileChannel channel, MapMode mode, long position, long size)
+        throws IOException {
         return new Buffer(channel.map(mode, position, size));
     }
 

@@ -42,7 +42,7 @@ public class NodeDocumentCacheTest {
     @Before
     public void setup() {
         cache = newDocumentNodeStoreBuilder()
-                .buildNodeDocumentCache(store, locks);
+            .buildNodeDocumentCache(store, locks);
     }
 
     @Test

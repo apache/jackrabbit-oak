@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.run;
 import static org.apache.jackrabbit.oak.segment.FileStoreHelper.isValidFileStoreOrFail;
 
 import java.io.File;
-
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
@@ -33,16 +32,17 @@ class HistoryCommand implements Command {
     public void execute(String... args) throws Exception {
         OptionParser parser = new OptionParser();
         OptionSpec<File> directoryArg = parser.nonOptions(
-                "Path to segment store (required)").ofType(File.class);
+            "Path to segment store (required)").ofType(File.class);
         OptionSpec<String> journalArg = parser.accepts(
-                "journal", "journal file").withRequiredArg().ofType(String.class)
-                .defaultsTo("journal.log");
+                                                  "journal", "journal file").withRequiredArg().ofType(String.class)
+                                              .defaultsTo("journal.log");
         OptionSpec<String> pathArg = parser.accepts(
-                "path", "Path for which to trace the history").withRequiredArg().ofType(String.class)
-                .defaultsTo("/");
+                                               "path", "Path for which to trace the history").withRequiredArg().ofType(String.class)
+                                           .defaultsTo("/");
         OptionSpec<Integer> depthArg = parser.accepts(
-                "depth", "Depth up to which to dump node states").withRequiredArg().ofType(Integer.class)
-                .defaultsTo(0);
+                                                 "depth", "Depth up to which to dump node states").withRequiredArg()
+                                             .ofType(Integer.class)
+                                             .defaultsTo(0);
         OptionSet options = parser.parse(args);
 
         File directory = directoryArg.value(options);
@@ -58,12 +58,12 @@ class HistoryCommand implements Command {
         File journal = new File(isValidFileStoreOrFail(directory), journalName);
 
         int returnCode = History.builder()
-            .withPath(directory)
-            .withJournal(journal)
-            .withNode(path)
-            .withDepth(depth)
-            .build()
-            .run();
+                                .withPath(directory)
+                                .withJournal(journal)
+                                .withNode(path)
+                                .withDepth(depth)
+                                .build()
+                                .run();
         System.exit(returnCode);
     }
 

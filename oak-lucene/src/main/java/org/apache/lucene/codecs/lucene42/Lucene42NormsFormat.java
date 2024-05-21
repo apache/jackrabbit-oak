@@ -26,7 +26,6 @@ package org.apache.lucene.codecs.lucene42;
  */
 
 import java.io.IOException;
-
 import org.apache.lucene.codecs.DocValuesConsumer;
 import org.apache.lucene.codecs.DocValuesProducer;
 import org.apache.lucene.codecs.NormsFormat;
@@ -37,54 +36,56 @@ import org.apache.lucene.util.packed.PackedInts;
 /**
  * Lucene 4.2 score normalization format.
  * <p>
- * NOTE: this uses the same format as {@link Lucene42DocValuesFormat}
- * Numeric DocValues, but with different file extensions, and passing
- * {@link PackedInts#FASTEST} for uncompressed encoding: trading off
- * space for performance.
+ * NOTE: this uses the same format as {@link Lucene42DocValuesFormat} Numeric DocValues, but with
+ * different file extensions, and passing {@link PackedInts#FASTEST} for uncompressed encoding:
+ * trading off space for performance.
  * <p>
  * Files:
  * <ul>
  *   <li><tt>.nvd</tt>: DocValues data</li>
  *   <li><tt>.nvm</tt>: DocValues metadata</li>
  * </ul>
+ *
  * @see Lucene42DocValuesFormat
  */
 public class Lucene42NormsFormat extends NormsFormat {
-  final float acceptableOverheadRatio;
 
-  /** 
-   * Calls {@link #Lucene42NormsFormat(float) 
-   * Lucene42DocValuesFormat(PackedInts.FASTEST)} 
-   */
-  public Lucene42NormsFormat() {
-    // note: we choose FASTEST here (otherwise our norms are half as big but 15% slower than previous lucene)
-    this(PackedInts.FASTEST);
-  }
-  
-  /**
-   * Creates a new Lucene42DocValuesFormat with the specified
-   * <code>acceptableOverheadRatio</code> for NumericDocValues.
-   * @param acceptableOverheadRatio compression parameter for numerics. 
-   *        Currently this is only used when the number of unique values is small.
-   *        
-   * @lucene.experimental
-   */
-  public Lucene42NormsFormat(float acceptableOverheadRatio) {
-    this.acceptableOverheadRatio = acceptableOverheadRatio;
-  }
-  
-  @Override
-  public DocValuesConsumer normsConsumer(SegmentWriteState state) throws IOException {
-    return new Lucene42NormsConsumer(state, DATA_CODEC, DATA_EXTENSION, METADATA_CODEC, METADATA_EXTENSION, acceptableOverheadRatio);
-  }
-  
-  @Override
-  public DocValuesProducer normsProducer(SegmentReadState state) throws IOException {
-    return new Lucene42DocValuesProducer(state, DATA_CODEC, DATA_EXTENSION, METADATA_CODEC, METADATA_EXTENSION);
-  }
-  
-  private static final String DATA_CODEC = "Lucene41NormsData";
-  private static final String DATA_EXTENSION = "nvd";
-  private static final String METADATA_CODEC = "Lucene41NormsMetadata";
-  private static final String METADATA_EXTENSION = "nvm";
+    final float acceptableOverheadRatio;
+
+    /**
+     * Calls {@link #Lucene42NormsFormat(float) Lucene42DocValuesFormat(PackedInts.FASTEST)}
+     */
+    public Lucene42NormsFormat() {
+        // note: we choose FASTEST here (otherwise our norms are half as big but 15% slower than previous lucene)
+        this(PackedInts.FASTEST);
+    }
+
+    /**
+     * Creates a new Lucene42DocValuesFormat with the specified
+     * <code>acceptableOverheadRatio</code> for NumericDocValues.
+     *
+     * @param acceptableOverheadRatio compression parameter for numerics. Currently this is only
+     *                                used when the number of unique values is small.
+     * @lucene.experimental
+     */
+    public Lucene42NormsFormat(float acceptableOverheadRatio) {
+        this.acceptableOverheadRatio = acceptableOverheadRatio;
+    }
+
+    @Override
+    public DocValuesConsumer normsConsumer(SegmentWriteState state) throws IOException {
+        return new Lucene42NormsConsumer(state, DATA_CODEC, DATA_EXTENSION, METADATA_CODEC,
+            METADATA_EXTENSION, acceptableOverheadRatio);
+    }
+
+    @Override
+    public DocValuesProducer normsProducer(SegmentReadState state) throws IOException {
+        return new Lucene42DocValuesProducer(state, DATA_CODEC, DATA_EXTENSION, METADATA_CODEC,
+            METADATA_EXTENSION);
+    }
+
+    private static final String DATA_CODEC = "Lucene41NormsData";
+    private static final String DATA_EXTENSION = "nvd";
+    private static final String METADATA_CODEC = "Lucene41NormsMetadata";
+    private static final String METADATA_EXTENSION = "nvm";
 }

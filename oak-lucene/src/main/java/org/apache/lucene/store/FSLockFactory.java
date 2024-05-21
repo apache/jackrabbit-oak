@@ -33,34 +33,34 @@ import java.io.File;
 
 public abstract class FSLockFactory extends LockFactory {
 
-  /**
-   * Directory for the lock files.
-   */
-  protected File lockDir = null;
+    /**
+     * Directory for the lock files.
+     */
+    protected File lockDir = null;
 
-  /**
-   * Set the lock directory. This method can be only called
-   * once to initialize the lock directory. It is used by {@link FSDirectory}
-   * to set the lock directory to itself.
-   * Subclasses can also use this method to set the directory
-   * in the constructor.
-   */
-  protected final void setLockDir(File lockDir) {
-    if (this.lockDir != null)
-      throw new IllegalStateException("You can set the lock directory for this factory only once.");
-    this.lockDir = lockDir;
-  }
-  
-  /**
-   * Retrieve the lock directory.
-   */
-  public File getLockDir() {
-    return lockDir;
-  }
+    /**
+     * Set the lock directory. This method can be only called once to initialize the lock directory.
+     * It is used by {@link FSDirectory} to set the lock directory to itself. Subclasses can also
+     * use this method to set the directory in the constructor.
+     */
+    protected final void setLockDir(File lockDir) {
+        if (this.lockDir != null) {
+            throw new IllegalStateException(
+                "You can set the lock directory for this factory only once.");
+        }
+        this.lockDir = lockDir;
+    }
 
-  @Override
-  public String toString() {
-    return this.getClass().getSimpleName() + "@" + lockDir;
-  }
-  
+    /**
+     * Retrieve the lock directory.
+     */
+    public File getLockDir() {
+        return lockDir;
+    }
+
+    @Override
+    public String toString() {
+        return this.getClass().getSimpleName() + "@" + lockDir;
+    }
+
 }

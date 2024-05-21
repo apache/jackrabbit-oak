@@ -19,7 +19,8 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
-public class IndexCopierClosedException extends RuntimeException{
+public class IndexCopierClosedException extends RuntimeException {
+
     public IndexCopierClosedException(String message) {
         super(message);
     }

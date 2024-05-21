@@ -45,7 +45,7 @@ public class PathComparatorTest {
         paths.sort(PathComparator.INSTANCE);
 
         List<Path> expected = Lists.newArrayList(
-                p("/bar/qux"), p("/foo/bar"), p("/bar"), p("/foo"), p("/"));
+            p("/bar/qux"), p("/foo/bar"), p("/bar"), p("/foo"), p("/"));
 
         assertEquals(expected, paths);
     }

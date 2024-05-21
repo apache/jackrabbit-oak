@@ -33,7 +33,8 @@ class DynamicGroupMembershipService implements DynamicMembershipService {
 
     @Override
     @NotNull
-    public DynamicMembershipProvider getDynamicMembershipProvider(@NotNull Root root, @NotNull UserManager userManager, @NotNull NamePathMapper namePathMapper) {
+    public DynamicMembershipProvider getDynamicMembershipProvider(@NotNull Root root,
+        @NotNull UserManager userManager, @NotNull NamePathMapper namePathMapper) {
         if (scTracker.hasDynamicGroupsEnabled()) {
             return new ExternalGroupPrincipalProvider(root, userManager, namePathMapper, scTracker);
         } else {

@@ -17,16 +17,16 @@
 
 package org.apache.jackrabbit.oak.segment.file.tar;
 
-import org.apache.jackrabbit.oak.segment.Segment;
-import org.apache.jackrabbit.oak.segment.SegmentId;
-
 import java.io.IOException;
 import java.util.Map;
 import java.util.UUID;
+import org.apache.jackrabbit.oak.segment.Segment;
+import org.apache.jackrabbit.oak.segment.SegmentId;
 
 public interface EntryRecovery {
 
-    void recoverEntry(long msb, long lsb, byte[] data, int offset, int size, GCGeneration generation) throws IOException;
+    void recoverEntry(long msb, long lsb, byte[] data, int offset, int size,
+        GCGeneration generation) throws IOException;
 
     void recoverGraphEdge(UUID from, UUID to);
 

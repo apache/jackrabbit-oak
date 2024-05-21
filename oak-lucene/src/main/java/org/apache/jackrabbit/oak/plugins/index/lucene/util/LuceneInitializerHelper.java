@@ -16,18 +16,17 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene.util;
 
-import java.util.Set;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.newLuceneFileIndexDefinition;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.newLuceneIndexDefinition;
 
+import java.util.Set;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexHelper;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.jetbrains.annotations.NotNull;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.newLuceneFileIndexDefinition;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.newLuceneIndexDefinition;
 
 public class LuceneInitializerHelper implements RepositoryInitializer {
 
@@ -56,17 +55,17 @@ public class LuceneInitializerHelper implements RepositoryInitializer {
     }
 
     public LuceneInitializerHelper(String name, Set<String> propertyTypes,
-            Set<String> excludes) {
+        Set<String> excludes) {
         this(name, propertyTypes, excludes, null, null);
     }
 
     public LuceneInitializerHelper(String name, Set<String> propertyTypes,
-            String filePath) {
+        String filePath) {
         this(name, propertyTypes, null, filePath, null);
     }
 
     public LuceneInitializerHelper(String name, Set<String> propertyTypes,
-            Set<String> excludes, String filePath, Boolean storageEnabled) {
+        Set<String> excludes, String filePath, Boolean storageEnabled) {
         this.name = name;
         this.propertyTypes = propertyTypes;
         this.excludes = excludes;
@@ -76,6 +75,7 @@ public class LuceneInitializerHelper implements RepositoryInitializer {
 
     /**
      * set the {@code async} property to "async".
+     *
      * @return
      */
     public LuceneInitializerHelper async() {
@@ -96,15 +96,15 @@ public class LuceneInitializerHelper implements RepositoryInitializer {
     @Override
     public void initialize(@NotNull NodeBuilder builder) {
         if (builder.hasChildNode(INDEX_DEFINITIONS_NAME)
-                && builder.getChildNode(INDEX_DEFINITIONS_NAME).hasChildNode(name)) {
+            && builder.getChildNode(INDEX_DEFINITIONS_NAME).hasChildNode(name)) {
             // do nothing
         } else if (filePath == null) {
             newLuceneIndexDefinition(IndexUtils.getOrCreateOakIndex(builder),
-                    name, propertyTypes, excludes, async, storageEnabled);
+                name, propertyTypes, excludes, async, storageEnabled);
         } else {
             newLuceneFileIndexDefinition(
-                    IndexUtils.getOrCreateOakIndex(builder),
-                    name, propertyTypes, excludes, filePath, async);
+                IndexUtils.getOrCreateOakIndex(builder),
+                name, propertyTypes, excludes, filePath, async);
         }
     }
 

@@ -16,11 +16,18 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
+import static org.junit.Assert.assertSame;
+
+import java.security.Principal;
+import java.util.Iterator;
+import java.util.List;
+import javax.jcr.RepositoryException;
+import javax.jcr.ValueFactory;
+import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.api.security.user.Authorizable;
-import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.AbstractExternalAuthTest;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
@@ -31,16 +38,8 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Before;
 
-import javax.jcr.RepositoryException;
-import javax.jcr.ValueFactory;
-import java.security.Principal;
-import java.util.Iterator;
-import java.util.List;
-
-import static org.junit.Assert.assertSame;
-
 public abstract class AbstractDynamicTest extends AbstractExternalAuthTest {
-    
+
     Root r;
     UserManager userManager;
     ValueFactory valueFactory;
@@ -68,7 +67,7 @@ public abstract class AbstractDynamicTest extends AbstractExternalAuthTest {
 
         syncContext = new DynamicSyncContext(syncConfig, idp, userManager, valueFactory);
 
-        // inject user-configuration as well as sync-handler and sync-hander-mapping to have get dynamic-membership 
+        // inject user-configuration as well as sync-handler and sync-hander-mapping to have get dynamic-membership
         // providers registered.
         context.registerInjectActivateService(getUserConfiguration());
         registerSyncHandler(syncConfigAsMap(), idp.getName());
@@ -88,14 +87,15 @@ public abstract class AbstractDynamicTest extends AbstractExternalAuthTest {
         DefaultSyncConfig sc = createSyncConfig();
         UserManager um = getUserManager(r);
         // create automembership groups
-        for (String id : Iterables.concat(sc.user().getAutoMembership(), sc.group().getAutoMembership())) {
+        for (String id : Iterables.concat(sc.user().getAutoMembership(),
+            sc.group().getAutoMembership())) {
             um.createGroup(id);
         }
     }
 
     /**
-     * Synchronized a separate user with DefaultSyncContext to test behavior for previously synchronized user/group
-     * with deep membership-nesting => all groups synched
+     * Synchronized a separate user with DefaultSyncContext to test behavior for previously
+     * synchronized user/group with deep membership-nesting => all groups synched
      */
     @NotNull
     abstract ExternalUser syncPriorToDynamicMembership() throws Exception;
@@ -108,7 +108,8 @@ public abstract class AbstractDynamicTest extends AbstractExternalAuthTest {
         return sc;
     }
 
-    protected void sync(@NotNull ExternalIdentity externalIdentity, @NotNull SyncResult.Status expectedStatus) throws Exception {
+    protected void sync(@NotNull ExternalIdentity externalIdentity,
+        @NotNull SyncResult.Status expectedStatus) throws Exception {
         SyncResult result = syncContext.sync(externalIdentity);
         assertSame(expectedStatus, result.getStatus());
         r.commit();

@@ -27,17 +27,16 @@ import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreB
 import java.io.File;
 import java.io.IOException;
 import java.util.Iterator;
-
 import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.oak.json.BlobSerializer;
 import org.apache.jackrabbit.oak.json.JsonSerializer;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
-import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.file.JournalEntry;
 import org.apache.jackrabbit.oak.segment.file.JournalReader;
 import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
+import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -46,6 +45,7 @@ import org.jetbrains.annotations.Nullable;
  * Utility for tracing a node back through the revision history.
  */
 public class RevisionHistory {
+
     private final ReadOnlyFileStore store;
 
     /**
@@ -54,7 +54,8 @@ public class RevisionHistory {
      * @param directory
      * @throws IOException
      */
-    public RevisionHistory(@NotNull File directory) throws IOException, InvalidFileStoreVersionException {
+    public RevisionHistory(@NotNull File directory)
+        throws IOException, InvalidFileStoreVersionException {
         this.store = fileStoreBuilder(checkNotNull(directory)).buildReadOnly();
     }
 
@@ -75,19 +76,21 @@ public class RevisionHistory {
      * @return
      * @throws IOException
      */
-    public Iterator<HistoryElement> getHistory(@NotNull JournalFile journal, @NotNull final String path)
-            throws IOException {
+    public Iterator<HistoryElement> getHistory(@NotNull JournalFile journal,
+        @NotNull final String path)
+        throws IOException {
         checkNotNull(path);
 
         try (JournalReader journalReader = new JournalReader(checkNotNull(journal))) {
             return Iterators.transform(journalReader,
-                    new Function<JournalEntry, HistoryElement>() {
-                        @NotNull @Override
-                        public HistoryElement apply(JournalEntry entry) {
-                            store.setRevision(entry.getRevision());
-                            NodeState node = getNode(store.getHead(), path);
-                            return new HistoryElement(entry.getRevision(), node);
-                        }
+                new Function<JournalEntry, HistoryElement>() {
+                    @NotNull
+                    @Override
+                    public HistoryElement apply(JournalEntry entry) {
+                        store.setRevision(entry.getRevision());
+                        NodeState node = getNode(store.getHead(), path);
+                        return new HistoryElement(entry.getRevision(), node);
+                    }
                 });
         }
     }
@@ -96,6 +99,7 @@ public class RevisionHistory {
      * Representation of a point in time for a given node.
      */
     public static final class HistoryElement {
+
         private final String revision;
         private final NodeState node;
 
@@ -106,6 +110,7 @@ public class RevisionHistory {
 
         /**
          * Revision of the node
+         *
          * @return
          */
         @NotNull
@@ -115,6 +120,7 @@ public class RevisionHistory {
 
         /**
          * Node at given revision
+         *
          * @return
          */
         @Nullable
@@ -124,6 +130,7 @@ public class RevisionHistory {
 
         /**
          * Serialise this element to JSON up to the given {@code depth}.
+         *
          * @param depth
          * @return
          */
@@ -135,7 +142,7 @@ public class RevisionHistory {
         }
 
         /**
-         * @return  {@code toString(0)}
+         * @return {@code toString(0)}
          */
         @Override
         public String toString() {

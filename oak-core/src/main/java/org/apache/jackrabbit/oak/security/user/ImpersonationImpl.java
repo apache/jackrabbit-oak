@@ -16,6 +16,13 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+
+import java.security.Principal;
+import java.util.HashSet;
+import java.util.Set;
+import javax.jcr.RepositoryException;
+import javax.security.auth.Subject;
 import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -31,14 +38,6 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.jcr.RepositoryException;
-import javax.security.auth.Subject;
-import java.security.Principal;
-import java.util.HashSet;
-import java.util.Set;
-
-import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 
 /**
  * ImpersonationImpl...

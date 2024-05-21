@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.plugins.document.rdb;
 
 import java.util.ArrayList;
 import java.util.List;
-
 import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.MissingLastRevSeeker;
@@ -43,11 +42,14 @@ public class RDBMissingLastRevSeeker extends MissingLastRevSeeker {
     // 2: use custom single query directly using RDBDocumentStore API
     private static final int DEFAULTMODE = 2;
 
-    private static final int MODE = SystemPropertySupplier.create(RDBMissingLastRevSeeker.class.getName() + ".MODE", DEFAULTMODE)
-            .loggingTo(LOG).validateWith(value -> (value == 1 || value == 2)).formatSetMessage((name, value) -> {
-                return String.format("Strategy for %s set to %s (via system property %s)", RDBMissingLastRevSeeker.class.getName(),
-                        name, value);
-            }).get();
+    private static final int MODE = SystemPropertySupplier.create(
+                                                              RDBMissingLastRevSeeker.class.getName() + ".MODE", DEFAULTMODE)
+                                                          .loggingTo(LOG).validateWith(
+            value -> (value == 1 || value == 2)).formatSetMessage((name, value) -> {
+            return String.format("Strategy for %s set to %s (via system property %s)",
+                RDBMissingLastRevSeeker.class.getName(),
+                name, value);
+        }).get();
 
     private final RDBDocumentStore store;
 
@@ -64,10 +66,12 @@ public class RDBMissingLastRevSeeker extends MissingLastRevSeeker {
             return super.getCandidates(startTime);
         } else {
             List<QueryCondition> conditions = new ArrayList<>();
-            conditions.add(new QueryCondition(NodeDocument.MODIFIED_IN_SECS, ">=", NodeDocument.getModifiedInSecs(startTime)));
+            conditions.add(new QueryCondition(NodeDocument.MODIFIED_IN_SECS, ">=",
+                NodeDocument.getModifiedInSecs(startTime)));
             conditions.add(new QueryCondition(NodeDocument.SD_TYPE, "is null"));
-            return store.queryAsIterable(Collection.NODES, null, null, RDBDocumentStore.EMPTY_KEY_PATTERN, conditions,
-                    Integer.MAX_VALUE, null);
+            return store.queryAsIterable(Collection.NODES, null, null,
+                RDBDocumentStore.EMPTY_KEY_PATTERN, conditions,
+                Integer.MAX_VALUE, null);
         }
     }
 }

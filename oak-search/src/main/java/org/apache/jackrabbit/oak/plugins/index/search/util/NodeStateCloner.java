@@ -19,12 +19,12 @@
 
 package org.apache.jackrabbit.oak.plugins.index.search.util;
 
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+
 import org.apache.jackrabbit.oak.spi.state.ApplyDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
-
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 /**
  * A utility class that allows to clone a node structure, excluding hidden nodes.
@@ -35,24 +35,25 @@ public class NodeStateCloner {
         // a utility class
     }
 
-    public static NodeState cloneVisibleState(NodeState state){
+    public static NodeState cloneVisibleState(NodeState state) {
         NodeBuilder builder = EMPTY_NODE.builder();
         new ApplyVisibleDiff(builder).apply(state);
         return builder.getNodeState();
     }
 
     private static class ApplyVisibleDiff extends ApplyDiff {
+
         public ApplyVisibleDiff(NodeBuilder builder) {
             super(builder);
         }
 
         @Override
         public boolean childNodeAdded(String name, NodeState after) {
-            if (NodeStateUtils.isHidden(name)){
+            if (NodeStateUtils.isHidden(name)) {
                 return true;
             }
             return after.compareAgainstBaseState(
-                    EMPTY_NODE, new ApplyVisibleDiff(builder.child(name)));
+                EMPTY_NODE, new ApplyVisibleDiff(builder.child(name)));
         }
     }
 }

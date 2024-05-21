@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.spi.security.user.action;
 
 import java.util.Iterator;
 import javax.jcr.RepositoryException;
-
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.oak.api.Root;
@@ -26,19 +25,21 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Authorizable action attempting to clear all group membership before removing
- * the specified authorizable. If {@link Group#removeMember(Authorizable)}
- * fails due to lack of permissions {@link AuthorizableAction#onRemove(org.apache.jackrabbit.api.security.user.Authorizable, org.apache.jackrabbit.oak.api.Root, org.apache.jackrabbit.oak.namepath.NamePathMapper)}
- * throws an exception and removing the specified authorizable will be aborted.
- * 
- * NOTE: If the editing session doesn't have sufficient permission to read all group membership, the clean up might be 
- * incomplete.
+ * Authorizable action attempting to clear all group membership before removing the specified
+ * authorizable. If {@link Group#removeMember(Authorizable)} fails due to lack of permissions
+ * {@link AuthorizableAction#onRemove(org.apache.jackrabbit.api.security.user.Authorizable,
+ * org.apache.jackrabbit.oak.api.Root, org.apache.jackrabbit.oak.namepath.NamePathMapper)} throws an
+ * exception and removing the specified authorizable will be aborted.
+ * <p>
+ * NOTE: If the editing session doesn't have sufficient permission to read all group membership, the
+ * clean up might be incomplete.
  */
 public class ClearMembershipAction extends AbstractAuthorizableAction {
 
     //-------------------------------------------------< AuthorizableAction >---
     @Override
-    public void onRemove(@NotNull Authorizable authorizable, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException {
+    public void onRemove(@NotNull Authorizable authorizable, @NotNull Root root,
+        @NotNull NamePathMapper namePathMapper) throws RepositoryException {
         clearMembership(authorizable);
     }
 

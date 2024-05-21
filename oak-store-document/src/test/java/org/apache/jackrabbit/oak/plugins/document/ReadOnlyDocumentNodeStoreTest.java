@@ -36,11 +36,13 @@ public class ReadOnlyDocumentNodeStoreTest {
     public void readOnlyCompare() throws Exception {
         DocumentStore store = new MemoryDocumentStore();
         DocumentNodeStore ns1 = builderProvider.newBuilder()
-                .setDocumentStore(store).setAsyncDelay(0).getNodeStore();
+                                               .setDocumentStore(store).setAsyncDelay(0)
+                                               .getNodeStore();
         // read-only
         DocumentNodeStore ns2 = builderProvider.newBuilder()
-                .setDocumentStore(store).setAsyncDelay(0).setReadOnlyMode()
-                .getNodeStore();
+                                               .setDocumentStore(store).setAsyncDelay(0)
+                                               .setReadOnlyMode()
+                                               .getNodeStore();
         NodeBuilder builder = ns1.getRoot().builder();
         builder.child("foo");
         merge(ns1, builder);

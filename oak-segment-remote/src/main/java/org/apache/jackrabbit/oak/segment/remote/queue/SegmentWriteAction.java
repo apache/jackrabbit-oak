@@ -16,11 +16,10 @@
  */
 package org.apache.jackrabbit.oak.segment.remote.queue;
 
-import org.apache.jackrabbit.oak.commons.Buffer;
-import org.apache.jackrabbit.oak.segment.remote.RemoteSegmentArchiveEntry;
-
 import java.io.IOException;
 import java.util.UUID;
+import org.apache.jackrabbit.oak.commons.Buffer;
+import org.apache.jackrabbit.oak.segment.remote.RemoteSegmentArchiveEntry;
 
 public class SegmentWriteAction {
 
@@ -32,7 +31,8 @@ public class SegmentWriteAction {
 
     private final int length;
 
-    public SegmentWriteAction(RemoteSegmentArchiveEntry indexEntry, byte[] buffer, int offset, int length) {
+    public SegmentWriteAction(RemoteSegmentArchiveEntry indexEntry, byte[] buffer, int offset,
+        int length) {
         this.indexEntry = indexEntry;
 
         this.buffer = new byte[length];

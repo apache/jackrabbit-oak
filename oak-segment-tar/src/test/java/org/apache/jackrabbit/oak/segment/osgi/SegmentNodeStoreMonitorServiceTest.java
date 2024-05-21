@@ -28,32 +28,37 @@ public class SegmentNodeStoreMonitorServiceTest {
 
     @Test
     public void testComponentDescriptor() throws Exception {
-        ComponentDescriptor cd = ComponentDescriptor.open(getClass().getResourceAsStream("/OSGI-INF/org.apache.jackrabbit.oak.segment.SegmentNodeStoreMonitorService.xml"));
+        ComponentDescriptor cd = ComponentDescriptor.open(getClass().getResourceAsStream(
+            "/OSGI-INF/org.apache.jackrabbit.oak.segment.SegmentNodeStoreMonitorService.xml"));
         assertTrue(cd.hasName("org.apache.jackrabbit.oak.segment.SegmentNodeStoreMonitorService"));
         assertTrue(cd.hasRequireConfigurationPolicy());
         assertTrue(cd.hasActivateMethod("activate"));
-        assertTrue(cd.hasImplementationClass("org.apache.jackrabbit.oak.segment.SegmentNodeStoreMonitorService"));
+        assertTrue(cd.hasImplementationClass(
+            "org.apache.jackrabbit.oak.segment.SegmentNodeStoreMonitorService"));
         assertTrue(cd.hasReference("snsStatsMBean")
-            .withInterface("org.apache.jackrabbit.oak.segment.SegmentNodeStoreStatsMBean")
-            .withMandatoryUnaryCardinality()
-            .withStaticPolicy()
-            .withField("snsStatsMBean")
-            .check());
+                     .withInterface("org.apache.jackrabbit.oak.segment.SegmentNodeStoreStatsMBean")
+                     .withMandatoryUnaryCardinality()
+                     .withStaticPolicy()
+                     .withField("snsStatsMBean")
+                     .check());
     }
 
     @Test
     public void testMetatypeInformation() throws Exception {
-        MetatypeInformation mi = MetatypeInformation.open(getClass().getResourceAsStream("/OSGI-INF/metatype/org.apache.jackrabbit.oak.segment.SegmentNodeStoreMonitorService$Configuration.xml"));
+        MetatypeInformation mi = MetatypeInformation.open(getClass().getResourceAsStream(
+            "/OSGI-INF/metatype/org.apache.jackrabbit.oak.segment.SegmentNodeStoreMonitorService$Configuration.xml"));
         assertTrue(mi.hasDesignate()
-            .withPid("org.apache.jackrabbit.oak.segment.SegmentNodeStoreMonitorService")
-            .withReference("org.apache.jackrabbit.oak.segment.SegmentNodeStoreMonitorService$Configuration")
-            .check());
+                     .withPid("org.apache.jackrabbit.oak.segment.SegmentNodeStoreMonitorService")
+                     .withReference(
+                         "org.apache.jackrabbit.oak.segment.SegmentNodeStoreMonitorService$Configuration")
+                     .check());
 
-        ObjectClassDefinition ocd = mi.getObjectClassDefinition("org.apache.jackrabbit.oak.segment.SegmentNodeStoreMonitorService$Configuration");
+        ObjectClassDefinition ocd = mi.getObjectClassDefinition(
+            "org.apache.jackrabbit.oak.segment.SegmentNodeStoreMonitorService$Configuration");
         assertTrue(ocd.hasAttributeDefinition("commitsTrackerWriterGroups")
-            .withStringType()
-            .withCardinality("2147483647")
-            .check());
+                      .withStringType()
+                      .withCardinality("2147483647")
+                      .check());
 
     }
 }

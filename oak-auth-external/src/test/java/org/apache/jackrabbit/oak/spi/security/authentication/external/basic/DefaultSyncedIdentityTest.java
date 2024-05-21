@@ -16,6 +16,12 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.basic;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalGroup;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
@@ -23,12 +29,6 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncedIden
 import org.apache.jackrabbit.oak.spi.security.authentication.external.TestIdentityProvider;
 import org.junit.Before;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 
 public class DefaultSyncedIdentityTest {
 
@@ -44,10 +44,12 @@ public class DefaultSyncedIdentityTest {
     public void before() throws Exception {
         externalUser = idp.getUser(TestIdentityProvider.ID_TEST_USER);
         assertNotNull(externalUser);
-        si = new DefaultSyncedIdentity(externalUser.getId(), externalUser.getExternalId(), false, 234);
+        si = new DefaultSyncedIdentity(externalUser.getId(), externalUser.getExternalId(), false,
+            234);
 
         externalGroup = idp.listGroups().next();
-        siGroup = new DefaultSyncedIdentity(externalGroup.getId(), externalGroup.getExternalId(), true, 234);
+        siGroup = new DefaultSyncedIdentity(externalGroup.getId(), externalGroup.getExternalId(),
+            true, 234);
     }
 
     @Test
@@ -55,7 +57,8 @@ public class DefaultSyncedIdentityTest {
         assertEquals(externalUser.getId(), si.getId());
         assertEquals(externalGroup.getId(), siGroup.getId());
 
-        SyncedIdentity siOtherId = new DefaultSyncedIdentity("otherId", externalUser.getExternalId(), false, -1);
+        SyncedIdentity siOtherId = new DefaultSyncedIdentity("otherId",
+            externalUser.getExternalId(), false, -1);
         assertEquals("otherId", siOtherId.getId());
     }
 
@@ -64,7 +67,8 @@ public class DefaultSyncedIdentityTest {
         assertEquals(externalUser.getExternalId(), si.getExternalIdRef());
         assertEquals(externalGroup.getExternalId(), siGroup.getExternalIdRef());
 
-        SyncedIdentity siNullExtRef = new DefaultSyncedIdentity(TestIdentityProvider.ID_TEST_USER, null, false, 234);
+        SyncedIdentity siNullExtRef = new DefaultSyncedIdentity(TestIdentityProvider.ID_TEST_USER,
+            null, false, 234);
         assertNull(siNullExtRef.getExternalIdRef());
     }
 
@@ -79,7 +83,8 @@ public class DefaultSyncedIdentityTest {
         assertEquals(234, si.lastSynced());
         assertEquals(234, siGroup.lastSynced());
 
-        SyncedIdentity siNeverSynced = new DefaultSyncedIdentity(TestIdentityProvider.ID_TEST_USER, externalUser.getExternalId(), false, -1);
+        SyncedIdentity siNeverSynced = new DefaultSyncedIdentity(TestIdentityProvider.ID_TEST_USER,
+            externalUser.getExternalId(), false, -1);
         assertEquals(-1, siNeverSynced.lastSynced());
     }
 }

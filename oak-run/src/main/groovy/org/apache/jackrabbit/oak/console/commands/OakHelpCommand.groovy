@@ -27,7 +27,7 @@ import org.codehaus.groovy.tools.shell.completion.CommandNameCompleter
  * Copy of org.codehaus.groovy.tools.shell.commands.HelpCommand to customize
  * the banner
  */
-class OakHelpCommand extends CommandSupport{
+class OakHelpCommand extends CommandSupport {
     public static final String COMMAND_NAME = ':help'
 
     OakHelpCommand(final Groovysh shell) {
@@ -52,8 +52,7 @@ class OakHelpCommand extends CommandSupport{
 
         if (args.size() == 1) {
             help(args[0])
-        }
-        else {
+        } else {
             list()
         }
 
@@ -95,7 +94,8 @@ class OakHelpCommand extends CommandSupport{
         }
 
         io.out.println()
-        io.out.println('For information about @|green Apache Jackrabbit Oak|@, visit:') // TODO: i18n
+        io.out.println('For information about @|green Apache Jackrabbit Oak|@, visit:')
+        // TODO: i18n
         io.out.println('    @|cyan http://jackrabbit.apache.org/oak/|@ ')
         io.out.println()
 

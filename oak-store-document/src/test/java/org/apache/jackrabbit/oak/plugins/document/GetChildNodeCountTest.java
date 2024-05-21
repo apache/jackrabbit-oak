@@ -54,11 +54,11 @@ public class GetChildNodeCountTest {
     @Before
     public void before() throws Exception {
         ns = builderProvider.newBuilder().setAsyncDelay(0)
-                .setDocumentStore(store).getNodeStore();
+                            .setDocumentStore(store).getNodeStore();
         repository = new Oak(ns)
-                .with(new PropertyIndexEditorProvider())
-                .with(new OpenSecurityProvider())
-                .createContentRepository();
+            .with(new PropertyIndexEditorProvider())
+            .with(new OpenSecurityProvider())
+            .createContentRepository();
         session = repository.login(new SimpleCredentials("admin", "admin".toCharArray()), null);
         Root root = session.getLatestRoot();
         Tree idx = root.getTree("/").addChild("oak:index").addChild("p");
@@ -78,7 +78,7 @@ public class GetChildNodeCountTest {
     public void removeIndexedNodes() throws Exception {
         Root root = session.getLatestRoot();
         Tree t = root.getTree("/").addChild("test");
-        for (int i = 0; i < 200; i ++) {
+        for (int i = 0; i < 200; i++) {
             t.addChild("node-" + i).setProperty("p", "v");
         }
         root.commit();

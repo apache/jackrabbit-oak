@@ -16,14 +16,14 @@
  */
 package org.apache.jackrabbit.oak.security.user.whiteboard;
 
+import static org.junit.Assert.assertEquals;
+
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableNodeName;
 import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.junit.After;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
 
 public class WhiteboardAuthorizableNodeNameTest {
 

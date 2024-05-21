@@ -23,27 +23,24 @@ import javax.jcr.lock.LockException;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.NoSuchNodeTypeException;
 import javax.jcr.version.VersionException;
-
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ProviderType;
 
 /**
- * The Jackrabbit Node interface. This interface contains the
- * Jackrabbit-specific extensions to the JCR {@link javax.jcr.Node} interface.
+ * The Jackrabbit Node interface. This interface contains the Jackrabbit-specific extensions to the
+ * JCR {@link javax.jcr.Node} interface.
  */
 @ProviderType
 public interface JackrabbitNode extends Node {
 
     /**
-     * 
      * @param newName
      * @throws javax.jcr.RepositoryException
      */
     void rename(String newName) throws RepositoryException;
 
     /**
-     *
      * @param mixinNames
      * @throws NoSuchNodeTypeException
      * @throws VersionException
@@ -52,18 +49,19 @@ public interface JackrabbitNode extends Node {
      * @throws RepositoryException
      */
     void setMixins(String[] mixinNames)
-            throws NoSuchNodeTypeException, VersionException,
-            ConstraintViolationException, LockException, RepositoryException;
+        throws NoSuchNodeTypeException, VersionException,
+        ConstraintViolationException, LockException, RepositoryException;
 
     /**
-     * Returns the node at {@code relPath} relative to {@code this} node or {@code null} if no such node exists. 
-     * The same reacquisition semantics apply as with {@link #getNode(String)}.
+     * Returns the node at {@code relPath} relative to {@code this} node or {@code null} if no such
+     * node exists. The same reacquisition semantics apply as with {@link #getNode(String)}.
      *
      * @param relPath The relative path of the node to retrieve.
      * @return The node at {@code relPath} or {@code null}
      * @throws RepositoryException If an error occurs.
      */
-    default @Nullable JackrabbitNode getNodeOrNull(@NotNull String relPath) throws RepositoryException {
+    default @Nullable JackrabbitNode getNodeOrNull(@NotNull String relPath)
+        throws RepositoryException {
         if (hasNode(relPath)) {
             Node n = getNode(relPath);
             return (n instanceof JackrabbitNode) ? (JackrabbitNode) n : null;
@@ -73,14 +71,16 @@ public interface JackrabbitNode extends Node {
     }
 
     /**
-     * Returns the property at {@code relPath} relative to {@code this} node or {@code null} if no such property exists. 
-     * The same reacquisition semantics apply as with {@link #getNode(String)}.
+     * Returns the property at {@code relPath} relative to {@code this} node or {@code null} if no
+     * such property exists. The same reacquisition semantics apply as with
+     * {@link #getNode(String)}.
      *
      * @param relPath The relative path of the property to retrieve.
      * @return The property at {@code relPath} or {@code null}
      * @throws RepositoryException If an error occurs.
      */
-    default @Nullable Property getPropertyOrNull(@NotNull String relPath) throws RepositoryException {
+    default @Nullable Property getPropertyOrNull(@NotNull String relPath)
+        throws RepositoryException {
         if (hasProperty(relPath)) {
             return getProperty(relPath);
         } else {

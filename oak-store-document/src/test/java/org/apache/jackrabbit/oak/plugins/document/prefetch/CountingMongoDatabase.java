@@ -105,11 +105,11 @@ public class CountingMongoDatabase implements MongoDatabase {
 
     @Override
     public <TDocument> MongoCollection<TDocument> getCollection(String collectionName,
-            Class<TDocument> documentClass) {
+        Class<TDocument> documentClass) {
         CountingMongoCollection c = collections.get(collectionName);
         if (c == null) {
             c = new CountingMongoCollection(delegate.getCollection(collectionName, documentClass),
-                    new AtomicReference<>(), new AtomicReference<>(), new AtomicReference<>());
+                new AtomicReference<>(), new AtomicReference<>(), new AtomicReference<>());
             collections.put(collectionName, c);
         }
         return c;
@@ -135,7 +135,7 @@ public class CountingMongoDatabase implements MongoDatabase {
 
     @Override
     public <TResult> TResult runCommand(Bson command, ReadPreference readPreference,
-            Class<TResult> resultClass) {
+        Class<TResult> resultClass) {
         return delegate.runCommand(command, readPreference, resultClass);
 
     }
@@ -148,21 +148,21 @@ public class CountingMongoDatabase implements MongoDatabase {
 
     @Override
     public Document runCommand(ClientSession clientSession, Bson command,
-            ReadPreference readPreference) {
+        ReadPreference readPreference) {
         return delegate.runCommand(clientSession, command, readPreference);
 
     }
 
     @Override
     public <TResult> TResult runCommand(ClientSession clientSession, Bson command,
-            Class<TResult> resultClass) {
+        Class<TResult> resultClass) {
         return delegate.runCommand(clientSession, command, resultClass);
 
     }
 
     @Override
     public <TResult> TResult runCommand(ClientSession clientSession, Bson command,
-            ReadPreference readPreference, Class<TResult> resultClass) {
+        ReadPreference readPreference, Class<TResult> resultClass) {
         return delegate.runCommand(clientSession, command, readPreference, resultClass);
 
     }
@@ -193,7 +193,7 @@ public class CountingMongoDatabase implements MongoDatabase {
 
     @Override
     public <TResult> ListCollectionsIterable<TResult> listCollections(
-            Class<TResult> resultClass) {
+        Class<TResult> resultClass) {
         return delegate.listCollections(resultClass);
 
     }
@@ -206,14 +206,14 @@ public class CountingMongoDatabase implements MongoDatabase {
 
     @Override
     public ListCollectionsIterable<Document> listCollections(
-            ClientSession clientSession) {
+        ClientSession clientSession) {
         return delegate.listCollections(clientSession);
 
     }
 
     @Override
     public <TResult> ListCollectionsIterable<TResult> listCollections(
-            ClientSession clientSession, Class<TResult> resultClass) {
+        ClientSession clientSession, Class<TResult> resultClass) {
         return delegate.listCollections(clientSession, resultClass);
 
     }
@@ -226,7 +226,7 @@ public class CountingMongoDatabase implements MongoDatabase {
 
     @Override
     public void createCollection(String collectionName,
-            CreateCollectionOptions createCollectionOptions) {
+        CreateCollectionOptions createCollectionOptions) {
         delegate.createCollection(collectionName, createCollectionOptions);
 
     }
@@ -239,35 +239,35 @@ public class CountingMongoDatabase implements MongoDatabase {
 
     @Override
     public void createCollection(ClientSession clientSession, String collectionName,
-            CreateCollectionOptions createCollectionOptions) {
+        CreateCollectionOptions createCollectionOptions) {
         delegate.createCollection(clientSession, collectionName, createCollectionOptions);
 
     }
 
     @Override
     public void createView(String viewName, String viewOn,
-            List<? extends Bson> pipeline) {
+        List<? extends Bson> pipeline) {
         delegate.createView(viewName, viewOn, pipeline);
 
     }
 
     @Override
     public void createView(String viewName, String viewOn, List<? extends Bson> pipeline,
-            CreateViewOptions createViewOptions) {
+        CreateViewOptions createViewOptions) {
         delegate.createView(viewName, viewOn, pipeline, createViewOptions);
 
     }
 
     @Override
     public void createView(ClientSession clientSession, String viewName, String viewOn,
-            List<? extends Bson> pipeline) {
+        List<? extends Bson> pipeline) {
         delegate.createView(clientSession, viewName, viewOn, pipeline);
 
     }
 
     @Override
     public void createView(ClientSession clientSession, String viewName, String viewOn,
-            List<? extends Bson> pipeline, CreateViewOptions createViewOptions) {
+        List<? extends Bson> pipeline, CreateViewOptions createViewOptions) {
         delegate.createView(clientSession, viewName, viewOn, pipeline, createViewOptions);
 
     }
@@ -292,7 +292,7 @@ public class CountingMongoDatabase implements MongoDatabase {
 
     @Override
     public <TResult> ChangeStreamIterable<TResult> watch(List<? extends Bson> pipeline,
-            Class<TResult> resultClass) {
+        Class<TResult> resultClass) {
         return delegate.watch(pipeline, resultClass);
 
     }
@@ -305,21 +305,21 @@ public class CountingMongoDatabase implements MongoDatabase {
 
     @Override
     public <TResult> ChangeStreamIterable<TResult> watch(ClientSession clientSession,
-            Class<TResult> resultClass) {
+        Class<TResult> resultClass) {
         return delegate.watch(clientSession, resultClass);
 
     }
 
     @Override
     public ChangeStreamIterable<Document> watch(ClientSession clientSession,
-            List<? extends Bson> pipeline) {
+        List<? extends Bson> pipeline) {
         return delegate.watch(clientSession, pipeline);
 
     }
 
     @Override
     public <TResult> ChangeStreamIterable<TResult> watch(ClientSession clientSession,
-            List<? extends Bson> pipeline, Class<TResult> resultClass) {
+        List<? extends Bson> pipeline, Class<TResult> resultClass) {
         return delegate.watch(clientSession, pipeline, resultClass);
 
     }
@@ -332,21 +332,21 @@ public class CountingMongoDatabase implements MongoDatabase {
 
     @Override
     public <TResult> AggregateIterable<TResult> aggregate(List<? extends Bson> pipeline,
-            Class<TResult> resultClass) {
+        Class<TResult> resultClass) {
         return delegate.aggregate(pipeline, resultClass);
 
     }
 
     @Override
     public AggregateIterable<Document> aggregate(ClientSession clientSession,
-            List<? extends Bson> pipeline) {
+        List<? extends Bson> pipeline) {
         return delegate.aggregate(clientSession, pipeline);
 
     }
 
     @Override
     public <TResult> AggregateIterable<TResult> aggregate(ClientSession clientSession,
-            List<? extends Bson> pipeline, Class<TResult> resultClass) {
+        List<? extends Bson> pipeline, Class<TResult> resultClass) {
         return delegate.aggregate(clientSession, pipeline, resultClass);
 
     }

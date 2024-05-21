@@ -29,13 +29,14 @@ import org.jetbrains.annotations.NotNull;
 import org.osgi.service.component.ComponentContext;
 
 /**
- * {@code ExternalIDPManagerImpl} is used to manage registered external identity provider. This class automatically
- * tracks the IDPs that are registered via OSGi but can also be used in non-OSGi environments by manually adding and
- * removing the providers.
+ * {@code ExternalIDPManagerImpl} is used to manage registered external identity provider. This
+ * class automatically tracks the IDPs that are registered via OSGi but can also be used in non-OSGi
+ * environments by manually adding and removing the providers.
  */
 @Component(immediate = true)
 @Service
-public class ExternalIDPManagerImpl extends AbstractServiceTracker<ExternalIdentityProvider> implements ExternalIdentityProviderManager {
+public class ExternalIDPManagerImpl extends
+    AbstractServiceTracker<ExternalIdentityProvider> implements ExternalIdentityProviderManager {
 
     /**
      * Default constructor used by OSGi
@@ -47,6 +48,7 @@ public class ExternalIDPManagerImpl extends AbstractServiceTracker<ExternalIdent
 
     /**
      * Constructor used by non OSGi
+     *
      * @param whiteboard the whiteboard
      */
     public ExternalIDPManagerImpl(Whiteboard whiteboard) {
@@ -68,7 +70,7 @@ public class ExternalIDPManagerImpl extends AbstractServiceTracker<ExternalIdent
 
     @Override
     public ExternalIdentityProvider getProvider(@NotNull String name) {
-        for (ExternalIdentityProvider provider: getServices()) {
+        for (ExternalIdentityProvider provider : getServices()) {
             if (name.equals(provider.getName())) {
                 return provider;
             }

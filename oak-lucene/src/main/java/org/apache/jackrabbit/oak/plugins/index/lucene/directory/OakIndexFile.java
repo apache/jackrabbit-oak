@@ -16,36 +16,36 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
-import java.io.IOException;
+import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
+import static org.apache.jackrabbit.oak.api.Type.BINARY;
 
+import java.io.IOException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.lucene.store.DataInput;
 import org.jetbrains.annotations.NotNull;
 
-import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
-import static org.apache.jackrabbit.oak.api.Type.BINARY;
-
 public interface OakIndexFile {
+
     static OakIndexFile getOakIndexFile(String name, NodeBuilder file, String dirDetails,
-                                        @NotNull BlobFactory blobFactory) {
+        @NotNull BlobFactory blobFactory) {
         return getOakIndexFile(name, file, dirDetails, blobFactory, false);
     }
 
     static OakIndexFile getOakIndexFile(String name, NodeBuilder file, String dirDetails,
-                                        @NotNull BlobFactory blobFactory, boolean streamingWriteEnabled) {
+        @NotNull BlobFactory blobFactory, boolean streamingWriteEnabled) {
 
         boolean useStreaming;
         PropertyState property = file.getProperty(JCR_DATA);
         if (property != null) { //reading
-                useStreaming = property.getType() == BINARY;
+            useStreaming = property.getType() == BINARY;
         } else { //writing
             useStreaming = streamingWriteEnabled;
         }
 
         return useStreaming ?
-                new OakStreamingIndexFile(name, file, dirDetails, blobFactory) :
-                new OakBufferedIndexFile(name, file, dirDetails, blobFactory);
+            new OakStreamingIndexFile(name, file, dirDetails, blobFactory) :
+            new OakBufferedIndexFile(name, file, dirDetails, blobFactory);
     }
 
     /**
@@ -74,49 +74,55 @@ public interface OakIndexFile {
 
     /**
      * Seek current location of access to {@code pos}
+     *
      * @param pos
      * @throws IOException
      */
     void seek(long pos) throws IOException;
 
     /**
-     * Duplicates this instance to be used by a different consumer/thread.
-     * State of the cloned instance is same as original. Once cloned, the states
-     * would change separately according to how are they accessed.
+     * Duplicates this instance to be used by a different consumer/thread. State of the cloned
+     * instance is same as original. Once cloned, the states would change separately according to
+     * how are they accessed.
      *
      * @return cloned instance
      */
     OakIndexFile clone();
 
     /**
-     * Read {@code len} number of bytes from underlying storage and copy them
-     * into byte array {@code b} starting at {@code offset}
-     * @param b byte array to copy contents read from storage
+     * Read {@code len} number of bytes from underlying storage and copy them into byte array
+     * {@code b} starting at {@code offset}
+     *
+     * @param b      byte array to copy contents read from storage
      * @param offset index into {@code b} where the copy begins
-     * @param len numeber of bytes to be read from storage
+     * @param len    numeber of bytes to be read from storage
      * @throws IOException
      */
     void readBytes(byte[] b, int offset, int len)
-            throws IOException;
+        throws IOException;
 
     /**
-     * Writes {@code len} number of bytes from byte array {@code b}
-     * starting at {@code offset} into the underlying storage
-     * @param b byte array to copy contents into the storage
+     * Writes {@code len} number of bytes from byte array {@code b} starting at {@code offset} into
+     * the underlying storage
+     *
+     * @param b      byte array to copy contents into the storage
      * @param offset index into {@code b} where the copy begins
-     * @param len numeber of bytes to be written to storage
+     * @param len    numeber of bytes to be written to storage
      * @throws IOException
      */
     void writeBytes(byte[] b, int offset, int len)
-            throws IOException;
+        throws IOException;
 
-    /** Copy numBytes bytes from input to ourself. */
+    /**
+     * Copy numBytes bytes from input to ourself.
+     */
     void copyBytes(DataInput input, long numBytes) throws IOException;
 
 
     /**
-     * Flushes the content into storage. Before calling this method, written
-     * content only exist in memory
+     * Flushes the content into storage. Before calling this method, written content only exist in
+     * memory
+     *
      * @throws IOException
      */
     void flush() throws IOException;

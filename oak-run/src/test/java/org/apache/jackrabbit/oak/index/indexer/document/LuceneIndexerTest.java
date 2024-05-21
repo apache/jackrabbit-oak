@@ -19,7 +19,12 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document;
 
-import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneDocumentMaker;
+import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriter;
 import org.apache.jackrabbit.oak.plugins.index.progress.IndexingProgressReporter;
@@ -30,12 +35,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.facet.FacetsConfig;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.mock;
-
 public class LuceneIndexerTest {
+
     private NodeState root = INITIAL_CONTENT;
 
     @Test
@@ -49,12 +50,14 @@ public class LuceneIndexerTest {
 
         NodeBuilder builder = root.builder();
         LuceneIndexer indexer = new LuceneIndexer(idxDefn, mock(LuceneIndexWriter.class), builder,
-                mock(FulltextBinaryTextExtractor.class), mock(IndexingProgressReporter.class));
+            mock(FulltextBinaryTextExtractor.class), mock(IndexingProgressReporter.class));
 
-        NodeState testNode = EMPTY_NODE.builder().setProperty("foo","bar").getNodeState();
+        NodeState testNode = EMPTY_NODE.builder().setProperty("foo", "bar").getNodeState();
 
-        assertTrue(indexer.index(new NodeStateEntry.NodeStateEntryBuilder(testNode, "/content/x").build()));
-        assertFalse(indexer.index(new NodeStateEntry.NodeStateEntryBuilder(testNode, "/x").build()));
+        assertTrue(indexer.index(
+            new NodeStateEntry.NodeStateEntryBuilder(testNode, "/content/x").build()));
+        assertFalse(
+            indexer.index(new NodeStateEntry.NodeStateEntryBuilder(testNode, "/x").build()));
         assertFalse(indexer.index(new NodeStateEntry.NodeStateEntryBuilder(testNode, "/").build()));
 
         indexer.close();
@@ -71,7 +74,7 @@ public class LuceneIndexerTest {
 
         NodeBuilder builder = root.builder();
         LuceneIndexer indexer = new LuceneIndexer(idxDefn, mock(LuceneIndexWriter.class), builder,
-                mock(FulltextBinaryTextExtractor.class), mock(IndexingProgressReporter.class));
+            mock(FulltextBinaryTextExtractor.class), mock(IndexingProgressReporter.class));
 
         FacetsConfig config1 = indexer.getFacetsConfig();
         FacetsConfig config2 = indexer.getFacetsConfig();

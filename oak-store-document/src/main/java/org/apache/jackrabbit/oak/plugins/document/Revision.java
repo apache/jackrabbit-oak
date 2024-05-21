@@ -16,11 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.stats.Clock;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
 /**
  * A revision.
@@ -38,16 +38,14 @@ public final class Revision implements CacheValue {
     private static volatile int lastRevisionCount;
 
     /**
-     * The timestamp in milliseconds since 1970 (unlike in seconds as in
-     * MongoDB). The timestamp is local to the machine that generated the
-     * revision, such that timestamps of revisions can only be compared if the
-     * machine id is the same.
+     * The timestamp in milliseconds since 1970 (unlike in seconds as in MongoDB). The timestamp is
+     * local to the machine that generated the revision, such that timestamps of revisions can only
+     * be compared if the machine id is the same.
      */
     private final long timestamp;
 
     /**
-     * An incrementing counter, for commits that occur within the same
-     * millisecond.
+     * An incrementing counter, for commits that occur within the same millisecond.
      */
     private final int counter;
 
@@ -61,15 +59,16 @@ public final class Revision implements CacheValue {
      */
     private final boolean branch;
 
-    /** Only set for testing */
+    /**
+     * Only set for testing
+     */
     private static Clock clock;
 
     /**
      * <b>
-     * Only to be used for testing.
-     * Do Not Use Otherwise
+     * Only to be used for testing. Do Not Use Otherwise
      * </b>
-     * 
+     *
      * @param c - the clock
      */
     static void setClock(Clock c) {
@@ -81,8 +80,7 @@ public final class Revision implements CacheValue {
 
     /**
      * <b>
-     * Only to be used for testing.
-     * Do Not Use Otherwise
+     * Only to be used for testing. Do Not Use Otherwise
      * </b>
      */
     static void resetClockToDefault() {
@@ -101,8 +99,8 @@ public final class Revision implements CacheValue {
     }
 
     /**
-     * Compare the time part of two revisions. If they contain the same time,
-     * the counter is compared.
+     * Compare the time part of two revisions. If they contain the same time, the counter is
+     * compared.
      * <p>
      * This method requires that both revisions are from the same cluster node.
      *
@@ -113,8 +111,8 @@ public final class Revision implements CacheValue {
     int compareRevisionTime(Revision other) {
         if (clusterId != other.clusterId) {
             throw new IllegalArgumentException(
-                    "Trying to compare revisions of different cluster ids: " +
-                            this + " and " + other);
+                "Trying to compare revisions of different cluster ids: " +
+                    this + " and " + other);
         }
         int comp = timestamp < other.timestamp ? -1 : timestamp > other.timestamp ? 1 : 0;
         if (comp == 0) {
@@ -124,9 +122,8 @@ public final class Revision implements CacheValue {
     }
 
     /**
-     * Compare the time part of two revisions. If they contain the same time,
-     * the counter is compared. If the counter is the same, the cluster ids are
-     * compared.
+     * Compare the time part of two revisions. If they contain the same time, the counter is
+     * compared. If the counter is the same, the cluster ids are compared.
      *
      * @param other the other revision
      * @return -1 if this revision occurred earlier, 1 if later, 0 if equal
@@ -141,10 +138,10 @@ public final class Revision implements CacheValue {
         }
         return comp;
     }
-    
+
     /**
      * Compare all components of two revisions.
-     * 
+     *
      * @param other the other revision
      * @return -1, 0, or 1
      */
@@ -195,9 +192,9 @@ public final class Revision implements CacheValue {
     }
 
     /**
-     * Get the timestamp value of the current date and time. Within the same
-     * process, the returned value is never smaller than a previously returned
-     * value, even if the system time was changed.
+     * Get the timestamp value of the current date and time. Within the same process, the returned
+     * value is never smaller than a previously returned value, even if the system time was
+     * changed.
      *
      * @return the timestamp
      */
@@ -217,8 +214,7 @@ public final class Revision implements CacheValue {
     }
 
     /**
-     * Get the timestamp difference between two revisions (r1 - r2) in
-     * milliseconds.
+     * Get the timestamp difference between two revisions (r1 - r2) in milliseconds.
      *
      * @param r1 the first revision
      * @param r2 the second revision
@@ -242,7 +238,7 @@ public final class Revision implements CacheValue {
             if (c == '-') {
                 break;
             }
-            int digit = c >= 'a'? c - 'a' + 10 : c - '0';
+            int digit = c >= 'a' ? c - 'a' + 10 : c - '0';
             timestamp = (timestamp << 4) + digit;
         }
         // Parse counter
@@ -271,8 +267,7 @@ public final class Revision implements CacheValue {
     }
 
     /**
-     * Appends the string representation of this revision to the given
-     * StringBuilder.
+     * Appends the string representation of this revision to the given StringBuilder.
      *
      * @param sb a StringBuilder.
      * @return the StringBuilder instance passed to this method.
@@ -321,15 +316,15 @@ public final class Revision implements CacheValue {
 
     /**
      * @return <code>true</code> if this is a branch revision, otherwise
-     *         <code>false</code>.
+     * <code>false</code>.
      */
     public boolean isBranch() {
         return branch;
     }
 
     /**
-     * Returns a revision with the same timestamp, counter and clusterId as this
-     * revision and the branch flag set to <code>true</code>.
+     * Returns a revision with the same timestamp, counter and clusterId as this revision and the
+     * branch flag set to <code>true</code>.
      *
      * @return branch revision with this timestamp, counter and clusterId.
      */
@@ -342,8 +337,8 @@ public final class Revision implements CacheValue {
     }
 
     /**
-     * Returns a revision with the same timestamp, counter and clusterId as this
-     * revision and the branch flag set to <code>false</code>.
+     * Returns a revision with the same timestamp, counter and clusterId as this revision and the
+     * branch flag set to <code>false</code>.
      *
      * @return trunk revision with this timestamp, counter and clusterId.
      */
@@ -371,9 +366,9 @@ public final class Revision implements CacheValue {
         }
         Revision r = (Revision) other;
         return r.timestamp == this.timestamp &&
-                r.counter == this.counter &&
-                r.clusterId == this.clusterId &&
-                r.branch == this.branch;
+            r.counter == this.counter &&
+            r.clusterId == this.clusterId &&
+            r.branch == this.branch;
     }
 
     public int getClusterId() {
@@ -387,7 +382,7 @@ public final class Revision implements CacheValue {
 
     private static void toHexString(StringBuilder sb, long x) {
         int bitCount = (64 - Long.numberOfLeadingZeros(x));
-        bitCount = Math.max(0,  ((bitCount + 3) / 4 * 4) - 4);
+        bitCount = Math.max(0, ((bitCount + 3) / 4 * 4) - 4);
         for (int i = bitCount; i >= 0; i -= 4) {
             int t = (int) (x >> i) & 15;
             if (t > 9) {
@@ -398,5 +393,5 @@ public final class Revision implements CacheValue {
             sb.append((char) t);
         }
     }
-    
+
 }

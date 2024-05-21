@@ -17,8 +17,8 @@
 package org.apache.jackrabbit.oak.plugins.tree;
 
 /**
- * Allows to distinguish different types of trees based on their name, ancestry
- * or primary type. Currently the following types are supported:
+ * Allows to distinguish different types of trees based on their name, ancestry or primary type.
+ * Currently the following types are supported:
  *
  * <ul>
  *     <li>{@link #DEFAULT}: the default type for trees that don't match any of the following types.</li>
@@ -46,6 +46,7 @@ public enum TreeType {
 
     /**
      * Hidden trees starting at a tree whose name starts with ':'.
+     *
      * @see org.apache.jackrabbit.oak.spi.state.NodeStateUtils#isHidden(String)
      */
     HIDDEN,

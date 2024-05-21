@@ -21,10 +21,11 @@ import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexEd
 import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexEditorContext;
 
 /**
- * {@link IndexEditor} implementation that is responsible for keeping the
- * corresponding Elasticsearch index up to date
+ * {@link IndexEditor} implementation that is responsible for keeping the corresponding
+ * Elasticsearch index up to date
  */
 public class ElasticIndexEditor extends FulltextIndexEditor<ElasticDocument> {
+
     ElasticIndexEditor(FulltextIndexEditorContext<ElasticDocument> context) {
         super(context);
     }

@@ -19,6 +19,12 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 
+import static org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors.newDirectExecutorService;
+import static org.apache.jackrabbit.oak.spi.mount.Mounts.defaultMountInfoProvider;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
@@ -26,7 +32,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
-
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -34,9 +39,8 @@ import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
 import javax.jcr.query.QueryResult;
 import javax.jcr.query.Row;
-
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.commons.JcrUtils;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.fixture.DocumentMemoryFixture;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.Jcr;
@@ -69,13 +73,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import static org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors.newDirectExecutorService;
-import static org.apache.jackrabbit.oak.spi.mount.Mounts.defaultMountInfoProvider;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
-
 public class HybridIndexClusterIT extends AbstractClusterTest {
+
     private ExecutorService executorService = Executors.newFixedThreadPool(2);
 
     @Rule
@@ -97,49 +96,52 @@ public class HybridIndexClusterIT extends AbstractClusterTest {
         }
         MountInfoProvider mip = defaultMountInfoProvider();
 
-        NRTIndexFactory nrtIndexFactory = new NRTIndexFactory(copier, clock, TimeUnit.MILLISECONDS.toSeconds(refreshDelta), StatisticsProvider.NOOP);
+        NRTIndexFactory nrtIndexFactory = new NRTIndexFactory(copier, clock,
+            TimeUnit.MILLISECONDS.toSeconds(refreshDelta), StatisticsProvider.NOOP);
         LuceneIndexReaderFactory indexReaderFactory = new DefaultIndexReaderFactory(mip, copier);
-        IndexTracker tracker = new IndexTracker(indexReaderFactory,nrtIndexFactory);
+        IndexTracker tracker = new IndexTracker(indexReaderFactory, nrtIndexFactory);
         LuceneIndexProvider provider = new LuceneIndexProvider(tracker);
         DocumentQueue queue = new DocumentQueue(100, tracker, newDirectExecutorService());
         LuceneIndexEditorProvider editorProvider = new LuceneIndexEditorProvider(copier,
-                tracker,
-                null,
-                null,
-                mip);
+            tracker,
+            null,
+            null,
+            mip);
         editorProvider.setIndexingQueue(queue);
 
-        LocalIndexObserver localIndexObserver = new LocalIndexObserver(queue, StatisticsProvider.NOOP);
-        ExternalIndexObserver externalIndexObserver = new ExternalIndexObserver(queue, tracker, StatisticsProvider.NOOP);
+        LocalIndexObserver localIndexObserver = new LocalIndexObserver(queue,
+            StatisticsProvider.NOOP);
+        ExternalIndexObserver externalIndexObserver = new ExternalIndexObserver(queue, tracker,
+            StatisticsProvider.NOOP);
 
         QueryEngineSettings qs = new QueryEngineSettings();
         qs.setFailTraversal(true);
 
         jcr.with((QueryIndexProvider) provider)
-                .with((Observer) provider)
-                .with(localIndexObserver)
-                .with(externalIndexObserver)
-                .with(editorProvider)
-                .with(qs)
-                //Effectively disable async indexing auto run
-                //such that we can control run timing as per test requirement
-                .withAsyncIndexing("async", TimeUnit.DAYS.toSeconds(1));
+           .with((Observer) provider)
+           .with(localIndexObserver)
+           .with(externalIndexObserver)
+           .with(editorProvider)
+           .with(qs)
+           //Effectively disable async indexing auto run
+           //such that we can control run timing as per test requirement
+           .withAsyncIndexing("async", TimeUnit.DAYS.toSeconds(1));
         return jcr;
     }
 
     @Override
     protected NodeStoreFixture getFixture() {
-        return new DocumentMemoryFixture(){
+        return new DocumentMemoryFixture() {
             @Override
             public NodeStore createNodeStore(int clusterNodeId) {
                 JournalPropertyHandlerFactory tracker = new JournalPropertyHandlerFactory();
                 Whiteboard wb = clusterNodeId == 1 ? nswb1 : nswb2;
                 tracker.start(wb);
                 return new DocumentMK.Builder()
-                        .setDocumentStore(documentStore)
-                        .setJournalPropertyHandlerFactory(tracker)
-                        .setAsyncDelay(0)
-                        .getNodeStore();
+                    .setDocumentStore(documentStore)
+                    .setJournalPropertyHandlerFactory(tracker)
+                    .setAsyncDelay(0)
+                    .getNodeStore();
             }
         };
     }
@@ -153,7 +155,8 @@ public class HybridIndexClusterIT extends AbstractClusterTest {
         idx.indexRule("nt:base").property("foo").propertyIndex();
         idx.async("async", "sync");
 
-        Node idxNode = JcrUtils.getOrCreateByPath("/oak:index/fooIndex", "oak:QueryIndexDefinition", s);
+        Node idxNode = JcrUtils.getOrCreateByPath("/oak:index/fooIndex", "oak:QueryIndexDefinition",
+            s);
         idx.build(idxNode);
 
         Node a = JcrUtils.getOrCreateByPath("/a", "oak:Unstructured", s);
@@ -163,13 +166,13 @@ public class HybridIndexClusterIT extends AbstractClusterTest {
     }
 
     @Test
-    public void basics() throws Exception{
+    public void basics() throws Exception {
         assertThat(queryResult(s1, "foo", "x"), containsInAnyOrder("/a"));
         assertThat(queryResult(s2, "foo", "x"), containsInAnyOrder("/a"));
     }
 
     @Test
-    public void indexExternalChange() throws Exception{
+    public void indexExternalChange() throws Exception {
         Node a = JcrUtils.getOrCreateByPath("/b", "oak:Unstructured", s1);
         a.setProperty("foo", "x");
         s1.save();
@@ -185,8 +188,8 @@ public class HybridIndexClusterIT extends AbstractClusterTest {
         assertThat(queryResult(s2, "foo", "x"), containsInAnyOrder("/a", "/b"));
     }
 
-    private static DocumentNodeStore asDS(NodeStore ns){
-        return (DocumentNodeStore)ns;
+    private static DocumentNodeStore asDS(NodeStore ns) {
+        return (DocumentNodeStore) ns;
     }
 
     private static void runAsyncIndex(Whiteboard wb) {
@@ -200,14 +203,16 @@ public class HybridIndexClusterIT extends AbstractClusterTest {
         async.run();
     }
 
-    private static List<String> queryResult(Session session, String indexedPropName, String value) throws RepositoryException{
+    private static List<String> queryResult(Session session, String indexedPropName, String value)
+        throws RepositoryException {
         session.refresh(false);
         QueryManager qm = session.getWorkspace().getQueryManager();
-        Query q = qm.createQuery("select * from [nt:base] where [" + indexedPropName + "] = $value", Query.JCR_SQL2);
+        Query q = qm.createQuery("select * from [nt:base] where [" + indexedPropName + "] = $value",
+            Query.JCR_SQL2);
         q.bindValue("value", session.getValueFactory().createValue(value));
         QueryResult result = q.execute();
         List<String> paths = Lists.newArrayList();
-        for (Row r : JcrUtils.getRows(result)){
+        for (Row r : JcrUtils.getRows(result)) {
             paths.add(r.getPath());
         }
         return paths;

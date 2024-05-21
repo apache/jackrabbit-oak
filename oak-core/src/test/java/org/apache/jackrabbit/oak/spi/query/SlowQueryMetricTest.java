@@ -18,6 +18,12 @@
  */
 package org.apache.jackrabbit.oak.spi.query;
 
+import java.lang.management.ManagementFactory;
+import java.text.ParseException;
+import java.util.Collections;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import javax.jcr.query.Query;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
@@ -42,13 +48,6 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-
-import javax.jcr.query.Query;
-import java.lang.management.ManagementFactory;
-import java.text.ParseException;
-import java.util.Collections;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 
 /**
  * {@code SlowQueryMetricTest} contains slowQuery metrics related tests.

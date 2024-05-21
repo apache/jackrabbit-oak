@@ -16,6 +16,16 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.INDEX_DEFINITION_NODE;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertTrue;
+
+import java.util.List;
+import java.util.UUID;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
@@ -24,17 +34,6 @@ import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilde
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.junit.Test;
 
-import java.util.List;
-import java.util.UUID;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
-
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.INDEX_DEFINITION_NODE;
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertTrue;
-
 public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
 
     protected IndexOptions indexOptions;
@@ -42,9 +41,10 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
 
     @Test
     public void fullTextQuery() throws Exception {
-        Tree index = setup(builder -> builder.indexRule("nt:base").property("propa").analyzed(), idx -> {
-                },
-                "propa");
+        Tree index = setup(builder -> builder.indexRule("nt:base").property("propa").analyzed(),
+            idx -> {
+            },
+            "propa");
 
         //add content
         Tree test = root.getTree("/").addChild("test");
@@ -58,16 +58,18 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
         String query = "//*[jcr:contains(@propa, 'Hello')]";
 
         assertEventually(() -> {
-            assertThat(explain(query, XPATH), containsString(indexOptions.getIndexType() + ":" + index.getName()));
+            assertThat(explain(query, XPATH),
+                containsString(indexOptions.getIndexType() + ":" + index.getName()));
             assertQuery(query, XPATH, List.of("/test/a", "/test/c", "/test/d"));
         });
     }
 
     @Test
     public void fullTextQueryRegExp() throws Exception {
-        Tree index = setup(builder -> builder.indexRule("nt:base").property("propa").analyzed(), idx -> {
-                },
-                "propa");
+        Tree index = setup(builder -> builder.indexRule("nt:base").property("propa").analyzed(),
+            idx -> {
+            },
+            "propa");
 
         // test borrowed from: https://github.com/apache/lucene/issues/11537
         StringBuilder strBuilder = new StringBuilder();
@@ -78,7 +80,8 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
         String query = "//*[rep:native('lucene', '/" + strBuilder + "/')]";
 
         assertEventually(() -> {
-            assertThat(explain(query, XPATH), containsString(indexOptions.getIndexType() + ":" + index.getName()));
+            assertThat(explain(query, XPATH),
+                containsString(indexOptions.getIndexType() + ":" + index.getName()));
             assertQuery(query, XPATH, List.of());
         });
     }
@@ -86,11 +89,11 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
     @Test
     public void fullTextQueryWithDifferentBoosts() throws Exception {
         setup(builder -> {
-                    builder.indexRule("nt:base").property("propa").analyzed().nodeScopeIndex().boost(10);
-                    builder.indexRule("nt:base").property("propb").analyzed().nodeScopeIndex().boost(100);
-                }, idx -> {
-                },
-                "propa", "propb");
+                builder.indexRule("nt:base").property("propa").analyzed().nodeScopeIndex().boost(10);
+                builder.indexRule("nt:base").property("propb").analyzed().nodeScopeIndex().boost(100);
+            }, idx -> {
+            },
+            "propa", "propb");
 
         //add content
         Tree test = root.getTree("/").addChild("test");
@@ -104,23 +107,26 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
         root.commit();
 
         assertEventually(() -> {
-            assertQuery("//*[jcr:contains(., 'Hello')]", XPATH, List.of("/test/c", "/test/b", "/test/a"), true, true);
+            assertQuery("//*[jcr:contains(., 'Hello')]", XPATH,
+                List.of("/test/c", "/test/b", "/test/a"), true, true);
             assertQuery("//*[jcr:contains(., 'Hello')] order by @jcr:score ascending", XPATH,
-                    List.of("/test/a", "/test/b", "/test/c"), true, true);
+                List.of("/test/a", "/test/b", "/test/c"), true, true);
             assertQuery("//*[jcr:contains(., 'people')]", XPATH, List.of("/test/c"));
         });
     }
 
     @Test
     public void noStoredIndexDefinition() throws Exception {
-        Tree index = setup(builder -> builder.indexRule("nt:base").property("propa").analyzed(), idx -> {
-                },
-                "propa");
+        Tree index = setup(builder -> builder.indexRule("nt:base").property("propa").analyzed(),
+            idx -> {
+            },
+            "propa");
 
         assertEventually(() -> {
             Tree indexNode = root.getTree("/" + INDEX_DEFINITIONS_NAME + "/" + index.getName());
             PropertyState ps = indexNode.getProperty(IndexConstants.REINDEX_COUNT);
-            assertTrue(ps != null && ps.getValue(Type.LONG) == 1 && !indexNode.hasChild(INDEX_DEFINITION_NODE));
+            assertTrue(ps != null && ps.getValue(Type.LONG) == 1 && !indexNode.hasChild(
+                INDEX_DEFINITION_NODE));
         });
     }
 
@@ -130,11 +136,11 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
     @Test
     public void onlyNodeScopeIndexedQuery() throws Exception {
         setup(builder -> {
-                    builder.indexRule("nt:base").property("a").nodeScopeIndex();
-                    builder.indexRule("nt:base").property("b").nodeScopeIndex();
-                }, idx -> {
-                },
-                "a", "b");
+                builder.indexRule("nt:base").property("a").nodeScopeIndex();
+                builder.indexRule("nt:base").property("b").nodeScopeIndex();
+            }, idx -> {
+            },
+            "a", "b");
 
         //add content
         Tree test = root.getTree("/").addChild("test");
@@ -148,20 +154,23 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
         root.commit();
 
         assertEventually(() -> {
-            assertQuery("//*[jcr:contains(., 'Hello')]", XPATH, List.of("/test/nodea", "/test/nodec", "/test/noded"));
-            assertQuery("//*[jcr:contains(., 'hello world')]", XPATH, List.of("/test/nodec", "/test/noded"));
-            assertQuery("//*[jcr:contains(., 'hello OR world')]", XPATH, List.of("/test/nodea", "/test/nodeb", "/test/nodec", "/test/noded"));
+            assertQuery("//*[jcr:contains(., 'Hello')]", XPATH,
+                List.of("/test/nodea", "/test/nodec", "/test/noded"));
+            assertQuery("//*[jcr:contains(., 'hello world')]", XPATH,
+                List.of("/test/nodec", "/test/noded"));
+            assertQuery("//*[jcr:contains(., 'hello OR world')]", XPATH,
+                List.of("/test/nodea", "/test/nodeb", "/test/nodec", "/test/noded"));
         });
     }
 
     @Test
     public void nodeScopeIndexedQuery() throws Exception {
         setup(builder -> {
-                    builder.indexRule("nt:base").property("a").analyzed().nodeScopeIndex();
-                    builder.indexRule("nt:base").property("b").analyzed().nodeScopeIndex();
-                }, idx -> {
-                },
-                "a", "b");
+                builder.indexRule("nt:base").property("a").analyzed().nodeScopeIndex();
+                builder.indexRule("nt:base").property("b").analyzed().nodeScopeIndex();
+            }, idx -> {
+            },
+            "a", "b");
 
         //add content
         Tree test = root.getTree("/").addChild("test");
@@ -175,19 +184,21 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
         root.commit();
 
         assertEventually(() -> {
-            assertQuery("//*[jcr:contains(., 'Hello')]", XPATH, List.of("/test/a", "/test/c", "/test/d"));
-            assertQuery("//*[jcr:contains(., 'hello world')]", XPATH, List.of("/test/c", "/test/d"));
+            assertQuery("//*[jcr:contains(., 'Hello')]", XPATH,
+                List.of("/test/a", "/test/c", "/test/d"));
+            assertQuery("//*[jcr:contains(., 'hello world')]", XPATH,
+                List.of("/test/c", "/test/d"));
         });
     }
 
     @Test
     public void propertyIndexWithNodeScopeIndexedQuery() throws Exception {
         setup(builder -> {
-                    builder.indexRule("nt:base").property("a").propertyIndex().nodeScopeIndex();
-                    builder.indexRule("nt:base").property("b").propertyIndex().nodeScopeIndex();
-                }, idx -> {
-                },
-                "a", "b");
+                builder.indexRule("nt:base").property("a").propertyIndex().nodeScopeIndex();
+                builder.indexRule("nt:base").property("b").propertyIndex().nodeScopeIndex();
+            }, idx -> {
+            },
+            "a", "b");
 
         //add content
         Tree test = root.getTree("/").addChild("test");
@@ -201,8 +212,10 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
         root.commit();
 
         assertEventually(() -> {
-            assertQuery("//*[jcr:contains(., 'Hello')]", XPATH, List.of("/test/nodea", "/test/nodec", "/test/noded"));
-            assertQuery("//*[jcr:contains(., 'hello world')]", XPATH, List.of("/test/nodec", "/test/noded"));
+            assertQuery("//*[jcr:contains(., 'Hello')]", XPATH,
+                List.of("/test/nodea", "/test/nodec", "/test/noded"));
+            assertQuery("//*[jcr:contains(., 'hello world')]", XPATH,
+                List.of("/test/nodec", "/test/noded"));
         });
     }
 
@@ -213,11 +226,11 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
     @Test
     public void onlyAnalyzedPropertyShouldNotBeReturnedForNodeScopeIndexedQuery() throws Exception {
         setup(builder -> {
-                    builder.indexRule("nt:base").property("a").nodeScopeIndex();
-                    builder.indexRule("nt:base").property("b").analyzed();
-                }, idx -> {
-                },
-                "a", "b");
+                builder.indexRule("nt:base").property("a").nodeScopeIndex();
+                builder.indexRule("nt:base").property("b").analyzed();
+            }, idx -> {
+            },
+            "a", "b");
 
         //add content
         Tree test = root.getTree("/").addChild("test");
@@ -231,7 +244,8 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
         root.commit();
 
         assertEventually(() -> {
-            assertQuery("//*[jcr:contains(., 'Hello')]", XPATH, List.of("/test/nodec", "/test/noded"));
+            assertQuery("//*[jcr:contains(., 'Hello')]", XPATH,
+                List.of("/test/nodec", "/test/noded"));
             assertQuery("//*[jcr:contains(., 'hello world')]", XPATH, List.of("/test/nodec"));
         });
     }
@@ -247,7 +261,7 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
         root.commit();
 
         assertEventually(() ->
-                assertQuery("//*[jcr:contains(@analyzed_field, 'test123')]", XPATH, List.of("/test/a"))
+            assertQuery("//*[jcr:contains(@analyzed_field, 'test123')]", XPATH, List.of("/test/a"))
         );
     }
 
@@ -262,26 +276,29 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
         root.commit();
 
         assertEventually(() ->
-                assertQuery("//*[jcr:contains(@analyzed_field, 'SUN.JPG')]", XPATH, List.of("/test/a")));
+            assertQuery("//*[jcr:contains(@analyzed_field, 'SUN.JPG')]", XPATH,
+                List.of("/test/a")));
 
         // add nodeScopeIndex at a later stage
         index.getChild("indexRules").getChild("nt:base").getChild("properties")
-                .getChild("analyzed_field").setProperty(FulltextIndexConstants.PROP_NODE_SCOPE_INDEX, true);
+             .getChild("analyzed_field")
+             .setProperty(FulltextIndexConstants.PROP_NODE_SCOPE_INDEX, true);
         index.setProperty(IndexConstants.REINDEX_PROPERTY_NAME, true);
         index.setProperty(FulltextIndexConstants.PROP_REFRESH_DEFN, true);
         root.commit();
 
         assertEventually(() ->
-                assertQuery("//*[jcr:contains(., 'jpg')]", XPATH, List.of("/test/a")));
+            assertQuery("//*[jcr:contains(., 'jpg')]", XPATH, List.of("/test/a")));
     }
 
     protected void assertEventually(Runnable r) {
         TestUtil.assertEventually(r,
-                ((repositoryOptionsUtil.isAsync() ? repositoryOptionsUtil.defaultAsyncIndexingTimeInSeconds : 0) + 3000) * 5);
+            ((repositoryOptionsUtil.isAsync()
+                ? repositoryOptionsUtil.defaultAsyncIndexingTimeInSeconds : 0) + 3000) * 5);
     }
 
     private static final BiConsumer<IndexDefinitionBuilder, List<String>> DEFAULT_BUILDER_HOOK = ((builder, analyzedFields) ->
-            analyzedFields.forEach(f -> builder.indexRule("nt:base").property(f).analyzed()));
+        analyzedFields.forEach(f -> builder.indexRule("nt:base").property(f).analyzed()));
 
     protected Tree setup() throws Exception {
         return setup(List.of("analyzed_field"), idx -> {
@@ -290,15 +307,16 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
 
     protected Tree setup(List<String> analyzedFields, Consumer<Tree> indexHook) throws Exception {
         return setup(
-                builder -> DEFAULT_BUILDER_HOOK.accept(builder, analyzedFields),
-                indexHook,
-                analyzedFields.toArray(new String[0])
+            builder -> DEFAULT_BUILDER_HOOK.accept(builder, analyzedFields),
+            indexHook,
+            analyzedFields.toArray(new String[0])
         );
     }
 
-    private Tree setup(Consumer<IndexDefinitionBuilder> builderHook, Consumer<Tree> indexHook, String... propNames) throws Exception {
+    private Tree setup(Consumer<IndexDefinitionBuilder> builderHook, Consumer<Tree> indexHook,
+        String... propNames) throws Exception {
         IndexDefinitionBuilder builder = indexOptions.createIndex(
-                indexOptions.createIndexDefinitionBuilder(), false, propNames);
+            indexOptions.createIndexDefinitionBuilder(), false, propNames);
         builder.noAsync();
         builder.evaluatePathRestrictions();
         builderHook.accept(builder);

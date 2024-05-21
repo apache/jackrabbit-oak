@@ -26,10 +26,8 @@ import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
-
 import org.apache.jackrabbit.guava.common.base.Charsets;
 import org.apache.jackrabbit.guava.common.io.ByteStreams;
-
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -43,7 +41,7 @@ public class SegmentStream extends InputStream {
 
     @Nullable
     public static RecordId getRecordIdIfAvailable(
-            InputStream stream, SegmentStore store) {
+        InputStream stream, SegmentStore store) {
         if (stream instanceof SegmentStream) {
             SegmentStream sStream = (SegmentStream) stream;
             RecordId id = sStream.recordId;
@@ -159,7 +157,7 @@ public class SegmentStream extends InputStream {
             int blockIndex = (int) (position / BLOCK_SIZE);
             int blockOffset = (int) (position % BLOCK_SIZE);
             int blockCount =
-                    (blockOffset + len + BLOCK_SIZE - 1) // round up
+                (blockOffset + len + BLOCK_SIZE - 1) // round up
                     / BLOCK_SIZE;
 
             int remaining = len;
@@ -176,17 +174,18 @@ public class SegmentStream extends InputStream {
                 // null as this would imply id was null in the previous iteration.
                 assert id == null || previousId != null;
                 if (id != null
-                        // blocks are in the same segment
-                        && id.getSegmentId().equals(previousId.getSegmentId())
+                    // blocks are in the same segment
+                    && id.getSegmentId().equals(previousId.getSegmentId())
 
-                        // blocks are consecutive
-                        && id.getRecordNumber() == previousId.getRecordNumber() + consecutiveBlocks * BLOCK_SIZE) {
+                    // blocks are consecutive
+                    && id.getRecordNumber()
+                    == previousId.getRecordNumber() + consecutiveBlocks * BLOCK_SIZE) {
 
                     consecutiveBlocks++;
                 } else {
                     // read the current chunk of consecutive blocks
                     int blockSize = Math.min(
-                            blockOffset + remaining, consecutiveBlocks * BLOCK_SIZE);
+                        blockOffset + remaining, consecutiveBlocks * BLOCK_SIZE);
                     BlockRecord block = new BlockRecord(previousId, blockSize);
                     int n = blockSize - blockOffset;
                     checkState(block.read(blockOffset, b, off, n) == n);

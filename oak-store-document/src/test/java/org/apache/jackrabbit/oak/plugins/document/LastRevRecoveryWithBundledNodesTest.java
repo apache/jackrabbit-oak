@@ -50,7 +50,7 @@ public class LastRevRecoveryWithBundledNodesTest {
     public DocumentMKBuilderProvider builderProvider = new DocumentMKBuilderProvider();
 
     private LogCustomizer log = LogCustomizer.forLogger(LastRevRecoveryAgent.class)
-            .contains("find document").enable(Level.WARN).create();
+                                             .contains("find document").enable(Level.WARN).create();
 
     private DocumentStore store = new MemoryDocumentStore();
     private DocumentNodeStore ns;
@@ -58,19 +58,19 @@ public class LastRevRecoveryWithBundledNodesTest {
     @Before
     public void setUpBundling() throws CommitFailedException {
         ns = builderProvider.newBuilder().setDocumentStore(store)
-                .setAsyncDelay(0).getNodeStore();
+                            .setAsyncDelay(0).getNodeStore();
         NodeState registryState = BundledTypesRegistry.builder()
-                .forType(NT_FILE)
-                .include(JCR_CONTENT)
-                .build();
+                                                      .forType(NT_FILE)
+                                                      .include(JCR_CONTENT)
+                                                      .build();
 
         NodeBuilder builder = ns.getRoot().builder();
         new InitialContent().initialize(builder);
         BundlingConfigInitializer.INSTANCE.initialize(builder);
         builder.getChildNode(JCR_SYSTEM)
-                .getChildNode(DOCUMENT_NODE_STORE)
-                .getChildNode(BUNDLOR)
-                .setChildNode(NT_FILE, registryState.getChildNode(NT_FILE));
+               .getChildNode(DOCUMENT_NODE_STORE)
+               .getChildNode(BUNDLOR)
+               .setChildNode(NT_FILE, registryState.getChildNode(NT_FILE));
         merge(ns, builder);
         ns.runBackgroundOperations();
     }

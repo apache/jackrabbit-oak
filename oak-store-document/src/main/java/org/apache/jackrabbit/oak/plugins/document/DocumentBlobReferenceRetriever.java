@@ -33,6 +33,7 @@ import org.slf4j.LoggerFactory;
  * Implementation of {@link BlobReferenceRetriever} for the DocumentNodeStore.
  */
 public class DocumentBlobReferenceRetriever implements BlobReferenceRetriever {
+
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final DocumentNodeStore nodeStore;
 

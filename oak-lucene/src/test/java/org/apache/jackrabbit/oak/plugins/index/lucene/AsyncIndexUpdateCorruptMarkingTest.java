@@ -19,6 +19,15 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider.compose;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
+import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
@@ -38,16 +47,6 @@ import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.io.IOException;
-import java.util.concurrent.TimeUnit;
-
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider.compose;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 
 /**
  * Tests marking index as corrupt if blob is missing.
@@ -78,28 +77,29 @@ public class AsyncIndexUpdateCorruptMarkingTest {
         luceneIndexEditorProvider.setBlobStore(blobStore);
 
         asyncIndexUpdate = new AsyncIndexUpdate("async", nodeStore, compose(newArrayList(
-                luceneIndexEditorProvider,
-                new NodeCounterEditorProvider()
+            luceneIndexEditorProvider,
+            new NodeCounterEditorProvider()
         )));
         TrackingCorruptIndexHandler trackingCorruptIndexHandler = new TrackingCorruptIndexHandler();
-        trackingCorruptIndexHandler.setCorruptInterval(INDEX_CORRUPT_INTERVAL_IN_MILLIS, TimeUnit.MILLISECONDS);
+        trackingCorruptIndexHandler.setCorruptInterval(INDEX_CORRUPT_INTERVAL_IN_MILLIS,
+            TimeUnit.MILLISECONDS);
         asyncIndexUpdate.setCorruptIndexHandler(trackingCorruptIndexHandler);
         return new Oak(nodeStore)
-                .with(new InitialContent())
-                .with(new OpenSecurityProvider())
-                .with((QueryIndexProvider) provider)
-                .with((Observer) provider)
-                .with(luceneIndexEditorProvider)
-                .with(new PropertyIndexEditorProvider())
-                .with(new NodeTypeIndexProvider())
-                .createContentRepository();
+            .with(new InitialContent())
+            .with(new OpenSecurityProvider())
+            .with((QueryIndexProvider) provider)
+            .with((Observer) provider)
+            .with(luceneIndexEditorProvider)
+            .with(new PropertyIndexEditorProvider())
+            .with(new NodeTypeIndexProvider())
+            .createContentRepository();
     }
 
     @Test
     public void testLuceneIndexSegmentStats() throws Exception {
         LuceneIndexDefinitionBuilder idxb = new LuceneIndexDefinitionBuilder();
         idxb.indexRule("nt:base")
-                .property("foo").analyzed().nodeScopeIndex().ordered().useInExcerpt().propertyIndex();
+            .property("foo").analyzed().nodeScopeIndex().ordered().useInExcerpt().propertyIndex();
         idxb.build(root.getTree("/oak:index").addChild("lucenePropertyIndex"));
 
         // Add content and index it successfully
@@ -116,16 +116,18 @@ public class AsyncIndexUpdateCorruptMarkingTest {
         assertTrue("Indexing must fail after blob deletion", asyncIndexUpdate.isFailing());
         root.refresh();
         assertNull("Corrupt flag must not be set immediately after failure",
-                root.getTree("/oak:index/lucenePropertyIndex").getProperty("corrupt"));
+            root.getTree("/oak:index/lucenePropertyIndex").getProperty("corrupt"));
 
         // sleep to cross over corrupt interval and run indexing to maek corrupt
-        Thread.sleep(INDEX_CORRUPT_INTERVAL_IN_MILLIS + 10);// 10ms buffer to definitely be ahead of corrupt interval
+        Thread.sleep(INDEX_CORRUPT_INTERVAL_IN_MILLIS
+            + 10);// 10ms buffer to definitely be ahead of corrupt interval
         asyncIndexUpdate.run(); // after corrupt interval index will be marked as corrupt.
 
-        assertTrue("Indexing must continue to fail after blob deletion", asyncIndexUpdate.isFailing());
+        assertTrue("Indexing must continue to fail after blob deletion",
+            asyncIndexUpdate.isFailing());
         root.refresh();
         assertNotNull("Corrupt flag must get set",
-                root.getTree("/oak:index/lucenePropertyIndex").getProperty("corrupt"));
+            root.getTree("/oak:index/lucenePropertyIndex").getProperty("corrupt"));
     }
 
     private void deleteBlobs() throws IOException {

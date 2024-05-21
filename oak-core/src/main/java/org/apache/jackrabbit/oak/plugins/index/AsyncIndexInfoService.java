@@ -20,7 +20,6 @@
 package org.apache.jackrabbit.oak.plugins.index;
 
 import java.util.Map;
-
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.Nullable;
 

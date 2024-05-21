@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.jcr;
 import java.util.Properties;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
-
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
@@ -53,10 +52,10 @@ public class OakMongoNSRepositoryStub extends BaseRepositoryStub {
         try {
             this.connection = MongoUtils.getConnection();
             store = new DocumentMK.Builder().
-                    memoryCacheSize(64 * 1024 * 1024).
-                    setPersistentCache("target/persistentCache,time").
-                    setMongoDB(connection.getMongoClient(), connection.getDBName()).
-                    getNodeStore();
+                memoryCacheSize(64 * 1024 * 1024).
+                setPersistentCache("target/persistentCache,time").
+                setMongoDB(connection.getMongoClient(), connection.getDBName()).
+                getNodeStore();
             Jcr jcr = new Jcr(store);
             preCreateRepository(jcr);
             this.repository = jcr.createRepository();

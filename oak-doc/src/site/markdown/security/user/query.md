@@ -34,7 +34,6 @@ management implementation.
     Authorizable a2 = userManager.getAuthorizableByPath(a.getPath());
     Authorizable everyoneGroup = userManager.getAuthorizable(EveryonePrincipal.getInstance());
 
-
 ### Searching for Authorizables
 
 - `UserManager.findAuthorizables(String relPath, String value)`
@@ -43,7 +42,8 @@ management implementation.
 
 ### The Query API
 
-- [Query]: The query object passed to the findAuthorizable method. It has a single `build(QueryBuilder)` method.
+- [Query]: The query object passed to the findAuthorizable method. It has a
+  single `build(QueryBuilder)` method.
 - [QueryBuilder]: The query builder as described below.
 
 #### QueryBuilder
@@ -52,13 +52,21 @@ management implementation.
 
 The following conditions can be used to find authorizables by properties:
 
-- `QueryBuilder.eq(String relPath, Value)`: holds if property at relPath is _equal_ to the specified value.
-- `QueryBuilder.neq(String relPath, Value)`: holds if property at relPath is _not equal_ to the specified value.
-- `QueryBuilder.lt(String relPath, Value)`: holds if property at relPath is _smaller_ than the specified value.
-- `QueryBuilder.le(String relPath, Value)`: holds if property at relPath is _smaller or equal_ than/to the specified value.- QueryBuilder.lt(String relPath, Value) : matches if property value at relPath is _smaller_ than the specified value.
-- `QueryBuilder.gt(String relPath, Value)`: holds if property at relPath is _greater_ than the specified value.
-- `QueryBuilder.ge(String relPath, Value)`: holds if property at relPath is _greater or equal_ than/to the specified value.
-- `QueryBuilder.ge(String relPath, Value)`: holds if property at relPath is _greater or equal_ than/to the specified value.
+- `QueryBuilder.eq(String relPath, Value)`: holds if property at relPath is _equal_ to the specified
+  value.
+- `QueryBuilder.neq(String relPath, Value)`: holds if property at relPath is _not equal_ to the
+  specified value.
+- `QueryBuilder.lt(String relPath, Value)`: holds if property at relPath is _smaller_ than the
+  specified value.
+- `QueryBuilder.le(String relPath, Value)`: holds if property at relPath is _smaller or equal_
+  than/to the specified value.- QueryBuilder.lt(String relPath, Value) : matches if property value
+  at relPath is _smaller_ than the specified value.
+- `QueryBuilder.gt(String relPath, Value)`: holds if property at relPath is _greater_ than the
+  specified value.
+- `QueryBuilder.ge(String relPath, Value)`: holds if property at relPath is _greater or equal_
+  than/to the specified value.
+- `QueryBuilder.ge(String relPath, Value)`: holds if property at relPath is _greater or equal_
+  than/to the specified value.
 - `QueryBuilder.contains(String relPath, String searchExpr)`: full text search.
 - `QueryBuilder.exists(String relPath)`: holds if a property at relPath exists.
 
@@ -93,8 +101,10 @@ The following conditions can be used to find authorizables by properties:
 The following conditions allow to specify a search pattern, where '%' represents
 any string of zero or more characters and '_' represents any single character.
 
-- `QueryBuilder.like(String relPath, String pattern)`: holds if a property relPath matches the pattern.
-- `QueryBuilder.like(String relPath, String pattern)`: holds if a property relPath matches the pattern.
+- `QueryBuilder.like(String relPath, String pattern)`: holds if a property relPath matches the
+  pattern.
+- `QueryBuilder.like(String relPath, String pattern)`: holds if a property relPath matches the
+  pattern.
 - `QueryBuilder.nameMatches(String pattern)`: filter by principal name (see below)
 
 ###### Examples
@@ -133,7 +143,8 @@ be included in the search result.
 ##### Multiple Conditions
 
 - `QueryBuilder.and(Condition condition1, Condition condition2)`: holds if both sub conditions hold
-- `QueryBuilder.or(Condition condition1, Condition condition2)`: holds if any of the two sub conditions hold
+- `QueryBuilder.or(Condition condition1, Condition condition2)`: holds if any of the two sub
+  conditions hold
 - `QueryBuilder.not(Condition condition)`: holds if the sub condition does not hold.
 
 ###### Examples
@@ -197,8 +208,8 @@ where direction can be either of
 
 - `QueryBuilder.setLimit(long offset, long maxCount)`
 - `QueryBuilder.setLimit(Value bound, long maxCount)` : bound refers to the value
-of the `setSortOrder(String, Direction)` property. The result is limited to
-authorizables whose values of the sort order property follow `bound` in the sort direction.
+  of the `setSortOrder(String, Direction)` property. The result is limited to
+  authorizables whose values of the sort order property follow `bound` in the sort direction.
 
 ###### Examples
 
@@ -221,7 +232,7 @@ authorizables whose values of the sort order property follow `bound` in the sort
 ##### Filter by Authorizable Type
 
 - `QueryBuilder.setSelector(Class<? extends Authorizable> selector)`: Limit search
-result to a specific type of authorizables (in the example: groups only)
+  result to a specific type of authorizables (in the example: groups only)
 
 The selector may take any of the following values:
 
@@ -261,7 +272,8 @@ It does not take any custom name properties into account nor query `rep:authoriz
 
 ##### Find Group Members
 
-- `QueryBuilder.setScope(String groupName, boolean declaredOnly)`: will only return members of the group with the specified name.
+- `QueryBuilder.setScope(String groupName, boolean declaredOnly)`: will only return members of the
+  group with the specified name.
 
 ###### Example
 
@@ -299,7 +311,7 @@ Find all authorizables accessible to the editing session
 
 ### Characteristics of the Default Implementation
 
-See sections [Differences to Jackrabbit 2.x](differences.html#query) and 
+See sections [Differences to Jackrabbit 2.x](differences.html#query) and
 [The Default Implementation](default.html#query) for details.
 
 ### Utilities
@@ -310,5 +322,7 @@ a utility class provided by the jcr-commons module present with Jackrabbit.
 <!-- hidden references -->
 
 [QueryBuilder]: /oak/docs/apidocs/org/apache/jackrabbit/api/security/user/QueryBuilder.html
+
 [Query]: /oak/docs/apidocs/org/apache/jackrabbit/api/security/user/Query.html
+
 [org.apache.jackrabbit.commons.jackrabbit.user.AuthorizableQueryManager]: http://svn.apache.org/repos/asf/jackrabbit/trunk/jackrabbit-jcr-commons/src/main/java/org/apache/jackrabbit/commons/jackrabbit/user/AuthorizableQueryManager.java

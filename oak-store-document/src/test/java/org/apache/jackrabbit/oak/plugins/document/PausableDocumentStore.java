@@ -31,15 +31,14 @@ public class PausableDocumentStore extends DocumentStoreWrapper {
     public interface PauseCallback {
 
         /**
-         * @return the PauseCallback to use going forward - null to stop
-         * doing pauses
+         * @return the PauseCallback to use going forward - null to stop doing pauses
          */
         PauseCallback handlePause(List<UpdateOp> remainingOps);
     }
 
     /**
-     * small extension of FailingDocumentStore that doesn't throw an exception but
-     * pauses (pauseNow instead of failNow).
+     * small extension of FailingDocumentStore that doesn't throw an exception but pauses (pauseNow
+     * instead of failNow).
      */
     static class PausingFailingDocumentStore extends FailingDocumentStore {
 

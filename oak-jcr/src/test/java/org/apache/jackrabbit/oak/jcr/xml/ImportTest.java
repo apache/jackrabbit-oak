@@ -25,14 +25,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.UUID;
-
 import javax.jcr.ImportUUIDBehavior;
 import javax.jcr.ItemExistsException;
 import javax.jcr.Node;
 import javax.jcr.Property;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.test.AbstractJCRTest;
 
@@ -70,7 +68,8 @@ public class ImportTest extends AbstractJCRTest {
     public void testReplaceUUID() throws Exception {
         superuser.save();
 
-        superuser.importXML(siblingPath, getImportStream(), ImportUUIDBehavior.IMPORT_UUID_COLLISION_REPLACE_EXISTING);
+        superuser.importXML(siblingPath, getImportStream(),
+            ImportUUIDBehavior.IMPORT_UUID_COLLISION_REPLACE_EXISTING);
         superuser.save();
 
         // original node must have been replaced (but no child node added)
@@ -84,9 +83,8 @@ public class ImportTest extends AbstractJCRTest {
     }
 
     /**
-     * @see <a href="https://issues.apache.org/jira/browse/OAK-9541">OAK-9541</a>
      * @throws Exception
-     *
+     * @see <a href="https://issues.apache.org/jira/browse/OAK-9541">OAK-9541</a>
      */
     public void testOverwriteDifferentUUIDSamePath() throws Exception {
         // export of node1/node1 (nt:folder in nt:folder, does not allow sns)
@@ -107,16 +105,28 @@ public class ImportTest extends AbstractJCRTest {
         superuser.save();
 
         // reimport node1/node1 must throw exception
-        ItemExistsException e = assertThrows(ItemExistsException.class, () -> { superuser.importXML(node.getPath(), sysViewInputStream, ImportUUIDBehavior.IMPORT_UUID_COLLISION_REMOVE_EXISTING); });
+        ItemExistsException e = assertThrows(ItemExistsException.class, () -> {
+            superuser.importXML(node.getPath(), sysViewInputStream,
+                ImportUUIDBehavior.IMPORT_UUID_COLLISION_REMOVE_EXISTING);
+        });
         assertFalse(e.getMessage().contains("UUID"));
         sysViewInputStream.reset();
-        e = assertThrows(ItemExistsException.class, () -> { superuser.importXML(node.getPath(), sysViewInputStream, ImportUUIDBehavior.IMPORT_UUID_COLLISION_REPLACE_EXISTING); });
+        e = assertThrows(ItemExistsException.class, () -> {
+            superuser.importXML(node.getPath(), sysViewInputStream,
+                ImportUUIDBehavior.IMPORT_UUID_COLLISION_REPLACE_EXISTING);
+        });
         assertFalse(e.getMessage().contains("UUID"));
         sysViewInputStream.reset();
-        e = assertThrows(ItemExistsException.class, () -> { superuser.importXML(node.getPath(), sysViewInputStream, ImportUUIDBehavior.IMPORT_UUID_COLLISION_THROW); });
+        e = assertThrows(ItemExistsException.class, () -> {
+            superuser.importXML(node.getPath(), sysViewInputStream,
+                ImportUUIDBehavior.IMPORT_UUID_COLLISION_THROW);
+        });
         assertFalse(e.getMessage().contains("UUID"));
         sysViewInputStream.reset();
-        e = assertThrows(ItemExistsException.class, () -> { superuser.importXML(node.getPath(), sysViewInputStream, ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW); });
+        e = assertThrows(ItemExistsException.class, () -> {
+            superuser.importXML(node.getPath(), sysViewInputStream,
+                ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW);
+        });
         assertFalse(e.getMessage().contains("UUID"));
     }
 
@@ -124,11 +134,13 @@ public class ImportTest extends AbstractJCRTest {
      * @see <a href="https://issues.apache.org/jira/browse/OAK-2246">OAK-2246</a>
      */
     public void testTransientReplaceUUID() throws Exception {
-        superuser.importXML(path, getImportStream(), ImportUUIDBehavior.IMPORT_UUID_COLLISION_REPLACE_EXISTING);
+        superuser.importXML(path, getImportStream(),
+            ImportUUIDBehavior.IMPORT_UUID_COLLISION_REPLACE_EXISTING);
         superuser.save();
 
         // original node must have been replaced (but no child node added)
-        superuser.importXML(siblingPath, getImportStream(), ImportUUIDBehavior.IMPORT_UUID_COLLISION_REPLACE_EXISTING);
+        superuser.importXML(siblingPath, getImportStream(),
+            ImportUUIDBehavior.IMPORT_UUID_COLLISION_REPLACE_EXISTING);
         superuser.save();
 
         // original node must have been replaced (but no child node added)
@@ -144,7 +156,8 @@ public class ImportTest extends AbstractJCRTest {
     public void testReplaceUUIDSameTree() throws Exception {
         superuser.save();
 
-        superuser.importXML(path, getImportStream(), ImportUUIDBehavior.IMPORT_UUID_COLLISION_REPLACE_EXISTING);
+        superuser.importXML(path, getImportStream(),
+            ImportUUIDBehavior.IMPORT_UUID_COLLISION_REPLACE_EXISTING);
         superuser.save();
 
         // original node must have been replaced (but no child node added)
@@ -159,7 +172,8 @@ public class ImportTest extends AbstractJCRTest {
      * @see <a href="https://issues.apache.org/jira/browse/OAK-2246">OAK-2246</a>
      */
     public void testTransientReplaceUUIDSameTree() throws Exception {
-        superuser.importXML(path, getImportStream(), ImportUUIDBehavior.IMPORT_UUID_COLLISION_REPLACE_EXISTING);
+        superuser.importXML(path, getImportStream(),
+            ImportUUIDBehavior.IMPORT_UUID_COLLISION_REPLACE_EXISTING);
         superuser.save();
 
         // original node must have been replaced (but no child node added)
@@ -173,7 +187,8 @@ public class ImportTest extends AbstractJCRTest {
     public void testRemoveUUID() throws Exception {
         superuser.save();
 
-        superuser.importXML(siblingPath, getImportStream(), ImportUUIDBehavior.IMPORT_UUID_COLLISION_REMOVE_EXISTING);
+        superuser.importXML(siblingPath, getImportStream(),
+            ImportUUIDBehavior.IMPORT_UUID_COLLISION_REMOVE_EXISTING);
         superuser.save();
 
         // original node must have been removed
@@ -188,7 +203,8 @@ public class ImportTest extends AbstractJCRTest {
     }
 
     public void testTransientRemoveUUID() throws Exception {
-        superuser.importXML(siblingPath, getImportStream(), ImportUUIDBehavior.IMPORT_UUID_COLLISION_REMOVE_EXISTING);
+        superuser.importXML(siblingPath, getImportStream(),
+            ImportUUIDBehavior.IMPORT_UUID_COLLISION_REMOVE_EXISTING);
         superuser.save();
 
         // original node must have been removed
@@ -206,7 +222,8 @@ public class ImportTest extends AbstractJCRTest {
         superuser.save();
 
         try {
-            superuser.importXML(path, getImportStream(), ImportUUIDBehavior.IMPORT_UUID_COLLISION_REMOVE_EXISTING);
+            superuser.importXML(path, getImportStream(),
+                ImportUUIDBehavior.IMPORT_UUID_COLLISION_REMOVE_EXISTING);
             fail("ConstraintViolationException expected");
         } catch (ConstraintViolationException e) {
             // success
@@ -215,7 +232,8 @@ public class ImportTest extends AbstractJCRTest {
 
     public void testTransientRemoveUUIDSameTree() throws Exception {
         try {
-            superuser.importXML(path, getImportStream(), ImportUUIDBehavior.IMPORT_UUID_COLLISION_REMOVE_EXISTING);
+            superuser.importXML(path, getImportStream(),
+                ImportUUIDBehavior.IMPORT_UUID_COLLISION_REMOVE_EXISTING);
             fail("ConstraintViolationException expected");
         } catch (ConstraintViolationException e) {
             // success
@@ -225,7 +243,8 @@ public class ImportTest extends AbstractJCRTest {
     public void testCreateNewUUID() throws Exception {
         superuser.save();
 
-        superuser.importXML(siblingPath, getImportStream(), ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW);
+        superuser.importXML(siblingPath, getImportStream(),
+            ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW);
         superuser.save();
 
         // original node must still exist
@@ -241,7 +260,8 @@ public class ImportTest extends AbstractJCRTest {
     }
 
     public void testTransientCreateNewUUID() throws Exception {
-        superuser.importXML(siblingPath, getImportStream(), ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW);
+        superuser.importXML(siblingPath, getImportStream(),
+            ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW);
         superuser.save();
 
         // original node must still exist
@@ -260,7 +280,8 @@ public class ImportTest extends AbstractJCRTest {
         superuser.save();
 
         try {
-            superuser.importXML(siblingPath, getImportStream(), ImportUUIDBehavior.IMPORT_UUID_COLLISION_THROW);
+            superuser.importXML(siblingPath, getImportStream(),
+                ImportUUIDBehavior.IMPORT_UUID_COLLISION_THROW);
             fail("ItemExistsException expected");
         } catch (ItemExistsException e) {
             // success
@@ -269,7 +290,8 @@ public class ImportTest extends AbstractJCRTest {
 
     public void testTransientThrow() throws Exception {
         try {
-            superuser.importXML(siblingPath, getImportStream(), ImportUUIDBehavior.IMPORT_UUID_COLLISION_THROW);
+            superuser.importXML(siblingPath, getImportStream(),
+                ImportUUIDBehavior.IMPORT_UUID_COLLISION_THROW);
             fail("ItemExistsException expected");
         } catch (ItemExistsException e) {
             // success
@@ -282,12 +304,16 @@ public class ImportTest extends AbstractJCRTest {
     public void testNoMatchingPropertyDefinition() throws Exception {
         // jcr:data must be BINARY not BOOLEAN -> should fail
         String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
-                "<sv:node sv:name=\"resourceName\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
-                    "<sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>oak:Resource</sv:value></sv:property>" +
-                    "<sv:property sv:name=\"jcr:data\" sv:type=\"Boolean\"><sv:value>true</sv:value></sv:property>" +
-                "</sv:node>";
+            "<sv:node sv:name=\"resourceName\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">"
+            +
+            "<sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>oak:Resource</sv:value></sv:property>"
+            +
+            "<sv:property sv:name=\"jcr:data\" sv:type=\"Boolean\"><sv:value>true</sv:value></sv:property>"
+            +
+            "</sv:node>";
         try {
-            superuser.importXML(path, new ByteArrayInputStream(xml.getBytes()), ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW);
+            superuser.importXML(path, new ByteArrayInputStream(xml.getBytes()),
+                ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW);
             fail("ConstraintViolationException expected");
         } catch (ConstraintViolationException e) {
             // success
@@ -298,10 +324,14 @@ public class ImportTest extends AbstractJCRTest {
     public void testNewNamespaceWithPrefixConflict() throws Exception {
         String ns1 = "urn:uuid:" + UUID.randomUUID().toString();
         String ns2 = "urn:uuid:" + UUID.randomUUID().toString();
-        String xml = "<sv:node sv:name='resourceName' xmlns:sv='http://www.jcp.org/jcr/sv/1.0'>" + "<sv:property xmlns:foo='" + ns1
-                + "' sv:name='foo:test' sv:type='String'><sv:value>a</sv:value></sv:property>" + "<sv:property xmlns:foo='" + ns2
-                + "' sv:name='foo:test' sv:type='String'><sv:value>b</sv:value></sv:property>" + "</sv:node>";
-        superuser.importXML(path, new ByteArrayInputStream(xml.getBytes()), ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW);
+        String xml = "<sv:node sv:name='resourceName' xmlns:sv='http://www.jcp.org/jcr/sv/1.0'>"
+            + "<sv:property xmlns:foo='" + ns1
+            + "' sv:name='foo:test' sv:type='String'><sv:value>a</sv:value></sv:property>"
+            + "<sv:property xmlns:foo='" + ns2
+            + "' sv:name='foo:test' sv:type='String'><sv:value>b</sv:value></sv:property>"
+            + "</sv:node>";
+        superuser.importXML(path, new ByteArrayInputStream(xml.getBytes()),
+            ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW);
         Node n = superuser.getNode(path);
         n = n.getNode("resourceName");
         Property p1 = n.getProperty("{" + ns1 + "}test");

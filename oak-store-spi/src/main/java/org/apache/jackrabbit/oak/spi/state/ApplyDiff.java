@@ -21,11 +21,10 @@ package org.apache.jackrabbit.oak.spi.state;
 import org.apache.jackrabbit.oak.api.PropertyState;
 
 /**
- * A node state diff handler that applies all reported changes
- * as-is to the given node builder. No conflict detection or resolution
- * is attempted. The main use case for this class is to call all the
- * {@link NodeBuilder} methods necessary to go from a given base state
- * to any given target state.
+ * A node state diff handler that applies all reported changes as-is to the given node builder. No
+ * conflict detection or resolution is attempted. The main use case for this class is to call all
+ * the {@link NodeBuilder} methods necessary to go from a given base state to any given target
+ * state.
  * <p>
  * The expected usage pattern looks like this:
  * <pre>
@@ -36,8 +35,8 @@ import org.apache.jackrabbit.oak.api.PropertyState;
  * assertEquals(target, builder.getNodeState());
  * </pre>
  * <p>
- * Alternatively, the {@link #apply(NodeState)} method can be used to set
- * the content of a given builder:
+ * Alternatively, the {@link #apply(NodeState)} method can be used to set the content of a given
+ * builder:
  * <pre>
  * NodeBuilder builder = ...;
  * NodeState target = ...;
@@ -83,9 +82,9 @@ public class ApplyDiff implements NodeStateDiff {
 
     @Override
     public boolean childNodeChanged(
-            String name, NodeState before, NodeState after) {
+        String name, NodeState before, NodeState after) {
         return after.compareAgainstBaseState(
-                before, new ApplyDiff(builder.getChildNode(name)));
+            before, new ApplyDiff(builder.getChildNode(name)));
     }
 
     @Override

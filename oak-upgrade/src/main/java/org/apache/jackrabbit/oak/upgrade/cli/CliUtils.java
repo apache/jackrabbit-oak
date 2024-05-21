@@ -18,12 +18,10 @@ package org.apache.jackrabbit.oak.upgrade.cli;
 
 import java.io.IOException;
 import java.io.InputStream;
-
 import org.apache.commons.io.IOUtils;
+import org.apache.jackrabbit.guava.common.io.Closer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import org.apache.jackrabbit.guava.common.io.Closer;
 
 public class CliUtils {
 

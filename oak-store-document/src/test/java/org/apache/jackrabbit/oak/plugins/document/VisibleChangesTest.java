@@ -51,7 +51,7 @@ public class VisibleChangesTest {
     public void versionablePathHook() throws CommitFailedException {
         TestStore store = new TestStore();
         DocumentNodeStore ns = new DocumentMK.Builder()
-                .setDocumentStore(store).getNodeStore();
+            .setDocumentStore(store).getNodeStore();
         NodeBuilder builder = ns.getRoot().builder();
         builder.child(":hidden");
         ns.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
@@ -103,7 +103,7 @@ public class VisibleChangesTest {
         });
         hook.processCommit(ns.getRoot(), builder.getNodeState(), CommitInfo.EMPTY);
         assertEquals("Must not query for hidden paths: " + store.paths.toString(),
-                0, store.paths.size());
+            0, store.paths.size());
 
         ns.dispose();
     }
@@ -121,11 +121,11 @@ public class VisibleChangesTest {
         @NotNull
         @Override
         public <T extends Document> List<T> query(Collection<T> collection,
-                                                  String fromKey,
-                                                  String toKey,
-                                                  String indexedProperty,
-                                                  long startValue,
-                                                  int limit) {
+            String fromKey,
+            String toKey,
+            String indexedProperty,
+            long startValue,
+            int limit) {
             if (indexedProperty != null) {
                 paths.add(fromKey);
             }

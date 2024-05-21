@@ -23,7 +23,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-
+import junit.framework.TestCase;
+import junit.framework.TestSuite;
 import org.apache.jackrabbit.oak.commons.FixturesHelper;
 import org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture;
 import org.apache.jackrabbit.oak.jcr.OakDocumentMemRepositoryStub;
@@ -37,16 +38,13 @@ import org.apache.jackrabbit.test.RepositoryHelperPoolImpl;
 import org.apache.jackrabbit.test.RepositoryStub;
 import org.slf4j.bridge.SLF4JBridgeHandler;
 
-import junit.framework.TestCase;
-import junit.framework.TestSuite;
-
 /**
  * Base class for TCK tests.
  */
 public abstract class TCKBase extends TestSuite {
 
     private static final Set<Fixture> FIXTURES = FixturesHelper.getFixtures();
-    
+
     static {
         SLF4JBridgeHandler.removeHandlersForRootLogger();
         SLF4JBridgeHandler.install();
@@ -78,8 +76,8 @@ public abstract class TCKBase extends TestSuite {
     abstract protected void addTests();
 
     /**
-     * Setup test class to replace the RepositoryHelper. This is quite a hack
-     * because the existing TCK tests do not take parameters.
+     * Setup test class to replace the RepositoryHelper. This is quite a hack because the existing
+     * TCK tests do not take parameters.
      */
     public static class Setup extends TestCase {
 
@@ -119,7 +117,8 @@ public abstract class TCKBase extends TestSuite {
             RepositoryHelper helper = HELPERS.get(stubClass);
             if (helper == null) {
                 Properties props = new Properties();
-                props.load(getClass().getClassLoader().getResourceAsStream(RepositoryStub.STUB_IMPL_PROPS));
+                props.load(getClass().getClassLoader()
+                                     .getResourceAsStream(RepositoryStub.STUB_IMPL_PROPS));
                 props.put(RepositoryStub.PROP_STUB_IMPL_CLASS, stubClass);
                 helper = new RepositoryHelper(props);
                 HELPERS.put(stubClass, helper);

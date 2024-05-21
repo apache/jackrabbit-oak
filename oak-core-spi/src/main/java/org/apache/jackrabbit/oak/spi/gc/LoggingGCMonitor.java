@@ -22,17 +22,18 @@ package org.apache.jackrabbit.oak.spi.gc;
 import org.slf4j.Logger;
 
 /**
- * This {@code GCMonitor} implementation logs all calls to its
- * {@link #info(String, Object...)}, {@link #warn(String, Object...)},
- * {@link #error(String, Exception)} and {@link #skipped(String, Object...)}
- * methods at the respective levels using the logger instance passed to the
- * constructor.
+ * This {@code GCMonitor} implementation logs all calls to its {@link #info(String, Object...)},
+ * {@link #warn(String, Object...)}, {@link #error(String, Exception)} and
+ * {@link #skipped(String, Object...)} methods at the respective levels using the logger instance
+ * passed to the constructor.
  */
 public class LoggingGCMonitor implements GCMonitor {
+
     private final Logger log;
 
     /**
      * New instance logging to {@code log}
+     *
      * @param log
      */
     public LoggingGCMonitor(Logger log) {
@@ -66,9 +67,9 @@ public class LoggingGCMonitor implements GCMonitor {
     @Override
     public void cleaned(long reclaimedSize, long currentSize) {
     }
-    
+
     @Override
     public void updateStatus(String status) {
-        
+
     }
 }

@@ -16,6 +16,15 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.restriction;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
+import java.util.Set;
+import javax.jcr.PropertyType;
+import javax.jcr.ValueFactory;
+import javax.jcr.security.AccessControlException;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
@@ -35,16 +44,6 @@ import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restrict
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import javax.jcr.PropertyType;
-import javax.jcr.ValueFactory;
-import javax.jcr.security.AccessControlException;
-import java.util.Set;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 /**
  * Additional tests for {@link CompositeRestrictionProvider} that require a full oak repository.

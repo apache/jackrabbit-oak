@@ -19,18 +19,18 @@
 
 package org.apache.jackrabbit.oak.spi.observation;
 
-import org.junit.Test;
-
 import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
 import static org.hamcrest.collection.IsIterableContainingInAnyOrder.containsInAnyOrder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 
+import org.junit.Test;
+
 public class ChangeSetBuilderTest {
 
     @Test
-    public void basicMerge() throws Exception{
+    public void basicMerge() throws Exception {
         ChangeSetBuilder cb1 = new ChangeSetBuilder(5, 2);
         add(cb1, "1");
 
@@ -46,7 +46,7 @@ public class ChangeSetBuilderTest {
     }
 
     @Test
-    public void addedChangeSetAlreadyOverflown() throws Exception{
+    public void addedChangeSetAlreadyOverflown() throws Exception {
         ChangeSetBuilder cb1 = new ChangeSetBuilder(5, 2);
         add(cb1, "1");
 
@@ -57,7 +57,7 @@ public class ChangeSetBuilderTest {
     }
 
     @Test
-    public void overflowPath() throws Exception{
+    public void overflowPath() throws Exception {
         ChangeSetBuilder cb1 = new ChangeSetBuilder(2, 2);
         add(cb1, "1");
 
@@ -69,13 +69,14 @@ public class ChangeSetBuilderTest {
         assertThat(cs.getParentNodeTypes(), containsInAnyOrder("pnt-1", "pnt-2"));
         assertThat(cs.getPropertyNames(), containsInAnyOrder("pn-1", "pn-2"));
 
-        ChangeSet cs2 = new ChangeSet(2, of("p-2", "p-3"), of("nn-2"), of("pnt-2"), of("pn-2"), of("nt-2"));
+        ChangeSet cs2 = new ChangeSet(2, of("p-2", "p-3"), of("nn-2"), of("pnt-2"), of("pn-2"),
+            of("nt-2"));
         cs = cb1.add(cs2).build();
         assertNull(cs.getParentPaths());
     }
 
     @Test
-    public void overflowParentNodeName() throws Exception{
+    public void overflowParentNodeName() throws Exception {
         ChangeSetBuilder cb1 = new ChangeSetBuilder(2, 2);
         add(cb1, "1");
 
@@ -86,13 +87,14 @@ public class ChangeSetBuilderTest {
         assertThat(cs.getParentNodeTypes(), containsInAnyOrder("pnt-1", "pnt-2"));
         assertThat(cs.getPropertyNames(), containsInAnyOrder("pn-1", "pn-2"));
 
-        ChangeSet cs2 = new ChangeSet(2, of("p-2"), of("nn-2", "nn-3"), of("pnt-2"), of("pn-2"), of("nt-2"));
+        ChangeSet cs2 = new ChangeSet(2, of("p-2"), of("nn-2", "nn-3"), of("pnt-2"), of("pn-2"),
+            of("nt-2"));
         cs = cb1.add(cs2).build();
         assertNull(cs.getParentNodeNames());
     }
 
     @Test
-    public void overflowParentNodeTypes() throws Exception{
+    public void overflowParentNodeTypes() throws Exception {
         ChangeSetBuilder cb1 = new ChangeSetBuilder(2, 2);
         add(cb1, "1");
 
@@ -106,7 +108,7 @@ public class ChangeSetBuilderTest {
     }
 
     @Test
-    public void overflowPropertyNames() throws Exception{
+    public void overflowPropertyNames() throws Exception {
         ChangeSetBuilder cb1 = new ChangeSetBuilder(2, 2);
         add(cb1, "1");
 
@@ -120,7 +122,7 @@ public class ChangeSetBuilderTest {
     }
 
     @Test
-    public void overflowAllNodeTypes() throws Exception{
+    public void overflowAllNodeTypes() throws Exception {
         ChangeSetBuilder cb1 = new ChangeSetBuilder(2, 2);
         add(cb1, "1");
 
@@ -134,7 +136,7 @@ public class ChangeSetBuilderTest {
     }
 
     @Test
-    public void pathDepth() throws Exception{
+    public void pathDepth() throws Exception {
         ChangeSetBuilder cb = new ChangeSetBuilder(10, 2);
         cb.addParentPath("/a/b");
         cb.addParentPath("/x");
@@ -145,7 +147,7 @@ public class ChangeSetBuilderTest {
     }
 
     @Test
-    public void changeSetDepthMoreThanBuilder() throws Exception{
+    public void changeSetDepthMoreThanBuilder() throws Exception {
         ChangeSetBuilder cb1 = new ChangeSetBuilder(10, 3);
         cb1.addParentPath("/x");
         cb1.addParentPath("/x/y");
@@ -162,16 +164,16 @@ public class ChangeSetBuilderTest {
 
         ChangeSet cs = cb1.build();
         assertThat(cs.getParentPaths(), containsInAnyOrder(
-                "/x", "/x/y", "/x/y/z",
-                "/p", "/p/q", "/p/q/r",
-                "/a/b/c", "/a/b/x" //Chopped paths
+            "/x", "/x/y", "/x/y/z",
+            "/p", "/p/q", "/p/q/r",
+            "/a/b/c", "/a/b/x" //Chopped paths
         ));
 
         assertEquals(cb1.getMaxPrefilterPathDepth(), cs.getMaxPrefilterPathDepth());
     }
 
     @Test
-    public void builderDepthMoreThanChangeSet() throws Exception{
+    public void builderDepthMoreThanChangeSet() throws Exception {
         ChangeSetBuilder cb1 = new ChangeSetBuilder(10, 8);
         cb1.addParentPath("/p");
         cb1.addParentPath("/p/q");
@@ -187,16 +189,16 @@ public class ChangeSetBuilderTest {
 
         ChangeSet cs = cb1.build();
         assertThat(cs.getParentPaths(), containsInAnyOrder(
-                "/x", "/x/y",
-                "/p", "/p/q",
-                "/a/b" //Chopped paths
+            "/x", "/x/y",
+            "/p", "/p/q",
+            "/a/b" //Chopped paths
         ));
 
         assertEquals(cb2.getMaxPrefilterPathDepth(), cs.getMaxPrefilterPathDepth());
     }
 
     @Test
-    public void nullChangeSet() throws Exception{
+    public void nullChangeSet() throws Exception {
         ChangeSetBuilder cb1 = new ChangeSetBuilder(10, 8);
         add(cb1, "1");
 
@@ -209,12 +211,12 @@ public class ChangeSetBuilderTest {
         assertNull(cs.getPropertyNames());
     }
 
-    private static void add(ChangeSetBuilder cb, String suffix){
-        cb.addNodeType("nt-"+suffix)
-                .addParentPath("p-"+suffix)
-                .addParentNodeName("nn-"+suffix)
-                .addParentNodeType("pnt-"+suffix)
-                .addPropertyName("pn-"+suffix);
+    private static void add(ChangeSetBuilder cb, String suffix) {
+        cb.addNodeType("nt-" + suffix)
+          .addParentPath("p-" + suffix)
+          .addParentNodeName("nn-" + suffix)
+          .addParentNodeType("pnt-" + suffix)
+          .addPropertyName("pn-" + suffix);
     }
 
 }

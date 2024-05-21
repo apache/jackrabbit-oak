@@ -20,7 +20,6 @@
 package org.apache.jackrabbit.oak.segment.standby.client;
 
 import java.io.File;
-
 import org.apache.commons.io.input.NullInputStream;
 import org.apache.jackrabbit.core.data.FileDataStore;
 import org.apache.jackrabbit.oak.api.Type;
@@ -52,17 +51,16 @@ public class RemoteBlobProcessorTest {
     };
 
     private TemporaryFileStore fileStore = new TemporaryFileStore(folder, blobStore, false);
-    
+
     private int binariesInlineThreshold = SegmentTestConstants.MEDIUM_LIMIT;
 
     @Rule
     public RuleChain rules = RuleChain.outerRule(folder)
-        .around(blobStore)
-        .around(fileStore);
+                                      .around(blobStore)
+                                      .around(fileStore);
 
     /**
-     * The test relies on a particular interaction between the BlobStore and the
-     * FileStore.
+     * The test relies on a particular interaction between the BlobStore and the FileStore.
      *
      * <ul>
      * <li>The FileStore passes every binary whose length is grater than or
@@ -90,7 +88,8 @@ public class RemoteBlobProcessorTest {
         SegmentNodeStore store = SegmentNodeStoreBuilders.builder(fileStore.fileStore()).build();
 
         NodeBuilder root = store.getRoot().builder();
-        root.setProperty("b", root.createBlob(new NullInputStream(SegmentTestConstants.MEDIUM_LIMIT)));
+        root.setProperty("b",
+            root.createBlob(new NullInputStream(SegmentTestConstants.MEDIUM_LIMIT)));
         store.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         RemoteBlobProcessor processor = new RemoteBlobProcessor(blobStore.blobStore(), blobId -> {

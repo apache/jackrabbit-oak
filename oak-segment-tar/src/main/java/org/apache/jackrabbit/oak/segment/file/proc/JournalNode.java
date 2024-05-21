@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.segment.file.proc;
 
 import java.util.ArrayList;
 import java.util.List;
-
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;

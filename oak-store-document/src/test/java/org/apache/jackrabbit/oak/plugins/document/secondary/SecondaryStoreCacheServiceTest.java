@@ -47,6 +47,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
 public class SecondaryStoreCacheServiceTest {
+
     @Rule
     public final OsgiContext context = new OsgiContext();
 
@@ -57,7 +58,7 @@ public class SecondaryStoreCacheServiceTest {
     private NodeStore secondaryStore = new MemoryNodeStore();
 
     @Before
-    public void configureDefaultServices(){
+    public void configureDefaultServices() {
         context.registerService(BlobStore.class, new MemoryBlobStore());
         context.registerService(NodeStoreProvider.class, new NodeStoreProvider() {
             @Override
@@ -71,7 +72,7 @@ public class SecondaryStoreCacheServiceTest {
     }
 
     @Test
-    public void defaultSetup() throws Exception{
+    public void defaultSetup() throws Exception {
         MockOsgi.activate(cacheService, context.bundleContext(), new HashMap<String, Object>());
 
         assertNotNull(context.getService(Observer.class));
@@ -86,7 +87,7 @@ public class SecondaryStoreCacheServiceTest {
     }
 
     @Test
-    public void disableBackground() throws Exception{
+    public void disableBackground() throws Exception {
         Map<String, Object> config = new HashMap<>();
         config.put("enableAsyncObserver", "false");
         MockOsgi.activate(cacheService, context.bundleContext(), config);
@@ -97,9 +98,9 @@ public class SecondaryStoreCacheServiceTest {
     }
 
     @Test
-    public void configurePathFilter() throws Exception{
+    public void configurePathFilter() throws Exception {
         Map<String, Object> config = new HashMap<>();
-        config.put(PathFilter.PROP_INCLUDED_PATHS, new String[] {"/a"});
+        config.put(PathFilter.PROP_INCLUDED_PATHS, new String[]{"/a"});
         MockOsgi.activate(cacheService, context.bundleContext(), config);
 
         assertEquals(PathFilter.Result.INCLUDE, cacheService.getPathFilter().filter("/a"));

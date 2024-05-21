@@ -16,27 +16,26 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import java.util.ArrayList;
-import java.util.List;
-import javax.jcr.RepositoryException;
-
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.api.security.user.Group;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
-import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
-import org.junit.Test;
-
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+
+import java.util.ArrayList;
+import java.util.List;
+import javax.jcr.RepositoryException;
+import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.api.security.user.Group;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
+import org.junit.Test;
 
 public class UserImporterMembershipIgnoreTest extends UserImporterBaseTest {
 

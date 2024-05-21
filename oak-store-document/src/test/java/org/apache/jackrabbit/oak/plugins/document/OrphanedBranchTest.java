@@ -60,14 +60,14 @@ public class OrphanedBranchTest {
         this.fixture = fixture;
     }
 
-    @Parameterized.Parameters(name="{0}")
+    @Parameterized.Parameters(name = "{0}")
     public static java.util.Collection<Object[]> fixtures() throws IOException {
         List<Object[]> fixtures = Lists.newArrayList();
-        fixtures.add(new Object[] {new DocumentStoreFixture.MemoryFixture()});
+        fixtures.add(new Object[]{new DocumentStoreFixture.MemoryFixture()});
 
         DocumentStoreFixture mongo = new DocumentStoreFixture.MongoFixture();
-        if(mongo.isAvailable()){
-            fixtures.add(new Object[] {mongo});
+        if (mongo.isAvailable()) {
+            fixtures.add(new Object[]{mongo});
         }
         return fixtures;
     }
@@ -75,9 +75,9 @@ public class OrphanedBranchTest {
     @Before
     public void setUp() throws InterruptedException {
         store = new DocumentMK.Builder()
-                .setDocumentStore(fixture.createDocumentStore())
-                .setAsyncDelay(0)
-                .getNodeStore();
+            .setDocumentStore(fixture.createDocumentStore())
+            .setAsyncDelay(0)
+            .getNodeStore();
         gc = store.getVersionGarbageCollector();
     }
 
@@ -90,7 +90,7 @@ public class OrphanedBranchTest {
     @Test
     public void orphanedBranches() throws Exception {
         int numCreated = 0;
-        for (;;) {
+        for (; ; ) {
             NodeBuilder builder = store.getRoot().builder();
             NodeBuilder child = builder.child("foo");
             int numBranches = store.getBranches().size();
@@ -120,7 +120,7 @@ public class OrphanedBranchTest {
             assertNotNull(doc);
             Map<Revision, String> collisions = doc.getLocalMap(COLLISIONS);
             assertTrue("too many collisions: " + collisions.size(),
-                    collisions.size() <= numBranches);
+                collisions.size() <= numBranches);
             // split ops must remove orphaned changes
             // limit to check is number of branches considered active
             // plus NodeDocument.NUM_REVS_THRESHOLD
@@ -130,13 +130,14 @@ public class OrphanedBranchTest {
             assertNotNull(doc);
             Map<Revision, String> map = doc.getLocalMap("prop");
             assertTrue("too many orphaned changes: " + map.size() + " > " + limit,
-                    map.size() <= limit);
+                map.size() <= limit);
             map = doc.getLocalCommitRoot();
             assertTrue("too many orphaned commit root entries: " + map.size() + " > " + limit,
-                    map.size() <= limit);
+                map.size() <= limit);
             Set<Revision> branchCommits = doc.getLocalBranchCommits();
-            assertTrue("too many orphaned branch commit entries: " + branchCommits.size() + " > " + limit,
-                    branchCommits.size() <= limit);
+            assertTrue(
+                "too many orphaned branch commit entries: " + branchCommits.size() + " > " + limit,
+                branchCommits.size() <= limit);
 
             // run garbage collector once in a while for changes on /bar
             if (numCreated % NodeDocument.NUM_REVS_THRESHOLD == 0) {
@@ -144,7 +145,7 @@ public class OrphanedBranchTest {
             }
 
             LOG.info("created {}, still considered active: {}",
-                    numCreated, store.getBranches().size());
+                numCreated, store.getBranches().size());
 
             // create orphaned branches, until we were able to
             // collect 500 of them (or 100 for MongoDB and other fixtures)
@@ -154,7 +155,7 @@ public class OrphanedBranchTest {
             }
         }
     }
-    
+
     // OAK-2442
     @Test
     public void removeUncommittedChange() throws Exception {
@@ -197,7 +198,7 @@ public class OrphanedBranchTest {
         Branch b = branches.getBranch(new RevisionVector(branchRev.asBranchRevision()));
         assertNotNull(b);
         branches.remove(b);
-        
+
         // force another previous document to trigger split
         // this will also remove unmerged changes
         count = 0;
@@ -211,7 +212,7 @@ public class OrphanedBranchTest {
         doc = store.getDocumentStore().find(NODES, id);
         assertTrue(doc.getLocalBranchCommits().isEmpty());
         doc.getNodeAtRevision(store, store.getHeadRevision(), null);
-        
+
         store.dispose();
     }
 }

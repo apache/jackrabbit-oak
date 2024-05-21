@@ -20,31 +20,30 @@
 package org.apache.jackrabbit.oak.spi.state;
 
 import javax.management.openmbean.CompositeData;
-
 import org.jetbrains.annotations.NotNull;
 
 /**
- * MBean for starting and monitoring the progress of
- * revision garbage collection.
+ * MBean for starting and monitoring the progress of revision garbage collection.
  *
  * @see org.apache.jackrabbit.oak.api.jmx.RepositoryManagementMBean
  */
 public interface RevisionGCMBean {
+
     String TYPE = "RevisionGarbageCollection";
 
     /**
      * Initiate a revision garbage collection operation
      *
-     * @return  the status of the operation right after it was initiated
+     * @return the status of the operation right after it was initiated
      */
     @NotNull
     CompositeData startRevisionGC();
 
     /**
-     * Cancel a running revision garbage collection operation. Does nothing
-     * if revision garbage collection is not running.
+     * Cancel a running revision garbage collection operation. Does nothing if revision garbage
+     * collection is not running.
      *
-     * @return  the status of the operation right after it was initiated
+     * @return the status of the operation right after it was initiated
      */
     @NotNull
     CompositeData cancelRevisionGC();
@@ -52,8 +51,8 @@ public interface RevisionGCMBean {
     /**
      * Revision garbage collection status
      *
-     * @return  the status of the ongoing operation or if none the terminal
-     * status of the last operation or <em>Status not available</em> if none.
+     * @return the status of the ongoing operation or if none the terminal status of the last
+     * operation or <em>Status not available</em> if none.
      */
     @NotNull
     CompositeData getRevisionGCStatus();

@@ -16,14 +16,14 @@
  */
 package org.apache.jackrabbit.oak.jcr.session;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.collect.Iterators.transform;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newLinkedHashSet;
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singleton;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.collect.Iterators.transform;
+import static org.apache.jackrabbit.guava.common.collect.Sets.newLinkedHashSet;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.jcr.session.SessionImpl.checkIndexOnName;
@@ -63,17 +63,16 @@ import javax.jcr.version.OnParentVersionAction;
 import javax.jcr.version.Version;
 import javax.jcr.version.VersionException;
 import javax.jcr.version.VersionHistory;
-
-import org.apache.jackrabbit.guava.common.base.Function;
-import org.apache.jackrabbit.guava.common.base.Predicate;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitNode;
 import org.apache.jackrabbit.commons.ItemNameMatcher;
 import org.apache.jackrabbit.commons.iterator.NodeIteratorAdapter;
 import org.apache.jackrabbit.commons.iterator.PropertyIteratorAdapter;
+import org.apache.jackrabbit.guava.common.base.Function;
+import org.apache.jackrabbit.guava.common.base.Predicate;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Tree.Status;
@@ -92,11 +91,11 @@ import org.apache.jackrabbit.oak.jcr.version.VersionHistoryImpl;
 import org.apache.jackrabbit.oak.jcr.version.VersionImpl;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
-import org.apache.jackrabbit.oak.spi.nodetype.EffectiveNodeType;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.plugins.tree.factories.RootFactory;
+import org.apache.jackrabbit.oak.spi.nodetype.EffectiveNodeType;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
-import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.value.ValueHelper;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -114,12 +113,12 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
      * Use an zero length MVP to check read permission on jcr:mixinTypes (OAK-7652)
      */
     private static final PropertyState EMPTY_MIXIN_TYPES = PropertyStates.createProperty(
-            JcrConstants.JCR_MIXINTYPES, Collections.emptyList(), Type.NAMES);
+        JcrConstants.JCR_MIXINTYPES, Collections.emptyList(), Type.NAMES);
 
 
     /**
-     * The maximum returned value for {@link NodeIterator#getSize()}. If there
-     * are more nodes, the method returns -1.
+     * The maximum returned value for {@link NodeIterator#getSize()}. If there are more nodes, the
+     * method returns -1.
      */
     private static final long NODE_ITERATOR_MAX_SIZE = Long.MAX_VALUE;
 
@@ -132,8 +131,8 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
 
     @Nullable
     public static NodeImpl<? extends NodeDelegate> createNodeOrNull(
-            @Nullable NodeDelegate delegate, @NotNull SessionContext context)
-            throws RepositoryException {
+        @Nullable NodeDelegate delegate, @NotNull SessionContext context)
+        throws RepositoryException {
         if (delegate != null) {
             return createNode(delegate, context);
         } else {
@@ -143,17 +142,17 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
 
     @NotNull
     public static NodeImpl<? extends NodeDelegate> createNode(
-                @NotNull NodeDelegate delegate, @NotNull SessionContext context)
-                throws RepositoryException {
+        @NotNull NodeDelegate delegate, @NotNull SessionContext context)
+        throws RepositoryException {
         PropertyDelegate pd = delegate.getPropertyOrNull(JCR_PRIMARYTYPE);
         String type = pd != null ? pd.getString() : null;
         if (JcrConstants.NT_VERSION.equals(type)) {
             VersionManagerDelegate vmd =
-                    VersionManagerDelegate.create(context.getSessionDelegate());
+                VersionManagerDelegate.create(context.getSessionDelegate());
             return new VersionImpl(vmd.createVersion(delegate), context);
         } else if (JcrConstants.NT_VERSIONHISTORY.equals(type)) {
             VersionManagerDelegate vmd =
-                    VersionManagerDelegate.create(context.getSessionDelegate());
+                VersionManagerDelegate.create(context.getSessionDelegate());
             return new VersionHistoryImpl(vmd.createVersionHistory(delegate), context);
         } else {
             return new NodeImpl<NodeDelegate>(delegate, context);
@@ -163,8 +162,8 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
     public NodeImpl(T dlg, SessionContext sessionContext) {
         super(dlg, sessionContext);
         logWarnStringSizeThreshold = Integer.getInteger(
-                OakJcrConstants.WARN_LOG_STRING_SIZE_THRESHOLD_KEY,
-                OakJcrConstants.DEFAULT_WARN_LOG_STRING_SIZE_THRESHOLD_VALUE);
+            OakJcrConstants.WARN_LOG_STRING_SIZE_THRESHOLD_KEY,
+            OakJcrConstants.DEFAULT_WARN_LOG_STRING_SIZE_THRESHOLD_VALUE);
     }
 
     //---------------------------------------------------------------< Item >---
@@ -266,9 +265,10 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
         return addNode(relPath, null);
     }
 
-    @Override @NotNull
+    @Override
+    @NotNull
     public Node addNode(final String relPath, String primaryNodeTypeName)
-            throws RepositoryException {
+        throws RepositoryException {
         final String oakPath;
 
         try {
@@ -300,7 +300,8 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
                     if (grandParent != null) {
                         String propName = PathUtils.getName(parentPath);
                         if (grandParent.getPropertyOrNull(propName) != null) {
-                            throw new ConstraintViolationException("Can't add new node to property.");
+                            throw new ConstraintViolationException(
+                                "Can't add new node to property.");
                         }
                     }
 
@@ -315,13 +316,16 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
                 // distinguish between user-supplied and system-generated
                 // modification of that property in the PermissionValidator
                 if (oakTypeName != null) {
-                    PropertyState prop = PropertyStates.createProperty(JCR_PRIMARYTYPE, oakTypeName, NAME);
-                    sessionContext.getAccessManager().checkPermissions(parent.getTree(), prop, Permissions.NODE_TYPE_MANAGEMENT);
+                    PropertyState prop = PropertyStates.createProperty(JCR_PRIMARYTYPE, oakTypeName,
+                        NAME);
+                    sessionContext.getAccessManager().checkPermissions(parent.getTree(), prop,
+                        Permissions.NODE_TYPE_MANAGEMENT);
                 }
 
                 NodeDelegate added = parent.addChild(oakName, oakTypeName);
                 if (added == null) {
-                    throw new ItemExistsException(format("Node [%s/%s] exists", getNodePath(),oakName));
+                    throw new ItemExistsException(
+                        format("Node [%s/%s] exists", getNodePath(), oakName));
                 }
                 return createNode(added, sessionContext);
             }
@@ -334,7 +338,8 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
     }
 
     @Override
-    public void orderBefore(final String srcChildRelPath, final String destChildRelPath) throws RepositoryException {
+    public void orderBefore(final String srcChildRelPath, final String destChildRelPath)
+        throws RepositoryException {
         sessionDelegate.performVoid(new ItemWriteOperation<Void>("orderBefore") {
             @Override
             public void performVoid() throws RepositoryException {
@@ -369,9 +374,10 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
     // of the methods will ever return null, even if asked to remove
     // a non-existing property! See internalRemoveProperty() for details.
 
-    @Override @NotNull
+    @Override
+    @NotNull
     public Property setProperty(String name, Value value)
-            throws RepositoryException {
+        throws RepositoryException {
         if (value != null) {
             return internalSetProperty(name, value, false);
         } else {
@@ -379,9 +385,10 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
         }
     }
 
-    @Override @NotNull
+    @Override
+    @NotNull
     public Property setProperty(String name, Value value, int type)
-            throws RepositoryException {
+        throws RepositoryException {
         if (value != null) {
             boolean exactTypeMatch = true;
             if (type == PropertyType.UNDEFINED) {
@@ -395,9 +402,10 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
         }
     }
 
-    @Override @NotNull
+    @Override
+    @NotNull
     public Property setProperty(String name, Value[] values)
-            throws RepositoryException {
+        throws RepositoryException {
         if (values != null) {
             // TODO: type
             return internalSetProperty(name, values, ValueHelper.getType(values), false);
@@ -406,9 +414,10 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
         }
     }
 
-    @Override @NotNull
+    @Override
+    @NotNull
     public Property setProperty(String jcrName, Value[] values, int type)
-            throws RepositoryException {
+        throws RepositoryException {
         if (values != null) {
             boolean exactTypeMatch = true;
             if (type == PropertyType.UNDEFINED) {
@@ -422,9 +431,10 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
         }
     }
 
-    @Override @NotNull
+    @Override
+    @NotNull
     public Property setProperty(String name, String[] values)
-            throws RepositoryException {
+        throws RepositoryException {
         if (values != null) {
             int type = PropertyType.STRING;
             Value[] vs = ValueHelper.convert(values, type, getValueFactory());
@@ -434,9 +444,10 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
         }
     }
 
-    @Override @NotNull
+    @Override
+    @NotNull
     public Property setProperty(String name, String[] values, int type)
-            throws RepositoryException {
+        throws RepositoryException {
         if (values != null) {
             boolean exactTypeMatch = true;
             if (type == PropertyType.UNDEFINED) {
@@ -450,9 +461,10 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
         }
     }
 
-    @Override @NotNull
+    @Override
+    @NotNull
     public Property setProperty(String name, String value)
-            throws RepositoryException {
+        throws RepositoryException {
         if (value != null) {
             Value v = getValueFactory().createValue(value);
             return internalSetProperty(name, v, false);
@@ -461,9 +473,10 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
         }
     }
 
-    @Override @NotNull
+    @Override
+    @NotNull
     public Property setProperty(String name, String value, int type)
-            throws RepositoryException {
+        throws RepositoryException {
         if (value != null) {
             boolean exactTypeMatch = true;
             if (type == PropertyType.UNDEFINED) {
@@ -477,9 +490,11 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
         }
     }
 
-    @Override @NotNull @SuppressWarnings("deprecation")
+    @Override
+    @NotNull
+    @SuppressWarnings("deprecation")
     public Property setProperty(String name, InputStream value)
-            throws RepositoryException {
+        throws RepositoryException {
         if (value != null) {
             Value v = getValueFactory().createValue(value);
             return internalSetProperty(name, v, false);
@@ -488,9 +503,10 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
         }
     }
 
-    @Override @NotNull
+    @Override
+    @NotNull
     public Property setProperty(String name, Binary value)
-            throws RepositoryException {
+        throws RepositoryException {
         if (value != null) {
             Value v = getValueFactory().createValue(value);
             return internalSetProperty(name, v, false);
@@ -499,23 +515,26 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
         }
     }
 
-    @Override @NotNull
+    @Override
+    @NotNull
     public Property setProperty(String name, boolean value)
-            throws RepositoryException {
+        throws RepositoryException {
         Value v = getValueFactory().createValue(value);
         return internalSetProperty(name, v, false);
     }
 
-    @Override @NotNull
+    @Override
+    @NotNull
     public Property setProperty(String name, double value)
-            throws RepositoryException {
+        throws RepositoryException {
         Value v = getValueFactory().createValue(value);
         return internalSetProperty(name, v, false);
     }
 
-    @Override @NotNull
+    @Override
+    @NotNull
     public Property setProperty(String name, BigDecimal value)
-            throws RepositoryException {
+        throws RepositoryException {
         if (value != null) {
             Value v = getValueFactory().createValue(value);
             return internalSetProperty(name, v, false);
@@ -524,16 +543,18 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
         }
     }
 
-    @Override @NotNull
+    @Override
+    @NotNull
     public Property setProperty(String name, long value)
-            throws RepositoryException {
+        throws RepositoryException {
         Value v = getValueFactory().createValue(value);
         return internalSetProperty(name, v, false);
     }
 
-    @Override @NotNull
+    @Override
+    @NotNull
     public Property setProperty(String name, Calendar value)
-            throws RepositoryException {
+        throws RepositoryException {
         if (value != null) {
             Value v = getValueFactory().createValue(value);
             return internalSetProperty(name, v, false);
@@ -542,9 +563,10 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
         }
     }
 
-    @Override @NotNull
+    @Override
+    @NotNull
     public Property setProperty(String name, Node value)
-            throws RepositoryException {
+        throws RepositoryException {
         if (value != null) {
             Value v = getValueFactory().createValue(value);
             return internalSetProperty(name, v, false);
@@ -581,23 +603,26 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
                 Iterator<NodeDelegate> children = node.getChildren();
                 return new NodeIteratorAdapter(nodeIterator(children)) {
                     private long size = -2;
+
                     @Override
                     public long getSize() {
                         if (size == -2) {
                             try {
-                                size = node.getChildCount(NODE_ITERATOR_MAX_SIZE); // TODO: perform()
+                                size = node.getChildCount(
+                                    NODE_ITERATOR_MAX_SIZE); // TODO: perform()
                                 if (size == Long.MAX_VALUE) {
                                     size = -1;
                                 }
                             } catch (InvalidItemStateException e) {
                                 throw new IllegalStateException(
-                                        "This iterator is no longer valid", e);
+                                    "This iterator is no longer valid", e);
                             }
                         }
                         return size;
                     }
                 };
             }
+
             @Override
             public String toString() {
                 return format("getNodes [%s]", dlg.getPath());
@@ -608,22 +633,23 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
     @Override
     @NotNull
     public NodeIterator getNodes(final String namePattern)
-            throws RepositoryException {
+        throws RepositoryException {
         return perform(new NodeOperation<NodeIterator>(dlg, "getNodes") {
             @NotNull
             @Override
             public NodeIterator perform() throws RepositoryException {
                 Iterator<NodeDelegate> children = Iterators.filter(
-                        node.getChildren(),
-                        new Predicate<NodeDelegate>() {
-                            @Override
-                            public boolean apply(NodeDelegate state) {
-                                // TODO: use Oak names
-                                return ItemNameMatcher.matches(toJcrPath(state.getName()), namePattern);
-                            }
-                        });
+                    node.getChildren(),
+                    new Predicate<NodeDelegate>() {
+                        @Override
+                        public boolean apply(NodeDelegate state) {
+                            // TODO: use Oak names
+                            return ItemNameMatcher.matches(toJcrPath(state.getName()), namePattern);
+                        }
+                    });
                 return new NodeIteratorAdapter(nodeIterator(children));
             }
+
             @Override
             public String toString() {
                 return format("getNodes [%s]", dlg.getPath());
@@ -639,16 +665,17 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
             @Override
             public NodeIterator perform() throws RepositoryException {
                 Iterator<NodeDelegate> children = Iterators.filter(
-                        node.getChildren(),
-                        new Predicate<NodeDelegate>() {
-                            @Override
-                            public boolean apply(NodeDelegate state) {
-                                // TODO: use Oak names
-                                return ItemNameMatcher.matches(toJcrPath(state.getName()), nameGlobs);
-                            }
-                        });
+                    node.getChildren(),
+                    new Predicate<NodeDelegate>() {
+                        @Override
+                        public boolean apply(NodeDelegate state) {
+                            // TODO: use Oak names
+                            return ItemNameMatcher.matches(toJcrPath(state.getName()), nameGlobs);
+                        }
+                    });
                 return new NodeIteratorAdapter(nodeIterator(children));
             }
+
             @Override
             public String toString() {
                 return format("getNodes [%s]", dlg.getPath());
@@ -667,11 +694,12 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
                 PropertyDelegate pd = node.getPropertyOrNull(oakPath);
                 if (pd == null) {
                     throw new PathNotFoundException(
-                            oakPath + " not found on " + node.getPath());
+                        oakPath + " not found on " + node.getPath());
                 } else {
                     return new PropertyImpl(pd, sessionContext);
                 }
             }
+
             @Override
             public String toString() {
                 return format("getProperty [%s]", dlg.getPath());
@@ -689,8 +717,9 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
                 Iterator<PropertyDelegate> properties = node.getProperties();
                 long size = node.getPropertyCount();
                 return new PropertyIteratorAdapter(
-                        propertyIterator(properties), size);
+                    propertyIterator(properties), size);
             }
+
             @Override
             public String toString() {
                 return format("getProperties [%s]", dlg.getPath());
@@ -705,14 +734,15 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
             @NotNull
             @Override
             public PropertyIterator perform() throws RepositoryException {
-                final PropertyIteratorDelegate delegate = new PropertyIteratorDelegate(node, new Predicate<PropertyDelegate>() {
-                    @Override
-                    public boolean apply(PropertyDelegate entry) {
-                        // TODO: use Oak names
-                        return ItemNameMatcher.matches(toJcrPath(entry.getName()), namePattern);
-                    }
-                });
-                return new PropertyIteratorAdapter(propertyIterator(delegate.iterator())){
+                final PropertyIteratorDelegate delegate = new PropertyIteratorDelegate(node,
+                    new Predicate<PropertyDelegate>() {
+                        @Override
+                        public boolean apply(PropertyDelegate entry) {
+                            // TODO: use Oak names
+                            return ItemNameMatcher.matches(toJcrPath(entry.getName()), namePattern);
+                        }
+                    });
+                return new PropertyIteratorAdapter(propertyIterator(delegate.iterator())) {
                     @Override
                     public long getSize() {
                         return delegate.getSize();
@@ -729,14 +759,15 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
             @NotNull
             @Override
             public PropertyIterator perform() throws RepositoryException {
-                final PropertyIteratorDelegate delegate = new PropertyIteratorDelegate(node, new Predicate<PropertyDelegate>() {
-                    @Override
-                    public boolean apply(PropertyDelegate entry) {
-                        // TODO: use Oak names
-                        return ItemNameMatcher.matches(toJcrPath(entry.getName()), nameGlobs);
-                    }
-                });
-                return new PropertyIteratorAdapter(propertyIterator(delegate.iterator())){
+                final PropertyIteratorDelegate delegate = new PropertyIteratorDelegate(node,
+                    new Predicate<PropertyDelegate>() {
+                        @Override
+                        public boolean apply(PropertyDelegate entry) {
+                            // TODO: use Oak names
+                            return ItemNameMatcher.matches(toJcrPath(entry.getName()), nameGlobs);
+                        }
+                    });
+                return new PropertyIteratorAdapter(propertyIterator(delegate.iterator())) {
                     @Override
                     public long getSize() {
                         return delegate.getSize();
@@ -760,7 +791,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
                 String name = getPrimaryNodeType().getPrimaryItemName();
                 if (name == null) {
                     throw new ItemNotFoundException(
-                            "No primary item present on node " + NodeImpl.this);
+                        "No primary item present on node " + NodeImpl.this);
                 }
                 if (hasProperty(name)) {
                     return getProperty(name);
@@ -768,7 +799,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
                     return getNode(name);
                 } else {
                     throw new ItemNotFoundException(
-                            "Primary item " + name + 
+                        "Primary item " + name +
                             " does not exist on node " + NodeImpl.this);
                 }
             }
@@ -789,7 +820,8 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
                 if (isNodeType(NodeType.MIX_REFERENCEABLE)) {
                     return getIdentifier();
                 }
-                throw new UnsupportedRepositoryOperationException(format("Node [%s] is not referenceable.", getNodePath()));
+                throw new UnsupportedRepositoryOperationException(
+                    format("Node [%s] is not referenceable.", getNodePath()));
             }
         });
     }
@@ -813,23 +845,25 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
         return 1; // TODO
     }
 
-    private PropertyIterator internalGetReferences(final String name, final boolean weak) throws RepositoryException {
+    private PropertyIterator internalGetReferences(final String name, final boolean weak)
+        throws RepositoryException {
         return perform(new NodeOperation<PropertyIterator>(dlg, "internalGetReferences") {
             @NotNull
             @Override
             public PropertyIterator perform() throws InvalidItemStateException {
                 IdentifierManager idManager = sessionDelegate.getIdManager();
 
-                Iterable<String> propertyOakPaths = idManager.getReferences(weak, node.getTree(), name); // TODO: oak name?
+                Iterable<String> propertyOakPaths = idManager.getReferences(weak, node.getTree(),
+                    name); // TODO: oak name?
                 Iterable<Property> properties = Iterables.transform(
-                        propertyOakPaths,
-                        new Function<String, Property>() {
-                            @Override
-                            public Property apply(String oakPath) {
-                                PropertyDelegate pd = sessionDelegate.getProperty(oakPath);
-                                return pd == null ? null : new PropertyImpl(pd, sessionContext);
-                            }
+                    propertyOakPaths,
+                    new Function<String, Property>() {
+                        @Override
+                        public Property apply(String oakPath) {
+                            PropertyDelegate pd = sessionDelegate.getProperty(oakPath);
+                            return pd == null ? null : new PropertyImpl(pd, sessionContext);
                         }
+                    }
                 );
 
                 return new PropertyIteratorAdapter(sessionDelegate.sync(properties.iterator()));
@@ -893,6 +927,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
                 public Boolean perform() throws RepositoryException {
                     return node.getPropertyOrNull(oakPath) != null;
                 }
+
                 @Override
                 public String toString() {
                     return format("hasProperty [%s]", dlg.getPath());
@@ -932,9 +967,11 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
                 Tree tree = node.getTree();
                 String primaryTypeName = getPrimaryTypeName(tree);
                 if (primaryTypeName != null) {
-                    return getNodeTypeManager().getNodeType(sessionContext.getJcrName(primaryTypeName));
+                    return getNodeTypeManager().getNodeType(
+                        sessionContext.getJcrName(primaryTypeName));
                 } else {
-                    throw new RepositoryException("Unable to retrieve primary type for Node " + getNodePath());
+                    throw new RepositoryException(
+                        "Unable to retrieve primary type for Node " + getNodePath());
                 }
             }
         });
@@ -957,7 +994,8 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
                     NodeTypeManager ntMgr = getNodeTypeManager();
                     List<NodeType> mixinTypes = Lists.newArrayList();
                     while (mixinNames.hasNext()) {
-                        mixinTypes.add(ntMgr.getNodeType(sessionContext.getJcrName(mixinNames.next())));
+                        mixinTypes.add(
+                            ntMgr.getNodeType(sessionContext.getJcrName(mixinNames.next())));
                     }
                     return mixinTypes.toArray(new NodeType[mixinTypes.size()]);
                 } else {
@@ -975,7 +1013,8 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
             @Override
             public Boolean perform() throws RepositoryException {
                 Tree tree = node.getTree();
-                return getNodeTypeManager().isNodeType(getPrimaryTypeName(tree), () -> getMixinTypeNames(tree), oakName);
+                return getNodeTypeManager().isNodeType(getPrimaryTypeName(tree),
+                    () -> getMixinTypeNames(tree), oakName);
             }
         });
     }
@@ -988,7 +1027,8 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
             public void checkPreconditions() throws RepositoryException {
                 super.checkPreconditions();
                 if (!internalIsCheckedOut()) {
-                    throw new VersionException(format("Cannot set primary type. Node [%s] is checked in.", getNodePath()));
+                    throw new VersionException(
+                        format("Cannot set primary type. Node [%s] is checked in.", getNodePath()));
                 }
             }
 
@@ -1011,9 +1051,10 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
                 super.checkPreconditions();
                 if (!internalIsCheckedOut()) {
                     throw new VersionException(format(
-                            "Cannot add mixin type. Node [%s] is checked in.", getNodePath()));
+                        "Cannot add mixin type. Node [%s] is checked in.", getNodePath()));
                 }
             }
+
             @Override
             public void performVoid() throws RepositoryException {
                 dlg.addMixin(NodeImpl.this::getMixinTypeNames, oakTypeName);
@@ -1030,7 +1071,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
                 super.checkPreconditions();
                 if (!internalIsCheckedOut()) {
                     throw new VersionException(format(
-                            "Cannot remove mixin type. Node [%s] is checked in.", getNodePath()));
+                        "Cannot remove mixin type. Node [%s] is checked in.", getNodePath()));
                 }
 
                 // check for NODE_TYPE_MANAGEMENT permission here as we cannot
@@ -1039,10 +1080,13 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
                 // autocreated properties like jcr:create, jcr:uuid and so forth.
                 Set<String> mixins = newLinkedHashSet(getNames(dlg.getTree(), JCR_MIXINTYPES));
                 if (!mixins.isEmpty() && mixins.remove(getOakName(mixinName))) {
-                    PropertyState prop = PropertyStates.createProperty(JCR_MIXINTYPES, mixins, NAMES);
-                    sessionContext.getAccessManager().checkPermissions(dlg.getTree(), prop, Permissions.NODE_TYPE_MANAGEMENT);
+                    PropertyState prop = PropertyStates.createProperty(JCR_MIXINTYPES, mixins,
+                        NAMES);
+                    sessionContext.getAccessManager().checkPermissions(dlg.getTree(), prop,
+                        Permissions.NODE_TYPE_MANAGEMENT);
                 }
             }
+
             @Override
             public void performVoid() throws RepositoryException {
                 dlg.removeMixin(oakTypeName);
@@ -1057,12 +1101,13 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
             @NotNull
             @Override
             public Boolean perform() throws RepositoryException {
-                PropertyState prop = PropertyStates.createProperty(JCR_MIXINTYPES, singleton(oakTypeName), NAMES);
+                PropertyState prop = PropertyStates.createProperty(JCR_MIXINTYPES,
+                    singleton(oakTypeName), NAMES);
                 return sessionContext.getAccessManager().hasPermissions(
-                        node.getTree(), prop, Permissions.NODE_TYPE_MANAGEMENT)
-                        && !node.isProtected()
-                        && getVersionManager().isCheckedOut(node)
-                        && node.canAddMixin(oakTypeName);
+                    node.getTree(), prop, Permissions.NODE_TYPE_MANAGEMENT)
+                    && !node.isProtected()
+                    && getVersionManager().isCheckedOut(node)
+                    && node.canAddMixin(oakTypeName);
             }
         });
     }
@@ -1079,7 +1124,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
                     return getNodeTypeManager().getRootDefinition();
                 } else {
                     return getNodeTypeManager().getDefinition(
-                            parent.getTree(), node.getTree());
+                        parent.getTree(), node.getTree());
                 }
             }
         });
@@ -1096,7 +1141,8 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
                 if (workspaceName.equals(sessionDelegate.getWorkspaceName())) {
                     return item.getPath();
                 } else {
-                    throw new UnsupportedRepositoryOperationException("OAK-118: Node.getCorrespondingNodePath at " + getNodePath());
+                    throw new UnsupportedRepositoryOperationException(
+                        "OAK-118: Node.getCorrespondingNodePath at " + getNodePath());
                 }
             }
         }));
@@ -1112,13 +1158,16 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
 
                 // check for pending changes
                 if (sessionDelegate.hasPendingChanges()) {
-                    String msg = format("Unable to perform operation. Session has pending changes. Node [%s]", getNodePath());
+                    String msg = format(
+                        "Unable to perform operation. Session has pending changes. Node [%s]",
+                        getNodePath());
                     LOG.debug(msg);
                     throw new InvalidItemStateException(msg);
                 }
 
                 if (!srcWorkspace.equals(sessionDelegate.getWorkspaceName())) {
-                    throw new UnsupportedRepositoryOperationException("OAK-118: Node.update at " + getNodePath());
+                    throw new UnsupportedRepositoryOperationException(
+                        "OAK-118: Node.update at " + getNodePath());
                 }
             }
         });
@@ -1187,7 +1236,8 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
     @Override
     public void restore(String versionName, boolean removeExisting) throws RepositoryException {
         if (!isNodeType(NodeType.MIX_VERSIONABLE)) {
-            throw new UnsupportedRepositoryOperationException(format("Node [%s] is not mix:versionable", getNodePath()));
+            throw new UnsupportedRepositoryOperationException(
+                format("Node [%s] is not mix:versionable", getNodePath()));
         }
         getVersionManager().restore(getPath(), versionName, removeExisting);
     }
@@ -1198,14 +1248,15 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
     @Override
     public void restore(Version version, boolean removeExisting) throws RepositoryException {
         if (!isNodeType(NodeType.MIX_VERSIONABLE)) {
-            throw new UnsupportedRepositoryOperationException(format("Node [%s] is not mix:versionable", getNodePath()));
+            throw new UnsupportedRepositoryOperationException(
+                format("Node [%s] is not mix:versionable", getNodePath()));
         }
         String id = version.getContainingHistory().getVersionableIdentifier();
         if (getIdentifier().equals(id)) {
             getVersionManager().restore(version, removeExisting);
         } else {
             throw new VersionException(format("Version does not belong to the " +
-                    "VersionHistory of this node [%s].", getNodePath()));
+                "VersionHistory of this node [%s].", getNodePath()));
         }
     }
 
@@ -1213,7 +1264,8 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
      * @see javax.jcr.Node#restore(Version, String, boolean)
      */
     @Override
-    public void restore(Version version, String relPath, boolean removeExisting) throws RepositoryException {
+    public void restore(Version version, String relPath, boolean removeExisting)
+        throws RepositoryException {
         // additional checks are performed with subsequent calls.
         if (hasNode(relPath)) {
             // node at 'relPath' exists -> call restore on the target Node
@@ -1228,7 +1280,8 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
      * @see javax.jcr.Node#restoreByLabel(String, boolean)
      */
     @Override
-    public void restoreByLabel(String versionLabel, boolean removeExisting) throws RepositoryException {
+    public void restoreByLabel(String versionLabel, boolean removeExisting)
+        throws RepositoryException {
         getVersionManager().restoreByLabel(getPath(), versionLabel, removeExisting);
     }
 
@@ -1274,16 +1327,18 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
         return getLockManager().holdsLock(getPath());
     }
 
-    @Override @NotNull
+    @Override
+    @NotNull
     public Lock getLock() throws RepositoryException {
         return getLockManager().getLock(getPath());
     }
 
-    @Override @NotNull
+    @Override
+    @NotNull
     public Lock lock(boolean isDeep, boolean isSessionScoped)
-            throws RepositoryException {
+        throws RepositoryException {
         return getLockManager().lock(
-                getPath(), isDeep, isSessionScoped, Long.MAX_VALUE, null);
+            getPath(), isDeep, isSessionScoped, Long.MAX_VALUE, null);
     }
 
     @Override
@@ -1291,7 +1346,8 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
         getLockManager().unlock(getPath());
     }
 
-    @Override @NotNull
+    @Override
+    @NotNull
     public NodeIterator getSharedSet() {
         return new NodeIteratorAdapter(singleton(this));
     }
@@ -1357,14 +1413,15 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
         return new LazyValue<Tree>() {
             @Override
             protected Tree createValue() {
-                return RootFactory.createReadOnlyRoot(sessionDelegate.getRoot()).getTree(tree.getPath());
+                return RootFactory.createReadOnlyRoot(sessionDelegate.getRoot())
+                                  .getTree(tree.getPath());
             }
         };
     }
 
     private boolean canReadMixinTypes(@NotNull Tree tree) {
         return sessionContext.getAccessManager().hasPermissions(
-                tree, EMPTY_MIXIN_TYPES, Permissions.READ_PROPERTY);
+            tree, EMPTY_MIXIN_TYPES, Permissions.READ_PROPERTY);
     }
 
     private EffectiveNodeType getEffectiveNodeType() throws RepositoryException {
@@ -1373,33 +1430,33 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
 
     private Iterator<Node> nodeIterator(Iterator<NodeDelegate> childNodes) {
         return sessionDelegate.sync(transform(
-                childNodes,
-                new Function<NodeDelegate, Node>() {
-                    @Override
-                    public Node apply(NodeDelegate nodeDelegate) {
-                        return new NodeImpl<NodeDelegate>(nodeDelegate, sessionContext);
-                    }
-                }));
+            childNodes,
+            new Function<NodeDelegate, Node>() {
+                @Override
+                public Node apply(NodeDelegate nodeDelegate) {
+                    return new NodeImpl<NodeDelegate>(nodeDelegate, sessionContext);
+                }
+            }));
     }
 
     private Iterator<Property> propertyIterator(Iterator<PropertyDelegate> properties) {
         return sessionDelegate.sync(transform(
-                properties,
-                new Function<PropertyDelegate, Property>() {
-                    @Override
-                    public Property apply(PropertyDelegate propertyDelegate) {
-                        return new PropertyImpl(propertyDelegate, sessionContext);
-                    }
-                }));
+            properties,
+            new Function<PropertyDelegate, Property>() {
+                @Override
+                public Property apply(PropertyDelegate propertyDelegate) {
+                    return new PropertyImpl(propertyDelegate, sessionContext);
+                }
+            }));
     }
 
     private void checkValidWorkspace(String workspaceName)
-            throws RepositoryException {
+        throws RepositoryException {
         String[] workspaceNames =
-                getSession().getWorkspace().getAccessibleWorkspaceNames();
+            getSession().getWorkspace().getAccessibleWorkspaceNames();
         if (!asList(workspaceNames).contains(workspaceName)) {
             throw new NoSuchWorkspaceException(
-                    "Workspace " + workspaceName + " does not exist");
+                "Workspace " + workspaceName + " does not exist");
         }
     }
 
@@ -1412,22 +1469,23 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
         // TODO: END
 
         PropertyState state = PropertyStates.createProperty(
-                JCR_PRIMARYTYPE, getOakName(nodeTypeName), NAME);
+            JCR_PRIMARYTYPE, getOakName(nodeTypeName), NAME);
         dlg.setProperty(state, true, true);
 
         Tree typeRoot = sessionDelegate.getRoot().getTree(NodeTypeConstants.NODE_TYPES_PATH);
         TreeUtil.autoCreateItems(
-                dlg.getTree(), typeRoot.getChild(nodeTypeName), typeRoot, sessionDelegate.getAuthInfo().getUserID());
+            dlg.getTree(), typeRoot.getChild(nodeTypeName), typeRoot,
+            sessionDelegate.getAuthInfo().getUserID());
 
         dlg.setOrderableChildren(nt.hasOrderableChildNodes());
     }
 
     private Property internalSetProperty(
-            final String jcrName, final Value value, final boolean exactTypeMatch)
-            throws RepositoryException {
+        final String jcrName, final Value value, final boolean exactTypeMatch)
+        throws RepositoryException {
         final String oakName = getOakPathOrThrow(checkNotNull(jcrName));
         final PropertyState state = createSingleState(
-                oakName, value, Type.fromTag(value.getType(), false));
+            oakName, value, Type.fromTag(value.getType(), false));
         if (value.getType() == PropertyType.STRING) {
             logLargeStringProperties(jcrName, value.getString());
         }
@@ -1435,17 +1493,19 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
             @Override
             public void checkPreconditions() throws RepositoryException {
                 super.checkPreconditions();
-                if (!internalIsCheckedOut() && getOPV(dlg.getTree(), state) != OnParentVersionAction.IGNORE) {
+                if (!internalIsCheckedOut()
+                    && getOPV(dlg.getTree(), state) != OnParentVersionAction.IGNORE) {
                     throw new VersionException(format(
-                            "Cannot set property. Node [%s] is checked in.", getNodePath()));
+                        "Cannot set property. Node [%s] is checked in.", getNodePath()));
                 }
             }
+
             @NotNull
             @Override
             public Property perform() throws RepositoryException {
                 return new PropertyImpl(
-                        dlg.setProperty(state, exactTypeMatch, false),
-                        sessionContext);
+                    dlg.setProperty(state, exactTypeMatch, false),
+                    sessionContext);
             }
 
             @Override
@@ -1455,22 +1515,26 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
         });
     }
 
-    private void logLargeStringProperties(String propertyName, String value) throws RepositoryException {
+    private void logLargeStringProperties(String propertyName, String value)
+        throws RepositoryException {
         if (value.length() > logWarnStringSizeThreshold) {
-            LOG.warn("String length: {} for property: {} at Node: {} is greater than configured value {}", value.length(), propertyName, this.getPath(), logWarnStringSizeThreshold);
+            LOG.warn(
+                "String length: {} for property: {} at Node: {} is greater than configured value {}",
+                value.length(), propertyName, this.getPath(), logWarnStringSizeThreshold);
         }
     }
 
     private Property internalSetProperty(
-            final String jcrName, final Value[] values,
-            final int type, final boolean exactTypeMatch)
-            throws RepositoryException {
+        final String jcrName, final Value[] values,
+        final int type, final boolean exactTypeMatch)
+        throws RepositoryException {
         final String oakName = getOakPathOrThrow(checkNotNull(jcrName));
         final PropertyState state = createMultiState(
-                oakName, compact(values), Type.fromTag(type, true));
+            oakName, compact(values), Type.fromTag(type, true));
 
         if (values.length > MV_PROPERTY_WARN_THRESHOLD) {
-            LOG.warn("Large multi valued property [{}/{}] detected ({} values).",dlg.getPath(), jcrName, values.length);
+            LOG.warn("Large multi valued property [{}/{}] detected ({} values).", dlg.getPath(),
+                jcrName, values.length);
         }
         for (Value value : values) {
             if (value != null && value.getType() == PropertyType.STRING) {
@@ -1481,17 +1545,19 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
             @Override
             public void checkPreconditions() throws RepositoryException {
                 super.checkPreconditions();
-                if (!internalIsCheckedOut() && getOPV(dlg.getTree(), state) != OnParentVersionAction.IGNORE) {
+                if (!internalIsCheckedOut()
+                    && getOPV(dlg.getTree(), state) != OnParentVersionAction.IGNORE) {
                     throw new VersionException(format(
-                            "Cannot set property. Node [%s] is checked in.", getNodePath()));
+                        "Cannot set property. Node [%s] is checked in.", getNodePath()));
                 }
             }
+
             @NotNull
             @Override
             public Property perform() throws RepositoryException {
                 return new PropertyImpl(
-                        dlg.setProperty(state, exactTypeMatch, false),
-                        sessionContext);
+                    dlg.setProperty(state, exactTypeMatch, false),
+                    sessionContext);
             }
 
             @Override
@@ -1519,7 +1585,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
 
 
     private Property internalRemoveProperty(final String jcrName)
-            throws RepositoryException {
+        throws RepositoryException {
         final String oakName = getOakName(checkNotNull(jcrName));
         return perform(new ItemWriteOperation<Property>("internalRemoveProperty") {
             @Override
@@ -1527,12 +1593,14 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
                 super.checkPreconditions();
                 PropertyDelegate property = dlg.getPropertyOrNull(oakName);
                 if (property != null &&
-                        !internalIsCheckedOut() &&
-                        getOPV(dlg.getTree(), property.getPropertyState()) != OnParentVersionAction.IGNORE) {
+                    !internalIsCheckedOut() &&
+                    getOPV(dlg.getTree(), property.getPropertyState())
+                        != OnParentVersionAction.IGNORE) {
                     throw new VersionException(format(
-                            "Cannot remove property. Node [%s] is checked in.", getNodePath()));
+                        "Cannot remove property. Node [%s] is checked in.", getNodePath()));
                 }
             }
+
             @NotNull
             @Override
             public Property perform() throws RepositoryException {
@@ -1556,17 +1624,15 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
     //-----------------------------------------------------< JackrabbitNode >---
 
     /**
-     * Simplified implementation of {@link JackrabbitNode#rename(String)}. In
-     * contrast to the implementation in Jackrabbit 2.x which was operating on
-     * the NodeState level directly, this implementation does a move plus
-     * subsequent reorder on the JCR API due to a missing support for renaming
-     * on the OAK API.
-     *
-     * Note, that this also has an impact on how permissions are enforced: In
-     * Jackrabbit 2.x the rename just required permission to modify the child
-     * collection on the parent, whereas a move did the full permission check.
-     * With this simplified implementation that (somewhat inconsistent) difference
-     * has been removed.
+     * Simplified implementation of {@link JackrabbitNode#rename(String)}. In contrast to the
+     * implementation in Jackrabbit 2.x which was operating on the NodeState level directly, this
+     * implementation does a move plus subsequent reorder on the JCR API due to a missing support
+     * for renaming on the OAK API.
+     * <p>
+     * Note, that this also has an impact on how permissions are enforced: In Jackrabbit 2.x the
+     * rename just required permission to modify the child collection on the parent, whereas a move
+     * did the full permission check. With this simplified implementation that (somewhat
+     * inconsistent) difference has been removed.
      *
      * @param newName The new name of this node.
      * @throws RepositoryException If an error occurs.
@@ -1634,12 +1700,12 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
     }
 
     /**
-     * Simplified implementation of the {@link org.apache.jackrabbit.api.JackrabbitNode#setMixins(String[])}
-     * method that adds all mixin types that are not yet present on this node
-     * and removes all mixins that are no longer contained in the specified
-     * array. Note, that this implementation will not work exactly like the
-     * variant in Jackrabbit 2.x which first created the effective node type
-     * and adjusted the set of child items accordingly.
+     * Simplified implementation of the
+     * {@link org.apache.jackrabbit.api.JackrabbitNode#setMixins(String[])} method that adds all
+     * mixin types that are not yet present on this node and removes all mixins that are no longer
+     * contained in the specified array. Note, that this implementation will not work exactly like
+     * the variant in Jackrabbit 2.x which first created the effective node type and adjusted the
+     * set of child items accordingly.
      *
      * @param mixinNames
      * @throws RepositoryException
@@ -1655,7 +1721,8 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
             public void checkPreconditions() throws RepositoryException {
                 super.checkPreconditions();
                 if (!internalIsCheckedOut()) {
-                    throw new VersionException(format("Cannot set mixin types. Node [%s] is checked in.", getNodePath()));
+                    throw new VersionException(
+                        format("Cannot set mixin types. Node [%s] is checked in.", getNodePath()));
                 }
 
                 // check for NODE_TYPE_MANAGEMENT permission here as we cannot
@@ -1664,9 +1731,12 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
                 // autocreated properties like jcr:create, jcr:uuid and so forth.
                 PropertyDelegate mixinProp = dlg.getPropertyOrNull(JCR_MIXINTYPES);
                 if (mixinProp != null) {
-                    sessionContext.getAccessManager().checkPermissions(dlg.getTree(), mixinProp.getPropertyState(), Permissions.NODE_TYPE_MANAGEMENT);
+                    sessionContext.getAccessManager()
+                                  .checkPermissions(dlg.getTree(), mixinProp.getPropertyState(),
+                                      Permissions.NODE_TYPE_MANAGEMENT);
                 }
             }
+
             @Override
             public void performVoid() throws RepositoryException {
                 dlg.setMixins(oakTypeNames);
@@ -1675,56 +1745,60 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
     }
 
     @Override
-    public @Nullable JackrabbitNode getNodeOrNull(@NotNull String relPath) throws RepositoryException {
+    public @Nullable JackrabbitNode getNodeOrNull(@NotNull String relPath)
+        throws RepositoryException {
         final String oakPath = getOakPathOrThrowNotFound(relPath);
-        return sessionDelegate.performNullable(new NodeOperation<JackrabbitNode>(dlg, "getNodeOrNull") {
-            @Nullable
-            @Override
-            public JackrabbitNode performNullable() throws RepositoryException {
-                NodeDelegate nd = node.getChild(oakPath);
-                if (nd == null) {
-                    return null;
-                } else {
-                    return createNode(nd, sessionContext);
+        return sessionDelegate.performNullable(
+            new NodeOperation<JackrabbitNode>(dlg, "getNodeOrNull") {
+                @Nullable
+                @Override
+                public JackrabbitNode performNullable() throws RepositoryException {
+                    NodeDelegate nd = node.getChild(oakPath);
+                    if (nd == null) {
+                        return null;
+                    } else {
+                        return createNode(nd, sessionContext);
+                    }
                 }
-            }
-        });
+            });
     }
 
     @Override
-    public @Nullable Property getPropertyOrNull(@NotNull String relPath) throws RepositoryException {
+    public @Nullable Property getPropertyOrNull(@NotNull String relPath)
+        throws RepositoryException {
         final String oakPath = getOakPathOrThrowNotFound(relPath);
-        return sessionDelegate.performNullable(new NodeOperation<PropertyImpl>(dlg, "getPropertyOrNull") {
-            @Nullable
-            @Override
-            public PropertyImpl performNullable() throws RepositoryException {
-                PropertyDelegate pd = node.getPropertyOrNull(oakPath);
-                if (pd == null) {
-                    return null;
-                } else {
-                    return new PropertyImpl(pd, sessionContext);
+        return sessionDelegate.performNullable(
+            new NodeOperation<PropertyImpl>(dlg, "getPropertyOrNull") {
+                @Nullable
+                @Override
+                public PropertyImpl performNullable() throws RepositoryException {
+                    PropertyDelegate pd = node.getPropertyOrNull(oakPath);
+                    if (pd == null) {
+                        return null;
+                    } else {
+                        return new PropertyImpl(pd, sessionContext);
+                    }
                 }
-            }
-        });
+            });
     }
 
     /**
-     * Provide current node path. Should be invoked from within
-     * the SessionDelegate#perform and preferred instead of getPath
-     * as it provides direct access to path
+     * Provide current node path. Should be invoked from within the SessionDelegate#perform and
+     * preferred instead of getPath as it provides direct access to path
      */
-    private String getNodePath(){
+    private String getNodePath() {
         return dlg.getPath();
     }
 
     private int getOPV(Tree nodeTree, PropertyState property)
-            throws RepositoryException {
+        throws RepositoryException {
         return getNodeTypeManager().getDefinition(nodeTree,
-                property, false).getOnParentVersion();
+            property, false).getOnParentVersion();
 
     }
 
     private static class PropertyIteratorDelegate {
+
         private final NodeDelegate node;
         private final Predicate<PropertyDelegate> predicate;
 
@@ -1742,7 +1816,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
                 return Iterators.size(iterator());
             } catch (InvalidItemStateException e) {
                 throw new IllegalStateException(
-                        "This iterator is no longer valid", e);
+                    "This iterator is no longer valid", e);
             }
         }
 

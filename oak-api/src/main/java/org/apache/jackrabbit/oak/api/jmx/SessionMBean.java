@@ -19,14 +19,15 @@
 
 package org.apache.jackrabbit.oak.api.jmx;
 
-import org.osgi.annotation.versioning.ProviderType;
 import org.apache.jackrabbit.oak.api.AuthInfo;
+import org.osgi.annotation.versioning.ProviderType;
 
 /**
  * MBean providing basic {@code Session} information and statistics.
  */
 @ProviderType
 public interface SessionMBean {
+
     String TYPE = "SessionStatistics";
 
     /**
@@ -120,7 +121,7 @@ public interface SessionMBean {
     String[] getSessionAttributes();
 
     /**
-     * @return  stack trace of the last exception that occurred during a save operation
+     * @return stack trace of the last exception that occurred during a save operation
      */
     String getLastFailedSave();
 

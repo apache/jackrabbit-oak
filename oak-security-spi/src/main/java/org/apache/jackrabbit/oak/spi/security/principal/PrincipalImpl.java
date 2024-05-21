@@ -16,9 +16,9 @@
  */
 package org.apache.jackrabbit.oak.spi.security.principal;
 
-import org.apache.jackrabbit.api.security.principal.JackrabbitPrincipal;
-
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+
+import org.apache.jackrabbit.api.security.principal.JackrabbitPrincipal;
 
 /**
  * Default implementation of the {@code JackrabbitPrincipal} interface.
@@ -38,6 +38,7 @@ public class PrincipalImpl implements JackrabbitPrincipal {
     }
 
     //-------------------------------------------------------------< Object >---
+
     /**
      * Two principals are equal, if their names are.
      */

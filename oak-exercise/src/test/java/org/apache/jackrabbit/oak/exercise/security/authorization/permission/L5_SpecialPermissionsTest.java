@@ -31,7 +31,6 @@ import javax.jcr.security.Privilege;
 import javax.jcr.version.Version;
 import javax.jcr.version.VersionHistory;
 import javax.jcr.version.VersionManager;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
@@ -104,7 +103,6 @@ import org.junit.Test;
  *
  * </pre>
  *
- *
  * @see org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants
  * @see org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions
  */
@@ -140,8 +138,10 @@ public class L5_SpecialPermissionsTest extends AbstractJCRTest {
         grandChildPath = grandChild.getPath();
 
         testUser = ExerciseUtility.createTestUser(((JackrabbitSession) superuser).getUserManager());
-        testUser2 = ExerciseUtility.createTestUser(((JackrabbitSession) superuser).getUserManager());
-        Group testGroup = ExerciseUtility.createTestGroup(((JackrabbitSession) superuser).getUserManager());
+        testUser2 = ExerciseUtility.createTestUser(
+            ((JackrabbitSession) superuser).getUserManager());
+        Group testGroup = ExerciseUtility.createTestGroup(
+            ((JackrabbitSession) superuser).getUserManager());
         testGroup.addMember(testUser);
         superuser.save();
 
@@ -189,7 +189,8 @@ public class L5_SpecialPermissionsTest extends AbstractJCRTest {
 
     private Session createTestSession() throws RepositoryException {
         if (testSession == null) {
-            testSession = superuser.getRepository().login(ExerciseUtility.getTestCredentials(testUser.getID()));
+            testSession = superuser.getRepository()
+                                   .login(ExerciseUtility.getTestCredentials(testUser.getID()));
         }
         return testSession;
     }
@@ -200,7 +201,8 @@ public class L5_SpecialPermissionsTest extends AbstractJCRTest {
         superuser.getNode(grandChildPath).addMixin(JcrConstants.MIX_VERSIONABLE);
 
         String privName = Privilege.JCR_VERSION_MANAGEMENT;
-        AccessControlUtils.addAccessControlEntry(superuser, grandChildPath, testGroupPrincipal, new String[]{privName}, true);
+        AccessControlUtils.addAccessControlEntry(superuser, grandChildPath, testGroupPrincipal,
+            new String[]{privName}, true);
         superuser.save();
 
         Session s = createTestSession();
@@ -246,15 +248,16 @@ public class L5_SpecialPermissionsTest extends AbstractJCRTest {
         // grant full access to all users for 'testGroup'...
         paths.add(UserConstants.DEFAULT_USER_PATH);
         AccessControlUtils.addAccessControlEntry(superuser,
-                UserConstants.DEFAULT_USER_PATH, testGroupPrincipal,
-                new String[]{Privilege.JCR_ALL}, true);
+            UserConstants.DEFAULT_USER_PATH, testGroupPrincipal,
+            new String[]{Privilege.JCR_ALL}, true);
         // ... but prevent the test user to write the admin user
-        String adminPath = ((JackrabbitSession) superuser).getUserManager().getAuthorizable(superuser.getUserID()).getPath();
+        String adminPath = ((JackrabbitSession) superuser).getUserManager()
+                                                          .getAuthorizable(superuser.getUserID())
+                                                          .getPath();
         paths.add(adminPath);
         AccessControlUtils.addAccessControlEntry(superuser,
-                adminPath, EveryonePrincipal.getInstance(),
-                new String[]{PrivilegeConstants.REP_WRITE}, false);
-
+            adminPath, EveryonePrincipal.getInstance(),
+            new String[]{PrivilegeConstants.REP_WRITE}, false);
 
         // execute the test verifying that pw of 'testUser2' can be change
         // but not the pw of the admin user

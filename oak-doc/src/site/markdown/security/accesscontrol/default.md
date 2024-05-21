@@ -52,12 +52,12 @@ stored policies per principal in a dedicated tree is no longer available.
 The Oak access control management exposes two types of policies that cover all
 use case defined by the specification and required by the default setup:
 
-| Name            | Policy                        | Description                |
-|-----------------|-------------------------------|----------------------------|
-| Default ACL     | `JackrabbitAccessControlList` | access control on individual nodes |
-| Repo-Level ACL  | `JackrabbitAccessControlList` | repo-level access control for the `null` path |
-| Read Policy     | `NamedAccessControlPolicy`    | trees that are configured to be readable to everyone |
-| | | |
+| Name           | Policy                        | Description                                          |
+|----------------|-------------------------------|------------------------------------------------------|
+| Default ACL    | `JackrabbitAccessControlList` | access control on individual nodes                   |
+| Repo-Level ACL | `JackrabbitAccessControlList` | repo-level access control for the `null` path        |
+| Read Policy    | `NamedAccessControlPolicy`    | trees that are configured to be readable to everyone |
+|                |                               |                                                      |
 
 ##### Default ACL
 
@@ -103,13 +103,16 @@ corresponding paths from the configuration will most probably have undesired eff
 
 ##### Effective Policies
 
-The effective policies exposed by `AccessControlManager.getEffectivePolicies(String)` and 
-`JackrabbitAccessControlManager.getEffectivePolicies(Set<Principal>)` represent an immutable view on the 
-persisted policies taking effect act the given path or for the given set of principals. Transient 
+The effective policies exposed by `AccessControlManager.getEffectivePolicies(String)` and
+`JackrabbitAccessControlManager.getEffectivePolicies(Set<Principal>)` represent an immutable view on
+the
+persisted policies taking effect act the given path or for the given set of principals. Transient
 modifications that are the result of `setPolicy` and `removePolicy` will not be reflected.
 
-Note however, that these methods are defined to be a best-effort. In particular `AccessControlManager.getEffectivePolicies(String)`
-will not evaluate restrictions associated with individual entries that might limit the effect to individual items in the subtree. 
+Note however, that these methods are defined to be a best-effort. In
+particular `AccessControlManager.getEffectivePolicies(String)`
+will not evaluate restrictions associated with individual entries that might limit the effect to
+individual items in the subtree.
 See also [OAK-8000](https://issues.apache.org/jira/browse/OAK-8000) for details.
 
 #### Access Control Entries
@@ -118,8 +121,10 @@ The access control entries present in a given list are subject to the following
 rules applied upon editing but not enforced by `CommitHook`s:
 
 - *uniqueness*: a given entry may only appear onces in a list
-- *merging*: if an entry exists for a given principal with the same allow-status and restrictions, the existing entry will be updated without being moved in the list.
-- *redundancy*: if an new entry makes an existing entry (partially) redundant the existing entry will be updated or removed altogether.
+- *merging*: if an entry exists for a given principal with the same allow-status and restrictions,
+  the existing entry will be updated without being moved in the list.
+- *redundancy*: if an new entry makes an existing entry (partially) redundant the existing entry
+  will be updated or removed altogether.
 
 #### Restrictions
 
@@ -132,15 +137,22 @@ found in section [Restriction Management](../authorization/restriction.html).
 
 #### Unknown Principals and Non-Existing Paths
 
-Access control policies (or their entries) are bound to principals and JCR item paths. However, both must not necessarily exist: You can have policies for non-existing paths and/or unknown principals (i.e. referential integrity is not ensured). Deleting the referenced node or authorizable representing the principal won't have any effect in general.
-On the other hand, as the actual policies are persisted in the repository, they are removed whenever any of the parent nodes is removed (like any other regular child node).
+Access control policies (or their entries) are bound to principals and JCR item paths. However, both
+must not necessarily exist: You can have policies for non-existing paths and/or unknown principals (
+i.e. referential integrity is not ensured). Deleting the referenced node or authorizable
+representing the principal won't have any effect in general.
+On the other hand, as the actual policies are persisted in the repository, they are removed whenever
+any of the parent nodes is removed (like any other regular child node).
 
-While importing access control policies via [JCR XML import](#xml-import) the behaviour for unknown principals can be configured.
+While importing access control policies via [JCR XML import](#xml-import) the behaviour for unknown
+principals can be configured.
 
 ### Representation in the Repository
 
-Access control policies created and modified using the default authorization model are stored as child of
-the node they are bound to with name `rep:policy` or as node with path `/rep:repoPolicy` (for repo-level policies). The node type definition used to represent access control content:
+Access control policies created and modified using the default authorization model are stored as
+child of
+the node they are bound to with name `rep:policy` or as node with path `/rep:repoPolicy` (for
+repo-level policies). The node type definition used to represent access control content:
 
     [rep:AccessControllable]
       mixin
@@ -236,6 +248,7 @@ match the validation requirements as specified by `AccessControlList#addAccessCo
 the default behavior is ABORT (while in Jackrabbit 2.x the behavior always was BESTEFFORT).
 
 The different `ImportBehavior` flags are implemented as follows:
+
 - `ABORT`: throws an `AccessControlException` if the principal is unknown
 - `IGNORE`: ignore the entry defining the unknown principal
 - `BESTEFFORT`: import the access control entry with an unknown principal.
@@ -255,22 +268,21 @@ See also ([OAK-1350](https://issues.apache.org/jira/browse/OAK-1350)))
 The consistency of this content structure is asserted by a dedicated `AccessControlValidator`.
 The corresponding errors are all of type `AccessControl` with the following codes:
 
-| Code              | Message                                                  |
-|-------------------|----------------------------------------------------------|
-| 0001              | Generic access control violation                         |
-| 0002              | Access control entry node expected                       |
-| 0003              | Invalid policy name                                      |
-| 0004              | Invalid policy node: Order of children is not stable     |
-| 0005              | Access control policy within access control content      |
-| 0006              | Isolated policy node                                     |
-| 0007              | Isolated access control entry                            |
-| 0008              | ACE without principal name                               |
-| 0009              | ACE without privileges                                   |
-| 0010              | ACE contains invalid privilege name                      |
-| 0011              | ACE uses abstract privilege                              |
-| 0012              | Repository level policies defined with non-root node     |
-| 0013              | Duplicate ACE found in policy                            |
-
+| Code | Message                                              |
+|------|------------------------------------------------------|
+| 0001 | Generic access control violation                     |
+| 0002 | Access control entry node expected                   |
+| 0003 | Invalid policy name                                  |
+| 0004 | Invalid policy node: Order of children is not stable |
+| 0005 | Access control policy within access control content  |
+| 0006 | Isolated policy node                                 |
+| 0007 | Isolated access control entry                        |
+| 0008 | ACE without principal name                           |
+| 0009 | ACE without privileges                               |
+| 0010 | ACE contains invalid privilege name                  |
+| 0011 | ACE uses abstract privilege                          |
+| 0012 | Repository level policies defined with non-root node |
+| 0013 | Duplicate ACE found in policy                        |
 
 <a name="configuration"></a>
 
@@ -280,17 +292,20 @@ The corresponding errors are all of type `AccessControl` with the following code
 
 The default implementation supports the following configuration parameters:
 
-| Parameter                    | Type                | Default                  |
-|------------------------------|---------------------|--------------------------|
-| `PARAM_RESTRICTION_PROVIDER` | RestrictionProvider | RestrictionProviderImpl  |
-| `PARAM_READ_PATHS`           | Set\<String\>       | paths to namespace, nodetype and privilege root nodes  |
-| `PARAM_IMPORT_BEHAVIOR`      | String ("abort", "ignore", "besteffort") | "abort" |
-| | | |
+| Parameter                    | Type                                     | Default                                               |
+|------------------------------|------------------------------------------|-------------------------------------------------------|
+| `PARAM_RESTRICTION_PROVIDER` | RestrictionProvider                      | RestrictionProviderImpl                               |
+| `PARAM_READ_PATHS`           | Set\<String\>                            | paths to namespace, nodetype and privilege root nodes |
+| `PARAM_IMPORT_BEHAVIOR`      | String ("abort", "ignore", "besteffort") | "abort"                                               |
+|                              |                                          |                                                       |
 
 ##### Differences to Jackrabbit 2.x:
 
-- The "omit-default-permission" configuration option present with the Jackrabbit's AccessControlProvider implementations is no longer supported with Oak.
-- As of OAK no extra access control content is installed by default which renders that flag superfluous.
+- The "omit-default-permission" configuration option present with the Jackrabbit's
+  AccessControlProvider implementations is no longer supported with Oak.
+- As of OAK no extra access control content is installed by default which renders that flag
+  superfluous.
 
 <!-- hidden references -->
+
 [AuthorizationConfiguration]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authorization/AuthorizationConfiguration.html

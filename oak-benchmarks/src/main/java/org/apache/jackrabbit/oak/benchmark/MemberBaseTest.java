@@ -23,13 +23,12 @@ import javax.jcr.Node;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-
-import org.apache.jackrabbit.guava.common.collect.ObjectArrays;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.guava.common.collect.ObjectArrays;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.fixture.JcrCreator;
 import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
@@ -46,15 +45,15 @@ import org.apache.jackrabbit.util.Text;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Abstract test-base for the various membership related operations (isMember, isDeclaredMember, memberOf, declaredMemberOf)
- * with the following characteristics an config options:
- *
- * - 'numberOfGroups' : number of groups, which each member will become member of
- * - 'nested' : flag to enforce nesting of groups; in effect each group will then become member of the previous group
+ * Abstract test-base for the various membership related operations (isMember, isDeclaredMember,
+ * memberOf, declaredMemberOf) with the following characteristics an config options:
+ * <p>
+ * - 'numberOfGroups' : number of groups, which each member will become member of - 'nested' : flag
+ * to enforce nesting of groups; in effect each group will then become member of the previous group
  * - 'numberOfMembers' : number of users to be created and which will become member of all groups
- *
- * The test run randomly picks one group and one user and performs the
- * member-operation as defined by the subclasses (see 'testMembership')
+ * <p>
+ * The test run randomly picks one group and one user and performs the member-operation as defined
+ * by the subclasses (see 'testMembership')
  */
 abstract class MemberBaseTest extends AbstractTest {
 
@@ -90,7 +89,8 @@ abstract class MemberBaseTest extends AbstractTest {
             List<String> memberIds = new ArrayList<String>(numberOfMembers);
             UserManager userManager = ((JackrabbitSession) s).getUserManager();
             for (int i = 0; i <= numberOfMembers; i++) {
-                User u = userManager.createUser(USER + i, null, new PrincipalImpl(USER + i), REL_TEST_PATH);
+                User u = userManager.createUser(USER + i, null, new PrincipalImpl(USER + i),
+                    REL_TEST_PATH);
                 memberPaths.add(u.getPath());
                 memberIds.add(USER + i);
             }
@@ -117,7 +117,8 @@ abstract class MemberBaseTest extends AbstractTest {
     public void afterSuite() throws Exception {
         Session s = loginAdministrative();
         try {
-            Authorizable authorizable = ((JackrabbitSession) s).getUserManager().getAuthorizable(GROUP + "0");
+            Authorizable authorizable = ((JackrabbitSession) s).getUserManager()
+                                                               .getAuthorizable(GROUP + "0");
             if (authorizable != null) {
                 Node n = s.getNode(Text.getRelativeParent(authorizable.getPath(), 1));
                 n.remove();
@@ -144,8 +145,10 @@ abstract class MemberBaseTest extends AbstractTest {
             UserManager uMgr = ((JackrabbitSession) s).getUserManager();
             for (int i = 0; i <= 1000; i++) {
                 testMembership(
-                        (Group) uMgr.getAuthorizableByPath(groupPaths.get(random.nextInt(numberOfGroups))),
-                        (User) uMgr.getAuthorizableByPath(memberPaths.get(random.nextInt(numberOfMembers))));
+                    (Group) uMgr.getAuthorizableByPath(
+                        groupPaths.get(random.nextInt(numberOfGroups))),
+                    (User) uMgr.getAuthorizableByPath(
+                        memberPaths.get(random.nextInt(numberOfMembers))));
             }
         } catch (RepositoryException e) {
             System.out.println(e.getMessage());
@@ -162,8 +165,10 @@ abstract class MemberBaseTest extends AbstractTest {
             return ((OakRepositoryFixture) fixture).setUpCluster(1, new JcrCreator() {
                 @Override
                 public Jcr customize(Oak oak) {
-                    ConfigurationParameters conf = ConfigurationParameters.of(UserConfiguration.NAME,
-                            ConfigurationParameters.of(ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, ImportBehavior.NAME_BESTEFFORT));
+                    ConfigurationParameters conf = ConfigurationParameters.of(
+                        UserConfiguration.NAME,
+                        ConfigurationParameters.of(ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR,
+                            ImportBehavior.NAME_BESTEFFORT));
                     SecurityProvider sp = SecurityProviderBuilder.newBuilder().with(conf).build();
                     return new Jcr(oak).with(sp);
                 }

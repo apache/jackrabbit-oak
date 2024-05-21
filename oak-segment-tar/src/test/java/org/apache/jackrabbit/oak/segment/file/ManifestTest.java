@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.segment.file;
 import static org.junit.Assert.assertEquals;
 
 import java.io.File;
-
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -32,7 +31,8 @@ public class ManifestTest {
 
     @Test
     public void defaultStoreVersionShouldBeReturned() throws Exception {
-        assertEquals(42, Manifest.load(new LocalManifestFile(folder.newFile())).getStoreVersion(42));
+        assertEquals(42,
+            Manifest.load(new LocalManifestFile(folder.newFile())).getStoreVersion(42));
     }
 
     @Test

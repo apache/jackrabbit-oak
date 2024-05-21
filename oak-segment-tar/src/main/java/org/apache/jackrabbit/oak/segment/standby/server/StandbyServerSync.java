@@ -24,12 +24,10 @@ import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgumen
 import java.io.Closeable;
 import java.lang.management.ManagementFactory;
 import java.util.concurrent.atomic.AtomicBoolean;
-
 import javax.management.InstanceNotFoundException;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
 import javax.management.StandardMBean;
-
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.standby.jmx.StandbyStatusMBean;
 import org.apache.jackrabbit.oak.segment.standby.store.CommunicationObserver;
@@ -37,7 +35,8 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class StandbyServerSync implements StandbyStatusMBean, StateConsumer, StoreProvider, Closeable {
+public class StandbyServerSync implements StandbyStatusMBean, StateConsumer, StoreProvider,
+    Closeable {
 
     public static Builder builder() {
         return new Builder();
@@ -173,7 +172,7 @@ public class StandbyServerSync implements StandbyStatusMBean, StateConsumer, Sto
     private final String[] allowedClientIPRanges;
 
     private final boolean secure;
-    
+
     private final int blobChunkSize;
 
     private volatile String state;
@@ -220,7 +219,8 @@ public class StandbyServerSync implements StandbyStatusMBean, StateConsumer, Sto
         final MBeanServer jmxServer = ManagementFactory.getPlatformMBeanServer();
 
         try {
-            jmxServer.registerMBean(new StandardMBean(this, StandbyStatusMBean.class), new ObjectName(this.getMBeanName()));
+            jmxServer.registerMBean(new StandardMBean(this, StandbyStatusMBean.class),
+                new ObjectName(this.getMBeanName()));
         } catch (Exception e) {
             log.error("can't register standby status mbean", e);
         }
@@ -246,19 +246,21 @@ public class StandbyServerSync implements StandbyStatusMBean, StateConsumer, Sto
 
         try {
             StandbyServer.Builder builder = StandbyServer.builder(port, this, blobChunkSize)
-                .secure(secure)
-                .allowIPRanges(allowedClientIPRanges)
-                .withStateConsumer(this)
-                .withObserver(observer)
-                .withStandbyBlobReader(standbyBlobReader)
-                .withStandbyHeadReader(standbyHeadReader)
-                .withStandbyReferencesReader(standbyReferencesReader)
-                .withStandbySegmentReader(standbySegmentReader)
-                .withSSLKeyFile(sslKeyFile)
-                .withSSLKeyPassword(sslKeyPassword)
-                .withSSLChainFile(sslChainFile)
-                .withSSLClientValidation(sslValidateClient)
-                .withSSLSubjectPattern(sslSubjectPattern);
+                                                         .secure(secure)
+                                                         .allowIPRanges(allowedClientIPRanges)
+                                                         .withStateConsumer(this)
+                                                         .withObserver(observer)
+                                                         .withStandbyBlobReader(standbyBlobReader)
+                                                         .withStandbyHeadReader(standbyHeadReader)
+                                                         .withStandbyReferencesReader(
+                                                             standbyReferencesReader)
+                                                         .withStandbySegmentReader(
+                                                             standbySegmentReader)
+                                                         .withSSLKeyFile(sslKeyFile)
+                                                         .withSSLKeyPassword(sslKeyPassword)
+                                                         .withSSLChainFile(sslChainFile)
+                                                         .withSSLClientValidation(sslValidateClient)
+                                                         .withSSLSubjectPattern(sslSubjectPattern);
 
             server = builder.build();
             server.start();

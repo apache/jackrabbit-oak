@@ -23,16 +23,16 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 /**
  * An instance of this class encapsulates the shutdown logic of the {@link FileStore}.
  * <p>
- * A shutdown is initiated by calling {@link #shutDown} and completed at the point
- * where the returned {@link ShutDownCloser} has been {@link ShutDownCloser#close() closed}.
- *
- * Code that needs to protect itself from running after a shutdown has been initiated can
- * use the {@link #keepAlive()}, {@link #tryKeepAlive()} and {@link #isShutDown}:
+ * A shutdown is initiated by calling {@link #shutDown} and completed at the point where the
+ * returned {@link ShutDownCloser} has been {@link ShutDownCloser#close() closed}.
+ * <p>
+ * Code that needs to protect itself from running after a shutdown has been initiated can use the
+ * {@link #keepAlive()}, {@link #tryKeepAlive()} and {@link #isShutDown}:
  *
  * <pre>
-     try (ShutDownCloser ignored = shutDown.keepAlive()) {
-        // protected code here
-     }
+ * try (ShutDownCloser ignored = shutDown.keepAlive()) {
+ * // protected code here
+ * }
  * </pre>
  */
 class ShutDown {
@@ -41,6 +41,7 @@ class ShutDown {
      * An {@link AutoCloseable} whose {@link #close()} doesn't throw an exception.
      */
     interface ShutDownCloser extends AutoCloseable {
+
         @Override
         void close();
     }
@@ -52,8 +53,9 @@ class ShutDown {
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
 
     /**
-     * Keep the store from being shut down until the returned {@link ShutDownCloser}
-     * is {@link ShutDownCloser#close() closed}.
+     * Keep the store from being shut down until the returned {@link ShutDownCloser} is
+     * {@link ShutDownCloser#close() closed}.
+     *
      * @throws IllegalStateException if the store is already {@link #isShutDown() shut down}.
      */
     ShutDownCloser keepAlive() {
@@ -68,8 +70,8 @@ class ShutDown {
     }
 
     /**
-     * Try to keep the store from being shut down until the returned {@link ShutDownCloser}
-     * is {@link ShutDownCloser#close() closed}. Callers of this method need to call
+     * Try to keep the store from being shut down until the returned {@link ShutDownCloser} is
+     * {@link ShutDownCloser#close() closed}. Callers of this method need to call
      * {@link #isShutDown()} before proceeding.
      */
     ShutDownCloser tryKeepAlive() {
@@ -80,6 +82,7 @@ class ShutDown {
     /**
      * Initiate a shutdown of the store. The shutdown is complete once the returned
      * {@link ShutDownCloser} is {@link ShutDownCloser#close() closed}.
+     *
      * @return
      */
     ShutDownCloser shutDown() {
@@ -98,7 +101,7 @@ class ShutDown {
     }
 
     /**
-     * @return  {@code true} iff the store is shut down.
+     * @return {@code true} iff the store is shut down.
      */
     boolean isShutDown() {
         return isShutDown;

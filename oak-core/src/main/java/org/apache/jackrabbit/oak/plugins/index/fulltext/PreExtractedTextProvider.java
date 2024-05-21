@@ -20,10 +20,9 @@
 package org.apache.jackrabbit.oak.plugins.index.fulltext;
 
 import java.io.IOException;
-
+import org.apache.jackrabbit.oak.api.Blob;
 import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ConsumerType;
-import org.apache.jackrabbit.oak.api.Blob;
 
 @ConsumerType
 public interface PreExtractedTextProvider {

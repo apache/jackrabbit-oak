@@ -55,29 +55,43 @@ public class DocumentNodeStoreServiceConfigurationTest {
         assertEquals(DocumentNodeStoreService.DEFAULT_URI, config.mongouri());
         assertEquals(DocumentNodeStoreService.DEFAULT_DB, config.db());
         assertEquals(DocumentNodeStoreService.DEFAULT_SO_KEEP_ALIVE, config.socketKeepAlive());
-        assertEquals(DocumentNodeStoreService.DEFAULT_MONGO_LEASE_SO_TIMEOUT_MILLIS, config.mongoLeaseSocketTimeout());
+        assertEquals(DocumentNodeStoreService.DEFAULT_MONGO_LEASE_SO_TIMEOUT_MILLIS,
+            config.mongoLeaseSocketTimeout());
         assertEquals(DocumentNodeStoreService.DEFAULT_CACHE, config.cache());
-        assertEquals(DocumentMK.Builder.DEFAULT_NODE_CACHE_PERCENTAGE, config.nodeCachePercentage());
-        assertEquals(DocumentMK.Builder.DEFAULT_PREV_DOC_CACHE_PERCENTAGE, config.prevDocCachePercentage());
-        assertEquals(DocumentMK.Builder.DEFAULT_CHILDREN_CACHE_PERCENTAGE, config.childrenCachePercentage());
-        assertEquals(DocumentMK.Builder.DEFAULT_DIFF_CACHE_PERCENTAGE, config.diffCachePercentage());
+        assertEquals(DocumentMK.Builder.DEFAULT_NODE_CACHE_PERCENTAGE,
+            config.nodeCachePercentage());
+        assertEquals(DocumentMK.Builder.DEFAULT_PREV_DOC_CACHE_PERCENTAGE,
+            config.prevDocCachePercentage());
+        assertEquals(DocumentMK.Builder.DEFAULT_CHILDREN_CACHE_PERCENTAGE,
+            config.childrenCachePercentage());
+        assertEquals(DocumentMK.Builder.DEFAULT_DIFF_CACHE_PERCENTAGE,
+            config.diffCachePercentage());
         assertEquals(DocumentMK.Builder.DEFAULT_CACHE_SEGMENT_COUNT, config.cacheSegmentCount());
-        assertEquals(DocumentMK.Builder.DEFAULT_CACHE_STACK_MOVE_DISTANCE, config.cacheStackMoveDistance());
+        assertEquals(DocumentMK.Builder.DEFAULT_CACHE_STACK_MOVE_DISTANCE,
+            config.cacheStackMoveDistance());
         assertEquals(DocumentNodeStoreService.DEFAULT_BLOB_CACHE_SIZE, config.blobCacheSize());
         assertEquals(DocumentNodeStoreService.DEFAULT_PERSISTENT_CACHE, config.persistentCache());
         assertEquals(DocumentNodeStoreService.DEFAULT_JOURNAL_CACHE, config.journalCache());
         assertEquals(DocumentNodeStoreService.DEFAULT_CUSTOM_BLOB_STORE, config.customBlobStore());
-        assertEquals(DocumentNodeStoreService.DEFAULT_JOURNAL_GC_INTERVAL_MILLIS, config.journalGCInterval());
-        assertEquals(DocumentNodeStoreService.DEFAULT_JOURNAL_GC_MAX_AGE_MILLIS, config.journalGCMaxAge());
-        assertEquals(DocumentNodeStoreService.DEFAULT_PREFETCH_EXTERNAL_CHANGES, config.prefetchExternalChanges());
+        assertEquals(DocumentNodeStoreService.DEFAULT_JOURNAL_GC_INTERVAL_MILLIS,
+            config.journalGCInterval());
+        assertEquals(DocumentNodeStoreService.DEFAULT_JOURNAL_GC_MAX_AGE_MILLIS,
+            config.journalGCMaxAge());
+        assertEquals(DocumentNodeStoreService.DEFAULT_PREFETCH_EXTERNAL_CHANGES,
+            config.prefetchExternalChanges());
         assertEquals(null, config.role());
-        assertEquals(DocumentNodeStoreService.DEFAULT_VER_GC_MAX_AGE, config.versionGcMaxAgeInSecs());
-        assertEquals(DocumentNodeStoreService.DEFAULT_VER_GC_EXPRESSION, config.versionGCExpression());
-        assertEquals(DocumentNodeStoreService.DEFAULT_RGC_TIME_LIMIT_SECS, config.versionGCTimeLimitInSecs());
+        assertEquals(DocumentNodeStoreService.DEFAULT_VER_GC_MAX_AGE,
+            config.versionGcMaxAgeInSecs());
+        assertEquals(DocumentNodeStoreService.DEFAULT_VER_GC_EXPRESSION,
+            config.versionGCExpression());
+        assertEquals(DocumentNodeStoreService.DEFAULT_RGC_TIME_LIMIT_SECS,
+            config.versionGCTimeLimitInSecs());
         assertEquals(DocumentNodeStoreService.DEFAULT_BLOB_GC_MAX_AGE, config.blobGcMaxAgeInSecs());
-        assertEquals(DocumentNodeStoreService.DEFAULT_BLOB_SNAPSHOT_INTERVAL, config.blobTrackSnapshotIntervalInSecs());
+        assertEquals(DocumentNodeStoreService.DEFAULT_BLOB_SNAPSHOT_INTERVAL,
+            config.blobTrackSnapshotIntervalInSecs());
         assertEquals(null, config.repository_home());
-        assertEquals(DocumentNodeStoreService.DEFAULT_MAX_REPLICATION_LAG, config.maxReplicationLagInSecs());
+        assertEquals(DocumentNodeStoreService.DEFAULT_MAX_REPLICATION_LAG,
+            config.maxReplicationLagInSecs());
         assertEquals("MONGO", config.documentStoreType());
         assertEquals(DocumentNodeStoreService.DEFAULT_BUNDLING_DISABLED, config.bundlingDisabled());
         assertEquals(DocumentMK.Builder.DEFAULT_UPDATE_LIMIT, config.updateLimit());
@@ -156,13 +170,14 @@ public class DocumentNodeStoreServiceConfigurationTest {
     @Test
     public void overridePersistentCacheIncludes() throws Exception {
         BundleContext bundleContext = Mockito.mock(BundleContext.class);
-        Mockito.when(bundleContext.getProperty("oak.documentstore.persistentCacheIncludes")).thenReturn("/foo::/bar");
+        Mockito.when(bundleContext.getProperty("oak.documentstore.persistentCacheIncludes"))
+               .thenReturn("/foo::/bar");
         ComponentContext componentContext = Mockito.mock(ComponentContext.class);
         Mockito.when(componentContext.getBundleContext()).thenReturn(bundleContext);
         Configuration config = DocumentNodeStoreServiceConfiguration.create(
-                componentContext, configAdmin,
-                preset.asConfiguration(),
-                configuration.asConfiguration());
+            componentContext, configAdmin,
+            preset.asConfiguration(),
+            configuration.asConfiguration());
         assertArrayEquals(new String[]{"/foo", "/bar"}, config.persistentCacheIncludes());
     }
 
@@ -183,13 +198,13 @@ public class DocumentNodeStoreServiceConfigurationTest {
 
     private Configuration createConfiguration() throws IOException {
         return DocumentNodeStoreServiceConfiguration.create(
-                context.componentContext(), configAdmin,
-                preset.asConfiguration(),
-                configuration.asConfiguration());
+            context.componentContext(), configAdmin,
+            preset.asConfiguration(),
+            configuration.asConfiguration());
     }
 
     private void addConfigurationEntry(TestConfig config, String key, Object value)
-            throws IOException {
+        throws IOException {
         config.put(key, value);
         org.osgi.service.cm.Configuration c = configAdmin.getConfiguration(config.servicePid);
         c.update(new Hashtable(config));
@@ -205,9 +220,9 @@ public class DocumentNodeStoreServiceConfigurationTest {
 
         Configuration asConfiguration() {
             return (Configuration) Proxy.newProxyInstance(
-                    DocumentNodeStoreServiceConfigurationTest.class.getClassLoader(),
-                    new Class[]{Configuration.class},
-                    this::getProperty);
+                DocumentNodeStoreServiceConfigurationTest.class.getClassLoader(),
+                new Class[]{Configuration.class},
+                this::getProperty);
         }
 
         private Object getProperty(Object proxy, Method method, Object[] args) {

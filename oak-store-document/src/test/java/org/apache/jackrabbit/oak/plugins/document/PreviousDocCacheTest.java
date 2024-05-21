@@ -74,17 +74,20 @@ public class PreviousDocCacheTest extends AbstractMongoConnectionTest {
         assertEquals("No entries expected in prev docs cache", 0, prevDocsCache.getElementCount());
 
         NodeDocument doc = docStore.find(NODES, "0:/");
-        assertEquals("Only main doc entry expected in nodes cache", 1, nodesCache.getElementCount());
+        assertEquals("Only main doc entry expected in nodes cache", 1,
+            nodesCache.getElementCount());
         assertEquals("No entries expected in prev docs cache", 0, prevDocsCache.getElementCount());
 
         Iterators.size(doc.getAllPreviousDocs());
         validateFullyLoadedCache(docStore, SPLIT_THRESHOLD, nodesCache, prevDocsCache);
     }
 
-    private void validateFullyLoadedCache(DocumentStore docStore, int splitThreshold, CacheStats nodesCache, CacheStats prevDocsCache) {
+    private void validateFullyLoadedCache(DocumentStore docStore, int splitThreshold,
+        CacheStats nodesCache, CacheStats prevDocsCache) {
         assertEquals("Nodes cache must have 2 elements - '/' and intermediate split doc",
-                2, nodesCache.getElementCount());
-        assertEquals("Unexpected number of leaf prev docs", splitThreshold + 1, prevDocsCache.getElementCount());
+            2, nodesCache.getElementCount());
+        assertEquals("Unexpected number of leaf prev docs", splitThreshold + 1,
+            prevDocsCache.getElementCount());
 
         resetStats(nodesCache, prevDocsCache);
         NodeDocument doc = docStore.getIfCached(NODES, "0:/");
@@ -96,7 +99,7 @@ public class PreviousDocCacheTest extends AbstractMongoConnectionTest {
         assertEquals("Prev docs cache should not have a miss", 0, prevDocsCache.getMissCount());
     }
 
-    private void resetStats(CacheStats ... cacheStatses) {
+    private void resetStats(CacheStats... cacheStatses) {
         for (CacheStats cacheStats : cacheStatses) {
             cacheStats.resetStats();
         }
@@ -106,19 +109,19 @@ public class PreviousDocCacheTest extends AbstractMongoConnectionTest {
         DocumentStore store = ns.getDocumentStore();
         NodeDocument doc = Utils.getRootDocument(store);
         List<UpdateOp> ops = SplitOperations.forDocument(doc,
-                ns, ns.getHeadRevision(), NO_BINARY,
-                splitDocLimit/2);
+            ns, ns.getHeadRevision(), NO_BINARY,
+            splitDocLimit / 2);
         assertFalse(ops.isEmpty());
         for (UpdateOp op : ops) {
             if (!op.isNew() ||
-                    !store.create(NODES, Collections.singletonList(op))) {
+                !store.create(NODES, Collections.singletonList(op))) {
                 store.createOrUpdate(NODES, op);
             }
         }
     }
 
     private static void merge(NodeStore store, NodeBuilder builder)
-            throws CommitFailedException {
+        throws CommitFailedException {
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 }

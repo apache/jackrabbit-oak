@@ -49,8 +49,8 @@ public class AcquireRecoveryLockTest extends AbstractMongoConnectionTest {
         MongoConnection connection = connectionFactory.getConnection();
         assumeNotNull(connection);
         store = new MongoDocumentStore(
-                connection.getMongoClient(), connection.getDatabase(),
-                new DocumentMK.Builder());
+            connection.getMongoClient(), connection.getDatabase(),
+            new DocumentMK.Builder());
     }
 
     @After
@@ -77,7 +77,8 @@ public class AcquireRecoveryLockTest extends AbstractMongoConnectionTest {
         assertEquals(1, infoDocs.size());
         int clusterId = infoDocs.get(0).getClusterId();
         int otherClusterId = clusterId + 1;
-        getTestClock().waitUntil(getTestClock().getTime() + ClusterNodeInfo.DEFAULT_LEASE_DURATION_MILLIS + 1000);
+        getTestClock().waitUntil(
+            getTestClock().getTime() + ClusterNodeInfo.DEFAULT_LEASE_DURATION_MILLIS + 1000);
         assertTrue(seeker.acquireRecoveryLock(clusterId, otherClusterId));
         ClusterNodeInfoDocument doc = seeker.getClusterNodeInfo(clusterId);
         Object recoveryBy = doc.get(ClusterNodeInfo.REV_RECOVERY_BY);

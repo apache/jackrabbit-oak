@@ -19,11 +19,10 @@ package org.apache.jackrabbit.oak.exercise.security.principal;
 import java.security.Principal;
 import java.util.Set;
 import javax.jcr.RepositoryException;
-
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
+import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.test.AbstractJCRTest;
 import org.apache.jackrabbit.test.NotExecutableException;
@@ -92,7 +91,8 @@ public class L2_PrincipalManagerTest extends AbstractJCRTest {
 
         // NOTE: this method call doesn't make to much sense outside of a
         // simple test with a very limited number of principals (!!)
-        PrincipalIterator principalIterator = principalManager.getPrincipals(PrincipalManager.SEARCH_TYPE_NOT_GROUP);
+        PrincipalIterator principalIterator = principalManager.getPrincipals(
+            PrincipalManager.SEARCH_TYPE_NOT_GROUP);
         if (principalIterator.hasNext()) {
             testPrincipalName = principalIterator.nextPrincipal().getName();
         }
@@ -129,7 +129,8 @@ public class L2_PrincipalManagerTest extends AbstractJCRTest {
         String searchHint = testPrincipalName;             // EXERCISE: play with the search hint
         int searchType = PrincipalManager.SEARCH_TYPE_ALL; // EXERCISE: modify the type flag
 
-        PrincipalIterator principalIterator = principalManager.findPrincipals(testPrincipalName, searchType);
+        PrincipalIterator principalIterator = principalManager.findPrincipals(testPrincipalName,
+            searchType);
 
         // EXERCISE: what is the expected query result depending on the search hint and the type-flag?
     }

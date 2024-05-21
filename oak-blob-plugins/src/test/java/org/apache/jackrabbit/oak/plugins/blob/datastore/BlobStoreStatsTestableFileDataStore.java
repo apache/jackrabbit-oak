@@ -25,7 +25,6 @@ import java.net.URI;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
-
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
@@ -40,20 +39,20 @@ import org.jetbrains.annotations.NotNull;
 
 /**
  * Class used to test BlobStoreStats in {@link DataStoreBlobStoreStatsTest}.
- *
- * This class creates a data store that can generate delays in data store calls
- * or generate errors from data store calls as needed.  This allows for more
- * complete testing of metrics that are being measured in
- * {@link DataStoreBlobStore}.
- *
- * Use the {@link BlobStoreStatsTestableFileDataStoreBuilder} to build an
- * instance.  The provided "wither" methods should be used with the builder to
- * specify which delay or error behaviors are needed, if any.  Then use the
- * builder to build an {@link OakFileDataStore} subclass that behaves just like
- * a regular OakFileDataStore but introduces the requested delays and/or errors
- * for certain types of behaviors (e.g. reads, writes, etc.).
+ * <p>
+ * This class creates a data store that can generate delays in data store calls or generate errors
+ * from data store calls as needed.  This allows for more complete testing of metrics that are being
+ * measured in {@link DataStoreBlobStore}.
+ * <p>
+ * Use the {@link BlobStoreStatsTestableFileDataStoreBuilder} to build an instance.  The provided
+ * "wither" methods should be used with the builder to specify which delay or error behaviors are
+ * needed, if any.  Then use the builder to build an {@link OakFileDataStore} subclass that behaves
+ * just like a regular OakFileDataStore but introduces the requested delays and/or errors for
+ * certain types of behaviors (e.g. reads, writes, etc.).
  */
-public class BlobStoreStatsTestableFileDataStore extends OakFileDataStore implements DataRecordAccessProvider, TypedDataStore {
+public class BlobStoreStatsTestableFileDataStore extends OakFileDataStore implements
+    DataRecordAccessProvider, TypedDataStore {
+
     private int readDelay = 0;
     private int writeDelay = 0;
     private int deleteDelay = 0;
@@ -74,12 +73,13 @@ public class BlobStoreStatsTestableFileDataStore extends OakFileDataStore implem
 
     private DataStoreException ex = new DataStoreException("Test-generated Exception");
 
-    private BlobStoreStatsTestableFileDataStore(int readDelay, int writeDelay, int deleteDelay, int listDelay,
-                                                int initUploadDelay, int completeUploadDelay, int getDownloadDelay,
-                                                boolean withReadError, boolean withWriteError,
-                                                boolean withDeleteError, boolean withListError,
-                                                boolean withInitUploadError, boolean withCompleteUploadError,
-                                                boolean withGetDownloadError, BlobStatsCollector stats) {
+    private BlobStoreStatsTestableFileDataStore(int readDelay, int writeDelay, int deleteDelay,
+        int listDelay,
+        int initUploadDelay, int completeUploadDelay, int getDownloadDelay,
+        boolean withReadError, boolean withWriteError,
+        boolean withDeleteError, boolean withListError,
+        boolean withInitUploadError, boolean withCompleteUploadError,
+        boolean withGetDownloadError, BlobStatsCollector stats) {
         this.readDelay = readDelay;
         this.writeDelay = writeDelay;
         this.deleteDelay = deleteDelay;
@@ -87,7 +87,7 @@ public class BlobStoreStatsTestableFileDataStore extends OakFileDataStore implem
         this.initUploadDelay = initUploadDelay;
         this.completeUploadDelay = completeUploadDelay;
         this.getDownloadDelay = getDownloadDelay;
-        this.withReadError= withReadError;
+        this.withReadError = withReadError;
         this.withWriteError = withWriteError;
         this.withDeleteError = withDeleteError;
         this.withListError = withListError;
@@ -102,6 +102,7 @@ public class BlobStoreStatsTestableFileDataStore extends OakFileDataStore implem
     }
 
     public static class BlobStoreStatsTestableFileDataStoreBuilder {
+
         private static final int DELAY_DEFAULT = 50;
 
         private int readDelay = 0;
@@ -234,7 +235,8 @@ public class BlobStoreStatsTestableFileDataStore extends OakFileDataStore implem
             return withErrorOnCompleteBlobUpload(true).withCompleteBlobUploadDelay(DELAY_DEFAULT);
         }
 
-        BlobStoreStatsTestableFileDataStoreBuilder withErrorOnCompleteBlobUpload(boolean withError) {
+        BlobStoreStatsTestableFileDataStoreBuilder withErrorOnCompleteBlobUpload(
+            boolean withError) {
             generateErrorOnCompleteBlobUpload = withError;
             return this;
         }
@@ -255,37 +257,37 @@ public class BlobStoreStatsTestableFileDataStore extends OakFileDataStore implem
 
         OakFileDataStore build() {
             if (0 == readDelay &&
-                    0 == writeDelay &&
-                    0 == deleteDelay &&
-                    0 == listDelay &&
-                    0 == initBlobUploadDelay &&
-                    0 == completeBlobUploadDelay &&
-                    0 == getDownloadURIDelay &&
-                    ! generateErrorOnAddRecord &&
-                    ! generateErrorOnGetRecord &&
-                    ! generateErrorOnDeleteRecord &&
-                    ! generateErrorOnListIds &&
-                    ! generateErrorOnInitBlobUpload &&
-                    ! generateErrorOnCompleteBlobUpload &&
-                    ! generateErrorOnGetDownloadURI &&
-                    null == stats) {
+                0 == writeDelay &&
+                0 == deleteDelay &&
+                0 == listDelay &&
+                0 == initBlobUploadDelay &&
+                0 == completeBlobUploadDelay &&
+                0 == getDownloadURIDelay &&
+                !generateErrorOnAddRecord &&
+                !generateErrorOnGetRecord &&
+                !generateErrorOnDeleteRecord &&
+                !generateErrorOnListIds &&
+                !generateErrorOnInitBlobUpload &&
+                !generateErrorOnCompleteBlobUpload &&
+                !generateErrorOnGetDownloadURI &&
+                null == stats) {
                 return new OakFileDataStore();
             }
             return new BlobStoreStatsTestableFileDataStore(readDelay,
-                    writeDelay,
-                    deleteDelay,
-                    listDelay,
-                    initBlobUploadDelay,
-                    completeBlobUploadDelay,
-                    getDownloadURIDelay,
-                    generateErrorOnGetRecord,
-                    generateErrorOnAddRecord,
-                    generateErrorOnDeleteRecord,
-                    generateErrorOnListIds,
-                    generateErrorOnInitBlobUpload,
-                    generateErrorOnCompleteBlobUpload,
-                    generateErrorOnGetDownloadURI,
-                    stats);
+                writeDelay,
+                deleteDelay,
+                listDelay,
+                initBlobUploadDelay,
+                completeBlobUploadDelay,
+                getDownloadURIDelay,
+                generateErrorOnGetRecord,
+                generateErrorOnAddRecord,
+                generateErrorOnDeleteRecord,
+                generateErrorOnListIds,
+                generateErrorOnInitBlobUpload,
+                generateErrorOnCompleteBlobUpload,
+                generateErrorOnGetDownloadURI,
+                stats);
         }
     }
 
@@ -299,38 +301,61 @@ public class BlobStoreStatsTestableFileDataStore extends OakFileDataStore implem
     }
 
     protected void err(boolean withError) throws DataStoreException {
-        if (withError) throw ex;
+        if (withError) {
+            throw ex;
+        }
     }
 
     protected void forceErr(boolean withError) {
-        if (withError) throw new RuntimeException(ex);
+        if (withError) {
+            throw new RuntimeException(ex);
+        }
     }
 
     public static class ReadDelayedDataRecord implements DataRecord {
+
         private DataRecord internalRecord;
         private BlobStatsCollector stats;
         private long startNanos;
 
-        private ReadDelayedDataRecord(DataRecord record, BlobStatsCollector stats, long startNanos) {
+        private ReadDelayedDataRecord(DataRecord record, BlobStatsCollector stats,
+            long startNanos) {
             this.internalRecord = record;
             this.stats = stats;
             this.startNanos = startNanos;
         }
 
-        public static ReadDelayedDataRecord wrap(DataRecord record, BlobStatsCollector stats, long startNanos) {
+        public static ReadDelayedDataRecord wrap(DataRecord record, BlobStatsCollector stats,
+            long startNanos) {
             return new ReadDelayedDataRecord(record, stats, startNanos);
         }
 
-        @Override public DataIdentifier getIdentifier() { return internalRecord.getIdentifier(); }
-        @Override public String getReference() { return internalRecord.getReference(); }
-        @Override public long getLength() throws DataStoreException { return internalRecord.getLength(); }
-        @Override public long getLastModified() { return internalRecord.getLastModified(); }
+        @Override
+        public DataIdentifier getIdentifier() {
+            return internalRecord.getIdentifier();
+        }
+
+        @Override
+        public String getReference() {
+            return internalRecord.getReference();
+        }
+
+        @Override
+        public long getLength() throws DataStoreException {
+            return internalRecord.getLength();
+        }
+
+        @Override
+        public long getLastModified() {
+            return internalRecord.getLastModified();
+        }
 
         @Override
         public InputStream getStream() throws DataStoreException {
             return null != stats ?
-                    StatsCollectingStreams.wrap(stats, internalRecord.getIdentifier().toString(), internalRecord.getStream(), startNanos) :
-                    internalRecord.getStream();
+                StatsCollectingStreams.wrap(stats, internalRecord.getIdentifier().toString(),
+                    internalRecord.getStream(), startNanos) :
+                internalRecord.getStream();
         }
     }
 
@@ -454,21 +479,41 @@ public class BlobStoreStatsTestableFileDataStore extends OakFileDataStore implem
     }
 
     @Override
-    public DataRecordUpload initiateDataRecordUpload(long maxUploadSizeInBytes, int maxNumberOfURIs) throws IllegalArgumentException {
-        return initiateDataRecordUpload(maxUploadSizeInBytes, maxNumberOfURIs, DataRecordUploadOptions.DEFAULT);
+    public DataRecordUpload initiateDataRecordUpload(long maxUploadSizeInBytes, int maxNumberOfURIs)
+        throws IllegalArgumentException {
+        return initiateDataRecordUpload(maxUploadSizeInBytes, maxNumberOfURIs,
+            DataRecordUploadOptions.DEFAULT);
     }
 
     @Override
-    public DataRecordUpload initiateDataRecordUpload(long maxUploadSizeInBytes, int maxNumberOfURIs, @NotNull final DataRecordUploadOptions options)
-            throws IllegalArgumentException {
+    public DataRecordUpload initiateDataRecordUpload(long maxUploadSizeInBytes, int maxNumberOfURIs,
+        @NotNull final DataRecordUploadOptions options)
+        throws IllegalArgumentException {
         delay(initUploadDelay);
-        if (withInitUploadError) throw new IllegalArgumentException();
+        if (withInitUploadError) {
+            throw new IllegalArgumentException();
+        }
         return new DataRecordUpload() {
-            @Override public @NotNull String getUploadToken() { return null; }
-            @Override public long getMinPartSize() { return 0; }
-            @Override public long getMaxPartSize() { return 0; }
-            @Override public @NotNull
-            Collection<URI> getUploadURIs() { return null; }
+            @Override
+            public @NotNull String getUploadToken() {
+                return null;
+            }
+
+            @Override
+            public long getMinPartSize() {
+                return 0;
+            }
+
+            @Override
+            public long getMaxPartSize() {
+                return 0;
+            }
+
+            @Override
+            public @NotNull
+            Collection<URI> getUploadURIs() {
+                return null;
+            }
         };
     }
 
@@ -476,14 +521,19 @@ public class BlobStoreStatsTestableFileDataStore extends OakFileDataStore implem
     @Override
     public DataRecord completeDataRecordUpload(String uploadToken) throws IllegalArgumentException {
         delay(completeUploadDelay);
-        if (withCompleteUploadError) throw new IllegalArgumentException();
+        if (withCompleteUploadError) {
+            throw new IllegalArgumentException();
+        }
         return InMemoryDataRecord.getInstance("fake record".getBytes());
     }
 
     @Override
-    public URI getDownloadURI(DataIdentifier identifier, DataRecordDownloadOptions downloadOptions) {
+    public URI getDownloadURI(DataIdentifier identifier,
+        DataRecordDownloadOptions downloadOptions) {
         delay(getDownloadDelay);
-        if (withGetDownloadError) return null;
+        if (withGetDownloadError) {
+            return null;
+        }
         return URI.create("https://jackrabbit.apache.org/oak/docs/index.html");
     }
 }

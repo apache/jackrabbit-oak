@@ -18,28 +18,32 @@
 
 package org.apache.jackrabbit.oak.segment;
 
+import static org.apache.jackrabbit.oak.segment.CompactorTestUtils.SimpleCompactorFactory;
+import static org.apache.jackrabbit.oak.segment.DefaultSegmentWriterBuilder.defaultSegmentWriterBuilder;
+
+import org.apache.jackrabbit.oak.segment.file.CompactionWriter;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.GCNodeWriteMonitor;
-import org.apache.jackrabbit.oak.segment.file.CompactionWriter;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 import org.jetbrains.annotations.NotNull;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import static org.apache.jackrabbit.oak.segment.DefaultSegmentWriterBuilder.defaultSegmentWriterBuilder;
-import static org.apache.jackrabbit.oak.segment.CompactorTestUtils.SimpleCompactorFactory;
-
 @RunWith(Parameterized.class)
 public class CheckpointCompactorExternalBlobTest extends AbstractCompactorExternalBlobTest {
+
     public CheckpointCompactorExternalBlobTest(@NotNull SimpleCompactorFactory compactorFactory) {
         super(compactorFactory);
     }
 
     @Override
-    protected CheckpointCompactor createCompactor(@NotNull FileStore fileStore, @NotNull GCGeneration generation) {
-        SegmentWriter writer = defaultSegmentWriterBuilder("c").withGeneration(generation).build(fileStore);
-        CompactionWriter compactionWriter = new CompactionWriter(fileStore.getReader(), fileStore.getBlobStore(), generation, writer);
+    protected CheckpointCompactor createCompactor(@NotNull FileStore fileStore,
+        @NotNull GCGeneration generation) {
+        SegmentWriter writer = defaultSegmentWriterBuilder("c").withGeneration(generation)
+                                                               .build(fileStore);
+        CompactionWriter compactionWriter = new CompactionWriter(fileStore.getReader(),
+            fileStore.getBlobStore(), generation, writer);
         return new CheckpointCompactor(GCMonitor.EMPTY, compactionWriter, GCNodeWriteMonitor.EMPTY);
     }
 }

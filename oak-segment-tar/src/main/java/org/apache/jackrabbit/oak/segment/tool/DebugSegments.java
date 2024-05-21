@@ -28,7 +28,6 @@ import java.util.List;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.json.JsopDiff;
@@ -39,12 +38,12 @@ import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
- * Print debugging information about segments, node records and node record
- * ranges.
+ * Print debugging information about segments, node records and node record ranges.
  */
 public class DebugSegments {
 
-    private static final Pattern SEGMENT_REGEX = Pattern.compile("([0-9a-f-]+)|(([0-9a-f-]+:[0-9a-f]+)(-([0-9a-f-]+:[0-9a-f]+))?)?(/.*)?");
+    private static final Pattern SEGMENT_REGEX = Pattern.compile(
+        "([0-9a-f-]+)|(([0-9a-f-]+:[0-9a-f]+)(-([0-9a-f-]+:[0-9a-f]+))?)?(/.*)?");
 
     /**
      * Create a builder for the {@link DebugSegments} command.
@@ -80,26 +79,24 @@ public class DebugSegments {
         }
 
         /**
-         * Add a segment, node record or node record range. It is mandatory to
-         * add at least one of a segment, node record or node record range.
+         * Add a segment, node record or node record range. It is mandatory to add at least one of a
+         * segment, node record or node record range.
          * <p>
-         * A segment is specified by its ID, which is specified as a sequence of
-         * hexadecimal digits and dashes. In example, {@code
-         * 333dc24d-438f-4cca-8b21-3ebf67c05856}.
+         * A segment is specified by its ID, which is specified as a sequence of hexadecimal digits
+         * and dashes. In example, {@code 333dc24d-438f-4cca-8b21-3ebf67c05856}.
          * <p>
-         * A node record is specified by its identifier, with an optional path.
-         * In example, {@code 333dc24d-438f-4cca-8b21-3ebf67c05856:12345/path/to/child}.
-         * If a path is not specified, it is take to be {@code /}. The command
-         * will print information about the node provided by record ID and about
-         * every child identified by the path.
+         * A node record is specified by its identifier, with an optional path. In example,
+         * {@code 333dc24d-438f-4cca-8b21-3ebf67c05856:12345/path/to/child}. If a path is not
+         * specified, it is take to be {@code /}. The command will print information about the node
+         * provided by record ID and about every child identified by the path.
          * <p>
-         * A node range record is specified by two node identifiers separated by
-         * a dash. In example, {@code 333dc24d-438f-4cca-8b21-3ebf67c05856:12345-46116fda-7a72-4dbc-af88-a09322a7753a:67890}.
-         * The command will perform a diff between the two records and print the
-         * result in the JSOP format.
+         * A node range record is specified by two node identifiers separated by a dash. In example,
+         * {@code
+         * 333dc24d-438f-4cca-8b21-3ebf67c05856:12345-46116fda-7a72-4dbc-af88-a09322a7753a:67890}.
+         * The command will perform a diff between the two records and print the result in the JSOP
+         * format.
          *
-         * @param segment The specification for a segment, a node record or a
-         *                node record range.
+         * @param segment The specification for a segment, a node record or a node record range.
          * @return this builder.
          */
         public Builder withSegment(String segment) {
@@ -155,7 +152,8 @@ public class DebugSegments {
 
         if (matcher.group(1) != null) {
             UUID uuid = UUID.fromString(matcher.group(1));
-            SegmentId id = store.getSegmentIdProvider().newSegmentId(uuid.getMostSignificantBits(), uuid.getLeastSignificantBits());
+            SegmentId id = store.getSegmentIdProvider().newSegmentId(uuid.getMostSignificantBits(),
+                uuid.getLeastSignificantBits());
             System.out.println(id.getSegment());
             return;
         }

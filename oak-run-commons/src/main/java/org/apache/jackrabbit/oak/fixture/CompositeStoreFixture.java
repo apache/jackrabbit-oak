@@ -17,6 +17,15 @@
 
 package org.apache.jackrabbit.oak.fixture;
 
+import static java.util.Arrays.asList;
+import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBuilder.newMongoDocumentNodeStoreBuilder;
+import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
+
+import com.mongodb.MongoClientURI;
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.composite.CompositeNodeStore;
 import org.apache.jackrabbit.oak.composite.InitialContentMigrator;
@@ -38,27 +47,18 @@ import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-
-import com.mongodb.MongoClientURI;
-
-import static java.util.Arrays.asList;
-import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBuilder.newMongoDocumentNodeStoreBuilder;
-import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
-
 abstract class CompositeStoreFixture extends OakFixture {
 
     private static final MountInfoProvider MOUNT_INFO_PROVIDER = Mounts.newBuilder()
-            .mount("libs", true, asList(
-                    "/oak:index/*$" // pathsSupportingFragments
-            ), asList(
-                    "/libs",        // mountedPaths
-                    "/apps",
-                    "/jcr:system/rep:permissionStore/oak:mount-libs-crx.default"))
-            .build();
+                                                                       .mount("libs", true, asList(
+                                                                           "/oak:index/*$"
+                                                                           // pathsSupportingFragments
+                                                                       ), asList(
+                                                                           "/libs",
+                                                                           // mountedPaths
+                                                                           "/apps",
+                                                                           "/jcr:system/rep:permissionStore/oak:mount-libs-crx.default"))
+                                                                       .build();
 
     private CompositeStoreFixture(String name) {
         super(name);
@@ -78,20 +78,21 @@ abstract class CompositeStoreFixture extends OakFixture {
         };
     }
 
-    static OakFixture newCompositeSegmentFixture(String name, File base, int maxFileSizeMB, int cacheSizeMB,
-                                                 boolean memoryMapping, int binariesInlineThreshold) {
+    static OakFixture newCompositeSegmentFixture(String name, File base, int maxFileSizeMB,
+        int cacheSizeMB,
+        boolean memoryMapping, int binariesInlineThreshold) {
         return new CompositeStoreFixture(name) {
 
             private FileStore fileStore;
 
             @Override
             protected NodeStore getNodeStore()
-                    throws IOException, InvalidFileStoreVersionException {
+                throws IOException, InvalidFileStoreVersionException {
                 FileStoreBuilder fsBuilder = fileStoreBuilder(new File(base, unique))
-                        .withMaxFileSize(maxFileSizeMB)
-                        .withSegmentCacheSize(cacheSizeMB)
-                        .withMemoryMapping(memoryMapping)
-                        .withBinariesInlineThreshold(binariesInlineThreshold);
+                    .withMaxFileSize(maxFileSizeMB)
+                    .withSegmentCacheSize(cacheSizeMB)
+                    .withMemoryMapping(memoryMapping)
+                    .withBinariesInlineThreshold(binariesInlineThreshold);
                 fileStore = fsBuilder.build();
                 return SegmentNodeStoreBuilders.builder(fileStore).build();
             }
@@ -105,8 +106,9 @@ abstract class CompositeStoreFixture extends OakFixture {
         };
     }
 
-    static OakFixture newCompositeMongoFixture(String name, String uri, boolean dropDBAfterTest, long cacheSize,
-                                               boolean throttlingEnabled) {
+    static OakFixture newCompositeMongoFixture(String name, String uri, boolean dropDBAfterTest,
+        long cacheSize,
+        boolean throttlingEnabled) {
         return new CompositeStoreFixture(name) {
 
             private String database = new MongoClientURI(uri).getDatabase();
@@ -115,10 +117,10 @@ abstract class CompositeStoreFixture extends OakFixture {
             @Override
             protected NodeStore getNodeStore() {
                 ns = newMongoDocumentNodeStoreBuilder()
-                        .memoryCacheSize(cacheSize)
-                        .setMongoDB(uri, database, 0)
-                        .setThrottlingEnabled(throttlingEnabled)
-                        .build();
+                    .memoryCacheSize(cacheSize)
+                    .setMongoDB(uri, database, 0)
+                    .setThrottlingEnabled(throttlingEnabled)
+                    .build();
                 return ns;
             }
 
@@ -139,7 +141,8 @@ abstract class CompositeStoreFixture extends OakFixture {
         };
     }
 
-    protected abstract NodeStore getNodeStore() throws IOException, InvalidFileStoreVersionException;
+    protected abstract NodeStore getNodeStore()
+        throws IOException, InvalidFileStoreVersionException;
 
     @Override
     public Oak getOak(int clusterId) throws Exception {
@@ -148,7 +151,8 @@ abstract class CompositeStoreFixture extends OakFixture {
         populateSeed(oakSeed);
 
         NodeStore global = getNodeStore();
-        new InitialContentMigrator(global, seed, MOUNT_INFO_PROVIDER.getMountByName("libs")).migrate();
+        new InitialContentMigrator(global, seed,
+            MOUNT_INFO_PROVIDER.getMountByName("libs")).migrate();
 
         List<MountedNodeStoreChecker<?>> checkerList = new ArrayList<>();
         checkerList.add(new NamespacePrefixNodestoreChecker());
@@ -157,9 +161,9 @@ abstract class CompositeStoreFixture extends OakFixture {
         checkerList.add(new UniqueIndexNodeStoreChecker());
 
         NodeStore composite = new CompositeNodeStore.Builder(MOUNT_INFO_PROVIDER, global)
-                .addMount("libs", seed)
-                .with(new NodeStoreChecksService(MOUNT_INFO_PROVIDER, checkerList))
-                .build();
+            .addMount("libs", seed)
+            .with(new NodeStoreChecksService(MOUNT_INFO_PROVIDER, checkerList))
+            .build();
         return new Oak(composite);
     }
 
@@ -173,6 +177,6 @@ abstract class CompositeStoreFixture extends OakFixture {
         if (n != 1) {
             throw new IllegalArgumentException();
         }
-        return new Oak[] { getOak(1) };
+        return new Oak[]{getOak(1)};
     }
 }

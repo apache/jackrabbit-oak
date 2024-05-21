@@ -26,13 +26,12 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.util.Random;
-
+import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.backup.impl.FileStoreBackupImpl;
 import org.apache.jackrabbit.oak.backup.impl.FileStoreRestoreImpl;
-import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
@@ -65,7 +64,7 @@ public class FileStoreBackupTest {
     public void testBackup() throws Exception {
         FileStore source = newFileStore(src);
         SegmentNodeStore store = SegmentNodeStoreBuilders.builder(source)
-                .build();
+                                                         .build();
 
         FileStoreBackup fsb = new FileStoreBackupImpl();
 
@@ -93,7 +92,7 @@ public class FileStoreBackupTest {
     public void testRestore() throws Exception {
         FileStore source = newFileStore(src);
         SegmentNodeStore store = SegmentNodeStoreBuilders.builder(source)
-                .build();
+                                                         .build();
         FileStoreBackup fsb = new FileStoreBackupImpl();
         FileStoreRestore fsr = new FileStoreRestoreImpl();
 
@@ -109,7 +108,7 @@ public class FileStoreBackupTest {
     }
 
     private static void addTestContent(NodeStore store)
-            throws CommitFailedException, IOException {
+        throws CommitFailedException, IOException {
         NodeBuilder builder = store.getRoot().builder();
         NodeBuilder c = builder.child("test-backup").child("binaries");
         for (int i = 0; i < 2; i++) {
@@ -124,7 +123,7 @@ public class FileStoreBackupTest {
     }
 
     private static Blob createBlob(NodeStore nodeStore, int size)
-            throws IOException {
+        throws IOException {
         byte[] data = new byte[size];
         new Random().nextBytes(data);
         return nodeStore.createBlob(new ByteArrayInputStream(data));
@@ -132,9 +131,9 @@ public class FileStoreBackupTest {
 
     private static FileStore newFileStore(File fs) throws Exception {
         return fileStoreBuilder(fs)
-                .withMaxFileSize(1)
-                .withGCOptions(SegmentGCOptions.defaultGCOptions().setOffline())
-                .build();
+            .withMaxFileSize(1)
+            .withGCOptions(SegmentGCOptions.defaultGCOptions().setOffline())
+            .build();
     }
 
     private static void compare(FileStore store, File destination) throws Exception {
@@ -145,7 +144,7 @@ public class FileStoreBackupTest {
 
     private static void init(NodeStore store) {
         new Oak(store).with(new OpenSecurityProvider())
-                .with(new InitialContent()).createContentRepository();
+                      .with(new InitialContent()).createContentRepository();
     }
 
 }

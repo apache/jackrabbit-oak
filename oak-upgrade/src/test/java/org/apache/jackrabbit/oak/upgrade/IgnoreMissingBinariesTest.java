@@ -18,6 +18,12 @@
  */
 package org.apache.jackrabbit.oak.upgrade;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
+import java.io.File;
+import java.io.IOException;
+import javax.jcr.RepositoryException;
 import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.upgrade.cli.AbstractOak2OakTest;
@@ -29,13 +35,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.jcr.RepositoryException;
-import java.io.File;
-import java.io.IOException;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 public class IgnoreMissingBinariesTest extends AbstractOak2OakTest {
 
@@ -56,7 +55,8 @@ public class IgnoreMissingBinariesTest extends AbstractOak2OakTest {
             getSourceContainer().close();
         }
 
-        assertTrue(new File(blob.getDirectory(), "0c/07/02/0c0702b43bfcc7c0bb1329a10bbc6d5c5ef15856afd714c1331495b95f65b292").delete());
+        assertTrue(new File(blob.getDirectory(),
+            "0c/07/02/0c0702b43bfcc7c0bb1329a10bbc6d5c5ef15856afd714c1331495b95f65b292").delete());
 
         String[] args = getArgs();
         log.info("oak2oak {}", Joiner.on(' ').join(args));
@@ -83,13 +83,16 @@ public class IgnoreMissingBinariesTest extends AbstractOak2OakTest {
 
     @Override
     protected String[] getArgs() {
-        return new String[]{"--ignore-missing-binaries", "--src-datastore", blob.getDescription(), source.getDescription(), destination.getDescription()};
+        return new String[]{"--ignore-missing-binaries", "--src-datastore", blob.getDescription(),
+            source.getDescription(), destination.getDescription()};
     }
 
     @Test
     public void validateMigration() throws RepositoryException, IOException {
         verifyContent(session);
         verifyBlob(session);
-        assertEquals(0, session.getNode("/libs/sling/xss/config.xml/jcr:content").getProperty("jcr:data").getLength());
+        assertEquals(0,
+            session.getNode("/libs/sling/xss/config.xml/jcr:content").getProperty("jcr:data")
+                   .getLength());
     }
 }

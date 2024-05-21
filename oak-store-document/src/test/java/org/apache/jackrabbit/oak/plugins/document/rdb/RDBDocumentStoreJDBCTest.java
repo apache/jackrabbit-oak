@@ -73,7 +73,7 @@ public class RDBDocumentStoreJDBCTest extends AbstractDocumentStoreTest {
     private static final Logger LOG = LoggerFactory.getLogger(RDBDocumentStoreJDBCTest.class);
 
     @Rule
-    public TestName name= new TestName();
+    public TestName name = new TestName();
 
     public RDBDocumentStoreJDBCTest(DocumentStoreFixture dsf) {
         super(dsf);
@@ -132,7 +132,8 @@ public class RDBDocumentStoreJDBCTest extends AbstractDocumentStoreTest {
         Connection con = super.rdbDataSource.getConnection();
         con.setReadOnly(false);
         try {
-            PreparedStatement st = con.prepareStatement("DELETE FROM " + table + " WHERE ID in (?, ?, ?)");
+            PreparedStatement st = con.prepareStatement(
+                "DELETE FROM " + table + " WHERE ID in (?, ?, ?)");
             setIdInStatement(st, 1, "key-1");
             setIdInStatement(st, 2, "key-2");
             setIdInStatement(st, 3, "key-3");
@@ -148,7 +149,8 @@ public class RDBDocumentStoreJDBCTest extends AbstractDocumentStoreTest {
 
             removeMe.add("key-3");
 
-            PreparedStatement batchSt = con.prepareStatement("UPDATE " + table + " SET data = '{}' WHERE id = ?");
+            PreparedStatement batchSt = con.prepareStatement(
+                "UPDATE " + table + " SET data = '{}' WHERE id = ?");
             setIdInStatement(batchSt, 1, "key-1");
             batchSt.addBatch();
 
@@ -166,8 +168,10 @@ public class RDBDocumentStoreJDBCTest extends AbstractDocumentStoreTest {
             // Arrays.toString(batchResult));
 
             assertEquals(3, batchResult.length);
-            assertFalse("Row was updated although not present, status: " + batchResult[0], isSuccess(batchResult[0]));
-            assertFalse("Row was updated although not present, status: " + batchResult[1], isSuccess(batchResult[1]));
+            assertFalse("Row was updated although not present, status: " + batchResult[0],
+                isSuccess(batchResult[0]));
+            assertFalse("Row was updated although not present, status: " + batchResult[1],
+                isSuccess(batchResult[1]));
             assertTrue("Row should be updated correctly.", isSuccess(batchResult[2]));
         } finally {
             con.close();
@@ -183,7 +187,8 @@ public class RDBDocumentStoreJDBCTest extends AbstractDocumentStoreTest {
         con.setReadOnly(false);
         try {
             // remove key-1, key-2, key-3
-            PreparedStatement st = con.prepareStatement("DELETE FROM " + table + " WHERE ID in (?, ?, ?)");
+            PreparedStatement st = con.prepareStatement(
+                "DELETE FROM " + table + " WHERE ID in (?, ?, ?)");
             setIdInStatement(st, 1, "key-1");
             setIdInStatement(st, 2, "key-2");
             setIdInStatement(st, 3, "key-3");
@@ -204,7 +209,8 @@ public class RDBDocumentStoreJDBCTest extends AbstractDocumentStoreTest {
             removeMe.add("key-2");
 
             // try to insert key-1, key-2, key-3
-            PreparedStatement batchSt = con.prepareStatement("INSERT INTO " + table + " (id) VALUES (?)");
+            PreparedStatement batchSt = con.prepareStatement(
+                "INSERT INTO " + table + " (id) VALUES (?)");
             setIdInStatement(batchSt, 1, "key-1");
             batchSt.addBatch();
 
@@ -235,10 +241,12 @@ public class RDBDocumentStoreJDBCTest extends AbstractDocumentStoreTest {
             }
 
             if (batchResult.length == 3) {
-                assertTrue("Row already exists, shouldn't be inserted.", !isSuccess(batchResult[2]));
+                assertTrue("Row already exists, shouldn't be inserted.",
+                    !isSuccess(batchResult[2]));
             }
 
-            PreparedStatement rst = con.prepareStatement("SELECT id FROM " + table + " WHERE id in (?, ?, ?)");
+            PreparedStatement rst = con.prepareStatement(
+                "SELECT id FROM " + table + " WHERE id in (?, ?, ?)");
             setIdInStatement(rst, 1, "key-1");
             setIdInStatement(rst, 2, "key-2");
             setIdInStatement(rst, 3, "key-3");
@@ -251,9 +259,9 @@ public class RDBDocumentStoreJDBCTest extends AbstractDocumentStoreTest {
             rst.close();
 
             if (partialSuccess) {
-                assertEquals("Some of the rows weren't inserted.", of("key-1", "key-2", "key-3"), ids);
-            }
-            else {
+                assertEquals("Some of the rows weren't inserted.", of("key-1", "key-2", "key-3"),
+                    ids);
+            } else {
                 assertEquals("Failure reported, but rows inserted.", of("key-3"), ids);
             }
         } finally {
@@ -271,11 +279,13 @@ public class RDBDocumentStoreJDBCTest extends AbstractDocumentStoreTest {
         Connection con = super.rdbDataSource.getConnection();
         con.setReadOnly(true);
         try {
-            PreparedStatement st = con.prepareStatement("SELECT id from " + table + " WHERE id = ?");
+            PreparedStatement st = con.prepareStatement(
+                "SELECT id from " + table + " WHERE id = ?");
             setIdInStatement(st, 1, "key-1");
             ResultSet rs = st.executeQuery();
             st.close();
-            LOG.info(super.rdbDataSource + " on " + super.dsname + " - statement.close() closes ResultSet: " + rs.isClosed());
+            LOG.info(super.rdbDataSource + " on " + super.dsname
+                + " - statement.close() closes ResultSet: " + rs.isClosed());
             con.commit();
         } finally {
             con.close();
@@ -316,8 +326,9 @@ public class RDBDocumentStoreJDBCTest extends AbstractDocumentStoreTest {
         RDBTableMetaData tmd = ((RDBDocumentStore) super.ds).getTable(Collection.NODES);
         List<QueryCondition> conditions = Collections.emptyList();
 
-        Iterator<RDBRow> qi = jdbc.queryAsIterator(ch, tmd, null, null, RDBDocumentStore.EMPTY_KEY_PATTERN, conditions,
-                Integer.MAX_VALUE, null);
+        Iterator<RDBRow> qi = jdbc.queryAsIterator(ch, tmd, null, null,
+            RDBDocumentStore.EMPTY_KEY_PATTERN, conditions,
+            Integer.MAX_VALUE, null);
         assertTrue(qi instanceof Closeable);
         assertEquals(1, ch.cnt.get());
         Utils.closeIfCloseable(qi);
@@ -328,8 +339,9 @@ public class RDBDocumentStoreJDBCTest extends AbstractDocumentStoreTest {
     public void queryIteratorConsumedTest() throws SQLException {
         insertTestResource(this.getClass().getName() + "." + name.getMethodName());
 
-        LogCustomizer customLogs = LogCustomizer.forLogger(RDBDocumentStoreJDBC.class.getName()).enable(Level.DEBUG)
-                .contains("Query on ").create();
+        LogCustomizer customLogs = LogCustomizer.forLogger(RDBDocumentStoreJDBC.class.getName())
+                                                .enable(Level.DEBUG)
+                                                .contains("Query on ").create();
         customLogs.starting();
 
         MyConnectionHandler ch = new MyConnectionHandler(super.rdbDataSource);
@@ -337,8 +349,9 @@ public class RDBDocumentStoreJDBCTest extends AbstractDocumentStoreTest {
         List<QueryCondition> conditions = Collections.emptyList();
 
         try {
-            Iterator<RDBRow> qi = jdbc.queryAsIterator(ch, tmd, null, null, RDBDocumentStore.EMPTY_KEY_PATTERN, conditions,
-                    Integer.MAX_VALUE, null);
+            Iterator<RDBRow> qi = jdbc.queryAsIterator(ch, tmd, null, null,
+                RDBDocumentStore.EMPTY_KEY_PATTERN, conditions,
+                Integer.MAX_VALUE, null);
             assertTrue(qi instanceof Closeable);
             assertEquals(1, ch.cnt.get());
             while (qi.hasNext()) {
@@ -353,8 +366,11 @@ public class RDBDocumentStoreJDBCTest extends AbstractDocumentStoreTest {
     }
 
     @Test
-    public void queryIteratorNotConsumedTest() throws SQLException, NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
-        LogCustomizer customLogs = LogCustomizer.forLogger(RDBDocumentStoreJDBC.class.getName()).enable(Level.DEBUG).contains("finalizing unclosed").create();
+    public void queryIteratorNotConsumedTest()
+        throws SQLException, NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+        LogCustomizer customLogs = LogCustomizer.forLogger(RDBDocumentStoreJDBC.class.getName())
+                                                .enable(Level.DEBUG).contains("finalizing unclosed")
+                                                .create();
         customLogs.starting();
 
         insertTestResource(this.getClass().getName() + "." + name.getMethodName());
@@ -362,8 +378,9 @@ public class RDBDocumentStoreJDBCTest extends AbstractDocumentStoreTest {
         MyConnectionHandler ch = new MyConnectionHandler(super.rdbDataSource);
         RDBTableMetaData tmd = ((RDBDocumentStore) super.ds).getTable(Collection.NODES);
         List<QueryCondition> conditions = Collections.emptyList();
-        Iterator<RDBRow> qi = jdbc.queryAsIterator(ch, tmd, null, null, RDBDocumentStore.EMPTY_KEY_PATTERN, conditions,
-                Integer.MAX_VALUE, null);
+        Iterator<RDBRow> qi = jdbc.queryAsIterator(ch, tmd, null, null,
+            RDBDocumentStore.EMPTY_KEY_PATTERN, conditions,
+            Integer.MAX_VALUE, null);
         assertTrue(qi instanceof Closeable);
         assertEquals(1, ch.cnt.get());
         Method fin = qi.getClass().getDeclaredMethod("finalize");
@@ -372,7 +389,8 @@ public class RDBDocumentStoreJDBCTest extends AbstractDocumentStoreTest {
             fin.setAccessible(true);
             fin.invoke(qi);
 
-            assertTrue("finalizing non-consumed iterator should generate log entry", customLogs.getLogs().size() >= 1);
+            assertTrue("finalizing non-consumed iterator should generate log entry",
+                customLogs.getLogs().size() >= 1);
         } finally {
             Utils.closeIfCloseable(qi);
             fin.setAccessible(false);
@@ -389,7 +407,8 @@ public class RDBDocumentStoreJDBCTest extends AbstractDocumentStoreTest {
             con.setReadOnly(true);
             RDBTableMetaData tmd = ((RDBDocumentStore) super.ds).getTable(Collection.NODES);
             List<QueryCondition> conditions = Collections.emptyList();
-            long cnt = jdbc.getLong(con, tmd, "count", "*", null, null, RDBDocumentStore.EMPTY_KEY_PATTERN, conditions);
+            long cnt = jdbc.getLong(con, tmd, "count", "*", null, null,
+                RDBDocumentStore.EMPTY_KEY_PATTERN, conditions);
             assertTrue(cnt > 0);
         } finally {
             con.close();
@@ -400,7 +419,7 @@ public class RDBDocumentStoreJDBCTest extends AbstractDocumentStoreTest {
     public void queryMinLastModifiedTest() throws SQLException {
         String baseName = this.getClass().getName() + "." + name.getMethodName();
 
-        long magicValue = (long)(Math.random() * 100000);
+        long magicValue = (long) (Math.random() * 100000);
 
         String baseNameNullModified = baseName + "-1";
         super.ds.remove(Collection.NODES, baseNameNullModified);
@@ -436,16 +455,20 @@ public class RDBDocumentStoreJDBCTest extends AbstractDocumentStoreTest {
         assertTrue(super.ds.create(Collection.NODES, Collections.singletonList(op)));
         removeMe.add(baseName5ModifiedNoDeletedOnce);
 
-        LogCustomizer customLogs = LogCustomizer.forLogger(RDBDocumentStoreJDBC.class.getName()).enable(Level.DEBUG)
-                .contains("Aggregate query").contains("min(MODIFIED)").create();
+        LogCustomizer customLogs = LogCustomizer.forLogger(RDBDocumentStoreJDBC.class.getName())
+                                                .enable(Level.DEBUG)
+                                                .contains("Aggregate query")
+                                                .contains("min(MODIFIED)").create();
         customLogs.starting();
         Connection con = super.rdbDataSource.getConnection();
         try {
             con.setReadOnly(true);
             RDBTableMetaData tmd = ((RDBDocumentStore) super.ds).getTable(Collection.NODES);
             List<QueryCondition> conditions = new ArrayList<QueryCondition>();
-            conditions.add(new QueryCondition(RDBDocumentStore.COLLISIONSMODCOUNT, "=", magicValue));
-            long min = jdbc.getLong(con, tmd, "min", "_modified", null, null, RDBDocumentStore.EMPTY_KEY_PATTERN, conditions);
+            conditions.add(
+                new QueryCondition(RDBDocumentStore.COLLISIONSMODCOUNT, "=", magicValue));
+            long min = jdbc.getLong(con, tmd, "min", "_modified", null, null,
+                RDBDocumentStore.EMPTY_KEY_PATTERN, conditions);
             assertEquals(5, min);
             con.commit();
         } finally {
@@ -460,15 +483,17 @@ public class RDBDocumentStoreJDBCTest extends AbstractDocumentStoreTest {
             con.setReadOnly(true);
             RDBTableMetaData tmd = ((RDBDocumentStore) super.ds).getTable(Collection.NODES);
             List<QueryCondition> conditions = new ArrayList<QueryCondition>();
-            conditions.add(new QueryCondition(RDBDocumentStore.COLLISIONSMODCOUNT, "=", magicValue));
+            conditions.add(
+                new QueryCondition(RDBDocumentStore.COLLISIONSMODCOUNT, "=", magicValue));
             conditions.add(new QueryCondition(NodeDocument.DELETED_ONCE, "=", 1));
-            long min = jdbc.getLong(con, tmd, "min", "_modified", null, null, RDBDocumentStore.EMPTY_KEY_PATTERN, conditions);
+            long min = jdbc.getLong(con, tmd, "min", "_modified", null, null,
+                RDBDocumentStore.EMPTY_KEY_PATTERN, conditions);
             assertEquals(10, min);
             con.commit();
         } finally {
             con.close();
         }
-}
+    }
 
     private void insertTestResource(String id) {
         super.ds.remove(Collection.NODES, id);

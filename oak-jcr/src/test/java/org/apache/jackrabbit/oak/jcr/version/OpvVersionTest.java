@@ -20,7 +20,6 @@ import javax.jcr.Node;
 import javax.jcr.Property;
 import javax.jcr.version.OnParentVersionAction;
 import javax.jcr.version.VersionManager;
-
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.version.VersionConstants;
 import org.apache.jackrabbit.test.AbstractJCRTest;
@@ -75,7 +74,8 @@ public class OpvVersionTest extends AbstractJCRTest implements VersionConstants 
         Node frozenN1b = frozen.getNode(siblingName);
         assertEquals(NT_VERSIONEDCHILD, frozenN1b.getPrimaryNodeType().getName());
         Property childVh = frozenN1b.getProperty(JCR_CHILD_VERSION_HISTORY);
-        assertEquals(versionManager.getVersionHistory(testRoot + '/' + siblingName).getUUID(), childVh.getString());
+        assertEquals(versionManager.getVersionHistory(testRoot + '/' + siblingName).getUUID(),
+            childVh.getString());
 
     }
 
@@ -85,7 +85,8 @@ public class OpvVersionTest extends AbstractJCRTest implements VersionConstants 
         Node frozenN2 = frozenN1.getNode(nodeName2);
         assertEquals(NT_VERSIONEDCHILD, frozenN2.getPrimaryNodeType().getName());
         Property childVh = frozenN2.getProperty(JCR_CHILD_VERSION_HISTORY);
-        assertEquals(versionManager.getVersionHistory(testRoot + '/' + nodeName1 + '/' + nodeName2).getUUID(), childVh.getString());
+        assertEquals(versionManager.getVersionHistory(testRoot + '/' + nodeName1 + '/' + nodeName2)
+                                   .getUUID(), childVh.getString());
 
         Node frozenN3 = frozenN1.getNode(nodeName3);
         assertEquals(NT_FROZENNODE, frozenN3.getPrimaryNodeType().getName());

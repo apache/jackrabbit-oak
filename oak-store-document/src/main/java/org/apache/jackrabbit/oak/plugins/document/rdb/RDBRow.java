@@ -22,8 +22,8 @@ import org.jetbrains.annotations.Nullable;
 /**
  * Container for the information in a RDB database column.
  * <p>
- * Note that the String "data" and the byte[] "bdata" may be {@code null} when
- * the SQL SELECT request was conditional on "modcount" being unchanged.
+ * Note that the String "data" and the byte[] "bdata" may be {@code null} when the SQL SELECT
+ * request was conditional on "modcount" being unchanged.
  */
 public class RDBRow {
 
@@ -38,8 +38,9 @@ public class RDBRow {
     private final String data;
     private final byte[] bdata;
 
-    public RDBRow(String id, Long hasBinaryProperties, Boolean deletedOnce, Long modified, Long modcount, Long cmodcount,
-            Long schemaVersion, Long sdType, Long sdMaxRevTime, String data, byte[] bdata) {
+    public RDBRow(String id, Long hasBinaryProperties, Boolean deletedOnce, Long modified,
+        Long modcount, Long cmodcount,
+        Long schemaVersion, Long sdType, Long sdMaxRevTime, String data, byte[] bdata) {
         this.id = id;
         this.hasBinaryProperties = hasBinaryProperties;
         this.deletedOnce = deletedOnce;

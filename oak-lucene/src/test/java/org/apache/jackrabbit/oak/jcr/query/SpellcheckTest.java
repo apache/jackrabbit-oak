@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.jcr.query;
 
+import java.util.List;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -26,11 +27,8 @@ import javax.jcr.query.QueryManager;
 import javax.jcr.query.QueryResult;
 import javax.jcr.query.Row;
 import javax.jcr.query.RowIterator;
-
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.core.query.AbstractQueryTest;
-
-import java.util.List;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 
 /**
  * Tests the spellcheck support.
@@ -79,7 +77,8 @@ public class SpellcheckTest extends AbstractQueryTest {
         Node n3 = testRootNode.addNode("node3");
         n2.setProperty("jcr:title", "I flied to ontario for voting for the major polls");
         Node n4 = testRootNode.addNode("node4");
-        n2.setProperty("jcr:title", "I will go voting in ontario, I always voted since I've been allowed to");
+        n2.setProperty("jcr:title",
+            "I will go voting in ontario, I always voted since I've been allowed to");
         session.save();
 
         String xpath = "/jcr:root[rep:spellcheck('votin in ontari')]/(rep:spellcheck())";
@@ -89,7 +88,8 @@ public class SpellcheckTest extends AbstractQueryTest {
         assertEquals("[voting in ontario]", result.toString());
     }
 
-    static List<String> getResult(QueryResult result, String propertyName) throws RepositoryException {
+    static List<String> getResult(QueryResult result, String propertyName)
+        throws RepositoryException {
         List<String> results = Lists.newArrayList();
         RowIterator it = result.getRows();
         while (it.hasNext()) {

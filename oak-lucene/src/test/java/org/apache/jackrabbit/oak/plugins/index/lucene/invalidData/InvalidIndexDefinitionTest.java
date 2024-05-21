@@ -24,9 +24,10 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPER
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import ch.qos.logback.classic.Level;
 import java.util.regex.PatternSyntaxException;
-
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.InitialContentHelper;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -52,31 +53,27 @@ import org.apache.lucene.codecs.Codec;
 import org.hamcrest.core.IsCollectionContaining;
 import org.junit.Test;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
-
-import ch.qos.logback.classic.Level;
-
 public class InvalidIndexDefinitionTest extends AbstractQueryTest {
 
     private LuceneIndexEditorProvider editorProvider;
 
     private NodeStore nodeStore;
-    
+
     @Override
     protected ContentRepository createRepository() {
         editorProvider = new LuceneIndexEditorProvider();
         LuceneIndexProvider provider = new LuceneIndexProvider();
         nodeStore = new MemoryNodeStore(InitialContentHelper.INITIAL_CONTENT);
         return new Oak(nodeStore)
-                .with(new OpenSecurityProvider())
-                .with((QueryIndexProvider) provider)
-                .with((Observer) provider)
-                .with(editorProvider)
-                .with(new PropertyIndexEditorProvider())
-                .with(new NodeTypeIndexProvider())
-                .createContentRepository();
+            .with(new OpenSecurityProvider())
+            .with((QueryIndexProvider) provider)
+            .with((Observer) provider)
+            .with(editorProvider)
+            .with(new PropertyIndexEditorProvider())
+            .with(new NodeTypeIndexProvider())
+            .createContentRepository();
     }
-    
+
     @Test
     public void allFine() throws CommitFailedException {
         createIndexNodeAndData();
@@ -85,7 +82,7 @@ public class InvalidIndexDefinitionTest extends AbstractQueryTest {
         assertThat(explain(query), containsString("lucene:test"));
         assertQuery(query, Lists.newArrayList("/tmp/testNode"));
     }
-    
+
     @Test(expected = IllegalArgumentException.class)
     public void invalidCodec() throws CommitFailedException {
         Tree def = createIndexNodeAndData();
@@ -103,7 +100,7 @@ public class InvalidIndexDefinitionTest extends AbstractQueryTest {
         def.setProperty(LuceneIndexConstants.COMPAT_MODE, 3);
         root.commit();
     }
-    
+
     @Test(expected = PatternSyntaxException.class)
     public void invalidValueRegex() throws CommitFailedException {
         Tree def = createIndexNodeAndData();
@@ -112,7 +109,7 @@ public class InvalidIndexDefinitionTest extends AbstractQueryTest {
         def.setProperty(LuceneIndexConstants.PROP_VALUE_REGEX, "[a-z");
         root.commit();
     }
-    
+
     @Test(expected = PatternSyntaxException.class)
     public void invalidQueryFilterRegex() throws CommitFailedException {
         Tree def = createIndexNodeAndData();
@@ -121,14 +118,14 @@ public class InvalidIndexDefinitionTest extends AbstractQueryTest {
         def.setProperty(LuceneIndexConstants.PROP_QUERY_FILTER_REGEX, "[a-z");
         root.commit();
     }
-    
+
     @Test(expected = IllegalArgumentException.class)
     public void invalidBlobSize() throws CommitFailedException {
         Tree def = createIndexNodeAndData();
         // 1L + Integer.MAX_VALUE results in IllegalArgumentException: Out of range: 2147483648
         def.setProperty("blobSize", 1L + Integer.MAX_VALUE);
         root.commit();
-    }    
+    }
 
     @Test
     public void negativeBlobSize() throws CommitFailedException {
@@ -139,7 +136,7 @@ public class InvalidIndexDefinitionTest extends AbstractQueryTest {
         String query = "select [jcr:path] from [nt:base] where isdescendantnode('/tmp') and upper([test]) = 'HELLO'";
         assertThat(explain(query), containsString("lucene:test"));
         assertQuery(query, Lists.newArrayList("/tmp/testNode"));
-    }    
+    }
 
     @Test(expected = IllegalArgumentException.class)
     public void invalidMaxFieldLength() throws CommitFailedException {
@@ -147,7 +144,7 @@ public class InvalidIndexDefinitionTest extends AbstractQueryTest {
         // 1L + Integer.MAX_VALUE results in IllegalArgumentException: Out of range: 2147483648
         def.setProperty(FulltextIndexConstants.MAX_FIELD_LENGTH, 1L + Integer.MAX_VALUE);
         root.commit();
-    }    
+    }
 
     @Test
     public void invalidEvaluatePathRestriction() throws CommitFailedException {
@@ -163,12 +160,14 @@ public class InvalidIndexDefinitionTest extends AbstractQueryTest {
     @Test
     public void invalidIncludedPaths() throws CommitFailedException {
         // this will commit, but in oak-run it will not work:
-        // ERROR o.a.j.o.p.i.search.IndexDefinition - Config error for index definition at /oak:index/... . 
+        // ERROR o.a.j.o.p.i.search.IndexDefinition - Config error for index definition at /oak:index/... .
         // Please correct the index definition and reindex after correction. Additional Info : No valid include provided. Includes [/tmp], Excludes [/tmp]
         // java.lang.IllegalStateException: No valid include provided. Includes [/tmp], Excludes [/tmp]
-        LogCustomizer customLogs = LogCustomizer.forLogger(IndexUpdate.class.getName()).enable(Level.ERROR).create();
+        LogCustomizer customLogs = LogCustomizer.forLogger(IndexUpdate.class.getName())
+                                                .enable(Level.ERROR).create();
         Tree def = createIndexNodeAndData();
-        def.setProperty(PathFilter.PROP_INCLUDED_PATHS, Lists.newArrayList("/tmp/testNode"), Type.STRINGS);
+        def.setProperty(PathFilter.PROP_INCLUDED_PATHS, Lists.newArrayList("/tmp/testNode"),
+            Type.STRINGS);
         def.setProperty(PathFilter.PROP_EXCLUDED_PATHS, Lists.newArrayList("/tmp"), Type.STRINGS);
         try {
             customLogs.starting();
@@ -182,7 +181,7 @@ public class InvalidIndexDefinitionTest extends AbstractQueryTest {
         assertThat(explain(query), containsString("traverse"));
         assertQuery(query, Lists.newArrayList("/tmp/testNode"));
     }
-    
+
     @Test
     public void invalidPropertyBoost() throws CommitFailedException {
         // errors here are ignored (including Double.POSITIVE_INFINITY, NEGATIVE_INFINITY)
@@ -196,8 +195,8 @@ public class InvalidIndexDefinitionTest extends AbstractQueryTest {
         String query = "select [jcr:path] from [nt:base] where isdescendantnode('/tmp') and upper([test]) = 'HELLO'";
         assertThat(explain(query), containsString("lucene:test"));
         assertQuery(query, Lists.newArrayList("/tmp/testNode"));
-    }    
-    
+    }
+
     @Test
     public void invalidPropertyFunction() throws CommitFailedException {
         // errors here are ignored (including Double.POSITIVE_INFINITY, NEGATIVE_INFINITY)
@@ -214,8 +213,8 @@ public class InvalidIndexDefinitionTest extends AbstractQueryTest {
         String query = "select [jcr:path] from [nt:base] where isdescendantnode('/tmp') and upper([./test]) = 'HELLO'";
         assertThat(explain(query), containsString("traverse"));
         assertQuery(query, Lists.newArrayList("/tmp/testNode"));
-    }    
-    
+    }
+
     Tree createIndexNodeAndData() throws CommitFailedException {
         Tree tmp = root.getTree("/").addChild("tmp");
         tmp.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
@@ -223,37 +222,39 @@ public class InvalidIndexDefinitionTest extends AbstractQueryTest {
         testNode.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
         testNode.setProperty("test", "hello");
         root.commit();
-        
+
         Tree index = root.getTree("/");
         Tree def = index.addChild(INDEX_DEFINITIONS_NAME).addChild("test");
         def.setProperty(JcrConstants.JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE, Type.NAME);
-        
+
         def.setProperty(TYPE_PROPERTY_NAME, LuceneIndexConstants.TYPE_LUCENE);
-        
+
         // we don't set it now to speed up testing
         // def.setProperty(IndexConstants.ASYNC_PROPERTY_NAME, "async");
-        
+
         Tree indexRules = def.addChild(LuceneIndexConstants.INDEX_RULES);
-        indexRules.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_UNSTRUCTURED, Type.NAME);
+        indexRules.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_UNSTRUCTURED,
+            Type.NAME);
 
         // errors here are ignored
         Tree ntBase = indexRules.addChild("nt:base");
         ntBase.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_UNSTRUCTURED, Type.NAME);
         Tree properties = ntBase.addChild(FulltextIndexConstants.PROP_NODE);
-        properties.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_UNSTRUCTURED, Type.NAME);
-        
+        properties.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_UNSTRUCTURED,
+            Type.NAME);
+
         Tree test = properties.addChild("test");
         test.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_UNSTRUCTURED, Type.NAME);
 
         // use a function index
         test.setProperty(FulltextIndexConstants.PROP_FUNCTION, "upper([test])");
-        
+
         // errors here are ignored
         test.setProperty(FulltextIndexConstants.PROP_ORDERED, true);
-        
+
         // errors here are ignored
         test.setProperty(FulltextIndexConstants.PROP_PROPERTY_INDEX, true);
-        
+
         // errors here are ignored
         test.setProperty(FulltextIndexConstants.PROP_NOT_NULL_CHECK_ENABLED, true);
 
@@ -262,8 +263,8 @@ public class InvalidIndexDefinitionTest extends AbstractQueryTest {
 
         return def;
     }
-    
-    protected String explain(String query){
+
+    protected String explain(String query) {
         String explain = "explain " + query;
         return executeQuery(explain, "JCR-SQL2").get(0);
     }

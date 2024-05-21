@@ -43,7 +43,8 @@ public class MongoDbTest {
         MongoConnection c = MongoUtils.getConnection();
         MongoDatabase db = c.getDatabase();
         MongoUtils.dropCollections(c.getDatabase());
-        MongoCollection<BasicDBObject> nodes = db.getCollection(Collection.NODES.toString(), BasicDBObject.class);
+        MongoCollection<BasicDBObject> nodes = db.getCollection(Collection.NODES.toString(),
+            BasicDBObject.class);
         BasicDBObject index = new BasicDBObject();
         // modification time (descending)
         index.put("_mod", -1L);
@@ -77,7 +78,7 @@ public class MongoDbTest {
         int perInsert = 1000;
         int group = 0;
         String parent = "/parent/node/abc";
-        for (int i = 0; i < children;) {
+        for (int i = 0; i < children; ) {
             List<BasicDBObject> inserts = new ArrayList<>();
             group++;
             for (int j = 0; j < perInsert; j++, i++) {
@@ -90,9 +91,9 @@ public class MongoDbTest {
             log("inserted " + i + "/" + children);
         }
         Bson query = Filters.and(
-                Filters.gte("_mod", group - 1),
-                Filters.gt("_id", parent + "/"),
-                Filters.lte("_id", parent + "0")
+            Filters.gte("_mod", group - 1),
+            Filters.gt("_id", parent + "/"),
+            Filters.lte("_id", parent + "0")
         );
         BasicDBObject keys = new BasicDBObject();
         keys.put("_id", 1);
@@ -118,7 +119,8 @@ public class MongoDbTest {
         MongoConnection c = MongoUtils.getConnection();
         MongoDatabase db = c.getDatabase();
         MongoUtils.dropCollections(c.getDatabase());
-        MongoCollection<BasicDBObject> nodes = db.getCollection(Collection.NODES.toString(), BasicDBObject.class);
+        MongoCollection<BasicDBObject> nodes = db.getCollection(Collection.NODES.toString(),
+            BasicDBObject.class);
         BasicDBObject index = new BasicDBObject();
         // modification time (descending)
         index.put("_mod", -1L);
@@ -153,7 +155,7 @@ public class MongoDbTest {
             // return _id only
             fields.put("_id", 1);
             FindOneAndUpdateOptions updateOptions = new FindOneAndUpdateOptions()
-                    .projection(fields).upsert(true);
+                .projection(fields).upsert(true);
 
             BasicDBObject query = new BasicDBObject(Document.ID, parent + "/node" + i);
 
@@ -189,7 +191,6 @@ public class MongoDbTest {
 //            nodes.update(query, update, /* upsert */ true, /* multi */ false,
 //                    WriteConcern.NORMAL);
 
-
         }
 
         time = System.currentTimeMillis() - time;
@@ -200,7 +201,7 @@ public class MongoDbTest {
     }
 
     private static BasicDBObject explain(MongoCollection<BasicDBObject> collection,
-                                         Bson query) {
+        Bson query) {
         return collection.find(query).modifiers(new BasicDBObject("$explain", true)).first();
     }
 

@@ -16,8 +16,15 @@
  */
 package org.apache.jackrabbit.oak.benchmark;
 
-import java.util.concurrent.atomic.AtomicInteger;
+import static javax.jcr.observation.Event.NODE_ADDED;
+import static javax.jcr.observation.Event.NODE_MOVED;
+import static javax.jcr.observation.Event.NODE_REMOVED;
+import static javax.jcr.observation.Event.PERSIST;
+import static javax.jcr.observation.Event.PROPERTY_ADDED;
+import static javax.jcr.observation.Event.PROPERTY_CHANGED;
+import static javax.jcr.observation.Event.PROPERTY_REMOVED;
 
+import java.util.concurrent.atomic.AtomicInteger;
 import javax.jcr.Node;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
@@ -27,7 +34,6 @@ import javax.jcr.observation.EventIterator;
 import javax.jcr.observation.EventListener;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.Privilege;
-
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.user.UserManager;
@@ -35,18 +41,10 @@ import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 
-import static javax.jcr.observation.Event.NODE_ADDED;
-import static javax.jcr.observation.Event.NODE_MOVED;
-import static javax.jcr.observation.Event.NODE_REMOVED;
-import static javax.jcr.observation.Event.PERSIST;
-import static javax.jcr.observation.Event.PROPERTY_ADDED;
-import static javax.jcr.observation.Event.PROPERTY_CHANGED;
-import static javax.jcr.observation.Event.PROPERTY_REMOVED;
-
 public class ConcurrentCreateNodesTest extends AbstractTest {
 
     public static final int EVENT_TYPES = NODE_ADDED | NODE_REMOVED | NODE_MOVED |
-            PROPERTY_ADDED | PROPERTY_REMOVED | PROPERTY_CHANGED | PERSIST;
+        PROPERTY_ADDED | PROPERTY_REMOVED | PROPERTY_CHANGED | PERSIST;
     protected static final String ROOT_NODE_NAME = "test" + TEST_ID;
     private static final int WORKER_COUNT = Integer.getInteger("workerCount", 20);
     private static final int LISTENER_COUNT = Integer.getInteger("listenerCount", 0);
@@ -96,21 +94,22 @@ public class ConcurrentCreateNodesTest extends AbstractTest {
         for (int i = 0; i < LISTENER_COUNT; i++) {
             Session s = login(new SimpleCredentials(userId, password.toCharArray()));
             s.getWorkspace().getObservationManager().addEventListener(
-                    new Listener(), EVENT_TYPES, LISTENER_PATH, true, null, null, false);
+                new Listener(), EVENT_TYPES, LISTENER_PATH, true, null, null, false);
         }
         writer = new Writer(rootNode.getPath() + "/node" + 0);
     }
 
     private void createACLsForEveryone(Session session, int numACLs)
-            throws RepositoryException {
+        throws RepositoryException {
         AccessControlManager acMgr = session.getAccessControlManager();
         Node listenHere = session.getRootNode().addNode("nodes-with-acl");
         for (int i = 0; i < numACLs; i++) {
             String path = listenHere.addNode("node-" + i).getPath();
-            JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(session, path);
+            JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(session,
+                path);
             if (acl.isEmpty()) {
-                Privilege[] privileges = new Privilege[] {
-                        acMgr.privilegeFromName(Privilege.JCR_READ)
+                Privilege[] privileges = new Privilege[]{
+                    acMgr.privilegeFromName(Privilege.JCR_READ)
                 };
                 if (acl.addAccessControlEntry(EveryonePrincipal.getInstance(), privileges)) {
                     acMgr.setPolicy(path, acl);
@@ -148,7 +147,8 @@ public class ConcurrentCreateNodesTest extends AbstractTest {
                 time = System.currentTimeMillis() - time;
                 if (this == writer && VERBOSE) {
                     long perSecond = numNodes * 1000 / time;
-                    System.out.println("Created " + numNodes + " in " + time + " ms. (" + perSecond + " nodes/sec)");
+                    System.out.println("Created " + numNodes + " in " + time + " ms. (" + perSecond
+                        + " nodes/sec)");
                 }
             } catch (RepositoryException e) {
                 e.printStackTrace();
@@ -172,7 +172,7 @@ public class ConcurrentCreateNodesTest extends AbstractTest {
             }
         }
     }
-    
+
     @Override
     public void runTest() throws Exception {
         writer.run();

@@ -22,7 +22,6 @@ import javax.jcr.Property;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.security.Privilege;
-
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.util.Text;
 import org.junit.Test;
@@ -44,12 +43,12 @@ public class SessionMoveTest extends AbstractMoveTest {
 
     private void setupMovePermissions() throws Exception {
         allow(path, privilegesFromNames(new String[]{
-                Privilege.JCR_REMOVE_NODE,
-                Privilege.JCR_REMOVE_CHILD_NODES
+            Privilege.JCR_REMOVE_NODE,
+            Privilege.JCR_REMOVE_CHILD_NODES
         }));
-        allow(siblingPath, privilegesFromNames(new String[] {
-                Privilege.JCR_ADD_CHILD_NODES,
-                Privilege.JCR_NODE_TYPE_MANAGEMENT}));
+        allow(siblingPath, privilegesFromNames(new String[]{
+            Privilege.JCR_ADD_CHILD_NODES,
+            Privilege.JCR_NODE_TYPE_MANAGEMENT}));
 
     }
 
@@ -57,8 +56,8 @@ public class SessionMoveTest extends AbstractMoveTest {
     public void testMoveAndRemoveSubTree() throws Exception {
         allow(path, privilegesFromName(Privilege.JCR_REMOVE_CHILD_NODES));
         allow(siblingPath, privilegesFromNames(new String[]{
-                Privilege.JCR_ADD_CHILD_NODES,
-                Privilege.JCR_NODE_TYPE_MANAGEMENT}));
+            Privilege.JCR_ADD_CHILD_NODES,
+            Privilege.JCR_NODE_TYPE_MANAGEMENT}));
 
         testSession.move(childNPath, siblingDestPath);
 
@@ -77,13 +76,14 @@ public class SessionMoveTest extends AbstractMoveTest {
 
     @Test
     public void testMoveAndRemoveSubTree2() throws Exception {
-        allow(path, privilegesFromNames(new String[] {
-                Privilege.JCR_REMOVE_CHILD_NODES,
-                Privilege.JCR_REMOVE_NODE}));
+        allow(path, privilegesFromNames(new String[]{
+            Privilege.JCR_REMOVE_CHILD_NODES,
+            Privilege.JCR_REMOVE_NODE}));
         allow(siblingPath, privilegesFromNames(new String[]{
-                Privilege.JCR_ADD_CHILD_NODES,
-                Privilege.JCR_NODE_TYPE_MANAGEMENT}));
-        deny(testSession.getNode(nodePath3).getPath(), privilegesFromName(Privilege.JCR_REMOVE_NODE));
+            Privilege.JCR_ADD_CHILD_NODES,
+            Privilege.JCR_NODE_TYPE_MANAGEMENT}));
+        deny(testSession.getNode(nodePath3).getPath(),
+            privilegesFromName(Privilege.JCR_REMOVE_NODE));
 
         try {
             testSession.move(childNPath, siblingDestPath);
@@ -103,8 +103,8 @@ public class SessionMoveTest extends AbstractMoveTest {
     public void testMoveAndRemoveSubTree3() throws Exception {
         allow(path, privilegesFromName(Privilege.JCR_REMOVE_CHILD_NODES));
         allow(childNPath, privilegesFromName(Privilege.JCR_REMOVE_NODE));
-        allow(siblingPath, privilegesFromNames(new String[] {
-                PrivilegeConstants.JCR_ADD_CHILD_NODES, PrivilegeConstants.JCR_NODE_TYPE_MANAGEMENT
+        allow(siblingPath, privilegesFromNames(new String[]{
+            PrivilegeConstants.JCR_ADD_CHILD_NODES, PrivilegeConstants.JCR_NODE_TYPE_MANAGEMENT
         }));
 
         testSession.move(childNPath, siblingDestPath);
@@ -121,7 +121,8 @@ public class SessionMoveTest extends AbstractMoveTest {
         /* allow READ/WRITE privilege for testUser at 'path' */
         allow(path, testUser.getPrincipal(), readWritePrivileges);
         /* deny REMOVE_NODE privileges at subtree. */
-        deny(path, privilegesFromName(PrivilegeConstants.JCR_REMOVE_NODE), createGlobRestriction("*/"+nodeName3));
+        deny(path, privilegesFromName(PrivilegeConstants.JCR_REMOVE_NODE),
+            createGlobRestriction("*/" + nodeName3));
 
         assertTrue(testSession.nodeExists(childNPath));
         assertTrue(testSession.hasPermission(childNPath, Session.ACTION_REMOVE));
@@ -141,10 +142,11 @@ public class SessionMoveTest extends AbstractMoveTest {
 
     @Test
     public void testMoveRemoveSubTreeWithRestriction2() throws Exception {
-            /* allow READ/WRITE privilege for testUser at 'path' */
+        /* allow READ/WRITE privilege for testUser at 'path' */
         allow(path, testUser.getPrincipal(), readWritePrivileges);
-            /* deny REMOVE_NODE privileges at subtree. */
-        deny(path, privilegesFromName(PrivilegeConstants.JCR_REMOVE_CHILD_NODES), createGlobRestriction("*/" + Text.getName(childNPath)));
+        /* deny REMOVE_NODE privileges at subtree. */
+        deny(path, privilegesFromName(PrivilegeConstants.JCR_REMOVE_CHILD_NODES),
+            createGlobRestriction("*/" + Text.getName(childNPath)));
 
         assertTrue(testSession.nodeExists(childNPath));
         assertTrue(testSession.hasPermission(childNPath, Session.ACTION_REMOVE));
@@ -166,8 +168,8 @@ public class SessionMoveTest extends AbstractMoveTest {
     public void testMoveAndAddSubTree() throws Exception {
         allow(path, privilegesFromName(Privilege.JCR_REMOVE_CHILD_NODES));
         allow(childNPath, privilegesFromName(Privilege.JCR_REMOVE_NODE));
-        allow(siblingPath, privilegesFromNames(new String[] {
-                PrivilegeConstants.JCR_ADD_CHILD_NODES, PrivilegeConstants.JCR_NODE_TYPE_MANAGEMENT
+        allow(siblingPath, privilegesFromNames(new String[]{
+            PrivilegeConstants.JCR_ADD_CHILD_NODES, PrivilegeConstants.JCR_NODE_TYPE_MANAGEMENT
         }));
 
         testSession.move(childNPath, siblingDestPath);
@@ -178,7 +180,8 @@ public class SessionMoveTest extends AbstractMoveTest {
 
         try {
             testSession.save();
-            fail("Adding child node at moved node must be denied: no add_child_node privilege at original location.");
+            fail(
+                "Adding child node at moved node must be denied: no add_child_node privilege at original location.");
         } catch (AccessDeniedException e) {
             // success
         }
@@ -188,8 +191,8 @@ public class SessionMoveTest extends AbstractMoveTest {
     public void testMoveAndAddSubTree2() throws Exception {
         allow(path, privilegesFromName(Privilege.JCR_REMOVE_CHILD_NODES));
         allow(childNPath, privilegesFromName(Privilege.JCR_REMOVE_NODE));
-        allow(siblingPath, privilegesFromNames(new String[] {
-                PrivilegeConstants.JCR_ADD_CHILD_NODES, PrivilegeConstants.JCR_NODE_TYPE_MANAGEMENT
+        allow(siblingPath, privilegesFromNames(new String[]{
+            PrivilegeConstants.JCR_ADD_CHILD_NODES, PrivilegeConstants.JCR_NODE_TYPE_MANAGEMENT
         }));
         allow(nodePath3, privilegesFromName(Privilege.JCR_ADD_CHILD_NODES));
 
@@ -205,11 +208,11 @@ public class SessionMoveTest extends AbstractMoveTest {
     @Test
     public void testMoveAndAddSubTree3() throws Exception {
         allow(path, privilegesFromName(Privilege.JCR_REMOVE_CHILD_NODES));
-        allow(childNPath, privilegesFromNames(new String[] {
-                Privilege.JCR_REMOVE_NODE, Privilege.JCR_ADD_CHILD_NODES
+        allow(childNPath, privilegesFromNames(new String[]{
+            Privilege.JCR_REMOVE_NODE, Privilege.JCR_ADD_CHILD_NODES
         }));
-        allow(siblingPath, privilegesFromNames(new String[] {
-                PrivilegeConstants.JCR_ADD_CHILD_NODES, PrivilegeConstants.JCR_NODE_TYPE_MANAGEMENT
+        allow(siblingPath, privilegesFromNames(new String[]{
+            PrivilegeConstants.JCR_ADD_CHILD_NODES, PrivilegeConstants.JCR_NODE_TYPE_MANAGEMENT
         }));
 
         testSession.move(childNPath, siblingDestPath);
@@ -226,7 +229,8 @@ public class SessionMoveTest extends AbstractMoveTest {
         /* allow READ/WRITE privilege for testUser at 'path' */
         allow(path, testUser.getPrincipal(), readWritePrivileges);
         /* deny ADD_CHILD_NODES privileges at subtree. */
-        deny(path, privilegesFromName(PrivilegeConstants.JCR_ADD_CHILD_NODES), createGlobRestriction("*/"+nodeName3));
+        deny(path, privilegesFromName(PrivilegeConstants.JCR_ADD_CHILD_NODES),
+            createGlobRestriction("*/" + nodeName3));
 
         testSession.move(childNPath, childNPath2 + "/dest");
         Node dest = testSession.getNode(childNPath2 + "/dest");
@@ -245,7 +249,7 @@ public class SessionMoveTest extends AbstractMoveTest {
         allow(path, privilegesFromName(Privilege.JCR_REMOVE_CHILD_NODES));
         allow(childNPath, privilegesFromName(Privilege.JCR_REMOVE_NODE));
         allow(siblingPath, privilegesFromNames(new String[]{
-                PrivilegeConstants.JCR_ADD_CHILD_NODES, PrivilegeConstants.JCR_NODE_TYPE_MANAGEMENT
+            PrivilegeConstants.JCR_ADD_CHILD_NODES, PrivilegeConstants.JCR_NODE_TYPE_MANAGEMENT
         }));
 
         testSession.move(childNPath, siblingDestPath);
@@ -265,8 +269,8 @@ public class SessionMoveTest extends AbstractMoveTest {
     public void testMoveAndAddAtSourceParent2() throws Exception {
         allow(path, privilegesFromName(Privilege.JCR_REMOVE_CHILD_NODES));
         allow(childNPath, privilegesFromName(Privilege.JCR_REMOVE_NODE));
-        allow(siblingPath, privilegesFromNames(new String[] {
-                PrivilegeConstants.JCR_ADD_CHILD_NODES, PrivilegeConstants.JCR_NODE_TYPE_MANAGEMENT
+        allow(siblingPath, privilegesFromNames(new String[]{
+            PrivilegeConstants.JCR_ADD_CHILD_NODES, PrivilegeConstants.JCR_NODE_TYPE_MANAGEMENT
         }));
         allow(nodePath3, privilegesFromName(Privilege.JCR_ADD_CHILD_NODES));
 
@@ -286,11 +290,11 @@ public class SessionMoveTest extends AbstractMoveTest {
     @Test
     public void testMoveAndAddAtSourceParent3() throws Exception {
         allow(path, privilegesFromNames(new String[]{
-                Privilege.JCR_REMOVE_CHILD_NODES, Privilege.JCR_ADD_CHILD_NODES
+            Privilege.JCR_REMOVE_CHILD_NODES, Privilege.JCR_ADD_CHILD_NODES
         }));
         allow(childNPath, privilegesFromName(Privilege.JCR_REMOVE_NODE));
         allow(siblingPath, privilegesFromNames(new String[]{
-                PrivilegeConstants.JCR_ADD_CHILD_NODES, PrivilegeConstants.JCR_NODE_TYPE_MANAGEMENT
+            PrivilegeConstants.JCR_ADD_CHILD_NODES, PrivilegeConstants.JCR_NODE_TYPE_MANAGEMENT
         }));
 
         testSession.move(childNPath, siblingDestPath);
@@ -304,10 +308,10 @@ public class SessionMoveTest extends AbstractMoveTest {
     @Test
     public void testMoveAndAddReplacementAtSource() throws Exception {
         allow(path, privilegesFromNames(new String[]{
-                Privilege.JCR_REMOVE_CHILD_NODES, Privilege.JCR_ADD_CHILD_NODES
+            Privilege.JCR_REMOVE_CHILD_NODES, Privilege.JCR_ADD_CHILD_NODES
         }));
-        allow(siblingPath, privilegesFromNames(new String[] {
-                PrivilegeConstants.JCR_ADD_CHILD_NODES, PrivilegeConstants.JCR_NODE_TYPE_MANAGEMENT
+        allow(siblingPath, privilegesFromNames(new String[]{
+            PrivilegeConstants.JCR_ADD_CHILD_NODES, PrivilegeConstants.JCR_NODE_TYPE_MANAGEMENT
         }));
 
         testSession.move(nodePath3, siblingDestPath);
@@ -326,8 +330,8 @@ public class SessionMoveTest extends AbstractMoveTest {
 
     @Test
     public void testMoveAndAddReplacementAtSource2() throws Exception {
-        allow(siblingPath, privilegesFromNames(new String[] {
-                PrivilegeConstants.JCR_ADD_CHILD_NODES, PrivilegeConstants.JCR_NODE_TYPE_MANAGEMENT
+        allow(siblingPath, privilegesFromNames(new String[]{
+            PrivilegeConstants.JCR_ADD_CHILD_NODES, PrivilegeConstants.JCR_NODE_TYPE_MANAGEMENT
         }));
 
         testSession.move(nodePath3, siblingDestPath);
@@ -430,13 +434,13 @@ public class SessionMoveTest extends AbstractMoveTest {
     @Test
     public void testMoveAndRemoveProperty2() throws Exception {
         allow(path, privilegesFromNames(new String[]{
-                Privilege.JCR_REMOVE_NODE,
-                Privilege.JCR_REMOVE_CHILD_NODES,
-                PrivilegeConstants.REP_REMOVE_PROPERTIES
+            Privilege.JCR_REMOVE_NODE,
+            Privilege.JCR_REMOVE_CHILD_NODES,
+            PrivilegeConstants.REP_REMOVE_PROPERTIES
         }));
-        allow(siblingPath, privilegesFromNames(new String[] {
-                Privilege.JCR_ADD_CHILD_NODES,
-                Privilege.JCR_NODE_TYPE_MANAGEMENT}));
+        allow(siblingPath, privilegesFromNames(new String[]{
+            Privilege.JCR_ADD_CHILD_NODES,
+            Privilege.JCR_NODE_TYPE_MANAGEMENT}));
 
         testSession.move(nodePath3, siblingDestPath);
         Node destNode = testSession.getNode(siblingDestPath);
@@ -530,8 +534,8 @@ public class SessionMoveTest extends AbstractMoveTest {
     }
 
     /**
-     * Moving and removing the moved node at destination should be treated like
-     * a simple removal at the original position.
+     * Moving and removing the moved node at destination should be treated like a simple removal at
+     * the original position.
      */
     @Test
     public void testMoveAndRemoveDestination() throws Exception {

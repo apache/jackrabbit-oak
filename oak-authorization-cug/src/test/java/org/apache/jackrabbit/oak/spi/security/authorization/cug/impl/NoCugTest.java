@@ -16,10 +16,13 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+
 import java.util.List;
-
 import javax.jcr.Session;
-
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.Root;
@@ -33,14 +36,10 @@ import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
-
 public class NoCugTest extends AbstractCugTest {
 
-    private static final List<String> PATHS = ImmutableList.of(PathUtils.ROOT_PATH, SUPPORTED_PATH, SUPPORTED_PATH + "/subtree", SUPPORTED_PATH3, UNSUPPORTED_PATH, INVALID_PATH);
+    private static final List<String> PATHS = ImmutableList.of(PathUtils.ROOT_PATH, SUPPORTED_PATH,
+        SUPPORTED_PATH + "/subtree", SUPPORTED_PATH3, UNSUPPORTED_PATH, INVALID_PATH);
 
     private CugPermissionProvider cugPermProvider;
 
@@ -49,7 +48,8 @@ public class NoCugTest extends AbstractCugTest {
     public void before() throws Exception {
         super.before();
 
-        cugPermProvider = createCugPermissionProvider(ImmutableSet.of(SUPPORTED_PATH), getTestUser().getPrincipal(), EveryonePrincipal.getInstance());
+        cugPermProvider = createCugPermissionProvider(ImmutableSet.of(SUPPORTED_PATH),
+            getTestUser().getPrincipal(), EveryonePrincipal.getInstance());
     }
 
     @Test
@@ -62,13 +62,16 @@ public class NoCugTest extends AbstractCugTest {
     @Test
     public void hasPrivileges() {
         for (String p : PATHS) {
-            assertFalse(p, cugPermProvider.hasPrivileges(root.getTree(p), PrivilegeConstants.JCR_READ));
+            assertFalse(p,
+                cugPermProvider.hasPrivileges(root.getTree(p), PrivilegeConstants.JCR_READ));
         }
     }
 
     @Test
     public void testGetTreePermission() {
-        assertSame(TreePermission.NO_RECOURSE, cugPermProvider.getTreePermission(root.getTree(PathUtils.ROOT_PATH), TreePermission.EMPTY));
+        assertSame(TreePermission.NO_RECOURSE,
+            cugPermProvider.getTreePermission(root.getTree(PathUtils.ROOT_PATH),
+                TreePermission.EMPTY));
     }
 
     @Test
@@ -103,21 +106,25 @@ public class NoCugTest extends AbstractCugTest {
     @Test
     public void testSupportedPermissions() {
         for (String p : PATHS) {
-            assertEquals(p, Permissions.NO_PERMISSION, cugPermProvider.supportedPermissions(root.getTree(p), null, Permissions.READ));
+            assertEquals(p, Permissions.NO_PERMISSION,
+                cugPermProvider.supportedPermissions(root.getTree(p), null, Permissions.READ));
         }
     }
 
     @Test
     public void testSupportedPermissionsTreeLocation() {
         for (String p : PATHS) {
-            assertEquals(p, Permissions.NO_PERMISSION, cugPermProvider.supportedPermissions(TreeLocation.create(root.getTree(p)), Permissions.READ));
+            assertEquals(p, Permissions.NO_PERMISSION,
+                cugPermProvider.supportedPermissions(TreeLocation.create(root.getTree(p)),
+                    Permissions.READ));
         }
     }
 
     @Test
     public void testIsGrantedTreeLocation() {
         for (String p : PATHS) {
-            assertFalse(p, cugPermProvider.isGranted(TreeLocation.create(root.getTree(p)), Permissions.READ));
+            assertFalse(p,
+                cugPermProvider.isGranted(TreeLocation.create(root.getTree(p)), Permissions.READ));
         }
     }
 

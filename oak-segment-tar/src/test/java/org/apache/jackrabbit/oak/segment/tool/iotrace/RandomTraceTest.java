@@ -18,15 +18,14 @@
 
 package org.apache.jackrabbit.oak.segment.tool.iotrace;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static java.util.Collections.emptyList;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.util.List;
-
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -54,7 +53,7 @@ public class RandomTraceTest {
     @Test
     public void testTraverseEmptyTree() {
         List<List<String>> trace = newArrayList();
-        new RandomAccessTrace(emptyList(), 0,10, trace::add)
+        new RandomAccessTrace(emptyList(), 0, 10, trace::add)
             .run(createTree(emptyList()));
         assertEquals(0, trace.size());
     }
@@ -73,7 +72,7 @@ public class RandomTraceTest {
         List<List<String>> trace = newArrayList();
         ImmutableList<String> paths = ImmutableList.of("/a/b/c", "/d/e/f");
         new RandomAccessTrace(paths, 0, 2, trace::add)
-                .run(createTree(paths));
+            .run(createTree(paths));
         assertEquals(2, trace.size());
         assertTrue(paths.contains(trace.get(0).get(0)));
         assertTrue(paths.contains(trace.get(1).get(0)));

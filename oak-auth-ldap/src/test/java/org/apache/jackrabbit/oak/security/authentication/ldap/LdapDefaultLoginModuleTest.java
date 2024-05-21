@@ -16,30 +16,26 @@
  */
 package org.apache.jackrabbit.oak.security.authentication.ldap;
 
+import static org.junit.Assert.assertEquals;
+
 import java.util.Collections;
 import javax.jcr.GuestCredentials;
 import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.Configuration;
-
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalLoginModule;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
-
 /**
  * LDAP Login should not only work in the default jaas configuration
- *
- * LoginModuleImpl SUFFICIENT
- * ExternalLoginModule REQUIRED
- *
- * but also with the jaas configuration specifying the external login module
- * first:
- *
- * ExternalLoginModule SUFFICIENT
- * LoginModuleImpl REQUIRED
+ * <p>
+ * LoginModuleImpl SUFFICIENT ExternalLoginModule REQUIRED
+ * <p>
+ * but also with the jaas configuration specifying the external login module first:
+ * <p>
+ * ExternalLoginModule SUFFICIENT LoginModuleImpl REQUIRED
  */
 public class LdapDefaultLoginModuleTest extends LdapLoginTestBase {
 
@@ -49,23 +45,22 @@ public class LdapDefaultLoginModuleTest extends LdapLoginTestBase {
             @Override
             public AppConfigurationEntry[] getAppConfigurationEntry(String s) {
                 return new AppConfigurationEntry[]{
-                        new AppConfigurationEntry(
-                                ExternalLoginModule.class.getName(),
-                                AppConfigurationEntry.LoginModuleControlFlag.SUFFICIENT,
-                                options),
-                        new AppConfigurationEntry(
-                                LoginModuleImpl.class.getName(),
-                                AppConfigurationEntry.LoginModuleControlFlag.REQUIRED,
-                                Collections.<String, Object>emptyMap())
+                    new AppConfigurationEntry(
+                        ExternalLoginModule.class.getName(),
+                        AppConfigurationEntry.LoginModuleControlFlag.SUFFICIENT,
+                        options),
+                    new AppConfigurationEntry(
+                        LoginModuleImpl.class.getName(),
+                        AppConfigurationEntry.LoginModuleControlFlag.REQUIRED,
+                        Collections.<String, Object>emptyMap())
                 };
             }
         };
     }
 
     /**
-     * Login with {@link javax.jcr.GuestCredentials} must succeed and result in
-     * an guest session as the SUFFICIENT
-     * {@link org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl}
+     * Login with {@link javax.jcr.GuestCredentials} must succeed and result in an guest session as
+     * the SUFFICIENT {@link org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl}
      * handles the guest login (in contrast to the ExternalLoginModule).
      *
      * @throws Exception

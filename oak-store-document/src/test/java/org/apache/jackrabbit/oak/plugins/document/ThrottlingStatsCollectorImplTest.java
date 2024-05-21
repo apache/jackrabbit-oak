@@ -53,11 +53,12 @@ import static org.junit.Assert.assertEquals;
 public class ThrottlingStatsCollectorImplTest {
 
     private final ScheduledExecutorService executor = newSingleThreadScheduledExecutor();
-    private final MetricStatisticsProvider statsProvider = new MetricStatisticsProvider(getPlatformMBeanServer(), executor);
+    private final MetricStatisticsProvider statsProvider = new MetricStatisticsProvider(
+        getPlatformMBeanServer(), executor);
     private final ThrottlingStatsCollector stats = new ThrottlingStatsCollectorImpl(statsProvider);
 
     @After
-    public void shutDown(){
+    public void shutDown() {
         statsProvider.close();
         new ExecutorCloser(executor).close();
     }
@@ -130,7 +131,8 @@ public class ThrottlingStatsCollectorImplTest {
         assertEquals(50, getTimer(NODES_CREATE_UPSERT_THROTTLING_TIMER).getSnapshot().getMax());
 
         // adding an Id with previous Doc
-        stats.doneCreateOrUpdate(200, NODES, of("15:p/a/b/c/d/e/f/g/h/i/j/k/l/m/r182f83543dd-0-0/3"));
+        stats.doneCreateOrUpdate(200, NODES,
+            of("15:p/a/b/c/d/e/f/g/h/i/j/k/l/m/r182f83543dd-0-0/3"));
         assertEquals(3, getMeter(NODES_CREATE_UPSERT_THROTTLING).getCount());
         assertEquals(1, getMeter(NODES_CREATE_SPLIT_THROTTLING).getCount());
         assertEquals(200, getTimer(NODES_CREATE_UPSERT_THROTTLING_TIMER).getSnapshot().getMax());

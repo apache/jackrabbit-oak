@@ -38,19 +38,17 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.ZipException;
-import java.util.zip.ZipInputStream;
-
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
-
 import org.apache.jackrabbit.oak.commons.Profiler;
 import org.apache.jackrabbit.oak.run.commons.Command;
-import org.apache.jackrabbit.oak.threadDump.ThreadDumpThreadNames;
 import org.apache.jackrabbit.oak.threadDump.ThreadDumpCleaner;
 import org.apache.jackrabbit.oak.threadDump.ThreadDumpConverter;
+import org.apache.jackrabbit.oak.threadDump.ThreadDumpThreadNames;
 
 public class ThreadDumpCommand implements Command {
+
     public final static String THREADDUMP = "threaddump";
 
     @SuppressWarnings("unchecked")
@@ -58,30 +56,30 @@ public class ThreadDumpCommand implements Command {
     public void execute(String... args) throws Exception {
         OptionParser parser = new OptionParser();
         OptionSpec<Void> convertSpec = parser.accepts("convert",
-                "convert the thread dumps to the standard format");
+            "convert the thread dumps to the standard format");
         OptionSpec<Void> filterSpec = parser.accepts("filter",
-                "filter the thread dumps, only keep working (running), interesting threads " +
+            "filter the thread dumps, only keep working (running), interesting threads " +
                 "(for example, threads that read from sockets are ignored, " +
                 "as they are typically waiting for input; " +
-                 "system threads such as GC are also ignored)");
+                "system threads such as GC are also ignored)");
         OptionSpec<Void> threadNamesSpec = parser.accepts("threadNames",
-                "create a summary of thread names");
+            "create a summary of thread names");
         OptionSpec<Void> profileSpec = parser.accepts("profile",
-                "profile the thread dumps");
+            "profile the thread dumps");
         OptionSpec<Void> profileClassesSpec = parser.accepts("profileClasses",
-                "profile classes");
+            "profile classes");
         OptionSpec<Void> profileMethodsSpec = parser.accepts("profileMethods",
-                "profile methods");
+            "profile methods");
         OptionSpec<Void> profilePackagesSpec = parser.accepts("profilePackages",
-                "profile packages");
+            "profile packages");
         OptionSpec<?> helpSpec = parser.acceptsAll(
-                asList("h", "?", "help"), "show help").forHelp();
+            asList("h", "?", "help"), "show help").forHelp();
         OptionSet options = parser.parse(args);
         parser.nonOptions(
-                "file or directory containing thread dumps " +
+            "file or directory containing thread dumps " +
                 "(ensure it does not contain other files, such as binaries)").ofType(File.class);
         if (options.has(helpSpec)
-                || options.nonOptionArguments().isEmpty()) {
+            || options.nonOptionArguments().isEmpty()) {
             System.out.println("Mode: " + THREADDUMP);
             System.out.println();
             parser.printHelpOn(System.out);
@@ -142,7 +140,7 @@ public class ThreadDumpCommand implements Command {
         }
         File target = new File(file.getParentFile(), file.getName() + ".txt");
         PrintWriter writer = new PrintWriter(new BufferedWriter(new FileWriter(
-                target)));
+            target)));
         try {
             int count = processFileOrDirectory(file, writer);
             System.out.println("    (total " + count + " full thread dumps)");
@@ -153,7 +151,7 @@ public class ThreadDumpCommand implements Command {
     }
 
     private static int processFileOrDirectory(File file, PrintWriter writer)
-            throws IOException {
+        throws IOException {
         if (file.isFile()) {
             return processFile(file, writer);
         }
@@ -166,7 +164,7 @@ public class ThreadDumpCommand implements Command {
                     return o1.getName().compareTo(o2.getName());
                 }
             });
-            for(File f : list) {
+            for (File f : list) {
                 count += processFileOrDirectory(f, writer);
             }
         }
@@ -195,14 +193,15 @@ public class ThreadDumpCommand implements Command {
                     return 0;
                 }
             } else if (file.getName().endsWith(".zip")) {
-                System.out.println("Warning: file skipped. Please extract first: " + file.getName());
+                System.out.println(
+                    "Warning: file skipped. Please extract first: " + file.getName());
                 return 0;
             } else {
                 System.out.println("Reading " + file.getAbsolutePath());
                 reader = new FileReader(file);
             }
             LineNumberReader in = new LineNumberReader(new BufferedReader(
-                    reader));
+                reader));
             while (true) {
                 String s;
                 try {
@@ -227,7 +226,7 @@ public class ThreadDumpCommand implements Command {
                 // System.out.println("    (contains " + fullThreadDumps + " full thread dumps; " + fileModifiedTime + ")");
             }
         } finally {
-            if(reader != null) {
+            if (reader != null) {
                 reader.close();
             }
         }

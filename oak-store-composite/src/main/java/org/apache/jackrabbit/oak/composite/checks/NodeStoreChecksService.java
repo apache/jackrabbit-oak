@@ -35,79 +35,82 @@ import org.slf4j.LoggerFactory;
 @Component
 @Service(NodeStoreChecks.class)
 public class NodeStoreChecksService implements NodeStoreChecks {
-    
+
     private final Logger log = LoggerFactory.getLogger(getClass());
-    
-    @Reference(cardinality = ReferenceCardinality.OPTIONAL_MULTIPLE, 
-            bind = "bindChecker", 
-            unbind = "unbindChecker",
-            referenceInterface = MountedNodeStoreChecker.class)
+
+    @Reference(cardinality = ReferenceCardinality.OPTIONAL_MULTIPLE,
+        bind = "bindChecker",
+        unbind = "unbindChecker",
+        referenceInterface = MountedNodeStoreChecker.class)
     private List<MountedNodeStoreChecker<?>> checkers = new CopyOnWriteArrayList<>();
-    
+
     @Reference
     private MountInfoProvider mip;
 
     // used by SCR
     public NodeStoreChecksService() {
-        
+
     }
-    
+
     // visible for testing
-    public NodeStoreChecksService(MountInfoProvider mip, List<MountedNodeStoreChecker<?>> checkers) {
+    public NodeStoreChecksService(MountInfoProvider mip,
+        List<MountedNodeStoreChecker<?>> checkers) {
         this.checkers = checkers;
         this.mip = mip;
     }
 
     @Override
     public void check(NodeStore globalStore, MountedNodeStore mountedStore) {
-        
+
         ErrorHolder errorHolder = new ErrorHolder();
-        
-        checkers.forEach( c -> {
-            log.info("Checking NodeStore from mount {} with {}", mountedStore.getMount().getName(), c );
-            
+
+        checkers.forEach(c -> {
+            log.info("Checking NodeStore from mount {} with {}", mountedStore.getMount().getName(),
+                c);
+
             check(mountedStore, errorHolder, globalStore, c);
 
             log.info("Check complete");
         });
-        
+
         errorHolder.end();
     }
-    
-    private <T> void check(MountedNodeStore mountedStore, ErrorHolder errorHolder, NodeStore globalStore,
-            MountedNodeStoreChecker<T> c) {
-        
+
+    private <T> void check(MountedNodeStore mountedStore, ErrorHolder errorHolder,
+        NodeStore globalStore,
+        MountedNodeStoreChecker<T> c) {
+
         T context = c.createContext(globalStore, mip);
         Tree mountRoot = TreeFactory.createReadOnlyTree(mountedStore.getNodeStore().getRoot());
-        
-        visit(mountRoot, mountedStore,  errorHolder, context, c);
+
+        visit(mountRoot, mountedStore, errorHolder, context, c);
     }
 
-    private <T> void visit(Tree tree, MountedNodeStore mountedStore, ErrorHolder errorHolder, T context, MountedNodeStoreChecker<T> c) {
-        
-        
+    private <T> void visit(Tree tree, MountedNodeStore mountedStore, ErrorHolder errorHolder,
+        T context, MountedNodeStoreChecker<T> c) {
+
         // a mounted NodeStore may contain more paths than what it owns, but since these are not accessible
         // through the CompositeNodeStore skip them
         Mount mount = mountedStore.getMount();
-        
+
         boolean under = mount.isUnder(tree.getPath());
         boolean mounted = mount.isMounted(tree.getPath());
-        
-        
+
         boolean keepGoing = true;
-        if ( mounted ) {
+        if (mounted) {
             keepGoing = c.check(mountedStore, tree, errorHolder, context);
         }
 
-        if ( ( mounted || under ) && keepGoing ) {
-            tree.getChildren().forEach( child -> visit(child, mountedStore, errorHolder, context, c));
+        if ((mounted || under) && keepGoing) {
+            tree.getChildren()
+                .forEach(child -> visit(child, mountedStore, errorHolder, context, c));
         }
-    }    
-    
+    }
+
     protected void bindChecker(MountedNodeStoreChecker<?> checker) {
         checkers.add(checker);
     }
-    
+
     protected void unbindChecker(MountedNodeStoreChecker<?> checker) {
         checkers.remove(checker);
     }

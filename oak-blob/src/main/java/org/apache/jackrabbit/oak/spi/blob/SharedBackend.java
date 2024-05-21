@@ -22,35 +22,31 @@ import java.io.File;
 import java.io.InputStream;
 import java.util.Iterator;
 import java.util.List;
-
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 
 /**
+ *
  */
 public interface SharedBackend {
+
     /**
      * Return inputstream of record identified by identifier.
      *
-     * @param identifier
-     *            identifier of record.
+     * @param identifier identifier of record.
      * @return inputstream of the record.
-     * @throws DataStoreException
-     *             if record not found or any error.
+     * @throws DataStoreException if record not found or any error.
      */
     InputStream read(DataIdentifier identifier) throws DataStoreException;
 
     /**
-     * Stores file to backend with identifier used as key. If key pre-exists, it
-     * updates the timestamp of the key.
+     * Stores file to backend with identifier used as key. If key pre-exists, it updates the
+     * timestamp of the key.
      *
-     * @param identifier
-     *            key of the file
-     * @param file
-     *            file that would be stored in backend.
-     * @throws DataStoreException
-     *             for any error.
+     * @param identifier key of the file
+     * @param file       file that would be stored in backend.
+     * @throws DataStoreException for any error.
      */
     void write(DataIdentifier identifier, File file) throws DataStoreException;
 
@@ -84,8 +80,7 @@ public interface SharedBackend {
     /**
      * This method check the existence of record in backend.
      *
-     * @param identifier
-     *            identifier to be checked.
+     * @param identifier identifier to be checked.
      * @return true if records exists else false.
      * @throws DataStoreException
      */
@@ -110,7 +105,7 @@ public interface SharedBackend {
      * Adds a metadata record with the specified name
      *
      * @param input the record input stream
-     * @param name the name
+     * @param name  the name
      * @throws org.apache.jackrabbit.core.data.DataStoreException
      */
     void addMetadataRecord(final InputStream input, final String name) throws DataStoreException;
@@ -119,7 +114,7 @@ public interface SharedBackend {
      * Adds a metadata record with the specified name
      *
      * @param input the record file
-     * @param name the name
+     * @param name  the name
      * @throws org.apache.jackrabbit.core.data.DataStoreException
      */
     void addMetadataRecord(final File input, final String name) throws DataStoreException;

@@ -26,8 +26,8 @@ import org.jetbrains.annotations.NotNull;
 interface Changes {
 
     /**
-     * Applies the changes to the passed {@link CommitBuilder} by calling the
-     * appropriate methods on the builder.
+     * Applies the changes to the passed {@link CommitBuilder} by calling the appropriate methods on
+     * the builder.
      *
      * @param commitBuilder the commit builder.
      */

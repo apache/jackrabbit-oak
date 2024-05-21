@@ -22,7 +22,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
-
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeData;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeProperty;
 
@@ -40,7 +39,7 @@ public class NodeTypeCount implements StatsCollector {
         }
         NodeProperty mt = node.getProperty("jcr:mixinTypes");
         if (mt != null) {
-            for(String v : mt.getValues()) {
+            for (String v : mt.getValues()) {
                 storage.add("mixin/" + v, 1);
             }
         }
@@ -48,7 +47,7 @@ public class NodeTypeCount implements StatsCollector {
 
     public List<String> getRecords() {
         List<String> result = new ArrayList<>();
-        for(Entry<String, Long> e : storage.entrySet()) {
+        for (Entry<String, Long> e : storage.entrySet()) {
             long v = e.getValue();
             result.add(e.getKey() + ": " + v);
         }

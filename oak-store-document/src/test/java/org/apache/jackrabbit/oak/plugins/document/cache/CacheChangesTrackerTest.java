@@ -86,7 +86,8 @@ public class CacheChangesTrackerTest {
     public void testRegisterChildrenTracker() {
         NodeDocumentCache cache = createCache();
         Path parent = Path.fromString("/parent");
-        CacheChangesTracker tracker = cache.registerTracker(getKeyLowerLimit(parent), getKeyUpperLimit(parent));
+        CacheChangesTracker tracker = cache.registerTracker(getKeyLowerLimit(parent),
+            getKeyUpperLimit(parent));
 
         assertFalse(tracker.mightBeenAffected("2:/parent/xyz"));
         assertFalse(tracker.mightBeenAffected("2:/parent/abc"));
@@ -110,7 +111,8 @@ public class CacheChangesTrackerTest {
     public void testGetLoaderAffectsTracker() throws ExecutionException {
         NodeDocumentCache cache = createCache();
         Path parent = Path.fromString("/parent");
-        CacheChangesTracker tracker = cache.registerTracker(getKeyLowerLimit(parent), getKeyUpperLimit(parent));
+        CacheChangesTracker tracker = cache.registerTracker(getKeyLowerLimit(parent),
+            getKeyUpperLimit(parent));
 
         assertFalse(tracker.mightBeenAffected("2:/parent/xyz"));
 
@@ -129,7 +131,8 @@ public class CacheChangesTrackerTest {
     @Test
     public void testRegisterKeysTracker() {
         NodeDocumentCache cache = createCache();
-        CacheChangesTracker tracker = cache.registerTracker(ImmutableSet.of("1:/xyz", "1:/abc", "1:/aaa"));
+        CacheChangesTracker tracker = cache.registerTracker(
+            ImmutableSet.of("1:/xyz", "1:/abc", "1:/aaa"));
 
         assertFalse(tracker.mightBeenAffected("1:/xyz"));
         assertFalse(tracker.mightBeenAffected("1:/abc"));
@@ -155,7 +158,8 @@ public class CacheChangesTrackerTest {
     public void testOnlyExternalChanges() {
         NodeDocumentCache cache = createCache();
         Path parent = Path.fromString("/parent");
-        CacheChangesTracker tracker = cache.registerTracker(getKeyLowerLimit(parent), getKeyUpperLimit(parent));
+        CacheChangesTracker tracker = cache.registerTracker(getKeyLowerLimit(parent),
+            getKeyUpperLimit(parent));
 
         cache.putNonConflictingDocs(tracker, ImmutableSet.of(createDoc("2:/parent/local")));
         assertFalse(tracker.mightBeenAffected("2:/parent/local"));
@@ -165,12 +169,15 @@ public class CacheChangesTrackerTest {
     }
 
     private NodeDocumentCache createCache() {
-        Cache<CacheValue, NodeDocument> nodeDocumentsCache = new CacheLIRS<CacheValue, NodeDocument>(10);
-        Cache<StringValue, NodeDocument> prevDocumentsCache = new CacheLIRS<StringValue, NodeDocument>(10);
+        Cache<CacheValue, NodeDocument> nodeDocumentsCache = new CacheLIRS<CacheValue, NodeDocument>(
+            10);
+        Cache<StringValue, NodeDocument> prevDocumentsCache = new CacheLIRS<StringValue, NodeDocument>(
+            10);
         CacheStats nodeDocumentsCacheStats = Mockito.mock(CacheStats.class);
         CacheStats prevDocumentsCacheStats = Mockito.mock(CacheStats.class);
         NodeDocumentLocks locks = new StripedNodeDocumentLocks();
-        return new NodeDocumentCache(nodeDocumentsCache, nodeDocumentsCacheStats, prevDocumentsCache, prevDocumentsCacheStats, locks);
+        return new NodeDocumentCache(nodeDocumentsCache, nodeDocumentsCacheStats,
+            prevDocumentsCache, prevDocumentsCacheStats, locks);
     }
 
     private NodeDocument createDoc(String id) {

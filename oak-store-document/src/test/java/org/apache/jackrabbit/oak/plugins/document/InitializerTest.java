@@ -36,14 +36,14 @@ public class InitializerTest extends AbstractMongoConnectionTest {
         new InitialContent().initialize(builder);
 
         SecurityProvider provider = SecurityProviderBuilder.newBuilder().with(
-                ConfigurationParameters.of(ImmutableMap.of(UserConfiguration.NAME,
-                        ConfigurationParameters.of(ImmutableMap.of("anonymousId", "anonymous",
-                                "adminId", "admin",
-                                "usersPath", "/home/users",
-                                "groupsPath", "/home/groups",
-                                "defaultDepth", "1"))))).build();
+            ConfigurationParameters.of(ImmutableMap.of(UserConfiguration.NAME,
+                ConfigurationParameters.of(ImmutableMap.of("anonymousId", "anonymous",
+                    "adminId", "admin",
+                    "usersPath", "/home/users",
+                    "groupsPath", "/home/groups",
+                    "defaultDepth", "1"))))).build();
         provider.getConfiguration(UserConfiguration.class).getWorkspaceInitializer().initialize(
-                builder, "default");
+            builder, "default");
         builder.getNodeState();
     }
 
@@ -55,14 +55,14 @@ public class InitializerTest extends AbstractMongoConnectionTest {
         mk.getNodeStore().merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         SecurityProvider provider = SecurityProviderBuilder.newBuilder().with(
-                ConfigurationParameters.of(ImmutableMap.of(UserConfiguration.NAME,
-                        ConfigurationParameters.of(ImmutableMap.of("anonymousId", "anonymous",
-                                "adminId", "admin",
-                                "usersPath", "/home/users",
-                                "groupsPath", "/home/groups",
-                                "defaultDepth", "1"))))).build();
+            ConfigurationParameters.of(ImmutableMap.of(UserConfiguration.NAME,
+                ConfigurationParameters.of(ImmutableMap.of("anonymousId", "anonymous",
+                    "adminId", "admin",
+                    "usersPath", "/home/users",
+                    "groupsPath", "/home/groups",
+                    "defaultDepth", "1"))))).build();
         provider.getConfiguration(UserConfiguration.class).getWorkspaceInitializer().initialize(
-                builder, "default");
+            builder, "default");
         builder.getNodeState();
     }
 }

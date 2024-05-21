@@ -29,7 +29,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-
 import org.apache.lucene.codecs.FieldsConsumer;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.CollectionUtil;
@@ -37,40 +36,43 @@ import org.apache.lucene.util.IOUtils;
 
 final class FreqProxTermsWriter extends TermsHashConsumer {
 
-  @Override
-  void abort() {}
-
-  // TODO: would be nice to factor out more of this, eg the
-  // FreqProxFieldMergeState, and code to visit all Fields
-  // under the same FieldInfo together, up into TermsHash*.
-  // Other writers would presumably share alot of this...
-
-  @Override
-  public void flush(Map<String,TermsHashConsumerPerField> fieldsToFlush, final SegmentWriteState state) throws IOException {
-
-    // Gather all FieldData's that have postings, across all
-    // ThreadStates
-    List<FreqProxTermsWriterPerField> allFields = new ArrayList<FreqProxTermsWriterPerField>();
-
-    for (TermsHashConsumerPerField f : fieldsToFlush.values()) {
-      final FreqProxTermsWriterPerField perField = (FreqProxTermsWriterPerField) f;
-      if (perField.termsHashPerField.bytesHash.size() > 0) {
-        allFields.add(perField);
-      }
+    @Override
+    void abort() {
     }
 
-    final int numAllFields = allFields.size();
+    // TODO: would be nice to factor out more of this, eg the
+    // FreqProxFieldMergeState, and code to visit all Fields
+    // under the same FieldInfo together, up into TermsHash*.
+    // Other writers would presumably share alot of this...
 
-    // Sort by field name
-    CollectionUtil.introSort(allFields);
+    @Override
+    public void flush(Map<String, TermsHashConsumerPerField> fieldsToFlush,
+        final SegmentWriteState state) throws IOException {
 
-    final FieldsConsumer consumer = state.segmentInfo.getCodec().postingsFormat().fieldsConsumer(state);
+        // Gather all FieldData's that have postings, across all
+        // ThreadStates
+        List<FreqProxTermsWriterPerField> allFields = new ArrayList<FreqProxTermsWriterPerField>();
 
-    boolean success = false;
+        for (TermsHashConsumerPerField f : fieldsToFlush.values()) {
+            final FreqProxTermsWriterPerField perField = (FreqProxTermsWriterPerField) f;
+            if (perField.termsHashPerField.bytesHash.size() > 0) {
+                allFields.add(perField);
+            }
+        }
 
-    try {
-      TermsHash termsHash = null;
-      
+        final int numAllFields = allFields.size();
+
+        // Sort by field name
+        CollectionUtil.introSort(allFields);
+
+        final FieldsConsumer consumer = state.segmentInfo.getCodec().postingsFormat()
+                                                         .fieldsConsumer(state);
+
+        boolean success = false;
+
+        try {
+            TermsHash termsHash = null;
+
       /*
     Current writer chain:
       FieldsConsumer
@@ -82,50 +84,51 @@ final class FreqProxTermsWriter extends TermsHashConsumer {
                   -> PositionsConsumer
                     -> IMPL: FormatPostingsPositionsWriter
        */
-      
-      for (int fieldNumber = 0; fieldNumber < numAllFields; fieldNumber++) {
-        final FieldInfo fieldInfo = allFields.get(fieldNumber).fieldInfo;
-        
-        final FreqProxTermsWriterPerField fieldWriter = allFields.get(fieldNumber);
 
-        // If this field has postings then add them to the
-        // segment
-        fieldWriter.flush(fieldInfo.name, consumer, state);
-        
-        TermsHashPerField perField = fieldWriter.termsHashPerField;
-        assert termsHash == null || termsHash == perField.termsHash;
-        termsHash = perField.termsHash;
-        int numPostings = perField.bytesHash.size();
-        perField.reset();
-        perField.shrinkHash(numPostings);
-        fieldWriter.reset();
-      }
-      
-      if (termsHash != null) {
-        termsHash.reset();
-      }
-      success = true;
-    } finally {
-      if (success) {
-        IOUtils.close(consumer);
-      } else {
-        IOUtils.closeWhileHandlingException(consumer);
-      }
+            for (int fieldNumber = 0; fieldNumber < numAllFields; fieldNumber++) {
+                final FieldInfo fieldInfo = allFields.get(fieldNumber).fieldInfo;
+
+                final FreqProxTermsWriterPerField fieldWriter = allFields.get(fieldNumber);
+
+                // If this field has postings then add them to the
+                // segment
+                fieldWriter.flush(fieldInfo.name, consumer, state);
+
+                TermsHashPerField perField = fieldWriter.termsHashPerField;
+                assert termsHash == null || termsHash == perField.termsHash;
+                termsHash = perField.termsHash;
+                int numPostings = perField.bytesHash.size();
+                perField.reset();
+                perField.shrinkHash(numPostings);
+                fieldWriter.reset();
+            }
+
+            if (termsHash != null) {
+                termsHash.reset();
+            }
+            success = true;
+        } finally {
+            if (success) {
+                IOUtils.close(consumer);
+            } else {
+                IOUtils.closeWhileHandlingException(consumer);
+            }
+        }
     }
-  }
 
-  BytesRef payload;
+    BytesRef payload;
 
-  @Override
-  public TermsHashConsumerPerField addField(TermsHashPerField termsHashPerField, FieldInfo fieldInfo) {
-    return new FreqProxTermsWriterPerField(termsHashPerField, this, fieldInfo);
-  }
+    @Override
+    public TermsHashConsumerPerField addField(TermsHashPerField termsHashPerField,
+        FieldInfo fieldInfo) {
+        return new FreqProxTermsWriterPerField(termsHashPerField, this, fieldInfo);
+    }
 
-  @Override
-  void finishDocument(TermsHash termsHash) {
-  }
+    @Override
+    void finishDocument(TermsHash termsHash) {
+    }
 
-  @Override
-  void startDocument() {
-  }
+    @Override
+    void startDocument() {
+    }
 }

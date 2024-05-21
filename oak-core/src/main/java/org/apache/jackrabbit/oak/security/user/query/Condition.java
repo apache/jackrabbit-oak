@@ -16,13 +16,12 @@
  */
 package org.apache.jackrabbit.oak.security.user.query;
 
-import org.jetbrains.annotations.NotNull;
-
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
+import org.jetbrains.annotations.NotNull;
 
 
 interface Condition {

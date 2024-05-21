@@ -18,14 +18,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
-import java.util.HashMap;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
+import java.util.HashMap;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
-
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 public class EmptyNodeStateTest {
 
@@ -33,9 +32,9 @@ public class EmptyNodeStateTest {
     public void emptyEqualsMissing() {
         NodeState empty = EmptyNodeState.EMPTY_NODE;
         NodeState missing = new ModifiedNodeState(
-                EmptyNodeState.MISSING_NODE,
-                new HashMap<String, PropertyState>(),
-                new HashMap<String, MutableNodeState>());
+            EmptyNodeState.MISSING_NODE,
+            new HashMap<String, PropertyState>(),
+            new HashMap<String, MutableNodeState>());
         assertTrue(empty.exists());
         assertFalse(missing.exists());
         assertFalse(missing.equals(empty));
@@ -45,9 +44,9 @@ public class EmptyNodeStateTest {
     @Test
     public void missingEqualsModified() {
         NodeState empty = new ModifiedNodeState(
-                EmptyNodeState.EMPTY_NODE,
-                new HashMap<String, PropertyState>(),
-                new HashMap<String, MutableNodeState>());
+            EmptyNodeState.EMPTY_NODE,
+            new HashMap<String, PropertyState>(),
+            new HashMap<String, MutableNodeState>());
         NodeState missing = EmptyNodeState.MISSING_NODE;
         assertTrue(empty.exists());
         assertFalse(missing.exists());

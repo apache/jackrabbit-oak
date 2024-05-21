@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.configuration.nodestate;
 
+import java.io.IOException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.index.solr.server.OakSolrServer;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -26,25 +27,26 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-
 /**
- * An {@link org.apache.jackrabbit.oak.spi.commit.Observer} looking for changes on persisted Solr server configuration nodes.
- * If any change is done there, the related {@link org.apache.solr.client.solrj.SolrClient}s are shutdown and unregistered
- * from the {@link org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerRegistry}
+ * An {@link org.apache.jackrabbit.oak.spi.commit.Observer} looking for changes on persisted Solr
+ * server configuration nodes. If any change is done there, the related
+ * {@link org.apache.solr.client.solrj.SolrClient}s are shutdown and unregistered from the
+ * {@link org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerRegistry}
  */
 public class NodeStateSolrServersObserver extends DiffObserver {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     @Override
-    protected NodeStateDiff getRootDiff(@NotNull NodeState before, @NotNull NodeState after, @NotNull CommitInfo info) {
+    protected NodeStateDiff getRootDiff(@NotNull NodeState before, @NotNull NodeState after,
+        @NotNull CommitInfo info) {
         return new ChangingSolrServersNodeStateDiff(after);
     }
 
     private void shutdownRegisteredSolrServers(NodeState nodeState) {
         log.debug("shutting down persisted Solr server");
-        NodeStateSolrServerConfigurationProvider nodeStateSolrServerConfigurationProvider = new NodeStateSolrServerConfigurationProvider(nodeState);
+        NodeStateSolrServerConfigurationProvider nodeStateSolrServerConfigurationProvider = new NodeStateSolrServerConfigurationProvider(
+            nodeState);
         OakSolrServer oakSolrServer = new OakSolrServer(nodeStateSolrServerConfigurationProvider);
         try {
             oakSolrServer.close();
@@ -55,6 +57,7 @@ public class NodeStateSolrServersObserver extends DiffObserver {
     }
 
     private class ChangingSolrServersNodeStateDiff implements NodeStateDiff {
+
         private final NodeState nodeState;
         private final String name;
 
@@ -102,7 +105,8 @@ public class NodeStateSolrServersObserver extends DiffObserver {
             if (isSolrServerNode(name, before)) {
                 shutdownRegisteredSolrServers(before);
             }
-            return after.compareAgainstBaseState(before, new ChangingSolrServersNodeStateDiff(after, this.name + "/" + name));
+            return after.compareAgainstBaseState(before,
+                new ChangingSolrServersNodeStateDiff(after, this.name + "/" + name));
         }
 
         @Override

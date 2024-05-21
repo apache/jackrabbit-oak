@@ -51,7 +51,7 @@ public class VersionGCSupportTest {
     private VersionGCSupport gcSupport;
     private List<String> ids = Lists.newArrayList();
 
-    @Parameterized.Parameters(name="{0}")
+    @Parameterized.Parameters(name = "{0}")
     public static java.util.Collection<DocumentStoreFixture> fixtures() {
         List<DocumentStoreFixture> fixtures = Lists.newArrayList();
         if (RDB_H2.isAvailable()) {
@@ -139,12 +139,15 @@ public class VersionGCSupportTest {
         NodeDocument.setDeleted(op, r, true);
         store.create(Collection.NODES, Lists.newArrayList(op));
 
-        long reportedsecs = gcSupport.getOldestDeletedOnceTimestamp(Clock.SIMPLE, 1) / SECONDS.toMillis(1);
-        assertTrue("diff (s) should be < 5: " + Math.abs(secs - reportedsecs), Math.abs(secs - reportedsecs) < 5);
+        long reportedsecs =
+            gcSupport.getOldestDeletedOnceTimestamp(Clock.SIMPLE, 1) / SECONDS.toMillis(1);
+        assertTrue("diff (s) should be < 5: " + Math.abs(secs - reportedsecs),
+            Math.abs(secs - reportedsecs) < 5);
     }
 
     private void assertPossiblyDeleted(long fromSeconds, long toSeconds, long num) {
-        Iterable<NodeDocument> docs = gcSupport.getPossiblyDeletedDocs(SECONDS.toMillis(fromSeconds), SECONDS.toMillis(toSeconds));
+        Iterable<NodeDocument> docs = gcSupport.getPossiblyDeletedDocs(
+            SECONDS.toMillis(fromSeconds), SECONDS.toMillis(toSeconds));
         assertEquals(num, Iterables.size(docs));
     }
 }

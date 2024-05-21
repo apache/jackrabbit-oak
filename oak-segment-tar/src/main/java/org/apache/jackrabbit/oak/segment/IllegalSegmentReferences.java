@@ -18,14 +18,12 @@
 package org.apache.jackrabbit.oak.segment;
 
 import java.util.Iterator;
-
 import org.jetbrains.annotations.NotNull;
 
 /**
- * An implementation of {@link SegmentReferences} that throws {@link
- * IllegalStateException}s every time it's used. This instance is used in
- * context where accessing a {@link SegmentReferences} is considered a
- * programmer's error.
+ * An implementation of {@link SegmentReferences} that throws {@link IllegalStateException}s every
+ * time it's used. This instance is used in context where accessing a {@link SegmentReferences} is
+ * considered a programmer's error.
  */
 class IllegalSegmentReferences implements SegmentReferences {
 

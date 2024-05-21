@@ -19,10 +19,12 @@
 
 package org.apache.jackrabbit.oak.plugins.document.bundlor;
 
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.concurrent.Executor;
-
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -37,14 +39,11 @@ import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.commit.SubtreeEditor;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-
 public class BundlingConfigHandler implements Observer, Closeable {
+
     public static final String DOCUMENT_NODE_STORE = "rep:documentStore";
     public static final String BUNDLOR = "bundlor";
 
@@ -88,7 +87,7 @@ public class BundlingConfigHandler implements Observer, Closeable {
         unregisterObserver();
     }
 
-    public BackgroundObserverMBean getMBean(){
+    public BackgroundObserverMBean getMBean() {
         return checkNotNull(backgroundObserver).getMBean();
     }
 

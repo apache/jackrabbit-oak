@@ -16,28 +16,30 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.configuration;
 
+import static org.junit.Assert.assertNotNull;
+
 import org.apache.jackrabbit.oak.plugins.index.solr.server.EmbeddedSolrServerProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.server.RemoteSolrServerProvider;
 import org.junit.Test;
 
-import static org.junit.Assert.assertNotNull;
-
 /**
- * Testcase for {@link org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfiguration}
+ * Testcase for
+ * {@link org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfiguration}
  */
 public class SolrServerConfigurationTest {
 
     @Test
     public void testCreateRemoteServerFromConfig() throws Exception {
         SolrServerConfiguration<RemoteSolrServerProvider> remoteSolrServerProviderSolrServerConfiguration =
-                new RemoteSolrServerConfiguration(null, null, 1, 1, null, 10, 10, null);
+            new RemoteSolrServerConfiguration(null, null, 1, 1, null, 10, 10, null);
         RemoteSolrServerProvider remoteSolrServerProvider = remoteSolrServerProviderSolrServerConfiguration.getProvider();
         assertNotNull(remoteSolrServerProvider);
     }
 
     @Test
     public void testCreteEmbeddedServerFromConfig() throws Exception {
-        SolrServerConfiguration<EmbeddedSolrServerProvider> embeddedSolrServerSolrServerConfiguration = new EmbeddedSolrServerConfiguration(null, null);
+        SolrServerConfiguration<EmbeddedSolrServerProvider> embeddedSolrServerSolrServerConfiguration = new EmbeddedSolrServerConfiguration(
+            null, null);
         EmbeddedSolrServerProvider embeddedSolrServerProvider = embeddedSolrServerSolrServerConfiguration.getProvider();
         assertNotNull(embeddedSolrServerProvider);
     }

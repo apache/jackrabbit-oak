@@ -16,24 +16,24 @@
  */
 package org.apache.jackrabbit.oak.benchmark.authorization;
 
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import javax.jcr.security.AccessControlManager;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-import javax.jcr.security.AccessControlManager;
-
 /**
- * Test effect of PermissionProvider.refresh called upon Session.save(). In contrast to {@link RefreshHasItemGetItemTest}
- * a separate Session is created for the save operation to reflect the scenario where the session is logged-out after
- * saving changes.
+ * Test effect of PermissionProvider.refresh called upon Session.save(). In contrast to
+ * {@link RefreshHasItemGetItemTest} a separate Session is created for the save operation to reflect
+ * the scenario where the session is logged-out after saving changes.
  */
 public class SaveHasItemGetItemTest extends AbstractHasItemGetItemTest {
 
     private static final Logger log = LoggerFactory.getLogger(SaveHasItemGetItemTest.class);
 
-    public SaveHasItemGetItemTest(int itemsToRead, int numberOfACEs, int numberOfGroups, boolean doReport) {
+    public SaveHasItemGetItemTest(int itemsToRead, int numberOfACEs, int numberOfGroups,
+        boolean doReport) {
         super(itemsToRead, numberOfACEs, numberOfGroups, doReport);
     }
 
@@ -44,7 +44,8 @@ public class SaveHasItemGetItemTest extends AbstractHasItemGetItemTest {
     }
 
     @Override
-    void additionalOperations(@NotNull String path, @NotNull Session s, @NotNull AccessControlManager acMgr) {
+    void additionalOperations(@NotNull String path, @NotNull Session s,
+        @NotNull AccessControlManager acMgr) {
         Session otherS = null;
         try {
             otherS = getTestSession();

@@ -20,7 +20,6 @@ import static org.junit.Assert.assertEquals;
 
 import java.time.Duration;
 import java.time.Instant;
-
 import org.junit.Test;
 
 public class RateLimitTest {

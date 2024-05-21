@@ -17,17 +17,7 @@
  */
 package org.apache.jackrabbit.oak.segment.remote.persistentcache;
 
-import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import java.io.UncheckedIOException;
-import java.nio.file.NoSuchFileException;
-import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.oak.commons.Buffer;
-import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
-import org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache.AbstractPersistentCache;
-import org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache.SegmentCacheStats;
-import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static org.apache.jackrabbit.oak.segment.remote.RemoteUtilities.OFF_HEAP;
 
 import java.io.EOFException;
 import java.io.File;
@@ -35,9 +25,11 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.channels.FileChannel;
 import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributes;
@@ -49,10 +41,18 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiConsumer;
 import java.util.stream.Stream;
-
-import static org.apache.jackrabbit.oak.segment.remote.RemoteUtilities.OFF_HEAP;
+import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.guava.common.base.Stopwatch;
+import org.apache.jackrabbit.oak.commons.Buffer;
+import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
+import org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache.AbstractPersistentCache;
+import org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache.SegmentCacheStats;
+import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class PersistentDiskCache extends AbstractPersistentCache {
+
     private static final Logger logger = LoggerFactory.getLogger(PersistentDiskCache.class);
     public static final int DEFAULT_MAX_CACHE_SIZE_MB = 512;
     public static final String NAME = "Segment Disk Cache";
@@ -72,10 +72,12 @@ public class PersistentDiskCache extends AbstractPersistentCache {
     final AtomicLong evictionCount = new AtomicLong();
 
     public PersistentDiskCache(File directory, int cacheMaxSizeMB, IOMonitor diskCacheIOMonitor) {
-        this(directory, cacheMaxSizeMB, diskCacheIOMonitor, DEFAULT_TEMP_FILES_CLEANUP_WAIT_TIME_MS);
+        this(directory, cacheMaxSizeMB, diskCacheIOMonitor,
+            DEFAULT_TEMP_FILES_CLEANUP_WAIT_TIME_MS);
     }
 
-    public PersistentDiskCache(File directory, int cacheMaxSizeMB, IOMonitor diskCacheIOMonitor, long tempFilesCleanupWaitTimeMs) {
+    public PersistentDiskCache(File directory, int cacheMaxSizeMB, IOMonitor diskCacheIOMonitor,
+        long tempFilesCleanupWaitTimeMs) {
         this.directory = directory;
         this.maxCacheSizeBytes = cacheMaxSizeMB * 1024L * 1024L;
         this.diskCacheIOMonitor = diskCacheIOMonitor;
@@ -85,11 +87,11 @@ public class PersistentDiskCache extends AbstractPersistentCache {
         }
 
         segmentCacheStats = new SegmentCacheStats(
-                NAME,
-                () -> maxCacheSizeBytes,
-                () -> Long.valueOf(directory.listFiles().length),
-                () -> FileUtils.sizeOfDirectory(directory),
-                () -> evictionCount.get());
+            NAME,
+            () -> maxCacheSizeBytes,
+            () -> Long.valueOf(directory.listFiles().length),
+            () -> FileUtils.sizeOfDirectory(directory),
+            () -> evictionCount.get());
     }
 
     @Override
@@ -100,8 +102,10 @@ public class PersistentDiskCache extends AbstractPersistentCache {
 
             Stopwatch stopwatch = Stopwatch.createStarted();
             if (segmentFile.exists()) {
-                diskCacheIOMonitor.beforeSegmentRead(segmentFile, msb, lsb, (int) segmentFile.length());
-                try (FileInputStream fis = new FileInputStream(segmentFile); FileChannel channel = fis.getChannel()) {
+                diskCacheIOMonitor.beforeSegmentRead(segmentFile, msb, lsb,
+                    (int) segmentFile.length());
+                try (FileInputStream fis = new FileInputStream(
+                    segmentFile); FileChannel channel = fis.getChannel()) {
                     int length = (int) channel.size();
 
                     Buffer buffer;
@@ -115,7 +119,8 @@ public class PersistentDiskCache extends AbstractPersistentCache {
                     }
 
                     long elapsed = stopwatch.elapsed(TimeUnit.NANOSECONDS);
-                    diskCacheIOMonitor.afterSegmentRead(segmentFile, msb, lsb, (int) segmentFile.length(), elapsed);
+                    diskCacheIOMonitor.afterSegmentRead(segmentFile, msb, lsb,
+                        (int) segmentFile.length(), elapsed);
 
                     buffer.flip();
 
@@ -127,7 +132,8 @@ public class PersistentDiskCache extends AbstractPersistentCache {
                 }
             }
         } catch (Exception e) {
-            logger.error("Exception while reading segment {} from the cache:", new UUID(msb, lsb), e);
+            logger.error("Exception while reading segment {} from the cache:", new UUID(msb, lsb),
+                e);
         }
 
         return null;
@@ -142,7 +148,8 @@ public class PersistentDiskCache extends AbstractPersistentCache {
     public void writeSegment(long msb, long lsb, Buffer buffer) {
         String segmentId = new UUID(msb, lsb).toString();
         File segmentFile = new File(directory, segmentId);
-        File tempSegmentFile = new File(directory, segmentId + System.nanoTime() + TEMP_FILE_SUFFIX);
+        File tempSegmentFile = new File(directory,
+            segmentId + System.nanoTime() + TEMP_FILE_SUFFIX);
 
         Buffer bufferCopy = buffer.duplicate();
 
@@ -154,7 +161,8 @@ public class PersistentDiskCache extends AbstractPersistentCache {
                         fileSize = bufferCopy.write(channel);
                     }
                     try {
-                        Files.move(tempSegmentFile.toPath(), segmentFile.toPath(), StandardCopyOption.ATOMIC_MOVE);
+                        Files.move(tempSegmentFile.toPath(), segmentFile.toPath(),
+                            StandardCopyOption.ATOMIC_MOVE);
                     } catch (AtomicMoveNotSupportedException e) {
                         Files.move(tempSegmentFile.toPath(), segmentFile.toPath());
                     }
@@ -165,7 +173,8 @@ public class PersistentDiskCache extends AbstractPersistentCache {
                         Files.deleteIfExists(segmentFile.toPath());
                         Files.deleteIfExists(tempSegmentFile.toPath());
                     } catch (IOException i) {
-                        logger.error("Error while deleting corrupted segment file {}", segmentId, i);
+                        logger.error("Error while deleting corrupted segment file {}", segmentId,
+                            i);
                     }
                 } finally {
                     writesPending.remove(segmentId);
@@ -198,8 +207,10 @@ public class PersistentDiskCache extends AbstractPersistentCache {
 
                 StreamConsumer.forEach(segmentCacheEntryStream, (segmentCacheEntry, breaker) -> {
                     // don't cleanup temp files too aggressively, otherwise we risk deleting them while they are still active
-                    if (segmentCacheEntry.isTempFile() && segmentCacheEntry.isLastAccessLessThan(tempFilesCleanupWaitTimeMs)) {
-                        logger.debug("Preventing cleanup of recently accessed temp file: {}", segmentCacheEntry.getPath());
+                    if (segmentCacheEntry.isTempFile() && segmentCacheEntry.isLastAccessLessThan(
+                        tempFilesCleanupWaitTimeMs)) {
+                        logger.debug("Preventing cleanup of recently accessed temp file: {}",
+                            segmentCacheEntry.getPath());
                         return;
                     }
                     if (cacheSize.get() > maxCacheSizeBytes * 0.66) {
@@ -220,25 +231,29 @@ public class PersistentDiskCache extends AbstractPersistentCache {
     @NotNull
     private Stream<SegmentCacheEntry> getSegmentCacheEntryStream() throws IOException {
         return Files.walk(directory.toPath())
-            .filter(path -> !path.toFile().isDirectory())
-            .map(SegmentCacheEntry::fromPath)
-            .sorted();
+                    .filter(path -> !path.toFile().isDirectory())
+                    .map(SegmentCacheEntry::fromPath)
+                    .sorted();
     }
 
     private static class SegmentCacheEntry implements Comparable<SegmentCacheEntry> {
+
         private final Path path;
         private final FileTime lastAccessTime;
 
         static SegmentCacheEntry fromPath(@NotNull Path path) {
             try {
-                return new SegmentCacheEntry(path, Files.readAttributes(path, BasicFileAttributes.class).lastAccessTime());
+                return new SegmentCacheEntry(path,
+                    Files.readAttributes(path, BasicFileAttributes.class).lastAccessTime());
             } catch (NoSuchFileException e) {
                 // Ignore error when temp files are renamed by another thread while the directory is traversed
                 if (!path.toString().endsWith(TEMP_FILE_SUFFIX)) {
-                    logger.error("File not found while getting the last access time for {}", path.toFile().getName(), e);
+                    logger.error("File not found while getting the last access time for {}",
+                        path.toFile().getName(), e);
                 }
             } catch (IOException e) {
-                logger.error("Error while getting the last access time for {}", path.toFile().getName(), e);
+                logger.error("Error while getting the last access time for {}",
+                    path.toFile().getName(), e);
             }
             return new SegmentCacheEntry(path, FileTime.fromMillis(Long.MAX_VALUE));
         }
@@ -273,6 +288,7 @@ public class PersistentDiskCache extends AbstractPersistentCache {
     private static class StreamConsumer {
 
         public static class Breaker {
+
             private boolean shouldBreak = false;
 
             public void stop() {

@@ -18,10 +18,17 @@
  */
 package org.apache.jackrabbit.oak.blob.cloud.s3;
 
+import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
+import static org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils.isS3Configured;
+import static org.apache.sling.testing.mock.osgi.MockOsgi.activate;
+import static org.apache.sling.testing.mock.osgi.MockOsgi.deactivate;
+import static org.apache.sling.testing.mock.osgi.MockOsgi.injectServices;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assume.assumeTrue;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.Map;
-
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.plugins.blob.AbstractSharedCachingDataStore;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
@@ -32,14 +39,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
-
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
-import static org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils.isS3Configured;
-import static org.apache.sling.testing.mock.osgi.MockOsgi.activate;
-import static org.apache.sling.testing.mock.osgi.MockOsgi.deactivate;
-import static org.apache.sling.testing.mock.osgi.MockOsgi.injectServices;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assume.assumeTrue;
 
 /**
  * Tests the registration of the S3DataStore.

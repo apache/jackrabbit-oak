@@ -19,26 +19,24 @@
 
 package org.apache.jackrabbit.oak.segment.file;
 
-import org.apache.jackrabbit.oak.segment.CacheWeights;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import static java.lang.Integer.valueOf;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assume.assumeTrue;
 
-import java.util.List;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Random;
 import java.util.Collections;
+import java.util.List;
+import java.util.Random;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-
-import static java.lang.Integer.valueOf;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assume.assumeTrue;
+import org.apache.jackrabbit.oak.segment.CacheWeights;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class ConcurrentPriorityCacheTest {
@@ -68,7 +66,7 @@ public class ConcurrentPriorityCacheTest {
         for (int k = 0; k < SIZE; k++) {
             int idx = k;
             putFutures.add(executor1.submit(
-                    () -> cache.put("key-" + idx, idx, 0, (byte) 0)));
+                () -> cache.put("key-" + idx, idx, 0, (byte) 0)));
         }
 
         for (int k = 0; k < SIZE; k++) {
@@ -111,11 +109,12 @@ public class ConcurrentPriorityCacheTest {
             future.get();
         }
 
-        assertEquals( Byte.valueOf(Byte.MAX_VALUE), cache.get("key-" + Byte.MAX_VALUE, 0));
+        assertEquals(Byte.valueOf(Byte.MAX_VALUE), cache.get("key-" + Byte.MAX_VALUE, 0));
     }
 
     @Test
-    public void concurrentUpdateWithNewGeneration() throws ExecutionException, InterruptedException {
+    public void concurrentUpdateWithNewGeneration()
+        throws ExecutionException, InterruptedException {
         final int NUM_GENERATIONS = 256;
         PriorityCache<String, Integer> cache = new PriorityCache<>(1, 5);
 
@@ -137,7 +136,7 @@ public class ConcurrentPriorityCacheTest {
             future.get();
         }
 
-        assertEquals(Integer.valueOf(NUM_GENERATIONS - 1), cache.get("key", NUM_GENERATIONS-1));
+        assertEquals(Integer.valueOf(NUM_GENERATIONS - 1), cache.get("key", NUM_GENERATIONS - 1));
     }
 
     @Test
@@ -148,7 +147,7 @@ public class ConcurrentPriorityCacheTest {
             // Backward iteration avoids earlier generations are replaced with later ones
             for (int k = 0; k < 100; k++) {
                 assumeTrue("All test keys are in the cache",
-                        cache.put("key-" + gen + "-" + k, 0, gen, (byte) 0));
+                    cache.put("key-" + gen + "-" + k, 0, gen, (byte) 0));
             }
         }
 
@@ -182,7 +181,8 @@ public class ConcurrentPriorityCacheTest {
     @Test
     public void concurrentEvictionCount() throws ExecutionException, InterruptedException {
         Random rnd = new Random();
-        PriorityCache<String, Integer> cache = new PriorityCache<>(128, 2, CacheWeights.noopWeigher());
+        PriorityCache<String, Integer> cache = new PriorityCache<>(128, 2,
+            CacheWeights.noopWeigher());
 
         ExecutorService executor = Executors.newFixedThreadPool(concurrency);
         List<Future<Boolean>> futures = new ArrayList<>(256);
@@ -190,7 +190,7 @@ public class ConcurrentPriorityCacheTest {
         for (int b = Byte.MIN_VALUE; b <= Byte.MAX_VALUE; b++) {
             int value = b;
             futures.add(executor.submit(() ->
-                    cache.put("k-" + value + "-" + rnd.nextInt(1000), value, 0, (byte) value)));
+                cache.put("k-" + value + "-" + rnd.nextInt(1000), value, 0, (byte) value)));
         }
 
         int count = 0;
@@ -214,7 +214,7 @@ public class ConcurrentPriorityCacheTest {
         for (int i = 0; i < 1000; i++) {
             int value = i;
             futures.add(executor.submit(() ->
-                    cache.put("k-" + value + "-" + rnd.nextInt(1000), value, 0, (byte) 0)));
+                cache.put("k-" + value + "-" + rnd.nextInt(1000), value, 0, (byte) 0)));
         }
 
         int success = 0;

@@ -38,6 +38,7 @@ import org.slf4j.LoggerFactory;
  * A diff cache, which is pro-actively filled after a commit.
  */
 public class LocalDiffCache extends DiffCache {
+
     private static final Logger LOG = LoggerFactory.getLogger(LocalDiffCache.class);
 
     /**
@@ -51,15 +52,15 @@ public class LocalDiffCache extends DiffCache {
     LocalDiffCache(DocumentNodeStoreBuilder<?> builder) {
         this.diffCache = builder.buildLocalDiffCache();
         this.diffCacheStats = new CacheStats(diffCache,
-                "Document-LocalDiff",
-                builder.getWeigher(), builder.getLocalDiffCacheSize());
+            "Document-LocalDiff",
+            builder.getWeigher(), builder.getLocalDiffCacheSize());
     }
 
     @Override
     public String getChanges(@NotNull RevisionVector from,
-                             @NotNull RevisionVector to,
-                             @NotNull Path path,
-                             @Nullable Loader loader) {
+        @NotNull RevisionVector to,
+        @NotNull Path path,
+        @Nullable Loader loader) {
         RevisionsKey key = new RevisionsKey(from, to);
         Diff diff = diffCache.getIfPresent(key);
         if (diff != null) {
@@ -75,14 +76,15 @@ public class LocalDiffCache extends DiffCache {
     @NotNull
     @Override
     public Entry newEntry(final @NotNull RevisionVector from,
-                          final @NotNull RevisionVector to,
-                          boolean local /*ignored*/) {
+        final @NotNull RevisionVector to,
+        boolean local /*ignored*/) {
         return new Entry() {
             private final Map<Path, String> changesPerPath = Maps.newHashMap();
             private long size;
+
             @Override
             public void append(@NotNull Path path, @NotNull String changes) {
-                if (exceedsSize()){
+                if (exceedsSize()) {
                     return;
                 }
                 size += path.getMemory() + size(changes);
@@ -91,16 +93,16 @@ public class LocalDiffCache extends DiffCache {
 
             @Override
             public boolean done() {
-                if (exceedsSize()){
+                if (exceedsSize()) {
                     return false;
                 }
                 diffCache.put(new RevisionsKey(from, to),
-                        new Diff(changesPerPath, size));
+                    new Diff(changesPerPath, size));
                 LOG.debug("Adding cache entry from {} to {}", from, to);
                 return true;
             }
 
-            private boolean exceedsSize(){
+            private boolean exceedsSize() {
                 return size > MAX_ENTRY_SIZE;
             }
         };
@@ -149,7 +151,7 @@ public class LocalDiffCache extends DiffCache {
             return new Diff(map, 0);
         }
 
-        public String asString(){
+        public String asString() {
             JsopBuilder builder = new JsopBuilder();
             for (Map.Entry<Path, String> entry : changes.entrySet()) {
                 builder.key(entry.getKey().toString());
@@ -166,7 +168,7 @@ public class LocalDiffCache extends DiffCache {
         public int getMemory() {
             if (memory == 0) {
                 long m = 0;
-                for (Map.Entry<Path, String> e : changes.entrySet()){
+                for (Map.Entry<Path, String> e : changes.entrySet()) {
                     m += e.getKey().getMemory() + size(e.getValue());
                 }
                 memory = m;
@@ -201,7 +203,7 @@ public class LocalDiffCache extends DiffCache {
         }
     }
 
-    private static long size(String s){
+    private static long size(String s) {
         return StringValue.getMemory(s);
     }
 }

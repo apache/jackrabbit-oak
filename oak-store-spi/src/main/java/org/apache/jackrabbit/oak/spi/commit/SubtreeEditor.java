@@ -23,8 +23,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Editor wrapper that passes only changes in the specified subtree to
- * the given delegate editor.
+ * Editor wrapper that passes only changes in the specified subtree to the given delegate editor.
  *
  * @since Oak 0.7
  */
@@ -57,18 +56,21 @@ public class SubtreeEditor extends DefaultEditor {
         }
     }
 
-    @Override @Nullable
+    @Override
+    @Nullable
     public Editor childNodeAdded(String name, NodeState after) {
         return descend(name);
     }
 
-    @Override @Nullable
+    @Override
+    @Nullable
     public Editor childNodeChanged(
-            String name, NodeState before, NodeState after) {
+        String name, NodeState before, NodeState after) {
         return descend(name);
     }
 
-    @Override @Nullable
+    @Override
+    @Nullable
     public Editor childNodeDeleted(String name, NodeState before) {
         return descend(name);
     }

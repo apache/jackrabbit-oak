@@ -16,10 +16,16 @@
  */
 package org.apache.jackrabbit.oak.run;
 
-import org.apache.jackrabbit.guava.common.base.Joiner;
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.io.Closer;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreHelper.createVersionGC;
+import static org.apache.jackrabbit.oak.plugins.document.FormatVersion.versionOf;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getRootDocument;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.timestampToString;
+import static org.apache.jackrabbit.oak.run.Utils.asCloseable;
+import static org.apache.jackrabbit.oak.run.Utils.createDocumentMKBuilder;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.LoggerContext;
 import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
@@ -32,11 +38,10 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
-
-import ch.qos.logback.classic.Level;
-import ch.qos.logback.classic.LoggerContext;
 import joptsimple.OptionSpec;
-
+import org.apache.jackrabbit.guava.common.base.Joiner;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.commons.TimeDurationFormatter;
 import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfoDocument;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
@@ -46,23 +51,15 @@ import org.apache.jackrabbit.oak.plugins.document.FormatVersion;
 import org.apache.jackrabbit.oak.plugins.document.MissingLastRevSeeker;
 import org.apache.jackrabbit.oak.plugins.document.RevisionContextWrapper;
 import org.apache.jackrabbit.oak.plugins.document.SweepHelper;
+import org.apache.jackrabbit.oak.plugins.document.VersionGCOptions;
 import org.apache.jackrabbit.oak.plugins.document.VersionGCSupport;
+import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCInfo;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 import org.apache.jackrabbit.oak.run.commons.Command;
-import org.apache.jackrabbit.oak.plugins.document.VersionGCOptions;
-import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreHelper.createVersionGC;
-import static org.apache.jackrabbit.oak.plugins.document.FormatVersion.versionOf;
-import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getRootDocument;
-import static org.apache.jackrabbit.oak.plugins.document.util.Utils.timestampToString;
-import static org.apache.jackrabbit.oak.run.Utils.asCloseable;
-import static org.apache.jackrabbit.oak.run.Utils.createDocumentMKBuilder;
 
 /**
  * Gives information about current node revisions state.
@@ -72,18 +69,18 @@ public class RevisionsCommand implements Command {
     private static final Logger LOG = LoggerFactory.getLogger(RevisionsCommand.class);
 
     private static final String USAGE = Joiner.on(System.lineSeparator()).join(
-            "revisions {<jdbc-uri> | <mongodb-uri>} <sub-command> [options]",
-            "where sub-command is one of",
-            "  info     give information about the revisions state without performing",
-            "           any modifications",
-            "  collect  perform garbage collection",
-            "  reset    clear all persisted metadata",
-            "  sweep    clean up uncommitted changes"
+        "revisions {<jdbc-uri> | <mongodb-uri>} <sub-command> [options]",
+        "where sub-command is one of",
+        "  info     give information about the revisions state without performing",
+        "           any modifications",
+        "  collect  perform garbage collection",
+        "  reset    clear all persisted metadata",
+        "  sweep    clean up uncommitted changes"
     );
 
     private static final ImmutableList<String> LOGGER_NAMES = ImmutableList.of(
-            "org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector",
-            "org.apache.jackrabbit.oak.plugins.document.NodeDocumentSweeper"
+        "org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector",
+        "org.apache.jackrabbit.oak.plugins.document.NodeDocumentSweeper"
     );
 
     private static class RevisionsOptions extends Utils.NodeStoreOptions {
@@ -105,21 +102,21 @@ public class RevisionsCommand implements Command {
             super(usage);
             once = parser.accepts("once", "only 1 iteration");
             limit = parser
-                    .accepts("limit", "collect at most limit documents").withRequiredArg()
-                    .ofType(Integer.class).defaultsTo(-1);
+                .accepts("limit", "collect at most limit documents").withRequiredArg()
+                .ofType(Integer.class).defaultsTo(-1);
             olderThan = parser
-                    .accepts("olderThan", "collect only docs older than n seconds").withRequiredArg()
-                    .ofType(Long.class).defaultsTo(TimeUnit.DAYS.toSeconds(1));
+                .accepts("olderThan", "collect only docs older than n seconds").withRequiredArg()
+                .ofType(Long.class).defaultsTo(TimeUnit.DAYS.toSeconds(1));
             delay = parser
-                    .accepts("delay", "introduce delays to reduce impact on system").withRequiredArg()
-                    .ofType(Double.class).defaultsTo(0.0);
+                .accepts("delay", "introduce delays to reduce impact on system").withRequiredArg()
+                .ofType(Double.class).defaultsTo(0.0);
             timeLimit = parser
-                    .accepts("timeLimit", "cancel garbage collection after n seconds").withRequiredArg()
-                    .ofType(Long.class).defaultsTo(-1L);
+                .accepts("timeLimit", "cancel garbage collection after n seconds").withRequiredArg()
+                .ofType(Long.class).defaultsTo(-1L);
             continuous = parser
-                    .accepts("continuous", "run continuously (collect only)");
+                .accepts("continuous", "run continuously (collect only)");
             verbose = parser
-                    .accepts("verbose", "print INFO messages to the console");
+                .accepts("verbose", "print INFO messages to the console");
         }
 
         public RevisionsOptions parse(String[] args) {
@@ -202,8 +199,8 @@ public class RevisionsCommand implements Command {
     }
 
     private VersionGarbageCollector bootstrapVGC(RevisionsOptions options,
-                                                 Closer closer)
-            throws IOException {
+        Closer closer)
+        throws IOException {
         DocumentNodeStoreBuilder<?> builder = createDocumentMKBuilder(options, closer);
         if (builder == null) {
             System.err.println("revisions mode only available for DocumentNodeStore");
@@ -215,8 +212,8 @@ public class RevisionsCommand implements Command {
         FormatVersion version = versionOf(gcSupport.getDocumentStore());
         if (!DocumentNodeStore.VERSION.equals(version)) {
             System.err.println("Incompatible versions. This oak-run is " +
-                    DocumentNodeStore.VERSION + ", while the store is " +
-                    version);
+                DocumentNodeStore.VERSION + ", while the store is " +
+                version);
             System.exit(1);
         }
         // set it read-only before the DocumentNodeStore is created
@@ -241,29 +238,29 @@ public class RevisionsCommand implements Command {
     }
 
     private void info(RevisionsOptions options, Closer closer)
-            throws IOException {
+        throws IOException {
         VersionGarbageCollector gc = bootstrapVGC(options, closer);
         System.out.println("retrieving gc info");
         VersionGCInfo info = gc.getInfo(options.getOlderThan(), SECONDS);
 
         System.out.printf(Locale.US, "%21s  %s%n", "Last Successful Run:",
-                info.lastSuccess > 0? fmtTimestamp(info.lastSuccess) : "<unknown>");
+            info.lastSuccess > 0 ? fmtTimestamp(info.lastSuccess) : "<unknown>");
         System.out.printf(Locale.US, "%21s  %s%n", "Oldest Revision:",
-                fmtTimestamp(info.oldestRevisionEstimate));
+            fmtTimestamp(info.oldestRevisionEstimate));
         System.out.printf(Locale.US, "%21s  %d%n", "Delete Candidates:",
-                info.revisionsCandidateCount);
+            info.revisionsCandidateCount);
         System.out.printf(Locale.US, "%21s  %d%n", "Collect Limit:",
-                info.collectLimit);
+            info.collectLimit);
         System.out.printf(Locale.US, "%21s  %s%n", "Collect Interval:",
-                fmtDuration(info.recommendedCleanupInterval));
+            fmtDuration(info.recommendedCleanupInterval));
         System.out.printf(Locale.US, "%21s  %s%n", "Collect Before:",
-                fmtTimestamp(info.recommendedCleanupTimestamp));
+            fmtTimestamp(info.recommendedCleanupTimestamp));
         System.out.printf(Locale.US, "%21s  %d%n", "Iterations Estimate:",
-                info.estimatedIterations);
+            info.estimatedIterations);
     }
 
     private void collect(final RevisionsOptions options, Closer closer)
-            throws IOException {
+        throws IOException {
         VersionGarbageCollector gc = bootstrapVGC(options, closer);
         ExecutorService executor = Executors.newSingleThreadExecutor();
         final Semaphore finished = new Semaphore(0);
@@ -296,8 +293,8 @@ public class RevisionsCommand implements Command {
     }
 
     private void collectOnce(VersionGarbageCollector gc,
-                             RevisionsOptions options,
-                             ExecutorService executor) throws IOException {
+        RevisionsOptions options,
+        ExecutorService executor) throws IOException {
         long started = System.currentTimeMillis();
         System.out.println("starting gc collect");
         Future<VersionGCStats> f = executor.submit(new Callable<VersionGCStats>() {
@@ -348,18 +345,18 @@ public class RevisionsCommand implements Command {
     }
 
     private void reset(RevisionsOptions options, Closer closer)
-            throws IOException {
+        throws IOException {
         VersionGarbageCollector gc = bootstrapVGC(options, closer);
         System.out.println("resetting recommendations and statistics");
         gc.reset();
     }
 
     private void sweep(RevisionsOptions options, Closer closer)
-            throws IOException {
+        throws IOException {
         int clusterId = options.getClusterId();
         if (clusterId <= 0) {
             System.err.println("clusterId option is required for " +
-                    RevisionsOptions.CMD_SWEEP + " command");
+                RevisionsOptions.CMD_SWEEP + " command");
             return;
         }
         DocumentNodeStoreBuilder<?> builder = createDocumentMKBuilder(options, closer);
@@ -376,14 +373,14 @@ public class RevisionsCommand implements Command {
         for (ClusterNodeInfoDocument doc : ClusterNodeInfoDocument.all(store)) {
             if (doc.getClusterId() == clusterId && doc.isActive()) {
                 System.err.println("cannot sweep revisions for active " +
-                        "clusterId " + clusterId);
+                    "clusterId " + clusterId);
                 return;
             }
         }
         // the root document must have a _lastRev entry for the clusterId
         if (!getRootDocument(store).getLastRev().containsKey(clusterId)) {
             System.err.println("store does not have changes with " +
-                    "clusterId " + clusterId);
+                "clusterId " + clusterId);
             return;
         }
         builder.setReadOnlyMode();

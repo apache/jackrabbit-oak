@@ -17,10 +17,9 @@
 package org.apache.jackrabbit.oak.commons.json;
 
 /**
- * A builder for Json and Json diff strings. It knows when a comma is needed. A
- * comma is appended before '{', '[', a value, or a key; but only if the last
- * appended token was '}', ']', or a value. There is no limit to the number of
- * nesting levels.
+ * A builder for Json and Json diff strings. It knows when a comma is needed. A comma is appended
+ * before '{', '[', a value, or a key; but only if the last appended token was '}', ']', or a value.
+ * There is no limit to the number of nesting levels.
  */
 public interface JsopWriter {
 
@@ -39,8 +38,7 @@ public interface JsopWriter {
     JsopWriter object();
 
     /**
-     * Append the key (in quotes) plus a colon. A comma is appended first if
-     * needed.
+     * Append the key (in quotes) plus a colon. A comma is appended first if needed.
      *
      * @param key the key
      * @return this
@@ -102,8 +100,7 @@ public interface JsopWriter {
     JsopWriter value(long x);
 
     /**
-     * Append the boolean value 'true' or 'false'. A comma is appended first if
-     * needed.
+     * Append the boolean value 'true' or 'false'. A comma is appended first if needed.
      *
      * @param b the value
      * @return this
@@ -123,8 +120,7 @@ public interface JsopWriter {
     void resetWriter();
 
     /**
-     * Set the line length, after which a newline is added (to improve
-     * readability).
+     * Set the line length, after which a newline is added (to improve readability).
      *
      * @param length the length
      */

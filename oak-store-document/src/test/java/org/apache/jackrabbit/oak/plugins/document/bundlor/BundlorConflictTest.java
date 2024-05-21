@@ -54,20 +54,20 @@ public class BundlorConflictTest {
     public void setUpBundlor() throws CommitFailedException {
 
         store1 = builderProvider
-                .newBuilder()
-                .setDocumentStore(ds)
-                .memoryCacheSize(0)
-                .setClusterId(1)
-                .setAsyncDelay(0)
-                .getNodeStore();
+            .newBuilder()
+            .setDocumentStore(ds)
+            .memoryCacheSize(0)
+            .setClusterId(1)
+            .setAsyncDelay(0)
+            .getNodeStore();
 
         store2 = builderProvider
-                .newBuilder()
-                .setDocumentStore(ds)
-                .memoryCacheSize(0)
-                .setClusterId(2)
-                .setAsyncDelay(0)
-                .getNodeStore();
+            .newBuilder()
+            .setDocumentStore(ds)
+            .memoryCacheSize(0)
+            .setClusterId(2)
+            .setAsyncDelay(0)
+            .getNodeStore();
 
         NodeBuilder builder = store1.getRoot().builder();
         NodeBuilder prevState = builder.child("oldState");
@@ -80,14 +80,14 @@ public class BundlorConflictTest {
         merge(store1, builder);
 
         NodeState registryState = BundledTypesRegistry.builder()
-                .forType("nt:file", "jcr:content")
-                .registry()
-                .forType("app:Asset")
-                .include("jcr:content")
-                .include("jcr:content/metadata")
-                .include("jcr:content/renditions")
-                .include("jcr:content/renditions/**")
-                .build();
+                                                      .forType("nt:file", "jcr:content")
+                                                      .registry()
+                                                      .forType("app:Asset")
+                                                      .include("jcr:content")
+                                                      .include("jcr:content/metadata")
+                                                      .include("jcr:content/renditions")
+                                                      .include("jcr:content/renditions/**")
+                                                      .build();
 
         builder = store1.getRoot().builder();
         builder.child("jcr:system").child("documentstore").setChildNode("bundlor", registryState);
@@ -100,7 +100,8 @@ public class BundlorConflictTest {
     public void simpleConflict() throws Exception {
         NodeBuilder root = store1.getRoot().builder();
 
-        getRendBuilder(createAsset(root, "foo")).getChildNode("rend-orig").setProperty("meta", "orig");
+        getRendBuilder(createAsset(root, "foo")).getChildNode("rend-orig")
+                                                .setProperty("meta", "orig");
         merge(store1, root);
 
         syncStores();
@@ -124,7 +125,7 @@ public class BundlorConflictTest {
 
         NodeBuilder builder = store1.getRoot().builder();
         createFile(builder.child("test"), "book.jpg")
-                .child("jcr:content").setProperty("jcr:data", "test");
+            .child("jcr:content").setProperty("jcr:data", "test");
         merge(store1, builder);
 
         syncStores();
@@ -151,7 +152,7 @@ public class BundlorConflictTest {
 
         NodeBuilder builder = store1.getRoot().builder();
         createFile(builder.child("test"), "book.jpg")
-                .child("jcr:content").setProperty("jcr:data", "test");
+            .child("jcr:content").setProperty("jcr:data", "test");
         merge(store1, builder);
 
         syncStores();
@@ -178,7 +179,7 @@ public class BundlorConflictTest {
 
         NodeBuilder builder = store1.getRoot().builder();
         createFile(builder.child("test"), "book.jpg")
-                .child("jcr:content").setProperty("jcr:data", "test");
+            .child("jcr:content").setProperty("jcr:data", "test");
         merge(store1, builder);
 
         syncStores();
@@ -205,7 +206,7 @@ public class BundlorConflictTest {
 
         NodeBuilder builder = store1.getRoot().builder();
         createFile(builder.child("test"), "book.jpg")
-                .child("jcr:content").setProperty("jcr:data", "test");
+            .child("jcr:content").setProperty("jcr:data", "test");
         merge(store1, builder);
 
         syncStores();
@@ -232,7 +233,7 @@ public class BundlorConflictTest {
 
         NodeBuilder builder = store1.getRoot().builder();
         createFile(builder.child("test"), "book.jpg")
-                .child("jcr:content").setProperty("jcr:data", "test");
+            .child("jcr:content").setProperty("jcr:data", "test");
         merge(store1, builder);
 
         syncStores();
@@ -253,8 +254,8 @@ public class BundlorConflictTest {
     }
 
     private static void merge(NodeStore store,
-                              NodeBuilder root)
-            throws CommitFailedException {
+        NodeBuilder root)
+        throws CommitFailedException {
         store.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 

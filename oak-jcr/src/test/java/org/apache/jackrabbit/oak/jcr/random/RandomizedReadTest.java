@@ -19,19 +19,17 @@ package org.apache.jackrabbit.oak.jcr.random;
 
 import java.security.Principal;
 import java.util.Random;
-
 import javax.jcr.Node;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.Session;
 import javax.jcr.security.AccessControlEntry;
 import javax.jcr.security.AccessControlList;
 import javax.jcr.security.AccessControlManager;
-
-import org.apache.jackrabbit.guava.common.collect.HashBasedTable;
-import org.apache.jackrabbit.guava.common.collect.Table;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
+import org.apache.jackrabbit.guava.common.collect.HashBasedTable;
+import org.apache.jackrabbit.guava.common.collect.Table;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.junit.Assert;
 import org.junit.Test;
@@ -40,6 +38,7 @@ public class RandomizedReadTest extends AbstractRandomizedTest {
 
     private static final int depth = 4;
     private static final Table<Integer, Integer, String> tree = HashBasedTable.create();
+
     static {
         tree.put(0, 0, "/");
         tree.put(1, 0, "/n1");
@@ -70,7 +69,8 @@ public class RandomizedReadTest extends AbstractRandomizedTest {
             Principal principal = getTestPrincipal(session);
             AccessControlManager acm = session.getAccessControlManager();
             JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acm, "/");
-            acl.addEntry(principal, AccessControlUtils.privilegesFromNames(acm, PrivilegeConstants.JCR_READ), true);
+            acl.addEntry(principal,
+                AccessControlUtils.privilegesFromNames(acm, PrivilegeConstants.JCR_READ), true);
             acm.setPolicy("/", acl);
 
             session.save();
@@ -175,12 +175,14 @@ public class RandomizedReadTest extends AbstractRandomizedTest {
         }
     }
 
-    private void setupPermissions(int principalIndex, String path, boolean allow, String... privilegeNames) throws Exception {
+    private void setupPermissions(int principalIndex, String path, boolean allow,
+        String... privilegeNames) throws Exception {
         for (JackrabbitSession session : writeSessions) {
             Principal principal = getPrincipal(session, principalIndex);
             AccessControlManager acm = session.getAccessControlManager();
             JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acm, path);
-            acl.addEntry(principal, AccessControlUtils.privilegesFromNames(acm, privilegeNames), allow);
+            acl.addEntry(principal, AccessControlUtils.privilegesFromNames(acm, privilegeNames),
+                allow);
             acm.setPolicy(path, acl);
             session.save();
         }

@@ -20,7 +20,6 @@
 package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
 import java.io.IOException;
-
 import org.jetbrains.annotations.NotNull;
 
 public interface TextWriter {

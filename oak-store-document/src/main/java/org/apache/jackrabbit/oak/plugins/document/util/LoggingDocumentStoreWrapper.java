@@ -19,15 +19,14 @@ package org.apache.jackrabbit.oak.plugins.document.util;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
-
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
-import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import org.apache.jackrabbit.oak.plugins.document.Throttler;
+import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -40,7 +39,8 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
 
     private static final Logger LOG = LoggerFactory.getLogger(LoggingDocumentStoreWrapper.class);
 
-    private static final boolean DEBUG = Boolean.parseBoolean(System.getProperty("ds.debug", "true"));
+    private static final boolean DEBUG = Boolean.parseBoolean(
+        System.getProperty("ds.debug", "true"));
 
     private String logPrefix = "ds";
 
@@ -68,7 +68,7 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
 
     @Override
     public <T extends Document> T find(final Collection<T> collection,
-                                       final String key) {
+        final String key) {
         try {
             logMethod("find", collection, key);
             return logResult(new Callable<T>() {
@@ -85,8 +85,8 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
 
     @Override
     public <T extends Document> T find(final Collection<T> collection,
-                                       final String key,
-                                       final int maxCacheAge) {
+        final String key,
+        final int maxCacheAge) {
         try {
             logMethod("find", collection, key, maxCacheAge);
             return logResult(new Callable<T>() {
@@ -104,9 +104,9 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
     @NotNull
     @Override
     public <T extends Document> List<T> query(final Collection<T> collection,
-                                final String fromKey,
-                                final String toKey,
-                                final int limit) {
+        final String fromKey,
+        final String toKey,
+        final int limit) {
         try {
             logMethod("query", collection, fromKey, toKey, limit);
             return logResult(new Callable<List<T>>() {
@@ -124,17 +124,18 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
     @Override
     @NotNull
     public <T extends Document> List<T> query(final Collection<T> collection,
-                                final String fromKey,
-                                final String toKey,
-                                final String indexedProperty,
-                                final long startValue,
-                                final int limit) {
+        final String fromKey,
+        final String toKey,
+        final String indexedProperty,
+        final long startValue,
+        final int limit) {
         try {
             logMethod("query", collection, fromKey, toKey, indexedProperty, startValue, limit);
             return logResult(new Callable<List<T>>() {
                 @Override
                 public List<T> call() throws Exception {
-                    return store.query(collection, fromKey, toKey, indexedProperty, startValue, limit);
+                    return store.query(collection, fromKey, toKey, indexedProperty, startValue,
+                        limit);
                 }
             });
         } catch (Exception e) {
@@ -145,12 +146,16 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
 
     @Override
     @NotNull
-    public <T extends Document> List<T> query(final Collection<T> collection, final String fromKey, final String toKey,
-                                              final String indexedProperty, final long startValue, final int limit,
-                                              final List<String> projection) throws DocumentStoreException {
+    public <T extends Document> List<T> query(final Collection<T> collection, final String fromKey,
+        final String toKey,
+        final String indexedProperty, final long startValue, final int limit,
+        final List<String> projection) throws DocumentStoreException {
         try {
-            logMethod("query", collection, fromKey, toKey, indexedProperty, startValue, limit, projection.toString());
-            return logResult(() -> store.query(collection, fromKey, toKey, indexedProperty, startValue, limit, projection));
+            logMethod("query", collection, fromKey, toKey, indexedProperty, startValue, limit,
+                projection.toString());
+            return logResult(
+                () -> store.query(collection, fromKey, toKey, indexedProperty, startValue, limit,
+                    projection));
         } catch (Exception e) {
             logException(e);
             throw convert(e);
@@ -181,7 +186,7 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
 
     @Override
     public <T extends Document> int remove(final Collection<T> collection,
-                                           final Map<String, Long> toRemove) {
+        final Map<String, Long> toRemove) {
         try {
             logMethod("remove", collection, toRemove);
             return logResult(new Callable<Integer>() {
@@ -198,8 +203,8 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
 
     @Override
     public <T extends Document> int remove(final Collection<T> collection,
-                                           final String indexedProperty, final long startValue, final long endValue)
-            throws DocumentStoreException {
+        final String indexedProperty, final long startValue, final long endValue)
+        throws DocumentStoreException {
         try {
             logMethod("remove", collection, indexedProperty, startValue, endValue);
             return logResult(new Callable<Integer>() {
@@ -216,7 +221,7 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
 
     @Override
     public <T extends Document> boolean create(final Collection<T> collection,
-                                               final List<UpdateOp> updateOps) {
+        final List<UpdateOp> updateOps) {
         try {
             logMethod("create", collection, updateOps);
             return logResult(new Callable<Boolean>() {
@@ -233,7 +238,7 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
 
     @Override
     public <T extends Document> T createOrUpdate(final Collection<T> collection,
-                                                 final UpdateOp update) {
+        final UpdateOp update) {
         try {
             logMethod("createOrUpdate", collection, update);
             return logResult(new Callable<T>() {
@@ -250,7 +255,7 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
 
     @Override
     public <T extends Document> List<T> createOrUpdate(final Collection<T> collection,
-                                                       final List<UpdateOp> updateOps) {
+        final List<UpdateOp> updateOps) {
         try {
             logMethod("createOrUpdate", collection, updateOps);
             return logResult(new Callable<List<T>>() {
@@ -267,7 +272,7 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
 
     @Override
     public <T extends Document> T findAndUpdate(final Collection<T> collection,
-                                                final UpdateOp update) {
+        final UpdateOp update) {
         try {
             logMethod("findAndUpdate", collection, update);
             return logResult(new Callable<T>() {
@@ -283,7 +288,8 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
     }
 
     @Override
-    public <T extends Document> List<T> findAndUpdate(@NotNull Collection<T> collection, @NotNull List<UpdateOp> updateOps) {
+    public <T extends Document> List<T> findAndUpdate(@NotNull Collection<T> collection,
+        @NotNull List<UpdateOp> updateOps) {
         try {
             logMethod("findAndUpdate", collection, updateOps);
             return logResult(() -> store.findAndUpdate(collection, updateOps));
@@ -303,7 +309,7 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
             throw convert(e);
         }
     }
-    
+
     @Override
     public CacheInvalidationStats invalidateCache(Iterable<String> keys) {
         try {
@@ -339,7 +345,7 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
 
     @Override
     public <T extends Document> T getIfCached(final Collection<T> collection,
-                                              final String key) {
+        final String key) {
         try {
             logMethod("getIfCached", collection, key);
             return logResult(new Callable<T>() {
@@ -416,8 +422,7 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
     }
 
     /**
-     * Return the {@link Throttler} for the underlying store
-     * Default is no throttling
+     * Return the {@link Throttler} for the underlying store Default is no throttling
      *
      * @return throttler for document store
      */

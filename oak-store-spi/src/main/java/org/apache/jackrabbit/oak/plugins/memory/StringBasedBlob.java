@@ -20,15 +20,14 @@ package org.apache.jackrabbit.oak.plugins.memory;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-
 import org.apache.jackrabbit.guava.common.base.Charsets;
-
 import org.jetbrains.annotations.NotNull;
 
 /**
  * This {@code Blob} implementations is based on a string.
  */
 public class StringBasedBlob extends AbstractBlob {
+
     private final String value;
 
     public StringBasedBlob(String value) {
@@ -41,8 +40,7 @@ public class StringBasedBlob extends AbstractBlob {
     }
 
     /**
-     * This implementation returns the bytes of the UTF-8 encoding
-     * of the underlying string.
+     * This implementation returns the bytes of the UTF-8 encoding of the underlying string.
      */
     @NotNull
     @Override
@@ -51,8 +49,8 @@ public class StringBasedBlob extends AbstractBlob {
     }
 
     /**
-     * This implementation returns the number of bytes in the UTF-8 encoding
-     * of the underlying string.
+     * This implementation returns the number of bytes in the UTF-8 encoding of the underlying
+     * string.
      */
     @Override
     public long length() {

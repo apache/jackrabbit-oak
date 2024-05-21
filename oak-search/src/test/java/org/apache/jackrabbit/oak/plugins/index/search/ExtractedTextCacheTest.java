@@ -19,19 +19,6 @@
 
 package org.apache.jackrabbit.oak.plugins.index.search;
 
-import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.oak.api.Blob;
-import org.apache.jackrabbit.oak.plugins.index.fulltext.ExtractedText;
-import org.apache.jackrabbit.oak.plugins.index.fulltext.ExtractedText.ExtractionResult;
-import org.apache.jackrabbit.oak.plugins.index.fulltext.PreExtractedTextProvider;
-import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
-import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexEditor;
-import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
-import org.junit.Test;
-
-import java.util.concurrent.Callable;
-import java.util.concurrent.TimeoutException;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -42,6 +29,17 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+
+import java.util.concurrent.Callable;
+import java.util.concurrent.TimeoutException;
+import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.plugins.index.fulltext.ExtractedText;
+import org.apache.jackrabbit.oak.plugins.index.fulltext.ExtractedText.ExtractionResult;
+import org.apache.jackrabbit.oak.plugins.index.fulltext.PreExtractedTextProvider;
+import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexEditor;
+import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
+import org.junit.Test;
 
 public class ExtractedTextCacheTest {
 
@@ -95,7 +93,7 @@ public class ExtractedTextCacheTest {
     }
 
     @Test
-    public void preExtractionNoReindexNoProvider() throws Exception{
+    public void preExtractionNoReindexNoProvider() throws Exception {
         ExtractedTextCache cache = new ExtractedTextCache(10 * FileUtils.ONE_MB, 100);
 
         Blob b = new IdBlob("hello", "a");
@@ -104,7 +102,7 @@ public class ExtractedTextCacheTest {
     }
 
     @Test
-    public void preExtractionNoReindex() throws Exception{
+    public void preExtractionNoReindex() throws Exception {
         ExtractedTextCache cache = new ExtractedTextCache(10 * FileUtils.ONE_MB, 100);
         PreExtractedTextProvider provider = mock(PreExtractedTextProvider.class);
 
@@ -117,7 +115,7 @@ public class ExtractedTextCacheTest {
     }
 
     @Test
-    public void preExtractionReindex() throws Exception{
+    public void preExtractionReindex() throws Exception {
         ExtractedTextCache cache = new ExtractedTextCache(10 * FileUtils.ONE_MB, 100);
         PreExtractedTextProvider provider = mock(PreExtractedTextProvider.class);
 
@@ -130,7 +128,7 @@ public class ExtractedTextCacheTest {
     }
 
     @Test
-    public void preExtractionAlwaysUse() throws Exception{
+    public void preExtractionAlwaysUse() throws Exception {
         ExtractedTextCache cache = new ExtractedTextCache(10 * FileUtils.ONE_MB, 100, true, null);
         PreExtractedTextProvider provider = mock(PreExtractedTextProvider.class);
 
@@ -143,7 +141,7 @@ public class ExtractedTextCacheTest {
     }
 
     @Test
-    public void rememberTimeout() throws Exception{
+    public void rememberTimeout() throws Exception {
         ExtractedTextCache cache = new ExtractedTextCache(0, 0, false, null);
         Blob b = new IdBlob("hello", "a");
         cache.put(b, ExtractedText.ERROR);
@@ -199,6 +197,7 @@ public class ExtractedTextCacheTest {
     }
 
     private static class IdBlob extends ArrayBasedBlob {
+
         final String id;
 
         public IdBlob(String value, String id) {

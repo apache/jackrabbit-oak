@@ -18,35 +18,30 @@ package org.apache.jackrabbit.api.security.user;
 
 import java.security.Principal;
 import java.util.Iterator;
-
 import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.Value;
-
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ProviderType;
 
 /**
- * The Authorizable is the common base interface for {@link User} and
- * {@link Group}. It provides access to the <code>Principal</code>s associated
- * with an <code>Authorizable</code> (see below) and allow to access and
- * modify additional properties such as e.g. full name, e-mail or address.
+ * The Authorizable is the common base interface for {@link User} and {@link Group}. It provides
+ * access to the <code>Principal</code>s associated with an <code>Authorizable</code> (see below)
+ * and allow to access and modify additional properties such as e.g. full name, e-mail or address.
  * <p>
  * Please note the difference between <code>Authorizable</code> and
- * {@link java.security.Principal Principal}:<br>
- * An <code>Authorizable</code> is repository object that is neither associated
- * with nor depending from a particular <code>Session</code> and thus independent
- * of the login mechanisms creating <code>Session</code>s.<br>
+ * {@link java.security.Principal Principal}:<br> An <code>Authorizable</code> is repository object
+ * that is neither associated with nor depending from a particular <code>Session</code> and thus
+ * independent of the login mechanisms creating <code>Session</code>s.<br>
  * <p>
- * On the other hand <code>Principal</code>s are representations of user
- * identities. In other words: each <code>Principal</code> within the set
- * associated with the Session's Subject upon login represents an identity for
- * that user. An the set of <code>Principal</code>s may differ between different
- * login mechanisms.<br>
+ * On the other hand <code>Principal</code>s are representations of user identities. In other words:
+ * each <code>Principal</code> within the set associated with the Session's Subject upon login
+ * represents an identity for that user. An the set of <code>Principal</code>s may differ between
+ * different login mechanisms.<br>
  * <p>
- * Consequently an one-to-many relationship exists between Authorizable
- * and Principal (see also {@link #getPrincipal()}.
+ * Consequently an one-to-many relationship exists between Authorizable and Principal (see also
+ * {@link #getPrincipal()}.
  * <p>
  * The interfaces derived from Authorizable are defined as follows:
  * <ul>
@@ -93,42 +88,39 @@ public interface Authorizable {
     Iterator<Group> declaredMemberOf() throws RepositoryException;
 
     /**
-     * @return all {@link Group}s, this Authorizable is member of included
-     *         indirect group membership.
+     * @return all {@link Group}s, this Authorizable is member of included indirect group
+     * membership.
      * @throws RepositoryException If an error occurs.
      */
     @NotNull
     Iterator<Group> memberOf() throws RepositoryException;
 
     /**
-     * Removes this <code>Authorizable</code>, if the session has sufficient
-     * permissions. Note, that removing an <code>Authorizable</code> even
-     * if it listed as member of a Group or if still has members (this is
-     * a Group itself).
+     * Removes this <code>Authorizable</code>, if the session has sufficient permissions. Note, that
+     * removing an <code>Authorizable</code> even if it listed as member of a Group or if still has
+     * members (this is a Group itself).
      *
      * @throws RepositoryException If an error occurred and the
-     * <code>Authorizable</code> could not be removed.
+     *                             <code>Authorizable</code> could not be removed.
      */
     void remove() throws RepositoryException;
 
     /**
-     * Returns the names of properties present with <code>this</code>
-     * Authorizable not taking possible relative paths into consideration.
-     * Same as {@link #getPropertyNames(String)} where the specified string
-     * is &quot;.&quot;.
+     * Returns the names of properties present with <code>this</code> Authorizable not taking
+     * possible relative paths into consideration. Same as {@link #getPropertyNames(String)} where
+     * the specified string is &quot;.&quot;.
      *
      * @return names of properties.
      * @throws RepositoryException If an error occurs.
-     * @see #getProperty(String) where the specified relative path is simply an
-     * name.
+     * @see #getProperty(String) where the specified relative path is simply an name.
      * @see #hasProperty(String)
      */
     @NotNull
     Iterator<String> getPropertyNames() throws RepositoryException;
 
     /**
-     * Returns the names of properties present with <code>this</code>
-     * Authorizable at the specified relative path.
+     * Returns the names of properties present with <code>this</code> Authorizable at the specified
+     * relative path.
      *
      * @param relPath A relative path.
      * @return names of properties.
@@ -153,7 +145,7 @@ public interface Authorizable {
      * Set an arbitrary property to this <code>Authorizable</code>.
      *
      * @param relPath The relative path of the property to be added or modified.
-     * @param value The desired value.
+     * @param value   The desired value.
      * @throws RepositoryException If the specified property could not be set.
      */
     void setProperty(@NotNull String relPath, @Nullable Value value) throws RepositoryException;
@@ -162,7 +154,7 @@ public interface Authorizable {
      * Set an arbitrary property to this <code>Authorizable</code>.
      *
      * @param relPath The relative path of the property to be added or modified.
-     * @param value The desired property values.
+     * @param value   The desired property values.
      * @throws RepositoryException If the specified property could not be set.
      */
     void setProperty(@NotNull String relPath, @Nullable Value[] value) throws RepositoryException;
@@ -172,8 +164,8 @@ public interface Authorizable {
      * <code>null</code>.
      *
      * @param relPath Relative path of the property to be retrieved.
-     * @return value of the property with the given name or <code>null</code>
-     *         if no such property exists.
+     * @return value of the property with the given name or <code>null</code> if no such property
+     * exists.
      * @throws RepositoryException If an error occurs.
      */
     @Nullable
@@ -183,30 +175,30 @@ public interface Authorizable {
      * Removes the property with the given name.
      *
      * @param relPath Relative path (or name) of the property to be removed.
-     * @return true If the property at the specified relPath was successfully
-     *         removed; false if no such property was present.
+     * @return true If the property at the specified relPath was successfully removed; false if no
+     * such property was present.
      * @throws RepositoryException If an error occurs.
      */
     boolean removeProperty(@NotNull String relPath) throws RepositoryException;
 
     /**
-     * Returns a JCR path if this authorizable instance is associated with an
-     * item that can be accessed by the editing <code>Session</code>.
+     * Returns a JCR path if this authorizable instance is associated with an item that can be
+     * accessed by the editing <code>Session</code>.
      * <p>
-     * Throws <code>UnsupportedRepositoryOperationException</code> if this
-     * method is not supported or if there is no item associated with this
-     * authorizable that is accessible by the editing <code>Session</code>.
+     * Throws <code>UnsupportedRepositoryOperationException</code> if this method is not supported
+     * or if there is no item associated with this authorizable that is accessible by the editing
+     * <code>Session</code>.
      * <p>
-     * Throws <code>RepositoryException</code> if another error occurs while
-     * retrieving the path.
+     * Throws <code>RepositoryException</code> if another error occurs while retrieving the path.
      *
      * @return the path of the {@link javax.jcr.Item} that corresponds to this
      * <code>Authorizable</code>.
-     * @throws UnsupportedRepositoryOperationException If this method is not
-     * supported or if there exists no accessible item associated with this
-     * <code>Authorizable</code> instance.
-     * @throws RepositoryException If an error occurs while retrieving the
-     * <code>Item</code> path.
+     * @throws UnsupportedRepositoryOperationException If this method is not supported or if there
+     *                                                 exists no accessible item associated with
+     *                                                 this
+     *                                                 <code>Authorizable</code> instance.
+     * @throws RepositoryException                     If an error occurs while retrieving the
+     *                                                 <code>Item</code> path.
      */
     @NotNull
     String getPath() throws UnsupportedRepositoryOperationException, RepositoryException;

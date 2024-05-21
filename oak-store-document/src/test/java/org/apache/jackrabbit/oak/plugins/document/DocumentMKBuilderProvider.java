@@ -24,35 +24,34 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * The <tt>DocumentMkBuilderProvider</tt> is a JUnit <tt>@Rule</tt> which
- * automatically disposes created <tt>DocumentNodeStore</tt> instances
- * 
+ * The <tt>DocumentMkBuilderProvider</tt> is a JUnit <tt>@Rule</tt> which automatically disposes
+ * created <tt>DocumentNodeStore</tt> instances
+ *
  * <p>Usage samples are below</p>
- * 
- *  <p>Before:</p>
- *  
- *  <pre>
+ *
+ * <p>Before:</p>
+ *
+ * <pre>
  *  @Test public void someTest() {
  *      DocumentNodeStore = new DocumentMK.Builder().getNodeStore();
  *  }</pre>
- *  
- *  <p>After:</p>
- *  
- *  <pre>
+ *
+ * <p>After:</p>
+ *
+ * <pre>
  *  @Rule
-    public DocumentMkBuilderProvider builderProvider = new DocumentMkBuilderProvider();
- *  
+ * public DocumentMkBuilderProvider builderProvider = new DocumentMkBuilderProvider();
+ *
  *  @Test public void someTest() {
  *      DocumentNodeStore = builderProvider.newBuilder().getNodeStore();
  *  }</pre>
- *
  */
 public class DocumentMKBuilderProvider extends ExternalResource {
 
     private static final Logger LOG = LoggerFactory.getLogger(DocumentMKBuilderProvider.class);
 
     private List<DocumentNodeStore> nodeStores = new ArrayList<>();
-    
+
     @Override
     protected void after() {
         for (DocumentNodeStore ns : nodeStores) {
@@ -67,9 +66,9 @@ public class DocumentMKBuilderProvider extends ExternalResource {
     public DocumentMK.Builder newBuilder() {
         return new DisposingDocumentMKBuilder();
     }
-    
+
     private class DisposingDocumentMKBuilder extends DocumentMK.Builder {
-        
+
         @Override
         public DocumentNodeStore getNodeStore() {
             DocumentNodeStore ns = super.getNodeStore();

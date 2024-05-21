@@ -23,9 +23,7 @@ import java.io.InputStream;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Properties;
-
 import javax.jcr.Repository;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.core.RepositoryImpl;
 import org.apache.jackrabbit.core.config.RepositoryConfig;
@@ -57,21 +55,21 @@ public class JackrabbitRepositoryFixture implements RepositoryFixture {
 
             Properties variables = new Properties(System.getProperties());
             variables.setProperty(
-                    REPOSITORY_HOME_VARIABLE, directory.getPath());
+                REPOSITORY_HOME_VARIABLE, directory.getPath());
             variables.setProperty(
-                    "bundleCacheSize", Integer.toString(bundleCacheSize));
+                "bundleCacheSize", Integer.toString(bundleCacheSize));
             InputStream xml = getClass().getResourceAsStream("repository.xml");
             RepositoryConfig config = RepositoryConfig.create(
-                    new InputSource(xml), variables);
+                new InputSource(xml), variables);
 
             // Prevent Derby from polluting the current directory
             System.setProperty(
-                    "derby.stream.error.file",
-                    new File(directory, "derby.log").getPath());
+                "derby.stream.error.file",
+                new File(directory, "derby.log").getPath());
 
             RepositoryImpl repository = RepositoryImpl.create(config);
-            this.cluster = new RepositoryImpl[] { repository };
-            return new Repository[] { repository };
+            this.cluster = new RepositoryImpl[]{repository};
+            return new Repository[]{repository};
         } else {
             throw new UnsupportedOperationException("TODO");
         }

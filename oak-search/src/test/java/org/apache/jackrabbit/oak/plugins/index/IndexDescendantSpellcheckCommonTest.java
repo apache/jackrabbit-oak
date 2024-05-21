@@ -16,24 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
-import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.api.JackrabbitSession;
-import org.apache.jackrabbit.commons.JcrUtils;
-import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
-import org.apache.jackrabbit.oak.plugins.index.search.IndexFormatVersion;
-import org.apache.jackrabbit.oak.query.AbstractJcrTest;
-import org.junit.Test;
-
-import javax.jcr.Node;
-import javax.jcr.query.Query;
-import javax.jcr.query.QueryManager;
-import javax.jcr.query.QueryResult;
-import javax.jcr.query.RowIterator;
-import java.util.Set;
-
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
+import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
@@ -45,7 +30,22 @@ import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConsta
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NT_OAK_UNSTRUCTURED;
 import static org.junit.Assert.assertEquals;
 
+import java.util.Set;
+import javax.jcr.Node;
+import javax.jcr.query.Query;
+import javax.jcr.query.QueryManager;
+import javax.jcr.query.QueryResult;
+import javax.jcr.query.RowIterator;
+import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.api.JackrabbitSession;
+import org.apache.jackrabbit.commons.JcrUtils;
+import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexFormatVersion;
+import org.apache.jackrabbit.oak.query.AbstractJcrTest;
+import org.junit.Test;
+
 public abstract class IndexDescendantSpellcheckCommonTest extends AbstractJcrTest {
+
     protected TestRepository repositoryOptionsUtil;
     protected Node indexNode;
     protected IndexOptions indexOptions;
@@ -105,10 +105,11 @@ public abstract class IndexDescendantSpellcheckCommonTest extends AbstractJcrTes
         subChild.addNode("test6", NT_OAK_UNSTRUCTURED);
     }
 
-    private void createSuggestIndex(Node rootNode, String name, String indexedNodeType, String indexedPropertyName)
-            throws Exception {
+    private void createSuggestIndex(Node rootNode, String name, String indexedNodeType,
+        String indexedPropertyName)
+        throws Exception {
         Node def = JcrUtils.getOrAddNode(rootNode, INDEX_DEFINITIONS_NAME)
-                .addNode(name, INDEX_DEFINITIONS_NODE_TYPE);
+                           .addNode(name, INDEX_DEFINITIONS_NODE_TYPE);
         def.setProperty(TYPE_PROPERTY_NAME, indexOptions.getIndexType());
         def.setProperty(REINDEX_PROPERTY_NAME, true);
         def.setProperty("name", name);
@@ -116,18 +117,20 @@ public abstract class IndexDescendantSpellcheckCommonTest extends AbstractJcrTes
         def.setProperty(EVALUATE_PATH_RESTRICTION, true);
 
         Node propertyIdxDef = def.addNode(INDEX_RULES, JcrConstants.NT_UNSTRUCTURED)
-                .addNode(indexedNodeType, JcrConstants.NT_UNSTRUCTURED)
-                .addNode(FulltextIndexConstants.PROP_NODE, JcrConstants.NT_UNSTRUCTURED)
-                .addNode("indexedProperty", JcrConstants.NT_UNSTRUCTURED);
+                                 .addNode(indexedNodeType, JcrConstants.NT_UNSTRUCTURED)
+                                 .addNode(FulltextIndexConstants.PROP_NODE,
+                                     JcrConstants.NT_UNSTRUCTURED)
+                                 .addNode("indexedProperty", JcrConstants.NT_UNSTRUCTURED);
         propertyIdxDef.setProperty("analyzed", true);
         propertyIdxDef.setProperty(PROP_USE_IN_SPELLCHECK, true);
         propertyIdxDef.setProperty("name", indexedPropertyName);
     }
 
     private String createSpellcheckQuery(String nodeTypeName, String suggestFor, String rootPath) {
-        return "SELECT [rep:spellcheck()] as spellcheck, [jcr:score] as score  FROM [" + nodeTypeName + "]" +
-                " WHERE spellcheck('" + suggestFor + "')" +
-                (rootPath == null ? "" : " AND ISDESCENDANTNODE([" + rootPath + "])");
+        return "SELECT [rep:spellcheck()] as spellcheck, [jcr:score] as score  FROM ["
+            + nodeTypeName + "]" +
+            " WHERE spellcheck('" + suggestFor + "')" +
+            (rootPath == null ? "" : " AND ISDESCENDANTNODE([" + rootPath + "])");
 
     }
 
@@ -159,16 +162,16 @@ public abstract class IndexDescendantSpellcheckCommonTest extends AbstractJcrTes
     @Test
     public void noDescendantSuggestsAll() {
         validateSpellchecks(
-                createSpellcheckQuery(NT_OAK_UNSTRUCTURED, "taste", null),
-                newHashSet("test1", "test2", "test3", "test4", "test5", "test6"));
+            createSpellcheckQuery(NT_OAK_UNSTRUCTURED, "taste", null),
+            newHashSet("test1", "test2", "test3", "test4", "test5", "test6"));
     }
 
     //OAK-3994
     @Test
     public void rootIndexWithDescendantConstraint() {
         validateSpellchecks(
-                createSpellcheckQuery(NT_OAK_UNSTRUCTURED, "taste", "/content1"),
-                newHashSet("test2", "test3"));
+            createSpellcheckQuery(NT_OAK_UNSTRUCTURED, "taste", "/content1"),
+            newHashSet("test2", "test3"));
     }
 
     @Test
@@ -180,24 +183,24 @@ public abstract class IndexDescendantSpellcheckCommonTest extends AbstractJcrTes
 
         //Without path restriction indexing, descendant clause shouldn't be respected
         validateSpellchecks(
-                createSpellcheckQuery(NT_OAK_UNSTRUCTURED, "taste", "/content1"),
-                newHashSet("test1", "test2", "test3", "test4", "test5", "test6"));
+            createSpellcheckQuery(NT_OAK_UNSTRUCTURED, "taste", "/content1"),
+            newHashSet("test1", "test2", "test3", "test4", "test5", "test6"));
     }
 
     //OAK-3994
     @Test
     public void unambiguousSubtreeIndexWithDescendantConstraint() {
         validateSpellchecks(
-                createSpellcheckQuery(NT_BASE, "taste", "/content3"),
-                newHashSet("test5", "test6"));
+            createSpellcheckQuery(NT_BASE, "taste", "/content3"),
+            newHashSet("test5", "test6"));
     }
 
     //OAK-3994
     @Test
     public void unambiguousSubtreeIndexWithSubDescendantConstraint() {
         validateSpellchecks(
-                createSpellcheckQuery(NT_BASE, "taste", "/content3/sC"),
-                newHashSet("test6"));
+            createSpellcheckQuery(NT_BASE, "taste", "/content3/sC"),
+            newHashSet("test6"));
     }
 
     private static void assertEventually(Runnable r) {

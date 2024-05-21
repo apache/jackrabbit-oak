@@ -22,7 +22,6 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
-
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,13 +31,15 @@ public class ElasticIndexUtils {
     private static final Logger LOG = LoggerFactory.getLogger(ElasticIndexUtils.class);
 
     /**
-     * Transforms a path into an _id compatible with Elasticsearch specification. The path cannot be larger than 512
-     * bytes. For performance reasons paths that are already compatible are returned untouched. Otherwise, SHA-256
-     * algorithm is used to return a transformed path (32 bytes max).
+     * Transforms a path into an _id compatible with Elasticsearch specification. The path cannot be
+     * larger than 512 bytes. For performance reasons paths that are already compatible are returned
+     * untouched. Otherwise, SHA-256 algorithm is used to return a transformed path (32 bytes max).
      *
      * @param path the document path
      * @return the Elasticsearch compatible path
-     * @see <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping-id-field.html">Mapping _id field</a>
+     * @see <a
+     * href="https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping-id-field.html">Mapping
+     * _id field</a>
      */
     public static String idFromPath(@NotNull String path) {
         byte[] pathBytes = path.getBytes(StandardCharsets.UTF_8);
@@ -54,6 +55,7 @@ public class ElasticIndexUtils {
 
     /**
      * Converts a given byte array (of doubles) to a list of doubles
+     *
      * @param array given byte array
      * @return list of doubles
      */
@@ -74,6 +76,7 @@ public class ElasticIndexUtils {
 
     /**
      * Converts a given list of double values into a byte array
+     *
      * @param values given list of doubles
      * @return byte array
      */

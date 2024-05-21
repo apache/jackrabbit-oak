@@ -20,10 +20,8 @@ import java.security.Principal;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
-
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.Subject;
-
 import org.apache.jackrabbit.guava.common.base.MoreObjects;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.AuthInfo;
@@ -36,19 +34,20 @@ import org.jetbrains.annotations.Nullable;
 public final class AuthInfoImpl implements AuthInfo {
 
     private final String userID;
-    private final Map<String,?> attributes;
+    private final Map<String, ?> attributes;
     private final Set<Principal> principals;
 
     public AuthInfoImpl(@Nullable String userID, @Nullable Map<String, ?> attributes,
-                        @Nullable Set<? extends Principal> principals) {
+        @Nullable Set<? extends Principal> principals) {
         this(userID, attributes, (Iterable) principals);
     }
 
     public AuthInfoImpl(@Nullable String userID, @Nullable Map<String, ?> attributes,
-                        @Nullable Iterable<? extends Principal> principals) {
+        @Nullable Iterable<? extends Principal> principals) {
         this.userID = userID;
         this.attributes = (attributes == null) ? Collections.emptyMap() : attributes;
-        this.principals = (principals == null) ? Collections.emptySet() : ImmutableSet.copyOf(principals);
+        this.principals =
+            (principals == null) ? Collections.emptySet() : ImmutableSet.copyOf(principals);
     }
 
     public static AuthInfo createFromSubject(@NotNull Subject subject) {
@@ -65,9 +64,9 @@ public final class AuthInfoImpl implements AuthInfo {
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-            .add("userID", userID)
-            .add("attributes", attributes)
-            .add("principals", principals).toString();
+                          .add("userID", userID)
+                          .add("attributes", attributes)
+                          .add("principals", principals).toString();
     }
 
     //-----------------------------------------------------------< AuthInfo >---

@@ -16,8 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import java.util.concurrent.TimeUnit;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
+import java.util.concurrent.TimeUnit;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -26,12 +27,10 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-
 /**
- * A commit hook that measures the time it took to process the commit. This
- * hook only reports timing for successfully processed commits. Those that fail
- * with a {@link CommitFailedException} are not reported.
+ * A commit hook that measures the time it took to process the commit. This hook only reports timing
+ * for successfully processed commits. Those that fail with a {@link CommitFailedException} are not
+ * reported.
  */
 class TimingHook implements CommitHook {
 
@@ -45,16 +44,16 @@ class TimingHook implements CommitHook {
     }
 
     private TimingHook(@NotNull CommitHook hook,
-                       @NotNull Listener listener) {
+        @NotNull Listener listener) {
         this.hook = checkNotNull(hook);
         this.listener = checkNotNull(listener);
     }
 
     @Override
     public @NotNull NodeState processCommit(NodeState before,
-                                            NodeState after,
-                                            CommitInfo info)
-            throws CommitFailedException {
+        NodeState after,
+        CommitInfo info)
+        throws CommitFailedException {
         long start = System.nanoTime();
         NodeState state = hook.processCommit(before, after, info);
         processed(System.nanoTime() - start);

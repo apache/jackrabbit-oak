@@ -21,41 +21,43 @@ package org.apache.jackrabbit.oak.scalability.benchmarks.search;
 import javax.jcr.RepositoryException;
 import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
-
 import org.apache.jackrabbit.oak.benchmark.util.MimeType;
-import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
-import org.apache.jackrabbit.oak.scalability.suites.ScalabilityBlobSearchSuite;
 import org.apache.jackrabbit.oak.scalability.suites.ScalabilityAbstractSuite.ExecutionContext;
+import org.apache.jackrabbit.oak.scalability.suites.ScalabilityBlobSearchSuite;
+import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 
 /**
- * Searches on the file format/Mime type 
- *
+ * Searches on the file format/Mime type
  */
 public class FormatSearcher extends SearchScalabilityBenchmark {
+
     @SuppressWarnings("deprecation")
     @Override
     protected Query getQuery(QueryManager qm, ExecutionContext context) throws RepositoryException {
         StringBuilder statement = new StringBuilder("/jcr:root/");
-        
-        statement.append(((String) context.getMap().get(ScalabilityBlobSearchSuite.CTX_ROOT_NODE_NAME_PROP))).append("//element(*, ")
-            .append(context.getMap().get(ScalabilityBlobSearchSuite.CTX_FILE_NODE_TYPE_PROP)).append(")");
+
+        statement.append(
+                     ((String) context.getMap().get(ScalabilityBlobSearchSuite.CTX_ROOT_NODE_NAME_PROP)))
+                 .append("//element(*, ")
+                 .append(context.getMap().get(ScalabilityBlobSearchSuite.CTX_FILE_NODE_TYPE_PROP))
+                 .append(")");
         statement.append("[((");
-        
+
         // adding all the possible mime-types in an OR fashion
         for (MimeType mt : MimeType.values()) {
             statement.append("jcr:content/@").append(NodeTypeConstants.JCR_MIMETYPE).append(" = '")
-                .append(mt.getValue()).append("' or ");
+                     .append(mt.getValue()).append("' or ");
         }
 
         // removing latest ' or '
         statement.delete(statement.lastIndexOf(" or "), statement.length());
-        
+
         statement.append("))]");
-        
+
         LOG.debug("{}", statement);
-        
+
         return qm.createQuery(statement.toString(), Query.XPATH);
     }
-    
+
 }
 

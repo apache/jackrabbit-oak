@@ -22,7 +22,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
-
 import javax.jcr.AccessDeniedException;
 import javax.jcr.NodeIterator;
 import javax.jcr.ReferentialIntegrityException;
@@ -33,10 +32,9 @@ import javax.jcr.version.Version;
 import javax.jcr.version.VersionException;
 import javax.jcr.version.VersionHistory;
 import javax.jcr.version.VersionIterator;
-
-import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.commons.iterator.FrozenNodeIteratorAdapter;
 import org.apache.jackrabbit.commons.iterator.VersionIteratorAdapter;
+import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.oak.jcr.delegate.VersionDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.VersionHistoryDelegate;
 import org.apache.jackrabbit.oak.jcr.session.NodeImpl;
@@ -48,7 +46,7 @@ import org.jetbrains.annotations.NotNull;
  * {@code VersionHistoryImpl}...
  */
 public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
-        implements VersionHistory {
+    implements VersionHistory {
 
     public VersionHistoryImpl(VersionHistoryDelegate dlg, SessionContext sessionContext) {
         super(dlg, sessionContext);
@@ -88,12 +86,12 @@ public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
             @Override
             public VersionIterator perform() throws RepositoryException {
                 Iterator<Version> versions = transform(dlg.getAllLinearVersions(),
-                        new Function<VersionDelegate, Version>() {
-                            @Override
-                            public Version apply(VersionDelegate input) {
-                                return new VersionImpl(input, sessionContext);
-                            }
-                        });
+                    new Function<VersionDelegate, Version>() {
+                        @Override
+                        public Version apply(VersionDelegate input) {
+                            return new VersionImpl(input, sessionContext);
+                        }
+                    });
                 return new VersionIteratorAdapter(sessionDelegate.sync(versions));
             }
         });
@@ -106,12 +104,12 @@ public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
             @Override
             public VersionIterator perform() throws RepositoryException {
                 Iterator<Version> versions = transform(dlg.getAllVersions(),
-                        new Function<VersionDelegate, Version>() {
-                    @Override
-                    public Version apply(VersionDelegate input) {
-                        return new VersionImpl(input, sessionContext);
-                    }
-                });
+                    new Function<VersionDelegate, Version>() {
+                        @Override
+                        public Version apply(VersionDelegate input) {
+                            return new VersionImpl(input, sessionContext);
+                        }
+                    });
                 return new VersionIteratorAdapter(sessionDelegate.sync(versions));
             }
         });
@@ -129,7 +127,7 @@ public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
 
     @Override
     public Version getVersion(final String versionName)
-            throws VersionException, RepositoryException {
+        throws VersionException, RepositoryException {
         return perform(new SessionOperation<Version>("getVersion") {
             @NotNull
             @Override
@@ -141,7 +139,7 @@ public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
 
     @Override
     public Version getVersionByLabel(final String label)
-            throws VersionException, RepositoryException {
+        throws VersionException, RepositoryException {
         return perform(new SessionOperation<Version>("getVersionByLabel") {
             @NotNull
             @Override
@@ -154,10 +152,10 @@ public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
 
     @Override
     public void addVersionLabel(final String versionName,
-                                final String label,
-                                final boolean moveLabel)
-            throws LabelExistsVersionException, VersionException,
-            RepositoryException {
+        final String label,
+        final boolean moveLabel)
+        throws LabelExistsVersionException, VersionException,
+        RepositoryException {
         sessionDelegate.performVoid(new SessionOperation<Void>("addVersionLabel", true) {
             @Override
             public void performVoid() throws RepositoryException {
@@ -171,7 +169,7 @@ public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
 
     @Override
     public void removeVersionLabel(final String label)
-            throws VersionException, RepositoryException {
+        throws VersionException, RepositoryException {
         sessionDelegate.performVoid(new SessionOperation<Void>("removeVersionLabel", true) {
             @Override
             public void performVoid() throws RepositoryException {
@@ -188,7 +186,7 @@ public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
 
     @Override
     public boolean hasVersionLabel(Version version, String label)
-            throws VersionException, RepositoryException {
+        throws VersionException, RepositoryException {
         return Arrays.asList(getVersionLabels(version)).contains(label);
     }
 
@@ -209,10 +207,10 @@ public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
 
     @Override
     public String[] getVersionLabels(final Version version)
-            throws VersionException, RepositoryException {
+        throws VersionException, RepositoryException {
         if (!version.getContainingHistory().getPath().equals(getPath())) {
             throw new VersionException("Version is not contained in this " +
-                    "VersionHistory");
+                "VersionHistory");
         }
         return perform(new SessionOperation<String[]>("getVersionLabels") {
             @NotNull
@@ -229,9 +227,9 @@ public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
 
     @Override
     public void removeVersion(final String versionName)
-            throws ReferentialIntegrityException, AccessDeniedException,
-            UnsupportedRepositoryOperationException, VersionException,
-            RepositoryException {
+        throws ReferentialIntegrityException, AccessDeniedException,
+        UnsupportedRepositoryOperationException, VersionException,
+        RepositoryException {
 
         sessionDelegate.performVoid(new SessionOperation<Void>("removeVersion", true) {
             @Override

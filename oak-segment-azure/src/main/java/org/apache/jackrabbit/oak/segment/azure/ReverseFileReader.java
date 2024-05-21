@@ -16,18 +16,17 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
+import static java.lang.Math.min;
+
 import com.microsoft.azure.storage.OperationContext;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlob;
-
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-
-import static java.lang.Math.min;
 
 public class ReverseFileReader {
 
@@ -44,7 +43,7 @@ public class ReverseFileReader {
     private int fileOffset;
 
     public ReverseFileReader(CloudBlob blob) throws StorageException {
-        this (blob, BUFFER_SIZE);
+        this(blob, BUFFER_SIZE);
     }
 
     public ReverseFileReader(CloudBlob blob, int bufferSize) throws StorageException {
@@ -71,7 +70,8 @@ public class ReverseFileReader {
                 HashMap<String, String> userHeaders = new HashMap<>();
                 userHeaders.put("If-Match", "*");
                 opContext.setUserHeaders(userHeaders);
-                blob.downloadRangeToByteArray(fileOffset, Long.valueOf(buffer.length), buffer, 0, null, null, opContext);
+                blob.downloadRangeToByteArray(fileOffset, Long.valueOf(buffer.length), buffer, 0,
+                    null, null, opContext);
             } catch (StorageException e) {
                 throw new IOException(e);
             }
@@ -90,7 +90,8 @@ public class ReverseFileReader {
             }
         }
         // bufferOffset points either the previous '\n' character or -1
-        return new String(buffer, bufferOffset + 1, stop - bufferOffset - 1, Charset.defaultCharset());
+        return new String(buffer, bufferOffset + 1, stop - bufferOffset - 1,
+            Charset.defaultCharset());
     }
 
     public String readLine() throws IOException {

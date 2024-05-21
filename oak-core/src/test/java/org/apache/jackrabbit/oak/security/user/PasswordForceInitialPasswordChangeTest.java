@@ -16,6 +16,17 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.REP_PWD;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
+import java.util.UUID;
+import javax.jcr.RepositoryException;
+import javax.jcr.SimpleCredentials;
+import javax.security.auth.login.CredentialExpiredException;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -28,18 +39,6 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
-
-import javax.jcr.RepositoryException;
-import javax.jcr.SimpleCredentials;
-import javax.security.auth.login.CredentialExpiredException;
-import java.util.UUID;
-
-import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.REP_PWD;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 /**
  * @see <a href="https://issues.apache.org/jira/browse/OAK-1922">OAK-1922</a>

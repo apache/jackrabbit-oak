@@ -28,7 +28,8 @@ abstract class AbstractTreePermission implements TreePermission {
     final TreeType type;
     final CugPermissionProvider permissionProvider;
 
-    AbstractTreePermission(@NotNull Tree tree, @NotNull TreeType type, @NotNull CugPermissionProvider permissionProvider) {
+    AbstractTreePermission(@NotNull Tree tree, @NotNull TreeType type,
+        @NotNull CugPermissionProvider permissionProvider) {
         this.tree = tree;
         this.type = type;
         this.permissionProvider = permissionProvider;
@@ -36,7 +37,8 @@ abstract class AbstractTreePermission implements TreePermission {
 
     @NotNull
     @Override
-    public TreePermission getChildPermission(@NotNull String childName, @NotNull NodeState childState) {
+    public TreePermission getChildPermission(@NotNull String childName,
+        @NotNull NodeState childState) {
         return permissionProvider.getTreePermission(tree, type, childName, childState, this);
     }
 }

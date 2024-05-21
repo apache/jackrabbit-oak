@@ -16,33 +16,30 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.credentials;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import javax.jcr.Credentials;
-import javax.jcr.SimpleCredentials;
-
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-import org.junit.Test;
-
+import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import javax.jcr.Credentials;
+import javax.jcr.SimpleCredentials;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.junit.Test;
 
 public class CompositeCredentialsSupportTest {
 
     private final TestCredentialsSupport tcs = new TestCredentialsSupport();
 
     private final CredentialsSupport credentialsSupport = CompositeCredentialsSupport
-            .newInstance(() -> newHashSet(SimpleCredentialsSupport.getInstance(), tcs));
+        .newInstance(() -> newHashSet(SimpleCredentialsSupport.getInstance(), tcs));
 
     @Test
     public void testGetCredentialClasses() {
@@ -55,9 +52,11 @@ public class CompositeCredentialsSupportTest {
 
     @Test
     public void testGetUserId() {
-        assertEquals("Test1CredentialsSupport", credentialsSupport.getUserId(new TestCredentials()));
+        assertEquals("Test1CredentialsSupport",
+            credentialsSupport.getUserId(new TestCredentials()));
         assertNull(credentialsSupport.getUserId(new SimpleCredentials(null, new char[0])));
-        assertEquals("uid", credentialsSupport.getUserId(new SimpleCredentials("uid", new char[0])));
+        assertEquals("uid",
+            credentialsSupport.getUserId(new SimpleCredentials("uid", new char[0])));
         assertNull(credentialsSupport.getUserId(new Credentials() {
         }));
     }
@@ -73,7 +72,8 @@ public class CompositeCredentialsSupportTest {
         assertNotNull(attributes);
         assertTrue(attributes.isEmpty());
 
-        Map<String, ?> expected = ImmutableMap.of("a", "a", "b", Boolean.TRUE, "c", new TestCredentials());
+        Map<String, ?> expected = ImmutableMap.of("a", "a", "b", Boolean.TRUE, "c",
+            new TestCredentials());
         expected.forEach((key, value) -> sc.setAttribute(key, value));
 
         attributes = credentialsSupport.getAttributes(sc);
@@ -101,7 +101,8 @@ public class CompositeCredentialsSupportTest {
         assertNotNull(attributesD);
         assertTrue(attributesD.isEmpty());
 
-        Map<String, ?> expectedS = ImmutableMap.of("a", "a", "b", Boolean.TRUE, "c", new TestCredentials());
+        Map<String, ?> expectedS = ImmutableMap.of("a", "a", "b", Boolean.TRUE, "c",
+            new TestCredentials());
         assertTrue(credentialsSupport.setAttributes(sc, expectedS));
 
         Map<String, ?> expectedT = ImmutableMap.of("test", "Test1CredentialsSupport");
@@ -132,17 +133,21 @@ public class CompositeCredentialsSupportTest {
 
     @Test
     public void testSingleValued() {
-        CredentialsSupport cs = CompositeCredentialsSupport.newInstance(() -> newHashSet(SimpleCredentialsSupport.getInstance()));
+        CredentialsSupport cs = CompositeCredentialsSupport.newInstance(
+            () -> newHashSet(SimpleCredentialsSupport.getInstance()));
 
-        assertEquals(SimpleCredentialsSupport.getInstance().getCredentialClasses(), cs.getCredentialClasses());
+        assertEquals(SimpleCredentialsSupport.getInstance().getCredentialClasses(),
+            cs.getCredentialClasses());
         assertTrue(cs.getAttributes(new TestCredentials()).isEmpty());
 
         SimpleCredentials creds = new SimpleCredentials("userid", new char[0]);
         creds.setAttribute("attr", "value");
-        assertEquals(SimpleCredentialsSupport.getInstance().getAttributes(creds), cs.getAttributes(creds));
+        assertEquals(SimpleCredentialsSupport.getInstance().getAttributes(creds),
+            cs.getAttributes(creds));
     }
 
     private static final class TestCredentials implements Credentials {
+
     }
 
     private static final class TestCredentialsSupport implements CredentialsSupport {
@@ -176,7 +181,8 @@ public class CompositeCredentialsSupportTest {
         }
 
         @Override
-        public boolean setAttributes(@NotNull Credentials credentials, @NotNull Map<String, ?> attributes) {
+        public boolean setAttributes(@NotNull Credentials credentials,
+            @NotNull Map<String, ?> attributes) {
             if (credentials instanceof TestCredentials) {
                 this.attributes.putAll(attributes);
                 return true;

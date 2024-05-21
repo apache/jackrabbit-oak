@@ -32,23 +32,25 @@ import org.osgi.service.metatype.annotations.Designate;
 import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 
 /**
- * Extension of the default {@link org.apache.jackrabbit.oak.spi.security.authorization.cug.CugExclude}
- * implementation that allow to specify additional principal names to be excluded
- * from CUG evaluation.
+ * Extension of the default
+ * {@link org.apache.jackrabbit.oak.spi.security.authorization.cug.CugExclude} implementation that
+ * allow to specify additional principal names to be excluded from CUG evaluation.
  */
 @Component(service = CugExclude.class, immediate = true)
 @Designate(ocd = CugExcludeImpl.Configuration.class)
 public class CugExcludeImpl extends CugExclude.Default {
 
     @ObjectClassDefinition(name = "Apache Jackrabbit Oak CUG Exclude List",
-            description = "Exclude principal(s) from CUG evaluation. In addition to the " +
-            "principals defined by the default CugExclude ('AdminPrincipal', 'SystemPrincipal', 'SystemUserPrincipal' classes), " +
+        description = "Exclude principal(s) from CUG evaluation. In addition to the " +
+            "principals defined by the default CugExclude ('AdminPrincipal', 'SystemPrincipal', 'SystemUserPrincipal' classes), "
+            +
             "this component allows to optionally configure additional principals by name.")
     @interface Configuration {
+
         @AttributeDefinition(
-                name = "Principal Names",
-                description = "Name(s) of additional principal(s) that are excluded from CUG evaluation.",
-                cardinality = Integer.MAX_VALUE)
+            name = "Principal Names",
+            description = "Name(s) of additional principal(s) that are excluded from CUG evaluation.",
+            cardinality = Integer.MAX_VALUE)
         String[] principalNames() default {};
     }
 
@@ -80,6 +82,7 @@ public class CugExcludeImpl extends CugExclude.Default {
     }
 
     private void setPrincipalNames(@NotNull Map<String, Object> properties) {
-        this.principalNames = ImmutableSet.copyOf(PropertiesUtil.toStringArray(properties.get("principalNames"), new String[0]));
+        this.principalNames = ImmutableSet.copyOf(
+            PropertiesUtil.toStringArray(properties.get("principalNames"), new String[0]));
     }
 }

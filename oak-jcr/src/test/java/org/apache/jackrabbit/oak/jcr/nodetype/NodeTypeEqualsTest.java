@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.jcr.nodetype;
 
 import javax.jcr.nodetype.NodeType;
-
 import org.apache.jackrabbit.test.AbstractJCRTest;
 import org.junit.Assert;
 import org.junit.Test;
@@ -29,6 +28,7 @@ public class NodeTypeEqualsTest extends AbstractJCRTest {
 
     /**
      * Tests if 2 NodeType objects are equals if they refer to the same node type. OAK-1086.
+     *
      * @throws Exception
      */
     @Test

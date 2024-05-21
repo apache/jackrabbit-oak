@@ -25,9 +25,14 @@ import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.RETA
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.apache.jackrabbit.oak.spi.cluster.ClusterRepositoryInfo.getOrCreateId;
 
-import org.apache.jackrabbit.guava.common.io.Closer;
-
+import java.io.Closeable;
+import java.io.File;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import org.apache.jackrabbit.commons.SimpleValueFactory;
+import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.api.Descriptors;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.api.jmx.CheckpointMBean;
@@ -77,13 +82,6 @@ import org.osgi.framework.BundleContext;
 import org.osgi.framework.Constants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.Closeable;
-import java.io.File;
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 class SegmentNodeStoreRegistrar {
 
@@ -184,13 +182,16 @@ class SegmentNodeStoreRegistrar {
     }
 
     private SegmentNodeStore register() throws IOException {
-        if (cfg.getBlobStore() == null && (cfg.hasCustomBlobStore() || cfg.isSecondarySegmentStore())) {
-            cfg.getLogger().info("BlobStore enabled. SegmentNodeStore will be initialized once the blob store becomes available");
+        if (cfg.getBlobStore() == null && (cfg.hasCustomBlobStore()
+            || cfg.isSecondarySegmentStore())) {
+            cfg.getLogger().info(
+                "BlobStore enabled. SegmentNodeStore will be initialized once the blob store becomes available");
             return null;
         }
 
         if (cfg.getSegmentNodeStorePersistence() == null && cfg.hasCustomSegmentStore()) {
-            cfg.getLogger().info("customSegmentStore enabled. SegmentNodeStore will be initialized once the custom segment store becomes available");
+            cfg.getLogger().info(
+                "customSegmentStore enabled. SegmentNodeStore will be initialized once the custom segment store becomes available");
             return null;
         }
 
@@ -213,7 +214,8 @@ class SegmentNodeStoreRegistrar {
                 RETAINED_GENERATIONS_DEFAULT
             );
         }
-        SegmentGCOptions gcOptions = new SegmentGCOptions(cfg.getPauseCompaction(), cfg.getRetryCount(), cfg.getForceCompactionTimeout())
+        SegmentGCOptions gcOptions = new SegmentGCOptions(cfg.getPauseCompaction(),
+            cfg.getRetryCount(), cfg.getForceCompactionTimeout())
             .setGcSizeDeltaEstimation(cfg.getSizeDeltaEstimation())
             .setMemoryThreshold(cfg.getMemoryThreshold())
             .setEstimationDisabled(cfg.getDisableEstimation())
@@ -239,7 +241,8 @@ class SegmentNodeStoreRegistrar {
             .withGCOptions(gcOptions);
 
         if (cfg.hasCustomBlobStore() && cfg.getBlobStore() != null) {
-            cfg.getLogger().info("Initializing SegmentNodeStore with BlobStore [{}]", cfg.getBlobStore());
+            cfg.getLogger()
+               .info("Initializing SegmentNodeStore with BlobStore [{}]", cfg.getBlobStore());
             builder.withBlobStore(cfg.getBlobStore());
         }
 
@@ -247,18 +250,25 @@ class SegmentNodeStoreRegistrar {
             SegmentNodeStorePersistence customPersistence = cfg.getSegmentNodeStorePersistence();
 
             if (cfg.hasCachePersistence()) {
-                cfg.getLogger().info("Using persistent cache for the custom persistence [{}]", customPersistence);
-                customPersistence = new CachingPersistence(cfg.getPersistentCache(), customPersistence);
+                cfg.getLogger().info("Using persistent cache for the custom persistence [{}]",
+                    customPersistence);
+                customPersistence = new CachingPersistence(cfg.getPersistentCache(),
+                    customPersistence);
             }
 
             if (cfg.hasSplitPersistence()) {
-                cfg.getLogger().info("Initializing SegmentNodeStore with custom persistence [{}] and local writes", customPersistence);
+                cfg.getLogger().info(
+                    "Initializing SegmentNodeStore with custom persistence [{}] and local writes",
+                    customPersistence);
                 cfg.getSplitPersistenceDirectory().mkdirs();
-                SegmentNodeStorePersistence rwPersistence = new TarPersistence(cfg.getSplitPersistenceDirectory());
-                SegmentNodeStorePersistence persistence = new SplitPersistence(customPersistence, rwPersistence);
+                SegmentNodeStorePersistence rwPersistence = new TarPersistence(
+                    cfg.getSplitPersistenceDirectory());
+                SegmentNodeStorePersistence persistence = new SplitPersistence(customPersistence,
+                    rwPersistence);
                 builder.withCustomPersistence(persistence);
             } else {
-                cfg.getLogger().info("Initializing SegmentNodeStore with custom persistence [{}]", customPersistence);
+                cfg.getLogger().info("Initializing SegmentNodeStore with custom persistence [{}]",
+                    customPersistence);
                 builder.withCustomPersistence(customPersistence);
             }
         }
@@ -272,7 +282,9 @@ class SegmentNodeStoreRegistrar {
         try {
             store = builder.build();
         } catch (InvalidFileStoreVersionException e) {
-            cfg.getLogger().error("The storage format is not compatible with this version of Oak Segment Tar", e);
+            cfg.getLogger()
+               .error("The storage format is not compatible with this version of Oak Segment Tar",
+                   e);
             return null;
         }
         registerCloseable(store);
@@ -376,7 +388,8 @@ class SegmentNodeStoreRegistrar {
 
         // register segment node store
 
-        SegmentNodeStore.SegmentNodeStoreBuilder segmentNodeStoreBuilder = SegmentNodeStoreBuilders.builder(store).withStatisticsProvider(cfg.getStatisticsProvider());
+        SegmentNodeStore.SegmentNodeStoreBuilder segmentNodeStoreBuilder = SegmentNodeStoreBuilders.builder(
+            store).withStatisticsProvider(cfg.getStatisticsProvider());
         segmentNodeStoreBuilder.dispatchChanges(cfg.dispatchChanges());
 
         Logger log = LoggerFactory.getLogger(LoggingHook.class.getName() + ".writer");
@@ -413,11 +426,13 @@ class SegmentNodeStoreRegistrar {
             );
             registerCloseable(register(Descriptors.class, clusterIdDesc));
             // Register "discovery lite" descriptors
-            registerCloseable(register(Descriptors.class, new SegmentDiscoveryLiteDescriptors(segmentNodeStore)));
+            registerCloseable(
+                register(Descriptors.class, new SegmentDiscoveryLiteDescriptors(segmentNodeStore)));
         }
 
         // If a shared data store register the repo id in the data store
-        if (!cfg.isSecondarySegmentStore() && cfg.hasCustomBlobStore() && isShared(cfg.getBlobStore())) {
+        if (!cfg.isSecondarySegmentStore() && cfg.hasCustomBlobStore() && isShared(
+            cfg.getBlobStore())) {
             SharedDataStore sharedDataStore = (SharedDataStore) cfg.getBlobStore();
             try {
                 sharedDataStore.setRepositoryId(getOrCreateId(segmentNodeStore));
@@ -429,11 +444,14 @@ class SegmentNodeStoreRegistrar {
                 if (trackingStore.getTracker() != null) {
                     trackingStore.getTracker().close();
                 }
-                trackingStore.addTracker(BlobIdTracker.build(cfg.getRepositoryHome(), getOrCreateId(segmentNodeStore), cfg.getBlobSnapshotInterval(), sharedDataStore));
+                trackingStore.addTracker(
+                    BlobIdTracker.build(cfg.getRepositoryHome(), getOrCreateId(segmentNodeStore),
+                        cfg.getBlobSnapshotInterval(), sharedDataStore));
             }
         }
 
-        if (!cfg.isSecondarySegmentStore() && cfg.hasCustomBlobStore() && (cfg.getBlobStore() instanceof GarbageCollectableBlobStore)) {
+        if (!cfg.isSecondarySegmentStore() && cfg.hasCustomBlobStore()
+            && (cfg.getBlobStore() instanceof GarbageCollectableBlobStore)) {
             BlobGarbageCollector gc = new MarkSweepGarbageCollector(
                 new SegmentBlobReferenceRetriever(store),
                 (GarbageCollectableBlobStore) cfg.getBlobStore(),
@@ -494,7 +512,7 @@ class SegmentNodeStoreRegistrar {
         if (cfg.isPrimarySegmentStore()) {
             Map<String, Object> props = new HashMap<>();
             props.put(Constants.SERVICE_PID, SegmentNodeStore.class.getName());
-            props.put("oak.nodestore.description", new String[] {"nodeStoreType=segment"});
+            props.put("oak.nodestore.description", new String[]{"nodeStoreType=segment"});
             registerCloseable(register(NodeStore.class, segmentNodeStore, props));
         }
 
@@ -505,8 +523,10 @@ class SegmentNodeStoreRegistrar {
         return registerMBean(clazz, bean, type, name, new HashMap<>());
     }
 
-    private <T> Registration registerMBean(Class<T> clazz, T bean, String type, String name, Map<String, String> attributes) {
-        return WhiteboardUtils.registerMBean(cfg.getWhiteboard(), clazz, bean, type, maybeAppendRole(name), maybePutRoleAttribute(attributes));
+    private <T> Registration registerMBean(Class<T> clazz, T bean, String type, String name,
+        Map<String, String> attributes) {
+        return WhiteboardUtils.registerMBean(cfg.getWhiteboard(), clazz, bean, type,
+            maybeAppendRole(name), maybePutRoleAttribute(attributes));
     }
 
     private <T> Registration register(Class<T> clazz, T service) {

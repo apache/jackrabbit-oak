@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.security.authentication.token;
 
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
+
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -38,8 +40,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
 class TokenValidatorProvider extends ValidatorProvider implements TokenConstants {
 

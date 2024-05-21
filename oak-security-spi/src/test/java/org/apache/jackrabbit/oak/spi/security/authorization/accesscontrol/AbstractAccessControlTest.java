@@ -16,6 +16,13 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol;
 
+import static org.mockito.Mockito.mock;
+
+import java.security.Principal;
+import java.util.Set;
+import javax.jcr.RepositoryException;
+import javax.jcr.security.AccessControlException;
+import javax.jcr.security.Privilege;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -24,14 +31,6 @@ import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.jetbrains.annotations.NotNull;
-
-import javax.jcr.RepositoryException;
-import javax.jcr.security.AccessControlException;
-import javax.jcr.security.Privilege;
-import java.security.Principal;
-import java.util.Set;
-
-import static org.mockito.Mockito.mock;
 
 public abstract class AbstractAccessControlTest {
 
@@ -46,11 +45,12 @@ public abstract class AbstractAccessControlTest {
     protected NamePathMapper getNamePathMapper() {
         return NamePathMapper.DEFAULT;
     }
-    
+
     ACE createEntry(boolean isAllow, String... privilegeName)
-            throws RepositoryException {
+        throws RepositoryException {
         if (privilegeName.length == 1) {
-            return createEntry(testPrincipal, PrivilegeBits.BUILT_IN.get(privilegeName[0]), isAllow);
+            return createEntry(testPrincipal, PrivilegeBits.BUILT_IN.get(privilegeName[0]),
+                isAllow);
         } else {
             PrivilegeBits bits = PrivilegeBits.getInstance();
             for (String n : privilegeName) {
@@ -60,14 +60,16 @@ public abstract class AbstractAccessControlTest {
         }
     }
 
-    ACE createEntry(Principal principal, PrivilegeBits privilegeBits, boolean isAllow, Restriction... restrictions)
-            throws RepositoryException {
+    ACE createEntry(Principal principal, PrivilegeBits privilegeBits, boolean isAllow,
+        Restriction... restrictions)
+        throws RepositoryException {
         return new TestACE(principal, privilegeBits, isAllow, ImmutableSet.copyOf(restrictions));
     }
 
     private final class TestACE extends ACE {
 
-        private TestACE(Principal principal, PrivilegeBits privilegeBits, boolean isAllow, Set<Restriction> restrictions) throws AccessControlException {
+        private TestACE(Principal principal, PrivilegeBits privilegeBits, boolean isAllow,
+            Set<Restriction> restrictions) throws AccessControlException {
             super(principal, privilegeBits, isAllow, restrictions, getNamePathMapper());
         }
 

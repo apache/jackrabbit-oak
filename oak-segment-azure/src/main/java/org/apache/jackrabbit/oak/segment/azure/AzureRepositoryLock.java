@@ -24,16 +24,15 @@ import com.microsoft.azure.storage.StorageErrorCodeStrings;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.BlobRequestOptions;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
-import org.apache.jackrabbit.oak.segment.remote.WriteAccessController;
-import org.apache.jackrabbit.oak.segment.spi.persistence.RepositoryLock;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import org.apache.jackrabbit.oak.segment.remote.WriteAccessController;
+import org.apache.jackrabbit.oak.segment.spi.persistence.RepositoryLock;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class AzureRepositoryLock implements RepositoryLock {
 
@@ -49,7 +48,8 @@ public class AzureRepositoryLock implements RepositoryLock {
     private final int renewalInterval = Integer.getInteger(RENEWAL_INTERVAL_PROP, 5);
 
     public static final String TIME_TO_WAIT_BEFORE_WRITE_BLOCK_PROP = "oak.segment.azure.lock.blockWritesAfterInSec";
-    private final int timeToWaitBeforeWriteBlock = Integer.getInteger(TIME_TO_WAIT_BEFORE_WRITE_BLOCK_PROP, 20);
+    private final int timeToWaitBeforeWriteBlock = Integer.getInteger(
+        TIME_TO_WAIT_BEFORE_WRITE_BLOCK_PROP, 20);
 
     private final Runnable shutdownHook;
 
@@ -65,20 +65,25 @@ public class AzureRepositoryLock implements RepositoryLock {
 
     private volatile boolean doUpdate;
 
-    public AzureRepositoryLock(CloudBlockBlob blob, Runnable shutdownHook, WriteAccessController writeAccessController) {
+    public AzureRepositoryLock(CloudBlockBlob blob, Runnable shutdownHook,
+        WriteAccessController writeAccessController) {
         this(blob, shutdownHook, writeAccessController, TIMEOUT_SEC);
     }
 
-    public AzureRepositoryLock(CloudBlockBlob blob, Runnable shutdownHook, WriteAccessController writeAccessController, int timeoutSec) {
+    public AzureRepositoryLock(CloudBlockBlob blob, Runnable shutdownHook,
+        WriteAccessController writeAccessController, int timeoutSec) {
         this.shutdownHook = shutdownHook;
         this.blob = blob;
         this.executor = Executors.newSingleThreadExecutor();
         this.timeoutSec = timeoutSec;
         this.writeAccessController = writeAccessController;
 
-        if (leaseDuration < timeToWaitBeforeWriteBlock || timeToWaitBeforeWriteBlock < renewalInterval) {
-            throw new IllegalStateException(String.format("The value of %s must be greater than %s and the value of %s must be greater than %s",
-                    LEASE_DURATION_PROP, TIME_TO_WAIT_BEFORE_WRITE_BLOCK_PROP, TIME_TO_WAIT_BEFORE_WRITE_BLOCK_PROP, RENEWAL_INTERVAL_PROP));
+        if (leaseDuration < timeToWaitBeforeWriteBlock
+            || timeToWaitBeforeWriteBlock < renewalInterval) {
+            throw new IllegalStateException(String.format(
+                "The value of %s must be greater than %s and the value of %s must be greater than %s",
+                LEASE_DURATION_PROP, TIME_TO_WAIT_BEFORE_WRITE_BLOCK_PROP,
+                TIME_TO_WAIT_BEFORE_WRITE_BLOCK_PROP, RENEWAL_INTERVAL_PROP));
         }
     }
 
@@ -91,14 +96,16 @@ public class AzureRepositoryLock implements RepositoryLock {
 
                 log.info("{} = {}", LEASE_DURATION_PROP, leaseDuration);
                 log.info("{} = {}", RENEWAL_INTERVAL_PROP, renewalInterval);
-                log.info("{} = {}", TIME_TO_WAIT_BEFORE_WRITE_BLOCK_PROP, timeToWaitBeforeWriteBlock);
+                log.info("{} = {}", TIME_TO_WAIT_BEFORE_WRITE_BLOCK_PROP,
+                    timeToWaitBeforeWriteBlock);
 
                 leaseId = blob.acquireLease(leaseDuration, null);
                 writeAccessController.enableWriting();
                 log.info("Acquired lease {}", leaseId);
             } catch (StorageException | IOException e) {
                 if (ex == null) {
-                    log.info("Can't acquire the lease. Retrying every 1s. Timeout is set to {}s.", timeoutSec);
+                    log.info("Can't acquire the lease. Retrying every 1s. Timeout is set to {}s.",
+                        timeoutSec);
                 }
                 ex = e;
                 if ((System.currentTimeMillis() - start) / 1000 < timeoutSec) {
@@ -132,7 +139,8 @@ public class AzureRepositoryLock implements RepositoryLock {
                     BlobRequestOptions requestOptions = new BlobRequestOptions();
                     requestOptions.setMaximumExecutionTimeInMs(LEASE_RENEWAL_TIMEOUT_MS);
                     requestOptions.setRetryPolicyFactory(new RetryNoRetry());
-                    blob.renewLease(AccessCondition.generateLeaseCondition(leaseId), requestOptions, null);
+                    blob.renewLease(AccessCondition.generateLeaseCondition(leaseId), requestOptions,
+                        null);
 
                     writeAccessController.enableWriting();
                     lastUpdate = System.currentTimeMillis();
@@ -144,8 +152,12 @@ public class AzureRepositoryLock implements RepositoryLock {
                     writeAccessController.disableWriting();
                 }
 
-                if (Set.of(StorageErrorCodeStrings.OPERATION_TIMED_OUT, StorageErrorCode.SERVICE_INTERNAL_ERROR, StorageErrorCodeStrings.SERVER_BUSY, StorageErrorCodeStrings.INTERNAL_ERROR).contains(e.getErrorCode())) {
-                    log.warn("Could not renew the lease due to the operation timeout or service unavailability. Retry in progress ...", e);
+                if (Set.of(StorageErrorCodeStrings.OPERATION_TIMED_OUT,
+                    StorageErrorCode.SERVICE_INTERNAL_ERROR, StorageErrorCodeStrings.SERVER_BUSY,
+                    StorageErrorCodeStrings.INTERNAL_ERROR).contains(e.getErrorCode())) {
+                    log.warn(
+                        "Could not renew the lease due to the operation timeout or service unavailability. Retry in progress ...",
+                        e);
                 } else if (e.getHttpStatusCode() == Constants.HeaderConstants.HTTP_UNUSED_306) {
                     log.warn("Client side error. Retry in progress ...", e);
                 } else {

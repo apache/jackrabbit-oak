@@ -21,50 +21,57 @@ import static org.apache.jackrabbit.oak.segment.standby.StandbyTestUtils.createB
 import static org.apache.jackrabbit.oak.segment.standby.StandbyTestUtils.createMask;
 import static org.junit.Assert.assertEquals;
 
-import java.io.ByteArrayInputStream;
-
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.embedded.EmbeddedChannel;
 import io.netty.handler.stream.ChunkedWriteHandler;
+import java.io.ByteArrayInputStream;
 import org.junit.Test;
 
 public class GetBlobResponseEncoderTest {
 
     @Test
     public void shouldEncodeOneChunkResponse() throws Exception {
-        byte[] blobData = new byte[] {1, 2, 3};
+        byte[] blobData = new byte[]{1, 2, 3};
 
         String blobId = "blobId";
         byte mask = createMask(1, 1);
 
-        EmbeddedChannel channel = new EmbeddedChannel(new ChunkedWriteHandler(), new GetBlobResponseEncoder(3));
-        channel.writeOutbound(new GetBlobResponse("clientId", blobId,new ByteArrayInputStream(blobData), blobData.length));
+        EmbeddedChannel channel = new EmbeddedChannel(new ChunkedWriteHandler(),
+            new GetBlobResponseEncoder(3));
+        channel.writeOutbound(
+            new GetBlobResponse("clientId", blobId, new ByteArrayInputStream(blobData),
+                blobData.length));
         ByteBuf buffer = (ByteBuf) channel.readOutbound();
         ByteBuf expected = createBlobChunkBuffer(Messages.HEADER_BLOB, 3L, blobId, blobData, mask);
-        
+
         assertEquals(expected, buffer);
     }
 
     @Test
     public void shouldEncodeTwoChunksResponse() throws Exception {
-        byte[] blobData = new byte[] {1, 2, 3, 4};
-        byte[] firstChunkData = new byte[] {1, 2};
-        byte[] secondChunkbData = new byte[] {3, 4};
+        byte[] blobData = new byte[]{1, 2, 3, 4};
+        byte[] firstChunkData = new byte[]{1, 2};
+        byte[] secondChunkbData = new byte[]{3, 4};
 
         String blobId = "blobId";
 
-        EmbeddedChannel channel = new EmbeddedChannel(new ChunkedWriteHandler(), new GetBlobResponseEncoder(2));
-        channel.writeOutbound(new GetBlobResponse("clientId", blobId,new ByteArrayInputStream(blobData), blobData.length));
-        
+        EmbeddedChannel channel = new EmbeddedChannel(new ChunkedWriteHandler(),
+            new GetBlobResponseEncoder(2));
+        channel.writeOutbound(
+            new GetBlobResponse("clientId", blobId, new ByteArrayInputStream(blobData),
+                blobData.length));
+
         ByteBuf firstBuffer = (ByteBuf) channel.readOutbound();
         byte firstMask = createMask(1, 2);
-        ByteBuf firstExpected = createBlobChunkBuffer(Messages.HEADER_BLOB, 4L, blobId, firstChunkData, firstMask);
+        ByteBuf firstExpected = createBlobChunkBuffer(Messages.HEADER_BLOB, 4L, blobId,
+            firstChunkData, firstMask);
 
         assertEquals(firstExpected, firstBuffer);
-        
+
         ByteBuf secondBuffer = (ByteBuf) channel.readOutbound();
         byte secondMask = createMask(2, 2);
-        ByteBuf secondExpected = createBlobChunkBuffer(Messages.HEADER_BLOB, 4L, blobId, secondChunkbData, secondMask);
+        ByteBuf secondExpected = createBlobChunkBuffer(Messages.HEADER_BLOB, 4L, blobId,
+            secondChunkbData, secondMask);
 
         assertEquals(secondExpected, secondBuffer);
     }

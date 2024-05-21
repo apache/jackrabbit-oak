@@ -19,13 +19,24 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 
+import static org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors.newDirectExecutorService;
+import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newPathField;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.LocalIndexObserverTest.NOOP_EXECUTOR;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.newLucenePropertyIndexDefinition;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.apache.jackrabbit.oak.spi.mount.Mounts.defaultMountInfoProvider;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.collect.ArrayListMultimap;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
@@ -36,9 +47,9 @@ import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexTracker;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexNode;
 import org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil;
-import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.DefaultIndexReaderFactory;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.spi.commit.CommitContext;
@@ -60,19 +71,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import static org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors.newDirectExecutorService;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newPathField;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.LocalIndexObserverTest.NOOP_EXECUTOR;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.newLucenePropertyIndexDefinition;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
-import static org.apache.jackrabbit.oak.spi.mount.Mounts.defaultMountInfoProvider;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
 public class DocumentQueueTest {
+
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
 
@@ -90,10 +90,10 @@ public class DocumentQueueTest {
     @Before
     public void setUp() throws IOException {
         IndexEditorProvider editorProvider = new LuceneIndexEditorProvider(
-                null,
-                null,
-                null,
-                defaultMountInfoProvider()
+            null,
+            null,
+            null,
+            defaultMountInfoProvider()
         );
 
         syncHook = new EditorHook(new IndexUpdateProvider(editorProvider));
@@ -101,7 +101,7 @@ public class DocumentQueueTest {
     }
 
     @Test
-    public void dropDocOnLimit() throws Exception{
+    public void dropDocOnLimit() throws Exception {
         DocumentQueue queue = new DocumentQueue(2, tracker, NOOP_EXECUTOR);
         assertTrue(queue.add(LuceneDoc.forDelete("foo", "bar")));
         assertTrue(queue.add(LuceneDoc.forDelete("foo", "bar")));
@@ -111,27 +111,27 @@ public class DocumentQueueTest {
     }
 
     @Test
-    public void noIssueIfNoIndex() throws Exception{
+    public void noIssueIfNoIndex() throws Exception {
         DocumentQueue queue = new DocumentQueue(2, tracker, newDirectExecutorService());
         assertTrue(queue.add(LuceneDoc.forDelete("foo", "bar")));
         assertTrue(queue.getQueuedDocs().isEmpty());
     }
 
     @Test
-    public void closeQueue() throws Exception{
+    public void closeQueue() throws Exception {
         DocumentQueue queue = new DocumentQueue(2, tracker, newDirectExecutorService());
         queue.close();
 
         try {
             queue.add(LuceneDoc.forDelete("foo", "bar"));
             fail();
-        } catch(IllegalStateException ignore){
+        } catch (IllegalStateException ignore) {
 
         }
     }
 
     @Test
-    public void noIssueIfNoWriter() throws Exception{
+    public void noIssueIfNoWriter() throws Exception {
         NodeState indexed = createAndPopulateAsyncIndex(FulltextIndexConstants.IndexingMode.NRT);
         DocumentQueue queue = new DocumentQueue(2, tracker, newDirectExecutorService());
 
@@ -140,7 +140,7 @@ public class DocumentQueueTest {
     }
 
     @Test
-    public void updateDocument() throws Exception{
+    public void updateDocument() throws Exception {
         IndexTracker tracker = createTracker();
         NodeState indexed = createAndPopulateAsyncIndex(FulltextIndexConstants.IndexingMode.NRT);
         tracker.update(indexed);
@@ -157,7 +157,7 @@ public class DocumentQueueTest {
     }
 
     @Test
-    public void indexRefresh() throws Exception{
+    public void indexRefresh() throws Exception {
         tracker = createTracker();
         NodeState indexed = createAndPopulateAsyncIndex(FulltextIndexConstants.IndexingMode.NRT);
         tracker.update(indexed);
@@ -219,7 +219,7 @@ public class DocumentQueueTest {
     }
 
     @Test
-    public void addAllSync() throws Exception{
+    public void addAllSync() throws Exception {
         ListMultimap<String, LuceneDoc> docs = ArrayListMultimap.create();
         tracker = createTracker();
         NodeState indexed = createAndPopulateAsyncIndex(FulltextIndexConstants.IndexingMode.SYNC);
@@ -246,13 +246,14 @@ public class DocumentQueueTest {
     }
 
     //@Test
-    public void benchMarkIndexWriter() throws Exception{
+    public void benchMarkIndexWriter() throws Exception {
         Executor executor = Executors.newFixedThreadPool(5);
         IndexCopier indexCopier = new IndexCopier(executor, temporaryFolder.getRoot());
-        indexFactory = new NRTIndexFactory(indexCopier, clock, TimeUnit.MILLISECONDS.toSeconds(refreshDelta), StatisticsProvider.NOOP);
+        indexFactory = new NRTIndexFactory(indexCopier, clock,
+            TimeUnit.MILLISECONDS.toSeconds(refreshDelta), StatisticsProvider.NOOP);
         tracker = new IndexTracker(
-                new DefaultIndexReaderFactory(defaultMountInfoProvider(), indexCopier),
-                indexFactory
+            new DefaultIndexReaderFactory(defaultMountInfoProvider(), indexCopier),
+            indexFactory
         );
         NodeState indexed = createAndPopulateAsyncIndex(FulltextIndexConstants.IndexingMode.NRT);
         tracker.update(indexed);
@@ -272,7 +273,7 @@ public class DocumentQueueTest {
         Stopwatch w = Stopwatch.createStarted();
         int waitCount = 0;
         for (int i = 0; i < numDocs; i++) {
-            while(!queue.add(doc)){
+            while (!queue.add(doc)) {
                 waitCount++;
             }
         }
@@ -293,7 +294,8 @@ public class DocumentQueueTest {
 
     }
 
-    private NodeState doAsyncIndex(NodeState current, String childName, String fooValue) throws CommitFailedException {
+    private NodeState doAsyncIndex(NodeState current, String childName, String fooValue)
+        throws CommitFailedException {
         //Have some stuff to be indexed
         NodeBuilder builder = current.builder();
         builder.child(childName).setProperty("foo", fooValue);
@@ -323,15 +325,18 @@ public class DocumentQueueTest {
     }
 
     private IndexTracker createTracker() throws IOException {
-        IndexCopier indexCopier = new IndexCopier(newDirectExecutorService(), temporaryFolder.getRoot());
-        indexFactory = new NRTIndexFactory(indexCopier, clock, TimeUnit.MILLISECONDS.toSeconds(refreshDelta), StatisticsProvider.NOOP);
+        IndexCopier indexCopier = new IndexCopier(newDirectExecutorService(),
+            temporaryFolder.getRoot());
+        indexFactory = new NRTIndexFactory(indexCopier, clock,
+            TimeUnit.MILLISECONDS.toSeconds(refreshDelta), StatisticsProvider.NOOP);
         return new IndexTracker(
-                new DefaultIndexReaderFactory(defaultMountInfoProvider(), indexCopier),
-                indexFactory
+            new DefaultIndexReaderFactory(defaultMountInfoProvider(), indexCopier),
+            indexFactory
         );
     }
 
-    private NodeState createAndPopulateAsyncIndex(FulltextIndexConstants.IndexingMode indexingMode) throws CommitFailedException {
+    private NodeState createAndPopulateAsyncIndex(FulltextIndexConstants.IndexingMode indexingMode)
+        throws CommitFailedException {
         createIndexDefinition("fooIndex", indexingMode);
 
         //Have some stuff to be indexed
@@ -340,15 +345,16 @@ public class DocumentQueueTest {
         return asyncHook.processCommit(EMPTY_NODE, after, newCommitInfo());
     }
 
-    private CommitInfo newCommitInfo(){
+    private CommitInfo newCommitInfo() {
         info = new CommitInfo("admin", "s1",
-                ImmutableMap.<String, Object>of(CommitContext.NAME, new SimpleCommitContext()));
+            ImmutableMap.<String, Object>of(CommitContext.NAME, new SimpleCommitContext()));
         return info;
     }
 
-    private void createIndexDefinition(String idxName, FulltextIndexConstants.IndexingMode indexingMode) {
+    private void createIndexDefinition(String idxName,
+        FulltextIndexConstants.IndexingMode indexingMode) {
         NodeBuilder idx = newLucenePropertyIndexDefinition(builder.child("oak:index"),
-                idxName, ImmutableSet.of("foo"), "async");
+            idxName, ImmutableSet.of("foo"), "async");
         //Disable compression
         //idx.setProperty("codec", "oakCodec");
         TestUtil.enableIndexingMode(idx, indexingMode);

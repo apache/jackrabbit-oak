@@ -16,9 +16,11 @@
  */
 package org.apache.jackrabbit.oak.http;
 
+import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+
 import java.io.IOException;
 import java.net.URLEncoder;
-
 import javax.servlet.http.HttpServletResponse;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
@@ -26,7 +28,7 @@ import javax.xml.transform.TransformerConfigurationException;
 import javax.xml.transform.sax.SAXTransformerFactory;
 import javax.xml.transform.sax.TransformerHandler;
 import javax.xml.transform.stream.StreamResult;
-
+import org.apache.jackrabbit.guava.common.base.Charsets;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.tika.metadata.Metadata;
@@ -34,11 +36,6 @@ import org.apache.tika.metadata.TikaCoreProperties;
 import org.apache.tika.mime.MediaType;
 import org.apache.tika.sax.XHTMLContentHandler;
 import org.xml.sax.SAXException;
-
-import org.apache.jackrabbit.guava.common.base.Charsets;
-
-import static org.apache.jackrabbit.oak.api.Type.STRING;
-import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 
 class HtmlRepresentation implements Representation {
 
@@ -48,7 +45,7 @@ class HtmlRepresentation implements Representation {
     }
 
     public void render(Tree tree, HttpServletResponse response)
-            throws IOException {
+        throws IOException {
         try {
             XHTMLContentHandler xhtml = startResponse(response, tree.getPath());
             xhtml.startDocument();
@@ -74,7 +71,7 @@ class HtmlRepresentation implements Representation {
                 xhtml.element("dt", name);
                 xhtml.startElement("dd");
                 xhtml.startElement("a", "href", response.encodeRedirectURL(
-                        URLEncoder.encode(name, Charsets.UTF_8.name()) + "/"));
+                    URLEncoder.encode(name, Charsets.UTF_8.name()) + "/"));
                 xhtml.characters(child.getPath());
                 xhtml.endElement("a");
                 xhtml.endElement("dd");
@@ -88,10 +85,10 @@ class HtmlRepresentation implements Representation {
     }
 
     public void render(PropertyState property, HttpServletResponse response)
-            throws IOException {
+        throws IOException {
         try {
             XHTMLContentHandler xhtml =
-                    startResponse(response, property.getName());
+                startResponse(response, property.getName());
             xhtml.startDocument();
 
             if (property.isArray()) {
@@ -111,14 +108,14 @@ class HtmlRepresentation implements Representation {
     }
 
     private XHTMLContentHandler startResponse(
-            HttpServletResponse response, String title)
-            throws IOException {
+        HttpServletResponse response, String title)
+        throws IOException {
         try {
             response.setContentType("text/html");
             response.setCharacterEncoding("UTF-8");
 
             SAXTransformerFactory factory =
-                    (SAXTransformerFactory) SAXTransformerFactory.newInstance();
+                (SAXTransformerFactory) SAXTransformerFactory.newInstance();
             TransformerHandler handler = factory.newTransformerHandler();
             Transformer transformer = handler.getTransformer();
             transformer.setOutputProperty(OutputKeys.METHOD, "html");

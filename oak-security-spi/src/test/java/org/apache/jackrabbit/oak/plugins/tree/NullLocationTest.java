@@ -16,15 +16,15 @@
  */
 package org.apache.jackrabbit.oak.plugins.tree;
 
-import org.junit.Before;
-import org.junit.Test;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+
+import org.junit.Before;
+import org.junit.Test;
 
 public class NullLocationTest extends AbstractTreeTest {
 
@@ -92,7 +92,8 @@ public class NullLocationTest extends AbstractTreeTest {
 
     @Test
     public void testToString() {
-        assertEquals(TreeLocation.create(root, PROPERTY_PATH).getChild("null").toString(), nullLocation.toString());
+        assertEquals(TreeLocation.create(root, PROPERTY_PATH).getChild("null").toString(),
+            nullLocation.toString());
     }
 
     @Test

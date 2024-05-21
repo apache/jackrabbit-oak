@@ -20,7 +20,6 @@ import java.security.Principal;
 import java.util.Collections;
 import javax.jcr.RepositoryException;
 import javax.security.auth.Subject;
-
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Impersonation;
 import org.apache.jackrabbit.api.security.user.User;
@@ -56,7 +55,8 @@ public class ImpersonationTest extends AbstractUserTest {
     @Test
     public void testImpersonation() throws RepositoryException, NotExecutableException {
         Principal user2Principal = user2.getPrincipal();
-        Subject subject = new Subject(true, Collections.singleton(user2Principal), Collections.<Object>emptySet(), Collections.<Object>emptySet());
+        Subject subject = new Subject(true, Collections.singleton(user2Principal),
+            Collections.<Object>emptySet(), Collections.<Object>emptySet());
 
         Impersonation impers = user.getImpersonation();
         assertFalse(impers.allows(subject));
@@ -100,7 +100,8 @@ public class ImpersonationTest extends AbstractUserTest {
         assertTrue(impersonation.allows(buildSubject(adminPrincipal)));
     }
 
-    public void testAdminPrincipalAsImpersonator() throws RepositoryException, NotExecutableException {
+    public void testAdminPrincipalAsImpersonator()
+        throws RepositoryException, NotExecutableException {
 
         Principal adminPrincipal = new AdminPrincipal() {
             @Override

@@ -16,29 +16,33 @@
  */
 package org.apache.jackrabbit.oak.benchmark.authorization.principalbased;
 
+import java.util.List;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.jetbrains.annotations.NotNull;
 
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-import java.util.List;
-
 public class PermissionEvaluationTest extends PrinicipalBasedReadTest {
 
-    public PermissionEvaluationTest(int itemsToRead, int numberOfACEs, int subjectSize, boolean entriesForEachPrincipal, boolean testDefault, @NotNull String compositionType, boolean useAggregationFilter, boolean doReport) {
-        super(itemsToRead, numberOfACEs, subjectSize, entriesForEachPrincipal, testDefault, compositionType, useAggregationFilter, doReport);
+    public PermissionEvaluationTest(int itemsToRead, int numberOfACEs, int subjectSize,
+        boolean entriesForEachPrincipal, boolean testDefault, @NotNull String compositionType,
+        boolean useAggregationFilter, boolean doReport) {
+        super(itemsToRead, numberOfACEs, subjectSize, entriesForEachPrincipal, testDefault,
+            compositionType, useAggregationFilter, doReport);
     }
 
     @Override
-    protected void randomRead(Session testSession, List<String> allPaths, int cnt) throws RepositoryException {
+    protected void randomRead(Session testSession, List<String> allPaths, int cnt)
+        throws RepositoryException {
         boolean logout = false;
         if (testSession == null) {
             testSession = getTestSession();
             logout = true;
         }
         try {
-            List<String> permissionNames = ImmutableList.copyOf(Permissions.PERMISSION_NAMES.values());
+            List<String> permissionNames = ImmutableList.copyOf(
+                Permissions.PERMISSION_NAMES.values());
             int access = 0;
             int noAccess = 0;
             long start = System.currentTimeMillis();
@@ -53,7 +57,9 @@ public class PermissionEvaluationTest extends PrinicipalBasedReadTest {
             }
             long end = System.currentTimeMillis();
             if (doReport) {
-                System.out.println("Session " + testSession.getUserID() + " hasPermissions (granted = " + access + "; denied = "+ noAccess+") completed in " + (end - start));
+                System.out.println(
+                    "Session " + testSession.getUserID() + " hasPermissions (granted = " + access
+                        + "; denied = " + noAccess + ") completed in " + (end - start));
             }
         } finally {
             if (logout) {

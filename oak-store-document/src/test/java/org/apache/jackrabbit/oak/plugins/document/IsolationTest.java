@@ -19,8 +19,8 @@ package org.apache.jackrabbit.oak.plugins.document;
 import org.junit.Test;
 
 /**
- * Tests if commits to branches and trunk are properly isolated and repository
- * state on a given revision is stable.
+ * Tests if commits to branches and trunk are properly isolated and repository state on a given
+ * revision is stable.
  */
 public class IsolationTest extends BaseDocumentMKTest {
 

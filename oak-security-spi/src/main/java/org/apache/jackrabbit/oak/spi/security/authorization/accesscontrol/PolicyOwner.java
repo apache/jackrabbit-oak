@@ -17,33 +17,34 @@
 package org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol;
 
 import javax.jcr.security.AccessControlPolicy;
-
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Interface to improve pluggability of the {@link javax.jcr.security.AccessControlManager},
- * namely the interaction of multiple managers within a
- * single repository. It provides a single method {@link #defines(String, javax.jcr.security.AccessControlPolicy)}
- * that allows to determine the responsible manager upon
- * {@link javax.jcr.security.AccessControlManager#setPolicy(String, javax.jcr.security.AccessControlPolicy) setPolicy}
- * and
- * {@link javax.jcr.security.AccessControlManager#removePolicy(String, javax.jcr.security.AccessControlPolicy) removePolicy}.
+ * Interface to improve pluggability of the {@link javax.jcr.security.AccessControlManager}, namely
+ * the interaction of multiple managers within a single repository. It provides a single method
+ * {@link #defines(String, javax.jcr.security.AccessControlPolicy)} that allows to determine the
+ * responsible manager upon
+ * {@link javax.jcr.security.AccessControlManager#setPolicy(String,
+ * javax.jcr.security.AccessControlPolicy) setPolicy} and
+ * {@link javax.jcr.security.AccessControlManager#removePolicy(String,
+ * javax.jcr.security.AccessControlPolicy) removePolicy}.
  */
 public interface PolicyOwner {
 
     /**
      * Determines if the implementing {@code AccessManager} defines the specified
-     * {@code accessControlPolicy} at the given {@code absPath}. If this method
-     * returns {@code true} it is expected that the given policy is valid to be
-     * {@link javax.jcr.security.AccessControlManager#setPolicy(String, javax.jcr.security.AccessControlPolicy) set}
-     * or {@link javax.jcr.security.AccessControlManager#removePolicy(String, javax.jcr.security.AccessControlPolicy) removed}
-     * with the manager.
+     * {@code accessControlPolicy} at the given {@code absPath}. If this method returns {@code true}
+     * it is expected that the given policy is valid to be
+     * {@link javax.jcr.security.AccessControlManager#setPolicy(String,
+     * javax.jcr.security.AccessControlPolicy) set} or
+     * {@link javax.jcr.security.AccessControlManager#removePolicy(String,
+     * javax.jcr.security.AccessControlPolicy) removed} with the manager.
      *
-     * @param absPath An absolute path.
+     * @param absPath             An absolute path.
      * @param accessControlPolicy The access control policy to be tested.
-     * @return {@code true} If the {@code AccessControlManager} implementing this
-     * interface can handle the specified {@code accessControlPolicy} at the given {@code path}.
+     * @return {@code true} If the {@code AccessControlManager} implementing this interface can
+     * handle the specified {@code accessControlPolicy} at the given {@code path}.
      */
     boolean defines(@Nullable String absPath, @NotNull AccessControlPolicy accessControlPolicy);
 }

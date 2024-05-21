@@ -16,6 +16,10 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.util.Map;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -23,20 +27,16 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.AbstractEx
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ProtectionConfig;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.Map;
-
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
 public abstract class AbstractProtectionConfigTest extends AbstractExternalAuthTest {
 
     static final Map<String, String[]> PROPERTIES = ImmutableMap.of(
-            "propertyNames", new String[] {"prop1", "prop2"},
-            "nodeNames", new String[] {"node1", "node2"});
-    
+        "propertyNames", new String[]{"prop1", "prop2"},
+        "nodeNames", new String[]{"node1", "node2"});
+
     final ProtectionConfigImpl protectionConfig = new ProtectionConfigImpl();
-    
-    void registerProtectionConfig(@NotNull ProtectionConfig config, @NotNull Map<String, String[]> properties) {
+
+    void registerProtectionConfig(@NotNull ProtectionConfig config,
+        @NotNull Map<String, String[]> properties) {
         context.registerInjectActivateService(config, properties);
     }
 

@@ -22,25 +22,23 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Extension point for content change editors. Used by the {@link EditorHook}
- * class to allow multiple components to process content changes during just
- * a single content diff.
+ * Extension point for content change editors. Used by the {@link EditorHook} class to allow
+ * multiple components to process content changes during just a single content diff.
  *
+ * @see <a href="http://jackrabbit.apache.org/oak/docs/nodestate.html#Commit_editors" >Commit
+ * editors</a>
  * @since Oak 0.7
- * @see <a href="http://jackrabbit.apache.org/oak/docs/nodestate.html#Commit_editors"
- *         >Commit editors</a>
  */
 public interface EditorProvider {
 
     /**
-     * Returns an editor for processing changes between the given two states.
-     * Returns {@code null} if the changes don't require processing.
+     * Returns an editor for processing changes between the given two states. Returns {@code null}
+     * if the changes don't require processing.
      * <p>
-     * An implementation of this method should generally not compare the
-     * given before and after states, as the caller is expected to compare
-     * the states and invoke the respective callback methods on the
-     * {@link Editor} instance returned by this method. Instead the
-     * implementation can use the opportunity for other preparatory work.
+     * An implementation of this method should generally not compare the given before and after
+     * states, as the caller is expected to compare the states and invoke the respective callback
+     * methods on the {@link Editor} instance returned by this method. Instead the implementation
+     * can use the opportunity for other preparatory work.
      *
      * @param before  original root state
      * @param after   modified root state

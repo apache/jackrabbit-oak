@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.plugins.index.importer;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;

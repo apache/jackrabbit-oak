@@ -50,7 +50,8 @@ final class MgrProviderImpl implements MgrProvider {
         this.namePathMapper = NamePathMapper.DEFAULT;
     }
 
-    MgrProviderImpl(@NotNull PrincipalBasedAuthorizationConfiguration config, @NotNull Root root, @NotNull NamePathMapper namePathMapper) {
+    MgrProviderImpl(@NotNull PrincipalBasedAuthorizationConfiguration config, @NotNull Root root,
+        @NotNull NamePathMapper namePathMapper) {
         this.config = config;
         reset(root, namePathMapper);
     }
@@ -92,7 +93,8 @@ final class MgrProviderImpl implements MgrProvider {
         if (ctx == null) {
             // make sure the context allows to reveal any kind of protected access control/permission content not just
             // those defined by this module.
-            ctx = getSecurityProvider().getConfiguration(AuthorizationConfiguration.class).getContext();
+            ctx = getSecurityProvider().getConfiguration(AuthorizationConfiguration.class)
+                                       .getContext();
         }
         return ctx;
     }
@@ -102,7 +104,8 @@ final class MgrProviderImpl implements MgrProvider {
     public PrivilegeManager getPrivilegeManager() {
         checkRootInitialized();
         if (privilegeManager == null) {
-            privilegeManager = getSecurityProvider().getConfiguration(PrivilegeConfiguration.class).getPrivilegeManager(root, namePathMapper);
+            privilegeManager = getSecurityProvider().getConfiguration(PrivilegeConfiguration.class)
+                                                    .getPrivilegeManager(root, namePathMapper);
         }
         return privilegeManager;
     }
@@ -122,7 +125,8 @@ final class MgrProviderImpl implements MgrProvider {
     public PrincipalManager getPrincipalManager() {
         checkRootInitialized();
         if (principalManager == null) {
-            principalManager = getSecurityProvider().getConfiguration(PrincipalConfiguration.class).getPrincipalManager(root, namePathMapper);
+            principalManager = getSecurityProvider().getConfiguration(PrincipalConfiguration.class)
+                                                    .getPrincipalManager(root, namePathMapper);
         }
         return principalManager;
     }
@@ -131,7 +135,8 @@ final class MgrProviderImpl implements MgrProvider {
     @Override
     public RestrictionProvider getRestrictionProvider() {
         if (restrictionProvider == null) {
-            restrictionProvider = getSecurityProvider().getConfiguration(AuthorizationConfiguration.class).getRestrictionProvider();
+            restrictionProvider = getSecurityProvider().getConfiguration(
+                AuthorizationConfiguration.class).getRestrictionProvider();
         }
         return restrictionProvider;
     }

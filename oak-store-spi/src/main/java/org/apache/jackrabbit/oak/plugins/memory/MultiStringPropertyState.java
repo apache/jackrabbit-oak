@@ -24,15 +24,17 @@ import org.apache.jackrabbit.oak.plugins.value.Conversions;
 import org.apache.jackrabbit.oak.plugins.value.Conversions.Converter;
 
 public class MultiStringPropertyState extends MultiPropertyState<String> {
+
     public MultiStringPropertyState(String name, Iterable<String> values) {
         super(name, values);
     }
 
     /**
      * Create a multi valued {@code PropertyState} from a list of strings.
-     * @param name  The name of the property state
-     * @param values  The values of the property state
-     * @return  The new property state of type {@link Type#STRINGS}
+     *
+     * @param name   The name of the property state
+     * @param values The values of the property state
+     * @return The new property state of type {@link Type#STRINGS}
      */
     public static PropertyState stringProperty(String name, Iterable<String> values) {
         return new MultiStringPropertyState(name, values);

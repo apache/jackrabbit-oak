@@ -20,10 +20,10 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.util.concurrent.TimeUnit;
-
 import org.apache.jackrabbit.guava.common.base.Ticker;
 
 public class VirtualTicker extends Ticker {
+
     private long time;
 
     @Override
@@ -31,11 +31,11 @@ public class VirtualTicker extends Ticker {
         return time;
     }
 
-    public void setTime(long time, TimeUnit unit){
+    public void setTime(long time, TimeUnit unit) {
         this.time = unit.toNanos(time);
     }
 
-    public void addTime(long delta, TimeUnit unit){
+    public void addTime(long delta, TimeUnit unit) {
         this.time += unit.toNanos(delta);
     }
 }

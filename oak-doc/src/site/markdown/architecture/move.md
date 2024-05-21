@@ -41,7 +41,7 @@ path will be `/madagascar/marty`.
 The impact of a move operation on a `Tree` instance is evaluated lazily. The
 main benefit of this approach is that we don't need to spend time to update
 `Tree` instances unnecessarily when they are referenced by the heap, but not
-used by the application and later garbage collected. 
+used by the application and later garbage collected.
 
 So, how are move operations applied lazily to `Tree` instances? Each
 `MutableTree` object has a `pendingMoves` reference to the next `Move` it
@@ -58,7 +58,7 @@ looks like the following.
 
 Right after the move operation, the state of `MutableTree` instances are still
 the same. Only the `Move` object referenced by them was modified with information
-about the move operation and a new  empty `Move` object appended via the `next`
+about the move operation and a new empty `Move` object appended via the `next`
 reference.
 
 ![Tree after move](tree-after-move.png)
@@ -79,12 +79,12 @@ information is not referenced anymore by any `MutableTree`, and it is eligible
 for garbage collection.
 
 This implementation has drawbacks for some usage patterns. A `MutableTree`
-obtained  from a `ContentSession` and referenced by the application can retain
+obtained from a `ContentSession` and referenced by the application can retain
 significant memory when the tree is not accessed while move operations are
 performed with the same `ContentSession`.
 
 Let's consider an example where Julien stays at the zoo, while the others move
-to Madagascar. 
+to Madagascar.
 
     Tree zoo = r.getTree("/zoo");
     Tree madagascar = r.getTree("/madagascar");

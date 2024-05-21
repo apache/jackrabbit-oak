@@ -21,8 +21,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Basic commit hook implementation that by default doesn't do anything.
- * This class has a dual purpose:
+ * Basic commit hook implementation that by default doesn't do anything. This class has a dual
+ * purpose:
  * <ol>
  * <li>The static {@link #INSTANCE} instance can be used as a "null object"
  * in cases where another commit hook has not been configured, thus avoiding
@@ -45,8 +45,8 @@ public class EmptyHook implements CommitHook {
     @NotNull
     @Override
     public NodeState processCommit(
-            NodeState before, NodeState after, CommitInfo info)
-            throws CommitFailedException {
+        NodeState before, NodeState after, CommitInfo info)
+        throws CommitFailedException {
         return after;
     }
 

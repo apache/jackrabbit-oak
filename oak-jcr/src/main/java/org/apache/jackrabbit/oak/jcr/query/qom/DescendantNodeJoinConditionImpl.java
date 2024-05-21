@@ -24,13 +24,13 @@ import javax.jcr.query.qom.DescendantNodeJoinCondition;
  * The implementation of the corresponding JCR interface.
  */
 public class DescendantNodeJoinConditionImpl extends JoinConditionImpl implements
-        DescendantNodeJoinCondition {
+    DescendantNodeJoinCondition {
 
     private final String descendantSelectorName;
     private final String ancestorSelectorName;
 
     public DescendantNodeJoinConditionImpl(String descendantSelectorName,
-            String ancestorSelectorName) {
+        String ancestorSelectorName) {
         this.descendantSelectorName = descendantSelectorName;
         this.ancestorSelectorName = ancestorSelectorName;
     }
@@ -48,8 +48,8 @@ public class DescendantNodeJoinConditionImpl extends JoinConditionImpl implement
     @Override
     public String toString() {
         return "ISDESCENDANTNODE(" +
-                quoteSelectorName(descendantSelectorName) + ", " +
-                quoteSelectorName(ancestorSelectorName) + ')';
+            quoteSelectorName(descendantSelectorName) + ", " +
+            quoteSelectorName(ancestorSelectorName) + ')';
     }
 
 }

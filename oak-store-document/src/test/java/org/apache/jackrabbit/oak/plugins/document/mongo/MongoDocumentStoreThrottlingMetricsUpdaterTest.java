@@ -37,8 +37,8 @@ public class MongoDocumentStoreThrottlingMetricsUpdaterTest {
     public void testUpdateOplogWindow() {
 
         double oplogWindow = updateOplogWindow(1024, 512,
-                new Document(TS_TIME, new BsonTimestamp((int) EPOCH_SECOND, 0)),
-                new Document(TS_TIME, new BsonTimestamp((int) EPOCH_SECOND + 3600, 0)));
+            new Document(TS_TIME, new BsonTimestamp((int) EPOCH_SECOND, 0)),
+            new Document(TS_TIME, new BsonTimestamp((int) EPOCH_SECOND + 3600, 0)));
 
         assertEquals(2.0, oplogWindow, 0.00001);
     }
@@ -47,8 +47,8 @@ public class MongoDocumentStoreThrottlingMetricsUpdaterTest {
     public void testUpdateOplogWindow_2() {
 
         double oplogWindow = updateOplogWindow(1024, 1024,
-                new Document(TS_TIME, new BsonTimestamp((int) EPOCH_SECOND, 0)),
-                new Document(TS_TIME, new BsonTimestamp((int) EPOCH_SECOND + 3600, 0)));
+            new Document(TS_TIME, new BsonTimestamp((int) EPOCH_SECOND, 0)),
+            new Document(TS_TIME, new BsonTimestamp((int) EPOCH_SECOND + 3600, 0)));
 
         assertEquals(1.0, oplogWindow, 0.001);
     }
@@ -57,8 +57,8 @@ public class MongoDocumentStoreThrottlingMetricsUpdaterTest {
     public void testUpdateOplogWindow_3() {
 
         double oplogWindow = updateOplogWindow(1024, 102.4,
-                new Document(TS_TIME, new BsonTimestamp((int) EPOCH_SECOND, 0)),
-                new Document(TS_TIME, new BsonTimestamp((int) EPOCH_SECOND + 3600, 0)));
+            new Document(TS_TIME, new BsonTimestamp((int) EPOCH_SECOND, 0)),
+            new Document(TS_TIME, new BsonTimestamp((int) EPOCH_SECOND + 3600, 0)));
 
         assertEquals(10.0, oplogWindow, 0.001);
     }
@@ -67,8 +67,8 @@ public class MongoDocumentStoreThrottlingMetricsUpdaterTest {
     public void testUpdateOplogWindow_ZeroUsedSize() {
 
         double oplogWindow = updateOplogWindow(1024, 0,
-                new Document(TS_TIME, new BsonTimestamp((int) EPOCH_SECOND, 0)),
-                new Document(TS_TIME, new BsonTimestamp((int) EPOCH_SECOND + 3600, 0)));
+            new Document(TS_TIME, new BsonTimestamp((int) EPOCH_SECOND, 0)),
+            new Document(TS_TIME, new BsonTimestamp((int) EPOCH_SECOND + 3600, 0)));
 
         assertEquals(MAX_VALUE, oplogWindow, 0.001);
     }
@@ -77,8 +77,8 @@ public class MongoDocumentStoreThrottlingMetricsUpdaterTest {
     public void testUpdateOplogWindow_OneOplogEntry() {
 
         double oplogWindow = updateOplogWindow(1024, 1024,
-                new Document(TS_TIME, new BsonTimestamp((int) EPOCH_SECOND, 0)),
-                new Document(TS_TIME, new BsonTimestamp((int) EPOCH_SECOND, 0)));
+            new Document(TS_TIME, new BsonTimestamp((int) EPOCH_SECOND, 0)),
+            new Document(TS_TIME, new BsonTimestamp((int) EPOCH_SECOND, 0)));
 
         assertEquals(MAX_VALUE, oplogWindow, 0.001);
     }
@@ -87,8 +87,8 @@ public class MongoDocumentStoreThrottlingMetricsUpdaterTest {
     public void testUpdateOplogWindow_OplogEntries_InSameSecond() {
 
         double oplogWindow = updateOplogWindow(1024, 512,
-                new Document(TS_TIME, new BsonTimestamp((int) EPOCH_SECOND, 0)),
-                new Document(TS_TIME, new BsonTimestamp((int) EPOCH_SECOND, 1)));
+            new Document(TS_TIME, new BsonTimestamp((int) EPOCH_SECOND, 0)),
+            new Document(TS_TIME, new BsonTimestamp((int) EPOCH_SECOND, 1)));
 
         // expected value should be very close to zero, since we are filling oplog window in same second
         assertEquals(0, oplogWindow, 0.001);
@@ -98,8 +98,8 @@ public class MongoDocumentStoreThrottlingMetricsUpdaterTest {
     public void testUpdateOplogWindow_OplogEntries_InSameSecond_WithZeroUsedSize() {
 
         double oplogWindow = updateOplogWindow(1024, 0,
-                new Document(TS_TIME, new BsonTimestamp((int) EPOCH_SECOND, 0)),
-                new Document(TS_TIME, new BsonTimestamp((int) EPOCH_SECOND, 1)));
+            new Document(TS_TIME, new BsonTimestamp((int) EPOCH_SECOND, 0)),
+            new Document(TS_TIME, new BsonTimestamp((int) EPOCH_SECOND, 1)));
 
         assertEquals(MAX_VALUE, oplogWindow, 0.001);
     }

@@ -30,14 +30,12 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
-
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBJDBCTools.PreparedStatementComponent;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import org.apache.jackrabbit.guava.common.collect.Lists;
 
 /**
  * Defines variation in the capabilities of different RDBs.
@@ -71,13 +69,15 @@ public enum RDBDocumentStoreDB {
         }
 
         @Override
-        public Map<String, String> getAdditionalStatistics(RDBConnectionHandler ch, String catalog, String tableName) {
+        public Map<String, String> getAdditionalStatistics(RDBConnectionHandler ch, String catalog,
+            String tableName) {
             Map<String, String> result = new HashMap<String, String>();
             Connection con = null;
 
             try {
                 con = ch.getROConnection();
-                try (PreparedStatement stmt = con.prepareStatement("SELECT T.* FROM TABLE (SYSCS_DIAG.SPACE_TABLE(?,?)) AS T")) {
+                try (PreparedStatement stmt = con.prepareStatement(
+                    "SELECT T.* FROM TABLE (SYSCS_DIAG.SPACE_TABLE(?,?)) AS T")) {
                     stmt.setString(1, catalog.toUpperCase(Locale.ENGLISH));
                     stmt.setString(2, tableName.toUpperCase(Locale.ENGLISH));
                     try (ResultSet rs = stmt.executeQuery()) {
@@ -91,8 +91,11 @@ public enum RDBDocumentStoreDB {
                             long numFreePages = rs.getLong("NUMFREEPAGES");
                             long numUnfilledPages = rs.getLong("NUMUNFILLEDPAGES");
                             int pageSize = rs.getInt("PAGESIZE");
-                            String raw = "NUMALLOCATEDPAGES=" + numAllocatedPages + ", NUMFREEPAGES=" + numFreePages
-                                    + ", NUMUNFILLEDPAGES=" + numUnfilledPages + ", PAGESIZE=" + pageSize;
+                            String raw =
+                                "NUMALLOCATEDPAGES=" + numAllocatedPages + ", NUMFREEPAGES="
+                                    + numFreePages
+                                    + ", NUMUNFILLEDPAGES=" + numUnfilledPages + ", PAGESIZE="
+                                    + pageSize;
                             long size = pageSize * (numAllocatedPages + numFreePages);
                             if (isIndex == 0) {
                                 result.put("_data", raw);
@@ -142,8 +145,9 @@ public enum RDBDocumentStoreDB {
                             }
                         }
                         if (Integer.parseInt(build.toString()) < 1208) {
-                            result = "Unsupported " + description + " driver version: " + md.getDriverVersion() + ", found build "
-                                    + build + ", but expected at least build 1208";
+                            result = "Unsupported " + description + " driver version: "
+                                + md.getDriverVersion() + ", found build "
+                                + build + ", but expected at least build 1208";
                         }
                     }
                 }
@@ -160,14 +164,15 @@ public enum RDBDocumentStoreDB {
         @Override
         public String getTableCreationStatement(String tableName, int schema) {
             return ("create table " + tableName
-                    + " (ID varchar(512) not null primary key, MODIFIED bigint, HASBINARY smallint, DELETEDONCE smallint, MODCOUNT bigint, CMODCOUNT bigint, DSIZE bigint, "
-                    + (schema >= 1 ? "VERSION smallint, " : "")
-                    + (schema >= 2 ? "SDTYPE smallint, SDMAXREVTIME bigint, " : "")
-                    + "DATA varchar(16384), BDATA bytea)");
+                + " (ID varchar(512) not null primary key, MODIFIED bigint, HASBINARY smallint, DELETEDONCE smallint, MODCOUNT bigint, CMODCOUNT bigint, DSIZE bigint, "
+                + (schema >= 1 ? "VERSION smallint, " : "")
+                + (schema >= 2 ? "SDTYPE smallint, SDMAXREVTIME bigint, " : "")
+                + "DATA varchar(16384), BDATA bytea)");
         }
 
         @Override
-        public Map<String, String> getAdditionalStatistics(RDBConnectionHandler ch, String catalog, String tableName) {
+        public Map<String, String> getAdditionalStatistics(RDBConnectionHandler ch, String catalog,
+            String tableName) {
             Map<String, String> result = new HashMap<String, String>();
             Connection con = null;
             SortedSet<String> indexNames = Collections.emptySortedSet();
@@ -176,7 +181,8 @@ public enum RDBDocumentStoreDB {
             try {
                 SortedSet<String> in = new TreeSet<String>();
                 con = ch.getROConnection();
-                try (PreparedStatement stmt = con.prepareStatement("SELECT indexname FROM pg_indexes WHERE tablename=?")) {
+                try (PreparedStatement stmt = con.prepareStatement(
+                    "SELECT indexname FROM pg_indexes WHERE tablename=?")) {
                     stmt.setString(1, tableName.toLowerCase(Locale.ENGLISH));
                     try (ResultSet rs = stmt.executeQuery()) {
                         while (rs.next()) {
@@ -194,7 +200,8 @@ public enum RDBDocumentStoreDB {
 
             // table data
             try {
-                StringBuilder query = new StringBuilder("SELECT pg_total_relation_size(?), pg_table_size(?), pg_indexes_size(?)");
+                StringBuilder query = new StringBuilder(
+                    "SELECT pg_total_relation_size(?), pg_table_size(?), pg_indexes_size(?)");
                 indexNames.forEach(name -> query.append(", pg_relation_size(?)"));
                 con = ch.getROConnection();
                 try (PreparedStatement stmt = con.prepareStatement(query.toString())) {
@@ -241,24 +248,27 @@ public enum RDBDocumentStoreDB {
         @Override
         public String getTableCreationStatement(String tableName, int schema) {
             return "create table " + tableName
-                    + " (ID varchar(512) not null, MODIFIED bigint, HASBINARY smallint, DELETEDONCE smallint, MODCOUNT bigint, CMODCOUNT bigint, DSIZE bigint, "
-                    + (schema >= 1 ? "VERSION smallint, " : "")
-                    + (schema >= 2 ? "SDTYPE smallint, SDMAXREVTIME bigint, " : "")
-                    + "DATA varchar(16384), BDATA blob(" + 1024 * 1024 * 1024 + "))";
+                + " (ID varchar(512) not null, MODIFIED bigint, HASBINARY smallint, DELETEDONCE smallint, MODCOUNT bigint, CMODCOUNT bigint, DSIZE bigint, "
+                + (schema >= 1 ? "VERSION smallint, " : "")
+                + (schema >= 2 ? "SDTYPE smallint, SDMAXREVTIME bigint, " : "")
+                + "DATA varchar(16384), BDATA blob(" + 1024 * 1024 * 1024 + "))";
         }
 
         @Override
         public List<String> getIndexCreationStatements(String tableName, int schema) {
             List<String> statements = new ArrayList<String>();
             String pkName = tableName + "_pk";
-            statements.add("create unique index " + pkName + " on " + tableName + " ( ID ) cluster");
-            statements.add("alter table " + tableName + " add constraint " + pkName + " primary key ( ID )");
+            statements.add(
+                "create unique index " + pkName + " on " + tableName + " ( ID ) cluster");
+            statements.add(
+                "alter table " + tableName + " add constraint " + pkName + " primary key ( ID )");
             statements.addAll(super.getIndexCreationStatements(tableName, schema));
             return statements;
         }
 
         @Override
-        public Map<String, String> getAdditionalStatistics(RDBConnectionHandler ch, String catalog, String tableName) {
+        public Map<String, String> getAdditionalStatistics(RDBConnectionHandler ch, String catalog,
+            String tableName) {
 
             Map<String, String> result = new HashMap<String, String>();
 
@@ -266,12 +276,14 @@ public enum RDBDocumentStoreDB {
 
             // table data
             String tableStats = SystemPropertySupplier
-                    .create(SYSPROP_PREFIX + ".DB2.TABLE_STATS", "card npages mpages fpages overflow pctfree avgrowsize stats_time")
-                    .loggingTo(LOG).get();
+                .create(SYSPROP_PREFIX + ".DB2.TABLE_STATS",
+                    "card npages mpages fpages overflow pctfree avgrowsize stats_time")
+                .loggingTo(LOG).get();
 
             try {
                 con = ch.getROConnection();
-                try (PreparedStatement stmt = con.prepareStatement("SELECT * FROM syscat.tables WHERE tabschema=? and tabname=?")) {
+                try (PreparedStatement stmt = con.prepareStatement(
+                    "SELECT * FROM syscat.tables WHERE tabschema=? and tabname=?")) {
                     stmt.setString(1, catalog.toUpperCase(Locale.ENGLISH));
                     stmt.setString(2, tableName.toUpperCase(Locale.ENGLISH));
                     try (ResultSet rs = stmt.executeQuery()) {
@@ -290,13 +302,14 @@ public enum RDBDocumentStoreDB {
 
             // index data
             String indexStats = SystemPropertySupplier.create(SYSPROP_PREFIX + ".DB2.INDEX_STATS",
-                    "indextype colnames pctfree clusterratio nleaf nlevels fullkeycard density indcard numrids numrids_deleted avgleafkeysize avgnleafkeysize remarks stats_time")
-                    .loggingTo(LOG).get();
+                                                          "indextype colnames pctfree clusterratio nleaf nlevels fullkeycard density indcard numrids numrids_deleted avgleafkeysize avgnleafkeysize remarks stats_time")
+                                                      .loggingTo(LOG).get();
 
             try {
                 con = ch.getROConnection();
                 try (PreparedStatement stmt = con
-                        .prepareStatement("SELECT * FROM syscat.indexes WHERE tabschema=? and tabname=?")) {
+                    .prepareStatement(
+                        "SELECT * FROM syscat.indexes WHERE tabschema=? and tabname=?")) {
                     stmt.setString(1, catalog.toUpperCase(Locale.ENGLISH));
                     stmt.setString(2, tableName.toUpperCase(Locale.ENGLISH));
                     try (ResultSet rs = stmt.executeQuery()) {
@@ -344,14 +357,15 @@ public enum RDBDocumentStoreDB {
         public String getTableCreationStatement(String tableName, int schema) {
             // see https://issues.apache.org/jira/browse/OAK-1914
             return ("create table " + tableName
-                    + " (ID varchar(512) not null primary key, MODIFIED number, HASBINARY number, DELETEDONCE number, MODCOUNT number, CMODCOUNT number, DSIZE number, "
-                    + (schema >= 1 ? "VERSION number, " : "")
-                    + (schema >= 2 ? "SDTYPE number, SDMAXREVTIME number, " : "")
-                    + "DATA varchar(4000), BDATA blob)");
+                + " (ID varchar(512) not null primary key, MODIFIED number, HASBINARY number, DELETEDONCE number, MODCOUNT number, CMODCOUNT number, DSIZE number, "
+                + (schema >= 1 ? "VERSION number, " : "")
+                + (schema >= 2 ? "SDTYPE number, SDMAXREVTIME number, " : "")
+                + "DATA varchar(4000), BDATA blob)");
         }
 
         @Override
-        public Map<String, String> getAdditionalStatistics(RDBConnectionHandler ch, String catalog, String tableName) {
+        public Map<String, String> getAdditionalStatistics(RDBConnectionHandler ch, String catalog,
+            String tableName) {
 
             Map<String, String> result = new HashMap<String, String>();
 
@@ -359,12 +373,14 @@ public enum RDBDocumentStoreDB {
 
             // table data
             String tableStats = SystemPropertySupplier
-                    .create(SYSPROP_PREFIX + ".ORACLE.TABLE_STATS", "num_rows blocks avg_row_len sample_size last_analyzed")
-                    .loggingTo(LOG).get();
+                .create(SYSPROP_PREFIX + ".ORACLE.TABLE_STATS",
+                    "num_rows blocks avg_row_len sample_size last_analyzed")
+                .loggingTo(LOG).get();
 
             try {
                 con = ch.getROConnection();
-                try (PreparedStatement stmt = con.prepareStatement("SELECT * FROM user_tables WHERE table_name=?")) {
+                try (PreparedStatement stmt = con.prepareStatement(
+                    "SELECT * FROM user_tables WHERE table_name=?")) {
                     stmt.setString(1, tableName.toUpperCase(Locale.ENGLISH));
                     try (ResultSet rs = stmt.executeQuery()) {
                         while (rs.next()) {
@@ -381,13 +397,15 @@ public enum RDBDocumentStoreDB {
             }
 
             // index data
-            String indexStats = SystemPropertySupplier.create(SYSPROP_PREFIX + ".ORACLE.INDEX_STATS",
-                    "blevel leaf_blocks distinct_keys avg_leaf_blocks_per_key avg_data_blocks_per_key clustering_factor num_rows sample_size last_analyzed")
-                    .loggingTo(LOG).get();
+            String indexStats = SystemPropertySupplier.create(
+                                                          SYSPROP_PREFIX + ".ORACLE.INDEX_STATS",
+                                                          "blevel leaf_blocks distinct_keys avg_leaf_blocks_per_key avg_data_blocks_per_key clustering_factor num_rows sample_size last_analyzed")
+                                                      .loggingTo(LOG).get();
 
             try {
                 con = ch.getROConnection();
-                try (PreparedStatement stmt = con.prepareStatement("SELECT * FROM user_indexes WHERE table_name=?")) {
+                try (PreparedStatement stmt = con.prepareStatement(
+                    "SELECT * FROM user_indexes WHERE table_name=?")) {
                     stmt.setString(1, tableName.toUpperCase(Locale.ENGLISH));
                     try (ResultSet rs = stmt.executeQuery()) {
                         while (rs.next()) {
@@ -433,10 +451,10 @@ public enum RDBDocumentStoreDB {
         public String getTableCreationStatement(String tableName, int schema) {
             // see https://issues.apache.org/jira/browse/OAK-1913
             return ("create table " + tableName
-                    + " (ID varbinary(512) not null primary key, MODIFIED bigint, HASBINARY smallint, DELETEDONCE smallint, MODCOUNT bigint, CMODCOUNT bigint, DSIZE bigint, "
-                    + (schema >= 1 ? "VERSION smallint, " : "")
-                    + (schema >= 2 ? "SDTYPE smallint, SDMAXREVTIME bigint, " : "")
-                    + "DATA varchar(16000), BDATA longblob)");
+                + " (ID varbinary(512) not null primary key, MODIFIED bigint, HASBINARY smallint, DELETEDONCE smallint, MODCOUNT bigint, CMODCOUNT bigint, DSIZE bigint, "
+                + (schema >= 1 ? "VERSION smallint, " : "")
+                + (schema >= 2 ? "SDTYPE smallint, SDMAXREVTIME bigint, " : "")
+                + "DATA varchar(16000), BDATA longblob)");
         }
 
         @Override
@@ -445,7 +463,8 @@ public enum RDBDocumentStoreDB {
         }
 
         @Override
-        public PreparedStatementComponent getConcatQuery(final String appendData, final int dataOctetLimit) {
+        public PreparedStatementComponent getConcatQuery(final String appendData,
+            final int dataOctetLimit) {
             return new PreparedStatementComponent() {
 
                 @Override
@@ -454,7 +473,8 @@ public enum RDBDocumentStoreDB {
                 }
 
                 @Override
-                public int setParameters(PreparedStatement stmt, int startIndex) throws SQLException {
+                public int setParameters(PreparedStatement stmt, int startIndex)
+                    throws SQLException {
                     stmt.setString(startIndex++, appendData);
                     return startIndex;
                 }
@@ -462,7 +482,8 @@ public enum RDBDocumentStoreDB {
         }
 
         @Override
-        public Map<String, String> getAdditionalStatistics(RDBConnectionHandler ch, String catalog, String tableName) {
+        public Map<String, String> getAdditionalStatistics(RDBConnectionHandler ch, String catalog,
+            String tableName) {
 
             Map<String, String> result = new HashMap<String, String>();
 
@@ -470,13 +491,14 @@ public enum RDBDocumentStoreDB {
 
             // table data
             String tableStats = SystemPropertySupplier
-                    .create(SYSPROP_PREFIX + ".MYSQL.TABLE_STATS",
-                            "engine version row_format rows avg_row_length data_length index_length data_free collation")
-                    .loggingTo(LOG).get();
+                .create(SYSPROP_PREFIX + ".MYSQL.TABLE_STATS",
+                    "engine version row_format rows avg_row_length data_length index_length data_free collation")
+                .loggingTo(LOG).get();
 
             try {
                 con = ch.getROConnection();
-                try (PreparedStatement stmt = con.prepareStatement("show table status from " + catalog + " where name=?")) {
+                try (PreparedStatement stmt = con.prepareStatement(
+                    "show table status from " + catalog + " where name=?")) {
                     stmt.setString(1, tableName.toUpperCase(Locale.ENGLISH));
                     try (ResultSet rs = stmt.executeQuery()) {
                         while (rs.next()) {
@@ -494,12 +516,14 @@ public enum RDBDocumentStoreDB {
 
             // index data
             String indexStats = SystemPropertySupplier
-                    .create(SYSPROP_PREFIX + ".MYSQL.INDEX_STATS", "column_name cardinality index_type sub_part").loggingTo(LOG)
-                    .get();
+                .create(SYSPROP_PREFIX + ".MYSQL.INDEX_STATS",
+                    "column_name cardinality index_type sub_part").loggingTo(LOG)
+                .get();
 
             try {
                 con = ch.getROConnection();
-                try (PreparedStatement stmt = con.prepareStatement("show index from " + tableName + " in " + catalog)) {
+                try (PreparedStatement stmt = con.prepareStatement(
+                    "show index from " + tableName + " in " + catalog)) {
                     try (ResultSet rs = stmt.executeQuery()) {
                         while (rs.next()) {
                             String index = rs.getString("key_name");
@@ -529,11 +553,11 @@ public enum RDBDocumentStoreDB {
         public String getTableCreationStatement(String tableName, int schema) {
             // see https://issues.apache.org/jira/browse/OAK-2395
             return ("create table " + tableName
-                    + " (ID varbinary(512) not null, MODIFIED bigint, HASBINARY smallint, DELETEDONCE smallint, MODCOUNT bigint, CMODCOUNT bigint, DSIZE bigint, "
-                    + (schema >= 1 ? "VERSION smallint, " : "")
-                    + (schema >= 2 ? "SDTYPE smallint, SDMAXREVTIME bigint, " : "")
-                    + "DATA nvarchar(4000), BDATA varbinary(max), "
-                    + "constraint "  + tableName + "_PK primary key clustered (ID ASC))");
+                + " (ID varbinary(512) not null, MODIFIED bigint, HASBINARY smallint, DELETEDONCE smallint, MODCOUNT bigint, CMODCOUNT bigint, DSIZE bigint, "
+                + (schema >= 1 ? "VERSION smallint, " : "")
+                + (schema >= 2 ? "SDTYPE smallint, SDMAXREVTIME bigint, " : "")
+                + "DATA nvarchar(4000), BDATA varbinary(max), "
+                + "constraint " + tableName + "_PK primary key clustered (ID ASC))");
         }
 
         @Override
@@ -542,18 +566,21 @@ public enum RDBDocumentStoreDB {
         }
 
         @Override
-        public PreparedStatementComponent getConcatQuery(final String appendData, final int dataOctetLimit) {
+        public PreparedStatementComponent getConcatQuery(final String appendData,
+            final int dataOctetLimit) {
             return new PreparedStatementComponent() {
 
                 @Override
                 // this statement ensures that SQL server will generate an exception on overflow
                 public String getStatementComponent() {
-                    return "CASE WHEN LEN(DATA) < ? THEN (DATA + CAST(? AS nvarchar(" + dataOctetLimit
-                            + "))) ELSE (DATA + CAST(DATA AS nvarchar(max))) END";
+                    return "CASE WHEN LEN(DATA) < ? THEN (DATA + CAST(? AS nvarchar("
+                        + dataOctetLimit
+                        + "))) ELSE (DATA + CAST(DATA AS nvarchar(max))) END";
                 }
 
                 @Override
-                public int setParameters(PreparedStatement stmt, int startIndex) throws SQLException {
+                public int setParameters(PreparedStatement stmt, int startIndex)
+                    throws SQLException {
                     stmt.setInt(startIndex++, dataOctetLimit - appendData.length());
                     stmt.setString(startIndex++, appendData);
                     return startIndex;
@@ -579,7 +606,8 @@ public enum RDBDocumentStoreDB {
         }
 
         @Override
-        public Map<String, String> getAdditionalStatistics(RDBConnectionHandler ch, String catalog, String tableName) {
+        public Map<String, String> getAdditionalStatistics(RDBConnectionHandler ch, String catalog,
+            String tableName) {
             Map<String, String> result = new HashMap<String, String>();
             Connection con = null;
 
@@ -595,7 +623,8 @@ public enum RDBDocumentStoreDB {
                             long tindexSize = parseSize(rs.getString("index_size"));
                             long tunused = parseSize(rs.getString("unused"));
                             if (treserved >= 0 && tdata >= 0 && tindexSize >= 0 && tunused >= 0) {
-                                result.put("storageSize", Long.toString(treserved + tdata + tindexSize + tunused));
+                                result.put("storageSize",
+                                    Long.toString(treserved + tdata + tindexSize + tunused));
                                 result.put("size", Long.toString(treserved + tdata + tunused));
                                 result.put("totalIndexSize", Long.toString(tindexSize));
                             }
@@ -615,16 +644,17 @@ public enum RDBDocumentStoreDB {
             try {
                 con = ch.getROConnection();
                 try (PreparedStatement stmt = con.prepareStatement(
-                        "SELECT i.[name] AS name, i.[fill_factor] as fill_factor, i.[type_desc] as type_desc, SUM(s.[row_count]) as rows, SUM(s.[used_page_count] * 8) as usedKB, SUM(s.[reserved_page_count] * 8) as reservedKB "
-                                + "FROM sys.dm_db_partition_stats AS s "
-                                + "INNER JOIN sys.indexes AS i ON s.[object_id] = i.[object_id] "
-                                + "AND s.[index_id] = i.[index_id] WHERE i.[object_id]=OBJECT_ID(?) "
-                                + "GROUP BY i.[name], i.[fill_factor], i.[type_desc]")) {
+                    "SELECT i.[name] AS name, i.[fill_factor] as fill_factor, i.[type_desc] as type_desc, SUM(s.[row_count]) as rows, SUM(s.[used_page_count] * 8) as usedKB, SUM(s.[reserved_page_count] * 8) as reservedKB "
+                        + "FROM sys.dm_db_partition_stats AS s "
+                        + "INNER JOIN sys.indexes AS i ON s.[object_id] = i.[object_id] "
+                        + "AND s.[index_id] = i.[index_id] WHERE i.[object_id]=OBJECT_ID(?) "
+                        + "GROUP BY i.[name], i.[fill_factor], i.[type_desc]")) {
                     stmt.setString(1, tableName.toLowerCase(Locale.ENGLISH));
                     try (ResultSet rs = stmt.executeQuery()) {
                         while (rs.next()) {
                             String index = rs.getString("name");
-                            String data = extractFields(rs, "rows usedKB reservedKB type_desc fill_factor");
+                            String data = extractFields(rs,
+                                "rows usedKB reservedKB type_desc fill_factor");
                             result.put("index." + index + "._data", data);
                         }
                     }
@@ -652,7 +682,9 @@ public enum RDBDocumentStoreDB {
 
     public enum FETCHFIRSTSYNTAX {
         FETCHFIRST, LIMIT, TOP
-    };
+    }
+
+    ;
 
     /**
      * Check the database brand and version
@@ -670,7 +702,7 @@ public enum RDBDocumentStoreDB {
 
     /**
      * Query syntax for current time in ms since the epoch
-     * 
+     *
      * @return the query syntax or empty string when no such syntax is available
      */
     public String getCurrentTimeStampInSecondsSyntax() {
@@ -679,15 +711,14 @@ public enum RDBDocumentStoreDB {
     }
 
     /**
-     * Returns the CONCAT function or its equivalent function or sub-query. Note
-     * that the function MUST NOT cause a truncated value to be written!
+     * Returns the CONCAT function or its equivalent function or sub-query. Note that the function
+     * MUST NOT cause a truncated value to be written!
      *
-     * @param appendData
-     *            string to be inserted
-     * @param dataOctetLimit
-     *            expected capacity of data column
+     * @param appendData     string to be inserted
+     * @param dataOctetLimit expected capacity of data column
      */
-    public PreparedStatementComponent getConcatQuery(final String appendData, final int dataOctetLimit) {
+    public PreparedStatementComponent getConcatQuery(final String appendData,
+        final int dataOctetLimit) {
 
         return new PreparedStatementComponent() {
 
@@ -706,7 +737,7 @@ public enum RDBDocumentStoreDB {
 
     /**
      * Query for any required initialization of the DB.
-     * 
+     *
      * @return the DB initialization SQL string
      */
     public @NotNull String getInitializationStatement() {
@@ -721,10 +752,10 @@ public enum RDBDocumentStoreDB {
      */
     public String getTableCreationStatement(String tableName, int schema) {
         return "create table " + tableName
-                + " (ID varchar(512) not null primary key, MODIFIED bigint, HASBINARY smallint, DELETEDONCE smallint, MODCOUNT bigint, CMODCOUNT bigint, DSIZE bigint, "
-                + (schema >= 1 ? "VERSION smallint, " : "")
-                + (schema >= 2 ? "SDTYPE smallint, SDMAXREVTIME bigint, " : "")
-                + "DATA varchar(16384), BDATA blob(" + 1024 * 1024 * 1024 + "))";
+            + " (ID varchar(512) not null primary key, MODIFIED bigint, HASBINARY smallint, DELETEDONCE smallint, MODCOUNT bigint, CMODCOUNT bigint, DSIZE bigint, "
+            + (schema >= 1 ? "VERSION smallint, " : "")
+            + (schema >= 2 ? "SDTYPE smallint, SDMAXREVTIME bigint, " : "")
+            + "DATA varchar(16384), BDATA blob(" + 1024 * 1024 * 1024 + "))";
     }
 
     public List<String> getIndexCreationStatements(String tableName, int level) {
@@ -733,9 +764,10 @@ public enum RDBDocumentStoreDB {
         if (level == 2) {
             result.add("create index " + tableName + "_VSN on " + tableName + " (VERSION)");
             result.add(
-                    "create index " + tableName + "_SDT on " + tableName + " (SDTYPE)" + makeIndexConditionalForColumn("SDTYPE"));
+                "create index " + tableName + "_SDT on " + tableName + " (SDTYPE)"
+                    + makeIndexConditionalForColumn("SDTYPE"));
             result.add("create index " + tableName + "_SDM on " + tableName + " (SDMAXREVTIME)"
-                    + makeIndexConditionalForColumn("SDMAXREVTIME"));
+                + makeIndexConditionalForColumn("SDMAXREVTIME"));
         }
         return result;
     }
@@ -749,8 +781,7 @@ public enum RDBDocumentStoreDB {
      * Returns additional DB-specific statistics, augmenting the return value of
      * {@link RDBDocumentStore#getStats()}.
      * <p>
-     * Where applicable, the following fields are returned similar to the output
-     * for MongoDB:
+     * Where applicable, the following fields are returned similar to the output for MongoDB:
      * <dl>
      * <dt>storageSize</dt>
      * <dd>total size of table</dd>
@@ -774,7 +805,7 @@ public enum RDBDocumentStoreDB {
      * These fields will just contain DB-specific name/value pairs obtained from
      * the database. The exact fields to fetch are preconfigured by can be tuned
      * using system properties, such as:
-     * 
+     *
      * <pre>
      * -Dorg.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.DB2.TABLE_STATS="card npages mpages fpages overflow pctfree avgrowsize stats_time"
      * -Dorg.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.DB2.INDEX_STATS="indextype colnames pctfree clusterratio nleaf nlevels fullkeycard density indcard numrids numrids_deleted avgleafkeysize avgnleafkeysize remarks stats_time"
@@ -813,7 +844,8 @@ public enum RDBDocumentStoreDB {
      * "http://db.apache.org/derby/docs/10.14/ref/rrefsyscsdiagspacetable.html">SYSCS_DIAG.SPACE_TABLE diagnostic table function</a>
      * </ul>
      */
-    public Map<String, String> getAdditionalStatistics(RDBConnectionHandler ch, String catalog, String tableName) {
+    public Map<String, String> getAdditionalStatistics(RDBConnectionHandler ch, String catalog,
+        String tableName) {
         return Collections.emptyMap();
     }
 
@@ -842,14 +874,17 @@ public enum RDBDocumentStoreDB {
         String smallint = getSmallintType();
         String bigint = getBigintType();
         if (level == 1) {
-            return Collections.singletonList("alter table " + tableName + " add VERSION " + smallint);
+            return Collections.singletonList(
+                "alter table " + tableName + " add VERSION " + smallint);
         } else if (level == 2) {
-            String[] statements = new String[] { "alter table " + tableName + " add SDTYPE " + smallint,
-                    "alter table " + tableName + " add SDMAXREVTIME " + bigint,
-                    "create index " + tableName + "_VSN on " + tableName + " (VERSION)",
-                    "create index " + tableName + "_SDT on " + tableName + " (SDTYPE)" + makeIndexConditionalForColumn("SDTYPE"),
-                    "create index " + tableName + "_SDM on " + tableName + " (SDMAXREVTIME)"
-                            + makeIndexConditionalForColumn("SDMAXREVTIME"), };
+            String[] statements = new String[]{
+                "alter table " + tableName + " add SDTYPE " + smallint,
+                "alter table " + tableName + " add SDMAXREVTIME " + bigint,
+                "create index " + tableName + "_VSN on " + tableName + " (VERSION)",
+                "create index " + tableName + "_SDT on " + tableName + " (SDTYPE)"
+                    + makeIndexConditionalForColumn("SDTYPE"),
+                "create index " + tableName + "_SDM on " + tableName + " (SDMAXREVTIME)"
+                    + makeIndexConditionalForColumn("SDMAXREVTIME"),};
             return Arrays.asList(statements);
         } else {
             throw new IllegalArgumentException("level must be 1 or 2");

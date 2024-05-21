@@ -52,7 +52,7 @@ public class CacheConsistencyTest extends AbstractMongoConnectionTest {
         MongoDatabase db = mongoConnection.getDatabase();
         MongoUtils.dropCollections(db);
         DocumentMK.Builder builder = new DocumentMK.Builder()
-                .clock(getTestClock()).setAsyncDelay(0);
+            .clock(getTestClock()).setAsyncDelay(0);
         store = new TestStore(mongoConnection.getMongoClient(), db, builder);
         mk = builder.setDocumentStore(store).open();
     }
@@ -71,8 +71,8 @@ public class CacheConsistencyTest extends AbstractMongoConnectionTest {
             @Override
             public void run() {
                 store.query(NODES,
-                        Utils.getKeyLowerLimit(Path.ROOT),
-                        Utils.getKeyUpperLimit(Path.ROOT), 10);
+                    Utils.getKeyLowerLimit(Path.ROOT),
+                    Utils.getKeyUpperLimit(Path.ROOT), 10);
             }
         });
         // block thread when it tries to convert db objects
@@ -114,7 +114,7 @@ public class CacheConsistencyTest extends AbstractMongoConnectionTest {
 
         @Override
         protected <T extends Document> T convertFromDBObject(
-                @NotNull Collection<T> collection, @Nullable DBObject n) {
+            @NotNull Collection<T> collection, @Nullable DBObject n) {
             Semaphore s = semaphores.get(Thread.currentThread());
             if (s != null) {
                 s.acquireUninterruptibly();

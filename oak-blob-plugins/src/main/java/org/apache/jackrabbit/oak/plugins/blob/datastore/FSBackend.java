@@ -18,21 +18,19 @@
  */
 package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
+import static org.apache.commons.io.FilenameUtils.normalizeNoEndSeparator;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.RandomAccessFile;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
-
-import org.apache.jackrabbit.guava.common.base.Strings;
-import org.apache.jackrabbit.guava.common.io.Closeables;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.filefilter.FileFilterUtils;
@@ -40,6 +38,8 @@ import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.LazyFileInputStream;
+import org.apache.jackrabbit.guava.common.base.Strings;
+import org.apache.jackrabbit.guava.common.io.Closeables;
 import org.apache.jackrabbit.oak.commons.io.FileTreeTraverser;
 import org.apache.jackrabbit.oak.spi.blob.AbstractDataRecord;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
@@ -48,12 +48,11 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.commons.io.FilenameUtils.normalizeNoEndSeparator;
-
 /**
+ *
  */
 public class FSBackend extends AbstractSharedBackend {
+
     private static final Logger LOG = LoggerFactory.getLogger(FSBackend.class);
 
     public static final String FS_BACKEND_PATH = "fsBackendPath";
@@ -127,12 +126,12 @@ public class FSBackend extends AbstractSharedBackend {
                         tmpFile = null;
                     } else {
                         throw new IOException(
-                                "Can not rename " + tmpFile.getAbsolutePath()
+                            "Can not rename " + tmpFile.getAbsolutePath()
                                 + " to " + dest.getAbsolutePath()
                                 + " (media read only?)");
                     }
                 }
-            }  catch (IOException e) {
+            } catch (IOException e) {
                 throw new DataStoreException("Could not add record", e);
             } finally {
                 if (tmpFile != null) {
@@ -158,9 +157,10 @@ public class FSBackend extends AbstractSharedBackend {
     @Override
     public Iterator<DataIdentifier> getAllIdentifiers() throws DataStoreException {
         return FileTreeTraverser.depthFirstPostOrder(fsPathDir)
-                .filter(file -> file.isFile() && !normalizeNoEndSeparator(file.getParent()).equals(fsPath))
-                .map(file -> new DataIdentifier(file.getName()))
-                .iterator();
+                                .filter(file -> file.isFile() && !normalizeNoEndSeparator(
+                                    file.getParent()).equals(fsPath))
+                                .map(file -> new DataIdentifier(file.getName()))
+                                .iterator();
     }
 
     @Override
@@ -200,7 +200,7 @@ public class FSBackend extends AbstractSharedBackend {
             }
         } catch (IOException e) {
             LOG.error("Exception while adding metadata record with name {}, {}",
-                new Object[] {name, e});
+                new Object[]{name, e});
             throw new DataStoreException("Could not add root record", e);
         }
     }
@@ -257,7 +257,7 @@ public class FSBackend extends AbstractSharedBackend {
             if (!file.isDirectory()) { // skip directories which are actual data store files
                 if (!file.delete()) {
                     LOG.warn("Failed to delete root record {} ",
-                        new Object[] {file.getAbsolutePath()});
+                        new Object[]{file.getAbsolutePath()});
                 } else {
                     return true;
                 }
@@ -275,7 +275,7 @@ public class FSBackend extends AbstractSharedBackend {
             if (!file.isDirectory()) { // skip directories which are actual data store files
                 if (!file.delete()) {
                     LOG.warn("Failed to delete root record {} ",
-                        new Object[] {file.getAbsolutePath()});
+                        new Object[]{file.getAbsolutePath()});
                 }
             }
         }
@@ -288,7 +288,7 @@ public class FSBackend extends AbstractSharedBackend {
             if (!file.isDirectory()) { // skip directories which are actual data store files
                 if (!file.exists()) {
                     LOG.debug("File does not exist {} ",
-                        new Object[] {file.getAbsolutePath()});
+                        new Object[]{file.getAbsolutePath()});
                 } else {
                     return true;
                 }
@@ -302,9 +302,11 @@ public class FSBackend extends AbstractSharedBackend {
         final AbstractSharedBackend backend = this;
 
         return FileTreeTraverser.depthFirstPostOrder(fsPathDir)
-                .filter(file -> file.isFile() && !normalizeNoEndSeparator(file.getParent()).equals(fsPath))
-                .map(file -> (DataRecord) new FSBackendDataRecord(backend, new DataIdentifier(file.getName()), file))
-                .iterator();
+                                .filter(file -> file.isFile() && !normalizeNoEndSeparator(
+                                    file.getParent()).equals(fsPath))
+                                .map(file -> (DataRecord) new FSBackendDataRecord(backend,
+                                    new DataIdentifier(file.getName()), file))
+                                .iterator();
     }
 
 
@@ -332,8 +334,8 @@ public class FSBackend extends AbstractSharedBackend {
     /*----------------------------------- Helper Methods-- -------------------------------------**/
 
     /**
-     * Returns the identified file. This method implements the pattern used to
-     * avoid problems with too many files in a single directory.
+     * Returns the identified file. This method implements the pattern used to avoid problems with
+     * too many files in a single directory.
      * <p>
      * No sanity checks are performed on the given identifier.
      *
@@ -370,8 +372,7 @@ public class FSBackend extends AbstractSharedBackend {
      *
      * @param file the file
      * @param time the new last modified date
-     * @throws DataStoreException if the file is writable but modifying the date
-     *                            fails
+     * @throws DataStoreException if the file is writable but modifying the date fails
      */
     private static void setLastModified(File file, long time) throws DataStoreException {
         if (!file.setLastModified(time)) {
@@ -444,6 +445,7 @@ public class FSBackend extends AbstractSharedBackend {
      * FSBackendDataRecord which lazily retrieves the input stream of the record.
      */
     class FSBackendDataRecord extends AbstractDataRecord {
+
         private long length;
         private long lastModified;
         private File file;
@@ -456,11 +458,13 @@ public class FSBackend extends AbstractSharedBackend {
             this.lastModified = file.lastModified();
         }
 
-        @Override public long getLength() throws DataStoreException {
+        @Override
+        public long getLength() throws DataStoreException {
             return length;
         }
 
-        @Override public InputStream getStream() throws DataStoreException {
+        @Override
+        public InputStream getStream() throws DataStoreException {
             try {
                 return new LazyFileInputStream(file);
             } catch (FileNotFoundException e) {
@@ -469,11 +473,13 @@ public class FSBackend extends AbstractSharedBackend {
             }
         }
 
-        @Override public long getLastModified() {
+        @Override
+        public long getLastModified() {
             return lastModified;
         }
 
-        @Override public String toString() {
+        @Override
+        public String toString() {
             return "S3DataRecord{" + "identifier=" + getIdentifier() + ", length=" + length
                 + ", lastModified=" + lastModified + '}';
         }

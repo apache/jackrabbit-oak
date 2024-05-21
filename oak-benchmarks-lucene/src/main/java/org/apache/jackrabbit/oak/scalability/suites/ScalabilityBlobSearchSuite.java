@@ -24,7 +24,6 @@ import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithC
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
-
 import javax.jcr.Binary;
 import javax.jcr.Node;
 import javax.jcr.Property;
@@ -37,26 +36,23 @@ import javax.jcr.lock.LockException;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.version.VersionException;
-
-import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.base.Strings;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-
 import org.apache.commons.io.output.NullOutputStream;
 import org.apache.commons.math3.stat.descriptive.SynchronizedDescriptiveStatistics;
 import org.apache.jackrabbit.commons.JcrUtils;
+import org.apache.jackrabbit.guava.common.base.Stopwatch;
+import org.apache.jackrabbit.guava.common.base.Strings;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.benchmark.TestInputStream;
 import org.apache.jackrabbit.oak.benchmark.util.Date;
 import org.apache.jackrabbit.oak.benchmark.util.MimeType;
 import org.apache.jackrabbit.oak.benchmark.util.OakIndexUtils;
-import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.scalability.util.NodeTypeUtils;
+import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 
 
 /**
- * The suite test will incrementally increase the load and execute searches.
- * Each test run thus adds blobs and executes different searches. This way we measure time taken for
- * search(es) execution.
+ * The suite test will incrementally increase the load and execute searches. Each test run thus adds
+ * blobs and executes different searches. This way we measure time taken for search(es) execution.
  *
  * <p>
  * The following system JVM properties can be defined to configure the suite.
@@ -78,6 +74,7 @@ import org.apache.jackrabbit.oak.scalability.util.NodeTypeUtils;
  * </ul>
  */
 public class ScalabilityBlobSearchSuite extends ScalabilityNodeSuite {
+
     private static final int FILE_SIZE = Integer.getInteger("fileSize", 1);
 
     /**
@@ -127,17 +124,17 @@ public class ScalabilityBlobSearchSuite extends ScalabilityNodeSuite {
 
         if (CUSTOM_TYPE) {
             indexType =
-                    NodeTypeUtils.createNodeType(session, CUSTOM_INDEX_TYPE, null, null, null,
-                            null, null, true);
+                NodeTypeUtils.createNodeType(session, CUSTOM_INDEX_TYPE, null, null, null,
+                    null, null, true);
             setNodeType(NodeTypeUtils.createNodeType(
-                    session, CUSTOM_NODE_TYPE,
-                    new String[] {CUSTOM_PATH_PROP, CUSTOM_REF_PROP},
-                    new int[] {PropertyType.STRING, PropertyType.STRING},                    
-                    new String[] {indexType}, null, NodeTypeConstants.NT_FILE, false));
+                session, CUSTOM_NODE_TYPE,
+                new String[]{CUSTOM_PATH_PROP, CUSTOM_REF_PROP},
+                new int[]{PropertyType.STRING, PropertyType.STRING},
+                new String[]{indexType}, null, NodeTypeConstants.NT_FILE, false));
         } else {
             String type = NodeTypeConstants.NT_UNSTRUCTURED;
             if (session.getWorkspace().getNodeTypeManager().hasNodeType(
-                    NodeTypeConstants.NT_OAK_UNSTRUCTURED)) {
+                NodeTypeConstants.NT_OAK_UNSTRUCTURED)) {
                 type = NodeTypeConstants.NT_OAK_UNSTRUCTURED;
             }
             setNodeType(type);
@@ -146,12 +143,12 @@ public class ScalabilityBlobSearchSuite extends ScalabilityNodeSuite {
         // defining indexes
         if (INDEX) {
             OakIndexUtils.propertyIndexDefinition(session, NodeTypeConstants.JCR_MIMETYPE,
-                new String[] {NodeTypeConstants.JCR_MIMETYPE}, false,
-                (Strings.isNullOrEmpty(indexType) ? new String[0] : new String[] {indexType}));
+                new String[]{NodeTypeConstants.JCR_MIMETYPE}, false,
+                (Strings.isNullOrEmpty(indexType) ? new String[0] : new String[]{indexType}));
             OakIndexUtils
                 .orderedIndexDefinition(session, NodeTypeConstants.JCR_LASTMODIFIED, ASYNC_INDEX,
-                    new String[] {NodeTypeConstants.JCR_LASTMODIFIED}, false,
-                    (Strings.isNullOrEmpty(indexType) ? new String[0] : new String[] {indexType}),
+                    new String[]{NodeTypeConstants.JCR_LASTMODIFIED}, false,
+                    (Strings.isNullOrEmpty(indexType) ? new String[0] : new String[]{indexType}),
                     null);
         }
     }
@@ -176,7 +173,7 @@ public class ScalabilityBlobSearchSuite extends ScalabilityNodeSuite {
         for (int i = 0; i < WRITERS; i++) {
             /* Each writer will write to a directory of the form load-b-i */
             addBackgroundJob(new BlobWriter(String.valueOf(context.getIncrement() + "-b-" + i), 1,
-                    null));
+                null));
         }
         for (int i = 0; i < READERS; i++) {
             addBackgroundJob(new Reader());
@@ -192,9 +189,9 @@ public class ScalabilityBlobSearchSuite extends ScalabilityNodeSuite {
 
     @Override
     protected Writer getWriter(ExecutionContext context,
-            SynchronizedDescriptiveStatistics writeStats, int idx) throws RepositoryException {
+        SynchronizedDescriptiveStatistics writeStats, int idx) throws RepositoryException {
         return new BlobWriter((context.getIncrement() + "-" + idx),
-                context.getIncrement() / LOADERS, writeStats);
+            context.getIncrement() / LOADERS, writeStats);
     }
 
     private synchronized String getRandomReadPath() {
@@ -240,7 +237,7 @@ public class ScalabilityBlobSearchSuite extends ScalabilityNodeSuite {
                 String path = getRandomReadPath();
                 session.refresh(false);
                 JcrUtils.readFile(
-                        session.getNode(path), new NullOutputStream());
+                    session.getNode(path), new NullOutputStream());
             } catch (Exception e) {
                 LOG.error("Exception in reader execution ", e);
             }
@@ -249,8 +246,8 @@ public class ScalabilityBlobSearchSuite extends ScalabilityNodeSuite {
     }
 
     /**
-     * Creates a node hierarchy similar to the below structure. Here a file Level0Level1Level2File0 is created
-     * which has a reference to Leve0Level1Level3File10:
+     * Creates a node hierarchy similar to the below structure. Here a file Level0Level1Level2File0
+     * is created which has a reference to Leve0Level1Level3File10:
      *
      * <pre>
      * {@code
@@ -271,8 +268,9 @@ public class ScalabilityBlobSearchSuite extends ScalabilityNodeSuite {
      * </pre>
      */
     private class BlobWriter extends Writer implements Runnable {
+
         BlobWriter(String id, int maxAssets, SynchronizedDescriptiveStatistics writeStats)
-                throws RepositoryException {
+            throws RepositoryException {
             super(id, maxAssets, writeStats);
         }
 
@@ -314,9 +312,9 @@ public class ScalabilityBlobSearchSuite extends ScalabilityNodeSuite {
 
         /**
          * Puts the file at the given path with the given prefix.
-         * 
+         *
          * @param fileNamePrefix the prefix for the filename
-         * @param parentDir the parent dir of the file
+         * @param parentDir      the parent dir of the file
          * @return the node
          * @throws RepositoryException
          * @throws UnsupportedRepositoryOperationException
@@ -328,16 +326,16 @@ public class ScalabilityBlobSearchSuite extends ScalabilityNodeSuite {
         private Node putFile(String fileNamePrefix, String parentDir) throws RepositoryException {
             Node filepath = JcrUtils.getOrAddNode(parent, parentDir, getParentType());
             Node file =
-                    JcrUtils.getOrAddNode(filepath,
-                            (fileNamePrefix + "File" + counter++),
-                            getType());
+                JcrUtils.getOrAddNode(filepath,
+                    (fileNamePrefix + "File" + counter++),
+                    getType());
 
             Binary binary =
-                    parent.getSession().getValueFactory().createBinary(
-                            new TestInputStream(FILE_SIZE * 1024));
+                parent.getSession().getValueFactory().createBinary(
+                    new TestInputStream(FILE_SIZE * 1024));
             try {
                 Node content =
-                        JcrUtils.getOrAddNode(file, Node.JCR_CONTENT, NodeType.NT_RESOURCE);
+                    JcrUtils.getOrAddNode(file, Node.JCR_CONTENT, NodeType.NT_RESOURCE);
                 if (indexType != null) {
                     content.addMixin(CUSTOM_INDEX_TYPE);
                     file.addMixin(CUSTOM_INDEX_TYPE);
@@ -359,14 +357,14 @@ public class ScalabilityBlobSearchSuite extends ScalabilityNodeSuite {
 
         /**
          * Gets the node type of the parent.
-         * 
+         *
          * @return the parent type
          * @throws RepositoryException the repository exception
          */
         protected String getParentType() throws RepositoryException {
             String type = NodeTypeConstants.NT_UNSTRUCTURED;
             if (parent.getSession().getWorkspace().getNodeTypeManager().hasNodeType(
-                    NodeTypeConstants.NT_OAK_UNSTRUCTURED)) {
+                NodeTypeConstants.NT_OAK_UNSTRUCTURED)) {
                 type = NodeTypeConstants.NT_OAK_UNSTRUCTURED;
             }
             return type;
@@ -374,7 +372,7 @@ public class ScalabilityBlobSearchSuite extends ScalabilityNodeSuite {
 
         /**
          * Order of precedence is customNodeType, oak:Unstructured, nt:unstructured
-         * 
+         *
          * @return the type
          * @throws RepositoryException
          */
@@ -384,7 +382,7 @@ public class ScalabilityBlobSearchSuite extends ScalabilityNodeSuite {
                 if (getNodeType() != null) {
                     type = getNodeType();
                 } else if (parent.getSession().getWorkspace().getNodeTypeManager().hasNodeType(
-                        NodeTypeConstants.NT_OAK_UNSTRUCTURED)) {
+                    NodeTypeConstants.NT_OAK_UNSTRUCTURED)) {
                     type = NodeTypeConstants.NT_OAK_UNSTRUCTURED;
                 }
                 context.getMap().put(CTX_FILE_NODE_TYPE_PROP, type);
@@ -397,7 +395,7 @@ public class ScalabilityBlobSearchSuite extends ScalabilityNodeSuite {
 
         /**
          * Create a handy filename to search known files.
-         * 
+         *
          * @param levels the levels for the file
          * @return the prefix
          */
@@ -419,25 +417,24 @@ public class ScalabilityBlobSearchSuite extends ScalabilityNodeSuite {
 
         /**
          * Assigns the asset to it appropriate folder. The folder hierarchy is constructed such that
-         * each
-         * folder has only MAX_ASSETS_PER_LEVEL children.
-         * 
-         * @param assetNum the asset number
+         * each folder has only MAX_ASSETS_PER_LEVEL children.
+         *
+         * @param assetNum  the asset number
          * @param maxAssets the max no. of assets to be created
-         * @param levels the no. of levels to create
+         * @param levels    the no. of levels to create
          */
         private void getParentLevels(long assetNum, long maxAssets,
-                List<String> levels) {
+            List<String> levels) {
 
             int maxAssetsNextLevel =
-                    (int) Math.ceil((double) maxAssets / (double) MAX_ASSETS_PER_LEVEL);
+                (int) Math.ceil((double) maxAssets / (double) MAX_ASSETS_PER_LEVEL);
             long nextAssetBucket = assetNum / maxAssetsNextLevel;
 
             levels.add(String.valueOf(nextAssetBucket));
             if (maxAssetsNextLevel > MAX_ASSETS_PER_LEVEL) {
                 getParentLevels((assetNum - nextAssetBucket * maxAssetsNextLevel),
-                        maxAssetsNextLevel,
-                        levels);
+                    maxAssetsNextLevel,
+                    levels);
             }
         }
     }

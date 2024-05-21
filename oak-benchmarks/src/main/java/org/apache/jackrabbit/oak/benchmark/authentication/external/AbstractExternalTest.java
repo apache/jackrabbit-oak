@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.benchmark.authentication.external;
 
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
+
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -29,11 +31,10 @@ import javax.jcr.Repository;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.login.Configuration;
-
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.benchmark.AbstractTest;
@@ -73,22 +74,19 @@ import org.apache.sling.testing.mock.osgi.context.OsgiContextImpl;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-
 /**
  * Base benchmark test for external authentication.
- *
+ * <p>
  * The setup currently defines the following configuration options:
- *
- * - {@code numberOfUsers} : number of user accounts that are 'known' to the IDP
- * - {@code numberOfGroups}: number of groups 'known' to the IDP and equally used to define the membershipSize of each user.
- * - {@code expirationTime}: expiration time as set with
- *   {@link DefaultSyncConfig.Authorizable#setExpirationTime(long)}, used for both users and groups
- * - {@code dynamicMembership}: boolean flag to enable dynamic membership (see OAK-4101)
- *
- * Note: by default the {@link DefaultSyncConfig.User#setMembershipNestingDepth(long)}
- * is set to 1 and each user will become member of each of the groups as defined
- * by {@code numberOfGroups}.
+ * <p>
+ * - {@code numberOfUsers} : number of user accounts that are 'known' to the IDP -
+ * {@code numberOfGroups}: number of groups 'known' to the IDP and equally used to define the
+ * membershipSize of each user. - {@code expirationTime}: expiration time as set with
+ * {@link DefaultSyncConfig.Authorizable#setExpirationTime(long)}, used for both users and groups -
+ * {@code dynamicMembership}: boolean flag to enable dynamic membership (see OAK-4101)
+ * <p>
+ * Note: by default the {@link DefaultSyncConfig.User#setMembershipNestingDepth(long)} is set to 1
+ * and each user will become member of each of the groups as defined by {@code numberOfGroups}.
  */
 abstract class AbstractExternalTest extends AbstractTest<RepositoryFixture> {
 
@@ -99,7 +97,8 @@ abstract class AbstractExternalTest extends AbstractTest<RepositoryFixture> {
     private final ExternalPrincipalConfiguration externalPrincipalConfiguration = new ExternalPrincipalConfiguration();
 
     private ContentRepository contentRepository;
-    private final SecurityProvider securityProvider = newTestSecurityProvider(externalPrincipalConfiguration);
+    private final SecurityProvider securityProvider = newTestSecurityProvider(
+        externalPrincipalConfiguration);
 
     final DefaultSyncConfig syncConfig = new DefaultSyncConfig();
     final SyncHandler syncHandler = new DefaultSyncHandler(syncConfig);
@@ -111,34 +110,35 @@ abstract class AbstractExternalTest extends AbstractTest<RepositoryFixture> {
     ExternalIdentityProviderManager idpManager;
 
     protected AbstractExternalTest(int numberOfUsers, int numberOfGroups,
-                                   long expTime, boolean dynamicMembership,
-                                   @NotNull List<String> autoMembership) {
+        long expTime, boolean dynamicMembership,
+        @NotNull List<String> autoMembership) {
         this(numberOfUsers, numberOfGroups, expTime, dynamicMembership, autoMembership, 0);
     }
 
     protected AbstractExternalTest(int numberOfUsers, int numberOfGroups,
-                                   long expTime, boolean dynamicMembership,
-                                   @NotNull List<String> autoMembership,
-                                   int roundtripDelay) {
+        long expTime, boolean dynamicMembership,
+        @NotNull List<String> autoMembership,
+        int roundtripDelay) {
 
-        idp = (roundtripDelay < 0) ? new PrincipalResolvingProvider(numberOfUsers, numberOfGroups) : new TestIdentityProvider(numberOfUsers, numberOfGroups);
+        idp = (roundtripDelay < 0) ? new PrincipalResolvingProvider(numberOfUsers, numberOfGroups)
+            : new TestIdentityProvider(numberOfUsers, numberOfGroups);
         delay = roundtripDelay;
         syncConfig.user()
-                .setMembershipNestingDepth(1)
-                .setDynamicMembership(dynamicMembership)
-                .setAutoMembership(autoMembership.toArray(new String[autoMembership.size()]))
-                .setExpirationTime(expTime).setPathPrefix(PATH_PREFIX);
+                  .setMembershipNestingDepth(1)
+                  .setDynamicMembership(dynamicMembership)
+                  .setAutoMembership(autoMembership.toArray(new String[autoMembership.size()]))
+                  .setExpirationTime(expTime).setPathPrefix(PATH_PREFIX);
         syncConfig.group()
-                .setExpirationTime(expTime).setPathPrefix(PATH_PREFIX);
+                  .setExpirationTime(expTime).setPathPrefix(PATH_PREFIX);
         expandSyncConfig();
     }
 
     protected abstract Configuration createConfiguration();
-    
+
     protected ConfigurationParameters getSecurityConfiguration() {
         return ConfigurationParameters.EMPTY;
     }
-    
+
     protected void expandSyncConfig() {
         // nop
     }
@@ -190,7 +190,8 @@ abstract class AbstractExternalTest extends AbstractTest<RepositoryFixture> {
     @Override
     protected void afterSuite() throws Exception {
         Session s = systemLogin();
-        for (String creationRoot : new String[] {UserConstants.DEFAULT_USER_PATH, UserConstants.DEFAULT_GROUP_PATH}) {
+        for (String creationRoot : new String[]{UserConstants.DEFAULT_USER_PATH,
+            UserConstants.DEFAULT_GROUP_PATH}) {
             String path = creationRoot + "/" + PATH_PREFIX;
             if (s.nodeExists(path)) {
                 s.getNode(path).remove();
@@ -208,22 +209,25 @@ abstract class AbstractExternalTest extends AbstractTest<RepositoryFixture> {
                     OsgiContextImpl context = new OsgiContextImpl();
                     Whiteboard whiteboard = new OsgiWhiteboard(context.bundleContext());
                     oak.with(whiteboard);
-                    
+
                     syncManager = new SyncManagerImpl(whiteboard);
                     whiteboard.register(SyncManager.class, syncManager, Collections.emptyMap());
 
                     idpManager = new ExternalIDPManagerImpl(whiteboard);
-                    whiteboard.register(ExternalIdentityProviderManager.class, idpManager, Collections.emptyMap());
+                    whiteboard.register(ExternalIdentityProviderManager.class, idpManager,
+                        Collections.emptyMap());
 
-                    whiteboard.register(ExternalIdentityProvider.class, idp, Collections.emptyMap());
+                    whiteboard.register(ExternalIdentityProvider.class, idp,
+                        Collections.emptyMap());
                     whiteboard.register(SyncHandler.class, syncHandler, Collections.emptyMap());
 
                     // assert proper init of the 'externalPrincipalConfiguration' if dynamic membership is enabled
                     if (syncConfig.user().getDynamicMembership()) {
-                        
-                        // register the userconfiguration in order to have the dynamicmembership provider registered in 
+
+                        // register the userconfiguration in order to have the dynamicmembership provider registered in
                         // the activate method
-                        UserConfiguration uc = securityProvider.getConfiguration(UserConfiguration.class);
+                        UserConfiguration uc = securityProvider.getConfiguration(
+                            UserConfiguration.class);
                         context.registerInjectActivateService(uc);
 
                         // register the ExternalPrincipal configuration in order to have it's
@@ -233,14 +237,18 @@ abstract class AbstractExternalTest extends AbstractTest<RepositoryFixture> {
                         // now register the sync-handler with the dynamic membership config
                         // in order to enable dynamic membership with the external principal configuration
                         Map<String, Object> props = ImmutableMap.of(
-                                DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, syncConfig.user().getDynamicMembership(),
-                                DefaultSyncConfigImpl.PARAM_GROUP_AUTO_MEMBERSHIP, syncConfig.user().getAutoMembership());
-                        context.registerService(SyncHandler.class, WhiteboardUtils.getService(whiteboard, SyncHandler.class), props);
+                            DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP,
+                            syncConfig.user().getDynamicMembership(),
+                            DefaultSyncConfigImpl.PARAM_GROUP_AUTO_MEMBERSHIP,
+                            syncConfig.user().getAutoMembership());
+                        context.registerService(SyncHandler.class,
+                            WhiteboardUtils.getService(whiteboard, SyncHandler.class), props);
 
                         Map<String, Object> shMappingProps = ImmutableMap.of(
-                                SyncHandlerMapping.PARAM_IDP_NAME, idp.getName(),
-                                SyncHandlerMapping.PARAM_SYNC_HANDLER_NAME, syncConfig.getName());
-                        context.registerService(SyncHandlerMapping.class, new SyncHandlerMapping() {}, shMappingProps);
+                            SyncHandlerMapping.PARAM_IDP_NAME, idp.getName(),
+                            SyncHandlerMapping.PARAM_SYNC_HANDLER_NAME, syncConfig.getName());
+                        context.registerService(SyncHandlerMapping.class, new SyncHandlerMapping() {
+                        }, shMappingProps);
                     }
                     Jcr jcr = new Jcr(oak).with(securityProvider);
                     contentRepository = jcr.createContentRepository();
@@ -253,10 +261,13 @@ abstract class AbstractExternalTest extends AbstractTest<RepositoryFixture> {
     }
 
     private SecurityProvider newTestSecurityProvider(
-            ExternalPrincipalConfiguration externalPrincipalConfiguration) {
-        SecurityProvider delegate = SecurityProviderBuilder.newBuilder().with(getSecurityConfiguration()).build();
-    
-        PrincipalConfiguration principalConfiguration = delegate.getConfiguration(PrincipalConfiguration.class);
+        ExternalPrincipalConfiguration externalPrincipalConfiguration) {
+        SecurityProvider delegate = SecurityProviderBuilder.newBuilder()
+                                                           .with(getSecurityConfiguration())
+                                                           .build();
+
+        PrincipalConfiguration principalConfiguration = delegate.getConfiguration(
+            PrincipalConfiguration.class);
         if (!(principalConfiguration instanceof CompositePrincipalConfiguration)) {
             throw new IllegalStateException();
         } else {
@@ -346,7 +357,7 @@ abstract class AbstractExternalTest extends AbstractTest<RepositoryFixture> {
             if (userId.charAt(0) == 'u') {
                 Set<ExternalIdentityRef> groupRefs = new HashSet<>();
                 for (long i = 0; i < membershipSize; i++) {
-                    groupRefs.add(new ExternalIdentityRef("g"+ i, idp.getName()));
+                    groupRefs.add(new ExternalIdentityRef("g" + i, idp.getName()));
                 }
                 return groupRefs;
             } else {
@@ -355,7 +366,8 @@ abstract class AbstractExternalTest extends AbstractTest<RepositoryFixture> {
         }
     }
 
-    private final class PrincipalResolvingProvider extends TestIdentityProvider implements PrincipalNameResolver {
+    private final class PrincipalResolvingProvider extends TestIdentityProvider implements
+        PrincipalNameResolver {
 
         PrincipalResolvingProvider(int numberOfUsers, int membershipSize) {
             super(numberOfUsers, membershipSize);
@@ -376,7 +388,7 @@ abstract class AbstractExternalTest extends AbstractTest<RepositoryFixture> {
 
         public TestIdentity(@NotNull String userId) {
             this.userId = userId;
-            this.principalName = "p_"+userId;
+            this.principalName = "p_" + userId;
             id = new ExternalIdentityRef(userId, idp.getName());
         }
 

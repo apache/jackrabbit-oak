@@ -20,24 +20,24 @@
 package org.apache.jackrabbit.oak.plugins.index.search.update;
 
 import java.util.concurrent.TimeUnit;
-
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.Test;
 
 public class RefreshOnReadPolicyTest {
+
     private final Clock clock = new Clock.Virtual();
     private final RecordingRunnable refreshCallback = new RecordingRunnable();
     private final RefreshOnReadPolicy policy = new RefreshOnReadPolicy(clock, TimeUnit.SECONDS, 1);
     private final long refreshDelta = TimeUnit.SECONDS.toMillis(1) + 1;
 
     @Test
-    public void noRefreshOnReadIfNotUpdated() throws Exception{
+    public void noRefreshOnReadIfNotUpdated() throws Exception {
         policy.refreshOnReadIfRequired(refreshCallback);
         refreshCallback.assertNotInvokedAndReset();
     }
 
     @Test
-    public void refreshOnFirstWrite() throws Exception{
+    public void refreshOnFirstWrite() throws Exception {
         clock.waitUntil(System.currentTimeMillis());
 
         policy.refreshOnWriteIfRequired(refreshCallback);
@@ -45,7 +45,7 @@ public class RefreshOnReadPolicyTest {
     }
 
     @Test
-    public void refreshOnReadAfterWrite() throws Exception{
+    public void refreshOnReadAfterWrite() throws Exception {
         clock.waitUntil(System.currentTimeMillis());
 
         policy.refreshOnWriteIfRequired(refreshCallback);
@@ -62,7 +62,7 @@ public class RefreshOnReadPolicyTest {
     }
 
     @Test
-    public void refreshOnWriteWithTimeElapsed() throws Exception{
+    public void refreshOnWriteWithTimeElapsed() throws Exception {
         clock.waitUntil(System.currentTimeMillis());
 
         policy.refreshOnWriteIfRequired(refreshCallback);

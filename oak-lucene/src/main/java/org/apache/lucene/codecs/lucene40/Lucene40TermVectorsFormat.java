@@ -26,14 +26,13 @@ package org.apache.lucene.codecs.lucene40;
  */
 
 import java.io.IOException;
-
 import org.apache.lucene.codecs.CodecUtil;
 import org.apache.lucene.codecs.TermVectorsFormat;
 import org.apache.lucene.codecs.TermVectorsReader;
 import org.apache.lucene.codecs.TermVectorsWriter;
 import org.apache.lucene.index.FieldInfos;
 import org.apache.lucene.index.SegmentInfo;
-import org.apache.lucene.store.DataOutput; // javadocs
+import org.apache.lucene.store.DataOutput;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.IOContext;
 
@@ -113,7 +112,7 @@ import org.apache.lucene.store.IOContext;
  * <li>PayloadData is metadata associated with a term position. If
  * PayloadLength is stored at the current position, then it indicates the length
  * of this payload. If PayloadLength is not stored, then this payload has the same
- * length as the payload at the previous position. PayloadData encodes the 
+ * length as the payload at the previous position. PayloadData encodes the
  * concatenated bytes for all of a terms occurrences.</li>
  * <li>Offsets are stored as delta encoded VInts. The first VInt is the
  * startOffset, the second is the endOffset.</li>
@@ -123,17 +122,21 @@ import org.apache.lucene.store.IOContext;
  */
 public class Lucene40TermVectorsFormat extends TermVectorsFormat {
 
-  /** Sole constructor. */
-  public Lucene40TermVectorsFormat() {
-  }
-  
-  @Override
-  public TermVectorsReader vectorsReader(Directory directory, SegmentInfo segmentInfo, FieldInfos fieldInfos, IOContext context) throws IOException {
-    return new Lucene40TermVectorsReader(directory, segmentInfo, fieldInfos, context);
-  }
+    /**
+     * Sole constructor.
+     */
+    public Lucene40TermVectorsFormat() {
+    }
 
-  @Override
-  public TermVectorsWriter vectorsWriter(Directory directory, SegmentInfo segmentInfo, IOContext context) throws IOException {
-    return new Lucene40TermVectorsWriter(directory, segmentInfo.name, context);
-  }
+    @Override
+    public TermVectorsReader vectorsReader(Directory directory, SegmentInfo segmentInfo,
+        FieldInfos fieldInfos, IOContext context) throws IOException {
+        return new Lucene40TermVectorsReader(directory, segmentInfo, fieldInfos, context);
+    }
+
+    @Override
+    public TermVectorsWriter vectorsWriter(Directory directory, SegmentInfo segmentInfo,
+        IOContext context) throws IOException {
+        return new Lucene40TermVectorsWriter(directory, segmentInfo.name, context);
+    }
 }

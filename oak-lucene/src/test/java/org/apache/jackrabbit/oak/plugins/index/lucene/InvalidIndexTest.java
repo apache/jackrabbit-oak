@@ -19,10 +19,23 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider.compose;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import ch.qos.logback.classic.Level;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.Oak;
-import org.apache.jackrabbit.oak.api.*;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.ContentRepository;
+import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdate;
@@ -41,15 +54,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider.compose;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.assertFalse;
 
 /**
  * Tests: Logging of invalid jcr:primaryType of index.
@@ -78,8 +82,8 @@ public class InvalidIndexTest {
         ContentSession session = createRepository().login(null, null);
         root = session.getLatestRoot();
         customLogger = LogCustomizer
-                .forLogger(IndexUpdate.class.getName())
-                .enable(Level.WARN).create();
+            .forLogger(IndexUpdate.class.getName())
+            .enable(Level.WARN).create();
         customLogger.starting();
     }
 
@@ -98,23 +102,24 @@ public class InvalidIndexTest {
         luceneIndexEditorProvider.setBlobStore(blobStore);
 
         asyncIndexUpdate = new AsyncIndexUpdate("async", nodeStore, compose(newArrayList(
-                luceneIndexEditorProvider,
-                new NodeCounterEditorProvider()
+            luceneIndexEditorProvider,
+            new NodeCounterEditorProvider()
         )));
         TrackingCorruptIndexHandler trackingCorruptIndexHandler = new TrackingCorruptIndexHandler();
-        trackingCorruptIndexHandler.setCorruptInterval(INDEX_CORRUPT_INTERVAL_IN_MILLIS, TimeUnit.MILLISECONDS);
+        trackingCorruptIndexHandler.setCorruptInterval(INDEX_CORRUPT_INTERVAL_IN_MILLIS,
+            TimeUnit.MILLISECONDS);
         asyncIndexUpdate.setCorruptIndexHandler(trackingCorruptIndexHandler);
         return new Oak(nodeStore)
-                .with(new InitialContent())
-                .with(new OpenSecurityProvider())
-                .with((QueryIndexProvider) provider)
-                .with((Observer) provider)
-                .with(luceneIndexEditorProvider)
-                .with(new PropertyIndexEditorProvider())
-                .with(new NodeTypeIndexProvider())
-                .with(new PropertyIndexProvider())
-                .with(new PropertyIndexEditorProvider())
-                .createContentRepository();
+            .with(new InitialContent())
+            .with(new OpenSecurityProvider())
+            .with((QueryIndexProvider) provider)
+            .with((Observer) provider)
+            .with(luceneIndexEditorProvider)
+            .with(new PropertyIndexEditorProvider())
+            .with(new NodeTypeIndexProvider())
+            .with(new PropertyIndexProvider())
+            .with(new PropertyIndexEditorProvider())
+            .createContentRepository();
     }
 
     private void runEmptyAsyncIndexerCyclesWithoutNewContent(long count) {
@@ -123,7 +128,8 @@ public class InvalidIndexTest {
         }
     }
 
-    private void runIndexerCyclesAfterEachNodeCommit(long count, boolean async) throws CommitFailedException {
+    private void runIndexerCyclesAfterEachNodeCommit(long count, boolean async)
+        throws CommitFailedException {
         for (int i = 0; i < count; i++) {
             root.getTree("/").addChild("testNode" + i);
             root.commit();
@@ -143,7 +149,8 @@ public class InvalidIndexTest {
     }
 
     private String invalidJcrPrimaryTypeLog() {
-        return "jcr:primaryType of index " + invalidJcrPrimaryTypeIndexName + " should be oak:QueryIndexDefinition instead of " + invalidJcrPrimaryTypeForIndex;
+        return "jcr:primaryType of index " + invalidJcrPrimaryTypeIndexName
+            + " should be oak:QueryIndexDefinition instead of " + invalidJcrPrimaryTypeForIndex;
     }
 
     /**
@@ -151,7 +158,8 @@ public class InvalidIndexTest {
      */
     @Test
     public void loggingInvalidJcrPrimaryType() throws Exception {
-        Tree test1 = root.getTree("/").addChild(INDEX_DEFINITIONS_NAME).addChild(invalidJcrPrimaryTypeIndexName);
+        Tree test1 = root.getTree("/").addChild(INDEX_DEFINITIONS_NAME)
+                         .addChild(invalidJcrPrimaryTypeIndexName);
         test1.setProperty("jcr:primaryType", invalidJcrPrimaryTypeForIndex, Type.NAME);
         test1.setProperty("type", "lucene");
         test1.setProperty("reindex", true);
@@ -167,7 +175,8 @@ public class InvalidIndexTest {
     @Test
     public void noLoggingIfNodeIsNotIndexDefinition() throws Exception {
         // This is not a valid index definition. Refer method: IndexUpdate.isIncluded
-        Tree test1 = root.getTree("/").addChild(INDEX_DEFINITIONS_NAME).addChild(invalidJcrPrimaryTypeIndexName);
+        Tree test1 = root.getTree("/").addChild(INDEX_DEFINITIONS_NAME)
+                         .addChild(invalidJcrPrimaryTypeIndexName);
         test1.setProperty("jcr:primaryType", invalidJcrPrimaryTypeForIndex, Type.NAME);
         // Here index definition itself is not valid as there is no type property
         // test1.setProperty("type", "lucene");
@@ -184,7 +193,8 @@ public class InvalidIndexTest {
 
     @Test
     public void loggingInCaseOfSyncLuceneIndexDefinition() throws Exception {
-        Tree test1 = root.getTree("/").addChild(INDEX_DEFINITIONS_NAME).addChild(invalidJcrPrimaryTypeIndexName);
+        Tree test1 = root.getTree("/").addChild(INDEX_DEFINITIONS_NAME)
+                         .addChild(invalidJcrPrimaryTypeIndexName);
         test1.setProperty("jcr:primaryType", invalidJcrPrimaryTypeForIndex, Type.NAME);
         test1.setProperty("type", "lucene");
         test1.setProperty("reindex", true);

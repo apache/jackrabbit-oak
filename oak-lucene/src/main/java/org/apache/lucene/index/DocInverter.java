@@ -29,64 +29,67 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-/** This is a DocFieldConsumer that inverts each field,
- *  separately, from a Document, and accepts a
- *  InvertedTermsConsumer to process those terms. */
+/**
+ * This is a DocFieldConsumer that inverts each field, separately, from a Document, and accepts a
+ * InvertedTermsConsumer to process those terms.
+ */
 
 final class DocInverter extends DocFieldConsumer {
 
-  final InvertedDocConsumer consumer;
-  final InvertedDocEndConsumer endConsumer;
+    final InvertedDocConsumer consumer;
+    final InvertedDocEndConsumer endConsumer;
 
-  final DocumentsWriterPerThread.DocState docState;
+    final DocumentsWriterPerThread.DocState docState;
 
-  public DocInverter(DocumentsWriterPerThread.DocState docState, InvertedDocConsumer consumer, InvertedDocEndConsumer endConsumer) {
-    this.docState = docState;
-    this.consumer = consumer;
-    this.endConsumer = endConsumer;
-  }
-
-  @Override
-  void flush(Map<String, DocFieldConsumerPerField> fieldsToFlush, SegmentWriteState state) throws IOException {
-
-    Map<String, InvertedDocConsumerPerField> childFieldsToFlush = new HashMap<String, InvertedDocConsumerPerField>();
-    Map<String, InvertedDocEndConsumerPerField> endChildFieldsToFlush = new HashMap<String, InvertedDocEndConsumerPerField>();
-
-    for (Map.Entry<String, DocFieldConsumerPerField> fieldToFlush : fieldsToFlush.entrySet()) {
-      DocInverterPerField perField = (DocInverterPerField) fieldToFlush.getValue();
-      childFieldsToFlush.put(fieldToFlush.getKey(), perField.consumer);
-      endChildFieldsToFlush.put(fieldToFlush.getKey(), perField.endConsumer);
+    public DocInverter(DocumentsWriterPerThread.DocState docState, InvertedDocConsumer consumer,
+        InvertedDocEndConsumer endConsumer) {
+        this.docState = docState;
+        this.consumer = consumer;
+        this.endConsumer = endConsumer;
     }
 
-    consumer.flush(childFieldsToFlush, state);
-    endConsumer.flush(endChildFieldsToFlush, state);
-  }
+    @Override
+    void flush(Map<String, DocFieldConsumerPerField> fieldsToFlush, SegmentWriteState state)
+        throws IOException {
 
-  @Override
-  public void startDocument() throws IOException {
-    consumer.startDocument();
-    endConsumer.startDocument();
-  }
+        Map<String, InvertedDocConsumerPerField> childFieldsToFlush = new HashMap<String, InvertedDocConsumerPerField>();
+        Map<String, InvertedDocEndConsumerPerField> endChildFieldsToFlush = new HashMap<String, InvertedDocEndConsumerPerField>();
 
-  @Override
-  public void finishDocument() throws IOException {
-    // TODO: allow endConsumer.finishDocument to also return
-    // a DocWriter
-    endConsumer.finishDocument();
-    consumer.finishDocument();
-  }
+        for (Map.Entry<String, DocFieldConsumerPerField> fieldToFlush : fieldsToFlush.entrySet()) {
+            DocInverterPerField perField = (DocInverterPerField) fieldToFlush.getValue();
+            childFieldsToFlush.put(fieldToFlush.getKey(), perField.consumer);
+            endChildFieldsToFlush.put(fieldToFlush.getKey(), perField.endConsumer);
+        }
 
-  @Override
-  void abort() {
-    try {
-      consumer.abort();
-    } finally {
-      endConsumer.abort();
+        consumer.flush(childFieldsToFlush, state);
+        endConsumer.flush(endChildFieldsToFlush, state);
     }
-  }
 
-  @Override
-  public DocFieldConsumerPerField addField(FieldInfo fi) {
-    return new DocInverterPerField(this, fi);
-  }
+    @Override
+    public void startDocument() throws IOException {
+        consumer.startDocument();
+        endConsumer.startDocument();
+    }
+
+    @Override
+    public void finishDocument() throws IOException {
+        // TODO: allow endConsumer.finishDocument to also return
+        // a DocWriter
+        endConsumer.finishDocument();
+        consumer.finishDocument();
+    }
+
+    @Override
+    void abort() {
+        try {
+            consumer.abort();
+        } finally {
+            endConsumer.abort();
+        }
+    }
+
+    @Override
+    public DocFieldConsumerPerField addField(FieldInfo fi) {
+        return new DocInverterPerField(this, fi);
+    }
 }

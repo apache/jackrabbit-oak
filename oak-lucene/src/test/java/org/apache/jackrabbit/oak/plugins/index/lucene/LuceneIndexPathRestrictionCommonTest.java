@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import java.util.Arrays;
+import java.util.Collection;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.IndexPathRestrictionCommonTest;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
@@ -26,9 +28,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.slf4j.event.Level;
-
-import java.util.Arrays;
-import java.util.Collection;
 
 @RunWith(Parameterized.class)
 public class LuceneIndexPathRestrictionCommonTest extends IndexPathRestrictionCommonTest {
@@ -44,8 +43,8 @@ public class LuceneIndexPathRestrictionCommonTest extends IndexPathRestrictionCo
         // For Lucene - evaluatePathRestrictions is used to enable/disable indexing ancestor paths.
         // So we test for both combinations here - evaluatePathRestrictions=true and  evaluatePathRestrictions=false
         return Arrays.asList(
-                doesIndexEvaluatePathRestrictions(true),
-                doesIndexEvaluatePathRestrictions(false));
+            doesIndexEvaluatePathRestrictions(true),
+            doesIndexEvaluatePathRestrictions(false));
     }
 
     @Override
@@ -71,12 +70,15 @@ public class LuceneIndexPathRestrictionCommonTest extends IndexPathRestrictionCo
     }
 
     @Override
-    protected String getExpectedLogEntryForPostPathFiltering(String path, boolean shouldBeIncluded) {
-        return String.format("Matched path %s; shouldIncludeForHierarchy: %s", path, shouldBeIncluded);
+    protected String getExpectedLogEntryForPostPathFiltering(String path,
+        boolean shouldBeIncluded) {
+        return String.format("Matched path %s; shouldIncludeForHierarchy: %s", path,
+            shouldBeIncluded);
     }
 
     @Override
     protected LogCustomizer getLogCustomizer() {
-        return LogCustomizer.forLogger(LucenePropertyIndex.class.getName()).enable(Level.TRACE).contains("Matched path").create();
+        return LogCustomizer.forLogger(LucenePropertyIndex.class.getName()).enable(Level.TRACE)
+                            .contains("Matched path").create();
     }
 }

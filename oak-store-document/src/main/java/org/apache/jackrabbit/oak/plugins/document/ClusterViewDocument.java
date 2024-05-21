@@ -33,14 +33,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Represents the document stored in the settings collection containing a
- * 'cluster view'.
+ * Represents the document stored in the settings collection containing a 'cluster view'.
  * <p>
- * A 'cluster view' is the state of the membership of instances that are or have
- * all been connected to the same oak repository. The 'cluster view' is
- * maintained by all instances in the cluster concurrently - the faster one
- * wins. Its information is derived from the clusterNodes collection. From there
- * the following three states are derived and instances are grouped into these:
+ * A 'cluster view' is the state of the membership of instances that are or have all been connected
+ * to the same oak repository. The 'cluster view' is maintained by all instances in the cluster
+ * concurrently - the faster one wins. Its information is derived from the clusterNodes collection.
+ * From there the following three states are derived and instances are grouped into these:
  * <ul>
  * <li>Active: an instance is active and has no recoveryLock is currently
  * acquired. The lease timeout is ignored. When the lease times out, this is
@@ -61,13 +59,15 @@ class ClusterViewDocument {
 
     private static final Logger logger = LoggerFactory.getLogger(ClusterViewDocument.class);
 
-    /** the id of this document is always 'clusterView' **/
+    /**
+     * the id of this document is always 'clusterView'
+     **/
     private static final String CLUSTERVIEW_DOC_ID = "clusterView";
 
     // keys that we store in the root document - and in the history
     /**
-     * document key that stores the monotonically incrementing sequence number
-     * of the cluster view. Any update will increase this by 1
+     * document key that stores the monotonically incrementing sequence number of the cluster view.
+     * Any update will increase this by 1
      **/
     static final String VIEW_SEQ_NUM_KEY = "seqNum";
 
@@ -77,64 +77,69 @@ class ClusterViewDocument {
     static final String ACTIVE_KEY = "active";
 
     /**
-     * document key that stores the comma-separated list of inactive instance
-     * ids (they might still have a backlog, that is handled in ClusterView
-     * though, never persisted
+     * document key that stores the comma-separated list of inactive instance ids (they might still
+     * have a backlog, that is handled in ClusterView though, never persisted
      */
     static final String INACTIVE_KEY = "inactive";
 
     /**
-     * document key that stores the comma-separated list of recovering instance
-     * ids
+     * document key that stores the comma-separated list of recovering instance ids
      **/
     static final String RECOVERING_KEY = "recovering";
 
     /**
-     * document key that stores the date and time when this view was created -
-     * for debugging purpose only
+     * document key that stores the date and time when this view was created - for debugging purpose
+     * only
      **/
     private static final String CREATED_KEY = "created";
 
     /**
-     * document key that stores the id of the instance that created this view -
-     * for debugging purpose only
+     * document key that stores the id of the instance that created this view - for debugging
+     * purpose only
      **/
     private static final String CREATOR_KEY = "creator";
 
     /**
-     * document key that stores the date and time when this was was retired -
-     * for debugging purpose only
+     * document key that stores the date and time when this was was retired - for debugging purpose
+     * only
      **/
     private static final String RETIRED_KEY = "retired";
 
     /**
-     * document key that stores the id of the instance that retired this view -
-     * for debugging purpose only
+     * document key that stores the id of the instance that retired this view - for debugging
+     * purpose only
      **/
     private static final String RETIRER_KEY = "retirer";
 
     /**
-     * document key that stores a short, limited history of previous cluster
-     * views - for debugging purpose only
+     * document key that stores a short, limited history of previous cluster views - for debugging
+     * purpose only
      **/
     private static final String CLUSTER_VIEW_HISTORY_KEY = "clusterViewHistory";
 
-    /** number of elements kept in the CLUSTERVIEW_HISTORY_KEY field **/
+    /**
+     * number of elements kept in the CLUSTERVIEW_HISTORY_KEY field
+     **/
     static final int HISTORY_LIMIT = 10;
 
-    /** the monotonically incrementing sequence number of this cluster view **/
+    /**
+     * the monotonically incrementing sequence number of this cluster view
+     **/
     private final long viewSeqNum;
 
-    /** the ids of instances that are active at this moment **/
+    /**
+     * the ids of instances that are active at this moment
+     **/
     private final Integer[] activeIds;
 
     /**
-     * the ids of instances that are recovering (lastRev-recovery) at this
-     * moment
+     * the ids of instances that are recovering (lastRev-recovery) at this moment
      **/
     private final Integer[] recoveringIds;
 
-    /** the ids of instances that are inactive at this moment **/
+    /**
+     * the ids of instances that are inactive at this moment
+     **/
     private final Integer[] inactiveIds;
 
     /**
@@ -142,25 +147,29 @@ class ClusterViewDocument {
      **/
     private final Map<Object, String> viewHistory;
 
-    /** the date+time at which this view was created, for debugging only **/
+    /**
+     * the date+time at which this view was created, for debugging only
+     **/
     private final String createdAt;
 
-    /** the id of the instance that created this view, for debugging only **/
+    /**
+     * the id of the instance that created this view, for debugging only
+     **/
     private final Long createdBy;
 
     /**
-     * Main method by which the ClusterViewDocument is updated in the settings
-     * collection
-     * 
-     * @return the resulting ClusterViewDocument as just updated in the settings
-     *         collection - or null if another instance was updating the
-     *         clusterview concurrently (in which case the caller should re-read
-     *         first and possibly re-update if needed)
+     * Main method by which the ClusterViewDocument is updated in the settings collection
+     *
+     * @return the resulting ClusterViewDocument as just updated in the settings collection - or
+     * null if another instance was updating the clusterview concurrently (in which case the caller
+     * should re-read first and possibly re-update if needed)
      */
-    static ClusterViewDocument readOrUpdate(DocumentNodeStore documentNodeStore, Set<Integer> activeIds, Set<Integer> recoveringIds,
-            Set<Integer> inactiveIds) {
-        logger.trace("readOrUpdate: expected: activeIds: {}, recoveringIds: {}, inactiveIds: {}", activeIds, recoveringIds,
-                inactiveIds);
+    static ClusterViewDocument readOrUpdate(DocumentNodeStore documentNodeStore,
+        Set<Integer> activeIds, Set<Integer> recoveringIds,
+        Set<Integer> inactiveIds) {
+        logger.trace("readOrUpdate: expected: activeIds: {}, recoveringIds: {}, inactiveIds: {}",
+            activeIds, recoveringIds,
+            inactiveIds);
         if (activeIds == null || activeIds.size() == 0) {
             logger.info("readOrUpdate: activeIds must not be null or empty");
             throw new IllegalStateException("activeIds must not be null or empty");
@@ -175,32 +184,33 @@ class ClusterViewDocument {
             }
         }
         logger.trace(
-                "readOrUpdate: view change detected, going to update from {} to activeIds: {}, recoveringIds: {}, inactiveIds: {}",
-                previousView, activeIds, recoveringIds, inactiveIds);
+            "readOrUpdate: view change detected, going to update from {} to activeIds: {}, recoveringIds: {}, inactiveIds: {}",
+            previousView, activeIds, recoveringIds, inactiveIds);
         UpdateOp updateOp = new UpdateOp(CLUSTERVIEW_DOC_ID, true);
         Date now = new Date();
         updateOp.set(ACTIVE_KEY, setToCsv(activeIds));
         updateOp.set(RECOVERING_KEY, setToCsv(recoveringIds));
         updateOp.set(INACTIVE_KEY, setToCsv(inactiveIds));
         updateOp.set(CREATED_KEY, ISO8601.format(now));
-        updateOp.set(CREATOR_KEY, (long)localClusterId);
+        updateOp.set(CREATOR_KEY, (long) localClusterId);
         if (previousView != null) {
             Map<Object, String> previousHistory = previousView.getHistory();
-            if (previousHistory!=null) {
+            if (previousHistory != null) {
                 Map<Object, String> mapClone = new HashMap<Object, String>(previousHistory);
-                while(mapClone.size()>=HISTORY_LIMIT) {
+                while (mapClone.size() >= HISTORY_LIMIT) {
                     Revision oldestRevision = oldestRevision(mapClone);
-                    if (oldestRevision==null) {
+                    if (oldestRevision == null) {
                         break;
                     }
                     updateOp.removeMapEntry(CLUSTER_VIEW_HISTORY_KEY, oldestRevision);
-                    if (mapClone.remove(oldestRevision)==null) {
+                    if (mapClone.remove(oldestRevision) == null) {
                         // prevent an endless loop
                         break;
                     }
                 }
             }
-            updateOp.setMapEntry(CLUSTER_VIEW_HISTORY_KEY, Revision.newRevision(localClusterId), asHistoryEntry(previousView, localClusterId, now));
+            updateOp.setMapEntry(CLUSTER_VIEW_HISTORY_KEY, Revision.newRevision(localClusterId),
+                asHistoryEntry(previousView, localClusterId, now));
         }
 
         final Long newViewSeqNum;
@@ -216,10 +226,12 @@ class ClusterViewDocument {
             updateOp.setNew(true); // paranoia as that's already set above
             updateOp.set(VIEW_SEQ_NUM_KEY, newViewSeqNum);
             updateOps.add(updateOp);
-            logger.debug("updateAndRead: trying to create the first ever clusterView - hence {}={}", VIEW_SEQ_NUM_KEY,
-                    newViewSeqNum);
+            logger.debug("updateAndRead: trying to create the first ever clusterView - hence {}={}",
+                VIEW_SEQ_NUM_KEY,
+                newViewSeqNum);
             if (!documentNodeStore.getDocumentStore().create(Collection.SETTINGS, updateOps)) {
-                logger.debug("updateAndRead: someone else just created the first view ever while I tried - reread that one later");
+                logger.debug(
+                    "updateAndRead: someone else just created the first view ever while I tried - reread that one later");
                 return null;
             }
         } else {
@@ -231,10 +243,12 @@ class ClusterViewDocument {
             updateOp.equals(VIEW_SEQ_NUM_KEY, null, previousViewSeqNum);
             newViewSeqNum = previousViewSeqNum + 1;
             updateOp.set(VIEW_SEQ_NUM_KEY, newViewSeqNum);
-            logger.debug("updateAndRead: trying to update the clusterView to {}={} ", VIEW_SEQ_NUM_KEY, newViewSeqNum);
-            if (documentNodeStore.getDocumentStore().findAndUpdate(Collection.SETTINGS, updateOp) == null) {
+            logger.debug("updateAndRead: trying to update the clusterView to {}={} ",
+                VIEW_SEQ_NUM_KEY, newViewSeqNum);
+            if (documentNodeStore.getDocumentStore().findAndUpdate(Collection.SETTINGS, updateOp)
+                == null) {
                 logger.debug(
-                        "updateAndRead: someone else just updated the view which I wanted to do as well - reread that one later");
+                    "updateAndRead: someone else just updated the view which I wanted to do as well - reread that one later");
                 return null;
             }
         }
@@ -247,26 +261,27 @@ class ClusterViewDocument {
         // retry
         ClusterViewDocument readResult = doRead(documentNodeStore);
         if (readResult == null) {
-            logger.debug("updateAndRead: got null from read - whatever the exact reason, we must retry in a moment.");
+            logger.debug(
+                "updateAndRead: got null from read - whatever the exact reason, we must retry in a moment.");
             return null;
         } else if (newViewSeqNum.equals(readResult.getViewSeqNum())) {
             logger.debug("updateAndRead: matching view - no change");
             return readResult;
         } else {
-            logger.debug("updateAndRead: someone else in the cluster was updating right after I also succeeded - re-read in a bit");
+            logger.debug(
+                "updateAndRead: someone else in the cluster was updating right after I also succeeded - re-read in a bit");
             return null;
         }
     }
 
     /**
-     * Determine the oldest history entry (to be removed to keep history
-     * limited to HISTORY_LIMIT)
-     * 
+     * Determine the oldest history entry (to be removed to keep history limited to HISTORY_LIMIT)
+     *
      * @param historyMap
      */
     private static Revision oldestRevision(Map<Object, String> historyMap) {
         String oldestRevision = null;
-        for (Iterator<Object> it = historyMap.keySet().iterator(); it.hasNext();) {
+        for (Iterator<Object> it = historyMap.keySet().iterator(); it.hasNext(); ) {
             Object obj = it.next();
             // obj can be a String or a Revision
             // in case of it being a Revision the toString() will
@@ -274,20 +289,24 @@ class ClusterViewDocument {
             String r = obj.toString();
             if (oldestRevision == null) {
                 oldestRevision = r;
-            } else if (Revision.getTimestampDifference(Revision.fromString(r), Revision.fromString(oldestRevision)) < 0) {
+            } else if (Revision.getTimestampDifference(Revision.fromString(r),
+                Revision.fromString(oldestRevision)) < 0) {
                 oldestRevision = r;
             }
         }
-        if (oldestRevision==null) {
+        if (oldestRevision == null) {
             return null;
         } else {
             return Revision.fromString(oldestRevision);
         }
     }
 
-    /** Converts a previous clusterView document into a history 'string' **/
-    private static String asHistoryEntry(final ClusterViewDocument previousView, int retiringClusterNodeId, Date retireTime) {
-        if (previousView==null) {
+    /**
+     * Converts a previous clusterView document into a history 'string'
+     **/
+    private static String asHistoryEntry(final ClusterViewDocument previousView,
+        int retiringClusterNodeId, Date retireTime) {
+        if (previousView == null) {
             throw new IllegalArgumentException("previousView must not be null");
         }
         String h;
@@ -315,11 +334,10 @@ class ClusterViewDocument {
     }
 
     /**
-     * helper method to convert a set to a comma-separated string (without using
-     * toString() for safety)
-     * 
-     * @return null if set is null or empty, comma-separated string (no spaces)
-     *         otherwise
+     * helper method to convert a set to a comma-separated string (without using toString() for
+     * safety)
+     *
+     * @return null if set is null or empty, comma-separated string (no spaces) otherwise
      */
     private static String setToCsv(Set<Integer> ids) {
         if (ids == null || ids.size() == 0) {
@@ -337,9 +355,8 @@ class ClusterViewDocument {
 
     /**
      * helper method to convert an array to a comma-separated string
-     * 
-     * @return null if array is null or empty, comman-separated string (no
-     *         spaces) otherwise
+     *
+     * @return null if array is null or empty, comman-separated string (no spaces) otherwise
      */
     static String arrayToCsv(Integer[] arr) {
         if (arr == null || arr.length == 0) {
@@ -357,8 +374,7 @@ class ClusterViewDocument {
     }
 
     /**
-     * inverse helper method which converts a comma-separated string into an
-     * integer array
+     * inverse helper method which converts a comma-separated string into an integer array
      **/
     static Integer[] csvToIntegerArray(String csv) {
         if (csv == null) {
@@ -373,13 +389,12 @@ class ClusterViewDocument {
     }
 
     /**
-     * internal reader of an existing clusterView document from the settings
-     * collection
+     * internal reader of an existing clusterView document from the settings collection
      **/
     private static ClusterViewDocument doRead(DocumentNodeStore documentNodeStore) {
         DocumentStore documentStore = documentNodeStore.getDocumentStore();
         Document doc = documentStore.find(Collection.SETTINGS, "clusterView",
-                -1 /* -1; avoid caching */);
+            -1 /* -1; avoid caching */);
         if (doc == null) {
             return null;
         } else {
@@ -393,7 +408,9 @@ class ClusterViewDocument {
         }
     }
 
-    /** comparison helper that compares an integer array with a set **/
+    /**
+     * comparison helper that compares an integer array with a set
+     **/
     static boolean matches(Integer[] expected, Set<Integer> actual) {
         boolean expectedIsEmpty = expected == null || expected.length == 0;
         boolean actualIsEmpty = actual == null || actual.size() == 0;
@@ -432,7 +449,7 @@ class ClusterViewDocument {
         } else if (creatorId == null) {
             this.createdBy = -1L;
         } else {
-            throw new IllegalStateException("Unsupported type of creator: "+creatorId);
+            throw new IllegalStateException("Unsupported type of creator: " + creatorId);
         }
 
         Object obj = doc.get(ACTIVE_KEY);
@@ -468,22 +485,30 @@ class ClusterViewDocument {
         }
     }
 
-    /** Returns the set of active ids of this cluster view **/
+    /**
+     * Returns the set of active ids of this cluster view
+     **/
     Set<Integer> getActiveIds() {
         return new HashSet<Integer>(Arrays.asList(activeIds));
     }
 
-    /** Returns the set of recovering ids of this cluster view **/
+    /**
+     * Returns the set of recovering ids of this cluster view
+     **/
     Set<Integer> getRecoveringIds() {
         return new HashSet<Integer>(Arrays.asList(recoveringIds));
     }
 
-    /** Returns the set of inactive ids of this cluster view **/
+    /**
+     * Returns the set of inactive ids of this cluster view
+     **/
     Set<Integer> getInactiveIds() {
         return new HashSet<Integer>(Arrays.asList(inactiveIds));
     }
 
-    /** Returns the history map **/
+    /**
+     * Returns the history map
+     **/
     Map<Object, String> getHistory() {
         return viewHistory;
     }
@@ -491,8 +516,9 @@ class ClusterViewDocument {
     @Override
     public String toString() {
         return "a ClusterView[valid=" + isValid() + ", viewSeqNum=" + viewSeqNum
-                + ", activeIds=" + arrayToCsv(activeIds) + ", recoveringIds=" + arrayToCsv(recoveringIds) + ", inactiveIds="
-                + arrayToCsv(inactiveIds) + "]";
+            + ", activeIds=" + arrayToCsv(activeIds) + ", recoveringIds=" + arrayToCsv(
+            recoveringIds) + ", inactiveIds="
+            + arrayToCsv(inactiveIds) + "]";
     }
 
     boolean isValid() {
@@ -500,27 +526,28 @@ class ClusterViewDocument {
     }
 
     /**
-     * Returns the date+time when this view was created, for debugging purpose
-     * only
+     * Returns the date+time when this view was created, for debugging purpose only
      **/
     String getCreatedAt() {
         return createdAt;
     }
 
     /**
-     * Returns the id of the instance that created this view, for debugging
-     * purpose only
+     * Returns the id of the instance that created this view, for debugging purpose only
      **/
     long getCreatedBy() {
         return createdBy;
     }
 
-    /** Returns the monotonically incrementing sequenece number of this view **/
+    /**
+     * Returns the monotonically incrementing sequenece number of this view
+     **/
     long getViewSeqNum() {
         return viewSeqNum;
     }
 
-    private boolean matches(Set<Integer> activeIds, Set<Integer> recoveringIds, Set<Integer> inactiveIds) {
+    private boolean matches(Set<Integer> activeIds, Set<Integer> recoveringIds,
+        Set<Integer> inactiveIds) {
         if (!matches(this.activeIds, activeIds)) {
             return false;
         }

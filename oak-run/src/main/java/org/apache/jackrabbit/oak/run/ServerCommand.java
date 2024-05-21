@@ -25,7 +25,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
@@ -39,13 +38,15 @@ class ServerCommand implements Command {
 
     private static final int MB = 1024 * 1024;
 
-    private static void startOakServer(OakFixture oakFixture, String uri, List<Integer> cIds) throws Exception {
+    private static void startOakServer(OakFixture oakFixture, String uri, List<Integer> cIds)
+        throws Exception {
         Map<Oak, String> m;
         if (cIds.isEmpty()) {
             System.out.println("Starting " + oakFixture.toString() + " repository -> " + uri);
             m = Collections.singletonMap(oakFixture.getOak(0), "");
         } else {
-            System.out.println("Starting a clustered repository " + oakFixture.toString() + " -> " + uri);
+            System.out.println(
+                "Starting a clustered repository " + oakFixture.toString() + " -> " + uri);
             m = new HashMap<Oak, String>(cIds.size());
 
             for (int i = 0; i < cIds.size(); i++) {
@@ -59,26 +60,41 @@ class ServerCommand implements Command {
     public void execute(String... args) throws Exception {
         OptionParser parser = new OptionParser();
 
-        OptionSpec<Integer> cache = parser.accepts("cache", "cache size (MB)").withRequiredArg().ofType(Integer.class).defaultsTo(100);
+        OptionSpec<Integer> cache = parser.accepts("cache", "cache size (MB)").withRequiredArg()
+                                          .ofType(Integer.class).defaultsTo(100);
 
         // tar/h2 specific option
-        OptionSpec<File> base = parser.accepts("base", "Base directory").withRequiredArg().ofType(File.class);
-        OptionSpec<Boolean> mmap = parser.accepts("mmap", "TarMK memory mapping").withOptionalArg().ofType(Boolean.class).defaultsTo("64".equals(System.getProperty("sun.arch.data.model")));
+        OptionSpec<File> base = parser.accepts("base", "Base directory").withRequiredArg()
+                                      .ofType(File.class);
+        OptionSpec<Boolean> mmap = parser.accepts("mmap", "TarMK memory mapping").withOptionalArg()
+                                         .ofType(Boolean.class).defaultsTo(
+                "64".equals(System.getProperty("sun.arch.data.model")));
 
         // mongo specific options:
-        OptionSpec<String> host = parser.accepts("host", "MongoDB host").withRequiredArg().defaultsTo("127.0.0.1");
-        OptionSpec<Integer> port = parser.accepts("port", "MongoDB port").withRequiredArg().ofType(Integer.class).defaultsTo(27017);
+        OptionSpec<String> host = parser.accepts("host", "MongoDB host").withRequiredArg()
+                                        .defaultsTo("127.0.0.1");
+        OptionSpec<Integer> port = parser.accepts("port", "MongoDB port").withRequiredArg()
+                                         .ofType(Integer.class).defaultsTo(27017);
         OptionSpec<String> dbName = parser.accepts("db", "MongoDB database").withRequiredArg();
-        OptionSpec<Integer> clusterIds = parser.accepts("clusterIds", "Cluster Ids").withOptionalArg().ofType(Integer.class).withValuesSeparatedBy(',');
+        OptionSpec<Integer> clusterIds = parser.accepts("clusterIds", "Cluster Ids")
+                                               .withOptionalArg().ofType(Integer.class)
+                                               .withValuesSeparatedBy(',');
 
         // RDB specific options
-        OptionSpec<String> rdbjdbcuri = parser.accepts("rdbjdbcuri", "RDB JDBC URI").withOptionalArg().defaultsTo("");
-        OptionSpec<String> rdbjdbcuser = parser.accepts("rdbjdbcuser", "RDB JDBC user").withOptionalArg().defaultsTo("");
-        OptionSpec<String> rdbjdbcpasswd = parser.accepts("rdbjdbcpasswd", "RDB JDBC password").withOptionalArg().defaultsTo("");
-        OptionSpec<String> rdbjdbctableprefix = parser.accepts("rdbjdbctableprefix", "RDB JDBC table prefix")
-                .withOptionalArg().defaultsTo("");
-        OptionSpec<Boolean> throttlingEnabled = parser.accepts("throttlingEnabled", "Whether throttling for Document Store is enabled or not")
-                .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.FALSE); // throttling is disabled by default
+        OptionSpec<String> rdbjdbcuri = parser.accepts("rdbjdbcuri", "RDB JDBC URI")
+                                              .withOptionalArg().defaultsTo("");
+        OptionSpec<String> rdbjdbcuser = parser.accepts("rdbjdbcuser", "RDB JDBC user")
+                                               .withOptionalArg().defaultsTo("");
+        OptionSpec<String> rdbjdbcpasswd = parser.accepts("rdbjdbcpasswd", "RDB JDBC password")
+                                                 .withOptionalArg().defaultsTo("");
+        OptionSpec<String> rdbjdbctableprefix = parser.accepts("rdbjdbctableprefix",
+                                                          "RDB JDBC table prefix")
+                                                      .withOptionalArg().defaultsTo("");
+        OptionSpec<Boolean> throttlingEnabled = parser.accepts("throttlingEnabled",
+                                                          "Whether throttling for Document Store is enabled or not")
+                                                      .withOptionalArg().ofType(Boolean.class)
+                                                      .defaultsTo(
+                                                          Boolean.FALSE); // throttling is disabled by default
 
         OptionSpec<String> nonOption = parser.nonOptions();
         OptionSpec<?> help = parser.acceptsAll(asList("h", "?", "help"), "show help").forHelp();
@@ -111,23 +127,26 @@ class ServerCommand implements Command {
             }
             if (OakFixture.OAK_MONGO_NS.equals(fix)) {
                 oakFixture = OakFixture.getMongoNS(
-                        host.value(options), port.value(options),
-                        db, false,
-                        cacheSize * MB, throttlingEnabled.value(options));
+                    host.value(options), port.value(options),
+                    db, false,
+                    cacheSize * MB, throttlingEnabled.value(options));
             } else {
                 oakFixture = OakFixture.getMongo(
-                        host.value(options), port.value(options),
-                        db, false, cacheSize * MB, throttlingEnabled.value(options));
+                    host.value(options), port.value(options),
+                    db, false, cacheSize * MB, throttlingEnabled.value(options));
             }
         } else if (fix.equals(OakFixture.OAK_SEGMENT_TAR)) {
             File baseFile = base.value(options);
             if (baseFile == null) {
                 throw new IllegalArgumentException("Required argument base missing.");
             }
-            oakFixture = OakFixture.getVanillaSegmentTar(baseFile, 256, cacheSize, mmap.value(options));
+            oakFixture = OakFixture.getVanillaSegmentTar(baseFile, 256, cacheSize,
+                mmap.value(options));
         } else if (fix.equals(OakFixture.OAK_RDB)) {
-            oakFixture = OakFixture.getRDB(OakFixture.OAK_RDB, rdbjdbcuri.value(options), rdbjdbcuser.value(options),
-                    rdbjdbcpasswd.value(options), rdbjdbctableprefix.value(options), false, cacheSize, -1);
+            oakFixture = OakFixture.getRDB(OakFixture.OAK_RDB, rdbjdbcuri.value(options),
+                rdbjdbcuser.value(options),
+                rdbjdbcpasswd.value(options), rdbjdbctableprefix.value(options), false, cacheSize,
+                -1);
         } else {
             throw new IllegalArgumentException("Unsupported repository setup " + fix);
         }

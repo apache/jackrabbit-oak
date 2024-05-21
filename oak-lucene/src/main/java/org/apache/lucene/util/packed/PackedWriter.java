@@ -25,79 +25,81 @@ package org.apache.lucene.util.packed;
  * limitations under the License.
  */
 
-import org.apache.lucene.store.DataOutput;
-
 import java.io.EOFException;
 import java.io.IOException;
 import java.util.Arrays;
+import org.apache.lucene.store.DataOutput;
 
 // Packs high order byte first, to match
 // IndexOutput.writeInt/Long/Short byte order
 
 final class PackedWriter extends PackedInts.Writer {
 
-  boolean finished;
-  final PackedInts.Format format;
-  final BulkOperation encoder;
-  final byte[] nextBlocks;
-  final long[] nextValues;
-  final int iterations;
-  int off;
-  int written;
+    boolean finished;
+    final PackedInts.Format format;
+    final BulkOperation encoder;
+    final byte[] nextBlocks;
+    final long[] nextValues;
+    final int iterations;
+    int off;
+    int written;
 
-  PackedWriter(PackedInts.Format format, DataOutput out, int valueCount, int bitsPerValue, int mem) {
-    super(out, valueCount, bitsPerValue);
-    this.format = format;
-    encoder = BulkOperation.of(format, bitsPerValue);
-    iterations = encoder.computeIterations(valueCount, mem);
-    nextBlocks = new byte[iterations * encoder.byteBlockCount()];
-    nextValues = new long[iterations * encoder.byteValueCount()];
-    off = 0;
-    written = 0;
-    finished = false;
-  }
-
-  @Override
-  protected PackedInts.Format getFormat() {
-    return format;
-  }
-
-  @Override
-  public void add(long v) throws IOException {
-    assert bitsPerValue == 64 || (v >= 0 && v <= PackedInts.maxValue(bitsPerValue)) : bitsPerValue;
-    assert !finished;
-    if (valueCount != -1 && written >= valueCount) {
-      throw new EOFException("Writing past end of stream");
+    PackedWriter(PackedInts.Format format, DataOutput out, int valueCount, int bitsPerValue,
+        int mem) {
+        super(out, valueCount, bitsPerValue);
+        this.format = format;
+        encoder = BulkOperation.of(format, bitsPerValue);
+        iterations = encoder.computeIterations(valueCount, mem);
+        nextBlocks = new byte[iterations * encoder.byteBlockCount()];
+        nextValues = new long[iterations * encoder.byteValueCount()];
+        off = 0;
+        written = 0;
+        finished = false;
     }
-    nextValues[off++] = v;
-    if (off == nextValues.length) {
-      flush();
+
+    @Override
+    protected PackedInts.Format getFormat() {
+        return format;
     }
-    ++written;
-  }
 
-  @Override
-  public void finish() throws IOException {
-    assert !finished;
-    if (valueCount != -1) {
-      while (written < valueCount) {
-        add(0L);
-      }
+    @Override
+    public void add(long v) throws IOException {
+        assert
+            bitsPerValue == 64 || (v >= 0 && v <= PackedInts.maxValue(bitsPerValue)) : bitsPerValue;
+        assert !finished;
+        if (valueCount != -1 && written >= valueCount) {
+            throw new EOFException("Writing past end of stream");
+        }
+        nextValues[off++] = v;
+        if (off == nextValues.length) {
+            flush();
+        }
+        ++written;
     }
-    flush();
-    finished = true;
-  }
 
-  private void flush() throws IOException {
-    encoder.encode(nextValues, 0, nextBlocks, 0, iterations);
-    final int blockCount = (int) format.byteCount(PackedInts.VERSION_CURRENT, off, bitsPerValue);
-    out.writeBytes(nextBlocks, blockCount);
-    Arrays.fill(nextValues, 0L);
-    off = 0;
-  }
+    @Override
+    public void finish() throws IOException {
+        assert !finished;
+        if (valueCount != -1) {
+            while (written < valueCount) {
+                add(0L);
+            }
+        }
+        flush();
+        finished = true;
+    }
 
-  @Override
-  public int ord() {
-    return written - 1;
-  }
+    private void flush() throws IOException {
+        encoder.encode(nextValues, 0, nextBlocks, 0, iterations);
+        final int blockCount = (int) format.byteCount(PackedInts.VERSION_CURRENT, off,
+            bitsPerValue);
+        out.writeBytes(nextBlocks, blockCount);
+        Arrays.fill(nextValues, 0L);
+        off = 0;
+    }
+
+    @Override
+    public int ord() {
+        return written - 1;
+    }
 }

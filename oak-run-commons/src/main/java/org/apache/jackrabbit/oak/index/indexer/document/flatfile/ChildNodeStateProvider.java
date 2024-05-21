@@ -19,9 +19,17 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
+import static java.util.Collections.emptyIterator;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.guava.common.collect.Iterators.size;
+import static org.apache.jackrabbit.guava.common.collect.Iterators.transform;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
+import static org.apache.jackrabbit.oak.commons.PathUtils.isAncestor;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
+
 import java.util.Iterator;
 import java.util.Set;
-
 import org.apache.jackrabbit.guava.common.base.Optional;
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
@@ -33,21 +41,14 @@ import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-import static org.apache.jackrabbit.guava.common.collect.Iterators.size;
-import static org.apache.jackrabbit.guava.common.collect.Iterators.transform;
-import static java.util.Collections.emptyIterator;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
-import static org.apache.jackrabbit.oak.commons.PathUtils.isAncestor;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
-
 class ChildNodeStateProvider {
+
     private final Iterable<NodeStateEntry> entries;
     private final String path;
     private final Set<String> preferredPathElements;
 
-    public ChildNodeStateProvider(Iterable<NodeStateEntry> entries, String path, Set<String> preferredPathElements) {
+    public ChildNodeStateProvider(Iterable<NodeStateEntry> entries, String path,
+        Set<String> preferredPathElements) {
         this.entries = entries;
         this.path = path;
         this.preferredPathElements = preferredPathElements;
@@ -60,7 +61,8 @@ class ChildNodeStateProvider {
     @NotNull
     public NodeState getChildNode(@NotNull String name) throws IllegalArgumentException {
         boolean isPreferred = preferredPathElements.contains(name);
-        Optional<NodeStateEntry> o = Iterators.tryFind(children(isPreferred), p -> name.equals(name(p)));
+        Optional<NodeStateEntry> o = Iterators.tryFind(children(isPreferred),
+            p -> name.equals(name(p)));
         return o.isPresent() ? o.get().getNodeState() : MISSING_NODE;
     }
 
@@ -77,7 +79,8 @@ class ChildNodeStateProvider {
 
     @NotNull
     public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
-        return () -> transform(children(), p -> new MemoryChildNodeEntry(name(p), p.getNodeState()));
+        return () -> transform(children(),
+            p -> new MemoryChildNodeEntry(name(p), p.getNodeState()));
     }
 
     Iterator<NodeStateEntry> children() {
@@ -97,8 +100,8 @@ class ChildNodeStateProvider {
 
         //Skip past the current find
         checkState(pitr.hasNext() && path.equals(pitr.next().getPath()),
-                "Did not found path [%s] in leftover iterator. Possibly node state accessed " +
-                        "after main iterator has moved past it", path);
+            "Did not found path [%s] in leftover iterator. Possibly node state accessed " +
+                "after main iterator has moved past it", path);
 
         //Prepare an iterator to fetch all child node paths i.e. immediate and there children
         return new AbstractIterator<NodeStateEntry>() {
@@ -124,7 +127,7 @@ class ChildNodeStateProvider {
         return getName(p.getPath());
     }
 
-    private boolean isImmediateChild(String childPath){
+    private boolean isImmediateChild(String childPath) {
         return getParentPath(childPath).equals(path);
     }
 }

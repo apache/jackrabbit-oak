@@ -20,7 +20,6 @@
 package org.apache.jackrabbit.oak.run.cli;
 
 import java.util.Set;
-
 import joptsimple.OptionSet;
 
 public interface OptionsBean {
@@ -38,8 +37,8 @@ public interface OptionsBean {
     String description();
 
     /**
-     * Used to sort the help output. Help for OptionsBean in descending order i.e.
-     * bean having highest order would be rendered first
+     * Used to sort the help output. Help for OptionsBean in descending order i.e. bean having
+     * highest order would be rendered first
      */
     int order();
 

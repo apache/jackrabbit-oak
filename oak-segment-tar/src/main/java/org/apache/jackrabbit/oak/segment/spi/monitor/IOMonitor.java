@@ -20,8 +20,7 @@ package org.apache.jackrabbit.oak.segment.spi.monitor;
 import java.io.File;
 
 /**
- * Callback interface that eases the collection of statistics about I/O
- * operations.
+ * Callback interface that eases the collection of statistics about I/O operations.
  */
 public interface IOMonitor {
 
@@ -36,8 +35,8 @@ public interface IOMonitor {
     void beforeSegmentRead(File file, long msb, long lsb, int length);
 
     /**
-     * Called after a segment is read from the file system. This is called only
-     * in case of successful operations.
+     * Called after a segment is read from the file system. This is called only in case of
+     * successful operations.
      *
      * @param file    File containing the segment.
      * @param msb     Most significant bits of the segment ID.
@@ -58,8 +57,8 @@ public interface IOMonitor {
     void beforeSegmentWrite(File file, long msb, long lsb, int length);
 
     /**
-     * Called after a segment is written to the file system. This is called only
-     * in case of successful operations.
+     * Called after a segment is written to the file system. This is called only in case of
+     * successful operations.
      *
      * @param file    File containing the segment.
      * @param msb     Most significant bits of the segment ID.

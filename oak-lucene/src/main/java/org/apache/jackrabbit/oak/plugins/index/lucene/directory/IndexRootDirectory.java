@@ -51,12 +51,13 @@ import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
 /**
- * Represents the root directory on file system used for storing index copy locally.
- * For each Oak index in repository it creates a container directory which is a function of
- * index path and a unique id which stored in index node in Oak. Under that container
- * directory various sub directories can be created for storing different types of indexes
+ * Represents the root directory on file system used for storing index copy locally. For each Oak
+ * index in repository it creates a container directory which is a function of index path and a
+ * unique id which stored in index node in Oak. Under that container directory various sub
+ * directories can be created for storing different types of indexes
  */
 public class IndexRootDirectory {
+
     static final int MAX_NAME_LENGTH = 127;
     public static final String INDEX_METADATA_FILE_NAME = "index-details.txt";
 
@@ -86,11 +87,12 @@ public class IndexRootDirectory {
         }
     }
 
-    public long getSize(){
+    public long getSize() {
         return FileUtils.sizeOfDirectory(indexRootDir);
     }
 
-    public File getIndexDir(IndexDefinition definition, String indexPath, String dirName) throws IOException {
+    public File getIndexDir(IndexDefinition definition, String indexPath, String dirName)
+        throws IOException {
         String uid = definition.getUniqueId();
 
         if (uid == null) {
@@ -98,7 +100,7 @@ public class IndexRootDirectory {
             File baseFolder = getOldFormatDir(indexPath);
             String version = String.valueOf(definition.getReindexCount());
             File indexDir = new File(baseFolder, version);
-            if (!indexDir.exists()){
+            if (!indexDir.exists()) {
                 checkState(indexDir.mkdirs(), "Not able to create folder [%s]", indexDir);
             }
             return indexDir;
@@ -109,7 +111,7 @@ public class IndexRootDirectory {
 
             //Create a base folder <index node name>-<uid>
             //and add a readme file having index info
-            if (!baseFolder.exists()){
+            if (!baseFolder.exists()) {
                 checkState(baseFolder.mkdir(), "Not able to create folder [%s]", baseFolder);
                 File readMe = new File(baseFolder, INDEX_METADATA_FILE_NAME);
                 IndexMeta meta = new IndexMeta(indexPath, getTime());
@@ -127,13 +129,13 @@ public class IndexRootDirectory {
     }
 
     /**
-     * Returns the most recent directory for each index. If for an index 2 versions are present
-     * then it would return the most recent version
+     * Returns the most recent directory for each index. If for an index 2 versions are present then
+     * it would return the most recent version
      */
     public List<LocalIndexDir> getAllLocalIndexes() throws IOException {
         Map<String, List<LocalIndexDir>> mapping = getIndexesPerPath();
         List<LocalIndexDir> result = new ArrayList<>();
-        for (Map.Entry<String, List<LocalIndexDir>> e : mapping.entrySet()){
+        for (Map.Entry<String, List<LocalIndexDir>> e : mapping.entrySet()) {
             result.addAll(e.getValue());
         }
         return result;
@@ -145,11 +147,11 @@ public class IndexRootDirectory {
     }
 
     /**
-     * Performs garbage collection of older version of index directories based on
-     * index directory derived from the passed sub directory.
+     * Performs garbage collection of older version of index directories based on index directory
+     * derived from the passed sub directory.
      *
-     * @param subDir one of the sub directories like 'default' etc. Such that
-     *               correct local index directory (container dir) can be checked for deletion
+     * @param subDir one of the sub directories like 'default' etc. Such that correct local index
+     *               directory (container dir) can be checked for deletion
      */
     public long gcEmptyDirs(File subDir) throws IOException {
         File parent = checkNotNull(subDir).getParentFile().getCanonicalFile();
@@ -161,17 +163,17 @@ public class IndexRootDirectory {
             //we found the dir which matched the parent of passed dir. So its safe
             //to delete those dirs and its successors in the list (as they are older)
             boolean matchingDirFound = false;
-            for (LocalIndexDir d : idxDirs){
-                if (d.dir.equals(parent)){
+            for (LocalIndexDir d : idxDirs) {
+                if (d.dir.equals(parent)) {
                     matchingDirFound = true;
                 }
-                if (matchingDirFound && d.isEmpty()){
+                if (matchingDirFound && d.isEmpty()) {
                     long dirSize = FileUtils.sizeOf(d.dir);
-                    if (FileUtils.deleteQuietly(d.dir)){
+                    if (FileUtils.deleteQuietly(d.dir)) {
                         totalDeletedSize += dirSize;
                     } else {
                         log.warn("Not able to deleted unused local index directory [{}]. " +
-                                "Deletion would be retried later again.",  d);
+                            "Deletion would be retried later again.", d);
                     }
                     totalDeletedSize += deleteOldFormatDir(d.getJcrPath());
                 }
@@ -187,7 +189,7 @@ public class IndexRootDirectory {
      *     <li>xy:abc -> xyabc</li>
      *     <li>/oak:index/abc -> abc</li>
      * </ul>
-     *
+     * <p>
      * The resulting file name would be truncated to MAX_NAME_LENGTH
      */
     static String getIndexFolderBaseName(String indexPath) {
@@ -206,7 +208,7 @@ public class IndexRootDirectory {
 
         Collections.reverse(result);
         String name = Joiner.on('_').join(result);
-        if (name.length() > MAX_NAME_LENGTH){
+        if (name.length() > MAX_NAME_LENGTH) {
             name = name.substring(0, MAX_NAME_LENGTH);
         }
         return name;
@@ -223,13 +225,13 @@ public class IndexRootDirectory {
         File[] dirs = indexRootDir.listFiles(LOCAL_DIR_FILTER);
 
         ListMultimap<String, LocalIndexDir> pathToDirMap = ArrayListMultimap.create();
-        for (File indexDir : dirs){
+        for (File indexDir : dirs) {
             LocalIndexDir localIndexDir = new LocalIndexDir(indexDir);
             pathToDirMap.get(localIndexDir.getJcrPath()).add(localIndexDir);
         }
 
         Map<String, List<LocalIndexDir>> result = Maps.newTreeMap();
-        for (Map.Entry<String, Collection<LocalIndexDir>> e : pathToDirMap.asMap().entrySet()){
+        for (Map.Entry<String, Collection<LocalIndexDir>> e : pathToDirMap.asMap().entrySet()) {
             List<LocalIndexDir> sortedDirs = new ArrayList<>(e.getValue());
             Collections.sort(sortedDirs, Collections.<LocalIndexDir>reverseOrder());
             result.put(e.getKey(), sortedDirs);
@@ -238,8 +240,8 @@ public class IndexRootDirectory {
     }
 
     /**
-     * Garbage collect old index directories. Should only be invoked at startup
-     * as it assumes that none of the directories are getting used
+     * Garbage collect old index directories. Should only be invoked at startup as it assumes that
+     * none of the directories are getting used
      */
     private void gcIndexDirs() throws IOException {
         Map<String, List<LocalIndexDir>> mapping = getIndexesPerPath();
@@ -251,11 +253,11 @@ public class IndexRootDirectory {
             for (int i = 1; i < dirs.size(); i++) {
                 LocalIndexDir dir = dirs.get(i);
                 long dirSize = FileUtils.sizeOf(dir.dir);
-                if (FileUtils.deleteQuietly(dir.dir)){
+                if (FileUtils.deleteQuietly(dir.dir)) {
                     totalDeletedSize += dirSize;
                 } else {
                     log.warn("Not able to deleted unused local index directory [{}]. " +
-                            "Deletion would be retried later again.",  dir);
+                        "Deletion would be retried later again.", dir);
                 }
             }
 
@@ -265,15 +267,14 @@ public class IndexRootDirectory {
             totalDeletedSize += deleteOldFormatDir(dirs.get(0).getJcrPath());
         }
 
-        if (totalDeletedSize > 0){
+        if (totalDeletedSize > 0) {
             log.info("Reclaimed [{}] space by removing unused/old index directories",
-                    IOUtils.humanReadableByteCount(totalDeletedSize));
+                IOUtils.humanReadableByteCount(totalDeletedSize));
         }
     }
 
     /**
-     * Removes all directory created by NRTIndex which have
-     * nrt prefix
+     * Removes all directory created by NRTIndex which have nrt prefix
      */
     private long gcNRTIndexDirs(LocalIndexDir idxDir) {
         final String prefix = getFSSafeName(NRTIndex.NRT_DIR_PREFIX);
@@ -286,7 +287,7 @@ public class IndexRootDirectory {
 
         long size = 0;
         if (nrtDirs != null) {
-            for (File f : nrtDirs){
+            for (File f : nrtDirs) {
                 size += FileUtils.sizeOf(f);
                 FileUtils.deleteQuietly(f);
             }
@@ -301,9 +302,9 @@ public class IndexRootDirectory {
         dir = dir.getCanonicalFile();
 
         Map<String, List<LocalIndexDir>> mapping = getIndexesPerPath();
-        for (Map.Entry<String, List<LocalIndexDir>> e : mapping.entrySet()){
-            for (LocalIndexDir idxDir : e.getValue()){
-                if (idxDir.dir.equals(dir)){
+        for (Map.Entry<String, List<LocalIndexDir>> e : mapping.entrySet()) {
+            for (LocalIndexDir idxDir : e.getValue()) {
+                if (idxDir.dir.equals(dir)) {
                     return idxDir;
                 }
             }
@@ -313,10 +314,11 @@ public class IndexRootDirectory {
 
     private long deleteOldFormatDir(String jcrPath) {
         File oldDir = getOldFormatDir(jcrPath);
-        if (oldDir.exists()){
+        if (oldDir.exists()) {
             long size = FileUtils.sizeOf(oldDir);
-            if (!FileUtils.deleteQuietly(oldDir)){
-                log.warn("Not able to deleted unused local index directory [{}]", oldDir.getAbsolutePath());
+            if (!FileUtils.deleteQuietly(oldDir)) {
+                log.warn("Not able to deleted unused local index directory [{}]",
+                    oldDir.getAbsolutePath());
             } else {
                 return size;
             }

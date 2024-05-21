@@ -16,9 +16,19 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_SECURITY_NAME;
+
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import javax.jcr.RepositoryException;
+import javax.jcr.nodetype.ConstraintViolationException;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -45,41 +55,34 @@ import org.osgi.util.tracker.ServiceTracker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.jcr.RepositoryException;
-import javax.jcr.nodetype.ConstraintViolationException;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_SECURITY_NAME;
-
 @Component(
-        service = AuthorizableActionProvider.class,
-        configurationPolicy = ConfigurationPolicy.REQUIRE,
-        property = OAK_SECURITY_NAME + "=org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal.ExternalAuthorizableActionProvider")
+    service = AuthorizableActionProvider.class,
+    configurationPolicy = ConfigurationPolicy.REQUIRE,
+    property = OAK_SECURITY_NAME
+        + "=org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal.ExternalAuthorizableActionProvider")
 @Designate(ocd = ExternalAuthorizableActionProvider.Configuration.class)
 public final class ExternalAuthorizableActionProvider implements AuthorizableActionProvider {
-    
+
     @ObjectClassDefinition(name = "Apache Jackrabbit Oak ExternalAuthorizableActionProvider", description = "Implementation of the AuthorizableActionProvider that specifically covers operations for users/groups defined by an external IDP that get synced into the repository.")
     @interface Configuration {
+
         @AttributeDefinition(
-                name = "Behavior when Adding Members from Different IDP",
-                description = "Defines if Group.addMember should fail when adding a member defined by a different IDP. If set to false only a warning is logged.")
+            name = "Behavior when Adding Members from Different IDP",
+            description = "Defines if Group.addMember should fail when adding a member defined by a different IDP. If set to false only a warning is logged.")
         boolean failAddMembersForDifferentIdp() default false;
     }
-    
-    private static final Logger log = LoggerFactory.getLogger(ExternalAuthorizableActionProvider.class);
-    
+
+    private static final Logger log = LoggerFactory.getLogger(
+        ExternalAuthorizableActionProvider.class);
+
     private boolean failAddMembersForDifferentIdp = false;
-    
+
     private SyncHandlerMappingTracker syncHandlerMappingTracker;
     private AutomembershipTracker automembershipTracker;
-    
+
     @Activate
-    public void activate(@NotNull BundleContext bundleContext, @NotNull Configuration configuration) {
+    public void activate(@NotNull BundleContext bundleContext,
+        @NotNull Configuration configuration) {
         failAddMembersForDifferentIdp = configuration.failAddMembersForDifferentIdp();
 
         syncHandlerMappingTracker = new SyncHandlerMappingTracker(bundleContext);
@@ -98,9 +101,10 @@ public final class ExternalAuthorizableActionProvider implements AuthorizableAct
             syncHandlerMappingTracker.close();
         }
     }
-    
+
     @Override
-    public @NotNull List<? extends AuthorizableAction> getAuthorizableActions(@NotNull SecurityProvider securityProvider) {
+    public @NotNull List<? extends AuthorizableAction> getAuthorizableActions(
+        @NotNull SecurityProvider securityProvider) {
         return Collections.singletonList(new IdpBoundaryAction());
     }
 
@@ -108,11 +112,12 @@ public final class ExternalAuthorizableActionProvider implements AuthorizableAct
     private static String getIdpName(@Nullable ExternalIdentityRef ref) {
         return (ref == null) ? null : ref.getProviderName();
     }
-    
+
     private final class IdpBoundaryAction extends AbstractGroupAction {
 
         @Override
-        public void onMemberAdded(@NotNull Group group, @NotNull Authorizable member, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException {
+        public void onMemberAdded(@NotNull Group group, @NotNull Authorizable member,
+            @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException {
             ExternalIdentityRef memberRef = DefaultSyncContext.getIdentityRef(member);
             String idpName = getIdpName(memberRef);
             if (idpName == null) {
@@ -128,13 +133,16 @@ public final class ExternalAuthorizableActionProvider implements AuthorizableAct
 
             // not the same IDP -> validate
             String groupId = group.getID();
-            if (automembershipTracker != null && automembershipTracker.isAutoMembership(idpName, groupId, member.isGroup())) {
+            if (automembershipTracker != null && automembershipTracker.isAutoMembership(idpName,
+                groupId, member.isGroup())) {
                 // ignore groups that are configured in 'automembership' option for the given IDP
                 return;
             }
 
             String extId = memberRef.getString();
-            String msg = String.format("Attempt to add external identity '%s' as member of group '%s' defined by IDP '%s'.", extId, groupId, groupIdpName);
+            String msg = String.format(
+                "Attempt to add external identity '%s' as member of group '%s' defined by IDP '%s'.",
+                extId, groupId, groupIdpName);
             log.warn(msg);
             if (failAddMembersForDifferentIdp) {
                 throw new ConstraintViolationException(msg);
@@ -150,7 +158,8 @@ public final class ExternalAuthorizableActionProvider implements AuthorizableAct
         private final Map<String, Set<String>> userAutoMembership = new HashMap<>();
         private final Map<String, Set<String>> groupAutoMembership = new HashMap<>();
 
-        AutomembershipTracker(@NotNull BundleContext context, @NotNull SyncHandlerMappingTracker mappingTracker) {
+        AutomembershipTracker(@NotNull BundleContext context,
+            @NotNull SyncHandlerMappingTracker mappingTracker) {
             super(context, SyncHandler.class.getName(), null);
             this.mappingTracker = mappingTracker;
         }
@@ -167,7 +176,7 @@ public final class ExternalAuthorizableActionProvider implements AuthorizableAct
         public void modifiedService(ServiceReference reference, Object service) {
             refs.add(reference);
             userAutoMembership.clear(); // recalculate
-            groupAutoMembership.clear(); // recalculate            
+            groupAutoMembership.clear(); // recalculate
             super.modifiedService(reference, service);
         }
 
@@ -178,36 +187,49 @@ public final class ExternalAuthorizableActionProvider implements AuthorizableAct
             groupAutoMembership.clear(); // recalculate
             super.removedService(reference, service);
         }
-        
+
         @NotNull
         private Map<String, Set<String>> getAutomembership(boolean memberIsGroup) {
-            Map<String, Set<String>> autoMembership = (memberIsGroup) ? groupAutoMembership : userAutoMembership;
+            Map<String, Set<String>> autoMembership =
+                (memberIsGroup) ? groupAutoMembership : userAutoMembership;
             if (autoMembership.isEmpty() && !refs.isEmpty()) {
                 for (ServiceReference ref : refs) {
-                    String syncHandlerName = PropertiesUtil.toString(ref.getProperty(DefaultSyncConfigImpl.PARAM_NAME), DefaultSyncConfigImpl.PARAM_NAME_DEFAULT);
-                    String[] userMembership = PropertiesUtil.toStringArray(ref.getProperty(DefaultSyncConfigImpl.PARAM_USER_AUTO_MEMBERSHIP), new String[0]);
-                    String[] groupMembership = PropertiesUtil.toStringArray(ref.getProperty(DefaultSyncConfigImpl.PARAM_GROUP_AUTO_MEMBERSHIP), new String[0]);
+                    String syncHandlerName = PropertiesUtil.toString(
+                        ref.getProperty(DefaultSyncConfigImpl.PARAM_NAME),
+                        DefaultSyncConfigImpl.PARAM_NAME_DEFAULT);
+                    String[] userMembership = PropertiesUtil.toStringArray(
+                        ref.getProperty(DefaultSyncConfigImpl.PARAM_USER_AUTO_MEMBERSHIP),
+                        new String[0]);
+                    String[] groupMembership = PropertiesUtil.toStringArray(
+                        ref.getProperty(DefaultSyncConfigImpl.PARAM_GROUP_AUTO_MEMBERSHIP),
+                        new String[0]);
 
                     for (String idpName : mappingTracker.getIdpNames(syncHandlerName)) {
-                        updateAutoMembershipMap(userAutoMembership, syncHandlerName, idpName, userMembership);
-                        updateAutoMembershipMap(groupAutoMembership, syncHandlerName, idpName, groupMembership);
+                        updateAutoMembershipMap(userAutoMembership, syncHandlerName, idpName,
+                            userMembership);
+                        updateAutoMembershipMap(groupAutoMembership, syncHandlerName, idpName,
+                            groupMembership);
                     }
                 }
             }
             return autoMembership;
         }
-        
-        private static void updateAutoMembershipMap(@NotNull Map<String, Set<String>> map, @NotNull String syncHandlerName, 
-                                                    @NotNull String idpName, @NotNull String[] membership) {
+
+        private static void updateAutoMembershipMap(@NotNull Map<String, Set<String>> map,
+            @NotNull String syncHandlerName,
+            @NotNull String idpName, @NotNull String[] membership) {
             Set<String> userMembership = ImmutableSet.copyOf(membership);
             Set<String> previous = map.put(idpName, userMembership);
             if (previous != null) {
                 String msg = previous.equals(userMembership) ? "Duplicate" : "Colliding";
-                log.debug("{} auto-membership configuration for IDP '{}'; replacing previous values {} by {} defined by SyncHandler '{}'", msg, idpName, previous, userMembership, syncHandlerName);
+                log.debug(
+                    "{} auto-membership configuration for IDP '{}'; replacing previous values {} by {} defined by SyncHandler '{}'",
+                    msg, idpName, previous, userMembership, syncHandlerName);
             }
         }
-        
-        private boolean isAutoMembership(@NotNull String idpName, @NotNull String groupId, boolean memberIsGroup) {
+
+        private boolean isAutoMembership(@NotNull String idpName, @NotNull String groupId,
+            boolean memberIsGroup) {
             Set<String> ids = getAutomembership(memberIsGroup).get(idpName);
             return ids != null && ids.contains(groupId);
         }

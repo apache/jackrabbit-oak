@@ -21,7 +21,6 @@ import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
-
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 
 public class ReplicaCrashResilienceTest extends Benchmark {
@@ -29,7 +28,8 @@ public class ReplicaCrashResilienceTest extends Benchmark {
     private static final String LEVEL2POINTER = "level2pointer";
     private static final String LEVEL1POINTER = "level1pointer";
     private static final String WRITER_INFOS = "writerInfos";
-    private static final String REPLICA_CRASH_TEST = "replicaCrashTest-"+System.currentTimeMillis();
+    private static final String REPLICA_CRASH_TEST =
+        "replicaCrashTest-" + System.currentTimeMillis();
 
     @Override
     public void run(Iterable<RepositoryFixture> fixtures) {
@@ -55,7 +55,7 @@ public class ReplicaCrashResilienceTest extends Benchmark {
         System.out.println("Setup...");
         try {
             Session session = repository.login(
-                    new SimpleCredentials("admin", "admin".toCharArray()));
+                new SimpleCredentials("admin", "admin".toCharArray()));
             final Node rootNode = session.getRootNode();
             if (rootNode.hasNode(REPLICA_CRASH_TEST)) {
                 // then cleanup first
@@ -85,14 +85,14 @@ public class ReplicaCrashResilienceTest extends Benchmark {
                 Session session = null;
                 try {
                     session = repository.login(
-                            new SimpleCredentials("admin", "admin".toCharArray()));
+                        new SimpleCredentials("admin", "admin".toCharArray()));
                 } catch (Exception e1) {
                     e1.printStackTrace();
                     System.exit(1);
                 }
                 System.out.println("Writer: Test start.");
-                while(true) {
-                    try{
+                while (true) {
+                    try {
                         final String level1 = String.valueOf(level1Pointer);
                         final String level2 = String.valueOf(level2Pointer);
 
@@ -105,15 +105,18 @@ public class ReplicaCrashResilienceTest extends Benchmark {
                             level1Node = replicaCrashTestNode.getNode(level1);
                         } else {
                             level1Node = replicaCrashTestNode.addNode(level1);
-                            System.out.println("Writer: Created level1 node: "+level1Node);
+                            System.out.println("Writer: Created level1 node: " + level1Node);
                         }
                         Node level2Node = level1Node.addNode(level2);
-                        System.out.println("Writer: Created level2 node: "+level2Node);
+                        System.out.println("Writer: Created level2 node: " + level2Node);
                         writerInfosNode.setProperty(LEVEL1POINTER, level1Pointer);
                         writerInfosNode.setProperty(LEVEL2POINTER, level2Pointer);
                         session.save();
-                    } catch (org.apache.jackrabbit.guava.common.util.concurrent.UncheckedExecutionException e) {
-                        System.out.println("Got an UncheckedException (levels: " + level1Pointer + "/" + level2Pointer
+                    } catch (
+                        org.apache.jackrabbit.guava.common.util.concurrent.UncheckedExecutionException e) {
+                        System.out.println(
+                            "Got an UncheckedException (levels: " + level1Pointer + "/"
+                                + level2Pointer
                                 + ") from the google cache probably: " + e);
                         try {
                             Thread.sleep(500);
@@ -122,11 +125,12 @@ public class ReplicaCrashResilienceTest extends Benchmark {
                             System.exit(1);
                         }
                         continue;
-                    } catch (Throwable e) { // yes, one should not catch Throwable - but this is a test only
+                    } catch (
+                        Throwable e) { // yes, one should not catch Throwable - but this is a test only
                         e.printStackTrace(System.out);
                         System.exit(1);
                     }
-                    if (++level2Pointer>1000) {
+                    if (++level2Pointer > 1000) {
                         level2Pointer = 1;
                         level1Pointer++;
                     }
@@ -147,26 +151,30 @@ public class ReplicaCrashResilienceTest extends Benchmark {
                 Session session = null;
                 try {
                     session = repository.login(
-                            new SimpleCredentials("admin", "admin".toCharArray()));
+                        new SimpleCredentials("admin", "admin".toCharArray()));
 
                     Node rootNode = session.getRootNode();
                     Node replicaCrashTestNode = rootNode.getNode(REPLICA_CRASH_TEST);
                     Node writerInfos;
 
-                    while(true) {
-                        try{
+                    while (true) {
+                        try {
                             final String level1 = String.valueOf(level1Pointer);
                             final String level2 = String.valueOf(level2Pointer);
                             session.refresh(false);
                             writerInfos = replicaCrashTestNode.getNode(WRITER_INFOS);
-                            long writerLevel1Pointer = writerInfos.getProperty(LEVEL1POINTER).getLong();
-                            long writerLevel2Pointer = writerInfos.getProperty(LEVEL2POINTER).getLong();
+                            long writerLevel1Pointer = writerInfos.getProperty(LEVEL1POINTER)
+                                                                  .getLong();
+                            long writerLevel2Pointer = writerInfos.getProperty(LEVEL2POINTER)
+                                                                  .getLong();
 
                             long writerPointer = writerLevel1Pointer * 1000 + writerLevel2Pointer;
                             long myPointer = level1Pointer * 1000 + level2Pointer;
                             long diff = writerPointer - myPointer;
-                            if (diff<100) {
-                                System.out.println("Reader: Closer than 100, waiting...level1="+level1+", level2="+level2);
+                            if (diff < 100) {
+                                System.out.println(
+                                    "Reader: Closer than 100, waiting...level1=" + level1
+                                        + ", level2=" + level2);
                                 try {
                                     Thread.sleep(1000);
                                 } catch (InterruptedException e) {
@@ -176,13 +184,13 @@ public class ReplicaCrashResilienceTest extends Benchmark {
                                 continue;
                             }
 
-
                             rootNode = session.getRootNode();
                             replicaCrashTestNode = rootNode.getNode(REPLICA_CRASH_TEST);
 
                             Node level1Node = replicaCrashTestNode.getNode(level1);
                             if (!level1Node.hasNode(level2)) {
-                                System.err.println("Reader: NOT FOUND: level1="+level1+", level2="+level2);
+                                System.err.println(
+                                    "Reader: NOT FOUND: level1=" + level1 + ", level2=" + level2);
                                 Thread.sleep(500);
                                 session.refresh(false);
                                 System.err.println("Reader: Reverifying once...");
@@ -191,19 +199,26 @@ public class ReplicaCrashResilienceTest extends Benchmark {
                                 level1Node = replicaCrashTestNode.getNode(level1);
                                 final boolean hasNode = level1Node.hasNode(level2);
                                 if (hasNode) {
-                                    System.err.println("Reader: yup, exists: "+hasNode+", level1="+level1+", level2="+level2);
+                                    System.err.println(
+                                        "Reader: yup, exists: " + hasNode + ", level1=" + level1
+                                            + ", level2=" + level2);
                                 } else {
-                                    System.err.println("Reader: not found: level1="+level1+", level2="+level2);
+                                    System.err.println(
+                                        "Reader: not found: level1=" + level1 + ", level2="
+                                            + level2);
 
                                 }
                             } else {
                                 // read it
                                 Node level2Node = level1Node.getNode(level2);
-                                System.out.println("Reader: verified level1="+level1+", level2="+level2);
+                                System.out.println(
+                                    "Reader: verified level1=" + level1 + ", level2=" + level2);
                             }
 
-                        } catch (org.apache.jackrabbit.guava.common.util.concurrent.UncheckedExecutionException e) {
-                            System.out.println("Got an UncheckedException from the google cache probably: " + e);
+                        } catch (
+                            org.apache.jackrabbit.guava.common.util.concurrent.UncheckedExecutionException e) {
+                            System.out.println(
+                                "Got an UncheckedException from the google cache probably: " + e);
                             try {
                                 Thread.sleep(500);
                             } catch (InterruptedException e2) {
@@ -211,11 +226,12 @@ public class ReplicaCrashResilienceTest extends Benchmark {
                                 System.exit(1);
                             }
                             continue;
-                        } catch (Throwable e) { // yes, one should not catch Throwable - but this is a test only
+                        } catch (
+                            Throwable e) { // yes, one should not catch Throwable - but this is a test only
                             e.printStackTrace(System.out);
                             System.exit(1);
                         }
-                        if (++level2Pointer>1000) {
+                        if (++level2Pointer > 1000) {
                             level2Pointer = 1;
                             level1Pointer++;
                         }

@@ -16,23 +16,24 @@
  */
 package org.apache.jackrabbit.oak.query.facet;
 
+import static org.apache.jackrabbit.oak.spi.query.QueryConstants.REP_FACET;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.util.List;
+import java.util.Map;
+import javax.jcr.Value;
+import javax.jcr.query.QueryResult;
+import javax.jcr.query.Row;
+import javax.jcr.query.RowIterator;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.query.facet.FacetResult.Facet;
 import org.apache.jackrabbit.oak.query.facet.FacetResult.FacetResultRow;
 import org.junit.Test;
-
-import javax.jcr.Value;
-import javax.jcr.query.QueryResult;
-import javax.jcr.query.Row;
-import javax.jcr.query.RowIterator;
-import java.util.List;
-import java.util.Map;
-
-import static org.apache.jackrabbit.oak.spi.query.QueryConstants.REP_FACET;
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 /**
  * Tests for {@link FacetResult}
@@ -42,7 +43,8 @@ public class FacetResultTest {
     @Test
     public void testResult() throws Exception {
         QueryResult queryResult = mock(QueryResult.class);
-        when(queryResult.getColumnNames()).thenReturn(new String[]{"rep:facet(text)", "jcr:path", "rep:facet(jcr:title)"});
+        when(queryResult.getColumnNames()).thenReturn(
+            new String[]{"rep:facet(text)", "jcr:path", "rep:facet(jcr:title)"});
         RowIterator rows = mock(RowIterator.class);
         when(rows.hasNext()).thenReturn(true);
         Row row = mock(Row.class);
@@ -103,13 +105,13 @@ public class FacetResultTest {
         String r2c2Facet = json(f("m2", 1));
 
         FacetResult merged = facet(
-                new FacetColumn("x", r1c1Facet, r2c1Facet),
-                new FacetColumn("y", r1c2Facet, r2c2Facet)
+            new FacetColumn("x", r1c1Facet, r2c1Facet),
+            new FacetColumn("y", r1c2Facet, r2c2Facet)
         );
 
         FacetResult expected = facet(
-                new FacetColumn("x", json(f("l2", 2), f("l1", 1))),
-                new FacetColumn("y", json(f("m1", 2), f("m2", 1)))
+            new FacetColumn("x", json(f("l2", 2), f("l1", 1))),
+            new FacetColumn("y", json(f("m1", 2), f("m2", 1)))
         );
 
         verify(expected, merged);
@@ -121,26 +123,27 @@ public class FacetResultTest {
         String r1c2Facet = json(f("m1", 1));
 
         FacetResult merged = facet(
-                new FacetColumn("x", null, r2c1Facet),
-                new FacetColumn("y", r1c2Facet, null)
+            new FacetColumn("x", null, r2c1Facet),
+            new FacetColumn("y", r1c2Facet, null)
         );
 
         FacetResult expected = facet(
-                new FacetColumn("x", json(f("l1", 1))),
-                new FacetColumn("y", json(f("m1", 1)))
+            new FacetColumn("x", json(f("l1", 1))),
+            new FacetColumn("y", json(f("m1", 1)))
         );
 
         verify(expected, merged);
     }
 
-    private FacetResult facet(FacetColumn ... facetColumns) {
+    private FacetResult facet(FacetColumn... facetColumns) {
         String[] colNames = new String[facetColumns.length];
         colNames[0] = facetColumns[0].colName;
 
         int numRows = facetColumns[0].facets.length;
 
         for (int i = 1; i < facetColumns.length; i++) {
-            assertEquals("numRows for col num " + i + " wasn't same as first", numRows, facetColumns[i].facets.length);
+            assertEquals("numRows for col num " + i + " wasn't same as first", numRows,
+                facetColumns[i].facets.length);
 
             colNames[i] = facetColumns[i].colName;
         }
@@ -156,6 +159,7 @@ public class FacetResultTest {
 
             facetResultRows[i] = new FacetResultRow() {
                 final Map<String, String> cols = columns;
+
                 @Override
                 public String getValue(String columnName) {
                     return cols.get(columnName);
@@ -166,7 +170,7 @@ public class FacetResultTest {
         return new FacetResult(colNames, facetResultRows);
     }
 
-    private static String json(Facet ... facets) {
+    private static String json(Facet... facets) {
         JsopBuilder builder = new JsopBuilder();
         builder.object();
         for (Facet facet : facets) {
@@ -179,10 +183,11 @@ public class FacetResultTest {
     }
 
     private static class FacetColumn {
+
         final String colName;
         final String[] facets;
 
-        FacetColumn(String colName, String ... facets) {
+        FacetColumn(String colName, String... facets) {
             this.colName = REP_FACET + "(" + colName + ")";
             this.facets = facets;
         }
@@ -203,8 +208,10 @@ public class FacetResultTest {
                 Facet expectedFacet = expectedFacets.get(i);
                 Facet resultFacet = resultFacets.get(i);
 
-                assertEquals("label mismatch for dim " + dim, expectedFacet.getLabel(), resultFacet.getLabel());
-                assertEquals("count mismatch for dim " + dim, expectedFacet.getCount(), resultFacet.getCount());
+                assertEquals("label mismatch for dim " + dim, expectedFacet.getLabel(),
+                    resultFacet.getLabel());
+                assertEquals("count mismatch for dim " + dim, expectedFacet.getCount(),
+                    resultFacet.getCount());
             }
         }
     }

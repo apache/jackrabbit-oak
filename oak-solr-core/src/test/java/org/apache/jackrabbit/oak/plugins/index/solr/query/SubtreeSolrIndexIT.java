@@ -16,10 +16,14 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.query;
 
-import javax.jcr.query.Query;
-import java.util.Iterator;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
+import java.util.Iterator;
+import javax.jcr.query.Query;
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -27,14 +31,11 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.DefaultSolrConfigurationProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.index.SolrIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.server.DefaultSolrServerProvider;
-import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
-
-import static org.junit.Assert.*;
 
 /**
  * Integration test for indexing / search over subtrees with Solr index.
@@ -68,10 +69,12 @@ public class SubtreeSolrIndexIT extends AbstractQueryTest {
             DefaultSolrServerProvider solrServerProvider = new DefaultSolrServerProvider();
             DefaultSolrConfigurationProvider oakSolrConfigurationProvider = new DefaultSolrConfigurationProvider();
             return new Oak().with(new InitialContent())
-                    .with(new OpenSecurityProvider())
-                    .with(new SolrQueryIndexProvider(solrServerProvider, oakSolrConfigurationProvider))
-                    .with(new SolrIndexEditorProvider(solrServerProvider, oakSolrConfigurationProvider))
-                    .createContentRepository();
+                            .with(new OpenSecurityProvider())
+                            .with(new SolrQueryIndexProvider(solrServerProvider,
+                                oakSolrConfigurationProvider))
+                            .with(new SolrIndexEditorProvider(solrServerProvider,
+                                oakSolrConfigurationProvider))
+                            .createContentRepository();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -92,7 +95,7 @@ public class SubtreeSolrIndexIT extends AbstractQueryTest {
         root.commit();
 
         String query = "select [jcr:path] from [nt:base] where contains(*,'doc') " +
-                "AND isdescendantnode('/" + SUBTREE + "')";
+            "AND isdescendantnode('/" + SUBTREE + "')";
 
         Iterator<String> results = executeQuery(query, Query.JCR_SQL2, true).iterator();
         assertTrue(results.hasNext());

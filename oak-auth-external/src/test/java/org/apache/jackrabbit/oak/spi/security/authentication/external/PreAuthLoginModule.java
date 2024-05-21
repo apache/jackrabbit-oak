@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external;
 import java.util.Set;
 import javax.jcr.Credentials;
 import javax.jcr.SimpleCredentials;
-
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.spi.security.authentication.AbstractLoginModule;
 import org.apache.jackrabbit.oak.spi.security.authentication.PreAuthenticatedLogin;
@@ -28,7 +27,8 @@ import org.jetbrains.annotations.NotNull;
 
 public final class PreAuthLoginModule extends AbstractLoginModule {
 
-    public PreAuthLoginModule() {}
+    public PreAuthLoginModule() {
+    }
 
     @NotNull
     @Override

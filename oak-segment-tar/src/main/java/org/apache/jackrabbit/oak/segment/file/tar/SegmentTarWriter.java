@@ -33,9 +33,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.zip.CRC32;
-
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
-
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.file.tar.index.IndexEntry;
 import org.apache.jackrabbit.oak.segment.file.tar.index.IndexWriter;
@@ -55,10 +53,9 @@ public class SegmentTarWriter implements SegmentArchiveWriter {
     private final FileStoreMonitor monitor;
 
     /**
-     * The file being written. This instance is also used as an additional
-     * synchronization point by {@link #flush()} and {@link #close()} to
-     * allow {@link #flush()} to work concurrently with normal reads and
-     * writes, but not with a concurrent {@link #close()}.
+     * The file being written. This instance is also used as an additional synchronization point by
+     * {@link #flush()} and {@link #close()} to allow {@link #flush()} to work concurrently with
+     * normal reads and writes, but not with a concurrent {@link #close()}.
      */
     private final File file;
 
@@ -66,19 +63,20 @@ public class SegmentTarWriter implements SegmentArchiveWriter {
 
     /**
      * Map of the entries that have already been written. Used by the
-     * {@link #containsSegment(long, long)} and {@link #readSegment(long, long)}
-     * methods to retrieve data from this file while it's still being written,
-     * and finally by the {@link #close()} method to generate the tar index.
-     * The map is ordered in the order that entries have been written.
+     * {@link #containsSegment(long, long)} and {@link #readSegment(long, long)} methods to retrieve
+     * data from this file while it's still being written, and finally by the {@link #close()}
+     * method to generate the tar index. The map is ordered in the order that entries have been
+     * written.
      * <p>
      * The MutableIndex implementation is thread-safe.
      */
     private final Map<UUID, IndexEntry> index = Collections.synchronizedMap(new LinkedHashMap<>());
 
     /**
-     * File handle. Initialized lazily in {@link #writeSegment(long, long, byte[], int, int, int, int, boolean)}
-     * to avoid creating an extra empty file when just reading from the repository.
-     * Should only be accessed from synchronized code.
+     * File handle. Initialized lazily in
+     * {@link #writeSegment(long, long, byte[], int, int, int, int, boolean)} to avoid creating an
+     * extra empty file when just reading from the repository. Should only be accessed from
+     * synchronized code.
      */
     private RandomAccessFile access = null;
 
@@ -93,7 +91,8 @@ public class SegmentTarWriter implements SegmentArchiveWriter {
     }
 
     @Override
-    public void writeSegment(long msb, long lsb, byte[] data, int offset, int size, int generation, int fullGeneration, boolean compacted) throws IOException {
+    public void writeSegment(long msb, long lsb, byte[] data, int offset, int size, int generation,
+        int fullGeneration, boolean compacted) throws IOException {
         UUID uuid = new UUID(msb, lsb);
         CRC32 checksum = new CRC32();
         checksum.update(data, offset, size);
@@ -129,7 +128,9 @@ public class SegmentTarWriter implements SegmentArchiveWriter {
 
         length = currentLength;
 
-        index.put(new UUID(msb, lsb), new SimpleIndexEntry(msb, lsb, (int) dataOffset, size, generation, fullGeneration, compacted));
+        index.put(new UUID(msb, lsb),
+            new SimpleIndexEntry(msb, lsb, (int) dataOffset, size, generation, fullGeneration,
+                compacted));
     }
 
     @Override
@@ -195,13 +196,13 @@ public class SegmentTarWriter implements SegmentArchiveWriter {
 
         for (IndexEntry entry : index.values()) {
             writer.addEntry(
-                    entry.getMsb(),
-                    entry.getLsb(),
-                    entry.getPosition(),
-                    entry.getLength(),
-                    entry.getGeneration(),
-                    entry.getFullGeneration(),
-                    entry.isCompacted()
+                entry.getMsb(),
+                entry.getLsb(),
+                entry.getPosition(),
+                entry.getLength(),
+                entry.getGeneration(),
+                entry.getFullGeneration(),
+                entry.isCompacted()
             );
         }
 
@@ -252,38 +253,38 @@ public class SegmentTarWriter implements SegmentArchiveWriter {
         // File name
         byte[] nameBytes = name.getBytes(UTF_8);
         System.arraycopy(
-                nameBytes, 0, header, 0, Math.min(nameBytes.length, 100));
+            nameBytes, 0, header, 0, Math.min(nameBytes.length, 100));
 
         // File mode
         System.arraycopy(
-                String.format("%07o", 0400).getBytes(UTF_8), 0,
-                header, 100, 7);
+            String.format("%07o", 0400).getBytes(UTF_8), 0,
+            header, 100, 7);
 
         // User's numeric user ID
         System.arraycopy(
-                String.format("%07o", 0).getBytes(UTF_8), 0,
-                header, 108, 7);
+            String.format("%07o", 0).getBytes(UTF_8), 0,
+            header, 108, 7);
 
         // Group's numeric user ID
         System.arraycopy(
-                String.format("%07o", 0).getBytes(UTF_8), 0,
-                header, 116, 7);
+            String.format("%07o", 0).getBytes(UTF_8), 0,
+            header, 116, 7);
 
         // File size in bytes (octal basis)
         System.arraycopy(
-                String.format("%011o", size).getBytes(UTF_8), 0,
-                header, 124, 11);
+            String.format("%011o", size).getBytes(UTF_8), 0,
+            header, 124, 11);
 
         // Last modification time in numeric Unix time format (octal)
         long time = System.currentTimeMillis() / 1000;
         System.arraycopy(
-                String.format("%011o", time).getBytes(UTF_8), 0,
-                header, 136, 11);
+            String.format("%011o", time).getBytes(UTF_8), 0,
+            header, 136, 11);
 
         // Checksum for header record
         System.arraycopy(
-                new byte[] {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '}, 0,
-                header, 148, 8);
+            new byte[]{' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '}, 0,
+            header, 148, 8);
 
         // Type flag
         header[156] = '0';
@@ -294,8 +295,8 @@ public class SegmentTarWriter implements SegmentArchiveWriter {
             checksum += aHeader & 0xff;
         }
         System.arraycopy(
-                String.format("%06o\0 ", checksum).getBytes(UTF_8), 0,
-                header, 148, 8);
+            String.format("%06o\0 ", checksum).getBytes(UTF_8), 0,
+            header, 148, 8);
 
         return header;
     }

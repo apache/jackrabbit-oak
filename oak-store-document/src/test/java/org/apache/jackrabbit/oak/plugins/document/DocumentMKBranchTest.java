@@ -43,8 +43,8 @@ public class DocumentMKBranchTest extends BaseDocumentMKTest {
      *   |\
      *   | + branchRev2 (brach from rev2)
      * </pre>
-     * The test reads /child from <code>branchRev2</code> and expects
-     * the version from the first commit.
+     * The test reads /child from <code>branchRev2</code> and expects the version from the first
+     * commit.
      *
      * @throws ParseException
      */

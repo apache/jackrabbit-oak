@@ -16,8 +16,11 @@
  */
 package org.apache.jackrabbit.oak.exercise.security.user;
 
-import javax.jcr.RepositoryException;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertTrue;
 
+import javax.jcr.RepositoryException;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
@@ -27,10 +30,6 @@ import org.apache.jackrabbit.oak.spi.security.user.AuthorizableNodeName;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.test.api.util.Text;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertTrue;
 
 /**
  * <pre>
@@ -124,7 +123,8 @@ public class L14_AuthorizableNodeNameTest extends AbstractSecurityTest {
         // EXERCISE: uncomment the setup in 'getSecurityConfigParameters' before running this test.
 
         // verify that the configuration is correct:
-        AuthorizableNodeName configured = getUserConfiguration().getParameters().getConfigValue(UserConstants.PARAM_AUTHORIZABLE_NODE_NAME, AuthorizableNodeName.DEFAULT);
+        AuthorizableNodeName configured = getUserConfiguration().getParameters().getConfigValue(
+            UserConstants.PARAM_AUTHORIZABLE_NODE_NAME, AuthorizableNodeName.DEFAULT);
         assertNotSame(AuthorizableNodeName.DEFAULT, configured);
         assertTrue(configured instanceof RandomAuthorizableNodeName);
 

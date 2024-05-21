@@ -26,8 +26,7 @@ interface SegmentReferences extends Iterable<SegmentId> {
      * Fetch the referenced segment ID associated to the provided reference.
      *
      * @param reference The reference to a segment ID.
-     * @return The segment ID associated to the reference of {@code null} if
-     * none is found.
+     * @return The segment ID associated to the reference of {@code null} if none is found.
      */
     SegmentId getSegmentId(int reference);
 

@@ -16,9 +16,10 @@
  */
 
 /**
- * This package contains classes for supporting <a href="http://jackrabbit.apache.org/oak/docs/query/lucene.html#similar-fv">
- * similarity search</a> which is based on <a href="https://en.wikipedia.org/wiki/Feature_(machine_learning)">feature</a> vectors.
+ * This package contains classes for supporting <a
+ * href="http://jackrabbit.apache.org/oak/docs/query/lucene.html#similar-fv"> similarity search</a>
+ * which is based on <a href="https://en.wikipedia.org/wiki/Feature_(machine_learning)">feature</a>
+ * vectors.
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene.util.fv;
 
-import org.osgi.annotation.versioning.Version;

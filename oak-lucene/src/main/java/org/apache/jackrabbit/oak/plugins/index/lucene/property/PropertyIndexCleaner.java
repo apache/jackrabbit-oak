@@ -19,8 +19,8 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.property;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static java.util.Collections.singletonList;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.PROPERTY_INDEX;
@@ -36,7 +36,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-
+import org.apache.jackrabbit.guava.common.base.Stopwatch;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.commit.AnnotatingConflictHandler;
@@ -65,10 +66,8 @@ import org.apache.jackrabbit.oak.stats.TimerStats;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
+public class PropertyIndexCleaner implements Runnable {
 
-public class PropertyIndexCleaner implements Runnable{
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final NodeStore nodeStore;
     private final IndexPathService indexPathService;
@@ -81,19 +80,20 @@ public class PropertyIndexCleaner implements Runnable{
     private boolean recursiveDelete;
 
     public PropertyIndexCleaner(NodeStore nodeStore, IndexPathService indexPathService,
-                                AsyncIndexInfoService asyncIndexInfoService,
-                                StatisticsProvider statsProvider) {
+        AsyncIndexInfoService asyncIndexInfoService,
+        StatisticsProvider statsProvider) {
         this.nodeStore = checkNotNull(nodeStore);
         this.indexPathService = checkNotNull(indexPathService);
         this.asyncIndexInfoService = checkNotNull(asyncIndexInfoService);
 
-        this.cleanupTime = statsProvider.getTimer("HYBRID_PROPERTY_CLEANER", StatsOptions.METRICS_ONLY);
+        this.cleanupTime = statsProvider.getTimer("HYBRID_PROPERTY_CLEANER",
+            StatsOptions.METRICS_ONLY);
         this.noopMeter = statsProvider.getMeter("HYBRID_PROPERTY_NOOP", StatsOptions.METRICS_ONLY);
     }
 
     @Override
     public void run() {
-        try{
+        try {
             performCleanup(false);
         } catch (Exception e) {
             log.warn("Cleanup run failed with error", e);
@@ -103,23 +103,24 @@ public class PropertyIndexCleaner implements Runnable{
     /**
      * Perform some cleanup.
      *
-     * @param paths the list of paths (comma separated)
-     * @param batchSize the bach size
-     * @param sleepPerBatch the number of milliseconds to sleep per batch
+     * @param paths          the list of paths (comma separated)
+     * @param batchSize      the bach size
+     * @param sleepPerBatch  the number of milliseconds to sleep per batch
      * @param maxRemoveCount the maximum number of nodes to remove per path
      * @return the number of nodes removed
      */
-    public int performCleanup(String paths, int batchSize, int sleepPerBatch, int maxRemoveCount) throws CommitFailedException {
+    public int performCleanup(String paths, int batchSize, int sleepPerBatch, int maxRemoveCount)
+        throws CommitFailedException {
         String[] list = paths.split(",");
         int numOfNodesDeleted = 0;
-        for(String s : list) {
+        for (String s : list) {
             log.info("Cleanup of {}", s);
             if (!NodeStateUtils.isHidden(PathUtils.getName(s))) {
                 log.warn("Not a hidden node: {}", s);
                 continue;
             }
             RecursiveDelete rd = new RecursiveDelete(nodeStore, createCommitHook(),
-                    PropertyIndexCleaner::createCommitInfo);
+                PropertyIndexCleaner::createCommitInfo);
             rd.setBatchSize(batchSize);
             rd.setSleepPerBatch(sleepPerBatch);
             rd.setMaxRemoveCount(maxRemoveCount);
@@ -132,15 +133,16 @@ public class PropertyIndexCleaner implements Runnable{
     /**
      * Performs the cleanup run
      *
-     * @param forceCleanup if true then clean up would attempted even if no change
-     *                     is found in async indexer state
+     * @param forceCleanup if true then clean up would attempted even if no change is found in async
+     *                     indexer state
      */
     public CleanupStats performCleanup(boolean forceCleanup) throws CommitFailedException {
         CleanupStats stats = new CleanupStats();
         Stopwatch w = Stopwatch.createStarted();
         Map<String, Long> asyncInfo = asyncIndexInfoService.getIndexedUptoPerLane();
         if (lastAsyncInfo.equals(asyncInfo) && !forceCleanup) {
-            log.debug("No change found in async state from last run {}. Skipping the run", asyncInfo);
+            log.debug("No change found in async state from last run {}. Skipping the run",
+                asyncInfo);
             noopMeter.mark();
             return stats;
         }
@@ -165,10 +167,10 @@ public class PropertyIndexCleaner implements Runnable{
     }
 
     /**
-     * Specifies the threshold for created time such that only those entries
-     * in unique indexes are purged which have
-     *
-     *     async indexer time - creation time &gt; threshold
+     * Specifies the threshold for created time such that only those entries in unique indexes are
+     * purged which have
+     * <p>
+     * async indexer time - creation time &gt; threshold
      *
      * @param unit time unit
      * @param time time value in given unit
@@ -192,7 +194,7 @@ public class PropertyIndexCleaner implements Runnable{
         for (String indexPath : indexPathService.getIndexPaths()) {
             NodeState idx = getNode(root, indexPath);
             if (TYPE_LUCENE.equals(idx.getString(TYPE_PROPERTY_NAME))
-                    && idx.hasChildNode(PROPERTY_INDEX)) {
+                && idx.hasChildNode(PROPERTY_INDEX)) {
                 indexPaths.add(indexPath);
             }
         }
@@ -200,8 +202,8 @@ public class PropertyIndexCleaner implements Runnable{
     }
 
     private IndexInfo switchBucketsAndCollectIndexData(List<String> indexPaths,
-                                                       Map<String, Long> asyncInfo, CleanupStats stats)
-            throws CommitFailedException {
+        Map<String, Long> asyncInfo, CleanupStats stats)
+        throws CommitFailedException {
         IndexInfo indexInfo = new IndexInfo();
         NodeState root = nodeStore.getRoot();
         NodeBuilder builder = root.builder();
@@ -215,7 +217,7 @@ public class PropertyIndexCleaner implements Runnable{
 
             if (lastIndexedTo == null) {
                 log.warn("Not able to determine async index info for lane {}. " +
-                        "Known lanes {}", laneName, asyncInfo.keySet());
+                    "Known lanes {}", laneName, asyncInfo.keySet());
                 continue;
             }
 
@@ -233,7 +235,8 @@ public class PropertyIndexCleaner implements Runnable{
                     modified |= bs.switchBucket(lastIndexedTo);
 
                     for (String bucketName : bs.getOldBuckets()) {
-                        String bucketPath = PathUtils.concat(indexPath, PROPERTY_INDEX, propName, bucketName);
+                        String bucketPath = PathUtils.concat(indexPath, PROPERTY_INDEX, propName,
+                            bucketName);
                         indexInfo.oldBucketPaths.add(bucketPath);
                         stats.purgedIndexPaths.add(indexPath);
                     }
@@ -251,14 +254,15 @@ public class PropertyIndexCleaner implements Runnable{
         return indexInfo;
     }
 
-    private void purgeOldBuckets(List<String> bucketPaths, CleanupStats stats) throws CommitFailedException {
+    private void purgeOldBuckets(List<String> bucketPaths, CleanupStats stats)
+        throws CommitFailedException {
         if (bucketPaths.isEmpty()) {
             return;
         }
 
         if (recursiveDelete) {
             RecursiveDelete rd = new RecursiveDelete(nodeStore, createCommitHook(),
-                    PropertyIndexCleaner::createCommitInfo);
+                PropertyIndexCleaner::createCommitInfo);
             rd.run(bucketPaths);
             stats.numOfNodesDeleted += rd.getNumRemoved();
         } else {
@@ -275,7 +279,8 @@ public class PropertyIndexCleaner implements Runnable{
         stats.purgedBucketCount = bucketPaths.size();
     }
 
-    private void purgeOldUniqueIndexEntries(Map<String, Long> asyncInfo, CleanupStats stats) throws CommitFailedException {
+    private void purgeOldUniqueIndexEntries(Map<String, Long> asyncInfo, CleanupStats stats)
+        throws CommitFailedException {
         NodeState root = nodeStore.getRoot();
         NodeBuilder builder = root.builder();
 
@@ -303,10 +308,11 @@ public class PropertyIndexCleaner implements Runnable{
 
     private CompositeHook createCommitHook() {
         return new CompositeHook(
-                    ResetCommitAttributeHook.INSTANCE,
-                    new ConflictHook(new AnnotatingConflictHandler()),
-                    new EditorHook(CompositeEditorProvider.compose(singletonList(new ConflictValidatorProvider())))
-            );
+            ResetCommitAttributeHook.INSTANCE,
+            new ConflictHook(new AnnotatingConflictHandler()),
+            new EditorHook(
+                CompositeEditorProvider.compose(singletonList(new ConflictValidatorProvider())))
+        );
     }
 
     private static CommitInfo createCommitInfo() {
@@ -323,6 +329,7 @@ public class PropertyIndexCleaner implements Runnable{
     }
 
     private static final class IndexInfo {
+
         final List<String> oldBucketPaths = new ArrayList<>();
 
         /* indexPath, lastIndexedTo */
@@ -330,6 +337,7 @@ public class PropertyIndexCleaner implements Runnable{
     }
 
     public static class CleanupStats {
+
         public int uniqueIndexEntryRemovalCount;
         public int purgedBucketCount;
         public Set<String> purgedIndexPaths = new HashSet<>();
@@ -338,9 +346,11 @@ public class PropertyIndexCleaner implements Runnable{
 
         @Override
         public String toString() {
-            String nodeCountMsg = numOfNodesDeleted > 0 ? String.format("(%d nodes)", numOfNodesDeleted) : "";
+            String nodeCountMsg =
+                numOfNodesDeleted > 0 ? String.format("(%d nodes)", numOfNodesDeleted) : "";
             return String.format("Removed %d index buckets %s, %d unique index entries " +
-                    "from indexes %s", purgedBucketCount, nodeCountMsg, uniqueIndexEntryRemovalCount, purgedIndexPaths);
+                    "from indexes %s", purgedBucketCount, nodeCountMsg, uniqueIndexEntryRemovalCount,
+                purgedIndexPaths);
         }
     }
 }

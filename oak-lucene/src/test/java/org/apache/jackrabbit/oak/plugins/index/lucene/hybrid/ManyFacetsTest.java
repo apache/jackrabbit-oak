@@ -32,7 +32,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
-
 import javax.jcr.GuestCredentials;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
@@ -42,7 +41,6 @@ import javax.jcr.query.QueryManager;
 import javax.jcr.query.QueryResult;
 import javax.jcr.query.Row;
 import javax.jcr.query.RowIterator;
-
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
@@ -94,7 +92,7 @@ public class ManyFacetsTest extends AbstractQueryTest {
     private static final int NUM_LEAF_NODES = STATISTICAL_FACET_SAMPLE_SIZE_DEFAULT;
     private static final String FACET_PROP = "facets";
     private static final long REFRESH_DELTA = TimeUnit.SECONDS.toMillis(1);
-    
+
     private static final int FACET_COUNT = 10;
 
     private ExecutorService executorService = Executors.newFixedThreadPool(2);
@@ -130,40 +128,42 @@ public class ManyFacetsTest extends AbstractQueryTest {
             throw new RuntimeException(e);
         }
         MountInfoProvider mip = defaultMountInfoProvider();
-        nrtIndexFactory = new NRTIndexFactory(copier, clock, TimeUnit.MILLISECONDS.toSeconds(REFRESH_DELTA), StatisticsProvider.NOOP);
+        nrtIndexFactory = new NRTIndexFactory(copier, clock,
+            TimeUnit.MILLISECONDS.toSeconds(REFRESH_DELTA), StatisticsProvider.NOOP);
         nrtIndexFactory.setAssertAllResourcesClosed(true);
         LuceneIndexReaderFactory indexReaderFactory = new DefaultIndexReaderFactory(mip, copier);
         IndexTracker tracker = new IndexTracker(indexReaderFactory, nrtIndexFactory);
         luceneIndexProvider = new LuceneIndexProvider(tracker);
         queue = new DocumentQueue(100, tracker, newDirectExecutorService());
         LuceneIndexEditorProvider editorProvider = new LuceneIndexEditorProvider(copier,
-                tracker,
-                null,
-                null,
-                mip);
+            tracker,
+            null,
+            null,
+            mip);
         editorProvider.setIndexingQueue(queue);
-        LocalIndexObserver localIndexObserver = new LocalIndexObserver(queue, StatisticsProvider.NOOP);
+        LocalIndexObserver localIndexObserver = new LocalIndexObserver(queue,
+            StatisticsProvider.NOOP);
         nodeStore = new MemoryNodeStore();
         oak = new Oak(nodeStore)
-                .with(new InitialContent())
-                .with(new OpenSecurityProvider())
-                .with((QueryIndexProvider) luceneIndexProvider)
-                .with((Observer) luceneIndexProvider)
-                .with(localIndexObserver)
-                .with(editorProvider)
-                .with(new PropertyIndexEditorProvider())
-                .with(new NodeTypeIndexProvider())
-                .with(optionalEditorProvider)
-                .with(new NodeCounterEditorProvider())
-                //Effectively disable async indexing auto run
-                //such that we can control run timing as per test requirement
-                .withAsyncIndexing("async", TimeUnit.DAYS.toSeconds(1));
+            .with(new InitialContent())
+            .with(new OpenSecurityProvider())
+            .with((QueryIndexProvider) luceneIndexProvider)
+            .with((Observer) luceneIndexProvider)
+            .with(localIndexObserver)
+            .with(editorProvider)
+            .with(new PropertyIndexEditorProvider())
+            .with(new NodeTypeIndexProvider())
+            .with(optionalEditorProvider)
+            .with(new NodeCounterEditorProvider())
+            //Effectively disable async indexing auto run
+            //such that we can control run timing as per test requirement
+            .withAsyncIndexing("async", TimeUnit.DAYS.toSeconds(1));
 
         wb = oak.getWhiteboard();
         ContentRepository repo = oak.createContentRepository();
         return repo;
     }
-    
+
     private void createSmallDataset(int k) throws RepositoryException {
         Random random = new Random(42);
         Tree par = createPath("/parent" + k);
@@ -175,12 +175,12 @@ public class ManyFacetsTest extends AbstractQueryTest {
                 child.setProperty("cons", "val");
                 for (int f = 0; f < FACET_COUNT; f++) {
                     int labelNum = random.nextInt(NUM_LABELS);
-                    child.setProperty("foo" + f, "foo"  + f + "x" + labelNum);
+                    child.setProperty("foo" + f, "foo" + f + "x" + labelNum);
                 }
             }
         }
     }
-    
+
     private Tree createPath(String path) {
         Tree base = root.getTree("/");
         for (String e : PathUtils.elements(path)) {
@@ -188,14 +188,15 @@ public class ManyFacetsTest extends AbstractQueryTest {
         }
         return base;
     }
-    
+
     private void runAsyncIndex() {
-        AsyncIndexUpdate async = (AsyncIndexUpdate) WhiteboardUtils.getService(wb, Runnable.class, new Predicate<Runnable>() {
-            @Override
-            public boolean test(@Nullable Runnable input) {
-                return input instanceof AsyncIndexUpdate;
-            }
-        });
+        AsyncIndexUpdate async = (AsyncIndexUpdate) WhiteboardUtils.getService(wb, Runnable.class,
+            new Predicate<Runnable>() {
+                @Override
+                public boolean test(@Nullable Runnable input) {
+                    return input instanceof AsyncIndexUpdate;
+                }
+            });
         assertNotNull(async);
         async.run();
         if (async.isFailing()) {
@@ -203,7 +204,7 @@ public class ManyFacetsTest extends AbstractQueryTest {
         }
         root.refresh();
     }
-    
+
     @Test
     public void facet() throws Exception {
         // Explicitly setting following configs to run DelayedLuceneFacetProvider and a thread sleep of 50 ms in refresh readers. Refer: OAK-8898
@@ -235,8 +236,8 @@ public class ManyFacetsTest extends AbstractQueryTest {
             }
             facetList += "[rep:facet(foo" + i + ")]";
         }
-        String queryString = "SELECT " + facetList + 
-                " FROM [nt:base] WHERE [cons] = 'val'";
+        String queryString = "SELECT " + facetList +
+            " FROM [nt:base] WHERE [cons] = 'val'";
         Query q = qm.createQuery(queryString, SQL2);
         QueryResult qr = q.execute();
         try {
@@ -259,12 +260,12 @@ public class ManyFacetsTest extends AbstractQueryTest {
             throw e;
         }
     }
-    
+
     private Tree createIndex(Tree index, String name) throws RepositoryException {
         LuceneIndexDefinitionBuilder idxBuilder = new LuceneIndexDefinitionBuilder();
         PropertyRule pr = idxBuilder.noAsync()
-                .indexRule("nt:base")
-                .property("cons").propertyIndex();
+                                    .indexRule("nt:base")
+                                    .property("cons").propertyIndex();
         for (int i = 0; i < FACET_COUNT; i++) {
             pr.property("foo" + i).propertyIndex().getBuilderTree().setProperty(PROP_FACETS, true);
         }
@@ -276,5 +277,5 @@ public class ManyFacetsTest extends AbstractQueryTest {
         idxBuilder.build(idxTree);
         return idxTree;
     }
-    
+
 }

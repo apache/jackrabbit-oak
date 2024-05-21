@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.plugins.nodetype.write;
 
 import javax.jcr.nodetype.ConstraintViolationException;
-
 import org.apache.jackrabbit.oak.namepath.JcrNameParser;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.jetbrains.annotations.NotNull;

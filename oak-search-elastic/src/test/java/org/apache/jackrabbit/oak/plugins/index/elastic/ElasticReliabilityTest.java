@@ -16,28 +16,28 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.MatcherAssert.assertThat;
+
 import eu.rekawek.toxiproxy.Proxy;
 import eu.rekawek.toxiproxy.ToxiproxyClient;
 import eu.rekawek.toxiproxy.model.ToxicDirection;
 import eu.rekawek.toxiproxy.model.toxic.LimitData;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.UUID;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.junit.After;
 import org.junit.Test;
 import org.testcontainers.containers.ToxiproxyContainer;
 import org.testcontainers.utility.DockerImageName;
 
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.UUID;
-
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.CoreMatchers.not;
-import static org.hamcrest.MatcherAssert.assertThat;
-
 public class ElasticReliabilityTest extends ElasticAbstractQueryTest {
 
-    private static final DockerImageName TOXIPROXY_IMAGE = DockerImageName.parse("ghcr.io/shopify/toxiproxy:2.6.0");
+    private static final DockerImageName TOXIPROXY_IMAGE = DockerImageName.parse(
+        "ghcr.io/shopify/toxiproxy:2.6.0");
 
     private ToxiproxyContainer toxiproxy;
 
@@ -45,9 +45,11 @@ public class ElasticReliabilityTest extends ElasticAbstractQueryTest {
 
     @Override
     public void before() throws Exception {
-        toxiproxy = new ToxiproxyContainer(TOXIPROXY_IMAGE).withNetwork(elasticRule.elastic.getNetwork());
+        toxiproxy = new ToxiproxyContainer(TOXIPROXY_IMAGE).withNetwork(
+            elasticRule.elastic.getNetwork());
         toxiproxy.start();
-        ToxiproxyClient toxiproxyClient = new ToxiproxyClient(toxiproxy.getHost(), toxiproxy.getControlPort());
+        ToxiproxyClient toxiproxyClient = new ToxiproxyClient(toxiproxy.getHost(),
+            toxiproxy.getControlPort());
         proxy = toxiproxyClient.createProxy("elastic", "0.0.0.0:8666", "elasticsearch:9200");
         super.before();
     }
@@ -69,8 +71,9 @@ public class ElasticReliabilityTest extends ElasticAbstractQueryTest {
     @Override
     protected ElasticConnection getElasticConnection() {
         return elasticRule.useDocker() ?
-                elasticRule.getElasticConnectionForDocker(toxiproxy.getHost(), toxiproxy.getMappedPort(8666)) :
-                elasticRule.getElasticConnectionFromString();
+            elasticRule.getElasticConnectionForDocker(toxiproxy.getHost(),
+                toxiproxy.getMappedPort(8666)) :
+            elasticRule.getElasticConnectionFromString();
     }
 
     @Test
@@ -88,7 +91,8 @@ public class ElasticReliabilityTest extends ElasticAbstractQueryTest {
 
         // simulate an upstream connection cut
         LimitData cutConnectionUpstream = proxy.toxics()
-                .limitData("CUT_CONNECTION_UPSTREAM", ToxicDirection.UPSTREAM, 0L);
+                                               .limitData("CUT_CONNECTION_UPSTREAM",
+                                                   ToxicDirection.UPSTREAM, 0L);
 
         // elastic is down, query should not use it
         assertThat(explain(query), not(containsString("elasticsearch:" + indexName)));

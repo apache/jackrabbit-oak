@@ -16,26 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
-import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.api.security.user.Authorizable;
-import org.apache.jackrabbit.api.security.user.Group;
-import org.apache.jackrabbit.api.security.user.User;
-import org.apache.jackrabbit.api.security.user.UserManager;
-import org.apache.jackrabbit.oak.AbstractSecurityTest;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
-import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
-import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
-import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
-import org.junit.Test;
-
-import javax.jcr.RepositoryException;
-import javax.jcr.Value;
-
-import java.security.Principal;
-
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants.REP_EXTERNAL_ID;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -48,51 +28,72 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import java.security.Principal;
+import javax.jcr.RepositoryException;
+import javax.jcr.Value;
+import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.jackrabbit.api.security.user.Group;
+import org.apache.jackrabbit.api.security.user.User;
+import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
+import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
+import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+import org.junit.Test;
+
 public class DynamicGroupUtilTest extends AbstractSecurityTest {
-    
+
     @Test
     public void findGroupIdInHierarchy() throws RepositoryException {
         Group gr = getUserManager(root).createGroup("grId");
         Tree tree = root.getTree(gr.getPath());
-        
+
         assertEquals("grId", DynamicGroupUtil.findGroupIdInHierarchy(tree));
 
         Tree child = TreeUtil.addChild(tree, "test", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
         assertEquals("grId", DynamicGroupUtil.findGroupIdInHierarchy(child));
 
-        Tree membersList = TreeUtil.addChild(tree, UserConstants.REP_MEMBERS_LIST, UserConstants.NT_REP_MEMBER_REFERENCES_LIST);
+        Tree membersList = TreeUtil.addChild(tree, UserConstants.REP_MEMBERS_LIST,
+            UserConstants.NT_REP_MEMBER_REFERENCES_LIST);
         assertEquals("grId", DynamicGroupUtil.findGroupIdInHierarchy(membersList));
 
-        Tree members = TreeUtil.addChild(membersList, "any", UserConstants.NT_REP_MEMBER_REFERENCES);
+        Tree members = TreeUtil.addChild(membersList, "any",
+            UserConstants.NT_REP_MEMBER_REFERENCES);
         assertEquals("grId", DynamicGroupUtil.findGroupIdInHierarchy(members));
 
         assertNull(DynamicGroupUtil.findGroupIdInHierarchy(tree.getParent()));
         assertNull(DynamicGroupUtil.findGroupIdInHierarchy(root.getTree(PathUtils.ROOT_PATH)));
     }
-    
+
     @Test
     public void testHasStoredMemberInfoFails() throws RepositoryException {
         Group gr = when(mock(Group.class).getPath()).thenThrow(new RepositoryException()).getMock();
         assertFalse(DynamicGroupUtil.hasStoredMemberInfo(gr, root));
     }
-    
+
     @Test
     public void testIsSameIDP() throws Exception {
         Group gr = mock(Group.class);
         Authorizable member = mock(Authorizable.class);
-        
+
         assertFalse(DynamicGroupUtil.isSameIDP(gr, member));
-        
+
         Value v = getValueFactory().createValue(new ExternalIdentityRef("id", "idp").getString());
-        Value v2 = getValueFactory().createValue(new ExternalIdentityRef("id", "otherIdp").getString());
-        
-        when(gr.getProperty(REP_EXTERNAL_ID)).thenReturn(new Value[] {v});
+        Value v2 = getValueFactory().createValue(
+            new ExternalIdentityRef("id", "otherIdp").getString());
+
+        when(gr.getProperty(REP_EXTERNAL_ID)).thenReturn(new Value[]{v});
         assertFalse(DynamicGroupUtil.isSameIDP(gr, member));
 
-        when(member.getProperty(REP_EXTERNAL_ID)).thenReturn(new Value[] {v2});
+        when(member.getProperty(REP_EXTERNAL_ID)).thenReturn(new Value[]{v2});
         assertFalse(DynamicGroupUtil.isSameIDP(gr, member));
 
-        when(member.getProperty(REP_EXTERNAL_ID)).thenReturn(new Value[] {v});
+        when(member.getProperty(REP_EXTERNAL_ID)).thenReturn(new Value[]{v});
         assertTrue(DynamicGroupUtil.isSameIDP(gr, member));
 
         verify(gr, times(4)).getProperty(REP_EXTERNAL_ID);
@@ -105,22 +106,25 @@ public class DynamicGroupUtilTest extends AbstractSecurityTest {
     public void testGetInheritedPrincipalsMissingGroup() throws Exception {
         UserManager um = mock(UserManager.class);
         when(um.getAuthorizable(any(Principal.class))).thenReturn(null);
-        assertTrue(DynamicGroupUtil.getInheritedPrincipals(new PrincipalImpl("test"), um).isEmpty());
+        assertTrue(
+            DynamicGroupUtil.getInheritedPrincipals(new PrincipalImpl("test"), um).isEmpty());
     }
-    
+
     @Test
     public void testGetInheritedPrincipalsUserPrincipal() throws Exception {
         UserManager um = mock(UserManager.class);
         User user = when(mock(User.class).isGroup()).thenReturn(false).getMock();
         when(um.getAuthorizable(any(Principal.class))).thenReturn(user);
-        assertTrue(DynamicGroupUtil.getInheritedPrincipals(new PrincipalImpl("test"), um).isEmpty());
+        assertTrue(
+            DynamicGroupUtil.getInheritedPrincipals(new PrincipalImpl("test"), um).isEmpty());
     }
-    
+
     @Test
     public void testGetInheritedPrincipalsLookupFails() throws Exception {
         UserManager um = mock(UserManager.class);
         when(um.getAuthorizable(any(Principal.class))).thenThrow(new RepositoryException());
-        assertTrue(DynamicGroupUtil.getInheritedPrincipals(new PrincipalImpl("test"), um).isEmpty());
+        assertTrue(
+            DynamicGroupUtil.getInheritedPrincipals(new PrincipalImpl("test"), um).isEmpty());
     }
 
     @Test
@@ -134,7 +138,8 @@ public class DynamicGroupUtilTest extends AbstractSecurityTest {
 
         UserManager um = mock(UserManager.class);
         when(um.getAuthorizable(any(Principal.class))).thenReturn(group);
-        
-        assertTrue(DynamicGroupUtil.getInheritedPrincipals(new PrincipalImpl("test"), um).isEmpty());
+
+        assertTrue(
+            DynamicGroupUtil.getInheritedPrincipals(new PrincipalImpl("test"), um).isEmpty());
     }
 }

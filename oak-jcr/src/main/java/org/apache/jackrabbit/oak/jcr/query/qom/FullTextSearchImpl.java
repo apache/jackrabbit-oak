@@ -30,7 +30,7 @@ public class FullTextSearchImpl extends ConstraintImpl implements FullTextSearch
     private final StaticOperandImpl fullTextSearchExpression;
 
     public FullTextSearchImpl(String selectorName, String propertyName,
-            StaticOperandImpl fullTextSearchExpression) {
+        StaticOperandImpl fullTextSearchExpression) {
         this.selectorName = selectorName;
         this.propertyName = propertyName;
         this.fullTextSearchExpression = fullTextSearchExpression;

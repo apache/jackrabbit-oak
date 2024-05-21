@@ -27,7 +27,6 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 import java.util.List;
 import java.util.Random;
 import java.util.function.Consumer;
-
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -36,11 +35,12 @@ import org.jetbrains.annotations.NotNull;
 /**
  * A random access trace
  * <p>
- * When {@link Trace#run(NodeState) run} this trace performs random access call to
- * paths passed to its constructor. It logs the current path as additional
+ * When {@link Trace#run(NodeState) run} this trace performs random access call to paths passed to
+ * its constructor. It logs the current path as additional
  * {@link IOTracer#setContext(List) context}.
  */
 public class RandomAccessTrace implements Trace {
+
     public static final String CONTEXT_SPEC = "path";
 
     @NotNull
@@ -56,12 +56,14 @@ public class RandomAccessTrace implements Trace {
 
     /**
      * Create a new instance of a random access trace.
-     * @param paths     the list of paths to access
-     * @param seed      seed for randomly picking paths
-     * @param count     number of paths to trace
-     * @param context   consumer to pass the additional context to
+     *
+     * @param paths   the list of paths to access
+     * @param seed    seed for randomly picking paths
+     * @param count   number of paths to trace
+     * @param context consumer to pass the additional context to
      */
-    public RandomAccessTrace(@NotNull List<String> paths, long seed, int count, @NotNull Consumer<List<String>> context) {
+    public RandomAccessTrace(@NotNull List<String> paths, long seed, int count,
+        @NotNull Consumer<List<String>> context) {
         this.rnd = new Random(seed);
         this.count = count;
         this.paths = paths;
@@ -70,7 +72,7 @@ public class RandomAccessTrace implements Trace {
 
     @Override
     public void run(@NotNull NodeState root) {
-        if(!paths.isEmpty()) {
+        if (!paths.isEmpty()) {
             for (int c = 0; c < count; c++) {
                 String path = paths.get(rnd.nextInt(paths.size()));
                 context.accept(ImmutableList.of(path));

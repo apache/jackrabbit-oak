@@ -19,15 +19,18 @@
 
 package org.apache.jackrabbit.oak.exporter;
 
+import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
+
+import com.google.gson.stream.JsonWriter;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.Writer;
-
 import org.apache.jackrabbit.guava.common.io.Files;
-import com.google.gson.stream.JsonWriter;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
 import org.apache.jackrabbit.oak.json.Base64BlobSerializer;
 import org.apache.jackrabbit.oak.json.BlobSerializer;
@@ -36,11 +39,8 @@ import org.apache.jackrabbit.oak.plugins.blob.serializer.FSBlobSerializer;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 
-import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-
 public class NodeStateSerializer {
+
     public enum Format {JSON, TXT}
 
     private final NodeState nodeState;
@@ -70,12 +70,13 @@ public class NodeStateSerializer {
 
     public void serialize(File dir) throws IOException {
         if (dir.exists()) {
-            checkArgument(dir.isDirectory(), "Input file must be directory [%s]", dir.getAbsolutePath());
+            checkArgument(dir.isDirectory(), "Input file must be directory [%s]",
+                dir.getAbsolutePath());
         } else {
             checkState(dir.mkdirs(), "Cannot create directory [%s]", dir.getAbsolutePath());
         }
         File file = new File(dir, getFileName());
-        try (Writer writer = Files.newWriter(file, UTF_8)){
+        try (Writer writer = Files.newWriter(file, UTF_8)) {
             serialize(writer, createBlobSerializer(dir));
         }
         closeSerializer();
@@ -101,7 +102,8 @@ public class NodeStateSerializer {
     }
 
     private void serialize(JsopWriter writer, BlobSerializer blobSerializer) throws IOException {
-        JsonSerializer serializer = new JsonSerializer(writer, depth, 0, maxChildNodes, getFilter(), blobSerializer, true);
+        JsonSerializer serializer = new JsonSerializer(writer, depth, 0, maxChildNodes, getFilter(),
+            blobSerializer, true);
         NodeState state = NodeStateUtils.getNode(nodeState, path);
         serializer.serialize(state, path);
     }

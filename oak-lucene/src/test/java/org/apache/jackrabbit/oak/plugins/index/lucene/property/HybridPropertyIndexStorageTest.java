@@ -19,8 +19,20 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.property;
 
-import java.util.List;
+import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.PROPERTY_INDEX;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.PROP_HEAD_BUCKET;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.PROP_PREVIOUS_BUCKET;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
+import static org.apache.jackrabbit.oak.plugins.memory.PropertyValues.newString;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.empty;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
 
+import java.util.List;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexDefinitionBuilder;
@@ -37,67 +49,55 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.PROPERTY_INDEX;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.PROP_HEAD_BUCKET;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.PROP_PREVIOUS_BUCKET;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
-import static org.apache.jackrabbit.oak.plugins.memory.PropertyValues.newString;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.empty;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
-
 public class HybridPropertyIndexStorageTest {
+
     private NodeState root = INITIAL_CONTENT;
     private NodeBuilder builder = EMPTY_NODE.builder();
     private LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
-    private String indexPath  = "/oak:index/foo";
+    private String indexPath = "/oak:index/foo";
 
     @Test
-    public void nonSyncProp() throws Exception{
+    public void nonSyncProp() throws Exception {
         defnb.indexRule("nt:base").property("foo");
 
         newCallback().propertyUpdated("/a", "foo", pd("foo"),
-                null, createProperty("foo", "bar"));
+            null, createProperty("foo", "bar"));
 
         assertFalse(builder.isModified());
     }
 
     @Test
-    public void simpleProperty() throws Exception{
+    public void simpleProperty() throws Exception {
         defnb.indexRule("nt:base").property("foo").sync();
 
         newCallback().propertyUpdated("/a", "foo", pd("foo"),
-                null, createProperty("foo", "bar"));
+            null, createProperty("foo", "bar"));
         newCallback().propertyUpdated("/b", "foo", pd("foo"),
-                null, createProperty("foo", "bar2"));
+            null, createProperty("foo", "bar2"));
 
         assertThat(query("foo", newString("bar")), containsInAnyOrder("/a"));
         assertThat(query("foo", newString("bar2")), containsInAnyOrder("/b"));
     }
 
     @Test
-    public void relativeProperty() throws Exception{
+    public void relativeProperty() throws Exception {
         String propName = "jcr:content/foo";
         defnb.indexRule("nt:base").property(propName).sync();
 
         newCallback().propertyUpdated("/a", propName, pd(propName),
-                null, createProperty("foo", "bar"));
+            null, createProperty("foo", "bar"));
 
         assertThat(query(propName, newString("bar")), containsInAnyOrder("/a"));
     }
 
     @Test
-    public void valuePattern() throws Exception{
+    public void valuePattern() throws Exception {
         defnb.indexRule("nt:base").property("foo").sync().valueIncludedPrefixes("bar/");
 
         newCallback().propertyUpdated("/a", "foo", pd("foo"),
-                null, createProperty("foo", "bar/a"));
+            null, createProperty("foo", "bar/a"));
         newCallback().propertyUpdated("/b", "foo", pd("foo"),
-                null, createProperty("foo", "baz/a"));
+            null, createProperty("foo", "baz/a"));
 
         assertThat(query("foo", newString("bar/a")), containsInAnyOrder("/a"));
 
@@ -106,19 +106,19 @@ public class HybridPropertyIndexStorageTest {
     }
 
     @Test
-    public void pruningDisabledForSimpleProperty() throws Exception{
+    public void pruningDisabledForSimpleProperty() throws Exception {
         defnb.indexRule("nt:base").property("foo").sync();
 
         newCallback().propertyUpdated("/a", "foo", pd("foo"),
-                null, createProperty("foo", "bar"));
+            null, createProperty("foo", "bar"));
         newCallback().propertyUpdated("/b", "foo", pd("foo"),
-                null, createProperty("foo", "bar"));
+            null, createProperty("foo", "bar"));
 
         assertThat(query("foo", newString("bar")), containsInAnyOrder("/a", "/b"));
 
         builder = builder.getNodeState().builder();
         newCallback().propertyUpdated("/b", "foo", pd("foo"),
-                createProperty("foo", "bar"), null);
+            createProperty("foo", "bar"), null);
 
         // /b would still come as pruning is disabled
         assertThat(query("foo", newString("bar")), containsInAnyOrder("/a", "/b"));
@@ -127,15 +127,15 @@ public class HybridPropertyIndexStorageTest {
     //~----------------------------------------< unique props >
 
     @Test
-    public void uniqueProperty() throws Exception{
+    public void uniqueProperty() throws Exception {
         defnb.indexRule("nt:base").property("foo").unique();
 
         PropertyUpdateCallback callback = newCallback();
 
         callback.propertyUpdated("/a", "foo", pd("foo"),
-                null, createProperty("foo", "bar"));
+            null, createProperty("foo", "bar"));
         callback.propertyUpdated("/b", "foo", pd("foo"),
-                null, createProperty("foo", "bar2"));
+            null, createProperty("foo", "bar2"));
 
         callback.done();
 
@@ -143,17 +143,17 @@ public class HybridPropertyIndexStorageTest {
     }
 
     @Test
-    public void pruningWorkingForUnique() throws Exception{
+    public void pruningWorkingForUnique() throws Exception {
         defnb.indexRule("nt:base").property("foo").unique();
 
         newCallback().propertyUpdated("/a", "foo", pd("foo"),
-                null, createProperty("foo", "bar"));
+            null, createProperty("foo", "bar"));
 
         assertThat(query("foo", newString("bar")), containsInAnyOrder("/a"));
 
         builder = builder.getNodeState().builder();
         newCallback().propertyUpdated("/a", "foo", pd("foo"),
-                createProperty("foo", "bar"), null);
+            createProperty("foo", "bar"), null);
 
         // /b should not come as pruning is enabled
         assertThat(query("foo", newString("bar")), empty());
@@ -162,26 +162,26 @@ public class HybridPropertyIndexStorageTest {
     //~---------------------------------------< buckets >
 
     @Test
-    public void bucketSwitch() throws Exception{
+    public void bucketSwitch() throws Exception {
         String propName = "foo";
         defnb.indexRule("nt:base").property(propName).sync();
 
         newCallback().propertyUpdated("/a", propName, pd(propName),
-                null, createProperty(propName, "bar"));
+            null, createProperty(propName, "bar"));
 
         assertThat(query(propName, newString("bar")), containsInAnyOrder("/a"));
 
         switchBucket(propName);
 
         newCallback().propertyUpdated("/b", propName, pd(propName),
-                null, createProperty(propName, "bar"));
+            null, createProperty(propName, "bar"));
 
         assertThat(query(propName, newString("bar")), containsInAnyOrder("/a", "/b"));
 
         switchBucket(propName);
 
         newCallback().propertyUpdated("/c", propName, pd(propName),
-                null, createProperty(propName, "bar"));
+            null, createProperty(propName, "bar"));
 
         //Now /a should not come as its in 3rd bucket and we only consider head and previous buckets
         assertThat(query(propName, newString("bar")), containsInAnyOrder("/b", "/c"));
@@ -202,17 +202,18 @@ public class HybridPropertyIndexStorageTest {
     }
 
     private List<String> query(String propertyName, PropertyValue value) {
-        HybridPropertyIndexLookup lookup = new HybridPropertyIndexLookup(indexPath, builder.getNodeState());
+        HybridPropertyIndexLookup lookup = new HybridPropertyIndexLookup(indexPath,
+            builder.getNodeState());
         FilterImpl filter = createFilter(root, "nt:base");
         Iterable<String> paths = lookup.query(filter, propertyName, value);
         return ImmutableList.copyOf(paths);
     }
 
-    private PropertyIndexUpdateCallback newCallback(){
+    private PropertyIndexUpdateCallback newCallback() {
         return new PropertyIndexUpdateCallback(indexPath, builder, root);
     }
 
-    private PropertyDefinition pd(String propName){
+    private PropertyDefinition pd(String propName) {
         IndexDefinition defn = new IndexDefinition(root, defnb.build(), indexPath);
         return defn.getApplicableIndexingRule("nt:base").getConfig(propName);
     }
@@ -221,7 +222,8 @@ public class HybridPropertyIndexStorageTest {
         NodeTypeInfoProvider nodeTypes = new NodeStateNodeTypeInfoProvider(root);
         NodeTypeInfo type = nodeTypes.getNodeTypeInfo(nodeTypeName);
         SelectorImpl selector = new SelectorImpl(type, nodeTypeName);
-        return new FilterImpl(selector, "SELECT * FROM [" + nodeTypeName + "]", new QueryEngineSettings());
+        return new FilterImpl(selector, "SELECT * FROM [" + nodeTypeName + "]",
+            new QueryEngineSettings());
     }
 
 }

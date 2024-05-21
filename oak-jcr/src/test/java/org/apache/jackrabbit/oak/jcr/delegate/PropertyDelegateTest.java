@@ -16,13 +16,12 @@
  */
 package org.apache.jackrabbit.oak.jcr.delegate;
 
-import javax.jcr.InvalidItemStateException;
-
-import org.apache.jackrabbit.oak.api.Tree;
-import org.junit.Test;
-
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+
+import javax.jcr.InvalidItemStateException;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.junit.Test;
 
 public class PropertyDelegateTest extends AbstractDelegatorTest {
 

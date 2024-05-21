@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.exercise.security.authorization.permission;
 
 import javax.jcr.AccessDeniedException;
-
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -65,12 +64,14 @@ import org.junit.Test;
 public class L6_AdministratativeAccessTest extends AbstractSecurityTest {
 
     @Test
-    public void testAdmininistrativePermissions() throws AccessDeniedException, CommitFailedException {
+    public void testAdmininistrativePermissions()
+        throws AccessDeniedException, CommitFailedException {
         // EXERCISE walk through the read access
         Tree rootTree = root.getTree("/");
 
         // EXERCISE walk through the add + remove
-        NodeUtil child = new NodeUtil(rootTree).addChild("test", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        NodeUtil child = new NodeUtil(rootTree).addChild("test",
+            NodeTypeConstants.NT_OAK_UNSTRUCTURED);
         root.commit();
 
         child.getTree().remove();
@@ -94,7 +95,8 @@ public class L6_AdministratativeAccessTest extends AbstractSecurityTest {
             Tree rootTree = testRoot.getTree("/");
 
             // EXERCISE walk through the add + remove
-            NodeUtil child = new NodeUtil(rootTree).addChild("test", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+            NodeUtil child = new NodeUtil(rootTree).addChild("test",
+                NodeTypeConstants.NT_OAK_UNSTRUCTURED);
             child.setString("prop", "val");
             testRoot.commit();
 

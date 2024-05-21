@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 import java.util.Set;
 import javax.jcr.Node;
 import javax.jcr.Value;
-
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
@@ -27,7 +26,8 @@ import org.junit.Test;
 
 public class CugImportBesteffortTest extends CugImportBaseTest {
 
-    private final Set<String> PRINCIPAL_NAMES = Sets.newHashSet(EveryonePrincipal.NAME, TEST_GROUP_PRINCIPAL_NAME);
+    private final Set<String> PRINCIPAL_NAMES = Sets.newHashSet(EveryonePrincipal.NAME,
+        TEST_GROUP_PRINCIPAL_NAME);
 
     @Override
     protected String getImportBehavior() {

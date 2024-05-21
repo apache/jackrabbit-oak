@@ -46,8 +46,8 @@ public class OakRepositoryFactory implements RepositoryFactory {
     }
 
     private static Repository getRepository(
-            URI uri, Map<String, String> parameters)
-            throws RepositoryException {
+        URI uri, Map<String, String> parameters)
+        throws RepositoryException {
         // TODO correctly interpret uri
         return new Jcr().createRepository();
     }

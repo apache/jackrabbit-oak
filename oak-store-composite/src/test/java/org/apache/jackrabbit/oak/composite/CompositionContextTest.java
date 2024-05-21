@@ -40,17 +40,18 @@ public class CompositionContextTest {
     @Test
     public void testShouldBeComposite() {
         MountInfoProvider mip = Mounts.newBuilder()
-                .mount("libs", true,
-                        Arrays.asList(
-                                "/oak:index/*$"
-                        ),
-                        Arrays.asList(
-                                "/apps",
-                                "/libs",
-                                "/jcr:system/rep:permissionStore/oak:mount-libs-crx.default")
-                        )
-                .build();
-        CompositionContext ctx = new CompositionContext(mip, null, Collections.emptyList(), CompositeNodeStoreMonitor.EMPTY_INSTANCE, CompositeNodeStoreMonitor.EMPTY_INSTANCE);
+                                      .mount("libs", true,
+                                          Arrays.asList(
+                                              "/oak:index/*$"
+                                          ),
+                                          Arrays.asList(
+                                              "/apps",
+                                              "/libs",
+                                              "/jcr:system/rep:permissionStore/oak:mount-libs-crx.default")
+                                      )
+                                      .build();
+        CompositionContext ctx = new CompositionContext(mip, null, Collections.emptyList(),
+            CompositeNodeStoreMonitor.EMPTY_INSTANCE, CompositeNodeStoreMonitor.EMPTY_INSTANCE);
 
         assertTrue(ctx.shouldBeComposite("/"));
         assertTrue(ctx.shouldBeComposite("/oak:index"));
@@ -64,8 +65,10 @@ public class CompositionContextTest {
         assertFalse(ctx.shouldBeComposite("/libs/acme"));
         assertFalse(ctx.shouldBeComposite("/oak:index/lucene/:data"));
         assertFalse(ctx.shouldBeComposite("/oak:index/lucene/:oak:mount-libs-data"));
-        assertFalse(ctx.shouldBeComposite("/jcr:system/rep:permissionStore/oak:mount-libs-crx.default"));
-        assertFalse(ctx.shouldBeComposite("/jcr:system/rep:permissionStore/oak:mount-libs-crx.default/123"));
+        assertFalse(
+            ctx.shouldBeComposite("/jcr:system/rep:permissionStore/oak:mount-libs-crx.default"));
+        assertFalse(ctx.shouldBeComposite(
+            "/jcr:system/rep:permissionStore/oak:mount-libs-crx.default/123"));
         assertFalse(ctx.shouldBeComposite("/jcr:system/rep:permissionStore/crx.default"));
         assertFalse(ctx.shouldBeComposite("/content"));
         assertFalse(ctx.shouldBeComposite("/jcr:system/rep:versionStorage"));
@@ -74,16 +77,18 @@ public class CompositionContextTest {
     @Test
     public void prefetch() {
         MountInfoProvider mip = Mounts.newBuilder()
-                .mount("libs","/libs")
-                .build();
+                                      .mount("libs", "/libs")
+                                      .build();
         MyStore ns = spy(MyStore.class);
-        CompositionContext ctx = new CompositionContext(mip, ns, Collections.emptyList(), CompositeNodeStoreMonitor.EMPTY_INSTANCE, CompositeNodeStoreMonitor.EMPTY_INSTANCE);
+        CompositionContext ctx = new CompositionContext(mip, ns, Collections.emptyList(),
+            CompositeNodeStoreMonitor.EMPTY_INSTANCE, CompositeNodeStoreMonitor.EMPTY_INSTANCE);
         NodeState root = EmptyNodeState.EMPTY_NODE;
         ctx.prefetch(Collections.singletonList("/foo"), ctx.createRootNodeState(root));
         verify(ns, times(1)).prefetch(any(), same(root));
     }
 
     interface MyStore extends NodeStore, PrefetchNodeStore {
+
     }
 
 }

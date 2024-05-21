@@ -93,11 +93,11 @@ public class CollisionWithSplitTest extends AbstractMongoConnectionTest {
         DocumentStore store = ns1.getDocumentStore();
         NodeDocument doc = Utils.getRootDocument(store);
         List<UpdateOp> ops = SplitOperations.forDocument(doc, ns1,
-                ns1.getHeadRevision(), NO_BINARY, NUM_NODES);
+            ns1.getHeadRevision(), NO_BINARY, NUM_NODES);
         assertFalse(ops.isEmpty());
         for (UpdateOp op : ops) {
             if (!op.isNew() ||
-                    !store.create(NODES, Collections.singletonList(op))) {
+                !store.create(NODES, Collections.singletonList(op))) {
                 store.createOrUpdate(NODES, op);
             }
         }
@@ -115,21 +115,22 @@ public class CollisionWithSplitTest extends AbstractMongoConnectionTest {
         // committed revision on ns2
         doc = ns2.getDocumentStore().find(NODES, id);
         assertTrue(doc.getLocalCommitRoot().containsKey(conflictRev));
-        Collision c = new Collision(doc, conflictRev, op, ourRev, ns2, RevisionVector.fromString(""));
+        Collision c = new Collision(doc, conflictRev, op, ourRev, ns2,
+            RevisionVector.fromString(""));
         assertEquals("Collision must match our revision (" + ourRev + "). " +
                 "The conflict revision " + conflictRev + " is already committed.",
-                ourRev, c.mark(ns2.getDocumentStore()));
+            ourRev, c.mark(ns2.getDocumentStore()));
     }
 
     private static DocumentMK newDocumentMK(MongoConnection c, int clusterId) {
         return new DocumentMK.Builder().setAsyncDelay(0)
-                .setMongoDB(c.getMongoClient(), c.getDBName())
-                .setClusterId(clusterId)
-                .open();
+                                       .setMongoDB(c.getMongoClient(), c.getDBName())
+                                       .setClusterId(clusterId)
+                                       .open();
     }
 
     private static void merge(NodeStore store, NodeBuilder builder)
-            throws CommitFailedException {
+        throws CommitFailedException {
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 }

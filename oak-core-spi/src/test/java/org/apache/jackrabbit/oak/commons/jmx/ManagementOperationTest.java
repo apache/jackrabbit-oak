@@ -37,9 +37,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeoutException;
-
 import javax.management.openmbean.CompositeData;
-
 import org.apache.jackrabbit.guava.common.util.concurrent.ListeningExecutorService;
 import org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.Status;
 import org.junit.After;
@@ -47,6 +45,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class ManagementOperationTest {
+
     private ListeningExecutorService executor;
 
     @Before

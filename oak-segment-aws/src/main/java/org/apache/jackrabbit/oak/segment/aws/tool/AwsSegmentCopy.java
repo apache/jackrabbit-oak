@@ -26,9 +26,7 @@ import static org.apache.jackrabbit.oak.segment.aws.tool.AwsToolUtils.storeDescr
 import static org.apache.jackrabbit.oak.segment.aws.tool.AwsToolUtils.storeTypeFromPathOrUri;
 
 import java.io.PrintWriter;
-
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
-
 import org.apache.jackrabbit.oak.segment.aws.tool.AwsToolUtils.SegmentStoreType;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 import org.apache.jackrabbit.oak.segment.tool.Check;
@@ -37,6 +35,7 @@ import org.apache.jackrabbit.oak.segment.tool.Check;
  * Perform a full-copy of repository data at segment level.
  */
 public class AwsSegmentCopy {
+
     /**
      * Create a builder for the {@link AwsSegmentCopy} command.
      *
@@ -85,8 +84,7 @@ public class AwsSegmentCopy {
         }
 
         /**
-         * The destination path/URI to an existing segment store. This parameter is
-         * required.
+         * The destination path/URI to an existing segment store. This parameter is required.
          *
          * @param destination the destination path/URI to an existing segment store.
          * @return this builder.
@@ -141,8 +139,8 @@ public class AwsSegmentCopy {
         }
 
         /**
-         * The last {@code revisionsCount} revisions to be copied.
-         * This parameter is not required and defaults to {@code 1}.
+         * The last {@code revisionsCount} revisions to be copied. This parameter is not required
+         * and defaults to {@code 1}.
          *
          * @param revisionsCount number of revisions to copied.
          * @return this builder.
@@ -210,15 +208,16 @@ public class AwsSegmentCopy {
             printMessage(outWriter, "Destination: {0}", destDescription);
 
             AwsSegmentStoreMigrator migrator = new AwsSegmentStoreMigrator.Builder()
-                    .withSourcePersistence(srcPersistence, srcDescription)
-                    .withTargetPersistence(destPersistence, destDescription)
-                    .withRevisionCount(revisionCount)
-                    .build();
+                .withSourcePersistence(srcPersistence, srcDescription)
+                .withTargetPersistence(destPersistence, destDescription)
+                .withRevisionCount(revisionCount)
+                .build();
 
             migrator.migrate();
         } catch (Exception e) {
             watch.stop();
-            printMessage(errWriter, "A problem occured while copying archives from {0} to {1} ", source, destination);
+            printMessage(errWriter, "A problem occured while copying archives from {0} to {1} ",
+                source, destination);
             e.printStackTrace(errWriter);
             return 1;
         }

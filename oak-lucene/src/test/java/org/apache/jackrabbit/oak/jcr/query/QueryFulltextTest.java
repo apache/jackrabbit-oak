@@ -25,7 +25,6 @@ import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
 import javax.jcr.query.QueryResult;
 import javax.jcr.query.RowIterator;
-
 import org.apache.jackrabbit.core.query.AbstractQueryTest;
 
 /**
@@ -77,7 +76,7 @@ public class QueryFulltextTest extends AbstractQueryTest {
 
         // lowercase "or" mean search for the term "or"
         String sql2 = "select [jcr:path] as [path] from [nt:base] " +
-                "where contains([text], 'hello or hallo') order by [jcr:path]";
+            "where contains([text], 'hello or hallo') order by [jcr:path]";
         Query q = qm.createQuery(sql2, Query.JCR_SQL2);
         assertEquals("", getResult(q.execute(), "path"));
 
@@ -85,14 +84,14 @@ public class QueryFulltextTest extends AbstractQueryTest {
 
     public void testSurrogateFulltext() throws Exception {
         String surrogateString = "壱\n" +
-                "複数の文字\n" +
-                "カナポ\n" +
-                "ﾊﾝｶｸﾎﾟ\n" +
-                "表十ソ\n" +
-                "\uD842\uDF9F\n" +
-                "Mixあポﾋﾟ表\uD842\uDF9F" +
-                "";
-        String [] searchStrs = new String[]{"\uD842\uDF9F", "Mix"};
+            "複数の文字\n" +
+            "カナポ\n" +
+            "ﾊﾝｶｸﾎﾟ\n" +
+            "表十ソ\n" +
+            "\uD842\uDF9F\n" +
+            "Mixあポﾋﾟ表\uD842\uDF9F" +
+            "";
+        String[] searchStrs = new String[]{"\uD842\uDF9F", "Mix"};
         Session session = superuser;
         QueryManager qm = session.getWorkspace().getQueryManager();
         Node n1 = testRootNode.addNode("node");
@@ -101,10 +100,11 @@ public class QueryFulltextTest extends AbstractQueryTest {
 
         for (String searchTerm : searchStrs) {
             String sql2 = "select [jcr:path] as [path] from [nt:base] " +
-                    "where contains([text], '" + searchTerm + "') order by [jcr:path]";
+                "where contains([text], '" + searchTerm + "') order by [jcr:path]";
             Query q = qm.createQuery(sql2, Query.JCR_SQL2);
             log.println("Testing" + searchTerm);
-            assertEquals("Lookup failed for " + searchTerm, "/testroot/node", getResult(q.execute(), "path"));
+            assertEquals("Lookup failed for " + searchTerm, "/testroot/node",
+                getResult(q.execute(), "path"));
         }
     }
 
@@ -121,20 +121,20 @@ public class QueryFulltextTest extends AbstractQueryTest {
 
         Query q;
 
-        String sql2 = "select [jcr:path] as [path] from [nt:base] " + 
-                "where ISCHILDNODE([/testroot])" + 
-                " AND CONTAINS(text, 'hallo')";
+        String sql2 = "select [jcr:path] as [path] from [nt:base] " +
+            "where ISCHILDNODE([/testroot])" +
+            " AND CONTAINS(text, 'hallo')";
 
         q = qm.createQuery(sql2, Query.JCR_SQL2);
         assertEquals("/testroot/node2, /testroot/node3", getResult(q.execute(), "path"));
 
         sql2 = "select [jcr:path] as [path] from [nt:base] "
-                + "where contains([node1/text], 'hello') order by [jcr:path]";
+            + "where contains([node1/text], 'hello') order by [jcr:path]";
         q = qm.createQuery(sql2, Query.JCR_SQL2);
         assertEquals("/testroot", getResult(q.execute(), "path"));
 
         sql2 = "select [jcr:path] as [path] from [nt:base] "
-                + "where contains([node2/text], 'hello OR hallo') order by [jcr:path]";
+            + "where contains([node2/text], 'hello OR hallo') order by [jcr:path]";
         q = qm.createQuery(sql2, Query.JCR_SQL2);
         assertEquals("/testroot", getResult(q.execute(), "path"));
 
@@ -158,5 +158,5 @@ public class QueryFulltextTest extends AbstractQueryTest {
         }
         return buff.toString();
     }
-    
+
 }

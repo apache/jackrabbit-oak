@@ -16,15 +16,14 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
+import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.OakIndexFile.getOakIndexFile;
+
 import java.io.IOException;
 import java.util.Iterator;
-
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.lucene.store.AlreadyClosedException;
 import org.apache.lucene.store.IndexInput;
 import org.apache.lucene.util.WeakIdentityMap;
-
-import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.OakIndexFile.getOakIndexFile;
 
 class OakIndexInput extends IndexInput {
 
@@ -34,7 +33,7 @@ class OakIndexInput extends IndexInput {
     private final String dirDetails;
 
     public OakIndexInput(String name, NodeBuilder file, String dirDetails,
-                         BlobFactory blobFactory) {
+        BlobFactory blobFactory) {
         super(name);
         this.dirDetails = dirDetails;
         this.file = getOakIndexFile(name, file, dirDetails, blobFactory);
@@ -96,7 +95,7 @@ class OakIndexInput extends IndexInput {
         file.close();
 
         if (clones != null) {
-            for (Iterator<OakIndexInput> it = clones.keyIterator(); it.hasNext();) {
+            for (Iterator<OakIndexInput> it = clones.keyIterator(); it.hasNext(); ) {
                 final OakIndexInput clone = it.next();
                 assert clone.isClone;
                 clone.close();

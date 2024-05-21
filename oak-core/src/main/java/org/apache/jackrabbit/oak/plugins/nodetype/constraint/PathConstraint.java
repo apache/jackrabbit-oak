@@ -17,10 +17,8 @@
 package org.apache.jackrabbit.oak.plugins.nodetype.constraint;
 
 import java.util.function.Predicate;
-
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
-
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;

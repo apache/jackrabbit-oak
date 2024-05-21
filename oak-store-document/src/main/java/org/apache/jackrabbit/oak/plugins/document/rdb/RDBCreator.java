@@ -32,7 +32,8 @@ public class RDBCreator {
             pw = args[2];
             db = args[3];
         } catch (IndexOutOfBoundsException ex) {
-            System.err.println("Usage: ... " + RDBCreator.class.getName() + " JDBC-URL username password databasename");
+            System.err.println("Usage: ... " + RDBCreator.class.getName()
+                + " JDBC-URL username password databasename");
             System.exit(2);
         }
 

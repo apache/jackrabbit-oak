@@ -30,27 +30,32 @@ such as
 - remove a set of member ids from a group
 
 <a name="api_extensions"></a>
+
 ### GroupAction API
 
-The following public interface is provided by Oak in the package `org.apache.jackrabbit.oak.spi.security.user.action`:
+The following public interface is provided by Oak in the
+package `org.apache.jackrabbit.oak.spi.security.user.action`:
 
 - [GroupAction]
 
-The `GroupAction` interface extends from `AuthorizableAction` and itself allows to perform validations or write
+The `GroupAction` interface extends from `AuthorizableAction` and itself allows to perform
+validations or write
 additional application specific content while executing group member management related
-write operations. Therefore these actions are executed as part of the transient 
+write operations. Therefore these actions are executed as part of the transient
 user management modifications. This contrasts to `org.apache.jackrabbit.oak.spi.commit.CommitHook`s
 which in turn are only triggered once modifications are persisted.
 
-Consequently, implementations of the `GroupAction` interface are expected 
+Consequently, implementations of the `GroupAction` interface are expected
 to adhere to this rule and perform transient repository operations or validation.
-They must not force changes to be persisted by calling `org.apache.jackrabbit.oak.api.Root.commit()`.
+They must not force changes to be persisted by
+calling `org.apache.jackrabbit.oak.api.Root.commit()`.
 
 Any group actions are executed with the editing session and the
 target operation will fail if any of the configured actions fails (e.g. due to
 insufficient permissions by the editing Oak ContentSession).
 
 <a name="default_implementation"></a>
+
 ### Default Implementations
 
 Oak 1.5 provides the following base implementation for `GroupAction` implementations to build upon:
@@ -58,16 +63,22 @@ Oak 1.5 provides the following base implementation for `GroupAction` implementat
 - `AbstractGroupAction`: abstract base implementation that doesn't perform any action.
 
 <a name="xml_import"></a>
+
 ### XML Import
 
-During import the group actions are called in the same fashion as for regular groups as long as the member reference
-can be resolved to an existing authorizable. Member IDs of authorizables that do not exist at group import time  or
-failed member IDs are passed to the group actions if `ImportBehavior.BESTEFFORT` is set for the import.
+During import the group actions are called in the same fashion as for regular groups as long as the
+member reference
+can be resolved to an existing authorizable. Member IDs of authorizables that do not exist at group
+import time or
+failed member IDs are passed to the group actions if `ImportBehavior.BESTEFFORT` is set for the
+import.
 
 <a name="pluggability"></a>
+
 ### Pluggability
 
-Refer to [Authorizable Actions | Pluggability ](authorizableaction.html#Pluggability) for details on how to plug
+Refer to [Authorizable Actions | Pluggability ](authorizableaction.html#Pluggability) for details on
+how to plug
 a new group action into the system.
 
 ##### Examples
@@ -138,4 +149,5 @@ added to or removed from a specific group:
     }
 
 <!-- hidden references -->
+
 [GroupAction]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/user/action/GroupAction.html

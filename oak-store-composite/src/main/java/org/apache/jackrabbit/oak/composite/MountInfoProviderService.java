@@ -47,6 +47,7 @@ import java.util.ArrayList;
 @Component
 @Designate(ocd = MountInfoProviderService.Props.class)
 public class MountInfoProviderService {
+
     private final static Logger LOG = LoggerFactory.getLogger(MountInfoProviderService.class);
 
     @ObjectClassDefinition(name = "MountInfoProviderService Properties")
@@ -101,9 +102,9 @@ public class MountInfoProviderService {
         String[] expectedMounts = props.expectedMounts();
         if (expectedMounts != null) {
             this.expectedMounts = Stream.of(expectedMounts)
-                .map(String::trim)
-                .filter(s -> !s.isEmpty())
-                .collect(toSet());
+                                        .map(String::trim)
+                                        .filter(s -> !s.isEmpty())
+                                        .collect(toSet());
         } else {
             this.expectedMounts = new HashSet<>();
         }
@@ -113,7 +114,8 @@ public class MountInfoProviderService {
     }
 
     /**
-     * @deprecated only used for backward-compatibility. Now mount configurations should be provided with the {@code MountInfoConfig} class.
+     * @deprecated only used for backward-compatibility. Now mount configurations should be provided
+     * with the {@code MountInfoConfig} class.
      */
     @Deprecated
     private void addMountInfoConfigFromProperties(Props mountInfoProps) {
@@ -122,7 +124,8 @@ public class MountInfoProviderService {
         boolean readOnly = mountInfoProps.readOnlyMount();
         String[] pathsSupportingFragments = mountInfoProps.pathsSupportingFragments();
         if (paths != null && paths.length > 0) {
-            mountInfoConfigs.add(new MountInfoConfig(mountName, Arrays.asList(paths), Arrays.asList(pathsSupportingFragments), readOnly));
+            mountInfoConfigs.add(new MountInfoConfig(mountName, Arrays.asList(paths),
+                Arrays.asList(pathsSupportingFragments), readOnly));
             expectedMounts.add(mountName);
         }
     }
@@ -139,9 +142,11 @@ public class MountInfoProviderService {
         if (context == null || reg != null) {
             return;
         }
-        Set<String> providedMounts = mountInfoConfigs.stream().map(MountInfoConfig::getMountName).collect(toSet());
+        Set<String> providedMounts = mountInfoConfigs.stream().map(MountInfoConfig::getMountName)
+                                                     .collect(toSet());
         if (!providedMounts.containsAll(expectedMounts)) {
-            LOG.info("Not all expected mounts are present yet (expected: {}, current: {}). Postponing configuration...",
+            LOG.info(
+                "Not all expected mounts are present yet (expected: {}, current: {}). Postponing configuration...",
                 expectedMounts, providedMounts);
             return;
         }
@@ -160,7 +165,8 @@ public class MountInfoProviderService {
                         mountInfoConfig.getPathsSupportingFragments(),
                         mountInfoConfig.getPaths());
 
-                    LOG.info("Enabling mount for {} with paths: {}", mountInfoConfig.getMountName(), mountInfoConfig.getPaths());
+                    LOG.info("Enabling mount for {} with paths: {}", mountInfoConfig.getMountName(),
+                        mountInfoConfig.getPaths());
                 }
             }
             mip = builder.build();

@@ -16,6 +16,11 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
+import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.SyncHandlerMapping.PARAM_IDP_NAME;
+import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.SyncHandlerMapping.PARAM_SYNC_HANDLER_NAME;
+
+import java.util.HashMap;
+import java.util.Map;
 import org.apache.jackrabbit.guava.common.base.Predicates;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
@@ -28,15 +33,8 @@ import org.osgi.util.tracker.ServiceTracker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
-import java.util.Map;
-
-import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.SyncHandlerMapping.PARAM_IDP_NAME;
-import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.SyncHandlerMapping.PARAM_SYNC_HANDLER_NAME;
-
 /**
- * {@code ServiceTracker} to detect any {@link SyncHandler} that has
- * dynamic membership enabled.
+ * {@code ServiceTracker} to detect any {@link SyncHandler} that has dynamic membership enabled.
  */
 final class SyncHandlerMappingTracker extends ServiceTracker {
 
@@ -68,12 +66,15 @@ final class SyncHandlerMappingTracker extends ServiceTracker {
 
     private void addMapping(ServiceReference reference) {
         String idpName = PropertiesUtil.toString(reference.getProperty(PARAM_IDP_NAME), null);
-        String syncHandlerName = PropertiesUtil.toString(reference.getProperty(PARAM_SYNC_HANDLER_NAME), null);
+        String syncHandlerName = PropertiesUtil.toString(
+            reference.getProperty(PARAM_SYNC_HANDLER_NAME), null);
 
         if (idpName != null && syncHandlerName != null) {
             referenceMap.put(reference, new Mapping(syncHandlerName, idpName));
         } else {
-            log.warn("Ignoring SyncHandlerMapping with incomplete mapping of IDP '{}' and SyncHandler '{}'", idpName, syncHandlerName);
+            log.warn(
+                "Ignoring SyncHandlerMapping with incomplete mapping of IDP '{}' and SyncHandler '{}'",
+                idpName, syncHandlerName);
         }
     }
 
@@ -89,6 +90,7 @@ final class SyncHandlerMappingTracker extends ServiceTracker {
     }
 
     private static final class Mapping {
+
         private final String syncHandlerName;
         private final String idpName;
 

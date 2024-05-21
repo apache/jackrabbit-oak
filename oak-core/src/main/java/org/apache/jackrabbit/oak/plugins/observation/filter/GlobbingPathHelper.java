@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.plugins.observation.filter;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 
 import java.util.List;
-
 import org.apache.jackrabbit.guava.common.collect.Lists;
 
 public class GlobbingPathHelper {

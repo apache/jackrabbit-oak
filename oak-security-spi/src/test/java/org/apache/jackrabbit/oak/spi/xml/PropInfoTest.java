@@ -16,20 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.xml;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Type;
-import org.jetbrains.annotations.NotNull;
-import org.junit.Test;
-import org.mockito.Mockito;
-
-import javax.jcr.PropertyType;
-import javax.jcr.RepositoryException;
-import javax.jcr.Value;
-import javax.jcr.nodetype.PropertyDefinition;
-import java.util.List;
-
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -39,13 +25,27 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
+import javax.jcr.PropertyType;
+import javax.jcr.RepositoryException;
+import javax.jcr.Value;
+import javax.jcr.nodetype.PropertyDefinition;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
+import org.jetbrains.annotations.NotNull;
+import org.junit.Test;
+import org.mockito.Mockito;
+
 public class PropInfoTest {
 
     private TextValue mockTextValue(@NotNull String value, int type) throws Exception {
         return mockTextValue(value, type, false);
     }
 
-    private TextValue mockTextValue(@NotNull String value, int type, boolean throwOnDispose) throws Exception {
+    private TextValue mockTextValue(@NotNull String value, int type, boolean throwOnDispose)
+        throws Exception {
         Value jcrValue = Mockito.mock(Value.class);
         when(jcrValue.getType()).thenReturn(type);
         when(jcrValue.getString()).thenReturn(value);
@@ -70,13 +70,15 @@ public class PropInfoTest {
 
     @Test(expected = DisposeException.class)
     public void testDisposeThrowing() throws Exception {
-        PropInfo propInfo = new PropInfo("string", PropertyType.STRING, mockTextValue("value", PropertyType.STRING, true));
+        PropInfo propInfo = new PropInfo("string", PropertyType.STRING,
+            mockTextValue("value", PropertyType.STRING, true));
         propInfo.dispose();
     }
 
     @Test(expected = DisposeException.class)
     public void testDisposeMultipleThrowing() throws Exception {
-        PropInfo propInfo = new PropInfo("string", PropertyType.STRING, ImmutableList.of(mockTextValue("value", PropertyType.STRING, true)));
+        PropInfo propInfo = new PropInfo("string", PropertyType.STRING,
+            ImmutableList.of(mockTextValue("value", PropertyType.STRING, true)));
         propInfo.dispose();
     }
 
@@ -90,7 +92,8 @@ public class PropInfoTest {
 
     @Test
     public void getTargetTypeRequiredTypeBoolean() throws Exception {
-        PropInfo propInfo = new PropInfo("undef", PropertyType.UNDEFINED, mockTextValue("value",PropertyType.STRING));
+        PropInfo propInfo = new PropInfo("undef", PropertyType.UNDEFINED,
+            mockTextValue("value", PropertyType.STRING));
 
         PropertyDefinition def = mockPropDef(PropertyType.BOOLEAN, false);
         assertEquals(PropertyType.BOOLEAN, propInfo.getTargetType(def));
@@ -98,8 +101,10 @@ public class PropInfoTest {
 
     @Test
     public void getTargetTypeRequiredTypeUndefined() throws Exception {
-        PropInfo prop = new PropInfo("long", PropertyType.LONG, mockTextValue("23",PropertyType.LONG));
-        PropInfo undef = new PropInfo("undef", PropertyType.UNDEFINED, mockTextValue("value",PropertyType.UNDEFINED));
+        PropInfo prop = new PropInfo("long", PropertyType.LONG,
+            mockTextValue("23", PropertyType.LONG));
+        PropInfo undef = new PropInfo("undef", PropertyType.UNDEFINED,
+            mockTextValue("value", PropertyType.UNDEFINED));
 
         PropertyDefinition def = mockPropDef(PropertyType.UNDEFINED, false);
 
@@ -109,40 +114,50 @@ public class PropInfoTest {
 
     @Test
     public void testGetName() throws Exception {
-        PropInfo propInfo = new PropInfo("string", PropertyType.STRING, mockTextValue("value", PropertyType.STRING));
+        PropInfo propInfo = new PropInfo("string", PropertyType.STRING,
+            mockTextValue("value", PropertyType.STRING));
         assertEquals("string", propInfo.getName());
     }
 
     @Test
     public void testGetType() throws Exception {
-        PropInfo propInfo = new PropInfo("path", PropertyType.PATH, mockTextValue("/a/path", PropertyType.PATH));
+        PropInfo propInfo = new PropInfo("path", PropertyType.PATH,
+            mockTextValue("/a/path", PropertyType.PATH));
         assertEquals(PropertyType.PATH, propInfo.getType());
     }
 
     @Test
     public void testIsUnknownMultiple() throws Exception {
-        PropInfo propInfo = new PropInfo("boolean", PropertyType.BOOLEAN, ImmutableList.of(mockTextValue("false", PropertyType.BOOLEAN)), PropInfo.MultipleStatus.UNKNOWN);
+        PropInfo propInfo = new PropInfo("boolean", PropertyType.BOOLEAN,
+            ImmutableList.of(mockTextValue("false", PropertyType.BOOLEAN)),
+            PropInfo.MultipleStatus.UNKNOWN);
         assertTrue(propInfo.isUnknownMultiple());
 
-        propInfo = new PropInfo("boolean", PropertyType.BOOLEAN, ImmutableList.of(mockTextValue("false", PropertyType.BOOLEAN)), PropInfo.MultipleStatus.MULTIPLE);
+        propInfo = new PropInfo("boolean", PropertyType.BOOLEAN,
+            ImmutableList.of(mockTextValue("false", PropertyType.BOOLEAN)),
+            PropInfo.MultipleStatus.MULTIPLE);
         assertFalse(propInfo.isUnknownMultiple());
     }
 
     @Test
     public void testIsUnknownMultipleSingle() throws Exception {
-        PropInfo propInfo = new PropInfo("long", PropertyType.LONG, mockTextValue("24", PropertyType.LONG));
+        PropInfo propInfo = new PropInfo("long", PropertyType.LONG,
+            mockTextValue("24", PropertyType.LONG));
         assertTrue(propInfo.isUnknownMultiple());
     }
 
     @Test
     public void testIsUnknownMultipleSingleList() throws Exception {
-        PropInfo propInfo = new PropInfo("long", PropertyType.LONG, ImmutableList.of(mockTextValue("24", PropertyType.LONG)));
+        PropInfo propInfo = new PropInfo("long", PropertyType.LONG,
+            ImmutableList.of(mockTextValue("24", PropertyType.LONG)));
         assertTrue(propInfo.isUnknownMultiple());
     }
 
     @Test
     public void testIsUnknownMultipleSingleList2() throws Exception {
-        PropInfo propInfo = new PropInfo("long", PropertyType.LONG, ImmutableList.of(mockTextValue("24", PropertyType.LONG)), PropInfo.MultipleStatus.MULTIPLE);
+        PropInfo propInfo = new PropInfo("long", PropertyType.LONG,
+            ImmutableList.of(mockTextValue("24", PropertyType.LONG)),
+            PropInfo.MultipleStatus.MULTIPLE);
         assertFalse(propInfo.isUnknownMultiple());
     }
 
@@ -154,7 +169,9 @@ public class PropInfoTest {
 
     @Test
     public void testIsUnknownMultipleMultiple() throws Exception {
-        PropInfo propInfo = new PropInfo("longs", PropertyType.LONG, ImmutableList.of(mockTextValue("24", PropertyType.LONG), mockTextValue("44", PropertyType.LONG)));
+        PropInfo propInfo = new PropInfo("longs", PropertyType.LONG,
+            ImmutableList.of(mockTextValue("24", PropertyType.LONG),
+                mockTextValue("44", PropertyType.LONG)));
         assertFalse(propInfo.isUnknownMultiple());
     }
 
@@ -176,7 +193,8 @@ public class PropInfoTest {
 
     @Test(expected = RepositoryException.class)
     public void testGetTextValueMultiple() throws Exception {
-        List<TextValue> tvs = ImmutableList.of(mockTextValue("24", PropertyType.LONG), mockTextValue("35", PropertyType.LONG));
+        List<TextValue> tvs = ImmutableList.of(mockTextValue("24", PropertyType.LONG),
+            mockTextValue("35", PropertyType.LONG));
         PropInfo propInfo = new PropInfo("longs", PropertyType.LONG, tvs);
 
         propInfo.getTextValue();
@@ -216,7 +234,8 @@ public class PropInfoTest {
 
     @Test(expected = RepositoryException.class)
     public void testGetValueMultiple() throws Exception {
-        List<TextValue> tvs = ImmutableList.of(mockTextValue("24", PropertyType.LONG), mockTextValue("35", PropertyType.LONG));
+        List<TextValue> tvs = ImmutableList.of(mockTextValue("24", PropertyType.LONG),
+            mockTextValue("35", PropertyType.LONG));
         PropInfo propInfo = new PropInfo("longs", PropertyType.LONG, tvs);
 
         propInfo.getValue(PropertyType.LONG);
@@ -227,7 +246,8 @@ public class PropInfoTest {
         TextValue tv = mockTextValue("value", PropertyType.STRING);
         PropInfo propInfo = new PropInfo("string", PropertyType.STRING, tv);
 
-        assertEquals(ImmutableList.of(tv.getValue(PropertyType.STRING)), propInfo.getValues(PropertyType.STRING));
+        assertEquals(ImmutableList.of(tv.getValue(PropertyType.STRING)),
+            propInfo.getValues(PropertyType.STRING));
     }
 
     @Test
@@ -272,7 +292,9 @@ public class PropInfoTest {
 
     @Test
     public void testAsPropertyStateSingleList() throws Exception {
-        PropInfo propInfo = new PropInfo("strings", PropertyType.STRING, ImmutableList.of(mockTextValue("a", PropertyType.STRING)), PropInfo.MultipleStatus.MULTIPLE);
+        PropInfo propInfo = new PropInfo("strings", PropertyType.STRING,
+            ImmutableList.of(mockTextValue("a", PropertyType.STRING)),
+            PropInfo.MultipleStatus.MULTIPLE);
 
         PropertyState ps = propInfo.asPropertyState(mockPropDef(PropertyType.STRING, true));
         assertTrue(ps.isArray());
@@ -281,7 +303,9 @@ public class PropInfoTest {
 
     @Test
     public void testAsPropertyStateMultiples() throws Exception {
-        PropInfo propInfo = new PropInfo("strings", PropertyType.STRING, ImmutableList.of(mockTextValue("a", PropertyType.STRING), mockTextValue("b", PropertyType.STRING)));
+        PropInfo propInfo = new PropInfo("strings", PropertyType.STRING,
+            ImmutableList.of(mockTextValue("a", PropertyType.STRING),
+                mockTextValue("b", PropertyType.STRING)));
 
         PropertyState ps = propInfo.asPropertyState(mockPropDef(PropertyType.STRING, true));
         assertTrue(ps.isArray());
@@ -293,8 +317,11 @@ public class PropInfoTest {
         assertEquals(PropInfo.MultipleStatus.UNKNOWN, PropInfo.MultipleStatus.valueOf("UNKNOWN"));
         assertEquals(PropInfo.MultipleStatus.MULTIPLE, PropInfo.MultipleStatus.valueOf("MULTIPLE"));
         assertArrayEquals(new PropInfo.MultipleStatus[]{
-                PropInfo.MultipleStatus.UNKNOWN, PropInfo.MultipleStatus.MULTIPLE}, PropInfo.MultipleStatus.values());
+                PropInfo.MultipleStatus.UNKNOWN, PropInfo.MultipleStatus.MULTIPLE},
+            PropInfo.MultipleStatus.values());
     }
 
-    private static class DisposeException extends RuntimeException {}
+    private static class DisposeException extends RuntimeException {
+
+    }
 }

@@ -19,14 +19,16 @@ package org.apache.jackrabbit.oak.plugins.index.solr.configuration;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * A provider for {@link org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration}s
+ * A provider for
+ * {@link org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration}s
  */
 public interface OakSolrConfigurationProvider {
 
     /**
      * Provides a Solr configuration for Oak
      *
-     * @return a {@link org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration}
+     * @return a
+     * {@link org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration}
      */
     @NotNull
     OakSolrConfiguration getConfiguration();

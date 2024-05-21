@@ -16,13 +16,13 @@
  */
 package org.apache.jackrabbit.oak.security.user.monitor;
 
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
+
 import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatsOptions;
 import org.apache.jackrabbit.oak.stats.TimerStats;
 import org.jetbrains.annotations.NotNull;
-
-import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
 public class UserMonitorImpl implements UserMonitor {
 

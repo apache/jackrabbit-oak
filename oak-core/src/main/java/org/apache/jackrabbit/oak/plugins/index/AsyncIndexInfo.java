@@ -19,10 +19,10 @@
 
 package org.apache.jackrabbit.oak.plugins.index;
 
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+
 import org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean;
 import org.jetbrains.annotations.Nullable;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
 public class AsyncIndexInfo {
 

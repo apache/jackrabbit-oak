@@ -25,7 +25,7 @@ import org.codehaus.groovy.tools.shell.CommandSupport
 import org.codehaus.groovy.tools.shell.Groovysh
 
 @CompileStatic
-class PnCommand extends CommandSupport{
+class PnCommand extends CommandSupport {
     public static final String COMMAND_NAME = 'print-node'
 
     PnCommand(Groovysh shell) {
@@ -39,8 +39,8 @@ class PnCommand extends CommandSupport{
         return null
     }
 
-    ConsoleSession getSession(){
-        return (ConsoleSession)variables.session
+    ConsoleSession getSession() {
+        return (ConsoleSession) variables.session
     }
 
 }

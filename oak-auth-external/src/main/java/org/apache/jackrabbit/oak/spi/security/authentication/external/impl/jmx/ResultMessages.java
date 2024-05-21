@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.jmx;
 
+import java.util.ArrayList;
+import java.util.List;
 import org.apache.jackrabbit.commons.json.JsonUtil;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncResult;
@@ -23,14 +25,12 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncedIden
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.List;
-
 final class ResultMessages {
-    
+
     private final List<String> messages = new ArrayList<>();
 
-    ResultMessages() {}
+    ResultMessages() {
+    }
 
     String[] getMessages() {
         return messages.toArray(new String[0]);
@@ -75,15 +75,20 @@ final class ResultMessages {
         append(syncedIdentity, "ERR", e.toString());
     }
 
-    private void append(@Nullable SyncedIdentity syncedIdentity, @NotNull String op, @Nullable String msg) {
-        String uid = JsonUtil.getJsonString((syncedIdentity == null ? null : syncedIdentity.getId()));
-        ExternalIdentityRef externalIdentityRef = (syncedIdentity == null) ? null : syncedIdentity.getExternalIdRef();
-        String eid = (externalIdentityRef == null) ? "\"\"" : JsonUtil.getJsonString(externalIdentityRef.getString());
+    private void append(@Nullable SyncedIdentity syncedIdentity, @NotNull String op,
+        @Nullable String msg) {
+        String uid = JsonUtil.getJsonString(
+            (syncedIdentity == null ? null : syncedIdentity.getId()));
+        ExternalIdentityRef externalIdentityRef =
+            (syncedIdentity == null) ? null : syncedIdentity.getExternalIdRef();
+        String eid = (externalIdentityRef == null) ? "\"\""
+            : JsonUtil.getJsonString(externalIdentityRef.getString());
 
         if (msg == null) {
             messages.add(String.format("{op:\"%s\",uid:%s,eid:%s}", op, uid, eid));
         } else {
-            messages.add(String.format("{op:\"%s\",uid:%s,eid:%s,msg:%s}", op, uid, eid, JsonUtil.getJsonString(msg)));
+            messages.add(String.format("{op:\"%s\",uid:%s,eid:%s,msg:%s}", op, uid, eid,
+                JsonUtil.getJsonString(msg)));
         }
     }
 

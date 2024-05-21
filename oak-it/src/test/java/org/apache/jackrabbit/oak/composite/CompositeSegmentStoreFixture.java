@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.composite;
 
 import java.io.IOException;
-
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
@@ -35,13 +34,14 @@ public class CompositeSegmentStoreFixture extends NodeStoreFixture {
     public NodeStore createNodeStore() {
         try {
             MountInfoProvider mip = Mounts.newBuilder()
-                    .readOnlyMount("temp", MOUNT_PATH)
-                    .build();
+                                          .readOnlyMount("temp", MOUNT_PATH)
+                                          .build();
 
             NodeStore globalStore = SegmentNodeStoreBuilders.builder(new MemoryStore()).build();
             NodeStore tempMount = SegmentNodeStoreBuilders.builder(new MemoryStore()).build();
 
-            return new CompositeNodeStore.Builder(mip, globalStore).addMount("temp", tempMount).build();
+            return new CompositeNodeStore.Builder(mip, globalStore).addMount("temp", tempMount)
+                                                                   .build();
         } catch (IOException e) {
             throw new RuntimeException();
         }

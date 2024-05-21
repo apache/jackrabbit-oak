@@ -23,9 +23,7 @@ import static org.apache.jackrabbit.oak.segment.DefaultSegmentWriterBuilder.defa
 import java.io.IOException;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
-
 import org.apache.jackrabbit.guava.common.collect.Maps;
-
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.CachingSegmentReader;
 import org.apache.jackrabbit.oak.segment.Revisions;
@@ -61,17 +59,19 @@ public class MemoryStore implements SegmentStore {
     private final SegmentWriter segmentWriter;
 
     private final ConcurrentMap<SegmentId, Segment> segments =
-            Maps.newConcurrentMap();
+        Maps.newConcurrentMap();
 
     public MemoryStore() throws IOException {
         this.tracker = new SegmentTracker(new SegmentIdFactory() {
-            @Override @NotNull
+            @Override
+            @NotNull
             public SegmentId newSegmentId(long msb, long lsb) {
                 return new SegmentId(MemoryStore.this, msb, lsb);
             }
         });
         this.revisions = new MemoryStoreRevisions();
-        this.segmentReader = new CachingSegmentReader(this::getWriter, null, 16, 2, NoopStats.INSTANCE);
+        this.segmentReader = new CachingSegmentReader(this::getWriter, null, 16, 2,
+            NoopStats.INSTANCE);
         this.segmentWriter = defaultSegmentWriterBuilder("sys").withWriterPool().build(this);
         revisions.bind(this);
         segmentWriter.flush();
@@ -102,7 +102,8 @@ public class MemoryStore implements SegmentStore {
         return id.sameStore(this) || segments.containsKey(id);
     }
 
-    @Override @NotNull
+    @Override
+    @NotNull
     public Segment readSegment(SegmentId id) {
         Segment segment = segments.get(id);
         if (segment != null) {
@@ -113,7 +114,7 @@ public class MemoryStore implements SegmentStore {
 
     @Override
     public void writeSegment(
-            SegmentId id, byte[] data, int offset, int length) throws IOException {
+        SegmentId id, byte[] data, int offset, int length) throws IOException {
         Buffer buffer = Buffer.allocate(length);
         buffer.put(data, offset, length);
         buffer.rewind();
@@ -124,7 +125,7 @@ public class MemoryStore implements SegmentStore {
     }
 
     /**
-     * @return  {@code null}
+     * @return {@code null}
      */
     @Nullable
     public BlobStore getBlobStore() {

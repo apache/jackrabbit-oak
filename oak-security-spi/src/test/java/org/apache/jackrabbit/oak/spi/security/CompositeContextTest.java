@@ -16,16 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security;
 
-import java.lang.reflect.Field;
-
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
-import org.jetbrains.annotations.NotNull;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.Mockito;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -34,11 +24,22 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
+import java.lang.reflect.Field;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
+import org.jetbrains.annotations.NotNull;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.Mockito;
+
 public class CompositeContextTest extends AbstractCompositeConfigurationTest {
 
     @Before
     public void before() {
-        compositeConfiguration = new CompositeConfiguration("test", Mockito.mock(SecurityProvider.class)) {};
+        compositeConfiguration = new CompositeConfiguration("test",
+            Mockito.mock(SecurityProvider.class)) {
+        };
     }
 
     @Test
@@ -108,7 +109,8 @@ public class CompositeContextTest extends AbstractCompositeConfigurationTest {
         TestConfiguration testConfig = new TestConfiguration(true);
         addConfiguration(testConfig);
 
-        assertTrue(compositeConfiguration.getContext().definesProperty(Mockito.mock(Tree.class), Mockito.mock(PropertyState.class)));
+        assertTrue(compositeConfiguration.getContext().definesProperty(Mockito.mock(Tree.class),
+            Mockito.mock(PropertyState.class)));
         assertEquals("definesProperty", testConfig.ctx.method);
     }
 
@@ -117,7 +119,8 @@ public class CompositeContextTest extends AbstractCompositeConfigurationTest {
         TestConfiguration testConfig = new TestConfiguration(false);
         addConfiguration(testConfig);
 
-        assertFalse(compositeConfiguration.getContext().definesProperty(Mockito.mock(Tree.class), Mockito.mock(PropertyState.class)));
+        assertFalse(compositeConfiguration.getContext().definesProperty(Mockito.mock(Tree.class),
+            Mockito.mock(PropertyState.class)));
         assertEquals("definesProperty", testConfig.ctx.method);
     }
 
@@ -126,7 +129,8 @@ public class CompositeContextTest extends AbstractCompositeConfigurationTest {
         TestConfiguration testConfig = new TestConfiguration(true);
         addConfiguration(testConfig);
 
-        assertTrue(compositeConfiguration.getContext().definesContextRoot(Mockito.mock(Tree.class)));
+        assertTrue(
+            compositeConfiguration.getContext().definesContextRoot(Mockito.mock(Tree.class)));
         assertEquals("definesContextRoot", testConfig.ctx.method);
     }
 
@@ -135,7 +139,8 @@ public class CompositeContextTest extends AbstractCompositeConfigurationTest {
         TestConfiguration testConfig = new TestConfiguration(false);
         addConfiguration(testConfig);
 
-        assertFalse(compositeConfiguration.getContext().definesContextRoot(Mockito.mock(Tree.class)));
+        assertFalse(
+            compositeConfiguration.getContext().definesContextRoot(Mockito.mock(Tree.class)));
         assertEquals("definesContextRoot", testConfig.ctx.method);
     }
 
@@ -162,7 +167,8 @@ public class CompositeContextTest extends AbstractCompositeConfigurationTest {
         TestConfiguration testConfig = new TestConfiguration(true);
         addConfiguration(testConfig);
 
-        assertTrue(compositeConfiguration.getContext().definesLocation(TreeLocation.create(Mockito.mock(Tree.class))));
+        assertTrue(compositeConfiguration.getContext().definesLocation(
+            TreeLocation.create(Mockito.mock(Tree.class))));
         assertEquals("definesLocation", testConfig.ctx.method);
     }
 
@@ -171,7 +177,8 @@ public class CompositeContextTest extends AbstractCompositeConfigurationTest {
         TestConfiguration testConfig = new TestConfiguration(false);
         addConfiguration(testConfig);
 
-        assertFalse(compositeConfiguration.getContext().definesLocation(TreeLocation.create(Mockito.mock(Tree.class))));
+        assertFalse(compositeConfiguration.getContext().definesLocation(
+            TreeLocation.create(Mockito.mock(Tree.class))));
         assertEquals("definesLocation", testConfig.ctx.method);
     }
 

@@ -29,8 +29,11 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.locks.Lock;
-
+import org.apache.jackrabbit.guava.common.base.Objects;
+import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.cache.Cache;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.plugins.document.Document;
@@ -39,11 +42,6 @@ import org.apache.jackrabbit.oak.plugins.document.locks.NodeDocumentLocks;
 import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import org.apache.jackrabbit.guava.common.base.Objects;
-import org.apache.jackrabbit.guava.common.base.Predicate;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 
 /**
  * Cache for the NodeDocuments. This class is thread-safe and uses the provided NodeDocumentLock.
@@ -56,7 +54,7 @@ public class NodeDocumentCache implements Closeable {
 
     /**
      * The previous documents cache
-     *
+     * <p>
      * Key: StringValue, value: NodeDocument
      */
     private final Cache<StringValue, NodeDocument> prevDocumentsCache;
@@ -67,10 +65,10 @@ public class NodeDocumentCache implements Closeable {
     private final List<CacheChangesTracker> changeTrackers;
 
     public NodeDocumentCache(@NotNull Cache<CacheValue, NodeDocument> nodeDocumentsCache,
-                             @NotNull CacheStats nodeDocumentsCacheStats,
-                             @NotNull Cache<StringValue, NodeDocument> prevDocumentsCache,
-                             @NotNull CacheStats prevDocumentsCacheStats,
-                             @NotNull NodeDocumentLocks locks) {
+        @NotNull CacheStats nodeDocumentsCacheStats,
+        @NotNull Cache<StringValue, NodeDocument> prevDocumentsCache,
+        @NotNull CacheStats prevDocumentsCacheStats,
+        @NotNull NodeDocumentLocks locks) {
         this.nodeDocumentsCache = nodeDocumentsCache;
         this.nodeDocumentsCacheStats = nodeDocumentsCacheStats;
         this.prevDocumentsCache = prevDocumentsCache;
@@ -114,11 +112,10 @@ public class NodeDocumentCache implements Closeable {
     }
 
     /**
-     * Invalidate document with given keys iff their modification stamps are
-     * different as passed in the map.
+     * Invalidate document with given keys iff their modification stamps are different as passed in
+     * the map.
      *
-     * @param modStamps map where key is the document id and the value is the
-     *                  modification stamps.
+     * @param modStamps map where key is the document id and the value is the modification stamps.
      * @return number of invalidated entries
      */
     public int invalidateOutdated(@NotNull Map<String, ModificationStamp> modStamps) {
@@ -131,7 +128,7 @@ public class NodeDocumentCache implements Closeable {
                 continue;
             }
             if (!Objects.equal(stamp.modCount, doc.getModCount())
-                    || !Objects.equal(stamp.modified, doc.getModified())) {
+                || !Objects.equal(stamp.modified, doc.getModified())) {
                 invalidate(id);
                 invalidatedCount++;
             }
@@ -155,21 +152,21 @@ public class NodeDocumentCache implements Closeable {
     }
 
     /**
-     * Return the document matching given key, optionally loading it from an
-     * external source.
+     * Return the document matching given key, optionally loading it from an external source.
      * <p>
-     * This method can modify the cache, so it's synchronized. The {@link #getIfPresent(String)}
-     * is not synchronized and will be faster if you need to get the cached value
-     * outside the critical section.
+     * This method can modify the cache, so it's synchronized. The {@link #getIfPresent(String)} is
+     * not synchronized and will be faster if you need to get the cached value outside the critical
+     * section.
      *
-     * @see Cache#get(Object, Callable)
-     * @param key document key
+     * @param key         document key
      * @param valueLoader object used to retrieve the document
      * @return document matching given key
+     * @see Cache#get(Object, Callable)
      */
     @NotNull
-    public NodeDocument get(@NotNull final String key, @NotNull final Callable<NodeDocument> valueLoader)
-            throws ExecutionException {
+    public NodeDocument get(@NotNull final String key,
+        @NotNull final Callable<NodeDocument> valueLoader)
+        throws ExecutionException {
         Callable<NodeDocument> wrappedLoader = new Callable<NodeDocument>() {
             @Override
             public NodeDocument call() throws Exception {
@@ -208,12 +205,12 @@ public class NodeDocumentCache implements Closeable {
     }
 
     /**
-     * Puts document into cache iff no entry with the given key is cached
-     * already or the cached document is older (has smaller {@link Document#MOD_COUNT}).
+     * Puts document into cache iff no entry with the given key is cached already or the cached
+     * document is older (has smaller {@link Document#MOD_COUNT}).
      *
      * @param doc the document to add to the cache
-     * @return either the given <code>doc</code> or the document already present
-     *         in the cache if it's newer
+     * @return either the given <code>doc</code> or the document already present in the cache if
+     * it's newer
      */
     @NotNull
     public NodeDocument putIfNewer(@NotNull final NodeDocument doc) {
@@ -241,12 +238,11 @@ public class NodeDocumentCache implements Closeable {
     }
 
     /**
-     * Puts document into cache iff no entry with the given key is cached
-     * already. This operation is atomic.
+     * Puts document into cache iff no entry with the given key is cached already. This operation is
+     * atomic.
      *
      * @param doc the document to add to the cache.
-     * @return either the given <code>doc</code> or the document already present
-     *         in the cache.
+     * @return either the given <code>doc</code> or the document already present in the cache.
      */
     @NotNull
     public NodeDocument putIfAbsent(@NotNull final NodeDocument doc) {
@@ -263,7 +259,7 @@ public class NodeDocumentCache implements Closeable {
         // which is only used when the document isn't there
         Lock lock = locks.acquire(id);
         try {
-            for (;;) {
+            for (; ; ) {
                 NodeDocument cached = get(id, new Callable<NodeDocument>() {
                     @Override
                     public NodeDocument call() {
@@ -286,16 +282,15 @@ public class NodeDocumentCache implements Closeable {
     }
 
     /**
-     * Replaces the cached value if the old document is currently present in
-     * the cache. If the {@code oldDoc} is not cached, nothing will happen. If
-     * {@code oldDoc} does not match the document currently in the cache, then
-     * the cached document is invalidated.
+     * Replaces the cached value if the old document is currently present in the cache. If the
+     * {@code oldDoc} is not cached, nothing will happen. If {@code oldDoc} does not match the
+     * document currently in the cache, then the cached document is invalidated.
      *
      * @param oldDoc the old document
      * @param newDoc the replacement
      */
     public void replaceCachedDocument(@NotNull final NodeDocument oldDoc,
-                                      @NotNull final NodeDocument newDoc) {
+        @NotNull final NodeDocument newDoc) {
         if (newDoc == NodeDocument.NULL) {
             throw new IllegalArgumentException("doc must not be NULL document");
         }
@@ -324,14 +319,16 @@ public class NodeDocumentCache implements Closeable {
      * @return keys stored in cache
      */
     public Iterable<CacheValue> keys() {
-        return Iterables.concat(nodeDocumentsCache.asMap().keySet(), prevDocumentsCache.asMap().keySet());
+        return Iterables.concat(nodeDocumentsCache.asMap().keySet(),
+            prevDocumentsCache.asMap().keySet());
     }
 
     /**
      * @return values stored in cache
      */
     public Iterable<NodeDocument> values() {
-        return Iterables.concat(nodeDocumentsCache.asMap().values(), prevDocumentsCache.asMap().values());
+        return Iterables.concat(nodeDocumentsCache.asMap().values(),
+            prevDocumentsCache.asMap().values());
     }
 
     public Iterable<CacheStats> getCacheStats() {
@@ -351,11 +348,11 @@ public class NodeDocumentCache implements Closeable {
     }
 
     /**
-     * Registers a new CacheChangesTracker that records all puts and
-     * invalidations related to children of the given parent.
+     * Registers a new CacheChangesTracker that records all puts and invalidations related to
+     * children of the given parent.
      *
      * @param fromKey only keys larger than this key will be tracked
-     * @param toKey only keys smaller than this key will be tracked
+     * @param toKey   only keys smaller than this key will be tracked
      * @return new tracker
      */
     public CacheChangesTracker registerTracker(final String fromKey, final String toKey) {
@@ -379,8 +376,8 @@ public class NodeDocumentCache implements Closeable {
     }
 
     /**
-     * Registers a new CacheChangesTracker that records all puts and
-     * invalidations related to the given documents
+     * Registers a new CacheChangesTracker that records all puts and invalidations related to the
+     * given documents
      *
      * @param keys these documents will be tracked
      * @return new tracker
@@ -414,22 +411,19 @@ public class NodeDocumentCache implements Closeable {
 
     /**
      * Updates the cache with all the documents that:
+     * <p>
+     * (1) currently have their older versions in the cache or (2) have been neither put nor
+     * invalidated during the tracker lifetime.
+     * <p>
+     * We can't cache documents that has been invalidated during the tracker lifetime, as it's
+     * possible that the invalidated version was newer than the one passed in the docs parameter.
+     * <p>
+     * If the document has been added during the tracker lifetime, but it is not present in the
+     * cache anymore, it means it may have been evicted, so we can't re-add it for the same reason
+     * as above.
      *
-     * (1) currently have their older versions in the cache or
-     * (2) have been neither put nor invalidated during the tracker lifetime.
-     *
-     * We can't cache documents that has been invalidated during the tracker
-     * lifetime, as it's possible that the invalidated version was newer than
-     * the one passed in the docs parameter.
-     *
-     * If the document has been added during the tracker lifetime, but it is not
-     * present in the cache anymore, it means it may have been evicted, so we
-     * can't re-add it for the same reason as above.
-     *
-     * @param tracker
-     *            used to decide whether the docs should be put into cache
-     * @param docs
-     *            to put into cache
+     * @param tracker used to decide whether the docs should be put into cache
+     * @param docs    to put into cache
      */
     public void putNonConflictingDocs(CacheChangesTracker tracker, Iterable<NodeDocument> docs) {
         for (NodeDocument d : docs) {
@@ -469,12 +463,12 @@ public class NodeDocumentCache implements Closeable {
     /**
      * Marks the document as potentially changed.
      *
-     * @param key the document to be marked
-     * @param trackerToSkip this tracker won't be updated. pass
-     *         {@code null} to update all trackers.
+     * @param key           the document to be marked
+     * @param trackerToSkip this tracker won't be updated. pass {@code null} to update all
+     *                      trackers.
      */
     private void internalMarkChanged(@NotNull String key,
-                                     @Nullable CacheChangesTracker trackerToSkip) {
+        @Nullable CacheChangesTracker trackerToSkip) {
         for (CacheChangesTracker tracker : changeTrackers) {
             if (tracker == trackerToSkip) {
                 continue;
@@ -484,8 +478,7 @@ public class NodeDocumentCache implements Closeable {
     }
 
     /**
-     * Puts a document into the cache without acquiring a lock. All trackers will
-     * be updated.
+     * Puts a document into the cache without acquiring a lock. All trackers will be updated.
      *
      * @param doc the document to put into the cache.
      */
@@ -494,14 +487,15 @@ public class NodeDocumentCache implements Closeable {
     }
 
     /**
-     * Puts a document into the cache without acquiring a lock. All trackers will
-     * be updated, apart from the {@code trackerToSkip}.
+     * Puts a document into the cache without acquiring a lock. All trackers will be updated, apart
+     * from the {@code trackerToSkip}.
      *
-     * @param doc the document to put into the cache.
-     * @param trackerToSkip this tracker won't be updated. pass {@code null} to update
-     *                      all trackers.
+     * @param doc           the document to put into the cache.
+     * @param trackerToSkip this tracker won't be updated. pass {@code null} to update all
+     *                      trackers.
      */
-    protected final void putInternal(@NotNull NodeDocument doc, @Nullable CacheChangesTracker trackerToSkip) {
+    protected final void putInternal(@NotNull NodeDocument doc,
+        @Nullable CacheChangesTracker trackerToSkip) {
         if (isLeafPreviousDocId(doc.getId())) {
             prevDocumentsCache.put(new StringValue(doc.getId()), doc);
         } else {
@@ -511,12 +505,11 @@ public class NodeDocumentCache implements Closeable {
     }
 
     /**
-     * Check if the doc is more recent than the cachedDoc. If the cachedDoc
-     * is {@code null} or {@code NodeDocument.NULL}, the doc will be considered
-     * as more recent as well.
+     * Check if the doc is more recent than the cachedDoc. If the cachedDoc is {@code null} or
+     * {@code NodeDocument.NULL}, the doc will be considered as more recent as well.
      *
      * @param cachedDoc the document already present in cache
-     * @param doc the tested document
+     * @param doc       the tested document
      * @return {@code true} iff the cacheDoc is null or older than the doc
      */
     private boolean isNewer(@Nullable NodeDocument cachedDoc, @NotNull NodeDocument doc) {

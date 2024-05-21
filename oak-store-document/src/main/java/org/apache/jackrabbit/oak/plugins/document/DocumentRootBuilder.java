@@ -33,8 +33,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * This implementation tracks the number of pending changes and purges them to
- * a private branch of the underlying store if a certain threshold is met.
+ * This implementation tracks the number of pending changes and purges them to a private branch of
+ * the underlying store if a certain threshold is met.
  */
 class DocumentRootBuilder extends AbstractDocumentNodeBuilder {
 
@@ -46,10 +46,9 @@ class DocumentRootBuilder extends AbstractDocumentNodeBuilder {
     protected final DocumentNodeStore store;
 
     /**
-     * The base state of this builder, possibly non-existent if this builder
-     * represents a new node that didn't yet exist in the base content tree.
-     * This differs from the base state of super since the latter one reflects
-     * the base created by the last purge.
+     * The base state of this builder, possibly non-existent if this builder represents a new node
+     * that didn't yet exist in the base content tree. This differs from the base state of super
+     * since the latter one reflects the base created by the last purge.
      */
     @NotNull
     private NodeState base;
@@ -60,8 +59,8 @@ class DocumentRootBuilder extends AbstractDocumentNodeBuilder {
     private DocumentNodeStoreBranch branch;
 
     /**
-     * Number of content updates that need to happen before the updates
-     * are automatically purged to the private branch.
+     * Number of content updates that need to happen before the updates are automatically purged to
+     * the private branch.
      */
     private final int updateLimit;
 
@@ -71,8 +70,8 @@ class DocumentRootBuilder extends AbstractDocumentNodeBuilder {
     private int updates;
 
     DocumentRootBuilder(@NotNull NodeState base,
-                        @NotNull DocumentNodeStore store,
-                        @NotNull DocumentNodeStoreBranch branch) {
+        @NotNull DocumentNodeStore store,
+        @NotNull DocumentNodeStoreBranch branch) {
         super(checkNotNull(base));
         this.store = checkNotNull(store);
         this.base = base;
@@ -83,7 +82,8 @@ class DocumentRootBuilder extends AbstractDocumentNodeBuilder {
     //--------------------------------------------------< MemoryNodeBuilder >---
 
 
-    @Override @NotNull
+    @Override
+    @NotNull
     public NodeState getBaseState() {
         return base;
     }
@@ -143,8 +143,8 @@ class DocumentRootBuilder extends AbstractDocumentNodeBuilder {
     }
 
     /**
-     * Reset this builder by creating a new branch and setting the head
-     * state of that branch as the new base state of this builder.
+     * Reset this builder by creating a new branch and setting the head state of that branch as the
+     * new base state of this builder.
      */
     NodeState reset() {
         branch = store.createBranch(store.getRoot());

@@ -26,35 +26,37 @@ package org.apache.lucene.codecs.lucene40;
  */
 
 import java.io.IOException;
-
 import org.apache.lucene.codecs.PostingsBaseFormat;
 import org.apache.lucene.codecs.PostingsReaderBase;
 import org.apache.lucene.codecs.PostingsWriterBase;
 import org.apache.lucene.index.SegmentReadState;
 import org.apache.lucene.index.SegmentWriteState;
 
-/** 
- * Provides a {@link PostingsReaderBase} and {@link
- * PostingsWriterBase}.
+/**
+ * Provides a {@link PostingsReaderBase} and {@link PostingsWriterBase}.
  *
- * @deprecated Only for reading old 4.0 segments */
+ * @deprecated Only for reading old 4.0 segments
+ */
 
 // TODO: should these also be named / looked up via SPI?
 @Deprecated
 public final class Lucene40PostingsBaseFormat extends PostingsBaseFormat {
 
-  /** Sole constructor. */
-  public Lucene40PostingsBaseFormat() {
-    super("Lucene40");
-  }
+    /**
+     * Sole constructor.
+     */
+    public Lucene40PostingsBaseFormat() {
+        super("Lucene40");
+    }
 
-  @Override
-  public PostingsReaderBase postingsReaderBase(SegmentReadState state) throws IOException {
-    return new Lucene40PostingsReader(state.directory, state.fieldInfos, state.segmentInfo, state.context, state.segmentSuffix);
-  }
+    @Override
+    public PostingsReaderBase postingsReaderBase(SegmentReadState state) throws IOException {
+        return new Lucene40PostingsReader(state.directory, state.fieldInfos, state.segmentInfo,
+            state.context, state.segmentSuffix);
+    }
 
-  @Override
-  public PostingsWriterBase postingsWriterBase(SegmentWriteState state) throws IOException {
-    throw new UnsupportedOperationException("this codec can only be used for reading");
-  }
+    @Override
+    public PostingsWriterBase postingsWriterBase(SegmentWriteState state) throws IOException {
+        throw new UnsupportedOperationException("this codec can only be used for reading");
+    }
 }

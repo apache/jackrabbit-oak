@@ -23,7 +23,6 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE
 import static org.junit.Assert.assertEquals;
 
 import java.util.List;
-
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -36,7 +35,7 @@ public class BreadthFirstTraceTest {
     private static NodeState createTree(int depth) {
         NodeBuilder root = EMPTY_NODE.builder();
         NodeBuilder child = root;
-        for (int k = 0 ; k < depth; k++) {
+        for (int k = 0; k < depth; k++) {
             child = child.setChildNode("node-" + k);
         }
         return root.getNodeState();

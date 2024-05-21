@@ -22,16 +22,17 @@ package org.apache.jackrabbit.oak.api.jmx;
 import javax.management.openmbean.TabularData;
 
 public interface ConsolidatedDataStoreCacheStatsMBean {
+
     String TYPE = "ConsolidatedDataStoreCacheStats";
 
     TabularData getCacheStats();
 
     /**
-     * Determines whether a file-like entity with the given name
-     * has been "synced" (completely copied) to S3.
+     * Determines whether a file-like entity with the given name has been "synced" (completely
+     * copied) to S3.
      *
-     * @param nodePathName - Path to the entity to check.  This is
-     *                       the repository node path, not an external file path.
+     * @param nodePathName - Path to the entity to check.  This is the repository node path, not an
+     *                     external file path.
      * @return true if the file is synced to S3.
      */
     boolean isFileSynced(final String nodePathName);

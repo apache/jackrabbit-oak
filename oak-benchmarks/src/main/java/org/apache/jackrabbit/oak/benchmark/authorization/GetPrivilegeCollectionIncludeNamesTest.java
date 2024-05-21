@@ -16,43 +16,44 @@
  */
 package org.apache.jackrabbit.oak.benchmark.authorization;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.Sets;
-import joptsimple.internal.Strings;
-import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
-import org.apache.jackrabbit.api.security.authorization.PrivilegeCollection;
-import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
-import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-import javax.jcr.security.AccessControlManager;
-import javax.jcr.security.Privilege;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Stream;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import javax.jcr.security.AccessControlManager;
+import javax.jcr.security.Privilege;
+import joptsimple.internal.Strings;
+import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
+import org.apache.jackrabbit.api.security.authorization.PrivilegeCollection;
+import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.Sets;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class GetPrivilegeCollectionIncludeNamesTest extends AbstractHasItemGetItemTest {
-    
+
     private enum EvaluationType {
         ACCESSCONTORL_MANAGER_GET_PRIVILEGE_COLLECTION,
         JCR_PRIVILEGE_NAME_AGGREGATION,
         ACCESSCONTORL_MANAGER_HAS_PRIVILEGES
-    } 
-    
-    private static final List<String> ALL_PRIVILEGE_NAMES = ImmutableList.copyOf(PrivilegeBits.BUILT_IN.keySet());
-    
+    }
+
+    private static final List<String> ALL_PRIVILEGE_NAMES = ImmutableList.copyOf(
+        PrivilegeBits.BUILT_IN.keySet());
+
     private final EvaluationType evalType;
-    
-    public GetPrivilegeCollectionIncludeNamesTest(int itemsToRead, int numberOfACEs, int numberOfGroups, boolean doReport, String evalType) {
+
+    public GetPrivilegeCollectionIncludeNamesTest(int itemsToRead, int numberOfACEs,
+        int numberOfGroups, boolean doReport, String evalType) {
         super(itemsToRead, numberOfACEs, numberOfGroups, doReport);
         this.evalType = getEvalType(evalType);
     }
-    
+
     @NotNull
     private static EvaluationType getEvalType(@Nullable String type) {
         if (Strings.isNullOrEmpty(type)) {
@@ -66,40 +67,55 @@ public class GetPrivilegeCollectionIncludeNamesTest extends AbstractHasItemGetIt
     }
 
     @Override
-    @NotNull String additionalMethodName() {
+    @NotNull
+    String additionalMethodName() {
         return evalType.name();
     }
 
     @Override
-    void additionalOperations(@NotNull String path, @NotNull Session s, @NotNull AccessControlManager acMgr) {
+    void additionalOperations(@NotNull String path, @NotNull Session s,
+        @NotNull AccessControlManager acMgr) {
         try {
-            List<String> privNames = ImmutableList.of(getRandom(ALL_PRIVILEGE_NAMES), getRandom(ALL_PRIVILEGE_NAMES), getRandom(ALL_PRIVILEGE_NAMES), getRandom(ALL_PRIVILEGE_NAMES));
+            List<String> privNames = ImmutableList.of(getRandom(ALL_PRIVILEGE_NAMES),
+                getRandom(ALL_PRIVILEGE_NAMES), getRandom(ALL_PRIVILEGE_NAMES),
+                getRandom(ALL_PRIVILEGE_NAMES));
             String accessControlledPath = getAccessControlledPath(path);
             if (EvaluationType.ACCESSCONTORL_MANAGER_GET_PRIVILEGE_COLLECTION == evalType) {
-                PrivilegeCollection pc = ((JackrabbitAccessControlManager) acMgr).getPrivilegeCollection(accessControlledPath);
+                PrivilegeCollection pc = ((JackrabbitAccessControlManager) acMgr).getPrivilegeCollection(
+                    accessControlledPath);
                 for (String toTest : privNames) {
                     boolean includes = pc.includes(toTest);
                     if (doReport) {
-                        System.out.println("PrivilegeCollection.includes('"+toTest+"') : "+includes);
+                        System.out.println(
+                            "PrivilegeCollection.includes('" + toTest + "') : " + includes);
                     }
                 }
             } else if (EvaluationType.JCR_PRIVILEGE_NAME_AGGREGATION == evalType) {
-                // evaluation using regular JCR Privilege API 
+                // evaluation using regular JCR Privilege API
                 Privilege[] privileges = acMgr.getPrivileges(accessControlledPath);
-                Set<String> privilegeNames = Sets.newHashSet(AccessControlUtils.namesFromPrivileges(privileges));
-                Stream.of(privileges).filter(Privilege::isAggregate).forEach(privilege -> Collections.addAll(privilegeNames, AccessControlUtils.namesFromPrivileges(privilege.getAggregatePrivileges())));
+                Set<String> privilegeNames = Sets.newHashSet(
+                    AccessControlUtils.namesFromPrivileges(privileges));
+                Stream.of(privileges).filter(Privilege::isAggregate).forEach(
+                    privilege -> Collections.addAll(privilegeNames,
+                        AccessControlUtils.namesFromPrivileges(
+                            privilege.getAggregatePrivileges())));
                 for (String toTest : privNames) {
                     boolean includes = privilegeNames.contains(toTest);
                     if (doReport) {
-                        System.out.println("Privileges '"+Arrays.toString(privileges)+"' include '"+toTest+"' : "+includes);
+                        System.out.println(
+                            "Privileges '" + Arrays.toString(privileges) + "' include '" + toTest
+                                + "' : " + includes);
                     }
                 }
             } else {
                 // evaluation using separate AccessControlManager.hasPrivileges
                 for (String toTest : privNames) {
-                    boolean hasPrivilege = acMgr.hasPrivileges(accessControlledPath, AccessControlUtils.privilegesFromNames(acMgr, toTest)); 
+                    boolean hasPrivilege = acMgr.hasPrivileges(accessControlledPath,
+                        AccessControlUtils.privilegesFromNames(acMgr, toTest));
                     if (doReport) {
-                        System.out.println("AccessControlManager.hasPrivileges('"+accessControlledPath+"','"+toTest+"') : "+hasPrivilege);
+                        System.out.println(
+                            "AccessControlManager.hasPrivileges('" + accessControlledPath + "','"
+                                + toTest + "') : " + hasPrivilege);
                     }
                 }
             }
@@ -111,7 +127,8 @@ public class GetPrivilegeCollectionIncludeNamesTest extends AbstractHasItemGetIt
     }
 
     @Override
-    protected void randomRead(Session testSession, List<String> allPaths, int cnt) throws RepositoryException {
+    protected void randomRead(Session testSession, List<String> allPaths, int cnt)
+        throws RepositoryException {
         boolean logout = false;
         if (testSession == null) {
             testSession = getTestSession();
@@ -135,7 +152,11 @@ public class GetPrivilegeCollectionIncludeNamesTest extends AbstractHasItemGetIt
             }
             long end = System.currentTimeMillis();
             if (doReport) {
-                System.out.println("Session " + testSession.getUserID() + " reading " + cnt + " (Nodes: "+ nodeCnt +"; Properties: "+propertyCnt+"; no access: "+noAccess+"; "+ additionalMethodName()+": "+addCnt+") completed in " + (end - start));
+                System.out.println(
+                    "Session " + testSession.getUserID() + " reading " + cnt + " (Nodes: " + nodeCnt
+                        + "; Properties: " + propertyCnt + "; no access: " + noAccess + "; "
+                        + additionalMethodName() + ": " + addCnt + ") completed in " + (end
+                        - start));
             }
         } finally {
             if (logout) {

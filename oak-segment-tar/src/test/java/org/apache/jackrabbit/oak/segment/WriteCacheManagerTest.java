@@ -32,22 +32,22 @@ public class WriteCacheManagerTest {
     public void emptyGenerations() {
         WriterCacheManager cache = Empty.INSTANCE;
         assertEquals(
-                cache.getTemplateCache(0),
-                cache.getTemplateCache(1));
+            cache.getTemplateCache(0),
+            cache.getTemplateCache(1));
         assertEquals(
-                cache.getStringCache(0),
-                cache.getStringCache(1));
+            cache.getStringCache(0),
+            cache.getStringCache(1));
     }
 
     @Test
     public void nonEmptyGenerations() {
         WriterCacheManager cache = new Default();
         assertNotEquals(
-                cache.getTemplateCache(0),
-                cache.getTemplateCache(1));
+            cache.getTemplateCache(0),
+            cache.getTemplateCache(1));
         assertNotEquals(
-                cache.getStringCache(0),
-                cache.getStringCache(1));
+            cache.getStringCache(0),
+            cache.getStringCache(1));
     }
 
 }

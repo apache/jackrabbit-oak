@@ -16,10 +16,22 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants.REP_EXTERNAL_ID;
+
+import java.security.Principal;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.Objects;
+import java.util.Set;
+import java.util.Spliterator;
+import java.util.Spliterators;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
+import javax.jcr.RepositoryException;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Root;
@@ -37,27 +49,18 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.jcr.RepositoryException;
-import java.security.Principal;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.Objects;
-import java.util.Set;
-import java.util.Spliterator;
-import java.util.Spliterators;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
-
-import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants.REP_EXTERNAL_ID;
-
 class DynamicGroupUtil {
 
     private static final Logger log = LoggerFactory.getLogger(DynamicGroupUtil.class);
 
-    private static final Set<String> MEMBER_NODE_NAMES = ImmutableSet.of(UserConstants.REP_MEMBERS, UserConstants.REP_MEMBERS_LIST);
-    private static final Set<String> MEMBERS_TYPES = ImmutableSet.of(UserConstants.NT_REP_MEMBER_REFERENCES, UserConstants.NT_REP_MEMBER_REFERENCES_LIST, UserConstants.NT_REP_MEMBERS);
+    private static final Set<String> MEMBER_NODE_NAMES = ImmutableSet.of(UserConstants.REP_MEMBERS,
+        UserConstants.REP_MEMBERS_LIST);
+    private static final Set<String> MEMBERS_TYPES = ImmutableSet.of(
+        UserConstants.NT_REP_MEMBER_REFERENCES, UserConstants.NT_REP_MEMBER_REFERENCES_LIST,
+        UserConstants.NT_REP_MEMBERS);
 
-    private DynamicGroupUtil() {}
+    private DynamicGroupUtil() {
+    }
 
     static boolean isGroup(@NotNull Tree tree) {
         return UserUtil.isType(tree, AuthorizableType.GROUP);
@@ -66,7 +69,7 @@ class DynamicGroupUtil {
     static boolean isMemberProperty(@NotNull PropertyState propertyState) {
         return UserConstants.REP_MEMBERS.equals(propertyState.getName());
     }
-    
+
     static @Nullable String findGroupIdInHierarchy(@NotNull Tree tree) {
         Tree t = tree;
         while (!t.isRoot()) {
@@ -80,16 +83,21 @@ class DynamicGroupUtil {
     }
 
     @NotNull
-    static Tree getTree(@NotNull Authorizable authorizable, @NotNull Root root) throws RepositoryException {
-        return (authorizable instanceof TreeAware) ? ((TreeAware) authorizable).getTree() : root.getTree(authorizable.getPath());
+    static Tree getTree(@NotNull Authorizable authorizable, @NotNull Root root)
+        throws RepositoryException {
+        return (authorizable instanceof TreeAware) ? ((TreeAware) authorizable).getTree()
+            : root.getTree(authorizable.getPath());
     }
 
     static boolean hasStoredMemberInfo(@NotNull Group group, @NotNull Root root) {
         try {
             Tree tree = getTree(group, root);
-            return tree.hasProperty(UserConstants.REP_MEMBERS) || MEMBER_NODE_NAMES.stream().anyMatch(tree::hasChild);
+            return tree.hasProperty(UserConstants.REP_MEMBERS) || MEMBER_NODE_NAMES.stream()
+                                                                                   .anyMatch(
+                                                                                       tree::hasChild);
         } catch (RepositoryException e) {
-            log.error("Cannot test for stored members information, failed to obtain tree from group.", e);
+            log.error(
+                "Cannot test for stored members information, failed to obtain tree from group.", e);
             return false;
         }
     }
@@ -119,30 +127,35 @@ class DynamicGroupUtil {
         ExternalIdentityRef ref = DefaultSyncContext.getIdentityRef(authorizable);
         return (ref == null) ? null : ref.getProviderName();
     }
-    
-    static boolean isSameIDP(@NotNull Authorizable group, @NotNull Authorizable member) throws RepositoryException {
+
+    static boolean isSameIDP(@NotNull Authorizable group, @NotNull Authorizable member)
+        throws RepositoryException {
         String groupIdpName = getIdpName(group);
         if (groupIdpName == null) {
-            log.warn("Referenced dynamic group '{}' not associated with an external IDP.", group.getID());
-            return false; 
+            log.warn("Referenced dynamic group '{}' not associated with an external IDP.",
+                group.getID());
+            return false;
         }
 
         String idpName = getIdpName(member);
         if (groupIdpName.equals(idpName)) {
             return true;
         } else {
-            log.warn("IDP mismatch between dynamic group '{}' and member '{}'.", groupIdpName, idpName);
+            log.warn("IDP mismatch between dynamic group '{}' and member '{}'.", groupIdpName,
+                idpName);
             return false;
         }
     }
-    
-    static Set<Principal> getInheritedPrincipals(@NotNull Principal dynamicGroupPrincipal, @NotNull UserManager userManager) {
+
+    static Set<Principal> getInheritedPrincipals(@NotNull Principal dynamicGroupPrincipal,
+        @NotNull UserManager userManager) {
         try {
             Authorizable gr = userManager.getAuthorizable(dynamicGroupPrincipal);
             if (gr != null && gr.isGroup()) {
                 Iterator<Group> inherited = gr.memberOf();
                 if (inherited.hasNext()) {
-                    Spliterator<Group> spliterator = Spliterators.spliteratorUnknownSize(inherited, 0);
+                    Spliterator<Group> spliterator = Spliterators.spliteratorUnknownSize(inherited,
+                        0);
                     return StreamSupport.stream(spliterator, false).map(group -> {
                         try {
                             return group.getPrincipal();

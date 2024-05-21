@@ -16,18 +16,17 @@
  */
 package org.apache.jackrabbit.oak.http;
 
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+
 import java.util.ArrayList;
 import java.util.List;
-
 import org.apache.tika.mime.MediaType;
 import org.apache.tika.mime.MediaTypeRegistry;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 
 public class AcceptHeader {
 
     private static final MediaTypeRegistry registry =
-            MediaTypeRegistry.getDefaultRegistry();
+        MediaTypeRegistry.getDefaultRegistry();
 
     private final List<MediaRange> ranges = new ArrayList<MediaRange>();
 
@@ -36,7 +35,7 @@ public class AcceptHeader {
             ranges.add(new MediaRange(MediaType.parse("*/*"), 1.0));
         } else {
             for (String part : accept.split("(\\s*,)+\\s*")) {
-                MediaRange range = MediaRange.parse(part, registry); 
+                MediaRange range = MediaRange.parse(part, registry);
                 if (range != null) {
                     ranges.add(range);
                 }

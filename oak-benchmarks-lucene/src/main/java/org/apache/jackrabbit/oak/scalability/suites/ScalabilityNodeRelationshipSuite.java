@@ -23,14 +23,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
-
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.commons.math3.stat.descriptive.SynchronizedDescriptiveStatistics;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -38,25 +35,24 @@ import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.JcrUtils;
+import org.apache.jackrabbit.guava.common.base.Splitter;
+import org.apache.jackrabbit.guava.common.base.StandardSystemProperty;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.benchmark.util.OakIndexUtils;
 import org.apache.jackrabbit.oak.benchmark.util.OakLuceneIndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.property.OrderedIndex;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
-import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.scalability.util.NodeTypeUtils;
+import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.base.Splitter;
-import org.apache.jackrabbit.guava.common.base.StandardSystemProperty;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Maps;
-
 /**
- * The suite test will incrementally increase the load and execute searches.
- * Each test run thus adds nodes and executes different benchmarks. This way we measure time
- * taken for benchmark execution.
+ * The suite test will incrementally increase the load and execute searches. Each test run thus adds
+ * nodes and executes different benchmarks. This way we measure time taken for benchmark execution.
  *
  * <p>
  * The following system JVM properties can be defined to configure the suite.
@@ -70,13 +66,13 @@ import org.apache.jackrabbit.guava.common.collect.Maps;
  *          <li>User Relationships</li>
  *          <li>Activities</li>
  *      </ul>
- *
+ * <p>
  *     Defaults to 10,5,2,1.
  * </li>
  * </ul>
- *
  */
 public class ScalabilityNodeRelationshipSuite extends ScalabilityNodeSuite {
+
     private static final Logger LOG =
         LoggerFactory.getLogger(ScalabilityNodeRelationshipSuite.class);
 
@@ -103,21 +99,26 @@ public class ScalabilityNodeRelationshipSuite extends ScalabilityNodeSuite {
     public static final String TARGET = "target";
 
     protected static final List<String> NODE_LEVELS = Splitter.on(",").trimResults()
-        .omitEmptyStrings().splitToList(System.getProperty("nodeLevels", "10,5,2,1"));
+                                                              .omitEmptyStrings().splitToList(
+            System.getProperty("nodeLevels", "10,5,2,1"));
 
-    protected static final List<String> NODE_LEVELS_DEFAULT = ImmutableList.of("10","5","2","1");
+    protected static final List<String> NODE_LEVELS_DEFAULT = ImmutableList.of("10", "5", "2", "1");
 
     private static final int NUM_USERS =
-        (NODE_LEVELS.size() >= 1 ? Integer.parseInt(NODE_LEVELS.get(0)) : Integer.parseInt(NODE_LEVELS_DEFAULT.get(0)));
+        (NODE_LEVELS.size() >= 1 ? Integer.parseInt(NODE_LEVELS.get(0))
+            : Integer.parseInt(NODE_LEVELS_DEFAULT.get(0)));
 
     private static final int NUM_GROUPS =
-        (NODE_LEVELS.size() >= 2 ? Integer.parseInt(NODE_LEVELS.get(1)) : Integer.parseInt(NODE_LEVELS_DEFAULT.get(1)));
+        (NODE_LEVELS.size() >= 2 ? Integer.parseInt(NODE_LEVELS.get(1))
+            : Integer.parseInt(NODE_LEVELS_DEFAULT.get(1)));
 
     private static final int NUM_RELATIONSHIPS =
-        (NODE_LEVELS.size() >= 3 ? Integer.parseInt(NODE_LEVELS.get(2)) : Integer.parseInt(NODE_LEVELS_DEFAULT.get(2)));
+        (NODE_LEVELS.size() >= 3 ? Integer.parseInt(NODE_LEVELS.get(2))
+            : Integer.parseInt(NODE_LEVELS_DEFAULT.get(2)));
 
     private static final int NUM_ACTIVITIES =
-        (NODE_LEVELS.size() >= 4 ? Integer.parseInt(NODE_LEVELS.get(3)) : Integer.parseInt(NODE_LEVELS_DEFAULT.get(3)));
+        (NODE_LEVELS.size() >= 4 ? Integer.parseInt(NODE_LEVELS.get(3))
+            : Integer.parseInt(NODE_LEVELS_DEFAULT.get(3)));
 
 
     private static final long BUCKET_SIZE = 100;
@@ -150,13 +151,13 @@ public class ScalabilityNodeRelationshipSuite extends ScalabilityNodeSuite {
 
         if (CUSTOM_TYPE) {
             NodeTypeUtils.createNodeType(session, CUSTOM_ACT_NODE_TYPE,
-                new String[] {TITLE_PROP, CREATED, ACTION, SOURCE_ID},
-                new int[] {PropertyType.STRING, PropertyType.DATE, PropertyType.STRING,
+                new String[]{TITLE_PROP, CREATED, ACTION, SOURCE_ID},
+                new int[]{PropertyType.STRING, PropertyType.DATE, PropertyType.STRING,
                     PropertyType.STRING}, new String[0],
-                new String[] {NodeTypeConstants.NT_OAK_UNSTRUCTURED}, null, false);
+                new String[]{NodeTypeConstants.NT_OAK_UNSTRUCTURED}, null, false);
             NodeTypeUtils.createNodeType(session, CUSTOM_REL_NODE_TYPE,
-                new String[] {CREATED, SOURCE_ID, TARGET_ID},
-                new int[] {PropertyType.DATE, PropertyType.STRING, PropertyType.STRING},
+                new String[]{CREATED, SOURCE_ID, TARGET_ID},
+                new int[]{PropertyType.DATE, PropertyType.STRING, PropertyType.STRING},
                 new String[0], null, null, false);
             nodeTypes.add(CUSTOM_ACT_NODE_TYPE);
             nodeTypes.add(CUSTOM_REL_NODE_TYPE);
@@ -175,22 +176,22 @@ public class ScalabilityNodeRelationshipSuite extends ScalabilityNodeSuite {
         switch (INDEX_TYPE) {
             case PROPERTY:
                 OakIndexUtils.propertyIndexDefinition(session, "customIndexActivity",
-                    new String[] {SOURCE_ID}, false,
-                    (!CUSTOM_TYPE ? new String[0] : new String[] {CUSTOM_ACT_NODE_TYPE}));
+                    new String[]{SOURCE_ID}, false,
+                    (!CUSTOM_TYPE ? new String[0] : new String[]{CUSTOM_ACT_NODE_TYPE}));
                 OakIndexUtils.propertyIndexDefinition(session, "customIndexRelationship",
-                    new String[] {SOURCE_ID}, false,
-                    (!CUSTOM_TYPE ? new String[0] : new String[] {CUSTOM_REL_NODE_TYPE}));
+                    new String[]{SOURCE_ID}, false,
+                    (!CUSTOM_TYPE ? new String[0] : new String[]{CUSTOM_REL_NODE_TYPE}));
                 break;
             // define ordered indexes on properties
             case ORDERED:
                 OakIndexUtils.orderedIndexDefinition(session, "customIndexActivity", ASYNC_INDEX,
-                    new String[] {CREATED}, false,
-                    (!CUSTOM_TYPE ? new String[0] : new String[] {CUSTOM_ACT_NODE_TYPE}),
+                    new String[]{CREATED}, false,
+                    (!CUSTOM_TYPE ? new String[0] : new String[]{CUSTOM_ACT_NODE_TYPE}),
                     OrderedIndex.OrderDirection.DESC.getDirection());
                 OakIndexUtils
                     .orderedIndexDefinition(session, "customIndexRelationship", ASYNC_INDEX,
-                        new String[] {CREATED}, false,
-                        (!CUSTOM_TYPE ? new String[0] : new String[] {CUSTOM_REL_NODE_TYPE}),
+                        new String[]{CREATED}, false,
+                        (!CUSTOM_TYPE ? new String[0] : new String[]{CUSTOM_REL_NODE_TYPE}),
                         OrderedIndex.OrderDirection.DESC.getDirection());
                 break;
             // define lucene index on properties
@@ -198,10 +199,11 @@ public class ScalabilityNodeRelationshipSuite extends ScalabilityNodeSuite {
                 persistencePath =
                     "target" + StandardSystemProperty.FILE_SEPARATOR.value() + "lucene" + String
                         .valueOf(System.currentTimeMillis());
-                OakLuceneIndexUtils.luceneIndexDefinition(session, "customIndexActivity", ASYNC_INDEX,
-                        new String[]{SOURCE_ID, CREATED},
-                        new String[]{PropertyType.TYPENAME_STRING, PropertyType.TYPENAME_DATE},
-                        orderedMap, persistencePath);
+                OakLuceneIndexUtils.luceneIndexDefinition(session, "customIndexActivity",
+                    ASYNC_INDEX,
+                    new String[]{SOURCE_ID, CREATED},
+                    new String[]{PropertyType.TYPENAME_STRING, PropertyType.TYPENAME_DATE},
+                    orderedMap, persistencePath);
                 break;
             case LUCENE_FILE_DOC:
                 persistencePath =
@@ -212,9 +214,10 @@ public class ScalabilityNodeRelationshipSuite extends ScalabilityNodeSuite {
                 propMap.put(FulltextIndexConstants.PROP_TYPE, PropertyType.TYPENAME_DATE);
                 orderedMap.put(CREATED, propMap);
             case LUCENE:
-                OakLuceneIndexUtils.luceneIndexDefinition(session, "customIndexActivity", ASYNC_INDEX,
-                    new String[] {SOURCE_ID, CREATED},
-                    new String[] {PropertyType.TYPENAME_STRING, PropertyType.TYPENAME_DATE},
+                OakLuceneIndexUtils.luceneIndexDefinition(session, "customIndexActivity",
+                    ASYNC_INDEX,
+                    new String[]{SOURCE_ID, CREATED},
+                    new String[]{PropertyType.TYPENAME_STRING, PropertyType.TYPENAME_DATE},
                     orderedMap, persistencePath);
                 break;
         }
@@ -289,9 +292,9 @@ public class ScalabilityNodeRelationshipSuite extends ScalabilityNodeSuite {
      * The users are created with the nomenclature {@code [a-z]User<INCREMENT>_<ID>}
      *
      * <p>
-     *
-     * Creates a node hierarchy similar to the node structure below.
-     * Here for example aUser0_1 and cUser0_5 are 2 users and aUser0_1 has a relationship structure to user cUser0_5.
+     * <p>
+     * Creates a node hierarchy similar to the node structure below. Here for example aUser0_1 and
+     * cUser0_5 are 2 users and aUser0_1 has a relationship structure to user cUser0_5.
      *
      * <pre>
      * {@code
@@ -325,6 +328,7 @@ public class ScalabilityNodeRelationshipSuite extends ScalabilityNodeSuite {
      * </p>
      */
     class ActivityWriter extends Writer {
+
         private int startIdx;
 
         ActivityWriter(String id, int numUsers, int startIdx,
@@ -365,8 +369,8 @@ public class ScalabilityNodeRelationshipSuite extends ScalabilityNodeSuite {
         }
 
         /**
-         * Create activities for a use. The number of activities is governed by
-         * {# NODE_LEVELS.get(3)}
+         * Create activities for a use. The number of activities is governed by {#
+         * NODE_LEVELS.get(3)}
          *
          * @param user                 the user for who activities are to be created
          * @param activitiesParentNode the parent node for all the user activities
@@ -390,7 +394,7 @@ public class ScalabilityNodeRelationshipSuite extends ScalabilityNodeSuite {
         }
 
         private void createActivity(Node activitiesParentNode, String title,
-                                    String action, String source, String object, String target) throws RepositoryException {
+            String action, String source, String object, String target) throws RepositoryException {
             Node activityNode = getActivityParentNode(activitiesParentNode);
 
             Map<String, String> activityMap = Maps.newHashMap();
@@ -425,7 +429,8 @@ public class ScalabilityNodeRelationshipSuite extends ScalabilityNodeSuite {
             targetNode.setProperty(TARGET_ID, props.get(TARGET_ID));
 
             LOG.debug(
-                "Activity created for User : " + props.get(SOURCE_ID) + " " + activityParent.getPath());
+                "Activity created for User : " + props.get(SOURCE_ID) + " "
+                    + activityParent.getPath());
         }
 
         /**
@@ -492,13 +497,13 @@ public class ScalabilityNodeRelationshipSuite extends ScalabilityNodeSuite {
         }
 
         /**
-         * Create relationships to other users. The number of relationships is governed by
-         * {# NODE_LEVELS.get(2)}
+         * Create relationships to other users. The number of relationships is governed by {#
+         * NODE_LEVELS.get(2)}
          *
          * @param user                    the source user of the relationships
          * @param relationshipsParentNode the node where the relationships are recorded  @throws
          *                                RepositoryException
-         * @param activitiesParentNode the parent node for all the user activities
+         * @param activitiesParentNode    the parent node for all the user activities
          */
         private void createRelationships(Authorizable user, Node relationshipsParentNode,
             Node activitiesParentNode) throws RepositoryException {

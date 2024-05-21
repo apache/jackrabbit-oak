@@ -20,7 +20,8 @@ import com.amazonaws.services.dynamodbv2.model.BillingMode;
 
 public class DynamoDBProvisioningData {
 
-    public static final DynamoDBProvisioningData DEFAULT = new DynamoDBProvisioningData(BillingMode.PAY_PER_REQUEST);
+    public static final DynamoDBProvisioningData DEFAULT = new DynamoDBProvisioningData(
+        BillingMode.PAY_PER_REQUEST);
 
     private BillingMode billingMode;
     private Long journalTableProvisionedWcu;
@@ -32,7 +33,9 @@ public class DynamoDBProvisioningData {
         this.billingMode = billingMode;
     }
 
-    public DynamoDBProvisioningData(BillingMode billingMode, Long journalTableProvisionedWcu, Long journalTableProvisionedRcu, Long lockTableProvisionedWcu, Long lockTableProvisionedRcu) {
+    public DynamoDBProvisioningData(BillingMode billingMode, Long journalTableProvisionedWcu,
+        Long journalTableProvisionedRcu, Long lockTableProvisionedWcu,
+        Long lockTableProvisionedRcu) {
         this(billingMode);
         this.journalTableProvisionedWcu = journalTableProvisionedWcu;
         this.journalTableProvisionedRcu = journalTableProvisionedRcu;

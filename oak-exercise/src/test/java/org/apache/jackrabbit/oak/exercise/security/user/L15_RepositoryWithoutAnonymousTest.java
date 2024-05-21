@@ -16,15 +16,14 @@
  */
 package org.apache.jackrabbit.oak.exercise.security.user;
 
-import javax.jcr.GuestCredentials;
+import static org.junit.Assert.fail;
 
+import javax.jcr.GuestCredentials;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.junit.Test;
-
-import static org.junit.Assert.fail;
 
 /**
  * <pre>

@@ -22,10 +22,11 @@ import org.apache.directory.ldap.client.api.LdapConnection;
 /**
  * A pool implementation for LdapConnection objects.
  * <p>
- * This class is just a wrapper around the commons GenericObjectPool, and has
- * a more meaningful name to represent the pool type.
+ * This class is just a wrapper around the commons GenericObjectPool, and has a more meaningful name
+ * to represent the pool type.
  */
 public class UnboundLdapConnectionPool extends GenericObjectPool<LdapConnection> {
+
     /**
      * Instantiates a new LDAP connection pool.
      *

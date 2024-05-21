@@ -22,7 +22,7 @@ package org.apache.jackrabbit.oak.spi.query.fulltext;
  * The base class for fulltext condition expression.
  */
 public abstract class FullTextExpression {
-    
+
     /**
      * The operator precedence for OR conditions.
      */
@@ -32,7 +32,7 @@ public abstract class FullTextExpression {
      * The operator precedence for AND conditions.
      */
     public static final int PRECEDENCE_AND = 2;
-    
+
     /**
      * The operator precedence for terms.
      */
@@ -40,32 +40,32 @@ public abstract class FullTextExpression {
 
     /**
      * Get the operator precedence.
-     * 
+     *
      * @return the precedence
      */
     public abstract int getPrecedence();
-    
+
     /**
      * Evaluate whether the value matches the condition.
-     * 
+     *
      * @param value the value
      * @return true if it matches
      */
     public abstract boolean evaluate(String value);
-    
+
     /**
      * Simplify the expression if possible (removing duplicate conditions).
-     * 
+     *
      * @return the simplified expression
      */
     abstract FullTextExpression simplify();
-    
+
     /**
      * Get the string representation of the condition.
      */
     @Override
     public abstract String toString();
-    
+
     @Override
     public boolean equals(Object other) {
         if (this == other) {
@@ -75,24 +75,24 @@ public abstract class FullTextExpression {
         }
         return toString().equals(other.toString());
     }
-    
+
     @Override
     public int hashCode() {
         return toString().hashCode();
     }
-    
+
     /**
-     * Let the expression call the applicable visit method of the visitor. 
-     * 
+     * Let the expression call the applicable visit method of the visitor.
+     *
      * @param v the visitor
      * @return true if the visit method returned true
      */
     public abstract boolean accept(FullTextVisitor v);
-    
+
     /**
      * Whether the current {@link FullTextExpression} is a {@code NOT} condition or not. Default is
      * false
-     * 
+     *
      * @return true if the current condition represent a NOT, false otherwise.
      */
     public boolean isNot() {

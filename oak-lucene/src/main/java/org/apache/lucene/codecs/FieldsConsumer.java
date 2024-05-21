@@ -27,22 +27,20 @@ package org.apache.lucene.codecs;
 
 import java.io.Closeable;
 import java.io.IOException;
-
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.Fields;
 import org.apache.lucene.index.MergeState;
-import org.apache.lucene.index.SegmentWriteState; // javadocs
+import org.apache.lucene.index.SegmentWriteState;
 import org.apache.lucene.index.Terms;
 
-/** 
- * Abstract API that consumes terms, doc, freq, prox, offset and
- * payloads postings.  Concrete implementations of this
- * actually do "something" with the postings (write it into
- * the index in a specific format).
+/**
+ * Abstract API that consumes terms, doc, freq, prox, offset and payloads postings.  Concrete
+ * implementations of this actually do "something" with the postings (write it into the index in a
+ * specific format).
  * <p>
  * The lifecycle is:
  * <ol>
- *   <li>FieldsConsumer is created by 
+ *   <li>FieldsConsumer is created by
  *       {@link PostingsFormat#fieldsConsumer(SegmentWriteState)}.
  *   <li>For each field, {@link #addField(FieldInfo)} is called,
  *       returning a {@link TermsConsumer} for the field.
@@ -53,32 +51,37 @@ import org.apache.lucene.index.Terms;
  */
 public abstract class FieldsConsumer implements Closeable {
 
-  /** Sole constructor. (For invocation by subclass 
-   *  constructors, typically implicit.) */
-  protected FieldsConsumer() {
-  }
-
-  /** Add a new field */
-  public abstract TermsConsumer addField(FieldInfo field) throws IOException;
-  
-  /** Called when we are done adding everything. */
-  @Override
-  public abstract void close() throws IOException;
-
-  /** Called during merging to merge all {@link Fields} from
-   *  sub-readers.  This must recurse to merge all postings
-   *  (terms, docs, positions, etc.).  A {@link
-   *  PostingsFormat} can override this default
-   *  implementation to do its own merging. */
-  public void merge(MergeState mergeState, Fields fields) throws IOException {
-    for (String field : fields) {
-      FieldInfo info = mergeState.fieldInfos.fieldInfo(field);
-      assert info != null : "FieldInfo for field is null: "+ field;
-      Terms terms = fields.terms(field);
-      if (terms != null) {
-        final TermsConsumer termsConsumer = addField(info);
-        termsConsumer.merge(mergeState, info.getIndexOptions(), terms.iterator(null));
-      }
+    /**
+     * Sole constructor. (For invocation by subclass constructors, typically implicit.)
+     */
+    protected FieldsConsumer() {
     }
-  }
+
+    /**
+     * Add a new field
+     */
+    public abstract TermsConsumer addField(FieldInfo field) throws IOException;
+
+    /**
+     * Called when we are done adding everything.
+     */
+    @Override
+    public abstract void close() throws IOException;
+
+    /**
+     * Called during merging to merge all {@link Fields} from sub-readers.  This must recurse to
+     * merge all postings (terms, docs, positions, etc.).  A {@link PostingsFormat} can override
+     * this default implementation to do its own merging.
+     */
+    public void merge(MergeState mergeState, Fields fields) throws IOException {
+        for (String field : fields) {
+            FieldInfo info = mergeState.fieldInfos.fieldInfo(field);
+            assert info != null : "FieldInfo for field is null: " + field;
+            Terms terms = fields.terms(field);
+            if (terms != null) {
+                final TermsConsumer termsConsumer = addField(info);
+                termsConsumer.merge(mergeState, info.getIndexOptions(), terms.iterator(null));
+            }
+        }
+    }
 }

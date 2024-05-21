@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.upgrade.cli.blob;
 
 import java.io.IOException;
-
 import org.apache.jackrabbit.oak.upgrade.cli.AbstractOak2OakTest;
 import org.apache.jackrabbit.oak.upgrade.cli.container.BlobStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.container.FileBlobStoreContainer;
@@ -58,9 +57,10 @@ public class FbsToS3Test extends AbstractOak2OakTest {
 
     @Override
     protected String[] getArgs() {
-        return new String[] { "--copy-binaries", "--src-fileblobstore", sourceBlob.getDescription(), "--s3datastore",
-                destinationBlob.getDescription(), "--s3config", S3_PROPERTIES, source.getDescription(),
-                destination.getDescription() };
+        return new String[]{"--copy-binaries", "--src-fileblobstore", sourceBlob.getDescription(),
+            "--s3datastore",
+            destinationBlob.getDescription(), "--s3config", S3_PROPERTIES, source.getDescription(),
+            destination.getDescription()};
     }
 
     @Override

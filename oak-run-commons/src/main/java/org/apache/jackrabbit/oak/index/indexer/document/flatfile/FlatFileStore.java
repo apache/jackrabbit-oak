@@ -19,6 +19,12 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createReader;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.Iterator;
+import java.util.Set;
 import org.apache.commons.io.LineIterator;
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 import org.apache.jackrabbit.guava.common.io.Closer;
@@ -27,14 +33,8 @@ import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.Iterator;
-import java.util.Set;
-
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createReader;
-
 public class FlatFileStore implements IndexStore {
+
     private final Closer closer = Closer.create();
     private final BlobStore blobStore;
     private final File storeFile;
@@ -46,12 +46,14 @@ public class FlatFileStore implements IndexStore {
 
     private static final String STORE_TYPE = "FlatFileStore";
 
-    public FlatFileStore(BlobStore blobStore, File storeFile, File metadataFile, NodeStateEntryReader entryReader, Set<String> preferredPathElements, Compression algorithm) {
+    public FlatFileStore(BlobStore blobStore, File storeFile, File metadataFile,
+        NodeStateEntryReader entryReader, Set<String> preferredPathElements,
+        Compression algorithm) {
         this.blobStore = blobStore;
         this.storeFile = storeFile;
         if (!(storeFile.exists() && storeFile.isFile() && storeFile.canRead())) {
             String msg = String.format("Cannot read store file at [%s]",
-                    storeFile.getAbsolutePath());
+                storeFile.getAbsolutePath());
             throw new IllegalArgumentException(msg);
         }
         this.entryReader = entryReader;
@@ -60,7 +62,8 @@ public class FlatFileStore implements IndexStore {
         this.metadataFile = metadataFile;
     }
 
-    public FlatFileStore(BlobStore blobStore, File storeFile, NodeStateEntryReader entryReader, Set<String> preferredPathElements, Compression algorithm) {
+    public FlatFileStore(BlobStore blobStore, File storeFile, NodeStateEntryReader entryReader,
+        Set<String> preferredPathElements, Compression algorithm) {
         this(blobStore, storeFile, null, entryReader, preferredPathElements, algorithm);
     }
 
@@ -69,7 +72,6 @@ public class FlatFileStore implements IndexStore {
     }
 
     /**
-     *
      * @deprecated use {@link #getStorePath()} instead
      */
     @Deprecated
@@ -91,8 +93,10 @@ public class FlatFileStore implements IndexStore {
 
     @Override
     public Iterator<NodeStateEntry> iterator() {
-        String fileName = new File(storeFile.getParent(), storeFile.getName() + ".linkedList").getAbsolutePath();
-        FlatFileStoreIterator it = new FlatFileStoreIterator(blobStore, fileName, createBaseIterator(), preferredPathElements);
+        String fileName = new File(storeFile.getParent(),
+            storeFile.getName() + ".linkedList").getAbsolutePath();
+        FlatFileStoreIterator it = new FlatFileStoreIterator(blobStore, fileName,
+            createBaseIterator(), preferredPathElements);
         closer.register(it::close);
         return it;
     }

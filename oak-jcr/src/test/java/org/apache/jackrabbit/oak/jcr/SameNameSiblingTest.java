@@ -19,22 +19,20 @@
 
 package org.apache.jackrabbit.oak.jcr;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.asList;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
+import static org.apache.jackrabbit.guava.common.collect.Lists.asList;
+import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Set;
-
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-
 import org.apache.jackrabbit.api.JackrabbitNode;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
@@ -47,10 +45,11 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 public class SameNameSiblingTest extends AbstractRepositoryTest {
+
     private static final String SIBLING = "sibling";
 
-    private static final String[] SIBLINGS = new String[] {
-            SIBLING + "[1]", SIBLING+ "[2]", SIBLING + "[3]", SIBLING + "[4]"};
+    private static final String[] SIBLINGS = new String[]{
+        SIBLING + "[1]", SIBLING + "[2]", SIBLING + "[3]", SIBLING + "[4]"};
 
     private Session session;
     private Node sns;
@@ -116,7 +115,8 @@ public class SameNameSiblingTest extends AbstractRepositoryTest {
             Node sib = sns.getNode(name);
             String n = sib.getName();
             int i = sib.getIndex();
-            assertTrue("Node.getName() must return valid JCR name (index stripped), but got: " + n, !n.contains("["));
+            assertTrue("Node.getName() must return valid JCR name (index stripped), but got: " + n,
+                !n.contains("["));
             assertEquals(name, n + "[" + i + "]");
         }
     }

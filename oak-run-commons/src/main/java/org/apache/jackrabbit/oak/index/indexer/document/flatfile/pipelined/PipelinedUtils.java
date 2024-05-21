@@ -18,11 +18,11 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
+import java.util.Locale;
 import org.apache.commons.io.FileUtils;
 
-import java.util.Locale;
-
 public class PipelinedUtils {
+
     /**
      * <p>Format a percentage as a string with 2 decimal places. For instance:
      * <code>formatAsPercentage(52, 1000)</code> returns <code>"5.20"</code>.</p>
@@ -36,7 +36,8 @@ public class PipelinedUtils {
     }
 
     /**
-     * <p>Convert to a percentage as an integer from 0 to 100, with -1 representing an undefined value.</p>
+     * <p>Convert to a percentage as an integer from 0 to 100, with -1 representing an undefined
+     * value.</p>
      */
     public static int toPercentage(long numerator, long denominator) {
         if (denominator == 0) {

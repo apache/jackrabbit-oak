@@ -18,14 +18,14 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.base.Suppliers.memoize;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Suppliers.memoize;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
 import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
 import static org.apache.jackrabbit.oak.api.Type.LONG;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
@@ -39,7 +39,6 @@ import static org.apache.jackrabbit.oak.spi.state.AbstractNodeState.checkValidNa
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
-
 import org.apache.jackrabbit.guava.common.base.Supplier;
 import org.apache.jackrabbit.guava.common.base.Suppliers;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -58,10 +57,11 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * A record of type "NODE". This class can read a node record from a segment. It
- * currently doesn't cache data (but the template is fully loaded).
+ * A record of type "NODE". This class can read a node record from a segment. It currently doesn't
+ * cache data (but the template is fully loaded).
  */
 public class SegmentNodeState extends Record implements NodeState {
+
     @NotNull
     private final SegmentReader reader;
 
@@ -143,21 +143,20 @@ public class SegmentNodeState extends Record implements NodeState {
     }
 
     /**
-     * Returns the stable id of this node. In contrast to the node's record id
-     * (which is technically the node's address) the stable id doesn't change
-     * after an online gc cycle. It might though change after an offline gc cycle.
+     * Returns the stable id of this node. In contrast to the node's record id (which is technically
+     * the node's address) the stable id doesn't change after an online gc cycle. It might though
+     * change after an offline gc cycle.
      *
-     * @return  stable id
+     * @return stable id
      */
     public String getStableId() {
         return getStableId(getStableIdBytes());
     }
 
     /**
-     * Returns the stable ID of this node, non parsed. In contrast to the node's
-     * record id (which is technically the node's address) the stable id doesn't
-     * change after an online gc cycle. It might though change after an offline
-     * gc cycle.
+     * Returns the stable ID of this node, non parsed. In contrast to the node's record id (which is
+     * technically the node's address) the stable id doesn't change after an online gc cycle. It
+     * might though change after an offline gc cycle.
      *
      * @return the stable ID of this node.
      */
@@ -173,7 +172,8 @@ public class SegmentNodeState extends Record implements NodeState {
         } else {
             // Otherwise that id points to the serialised (msb, lsb, offset)
             // stable id.
-            return id.getSegment().readBytes(id.getRecordNumber(), 0, RecordId.SERIALIZED_RECORD_ID_BYTES);
+            return id.getSegment()
+                     .readBytes(id.getRecordNumber(), 0, RecordId.SERIALIZED_RECORD_ID_BYTES);
         }
     }
 
@@ -211,7 +211,8 @@ public class SegmentNodeState extends Record implements NodeState {
         }
     }
 
-    @Override @Nullable
+    @Override
+    @Nullable
     public PropertyState getProperty(@NotNull String name) {
         readStats.mark();
         checkNotNull(name);
@@ -227,7 +228,7 @@ public class SegmentNodeState extends Record implements NodeState {
         }
 
         PropertyTemplate propertyTemplate =
-                template.getPropertyTemplate(name);
+            template.getPropertyTemplate(name);
         if (propertyTemplate != null) {
             Segment segment = getSegment();
             RecordId id = getRecordId(segment, template, propertyTemplate);
@@ -238,7 +239,7 @@ public class SegmentNodeState extends Record implements NodeState {
     }
 
     private RecordId getRecordId(Segment segment, Template template,
-                                 PropertyTemplate propertyTemplate) {
+        PropertyTemplate propertyTemplate) {
         int ids = 2;
         if (template.getChildName() != Template.ZERO_CHILD_NODES) {
             ids++;
@@ -248,13 +249,14 @@ public class SegmentNodeState extends Record implements NodeState {
         return pIds.getEntry(propertyTemplate.getIndex());
     }
 
-    @Override @NotNull
+    @Override
+    @NotNull
     public Iterable<PropertyState> getProperties() {
         readStats.mark();
         Template template = getTemplate();
         PropertyTemplate[] propertyTemplates = template.getPropertyTemplates();
         List<PropertyState> list =
-                newArrayListWithCapacity(propertyTemplates.length + 2);
+            newArrayListWithCapacity(propertyTemplates.length + 2);
 
         PropertyState primaryType = template.getPrimaryType();
         if (primaryType != null) {
@@ -273,7 +275,8 @@ public class SegmentNodeState extends Record implements NodeState {
         }
 
         if (propertyTemplates.length > 0) {
-            ListRecord pIds = new ListRecord(segment.readRecordId(getRecordNumber(), 0, ids), propertyTemplates.length);
+            ListRecord pIds = new ListRecord(segment.readRecordId(getRecordNumber(), 0, ids),
+                propertyTemplates.length);
             for (int i = 0; i < propertyTemplates.length; i++) {
                 RecordId propertyId = pIds.getEntry(i);
                 list.add(reader.readProperty(propertyId, propertyTemplates[i]));
@@ -300,34 +303,38 @@ public class SegmentNodeState extends Record implements NodeState {
         }
     }
 
-    @Override @Nullable
+    @Override
+    @Nullable
     public String getString(String name) {
         readStats.mark();
         return getValueAsString(name, STRING);
     }
 
-    @Override @NotNull
+    @Override
+    @NotNull
     public Iterable<String> getStrings(@NotNull String name) {
         readStats.mark();
         return getValuesAsStrings(name, STRINGS);
     }
 
-    @Override @Nullable
+    @Override
+    @Nullable
     public String getName(@NotNull String name) {
         readStats.mark();
         return getValueAsString(name, NAME);
     }
 
-    @Override @NotNull
+    @Override
+    @NotNull
     public Iterable<String> getNames(@NotNull String name) {
         readStats.mark();
         return getValuesAsStrings(name, NAMES);
     }
 
     /**
-     * Optimized value access method. Returns the string value of a property
-     * of a given non-array type. Returns {@code null} if the named property
-     * does not exist, or is of a different type than given.
+     * Optimized value access method. Returns the string value of a property of a given non-array
+     * type. Returns {@code null} if the named property does not exist, or is of a different type
+     * than given.
      *
      * @param name property name
      * @param type property type
@@ -348,14 +355,14 @@ public class SegmentNodeState extends Record implements NodeState {
                 }
             }
         } else if (JCR_MIXINTYPES.equals(name)
-                && template.getMixinTypes() != null) {
+            && template.getMixinTypes() != null) {
             return null;
         }
 
         PropertyTemplate propertyTemplate =
-                template.getPropertyTemplate(name);
+            template.getPropertyTemplate(name);
         if (propertyTemplate == null
-                || propertyTemplate.getType() != type) {
+            || propertyTemplate.getType() != type) {
             return null;
         }
 
@@ -365,9 +372,9 @@ public class SegmentNodeState extends Record implements NodeState {
     }
 
     /**
-     * Optimized value access method. Returns the string values of a property
-     * of a given array type. Returns an empty iterable if the named property
-     * does not exist, or is of a different type than given.
+     * Optimized value access method. Returns the string values of a property of a given array type.
+     * Returns an empty iterable if the named property does not exist, or is of a different type
+     * than given.
      *
      * @param name property name
      * @param type property type
@@ -386,14 +393,14 @@ public class SegmentNodeState extends Record implements NodeState {
                 return emptyList();
             }
         } else if (JCR_PRIMARYTYPE.equals(name)
-                && template.getPrimaryType() != null) {
+            && template.getPrimaryType() != null) {
             return emptyList();
         }
 
         PropertyTemplate propertyTemplate =
-                template.getPropertyTemplate(name);
+            template.getPropertyTemplate(name);
         if (propertyTemplate == null
-                || propertyTemplate.getType() != type) {
+            || propertyTemplate.getType() != type) {
             return emptyList();
         }
 
@@ -444,7 +451,8 @@ public class SegmentNodeState extends Record implements NodeState {
         }
     }
 
-    @Override @NotNull
+    @Override
+    @NotNull
     public NodeState getChildNode(@NotNull String name) {
         readStats.mark();
         String childName = getTemplate().getChildName();
@@ -454,7 +462,7 @@ public class SegmentNodeState extends Record implements NodeState {
                 return child.getNodeState();
             }
         } else if (childName != Template.ZERO_CHILD_NODES
-                && childName.equals(name)) {
+            && childName.equals(name)) {
             RecordId childNodeId = getSegment().readRecordId(getRecordNumber(), 0, 2);
             return reader.readNode(childNodeId);
         }
@@ -462,7 +470,8 @@ public class SegmentNodeState extends Record implements NodeState {
         return MISSING_NODE;
     }
 
-    @Override @NotNull
+    @Override
+    @NotNull
     public Iterable<String> getChildNodeNames() {
         readStats.mark();
         String childName = getTemplate().getChildName();
@@ -475,7 +484,8 @@ public class SegmentNodeState extends Record implements NodeState {
         }
     }
 
-    @Override @NotNull
+    @Override
+    @NotNull
     public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
         readStats.mark();
         String childName = getTemplate().getChildName();
@@ -486,11 +496,12 @@ public class SegmentNodeState extends Record implements NodeState {
         } else {
             RecordId childNodeId = getSegment().readRecordId(getRecordNumber(), 0, 2);
             return Collections.singletonList(new MemoryChildNodeEntry(
-                    childName, reader.readNode(childNodeId)));
+                childName, reader.readNode(childNodeId)));
         }
     }
 
-    @Override @NotNull
+    @Override
+    @NotNull
     public SegmentNodeBuilder builder() {
         return new SegmentNodeBuilder(this, blobStore, reader, writer.get(), readStats);
     }
@@ -499,7 +510,7 @@ public class SegmentNodeState extends Record implements NodeState {
     public boolean compareAgainstBaseState(NodeState base, NodeStateDiff diff) {
         readStats.mark();
         if (this == base || fastEquals(this, base)) {
-             return true; // no changes
+            return true; // no changes
         } else if (base == EMPTY_NODE || !base.exists()) { // special case
             return EmptyNodeState.compareAgainstEmptyState(this, diff);
         } else if (!(base instanceof SegmentNodeState)) { // fallback
@@ -516,13 +527,13 @@ public class SegmentNodeState extends Record implements NodeState {
 
         // Compare type properties
         if (!compareProperties(
-                beforeTemplate.getPrimaryType(), afterTemplate.getPrimaryType(),
-                diff)) {
+            beforeTemplate.getPrimaryType(), afterTemplate.getPrimaryType(),
+            diff)) {
             return false;
         }
         if (!compareProperties(
-                beforeTemplate.getMixinTypes(), afterTemplate.getMixinTypes(),
-                diff)) {
+            beforeTemplate.getMixinTypes(), afterTemplate.getMixinTypes(),
+            diff)) {
             return false;
         }
 
@@ -530,30 +541,30 @@ public class SegmentNodeState extends Record implements NodeState {
         int beforeIndex = 0;
         int afterIndex = 0;
         PropertyTemplate[] beforeProperties =
-                beforeTemplate.getPropertyTemplates();
+            beforeTemplate.getPropertyTemplates();
         PropertyTemplate[] afterProperties =
-                afterTemplate.getPropertyTemplates();
+            afterTemplate.getPropertyTemplates();
         while (beforeIndex < beforeProperties.length
-                && afterIndex < afterProperties.length) {
+            && afterIndex < afterProperties.length) {
             int d = Integer.valueOf(afterProperties[afterIndex].hashCode())
-                    .compareTo(beforeProperties[beforeIndex].hashCode());
+                           .compareTo(beforeProperties[beforeIndex].hashCode());
             if (d == 0) {
                 d = afterProperties[afterIndex].getName().compareTo(
-                        beforeProperties[beforeIndex].getName());
+                    beforeProperties[beforeIndex].getName());
             }
             PropertyState beforeProperty = null;
             PropertyState afterProperty = null;
             if (d < 0) {
                 afterProperty =
-                        afterTemplate.getProperty(afterId, afterIndex++);
+                    afterTemplate.getProperty(afterId, afterIndex++);
             } else if (d > 0) {
                 beforeProperty =
-                        beforeTemplate.getProperty(beforeId, beforeIndex++);
+                    beforeTemplate.getProperty(beforeId, beforeIndex++);
             } else {
                 afterProperty =
-                        afterTemplate.getProperty(afterId, afterIndex++);
+                    afterTemplate.getProperty(afterId, afterIndex++);
                 beforeProperty =
-                        beforeTemplate.getProperty(beforeId, beforeIndex++);
+                    beforeTemplate.getProperty(beforeId, beforeIndex++);
             }
             if (!compareProperties(beforeProperty, afterProperty, diff)) {
                 return false;
@@ -561,13 +572,13 @@ public class SegmentNodeState extends Record implements NodeState {
         }
         while (afterIndex < afterProperties.length) {
             if (!diff.propertyAdded(
-                    afterTemplate.getProperty(afterId, afterIndex++))) {
+                afterTemplate.getProperty(afterId, afterIndex++))) {
                 return false;
             }
         }
         while (beforeIndex < beforeProperties.length) {
             PropertyState beforeProperty =
-                    beforeTemplate.getProperty(beforeId, beforeIndex++);
+                beforeTemplate.getProperty(beforeId, beforeIndex++);
             if (!diff.propertyDeleted(beforeProperty)) {
                 return false;
             }
@@ -578,36 +589,36 @@ public class SegmentNodeState extends Record implements NodeState {
         if (afterChildName == Template.ZERO_CHILD_NODES) {
             if (beforeChildName != Template.ZERO_CHILD_NODES) {
                 for (ChildNodeEntry entry
-                        : beforeTemplate.getChildNodeEntries(beforeId)) {
+                    : beforeTemplate.getChildNodeEntries(beforeId)) {
                     if (!diff.childNodeDeleted(
-                            entry.getName(), entry.getNodeState())) {
+                        entry.getName(), entry.getNodeState())) {
                         return false;
                     }
                 }
             }
         } else if (afterChildName != Template.MANY_CHILD_NODES) {
             NodeState afterNode =
-                    afterTemplate.getChildNode(afterChildName, afterId);
+                afterTemplate.getChildNode(afterChildName, afterId);
             NodeState beforeNode =
-                    beforeTemplate.getChildNode(afterChildName, beforeId);
+                beforeTemplate.getChildNode(afterChildName, beforeId);
             if (!beforeNode.exists()) {
                 if (!diff.childNodeAdded(afterChildName, afterNode)) {
                     return false;
                 }
             } else if (!fastEquals(afterNode, beforeNode)) {
                 if (!diff.childNodeChanged(
-                        afterChildName, beforeNode, afterNode)) {
+                    afterChildName, beforeNode, afterNode)) {
                     return false;
                 }
             }
             if (beforeChildName == Template.MANY_CHILD_NODES
-                    || (beforeChildName != Template.ZERO_CHILD_NODES
-                        && !beforeNode.exists())) {
+                || (beforeChildName != Template.ZERO_CHILD_NODES
+                && !beforeNode.exists())) {
                 for (ChildNodeEntry entry
-                        : beforeTemplate.getChildNodeEntries(beforeId)) {
+                    : beforeTemplate.getChildNodeEntries(beforeId)) {
                     if (!afterChildName.equals(entry.getName())) {
                         if (!diff.childNodeDeleted(
-                                entry.getName(), entry.getNodeState())) {
+                            entry.getName(), entry.getNodeState())) {
                             return false;
                         }
                     }
@@ -615,25 +626,25 @@ public class SegmentNodeState extends Record implements NodeState {
             }
         } else if (beforeChildName == Template.ZERO_CHILD_NODES) {
             for (ChildNodeEntry entry
-                    : afterTemplate.getChildNodeEntries(afterId)) {
+                : afterTemplate.getChildNodeEntries(afterId)) {
                 if (!diff.childNodeAdded(
-                        entry.getName(), entry.getNodeState())) {
+                    entry.getName(), entry.getNodeState())) {
                     return false;
                 }
             }
         } else if (beforeChildName != Template.MANY_CHILD_NODES) {
             boolean beforeChildRemoved = true;
             NodeState beforeChild =
-                    beforeTemplate.getChildNode(beforeChildName, beforeId);
+                beforeTemplate.getChildNode(beforeChildName, beforeId);
             for (ChildNodeEntry entry
-                    : afterTemplate.getChildNodeEntries(afterId)) {
+                : afterTemplate.getChildNodeEntries(afterId)) {
                 String childName = entry.getName();
                 NodeState afterChild = entry.getNodeState();
                 if (beforeChildName.equals(childName)) {
                     beforeChildRemoved = false;
                     if (!fastEquals(afterChild, beforeChild)
-                            && !diff.childNodeChanged(
-                                    childName, beforeChild, afterChild)) {
+                        && !diff.childNodeChanged(
+                        childName, beforeChild, afterChild)) {
                         return false;
                     }
                 } else if (!diff.childNodeAdded(childName, afterChild)) {
@@ -655,7 +666,7 @@ public class SegmentNodeState extends Record implements NodeState {
     }
 
     private static boolean compareProperties(
-            PropertyState before, PropertyState after, NodeStateDiff diff) {
+        PropertyState before, PropertyState after, NodeStateDiff diff) {
         if (before == null) {
             return after == null || diff.propertyAdded(after);
         } else if (after == null) {
@@ -668,16 +679,13 @@ public class SegmentNodeState extends Record implements NodeState {
     //------------------------------------------------------------< Object >--
 
     /**
-     * Indicates whether two {@link NodeState} instances are equal to each
-     * other. A return value of {@code true} clearly means that the instances
-     * are equal, while a return value of {@code false} doesn't necessarily mean
-     * the instances are not equal. These "false negatives" are an
-     * implementation detail and callers cannot rely on them being stable.
+     * Indicates whether two {@link NodeState} instances are equal to each other. A return value of
+     * {@code true} clearly means that the instances are equal, while a return value of
+     * {@code false} doesn't necessarily mean the instances are not equal. These "false negatives"
+     * are an implementation detail and callers cannot rely on them being stable.
      *
-     * @param a
-     *            the first {@link NodeState} instance
-     * @param b
-     *            the second {@link NodeState} instance
+     * @param a the first {@link NodeState} instance
+     * @param b the second {@link NodeState} instance
      * @return {@code true}, if these two instances are equal.
      */
     public static boolean fastEquals(NodeState a, NodeState b) {
@@ -687,7 +695,7 @@ public class SegmentNodeState extends Record implements NodeState {
 
         if (a instanceof SegmentNodeState && b instanceof SegmentNodeState
             && ((SegmentNodeState) a).getStableId().equals(((SegmentNodeState) b).getStableId())) {
-                return true;
+            return true;
         }
 
         return false;
@@ -711,7 +719,7 @@ public class SegmentNodeState extends Record implements NodeState {
             }
         } else {
             return object instanceof NodeState
-                    && AbstractNodeState.equals(this, (NodeState) object);
+                && AbstractNodeState.equals(this, (NodeState) object);
         }
     }
 

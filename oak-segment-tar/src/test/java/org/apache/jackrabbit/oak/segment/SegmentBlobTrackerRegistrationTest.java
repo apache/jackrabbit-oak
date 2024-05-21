@@ -20,19 +20,16 @@
 package org.apache.jackrabbit.oak.segment;
 
 import static org.apache.sling.testing.mock.osgi.MockOsgi.deactivate;
+import static org.junit.Assert.assertNotNull;
 
 import java.util.Collection;
 import java.util.Dictionary;
 import java.util.Hashtable;
-
 import org.apache.jackrabbit.oak.plugins.blob.AbstractBlobTrackerRegistrationTest;
 import org.apache.jackrabbit.oak.plugins.blob.BlobTrackingStore;
-
 import org.apache.sling.testing.mock.osgi.MockOsgi;
 import org.osgi.framework.InvalidSyntaxException;
 import org.osgi.framework.ServiceReference;
-
-import static org.junit.Assert.assertNotNull;
 
 /**
  * Tests OSGi registration for {@link BlobTrackingStore} in {@link SegmentNodeStoreService}.
@@ -45,27 +42,31 @@ public class SegmentBlobTrackerRegistrationTest extends AbstractBlobTrackerRegis
         properties.put(SegmentNodeStoreService.CUSTOM_BLOB_STORE, true);
         properties.put(SegmentNodeStoreService.REPOSITORY_HOME_DIRECTORY, repoHome);
         SegmentNodeStoreService service = new SegmentNodeStoreService();
-        
-        // OAK-10367: The call 
+
+        // OAK-10367: The call
         // context.registerInjectActivateService(service, properties)
         // isn't working properly anymore. It calls
         // context.bundleContext().registerService(null, service, properties).
         // A service registered this way will not be found by
         // context.bundleContext().getServiceReferences(SegmentNodeStoreService.class, null).
-        // 
+        //
         //assertNotNull(context.registerInjectActivateService(service, properties));
         MockOsgi.injectServices(service, context.bundleContext(), properties);
-        MockOsgi.activate(service, context.bundleContext(), (Dictionary<String, Object>) properties);
-        assertNotNull(context.bundleContext().registerService(SegmentNodeStoreService.class, service, properties));
+        MockOsgi.activate(service, context.bundleContext(),
+            (Dictionary<String, Object>) properties);
+        assertNotNull(context.bundleContext()
+                             .registerService(SegmentNodeStoreService.class, service, properties));
     }
 
     @Override
     protected void unregisterNodeStoreService() {
         Collection<ServiceReference<SegmentNodeStoreService>> serviceReferences;
         try {
-            serviceReferences = context.bundleContext().getServiceReferences(SegmentNodeStoreService.class, null);
+            serviceReferences = context.bundleContext()
+                                       .getServiceReferences(SegmentNodeStoreService.class, null);
         } catch (InvalidSyntaxException e) {
-            throw new IllegalStateException("Unable to read references to SegmentNodeStoreService", e);
+            throw new IllegalStateException("Unable to read references to SegmentNodeStoreService",
+                e);
         }
         for (ServiceReference serviceReference : serviceReferences) {
             Object service = context.bundleContext().getService(serviceReference);

@@ -18,13 +18,12 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.indexstore;
 
-import org.apache.jackrabbit.oak.commons.Compression;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.SortStrategy;
-
 import java.io.File;
 import java.io.IOException;
 import java.util.Set;
 import java.util.function.Predicate;
+import org.apache.jackrabbit.oak.commons.Compression;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.SortStrategy;
 
 public interface IndexStoreSortStrategy extends SortStrategy {
 

@@ -18,14 +18,13 @@
 
 package org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache;
 
+import java.io.IOException;
+import java.util.List;
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveEntry;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveReader;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import java.io.IOException;
-import java.util.List;
 
 public class CachingSegmentArchiveReader implements SegmentArchiveReader {
 
@@ -36,8 +35,8 @@ public class CachingSegmentArchiveReader implements SegmentArchiveReader {
     private final SegmentArchiveReader delegate;
 
     public CachingSegmentArchiveReader(
-            @NotNull PersistentCache persistentCache,
-            @NotNull SegmentArchiveReader delegate) {
+        @NotNull PersistentCache persistentCache,
+        @NotNull SegmentArchiveReader delegate) {
         this.persistentCache = persistentCache;
         this.delegate = delegate;
     }

@@ -18,9 +18,7 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.indexstore;
 
-import org.apache.jackrabbit.oak.commons.Compression;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.LZ4Compression;
-import org.jetbrains.annotations.NotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
@@ -36,10 +34,12 @@ import java.io.OutputStreamWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
+import org.apache.jackrabbit.oak.commons.Compression;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.LZ4Compression;
+import org.jetbrains.annotations.NotNull;
 
 public class IndexStoreUtils {
+
     public static final String METADATA_SUFFIX = ".metadata";
 
     public static final String OAK_INDEXER_USE_ZIP = "oak.indexer.useZip";
@@ -79,7 +79,8 @@ public class IndexStoreUtils {
     /**
      * This function by default uses GNU zip as compression algorithm for backward compatibility.
      */
-    public static BufferedWriter createWriter(File file, boolean compressionEnabled) throws IOException {
+    public static BufferedWriter createWriter(File file, boolean compressionEnabled)
+        throws IOException {
         return createWriter(file, compressionEnabled ? Compression.GZIP : Compression.NONE);
     }
 
@@ -88,7 +89,8 @@ public class IndexStoreUtils {
         return new BufferedWriter(new OutputStreamWriter(algorithm.getOutputStream(out)));
     }
 
-    public static OutputStream createOutputStream(Path file, Compression algorithm) throws IOException {
+    public static OutputStream createOutputStream(Path file, Compression algorithm)
+        throws IOException {
         // The output streams created by LZ4 and GZIP buffer their input, so we should not wrap then again.
         // However, the implementation of the compression streams may make small writes to the underlying stream,
         // so we buffer the FileOutputStream
@@ -120,9 +122,10 @@ public class IndexStoreUtils {
             String fileName = indexStoreFile.getName();
             String compressionSuffix = getCompressionSuffix(indexStoreFile);
             checkState(algorithm.addSuffix("").equals(compressionSuffix));
-            String fileNameWithoutCompressionSuffix = fileName.substring(0, fileName.lastIndexOf("."));
+            String fileNameWithoutCompressionSuffix = fileName.substring(0,
+                fileName.lastIndexOf("."));
             metadataFile = new File(algorithm.addSuffix(indexStoreFile.getParent() + "/"
-                    + fileNameWithoutCompressionSuffix + METADATA_SUFFIX));
+                + fileNameWithoutCompressionSuffix + METADATA_SUFFIX));
         }
         return metadataFile;
     }
@@ -132,14 +135,15 @@ public class IndexStoreUtils {
     }
 
     /**
-     * This method validates the compression suffix is in correspondence with compression algorithm.
+     * This method validates the compression suffix is in correspondence with compression
+     * algorithm.
      */
     public static void validateFlatFileStoreFileName(File file, @NotNull Compression algorithm) {
         if (!algorithm.equals(Compression.NONE)) {
             checkState(algorithm.addSuffix("")
-                            .equals(getCompressionSuffix(file)),
-                    "File suffix should be in correspondence with compression algorithm. Filename:{}, Compression suffix:{} ",
-                    file.getAbsolutePath(), algorithm.addSuffix(""));
+                                .equals(getCompressionSuffix(file)),
+                "File suffix should be in correspondence with compression algorithm. Filename:{}, Compression suffix:{} ",
+                file.getAbsolutePath(), algorithm.addSuffix(""));
         }
     }
 

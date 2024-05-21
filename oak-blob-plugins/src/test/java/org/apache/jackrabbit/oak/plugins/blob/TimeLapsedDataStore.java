@@ -18,6 +18,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.blob;
 
+import static org.apache.commons.codec.binary.Hex.encodeHexString;
+import static org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils.randomStream;
+
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -34,12 +37,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
-
 import javax.jcr.RepositoryException;
-
-import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.output.NullOutputStream;
 import org.apache.jackrabbit.core.data.DataIdentifier;
@@ -47,6 +45,9 @@ import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.MultiDataStoreAware;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
+import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordAccessProvider;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDownloadOptions;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUpload;
@@ -56,13 +57,12 @@ import org.apache.jackrabbit.oak.stats.Clock;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import static org.apache.commons.codec.binary.Hex.encodeHexString;
-import static org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils.randomStream;
-
 /**
  * Test in memory DS to store the contents with an increasing time
  */
-public class TimeLapsedDataStore implements DataStore, MultiDataStoreAware, SharedDataStore, DataRecordAccessProvider {
+public class TimeLapsedDataStore implements DataStore, MultiDataStoreAware, SharedDataStore,
+    DataRecordAccessProvider {
+
     public static final int MIN_RECORD_LENGTH = 50;
 
     private final long startTime;
@@ -83,22 +83,26 @@ public class TimeLapsedDataStore implements DataStore, MultiDataStoreAware, Shar
         return clock;
     }
 
-    @Override public DataRecord getRecordIfStored(DataIdentifier identifier) throws DataStoreException {
+    @Override
+    public DataRecord getRecordIfStored(DataIdentifier identifier) throws DataStoreException {
         if (store.containsKey(identifier.toString())) {
             return getRecord(identifier);
         }
         return null;
     }
 
-    @Override public DataRecord getRecord(DataIdentifier identifier) throws DataStoreException {
+    @Override
+    public DataRecord getRecord(DataIdentifier identifier) throws DataStoreException {
         return store.get(identifier.toString());
     }
 
-    @Override public DataRecord getRecordFromReference(String reference) throws DataStoreException {
+    @Override
+    public DataRecord getRecordFromReference(String reference) throws DataStoreException {
         return getRecord(new DataIdentifier(reference));
     }
 
-    @Override public DataRecord addRecord(InputStream stream) throws DataStoreException {
+    @Override
+    public DataRecord addRecord(InputStream stream) throws DataStoreException {
         try {
             byte[] data = IOUtils.toByteArray(stream);
             String id = getIdForInputStream(new ByteArrayInputStream(data));
@@ -112,17 +116,20 @@ public class TimeLapsedDataStore implements DataStore, MultiDataStoreAware, Shar
 
     }
 
-    @Override public Iterator<DataIdentifier> getAllIdentifiers() throws DataStoreException {
-        return  Iterators.transform(store.keySet().iterator(), input -> new DataIdentifier(input));
+    @Override
+    public Iterator<DataIdentifier> getAllIdentifiers() throws DataStoreException {
+        return Iterators.transform(store.keySet().iterator(), input -> new DataIdentifier(input));
     }
 
-    @Override public void deleteRecord(DataIdentifier identifier) throws DataStoreException {
+    @Override
+    public void deleteRecord(DataIdentifier identifier) throws DataStoreException {
         store.remove(identifier.toString());
     }
 
     /***************************************** SharedDataStore ***************************************/
 
-    @Override public void addMetadataRecord(InputStream stream, String name) throws DataStoreException {
+    @Override
+    public void addMetadataRecord(InputStream stream, String name) throws DataStoreException {
         try {
             byte[] data = IOUtils.toByteArray(stream);
             TestRecord rec = new TestRecord(name, data, clock.getTime());
@@ -133,7 +140,8 @@ public class TimeLapsedDataStore implements DataStore, MultiDataStoreAware, Shar
         }
     }
 
-    @Override public void addMetadataRecord(File f, String name) throws DataStoreException {
+    @Override
+    public void addMetadataRecord(File f, String name) throws DataStoreException {
         FileInputStream fstream = null;
         try {
             fstream = new FileInputStream(f);
@@ -145,15 +153,18 @@ public class TimeLapsedDataStore implements DataStore, MultiDataStoreAware, Shar
         }
     }
 
-    @Override public DataRecord getMetadataRecord(String name) {
+    @Override
+    public DataRecord getMetadataRecord(String name) {
         return metadata.get(name);
     }
 
-    @Override public boolean metadataRecordExists(String name) {
+    @Override
+    public boolean metadataRecordExists(String name) {
         return metadata.containsKey(name);
     }
 
-    @Override public List<DataRecord> getAllMetadataRecords(String prefix) {
+    @Override
+    public List<DataRecord> getAllMetadataRecords(String prefix) {
         List<DataRecord> recs = Lists.newArrayList();
         Iterator<Map.Entry<String, DataRecord>> iter = metadata.entrySet().iterator();
         while (iter.hasNext()) {
@@ -165,7 +176,8 @@ public class TimeLapsedDataStore implements DataStore, MultiDataStoreAware, Shar
         return recs;
     }
 
-    @Override public boolean deleteMetadataRecord(String name) {
+    @Override
+    public boolean deleteMetadataRecord(String name) {
         metadata.remove(name);
         if (!metadata.containsKey(name)) {
             return true;
@@ -173,7 +185,8 @@ public class TimeLapsedDataStore implements DataStore, MultiDataStoreAware, Shar
         return false;
     }
 
-    @Override public void deleteAllMetadataRecords(String prefix) {
+    @Override
+    public void deleteAllMetadataRecords(String prefix) {
         List<String> recs = Lists.newArrayList();
         Iterator<Map.Entry<String, DataRecord>> iter = metadata.entrySet().iterator();
         while (iter.hasNext()) {
@@ -183,39 +196,46 @@ public class TimeLapsedDataStore implements DataStore, MultiDataStoreAware, Shar
             }
         }
 
-        for(String key: recs) {
+        for (String key : recs) {
             metadata.remove(key);
         }
     }
 
-    @Override public Iterator<DataRecord> getAllRecords() throws DataStoreException {
+    @Override
+    public Iterator<DataRecord> getAllRecords() throws DataStoreException {
         return store.values().iterator();
     }
 
-    @Override public DataRecord getRecordForId(DataIdentifier id) throws DataStoreException {
+    @Override
+    public DataRecord getRecordForId(DataIdentifier id) throws DataStoreException {
         return store.get(id.toString());
     }
 
-    @Override public Type getType() {
+    @Override
+    public Type getType() {
         return Type.SHARED;
     }
 
     /**************************** DataRecordAccessProvider *************************/
 
-    @Override public @Nullable URI getDownloadURI(@NotNull DataIdentifier identifier,
+    @Override
+    public @Nullable URI getDownloadURI(@NotNull DataIdentifier identifier,
         @NotNull DataRecordDownloadOptions downloadOptions) {
         return null;
     }
 
     @Override
-    public @Nullable DataRecordUpload initiateDataRecordUpload(long maxUploadSizeInBytes, int maxNumberOfURIs)
-            throws IllegalArgumentException, DataRecordUploadException {
-        return initiateDataRecordUpload(maxUploadSizeInBytes, maxNumberOfURIs, DataRecordUploadOptions.DEFAULT);
+    public @Nullable DataRecordUpload initiateDataRecordUpload(long maxUploadSizeInBytes,
+        int maxNumberOfURIs)
+        throws IllegalArgumentException, DataRecordUploadException {
+        return initiateDataRecordUpload(maxUploadSizeInBytes, maxNumberOfURIs,
+            DataRecordUploadOptions.DEFAULT);
     }
 
     @Override
-    public @Nullable DataRecordUpload initiateDataRecordUpload(long maxUploadSizeInBytes, int maxNumberOfURIs, @NotNull final DataRecordUploadOptions options)
-            throws IllegalArgumentException, DataRecordUploadException {
+    public @Nullable DataRecordUpload initiateDataRecordUpload(long maxUploadSizeInBytes,
+        int maxNumberOfURIs, @NotNull final DataRecordUploadOptions options)
+        throws IllegalArgumentException, DataRecordUploadException {
         String upToken = UUID.randomUUID().toString();
         Random rand = new Random();
         InputStream stream = randomStream(rand.nextInt(1000), 100);
@@ -229,31 +249,37 @@ public class TimeLapsedDataStore implements DataStore, MultiDataStoreAware, Shar
         store.put(upToken, rec);
 
         DataRecordUpload uploadRec = new DataRecordUpload() {
-            @Override public @NotNull String getUploadToken() {
+            @Override
+            public @NotNull String getUploadToken() {
                 return upToken;
             }
 
-            @Override public long getMinPartSize() {
+            @Override
+            public long getMinPartSize() {
                 return maxUploadSizeInBytes;
             }
 
-            @Override public long getMaxPartSize() {
+            @Override
+            public long getMaxPartSize() {
                 return maxUploadSizeInBytes;
             }
 
-            @Override public @NotNull Collection<URI> getUploadURIs() {
+            @Override
+            public @NotNull Collection<URI> getUploadURIs() {
                 return Collections.EMPTY_LIST;
             }
         };
         return uploadRec;
     }
 
-    @Override public @NotNull DataRecord completeDataRecordUpload(@NotNull String uploadToken)
+    @Override
+    public @NotNull DataRecord completeDataRecordUpload(@NotNull String uploadToken)
         throws IllegalArgumentException, DataRecordUploadException, DataStoreException {
         return store.get(uploadToken);
     }
 
     class TestRecord implements DataRecord {
+
         String id;
         byte[] data;
         long lastModified;
@@ -264,23 +290,28 @@ public class TimeLapsedDataStore implements DataStore, MultiDataStoreAware, Shar
             this.lastModified = lastModified;
         }
 
-        @Override public DataIdentifier getIdentifier() {
+        @Override
+        public DataIdentifier getIdentifier() {
             return new DataIdentifier(id);
         }
 
-        @Override public String getReference() {
+        @Override
+        public String getReference() {
             return id;
         }
 
-        @Override public long getLength() throws DataStoreException {
+        @Override
+        public long getLength() throws DataStoreException {
             return data.length;
         }
 
-        @Override public InputStream getStream() throws DataStoreException {
+        @Override
+        public InputStream getStream() throws DataStoreException {
             return new ByteArrayInputStream(data);
         }
 
-        @Override public long getLastModified() {
+        @Override
+        public long getLastModified() {
             return lastModified;
         }
     }
@@ -299,23 +330,29 @@ public class TimeLapsedDataStore implements DataStore, MultiDataStoreAware, Shar
     }
 
     /*************************************** No Op ***********************/
-    @Override public void init(String homeDir) throws RepositoryException {
+    @Override
+    public void init(String homeDir) throws RepositoryException {
     }
 
-    @Override public void updateModifiedDateOnAccess(long before) {
+    @Override
+    public void updateModifiedDateOnAccess(long before) {
     }
 
-    @Override public int deleteAllOlderThan(long min) throws DataStoreException {
+    @Override
+    public int deleteAllOlderThan(long min) throws DataStoreException {
         return 0;
     }
 
-    @Override public int getMinRecordLength() {
+    @Override
+    public int getMinRecordLength() {
         return MIN_RECORD_LENGTH;
     }
 
-    @Override public void close() throws DataStoreException {
+    @Override
+    public void close() throws DataStoreException {
     }
 
-    @Override public void clearInUse() {
+    @Override
+    public void clearInUse() {
     }
 }

@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.jcr;
 
 import static org.junit.Assume.assumeTrue;
+
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
@@ -26,9 +27,9 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 import javax.jcr.security.Privilege;
-
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
+import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.NodeStoreFixtures;
 import org.apache.jackrabbit.oak.commons.FixturesHelper;
 import org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture;
@@ -46,14 +47,12 @@ import org.junit.Ignore;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import org.apache.jackrabbit.guava.common.collect.Maps;
-
 /**
- * Abstract base class for repository tests providing methods for accessing
- * the repository, a session and nodes and properties from that session.
- *
- * Users of this class must call clear to close the session associated with
- * this instance and clean up the repository when done.
+ * Abstract base class for repository tests providing methods for accessing the repository, a
+ * session and nodes and properties from that session.
+ * <p>
+ * Users of this class must call clear to close the session associated with this instance and clean
+ * up the repository when done.
  */
 @RunWith(Parallelized.class)
 @Ignore("This abstract base class does not have any tests")
@@ -68,31 +67,30 @@ public abstract class AbstractRepositoryTest {
     private volatile Session anonymousSession;
 
     /**
-     * The system property "nsfixtures" can be used to provide a
-     * whitespace-separated list of fixtures names for which the
-     * tests should be run (the default is to use all fixtures).
+     * The system property "nsfixtures" can be used to provide a whitespace-separated list of
+     * fixtures names for which the tests should be run (the default is to use all fixtures).
      */
     private static final Set<Fixture> FIXTURES = FixturesHelper.getFixtures();
 
     /**
-     * If reuseNodeStore is on, this caches the NodeStore returned by each fixture
-     * and they'll be disposed only in @AfterClass instead of @After.
+     * If reuseNodeStore is on, this caches the NodeStore returned by each fixture and they'll be
+     * disposed only in @AfterClass instead of @After.
      */
     private static final Map<NodeStoreFixture, NodeStore> NODE_STORES = Maps.newConcurrentMap();
 
     /**
-     * Default fixtures based on a list in the system property `nsfixtures`.
-     * To change the fixtures in a subclass, provide a static method with same @Parameterized
-     * annotation but different name that returns a different fixture list.
+     * Default fixtures based on a list in the system property `nsfixtures`. To change the fixtures
+     * in a subclass, provide a static method with same @Parameterized annotation but different name
+     * that returns a different fixture list.
      */
-    @Parameterized.Parameters(name="{0}")
+    @Parameterized.Parameters(name = "{0}")
     public static Collection<Object[]> fixtures() {
         return NodeStoreFixtures.asJunitParameters(FIXTURES);
     }
 
     /**
-     * Constructor enabling that a new NodeStore will be created from
-     * the NodeStoreFixture for each test (method).
+     * Constructor enabling that a new NodeStore will be created from the NodeStoreFixture for each
+     * test (method).
      *
      * @param fixture the fixture, which gets passed in as junit parameter
      */
@@ -103,10 +101,10 @@ public abstract class AbstractRepositoryTest {
     /**
      * Constructor giving a choice on NodeStore reuse across tests.
      *
-     * @param fixture the fixture, which gets passed in as junit parameter
-     * @param reuseNodeStore if true, the NodeStore will be reused for all test methods of the
-     *                       given test class. if false, a new NodeStore will be created from
-     *                       the NodeStoreFixture for each test (method).
+     * @param fixture        the fixture, which gets passed in as junit parameter
+     * @param reuseNodeStore if true, the NodeStore will be reused for all test methods of the given
+     *                       test class. if false, a new NodeStore will be created from the
+     *                       NodeStoreFixture for each test (method).
      */
     protected AbstractRepositoryTest(NodeStoreFixture fixture, boolean reuseNodeStore) {
         this.fixture = fixture;
@@ -214,7 +212,8 @@ public abstract class AbstractRepositoryTest {
 
     protected Session createAnonymousSession() throws RepositoryException {
         Session admin = getAdminSession();
-        AccessControlUtils.addAccessControlEntry(admin, "/", EveryonePrincipal.getInstance(), new String[] {Privilege.JCR_READ}, true);
+        AccessControlUtils.addAccessControlEntry(admin, "/", EveryonePrincipal.getInstance(),
+            new String[]{Privilege.JCR_READ}, true);
         admin.save();
         return getRepository().login(new GuestCredentials());
     }
@@ -224,7 +223,8 @@ public abstract class AbstractRepositoryTest {
     }
 
     protected SimpleCredentials getAdminCredentials() {
-        return new SimpleCredentials(UserConstants.DEFAULT_ADMIN_ID, UserConstants.DEFAULT_ADMIN_ID.toCharArray());
+        return new SimpleCredentials(UserConstants.DEFAULT_ADMIN_ID,
+            UserConstants.DEFAULT_ADMIN_ID.toCharArray());
     }
 
     public static <R extends Repository> R dispose(R repository) {

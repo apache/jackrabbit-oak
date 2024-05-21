@@ -108,7 +108,7 @@ public class VersionGarbageCollectorIT {
         this.fixture = fixture;
     }
 
-    @Parameterized.Parameters(name="{0}")
+    @Parameterized.Parameters(name = "{0}")
     public static Collection<Object[]> fixtures() throws IOException {
         return AbstractDocumentStoreTest.fixtures();
     }
@@ -150,24 +150,27 @@ public class VersionGarbageCollectorIT {
     private void createPrimaryStore() {
         if (fixture instanceof RDBFixture) {
             ((RDBFixture) fixture).setRDBOptions(
-                    new RDBOptions().tablePrefix(rdbTablePrefix).dropTablesOnClose(true));
+                new RDBOptions().tablePrefix(rdbTablePrefix).dropTablesOnClose(true));
         }
         ds1 = fixture.createDocumentStore();
         documentMKBuilder = new DocumentMK.Builder().clock(clock).setClusterId(1)
-                .setLeaseCheckMode(LeaseCheckMode.DISABLED)
-                .setDocumentStore(ds1).setAsyncDelay(0);
+                                                    .setLeaseCheckMode(LeaseCheckMode.DISABLED)
+                                                    .setDocumentStore(ds1).setAsyncDelay(0);
         store1 = documentMKBuilder.getNodeStore();
     }
 
     private void createSecondaryStore(LeaseCheckMode leaseCheckNode) {
         if (fixture instanceof RDBFixture) {
             ((RDBFixture) fixture).setRDBOptions(
-                    new RDBOptions().tablePrefix(rdbTablePrefix).dropTablesOnClose(false));
+                new RDBOptions().tablePrefix(rdbTablePrefix).dropTablesOnClose(false));
         }
         ds2 = fixture.createDocumentStore();
-        DocumentMK.Builder documentMKBuilder2 = new DocumentMK.Builder().clock(clock).setClusterId(2)
-                .setLeaseCheckMode(leaseCheckNode)
-                .setDocumentStore(ds2).setAsyncDelay(0);
+        DocumentMK.Builder documentMKBuilder2 = new DocumentMK.Builder().clock(clock)
+                                                                        .setClusterId(2)
+                                                                        .setLeaseCheckMode(
+                                                                            leaseCheckNode)
+                                                                        .setDocumentStore(ds2)
+                                                                        .setAsyncDelay(0);
         store2 = documentMKBuilder2.getNodeStore();
     }
 
@@ -207,7 +210,7 @@ public class VersionGarbageCollectorIT {
     }
 
     @Test
-    public void testGCDeletedDocument() throws Exception{
+    public void testGCDeletedDocument() throws Exception {
         //1. Create nodes
         NodeBuilder b1 = store1.getRoot().builder();
         b1.child("x").child("y");
@@ -232,14 +235,14 @@ public class VersionGarbageCollectorIT {
         //maxAge
         //Clock cannot move back (it moved forward in #1) so double the maxAge
         clock.waitUntil(clock.getTime() + delta);
-        stats = gc.gc(maxAge*2, HOURS);
+        stats = gc.gc(maxAge * 2, HOURS);
         assertEquals(0, stats.deletedDocGCCount);
         assertEquals(0, stats.deletedLeafDocGCCount);
 
         //3. Check that deleted doc does get collected post maxAge
-        clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
+        clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge * 2) + delta);
 
-        stats = gc.gc(maxAge*2, HOURS);
+        stats = gc.gc(maxAge * 2, HOURS);
         assertEquals(1, stats.deletedDocGCCount);
         assertEquals(1, stats.deletedLeafDocGCCount);
 
@@ -252,8 +255,8 @@ public class VersionGarbageCollectorIT {
         b4.child("z");
         store1.merge(b4, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
-        stats = gc.gc(maxAge*2, HOURS);
+        clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge * 2) + delta);
+        stats = gc.gc(maxAge * 2, HOURS);
         assertEquals(0, stats.deletedDocGCCount);
         assertEquals(0, stats.deletedLeafDocGCCount);
         assertEquals(1, stats.updateResurrectedGCCount);
@@ -284,7 +287,7 @@ public class VersionGarbageCollectorIT {
             b1 = store1.getRoot().builder();
             //This updates a middle node i.e. one which has child bar
             //Should result in SplitDoc of type PROP_COMMIT_ONLY
-            b1.child("test").child(subNodeName).setProperty("prop",i);
+            b1.child("test").child(subNodeName).setProperty("prop", i);
 
             //This should result in SplitDoc of type DEFAULT_NO_CHILD
             b1.child("test2").child(subNodeName).setProperty("prop", i);
@@ -294,18 +297,19 @@ public class VersionGarbageCollectorIT {
 
         // perform a change to make sure the sweep rev will be newer than
         // the split revs, otherwise revision GC won't remove the split doc
-        clock.waitUntil(clock.getTime() + TimeUnit.SECONDS.toMillis(NodeDocument.MODIFIED_IN_SECS_RESOLUTION * 2));
+        clock.waitUntil(clock.getTime() + TimeUnit.SECONDS.toMillis(
+            NodeDocument.MODIFIED_IN_SECS_RESOLUTION * 2));
         NodeBuilder builder = store1.getRoot().builder();
         builder.child("qux");
         merge(store1, builder);
         store1.runBackgroundOperations();
 
         List<NodeDocument> previousDocTestFoo =
-                ImmutableList.copyOf(getDoc("/test/" + subNodeName).getAllPreviousDocs());
+            ImmutableList.copyOf(getDoc("/test/" + subNodeName).getAllPreviousDocs());
         List<NodeDocument> previousDocTestFoo2 =
-                ImmutableList.copyOf(getDoc("/test2/" + subNodeName).getAllPreviousDocs());
+            ImmutableList.copyOf(getDoc("/test2/" + subNodeName).getAllPreviousDocs());
         List<NodeDocument> previousDocRoot =
-                ImmutableList.copyOf(getDoc("/").getAllPreviousDocs());
+            ImmutableList.copyOf(getDoc("/").getAllPreviousDocs());
 
         assertEquals(1, previousDocTestFoo.size());
         assertEquals(1, previousDocTestFoo2.size());
@@ -331,9 +335,9 @@ public class VersionGarbageCollectorIT {
     }
 
     /**
-     * OAK-10542 with OAK-10526 : This reproduces a case where a _deleted revision
-     * that is still used by a checkpoint is split away and then GCed. This variant
-     * tests a checkpoint when /t/target is deleted.
+     * OAK-10542 with OAK-10526 : This reproduces a case where a _deleted revision that is still
+     * used by a checkpoint is split away and then GCed. This variant tests a checkpoint when
+     * /t/target is deleted.
      */
     @Test
     public void gcSplitDocWithReferencedDeleted_combined() throws Exception {
@@ -379,7 +383,7 @@ public class VersionGarbageCollectorIT {
         // step 8 : do the gc
         // expect a split doc at depth 4 for /t/target to exist
         assertEquals(1, store1.getDocumentStore()
-                .query(NODES, "4:p/t/target/", "4:p/t/target/z", 5).size());
+                              .query(NODES, "4:p/t/target/", "4:p/t/target/z", 5).size());
         gc.gc(24, HOURS);
         // before a fix the split doc is GCed (but can't make that an assert)
         //assertEquals(0, store.getDocumentStore()
@@ -392,16 +396,15 @@ public class VersionGarbageCollectorIT {
         // invalidate node cache to ensure readNode/getNodeAtRevision is called below
         store1.getNodeCache().invalidateAll();
         assertEquals(false, store1.retrieve(checkpoint).getChildNode("t")
-                .getChildNode("target").exists());
+                                  .getChildNode("target").exists());
     }
 
     /**
-     * OAK-10542 : This reproduces a case where a split doc is created that contains
-     * a revision of _deleted that is still referred by a checkpoint. The fact that
-     * _deleted is split "in the middle" used to confuse the getLiveRevision lookup,
-     * as it was not considering split document for the _deleted property as long as
-     * it found a valid revision in the main document. This variant tests a
-     * checkpoint when /t/target is deleted.
+     * OAK-10542 : This reproduces a case where a split doc is created that contains a revision of
+     * _deleted that is still referred by a checkpoint. The fact that _deleted is split "in the
+     * middle" used to confuse the getLiveRevision lookup, as it was not considering split document
+     * for the _deleted property as long as it found a valid revision in the main document. This
+     * variant tests a checkpoint when /t/target is deleted.
      */
     @Test
     public void gcSplitDocWithReferencedDeleted_true() throws Exception {
@@ -434,17 +437,16 @@ public class VersionGarbageCollectorIT {
         // invalidate node cache to ensure readNode is called below
         store1.getNodeCache().invalidateAll();
         assertEquals(true, store1.retrieve(checkpoint).getChildNode("t")
-                .getChildNode("target").exists());
+                                 .getChildNode("target").exists());
 
     }
 
     /**
-     * OAK-10542 : This reproduces a case where a split doc is created that contains
-     * a revision of _deleted that is still referred by a checkpoint. The fact that
-     * _deleted is split "in the middle" used to confuse the getLiveRevision lookup,
-     * as it was not considering split document for the _deleted property as long as
-     * it found a valid revision in the main document. This variant tests a
-     * checkpoint when /t/target exists.
+     * OAK-10542 : This reproduces a case where a split doc is created that contains a revision of
+     * _deleted that is still referred by a checkpoint. The fact that _deleted is split "in the
+     * middle" used to confuse the getLiveRevision lookup, as it was not considering split document
+     * for the _deleted property as long as it found a valid revision in the main document. This
+     * variant tests a checkpoint when /t/target exists.
      */
     @Test
     public void gcSplitDocWithReferencedDeleted_false() throws Exception {
@@ -476,7 +478,7 @@ public class VersionGarbageCollectorIT {
         // invalidate node cache to ensure readNode/getNodeAtRevision is called below
         store1.getNodeCache().invalidateAll();
         assertEquals(false, store1.retrieve(checkpoint).getChildNode("t")
-                .getChildNode("target").exists());
+                                  .getChildNode("target").exists());
 
     }
 
@@ -489,7 +491,7 @@ public class VersionGarbageCollectorIT {
     }
 
     private void createOrDeleteLeaf(DocumentNodeStore s, boolean delete,
-            String... pathElems) throws Exception {
+        String... pathElems) throws Exception {
         clock.waitUntil(clock.getTime() + TimeUnit.SECONDS.toMillis(10));
         final NodeBuilder rb = s.getRoot().builder();
         NodeBuilder b = rb;
@@ -503,9 +505,8 @@ public class VersionGarbageCollectorIT {
     }
 
     /**
-     * OAK-10526 : This reproduces a case where a split doc is created then GCed,
-     * while there is a checkpoint that still refers to a revision contained in that
-     * split doc.
+     * OAK-10526 : This reproduces a case where a split doc is created then GCed, while there is a
+     * checkpoint that still refers to a revision contained in that split doc.
      */
     @Test
     public void gcSplitDocsWithReferencedRevisions() throws Exception {
@@ -616,7 +617,7 @@ public class VersionGarbageCollectorIT {
             }
         }
         assertTrue("Test data does not have intermediate previous docs",
-                hasIntermediateDoc);
+            hasIntermediateDoc);
 
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge) + delta);
         VersionGCStats stats = gc.gc(maxAge, HOURS);
@@ -624,7 +625,7 @@ public class VersionGarbageCollectorIT {
         assertEquals(0, stats.deletedLeafDocGCCount);
 
         DocumentNodeState test = getDoc("/test").getNodeAtRevision(
-                store1, store1.getHeadRevision(), null);
+            store1, store1.getHeadRevision(), null);
         assertNotNull(test);
         assertTrue(test.hasProperty("test"));
     }
@@ -651,9 +652,9 @@ public class VersionGarbageCollectorIT {
         b1 = store1.getRoot().builder();
         b1.getChildNode("test-7").remove();
         names.remove("test-7");
-    
+
         store1.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-    
+
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge) + delta);
 
         VersionGCStats stats = gc.gc(maxAge, HOURS);
@@ -684,7 +685,8 @@ public class VersionGarbageCollectorIT {
 
         // perform a change to make sure the sweep rev will be newer than
         // the split revs, otherwise revision GC won't remove the split doc
-        clock.waitUntil(clock.getTime() + TimeUnit.SECONDS.toMillis(NodeDocument.MODIFIED_IN_SECS_RESOLUTION * 2));
+        clock.waitUntil(clock.getTime() + TimeUnit.SECONDS.toMillis(
+            NodeDocument.MODIFIED_IN_SECS_RESOLUTION * 2));
         NodeBuilder builder = store1.getRoot().builder();
         builder.child("qux");
         merge(store1, builder);
@@ -700,7 +702,7 @@ public class VersionGarbageCollectorIT {
         NodeDocument doc = getDoc("/foo");
         assertNotNull(doc);
         DocumentNodeState state = doc.getNodeAtRevision(
-                store1, store1.getHeadRevision(), null);
+            store1, store1.getHeadRevision(), null);
         assertNotNull(state);
     }
 
@@ -738,7 +740,7 @@ public class VersionGarbageCollectorIT {
                 assertNotNull(doc);
                 int numPrevDocs = Iterators.size(doc.getAllPreviousDocs());
                 assertTrue("too many previous docs: " + numPrevDocs,
-                        numPrevDocs < 70);
+                    numPrevDocs < 70);
             }
         }
         NodeDocument doc = store1.getDocumentStore().find(NODES, id);
@@ -769,19 +771,20 @@ public class VersionGarbageCollectorIT {
         final BlockingQueue<NodeDocument> docs = Queues.newSynchronousQueue();
         VersionGCSupport gcSupport = new VersionGCSupport(store1.getDocumentStore()) {
             @Override
-            public Iterable<NodeDocument> getPossiblyDeletedDocs(long fromModified, long toModified) {
+            public Iterable<NodeDocument> getPossiblyDeletedDocs(long fromModified,
+                long toModified) {
                 return filter(super.getPossiblyDeletedDocs(fromModified, toModified),
-                        new Predicate<NodeDocument>() {
-                            @Override
-                            public boolean apply(NodeDocument input) {
-                                try {
-                                    docs.put(input);
-                                } catch (InterruptedException e) {
-                                    throw new RuntimeException(e);
-                                }
-                                return true;
+                    new Predicate<NodeDocument>() {
+                        @Override
+                        public boolean apply(NodeDocument input) {
+                            try {
+                                docs.put(input);
+                            } catch (InterruptedException e) {
+                                throw new RuntimeException(e);
                             }
-                        });
+                            return true;
+                        }
+                    });
             }
         };
         final VersionGarbageCollector gc = new VersionGarbageCollector(store1, gcSupport);
@@ -875,8 +878,8 @@ public class VersionGarbageCollectorIT {
             merge(store1, builder);
             RevisionVector head = store1.getHeadRevision();
             for (UpdateOp op : SplitOperations.forDocument(
-                    ds.find(NODES, Utils.getIdFromPath("/foo")), store1, head,
-                    NO_BINARY, 2)) {
+                ds.find(NODES, Utils.getIdFromPath("/foo")), store1, head,
+                NO_BINARY, 2)) {
                 ds.createOrUpdate(NODES, op);
             }
             clock.waitUntil(clock.getTime() + TimeUnit.MINUTES.toMillis(1));
@@ -887,12 +890,12 @@ public class VersionGarbageCollectorIT {
         Long modCount = foo.getModCount();
         assertNotNull(modCount);
         List<String> prevIds = Lists.newArrayList(Iterators.transform(
-                foo.getPreviousDocLeaves(), new Function<NodeDocument, String>() {
-            @Override
-            public String apply(NodeDocument input) {
-                return input.getId();
-            }
-        }));
+            foo.getPreviousDocLeaves(), new Function<NodeDocument, String>() {
+                @Override
+                public String apply(NodeDocument input) {
+                    return input.getId();
+                }
+            }));
 
         // run gc on another document node store
         createSecondaryStore(LeaseCheckMode.LENIENT);
@@ -934,7 +937,8 @@ public class VersionGarbageCollectorIT {
         final AtomicReference<VersionGarbageCollector> gcRef = Atomics.newReference();
         VersionGCSupport gcSupport = new VersionGCSupport(store1.getDocumentStore()) {
             @Override
-            public Iterable<NodeDocument> getPossiblyDeletedDocs(long fromModified, long toModified) {
+            public Iterable<NodeDocument> getPossiblyDeletedDocs(long fromModified,
+                long toModified) {
                 // cancel as soon as it runs
                 gcRef.get().cancel();
                 return super.getPossiblyDeletedDocs(fromModified, toModified);
@@ -967,13 +971,16 @@ public class VersionGarbageCollectorIT {
         final AtomicReference<VersionGarbageCollector> gcRef = Atomics.newReference();
         VersionGCSupport gcSupport = new VersionGCSupport(store1.getDocumentStore()) {
             @Override
-            public Iterable<NodeDocument> getPossiblyDeletedDocs(final long fromModified, final long toModified) {
+            public Iterable<NodeDocument> getPossiblyDeletedDocs(final long fromModified,
+                final long toModified) {
                 return new Iterable<NodeDocument>() {
                     @NotNull
                     @Override
                     public Iterator<NodeDocument> iterator() {
                         return new AbstractIterator<NodeDocument>() {
-                            private Iterator<NodeDocument> it = candidates(fromModified, toModified);
+                            private Iterator<NodeDocument> it = candidates(fromModified,
+                                toModified);
+
                             @Override
                             protected NodeDocument computeNext() {
                                 if (it.hasNext()) {
@@ -988,8 +995,10 @@ public class VersionGarbageCollectorIT {
                 };
             }
 
-            private Iterator<NodeDocument> candidates(long prevLastModifiedTime, long lastModifiedTime) {
-                return super.getPossiblyDeletedDocs(prevLastModifiedTime, lastModifiedTime).iterator();
+            private Iterator<NodeDocument> candidates(long prevLastModifiedTime,
+                long lastModifiedTime) {
+                return super.getPossiblyDeletedDocs(prevLastModifiedTime, lastModifiedTime)
+                            .iterator();
             }
         };
         gcRef.set(new VersionGarbageCollector(store1, gcSupport));
@@ -1009,19 +1018,21 @@ public class VersionGarbageCollectorIT {
         final AtomicInteger docCounter = new AtomicInteger();
         VersionGCSupport nonReportingGcSupport = new VersionGCSupport(store1.getDocumentStore()) {
             @Override
-            public Iterable<NodeDocument> getPossiblyDeletedDocs(final long fromModified, long toModified) {
+            public Iterable<NodeDocument> getPossiblyDeletedDocs(final long fromModified,
+                long toModified) {
                 return filter(fixtureGCSupport.getPossiblyDeletedDocs(fromModified, toModified),
-                        new Predicate<NodeDocument>() {
-                            @Override
-                            public boolean apply(NodeDocument input) {
-                                docCounter.incrementAndGet();
-                                return false;// don't report any doc to be
-                                             // GC'able
-                            }
-                        });
+                    new Predicate<NodeDocument>() {
+                        @Override
+                        public boolean apply(NodeDocument input) {
+                            docCounter.incrementAndGet();
+                            return false;// don't report any doc to be
+                            // GC'able
+                        }
+                    });
             }
         };
-        final VersionGarbageCollector gc = new VersionGarbageCollector(store1, nonReportingGcSupport);
+        final VersionGarbageCollector gc = new VersionGarbageCollector(store1,
+            nonReportingGcSupport);
         final long maxAgeHours = 1;
         final long clockDelta = HOURS.toMillis(maxAgeHours) + MINUTES.toMillis(5);
 
@@ -1073,7 +1084,8 @@ public class VersionGarbageCollectorIT {
 
         // perform a change to make sure the sweep rev will be newer than
         // the split revs, otherwise revision GC won't remove the split doc
-        clock.waitUntil(clock.getTime() + TimeUnit.SECONDS.toMillis(NodeDocument.MODIFIED_IN_SECS_RESOLUTION * 2));
+        clock.waitUntil(clock.getTime() + TimeUnit.SECONDS.toMillis(
+            NodeDocument.MODIFIED_IN_SECS_RESOLUTION * 2));
         builder = store1.getRoot().builder();
         builder.child("qux");
         merge(store1, builder);
@@ -1136,7 +1148,8 @@ public class VersionGarbageCollectorIT {
         merge(store1, builder);
 
         // run full background operations with sweep
-        clock.waitUntil(clock.getTime() + TimeUnit.SECONDS.toMillis(NodeDocument.MODIFIED_IN_SECS_RESOLUTION * 2));
+        clock.waitUntil(clock.getTime() + TimeUnit.SECONDS.toMillis(
+            NodeDocument.MODIFIED_IN_SECS_RESOLUTION * 2));
         store1.runBackgroundOperations();
 
         // now sweep rev must be updated and revision GC can collect prev doc
@@ -1179,7 +1192,7 @@ public class VersionGarbageCollectorIT {
         CountDownLatch bgOperationsDone = new CountDownLatch(1);
         // prepare commit that will trigger split
         Commit c = store1.newCommit(cb -> cb.updateProperty(path, "p", "0"),
-                store1.getHeadRevision(), null);
+            store1.getHeadRevision(), null);
         try {
             execService.submit(() -> {
                 store1.runBackgroundOperations();
@@ -1250,7 +1263,7 @@ public class VersionGarbageCollectorIT {
     }
 
     private void merge(DocumentNodeStore store, NodeBuilder builder)
-            throws CommitFailedException {
+        throws CommitFailedException {
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 

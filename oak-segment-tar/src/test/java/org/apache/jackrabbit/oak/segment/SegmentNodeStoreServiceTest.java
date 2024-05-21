@@ -31,7 +31,6 @@ import java.io.IOException;
 import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.List;
-
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.oak.plugins.blob.BlobGCMBean;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
@@ -58,13 +57,13 @@ public class SegmentNodeStoreServiceTest {
     public TemporaryFolder folder = new TemporaryFolder(new File("target"));
 
     @Before
-    public void setUp(){
+    public void setUp() {
         context.registerService(StatisticsProvider.class, StatisticsProvider.NOOP);
     }
 
     /**
-     * A NodeStore service should be registered when a BlobStore service is not
-     * available and the "customBlobStore" configuration property is false.
+     * A NodeStore service should be registered when a BlobStore service is not available and the
+     * "customBlobStore" configuration property is false.
      */
     @Test
     public void testNoCustomBlobStoreWithoutBlobStore() {
@@ -76,8 +75,8 @@ public class SegmentNodeStoreServiceTest {
     }
 
     /**
-     * A NodeStore service should be registered when a BlobStore service is not
-     * available but the "customBlobStore" configuration property is false.
+     * A NodeStore service should be registered when a BlobStore service is not available but the
+     * "customBlobStore" configuration property is false.
      */
     @Test
     public void testNoCustomBlobStoreWithBlobStore() {
@@ -92,8 +91,8 @@ public class SegmentNodeStoreServiceTest {
     }
 
     /**
-     * A NodeStore service should not be registered when the "customBlobStore"
-     * configuration property is true but a BlobStore service is not available.
+     * A NodeStore service should not be registered when the "customBlobStore" configuration
+     * property is true but a BlobStore service is not available.
      */
     @Test
     public void testUseCustomBlobStoreWithoutBlobStore() {
@@ -105,8 +104,8 @@ public class SegmentNodeStoreServiceTest {
     }
 
     /**
-     * A NodeStore service should be registered when the "customBlobStore"
-     * configuration property is true and a BlobStore service is available.
+     * A NodeStore service should be registered when the "customBlobStore" configuration property is
+     * true and a BlobStore service is available.
      */
     @Test
     public void testUseCustomBlobStoreWithBlobStore() {
@@ -121,9 +120,8 @@ public class SegmentNodeStoreServiceTest {
     }
 
     /**
-     * A NodeStore service should be registered when the "customBlobStore"
-     * configuration property is true and a BlobStore service becomes
-     * dynamically available.
+     * A NodeStore service should be registered when the "customBlobStore" configuration property is
+     * true and a BlobStore service becomes dynamically available.
      */
     @Test
     public void testUseCustomBlobStoreWithDynamicBlobStoreActivation() {
@@ -139,9 +137,8 @@ public class SegmentNodeStoreServiceTest {
     }
 
     /**
-     * A NodeStore service should be unregistered when the "customBlobStore"
-     * configuration property is true and a BlobStore service becomes
-     * dynamically unavailable.
+     * A NodeStore service should be unregistered when the "customBlobStore" configuration property
+     * is true and a BlobStore service becomes dynamically unavailable.
      */
     @Test
     public void testUseCustomBlobStoreWithDynamicBlobStoreDeactivation() {
@@ -158,8 +155,8 @@ public class SegmentNodeStoreServiceTest {
     }
 
     /**
-     * A SharedDataStore service should be registered when the "customBlobStore"
-     * configuration property is true and a BlobStore service as SharedDataStore available.
+     * A SharedDataStore service should be registered when the "customBlobStore" configuration
+     * property is true and a BlobStore service as SharedDataStore available.
      */
     @Test
     public void testUseCustomBlobStoreWithSharedBlobStore() throws IOException {
@@ -176,8 +173,8 @@ public class SegmentNodeStoreServiceTest {
     }
 
     /**
-     * A SharedDataStore service should not be registered when the "customBlobStore"
-     * configuration property is false and a BlobStore service as SharedDataStore available.
+     * A SharedDataStore service should not be registered when the "customBlobStore" configuration
+     * property is false and a BlobStore service as SharedDataStore available.
      */
     @Test
     public void testUseNoCustomBlobStoreWithSharedBlobStore() throws IOException {
@@ -199,20 +196,23 @@ public class SegmentNodeStoreServiceTest {
         Hashtable<String, Object> properties = new Hashtable<>();
 
         properties.put(SegmentNodeStoreService.CUSTOM_BLOB_STORE, customBlobStore);
-        properties.put(SegmentNodeStoreService.REPOSITORY_HOME_DIRECTORY, folder.getRoot().getAbsolutePath());
+        properties.put(SegmentNodeStoreService.REPOSITORY_HOME_DIRECTORY,
+            folder.getRoot().getAbsolutePath());
 
-        // OAK-10367: The call 
+        // OAK-10367: The call
         // context.registerInjectActivateService(new SegmentNodeStoreService(), properties)
         // isn't working properly anymore. It calls
         // context.bundleContext().registerService(null, new SegmentNodeStoreService(), properties).
         // A service registered this way will not be found by
         // context.bundleContext().getServiceReferences(SegmentNodeStoreService.class, null).
-        // 
+        //
         //segmentNodeStoreService = context.registerInjectActivateService(new SegmentNodeStoreService(), properties);
         segmentNodeStoreService = new SegmentNodeStoreService();
         MockOsgi.injectServices(segmentNodeStoreService, context.bundleContext(), properties);
-        MockOsgi.activate(segmentNodeStoreService, context.bundleContext(), (Dictionary<String, Object>) properties);
-        context.bundleContext().registerService(SegmentNodeStoreService.class, segmentNodeStoreService, properties);
+        MockOsgi.activate(segmentNodeStoreService, context.bundleContext(),
+            (Dictionary<String, Object>) properties);
+        context.bundleContext()
+               .registerService(SegmentNodeStoreService.class, segmentNodeStoreService, properties);
     }
 
     protected void unregisterSegmentNodeStoreService() {
@@ -222,7 +222,8 @@ public class SegmentNodeStoreServiceTest {
     private ServiceRegistration blobStore;
 
     private void registerBlobStore() {
-        blobStore = context.bundleContext().registerService(BlobStore.class.getName(), mock(GarbageCollectableBlobStore.class), null);
+        blobStore = context.bundleContext().registerService(BlobStore.class.getName(),
+            mock(GarbageCollectableBlobStore.class), null);
     }
 
     private DataStoreBlobStore registerSharedDataStore(File home) {
@@ -230,7 +231,8 @@ public class SegmentNodeStoreServiceTest {
         ds.init(home.getAbsolutePath());
         DataStoreBlobStore dataStoreBlobStore = new DataStoreBlobStore(ds);
 
-        blobStore = context.bundleContext().registerService(BlobStore.class.getName(), dataStoreBlobStore, null);
+        blobStore = context.bundleContext()
+                           .registerService(BlobStore.class.getName(), dataStoreBlobStore, null);
         return dataStoreBlobStore;
     }
 
@@ -250,13 +252,15 @@ public class SegmentNodeStoreServiceTest {
 
     protected void assertSharedDataStoreRegistered(DataStoreBlobStore dataStoreBlobStore) {
         List<DataRecord> allMetadataRecords =
-            dataStoreBlobStore.getAllMetadataRecords(SharedDataStoreUtils.SharedStoreRecordType.REPOSITORY.getType());
+            dataStoreBlobStore.getAllMetadataRecords(
+                SharedDataStoreUtils.SharedStoreRecordType.REPOSITORY.getType());
         assertFalse(allMetadataRecords.isEmpty());
     }
 
     protected void assertSharedDataStoreNotRegistered(DataStoreBlobStore dataStoreBlobStore) {
         List<DataRecord> allMetadataRecords =
-            dataStoreBlobStore.getAllMetadataRecords(SharedDataStoreUtils.SharedStoreRecordType.REPOSITORY.getType());
+            dataStoreBlobStore.getAllMetadataRecords(
+                SharedDataStoreUtils.SharedStoreRecordType.REPOSITORY.getType());
         assertTrue(allMetadataRecords.isEmpty());
     }
 

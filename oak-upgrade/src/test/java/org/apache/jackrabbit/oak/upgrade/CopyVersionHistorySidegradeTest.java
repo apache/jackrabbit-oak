@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.upgrade;
 
+import java.io.IOException;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.jcr.repository.RepositoryImpl;
@@ -23,11 +26,6 @@ import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.upgrade.util.VersionCopyTestUtils.VersionCopySetup;
 import org.junit.Before;
-
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-
-import java.io.IOException;
 
 public class CopyVersionHistorySidegradeTest extends CopyVersionHistoryTest {
 
@@ -38,7 +36,8 @@ public class CopyVersionHistorySidegradeTest extends CopyVersionHistoryTest {
     public void upgradeRepository() throws Exception {
         if (sourceNodeStore == null) {
             sourceNodeStore = new MemoryNodeStore();
-            RepositoryImpl repository = (RepositoryImpl) new Jcr(new Oak(sourceNodeStore)).createRepository();
+            RepositoryImpl repository = (RepositoryImpl) new Jcr(
+                new Oak(sourceNodeStore)).createRepository();
             Session session = repository.login(CREDENTIALS);
             try {
                 createSourceContent(session);
@@ -50,7 +49,8 @@ public class CopyVersionHistorySidegradeTest extends CopyVersionHistoryTest {
     }
 
     @Override
-    protected void migrate(VersionCopySetup setup, NodeStore target, String includePath) throws RepositoryException, IOException {
+    protected void migrate(VersionCopySetup setup, NodeStore target, String includePath)
+        throws RepositoryException, IOException {
         final RepositorySidegrade sidegrade = new RepositorySidegrade(sourceNodeStore, target);
         sidegrade.setIncludes(includePath);
         setup.setup(sidegrade.versionCopyConfiguration);

@@ -16,6 +16,18 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import static java.util.Collections.singletonList;
+import static org.apache.jackrabbit.guava.common.base.Objects.equal;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
+import static org.apache.jackrabbit.guava.common.collect.Lists.partition;
+import static org.apache.jackrabbit.oak.plugins.document.Collection.JOURNAL;
+import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
+import static org.apache.jackrabbit.oak.plugins.document.Document.MOD_COUNT;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.COLLISIONS;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SPLIT_CANDIDATE_THRESHOLD;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -28,7 +40,6 @@ import java.util.NavigableSet;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Sets;
@@ -41,18 +52,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.apache.jackrabbit.guava.common.base.Objects.equal;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
-import static org.apache.jackrabbit.guava.common.collect.Lists.partition;
-import static java.util.Collections.singletonList;
-import static org.apache.jackrabbit.oak.plugins.document.Collection.JOURNAL;
-import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
-import static org.apache.jackrabbit.oak.plugins.document.Document.MOD_COUNT;
-import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.COLLISIONS;
-import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SPLIT_CANDIDATE_THRESHOLD;
 
 /**
  * A higher level object representing a commit.
@@ -81,24 +80,25 @@ public class Commit {
     private final HashSet<Path> addedNodes = new HashSet<>();
     private final HashSet<Path> removedNodes = new HashSet<>();
 
-    /** Set of all nodes which have binary properties. **/
+    /**
+     * Set of all nodes which have binary properties.
+     **/
     private final HashSet<Path> nodesWithBinaries = new HashSet<>();
     private final HashMap<Path, Path> bundledNodes = new HashMap<>();
 
     /**
      * Create a new Commit.
-     *  
-     * @param nodeStore the node store.
-     * @param revision the revision for this commit.
-     * @param baseRevision the base revision for this commit or {@code null} if
-     *                     there is none.
-     * @param startRevisions the revisions for each cluster node corresponding
-     *          to the start time of the cluster nodes.
+     *
+     * @param nodeStore      the node store.
+     * @param revision       the revision for this commit.
+     * @param baseRevision   the base revision for this commit or {@code null} if there is none.
+     * @param startRevisions the revisions for each cluster node corresponding to the start time of
+     *                       the cluster nodes.
      */
     Commit(@NotNull DocumentNodeStore nodeStore,
-           @NotNull Revision revision,
-           @Nullable RevisionVector baseRevision,
-           @NotNull RevisionVector startRevisions) {
+        @NotNull Revision revision,
+        @Nullable RevisionVector baseRevision,
+        @NotNull RevisionVector startRevisions) {
         this.nodeStore = checkNotNull(nodeStore);
         this.revision = checkNotNull(revision);
         this.baseRevision = baseRevision;
@@ -106,14 +106,14 @@ public class Commit {
     }
 
     Commit(@NotNull DocumentNodeStore nodeStore,
-           @NotNull Revision revision,
-           @Nullable RevisionVector baseRevision,
-           @NotNull RevisionVector startRevisions,
-           @NotNull Map<Path, UpdateOp> operations,
-           @NotNull Set<Path> addedNodes,
-           @NotNull Set<Path> removedNodes,
-           @NotNull Set<Path> nodesWithBinaries,
-           @NotNull Map<Path, Path> bundledNodes) {
+        @NotNull Revision revision,
+        @Nullable RevisionVector baseRevision,
+        @NotNull RevisionVector startRevisions,
+        @NotNull Map<Path, UpdateOp> operations,
+        @NotNull Set<Path> addedNodes,
+        @NotNull Set<Path> removedNodes,
+        @NotNull Set<Path> nodesWithBinaries,
+        @NotNull Map<Path, Path> bundledNodes) {
         this(nodeStore, revision, baseRevision, startRevisions);
         this.operations.putAll(operations);
         this.addedNodes.addAll(addedNodes);
@@ -132,8 +132,8 @@ public class Commit {
     }
 
     static UpdateOp createUpdateOp(Path path,
-                                   Revision revision,
-                                   boolean isBranch) {
+        Revision revision,
+        boolean isBranch) {
         String id = Utils.getIdFromPath(path);
         UpdateOp op = new UpdateOp(id, false);
         NodeDocument.setModified(op, revision);
@@ -144,8 +144,8 @@ public class Commit {
     }
 
     /**
-     * The revision for this new commit. That is, the changes within this commit
-     * will be visible with this revision.
+     * The revision for this new commit. That is, the changes within this commit will be visible
+     * with this revision.
      *
      * @return the revision for this new commit.
      */
@@ -155,8 +155,8 @@ public class Commit {
     }
 
     /**
-     * Returns the base revision for this commit. That is, the revision passed
-     * to {@link DocumentNodeStore#newCommit}. The base revision may be
+     * Returns the base revision for this commit. That is, the revision passed to
+     * {@link DocumentNodeStore#newCommit}. The base revision may be
      * <code>null</code>, e.g. for the initial commit of the root node, when
      * there is no base revision.
      *
@@ -168,8 +168,7 @@ public class Commit {
     }
 
     /**
-     * @return all modified paths, including ancestors without explicit
-     *          modifications.
+     * @return all modified paths, including ancestors without explicit modifications.
      */
     @NotNull
     Iterable<Path> getModifiedPaths() {
@@ -183,8 +182,8 @@ public class Commit {
     /**
      * Performs a rollback of this commit if necessary.
      *
-     * @return {@code false} if a rollback was necessary and the rollback did
-     *         not complete successfully, {@code true} otherwise.
+     * @return {@code false} if a rollback was necessary and the rollback did not complete
+     * successfully, {@code true} otherwise.
      */
     boolean rollback() {
         boolean success = false;
@@ -201,7 +200,7 @@ public class Commit {
     /**
      * Applies this commit to the store.
      *
-     * @throws ConflictException if the commit failed because of a conflict.
+     * @throws ConflictException      if the commit failed because of a conflict.
      * @throws DocumentStoreException if the commit cannot be applied.
      */
     void apply() throws ConflictException, DocumentStoreException {
@@ -235,7 +234,7 @@ public class Commit {
      * Apply the changes to the document store and the cache.
      */
     private void applyInternal()
-            throws ConflictException, DocumentStoreException {
+        throws ConflictException, DocumentStoreException {
         if (!operations.isEmpty()) {
             updateParentChildStatus();
             updateBinaryStatus();
@@ -244,7 +243,7 @@ public class Commit {
     }
 
     private void prepare(RevisionVector baseRevision)
-            throws ConflictException, DocumentStoreException {
+        throws ConflictException, DocumentStoreException {
         if (!operations.isEmpty()) {
             updateParentChildStatus();
             updateBinaryStatus();
@@ -271,34 +270,32 @@ public class Commit {
     /**
      * Apply the changes to the document store.
      *
-     * @param baseBranchRevision the base revision of this commit. Currently only
-     *                     used for branch commits.
-     * @throws ConflictException if a conflict is detected with another commit.
-     * @throws DocumentStoreException if an error occurs while writing to the
-     *          underlying store.
+     * @param baseBranchRevision the base revision of this commit. Currently only used for branch
+     *                           commits.
+     * @throws ConflictException      if a conflict is detected with another commit.
+     * @throws DocumentStoreException if an error occurs while writing to the underlying store.
      */
     private void applyToDocumentStoreWithTiming(RevisionVector baseBranchRevision)
-            throws ConflictException, DocumentStoreException {
+        throws ConflictException, DocumentStoreException {
         long start = System.nanoTime();
         try {
             applyToDocumentStore(baseBranchRevision);
         } finally {
             nodeStore.getStatsCollector().doneChangesApplied(
-                    TimeUnit.NANOSECONDS.toMicros(System.nanoTime() - start));
+                TimeUnit.NANOSECONDS.toMicros(System.nanoTime() - start));
         }
     }
 
     /**
      * Apply the changes to the document store.
      *
-     * @param baseBranchRevision the base revision of this commit. Currently only
-     *                     used for branch commits.
-     * @throws ConflictException if a conflict is detected with another commit.
-     * @throws DocumentStoreException if an error occurs while writing to the
-     *          underlying store.
+     * @param baseBranchRevision the base revision of this commit. Currently only used for branch
+     *                           commits.
+     * @throws ConflictException      if a conflict is detected with another commit.
+     * @throws DocumentStoreException if an error occurs while writing to the underlying store.
      */
     private void applyToDocumentStore(RevisionVector baseBranchRevision)
-            throws ConflictException, DocumentStoreException {
+        throws ConflictException, DocumentStoreException {
         // initially set the rollback to always fail until we have changes
         // in an oplog list and a commit root.
         rollback = Rollback.FAILED;
@@ -307,7 +304,8 @@ public class Commit {
         // regular commits use "c", which makes the commit visible to
         // other readers. branch commits use the base revision to indicate
         // the visibility of the commit
-        String commitValue = baseBranchRevision != null ? baseBranchRevision.getBranchRevision().toString() : "c";
+        String commitValue =
+            baseBranchRevision != null ? baseBranchRevision.getBranchRevision().toString() : "c";
         DocumentStore store = nodeStore.getDocumentStore();
         Path commitRootPath = null;
         if (baseBranchRevision != null) {
@@ -339,10 +337,10 @@ public class Commit {
         commitRootPath = bundledNodes.getOrDefault(commitRootPath, commitRootPath);
 
         rollback = new Rollback(revision, opLog,
-                Utils.getIdFromPath(commitRootPath),
-                nodeStore.getCreateOrUpdateBatchSize());
+            Utils.getIdFromPath(commitRootPath),
+            nodeStore.getCreateOrUpdateBatchSize());
 
-        for (Path p : bundledNodes.keySet()){
+        for (Path p : bundledNodes.keySet()) {
             markChanged(p);
         }
 
@@ -372,7 +370,8 @@ public class Commit {
                     final NavigableSet<Revision> commits = new TreeSet<>(localBranch.getCommits());
                     boolean removePreviousSetOperations = false;
                     for (Map.Entry<Key, Operation> change : op.getChanges().entrySet()) {
-                        if (PROPERTY_NAME_CHILDORDER.equals(change.getKey().getName()) && Operation.Type.SET_MAP_ENTRY == change.getValue().type) {
+                        if (PROPERTY_NAME_CHILDORDER.equals(change.getKey().getName())
+                            && Operation.Type.SET_MAP_ENTRY == change.getValue().type) {
                             // we are setting child order, so we should remove previous set operations from the same branch
                             removePreviousSetOperations = true;
                             // branch.getCommits contains all revisions of the branch
@@ -387,8 +386,9 @@ public class Commit {
                             for (Revision rev : commits.descendingSet()) {
                                 op.removeMapEntry(PROPERTY_NAME_CHILDORDER, rev.asTrunkRevision());
                                 if (++countRemoves >= 256) {
-                                    LOG.debug("applyToDocumentStore : only cleaning up last {} branch commits.",
-                                            countRemoves);
+                                    LOG.debug(
+                                        "applyToDocumentStore : only cleaning up last {} branch commits.",
+                                        countRemoves);
                                     break;
                                 }
                             }
@@ -438,14 +438,14 @@ public class Commit {
                     NodeDocument before = nodeStore.updateCommitRoot(commit, revision);
                     if (before == null) {
                         String msg = "Conflicting concurrent change. " +
-                                "Update operation failed: " + commit;
+                            "Update operation failed: " + commit;
                         NodeDocument commitRootDoc = store.find(NODES, commit.getId());
                         if (commitRootDoc == null) {
                             throw new DocumentStoreException(msg);
                         } else {
                             throw new ConflictException(msg,
-                                    commitRootDoc.getConflictsFor(
-                                            Collections.singleton(revision)));
+                                commitRootDoc.getConflictsFor(
+                                    Collections.singleton(revision)));
                         }
                     } else {
                         success = true;
@@ -483,8 +483,8 @@ public class Commit {
     }
 
     private boolean conditionalCommit(List<UpdateOp> changedNodes,
-                                      String commitValue)
-            throws DocumentStoreException {
+        String commitValue)
+        throws DocumentStoreException {
         // conditional commit is only possible when not on a branch
         // and commit root is on the same document as the changes
         if (!Utils.isCommitted(commitValue) || changedNodes.size() != 1) {
@@ -538,7 +538,7 @@ public class Commit {
             }
 
             //Ignore setting children path for bundled nodes
-            if (isBundled(parentPath)){
+            if (isBundled(parentPath)) {
                 continue;
             }
 
@@ -549,16 +549,15 @@ public class Commit {
     }
 
     /**
-     * Try to create or update the node. If there was a conflict, this method
-     * throws a {@link ConflictException}, even though the change is still applied.
+     * Try to create or update the node. If there was a conflict, this method throws a
+     * {@link ConflictException}, even though the change is still applied.
      *
      * @param store the store
-     * @param op the operation
-     * @throws ConflictException if there was a conflict introduced by the
-     *          given update operation.
+     * @param op    the operation
+     * @throws ConflictException if there was a conflict introduced by the given update operation.
      */
     private void createOrUpdateNode(DocumentStore store, UpdateOp op)
-            throws ConflictException, DocumentStoreException {
+        throws ConflictException, DocumentStoreException {
         NodeDocument doc = store.createOrUpdate(NODES, op);
         checkConflicts(op, doc);
         checkSplitCandidate(doc);
@@ -580,19 +579,17 @@ public class Commit {
     }
 
     /**
-     * Checks if the update operation introduced any conflicts on the given
-     * document. The document shows the state right before the operation was
-     * applied.
+     * Checks if the update operation introduced any conflicts on the given document. The document
+     * shows the state right before the operation was applied.
      *
-     * @param op the update operation.
-     * @param before how the document looked before the update was applied or
-     *               {@code null} if it didn't exist before.
-     * @throws ConflictException if there was a conflict introduced by the
-     *          given update operation.
+     * @param op     the update operation.
+     * @param before how the document looked before the update was applied or {@code null} if it
+     *               didn't exist before.
+     * @throws ConflictException if there was a conflict introduced by the given update operation.
      */
     private void checkConflicts(@NotNull UpdateOp op,
-                                @Nullable NodeDocument before)
-            throws ConflictException {
+        @Nullable NodeDocument before)
+        throws ConflictException {
         DocumentStore store = nodeStore.getDocumentStore();
         collisions.clear();
         if (baseRevision != null) {
@@ -605,16 +602,16 @@ public class Commit {
                 }
                 branch = getBranch();
                 newestRev = before.getNewestRevision(
-                        nodeStore, base, revision, branch, collisions);
+                    nodeStore, base, revision, branch, collisions);
             }
             String conflictMessage = null;
             Set<Revision> conflictRevisions = Sets.newHashSet();
             if (newestRev == null) {
                 if ((op.isDelete() || !op.isNew())
-                        && !allowConcurrentAddRemove(before, op)) {
+                    && !allowConcurrentAddRemove(before, op)) {
                     conflictMessage = "The node " +
-                            op.getId() + " does not exist or is already deleted " +
-                            "at base revision " + baseRevision + ", branch: " + branch;
+                        op.getId() + " does not exist or is already deleted " +
+                        "at base revision " + baseRevision + ", branch: " + branch;
                     if (before != null && !before.getLocalDeleted().isEmpty()) {
                         conflictRevisions.add(before.getLocalDeleted().firstKey());
                     }
@@ -623,15 +620,15 @@ public class Commit {
                 conflictRevisions.add(newestRev);
                 if (op.isNew() && !allowConcurrentAddRemove(before, op)) {
                     conflictMessage = "The node " +
-                            op.getId() + " already existed in revision\n" +
-                            formatConflictRevision(newestRev);
+                        op.getId() + " already existed in revision\n" +
+                        formatConflictRevision(newestRev);
                 } else if (baseRevision.isRevisionNewer(newestRev)
-                        && (op.isDelete() || isConflicting(before, op))) {
+                    && (op.isDelete() || isConflicting(before, op))) {
                     conflictMessage = "The node " +
-                            op.getId() + " was changed in revision\n" +
-                            formatConflictRevision(newestRev) +
-                            ", which was applied after the base revision\n" +
-                            baseRevision;
+                        op.getId() + " was changed in revision\n" +
+                        formatConflictRevision(newestRev) +
+                        ", which was applied after the base revision\n" +
+                        baseRevision;
                 }
             }
             if (conflictMessage == null && before != null) {
@@ -652,10 +649,10 @@ public class Commit {
                             } else {
                                 // fail immediately
                                 conflictMessage = "The node " +
-                                        op.getId() + " was changed in revision\n" +
-                                        formatConflictRevision(r) +
-                                        ", which was applied after the base revision\n" +
-                                        baseRevision;
+                                    op.getId() + " was changed in revision\n" +
+                                    formatConflictRevision(r) +
+                                    ", which was applied after the base revision\n" +
+                                    baseRevision;
                                 conflictRevisions.add(r);
                             }
                         }
@@ -665,8 +662,8 @@ public class Commit {
             if (conflictMessage != null) {
                 conflictMessage += ", commit revision: " + revision;
                 if (LOG.isDebugEnabled()) {
-                    LOG.debug(conflictMessage  + "; document:\n" +
-                            (before == null ? "" : before.format()));
+                    LOG.debug(conflictMessage + "; document:\n" +
+                        (before == null ? "" : before.format()));
                 }
                 throw new ConflictException(conflictMessage, conflictRevisions);
             }
@@ -674,8 +671,8 @@ public class Commit {
     }
 
     private void checkConflicts(List<NodeDocument> oldDocs,
-                                List<UpdateOp> updates)
-            throws ConflictException {
+        List<UpdateOp> updates)
+        throws ConflictException {
         int i = 0;
         List<ConflictException> exceptions = new ArrayList<ConflictException>();
         Set<Revision> revisions = new HashSet<Revision>();
@@ -689,7 +686,9 @@ public class Commit {
             }
         }
         if (!exceptions.isEmpty()) {
-            throw new ConflictException("Following exceptions occurred during the bulk update operations: " + exceptions, revisions);
+            throw new ConflictException(
+                "Following exceptions occurred during the bulk update operations: " + exceptions,
+                revisions);
         }
     }
 
@@ -697,8 +696,8 @@ public class Commit {
         if (nodeStore.getHeadRevision().isRevisionNewer(r)) {
             return r + " (not yet visible)";
         } else if (baseRevision != null
-                && !baseRevision.isRevisionNewer(r)
-                && !equal(baseRevision.getRevision(r.getClusterId()), r)) {
+            && !baseRevision.isRevisionNewer(r)
+            && !equal(baseRevision.getRevision(r.getClusterId()), r)) {
             return r + " (older than base " + baseRevision + ")";
         } else {
             return r.toString();
@@ -706,45 +705,42 @@ public class Commit {
     }
 
     /**
-     * Checks whether the given <code>UpdateOp</code> conflicts with the
-     * existing content in <code>doc</code>. The check is done based on the
-     * {@link #baseRevision} of this commit. An <code>UpdateOp</code> conflicts
-     * when there were changes after {@link #baseRevision} on properties also
-     * contained in <code>UpdateOp</code>.
+     * Checks whether the given <code>UpdateOp</code> conflicts with the existing content in
+     * <code>doc</code>. The check is done based on the {@link #baseRevision} of this commit. An
+     * <code>UpdateOp</code> conflicts when there were changes after {@link #baseRevision} on
+     * properties also contained in <code>UpdateOp</code>.
      *
      * @param doc the contents of the nodes before the update.
-     * @param op the update to perform.
+     * @param op  the update to perform.
      * @return <code>true</code> if the update conflicts; <code>false</code>
-     *         otherwise.
+     * otherwise.
      */
     private boolean isConflicting(@Nullable NodeDocument doc,
-                                  @NotNull UpdateOp op) {
+        @NotNull UpdateOp op) {
         if (baseRevision == null || doc == null) {
             // no conflict is possible when there is no baseRevision
             // or document did not exist before
             return false;
         }
         return doc.isConflicting(op, baseRevision, revision,
-                nodeStore.getEnableConcurrentAddRemove());
+            nodeStore.getEnableConcurrentAddRemove());
     }
 
     /**
-     * Checks whether a concurrent add/remove operation is allowed with the
-     * given before document and update operation. This method will first check
-     * if the concurrent add/remove feature is enable and return {@code false}
-     * immediately if it is disabled. Only when enabled will this method check
-     * if there is a conflict based on the given document and update operation.
-     * See also {@link #isConflicting(NodeDocument, UpdateOp)}.
+     * Checks whether a concurrent add/remove operation is allowed with the given before document
+     * and update operation. This method will first check if the concurrent add/remove feature is
+     * enable and return {@code false} immediately if it is disabled. Only when enabled will this
+     * method check if there is a conflict based on the given document and update operation. See
+     * also {@link #isConflicting(NodeDocument, UpdateOp)}.
      *
      * @param before the contents of the document before the update.
-     * @param op the update to perform.
-     * @return {@code true} is a concurrent add/remove update is allowed;
-     *      {@code false} otherwise.
+     * @param op     the update to perform.
+     * @return {@code true} is a concurrent add/remove update is allowed; {@code false} otherwise.
      */
     private boolean allowConcurrentAddRemove(@Nullable NodeDocument before,
-                                             @NotNull UpdateOp op) {
+        @NotNull UpdateOp op) {
         return nodeStore.getEnableConcurrentAddRemove()
-                && !isConflicting(before, op);
+            && !isConflicting(before, op);
     }
 
     /**
@@ -757,7 +753,7 @@ public class Commit {
         }
         if (b == null) {
             b = nodeStore.getBranches().getBranch(
-                    new RevisionVector(revision.asBranchRevision()));
+                new RevisionVector(revision.asBranchRevision()));
         }
         return b;
     }
@@ -770,8 +766,7 @@ public class Commit {
     }
 
     /**
-     * Applies the lastRev updates to the {@link LastRevTracker} of the
-     * DocumentNodeStore.
+     * Applies the lastRev updates to the {@link LastRevTracker} of the DocumentNodeStore.
      *
      * @param isBranchCommit whether this is a branch commit.
      */
@@ -781,7 +776,7 @@ public class Commit {
             UpdateOp op = operations.get(path);
             // track _lastRev only when path is not for a bundled node state
             if ((op == null || !hasContentChanges(op) || path.isRoot())
-                    && !isBundled(path)) {
+                && !isBundled(path)) {
                 // track intermediate node and root
                 tracker.track(path);
             }
@@ -791,7 +786,7 @@ public class Commit {
     /**
      * Apply the changes to the DocumentNodeStore (to update the cache).
      *
-     * @param before the revision right before this commit.
+     * @param before         the revision right before this commit.
      * @param isBranchCommit whether this is a commit to a branch
      */
     public void applyToCache(RevisionVector before, boolean isBranchCommit) {
@@ -802,7 +797,7 @@ public class Commit {
             }
             Path parent = p.getParent();
             ArrayList<Path> list = nodesWithChangedChildren
-                    .computeIfAbsent(parent, k -> new ArrayList<>());
+                .computeIfAbsent(parent, k -> new ArrayList<>());
             list.add(p);
         }
         // the commit revision with branch flag if this is a branch commit
@@ -834,7 +829,7 @@ public class Commit {
             if (!isBundled(path)) {
                 boolean isNew = op != null && op.isNew();
                 nodeStore.applyChanges(before, after, rev, path, isNew,
-                        added, removed, changed);
+                    added, removed, changed);
             }
             addChangesToDiffCacheEntry(path, added, removed, changed, cacheEntry);
         }
@@ -862,17 +857,17 @@ public class Commit {
     /**
      * Apply the changes of a node to the cache.
      *
-     * @param path the path
-     * @param added the list of added child nodes
-     * @param removed the list of removed child nodes
-     * @param changed the list of changed child nodes
+     * @param path       the path
+     * @param added      the list of added child nodes
+     * @param removed    the list of removed child nodes
+     * @param changed    the list of changed child nodes
      * @param cacheEntry the cache entry changes are added to
      */
     private void addChangesToDiffCacheEntry(Path path,
-                                            List<Path> added,
-                                            List<Path> removed,
-                                            List<Path> changed,
-                                            DiffCache.Entry cacheEntry) {
+        List<Path> added,
+        List<Path> removed,
+        List<Path> changed,
+        DiffCache.Entry cacheEntry) {
         // update diff cache
         JsopWriter w = new JsopStream();
         for (Path p : added) {
@@ -892,15 +887,15 @@ public class Commit {
     }
 
     private static final Function<UpdateOp.Key, String> KEY_TO_NAME =
-            new Function<UpdateOp.Key, String>() {
-        @Override
-        public String apply(UpdateOp.Key input) {
-            return input.getName();
-        }
-    };
+        new Function<UpdateOp.Key, String>() {
+            @Override
+            public String apply(UpdateOp.Key input) {
+                return input.getName();
+            }
+        };
 
     private static boolean hasContentChanges(UpdateOp op) {
         return filter(transform(op.getChanges().keySet(),
-                KEY_TO_NAME), Utils.PROPERTY_OR_DELETED).iterator().hasNext();
+            KEY_TO_NAME), Utils.PROPERTY_OR_DELETED).iterator().hasNext();
     }
 }

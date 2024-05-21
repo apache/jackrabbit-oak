@@ -16,14 +16,13 @@
  */
 package org.apache.jackrabbit.oak.security.authentication.ldap.impl;
 
+import java.util.Collection;
+import javax.jcr.SimpleCredentials;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-
-import javax.jcr.SimpleCredentials;
-import java.util.Collection;
 
 @RunWith(Parameterized.class)
 public class LookupOnValidateTest extends AbstractLdapIdentityProviderTest {
@@ -31,14 +30,14 @@ public class LookupOnValidateTest extends AbstractLdapIdentityProviderTest {
     @Parameterized.Parameters(name = "name={1}")
     public static Collection<Object[]> parameters() {
         return Lists.newArrayList(
-                new Object[] { false, false, false, "False False" },
-                new Object[] { false, true, false, "False True" },
-                new Object[] { true, false, false, "True False"},
-                new Object[] { true, true, false, "True True" },
-                new Object[] { false, false, true, "False False useUidForExtId" },
-                new Object[] { false, true, true, "False True useUidForExtId" },
-                new Object[] { true, false, true, "True False useUidForExtId"},
-                new Object[] { true, true, true, "True True useUidForExtId" });
+            new Object[]{false, false, false, "False False"},
+            new Object[]{false, true, false, "False True"},
+            new Object[]{true, false, false, "True False"},
+            new Object[]{true, true, false, "True True"},
+            new Object[]{false, false, true, "False False useUidForExtId"},
+            new Object[]{false, true, true, "False True useUidForExtId"},
+            new Object[]{true, false, true, "True False useUidForExtId"},
+            new Object[]{true, true, true, "True True useUidForExtId"});
     }
 
     private final boolean adminPoolLookupOnValidate;
@@ -47,7 +46,8 @@ public class LookupOnValidateTest extends AbstractLdapIdentityProviderTest {
 
     private final String expectedId;
 
-    public LookupOnValidateTest(boolean adminPoolLookupOnValidate, boolean userPoolLookupOnValidate, boolean useUidForExtId, String name) {
+    public LookupOnValidateTest(boolean adminPoolLookupOnValidate, boolean userPoolLookupOnValidate,
+        boolean useUidForExtId, String name) {
         this.adminPoolLookupOnValidate = adminPoolLookupOnValidate;
         this.userPoolLookupOnValidate = userPoolLookupOnValidate;
         this.useUidForExtId = useUidForExtId;
@@ -64,17 +64,18 @@ public class LookupOnValidateTest extends AbstractLdapIdentityProviderTest {
     protected LdapProviderConfig createProviderConfig(@NotNull String[] userProperties) {
         LdapProviderConfig config = super.createProviderConfig(userProperties);
         config.getAdminPoolConfig()
-                .setMaxActive(2)
-                .setLookupOnValidate(adminPoolLookupOnValidate);
+              .setMaxActive(2)
+              .setLookupOnValidate(adminPoolLookupOnValidate);
         config.getUserPoolConfig()
-                .setMaxActive(2)
-                .setLookupOnValidate(userPoolLookupOnValidate);
+              .setMaxActive(2)
+              .setLookupOnValidate(userPoolLookupOnValidate);
         config.setUseUidForExtId(useUidForExtId);
         return config;
     }
 
     @Test
     public void testAuthenticateValidate() throws Exception {
-        assertAuthenticate(idp, new SimpleCredentials(TEST_USER1_UID, "pass".toCharArray()), expectedId, TEST_USER1_DN);
+        assertAuthenticate(idp, new SimpleCredentials(TEST_USER1_UID, "pass".toCharArray()),
+            expectedId, TEST_USER1_DN);
     }
 }

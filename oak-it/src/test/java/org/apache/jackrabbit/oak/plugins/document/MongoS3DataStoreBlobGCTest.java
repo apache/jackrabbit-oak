@@ -18,11 +18,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import static org.junit.Assume.assumeTrue;
+
 import java.io.File;
 import java.util.Date;
 import java.util.List;
 import java.util.Properties;
-
 import org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants;
 import org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
@@ -32,8 +33,6 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-
-import static org.junit.Assume.assumeTrue;
 
 /**
  * Tests DataStoreGC with Mongo and S3
@@ -71,8 +70,9 @@ public class MongoS3DataStoreBlobGCTest extends MongoDataStoreBlobGCTest {
         blobStore = new DataStoreBlobStore(
             S3DataStoreUtils.getS3DataStore(s3Class, props, root.getAbsolutePath()));
         mk = new DocumentMK.Builder().clock(getTestClock())
-                .setMongoDB(mongoConnection.getMongoClient(), mongoConnection.getDBName())
-                .setBlobStore(blobStore).open();
+                                     .setMongoDB(mongoConnection.getMongoClient(),
+                                         mongoConnection.getDBName())
+                                     .setBlobStore(blobStore).open();
     }
 
     @After

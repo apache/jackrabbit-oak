@@ -43,20 +43,24 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class ReadOnlyDocumentStoreWrapperTest {
+
     @Rule
     public DocumentMKBuilderProvider builderProvider = new DocumentMKBuilderProvider();
 
     @Test
-    public void testPassthrough() throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+    public void testPassthrough()
+        throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
         final List<String> disallowedMethods = Lists.newArrayList(
-                "create", "update", "remove", "createOrUpdate", "findAndUpdate");
+            "create", "update", "remove", "createOrUpdate", "findAndUpdate");
         InvocationHandler handler = new InvocationHandler() {
             @Override
             public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
                 String methodName = method.getName();
 
                 if (disallowedMethods.contains(methodName)) {
-                    Assert.fail(String.format("Invalid passthrough of method (%s) with params %s", method, Arrays.toString(args)));
+                    Assert.fail(
+                        String.format("Invalid passthrough of method (%s) with params %s", method,
+                            Arrays.toString(args)));
                 }
 
                 if ("determineServerTimeDifferenceMillis".equals(methodName)) {
@@ -66,14 +70,15 @@ public class ReadOnlyDocumentStoreWrapperTest {
                 }
             }
         };
-        DocumentStore proxyStore = (DocumentStore)Proxy.newProxyInstance(DocumentStore.class.getClassLoader(),
-                new Class[]{DocumentStore.class},
-                handler);
+        DocumentStore proxyStore = (DocumentStore) Proxy.newProxyInstance(
+            DocumentStore.class.getClassLoader(),
+            new Class[]{DocumentStore.class},
+            handler);
 
         DocumentStore readOnlyStore = ReadOnlyDocumentStoreWrapperFactory.getInstance(proxyStore);
 
-        Collection<? extends Document> []collections = new Collection[] {
-                Collection.CLUSTER_NODES, Collection.JOURNAL, Collection.NODES, Collection.SETTINGS
+        Collection<? extends Document>[] collections = new Collection[]{
+            Collection.CLUSTER_NODES, Collection.JOURNAL, Collection.NODES, Collection.SETTINGS
         };
         for (Collection collection : collections) {
             readOnlyStore.find(collection, null);
@@ -164,9 +169,11 @@ public class ReadOnlyDocumentStoreWrapperTest {
         DocumentStore docStore = new MemoryDocumentStore();
 
         DocumentNodeStore store = builderProvider.newBuilder().setAsyncDelay(0)
-                .setDocumentStore(docStore).setClusterId(2).getNodeStore();
+                                                 .setDocumentStore(docStore).setClusterId(2)
+                                                 .getNodeStore();
         DocumentNodeStore readOnlyStore = builderProvider.newBuilder().setAsyncDelay(0)
-                .setDocumentStore(docStore).setClusterId(1).setReadOnlyMode().getNodeStore();
+                                                         .setDocumentStore(docStore).setClusterId(1)
+                                                         .setReadOnlyMode().getNodeStore();
 
         NodeBuilder builder = store.getRoot().builder();
         builder.child("node");

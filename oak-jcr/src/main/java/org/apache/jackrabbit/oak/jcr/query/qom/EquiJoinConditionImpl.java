@@ -31,7 +31,7 @@ public class EquiJoinConditionImpl extends JoinConditionImpl implements EquiJoin
     private final String selector2Name;
 
     public EquiJoinConditionImpl(String selector1Name, String property1Name, String selector2Name,
-            String property2Name) {
+        String property2Name) {
         this.selector1Name = selector1Name;
         this.property1Name = property1Name;
         this.selector2Name = selector2Name;
@@ -61,9 +61,9 @@ public class EquiJoinConditionImpl extends JoinConditionImpl implements EquiJoin
     @Override
     public String toString() {
         return quoteSelectorName(selector1Name) + '.' +
-                quotePropertyName(property1Name) + " = " +
-                quoteSelectorName(selector2Name) + '.' +
-                quotePropertyName(property2Name);
+            quotePropertyName(property1Name) + " = " +
+            quoteSelectorName(selector2Name) + '.' +
+            quotePropertyName(property2Name);
     }
 
 }

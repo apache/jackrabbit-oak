@@ -95,8 +95,8 @@ public class BranchTest {
     public void rootBranchCommitChildTest() throws Exception {
         MemoryDocumentStore store = new MemoryDocumentStore();
         DocumentNodeStore ns = builderProvider.newBuilder()
-                .setClusterId(1)
-                .setDocumentStore(store).build();
+                                              .setClusterId(1)
+                                              .setDocumentStore(store).build();
 
         NodeBuilder builder = ns.getRoot().builder();
         builder.child("a");
@@ -111,8 +111,8 @@ public class BranchTest {
     public void childBranchCommitChildTest() throws Exception {
         MemoryDocumentStore store = new MemoryDocumentStore();
         DocumentNodeStore ns = builderProvider.newBuilder()
-                .setClusterId(1)
-                .setDocumentStore(store).build();
+                                              .setClusterId(1)
+                                              .setDocumentStore(store).build();
 
         NodeBuilder builder = ns.getRoot().builder();
         builder.child("a");
@@ -131,8 +131,8 @@ public class BranchTest {
     public void manyBranchCommitsDepthTest() throws Exception {
         MemoryDocumentStore store = new MemoryDocumentStore();
         DocumentNodeStore ns = builderProvider.newBuilder()
-                .setClusterId(1)
-                .setDocumentStore(store).build();
+                                              .setClusterId(1)
+                                              .setDocumentStore(store).build();
 
         NodeBuilder builder = ns.getRoot().builder();
         builder.child("a");
@@ -159,8 +159,8 @@ public class BranchTest {
     public void manyBranchCommitsWidthTest() throws Exception {
         MemoryDocumentStore store = new MemoryDocumentStore();
         DocumentNodeStore ns = builderProvider.newBuilder()
-                .setClusterId(1)
-                .setDocumentStore(store).build();
+                                              .setClusterId(1)
+                                              .setDocumentStore(store).build();
 
         NodeBuilder builder = ns.getRoot().builder();
         builder.child("a");
@@ -187,8 +187,8 @@ public class BranchTest {
     public void mixedPre18BranchTest() throws Exception {
         MemoryDocumentStore store = new MemoryDocumentStore();
         DocumentNodeStore ns = builderProvider.newBuilder()
-                .setClusterId(1)
-                .setDocumentStore(store).build();
+                                              .setClusterId(1)
+                                              .setDocumentStore(store).build();
         // step 1 : create an initial structure /a/b/c
         NodeBuilder builder = ns.getRoot().builder();
         builder.child("a").child("b").child("c").setProperty("commit", "1");
@@ -224,7 +224,7 @@ public class BranchTest {
     public void orphanedBranchTest() {
         MemoryDocumentStore store = new MemoryDocumentStore();
         DocumentNodeStore ns = builderProvider.newBuilder()
-                .setDocumentStore(store).build();
+                                              .setDocumentStore(store).build();
         NodeBuilder builder = ns.getRoot().builder();
         builder.setProperty("p", "v");
         persistToBranch(builder);
@@ -232,7 +232,7 @@ public class BranchTest {
 
         // start again
         ns = builderProvider.newBuilder()
-                .setDocumentStore(store).build();
+                            .setDocumentStore(store).build();
         assertFalse(ns.getRoot().hasProperty("p"));
 
         Sweep2TestHelper.testPre18UpgradeSimulations(ns, builderProvider);
@@ -241,7 +241,7 @@ public class BranchTest {
     @Test
     public void compareBranchStates() {
         DocumentNodeStore ns = builderProvider.newBuilder()
-                .setAsyncDelay(0).build();
+                                              .setAsyncDelay(0).build();
         ns.runBackgroundOperations();
         DocumentStore store = ns.getDocumentStore();
 
@@ -257,7 +257,7 @@ public class BranchTest {
         NodeStateDiff diff = new DefaultNodeStateDiff() {
             @Override
             public boolean propertyChanged(PropertyState before,
-                                           PropertyState after) {
+                PropertyState after) {
                 changes.add(before.getName());
                 return super.propertyChanged(before, after);
             }

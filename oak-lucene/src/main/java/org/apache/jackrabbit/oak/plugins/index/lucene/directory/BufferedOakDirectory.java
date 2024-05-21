@@ -16,12 +16,16 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
+import static java.util.Arrays.asList;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState.squeeze;
+
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Set;
-
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.ActiveDeletedBlobCollectorFactory.BlobDeletionCallback;
@@ -38,27 +42,25 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static java.util.Arrays.asList;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState.squeeze;
-
 /**
- * A directory implementation that buffers changes until {@link #close()},
- * except for blob values. Those are written immediately to the store.
+ * A directory implementation that buffers changes until {@link #close()}, except for blob values.
+ * Those are written immediately to the store.
  */
 public final class BufferedOakDirectory extends Directory {
+
     public static final String ENABLE_WRITING_SINGLE_BLOB_INDEX_FILE_PARAM = "oak.lucene.enableSingleBlobIndexFiles";
     private static boolean enableWritingSingleBlobIndexFile = Boolean.parseBoolean(
-            System.getProperty(ENABLE_WRITING_SINGLE_BLOB_INDEX_FILE_PARAM, "true"));
-    public static void setEnableWritingSingleBlobIndexFile (boolean val) {
+        System.getProperty(ENABLE_WRITING_SINGLE_BLOB_INDEX_FILE_PARAM, "true"));
+
+    public static void setEnableWritingSingleBlobIndexFile(boolean val) {
         String cliValStr = System.getProperty(ENABLE_WRITING_SINGLE_BLOB_INDEX_FILE_PARAM);
 
         if (cliValStr != null) {
             boolean cliVal = Boolean.parseBoolean(cliValStr);
 
             if (cliVal != val) {
-                LOG.warn("Ignoring configuration {} as CLI param overrides with a different value", val);
+                LOG.warn("Ignoring configuration {} as CLI param overrides with a different value",
+                    val);
                 if (cliVal != enableWritingSingleBlobIndexFile) {
                     enableWritingSingleBlobIndexFile = cliVal;
                 }
@@ -67,9 +69,11 @@ public final class BufferedOakDirectory extends Directory {
         }
         enableWritingSingleBlobIndexFile = val;
     }
+
     public static boolean isEnableWritingSingleBlobIndexFile() {
         return enableWritingSingleBlobIndexFile;
     }
+
     // for test
     static void reReadCommandLineParam() {
         String val = System.getProperty(ENABLE_WRITING_SINGLE_BLOB_INDEX_FILE_PARAM);
@@ -102,25 +106,26 @@ public final class BufferedOakDirectory extends Directory {
 
 
     public BufferedOakDirectory(@NotNull NodeBuilder builder,
-                                @NotNull String dataNodeName,
-                                @NotNull LuceneIndexDefinition definition,
-                                @Nullable BlobStore blobStore) {
+        @NotNull String dataNodeName,
+        @NotNull LuceneIndexDefinition definition,
+        @Nullable BlobStore blobStore) {
         this(builder, dataNodeName, definition, blobStore, BlobDeletionCallback.NOOP);
     }
 
     public BufferedOakDirectory(@NotNull NodeBuilder builder,
-                                @NotNull String dataNodeName,
-                                @NotNull LuceneIndexDefinition definition,
-                                @Nullable BlobStore blobStore,
-                                @NotNull ActiveDeletedBlobCollectorFactory.BlobDeletionCallback blobDeletionCallback) {
+        @NotNull String dataNodeName,
+        @NotNull LuceneIndexDefinition definition,
+        @Nullable BlobStore blobStore,
+        @NotNull ActiveDeletedBlobCollectorFactory.BlobDeletionCallback blobDeletionCallback) {
         this.blobFactory = blobStore != null ?
-                BlobFactory.getBlobStoreBlobFactory(blobStore) :
-                BlobFactory.getNodeBuilderBlobFactory(builder);
+            BlobFactory.getBlobStoreBlobFactory(blobStore) :
+            BlobFactory.getNodeBuilderBlobFactory(builder);
         this.blobDeletionCallback = blobDeletionCallback;
         this.dataNodeName = checkNotNull(dataNodeName);
         this.definition = checkNotNull(definition);
         this.base = new OakDirectory(checkNotNull(builder), dataNodeName,
-                definition, false, blobFactory, blobDeletionCallback, isEnableWritingSingleBlobIndexFile());
+            definition, false, blobFactory, blobDeletionCallback,
+            isEnableWritingSingleBlobIndexFile());
         reopenBuffered();
     }
 
@@ -160,7 +165,7 @@ public final class BufferedOakDirectory extends Directory {
         LOG.debug("[{}]fileLength({})", definition.getIndexPath(), name);
         if (bufferedForDelete.contains(name)) {
             String msg = String.format("already deleted: [%s] %s",
-                    definition.getIndexPath(), name);
+                definition.getIndexPath(), name);
             throw new FileNotFoundException(msg);
         }
         Directory dir = base;
@@ -172,7 +177,7 @@ public final class BufferedOakDirectory extends Directory {
 
     @Override
     public IndexOutput createOutput(String name, IOContext context)
-            throws IOException {
+        throws IOException {
         LOG.debug("[{}]createOutput({})", definition.getIndexPath(), name);
         bufferedForDelete.remove(name);
         return buffered.createOutput(name, context);
@@ -187,11 +192,11 @@ public final class BufferedOakDirectory extends Directory {
 
     @Override
     public IndexInput openInput(String name, IOContext context)
-            throws IOException {
+        throws IOException {
         LOG.debug("[{}]openInput({})", definition.getIndexPath(), name);
         if (bufferedForDelete.contains(name)) {
             String msg = String.format("already deleted: [%s] %s",
-                    definition.getIndexPath(), name);
+                definition.getIndexPath(), name);
             throw new FileNotFoundException(msg);
         }
         Directory dir = base;
@@ -241,7 +246,7 @@ public final class BufferedOakDirectory extends Directory {
         if (++deleteCount >= DELETE_THRESHOLD_UNTIL_REOPEN) {
             if (LOG.isDebugEnabled()) {
                 LOG.debug("Reopen buffered OakDirectory. Current list of files: {}",
-                        Arrays.asList(buffered.listAll()));
+                    Arrays.asList(buffered.listAll()));
             }
             buffered.close();
             reopenBuffered();
@@ -253,6 +258,7 @@ public final class BufferedOakDirectory extends Directory {
         // those are files that were created and later deleted again
         bufferedBuilder = squeeze(bufferedBuilder.getNodeState()).builder();
         buffered = new OakDirectory(bufferedBuilder, dataNodeName,
-                definition, false, blobFactory, blobDeletionCallback, isEnableWritingSingleBlobIndexFile());
+            definition, false, blobFactory, blobDeletionCallback,
+            isEnableWritingSingleBlobIndexFile());
     }
 }

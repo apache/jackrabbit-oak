@@ -19,14 +19,20 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
+import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newPathField;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
-
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.commons.io.IOUtils;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.InitialContentHelper;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.Type;
@@ -49,13 +55,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newPathField;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-
 public class IndexConsistencyCheckerTest {
 
     private NodeState rootState = InitialContentHelper.INITIAL_CONTENT;
@@ -66,8 +65,9 @@ public class IndexConsistencyCheckerTest {
     public final TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
 
     @Test
-    public void emptyIndex() throws Exception{
-        IndexConsistencyChecker checker = new IndexConsistencyChecker(EMPTY_NODE, "/foo", temporaryFolder.getRoot());
+    public void emptyIndex() throws Exception {
+        IndexConsistencyChecker checker = new IndexConsistencyChecker(EMPTY_NODE, "/foo",
+            temporaryFolder.getRoot());
         Result result = checker.check(Level.BLOBS_ONLY);
         assertFalse(result.clean);
         assertTrue(result.typeMismatch);
@@ -75,17 +75,19 @@ public class IndexConsistencyCheckerTest {
     }
 
     @Test
-    public void blobsWithError() throws Exception{
+    public void blobsWithError() throws Exception {
         FailingBlob failingBlob = new FailingBlob("foo");
 
         idx.setProperty("foo", failingBlob);
         idx.child(":index").setProperty("foo", failingBlob);
-        idx.child("b").setProperty("foo", Lists.newArrayList(failingBlob, failingBlob), Type.BINARIES);
+        idx.child("b")
+           .setProperty("foo", Lists.newArrayList(failingBlob, failingBlob), Type.BINARIES);
 
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.setChildNode("a", idx.getNodeState());
 
-        IndexConsistencyChecker checker = new IndexConsistencyChecker(builder.getNodeState(), "/a", temporaryFolder.getRoot());
+        IndexConsistencyChecker checker = new IndexConsistencyChecker(builder.getNodeState(), "/a",
+            temporaryFolder.getRoot());
         Result result = checker.check(Level.BLOBS_ONLY);
 
         assertFalse(result.clean);
@@ -97,7 +99,7 @@ public class IndexConsistencyCheckerTest {
     }
 
     @Test
-    public void blobsWithSizeMismatch() throws Exception{
+    public void blobsWithSizeMismatch() throws Exception {
         FailingBlob failingBlob = new FailingBlob("foo", true);
 
         idx.child(":index").setProperty("foo", failingBlob);
@@ -105,7 +107,8 @@ public class IndexConsistencyCheckerTest {
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.setChildNode("a", idx.getNodeState());
 
-        IndexConsistencyChecker checker = new IndexConsistencyChecker(builder.getNodeState(), "/a", temporaryFolder.getRoot());
+        IndexConsistencyChecker checker = new IndexConsistencyChecker(builder.getNodeState(), "/a",
+            temporaryFolder.getRoot());
         Result result = checker.check(Level.BLOBS_ONLY);
 
         assertFalse(result.clean);
@@ -117,19 +120,21 @@ public class IndexConsistencyCheckerTest {
     }
 
     @Test
-    public void validIndexTest() throws Exception{
-        LuceneIndexDefinition defn = LuceneIndexDefinition.newBuilder(rootState, idx.getNodeState(), "/fooIndex").build();
+    public void validIndexTest() throws Exception {
+        LuceneIndexDefinition defn = LuceneIndexDefinition.newBuilder(rootState, idx.getNodeState(),
+            "/fooIndex").build();
         Directory dir = new OakDirectory(idx, ":data", defn, false);
         createIndex(dir, 10);
 
-        dir = new OakDirectory(idx, ":data2"+ MultiplexersLucene.INDEX_DIR_SUFFIX, defn, false);
+        dir = new OakDirectory(idx, ":data2" + MultiplexersLucene.INDEX_DIR_SUFFIX, defn, false);
         createIndex(dir, 10);
 
         NodeBuilder builder = rootState.builder();
         builder.setChildNode("fooIndex", idx.getNodeState());
         NodeState indexState = builder.getNodeState();
 
-        IndexConsistencyChecker checker = new IndexConsistencyChecker(indexState, "/fooIndex", temporaryFolder.getRoot());
+        IndexConsistencyChecker checker = new IndexConsistencyChecker(indexState, "/fooIndex",
+            temporaryFolder.getRoot());
         Result result = checker.check(Level.BLOBS_ONLY);
         assertTrue(result.clean);
 
@@ -142,8 +147,9 @@ public class IndexConsistencyCheckerTest {
     }
 
     @Test
-    public void missingFile() throws Exception{
-        LuceneIndexDefinition defn = LuceneIndexDefinition.newBuilder(rootState, idx.getNodeState(), "/fooIndex").build();
+    public void missingFile() throws Exception {
+        LuceneIndexDefinition defn = LuceneIndexDefinition.newBuilder(rootState, idx.getNodeState(),
+            "/fooIndex").build();
         Directory dir = new OakDirectory(idx, ":data", defn, false);
         createIndex(dir, 10);
 
@@ -154,7 +160,8 @@ public class IndexConsistencyCheckerTest {
         builder.setChildNode("fooIndex", idx.getNodeState());
         NodeState indexState = builder.getNodeState();
 
-        IndexConsistencyChecker checker = new IndexConsistencyChecker(indexState, "/fooIndex", temporaryFolder.getRoot());
+        IndexConsistencyChecker checker = new IndexConsistencyChecker(indexState, "/fooIndex",
+            temporaryFolder.getRoot());
         Result result = checker.check(Level.FULL);
         assertFalse(result.clean);
         assertEquals(1, result.dirStatus.get(0).missingFiles.size());
@@ -164,8 +171,9 @@ public class IndexConsistencyCheckerTest {
     }
 
     @Test
-    public void badFile() throws Exception{
-        LuceneIndexDefinition defn = LuceneIndexDefinition.newBuilder(rootState, idx.getNodeState(), "/fooIndex").build();
+    public void badFile() throws Exception {
+        LuceneIndexDefinition defn = LuceneIndexDefinition.newBuilder(rootState, idx.getNodeState(),
+            "/fooIndex").build();
         Directory dir = new OakDirectory(idx, ":data", defn, false);
         createIndex(dir, 10);
 
@@ -177,15 +185,15 @@ public class IndexConsistencyCheckerTest {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         IOUtils.copy(blobs.get(0).getNewStream(), baos);
         byte[] bytes = baos.toByteArray();
-        bytes[0] = (byte)(bytes[0] ^ (1 << 3)); //Flip the 3rd bit to make it corrupt
+        bytes[0] = (byte) (bytes[0] ^ (1 << 3)); //Flip the 3rd bit to make it corrupt
         blobs.set(0, new ArrayBasedBlob(bytes));
         file.setProperty("jcr:data", blobs, Type.BINARIES);
 
         builder.setChildNode("fooIndex", idx.getNodeState());
         NodeState indexState = builder.getNodeState();
 
-
-        IndexConsistencyChecker checker = new IndexConsistencyChecker(indexState, "/fooIndex", temporaryFolder.getRoot());
+        IndexConsistencyChecker checker = new IndexConsistencyChecker(indexState, "/fooIndex",
+            temporaryFolder.getRoot());
         Result result = checker.check(Level.FULL);
         assertFalse(result.clean);
         assertEquals(0, result.dirStatus.get(0).missingFiles.size());
@@ -193,7 +201,8 @@ public class IndexConsistencyCheckerTest {
     }
 
     private void createIndex(Directory dir, int numOfDocs) throws IOException {
-        IndexWriter w = new IndexWriter(dir, new IndexWriterConfig(Version.LUCENE_47, new OakAnalyzer(Version.LUCENE_47)));
+        IndexWriter w = new IndexWriter(dir,
+            new IndexWriterConfig(Version.LUCENE_47, new OakAnalyzer(Version.LUCENE_47)));
         for (int i = 0; i < numOfDocs; i++) {
             Document d1 = new Document();
             d1.add(newPathField("/a/b"));
@@ -208,12 +217,13 @@ public class IndexConsistencyCheckerTest {
     }
 
     private static class FailingBlob extends ArrayBasedBlob {
+
         static int count;
         private final String id;
         private final boolean corruptLength;
 
         public FailingBlob(String s) {
-           this(s, false);
+            this(s, false);
         }
 
         public FailingBlob(String s, boolean corruptLength) {
@@ -225,7 +235,7 @@ public class IndexConsistencyCheckerTest {
         @NotNull
         @Override
         public InputStream getNewStream() {
-            if (corruptLength){
+            if (corruptLength) {
                 return super.getNewStream();
             }
             throw new UnsupportedOperationException();

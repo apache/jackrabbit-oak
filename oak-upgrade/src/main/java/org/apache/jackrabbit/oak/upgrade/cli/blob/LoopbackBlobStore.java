@@ -19,23 +19,23 @@
 
 package org.apache.jackrabbit.oak.upgrade.cli.blob;
 
-import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
-import org.apache.jackrabbit.oak.spi.blob.BlobStore;
-import org.jetbrains.annotations.NotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.jetbrains.annotations.NotNull;
 
 /**
- * Utility BlobStore implementation to be used in tooling that can work with a
- * FileStore without the need of the DataStore being present locally.
- *
- * Additionally instead of failing it tries to mimic and return blob reference
- * passed in by <b>caller</b> by passing it back as a binary.
- *
+ * Utility BlobStore implementation to be used in tooling that can work with a FileStore without the
+ * need of the DataStore being present locally.
+ * <p>
+ * Additionally instead of failing it tries to mimic and return blob reference passed in by
+ * <b>caller</b> by passing it back as a binary.
+ * <p>
  * Example: requesting <code>blobId = e7c22b994c59d9</code> it will return the
  * <code>e7c22b994c59d9</code> text as a UTF-8 encoded binary file.
  */
@@ -53,34 +53,34 @@ public class LoopbackBlobStore implements BlobStore {
 
     @Override
     public int readBlob(String blobId, long pos, byte[] buff, int off,
-            int length) {
+        int length) {
         // Only a part of binary can be requested!
         final int binaryLength = blobId.length();
         checkBinaryOffsetInRange(pos, binaryLength);
         final int effectiveSrcPos = Math.toIntExact(pos);
         final int effectiveBlobLengthToBeRead = Math.min(
-                binaryLength - effectiveSrcPos, length);
+            binaryLength - effectiveSrcPos, length);
         checkForBufferOverflow(buff, off, effectiveBlobLengthToBeRead);
         final byte[] blobIdBytes = getBlobIdStringAsByteArray(blobId);
         System.arraycopy(blobIdBytes, effectiveSrcPos, buff, off,
-                effectiveBlobLengthToBeRead);
+            effectiveBlobLengthToBeRead);
         return effectiveBlobLengthToBeRead;
     }
 
     private void checkForBufferOverflow(final byte[] buff, final int off,
-                                        final int effectiveBlobLengthToBeRead) {
+        final int effectiveBlobLengthToBeRead) {
         if (buff.length < effectiveBlobLengthToBeRead + off) {
             // We cannot recover if buffer used to write is too small
             throw new UnsupportedOperationException("Edge case: cannot fit " +
-                    "blobId in a buffer (buffer too small)");
+                "blobId in a buffer (buffer too small)");
         }
     }
 
     private void checkBinaryOffsetInRange(final long pos, final int binaryLength) {
         if (pos > binaryLength) {
             throw new IllegalArgumentException(
-                    String.format("Offset %d out of range of %d", pos,
-                            binaryLength));
+                String.format("Offset %d out of range of %d", pos,
+                    binaryLength));
         }
     }
 

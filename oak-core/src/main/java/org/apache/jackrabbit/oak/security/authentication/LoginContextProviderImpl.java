@@ -16,16 +16,16 @@
  */
 package org.apache.jackrabbit.oak.security.authentication;
 
+import static org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConfiguration.PARAM_CONFIG_SPI_NAME;
+
 import java.security.AccessController;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
-
 import javax.jcr.Credentials;
 import javax.security.auth.Subject;
 import javax.security.auth.callback.CallbackHandler;
 import javax.security.auth.login.Configuration;
 import javax.security.auth.login.LoginException;
-
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -40,8 +40,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConfiguration.PARAM_CONFIG_SPI_NAME;
 
 /**
  * {@code LoginContextProvider}

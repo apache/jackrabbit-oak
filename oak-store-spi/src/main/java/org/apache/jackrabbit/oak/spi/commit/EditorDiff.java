@@ -29,18 +29,17 @@ import org.jetbrains.annotations.Nullable;
 public class EditorDiff implements NodeStateDiff {
 
     /**
-     * Validates and possibly edits the given subtree by diffing
-     * and recursing through it.
+     * Validates and possibly edits the given subtree by diffing and recursing through it.
      *
      * @param editor editor for the root of the subtree
      * @param before state of the original subtree
-     * @param after state of the modified subtree
+     * @param after  state of the modified subtree
      * @return exception if the processing failed, {@code null} otherwise
      */
     @Nullable
     public static CommitFailedException process(
-            @Nullable Editor editor,
-            @NotNull NodeState before, @NotNull NodeState after) {
+        @Nullable Editor editor,
+        @NotNull NodeState before, @NotNull NodeState after) {
         checkNotNull(before);
         checkNotNull(after);
         if (editor != null) {
@@ -63,8 +62,8 @@ public class EditorDiff implements NodeStateDiff {
     private final Editor editor;
 
     /**
-     * Checked exceptions don't compose. So we need to hack around.
-     * See http://markmail.org/message/ak67n5k7mr3vqylm and
+     * Checked exceptions don't compose. So we need to hack around. See
+     * http://markmail.org/message/ak67n5k7mr3vqylm and
      * http://markmail.org/message/bhocbruikljpuhu6
      */
     private CommitFailedException exception;
@@ -137,7 +136,7 @@ public class EditorDiff implements NodeStateDiff {
 
     @Override
     public boolean childNodeChanged(
-            String name, NodeState before, NodeState after) {
+        String name, NodeState before, NodeState after) {
         try {
             Editor childEditor = editor.childNodeChanged(name, before, after);
             if (childEditor != null) {

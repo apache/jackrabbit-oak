@@ -25,8 +25,7 @@ import org.slf4j.LoggerFactory;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
 /**
- * A cache key implementation, which is a combination of a name, path and a
- * revision vector.
+ * A cache key implementation, which is a combination of a name, path and a revision vector.
  */
 public final class NamePathRev implements CacheValue, Comparable<NamePathRev> {
 
@@ -42,8 +41,8 @@ public final class NamePathRev implements CacheValue, Comparable<NamePathRev> {
     private final RevisionVector revision;
 
     public NamePathRev(@NotNull String name,
-                       @NotNull Path path,
-                       @NotNull RevisionVector revision) {
+        @NotNull Path path,
+        @NotNull RevisionVector revision) {
         this.name = checkNotNull(name);
         this.path = checkNotNull(path);
         this.revision = checkNotNull(revision);
@@ -67,9 +66,9 @@ public final class NamePathRev implements CacheValue, Comparable<NamePathRev> {
     @Override
     public int getMemory() {
         long size = 24L // shallow size
-                + path.getMemory()
-                + StringUtils.estimateMemoryUsage(name)
-                + revision.getMemory();
+            + path.getMemory()
+            + StringUtils.estimateMemoryUsage(name)
+            + revision.getMemory();
         if (size > Integer.MAX_VALUE) {
             LOG.debug("Estimated memory footprint larger than Integer.MAX_VALUE: {}.", size);
             size = Integer.MAX_VALUE;
@@ -112,8 +111,8 @@ public final class NamePathRev implements CacheValue, Comparable<NamePathRev> {
         } else if (obj instanceof NamePathRev) {
             NamePathRev other = (NamePathRev) obj;
             return revision.equals(other.revision)
-                    && name.equals(other.name)
-                    && path.equals(other.path);
+                && name.equals(other.name)
+                && path.equals(other.path);
         }
         return false;
     }

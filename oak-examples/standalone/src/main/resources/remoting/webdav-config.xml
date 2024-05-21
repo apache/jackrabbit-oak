@@ -66,24 +66,24 @@
          Note, that the handlers are being added and called in the order
          they appear in the configuration.
     -->
-    <class name="org.apache.jackrabbit.server.io.IOManagerImpl" />
+    <class name="org.apache.jackrabbit.server.io.IOManagerImpl"/>
     <iohandler>
-      <class name="org.apache.jackrabbit.server.io.VersionHandler" />
+      <class name="org.apache.jackrabbit.server.io.VersionHandler"/>
     </iohandler>
     <iohandler>
-      <class name="org.apache.jackrabbit.server.io.VersionHistoryHandler" />
+      <class name="org.apache.jackrabbit.server.io.VersionHistoryHandler"/>
     </iohandler>
     <iohandler>
-      <class name="org.apache.jackrabbit.server.io.ZipHandler" />
+      <class name="org.apache.jackrabbit.server.io.ZipHandler"/>
     </iohandler>
     <iohandler>
-      <class name="org.apache.jackrabbit.server.io.XmlHandler" />
+      <class name="org.apache.jackrabbit.server.io.XmlHandler"/>
     </iohandler>
     <iohandler>
-      <class name="org.apache.jackrabbit.server.io.DirListingExportHandler" />
+      <class name="org.apache.jackrabbit.server.io.DirListingExportHandler"/>
     </iohandler>
     <iohandler>
-      <class name="org.apache.jackrabbit.server.io.DefaultHandler" />
+      <class name="org.apache.jackrabbit.server.io.DefaultHandler"/>
     </iohandler>
   </iomanager>
   <!--
@@ -105,21 +105,21 @@
          Note, that the handlers are being added and called in the order
          they appear in the configuration.
     -->
-    <class name="org.apache.jackrabbit.server.io.PropertyManagerImpl" />
+    <class name="org.apache.jackrabbit.server.io.PropertyManagerImpl"/>
     <propertyhandler>
-      <class name="org.apache.jackrabbit.server.io.VersionHandler" />
+      <class name="org.apache.jackrabbit.server.io.VersionHandler"/>
     </propertyhandler>
     <propertyhandler>
-      <class name="org.apache.jackrabbit.server.io.VersionHistoryHandler" />
+      <class name="org.apache.jackrabbit.server.io.VersionHistoryHandler"/>
     </propertyhandler>
     <propertyhandler>
-      <class name="org.apache.jackrabbit.server.io.ZipHandler" />
+      <class name="org.apache.jackrabbit.server.io.ZipHandler"/>
     </propertyhandler>
     <propertyhandler>
-      <class name="org.apache.jackrabbit.server.io.XmlHandler" />
+      <class name="org.apache.jackrabbit.server.io.XmlHandler"/>
     </propertyhandler>
     <propertyhandler>
-      <class name="org.apache.jackrabbit.server.io.DefaultHandler" />
+      <class name="org.apache.jackrabbit.server.io.DefaultHandler"/>
     </propertyhandler>
   </propertymanager>
   <!--
@@ -154,7 +154,7 @@
   <filter>
     <!-- class element defines the resource filter to be used. The specified class
          must implement the ItemFilter interface -->
-    <class name="org.apache.jackrabbit.webdav.simple.DefaultItemFilter" />
+    <class name="org.apache.jackrabbit.webdav.simple.DefaultItemFilter"/>
     <!--
      Nodetype names to be used to filter child nodes.
      A child node can be filtered if the declaring nodetype of its definition

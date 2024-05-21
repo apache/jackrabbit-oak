@@ -24,12 +24,12 @@ import java.time.format.DateTimeFormatter;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.TimeZone;
-
 import org.apache.jackrabbit.util.ISO8601;
 
 public class ISO8601FormatterTest extends AbstractTest<Object> {
 
-    private static final String TYPE = System.getProperty("ISO8601FormatterTest", "jcr-commons-cal");
+    private static final String TYPE = System.getProperty("ISO8601FormatterTest",
+        "jcr-commons-cal");
 
     private static int COUNT = 1000000;
 
@@ -37,8 +37,9 @@ public class ISO8601FormatterTest extends AbstractTest<Object> {
 
     private static final DateFormat DTF7 = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
 
-    private static final DateTimeFormatter DTF8 = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSX")
-            .withZone(ZoneId.of("UTC"));
+    private static final DateTimeFormatter DTF8 = DateTimeFormatter.ofPattern(
+                                                                       "yyyy-MM-dd'T'HH:mm:ss.SSSX")
+                                                                   .withZone(ZoneId.of("UTC"));
 
     @Override
     protected void runTest() throws Exception {

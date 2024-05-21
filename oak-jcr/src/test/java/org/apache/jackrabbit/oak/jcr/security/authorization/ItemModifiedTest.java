@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.jcr.security.authorization;
 
 import javax.jcr.Node;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.junit.Test;

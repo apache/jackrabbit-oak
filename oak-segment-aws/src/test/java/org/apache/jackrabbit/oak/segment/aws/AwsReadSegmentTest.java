@@ -18,14 +18,12 @@
  */
 package org.apache.jackrabbit.oak.segment.aws;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.Date;
-
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.amazonaws.services.dynamodbv2.local.embedded.DynamoDBEmbedded;
 import com.amazonaws.services.s3.AmazonS3;
-
+import java.io.File;
+import java.io.IOException;
+import java.util.Date;
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.SegmentNotFoundException;
@@ -55,13 +53,16 @@ public class AwsReadSegmentTest {
         AmazonS3 s3 = s3Mock.createClient();
         AmazonDynamoDB ddb = DynamoDBEmbedded.create().amazonDynamoDB();
         long time = new Date().getTime();
-        awsContext = AwsContext.create(s3, "bucket-" + time, "oak", ddb, "journaltable-" + time, "locktable-" + time);
+        awsContext = AwsContext.create(s3, "bucket-" + time, "oak", ddb, "journaltable-" + time,
+            "locktable-" + time);
     }
 
     @Test(expected = SegmentNotFoundException.class)
-    public void testReadNonExistentSegmentRepositoryReachable() throws InvalidFileStoreVersionException, IOException {
+    public void testReadNonExistentSegmentRepositoryReachable()
+        throws InvalidFileStoreVersionException, IOException {
         AwsPersistence p = new AwsPersistence(awsContext);
-        FileStore fs = FileStoreBuilder.fileStoreBuilder(new File("target")).withCustomPersistence(p).build();
+        FileStore fs = FileStoreBuilder.fileStoreBuilder(new File("target"))
+                                       .withCustomPersistence(p).build();
         SegmentId id = new SegmentId(fs, 0, 0);
 
         try {
@@ -72,9 +73,11 @@ public class AwsReadSegmentTest {
     }
 
     @Test(expected = RepositoryNotReachableException.class)
-    public void testReadExistentSegmentRepositoryNotReachable() throws InvalidFileStoreVersionException, IOException {
+    public void testReadExistentSegmentRepositoryNotReachable()
+        throws InvalidFileStoreVersionException, IOException {
         AwsPersistence p = new ReadFailingAwsPersistence(awsContext);
-        FileStore fs = FileStoreBuilder.fileStoreBuilder(new File("target")).withCustomPersistence(p).build();
+        FileStore fs = FileStoreBuilder.fileStoreBuilder(new File("target"))
+                                       .withCustomPersistence(p).build();
 
         SegmentId id = new SegmentId(fs, 0, 0);
         byte[] buffer = new byte[2];
@@ -88,13 +91,15 @@ public class AwsReadSegmentTest {
     }
 
     static class ReadFailingAwsPersistence extends AwsPersistence {
+
         public ReadFailingAwsPersistence(AwsContext awsContext) {
             super(awsContext);
         }
 
         @Override
-        public SegmentArchiveManager createArchiveManager(boolean mmap, boolean offHeapAccess, IOMonitor ioMonitor,
-                FileStoreMonitor fileStoreMonitor, RemoteStoreMonitor remoteStoreMonitor) {
+        public SegmentArchiveManager createArchiveManager(boolean mmap, boolean offHeapAccess,
+            IOMonitor ioMonitor,
+            FileStoreMonitor fileStoreMonitor, RemoteStoreMonitor remoteStoreMonitor) {
             return new AwsArchiveManager(awsContext.directory, ioMonitor, fileStoreMonitor) {
                 @Override
                 public SegmentArchiveReader open(String archiveName) throws IOException {
@@ -102,7 +107,8 @@ public class AwsReadSegmentTest {
                     return new AwsSegmentArchiveReader(archiveDirectory, archiveName, ioMonitor) {
                         @Override
                         public Buffer readSegment(long msb, long lsb) throws IOException {
-                            throw new RepositoryNotReachableException(new RuntimeException("Cannot access AWS S3"));
+                            throw new RepositoryNotReachableException(
+                                new RuntimeException("Cannot access AWS S3"));
                         }
                     };
                 }
@@ -110,10 +116,12 @@ public class AwsReadSegmentTest {
                 @Override
                 public SegmentArchiveWriter create(String archiveName) throws IOException {
                     S3Directory archiveDirectory = awsContext.directory.withDirectory(archiveName);
-                    return new AwsSegmentArchiveWriter(archiveDirectory, archiveName, ioMonitor, fileStoreMonitor) {
+                    return new AwsSegmentArchiveWriter(archiveDirectory, archiveName, ioMonitor,
+                        fileStoreMonitor) {
                         @Override
                         public Buffer readSegment(long msb, long lsb) throws IOException {
-                            throw new RepositoryNotReachableException(new RuntimeException("Cannot access AWS S3"));
+                            throw new RepositoryNotReachableException(
+                                new RuntimeException("Cannot access AWS S3"));
                         }
                     };
                 }

@@ -20,12 +20,12 @@ import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.DOCUMENT_
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
+import com.mongodb.MongoClient;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
-
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -33,7 +33,6 @@ import javax.jcr.observation.Event;
 import javax.jcr.observation.EventIterator;
 import javax.jcr.observation.EventListener;
 import javax.jcr.observation.ObservationManager;
-
 import org.apache.jackrabbit.api.observation.JackrabbitEvent;
 import org.apache.jackrabbit.oak.commons.FixturesHelper;
 import org.apache.jackrabbit.oak.fixture.DocumentMongoFixture;
@@ -47,8 +46,6 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.mongodb.MongoClient;
 
 /**
  * Test for external events from another cluster node.
@@ -68,11 +65,11 @@ public class NonLocalObservationIT extends AbstractClusterTest {
     protected NodeStoreFixture getFixture() {
         /**
          * Fixes the cluster use case plus allowing to control the cache sizes.
-         * In theory other users of DocumentMongoFixture might have similar 
+         * In theory other users of DocumentMongoFixture might have similar
          * test cases - but keeping it simple for now - thus going via subclass.
          */
         return new DocumentMongoFixture() {
-            
+
             private String dbName = System.currentTimeMillis() + "-NonLocalObservationIT";
 
             /** keep a reference to the node stores so that the db only gets closed after the last nodeStore was closed */
@@ -91,7 +88,7 @@ public class NonLocalObservationIT extends AbstractClusterTest {
             public NodeStore createNodeStore(int clusterNodeId) {
                 try {
                     DocumentMK.Builder builder = new DocumentMK.Builder();
-                    builder.memoryCacheSize(32*1024*1024); // keep this one low to avoid OOME
+                    builder.memoryCacheSize(32 * 1024 * 1024); // keep this one low to avoid OOME
                     builder.setPersistentCache(null);      // turn this one off to avoid OOME
                     builder.setMongoDB(createClient(), dbName);
                     DocumentNodeStore ns = builder.getNodeStore();
@@ -101,7 +98,7 @@ public class NonLocalObservationIT extends AbstractClusterTest {
                     throw new AssumptionViolatedException("Mongo instance is not available", e);
                 }
             }
-            
+
             @Override
             public void dispose(NodeStore nodeStore) {
                 super.dispose(nodeStore);
@@ -114,7 +111,7 @@ public class NonLocalObservationIT extends AbstractClusterTest {
                     }
                 }
             }
-            
+
             @Override
             public String toString() {
                 return "NonLocalObservationIT's DocumentMongoFixture flavour";
@@ -152,8 +149,12 @@ public class NonLocalObservationIT extends AbstractClusterTest {
                         // log.info("expectedNodeSuffix:
                         // "+expectedNodeSuffix+", path: " + p);
                         if (!p.endsWith(expectedNodeSuffix)) {
-                            log.info("EXCEPTION: expectedNodeSuffix: " + expectedNodeSuffix + ", path: " + p);
-                            throw new Exception("expectedNodeSuffix: " + expectedNodeSuffix + ", non-local path: " + p);
+                            log.info(
+                                "EXCEPTION: expectedNodeSuffix: " + expectedNodeSuffix + ", path: "
+                                    + p);
+                            throw new Exception(
+                                "expectedNodeSuffix: " + expectedNodeSuffix + ", non-local path: "
+                                    + p);
                         }
                     } catch (Exception e1) {
                         exception.set(e1);
@@ -172,7 +173,7 @@ public class NonLocalObservationIT extends AbstractClusterTest {
         addEventHandler(s1, "1");
         addEventHandler(s2, "2");
         Random r = new Random(1);
-        // phase 1 is measuring how long 10000 iterations take 
+        // phase 1 is measuring how long 10000 iterations take
         // (is taking 4-6sec on my laptop)
         log.info(new Date() + ": measuring 10000 iterations...");
         long scaleMeasurement = doRandomized(r, 10000);
@@ -190,15 +191,18 @@ public class NonLocalObservationIT extends AbstractClusterTest {
             // the
             // scaleMeasurement
             long max = (long) (scaleMeasurement * 3);
-            log.info(new Date() + ": test run took " + testMeasurement + ", scaleMeasurement=" + scaleMeasurement
-                    + ", plus 200% margin: " + max);
+            log.info(new Date() + ": test run took " + testMeasurement + ", scaleMeasurement="
+                + scaleMeasurement
+                + ", plus 200% margin: " + max);
             if (testMeasurement >= max && ignoreFirstSpike) {
-                log.info(new Date() + ": this iteration would have failed, but we're now allowing one spike (ignoreFirstSpike)");
+                log.info(new Date()
+                    + ": this iteration would have failed, but we're now allowing one spike (ignoreFirstSpike)");
                 ignoreFirstSpike = false;
                 continue;
             }
-            assertTrue("test run (" + testMeasurement + ") took more than 200% longer than initial measurement (" + scaleMeasurement
-                    + ") (check VM memory settings)", testMeasurement < max);
+            assertTrue("test run (" + testMeasurement
+                + ") took more than 200% longer than initial measurement (" + scaleMeasurement
+                + ") (check VM memory settings)", testMeasurement < max);
         }
 
     }

@@ -27,7 +27,7 @@ public class ElasticIndexAggregationTest extends IndexAggregationCommonTest {
 
     @ClassRule
     public static final ElasticConnectionRule elasticRule = new ElasticConnectionRule(
-            ElasticTestUtils.ELASTIC_CONNECTION_STRING);
+        ElasticTestUtils.ELASTIC_CONNECTION_STRING);
 
     public ElasticIndexAggregationTest() {
         this.indexOptions = new ElasticIndexOptions();

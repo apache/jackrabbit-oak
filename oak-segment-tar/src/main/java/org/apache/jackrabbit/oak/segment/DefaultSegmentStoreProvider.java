@@ -18,8 +18,8 @@
 package org.apache.jackrabbit.oak.segment;
 
 /**
- * A {@link SegmentStoreProvider} that returns a {@link SegmentStore} instance
- * provided by the user.
+ * A {@link SegmentStoreProvider} that returns a {@link SegmentStore} instance provided by the
+ * user.
  */
 class DefaultSegmentStoreProvider implements SegmentStoreProvider {
 

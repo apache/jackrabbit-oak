@@ -40,7 +40,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
-
 import org.apache.jackrabbit.oak.segment.file.CompactedNodeState;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.GCIncrement;
@@ -81,9 +80,10 @@ public abstract class AbstractCompactorTest {
     @Parameterized.Parameters
     public static List<SimpleCompactorFactory> compactorFactories() {
         return Arrays.asList(
-                compactor -> compactor::compactUp,
-                compactor -> (node, canceller) -> compactor.compactDown(node, canceller, canceller),
-                compactor -> (node, canceller) -> compactor.compact(EMPTY_NODE, node, EMPTY_NODE, canceller)
+            compactor -> compactor::compactUp,
+            compactor -> (node, canceller) -> compactor.compactDown(node, canceller, canceller),
+            compactor -> (node, canceller) -> compactor.compact(EMPTY_NODE, node, EMPTY_NODE,
+                canceller)
         );
     }
 
@@ -99,7 +99,8 @@ public abstract class AbstractCompactorTest {
         baseGeneration = fileStore.getHead().getGcGeneration();
         partialGeneration = baseGeneration.nextPartial();
         targetGeneration = baseGeneration.nextFull();
-        GCIncrement increment = new GCIncrement(baseGeneration, partialGeneration, targetGeneration);
+        GCIncrement increment = new GCIncrement(baseGeneration, partialGeneration,
+            targetGeneration);
 
         compactionMonitor = new GCNodeWriteMonitor(-1, GCMonitor.EMPTY);
         compactor = createCompactor(fileStore, increment, compactionMonitor);
@@ -107,9 +108,9 @@ public abstract class AbstractCompactorTest {
     }
 
     protected abstract Compactor createCompactor(
-            @NotNull FileStore fileStore,
-            @NotNull GCIncrement increment,
-            @NotNull GCNodeWriteMonitor compactionMonitor);
+        @NotNull FileStore fileStore,
+        @NotNull GCIncrement increment,
+        @NotNull GCNodeWriteMonitor compactionMonitor);
 
     @After
     public void tearDown() {
@@ -124,7 +125,8 @@ public abstract class AbstractCompactorTest {
         String cp2 = nodeStore.checkpoint(DAYS.toMillis(1));
 
         SegmentNodeState uncompacted1 = fileStore.getHead();
-        SegmentNodeState compacted1 = simpleCompactor.compact(uncompacted1, Canceller.newCanceller());
+        SegmentNodeState compacted1 = simpleCompactor.compact(uncompacted1,
+            Canceller.newCanceller());
         assertNotNull(compacted1);
         assertNotSame(uncompacted1, compacted1);
         checkGeneration(compacted1, targetGeneration);
@@ -141,12 +143,14 @@ public abstract class AbstractCompactorTest {
         String cp4 = nodeStore.checkpoint(DAYS.toMillis(1));
 
         SegmentNodeState uncompacted2 = fileStore.getHead();
-        SegmentNodeState compacted2 = compactor.compact(uncompacted1, uncompacted2, compacted1, Canceller.newCanceller());
+        SegmentNodeState compacted2 = compactor.compact(uncompacted1, uncompacted2, compacted1,
+            Canceller.newCanceller());
         assertNotNull(compacted2);
         assertNotSame(uncompacted2, compacted2);
         checkGeneration(compacted2, targetGeneration);
 
-        assertTrue(fileStore.getRevisions().setHead(uncompacted2.getRecordId(), compacted2.getRecordId()));
+        assertTrue(
+            fileStore.getRevisions().setHead(uncompacted2.getRecordId(), compacted2.getRecordId()));
 
         assertEquals(uncompacted2, compacted2);
         assertSameStableId(uncompacted2, compacted2);
@@ -166,7 +170,8 @@ public abstract class AbstractCompactorTest {
         }
 
         Canceller canceller = Canceller.newCanceller()
-                .withCondition(null, () -> (compactionMonitor.getCompactedNodes() >= 10));
+                                       .withCondition(null,
+                                           () -> (compactionMonitor.getCompactedNodes() >= 10));
 
         SegmentNodeState uncompacted1 = fileStore.getHead();
         SegmentNodeState compacted1 = simpleCompactor.compact(uncompacted1, canceller);
@@ -181,10 +186,12 @@ public abstract class AbstractCompactorTest {
 
         Canceller nullCanceller = Canceller.newCanceller();
         Canceller softCanceller = Canceller.newCanceller()
-                .withCondition(null, () -> (compactionMonitor.getCompactedNodes() >= 10));
+                                           .withCondition(null,
+                                               () -> (compactionMonitor.getCompactedNodes() >= 10));
 
         SegmentNodeState uncompacted1 = fileStore.getHead();
-        CompactedNodeState compacted1 = compactor.compactDown(uncompacted1, nullCanceller, softCanceller);
+        CompactedNodeState compacted1 = compactor.compactDown(uncompacted1, nullCanceller,
+            softCanceller);
         System.out.println(compactionMonitor.getCompactedNodes());
 
         assertNotNull(compacted1);

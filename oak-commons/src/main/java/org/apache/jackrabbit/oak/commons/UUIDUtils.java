@@ -18,12 +18,12 @@ package org.apache.jackrabbit.oak.commons;
 
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
-
 import org.jetbrains.annotations.NotNull;
 
 public final class UUIDUtils {
 
-    private UUIDUtils() {}
+    private UUIDUtils() {
+    }
 
     @NotNull
     public static String generateUUID() {

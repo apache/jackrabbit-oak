@@ -23,7 +23,8 @@ import org.apache.jackrabbit.oak.plugins.document.AbstractDocumentNodeState;
 import org.jetbrains.annotations.NotNull;
 
 interface SecondaryStoreRootObserver {
-    SecondaryStoreRootObserver NOOP = new SecondaryStoreRootObserver(){
+
+    SecondaryStoreRootObserver NOOP = new SecondaryStoreRootObserver() {
         @Override
         public void contentChanged(@NotNull AbstractDocumentNodeState root) {
 

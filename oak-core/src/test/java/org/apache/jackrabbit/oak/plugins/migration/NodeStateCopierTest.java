@@ -18,6 +18,17 @@
  */
 package org.apache.jackrabbit.oak.plugins.migration;
 
+import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
+import static org.apache.jackrabbit.oak.plugins.migration.NodeStateCopier.builder;
+import static org.apache.jackrabbit.oak.plugins.migration.NodeStateTestUtils.commit;
+import static org.apache.jackrabbit.oak.plugins.migration.NodeStateTestUtils.create;
+import static org.apache.jackrabbit.oak.plugins.migration.NodeStateTestUtils.createNodeStoreWithContent;
+import static org.apache.jackrabbit.oak.plugins.migration.NodeStateTestUtils.expectDifference;
+import static org.junit.Assert.assertEquals;
+
+import java.io.IOException;
+import java.util.UUID;
+import java.util.function.Consumer;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -26,18 +37,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Test;
-
-import java.io.IOException;
-import java.util.UUID;
-import java.util.function.Consumer;
-
-import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
-import static org.apache.jackrabbit.oak.plugins.migration.NodeStateCopier.builder;
-import static org.apache.jackrabbit.oak.plugins.migration.NodeStateTestUtils.commit;
-import static org.apache.jackrabbit.oak.plugins.migration.NodeStateTestUtils.create;
-import static org.apache.jackrabbit.oak.plugins.migration.NodeStateTestUtils.createNodeStoreWithContent;
-import static org.apache.jackrabbit.oak.plugins.migration.NodeStateTestUtils.expectDifference;
-import static org.junit.Assert.assertEquals;
 
 public class NodeStateCopierTest {
 

@@ -25,7 +25,6 @@ import javax.jcr.SimpleCredentials;
 import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.Configuration;
 import javax.security.auth.login.LoginException;
-
 import org.apache.jackrabbit.test.AbstractJCRTest;
 
 /**
@@ -115,7 +114,9 @@ public class L4_UserIDTest extends AbstractJCRTest {
             @Override
             public AppConfigurationEntry[] getAppConfigurationEntry(String applicationName) {
                 return new AppConfigurationEntry[]{
-                        new AppConfigurationEntry(UserIDTestLoginModule.class.getName(), AppConfigurationEntry.LoginModuleControlFlag.REQUIRED, Collections.EMPTY_MAP)
+                    new AppConfigurationEntry(UserIDTestLoginModule.class.getName(),
+                        AppConfigurationEntry.LoginModuleControlFlag.REQUIRED,
+                        Collections.EMPTY_MAP)
                 };
             }
         };

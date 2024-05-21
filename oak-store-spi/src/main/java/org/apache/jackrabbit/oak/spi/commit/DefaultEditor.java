@@ -21,8 +21,8 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
- * Editor that does nothing by default and doesn't recurse into subtrees.
- * Useful as a sentinel or as a base class for more complex editors.
+ * Editor that does nothing by default and doesn't recurse into subtrees. Useful as a sentinel or as
+ * a base class for more complex editors.
  *
  * @since Oak 0.7
  */
@@ -32,50 +32,50 @@ public class DefaultEditor implements Editor {
 
     @Override
     public void enter(NodeState before, NodeState after)
-            throws CommitFailedException {
+        throws CommitFailedException {
         // do nothing
     }
 
     @Override
     public void leave(NodeState before, NodeState after)
-            throws CommitFailedException {
+        throws CommitFailedException {
         // do nothing
     }
 
     @Override
     public void propertyAdded(PropertyState after)
-            throws CommitFailedException {
+        throws CommitFailedException {
         // do nothing
     }
 
     @Override
     public void propertyChanged(PropertyState before, PropertyState after)
-            throws CommitFailedException {
+        throws CommitFailedException {
         // do nothing
     }
 
     @Override
     public void propertyDeleted(PropertyState before)
-            throws CommitFailedException {
+        throws CommitFailedException {
         // do nothing
     }
 
     @Override
     public Editor childNodeAdded(String name, NodeState after)
-            throws CommitFailedException {
+        throws CommitFailedException {
         return null;
     }
 
     @Override
     public Editor childNodeChanged(
-            String name, NodeState before, NodeState after)
-            throws CommitFailedException {
+        String name, NodeState before, NodeState after)
+        throws CommitFailedException {
         return null;
     }
 
     @Override
     public Editor childNodeDeleted(String name, NodeState before)
-            throws CommitFailedException {
+        throws CommitFailedException {
         return null;
     }
 

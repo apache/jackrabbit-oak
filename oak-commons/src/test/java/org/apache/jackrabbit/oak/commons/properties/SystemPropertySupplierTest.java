@@ -30,47 +30,61 @@ public class SystemPropertySupplierTest {
 
     @Test
     public void testBoolean() {
-        assertEquals(Boolean.TRUE, SystemPropertySupplier.create("foo", Boolean.TRUE).usingSystemPropertyReader((n) -> null).get());
+        assertEquals(Boolean.TRUE, SystemPropertySupplier.create("foo", Boolean.TRUE)
+                                                         .usingSystemPropertyReader((n) -> null)
+                                                         .get());
         assertEquals(Boolean.FALSE,
-                SystemPropertySupplier.create("foo", Boolean.FALSE).usingSystemPropertyReader((n) -> null).get());
+            SystemPropertySupplier.create("foo", Boolean.FALSE)
+                                  .usingSystemPropertyReader((n) -> null).get());
         assertEquals(Boolean.TRUE,
-                SystemPropertySupplier.create("foo", Boolean.FALSE).usingSystemPropertyReader((n) -> "true").get());
+            SystemPropertySupplier.create("foo", Boolean.FALSE)
+                                  .usingSystemPropertyReader((n) -> "true").get());
         assertEquals(Boolean.FALSE,
-                SystemPropertySupplier.create("foo", Boolean.FALSE).usingSystemPropertyReader((n) -> "false").get());
+            SystemPropertySupplier.create("foo", Boolean.FALSE)
+                                  .usingSystemPropertyReader((n) -> "false").get());
     }
 
     @Test
     public void testInteger() {
         assertEquals(Integer.valueOf(123),
-                SystemPropertySupplier.create("foo", Integer.valueOf(123)).usingSystemPropertyReader((n) -> null).get());
+            SystemPropertySupplier.create("foo", Integer.valueOf(123))
+                                  .usingSystemPropertyReader((n) -> null).get());
         assertEquals(Integer.valueOf(1742),
-                SystemPropertySupplier.create("foo", Integer.valueOf(123)).usingSystemPropertyReader((n) -> "1742").get());
+            SystemPropertySupplier.create("foo", Integer.valueOf(123))
+                                  .usingSystemPropertyReader((n) -> "1742").get());
     }
 
     @Test
     public void testLong() {
         long big = Long.MAX_VALUE;
         assertEquals(Long.valueOf(big),
-                SystemPropertySupplier.create("foo", Long.valueOf(big)).usingSystemPropertyReader((n) -> null).get());
+            SystemPropertySupplier.create("foo", Long.valueOf(big))
+                                  .usingSystemPropertyReader((n) -> null).get());
         assertEquals(Long.valueOf(1742),
-                SystemPropertySupplier.create("foo", Long.valueOf(big)).usingSystemPropertyReader((n) -> "1742").get());
+            SystemPropertySupplier.create("foo", Long.valueOf(big))
+                                  .usingSystemPropertyReader((n) -> "1742").get());
     }
 
     @Test
     public void testString() {
-        assertEquals("bar", SystemPropertySupplier.create("foo", "bar").usingSystemPropertyReader((n) -> null).get());
-        assertEquals("", SystemPropertySupplier.create("foo", "bar").usingSystemPropertyReader((n) -> "").get());
+        assertEquals("bar",
+            SystemPropertySupplier.create("foo", "bar").usingSystemPropertyReader((n) -> null)
+                                  .get());
+        assertEquals("",
+            SystemPropertySupplier.create("foo", "bar").usingSystemPropertyReader((n) -> "").get());
     }
 
     @Test
     public void testFilter() {
-        LogCustomizer logCustomizer = LogCustomizer.forLogger(SystemPropertySupplierTest.class.getName()).enable(Level.ERROR)
-                .contains("Ignoring invalid value").create();
+        LogCustomizer logCustomizer = LogCustomizer.forLogger(
+                                                       SystemPropertySupplierTest.class.getName()).enable(Level.ERROR)
+                                                   .contains("Ignoring invalid value").create();
         logCustomizer.starting();
 
         try {
             int positive = SystemPropertySupplier.create("foo", Integer.valueOf(123)).loggingTo(LOG)
-                    .usingSystemPropertyReader((n) -> "-1").validateWith(n -> n >= 0).get();
+                                                 .usingSystemPropertyReader((n) -> "-1")
+                                                 .validateWith(n -> n >= 0).get();
             assertEquals(123, positive);
             assertEquals(1, logCustomizer.getLogs().size());
         } finally {
@@ -80,13 +94,15 @@ public class SystemPropertySupplierTest {
 
     @Test
     public void testNonParseable() {
-        LogCustomizer logCustomizer = LogCustomizer.forLogger(SystemPropertySupplierTest.class.getName()).enable(Level.ERROR)
-                .contains("Ignoring malformed value").create();
+        LogCustomizer logCustomizer = LogCustomizer.forLogger(
+                                                       SystemPropertySupplierTest.class.getName()).enable(Level.ERROR)
+                                                   .contains("Ignoring malformed value").create();
         logCustomizer.starting();
 
         try {
             int positive = SystemPropertySupplier.create("foo", Integer.valueOf(123)).loggingTo(LOG)
-                    .usingSystemPropertyReader((n) -> "abc").validateWith(n -> n >= 0).get();
+                                                 .usingSystemPropertyReader((n) -> "abc")
+                                                 .validateWith(n -> n >= 0).get();
             assertEquals(123, positive);
             assertEquals(1, logCustomizer.getLogs().size());
         } finally {
@@ -97,13 +113,15 @@ public class SystemPropertySupplierTest {
     @Test
     public void testRedirectSuccess() {
         Logger local = LoggerFactory.getLogger(SystemPropertySupplierTest.class.getName() + "-FOO");
-        LogCustomizer logCustomizer = LogCustomizer.forLogger(SystemPropertySupplierTest.class.getName() + "-FOO")
-                .enable(Level.TRACE).create();
+        LogCustomizer logCustomizer = LogCustomizer.forLogger(
+                                                       SystemPropertySupplierTest.class.getName() + "-FOO")
+                                                   .enable(Level.TRACE).create();
         logCustomizer.starting();
 
         try {
-            int positive = SystemPropertySupplier.create("foo", Integer.valueOf(123)).loggingTo(local)
-                    .usingSystemPropertyReader((n) -> "4217").get();
+            int positive = SystemPropertySupplier.create("foo", Integer.valueOf(123))
+                                                 .loggingTo(local)
+                                                 .usingSystemPropertyReader((n) -> "4217").get();
             assertEquals(4217, positive);
             assertEquals(2, logCustomizer.getLogs().size());
         } finally {

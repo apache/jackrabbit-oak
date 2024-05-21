@@ -19,6 +19,10 @@
 
 package org.apache.jackrabbit.oak.plugins.index.datastore;
 
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
+
 import java.io.BufferedWriter;
 import java.io.Closeable;
 import java.io.File;
@@ -26,11 +30,10 @@ import java.io.IOException;
 import java.lang.ref.SoftReference;
 import java.util.Set;
 import java.util.concurrent.Callable;
-
+import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.guava.common.base.Charsets;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.guava.common.io.Files;
-import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.InMemoryDataRecord;
@@ -41,10 +44,6 @@ import org.apache.jackrabbit.oak.plugins.index.fulltext.PreExtractedTextProvider
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
 /**
  * TextWriter implementation which just stores the extracted text as files using the same layout as

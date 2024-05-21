@@ -21,34 +21,33 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Extension point for plugging in different kinds of validation rules
- * for content changes.
+ * Extension point for plugging in different kinds of validation rules for content changes.
  *
- * @see <a href="http://jackrabbit.apache.org/oak/docs/nodestate.html#Commit_validators"
- *         >Commit validators</a>
+ * @see <a href="http://jackrabbit.apache.org/oak/docs/nodestate.html#Commit_validators" >Commit
+ * validators</a>
  */
 public abstract class ValidatorProvider implements EditorProvider {
 
     /**
-     * Returns a validator for checking the changes between the given
-     * two root states.
+     * Returns a validator for checking the changes between the given two root states.
      *
      * @param before original root state
      * @param after  modified root state
      * @param info   metadata about this commit
-     * @return validator for checking the modifications,
-     *         or {@code null} if this validator is not needed for this commit
+     * @return validator for checking the modifications, or {@code null} if this validator is not
+     * needed for this commit
      */
     @Nullable
     protected abstract Validator getRootValidator(
-            NodeState before, NodeState after, CommitInfo info);
+        NodeState before, NodeState after, CommitInfo info);
 
     //----------------------------------------------------< EditorProvider >--
 
-    @Override @Nullable
+    @Override
+    @Nullable
     public final Editor getRootEditor(
-            NodeState before, NodeState after,
-            NodeBuilder builder, CommitInfo info) {
+        NodeState before, NodeState after,
+        NodeBuilder builder, CommitInfo info) {
         return getRootValidator(before, after, info);
     }
 

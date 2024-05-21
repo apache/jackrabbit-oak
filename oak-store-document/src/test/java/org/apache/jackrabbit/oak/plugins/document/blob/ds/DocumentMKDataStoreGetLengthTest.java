@@ -34,6 +34,7 @@ import static org.junit.Assert.assertNotNull;
  * Tests for {@code DocumentMK#getLength(String)} using {@link DataStore}
  */
 public class DocumentMKDataStoreGetLengthTest extends DocumentMKGetLengthTest {
+
     @BeforeClass
     public static void setUpBeforeClass() {
         try {
@@ -50,8 +51,8 @@ public class DocumentMKDataStoreGetLengthTest extends DocumentMKGetLengthTest {
         assertNotNull(mongoConnection);
         MongoUtils.dropCollections(mongoConnection.getDBName());
         mk = new DocumentMK.Builder()
-                .setMongoDB(mongoConnection.getMongoClient(), mongoConnection.getDBName())
-                .setBlobStore(DataStoreUtils.getBlobStore()).open();
+            .setMongoDB(mongoConnection.getMongoClient(), mongoConnection.getDBName())
+            .setBlobStore(DataStoreUtils.getBlobStore()).open();
     }
 
     @Override

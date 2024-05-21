@@ -18,21 +18,21 @@
  */
 package org.apache.jackrabbit.oak.upgrade.cli.blob;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+
+import java.io.IOException;
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.junit.Test;
-
-import java.io.IOException;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 
 @SuppressWarnings("UnusedLabel")
 public class LoopbackBlobStoreFactoryTest {
 
     @Test(expected = NullPointerException.class)
     public void cannotCreateLoopbackBlobStoreFactoryWithNullCloser() {
-        when: {
+        when:
+        {
             final LoopbackBlobStoreFactory factory = new LoopbackBlobStoreFactory();
             factory.create(null);
         }
@@ -40,15 +40,18 @@ public class LoopbackBlobStoreFactoryTest {
 
     @Test
     public void canCreateLoopbackBlobStoreFactory() throws IOException {
-        when: {
+        when:
+        {
             final LoopbackBlobStoreFactory factory = new LoopbackBlobStoreFactory();
             final Closer closer = Closer.create();
             final BlobStore blobStore = factory.create(closer);
 
-            then: {
+            then:
+            {
                 assertNotNull(blobStore);
             }
-            and: {
+            and:
+            {
                 closer.close();
             }
         }
@@ -56,10 +59,12 @@ public class LoopbackBlobStoreFactoryTest {
 
     @Test
     public void canGetNameFromLoopbackBlobStoreFactory() {
-        when: {
+        when:
+        {
             final LoopbackBlobStoreFactory factory = new LoopbackBlobStoreFactory();
 
-            then: {
+            then:
+            {
                 assertEquals("LoopbackBlobStore", factory.toString());
             }
         }

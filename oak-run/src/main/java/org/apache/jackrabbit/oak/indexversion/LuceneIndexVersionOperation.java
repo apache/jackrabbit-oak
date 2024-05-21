@@ -18,15 +18,15 @@
  */
 package org.apache.jackrabbit.oak.indexversion;
 
+import java.util.List;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexName;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.List;
-
 public class LuceneIndexVersionOperation extends IndexVersionOperation {
+
     private static final Logger LOG = LoggerFactory.getLogger(LuceneIndexVersionOperation.class);
 
     public LuceneIndexVersionOperation(IndexName indexName) {
@@ -45,7 +45,8 @@ public class LuceneIndexVersionOperation extends IndexVersionOperation {
     }
 
     @Override
-    protected IndexName getActiveIndex(List<IndexName> reverseSortedIndexNameList, String parentPath, NodeState rootNode) {
+    protected IndexName getActiveIndex(List<IndexName> reverseSortedIndexNameList,
+        String parentPath, NodeState rootNode) {
         // iterate all indexes from high version to lower version to find the active index, then remove it from the reverseSortedIndexNameList
         for (int i = 0; i < reverseSortedIndexNameList.size(); i++) {
             IndexName indexNameObject = reverseSortedIndexNameList.get(i);

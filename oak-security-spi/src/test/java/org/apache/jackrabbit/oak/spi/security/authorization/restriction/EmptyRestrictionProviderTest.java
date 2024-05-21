@@ -16,18 +16,17 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.restriction;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.junit.Test;
-
-import javax.jcr.RepositoryException;
-import javax.jcr.Value;
-import javax.jcr.security.AccessControlException;
-
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
+
+import javax.jcr.RepositoryException;
+import javax.jcr.Value;
+import javax.jcr.security.AccessControlException;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.junit.Test;
 
 public class EmptyRestrictionProviderTest {
 
@@ -57,14 +56,16 @@ public class EmptyRestrictionProviderTest {
     @Test
     public void testReadRestrictions() {
         assertTrue(RestrictionProvider.EMPTY.readRestrictions(null, mock(Tree.class)).isEmpty());
-        assertTrue(RestrictionProvider.EMPTY.readRestrictions("/any/path", mock(Tree.class)).isEmpty());
+        assertTrue(
+            RestrictionProvider.EMPTY.readRestrictions("/any/path", mock(Tree.class)).isEmpty());
     }
 
     @Test
     public void testWriteRestrictions() throws Exception {
         Restriction r = mock(Restriction.class);
         RestrictionProvider.EMPTY.writeRestrictions(null, mock(Tree.class), ImmutableSet.of(r));
-        RestrictionProvider.EMPTY.writeRestrictions("/any/path", mock(Tree.class), ImmutableSet.of(r));
+        RestrictionProvider.EMPTY.writeRestrictions("/any/path", mock(Tree.class),
+            ImmutableSet.of(r));
         verifyNoInteractions(r);
     }
 
@@ -79,13 +80,17 @@ public class EmptyRestrictionProviderTest {
     @Test
     public void testGetPattern() {
         Restriction r = mock(Restriction.class);
-        assertSame(RestrictionPattern.EMPTY, RestrictionProvider.EMPTY.getPattern(null, ImmutableSet.of(r)));
-        assertSame(RestrictionPattern.EMPTY, RestrictionProvider.EMPTY.getPattern("/any/path", ImmutableSet.of(r)));
+        assertSame(RestrictionPattern.EMPTY,
+            RestrictionProvider.EMPTY.getPattern(null, ImmutableSet.of(r)));
+        assertSame(RestrictionPattern.EMPTY,
+            RestrictionProvider.EMPTY.getPattern("/any/path", ImmutableSet.of(r)));
     }
 
     @Test
     public void testGetPatternFromTree() {
-        assertSame(RestrictionPattern.EMPTY, RestrictionProvider.EMPTY.getPattern(null, mock(Tree.class)));
-        assertSame(RestrictionPattern.EMPTY, RestrictionProvider.EMPTY.getPattern("/any/path", mock(Tree.class)));
+        assertSame(RestrictionPattern.EMPTY,
+            RestrictionProvider.EMPTY.getPattern(null, mock(Tree.class)));
+        assertSame(RestrictionPattern.EMPTY,
+            RestrictionProvider.EMPTY.getPattern("/any/path", mock(Tree.class)));
     }
 }

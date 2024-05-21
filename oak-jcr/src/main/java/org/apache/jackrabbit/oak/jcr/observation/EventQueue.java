@@ -22,10 +22,8 @@ import static org.apache.jackrabbit.guava.common.collect.Lists.newLinkedList;
 
 import java.util.LinkedList;
 import java.util.NoSuchElementException;
-
 import javax.jcr.observation.Event;
 import javax.jcr.observation.EventIterator;
-
 import org.apache.jackrabbit.oak.api.blob.BlobAccessProvider;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -51,22 +49,22 @@ class EventQueue implements EventIterator {
     private long position = 0;
 
     public EventQueue(
-            @NotNull NamePathMapper mapper,
-            @NotNull BlobAccessProvider blobAccessProvider, CommitInfo info,
-            @NotNull NodeState before, @NotNull NodeState after,
-            @NotNull Iterable<String> basePaths, @NotNull EventFilter filter,
-            @Nullable EventAggregator aggregator) {
+        @NotNull NamePathMapper mapper,
+        @NotNull BlobAccessProvider blobAccessProvider, CommitInfo info,
+        @NotNull NodeState before, @NotNull NodeState after,
+        @NotNull Iterable<String> basePaths, @NotNull EventFilter filter,
+        @Nullable EventAggregator aggregator) {
         this.generator = new EventGenerator();
         EventFactory factory = new EventFactory(mapper, blobAccessProvider, info);
         EventHandler handler = new FilteredHandler(
-                filter, new QueueingHandler(this, factory, aggregator, before, after));
+            filter, new QueueingHandler(this, factory, aggregator, before, after));
         for (String path : basePaths) {
             addHandler(before, after, path, handler, generator);
         }
     }
 
     private static void addHandler(NodeState before, NodeState after, String path,
-            EventHandler handler, EventGenerator generator) {
+        EventHandler handler, EventGenerator generator) {
         for (String name : PathUtils.elements(path)) {
             before = before.getChildNode(name);
             after = after.getChildNode(name);

@@ -16,6 +16,19 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+
+import java.util.HashMap;
+import java.util.Map;
+import javax.jcr.Credentials;
+import javax.jcr.GuestCredentials;
+import javax.jcr.SimpleCredentials;
+import javax.security.auth.login.AppConfigurationEntry;
+import javax.security.auth.login.Configuration;
+import javax.security.auth.login.LoginException;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -27,22 +40,9 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import javax.jcr.Credentials;
-import javax.jcr.GuestCredentials;
-import javax.jcr.SimpleCredentials;
-import javax.security.auth.login.AppConfigurationEntry;
-import javax.security.auth.login.Configuration;
-import javax.security.auth.login.LoginException;
-import java.util.HashMap;
-import java.util.Map;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-
 /**
- * Testing improvements made for <a href="https://issues.apache.org/jira/browse/OAK-3508">OAK-3508</a>
+ * Testing improvements made for <a
+ * href="https://issues.apache.org/jira/browse/OAK-3508">OAK-3508</a>
  */
 public class PreAuthDefaultExternalLoginTest extends ExternalLoginTestBase {
 
@@ -59,13 +59,10 @@ public class PreAuthDefaultExternalLoginTest extends ExternalLoginTestBase {
     }
 
     /**
-     * Example {
-     *    your.org.PreAuthenticationLoginModule optional;
-     *    org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl optional;
-     *    org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalLoginModule sufficient
-     *              sync.handlerName="your-synchandler_name"
-     *              idp.name="your_idp_name";
-     *    };
+     * Example { your.org.PreAuthenticationLoginModule optional;
+     * org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl optional;
+     * org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalLoginModule
+     * sufficient sync.handlerName="your-synchandler_name" idp.name="your_idp_name"; };
      */
     @Override
     protected Configuration getConfiguration() {
@@ -73,19 +70,19 @@ public class PreAuthDefaultExternalLoginTest extends ExternalLoginTestBase {
             @Override
             public AppConfigurationEntry[] getAppConfigurationEntry(String s) {
                 AppConfigurationEntry entry1 = new AppConfigurationEntry(
-                        PreAuthLoginModule.class.getName(),
-                        AppConfigurationEntry.LoginModuleControlFlag.OPTIONAL,
-                        preAuthOptions);
+                    PreAuthLoginModule.class.getName(),
+                    AppConfigurationEntry.LoginModuleControlFlag.OPTIONAL,
+                    preAuthOptions);
 
                 AppConfigurationEntry entry2 = new AppConfigurationEntry(
-                        ExternalLoginModule.class.getName(),
-                        AppConfigurationEntry.LoginModuleControlFlag.SUFFICIENT,
-                        options);
+                    ExternalLoginModule.class.getName(),
+                    AppConfigurationEntry.LoginModuleControlFlag.SUFFICIENT,
+                    options);
 
                 AppConfigurationEntry entry3 = new AppConfigurationEntry(
-                        LoginModuleImpl.class.getName(),
-                        AppConfigurationEntry.LoginModuleControlFlag.SUFFICIENT,
-                        new HashMap<>());
+                    LoginModuleImpl.class.getName(),
+                    AppConfigurationEntry.LoginModuleControlFlag.SUFFICIENT,
+                    new HashMap<>());
 
                 return new AppConfigurationEntry[]{entry1, entry2, entry3};
             }
@@ -109,7 +106,7 @@ public class PreAuthDefaultExternalLoginTest extends ExternalLoginTestBase {
     public void testLocalUser() throws Exception {
         User testUser = getTestUser();
         PreAuthCredentials creds = new PreAuthCredentials(testUser.getID());
-        try (ContentSession cs = login(creds)){
+        try (ContentSession cs = login(creds)) {
             assertEquals(PreAuthCredentials.PRE_AUTH_DONE, creds.getMessage());
             assertEquals(testUser.getID(), cs.getAuthInfo().getUserID());
         }
@@ -118,7 +115,7 @@ public class PreAuthDefaultExternalLoginTest extends ExternalLoginTestBase {
     @Test
     public void testExternalUser() throws Exception {
         PreAuthCredentials creds = new PreAuthCredentials(TestIdentityProvider.ID_TEST_USER);
-        try (ContentSession cs = login(creds)){
+        try (ContentSession cs = login(creds)) {
             assertEquals(PreAuthCredentials.PRE_AUTH_DONE, creds.getMessage());
             assertEquals(TestIdentityProvider.ID_TEST_USER, cs.getAuthInfo().getUserID());
 
@@ -132,21 +129,24 @@ public class PreAuthDefaultExternalLoginTest extends ExternalLoginTestBase {
     public void testExistingExternalReSync() throws Exception {
         // sync user upfront
         UserManager uMgr = getUserManager(root);
-        SyncContext syncContext = new DefaultSyncContext(syncConfig, idp, uMgr, getValueFactory(root));
+        SyncContext syncContext = new DefaultSyncContext(syncConfig, idp, uMgr,
+            getValueFactory(root));
         SyncResult result = syncContext.sync(idp.getUser(TestIdentityProvider.ID_TEST_USER));
         long lastSynced = result.getIdentity().lastSynced();
         root.commit();
 
         // wait until the synced user is expired
-        waitUntilExpired(uMgr.getAuthorizable(TestIdentityProvider.ID_TEST_USER, User.class), root, syncConfig.user().getExpirationTime());
+        waitUntilExpired(uMgr.getAuthorizable(TestIdentityProvider.ID_TEST_USER, User.class), root,
+            syncConfig.user().getExpirationTime());
 
         PreAuthCredentials creds = new PreAuthCredentials(TestIdentityProvider.ID_TEST_USER);
-        try (ContentSession cs = login(creds)){
+        try (ContentSession cs = login(creds)) {
             assertEquals(PreAuthCredentials.PRE_AUTH_DONE, creds.getMessage());
             assertEquals(TestIdentityProvider.ID_TEST_USER, cs.getAuthInfo().getUserID());
 
             root.refresh();
-            User u = getUserManager(root).getAuthorizable(TestIdentityProvider.ID_TEST_USER, User.class);
+            User u = getUserManager(root).getAuthorizable(TestIdentityProvider.ID_TEST_USER,
+                User.class);
             assertNotNull(u);
 
             // user _should_ be re-synced
@@ -160,18 +160,20 @@ public class PreAuthDefaultExternalLoginTest extends ExternalLoginTestBase {
         syncConfig.user().setExpirationTime(Long.MAX_VALUE);
 
         // sync user upfront
-        SyncContext syncContext = new DefaultSyncContext(syncConfig, idp, getUserManager(root), getValueFactory(root));
+        SyncContext syncContext = new DefaultSyncContext(syncConfig, idp, getUserManager(root),
+            getValueFactory(root));
         SyncResult result = syncContext.sync(idp.getUser(TestIdentityProvider.ID_TEST_USER));
         long lastSynced = result.getIdentity().lastSynced();
         root.commit();
 
         PreAuthCredentials creds = new PreAuthCredentials(TestIdentityProvider.ID_TEST_USER);
-        try (ContentSession cs = login(creds)){
+        try (ContentSession cs = login(creds)) {
             assertEquals(PreAuthCredentials.PRE_AUTH_DONE, creds.getMessage());
             assertEquals(TestIdentityProvider.ID_TEST_USER, cs.getAuthInfo().getUserID());
 
             root.refresh();
-            User u = getUserManager(root).getAuthorizable(TestIdentityProvider.ID_TEST_USER, User.class);
+            User u = getUserManager(root).getAuthorizable(TestIdentityProvider.ID_TEST_USER,
+                User.class);
             assertNotNull(u);
 
             // user _should_ not have been re-synced
@@ -185,7 +187,8 @@ public class PreAuthDefaultExternalLoginTest extends ExternalLoginTestBase {
         // NOTE: that should be considered a bug by the tool that does the sync
         // as it uses an IDP that is not configured with the login-chain!
         ExternalIdentityProvider foreign = new TestIdentityProvider("foreign");
-        SyncContext syncContext = new DefaultSyncContext(syncConfig, foreign, getUserManager(root), getValueFactory(root));
+        SyncContext syncContext = new DefaultSyncContext(syncConfig, foreign, getUserManager(root),
+            getValueFactory(root));
         SyncResult result = syncContext.sync(foreign.getUser(TestIdentityProvider.ID_TEST_USER));
         long lastSynced = result.getIdentity().lastSynced();
         root.commit();
@@ -193,13 +196,14 @@ public class PreAuthDefaultExternalLoginTest extends ExternalLoginTestBase {
         PreAuthCredentials creds = new PreAuthCredentials(TestIdentityProvider.ID_TEST_USER);
         // login should succeed due the fact that the  _LoginModuleImpl_ succeeds for
         // an existing authorizable if _pre_auth_ is enabled.
-        try (ContentSession cs = login(creds)){
+        try (ContentSession cs = login(creds)) {
 
             assertEquals(PreAuthCredentials.PRE_AUTH_DONE, creds.getMessage());
 
             // foreign user _must_ not have been touched by the _ExternalLoginModule_
             root.refresh();
-            User u = getUserManager(root).getAuthorizable(TestIdentityProvider.ID_TEST_USER, User.class);
+            User u = getUserManager(root).getAuthorizable(TestIdentityProvider.ID_TEST_USER,
+                User.class);
             assertNotNull(u);
 
             assertEquals(lastSynced, DefaultSyncContext.createSyncedIdentity(u).lastSynced());
@@ -209,7 +213,7 @@ public class PreAuthDefaultExternalLoginTest extends ExternalLoginTestBase {
     @Test(expected = LoginException.class)
     public void testInvalidPreAuthCreds() throws Exception {
         PreAuthCredentials creds = new PreAuthCredentials(null);
-        try (ContentSession cs = login(creds)){
+        try (ContentSession cs = login(creds)) {
         } finally {
             assertEquals(PreAuthCredentials.PRE_AUTH_FAIL, creds.getMessage());
 
@@ -220,7 +224,7 @@ public class PreAuthDefaultExternalLoginTest extends ExternalLoginTestBase {
 
     @Test
     public void testGuest() throws Exception {
-        try (ContentSession cs = login(new GuestCredentials())){
+        try (ContentSession cs = login(new GuestCredentials())) {
             assertEquals(UserConstants.DEFAULT_ANONYMOUS_ID, cs.getAuthInfo().getUserID());
         }
     }
@@ -228,7 +232,8 @@ public class PreAuthDefaultExternalLoginTest extends ExternalLoginTestBase {
     @Test
     public void testSimpleLocal() throws Exception {
         User testUser = getTestUser();
-        try (ContentSession cs = login(new SimpleCredentials(testUser.getID(), testUser.getID().toCharArray()))){
+        try (ContentSession cs = login(
+            new SimpleCredentials(testUser.getID(), testUser.getID().toCharArray()))) {
             assertEquals(testUser.getID(), cs.getAuthInfo().getUserID());
         }
     }
@@ -239,7 +244,8 @@ public class PreAuthDefaultExternalLoginTest extends ExternalLoginTestBase {
         testUser.disable("disable");
         root.commit();
 
-        try (ContentSession cs = login(new SimpleCredentials(testUser.getID(), testUser.getID().toCharArray()))) {
+        try (ContentSession cs = login(
+            new SimpleCredentials(testUser.getID(), testUser.getID().toCharArray()))) {
         }
     }
 
@@ -262,7 +268,8 @@ public class PreAuthDefaultExternalLoginTest extends ExternalLoginTestBase {
             assertEquals(TestIdentityProvider.ID_TEST_USER, cs.getAuthInfo().getUserID());
 
             root.refresh();
-            User u = getUserManager(root).getAuthorizable(TestIdentityProvider.ID_TEST_USER, User.class);
+            User u = getUserManager(root).getAuthorizable(TestIdentityProvider.ID_TEST_USER,
+                User.class);
             assertNotNull(u);
         }
     }

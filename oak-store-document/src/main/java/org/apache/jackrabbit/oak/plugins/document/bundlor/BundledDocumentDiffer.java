@@ -19,8 +19,10 @@
 
 package org.apache.jackrabbit.oak.plugins.document.bundlor;
 
-import java.util.Collection;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
+import java.util.Collection;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
 import org.apache.jackrabbit.oak.plugins.document.AbstractDocumentNodeState;
@@ -29,10 +31,8 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.Path;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-
 public class BundledDocumentDiffer {
+
     private final DocumentNodeStore nodeStore;
 
     public BundledDocumentDiffer(DocumentNodeStore nodeStore) {
@@ -40,41 +40,45 @@ public class BundledDocumentDiffer {
     }
 
     /**
-     * Performs diff for bundled nodes. The passed state can be DocumentNodeState or
-     * one from secondary nodestore i.e. {@code DelegatingDocumentNodeState}. So the
-     * passed states cannot be cast down to DocumentNodeState
+     * Performs diff for bundled nodes. The passed state can be DocumentNodeState or one from
+     * secondary nodestore i.e. {@code DelegatingDocumentNodeState}. So the passed states cannot be
+     * cast down to DocumentNodeState
      *
      * @param from from state
-     * @param to to state
-     * @param w jsop diff
-     * @return true if the diff needs to be continued. In case diff is complete it would return false
+     * @param to   to state
+     * @param w    jsop diff
+     * @return true if the diff needs to be continued. In case diff is complete it would return
+     * false
      */
-    public boolean diff(AbstractDocumentNodeState from, AbstractDocumentNodeState to, JsopWriter w){
+    public boolean diff(AbstractDocumentNodeState from, AbstractDocumentNodeState to,
+        JsopWriter w) {
         boolean fromBundled = BundlorUtils.isBundledNode(from);
         boolean toBundled = BundlorUtils.isBundledNode(to);
 
         //Neither of the nodes bundled
-        if (!fromBundled && !toBundled){
+        if (!fromBundled && !toBundled) {
             return true;
         }
 
         DocumentNodeState fromDocState = getDocumentNodeState(from);
         DocumentNodeState toDocState = getDocumentNodeState(to);
 
-        diffChildren(fromDocState.getBundledChildNodeNames(), toDocState.getBundledChildNodeNames(), w);
+        diffChildren(fromDocState.getBundledChildNodeNames(), toDocState.getBundledChildNodeNames(),
+            w);
 
         //If all child nodes are bundled then diff is complete
         if (fromDocState.hasOnlyBundledChildren()
-                && toDocState.hasOnlyBundledChildren()){
+            && toDocState.hasOnlyBundledChildren()) {
             return false;
         }
 
         return true;
     }
 
-    void diffChildren(Collection<String> fromChildren, Collection<String> toChildren, JsopWriter w){
-        for (String n : fromChildren){
-            if (!toChildren.contains(n)){
+    void diffChildren(Collection<String> fromChildren, Collection<String> toChildren,
+        JsopWriter w) {
+        for (String n : fromChildren) {
+            if (!toChildren.contains(n)) {
                 w.tag('-').value(n);
             } else {
                 //As lastRev for bundled node is same as parent node and they differ it means
@@ -83,8 +87,8 @@ public class BundledDocumentDiffer {
             }
         }
 
-        for (String n : toChildren){
-            if (!fromChildren.contains(n)){
+        for (String n : toChildren) {
+            if (!fromChildren.contains(n)) {
                 w.tag('+').key(n).object().endObject();
             }
         }
@@ -105,13 +109,15 @@ public class BundledDocumentDiffer {
             checkState(BundlorUtils.isBundledChild(state));
             String bundlingPath = state.getString(DocumentBundlor.META_PROP_BUNDLING_PATH);
             Path bundlingRootPath = state.getPath().getAncestor(PathUtils.getDepth(bundlingPath));
-            DocumentNodeState bundlingRoot = nodeStore.getNode(bundlingRootPath, state.getLastRevision());
+            DocumentNodeState bundlingRoot = nodeStore.getNode(bundlingRootPath,
+                state.getLastRevision());
             result = (DocumentNodeState) NodeStateUtils.getNode(bundlingRoot, bundlingPath);
         } else {
             result = nodeStore.getNode(state.getPath(), state.getLastRevision());
         }
 
-        checkNotNull(result, "Node at [%s] not found for fromRev [%s]", state.getPath(), state.getLastRevision());
+        checkNotNull(result, "Node at [%s] not found for fromRev [%s]", state.getPath(),
+            state.getLastRevision());
         return result;
     }
 }

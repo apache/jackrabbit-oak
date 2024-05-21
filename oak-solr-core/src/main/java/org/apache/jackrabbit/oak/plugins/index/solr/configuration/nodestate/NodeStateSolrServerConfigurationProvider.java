@@ -33,7 +33,8 @@ public class NodeStateSolrServerConfigurationProvider implements SolrServerConfi
     public NodeStateSolrServerConfigurationProvider(NodeState nodeState) {
         this.nodeState = nodeState;
         if (!nodeState.hasProperty(Properties.SERVER_TYPE)) {
-            throw new IllegalArgumentException("missing property " + Properties.SERVER_TYPE + " in " + nodeState);
+            throw new IllegalArgumentException(
+                "missing property " + Properties.SERVER_TYPE + " in " + nodeState);
         }
     }
 
@@ -60,49 +61,64 @@ public class NodeStateSolrServerConfigurationProvider implements SolrServerConfi
     public SolrServerConfiguration<SolrServerProvider> getSolrServerConfiguration() {
         String type = getStringValueFor(Properties.SERVER_TYPE, null);
         if ("embedded".equalsIgnoreCase(type)) {
-            String solrHomePath = getStringValueFor(Properties.SOLRHOME_PATH, SolrServerConfigurationDefaults.SOLR_HOME_PATH);
-            String coreName = getStringValueFor(Properties.CORE_NAME, SolrServerConfigurationDefaults.CORE_NAME);
+            String solrHomePath = getStringValueFor(Properties.SOLRHOME_PATH,
+                SolrServerConfigurationDefaults.SOLR_HOME_PATH);
+            String coreName = getStringValueFor(Properties.CORE_NAME,
+                SolrServerConfigurationDefaults.CORE_NAME);
             String context = getStringValueFor(Properties.CONTEXT, null);
             Integer httpPort = Integer.valueOf(getStringValueFor(Properties.HTTP_PORT, "0"));
 
             if (context != null && httpPort > 0) {
                 return createEmbeddedSolrServerConfiguration(solrHomePath, coreName)
-                        .withHttpConfiguration(context, httpPort);
+                    .withHttpConfiguration(context, httpPort);
             } else {
                 return createEmbeddedSolrServerConfiguration(solrHomePath, coreName);
             }
         } else if ("remote".equalsIgnoreCase(type)) {
             String solrZkHost = getStringValueFor(Properties.ZK_HOST, null);
-            String solrCollection = getStringValueFor(Properties.COLLECTION, SolrServerConfigurationDefaults.COLLECTION);
-            int solrReplicationFactor = getIntValueFor(Properties.REPLICATION_FACTOR, SolrServerConfigurationDefaults.REPLICATION_FACTOR);
-            String solrConfDir = getStringValueFor(Properties.CONFIGURATION_DIRECTORY, SolrServerConfigurationDefaults.CONFIGURATION_DIRECTORY);
-            String solrHttpUrls = getStringValueFor(Properties.HTTP_URL, SolrServerConfigurationDefaults.HTTP_URL);
-            int solrShardsNo = getIntValueFor(Properties.SHARDS_NO, SolrServerConfigurationDefaults.SHARDS_NO);
+            String solrCollection = getStringValueFor(Properties.COLLECTION,
+                SolrServerConfigurationDefaults.COLLECTION);
+            int solrReplicationFactor = getIntValueFor(Properties.REPLICATION_FACTOR,
+                SolrServerConfigurationDefaults.REPLICATION_FACTOR);
+            String solrConfDir = getStringValueFor(Properties.CONFIGURATION_DIRECTORY,
+                SolrServerConfigurationDefaults.CONFIGURATION_DIRECTORY);
+            String solrHttpUrls = getStringValueFor(Properties.HTTP_URL,
+                SolrServerConfigurationDefaults.HTTP_URL);
+            int solrShardsNo = getIntValueFor(Properties.SHARDS_NO,
+                SolrServerConfigurationDefaults.SHARDS_NO);
 
-            int socketTimeout = getIntValueFor(Properties.SOCKET_TIMEOUT, SolrServerConfigurationDefaults.SOCKET_TIMEOUT);
-            int connectionTimeout = getIntValueFor(Properties.CONNECTION_TIMEOUT, SolrServerConfigurationDefaults.CONNECTION_TIMEOUT);
+            int socketTimeout = getIntValueFor(Properties.SOCKET_TIMEOUT,
+                SolrServerConfigurationDefaults.SOCKET_TIMEOUT);
+            int connectionTimeout = getIntValueFor(Properties.CONNECTION_TIMEOUT,
+                SolrServerConfigurationDefaults.CONNECTION_TIMEOUT);
 
-            return (SolrServerConfiguration) new RemoteSolrServerConfiguration(solrZkHost, solrCollection, solrShardsNo,
-                    solrReplicationFactor, solrConfDir, socketTimeout, connectionTimeout, solrHttpUrls);
+            return (SolrServerConfiguration) new RemoteSolrServerConfiguration(solrZkHost,
+                solrCollection, solrShardsNo,
+                solrReplicationFactor, solrConfDir, socketTimeout, connectionTimeout, solrHttpUrls);
         } else {
             throw new RuntimeException("unexpected Solr server type: " + type);
         }
     }
 
-    @SuppressWarnings({"unchecked" })
-    private static SolrServerConfiguration<SolrServerProvider> createEmbeddedSolrServerConfiguration(String solrHomePath, String coreName) {
+    @SuppressWarnings({"unchecked"})
+    private static SolrServerConfiguration<SolrServerProvider> createEmbeddedSolrServerConfiguration(
+        String solrHomePath, String coreName) {
         try {
-            Class<?> c = Class.forName("org.apache.jackrabbit.oak.plugins.index.solr.configuration.EmbeddedSolrServerConfiguration");
-            return (SolrServerConfiguration<SolrServerProvider>) c.getConstructor(String.class, String.class).newInstance(solrHomePath, coreName);
+            Class<?> c = Class.forName(
+                "org.apache.jackrabbit.oak.plugins.index.solr.configuration.EmbeddedSolrServerConfiguration");
+            return (SolrServerConfiguration<SolrServerProvider>) c.getConstructor(String.class,
+                String.class).newInstance(solrHomePath, coreName);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
 
     /**
-     * Properties that may be retrieved from the configuration {@link org.apache.jackrabbit.oak.spi.state.NodeState}.
+     * Properties that may be retrieved from the configuration
+     * {@link org.apache.jackrabbit.oak.spi.state.NodeState}.
      */
     public final class Properties {
+
         public static final String SERVER_TYPE = "solrServerType";
 
         // --> embedded solr server properties <--

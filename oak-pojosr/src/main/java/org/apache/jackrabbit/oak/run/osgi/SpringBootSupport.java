@@ -28,42 +28,43 @@ import java.util.Enumeration;
 import java.util.List;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
-
+import org.apache.felix.connect.Revision;
+import org.apache.felix.connect.launch.BundleDescriptor;
 import org.apache.jackrabbit.guava.common.base.Preconditions;
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.felix.connect.Revision;
-import org.apache.felix.connect.launch.BundleDescriptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * For running PojoSR based application in Spring Boot environment we need to provide
- * a custom Revision implementation. Default PojoSR JarRevision support works for normal
- * jar files while in Spring Boot env jar files are embedded withing another jar.
- *
- * This class does not have direct dependency on Spring Boot Jar Launcher but relies
- * on reflection as the Spring Jar support is not visible to PojoSR classloader
+ * For running PojoSR based application in Spring Boot environment we need to provide a custom
+ * Revision implementation. Default PojoSR JarRevision support works for normal jar files while in
+ * Spring Boot env jar files are embedded withing another jar.
+ * <p>
+ * This class does not have direct dependency on Spring Boot Jar Launcher but relies on reflection
+ * as the Spring Jar support is not visible to PojoSR classloader
  */
 class SpringBootSupport {
+
     private static Logger log = LoggerFactory.getLogger(SpringBootSupport.class);
 
     public static final String SPRING_BOOT_PACKAGE = "org.springframework.boot.loader.jar";
 
     public static List<BundleDescriptor> processDescriptors(List<BundleDescriptor> descriptors)
-            throws IOException {
+        throws IOException {
         List<BundleDescriptor> processed = Lists.newArrayList();
         for (BundleDescriptor desc : descriptors) {
             if (desc.getRevision() == null) {
                 URL u = new URL(desc.getUrl());
                 URLConnection uc = u.openConnection();
                 if (uc instanceof JarURLConnection
-                        && uc.getClass().getName().startsWith(SPRING_BOOT_PACKAGE)) {
+                    && uc.getClass().getName().startsWith(SPRING_BOOT_PACKAGE)) {
                     Revision rev = new SpringBootJarRevision(((JarURLConnection) uc).getJarFile(),
-                            uc.getLastModified());
-                    desc = new BundleDescriptor(desc.getClassLoader(), desc.getUrl(), desc.getHeaders(),
-                            rev, desc.getServices());
+                        uc.getLastModified());
+                    desc = new BundleDescriptor(desc.getClassLoader(), desc.getUrl(),
+                        desc.getHeaders(),
+                        rev, desc.getServices());
                 }
             }
             processed.add(desc);
@@ -72,10 +73,11 @@ class SpringBootSupport {
     }
 
     /**
-     * Key change here is use of org.springframework.boot.loader.jar.JarEntry.getUrl()
-     * to get a working URL which allows access to files present in embedded jars
+     * Key change here is use of org.springframework.boot.loader.jar.JarEntry.getUrl() to get a
+     * working URL which allows access to files present in embedded jars
      */
     private static class SpringBootJarRevision implements Revision {
+
         private static Method ENTRY_URL_METHOD;
         private final JarFile jarFile;
         private final long lastModified;
@@ -109,7 +111,8 @@ class SpringBootSupport {
                     return (URL) getUrlMethod(jarEntry).invoke(jarEntry);
                 }
             } catch (Exception e) {
-                log.warn("Error occurred while fetching jar entry {} from {}", entryName, jarFile, e);
+                log.warn("Error occurred while fetching jar entry {} from {}", entryName, jarFile,
+                    e);
             }
             return null;
         }
@@ -120,7 +123,7 @@ class SpringBootSupport {
             return Iterators.asEnumeration(new AbstractIterator<String>() {
                 @Override
                 protected String computeNext() {
-                    if (e.hasMoreElements()){
+                    if (e.hasMoreElements()) {
                         return e.nextElement().getName();
                     }
                     return endOfData();
@@ -129,9 +132,10 @@ class SpringBootSupport {
         }
 
         private static Method getUrlMethod(JarEntry jarEntry) throws NoSuchMethodException {
-            if (ENTRY_URL_METHOD == null){
-                Preconditions.checkState(jarEntry.getClass().getName().startsWith(SPRING_BOOT_PACKAGE),
-                        "JarEntry class %s does not belong to Spring package", jarEntry.getClass());
+            if (ENTRY_URL_METHOD == null) {
+                Preconditions.checkState(
+                    jarEntry.getClass().getName().startsWith(SPRING_BOOT_PACKAGE),
+                    "JarEntry class %s does not belong to Spring package", jarEntry.getClass());
                 ENTRY_URL_METHOD = jarEntry.getClass().getDeclaredMethod("getUrl");
                 ENTRY_URL_METHOD.setAccessible(true);
             }

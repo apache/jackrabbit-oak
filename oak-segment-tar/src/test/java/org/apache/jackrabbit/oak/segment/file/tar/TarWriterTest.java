@@ -30,7 +30,6 @@ import static org.junit.Assert.assertTrue;
 import java.io.File;
 import java.io.IOException;
 import java.util.UUID;
-
 import org.apache.jackrabbit.oak.segment.file.UnrecoverableArchiveException;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
@@ -70,7 +69,8 @@ public class TarWriterTest {
 
     @Test
     public void failToClose() throws Exception {
-        TarWriter tarWriter = new TarWriter(getFailingSegmentArchiveManager(), 2222, NoopStats.INSTANCE);
+        TarWriter tarWriter = new TarWriter(getFailingSegmentArchiveManager(), 2222,
+            NoopStats.INSTANCE);
 
         writeEntry(tarWriter);
 
@@ -99,7 +99,8 @@ public class TarWriterTest {
         return new SegmentTarManager(segmentstoreDir, monitor, ioMonitor, false, false) {
             @Override
             public @NotNull SegmentArchiveWriter create(String archiveName) {
-                return new SegmentTarWriter(new File(segmentstoreDir, archiveName), monitor, ioMonitor) {
+                return new SegmentTarWriter(new File(segmentstoreDir, archiveName), monitor,
+                    ioMonitor) {
                     @Override
                     public void writeGraph(byte[] data) throws IOException {
                         throw new IOException("test");

@@ -18,12 +18,13 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.LongAdder;
-
-import static org.junit.Assert.*;
+import org.junit.Test;
 
 public class BoundedHistogramTest {
 
@@ -39,7 +40,7 @@ public class BoundedHistogramTest {
             histogram.addEntry("/a/b/c/path" + i);
         }
         assertFalse(histogram.isOverflowed());
-        for (int i = maxSize; i < maxSize*2; i++) {
+        for (int i = maxSize; i < maxSize * 2; i++) {
             histogram.addEntry("/a/b/c/path" + i);
         }
         assertTrue(histogram.isOverflowed());

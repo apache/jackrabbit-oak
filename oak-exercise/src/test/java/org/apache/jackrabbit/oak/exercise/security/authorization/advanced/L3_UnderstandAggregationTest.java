@@ -16,12 +16,15 @@
  */
 package org.apache.jackrabbit.oak.exercise.security.authorization.advanced;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import javax.jcr.GuestCredentials;
 import javax.jcr.security.AccessControlList;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.AccessControlPolicyIterator;
-
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.authorization.PrincipalSetPolicy;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
@@ -44,10 +47,6 @@ import org.apache.jackrabbit.oak.spi.security.authorization.cug.impl.CugConfigur
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 /**
  * <pre>
@@ -116,10 +115,12 @@ public class L3_UnderstandAggregationTest extends AbstractSecurityTest {
 
         prop = PropertyStates.createProperty("prop", "value");
 
-        Tree var = TreeUtil.addChild(root.getTree("/"), "var", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        Tree var = TreeUtil.addChild(root.getTree("/"), "var",
+            NodeTypeConstants.NT_OAK_UNSTRUCTURED);
         var.setProperty(prop);
 
-        Tree content = TreeUtil.addChild(root.getTree("/"), "content", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        Tree content = TreeUtil.addChild(root.getTree("/"), "content",
+            NodeTypeConstants.NT_OAK_UNSTRUCTURED);
         content.setProperty(prop);
 
         Tree c1 = TreeUtil.addChild(content, "c1", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
@@ -132,7 +133,8 @@ public class L3_UnderstandAggregationTest extends AbstractSecurityTest {
 
         // at /content grant read-access for everyone using default model
         AccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, content.getPath());
-        acl.addAccessControlEntry(EveryonePrincipal.getInstance(), privilegesFromNames(PrivilegeConstants.JCR_READ));
+        acl.addAccessControlEntry(EveryonePrincipal.getInstance(),
+            privilegesFromNames(PrivilegeConstants.JCR_READ));
         acMgr.setPolicy(content.getPath(), acl);
 
         // at /content/c1 deny reading properties (default model) and establish
@@ -146,7 +148,8 @@ public class L3_UnderstandAggregationTest extends AbstractSecurityTest {
                 acMgr.setPolicy(c1.getPath(), psp);
             } else if (policy instanceof JackrabbitAccessControlList) {
                 JackrabbitAccessControlList jacl = (JackrabbitAccessControlList) policy;
-                jacl.addEntry(EveryonePrincipal.getInstance(), privilegesFromNames(PrivilegeConstants.REP_ADD_PROPERTIES), true);
+                jacl.addEntry(EveryonePrincipal.getInstance(),
+                    privilegesFromNames(PrivilegeConstants.REP_ADD_PROPERTIES), true);
                 acMgr.setPolicy(c1.getPath(), jacl);
             }
         }
@@ -168,7 +171,9 @@ public class L3_UnderstandAggregationTest extends AbstractSecurityTest {
     protected SecurityProvider initSecurityProvider() {
         SecurityProvider sp = super.initSecurityProvider();
         CugConfiguration cugConfiguration = new CugConfiguration();
-        cugConfiguration.setParameters(ConfigurationParameters.of("cugSupportedPaths", new String[] {"/content"}, "cugEnabled", true));
+        cugConfiguration.setParameters(
+            ConfigurationParameters.of("cugSupportedPaths", new String[]{"/content"}, "cugEnabled",
+                true));
 
         SecurityProviderHelper.updateConfig(sp, cugConfiguration, AuthorizationConfiguration.class);
         return sp;
@@ -176,7 +181,8 @@ public class L3_UnderstandAggregationTest extends AbstractSecurityTest {
 
     @Override
     protected ConfigurationParameters getSecurityConfigParameters() {
-        return ConfigurationParameters.of("authorizationCompositionType", CompositeAuthorizationConfiguration.CompositionType.AND.toString());
+        return ConfigurationParameters.of("authorizationCompositionType",
+            CompositeAuthorizationConfiguration.CompositionType.AND.toString());
     }
 
     @Test
@@ -210,10 +216,14 @@ public class L3_UnderstandAggregationTest extends AbstractSecurityTest {
             t.setProperty("addingProperty", "value");
             root.commit();
 
-            assertFalse(getAccessControlManager(r).hasPrivileges("/content/c1", privilegesFromNames(PrivilegeConstants.JCR_ADD_CHILD_NODES)));
-            assertFalse(getAccessControlManager(r).hasPrivileges("/content/c1", privilegesFromNames(PrivilegeConstants.JCR_REMOVE_CHILD_NODES)));
-            assertFalse(getAccessControlManager(r).hasPrivileges("/content/c1", privilegesFromNames(PrivilegeConstants.REP_REMOVE_PROPERTIES)));
-            assertFalse(getAccessControlManager(r).hasPrivileges("/content/c1", privilegesFromNames(PrivilegeConstants.REP_ALTER_PROPERTIES)));
+            assertFalse(getAccessControlManager(r).hasPrivileges("/content/c1",
+                privilegesFromNames(PrivilegeConstants.JCR_ADD_CHILD_NODES)));
+            assertFalse(getAccessControlManager(r).hasPrivileges("/content/c1",
+                privilegesFromNames(PrivilegeConstants.JCR_REMOVE_CHILD_NODES)));
+            assertFalse(getAccessControlManager(r).hasPrivileges("/content/c1",
+                privilegesFromNames(PrivilegeConstants.REP_REMOVE_PROPERTIES)));
+            assertFalse(getAccessControlManager(r).hasPrivileges("/content/c1",
+                privilegesFromNames(PrivilegeConstants.REP_ALTER_PROPERTIES)));
         }
     }
 
@@ -273,7 +283,7 @@ public class L3_UnderstandAggregationTest extends AbstractSecurityTest {
 
     @Test
     public void testAdminWritePermissions() throws Exception {
-        for (String p : new String[] {"/", "/var", "/content", "/content/c1", "/content/c2"}) {
+        for (String p : new String[]{"/", "/var", "/content", "/content/c1", "/content/c2"}) {
             assertTrue(acMgr.hasPrivileges(p, privilegesFromNames(PrivilegeConstants.JCR_ALL)));
         }
     }

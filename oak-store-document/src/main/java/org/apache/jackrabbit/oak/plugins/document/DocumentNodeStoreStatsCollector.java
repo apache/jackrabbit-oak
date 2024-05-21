@@ -56,60 +56,56 @@ public interface DocumentNodeStoreStatsCollector {
     void doneMergeBranch(int numCommits, int numChanges);
 
     /**
-     * Reports to the collector that a merge was done. The number of changes
-     * reported with this method is the number of documents that were modified
-     * with the merge.
+     * Reports to the collector that a merge was done. The number of changes reported with this
+     * method is the number of documents that were modified with the merge.
      *
-     * @param numChanges the number of changes in this merge.
-     * @param numRetries the number of retries that were necessary.
-     * @param timeMillis the time in milliseconds it took to merge the changes.
+     * @param numChanges    the number of changes in this merge.
+     * @param numRetries    the number of retries that were necessary.
+     * @param timeMillis    the time in milliseconds it took to merge the changes.
      * @param suspendMillis the time in milliseconds the merge was suspended.
-     * @param exclusive whether the merge was holding an exclusive lock.
+     * @param exclusive     whether the merge was holding an exclusive lock.
      */
     void doneMerge(int numChanges,
-                   int numRetries,
-                   long timeMillis,
-                   long suspendMillis,
-                   boolean exclusive);
+        int numRetries,
+        long timeMillis,
+        long suspendMillis,
+        boolean exclusive);
 
     /**
      * Reports to the collector that a merge failed.
      *
-     * @param numRetries the number of retries that were done.
-     * @param timeMillis the time in milliseconds it took to attempt the merge.
+     * @param numRetries    the number of retries that were done.
+     * @param timeMillis    the time in milliseconds it took to attempt the merge.
      * @param suspendMillis the time in milliseconds the merge was suspended.
-     * @param exclusive whether the merge was holding an exclusive lock.
+     * @param exclusive     whether the merge was holding an exclusive lock.
      */
     void failedMerge(int numRetries, long timeMillis, long suspendMillis, boolean exclusive);
 
     /**
-     * Reports to the collector that a commit finished waiting to become the
-     * head of the commit queue.
+     * Reports to the collector that a commit finished waiting to become the head of the commit
+     * queue.
      *
-     * @param waitMicros the time it waited in microseconds to be come
-     *         the head of the queue.
+     * @param waitMicros the time it waited in microseconds to be come the head of the queue.
      */
     void doneWaitUntilHead(long waitMicros);
 
     /**
-     * Reports to the collector that the commit acquired the merge lock in the
-     * given time.
+     * Reports to the collector that the commit acquired the merge lock in the given time.
      *
      * @param timeMicros the time in microseconds.
      */
     void doneMergeLockAcquired(long timeMicros);
 
     /**
-     * Reports to the collector that the commit hook processed a commit in the
-     * given time.
+     * Reports to the collector that the commit hook processed a commit in the given time.
      *
      * @param timeMicros the time in microseconds.
      */
     void doneCommitHookProcessed(long timeMicros);
 
     /**
-     * Reports to the collector that the commit applied the changes to the
-     * {@code DocumentStore} in the given time.
+     * Reports to the collector that the commit applied the changes to the {@code DocumentStore} in
+     * the given time.
      *
      * @param timeMicros the time in microseconds.
      */

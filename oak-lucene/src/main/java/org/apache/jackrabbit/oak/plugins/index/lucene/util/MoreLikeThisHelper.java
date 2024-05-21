@@ -20,7 +20,6 @@ import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.MoreLikeThisHelperUtil;
 import org.apache.lucene.analysis.Analyzer;
@@ -36,16 +35,19 @@ import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TopDocs;
 
 /**
- * Helper class for generating a {@link org.apache.lucene.queries.mlt.MoreLikeThisQuery} from the native query <code>String</code>
+ * Helper class for generating a {@link org.apache.lucene.queries.mlt.MoreLikeThisQuery} from the
+ * native query <code>String</code>
  */
 public class MoreLikeThisHelper {
 
-    public static Query getMoreLikeThis(IndexReader reader, Analyzer analyzer, String mltQueryString) {
+    public static Query getMoreLikeThis(IndexReader reader, Analyzer analyzer,
+        String mltQueryString) {
         Query moreLikeThisQuery = null;
         MoreLikeThis mlt = new MoreLikeThis(reader);
         mlt.setAnalyzer(analyzer);
         try {
-            Map<String, String> paramMap = MoreLikeThisHelperUtil.getParamMapFromMltQuery(mltQueryString);
+            Map<String, String> paramMap = MoreLikeThisHelperUtil.getParamMapFromMltQuery(
+                mltQueryString);
             String text = null;
             String[] fields = {};
             for (String key : paramMap.keySet()) {
@@ -84,8 +86,9 @@ public class MoreLikeThisHelper {
                     TopDocs top = searcher.search(q, 1);
                     if (top.totalHits == 0) {
                         mlt.setFieldNames(fields);
-                        moreLikeThisQuery = mlt.like(new StringReader(text), mlt.getFieldNames()[0]);
-                    } else{
+                        moreLikeThisQuery = mlt.like(new StringReader(text),
+                            mlt.getFieldNames()[0]);
+                    } else {
                         ScoreDoc d = top.scoreDocs[0];
                         Document doc = reader.document(d.doc);
                         List<String> fieldNames = new ArrayList<String>();

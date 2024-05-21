@@ -96,12 +96,14 @@ public class PrincipalPolicyImporterTest extends AbstractPrincipalBasedTest {
 
     @Override
     protected ConfigurationParameters getSecurityConfigParameters() {
-        ConfigurationParameters params = ConfigurationParameters.of(ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, ImportBehavior.NAME_BESTEFFORT);
+        ConfigurationParameters params = ConfigurationParameters.of(
+            ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, ImportBehavior.NAME_BESTEFFORT);
         return ConfigurationParameters.of(AuthorizationConfiguration.NAME, params);
     }
 
-    private boolean  init(boolean isWorkspaceImport, int uuidBehavior) {
-        return importer.init(mock(Session.class), root, getNamePathMapper(), isWorkspaceImport, uuidBehavior, new ReferenceChangeTracker(), getSecurityProvider());
+    private boolean init(boolean isWorkspaceImport, int uuidBehavior) {
+        return importer.init(mock(Session.class), root, getNamePathMapper(), isWorkspaceImport,
+            uuidBehavior, new ReferenceChangeTracker(), getSecurityProvider());
     }
 
     private PropInfo mockPropInfo(@NotNull String jcrName) {
@@ -109,16 +111,19 @@ public class PrincipalPolicyImporterTest extends AbstractPrincipalBasedTest {
     }
 
     private PropInfo mockPropInfo(@NotNull Principal principal) throws RepositoryException {
-        TextValue tx = when(mock(TextValue.class).getString()).thenReturn(principal.getName()).getMock();
+        TextValue tx = when(mock(TextValue.class).getString()).thenReturn(principal.getName())
+                                                              .getMock();
         PropInfo propInfo = mockPropInfo(getJcrName(REP_PRINCIPAL_NAME));
         when(propInfo.getTextValue()).thenReturn(tx);
         return propInfo;
     }
 
-    private List<PropInfo> mockPropInfos(@Nullable String effectivePath,  @NotNull String... privNames) throws RepositoryException {
+    private List<PropInfo> mockPropInfos(@Nullable String effectivePath,
+        @NotNull String... privNames) throws RepositoryException {
         List<PropInfo> propInfos = new ArrayList();
         if (effectivePath != null) {
-            TextValue tx = when(mock(TextValue.class).getString()).thenReturn(effectivePath).getMock();
+            TextValue tx = when(mock(TextValue.class).getString()).thenReturn(effectivePath)
+                                                                  .getMock();
             PropInfo propInfo = mockPropInfo(getJcrName(REP_EFFECTIVE_PATH));
             when(propInfo.getTextValue()).thenReturn(tx);
             when(propInfo.getType()).thenReturn(PropertyType.PATH);
@@ -126,7 +131,8 @@ public class PrincipalPolicyImporterTest extends AbstractPrincipalBasedTest {
         }
         List privTxtValues = new ArrayList();
         for (String privName : privNames) {
-            TextValue tx = when(mock(TextValue.class).getString()).thenReturn(getJcrName(privName)).getMock();
+            TextValue tx = when(mock(TextValue.class).getString()).thenReturn(getJcrName(privName))
+                                                                  .getMock();
             privTxtValues.add(tx);
         }
         if (!privTxtValues.isEmpty()) {
@@ -138,24 +144,27 @@ public class PrincipalPolicyImporterTest extends AbstractPrincipalBasedTest {
         return propInfos;
     }
 
-    private List<PropInfo> mockPropInfos(@NotNull Map<String, String> restrictions, int propertyType) throws RepositoryException {
+    private List<PropInfo> mockPropInfos(@NotNull Map<String, String> restrictions,
+        int propertyType) throws RepositoryException {
         return mockPropInfos(Maps.transformValues(restrictions, string -> {
             try {
-                return new Value[] {getValueFactory(root).createValue(string, propertyType)};
+                return new Value[]{getValueFactory(root).createValue(string, propertyType)};
             } catch (ValueFormatException e) {
                 throw new RuntimeException(e);
             }
         }));
     }
 
-    private List<PropInfo> mockPropInfos(@NotNull Map<String, Value[]> restrictions) throws RepositoryException {
+    private List<PropInfo> mockPropInfos(@NotNull Map<String, Value[]> restrictions)
+        throws RepositoryException {
         List<PropInfo> propInfos = new ArrayList();
-        for (Map.Entry<String,Value[]> r : restrictions.entrySet()) {
+        for (Map.Entry<String, Value[]> r : restrictions.entrySet()) {
             String jcrName = r.getKey();
             List<Value> vs = ImmutableList.copyOf(r.getValue());
             PropInfo propInfo = mockPropInfo(jcrName);
             if (!vs.isEmpty()) {
-                TextValue first = when(mock(TextValue.class).getString()).thenReturn(vs.get(0).getString()).getMock();
+                TextValue first = when(mock(TextValue.class).getString()).thenReturn(
+                    vs.get(0).getString()).getMock();
                 when(propInfo.getTextValue()).thenReturn(first);
                 when(propInfo.getValues(anyInt())).thenReturn(vs);
             }
@@ -185,7 +194,8 @@ public class PrincipalPolicyImporterTest extends AbstractPrincipalBasedTest {
     }
 
     @Nullable
-    private static PrincipalPolicyImpl.EntryImpl assertPolicy(@NotNull AccessControlPolicy[] policies, int expectedEntries) {
+    private static PrincipalPolicyImpl.EntryImpl assertPolicy(
+        @NotNull AccessControlPolicy[] policies, int expectedEntries) {
         assertEquals(1, policies.length);
         assertTrue(policies[0] instanceof PrincipalPolicyImpl);
         assertEquals(expectedEntries, (((PrincipalPolicyImpl) policies[0])).size());
@@ -214,7 +224,8 @@ public class PrincipalPolicyImporterTest extends AbstractPrincipalBasedTest {
 
     @Test
     public void testInitResetMgrProviderRoot() {
-        MgrProvider mp = when(mock(MgrProvider.class).getSecurityProvider()).thenReturn(getSecurityProvider()).getMock();
+        MgrProvider mp = when(mock(MgrProvider.class).getSecurityProvider()).thenReturn(
+            getSecurityProvider()).getMock();
         importer = new PrincipalPolicyImporter(filterProvider, mp);
         init(true, ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW);
         verify(mp, times(1)).reset(root, getNamePathMapper());
@@ -222,8 +233,9 @@ public class PrincipalPolicyImporterTest extends AbstractPrincipalBasedTest {
 
     @Test
     public void testInitGetsFilter() {
-        init(false,ImportUUIDBehavior.IMPORT_UUID_COLLISION_THROW);
-        verify(filterProvider, times(1)).getFilter(getSecurityProvider(), root, getNamePathMapper());
+        init(false, ImportUUIDBehavior.IMPORT_UUID_COLLISION_THROW);
+        verify(filterProvider, times(1)).getFilter(getSecurityProvider(), root,
+            getNamePathMapper());
     }
 
     @Test
@@ -237,14 +249,16 @@ public class PrincipalPolicyImporterTest extends AbstractPrincipalBasedTest {
 
     @Test(expected = IllegalStateException.class)
     public void testHandlePropInfoNotInitialized() throws Exception {
-        importer.handlePropInfo(mock(Tree.class), mock(PropInfo.class), mock(PropertyDefinition.class));
+        importer.handlePropInfo(mock(Tree.class), mock(PropInfo.class),
+            mock(PropertyDefinition.class));
     }
 
     @Test
     public void testHandlePropInfoNonExistingTree() throws Exception {
         init(true, ImportUUIDBehavior.IMPORT_UUID_COLLISION_REPLACE_EXISTING);
         Tree tree = when(mock(Tree.class).exists()).thenReturn(false).getMock();
-        assertFalse(importer.handlePropInfo(tree, mock(PropInfo.class), mock(PropertyDefinition.class)));
+        assertFalse(
+            importer.handlePropInfo(tree, mock(PropInfo.class), mock(PropertyDefinition.class)));
     }
 
     @Test
@@ -253,7 +267,8 @@ public class PrincipalPolicyImporterTest extends AbstractPrincipalBasedTest {
 
         // wrong policy name
         Tree tree = mockTree(AccessControlConstants.REP_POLICY, NT_REP_PRINCIPAL_POLICY, true);
-        assertFalse(importer.handlePropInfo(tree, mock(PropInfo.class), mock(PropertyDefinition.class)));
+        assertFalse(
+            importer.handlePropInfo(tree, mock(PropInfo.class), mock(PropertyDefinition.class)));
     }
 
     @Test
@@ -262,7 +277,8 @@ public class PrincipalPolicyImporterTest extends AbstractPrincipalBasedTest {
 
         // wrong nt name
         Tree tree = mockTree(REP_PRINCIPAL_POLICY, AccessControlConstants.NT_REP_ACL, true);
-        assertFalse(importer.handlePropInfo(tree, mock(PropInfo.class), mock(PropertyDefinition.class)));
+        assertFalse(
+            importer.handlePropInfo(tree, mock(PropInfo.class), mock(PropertyDefinition.class)));
     }
 
     @Test
@@ -270,7 +286,8 @@ public class PrincipalPolicyImporterTest extends AbstractPrincipalBasedTest {
         init(true, ImportUUIDBehavior.IMPORT_UUID_COLLISION_THROW);
 
         Tree tree = mockTree(REP_PRINCIPAL_POLICY, NT_REP_PRINCIPAL_POLICY, true);
-        assertFalse(importer.handlePropInfo(tree, mockPropInfo("wrongName"), mock(PropertyDefinition.class)));
+        assertFalse(importer.handlePropInfo(tree, mockPropInfo("wrongName"),
+            mock(PropertyDefinition.class)));
     }
 
     @Test
@@ -278,7 +295,8 @@ public class PrincipalPolicyImporterTest extends AbstractPrincipalBasedTest {
         init(false, ImportUUIDBehavior.IMPORT_UUID_COLLISION_REPLACE_EXISTING);
 
         Tree tree = mockTree(REP_PRINCIPAL_POLICY, NT_REP_PRINCIPAL_POLICY, true);
-        assertFalse(importer.handlePropInfo(tree, mock(PropInfo.class), mock(PropertyDefinition.class)));
+        assertFalse(
+            importer.handlePropInfo(tree, mock(PropInfo.class), mock(PropertyDefinition.class)));
     }
 
     @Test
@@ -287,7 +305,7 @@ public class PrincipalPolicyImporterTest extends AbstractPrincipalBasedTest {
 
         Tree tree = mockTree(REP_PRINCIPAL_POLICY, NT_REP_PRINCIPAL_POLICY, true);
         PropInfo propInfo = mockPropInfo(REP_PRINCIPAL_NAME);
-        
+
         assertFalse(importer.handlePropInfo(tree, propInfo, mock(PropertyDefinition.class)));
     }
 
@@ -297,7 +315,8 @@ public class PrincipalPolicyImporterTest extends AbstractPrincipalBasedTest {
 
         Tree tree = mockTree(REP_PRINCIPAL_POLICY, NT_REP_PRINCIPAL_POLICY, true);
         PropInfo propInfo = mockPropInfo(getJcrName(REP_PRINCIPAL_NAME));
-        PropertyDefinition def = when(mock(PropertyDefinition.class).isMultiple()).thenReturn(true).getMock();
+        PropertyDefinition def = when(mock(PropertyDefinition.class).isMultiple()).thenReturn(true)
+                                                                                  .getMock();
 
         assertFalse(importer.handlePropInfo(tree, propInfo, def));
     }
@@ -328,7 +347,8 @@ public class PrincipalPolicyImporterTest extends AbstractPrincipalBasedTest {
     public void testHandlePropInfoUnsupportedPath() throws Exception {
         init(false, ImportUUIDBehavior.IMPORT_UUID_COLLISION_REMOVE_EXISTING);
 
-        Tree tree = mockTree(REP_PRINCIPAL_POLICY, NT_REP_PRINCIPAL_POLICY, "/some/unsupported/path");
+        Tree tree = mockTree(REP_PRINCIPAL_POLICY, NT_REP_PRINCIPAL_POLICY,
+            "/some/unsupported/path");
         PropInfo propInfo = mockPropInfo(getJcrName(REP_PRINCIPAL_NAME));
         PropertyDefinition def = mockPropertyDefinition(getJcrName(NT_REP_PRINCIPAL_POLICY));
 
@@ -339,7 +359,9 @@ public class PrincipalPolicyImporterTest extends AbstractPrincipalBasedTest {
     public void testHandlePropInfoPrincipalNameMismatch() throws Exception {
         init(true, ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW);
 
-        importer.handlePropInfo(createPolicyTree(getTestSystemUser()), mockPropInfo(new PrincipalImpl("mismatch")), mockPropertyDefinition(getJcrName(NT_REP_PRINCIPAL_POLICY)));
+        importer.handlePropInfo(createPolicyTree(getTestSystemUser()),
+            mockPropInfo(new PrincipalImpl("mismatch")),
+            mockPropertyDefinition(getJcrName(NT_REP_PRINCIPAL_POLICY)));
     }
 
     @Test
@@ -347,19 +369,23 @@ public class PrincipalPolicyImporterTest extends AbstractPrincipalBasedTest {
         init(false, ImportUUIDBehavior.IMPORT_UUID_COLLISION_REPLACE_EXISTING);
 
         User testUser = getTestUser();
-        String wrongUserPath = PathUtils.concat(SUPPORTED_PATH , "testUser");
+        String wrongUserPath = PathUtils.concat(SUPPORTED_PATH, "testUser");
 
-        Tree tree = mockTree(REP_PRINCIPAL_POLICY, NT_REP_PRINCIPAL_POLICY, PathUtils.concat(wrongUserPath, REP_PRINCIPAL_POLICY));
-        assertFalse(importer.handlePropInfo(tree, mockPropInfo(testUser.getPrincipal()), mockPropertyDefinition(getJcrName(NT_REP_PRINCIPAL_POLICY))));
+        Tree tree = mockTree(REP_PRINCIPAL_POLICY, NT_REP_PRINCIPAL_POLICY,
+            PathUtils.concat(wrongUserPath, REP_PRINCIPAL_POLICY));
+        assertFalse(importer.handlePropInfo(tree, mockPropInfo(testUser.getPrincipal()),
+            mockPropertyDefinition(getJcrName(NT_REP_PRINCIPAL_POLICY))));
     }
 
     @Test
     public void testHandlePropInfoPrincipalByNameReturnsNull() throws Exception {
         init(false, ImportUUIDBehavior.IMPORT_UUID_COLLISION_THROW);
 
-        String oakPath = PathUtils.concat(SUPPORTED_PATH, "unknownSystemUser", REP_PRINCIPAL_POLICY);
+        String oakPath = PathUtils.concat(SUPPORTED_PATH, "unknownSystemUser",
+            REP_PRINCIPAL_POLICY);
         Tree tree = mockTree(REP_PRINCIPAL_POLICY, NT_REP_PRINCIPAL_POLICY, oakPath);
-        assertFalse(importer.handlePropInfo(tree, mockPropInfo(new PrincipalImpl("notFound")), mockPropertyDefinition(getJcrName(NT_REP_PRINCIPAL_POLICY))));
+        assertFalse(importer.handlePropInfo(tree, mockPropInfo(new PrincipalImpl("notFound")),
+            mockPropertyDefinition(getJcrName(NT_REP_PRINCIPAL_POLICY))));
     }
 
     @Test
@@ -367,11 +393,13 @@ public class PrincipalPolicyImporterTest extends AbstractPrincipalBasedTest {
         init(true, ImportUUIDBehavior.IMPORT_UUID_COLLISION_REMOVE_EXISTING);
 
         User user = getTestSystemUser();
-        assertTrue(importer.handlePropInfo(createPolicyTree(user), mockPropInfo(user.getPrincipal()), mockPropertyDefinition(getJcrName(NT_REP_PRINCIPAL_POLICY))));
+        assertTrue(
+            importer.handlePropInfo(createPolicyTree(user), mockPropInfo(user.getPrincipal()),
+                mockPropertyDefinition(getJcrName(NT_REP_PRINCIPAL_POLICY))));
     }
 
     @Test(expected = IllegalStateException.class)
-    public void testPropertiesCompletedNotInitialized() throws Exception  {
+    public void testPropertiesCompletedNotInitialized() throws Exception {
         importer.propertiesCompleted(mock(Tree.class));
     }
 
@@ -387,11 +415,13 @@ public class PrincipalPolicyImporterTest extends AbstractPrincipalBasedTest {
         init(true, ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW);
 
         User user = getTestSystemUser();
-        importer.handlePropInfo(createPolicyTree(user), mockPropInfo(user.getPrincipal()), mockPropertyDefinition(getJcrName(NT_REP_PRINCIPAL_POLICY)));
+        importer.handlePropInfo(createPolicyTree(user), mockPropInfo(user.getPrincipal()),
+            mockPropertyDefinition(getJcrName(NT_REP_PRINCIPAL_POLICY)));
 
         importer.propertiesCompleted(mockTree("/another/path", true));
         assertEquals(0, getAccessControlManager(root).getPolicies(user.getPrincipal()).length);
-        assertFalse(root.getTree(getNamePathMapper().getOakPath(user.getPath())).hasChild(REP_PRINCIPAL_POLICY));
+        assertFalse(root.getTree(getNamePathMapper().getOakPath(user.getPath()))
+                        .hasChild(REP_PRINCIPAL_POLICY));
     }
 
     @Test
@@ -401,7 +431,8 @@ public class PrincipalPolicyImporterTest extends AbstractPrincipalBasedTest {
         User user = getTestSystemUser();
         Tree policyTree = createPolicyTree(user);
         String oakPath = policyTree.getPath();
-        importer.handlePropInfo(policyTree, mockPropInfo(user.getPrincipal()), mockPropertyDefinition(getJcrName(NT_REP_PRINCIPAL_POLICY)));
+        importer.handlePropInfo(policyTree, mockPropInfo(user.getPrincipal()),
+            mockPropertyDefinition(getJcrName(NT_REP_PRINCIPAL_POLICY)));
 
         importer.propertiesCompleted(policyTree);
 
@@ -426,7 +457,8 @@ public class PrincipalPolicyImporterTest extends AbstractPrincipalBasedTest {
         init(false, ImportUUIDBehavior.IMPORT_UUID_COLLISION_REPLACE_EXISTING);
         User user = getTestSystemUser();
         Tree policyTree = createPolicyTree(user);
-        importer.handlePropInfo(policyTree, mockPropInfo(user.getPrincipal()), mockPropertyDefinition(getJcrName(NT_REP_PRINCIPAL_POLICY)));
+        importer.handlePropInfo(policyTree, mockPropInfo(user.getPrincipal()),
+            mockPropertyDefinition(getJcrName(NT_REP_PRINCIPAL_POLICY)));
         importer.propertiesCompleted(policyTree);
 
         assertTrue(importer.start(policyTree));
@@ -437,7 +469,8 @@ public class PrincipalPolicyImporterTest extends AbstractPrincipalBasedTest {
         init(true, ImportUUIDBehavior.IMPORT_UUID_COLLISION_THROW);
         User user = getTestSystemUser();
         Tree policyTree = createPolicyTree(user);
-        importer.handlePropInfo(policyTree, mockPropInfo(user.getPrincipal()), mockPropertyDefinition(getJcrName(NT_REP_PRINCIPAL_POLICY)));
+        importer.handlePropInfo(policyTree, mockPropInfo(user.getPrincipal()),
+            mockPropertyDefinition(getJcrName(NT_REP_PRINCIPAL_POLICY)));
         importer.propertiesCompleted(policyTree);
 
         assertFalse(importer.start(mockTree("/another/path", true)));
@@ -453,7 +486,8 @@ public class PrincipalPolicyImporterTest extends AbstractPrincipalBasedTest {
         init(true, ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW);
         User user = getTestSystemUser();
         Tree policyTree = createPolicyTree(user);
-        importer.handlePropInfo(policyTree, mockPropInfo(user.getPrincipal()), mockPropertyDefinition(getJcrName(NT_REP_PRINCIPAL_POLICY)));
+        importer.handlePropInfo(policyTree, mockPropInfo(user.getPrincipal()),
+            mockPropertyDefinition(getJcrName(NT_REP_PRINCIPAL_POLICY)));
         importer.propertiesCompleted(policyTree);
 
         importer.end(mockTree("/another/path", true));
@@ -467,7 +501,8 @@ public class PrincipalPolicyImporterTest extends AbstractPrincipalBasedTest {
         init(true, ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW);
         User user = getTestSystemUser();
         Tree policyTree = createPolicyTree(user);
-        importer.handlePropInfo(policyTree, mockPropInfo(user.getPrincipal()), mockPropertyDefinition(getJcrName(NT_REP_PRINCIPAL_POLICY)));
+        importer.handlePropInfo(policyTree, mockPropInfo(user.getPrincipal()),
+            mockPropertyDefinition(getJcrName(NT_REP_PRINCIPAL_POLICY)));
         importer.propertiesCompleted(policyTree);
 
         importer.end(policyTree);
@@ -488,9 +523,12 @@ public class PrincipalPolicyImporterTest extends AbstractPrincipalBasedTest {
         init(true, ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW);
         User user = getTestSystemUser();
         Tree policyTree = createPolicyTree(user);
-        importer.handlePropInfo(policyTree, mockPropInfo(user.getPrincipal()), mockPropertyDefinition(getJcrName(NT_REP_PRINCIPAL_POLICY)));
+        importer.handlePropInfo(policyTree, mockPropInfo(user.getPrincipal()),
+            mockPropertyDefinition(getJcrName(NT_REP_PRINCIPAL_POLICY)));
 
-        importer.startChildInfo(mockNodeInfo("invalidACE", getJcrName(AccessControlConstants.NT_REP_GRANT_ACE)), mock(List.class));
+        importer.startChildInfo(
+            mockNodeInfo("invalidACE", getJcrName(AccessControlConstants.NT_REP_GRANT_ACE)),
+            mock(List.class));
     }
 
     @Test(expected = ConstraintViolationException.class)
@@ -498,7 +536,8 @@ public class PrincipalPolicyImporterTest extends AbstractPrincipalBasedTest {
         init(true, ImportUUIDBehavior.IMPORT_UUID_COLLISION_THROW);
         User user = getTestSystemUser();
         Tree policyTree = createPolicyTree(user);
-        importer.handlePropInfo(policyTree, mockPropInfo(user.getPrincipal()), mockPropertyDefinition(getJcrName(NT_REP_PRINCIPAL_POLICY)));
+        importer.handlePropInfo(policyTree, mockPropInfo(user.getPrincipal()),
+            mockPropertyDefinition(getJcrName(NT_REP_PRINCIPAL_POLICY)));
 
         importer.startChildInfo(mockNodeInfo("oakName", NT_REP_PRINCIPAL_ENTRY), mock(List.class));
     }
@@ -508,10 +547,13 @@ public class PrincipalPolicyImporterTest extends AbstractPrincipalBasedTest {
         init(true, ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW);
         User user = getTestSystemUser();
         Tree policyTree = createPolicyTree(user);
-        importer.handlePropInfo(policyTree, mockPropInfo(user.getPrincipal()), mockPropertyDefinition(getJcrName(NT_REP_PRINCIPAL_POLICY)));
+        importer.handlePropInfo(policyTree, mockPropInfo(user.getPrincipal()),
+            mockPropertyDefinition(getJcrName(NT_REP_PRINCIPAL_POLICY)));
 
-        importer.startChildInfo(mockNodeInfo("entry", getJcrName(NT_REP_PRINCIPAL_ENTRY)), mockPropInfos("/anyPath", PrivilegeConstants.JCR_READ_ACCESS_CONTROL));
-        importer.startChildInfo(mockNodeInfo("anotherEntry", getJcrName(NT_REP_PRINCIPAL_ENTRY)), mockPropInfos("/anyPath", PrivilegeConstants.JCR_READ_ACCESS_CONTROL));
+        importer.startChildInfo(mockNodeInfo("entry", getJcrName(NT_REP_PRINCIPAL_ENTRY)),
+            mockPropInfos("/anyPath", PrivilegeConstants.JCR_READ_ACCESS_CONTROL));
+        importer.startChildInfo(mockNodeInfo("anotherEntry", getJcrName(NT_REP_PRINCIPAL_ENTRY)),
+            mockPropInfos("/anyPath", PrivilegeConstants.JCR_READ_ACCESS_CONTROL));
     }
 
     @Test(expected = ConstraintViolationException.class)
@@ -519,9 +561,11 @@ public class PrincipalPolicyImporterTest extends AbstractPrincipalBasedTest {
         init(false, ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW);
         User user = getTestSystemUser();
         Tree policyTree = createPolicyTree(user);
-        importer.handlePropInfo(policyTree, mockPropInfo(user.getPrincipal()), mockPropertyDefinition(getJcrName(NT_REP_PRINCIPAL_POLICY)));
+        importer.handlePropInfo(policyTree, mockPropInfo(user.getPrincipal()),
+            mockPropertyDefinition(getJcrName(NT_REP_PRINCIPAL_POLICY)));
 
-        importer.startChildInfo(mockNodeInfo("entry", getJcrName(NT_REP_PRINCIPAL_ENTRY)), mockPropInfos("/effective/path"));
+        importer.startChildInfo(mockNodeInfo("entry", getJcrName(NT_REP_PRINCIPAL_ENTRY)),
+            mockPropInfos("/effective/path"));
     }
 
     @Test(expected = ConstraintViolationException.class)
@@ -529,9 +573,12 @@ public class PrincipalPolicyImporterTest extends AbstractPrincipalBasedTest {
         init(false, ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW);
         User user = getTestSystemUser();
         Tree policyTree = createPolicyTree(user);
-        importer.handlePropInfo(policyTree, mockPropInfo(user.getPrincipal()), mockPropertyDefinition(getJcrName(NT_REP_PRINCIPAL_POLICY)));
+        importer.handlePropInfo(policyTree, mockPropInfo(user.getPrincipal()),
+            mockPropertyDefinition(getJcrName(NT_REP_PRINCIPAL_POLICY)));
 
-        importer.startChildInfo(mockNodeInfo(getJcrName(REP_RESTRICTIONS), getJcrName(NT_REP_RESTRICTIONS)), mock(List.class));
+        importer.startChildInfo(
+            mockNodeInfo(getJcrName(REP_RESTRICTIONS), getJcrName(NT_REP_RESTRICTIONS)),
+            mock(List.class));
     }
 
     @Test(expected = ConstraintViolationException.class)
@@ -539,11 +586,14 @@ public class PrincipalPolicyImporterTest extends AbstractPrincipalBasedTest {
         init(true, ImportUUIDBehavior.IMPORT_UUID_COLLISION_REPLACE_EXISTING);
         User user = getTestSystemUser();
         Tree policyTree = createPolicyTree(user);
-        importer.handlePropInfo(policyTree, mockPropInfo(user.getPrincipal()), mockPropertyDefinition(getJcrName(NT_REP_PRINCIPAL_POLICY)));
+        importer.handlePropInfo(policyTree, mockPropInfo(user.getPrincipal()),
+            mockPropertyDefinition(getJcrName(NT_REP_PRINCIPAL_POLICY)));
 
-        List<PropInfo> propInfos = mockPropInfos("/effective/path", PrivilegeConstants.JCR_REMOVE_CHILD_NODES);
+        List<PropInfo> propInfos = mockPropInfos("/effective/path",
+            PrivilegeConstants.JCR_REMOVE_CHILD_NODES);
         propInfos.add(mockPropInfo("unsupportedProperty"));
-        importer.startChildInfo(mockNodeInfo("entry", getJcrName(NT_REP_PRINCIPAL_ENTRY)), propInfos);
+        importer.startChildInfo(mockNodeInfo("entry", getJcrName(NT_REP_PRINCIPAL_ENTRY)),
+            propInfos);
     }
 
     @Test(expected = ConstraintViolationException.class)
@@ -551,17 +601,20 @@ public class PrincipalPolicyImporterTest extends AbstractPrincipalBasedTest {
         init(true, ImportUUIDBehavior.IMPORT_UUID_COLLISION_REPLACE_EXISTING);
         User user = getTestSystemUser();
         Tree policyTree = createPolicyTree(user);
-        importer.handlePropInfo(policyTree, mockPropInfo(user.getPrincipal()), mockPropertyDefinition(getJcrName(NT_REP_PRINCIPAL_POLICY)));
+        importer.handlePropInfo(policyTree, mockPropInfo(user.getPrincipal()),
+            mockPropertyDefinition(getJcrName(NT_REP_PRINCIPAL_POLICY)));
 
         List<PropInfo> propInfos = mockPropInfos(null, PrivilegeConstants.JCR_REMOVE_CHILD_NODES);
         // effective path with wrong type
-        TextValue tx = when(mock(TextValue.class).getString()).thenReturn("/effective/path").getMock();
+        TextValue tx = when(mock(TextValue.class).getString()).thenReturn("/effective/path")
+                                                              .getMock();
         PropInfo propInfo = mockPropInfo(getJcrName(REP_EFFECTIVE_PATH));
         when(propInfo.getTextValue()).thenReturn(tx);
         when(propInfo.getType()).thenReturn(PropertyType.STRING);
         propInfos.add(propInfo);
 
-        importer.startChildInfo(mockNodeInfo("entry", getJcrName(NT_REP_PRINCIPAL_ENTRY)), propInfos);
+        importer.startChildInfo(mockNodeInfo("entry", getJcrName(NT_REP_PRINCIPAL_ENTRY)),
+            propInfos);
     }
 
     @Test(expected = ConstraintViolationException.class)
@@ -569,18 +622,21 @@ public class PrincipalPolicyImporterTest extends AbstractPrincipalBasedTest {
         init(true, ImportUUIDBehavior.IMPORT_UUID_COLLISION_REPLACE_EXISTING);
         User user = getTestSystemUser();
         Tree policyTree = createPolicyTree(user);
-        importer.handlePropInfo(policyTree, mockPropInfo(user.getPrincipal()), mockPropertyDefinition(getJcrName(NT_REP_PRINCIPAL_POLICY)));
+        importer.handlePropInfo(policyTree, mockPropInfo(user.getPrincipal()),
+            mockPropertyDefinition(getJcrName(NT_REP_PRINCIPAL_POLICY)));
 
         List<PropInfo> propInfos = mockPropInfos("/effective/path");
         // rep:privileges with wrong type
         PropInfo propInfo = mockPropInfo(getJcrName(REP_PRIVILEGES));
-        TextValue tx = when(mock(TextValue.class).getString()).thenReturn(getJcrName(JCR_READ)).getMock();
+        TextValue tx = when(mock(TextValue.class).getString()).thenReturn(getJcrName(JCR_READ))
+                                                              .getMock();
         List values = ImmutableList.of(tx);
         when(propInfo.getTextValues()).thenReturn(values);
         when(propInfo.getType()).thenReturn(PropertyType.STRING);
         propInfos.add(propInfo);
 
-        importer.startChildInfo(mockNodeInfo("entry", getJcrName(NT_REP_PRINCIPAL_ENTRY)), propInfos);
+        importer.startChildInfo(mockNodeInfo("entry", getJcrName(NT_REP_PRINCIPAL_ENTRY)),
+            propInfos);
     }
 
     @Test(expected = IllegalStateException.class)
@@ -588,11 +644,18 @@ public class PrincipalPolicyImporterTest extends AbstractPrincipalBasedTest {
         init(false, ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW);
         User user = getTestSystemUser();
         Tree policyTree = createPolicyTree(user);
-        importer.handlePropInfo(policyTree, mockPropInfo(user.getPrincipal()), mockPropertyDefinition(getJcrName(NT_REP_PRINCIPAL_POLICY)));
+        importer.handlePropInfo(policyTree, mockPropInfo(user.getPrincipal()),
+            mockPropertyDefinition(getJcrName(NT_REP_PRINCIPAL_POLICY)));
 
-        importer.startChildInfo(mockNodeInfo("entry", getJcrName(NT_REP_PRINCIPAL_ENTRY)), mockPropInfos("/effective/path", PrivilegeConstants.REP_WRITE));
-        importer.startChildInfo(mockNodeInfo(getJcrName(REP_RESTRICTIONS), getJcrName(NT_REP_RESTRICTIONS)), mockPropInfos(ImmutableMap.of(getJcrName(REP_GLOB), "/some/glob"), PropertyType.STRING));
-        importer.startChildInfo(mockNodeInfo(getJcrName(REP_RESTRICTIONS), getJcrName(NT_REP_RESTRICTIONS)), mockPropInfos(ImmutableMap.of()));
+        importer.startChildInfo(mockNodeInfo("entry", getJcrName(NT_REP_PRINCIPAL_ENTRY)),
+            mockPropInfos("/effective/path", PrivilegeConstants.REP_WRITE));
+        importer.startChildInfo(
+            mockNodeInfo(getJcrName(REP_RESTRICTIONS), getJcrName(NT_REP_RESTRICTIONS)),
+            mockPropInfos(ImmutableMap.of(getJcrName(REP_GLOB), "/some/glob"),
+                PropertyType.STRING));
+        importer.startChildInfo(
+            mockNodeInfo(getJcrName(REP_RESTRICTIONS), getJcrName(NT_REP_RESTRICTIONS)),
+            mockPropInfos(ImmutableMap.of()));
     }
 
     @Test(expected = IllegalStateException.class)
@@ -600,11 +663,17 @@ public class PrincipalPolicyImporterTest extends AbstractPrincipalBasedTest {
         init(false, ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW);
         User user = getTestSystemUser();
         Tree policyTree = createPolicyTree(user);
-        importer.handlePropInfo(policyTree, mockPropInfo(user.getPrincipal()), mockPropertyDefinition(getJcrName(NT_REP_PRINCIPAL_POLICY)));
+        importer.handlePropInfo(policyTree, mockPropInfo(user.getPrincipal()),
+            mockPropertyDefinition(getJcrName(NT_REP_PRINCIPAL_POLICY)));
 
-        importer.startChildInfo(mockNodeInfo("entry", getJcrName(NT_REP_PRINCIPAL_ENTRY)), mockPropInfos("/effective/path", PrivilegeConstants.REP_WRITE));
-        importer.startChildInfo(mockNodeInfo(getJcrName(REP_RESTRICTIONS), getJcrName(NT_REP_RESTRICTIONS)), mockPropInfos(ImmutableMap.of(getJcrName(REP_NT_NAMES), new Value[0])));
-        importer.startChildInfo(mockNodeInfo(getJcrName(REP_RESTRICTIONS), getJcrName(NT_REP_RESTRICTIONS)), mockPropInfos(ImmutableMap.of()));
+        importer.startChildInfo(mockNodeInfo("entry", getJcrName(NT_REP_PRINCIPAL_ENTRY)),
+            mockPropInfos("/effective/path", PrivilegeConstants.REP_WRITE));
+        importer.startChildInfo(
+            mockNodeInfo(getJcrName(REP_RESTRICTIONS), getJcrName(NT_REP_RESTRICTIONS)),
+            mockPropInfos(ImmutableMap.of(getJcrName(REP_NT_NAMES), new Value[0])));
+        importer.startChildInfo(
+            mockNodeInfo(getJcrName(REP_RESTRICTIONS), getJcrName(NT_REP_RESTRICTIONS)),
+            mockPropInfos(ImmutableMap.of()));
     }
 
     @Test(expected = IllegalStateException.class)
@@ -612,10 +681,14 @@ public class PrincipalPolicyImporterTest extends AbstractPrincipalBasedTest {
         init(false, ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW);
         User user = getTestSystemUser();
         Tree policyTree = createPolicyTree(user);
-        importer.handlePropInfo(policyTree, mockPropInfo(user.getPrincipal()), mockPropertyDefinition(getJcrName(NT_REP_PRINCIPAL_POLICY)));
+        importer.handlePropInfo(policyTree, mockPropInfo(user.getPrincipal()),
+            mockPropertyDefinition(getJcrName(NT_REP_PRINCIPAL_POLICY)));
 
-        importer.startChildInfo(mockNodeInfo("entry", getJcrName(NT_REP_PRINCIPAL_ENTRY)), mockPropInfos("/effective/path", PrivilegeConstants.REP_READ_PROPERTIES));
-        importer.startChildInfo(mockNodeInfo(getJcrName(REP_RESTRICTIONS), getJcrName(NT_REP_RESTRICTIONS)), mockPropInfos(ImmutableMap.of(
+        importer.startChildInfo(mockNodeInfo("entry", getJcrName(NT_REP_PRINCIPAL_ENTRY)),
+            mockPropInfos("/effective/path", PrivilegeConstants.REP_READ_PROPERTIES));
+        importer.startChildInfo(
+            mockNodeInfo(getJcrName(REP_RESTRICTIONS), getJcrName(NT_REP_RESTRICTIONS)),
+            mockPropInfos(ImmutableMap.of(
                 getJcrName(REP_NODE_PATH), "/effective/path"), PropertyType.STRING));
     }
 
@@ -624,18 +697,23 @@ public class PrincipalPolicyImporterTest extends AbstractPrincipalBasedTest {
         init(true, ImportUUIDBehavior.IMPORT_UUID_COLLISION_THROW);
         User user = getTestSystemUser();
         Tree policyTree = createPolicyTree(user);
-        importer.handlePropInfo(policyTree, mockPropInfo(user.getPrincipal()), mockPropertyDefinition(getJcrName(NT_REP_PRINCIPAL_POLICY)));
+        importer.handlePropInfo(policyTree, mockPropInfo(user.getPrincipal()),
+            mockPropertyDefinition(getJcrName(NT_REP_PRINCIPAL_POLICY)));
 
         importer.start(policyTree);
-        importer.startChildInfo(mockNodeInfo("entry", getJcrName(NT_REP_PRINCIPAL_ENTRY)), mockPropInfos(null, PrivilegeConstants.REP_READ_PROPERTIES));
-        importer.startChildInfo(mockNodeInfo(getJcrName(REP_RESTRICTIONS), getJcrName(NT_REP_RESTRICTIONS)), mockPropInfos(ImmutableMap.of(
+        importer.startChildInfo(mockNodeInfo("entry", getJcrName(NT_REP_PRINCIPAL_ENTRY)),
+            mockPropInfos(null, PrivilegeConstants.REP_READ_PROPERTIES));
+        importer.startChildInfo(
+            mockNodeInfo(getJcrName(REP_RESTRICTIONS), getJcrName(NT_REP_RESTRICTIONS)),
+            mockPropInfos(ImmutableMap.of(
                 getJcrName(REP_NODE_PATH), "/effective/path"), PropertyType.STRING));
 
         importer.endChildInfo();
         importer.endChildInfo();
         importer.end(policyTree);
 
-        PrincipalPolicyImpl.EntryImpl entry = assertPolicy(getAccessControlManager(root).getPolicies(user.getPrincipal()), 1);
+        PrincipalPolicyImpl.EntryImpl entry = assertPolicy(
+            getAccessControlManager(root).getPolicies(user.getPrincipal()), 1);
         assertEquals("/effective/path", entry.getEffectivePath());
     }
 
@@ -644,22 +722,29 @@ public class PrincipalPolicyImporterTest extends AbstractPrincipalBasedTest {
         init(false, ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW);
         User user = getTestSystemUser();
         Tree policyTree = createPolicyTree(user);
-        importer.handlePropInfo(policyTree, mockPropInfo(user.getPrincipal()), mockPropertyDefinition(getJcrName(NT_REP_PRINCIPAL_POLICY)));
+        importer.handlePropInfo(policyTree, mockPropInfo(user.getPrincipal()),
+            mockPropertyDefinition(getJcrName(NT_REP_PRINCIPAL_POLICY)));
 
         importer.start(policyTree);
-        importer.startChildInfo(mockNodeInfo("entry", getJcrName(NT_REP_PRINCIPAL_ENTRY)), mockPropInfos("/effective/path", PrivilegeConstants.REP_WRITE));
+        importer.startChildInfo(mockNodeInfo("entry", getJcrName(NT_REP_PRINCIPAL_ENTRY)),
+            mockPropInfos("/effective/path", PrivilegeConstants.REP_WRITE));
 
         ValueFactory vf = getValueFactory(root);
-        Value[] nameValues = new Value[] {vf.createValue(getJcrName("jcr:content"), PropertyType.NAME), vf.createValue(getJcrName("jcr:data"), PropertyType.NAME)};
-        importer.startChildInfo(mockNodeInfo(getJcrName(REP_RESTRICTIONS), getJcrName(NT_REP_RESTRICTIONS)), mockPropInfos(ImmutableMap.of(
+        Value[] nameValues = new Value[]{
+            vf.createValue(getJcrName("jcr:content"), PropertyType.NAME),
+            vf.createValue(getJcrName("jcr:data"), PropertyType.NAME)};
+        importer.startChildInfo(
+            mockNodeInfo(getJcrName(REP_RESTRICTIONS), getJcrName(NT_REP_RESTRICTIONS)),
+            mockPropInfos(ImmutableMap.of(
                 getJcrName(REP_ITEM_NAMES), nameValues,
-                getJcrName(REP_GLOB), new Value[] {vf.createValue("/some/*/globbing")})
-        ));
+                getJcrName(REP_GLOB), new Value[]{vf.createValue("/some/*/globbing")})
+            ));
         importer.endChildInfo();
         importer.endChildInfo();
         importer.end(policyTree);
 
-        PrincipalPolicyImpl.EntryImpl entry = assertPolicy(getAccessControlManager(root).getPolicies(user.getPrincipal()), 1);
+        PrincipalPolicyImpl.EntryImpl entry = assertPolicy(
+            getAccessControlManager(root).getPolicies(user.getPrincipal()), 1);
         assertNotNull(entry.getRestrictions(getJcrName(REP_ITEM_NAMES)));
         assertNotNull(entry.getRestriction(getJcrName(REP_GLOB)));
     }
@@ -669,11 +754,15 @@ public class PrincipalPolicyImporterTest extends AbstractPrincipalBasedTest {
         init(false, ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW);
         User user = getTestSystemUser();
         Tree policyTree = createPolicyTree(user);
-        importer.handlePropInfo(policyTree, mockPropInfo(user.getPrincipal()), mockPropertyDefinition(getJcrName(NT_REP_PRINCIPAL_POLICY)));
+        importer.handlePropInfo(policyTree, mockPropInfo(user.getPrincipal()),
+            mockPropertyDefinition(getJcrName(NT_REP_PRINCIPAL_POLICY)));
 
         importer.start(policyTree);
-        importer.startChildInfo(mockNodeInfo("entry", getJcrName(NT_REP_PRINCIPAL_ENTRY)), mockPropInfos("/effective/path", PrivilegeConstants.REP_WRITE));
-        importer.startChildInfo(mockNodeInfo(getJcrName(REP_RESTRICTIONS), getJcrName(NT_REP_RESTRICTIONS)), mockPropInfos(ImmutableMap.of(
+        importer.startChildInfo(mockNodeInfo("entry", getJcrName(NT_REP_PRINCIPAL_ENTRY)),
+            mockPropInfos("/effective/path", PrivilegeConstants.REP_WRITE));
+        importer.startChildInfo(
+            mockNodeInfo(getJcrName(REP_RESTRICTIONS), getJcrName(NT_REP_RESTRICTIONS)),
+            mockPropInfos(ImmutableMap.of(
                 "unsupported", "x"), PropertyType.STRING));
         // adding entry to policy must already throw the exception
         importer.endChildInfo();
@@ -689,9 +778,11 @@ public class PrincipalPolicyImporterTest extends AbstractPrincipalBasedTest {
         init(false, ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW);
         User user = getTestSystemUser();
         Tree policyTree = createPolicyTree(user);
-        importer.handlePropInfo(policyTree, mockPropInfo(user.getPrincipal()), mockPropertyDefinition(getJcrName(NT_REP_PRINCIPAL_POLICY)));
+        importer.handlePropInfo(policyTree, mockPropInfo(user.getPrincipal()),
+            mockPropertyDefinition(getJcrName(NT_REP_PRINCIPAL_POLICY)));
 
-        importer.startChildInfo(mockNodeInfo("entry", getJcrName(NT_REP_PRINCIPAL_ENTRY)), mockPropInfos(null, JCR_READ));
+        importer.startChildInfo(mockNodeInfo("entry", getJcrName(NT_REP_PRINCIPAL_ENTRY)),
+            mockPropInfos(null, JCR_READ));
         importer.endChildInfo();
     }
 }

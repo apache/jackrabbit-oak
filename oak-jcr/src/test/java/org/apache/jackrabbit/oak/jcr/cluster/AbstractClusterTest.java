@@ -19,12 +19,10 @@ package org.apache.jackrabbit.oak.jcr.cluster;
 import static org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest.dispose;
 
 import java.util.Iterator;
-
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
-
 import org.apache.jackrabbit.oak.NodeStoreFixtures;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
@@ -46,11 +44,11 @@ public class AbstractClusterTest {
     protected Whiteboard w1, w2;
     protected Repository r1, r2;
     protected Session s1, s2;
-    
+
     protected NodeStoreFixture getFixture() {
         return NodeStoreFixtures.DOCUMENT_NS;
     }
-    
+
     @After
     public void logout() {
         if (s1 != null) {
@@ -86,7 +84,7 @@ public class AbstractClusterTest {
         }
         Oak oak1 = new Oak(ns1);
         w1 = oak1.getWhiteboard();
-        r1  = customize(new Jcr(oak1)).createRepository();
+        r1 = customize(new Jcr(oak1)).createRepository();
         s1 = r1.login(new SimpleCredentials("admin", "admin".toCharArray()));
         prepareTestData(s1);
         if (ns1 instanceof DocumentNodeStore) {
@@ -97,17 +95,17 @@ public class AbstractClusterTest {
         ns2 = fixture.createNodeStore(2);
         Oak oak2 = new Oak(ns2);
         w2 = oak2.getWhiteboard();
-        r2  = customize(new Jcr(oak2)).createRepository();
+        r2 = customize(new Jcr(oak2)).createRepository();
         s2 = r2.login(new SimpleCredentials("admin", "admin".toCharArray()));
     }
-    
+
     static Iterable<Integer> seconds(final int max) {
         return new Iterable<Integer>() {
 
             @Override
             public Iterator<Integer> iterator() {
                 return new Iterator<Integer>() {
-                    
+
                     long start = System.currentTimeMillis();
                     int x;
 
@@ -115,8 +113,8 @@ public class AbstractClusterTest {
                     public boolean hasNext() {
                         long time = System.currentTimeMillis() - start;
                         if (x > 0 && time >= (max * 1000)) {
-                            Assert.fail("Retry loop timed out after " + x + 
-                                    " repetitions and " + time + " milliseconds");
+                            Assert.fail("Retry loop timed out after " + x +
+                                " repetitions and " + time + " milliseconds");
                         }
                         return true;
                     }
@@ -133,16 +131,16 @@ public class AbstractClusterTest {
                         }
                         return x++;
                     }
-                    
+
                     @Override
                     public void remove() {
                         throw new UnsupportedOperationException();
                     }
-                    
+
                 };
             }
-            
+
         };
     }
-    
+
 }

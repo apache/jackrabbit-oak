@@ -19,41 +19,43 @@
 
 package org.apache.jackrabbit.oak.exporter;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import joptsimple.OptionParser;
 import org.apache.jackrabbit.oak.run.cli.Options;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.junit.Assert.*;
-
 public class ExportOptionsTest {
+
     private Options options;
     private OptionParser parser = new OptionParser();
 
     @Before
-    public void setUp(){
+    public void setUp() {
         reset();
     }
 
     @Test
-    public void booleanOptionsProps() throws Exception{
-        options.parseAndConfigure(parser, new String[] {"-b"});
+    public void booleanOptionsProps() throws Exception {
+        options.parseAndConfigure(parser, new String[]{"-b"});
         ExportOptions opts = options.getOptionBean(ExportOptions.class);
         assertFalse(opts.includeBlobs());
 
         reset();
-        options.parseAndConfigure(parser, new String[] {"--blobs=true"});
+        options.parseAndConfigure(parser, new String[]{"--blobs=true"});
         opts = options.getOptionBean(ExportOptions.class);
         assertTrue(opts.includeBlobs());
 
         reset();
-        options.parseAndConfigure(parser, new String[] {"--depth=3"});
+        options.parseAndConfigure(parser, new String[]{"--depth=3"});
         opts = options.getOptionBean(ExportOptions.class);
         assertFalse(opts.includeBlobs());
 
     }
 
-    private void reset(){
+    private void reset() {
         options = new Options().withDisableSystemExit();
         options.registerOptionsFactory(ExportOptions.FACTORY);
     }

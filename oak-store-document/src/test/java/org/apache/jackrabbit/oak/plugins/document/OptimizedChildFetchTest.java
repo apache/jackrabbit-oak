@@ -50,10 +50,10 @@ public class OptimizedChildFetchTest extends BaseDocumentMKTest {
     public void checkForChildStatusFlag() {
         String head = mk.getHeadRevision();
         mk.commit("",
-                "+\"/root\":{}\n" +
-                        "+\"/root/a\":{}\n" +
-                        "+\"/root/a/b\":{}\n",
-                head, "");
+            "+\"/root\":{}\n" +
+                "+\"/root/a\":{}\n" +
+                "+\"/root/a/b\":{}\n",
+            head, "");
 
         assertTrue(hasChildren("/root"));
         assertTrue(hasChildren("/root/a"));
@@ -64,11 +64,11 @@ public class OptimizedChildFetchTest extends BaseDocumentMKTest {
     public void checkForNoCallsToFetchChildForLeafNodes() {
         String head = mk.getHeadRevision();
         String rev = mk.commit("",
-                "+\"/root\":{}\n" +
-                        "+\"/root/a\":{}\n" +
-                        "+\"/root/c\":{}\n" +
-                        "+\"/root/a/b\":{}\n",
-                head, "");
+            "+\"/root\":{}\n" +
+                "+\"/root/a\":{}\n" +
+                "+\"/root/c\":{}\n" +
+                "+\"/root/a/b\":{}\n",
+            head, "");
 
         //Clear the caches
         ds.paths.clear();
@@ -102,12 +102,14 @@ public class OptimizedChildFetchTest extends BaseDocumentMKTest {
 
 
     private static class TestDocumentStore extends MemoryDocumentStore {
+
         Set<String> paths = Sets.newHashSet();
 
         @NotNull
         @Override
-        public <T extends Document> List<T> query(Collection<T> collection, String fromKey, String toKey,
-                                                  String indexedProperty, long startValue, int limit) {
+        public <T extends Document> List<T> query(Collection<T> collection, String fromKey,
+            String toKey,
+            String indexedProperty, long startValue, int limit) {
             paths.add(fromKey);
             return super.query(collection, fromKey, toKey, indexedProperty, startValue, limit);
         }

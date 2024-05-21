@@ -30,7 +30,7 @@ import org.codehaus.groovy.tools.shell.Groovysh
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES
 
 @CompileStatic
-class LsdDocumentCommand extends CommandSupport{
+class LsdDocumentCommand extends CommandSupport {
     public static final String COMMAND_NAME = 'list-identifiers'
 
     public LsdDocumentCommand(Groovysh shell) {
@@ -61,11 +61,11 @@ class LsdDocumentCommand extends CommandSupport{
         writer.flush();
     }
 
-    ConsoleSession getSession(){
-        return (ConsoleSession)variables.session
+    ConsoleSession getSession() {
+        return (ConsoleSession) variables.session
     }
 
-    DocumentNodeStore getStore(){
-        return (DocumentNodeStore)session.getStore();
+    DocumentNodeStore getStore() {
+        return (DocumentNodeStore) session.getStore();
     }
 }

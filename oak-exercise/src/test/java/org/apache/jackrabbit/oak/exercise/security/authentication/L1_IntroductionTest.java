@@ -16,17 +16,16 @@
  */
 package org.apache.jackrabbit.oak.exercise.security.authentication;
 
+import static org.apache.jackrabbit.oak.exercise.ExerciseUtility.createTestUser;
+import static org.apache.jackrabbit.oak.exercise.ExerciseUtility.getTestCredentials;
+
 import javax.jcr.Credentials;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.test.AbstractJCRTest;
-
-import static org.apache.jackrabbit.oak.exercise.ExerciseUtility.createTestUser;
-import static org.apache.jackrabbit.oak.exercise.ExerciseUtility.getTestCredentials;
 
 /**
  * <pre>
@@ -88,7 +87,8 @@ public class L1_IntroductionTest extends AbstractJCRTest {
         super.setUp();
 
         repository = getHelper().getRepository();
-        user = createTestUser(((JackrabbitSession) superuser).getUserManager());;
+        user = createTestUser(((JackrabbitSession) superuser).getUserManager());
+        ;
         superuser.save();
     }
 

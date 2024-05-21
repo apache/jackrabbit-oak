@@ -19,9 +19,9 @@
 
 package org.apache.jackrabbit.oak.run.osgi
 
+import groovy.json.JsonOutput
 import org.apache.felix.connect.launch.BundleDescriptor
 import org.apache.felix.connect.launch.PojoServiceRegistry
-import groovy.json.JsonOutput
 import org.junit.After
 import org.junit.Before
 import org.junit.Rule
@@ -44,21 +44,21 @@ class ConfigTest {
     public final TemporaryFolder tmpFolder = new TemporaryFolder(new File("target"))
 
     @Before
-    void setUp(){
+    void setUp() {
         workDir = tmpFolder.getRoot();
-        config  = [
-                (REPOSITORY_HOME) : workDir.absolutePath,
-                'magic.spell' : 'Alohomora'
+        config = [
+                (REPOSITORY_HOME): workDir.absolutePath,
+                'magic.spell'    : 'Alohomora'
         ]
     }
 
     @After
-    void shutDown(){
+    void shutDown() {
         OakOSGiRepositoryFactory.shutdown(registry, 5)
     }
 
     @Test
-    void testRuntimeConfig(){
+    void testRuntimeConfig() {
         config[REPOSITORY_CONFIG] = createConfigMap()
 
         initRegistry(config)
@@ -67,11 +67,11 @@ class ConfigTest {
     }
 
     @Test
-    void testFileConfig(){
+    void testFileConfig() {
         def jf1 = new File(workDir, "config1.json")
         def jf2 = new File(workDir, "config2.json")
         jf1 << JsonOutput.toJson(createConfigMap())
-        jf2 << JsonOutput.toJson([bar : [a:'a3', b:4]])
+        jf2 << JsonOutput.toJson([bar: [a: 'a3', b: 4]])
         config[REPOSITORY_CONFIG_FILE] = "${jf1.absolutePath},${jf2.absolutePath}" as String
 
         initRegistry(config)
@@ -85,15 +85,15 @@ class ConfigTest {
     }
 
     @Test
-    void testConfigSync(){
+    void testConfigSync() {
         config[REPOSITORY_CONFIG] = [
-                foo : [a:'a', b:1],
-                bar : [a:'a1', b:2],
-                foo2 : [a:'a2', b:2]
+                foo : [a: 'a', b: 1],
+                bar : [a: 'a1', b: 2],
+                foo2: [a: 'a2', b: 2]
         ]
         initRegistry(config)
         Configuration c = cm.getConfiguration('baz')
-        c.update(new Hashtable([a :'a2']))
+        c.update(new Hashtable([a: 'a2']))
 
         assert cm.getConfiguration('baz').properties.get('a') == 'a2'
         assert cm.getConfiguration('foo').properties.get('a') == 'a'
@@ -104,8 +104,8 @@ class ConfigTest {
 
         //Now re init and remove the pid bar
         config[REPOSITORY_CONFIG] = [
-                foo : [a:'a-new', b:1],
-                foo2 : [a:'a2', b:2]
+                foo : [a: 'a-new', b: 1],
+                foo2: [a: 'a2', b: 2]
         ]
         initRegistry(config)
 
@@ -117,7 +117,7 @@ class ConfigTest {
 
     private static Map createConfigMap() {
         [
-                'foo'            : [a: 'a', b: 1, c:'${magic.spell}'],
+                'foo'            : [a: 'a', b: 1, c: '${magic.spell}'],
                 'foo.bar-default': [a: 'a1', b: 2],
                 'foo.bar-simple' : [a: 'a2', b: 3],
         ]
@@ -134,7 +134,7 @@ class ConfigTest {
         assert fcs.size() == 2
     }
 
-    private void initRegistry(Map config){
+    private void initRegistry(Map config) {
         registry = factory.initializeServiceRegistry(config)
         cm = registry.getService(registry.getServiceReference(ConfigurationAdmin.class.name)) as ConfigurationAdmin
     }
@@ -143,7 +143,7 @@ class ConfigTest {
         @Override
         protected List<BundleDescriptor> processDescriptors(List<BundleDescriptor> descriptors) {
             //skip the oak bundles to prevent repository initialization
-            return super.processDescriptors(descriptors).findAll {BundleDescriptor bd ->
+            return super.processDescriptors(descriptors).findAll { BundleDescriptor bd ->
                 !bd.headers[Constants.BUNDLE_SYMBOLICNAME]?.startsWith('org.apache.jackrabbit')
             }
         }

@@ -33,8 +33,8 @@ class FailedWithConflictException extends CommitFailedException {
     private final Set<Revision> conflictRevisions;
 
     FailedWithConflictException(@NotNull Set<Revision> conflictRevisions,
-                                @NotNull String message,
-                                @NotNull Throwable cause) {
+        @NotNull String message,
+        @NotNull Throwable cause) {
         super(OAK, MERGE, 4, checkNotNull(message), checkNotNull(cause));
         this.conflictRevisions = checkNotNull(conflictRevisions);
     }

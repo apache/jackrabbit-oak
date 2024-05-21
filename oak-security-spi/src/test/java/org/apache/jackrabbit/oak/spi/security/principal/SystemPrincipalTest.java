@@ -16,15 +16,14 @@
  */
 package org.apache.jackrabbit.oak.spi.security.principal;
 
-import org.apache.jackrabbit.api.security.principal.JackrabbitPrincipal;
-import org.junit.Test;
-
-import java.security.Principal;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
+
+import java.security.Principal;
+import org.apache.jackrabbit.api.security.principal.JackrabbitPrincipal;
+import org.junit.Test;
 
 public class SystemPrincipalTest {
 
@@ -73,9 +72,11 @@ public class SystemPrincipalTest {
     //--------------------------------------------------------------------------
 
     private static class OtherSystem implements JackrabbitPrincipal {
+
         public String getName() {
             return SystemPrincipal.INSTANCE.getName();
         }
+
         @Override
         public boolean equals(Object o) {
             if (o instanceof JackrabbitPrincipal) {
@@ -83,6 +84,7 @@ public class SystemPrincipalTest {
             }
             return false;
         }
+
         @Override
         public int hashCode() {
             return getName().hashCode();

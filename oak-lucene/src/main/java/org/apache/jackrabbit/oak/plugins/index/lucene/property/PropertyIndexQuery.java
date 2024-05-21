@@ -19,18 +19,19 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.property;
 
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.PROPERTY_INDEX;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.PROP_STORAGE_TYPE;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.STORAGE_TYPE_UNIQUE;
 
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+
 /**
  * Performs simple property=value query against a unique property index storage
  */
 class PropertyIndexQuery implements PropertyQuery {
+
     private final NodeBuilder builder;
 
     public PropertyIndexQuery(NodeBuilder builder) {

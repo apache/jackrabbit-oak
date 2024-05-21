@@ -21,17 +21,17 @@ package org.apache.jackrabbit.oak.jcr.util;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 /**
- * Holds components associated with a NodeStore. To be optionally implemented
- * by NodeStoreFixtures. Allows test classes to access inner parts of Oak.
+ * Holds components associated with a NodeStore. To be optionally implemented by NodeStoreFixtures.
+ * Allows test classes to access inner parts of Oak.
  */
 public interface ComponentHolder {
 
     /**
      * Get a component (BlobStore, folder, etc.) associated with a NodeStore.
      *
-     * @param nodeStore the owning NodeStore
+     * @param nodeStore     the owning NodeStore
      * @param componentName class or other name of the component
-     * @param <T> type of the result
+     * @param <T>           type of the result
      * @return component or null
      */
     <T> T get(NodeStore nodeStore, String componentName);

@@ -18,6 +18,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene.util;
 
+import static org.apache.lucene.search.DocIdSetIterator.NO_MORE_DOCS;
+
+import java.io.IOException;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Random;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
@@ -35,18 +41,13 @@ import org.apache.lucene.search.DocIdSetIterator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Random;
-
-import static org.apache.lucene.search.DocIdSetIterator.NO_MORE_DOCS;
-
 /**
  * ACL filtered version of {@link SortedSetDocValuesFacetCounts}
  */
 class StatisticalSortedSetDocValuesFacetCounts extends SortedSetDocValuesFacetCounts {
-    private static final Logger LOG = LoggerFactory.getLogger(StatisticalSortedSetDocValuesFacetCounts.class);
+
+    private static final Logger LOG = LoggerFactory.getLogger(
+        StatisticalSortedSetDocValuesFacetCounts.class);
 
     private final FacetsCollector facetsCollector;
     private final Filter filter;
@@ -56,8 +57,8 @@ class StatisticalSortedSetDocValuesFacetCounts extends SortedSetDocValuesFacetCo
     private FacetResult facetResult = null;
 
     StatisticalSortedSetDocValuesFacetCounts(DefaultSortedSetDocValuesReaderState state,
-                                                    FacetsCollector facetsCollector, Filter filter,
-                                                    SecureFacetConfiguration secureFacetConfiguration) throws IOException {
+        FacetsCollector facetsCollector, Filter filter,
+        SecureFacetConfiguration secureFacetConfiguration) throws IOException {
         super(state, facetsCollector);
         this.state = state;
         this.reader = state.origReader;
@@ -95,18 +96,21 @@ class StatisticalSortedSetDocValuesFacetCounts extends SortedSetDocValuesFacetCo
         // Delegate getting FacetResults to SecureSortedSetDocValuesFacetCounts to get the exact count
         // instead of statistical count. <OAK-8138>
         if (hitCount < sampleSize) {
-            return new SecureSortedSetDocValuesFacetCounts(state, facetsCollector, filter).getTopChildren(topN, dim, path);
+            return new SecureSortedSetDocValuesFacetCounts(state, facetsCollector,
+                filter).getTopChildren(topN, dim, path);
         }
 
         long randomSeed = secureFacetConfiguration.getRandomSeed();
 
-        LOG.debug("Sampling facet dim {}; hitCount: {}, sampleSize: {}, seed: {}", dim, hitCount, sampleSize, randomSeed);
+        LOG.debug("Sampling facet dim {}; hitCount: {}, sampleSize: {}, seed: {}", dim, hitCount,
+            sampleSize, randomSeed);
 
         Stopwatch w = Stopwatch.createStarted();
         Iterator<Integer> docIterator = getMatchingDocIterator(matchingDocsList);
         Iterator<Integer> sampleIterator = docIterator;
         if (sampleSize < hitCount) {
-            sampleIterator = getSampledMatchingDocIterator(docIterator, randomSeed, hitCount, sampleSize);
+            sampleIterator = getSampledMatchingDocIterator(docIterator, randomSeed, hitCount,
+                sampleSize);
         } else {
             sampleSize = hitCount;
         }
@@ -115,7 +119,8 @@ class StatisticalSortedSetDocValuesFacetCounts extends SortedSetDocValuesFacetCo
 
         LOG.debug("Evaluated accessible samples {} in {}", accessibleSampleCount, w);
 
-        labelAndValues = updateLabelAndValueIfRequired(labelAndValues, sampleSize, accessibleSampleCount);
+        labelAndValues = updateLabelAndValueIfRequired(labelAndValues, sampleSize,
+            accessibleSampleCount);
 
         int childCount = labelAndValues.length;
         Number value = 0;
@@ -133,6 +138,7 @@ class StatisticalSortedSetDocValuesFacetCounts extends SortedSetDocValuesFacetCo
             MatchingDocs matchingDocs = null;
             DocIdSetIterator docIdSetIterator = null;
             int nextDocId = NO_MORE_DOCS;
+
             @Override
             protected Integer computeNext() {
                 try {
@@ -165,13 +171,15 @@ class StatisticalSortedSetDocValuesFacetCounts extends SortedSetDocValuesFacetCo
     }
 
     private Iterator<Integer> getSampledMatchingDocIterator(Iterator<Integer> matchingDocs,
-                                                            long randomdSeed, int hitCount, int sampleSize) {
-        TapeSampling<Integer> tapeSampling = new TapeSampling<>(new Random(randomdSeed), matchingDocs, hitCount, sampleSize);
+        long randomdSeed, int hitCount, int sampleSize) {
+        TapeSampling<Integer> tapeSampling = new TapeSampling<>(new Random(randomdSeed),
+            matchingDocs, hitCount, sampleSize);
 
         return tapeSampling.getSamples();
     }
 
-    private int getAccessibleSampleCount(String dim, Iterator<Integer> sampleIterator) throws IOException {
+    private int getAccessibleSampleCount(String dim, Iterator<Integer> sampleIterator)
+        throws IOException {
         int count = 0;
         while (sampleIterator.hasNext()) {
             int docId = sampleIterator.next();
@@ -186,7 +194,7 @@ class StatisticalSortedSetDocValuesFacetCounts extends SortedSetDocValuesFacetCo
     }
 
     private LabelAndValue[] updateLabelAndValueIfRequired(LabelAndValue[] labelAndValues,
-                                                          int sampleSize, int accessibleCount) {
+        int sampleSize, int accessibleCount) {
         if (accessibleCount < sampleSize) {
             int numZeros = 0;
 

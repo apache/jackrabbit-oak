@@ -16,6 +16,15 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
+import static org.apache.jackrabbit.JcrConstants.NT_BASE;
+import static org.junit.Assert.assertEquals;
+
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.apache.jackrabbit.oak.InitialContentHelper;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex;
@@ -41,16 +50,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import static org.apache.jackrabbit.JcrConstants.NT_BASE;
-import static org.junit.Assert.assertEquals;
-
 @RunWith(Parameterized.class)
 public abstract class IndexPathRestrictionCommonTest {
 
@@ -67,7 +66,7 @@ public abstract class IndexPathRestrictionCommonTest {
 
     public static Object[] doesIndexEvaluatePathRestrictions(boolean flag) {
         return new Object[]{
-                flag
+            flag
         };
     }
 
@@ -121,12 +120,14 @@ public abstract class IndexPathRestrictionCommonTest {
         expectedMap.put("/tmp/a", true);
         expectedMap.put("/tmp", true);
         expectedMap.put("/tmp/c/d", true);
-        validateResult(f, Set.of("/test", "/test/a", "/test/c/d", "/tmp", "/tmp/a", "/tmp/c/d"), expectedMap);
+        validateResult(f, Set.of("/test", "/test/a", "/test/c/d", "/tmp", "/tmp/a", "/tmp/c/d"),
+            expectedMap);
 
         // //*[*/foo = 'bar'] -> foo:bar -> transform 1 level up
         f = createFilter(root, NT_BASE);
         f.restrictProperty("*/foo", Operator.EQUAL, PropertyValues.newString("bar"));
-        validateResult(f, Set.of("/test", "/test/a", "/test/c/d", "/tmp", "/tmp/a", "/tmp/c/d"), expectedMap);
+        validateResult(f, Set.of("/test", "/test/a", "/test/c/d", "/tmp", "/tmp/a", "/tmp/c/d"),
+            expectedMap);
 
         // //*[d/*/foo = 'bar'] -> foo:bar -> transform 2 level up
         f = createFilter(root, NT_BASE);
@@ -143,9 +144,9 @@ public abstract class IndexPathRestrictionCommonTest {
     @Test
     public void entryCountWithNoPathRestriction() throws Exception {
         IndexDefinitionBuilder idxBuilder =
-                getIndexDefinitionBuilder(rootBuilder.child(IndexConstants.INDEX_DEFINITIONS_NAME).
-                        child("fooIndex"))
-                        .noAsync().evaluatePathRestrictions();
+            getIndexDefinitionBuilder(rootBuilder.child(IndexConstants.INDEX_DEFINITIONS_NAME).
+                                                 child("fooIndex"))
+                .noAsync().evaluatePathRestrictions();
         idxBuilder.indexRule("nt:base").property("foo").propertyIndex();
         idxBuilder.build();
         commit();
@@ -417,7 +418,6 @@ public abstract class IndexPathRestrictionCommonTest {
         expectedMap3.put("/tmp/c", false);
         validateResult(f, Set.of("/test/c"), expectedMap3);
 
-
         // /jcr:root/test/a/j:c[foo = 'bar'] -> foo:bar :path:/test/a/j:c -> No Transformation
         f = createFilter(root, NT_BASE);
         f.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
@@ -457,7 +457,8 @@ public abstract class IndexPathRestrictionCommonTest {
         expectedMap2.put("/tmp/a", true);
         expectedMap2.put("/tmp", true);
         expectedMap2.put("/tmp/c/d", true);
-        validateResult(f, Set.of("/test", "/test/a", "/test/c/d", "/tmp", "/tmp/a", "/tmp/c/d"), expectedMap2);
+        validateResult(f, Set.of("/test", "/test/a", "/test/c/d", "/tmp", "/tmp/a", "/tmp/c/d"),
+            expectedMap2);
 
         // /jcr:root/test/c/d/..[d/*/foo = 'bar'] -> foo:bar -> transform 2 level up
         f = createFilter(root, NT_BASE);
@@ -472,7 +473,6 @@ public abstract class IndexPathRestrictionCommonTest {
         expectedMap3.put("/tmp/c", true);
         validateResult(f, Set.of("/", "/test", "/test/c", "/tmp", "/tmp/c"), expectedMap3);
 
-
         // /jcr:root/test/c/d/..[foo = 'bar'] -> foo:bar :path:/test/c/d -> No Transformation
         f = createFilter(root, NT_BASE);
         f.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("testBar"));
@@ -486,8 +486,9 @@ public abstract class IndexPathRestrictionCommonTest {
 
     private void setupTestData(boolean evaluatePathRestrictionsInIndex) throws Exception {
         IndexDefinitionBuilder idxBuilder =
-                getIndexDefinitionBuilder(rootBuilder.child(IndexConstants.INDEX_DEFINITIONS_NAME).child("fooIndex"))
-                        .noAsync();
+            getIndexDefinitionBuilder(
+                rootBuilder.child(IndexConstants.INDEX_DEFINITIONS_NAME).child("fooIndex"))
+                .noAsync();
 
         if (evaluatePathRestrictionsInIndex) {
             idxBuilder = idxBuilder.evaluatePathRestrictions();
@@ -522,7 +523,8 @@ public abstract class IndexPathRestrictionCommonTest {
         // The below commit info map (sync-mode = rt) would make Elastic use RealTimeBulkProcessHandler.
         // This would make ES indexes also sync.
         // This will NOT have any impact on the lucene tests.
-        root = hook.processCommit(rootBuilder.getBaseState(), rootBuilder.getNodeState(), new CommitInfo("sync-mode", "rt"));
+        root = hook.processCommit(rootBuilder.getBaseState(), rootBuilder.getNodeState(),
+            new CommitInfo("sync-mode", "rt"));
         rootBuilder = root.builder();
 
         postCommitHooks();
@@ -544,19 +546,24 @@ public abstract class IndexPathRestrictionCommonTest {
         NodeTypeInfoProvider nodeTypes = new NodeStateNodeTypeInfoProvider(root);
         NodeTypeInfo type = nodeTypes.getNodeTypeInfo(nodeTypeName);
         SelectorImpl selector = new SelectorImpl(type, nodeTypeName);
-        return new FilterImpl(selector, "SELECT * FROM [" + nodeTypeName + "]", new QueryEngineSettings());
+        return new FilterImpl(selector, "SELECT * FROM [" + nodeTypeName + "]",
+            new QueryEngineSettings());
     }
 
     /**
-     * @param f                                          Query Filter that will be used to execute the query
+     * @param f                                          Query Filter that will be used to execute
+     *                                                   the query
      * @param expected                                   Expected set of paths in the result set
-     * @param expectedPathMapForPostPathFilterLogEntries Expected map of paths that would be processed in
-     *                                                   post path filtering and boolean indicating whether
-     *                                                   the path is included or not.
-     *                                                   For example - If the index has evaluatePathRestrictions enabled,
-     *                                                   then this expected map would not have any paths that are filtered out by the index itslef.
+     * @param expectedPathMapForPostPathFilterLogEntries Expected map of paths that would be
+     *                                                   processed in post path filtering and
+     *                                                   boolean indicating whether the path is
+     *                                                   included or not. For example - If the index
+     *                                                   has evaluatePathRestrictions enabled, then
+     *                                                   this expected map would not have any paths
+     *                                                   that are filtered out by the index itslef.
      */
-    private void validateResult(Filter f, Set<String> expected, Map<String, Boolean> expectedPathMapForPostPathFilterLogEntries) {
+    private void validateResult(Filter f, Set<String> expected,
+        Map<String, Boolean> expectedPathMapForPostPathFilterLogEntries) {
         LogCustomizer customLogs = getLogCustomizer();
         List<QueryIndex.IndexPlan> plans = index.getPlans(f, null, root);
 
@@ -575,14 +582,22 @@ public abstract class IndexPathRestrictionCommonTest {
                     paths.add(cursor.next().getPath());
                 }
                 if (expectedPathMapForPostPathFilterLogEntries != null) {
-                    assertEquals("Expected number log entries for post path filtering", expectedPathMapForPostPathFilterLogEntries.size(), customLogs.getLogs().size());
+                    assertEquals("Expected number log entries for post path filtering",
+                        expectedPathMapForPostPathFilterLogEntries.size(),
+                        customLogs.getLogs().size());
 
                     List<String> expectedLogEntries = expectedPathMapForPostPathFilterLogEntries.keySet()
-                            .stream()
-                            .map(path -> getExpectedLogEntryForPostPathFiltering(path, expectedPathMapForPostPathFilterLogEntries.get(path)))
-                            .collect(Collectors.toList());
+                                                                                                .stream()
+                                                                                                .map(
+                                                                                                    path -> getExpectedLogEntryForPostPathFiltering(
+                                                                                                        path,
+                                                                                                        expectedPathMapForPostPathFilterLogEntries.get(
+                                                                                                            path)))
+                                                                                                .collect(
+                                                                                                    Collectors.toList());
 
-                    assertEquals("Expected log entries for post path filtering", expectedLogEntries.toString(), customLogs.getLogs().toString());
+                    assertEquals("Expected log entries for post path filtering",
+                        expectedLogEntries.toString(), customLogs.getLogs().toString());
                 }
                 assertEquals(f.toString(), expected, paths);
             } finally {
@@ -601,7 +616,8 @@ public abstract class IndexPathRestrictionCommonTest {
 
     protected abstract IndexDefinitionBuilder getIndexDefinitionBuilder(NodeBuilder builder);
 
-    protected abstract String getExpectedLogEntryForPostPathFiltering(String path, boolean shouldBeIncluded);
+    protected abstract String getExpectedLogEntryForPostPathFiltering(String path,
+        boolean shouldBeIncluded);
 
     protected abstract LogCustomizer getLogCustomizer();
 

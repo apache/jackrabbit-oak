@@ -19,12 +19,10 @@
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules;
 
 import java.util.List;
-
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeData;
 
 /**
- * A wrapper for a collector that allows to filter for certain node names, or
- * children of those.
+ * A wrapper for a collector that allows to filter for certain node names, or children of those.
  */
 public class NodeNameFilter implements StatsCollector {
 
@@ -39,7 +37,7 @@ public class NodeNameFilter implements StatsCollector {
     @Override
     public void add(NodeData node) {
         List<String> pathElements = node.getPathElements();
-        for(String pe : pathElements) {
+        for (String pe : pathElements) {
             if (pe.equals(nodeName)) {
                 base.add(node);
                 break;

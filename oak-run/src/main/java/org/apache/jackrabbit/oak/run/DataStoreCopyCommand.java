@@ -16,6 +16,13 @@
  */
 package org.apache.jackrabbit.oak.run;
 
+import static org.apache.jackrabbit.guava.common.base.StandardSystemProperty.FILE_SEPARATOR;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.stream.Stream;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
@@ -27,14 +34,6 @@ import org.apache.jackrabbit.oak.run.commons.Command;
 import org.apache.jackrabbit.oak.run.commons.LoggingInitializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Arrays;
-import java.util.stream.Stream;
-
-import static org.apache.jackrabbit.guava.common.base.StandardSystemProperty.FILE_SEPARATOR;
 
 /**
  * Command to concurrently download blobs from an azure datastore using sas token authentication.
@@ -68,8 +67,9 @@ public class DataStoreCopyCommand implements Command {
         setupLogging();
 
         Stream<String> ids = null;
-        try (Downloader downloader = new Downloader(concurrency, connectTimeout, readTimeout, maxRetries,
-                retryInitialInterval, failOnError, slowLogThreshold, checksumAlgorithm, bufferSize)) {
+        try (Downloader downloader = new Downloader(concurrency, connectTimeout, readTimeout,
+            maxRetries,
+            retryInitialInterval, failOnError, slowLogThreshold, checksumAlgorithm, bufferSize)) {
             if (fileIncludePath != null) {
                 ids = Files.lines(fileIncludePath);
             } else {
@@ -96,13 +96,14 @@ public class DataStoreCopyCommand implements Command {
             LOG.info("Number of File Transfers: {}", report.successes);
             LOG.info("Number of FAILED Transfers: {}", report.failures);
             LOG.info("Total Bytes Transferred: {}[{}]", report.totalBytesTransferred,
-                    IOUtils.humanReadableByteCount(report.totalBytesTransferred));
+                IOUtils.humanReadableByteCount(report.totalBytesTransferred));
             LOG.info("Speed (MB/sec): {}",
-                    ((double) report.totalBytesTransferred / (1024 * 1024)) / totalTimeSeconds);
+                ((double) report.totalBytesTransferred / (1024 * 1024)) / totalTimeSeconds);
 
             // if failOnError=true the command already failed in case of errors. Here we are handling the failOnError=false case
             if (report.successes <= 0 && report.failures > 0) {
-                LOG.error("No downloads succeeded. {} failures detected. Failing command", report.failures);
+                LOG.error("No downloads succeeded. {} failures detected. Failing command",
+                    report.failures);
                 throw new RuntimeException("Errors while downloading blobs");
             }
         } finally {
@@ -117,12 +118,15 @@ public class DataStoreCopyCommand implements Command {
         // Rename the blob names to match expected datastore cache format (remove the "-" in the name)
         String blobName = id.replaceAll("-", "");
         if (id.length() < 6) {
-            LOG.warn("Blob with name {} is less than 6 chars. Cannot create data folder structure. Storing in the root folder", blobName);
+            LOG.warn(
+                "Blob with name {} is less than 6 chars. Cannot create data folder structure. Storing in the root folder",
+                blobName);
             return outDir + FILE_SEPARATOR.value() + blobName;
         } else {
             return outDir + FILE_SEPARATOR.value()
-                    + blobName.substring(0, 2) + FILE_SEPARATOR.value() + blobName.substring(2, 4) + FILE_SEPARATOR.value()
-                    + blobName.substring(4, 6) + FILE_SEPARATOR.value() + blobName;
+                + blobName.substring(0, 2) + FILE_SEPARATOR.value() + blobName.substring(2, 4)
+                + FILE_SEPARATOR.value()
+                + blobName.substring(4, 6) + FILE_SEPARATOR.value() + blobName;
         }
     }
 
@@ -130,48 +134,67 @@ public class DataStoreCopyCommand implements Command {
         OptionParser parser = new OptionParser();
 
         // options available for get-blobs only
-        OptionSpec<String> sourceRepoOpt = parser.accepts("source-repo", "The source repository url")
-                .withRequiredArg().ofType(String.class).required();
+        OptionSpec<String> sourceRepoOpt = parser.accepts("source-repo",
+                                                     "The source repository url")
+                                                 .withRequiredArg().ofType(String.class).required();
 
         OptionSpecBuilder includePathBuilder = parser.accepts("include-path",
-                "Include only these paths when copying (separated by semicolon)");
+            "Include only these paths when copying (separated by semicolon)");
         OptionSpecBuilder fileIncludePathBuilder = parser.accepts("file-include-path",
-                "Include only the paths specified in the file (separated by newline)");
+            "Include only the paths specified in the file (separated by newline)");
         parser.mutuallyExclusive(includePathBuilder, fileIncludePathBuilder);
-        OptionSpec<String> includePathOpt = includePathBuilder.withRequiredArg().ofType(String.class);
+        OptionSpec<String> includePathOpt = includePathBuilder.withRequiredArg()
+                                                              .ofType(String.class);
         OptionSpec<Path> fileIncludePathOpt = fileIncludePathBuilder.withRequiredArg()
-                .withValuesConvertedBy(new PathConverter(PathProperties.FILE_EXISTING, PathProperties.READABLE));
+                                                                    .withValuesConvertedBy(
+                                                                        new PathConverter(
+                                                                            PathProperties.FILE_EXISTING,
+                                                                            PathProperties.READABLE));
 
-        OptionSpec<String> sasTokenOpt = parser.accepts("sas-token", "The SAS token to access Azure Storage")
-                .withRequiredArg().ofType(String.class);
+        OptionSpec<String> sasTokenOpt = parser.accepts("sas-token",
+                                                   "The SAS token to access Azure Storage")
+                                               .withRequiredArg().ofType(String.class);
         OptionSpec<String> outDirOpt = parser.accepts("out-dir",
-                        "Path where to store the blobs. Otherwise, blobs will be stored in the current directory.")
-                .withRequiredArg().ofType(String.class).defaultsTo(System.getProperty("user.dir") + FILE_SEPARATOR.value() + "blobs");
+                                                 "Path where to store the blobs. Otherwise, blobs will be stored in the current directory.")
+                                             .withRequiredArg().ofType(String.class).defaultsTo(
+                System.getProperty("user.dir") + FILE_SEPARATOR.value() + "blobs");
         OptionSpec<Integer> concurrencyOpt = parser.accepts("concurrency",
-                        "Max number of concurrent requests that can occur (the default value is equal to 16 multiplied by the number of cores)")
-                .withRequiredArg().ofType(Integer.class).defaultsTo(16 * Runtime.getRuntime().availableProcessors());
+                                                       "Max number of concurrent requests that can occur (the default value is equal to 16 multiplied by the number of cores)")
+                                                   .withRequiredArg().ofType(Integer.class)
+                                                   .defaultsTo(16 * Runtime.getRuntime()
+                                                                           .availableProcessors());
 
         OptionSpec<Integer> connectTimeoutOpt = parser.accepts("connect-timeout",
-                        "Sets a specific timeout value, in milliseconds, to be used when opening a connection for a single blob (default 0, no timeout)")
-                .withRequiredArg().ofType(Integer.class).defaultsTo(0);
+                                                          "Sets a specific timeout value, in milliseconds, to be used when opening a connection for a single blob (default 0, no timeout)")
+                                                      .withRequiredArg().ofType(Integer.class)
+                                                      .defaultsTo(0);
         OptionSpec<Integer> readTimeoutOpt = parser.accepts("read-timeout",
-                        "Sets the read timeout, in milliseconds when reading a single blob (default 0, no timeout)")
-                .withRequiredArg().ofType(Integer.class).defaultsTo(0);
+                                                       "Sets the read timeout, in milliseconds when reading a single blob (default 0, no timeout)")
+                                                   .withRequiredArg().ofType(Integer.class)
+                                                   .defaultsTo(0);
         OptionSpec<Integer> slowLogThresholdOpt = parser.accepts("slow-log-threshold",
-                        "Threshold to log a WARN message for blobs taking considerable time (default 10_000ms[10s])")
-                .withRequiredArg().ofType(Integer.class).defaultsTo(10_000);
-        OptionSpec<Integer> maxRetriesOpt = parser.accepts("max-retries", "Max number of retries when a blob download fails (default 3)")
-                .withRequiredArg().ofType(Integer.class).defaultsTo(3);
-        OptionSpec<Long> retryInitialIntervalOpt = parser.accepts("retry-interval", "The initial retry interval in milliseconds (default 100)")
-                .withRequiredArg().ofType(Long.class).defaultsTo(100L);
+                                                            "Threshold to log a WARN message for blobs taking considerable time (default 10_000ms[10s])")
+                                                        .withRequiredArg().ofType(Integer.class)
+                                                        .defaultsTo(10_000);
+        OptionSpec<Integer> maxRetriesOpt = parser.accepts("max-retries",
+                                                      "Max number of retries when a blob download fails (default 3)")
+                                                  .withRequiredArg().ofType(Integer.class)
+                                                  .defaultsTo(3);
+        OptionSpec<Long> retryInitialIntervalOpt = parser.accepts("retry-interval",
+                                                             "The initial retry interval in milliseconds (default 100)")
+                                                         .withRequiredArg().ofType(Long.class)
+                                                         .defaultsTo(100L);
         OptionSpec<Boolean> failOnErrorOpt = parser.accepts("fail-on-error",
-                        "If true fails the execution immediately after the first error, otherwise it continues processing all the blobs (default false)")
-                .withRequiredArg().ofType(Boolean.class).defaultsTo(false);
-        OptionSpec<String> checksumOpt = parser.accepts("checksum", "The algorithm to compute the checksum (examples: SHA-256, MD5) or empty (the default) to skip checksum validation")
-                .withOptionalArg().ofType(String.class);
+                                                       "If true fails the execution immediately after the first error, otherwise it continues processing all the blobs (default false)")
+                                                   .withRequiredArg().ofType(Boolean.class)
+                                                   .defaultsTo(false);
+        OptionSpec<String> checksumOpt = parser.accepts("checksum",
+                                                   "The algorithm to compute the checksum (examples: SHA-256, MD5) or empty (the default) to skip checksum validation")
+                                               .withOptionalArg().ofType(String.class);
         OptionSpec<Integer> bufferSizeOpt = parser.accepts("buffer-size",
-                        "The buffer size for downloading and checksumming blobs (default 16384[16KB])")
-                .withRequiredArg().ofType(Integer.class).defaultsTo(16384);
+                                                      "The buffer size for downloading and checksumming blobs (default 16384[16KB])")
+                                                  .withRequiredArg().ofType(Integer.class)
+                                                  .defaultsTo(16384);
 
         OptionSet optionSet = parser.parse(args);
 
@@ -193,7 +216,8 @@ public class DataStoreCopyCommand implements Command {
     }
 
     protected static void setupLogging() throws IOException {
-        new LoggingInitializer(Files.createTempDirectory("oak-run_datastore-copy").toFile(), NAME, false).init();
+        new LoggingInitializer(Files.createTempDirectory("oak-run_datastore-copy").toFile(), NAME,
+            false).init();
     }
 
     private static void shutdownLogging() {

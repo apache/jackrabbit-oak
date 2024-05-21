@@ -31,7 +31,7 @@ public final class SegmentTestUtils {
     }
 
     public static void addTestContent(NodeStore store, String child)
-            throws CommitFailedException {
+        throws CommitFailedException {
         NodeBuilder builder = store.getRoot().builder();
         builder.child(child).setProperty("ts", System.currentTimeMillis());
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);

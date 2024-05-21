@@ -20,9 +20,8 @@
 package org.apache.jackrabbit.oak.segment;
 
 /**
- * This exception is thrown by the Segment NodeStore when an internal
- * limit is exceeded such as too many segment references. Clients should
- * only ever see this exception as the cause of a
+ * This exception is thrown by the Segment NodeStore when an internal limit is exceeded such as too
+ * many segment references. Clients should only ever see this exception as the cause of a
  * {@link org.apache.jackrabbit.oak.api.CommitFailedException CommitFailedException}.
  */
 public class SegmentOverflowException extends RuntimeException {

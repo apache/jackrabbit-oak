@@ -16,12 +16,20 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
+import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
+import static org.apache.jackrabbit.JcrConstants.JCR_LASTMODIFIED;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkElementIndex;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkPositionIndexes;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.oak.api.Type.BINARIES;
+
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.SequenceInputStream;
 import java.util.List;
-
 import org.apache.jackrabbit.guava.common.io.ByteStreams;
 import org.apache.jackrabbit.guava.common.primitives.Ints;
 import org.apache.jackrabbit.oak.api.Blob;
@@ -32,22 +40,14 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.lucene.store.DataInput;
 import org.jetbrains.annotations.NotNull;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkElementIndex;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkPositionIndexes;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
-import static org.apache.jackrabbit.JcrConstants.JCR_LASTMODIFIED;
-import static org.apache.jackrabbit.oak.api.Type.BINARIES;
-
 /**
  * A file, which might be split into multiple blobs.
  */
 class OakBufferedIndexFile implements OakIndexFile {
+
     /**
-     * Size of the blob entries to which the Lucene files are split.
-     * Set to higher than the 4kB inline limit for the BlobStore,
+     * Size of the blob entries to which the Lucene files are split. Set to higher than the 4kB
+     * inline limit for the BlobStore,
      */
     static final int DEFAULT_BLOB_SIZE = 32 * 1024;
 
@@ -67,8 +67,7 @@ class OakBufferedIndexFile implements OakIndexFile {
     private final int blobSize;
 
     /**
-     * The current position within the file (for positioned read and write
-     * operations).
+     * The current position within the file (for positioned read and write operations).
      */
     private long position = 0;
 
@@ -78,15 +77,14 @@ class OakBufferedIndexFile implements OakIndexFile {
     private long length;
 
     /**
-     * The list of blobs (might be empty).
-     * The last blob has a size of 1 up to blobSize.
-     * All other blobs have a size of blobSize.
+     * The list of blobs (might be empty). The last blob has a size of 1 up to blobSize. All other
+     * blobs have a size of blobSize.
      */
     private List<Blob> data;
 
     /**
-     * Whether the data was modified since it was last flushed. If yes, on a
-     * flush, the metadata, and the list of blobs need to be stored.
+     * Whether the data was modified since it was last flushed. If yes, on a flush, the metadata,
+     * and the list of blobs need to be stored.
      */
     private boolean dataModified = false;
 
@@ -101,13 +99,13 @@ class OakBufferedIndexFile implements OakIndexFile {
     private byte[] blob;
 
     /**
-     * The unique key that is used to make the content unique (to allow removing binaries from the blob store without risking to remove binaries that are still needed).
+     * The unique key that is used to make the content unique (to allow removing binaries from the
+     * blob store without risking to remove binaries that are still needed).
      */
     private final byte[] uniqueKey;
 
     /**
-     * Whether the currently loaded blob was modified since the blob was
-     * flushed.
+     * Whether the currently loaded blob was modified since the blob was flushed.
      */
     private boolean blobModified = false;
 
@@ -116,7 +114,7 @@ class OakBufferedIndexFile implements OakIndexFile {
     private final BlobFactory blobFactory;
 
     public OakBufferedIndexFile(String name, NodeBuilder file, String dirDetails,
-                                @NotNull BlobFactory blobFactory) {
+        @NotNull BlobFactory blobFactory) {
         this.name = name;
         this.file = file;
         this.dirDetails = dirDetails;
@@ -132,7 +130,7 @@ class OakBufferedIndexFile implements OakIndexFile {
             this.data = newArrayList();
         }
 
-        this.length = (long)data.size() * blobSize;
+        this.length = (long) data.size() * blobSize;
         if (!data.isEmpty()) {
             Blob last = data.get(data.size() - 1);
             this.length -= blobSize - last.length();
@@ -163,7 +161,7 @@ class OakBufferedIndexFile implements OakIndexFile {
             flushBlob();
             checkState(!blobModified);
 
-            int n = (int) Math.min(blobSize, length - (long)i * blobSize);
+            int n = (int) Math.min(blobSize, length - (long) i * blobSize);
             InputStream stream = data.get(i).getNewStream();
             try {
                 ByteStreams.readFully(stream, blob, 0, n);
@@ -176,11 +174,11 @@ class OakBufferedIndexFile implements OakIndexFile {
 
     private void flushBlob() throws IOException {
         if (blobModified) {
-            int n = (int) Math.min(blobSize, length - (long)index * blobSize);
+            int n = (int) Math.min(blobSize, length - (long) index * blobSize);
             InputStream in = new ByteArrayInputStream(blob, 0, n);
             if (uniqueKey != null) {
                 in = new SequenceInputStream(in,
-                        new ByteArrayInputStream(uniqueKey));
+                    new ByteArrayInputStream(uniqueKey));
             }
 
             Blob b = blobFactory.createBlob(in);
@@ -227,7 +225,7 @@ class OakBufferedIndexFile implements OakIndexFile {
         // see https://issues.apache.org/jira/browse/LUCENE-1196
         if (pos < 0 || pos > length) {
             String msg = String.format("Invalid seek request for [%s][%s], " +
-                    "position: %d, file length: %d", dirDetails, name, pos, length);
+                "position: %d, file length: %d", dirDetails, name, pos, length);
             throw new IOException(msg);
         } else {
             position = pos;
@@ -236,12 +234,12 @@ class OakBufferedIndexFile implements OakIndexFile {
 
     @Override
     public void readBytes(byte[] b, int offset, int len)
-            throws IOException {
+        throws IOException {
         checkPositionIndexes(offset, offset + len, checkNotNull(b).length);
 
         if (len < 0 || position + len > length) {
             String msg = String.format("Invalid byte range request for [%s][%s], " +
-                    "position: %d, file length: %d, len: %d", dirDetails, name, position, length, len);
+                "position: %d, file length: %d, len: %d", dirDetails, name, position, length, len);
             throw new IOException(msg);
         }
 
@@ -265,7 +263,7 @@ class OakBufferedIndexFile implements OakIndexFile {
 
     @Override
     public void writeBytes(byte[] b, int offset, int len)
-            throws IOException {
+        throws IOException {
         int i = (int) (position / blobSize);
         int o = (int) (position % blobSize);
         while (len > 0) {
@@ -309,9 +307,10 @@ class OakBufferedIndexFile implements OakIndexFile {
         throw new IllegalArgumentException("Don't call copyBytes for buffered case");
     }
 
-    private static int determineBlobSize(NodeBuilder file){
-        if (file.hasProperty(OakDirectory.PROP_BLOB_SIZE)){
-            return Ints.checkedCast(file.getProperty(OakDirectory.PROP_BLOB_SIZE).getValue(Type.LONG));
+    private static int determineBlobSize(NodeBuilder file) {
+        if (file.hasProperty(OakDirectory.PROP_BLOB_SIZE)) {
+            return Ints.checkedCast(
+                file.getProperty(OakDirectory.PROP_BLOB_SIZE).getValue(Type.LONG));
         }
         return DEFAULT_BLOB_SIZE;
     }

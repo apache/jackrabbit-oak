@@ -23,7 +23,6 @@ import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.PropertyDefinition;
 import javax.jcr.version.Version;
 import javax.jcr.version.VersionManager;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.test.AbstractJCRTest;
 
@@ -74,7 +73,7 @@ public class RestoreTest extends AbstractJCRTest {
         assertEquals("Property not restored", "a", n.getProperty("prop").getString());
         assertEquals("Property not restored", "a", child.getProperty("prop").getString());
         assertFalse("Restored node must not have jcr:frozenPrimaryType property",
-                child.hasProperty(JcrConstants.JCR_FROZENPRIMARYTYPE));
+            child.hasProperty(JcrConstants.JCR_FROZENPRIMARYTYPE));
     }
 
     //OAK-10462: a new node that looks remotely like a sentinel node of a restore operation may

@@ -16,10 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.commons.LongUtils;
-import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
-import org.jetbrains.annotations.NotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -28,8 +25,10 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.LongUtils;
+import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
+import org.jetbrains.annotations.NotNull;
 
 final class PermissionCacheBuilder {
 

@@ -16,6 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.getAsyncLaneName;
+
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
@@ -24,7 +29,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
@@ -44,37 +48,37 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_PROPERTY_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.getAsyncLaneName;
-
 /**
  * Keeps track of the open read sessions for an index.
  */
 public class LuceneIndexNodeManager {
     // TODO oak-search: should extend LuceneIndexNodeManager
     /**
-     * Name of the hidden node under which information about the checkpoints
-     * seen and indexed by each async indexer is kept.
+     * Name of the hidden node under which information about the checkpoints seen and indexed by
+     * each async indexer is kept.
      */
     static final String ASYNC = ":async";
 
     private static final AtomicInteger SEARCHER_ID_COUNTER = new AtomicInteger();
 
     private static final PerfLogger PERF_LOGGER =
-            new PerfLogger(LoggerFactory.getLogger(LuceneIndexNodeManager.class.getName() + ".perf"));
+        new PerfLogger(LoggerFactory.getLogger(LuceneIndexNodeManager.class.getName() + ".perf"));
     public final static String OLD_FACET_PROVIDER_TEST_FAILURE_SLEEP_INSTRUMENT_NAME = "oak.lucene.oldFacetProviderTestFailSleepInstrument";
-    private final static int OLD_FACET_PROVIDER_TEST_FAILURE_SLEEP_INSTRUMENT_VALUE = Integer.getInteger(OLD_FACET_PROVIDER_TEST_FAILURE_SLEEP_INSTRUMENT_NAME, 0);
+    private final static int OLD_FACET_PROVIDER_TEST_FAILURE_SLEEP_INSTRUMENT_VALUE = Integer.getInteger(
+        OLD_FACET_PROVIDER_TEST_FAILURE_SLEEP_INSTRUMENT_NAME, 0);
 
     static LuceneIndexNodeManager open(String indexPath, NodeState root, NodeState defnNodeState,
-                                       LuceneIndexReaderFactory readerFactory, @Nullable NRTIndexFactory nrtFactory)
-            throws IOException {
-        LuceneIndexDefinition definition = new LuceneIndexDefinition(root, defnNodeState, indexPath);
-        List<LuceneIndexReader> readers = readerFactory.createReaders(definition, defnNodeState, indexPath);
+        LuceneIndexReaderFactory readerFactory, @Nullable NRTIndexFactory nrtFactory)
+        throws IOException {
+        LuceneIndexDefinition definition = new LuceneIndexDefinition(root, defnNodeState,
+            indexPath);
+        List<LuceneIndexReader> readers = readerFactory.createReaders(definition, defnNodeState,
+            indexPath);
         NRTIndex nrtIndex = nrtFactory != null ? nrtFactory.createIndex(definition) : null;
-        if (!readers.isEmpty() || (nrtIndex != null && !hasAsyncIndexerRun(root, indexPath, defnNodeState))){
-            return new LuceneIndexNodeManager(PathUtils.getName(indexPath), definition, readers, nrtIndex);
+        if (!readers.isEmpty() || (nrtIndex != null && !hasAsyncIndexerRun(root, indexPath,
+            defnNodeState))) {
+            return new LuceneIndexNodeManager(PathUtils.getName(indexPath), definition, readers,
+                nrtIndex);
         }
         return null;
     }
@@ -82,7 +86,8 @@ public class LuceneIndexNodeManager {
     static boolean hasAsyncIndexerRun(NodeState root, String indexPath, NodeState defnNodeState) {
         boolean hasAsyncNode = root.hasChildNode(ASYNC);
 
-        String asyncLaneName = getAsyncLaneName(defnNodeState, indexPath, defnNodeState.getProperty(ASYNC_PROPERTY_NAME));
+        String asyncLaneName = getAsyncLaneName(defnNodeState, indexPath,
+            defnNodeState.getProperty(ASYNC_PROPERTY_NAME));
 
         if (asyncLaneName != null) {
             return hasAsyncNode && root.getChildNode(ASYNC).hasProperty(asyncLaneName);
@@ -90,7 +95,7 @@ public class LuceneIndexNodeManager {
             // useful only for tests - basically non-async index defs which don't rely on /:async
             // hence either readers are there (and this method doesn't come into play during open)
             // OR there is no cycle (where we return false correctly)
-            return  false;
+            return false;
         }
     }
 
@@ -129,15 +134,17 @@ public class LuceneIndexNodeManager {
 
     private boolean closed = false;
 
-    LuceneIndexNodeManager(String name, LuceneIndexDefinition definition, List<LuceneIndexReader> readers, @Nullable NRTIndex nrtIndex)
-            throws IOException {
+    LuceneIndexNodeManager(String name, LuceneIndexDefinition definition,
+        List<LuceneIndexReader> readers, @Nullable NRTIndex nrtIndex)
+        throws IOException {
         checkArgument(!readers.isEmpty() || nrtIndex != null);
         this.name = name;
         this.definition = definition;
         this.readers = readers;
         this.nrtIndex = nrtIndex;
         this.searcherHolder = createHolder(getNRTReaders());
-        this.refreshPolicy = nrtIndex != null ? nrtIndex.getRefreshPolicy() : ReaderRefreshPolicy.NEVER;
+        this.refreshPolicy =
+            nrtIndex != null ? nrtIndex.getRefreshPolicy() : ReaderRefreshPolicy.NEVER;
     }
 
     private String getName() {
@@ -172,7 +179,7 @@ public class LuceneIndexNodeManager {
                 int tryCount = 0;
                 while (!local.searcher.getIndexReader().tryIncRef()) {
                     checkState(++tryCount < 10, "Not able to " +
-                            "get open searcher in %s attempts", tryCount);
+                        "get open searcher in %s attempts", tryCount);
                     local = searcherHolder;
                 }
                 LuceneIndexNode indexNode = new IndexNodeImpl(local);
@@ -208,7 +215,7 @@ public class LuceneIndexNodeManager {
     }
 
     @Nullable
-    private LuceneIndexWriter getLocalWriter() throws IOException{
+    private LuceneIndexWriter getLocalWriter() throws IOException {
         return nrtIndex != null ? nrtIndex.getWriter() : null;
     }
 
@@ -216,7 +223,7 @@ public class LuceneIndexNodeManager {
         refreshPolicy.refreshOnWriteIfRequired(refreshCallback);
     }
 
-    private void refreshReaders(){
+    private void refreshReaders() {
         long start = PERF_LOGGER.start();
         List<LuceneIndexReader> newNRTReaders = getNRTReaders();
         //The list reference would differ if index got updated
@@ -229,7 +236,7 @@ public class LuceneIndexNodeManager {
         }
     }
 
-    private LuceneIndexReader getDefaultReader(){
+    private LuceneIndexReader getDefaultReader() {
         //TODO This is still required to support Suggester, Spellcheck etc OAK-4643
         return readers.get(0);
     }
@@ -238,12 +245,12 @@ public class LuceneIndexNodeManager {
         //Increment count by 1. MultiReader does it for all readers
         //So no need for an explicit increment for MultiReader
 
-        if (readers.size() == 1 && nrtReaders.isEmpty()){
+        if (readers.size() == 1 && nrtReaders.isEmpty()) {
             IndexReader reader = readers.get(0).getReader();
             reader.incRef();
             return reader;
         }
-        if (nrtReaders.size() == 1 && readers.isEmpty()){
+        if (nrtReaders.size() == 1 && readers.isEmpty()) {
             IndexReader reader = nrtReaders.get(0).getReader();
             reader.incRef();
             return reader;
@@ -251,14 +258,15 @@ public class LuceneIndexNodeManager {
 
         IndexReader[] readerArr = new IndexReader[readers.size() + nrtReaders.size()];
         int i = 0;
-        for (LuceneIndexReader r : Iterables.concat(readers, nrtReaders)){
+        for (LuceneIndexReader r : Iterables.concat(readers, nrtReaders)) {
             readerArr[i++] = r.getReader();
         }
         return new MultiReader(readerArr, false);
     }
 
     private List<LuceneIndexReader> getNRTReaders() {
-        return nrtIndex != null ? nrtIndex.getReaders() : Collections.<LuceneIndexReader>emptyList();
+        return nrtIndex != null ? nrtIndex.getReaders()
+            : Collections.<LuceneIndexReader>emptyList();
     }
 
     private SearcherHolder createHolder(List<LuceneIndexReader> newNRTReaders) {
@@ -266,11 +274,12 @@ public class LuceneIndexNodeManager {
     }
 
     private void closeReaders(Iterable<LuceneIndexReader> readers) {
-        for (LuceneIndexReader r : readers){
+        for (LuceneIndexReader r : readers) {
             try {
                 r.close();
             } catch (IOException e) {
-                log.warn("Error occurred while releasing reader for index [{}]", definition.getIndexPath(), e);
+                log.warn("Error occurred while releasing reader for index [{}]",
+                    definition.getIndexPath(), e);
             }
         }
     }
@@ -285,11 +294,13 @@ public class LuceneIndexNodeManager {
             //in createReader
             searcher.getIndexReader().decRef();
         } catch (IOException e) {
-            log.warn("Error occurred while releasing reader for index [{}]", definition.getIndexPath(), e);
+            log.warn("Error occurred while releasing reader for index [{}]",
+                definition.getIndexPath(), e);
         }
     }
 
     private static class SearcherHolder {
+
         final IndexSearcher searcher;
         final List<LuceneIndexReader> nrtReaders;
         final int searcherId = SEARCHER_ID_COUNTER.incrementAndGet();
@@ -307,6 +318,7 @@ public class LuceneIndexNodeManager {
     }
 
     private class IndexNodeImpl implements LuceneIndexNode {
+
         private final SearcherHolder holder;
         private final AtomicBoolean released = new AtomicBoolean();
 

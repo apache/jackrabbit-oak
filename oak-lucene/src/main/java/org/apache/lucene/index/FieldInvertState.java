@@ -24,143 +24,157 @@
 
 package org.apache.lucene.index;
 
-import org.apache.lucene.analysis.TokenStream; // javadocs
+import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.util.AttributeSource;
 
 /**
- * This class tracks the number and position / offset parameters of terms
- * being added to the index. The information collected in this class is
- * also used to calculate the normalization factor for a field.
- * 
+ * This class tracks the number and position / offset parameters of terms being added to the index.
+ * The information collected in this class is also used to calculate the normalization factor for a
+ * field.
+ *
  * @lucene.experimental
  */
 public final class FieldInvertState {
-  String name;
-  int position;
-  int length;
-  int numOverlap;
-  int offset;
-  int maxTermFrequency;
-  int uniqueTermCount;
-  float boost;
-  AttributeSource attributeSource;
 
-  /** Creates {code FieldInvertState} for the specified
-   *  field name. */
-  public FieldInvertState(String name) {
-    this.name = name;
-  }
-  
-  /** Creates {code FieldInvertState} for the specified
-   *  field name and values for all fields. */
-  public FieldInvertState(String name, int position, int length, int numOverlap, int offset, float boost) {
-    this.name = name;
-    this.position = position;
-    this.length = length;
-    this.numOverlap = numOverlap;
-    this.offset = offset;
-    this.boost = boost;
-  }
+    String name;
+    int position;
+    int length;
+    int numOverlap;
+    int offset;
+    int maxTermFrequency;
+    int uniqueTermCount;
+    float boost;
+    AttributeSource attributeSource;
 
-  /**
-   * Re-initialize the state
-   */
-  void reset() {
-    position = 0;
-    length = 0;
-    numOverlap = 0;
-    offset = 0;
-    maxTermFrequency = 0;
-    uniqueTermCount = 0;
-    boost = 1.0f;
-    attributeSource = null;
-  }
+    /**
+     * Creates {code FieldInvertState} for the specified field name.
+     */
+    public FieldInvertState(String name) {
+        this.name = name;
+    }
 
-  /**
-   * Get the last processed term position.
-   * @return the position
-   */
-  public int getPosition() {
-    return position;
-  }
+    /**
+     * Creates {code FieldInvertState} for the specified field name and values for all fields.
+     */
+    public FieldInvertState(String name, int position, int length, int numOverlap, int offset,
+        float boost) {
+        this.name = name;
+        this.position = position;
+        this.length = length;
+        this.numOverlap = numOverlap;
+        this.offset = offset;
+        this.boost = boost;
+    }
 
-  /**
-   * Get total number of terms in this field.
-   * @return the length
-   */
-  public int getLength() {
-    return length;
-  }
+    /**
+     * Re-initialize the state
+     */
+    void reset() {
+        position = 0;
+        length = 0;
+        numOverlap = 0;
+        offset = 0;
+        maxTermFrequency = 0;
+        uniqueTermCount = 0;
+        boost = 1.0f;
+        attributeSource = null;
+    }
 
-  /** Set length value. */
-  public void setLength(int length) {
-    this.length = length;
-  }
-  
-  /**
-   * Get the number of terms with <code>positionIncrement == 0</code>.
-   * @return the numOverlap
-   */
-  public int getNumOverlap() {
-    return numOverlap;
-  }
+    /**
+     * Get the last processed term position.
+     *
+     * @return the position
+     */
+    public int getPosition() {
+        return position;
+    }
 
-  /** Set number of terms with {@code positionIncrement ==
-   *  0}. */
-  public void setNumOverlap(int numOverlap) {
-    this.numOverlap = numOverlap;
-  }
-  
-  /**
-   * Get end offset of the last processed term.
-   * @return the offset
-   */
-  public int getOffset() {
-    return offset;
-  }
+    /**
+     * Get total number of terms in this field.
+     *
+     * @return the length
+     */
+    public int getLength() {
+        return length;
+    }
 
-  /**
-   * Get boost value. This is the cumulative product of
-   * document boost and field boost for all field instances
-   * sharing the same field name.
-   * @return the boost
-   */
-  public float getBoost() {
-    return boost;
-  }
+    /**
+     * Set length value.
+     */
+    public void setLength(int length) {
+        this.length = length;
+    }
 
-  /** Set boost value. */
-  public void setBoost(float boost) {
-    this.boost = boost;
-  }
+    /**
+     * Get the number of terms with <code>positionIncrement == 0</code>.
+     *
+     * @return the numOverlap
+     */
+    public int getNumOverlap() {
+        return numOverlap;
+    }
 
-  /**
-   * Get the maximum term-frequency encountered for any term in the field.  A
-   * field containing "the quick brown fox jumps over the lazy dog" would have
-   * a value of 2, because "the" appears twice.
-   */
-  public int getMaxTermFrequency() {
-    return maxTermFrequency;
-  }
-  
-  /**
-   * Return the number of unique terms encountered in this field.
-   */
-  public int getUniqueTermCount() {
-    return uniqueTermCount;
-  }
+    /**
+     * Set number of terms with {@code positionIncrement == 0}.
+     */
+    public void setNumOverlap(int numOverlap) {
+        this.numOverlap = numOverlap;
+    }
 
-  /** Returns the {@link AttributeSource} from the {@link
-   *  TokenStream} that provided the indexed tokens for this
-   *  field. */
-  public AttributeSource getAttributeSource() {
-    return attributeSource;
-  }
-  
-  /**
-   * Return the field's name
-   */
-  public String getName() {
-    return name;
-  }
+    /**
+     * Get end offset of the last processed term.
+     *
+     * @return the offset
+     */
+    public int getOffset() {
+        return offset;
+    }
+
+    /**
+     * Get boost value. This is the cumulative product of document boost and field boost for all
+     * field instances sharing the same field name.
+     *
+     * @return the boost
+     */
+    public float getBoost() {
+        return boost;
+    }
+
+    /**
+     * Set boost value.
+     */
+    public void setBoost(float boost) {
+        this.boost = boost;
+    }
+
+    /**
+     * Get the maximum term-frequency encountered for any term in the field.  A field containing
+     * "the quick brown fox jumps over the lazy dog" would have a value of 2, because "the" appears
+     * twice.
+     */
+    public int getMaxTermFrequency() {
+        return maxTermFrequency;
+    }
+
+    /**
+     * Return the number of unique terms encountered in this field.
+     */
+    public int getUniqueTermCount() {
+        return uniqueTermCount;
+    }
+
+    /**
+     * Returns the {@link AttributeSource} from the {@link TokenStream} that provided the indexed
+     * tokens for this field.
+     */
+    public AttributeSource getAttributeSource() {
+        return attributeSource;
+    }
+
+    /**
+     * Return the field's name
+     */
+    public String getName() {
+        return name;
+    }
 }

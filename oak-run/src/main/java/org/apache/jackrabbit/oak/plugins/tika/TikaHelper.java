@@ -25,7 +25,6 @@ import java.net.URL;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
-
 import org.apache.tika.config.TikaConfig;
 import org.apache.tika.exception.TikaException;
 import org.apache.tika.mime.MediaType;
@@ -41,6 +40,7 @@ import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXException;
 
 class TikaHelper {
+
     private static final String DEFAULT_TIKA_CONFIG = "/org/apache/jackrabbit/oak/plugins/index/lucene/tika-config.xml";
     private static final Logger log = LoggerFactory.getLogger(TikaHelper.class);
 
@@ -50,7 +50,7 @@ class TikaHelper {
 
     public TikaHelper(@Nullable File tikaConfig) throws IOException {
         try {
-            parser =  new AutoDetectParser(getTikaConfig(tikaConfig));
+            parser = new AutoDetectParser(getTikaConfig(tikaConfig));
             supportedMediaTypes = parser.getSupportedTypes(new ParseContext());
             logSupportedTypesOnce(supportedMediaTypes);
         } catch (TikaException e) {
@@ -69,31 +69,32 @@ class TikaHelper {
     }
 
     /**
-     * This method should only be used for information purpose and not be relied
-     * upon to determine if the given type is indexed or not. It relies on Tika
-     * implementation detail to determine if a given type is meant to be indexed
+     * This method should only be used for information purpose and not be relied upon to determine
+     * if the given type is indexed or not. It relies on Tika implementation detail to determine if
+     * a given type is meant to be indexed
      *
      * @param type mimeType to check
      * @return true if the given type is supported and indexed
      */
     public boolean isIndexed(String type) {
-        if (!isSupportedMediaType(type)){
+        if (!isSupportedMediaType(type)) {
             return false;
         }
 
         MediaType mediaType = MediaType.parse(type);
         Parser p = getSupportingParser(parser, mediaType);
-        if (p == null){
+        if (p == null) {
             return false;
         }
         p = unwrap(p);
-        if (p instanceof EmptyParser){
+        if (p instanceof EmptyParser) {
             return false;
         }
         return true;
     }
 
-    private static TikaConfig getTikaConfig(File tikaConfig) throws TikaException, IOException, SAXException {
+    private static TikaConfig getTikaConfig(File tikaConfig)
+        throws TikaException, IOException, SAXException {
         TikaConfig config;
         if (tikaConfig == null) {
             URL configUrl = TextExtractor.class.getResource(DEFAULT_TIKA_CONFIG);
@@ -111,16 +112,16 @@ class TikaHelper {
         return config;
     }
 
-    private static Parser getSupportingParser(Parser p, MediaType mediaType){
-        if (p instanceof CompositeParser){
+    private static Parser getSupportingParser(Parser p, MediaType mediaType) {
+        if (p instanceof CompositeParser) {
             Map<MediaType, Parser> parsers = ((CompositeParser) p).getParsers();
             return getSupportingParser(parsers.get(mediaType), mediaType);
         }
         return p;
     }
 
-    private static Parser unwrap(Parser p){
-        if (p instanceof ParserDecorator){
+    private static Parser unwrap(Parser p) {
+        if (p instanceof ParserDecorator) {
             return unwrap(((ParserDecorator) p).getWrappedParser());
         }
         return p;

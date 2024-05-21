@@ -27,19 +27,19 @@ import static org.junit.Assert.assertTrue;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
-public class AtomicCounterTest extends AbstractRepositoryTest {        
+public class AtomicCounterTest extends AbstractRepositoryTest {
+
     public AtomicCounterTest(NodeStoreFixture fixture) {
         super(fixture);
     }
-    
+
     @Test
     public void incrementRootNode() throws RepositoryException {
-        
+
         Session session = getAdminSession();
 
         try {
@@ -58,7 +58,7 @@ public class AtomicCounterTest extends AbstractRepositoryTest {
             session.save();
 
             assertCounter(node, 0);
-            
+
             node.setProperty(PROP_INCREMENT, 1L);
             session.save();
             assertCounter(node, 1);
@@ -81,27 +81,27 @@ public class AtomicCounterTest extends AbstractRepositoryTest {
             session.logout();
         }
     }
-    
-    private static void assertCounter(@NotNull final Node counter, final long expectedCount) 
-                                    throws RepositoryException {
+
+    private static void assertCounter(@NotNull final Node counter, final long expectedCount)
+        throws RepositoryException {
         checkNotNull(counter);
-        
+
         assertTrue(counter.hasProperty(PROP_COUNTER));
         assertEquals(expectedCount, counter.getProperty(PROP_COUNTER).getLong());
         assertFalse(counter.hasProperty(PROP_INCREMENT));
     }
-    
+
     @Test
     public void incrementNonRootNode() throws RepositoryException {
         Session session = getAdminSession();
-        
+
         try {
             Node counter = session.getRootNode().addNode("foo").addNode("bar").addNode("counter");
             counter.addMixin(MIX_ATOMIC_COUNTER);
             session.save();
-            
+
             assertCounter(counter, 0);
-            
+
             counter.setProperty(PROP_INCREMENT, 1L);
             session.save();
             assertCounter(counter, 1);

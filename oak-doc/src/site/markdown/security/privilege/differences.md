@@ -14,21 +14,29 @@
    See the License for the specific language governing permissions and
    limitations under the License.
   -->
+
 ### Privilege Management : Differences wrt Jackrabbit 2.x
 
 #### Registration of Custom Privileges
+
 As far as registration of custom privileges the Oak implementation behaves
 different to Jackrabbit 2.x in the following two aspects:
 
-- Registration of new privileges fails with `IllegalStateException` if the editing session has pending changes.
-- Any validation is performed by CommitHooks in order to make sure that modifications made on the Oak API directly is equally verified. Subsequently any violation (permission, privilege consistency) is only detected at the end of the registration process. The privilege manager itself does not perform any validation.
+- Registration of new privileges fails with `IllegalStateException` if the editing session has
+  pending changes.
+- Any validation is performed by CommitHooks in order to make sure that modifications made on the
+  Oak API directly is equally verified. Subsequently any violation (permission, privilege
+  consistency) is only detected at the end of the registration process. The privilege manager itself
+  does not perform any validation.
 
 #### Built-in Privilege Definitions
+
 The following changes have been made to built-in privilege definitions:
 
 - Modifications:
     - `jcr:read` is now an aggregation of `rep:readNodes` and `rep:readProperties`
-    - `jcr:modifyProperties` is now an aggregation of `rep:addProperties`, `rep:alterProperties` and `rep:removeProperties`
+    - `jcr:modifyProperties` is now an aggregation of `rep:addProperties`, `rep:alterProperties`
+      and `rep:removeProperties`
 - New Privileges defined by Oak 1.0:
     - `rep:userManagement`
     - `rep:readNodes`

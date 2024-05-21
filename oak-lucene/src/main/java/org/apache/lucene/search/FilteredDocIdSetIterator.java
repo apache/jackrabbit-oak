@@ -28,70 +28,71 @@ package org.apache.lucene.search;
 import java.io.IOException;
 
 /**
- * Abstract decorator class of a DocIdSetIterator
- * implementation that provides on-demand filter/validation
- * mechanism on an underlying DocIdSetIterator.  See {@link
- * FilteredDocIdSet}.
+ * Abstract decorator class of a DocIdSetIterator implementation that provides on-demand
+ * filter/validation mechanism on an underlying DocIdSetIterator.  See {@link FilteredDocIdSet}.
  */
 public abstract class FilteredDocIdSetIterator extends DocIdSetIterator {
-  protected DocIdSetIterator _innerIter;
-  private int doc;
 
-  /**
-   * Constructor.
-   * @param innerIter Underlying DocIdSetIterator.
-   */
-  public FilteredDocIdSetIterator(DocIdSetIterator innerIter) {
-    if (innerIter == null) {
-      throw new IllegalArgumentException("null iterator");
+    protected DocIdSetIterator _innerIter;
+    private int doc;
+
+    /**
+     * Constructor.
+     *
+     * @param innerIter Underlying DocIdSetIterator.
+     */
+    public FilteredDocIdSetIterator(DocIdSetIterator innerIter) {
+        if (innerIter == null) {
+            throw new IllegalArgumentException("null iterator");
+        }
+        _innerIter = innerIter;
+        doc = -1;
     }
-    _innerIter = innerIter;
-    doc = -1;
-  }
 
-  /**
-   * Validation method to determine whether a docid should be in the result set.
-   * @param doc docid to be tested
-   * @return true if input docid should be in the result set, false otherwise.
-   * @see #FilteredDocIdSetIterator(DocIdSetIterator)
-   */
-  protected abstract boolean match(int doc);
+    /**
+     * Validation method to determine whether a docid should be in the result set.
+     *
+     * @param doc docid to be tested
+     * @return true if input docid should be in the result set, false otherwise.
+     * @see #FilteredDocIdSetIterator(DocIdSetIterator)
+     */
+    protected abstract boolean match(int doc);
 
-  @Override
-  public int docID() {
-    return doc;
-  }
-  
-  @Override
-  public int nextDoc() throws IOException {
-    while ((doc = _innerIter.nextDoc()) != NO_MORE_DOCS) {
-      if (match(doc)) {
+    @Override
+    public int docID() {
         return doc;
-      }
     }
-    return doc;
-  }
-  
-  @Override
-  public int advance(int target) throws IOException {
-    doc = _innerIter.advance(target);
-    if (doc != NO_MORE_DOCS) {
-      if (match(doc)) {
-        return doc;
-      } else {
+
+    @Override
+    public int nextDoc() throws IOException {
         while ((doc = _innerIter.nextDoc()) != NO_MORE_DOCS) {
-          if (match(doc)) {
-            return doc;
-          }
+            if (match(doc)) {
+                return doc;
+            }
         }
         return doc;
-      }
     }
-    return doc;
-  }
 
-  @Override
-  public long cost() {
-    return _innerIter.cost();
-  }
+    @Override
+    public int advance(int target) throws IOException {
+        doc = _innerIter.advance(target);
+        if (doc != NO_MORE_DOCS) {
+            if (match(doc)) {
+                return doc;
+            } else {
+                while ((doc = _innerIter.nextDoc()) != NO_MORE_DOCS) {
+                    if (match(doc)) {
+                        return doc;
+                    }
+                }
+                return doc;
+            }
+        }
+        return doc;
+    }
+
+    @Override
+    public long cost() {
+        return _innerIter.cost();
+    }
 }

@@ -26,7 +26,10 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.lucene.index.IndexableField;
 
-public interface LuceneIndexWriterFactory extends FulltextIndexWriterFactory<Iterable<? extends IndexableField>> {
+public interface LuceneIndexWriterFactory extends
+    FulltextIndexWriterFactory<Iterable<? extends IndexableField>> {
+
     @Override
-    LuceneIndexWriter newInstance(IndexDefinition definition, NodeBuilder definitionBuilder, CommitInfo commitInfo, boolean reindex);
+    LuceneIndexWriter newInstance(IndexDefinition definition, NodeBuilder definitionBuilder,
+        CommitInfo commitInfo, boolean reindex);
 }

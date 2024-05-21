@@ -22,7 +22,6 @@ package org.apache.jackrabbit.oak.plugins.document.rdb;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-
 import org.apache.jackrabbit.oak.plugins.document.BlobReferenceIterator;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
@@ -39,12 +38,14 @@ public class RDBBlobReferenceIterator extends BlobReferenceIterator {
     }
 
     private final static List<QueryCondition> WITH_BINARIES = Collections
-            .singletonList(new QueryCondition(NodeDocument.HAS_BINARY_FLAG, "=", NodeDocument.HAS_BINARY_VAL));
+        .singletonList(
+            new QueryCondition(NodeDocument.HAS_BINARY_FLAG, "=", NodeDocument.HAS_BINARY_VAL));
 
     @Override
     public Iterator<NodeDocument> getIteratorOverDocsWithBinaries() {
         return this.documentStore
-                .queryAsIterable(Collection.NODES, null, null, Collections.emptyList(), WITH_BINARIES, Integer.MAX_VALUE, null)
-                .iterator();
+            .queryAsIterable(Collection.NODES, null, null, Collections.emptyList(), WITH_BINARIES,
+                Integer.MAX_VALUE, null)
+            .iterator();
     }
 }

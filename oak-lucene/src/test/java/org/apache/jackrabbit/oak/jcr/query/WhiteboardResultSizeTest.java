@@ -18,19 +18,14 @@
  */
 package org.apache.jackrabbit.oak.jcr.query;
 
-import org.apache.jackrabbit.api.JackrabbitRepository;
-import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
-import org.apache.jackrabbit.oak.jcr.Jcr;
-import org.apache.jackrabbit.oak.jcr.LuceneOakRepositoryStub;
-import org.apache.jackrabbit.oak.spi.query.SessionQuerySettingsProvider;
-import org.apache.jackrabbit.oak.query.SessionQuerySettingsProviderService;
-import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
-import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
-import org.apache.jackrabbit.test.RepositoryStub;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
+import java.io.InputStream;
+import java.lang.reflect.Method;
+import java.util.Collections;
+import java.util.Properties;
+import java.util.concurrent.CompletableFuture;
 import javax.jcr.Credentials;
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
@@ -40,32 +35,39 @@ import javax.jcr.Session;
 import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
 import javax.jcr.security.Privilege;
-import java.io.InputStream;
-import java.lang.reflect.Method;
-import java.util.Collections;
-import java.util.Properties;
-import java.util.concurrent.CompletableFuture;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import org.apache.jackrabbit.api.JackrabbitRepository;
+import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
+import org.apache.jackrabbit.oak.jcr.Jcr;
+import org.apache.jackrabbit.oak.jcr.LuceneOakRepositoryStub;
+import org.apache.jackrabbit.oak.query.SessionQuerySettingsProviderService;
+import org.apache.jackrabbit.oak.spi.query.SessionQuerySettingsProvider;
+import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
+import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
+import org.apache.jackrabbit.test.RepositoryStub;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 /**
- * Performs the same queries as {@link ResultSizeTest#testResultSize()} and expects the same results, with the only
- * differences being the registration of a {@link org.apache.jackrabbit.oak.spi.query.SessionQuerySettingsProvider} service
- * in the whiteboard, and the runtime reconfiguration of the service before each login, in place of the calls to
- * {@code System.setProperty("oak.fastQuerySize", true/false)}.
+ * Performs the same queries as {@link ResultSizeTest#testResultSize()} and expects the same
+ * results, with the only differences being the registration of a
+ * {@link org.apache.jackrabbit.oak.spi.query.SessionQuerySettingsProvider} service in the
+ * whiteboard, and the runtime reconfiguration of the service before each login, in place of the
+ * calls to {@code System.setProperty("oak.fastQuerySize", true/false)}.
  */
 public class WhiteboardResultSizeTest {
 
     /**
-     * Non-static inner class extending RepositoryStub which is intended to be created directly by a test
-     * and not by the TCK RepositoryHelper, purely so that it can mirror the behavior of
-     * {@link org.apache.jackrabbit.oak.jcr.query.ResultSizeTest} with the only differences being the registration of
-     * a {@link org.apache.jackrabbit.oak.spi.query.SessionQuerySettingsProvider} service in the whiteboard, and the
-     * runtime reconfiguration of the service before each login, in place of the calls to
-     * {@code System.setProperty("oak.fastQuerySize", true/false)}.
+     * Non-static inner class extending RepositoryStub which is intended to be created directly by a
+     * test and not by the TCK RepositoryHelper, purely so that it can mirror the behavior of
+     * {@link org.apache.jackrabbit.oak.jcr.query.ResultSizeTest} with the only differences being
+     * the registration of a
+     * {@link org.apache.jackrabbit.oak.spi.query.SessionQuerySettingsProvider} service in the
+     * whiteboard, and the runtime reconfiguration of the service before each login, in place of the
+     * calls to {@code System.setProperty("oak.fastQuerySize", true/false)}.
      */
     public class OakResultSizeStub extends LuceneOakRepositoryStub {
+
         public OakResultSizeStub(Properties settings) throws RepositoryException {
             super(settings);
         }
@@ -74,8 +76,8 @@ public class WhiteboardResultSizeTest {
         protected void preCreateRepository(Jcr jcr, Whiteboard whiteboard) {
             // register the SessionQuerySettingsProvider service before creation of the repository.
             whiteboard.register(SessionQuerySettingsProvider.class,
-                    settingsProviderService,
-                    Collections.emptyMap());
+                settingsProviderService,
+                Collections.emptyMap());
             super.preCreateRepository(jcr, whiteboard);
         }
     }
@@ -91,20 +93,23 @@ public class WhiteboardResultSizeTest {
     }
 
     private SessionQuerySettingsProviderService settingsProviderService =
-            new SessionQuerySettingsProviderService();
+        new SessionQuerySettingsProviderService();
     private RepositoryStub stub;
     private volatile Repository repository;
     private volatile Session adminSession;
 
     /**
-     * Reconfigures the singleton {@link org.apache.jackrabbit.oak.query.SessionQuerySettingsProviderService} instance between queries.
+     * Reconfigures the singleton
+     * {@link org.apache.jackrabbit.oak.query.SessionQuerySettingsProviderService} instance between
+     * queries.
      *
      * @param config a config annotation
      * @throws Exception for reflection errors
      */
-    private void reconfigure(SessionQuerySettingsProviderService.Configuration config) throws Exception {
+    private void reconfigure(SessionQuerySettingsProviderService.Configuration config)
+        throws Exception {
         Method method = SessionQuerySettingsProviderService.class.getDeclaredMethod("configure",
-                SessionQuerySettingsProviderService.Configuration.class);
+            SessionQuerySettingsProviderService.Configuration.class);
         method.setAccessible(true);
         method.invoke(settingsProviderService, config);
     }
@@ -112,8 +117,9 @@ public class WhiteboardResultSizeTest {
     protected Session getAdminSession() throws Exception {
         if (adminSession == null) {
             adminSession = createAdminSession();
-            AccessControlUtils.addAccessControlEntry(adminSession, "/", EveryonePrincipal.getInstance(),
-                    new String[]{Privilege.JCR_READ}, true);
+            AccessControlUtils.addAccessControlEntry(adminSession, "/",
+                EveryonePrincipal.getInstance(),
+                new String[]{Privilege.JCR_READ}, true);
             adminSession.save();
         }
         return adminSession;
@@ -143,7 +149,8 @@ public class WhiteboardResultSizeTest {
     }
 
     /**
-     * Compare with {@code org.apache.jackrabbit.oak.jcr.query.ResultSizeTest#doTestResultSize(boolean, int)}.
+     * Compare with
+     * {@code org.apache.jackrabbit.oak.jcr.query.ResultSizeTest#doTestResultSize(boolean, int)}.
      */
     private void doTestResultSize(boolean union, int expected) throws Exception {
         Session session = null;
@@ -162,18 +169,19 @@ public class WhiteboardResultSizeTest {
 
         final CompletableFuture<String> fastSizeResult = new CompletableFuture<>();
 
-        reconfigure(AdminAllowed.class.getAnnotation(SessionQuerySettingsProviderService.Configuration.class));
+        reconfigure(AdminAllowed.class.getAnnotation(
+            SessionQuerySettingsProviderService.Configuration.class));
         try {
             session = this.createAdminSession();
             assertEquals("nt:unstructured",
-                    session.getNode("/testroot").getPrimaryNodeType().getName());
+                session.getNode("/testroot").getPrimaryNodeType().getName());
             qm = session.getWorkspace().getQueryManager();
             q = qm.createQuery(xpath, "xpath");
             it = q.execute().getNodes();
             result = it.getSize();
             assertTrue("size: " + result + " expected around " + expected,
-                    result > expected - 50 &&
-                            result < expected + 50);
+                result > expected - 50 &&
+                    result < expected + 50);
             buff = new StringBuilder();
             while (it.hasNext()) {
                 Node n = it.nextNode();
@@ -190,7 +198,8 @@ public class WhiteboardResultSizeTest {
             }
         }
 
-        reconfigure(NoneAllowed.class.getAnnotation(SessionQuerySettingsProviderService.Configuration.class));
+        reconfigure(NoneAllowed.class.getAnnotation(
+            SessionQuerySettingsProviderService.Configuration.class));
         try {
             session = this.createAdminSession();
             qm = session.getWorkspace().getQueryManager();
@@ -236,7 +245,8 @@ public class WhiteboardResultSizeTest {
     protected RepositoryStub getStub() throws Exception {
         if (stub == null) {
             Properties properties = new Properties();
-            try (InputStream is = RepositoryStub.class.getClassLoader().getResourceAsStream(RepositoryStub.STUB_IMPL_PROPS)) {
+            try (InputStream is = RepositoryStub.class.getClassLoader().getResourceAsStream(
+                RepositoryStub.STUB_IMPL_PROPS)) {
                 if (is != null) {
                     properties.load(is);
                 }

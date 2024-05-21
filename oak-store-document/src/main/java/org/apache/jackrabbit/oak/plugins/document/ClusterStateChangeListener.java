@@ -19,14 +19,14 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 /**
- * DocumentNS-internal listener that gets invoked when a change in the
- * clusterNodes collection (active/inactive/timed out/recovering) is detected.
+ * DocumentNS-internal listener that gets invoked when a change in the clusterNodes collection
+ * (active/inactive/timed out/recovering) is detected.
  */
 public interface ClusterStateChangeListener {
 
     /**
-     * Informs the listener that DocumentNodeStore has discovered a change in
-     * the clusterNodes collection.
+     * Informs the listener that DocumentNodeStore has discovered a change in the clusterNodes
+     * collection.
      */
     public void handleClusterStateChange();
 

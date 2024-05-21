@@ -19,11 +19,14 @@
 
 package org.apache.jackrabbit.oak.jcr.osgi;
 
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.api.jmx.RepositoryManagementMBean;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
@@ -34,15 +37,11 @@ import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-
 public class RepositoryManagerTest {
+
     @Rule
     public final OsgiContext context = new OsgiContext();
 
@@ -70,16 +69,17 @@ public class RepositoryManagerTest {
     }
 
     @Test
-    public void repositoryShutdown() throws Exception{
+    public void repositoryShutdown() throws Exception {
         registerRequiredServices();
 
         RepositoryManager mgr = context.registerInjectActivateService(new RepositoryManager());
-        assertNotNull("MBean should be registered", context.getService(RepositoryManagementMBean.class));
+        assertNotNull("MBean should be registered",
+            context.getService(RepositoryManagementMBean.class));
 
         mgr.deactivate();
 
         assertNull("MBean should have been removed upon repository shutdown",
-                context.getService(RepositoryManagementMBean.class));
+            context.getService(RepositoryManagementMBean.class));
 
     }
 
@@ -88,9 +88,9 @@ public class RepositoryManagerTest {
         context.registerService(SecurityProvider.class, new OpenSecurityProvider());
         context.registerService(NodeStore.class, new MemoryNodeStore());
         context.registerService(IndexEditorProvider.class, new PropertyIndexEditorProvider(),
-                ImmutableMap.<String, Object>of("type", "property"));
+            ImmutableMap.<String, Object>of("type", "property"));
         context.registerService(IndexEditorProvider.class, new ReferenceEditorProvider(),
-                ImmutableMap.<String, Object>of("type", "reference"));
+            ImmutableMap.<String, Object>of("type", "reference"));
     }
 
 }

@@ -26,10 +26,10 @@ public class FileStoreHelper {
 
     public static File isValidFileStoreOrFail(File store) {
         checkArgument(isValidFileStore(store), "Invalid FileStore directory "
-                + store);
+            + store);
         return store;
     }
-    
+
     /**
      * Checks if the provided directory is a valid FileStore
      *

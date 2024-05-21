@@ -16,22 +16,22 @@
  */
 package org.apache.jackrabbit.oak.security.authorization;
 
+import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_SECURITY_NAME;
+
 import java.security.Principal;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import javax.jcr.security.AccessControlManager;
-
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.security.authorization.monitor.AuthorizationMonitor;
-import org.apache.jackrabbit.oak.security.authorization.monitor.AuthorizationMonitorImpl;
-import org.apache.jackrabbit.oak.security.authorization.permission.VersionablePathHook;
 import org.apache.jackrabbit.oak.security.authorization.accesscontrol.AccessControlImporter;
 import org.apache.jackrabbit.oak.security.authorization.accesscontrol.AccessControlManagerImpl;
 import org.apache.jackrabbit.oak.security.authorization.accesscontrol.AccessControlValidatorProvider;
+import org.apache.jackrabbit.oak.security.authorization.monitor.AuthorizationMonitor;
+import org.apache.jackrabbit.oak.security.authorization.monitor.AuthorizationMonitorImpl;
 import org.apache.jackrabbit.oak.security.authorization.permission.AllPermissionProviderImpl;
 import org.apache.jackrabbit.oak.security.authorization.permission.MountPermissionProvider;
 import org.apache.jackrabbit.oak.security.authorization.permission.PermissionHook;
@@ -39,6 +39,7 @@ import org.apache.jackrabbit.oak.security.authorization.permission.PermissionPro
 import org.apache.jackrabbit.oak.security.authorization.permission.PermissionStoreValidatorProvider;
 import org.apache.jackrabbit.oak.security.authorization.permission.PermissionUtil;
 import org.apache.jackrabbit.oak.security.authorization.permission.PermissionValidatorProvider;
+import org.apache.jackrabbit.oak.security.authorization.permission.VersionablePathHook;
 import org.apache.jackrabbit.oak.security.authorization.restriction.RestrictionProviderImpl;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.MoveTracker;
@@ -71,8 +72,6 @@ import org.osgi.service.metatype.annotations.AttributeDefinition;
 import org.osgi.service.metatype.annotations.Designate;
 import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 import org.osgi.service.metatype.annotations.Option;
-
-import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_SECURITY_NAME;
 
 /**
  * Default implementation of the {@code AccessControlConfiguration}.

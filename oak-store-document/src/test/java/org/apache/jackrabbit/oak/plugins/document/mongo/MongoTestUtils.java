@@ -24,12 +24,12 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 public final class MongoTestUtils {
 
     public static void setReadPreference(DocumentNodeStore ns,
-                                         ReadPreference preference) {
+        ReadPreference preference) {
         setReadPreference(ns.getDocumentStore(), preference);
     }
 
     public static void setReadPreference(DocumentStore store,
-                                         ReadPreference preference) {
+        ReadPreference preference) {
         store.setReadWriteMode("readPreference=" + preference.getName());
     }
 }

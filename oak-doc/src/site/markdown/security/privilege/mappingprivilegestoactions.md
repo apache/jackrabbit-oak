@@ -14,42 +14,43 @@
    See the License for the specific language governing permissions and
    limitations under the License.
   -->
+
 ### Mapping Jcr Actions to Privileges
 
-| Jcr/Jackrabbit Action        | Privilege                                                              |
-|------------------------------|------------------------------------------------------------------------|
-| ACTION_READ                  | jcr:read                                                               | 
-| ACTION_READ on node          | rep:readNodes                                                          |
-| ACTION_READ on prop          | rep:readProperties                                                     |
-| ACTION_SET_PROPERTY          | jcr:modifyProperties                                                   |
-| ACTION_ADD_PROPERTY          | rep:addProperties                                                      |
-| ACTION_MODIFY_PROPERTY       | rep:alterProperties                                                    |
-| ACTION_REMOVE_PROPERTY       | rep:removeProperties                                                   |
-| ACTION_ADD_NODE              | jcr:addChildNodes on parent                                            |    
-| ACTION_REMOVE_NODE           | jcr:removeNode on target + jcr:removeChildNodes on parent              |
-| ACTION_REMOVE on prop        | rep:removeProperties                                                   |
-| ACTION_REMOVE on node        | jcr:removeNode on target + jcr:removeChildNodes on parent              |
-| ACTION_NODE_TYPE_MANAGEMENT  | jcr:nodeTypeManagement                                                 |
+| Jcr/Jackrabbit Action        | Privilege                                                               |
+|------------------------------|-------------------------------------------------------------------------|
+| ACTION_READ                  | jcr:read                                                                | 
+| ACTION_READ on node          | rep:readNodes                                                           |
+| ACTION_READ on prop          | rep:readProperties                                                      |
+| ACTION_SET_PROPERTY          | jcr:modifyProperties                                                    |
+| ACTION_ADD_PROPERTY          | rep:addProperties                                                       |
+| ACTION_MODIFY_PROPERTY       | rep:alterProperties                                                     |
+| ACTION_REMOVE_PROPERTY       | rep:removeProperties                                                    |
+| ACTION_ADD_NODE              | jcr:addChildNodes on parent                                             |    
+| ACTION_REMOVE_NODE           | jcr:removeNode on target + jcr:removeChildNodes on parent               |
+| ACTION_REMOVE on prop        | rep:removeProperties                                                    |
+| ACTION_REMOVE on node        | jcr:removeNode on target + jcr:removeChildNodes on parent               |
+| ACTION_NODE_TYPE_MANAGEMENT  | jcr:nodeTypeManagement                                                  |
 | - (combination of actions)   | jcr:write (NOTE: add/remove node requires privileges granted on parent) |
 | - (combination of actions)   | rep:write (NOTE: add/remove node requires privileges granted on parent) |                                        
-| ACTION_USER_MANAGEMENT       | rep:userManagement                                                     |
-| ACTION_LOCKING               | jcr:lockManagement                                                     |
-| ACTION_VERSIONING            | jcr:versionManagement                                                  |
-| -                            | rep:indexDefinitionManagement                                          |
-| ACTION_READ_ACCESS_CONTROL   | jcr:readAccessControl                                                  |
-| ACTION_MODIFY_ACCESS_CONTROL | jcr:modifyAccessControl                                                |
-| -                            | rep:privilegeManagement                                                |
-| -                            | jcr:nodeTypeDefinitionManagement                                       |
-| -                            | jcr:namespaceManagement                                                |
-| -                            | jcr:all                                                                |
+| ACTION_USER_MANAGEMENT       | rep:userManagement                                                      |
+| ACTION_LOCKING               | jcr:lockManagement                                                      |
+| ACTION_VERSIONING            | jcr:versionManagement                                                   |
+| -                            | rep:indexDefinitionManagement                                           |
+| ACTION_READ_ACCESS_CONTROL   | jcr:readAccessControl                                                   |
+| ACTION_MODIFY_ACCESS_CONTROL | jcr:modifyAccessControl                                                 |
+| -                            | rep:privilegeManagement                                                 |
+| -                            | jcr:nodeTypeDefinitionManagement                                        |
+| -                            | jcr:namespaceManagement                                                 |
+| -                            | jcr:all                                                                 |
 
 Mapping for unsupported operations in Oak
 
 | Jcr/Jackrabbit Action | Privilege               |
 |-----------------------|-------------------------|
-| - | jcr:retentionManagement |
-| - | jcr:lifecycleManagement |
-| - | jcr:workspaceManagement |
+| -                     | jcr:retentionManagement |
+| -                     | jcr:lifecycleManagement |
+| -                     | jcr:workspaceManagement |
 
 ### Further Reading
 

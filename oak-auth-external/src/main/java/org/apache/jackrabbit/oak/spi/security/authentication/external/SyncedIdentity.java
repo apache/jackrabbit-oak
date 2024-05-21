@@ -27,6 +27,7 @@ public interface SyncedIdentity {
 
     /**
      * Returns the internal id or name of the corresponding authorizable.
+     *
      * @return the id.
      */
     @NotNull
@@ -34,6 +35,7 @@ public interface SyncedIdentity {
 
     /**
      * Returns the external reference of this identity.
+     *
      * @return the reference or {@code null}
      */
     @Nullable
@@ -41,12 +43,15 @@ public interface SyncedIdentity {
 
     /**
      * Checks if this identity represents a group.
+     *
      * @return {@code true} if group.
      */
     boolean isGroup();
 
     /**
-     * Returns the time when this identity was last synced or a value less or equal to 0 if it was never synced.
+     * Returns the time when this identity was last synced or a value less or equal to 0 if it was
+     * never synced.
+     *
      * @return the time when this identity was last synced.
      */
     long lastSynced();

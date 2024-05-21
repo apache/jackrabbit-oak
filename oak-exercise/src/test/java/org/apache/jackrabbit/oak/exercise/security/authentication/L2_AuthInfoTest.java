@@ -16,13 +16,17 @@
  */
 package org.apache.jackrabbit.oak.exercise.security.authentication;
 
+import static org.apache.jackrabbit.oak.exercise.ExerciseUtility.createTestGroup;
+import static org.apache.jackrabbit.oak.exercise.ExerciseUtility.createTestUser;
+import static org.apache.jackrabbit.oak.exercise.ExerciseUtility.getTestCredentials;
+import static org.junit.Assert.assertEquals;
+
 import java.security.Principal;
 import java.util.Set;
 import javax.jcr.GuestCredentials;
 import javax.jcr.NoSuchWorkspaceException;
 import javax.jcr.RepositoryException;
 import javax.security.auth.login.LoginException;
-
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
@@ -32,11 +36,6 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.exercise.ExerciseUtility;
 import org.junit.Test;
-
-import static org.apache.jackrabbit.oak.exercise.ExerciseUtility.createTestGroup;
-import static org.apache.jackrabbit.oak.exercise.ExerciseUtility.createTestUser;
-import static org.apache.jackrabbit.oak.exercise.ExerciseUtility.getTestCredentials;
-import static org.junit.Assert.assertEquals;
 
 /**
  * <pre>
@@ -133,7 +132,6 @@ public class L2_AuthInfoTest extends AbstractSecurityTest {
         String expectedId = null; // EXERCISE : fill in the expected id
         assertEquals(expectedId, authInfo.getUserID());
 
-
         // EXERCISE: create the set of expected principals.
         // EXERCISE: what are the variants you have at hand when using the Jackrabbit API
         // EXERCISE: what are the variants you have at hand when using public Oak SPI interfaces?
@@ -142,7 +140,8 @@ public class L2_AuthInfoTest extends AbstractSecurityTest {
     }
 
     @Test
-    public void testUserAuthInfo() throws LoginException, RepositoryException, CommitFailedException {
+    public void testUserAuthInfo()
+        throws LoginException, RepositoryException, CommitFailedException {
         testUser = createTestUser(userManager);
         root.commit();
 
@@ -153,7 +152,6 @@ public class L2_AuthInfoTest extends AbstractSecurityTest {
         String expectedId = null; // EXERCISE : fill in the expected id
         assertEquals(expectedId, authInfo.getUserID());
 
-
         // EXERCISE: create the set of expected principals.
         // EXERCISE: what are the variants you have at hand when using the Jackrabbit API
         // EXERCISE: what are the variants you have at hand when using public Oak SPI interfaces?
@@ -162,7 +160,8 @@ public class L2_AuthInfoTest extends AbstractSecurityTest {
     }
 
     @Test
-    public void testUserAuthInfoWithGroupMembership() throws LoginException, RepositoryException, CommitFailedException {
+    public void testUserAuthInfoWithGroupMembership()
+        throws LoginException, RepositoryException, CommitFailedException {
         testUser = createTestUser(userManager);
         testGroup = createTestGroup(userManager);
         testGroup.addMember(testUser);

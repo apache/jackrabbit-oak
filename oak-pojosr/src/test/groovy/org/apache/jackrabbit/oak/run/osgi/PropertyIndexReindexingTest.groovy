@@ -33,7 +33,7 @@ import java.util.concurrent.TimeUnit
 
 import static org.apache.jackrabbit.oak.run.osgi.OakOSGiRepositoryFactory.REPOSITORY_CONFIG_FILE
 
-class PropertyIndexReindexingTest extends AbstractRepositoryFactoryTest{
+class PropertyIndexReindexingTest extends AbstractRepositoryFactoryTest {
 
     @Before
     void setupRepo() {
@@ -41,14 +41,14 @@ class PropertyIndexReindexingTest extends AbstractRepositoryFactoryTest{
     }
 
     @Test
-    public void propertyIndexState() throws Exception{
+    public void propertyIndexState() throws Exception {
         repository = repositoryFactory.getRepository(config)
         PojoServiceRegistry registry = getRegistry()
 
         //1. Save a node with 'foo' property
         Session s = createAdminSession()
         s.getRootNode().addNode("a1").setProperty("foo", "bar")
-        s.save();  s.logout();
+        s.save(); s.logout();
 
         //2. Create a property index for 'foo'
         s = createAdminSession()
@@ -56,7 +56,7 @@ class PropertyIndexReindexingTest extends AbstractRepositoryFactoryTest{
                 "oak:QueryIndexDefinition", s, false);
         fooIndex.setProperty(IndexConstants.TYPE_PROPERTY_NAME, "property");
         fooIndex.setProperty(IndexConstants.PROPERTY_NAMES, ["foo"] as String[]);
-        s.save();s.logout();
+        s.save(); s.logout();
 
         //3. By the last save reindex flag should be false
         s = createAdminSession()
@@ -67,8 +67,8 @@ class PropertyIndexReindexingTest extends AbstractRepositoryFactoryTest{
         def indexComponent = 'org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider'
         disableComponent(indexComponent)
         TimeUnit.SECONDS.sleep(1)
-       assert registry.getServiceReference(Repository.class.name) == null : "Repository should be unregistered " +
-               "if no property index editor found"
+        assert registry.getServiceReference(Repository.class.name) == null: "Repository should be unregistered " +
+                "if no property index editor found"
 
         //5. Re-enable the editor and wait untill repository gets re-registered
         enableComponent(indexComponent)

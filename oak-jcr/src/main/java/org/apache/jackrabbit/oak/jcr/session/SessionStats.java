@@ -29,9 +29,7 @@ import java.util.Date;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicReference;
-
 import javax.jcr.RepositoryException;
-
 import org.apache.jackrabbit.api.stats.RepositoryStatistics.Type;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.jmx.SessionMBean;
@@ -43,23 +41,24 @@ import org.apache.jackrabbit.oak.stats.StatisticManager;
 public class SessionStats implements SessionMBean {
 
     /**
-     * The threshold of active sessions from where on it should record the stack trace for new sessions. The reason why
-     * this is not enabled by default is because recording stack traces is rather expensive and can significantly
-     * slow down the code if sessions are created and thrown away in a loop.
-     *
-     * Once this threshold is exceeded, we assume that there is a session leak which should be fixed and start recording
-     * the stack traces to make it easier to find the cause of it.
-     *
-     * Configurable by the "oak.sessionStats.initStackTraceThreshold" system property. Set to "0" to record stack trace
-     * information on each session creation.
-     *
+     * The threshold of active sessions from where on it should record the stack trace for new
+     * sessions. The reason why this is not enabled by default is because recording stack traces is
+     * rather expensive and can significantly slow down the code if sessions are created and thrown
+     * away in a loop.
+     * <p>
+     * Once this threshold is exceeded, we assume that there is a session leak which should be fixed
+     * and start recording the stack traces to make it easier to find the cause of it.
+     * <p>
+     * Configurable by the "oak.sessionStats.initStackTraceThreshold" system property. Set to "0" to
+     * record stack trace information on each session creation.
      */
-    static final int INIT_STACK_TRACE_THRESHOLD = Integer.getInteger("oak.sessionStats.initStackTraceThreshold", 1000);
+    static final int INIT_STACK_TRACE_THRESHOLD = Integer.getInteger(
+        "oak.sessionStats.initStackTraceThreshold", 1000);
 
     private final Exception initStackTrace;
 
     private final AtomicReference<RepositoryException> lastFailedSave =
-            new AtomicReference<RepositoryException>();
+        new AtomicReference<RepositoryException>();
 
     private final Counters counters;
     private final String sessionId;
@@ -72,7 +71,8 @@ public class SessionStats implements SessionMBean {
     private Map<String, Object> attributes = Collections.emptyMap();
 
     public SessionStats(String sessionId, AuthInfo authInfo, Clock clock,
-            RefreshStrategy refreshStrategy, SessionDelegate sessionDelegate, StatisticManager statisticManager) {
+        RefreshStrategy refreshStrategy, SessionDelegate sessionDelegate,
+        StatisticManager statisticManager) {
         this.counters = new Counters(clock);
         this.sessionId = sessionId;
         this.authInfo = authInfo;
@@ -82,7 +82,7 @@ public class SessionStats implements SessionMBean {
 
         long activeSessionCount = statisticManager.getStatsCounter(Type.SESSION_COUNT).getCount();
         initStackTrace = (activeSessionCount > INIT_STACK_TRACE_THRESHOLD) ?
-                new Exception("The session was opened here:") : null;
+            new Exception("The session was opened here:") : null;
     }
 
     public void close() {
@@ -90,6 +90,7 @@ public class SessionStats implements SessionMBean {
     }
 
     public static class Counters {
+
         private final Clock clock;
         private final long loginTime;
         public long accessTime;
@@ -235,7 +236,7 @@ public class SessionStats implements SessionMBean {
     @Override
     public boolean getRefreshPending() {
         return refreshStrategy.needsRefresh(
-                SECONDS.convert(clock.getTime() - counters.accessTime, MILLISECONDS));
+            SECONDS.convert(clock.getTime() - counters.accessTime, MILLISECONDS));
     }
 
     @Override

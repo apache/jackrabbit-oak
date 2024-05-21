@@ -24,8 +24,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Validator implementation that allows to exclude hidden nodes and/or properties
- * for the validation process.
+ * Validator implementation that allows to exclude hidden nodes and/or properties for the validation
+ * process.
  */
 public class VisibleValidator implements Validator {
 
@@ -33,7 +33,8 @@ public class VisibleValidator implements Validator {
     private final boolean hideNodes;
     private final boolean hideProperties;
 
-    public VisibleValidator(@NotNull Validator validator, boolean hideNodes, boolean hideProperties) {
+    public VisibleValidator(@NotNull Validator validator, boolean hideNodes,
+        boolean hideProperties) {
         this.validator = validator;
         this.hideNodes = hideNodes;
         this.hideProperties = hideProperties;
@@ -85,7 +86,8 @@ public class VisibleValidator implements Validator {
     }
 
     @Override
-    public void propertyChanged(PropertyState before, PropertyState after) throws CommitFailedException {
+    public void propertyChanged(PropertyState before, PropertyState after)
+        throws CommitFailedException {
         if (isVisibleProperty(after.getName())) {
             validator.propertyChanged(before, after);
         }
@@ -98,7 +100,8 @@ public class VisibleValidator implements Validator {
         }
     }
 
-    @Override @Nullable
+    @Override
+    @Nullable
     public Validator childNodeAdded(String name, NodeState after) throws CommitFailedException {
         if (isVisibleNode(name)) {
             return getValidator(validator.childNodeAdded(name, after));
@@ -107,8 +110,10 @@ public class VisibleValidator implements Validator {
         }
     }
 
-    @Override @Nullable
-    public Validator childNodeChanged(String name, NodeState before, NodeState after) throws CommitFailedException {
+    @Override
+    @Nullable
+    public Validator childNodeChanged(String name, NodeState before, NodeState after)
+        throws CommitFailedException {
         if (isVisibleNode(name)) {
             return getValidator(validator.childNodeChanged(name, before, after));
         } else {
@@ -116,9 +121,10 @@ public class VisibleValidator implements Validator {
         }
     }
 
-    @Override @Nullable
+    @Override
+    @Nullable
     public Validator childNodeDeleted(String name, NodeState before)
-            throws CommitFailedException {
+        throws CommitFailedException {
         if (isVisibleNode(name)) {
             return getValidator(validator.childNodeDeleted(name, before));
         } else {

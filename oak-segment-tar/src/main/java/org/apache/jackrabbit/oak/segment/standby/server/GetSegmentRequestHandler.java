@@ -41,7 +41,8 @@ class GetSegmentRequestHandler extends SimpleChannelInboundHandler<GetSegmentReq
         byte[] data = reader.readSegment(msg.getSegmentId());
 
         if (data == null) {
-            log.debug("Segment {} not found, discarding request from client {}", msg.getSegmentId(), msg.getClientId());
+            log.debug("Segment {} not found, discarding request from client {}", msg.getSegmentId(),
+                msg.getClientId());
             return;
         }
 

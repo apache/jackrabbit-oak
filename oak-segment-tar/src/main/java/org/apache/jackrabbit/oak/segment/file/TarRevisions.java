@@ -19,9 +19,9 @@
 
 package org.apache.jackrabbit.oak.segment.file;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static java.lang.Long.MAX_VALUE;
 import static java.util.concurrent.TimeUnit.DAYS;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreUtil.findPersistedRecordId;
 
 import java.io.Closeable;
@@ -32,7 +32,6 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-
 import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Supplier;
 import org.apache.jackrabbit.oak.segment.RecordId;
@@ -48,17 +47,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * This implementation of {@code Revisions} is backed by a
- * {@link JournalFile journal} file where the current head is persisted
- * by calling {@link #tryFlush(Flusher)}.
+ * This implementation of {@code Revisions} is backed by a {@link JournalFile journal} file where
+ * the current head is persisted by calling {@link #tryFlush(Flusher)}.
  * <p>
- * The {@link #setHead(Function, Option...)} method supports a timeout
- * {@link Option}, which can be retrieved through factory methods of this class.
+ * The {@link #setHead(Function, Option...)} method supports a timeout {@link Option}, which can be
+ * retrieved through factory methods of this class.
  * <p>
  * Instance of this class must be {@link #bind(SegmentStore, SegmentIdProvider, Supplier)} bound} to
  * a {@code SegmentStore} otherwise its method throw {@code IllegalStateException}s.
  */
 public class TarRevisions implements Revisions, Closeable {
+
     private static final Logger LOG = LoggerFactory.getLogger(TarRevisions.class);
 
     /**
@@ -74,14 +73,14 @@ public class TarRevisions implements Revisions, Closeable {
     private final JournalFile journalFile;
 
     /**
-     * The journal file writer. It is protected by {@link #journalFileLock}. It becomes
-     * {@code null} after it's closed.
+     * The journal file writer. It is protected by {@link #journalFileLock}. It becomes {@code null}
+     * after it's closed.
      */
     private volatile JournalFileWriter journalFileWriter;
 
     /**
-     * The persisted head of the root journal, used to determine whether the
-     * latest {@link #head} value should be written to the disk.
+     * The persisted head of the root journal, used to determine whether the latest {@link #head}
+     * value should be written to the disk.
      */
     @NotNull
     private final AtomicReference<RecordId> persistedHead;
@@ -90,6 +89,7 @@ public class TarRevisions implements Revisions, Closeable {
     private final ReadWriteLock rwLock = new ReentrantReadWriteLock(true);
 
     private static class TimeOutOption implements Option {
+
         private final long time;
 
         @NotNull
@@ -111,8 +111,8 @@ public class TarRevisions implements Revisions, Closeable {
     }
 
     /**
-     * Option to cause set head calls to be expedited. That is, cause them to skip the queue
-     * of any other callers waiting to complete that don't have this option specified.
+     * Option to cause set head calls to be expedited. That is, cause them to skip the queue of any
+     * other callers waiting to complete that don't have this option specified.
      */
     public static final Option EXPEDITE_OPTION = new Option() {
         @Override
@@ -134,8 +134,8 @@ public class TarRevisions implements Revisions, Closeable {
     }
 
     /**
-     * Create a new instance placing the journal log file into the passed
-     * {@code directory}.
+     * Create a new instance placing the journal log file into the passed {@code directory}.
+     *
      * @param persistence object representing the segment persistence
      * @throws IOException
      */
@@ -149,15 +149,16 @@ public class TarRevisions implements Revisions, Closeable {
 
     /**
      * Bind this instance to a store.
-     * @param store              store to bind to
-     * @param idProvider         {@code SegmentIdProvider} of the {@code store}
-     * @param writeInitialNode   provider for the initial node in case the journal is empty.
+     *
+     * @param store            store to bind to
+     * @param idProvider       {@code SegmentIdProvider} of the {@code store}
+     * @param writeInitialNode provider for the initial node in case the journal is empty.
      * @throws IOException
      */
     synchronized void bind(@NotNull SegmentStore store,
-                           @NotNull SegmentIdProvider idProvider,
-                           @NotNull Supplier<RecordId> writeInitialNode)
-    throws IOException {
+        @NotNull SegmentIdProvider idProvider,
+        @NotNull Supplier<RecordId> writeInitialNode)
+        throws IOException {
         if (head.get() != null) {
             return;
         }
@@ -175,14 +176,13 @@ public class TarRevisions implements Revisions, Closeable {
     }
 
     /**
-     * Flush the id of the current head to the journal after a call to {@code
-     * persisted}. Differently from {@link #tryFlush(Flusher)}, this method
-     * does not return early if a concurrent call is in progress. Instead, it
-     * blocks the caller until the requested flush operation is performed.
+     * Flush the id of the current head to the journal after a call to {@code persisted}.
+     * Differently from {@link #tryFlush(Flusher)}, this method does not return early if a
+     * concurrent call is in progress. Instead, it blocks the caller until the requested flush
+     * operation is performed.
      *
-     * @param flusher call back for upstream dependencies to ensure the current
-     *                head state is actually persisted before its id is written
-     *                to the head state.
+     * @param flusher call back for upstream dependencies to ensure the current head state is
+     *                actually persisted before its id is written to the head state.
      */
     void flush(Flusher flusher) throws IOException {
         if (head.get() == null) {
@@ -198,13 +198,12 @@ public class TarRevisions implements Revisions, Closeable {
     }
 
     /**
-     * Flush the id of the current head to the journal after a call to {@code
-     * persisted}. This method does nothing and returns immediately if called
-     * concurrently and a call is already in progress.
+     * Flush the id of the current head to the journal after a call to {@code persisted}. This
+     * method does nothing and returns immediately if called concurrently and a call is already in
+     * progress.
      *
-     * @param flusher call back for upstream dependencies to ensure the current
-     *                head state is actually persisted before its id is written
-     *                to the head state.
+     * @param flusher call back for upstream dependencies to ensure the current head state is
+     *                actually persisted before its id is written to the head state.
      */
     void tryFlush(Flusher flusher) throws IOException {
         if (head.get() == null) {
@@ -245,7 +244,7 @@ public class TarRevisions implements Revisions, Closeable {
         checkBound();
         return head.get();
     }
-    
+
     @NotNull
     @Override
     public RecordId getPersistedHead() {
@@ -254,19 +253,18 @@ public class TarRevisions implements Revisions, Closeable {
     }
 
     /**
-     * This implementation blocks if a concurrent call to
-     * {@link #setHead(Function, Option...)} is already in
-     * progress.
+     * This implementation blocks if a concurrent call to {@link #setHead(Function, Option...)} is
+     * already in progress.
      *
-     * @param options   zero or one expedite option for expediting this call
-     * @throws IllegalArgumentException  on any non recognised {@code option}.
+     * @param options zero or one expedite option for expediting this call
+     * @throws IllegalArgumentException on any non recognised {@code option}.
      * @see #EXPEDITE_OPTION
      */
     @Override
     public boolean setHead(
-            @NotNull RecordId expected,
-            @NotNull RecordId head,
-            @NotNull Option... options) {
+        @NotNull RecordId expected,
+        @NotNull RecordId head,
+        @NotNull Option... options) {
         checkBound();
 
         // If the expedite option was specified we acquire the write lock instead of the read lock.
@@ -286,22 +284,21 @@ public class TarRevisions implements Revisions, Closeable {
 
     /**
      * This implementation blocks if a concurrent call is already in progress.
-     * @param newHead  function mapping an record id to the record id to which
-     *                 the current head id should be set. If it returns
-     *                 {@code null} the head remains unchanged and {@code setHead}
-     *                 returns {@code false}.
-
-     * @param options  zero or one timeout options specifying how long to block
+     *
+     * @param newHead function mapping an record id to the record id to which the current head id
+     *                should be set. If it returns {@code null} the head remains unchanged and
+     *                {@code setHead} returns {@code false}.
+     * @param options zero or one timeout options specifying how long to block
      * @throws InterruptedException
-     * @throws IllegalArgumentException  on any non recognised {@code option}.
+     * @throws IllegalArgumentException on any non recognised {@code option}.
      * @see #timeout(long, TimeUnit)
      * @see #INFINITY
      */
     @Override
     public RecordId setHead(
-            @NotNull Function<RecordId, RecordId> newHead,
-            @NotNull Option... options)
-    throws InterruptedException {
+        @NotNull Function<RecordId, RecordId> newHead,
+        @NotNull Option... options)
+        throws InterruptedException {
         checkBound();
         TimeOutOption timeout = getTimeout(options);
         if (rwLock.writeLock().tryLock(timeout.time, timeout.unit)) {
@@ -327,7 +324,8 @@ public class TarRevisions implements Revisions, Closeable {
         } else if (options.length == 1) {
             return options[0] == EXPEDITE_OPTION;
         } else {
-            throw new IllegalArgumentException("Expected zero or one options, got " + options.length);
+            throw new IllegalArgumentException(
+                "Expected zero or one options, got " + options.length);
         }
     }
 
@@ -338,12 +336,14 @@ public class TarRevisions implements Revisions, Closeable {
         } else if (options.length == 1) {
             return TimeOutOption.from(options[0]);
         } else {
-            throw new IllegalArgumentException("Expected zero or one options, got " + options.length);
+            throw new IllegalArgumentException(
+                "Expected zero or one options, got " + options.length);
         }
     }
 
     /**
      * Close the underlying journal file.
+     *
      * @throws IOException
      */
     @Override

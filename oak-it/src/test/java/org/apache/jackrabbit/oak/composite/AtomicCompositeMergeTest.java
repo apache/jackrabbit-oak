@@ -18,8 +18,23 @@
  */
 package org.apache.jackrabbit.oak.composite;
 
-import org.apache.jackrabbit.guava.common.io.Closer;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.oak.api.QueryEngine.NO_MAPPINGS;
+import static org.junit.Assert.assertEquals;
+
+import java.io.IOException;
+import java.text.ParseException;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
+import javax.jcr.query.Query;
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -45,22 +60,6 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.jcr.query.Query;
-import java.io.IOException;
-import java.text.ParseException;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
-
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
-import static org.apache.jackrabbit.oak.api.QueryEngine.NO_MAPPINGS;
-import static org.junit.Assert.assertEquals;
-
 public class AtomicCompositeMergeTest {
 
     private static final Logger LOG = LoggerFactory.getLogger(AtomicCompositeMergeTest.class);
@@ -82,27 +81,30 @@ public class AtomicCompositeMergeTest {
     }
 
     @Test
-    public void testLocalMerges() throws InterruptedException, IOException, ParseException, CommitFailedException {
+    public void testLocalMerges()
+        throws InterruptedException, IOException, ParseException, CommitFailedException {
         Oak oak = getOak(getCompositeNodeStore(new MemoryNodeStore()));
         testAtomicMerges(clusterId -> oak);
     }
 
     @Test
-    public void testDistributedMerge() throws InterruptedException, IOException, ParseException, CommitFailedException {
+    public void testDistributedMerge()
+        throws InterruptedException, IOException, ParseException, CommitFailedException {
         MemoryDocumentStore sharedDocStore = new MemoryDocumentStore();
         testAtomicMerges(clusterId -> {
             DocumentNodeStore docNodeStore = new DocumentMK.Builder()
-                    .setDocumentStore(sharedDocStore)
-                    .setClusterId(clusterId)
-                    .setUpdateLimit(10000)
-                    .getNodeStore();
+                .setDocumentStore(sharedDocStore)
+                .setClusterId(clusterId)
+                .setUpdateLimit(10000)
+                .getNodeStore();
             closer.register(() -> docNodeStore.dispose());
             NodeStore compositeNodeStore = getCompositeNodeStore(docNodeStore);
             return getOak(compositeNodeStore);
         });
     }
 
-    private void testAtomicMerges(Function<Integer, Oak> oakSupplier) throws InterruptedException, IOException, ParseException, CommitFailedException {
+    private void testAtomicMerges(Function<Integer, Oak> oakSupplier)
+        throws InterruptedException, IOException, ParseException, CommitFailedException {
         Set<String> failedMerges = Collections.synchronizedSet(newHashSet());
         List<Thread> threads = newArrayList();
 
@@ -121,7 +123,8 @@ public class AtomicCompositeMergeTest {
                     Root root = session.getLatestRoot();
                     root.getTree("/").addChild(name).setProperty(JcrConstants.JCR_UUID, TEST_UUID);
                     root.commit();
-                    LOG.info("Merged successfully the node /{}: {}", name, root.getTree("/" + name));
+                    LOG.info("Merged successfully the node /{}: {}", name,
+                        root.getTree("/" + name));
                 } catch (CommitFailedException e) {
                     LOG.info("Expected failure", e);
                     failedMerges.add(name);
@@ -138,11 +141,16 @@ public class AtomicCompositeMergeTest {
 
         List<String> uuidPaths = waitForUuid(generalSession, TEST_UUID);
 
-        assertEquals("There should be just one indexed value for the TEST_UUID, but following are given: " + uuidPaths + ". Failed merge list: " + failedMerges, 1, uuidPaths.size());
-        assertEquals("There should be " + (THREADS - 1) + " failed merges, but following are given: " + failedMerges,THREADS - 1, failedMerges.size());
+        assertEquals(
+            "There should be just one indexed value for the TEST_UUID, but following are given: "
+                + uuidPaths + ". Failed merge list: " + failedMerges, 1, uuidPaths.size());
+        assertEquals(
+            "There should be " + (THREADS - 1) + " failed merges, but following are given: "
+                + failedMerges, THREADS - 1, failedMerges.size());
     }
 
-    private static List<String> waitForUuid(ContentSession session, String uuid) throws ParseException {
+    private static List<String> waitForUuid(ContentSession session, String uuid)
+        throws ParseException {
         for (int i = 0; i < 20; i++) {
             List<String> result = queryUuid(session, uuid);
             if (result.isEmpty()) {
@@ -154,18 +162,21 @@ public class AtomicCompositeMergeTest {
         return Collections.emptyList();
     }
 
-    private static List<String> queryUuid(ContentSession session, String uuid) throws ParseException {
-        Map<String, PropertyValue> bindings = Collections.singletonMap("id", PropertyValues.newString(uuid));
+    private static List<String> queryUuid(ContentSession session, String uuid)
+        throws ParseException {
+        Map<String, PropertyValue> bindings = Collections.singletonMap("id",
+            PropertyValues.newString(uuid));
         Result result = session.getLatestRoot().getQueryEngine().executeQuery(
-                "SELECT * FROM [nt:base] WHERE [jcr:uuid] = $id" + QueryEngine.INTERNAL_SQL2_QUERY,
-                Query.JCR_SQL2,
-                bindings, NO_MAPPINGS);
+            "SELECT * FROM [nt:base] WHERE [jcr:uuid] = $id" + QueryEngine.INTERNAL_SQL2_QUERY,
+            Query.JCR_SQL2,
+            bindings, NO_MAPPINGS);
         return StreamSupport.stream(result.getRows().spliterator(), false)
-                .map(r -> r.getPath())
-                .collect(Collectors.toList());
+                            .map(r -> r.getPath())
+                            .collect(Collectors.toList());
     }
 
-    private void waitForReindexing(ContentSession session) throws CommitFailedException, ParseException {
+    private void waitForReindexing(ContentSession session)
+        throws CommitFailedException, ParseException {
         String tmpUuid = UUIDUtils.generateUUID();
 
         Root root = session.getLatestRoot();
@@ -198,14 +209,15 @@ public class AtomicCompositeMergeTest {
     }
 
     private static NodeStore getCompositeNodeStore(NodeStore globalNodeStore) {
-        return new CompositeNodeStore(Mounts.defaultMountInfoProvider(), globalNodeStore, Collections.emptyList());
+        return new CompositeNodeStore(Mounts.defaultMountInfoProvider(), globalNodeStore,
+            Collections.emptyList());
     }
 
     private static Oak getOak(NodeStore nodeStore) {
         return new Oak(nodeStore)
-                .with(new OpenSecurityProvider())
-                .with(new PropertyIndexEditorProvider())
-                .with(new InitialContent());
+            .with(new OpenSecurityProvider())
+            .with(new PropertyIndexEditorProvider())
+            .with(new InitialContent());
 
     }
 }

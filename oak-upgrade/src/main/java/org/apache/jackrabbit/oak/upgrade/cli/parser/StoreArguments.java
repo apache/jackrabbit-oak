@@ -16,23 +16,22 @@
  */
 package org.apache.jackrabbit.oak.upgrade.cli.parser;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
-
-import org.apache.jackrabbit.oak.plugins.segment.SegmentVersion;
-import org.apache.jackrabbit.oak.upgrade.cli.node.StoreFactory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreType.JCR2_DIR;
 import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreType.JCR2_DIR_XML;
 import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreType.JCR2_XML;
 import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreType.SEGMENT;
 import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreType.SEGMENT_TAR;
 import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreType.getMatchingType;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
+import org.apache.jackrabbit.oak.plugins.segment.SegmentVersion;
+import org.apache.jackrabbit.oak.upgrade.cli.node.StoreFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class StoreArguments {
 
@@ -54,7 +53,8 @@ public class StoreArguments {
 
     private Boolean srcHasExternalBlobRefs;
 
-    public StoreArguments(MigrationOptions options, List<String> arguments) throws CliArgumentException {
+    public StoreArguments(MigrationOptions options, List<String> arguments)
+        throws CliArgumentException {
         this.options = options;
         List<StoreDescriptor> descriptors = createStoreDescriptors(arguments, options);
 
@@ -112,12 +112,14 @@ public class StoreArguments {
 
     public boolean srcUsesEmbeddedDatastore() throws IOException {
         if (srcHasExternalBlobRefs == null) {
-            srcHasExternalBlobRefs = src.getFactory(StoreArguments.MigrationDirection.SRC, options).hasExternalBlobReferences();
+            srcHasExternalBlobRefs = src.getFactory(StoreArguments.MigrationDirection.SRC, options)
+                                        .hasExternalBlobReferences();
         }
         return !srcHasExternalBlobRefs;
     }
 
-    private static List<StoreDescriptor> createStoreDescriptors(List<String> arguments, MigrationOptions options) throws CliArgumentException {
+    private static List<StoreDescriptor> createStoreDescriptors(List<String> arguments,
+        MigrationOptions options) throws CliArgumentException {
         List<StoreDescriptor> descriptors = mapToStoreDescriptors(arguments);
         mergeCrx2Descriptors(descriptors);
         addSegmentAsDestination(descriptors);
@@ -125,7 +127,8 @@ public class StoreArguments {
         return descriptors;
     }
 
-    private static List<StoreDescriptor> mapToStoreDescriptors(List<String> arguments) throws CliArgumentException {
+    private static List<StoreDescriptor> mapToStoreDescriptors(List<String> arguments)
+        throws CliArgumentException {
         List<StoreDescriptor> descriptors = new ArrayList<StoreDescriptor>();
         boolean jcr2Dir = false;
         boolean jcr2Xml = false;
@@ -139,7 +142,8 @@ public class StoreArguments {
             }
             if (type == JCR2_DIR_XML) {
                 if (jcr2Xml) {
-                    throw new CliArgumentException("Too many repository.xml files passed as arguments", 1);
+                    throw new CliArgumentException(
+                        "Too many repository.xml files passed as arguments", 1);
                 }
                 jcr2Xml = true;
             }
@@ -197,29 +201,36 @@ public class StoreArguments {
         }
     }
 
-    private static void validateDescriptors(List<StoreDescriptor> descriptors, MigrationOptions options) throws CliArgumentException {
+    private static void validateDescriptors(List<StoreDescriptor> descriptors,
+        MigrationOptions options) throws CliArgumentException {
         if (descriptors.size() < 2) {
-            throw new CliArgumentException("Not enough node store arguments: " + descriptors.toString(), 1);
+            throw new CliArgumentException(
+                "Not enough node store arguments: " + descriptors.toString(), 1);
         } else if (descriptors.size() > 2) {
-            throw new CliArgumentException("Too much node store arguments: " + descriptors.toString(), 1);
+            throw new CliArgumentException(
+                "Too much node store arguments: " + descriptors.toString(), 1);
         } else if (descriptors.get(1).getType() == JCR2_DIR_XML) {
             throw new CliArgumentException("Can't use CRX2 as a destination", 1);
         }
         StoreDescriptor src = descriptors.get(0);
         StoreDescriptor dst = descriptors.get(1);
         if (src.getType() == dst.getType() && src.getPath().equals(dst.getPath())) {
-            throw new CliArgumentException("The source and the destination is the same repository.", 1);
+            throw new CliArgumentException("The source and the destination is the same repository.",
+                1);
         }
         if (src.getType() == StoreType.JCR2_DIR_XML && options.isSrcBlobStoreDefined()) {
-            throw new CliArgumentException("The --src-datastore can't be used for the repository upgrade. Source datastore configuration is placed in the repository.xml file.", 1);
+            throw new CliArgumentException(
+                "The --src-datastore can't be used for the repository upgrade. Source datastore configuration is placed in the repository.xml file.",
+                1);
         }
     }
 
     private static void logSegmentVersion() {
         SegmentVersion[] versions = SegmentVersion.values();
         SegmentVersion lastVersion = versions[versions.length - 1];
-        log.info("Using Oak segment format {} - please make sure your version of AEM supports that format",
-                lastVersion);
+        log.info(
+            "Using Oak segment format {} - please make sure your version of AEM supports that format",
+            lastVersion);
         if (lastVersion == SegmentVersion.V_11) {
             log.info("Requires Oak 1.0.12, 1.1.7 or later");
         }

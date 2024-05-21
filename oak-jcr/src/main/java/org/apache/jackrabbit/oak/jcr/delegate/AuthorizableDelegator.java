@@ -19,21 +19,20 @@
 
 package org.apache.jackrabbit.oak.jcr.delegate;
 
-import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.api.security.user.Authorizable;
-import org.apache.jackrabbit.api.security.user.Group;
-import org.apache.jackrabbit.api.security.user.User;
-import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 
-import javax.jcr.RepositoryException;
-import javax.jcr.Value;
 import java.security.Principal;
 import java.util.Iterator;
 import java.util.Objects;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import javax.jcr.RepositoryException;
+import javax.jcr.Value;
+import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.jackrabbit.api.security.user.Group;
+import org.apache.jackrabbit.api.security.user.User;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
+import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Base class for {@link GroupDelegator} and {@link UserDelegator}.
@@ -43,14 +42,16 @@ abstract class AuthorizableDelegator implements Authorizable {
     final SessionDelegate sessionDelegate;
     final Authorizable delegate;
 
-    AuthorizableDelegator(@NotNull SessionDelegate sessionDelegate, @NotNull Authorizable delegate) {
+    AuthorizableDelegator(@NotNull SessionDelegate sessionDelegate,
+        @NotNull Authorizable delegate) {
         checkArgument(!(delegate instanceof AuthorizableDelegator));
         this.sessionDelegate = sessionDelegate;
         this.delegate = delegate;
     }
 
     @Nullable
-    static Authorizable wrap(@NotNull SessionDelegate sessionDelegate, @Nullable Authorizable authorizable) {
+    static Authorizable wrap(@NotNull SessionDelegate sessionDelegate,
+        @Nullable Authorizable authorizable) {
         if (authorizable == null) {
             return null;
         }
@@ -95,7 +96,6 @@ abstract class AuthorizableDelegator implements Authorizable {
     }
 
 
-
     @NotNull
     @Override
     public Principal getPrincipal() throws RepositoryException {
@@ -116,7 +116,8 @@ abstract class AuthorizableDelegator implements Authorizable {
             @Override
             public Iterator<Group> perform() throws RepositoryException {
                 Iterator<Group> groups = delegate.declaredMemberOf();
-                return Iterators.transform(Iterators.filter(groups, Objects::nonNull), group -> GroupDelegator.wrap(sessionDelegate, group));
+                return Iterators.transform(Iterators.filter(groups, Objects::nonNull),
+                    group -> GroupDelegator.wrap(sessionDelegate, group));
             }
         });
     }
@@ -129,7 +130,8 @@ abstract class AuthorizableDelegator implements Authorizable {
             @Override
             public Iterator<Group> perform() throws RepositoryException {
                 Iterator<Group> groups = delegate.memberOf();
-                return Iterators.transform(Iterators.filter(groups, Objects::nonNull), group -> GroupDelegator.wrap(sessionDelegate, group));
+                return Iterators.transform(Iterators.filter(groups, Objects::nonNull),
+                    group -> GroupDelegator.wrap(sessionDelegate, group));
             }
         });
     }
@@ -158,7 +160,8 @@ abstract class AuthorizableDelegator implements Authorizable {
 
     @NotNull
     @Override
-    public Iterator<String> getPropertyNames(@NotNull final String relPath) throws RepositoryException {
+    public Iterator<String> getPropertyNames(@NotNull final String relPath)
+        throws RepositoryException {
         return sessionDelegate.perform(new SessionOperation<Iterator<String>>("getPropertyNames") {
             @NotNull
             @Override
@@ -180,7 +183,8 @@ abstract class AuthorizableDelegator implements Authorizable {
     }
 
     @Override
-    public void setProperty(@NotNull final String relPath, @Nullable final Value value) throws RepositoryException {
+    public void setProperty(@NotNull final String relPath, @Nullable final Value value)
+        throws RepositoryException {
         sessionDelegate.performVoid(new SessionOperation<Void>("setProperty", true) {
             @Override
             public void performVoid() throws RepositoryException {
@@ -190,7 +194,8 @@ abstract class AuthorizableDelegator implements Authorizable {
     }
 
     @Override
-    public void setProperty(@NotNull final String relPath, @Nullable final Value[] value) throws RepositoryException {
+    public void setProperty(@NotNull final String relPath, @Nullable final Value[] value)
+        throws RepositoryException {
         sessionDelegate.performVoid(new SessionOperation<Void>("setProperty", true) {
             @Override
             public void performVoid() throws RepositoryException {

@@ -19,17 +19,21 @@
 
 package org.apache.jackrabbit.oak.segment.tool;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.HashSet;
-
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import java.util.Objects;
 import java.util.function.Consumer;
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
@@ -48,11 +52,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 
 /**
  * Tests for {@link Check} assuming an invalid repository.
@@ -76,8 +75,9 @@ public class CheckInvalidRepositoryTest extends CheckRepositoryTestBase {
         );
 
         assertCheckSucceeded(checkResult);
-        assertExpectedOutput(log.outString(), Lists.newArrayList("Checked 7 nodes and 21 properties", "Path / is consistent",
-            "Searched through 2 revisions"));
+        assertExpectedOutput(log.outString(),
+            Lists.newArrayList("Checked 7 nodes and 21 properties", "Path / is consistent",
+                "Searched through 2 revisions"));
 
         // not sure whether first traversal will fail because of "/a" or "/z"
         assertExpectedOutput(log.errString(), Lists.newArrayList("Error while traversing /"));
@@ -90,7 +90,8 @@ public class CheckInvalidRepositoryTest extends CheckRepositoryTestBase {
         );
 
         assertCheckFailed(checkResult);
-        assertExpectedOutput(log.outString(), Lists.newArrayList("Checking head", "Checking checkpoints", "No good revision found"));
+        assertExpectedOutput(log.outString(),
+            Lists.newArrayList("Checking head", "Checking checkpoints", "No good revision found"));
         assertExpectedOutput(log.errString(),
             Lists.newArrayList(
                 "Error while traversing /z: java.lang.IllegalArgumentException: Segment reference out of bounds",
@@ -105,8 +106,9 @@ public class CheckInvalidRepositoryTest extends CheckRepositoryTestBase {
         );
 
         assertCheckSucceeded(checkResult);
-        assertExpectedOutput(log.outString(), Lists.newArrayList("Checked 1 nodes and 1 properties", "Path /a is consistent",
-            "Searched through 2 revisions"));
+        assertExpectedOutput(log.outString(),
+            Lists.newArrayList("Checked 1 nodes and 1 properties", "Path /a is consistent",
+                "Searched through 2 revisions"));
         assertExpectedOutput(log.errString(), Lists.newArrayList(
             "Error while traversing /a: java.lang.IllegalArgumentException: Segment reference out of bounds"));
     }
@@ -118,8 +120,10 @@ public class CheckInvalidRepositoryTest extends CheckRepositoryTestBase {
         );
 
         assertCheckSucceeded(checkResult);
-        assertExpectedOutput(log.outString(), Lists.newArrayList("Checking head", "Checking checkpoints",
-            "Checked 7 nodes and 21 properties", "Path / is consistent", "Searched through 2 revisions and 2 checkpoints"));
+        assertExpectedOutput(log.outString(),
+            Lists.newArrayList("Checking head", "Checking checkpoints",
+                "Checked 7 nodes and 21 properties", "Path / is consistent",
+                "Searched through 2 revisions and 2 checkpoints"));
         assertExpectedOutput(log.errString(), Lists.newArrayList(
             "Error while traversing /a: java.lang.IllegalArgumentException: Segment reference out of bounds"));
     }
@@ -134,7 +138,9 @@ public class CheckInvalidRepositoryTest extends CheckRepositoryTestBase {
         );
 
         assertCheckFailed(checkResult);
-        assertExpectedOutput(log.outString(), Lists.newArrayList("Searched through 2 revisions and 1 checkpoints", "No good revision found"));
+        assertExpectedOutput(log.outString(),
+            Lists.newArrayList("Searched through 2 revisions and 1 checkpoints",
+                "No good revision found"));
         assertExpectedOutput(log.errString(), Lists.newArrayList(
             "Error while traversing /b: java.lang.IllegalArgumentException: Segment reference out of bounds"));
     }
@@ -148,7 +154,8 @@ public class CheckInvalidRepositoryTest extends CheckRepositoryTestBase {
         JournalReader journalReader = new JournalReader(new LocalJournalFile(journalFile));
         JournalEntry journalEntry = journalReader.next();
 
-        String journalLine = journalEntry.getRevision() + " root " + journalEntry.getTimestamp() + "\n";
+        String journalLine =
+            journalEntry.getRevision() + " root " + journalEntry.getTimestamp() + "\n";
 
         for (int k = 0; k < 10000; k++) {
             FileUtils.writeStringToFile(largeJournalFile, journalLine, true);
@@ -172,7 +179,9 @@ public class CheckInvalidRepositoryTest extends CheckRepositoryTestBase {
         );
 
         assertCheckFailed(checkResult);
-        assertExpectedOutput(log.outString(), Lists.newArrayList("Searched through 1 revisions and 2 checkpoints", "No good revision found"));
+        assertExpectedOutput(log.outString(),
+            Lists.newArrayList("Searched through 1 revisions and 2 checkpoints",
+                "No good revision found"));
     }
 
     @Test
@@ -184,8 +193,10 @@ public class CheckInvalidRepositoryTest extends CheckRepositoryTestBase {
         );
 
         assertCheckFailed(checkResult);
-        assertExpectedOutput(log.outString(), Lists.newArrayList("Path /b is consistent", "No good revision found"));
-        assertExpectedOutput(log.errString(), Lists.newArrayList("Checkpoint invalid-checkpoint-id not found in this revision!"));
+        assertExpectedOutput(log.outString(),
+            Lists.newArrayList("Path /b is consistent", "No good revision found"));
+        assertExpectedOutput(log.errString(),
+            Lists.newArrayList("Checkpoint invalid-checkpoint-id not found in this revision!"));
     }
 
     @Test
@@ -221,26 +232,31 @@ public class CheckInvalidRepositoryTest extends CheckRepositoryTestBase {
     }
 
     @NotNull
-    private ConsistencyCheckResult checkConsistencyFailFast(MockReadOnlyFileStore mockStore, File journalFile) throws IOException {
+    private ConsistencyCheckResult checkConsistencyFailFast(MockReadOnlyFileStore mockStore,
+        File journalFile) throws IOException {
         return checkConsistency(mockStore, journalFile, true);
     }
 
     @NotNull
-    private ConsistencyCheckResult checkConsistencyLenient(MockReadOnlyFileStore mockStore, File journalFile) throws IOException {
+    private ConsistencyCheckResult checkConsistencyLenient(MockReadOnlyFileStore mockStore,
+        File journalFile) throws IOException {
         return checkConsistency(mockStore, journalFile, false);
     }
 
     @NotNull
-    private ConsistencyCheckResult checkConsistency(MockReadOnlyFileStore store, File journalFile, boolean failFast) throws IOException {
+    private ConsistencyCheckResult checkConsistency(MockReadOnlyFileStore store, File journalFile,
+        boolean failFast) throws IOException {
         return new ConsistencyChecker().checkConsistency(
             store, new JournalReader(new LocalJournalFile(journalFile)),
             true, checkpoints, ImmutableSet.of("/b"), true, Integer.MAX_VALUE,
             failFast);
     }
 
-    private void addMoreSegments() throws InvalidFileStoreVersionException, IOException, CommitFailedException {
-        FileStore fileStore = FileStoreBuilder.fileStoreBuilder(temporaryFolder.getRoot()).withMaxFileSize(256)
-            .withSegmentCacheSize(64).build();
+    private void addMoreSegments()
+        throws InvalidFileStoreVersionException, IOException, CommitFailedException {
+        FileStore fileStore = FileStoreBuilder.fileStoreBuilder(temporaryFolder.getRoot())
+                                              .withMaxFileSize(256)
+                                              .withSegmentCacheSize(64).build();
 
         SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
         NodeBuilder builder = nodeStore.getRoot().builder();
@@ -253,28 +269,29 @@ public class CheckInvalidRepositoryTest extends CheckRepositoryTestBase {
 
     private static boolean hasAnyHeadRevision(ConsistencyCheckResult result) {
         return result.getHeadRevisions()
-            .values()
-            .stream()
-            .anyMatch(Objects::nonNull);
+                     .values()
+                     .stream()
+                     .anyMatch(Objects::nonNull);
     }
 
     private static boolean hasAnyCheckpointRevision(ConsistencyCheckResult result) {
         return result.getCheckpointRevisions()
-            .values()
-            .stream()
-            .flatMap(m -> m.values().stream())
-            .anyMatch(Objects::nonNull);
+                     .values()
+                     .stream()
+                     .flatMap(m -> m.values().stream())
+                     .anyMatch(Objects::nonNull);
     }
 
     private int check(Consumer<Check.Builder> builderConsumer) {
         Check.Builder builder = Check.builder()
-            .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
-            .withDebugInterval(Long.MAX_VALUE)
-            .withCheckBinaries(true)
-            .withCheckHead(true)
-            .withCheckpoints(checkpoints)
-            .withOutWriter(log.outWriter)
-            .withErrWriter(log.errWriter);
+                                     .withPath(
+                                         new File(temporaryFolder.getRoot().getAbsolutePath()))
+                                     .withDebugInterval(Long.MAX_VALUE)
+                                     .withCheckBinaries(true)
+                                     .withCheckHead(true)
+                                     .withCheckpoints(checkpoints)
+                                     .withOutWriter(log.outWriter)
+                                     .withErrWriter(log.errWriter);
         builderConsumer.accept(builder);
         return builder.build().run();
     }
@@ -288,6 +305,7 @@ public class CheckInvalidRepositoryTest extends CheckRepositoryTestBase {
     }
 
     private static class Output {
+
         private final StringWriter strOut;
         private final StringWriter strErr;
         private final PrintWriter outWriter;

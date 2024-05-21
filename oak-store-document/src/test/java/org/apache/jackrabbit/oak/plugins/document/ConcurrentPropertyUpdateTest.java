@@ -46,8 +46,8 @@ public class ConcurrentPropertyUpdateTest extends BaseDocumentMKTest {
     private static final int NUM_THREADS = 2;
 
     private static final CommitHook HOOK = new CompositeHook(
-            ConflictHook.of(new AnnotatingConflictHandler()),
-            new EditorHook(new ConflictValidatorProvider()));
+        ConflictHook.of(new AnnotatingConflictHandler()),
+        new EditorHook(new ConflictValidatorProvider()));
 
     private ExecutorService service = Executors.newFixedThreadPool(NUM_THREADS);
 
@@ -61,8 +61,8 @@ public class ConcurrentPropertyUpdateTest extends BaseDocumentMKTest {
         mk = new DocumentMK.Builder().setDocumentStore(new MemoryDocumentStore() {
             @Override
             public <T extends Document> T findAndUpdate(Collection<T> collection,
-                                                        UpdateOp update)
-                    throws DocumentStoreException {
+                UpdateOp update)
+                throws DocumentStoreException {
                 try {
                     Thread.sleep((long) (Math.random() * 10f));
                 } catch (InterruptedException e) {
@@ -88,7 +88,7 @@ public class ConcurrentPropertyUpdateTest extends BaseDocumentMKTest {
                         try {
                             NodeBuilder builder = store.getRoot().builder();
                             builder.getChildNode("test").setProperty(
-                                    "prop", Math.random());
+                                "prop", Math.random());
                             store.merge(builder, HOOK, CommitInfo.EMPTY);
                         } catch (CommitFailedException e) {
                             // merge must either succeed or fail

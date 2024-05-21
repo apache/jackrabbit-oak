@@ -25,9 +25,10 @@ import org.jetbrains.annotations.NotNull;
  * A value class representing an entry in the revisions journal.
  */
 public class JournalEntry {
+
     @NotNull
     private final String revision;
-    
+
     private final long timestamp;
 
     JournalEntry(@NotNull String revision, long timestamp) {

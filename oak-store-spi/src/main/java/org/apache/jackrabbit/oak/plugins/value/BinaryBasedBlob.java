@@ -21,10 +21,8 @@ package org.apache.jackrabbit.oak.plugins.value;
 
 import java.io.IOException;
 import java.io.InputStream;
-
 import javax.jcr.Binary;
 import javax.jcr.RepositoryException;
-
 import org.apache.jackrabbit.oak.api.Blob;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -33,10 +31,11 @@ import org.slf4j.LoggerFactory;
 /**
  * This Blob implementation is based on an underlying {@link javax.jcr.Binary}.
  * <p>
- * Any error accessing the underlying binary in {@link #getNewStream()} will be
- * deferred to the returned input stream.
+ * Any error accessing the underlying binary in {@link #getNewStream()} will be deferred to the
+ * returned input stream.
  */
 public class BinaryBasedBlob implements Blob {
+
     private static final Logger LOG = LoggerFactory.getLogger(BinaryBasedBlob.class);
 
     private final Binary binary;
@@ -46,8 +45,8 @@ public class BinaryBasedBlob implements Blob {
     }
 
     /**
-     * Delegates to {@link Binary#getStream()} and returns an input stream the always
-     * throws an {@code IOException} if the underlying binary failed to produce one.
+     * Delegates to {@link Binary#getStream()} and returns an input stream the always throws an
+     * {@code IOException} if the underlying binary failed to produce one.
      */
     @NotNull
     @Override
@@ -79,7 +78,7 @@ public class BinaryBasedBlob implements Blob {
     }
 
     /**
-     * @return  {@code null}
+     * @return {@code null}
      */
     @Override
     public String getReference() {
@@ -87,7 +86,7 @@ public class BinaryBasedBlob implements Blob {
     }
 
     /**
-     * @return  {@code null}
+     * @return {@code null}
      */
     @Override
     public String getContentIdentity() {

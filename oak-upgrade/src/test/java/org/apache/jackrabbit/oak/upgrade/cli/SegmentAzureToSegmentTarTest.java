@@ -18,7 +18,6 @@
 package org.apache.jackrabbit.oak.upgrade.cli;
 
 import java.io.IOException;
-
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzuriteDockerRule;
 import org.apache.jackrabbit.oak.upgrade.cli.container.NodeStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.container.SegmentAzureNodeStoreContainer;
@@ -51,7 +50,7 @@ public class SegmentAzureToSegmentTarTest extends AbstractOak2OakTest {
 
     @Override
     protected String[] getArgs() {
-        return new String[] { source.getDescription(), destination.getDescription()};
+        return new String[]{source.getDescription(), destination.getDescription()};
     }
 
     @Override

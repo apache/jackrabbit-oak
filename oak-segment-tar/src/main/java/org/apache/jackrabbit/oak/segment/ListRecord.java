@@ -18,12 +18,12 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
+import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkElementIndex;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkPositionIndexes;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
-import static java.util.Collections.emptyList;
-import static java.util.Collections.singletonList;
 
 import java.util.List;
 
@@ -34,7 +34,9 @@ class ListRecord extends Record {
 
     static final int LEVEL_SIZE = 255;
 
-    /** The maximum number of elements a list can contain */
+    /**
+     * The maximum number of elements a list can contain
+     */
     static final int MAX_ELEMENTS = LEVEL_SIZE * LEVEL_SIZE * LEVEL_SIZE;
 
     private final int size;
@@ -44,9 +46,9 @@ class ListRecord extends Record {
     ListRecord(RecordId id, int size) {
         super(id);
         checkArgument(size >= 0,
-                "Negative list size: " + size);
+            "Negative list size: " + size);
         checkArgument(size <= MAX_ELEMENTS,
-                "Too many elements in list: " + size);
+            "Too many elements in list: " + size);
         this.size = size;
 
         int bs = 1;
@@ -70,7 +72,7 @@ class ListRecord extends Record {
             Segment segment = getSegment();
             RecordId id = segment.readRecordId(getRecordNumber(), 0, bucketIndex);
             ListRecord bucket = new ListRecord(
-                    id, Math.min(bucketSize, size - bucketIndex * bucketSize));
+                id, Math.min(bucketSize, size - bucketIndex * bucketSize));
             return bucket.getEntry(bucketOffset);
         }
     }
@@ -109,7 +111,7 @@ class ListRecord extends Record {
                 int bucketOffset = index % bucketSize;
                 RecordId id = segment.readRecordId(getRecordNumber(), 0, bucketIndex);
                 ListRecord bucket = new ListRecord(
-                        id, Math.min(bucketSize, size - bucketIndex * bucketSize));
+                    id, Math.min(bucketSize, size - bucketIndex * bucketSize));
                 int n = Math.min(bucket.size() - bucketOffset, count);
                 bucket.getEntries(bucketOffset, n, ids);
                 index += n;

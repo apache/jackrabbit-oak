@@ -16,13 +16,12 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.restriction;
 
-import javax.jcr.PropertyType;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
+import javax.jcr.PropertyType;
 import org.apache.jackrabbit.guava.common.base.Objects;
 import org.apache.jackrabbit.oak.api.Type;
 import org.jetbrains.annotations.NotNull;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
 /**
  * Default implementation of the {@link RestrictionDefinition} interface.
@@ -36,16 +35,17 @@ public class RestrictionDefinitionImpl implements RestrictionDefinition {
     /**
      * Create a new instance.
      *
-     * @param name           The oak name of the restriction definition.
-     * @param type           The required type of this definition. Any valid JCR
-     *                       {@link javax.jcr.PropertyType} except {@link javax.jcr.PropertyType#UNDEFINED}
-     *                       is allowed.
-     * @param isMandatory    A boolean indicating if the restriction is mandatory.
+     * @param name        The oak name of the restriction definition.
+     * @param type        The required type of this definition. Any valid JCR
+     *                    {@link javax.jcr.PropertyType} except
+     *                    {@link javax.jcr.PropertyType#UNDEFINED} is allowed.
+     * @param isMandatory A boolean indicating if the restriction is mandatory.
      */
     public RestrictionDefinitionImpl(@NotNull String name, Type<?> type, boolean isMandatory) {
         this.name = checkNotNull(name);
         if (type.tag() == PropertyType.UNDEFINED) {
-            throw new IllegalArgumentException("'undefined' is not a valid required definition type.");
+            throw new IllegalArgumentException(
+                "'undefined' is not a valid required definition type.");
         }
         this.type = type;
         this.isMandatory = isMandatory;
@@ -84,7 +84,8 @@ public class RestrictionDefinitionImpl implements RestrictionDefinition {
 
         if (o instanceof RestrictionDefinitionImpl) {
             RestrictionDefinitionImpl other = (RestrictionDefinitionImpl) o;
-            return type == other.type && isMandatory == other.isMandatory && name.equals(other.name);
+            return type == other.type && isMandatory == other.isMandatory && name.equals(
+                other.name);
         }
 
         return false;

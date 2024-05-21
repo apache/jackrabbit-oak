@@ -28,12 +28,13 @@ import org.osgi.annotation.versioning.ProviderType;
 public interface JackrabbitRepositoryFactory extends RepositoryFactory {
 
     /**
-     * Get the repository management component. Only the factory that created
-     * the given repository may retrieve the manager.
+     * Get the repository management component. Only the factory that created the given repository
+     * may retrieve the manager.
      *
      * @param repository the repository to manage
      * @return the manager
      */
-    RepositoryManager getRepositoryManager(JackrabbitRepository repository) throws RepositoryException;
+    RepositoryManager getRepositoryManager(JackrabbitRepository repository)
+        throws RepositoryException;
 
 }

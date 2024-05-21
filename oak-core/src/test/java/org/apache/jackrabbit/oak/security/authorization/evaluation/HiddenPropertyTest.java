@@ -16,17 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.evaluation;
 
-import java.util.Set;
-
-import org.apache.jackrabbit.guava.common.collect.Sets;
-import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyBuilder;
-import org.apache.jackrabbit.oak.plugins.tree.TreeConstants;
-import org.junit.Before;
-import org.junit.Test;
-
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.junit.Assert.assertEquals;
@@ -34,6 +23,16 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+
+import java.util.Set;
+import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.guava.common.collect.Sets;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyBuilder;
+import org.apache.jackrabbit.oak.plugins.tree.TreeConstants;
+import org.junit.Before;
+import org.junit.Test;
 
 /**
  * Test for the hidden {@link TreeConstants#OAK_CHILD_ORDER} property

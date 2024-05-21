@@ -17,12 +17,10 @@
 package org.apache.jackrabbit.oak.benchmark;
 
 import java.security.Principal;
-
 import javax.jcr.Node;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 import javax.jcr.security.AccessControlManager;
-
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.user.UserManager;
@@ -51,14 +49,16 @@ public class FlatTreeWithAceForSamePrincipalTest extends AbstractTest {
 
         AccessControlManager acm = admin.getAccessControlManager();
         JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acm, "/");
-        acl.addEntry(userPrincipal, AccessControlUtils.privilegesFromNames(acm, PrivilegeConstants.JCR_READ), true);
+        acl.addEntry(userPrincipal,
+            AccessControlUtils.privilegesFromNames(acm, PrivilegeConstants.JCR_READ), true);
         acm.setPolicy("/", acl);
 
         Node a = admin.getRootNode().addNode(ROOT_NODE_NAME, "nt:folder");
         for (int i = 1; i < 10000; i++) {
             a.addNode("node" + i, "nt:folder");
             acl = AccessControlUtils.getAccessControlList(acm, ROOT_PATH + "/node" + i);
-            acl.addEntry(userPrincipal, AccessControlUtils.privilegesFromNames(acm, PrivilegeConstants.JCR_READ), true);
+            acl.addEntry(userPrincipal,
+                AccessControlUtils.privilegesFromNames(acm, PrivilegeConstants.JCR_READ), true);
             acm.setPolicy(ROOT_PATH + "/node" + i, acl);
         }
 

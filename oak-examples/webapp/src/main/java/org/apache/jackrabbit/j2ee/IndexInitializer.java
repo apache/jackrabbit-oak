@@ -19,18 +19,18 @@
 
 package org.apache.jackrabbit.j2ee;
 
+import static java.util.Collections.singleton;
+
 import java.security.Principal;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.util.Collections;
-
 import javax.jcr.Node;
 import javax.jcr.PropertyType;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.security.auth.Subject;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.oak.api.AuthInfo;
@@ -43,13 +43,11 @@ import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static java.util.Collections.singleton;
-
 /**
  * IndexInitializer configures the repository with required fulltext index
- *
  */
 public class IndexInitializer {
+
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final Repository repository;
 
@@ -57,10 +55,10 @@ public class IndexInitializer {
         this.repository = repository;
     }
 
-    public void initialize() throws RepositoryException{
+    public void initialize() throws RepositoryException {
         Session s = createAdministrativeSession();
-        try{
-            if (!s.nodeExists("/oak:index/lucene")){
+        try {
+            if (!s.nodeExists("/oak:index/lucene")) {
                 createFullTextIndex(s);
             }
             s.save();
@@ -74,26 +72,28 @@ public class IndexInitializer {
     private void createFullTextIndex(Session s) throws RepositoryException {
         String indexPath = "/oak:index/lucene";
         Node lucene = JcrUtils.getOrCreateByPath(indexPath, JcrConstants.NT_UNSTRUCTURED,
-                "oak:QueryIndexDefinition", s, false);
+            "oak:QueryIndexDefinition", s, false);
         lucene.setProperty("async", "async");
         lucene.setProperty(IndexConstants.TYPE_PROPERTY_NAME, "lucene");
         lucene.setProperty(FulltextIndexConstants.EVALUATE_PATH_RESTRICTION, true);
         lucene.setProperty(LuceneIndexConstants.INDEX_PATH, indexPath);
         lucene.setProperty(FulltextIndexConstants.COMPAT_MODE, IndexFormatVersion.V2.getVersion());
 
-        Node indexRules = lucene.addNode(FulltextIndexConstants.INDEX_RULES, JcrConstants.NT_UNSTRUCTURED);
+        Node indexRules = lucene.addNode(FulltextIndexConstants.INDEX_RULES,
+            JcrConstants.NT_UNSTRUCTURED);
         Node ntBaseRule = indexRules.addNode(JcrConstants.NT_BASE);
 
         //Fulltext index only includes property of type String and Binary
         ntBaseRule.setProperty(FulltextIndexConstants.INCLUDE_PROPERTY_TYPES,
-                new String[] {PropertyType.TYPENAME_BINARY, PropertyType.TYPENAME_STRING});
+            new String[]{PropertyType.TYPENAME_BINARY, PropertyType.TYPENAME_STRING});
 
         Node propNode = ntBaseRule.addNode(FulltextIndexConstants.PROP_NODE);
 
         Node allPropNode = propNode.addNode("allProps");
         allPropNode.setProperty(FulltextIndexConstants.PROP_ANALYZED, true);
         allPropNode.setProperty(FulltextIndexConstants.PROP_NODE_SCOPE_INDEX, true);
-        allPropNode.setProperty(FulltextIndexConstants.PROP_NAME, FulltextIndexConstants.REGEX_ALL_PROPS);
+        allPropNode.setProperty(FulltextIndexConstants.PROP_NAME,
+            FulltextIndexConstants.REGEX_ALL_PROPS);
         allPropNode.setProperty(FulltextIndexConstants.PROP_IS_REGEX, true);
         allPropNode.setProperty(FulltextIndexConstants.PROP_USE_IN_SPELLCHECK, true);
 
@@ -101,7 +101,8 @@ public class IndexInitializer {
         Node aggNode = lucene.addNode(FulltextIndexConstants.AGGREGATES);
 
         Node aggFile = aggNode.addNode(JcrConstants.NT_FILE);
-        aggFile.addNode("include0").setProperty(FulltextIndexConstants.AGG_PATH, JcrConstants.JCR_CONTENT);
+        aggFile.addNode("include0")
+               .setProperty(FulltextIndexConstants.AGG_PATH, JcrConstants.JCR_CONTENT);
 
         log.info("Created fulltext index definition at {}", indexPath);
     }
@@ -116,15 +117,17 @@ public class IndexInitializer {
             }
         };
         AuthInfo authInfo = new AuthInfoImpl(adminId, null, singleton(admin));
-        Subject subject = new Subject(true, singleton(admin), singleton(authInfo), Collections.emptySet());
+        Subject subject = new Subject(true, singleton(admin), singleton(authInfo),
+            Collections.emptySet());
         Session adminSession;
         try {
-            adminSession = Subject.doAsPrivileged(subject, new PrivilegedExceptionAction<Session>() {
-                @Override
-                public Session run() throws Exception {
-                    return repository.login();
-                }
-            }, null);
+            adminSession = Subject.doAsPrivileged(subject,
+                new PrivilegedExceptionAction<Session>() {
+                    @Override
+                    public Session run() throws Exception {
+                        return repository.login();
+                    }
+                }, null);
         } catch (PrivilegedActionException e) {
             throw new RepositoryException("failed to retrieve admin session.", e);
         }

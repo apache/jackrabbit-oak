@@ -19,6 +19,11 @@
 
 package org.apache.jackrabbit.oak.segment;
 
+import static java.lang.Long.numberOfLeadingZeros;
+import static java.lang.Math.min;
+import static java.util.Arrays.asList;
+import static java.util.Collections.emptyMap;
+import static java.util.Collections.nCopies;
 import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkElementIndex;
@@ -33,11 +38,6 @@ import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithE
 import static org.apache.jackrabbit.guava.common.collect.Lists.partition;
 import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
 import static org.apache.jackrabbit.guava.common.io.ByteStreams.read;
-import static java.lang.Long.numberOfLeadingZeros;
-import static java.lang.Math.min;
-import static java.util.Arrays.asList;
-import static java.util.Collections.emptyMap;
-import static java.util.Collections.nCopies;
 import static org.apache.jackrabbit.oak.api.Type.BINARIES;
 import static org.apache.jackrabbit.oak.api.Type.BINARY;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
@@ -57,9 +57,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-
 import javax.jcr.PropertyType;
-
 import org.apache.jackrabbit.guava.common.io.Closeables;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -79,10 +77,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Converts nodes, properties, values, etc. to records and persists them with
- * the help of a {@link WriteOperationHandler}. All public methods of this class
- * are thread safe if and only if the {@link WriteOperationHandler} passed to
- * the constructor is thread safe.
+ * Converts nodes, properties, values, etc. to records and persists them with the help of a
+ * {@link WriteOperationHandler}. All public methods of this class are thread safe if and only if
+ * the {@link WriteOperationHandler} passed to the constructor is thread safe.
  */
 public class DefaultSegmentWriter implements SegmentWriter {
 
@@ -92,7 +89,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
      * Number of updates to child nodes before changes are flushed to disk.
      */
     private static final int CHILD_NODE_UPDATE_LIMIT = Integer
-            .getInteger("child.node.update.limit", 10000);
+        .getInteger("child.node.update.limit", 10000);
 
     protected static final String MAX_MAP_RECORD_SIZE_KEY = "oak.segmentNodeStore.maxMapRecordSize";
 
@@ -113,32 +110,31 @@ public class DefaultSegmentWriter implements SegmentWriter {
 
     @NotNull
     private final WriteOperationHandler writeOperationHandler;
-    
+
     private final int binariesInlineThreshold;
 
     /**
-     * Create a new instance of a {@code SegmentWriter}. Note the thread safety
-     * properties pointed out in the class comment.
+     * Create a new instance of a {@code SegmentWriter}. Note the thread safety properties pointed
+     * out in the class comment.
      *
      * @param store                   store to write to
      * @param reader                  segment reader for the {@code store}
      * @param idProvider              segment id provider for the {@code store}
-     * @param blobStore               the blob store or {@code null} for inlined
-     *                                blobs
-     * @param cacheManager            cache manager instance for the
-     *                                de-duplication caches used by this writer
+     * @param blobStore               the blob store or {@code null} for inlined blobs
+     * @param cacheManager            cache manager instance for the de-duplication caches used by
+     *                                this writer
      * @param writeOperationHandler   handler for write operations.
-     * @param binariesInlineThreshold threshold in bytes, specifying the limit up to which
-     *                                blobs will be inlined
+     * @param binariesInlineThreshold threshold in bytes, specifying the limit up to which blobs
+     *                                will be inlined
      */
     public DefaultSegmentWriter(
-            @NotNull SegmentStore store,
-            @NotNull SegmentReader reader,
-            @NotNull SegmentIdProvider idProvider,
-            @Nullable BlobStore blobStore,
-            @NotNull WriterCacheManager cacheManager,
-            @NotNull WriteOperationHandler writeOperationHandler,
-            int binariesInlineThreshold
+        @NotNull SegmentStore store,
+        @NotNull SegmentReader reader,
+        @NotNull SegmentIdProvider idProvider,
+        @Nullable BlobStore blobStore,
+        @NotNull WriterCacheManager cacheManager,
+        @NotNull WriteOperationHandler writeOperationHandler,
+        int binariesInlineThreshold
     ) {
         this.store = checkNotNull(store);
         this.reader = checkNotNull(reader);
@@ -157,63 +153,67 @@ public class DefaultSegmentWriter implements SegmentWriter {
     }
 
     @NotNull
-    RecordId writeMap(@Nullable final MapRecord base, @NotNull final Map<String, RecordId> changes) throws IOException {
+    RecordId writeMap(@Nullable final MapRecord base, @NotNull final Map<String, RecordId> changes)
+        throws IOException {
         return new SegmentWriteOperation(writeOperationHandler.getGCGeneration())
-                .writeMap(base, changes);
+            .writeMap(base, changes);
     }
 
     @NotNull
     RecordId writeList(@NotNull final List<RecordId> list) throws IOException {
         return new SegmentWriteOperation(writeOperationHandler.getGCGeneration())
-                .writeList(list);
+            .writeList(list);
     }
 
     @NotNull
     RecordId writeString(@NotNull final String string) throws IOException {
         return new SegmentWriteOperation(writeOperationHandler.getGCGeneration())
-                .writeString(string);
+            .writeString(string);
     }
 
     @Override
     @NotNull
     public RecordId writeBlob(@NotNull final Blob blob) throws IOException {
         return new SegmentWriteOperation(writeOperationHandler.getGCGeneration())
-                .writeBlob(blob);
+            .writeBlob(blob);
     }
 
     @NotNull
-    RecordId writeBlock(@NotNull final byte[] bytes, final int offset, final int length) throws IOException {
+    RecordId writeBlock(@NotNull final byte[] bytes, final int offset, final int length)
+        throws IOException {
         return new SegmentWriteOperation(writeOperationHandler.getGCGeneration())
-                .writeBlock(bytes, offset, length);
+            .writeBlock(bytes, offset, length);
     }
 
     @Override
     @NotNull
     public RecordId writeStream(@NotNull final InputStream stream) throws IOException {
         return new SegmentWriteOperation(writeOperationHandler.getGCGeneration())
-                .writeStream(stream);
+            .writeStream(stream);
     }
 
     @NotNull
     RecordId writeProperty(@NotNull final PropertyState state) throws IOException {
         return new SegmentWriteOperation(writeOperationHandler.getGCGeneration())
-                .writeProperty(state);
+            .writeProperty(state);
     }
 
     @Override
     @NotNull
-    public RecordId writeNode(@NotNull final NodeState state, @Nullable final Buffer stableIdBytes) throws IOException {
+    public RecordId writeNode(@NotNull final NodeState state, @Nullable final Buffer stableIdBytes)
+        throws IOException {
         return new SegmentWriteOperation(writeOperationHandler.getGCGeneration())
-                .writeNode(state, stableIdBytes);
+            .writeNode(state, stableIdBytes);
     }
 
     /**
-     * This {@code WriteOperation} implementation is used internally to provide
-     * context to a recursive chain of calls without having pass the context
-     * as a separate argument (a poor mans monad). As such it is entirely
+     * This {@code WriteOperation} implementation is used internally to provide context to a
+     * recursive chain of calls without having pass the context as a separate argument (a poor mans
+     * monad). As such it is entirely
      * <em>not thread safe</em>.
      */
     private class SegmentWriteOperation {
+
         private final GCGeneration gcGeneration;
 
         private final Cache<String, RecordId> stringCache;
@@ -246,7 +246,8 @@ public class DefaultSegmentWriter implements SegmentWriter {
             }
         }
 
-        private RecordId writeMap(@Nullable MapRecord base, @NotNull Map<String, RecordId> changes) throws IOException {
+        private RecordId writeMap(@Nullable MapRecord base, @NotNull Map<String, RecordId> changes)
+            throws IOException {
             if (base != null) {
                 if (base.size() >= MapRecord.WARN_SIZE) {
                     int maxMapRecordSize = Integer.getInteger(MAX_MAP_RECORD_SIZE_KEY, 0);
@@ -255,27 +256,33 @@ public class DefaultSegmentWriter implements SegmentWriter {
                     }
 
                     if (base.size() >= MapRecord.ERROR_SIZE_HARD_STOP) {
-                        throw new UnsupportedOperationException("Map record has more than " + MapRecord.ERROR_SIZE_HARD_STOP
-                                        + " direct entries. Writing is not allowed. Please remove entries.");
+                        throw new UnsupportedOperationException(
+                            "Map record has more than " + MapRecord.ERROR_SIZE_HARD_STOP
+                                + " direct entries. Writing is not allowed. Please remove entries.");
                     } else if (base.size() >= MapRecord.ERROR_SIZE_DISCARD_WRITES) {
-                        if (!Boolean.getBoolean("oak.segmentNodeStore.allowWritesOnHugeMapRecord")) {
+                        if (!Boolean.getBoolean(
+                            "oak.segmentNodeStore.allowWritesOnHugeMapRecord")) {
                             if (shouldLog()) {
                                 LOG.error(
-                                        "Map entry has more than {} entries. Writing more than {} entries (up to the hard limit of {}) is only allowed "
-                                                + "if the system property \"oak.segmentNodeStore.allowWritesOnHugeMapRecord\" is set",
-                                        MapRecord.ERROR_SIZE, MapRecord.ERROR_SIZE_DISCARD_WRITES, MapRecord.ERROR_SIZE_HARD_STOP);
+                                    "Map entry has more than {} entries. Writing more than {} entries (up to the hard limit of {}) is only allowed "
+                                        + "if the system property \"oak.segmentNodeStore.allowWritesOnHugeMapRecord\" is set",
+                                    MapRecord.ERROR_SIZE, MapRecord.ERROR_SIZE_DISCARD_WRITES,
+                                    MapRecord.ERROR_SIZE_HARD_STOP);
                             }
 
-                            throw new UnsupportedOperationException("Map record has more than " + MapRecord.ERROR_SIZE_DISCARD_WRITES
-                                            + " direct entries. Writing is not allowed. Please remove entries.");
+                            throw new UnsupportedOperationException(
+                                "Map record has more than " + MapRecord.ERROR_SIZE_DISCARD_WRITES
+                                    + " direct entries. Writing is not allowed. Please remove entries.");
                         }
-                    } else if (base.size() >=  MapRecord.ERROR_SIZE) {
+                    } else if (base.size() >= MapRecord.ERROR_SIZE) {
                         if (shouldLog()) {
-                            LOG.error("Map entry has more than {} entries. Please remove entries.", MapRecord.ERROR_SIZE);
+                            LOG.error("Map entry has more than {} entries. Please remove entries.",
+                                MapRecord.ERROR_SIZE);
                         }
                     } else {
                         if (shouldLog()) {
-                            LOG.warn("Map entry has more than {} entries. Please remove entries.", MapRecord.WARN_SIZE);
+                            LOG.warn("Map entry has more than {} entries. Please remove entries.",
+                                MapRecord.WARN_SIZE);
                         }
                     }
                 }
@@ -293,7 +300,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
 
             if (base != null && changes.size() == 1) {
                 Map.Entry<String, RecordId> change =
-                        changes.entrySet().iterator().next();
+                    changes.entrySet().iterator().next();
                 RecordId value = change.getValue();
                 if (value != null) {
                     MapEntry entry = base.getEntry(change.getKey());
@@ -342,7 +349,8 @@ public class DefaultSegmentWriter implements SegmentWriter {
                 RecordWriters.newMapLeafWriter(level, entries)));
         }
 
-        private RecordId writeMapBranch(int level, int size, MapRecord... buckets) throws IOException {
+        private RecordId writeMapBranch(int level, int size, MapRecord... buckets)
+            throws IOException {
             checkElementIndex(size, MapRecord.MAX_SIZE);
             int bitmap = 0;
             List<RecordId> bucketIds = newArrayListWithCapacity(buckets.length);
@@ -357,7 +365,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
         }
 
         private RecordId writeMapBucket(MapRecord base, Collection<MapEntry> entries, int level)
-                throws IOException {
+            throws IOException {
             // when no changed entries, return the base map (if any) as-is
             if (entries == null || entries.isEmpty()) {
                 if (base != null) {
@@ -374,7 +382,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
             if (base == null) {
                 // use leaf records for small maps or the last map level
                 if (entries.size() <= BUCKETS_PER_LEVEL
-                        || level == MapRecord.MAX_NUMBER_OF_LEVELS) {
+                    || level == MapRecord.MAX_NUMBER_OF_LEVELS) {
                     return writeMapLeaf(level, entries);
                 }
 
@@ -459,7 +467,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
             while (thisLevel.size() > 1) {
                 List<RecordId> nextLevel = newArrayList();
                 for (List<RecordId> bucket :
-                        partition(thisLevel, ListRecord.LEVEL_SIZE)) {
+                    partition(thisLevel, ListRecord.LEVEL_SIZE)) {
                     if (bucket.size() > 1) {
                         nextLevel.add(writeListBucket(bucket));
                     } else {
@@ -482,7 +490,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
             int shift = 32 - (level + 1) * MapRecord.BITS_PER_LEVEL;
 
             List<List<MapEntry>> buckets =
-                    newArrayList(nCopies(MapRecord.BUCKETS_PER_LEVEL, (List<MapEntry>) null));
+                newArrayList(nCopies(MapRecord.BUCKETS_PER_LEVEL, (List<MapEntry>) null));
             for (MapEntry entry : entries) {
                 int index = (entry.getHash() >> shift) & mask;
                 List<MapEntry> bucket = buckets.get(index);
@@ -530,7 +538,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
 
             int pos = 0;
             List<RecordId> blockIds = newArrayListWithExpectedSize(
-                    data.length / SegmentStream.BLOCK_SIZE + 1);
+                data.length / SegmentStream.BLOCK_SIZE + 1);
 
             // write as many full bulk segments as possible
             while (pos + Segment.MAX_SEGMENT_SIZE <= data.length) {
@@ -558,12 +566,12 @@ public class DefaultSegmentWriter implements SegmentWriter {
 
         /**
          * @param blob
-         * @return {@code true} iff {@code blob} is a {@code SegmentBlob} and
-         * originates from the same segment store.
+         * @return {@code true} iff {@code blob} is a {@code SegmentBlob} and originates from the
+         * same segment store.
          */
         private boolean sameStore(Blob blob) {
             return (blob instanceof SegmentBlob)
-                    && sameStore(((Record) blob).getRecordId().getSegmentId());
+                && sameStore(((Record) blob).getRecordId().getSegmentId());
         }
 
         private RecordId writeBlob(@NotNull Blob blob) throws IOException {
@@ -598,9 +606,8 @@ public class DefaultSegmentWriter implements SegmentWriter {
         }
 
         /**
-         * Write a reference to an external blob. This method handles blob IDs
-         * of every length, but behaves differently for small and large blob
-         * IDs.
+         * Write a reference to an external blob. This method handles blob IDs of every length, but
+         * behaves differently for small and large blob IDs.
          *
          * @param blobId Blob ID.
          * @return Record ID pointing to the written blob ID.
@@ -620,7 +627,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
         }
 
         private RecordId writeBlock(@NotNull byte[] bytes, int offset, int length)
-                throws IOException {
+            throws IOException {
             checkNotNull(bytes);
             checkPositionIndexes(offset, offset + length, bytes.length);
             return writeOperationHandler.execute(gcGeneration, newWriteOperation(
@@ -656,27 +663,27 @@ public class DefaultSegmentWriter implements SegmentWriter {
         private RecordId internalWriteStream(@NotNull InputStream stream) throws IOException {
             // Special case for short binaries (up to about binariesInlineThreshold, 16kB by default):
             // store them directly as small- or medium-sized value records
-                    	
+
             byte[] data = new byte[binariesInlineThreshold];
             int n = read(stream, data, 0, data.length);
-            
+
             if (n < binariesInlineThreshold) {
                 return writeValueRecord(n, data);
             }
 
             if (blobStore != null) {
                 String blobId = blobStore.writeBlob(new SequenceInputStream(
-                        new ByteArrayInputStream(data, 0, n), stream));
+                    new ByteArrayInputStream(data, 0, n), stream));
                 return writeBlobId(blobId);
             }
-            
+
             // handle case in which blob store is not configured and
             // binariesInlineThreshold < Segment.MEDIUM_LIMIT
-            // store the binaries as small or medium sized value records 
-            
+            // store the binaries as small or medium sized value records
+
             data = Arrays.copyOf(data, Segment.MEDIUM_LIMIT);
             n += read(stream, data, n, Segment.MEDIUM_LIMIT - n);
-            
+
             if (n < Segment.MEDIUM_LIMIT) {
                 return writeValueRecord(n, data);
             }
@@ -685,7 +692,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
             n += read(stream, data, n, Segment.MAX_SEGMENT_SIZE - n);
             long length = n;
             List<RecordId> blockIds =
-                    newArrayListWithExpectedSize(2 * n / SegmentStream.BLOCK_SIZE);
+                newArrayListWithExpectedSize(2 * n / SegmentStream.BLOCK_SIZE);
 
             // Write the data to bulk segments and collect the list of block ids
             while (n != 0) {
@@ -710,9 +717,9 @@ public class DefaultSegmentWriter implements SegmentWriter {
         }
 
         private RecordId writeProperty(@NotNull PropertyState state,
-                @NotNull Map<String, RecordId> previousValues
+            @NotNull Map<String, RecordId> previousValues
         )
-                throws IOException {
+            throws IOException {
             Type<?> type = state.getType();
             int count = state.count();
 
@@ -815,14 +822,14 @@ public class DefaultSegmentWriter implements SegmentWriter {
 
             RecordId tid = writeOperationHandler.execute(gcGeneration, newWriteOperation(
                 RecordWriters.newTemplateWriter(
-                        ids, propertyNames, propertyTypes, head, primaryId, mixinIds,
-                        childNameId, propNamesId)));
+                    ids, propertyNames, propertyTypes, head, primaryId, mixinIds,
+                    childNameId, propNamesId)));
             templateCache.put(template, tid);
             return tid;
         }
 
         private RecordId writeNode(@NotNull NodeState state, @Nullable Buffer stableIdBytes)
-        throws IOException {
+            throws IOException {
             RecordId compactedId = deduplicateNode(state);
 
             if (compactedId != null) {
@@ -849,7 +856,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
         }
 
         private RecordId writeNodeUncached(@NotNull NodeState state, @Nullable Buffer stableIdBytes)
-        throws IOException {
+            throws IOException {
 
             RecordId beforeId = null;
             if (state instanceof ModifiedNodeState) {
@@ -913,7 +920,8 @@ public class DefaultSegmentWriter implements SegmentWriter {
                     if (bt == null) {
                         pIds.add(writeProperty(property)); // new property
                     } else {
-                        SegmentPropertyState bp = beforeTemplate.getProperty(before.getRecordId(), bt.getIndex());
+                        SegmentPropertyState bp = beforeTemplate.getProperty(before.getRecordId(),
+                            bt.getIndex());
                         if (property.equals(bp)) {
                             pIds.add(bp.getRecordId()); // no changes
                         } else if (bp.isArray() && bp.getType() != BINARIES) {
@@ -945,11 +953,12 @@ public class DefaultSegmentWriter implements SegmentWriter {
         }
 
         @NotNull
-        private RecordId writeChildNodes(@Nullable SegmentNodeState before, @NotNull NodeState after)
-        throws IOException {
+        private RecordId writeChildNodes(@Nullable SegmentNodeState before,
+            @NotNull NodeState after)
+            throws IOException {
             if (before != null
-                    && before.getChildNodeCount(2) > 1
-                    && after.getChildNodeCount(2) > 1) {
+                && before.getChildNodeCount(2) > 1
+                && after.getChildNodeCount(2) > 1) {
                 return new ChildNodeCollectorDiff(before.getChildNodeMap())
                     .diff(before, after);
             } else {
@@ -959,10 +968,9 @@ public class DefaultSegmentWriter implements SegmentWriter {
         }
 
         /**
-         * Try to deduplicate the passed {@code node}. This succeeds if
-         * the passed node state has already been persisted to this store and
-         * either it has the same generation or it has been already compacted
-         * and is still in the de-duplication cache for nodes.
+         * Try to deduplicate the passed {@code node}. This succeeds if the passed node state has
+         * already been persisted to this store and either it has the same generation or it has been
+         * already compacted and is still in the de-duplication cache for nodes.
          *
          * @param node The node states to de-duplicate.
          * @return the id of the de-duplicated node or {@code null} if none.
@@ -995,8 +1003,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
 
         /**
          * @param node
-         * @return {@code true} iff {@code node} originates from the same
-         * segment store.
+         * @return {@code true} iff {@code node} originates from the same segment store.
          */
         private boolean sameStore(SegmentNodeState node) {
             return sameStore(node.getRecordId().getSegmentId());
@@ -1004,12 +1011,12 @@ public class DefaultSegmentWriter implements SegmentWriter {
 
         /**
          * @param property
-         * @return {@code true} iff {@code property} is a {@code
-         * SegmentPropertyState} and originates from the same segment store.
+         * @return {@code true} iff {@code property} is a {@code SegmentPropertyState} and
+         * originates from the same segment store.
          */
         private boolean sameStore(PropertyState property) {
             return (property instanceof SegmentPropertyState)
-                    && sameStore(((Record) property).getRecordId().getSegmentId());
+                && sameStore(((Record) property).getRecordId().getSegmentId());
         }
 
         private boolean isOldGeneration(RecordId id) {
@@ -1032,11 +1039,12 @@ public class DefaultSegmentWriter implements SegmentWriter {
                 // compacted.
                 // Consider increasing SegmentGCOptions.getRetainedGenerations()
                 throw new SegmentNotFoundException(
-                        "Cannot copy record from a generation that has been gc'ed already", snfe);
+                    "Cannot copy record from a generation that has been gc'ed already", snfe);
             }
         }
 
         private class ChildNodeCollectorDiff extends DefaultNodeStateDiff {
+
             private final Map<String, RecordId> childNodes = newHashMap();
 
             @Nullable
@@ -1061,7 +1069,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
             }
 
             public RecordId diff(NodeState before, NodeState after)
-            throws IOException {
+                throws IOException {
                 after.compareAgainstBaseState(before, this);
                 if (exception != null) {
                     throw new IOException(exception);
@@ -1082,7 +1090,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
 
             @Override
             public boolean childNodeChanged(
-                    String name, NodeState before, NodeState after
+                String name, NodeState before, NodeState after
             ) {
                 try {
                     onChildNode(name, writeNode(after, null));
@@ -1104,7 +1112,8 @@ public class DefaultSegmentWriter implements SegmentWriter {
                 return true;
             }
 
-            private void onChildNode(String nodeName, @Nullable RecordId recordId) throws IOException {
+            private void onChildNode(String nodeName, @Nullable RecordId recordId)
+                throws IOException {
                 childNodes.put(nodeName, recordId);
                 if (childNodes.size() > CHILD_NODE_UPDATE_LIMIT) {
                     flush();

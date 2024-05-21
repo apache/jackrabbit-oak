@@ -27,8 +27,8 @@ public enum LeaseCheckMode {
     STRICT,
 
     /**
-     * Lease check is lenient and gives the lease update thread a chance to
-     * renew the lease even though the lease end was reached.
+     * Lease check is lenient and gives the lease update thread a chance to renew the lease even
+     * though the lease end was reached.
      */
     LENIENT,
 

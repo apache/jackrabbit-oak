@@ -18,6 +18,15 @@
  */
 package org.apache.jackrabbit.oak.plugins.blob;
 
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+
+import ch.qos.logback.classic.Level;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
@@ -32,8 +41,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import ch.qos.logback.classic.Level;
+import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.guava.common.base.Charsets;
 import org.apache.jackrabbit.guava.common.base.Optional;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
@@ -47,8 +56,6 @@ import org.apache.jackrabbit.guava.common.util.concurrent.ListenableFuture;
 import org.apache.jackrabbit.guava.common.util.concurrent.ListeningExecutorService;
 import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
 import org.apache.jackrabbit.guava.common.util.concurrent.SettableFuture;
-import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
@@ -62,18 +69,11 @@ import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-
 /**
  * Tests for {@link UploadStagingCache}.
  */
 public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
+
     private static final Logger LOG = LoggerFactory.getLogger(UploadStagingCacheTest.class);
     private static final String ID_PREFIX = "12345";
 
@@ -164,7 +164,8 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
     }
 
     /**
-     *  Stage file successful upload.
+     * Stage file successful upload.
+     *
      * @throws Exception
      */
     @Test
@@ -182,6 +183,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
 
     /**
      * Stage file unsuccessful upload.
+     *
      * @throws Exception
      */
     @Test
@@ -232,6 +234,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
 
     /**
      * Retrieve without adding.
+     *
      * @throws Exception
      */
     @Test
@@ -246,6 +249,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
 
     /**
      * GetAllIdentifiers without adding.
+     *
      * @throws Exception
      */
     @Test
@@ -256,6 +260,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
 
     /**
      * Invalidate without adding.
+     *
      * @throws Exception
      */
     @Test
@@ -266,6 +271,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
 
     /**
      * Error in putting file to stage.
+     *
      * @throws Exception
      */
     @Test
@@ -281,6 +287,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
 
     /**
      * Put and retrieve different files concurrently.
+     *
      * @throws Exception
      */
     @Test
@@ -291,7 +298,8 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
         // Create an async retrieve task
         final SettableFuture<File> retFuture = SettableFuture.create();
         Thread t = new Thread(new Runnable() {
-            @Override public void run() {
+            @Override
+            public void run() {
                 retFuture.set(stagingCache.getIfPresent(ID_PREFIX + 1));
             }
         });
@@ -311,6 +319,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
 
     /**
      * Stage file when cache full.
+     *
      * @throws Exception
      */
     @Test
@@ -347,6 +356,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
 
     /**
      * GetAllIdentifiers after staging before upload.
+     *
      * @throws Exception
      */
     @Test
@@ -372,6 +382,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
 
     /**
      * Invalidate after staging before upload.
+     *
      * @throws Exception
      */
     @Test
@@ -398,6 +409,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
 
     /**
      * Stage same file concurrently.
+     *
      * @throws Exception
      */
     @Test
@@ -424,6 +436,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
 
     /**
      * Stage request same file concurrently.
+     *
      * @throws Exception
      */
     @Test
@@ -463,6 +476,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
 
     /**
      * Stage different files concurrently
+     *
      * @throws Exception
      */
     @Test
@@ -487,6 +501,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
 
     /**
      * Concurrently retrieve after stage but before upload.
+     *
      * @throws Exception
      */
     @Test
@@ -523,6 +538,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
 
     /**
      * Concurrently stage and trigger delete after upload for same file.
+     *
      * @throws Exception
      */
     @Test
@@ -532,6 +548,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
 
     /**
      * Concurrently stage and trigger delete after upload for different file.
+     *
      * @throws Exception
      */
     @Test
@@ -582,6 +599,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
 
     /**
      * Test build on start.
+     *
      * @throws Exception
      */
     @Test
@@ -607,6 +625,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
 
     /**
      * Test build on start with more files available in terms of total size in the upload cache.
+     *
      * @throws Exception
      */
     @Test
@@ -651,6 +670,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
 
     /**
      * Test upgrade with build on start.
+     *
      * @throws Exception
      */
     @Test
@@ -694,16 +714,18 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
         createGibberishLoad(home, pendingUploadsFile);
 
         LogCustomizer lc = LogCustomizer.forLogger(DataStoreCacheUpgradeUtils.class.getName())
-            .filter(Level.WARN)
-            .enable(Level.WARN)
-            .create();
+                                        .filter(Level.WARN)
+                                        .enable(Level.WARN)
+                                        .create();
         lc.starting();
         // Start
         init(2, new TestStagingUploader(folder.newFolder()), home);
         assertThat(lc.getLogs().toString(), containsString("Error in reading pending uploads map"));
     }
 
-    /** -------------------- Helper methods ----------------------------------------------------**/
+    /**
+     * -------------------- Helper methods ----------------------------------------------------
+     **/
 
     private void createUpgradeLoad(File home, File pendingUploadFile) throws IOException {
         String id = ID_PREFIX + 1;
@@ -736,7 +758,8 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
         final InputStream fStream, final File temp, final CountDownLatch start) {
         final SettableFuture<File> future = SettableFuture.create();
         executor.submit(new Runnable() {
-            @Override public void run() {
+            @Override
+            public void run() {
                 try {
                     LOG.info("Waiting for start of copying");
                     start.await();
@@ -753,11 +776,13 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
     }
 
     private static SettableFuture<Optional<SettableFuture<Integer>>> putThread(
-        ListeningExecutorService executor, final int seed, final File f, final UploadStagingCache cache,
+        ListeningExecutorService executor, final int seed, final File f,
+        final UploadStagingCache cache,
         final CountDownLatch start, final CountDownLatch trigger) {
         final SettableFuture<Optional<SettableFuture<Integer>>> future = SettableFuture.create();
         executor.submit(new Runnable() {
-            @Override public void run() {
+            @Override
+            public void run() {
                 try {
                     LOG.info("Waiting for start to put");
                     start.await();
@@ -787,11 +812,13 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
     }
 
 
-    private ListenableFuture<Boolean> putThread(TemporaryFolder folder, ListeningExecutorService executorService, List<ListenableFuture<Integer>> futures) {
+    private ListenableFuture<Boolean> putThread(TemporaryFolder folder,
+        ListeningExecutorService executorService, List<ListenableFuture<Integer>> futures) {
         closer.register(new ExecutorCloser(executorService));
 
         ListenableFuture<Boolean> result = executorService.submit(new Callable<Boolean>() {
-            @Override public Boolean call() {
+            @Override
+            public Boolean call() {
                 try {
                     LOG.info("Starting put");
                     futures.addAll(put(folder));

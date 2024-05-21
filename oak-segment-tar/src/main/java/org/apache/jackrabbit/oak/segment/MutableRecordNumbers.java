@@ -21,15 +21,14 @@ import static java.util.Arrays.copyOf;
 import static java.util.Arrays.fill;
 
 import java.util.Iterator;
-
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
-
 import org.jetbrains.annotations.NotNull;
 
 /**
  * A thread-safe, mutable record table.
  */
 class MutableRecordNumbers implements RecordNumbers {
+
     private int[] recordEntries;
     private int size;
 
@@ -67,7 +66,7 @@ class MutableRecordNumbers implements RecordNumbers {
             protected Entry computeNext() {
                 if (index < entries.length) {
                     return new Entry() {
-                        final int recordNumber = index/2;
+                        final int recordNumber = index / 2;
                         final int offset = entries[index++];
                         final RecordType type = RecordType.values()[entries[index++]];
 
@@ -112,7 +111,7 @@ class MutableRecordNumbers implements RecordNumbers {
     synchronized int addRecord(RecordType type, int offset) {
         if (recordEntries.length <= size * 2) {
             recordEntries = copyOf(recordEntries, recordEntries.length * 2);
-            fill(recordEntries, recordEntries.length/2, recordEntries.length, -1);
+            fill(recordEntries, recordEntries.length / 2, recordEntries.length, -1);
         }
         recordEntries[2 * size] = offset;
         recordEntries[2 * size + 1] = type.ordinal();

@@ -19,15 +19,13 @@
 
 package org.apache.jackrabbit.oak.commons.jmx;
 
-import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
-import org.jetbrains.annotations.NotNull;
-
-import javax.management.MalformedObjectNameException;
-import javax.management.ObjectName;
-
 import java.util.Collections;
 import java.util.Hashtable;
 import java.util.Map;
+import javax.management.MalformedObjectNameException;
+import javax.management.ObjectName;
+import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Utility methods related to JMX
@@ -38,10 +36,9 @@ public final class JmxUtil {
     }
 
     /**
-     * Checks if the passed value string can be used as is as part of
-     * JMX {@link javax.management.ObjectName} If it cannot be used then
-     * it would return a quoted string which is then safe to be used
-     * as part of ObjectName.
+     * Checks if the passed value string can be used as is as part of JMX
+     * {@link javax.management.ObjectName} If it cannot be used then it would return a quoted string
+     * which is then safe to be used as part of ObjectName.
      *
      * <p>This is meant to avoid unnecessary quoting of value</p>
      *
@@ -68,7 +65,7 @@ public final class JmxUtil {
                 //ignore
             }
 
-            if (on != null){
+            if (on != null) {
                 result = unquotedValue;
             } else {
                 result = quotedValue;
@@ -81,24 +78,27 @@ public final class JmxUtil {
     }
 
     /**
-     * Constructs an immutable map with a single "jmx.objectname" key and a new {@link ObjectName} as value. The domain 
-     * of the {@link ObjectName} will be {@link WhiteboardUtils#JMX_OAK_DOMAIN}.
-     * Note that property values as well as the given type and name will get quoted according to 
-     * {@link #quoteValueIfRequired(String)}.
-     * 
-     * @param type The type of bean
-     * @param name The name of the bean
+     * Constructs an immutable map with a single "jmx.objectname" key and a new {@link ObjectName}
+     * as value. The domain of the {@link ObjectName} will be
+     * {@link WhiteboardUtils#JMX_OAK_DOMAIN}. Note that property values as well as the given type
+     * and name will get quoted according to {@link #quoteValueIfRequired(String)}.
+     *
+     * @param type       The type of bean
+     * @param name       The name of the bean
      * @param properties A map of additional properties
-     * @return An immutable map with key "jmx.objectname" and a new {@link ObjectName} constructed from the parameters.
+     * @return An immutable map with key "jmx.objectname" and a new {@link ObjectName} constructed
+     * from the parameters.
      * @throws MalformedObjectNameException If constructing the {@link ObjectName} fails.
      */
     @NotNull
-    public static Map<String, ObjectName> createObjectNameMap(@NotNull String type, @NotNull String name,
-                                                              @NotNull Map<String, String> properties) throws MalformedObjectNameException {
+    public static Map<String, ObjectName> createObjectNameMap(@NotNull String type,
+        @NotNull String name,
+        @NotNull Map<String, String> properties) throws MalformedObjectNameException {
         Hashtable<String, String> table = new Hashtable<>();
         table.put("type", quoteValueIfRequired(type));
         table.put("name", quoteValueIfRequired(name));
         properties.forEach((key, value) -> table.put(key, quoteValueIfRequired(value)));
-        return Collections.singletonMap("jmx.objectname", new ObjectName(WhiteboardUtils.JMX_OAK_DOMAIN, table));
+        return Collections.singletonMap("jmx.objectname",
+            new ObjectName(WhiteboardUtils.JMX_OAK_DOMAIN, table));
     }
 }

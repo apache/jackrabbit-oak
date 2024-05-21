@@ -16,42 +16,60 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.monitor;
 
+import java.util.Collections;
+import java.util.Map;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncException;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncResult;
 import org.apache.jackrabbit.oak.stats.Monitor;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.Collections;
-import java.util.Map;
-
 public interface ExternalIdentityMonitor extends Monitor<ExternalIdentityMonitor> {
 
-    ExternalIdentityMonitor NOOP = new ExternalIdentityMonitor() {};
+    ExternalIdentityMonitor NOOP = new ExternalIdentityMonitor() {
+    };
 
     /**
-     * Mark the successful completion of {@link org.apache.jackrabbit.oak.spi.security.authentication.external.SyncContext#sync(ExternalIdentity)}.
+     * Mark the successful completion of
+     * {@link
+     * org.apache.jackrabbit.oak.spi.security.authentication.external.SyncContext#sync(ExternalIdentity)}.
      *
-     * @param timeTakenNanos Time in nanoseconds spend to complete {@link org.apache.jackrabbit.oak.spi.security.authentication.external.SyncContext#sync(ExternalIdentity)}
-     * @param result The result of the sync operation.
-     * @param retryCount The number of retries needed to complete the sync.
+     * @param timeTakenNanos Time in nanoseconds spend to complete
+     *                       {@link
+     *                       org.apache.jackrabbit.oak.spi.security.authentication.external.SyncContext#sync(ExternalIdentity)}
+     * @param result         The result of the sync operation.
+     * @param retryCount     The number of retries needed to complete the sync.
      */
-    default void doneSyncExternalIdentity(long timeTakenNanos, @NotNull SyncResult result, int retryCount) {};
+    default void doneSyncExternalIdentity(long timeTakenNanos, @NotNull SyncResult result,
+        int retryCount) {
+    }
+
+    ;
 
     /**
-     * Mark the successful completion of {@link org.apache.jackrabbit.oak.spi.security.authentication.external.SyncContext#sync(String)}.
+     * Mark the successful completion of
+     * {@link
+     * org.apache.jackrabbit.oak.spi.security.authentication.external.SyncContext#sync(String)}.
      *
-     * @param timeTakenNanos Time in nanoseconds spend to complete {@link org.apache.jackrabbit.oak.spi.security.authentication.external.SyncContext#sync(String)}
-     * @param result The result of the sync operation.
+     * @param timeTakenNanos Time in nanoseconds spend to complete
+     *                       {@link
+     *                       org.apache.jackrabbit.oak.spi.security.authentication.external.SyncContext#sync(String)}
+     * @param result         The result of the sync operation.
      */
-    default void doneSyncId(long timeTakenNanos, @NotNull SyncResult result) {};
+    default void doneSyncId(long timeTakenNanos, @NotNull SyncResult result) {
+    }
+
+    ;
 
     /**
      * Mark the failure of a sync operation that resulted in the given {@link SyncException}.
      *
      * @param syncException The sync exception.
      */
-    default void syncFailed(@NotNull SyncException syncException) {};
+    default void syncFailed(@NotNull SyncException syncException) {
+    }
+
+    ;
 
     @Override
     @NotNull

@@ -17,16 +17,13 @@
 package org.apache.jackrabbit.oak.run;
 
 import java.util.List;
-
+import joptsimple.OptionSpec;
 import org.apache.jackrabbit.guava.common.io.Closer;
-
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.document.check.DocumentStoreCheck;
 import org.apache.jackrabbit.oak.run.commons.Command;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
-
-import joptsimple.OptionSpec;
 
 /**
  * <code>DocumentStoreCheckCommand</code>...
@@ -51,7 +48,8 @@ class DocumentStoreCheckCommand implements Command {
             DocumentNodeStoreBuilder<?> builder = Utils.createDocumentMKBuilder(options, closer);
 
             if (builder == null) {
-                System.err.println("This check is only available for DocumentNodeStore backed by MongoDB or RDB persistence");
+                System.err.println(
+                    "This check is only available for DocumentNodeStore backed by MongoDB or RDB persistence");
                 System.exit(1);
             }
 
@@ -63,21 +61,21 @@ class DocumentStoreCheckCommand implements Command {
             closer.register(Utils.asCloseable(dns));
 
             new DocumentStoreCheck.Builder(dns, builder.getDocumentStore(), closer)
-                    .withOutput(options.getOutput())
-                    .withOrphan(options.withOrphan())
-                    .withBaseVersion(options.withBaseVersion())
-                    .withVersionHistory(options.withVersionHistory())
-                    .withPredecessors(options.withPredecessors())
-                    .withSuccessors(options.withSuccessors())
-                    .withUuid(options.withUuid())
-                    .withConsistency(options.withConsistency())
-                    .withProgress(options.withProgress())
-                    .isSilent(options.isSilent())
-                    .withSummary(options.withSummary())
-                    .withCounter(options.withCounter())
-                    .withNumThreads(options.getNumThreads())
-                    .withPaths(options.getPaths())
-                    .build().run();
+                .withOutput(options.getOutput())
+                .withOrphan(options.withOrphan())
+                .withBaseVersion(options.withBaseVersion())
+                .withVersionHistory(options.withVersionHistory())
+                .withPredecessors(options.withPredecessors())
+                .withSuccessors(options.withSuccessors())
+                .withUuid(options.withUuid())
+                .withConsistency(options.withConsistency())
+                .withProgress(options.withProgress())
+                .isSilent(options.isSilent())
+                .withSummary(options.withSummary())
+                .withCounter(options.withCounter())
+                .withNumThreads(options.getNumThreads())
+                .withPaths(options.getPaths())
+                .build().run();
 
         } catch (Throwable e) {
             throw closer.rethrow(e);
@@ -120,32 +118,35 @@ class DocumentStoreCheckCommand implements Command {
             super(usage);
 
             out = parser.accepts("out", "Write output to this file")
-                    .withRequiredArg();
+                        .withRequiredArg();
             silent = parser.accepts("silent", "Do not write output to stdout");
             progress = parser.accepts("progress", "Write periodic progress messages")
-                    .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.TRUE);
+                             .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.TRUE);
             summary = parser.accepts("summary", "Write a summary message at the end")
-                    .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.TRUE);
+                            .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.TRUE);
             counter = parser.accepts("counter", "Count documents and nodes that exist")
-                    .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.TRUE);
+                            .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.TRUE);
             orphan = parser.accepts("orphan", "Check for orphaned nodes")
-                    .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.TRUE);
+                           .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.TRUE);
             baseVersion = parser.accepts("baseVersion", "Check jcr:baseVersion reference")
-                    .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.TRUE);
+                                .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.TRUE);
             versionHistory = parser.accepts("versionHistory", "Check jcr:versionHistory reference")
-                    .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.TRUE);
+                                   .withOptionalArg().ofType(Boolean.class)
+                                   .defaultsTo(Boolean.TRUE);
             predecessors = parser.accepts("predecessors", "Check jcr:predecessors references")
-                    .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.TRUE);
+                                 .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.TRUE);
             successors = parser.accepts("successors", "Check jcr:successors references")
-                    .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.TRUE);
+                               .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.TRUE);
             uuid = parser.accepts("uuid", "Check UUID index entry")
-                    .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.TRUE);
+                         .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.TRUE);
             consistency = parser.accepts("consistency", "Check node state consistency")
-                    .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.TRUE);
-            numThreads = parser.accepts("numThreads", "Use this number of threads to check consistency")
-                    .withRequiredArg().ofType(Integer.class).defaultsTo(Runtime.getRuntime().availableProcessors());
+                                .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.TRUE);
+            numThreads = parser.accepts("numThreads",
+                                   "Use this number of threads to check consistency")
+                               .withRequiredArg().ofType(Integer.class)
+                               .defaultsTo(Runtime.getRuntime().availableProcessors());
             paths = parser.accepts("path", "Limit check to given path")
-                    .withRequiredArg().ofType(String.class);
+                          .withRequiredArg().ofType(String.class);
         }
 
         @Override

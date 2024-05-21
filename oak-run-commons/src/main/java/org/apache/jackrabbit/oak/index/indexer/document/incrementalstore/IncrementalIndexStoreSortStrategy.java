@@ -18,13 +18,12 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.incrementalstore;
 
-import org.apache.jackrabbit.oak.index.indexer.document.CompositeException;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.SortStrategy;
-
 import java.io.File;
 import java.io.IOException;
 import java.util.Set;
 import java.util.function.Predicate;
+import org.apache.jackrabbit.oak.index.indexer.document.CompositeException;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.SortStrategy;
 
 public interface IncrementalIndexStoreSortStrategy extends SortStrategy {
 

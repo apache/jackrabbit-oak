@@ -29,11 +29,6 @@ import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.amazonaws.util.IOUtils;
-
-import org.apache.jackrabbit.oak.commons.Buffer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -41,6 +36,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.apache.jackrabbit.oak.commons.Buffer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class S3Directory {
 
@@ -140,7 +138,8 @@ public final class S3Directory {
         InputStream input = new ByteArrayInputStream(data);
         ObjectMetadata metadata = new ObjectMetadata();
         metadata.setContentLength(data.length);
-        PutObjectRequest request = new PutObjectRequest(bucketName, rootDirectory + name, input, metadata);
+        PutObjectRequest request = new PutObjectRequest(bucketName, rootDirectory + name, input,
+            metadata);
         try {
             s3.putObject(request);
         } catch (AmazonServiceException e) {
@@ -154,8 +153,9 @@ public final class S3Directory {
             ObjectMetadata metadata = new ObjectMetadata();
             metadata.setContentLength(bytes.length);
             InputStream byteArrayInputStream = new ByteArrayInputStream(bytes);
-            PutObjectRequest request = new PutObjectRequest(bucketName, rootDirectory + name, byteArrayInputStream,
-                    metadata);
+            PutObjectRequest request = new PutObjectRequest(bucketName, rootDirectory + name,
+                byteArrayInputStream,
+                metadata);
             s3.putObject(request);
         } catch (AmazonServiceException e) {
             throw new IOException(e);
@@ -186,7 +186,7 @@ public final class S3Directory {
     public boolean deleteAllObjects() {
         try {
             List<KeyVersion> keys = listObjects("").stream().map(i -> new KeyVersion(i.getKey()))
-                    .collect(Collectors.toList());
+                                                   .collect(Collectors.toList());
             return deleteObjects(keys);
         } catch (IOException e) {
             log.error("Can't delete objects from {}", rootDirectory, e);
@@ -202,11 +202,13 @@ public final class S3Directory {
         return listObjectsInternal(prefix, result -> result.getObjectSummaries());
     }
 
-    private <T> List<T> listObjectsInternal(String prefix, Function<ListObjectsV2Result, List<T>> callback)
-            throws IOException {
+    private <T> List<T> listObjectsInternal(String prefix,
+        Function<ListObjectsV2Result, List<T>> callback)
+        throws IOException {
         List<T> objects = new ArrayList<>();
         ListObjectsV2Request request = new ListObjectsV2Request().withBucketName(bucketName)
-                .withPrefix(rootDirectory + prefix).withDelimiter("/");
+                                                                 .withPrefix(rootDirectory + prefix)
+                                                                 .withDelimiter("/");
         ListObjectsV2Result result;
         do {
             try {

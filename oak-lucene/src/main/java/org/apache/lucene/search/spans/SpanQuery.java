@@ -27,31 +27,36 @@ package org.apache.lucene.search.spans;
 
 import java.io.IOException;
 import java.util.Map;
-
 import org.apache.lucene.index.AtomicReaderContext;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.index.TermContext;
-import org.apache.lucene.search.Query;
 import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.util.Bits;
 
-/** Base class for span-based queries. */
+/**
+ * Base class for span-based queries.
+ */
 public abstract class SpanQuery extends Query {
-  /** Expert: Returns the matches for this query in an index.  Used internally
-   * to search for spans. */
-  public abstract Spans getSpans(AtomicReaderContext context, Bits acceptDocs, Map<Term,TermContext> termContexts) throws IOException;
 
-  /** 
-   * Returns the name of the field matched by this query.
-   * <p>
-   * Note that this may return null if the query matches no terms.
-   */
-  public abstract String getField();
+    /**
+     * Expert: Returns the matches for this query in an index.  Used internally to search for
+     * spans.
+     */
+    public abstract Spans getSpans(AtomicReaderContext context, Bits acceptDocs,
+        Map<Term, TermContext> termContexts) throws IOException;
 
-  @Override
-  public Weight createWeight(IndexSearcher searcher) throws IOException {
-    return new SpanWeight(this, searcher);
-  }
+    /**
+     * Returns the name of the field matched by this query.
+     * <p>
+     * Note that this may return null if the query matches no terms.
+     */
+    public abstract String getField();
+
+    @Override
+    public Weight createWeight(IndexSearcher searcher) throws IOException {
+        return new SpanWeight(this, searcher);
+    }
 
 }

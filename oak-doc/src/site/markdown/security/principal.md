@@ -19,52 +19,66 @@ Principal Management
 --------------------------------------------------------------------------------
 
 <a name="jcr_api"></a>
+
 ### JCR API
 
 JCR itself doesn't come with a dedicated principal management API. Nevertheless,
-the specification mentions `java.security.Principal` as a key feature for access 
-control management but leaves the discovery of principals to the implementation 
-(see [Section 16.5.7](https://s.apache.org/jcr-2.0-spec/16_Access_Control_Management.html#16.5.7%20Principal%20Discovery)).
+the specification mentions `java.security.Principal` as a key feature for access
+control management but leaves the discovery of principals to the implementation
+(
+see [Section 16.5.7](https://s.apache.org/jcr-2.0-spec/16_Access_Control_Management.html#16.5.7%20Principal%20Discovery)).
 
 Therefore, an API for principal management has been defined as part of the
 extensions present with Jackrabbit API.
 
 <a name="jackrabbit_api"></a>
+
 ### Jackrabbit API
 
-The Jackrabbit API provides support for principal management (i.e. discovery) that 
-are missing in JCR. The relevant interfaces are defined in the 
-[org.apache.jackrabbit.api.security.principal](https://jackrabbit.apache.org/oak/docs/apidocs/org/apache/jackrabbit/api/security/principal/package-summary.html) package space:
+The Jackrabbit API provides support for principal management (i.e. discovery) that
+are missing in JCR. The relevant interfaces are defined in the
+[org.apache.jackrabbit.api.security.principal](https://jackrabbit.apache.org/oak/docs/apidocs/org/apache/jackrabbit/api/security/principal/package-summary.html)
+package space:
 
 - `PrincipalManager`
 - `PrincipalIterator`
-- `JackrabbitPrincipal` extends [Principal](http://docs.oracle.com/javase/7/docs/api/java/security/Principal.html)
+- `JackrabbitPrincipal`
+  extends [Principal](http://docs.oracle.com/javase/7/docs/api/java/security/Principal.html)
     - `ItemBasedPrincipal`
-- `GroupPrincipal` extends [Principal](http://docs.oracle.com/javase/7/docs/api/java/security/Principal.html) replacing the removed `java.security.acl.Group` (see [OAK-7024](https://issues.apache.org/jira/browse/OAK-7024)).
+- `GroupPrincipal`
+  extends [Principal](http://docs.oracle.com/javase/7/docs/api/java/security/Principal.html)
+  replacing the removed `java.security.acl.Group` (
+  see [OAK-7024](https://issues.apache.org/jira/browse/OAK-7024)).
 
 #### Differences wrt Jackrabbit 2.x
 
 See the corresponding [documentation](principal/differences.html).
 
 <a name="api_extensions"></a>
+
 ### API Extensions
 
 - [PrincipalProvider]: SPI level access to principals known to the repository
-which is also used by the default implementation of the `PrincipalManager` interface.
-This interface replaces the internal `PrincipalProvider` interface present in
-Jackrabbit 2.x. Note, that principals from different sources can be supported by
-using [CompositePrincipalProvider] or a similar implementation that proxies
-different sources.
+  which is also used by the default implementation of the `PrincipalManager` interface.
+  This interface replaces the internal `PrincipalProvider` interface present in
+  Jackrabbit 2.x. Note, that principals from different sources can be supported by
+  using [CompositePrincipalProvider] or a similar implementation that proxies
+  different sources.
 - [CompositePrincipalProvider]: Implementation that combines different principals
-from different source providers.
+  from different source providers.
 
 ##### Special Principals
-- [AdminPrincipal]: Marker interface to identify the principal associated with administrative user(s).
-- [EveryonePrincipal]: built-in group principal implementation that has every other valid principal as member.
+
+- [AdminPrincipal]: Marker interface to identify the principal associated with administrative user(
+  s).
+- [EveryonePrincipal]: built-in group principal implementation that has every other valid principal
+  as member.
 - [SystemPrincipal]: built-in principal implementation to mark system internal subjects.
-- [SystemUserPrincipal]: Marker interface to identify principals associated with special system users.
+- [SystemUserPrincipal]: Marker interface to identify principals associated with special system
+  users.
 
 <a name="default_implementation"></a>
+
 ### Oak Principal Management Implementation
 
 The default implementation of the principal management API basically corresponds
@@ -79,6 +93,7 @@ See section [Implementations of the PrincipalProvider Interface](principal/princ
 for details.
 
 <a name="configuration"></a>
+
 ### Configuration
 
 The [PrincipalConfiguration] is the Oak level entry point to obtain a new
@@ -92,6 +107,7 @@ sources a implementation that properly handles the different sources is required
 the [CompositePrincipalProvider] is an example that combines multiple implementations.
 
 <a name="pluggability"></a>
+
 ### Pluggability
 
 The default security setup as present with Oak 1.0 is able to provide custom
@@ -161,6 +177,7 @@ provider implementation:
      }
 
 <a name="further_reading"></a>
+
 ### Further Reading
 
 - [Differences wrt Jackrabbit 2.x](principal/differences.html)
@@ -170,10 +187,17 @@ provider implementation:
 <!-- references -->
 
 [PrincipalManager]: /oak/docs/apidocs/org/apache/jackrabbit/api/security/principal/PrincipalManager.html
+
 [PrincipalProvider]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/principal/PrincipalProvider.html
+
 [CompositePrincipalProvider]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/principal/CompositePrincipalProvider.html
+
 [AdminPrincipal]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/principal/AdminPrincipal.html
+
 [EveryonePrincipal]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/principal/EveryonePrincipal.html
+
 [SystemPrincipal]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/principal/SystemPrincipal.html
+
 [SystemUserPrincipal]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/principal/SystemUserPrincipal.html
+
 [PrincipalConfiguration]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/principal/PrincipalConfiguration.html

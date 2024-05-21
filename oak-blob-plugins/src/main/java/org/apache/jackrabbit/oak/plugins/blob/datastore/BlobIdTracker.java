@@ -18,40 +18,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
-import java.io.BufferedWriter;
-import java.io.Closeable;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Path;
-import java.util.Iterator;
-import java.util.List;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.ReentrantLock;
-
-import org.apache.jackrabbit.guava.common.base.Function;
-import org.apache.jackrabbit.guava.common.base.Predicate;
-import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.io.Files;
-import org.apache.jackrabbit.core.data.DataRecord;
-import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
-import org.apache.jackrabbit.oak.commons.io.BurnOnCloseFileIterator;
-import org.apache.jackrabbit.oak.commons.io.FileLineDifferenceIterator;
-import org.apache.jackrabbit.oak.commons.io.FileTreeTraverser;
-import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
-import org.apache.jackrabbit.oak.stats.Clock;
-import org.jetbrains.annotations.Nullable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
-import static org.apache.jackrabbit.guava.common.base.Predicates.alwaysTrue;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.io.Files.move;
-import static org.apache.jackrabbit.guava.common.io.Files.newWriter;
 import static java.io.File.createTempFile;
 import static java.lang.System.currentTimeMillis;
 import static java.util.Collections.emptyIterator;
@@ -69,6 +35,12 @@ import static org.apache.commons.io.FileUtils.touch;
 import static org.apache.commons.io.FilenameUtils.concat;
 import static org.apache.commons.io.FilenameUtils.removeExtension;
 import static org.apache.commons.io.IOUtils.closeQuietly;
+import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
+import static org.apache.jackrabbit.guava.common.base.Predicates.alwaysTrue;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.guava.common.io.Files.move;
+import static org.apache.jackrabbit.guava.common.io.Files.newWriter;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.append;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.copy;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.sort;
@@ -77,12 +49,38 @@ import static org.apache.jackrabbit.oak.plugins.blob.datastore.BlobIdTracker.Blo
 import static org.apache.jackrabbit.oak.plugins.blob.datastore.BlobIdTracker.BlobIdStore.Type.IN_PROCESS;
 import static org.apache.jackrabbit.oak.plugins.blob.datastore.BlobIdTracker.BlobIdStore.Type.REFS;
 
+import java.io.BufferedWriter;
+import java.io.Closeable;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Iterator;
+import java.util.List;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
+import org.apache.jackrabbit.core.data.DataRecord;
+import org.apache.jackrabbit.guava.common.base.Function;
+import org.apache.jackrabbit.guava.common.base.Predicate;
+import org.apache.jackrabbit.guava.common.base.Stopwatch;
+import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.io.Files;
+import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
+import org.apache.jackrabbit.oak.commons.io.BurnOnCloseFileIterator;
+import org.apache.jackrabbit.oak.commons.io.FileLineDifferenceIterator;
+import org.apache.jackrabbit.oak.commons.io.FileTreeTraverser;
+import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
+import org.apache.jackrabbit.oak.stats.Clock;
+import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 
 /**
  * Tracks the blob ids available or added in the blob store using the {@link BlobIdStore} .
- *
  */
 public class BlobIdTracker implements Closeable, BlobTracker {
+
     private static final Logger LOG = LoggerFactory.getLogger(BlobIdTracker.class);
 
     private static final String datastoreMeta = "blobids";
@@ -105,15 +103,19 @@ public class BlobIdTracker implements Closeable, BlobTracker {
 
     private File rootDir;
 
-    private BlobIdTracker() {}
+    private BlobIdTracker() {
+    }
 
-    private BlobIdTracker(String path, String repositoryId, long snapshotIntervalSecs, SharedDataStore datastore)
+    private BlobIdTracker(String path, String repositoryId, long snapshotIntervalSecs,
+        SharedDataStore datastore)
         throws IOException {
-        this(path, repositoryId, newSingleThreadScheduledExecutor(), snapshotIntervalSecs, snapshotIntervalSecs,
+        this(path, repositoryId, newSingleThreadScheduledExecutor(), snapshotIntervalSecs,
+            snapshotIntervalSecs,
             datastore);
     }
 
-    private BlobIdTracker(String path, String repositoryId, ScheduledExecutorService scheduler, long snapshotDelaySecs,
+    private BlobIdTracker(String path, String repositoryId, ScheduledExecutorService scheduler,
+        long snapshotDelaySecs,
         long snapshotIntervalSecs, SharedDataStore datastore) throws IOException {
         String root = concat(path, datastoreMeta);
         this.rootDir = new File(root);
@@ -134,7 +136,8 @@ public class BlobIdTracker implements Closeable, BlobTracker {
         }
     }
 
-    public static BlobIdTracker build(String path, String repositoryId, long snapshotIntervalSecs, SharedDataStore datastore)
+    public static BlobIdTracker build(String path, String repositoryId, long snapshotIntervalSecs,
+        SharedDataStore datastore)
         throws IOException {
         if (snapshotIntervalSecs > 0) {
             return new BlobIdTracker(path, repositoryId, snapshotIntervalSecs, datastore);
@@ -163,33 +166,42 @@ public class BlobIdTracker implements Closeable, BlobTracker {
                 };
             }
 
-            @Override public void remove(File recs, Options options) {
+            @Override
+            public void remove(File recs, Options options) {
             }
 
-            @Override public void remove(File recs) {
+            @Override
+            public void remove(File recs) {
             }
 
-            @Override public void remove(Iterator<String> recs) {
+            @Override
+            public void remove(Iterator<String> recs) {
             }
 
-            @Override public void add(String id) {
+            @Override
+            public void add(String id) {
             }
 
-            @Override public void add(Iterator<String> recs) {
+            @Override
+            public void add(Iterator<String> recs) {
             }
 
-            @Override public void add(File recs) {
+            @Override
+            public void add(File recs) {
             }
 
-            @Override public Iterator<String> get() {
+            @Override
+            public Iterator<String> get() {
                 return emptyIterator();
             }
 
-            @Override public File get(String path) {
+            @Override
+            public File get(String path) {
                 return new File(path);
             }
 
-            @Override public void close() {
+            @Override
+            public void close() {
             }
         };
     }
@@ -198,7 +210,8 @@ public class BlobIdTracker implements Closeable, BlobTracker {
         return deleteTracker;
     }
 
-    @Override public void remove(File recs, Options options) throws IOException {
+    @Override
+    public void remove(File recs, Options options) throws IOException {
         globalMerge();
         if (options == Options.ACTIVE_DELETION) {
             deleteTracker.track(recs);
@@ -207,42 +220,47 @@ public class BlobIdTracker implements Closeable, BlobTracker {
         snapshot(true);
     }
 
-    @Override public void remove(File recs) throws IOException {
+    @Override
+    public void remove(File recs) throws IOException {
         globalMerge();
         store.removeRecords(recs);
         snapshot(true);
     }
 
-    @Override public void remove(Iterator<String> recs) throws IOException {
+    @Override
+    public void remove(Iterator<String> recs) throws IOException {
         globalMerge();
         store.removeRecords(recs);
         snapshot(true);
     }
 
-    @Override public void add(String id) throws IOException {
+    @Override
+    public void add(String id) throws IOException {
         store.addRecord(id);
     }
 
-    @Override public void add(Iterator<String> recs) throws IOException {
+    @Override
+    public void add(Iterator<String> recs) throws IOException {
         store.addRecords(recs);
     }
 
-    @Override public void add(File recs) throws IOException {
+    @Override
+    public void add(File recs) throws IOException {
         store.addRecords(recs);
     }
 
     /**
-     * Retrieves all the reference files available in the DataStore and merges
-     * them to the local store and then returns an iterator over it.
-     * This way the ids returned are as recent as the snapshots taken on all
-     * instances/repositories connected to the DataStore.
+     * Retrieves all the reference files available in the DataStore and merges them to the local
+     * store and then returns an iterator over it. This way the ids returned are as recent as the
+     * snapshots taken on all instances/repositories connected to the DataStore.
      * <p>
      * The iterator returned ia a Closeable instance and should be closed by calling #close().
      *
      * @return iterator over all the blob ids available
      * @throws IOException
      */
-    @Override public Iterator<String> get() throws IOException {
+    @Override
+    public Iterator<String> get() throws IOException {
         try {
             globalMerge();
             return store.getRecords();
@@ -252,7 +270,8 @@ public class BlobIdTracker implements Closeable, BlobTracker {
         }
     }
 
-    @Override public File get(String path) throws IOException {
+    @Override
+    public File get(String path) throws IOException {
         globalMerge();
         return store.getRecords(path);
     }
@@ -271,26 +290,30 @@ public class BlobIdTracker implements Closeable, BlobTracker {
             Iterable<DataRecord> refRecords = datastore.getAllMetadataRecords(fileNamePrefix);
 
             // Download all the corresponding files for the records
-            List<File> refFiles = newArrayList(transform(refRecords, new Function<DataRecord, File>() {
-                @Override public File apply(DataRecord input) {
-                    InputStream inputStream = null;
-                    try {
-                        inputStream = input.getStream();
-                        return copy(inputStream);
-                    } catch (Exception e) {
-                        LOG.warn("Error copying data store file locally {}", input.getIdentifier(), e);
-                    } finally {
-                        closeQuietly(inputStream);
+            List<File> refFiles = newArrayList(
+                transform(refRecords, new Function<DataRecord, File>() {
+                    @Override
+                    public File apply(DataRecord input) {
+                        InputStream inputStream = null;
+                        try {
+                            inputStream = input.getStream();
+                            return copy(inputStream);
+                        } catch (Exception e) {
+                            LOG.warn("Error copying data store file locally {}",
+                                input.getIdentifier(), e);
+                        } finally {
+                            closeQuietly(inputStream);
+                        }
+                        return null;
                     }
-                    return null;
-                }
-            }));
+                }));
             LOG.info("Retrieved all blob id files in [{}]", watch.elapsed(TimeUnit.MILLISECONDS));
 
             // Merge all the downloaded files in to the local store
             watch = Stopwatch.createStarted();
             store.merge(refFiles, true);
-            LOG.info("Merged all retrieved blob id files in [{}]", watch.elapsed(TimeUnit.MILLISECONDS));
+            LOG.info("Merged all retrieved blob id files in [{}]",
+                watch.elapsed(TimeUnit.MILLISECONDS));
 
             // Remove all the data store records as they have been merged
             watch = Stopwatch.createStarted();
@@ -298,7 +321,8 @@ public class BlobIdTracker implements Closeable, BlobTracker {
                 datastore.deleteMetadataRecord(rec.getIdentifier().toString());
                 LOG.debug("Deleted metadata record {}", rec.getIdentifier().toString());
             }
-            LOG.info("Deleted all blob id metadata files in [{}]", watch.elapsed(TimeUnit.MILLISECONDS));
+            LOG.info("Deleted all blob id metadata files in [{}]",
+                watch.elapsed(TimeUnit.MILLISECONDS));
         } catch (IOException e) {
             LOG.error("Error in merging blob records iterator from the data store", e);
             throw e;
@@ -310,8 +334,8 @@ public class BlobIdTracker implements Closeable, BlobTracker {
     }
 
     /**
-     * Takes a snapshot on the tracker.
-     * to other cluster nodes/repositories connected to the DataStore.
+     * Takes a snapshot on the tracker. to other cluster nodes/repositories connected to the
+     * DataStore.
      *
      * @throws IOException
      */
@@ -326,8 +350,10 @@ public class BlobIdTracker implements Closeable, BlobTracker {
 
             watch = Stopwatch.createStarted();
             File recs = store.getBlobRecordsFile();
-            datastore.addMetadataRecord(recs, (prefix + instanceId + System.currentTimeMillis() + mergedFileSuffix));
-            LOG.info("Added blob id metadata record in DataStore in [{}]", watch.elapsed(TimeUnit.MILLISECONDS));
+            datastore.addMetadataRecord(recs,
+                (prefix + instanceId + System.currentTimeMillis() + mergedFileSuffix));
+            LOG.info("Added blob id metadata record in DataStore in [{}]",
+                watch.elapsed(TimeUnit.MILLISECONDS));
 
             try {
                 forceDelete(recs);
@@ -355,7 +381,8 @@ public class BlobIdTracker implements Closeable, BlobTracker {
      *
      * @throws IOException
      */
-    @Override public void close() throws IOException {
+    @Override
+    public void close() throws IOException {
         store.close();
         new ExecutorCloser(scheduler).close();
     }
@@ -364,6 +391,7 @@ public class BlobIdTracker implements Closeable, BlobTracker {
      * Tracking any active deletions  store for managing the blob reference
      */
     public static class ActiveDeletionTracker {
+
         /* Suffix for tracking file */
         private static final String DEL_SUFFIX = ".del";
 
@@ -383,7 +411,8 @@ public class BlobIdTracker implements Closeable, BlobTracker {
                     return input.split(DELIM)[0];
                 }
                 return "";
-            }};
+            }
+        };
 
         ActiveDeletionTracker(File rootDir, String prefix) throws IOException {
             delFile = new File(rootDir, prefix + DEL_SUFFIX);
@@ -391,10 +420,12 @@ public class BlobIdTracker implements Closeable, BlobTracker {
             lock = new ReentrantLock();
         }
 
-        private ActiveDeletionTracker() {}
+        private ActiveDeletionTracker() {
+        }
 
         /**
          * Adds the ids in the file provided to the tracked deletions.
+         *
          * @param recs the deleted ids to track
          */
         public void track(File recs) throws IOException {
@@ -462,7 +493,8 @@ public class BlobIdTracker implements Closeable, BlobTracker {
         }
 
         /**
-         * Return any ids not existing in the deletions being tracked from the ids in file parameter.
+         * Return any ids not existing in the deletions being tracked from the ids in file
+         * parameter.
          *
          * @param recs the file to search for ids existing in the deletions here
          * @return
@@ -476,6 +508,7 @@ public class BlobIdTracker implements Closeable, BlobTracker {
      * Local store for managing the blob reference
      */
     static class BlobIdStore implements Closeable {
+
         /* Suffix for a snapshot generation file */
         private static final String genFileNameSuffix = ".gen";
 
@@ -509,14 +542,15 @@ public class BlobIdTracker implements Closeable, BlobTracker {
 
             // Retrieve the process file if it exists
             processFile = FileTreeTraverser.breadthFirst(rootDir)
-                    .filter(file -> IN_PROCESS.filter().apply(file))
-                    .findFirst()
-                    .orElse(null);
+                                           .filter(file -> IN_PROCESS.filter().apply(file))
+                                           .findFirst()
+                                           .orElse(null);
 
             // Get the List of all generations available.
             generations = synchronizedList(FileTreeTraverser.breadthFirst(rootDir)
-                    .filter(file -> GENERATION.filter().apply(file))
-                    .collect(toList()));
+                                                            .filter(file -> GENERATION.filter()
+                                                                                      .apply(file))
+                                                            .collect(toList()));
 
             // Close/rename any existing in process
             nextGeneration();
@@ -591,7 +625,7 @@ public class BlobIdTracker implements Closeable, BlobTracker {
          * Merges the given files with the references file and deletes the files.
          *
          * @param refFiles files to merge
-         * @param doSort whether to sort while merging
+         * @param doSort   whether to sort while merging
          * @throws IOException
          */
         protected void merge(List<File> refFiles, boolean doSort) throws IOException {
@@ -613,8 +647,8 @@ public class BlobIdTracker implements Closeable, BlobTracker {
         }
 
         /**
-         * Removes ids obtained by the given iterator from the tracked references.
-         * The iterator has to be closed by the caller.
+         * Removes ids obtained by the given iterator from the tracked references. The iterator has
+         * to be closed by the caller.
          *
          * @param recs iterator over records to remove
          * @throws IOException
@@ -628,8 +662,8 @@ public class BlobIdTracker implements Closeable, BlobTracker {
         }
 
         /**
-         * Removes ids obtained by the given file from the tracked references.
-         * File is deleted before returning.
+         * Removes ids obtained by the given file from the tracked references. File is deleted
+         * before returning.
          *
          * @param recs file of records to delete
          * @throws IOException
@@ -683,8 +717,8 @@ public class BlobIdTracker implements Closeable, BlobTracker {
         }
 
         /**
-         * Adds all the ids backed by the iterator into the references.
-         * Closing the iterator is the responsibility of the caller.
+         * Adds all the ids backed by the iterator into the references. Closing the iterator is the
+         * responsibility of the caller.
          *
          * @param recs iterator over records to add
          * @throws IOException
@@ -709,8 +743,8 @@ public class BlobIdTracker implements Closeable, BlobTracker {
         }
 
         /**
-         * Snapshots the local store, starts a new generation for writing
-         * and merges all generations available.
+         * Snapshots the local store, starts a new generation for writing and merges all generations
+         * available.
          *
          * @throws IOException
          */
@@ -759,26 +793,34 @@ public class BlobIdTracker implements Closeable, BlobTracker {
          */
         enum Type {
             IN_PROCESS {
-                @Override String getFileNameSuffix() {
+                @Override
+                String getFileNameSuffix() {
                     return "." + currentTimeMillis() + genFileNameSuffix + workingCopySuffix;
                 }
 
-                @Override Predicate<File> filter() {
+                @Override
+                Predicate<File> filter() {
                     return new Predicate<File>() {
-                        @Override public boolean apply(File input) {
-                            return input.getName().endsWith(workingCopySuffix) && input.getName().startsWith(fileNamePrefix);
+                        @Override
+                        public boolean apply(File input) {
+                            return input.getName().endsWith(workingCopySuffix) && input.getName()
+                                                                                       .startsWith(
+                                                                                           fileNamePrefix);
                         }
                     };
                 }
             },
             GENERATION {
-                @Override String getFileNameSuffix() {
+                @Override
+                String getFileNameSuffix() {
                     return "." + currentTimeMillis() + genFileNameSuffix;
                 }
 
-                @Override Predicate<File> filter() {
+                @Override
+                Predicate<File> filter() {
                     return new Predicate<File>() {
-                        @Override public boolean apply(File input) {
+                        @Override
+                        public boolean apply(File input) {
                             return input.getName().startsWith(fileNamePrefix)
                                 && input.getName().contains(genFileNameSuffix)
                                 && !input.getName().endsWith(workingCopySuffix);
@@ -787,13 +829,16 @@ public class BlobIdTracker implements Closeable, BlobTracker {
                 }
             },
             REFS {
-                @Override String getFileNameSuffix() {
+                @Override
+                String getFileNameSuffix() {
                     return mergedFileSuffix;
                 }
 
-                @Override Predicate<File> filter() {
+                @Override
+                Predicate<File> filter() {
                     return new Predicate<File>() {
-                        @Override public boolean apply(File input) {
+                        @Override
+                        public boolean apply(File input) {
                             return input.getName().endsWith(mergedFileSuffix)
                                 && input.getName().startsWith(fileNamePrefix);
                         }
@@ -825,6 +870,7 @@ public class BlobIdTracker implements Closeable, BlobTracker {
      * Job which calls the snapshot on the tracker.
      */
     class SnapshotJob implements Runnable {
+
         private long interval;
         private Clock clock;
 
@@ -844,7 +890,7 @@ public class BlobIdTracker implements Closeable, BlobTracker {
                 try {
                     snapshot();
                     LOG.info("Finished taking snapshot");
-                } catch(Exception e){
+                } catch (Exception e) {
                     LOG.warn("Failure in taking snapshot", e);
                 }
             } else {

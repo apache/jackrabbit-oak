@@ -19,10 +19,12 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.property;
 
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
+
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-
 import org.apache.jackrabbit.guava.common.collect.HashMultimap;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
@@ -35,25 +37,23 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
-
 /**
- * Performs validation related to unique index by ensuring that for
- * given property value only one indexed entry is present. The query
- * is performed against multiple stores
- *
- *   - Property storage - Stores the recently added unique keys via UniqueStore strategy
- *   - Lucene storage - Stores the long term index in lucene
+ * Performs validation related to unique index by ensuring that for given property value only one
+ * indexed entry is present. The query is performed against multiple stores
+ * <p>
+ * - Property storage - Stores the recently added unique keys via UniqueStore strategy - Lucene
+ * storage - Stores the long term index in lucene
  */
 public class UniquenessConstraintValidator {
+
     private final NodeState rootState;
     private final String indexPath;
     private final Multimap<String, String> uniqueKeys = HashMultimap.create();
     private final PropertyQuery firstStore;
     private PropertyQuery secondStore = PropertyQuery.DEFAULT;
 
-    public UniquenessConstraintValidator(String indexPath, NodeBuilder builder, NodeState rootState) {
+    public UniquenessConstraintValidator(String indexPath, NodeBuilder builder,
+        NodeState rootState) {
         this.indexPath = indexPath;
         this.rootState = rootState;
         this.firstStore = new PropertyIndexQuery(builder);
@@ -76,8 +76,10 @@ public class UniquenessConstraintValidator {
             }
 
             if (allPaths.size() > 1) {
-                String msg = String.format("Uniqueness constraint violated for property [%s] with value [%s] for " +
-                        "index [%s]. Indexed paths %s", propertyRelativePath, value, indexPath, allPaths);
+                String msg = String.format(
+                    "Uniqueness constraint violated for property [%s] with value [%s] for " +
+                        "index [%s]. Indexed paths %s", propertyRelativePath, value, indexPath,
+                    allPaths);
                 throw new CommitFailedException(CONSTRAINT, 30, msg);
             }
         }
@@ -89,16 +91,17 @@ public class UniquenessConstraintValidator {
 
     private Iterable<String> getIndexedPaths(String propertyRelativePath, String value) {
         return Iterables.concat(
-                firstStore.getIndexedPaths(propertyRelativePath, value),
-                secondStore.getIndexedPaths(propertyRelativePath, value)
+            firstStore.getIndexedPaths(propertyRelativePath, value),
+            secondStore.getIndexedPaths(propertyRelativePath, value)
         );
     }
 
     /**
-     * Paths reported by indexes may be based on stale data. So revalidate by checking reported paths are
-     * valid and refers to indexed value or not
+     * Paths reported by indexes may be based on stale data. So revalidate by checking reported
+     * paths are valid and refers to indexed value or not
      */
-    private Set<String> getValidPaths(Set<String> allPaths, String propertyRelativePath, String value) {
+    private Set<String> getValidPaths(Set<String> allPaths, String propertyRelativePath,
+        String value) {
         Set<String> validPaths = new HashSet<>();
         for (String path : allPaths) {
             NodeState node = NodeStateUtils.getNode(rootState, path);

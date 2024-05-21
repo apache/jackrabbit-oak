@@ -32,8 +32,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class SegmentRevisionGCMBean
-        extends AnnotatedStandardMBean
-        implements SegmentRevisionGC {
+    extends AnnotatedStandardMBean
+    implements SegmentRevisionGC {
 
     private static final Logger log = LoggerFactory.getLogger(SegmentRevisionGCMBean.class);
 
@@ -47,9 +47,9 @@ public class SegmentRevisionGCMBean
     private final FileStoreGCMonitor fileStoreGCMonitor;
 
     public SegmentRevisionGCMBean(
-            @NotNull FileStore fileStore,
-            @NotNull SegmentGCOptions gcOptions,
-            @NotNull FileStoreGCMonitor fileStoreGCMonitor) {
+        @NotNull FileStore fileStore,
+        @NotNull SegmentGCOptions gcOptions,
+        @NotNull FileStoreGCMonitor fileStoreGCMonitor) {
         super(SegmentRevisionGC.class);
         this.fileStore = checkNotNull(fileStore);
         this.gcOptions = checkNotNull(gcOptions);
@@ -121,7 +121,7 @@ public class SegmentRevisionGCMBean
     }
 
     @Override
-    public void setEstimationDisabled(boolean disabled)  {
+    public void setEstimationDisabled(boolean disabled) {
         gcOptions.setEstimationDisabled(disabled);
     }
 

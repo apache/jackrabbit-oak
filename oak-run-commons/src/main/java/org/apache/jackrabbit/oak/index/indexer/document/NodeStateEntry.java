@@ -20,17 +20,18 @@
 package org.apache.jackrabbit.oak.index.indexer.document;
 
 import java.util.Objects;
-
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 public class NodeStateEntry {
+
     private final NodeState nodeState;
     private final String path;
     private final long memUsage;
     private final long lastModified;
     private final String id;
 
-    private NodeStateEntry(NodeState nodeState, String path, long memUsage, long lastModified, String id) {
+    private NodeStateEntry(NodeState nodeState, String path, long memUsage, long lastModified,
+        String id) {
         this.nodeState = nodeState;
         this.path = path;
         this.memUsage = memUsage;
@@ -60,11 +61,15 @@ public class NodeStateEntry {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         NodeStateEntry that = (NodeStateEntry) o;
         return Objects.equals(nodeState, that.nodeState) &&
-                Objects.equals(path, that.path);
+            Objects.equals(path, that.path);
     }
 
     @Override

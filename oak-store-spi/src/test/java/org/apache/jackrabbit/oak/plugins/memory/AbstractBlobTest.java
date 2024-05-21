@@ -19,18 +19,18 @@
 
 package org.apache.jackrabbit.oak.plugins.memory;
 
-import java.io.InputStream;
-import java.util.Random;
-
-import org.apache.jackrabbit.oak.api.Blob;
-import org.jetbrains.annotations.NotNull;
-import org.junit.Test;
-
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.io.InputStream;
+import java.util.Random;
+import org.apache.jackrabbit.oak.api.Blob;
+import org.jetbrains.annotations.NotNull;
+import org.junit.Test;
+
 public class AbstractBlobTest {
+
     private Random rnd = new Random();
 
     @Test
@@ -42,7 +42,8 @@ public class AbstractBlobTest {
 
         Blob a2 = new TestBlob(data, "id1", true);
         Blob b2 = new TestBlob(data, "id2", true);
-        assertTrue("Blobs with different id but same content should match", AbstractBlob.equal(a2, b2));
+        assertTrue("Blobs with different id but same content should match",
+            AbstractBlob.equal(a2, b2));
         assertFalse(a2.isInlined());
         assertFalse(b2.isInlined());
     }
@@ -51,7 +52,8 @@ public class AbstractBlobTest {
     public void blobComparisonBasedOnLength() throws Exception {
         Blob a = new TestBlob(bytes(100), null, false);
         Blob b = new TestBlob(bytes(50), null, false);
-        assertFalse("Blob comparison should not fallback on content if lengths not same", AbstractBlob.equal(a, b));
+        assertFalse("Blob comparison should not fallback on content if lengths not same",
+            AbstractBlob.equal(a, b));
     }
 
     private byte[] bytes(int size) {
@@ -61,6 +63,7 @@ public class AbstractBlobTest {
     }
 
     private static class TestBlob extends ArrayBasedBlob {
+
         private final String id;
         private final boolean allowAccessToContent;
 

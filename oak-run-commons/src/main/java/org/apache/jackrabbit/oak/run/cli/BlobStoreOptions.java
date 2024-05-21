@@ -19,17 +19,18 @@
 
 package org.apache.jackrabbit.oak.run.cli;
 
+import static java.util.Arrays.asList;
+
 import java.util.Collections;
 import java.util.Set;
-
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
 
-import static java.util.Arrays.asList;
-
 public class BlobStoreOptions implements OptionsBean {
+
     public enum Type {FDS, S3, AZURE, FAKE, NONE}
+
     private final OptionSpec<String> fdsOption;
     private final OptionSpec<String> s3Option;
     private final OptionSpec<String> azureOption;
@@ -39,18 +40,20 @@ public class BlobStoreOptions implements OptionsBean {
 
     private OptionSet options;
 
-    public BlobStoreOptions(OptionParser parser){
+    public BlobStoreOptions(OptionParser parser) {
         fdsOption = parser.acceptsAll(asList("fds"), "FileDataStore config path")
-                .withRequiredArg().ofType(String.class);
+                          .withRequiredArg().ofType(String.class);
         fdsPathOption = parser.acceptsAll(asList("fds-path"), "FileDataStore path")
-                .withRequiredArg().ofType(String.class);
-        fakeDsPathOption = parser.acceptsAll(asList("fake-ds-path"), "Path to be used to construct a Fake " +
-                "FileDataStore. It return an empty stream for any Blob but allows writes if used in read-write mode. (for testing purpose only)")
-                .withRequiredArg().ofType(String.class);
+                              .withRequiredArg().ofType(String.class);
+        fakeDsPathOption = parser.acceptsAll(asList("fake-ds-path"),
+                                     "Path to be used to construct a Fake " +
+                                         "FileDataStore. It return an empty stream for any Blob but allows writes if used in read-write mode. (for testing purpose only)")
+                                 .withRequiredArg().ofType(String.class);
         s3Option = parser.acceptsAll(asList("s3ds", "s3-config-path"), "S3DataStore config path")
-                .withRequiredArg().ofType(String.class);
-        azureOption = parser.acceptsAll(asList("azureblobds", "azureds"), "AzureBlobStorageDataStore config path")
-                .withRequiredArg().ofType(String.class);
+                         .withRequiredArg().ofType(String.class);
+        azureOption = parser.acceptsAll(asList("azureblobds", "azureds"),
+                                "AzureBlobStorageDataStore config path")
+                            .withRequiredArg().ofType(String.class);
         readWriteOption = parser.accepts("ds-read-write",
             "Connect to datastore in read-write mode. Use this option if only the datastore has to be opened "
                 + " in read-write mode and not the node store (i.e. --read-write not to be specified)");
@@ -68,8 +71,11 @@ public class BlobStoreOptions implements OptionsBean {
 
     @Override
     public String description() {
-        return "Options related to configuring a BlobStore. All config options here (except --fds-path) refer to " +
-                "the path of the config file. The file can be a '.config' file in the OSGi config admin format or " +
+        return
+            "Options related to configuring a BlobStore. All config options here (except --fds-path) refer to "
+                +
+                "the path of the config file. The file can be a '.config' file in the OSGi config admin format or "
+                +
                 "properties file with '.cfg' and '.properties' extensions.";
     }
 
@@ -83,19 +89,19 @@ public class BlobStoreOptions implements OptionsBean {
         return Collections.emptySet();
     }
 
-    public String getFDSConfigPath(){
+    public String getFDSConfigPath() {
         return fdsOption.value(options);
     }
 
-    public String getFDSPath(){
+    public String getFDSPath() {
         return fdsPathOption.value(options);
     }
 
-    public String getS3ConfigPath(){
+    public String getS3ConfigPath() {
         return s3Option.value(options);
     }
 
-    public String getAzureConfigPath(){
+    public String getAzureConfigPath() {
         return azureOption.value(options);
     }
 
@@ -103,20 +109,20 @@ public class BlobStoreOptions implements OptionsBean {
         return fakeDsPathOption.value(options);
     }
 
-    public Type getBlobStoreType(){
-        if (options.has(fdsOption) || options.has(fdsPathOption)){
+    public Type getBlobStoreType() {
+        if (options.has(fdsOption) || options.has(fdsPathOption)) {
             return Type.FDS;
-        } else if (options.has(s3Option)){
+        } else if (options.has(s3Option)) {
             return Type.S3;
-        } else if (options.has(azureOption)){
+        } else if (options.has(azureOption)) {
             return Type.AZURE;
-        } else if (options.has(fakeDsPathOption)){
+        } else if (options.has(fakeDsPathOption)) {
             return Type.FAKE;
         }
         return Type.NONE;
     }
 
-    public boolean isReadWrite(){
+    public boolean isReadWrite() {
         return options.has(readWriteOption);
     }
 }

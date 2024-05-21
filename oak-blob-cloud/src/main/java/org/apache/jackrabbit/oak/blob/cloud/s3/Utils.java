@@ -17,17 +17,6 @@
 
 package org.apache.jackrabbit.oak.blob.cloud.s3;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Map;
-import java.util.Properties;
-
-import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.Protocol;
@@ -39,7 +28,16 @@ import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.amazonaws.util.StringUtils;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Map;
+import java.util.Properties;
 import org.apache.jackrabbit.guava.common.collect.Maps;
+import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Amazon S3 utilities.
@@ -82,7 +80,7 @@ public final class Utils {
 
     /**
      * Create AmazonS3Client from properties.
-     * 
+     *
      * @param prop properties to configure @link {@link AmazonS3Client}
      * @return {@link AmazonS3Client}
      */
@@ -91,15 +89,15 @@ public final class Utils {
         String secretKey = prop.getProperty(S3Constants.SECRET_KEY);
         AmazonS3Client s3service = null;
         if (StringUtils.isNullOrEmpty(accessKey)
-                || StringUtils.isNullOrEmpty(secretKey)) {
+            || StringUtils.isNullOrEmpty(secretKey)) {
             LOG.info("Configuring Amazon Client from environment");
             s3service = new AmazonS3Client(getClientConfiguration(prop));
         } else {
             LOG.info("Configuring Amazon Client from property file.");
             AWSCredentials credentials = new BasicAWSCredentials(accessKey,
-                    secretKey);
+                secretKey);
             s3service = new AmazonS3Client(credentials,
-                    getClientConfiguration(prop));
+                getClientConfiguration(prop));
         }
         String region = prop.getProperty(S3Constants.S3_REGION);
         String endpoint = null;
@@ -113,9 +111,9 @@ public final class Utils {
                     region = s3Region.getName();
                 } else {
                     throw new AmazonClientException(
-                            "parameter ["
-                                    + S3Constants.S3_REGION
-                                    + "] not configured and cannot be derived from environment");
+                        "parameter ["
+                            + S3Constants.S3_REGION
+                            + "] not configured and cannot be derived from environment");
                 }
             }
             if (DEFAULT_AWS_BUCKET_REGION.equals(region)) {
@@ -135,36 +133,37 @@ public final class Utils {
     }
 
     /**
-     * Waits for an S3 bucket, one we expect to exist, to report that it exists.
-     * A check for the bucket is called with a limited number of repeats with
-     * an increasing backoff.
+     * Waits for an S3 bucket, one we expect to exist, to report that it exists. A check for the
+     * bucket is called with a limited number of repeats with an increasing backoff.
+     * <p>
+     * Usually you would call this after creating a bucket to block until the bucket is actually
+     * available before moving forward with other tasks that expect the bucket to be available.
      *
-     * Usually you would call this after creating a bucket to block until the
-     * bucket is actually available before moving forward with other tasks that
-     * expect the bucket to be available.
-     *
-     * @param s3Client The AmazonS3 client connection to the storage service.
+     * @param s3Client   The AmazonS3 client connection to the storage service.
      * @param bucketName The name of the bucket to check.
      * @return True if the bucket exists; false otherwise.
      */
-    public static boolean waitForBucket(@NotNull final AmazonS3 s3Client, @NotNull final String bucketName) {
+    public static boolean waitForBucket(@NotNull final AmazonS3 s3Client,
+        @NotNull final String bucketName) {
         int tries = 0;
         boolean bucketExists = false;
         while (20 > tries++) {
             bucketExists = s3Client.doesBucketExistV2(bucketName);
-            if (bucketExists) break;
+            if (bucketExists) {
+                break;
+            }
             try {
                 Thread.sleep(100 * tries);
+            } catch (InterruptedException e) {
             }
-            catch (InterruptedException e) { }
         }
         return bucketExists;
     }
 
     /**
-     * Delete S3 bucket. This method first deletes all objects from bucket and
-     * then delete empty bucket.
-     * 
+     * Delete S3 bucket. This method first deletes all objects from bucket and then delete empty
+     * bucket.
+     *
      * @param bucketName the bucket name.
      */
     public static void deleteBucket(final String bucketName) throws IOException {
@@ -184,9 +183,9 @@ public final class Utils {
     }
 
     /**
-     * Read a configuration properties file. If the file name ends with ";burn",
-     * the file is deleted after reading.
-     * 
+     * Read a configuration properties file. If the file name ends with ";burn", the file is deleted
+     * after reading.
+     *
      * @param fileName the properties file name
      * @return the properties
      * @throws java.io.IOException if the file doesn't exist
@@ -254,7 +253,7 @@ public final class Utils {
         cc.setMaxConnections(maxConnections);
         cc.setMaxErrorRetry(maxErrorRetry);
         if (encryptionType != null
-                && encryptionType.equals(S3Constants.S3_ENCRYPTION_SSE_KMS)) {
+            && encryptionType.equals(S3Constants.S3_ENCRYPTION_SSE_KMS)) {
             cc.withSignerOverride("AWSS3V4SignerType");
         }
         return cc;
@@ -263,7 +262,7 @@ public final class Utils {
     public static Map<String, Object> asMap(Properties props) {
         Map<String, Object> map = Maps.newHashMap();
         for (Object key : props.keySet()) {
-            map.put((String)key, props.get(key));
+            map.put((String) key, props.get(key));
         }
         return map;
     }

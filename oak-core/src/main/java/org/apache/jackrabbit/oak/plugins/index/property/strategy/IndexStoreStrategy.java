@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.plugins.index.property.strategy;
 
 import java.util.Set;
-
 import org.apache.jackrabbit.guava.common.base.Supplier;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.query.Filter;

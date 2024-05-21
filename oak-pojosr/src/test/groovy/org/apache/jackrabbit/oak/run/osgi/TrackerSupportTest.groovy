@@ -31,17 +31,17 @@ class TrackerSupportTest {
     PojoServiceRegistry reg = createServiceRegistry([:])
 
     @After
-    public void tearDown(){
+    public void tearDown() {
         reg.getBundleContext().getBundle().stop()
     }
 
     @Test
-    public void runnableTest() throws Exception{
+    public void runnableTest() throws Exception {
         new RunnableJobTracker(reg.bundleContext)
 
         CountDownLatch latch = new CountDownLatch(1)
-        reg.registerService(Runnable.class.name,{latch.countDown()} as Runnable,
-                ['scheduler.period':1] as Hashtable)
+        reg.registerService(Runnable.class.name, { latch.countDown() } as Runnable,
+                ['scheduler.period': 1] as Hashtable)
 
         //Wait for latch to get executed otherwise fail with timeout
         latch.await(5, TimeUnit.SECONDS)

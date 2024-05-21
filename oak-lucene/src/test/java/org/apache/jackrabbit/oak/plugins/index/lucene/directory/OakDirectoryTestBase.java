@@ -19,10 +19,10 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.commons.io.FileUtils.ONE_GB;
 import static org.apache.commons.io.FileUtils.ONE_MB;
 import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
+import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.OakDirectory.PROP_BLOB_SIZE;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.OakDirectory.PROP_UNIQUE_KEY;
@@ -49,12 +49,11 @@ import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.input.NullInputStream;
 import org.apache.jackrabbit.core.data.FileDataStore;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -88,6 +87,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 abstract public class OakDirectoryTestBase {
+
     @Rule
     public TemporaryFolder tempFolder = new TemporaryFolder(new File("target"));
 
@@ -100,14 +100,15 @@ abstract public class OakDirectoryTestBase {
     int fileSize = IndexDefinition.DEFAULT_BLOB_SIZE * 2 + rnd.nextInt(1000);
 
     @Test
-    public void writes_DefaultSetup() throws Exception{
+    public void writes_DefaultSetup() throws Exception {
         Directory dir = createDir(builder, false, "/foo");
         assertWrites(dir, IndexDefinition.DEFAULT_BLOB_SIZE);
     }
 
     @Test
-    public void testCompatibility() throws Exception{
-        builder.setProperty(FulltextIndexConstants.BLOB_SIZE, OakBufferedIndexFile.DEFAULT_BLOB_SIZE);
+    public void testCompatibility() throws Exception {
+        builder.setProperty(FulltextIndexConstants.BLOB_SIZE,
+            OakBufferedIndexFile.DEFAULT_BLOB_SIZE);
         Directory dir = createDir(builder, false, "/foo");
         byte[] data = assertWrites(dir, OakBufferedIndexFile.DEFAULT_BLOB_SIZE);
 
@@ -126,7 +127,7 @@ abstract public class OakDirectoryTestBase {
     }
 
     @Test //OAK-2388
-    public void testOverflow() throws Exception{
+    public void testOverflow() throws Exception {
         Directory dir = createDir(builder, false, "/foo");
         NodeBuilder file = builder.child(INDEX_DATA_CHILD_NAME).child("test.txt");
         int blobSize = 32768;
@@ -139,12 +140,12 @@ abstract public class OakDirectoryTestBase {
         }
         file.setProperty(PropertyStates.createProperty("jcr:data", blobs, Type.BINARIES));
 
-        IndexInput input  = dir.openInput("test.txt", IOContext.DEFAULT);
+        IndexInput input = dir.openInput("test.txt", IOContext.DEFAULT);
         assertEquals((long) blobSize * (dataSize - 1), input.length());
     }
 
     @Test
-    public void saveListing() throws Exception{
+    public void saveListing() throws Exception {
         builder.setProperty(LuceneIndexConstants.SAVE_DIR_LISTING, true);
         Directory dir = createDir(builder, false, "/foo");
         Set<String> fileNames = newHashSet();
@@ -160,7 +161,7 @@ abstract public class OakDirectoryTestBase {
     }
 
     @Test
-    public void skipSaveListingIfUnchanged() throws Exception{
+    public void skipSaveListingIfUnchanged() throws Exception {
         builder.setProperty(LuceneIndexConstants.SAVE_DIR_LISTING, true);
         Directory dir = createDir(builder, false, "/foo");
         Set<String> fileNames = newHashSet();
@@ -172,7 +173,7 @@ abstract public class OakDirectoryTestBase {
         dir.close();
 
         dir = createDir(new ReadOnlyBuilder(builder.getNodeState()), false, "/foo");
-        Set<String> files =  newHashSet(dir.listAll());
+        Set<String> files = newHashSet(dir.listAll());
         dir.close();
         assertEquals(fileNames, files);
     }
@@ -186,14 +187,14 @@ abstract public class OakDirectoryTestBase {
         final String fileName = "foo";
         dir.createOutput(fileName, IOContext.DEFAULT);
         String firstUniqueKey = builder.getChildNode(INDEX_DATA_CHILD_NAME)
-                .getChildNode(fileName).getString(PROP_UNIQUE_KEY);
+                                       .getChildNode(fileName).getString(PROP_UNIQUE_KEY);
 
         dir.createOutput(fileName, IOContext.DEFAULT);
         String secondUniqueKey = builder.getChildNode(INDEX_DATA_CHILD_NAME)
-                .getChildNode(fileName).getString(PROP_UNIQUE_KEY);
+                                        .getChildNode(fileName).getString(PROP_UNIQUE_KEY);
 
         assertFalse("Unique key must change on re-incarnating output with same name",
-                firstUniqueKey.equals(secondUniqueKey));
+            firstUniqueKey.equals(secondUniqueKey));
 
     }
 
@@ -215,7 +216,8 @@ abstract public class OakDirectoryTestBase {
         assertTrue(Arrays.equals(data, result));
 
         NodeBuilder testNode = builder.child(INDEX_DATA_CHILD_NAME).child("test");
-        assertEquals(blobSize, testNode.getProperty(PROP_BLOB_SIZE).getValue(Type.LONG).longValue());
+        assertEquals(blobSize,
+            testNode.getProperty(PROP_BLOB_SIZE).getValue(Type.LONG).longValue());
 
         assertBlobSizeInWrite(testNode.getProperty(JCR_DATA), blobSize, fileSize);
 
@@ -233,7 +235,7 @@ abstract public class OakDirectoryTestBase {
         return size;
     }
 
-    protected OakDirectory createDir(NodeBuilder builder, boolean readOnly, String indexPath){
+    protected OakDirectory createDir(NodeBuilder builder, boolean readOnly, String indexPath) {
         return getOakDirectoryBuilder(builder, indexPath).setReadOnly(readOnly).build();
     }
 
@@ -365,34 +367,36 @@ abstract public class OakDirectoryTestBase {
     }
 
     @Test
-    public void largeFile() throws Exception{
+    public void largeFile() throws Exception {
         FileStore store = FileStoreBuilder.fileStoreBuilder(tempFolder.getRoot())
-                .withMemoryMapping(false)
-                .withBlobStore(getBlackHoleBlobStore())
-                .build();
+                                          .withMemoryMapping(false)
+                                          .withBlobStore(getBlackHoleBlobStore())
+                                          .build();
         SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(store).build();
-        LuceneIndexDefinition defn = new LuceneIndexDefinition(INITIAL_CONTENT, EmptyNodeState.EMPTY_NODE, "/foo");
-        Directory directory = getOakDirectoryBuilder(nodeStore.getRoot().builder(), defn).setReadOnly(false).build();
+        LuceneIndexDefinition defn = new LuceneIndexDefinition(INITIAL_CONTENT,
+            EmptyNodeState.EMPTY_NODE, "/foo");
+        Directory directory = getOakDirectoryBuilder(nodeStore.getRoot().builder(),
+            defn).setReadOnly(false).build();
 
         long expectedSize = ONE_GB * 2 + ONE_MB;
         String fileName = "test";
         writeFile(directory, fileName, expectedSize);
         assertEquals(expectedSize, directory.fileLength(fileName));
 
-        IndexInput input  = directory.openInput(fileName, IOContext.DEFAULT);
+        IndexInput input = directory.openInput(fileName, IOContext.DEFAULT);
         readInputToEnd(expectedSize, input);
         store.close();
     }
 
     @Test
-    public void dirNameInExceptionMessage() throws Exception{
+    public void dirNameInExceptionMessage() throws Exception {
         String indexPath = "/foo/bar";
         Directory dir = createDir(builder, false, indexPath);
 
         try {
             dir.openInput("foo.txt", IOContext.DEFAULT);
             fail();
-        } catch (IOException e){
+        } catch (IOException e) {
             assertThat(e.getMessage(), containsString(indexPath));
         }
 
@@ -402,7 +406,7 @@ abstract public class OakDirectoryTestBase {
         try {
             in.seek(fileSize + 1);
             fail();
-        } catch (IOException e){
+        } catch (IOException e) {
             assertThat(e.getMessage(), containsString(indexPath));
         }
 
@@ -412,18 +416,18 @@ abstract public class OakDirectoryTestBase {
             byte[] data = new byte[fileSize + 1];
             in2.readBytes(data, 0, fileSize + 1);
             fail();
-        } catch (IOException e){
+        } catch (IOException e) {
             assertThat(e.getMessage(), containsString(indexPath));
         }
     }
 
     @Test
-    public void dirNameInException_Writes() throws Exception{
+    public void dirNameInException_Writes() throws Exception {
         FailOnDemandBlobStore blobStore = new FailOnDemandBlobStore();
         FileStore store = FileStoreBuilder.fileStoreBuilder(tempFolder.getRoot())
-                .withMemoryMapping(false)
-                .withBlobStore(blobStore)
-                .build();
+                                          .withMemoryMapping(false)
+                                          .withBlobStore(blobStore)
+                                          .build();
         SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(store).build();
 
         String indexPath = "/foo/bar";
@@ -437,10 +441,10 @@ abstract public class OakDirectoryTestBase {
 
         blobStore.startFailing();
         IndexOutput o = dir.createOutput("test1.txt", IOContext.DEFAULT);
-        try{
+        try {
             o.writeBytes(randomBytes(blobSize + 10), blobSize + 10);
             fail();
-        } catch (IOException e){
+        } catch (IOException e) {
             assertThat(e.getMessage(), containsString(indexPath));
             assertThat(e.getMessage(), containsString("test1.txt"));
         }
@@ -449,14 +453,14 @@ abstract public class OakDirectoryTestBase {
     }
 
     @Test
-    public void readOnlyDirectory() throws Exception{
-        Directory dir = getOakDirectoryBuilder(new ReadOnlyBuilder(builder.getNodeState()),"/foo")
-                .setReadOnly(true).build();
+    public void readOnlyDirectory() throws Exception {
+        Directory dir = getOakDirectoryBuilder(new ReadOnlyBuilder(builder.getNodeState()), "/foo")
+            .setReadOnly(true).build();
         assertEquals(0, dir.listAll().length);
     }
 
     @Test
-    public void testDirty() throws Exception{
+    public void testDirty() throws Exception {
         OakDirectory dir = createDir(builder, false, "/foo");
         assertFalse(dir.isDirty());
         createFile(dir, "a");
@@ -474,7 +478,7 @@ abstract public class OakDirectoryTestBase {
 
     // OAK-6503
     @Test
-    public void dontMarkNonBlobStoreBlobsAsDeleted() throws Exception{
+    public void dontMarkNonBlobStoreBlobsAsDeleted() throws Exception {
         final String deletedBlobId = "blobIdentifier";
         final String blobIdToString = "NeverEver-Ever-Ever-ShouldThisBeMarkedAsDeleted";
         final int fileSize = 1;
@@ -491,7 +495,7 @@ abstract public class OakDirectoryTestBase {
                 return new ArrayBasedBlob(data) {
                     @Override
                     public String getContentIdentity() {
-                        return identifiableBlob.get()?deletedBlobId:null;
+                        return identifiableBlob.get() ? deletedBlobId : null;
                     }
 
                     @Override
@@ -503,24 +507,30 @@ abstract public class OakDirectoryTestBase {
         };
 
         OakDirectory dir = getOakDirectoryBuilder(builder, def).setReadOnly(false)
-                .with(factory).
-                with(
-                    new ActiveDeletedBlobCollectorFactory.BlobDeletionCallback() {
-                        @Override
-                        public void deleted(String blobId, Iterable<String> ids) {
-                            assertEquals("Only blobs with content identity must be reported as deleted", deletedBlobId, blobId);
-                        }
+                                                               .with(factory).
+                                                               with(
+                                                                   new ActiveDeletedBlobCollectorFactory.BlobDeletionCallback() {
+                                                                       @Override
+                                                                       public void deleted(
+                                                                           String blobId,
+                                                                           Iterable<String> ids) {
+                                                                           assertEquals(
+                                                                               "Only blobs with content identity must be reported as deleted",
+                                                                               deletedBlobId,
+                                                                               blobId);
+                                                                       }
 
-                        @Override
-                        public void commitProgress(IndexProgress indexProgress) {
-                        }
+                                                                       @Override
+                                                                       public void commitProgress(
+                                                                           IndexProgress indexProgress) {
+                                                                       }
 
-                        @Override
-                        public boolean isMarkingForActiveDeletionUnsafe() {
-                            return false;
-                        }
-                    })
-                .build();
+                                                                       @Override
+                                                                       public boolean isMarkingForActiveDeletionUnsafe() {
+                                                                           return false;
+                                                                       }
+                                                                   })
+                                                               .build();
 
         writeFile(dir, "file1", fileSize);
         writeFile(dir, "file2", fileSize);
@@ -547,24 +557,29 @@ abstract public class OakDirectoryTestBase {
         BlobFactory factory = in -> new BlobStoreBlob(dsbs, dsbs.writeBlob(in));
 
         OakDirectory dir = getOakDirectoryBuilder(builder, def).setReadOnly(false)
-                .with(factory).
-                        with(
-                                new ActiveDeletedBlobCollectorFactory.BlobDeletionCallback() {
-                                    @Override
-                                    public void deleted(String blobId, Iterable<String> ids) {
-                                        deletedFiles.add(Iterables.getLast(ids));
-                                    }
+                                                               .with(factory).
+                                                               with(
+                                                                   new ActiveDeletedBlobCollectorFactory.BlobDeletionCallback() {
+                                                                       @Override
+                                                                       public void deleted(
+                                                                           String blobId,
+                                                                           Iterable<String> ids) {
+                                                                           deletedFiles.add(
+                                                                               Iterables.getLast(
+                                                                                   ids));
+                                                                       }
 
-                                    @Override
-                                    public void commitProgress(IndexProgress indexProgress) {
-                                    }
+                                                                       @Override
+                                                                       public void commitProgress(
+                                                                           IndexProgress indexProgress) {
+                                                                       }
 
-                                    @Override
-                                    public boolean isMarkingForActiveDeletionUnsafe() {
-                                        return false;
-                                    }
-                                })
-                .build();
+                                                                       @Override
+                                                                       public boolean isMarkingForActiveDeletionUnsafe() {
+                                                                           return false;
+                                                                       }
+                                                                   })
+                                                               .build();
 
         writeFile(dir, "file1", 25);
         writeFile(dir, "file2", 50);
@@ -591,24 +606,29 @@ abstract public class OakDirectoryTestBase {
         BlobFactory factory = in -> new BlobStoreBlob(bs, bs.writeBlob(in));
 
         OakDirectory dir = getOakDirectoryBuilder(builder, def).setReadOnly(false)
-                .with(factory).
-                        with(
-                                new ActiveDeletedBlobCollectorFactory.BlobDeletionCallback() {
-                                    @Override
-                                    public void deleted(String blobId, Iterable<String> ids) {
-                                        deletedFiles.add(Iterables.getLast(ids));
-                                    }
+                                                               .with(factory).
+                                                               with(
+                                                                   new ActiveDeletedBlobCollectorFactory.BlobDeletionCallback() {
+                                                                       @Override
+                                                                       public void deleted(
+                                                                           String blobId,
+                                                                           Iterable<String> ids) {
+                                                                           deletedFiles.add(
+                                                                               Iterables.getLast(
+                                                                                   ids));
+                                                                       }
 
-                                    @Override
-                                    public void commitProgress(IndexProgress indexProgress) {
-                                    }
+                                                                       @Override
+                                                                       public void commitProgress(
+                                                                           IndexProgress indexProgress) {
+                                                                       }
 
-                                    @Override
-                                    public boolean isMarkingForActiveDeletionUnsafe() {
-                                        return false;
-                                    }
-                                })
-                .build();
+                                                                       @Override
+                                                                       public boolean isMarkingForActiveDeletionUnsafe() {
+                                                                           return false;
+                                                                       }
+                                                                   })
+                                                               .build();
 
         writeFile(dir, "file1", 25);
         writeFile(dir, "file2", 50);
@@ -638,23 +658,26 @@ abstract public class OakDirectoryTestBase {
 
         final AtomicBoolean markingForceActiveDeletionUnsafe = new AtomicBoolean();
         OakDirectory dir = getOakDirectoryBuilder(builder, def).setReadOnly(false)
-                .with(factory).
-                        with(
-                                new ActiveDeletedBlobCollectorFactory.BlobDeletionCallback() {
-                                    @Override
-                                    public void deleted(String blobId, Iterable<String> ids) {
-                                    }
+                                                               .with(factory).
+                                                               with(
+                                                                   new ActiveDeletedBlobCollectorFactory.BlobDeletionCallback() {
+                                                                       @Override
+                                                                       public void deleted(
+                                                                           String blobId,
+                                                                           Iterable<String> ids) {
+                                                                       }
 
-                                    @Override
-                                    public void commitProgress(IndexProgress indexProgress) {
-                                    }
+                                                                       @Override
+                                                                       public void commitProgress(
+                                                                           IndexProgress indexProgress) {
+                                                                       }
 
-                                    @Override
-                                    public boolean isMarkingForActiveDeletionUnsafe() {
-                                        return markingForceActiveDeletionUnsafe.get();
-                                    }
-                                })
-                .build();
+                                                                       @Override
+                                                                       public boolean isMarkingForActiveDeletionUnsafe() {
+                                                                           return markingForceActiveDeletionUnsafe.get();
+                                                                       }
+                                                                   })
+                                                               .build();
 
         // file1 created before marking was flagged as unsafe
         writeFile(dir, "file1", fileSize);
@@ -668,9 +691,10 @@ abstract public class OakDirectoryTestBase {
         NodeBuilder dataBuilder = builder.getChildNode(INDEX_DATA_CHILD_NAME);
 
         assertNull("file1 must not get flagged to be unsafe to be actively deleted",
-                dataBuilder.getChildNode("file1").getProperty(PROP_UNSAFE_FOR_ACTIVE_DELETION));
+            dataBuilder.getChildNode("file1").getProperty(PROP_UNSAFE_FOR_ACTIVE_DELETION));
         assertTrue("file2 must get flagged to be unsafe to be actively deleted",
-                dataBuilder.getChildNode("file2").getProperty(PROP_UNSAFE_FOR_ACTIVE_DELETION).getValue(Type.BOOLEAN));
+            dataBuilder.getChildNode("file2").getProperty(PROP_UNSAFE_FOR_ACTIVE_DELETION)
+                       .getValue(Type.BOOLEAN));
     }
 
     // OAK-6950
@@ -693,24 +717,27 @@ abstract public class OakDirectoryTestBase {
         final AtomicBoolean markingForceActiveDeletionUnsafe = new AtomicBoolean();
         final Set<String> deletedBlobs = Sets.newHashSet();
         OakDirectory dir = getOakDirectoryBuilder(builder, def).setReadOnly(false)
-            .with(factory).
-                    with(
-                        new ActiveDeletedBlobCollectorFactory.BlobDeletionCallback() {
-                            @Override
-                            public void deleted(String blobId, Iterable<String> ids) {
-                                deletedBlobs.add(blobId);
-                            }
+                                                               .with(factory).
+                                                               with(
+                                                                   new ActiveDeletedBlobCollectorFactory.BlobDeletionCallback() {
+                                                                       @Override
+                                                                       public void deleted(
+                                                                           String blobId,
+                                                                           Iterable<String> ids) {
+                                                                           deletedBlobs.add(blobId);
+                                                                       }
 
-                            @Override
-                            public void commitProgress(IndexProgress indexProgress) {
-                            }
+                                                                       @Override
+                                                                       public void commitProgress(
+                                                                           IndexProgress indexProgress) {
+                                                                       }
 
-                            @Override
-                            public boolean isMarkingForActiveDeletionUnsafe() {
-                                return markingForceActiveDeletionUnsafe.get();
-                            }
-                        })
-                .build();
+                                                                       @Override
+                                                                       public boolean isMarkingForActiveDeletionUnsafe() {
+                                                                           return markingForceActiveDeletionUnsafe.get();
+                                                                       }
+                                                                   })
+                                                               .build();
 
         // file1 created before marking was flagged as unsafe
         blobIdSuffix.set(1);
@@ -729,7 +756,7 @@ abstract public class OakDirectoryTestBase {
 
         deletedBlobs.forEach(deletedBlob -> {
             assertTrue("Deleted blob id " + deletedBlob + " must belong to file1",
-                    deletedBlob.endsWith("-id-1"));
+                deletedBlob.endsWith("-id-1"));
         });
     }
 
@@ -749,7 +776,8 @@ abstract public class OakDirectoryTestBase {
                 return new ArrayBasedBlob(data);
             }
         };
-        OakDirectory dir = getOakDirectoryBuilder(builder, def).setReadOnly(false).with(factory).build();
+        OakDirectory dir = getOakDirectoryBuilder(builder, def).setReadOnly(false).with(factory)
+                                                               .build();
         numBlobs.set(0);
         writeFile(dir, "file", fileSize);
         assertEquals(1, numBlobs.get());
@@ -788,21 +816,24 @@ abstract public class OakDirectoryTestBase {
         }
     }
 
-    static void writeFile(Directory directory, String fileName,  long size) throws Exception{
+    static void writeFile(Directory directory, String fileName, long size) throws Exception {
         IndexOutput o = directory.createOutput(fileName, IOContext.DEFAULT);
         o.copyBytes(new InputStreamDataInput(new NullInputStream(size)), size);
         o.close();
     }
 
     OakDirectoryBuilder getOakDirectoryBuilder(NodeBuilder builder, String indexPath) {
-        return getOakDirectoryBuilder(builder, new LuceneIndexDefinition(root, builder.getNodeState(), indexPath));
+        return getOakDirectoryBuilder(builder,
+            new LuceneIndexDefinition(root, builder.getNodeState(), indexPath));
     }
 
-    abstract OakDirectoryBuilder getOakDirectoryBuilder(NodeBuilder builder, LuceneIndexDefinition indexDefinition);
+    abstract OakDirectoryBuilder getOakDirectoryBuilder(NodeBuilder builder,
+        LuceneIndexDefinition indexDefinition);
 
     abstract MemoryBlobStore getBlackHoleBlobStore();
 
     static class FailOnDemandBlobStore extends MemoryBlobStore {
+
         private boolean fail;
 
         @Override
@@ -813,47 +844,54 @@ abstract public class OakDirectoryTestBase {
             return super.writeBlob(in);
         }
 
-        public void startFailing(){
+        public void startFailing() {
             fail = true;
         }
 
-        public void reset(){
+        public void reset() {
             fail = false;
         }
     }
 
     static class OakDirectoryBuilder {
+
         private final NodeBuilder builder;
         private final LuceneIndexDefinition defn;
         private final boolean streamingEnabled;
 
-        public OakDirectoryBuilder(NodeBuilder builder, LuceneIndexDefinition defn, boolean streamingEnabled) {
+        public OakDirectoryBuilder(NodeBuilder builder, LuceneIndexDefinition defn,
+            boolean streamingEnabled) {
             this.builder = builder;
             this.defn = defn;
             this.streamingEnabled = streamingEnabled;
         }
 
         private boolean readOnly = false;
+
         public OakDirectoryBuilder setReadOnly(boolean readOnly) {
             this.readOnly = readOnly;
             return this;
         }
 
         private GarbageCollectableBlobStore blobStore = null;
+
         private OakDirectoryBuilder with(GarbageCollectableBlobStore blobStore) {
             this.blobStore = blobStore;
             return this;
         }
 
         private BlobFactory blobFactory = null;
+
         public OakDirectoryBuilder with(BlobFactory blobFactory) {
             this.blobFactory = blobFactory;
             return this;
         }
 
         private ActiveDeletedBlobCollectorFactory.BlobDeletionCallback blobDeletionCallback =
-                ActiveDeletedBlobCollectorFactory.BlobDeletionCallback.NOOP;
-        public OakDirectoryBuilder with(ActiveDeletedBlobCollectorFactory.BlobDeletionCallback blobDeletionCallback) {
+            ActiveDeletedBlobCollectorFactory.BlobDeletionCallback.NOOP;
+
+        public OakDirectoryBuilder with(
+            ActiveDeletedBlobCollectorFactory.BlobDeletionCallback blobDeletionCallback) {
             this.blobDeletionCallback = blobDeletionCallback;
             return this;
         }
@@ -861,12 +899,12 @@ abstract public class OakDirectoryTestBase {
         public OakDirectory build() {
             if (blobFactory == null) {
                 blobFactory = blobStore != null ?
-                                    BlobFactory.getBlobStoreBlobFactory(blobStore) :
-                                    BlobFactory.getNodeBuilderBlobFactory(builder);
+                    BlobFactory.getBlobStoreBlobFactory(blobStore) :
+                    BlobFactory.getNodeBuilderBlobFactory(builder);
             }
 
             return new OakDirectory(builder, INDEX_DATA_CHILD_NAME, defn, readOnly,
-                    blobFactory, blobDeletionCallback, streamingEnabled);
+                blobFactory, blobDeletionCallback, streamingEnabled);
         }
     }
 }

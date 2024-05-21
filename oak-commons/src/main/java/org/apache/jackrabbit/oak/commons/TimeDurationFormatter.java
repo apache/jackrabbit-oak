@@ -21,12 +21,10 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 
 /**
- * Format a time duration as human-readable string, inspired by
- * {@link Stopwatch#toString()}.
+ * Format a time duration as human-readable string, inspired by {@link Stopwatch#toString()}.
  */
 public class TimeDurationFormatter {
 
@@ -34,8 +32,9 @@ public class TimeDurationFormatter {
     private final boolean allowNonAscii;
     private final Locale locale;
 
-    private static TimeUnit[] UNITS = { TimeUnit.DAYS, TimeUnit.HOURS, TimeUnit.MINUTES, TimeUnit.SECONDS, TimeUnit.MILLISECONDS,
-            TimeUnit.MICROSECONDS, TimeUnit.NANOSECONDS };
+    private static TimeUnit[] UNITS = {TimeUnit.DAYS, TimeUnit.HOURS, TimeUnit.MINUTES,
+        TimeUnit.SECONDS, TimeUnit.MILLISECONDS,
+        TimeUnit.MICROSECONDS, TimeUnit.NANOSECONDS};
     private static Map<TimeUnit, String> DISPLAYUNIT;
     private static Map<TimeUnit, String> DISPLAYUNIT_ASCII;
 
@@ -55,7 +54,8 @@ public class TimeDurationFormatter {
         DISPLAYUNIT = Collections.unmodifiableMap(t);
     }
 
-    private static TimeDurationFormatter FOR_LOGGING = new TimeDurationFormatter(Locale.US, 2, false);
+    private static TimeDurationFormatter FOR_LOGGING = new TimeDurationFormatter(Locale.US, 2,
+        false);
 
     /**
      * Default formatter suitable for logging (ASCII-only)
@@ -65,15 +65,12 @@ public class TimeDurationFormatter {
     }
 
     /**
-     * @param locale
-     *            locale for formatting (affects the decimal point)
-     * @param threshold
-     *            integral value that needs to be exceeded to switch to a
-     *            certain time unit for display (e.g., specify {@code 2} to
-     *            switch to 'days' when the elapsed time is two or more days.
-     * @param allowNonAscii
-     *            set to {@code true} if the display unit can use the non-ASCII
-     *            "micro" Unicode character
+     * @param locale        locale for formatting (affects the decimal point)
+     * @param threshold     integral value that needs to be exceeded to switch to a certain time
+     *                      unit for display (e.g., specify {@code 2} to switch to 'days' when the
+     *                      elapsed time is two or more days.
+     * @param allowNonAscii set to {@code true} if the display unit can use the non-ASCII "micro"
+     *                      Unicode character
      */
     public TimeDurationFormatter(Locale locale, int threshold, boolean allowNonAscii) {
         this.locale = locale;
@@ -83,8 +80,9 @@ public class TimeDurationFormatter {
 
     /**
      * Format the specified duration
+     *
      * @param amount number of time units
-     * @param unit time unit
+     * @param unit   time unit
      */
     public String format(long amount, TimeUnit unit) {
         long nanos = unit.toNanos(amount);
@@ -100,6 +98,6 @@ public class TimeDurationFormatter {
         double convertedToUnit = ((double) nanos) / (TimeUnit.NANOSECONDS.convert(1, outputUnit));
 
         return String.format(this.locale, "%.4g %s", convertedToUnit,
-                this.allowNonAscii ? DISPLAYUNIT.get(outputUnit) : DISPLAYUNIT_ASCII.get(outputUnit));
+            this.allowNonAscii ? DISPLAYUNIT.get(outputUnit) : DISPLAYUNIT_ASCII.get(outputUnit));
     }
 }

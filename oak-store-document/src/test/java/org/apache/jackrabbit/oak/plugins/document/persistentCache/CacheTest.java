@@ -43,7 +43,8 @@ public class CacheTest {
     @Test
     public void recoverIfCorrupt() throws Exception {
         String expectedWarning = "Too many re-opens";
-        LogCustomizer lc = LogCustomizer.forLogger(CacheMap.class).enable(Level.WARN).contains(expectedWarning).create();
+        LogCustomizer lc = LogCustomizer.forLogger(CacheMap.class).enable(Level.WARN)
+                                        .contains(expectedWarning).create();
 
         try {
             lc.starting();
@@ -55,8 +56,8 @@ public class CacheTest {
             out.close();
             PersistentCache pCache = new PersistentCache("target/cacheTest");
             CacheLIRS<PathRev, StringValue> cache = new CacheLIRS.Builder<PathRev, StringValue>().
-                    maximumSize(1).build();
-            Cache<PathRev, StringValue> map = pCache.wrap(null,  null,  cache, CacheType.DIFF);
+                maximumSize(1).build();
+            Cache<PathRev, StringValue> map = pCache.wrap(null, null, cache, CacheType.DIFF);
             String largeString = new String(new char[1024 * 1024]);
             for (int counter = 0; counter < 10; counter++) {
                 long end = System.currentTimeMillis() + 100;
@@ -64,17 +65,19 @@ public class CacheTest {
                     Thread.yield();
                 }
                 for (int i = 0; i < 100; i++) {
-                    PathRev k = new PathRev(Path.fromString("/" + counter), new RevisionVector(new Revision(0, 0, i)));
+                    PathRev k = new PathRev(Path.fromString("/" + counter),
+                        new RevisionVector(new Revision(0, 0, i)));
                     map.getIfPresent(k);
                     map.put(k, new StringValue(largeString));
                 }
             }
-            assertTrue("Exceptions: " + pCache.getExceptionCount(), 
-                    pCache.getExceptionCount() < 100);
+            assertTrue("Exceptions: " + pCache.getExceptionCount(),
+                pCache.getExceptionCount() < 100);
 
-            assertTrue("WARN level log should contain one entry containing '" + expectedWarning + "'", lc.getLogs().size() == 1);
-        }
-        finally {
+            assertTrue(
+                "WARN level log should contain one entry containing '" + expectedWarning + "'",
+                lc.getLogs().size() == 1);
+        } finally {
             lc.finished();
         }
     }
@@ -115,10 +118,10 @@ public class CacheTest {
         try {
             CacheMap<String, String> m1 = cache.openMap(0, "m1", null);
             CacheMap<String, String> m2 = cache.openMap(0, "test", null);
-            
+
             // the cache file was opened once so far
             assertEquals(1, cache.getOpenCount());
-            
+
             // we store 20 mb of data, to ensure not all data is kept in memory
             String largeString = new String(new char[1024 * 1024]);
             int count = 10;
@@ -142,10 +145,10 @@ public class CacheTest {
 
             // re-opening will clear the interrupt flag
             assertFalse(Thread.interrupted());
-            
+
         } finally {
             cache.close();
         }
     }
-    
+
 }

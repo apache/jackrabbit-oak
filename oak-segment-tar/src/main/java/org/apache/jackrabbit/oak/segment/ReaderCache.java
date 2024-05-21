@@ -23,18 +23,16 @@ import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull
 import static org.apache.jackrabbit.oak.segment.CacheWeights.OBJECT_HEADER_SIZE;
 
 import java.util.Arrays;
-
+import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.cache.Weigher;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import org.apache.jackrabbit.guava.common.base.Function;
-
 /**
- * A cache consisting of a fast and slow component. The fast cache for small items is based
- * on an array, and a slow one uses a LIRS cache.
+ * A cache consisting of a fast and slow component. The fast cache for small items is based on an
+ * array, and a slow one uses a LIRS cache.
  */
 public abstract class ReaderCache<T> {
 
@@ -59,22 +57,22 @@ public abstract class ReaderCache<T> {
     /**
      * Create a new string cache.
      *
-     * @param maxWeight the maximum memory in bytes.
-     * @param averageWeight  an estimate for the average weight of the elements in the
-     *                       cache. See {@link CacheLIRS#setAverageMemory(int)}.
-     * @param weigher   Needed to provide an estimation of the cache weight in memory
+     * @param maxWeight     the maximum memory in bytes.
+     * @param averageWeight an estimate for the average weight of the elements in the cache. See
+     *                      {@link CacheLIRS#setAverageMemory(int)}.
+     * @param weigher       Needed to provide an estimation of the cache weight in memory
      */
     protected ReaderCache(long maxWeight, int averageWeight,
-            @NotNull String name, @NotNull Weigher<CacheKey, T> weigher) {
+        @NotNull String name, @NotNull Weigher<CacheKey, T> weigher) {
         this.name = checkNotNull(name);
         this.weigher = checkNotNull(weigher);
         fastCache = new FastCache<>();
         cache = CacheLIRS.<CacheKey, T>newBuilder()
-                .module(name)
-                .maximumWeight(maxWeight)
-                .averageWeight(averageWeight)
-                .weigher(weigher)
-                .build();
+                         .module(name)
+                         .maximumWeight(maxWeight)
+                         .averageWeight(averageWeight)
+                         .weigher(weigher)
+                         .build();
     }
 
     @NotNull
@@ -91,8 +89,8 @@ public abstract class ReaderCache<T> {
     /**
      * Get the value, loading it if necessary.
      *
-     * @param msb the msb of the segment
-     * @param lsb the lsb of the segment
+     * @param msb    the msb of the segment
+     * @param lsb    the lsb of the segment
      * @param offset the offset
      * @param loader the loader function
      * @return the value
@@ -158,7 +156,7 @@ public abstract class ReaderCache<T> {
         /**
          * Get the string if it is stored.
          *
-         * @param hash the hash
+         * @param hash   the hash
          * @param msb
          * @param lsb
          * @param offset the offset
@@ -185,6 +183,7 @@ public abstract class ReaderCache<T> {
     }
 
     static class CacheKey {
+
         private final int hash;
         private final long msb, lsb;
         private final int offset;
@@ -211,7 +210,7 @@ public abstract class ReaderCache<T> {
             }
             CacheKey o = (CacheKey) other;
             return o.hash == hash && o.msb == msb && o.lsb == lsb &&
-                    o.offset == offset;
+                o.offset == offset;
         }
 
         @Override
@@ -260,7 +259,7 @@ public abstract class ReaderCache<T> {
             }
             FastCacheEntry<?> o = (FastCacheEntry<?>) other;
             return o.hash == hash && o.msb == msb && o.lsb == lsb &&
-                    o.offset == offset;
+                o.offset == offset;
         }
 
     }

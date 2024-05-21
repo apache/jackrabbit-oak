@@ -20,15 +20,14 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 
 import java.io.File;
 import java.io.IOException;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
-import org.apache.jackrabbit.oak.spi.cluster.ClusterRepositoryInfo;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.apache.jackrabbit.oak.spi.cluster.ClusterRepositoryInfo;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -46,24 +45,25 @@ import org.junit.Test;
  * Tests the ClusterRepositoryInfo unique cluster repository id.
  */
 public class ClusterRepositoryInfoTest {
+
     static BlobStore blobStore;
 
     @Rule
     public DocumentMKBuilderProvider builderProvider = new DocumentMKBuilderProvider();
-    
+
     /**
      * test method to change the clusterId explicitly
-     * 
+     *
      * @throws CommitFailedException
      **/
     private static void setId(NodeStore store, String clusterId) throws CommitFailedException {
         NodeState root = store.getRoot();
         NodeBuilder builder = root.builder();
         builder.child(ClusterRepositoryInfo.CLUSTER_CONFIG_NODE)
-            .setProperty(ClusterRepositoryInfo.CLUSTER_ID_PROP, clusterId);
+               .setProperty(ClusterRepositoryInfo.CLUSTER_ID_PROP, clusterId);
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
-    
+
     @BeforeClass
     public static void setup() {
         try {
@@ -77,17 +77,17 @@ public class ClusterRepositoryInfoTest {
     @Test
     public void differentCluster() throws Exception {
         DocumentNodeStore ds1 = builderProvider.newBuilder()
-                .setAsyncDelay(0)
-                .setDocumentStore(new MemoryDocumentStore())
-                .setBlobStore(blobStore)
-                .getNodeStore();
+                                               .setAsyncDelay(0)
+                                               .setDocumentStore(new MemoryDocumentStore())
+                                               .setBlobStore(blobStore)
+                                               .getNodeStore();
         String repoId1 = ClusterRepositoryInfo.getOrCreateId(ds1);
 
         DocumentNodeStore ds2 = builderProvider.newBuilder()
-                .setAsyncDelay(0)
-                .setDocumentStore(new MemoryDocumentStore())
-                .setBlobStore(blobStore)
-                .getNodeStore();
+                                               .setAsyncDelay(0)
+                                               .setDocumentStore(new MemoryDocumentStore())
+                                               .setBlobStore(blobStore)
+                                               .getNodeStore();
         String repoId2 = ClusterRepositoryInfo.getOrCreateId(ds2);
 
         Assert.assertNotSame(repoId1, repoId2);
@@ -97,20 +97,20 @@ public class ClusterRepositoryInfoTest {
     public void sameCluster() throws Exception {
         MemoryDocumentStore store = new MemoryDocumentStore();
         DocumentNodeStore ds1 = builderProvider.newBuilder()
-                .setAsyncDelay(0)
-                .setDocumentStore(store)
-                .setClusterId(1)
-                .setBlobStore(blobStore)
-                .getNodeStore();
+                                               .setAsyncDelay(0)
+                                               .setDocumentStore(store)
+                                               .setClusterId(1)
+                                               .setBlobStore(blobStore)
+                                               .getNodeStore();
         String repoId1 = ClusterRepositoryInfo.getOrCreateId(ds1);
         ds1.runBackgroundOperations();
 
         DocumentNodeStore ds2 = builderProvider.newBuilder()
-                .setAsyncDelay(0)
-                .setDocumentStore(store)
-                .setClusterId(2)
-                .setBlobStore(blobStore)
-                .getNodeStore();
+                                               .setAsyncDelay(0)
+                                               .setDocumentStore(store)
+                                               .setClusterId(2)
+                                               .setBlobStore(blobStore)
+                                               .getNodeStore();
         String repoId2 = ClusterRepositoryInfo.getOrCreateId(ds2);
 
         // Since the same cluster the ids should be equal
@@ -136,10 +136,10 @@ public class ClusterRepositoryInfoTest {
     public void checkCustomId() throws Exception {
         MemoryDocumentStore store = new MemoryDocumentStore();
         DocumentNodeStore ds1 = builderProvider.newBuilder()
-                .setAsyncDelay(0)
-                .setDocumentStore(store)
-                .setClusterId(1)
-                .getNodeStore();
+                                               .setAsyncDelay(0)
+                                               .setDocumentStore(store)
+                                               .setClusterId(1)
+                                               .getNodeStore();
         String repoId1 = "yyyyyyy";
         setId(ds1, repoId1);
         ds1.runBackgroundOperations();
@@ -152,10 +152,10 @@ public class ClusterRepositoryInfoTest {
     public void checkChangeId() throws Exception {
         MemoryDocumentStore store = new MemoryDocumentStore();
         DocumentNodeStore ds1 = builderProvider.newBuilder()
-                .setAsyncDelay(0)
-                .setDocumentStore(store)
-                .setClusterId(1)
-                .getNodeStore();
+                                               .setAsyncDelay(0)
+                                               .setDocumentStore(store)
+                                               .setClusterId(1)
+                                               .getNodeStore();
         String repoId1 = ClusterRepositoryInfo.getOrCreateId(ds1);
         ds1.runBackgroundOperations();
 
@@ -171,10 +171,10 @@ public class ClusterRepositoryInfoTest {
     public void getId() {
         MemoryDocumentStore store = new MemoryDocumentStore();
         DocumentNodeStore ds1 = builderProvider.newBuilder()
-            .setAsyncDelay(0)
-            .setDocumentStore(store)
-            .setClusterId(1)
-            .getNodeStore();
+                                               .setAsyncDelay(0)
+                                               .setDocumentStore(store)
+                                               .setClusterId(1)
+                                               .getNodeStore();
         String repoId1 = ClusterRepositoryInfo.getOrCreateId(ds1);
         ds1.runBackgroundOperations();
 
@@ -187,10 +187,10 @@ public class ClusterRepositoryInfoTest {
     public void getIdNotSet() {
         MemoryDocumentStore store = new MemoryDocumentStore();
         DocumentNodeStore ds1 = builderProvider.newBuilder()
-            .setAsyncDelay(0)
-            .setDocumentStore(store)
-            .setClusterId(1)
-            .getNodeStore();
+                                               .setAsyncDelay(0)
+                                               .setDocumentStore(store)
+                                               .setClusterId(1)
+                                               .getNodeStore();
         ds1.runBackgroundOperations();
 
         String retrievedId = ClusterRepositoryInfo.getId(ds1);

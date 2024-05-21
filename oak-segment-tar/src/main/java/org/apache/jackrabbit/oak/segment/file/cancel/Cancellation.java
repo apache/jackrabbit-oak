@@ -36,17 +36,16 @@ public class Cancellation {
     }
 
     /**
-     * Returns {@code true} if cancellation has been requested, {@code false}
-     * otherwise.
+     * Returns {@code true} if cancellation has been requested, {@code false} otherwise.
      */
     public boolean isCancelled() {
         return cancelled;
     }
 
     /**
-     * If cancellation has been requested (i.e. if {@link #isCancelled()} is
-     * {@code true}), returns the reason of the cancellation as provided by the
-     * user. Otherwise, an empty {@link Optional} is returned.
+     * If cancellation has been requested (i.e. if {@link #isCancelled()} is {@code true}), returns
+     * the reason of the cancellation as provided by the user. Otherwise, an empty {@link Optional}
+     * is returned.
      */
     public Optional<String> getReason() {
         return Optional.ofNullable(reason);

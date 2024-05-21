@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.jcr.security.privilege;
 
+import static org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest.dispose;
+
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -33,11 +35,10 @@ import javax.jcr.Session;
 import javax.jcr.Workspace;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
-
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
@@ -45,8 +46,6 @@ import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import static org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest.dispose;
 
 /**
  * Test privilege registration.
@@ -68,12 +67,14 @@ public class PrivilegeRegistrationTest extends AbstractPrivilegeTest {
 
         // make sure the guest session has read access
         try {
-            AccessControlUtils.addAccessControlEntry(session, "/", EveryonePrincipal.getInstance(), new String[]{Privilege.JCR_READ}, true);
+            AccessControlUtils.addAccessControlEntry(session, "/", EveryonePrincipal.getInstance(),
+                new String[]{Privilege.JCR_READ}, true);
             session.save();
         } catch (RepositoryException e) {
             // failed to initialize
         }
     }
+
     @After
     public void tearDown() throws Exception {
         try {
@@ -109,7 +110,7 @@ public class PrivilegeRegistrationTest extends AbstractPrivilegeTest {
     @Test
     public void testCustomDefinitionsWithCyclicReferences() throws RepositoryException {
         try {
-            privilegeManager.registerPrivilege("cycl-1", false, new String[] {"cycl-1"});
+            privilegeManager.registerPrivilege("cycl-1", false, new String[]{"cycl-1"});
             fail("Cyclic definitions must be detected upon registration.");
         } catch (RepositoryException e) {
             // success
@@ -124,15 +125,15 @@ public class PrivilegeRegistrationTest extends AbstractPrivilegeTest {
 
         List<String[]> equivalent = new ArrayList<String[]>();
         equivalent.add(new String[]{"custom4", "custom5"});
-        equivalent.add(new String[] {"custom2", "custom4"});
+        equivalent.add(new String[]{"custom2", "custom4"});
         equivalent.add(new String[]{"custom2", "custom5"});
         int cnt = 6;
         for (String[] aggrNames : equivalent) {
             try {
                 // the equivalent definition to 'custom1'
-                String name = "custom"+(cnt++);
+                String name = "custom" + (cnt++);
                 privilegeManager.registerPrivilege(name, false, aggrNames);
-                fail("Equivalent '"+name+"' definitions must be detected.");
+                fail("Equivalent '" + name + "' definitions must be detected.");
             } catch (RepositoryException e) {
                 // success
             }
@@ -143,14 +144,15 @@ public class PrivilegeRegistrationTest extends AbstractPrivilegeTest {
     public void testRegisterBuiltInPrivilege() throws RepositoryException {
         Map<String, String[]> builtIns = new HashMap<String, String[]>();
         builtIns.put(PrivilegeConstants.JCR_READ, new String[0]);
-        builtIns.put(PrivilegeConstants.JCR_LIFECYCLE_MANAGEMENT, new String[] {PrivilegeConstants.JCR_ADD_CHILD_NODES});
+        builtIns.put(PrivilegeConstants.JCR_LIFECYCLE_MANAGEMENT,
+            new String[]{PrivilegeConstants.JCR_ADD_CHILD_NODES});
         builtIns.put(PrivilegeConstants.REP_WRITE, new String[0]);
         builtIns.put(PrivilegeConstants.JCR_ALL, new String[0]);
 
         for (String builtInName : builtIns.keySet()) {
             try {
                 privilegeManager.registerPrivilege(builtInName, false, builtIns.get(builtInName));
-                fail("Privilege name " +builtInName+ " already in use -> Exception expected");
+                fail("Privilege name " + builtInName + " already in use -> Exception expected");
             } catch (RepositoryException e) {
                 // success
             }
@@ -159,7 +161,7 @@ public class PrivilegeRegistrationTest extends AbstractPrivilegeTest {
         for (String builtInName : builtIns.keySet()) {
             try {
                 privilegeManager.registerPrivilege(builtInName, true, builtIns.get(builtInName));
-                fail("Privilege name " +builtInName+ " already in use -> Exception expected");
+                fail("Privilege name " + builtInName + " already in use -> Exception expected");
             } catch (RepositoryException e) {
                 // success
             }
@@ -172,20 +174,26 @@ public class PrivilegeRegistrationTest extends AbstractPrivilegeTest {
         // same as jcr:read
         newAggregates.put("jcrReadAggregate", getAggregateNames(PrivilegeConstants.JCR_READ));
         // aggregated combining built-in and an unknown privilege
-        newAggregates.put("newAggregate2", getAggregateNames(PrivilegeConstants.JCR_READ, "unknownPrivilege"));
+        newAggregates.put("newAggregate2",
+            getAggregateNames(PrivilegeConstants.JCR_READ, "unknownPrivilege"));
         // aggregate containing unknown privilege
         newAggregates.put("newAggregate3", getAggregateNames("unknownPrivilege"));
         // custom aggregated contains itself
         newAggregates.put("newAggregate4", getAggregateNames("newAggregate"));
         // same as rep:write
-        newAggregates.put("repWriteAggregate", getAggregateNames(PrivilegeConstants.JCR_MODIFY_PROPERTIES, PrivilegeConstants.JCR_ADD_CHILD_NODES, PrivilegeConstants.JCR_NODE_TYPE_MANAGEMENT, PrivilegeConstants.JCR_REMOVE_CHILD_NODES, PrivilegeConstants.JCR_REMOVE_NODE));
+        newAggregates.put("repWriteAggregate",
+            getAggregateNames(PrivilegeConstants.JCR_MODIFY_PROPERTIES,
+                PrivilegeConstants.JCR_ADD_CHILD_NODES, PrivilegeConstants.JCR_NODE_TYPE_MANAGEMENT,
+                PrivilegeConstants.JCR_REMOVE_CHILD_NODES, PrivilegeConstants.JCR_REMOVE_NODE));
         // aggregated combining built-in and unknown custom
-        newAggregates.put("newAggregate5", getAggregateNames(PrivilegeConstants.JCR_READ, "unknownPrivilege"));
+        newAggregates.put("newAggregate5",
+            getAggregateNames(PrivilegeConstants.JCR_READ, "unknownPrivilege"));
 
         for (String name : newAggregates.keySet()) {
             try {
                 privilegeManager.registerPrivilege(name, true, newAggregates.get(name));
-                fail("New aggregate "+ name +" referring to unknown Privilege  -> Exception expected");
+                fail("New aggregate " + name
+                    + " referring to unknown Privilege  -> Exception expected");
             } catch (RepositoryException e) {
                 // success
             }
@@ -206,7 +214,7 @@ public class PrivilegeRegistrationTest extends AbstractPrivilegeTest {
         }
 
         Map<String, String[]> newAggregates = new LinkedHashMap<String, String[]>();
-         // other illegal aggregates already represented by registered definition.
+        // other illegal aggregates already represented by registered definition.
         newAggregates.put("newA2", getAggregateNames("new"));
         newAggregates.put("newA3", getAggregateNames("new2"));
 
@@ -216,7 +224,8 @@ public class PrivilegeRegistrationTest extends AbstractPrivilegeTest {
 
             try {
                 privilegeManager.registerPrivilege(name, isAbstract, aggrNames);
-                fail("Invalid aggregation in definition '"+ name.toString()+"' : Exception expected");
+                fail("Invalid aggregation in definition '" + name.toString()
+                    + "' : Exception expected");
             } catch (RepositoryException e) {
                 // success
             }
@@ -232,10 +241,10 @@ public class PrivilegeRegistrationTest extends AbstractPrivilegeTest {
         illegal.put("invalid:privilegeName", new String[0]);
         illegal.put(".e:privilegeName", new String[0]);
         // invalid aggregate names
-        illegal.put("newPrivilege", new String[] {"invalid:privilegeName"});
-        illegal.put("newPrivilege", new String[] {".e:privilegeName"});
-        illegal.put("newPrivilege", new String[] {null});
-        illegal.put("newPrivilege", new String[] {""});
+        illegal.put("newPrivilege", new String[]{"invalid:privilegeName"});
+        illegal.put("newPrivilege", new String[]{".e:privilegeName"});
+        illegal.put("newPrivilege", new String[]{null});
+        illegal.put("newPrivilege", new String[]{""});
 
         for (String illegalName : illegal.keySet()) {
             try {
@@ -262,7 +271,7 @@ public class PrivilegeRegistrationTest extends AbstractPrivilegeTest {
         illegal.put("xml:privilegeName", new String[0]);
         illegal.put("xmlns:privilegeName", new String[0]);
         // invalid aggregate names
-        illegal.put("newPrivilege", new String[] {"jcr:privilegeName"});
+        illegal.put("newPrivilege", new String[]{"jcr:privilegeName"});
 
         for (String illegalName : illegal.keySet()) {
             try {
@@ -277,7 +286,8 @@ public class PrivilegeRegistrationTest extends AbstractPrivilegeTest {
     @Test
     public void testRegisterCustomPrivileges() throws RepositoryException {
         Workspace workspace = session.getWorkspace();
-        workspace.getNamespaceRegistry().registerNamespace("test", "http://www.apache.org/jackrabbit/test");
+        workspace.getNamespaceRegistry()
+                 .registerNamespace("test", "http://www.apache.org/jackrabbit/test");
 
         Map<String, String[]> newCustomPrivs = new HashMap<String, String[]>();
         newCustomPrivs.put("new", new String[0]);
@@ -304,7 +314,8 @@ public class PrivilegeRegistrationTest extends AbstractPrivilegeTest {
         // a new aggregate of custom and built-in privilege
         newAggregates.put("newA1", getAggregateNames("new", PrivilegeConstants.JCR_READ));
         // aggregating built-in privileges
-        newAggregates.put("aggrBuiltIn", getAggregateNames(PrivilegeConstants.JCR_MODIFY_PROPERTIES, PrivilegeConstants.JCR_READ));
+        newAggregates.put("aggrBuiltIn", getAggregateNames(PrivilegeConstants.JCR_MODIFY_PROPERTIES,
+            PrivilegeConstants.JCR_READ));
 
         for (String name : newAggregates.keySet()) {
             boolean isAbstract = false;
@@ -329,7 +340,8 @@ public class PrivilegeRegistrationTest extends AbstractPrivilegeTest {
     @Test
     public void testRegisterCustomPrivilegesVisibleInContent() throws RepositoryException {
         Workspace workspace = session.getWorkspace();
-        workspace.getNamespaceRegistry().registerNamespace("test", "http://www.apache.org/jackrabbit/test");
+        workspace.getNamespaceRegistry()
+                 .registerNamespace("test", "http://www.apache.org/jackrabbit/test");
 
         Map<String, String[]> newCustomPrivs = new HashMap<String, String[]>();
         newCustomPrivs.put("new", new String[0]);
@@ -430,7 +442,8 @@ public class PrivilegeRegistrationTest extends AbstractPrivilegeTest {
         session.save();
 
         JackrabbitAccessControlManager acMgr = (JackrabbitAccessControlManager) session.getAccessControlManager();
-        Privilege[] allPrivileges = AccessControlUtils.privilegesFromNames(session, Privilege.JCR_ALL);
+        Privilege[] allPrivileges = AccessControlUtils.privilegesFromNames(session,
+            Privilege.JCR_ALL);
         Set<Principal> principalSet = ImmutableSet.<Principal>of(EveryonePrincipal.getInstance());
 
         assertTrue(acMgr.hasPrivileges(testPath, principalSet, allPrivileges));
@@ -445,7 +458,8 @@ public class PrivilegeRegistrationTest extends AbstractPrivilegeTest {
         privilegeManager.registerPrivilege("customPriv", false, null);
 
         try {
-            privilegeManager.registerPrivilege("customPriv2", false, new String[]{"customPriv", Privilege.JCR_ALL});
+            privilegeManager.registerPrivilege("customPriv2", false,
+                new String[]{"customPriv", Privilege.JCR_ALL});
             fail("Aggregation containing jcr:all is invalid.");
         } catch (RepositoryException e) {
             // success

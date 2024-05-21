@@ -36,7 +36,7 @@ import static org.apache.jackrabbit.guava.common.collect.ImmutableList.of;
 final class CachingCommitValueResolver implements CommitValueResolver {
 
     private static final List<String> COMMIT_ROOT_OR_REVISIONS
-            = of(NodeDocument.COMMIT_ROOT, NodeDocument.REVISIONS);
+        = of(NodeDocument.COMMIT_ROOT, NodeDocument.REVISIONS);
 
     private final Cache<Revision, String> commitValueCache;
 
@@ -51,17 +51,17 @@ final class CachingCommitValueResolver implements CommitValueResolver {
     }
 
     CommitValueResolver withEmptyCommitValueCache(boolean enable,
-                                                  Clock clock,
-                                                  long maxAgeMillis) {
+        Clock clock,
+        long maxAgeMillis) {
         if (enable) {
             return new CommitValueResolver() {
 
                 private final Cache<Revision, String> emptyCommitValueCache
-                        = newBuilder().maximumSize(cacheSize).build();
+                    = newBuilder().maximumSize(cacheSize).build();
 
                 @Override
                 public String resolve(@NotNull Revision changeRevision,
-                                      @NotNull NodeDocument doc) {
+                    @NotNull NodeDocument doc) {
                     // check cache first
                     String value = commitValueCache.getIfPresent(changeRevision);
                     if (value != null) {
@@ -90,7 +90,7 @@ final class CachingCommitValueResolver implements CommitValueResolver {
 
     @Override
     public String resolve(@NotNull Revision changeRevision,
-                          @NotNull NodeDocument doc) {
+        @NotNull NodeDocument doc) {
         // check cache first
         String value = commitValueCache.getIfPresent(changeRevision);
         if (value != null) {
@@ -153,33 +153,31 @@ final class CachingCommitValueResolver implements CommitValueResolver {
                 commitValueCache.put(changeRevision, value);
             } catch (RuntimeException re) {
                 LoggerFactory.getLogger(getClass()).warn("resolve: RuntimeException with " +
-                        changeRevision + " - " + value, re);
+                    changeRevision + " - " + value, re);
             }
         }
         return value;
     }
 
     /**
-     * Resolves to the document that contains the change with the given
-     * revision. If the given document contains a local change for the given
-     * revision, then the passed document is returned. Otherwise this method
-     * looks up previous documents and returns one with a change for the given
-     * revision. This method returns {@code null} if neither the passed document
-     * nor any of its previous documents contains a change for the given
-     * revision.
+     * Resolves to the document that contains the change with the given revision. If the given
+     * document contains a local change for the given revision, then the passed document is
+     * returned. Otherwise this method looks up previous documents and returns one with a change for
+     * the given revision. This method returns {@code null} if neither the passed document nor any
+     * of its previous documents contains a change for the given revision.
      *
-     * @param doc the document to resolve for the given change revision.
+     * @param doc            the document to resolve for the given change revision.
      * @param changeRevision the revision of a change.
-     * @return the document with the change or {@code null} if there is no
-     *      document with such a change.
+     * @return the document with the change or {@code null} if there is no document with such a
+     * change.
      */
     @Nullable
     private NodeDocument resolveDocument(@NotNull NodeDocument doc,
-                                         @NotNull Revision changeRevision) {
+        @NotNull Revision changeRevision) {
         // check if the document contains the change or we need to
         // look up previous documents for the actual change
         if (doc.getLocalCommitRoot().containsKey(changeRevision)
-                || doc.getLocalRevisions().containsKey(changeRevision)) {
+            || doc.getLocalRevisions().containsKey(changeRevision)) {
             return doc;
         }
         // find the previous document with this change

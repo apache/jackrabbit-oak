@@ -16,20 +16,19 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication;
 
-import javax.security.auth.Subject;
-import javax.security.auth.callback.CallbackHandler;
-import javax.security.auth.login.Configuration;
-import javax.security.auth.login.LoginException;
-
-import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
+
+import javax.security.auth.Subject;
+import javax.security.auth.callback.CallbackHandler;
+import javax.security.auth.login.Configuration;
+import javax.security.auth.login.LoginException;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 public class JaasLoginContextTest {
 
@@ -90,7 +89,8 @@ public class JaasLoginContextTest {
     @Test
     public void testNameSubjectCallbackConstructor() throws Exception {
         Subject subject = new Subject();
-        JaasLoginContext ctx = new JaasLoginContext("name", subject, callbacks -> {});
+        JaasLoginContext ctx = new JaasLoginContext("name", subject, callbacks -> {
+        });
 
         assertEquals(subject, ctx.getSubject());
     }

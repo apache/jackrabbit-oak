@@ -33,7 +33,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.RecordType;
@@ -72,9 +71,11 @@ public class CheckRepositoryTestBase {
         addValidRevision();
     }
 
-    protected void addValidRevision() throws InvalidFileStoreVersionException, IOException, CommitFailedException {
-        FileStore fileStore = FileStoreBuilder.fileStoreBuilder(temporaryFolder.getRoot()).withMaxFileSize(256)
-            .withSegmentCacheSize(64).build();
+    protected void addValidRevision()
+        throws InvalidFileStoreVersionException, IOException, CommitFailedException {
+        FileStore fileStore = FileStoreBuilder.fileStoreBuilder(temporaryFolder.getRoot())
+                                              .withMaxFileSize(256)
+                                              .withSegmentCacheSize(64).build();
 
         SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
         NodeBuilder builder = nodeStore.getRoot().builder();
@@ -98,9 +99,11 @@ public class CheckRepositoryTestBase {
         fileStore.close();
     }
 
-    protected void addInvalidRevision() throws InvalidFileStoreVersionException, IOException, CommitFailedException {
-        FileStore fileStore = FileStoreBuilder.fileStoreBuilder(temporaryFolder.getRoot()).withMaxFileSize(256)
-            .withSegmentCacheSize(64).build();
+    protected void addInvalidRevision()
+        throws InvalidFileStoreVersionException, IOException, CommitFailedException {
+        FileStore fileStore = FileStoreBuilder.fileStoreBuilder(temporaryFolder.getRoot())
+                                              .withMaxFileSize(256)
+                                              .withSegmentCacheSize(64).build();
 
         SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
         NodeBuilder builder = nodeStore.getRoot().builder();
@@ -127,9 +130,11 @@ public class CheckRepositoryTestBase {
         corruptRecord(aRecordId, "data00001a.tar");
     }
 
-    protected void corruptPathFromCheckpoint() throws InvalidFileStoreVersionException, IOException {
-        FileStore fileStore = FileStoreBuilder.fileStoreBuilder(temporaryFolder.getRoot()).withMaxFileSize(256)
-            .withSegmentCacheSize(64).build();
+    protected void corruptPathFromCheckpoint()
+        throws InvalidFileStoreVersionException, IOException {
+        FileStore fileStore = FileStoreBuilder.fileStoreBuilder(temporaryFolder.getRoot())
+                                              .withMaxFileSize(256)
+                                              .withSegmentCacheSize(64).build();
 
         SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
         SegmentNodeState cp1 = (SegmentNodeState) nodeStore.retrieve(checkpoints.iterator().next());
@@ -139,8 +144,10 @@ public class CheckRepositoryTestBase {
         corruptRecord(bRecordId, "data00000a.tar");
     }
 
-    private void corruptRecord(RecordId recordId, String tarFileName) throws FileNotFoundException, IOException {
-        RandomAccessFile file = new RandomAccessFile(new File(temporaryFolder.getRoot(), tarFileName), "rw");
+    private void corruptRecord(RecordId recordId, String tarFileName)
+        throws FileNotFoundException, IOException {
+        RandomAccessFile file = new RandomAccessFile(
+            new File(temporaryFolder.getRoot(), tarFileName), "rw");
 
         String segmentName = recordId.getSegmentId().toString();
         String crtEntryName = "";
@@ -176,7 +183,7 @@ public class CheckRepositoryTestBase {
 
         int segmentRefs = segmentBytes.getInt(14);
 
-        // read the header for our record 
+        // read the header for our record
         int skip = 32 + segmentRefs * 16 + recordId.getRecordNumber() * 9;
         int number = segmentBytes.getInt(skip);
         byte type = segmentBytes.get(skip + 4);
@@ -212,7 +219,8 @@ public class CheckRepositoryTestBase {
         }
     }
 
-    protected static void addChildWithBlobProperties(SegmentNodeStore nodeStore, NodeBuilder builder, String childName,
+    protected static void addChildWithBlobProperties(SegmentNodeStore nodeStore,
+        NodeBuilder builder, String childName,
         int propCount) throws IOException {
         NodeBuilder child = builder.child(childName);
         for (int i = 0; i < propCount; i++) {
@@ -220,7 +228,8 @@ public class CheckRepositoryTestBase {
         }
     }
 
-    protected static void addChildWithProperties(SegmentNodeStore nodeStore, NodeBuilder builder, String childName,
+    protected static void addChildWithProperties(SegmentNodeStore nodeStore, NodeBuilder builder,
+        String childName,
         int propCount) throws IOException {
         NodeBuilder child = builder.child(childName);
         for (int i = 0; i < propCount; i++) {

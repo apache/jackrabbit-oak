@@ -23,9 +23,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.BooleanSupplier;
 
 /**
- * Represents a way to check for a cancellation request. Users of this class
- * (possibly cancelable, long-running operations) should periodically check
- * whether a cancellation request has been received.
+ * Represents a way to check for a cancellation request. Users of this class (possibly cancelable,
+ * long-running operations) should periodically check whether a cancellation request has been
+ * received.
  */
 public class Canceller {
 
@@ -34,8 +34,8 @@ public class Canceller {
     private static final Cancellation NOPE = new Cancellation(false, null);
 
     /**
-     * Create a new {@link Canceller} which is trivially empty. The returned
-     * {@link Canceller} will never relay a positive cancellation request.
+     * Create a new {@link Canceller} which is trivially empty. The returned {@link Canceller} will
+     * never relay a positive cancellation request.
      *
      * @return an instance of {@link Canceller}.
      */
@@ -48,17 +48,16 @@ public class Canceller {
     }
 
     /**
-     * Check if this instance can ever return anything other than {@code NOPE}.
-     * This will be only be false for {@code ROOT} and short circuits thereof.
+     * Check if this instance can ever return anything other than {@code NOPE}. This will be only be
+     * false for {@code ROOT} and short circuits thereof.
      */
     public boolean isCancelable() {
         return (this != ROOT);
     }
 
     /**
-     * Check if cancellation has been requested. This method should be invoked
-     * periodically, and the returned {@link Cancellation} should be inspected
-     * and reacted upon.
+     * Check if cancellation has been requested. This method should be invoked periodically, and the
+     * returned {@link Cancellation} should be inspected and reacted upon.
      *
      * @return an instance of {@link Cancellation}.
      */
@@ -67,10 +66,9 @@ public class Canceller {
     }
 
     /**
-     * Return a new {@link Canceller} based on a boolean predicate. The returned
-     * instance will relay a positive cancellation request when either the
-     * supplied boolean predicate is {@code true} or this {@link Canceller} is
-     * cancelled.
+     * Return a new {@link Canceller} based on a boolean predicate. The returned instance will relay
+     * a positive cancellation request when either the supplied boolean predicate is {@code true} or
+     * this {@link Canceller} is cancelled.
      *
      * @param reason    The reason associated to the boolean condition.
      * @param condition A boolean predicate.
@@ -81,9 +79,9 @@ public class Canceller {
     }
 
     /**
-     * Return a new {@link Canceller} based on time duration. The returned
-     * instance will relay a positive cancellation request when either the
-     * duration expires or this {@link Canceller} is cancelled.
+     * Return a new {@link Canceller} based on time duration. The returned instance will relay a
+     * positive cancellation request when either the duration expires or this {@link Canceller} is
+     * cancelled.
      *
      * @param reason   The reason associated to the boolean condition.
      * @param duration The duration for the timeout.
@@ -95,9 +93,9 @@ public class Canceller {
     }
 
     /**
-     * Create a new {@link Canceller} based on this {@link Canceller}. The
-     * returned instance will be canceled when this instance is canceled, but
-     * will never transition back to an "uncanceled" state.
+     * Create a new {@link Canceller} based on this {@link Canceller}. The returned instance will be
+     * canceled when this instance is canceled, but will never transition back to an "uncanceled"
+     * state.
      *
      * @return a new instance of {@link Canceller}.
      */

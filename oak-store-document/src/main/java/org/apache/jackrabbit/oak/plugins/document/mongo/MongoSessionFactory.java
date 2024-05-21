@@ -23,7 +23,6 @@ import com.mongodb.TransactionOptions;
 import com.mongodb.client.ClientSession;
 import com.mongodb.client.TransactionBody;
 import com.mongodb.session.ServerSession;
-
 import org.bson.BsonDocument;
 import org.bson.BsonTimestamp;
 import org.jetbrains.annotations.NotNull;
@@ -44,11 +43,11 @@ class MongoSessionFactory {
     private BsonTimestamp operationTime;
 
     MongoSessionFactory(@NotNull MongoClient client,
-                        @NotNull MongoClock clock) {
+        @NotNull MongoClock clock) {
         this.client = client;
         this.clock = clock;
         this.options = ClientSessionOptions.builder()
-                .causallyConsistent(true).build();
+                                           .causallyConsistent(true).build();
     }
 
     ClientSession createClientSession() {
@@ -160,7 +159,7 @@ class MongoSessionFactory {
         @NotNull
         @Override
         public <T> T withTransaction(@NotNull TransactionBody<T> transactionBody,
-                                     @NotNull TransactionOptions options) {
+            @NotNull TransactionOptions options) {
             return session.withTransaction(transactionBody, options);
         }
 

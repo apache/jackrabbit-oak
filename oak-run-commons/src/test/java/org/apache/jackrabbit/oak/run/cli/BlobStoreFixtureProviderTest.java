@@ -19,6 +19,13 @@
 
 package org.apache.jackrabbit.oak.run.cli;
 
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
+
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
@@ -26,7 +33,6 @@ import java.io.OutputStream;
 import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.Properties;
-
 import joptsimple.OptionParser;
 import org.apache.commons.io.FileUtils;
 import org.apache.felix.cm.file.ConfigurationHandler;
@@ -38,31 +44,25 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
-
 public class BlobStoreFixtureProviderTest {
 
     @Rule
     public final TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
 
     @Test
-    public void fileDataStore() throws Exception{
+    public void fileDataStore() throws Exception {
         String[] args = {"--fds-path", temporaryFolder.getRoot().getAbsolutePath(), "--read-write"};
-        try (BlobStoreFixture fixture = BlobStoreFixtureProvider.create(createFDSOptions(args))){
-            String blobId = fixture.getBlobStore().writeBlob(new ByteArrayInputStream("foo".getBytes()));
+        try (BlobStoreFixture fixture = BlobStoreFixtureProvider.create(createFDSOptions(args))) {
+            String blobId = fixture.getBlobStore()
+                                   .writeBlob(new ByteArrayInputStream("foo".getBytes()));
             assertNotNull(blobId);
         }
     }
 
     @Test
-    public void readOnlyFileDataStore() throws Exception{
+    public void readOnlyFileDataStore() throws Exception {
         String[] args = {"--fds-path", temporaryFolder.getRoot().getAbsolutePath()};
-        try (BlobStoreFixture fixture = BlobStoreFixtureProvider.create(createFDSOptions(args))){
+        try (BlobStoreFixture fixture = BlobStoreFixtureProvider.create(createFDSOptions(args))) {
             try {
                 BlobStore blobStore = fixture.getBlobStore();
 

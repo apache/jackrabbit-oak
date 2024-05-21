@@ -19,13 +19,12 @@
 
 package org.apache.jackrabbit.oak.run.osgi
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet
 import org.apache.felix.jaas.LoginModuleFactory
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet
 import org.apache.jackrabbit.oak.spi.security.authentication.AbstractLoginModule
 import org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConfiguration
 import org.jetbrains.annotations.NotNull
 import org.junit.Before
-import org.junit.Ignore
 import org.junit.Test
 
 import javax.jcr.Credentials
@@ -37,30 +36,29 @@ import java.security.Principal
 
 import static org.apache.jackrabbit.oak.run.osgi.OakOSGiRepositoryFactory.REPOSITORY_CONFIG
 
-
-class JaasConfigSpiTest extends AbstractRepositoryFactoryTest{
+class JaasConfigSpiTest extends AbstractRepositoryFactoryTest {
     @Before
-    void setupRepo(){
+    void setupRepo() {
         config[REPOSITORY_CONFIG] = [
-                'org.apache.felix.jaas.Configuration.factory-LoginModuleImpl' : [
-                        'jaas.controlFlag' : 'required',
-                        'jaas.classname' : 'org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl'
+                'org.apache.felix.jaas.Configuration.factory-LoginModuleImpl'                      : [
+                        'jaas.controlFlag': 'required',
+                        'jaas.classname'  : 'org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl'
                 ],
-                'org.apache.felix.jaas.ConfigurationSpi' : [
+                'org.apache.felix.jaas.ConfigurationSpi'                                           : [
                         //jaas.globalConfigPolicy defaults to 'default'
-                        'jaas.defaultRealmName' : 'jackrabbit.oak',
-                        'jaas.configProviderName' : 'FelixJaasProvider',
+                        'jaas.defaultRealmName'  : 'jackrabbit.oak',
+                        'jaas.configProviderName': 'FelixJaasProvider',
                 ],
-                'org.apache.jackrabbit.oak.security.authentication.AuthenticationConfigurationImpl' :[
-                        (AuthenticationConfiguration.PARAM_CONFIG_SPI_NAME) : 'FelixJaasProvider'
+                'org.apache.jackrabbit.oak.security.authentication.AuthenticationConfigurationImpl': [
+                        (AuthenticationConfiguration.PARAM_CONFIG_SPI_NAME): 'FelixJaasProvider'
                 ],
-                'org.apache.jackrabbit.oak.jcr.osgi.RepositoryManager' : [:],
-                'org.apache.jackrabbit.oak.segment.SegmentNodeStoreService' : [:]
+                'org.apache.jackrabbit.oak.jcr.osgi.RepositoryManager'                             : [:],
+                'org.apache.jackrabbit.oak.segment.SegmentNodeStoreService'                        : [:]
         ]
     }
 
     @Test
-    public void defaultConfigSpiAuth() throws Exception{
+    public void defaultConfigSpiAuth() throws Exception {
         repository = repositoryFactory.getRepository(config)
         registry.registerService(LoginModuleFactory.class.name, new LoginModuleFactory() {
             @Override
@@ -68,12 +66,11 @@ class JaasConfigSpiTest extends AbstractRepositoryFactoryTest{
                 return new TestLoginModule();
             }
         }, [
-                'jaas.controlFlag' : 'sufficient',
-                'jaas.realmName' : 'jackrabbit.oak',
-                'jaas.ranking' : '150',
+                'jaas.controlFlag': 'sufficient',
+                'jaas.realmName'  : 'jackrabbit.oak',
+                'jaas.ranking'    : '150',
 
         ] as Hashtable)
-
 
 
         Session session = repository.login(new SimpleCredentials("batman", "password".toCharArray()))
@@ -95,10 +92,10 @@ class JaasConfigSpiTest extends AbstractRepositoryFactoryTest{
         @Override
         boolean login() throws LoginException {
             credentials = getCredentials();
-            if(credentials instanceof SimpleCredentials){
-                SimpleCredentials scred = (SimpleCredentials)credentials;
-                if(scred.getPassword() == "password".toCharArray()
-                    && scred.getUserID() == 'batman'){
+            if (credentials instanceof SimpleCredentials) {
+                SimpleCredentials scred = (SimpleCredentials) credentials;
+                if (scred.getPassword() == "password".toCharArray()
+                        && scred.getUserID() == 'batman') {
                     userId = 'admin';
                     principals = getPrincipals(userId);
                     sharedState.put(SHARED_KEY_CREDENTIALS, credentials);

@@ -16,31 +16,31 @@
   -->
 <configuration>
 
-    <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
-        <encoder>
-            <pattern>%date{HH:mm:ss.SSS} %-5level %-40([%thread] %F:%L) %msg%n</pattern>
-        </encoder>
-    </appender>
+  <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <pattern>%date{HH:mm:ss.SSS} %-5level %-40([%thread] %F:%L) %msg%n</pattern>
+    </encoder>
+  </appender>
 
-    <appender name="file" class="ch.qos.logback.core.FileAppender">
-        <file>target/unit-tests.log</file>
-        <encoder>
-            <pattern>%date{HH:mm:ss.SSS} %-5level %-40([%thread] %F:%L) %msg%n</pattern>
-        </encoder>
-    </appender>
+  <appender name="file" class="ch.qos.logback.core.FileAppender">
+    <file>target/unit-tests.log</file>
+    <encoder>
+      <pattern>%date{HH:mm:ss.SSS} %-5level %-40([%thread] %F:%L) %msg%n</pattern>
+    </encoder>
+  </appender>
 
+  <!--
+  <logger name="org.apache.jackrabbit.oak.index.IndexerSupport" level="TRACE"/>
+  -->
+  <!--
+  <logger name="org.apache.jackrabbit.oak.index.indexer.document.flatfile" level="TRACE"/>
+  -->
+
+  <root level="INFO">
     <!--
-    <logger name="org.apache.jackrabbit.oak.index.IndexerSupport" level="TRACE"/>
+    <appender-ref ref="console"/>
     -->
-    <!--
-    <logger name="org.apache.jackrabbit.oak.index.indexer.document.flatfile" level="TRACE"/>
-    -->
-
-    <root level="INFO">
-        <!--
-        <appender-ref ref="console"/>
-        -->
-        <appender-ref ref="file"/>
-    </root>
+    <appender-ref ref="file"/>
+  </root>
 
 </configuration>

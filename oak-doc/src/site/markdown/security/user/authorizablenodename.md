@@ -29,7 +29,7 @@ node, it it's desirable to change this default behavior by plugging a different
 implementation of the `AuthorizableNodeName` interface.
 
 - `AuthorizableNodeName` : Defines the generation of the authorizable node names
-   in case the user management implementation stores user information in the repository.
+  in case the user management implementation stores user information in the repository.
 
 In the default implementation the corresponding configuration parameter is
 `PARAM_AUTHORIZABLE_NODE_NAME`. The default name generator can be replace
@@ -39,7 +39,8 @@ parameters that provide the custom generator implementation.
 
 ### AuthorizableNodeName API
 
-The following public interfaces are provided by Oak in the package `org.apache.jackrabbit.oak.spi.security.user`:
+The following public interfaces are provided by Oak in the
+package `org.apache.jackrabbit.oak.spi.security.user`:
 
 - [AuthorizableNodeName]
 
@@ -59,8 +60,9 @@ to generate a valid JCR name for a given authorizable ID.
 Oak 1.0 provides the following base implementations:
 
 - `AuthorizableNodeName.Default`: Backwards compatible implementation that
-   uses the authorizable ID as name hint.
-- `RandomAuthorizableNodeName`: Generating a random JCR name (see [RandomAuthorizableNodeName].java).
+  uses the authorizable ID as name hint.
+- `RandomAuthorizableNodeName`: Generating a random JCR name (see [RandomAuthorizableNodeName]
+  .java).
 
 ### Pluggability
 
@@ -105,5 +107,7 @@ to the user configuration as follows:
     Repository repo = new Jcr(new Oak()).with(securityProvider).createRepository();
 
 <!-- hidden references -->
+
 [AuthorizableNodeName]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/user/AuthorizableNodeName.html
+
 [RandomAuthorizableNodeName]: /oak/docs/apidocs/org/apache/jackrabbit/oak/security/user/RandomAuthorizableNodeName.html

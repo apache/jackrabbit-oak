@@ -16,12 +16,13 @@
  */
 package org.apache.jackrabbit.oak.jcr.query;
 
+import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.shutdown;
+
 import javax.jcr.Node;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
-
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProvider;
@@ -32,11 +33,9 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.shutdown;
-
 /**
  * Tests the Lucene index using multiple threads.
- * 
+ * <p>
  * See https://issues.apache.org/jira/browse/OAK-837
  */
 public class MultiSessionQueryTest {
@@ -66,7 +65,7 @@ public class MultiSessionQueryTest {
 
     protected Session createAdminSession() throws RepositoryException {
         return repository.login(new SimpleCredentials("admin", "admin"
-                .toCharArray()));
+            .toCharArray()));
     }
 
     @Test

@@ -70,15 +70,16 @@ public class NodeStoreDiffTest {
     @Before
     public void setUp() throws IOException {
         ns = builderProvider.newBuilder()
-                .setDocumentStore(tds)
-                .setUseSimpleRevision(true) //To simplify debugging
-                .setAsyncDelay(0)
-                .memoryCacheSize(0) //Keep the cache size zero such that nodeCache is not used
-                .getNodeStore();
+                            .setDocumentStore(tds)
+                            .setUseSimpleRevision(true) //To simplify debugging
+                            .setAsyncDelay(0)
+                            .memoryCacheSize(
+                                0) //Keep the cache size zero such that nodeCache is not used
+                            .getNodeStore();
     }
 
     @Test
-    public void diffWithConflict() throws Exception{
+    public void diffWithConflict() throws Exception {
         //Last rev on /var would be 1-0-1
         createNodes("/var/a", "/var/b/b1");
 
@@ -101,20 +102,21 @@ public class NodeStoreDiffTest {
         //4. Now merge and commit the changes in b1 and include conflict hooks
         //For now exception would be thrown
         ns.merge(b1,
-                new CompositeHook(
-                        ConflictHook.of(new AnnotatingConflictHandler()),
-                        new EditorHook(new ConflictValidatorProvider())
-                ),
-                CommitInfo.EMPTY);
+            new CompositeHook(
+                ConflictHook.of(new AnnotatingConflictHandler()),
+                new EditorHook(new ConflictValidatorProvider())
+            ),
+            CommitInfo.EMPTY);
     }
 
     /**
-     * This testcase demonstrates that diff logic in merge part traverses node path
-     * which are not affected by the commit
+     * This testcase demonstrates that diff logic in merge part traverses node path which are not
+     * affected by the commit
+     *
      * @throws Exception
      */
     @Test
-    public void testDiff() throws Exception{
+    public void testDiff() throws Exception {
         createNodes("/oak:index/prop-a", "/oak:index/prop-b", "/etc/workflow");
 
         //1. Make some other changes so as to bump root rev=3
@@ -129,7 +131,8 @@ public class NodeStoreDiffTest {
         //3. Merge which does a rebase
         ns.merge(b2, new CommitHook() {
             @NotNull
-            public NodeState processCommit(NodeState before, NodeState after, CommitInfo info) throws CommitFailedException {
+            public NodeState processCommit(NodeState before, NodeState after, CommitInfo info)
+                throws CommitFailedException {
                 NodeBuilder rb = after.builder();
                 createNodes(rb, "/oak:index/prop-a/a1");
 
@@ -166,7 +169,7 @@ public class NodeStoreDiffTest {
 
     // OAK-4403
     @Test
-    public void diffWithPersistedBranch() throws Exception{
+    public void diffWithPersistedBranch() throws Exception {
         createNodes("/content/a", "/etc/x", "var/x", "/etc/y");
 
         //#1 - Start making some changes
@@ -213,7 +216,8 @@ public class NodeStoreDiffTest {
 
         createNodes("/baz");
 
-        DocumentNodeState branchBase = ns.getRoot(branch.getBase().asBranchRevision(ns.getClusterId()));
+        DocumentNodeState branchBase = ns.getRoot(
+            branch.getBase().asBranchRevision(ns.getClusterId()));
 
         tds.reset();
         long diffCacheRequests = diffCacheRequests(ns);
@@ -242,7 +246,7 @@ public class NodeStoreDiffTest {
         return result;
     }
 
-    private void ops(){
+    private void ops() {
         ns.runBackgroundOperations();
     }
 
@@ -253,7 +257,7 @@ public class NodeStoreDiffTest {
     }
 
     private static void createNodes(NodeBuilder builder, String... paths) {
-        for(String path : paths) {
+        for (String path : paths) {
             NodeBuilder cb = builder;
             for (String name : PathUtils.elements(path)) {
                 cb = cb.child(name);
@@ -261,8 +265,8 @@ public class NodeStoreDiffTest {
         }
     }
 
-    private void prRev(NodeState ns){
-        if(ns instanceof DocumentNodeState){
+    private void prRev(NodeState ns) {
+        if (ns instanceof DocumentNodeState) {
             DocumentNodeState dns = ((DocumentNodeState) ns);
             LOG.info("Root at {} ({})", dns.getRootRevision(), dns.getLastRevision());
         }
@@ -270,17 +274,18 @@ public class NodeStoreDiffTest {
 
 
     private static class TestDocumentStore extends MemoryDocumentStore {
+
         final Set<String> paths = Sets.newHashSet();
 
         @Override
         public <T extends Document> T find(Collection<T> collection, String key) {
-            if(collection == Collection.NODES){
+            if (collection == Collection.NODES) {
                 paths.add(Utils.getPathFromId(key));
             }
             return super.find(collection, key);
         }
 
-        void reset(){
+        void reset() {
             paths.clear();
         }
     }

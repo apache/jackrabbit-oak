@@ -24,16 +24,16 @@ import java.util.ArrayList;
  * A mechanism that broadcasts to all registered consumers. It is mainly used for testing.
  */
 public class InMemoryBroadcaster implements Broadcaster {
-    
+
     public static final InMemoryBroadcaster INSTANCE = new InMemoryBroadcaster();
-    
+
     private final ArrayList<Listener> listeners = new ArrayList<Listener>();
 
     @Override
     public void send(ByteBuffer buff) {
         int start = buff.position();
         for (Listener l : listeners) {
-            ((Buffer)buff).position(start);
+            ((Buffer) buff).position(start);
             l.receive(buff);
         }
     }
@@ -52,7 +52,7 @@ public class InMemoryBroadcaster implements Broadcaster {
     public void close() {
         // ignore
     }
-    
+
     @Override
     public void setBroadcastConfig(DynamicBroadcastConfig broadcastConfig) {
         // not yet implemented

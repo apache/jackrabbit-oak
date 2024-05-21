@@ -16,6 +16,10 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.restriction;
 
+import java.security.Principal;
+import javax.jcr.RepositoryException;
+import javax.jcr.ValueFactory;
+import javax.jcr.security.AccessControlManager;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
@@ -24,11 +28,6 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.jetbrains.annotations.NotNull;
-
-import javax.jcr.RepositoryException;
-import javax.jcr.ValueFactory;
-import javax.jcr.security.AccessControlManager;
-import java.security.Principal;
 
 public abstract class AbstractRestrictionTest extends AbstractSecurityTest {
 

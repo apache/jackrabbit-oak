@@ -23,9 +23,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-
 import javax.sql.DataSource;
-
 import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.jetbrains.annotations.NotNull;
@@ -43,17 +41,21 @@ public class RDBConnectionHandler implements Closeable {
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(RDBConnectionHandler.class);
 
     /**
-     * Closing a connection doesn't necessarily imply a {@link Connection#commit()} or {@link Connection#rollback()}.
-     * This becomes a problem when the pool implemented by the {@link DataSource} re-uses the connection, and may
-     * affect subsequent users of that connection. This system property allows to enable a check to be done upon
+     * Closing a connection doesn't necessarily imply a {@link Connection#commit()} or
+     * {@link Connection#rollback()}. This becomes a problem when the pool implemented by the
+     * {@link DataSource} re-uses the connection, and may affect subsequent users of that
+     * connection. This system property allows to enable a check to be done upon
      * {@link #closeConnection(Connection)} so that problems can be detected early rather than late.
      * See also https://issues.apache.org/jira/browse/OAK-2337.
      */
     private static final boolean CHECKCONNECTIONONCLOSE = SystemPropertySupplier
-            .create("org.apache.jackrabbit.oak.plugins.document.rdb.RDBConnectionHandler.CHECKCONNECTIONONCLOSE", Boolean.FALSE)
-            .loggingTo(LOG).formatSetMessage((name, value) -> String
-                    .format("Check connection on close enabled (system property %s set to '%s')", name, value))
-            .get();
+        .create(
+            "org.apache.jackrabbit.oak.plugins.document.rdb.RDBConnectionHandler.CHECKCONNECTIONONCLOSE",
+            Boolean.FALSE)
+        .loggingTo(LOG).formatSetMessage((name, value) -> String
+            .format("Check connection on close enabled (system property %s set to '%s')", name,
+                value))
+        .get();
 
     public RDBConnectionHandler(@NotNull DataSource ds) {
         this.ds = ds;
@@ -142,7 +144,7 @@ public class RDBConnectionHandler implements Closeable {
         DataSource result = this.ds;
         if (result == null) {
             throw new IllegalStateException("Connection handler is already closed ("
-                    + (System.currentTimeMillis() - this.closedTime) + "ms ago)");
+                + (System.currentTimeMillis() - this.closedTime) + "ms ago)");
         }
         return result;
     }
@@ -156,7 +158,8 @@ public class RDBConnectionHandler implements Closeable {
         if (LOG.isDebugEnabled()) {
             long elapsed = System.currentTimeMillis() - ts;
             if (elapsed >= 100) {
-                LOG.debug("Obtaining a new connection from " + this.ds + " took " + elapsed + "ms", new Exception("call stack"));
+                LOG.debug("Obtaining a new connection from " + this.ds + " took " + elapsed + "ms",
+                    new Exception("call stack"));
             }
         }
         return c;
@@ -178,7 +181,7 @@ public class RDBConnectionHandler implements Closeable {
                     this.setReadOnlyThrows = Boolean.FALSE;
                 } catch (SQLException ex) {
                     LOG.error("Connection class " + c.getClass()
-                            + " erroneously throws SQLException on setReadOnly(true); not trying again");
+                        + " erroneously throws SQLException on setReadOnly(true); not trying again");
                     this.setReadOnlyThrows = Boolean.TRUE;
                 }
             } else if (!this.setReadOnlyThrows) {
@@ -192,7 +195,7 @@ public class RDBConnectionHandler implements Closeable {
                     this.setReadWriteThrows = Boolean.FALSE;
                 } catch (SQLException ex) {
                     LOG.error("Connection class " + c.getClass()
-                            + " erroneously throws SQLException on setReadOnly(false); not trying again");
+                        + " erroneously throws SQLException on setReadOnly(false); not trying again");
                     this.setReadWriteThrows = Boolean.TRUE;
                 }
             } else if (!this.setReadWriteThrows) {
@@ -202,6 +205,7 @@ public class RDBConnectionHandler implements Closeable {
     }
 
     private static class ConnectionHolder {
+
         public String thread;
         public String caller;
         public long ts;
@@ -252,8 +256,9 @@ public class RDBConnectionHandler implements Closeable {
                     }
                 }
                 if (cnt > 0) {
-                    LOG.trace(cnt + " connections with age >= " + LOGTHRESHOLD + "ms active while obtaining new connection: "
-                            + sb.toString());
+                    LOG.trace(cnt + " connections with age >= " + LOGTHRESHOLD
+                        + "ms active while obtaining new connection: "
+                        + sb.toString());
                 }
             }
         }
@@ -270,7 +275,8 @@ public class RDBConnectionHandler implements Closeable {
         String prevClass = null;
         for (StackTraceElement e : elements) {
             String cn = e.getClassName();
-            if (!cn.startsWith(RDBConnectionHandler.class.getName()) && !(cn.startsWith(Thread.class.getName()))) {
+            if (!cn.startsWith(RDBConnectionHandler.class.getName()) && !(cn.startsWith(
+                Thread.class.getName()))) {
                 if (sb.length() != 0) {
                     sb.append(" ");
                 }

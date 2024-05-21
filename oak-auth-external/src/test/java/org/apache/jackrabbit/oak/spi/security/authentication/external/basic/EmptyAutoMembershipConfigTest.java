@@ -16,15 +16,15 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.basic;
 
-import org.apache.jackrabbit.api.security.user.Authorizable;
-import org.apache.jackrabbit.api.security.user.Group;
-import org.apache.jackrabbit.api.security.user.UserManager;
-import org.junit.Test;
-
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
+
+import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.jackrabbit.api.security.user.Group;
+import org.apache.jackrabbit.api.security.user.UserManager;
+import org.junit.Test;
 
 public class EmptyAutoMembershipConfigTest {
 
@@ -32,14 +32,14 @@ public class EmptyAutoMembershipConfigTest {
     public void testGetName() {
         assertTrue(AutoMembershipConfig.EMPTY.getName().isEmpty());
     }
-    
+
     @Test
     public void testGetAutoMembership() {
         Authorizable authorizable = mock(Authorizable.class);
         assertTrue(AutoMembershipConfig.EMPTY.getAutoMembership(authorizable).isEmpty());
         verifyNoInteractions(authorizable);
     }
-    
+
     @Test
     public void testGetAutoMembers() {
         UserManager userManager = mock(UserManager.class);

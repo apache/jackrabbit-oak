@@ -21,8 +21,8 @@ package org.apache.jackrabbit.oak.plugins.document.util;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 
 /**
- * A class representing a time interval, with utility methods to derive related
- * intervals, check time stamps for containment, etc.
+ * A class representing a time interval, with utility methods to derive related intervals, check
+ * time stamps for containment, etc.
  */
 public class TimeInterval {
 
@@ -36,10 +36,9 @@ public class TimeInterval {
     }
 
     /**
-     * Shortens the interval to the specified end value, if is contained in the
-     * interval. Returns a single point in time interval when the specified time
-     * is outside the time interval. Return unchanged internal if specified
-     * value beyond end.
+     * Shortens the interval to the specified end value, if is contained in the interval. Returns a
+     * single point in time interval when the specified time is outside the time interval. Return
+     * unchanged internal if specified value beyond end.
      */
     public TimeInterval notLaterThan(long timestampMs) {
         if (timestampMs < toMs) {
@@ -50,10 +49,9 @@ public class TimeInterval {
     }
 
     /**
-     * Shortens the interval to the specified start value, if is contained in
-     * the interval. Returns a single point in time interval when the specified
-     * time is outside the time interval. Return unchanged internal if specified
-     * value before start.
+     * Shortens the interval to the specified start value, if is contained in the interval. Returns
+     * a single point in time interval when the specified time is outside the time interval. Return
+     * unchanged internal if specified value before start.
      */
     public TimeInterval notEarlierThan(long timestampMs) {
         if (fromMs < timestampMs) {
@@ -64,8 +62,8 @@ public class TimeInterval {
     }
 
     /**
-     * Returns a new interval starting at the previous time, but ending after
-     * the specified duration.
+     * Returns a new interval starting at the previous time, but ending after the specified
+     * duration.
      */
     public TimeInterval startAndDuration(long durationMs) {
         return new TimeInterval(fromMs, fromMs + durationMs);
@@ -103,7 +101,7 @@ public class TimeInterval {
 
     @Override
     public int hashCode() {
-        return (int)(fromMs^(fromMs>>>32)^toMs^(toMs>>>32));
+        return (int) (fromMs ^ (fromMs >>> 32) ^ toMs ^ (toMs >>> 32));
     }
 
     @Override

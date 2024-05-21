@@ -22,7 +22,6 @@ import javax.jcr.Node;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.junit.Test;
 
@@ -37,7 +36,8 @@ public class NameAndPathPropertyTest extends AbstractRepositoryTest {
         Session session = getAdminSession();
         Node testRootNode = session.getRootNode().addNode("testRoot");
         try {
-            testRootNode.setProperty("testNameProperty", new String[]{"foobar:test"}, PropertyType.NAME);
+            testRootNode.setProperty("testNameProperty", new String[]{"foobar:test"},
+                PropertyType.NAME);
             session.save();
             fail("adding a MV name property without registered namespace must fail.");
         } catch (RepositoryException e) {
@@ -51,9 +51,9 @@ public class NameAndPathPropertyTest extends AbstractRepositoryTest {
         Node testRootNode = session.getRootNode().addNode("testRoot");
         try {
             testRootNode.setProperty("testPathProperty", new String[]{
-                    "/foobar:test",
-                    "/foobar:test/a",
-                    "/a/foobar:test",
+                "/foobar:test",
+                "/foobar:test/a",
+                "/a/foobar:test",
             }, PropertyType.PATH);
             session.save();
             fail("adding a MV path property without registered namespace must fail.");
@@ -95,7 +95,8 @@ public class NameAndPathPropertyTest extends AbstractRepositoryTest {
         Session session = getAdminSession();
         Node testRootNode = session.getRootNode().addNode("testRoot");
         try {
-            testRootNode.setProperty("testPathProperty", new String[]{"/*/dfsdf"}, PropertyType.PATH);
+            testRootNode.setProperty("testPathProperty", new String[]{"/*/dfsdf"},
+                PropertyType.PATH);
             session.save();
             fail("adding a  path property without registered namespace must fail.");
         } catch (RepositoryException e) {

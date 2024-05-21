@@ -24,9 +24,8 @@ import java.util.Set;
 import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
-
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.junit.After;
 import org.junit.Before;
@@ -64,11 +63,11 @@ public class PrivilegeManagerTest extends AbstractPrivilegeTest {
         }
         assertTrue(set.isEmpty());
     }
-    
+
     @Test
     public void testGetPrivilege() throws RepositoryException {
         Set<String> aggregatedPrivilegeNames = ImmutableSet.of("jcr:read",
-                "jcr:modifyProperties", "jcr:write", "rep:write", "jcr:all");
+            "jcr:modifyProperties", "jcr:write", "rep:write", "jcr:all");
 
         for (Privilege priv : privilegeManager.getRegisteredPrivileges()) {
             String privName = priv.getName();
@@ -83,7 +82,8 @@ public class PrivilegeManagerTest extends AbstractPrivilegeTest {
         assertPrivilege(all, "jcr:all", true, false);
 
         List<Privilege> decl = Arrays.asList(all.getDeclaredAggregatePrivileges());
-        List<Privilege> aggr = new ArrayList<Privilege>(Arrays.asList(all.getAggregatePrivileges()));
+        List<Privilege> aggr = new ArrayList<Privilege>(
+            Arrays.asList(all.getAggregatePrivileges()));
 
         assertFalse(decl.contains(all));
         assertFalse(aggr.contains(all));
@@ -107,16 +107,26 @@ public class PrivilegeManagerTest extends AbstractPrivilegeTest {
         assertTrue(aggr.remove(privilegeManager.getPrivilege(Privilege.JCR_WRITE)));
         assertTrue(aggr.remove(privilegeManager.getPrivilege(PrivilegeConstants.REP_WRITE)));
         assertTrue(aggr.remove(privilegeManager.getPrivilege(PrivilegeConstants.REP_READ_NODES)));
-        assertTrue(aggr.remove(privilegeManager.getPrivilege(PrivilegeConstants.REP_READ_PROPERTIES)));
-        assertTrue(aggr.remove(privilegeManager.getPrivilege(PrivilegeConstants.REP_ADD_PROPERTIES)));
-        assertTrue(aggr.remove(privilegeManager.getPrivilege(PrivilegeConstants.REP_ALTER_PROPERTIES)));
-        assertTrue(aggr.remove(privilegeManager.getPrivilege(PrivilegeConstants.REP_REMOVE_PROPERTIES)));
-        assertTrue(aggr.remove(privilegeManager.getPrivilege(PrivilegeConstants.JCR_NAMESPACE_MANAGEMENT)));
-        assertTrue(aggr.remove(privilegeManager.getPrivilege(PrivilegeConstants.JCR_NODE_TYPE_DEFINITION_MANAGEMENT)));
-        assertTrue(aggr.remove(privilegeManager.getPrivilege(PrivilegeConstants.JCR_WORKSPACE_MANAGEMENT)));
-        assertTrue(aggr.remove(privilegeManager.getPrivilege(PrivilegeConstants.REP_PRIVILEGE_MANAGEMENT)));
-        assertTrue(aggr.remove(privilegeManager.getPrivilege(PrivilegeConstants.REP_USER_MANAGEMENT)));
-        assertTrue(aggr.remove(privilegeManager.getPrivilege(PrivilegeConstants.REP_INDEX_DEFINITION_MANAGEMENT)));
+        assertTrue(
+            aggr.remove(privilegeManager.getPrivilege(PrivilegeConstants.REP_READ_PROPERTIES)));
+        assertTrue(
+            aggr.remove(privilegeManager.getPrivilege(PrivilegeConstants.REP_ADD_PROPERTIES)));
+        assertTrue(
+            aggr.remove(privilegeManager.getPrivilege(PrivilegeConstants.REP_ALTER_PROPERTIES)));
+        assertTrue(
+            aggr.remove(privilegeManager.getPrivilege(PrivilegeConstants.REP_REMOVE_PROPERTIES)));
+        assertTrue(aggr.remove(
+            privilegeManager.getPrivilege(PrivilegeConstants.JCR_NAMESPACE_MANAGEMENT)));
+        assertTrue(aggr.remove(
+            privilegeManager.getPrivilege(PrivilegeConstants.JCR_NODE_TYPE_DEFINITION_MANAGEMENT)));
+        assertTrue(aggr.remove(
+            privilegeManager.getPrivilege(PrivilegeConstants.JCR_WORKSPACE_MANAGEMENT)));
+        assertTrue(aggr.remove(
+            privilegeManager.getPrivilege(PrivilegeConstants.REP_PRIVILEGE_MANAGEMENT)));
+        assertTrue(
+            aggr.remove(privilegeManager.getPrivilege(PrivilegeConstants.REP_USER_MANAGEMENT)));
+        assertTrue(aggr.remove(
+            privilegeManager.getPrivilege(PrivilegeConstants.REP_INDEX_DEFINITION_MANAGEMENT)));
 
         // there may be no privileges left
         assertTrue(aggr.isEmpty());
@@ -149,12 +159,12 @@ public class PrivilegeManagerTest extends AbstractPrivilegeTest {
 
     @Test
     public void testGetPrivilegesFromInvalidName2() throws RepositoryException {
-    	String nonExistingPrivilegeName = "{http://www.nonexisting.com/1.0}nonexisting";
-    	try{
-    		privilegeManager.getPrivilege(nonExistingPrivilegeName);
-    	} catch(AccessControlException e){
-    		//expected
-    	}
+        String nonExistingPrivilegeName = "{http://www.nonexisting.com/1.0}nonexisting";
+        try {
+            privilegeManager.getPrivilege(nonExistingPrivilegeName);
+        } catch (AccessControlException e) {
+            //expected
+        }
     }
 
     @Test

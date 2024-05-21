@@ -16,13 +16,23 @@
  */
 package org.apache.jackrabbit.oak.benchmark.authorization.permission;
 
-import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Lists;
+import static javax.jcr.security.Privilege.JCR_ALL;
+
+import java.security.Principal;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import javax.jcr.Repository;
+import javax.jcr.Session;
+import javax.jcr.security.Privilege;
+import javax.security.auth.Subject;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.benchmark.ReadDeepTreeTest;
 import org.apache.jackrabbit.oak.benchmark.authorization.Utils;
@@ -39,17 +49,6 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.jcr.Repository;
-import javax.jcr.Session;
-import javax.jcr.security.Privilege;
-import javax.security.auth.Subject;
-import java.security.Principal;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-
-import static javax.jcr.security.Privilege.JCR_ALL;
-
 public class EagerCacheSizeTest extends ReadDeepTreeTest {
 
     private static final Logger log = LoggerFactory.getLogger(EagerCacheSizeTest.class);
@@ -59,7 +58,8 @@ public class EagerCacheSizeTest extends ReadDeepTreeTest {
     private final long eagerCacheSize;
     private Subject subject;
 
-    public EagerCacheSizeTest(int itemsToRead, int repeatedRead,  int numberOfACEs, int subjectSize, long eagerCacheSize, boolean doReport) {
+    public EagerCacheSizeTest(int itemsToRead, int repeatedRead, int numberOfACEs, int subjectSize,
+        long eagerCacheSize, boolean doReport) {
         super(false, itemsToRead, doReport, false, repeatedRead);
         this.numberOfACEs = numberOfACEs;
         this.subjectSize = subjectSize;
@@ -72,13 +72,17 @@ public class EagerCacheSizeTest extends ReadDeepTreeTest {
             return ((OakRepositoryFixture) fixture).setUpCluster(1, new JcrCreator() {
                 @Override
                 public Jcr customize(Oak oak) {
-                    ConfigurationParameters params = ConfigurationParameters.of("eagerCacheSize", eagerCacheSize);
-                    SecurityProvider securityProvider = SecurityProviderBuilder.newBuilder().with(ConfigurationParameters.of(AuthorizationConfiguration.NAME, params)).build();
+                    ConfigurationParameters params = ConfigurationParameters.of("eagerCacheSize",
+                        eagerCacheSize);
+                    SecurityProvider securityProvider = SecurityProviderBuilder.newBuilder().with(
+                                                                                   ConfigurationParameters.of(AuthorizationConfiguration.NAME, params))
+                                                                               .build();
                     return new Jcr(oak).with(securityProvider);
                 }
             });
         } else {
-            throw new IllegalArgumentException("Fixture " + fixture + " not supported for this benchmark.");
+            throw new IllegalArgumentException(
+                "Fixture " + fixture + " not supported for this benchmark.");
         }
     }
 
@@ -90,7 +94,7 @@ public class EagerCacheSizeTest extends ReadDeepTreeTest {
         subject = new Subject();
         UserManager userManager = ((JackrabbitSession) adminSession).getUserManager();
         for (int i = 0; i < subjectSize; i++) {
-            User user = userManager.createSystemUser("system_" +i, null);
+            User user = userManager.createSystemUser("system_" + i, null);
             subject.getPrincipals().add(user.getPrincipal());
         }
         adminSession.save();
@@ -103,14 +107,16 @@ public class EagerCacheSizeTest extends ReadDeepTreeTest {
         Utils.addEntry(acMgr, principal, PathUtils.ROOT_PATH, readPrivs);
 
         // create additional ACEs for each principal in the subject
-        List<Privilege> allPrivileges = Lists.newArrayList(acMgr.privilegeFromName(JCR_ALL).getAggregatePrivileges());
+        List<Privilege> allPrivileges = Lists.newArrayList(
+            acMgr.privilegeFromName(JCR_ALL).getAggregatePrivileges());
         Iterator<Principal> principalIterator = Iterators.cycle(subject.getPrincipals());
         int cnt = 0;
         while (cnt < numberOfACEs) {
             if (!principalIterator.hasNext()) {
                 throw new IllegalStateException("Cannot setup ACE. no principals available.");
             }
-            if (Utils.addEntry(acMgr, principalIterator.next(), getRandom(nodePaths), getRandomPrivileges(allPrivileges))) {
+            if (Utils.addEntry(acMgr, principalIterator.next(), getRandom(nodePaths),
+                getRandomPrivileges(allPrivileges))) {
                 cnt++;
             }
         }
@@ -127,7 +133,7 @@ public class EagerCacheSizeTest extends ReadDeepTreeTest {
     protected void afterSuite() throws Exception {
         try {
             Utils.removePrincipals(subject.getPrincipals(), adminSession);
-        }  finally  {
+        } finally {
             super.afterSuite();
         }
     }

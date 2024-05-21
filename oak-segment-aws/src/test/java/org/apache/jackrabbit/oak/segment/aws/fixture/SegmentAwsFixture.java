@@ -23,6 +23,10 @@ import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.amazonaws.services.dynamodbv2.local.embedded.DynamoDBEmbedded;
 import com.amazonaws.services.s3.AmazonS3;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
@@ -34,21 +38,20 @@ import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
-
 public class SegmentAwsFixture extends NodeStoreFixture {
 
-    private static final String AWS_BUCKET_NAME = System.getProperty("oak.segment.aws.bucketName", "oak");
+    private static final String AWS_BUCKET_NAME = System.getProperty("oak.segment.aws.bucketName",
+        "oak");
 
-    private static final String AWS_ROOT_PATH = System.getProperty("oak.segment.aws.rootPath", "/oak");
+    private static final String AWS_ROOT_PATH = System.getProperty("oak.segment.aws.rootPath",
+        "/oak");
 
-    private static final String AWS_JOURNAL_TABLE_NAME = System.getProperty("oak.segment.aws.tableName",
-            "journaltable");
+    private static final String AWS_JOURNAL_TABLE_NAME = System.getProperty(
+        "oak.segment.aws.tableName",
+        "journaltable");
 
-    private static final String AWS_LOCK_TABLE_NAME = System.getProperty("oak.segment.aws.lockTableName", "locktable");
+    private static final String AWS_LOCK_TABLE_NAME = System.getProperty(
+        "oak.segment.aws.lockTableName", "locktable");
 
     private Map<NodeStore, FileStore> fileStoreMap = new HashMap<>();
 
@@ -81,8 +84,9 @@ public class SegmentAwsFixture extends NodeStoreFixture {
                     break;
                 }
             }
-            awsContext = AwsContext.create(s3, bucketName, AWS_ROOT_PATH, ddb, AWS_JOURNAL_TABLE_NAME,
-                    AWS_LOCK_TABLE_NAME);
+            awsContext = AwsContext.create(s3, bucketName, AWS_ROOT_PATH, ddb,
+                AWS_JOURNAL_TABLE_NAME,
+                AWS_LOCK_TABLE_NAME);
             persistence = new AwsPersistence(awsContext);
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -90,7 +94,7 @@ public class SegmentAwsFixture extends NodeStoreFixture {
 
         try {
             FileStore fileStore = FileStoreBuilder.fileStoreBuilder(Files.createTempDir())
-                    .withCustomPersistence(persistence).build();
+                                                  .withCustomPersistence(persistence).build();
             NodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
             fileStoreMap.put(nodeStore, fileStore);
             bucketNameMap.put(nodeStore, bucketName);

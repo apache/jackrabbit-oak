@@ -16,15 +16,14 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.cache;
 
+import java.io.Closeable;
+import java.util.List;
 import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.hash.BloomFilter;
 import org.apache.jackrabbit.guava.common.hash.Funnel;
 import org.apache.jackrabbit.guava.common.hash.PrimitiveSink;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.Closeable;
-import java.util.List;
 
 public class CacheChangesTracker implements Closeable {
 
@@ -40,7 +39,8 @@ public class CacheChangesTracker implements Closeable {
 
     private final LazyBloomFilter lazyBloomFilter;
 
-    CacheChangesTracker(Predicate<String> keyFilter, List<CacheChangesTracker> changeTrackers, int bloomFilterSize) {
+    CacheChangesTracker(Predicate<String> keyFilter, List<CacheChangesTracker> changeTrackers,
+        int bloomFilterSize) {
         this.changeTrackers = changeTrackers;
         this.keyFilter = keyFilter;
         this.lazyBloomFilter = new LazyBloomFilter(bloomFilterSize);
@@ -65,7 +65,8 @@ public class CacheChangesTracker implements Closeable {
             if (lazyBloomFilter.filter == null) {
                 LOG.debug("Disposing CacheChangesTracker for {}, no filter was needed", keyFilter);
             } else {
-                LOG.debug("Disposing CacheChangesTracker for {}, filter fpp was: {}", keyFilter, lazyBloomFilter.filter.expectedFpp());
+                LOG.debug("Disposing CacheChangesTracker for {}, filter fpp was: {}", keyFilter,
+                    lazyBloomFilter.filter.expectedFpp());
             }
         }
     }

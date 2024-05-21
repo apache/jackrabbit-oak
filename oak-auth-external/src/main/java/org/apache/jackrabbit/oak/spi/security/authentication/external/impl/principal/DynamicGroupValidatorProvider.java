@@ -16,6 +16,13 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal.DynamicGroupUtil.findGroupIdInHierarchy;
+import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal.DynamicGroupUtil.isGroup;
+import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal.DynamicGroupUtil.isMemberProperty;
+import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal.DynamicGroupUtil.isMembersType;
+
+import java.util.Set;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -40,16 +47,8 @@ import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.Set;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal.DynamicGroupUtil.findGroupIdInHierarchy;
-import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal.DynamicGroupUtil.isGroup;
-import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal.DynamicGroupUtil.isMemberProperty;
-import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal.DynamicGroupUtil.isMembersType;
-
 class DynamicGroupValidatorProvider extends ValidatorProvider implements ExternalIdentityConstants {
-    
+
     private final RootProvider rootProvider;
     private final TreeProvider treeProvider;
     private final Set<String> idpNamesWithDynamicGroups;
@@ -59,28 +58,32 @@ class DynamicGroupValidatorProvider extends ValidatorProvider implements Externa
     private Root rootAfter;
 
     DynamicGroupValidatorProvider(@NotNull RootProvider rootProvider,
-                                  @NotNull TreeProvider treeProvider,
-                                  @NotNull SecurityProvider securityProvider,
-                                  @NotNull Set<String> idpNamesWithDynamicGroups) {
+        @NotNull TreeProvider treeProvider,
+        @NotNull SecurityProvider securityProvider,
+        @NotNull Set<String> idpNamesWithDynamicGroups) {
         this.rootProvider = rootProvider;
         this.treeProvider = treeProvider;
         this.idpNamesWithDynamicGroups = idpNamesWithDynamicGroups;
 
-        this.groupRootPath = checkNotNull(UserUtil.getAuthorizableRootPath(securityProvider.getParameters(UserConfiguration.NAME), AuthorizableType.GROUP));
+        this.groupRootPath = checkNotNull(
+            UserUtil.getAuthorizableRootPath(securityProvider.getParameters(UserConfiguration.NAME),
+                AuthorizableType.GROUP));
     }
 
     @Override
-    protected @NotNull Validator getRootValidator(NodeState before, NodeState after, CommitInfo info) {
+    protected @NotNull Validator getRootValidator(NodeState before, NodeState after,
+        CommitInfo info) {
         if (idpNamesWithDynamicGroups.isEmpty()) {
             return DefaultValidator.INSTANCE;
         }
-        
+
         this.rootBefore = rootProvider.createReadOnlyRoot(before);
         this.rootAfter = rootProvider.createReadOnlyRoot(after);
-        
-        return new SubtreeValidator(new DynamicGroupValidator(), Iterables.toArray(PathUtils.elements(groupRootPath), String.class));
+
+        return new SubtreeValidator(new DynamicGroupValidator(),
+            Iterables.toArray(PathUtils.elements(groupRootPath), String.class));
     }
-    
+
     private class DynamicGroupValidator extends DefaultValidator {
 
         private Tree parentBefore;
@@ -88,9 +91,11 @@ class DynamicGroupValidatorProvider extends ValidatorProvider implements Externa
 
         boolean isDynamicGroup = false;
 
-        private DynamicGroupValidator() {}
+        private DynamicGroupValidator() {
+        }
 
-        private DynamicGroupValidator(@NotNull Tree parentBefore, @NotNull Tree parentAfter, boolean isDynamicGroup) {
+        private DynamicGroupValidator(@NotNull Tree parentBefore, @NotNull Tree parentAfter,
+            boolean isDynamicGroup) {
             this.parentBefore = parentBefore;
             this.parentAfter = parentAfter;
             this.isDynamicGroup = isDynamicGroup;
@@ -100,7 +105,7 @@ class DynamicGroupValidatorProvider extends ValidatorProvider implements Externa
             this.parentAfter = parentAfter;
             this.isDynamicGroup = isDynamicGroup;
         }
-        
+
         @Override
         public void propertyAdded(PropertyState after) throws CommitFailedException {
             if (isDynamicGroup && isMemberProperty(after)) {
@@ -109,7 +114,8 @@ class DynamicGroupValidatorProvider extends ValidatorProvider implements Externa
         }
 
         @Override
-        public void propertyChanged(PropertyState before, PropertyState after) throws CommitFailedException {
+        public void propertyChanged(PropertyState before, PropertyState after)
+            throws CommitFailedException {
             if (isDynamicGroup && isMemberProperty(before)) {
                 Set<String> refsBefore = Sets.newHashSet(before.getValue(Type.STRINGS));
                 Set<String> refsAfter = Sets.newHashSet(after.getValue(Type.STRINGS));
@@ -151,27 +157,29 @@ class DynamicGroupValidatorProvider extends ValidatorProvider implements Externa
                 return null;
             }
         }
-        
-        private boolean isDynamicGroup(@NotNull DynamicGroupValidator parentValidator, @NotNull Tree tree) {
+
+        private boolean isDynamicGroup(@NotNull DynamicGroupValidator parentValidator,
+            @NotNull Tree tree) {
             if (parentValidator.isDynamicGroup) {
                 return true;
             } else {
                 return isDynamicGroup(tree);
             }
         }
-        
+
         private boolean isDynamicGroup(@NotNull Tree tree) {
             if (UserUtil.isType(tree, AuthorizableType.GROUP)) {
                 PropertyState ps = tree.getProperty(REP_EXTERNAL_ID);
                 if (ps == null) {
                     return false;
                 }
-                String providerName = ExternalIdentityRef.fromString(ps.getValue(Type.STRING)).getProviderName();
+                String providerName = ExternalIdentityRef.fromString(ps.getValue(Type.STRING))
+                                                         .getProviderName();
                 return providerName != null && idpNamesWithDynamicGroups.contains(providerName);
-            } 
+            }
             return false;
         }
-        
+
         private @NotNull Tree getParentBefore() {
             if (parentBefore == null) {
                 parentBefore = rootBefore.getTree(groupRootPath);
@@ -187,7 +195,8 @@ class DynamicGroupValidatorProvider extends ValidatorProvider implements Externa
         }
 
         private @NotNull CommitFailedException commitFailedException(@NotNull Tree tree) {
-            String msg = String.format("Attempt to add members to dynamic group '%s' at '%s'", findGroupIdInHierarchy(tree), tree.getPath());
+            String msg = String.format("Attempt to add members to dynamic group '%s' at '%s'",
+                findGroupIdInHierarchy(tree), tree.getPath());
             return new CommitFailedException(CommitFailedException.CONSTRAINT, 77, msg);
         }
     }

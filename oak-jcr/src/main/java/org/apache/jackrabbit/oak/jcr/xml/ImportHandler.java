@@ -18,9 +18,7 @@ package org.apache.jackrabbit.oak.jcr.xml;
 
 import java.util.HashMap;
 import java.util.Map;
-
 import javax.jcr.RepositoryException;
-
 import org.apache.jackrabbit.commons.NamespaceHelper;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
@@ -37,20 +35,18 @@ import org.xml.sax.SAXParseException;
 import org.xml.sax.helpers.DefaultHandler;
 
 /**
- * An {@code ImportHandler} instance can be used to import serialized
- * data in System View XML or Document View XML. Processing of the XML is
- * handled by specialized {@code ContentHandler}s
- * (i.e. {@code SysViewImportHandler} and {@code DocViewImportHandler}).
+ * An {@code ImportHandler} instance can be used to import serialized data in System View XML or
+ * Document View XML. Processing of the XML is handled by specialized {@code ContentHandler}s (i.e.
+ * {@code SysViewImportHandler} and {@code DocViewImportHandler}).
  * <p>
- * The actual task of importing though is delegated to the implementation of
- * the {@code {@link Importer}} interface.
+ * The actual task of importing though is delegated to the implementation of the
+ * {@code {@link Importer}} interface.
  * <p>
  * <b>Important Note:</b>
  * <p>
- * These SAX Event Handlers expect that Namespace URI's and local names are
- * reported in the {@code start/endElement} events and that
- * {@code start/endPrefixMapping} events are reported
- * (i.e. default SAX2 Namespace processing).
+ * These SAX Event Handlers expect that Namespace URI's and local names are reported in the
+ * {@code start/endElement} events and that {@code start/endPrefixMapping} events are reported (i.e.
+ * default SAX2 Namespace processing).
  */
 public class ImportHandler extends DefaultHandler {
 
@@ -67,7 +63,7 @@ public class ImportHandler extends DefaultHandler {
     private final Map<String, String> tempPrefixMap = new HashMap<String, String>();
 
     public ImportHandler(String absPath, SessionContext sessionContext,
-                         int uuidBehavior, boolean isWorkspaceImport) throws RepositoryException {
+        int uuidBehavior, boolean isWorkspaceImport) throws RepositoryException {
         this.sessionContext = sessionContext;
         this.isWorkspaceImport = isWorkspaceImport;
 
@@ -81,22 +77,22 @@ public class ImportHandler extends DefaultHandler {
     @Override
     public void warning(SAXParseException e) throws SAXException {
         // log exception and carry on...
-        log.warn("warning encountered at line: {}, column: {} while parsing XML stream", 
-				e.getLineNumber(), e.getColumnNumber(), e);
+        log.warn("warning encountered at line: {}, column: {} while parsing XML stream",
+            e.getLineNumber(), e.getColumnNumber(), e);
     }
 
     @Override
     public void error(SAXParseException e) throws SAXException {
         // log exception and carry on...
-        log.error("error encountered at line: {}, column: {} while parsing XML stream", 
-				e.getLineNumber(), e.getColumnNumber(), e);
+        log.error("error encountered at line: {}, column: {} while parsing XML stream",
+            e.getLineNumber(), e.getColumnNumber(), e);
     }
 
     @Override
     public void fatalError(SAXParseException e) throws SAXException {
         // log and re-throw exception
         log.error("fatal error encountered at line: {}, column: {} while parsing XML stream",
-				e.getLineNumber(), e.getColumnNumber(), e);
+            e.getLineNumber(), e.getColumnNumber(), e);
         throw e;
     }
 
@@ -121,23 +117,23 @@ public class ImportHandler extends DefaultHandler {
     }
 
     /**
-     * Records the given namespace mapping to be included in the local
-     * namespace context. The local namespace context is instantiated
-     * in {@link #startElement(String, String, String, Attributes)} using
-     * all the the namespace mappings recorded for the current XML element.
+     * Records the given namespace mapping to be included in the local namespace context. The local
+     * namespace context is instantiated in
+     * {@link #startElement(String, String, String, Attributes)} using all the the namespace
+     * mappings recorded for the current XML element.
      * <p>
-     * The namespace is also recorded in the persistent namespace registry
-     * unless it is already known.
+     * The namespace is also recorded in the persistent namespace registry unless it is already
+     * known.
      *
      * @param prefix namespace prefix
      * @param uri    namespace URI
      */
     @Override
     public void startPrefixMapping(String prefix, String uri)
-            throws SAXException {
+        throws SAXException {
         try {
             new NamespaceHelper(sessionContext.getSession()).registerNamespace(
-                    prefix, uri);
+                prefix, uri);
             if (targetHandler != null) {
                 targetHandler.startPrefixMapping(prefix, uri);
             } else {
@@ -159,7 +155,7 @@ public class ImportHandler extends DefaultHandler {
 
     @Override
     public void startElement(String namespaceURI, String localName, String qName,
-                             Attributes atts) throws SAXException {
+        Attributes atts) throws SAXException {
         if (targetHandler == null) {
             // the namespace of the first element determines the type of XML
             // (system view/document view)
@@ -187,13 +183,12 @@ public class ImportHandler extends DefaultHandler {
     }
 
     /**
-     * Delegates the call to the underlying target handler and asks the
-     * handler to end the current namespace context.
-     * {@inheritDoc}
+     * Delegates the call to the underlying target handler and asks the handler to end the current
+     * namespace context. {@inheritDoc}
      */
     @Override
     public void endElement(String namespaceURI, String localName, String qName)
-            throws SAXException {
+        throws SAXException {
         targetHandler.endElement(namespaceURI, localName, qName);
     }
 

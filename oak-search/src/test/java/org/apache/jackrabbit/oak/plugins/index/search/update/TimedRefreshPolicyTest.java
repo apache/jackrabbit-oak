@@ -20,16 +20,16 @@
 package org.apache.jackrabbit.oak.plugins.index.search.update;
 
 import java.util.concurrent.TimeUnit;
-
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.Test;
 
 public class TimedRefreshPolicyTest {
+
     private final Clock clock = new Clock.Virtual();
     private final RecordingRunnable refreshCallback = new RecordingRunnable();
 
     @Test
-    public void dirtyAndFirstCheck() throws Exception{
+    public void dirtyAndFirstCheck() throws Exception {
         clock.waitUntil(System.currentTimeMillis());
         TimedRefreshPolicy policy = new TimedRefreshPolicy(clock, TimeUnit.SECONDS, 1);
         policy.refreshOnWriteIfRequired(refreshCallback);
@@ -45,7 +45,7 @@ public class TimedRefreshPolicyTest {
     }
 
     @Test
-    public void dirtyAndNotElapsedTimed() throws Exception{
+    public void dirtyAndNotElapsedTimed() throws Exception {
         clock.waitUntil(System.currentTimeMillis());
         TimedRefreshPolicy policy = new TimedRefreshPolicy(clock, TimeUnit.SECONDS, 1);
 
@@ -63,7 +63,7 @@ public class TimedRefreshPolicyTest {
     }
 
     @Test
-    public void dirtyAndElapsedTime() throws Exception{
+    public void dirtyAndElapsedTime() throws Exception {
         clock.waitUntil(System.currentTimeMillis());
         TimedRefreshPolicy policy = new TimedRefreshPolicy(clock, TimeUnit.SECONDS, 1);
 

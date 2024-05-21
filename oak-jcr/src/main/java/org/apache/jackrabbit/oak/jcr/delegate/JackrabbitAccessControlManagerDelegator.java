@@ -22,7 +22,6 @@ package org.apache.jackrabbit.oak.jcr.delegate;
 import java.security.Principal;
 import java.util.Iterator;
 import java.util.Set;
-
 import javax.jcr.AccessDeniedException;
 import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
@@ -30,7 +29,6 @@ import javax.jcr.security.AccessControlException;
 import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.AccessControlPolicyIterator;
 import javax.jcr.security.Privilege;
-
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeCollection;
@@ -39,18 +37,19 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * This implementation of {@code JackrabbitAccessControlManager} delegates back to a
- * delegatee wrapping each call into a {@link SessionOperation} closure.
+ * This implementation of {@code JackrabbitAccessControlManager} delegates back to a delegatee
+ * wrapping each call into a {@link SessionOperation} closure.
  *
  * @see SessionDelegate#perform(SessionOperation)
  */
 public class JackrabbitAccessControlManagerDelegator implements JackrabbitAccessControlManager {
-    
+
     private final JackrabbitAccessControlManager jackrabbitACManager;
     private final SessionDelegate delegate;
     private final AccessControlManagerDelegator jcrACManager;
 
-    public JackrabbitAccessControlManagerDelegator(@NotNull SessionDelegate delegate, @NotNull JackrabbitAccessControlManager acManager) {
+    public JackrabbitAccessControlManagerDelegator(@NotNull SessionDelegate delegate,
+        @NotNull JackrabbitAccessControlManager acManager) {
         this.jackrabbitACManager = acManager;
         this.delegate = delegate;
         this.jcrACManager = new AccessControlManagerDelegator(delegate, acManager);
@@ -58,39 +57,49 @@ public class JackrabbitAccessControlManagerDelegator implements JackrabbitAccess
 
     @NotNull
     @Override
-    public JackrabbitAccessControlPolicy[] getApplicablePolicies(@NotNull final Principal principal) throws RepositoryException {
-        return delegate.perform(new SessionOperation<JackrabbitAccessControlPolicy[]>("getApplicablePolicies") {
-            @Override
-            public JackrabbitAccessControlPolicy @NotNull [] perform() throws RepositoryException {
-                return jackrabbitACManager.getApplicablePolicies(principal);
-            }
-        });
+    public JackrabbitAccessControlPolicy[] getApplicablePolicies(@NotNull final Principal principal)
+        throws RepositoryException {
+        return delegate.perform(
+            new SessionOperation<JackrabbitAccessControlPolicy[]>("getApplicablePolicies") {
+                @Override
+                public JackrabbitAccessControlPolicy @NotNull [] perform()
+                    throws RepositoryException {
+                    return jackrabbitACManager.getApplicablePolicies(principal);
+                }
+            });
     }
 
     @NotNull
     @Override
-    public JackrabbitAccessControlPolicy[] getPolicies(@NotNull final Principal principal) throws RepositoryException {
-        return delegate.perform(new SessionOperation<JackrabbitAccessControlPolicy[]>("getPolicies") {
-            @Override
-            public JackrabbitAccessControlPolicy @NotNull [] perform() throws RepositoryException {
-                return jackrabbitACManager.getPolicies(principal);
-            }
-        });
+    public JackrabbitAccessControlPolicy[] getPolicies(@NotNull final Principal principal)
+        throws RepositoryException {
+        return delegate.perform(
+            new SessionOperation<JackrabbitAccessControlPolicy[]>("getPolicies") {
+                @Override
+                public JackrabbitAccessControlPolicy @NotNull [] perform()
+                    throws RepositoryException {
+                    return jackrabbitACManager.getPolicies(principal);
+                }
+            });
     }
 
     @NotNull
     @Override
-    public AccessControlPolicy[] getEffectivePolicies(@NotNull final Set<Principal> principals) throws RepositoryException {
-        return delegate.perform(new SessionOperation<AccessControlPolicy[]>("getEffectivePolicies") {
-            @Override
-            public AccessControlPolicy @NotNull [] perform() throws RepositoryException {
-                return jackrabbitACManager.getEffectivePolicies(principals);
-            }
-        });
+    public AccessControlPolicy[] getEffectivePolicies(@NotNull final Set<Principal> principals)
+        throws RepositoryException {
+        return delegate.perform(
+            new SessionOperation<AccessControlPolicy[]>("getEffectivePolicies") {
+                @Override
+                public AccessControlPolicy @NotNull [] perform() throws RepositoryException {
+                    return jackrabbitACManager.getEffectivePolicies(principals);
+                }
+            });
     }
 
     @Override
-    public @NotNull Iterator<AccessControlPolicy> getEffectivePolicies(@NotNull final Set<Principal> principals, @Nullable final String... absPaths) throws AccessDeniedException, AccessControlException, UnsupportedRepositoryOperationException, RepositoryException {
+    public @NotNull Iterator<AccessControlPolicy> getEffectivePolicies(
+        @NotNull final Set<Principal> principals, @Nullable final String... absPaths)
+        throws AccessDeniedException, AccessControlException, UnsupportedRepositoryOperationException, RepositoryException {
         return delegate.perform(new SessionOperation<>("getEffectivePolicies(Set,String...)") {
             @Override
             public @NotNull Iterator<AccessControlPolicy> perform() throws RepositoryException {
@@ -100,8 +109,9 @@ public class JackrabbitAccessControlManagerDelegator implements JackrabbitAccess
     }
 
     @Override
-    public boolean hasPrivileges(@Nullable final String absPath, @NotNull final Set<Principal> principals,
-                                 @NotNull final Privilege[] privileges) throws RepositoryException {
+    public boolean hasPrivileges(@Nullable final String absPath,
+        @NotNull final Set<Principal> principals,
+        @NotNull final Privilege[] privileges) throws RepositoryException {
         return delegate.perform(new SessionOperation<Boolean>("hasPrivileges") {
             @NotNull
             @Override
@@ -113,7 +123,8 @@ public class JackrabbitAccessControlManagerDelegator implements JackrabbitAccess
 
     @NotNull
     @Override
-    public Privilege[] getPrivileges(@Nullable final String absPath, @NotNull final Set<Principal> principals) throws RepositoryException {
+    public Privilege[] getPrivileges(@Nullable final String absPath,
+        @NotNull final Set<Principal> principals) throws RepositoryException {
         return delegate.perform(new SessionOperation<Privilege[]>("getPrivileges") {
             @Override
             public Privilege @NotNull [] perform() throws RepositoryException {
@@ -121,38 +132,44 @@ public class JackrabbitAccessControlManagerDelegator implements JackrabbitAccess
             }
         });
     }
-    
+
     @Override
-    public @NotNull PrivilegeCollection getPrivilegeCollection(@Nullable String absPath) throws RepositoryException {
-        return delegate.perform(new SessionOperation<PrivilegeCollection>("getPrivilegeCollection") {
-            @NotNull
-            @Override
-            public PrivilegeCollection perform() throws RepositoryException {
-                return jackrabbitACManager.getPrivilegeCollection(absPath);
-            }
-        });
+    public @NotNull PrivilegeCollection getPrivilegeCollection(@Nullable String absPath)
+        throws RepositoryException {
+        return delegate.perform(
+            new SessionOperation<PrivilegeCollection>("getPrivilegeCollection") {
+                @NotNull
+                @Override
+                public PrivilegeCollection perform() throws RepositoryException {
+                    return jackrabbitACManager.getPrivilegeCollection(absPath);
+                }
+            });
     }
 
     @Override
-    public @NotNull PrivilegeCollection getPrivilegeCollection(@Nullable String absPath, @NotNull Set<Principal> principals) throws RepositoryException {
-        return delegate.perform(new SessionOperation<PrivilegeCollection>("getPrivilegeCollection") {
-            @NotNull
-            @Override
-            public PrivilegeCollection perform() throws RepositoryException {
-                return jackrabbitACManager.getPrivilegeCollection(absPath, principals);
-            }
-        });
+    public @NotNull PrivilegeCollection getPrivilegeCollection(@Nullable String absPath,
+        @NotNull Set<Principal> principals) throws RepositoryException {
+        return delegate.perform(
+            new SessionOperation<PrivilegeCollection>("getPrivilegeCollection") {
+                @NotNull
+                @Override
+                public PrivilegeCollection perform() throws RepositoryException {
+                    return jackrabbitACManager.getPrivilegeCollection(absPath, principals);
+                }
+            });
     }
-    
+
     @Override
-    public @NotNull PrivilegeCollection privilegeCollectionFromNames(@NotNull String... privilegeNames) throws RepositoryException {
-        return delegate.perform(new SessionOperation<PrivilegeCollection>("privilegeCollectionFromNames") {
-            @NotNull
-            @Override
-            public PrivilegeCollection perform() throws RepositoryException {
-                return jackrabbitACManager.privilegeCollectionFromNames(privilegeNames);
-            }
-        });
+    public @NotNull PrivilegeCollection privilegeCollectionFromNames(
+        @NotNull String... privilegeNames) throws RepositoryException {
+        return delegate.perform(
+            new SessionOperation<PrivilegeCollection>("privilegeCollectionFromNames") {
+                @NotNull
+                @Override
+                public PrivilegeCollection perform() throws RepositoryException {
+                    return jackrabbitACManager.privilegeCollectionFromNames(privilegeNames);
+                }
+            });
     }
 
     @Override
@@ -166,7 +183,8 @@ public class JackrabbitAccessControlManagerDelegator implements JackrabbitAccess
     }
 
     @Override
-    public boolean hasPrivileges(String absPath, Privilege[] privileges) throws RepositoryException {
+    public boolean hasPrivileges(String absPath, Privilege[] privileges)
+        throws RepositoryException {
         return jcrACManager.hasPrivileges(absPath, privileges);
     }
 
@@ -186,7 +204,8 @@ public class JackrabbitAccessControlManagerDelegator implements JackrabbitAccess
     }
 
     @Override
-    public AccessControlPolicyIterator getApplicablePolicies(String absPath) throws RepositoryException {
+    public AccessControlPolicyIterator getApplicablePolicies(String absPath)
+        throws RepositoryException {
         return jcrACManager.getApplicablePolicies(absPath);
     }
 
@@ -196,7 +215,8 @@ public class JackrabbitAccessControlManagerDelegator implements JackrabbitAccess
     }
 
     @Override
-    public void removePolicy(String absPath, AccessControlPolicy policy) throws RepositoryException {
+    public void removePolicy(String absPath, AccessControlPolicy policy)
+        throws RepositoryException {
         jcrACManager.removePolicy(absPath, policy);
     }
 }

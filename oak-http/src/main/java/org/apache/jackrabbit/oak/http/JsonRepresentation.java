@@ -16,27 +16,25 @@
  */
 package org.apache.jackrabbit.oak.http;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.math.BigDecimal;
-
-import javax.jcr.PropertyType;
-import javax.servlet.http.HttpServletResponse;
-
-import com.fasterxml.jackson.core.JsonFactory;
-import com.fasterxml.jackson.core.JsonGenerator;
-import org.apache.jackrabbit.oak.api.Blob;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.tika.mime.MediaType;
-
 import static org.apache.jackrabbit.oak.api.Type.BINARIES;
 import static org.apache.jackrabbit.oak.api.Type.BOOLEANS;
 import static org.apache.jackrabbit.oak.api.Type.DECIMALS;
 import static org.apache.jackrabbit.oak.api.Type.DOUBLES;
 import static org.apache.jackrabbit.oak.api.Type.LONGS;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonGenerator;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.math.BigDecimal;
+import javax.jcr.PropertyType;
+import javax.servlet.http.HttpServletResponse;
+import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.tika.mime.MediaType;
 
 class JsonRepresentation implements Representation {
 
@@ -56,7 +54,7 @@ class JsonRepresentation implements Representation {
 
     @Override
     public void render(Tree tree, HttpServletResponse response)
-            throws IOException {
+        throws IOException {
         JsonGenerator generator = startResponse(response);
         render(tree, generator);
         generator.close();
@@ -64,20 +62,20 @@ class JsonRepresentation implements Representation {
 
     @Override
     public void render(PropertyState property, HttpServletResponse response)
-            throws IOException {
+        throws IOException {
         JsonGenerator generator = startResponse(response);
         render(property, generator);
         generator.close();
     }
 
     protected JsonGenerator startResponse(HttpServletResponse response)
-            throws IOException {
+        throws IOException {
         response.setContentType(type.toString());
         return factory.createGenerator(response.getOutputStream());
     }
 
     private static void render(Tree tree, JsonGenerator generator)
-            throws IOException {
+        throws IOException {
         generator.writeStartObject();
         for (PropertyState property : tree.getProperties()) {
             generator.writeFieldName(property.getName());
@@ -92,7 +90,7 @@ class JsonRepresentation implements Representation {
     }
 
     private static void render(PropertyState property, JsonGenerator generator)
-            throws IOException {
+        throws IOException {
         if (property.isArray()) {
             generator.writeStartArray();
             renderValue(property, generator);
@@ -103,7 +101,7 @@ class JsonRepresentation implements Representation {
     }
 
     private static void renderValue(PropertyState property, JsonGenerator generator)
-            throws IOException {
+        throws IOException {
         // TODO: Type info?
         int type = property.getType().tag();
         if (type == PropertyType.BOOLEAN) {

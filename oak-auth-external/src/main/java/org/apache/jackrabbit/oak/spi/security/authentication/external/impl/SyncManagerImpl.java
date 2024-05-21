@@ -31,8 +31,8 @@ import org.osgi.service.component.ComponentContext;
 
 /**
  * {@code SyncManagerImpl} is used to manage registered sync handlers. This class automatically
- * tracks the SyncHandlers that are registered via OSGi but can also be used in non-OSGi environments by manually
- * adding and removing the handlers.
+ * tracks the SyncHandlers that are registered via OSGi but can also be used in non-OSGi
+ * environments by manually adding and removing the handlers.
  */
 @Component(immediate = true)
 @Service
@@ -48,6 +48,7 @@ public class SyncManagerImpl extends AbstractServiceTracker<SyncHandler> impleme
 
     /**
      * Constructor used by non OSGi
+     *
      * @param whiteboard the whiteboard
      */
     public SyncManagerImpl(Whiteboard whiteboard) {
@@ -69,7 +70,7 @@ public class SyncManagerImpl extends AbstractServiceTracker<SyncHandler> impleme
 
     @Override
     public SyncHandler getSyncHandler(@NotNull String name) {
-        for (SyncHandler handler: getServices()) {
+        for (SyncHandler handler : getServices()) {
             if (name.equals(handler.getName())) {
                 return handler;
             }

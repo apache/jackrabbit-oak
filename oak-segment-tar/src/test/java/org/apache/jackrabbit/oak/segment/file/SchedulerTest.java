@@ -28,11 +28,11 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
-
 import org.junit.After;
 import org.junit.Test;
 
 public class SchedulerTest {
+
     private final Scheduler scheduler = new Scheduler("test-scheduler");
 
     @After
@@ -81,6 +81,7 @@ public class SchedulerTest {
 
 
     private static class TestTask implements Runnable {
+
         private final AtomicReference<String> threadName = new AtomicReference<>();
         private final CountDownLatch done;
 

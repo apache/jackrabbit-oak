@@ -26,12 +26,13 @@ import org.osgi.service.component.annotations.Reference;
 
 @Component(configurationPolicy = ConfigurationPolicy.REQUIRE, name = S3DataStoreService.NAME)
 public class S3DataStoreService extends AbstractS3DataStoreService {
+
     @Reference
     private StatisticsProvider statisticsProvider;
 
     public static final String NAME = "org.apache.jackrabbit.oak.plugins.blob.datastore.S3DataStore";
 
-    protected StatisticsProvider getStatisticsProvider(){
+    protected StatisticsProvider getStatisticsProvider() {
         return statisticsProvider;
     }
 

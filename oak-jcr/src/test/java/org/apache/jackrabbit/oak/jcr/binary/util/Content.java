@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.jcr.binary.util;
 
 import static org.apache.jackrabbit.oak.jcr.binary.util.BinaryAccessTestUtils.httpPut;
+
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -27,11 +28,11 @@ import java.net.URI;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Random;
-
 import org.apache.commons.io.IOUtils;
 import org.junit.Assert;
 
 public class Content {
+
     private static final Charset CHARSET = StandardCharsets.UTF_8;
     private final String content;
     private final byte[] bytes;
@@ -42,7 +43,7 @@ public class Content {
     }
 
     public static Content createRandom(long size) {
-          return new Content(getRandomString(size));
+        return new Content(getRandomString(size));
     }
 
     public long size() {
@@ -65,14 +66,19 @@ public class Content {
         Assert.assertEquals(content, writer.toString());
     }
 
-    /** Uploads this data via HTTP PUT to the provided URI and returns the HTTP status code */
+    /**
+     * Uploads this data via HTTP PUT to the provided URI and returns the HTTP status code
+     */
     public int httpPUT(URI uri) throws IOException {
         return httpPut(uri, size(), getStream());
     }
 
-    /** Uploads a sub range of this data via HTTP PUT. */
+    /**
+     * Uploads a sub range of this data via HTTP PUT.
+     */
     public int httpPUT(URI uri, long offset, long length) throws IOException {
-        ByteArrayInputStream partStream = new ByteArrayInputStream(bytes, (int) offset, (int) length);
+        ByteArrayInputStream partStream = new ByteArrayInputStream(bytes, (int) offset,
+            (int) length);
         return httpPut(uri, length, partStream);
     }
 
@@ -90,10 +96,9 @@ public class Content {
                 size -= 256;
             }
             if (size > 0) {
-                writer.write(str256.substring(0, (int)size));
+                writer.write(str256.substring(0, (int) size));
             }
-        }
-        else {
+        } else {
             for (long i = 0; i < size; i++) {
                 writer.append(base.charAt(random.nextInt(base.length())));
             }

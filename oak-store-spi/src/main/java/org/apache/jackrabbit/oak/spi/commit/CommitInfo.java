@@ -23,9 +23,7 @@ import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull
 
 import java.util.Collections;
 import java.util.Map;
-
 import org.apache.jackrabbit.guava.common.base.Objects;
-
 import org.apache.jackrabbit.oak.api.Root;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -38,18 +36,18 @@ public final class CommitInfo {
     public static final String OAK_UNKNOWN = "oak:unknown";
 
     /**
-     * Empty commit information object. Used as a dummy object when no
-     * metadata is known (or needed) about a commit.
+     * Empty commit information object. Used as a dummy object when no metadata is known (or needed)
+     * about a commit.
      */
     public static final CommitInfo EMPTY =
-            new CommitInfo(OAK_UNKNOWN, OAK_UNKNOWN);
+        new CommitInfo(OAK_UNKNOWN, OAK_UNKNOWN);
 
     /**
-     * Empty commit information object to be used for <b>external changes</b>. Used as a dummy object when no
-     * metadata is known (or needed) about a commit.
+     * Empty commit information object to be used for <b>external changes</b>. Used as a dummy
+     * object when no metadata is known (or needed) about a commit.
      */
     public static final CommitInfo EMPTY_EXTERNAL =
-            new CommitInfo(OAK_UNKNOWN, OAK_UNKNOWN, Collections.<String, Object>emptyMap(), true);
+        new CommitInfo(OAK_UNKNOWN, OAK_UNKNOWN, Collections.<String, Object>emptyMap(), true);
 
     private final String sessionId;
 
@@ -65,10 +63,10 @@ public final class CommitInfo {
      * Creates a commit info for the given session and user.
      *
      * @param sessionId session identifier
-     * @param userId The user id.
+     * @param userId    The user id.
      */
     public CommitInfo(
-            @NotNull String sessionId, @Nullable String userId) {
+        @NotNull String sessionId, @Nullable String userId) {
         this(sessionId, userId, Collections.<String, Object>emptyMap());
     }
 
@@ -76,21 +74,24 @@ public final class CommitInfo {
      * Creates a commit info for the given session and user and info map.
      *
      * @param sessionId session identifier
-     * @param userId The user id.
-     * @param info info map
+     * @param userId    The user id.
+     * @param info      info map
      */
-    public CommitInfo(@NotNull String sessionId, @Nullable String userId, Map<String, Object> info) {
+    public CommitInfo(@NotNull String sessionId, @Nullable String userId,
+        Map<String, Object> info) {
         this(sessionId, userId, info, false);
     }
 
     /**
      * Creates a commit info for the given session and user and info map.
-     *  @param sessionId session identifier
-     * @param userId The user id.
-     * @param info info map
-     * @param external indicates if the commit info is from external change
+     *
+     * @param sessionId session identifier
+     * @param userId    The user id.
+     * @param info      info map
+     * @param external  indicates if the commit info is from external change
      */
-    public CommitInfo(@NotNull String sessionId, @Nullable String userId, Map<String, Object> info, boolean external) {
+    public CommitInfo(@NotNull String sessionId, @Nullable String userId, Map<String, Object> info,
+        boolean external) {
         this.sessionId = checkNotNull(sessionId);
         this.userId = (userId == null) ? OAK_UNKNOWN : userId;
         this.info = checkNotNull(info);
@@ -98,7 +99,7 @@ public final class CommitInfo {
     }
 
     /**
-     * @return  id of the committing session
+     * @return id of the committing session
      */
     @NotNull
     public String getSessionId() {
@@ -106,7 +107,7 @@ public final class CommitInfo {
     }
 
     /**
-     * @return  user id of the committing user
+     * @return user id of the committing user
      */
     @NotNull
     public String getUserId() {
@@ -114,15 +115,14 @@ public final class CommitInfo {
     }
 
     /**
-     * @return  time stamp
+     * @return time stamp
      */
     public long getDate() {
         return date;
     }
 
     /**
-     * Return a flag indicating whether this is commit info is
-     * for an external change
+     * Return a flag indicating whether this is commit info is for an external change
      *
      * @return true if commit info is for an external change
      */
@@ -131,15 +131,11 @@ public final class CommitInfo {
     }
 
     /**
-
-    /**
-     * Returns the base path of this commit. All changes within this commit
-     * are expected to be located within the returned path. By default this
-     * is the root path, but a particular commit can declare a more specific
-     * base path to indicate that only changes within that subtree should
-     * be considered. Note that this value is purely informational and its
-     * interpretation depends on the kinds of commit hooks and observers
-     * present on the system.
+     * /** Returns the base path of this commit. All changes within this commit are expected to be
+     * located within the returned path. By default this is the root path, but a particular commit
+     * can declare a more specific base path to indicate that only changes within that subtree
+     * should be considered. Note that this value is purely informational and its interpretation
+     * depends on the kinds of commit hooks and observers present on the system.
      *
      * @return base path of this commit
      */
@@ -150,7 +146,8 @@ public final class CommitInfo {
 
     /**
      * Return the info map
-     * @return  info map
+     *
+     * @return info map
      */
     public Map<String, Object> getInfo() {
         return info;
@@ -165,10 +162,10 @@ public final class CommitInfo {
         } else if (object instanceof CommitInfo) {
             CommitInfo that = (CommitInfo) object;
             return sessionId.equals(that.sessionId)
-                    && userId.equals(that.userId)
-                    && this.date == that.date
-                    && this.external == that.external
-                    && info.equals(that.info);
+                && userId.equals(that.userId)
+                && this.date == that.date
+                && this.external == that.external
+                && info.equals(that.info);
         } else {
             return false;
         }
@@ -182,12 +179,12 @@ public final class CommitInfo {
     @Override
     public String toString() {
         return toStringHelper(this).omitNullValues()
-                .add("sessionId", sessionId)
-                .add("userId", userId)
-                .add("external", external)
-                .add("date", date)
-                .add("info", info)
-                .toString();
+                                   .add("sessionId", sessionId)
+                                   .add("userId", userId)
+                                   .add("external", external)
+                                   .add("date", date)
+                                   .add("info", info)
+                                   .toString();
     }
 
 }

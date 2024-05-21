@@ -25,8 +25,7 @@ import java.util.ArrayList;
 /**
  * A parser for fulltext condition literals. The grammar is defined in the
  * <a href="https://s.apache.org/jcr-2.0-spec/6_Query.html#6.7.19">
- * JCR 2.0 specification, 6.7.19 FullTextSearch</a>,
- * as follows (a bit simplified):
+ * JCR 2.0 specification, 6.7.19 FullTextSearch</a>, as follows (a bit simplified):
  * <pre>
  * FullTextSearchLiteral ::= Disjunct {' OR ' Disjunct}
  * Disjunct ::= Term {' ' Term}
@@ -37,10 +36,9 @@ import java.util.ArrayList;
 public class FullTextParser {
 
     /**
-     * Compatibility for Jackrabbit 2.0 single quoted phrase queries.
-     * (contains(., "word ''hello world'' word")
-     * These are queries that delimit a phrase with a single quote
-     * instead, as in the spec, using double quotes.
+     * Compatibility for Jackrabbit 2.0 single quoted phrase queries. (contains(., "word ''hello
+     * world'' word") These are queries that delimit a phrase with a single quote instead, as in the
+     * spec, using double quotes.
      */
     private static final boolean JACKRABBIT_2_SINGLE_QUOTED_PHRASE = true;
 
@@ -92,7 +90,7 @@ public class FullTextParser {
         StringBuilder buff = new StringBuilder();
         char c = text.charAt(parseIndex);
         if (c == '-' && parseIndex < text.length() - 1 &&
-                text.charAt(parseIndex + 1) != ' ') {
+            text.charAt(parseIndex + 1) != ' ') {
             c = text.charAt(++parseIndex);
             not = true;
         }

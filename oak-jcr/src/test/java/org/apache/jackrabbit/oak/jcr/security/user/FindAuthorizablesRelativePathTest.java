@@ -20,7 +20,6 @@ import java.security.Principal;
 import java.util.Iterator;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
-
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
@@ -47,8 +46,8 @@ public class FindAuthorizablesRelativePathTest extends AbstractUserTest {
         gr = userMgr.createGroup(p);
 
         Value[] vs = new Value[]{
-                superuser.getValueFactory().createValue("v1"),
-                superuser.getValueFactory().createValue("v2")
+            superuser.getValueFactory().createValue("v1"),
+            superuser.getValueFactory().createValue("v2")
         };
         relPath = "relPath/" + propertyName1;
         relPath2 = "another/" + propertyName1;
@@ -66,12 +65,13 @@ public class FindAuthorizablesRelativePathTest extends AbstractUserTest {
                 gr.remove();
                 superuser.save();
             }
-        } finally{
+        } finally {
             super.tearDown();
         }
     }
 
-    private static void assertSingleResult(Iterator<Authorizable> result, String expectedId) throws RepositoryException {
+    private static void assertSingleResult(Iterator<Authorizable> result, String expectedId)
+        throws RepositoryException {
         assertTrue("expected result", result.hasNext());
         assertEquals(expectedId, result.next().getID());
         assertFalse("expected no more results", result.hasNext());

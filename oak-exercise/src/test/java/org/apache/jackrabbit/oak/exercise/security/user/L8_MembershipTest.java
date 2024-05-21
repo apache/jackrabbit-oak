@@ -16,12 +16,15 @@
  */
 package org.apache.jackrabbit.oak.exercise.security.user;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import javax.jcr.RepositoryException;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -32,13 +35,9 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.exercise.ExerciseUtility;
-import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 /**
  * <pre>
@@ -178,7 +177,8 @@ public class L8_MembershipTest extends AbstractSecurityTest {
 
     private Authorizable createNewAuthorizable(boolean isGroup) throws RepositoryException {
         UserManager uMgr = getUserManager(root);
-        Authorizable a = (isGroup) ? ExerciseUtility.createTestGroup(uMgr) : ExerciseUtility.createTestUser(uMgr);
+        Authorizable a = (isGroup) ? ExerciseUtility.createTestGroup(uMgr)
+            : ExerciseUtility.createTestUser(uMgr);
         toRemove.add(a);
         return a;
     }
@@ -276,7 +276,8 @@ public class L8_MembershipTest extends AbstractSecurityTest {
         root.commit();
 
         Tree groupTree = root.getTree(group.getPath());
-        Iterator<String> values = groupTree.getProperty(UserConstants.REP_MEMBERS).getValue(Type.STRINGS).iterator();
+        Iterator<String> values = groupTree.getProperty(UserConstants.REP_MEMBERS)
+                                           .getValue(Type.STRINGS).iterator();
         while (values.hasNext()) {
             assertTrue(memberUuids.remove(values.next()));
         }

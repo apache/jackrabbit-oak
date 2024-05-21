@@ -22,7 +22,6 @@ import java.io.InputStream;
 import java.math.BigDecimal;
 import java.util.Calendar;
 import java.util.List;
-
 import javax.jcr.AccessDeniedException;
 import javax.jcr.Binary;
 import javax.jcr.ItemNotFoundException;
@@ -38,7 +37,6 @@ import javax.jcr.ValueFormatException;
 import javax.jcr.nodetype.PropertyDefinition;
 import javax.jcr.version.OnParentVersionAction;
 import javax.jcr.version.VersionException;
-
 import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
@@ -54,6 +52,7 @@ import org.slf4j.LoggerFactory;
  * TODO document
  */
 public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property {
+
     private static final Logger LOG = LoggerFactory.getLogger(PropertyImpl.class);
 
     private static final Value[] NO_VALUES = new Value[0];
@@ -109,9 +108,10 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
             @Override
             public void checkPreconditions() throws RepositoryException {
                 super.checkPreconditions();
-                if (!parentIsCheckedOut() && getDefinition().getOnParentVersion() != OnParentVersionAction.IGNORE) {
+                if (!parentIsCheckedOut()
+                    && getDefinition().getOnParentVersion() != OnParentVersionAction.IGNORE) {
                     throw new VersionException(
-                            "Cannot set property. Node is checked in.");
+                        "Cannot set property. Node is checked in.");
                 }
             }
 
@@ -177,7 +177,8 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
         }
     }
 
-    @Override @SuppressWarnings("deprecation")
+    @Override
+    @SuppressWarnings("deprecation")
     public void setValue(InputStream value) throws RepositoryException {
         if (value == null) {
             remove();
@@ -244,8 +245,9 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
             @NotNull
             @Override
             public Value perform() throws RepositoryException {
-                return new PartialValueFactory(sessionContext, sessionContext.getBlobAccessProvider())
-                        .createValue(property.getSingleState());
+                return new PartialValueFactory(sessionContext,
+                    sessionContext.getBlobAccessProvider())
+                    .createValue(property.getSingleState());
             }
         });
     }
@@ -257,8 +259,9 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
             @NotNull
             @Override
             public List<Value> perform() throws RepositoryException {
-                return new PartialValueFactory(sessionContext, sessionContext.getBlobAccessProvider())
-                        .createValues(property.getMultiState());
+                return new PartialValueFactory(sessionContext,
+                    sessionContext.getBlobAccessProvider())
+                    .createValues(property.getMultiState());
             }
         }).toArray(NO_VALUES);
     }
@@ -330,10 +333,10 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
                             // identifier path
                             String identifier = path.substring(1, path.length() - 1);
                             return getSession().getNodeByIdentifier(identifier);
-                        }
-                        else {
+                        } else {
                             try {
-                                return (path.charAt(0) == '/') ? getSession().getNode(path) : getParent().getNode(path);
+                                return (path.charAt(0) == '/') ? getSession().getNode(path)
+                                    : getParent().getNode(path);
                             } catch (PathNotFoundException e) {
                                 throw new ItemNotFoundException(path);
                             }
@@ -341,23 +344,27 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
 
                     case PropertyType.STRING:
                         try {
-                            Value refValue = ValueHelper.convert(value, PropertyType.REFERENCE, getValueFactory());
+                            Value refValue = ValueHelper.convert(value, PropertyType.REFERENCE,
+                                getValueFactory());
                             return getSession().getNodeByIdentifier(refValue.getString());
                         } catch (ItemNotFoundException e) {
                             throw e;
                         } catch (RepositoryException e) {
                             // try if STRING value can be interpreted as PATH value
-                            Value pathValue = ValueHelper.convert(value, PropertyType.PATH, getValueFactory());
+                            Value pathValue = ValueHelper.convert(value, PropertyType.PATH,
+                                getValueFactory());
                             path = pathValue.getString();
                             try {
-                                return (path.charAt(0) == '/') ? getSession().getNode(path) : getParent().getNode(path);
+                                return (path.charAt(0) == '/') ? getSession().getNode(path)
+                                    : getParent().getNode(path);
                             } catch (PathNotFoundException e1) {
                                 throw new ItemNotFoundException(pathValue.getString());
                             }
                         }
 
                     default:
-                        throw new ValueFormatException("Property value cannot be converted to a PATH, REFERENCE or WEAKREFERENCE");
+                        throw new ValueFormatException(
+                            "Property value cannot be converted to a PATH, REFERENCE or WEAKREFERENCE");
                 }
             }
         });
@@ -375,7 +382,8 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
                 Value pathValue = ValueHelper.convert(value, PropertyType.PATH, getValueFactory());
                 String path = pathValue.getString();
                 try {
-                    return (path.charAt(0) == '/') ? getSession().getProperty(path) : getParent().getProperty(path);
+                    return (path.charAt(0) == '/') ? getSession().getProperty(path)
+                        : getParent().getProperty(path);
                 } catch (PathNotFoundException e) {
                     throw new ItemNotFoundException(path);
                 }
@@ -408,8 +416,8 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
             @Override
             public PropertyDefinition perform() throws RepositoryException {
                 return getNodeTypeManager().getDefinition(
-                        property.getParent().getTree(),
-                        property.getPropertyState(), true);
+                    property.getParent().getTree(),
+                    property.getPropertyState(), true);
             }
         });
     }
@@ -454,14 +462,15 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
     }
 
     private void internalSetValue(@NotNull final Value value)
-            throws RepositoryException {
+        throws RepositoryException {
         sessionDelegate.performVoid(new ItemWriteOperation<Void>("internalSetValue") {
             @Override
             public void checkPreconditions() throws RepositoryException {
                 super.checkPreconditions();
-                if (!parentIsCheckedOut() && getDefinition().getOnParentVersion() != OnParentVersionAction.IGNORE) {
+                if (!parentIsCheckedOut()
+                    && getDefinition().getOnParentVersion() != OnParentVersionAction.IGNORE) {
                     throw new VersionException(
-                            "Cannot set property. Node is checked in.");
+                        "Cannot set property. Node is checked in.");
                 }
             }
 
@@ -470,11 +479,11 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
                 Type<?> type = dlg.getPropertyState().getType();
                 if (type.isArray()) {
                     throw new ValueFormatException(
-                            "This is a multi-valued property");
+                        "This is a multi-valued property");
                 }
 
                 Value converted = ValueHelper.convert(
-                        value, type.tag(), getValueFactory());
+                    value, type.tag(), getValueFactory());
                 dlg.setState(createSingleState(dlg.getName(), converted, type));
             }
 
@@ -486,18 +495,20 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
     }
 
     private void internalSetValue(@NotNull final Value[] values)
-            throws RepositoryException {
+        throws RepositoryException {
         if (values.length > MV_PROPERTY_WARN_THRESHOLD) {
-            LOG.warn("Large multi valued property [{}] detected ({} values).",dlg.getPath(), values.length);
+            LOG.warn("Large multi valued property [{}] detected ({} values).", dlg.getPath(),
+                values.length);
         }
 
         sessionDelegate.performVoid(new ItemWriteOperation<Void>("internalSetValue") {
             @Override
             public void checkPreconditions() throws RepositoryException {
                 super.checkPreconditions();
-                if (!parentIsCheckedOut() && getDefinition().getOnParentVersion() != OnParentVersionAction.IGNORE) {
+                if (!parentIsCheckedOut()
+                    && getDefinition().getOnParentVersion() != OnParentVersionAction.IGNORE) {
                     throw new VersionException(
-                            "Cannot set property. Node is checked in.");
+                        "Cannot set property. Node is checked in.");
                 }
             }
 
@@ -506,7 +517,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
                 Type<?> type = dlg.getPropertyState().getType();
                 if (!type.isArray()) {
                     throw new ValueFormatException(
-                            "This is a single-valued property");
+                        "This is a single-valued property");
                 }
 
                 List<Value> converted = newArrayListWithCapacity(values.length);
@@ -514,7 +525,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
                 for (Value value : values) {
                     if (value != null) {
                         converted.add(ValueHelper.convert(
-                                value, type.tag(), factory));
+                            value, type.tag(), factory));
                     }
                 }
                 dlg.setState(createMultiState(dlg.getName(), converted, type));
@@ -532,7 +543,9 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
     }
 
     @NotNull
-    private static NodeImpl<? extends NodeDelegate> internalGetParent(@NotNull PropertyDelegate propertyDlg, @NotNull SessionContext sessionContext) throws RepositoryException {
+    private static NodeImpl<? extends NodeDelegate> internalGetParent(
+        @NotNull PropertyDelegate propertyDlg, @NotNull SessionContext sessionContext)
+        throws RepositoryException {
         NodeDelegate parent = propertyDlg.getParent();
         if (parent == null) {
             throw new AccessDeniedException();

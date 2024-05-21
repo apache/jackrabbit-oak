@@ -17,11 +17,9 @@
 package org.apache.jackrabbit.oak.plugins.document.locks;
 
 import java.util.concurrent.locks.Lock;
-
+import org.apache.jackrabbit.guava.common.util.concurrent.Striped;
 import org.apache.jackrabbit.oak.plugins.document.Path;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
-
-import org.apache.jackrabbit.guava.common.util.concurrent.Striped;
 
 public class StripedNodeDocumentLocks implements NodeDocumentLocks {
 

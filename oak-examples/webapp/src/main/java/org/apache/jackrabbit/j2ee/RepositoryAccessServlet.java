@@ -16,10 +16,6 @@
  */
 package org.apache.jackrabbit.j2ee;
 
-import org.apache.jackrabbit.rmi.client.ClientRepositoryFactory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -29,17 +25,19 @@ import java.net.MalformedURLException;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.util.Properties;
-
 import javax.jcr.Repository;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
+import org.apache.jackrabbit.rmi.client.ClientRepositoryFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
- * This Class implements a servlet that is used as unified mechanism to retrieve
- * a jcr repository either through JNDI or RMI.
+ * This Class implements a servlet that is used as unified mechanism to retrieve a jcr repository
+ * either through JNDI or RMI.
  */
 public class RepositoryAccessServlet extends HttpServlet {
 
@@ -84,33 +82,35 @@ public class RepositoryAccessServlet extends HttpServlet {
     private Repository repository;
 
     /**
-     * Initializes the servlet.<br>
-     * Please note that only one repository startup servlet may exist per
-     * webapp. it registers itself as context attribute and acts as singleton.
+     * Initializes the servlet.<br> Please note that only one repository startup servlet may exist
+     * per webapp. it registers itself as context attribute and acts as singleton.
      *
-     * @throws ServletException if a same servlet is already registered or of
-     * another initialization error occurs.
+     * @throws ServletException if a same servlet is already registered or of another initialization
+     *                          error occurs.
      */
     public void init() throws ServletException {
         // check if servlet is defined twice
-        if (getServletContext().getAttribute(CTX_PARAM_THIS) !=  null) {
+        if (getServletContext().getAttribute(CTX_PARAM_THIS) != null) {
             throw new ServletException("Only one repository access servlet allowed per web-app.");
         }
         getServletContext().setAttribute(CTX_PARAM_THIS, this);
 
-        repositoryContextAttributeName = getServletConfig().getInitParameter("repository.context.attribute.name");
+        repositoryContextAttributeName = getServletConfig().getInitParameter(
+            "repository.context.attribute.name");
 
         log.info("RepositoryAccessServlet initialized.");
     }
 
     /**
      * Returns the instance of this servlet
+     *
      * @param ctx the servlet context
      * @return this servlet
      */
     public static RepositoryAccessServlet getInstance(ServletContext ctx) {
-        final RepositoryAccessServlet instance = (RepositoryAccessServlet) ctx.getAttribute(CTX_PARAM_THIS);
-        if(instance==null) {
+        final RepositoryAccessServlet instance = (RepositoryAccessServlet) ctx.getAttribute(
+            CTX_PARAM_THIS);
+        if (instance == null) {
             throw new IllegalStateException(
                 "No RepositoryAccessServlet instance in ServletContext, RepositoryAccessServlet servlet not initialized?"
             );
@@ -120,6 +120,7 @@ public class RepositoryAccessServlet extends HttpServlet {
 
     /**
      * Returns the bootstrap config
+     *
      * @return the bootstrap config
      * @throws ServletException if the config is not valid
      */
@@ -142,7 +143,7 @@ public class RepositoryAccessServlet extends HttpServlet {
                             in = new FileInputStream(file);
                         } catch (FileNotFoundException e) {
                             throw new ServletExceptionWithCause(
-                                    "Bootstrap configuration not found: " + bstrp, e);
+                                "Bootstrap configuration not found: " + bstrp, e);
                         }
                     }
                 }
@@ -151,7 +152,7 @@ public class RepositoryAccessServlet extends HttpServlet {
                         bootstrapProps.load(in);
                     } catch (IOException e) {
                         throw new ServletExceptionWithCause(
-                                "Bootstrap configuration failure: " + bstrp, e);
+                            "Bootstrap configuration failure: " + bstrp, e);
                     } finally {
                         try {
                             in.close();
@@ -169,7 +170,7 @@ public class RepositoryAccessServlet extends HttpServlet {
             tmpConfig.validate();
             if (!tmpConfig.isValid()) {
                 throw new ServletException(
-                        "Repository access configuration is not valid.");
+                    "Repository access configuration is not valid.");
             }
             tmpConfig.logInfos();
             config = tmpConfig;
@@ -178,8 +179,9 @@ public class RepositoryAccessServlet extends HttpServlet {
     }
 
     /**
-     * Returns the initial jndi context or <code>null</code> if the jndi access
-     * is not configured or erroous.
+     * Returns the initial jndi context or <code>null</code> if the jndi access is not configured or
+     * erroous.
+     *
      * @return the initial context or <code>null</code>
      */
     private InitialContext getInitialContext() {
@@ -196,6 +198,7 @@ public class RepositoryAccessServlet extends HttpServlet {
 
     /**
      * Checks if the repository is available via JNDI and returns it.
+     *
      * @return the repository or <code>null</code>
      * @throws ServletException if this servlet is not properly configured.
      */
@@ -222,6 +225,7 @@ public class RepositoryAccessServlet extends HttpServlet {
 
     /**
      * Checks if the repository is available via RMI and returns it.
+     *
      * @return the repository or <code>null</code>
      * @throws ServletException if this servlet is not properly configured.
      */
@@ -257,18 +261,20 @@ public class RepositoryAccessServlet extends HttpServlet {
     }
 
     /**
-     *  If our config said so, try to retrieve a Repository from the ServletContext
+     * If our config said so, try to retrieve a Repository from the ServletContext
      */
     protected Repository getRepositoryByContextAttribute() {
         Repository result = null;
-        if(repositoryContextAttributeName!=null) {
-            result = (Repository)getServletContext().getAttribute(repositoryContextAttributeName);
+        if (repositoryContextAttributeName != null) {
+            result = (Repository) getServletContext().getAttribute(repositoryContextAttributeName);
 
-            if(log.isDebugEnabled()) {
-                if(result!=null) {
-                    log.debug("Got Repository from ServletContext attribute '{}'", repositoryContextAttributeName);
+            if (log.isDebugEnabled()) {
+                if (result != null) {
+                    log.debug("Got Repository from ServletContext attribute '{}'",
+                        repositoryContextAttributeName);
                 } else {
-                    log.debug("ServletContext attribute '{}' does not provide a Repository", repositoryContextAttributeName);
+                    log.debug("ServletContext attribute '{}' does not provide a Repository",
+                        repositoryContextAttributeName);
                 }
             }
         }
@@ -276,9 +282,8 @@ public class RepositoryAccessServlet extends HttpServlet {
     }
 
     /**
-     * Return the fully qualified name of the class providing the client
-     * repository. The class whose name is returned must implement the
-     * {@link ClientFactoryDelegater} interface.
+     * Return the fully qualified name of the class providing the client repository. The class whose
+     * name is returned must implement the {@link ClientFactoryDelegater} interface.
      *
      * @return the qfn of the factory class.
      */
@@ -312,7 +317,7 @@ public class RepositoryAccessServlet extends HttpServlet {
             return repository;
         } catch (ServletException e) {
             throw new IllegalStateException(
-                    "The repository is not available. Please check"
+                "The repository is not available. Please check"
                     + " RepositoryAccessServlet configuration in web.xml.", e);
         }
     }
@@ -330,6 +335,7 @@ public class RepositoryAccessServlet extends HttpServlet {
 
     /**
      * Returns the config that was used to bootstrap this servlet.
+     *
      * @return the bootstrap config or <code>null</code>.
      */
     public BootstrapConfig getBootstrapConfig() {
@@ -342,7 +348,7 @@ public class RepositoryAccessServlet extends HttpServlet {
     protected static abstract class ClientFactoryDelegater {
 
         public abstract Repository getRepository(String uri)
-                throws RemoteException, MalformedURLException, NotBoundException;
+            throws RemoteException, MalformedURLException, NotBoundException;
     }
 
     /**
@@ -354,7 +360,7 @@ public class RepositoryAccessServlet extends HttpServlet {
         static String FactoryClassName = ClientRepositoryFactory.class.getName();
 
         public Repository getRepository(String uri)
-                throws MalformedURLException, NotBoundException, RemoteException {
+            throws MalformedURLException, NotBoundException, RemoteException {
             System.setProperty("java.rmi.server.useCodebaseOnly", "true");
             return new ClientRepositoryFactory().getRepository(uri);
         }

@@ -33,10 +33,11 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * A {@code Commit} instance represents a set of related changes, which when
- * applied to a base node state result in a new node state.
+ * A {@code Commit} instance represents a set of related changes, which when applied to a base node
+ * state result in a new node state.
  */
 public class Commit {
+
     static final String ROOT = "root";
 
     private final SegmentNodeBuilder changes;
@@ -45,7 +46,8 @@ public class Commit {
 
     private volatile GCGeneration gcGeneration;
 
-    public Commit(@NotNull NodeBuilder changes, @NotNull CommitHook hook, @NotNull CommitInfo info) {
+    public Commit(@NotNull NodeBuilder changes, @NotNull CommitHook hook,
+        @NotNull CommitInfo info) {
         checkNotNull(changes);
         checkArgument(changes instanceof SegmentNodeBuilder);
         this.changes = (SegmentNodeBuilder) changes;
@@ -55,11 +57,11 @@ public class Commit {
     }
 
     /**
-     * This method makes a best effort on getting the gc generation of the current commit.
-     * However it avoids causing a write ahead action by calling {@link NodeBuilder#getName(String)}
-     * on the changes in this commit.
+     * This method makes a best effort on getting the gc generation of the current commit. However
+     * it avoids causing a write ahead action by calling {@link NodeBuilder#getName(String)} on the
+     * changes in this commit.
      *
-     * @return  the gc generation of this commit or {@code null} if not yet available.
+     * @return the gc generation of this commit or {@code null} if not yet available.
      */
     @Nullable
     public GCGeneration getGCGeneration() {
@@ -79,15 +81,12 @@ public class Commit {
     }
 
     /**
-     * Apply the changes represented by this commit to the passed {@code base}
-     * node state.
+     * Apply the changes represented by this commit to the passed {@code base} node state.
      *
-     * @param base
-     *            the base node state to apply this commit to
+     * @param base the base node state to apply this commit to
      * @return the resulting state from applying this commit to {@code base}.
-     * @throws CommitFailedException
-     *             if the commit cannot be applied to {@code base}. (e.g.
-     *             because of a conflict.)
+     * @throws CommitFailedException if the commit cannot be applied to {@code base}. (e.g. because
+     *                               of a conflict.)
      */
     public SegmentNodeState apply(SegmentNodeState base) throws CommitFailedException {
         SegmentNodeBuilder builder = base.builder();
@@ -99,29 +98,29 @@ public class Commit {
             builder.setChildNode(ROOT, hook.processCommit(before, after, info));
         } else {
             // there were some external changes, so do the full rebase
-            ConflictAnnotatingRebaseDiff diff = new ConflictAnnotatingRebaseDiff(builder.child(ROOT));
+            ConflictAnnotatingRebaseDiff diff = new ConflictAnnotatingRebaseDiff(
+                builder.child(ROOT));
             getAfterState().compareAgainstBaseState(getBeforeState(), diff);
             // apply commit hooks on the rebased changes
             builder.setChildNode(ROOT, hook.processCommit(builder.getBaseState().getChildNode(ROOT),
-                                                          builder.getNodeState().getChildNode(ROOT), info));
+                builder.getNodeState().getChildNode(ROOT), info));
         }
         return builder.getNodeState();
     }
 
     /**
      * Does housekeeping work needed after applying the commit.
-     * @param merged
-     *            the current head node state, after applying the changes in the commit.
+     *
+     * @param merged the current head node state, after applying the changes in the commit.
      */
     public void applied(SegmentNodeState merged) {
         changes.reset(merged);
     }
 
     /**
-     * Checks if the commit contains any changes. This is a shallow check, with
-     * the same semantics as
-     * {@link SegmentNodeState#fastEquals(NodeState, NodeState)}, which cannot
-     * guarantee against false negatives.
+     * Checks if the commit contains any changes. This is a shallow check, with the same semantics
+     * as {@link SegmentNodeState#fastEquals(NodeState, NodeState)}, which cannot guarantee against
+     * false negatives.
      *
      * @return {@code true}, if the commit has changes.
      */

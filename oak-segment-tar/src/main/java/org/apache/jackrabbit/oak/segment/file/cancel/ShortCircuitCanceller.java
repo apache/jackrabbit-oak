@@ -38,6 +38,7 @@ class ShortCircuitCanceller extends Canceller {
 
     @Override
     public Cancellation check() {
-        return cancellation.updateAndGet(prev -> prev != null && prev.isCancelled() ? prev : parent.check());
+        return cancellation.updateAndGet(
+            prev -> prev != null && prev.isCancelled() ? prev : parent.check());
     }
 }

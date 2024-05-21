@@ -14,9 +14,10 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 --%><%
-try {
-    Class.forName("javax.jcr.Repository");
-} catch (ClassNotFoundException e) {
-    throw new org.apache.jackrabbit.j2ee.JcrApiNotFoundException(e);
-}
-%><jsp:forward page="welcome.jsp" />
+    try {
+        Class.forName("javax.jcr.Repository");
+    } catch (ClassNotFoundException e) {
+        throw new org.apache.jackrabbit.j2ee.JcrApiNotFoundException(e);
+    }
+%>
+<jsp:forward page="welcome.jsp"/>

@@ -30,9 +30,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map.Entry;
-
 import javax.jcr.PropertyType;
-
+import net.jpountz.lz4.LZ4FrameInputStream;
 import org.apache.commons.io.input.CountingInputStream;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.json.JsonObject;
@@ -40,8 +39,6 @@ import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeProperty.PropertyValue;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeProperty.ValueType;
-
-import net.jpountz.lz4.LZ4FrameInputStream;
 
 /**
  * A reader for flat file stores.
@@ -76,7 +73,8 @@ public class NodeLineReader implements NodeDataReader, Closeable {
             } else {
                 in = countIn;
             }
-            LineNumberReader reader = new LineNumberReader(new InputStreamReader(in, StandardCharsets.UTF_8));
+            LineNumberReader reader = new LineNumberReader(
+                new InputStreamReader(in, StandardCharsets.UTF_8));
             return new NodeLineReader(countIn, reader, fileSize);
         } catch (IOException e) {
             countIn.close();
@@ -104,7 +102,7 @@ public class NodeLineReader implements NodeDataReader, Closeable {
     private static List<NodeProperty> parse(String nodeData) {
         ArrayList<NodeProperty> properties = new ArrayList<>();
         JsonObject json = JsonObject.fromJson(nodeData, true);
-        for(Entry<String, String> e : json.getProperties().entrySet()) {
+        for (Entry<String, String> e : json.getProperties().entrySet()) {
             String k = e.getKey();
             String v = e.getValue();
             NodeProperty p;

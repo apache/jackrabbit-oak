@@ -100,7 +100,7 @@ public class MongoBlob implements Bson {
 
     @Override
     public <TDocument> BsonDocument toBsonDocument(Class<TDocument> tDocumentClass,
-                                                   CodecRegistry codecRegistry) {
+        CodecRegistry codecRegistry) {
         return new BsonDocumentWrapper<>(this, codecRegistry.get(MongoBlob.class));
     }
 }

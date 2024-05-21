@@ -24,7 +24,6 @@ import java.io.RandomAccessFile;
 import java.nio.channels.FileLock;
 import java.nio.channels.OverlappingFileLockException;
 import java.util.Collection;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.segment.file.LocalGCJournalFile;
 import org.apache.jackrabbit.oak.segment.file.LocalManifestFile;
@@ -62,14 +61,16 @@ public class TarPersistence implements SegmentNodeStorePersistence {
     }
 
     @Override
-    public SegmentArchiveManager createArchiveManager(boolean memoryMapping, boolean offHeapAccess, IOMonitor ioMonitor,
-                                                      FileStoreMonitor fileStoreMonitor, RemoteStoreMonitor remoteStoreMonitor) {
-        return new SegmentTarManager(directory, fileStoreMonitor, ioMonitor, memoryMapping, offHeapAccess);
+    public SegmentArchiveManager createArchiveManager(boolean memoryMapping, boolean offHeapAccess,
+        IOMonitor ioMonitor,
+        FileStoreMonitor fileStoreMonitor, RemoteStoreMonitor remoteStoreMonitor) {
+        return new SegmentTarManager(directory, fileStoreMonitor, ioMonitor, memoryMapping,
+            offHeapAccess);
     }
 
     @Override
     public boolean segmentFilesExist() {
-        Collection<File> entries = FileUtils.listFiles(directory, new String[] {"tar"}, false);
+        Collection<File> entries = FileUtils.listFiles(directory, new String[]{"tar"}, false);
         return !entries.isEmpty();
     }
 
@@ -98,7 +99,8 @@ public class TarPersistence implements SegmentNodeStorePersistence {
                 lockFile.close();
             };
         } catch (OverlappingFileLockException ex) {
-            throw new IllegalStateException(directory.getAbsolutePath() + " is in use by another store.", ex);
+            throw new IllegalStateException(
+                directory.getAbsolutePath() + " is in use by another store.", ex);
         }
     }
 

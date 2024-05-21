@@ -19,15 +19,17 @@
 
 package org.apache.jackrabbit.oak.run.cli;
 
+import static java.lang.management.ManagementFactory.getPlatformMBeanServer;
+import static java.util.Collections.emptyMap;
+
+import com.codahale.metrics.ConsoleReporter;
+import com.codahale.metrics.Counting;
+import com.codahale.metrics.MetricRegistry;
 import java.io.File;
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
-
-import com.codahale.metrics.ConsoleReporter;
-import com.codahale.metrics.Counting;
-import com.codahale.metrics.MetricRegistry;
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
@@ -43,10 +45,8 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Tracker;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
-import static java.lang.management.ManagementFactory.getPlatformMBeanServer;
-import static java.util.Collections.emptyMap;
-
 public class NodeStoreFixtureProvider {
+
     public static NodeStoreFixture create(Options options) throws Exception {
         return create(options, !options.getOptionBean(CommonOptions.class).isReadWrite());
     }
@@ -70,7 +70,8 @@ public class NodeStoreFixtureProvider {
         if (commonOpts.isMemory()) {
             store = new MemoryNodeStore();
         } else if (commonOpts.isMongo() || commonOpts.isRDB()) {
-            DocumentNodeStore dns = DocumentFixtureProvider.configureDocumentMk(options, blobStore, wb, closer, readOnly);
+            DocumentNodeStore dns = DocumentFixtureProvider.configureDocumentMk(options, blobStore,
+                wb, closer, readOnly);
             store = dns;
             if (blobStore == null) {
                 blobStore = dns.getBlobStore();
@@ -79,7 +80,8 @@ public class NodeStoreFixtureProvider {
             store = SegmentFixtureProvider.create(options, blobStore, wb, closer, readOnly);
         } else {
             try {
-                store = SegmentTarFixtureProvider.configureSegment(options, blobStore, wb, closer, readOnly);
+                store = SegmentTarFixtureProvider.configureSegment(options, blobStore, wb, closer,
+                    readOnly);
             } catch (InvalidFileStoreVersionException e) {
                 if (oldSegmentStore(options)) {
                     store = SegmentFixtureProvider.create(options, blobStore, wb, closer, readOnly);
@@ -100,11 +102,14 @@ public class NodeStoreFixtureProvider {
         return !manifest.exists();
     }
 
-    private static StatisticsProvider createStatsProvider(Options options, Whiteboard wb, Closer closer) {
+    private static StatisticsProvider createStatsProvider(Options options, Whiteboard wb,
+        Closer closer) {
         if (options.getCommonOpts().isMetricsEnabled()) {
             ScheduledExecutorService executorService =
-                    MoreExecutors.getExitingScheduledExecutorService(new ScheduledThreadPoolExecutor(1));
-            MetricStatisticsProvider statsProvider = new MetricStatisticsProvider(getPlatformMBeanServer(), executorService);
+                MoreExecutors.getExitingScheduledExecutorService(
+                    new ScheduledThreadPoolExecutor(1));
+            MetricStatisticsProvider statsProvider = new MetricStatisticsProvider(
+                getPlatformMBeanServer(), executorService);
             closer.register(statsProvider);
             closer.register(() -> reportMetrics(statsProvider));
             wb.register(MetricRegistry.class, statsProvider.getRegistry(), emptyMap());
@@ -116,26 +121,27 @@ public class NodeStoreFixtureProvider {
     private static void reportMetrics(MetricStatisticsProvider statsProvider) {
         MetricRegistry metricRegistry = statsProvider.getRegistry();
         ConsoleReporter.forRegistry(metricRegistry)
-                .outputTo(System.out)
-                .filter((name, metric) -> {
-                    if (metric instanceof Counting) {
-                        //Only report non zero metrics
-                        return ((Counting) metric).getCount() > 0;
-                    }
-                    return true;
-                })
-                .build()
-                .report();
+                       .outputTo(System.out)
+                       .filter((name, metric) -> {
+                           if (metric instanceof Counting) {
+                               //Only report non zero metrics
+                               return ((Counting) metric).getCount() > 0;
+                           }
+                           return true;
+                       })
+                       .build()
+                       .report();
     }
 
     private static class SimpleNodeStoreFixture implements NodeStoreFixture {
+
         private final Closer closer;
         private final NodeStore nodeStore;
         private final BlobStore blobStore;
         private final Whiteboard whiteboard;
 
         private SimpleNodeStoreFixture(NodeStore nodeStore, BlobStore blobStore,
-                                       Whiteboard whiteboard, Closer closer) {
+            Whiteboard whiteboard, Closer closer) {
             this.blobStore = blobStore;
             this.whiteboard = whiteboard;
             this.closer = closer;
@@ -164,6 +170,7 @@ public class NodeStoreFixtureProvider {
     }
 
     private static class ClosingWhiteboard implements Whiteboard {
+
         private final Whiteboard delegate;
         private final Closer closer;
 

@@ -20,7 +20,6 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
-
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.Path;
@@ -39,15 +38,15 @@ public class NodeCounter extends AsyncNodeStateProcessor {
     private final AtomicLong numNodes = new AtomicLong();
 
     public NodeCounter(DocumentNodeStore ns,
-                       RevisionVector headRevision,
-                       ExecutorService executorService) {
+        RevisionVector headRevision,
+        ExecutorService executorService) {
         super(ns, headRevision, executorService);
     }
 
     @Override
     protected void runTask(@NotNull Path path,
-                           @Nullable NodeState state,
-                           @NotNull Consumer<Result> resultConsumer) {
+        @Nullable NodeState state,
+        @NotNull Consumer<Result> resultConsumer) {
         numDocuments.incrementAndGet();
         if (state != null) {
             numNodes.incrementAndGet();
@@ -56,7 +55,7 @@ public class NodeCounter extends AsyncNodeStateProcessor {
 
     @Override
     public void end(@NotNull BlockingQueue<Result> results)
-            throws InterruptedException {
+        throws InterruptedException {
         JsopBuilder json = new JsopBuilder();
         json.object();
         json.key("type").value("counter");

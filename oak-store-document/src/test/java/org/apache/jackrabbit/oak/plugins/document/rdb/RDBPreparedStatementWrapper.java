@@ -55,7 +55,8 @@ public class RDBPreparedStatementWrapper implements PreparedStatement {
     private List<Object> parameters = new ArrayList<Object>();
     private static final Logger LOG = LoggerFactory.getLogger(RDBPreparedStatementWrapper.class);
 
-    public RDBPreparedStatementWrapper(RDBDataSourceWrapper datasource, PreparedStatement statement) {
+    public RDBPreparedStatementWrapper(RDBDataSourceWrapper datasource,
+        PreparedStatement statement) {
         this.datasource = datasource;
         this.statement = statement;
     }
@@ -98,8 +99,9 @@ public class RDBPreparedStatementWrapper implements PreparedStatement {
                 ((RDBResultSetWrapper) resultSet).dumpResult(null);
             } else {
                 ((RDBResultSetWrapper) resultSet).dumpResult("(not closed!)");
-                LOG.error("Wrapped statement " + statement.getClass() + " failed to close associated ResultSet; call stack:",
-                        new Exception("call stack"));
+                LOG.error("Wrapped statement " + statement.getClass()
+                        + " failed to close associated ResultSet; call stack:",
+                    new Exception("call stack"));
             }
         }
     }
@@ -345,7 +347,8 @@ public class RDBPreparedStatementWrapper implements PreparedStatement {
         record(parameterIndex, x);
     }
 
-    public void setBinaryStream(int parameterIndex, InputStream x, long length) throws SQLException {
+    public void setBinaryStream(int parameterIndex, InputStream x, long length)
+        throws SQLException {
         statement.setBinaryStream(parameterIndex, x, length);
         record(parameterIndex, x);
     }
@@ -360,7 +363,8 @@ public class RDBPreparedStatementWrapper implements PreparedStatement {
         record(parameterIndex, x);
     }
 
-    public void setBlob(int parameterIndex, InputStream inputStream, long length) throws SQLException {
+    public void setBlob(int parameterIndex, InputStream inputStream, long length)
+        throws SQLException {
         statement.setBlob(parameterIndex, inputStream, length);
         record(parameterIndex, inputStream);
     }
@@ -385,12 +389,14 @@ public class RDBPreparedStatementWrapper implements PreparedStatement {
         record(parameterIndex, Arrays.asList(x));
     }
 
-    public void setCharacterStream(int parameterIndex, Reader reader, int length) throws SQLException {
+    public void setCharacterStream(int parameterIndex, Reader reader, int length)
+        throws SQLException {
         statement.setCharacterStream(parameterIndex, reader, length);
         record(parameterIndex, reader);
     }
 
-    public void setCharacterStream(int parameterIndex, Reader reader, long length) throws SQLException {
+    public void setCharacterStream(int parameterIndex, Reader reader, long length)
+        throws SQLException {
         statement.setCharacterStream(parameterIndex, reader, length);
         record(parameterIndex, reader);
     }
@@ -469,7 +475,8 @@ public class RDBPreparedStatementWrapper implements PreparedStatement {
         statement.setMaxRows(max);
     }
 
-    public void setNCharacterStream(int parameterIndex, Reader value, long length) throws SQLException {
+    public void setNCharacterStream(int parameterIndex, Reader value, long length)
+        throws SQLException {
         statement.setNCharacterStream(parameterIndex, value, length);
         record(parameterIndex, value);
     }
@@ -509,7 +516,8 @@ public class RDBPreparedStatementWrapper implements PreparedStatement {
         record(parameterIndex, "(null)");
     }
 
-    public void setObject(int parameterIndex, Object x, int targetSqlType, int scaleOrLength) throws SQLException {
+    public void setObject(int parameterIndex, Object x, int targetSqlType, int scaleOrLength)
+        throws SQLException {
         statement.setObject(parameterIndex, x, targetSqlType, scaleOrLength);
         record(parameterIndex, x);
     }
@@ -581,7 +589,8 @@ public class RDBPreparedStatementWrapper implements PreparedStatement {
         record(parameterIndex, x);
     }
 
-    public void setUnicodeStream(int parameterIndex, InputStream x, int length) throws SQLException {
+    public void setUnicodeStream(int parameterIndex, InputStream x, int length)
+        throws SQLException {
         statement.setUnicodeStream(parameterIndex, x, length);
         record(parameterIndex, x);
     }

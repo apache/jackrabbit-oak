@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
 import java.util.HashMap;
 import java.util.Map;
-
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Property;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -27,15 +26,15 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.Defa
 import org.jetbrains.annotations.NotNull;
 
 /**
- * {@code DefaultSyncConfig} defines how users and groups from an external source are synced into the repository using
- * the {@link DefaultSyncHandler}.
+ * {@code DefaultSyncConfig} defines how users and groups from an external source are synced into
+ * the repository using the {@link DefaultSyncHandler}.
  */
 @Component(
-        label = "Apache Jackrabbit Oak Default Sync Handler",
-        name = "org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncHandler",
-        configurationFactory = true,
-        metatype = true,
-        ds = false
+    label = "Apache Jackrabbit Oak Default Sync Handler",
+    name = "org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncHandler",
+    configurationFactory = true,
+    metatype = true,
+    ds = false
 )
 public class DefaultSyncConfigImpl extends DefaultSyncConfig {
 
@@ -48,9 +47,9 @@ public class DefaultSyncConfigImpl extends DefaultSyncConfig {
      * @see #getName()
      */
     @Property(
-            label = "Sync Handler Name",
-            description = "Name of this sync configuration. This is used to reference this handler by the login modules.",
-            value = PARAM_NAME_DEFAULT
+        label = "Sync Handler Name",
+        description = "Name of this sync configuration. This is used to reference this handler by the login modules.",
+        value = PARAM_NAME_DEFAULT
     )
     public static final String PARAM_NAME = "handler.name";
 
@@ -63,9 +62,9 @@ public class DefaultSyncConfigImpl extends DefaultSyncConfig {
      * @see DefaultSyncConfig.User#getExpirationTime()
      */
     @Property(
-            label = "User Expiration Time",
-            description = "Duration until a synced user gets expired (eg. '1h 30m' or '1d').",
-            value = PARAM_USER_EXPIRATION_TIME_DEFAULT
+        label = "User Expiration Time",
+        description = "Duration until a synced user gets expired (eg. '1h 30m' or '1d').",
+        value = PARAM_USER_EXPIRATION_TIME_DEFAULT
     )
     public static final String PARAM_USER_EXPIRATION_TIME = "user.expirationTime";
 
@@ -78,10 +77,10 @@ public class DefaultSyncConfigImpl extends DefaultSyncConfig {
      * @see DefaultSyncConfig.User#getAutoMembership()
      */
     @Property(
-            label = "User auto membership",
-            description = "List of groups that a synced user is added to automatically",
-            value = {},
-            cardinality = Integer.MAX_VALUE
+        label = "User auto membership",
+        description = "List of groups that a synced user is added to automatically",
+        value = {},
+        cardinality = Integer.MAX_VALUE
     )
     public static final String PARAM_USER_AUTO_MEMBERSHIP = "user.autoMembership";
 
@@ -94,11 +93,13 @@ public class DefaultSyncConfigImpl extends DefaultSyncConfig {
      * @see DefaultSyncConfig.User#getPropertyMapping()
      */
     @Property(
-            label = "User property mapping",
-            description = "List mapping definition of local properties from external ones. eg: 'profile/email=mail'." +
-                    "Use double quotes for fixed values. eg: 'profile/nt:primaryType=\"nt:unstructured\"",
-            value = {"rep:fullname=cn"},
-            cardinality = Integer.MAX_VALUE
+        label = "User property mapping",
+        description =
+            "List mapping definition of local properties from external ones. eg: 'profile/email=mail'."
+                +
+                "Use double quotes for fixed values. eg: 'profile/nt:primaryType=\"nt:unstructured\"",
+        value = {"rep:fullname=cn"},
+        cardinality = Integer.MAX_VALUE
     )
     public static final String PARAM_USER_PROPERTY_MAPPING = "user.propertyMapping";
 
@@ -111,9 +112,9 @@ public class DefaultSyncConfigImpl extends DefaultSyncConfig {
      * @see DefaultSyncConfig.User#getPathPrefix()
      */
     @Property(
-            label = "User Path Prefix",
-            description = "The path prefix used when creating new users.",
-            value = PARAM_USER_PATH_PREFIX_DEFAULT
+        label = "User Path Prefix",
+        description = "The path prefix used when creating new users.",
+        value = PARAM_USER_PATH_PREFIX_DEFAULT
     )
     public static final String PARAM_USER_PATH_PREFIX = "user.pathPrefix";
 
@@ -126,9 +127,9 @@ public class DefaultSyncConfigImpl extends DefaultSyncConfig {
      * @see DefaultSyncConfig.User#getMembershipExpirationTime()
      */
     @Property(
-            label = "User Membership Expiration",
-            description = "Time after which membership expires (eg. '1h 30m' or '1d'). Note however, that a membership sync is aways bound to a sync of the user.",
-            value = PARAM_USER_MEMBERSHIP_EXPIRATION_TIME_DEFAULT
+        label = "User Membership Expiration",
+        description = "Time after which membership expires (eg. '1h 30m' or '1d'). Note however, that a membership sync is aways bound to a sync of the user.",
+        value = PARAM_USER_MEMBERSHIP_EXPIRATION_TIME_DEFAULT
     )
     public static final String PARAM_USER_MEMBERSHIP_EXPIRATION_TIME = "user.membershipExpTime";
 
@@ -141,12 +142,15 @@ public class DefaultSyncConfigImpl extends DefaultSyncConfig {
      * @see DefaultSyncConfig.User#getMembershipNestingDepth()
      */
     @Property(
-            label = "User membership nesting depth",
-            description = "Returns the maximum depth of group nesting when membership relations are synced. " +
-                    "A value of 0 effectively disables group membership lookup. A value of 1 only adds the direct " +
-                    "groups of a user. This value has no effect when syncing individual groups only when syncing a " +
-                    "users membership ancestry.",
-            intValue = PARAM_USER_MEMBERSHIP_NESTING_DEPTH_DEFAULT
+        label = "User membership nesting depth",
+        description =
+            "Returns the maximum depth of group nesting when membership relations are synced. " +
+                "A value of 0 effectively disables group membership lookup. A value of 1 only adds the direct "
+                +
+                "groups of a user. This value has no effect when syncing individual groups only when syncing a "
+                +
+                "users membership ancestry.",
+        intValue = PARAM_USER_MEMBERSHIP_NESTING_DEPTH_DEFAULT
     )
     public static final String PARAM_USER_MEMBERSHIP_NESTING_DEPTH = "user.membershipNestingDepth";
 
@@ -156,26 +160,26 @@ public class DefaultSyncConfigImpl extends DefaultSyncConfig {
     public static final boolean PARAM_USER_DYNAMIC_MEMBERSHIP_DEFAULT = false;
 
     /**
-     * Configuration option to enable dynamic group membership. If enabled the
-     * implementation will no longer synchronized group accounts into the repository
-     * but instead will enable a dedicated principal management: This results in
-     * external users having their complete principal set as defined external IDP
-     * synchronized to the repository asserting proper population of the
-     * {@link javax.security.auth.Subject} upon login. Please note that the external
-     * groups are reflected through the built-in principal management and thus can
-     * be retrieved for authorization purposes. However, the information is no
-     * longer reflected through the Jackrabbit user management API.
+     * Configuration option to enable dynamic group membership. If enabled the implementation will
+     * no longer synchronized group accounts into the repository but instead will enable a dedicated
+     * principal management: This results in external users having their complete principal set as
+     * defined external IDP synchronized to the repository asserting proper population of the
+     * {@link javax.security.auth.Subject} upon login. Please note that the external groups are
+     * reflected through the built-in principal management and thus can be retrieved for
+     * authorization purposes. However, the information is no longer reflected through the
+     * Jackrabbit user management API.
      *
      * @see DefaultSyncConfig.User#getDynamicMembership()
      */
     @Property(
-            label = "User Dynamic Membership",
-            description = "If enabled membership of external identities (user) is no longer fully reflected " +
-                    "within the repositories user management.",
-            boolValue = PARAM_USER_DYNAMIC_MEMBERSHIP_DEFAULT
+        label = "User Dynamic Membership",
+        description =
+            "If enabled membership of external identities (user) is no longer fully reflected " +
+                "within the repositories user management.",
+        boolValue = PARAM_USER_DYNAMIC_MEMBERSHIP_DEFAULT
     )
     public static final String PARAM_USER_DYNAMIC_MEMBERSHIP = "user.dynamicMembership";
-    
+
     /**
      * @see DefaultSyncConfig.User#getEnforceDynamicMembership()
      */
@@ -183,14 +187,15 @@ public class DefaultSyncConfigImpl extends DefaultSyncConfig {
 
     /**
      * Configuration option to enforce dynamic group membership upon user sync. If enabled the
-     * implementation will clean up previous synchronized membership information that is not yet dynamic.
+     * implementation will clean up previous synchronized membership information that is not yet
+     * dynamic.
      *
      * @see DefaultSyncConfig.User#getDynamicMembership()
      */
     @Property(
-            label = "User Enforce Dynamic Membership",
-            description = "If enabled dynamic membership will be enforced for previously synchronized users. Note, that this option has no effect if 'dynamic membership' is disabled.",
-            boolValue = PARAM_USER_ENFORCE_DYNAMIC_MEMBERSHIP_DEFAULT
+        label = "User Enforce Dynamic Membership",
+        description = "If enabled dynamic membership will be enforced for previously synchronized users. Note, that this option has no effect if 'dynamic membership' is disabled.",
+        boolValue = PARAM_USER_ENFORCE_DYNAMIC_MEMBERSHIP_DEFAULT
     )
     public static final String PARAM_USER_ENFORCE_DYNAMIC_MEMBERSHIP = "user.enforceDynamicMembership";
 
@@ -204,8 +209,10 @@ public class DefaultSyncConfigImpl extends DefaultSyncConfig {
      */
     @Property(
         label = "Disable missing users",
-        description = "If true, users that no longer exist on the external provider will be locally disabled, " +
-            "and re-enabled if they become valid again. If false (default) they will be removed.",
+        description =
+            "If true, users that no longer exist on the external provider will be locally disabled, "
+                +
+                "and re-enabled if they become valid again. If false (default) they will be removed.",
         boolValue = false
     )
     public static final String PARAM_DISABLE_MISSING_USERS = "user.disableMissing";
@@ -219,9 +226,9 @@ public class DefaultSyncConfigImpl extends DefaultSyncConfig {
      * @see DefaultSyncConfig.Group#getExpirationTime()
      */
     @Property(
-            label = "Group Expiration Time",
-            description = "Duration until a synced group expires (eg. '1h 30m' or '1d').",
-            value = PARAM_GROUP_EXPIRATION_TIME_DEFAULT
+        label = "Group Expiration Time",
+        description = "Duration until a synced group expires (eg. '1h 30m' or '1d').",
+        value = PARAM_GROUP_EXPIRATION_TIME_DEFAULT
     )
     public static final String PARAM_GROUP_EXPIRATION_TIME = "group.expirationTime";
 
@@ -234,10 +241,10 @@ public class DefaultSyncConfigImpl extends DefaultSyncConfig {
      * @see DefaultSyncConfig.Group#getAutoMembership()
      */
     @Property(
-            label = "Group auto membership",
-            description = "List of groups that a synced group is added to automatically",
-            value = {},
-            cardinality = Integer.MAX_VALUE
+        label = "Group auto membership",
+        description = "List of groups that a synced group is added to automatically",
+        value = {},
+        cardinality = Integer.MAX_VALUE
     )
     public static final String PARAM_GROUP_AUTO_MEMBERSHIP = "group.autoMembership";
 
@@ -250,10 +257,10 @@ public class DefaultSyncConfigImpl extends DefaultSyncConfig {
      * @see DefaultSyncConfig.Group#getPropertyMapping()
      */
     @Property(
-            label = "Group property mapping",
-            description = "List mapping definition of local properties from external ones.",
-            value = {},
-            cardinality = Integer.MAX_VALUE
+        label = "Group property mapping",
+        description = "List mapping definition of local properties from external ones.",
+        value = {},
+        cardinality = Integer.MAX_VALUE
     )
     public static final String PARAM_GROUP_PROPERTY_MAPPING = "group.propertyMapping";
 
@@ -266,9 +273,9 @@ public class DefaultSyncConfigImpl extends DefaultSyncConfig {
      * @see DefaultSyncConfig.Group#getPathPrefix()
      */
     @Property(
-            label = "Group Path Prefix",
-            description = "The path prefix used when creating new groups.",
-            value = PARAM_GROUP_PATH_PREFIX_DEFAULT
+        label = "Group Path Prefix",
+        description = "The path prefix used when creating new groups.",
+        value = PARAM_GROUP_PATH_PREFIX_DEFAULT
     )
     public static final String PARAM_GROUP_PATH_PREFIX = "group.pathPrefix";
 
@@ -276,16 +283,19 @@ public class DefaultSyncConfigImpl extends DefaultSyncConfig {
      * @see DefaultSyncConfig.Group#getDynamicGroups()
      */
     public static final boolean PARAM_GROUP_DYNAMIC_GROUPS_DEFAULT = false;
-    
+
     /**
      * @see DefaultSyncConfig.Group#getDynamicGroups()
      */
     @Property(
-            label = "Dynamic Groups",
-            description = "If enabled external identity groups are synchronized as dynamic groups i.e. members/membership " +
-                    "is resolved dynamically by a DynamicMembershipProvider. Note: currently this option only takes effect " +
-                    "if 'User Dynamic Membership' is enabled.",
-            boolValue = PARAM_GROUP_DYNAMIC_GROUPS_DEFAULT
+        label = "Dynamic Groups",
+        description =
+            "If enabled external identity groups are synchronized as dynamic groups i.e. members/membership "
+                +
+                "is resolved dynamically by a DynamicMembershipProvider. Note: currently this option only takes effect "
+                +
+                "if 'User Dynamic Membership' is enabled.",
+        boolValue = PARAM_GROUP_DYNAMIC_GROUPS_DEFAULT
     )
     public static final String PARAM_GROUP_DYNAMIC_GROUPS = "group.dynamicGroups";
 
@@ -298,68 +308,94 @@ public class DefaultSyncConfigImpl extends DefaultSyncConfig {
      * @see Authorizable#isApplyRFC7613UsernameCaseMapped()
      */
     @Property(
-            label = "RFC7613 Username Normalization Profile",
-            description = "Enable the UsercaseMappedProfile defined in RFC7613 for username normalization.",
-            boolValue = PARAM_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE_DEFAULT
+        label = "RFC7613 Username Normalization Profile",
+        description = "Enable the UsercaseMappedProfile defined in RFC7613 for username normalization.",
+        boolValue = PARAM_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE_DEFAULT
     )
     public static final String PARAM_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE = "enableRFC7613UsercaseMappedProfile";
 
     private static final long MILLIS_PER_HOUR = 60 * 60 * 1000L;
-    private static final ConfigurationParameters.Milliseconds ONE_HOUR = ConfigurationParameters.Milliseconds.of(MILLIS_PER_HOUR);
-    private static final ConfigurationParameters.Milliseconds ONE_DAY = ConfigurationParameters.Milliseconds.of(24 * MILLIS_PER_HOUR);
+    private static final ConfigurationParameters.Milliseconds ONE_HOUR = ConfigurationParameters.Milliseconds.of(
+        MILLIS_PER_HOUR);
+    private static final ConfigurationParameters.Milliseconds ONE_DAY = ConfigurationParameters.Milliseconds.of(
+        24 * MILLIS_PER_HOUR);
 
     /**
-     * Creates a new LDAP provider configuration based on the properties store in the given parameters.
+     * Creates a new LDAP provider configuration based on the properties store in the given
+     * parameters.
+     *
      * @param params the configuration parameters.
      * @return the config
      */
     public static DefaultSyncConfig of(ConfigurationParameters params) {
         DefaultSyncConfig cfg = new DefaultSyncConfigImpl()
-                .setName(params.getConfigValue(PARAM_NAME, PARAM_NAME_DEFAULT));
+            .setName(params.getConfigValue(PARAM_NAME, PARAM_NAME_DEFAULT));
 
         cfg.user()
-                .setDisableMissing(params.getConfigValue(PARAM_DISABLE_MISSING_USERS, PARAM_DISABLE_MISSING_USERS_DEFAULT))
-                .setMembershipExpirationTime(getMilliSeconds(params, PARAM_USER_MEMBERSHIP_EXPIRATION_TIME, PARAM_USER_MEMBERSHIP_EXPIRATION_TIME_DEFAULT, ONE_HOUR))
-                .setMembershipNestingDepth(params.getConfigValue(PARAM_USER_MEMBERSHIP_NESTING_DEPTH, PARAM_USER_MEMBERSHIP_NESTING_DEPTH_DEFAULT))
-                .setDynamicMembership(params.getConfigValue(PARAM_USER_DYNAMIC_MEMBERSHIP, PARAM_USER_DYNAMIC_MEMBERSHIP_DEFAULT))
-                .setEnforceDynamicMembership(params.getConfigValue(PARAM_USER_ENFORCE_DYNAMIC_MEMBERSHIP, PARAM_USER_ENFORCE_DYNAMIC_MEMBERSHIP_DEFAULT))
-                .setExpirationTime(getMilliSeconds(params, PARAM_USER_EXPIRATION_TIME, PARAM_USER_EXPIRATION_TIME_DEFAULT, ONE_HOUR))
-                .setApplyRFC7613UsernameCaseMapped(params.getConfigValue(PARAM_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE, PARAM_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE_DEFAULT))
-                .setPathPrefix(params.getConfigValue(PARAM_USER_PATH_PREFIX, PARAM_USER_PATH_PREFIX_DEFAULT))
-                .setAutoMembership(params.getConfigValue(PARAM_USER_AUTO_MEMBERSHIP, PARAM_USER_AUTO_MEMBERSHIP_DEFAULT))
-                .setPropertyMapping(createMapping(
-                        params.getConfigValue(PARAM_USER_PROPERTY_MAPPING, PARAM_USER_PROPERTY_MAPPING_DEFAULT)));
+           .setDisableMissing(params.getConfigValue(PARAM_DISABLE_MISSING_USERS,
+               PARAM_DISABLE_MISSING_USERS_DEFAULT))
+           .setMembershipExpirationTime(
+               getMilliSeconds(params, PARAM_USER_MEMBERSHIP_EXPIRATION_TIME,
+                   PARAM_USER_MEMBERSHIP_EXPIRATION_TIME_DEFAULT, ONE_HOUR))
+           .setMembershipNestingDepth(params.getConfigValue(PARAM_USER_MEMBERSHIP_NESTING_DEPTH,
+               PARAM_USER_MEMBERSHIP_NESTING_DEPTH_DEFAULT))
+           .setDynamicMembership(params.getConfigValue(PARAM_USER_DYNAMIC_MEMBERSHIP,
+               PARAM_USER_DYNAMIC_MEMBERSHIP_DEFAULT))
+           .setEnforceDynamicMembership(params.getConfigValue(PARAM_USER_ENFORCE_DYNAMIC_MEMBERSHIP,
+               PARAM_USER_ENFORCE_DYNAMIC_MEMBERSHIP_DEFAULT))
+           .setExpirationTime(getMilliSeconds(params, PARAM_USER_EXPIRATION_TIME,
+               PARAM_USER_EXPIRATION_TIME_DEFAULT, ONE_HOUR))
+           .setApplyRFC7613UsernameCaseMapped(
+               params.getConfigValue(PARAM_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE,
+                   PARAM_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE_DEFAULT))
+           .setPathPrefix(
+               params.getConfigValue(PARAM_USER_PATH_PREFIX, PARAM_USER_PATH_PREFIX_DEFAULT))
+           .setAutoMembership(params.getConfigValue(PARAM_USER_AUTO_MEMBERSHIP,
+               PARAM_USER_AUTO_MEMBERSHIP_DEFAULT))
+           .setPropertyMapping(createMapping(
+               params.getConfigValue(PARAM_USER_PROPERTY_MAPPING,
+                   PARAM_USER_PROPERTY_MAPPING_DEFAULT)));
 
         cfg.group()
-                .setDynamicGroups(params.getConfigValue(PARAM_GROUP_DYNAMIC_GROUPS, PARAM_GROUP_DYNAMIC_GROUPS_DEFAULT))
-                .setExpirationTime(getMilliSeconds(params, PARAM_GROUP_EXPIRATION_TIME, PARAM_GROUP_EXPIRATION_TIME_DEFAULT, ONE_DAY))
-                .setApplyRFC7613UsernameCaseMapped(params.getConfigValue(PARAM_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE, PARAM_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE_DEFAULT))
-                .setPathPrefix(params.getConfigValue(PARAM_GROUP_PATH_PREFIX, PARAM_GROUP_PATH_PREFIX_DEFAULT))
-                .setAutoMembership(params.getConfigValue(PARAM_GROUP_AUTO_MEMBERSHIP, PARAM_GROUP_AUTO_MEMBERSHIP_DEFAULT))
-                .setPropertyMapping(createMapping(
-                        params.getConfigValue(PARAM_GROUP_PROPERTY_MAPPING, PARAM_GROUP_PROPERTY_MAPPING_DEFAULT)));
+           .setDynamicGroups(params.getConfigValue(PARAM_GROUP_DYNAMIC_GROUPS,
+               PARAM_GROUP_DYNAMIC_GROUPS_DEFAULT))
+           .setExpirationTime(getMilliSeconds(params, PARAM_GROUP_EXPIRATION_TIME,
+               PARAM_GROUP_EXPIRATION_TIME_DEFAULT, ONE_DAY))
+           .setApplyRFC7613UsernameCaseMapped(
+               params.getConfigValue(PARAM_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE,
+                   PARAM_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE_DEFAULT))
+           .setPathPrefix(
+               params.getConfigValue(PARAM_GROUP_PATH_PREFIX, PARAM_GROUP_PATH_PREFIX_DEFAULT))
+           .setAutoMembership(params.getConfigValue(PARAM_GROUP_AUTO_MEMBERSHIP,
+               PARAM_GROUP_AUTO_MEMBERSHIP_DEFAULT))
+           .setPropertyMapping(createMapping(
+               params.getConfigValue(PARAM_GROUP_PROPERTY_MAPPING,
+                   PARAM_GROUP_PROPERTY_MAPPING_DEFAULT)));
 
         return cfg;
     }
 
-    private static long getMilliSeconds(@NotNull ConfigurationParameters params, @NotNull String paramName,
-                                        @NotNull String defaultParamValue,
-                                        @NotNull ConfigurationParameters.Milliseconds defaultMillis) {
-        return ConfigurationParameters.Milliseconds.of(params.getConfigValue(paramName, defaultParamValue), defaultMillis).value;
+    private static long getMilliSeconds(@NotNull ConfigurationParameters params,
+        @NotNull String paramName,
+        @NotNull String defaultParamValue,
+        @NotNull ConfigurationParameters.Milliseconds defaultMillis) {
+        return ConfigurationParameters.Milliseconds.of(
+            params.getConfigValue(paramName, defaultParamValue), defaultMillis).value;
     }
 
     /**
      * Creates a new property mapping map from a list of patterns.
+     *
      * @param patterns the patterns
      * @return the mapping map
      */
     private static Map<String, String> createMapping(@NotNull String[] patterns) {
         Map<String, String> mapping = new HashMap<>();
-        for (String pattern: patterns) {
+        for (String pattern : patterns) {
             int idx = pattern.indexOf('=');
             if (idx > 0) {
                 String relPath = pattern.substring(0, idx).trim();
-                String value = pattern.substring(idx+1).trim();
+                String value = pattern.substring(idx + 1).trim();
                 mapping.put(relPath, value);
             }
         }

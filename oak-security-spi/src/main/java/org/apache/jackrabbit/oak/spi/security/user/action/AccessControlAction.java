@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.spi.security.user.action;
 
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
+
 import java.util.Collections;
 import java.util.Set;
 import javax.jcr.RepositoryException;
@@ -23,7 +25,6 @@ import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.AccessControlPolicyIterator;
 import javax.jcr.security.Privilege;
-
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -41,13 +42,10 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-
 /**
- * The {@code AccessControlAction} allows to setup permissions upon creation
- * of a new authorizable; namely the privileges the new authorizable should be
- * granted on it's own 'home directory' being represented by the new node
- * associated with that new authorizable.
+ * The {@code AccessControlAction} allows to setup permissions upon creation of a new authorizable;
+ * namely the privileges the new authorizable should be granted on it's own 'home directory' being
+ * represented by the new node associated with that new authorizable.
  *
  * <p>The following to configuration parameters are available with this implementation:</p>
  * <ul>
@@ -110,34 +108,41 @@ public class AccessControlAction extends AbstractAuthorizableAction {
 
     //-------------------------------------------------< AuthorizableAction >---
     @Override
-    public void init(@NotNull SecurityProvider securityProvider, @NotNull ConfigurationParameters config) {
+    public void init(@NotNull SecurityProvider securityProvider,
+        @NotNull ConfigurationParameters config) {
         this.securityProvider = securityProvider;
         userPrivilegeNames = privilegeNames(config, USER_PRIVILEGE_NAMES);
         groupPrivilegeNames = privilegeNames(config, GROUP_PRIVILEGE_NAMES);
 
-        administrativePrincipals = securityProvider.getConfiguration(AuthorizationConfiguration.class).getParameters().getConfigValue(PermissionConstants.PARAM_ADMINISTRATIVE_PRINCIPALS, Collections.emptySet());
+        administrativePrincipals = securityProvider.getConfiguration(
+            AuthorizationConfiguration.class).getParameters().getConfigValue(
+            PermissionConstants.PARAM_ADMINISTRATIVE_PRINCIPALS, Collections.emptySet());
     }
 
     @Override
-    public void onCreate(@NotNull Group group, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException {
+    public void onCreate(@NotNull Group group, @NotNull Root root,
+        @NotNull NamePathMapper namePathMapper) throws RepositoryException {
         setAC(group, root, namePathMapper);
     }
 
     @Override
-    public void onCreate(@NotNull User user, @Nullable String password, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException {
+    public void onCreate(@NotNull User user, @Nullable String password, @NotNull Root root,
+        @NotNull NamePathMapper namePathMapper) throws RepositoryException {
         setAC(user, root, namePathMapper);
     }
 
     //------------------------------------------------------------< private >---
+
     /**
      * Gets the privilege names that be granted on the group's home directory.
      *
-     * @param config the configuration parameters.
+     * @param config    the configuration parameters.
      * @param paramName the name of the configuration option
      * @return a valid string array containing the privilege names.
      */
     @NotNull
-    private static String[] privilegeNames(@NotNull ConfigurationParameters config, @NotNull String paramName) {
+    private static String[] privilegeNames(@NotNull ConfigurationParameters config,
+        @NotNull String paramName) {
         String[] privilegeNames = config.getConfigValue(paramName, null, String[].class);
         if (privilegeNames != null && privilegeNames.length > 0) {
             return privilegeNames;
@@ -147,17 +152,18 @@ public class AccessControlAction extends AbstractAuthorizableAction {
     }
 
     private void setAC(@NotNull Authorizable authorizable, @NotNull Root root,
-                       @NotNull NamePathMapper namePathMapper) throws RepositoryException {
+        @NotNull NamePathMapper namePathMapper) throws RepositoryException {
         checkState(securityProvider != null, "Not initialized");
         if (omitSetup(authorizable)) {
             return;
         }
 
         String path = authorizable.getPath();
-        AuthorizationConfiguration acConfig = securityProvider.getConfiguration(AuthorizationConfiguration.class);
+        AuthorizationConfiguration acConfig = securityProvider.getConfiguration(
+            AuthorizationConfiguration.class);
         AccessControlManager acMgr = acConfig.getAccessControlManager(root, namePathMapper);
         JackrabbitAccessControlList acl = null;
-        for (AccessControlPolicyIterator it = acMgr.getApplicablePolicies(path); it.hasNext();) {
+        for (AccessControlPolicyIterator it = acMgr.getApplicablePolicies(path); it.hasNext(); ) {
             AccessControlPolicy plc = it.nextAccessControlPolicy();
             if (plc instanceof JackrabbitAccessControlList) {
                 acl = (JackrabbitAccessControlList) plc;
@@ -169,8 +175,10 @@ public class AccessControlAction extends AbstractAuthorizableAction {
             log.warn("Cannot process AccessControlAction: no applicable ACL at {}", path);
         } else {
             // setup acl according to configuration.
-            String[] privNames = (authorizable.isGroup()) ? groupPrivilegeNames : userPrivilegeNames;
-            if (acl.addAccessControlEntry(authorizable.getPrincipal(), getPrivileges(privNames, acMgr))) {
+            String[] privNames =
+                (authorizable.isGroup()) ? groupPrivilegeNames : userPrivilegeNames;
+            if (acl.addAccessControlEntry(authorizable.getPrincipal(),
+                getPrivileges(privNames, acMgr))) {
                 acMgr.setPolicy(path, acl);
             }
         }
@@ -202,23 +210,25 @@ public class AccessControlAction extends AbstractAuthorizableAction {
     }
 
     private boolean isBuiltInUser(@NotNull Authorizable authorizable) throws RepositoryException {
-        ConfigurationParameters userConfig = securityProvider.getConfiguration(UserConfiguration.class).getParameters();
+        ConfigurationParameters userConfig = securityProvider.getConfiguration(
+            UserConfiguration.class).getParameters();
         String userId = authorizable.getID();
-        return UserUtil.getAdminId(userConfig).equals(userId) || UserUtil.getAnonymousId(userConfig).equals(userId);
+        return UserUtil.getAdminId(userConfig).equals(userId) || UserUtil.getAnonymousId(userConfig)
+                                                                         .equals(userId);
     }
 
     /**
      * Retrieve privileges for the specified privilege names.
      *
      * @param privNames The privilege names.
-     * @param acMgr The access control manager.
+     * @param acMgr     The access control manager.
      * @return Array of {@code Privilege}
-     * @throws javax.jcr.RepositoryException If a privilege name cannot be
-     * resolved to a valid privilege.
+     * @throws javax.jcr.RepositoryException If a privilege name cannot be resolved to a valid
+     *                                       privilege.
      */
     @NotNull
     private static Privilege[] getPrivileges(@NotNull String[] privNames,
-                                             @NotNull AccessControlManager acMgr) throws RepositoryException {
+        @NotNull AccessControlManager acMgr) throws RepositoryException {
         Privilege[] privileges = new Privilege[privNames.length];
         for (int i = 0; i < privNames.length; i++) {
             privileges[i] = acMgr.privilegeFromName(privNames[i]);

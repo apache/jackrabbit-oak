@@ -23,7 +23,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 import java.io.File;
-
 import org.apache.commons.io.input.NullInputStream;
 import org.apache.jackrabbit.core.data.FileDataStore;
 import org.apache.jackrabbit.oak.api.Blob;
@@ -83,9 +82,9 @@ public class StandbySegmentBlobTestIT extends TestBase {
 
     @Rule
     public RuleChain chain = RuleChain.outerRule(folder)
-            .around(blobStore)
-            .around(serverFileStore)
-            .around(clientFileStore);
+                                      .around(blobStore)
+                                      .around(serverFileStore)
+                                      .around(clientFileStore);
 
     @Test
     public void testSyncWithLongBlobId() throws Exception {
@@ -95,19 +94,19 @@ public class StandbySegmentBlobTestIT extends TestBase {
         NodeStore store = SegmentNodeStoreBuilders.builder(primary).build();
         try (
             StandbyServerSync serverSync = StandbyServerSync.builder()
-                .withPort(serverPort.getPort())
-                .withFileStore(primary)
-                .withBlobChunkSize(MB)
-                .build();
+                                                            .withPort(serverPort.getPort())
+                                                            .withFileStore(primary)
+                                                            .withBlobChunkSize(MB)
+                                                            .build();
             StandbyClientSync clientSync = StandbyClientSync.builder()
-                .withHost(getServerHost())
-                .withPort(serverPort.getPort())
-                .withFileStore(secondary)
-                .withSecureConnection(false)
-                .withReadTimeoutMs(getClientTimeout())
-                .withAutoClean(false)
-                .withSpoolFolder(folder.newFolder())
-                .build()
+                                                            .withHost(getServerHost())
+                                                            .withPort(serverPort.getPort())
+                                                            .withFileStore(secondary)
+                                                            .withSecureConnection(false)
+                                                            .withReadTimeoutMs(getClientTimeout())
+                                                            .withAutoClean(false)
+                                                            .withSpoolFolder(folder.newFolder())
+                                                            .build()
         ) {
             serverSync.start();
             addTestContent(store, "server");
@@ -118,7 +117,7 @@ public class StandbySegmentBlobTestIT extends TestBase {
             assertEquals(primary.getHead(), secondary.getHead());
 
             PropertyState ps = secondary.getHead().getChildNode("root")
-                    .getChildNode("server").getProperty("testBlob");
+                                        .getChildNode("server").getProperty("testBlob");
             assertNotNull(ps);
             assertEquals(Type.BINARY.tag(), ps.getType().tag());
             Blob b = ps.getValue(Type.BINARY);

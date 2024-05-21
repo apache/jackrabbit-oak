@@ -34,13 +34,14 @@ public interface QueryLimits {
     default String getStrictPathRestriction() {
         return StrictPathRestriction.DISABLE.name();
     }
-    
+
     /**
-     * Retrieve the java package names / full qualified class names which should be
-     * ignored when finding the class starting a query
+     * Retrieve the java package names / full qualified class names which should be ignored when
+     * finding the class starting a query
+     *
      * @return the name of the packages / full qualified class names
      */
     default @NotNull String[] getIgnoredClassNamesInCallTrace() {
-        return new String[] {};
+        return new String[]{};
     }
 }

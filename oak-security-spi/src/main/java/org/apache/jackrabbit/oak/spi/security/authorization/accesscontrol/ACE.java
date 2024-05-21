@@ -16,11 +16,20 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol;
 
+import java.security.Principal;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+import javax.jcr.RepositoryException;
+import javax.jcr.Value;
+import javax.jcr.ValueFormatException;
+import javax.jcr.security.AccessControlException;
+import javax.jcr.security.Privilege;
+import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
+import org.apache.jackrabbit.api.security.authorization.PrivilegeCollection;
 import org.apache.jackrabbit.guava.common.base.Objects;
 import org.apache.jackrabbit.guava.common.collect.Collections2;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
-import org.apache.jackrabbit.api.security.authorization.PrivilegeCollection;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.value.jcr.PartialValueFactory;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
@@ -30,20 +39,10 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ProviderType;
 
-import javax.jcr.RepositoryException;
-import javax.jcr.Value;
-import javax.jcr.ValueFormatException;
-import javax.jcr.security.AccessControlException;
-import javax.jcr.security.Privilege;
-import java.security.Principal;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-
 /**
- * Default implementation of the {@code JackrabbitAccessControlEntry} interface.
- * It asserts that the basic contract is fulfilled but does perform any additional
- * validation on the principal, the privileges or the specified restrictions.
+ * Default implementation of the {@code JackrabbitAccessControlEntry} interface. It asserts that the
+ * basic contract is fulfilled but does perform any additional validation on the principal, the
+ * privileges or the specified restrictions.
  */
 @ProviderType
 public abstract class ACE implements JackrabbitAccessControlEntry {
@@ -59,17 +58,19 @@ public abstract class ACE implements JackrabbitAccessControlEntry {
 
     /**
      * Creates a new access control entry.
-     * 
-     * @param principal The principal associated with this entry.
-     * @param privilegeBits The privilege bits defined for this entry.
-     * @param isAllow {@code true} if the entry is granting privileges.
-     * @param restrictions A optional set of restrictions.
+     *
+     * @param principal      The principal associated with this entry.
+     * @param privilegeBits  The privilege bits defined for this entry.
+     * @param isAllow        {@code true} if the entry is granting privileges.
+     * @param restrictions   A optional set of restrictions.
      * @param namePathMapper The name-path mapper
-     * @throws AccessControlException If the given {@code principal} or {@code privilegeBits} are {@code null} or if {@code privilegeBits} are {@link PrivilegeBits#isEmpty() empty}.
+     * @throws AccessControlException If the given {@code principal} or {@code privilegeBits} are
+     *                                {@code null} or if {@code privilegeBits} are
+     *                                {@link PrivilegeBits#isEmpty() empty}.
      */
     public ACE(@Nullable Principal principal, @Nullable PrivilegeBits privilegeBits,
-               boolean isAllow, @Nullable Set<Restriction> restrictions, 
-               @NotNull NamePathMapper namePathMapper) throws AccessControlException {
+        boolean isAllow, @Nullable Set<Restriction> restrictions,
+        @NotNull NamePathMapper namePathMapper) throws AccessControlException {
         if (principal == null || privilegeBits == null || privilegeBits.isEmpty()) {
             throw new AccessControlException();
         }
@@ -77,7 +78,8 @@ public abstract class ACE implements JackrabbitAccessControlEntry {
         this.principal = principal;
         this.privilegeBits = privilegeBits;
         this.isAllow = isAllow;
-        this.restrictions = (restrictions == null) ? Collections.emptySet() : ImmutableSet.copyOf(restrictions);
+        this.restrictions =
+            (restrictions == null) ? Collections.emptySet() : ImmutableSet.copyOf(restrictions);
         this.namePathMapper = namePathMapper;
         this.valueFactory = new PartialValueFactory(namePathMapper);
     }
@@ -92,7 +94,7 @@ public abstract class ACE implements JackrabbitAccessControlEntry {
     public Set<Restriction> getRestrictions() {
         return restrictions;
     }
-    
+
     @NotNull
     protected abstract PrivilegeBitsProvider getPrivilegeBitsProvider();
 
@@ -112,7 +114,8 @@ public abstract class ACE implements JackrabbitAccessControlEntry {
     @NotNull
     @Override
     public String[] getRestrictionNames() {
-        return Collections2.transform(restrictions, this::getJcrName).toArray(new String[restrictions.size()]);
+        return Collections2.transform(restrictions, this::getJcrName)
+                           .toArray(new String[restrictions.size()]);
     }
 
     @Nullable
@@ -126,7 +129,8 @@ public abstract class ACE implements JackrabbitAccessControlEntry {
                     if (values.size() == 1) {
                         return values.get(0);
                     } else {
-                        throw new ValueFormatException("Attempt to retrieve single value from multivalued property");
+                        throw new ValueFormatException(
+                            "Attempt to retrieve single value from multivalued property");
                     }
                 } else {
                     return valueFactory.createValue(restriction.getProperty());
@@ -158,12 +162,14 @@ public abstract class ACE implements JackrabbitAccessControlEntry {
             }
 
             @Override
-            @NotNull PrivilegeBitsProvider getPrivilegeBitsProvider() {
+            @NotNull
+            PrivilegeBitsProvider getPrivilegeBitsProvider() {
                 return ACE.this.getPrivilegeBitsProvider();
             }
 
             @Override
-            @NotNull NamePathMapper getNamePathMapper() {
+            @NotNull
+            NamePathMapper getNamePathMapper() {
                 return namePathMapper;
             }
         };
@@ -187,9 +193,9 @@ public abstract class ACE implements JackrabbitAccessControlEntry {
         if (obj instanceof ACE) {
             ACE other = (ACE) obj;
             return principal.getName().equals(other.principal.getName())
-                    && isAllow == other.isAllow
-                    && privilegeBits.equals(other.privilegeBits)
-                    && restrictions.equals(other.restrictions);
+                && isAllow == other.isAllow
+                && privilegeBits.equals(other.privilegeBits)
+                && restrictions.equals(other.restrictions);
         }
         return false;
     }

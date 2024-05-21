@@ -16,26 +16,26 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.search.spi.query;
 
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.getAsyncLaneName;
+
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexNode;
 import org.apache.jackrabbit.oak.plugins.index.search.update.ReaderRefreshPolicy;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.Nullable;
 
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_PROPERTY_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.getAsyncLaneName;
-
 /**
  * Keeps track of the open read sessions for an index.
  */
 public abstract class IndexNodeManager<I extends IndexNode> {
+
     /**
-     * Name of the hidden node under which information about the checkpoints
-     * seen and indexed by each async indexer is kept.
+     * Name of the hidden node under which information about the checkpoints seen and indexed by
+     * each async indexer is kept.
      */
     public static final String ASYNC = ":async";
 
@@ -70,7 +70,8 @@ public abstract class IndexNodeManager<I extends IndexNode> {
     static boolean hasAsyncIndexerRun(NodeState root, String indexPath, NodeState defnNodeState) {
         boolean hasAsyncNode = root.hasChildNode(ASYNC);
 
-        String asyncLaneName = getAsyncLaneName(defnNodeState, indexPath, defnNodeState.getProperty(ASYNC_PROPERTY_NAME));
+        String asyncLaneName = getAsyncLaneName(defnNodeState, indexPath,
+            defnNodeState.getProperty(ASYNC_PROPERTY_NAME));
 
         if (asyncLaneName != null) {
             return hasAsyncNode && root.getChildNode(ASYNC).hasProperty(asyncLaneName);

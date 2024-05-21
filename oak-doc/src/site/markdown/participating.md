@@ -20,24 +20,27 @@ Participating
 
 The best place for Oak-related discussions is the [oak-dev@](mailto:oak-dev@jackrabbit.apache.org)
 mailing list. To subscribe, send a message to [oak-dev-subscribe@]
-(mailto:oak-dev-subscribe@jackrabbit.apache.org). 
+(mailto:oak-dev-subscribe@jackrabbit.apache.org).
 
-Use the [OAK issue tracker](https://issues.apache.org/jira/browse/OAK) to submit issues, comments 
+Use the [OAK issue tracker](https://issues.apache.org/jira/browse/OAK) to submit issues, comments
 or patches. To subscribe to issue notifications, send a message to [oak-issues@]
-(mailto:oak-issues-subscribe@jackrabbit.apache.org). 
+(mailto:oak-issues-subscribe@jackrabbit.apache.org).
 
-The latest Oak sources are available on [GitHub][1]. To subscribe to commit notifications, 
+The latest Oak sources are available on [GitHub][1]. To subscribe to commit notifications,
 send a message to [oak-commits@] (mailto:oak-commits-subscribe@jackrabbit.apache.org).
 
-For more details related to various mailing list have a look at http://jackrabbit.apache.org/mailing-lists.html
+For more details related to various mailing list have a look
+at http://jackrabbit.apache.org/mailing-lists.html
 
-We generally follow a [CTR](https://www.apache.org/foundation/glossary.html#CommitThenReview) policy. 
-However it is up to each individual committer to pro-actively ask for a review of a patch on 
-oak-dev@ or to even call for a [RTC](https://www.apache.org/foundation/glossary.html#ReviewThenCommit). 
-Special care should be taken with backports to maintenance branches. Back ports bear a certain risk 
-of introducing regressions to otherwise stable branches. Each back ported change should be carefully 
-evaluated for its potential impact, risk and possible mitigation. It is the responsibility of each 
-committer to asses these and ask for advise or reviewing on oak-dev@ if uncertain. Whether using 
+We generally follow a [CTR](https://www.apache.org/foundation/glossary.html#CommitThenReview)
+policy.
+However it is up to each individual committer to pro-actively ask for a review of a patch on
+oak-dev@ or to even call for
+a [RTC](https://www.apache.org/foundation/glossary.html#ReviewThenCommit).
+Special care should be taken with backports to maintenance branches. Back ports bear a certain risk
+of introducing regressions to otherwise stable branches. Each back ported change should be carefully
+evaluated for its potential impact, risk and possible mitigation. It is the responsibility of each
+committer to asses these and ask for advise or reviewing on oak-dev@ if uncertain. Whether using
 RTC or CTR is up to the committer.
- 
+
 [1]: https://github.com/apache/jackrabbit-oak

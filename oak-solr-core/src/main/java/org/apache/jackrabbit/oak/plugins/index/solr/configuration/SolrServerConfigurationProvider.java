@@ -28,7 +28,9 @@ public interface SolrServerConfigurationProvider<S extends SolrServerProvider> {
      * Provide a {@link SolrServerConfiguration} to be used to initialize a specific
      * {@link org.apache.solr.client.solrj.SolrClient} implementation.
      *
-     * @return the {@link org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfiguration} holding the configuration parameters
+     * @return the
+     * {@link org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfiguration}
+     * holding the configuration parameters
      */
     @NotNull
     SolrServerConfiguration<S> getSolrServerConfiguration();

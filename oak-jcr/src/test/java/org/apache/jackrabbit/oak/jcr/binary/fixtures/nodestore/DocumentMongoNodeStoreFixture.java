@@ -22,13 +22,11 @@ import java.io.File;
 import java.io.IOException;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-
 import javax.jcr.RepositoryException;
-
-import org.apache.jackrabbit.guava.common.collect.HashBasedTable;
-import org.apache.jackrabbit.guava.common.collect.Table;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.core.data.DataStore;
+import org.apache.jackrabbit.guava.common.collect.HashBasedTable;
+import org.apache.jackrabbit.guava.common.collect.Table;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.binary.fixtures.datastore.DataStoreFixture;
 import org.apache.jackrabbit.oak.jcr.binary.util.BinaryAccessDSGCFixture;
@@ -51,9 +49,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Creates a repository with
- * - DocumentNodeStore, storing data in mongo (available locally or deloying in docker if available)
- * - an optional DataStore provided by DataStoreFixture
+ * Creates a repository with - DocumentNodeStore, storing data in mongo (available locally or
+ * deloying in docker if available) - an optional DataStore provided by DataStoreFixture
  */
 public class DocumentMongoNodeStoreFixture extends NodeStoreFixture implements ComponentHolder,
     BinaryAccessDSGCFixture {
@@ -66,14 +63,15 @@ public class DocumentMongoNodeStoreFixture extends NodeStoreFixture implements C
     private final Clock clock;
     public MongoConnectionFactory connFactory;
     private String db;
+
     public DocumentMongoNodeStoreFixture(@Nullable DataStoreFixture dataStoreFixture) {
         this.dataStoreFixture = dataStoreFixture;
         this.clock = new Clock.Virtual();
     }
 
     /**
-     * Mandatory to be called to initialize the connectionFactory.
-     * Lazy initializes it to limit docker container init only if relevant datastores available.
+     * Mandatory to be called to initialize the connectionFactory. Lazy initializes it to limit
+     * docker container init only if relevant datastores available.
      *
      * @return
      */
@@ -88,7 +86,8 @@ public class DocumentMongoNodeStoreFixture extends NodeStoreFixture implements C
                 this.connection = connFactory.getConnection(db);
 
                 return (connection != null);
-            } catch (Exception e) {}
+            } catch (Exception e) {
+            }
         }
         return false;
     }
@@ -102,7 +101,8 @@ public class DocumentMongoNodeStoreFixture extends NodeStoreFixture implements C
 
             MongoDocumentNodeStoreBuilder documentNodeStoreBuilder =
                 MongoDocumentNodeStoreBuilder.newMongoDocumentNodeStoreBuilder()
-                    .setMongoDB(connection.getMongoClient(), connection.getDBName());
+                                             .setMongoDB(connection.getMongoClient(),
+                                                 connection.getDBName());
             documentNodeStoreBuilder.clock(clock);
 
             File dataStoreFolder = null;
@@ -140,14 +140,15 @@ public class DocumentMongoNodeStoreFixture extends NodeStoreFixture implements C
     public void dispose(NodeStore nodeStore) {
         try {
             if (nodeStore != null && nodeStore instanceof DocumentNodeStore) {
-                ((DocumentNodeStore)nodeStore).dispose();
+                ((DocumentNodeStore) nodeStore).dispose();
             }
 
             DataStore dataStore = (DataStore) components.get(nodeStore, DataStore.class.getName());
             if (dataStore != null && dataStoreFixture != null) {
                 dataStoreFixture.dispose(dataStore);
 
-                File dataStoreFolder = (File) components.get(nodeStore, DataStore.class.getName() + ":folder");
+                File dataStoreFolder = (File) components.get(nodeStore,
+                    DataStore.class.getName() + ":folder");
                 FileUtils.deleteQuietly(dataStoreFolder);
             }
             MongoUtils.dropDatabase(db);

@@ -16,13 +16,23 @@
  */
 package org.apache.jackrabbit.oak.run;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.jackrabbit.JcrConstants.JCR_BASEVERSION;
+import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
+import static org.apache.jackrabbit.JcrConstants.JCR_VERSIONHISTORY;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.collection.IsEmptyCollection.empty;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assume.assumeTrue;
+
 import java.io.File;
 import java.nio.file.Files;
 import java.util.List;
 import java.util.UUID;
-
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
@@ -44,18 +54,6 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-
-import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.jackrabbit.JcrConstants.JCR_BASEVERSION;
-import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
-import static org.apache.jackrabbit.JcrConstants.JCR_VERSIONHISTORY;
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.collection.IsEmptyCollection.empty;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assume.assumeTrue;
 
 public class DocumentStoreCheckCommandTest {
 
@@ -88,10 +86,10 @@ public class DocumentStoreCheckCommandTest {
     public void check() throws Exception {
         DocumentStoreCheckCommand cmd = new DocumentStoreCheckCommand();
         cmd.execute(
-                "--counter", "false",
-                "--out",
-                output.getAbsolutePath(),
-                MongoUtils.URL
+            "--counter", "false",
+            "--out",
+            output.getAbsolutePath(),
+            MongoUtils.URL
         );
         List<String> lines = Files.readAllLines(output.toPath(), UTF_8);
         assertEquals(1, lines.size());
@@ -103,10 +101,10 @@ public class DocumentStoreCheckCommandTest {
         createVersionableWithMissingBaseVersion();
         DocumentStoreCheckCommand cmd = new DocumentStoreCheckCommand();
         cmd.execute(
-                "--summary", "false",
-                "--counter", "false",
-                "--out", output.getAbsolutePath(),
-                MongoUtils.URL
+            "--summary", "false",
+            "--counter", "false",
+            "--out", output.getAbsolutePath(),
+            MongoUtils.URL
         );
         List<String> lines = Files.readAllLines(output.toPath(), UTF_8);
         assertEquals(1, lines.size());
@@ -118,10 +116,10 @@ public class DocumentStoreCheckCommandTest {
         createVersionableWithMissingVersionHistory();
         DocumentStoreCheckCommand cmd = new DocumentStoreCheckCommand();
         cmd.execute(
-                "--summary", "false",
-                "--counter", "false",
-                "--out", output.getAbsolutePath(),
-                MongoUtils.URL
+            "--summary", "false",
+            "--counter", "false",
+            "--out", output.getAbsolutePath(),
+            MongoUtils.URL
         );
         List<String> lines = Files.readAllLines(output.toPath(), UTF_8);
         assertEquals(1, lines.size());
@@ -133,10 +131,10 @@ public class DocumentStoreCheckCommandTest {
         createNodeWithUUID(true);
         DocumentStoreCheckCommand cmd = new DocumentStoreCheckCommand();
         cmd.execute(
-                "--summary", "false",
-                "--counter", "false",
-                "--out", output.getAbsolutePath(),
-                MongoUtils.URL
+            "--summary", "false",
+            "--counter", "false",
+            "--out", output.getAbsolutePath(),
+            MongoUtils.URL
         );
         List<String> lines = Files.readAllLines(output.toPath(), UTF_8);
         assertThat(lines, is(empty()));
@@ -147,10 +145,10 @@ public class DocumentStoreCheckCommandTest {
         createNodeWithUUID(false);
         DocumentStoreCheckCommand cmd = new DocumentStoreCheckCommand();
         cmd.execute(
-                "--summary", "false",
-                "--counter", "false",
-                "--out", output.getAbsolutePath(),
-                MongoUtils.URL
+            "--summary", "false",
+            "--counter", "false",
+            "--out", output.getAbsolutePath(),
+            MongoUtils.URL
         );
         List<String> lines = Files.readAllLines(output.toPath(), UTF_8);
         assertEquals(1, lines.size());
@@ -162,11 +160,11 @@ public class DocumentStoreCheckCommandTest {
         createNodeWithUUID(false);
         DocumentStoreCheckCommand cmd = new DocumentStoreCheckCommand();
         cmd.execute(
-                "--summary", "false",
-                "--counter", "false",
-                "--path", "/referenceable",
-                "--out", output.getAbsolutePath(),
-                MongoUtils.URL
+            "--summary", "false",
+            "--counter", "false",
+            "--path", "/referenceable",
+            "--out", output.getAbsolutePath(),
+            MongoUtils.URL
         );
         List<String> lines = Files.readAllLines(output.toPath(), UTF_8);
         assertEquals(1, lines.size());
@@ -178,11 +176,11 @@ public class DocumentStoreCheckCommandTest {
         createNodeWithUUID(false);
         DocumentStoreCheckCommand cmd = new DocumentStoreCheckCommand();
         cmd.execute(
-                "--summary", "false",
-                "--counter", "false",
-                "--path", "/does-not-exist",
-                "--out", output.getAbsolutePath(),
-                MongoUtils.URL
+            "--summary", "false",
+            "--counter", "false",
+            "--path", "/does-not-exist",
+            "--out", output.getAbsolutePath(),
+            MongoUtils.URL
         );
         List<String> lines = Files.readAllLines(output.toPath(), UTF_8);
         assertThat(lines, is(empty()));
@@ -193,31 +191,31 @@ public class DocumentStoreCheckCommandTest {
         assertNotNull(c);
         MongoUtils.dropCollections(c.getDatabase());
         return builderProvider.newBuilder().setAsyncDelay(0)
-                .setBlobStore(new MemoryBlobStore())
-                .setMongoDB(c.getMongoClient(), c.getDBName()).getNodeStore();
+                              .setBlobStore(new MemoryBlobStore())
+                              .setMongoDB(c.getMongoClient(), c.getDBName()).getNodeStore();
     }
 
     private void createVersionableWithMissingBaseVersion()
-            throws CommitFailedException {
+        throws CommitFailedException {
         NodeBuilder builder = ns.getRoot().builder();
         builder.child("versionable").setProperty(
-                JCR_BASEVERSION, UUID.randomUUID().toString(), Type.REFERENCE);
+            JCR_BASEVERSION, UUID.randomUUID().toString(), Type.REFERENCE);
         merge(builder);
     }
 
     private void createVersionableWithMissingVersionHistory()
-            throws CommitFailedException {
+        throws CommitFailedException {
         NodeBuilder builder = ns.getRoot().builder();
         builder.child("versionable").setProperty(
-                JCR_VERSIONHISTORY, UUID.randomUUID().toString(), Type.REFERENCE);
+            JCR_VERSIONHISTORY, UUID.randomUUID().toString(), Type.REFERENCE);
         merge(builder);
     }
 
     private void createNodeWithUUID(boolean withIndexUpdate)
-            throws CommitFailedException {
+        throws CommitFailedException {
         NodeBuilder builder = ns.getRoot().builder();
         builder.child("referenceable").setProperty(
-                JCR_UUID, UUID.randomUUID().toString(), Type.STRING);
+            JCR_UUID, UUID.randomUUID().toString(), Type.STRING);
         merge(builder, withIndexUpdate);
     }
 
@@ -233,11 +231,12 @@ public class DocumentStoreCheckCommandTest {
     }
 
     private void merge(NodeBuilder builder, boolean withIndexUpdate)
-            throws CommitFailedException {
+        throws CommitFailedException {
         CommitHook hook = EmptyHook.INSTANCE;
         if (withIndexUpdate) {
             NodeBuilder index = IndexUtils.getOrCreateOakIndex(builder);
-            IndexUtils.createIndexDefinition(index, "uuid", true, true, ImmutableList.of("jcr:uuid"), null);
+            IndexUtils.createIndexDefinition(index, "uuid", true, true,
+                ImmutableList.of("jcr:uuid"), null);
             hook = new EditorHook(new IndexUpdateProvider(new PropertyIndexEditorProvider()));
         }
         ns.merge(builder, hook, CommitInfo.EMPTY);

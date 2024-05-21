@@ -19,6 +19,11 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
+
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
@@ -28,14 +33,10 @@ import org.apache.jackrabbit.oak.plugins.blob.serializer.BlobIdSerializer;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-
 public class NodeStateEntryWriter {
-    private static final boolean SORTED_PROPERTIES = Boolean.getBoolean("oak.NodeStateEntryWriter.sort");
+
+    private static final boolean SORTED_PROPERTIES = Boolean.getBoolean(
+        "oak.NodeStateEntryWriter.sort");
     private static final String OAK_CHILD_ORDER = ":childOrder";
     public static final String DELIMITER = "|";
     private final JsopBuilder jw = new JsopBuilder();
@@ -66,7 +67,8 @@ public class NodeStateEntryWriter {
 
     public String toString(List<String> pathElements, String nodeStateAsJson) {
         int pathStringSize = pathElements.stream().mapToInt(String::length).sum();
-        StringBuilder sb = new StringBuilder(nodeStateAsJson.length() + pathStringSize + pathElements.size() + 1);
+        StringBuilder sb = new StringBuilder(
+            nodeStateAsJson.length() + pathStringSize + pathElements.size() + 1);
         sb.append('/');
         pathJoiner.appendTo(sb, pathElements);
         sb.append(DELIMITER).append(nodeStateAsJson);

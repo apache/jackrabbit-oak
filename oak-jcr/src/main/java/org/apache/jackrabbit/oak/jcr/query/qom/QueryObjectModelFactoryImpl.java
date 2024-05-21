@@ -46,9 +46,8 @@ import javax.jcr.query.qom.Selector;
 import javax.jcr.query.qom.Source;
 import javax.jcr.query.qom.StaticOperand;
 import javax.jcr.query.qom.UpperCase;
-
-import org.apache.jackrabbit.oak.jcr.session.SessionContext;
 import org.apache.jackrabbit.oak.jcr.query.QueryManagerImpl;
+import org.apache.jackrabbit.oak.jcr.session.SessionContext;
 
 /**
  * The implementation of the corresponding JCR interface.
@@ -58,7 +57,8 @@ public class QueryObjectModelFactoryImpl implements QueryObjectModelFactory {
     private final SessionContext sessionContext;
     private final QueryManagerImpl queryManager;
 
-    public QueryObjectModelFactoryImpl(QueryManagerImpl queryManager, SessionContext sessionContext) {
+    public QueryObjectModelFactoryImpl(QueryManagerImpl queryManager,
+        SessionContext sessionContext) {
         this.sessionContext = sessionContext;
         this.queryManager = queryManager;
     }
@@ -85,21 +85,21 @@ public class QueryObjectModelFactoryImpl implements QueryObjectModelFactory {
 
     @Override
     public ChildNodeJoinCondition childNodeJoinCondition(
-            String childSelectorName, String parentSelectorName) {
+        String childSelectorName, String parentSelectorName) {
         return new ChildNodeJoinConditionImpl(childSelectorName, parentSelectorName);
     }
 
     @Override
-    public Column column(String selectorName, 
-            String propertyName, String columnName) throws RepositoryException {
+    public Column column(String selectorName,
+        String propertyName, String columnName) throws RepositoryException {
         return new ColumnImpl(selectorName, getOakName(propertyName), columnName);
     }
 
     @Override
-    public Comparison comparison(DynamicOperand operand1, 
-            String operator, StaticOperand operand2) {
-        return new ComparisonImpl((DynamicOperandImpl) operand1, 
-                Operator.getOperatorByName(operator), (StaticOperandImpl) operand2);
+    public Comparison comparison(DynamicOperand operand1,
+        String operator, StaticOperand operand2) {
+        return new ComparisonImpl((DynamicOperandImpl) operand1,
+            Operator.getOperatorByName(operator), (StaticOperandImpl) operand2);
     }
 
     @Override
@@ -109,10 +109,10 @@ public class QueryObjectModelFactoryImpl implements QueryObjectModelFactory {
 
     @Override
     public DescendantNodeJoinCondition descendantNodeJoinCondition(
-            String descendantSelectorName,
-            String ancestorSelectorName) {
+        String descendantSelectorName,
+        String ancestorSelectorName) {
         return new DescendantNodeJoinConditionImpl(
-                descendantSelectorName, ancestorSelectorName);
+            descendantSelectorName, ancestorSelectorName);
     }
 
     @Override
@@ -122,17 +122,17 @@ public class QueryObjectModelFactoryImpl implements QueryObjectModelFactory {
 
     @Override
     public EquiJoinCondition equiJoinCondition(
-            String selector1Name, String property1Name, 
-            String selector2Name, String property2Name) throws RepositoryException {
-        return new EquiJoinConditionImpl(selector1Name, getOakName(property1Name), 
-                selector2Name, getOakName(property2Name));
+        String selector1Name, String property1Name,
+        String selector2Name, String property2Name) throws RepositoryException {
+        return new EquiJoinConditionImpl(selector1Name, getOakName(property1Name),
+            selector2Name, getOakName(property2Name));
     }
 
     @Override
     public FullTextSearch fullTextSearch(String selectorName, String propertyName,
-            StaticOperand fullTextSearchExpression) throws RepositoryException {
-        return new FullTextSearchImpl(selectorName, getOakName(propertyName), 
-                (StaticOperandImpl) fullTextSearchExpression);
+        StaticOperand fullTextSearchExpression) throws RepositoryException {
+        return new FullTextSearchImpl(selectorName, getOakName(propertyName),
+            (StaticOperandImpl) fullTextSearchExpression);
     }
 
     @Override
@@ -142,8 +142,8 @@ public class QueryObjectModelFactoryImpl implements QueryObjectModelFactory {
 
     @Override
     public Join join(Source left, Source right, String joinType, JoinCondition joinCondition) {
-        return new JoinImpl((SourceImpl) left, (SourceImpl) right, 
-                JoinType.getJoinTypeByName(joinType), (JoinConditionImpl) joinCondition);
+        return new JoinImpl((SourceImpl) left, (SourceImpl) right,
+            JoinType.getJoinTypeByName(joinType), (JoinConditionImpl) joinCondition);
     }
 
     @Override
@@ -182,15 +182,15 @@ public class QueryObjectModelFactoryImpl implements QueryObjectModelFactory {
     }
 
     @Override
-    public PropertyExistence propertyExistence(String selectorName, 
-            String propertyName) throws RepositoryException {
-        return new PropertyExistenceImpl(selectorName, 
-                getOakName(propertyName));
+    public PropertyExistence propertyExistence(String selectorName,
+        String propertyName) throws RepositoryException {
+        return new PropertyExistenceImpl(selectorName,
+            getOakName(propertyName));
     }
 
     @Override
-    public PropertyValue propertyValue(String selectorName, 
-            String propertyName) throws RepositoryException {
+    public PropertyValue propertyValue(String selectorName,
+        String propertyName) throws RepositoryException {
         return new PropertyValueImpl(selectorName, getOakName(propertyName));
     }
 
@@ -200,14 +200,14 @@ public class QueryObjectModelFactoryImpl implements QueryObjectModelFactory {
     }
 
     @Override
-    public SameNodeJoinCondition sameNodeJoinCondition(String selector1Name, 
-            String selector2Name, String selector2Path) {
+    public SameNodeJoinCondition sameNodeJoinCondition(String selector1Name,
+        String selector2Name, String selector2Path) {
         return new SameNodeJoinConditionImpl(selector1Name, selector2Name, selector2Path);
     }
 
     @Override
-    public Selector selector(String nodeTypeName, String selectorName) 
-            throws RepositoryException {
+    public Selector selector(String nodeTypeName, String selectorName)
+        throws RepositoryException {
         return new SelectorImpl(getOakName(nodeTypeName), selectorName);
     }
 
@@ -217,15 +217,15 @@ public class QueryObjectModelFactoryImpl implements QueryObjectModelFactory {
     }
 
     @Override
-    public QueryObjectModel createQuery(Source source, Constraint constraint, 
-            Ordering[] orderings, Column[] columns) {
+    public QueryObjectModel createQuery(Source source, Constraint constraint,
+        Ordering[] orderings, Column[] columns) {
         QueryObjectModelImpl qom = new QueryObjectModelImpl(queryManager,
-                sessionContext.getValueFactory(),
-                source, constraint, orderings, columns);
+            sessionContext.getValueFactory(),
+            source, constraint, orderings, columns);
         qom.bindVariables();
         return qom;
     }
-    
+
     private String getOakName(String jcrName) throws RepositoryException {
         if (jcrName == null) {
             return null;

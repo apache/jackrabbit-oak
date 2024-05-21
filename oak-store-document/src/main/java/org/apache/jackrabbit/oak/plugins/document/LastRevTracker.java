@@ -17,8 +17,8 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 /**
- * An implementation of this interface receives callbacks about paths
- * that need an update of the _lastRev field on documents.
+ * An implementation of this interface receives callbacks about paths that need an update of the
+ * _lastRev field on documents.
  */
 public interface LastRevTracker {
 

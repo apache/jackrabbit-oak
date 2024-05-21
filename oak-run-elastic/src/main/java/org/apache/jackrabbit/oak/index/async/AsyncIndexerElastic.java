@@ -18,8 +18,9 @@
  */
 package org.apache.jackrabbit.oak.index.async;
 
-import org.apache.jackrabbit.guava.common.io.Closer;
+import java.util.List;
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.index.ElasticIndexOptions;
 import org.apache.jackrabbit.oak.index.IndexHelper;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
@@ -30,13 +31,12 @@ import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticIndexEditorP
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
-import java.util.List;
-
 public class AsyncIndexerElastic extends AsyncIndexerBase {
 
     private final ElasticIndexOptions indexOpts;
+
     public AsyncIndexerElastic(IndexHelper indexHelper, Closer closer, List<String> names,
-                               long delay, ElasticIndexOptions indexOpts) {
+        long delay, ElasticIndexOptions indexOpts) {
         super(indexHelper, closer, names, delay);
         this.indexOpts = indexOpts;
     }
@@ -44,22 +44,25 @@ public class AsyncIndexerElastic extends AsyncIndexerBase {
     @Override
     public IndexEditorProvider getIndexEditorProvider() {
         final ElasticConnection.Builder.BuildStep buildStep = ElasticConnection.newBuilder()
-                .withIndexPrefix(indexOpts.getIndexPrefix())
-                .withConnectionParameters(
-                        indexOpts.getElasticScheme(),
-                        indexOpts.getElasticHost(),
-                        indexOpts.getElasticPort()
-                );
+                                                                               .withIndexPrefix(
+                                                                                   indexOpts.getIndexPrefix())
+                                                                               .withConnectionParameters(
+                                                                                   indexOpts.getElasticScheme(),
+                                                                                   indexOpts.getElasticHost(),
+                                                                                   indexOpts.getElasticPort()
+                                                                               );
         final ElasticConnection connection;
         if (indexOpts.getApiKeyId() != null && indexOpts.getApiKeySecret() != null) {
-            connection = buildStep.withApiKeys(indexOpts.getApiKeyId(), indexOpts.getApiKeySecret()).build();
+            connection = buildStep.withApiKeys(indexOpts.getApiKeyId(), indexOpts.getApiKeySecret())
+                                  .build();
         } else {
             connection = buildStep.build();
         }
         closer.register(connection);
 
-        ElasticIndexTracker indexTracker = new ElasticIndexTracker(connection, new ElasticMetricHandler(StatisticsProvider.NOOP));
+        ElasticIndexTracker indexTracker = new ElasticIndexTracker(connection,
+            new ElasticMetricHandler(StatisticsProvider.NOOP));
         return new ElasticIndexEditorProvider(indexTracker, connection,
-                new ExtractedTextCache(10 * FileUtils.ONE_MB, 100));
+            new ExtractedTextCache(10 * FileUtils.ONE_MB, 100));
     }
 }

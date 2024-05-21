@@ -16,12 +16,23 @@
  */
 package org.apache.jackrabbit.oak.exercise.security.authorization.principalbased;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
+import java.security.Principal;
+import java.util.Iterator;
+import javax.jcr.security.AccessControlEntry;
+import javax.jcr.security.AccessControlList;
+import javax.jcr.security.AccessControlPolicy;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.authorization.PrincipalAccessControlList;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -34,18 +45,6 @@ import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import javax.jcr.security.AccessControlEntry;
-import javax.jcr.security.AccessControlList;
-import javax.jcr.security.AccessControlPolicy;
-import java.security.Principal;
-import java.util.Iterator;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
 /**
  * <pre>
@@ -118,10 +117,13 @@ public class L2_AccessControlManagementTest extends AbstractPrincipalBasedTest {
         supportedPrincipal = getSystemUserPrincipal("systemUser", getSupportedIntermediatePath());
         unsupportedPrincipal = getGroupPrincipal();
 
-        principalBasedAcMgr = (JackrabbitAccessControlManager) getPrincipalBasedAuthorizationConfiguration().getAccessControlManager(root, getNamePathMapper());
-        compositeAcMgr = (JackrabbitAccessControlManager) getConfig(AuthorizationConfiguration.class).getAccessControlManager(root, getNamePathMapper());
+        principalBasedAcMgr = (JackrabbitAccessControlManager) getPrincipalBasedAuthorizationConfiguration().getAccessControlManager(
+            root, getNamePathMapper());
+        compositeAcMgr = (JackrabbitAccessControlManager) getConfig(
+            AuthorizationConfiguration.class).getAccessControlManager(root, getNamePathMapper());
 
-        Tree testTree = TreeUtil.addChild(root.getTree(PathUtils.ROOT_PATH), "test", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        Tree testTree = TreeUtil.addChild(root.getTree(PathUtils.ROOT_PATH), "test",
+            NodeTypeConstants.NT_OAK_UNSTRUCTURED);
         testPath = getNamePathMapper().getJcrPath(testTree.getPath());
         root.commit();
     }
@@ -139,7 +141,8 @@ public class L2_AccessControlManagementTest extends AbstractPrincipalBasedTest {
 
     @Test
     public void testApplicablePoliciesSupportedPrincipal() throws Exception {
-        AccessControlPolicy[] applicable = principalBasedAcMgr.getApplicablePolicies(supportedPrincipal);
+        AccessControlPolicy[] applicable = principalBasedAcMgr.getApplicablePolicies(
+            supportedPrincipal);
         assertEquals(-1 /*EXERCISE: fix assertion */, applicable.length);
         assertTrue(applicable[0] instanceof PrincipalAccessControlList);
 
@@ -152,7 +155,8 @@ public class L2_AccessControlManagementTest extends AbstractPrincipalBasedTest {
 
     @Test
     public void testApplicablePoliciesUnsupportedPrincipal() throws Exception {
-        AccessControlPolicy[] applicable = principalBasedAcMgr.getApplicablePolicies(unsupportedPrincipal);
+        AccessControlPolicy[] applicable = principalBasedAcMgr.getApplicablePolicies(
+            unsupportedPrincipal);
         assertEquals(-1 /*EXERCISE: fix assertion */, applicable.length);
 
         applicable = compositeAcMgr.getApplicablePolicies(unsupportedPrincipal);
@@ -164,7 +168,8 @@ public class L2_AccessControlManagementTest extends AbstractPrincipalBasedTest {
 
     @Test
     public void testApplicablePoliciesByPath() throws Exception {
-        Iterator<AccessControlPolicy> applicable = principalBasedAcMgr.getApplicablePolicies(testPath);
+        Iterator<AccessControlPolicy> applicable = principalBasedAcMgr.getApplicablePolicies(
+            testPath);
         assertEquals(null /*EXERCISE: complete assertion */, applicable.hasNext());
 
         applicable = compositeAcMgr.getApplicablePolicies(testPath);
@@ -176,7 +181,8 @@ public class L2_AccessControlManagementTest extends AbstractPrincipalBasedTest {
 
     @Test
     public void testEditAccssControl() throws Exception {
-        PrincipalAccessControlList acl = getApplicablePrincipalAccessControlList(compositeAcMgr, supportedPrincipal);
+        PrincipalAccessControlList acl = getApplicablePrincipalAccessControlList(compositeAcMgr,
+            supportedPrincipal);
         assertNotNull(acl);
 
         // EXERCISE: modify the PrincipalAccessControlList such that the test passes.
@@ -196,7 +202,8 @@ public class L2_AccessControlManagementTest extends AbstractPrincipalBasedTest {
         //           both the supportedPrincipal and unsupportedPrincipal
         JackrabbitAccessControlList acl = null; // EXERCISE
         acl.addEntry(supportedPrincipal, privilegesFromNames(PrivilegeConstants.JCR_READ), true,
-                ImmutableMap.of(AccessControlConstants.REP_NODE_PATH, getValueFactory(root).createValue(testPath)));
+            ImmutableMap.of(AccessControlConstants.REP_NODE_PATH,
+                getValueFactory(root).createValue(testPath)));
         compositeAcMgr.setPolicy(acl.getPath(), acl);
         root.commit();
 
@@ -211,12 +218,16 @@ public class L2_AccessControlManagementTest extends AbstractPrincipalBasedTest {
 
     @Test
     public void testEffectivePolicies() throws Exception {
-        JackrabbitAccessControlList acl = checkNotNull(AccessControlUtils.getAccessControlList(compositeAcMgr, testPath));
-        acl.addAccessControlEntry(supportedPrincipal, privilegesFromNames(PrivilegeConstants.JCR_REMOVE_CHILD_NODES));
-        acl.addAccessControlEntry(unsupportedPrincipal, privilegesFromNames(PrivilegeConstants.JCR_MODIFY_PROPERTIES));
+        JackrabbitAccessControlList acl = checkNotNull(
+            AccessControlUtils.getAccessControlList(compositeAcMgr, testPath));
+        acl.addAccessControlEntry(supportedPrincipal,
+            privilegesFromNames(PrivilegeConstants.JCR_REMOVE_CHILD_NODES));
+        acl.addAccessControlEntry(unsupportedPrincipal,
+            privilegesFromNames(PrivilegeConstants.JCR_MODIFY_PROPERTIES));
         compositeAcMgr.setPolicy(acl.getPath(), acl);
 
-        PrincipalAccessControlList pacl = checkNotNull(getApplicablePrincipalAccessControlList(compositeAcMgr, supportedPrincipal));
+        PrincipalAccessControlList pacl = checkNotNull(
+            getApplicablePrincipalAccessControlList(compositeAcMgr, supportedPrincipal));
         pacl.addEntry(testPath, privilegesFromNames(PrivilegeConstants.JCR_ADD_CHILD_NODES));
         compositeAcMgr.setPolicy(pacl.getPath(), pacl);
         root.commit();
@@ -224,7 +235,8 @@ public class L2_AccessControlManagementTest extends AbstractPrincipalBasedTest {
         // 1. get effective policies for just 'supportedPrincipal'
 
         // EXERCISE: what is the expected result? verify by filling in the missing assertions.
-        AccessControlPolicy[] effective = compositeAcMgr.getEffectivePolicies(ImmutableSet.of(supportedPrincipal));
+        AccessControlPolicy[] effective = compositeAcMgr.getEffectivePolicies(
+            ImmutableSet.of(supportedPrincipal));
         assertEquals(-1 /*EXERCISE*/, effective.length);
         // EXERCISE: inspect the nature of the policies
 
@@ -237,7 +249,8 @@ public class L2_AccessControlManagementTest extends AbstractPrincipalBasedTest {
         // 2. get effective policies for the set containing both 'supportedPrincipal' and 'unsupportedPrincipal'
 
         // EXERCISE: what is the expected result? verify it by filling in the missing assertions.
-        effective = compositeAcMgr.getEffectivePolicies(ImmutableSet.of(supportedPrincipal, unsupportedPrincipal));
+        effective = compositeAcMgr.getEffectivePolicies(
+            ImmutableSet.of(supportedPrincipal, unsupportedPrincipal));
         assertEquals(-1 /*EXERCISE*/, effective.length);
         // EXERCISE: inspect the nature of the policies
 
@@ -250,11 +263,14 @@ public class L2_AccessControlManagementTest extends AbstractPrincipalBasedTest {
 
     @Test
     public void testEffectivePoliciesByPath() throws Exception {
-        JackrabbitAccessControlList acl = checkNotNull(AccessControlUtils.getAccessControlList(compositeAcMgr, testPath));
-        acl.addAccessControlEntry(unsupportedPrincipal, privilegesFromNames(PrivilegeConstants.REP_REMOVE_PROPERTIES));
+        JackrabbitAccessControlList acl = checkNotNull(
+            AccessControlUtils.getAccessControlList(compositeAcMgr, testPath));
+        acl.addAccessControlEntry(unsupportedPrincipal,
+            privilegesFromNames(PrivilegeConstants.REP_REMOVE_PROPERTIES));
         compositeAcMgr.setPolicy(acl.getPath(), acl);
 
-        PrincipalAccessControlList pacl = checkNotNull(getApplicablePrincipalAccessControlList(compositeAcMgr, supportedPrincipal));
+        PrincipalAccessControlList pacl = checkNotNull(
+            getApplicablePrincipalAccessControlList(compositeAcMgr, supportedPrincipal));
         pacl.addEntry(testPath, privilegesFromNames(PrivilegeConstants.REP_ADD_PROPERTIES));
         compositeAcMgr.setPolicy(pacl.getPath(), pacl);
         root.commit();

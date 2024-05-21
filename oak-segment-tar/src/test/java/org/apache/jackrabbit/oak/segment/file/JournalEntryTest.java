@@ -27,7 +27,6 @@ import static org.junit.Assert.assertTrue;
 import java.io.File;
 import java.nio.charset.Charset;
 import java.util.List;
-
 import org.apache.jackrabbit.guava.common.base.Splitter;
 import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
@@ -46,14 +45,14 @@ public class JournalEntryTest {
     public TemporaryFolder tempFolder = new TemporaryFolder(new File("target"));
 
     @Test
-    public void timestampInJournalEntry() throws Exception{
+    public void timestampInJournalEntry() throws Exception {
         FileStore fileStore = fileStoreBuilder(tempFolder.getRoot())
-                .withMaxFileSize(5)
-                .withSegmentCacheSize(0)
-                .withStringCacheSize(0)
-                .withTemplateCacheSize(0)
-                .withMemoryMapping(true)
-                .build();
+            .withMaxFileSize(5)
+            .withSegmentCacheSize(0)
+            .withStringCacheSize(0)
+            .withTemplateCacheSize(0)
+            .withMemoryMapping(true)
+            .build();
 
         SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
 
@@ -61,7 +60,7 @@ public class JournalEntryTest {
 
         for (int i = 0; i < 5; i++) {
             NodeBuilder root = nodeStore.getRoot().builder();
-            root.child("c"+i);
+            root.child("c" + i);
             nodeStore.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
             fileStore.flush();
@@ -83,11 +82,12 @@ public class JournalEntryTest {
         JournalReader jr = new JournalReader(new LocalJournalFile(journal));
         JournalEntry journalEntry = jr.next();
         assertEquals(journalParts(lines.get(lines.size() - 1)).get(0), journalEntry.getRevision());
-        assertEquals(journalParts(lines.get(lines.size() - 1)).get(2), String.valueOf(journalEntry.getTimestamp()));
+        assertEquals(journalParts(lines.get(lines.size() - 1)).get(2),
+            String.valueOf(journalEntry.getTimestamp()));
         jr.close();
     }
 
-    private List<String> journalParts(String line){
+    private List<String> journalParts(String line) {
         return Splitter.on(' ').splitToList(line);
     }
 

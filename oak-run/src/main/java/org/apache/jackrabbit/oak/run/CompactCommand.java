@@ -18,16 +18,15 @@
 package org.apache.jackrabbit.oak.run;
 
 import java.io.File;
-
-import org.apache.jackrabbit.guava.common.base.StandardSystemProperty;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
+import org.apache.jackrabbit.guava.common.base.StandardSystemProperty;
 import org.apache.jackrabbit.oak.run.commons.Command;
+import org.apache.jackrabbit.oak.segment.aws.tool.AwsCompact;
 import org.apache.jackrabbit.oak.segment.azure.tool.AzureCompact;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.CompactorType;
-import org.apache.jackrabbit.oak.segment.aws.tool.AwsCompact;
 import org.apache.jackrabbit.oak.segment.tool.Compact;
 
 class CompactCommand implements Command {
@@ -40,45 +39,52 @@ class CompactCommand implements Command {
     public void execute(String... args) throws Exception {
         OptionParser parser = new OptionParser();
         OptionSpec<String> directoryArg = parser.nonOptions(
-                "Path/URI to TAR/remote segment store (required)").ofType(String.class);
+            "Path/URI to TAR/remote segment store (required)").ofType(String.class);
         OptionSpec<Boolean> mmapArg = parser.accepts("mmap",
-                "Use memory mapped access if true, use file access if false. " +
-                    "If not specified, memory mapped access is used on 64 bit " +
-                    "systems and file access is used on 32 bit systems. For " +
-                    "remote segment stores and on Windows, regular file access " +
-                    "is always enforced and this option is ignored.")
-                .withOptionalArg()
-                .ofType(Boolean.class);
+                                                "Use memory mapped access if true, use file access if false. " +
+                                                    "If not specified, memory mapped access is used on 64 bit " +
+                                                    "systems and file access is used on 32 bit systems. For " +
+                                                    "remote segment stores and on Windows, regular file access " +
+                                                    "is always enforced and this option is ignored.")
+                                            .withOptionalArg()
+                                            .ofType(Boolean.class);
         OptionSpec<Void> forceArg = parser.accepts("force",
-                "Force compaction and ignore a non matching segment store version. " +
-                        "CAUTION: this will upgrade the segment store to the latest version, " +
-                        "which is incompatible with older versions of Oak.");
-        OptionSpec<Void> tailArg = parser.accepts("tail", "Use tail compaction instead of a full repository rewrite.");
+            "Force compaction and ignore a non matching segment store version. " +
+                "CAUTION: this will upgrade the segment store to the latest version, " +
+                "which is incompatible with older versions of Oak.");
+        OptionSpec<Void> tailArg = parser.accepts("tail",
+            "Use tail compaction instead of a full repository rewrite.");
         OptionSpec<String> compactor = parser.accepts("compactor",
-                "Allow the user to control compactor type to be used. Valid choices are \"classic\", \"diff\", \"parallel\". " +
-                        "While \"classic\" is slower, it might be more stable, due to lack of optimisations employed " +
-                        "by the \"diff\" compactor which compacts the checkpoints on top of each other and \"parallel\" compactor, which splits " +
-                        "the repository into smaller parts and compacts them concurrently. If not specified, \"parallel\" compactor is used.")
-                .withRequiredArg().ofType(String.class);
-        OptionSpec<Integer> nThreads = parser.accepts("threads", "Specify the number of threads used" +
-                "for compaction. This is only applicable to the \"parallel\" compactor. Defaults to 1.")
-                .withRequiredArg()
-                .ofType(Integer.class)
-                .defaultsTo(1);
-        OptionSpec<String> targetPath = parser.accepts("target-path", "Path/URI to TAR/remote segment store where " +
-                "resulting archives will be written")
-                .withRequiredArg()
-                .ofType(String.class);
-        OptionSpec<String> persistentCachePath = parser.accepts("persistent-cache-path", "Path/URI to persistent cache where " +
-                "resulting segments will be written")
-                .withRequiredArg()
-                .ofType(String.class);
-        OptionSpec<Integer> persistentCacheSizeGb = parser.accepts("persistent-cache-size-gb", "Size in GB (defaults to 50 GB) for "
-                + "the persistent disk cache")
-                .withRequiredArg()
-                .ofType(Integer.class)
-                .defaultsTo(50);
-
+                                                 "Allow the user to control compactor type to be used. Valid choices are \"classic\", \"diff\", \"parallel\". "
+                                                     +
+                                                     "While \"classic\" is slower, it might be more stable, due to lack of optimisations employed "
+                                                     +
+                                                     "by the \"diff\" compactor which compacts the checkpoints on top of each other and \"parallel\" compactor, which splits "
+                                                     +
+                                                     "the repository into smaller parts and compacts them concurrently. If not specified, \"parallel\" compactor is used.")
+                                             .withRequiredArg().ofType(String.class);
+        OptionSpec<Integer> nThreads = parser.accepts("threads",
+                                                 "Specify the number of threads used" +
+                                                     "for compaction. This is only applicable to the \"parallel\" compactor. Defaults to 1.")
+                                             .withRequiredArg()
+                                             .ofType(Integer.class)
+                                             .defaultsTo(1);
+        OptionSpec<String> targetPath = parser.accepts("target-path",
+                                                  "Path/URI to TAR/remote segment store where " +
+                                                      "resulting archives will be written")
+                                              .withRequiredArg()
+                                              .ofType(String.class);
+        OptionSpec<String> persistentCachePath = parser.accepts("persistent-cache-path",
+                                                           "Path/URI to persistent cache where " +
+                                                               "resulting segments will be written")
+                                                       .withRequiredArg()
+                                                       .ofType(String.class);
+        OptionSpec<Integer> persistentCacheSizeGb = parser.accepts("persistent-cache-size-gb",
+                                                              "Size in GB (defaults to 50 GB) for "
+                                                                  + "the persistent disk cache")
+                                                          .withRequiredArg()
+                                                          .ofType(Integer.class)
+                                                          .defaultsTo(50);
 
         OptionSet options = parser.parse(args);
 
@@ -94,7 +100,8 @@ class CompactCommand implements Command {
 
         if (path.startsWith("az:")) {
             if (targetPath.value(options) == null) {
-                System.err.println("A destination for the compacted Azure Segment Store needs to be specified");
+                System.err.println(
+                    "A destination for the compacted Azure Segment Store needs to be specified");
                 parser.printHelpOn(System.err);
                 System.exit(-1);
             }
@@ -106,53 +113,67 @@ class CompactCommand implements Command {
             }
 
             AzureCompact.Builder azureBuilder = AzureCompact.builder()
-                    .withPath(path)
-                    .withTargetPath(targetPath.value(options))
-                    .withPersistentCachePath(persistentCachePath.value(options))
-                    .withPersistentCacheSizeGb(persistentCacheSizeGb.value(options))
-                    .withForce(options.has(forceArg))
-                    .withGCLogInterval(Long.getLong("compaction-progress-log", 150000))
-                    .withConcurrency(nThreads.value(options));
+                                                            .withPath(path)
+                                                            .withTargetPath(
+                                                                targetPath.value(options))
+                                                            .withPersistentCachePath(
+                                                                persistentCachePath.value(options))
+                                                            .withPersistentCacheSizeGb(
+                                                                persistentCacheSizeGb.value(
+                                                                    options))
+                                                            .withForce(options.has(forceArg))
+                                                            .withGCLogInterval(Long.getLong(
+                                                                "compaction-progress-log", 150000))
+                                                            .withConcurrency(
+                                                                nThreads.value(options));
 
             if (options.has(tailArg)) {
                 azureBuilder.withGCType(SegmentGCOptions.GCType.TAIL);
             }
             if (options.has(compactor)) {
-                azureBuilder.withCompactorType(CompactorType.fromDescription(compactor.value(options)));
+                azureBuilder.withCompactorType(
+                    CompactorType.fromDescription(compactor.value(options)));
             }
 
             code = azureBuilder.build().run();
         } else if (path.startsWith("aws:")) {
             AwsCompact.Builder awsBuilder = AwsCompact.builder()
-                    .withPath(path)
-                    .withForce(options.has(forceArg))
-                    .withSegmentCacheSize(Integer.getInteger("cache", 256))
-                    .withGCLogInterval(Long.getLong("compaction-progress-log", 150000))
-                    .withConcurrency(nThreads.value(options));
+                                                      .withPath(path)
+                                                      .withForce(options.has(forceArg))
+                                                      .withSegmentCacheSize(
+                                                          Integer.getInteger("cache", 256))
+                                                      .withGCLogInterval(
+                                                          Long.getLong("compaction-progress-log",
+                                                              150000))
+                                                      .withConcurrency(nThreads.value(options));
 
             if (options.has(tailArg)) {
                 awsBuilder.withGCType(SegmentGCOptions.GCType.TAIL);
             }
             if (options.has(compactor)) {
-                awsBuilder.withCompactorType(CompactorType.fromDescription(compactor.value(options)));
+                awsBuilder.withCompactorType(
+                    CompactorType.fromDescription(compactor.value(options)));
             }
 
             code = awsBuilder.build().run();
         } else {
             Compact.Builder tarBuilder = Compact.builder()
-                    .withPath(new File(path))
-                    .withForce(options.has(forceArg))
-                    .withMmap(mmapArg.value(options))
-                    .withOs(StandardSystemProperty.OS_NAME.value())
-                    .withSegmentCacheSize(Integer.getInteger("cache", 256))
-                    .withGCLogInterval(Long.getLong("compaction-progress-log", 150000))
-                    .withConcurrency(nThreads.value(options));
+                                                .withPath(new File(path))
+                                                .withForce(options.has(forceArg))
+                                                .withMmap(mmapArg.value(options))
+                                                .withOs(StandardSystemProperty.OS_NAME.value())
+                                                .withSegmentCacheSize(
+                                                    Integer.getInteger("cache", 256))
+                                                .withGCLogInterval(
+                                                    Long.getLong("compaction-progress-log", 150000))
+                                                .withConcurrency(nThreads.value(options));
 
             if (options.has(tailArg)) {
                 tarBuilder.withGCType(SegmentGCOptions.GCType.TAIL);
             }
             if (options.has(compactor)) {
-                tarBuilder.withCompactorType(CompactorType.fromDescription(compactor.value(options)));
+                tarBuilder.withCompactorType(
+                    CompactorType.fromDescription(compactor.value(options)));
             }
 
             code = tarBuilder.build().run();

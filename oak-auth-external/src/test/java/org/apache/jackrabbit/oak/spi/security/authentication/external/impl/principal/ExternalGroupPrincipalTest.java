@@ -16,31 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
-import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
-import org.apache.jackrabbit.api.security.user.Authorizable;
-import org.apache.jackrabbit.api.security.user.Group;
-import org.apache.jackrabbit.api.security.user.UserManager;
-import org.apache.jackrabbit.oak.api.QueryEngine;
-import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
-import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
-import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
-import org.jetbrains.annotations.NotNull;
-import org.junit.Test;
-
-import javax.jcr.RepositoryException;
-import java.security.Principal;
-import java.text.ParseException;
-import java.util.Enumeration;
-import java.util.Map;
-
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.TestIdentityProvider.ID_SECOND_USER;
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES;
 import static org.junit.Assert.assertEquals;
@@ -52,28 +27,57 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
+import java.security.Principal;
+import java.text.ParseException;
+import java.util.Enumeration;
+import java.util.Map;
+import javax.jcr.RepositoryException;
+import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
+import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
+import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.jackrabbit.api.security.user.Group;
+import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.apache.jackrabbit.oak.api.QueryEngine;
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
+import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
+import org.jetbrains.annotations.NotNull;
+import org.junit.Test;
+
 public class ExternalGroupPrincipalTest extends AbstractPrincipalTest {
 
     @Test
     public void testIsMember() throws Exception {
         ExternalUser externalUser = idp.getUser(USER_ID);
-        GroupPrincipal principal = getGroupPrincipal(externalUser.getDeclaredGroups().iterator().next());
+        GroupPrincipal principal = getGroupPrincipal(
+            externalUser.getDeclaredGroups().iterator().next());
 
         assertTrue(principal.isMember(new PrincipalImpl(externalUser.getPrincipalName())));
-        assertTrue(principal.isMember(getUserManager(root).getAuthorizable(USER_ID).getPrincipal()));
+        assertTrue(
+            principal.isMember(getUserManager(root).getAuthorizable(USER_ID).getPrincipal()));
     }
 
     @Test
     public void testNotIsMember() throws Exception {
-        GroupPrincipal principal = getGroupPrincipal(idp.getUser(USER_ID).getDeclaredGroups().iterator().next());
+        GroupPrincipal principal = getGroupPrincipal(
+            idp.getUser(USER_ID).getDeclaredGroups().iterator().next());
 
         Authorizable notMember = getUserManager(root).getAuthorizable(ID_SECOND_USER);
         assertFalse(principal.isMember(notMember.getPrincipal()));
 
-        root.getTree(notMember.getPath()).setProperty(REP_EXTERNAL_PRINCIPAL_NAMES, ImmutableList.of("secondGroup"), Type.STRINGS);
+        root.getTree(notMember.getPath())
+            .setProperty(REP_EXTERNAL_PRINCIPAL_NAMES, ImmutableList.of("secondGroup"),
+                Type.STRINGS);
         assertFalse(principal.isMember(notMember.getPrincipal()));
 
-        root.getTree(notMember.getPath()).setProperty(REP_EXTERNAL_PRINCIPAL_NAMES, ImmutableList.of(), Type.STRINGS);
+        root.getTree(notMember.getPath())
+            .setProperty(REP_EXTERNAL_PRINCIPAL_NAMES, ImmutableList.of(), Type.STRINGS);
         assertFalse(principal.isMember(new PrincipalImpl(notMember.getPrincipal().getName())));
     }
 
@@ -81,7 +85,8 @@ public class ExternalGroupPrincipalTest extends AbstractPrincipalTest {
     public void testIsMemberExternalGroup() throws Exception {
         GroupPrincipal principal = getGroupPrincipal();
 
-        Iterable<String> exGroupPrincNames = Iterables.transform(ImmutableList.copyOf(idp.listGroups()), ExternalIdentity::getPrincipalName);
+        Iterable<String> exGroupPrincNames = Iterables.transform(
+            ImmutableList.copyOf(idp.listGroups()), ExternalIdentity::getPrincipalName);
         for (String principalName : exGroupPrincNames) {
             assertFalse(principal.isMember(new PrincipalImpl(principalName)));
         }
@@ -108,6 +113,7 @@ public class ExternalGroupPrincipalTest extends AbstractPrincipalTest {
             public @NotNull String getPath() throws RepositoryException {
                 return gr.getPath();
             }
+
             @Override
             public String getName() {
                 return name;
@@ -122,7 +128,9 @@ public class ExternalGroupPrincipalTest extends AbstractPrincipalTest {
         Authorizable a = um.getAuthorizable(USER_ID);
         when(um.getAuthorizable(any(Principal.class))).thenThrow(new RepositoryException());
 
-        UserConfiguration uc = when(mock(UserConfiguration.class).getUserManager(root, getNamePathMapper())).thenReturn(um).getMock();
+        UserConfiguration uc = when(
+            mock(UserConfiguration.class).getUserManager(root, getNamePathMapper())).thenReturn(um)
+                                                                                    .getMock();
         ExternalGroupPrincipalProvider pp = createPrincipalProvider(root, uc);
 
         ExternalIdentityRef ref = idp.getUser(USER_ID).getDeclaredGroups().iterator().next();
@@ -130,15 +138,15 @@ public class ExternalGroupPrincipalTest extends AbstractPrincipalTest {
 
         Principal gp = pp.getPrincipal(groupName);
         assertTrue(gp instanceof GroupPrincipal);
-        assertFalse(((GroupPrincipal)gp).isMember(new PrincipalImpl(a.getPrincipal().getName())));
+        assertFalse(((GroupPrincipal) gp).isMember(new PrincipalImpl(a.getPrincipal().getName())));
     }
-    
+
     @Test
     public void testMembers() throws Exception {
         GroupPrincipal principal = getGroupPrincipal();
         Principal[] expectedMembers = new Principal[]{
-                getUserManager(root).getAuthorizable(USER_ID).getPrincipal(),
-                new PrincipalImpl(idp.getUser(USER_ID).getPrincipalName())
+            getUserManager(root).getAuthorizable(USER_ID).getPrincipal(),
+            new PrincipalImpl(idp.getUser(USER_ID).getPrincipalName())
         };
 
         for (Principal expected : expectedMembers) {
@@ -155,7 +163,9 @@ public class ExternalGroupPrincipalTest extends AbstractPrincipalTest {
         String userPath = um.getAuthorizable(USER_ID).getPath();
         when(um.getAuthorizableByPath(userPath)).thenReturn(null);
 
-        UserConfiguration uc = when(mock(UserConfiguration.class).getUserManager(root, getNamePathMapper())).thenReturn(um).getMock();
+        UserConfiguration uc = when(
+            mock(UserConfiguration.class).getUserManager(root, getNamePathMapper())).thenReturn(um)
+                                                                                    .getMock();
         ExternalGroupPrincipalProvider pp = createPrincipalProvider(root, uc);
 
         ExternalIdentityRef ref = idp.getUser(USER_ID).getDeclaredGroups().iterator().next();
@@ -163,7 +173,7 @@ public class ExternalGroupPrincipalTest extends AbstractPrincipalTest {
 
         Principal gp = pp.getPrincipal(groupName);
         assertTrue(gp instanceof GroupPrincipal);
-        assertFalse(((GroupPrincipal)gp).members().hasMoreElements());
+        assertFalse(((GroupPrincipal) gp).members().hasMoreElements());
     }
 
     @Test
@@ -172,7 +182,9 @@ public class ExternalGroupPrincipalTest extends AbstractPrincipalTest {
         String userPath = um.getAuthorizable(USER_ID).getPath();
         when(um.getAuthorizableByPath(userPath)).thenThrow(new RepositoryException());
 
-        UserConfiguration uc = when(mock(UserConfiguration.class).getUserManager(root, getNamePathMapper())).thenReturn(um).getMock();
+        UserConfiguration uc = when(
+            mock(UserConfiguration.class).getUserManager(root, getNamePathMapper())).thenReturn(um)
+                                                                                    .getMock();
         ExternalGroupPrincipalProvider pp = createPrincipalProvider(root, uc);
 
         ExternalIdentityRef ref = idp.getUser(USER_ID).getDeclaredGroups().iterator().next();
@@ -180,20 +192,22 @@ public class ExternalGroupPrincipalTest extends AbstractPrincipalTest {
 
         Principal gp = pp.getPrincipal(groupName);
         assertTrue(gp instanceof GroupPrincipal);
-        assertFalse(((GroupPrincipal)gp).members().hasMoreElements());
+        assertFalse(((GroupPrincipal) gp).members().hasMoreElements());
     }
-    
+
     @Test
     public void testMembersQueryFails() throws Exception {
         QueryEngine qe = mock(QueryEngine.class);
-        when(qe.executeQuery(anyString(), anyString(), any(Map.class), any(Map.class))).thenThrow(new ParseException("fail", 0));
+        when(qe.executeQuery(anyString(), anyString(), any(Map.class), any(Map.class))).thenThrow(
+            new ParseException("fail", 0));
 
         Root r = spy(root);
         when(r.getQueryEngine()).thenReturn(qe);
         ExternalGroupPrincipalProvider pp = createPrincipalProvider(r, getUserConfiguration());
 
-        Principal gp = pp.getMembershipPrincipals(getUserManager(root).getAuthorizable(USER_ID).getPrincipal()).iterator().next();
+        Principal gp = pp.getMembershipPrincipals(
+            getUserManager(root).getAuthorizable(USER_ID).getPrincipal()).iterator().next();
         assertTrue(gp instanceof GroupPrincipal);
-        assertFalse(((GroupPrincipal)gp).members().hasMoreElements());
+        assertFalse(((GroupPrincipal) gp).members().hasMoreElements());
     }
 }

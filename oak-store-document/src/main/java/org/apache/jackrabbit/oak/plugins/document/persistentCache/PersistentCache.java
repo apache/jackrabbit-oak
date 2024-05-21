@@ -25,14 +25,14 @@ import java.util.Map;
 import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
-
+import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
-import org.apache.jackrabbit.oak.plugins.document.persistentCache.broadcast.DynamicBroadcastConfig;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.async.CacheActionDispatcher;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.broadcast.Broadcaster;
+import org.apache.jackrabbit.oak.plugins.document.persistentCache.broadcast.DynamicBroadcastConfig;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.broadcast.InMemoryBroadcaster;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.broadcast.TCPBroadcaster;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.broadcast.UDPBroadcaster;
@@ -46,19 +46,17 @@ import org.h2.mvstore.WriteBuffer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.base.Function;
-
 /**
  * A persistent cache for the document store.
  */
 public class PersistentCache implements Broadcaster.Listener {
-    
+
     static final Logger LOG = LoggerFactory.getLogger(PersistentCache.class);
 
     private static final String FILE_PREFIX = "cache-";
     private static final String FILE_SUFFIX = ".data";
     private static final AtomicInteger COUNTER = new AtomicInteger();
-    
+
     private boolean cacheNodes = true;
     private boolean cacheChildren = true;
     private boolean cacheDiff = true;
@@ -68,9 +66,9 @@ public class PersistentCache implements Broadcaster.Listener {
     private boolean compress = true;
     private boolean asyncCache = true;
     private boolean asyncDiffCache = false;
-    private HashMap<CacheType, GenerationCache> caches = 
-            new HashMap<CacheType, GenerationCache>();
-    
+    private HashMap<CacheType, GenerationCache> caches =
+        new HashMap<CacheType, GenerationCache>();
+
     private final String directory;
     private MapFactory writeStore;
     private MapFactory readStore;
@@ -87,7 +85,7 @@ public class PersistentCache implements Broadcaster.Listener {
     private DynamicBroadcastConfig broadcastConfig;
     private CacheActionDispatcher writeDispatcher;
     private Thread writeDispatcherThread;
-    
+
     {
         ByteBuffer bb = ByteBuffer.wrap(new byte[16]);
         UUID uuid = UUID.randomUUID();
@@ -95,7 +93,7 @@ public class PersistentCache implements Broadcaster.Listener {
         bb.putLong(uuid.getLeastSignificantBits());
         broadcastId = bb.array();
     }
-    
+
     private int exceptionCount;
 
     public PersistentCache(String url) {
@@ -141,7 +139,7 @@ public class PersistentCache implements Broadcaster.Listener {
             } else if (p.equals("manualCommit")) {
                 manualCommit = true;
             } else if (p.startsWith("broadcast=")) {
-                broadcast = p.split("=")[1];               
+                broadcast = p.split("=")[1];
             } else if (p.equals("-async")) {
                 asyncCache = false;
             } else if (p.equals("+asyncDiff")) {
@@ -218,9 +216,9 @@ public class PersistentCache implements Broadcaster.Listener {
 
     private void logUnsupportedWarning(String configKey) {
         LOG.warn("Support for '{}' has been removed from persistent cache. " +
-                "Please update the configuration.", configKey);
+            "Please update the configuration.", configKey);
     }
-    
+
     private void initBroadcast(String broadcast) {
         if (broadcast == null) {
             return;
@@ -240,20 +238,20 @@ public class PersistentCache implements Broadcaster.Listener {
         }
         broadcaster.addListener(this);
     }
-    
+
     private String getFileName(int generation) {
         if (directory.length() == 0) {
             return null;
         }
         return directory + "/" + FILE_PREFIX + generation + FILE_SUFFIX;
     }
-    
+
     private MapFactory createMapFactory(final int generation, final boolean readOnly) {
         MapFactory f = new MapFactory() {
-            
+
             final String fileName = getFileName(generation);
             MVStore store;
-            
+
             @Override
             void openStore() {
                 if (store != null) {
@@ -287,7 +285,8 @@ public class PersistentCache implements Broadcaster.Listener {
                         public void uncaughtException(Thread t, Throwable e) {
                             exceptionCount++;
                             LOG.debug("Error in the background thread of the persistent cache", e);
-                            LOG.warn("Error in the background thread of the persistent cache: " + e);
+                            LOG.warn(
+                                "Error in the background thread of the persistent cache: " + e);
                         }
                     });
                     store = builder.open();
@@ -299,7 +298,7 @@ public class PersistentCache implements Broadcaster.Listener {
                     LOG.warn("Could not open the store " + fileName, e);
                 }
             }
-            
+
             @Override
             synchronized void closeStore() {
                 if (store == null) {
@@ -366,7 +365,7 @@ public class PersistentCache implements Broadcaster.Listener {
         f.openStore();
         return f;
     }
-    
+
     public void close() {
         writeDispatcher.stop();
         try {
@@ -388,53 +387,53 @@ public class PersistentCache implements Broadcaster.Listener {
         }
         writeBuffer.remove();
     }
-    
+
     public synchronized <K extends CacheValue, V extends CacheValue> Cache<K, V> wrap(
-            DocumentNodeStore docNodeStore, 
-            DocumentStore docStore,
-            Cache<K, V> base, CacheType type) {
-       return wrap(docNodeStore, docStore, base, type, StatisticsProvider.NOOP);
+        DocumentNodeStore docNodeStore,
+        DocumentStore docStore,
+        Cache<K, V> base, CacheType type) {
+        return wrap(docNodeStore, docStore, base, type, StatisticsProvider.NOOP);
     }
 
     public synchronized <K extends CacheValue, V extends CacheValue> Cache<K, V> wrap(
-            DocumentNodeStore docNodeStore,
-            DocumentStore docStore,
-            Cache<K, V> base, CacheType type,
-            StatisticsProvider statisticsProvider) {
+        DocumentNodeStore docNodeStore,
+        DocumentStore docStore,
+        Cache<K, V> base, CacheType type,
+        StatisticsProvider statisticsProvider) {
         boolean wrap;
         boolean async = asyncCache;
         switch (type) {
-        case NODE:
-            wrap = cacheNodes;
-            break;
-        case CHILDREN:
-            wrap = cacheChildren;
-            break;
-        case DIFF:
-            wrap = cacheDiff;
-            async = asyncDiffCache;
-            break;
-        case LOCAL_DIFF:
-            wrap = cacheLocalDiff;
-            async = asyncDiffCache;
-            break;
-        case PREV_DOCUMENT:
-            wrap = cachePrevDocs;
-            break;
-        default:
-            wrap = false;
-            break;
+            case NODE:
+                wrap = cacheNodes;
+                break;
+            case CHILDREN:
+                wrap = cacheChildren;
+                break;
+            case DIFF:
+                wrap = cacheDiff;
+                async = asyncDiffCache;
+                break;
+            case LOCAL_DIFF:
+                wrap = cacheLocalDiff;
+                async = asyncDiffCache;
+                break;
+            case PREV_DOCUMENT:
+                wrap = cachePrevDocs;
+                break;
+            default:
+                wrap = false;
+                break;
         }
         if (wrap) {
-            NodeCache<K, V> c = new NodeCache<K, V>(this, 
-                    base, docNodeStore, docStore,
-                    type, writeDispatcher, statisticsProvider, async);
+            NodeCache<K, V> c = new NodeCache<K, V>(this,
+                base, docNodeStore, docStore,
+                type, writeDispatcher, statisticsProvider, async);
             initGenerationCache(c);
             return c;
         }
         return base;
     }
-    
+
     private void initGenerationCache(GenerationCache c) {
         caches.put(c.getType(), c);
         if (readGeneration >= 0) {
@@ -442,9 +441,9 @@ public class PersistentCache implements Broadcaster.Listener {
         }
         c.addGeneration(writeGeneration, false);
     }
-    
-    public synchronized <K, V> CacheMap<K, V> openMap(int generation, String name, 
-            MVMap.Builder<K, V> builder) {
+
+    public synchronized <K, V> CacheMap<K, V> openMap(int generation, String name,
+        MVMap.Builder<K, V> builder) {
         MapFactory s;
         if (generation == readGeneration) {
             s = readStore;
@@ -456,7 +455,7 @@ public class PersistentCache implements Broadcaster.Listener {
         }
         return new CacheMap<K, V>(s, name, builder);
     }
-    
+
     public void switchGenerationIfNeeded() {
         if (!needSwitch()) {
             return;
@@ -486,7 +485,7 @@ public class PersistentCache implements Broadcaster.Listener {
             }
         }
     }
-    
+
     boolean needSwitch() {
         long size = writeStore.getFileSize();
         if (size / 1024 / 1024 <= maxSizeMB) {
@@ -494,15 +493,15 @@ public class PersistentCache implements Broadcaster.Listener {
         }
         return true;
     }
-    
+
     public int getMaxSize() {
         return maxSizeMB;
     }
-    
+
     public int getOpenCount() {
         return writeStore.getOpenCount();
     }
-    
+
     public int getExceptionCount() {
         return exceptionCount;
     }
@@ -525,13 +524,13 @@ public class PersistentCache implements Broadcaster.Listener {
         writer.apply(buff);
         ByteBuffer byteBuff = buff.getBuffer();
         int length = byteBuff.position();
-        ((Buffer)byteBuff).limit(length);
+        ((Buffer) byteBuff).limit(length);
         // write length
         byteBuff.putInt(0, length);
-        ((Buffer)byteBuff).position(0);
+        ((Buffer) byteBuff).position(0);
         b.send(byteBuff);
     }
-    
+
     @Override
     public void receive(ByteBuffer buff) {
         int end = buff.position() + buff.getInt();
@@ -541,14 +540,13 @@ public class PersistentCache implements Broadcaster.Listener {
             // process only messages from other senders
             receiveMessage(buff);
         }
-        ((Buffer)buff).position(end);
+        ((Buffer) buff).position(end);
     }
-    
+
     public static PersistentCacheStats getPersistentCacheStats(Cache<?, ?> cache) {
         if (cache instanceof NodeCache) {
             return ((NodeCache<?, ?>) cache).getPersistentCacheStats();
-        }
-        else {
+        } else {
             return null;
         }
     }
@@ -561,7 +559,7 @@ public class PersistentCache implements Broadcaster.Listener {
         }
         cache.receive(buff);
     }
-    
+
     public DynamicBroadcastConfig getBroadcastConfig() {
         return broadcastConfig;
     }
@@ -578,11 +576,11 @@ public class PersistentCache implements Broadcaster.Listener {
         void addGeneration(int writeGeneration, boolean b);
 
         CacheType getType();
-        
+
         void receive(ByteBuffer buff);
 
         void removeGeneration(int oldReadGeneration);
-        
+
     }
 
 }

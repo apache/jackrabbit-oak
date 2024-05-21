@@ -54,131 +54,131 @@
 -->
 
 <config>
-    <!--
-     Defines the IOManager implementation that is responsible for passing
-     import/export request to the individual IO-handlers.
+  <!--
+   Defines the IOManager implementation that is responsible for passing
+   import/export request to the individual IO-handlers.
+  -->
+  <iomanager>
+    <!-- class element defines the manager to be used. The specified class
+         must implement the IOManager interface.
+         Note, that the handlers are being added and called in the order
+         they appear in the configuration.
     -->
-    <iomanager>
-        <!-- class element defines the manager to be used. The specified class
-             must implement the IOManager interface.
-             Note, that the handlers are being added and called in the order
-             they appear in the configuration.
-        -->
-        <class name="org.apache.jackrabbit.server.io.IOManagerImpl" />
-        <iohandler>
-            <class name="org.apache.jackrabbit.server.io.VersionHandler" />
-        </iohandler>
-        <iohandler>
-            <class name="org.apache.jackrabbit.server.io.VersionHistoryHandler" />
-        </iohandler>
-        <iohandler>
-            <class name="org.apache.jackrabbit.server.io.ZipHandler" />
-        </iohandler>
-        <iohandler>
-            <class name="org.apache.jackrabbit.server.io.XmlHandler" />
-        </iohandler>
-        <iohandler>
-            <class name="org.apache.jackrabbit.server.io.DirListingExportHandler" />
-        </iohandler>
-        <iohandler>
-            <class name="org.apache.jackrabbit.server.io.DefaultHandler" />
-        </iohandler>
-    </iomanager>
-    <!--
-     Example config for iomanager that populates its list of handlers with
-     default values. Therefore the 'iohandler' elements are omited.
+    <class name="org.apache.jackrabbit.server.io.IOManagerImpl"/>
+    <iohandler>
+      <class name="org.apache.jackrabbit.server.io.VersionHandler"/>
+    </iohandler>
+    <iohandler>
+      <class name="org.apache.jackrabbit.server.io.VersionHistoryHandler"/>
+    </iohandler>
+    <iohandler>
+      <class name="org.apache.jackrabbit.server.io.ZipHandler"/>
+    </iohandler>
+    <iohandler>
+      <class name="org.apache.jackrabbit.server.io.XmlHandler"/>
+    </iohandler>
+    <iohandler>
+      <class name="org.apache.jackrabbit.server.io.DirListingExportHandler"/>
+    </iohandler>
+    <iohandler>
+      <class name="org.apache.jackrabbit.server.io.DefaultHandler"/>
+    </iohandler>
+  </iomanager>
+  <!--
+   Example config for iomanager that populates its list of handlers with
+   default values. Therefore the 'iohandler' elements are omited.
+  -->
+  <!--
+  <iomanager>
+      <class name="org.apache.jackrabbit.server.io.DefaultIOManager" />
+  </iomanager>
+  -->
+  <!--
+   Defines the PropertyManager implementation that is responsible for export
+   and import of resource properties.
+  -->
+  <propertymanager>
+    <!-- class element defines the manager to be used. The specified class
+         must implement the PropertyManager interface.
+         Note, that the handlers are being added and called in the order
+         they appear in the configuration.
     -->
-    <!--
-    <iomanager>
-        <class name="org.apache.jackrabbit.server.io.DefaultIOManager" />
-    </iomanager>
-    -->
-    <!--
-     Defines the PropertyManager implementation that is responsible for export
-     and import of resource properties.
-    -->
-    <propertymanager>
-        <!-- class element defines the manager to be used. The specified class
-             must implement the PropertyManager interface.
-             Note, that the handlers are being added and called in the order
-             they appear in the configuration.
-        -->
-        <class name="org.apache.jackrabbit.server.io.PropertyManagerImpl" />
-        <propertyhandler>
-            <class name="org.apache.jackrabbit.server.io.VersionHandler" />
-        </propertyhandler>
-        <propertyhandler>
-            <class name="org.apache.jackrabbit.server.io.VersionHistoryHandler" />
-        </propertyhandler>
-        <propertyhandler>
-            <class name="org.apache.jackrabbit.server.io.ZipHandler" />
-        </propertyhandler>
-        <propertyhandler>
-            <class name="org.apache.jackrabbit.server.io.XmlHandler" />
-        </propertyhandler>
-        <propertyhandler>
-            <class name="org.apache.jackrabbit.server.io.DefaultHandler" />
-        </propertyhandler>
-    </propertymanager>
-    <!--
-     Define nodetypes, that should never by displayed as 'collection'
-    -->
-    <noncollection>
-        <nodetypes>
-            <nodetype>nt:file</nodetype>
-            <nodetype>nt:resource</nodetype>
-        </nodetypes>
-    </noncollection>
-    <!--
-     Example: Defines nodetypes, that should always be displayed as 'collection'.
-    -->
-    <!--
-    <collection>
-        <nodetypes>
-            <nodetype>nt:folder</nodetype>
-            <nodetype>rep:root</nodetype>
-        </nodetypes>
-    </collection>
-    -->
-    <!--
-     Filter that allows to prevent certain items from being displayed.
-     Please note, that this has an effect on PROPFIND calls only and does not
-     provide limited access to those items matching any of the filters.
+    <class name="org.apache.jackrabbit.server.io.PropertyManagerImpl"/>
+    <propertyhandler>
+      <class name="org.apache.jackrabbit.server.io.VersionHandler"/>
+    </propertyhandler>
+    <propertyhandler>
+      <class name="org.apache.jackrabbit.server.io.VersionHistoryHandler"/>
+    </propertyhandler>
+    <propertyhandler>
+      <class name="org.apache.jackrabbit.server.io.ZipHandler"/>
+    </propertyhandler>
+    <propertyhandler>
+      <class name="org.apache.jackrabbit.server.io.XmlHandler"/>
+    </propertyhandler>
+    <propertyhandler>
+      <class name="org.apache.jackrabbit.server.io.DefaultHandler"/>
+    </propertyhandler>
+  </propertymanager>
+  <!--
+   Define nodetypes, that should never by displayed as 'collection'
+  -->
+  <noncollection>
+    <nodetypes>
+      <nodetype>nt:file</nodetype>
+      <nodetype>nt:resource</nodetype>
+    </nodetypes>
+  </noncollection>
+  <!--
+   Example: Defines nodetypes, that should always be displayed as 'collection'.
+  -->
+  <!--
+  <collection>
+      <nodetypes>
+          <nodetype>nt:folder</nodetype>
+          <nodetype>rep:root</nodetype>
+      </nodetypes>
+  </collection>
+  -->
+  <!--
+   Filter that allows to prevent certain items from being displayed.
+   Please note, that this has an effect on PROPFIND calls only and does not
+   provide limited access to those items matching any of the filters.
 
-     However specifying a filter may cause problems with PUT or MKCOL if the
-     resource to be created is being filtered out, thus resulting in inconsistent
-     responses (e.g. PUT followed by PROPFIND on parent).
-     -->
-    <filter>
-        <!-- class element defines the resource filter to be used. The specified class
-             must implement the ItemFilter interface -->
-        <class name="org.apache.jackrabbit.webdav.simple.DefaultItemFilter" />
-        <!--
-         Nodetype names to be used to filter child nodes.
-         A child node can be filtered if the declaring nodetype of its definition
-         is one of the nodetype names specified in the nodetypes Element.
-         E.g. defining 'rep:root' as filtered nodetype whould result in jcr:system
-         being hidden but no other child node of the root node, since those
-         are defined by the nodetype nt:unstructered.
-        -->
-        <!--
-        <nodetypes>
-            <nodetype>rep:root</nodetype>
-        </nodetypes>
-        -->
-        <!--
-         Namespace prefixes or uris. Items having a name that matches any of the
-         entries will be filtered.
-        -->
-        <namespaces>
-            <prefix>rep</prefix>
-            <prefix>jcr</prefix>
-            <!--
-            <uri>internal</uri>
-            <uri>http://www.jcp.org/jcr/1.0</uri>
-            -->
-        </namespaces>
-    </filter>
+   However specifying a filter may cause problems with PUT or MKCOL if the
+   resource to be created is being filtered out, thus resulting in inconsistent
+   responses (e.g. PUT followed by PROPFIND on parent).
+   -->
+  <filter>
+    <!-- class element defines the resource filter to be used. The specified class
+         must implement the ItemFilter interface -->
+    <class name="org.apache.jackrabbit.webdav.simple.DefaultItemFilter"/>
+    <!--
+     Nodetype names to be used to filter child nodes.
+     A child node can be filtered if the declaring nodetype of its definition
+     is one of the nodetype names specified in the nodetypes Element.
+     E.g. defining 'rep:root' as filtered nodetype whould result in jcr:system
+     being hidden but no other child node of the root node, since those
+     are defined by the nodetype nt:unstructered.
+    -->
+    <!--
+    <nodetypes>
+        <nodetype>rep:root</nodetype>
+    </nodetypes>
+    -->
+    <!--
+     Namespace prefixes or uris. Items having a name that matches any of the
+     entries will be filtered.
+    -->
+    <namespaces>
+      <prefix>rep</prefix>
+      <prefix>jcr</prefix>
+      <!--
+      <uri>internal</uri>
+      <uri>http://www.jcp.org/jcr/1.0</uri>
+      -->
+    </namespaces>
+  </filter>
 
 </config>
 

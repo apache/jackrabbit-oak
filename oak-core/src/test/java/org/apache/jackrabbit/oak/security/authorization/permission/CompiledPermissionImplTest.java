@@ -16,9 +16,46 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import static org.apache.jackrabbit.JcrConstants.JCR_FROZENNODE;
+import static org.apache.jackrabbit.JcrConstants.JCR_ISCHECKEDOUT;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.JcrConstants.MIX_VERSIONABLE;
+import static org.apache.jackrabbit.JcrConstants.NT_VERSION;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.plugins.tree.TreeUtil.addChild;
+import static org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants.PARAM_READ_PATHS;
+import static org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants.PERMISSIONS_STORE_PATH;
+import static org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions.SET_PROPERTY;
+import static org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions.VERSION_MANAGEMENT;
+import static org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission.ALL;
+import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_READ;
+import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_VERSION_MANAGEMENT;
+import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_WRITE;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
+
+import java.lang.reflect.Field;
+import java.security.Principal;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+import javax.jcr.security.AccessControlList;
+import javax.jcr.security.AccessControlManager;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -48,44 +85,6 @@ import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
-
-import javax.jcr.security.AccessControlList;
-import javax.jcr.security.AccessControlManager;
-import java.lang.reflect.Field;
-import java.security.Principal;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.JcrConstants.JCR_FROZENNODE;
-import static org.apache.jackrabbit.JcrConstants.JCR_ISCHECKEDOUT;
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
-import static org.apache.jackrabbit.JcrConstants.MIX_VERSIONABLE;
-import static org.apache.jackrabbit.JcrConstants.NT_VERSION;
-import static org.apache.jackrabbit.oak.plugins.tree.TreeUtil.addChild;
-import static org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants.PARAM_READ_PATHS;
-import static org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants.PERMISSIONS_STORE_PATH;
-import static org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions.SET_PROPERTY;
-import static org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions.VERSION_MANAGEMENT;
-import static org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission.ALL;
-import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_READ;
-import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_VERSION_MANAGEMENT;
-import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_WRITE;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.clearInvocations;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.withSettings;
 
 public class CompiledPermissionImplTest extends AbstractSecurityTest {
 

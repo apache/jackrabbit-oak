@@ -16,19 +16,18 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication;
 
-import java.security.Principal;
-import javax.jcr.Credentials;
-import javax.security.auth.Subject;
-import javax.security.auth.login.LoginException;
-
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.junit.Before;
-import org.junit.Test;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
+
+import java.security.Principal;
+import javax.jcr.Credentials;
+import javax.security.auth.Subject;
+import javax.security.auth.login.LoginException;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import org.junit.Before;
+import org.junit.Test;
 
 public class OpenAuthenticationConfigurationTest {
 
@@ -48,12 +47,14 @@ public class OpenAuthenticationConfigurationTest {
 
     @Test
     public void testLoginContextSubject() throws LoginException {
-        Credentials creds = new Credentials() {};
+        Credentials creds = new Credentials() {
+        };
         LoginContext ctx = lcp.getLoginContext(creds, null);
         assertNotNull(ctx);
 
         Subject subject = ctx.getSubject();
-        assertEquals(new Subject(true, ImmutableSet.<Principal>of(), ImmutableSet.of(), ImmutableSet.of(creds)), subject);
+        assertEquals(new Subject(true, ImmutableSet.<Principal>of(), ImmutableSet.of(),
+            ImmutableSet.of(creds)), subject);
     }
 
     @Test
@@ -62,7 +63,9 @@ public class OpenAuthenticationConfigurationTest {
         assertNotNull(ctx);
 
         Subject subject = ctx.getSubject();
-        assertEquals(new Subject(true, ImmutableSet.<Principal>of(), ImmutableSet.of(), ImmutableSet.of()), subject);
+        assertEquals(
+            new Subject(true, ImmutableSet.<Principal>of(), ImmutableSet.of(), ImmutableSet.of()),
+            subject);
     }
 
     @Test
@@ -77,7 +80,8 @@ public class OpenAuthenticationConfigurationTest {
     public void testLogout() throws LoginException {
         // nop => must not throw
         Credentials credentials = mock(Credentials.class);
-        lcp.getLoginContext(new Credentials() {}, null).logout();
+        lcp.getLoginContext(new Credentials() {
+        }, null).logout();
         verifyNoInteractions(credentials);
     }
 }

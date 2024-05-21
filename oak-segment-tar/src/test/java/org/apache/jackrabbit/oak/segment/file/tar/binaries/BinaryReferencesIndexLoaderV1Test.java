@@ -25,9 +25,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 import java.util.zip.CRC32;
-
 import org.apache.jackrabbit.guava.common.base.Charsets;
-
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.junit.Test;
 
@@ -51,7 +49,8 @@ public class BinaryReferencesIndexLoaderV1Test {
         return parseBinaryReferencesIndex(data);
     }
 
-    private static void assertInvalidBinaryReferencesIndexException(Buffer buffer, String message) throws Exception {
+    private static void assertInvalidBinaryReferencesIndexException(Buffer buffer, String message)
+        throws Exception {
         try {
             loadIndex(buffer);
         } catch (InvalidBinaryReferencesIndexException e) {
@@ -78,10 +77,10 @@ public class BinaryReferencesIndexLoaderV1Test {
     public void testInvalidCount() throws Exception {
         Buffer buffer = Buffer.allocate(FOOTER_SIZE);
         buffer.duplicate()
-            .putInt(0)
-            .putInt(-1)
-            .putInt(0)
-            .putInt(MAGIC);
+              .putInt(0)
+              .putInt(-1)
+              .putInt(0)
+              .putInt(MAGIC);
         assertInvalidBinaryReferencesIndexException(buffer, "Invalid count");
     }
 
@@ -89,51 +88,51 @@ public class BinaryReferencesIndexLoaderV1Test {
     public void testInvalidSize() throws Exception {
         Buffer buffer = Buffer.allocate(FOOTER_SIZE);
         buffer.duplicate()
-            .putInt(0)
-            .putInt(0)
-            .putInt(0)
-            .putInt(MAGIC);
+              .putInt(0)
+              .putInt(0)
+              .putInt(0)
+              .putInt(MAGIC);
         assertInvalidBinaryReferencesIndexException(buffer, "Invalid size");
     }
 
     @Test(expected = InvalidBinaryReferencesIndexException.class)
     public void testInvalidChecksum() throws Exception {
         Buffer entries = Buffer.allocate(512)
-            // First generation
-            .putInt(1)
-            .putInt(2)
-            // First generation, first segment
-            .putLong(1).putLong(1)
-            .putInt(2)
-            .putInt(length("1.1.1")).put(bytes("1.1.1"))
-            .putInt(length("1.1.2")).put(bytes("1.1.2"))
-            // First generation, second segment
-            .putLong(1).putLong(2)
-            .putInt(2)
-            .putInt(length("1.2.1")).put(bytes("1.2.1"))
-            .putInt(length("1.2.2")).put(bytes("1.2.2"))
-            // Second generation
-            .putInt(2)
-            .putInt(2)
-            // Second generation, second segment
-            .putLong(1).putLong(1)
-            .putInt(2)
-            .putInt(length("2.1.1")).put(bytes("2.1.1"))
-            .putInt(length("2.1.2")).put(bytes("2.1.2"))
-            // Second generation, second segment
-            .putLong(1).putLong(2)
-            .putInt(2)
-            .putInt(length("2.2.1")).put(bytes("2.2.1"))
-            .putInt(length("2.2.2")).put(bytes("2.2.2"));
+                               // First generation
+                               .putInt(1)
+                               .putInt(2)
+                               // First generation, first segment
+                               .putLong(1).putLong(1)
+                               .putInt(2)
+                               .putInt(length("1.1.1")).put(bytes("1.1.1"))
+                               .putInt(length("1.1.2")).put(bytes("1.1.2"))
+                               // First generation, second segment
+                               .putLong(1).putLong(2)
+                               .putInt(2)
+                               .putInt(length("1.2.1")).put(bytes("1.2.1"))
+                               .putInt(length("1.2.2")).put(bytes("1.2.2"))
+                               // Second generation
+                               .putInt(2)
+                               .putInt(2)
+                               // Second generation, second segment
+                               .putLong(1).putLong(1)
+                               .putInt(2)
+                               .putInt(length("2.1.1")).put(bytes("2.1.1"))
+                               .putInt(length("2.1.2")).put(bytes("2.1.2"))
+                               // Second generation, second segment
+                               .putLong(1).putLong(2)
+                               .putInt(2)
+                               .putInt(length("2.2.1")).put(bytes("2.2.1"))
+                               .putInt(length("2.2.2")).put(bytes("2.2.2"));
         entries.flip();
 
         Buffer buffer = Buffer.allocate(entries.remaining() + FOOTER_SIZE);
         buffer.duplicate()
-            .put(entries.duplicate())
-            .putInt(checksum(entries) + 1)
-            .putInt(2)
-            .putInt(entries.remaining() + FOOTER_SIZE)
-            .putInt(MAGIC);
+              .put(entries.duplicate())
+              .putInt(checksum(entries) + 1)
+              .putInt(2)
+              .putInt(entries.remaining() + FOOTER_SIZE)
+              .putInt(MAGIC);
 
         assertInvalidBinaryReferencesIndexException(buffer, "Invalid checksum");
     }
@@ -141,41 +140,41 @@ public class BinaryReferencesIndexLoaderV1Test {
     @Test
     public void testParse() throws Exception {
         Buffer entries = Buffer.allocate(512)
-            // First generation
-            .putInt(1)
-            .putInt(2)
-            // First generation, first segment
-            .putLong(1).putLong(1)
-            .putInt(2)
-            .putInt(length("1.1.1")).put(bytes("1.1.1"))
-            .putInt(length("1.1.2")).put(bytes("1.1.2"))
-            // First generation, second segment
-            .putLong(1).putLong(2)
-            .putInt(2)
-            .putInt(length("1.2.1")).put(bytes("1.2.1"))
-            .putInt(length("1.2.2")).put(bytes("1.2.2"))
-            // Second generation
-            .putInt(2)
-            .putInt(2)
-            // Second generation, second segment
-            .putLong(1).putLong(1)
-            .putInt(2)
-            .putInt(length("2.1.1")).put(bytes("2.1.1"))
-            .putInt(length("2.1.2")).put(bytes("2.1.2"))
-            // Second generation, second segment
-            .putLong(1).putLong(2)
-            .putInt(2)
-            .putInt(length("2.2.1")).put(bytes("2.2.1"))
-            .putInt(length("2.2.2")).put(bytes("2.2.2"));
+                               // First generation
+                               .putInt(1)
+                               .putInt(2)
+                               // First generation, first segment
+                               .putLong(1).putLong(1)
+                               .putInt(2)
+                               .putInt(length("1.1.1")).put(bytes("1.1.1"))
+                               .putInt(length("1.1.2")).put(bytes("1.1.2"))
+                               // First generation, second segment
+                               .putLong(1).putLong(2)
+                               .putInt(2)
+                               .putInt(length("1.2.1")).put(bytes("1.2.1"))
+                               .putInt(length("1.2.2")).put(bytes("1.2.2"))
+                               // Second generation
+                               .putInt(2)
+                               .putInt(2)
+                               // Second generation, second segment
+                               .putLong(1).putLong(1)
+                               .putInt(2)
+                               .putInt(length("2.1.1")).put(bytes("2.1.1"))
+                               .putInt(length("2.1.2")).put(bytes("2.1.2"))
+                               // Second generation, second segment
+                               .putLong(1).putLong(2)
+                               .putInt(2)
+                               .putInt(length("2.2.1")).put(bytes("2.2.1"))
+                               .putInt(length("2.2.2")).put(bytes("2.2.2"));
         entries.flip();
 
         Buffer buffer = Buffer.allocate(entries.remaining() + FOOTER_SIZE);
         buffer.duplicate()
-            .put(entries.duplicate())
-            .putInt(checksum(entries))
-            .putInt(2)
-            .putInt(entries.remaining() + FOOTER_SIZE)
-            .putInt(MAGIC);
+              .put(entries.duplicate())
+              .putInt(checksum(entries))
+              .putInt(2)
+              .putInt(entries.remaining() + FOOTER_SIZE)
+              .putInt(MAGIC);
 
         assertNotNull(loadIndex(buffer));
     }

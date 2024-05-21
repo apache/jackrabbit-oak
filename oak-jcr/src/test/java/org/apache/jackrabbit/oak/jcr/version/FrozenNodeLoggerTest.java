@@ -16,10 +16,16 @@
  */
 package org.apache.jackrabbit.oak.jcr.version;
 
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.JcrConstants.NT_FOLDER;
+import static org.apache.jackrabbit.JcrConstants.NT_FROZENNODE;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
+
 import java.lang.reflect.Field;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicLong;
-
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
@@ -34,13 +40,6 @@ import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
-import static org.apache.jackrabbit.JcrConstants.NT_FOLDER;
-import static org.apache.jackrabbit.JcrConstants.NT_FROZENNODE;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
 
 public class FrozenNodeLoggerTest {
 
@@ -63,21 +62,21 @@ public class FrozenNodeLoggerTest {
     private final Tree emptyTree = treeProvider.createReadOnlyTree(EmptyNodeState.EMPTY_NODE);
 
     private final Tree folderTree = treeProvider.createReadOnlyTree(
-            new MemoryNodeBuilder(EmptyNodeState.EMPTY_NODE)
-                    .setProperty(JCR_PRIMARYTYPE, NT_FOLDER, Type.NAME)
-                    .getNodeState()
+        new MemoryNodeBuilder(EmptyNodeState.EMPTY_NODE)
+            .setProperty(JCR_PRIMARYTYPE, NT_FOLDER, Type.NAME)
+            .getNodeState()
     );
 
     private final Tree frozenNodeTree = treeProvider.createReadOnlyTree(
-            new MemoryNodeBuilder(EmptyNodeState.EMPTY_NODE)
-                    .setProperty(JCR_PRIMARYTYPE, NT_FROZENNODE, Type.NAME)
-                    .getNodeState()
+        new MemoryNodeBuilder(EmptyNodeState.EMPTY_NODE)
+            .setProperty(JCR_PRIMARYTYPE, NT_FROZENNODE, Type.NAME)
+            .getNodeState()
     );
 
     @Before
     public void enableLogger() throws Exception {
         FeatureToggle toggle = WhiteboardUtils.getService(
-                whiteboard, FeatureToggle.class);
+            whiteboard, FeatureToggle.class);
         assertNotNull(toggle);
         toggle.setEnabled(true);
         Field f = FrozenNodeLogger.class.getDeclaredField("NO_MESSAGE_UNTIL");
@@ -92,25 +91,43 @@ public class FrozenNodeLoggerTest {
 
     @Test
     public void emptyNode() {
-        assertMessages(() -> { logger.lookupById(emptyTree); return 0; });
+        assertMessages(() -> {
+            logger.lookupById(emptyTree);
+            return 0;
+        });
     }
 
     @Test
     public void folderNode() {
-        assertMessages(() -> { logger.lookupById(folderTree); return 0; });
+        assertMessages(() -> {
+            logger.lookupById(folderTree);
+            return 0;
+        });
     }
 
     @Test
     public void frozenNode() {
-        assertMessages(() -> { logger.lookupById(frozenNodeTree); return 1; });
+        assertMessages(() -> {
+            logger.lookupById(frozenNodeTree);
+            return 1;
+        });
     }
 
     @Test
     public void atMostOncePerSecond() throws Exception {
-        assertMessages(() -> { logger.lookupById(frozenNodeTree); return 1; });
-        assertMessages(() -> { logger.lookupById(frozenNodeTree); return 0; });
+        assertMessages(() -> {
+            logger.lookupById(frozenNodeTree);
+            return 1;
+        });
+        assertMessages(() -> {
+            logger.lookupById(frozenNodeTree);
+            return 0;
+        });
         clock.waitUntil(clock.getTime() + 1000);
-        assertMessages(() -> { logger.lookupById(frozenNodeTree); return 1; });
+        assertMessages(() -> {
+            logger.lookupById(frozenNodeTree);
+            return 1;
+        });
     }
 
     private void assertMessages(Callable<Integer> r) {

@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.spi.security.authentication;
 
 import javax.management.openmbean.CompositeData;
-
 import org.osgi.annotation.versioning.ProviderType;
 
 @ProviderType

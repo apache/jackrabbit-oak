@@ -26,16 +26,16 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 
 /**
- * A {@code MoveDetector} is a validator that can detect certain move operations
- * and reports these to the wrapped {@link MoveValidator} by calling
- * {@link MoveValidator#move(String, String, NodeState)}. That method is called additional
- * to {@link MoveValidator#childNodeAdded(String, NodeState)} for the destination of the move
- * operation and {@link MoveValidator#childNodeDeleted(String, NodeState)} for the source of
- * the move operation.
+ * A {@code MoveDetector} is a validator that can detect certain move operations and reports these
+ * to the wrapped {@link MoveValidator} by calling
+ * {@link MoveValidator#move(String, String, NodeState)}. That method is called additional to
+ * {@link MoveValidator#childNodeAdded(String, NodeState)} for the destination of the move operation
+ * and {@link MoveValidator#childNodeDeleted(String, NodeState)} for the source of the move
+ * operation.
  * <p>
- * Detection of move operations relies on the presence of the {@link #SOURCE_PATH} property.
- * New nodes with this property set have been moved from the path indicated by the value of the
- * property to its current location.
+ * Detection of move operations relies on the presence of the {@link #SOURCE_PATH} property. New
+ * nodes with this property set have been moved from the path indicated by the value of the property
+ * to its current location.
  * <p>
  * Limitations:
  * <ul>
@@ -51,6 +51,7 @@ import org.apache.jackrabbit.oak.spi.commit.Validator;
  * </ul>
  */
 public class MoveDetector implements Validator {
+
     public static final String SOURCE_PATH = ":source-path";
 
     private final MoveValidator moveValidator;
@@ -75,7 +76,8 @@ public class MoveDetector implements Validator {
     }
 
     @Override
-    public void propertyChanged(PropertyState before, PropertyState after) throws CommitFailedException {
+    public void propertyChanged(PropertyState before, PropertyState after)
+        throws CommitFailedException {
         moveValidator.propertyChanged(before, after);
     }
 
@@ -93,23 +95,24 @@ public class MoveDetector implements Validator {
         }
         MoveValidator childDiff = moveValidator.childNodeAdded(name, after);
         return childDiff == null
-                ? null
-                : new MoveDetector(childDiff);
+            ? null
+            : new MoveDetector(childDiff);
     }
 
     @Override
-    public Validator childNodeChanged(String name, NodeState before, NodeState after) throws CommitFailedException {
+    public Validator childNodeChanged(String name, NodeState before, NodeState after)
+        throws CommitFailedException {
         MoveValidator childDiff = moveValidator.childNodeChanged(name, before, after);
         return childDiff == null
-                ? null
-                : new MoveDetector(childDiff);
+            ? null
+            : new MoveDetector(childDiff);
     }
 
     @Override
     public Validator childNodeDeleted(String name, NodeState before) throws CommitFailedException {
         MoveValidator childDiff = moveValidator.childNodeDeleted(name, before);
         return childDiff == null
-                ? null
-                : new MoveDetector(childDiff);
+            ? null
+            : new MoveDetector(childDiff);
     }
 }

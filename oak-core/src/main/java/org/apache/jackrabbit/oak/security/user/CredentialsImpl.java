@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.security.user;
 
 import javax.jcr.Credentials;
-
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 

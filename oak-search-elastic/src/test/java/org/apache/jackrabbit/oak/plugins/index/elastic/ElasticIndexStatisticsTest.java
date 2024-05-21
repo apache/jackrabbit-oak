@@ -16,20 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
-import co.elastic.clients.elasticsearch.ElasticsearchClient;
-import co.elastic.clients.elasticsearch._types.query_dsl.Query;
-import co.elastic.clients.elasticsearch.core.CountRequest;
-import co.elastic.clients.elasticsearch.core.CountResponse;
-import org.apache.jackrabbit.guava.common.base.Ticker;
-import org.apache.jackrabbit.guava.common.cache.LoadingCache;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-
-import java.io.IOException;
-import java.time.Duration;
-
 import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticTestUtils.assertEventually;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -41,6 +27,19 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
+
+import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.elasticsearch._types.query_dsl.Query;
+import co.elastic.clients.elasticsearch.core.CountRequest;
+import co.elastic.clients.elasticsearch.core.CountResponse;
+import java.io.IOException;
+import java.time.Duration;
+import org.apache.jackrabbit.guava.common.base.Ticker;
+import org.apache.jackrabbit.guava.common.cache.LoadingCache;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 
 public class ElasticIndexStatisticsTest {
 
@@ -63,7 +62,7 @@ public class ElasticIndexStatisticsTest {
     @Test
     public void defaultIndexStatistics() {
         ElasticIndexStatistics indexStatistics =
-                new ElasticIndexStatistics(elasticConnectionMock, indexDefinitionMock);
+            new ElasticIndexStatistics(elasticConnectionMock, indexDefinitionMock);
         assertNotNull(indexStatistics);
     }
 
@@ -71,16 +70,16 @@ public class ElasticIndexStatisticsTest {
     public void cachedStatistics() throws Exception {
         MutableTicker ticker = new MutableTicker();
         LoadingCache<ElasticIndexStatistics.StatsRequestDescriptor, Integer> cache =
-                ElasticIndexStatistics.setupCountCache(100, 10 * 60, 60, ticker);
+            ElasticIndexStatistics.setupCountCache(100, 10 * 60, 60, ticker);
         ElasticIndexStatistics indexStatistics =
-                new ElasticIndexStatistics(elasticConnectionMock, indexDefinitionMock, cache);
+            new ElasticIndexStatistics(elasticConnectionMock, indexDefinitionMock, cache);
 
         CountResponse countResponse = mock(CountResponse.class);
         when(countResponse.count()).thenReturn(100L);
 
         // simulate some delay when invoking elastic
         when(elasticClientMock.count(any(CountRequest.class)))
-                .then(answersWithDelay(250, i -> countResponse));
+            .then(answersWithDelay(250, i -> countResponse));
 
         // cache miss, read data from elastic
         assertEquals(100, indexStatistics.numDocs());
@@ -131,7 +130,8 @@ public class ElasticIndexStatisticsTest {
         verifyNoMoreInteractions(elasticClientMock);
 
         // call again with a different query
-        assertEquals(5000, indexStatistics.getDocCountFor(Query.of(qf -> qf.matchAll(mf -> mf.boost(100F)))));
+        assertEquals(5000,
+            indexStatistics.getDocCountFor(Query.of(qf -> qf.matchAll(mf -> mf.boost(100F)))));
         verify(elasticClientMock, times(5)).count(any(CountRequest.class));
     }
 

@@ -19,35 +19,36 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
+
 import java.util.Collection;
 import java.util.function.Predicate;
-
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexFormatVersion;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexLookup;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
-
 class LuceneIndexLookupUtil {
+
     static final Predicate<NodeState> LUCENE_INDEX_DEFINITION_PREDICATE =
-            state -> TYPE_LUCENE.equals(state.getString(TYPE_PROPERTY_NAME));
+        state -> TYPE_LUCENE.equals(state.getString(TYPE_PROPERTY_NAME));
 
     private LuceneIndexLookupUtil() {
     }
 
     /**
-     * Returns the path of the first Lucene index node which supports
-     * fulltext search
+     * Returns the path of the first Lucene index node which supports fulltext search
      */
-    public static String getOldFullTextIndexPath(NodeState root, Filter filter, IndexTracker tracker) {
-        Collection<String> indexPaths = getLuceneIndexLookup(root).collectIndexNodePaths(filter, false);
+    public static String getOldFullTextIndexPath(NodeState root, Filter filter,
+        IndexTracker tracker) {
+        Collection<String> indexPaths = getLuceneIndexLookup(root).collectIndexNodePaths(filter,
+            false);
         for (String path : indexPaths) {
             IndexDefinition indexDefinition = tracker.getIndexDefinition(path);
             if (indexDefinition != null && indexDefinition.isFullTextEnabled()
-                    && indexDefinition.getVersion() == IndexFormatVersion.V1) {
+                && indexDefinition.getVersion() == IndexFormatVersion.V1) {
                 return path;
             }
         }

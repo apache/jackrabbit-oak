@@ -57,9 +57,9 @@ public class CountingDiffCache extends MemoryDiffCache {
 
     @Override
     public String getChanges(@NotNull RevisionVector from,
-                             @NotNull RevisionVector to,
-                             @NotNull Path path,
-                             @Nullable Loader loader) {
+        @NotNull RevisionVector to,
+        @NotNull Path path,
+        @Nullable Loader loader) {
         return super.getChanges(from, to, path, new CountingLoader(loader));
     }
 }

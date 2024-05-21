@@ -17,10 +17,9 @@
 
 package org.apache.jackrabbit.oak.segment.standby.client;
 
-import java.util.concurrent.BlockingQueue;
-
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
+import java.util.concurrent.BlockingQueue;
 import org.apache.jackrabbit.oak.segment.standby.codec.GetSegmentResponse;
 
 class GetSegmentResponseHandler extends SimpleChannelInboundHandler<GetSegmentResponse> {
@@ -32,7 +31,8 @@ class GetSegmentResponseHandler extends SimpleChannelInboundHandler<GetSegmentRe
     }
 
     @Override
-    protected void channelRead0(ChannelHandlerContext ctx, GetSegmentResponse msg) throws Exception {
+    protected void channelRead0(ChannelHandlerContext ctx, GetSegmentResponse msg)
+        throws Exception {
         queue.offer(msg);
     }
 

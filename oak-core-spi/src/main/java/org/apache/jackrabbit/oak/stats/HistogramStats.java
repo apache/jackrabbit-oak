@@ -22,11 +22,10 @@ package org.apache.jackrabbit.oak.stats;
 import org.osgi.annotation.versioning.ProviderType;
 
 /**
- *
  * A metric which calculates the distribution of a value.
  */
 @ProviderType
-public interface HistogramStats extends Stats, Counting{
+public interface HistogramStats extends Stats, Counting {
 
     /**
      * Adds a recorded value.

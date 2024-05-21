@@ -14,51 +14,51 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 --%>
-<%@page import="org.apache.jackrabbit.util.Text"%>
+<%@page import="org.apache.jackrabbit.util.Text" %>
 <%
-String context = Text.encodeIllegalXMLCharacters(request.getContextPath());
+    String context = Text.encodeIllegalXMLCharacters(request.getContextPath());
 %>
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
-          "http://www.w3.org/TR/html4/loose.dtd">
+"http://www.w3.org/TR/html4/loose.dtd">
 <html>
-  <head>
+<head>
     <title>JCR Remoting Server</title>
     <link rel="stylesheet"
           href="<%= context %>/css/default.css"
           type="text/css"/>
     <link rel="shortcut icon"
           href="<%= context %>/images/favicon.ico"
-          type="image/vnd.microsoft.icon" />
-  </head>
-  <body>
-    <div id="page">
-      <div id="banner">
+          type="image/vnd.microsoft.icon"/>
+</head>
+<body>
+<div id="page">
+    <div id="banner">
         <p id="jcr">
-          <a href="<%= context %>/">
-            <img src="<%= context %>/images/jlogo.gif" alt="Apache Jackrabbit"/>
-          </a>
+            <a href="<%= context %>/">
+                <img src="<%= context %>/images/jlogo.gif" alt="Apache Jackrabbit"/>
+            </a>
         </p>
         <p id="asf">
-          <a href="http://www.apache.org/">
-            <img src="<%= context %>/images/asf-logo.png" alt="Apache Software Foundation"/>
-          </a>
+            <a href="http://www.apache.org/">
+                <img src="<%= context %>/images/asf-logo.png" alt="Apache Software Foundation"/>
+            </a>
         </p>
-      </div>
-      <div id="navigation">
+    </div>
+    <div id="navigation">
         <ul>
-          <li>JCR Remoting Server
-            <ul>
-              <li><a href="<%= context %>/remoting/index.jsp">Introduction</a></li>
-              <li><a href="<%= context %>/remoting/read.jsp">Read</a></li>
-              <li><a href="<%= context %>/remoting/write.jsp">Write</a></li>
-            </ul>
-          </li>
-          <li>Examples
-            <ul>
-              <li><a href="<%= context %>/remoting/read_batch.jsp">Batch Read</a></li>
-              <li><a href="<%= context %>/remoting/write_batch.jsp">Batch Write</a></li>
-              <li><a href="<%= context %>/remoting/write_simple.jsp">Simple Write</a></li>
-            </ul>
-          </li>
+            <li>JCR Remoting Server
+                <ul>
+                    <li><a href="<%= context %>/remoting/index.jsp">Introduction</a></li>
+                    <li><a href="<%= context %>/remoting/read.jsp">Read</a></li>
+                    <li><a href="<%= context %>/remoting/write.jsp">Write</a></li>
+                </ul>
+            </li>
+            <li>Examples
+                <ul>
+                    <li><a href="<%= context %>/remoting/read_batch.jsp">Batch Read</a></li>
+                    <li><a href="<%= context %>/remoting/write_batch.jsp">Batch Write</a></li>
+                    <li><a href="<%= context %>/remoting/write_simple.jsp">Simple Write</a></li>
+                </ul>
+            </li>
         </ul>
-      </div>
+    </div>

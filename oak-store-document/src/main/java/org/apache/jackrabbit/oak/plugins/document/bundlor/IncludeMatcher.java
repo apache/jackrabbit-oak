@@ -23,10 +23,10 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.ROOT_NAME;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 
 class IncludeMatcher implements Matcher {
+
     private final Include include;
     /**
-     * Depth is 1 based i.e. first node element in path would have depth 1.
-     * Root has depth 0
+     * Depth is 1 based i.e. first node element in path would have depth 1. Root has depth 0
      */
     private final int depth;
     private final String matchedPath;
@@ -74,7 +74,7 @@ class IncludeMatcher implements Matcher {
 
     @Override
     public boolean matchesAllChildren() {
-        if (hasMore()){
+        if (hasMore()) {
             return include.matchAny(nextElementIndex());
         }
         return false;
@@ -83,13 +83,13 @@ class IncludeMatcher implements Matcher {
     @Override
     public String toString() {
         return "IncludeMatcher{" +
-                "include=" + include +
-                ", depth=" + depth +
-                ", matchedPath='" + matchedPath + '\'' +
-                '}';
+            "include=" + include +
+            ", depth=" + depth +
+            ", matchedPath='" + matchedPath + '\'' +
+            '}';
     }
 
-    private int nextElementIndex(){
+    private int nextElementIndex() {
         return depth + 1;
     }
 

@@ -29,71 +29,69 @@ import java.io.IOException;
 import java.util.HashSet;
 
 /**
- * Implements {@link LockFactory} for a single in-process instance,
- * meaning all locking will take place through this one instance.
- * Only use this {@link LockFactory} when you are certain all
- * IndexReaders and IndexWriters for a given index are running
- * against a single shared in-process Directory instance.  This is
- * currently the default locking for RAMDirectory.
+ * Implements {@link LockFactory} for a single in-process instance, meaning all locking will take
+ * place through this one instance. Only use this {@link LockFactory} when you are certain all
+ * IndexReaders and IndexWriters for a given index are running against a single shared in-process
+ * Directory instance.  This is currently the default locking for RAMDirectory.
  *
  * @see LockFactory
  */
 
 public class SingleInstanceLockFactory extends LockFactory {
 
-  private HashSet<String> locks = new HashSet<String>();
+    private HashSet<String> locks = new HashSet<String>();
 
-  @Override
-  public Lock makeLock(String lockName) {
-    // We do not use the LockPrefix at all, because the private
-    // HashSet instance effectively scopes the locking to this
-    // single Directory instance.
-    return new SingleInstanceLock(locks, lockName);
-  }
-
-  @Override
-  public void clearLock(String lockName) throws IOException {
-    synchronized(locks) {
-      if (locks.contains(lockName)) {
-        locks.remove(lockName);
-      }
+    @Override
+    public Lock makeLock(String lockName) {
+        // We do not use the LockPrefix at all, because the private
+        // HashSet instance effectively scopes the locking to this
+        // single Directory instance.
+        return new SingleInstanceLock(locks, lockName);
     }
-  }
+
+    @Override
+    public void clearLock(String lockName) throws IOException {
+        synchronized (locks) {
+            if (locks.contains(lockName)) {
+                locks.remove(lockName);
+            }
+        }
+    }
 }
 
 class SingleInstanceLock extends Lock {
 
-  String lockName;
-  private HashSet<String> locks;
+    String lockName;
+    private HashSet<String> locks;
 
-  public SingleInstanceLock(HashSet<String> locks, String lockName) {
-    this.locks = locks;
-    this.lockName = lockName;
-  }
-
-  @Override
-  public boolean obtain() throws IOException {
-    synchronized(locks) {
-      return locks.add(lockName);
+    public SingleInstanceLock(HashSet<String> locks, String lockName) {
+        this.locks = locks;
+        this.lockName = lockName;
     }
-  }
 
-  @Override
-  public void close() {
-    synchronized(locks) {
-      locks.remove(lockName);
+    @Override
+    public boolean obtain() throws IOException {
+        synchronized (locks) {
+            return locks.add(lockName);
+        }
     }
-  }
 
-  @Override
-  public boolean isLocked() {
-    synchronized(locks) {
-      return locks.contains(lockName);
+    @Override
+    public void close() {
+        synchronized (locks) {
+            locks.remove(lockName);
+        }
     }
-  }
 
-  @Override
-  public String toString() {
-    return super.toString() + ": " + lockName;
-  }
+    @Override
+    public boolean isLocked() {
+        synchronized (locks) {
+            return locks.contains(lockName);
+        }
+    }
+
+    @Override
+    public String toString() {
+        return super.toString() + ": " + lockName;
+    }
 }

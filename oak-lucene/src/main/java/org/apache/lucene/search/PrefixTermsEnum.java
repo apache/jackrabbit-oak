@@ -31,27 +31,26 @@ import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.StringHelper;
 
 /**
- * Subclass of FilteredTermEnum for enumerating all terms that match the
- * specified prefix filter term.
+ * Subclass of FilteredTermEnum for enumerating all terms that match the specified prefix filter
+ * term.
  * <p>Term enumerations are always ordered by
- * {@link #getComparator}.  Each term in the enumeration is
- * greater than all that precede it.</p>
+ * {@link #getComparator}.  Each term in the enumeration is greater than all that precede it.</p>
  */
 public class PrefixTermsEnum extends FilteredTermsEnum {
 
-  private final BytesRef prefixRef;
+    private final BytesRef prefixRef;
 
-  public PrefixTermsEnum(TermsEnum tenum, BytesRef prefixText) {
-    super(tenum);
-    setInitialSeekTerm(this.prefixRef = prefixText);
-  }
-
-  @Override
-  protected AcceptStatus accept(BytesRef term) {
-    if (StringHelper.startsWith(term, prefixRef)) {
-      return AcceptStatus.YES;
-    } else {
-      return AcceptStatus.END;
+    public PrefixTermsEnum(TermsEnum tenum, BytesRef prefixText) {
+        super(tenum);
+        setInitialSeekTerm(this.prefixRef = prefixText);
     }
-  }
+
+    @Override
+    protected AcceptStatus accept(BytesRef term) {
+        if (StringHelper.startsWith(term, prefixRef)) {
+            return AcceptStatus.YES;
+        } else {
+            return AcceptStatus.END;
+        }
+    }
 }

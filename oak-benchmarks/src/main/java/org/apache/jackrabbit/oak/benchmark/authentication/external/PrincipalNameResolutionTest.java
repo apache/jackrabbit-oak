@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.benchmark.authentication.external;
 
 import javax.security.auth.login.Configuration;
-
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.ConfigurationUtil;
@@ -32,8 +31,10 @@ public class PrincipalNameResolutionTest extends AbstractExternalTest {
 
     private SynchronizationMBean bean;
 
-    public PrincipalNameResolutionTest(int numberOfUsers, int membershipSize, long expTime, int roundtripDelay) {
-        super(numberOfUsers, membershipSize, expTime, true, ImmutableList.<String>of(), roundtripDelay);
+    public PrincipalNameResolutionTest(int numberOfUsers, int membershipSize, long expTime,
+        int roundtripDelay) {
+        super(numberOfUsers, membershipSize, expTime, true, ImmutableList.<String>of(),
+            roundtripDelay);
     }
 
     @Override
@@ -44,11 +45,13 @@ public class PrincipalNameResolutionTest extends AbstractExternalTest {
     @Override
     protected void beforeSuite() throws Exception {
         super.beforeSuite();
-        bean = new SyncMBeanImpl(getContentRepository(), getSecurityProvider(), syncManager, syncConfig.getName(), idpManager, idp.getName());
+        bean = new SyncMBeanImpl(getContentRepository(), getSecurityProvider(), syncManager,
+            syncConfig.getName(), idpManager, idp.getName());
     }
 
     @Override
     protected void runTest() throws Exception {
-        bean.syncExternalUsers(new String[]{new ExternalIdentityRef(getRandomUserId(), idp.getName()).getString()});
+        bean.syncExternalUsers(
+            new String[]{new ExternalIdentityRef(getRandomUserId(), idp.getName()).getString()});
     }
 }

@@ -14,6 +14,7 @@
    See the License for the specific language governing permissions and
    limitations under the License.
   -->
+
 # MongoDB DocumentStore
 
 The `MongoDocumentStore` is one of the backend implementations for the
@@ -30,22 +31,23 @@ The recommended MongoDB version depends on the Oak release. Below table lists
 the recommended MongoDB version for each Oak release. More recent MongoDB
 versions may also work, but are untested.
 
-Oak Release | MongoDB version
-------------|----------------
-1.4.0 - 1.4.22 | 3.2.x
-1.4.23 or newer | 3.6.x
-1.6.0 - 1.6.13 | 3.2.x
-1.6.14 or newer | 3.6.x
-1.8.0 - 1.8.6 | 3.4.x
-1.8.7 or newer | 3.6.x
-1.22.x or newer | 4.0.x
-1.62.0 or newer | 5.0 (soon 6.0)
+ Oak Release     | MongoDB version 
+-----------------|-----------------
+ 1.4.0 - 1.4.22  | 3.2.x           
+ 1.4.23 or newer | 3.6.x           
+ 1.6.0 - 1.6.13  | 3.2.x           
+ 1.6.14 or newer | 3.6.x           
+ 1.8.0 - 1.8.6   | 3.4.x           
+ 1.8.7 or newer  | 3.6.x           
+ 1.22.x or newer | 4.0.x           
+ 1.62.0 or newer | 5.0 (soon 6.0)  
 
 For production deployments use a replica-set with at least three mongod
 instances and a majority write concern. Fewer than three instances (e.g. two
 instances and an arbiter) may lead to data loss when the primary fails.
 
-When using MongoDB 3.4 or newer, set the [maxStalenessSeconds](https://docs.mongodb.com/manual/core/read-preference/#maxstalenessseconds)
+When using MongoDB 3.4 or newer, set
+the [maxStalenessSeconds](https://docs.mongodb.com/manual/core/read-preference/#maxstalenessseconds)
 option in the MongoDB URI to `90`. This is an additional safeguard and will
 prevent reads from a secondary that is too far behind.
 
@@ -61,7 +63,8 @@ alternatives for production use.
 
 The recommended method to initialize a `DocumentNodeStore` with a
 `MongoDocumentStore` is using an OSGi container and configure the
-`DocumentNodeStoreService`. See corresponding [Repository OSGi Configuration](../../osgi_config.html).
+`DocumentNodeStoreService`. See
+corresponding [Repository OSGi Configuration](../../osgi_config.html).
 
 Alternatively a MongoDB based DocumentNodeStore can be created with the help of
 a `MongoDocumentNodeStoreBuilder`.
@@ -158,6 +161,9 @@ and the write concern to `majority` for all cluster nodes:
       {multi: true})
 
 [1]: http://docs.mongodb.org/manual/core/read-preference/
+
 [2]: http://docs.mongodb.org/manual/core/write-concern/
+
 [3]: http://docs.mongodb.org/manual/reference/connection-string/#read-preference-options
+
 [4]: http://docs.mongodb.org/manual/reference/connection-string/#write-concern-options

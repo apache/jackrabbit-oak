@@ -19,6 +19,18 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.property;
 
+import static java.util.Arrays.asList;
+import static java.util.Collections.singletonList;
+import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
+import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
+import static org.apache.jackrabbit.oak.spi.mount.Mounts.defaultMountInfoProvider;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
@@ -29,7 +41,6 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
-
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.InitialContent;
@@ -47,9 +58,9 @@ import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexTracker;
-import org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProvider;
+import org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.IndexingQueue;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.NRTIndexFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.DefaultIndexReaderFactory;
@@ -84,19 +95,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import static java.util.Arrays.asList;
-import static java.util.Collections.singletonList;
-import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
-import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
-import static org.apache.jackrabbit.oak.spi.mount.Mounts.defaultMountInfoProvider;
-import static org.hamcrest.Matchers.containsString;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
-import static org.mockito.Mockito.mock;
-
 public class SynchronousPropertyIndexTest extends AbstractQueryTest {
+
     private ExecutorService executorService = Executors.newFixedThreadPool(2);
 
     @Rule
@@ -110,12 +110,12 @@ public class SynchronousPropertyIndexTest extends AbstractQueryTest {
 
 
     private LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
-    private String indexPath  = "/oak:index/foo";
+    private String indexPath = "/oak:index/foo";
     private DelayingIndexEditor delayingEditorProvider = new DelayingIndexEditor();
     private TestUtil.OptionalEditorProvider optionalEditorProvider = new TestUtil.OptionalEditorProvider();
 
     @Before
-    public void setUp(){
+    public void setUp() {
         setTraversalEnabled(false);
     }
 
@@ -137,38 +137,38 @@ public class SynchronousPropertyIndexTest extends AbstractQueryTest {
         nrtIndexFactory = new NRTIndexFactory(copier, Clock.SIMPLE, 1000, StatisticsProvider.NOOP);
         MountInfoProvider mip = defaultMountInfoProvider();
         LuceneIndexReaderFactory indexReaderFactory = new DefaultIndexReaderFactory(mip, copier);
-        IndexTracker tracker = new IndexTracker(indexReaderFactory,nrtIndexFactory);
+        IndexTracker tracker = new IndexTracker(indexReaderFactory, nrtIndexFactory);
 
         luceneIndexProvider = new LuceneIndexProvider(tracker);
         LuceneIndexEditorProvider editorProvider = new LuceneIndexEditorProvider(copier,
-                tracker,
-                null,
-                null,
-                Mounts.defaultMountInfoProvider());
+            tracker,
+            null,
+            null,
+            Mounts.defaultMountInfoProvider());
 
         editorProvider.setIndexingQueue(queue);
 
         Oak oak = new Oak(nodeStore)
-                .with(new InitialContent())
-                .with(new OpenSecurityProvider())
-                .with((QueryIndexProvider) luceneIndexProvider)
-                .with((Observer) luceneIndexProvider)
-                .with(editorProvider)
-                .with(new PropertyIndexEditorProvider())
-                .with(new NodeTypeIndexProvider())
-                .with(new NodeCounterEditorProvider())
-                .with(delayingEditorProvider)
-                .with(optionalEditorProvider)
-                //Effectively disable async indexing auto run
-                //such that we can control run timing as per test requirement
-                .withAsyncIndexing("async", TimeUnit.DAYS.toSeconds(1));
+            .with(new InitialContent())
+            .with(new OpenSecurityProvider())
+            .with((QueryIndexProvider) luceneIndexProvider)
+            .with((Observer) luceneIndexProvider)
+            .with(editorProvider)
+            .with(new PropertyIndexEditorProvider())
+            .with(new NodeTypeIndexProvider())
+            .with(new NodeCounterEditorProvider())
+            .with(delayingEditorProvider)
+            .with(optionalEditorProvider)
+            //Effectively disable async indexing auto run
+            //such that we can control run timing as per test requirement
+            .withAsyncIndexing("async", TimeUnit.DAYS.toSeconds(1));
 
         wb = oak.getWhiteboard();
         return oak.createContentRepository();
     }
 
     @Test
-    public void uniquePropertyCommit() throws Exception{
+    public void uniquePropertyCommit() throws Exception {
         defnb.async("async", "nrt");
         defnb.indexRule("nt:base").property("foo").propertyIndex().unique();
 
@@ -188,7 +188,7 @@ public class SynchronousPropertyIndexTest extends AbstractQueryTest {
     }
 
     @Test
-    public void uniquePropertyCommit_Async() throws Exception{
+    public void uniquePropertyCommit_Async() throws Exception {
         defnb.async("async", "nrt");
         defnb.indexRule("nt:base").property("foo").propertyIndex().unique();
 
@@ -218,11 +218,11 @@ public class SynchronousPropertyIndexTest extends AbstractQueryTest {
     }
 
     /**
-     * Test the scenario where a unique property is removed and then another one
-     * with same value is added again
+     * Test the scenario where a unique property is removed and then another one with same value is
+     * added again
      */
     @Test
-    public void uniqueProperty_RemovedAndAsync() throws Exception{
+    public void uniqueProperty_RemovedAndAsync() throws Exception {
         defnb.async("async", "nrt");
         defnb.indexRule("nt:base").property("foo").propertyIndex().unique();
 
@@ -242,7 +242,7 @@ public class SynchronousPropertyIndexTest extends AbstractQueryTest {
     }
 
     @Test
-    public void uniqueProperty_RemoveAndAddInSameCommit() throws Exception{
+    public void uniqueProperty_RemoveAndAddInSameCommit() throws Exception {
         defnb.async("async", "nrt");
         defnb.indexRule("nt:base").property("foo").propertyIndex().unique();
 
@@ -259,7 +259,7 @@ public class SynchronousPropertyIndexTest extends AbstractQueryTest {
     }
 
     @Test
-    public void nonUniqueIndex() throws Exception{
+    public void nonUniqueIndex() throws Exception {
         defnb.async("async", "nrt");
         defnb.indexRule("nt:base").property("foo").propertyIndex().sync();
 
@@ -288,7 +288,7 @@ public class SynchronousPropertyIndexTest extends AbstractQueryTest {
     }
 
     @Test
-    public void uniquePaths() throws Exception{
+    public void uniquePaths() throws Exception {
         defnb.async("async", "nrt");
         defnb.indexRule("nt:base").property("foo").propertyIndex().unique();
 
@@ -322,7 +322,7 @@ public class SynchronousPropertyIndexTest extends AbstractQueryTest {
     }
 
     @Test
-    public void queryPlan() throws Exception{
+    public void queryPlan() throws Exception {
         defnb.async("async", "nrt");
         defnb.indexRule("nt:base").property("foo").sync();
 
@@ -331,13 +331,13 @@ public class SynchronousPropertyIndexTest extends AbstractQueryTest {
         runAsyncIndex();
 
         assertThat(explain("select * from [nt:base] where [jcr:content/foo] = 'bar'"),
-                containsString("synchronousPropertyCondition: foo[jcr:content/foo] bar"));
+            containsString("synchronousPropertyCondition: foo[jcr:content/foo] bar"));
         assertThat(explain("select * from [nt:base] where [foo] = 'bar'"),
-                containsString("synchronousPropertyCondition: foo bar"));
+            containsString("synchronousPropertyCondition: foo bar"));
     }
 
     @Test
-    public void relativePropertyTransform() throws Exception{
+    public void relativePropertyTransform() throws Exception {
         defnb.async("async", "nrt");
         defnb.indexRule("nt:base").property("foo").sync();
 
@@ -353,7 +353,7 @@ public class SynchronousPropertyIndexTest extends AbstractQueryTest {
     }
 
     @Test
-    public void nonRootIndex() throws Exception{
+    public void nonRootIndex() throws Exception {
         createPath("/content/oak:index");
         root.commit();
 
@@ -371,15 +371,15 @@ public class SynchronousPropertyIndexTest extends AbstractQueryTest {
         root.commit();
 
         assertQuery("select * from [nt:base] where ISDESCENDANTNODE('/content') " +
-                "and [jcr:content/foo] = 'bar'", singletonList("/content/a"));
+            "and [jcr:content/foo] = 'bar'", singletonList("/content/a"));
 
         assertQuery("select * from [nt:base] where ISDESCENDANTNODE('/content') " +
-                "and [foo] = 'bar'", asList("/content/a", "/content/a/jcr:content"));
+            "and [foo] = 'bar'", asList("/content/a", "/content/a/jcr:content"));
 
     }
 
     @Test
-    public void asyncIndexerReindexAndPropertyIndexes() throws Exception{
+    public void asyncIndexerReindexAndPropertyIndexes() throws Exception {
         defnb.async("async", "nrt");
         defnb.indexRule("nt:base").property("foo").sync();
 
@@ -414,23 +414,23 @@ public class SynchronousPropertyIndexTest extends AbstractQueryTest {
     }
 
     String testNodeTypes =
-            "[oak:TestMixA]\n" +
-                    "  mixin\n" +
-                    "\n" +
-                    "[oak:TestSuperType] \n" +
-                    " - * (UNDEFINED) multiple\n" +
-                    "\n" +
-                    "[oak:TestTypeA] > oak:TestSuperType\n" +
-                    " - * (UNDEFINED) multiple\n" +
-                    "\n" +
-                    " [oak:TestTypeB] > oak:TestSuperType, oak:TestMixA\n" +
-                    " - * (UNDEFINED) multiple\n" +
-                    "\n" +
-                    "  [oak:TestTypeC] > oak:TestMixA\n" +
-                    " - * (UNDEFINED) multiple";
+        "[oak:TestMixA]\n" +
+            "  mixin\n" +
+            "\n" +
+            "[oak:TestSuperType] \n" +
+            " - * (UNDEFINED) multiple\n" +
+            "\n" +
+            "[oak:TestTypeA] > oak:TestSuperType\n" +
+            " - * (UNDEFINED) multiple\n" +
+            "\n" +
+            " [oak:TestTypeB] > oak:TestSuperType, oak:TestMixA\n" +
+            " - * (UNDEFINED) multiple\n" +
+            "\n" +
+            "  [oak:TestTypeC] > oak:TestMixA\n" +
+            " - * (UNDEFINED) multiple";
 
     @Test
-    public void nodeTypeIndexing() throws Exception{
+    public void nodeTypeIndexing() throws Exception {
         registerTestNodeTypes();
 
         defnb.async("async", "nrt");
@@ -448,11 +448,11 @@ public class SynchronousPropertyIndexTest extends AbstractQueryTest {
         assertQuery("select * from [oak:TestSuperType]", asList("/a", "/b"));
 
         assertThat(explain("select * from [oak:TestSuperType]"),
-                containsString(indexPath));
+            containsString(indexPath));
     }
 
     @Test
-    public void nodeType_mixins() throws Exception{
+    public void nodeType_mixins() throws Exception {
         registerTestNodeTypes();
 
         defnb.async("async", "nrt");
@@ -468,20 +468,21 @@ public class SynchronousPropertyIndexTest extends AbstractQueryTest {
         createPath("/c", "oak:TestTypeA");
         root.commit();
 
-        assertThat(explain("select * from [oak:TestMixA]"),  containsString(indexPath));
+        assertThat(explain("select * from [oak:TestMixA]"), containsString(indexPath));
         assertQuery("select * from [oak:TestMixA]", asList("/a", "/b"));
     }
 
     private void registerTestNodeTypes() throws IOException, CommitFailedException {
         optionalEditorProvider.delegate = new TypeEditorProvider();
-        NodeTypeRegistry.register(root, IOUtils.toInputStream(testNodeTypes, "utf-8"), "test nodeType");
+        NodeTypeRegistry.register(root, IOUtils.toInputStream(testNodeTypes, "utf-8"),
+            "test nodeType");
         // Flush the changes to nodetypes
         root.commit();
     }
 
     private void runAsyncIndex() {
         AsyncIndexUpdate async = (AsyncIndexUpdate) WhiteboardUtils.getService(wb,
-                Runnable.class, (Predicate<Runnable>)input -> input instanceof AsyncIndexUpdate);
+            Runnable.class, (Predicate<Runnable>) input -> input instanceof AsyncIndexUpdate);
         assertNotNull(async);
         async.run();
         if (async.isFailing()) {
@@ -490,28 +491,28 @@ public class SynchronousPropertyIndexTest extends AbstractQueryTest {
         root.refresh();
     }
 
-    private String explain(String query){
+    private String explain(String query) {
         String explain = "explain " + query;
         return executeQuery(explain, "JCR-SQL2").get(0);
     }
 
-    private void addIndex(String indexPath, LuceneIndexDefinitionBuilder defnb){
+    private void addIndex(String indexPath, LuceneIndexDefinitionBuilder defnb) {
         defnb.build(createPath(indexPath));
     }
 
-    private Tree createPath(String path){
+    private Tree createPath(String path) {
         Tree base = root.getTree("/");
-        for (String e : PathUtils.elements(path)){
+        for (String e : PathUtils.elements(path)) {
             base = base.hasChild(e) ? base.getChild(e) : base.addChild(e);
         }
         return base;
     }
 
-    private Tree createPath(String path, String primaryType){
+    private Tree createPath(String path, String primaryType) {
         return createPath(path, primaryType, Collections.emptyList());
     }
 
-    private Tree createPath(String path, String primaryType, List<String> mixins){
+    private Tree createPath(String path, String primaryType, List<String> mixins) {
         Tree t = createPath(path);
         t.setProperty(JcrConstants.JCR_PRIMARYTYPE, primaryType, Type.NAME);
         if (!mixins.isEmpty()) {
@@ -521,12 +522,14 @@ public class SynchronousPropertyIndexTest extends AbstractQueryTest {
     }
 
     private static class DelayingIndexEditor implements IndexEditorProvider {
+
         private Semaphore semaphore;
+
         @Nullable
         @Override
         public Editor getIndexEditor(@NotNull String type, @NotNull NodeBuilder definition,
-                                     @NotNull NodeState root, @NotNull IndexUpdateCallback callback)
-                throws CommitFailedException {
+            @NotNull NodeState root, @NotNull IndexUpdateCallback callback)
+            throws CommitFailedException {
             ContextAwareCallback ccb = (ContextAwareCallback) callback;
             if (semaphore != null && ccb.getIndexingContext().isAsync()) {
                 semaphore.acquireUninterruptibly();

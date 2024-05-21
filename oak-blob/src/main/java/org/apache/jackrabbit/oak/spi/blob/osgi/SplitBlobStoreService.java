@@ -19,10 +19,13 @@
 
 package org.apache.jackrabbit.oak.spi.blob.osgi;
 
+import static org.apache.jackrabbit.oak.spi.blob.osgi.SplitBlobStoreService.BlobStoreType.DOCUMENT;
+import static org.apache.jackrabbit.oak.spi.blob.osgi.SplitBlobStoreService.BlobStoreType.EXTERNAL;
+import static org.apache.jackrabbit.oak.spi.blob.osgi.SplitBlobStoreService.BlobStoreType.SEGMENT;
+
 import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.Map;
-
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.ConfigurationPolicy;
@@ -42,18 +45,17 @@ import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.oak.spi.blob.osgi.SplitBlobStoreService.BlobStoreType.*;
-
 @Component(policy = ConfigurationPolicy.REQUIRE)
 public class SplitBlobStoreService {
+
     private static final Logger log = LoggerFactory.getLogger(SplitBlobStoreService.class);
 
     @Property
     private static final String PROP_HOME = "repository.home";
 
-    @Property(options = { @PropertyOption(name = "External", value = "EXTERNAL"),
-            @PropertyOption(name = "Internal - Segment", value = "SEGMENT"),
-            @PropertyOption(name = "Internal - Document", value = "DOCUMENT") })
+    @Property(options = {@PropertyOption(name = "External", value = "EXTERNAL"),
+        @PropertyOption(name = "Internal - Segment", value = "SEGMENT"),
+        @PropertyOption(name = "Internal - Document", value = "DOCUMENT")})
     private static final String PROP_OLD_BLOB_STORE_TYPE = "split.old.blobstore.type";
 
     public static final String PROP_SPLIT_BLOBSTORE = "split.blobstore";
@@ -75,7 +77,8 @@ public class SplitBlobStoreService {
     private BlobStoreType oldBlobStoreType;
 
     @Activate
-    protected void activate(ComponentContext context, Map<String, Object> config) throws InvalidSyntaxException {
+    protected void activate(ComponentContext context, Map<String, Object> config)
+        throws InvalidSyntaxException {
         String oldTypeName = lookup(context, PROP_OLD_BLOB_STORE_TYPE);
         if (oldTypeName == null) {
             oldBlobStoreType = BlobStoreType.EXTERNAL;
@@ -116,8 +119,9 @@ public class SplitBlobStoreService {
             log.info("Component not activated yet");
             return;
         }
-        log.info("Registering SplitBlobStore with old={} ({}) and new={}", oldBlobStore, oldBlobStoreType,
-                newBlobStore);
+        log.info("Registering SplitBlobStore with old={} ({}) and new={}", oldBlobStore,
+            oldBlobStoreType,
+            newBlobStore);
         BlobStore blobStore;
         if (oldBlobStoreType == EXTERNAL || oldBlobStoreType == SEGMENT) {
             blobStore = new DefaultSplitBlobStore(homeDir, oldBlobStore, newBlobStore);
@@ -128,7 +132,7 @@ public class SplitBlobStoreService {
         }
         Dictionary<String, Object> props = new Hashtable<String, Object>();
         props.put("service.pid", "org.apache.jackrabbit.oak.spi.blob.split.SplitBlobStore");
-        reg = ctx.registerService(new String[] { BlobStore.class.getName() }, blobStore, props);
+        reg = ctx.registerService(new String[]{BlobStore.class.getName()}, blobStore, props);
     }
 
     private void unregisterSplitBlobStore() {

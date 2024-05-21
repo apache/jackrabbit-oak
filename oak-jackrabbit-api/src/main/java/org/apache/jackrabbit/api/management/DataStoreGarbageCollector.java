@@ -17,17 +17,14 @@
 package org.apache.jackrabbit.api.management;
 
 import javax.jcr.RepositoryException;
-
 import org.osgi.annotation.versioning.ProviderType;
 
 /**
- * Garbage collector for DataStore. This implementation iterates through all
- * nodes and reads the binary properties. To detect nodes that are moved while
- * the scan runs, event listeners are started. Like the well known garbage
- * collection in Java, the items that are still in use are marked. Currently
- * this is achieved by updating the modified date of the entries. Newly added
- * entries are detected because the modified date is changed when they are
- * added.
+ * Garbage collector for DataStore. This implementation iterates through all nodes and reads the
+ * binary properties. To detect nodes that are moved while the scan runs, event listeners are
+ * started. Like the well known garbage collection in Java, the items that are still in use are
+ * marked. Currently this is achieved by updating the modified date of the entries. Newly added
+ * entries are detected because the modified date is changed when they are added.
  * <p>
  * Example code to run the data store garbage collection:
  * <pre>
@@ -42,8 +39,7 @@ import org.osgi.annotation.versioning.ProviderType;
 public interface DataStoreGarbageCollector {
 
     /**
-     * Set the delay between scanning items.
-     * The main scan loop sleeps this many milliseconds after
+     * Set the delay between scanning items. The main scan loop sleeps this many milliseconds after
      * scanning a node. The default is 0, meaning the scan should run at full speed.
      *
      * @param millis the number of milliseconds to sleep
@@ -58,18 +54,16 @@ public interface DataStoreGarbageCollector {
     long getSleepBetweenNodes();
 
     /**
-     * Set the event listener. If set, the event listener will be called
-     * for each item that is scanned. This mechanism can be used
-     * to display the progress.
+     * Set the event listener. If set, the event listener will be called for each item that is
+     * scanned. This mechanism can be used to display the progress.
      *
      * @param callback if set, this is called while scanning
      */
     void setMarkEventListener(MarkEventListener callback);
 
     /**
-     * Enable or disable using the IterablePersistenceManager interface
-     * to scan the items. This is important for clients that need
-     * the complete Node implementation in the ScanEventListener
+     * Enable or disable using the IterablePersistenceManager interface to scan the items. This is
+     * important for clients that need the complete Node implementation in the ScanEventListener
      * callback.
      *
      * @param allow true if using the IterablePersistenceManager interface is allowed
@@ -84,10 +78,10 @@ public interface DataStoreGarbageCollector {
     boolean isPersistenceManagerScan();
 
     /**
-     * Scan the repository. The garbage collector will iterate over all nodes in the repository
-     * and update the last modified date. If all persistence managers implement the
-     * IterablePersistenceManager interface, this mechanism is used; if not, the garbage
-     * collector scans the repository using the JCR API starting from the root node.
+     * Scan the repository. The garbage collector will iterate over all nodes in the repository and
+     * update the last modified date. If all persistence managers implement the
+     * IterablePersistenceManager interface, this mechanism is used; if not, the garbage collector
+     * scans the repository using the JCR API starting from the root node.
      *
      * @throws RepositoryException
      */

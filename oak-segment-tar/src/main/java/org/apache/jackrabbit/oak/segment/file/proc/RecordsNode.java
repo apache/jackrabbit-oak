@@ -22,7 +22,6 @@ package org.apache.jackrabbit.oak.segment.file.proc;
 import java.util.Collections;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
-
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.segment.file.proc.Proc.Backend;
 import org.apache.jackrabbit.oak.segment.file.proc.Proc.Backend.Record;
@@ -30,7 +29,7 @@ import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.jetbrains.annotations.NotNull;
 
 class RecordsNode extends AbstractNode {
-    
+
     private final Backend backend;
 
     private final String segmentId;
@@ -44,14 +43,15 @@ class RecordsNode extends AbstractNode {
     @Override
     public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
         return backend.getSegmentRecords(segmentId)
-            .map(this::toChildNodeEntries)
-            .orElse(Collections.emptyList());
+                      .map(this::toChildNodeEntries)
+                      .orElse(Collections.emptyList());
     }
 
     private Iterable<ChildNodeEntry> toChildNodeEntries(Iterable<Record> records) {
         return StreamSupport.stream(records.spliterator(), false)
-            .map(r -> new MemoryChildNodeEntry(Integer.toString(r.getNumber()), new RecordNode(r)))
-            .collect(Collectors.toList());
+                            .map(r -> new MemoryChildNodeEntry(Integer.toString(r.getNumber()),
+                                new RecordNode(r)))
+                            .collect(Collectors.toList());
     }
 
 }

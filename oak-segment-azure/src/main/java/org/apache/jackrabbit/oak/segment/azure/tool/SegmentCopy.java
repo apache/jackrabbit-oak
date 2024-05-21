@@ -41,7 +41,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-
+import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.azure.tool.SegmentStoreMigrator.Segment;
 import org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.SegmentStoreType;
@@ -55,12 +55,11 @@ import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveReader;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 import org.apache.jackrabbit.oak.segment.tool.Check;
 
-import org.apache.jackrabbit.guava.common.base.Stopwatch;
-
 /**
  * Perform a full-copy of repository data at segment level.
  */
 public class SegmentCopy {
+
     /**
      * Create a builder for the {@link SegmentCopy} command.
      *
@@ -102,8 +101,7 @@ public class SegmentCopy {
         /**
          * The source path/URI to an existing segment store. This parameter is required.
          *
-         * @param source
-         *            the source path/URI to an existing segment store.
+         * @param source the source path/URI to an existing segment store.
          * @return this builder.
          */
         public Builder withSource(String source) {
@@ -112,11 +110,9 @@ public class SegmentCopy {
         }
 
         /**
-         * The destination path/URI to an existing segment store. This parameter is
-         * required.
+         * The destination path/URI to an existing segment store. This parameter is required.
          *
-         * @param destination
-         *            the destination path/URI to an existing segment store.
+         * @param destination the destination path/URI to an existing segment store.
          * @return this builder.
          */
         public Builder withDestination(String destination) {
@@ -127,8 +123,7 @@ public class SegmentCopy {
         /**
          * The destination {@link SegmentNodeStorePersistence}.
          *
-         * @param srcPersistence
-         *            the destination {@link SegmentNodeStorePersistence}.
+         * @param srcPersistence the destination {@link SegmentNodeStorePersistence}.
          * @return this builder.
          */
         public Builder withSrcPersistencee(SegmentNodeStorePersistence srcPersistence) {
@@ -139,8 +134,7 @@ public class SegmentCopy {
         /**
          * The destination {@link SegmentNodeStorePersistence}.
          *
-         * @param destPersistence
-         *            the destination {@link SegmentNodeStorePersistence}.
+         * @param destPersistence the destination {@link SegmentNodeStorePersistence}.
          * @return this builder.
          */
         public Builder withDestPersistence(SegmentNodeStorePersistence destPersistence) {
@@ -151,8 +145,7 @@ public class SegmentCopy {
         /**
          * The text output stream writer used to print normal output.
          *
-         * @param outWriter
-         *            the output writer.
+         * @param outWriter the output writer.
          * @return this builder.
          */
         public Builder withOutWriter(PrintWriter outWriter) {
@@ -163,8 +156,7 @@ public class SegmentCopy {
         /**
          * The text error stream writer used to print erroneous output.
          *
-         * @param errWriter
-         *            the error writer.
+         * @param errWriter the error writer.
          * @return this builder.
          */
         public Builder withErrWriter(PrintWriter errWriter) {
@@ -173,8 +165,8 @@ public class SegmentCopy {
         }
 
         /**
-         * The last {@code revisionsCount} revisions to be copied.
-         * This parameter is not required and defaults to {@code 1}.
+         * The last {@code revisionsCount} revisions to be copied. This parameter is not required
+         * and defaults to {@code 1}.
          *
          * @param revisionsCount number of revisions to copied.
          * @return this builder.
@@ -185,8 +177,8 @@ public class SegmentCopy {
         }
 
         /**
-         * If enabled, the segments hierarchy will be copied without any
-         * TAR archive being created, in a flat hierarchy.
+         * If enabled, the segments hierarchy will be copied without any TAR archive being created,
+         * in a flat hierarchy.
          *
          * @param flat flag controlling the copying in flat hierarchy.
          * @return this builder.
@@ -197,8 +189,8 @@ public class SegmentCopy {
         }
 
         /**
-         * If enabled, existing segments will be skipped instead of
-         * overwritten in the copy process.
+         * If enabled, existing segments will be skipped instead of overwritten in the copy
+         * process.
          *
          * @param appendMode flag controlling the segment write behavior.
          * @return this builder.
@@ -286,8 +278,10 @@ public class SegmentCopy {
             try {
                 srcPersistence = newSegmentNodeStorePersistence(srcType, source);
 
-                SegmentArchiveManager sourceManager = srcPersistence.createArchiveManager(false, false,
-                        new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
+                SegmentArchiveManager sourceManager = srcPersistence.createArchiveManager(false,
+                    false,
+                    new IOMonitorAdapter(), new FileStoreMonitorAdapter(),
+                    new RemoteStoreMonitorAdapter());
 
                 int maxArchives = maxSizeGb * 4;
                 int count = 0;
@@ -297,8 +291,9 @@ public class SegmentCopy {
 
                 for (String archiveName : archivesList) {
                     if (count == maxArchives - 1) {
-                        printMessage(outWriter, "Stopping transfer after reaching {0} GB at archive {1}", maxSizeGb,
-                                archiveName);
+                        printMessage(outWriter,
+                            "Stopping transfer after reaching {0} GB at archive {1}", maxSizeGb,
+                            archiveName);
                         break;
                     }
 
@@ -322,32 +317,37 @@ public class SegmentCopy {
                         Segment segment = future.get();
                         RETRIER.execute(() -> {
                             final byte[] array = segment.data.array();
-                            String segmentId = new UUID(segment.entry.getMsb(), segment.entry.getLsb()).toString();
+                            String segmentId = new UUID(segment.entry.getMsb(),
+                                segment.entry.getLsb()).toString();
                             File segmentFile = new File(directory, segmentId);
-                            File tempSegmentFile = new File(directory, segmentId + System.nanoTime() + ".part");
+                            File tempSegmentFile = new File(directory,
+                                segmentId + System.nanoTime() + ".part");
                             Buffer buffer = Buffer.wrap(array);
 
                             Buffer bufferCopy = buffer.duplicate();
 
                             try {
-                                try (FileChannel channel = new FileOutputStream(tempSegmentFile).getChannel()) {
+                                try (FileChannel channel = new FileOutputStream(
+                                    tempSegmentFile).getChannel()) {
                                     bufferCopy.write(channel);
                                 }
                                 try {
                                     Files.move(tempSegmentFile.toPath(), segmentFile.toPath(),
-                                            StandardCopyOption.ATOMIC_MOVE);
+                                        StandardCopyOption.ATOMIC_MOVE);
                                 } catch (AtomicMoveNotSupportedException e) {
                                     Files.move(tempSegmentFile.toPath(), segmentFile.toPath());
                                 }
                             } catch (Exception e) {
-                                printMessage(errWriter, "Error writing segment {0} to cache: {1} ", segmentId, e);
+                                printMessage(errWriter, "Error writing segment {0} to cache: {1} ",
+                                    segmentId, e);
                                 e.printStackTrace(errWriter);
                                 try {
                                     Files.deleteIfExists(segmentFile.toPath());
                                     Files.deleteIfExists(tempSegmentFile.toPath());
                                 } catch (IOException i) {
-                                    printMessage(errWriter, "Error while deleting corrupted segment file {0} {1}",
-                                            segmentId, i);
+                                    printMessage(errWriter,
+                                        "Error while deleting corrupted segment file {0} {1}",
+                                        segmentId, i);
                                 }
                             }
                         });
@@ -357,8 +357,9 @@ public class SegmentCopy {
                 }
             } catch (IOException | InterruptedException | ExecutionException e) {
                 watch.stop();
-                printMessage(errWriter, "A problem occured while copying archives from {0} to {1} ", source,
-                        destination);
+                printMessage(errWriter, "A problem occured while copying archives from {0} to {1} ",
+                    source,
+                    destination);
                 e.printStackTrace(errWriter);
                 return 1;
             }
@@ -374,9 +375,9 @@ public class SegmentCopy {
                 printMessage(outWriter, "Destination: {0}", destDescription);
 
                 SegmentStoreMigrator.Builder migratorBuilder = new SegmentStoreMigrator.Builder()
-                        .withSourcePersistence(srcPersistence, srcDescription)
-                        .withTargetPersistence(destPersistence, destDescription)
-                        .withRevisionCount(revisionCount);
+                    .withSourcePersistence(srcPersistence, srcDescription)
+                    .withTargetPersistence(destPersistence, destDescription)
+                    .withRevisionCount(revisionCount);
 
                 if (appendMode) {
                     migratorBuilder.setAppendMode();
@@ -386,8 +387,9 @@ public class SegmentCopy {
 
             } catch (Exception e) {
                 watch.stop();
-                printMessage(errWriter, "A problem occured while copying archives from {0} to {1} ", source,
-                        destination);
+                printMessage(errWriter, "A problem occured while copying archives from {0} to {1} ",
+                    source,
+                    destination);
                 e.printStackTrace(errWriter);
                 return 1;
             }

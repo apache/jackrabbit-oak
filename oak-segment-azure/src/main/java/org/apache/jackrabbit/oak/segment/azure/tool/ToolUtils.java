@@ -30,6 +30,11 @@ import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationPar
 import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.parseAzureConfigurationFromUri;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.defaultGCOptions;
 
+import com.microsoft.azure.storage.StorageCredentials;
+import com.microsoft.azure.storage.StorageCredentialsAccountAndKey;
+import com.microsoft.azure.storage.StorageCredentialsSharedAccessSignature;
+import com.microsoft.azure.storage.StorageException;
+import com.microsoft.azure.storage.blob.CloudBlobDirectory;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -37,8 +42,8 @@ import java.net.URISyntaxException;
 import java.text.MessageFormat;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.commons.lang3.StringUtils;
+import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
 import org.apache.jackrabbit.oak.segment.azure.AzureUtilities;
@@ -56,13 +61,6 @@ import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 import org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache.CachingPersistence;
 import org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache.PersistentCache;
-
-import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import com.microsoft.azure.storage.StorageCredentials;
-import com.microsoft.azure.storage.StorageCredentialsAccountAndKey;
-import com.microsoft.azure.storage.StorageCredentialsSharedAccessSignature;
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.blob.CloudBlobDirectory;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -71,6 +69,7 @@ import org.slf4j.LoggerFactory;
  * Utility class for common stuff pertaining to tooling.
  */
 public class ToolUtils {
+
     private static final Logger log = LoggerFactory.getLogger(ToolUtils.class);
     private static final Environment ENVIRONMENT = new Environment();
 
@@ -98,72 +97,81 @@ public class ToolUtils {
     }
 
     public static FileStore newFileStore(SegmentNodeStorePersistence persistence, File directory,
-                                         boolean strictVersionCheck, int segmentCacheSize, long gcLogInterval, CompactorType compactorType)
-            throws IOException, InvalidFileStoreVersionException {
+        boolean strictVersionCheck, int segmentCacheSize, long gcLogInterval,
+        CompactorType compactorType)
+        throws IOException, InvalidFileStoreVersionException {
         return newFileStore(persistence, directory, strictVersionCheck,
-                segmentCacheSize, gcLogInterval, compactorType, 1);
+            segmentCacheSize, gcLogInterval, compactorType, 1);
     }
 
     public static FileStore newFileStore(SegmentNodeStorePersistence persistence, File directory,
-            boolean strictVersionCheck, int segmentCacheSize, long gcLogInterval, CompactorType compactorType, int gcConcurrency)
-            throws IOException, InvalidFileStoreVersionException {
+        boolean strictVersionCheck, int segmentCacheSize, long gcLogInterval,
+        CompactorType compactorType, int gcConcurrency)
+        throws IOException, InvalidFileStoreVersionException {
         return FileStoreBuilder.fileStoreBuilder(directory)
-                .withCustomPersistence(persistence)
-                .withMemoryMapping(false)
-                .withStrictVersionCheck(strictVersionCheck)
-                .withSegmentCacheSize(segmentCacheSize)
-                .withGCOptions(defaultGCOptions()
-                        .setOffline()
-                        .setGCLogInterval(gcLogInterval)
-                        .setCompactorType(compactorType)
-                        .setConcurrency(gcConcurrency))
-                .build();
+                               .withCustomPersistence(persistence)
+                               .withMemoryMapping(false)
+                               .withStrictVersionCheck(strictVersionCheck)
+                               .withSegmentCacheSize(segmentCacheSize)
+                               .withGCOptions(defaultGCOptions()
+                                   .setOffline()
+                                   .setGCLogInterval(gcLogInterval)
+                                   .setCompactorType(compactorType)
+                                   .setConcurrency(gcConcurrency))
+                               .build();
     }
 
-    public static SegmentNodeStorePersistence newSegmentNodeStorePersistence(SegmentStoreType storeType,
-            String pathOrUri, String persistentCachePath, Integer persistentCacheSize) {
+    public static SegmentNodeStorePersistence newSegmentNodeStorePersistence(
+        SegmentStoreType storeType,
+        String pathOrUri, String persistentCachePath, Integer persistentCacheSize) {
         SegmentNodeStorePersistence persistence = null;
 
         switch (storeType) {
-        case AZURE:
-            CloudBlobDirectory cloudBlobDirectory = createCloudBlobDirectory(pathOrUri.substring(3));
-            SegmentNodeStorePersistence basePersistence = new AzurePersistence(cloudBlobDirectory);
+            case AZURE:
+                CloudBlobDirectory cloudBlobDirectory = createCloudBlobDirectory(
+                    pathOrUri.substring(3));
+                SegmentNodeStorePersistence basePersistence = new AzurePersistence(
+                    cloudBlobDirectory);
 
-            PersistentCache persistentCache = new PersistentDiskCache(new File(persistentCachePath),
-                        persistentCacheSize * 1024, new IOMonitorAdapter());
-            persistence = new CachingPersistence(persistentCache, basePersistence);
-            break;
-        default:
-            persistence = new TarPersistence(new File(pathOrUri));
+                PersistentCache persistentCache = new PersistentDiskCache(
+                    new File(persistentCachePath),
+                    persistentCacheSize * 1024, new IOMonitorAdapter());
+                persistence = new CachingPersistence(persistentCache, basePersistence);
+                break;
+            default:
+                persistence = new TarPersistence(new File(pathOrUri));
         }
 
         return persistence;
     }
 
-    public static SegmentNodeStorePersistence newSegmentNodeStorePersistence(SegmentStoreType storeType,
-            String pathOrUri) {
+    public static SegmentNodeStorePersistence newSegmentNodeStorePersistence(
+        SegmentStoreType storeType,
+        String pathOrUri) {
         SegmentNodeStorePersistence persistence = null;
 
         switch (storeType) {
-        case AZURE:
-            CloudBlobDirectory cloudBlobDirectory = createCloudBlobDirectory(pathOrUri.substring(3));
-            persistence = new AzurePersistence(cloudBlobDirectory);
-            break;
-        default:
-            persistence = new TarPersistence(new File(pathOrUri));
+            case AZURE:
+                CloudBlobDirectory cloudBlobDirectory = createCloudBlobDirectory(
+                    pathOrUri.substring(3));
+                persistence = new AzurePersistence(cloudBlobDirectory);
+                break;
+            default:
+                persistence = new TarPersistence(new File(pathOrUri));
         }
 
         return persistence;
     }
 
-    public static SegmentArchiveManager createArchiveManager(SegmentNodeStorePersistence persistence) {
+    public static SegmentArchiveManager createArchiveManager(
+        SegmentNodeStorePersistence persistence) {
         SegmentArchiveManager archiveManager = null;
         try {
             archiveManager = persistence.createArchiveManager(false, false, new IOMonitorAdapter(),
-                    new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
+                new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
         } catch (IOException e) {
             throw new IllegalArgumentException(
-                    "Could not access the Azure Storage. Please verify the path provided!");
+                "Could not access the Azure Storage. Please verify the path provided!");
         }
 
         return archiveManager;
@@ -173,14 +181,16 @@ public class ToolUtils {
         return createCloudBlobDirectory(path, ENVIRONMENT);
     }
 
-    public static CloudBlobDirectory createCloudBlobDirectory(String path, Environment environment) {
+    public static CloudBlobDirectory createCloudBlobDirectory(String path,
+        Environment environment) {
         Map<String, String> config = parseAzureConfigurationFromUri(path);
 
         String accountName = config.get(KEY_ACCOUNT_NAME);
 
         StorageCredentials credentials;
         if (config.containsKey(KEY_SHARED_ACCESS_SIGNATURE)) {
-            credentials = new StorageCredentialsSharedAccessSignature(config.get(KEY_SHARED_ACCESS_SIGNATURE));
+            credentials = new StorageCredentialsSharedAccessSignature(
+                config.get(KEY_SHARED_ACCESS_SIGNATURE));
         } else {
             credentials = getStorageCredentialsFromAccountAndEnv(accountName, environment);
         }
@@ -197,25 +207,29 @@ public class ToolUtils {
     }
 
     @NotNull
-    public static StorageCredentials getStorageCredentialsFromAccountAndEnv(@NotNull String accountName) {
+    public static StorageCredentials getStorageCredentialsFromAccountAndEnv(
+        @NotNull String accountName) {
         return getStorageCredentialsFromAccountAndEnv(accountName, ENVIRONMENT);
     }
 
     @NotNull
-    private static StorageCredentials getStorageCredentialsFromAccountAndEnv(String accountName, Environment environment) {
+    private static StorageCredentials getStorageCredentialsFromAccountAndEnv(String accountName,
+        Environment environment) {
         String clientId = environment.getVariable(AZURE_CLIENT_ID);
         String clientSecret = environment.getVariable(AZURE_CLIENT_SECRET);
         String tenantId = environment.getVariable(AZURE_TENANT_ID);
 
         if (!StringUtils.isAnyBlank(clientId, clientSecret, tenantId)) {
             try {
-                return storageCredentialAccessTokenFrom(accountName, clientId, clientSecret, tenantId);
+                return storageCredentialAccessTokenFrom(accountName, clientId, clientSecret,
+                    tenantId);
             } catch (IllegalArgumentException | StringIndexOutOfBoundsException e) {
                 throw new IllegalArgumentException(
-                        "Could not connect to the Azure Storage. Please verify if AZURE_CLIENT_ID, AZURE_CLIENT_SECRET and AZURE_TENANT_ID environment variables are correctly set!");
+                    "Could not connect to the Azure Storage. Please verify if AZURE_CLIENT_ID, AZURE_CLIENT_SECRET and AZURE_TENANT_ID environment variables are correctly set!");
             }
         } else {
-            log.warn("AZURE_CLIENT_ID, AZURE_CLIENT_SECRET and AZURE_TENANT_ID environment variables empty or missing. Switching to authentication with AZURE_SECRET_KEY.");
+            log.warn(
+                "AZURE_CLIENT_ID, AZURE_CLIENT_SECRET and AZURE_TENANT_ID environment variables empty or missing. Switching to authentication with AZURE_SECRET_KEY.");
         }
 
         String key = environment.getVariable(AZURE_SECRET_KEY);

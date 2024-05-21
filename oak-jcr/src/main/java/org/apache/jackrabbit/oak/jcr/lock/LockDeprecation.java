@@ -20,9 +20,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
-
 import javax.jcr.UnsupportedRepositoryOperationException;
-
 import org.apache.jackrabbit.oak.jcr.session.NodeImpl;
 import org.apache.jackrabbit.oak.jcr.session.SessionImpl;
 import org.apache.jackrabbit.oak.jcr.xml.ImporterImpl;
@@ -51,19 +49,21 @@ public class LockDeprecation {
     // classes that we don't want to include in the stack trace elements in the
     // log message
     private static final Set<String> IGNOREDCLASSES = new HashSet<String>(Arrays.asList(
-            new String[] { Thread.class.getName(), java.lang.reflect.Method.class.getName(), LockDeprecation.class.getName(),
-                    LockManagerImpl.class.getName(), NodeImpl.class.getName(), SessionImpl.class.getName() }));
+        new String[]{Thread.class.getName(), java.lang.reflect.Method.class.getName(),
+            LockDeprecation.class.getName(),
+            LockManagerImpl.class.getName(), NodeImpl.class.getName(),
+            SessionImpl.class.getName()}));
 
     // classes for which we tolerate locking related calls for now (only TRACE
     // level, no WARNING)
     private static final Set<String> ACCEPTEDCLASSES = new HashSet<String>(
-            Arrays.asList(new String[] { ImporterImpl.class.getName() }));
+        Arrays.asList(new String[]{ImporterImpl.class.getName()}));
 
     public static void handleCall(String operation) throws UnsupportedRepositoryOperationException {
 
         if (!ISLOCKINGSUPPORTED) {
             throw new UnsupportedRepositoryOperationException(
-                    "Support for JCR Locking is disabled (see OAK-6421 for further information)");
+                "Support for JCR Locking is disabled (see OAK-6421 for further information)");
         } else {
             boolean firstInvocation = NOTWARNEDYET.getAndSet(false);
 

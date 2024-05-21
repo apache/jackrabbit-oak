@@ -16,14 +16,13 @@
  */
 package org.apache.jackrabbit.oak.spi.security;
 
+import static org.junit.Assert.assertFalse;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
-
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
 import org.junit.Test;
 import org.mockito.Mockito;
-
-import static org.junit.Assert.assertFalse;
 
 public class DefaultContextTest {
 

@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.plugins.migration;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Iterator;
-
 import org.apache.jackrabbit.commons.iterator.AbstractLazyIterator;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;

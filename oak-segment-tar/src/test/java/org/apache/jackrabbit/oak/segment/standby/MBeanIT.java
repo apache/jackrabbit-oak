@@ -27,10 +27,8 @@ import static org.junit.Assert.fail;
 import java.io.File;
 import java.lang.management.ManagementFactory;
 import java.util.Set;
-
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
-
 import org.apache.jackrabbit.oak.commons.junit.TemporaryPort;
 import org.apache.jackrabbit.oak.segment.standby.client.StandbyClientSync;
 import org.apache.jackrabbit.oak.segment.standby.jmx.StandbyStatusMBean;
@@ -54,8 +52,8 @@ public class MBeanIT extends TestBase {
 
     @Rule
     public RuleChain chain = RuleChain.outerRule(folder)
-            .around(serverFileStore)
-            .around(clientFileStore);
+                                      .around(serverFileStore)
+                                      .around(clientFileStore);
 
     @Test
     public void testServerEmptyConfig() throws Exception {
@@ -63,10 +61,11 @@ public class MBeanIT extends TestBase {
         ObjectName status = new ObjectName(StandbyStatusMBean.JMX_NAME + ",id=*");
         try (
             StandbyServerSync serverSync = StandbyServerSync.builder()
-                .withPort(serverPort.getPort())
-                .withFileStore(serverFileStore.fileStore())
-                .withBlobChunkSize(1 * MB)
-                .build()
+                                                            .withPort(serverPort.getPort())
+                                                            .withFileStore(
+                                                                serverFileStore.fileStore())
+                                                            .withBlobChunkSize(1 * MB)
+                                                            .build()
         ) {
             serverSync.start();
 
@@ -82,15 +81,18 @@ public class MBeanIT extends TestBase {
                 fail("unexpected Status " + m);
             }
 
-            assertEquals(StandbyStatusMBean.STATUS_RUNNING, jmxServer.getAttribute(status, "Status"));
+            assertEquals(StandbyStatusMBean.STATUS_RUNNING,
+                jmxServer.getAttribute(status, "Status"));
             assertEquals(true, jmxServer.getAttribute(status, "Running"));
             jmxServer.invoke(status, "stop", null, null);
             assertEquals(false, jmxServer.getAttribute(status, "Running"));
-            assertEquals(StandbyStatusMBean.STATUS_STOPPED, jmxServer.getAttribute(status, "Status"));
+            assertEquals(StandbyStatusMBean.STATUS_STOPPED,
+                jmxServer.getAttribute(status, "Status"));
             jmxServer.invoke(status, "start", null, null);
 
             assertEquals(true, jmxServer.getAttribute(status, "Running"));
-            assertEquals(StandbyStatusMBean.STATUS_RUNNING, jmxServer.getAttribute(status, "Status"));
+            assertEquals(StandbyStatusMBean.STATUS_RUNNING,
+                jmxServer.getAttribute(status, "Status"));
         }
         assertTrue(!jmxServer.isRegistered(status));
     }
@@ -100,14 +102,15 @@ public class MBeanIT extends TestBase {
         MBeanServer jmxServer = ManagementFactory.getPlatformMBeanServer();
         ObjectName status = new ObjectName(StandbyStatusMBean.JMX_NAME + ",id=*");
         try (StandbyClientSync clientSync = StandbyClientSync.builder()
-            .withHost(getServerHost())
-            .withPort(serverPort.getPort())
-            .withFileStore(clientFileStore.fileStore())
-            .withSecureConnection(false)
-            .withReadTimeoutMs(getClientTimeout())
-            .withAutoClean(false)
-            .withSpoolFolder(folder.newFolder())
-            .build();
+                                                             .withHost(getServerHost())
+                                                             .withPort(serverPort.getPort())
+                                                             .withFileStore(
+                                                                 clientFileStore.fileStore())
+                                                             .withSecureConnection(false)
+                                                             .withReadTimeoutMs(getClientTimeout())
+                                                             .withAutoClean(false)
+                                                             .withSpoolFolder(folder.newFolder())
+                                                             .build();
         ) {
             clientSync.start();
             clientSync.run();
@@ -124,17 +127,21 @@ public class MBeanIT extends TestBase {
             }
 
             assertEquals("1", jmxServer.getAttribute(status, "FailedRequests").toString());
-            assertEquals("-1", jmxServer.getAttribute(status, "SecondsSinceLastSuccess").toString());
+            assertEquals("-1",
+                jmxServer.getAttribute(status, "SecondsSinceLastSuccess").toString());
 
-            assertEquals(StandbyStatusMBean.STATUS_RUNNING, jmxServer.getAttribute(status, "Status"));
+            assertEquals(StandbyStatusMBean.STATUS_RUNNING,
+                jmxServer.getAttribute(status, "Status"));
 
             assertEquals(true, jmxServer.getAttribute(status, "Running"));
             jmxServer.invoke(status, "stop", null, null);
             assertEquals(false, jmxServer.getAttribute(status, "Running"));
-            assertEquals(StandbyStatusMBean.STATUS_STOPPED, jmxServer.getAttribute(status, "Status"));
+            assertEquals(StandbyStatusMBean.STATUS_STOPPED,
+                jmxServer.getAttribute(status, "Status"));
             jmxServer.invoke(status, "start", null, null);
             assertEquals(true, jmxServer.getAttribute(status, "Running"));
-            assertEquals(StandbyStatusMBean.STATUS_RUNNING, jmxServer.getAttribute(status, "Status"));
+            assertEquals(StandbyStatusMBean.STATUS_RUNNING,
+                jmxServer.getAttribute(status, "Status"));
 
         }
         assertTrue(!jmxServer.isRegistered(status));
@@ -146,14 +153,15 @@ public class MBeanIT extends TestBase {
         MBeanServer jmxServer = ManagementFactory.getPlatformMBeanServer();
         ObjectName status;
         try (StandbyClientSync clientSync = StandbyClientSync.builder()
-            .withHost(getServerHost())
-            .withPort(serverPort.getPort())
-            .withFileStore(clientFileStore.fileStore())
-            .withSecureConnection(false)
-            .withReadTimeoutMs(getClientTimeout())
-            .withAutoClean(false)
-            .withSpoolFolder(folder.newFolder())
-            .build();
+                                                             .withHost(getServerHost())
+                                                             .withPort(serverPort.getPort())
+                                                             .withFileStore(
+                                                                 clientFileStore.fileStore())
+                                                             .withSecureConnection(false)
+                                                             .withReadTimeoutMs(getClientTimeout())
+                                                             .withAutoClean(false)
+                                                             .withSpoolFolder(folder.newFolder())
+                                                             .build();
         ) {
             clientSync.start();
             clientSync.run();
@@ -163,10 +171,13 @@ public class MBeanIT extends TestBase {
             assertEquals("client: Foo", jmxServer.getAttribute(status, "Mode"));
 
             assertEquals("1", jmxServer.getAttribute(status, "FailedRequests").toString());
-            assertEquals("-1", jmxServer.getAttribute(status, "SecondsSinceLastSuccess").toString());
+            assertEquals("-1",
+                jmxServer.getAttribute(status, "SecondsSinceLastSuccess").toString());
 
-            assertEquals("1", jmxServer.invoke(status, "calcFailedRequests", null, null).toString());
-            assertEquals("-1", jmxServer.invoke(status, "calcSecondsSinceLastSuccess", null, null).toString());
+            assertEquals("1",
+                jmxServer.invoke(status, "calcFailedRequests", null, null).toString());
+            assertEquals("-1",
+                jmxServer.invoke(status, "calcSecondsSinceLastSuccess", null, null).toString());
         }
         assertTrue(!jmxServer.isRegistered(status));
     }
@@ -178,19 +189,21 @@ public class MBeanIT extends TestBase {
         ObjectName clientStatus, serverStatus;
         try (
             StandbyServerSync serverSync = StandbyServerSync.builder()
-                .withPort(serverPort.getPort())
-                .withFileStore(serverFileStore.fileStore())
-                .withBlobChunkSize(MB)
-                .build();
+                                                            .withPort(serverPort.getPort())
+                                                            .withFileStore(
+                                                                serverFileStore.fileStore())
+                                                            .withBlobChunkSize(MB)
+                                                            .build();
             StandbyClientSync clientSync = StandbyClientSync.builder()
-                .withHost(getServerHost())
-                .withPort(serverPort.getPort())
-                .withFileStore(clientFileStore.fileStore())
-                .withSecureConnection(false)
-                .withReadTimeoutMs(getClientTimeout())
-                .withAutoClean(false)
-                .withSpoolFolder(folder.newFolder())
-                .build()
+                                                            .withHost(getServerHost())
+                                                            .withPort(serverPort.getPort())
+                                                            .withFileStore(
+                                                                clientFileStore.fileStore())
+                                                            .withSecureConnection(false)
+                                                            .withReadTimeoutMs(getClientTimeout())
+                                                            .withAutoClean(false)
+                                                            .withSpoolFolder(folder.newFolder())
+                                                            .build()
         ) {
             serverSync.start();
             serverFileStore.fileStore().flush();
@@ -227,16 +240,24 @@ public class MBeanIT extends TestBase {
             assertEquals(true, jmxServer.getAttribute(clientStatus, "Running"));
 
             assertEquals("0", jmxServer.getAttribute(clientStatus, "FailedRequests").toString());
-            assertEquals("0", jmxServer.getAttribute(clientStatus, "SecondsSinceLastSuccess").toString());
-            assertEquals("0", jmxServer.invoke(clientStatus, "calcFailedRequests", null, null).toString());
-            assertEquals("0", jmxServer.invoke(clientStatus, "calcSecondsSinceLastSuccess", null, null).toString());
+            assertEquals("0",
+                jmxServer.getAttribute(clientStatus, "SecondsSinceLastSuccess").toString());
+            assertEquals("0",
+                jmxServer.invoke(clientStatus, "calcFailedRequests", null, null).toString());
+            assertEquals("0",
+                jmxServer.invoke(clientStatus, "calcSecondsSinceLastSuccess", null, null)
+                         .toString());
 
             Thread.sleep(1000);
 
             assertEquals("0", jmxServer.getAttribute(clientStatus, "FailedRequests").toString());
-            assertEquals("1", jmxServer.getAttribute(clientStatus, "SecondsSinceLastSuccess").toString());
-            assertEquals("0", jmxServer.invoke(clientStatus, "calcFailedRequests", null, null).toString());
-            assertEquals("1", jmxServer.invoke(clientStatus, "calcSecondsSinceLastSuccess", null, null).toString());
+            assertEquals("1",
+                jmxServer.getAttribute(clientStatus, "SecondsSinceLastSuccess").toString());
+            assertEquals("0",
+                jmxServer.invoke(clientStatus, "calcFailedRequests", null, null).toString());
+            assertEquals("1",
+                jmxServer.invoke(clientStatus, "calcSecondsSinceLastSuccess", null, null)
+                         .toString());
 
             assertEquals(1L, jmxServer.getAttribute(connectionStatus, "TransferredSegments"));
 
@@ -261,12 +282,14 @@ public class MBeanIT extends TestBase {
             jmxServer.invoke(clientStatus, "stop", null, null);
             assertEquals(true, jmxServer.getAttribute(serverStatus, "Running"));
             assertEquals(false, jmxServer.getAttribute(clientStatus, "Running"));
-            assertEquals(StandbyStatusMBean.STATUS_STOPPED, jmxServer.getAttribute(clientStatus, "Status"));
+            assertEquals(StandbyStatusMBean.STATUS_STOPPED,
+                jmxServer.getAttribute(clientStatus, "Status"));
 
             // restart the slave
             jmxServer.invoke(clientStatus, "start", null, null);
             assertEquals(true, jmxServer.getAttribute(clientStatus, "Running"));
-            assertEquals(StandbyStatusMBean.STATUS_RUNNING, jmxServer.getAttribute(clientStatus, "Status"));
+            assertEquals(StandbyStatusMBean.STATUS_RUNNING,
+                jmxServer.getAttribute(clientStatus, "Status"));
         }
         assertTrue(!jmxServer.isRegistered(clientStatus));
         assertTrue(!jmxServer.isRegistered(serverStatus));

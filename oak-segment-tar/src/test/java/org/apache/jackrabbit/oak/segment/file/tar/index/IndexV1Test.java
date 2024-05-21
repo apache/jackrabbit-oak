@@ -22,7 +22,6 @@ import static org.junit.Assert.assertEquals;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
-
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.junit.Test;
 
@@ -32,8 +31,8 @@ public class IndexV1Test {
     public void testGetUUIDs() throws Exception {
         Buffer buffer = Buffer.allocate(2 * IndexEntryV1.SIZE);
         buffer.duplicate()
-                .putLong(1).putLong(2).putInt(3).putInt(4).putInt(5)
-                .putLong(6).putLong(7).putInt(8).putInt(9).putInt(10);
+              .putLong(1).putLong(2).putInt(3).putInt(4).putInt(5)
+              .putLong(6).putLong(7).putInt(8).putInt(9).putInt(10);
         Set<UUID> expected = new HashSet<>();
         expected.add(new UUID(1, 2));
         expected.add(new UUID(6, 7));
@@ -44,10 +43,10 @@ public class IndexV1Test {
     public void testFindEntry() throws Exception {
         Buffer buffer = Buffer.allocate(4 * IndexEntryV1.SIZE);
         buffer.duplicate()
-                .putLong(1).putLong(1).putInt(0).putInt(0).putInt(0)
-                .putLong(1).putLong(3).putInt(0).putInt(0).putInt(0)
-                .putLong(3).putLong(1).putInt(0).putInt(0).putInt(0)
-                .putLong(3).putLong(3).putInt(0).putInt(0).putInt(0);
+              .putLong(1).putLong(1).putInt(0).putInt(0).putInt(0)
+              .putLong(1).putLong(3).putInt(0).putInt(0).putInt(0)
+              .putLong(3).putLong(1).putInt(0).putInt(0).putInt(0)
+              .putLong(3).putLong(3).putInt(0).putInt(0).putInt(0);
         IndexV1 index = new IndexV1(buffer);
         assertEquals(-1, index.findEntry(1, 0));
         assertEquals(0, index.findEntry(1, 1));
@@ -63,7 +62,7 @@ public class IndexV1Test {
     public void testSize() throws Exception {
         Buffer buffer = Buffer.allocate(IndexEntryV1.SIZE);
         buffer.duplicate()
-                .putLong(1).putLong(2).putInt(3).putInt(4).putInt(5);
+              .putLong(1).putLong(2).putInt(3).putInt(4).putInt(5);
         assertEquals(IndexEntryV1.SIZE + IndexV1.FOOTER_SIZE, new IndexV1(buffer).size());
     }
 
@@ -71,8 +70,8 @@ public class IndexV1Test {
     public void testCount() throws Exception {
         Buffer buffer = Buffer.allocate(2 * IndexEntryV1.SIZE);
         buffer.duplicate()
-                .putLong(1).putLong(2).putInt(3).putInt(4).putInt(5)
-                .putLong(6).putLong(7).putInt(8).putInt(9).putInt(10);
+              .putLong(1).putLong(2).putInt(3).putInt(4).putInt(5)
+              .putLong(6).putLong(7).putInt(8).putInt(9).putInt(10);
         assertEquals(2, new IndexV1(buffer).count());
     }
 
@@ -80,7 +79,7 @@ public class IndexV1Test {
     public void testEntry() throws Exception {
         Buffer buffer = Buffer.allocate(IndexEntryV1.SIZE);
         buffer.duplicate()
-                .putLong(1).putLong(2).putInt(3).putInt(4).putInt(5);
+              .putLong(1).putLong(2).putInt(3).putInt(4).putInt(5);
         IndexEntryV1 entry = new IndexV1(buffer).entry(0);
         assertEquals(1, entry.getMsb());
         assertEquals(2, entry.getLsb());

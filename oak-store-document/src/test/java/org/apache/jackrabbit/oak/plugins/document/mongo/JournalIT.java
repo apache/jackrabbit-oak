@@ -80,17 +80,17 @@ public class JournalIT extends AbstractJournalTest {
 
         // first create child node in instance 1
         final List<String> paths = createRandomPaths(1, 5000000, 1000);
-        int i=0;
-        for(String path : paths) {
-            if (i++%100==0) {
-                LOG.info("at "+i);
+        int i = 0;
+        for (String path : paths) {
+            if (i++ % 100 == 0) {
+                LOG.info("at " + i);
             }
             getOrCreate(ns1, path, false);
         }
         final List<String> paths2 = createRandomPaths(20, 2345, 100);
         getOrCreate(ns1, paths2, false);
         ns1.runBackgroundOperations();
-        for(String path : paths) {
+        for (String path : paths) {
             assertDocCache(ns1, true, path);
         }
 
@@ -101,9 +101,9 @@ public class JournalIT extends AbstractJournalTest {
 
         LOG.info("cache size 2: " + getCacheElementCount(ns1.getDocumentStore()));
         long time = System.currentTimeMillis();
-        for(int j=0; j<100; j++) {
+        for (int j = 0; j < 100; j++) {
             long now = System.currentTimeMillis();
-            LOG.info("loop "+j+", "+(now-time)+"ms");
+            LOG.info("loop " + j + ", " + (now - time) + "ms");
             time = now;
             final Set<String> electedPaths = choose(paths2, random.nextInt(30));
             {
@@ -111,34 +111,34 @@ public class JournalIT extends AbstractJournalTest {
                 final long t1 = System.currentTimeMillis();
                 ns2.runBackgroundOperations(); // make sure ns2 has the latest from ns1
                 final long t2 = System.currentTimeMillis();
-                LOG.info("ns2 background took "+(t2-t1)+"ms");
+                LOG.info("ns2 background took " + (t2 - t1) + "ms");
 
-                for(String electedPath : electedPaths) {
+                for (String electedPath : electedPaths) {
                     // modify /child in another instance 2
-                    setProperty(ns2, electedPath, "p", "ns2"+System.currentTimeMillis(), false);
+                    setProperty(ns2, electedPath, "p", "ns2" + System.currentTimeMillis(), false);
                 }
                 final long t3 = System.currentTimeMillis();
-                LOG.info("setting props "+(t3-t2)+"ms");
+                LOG.info("setting props " + (t3 - t2) + "ms");
 
                 ns2.runBackgroundOperations();
                 final long t4 = System.currentTimeMillis();
-                LOG.info("ns2 background took2 "+(t4-t3)+"ms");
+                LOG.info("ns2 background took2 " + (t4 - t3) + "ms");
             }
 
             // that should not have changed the fact that we have it cached in 'ns1'
-            for(String electedPath : electedPaths) {
+            for (String electedPath : electedPaths) {
                 assertDocCache(ns1, true, electedPath);
             }
 
             // doing a backgroundOp now should trigger invalidation
             // which thx to the external modification will remove the entry from the cache:
             ns1.runBackgroundOperations();
-            for(String electedPath : electedPaths) {
+            for (String electedPath : electedPaths) {
                 assertDocCache(ns1, false, electedPath);
             }
 
             // when I access it again with 'ns1', then it gets cached again:
-            for(String electedPath : electedPaths) {
+            for (String electedPath : electedPaths) {
                 getOrCreate(ns1, electedPath, false);
                 assertDocCache(ns1, true, electedPath);
             }
@@ -153,9 +153,11 @@ public class JournalIT extends AbstractJournalTest {
         // https://issues.apache.org/jira/browse/OAK-2829?focusedCommentId=14585733&page=com.atlassian.jira.plugin.system.issuetabpanels:comment-tabpanel#comment-14585733
 
         doLargeCleanupTest(0, 100);
-        doLargeCleanupTest(200, 1000);// using offset as to not make sure to always create new entries
+        doLargeCleanupTest(200,
+            1000);// using offset as to not make sure to always create new entries
         doLargeCleanupTest(2000, 10000);
-        doLargeCleanupTest(20000, 30000); // using 'size' much larger than 30k will be tremendously slow due to ordered node
+        doLargeCleanupTest(20000,
+            30000); // using 'size' much larger than 30k will be tremendously slow due to ordered node
     }
 
     @Test
@@ -173,7 +175,7 @@ public class JournalIT extends AbstractJournalTest {
         {
             // modify /child in another instance 2
             ns2.runBackgroundOperations(); // read latest changes from ns1
-            setProperty(ns2, "/child", "p", "ns2"+System.currentTimeMillis(), true);
+            setProperty(ns2, "/child", "p", "ns2" + System.currentTimeMillis(), true);
         }
         // that should not have changed the fact that we have it cached in 'ns'
         assertDocCache(ns1, true, "/child");
@@ -191,7 +193,7 @@ public class JournalIT extends AbstractJournalTest {
     private void doLargeCleanupTest(int offset, int size) throws Exception {
         Clock clock = new Clock.Virtual();
         DocumentMK mk1 = createMK(0 /* clusterId: 0 => uses clusterNodes collection */, 0,
-                new MemoryDocumentStore(), new MemoryBlobStore());
+            new MemoryDocumentStore(), new MemoryBlobStore());
         DocumentNodeStore ns1 = mk1.getNodeStore();
         // make sure we're visible and marked as active
         renewClusterIdLease(ns1);
@@ -201,8 +203,8 @@ public class JournalIT extends AbstractJournalTest {
         gc.gc(); // cleanup everything that might still be there
 
         // create entries as parametrized:
-        for(int i=offset; i<size+offset; i++) {
-            mk1.commit("/", "+\"regular"+i+"\": {}", null, null);
+        for (int i = offset; i < size + offset; i++) {
+            mk1.commit("/", "+\"regular" + i + "\": {}", null, null);
             // always run background ops to 'flush' the change
             // into the journal:
             ns1.runBackgroundOperations();
@@ -215,8 +217,8 @@ public class JournalIT extends AbstractJournalTest {
         MongoConnection c = connectionFactory.getConnection();
         builder = newDocumentMKBuilder();
         DocumentMK mk = builder.setMongoDB(c.getMongoClient(), c.getDBName())
-                .setClusterId(clusterId).setAsyncDelay(asyncDelay)
-                .setBundlingDisabled(true).open();
+                               .setClusterId(clusterId).setAsyncDelay(asyncDelay)
+                               .setBundlingDisabled(true).open();
         // enforce primary read preference, otherwise test fails on a replica
         // set with a read preference configured to secondary.
         MongoTestUtils.setReadPreference(mk.getDocumentStore(), ReadPreference.primary());

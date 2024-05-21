@@ -28,28 +28,25 @@ import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
-
+import org.apache.jackrabbit.guava.common.base.Function;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import org.apache.jackrabbit.guava.common.base.Function;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-
 /**
- * Abstract base class for {@link NodeState} implementations.
- * This base class contains default implementations of the
- * {@link #equals(Object)} and {@link #hashCode()} methods based on
- * the implemented interface.
+ * Abstract base class for {@link NodeState} implementations. This base class contains default
+ * implementations of the {@link #equals(Object)} and {@link #hashCode()} methods based on the
+ * implemented interface.
  * <p>
- * This class also implements trivial (and potentially very slow) versions of
- * the {@link #getProperty(String)} and {@link #getPropertyCount()} methods
- * based on {@link #getProperties()}. The {@link #getChildNodeCount(long)} method
- * is similarly implemented based on {@link #getChildNodeEntries()}.
- * Subclasses should normally override these method with a more efficient
- * alternatives.
+ * This class also implements trivial (and potentially very slow) versions of the
+ * {@link #getProperty(String)} and {@link #getPropertyCount()} methods based on
+ * {@link #getProperties()}. The {@link #getChildNodeCount(long)} method is similarly implemented
+ * based on {@link #getChildNodeEntries()}. Subclasses should normally override these method with a
+ * more efficient alternatives.
  */
 public abstract class AbstractNodeState implements NodeState {
+
     private static final int CHILDREN_CAP = getInteger("oak.children.cap", 100);
 
     public static boolean isValidName(String name) {
@@ -57,7 +54,7 @@ public abstract class AbstractNodeState implements NodeState {
     }
 
     public static void checkValidName(String name)
-            throws IllegalArgumentException {
+        throws IllegalArgumentException {
         if (!isValidName(name)) {
             throw new IllegalArgumentException("Invalid name: " + name);
         }
@@ -66,8 +63,8 @@ public abstract class AbstractNodeState implements NodeState {
     public static boolean getBoolean(NodeState state, String name) {
         PropertyState property = state.getProperty(name);
         return property != null
-                && property.getType() == BOOLEAN
-                && property.getValue(BOOLEAN);
+            && property.getType() == BOOLEAN
+            && property.getValue(BOOLEAN);
     }
 
     public static long getLong(NodeState state, String name) {
@@ -116,12 +113,12 @@ public abstract class AbstractNodeState implements NodeState {
     }
 
     /**
-     * Generic default comparison algorithm that simply walks through the
-     * property and child node lists of the given base state and compares
-     * the entries one by one with corresponding ones (if any) in this state.
+     * Generic default comparison algorithm that simply walks through the property and child node
+     * lists of the given base state and compares the entries one by one with corresponding ones (if
+     * any) in this state.
      */
     public static boolean compareAgainstBaseState(
-            NodeState state, NodeState base, NodeStateDiff diff) {
+        NodeState state, NodeState base, NodeStateDiff diff) {
         if (!comparePropertiesAgainstBaseState(state, base, diff)) {
             return false;
         }
@@ -158,16 +155,15 @@ public abstract class AbstractNodeState implements NodeState {
     }
 
     /**
-     * Compares the properties of {@code base} state with {@code this}
-     * state.
+     * Compares the properties of {@code base} state with {@code this} state.
      *
      * @param state the head node state.
-     * @param base the base node state.
-     * @param diff the node state diff.
+     * @param base  the base node state.
+     * @param diff  the node state diff.
      * @return {@code true} to continue the comparison, {@code false} to stop
      */
     public static boolean comparePropertiesAgainstBaseState(
-            NodeState state, NodeState base, NodeStateDiff diff) {
+        NodeState state, NodeState base, NodeStateDiff diff) {
         Set<String> baseProperties = new HashSet<String>();
         for (PropertyState beforeProperty : base.getProperties()) {
             String name = beforeProperty.getName();
@@ -248,12 +244,14 @@ public abstract class AbstractNodeState implements NodeState {
         return getStrings(this, name);
     }
 
-    @Override @Nullable
+    @Override
+    @Nullable
     public String getName(@NotNull String name) {
         return getName(this, name);
     }
 
-    @Override @NotNull
+    @Override
+    @NotNull
     public Iterable<String> getNames(@NotNull String name) {
         return getNames(this, name);
     }
@@ -290,19 +288,19 @@ public abstract class AbstractNodeState implements NodeState {
     @Override
     public Iterable<String> getChildNodeNames() {
         return Iterables.transform(
-                getChildNodeEntries(),
-                new Function<ChildNodeEntry, String>() {
-                    @Override
-                    public String apply(ChildNodeEntry input) {
-                        return input.getName();
-                    }
-                });
+            getChildNodeEntries(),
+            new Function<ChildNodeEntry, String>() {
+                @Override
+                public String apply(ChildNodeEntry input) {
+                    return input.getName();
+                }
+            });
     }
 
     /**
-     * Generic default comparison algorithm that simply walks through the
-     * property and child node lists of the given base state and compares
-     * the entries one by one with corresponding ones (if any) in this state.
+     * Generic default comparison algorithm that simply walks through the property and child node
+     * lists of the given base state and compares the entries one by one with corresponding ones (if
+     * any) in this state.
      */
     @Override
     public boolean compareAgainstBaseState(NodeState base, NodeStateDiff diff) {
@@ -319,14 +317,12 @@ public abstract class AbstractNodeState implements NodeState {
     }
 
     /**
-     * Checks whether the given object is equal to this one. Two node states
-     * are considered equal if all their properties and child nodes match,
-     * regardless of ordering. Subclasses may override this method with a
-     * more efficient equality check if one is available.
+     * Checks whether the given object is equal to this one. Two node states are considered equal if
+     * all their properties and child nodes match, regardless of ordering. Subclasses may override
+     * this method with a more efficient equality check if one is available.
      *
      * @param that target of the comparison
-     * @return {@code true} if the objects are equal,
-     *         {@code false} otherwise
+     * @return {@code true} if the objects are equal, {@code false} otherwise
      */
     @Override
     public boolean equals(Object that) {
@@ -341,7 +337,7 @@ public abstract class AbstractNodeState implements NodeState {
 
     public static boolean equals(NodeState a, NodeState b) {
         if (a.exists() != b.exists()
-                || a.getPropertyCount() != b.getPropertyCount()) {
+            || a.getPropertyCount() != b.getPropertyCount()) {
             return false; // shortcut
         }
 
@@ -390,9 +386,8 @@ public abstract class AbstractNodeState implements NodeState {
     }
 
     /**
-     * Returns a hash code that's compatible with how the
-     * {@link #equals(Object)} method is implemented. The current
-     * implementation simply returns zero for everything since
+     * Returns a hash code that's compatible with how the {@link #equals(Object)} method is
+     * implemented. The current implementation simply returns zero for everything since
      * {@link NodeState} instances are not intended for use as hash keys.
      *
      * @return hash code

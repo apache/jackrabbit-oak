@@ -19,14 +19,15 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import static org.hamcrest.Matchers.hasItem;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.jackrabbit.oak.plugins.index.search.BadIndexTracker;
 import org.junit.Test;
-
-import static org.hamcrest.Matchers.hasItem;
-import static org.junit.Assert.*;
 
 public class BadIndexTrackerTest {
 
@@ -34,7 +35,7 @@ public class BadIndexTrackerTest {
     private BadIndexTracker tracker = new BadIndexTracker();
 
     @Test
-    public void basics() throws Exception{
+    public void basics() throws Exception {
         tracker.markBadIndexForRead("foo", new Exception());
         assertThat(tracker.getIndexPaths(), hasItem("foo"));
 
@@ -45,7 +46,7 @@ public class BadIndexTrackerTest {
     }
 
     @Test
-    public void updatedIndexesMakesGood() throws Exception{
+    public void updatedIndexesMakesGood() throws Exception {
         tracker.markBadIndexForRead("foo", new Exception());
         assertTrue(tracker.isIgnoredBadIndex("foo"));
 
@@ -54,7 +55,7 @@ public class BadIndexTrackerTest {
     }
 
     @Test
-    public void recheckDelay() throws Exception{
+    public void recheckDelay() throws Exception {
         tracker = new BadIndexTracker(100);
         tracker.setTicker(ticker);
         tracker.markBadIndexForRead("foo", new Exception());

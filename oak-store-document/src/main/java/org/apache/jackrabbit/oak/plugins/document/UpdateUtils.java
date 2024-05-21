@@ -30,21 +30,18 @@ import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Provides convenience methods for applying {@link UpdateOp}s to
- * {@link Document}s.
+ * Provides convenience methods for applying {@link UpdateOp}s to {@link Document}s.
  */
 public class UpdateUtils {
 
     /**
      * Apply the changes to the in-memory document.
      *
-     * @param doc
-     *            the target document.
-     * @param update
-     *            the changes to apply.
+     * @param doc    the target document.
+     * @param update the changes to apply.
      */
     public static void applyChanges(@NotNull Document doc,
-                                    @NotNull UpdateOp update) {
+        @NotNull UpdateOp update) {
         doc.put(Document.ID, update.getId());
         for (Entry<Key, Operation> e : checkNotNull(update).getChanges().entrySet()) {
             Key k = e.getKey();
@@ -85,7 +82,8 @@ public class UpdateUtils {
                         doc.put(k.getName(), m);
                     }
                     if (k.getRevision() == null) {
-                        throw new IllegalArgumentException("Cannot set map entry " + k.getName() + " with null revision");
+                        throw new IllegalArgumentException(
+                            "Cannot set map entry " + k.getName() + " with null revision");
                     }
                     m.put(k.getRevision(), op.value);
                     break;
@@ -104,7 +102,7 @@ public class UpdateUtils {
     }
 
     public static boolean checkConditions(@NotNull Document doc,
-                                          @NotNull Map<Key, Condition> conditions) {
+        @NotNull Map<Key, Condition> conditions) {
         for (Map.Entry<Key, Condition> entry : conditions.entrySet()) {
             Condition c = entry.getValue();
             Key k = entry.getKey();
@@ -159,6 +157,7 @@ public class UpdateUtils {
 
     /**
      * Ensures that the given {@link UpdateOp} is unconditional
+     *
      * @param up the update operation
      * @throws IllegalArgumentException when the operations is conditional
      */
@@ -166,7 +165,8 @@ public class UpdateUtils {
         Map<Key, Condition> conditions = up.getConditions();
         if (!conditions.isEmpty()) {
             throw new IllegalArgumentException(
-                    "This DocumentStore method does not support conditional updates, but the UpdateOp contained: " + conditions);
+                "This DocumentStore method does not support conditional updates, but the UpdateOp contained: "
+                    + conditions);
         }
     }
 }

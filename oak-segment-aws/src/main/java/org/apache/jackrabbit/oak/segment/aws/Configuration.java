@@ -24,50 +24,50 @@ import org.osgi.service.metatype.annotations.AttributeDefinition;
 import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 
 @ObjectClassDefinition(
-        pid = {PID},
-        name = "Apache Jackrabbit Oak AWS Segment Store Service",
-        description = "AWS backend for the Oak Segment Node Store")
+    pid = {PID},
+    name = "Apache Jackrabbit Oak AWS Segment Store Service",
+    description = "AWS backend for the Oak Segment Node Store")
 public @interface Configuration {
 
     String PID = "org.apache.jackrabbit.oak.segment.aws.AwsSegmentStoreService";
 
     @AttributeDefinition(
-            name = "AWS account access key",
-            description = "Access key which should be used to authenticate on the account")
+        name = "AWS account access key",
+        description = "Access key which should be used to authenticate on the account")
     String accessKey();
 
     @AttributeDefinition(
-            name = "AWS bucket name",
-            description = "Name of the bucket to use. If it doesn't exists, it'll be created.")
+        name = "AWS bucket name",
+        description = "Name of the bucket to use. If it doesn't exists, it'll be created.")
     String bucketName();
 
     @AttributeDefinition(
-            name = "Root directory",
-            description = "Names of all the created blobs will be prefixed with this path")
+        name = "Root directory",
+        description = "Names of all the created blobs will be prefixed with this path")
     String journalTableName() default AwsSegmentStoreService.DEFAULT_JOURNALTABLE_NAME;
 
     @AttributeDefinition(
-            name = "Root directory",
-            description = "Names of all the created blobs will be prefixed with this path")
+        name = "Root directory",
+        description = "Names of all the created blobs will be prefixed with this path")
     String lockTableName() default AwsSegmentStoreService.DEFAULT_LOCKTABLE_NAME;
 
     @AttributeDefinition(
-            name = "AWS region",
-            description = "AWS region in which the resources are created or expected to be present")
+        name = "AWS region",
+        description = "AWS region in which the resources are created or expected to be present")
     String region() default AwsSegmentStoreService.DEFAULT_REGION_NAME;
 
     @AttributeDefinition(
-            name = "Root directory",
-            description = "Names of all the created blobs will be prefixed with this path")
+        name = "Root directory",
+        description = "Names of all the created blobs will be prefixed with this path")
     String rootDirectory() default AwsSegmentStoreService.DEFAULT_ROOT_DIRECTORY;
 
     @AttributeDefinition(
-            name = "AWS account secret key",
-            description = "Secret key which should be used to authenticate on the account")
+        name = "AWS account secret key",
+        description = "Secret key which should be used to authenticate on the account")
     String secretKey();
 
     @AttributeDefinition(
-            name = "AWS session token",
-            description = "Session token which should be used to authenticate on the account")
+        name = "AWS session token",
+        description = "Session token which should be used to authenticate on the account")
     String sessionToken() default "";
 }

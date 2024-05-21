@@ -19,30 +19,31 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
+import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.IndexRootDirectory.INDEX_METADATA_FILE_NAME;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.lucene.index.SegmentCommitInfo;
 import org.apache.lucene.index.SegmentInfos;
 import org.apache.lucene.store.Directory;
 
-import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.IndexRootDirectory.INDEX_METADATA_FILE_NAME;
-
 public class DirectoryUtils {
+
     /**
      * Get the file length in best effort basis.
+     *
      * @return actual fileLength. -1 if cannot determine
      */
-    public static long getFileLength(Directory dir, String fileName){
-        try{
+    public static long getFileLength(Directory dir, String fileName) {
+        try {
             //Check for file presence otherwise internally it results in
             //an exception to be created
             if (dir.fileExists(fileName)) {
                 return dir.fileLength(fileName);
             }
-        } catch (Exception ignore){
+        } catch (Exception ignore) {
 
         }
         return -1;

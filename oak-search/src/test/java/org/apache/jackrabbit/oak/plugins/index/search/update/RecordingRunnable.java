@@ -23,23 +23,25 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 class RecordingRunnable implements Runnable {
+
     private boolean invoked;
+
     @Override
     public void run() {
         invoked = true;
     }
 
-    public void assertInvokedAndReset(){
+    public void assertInvokedAndReset() {
         assertTrue(invoked);
         reset();
     }
 
-    public void assertNotInvokedAndReset(){
+    public void assertNotInvokedAndReset() {
         assertFalse(invoked);
         reset();
     }
 
-    public void reset(){
+    public void reset() {
         invoked = false;
     }
 }

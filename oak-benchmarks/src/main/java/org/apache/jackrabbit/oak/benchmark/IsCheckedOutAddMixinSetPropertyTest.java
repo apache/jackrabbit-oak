@@ -16,27 +16,27 @@
  */
 package org.apache.jackrabbit.oak.benchmark;
 
-import org.apache.jackrabbit.api.JackrabbitSession;
-import org.jetbrains.annotations.NotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
+import java.util.List;
 import javax.jcr.Item;
 import javax.jcr.Node;
 import javax.jcr.Property;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-
-import java.util.List;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
+import org.apache.jackrabbit.api.JackrabbitSession;
+import org.jetbrains.annotations.NotNull;
 
 public class IsCheckedOutAddMixinSetPropertyTest extends ReadDeepTreeTest {
-    
-    public IsCheckedOutAddMixinSetPropertyTest(boolean runAsAdmin, int itemsToRead, boolean doReport) {
+
+    public IsCheckedOutAddMixinSetPropertyTest(boolean runAsAdmin, int itemsToRead,
+        boolean doReport) {
         super(runAsAdmin, itemsToRead, doReport);
     }
 
     @Override
-    protected void randomRead(Session testSession, List<String> allPaths, int cnt) throws RepositoryException {
+    protected void randomRead(Session testSession, List<String> allPaths, int cnt)
+        throws RepositoryException {
         boolean logout = false;
         if (testSession == null) {
             testSession = getTestSession();
@@ -50,7 +50,11 @@ public class IsCheckedOutAddMixinSetPropertyTest extends ReadDeepTreeTest {
             }
             long end = System.currentTimeMillis();
             if (doReport) {
-                System.out.println("Session " + testSession.getUserID() + " reading " + (cnt-accessCnt.noAccess) + " (Nodes: "+ accessCnt.nodeCnt +"; Properties: "+accessCnt.propertyCnt+"), Node writes "+accessCnt.nodeWrites+" completed in " + (end - start));
+                System.out.println(
+                    "Session " + testSession.getUserID() + " reading " + (cnt - accessCnt.noAccess)
+                        + " (Nodes: " + accessCnt.nodeCnt + "; Properties: " + accessCnt.propertyCnt
+                        + "), Node writes " + accessCnt.nodeWrites + " completed in " + (end
+                        - start));
             }
         } finally {
             if (logout) {
@@ -59,7 +63,8 @@ public class IsCheckedOutAddMixinSetPropertyTest extends ReadDeepTreeTest {
         }
     }
 
-    private void readItem(Session testSession, String path, Cnt accessCnt) throws RepositoryException {
+    private void readItem(Session testSession, String path, Cnt accessCnt)
+        throws RepositoryException {
         for (int i = 0; i < repeatedRead; i++) {
             JackrabbitSession s = (JackrabbitSession) testSession;
             Item item = s.getItemOrNull(path);
@@ -77,7 +82,7 @@ public class IsCheckedOutAddMixinSetPropertyTest extends ReadDeepTreeTest {
             }
         }
     }
-    
+
     private void additionalNodeOperation(@NotNull Node node, Cnt accessCnt) {
         try {
             checkState(node.isCheckedOut());
@@ -93,6 +98,7 @@ public class IsCheckedOutAddMixinSetPropertyTest extends ReadDeepTreeTest {
     }
 
     private static final class Cnt {
+
         private int nodeCnt = 0;
         private int propertyCnt = 0;
         private int nodeWrites = 0;

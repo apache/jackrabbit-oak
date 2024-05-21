@@ -16,16 +16,15 @@
  */
 package org.apache.jackrabbit.oak.exercise.security.authorization.permission;
 
-import javax.jcr.GuestCredentials;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
+import javax.jcr.GuestCredentials;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.junit.Test;
-
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 /**
  * <pre>

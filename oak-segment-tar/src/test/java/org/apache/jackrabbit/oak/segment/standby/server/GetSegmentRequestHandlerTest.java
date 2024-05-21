@@ -23,9 +23,8 @@ import static org.junit.Assert.assertNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.util.UUID;
-
 import io.netty.channel.embedded.EmbeddedChannel;
+import java.util.UUID;
 import org.apache.jackrabbit.oak.segment.standby.codec.GetSegmentRequest;
 import org.apache.jackrabbit.oak.segment.standby.codec.GetSegmentResponse;
 import org.junit.Test;
@@ -34,7 +33,7 @@ public class GetSegmentRequestHandlerTest {
 
     @Test
     public void successfulReadsShouldGenerateResponses() throws Exception {
-        byte[] data = new byte[] {3, 4, 5};
+        byte[] data = new byte[]{3, 4, 5};
 
         StandbySegmentReader reader = mock(StandbySegmentReader.class);
         when(reader.readSegment("segmentId")).thenReturn(data);

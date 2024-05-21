@@ -19,9 +19,15 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
+import static org.apache.jackrabbit.guava.common.collect.ImmutableList.copyOf;
+import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import java.util.Arrays;
 import java.util.List;
-
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry.NodeStateEntryBuilder;
@@ -29,18 +35,10 @@ import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.apache.jackrabbit.oak.spi.state.EqualsDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableList.copyOf;
-import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryWriter.getPath;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-
 public class NodeStateEntryWriterTest {
+
     private BlobStore blobStore = new MemoryBlobStore();
     private NodeBuilder builder = EMPTY_NODE.builder();
 
@@ -84,7 +82,7 @@ public class NodeStateEntryWriterTest {
     }
 
     @Test
-    public void childOrderNotWritten(){
+    public void childOrderNotWritten() {
         NodeStateEntryWriter nw = new NodeStateEntryWriter(blobStore);
 
         NodeBuilder b1 = EMPTY_NODE.builder();
@@ -104,7 +102,7 @@ public class NodeStateEntryWriterTest {
     }
 
     @Test
-    public void pathElements(){
+    public void pathElements() {
         NodeStateEntryWriter nw = new NodeStateEntryWriter(blobStore);
         NodeBuilder b1 = EMPTY_NODE.builder();
         b1.setProperty("foo", "bar");
@@ -124,7 +122,7 @@ public class NodeStateEntryWriterTest {
     }
 
     @Test
-    public void pathElements_root(){
+    public void pathElements_root() {
         NodeStateEntryWriter nw = new NodeStateEntryWriter(blobStore);
         NodeBuilder b1 = EMPTY_NODE.builder();
         b1.setProperty("foo", "bar");

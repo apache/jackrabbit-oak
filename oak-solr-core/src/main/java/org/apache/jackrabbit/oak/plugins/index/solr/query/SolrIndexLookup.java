@@ -19,9 +19,11 @@
 
 package org.apache.jackrabbit.oak.plugins.index.solr.query;
 
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.solr.util.SolrIndexInitializer.isSolrIndexNode;
+
 import java.util.Collection;
 import java.util.Set;
-
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.query.Filter;
@@ -29,9 +31,6 @@ import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.solr.util.SolrIndexInitializer.isSolrIndexNode;
 
 /**
  * Lookup for Solr indexes to be used for a given {@link Filter}.
@@ -61,15 +60,16 @@ class SolrIndexLookup {
             for (String element : PathUtils.elements(filter.getPath())) {
                 nodeState = nodeState.getChildNode(element);
                 collectIndexNodePaths(nodeState,
-                        sb.append("/").append(element).toString(),
-                        paths);
+                    sb.append("/").append(element).toString(),
+                    paths);
             }
         }
 
         return paths;
     }
 
-    private static void collectIndexNodePaths(NodeState nodeState, String parentPath, Collection<String> paths) {
+    private static void collectIndexNodePaths(NodeState nodeState, String parentPath,
+        Collection<String> paths) {
         NodeState state = nodeState.getChildNode(INDEX_DEFINITIONS_NAME);
         for (ChildNodeEntry entry : state.getChildNodeEntries()) {
             if (isSolrIndexNode(entry.getNodeState())) {

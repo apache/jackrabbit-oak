@@ -16,19 +16,17 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.server;
 
-import java.io.File;
-import java.net.URI;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
-
+import java.io.File;
+import java.net.URI;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.EmbeddedSolrServerConfiguration;
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.response.SolrPingResponse;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 
 /**
  * Testcase for {@link EmbeddedSolrServerProvider}
@@ -41,8 +39,10 @@ public class EmbeddedSolrServerProviderTest {
     public void testEmbeddedSolrServerInitialization() throws Exception {
         URI uri = getClass().getResource("/solr").toURI();
         File file = new File(uri);
-        EmbeddedSolrServerConfiguration solrServerConfiguration = new EmbeddedSolrServerConfiguration(file.getAbsolutePath(), "oak");
-        EmbeddedSolrServerProvider embeddedSolrServerProvider = new EmbeddedSolrServerProvider(solrServerConfiguration);
+        EmbeddedSolrServerConfiguration solrServerConfiguration = new EmbeddedSolrServerConfiguration(
+            file.getAbsolutePath(), "oak");
+        EmbeddedSolrServerProvider embeddedSolrServerProvider = new EmbeddedSolrServerProvider(
+            solrServerConfiguration);
         SolrClient solrServer = embeddedSolrServerProvider.getSolrServer();
         assertNotNull(solrServer);
         try {

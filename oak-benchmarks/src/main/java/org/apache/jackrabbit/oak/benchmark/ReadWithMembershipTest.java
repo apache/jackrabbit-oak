@@ -24,7 +24,6 @@ import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
-
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
@@ -47,7 +46,8 @@ public class ReadWithMembershipTest extends ReadDeepTreeTest {
     private final int membershipSize;
     private final int numberOfAces;
 
-    protected ReadWithMembershipTest(int itemsToRead, boolean doReport, int membershipSize, int numberOfAces) {
+    protected ReadWithMembershipTest(int itemsToRead, boolean doReport, int membershipSize,
+        int numberOfAces) {
         super(false, itemsToRead, doReport, false);
         userId = "user-" + UUID.randomUUID();
         this.membershipSize = membershipSize;
@@ -77,7 +77,8 @@ public class ReadWithMembershipTest extends ReadDeepTreeTest {
             Item item = adminSession.getItem(allPaths.get(index));
             Node n = (item.isNode()) ? (Node) item : item.getParent();
             String path = getAccessControllablePath(n);
-            AccessControlUtils.addAccessControlEntry(adminSession, path, principal, new String[] {PrivilegeConstants.JCR_READ}, true);
+            AccessControlUtils.addAccessControlEntry(adminSession, path, principal,
+                new String[]{PrivilegeConstants.JCR_READ}, true);
         }
     }
 
@@ -97,13 +98,17 @@ public class ReadWithMembershipTest extends ReadDeepTreeTest {
             return ((OakRepositoryFixture) fixture).setUpCluster(1, new JcrCreator() {
                 @Override
                 public Jcr customize(Oak oak) {
-                    ConfigurationParameters params = ConfigurationParameters.of("eagerCacheSize", 100);
-                    SecurityProvider securityProvider = SecurityProviderBuilder.newBuilder().with(ConfigurationParameters.of(AuthorizationConfiguration.NAME, params)).build();
+                    ConfigurationParameters params = ConfigurationParameters.of("eagerCacheSize",
+                        100);
+                    SecurityProvider securityProvider = SecurityProviderBuilder.newBuilder().with(
+                                                                                   ConfigurationParameters.of(AuthorizationConfiguration.NAME, params))
+                                                                               .build();
                     return new Jcr(oak).with(securityProvider);
                 }
             });
         } else {
-            throw new IllegalArgumentException("Fixture " + fixture + " not supported for this benchmark.");
+            throw new IllegalArgumentException(
+                "Fixture " + fixture + " not supported for this benchmark.");
         }
     }
 }

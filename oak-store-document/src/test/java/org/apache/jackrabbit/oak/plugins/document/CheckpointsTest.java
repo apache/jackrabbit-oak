@@ -50,7 +50,7 @@ public class CheckpointsTest {
 
     @Rule
     public DocumentMKBuilderProvider builderProvider = new DocumentMKBuilderProvider();
-    
+
     private Clock clock;
 
     private DocumentNodeStore store;
@@ -81,7 +81,7 @@ public class CheckpointsTest {
     public void testCheckpointPurgeByCount() throws Exception {
         long expiryTime = TimeUnit.HOURS.toMillis(1);
         String head = store.getHeadRevision().toString();
-        for(int i = 0; i < Checkpoints.CLEANUP_INTERVAL; i++){
+        for (int i = 0; i < Checkpoints.CLEANUP_INTERVAL; i++) {
             store.checkpoint(expiryTime);
             store.setRoot(new RevisionVector(Revision.newRevision(store.getClusterId())));
         }
@@ -98,7 +98,7 @@ public class CheckpointsTest {
     }
 
     @Test
-    public void multipleCheckpointOnSameRevision() throws Exception{
+    public void multipleCheckpointOnSameRevision() throws Exception {
         long e1 = TimeUnit.HOURS.toMillis(1);
         long e2 = TimeUnit.HOURS.toMillis(3);
 
@@ -179,7 +179,7 @@ public class CheckpointsTest {
     }
 
     @Test
-    public void checkpointRemove() throws Exception{
+    public void checkpointRemove() throws Exception {
         long lifetime = TimeUnit.HOURS.toMillis(1);
         String r1 = store.getHeadRevision().toString();
         String cp1 = store.checkpoint(lifetime);
@@ -211,7 +211,7 @@ public class CheckpointsTest {
         DocumentStore docStore = store.getDocumentStore();
         Map<String, String> empty = Collections.emptyMap();
         Revision r = Revision.fromString(
-                store.checkpoint(Integer.MAX_VALUE, empty));
+            store.checkpoint(Integer.MAX_VALUE, empty));
 
         Document doc = docStore.find(Collection.SETTINGS, "checkpoint");
         assertNotNull(doc);
@@ -237,7 +237,7 @@ public class CheckpointsTest {
         clock.waitUntil(System.currentTimeMillis());
         Map<String, String> empty = Collections.emptyMap();
         Revision r = Revision.fromString(
-                store.checkpoint(Long.MAX_VALUE, empty));
+            store.checkpoint(Long.MAX_VALUE, empty));
         Checkpoints.Info info = store.getCheckpoints().getCheckpoints().get(r);
         assertNotNull(info);
         assertEquals(Long.MAX_VALUE, info.getExpiryTime());
@@ -247,7 +247,7 @@ public class CheckpointsTest {
     public void userInfoNamedExpires() throws Exception {
         Map<String, String> props = ImmutableMap.of("expires", "today");
         Revision r = Revision.fromString(
-                store.checkpoint(Integer.MAX_VALUE, props));
+            store.checkpoint(Integer.MAX_VALUE, props));
         Map<String, String> info = store.checkpointInfo(r.toString());
         assertNotNull(info);
         assertEquals(props, info);
@@ -270,8 +270,8 @@ public class CheckpointsTest {
         Revision r2 = new Revision(1, 0, 2);
         RevisionVector rv = new RevisionVector(r1, r2);
         infoString = "{\"expires\":\"" + expires +
-                "\",\"rv\":\"" + rv.toString() +
-                "\",\"foo\":\"bar\"}";
+            "\",\"rv\":\"" + rv.toString() +
+            "\",\"foo\":\"bar\"}";
         info = Checkpoints.Info.fromString(infoString);
         assertEquals(expires, info.getExpiryTime());
         assertEquals(Collections.singleton("foo"), info.get().keySet());
@@ -288,9 +288,11 @@ public class CheckpointsTest {
         final int asyncDelay = (int) TimeUnit.MINUTES.toMillis(1);
         DocumentStore store = new MemoryDocumentStore();
         final DocumentNodeStore ns1 = builderProvider.newBuilder().setClusterId(1)
-                .setDocumentStore(store).setAsyncDelay(asyncDelay).getNodeStore();
+                                                     .setDocumentStore(store)
+                                                     .setAsyncDelay(asyncDelay).getNodeStore();
         final DocumentNodeStore ns2 = builderProvider.newBuilder().setClusterId(2)
-                .setDocumentStore(store).setAsyncDelay(asyncDelay).getNodeStore();
+                                                     .setDocumentStore(store)
+                                                     .setAsyncDelay(asyncDelay).getNodeStore();
 
         // create node on ns1
         NodeBuilder builder = ns1.getRoot().builder();
@@ -333,7 +335,8 @@ public class CheckpointsTest {
     public void crossClusterCheckpointNewClusterNode() throws Exception {
         DocumentStore store = new MemoryDocumentStore();
         DocumentNodeStore ns1 = builderProvider.newBuilder().setClusterId(1)
-                .setDocumentStore(store).setAsyncDelay(0).getNodeStore();
+                                               .setDocumentStore(store).setAsyncDelay(0)
+                                               .getNodeStore();
 
         // create 'foo' on ns1
         NodeBuilder b1 = ns1.getRoot().builder();
@@ -353,7 +356,8 @@ public class CheckpointsTest {
 
         // now start second node store
         DocumentNodeStore ns2 = builderProvider.newBuilder().setClusterId(2)
-                .setDocumentStore(store).setAsyncDelay(0).getNodeStore();
+                                               .setDocumentStore(store).setAsyncDelay(0)
+                                               .getNodeStore();
         NodeBuilder b2 = ns2.getRoot().builder();
         b2.child("baz");
         ns2.merge(b2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
@@ -369,7 +373,8 @@ public class CheckpointsTest {
     public void crossClusterReadOldCheckpoint() throws Exception {
         DocumentStore store = new MemoryDocumentStore();
         DocumentNodeStore ns1 = builderProvider.newBuilder().setClusterId(1)
-                .setDocumentStore(store).setAsyncDelay(0).getNodeStore();
+                                               .setDocumentStore(store).setAsyncDelay(0)
+                                               .getNodeStore();
 
         NodeBuilder b1 = ns1.getRoot().builder();
         b1.child("foo");
@@ -386,7 +391,8 @@ public class CheckpointsTest {
 
         // now start second node store
         DocumentNodeStore ns2 = builderProvider.newBuilder().setClusterId(2)
-                .setDocumentStore(store).setAsyncDelay(0).getNodeStore();
+                                               .setDocumentStore(store).setAsyncDelay(0)
+                                               .getNodeStore();
         NodeBuilder b2 = ns2.getRoot().builder();
         b2.child("baz");
         ns2.merge(b2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
@@ -401,7 +407,8 @@ public class CheckpointsTest {
     public void sameClusterReadOldCheckpoint() throws Exception {
         DocumentStore store = new MemoryDocumentStore();
         DocumentNodeStore ns1 = builderProvider.newBuilder().setClusterId(1)
-                .setDocumentStore(store).setAsyncDelay(0).getNodeStore();
+                                               .setDocumentStore(store).setAsyncDelay(0)
+                                               .getNodeStore();
 
         NodeBuilder b1 = ns1.getRoot().builder();
         b1.child("foo");
@@ -452,6 +459,7 @@ public class CheckpointsTest {
         long time = store.getClock().getTime() + ONE_HOUR;
         Revision r = new Revision(time, 0, store.getClusterId());
         Map<String, String> info = Collections.emptyMap();
-        Assert.assertThrows(IllegalArgumentException.class, () -> checkpoints.create(ONE_HOUR, info, r));
+        Assert.assertThrows(IllegalArgumentException.class,
+            () -> checkpoints.create(ONE_HOUR, info, r));
     }
 }

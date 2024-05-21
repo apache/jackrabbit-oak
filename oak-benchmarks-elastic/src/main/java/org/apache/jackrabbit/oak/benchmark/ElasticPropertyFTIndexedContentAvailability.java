@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.benchmark;
 
+import java.io.File;
+import java.util.Collections;
+import javax.jcr.Repository;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.benchmark.util.ElasticGlobalInitializer;
 import org.apache.jackrabbit.oak.benchmark.util.TestHelper;
@@ -32,21 +35,18 @@ import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticIndexProvide
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
-import javax.jcr.Repository;
-import java.io.File;
-import java.util.Collections;
-
 /**
  * <p>
  * Perform a benchmark on how long it takes for an ingested item to be available in a Elastic
- * Property index when indexed in conjunction with a Global full-text Elastic (same thread). It makes
- * use of the {@link WikipediaImport} to use a Wikipedia dump for content injestion.
+ * Property index when indexed in conjunction with a Global full-text Elastic (same thread). It
+ * makes use of the {@link WikipediaImport} to use a Wikipedia dump for content injestion.
  * <p>
- * Extend this class in lucene and elastic benchmarks and override the createRepository method to include respective
- * Index Editor providers.
+ * Extend this class in lucene and elastic benchmarks and override the createRepository method to
+ * include respective Index Editor providers.
  * <p>
  * Suggested dump:
- * <a href="https://dumps.wikimedia.org/enwiki/20150403/enwiki-20150403-pages-articles.xml.bz2">https://dumps.wikimedia.org/enwiki/20150403/enwiki-20150403-pages-articles.xml.bz2</a>
+ * <a
+ * href="https://dumps.wikimedia.org/enwiki/20150403/enwiki-20150403-pages-articles.xml.bz2">https://dumps.wikimedia.org/enwiki/20150403/enwiki-20150403-pages-articles.xml.bz2</a>
  * <p>
  * Usage example:
  * <p>
@@ -78,9 +78,9 @@ public class ElasticPropertyFTIndexedContentAvailability extends PropertyFullTex
 
 
     ElasticPropertyFTIndexedContentAvailability(final File dump,
-                                                final boolean flat,
-                                                final boolean doReport,
-                                                final Boolean storageEnabled, ElasticConnection connection) {
+        final boolean flat,
+        final boolean doReport,
+        final Boolean storageEnabled, ElasticConnection connection) {
         super(dump, flat, doReport, storageEnabled);
         this.connection = connection;
     }
@@ -93,18 +93,21 @@ public class ElasticPropertyFTIndexedContentAvailability extends PropertyFullTex
             currentFixtureName = fixture.toString();
             return ((OakRepositoryFixture) fixture).setUpCluster(1, oak -> {
                 ElasticIndexTracker indexTracker = new ElasticIndexTracker(connection,
-                        new ElasticMetricHandler(StatisticsProvider.NOOP));
-                ElasticIndexEditorProvider editorProvider = new ElasticIndexEditorProvider(indexTracker, connection,
-                        new ExtractedTextCache(10 * FileUtils.ONE_MB, 100));
+                    new ElasticMetricHandler(StatisticsProvider.NOOP));
+                ElasticIndexEditorProvider editorProvider = new ElasticIndexEditorProvider(
+                    indexTracker, connection,
+                    new ExtractedTextCache(10 * FileUtils.ONE_MB, 100));
                 ElasticIndexProvider indexProvider = new ElasticIndexProvider(indexTracker);
                 oak.with(editorProvider)
-                        .with(indexTracker)
-                        .with(indexProvider)
-                        .with((new ElasticGlobalInitializer(elasticGlobalIndexName, storageEnabled)).async())
-                        // the WikipediaImporter set a property `title`
-                        .with(new FullTextPropertyInitialiser(elasticTitleIndexName, Collections.singleton("title"),
-                                ElasticIndexDefinition.TYPE_ELASTICSEARCH).async())
-                        .withAsyncIndexing("async", 5);
+                   .with(indexTracker)
+                   .with(indexProvider)
+                   .with((new ElasticGlobalInitializer(elasticGlobalIndexName,
+                       storageEnabled)).async())
+                   // the WikipediaImporter set a property `title`
+                   .with(new FullTextPropertyInitialiser(elasticTitleIndexName,
+                       Collections.singleton("title"),
+                       ElasticIndexDefinition.TYPE_ELASTICSEARCH).async())
+                   .withAsyncIndexing("async", 5);
                 return new Jcr(oak);
             });
         }

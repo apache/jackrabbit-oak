@@ -30,7 +30,6 @@ import java.io.IOException;
 import java.util.Random;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
@@ -48,27 +47,31 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * <p>Tests verifying if the repository gets corrupted or not: {@code OAK-2662 SegmentOverflowException in HeavyWriteIT on Jenkins}</p>
+ * <p>Tests verifying if the repository gets corrupted or not:
+ * {@code OAK-2662 SegmentOverflowException in HeavyWriteIT on Jenkins}</p>
  *
- * <p><b>This test will run for one hour unless it fails</b>, thus it is disabled by default. On the
- * command line specify {@code -Dtest=SegmentOverflowExceptionIT} to enable it. Use {@code -Dtimeout=t}
- * to specify a different timeout {@code t} in milliseconds. Use {@code -Dmax-repo-size=s} to specify
- * a maximal repository size {@code s} in megabytes above which to stop the test.
+ * <p><b>This test will run for one hour unless it fails</b>, thus it is disabled by default. On
+ * the command line specify {@code -Dtest=SegmentOverflowExceptionIT} to enable it. Use
+ * {@code -Dtimeout=t} to specify a different timeout {@code t} in milliseconds. Use
+ * {@code -Dmax-repo-size=s} to specify a maximal repository size {@code s} in megabytes above which
+ * to stop the test.
  * </p>
  *
- *<p>If you only want to run this test:<br>
- * {@code mvn verify -DfailIfNoTests=false -DskipTests -PintegrationTesting -Dtest=SegmentOverflowExceptionIT}
+ * <p>If you only want to run this test:<br>
+ * {@code mvn verify -DfailIfNoTests=false -DskipTests -PintegrationTesting
+ * -Dtest=SegmentOverflowExceptionIT}
  * </p>
  */
 public class SegmentOverflowExceptionIT {
+
     private static final Logger LOG = LoggerFactory
-            .getLogger(SegmentOverflowExceptionIT.class);
+        .getLogger(SegmentOverflowExceptionIT.class);
     private static final boolean ENABLED =
-            SegmentOverflowExceptionIT.class.getSimpleName().equals(getProperty("test"));
+        SegmentOverflowExceptionIT.class.getSimpleName().equals(getProperty("test"));
     private static final long TIMEOUT = Long
-            .getLong("timeout", 60*60*1000);
+        .getLong("timeout", 60 * 60 * 1000);
     private static final long MAX_REPO_SIZE = 1024L * 1024L * Integer
-            .getInteger("max-repo-size", Integer.MAX_VALUE);
+        .getInteger("max-repo-size", Integer.MAX_VALUE);
 
     private final Random rnd = new Random();
 
@@ -102,14 +105,14 @@ public class SegmentOverflowExceptionIT {
     public void run() throws Exception {
         ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
         try (FileStore fileStore = fileStoreBuilder(getFileStoreFolder())
-                .withGCMonitor(gcMonitor)
-                .withStatisticsProvider(new DefaultStatisticsProvider(executor))
-                .build()) {
+            .withGCMonitor(gcMonitor)
+            .withStatisticsProvider(new DefaultStatisticsProvider(executor))
+            .build()) {
             final SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
             long start = System.currentTimeMillis();
             int snfeCount = 0;
             while (System.currentTimeMillis() - start < TIMEOUT &&
-                   fileStore.getStats().getApproximateSize() < MAX_REPO_SIZE) {
+                fileStore.getStats().getApproximateSize() < MAX_REPO_SIZE) {
                 try {
                     NodeBuilder root = nodeStore.getRoot().builder();
                     while (rnd.nextInt(100) != 0) {
@@ -140,7 +143,7 @@ public class SegmentOverflowExceptionIT {
             if (!nodeBuilder.remove()) {
                 descent(nodeStore, nodeBuilder);
             }
-        } else if (k < 40)  {
+        } else if (k < 40) {
             nodeBuilder.setChildNode("N" + rnd.nextInt(1000));
         } else if (k < 80) {
             nodeBuilder.setProperty("P" + rnd.nextInt(1000), randomAlphabetic(rnd.nextInt(10000)));

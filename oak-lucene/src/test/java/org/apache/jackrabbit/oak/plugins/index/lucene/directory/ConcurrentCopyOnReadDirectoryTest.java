@@ -17,20 +17,16 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.commons.compress.utils.Lists;
-import org.apache.jackrabbit.oak.InitialContentHelper;
-import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
-import org.apache.jackrabbit.oak.commons.junit.TemporarySystemProperty;
-import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
-import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.lucene.store.*;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import static org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors.newDirectExecutorService;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.CopyOnReadDirectory.WAIT_OTHER_COPY_SYSPROP_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.INDEX_DATA_CHILD_NAME;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.when;
 
 import java.io.File;
 import java.io.IOException;
@@ -43,19 +39,27 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-
-import static org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors.newDirectExecutorService;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.CopyOnReadDirectory.WAIT_OTHER_COPY_SYSPROP_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.INDEX_DATA_CHILD_NAME;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.when;
+import org.apache.commons.compress.utils.Lists;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.apache.jackrabbit.oak.InitialContentHelper;
+import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
+import org.apache.jackrabbit.oak.commons.junit.TemporarySystemProperty;
+import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.store.IOContext;
+import org.apache.lucene.store.IndexInput;
+import org.apache.lucene.store.IndexOutput;
+import org.apache.lucene.store.RAMDirectory;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 public class ConcurrentCopyOnReadDirectoryTest {
+
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
 
@@ -73,13 +77,14 @@ public class ConcurrentCopyOnReadDirectoryTest {
 
     private CountDownLatch firstCoRBlocker;
     private Future<String> firstCoRFutre;
-    private  LuceneIndexDefinition defn;
+    private LuceneIndexDefinition defn;
 
     private static final String REMOTE_INPUT_PREFIX = "Remote - ";
 
     @Before
     public void setup() throws Exception {
-        System.setProperty(WAIT_OTHER_COPY_SYSPROP_NAME, String.valueOf(TimeUnit.MILLISECONDS.toMillis(30)));
+        System.setProperty(WAIT_OTHER_COPY_SYSPROP_NAME,
+            String.valueOf(TimeUnit.MILLISECONDS.toMillis(30)));
 
         // normal remote directory
         remote = new RAMDirectory() {
@@ -87,7 +92,8 @@ public class ConcurrentCopyOnReadDirectoryTest {
             public IndexInput openInput(String name, IOContext context) throws IOException {
                 IndexInput ret = spy(super.openInput(name, context));
                 when(ret.toString())
-                        .thenAnswer(invocationOnMock -> REMOTE_INPUT_PREFIX + invocationOnMock.callRealMethod());
+                    .thenAnswer(invocationOnMock -> REMOTE_INPUT_PREFIX
+                        + invocationOnMock.callRealMethod());
                 return ret;
             }
         };
@@ -128,7 +134,7 @@ public class ConcurrentCopyOnReadDirectoryTest {
         for (Directory d : Iterables.concat(Collections.singleton(firstCoR), leechingCoRs)) {
             IndexInput input = d.openInput("file", IOContext.READ);
             assertFalse(d + " must not be reading from remote",
-                    input.toString().startsWith(REMOTE_INPUT_PREFIX));
+                input.toString().startsWith(REMOTE_INPUT_PREFIX));
         }
     }
 
@@ -147,12 +153,12 @@ public class ConcurrentCopyOnReadDirectoryTest {
 
         IndexInput input = firstCoR.openInput("file", IOContext.READ);
         assertFalse(firstCoR + " must not be reading from remote",
-                input.toString().startsWith(REMOTE_INPUT_PREFIX));
+            input.toString().startsWith(REMOTE_INPUT_PREFIX));
 
         for (Directory d : leechingCoRs) {
             input = d.openInput("file", IOContext.READ);
             assertTrue(d + " must be reading from remote",
-                    input.toString().startsWith(REMOTE_INPUT_PREFIX));
+                input.toString().startsWith(REMOTE_INPUT_PREFIX));
         }
     }
 
@@ -221,19 +227,22 @@ public class ConcurrentCopyOnReadDirectoryTest {
 
         for (int i = 0; i < numLeechers; i++) {
             final String leecherName = "CoR-" + (i + 1);
-            leechingCoRFutures.add(executorService.submit(() -> createLeechingCoR(blockingCopier, defn, leecherName)));
+            leechingCoRFutures.add(
+                executorService.submit(() -> createLeechingCoR(blockingCopier, defn, leecherName)));
         }
 
         // wait for leeching CoRs to start
         leechingCoRsWaiter.await();
     }
 
-    private String createLeechingCoR(IndexCopier blockingCopier, LuceneIndexDefinition defn, String threadName) {
+    private String createLeechingCoR(IndexCopier blockingCopier, LuceneIndexDefinition defn,
+        String threadName) {
         Thread.currentThread().setName(threadName);
 
         // get another directory instance with normal remote while the previous is blocked by us
         try {
-            CopyOnReadDirectory dir = (CopyOnReadDirectory) openCoR(blockingCopier, remote, defn, threadName);
+            CopyOnReadDirectory dir = (CopyOnReadDirectory) openCoR(blockingCopier, remote, defn,
+                threadName);
             leechingCoRs.add(dir);
 
             return null;
@@ -248,11 +257,13 @@ public class ConcurrentCopyOnReadDirectoryTest {
         }
     }
 
-    private static Directory openCoR(IndexCopier copier, Directory remote, LuceneIndexDefinition defn,
-                                     String description) throws IOException {
-        Directory d = spy(copier.wrapForRead("/oak:index/foo", defn, remote, INDEX_DATA_CHILD_NAME));
+    private static Directory openCoR(IndexCopier copier, Directory remote,
+        LuceneIndexDefinition defn,
+        String description) throws IOException {
+        Directory d = spy(
+            copier.wrapForRead("/oak:index/foo", defn, remote, INDEX_DATA_CHILD_NAME));
         when(d.toString())
-                .thenAnswer(invocationOnMock -> description);
+            .thenAnswer(invocationOnMock -> description);
         return d;
     }
 

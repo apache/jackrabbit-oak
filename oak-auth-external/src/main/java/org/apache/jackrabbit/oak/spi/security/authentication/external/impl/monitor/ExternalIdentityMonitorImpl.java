@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.monitor;
 
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
+
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncException;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncResult;
 import org.apache.jackrabbit.oak.stats.MeterStats;
@@ -23,8 +25,6 @@ import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatsOptions;
 import org.apache.jackrabbit.oak.stats.TimerStats;
 import org.jetbrains.annotations.NotNull;
-
-import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
 public class ExternalIdentityMonitorImpl implements ExternalIdentityMonitor {
 
@@ -34,18 +34,25 @@ public class ExternalIdentityMonitorImpl implements ExternalIdentityMonitor {
     private final MeterStats syncFailed;
 
     public ExternalIdentityMonitorImpl(@NotNull StatisticsProvider statisticsProvider) {
-        syncTimer = statisticsProvider.getTimer("security.authentication.external.sync_external_identity.timer", StatsOptions.METRICS_ONLY);
-        syncRetries = statisticsProvider.getMeter("security.authentication.external.sync_external_identity.retries", StatsOptions.DEFAULT);
-        syncIdTimer = statisticsProvider.getTimer("security.authentication.external.sync_id.timer", StatsOptions.METRICS_ONLY);
-        syncFailed = statisticsProvider.getMeter("security.authentication.external.sync.failed", StatsOptions.DEFAULT);
+        syncTimer = statisticsProvider.getTimer(
+            "security.authentication.external.sync_external_identity.timer",
+            StatsOptions.METRICS_ONLY);
+        syncRetries = statisticsProvider.getMeter(
+            "security.authentication.external.sync_external_identity.retries",
+            StatsOptions.DEFAULT);
+        syncIdTimer = statisticsProvider.getTimer("security.authentication.external.sync_id.timer",
+            StatsOptions.METRICS_ONLY);
+        syncFailed = statisticsProvider.getMeter("security.authentication.external.sync.failed",
+            StatsOptions.DEFAULT);
     }
 
     @Override
-    public void doneSyncExternalIdentity(long timeTakenNanos, @NotNull SyncResult result, int retryCount) {
+    public void doneSyncExternalIdentity(long timeTakenNanos, @NotNull SyncResult result,
+        int retryCount) {
         // note: currently the sync-result is ignored. further improvements might choose to exclude certain
         // results or refine the stats gather by result type.
         syncTimer.update(timeTakenNanos, NANOSECONDS);
-        if (retryCount > 0){
+        if (retryCount > 0) {
             syncRetries.mark(retryCount);
         }
     }

@@ -17,12 +17,11 @@
 package org.apache.jackrabbit.api.query;
 
 import javax.jcr.query.QueryResult;
-
 import org.osgi.annotation.versioning.ProviderType;
 
 /**
- * The Jackrabbit query result interface. This interface contains the
- * Jackrabbit-specific extensions to the JCR {@link QueryResult} interface.
+ * The Jackrabbit query result interface. This interface contains the Jackrabbit-specific extensions
+ * to the JCR {@link QueryResult} interface.
  *
  * @since Jackrabbit 2.6
  */
@@ -30,8 +29,8 @@ import org.osgi.annotation.versioning.ProviderType;
 public interface JackrabbitQueryResult extends QueryResult {
 
     /**
-     * Returns the total number of hits. This is the number of results you
-     * would get without any limit or offset settings. This method may return
+     * Returns the total number of hits. This is the number of results you would get without any
+     * limit or offset settings. This method may return
      * <code>-1</code> if the total size is unknown.
      *
      * @return the total number of hits, or <code>-1</code>

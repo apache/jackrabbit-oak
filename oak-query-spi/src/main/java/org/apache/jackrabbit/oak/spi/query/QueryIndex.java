@@ -18,6 +18,9 @@
  */
 package org.apache.jackrabbit.oak.spi.query;
 
+import static java.util.stream.Collectors.toMap;
+import static org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -25,43 +28,37 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-
-import org.jetbrains.annotations.Nullable;
-import org.osgi.annotation.versioning.ProviderType;
-
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.Nullable;
+import org.osgi.annotation.versioning.ProviderType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.event.Level;
 
-import static java.util.stream.Collectors.toMap;
-import static org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
-
 /**
- * Represents an index. The index should use the data in the filter if possible
- * to speed up reading.
+ * Represents an index. The index should use the data in the filter if possible to speed up
+ * reading.
  * <p>
- * The query engine will pick the index that returns the lowest cost for the
- * given filter conditions.
+ * The query engine will pick the index that returns the lowest cost for the given filter
+ * conditions.
  * <p>
- * The index should only use that part of the filter that speeds up data lookup.
- * All other filter conditions should be ignored and not evaluated within this
- * index, because the query engine will in any case evaluate the condition (and
- * join condition), so that evaluating the conditions within the index would
- * actually slow down processing. For example, an index on the property
- * "lastName" should not try to evaluate any other restrictions than those on
- * the property "lastName", even if the query contains other restrictions. For
- * the query "where lastName = 'x' and firstName = 'y'", the query engine will
- * set two filter conditions, one for "lastName" and another for "firstName".
- * The index on "lastName" should not evaluate the condition on "firstName",
- * even thought it will be set in the filter.
+ * The index should only use that part of the filter that speeds up data lookup. All other filter
+ * conditions should be ignored and not evaluated within this index, because the query engine will
+ * in any case evaluate the condition (and join condition), so that evaluating the conditions within
+ * the index would actually slow down processing. For example, an index on the property "lastName"
+ * should not try to evaluate any other restrictions than those on the property "lastName", even if
+ * the query contains other restrictions. For the query "where lastName = 'x' and firstName = 'y'",
+ * the query engine will set two filter conditions, one for "lastName" and another for "firstName".
+ * The index on "lastName" should not evaluate the condition on "firstName", even thought it will be
+ * set in the filter.
  */
 public interface QueryIndex {
 
     /**
-     * Returns the minimum cost which {@link #getCost(Filter, NodeState)} would return in the best possible case.
+     * Returns the minimum cost which {@link #getCost(Filter, NodeState)} would return in the best
+     * possible case.
      * <p>
      * The implementation should return a static/cached value because it is called very often.
      *
@@ -70,55 +67,49 @@ public interface QueryIndex {
     double getMinimumCost();
 
     /**
-     * Estimate the worst-case cost to query with the given filter. The returned
-     * cost is a value between 1 (very fast; lookup of a unique node) and the
-     * estimated number of entries to traverse, if the cursor would be fully
-     * read, and if there could in theory be one network roundtrip or disk read
-     * operation per node (this method may return a lower number if the data is
-     * known to be fully in memory).
+     * Estimate the worst-case cost to query with the given filter. The returned cost is a value
+     * between 1 (very fast; lookup of a unique node) and the estimated number of entries to
+     * traverse, if the cursor would be fully read, and if there could in theory be one network
+     * roundtrip or disk read operation per node (this method may return a lower number if the data
+     * is known to be fully in memory).
      * <p>
-     * The returned value is supposed to be an estimate and doesn't have to be
-     * very accurate. Please note this method is called on each index whenever a
-     * query is run, so the method should be reasonably fast (not read any data
-     * itself, or at least not read too much data).
+     * The returned value is supposed to be an estimate and doesn't have to be very accurate. Please
+     * note this method is called on each index whenever a query is run, so the method should be
+     * reasonably fast (not read any data itself, or at least not read too much data).
      * <p>
      * If an index implementation can not query the data, it has to return
      * {@code Double.MAX_VALUE}.
      *
-     * @param filter the filter
+     * @param filter    the filter
      * @param rootState root state of the current repository snapshot
      * @return the estimated cost in number of read nodes
      */
     double getCost(Filter filter, NodeState rootState);
 
     /**
-     * Query the index. The returned cursor is supposed to return as few nodes
-     * as possible, but may return more nodes than necessary.
+     * Query the index. The returned cursor is supposed to return as few nodes as possible, but may
+     * return more nodes than necessary.
      * <p>
-     * An implementation should only filter the result if it can do so easily
-     * and efficiently; the query engine will verify the data again (in memory)
-     * and check for access rights.
+     * An implementation should only filter the result if it can do so easily and efficiently; the
+     * query engine will verify the data again (in memory) and check for access rights.
      * <p>
-     * The method is only called if this index is used for the given query and
-     * selector, which is only the case if the given index implementation
-     * returned the lowest cost for the given filter. If the implementation
-     * returned {@code Double.MAX_VALUE} in the getCost method for the given
-     * filter, then this method is not called. If it is still called, then it is
-     * supposed to throw an exception (as it would be an internal error of the
-     * query engine).
+     * The method is only called if this index is used for the given query and selector, which is
+     * only the case if the given index implementation returned the lowest cost for the given
+     * filter. If the implementation returned {@code Double.MAX_VALUE} in the getCost method for the
+     * given filter, then this method is not called. If it is still called, then it is supposed to
+     * throw an exception (as it would be an internal error of the query engine).
      *
-     * @param filter the filter
+     * @param filter    the filter
      * @param rootState root state of the current repository snapshot
      * @return a cursor to iterate over the result
      */
     Cursor query(Filter filter, NodeState rootState);
 
     /**
-     * Get the query plan for the given filter. This method is called when
-     * running an {@code EXPLAIN SELECT} query, or for logging purposes. The
-     * result should be human readable.
+     * Get the query plan for the given filter. This method is called when running an
+     * {@code EXPLAIN SELECT} query, or for logging purposes. The result should be human readable.
      *
-     * @param filter the filter
+     * @param filter    the filter
      * @param rootState root state of the current repository snapshot
      * @return the query plan
      */
@@ -132,8 +123,8 @@ public interface QueryIndex {
     String getIndexName();
 
     /**
-     * Get the specific index name (the path of the index definition, or the
-     * index type if that one is unique).
+     * Get the specific index name (the path of the index definition, or the index type if that one
+     * is unique).
      *
      * @return the index name
      */
@@ -142,23 +133,22 @@ public interface QueryIndex {
     }
 
     /**
-     *  A marker interface which means this index supports executing native queries
+     * A marker interface which means this index supports executing native queries
      */
     interface NativeQueryIndex {
         // a marker interface
     }
 
     /**
-     * A marker interface which means this index supports may support more than
-     * just the minimal fulltext query syntax. If this index is used, then the
-     * query engine does not verify the fulltext constraint(s) for the given
-     * selector.
+     * A marker interface which means this index supports may support more than just the minimal
+     * fulltext query syntax. If this index is used, then the query engine does not verify the
+     * fulltext constraint(s) for the given selector.
      */
     interface FulltextQueryIndex extends QueryIndex, NativeQueryIndex {
 
         /**
-         * Returns the NodeAggregator responsible for providing the aggregation
-         * settings or null if aggregation is not available/desired.
+         * Returns the NodeAggregator responsible for providing the aggregation settings or null if
+         * aggregation is not available/desired.
          *
          * @return the node aggregator or null
          */
@@ -172,30 +162,28 @@ public interface QueryIndex {
     }
 
     /**
-     * A query index that may support using multiple access orders
-     * (returning the rows in a specific order), and that can provide detailed
-     * information about the cost.
+     * A query index that may support using multiple access orders (returning the rows in a specific
+     * order), and that can provide detailed information about the cost.
      */
     interface AdvancedQueryIndex {
 
         /**
-         * Return the possible index plans for the given filter and sort order.
-         * Please note this method is supposed to run quickly. That means it
-         * should usually not read any data from the storage.
+         * Return the possible index plans for the given filter and sort order. Please note this
+         * method is supposed to run quickly. That means it should usually not read any data from
+         * the storage.
          *
-         * @param filter the filter
+         * @param filter    the filter
          * @param sortOrder the sort order or null if no sorting is required
          * @param rootState root state of the current repository snapshot
          * @return the list of index plans (null if none)
          */
         List<IndexPlan> getPlans(Filter filter, List<OrderEntry> sortOrder,
-                NodeState rootState);
+            NodeState rootState);
 
         /**
          * Get the query plan description (for logging purposes).
          * <p>
-         * The index plan is one of the plans that the index returned in the
-         * getPlans call.
+         * The index plan is one of the plans that the index returned in the getPlans call.
          *
          * @param plan the index plan
          * @param root root state of the current repository snapshot
@@ -204,13 +192,11 @@ public interface QueryIndex {
         String getPlanDescription(IndexPlan plan, NodeState root);
 
         /**
-         * Start a query. The filter and sort order of the index plan is to be
-         * used.
+         * Start a query. The filter and sort order of the index plan is to be used.
          * <p>
-         * The index plan is one of the plans that the index returned in the
-         * getPlans call.
+         * The index plan is one of the plans that the index returned in the getPlans call.
          *
-         * @param plan the index plan to use
+         * @param plan      the index plan to use
          * @param rootState root state of the current repository snapshot
          * @return a cursor to iterate over the result
          */
@@ -222,31 +208,29 @@ public interface QueryIndex {
      * An index plan.
      */
     @ProviderType
-    interface IndexPlan extends Cloneable{
+    interface IndexPlan extends Cloneable {
 
         Logger LOG = LoggerFactory.getLogger(QueryIndex.IndexPlan.class);
-        
+
         /**
-         * The cost to execute the query once. The returned value should
-         * approximately match the number of disk read operations plus the
-         * number of network roundtrips (worst case).
+         * The cost to execute the query once. The returned value should approximately match the
+         * number of disk read operations plus the number of network roundtrips (worst case).
          *
          * @return the cost per execution, in estimated number of I/O operations
          */
         double getCostPerExecution();
 
         /**
-         * The cost to read one entry from the cursor. The returned value should
-         * approximately match the number of disk read operations plus the
-         * number of network roundtrips (worst case).
+         * The cost to read one entry from the cursor. The returned value should approximately match
+         * the number of disk read operations plus the number of network roundtrips (worst case).
          *
          * @return the lookup cost per entry, in estimated number of I/O operations
          */
         double getCostPerEntry();
 
         /**
-         * The estimated number of entries in the cursor that is returned by the query method,
-         * when using this plan. This value does not have to be accurate.
+         * The estimated number of entries in the cursor that is returned by the query method, when
+         * using this plan. This value does not have to be accurate.
          *
          * @return the estimated number of entries
          */
@@ -272,17 +256,17 @@ public interface QueryIndex {
         boolean isDelayed();
 
         /**
-         * Whether the fulltext part of the filter is evaluated (possibly with
-         * an extended syntax). If set, the fulltext part of the filter is not
-         * evaluated any more within the query engine.
+         * Whether the fulltext part of the filter is evaluated (possibly with an extended syntax).
+         * If set, the fulltext part of the filter is not evaluated any more within the query
+         * engine.
          *
          * @return whether the index supports full-text extraction
          */
         boolean isFulltextIndex();
 
         /**
-         * Whether the cursor is able to read all properties from a node.
-         * If yes, then the query engine will not have to read the data itself.
+         * Whether the cursor is able to read all properties from a node. If yes, then the query
+         * engine will not have to read the data itself.
          *
          * @return whether node data is returned
          */
@@ -313,9 +297,9 @@ public interface QueryIndex {
         boolean getSupportsPathRestriction();
 
         /**
-         * The property restriction for this index plan or <code>null</code> if
-         * this index plan isn't base on a property restriction. E.g. a plan
-         * based on an order by clause in the query.
+         * The property restriction for this index plan or <code>null</code> if this index plan
+         * isn't base on a property restriction. E.g. a plan based on an order by clause in the
+         * query.
          *
          * @return the restriction this plan is based on or <code>null</code>.
          */
@@ -323,22 +307,21 @@ public interface QueryIndex {
         PropertyRestriction getPropertyRestriction();
 
         /**
-         * Creates a cloned copy of current plan. Mostly used when the filter needs to be
-         * modified for a given call
+         * Creates a cloned copy of current plan. Mostly used when the filter needs to be modified
+         * for a given call
          *
          * @return clone of current plan
          */
         IndexPlan copy();
 
         /**
-         * Returns the value of the named attribute as an <code>Object</code>,
-         * or <code>null</code> if no attribute of the given name exists.
+         * Returns the value of the named attribute as an <code>Object</code>, or <code>null</code>
+         * if no attribute of the given name exists.
          *
          * @param name <code>String</code> specifying the name of
-         * the attribute
-         *
-         * @return an <code>Object</code> containing the value
-         * of the attribute, or <code>null</code> if the attribute does not exist
+         *             the attribute
+         * @return an <code>Object</code> containing the value of the attribute, or
+         * <code>null</code> if the attribute does not exist
          */
         @Nullable
         Object getAttribute(String name);
@@ -357,33 +340,37 @@ public interface QueryIndex {
          * @return if it is deprecated
          */
         boolean isDeprecated();
-        
+
         default boolean logWarningForPathFilterMismatch() {
             return false;
         }
 
         /**
-         * This method can be used for communicating any messages which should be logged if this plan is selected for execution.
-         * The messages are returned as a map whose key indicates log level and value is a list of messages against that
-         * log level.
-
-         * @deprecated use {@link #getAdditionalLogMessages()}  instead
+         * This method can be used for communicating any messages which should be logged if this
+         * plan is selected for execution. The messages are returned as a map whose key indicates
+         * log level and value is a list of messages against that log level.
+         *
          * @return map containing log messages.
+         * @deprecated use {@link #getAdditionalLogMessages()}  instead
          */
         @Deprecated(forRemoval = true)
         default Map<Level, List<String>> getAdditionalMessages() {
-            LOG.warn("use of deprecated API - this method is going to be removed in future Oak releases - see OAK-10768 for details");
-            return getAdditionalLogMessages().entrySet().stream().collect(toMap(entry -> Level.valueOf(entry.getKey()), Map.Entry::getValue));
+            LOG.warn(
+                "use of deprecated API - this method is going to be removed in future Oak releases - see OAK-10768 for details");
+            return getAdditionalLogMessages().entrySet().stream().collect(
+                toMap(entry -> Level.valueOf(entry.getKey()), Map.Entry::getValue));
         }
 
         /**
-         * This method can be used for communicating any messages which should be logged if this plan is selected for execution.
-         * The messages are returned as a map whose key indicates log level and value is a list of messages against that
-         * log level.
-
+         * This method can be used for communicating any messages which should be logged if this
+         * plan is selected for execution. The messages are returned as a map whose key indicates
+         * log level and value is a list of messages against that log level.
+         *
          * @return map containing log messages.
          */
-        default Map<String, List<String>> getAdditionalLogMessages() { return Collections.emptyMap(); }
+        default Map<String, List<String>> getAdditionalLogMessages() {
+            return Collections.emptyMap();
+        }
 
         /**
          * A builder for index plans.
@@ -437,11 +424,12 @@ public interface QueryIndex {
 
             /**
              * @deprecated use {@link #addAdditionalMessage(String level, String s)} instead
-             * */
+             */
             @Deprecated(forRemoval = true)
             public Builder addAdditionalMessage(Level level, String s) {
-                LOG.warn("use of deprecated API - this method is going to be removed in future Oak releases - see OAK-10768 for details");
-                this.additionalMessages.compute(level.name(), (k,v) -> {
+                LOG.warn(
+                    "use of deprecated API - this method is going to be removed in future Oak releases - see OAK-10768 for details");
+                this.additionalMessages.compute(level.name(), (k, v) -> {
                     if (v == null) {
                         v = new ArrayList<>();
                     }
@@ -462,7 +450,7 @@ public interface QueryIndex {
                     default:
                         throw new IllegalArgumentException("unsupported log level: " + level);
                 }
-                this.additionalMessages.compute(level, (k,v) -> {
+                this.additionalMessages.compute(level, (k, v) -> {
                     if (v == null) {
                         v = new ArrayList<>();
                     }
@@ -513,14 +501,14 @@ public interface QueryIndex {
             }
 
             public Builder setAttribute(String key, Object value) {
-               this.attributes.put(key, value);
-               return this;
+                this.attributes.put(key, value);
+                return this;
             }
 
             public Builder setPlanName(String name) {
                 this.planName = name;
                 return this;
-             }
+            }
 
             public Builder setDeprecated(boolean deprecated) {
                 this.deprecated = deprecated;
@@ -532,63 +520,63 @@ public interface QueryIndex {
                 return new IndexPlan() {
 
                     private final double costPerExecution =
-                            Builder.this.costPerExecution;
+                        Builder.this.costPerExecution;
                     private final double costPerEntry =
-                            Builder.this.costPerEntry;
+                        Builder.this.costPerEntry;
                     private final long estimatedEntryCount =
-                            Builder.this.estimatedEntryCount;
+                        Builder.this.estimatedEntryCount;
                     private Filter filter =
-                            Builder.this.filter;
+                        Builder.this.filter;
                     private final boolean isDelayed =
-                            Builder.this.isDelayed;
+                        Builder.this.isDelayed;
                     private final boolean isFulltextIndex =
-                            Builder.this.isFulltextIndex;
+                        Builder.this.isFulltextIndex;
                     private final boolean includesNodeData =
-                            Builder.this.includesNodeData;
+                        Builder.this.includesNodeData;
                     private final List<OrderEntry> sortOrder =
-                            Builder.this.sortOrder == null ?
+                        Builder.this.sortOrder == null ?
                             null : new ArrayList<OrderEntry>(
-                                    Builder.this.sortOrder);
+                            Builder.this.sortOrder);
                     private final NodeState definition =
-                            Builder.this.definition;
+                        Builder.this.definition;
                     private final PropertyRestriction propRestriction =
-                            Builder.this.propRestriction;
+                        Builder.this.propRestriction;
                     private final String pathPrefix =
-                            Builder.this.pathPrefix;
+                        Builder.this.pathPrefix;
                     private final boolean supportsPathRestriction =
-                            Builder.this.supportsPathRestriction;
+                        Builder.this.supportsPathRestriction;
                     private final Map<String, Object> attributes =
-                            Builder.this.attributes;
+                        Builder.this.attributes;
                     private final String planName = Builder.this.planName;
                     private final boolean deprecated =
-                            Builder.this.deprecated;
+                        Builder.this.deprecated;
                     private final boolean logWarningForPathFilterMismatch = Builder.this.logWarningForPathFilterMismatch;
                     private final Map<String, List<String>> additionalMessages = Builder.this.additionalMessages;
 
                     private String getAdditionalMessageString() {
                         return additionalMessages.entrySet().stream()
-                                .map(e -> e.getKey() + " : " + e.getValue())
-                                .collect(Collectors.joining(", "));
+                                                 .map(e -> e.getKey() + " : " + e.getValue())
+                                                 .collect(Collectors.joining(", "));
                     }
 
                     @Override
                     public String toString() {
                         return String.format(
-                              "{ costPerExecution : %s,"
-                            + " costPerEntry : %s,"
-                            + " estimatedEntryCount : %s,"
-                            + " filter : %s,"
-                            + " isDelayed : %s,"
-                            + " isFulltextIndex : %s,"
-                            + " includesNodeData : %s,"
-                            + " sortOrder : %s,"
-                            + " definition : %s,"
-                            + " propertyRestriction : %s,"
-                            + " pathPrefix : %s,"
-                            + " deprecated : %s,"
-                            + " supportsPathRestriction : %s,"
-                            + " additionalMessage : %s,"
-                            + " logWarningForPathFilterMismatch : %s }",
+                            "{ costPerExecution : %s,"
+                                + " costPerEntry : %s,"
+                                + " estimatedEntryCount : %s,"
+                                + " filter : %s,"
+                                + " isDelayed : %s,"
+                                + " isFulltextIndex : %s,"
+                                + " includesNodeData : %s,"
+                                + " sortOrder : %s,"
+                                + " definition : %s,"
+                                + " propertyRestriction : %s,"
+                                + " pathPrefix : %s,"
+                                + " deprecated : %s,"
+                                + " supportsPathRestriction : %s,"
+                                + " additionalMessage : %s,"
+                                + " logWarningForPathFilterMismatch : %s }",
                             costPerExecution,
                             costPerEntry,
                             estimatedEntryCount,
@@ -604,7 +592,7 @@ public interface QueryIndex {
                             supportsPathRestriction,
                             getAdditionalMessageString(),
                             logWarningForPathFilterMismatch
-                            );
+                        );
                     }
 
                     @Override
@@ -700,7 +688,7 @@ public interface QueryIndex {
                     public boolean isDeprecated() {
                         return deprecated;
                     }
-                    
+
                     @Override
                     public boolean logWarningForPathFilterMismatch() {
                         return logWarningForPathFilterMismatch;
@@ -735,7 +723,7 @@ public interface QueryIndex {
         /**
          * The sort order (ascending or descending).
          */
-        public enum Order { ASCENDING, DESCENDING }
+        public enum Order {ASCENDING, DESCENDING}
 
         private final Order order;
 

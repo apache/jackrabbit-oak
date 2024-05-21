@@ -19,30 +19,27 @@
 package org.apache.jackrabbit.api.binary;
 
 import java.net.URI;
-
 import javax.jcr.Binary;
 import javax.jcr.RepositoryException;
-
 import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ProviderType;
 
 /**
- * This extension interface provides a mechanism whereby a client can download
- * a {@link Binary} directly from a storage location.
+ * This extension interface provides a mechanism whereby a client can download a {@link Binary}
+ * directly from a storage location.
  */
 @ProviderType
 public interface BinaryDownload extends Binary {
+
     /**
-     *
      * Returns a URI for downloading this binary directly from the storage location.
      *
      * <p>
-     * Using the {@code downloadOptions} parameter, some response headers of the
-     * download request can be overwritten, if supported by the storage provider.
-     * This is necessary to pass information that is only stored in the JCR in
-     * application specific structures, and not reliably available in the binary
-     * storage.
-     *
+     * Using the {@code downloadOptions} parameter, some response headers of the download request
+     * can be overwritten, if supported by the storage provider. This is necessary to pass
+     * information that is only stored in the JCR in application specific structures, and not
+     * reliably available in the binary storage.
+     * <p>
      * {@link BinaryDownloadOptions} supports, but is not limited to:
      * <ul>
      *     <li>
@@ -62,7 +59,7 @@ public interface BinaryDownload extends Binary {
      *         whether to show the content inline of a page (inline) or enforce a download/save as (attachment)
      *     </li>
      * </ul>
-     *
+     * <p>
      * Specifying {@link BinaryDownloadOptions#DEFAULT} will use mostly empty
      * defaults, relying on the storage provider attributes for this binary
      * (that might be empty or different from the information in the JCR).
@@ -94,19 +91,16 @@ public interface BinaryDownload extends Binary {
      *     </li>
      * </ul>
      *
-     * @param downloadOptions
-     *            A {@link BinaryDownloadOptions} instance which is used to
-     *            request specific options on the binary to be downloaded.
-     *            {@link BinaryDownloadOptions#DEFAULT} should be used if the
-     *            caller wishes to accept the storage provider's default
-     *            behavior.
-     * @return A URI for downloading the binary directly, or {@code null} if the
-     *         binary cannot be downloaded directly or if the underlying
-     *         implementation does not support this capability.
-     * @throws RepositoryException if an error occurs trying to locate the
-     *             binary.
+     * @param downloadOptions A {@link BinaryDownloadOptions} instance which is used to request
+     *                        specific options on the binary to be downloaded.
+     *                        {@link BinaryDownloadOptions#DEFAULT} should be used if the caller
+     *                        wishes to accept the storage provider's default behavior.
+     * @return A URI for downloading the binary directly, or {@code null} if the binary cannot be
+     * annot be downloaded directly or if the underlying implementation does not support this
+     * capability.
+     * @throws RepositoryException if an error occurs trying to locate the binary.
      */
     @Nullable
     URI getURI(BinaryDownloadOptions downloadOptions)
-            throws RepositoryException;
+        throws RepositoryException;
 }

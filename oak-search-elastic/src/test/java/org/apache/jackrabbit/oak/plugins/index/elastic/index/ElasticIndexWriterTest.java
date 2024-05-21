@@ -16,18 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.index;
 
-import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
-import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
-import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexTracker;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-
-import java.io.IOException;
-
 import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticTestUtils.randomString;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -38,6 +26,17 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+
+import java.io.IOException;
+import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
+import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexTracker;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 
 public class ElasticIndexWriterTest {
 
@@ -61,7 +60,8 @@ public class ElasticIndexWriterTest {
     public void setUp() {
         closeable = MockitoAnnotations.openMocks(this);
         when(indexDefinitionMock.getIndexAlias()).thenReturn("test-index");
-        indexWriter = new ElasticIndexWriter(indexTrackerMock, elasticConnectionMock, indexDefinitionMock, bulkProcessorHandlerMock);
+        indexWriter = new ElasticIndexWriter(indexTrackerMock, elasticConnectionMock,
+            indexDefinitionMock, bulkProcessorHandlerMock);
     }
 
     @After
@@ -73,7 +73,8 @@ public class ElasticIndexWriterTest {
     public void singleUpdateDocument() throws IOException {
         indexWriter.updateDocument("/foo", new ElasticDocument("/foo"));
 
-        ArgumentCaptor<ElasticDocument> esDocumentCaptor = ArgumentCaptor.forClass(ElasticDocument.class);
+        ArgumentCaptor<ElasticDocument> esDocumentCaptor = ArgumentCaptor.forClass(
+            ElasticDocument.class);
         ArgumentCaptor<String> idCaptor = ArgumentCaptor.forClass(String.class);
         verify(bulkProcessorHandlerMock).update(idCaptor.capture(), esDocumentCaptor.capture());
 

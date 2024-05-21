@@ -54,6 +54,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 public class RecordTest {
+
     @Rule
     public TemporaryFolder folder = new TemporaryFolder(new File("target"));
 
@@ -94,7 +95,8 @@ public class RecordTest {
         byte[] source = new byte[size];
         random.nextBytes(source);
 
-        Blob value = new SegmentBlob(store.getBlobStore(), writer.writeStream(new ByteArrayInputStream(source)));
+        Blob value = new SegmentBlob(store.getBlobStore(),
+            writer.writeStream(new ByteArrayInputStream(source)));
         InputStream stream = value.getNewStream();
         checkBlob(source, value, 0);
         checkBlob(source, value, 1);
@@ -122,18 +124,20 @@ public class RecordTest {
     @Test
     public void testEmptyNode() throws IOException {
         NodeState before = EMPTY_NODE;
-        NodeState after = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(), writer.writeNode(before));
+        NodeState after = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(),
+            writer.writeNode(before));
         assertEquals(before, after);
     }
 
     @Test
     public void testSimpleNode() throws IOException {
         NodeState before = EMPTY_NODE.builder()
-                .setProperty("foo", "abc")
-                .setProperty("bar", 123)
-                .setProperty("baz", Math.PI)
-                .getNodeState();
-        NodeState after = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(), writer.writeNode(before));
+                                     .setProperty("foo", "abc")
+                                     .setProperty("bar", 123)
+                                     .setProperty("baz", Math.PI)
+                                     .getNodeState();
+        NodeState after = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(),
+            writer.writeNode(before));
         assertEquals(before, after);
     }
 
@@ -145,7 +149,8 @@ public class RecordTest {
             builder = builder.child("test");
         }
         NodeState before = builder.getNodeState();
-        NodeState after = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(), writer.writeNode(before));
+        NodeState after = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(),
+            writer.writeNode(before));
         assertEquals(before, after);
     }
 
@@ -155,20 +160,22 @@ public class RecordTest {
         for (int i = 0; i < 1000; i++) {
             builder.child("test" + i);
         }
-        NodeState before = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(), writer.writeNode(builder.getNodeState()));
+        NodeState before = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(),
+            writer.writeNode(builder.getNodeState()));
         assertEquals(builder.getNodeState(), before);
 
         builder = before.builder();
         for (int i = 0; i < 900; i++) {
             builder.getChildNode("test" + i).remove();
         }
-        NodeState after = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(), writer.writeNode(builder.getNodeState()));
+        NodeState after = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(),
+            writer.writeNode(builder.getNodeState()));
         assertEquals(builder.getNodeState(), after);
     }
 
     @Test
     public void testMultiValuedBinaryPropertyAcrossSegments()
-            throws IOException {
+        throws IOException {
         // biggest possible inlined value record
         byte[] data = new byte[Segment.MEDIUM_LIMIT - 1];
         random.nextBytes(data);
@@ -176,13 +183,15 @@ public class RecordTest {
         // create enough copies of the value to fill a full segment
         List<Blob> blobs = newArrayList();
         while (blobs.size() * data.length < Segment.MAX_SEGMENT_SIZE) {
-            blobs.add(new SegmentBlob(store.getBlobStore(), writer.writeStream(new ByteArrayInputStream(data))));
+            blobs.add(new SegmentBlob(store.getBlobStore(),
+                writer.writeStream(new ByteArrayInputStream(data))));
         }
 
         // write a simple node that'll now be stored in a separate segment
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.setProperty("test", blobs, BINARIES);
-        NodeState state = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(), writer.writeNode(builder.getNodeState()));
+        NodeState state = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(),
+            writer.writeNode(builder.getNodeState()));
 
         // all the blobs should still be accessible, even if they're
         // referenced from another segment
@@ -196,7 +205,8 @@ public class RecordTest {
     }
 
     @Test
-    public void testBinaryPropertyFromExternalSegmentStore() throws IOException, CommitFailedException {
+    public void testBinaryPropertyFromExternalSegmentStore()
+        throws IOException, CommitFailedException {
         byte[] data = new byte[Segment.MEDIUM_LIMIT + 1];
         random.nextBytes(data);
 
@@ -209,7 +219,8 @@ public class RecordTest {
 
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.setProperty(extPropertyState);
-        NodeState state = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(), writer.writeNode(builder.getNodeState()));
+        NodeState state = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(),
+            writer.writeNode(builder.getNodeState()));
 
         try {
             InputStream is = state.getProperty("binary").getValue(BINARY).getNewStream();
@@ -224,7 +235,8 @@ public class RecordTest {
     public void testStringPrimaryType() throws IOException {
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.setProperty("jcr:primaryType", "foo", STRING);
-        NodeState state = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(), writer.writeNode(builder.getNodeState()));
+        NodeState state = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(),
+            writer.writeNode(builder.getNodeState()));
         assertNotNull(state.getProperty("jcr:primaryType"));
     }
 
@@ -232,7 +244,8 @@ public class RecordTest {
     public void testStringMixinTypes() throws IOException {
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.setProperty("jcr:mixinTypes", singletonList("foo"), STRINGS);
-        NodeState state = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(), writer.writeNode(builder.getNodeState()));
+        NodeState state = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(),
+            writer.writeNode(builder.getNodeState()));
         assertNotNull(state.getProperty("jcr:mixinTypes"));
     }
 

@@ -23,7 +23,8 @@ import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgumen
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
 import java.io.File;
-
+import joptsimple.OptionParser;
+import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.plugins.index.datastore.DataStoreTextWriter;
 import org.apache.jackrabbit.oak.run.cli.BlobStoreFixture;
 import org.apache.jackrabbit.oak.run.cli.BlobStoreFixtureProvider;
@@ -36,11 +37,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.io.Closer;
-
-import joptsimple.OptionParser;
-
 public class TextExtractorMain {
+
     private static final Logger log = LoggerFactory.getLogger(TextExtractorMain.class);
 
     private TextExtractorMain() {
@@ -82,17 +80,19 @@ public class TextExtractorMain {
 
             if (tikaConfigFile != null) {
                 checkArgument(tikaConfigFile.exists(), "Tika config file %s does not exist",
-                        tikaConfigFile.getAbsolutePath());
+                    tikaConfigFile.getAbsolutePath());
             }
 
             if (storeDir != null) {
                 if (storeDir.exists()) {
-                    checkArgument(storeDir.isDirectory(), "Path [%s] specified for storing extracted " +
+                    checkArgument(storeDir.isDirectory(),
+                        "Path [%s] specified for storing extracted " +
                             "text content is not a directory", storeDir.getAbsolutePath());
                 }
             }
 
-            checkNotNull(dataFile, "Data file not configured with %s", tikaOpts.getDataFileSpecOpt());
+            checkNotNull(dataFile, "Data file not configured with %s",
+                tikaOpts.getDataFileSpecOpt());
 
             if (report || extract) {
                 //For report and extract case we do not need NodeStore access so create BlobStore directly
@@ -113,23 +113,25 @@ public class TextExtractorMain {
             // NOTE: The order of executing generate, populate and extract is correct in case the user
             // calls the tool with multiple actions in same run.
 
-            if (generate){
+            if (generate) {
                 checkNotNull(dataFile, "Data file path not provided");
                 log.info("Generated csv data to be stored in {}", dataFile.getAbsolutePath());
-                BinaryResourceProvider brp = new NodeStoreBinaryResourceProvider(nodeStore, blobStore);
+                BinaryResourceProvider brp = new NodeStoreBinaryResourceProvider(nodeStore,
+                    blobStore);
                 CSVFileGenerator generator = new CSVFileGenerator(dataFile);
                 generator.generate(brp.getBinaries(path));
             }
 
             if (populate) {
                 checkArgument(dataFile.exists(),
-                        "Data file %s does not exist", dataFile.getAbsolutePath());
+                    "Data file %s does not exist", dataFile.getAbsolutePath());
                 checkNotNull(indexDir, "Lucene index directory " +
-                        "must be specified via %s", tikaOpts.getIndexDirSpecOpt());
+                    "must be specified via %s", tikaOpts.getIndexDirSpecOpt());
                 checkNotNull(storeDir, "Directory to store extracted text content " +
-                        "must be specified via %s", tikaOpts.getStoreDirSpecOpt());
+                    "must be specified via %s", tikaOpts.getStoreDirSpecOpt());
 
-                DataStoreTextWriter writer = closer.register(new DataStoreTextWriter(storeDir, false));
+                DataStoreTextWriter writer = closer.register(
+                    new DataStoreTextWriter(storeDir, false));
 
                 TextPopulator textPopulator = new TextPopulator(writer);
                 textPopulator.populate(dataFile, indexDir);
@@ -137,9 +139,10 @@ public class TextExtractorMain {
 
             if (report || extract) {
                 checkArgument(dataFile.exists(),
-                        "Data file %s does not exist", dataFile.getAbsolutePath());
+                    "Data file %s does not exist", dataFile.getAbsolutePath());
 
-                CSVFileBinaryResourceProvider csvProvider = new CSVFileBinaryResourceProvider(dataFile, blobStore);
+                CSVFileBinaryResourceProvider csvProvider = new CSVFileBinaryResourceProvider(
+                    dataFile, blobStore);
                 closer.register(csvProvider);
                 binaryResourceProvider = csvProvider;
 
@@ -150,7 +153,7 @@ public class TextExtractorMain {
 
             if (extract) {
                 checkNotNull(storeDir, "Directory to store extracted text content " +
-                        "must be specified via %s", tikaOpts.getStoreDirSpecOpt());
+                    "must be specified via %s", tikaOpts.getStoreDirSpecOpt());
                 checkNotNull(blobStore, "BlobStore found to be null.");
 
                 DataStoreTextWriter writer = new DataStoreTextWriter(storeDir, false);

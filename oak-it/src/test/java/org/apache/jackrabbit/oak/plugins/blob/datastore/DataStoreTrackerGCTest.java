@@ -16,55 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
-import java.io.ByteArrayInputStream;
-import java.io.Closeable;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Random;
-import java.util.Set;
-import java.util.concurrent.ScheduledFuture;
-
-import ch.qos.logback.classic.Level;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Sets;
-import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.oak.api.Blob;
-import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
-import org.apache.jackrabbit.oak.plugins.blob.BlobTrackingStore;
-import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector;
-import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
-import org.apache.jackrabbit.oak.plugins.document.DocumentBlobReferenceRetriever;
-import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
-import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
-import org.apache.jackrabbit.oak.plugins.document.LeaseCheckMode;
-import org.apache.jackrabbit.oak.plugins.document.TestUtils;
-import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector;
-import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
-import org.apache.jackrabbit.oak.spi.cluster.ClusterRepositoryInfo;
-import org.apache.jackrabbit.oak.spi.blob.BlobStore;
-import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
-import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
-import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.apache.jackrabbit.oak.stats.Clock;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
-
-import static org.apache.jackrabbit.guava.common.base.StandardSystemProperty.JAVA_IO_TMPDIR;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
-import static org.apache.jackrabbit.guava.common.collect.Sets.union;
 import static java.lang.String.valueOf;
 import static java.util.concurrent.Executors.newSingleThreadExecutor;
 import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
@@ -72,6 +23,10 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.commons.io.FileUtils.forceDelete;
 import static org.apache.commons.io.IOUtils.closeQuietly;
+import static org.apache.jackrabbit.guava.common.base.StandardSystemProperty.JAVA_IO_TMPDIR;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.guava.common.collect.Sets.union;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.readStringsAsSet;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.writeStrings;
 import static org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils.createFDS;
@@ -86,9 +41,55 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeNoException;
 import static org.junit.Assume.assumeThat;
 
+import ch.qos.logback.classic.Level;
+import java.io.ByteArrayInputStream;
+import java.io.Closeable;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Random;
+import java.util.Set;
+import java.util.concurrent.ScheduledFuture;
+import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Sets;
+import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
+import org.apache.jackrabbit.oak.plugins.blob.BlobTrackingStore;
+import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector;
+import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
+import org.apache.jackrabbit.oak.plugins.document.DocumentBlobReferenceRetriever;
+import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.LeaseCheckMode;
+import org.apache.jackrabbit.oak.plugins.document.TestUtils;
+import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector;
+import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
+import org.apache.jackrabbit.oak.spi.cluster.ClusterRepositoryInfo;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.stats.Clock;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+
 /**
+ *
  */
 public class DataStoreTrackerGCTest {
+
     private Clock clock;
     private File blobStoreRoot;
 
@@ -156,7 +157,7 @@ public class DataStoreTrackerGCTest {
 
         // Simulate creation and active deletion after init without version gc to enable references to hang around
         List<String> addlAdded = doActiveDelete(cluster.nodeStore,
-            (DataStoreBlobStore) cluster.blobStore, tracker, folder,0, 2);
+            (DataStoreBlobStore) cluster.blobStore, tracker, folder, 0, 2);
         List<String> addlPresent = Lists.newArrayList(addlAdded.get(2), addlAdded.get(3));
         List<String> activeDeleted = Lists.newArrayList(addlAdded.get(0), addlAdded.get(1));
         state.blobsPresent.addAll(addlPresent);
@@ -180,7 +181,7 @@ public class DataStoreTrackerGCTest {
         BlobIdTracker tracker = (BlobIdTracker) ((BlobTrackingStore) s).getTracker();
         // Simulate active deletion before the init to ensure that the references also cleared
         List<String> addlAdded = doActiveDelete(cluster.nodeStore,
-            (DataStoreBlobStore) cluster.blobStore, tracker, folder,0, 2);
+            (DataStoreBlobStore) cluster.blobStore, tracker, folder, 0, 2);
         DataStoreState state = init(cluster.nodeStore, 0);
 
         // Force a snapshot of the tracker to refresh
@@ -233,7 +234,7 @@ public class DataStoreTrackerGCTest {
         DataStoreState state = init(cluster.nodeStore, 0);
 
         List<String> addlAdded = doActiveDelete(cluster.nodeStore,
-            (DataStoreBlobStore) cluster.blobStore, tracker, folder,0, 2);
+            (DataStoreBlobStore) cluster.blobStore, tracker, folder, 0, 2);
         List<String> addlPresent = Lists.newArrayList(addlAdded.get(2), addlAdded.get(3));
         List<String> activeDeleted = Lists.newArrayList(addlAdded.get(0), addlAdded.get(1));
         state.blobsPresent.addAll(addlPresent);
@@ -260,7 +261,7 @@ public class DataStoreTrackerGCTest {
         tracker.remove(f);
 
         List<String> addlAdded = doActiveDelete(cluster.nodeStore,
-            (DataStoreBlobStore) cluster.blobStore, tracker, folder,0, 2);
+            (DataStoreBlobStore) cluster.blobStore, tracker, folder, 0, 2);
         List<String> addlPresent = Lists.newArrayList(addlAdded.get(2), addlAdded.get(3));
         state.blobsPresent.addAll(addlPresent);
         state.blobsAdded.addAll(addlPresent);
@@ -269,7 +270,8 @@ public class DataStoreTrackerGCTest {
         assertEquals(1, cluster.gc.checkConsistency());
     }
 
-    private List<String> doActiveDelete(NodeStore nodeStore, DataStoreBlobStore blobStore, BlobIdTracker tracker,
+    private List<String> doActiveDelete(NodeStore nodeStore, DataStoreBlobStore blobStore,
+        BlobIdTracker tracker,
         TemporaryFolder folder, int delIdx, int num) throws Exception {
         List<String> set = Lists.newArrayList();
         NodeBuilder a = nodeStore.getRoot().builder();
@@ -284,7 +286,7 @@ public class DataStoreTrackerGCTest {
         List<String> deleted = Lists.newArrayList();
 
         //a = nodeStore.getRoot().builder();
-        for(int idx = delIdx; idx < delIdx + num; idx++) {
+        for (int idx = delIdx; idx < delIdx + num; idx++) {
             blobStore.deleteChunks(Lists.newArrayList(set.get(idx)), 0);
             deleted.add(set.get(idx));
             a.child("cactive" + idx).remove();
@@ -323,7 +325,8 @@ public class DataStoreTrackerGCTest {
         assertEquals(state.blobsPresent, retrieveTracked(tracker));
     }
 
-    private static Set<String> retrieveActiveDeleteTracked(BlobIdTracker tracker, TemporaryFolder folder) throws IOException {
+    private static Set<String> retrieveActiveDeleteTracked(BlobIdTracker tracker,
+        TemporaryFolder folder) throws IOException {
         File f = folder.newFile();
         Set<String> retrieved = readStringsAsSet(
             new FileInputStream(tracker.getDeleteTracker().retrieve(f.getAbsolutePath())), false);
@@ -340,7 +343,7 @@ public class DataStoreTrackerGCTest {
 
     private HashSet<String> addNodeSpecialChars(DocumentNodeStore ds) throws Exception {
         List<String> specialCharSets =
-            Lists.newArrayList("q\\%22afdg\\%22", "a\nbcd", "a\n\rabcd", "012\\efg" );
+            Lists.newArrayList("q\\%22afdg\\%22", "a\nbcd", "a\n\rabcd", "012\\efg");
         HashSet<String> set = new HashSet<String>();
         NodeBuilder a = ds.getRoot().builder();
         int toBeDeleted = 0;
@@ -441,7 +444,8 @@ public class DataStoreTrackerGCTest {
         return set;
     }
 
-    private void clusterGCInternal(Cluster cluster1, Cluster cluster2, boolean same) throws Exception {
+    private void clusterGCInternal(Cluster cluster1, Cluster cluster2, boolean same)
+        throws Exception {
         BlobStore s1 = cluster1.blobStore;
         BlobIdTracker tracker1 = (BlobIdTracker) ((BlobTrackingStore) s1).getTracker();
         DataStoreState state1 = init(cluster1.nodeStore, 0);
@@ -488,7 +492,6 @@ public class DataStoreTrackerGCTest {
             .schedule(tracker2.new SnapshotJob(), 0, MILLISECONDS);
         scheduledFuture2.get();
 
-
         // Capture logs for the second round of gc
         LogCustomizer customLogs = LogCustomizer
             .forLogger(MarkSweepGarbageCollector.class.getName())
@@ -514,6 +517,7 @@ public class DataStoreTrackerGCTest {
 
     /**
      * Tests GC twice on a 2 node shared datastore setup.
+     *
      * @throws Exception
      */
     @Test
@@ -526,6 +530,7 @@ public class DataStoreTrackerGCTest {
 
     /**
      * Tests GC twice on 2 node cluster setup.
+     *
      * @throws Exception
      */
     @Test
@@ -550,10 +555,10 @@ public class DataStoreTrackerGCTest {
     private static Set<String> retrieveTracked(BlobTracker tracker) throws IOException {
         Set<String> retrieved = newHashSet();
         Iterator<String> iter = tracker.get();
-        while(iter.hasNext()) {
+        while (iter.hasNext()) {
             retrieved.add(iter.next());
         }
-        closeQuietly((Closeable)iter);
+        closeQuietly((Closeable) iter);
         return retrieved;
     }
 
@@ -608,6 +613,7 @@ public class DataStoreTrackerGCTest {
     }
 
     class Cluster implements Closeable {
+
         DocumentNodeStore nodeStore;
         BlobStore blobStore;
         MarkSweepGarbageCollector gc;
@@ -618,16 +624,17 @@ public class DataStoreTrackerGCTest {
             this(clusterName, 1, new MemoryDocumentStore());
         }
 
-        public Cluster(String clusterName, int clusterId, MemoryDocumentStore store) throws Exception {
+        public Cluster(String clusterName, int clusterId, MemoryDocumentStore store)
+            throws Exception {
             blobStore = new DataStoreBlobStore(createFDS(blobStoreRoot, 50));
             nodeStore = builderProvider.newBuilder()
-                .setClusterId(clusterId)
-                .clock(clock)
-                .setLeaseCheckMode(LeaseCheckMode.LENIENT)
-                .setAsyncDelay(0)
-                .setDocumentStore(store)
-                .setBlobStore(blobStore)
-                .getNodeStore();
+                                       .setClusterId(clusterId)
+                                       .clock(clock)
+                                       .setLeaseCheckMode(LeaseCheckMode.LENIENT)
+                                       .setAsyncDelay(0)
+                                       .setDocumentStore(store)
+                                       .setBlobStore(blobStore)
+                                       .getNodeStore();
             repoId = ClusterRepositoryInfo.getOrCreateId(nodeStore);
             nodeStore.runBackgroundOperations();
 
@@ -666,6 +673,7 @@ public class DataStoreTrackerGCTest {
     }
 
     private class DataStoreState {
+
         Set<String> blobsAdded = newHashSet();
         Set<String> blobsPresent = newHashSet();
     }

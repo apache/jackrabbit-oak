@@ -16,21 +16,20 @@
  */
 package org.apache.jackrabbit.oak.run;
 
-import org.apache.commons.io.FileUtils;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.net.MalformedURLException;
 import java.nio.file.Files;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import org.apache.commons.io.FileUtils;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 public class DownloaderTest {
 
@@ -46,7 +45,8 @@ public class DownloaderTest {
         FileUtils.cleanDirectory(destinationFolder.getRoot());
         // create sparse files
         try (RandomAccessFile file1 = new RandomAccessFile(sourceFolder.newFile("file1.txt"), "rw");
-             RandomAccessFile file2 = new RandomAccessFile(sourceFolder.newFile("file2.txt"), "rw")) {
+            RandomAccessFile file2 = new RandomAccessFile(sourceFolder.newFile("file2.txt"),
+                "rw")) {
             file1.setLength(1024);
             file2.setLength(1024 * 1024);
         }
@@ -112,7 +112,8 @@ public class DownloaderTest {
         }
     }
 
-    private Downloader.Item createItem(String source, String destination) throws MalformedURLException {
+    private Downloader.Item createItem(String source, String destination)
+        throws MalformedURLException {
         Downloader.Item item = new Downloader.Item();
         item.source = new File(sourceFolder.getRoot(), source).toURI().toURL().toString();
         item.destination = new File(destinationFolder.getRoot(), destination).getAbsolutePath();

@@ -16,25 +16,25 @@
  */
 package org.apache.jackrabbit.oak.security.authentication.ldap.impl;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.directory.api.ldap.model.entry.Entry;
-import org.apache.directory.api.ldap.model.name.Dn;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
-import org.jetbrains.annotations.NotNull;
-import org.junit.Test;
-
-import java.util.Collection;
-import java.util.Map;
-
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.Collection;
+import java.util.Map;
+import org.apache.directory.api.ldap.model.entry.Entry;
+import org.apache.directory.api.ldap.model.name.Dn;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
+import org.jetbrains.annotations.NotNull;
+import org.junit.Test;
+
 public class LdapGroupTest extends LdapIdentityTest {
 
     @Override
-    LdapGroup mockIdentity(@NotNull LdapIdentityProvider idp, @NotNull ExternalIdentityRef ref, @NotNull String id, @NotNull String path, @NotNull Entry entry) {
+    LdapGroup mockIdentity(@NotNull LdapIdentityProvider idp, @NotNull ExternalIdentityRef ref,
+        @NotNull String id, @NotNull String path, @NotNull Entry entry) {
         return new LdapGroup(idp, ref, id, path, entry);
     }
 
@@ -43,7 +43,8 @@ public class LdapGroupTest extends LdapIdentityTest {
         Dn dn = when(mock(Dn.class).getName()).thenReturn("dn").getMock();
         when(entry.getDn()).thenReturn(dn);
 
-        Map<String, ExternalIdentityRef> memberRefs = ImmutableMap.of("m", mock(ExternalIdentityRef.class));
+        Map<String, ExternalIdentityRef> memberRefs = ImmutableMap.of("m",
+            mock(ExternalIdentityRef.class));
         when(idp.getDeclaredMemberRefs(ref, "dn")).thenReturn(memberRefs);
 
         Collection<ExternalIdentityRef> expected = memberRefs.values();

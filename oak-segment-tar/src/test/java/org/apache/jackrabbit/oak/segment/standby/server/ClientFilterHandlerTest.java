@@ -20,10 +20,9 @@ package org.apache.jackrabbit.oak.segment.standby.server;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import io.netty.channel.embedded.EmbeddedChannel;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
-
-import io.netty.channel.embedded.EmbeddedChannel;
 import org.junit.Test;
 
 public class ClientFilterHandlerTest {

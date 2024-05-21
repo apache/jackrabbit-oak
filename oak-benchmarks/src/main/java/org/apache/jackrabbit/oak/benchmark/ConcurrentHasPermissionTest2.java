@@ -23,18 +23,17 @@ import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.Privilege;
-
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.UserManager;
 
 /**
- * Concurrently calls Session#hasPermission on the deep tree where every 100th node
- * is access controlled and each policy node contains 100 ACEs for different
- * principals. The hasPermission methods is calles as follows:
- *
- * - the path argument a random path out of the deep tree
- * - the actions are randomly selected from the combinations listed in {@link #ACTIONS}
+ * Concurrently calls Session#hasPermission on the deep tree where every 100th node is access
+ * controlled and each policy node contains 100 ACEs for different principals. The hasPermission
+ * methods is calles as follows:
+ * <p>
+ * - the path argument a random path out of the deep tree - the actions are randomly selected from
+ * the combinations listed in {@link #ACTIONS}
  */
 public class ConcurrentHasPermissionTest2 extends ConcurrentHasPermissionTest {
 
@@ -63,9 +62,9 @@ public class ConcurrentHasPermissionTest2 extends ConcurrentHasPermissionTest {
         super.visitingNode(node, i);
 
         AccessControlManager acMgr = node.getSession().getAccessControlManager();
-        Privilege[] privileges = new Privilege[] {
-                acMgr.privilegeFromName(Privilege.JCR_READ),
-                acMgr.privilegeFromName(Privilege.JCR_READ_ACCESS_CONTROL)
+        Privilege[] privileges = new Privilege[]{
+            acMgr.privilegeFromName(Privilege.JCR_READ),
+            acMgr.privilegeFromName(Privilege.JCR_READ_ACCESS_CONTROL)
         };
         if (!node.getPath().contains("rep:policy")) {
             if (++counter == 100) {

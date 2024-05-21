@@ -16,24 +16,23 @@
  */
 package org.apache.jackrabbit.oak.benchmark.authorization;
 
+import static java.util.Collections.emptyMap;
+import static java.util.Collections.singletonMap;
+import static org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants.REP_GLOB;
+import static org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants.REP_GLOBS;
+import static org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants.REP_SUBTREES;
+
+import java.security.Principal;
+import javax.jcr.RepositoryException;
+import javax.jcr.Value;
+import javax.jcr.ValueFactory;
+import javax.jcr.security.Privilege;
 import joptsimple.internal.Strings;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import javax.jcr.RepositoryException;
-import javax.jcr.Value;
-import javax.jcr.ValueFactory;
-import javax.jcr.security.Privilege;
-import java.security.Principal;
-
-import static java.util.Collections.emptyMap;
-import static java.util.Collections.singletonMap;
-import static org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants.REP_GLOB;
-import static org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants.REP_GLOBS;
-import static org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants.REP_SUBTREES;
 
 public class MvGlobsAndSubtreesTest extends HasPermissionHasItemGetItemTest {
 
@@ -42,14 +41,15 @@ public class MvGlobsAndSubtreesTest extends HasPermissionHasItemGetItemTest {
         REP_GLOBS,
         REP_SUBTREES
     }
-    
+
     private static final String GLOB1 = "*/jcr:content";
     private static final String GLOB2 = "*/jcr:content/*";
     private static final String SUBTREE = "/jcr:content";
-    
+
     private final RestrictionType restrictionType;
 
-    public MvGlobsAndSubtreesTest(int itemsToRead, int numberOfACEs, int numberOfGroups, boolean doReport, String restrictionType) {
+    public MvGlobsAndSubtreesTest(int itemsToRead, int numberOfACEs, int numberOfGroups,
+        boolean doReport, String restrictionType) {
         super(itemsToRead, numberOfACEs, numberOfGroups, doReport);
 
         this.restrictionType = getRestrictionType(restrictionType);
@@ -68,31 +68,36 @@ public class MvGlobsAndSubtreesTest extends HasPermissionHasItemGetItemTest {
     }
 
     @Override
-    @NotNull String additionalMethodName() {
-        return super.additionalMethodName() + " with ac setup including restriction '"+restrictionType+"')";
+    @NotNull
+    String additionalMethodName() {
+        return super.additionalMethodName() + " with ac setup including restriction '"
+            + restrictionType + "')";
     }
 
     @Override
-    boolean createEntry(@NotNull JackrabbitAccessControlManager acMgr, @NotNull Principal principal, @NotNull String path,
-                        @NotNull Privilege[] privileges) throws RepositoryException {
+    boolean createEntry(@NotNull JackrabbitAccessControlManager acMgr, @NotNull Principal principal,
+        @NotNull String path,
+        @NotNull Privilege[] privileges) throws RepositoryException {
         JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, path);
         if (acl == null) {
             throw new IllegalStateException("No policy to setup ACE.");
         }
-        
+
         ValueFactory vf = adminSession.getValueFactory();
-        
+
         boolean added;
         if (restrictionType == RestrictionType.REP_GLOB) {
-            added = (acl.addEntry(principal, privileges, true, singletonMap(REP_GLOB, vf.createValue(GLOB1)), emptyMap()) ||
-                     acl.addEntry(principal, privileges, true, singletonMap(REP_GLOB, vf.createValue(GLOB2)), emptyMap()));
+            added = (acl.addEntry(principal, privileges, true,
+                singletonMap(REP_GLOB, vf.createValue(GLOB1)), emptyMap()) ||
+                acl.addEntry(principal, privileges, true,
+                    singletonMap(REP_GLOB, vf.createValue(GLOB2)), emptyMap()));
         } else if (restrictionType == RestrictionType.REP_GLOBS) {
-            added = acl.addEntry(principal, privileges, true, emptyMap(), 
-                    singletonMap(REP_GLOBS, new Value[] {vf.createValue(GLOB1), vf.createValue(GLOB2)}));
+            added = acl.addEntry(principal, privileges, true, emptyMap(),
+                singletonMap(REP_GLOBS, new Value[]{vf.createValue(GLOB1), vf.createValue(GLOB2)}));
         } else {
             // rep:subtrees
             added = acl.addEntry(principal, privileges, true, emptyMap(),
-                    singletonMap(REP_SUBTREES, new Value[] {vf.createValue(SUBTREE)}));
+                singletonMap(REP_SUBTREES, new Value[]{vf.createValue(SUBTREE)}));
         }
         if (added) {
             acMgr.setPolicy(acl.getPath(), acl);

@@ -64,14 +64,15 @@ import static org.mockito.Mockito.when;
 public abstract class AbstractPrincipalBasedTest extends AbstractSecurityTest {
 
     static final String INTERMEDIATE_PATH = UserConstants.DEFAULT_SYSTEM_RELATIVE_PATH + "/test";
-    static final String SUPPORTED_PATH = PathUtils.concat(UserConstants.DEFAULT_USER_PATH, INTERMEDIATE_PATH);
+    static final String SUPPORTED_PATH = PathUtils.concat(UserConstants.DEFAULT_USER_PATH,
+        INTERMEDIATE_PATH);
 
     static final String TEST_OAK_PATH = "/oak:content/child/grandchild/oak:subtree";
 
     static final Map<String, String> LOCAL_NAME_MAPPINGS = ImmutableMap.of(
-            "a","internal",
-            "b","http://www.jcp.org/jcr/1.0",
-            "c","http://jackrabbit.apache.org/oak/ns/1.0"
+        "a", "internal",
+        "b", "http://www.jcp.org/jcr/1.0",
+        "c", "http://jackrabbit.apache.org/oak/ns/1.0"
     );
 
     private User testSystemUser;
@@ -84,7 +85,7 @@ public abstract class AbstractPrincipalBasedTest extends AbstractSecurityTest {
     public void before() throws Exception {
         super.before();
         namePathMapper = new NamePathMapperImpl(new LocalNameMapper(root, LOCAL_NAME_MAPPINGS));
-        testJcrPath =  getNamePathMapper().getJcrPath(TEST_OAK_PATH);
+        testJcrPath = getNamePathMapper().getJcrPath(TEST_OAK_PATH);
         testContentJcrPath = PathUtils.getAncestorPath(testJcrPath, 3);
     }
 
@@ -107,15 +108,19 @@ public abstract class AbstractPrincipalBasedTest extends AbstractSecurityTest {
         SecurityProvider sp = super.initSecurityProvider();
         principalBasedAuthorizationConfiguration = new PrincipalBasedAuthorizationConfiguration();
         principalBasedAuthorizationConfiguration.bindFilterProvider(getFilterProvider());
-        principalBasedAuthorizationConfiguration.bindMountInfoProvider(Mounts.defaultMountInfoProvider());
-        SecurityProviderHelper.updateConfig(sp, principalBasedAuthorizationConfiguration, AuthorizationConfiguration.class);
+        principalBasedAuthorizationConfiguration.bindMountInfoProvider(
+            Mounts.defaultMountInfoProvider());
+        SecurityProviderHelper.updateConfig(sp, principalBasedAuthorizationConfiguration,
+            AuthorizationConfiguration.class);
         return sp;
     }
 
     @Override
     @NotNull
-    protected Privilege[] privilegesFromNames(@NotNull String... privilegeNames) throws RepositoryException {
-        Iterable<String> pn = Iterables.transform(ImmutableSet.copyOf(privilegeNames), privName -> getNamePathMapper().getJcrName(privName));
+    protected Privilege[] privilegesFromNames(@NotNull String... privilegeNames)
+        throws RepositoryException {
+        Iterable<String> pn = Iterables.transform(ImmutableSet.copyOf(privilegeNames),
+            privName -> getNamePathMapper().getJcrName(privName));
         return super.privilegesFromNames(pn);
     }
 
@@ -145,8 +150,11 @@ public abstract class AbstractPrincipalBasedTest extends AbstractSecurityTest {
     }
 
     @NotNull
-    PrincipalPolicyImpl getPrincipalPolicyImpl(@NotNull Principal testPrincipal, @NotNull JackrabbitAccessControlManager acMgr) throws Exception {
-        for (JackrabbitAccessControlPolicy policy : ObjectArrays.concat(acMgr.getApplicablePolicies(testPrincipal), acMgr.getPolicies(testPrincipal), JackrabbitAccessControlPolicy.class)) {
+    PrincipalPolicyImpl getPrincipalPolicyImpl(@NotNull Principal testPrincipal,
+        @NotNull JackrabbitAccessControlManager acMgr) throws Exception {
+        for (JackrabbitAccessControlPolicy policy : ObjectArrays.concat(
+            acMgr.getApplicablePolicies(testPrincipal), acMgr.getPolicies(testPrincipal),
+            JackrabbitAccessControlPolicy.class)) {
             if (policy instanceof PrincipalPolicyImpl) {
                 return (PrincipalPolicyImpl) policy;
             }
@@ -155,7 +163,8 @@ public abstract class AbstractPrincipalBasedTest extends AbstractSecurityTest {
     }
 
     @NotNull
-    PrincipalPolicyImpl setupPrincipalBasedAccessControl(@NotNull Principal testPrincipal, @Nullable String effectivePath, @NotNull String... privNames) throws Exception {
+    PrincipalPolicyImpl setupPrincipalBasedAccessControl(@NotNull Principal testPrincipal,
+        @Nullable String effectivePath, @NotNull String... privNames) throws Exception {
         // set principal-based policy for 'testPrincipal'
         JackrabbitAccessControlManager jacm = getAccessControlManager(root);
         PrincipalPolicyImpl policy = getPrincipalPolicyImpl(testPrincipal, jacm);
@@ -164,17 +173,21 @@ public abstract class AbstractPrincipalBasedTest extends AbstractSecurityTest {
         return policy;
     }
 
-    boolean addPrincipalBasedEntry(@NotNull PrincipalPolicyImpl policy, @Nullable String effectivePath, @NotNull String... privNames) throws Exception {
+    boolean addPrincipalBasedEntry(@NotNull PrincipalPolicyImpl policy,
+        @Nullable String effectivePath, @NotNull String... privNames) throws Exception {
         boolean mod = policy.addEntry(effectivePath, privilegesFromNames(privNames));
         getAccessControlManager(root).setPolicy(policy.getPath(), policy);
         return mod;
     }
 
-    boolean addDefaultEntry(@Nullable String path, @NotNull Principal principal, @NotNull String... privNames) throws Exception {
+    boolean addDefaultEntry(@Nullable String path, @NotNull Principal principal,
+        @NotNull String... privNames) throws Exception {
         return addDefaultEntry(path, principal, null, null, privNames);
     }
 
-    boolean addDefaultEntry(@Nullable String path, @NotNull Principal principal, @Nullable Map<String, Value> restr, @Nullable Map<String, Value[]> mvRestr, @NotNull String... privNames) throws Exception {
+    boolean addDefaultEntry(@Nullable String path, @NotNull Principal principal,
+        @Nullable Map<String, Value> restr, @Nullable Map<String, Value[]> mvRestr,
+        @NotNull String... privNames) throws Exception {
         JackrabbitAccessControlManager jacm = getAccessControlManager(root);
         JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(jacm, path);
         checkNotNull(acl);
@@ -185,8 +198,10 @@ public abstract class AbstractPrincipalBasedTest extends AbstractSecurityTest {
     }
 
     @NotNull
-    PrincipalBasedPermissionProvider createPermissionProvider(@NotNull Root root, @NotNull Principal... principals) {
-        PermissionProvider pp = principalBasedAuthorizationConfiguration.getPermissionProvider(root, root.getContentSession().getWorkspaceName(), ImmutableSet.copyOf(principals));
+    PrincipalBasedPermissionProvider createPermissionProvider(@NotNull Root root,
+        @NotNull Principal... principals) {
+        PermissionProvider pp = principalBasedAuthorizationConfiguration.getPermissionProvider(root,
+            root.getContentSession().getWorkspaceName(), ImmutableSet.copyOf(principals));
         if (pp instanceof PrincipalBasedPermissionProvider) {
             return (PrincipalBasedPermissionProvider) pp;
         } else {
@@ -195,7 +210,8 @@ public abstract class AbstractPrincipalBasedTest extends AbstractSecurityTest {
     }
 
     PrincipalBasedAccessControlManager createAccessControlManager(@NotNull Root root) {
-        AccessControlManager acMgr = principalBasedAuthorizationConfiguration.getAccessControlManager(root, getNamePathMapper());
+        AccessControlManager acMgr = principalBasedAuthorizationConfiguration.getAccessControlManager(
+            root, getNamePathMapper());
         if (acMgr instanceof PrincipalBasedAccessControlManager) {
             return (PrincipalBasedAccessControlManager) acMgr;
         } else {
@@ -215,23 +231,25 @@ public abstract class AbstractPrincipalBasedTest extends AbstractSecurityTest {
 
     @NotNull
     MgrProvider getMgrProvider(Root r) {
-        return new MgrProviderImpl(principalBasedAuthorizationConfiguration, r, getNamePathMapper());
+        return new MgrProviderImpl(principalBasedAuthorizationConfiguration, r,
+            getNamePathMapper());
     }
 
     @NotNull
     PrincipalBasedAuthorizationConfiguration getPrincipalBasedAuthorizationConfiguration() {
         return principalBasedAuthorizationConfiguration;
     }
-    
-    static void assertEffectivePolicies(@NotNull AccessControlPolicy[] effective, int expectedPolicies, 
-                                        int principalPolicySize, boolean readPolicyExpected) {
+
+    static void assertEffectivePolicies(@NotNull AccessControlPolicy[] effective,
+        int expectedPolicies,
+        int principalPolicySize, boolean readPolicyExpected) {
         assertEquals(expectedPolicies, effective.length);
         if (principalPolicySize > -1) {
             assertTrue(effective[0] instanceof ImmutablePrincipalPolicy);
             assertEquals(principalPolicySize, ((ImmutablePrincipalPolicy) effective[0]).size());
         }
         if (readPolicyExpected) {
-            assertTrue(effective[effective.length-1] instanceof ReadPolicy);
+            assertTrue(effective[effective.length - 1] instanceof ReadPolicy);
         }
     }
 }

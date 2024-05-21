@@ -16,6 +16,28 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.composite;
 
+import static org.apache.jackrabbit.oak.commons.PathUtils.ROOT_PATH;
+import static org.apache.jackrabbit.oak.security.authorization.composite.AbstractCompositeProviderTest.TEST_A_B_C_PATH;
+import static org.apache.jackrabbit.oak.security.authorization.composite.AbstractCompositeProviderTest.TEST_A_PATH;
+import static org.apache.jackrabbit.oak.security.authorization.composite.AbstractCompositeProviderTest.TEST_CHILD_PATH;
+import static org.apache.jackrabbit.oak.security.authorization.composite.AbstractCompositeProviderTest.TEST_PATH;
+import static org.apache.jackrabbit.oak.security.authorization.composite.AbstractCompositeProviderTest.TEST_PATH_2;
+import static org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions.ADD_NODE;
+import static org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions.ALL;
+import static org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions.MODIFY_ACCESS_CONTROL;
+import static org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions.NODE_TYPE_DEFINITION_MANAGEMENT;
+import static org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions.NO_PERMISSION;
+import static org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions.READ;
+import static org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions.READ_NODE;
+import static org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions.SET_PROPERTY;
+import static org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions.WORKSPACE_MANAGEMENT;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
+import java.security.Principal;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Set;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
@@ -38,29 +60,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-
-import java.security.Principal;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Set;
-
-import static org.apache.jackrabbit.oak.commons.PathUtils.ROOT_PATH;
-import static org.apache.jackrabbit.oak.security.authorization.composite.AbstractCompositeProviderTest.TEST_A_B_C_PATH;
-import static org.apache.jackrabbit.oak.security.authorization.composite.AbstractCompositeProviderTest.TEST_A_PATH;
-import static org.apache.jackrabbit.oak.security.authorization.composite.AbstractCompositeProviderTest.TEST_CHILD_PATH;
-import static org.apache.jackrabbit.oak.security.authorization.composite.AbstractCompositeProviderTest.TEST_PATH;
-import static org.apache.jackrabbit.oak.security.authorization.composite.AbstractCompositeProviderTest.TEST_PATH_2;
-import static org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions.ADD_NODE;
-import static org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions.ALL;
-import static org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions.MODIFY_ACCESS_CONTROL;
-import static org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions.NODE_TYPE_DEFINITION_MANAGEMENT;
-import static org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions.NO_PERMISSION;
-import static org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions.READ;
-import static org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions.READ_NODE;
-import static org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions.SET_PROPERTY;
-import static org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions.WORKSPACE_MANAGEMENT;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 /**
  * Tests for OAK-9798

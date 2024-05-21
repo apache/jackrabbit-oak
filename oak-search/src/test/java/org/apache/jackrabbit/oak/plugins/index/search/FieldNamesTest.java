@@ -22,6 +22,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 public class FieldNamesTest {
+
     @Test
     public void checkPropertyFieldNames() {
         assertPropertyFieldName("abc", true);
@@ -42,6 +43,8 @@ public class FieldNamesTest {
     }
 
     private void assertPropertyFieldName(String name, boolean expected) {
-        Assert.assertEquals("Check for field name " + name + " doesn't meet expectation - " + expected, FieldNames.isPropertyField(name), expected);
+        Assert.assertEquals(
+            "Check for field name " + name + " doesn't meet expectation - " + expected,
+            FieldNames.isPropertyField(name), expected);
     }
 }

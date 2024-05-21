@@ -16,10 +16,7 @@
  */
 package org.apache.jackrabbit.oak.commons.sort;
 
-import org.apache.jackrabbit.oak.commons.Compression;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import static org.junit.Assert.assertArrayEquals;
 
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
@@ -37,16 +34,21 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.function.Function;
-
-import static org.junit.Assert.assertArrayEquals;
+import org.apache.jackrabbit.oak.commons.Compression;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 public class ExternalSortByteArrayTest {
+
     @Rule
     public TemporaryFolder folder = new TemporaryFolder(new File("target"));
     private final static Charset charset = StandardCharsets.UTF_8;
     private final static Comparator<BinaryTestLine> cmp = Comparator.naturalOrder();
-    private final static Function<byte[], BinaryTestLine> byteArrayToType = line -> line != null ? new BinaryTestLine(line) : null;
-    private final static Function<BinaryTestLine, byte[]> typeToByteArray = tl -> tl != null ? tl.bytes : null;
+    private final static Function<byte[], BinaryTestLine> byteArrayToType = line -> line != null
+        ? new BinaryTestLine(line) : null;
+    private final static Function<BinaryTestLine, byte[]> typeToByteArray = tl -> tl != null
+        ? tl.bytes : null;
 
     @Test
     public void sortManyFilesNoCompression() throws Exception {
@@ -73,18 +75,21 @@ public class ExternalSortByteArrayTest {
         List<Path> intermediateFiles = createIntermediateFiles(testLinesShuffled, 10, compression);
         Path resultFile = folder.newFile(compression.addSuffix("sorted.json")).toPath();
 
-        try (BufferedOutputStream bos = new BufferedOutputStream(compression.getOutputStream(Files.newOutputStream(resultFile)))) {
+        try (BufferedOutputStream bos = new BufferedOutputStream(
+            compression.getOutputStream(Files.newOutputStream(resultFile)))) {
             ExternalSortByteArray.mergeSortedFilesBinary(intermediateFiles,
-                    bos,
-                    cmp,
-                    true,
-                    compression,
-                    typeToByteArray,
-                    byteArrayToType);
+                bos,
+                cmp,
+                true,
+                compression,
+                typeToByteArray,
+                byteArrayToType);
         }
 
         ArrayList<String> lines = new ArrayList<>();
-        try (BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(compression.getInputStream(Files.newInputStream(resultFile)), charset))) {
+        try (BufferedReader bufferedReader = new BufferedReader(
+            new InputStreamReader(compression.getInputStream(Files.newInputStream(resultFile)),
+                charset))) {
             while (true) {
                 String line = bufferedReader.readLine();
                 if (line == null) {
@@ -106,14 +111,16 @@ public class ExternalSortByteArrayTest {
         return testLines;
     }
 
-    private List<Path> createIntermediateFiles(List<BinaryTestLine> ffsLines, int numberOfFiles, Compression compression) throws Exception {
+    private List<Path> createIntermediateFiles(List<BinaryTestLine> ffsLines, int numberOfFiles,
+        Compression compression) throws Exception {
         Iterator<BinaryTestLine> ffsIter = ffsLines.iterator();
         Path workFolder = folder.newFolder("merge_many_test").toPath();
         ArrayList<Path> intermediateFiles = new ArrayList<>(numberOfFiles);
         int linesPerFile = ffsLines.size() / numberOfFiles;
 
         for (int fileIdx = 0; fileIdx < numberOfFiles; fileIdx++) {
-            Path intermediateFile = workFolder.resolve(compression.addSuffix("intermediate-" + fileIdx + ".json"));
+            Path intermediateFile = workFolder.resolve(
+                compression.addSuffix("intermediate-" + fileIdx + ".json"));
             ArrayList<BinaryTestLine> binaryTestLinesInFile = new ArrayList<>();
             while (binaryTestLinesInFile.size() < linesPerFile && ffsIter.hasNext()) {
                 binaryTestLinesInFile.add(ffsIter.next());
@@ -127,9 +134,9 @@ public class ExternalSortByteArrayTest {
             binaryTestLinesInFile.sort(cmp);
 
             try (BufferedWriter bw = new BufferedWriter(
-                    new OutputStreamWriter(
-                            compression.getOutputStream(
-                                    Files.newOutputStream(intermediateFile))))) {
+                new OutputStreamWriter(
+                    compression.getOutputStream(
+                        Files.newOutputStream(intermediateFile))))) {
                 for (BinaryTestLine binaryTestLine : binaryTestLinesInFile) {
                     bw.write(binaryTestLine.line);
                     bw.write("\n");
@@ -141,6 +148,7 @@ public class ExternalSortByteArrayTest {
     }
 
     private static class BinaryTestLine implements Comparable<BinaryTestLine> {
+
         final String line;
         final int value;
         final byte[] bytes;
@@ -164,8 +172,12 @@ public class ExternalSortByteArrayTest {
 
         @Override
         public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
             BinaryTestLine binaryTestLine = (BinaryTestLine) o;
             return line.equals(binaryTestLine.line);
         }

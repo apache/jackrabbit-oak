@@ -22,26 +22,22 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import javax.jcr.RepositoryException;
-
+import org.apache.jackrabbit.guava.common.collect.ArrayListMultimap;
+import org.apache.jackrabbit.guava.common.collect.ListMultimap;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.jcr.session.SessionContext;
-import org.apache.jackrabbit.oak.namepath.impl.LocalNameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.namepath.impl.LocalNameMapper;
 import org.apache.jackrabbit.oak.namepath.impl.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.plugins.name.Namespaces;
 import org.apache.jackrabbit.oak.spi.xml.Importer;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
-import org.apache.jackrabbit.guava.common.collect.ArrayListMultimap;
-import org.apache.jackrabbit.guava.common.collect.ListMultimap;
-
 /**
- * {@code TargetImportHandler} serves as the base class for the concrete
- * classes {@code {@link DocViewImportHandler}} and
- * {@code {@link SysViewImportHandler}}.
+ * {@code TargetImportHandler} serves as the base class for the concrete classes
+ * {@code {@link DocViewImportHandler}} and {@code {@link SysViewImportHandler}}.
  */
 public abstract class TargetImportHandler extends DefaultHandler {
 
@@ -73,8 +69,8 @@ public abstract class TargetImportHandler extends DefaultHandler {
     }
 
     /**
-     * Initializes the underlying {@link org.apache.jackrabbit.oak.spi.xml.Importer} instance. This method
-     * is called by the XML parser when the XML document starts.
+     * Initializes the underlying {@link org.apache.jackrabbit.oak.spi.xml.Importer} instance. This
+     * method is called by the XML parser when the XML document starts.
      *
      * @throws SAXException if the importer can not be initialized
      * @see DefaultHandler#startDocument()
@@ -89,8 +85,8 @@ public abstract class TargetImportHandler extends DefaultHandler {
     }
 
     /**
-     * Closes the underlying {@link org.apache.jackrabbit.oak.spi.xml.Importer} instance. This method
-     * is called by the XML parser when the XML document ends.
+     * Closes the underlying {@link org.apache.jackrabbit.oak.spi.xml.Importer} instance. This
+     * method is called by the XML parser when the XML document ends.
      *
      * @throws SAXException if the importer can not be closed
      * @see DefaultHandler#endDocument()
@@ -104,13 +100,12 @@ public abstract class TargetImportHandler extends DefaultHandler {
         }
     }
 
-
     //--------------------------------------------------------
 
     public NamePathMapper currentNamePathMapper() {
         return new NamePathMapperImpl(new LocalNameMapper(
-                sessionContext.getSessionDelegate().getRoot(),
-                documentPrefixMap));
+            sessionContext.getSessionDelegate().getRoot(),
+            documentPrefixMap));
     }
 
     private Map<String, String> createCurrentPrefixMap() {

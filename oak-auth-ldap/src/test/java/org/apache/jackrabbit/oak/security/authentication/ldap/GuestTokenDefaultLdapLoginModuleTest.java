@@ -16,10 +16,11 @@
  */
 package org.apache.jackrabbit.oak.security.authentication.ldap;
 
+import static org.junit.Assert.assertEquals;
+
 import java.util.Collections;
 import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.Configuration;
-
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.security.authentication.token.TokenLoginModule;
 import org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl;
@@ -27,8 +28,6 @@ import org.apache.jackrabbit.oak.spi.security.authentication.GuestLoginModule;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalLoginModule;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
 
 public class GuestTokenDefaultLdapLoginModuleTest extends TokenDefaultLdapLoginModuleTest {
 
@@ -38,22 +37,22 @@ public class GuestTokenDefaultLdapLoginModuleTest extends TokenDefaultLdapLoginM
             @Override
             public AppConfigurationEntry[] getAppConfigurationEntry(String s) {
                 return new AppConfigurationEntry[]{
-                        new AppConfigurationEntry(
-                                GuestLoginModule.class.getName(),
-                                AppConfigurationEntry.LoginModuleControlFlag.OPTIONAL,
-                                Collections.<String, Object>emptyMap()),
-                        new AppConfigurationEntry(
-                                TokenLoginModule.class.getName(),
-                                AppConfigurationEntry.LoginModuleControlFlag.SUFFICIENT,
-                                Collections.<String, Object>emptyMap()),
-                        new AppConfigurationEntry(
-                                LoginModuleImpl.class.getName(),
-                                AppConfigurationEntry.LoginModuleControlFlag.SUFFICIENT,
-                                Collections.<String, Object>emptyMap()),
-                        new AppConfigurationEntry(
-                                ExternalLoginModule.class.getName(),
-                                AppConfigurationEntry.LoginModuleControlFlag.REQUIRED,
-                                options)
+                    new AppConfigurationEntry(
+                        GuestLoginModule.class.getName(),
+                        AppConfigurationEntry.LoginModuleControlFlag.OPTIONAL,
+                        Collections.<String, Object>emptyMap()),
+                    new AppConfigurationEntry(
+                        TokenLoginModule.class.getName(),
+                        AppConfigurationEntry.LoginModuleControlFlag.SUFFICIENT,
+                        Collections.<String, Object>emptyMap()),
+                    new AppConfigurationEntry(
+                        LoginModuleImpl.class.getName(),
+                        AppConfigurationEntry.LoginModuleControlFlag.SUFFICIENT,
+                        Collections.<String, Object>emptyMap()),
+                    new AppConfigurationEntry(
+                        ExternalLoginModule.class.getName(),
+                        AppConfigurationEntry.LoginModuleControlFlag.REQUIRED,
+                        options)
                 };
             }
         };
@@ -61,8 +60,7 @@ public class GuestTokenDefaultLdapLoginModuleTest extends TokenDefaultLdapLoginM
 
     /**
      * Null login must succeed and result in an guest session as the OPTIONAL
-     * {@link GuestLoginModule} adds {@link javax.jcr.GuestCredentials} to the
-     * shared state.
+     * {@link GuestLoginModule} adds {@link javax.jcr.GuestCredentials} to the shared state.
      *
      * @throws Exception
      */

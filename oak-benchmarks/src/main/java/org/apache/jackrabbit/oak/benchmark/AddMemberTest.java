@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.benchmark;
 import java.util.ArrayList;
 import java.util.List;
 import javax.jcr.Session;
-
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
@@ -29,12 +28,12 @@ import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Test the performance of adding a configured number of members to groups. The
- * following parameters can be used to run the benchmark:
- *
- * - numberOfMembers : the number of members that should be added in the test run
- * - batchSize : the number of users to be added as members before {@link Session#save()} is called.
- *
+ * Test the performance of adding a configured number of members to groups. The following parameters
+ * can be used to run the benchmark:
+ * <p>
+ * - numberOfMembers : the number of members that should be added in the test run - batchSize : the
+ * number of users to be added as members before {@link Session#save()} is called.
+ * <p>
  * In contrast to {@link AddMembersTest}, this benchmark will always call
  * {@link Group#addMember(Authorizable)}.
  */
@@ -57,7 +56,8 @@ public class AddMemberTest extends AddMembersTest {
     }
 
     @Override
-    protected void addMembers(@NotNull UserManager userManager, @NotNull Group group, @NotNull Session s) throws Exception {
+    protected void addMembers(@NotNull UserManager userManager, @NotNull Group group,
+        @NotNull Session s) throws Exception {
         int j = 1;
         for (int i = 0; i <= numberOfMembers; i++) {
             String userPath = userPaths.get(random.nextInt(numberOfMembers));

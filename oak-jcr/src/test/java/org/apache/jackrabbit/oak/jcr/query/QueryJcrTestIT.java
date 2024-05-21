@@ -62,6 +62,7 @@ public class QueryJcrTestIT extends TCKBase {
             protected void setUp() throws Exception {
                 System.setProperty("oak.queryMinPrefetch", "1000");
             }
+
             @Override
             protected void tearDown() throws Exception {
                 System.clearProperty("oak.queryMinPrefetch");

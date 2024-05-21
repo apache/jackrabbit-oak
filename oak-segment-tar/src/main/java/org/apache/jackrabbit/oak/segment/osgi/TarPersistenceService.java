@@ -18,6 +18,12 @@
  */
 package org.apache.jackrabbit.oak.segment.osgi;
 
+import static org.osgi.framework.Constants.SERVICE_PID;
+
+import java.io.File;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.segment.file.tar.TarPersistence;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
@@ -31,32 +37,28 @@ import org.osgi.service.metatype.annotations.AttributeDefinition;
 import org.osgi.service.metatype.annotations.Designate;
 import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 
-import java.io.File;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
-
-import static org.osgi.framework.Constants.SERVICE_PID;
-
 @Component(configurationPolicy = ConfigurationPolicy.REQUIRE)
 @Designate(ocd = TarPersistenceService.Configuration.class)
 public class TarPersistenceService {
 
     @ObjectClassDefinition(
-            name = "Oak TAR segment persistence service",
-            description = "Apache Jackrabbit Oak SegmentPersistence implementation" +
-                "used to configure a TAR persistence.")
+        name = "Oak TAR segment persistence service",
+        description = "Apache Jackrabbit Oak SegmentPersistence implementation" +
+            "used to configure a TAR persistence.")
     public @interface Configuration {
+
         @AttributeDefinition(
-                name = "Storage Directory",
-                description = "Path on the file system where this TAR persistence stores its files.")
+            name = "Storage Directory",
+            description = "Path on the file system where this TAR persistence stores its files.")
         String storage_directory();
 
         @AttributeDefinition(
-                name = "Role",
-                description = "The role of this persistence. It should be unique and may be used to filter " +
-                        "services in order to create services composed of multiple persistence instances. " +
-                        "E.g. a SplitPersistence composed of a TAR persistence and an Azure persistence.")
+            name = "Role",
+            description =
+                "The role of this persistence. It should be unique and may be used to filter " +
+                    "services in order to create services composed of multiple persistence instances. "
+                    +
+                    "E.g. a SplitPersistence composed of a TAR persistence and an Azure persistence.")
         String role() default "";
     }
 
@@ -71,11 +73,13 @@ public class TarPersistenceService {
         final TarPersistence tarPersistence = new TarPersistence(directory);
 
         final Map<Object, Object> properties = new HashMap<>();
-        properties.put(SERVICE_PID, String.format("%s(%s)", TarPersistence.class.getName(), storageDirectory));
+        properties.put(SERVICE_PID,
+            String.format("%s(%s)", TarPersistence.class.getName(), storageDirectory));
         if (!Objects.equals(configuration.role(), "")) {
             properties.put("role", configuration.role());
         }
-        registration = whiteboard.register(SegmentNodeStorePersistence.class, tarPersistence, properties);
+        registration = whiteboard.register(SegmentNodeStorePersistence.class, tarPersistence,
+            properties);
     }
 
     @Deactivate

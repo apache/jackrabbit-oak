@@ -19,20 +19,18 @@
 package org.apache.jackrabbit.oak.spi.query;
 
 import java.util.List;
-
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * A mechanism to index data. Indexes might be added or removed at runtime,
- * possibly by changing content in the repository. The provider knows about the
- * indexes available at a given time.
+ * A mechanism to index data. Indexes might be added or removed at runtime, possibly by changing
+ * content in the repository. The provider knows about the indexes available at a given time.
  */
 public interface QueryIndexProvider {
 
     /**
      * Get the currently configured indexes.
-     * 
+     *
      * @param nodeState the node state of the root
      * @return the list of indexes
      */

@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.plugins.version;
 
 import javax.jcr.RepositoryException;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;

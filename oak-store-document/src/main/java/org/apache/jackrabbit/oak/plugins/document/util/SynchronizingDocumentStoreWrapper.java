@@ -18,20 +18,18 @@ package org.apache.jackrabbit.oak.plugins.document.util;
 
 import java.util.List;
 import java.util.Map;
-
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
-import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import org.apache.jackrabbit.oak.plugins.document.Throttler;
+import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Implements a <code>DocumentStore</code> wrapper which synchronizes on all
- * methods.
+ * Implements a <code>DocumentStore</code> wrapper which synchronizes on all methods.
  */
 public class SynchronizingDocumentStoreWrapper implements DocumentStore {
 
@@ -42,36 +40,42 @@ public class SynchronizingDocumentStoreWrapper implements DocumentStore {
     }
 
     @Override
-    public synchronized <T extends Document> T find(final Collection<T> collection, final String key) {
+    public synchronized <T extends Document> T find(final Collection<T> collection,
+        final String key) {
         return store.find(collection, key);
     }
 
     @Override
-    public synchronized <T extends Document> T find(final Collection<T> collection, final String key, final int maxCacheAge) {
+    public synchronized <T extends Document> T find(final Collection<T> collection,
+        final String key, final int maxCacheAge) {
         return store.find(collection, key, maxCacheAge);
     }
 
     @Override
     @NotNull
-    public synchronized <T extends Document> List<T> query(final Collection<T> collection, final String fromKey,
-            final String toKey, final int limit) {
+    public synchronized <T extends Document> List<T> query(final Collection<T> collection,
+        final String fromKey,
+        final String toKey, final int limit) {
         return store.query(collection, fromKey, toKey, limit);
     }
 
     @Override
     @NotNull
-    public synchronized <T extends Document> List<T> query(final Collection<T> collection, final String fromKey,
-            final String toKey, final String indexedProperty, final long startValue, final int limit) {
+    public synchronized <T extends Document> List<T> query(final Collection<T> collection,
+        final String fromKey,
+        final String toKey, final String indexedProperty, final long startValue, final int limit) {
         return store.query(collection, fromKey, toKey, indexedProperty, startValue, limit);
     }
 
     @Override
     @NotNull
-    public synchronized <T extends Document> List<T> query(final Collection<T> collection, final String fromKey,
-                                                           final String toKey, final String indexedProperty,
-                                                           final long startValue, final int limit,
-                                                           final List<String> projection) throws DocumentStoreException {
-        return store.query(collection, fromKey, toKey, indexedProperty, startValue, limit, projection);
+    public synchronized <T extends Document> List<T> query(final Collection<T> collection,
+        final String fromKey,
+        final String toKey, final String indexedProperty,
+        final long startValue, final int limit,
+        final List<String> projection) throws DocumentStoreException {
+        return store.query(collection, fromKey, toKey, indexedProperty, startValue, limit,
+            projection);
     }
 
     @Override
@@ -80,46 +84,52 @@ public class SynchronizingDocumentStoreWrapper implements DocumentStore {
     }
 
     @Override
-    public synchronized <T extends Document> void remove(Collection<T> collection, List<String> keys) {
+    public synchronized <T extends Document> void remove(Collection<T> collection,
+        List<String> keys) {
         store.remove(collection, keys);
     }
 
     @Override
     public synchronized <T extends Document> int remove(Collection<T> collection,
-                                                        Map<String, Long> toRemove) {
+        Map<String, Long> toRemove) {
         return store.remove(collection, toRemove);
     }
 
     @Override
     public <T extends Document> int remove(Collection<T> collection,
-                                           String indexedProperty, long startValue, long endValue)
-            throws DocumentStoreException {
+        String indexedProperty, long startValue, long endValue)
+        throws DocumentStoreException {
         return store.remove(collection, indexedProperty, startValue, endValue);
     }
 
     @Override
-    public synchronized <T extends Document> boolean create(final Collection<T> collection, final List<UpdateOp> updateOps) {
+    public synchronized <T extends Document> boolean create(final Collection<T> collection,
+        final List<UpdateOp> updateOps) {
         return store.create(collection, updateOps);
     }
 
     @Override
-    public synchronized <T extends Document> T createOrUpdate(final Collection<T> collection, final UpdateOp update) {
+    public synchronized <T extends Document> T createOrUpdate(final Collection<T> collection,
+        final UpdateOp update) {
         return store.createOrUpdate(collection, update);
     }
 
     @Override
-    public synchronized <T extends Document> List<T> createOrUpdate(Collection<T> collection, List<UpdateOp> updateOps) {
+    public synchronized <T extends Document> List<T> createOrUpdate(Collection<T> collection,
+        List<UpdateOp> updateOps) {
         return store.createOrUpdate(collection, updateOps);
     }
 
     @Override
-    public synchronized <T extends Document> T findAndUpdate(final Collection<T> collection, final UpdateOp update) {
+    public synchronized <T extends Document> T findAndUpdate(final Collection<T> collection,
+        final UpdateOp update) {
         return store.findAndUpdate(collection, update);
     }
 
     @Override
     @NotNull
-    public synchronized <T extends Document> List<T> findAndUpdate(@NotNull Collection<T> collection, @NotNull List<UpdateOp> updateOps) {
+    public synchronized <T extends Document> List<T> findAndUpdate(
+        @NotNull Collection<T> collection, @NotNull List<UpdateOp> updateOps) {
         return store.findAndUpdate(collection, updateOps);
     }
 
@@ -132,9 +142,10 @@ public class SynchronizingDocumentStoreWrapper implements DocumentStore {
     public synchronized CacheInvalidationStats invalidateCache(Iterable<String> keys) {
         return store.invalidateCache(keys);
     }
-    
+
     @Override
-    public synchronized <T extends Document> void invalidateCache(Collection<T> collection, String key) {
+    public synchronized <T extends Document> void invalidateCache(Collection<T> collection,
+        String key) {
         store.invalidateCache(collection, key);
     }
 
@@ -144,7 +155,8 @@ public class SynchronizingDocumentStoreWrapper implements DocumentStore {
     }
 
     @Override
-    public synchronized <T extends Document> T getIfCached(final Collection<T> collection, final String key) {
+    public synchronized <T extends Document> T getIfCached(final Collection<T> collection,
+        final String key) {
         return store.getIfCached(collection, key);
     }
 
@@ -174,8 +186,7 @@ public class SynchronizingDocumentStoreWrapper implements DocumentStore {
     }
 
     /**
-     * Return the {@link Throttler} for the underlying store
-     * Default is no throttling
+     * Return the {@link Throttler} for the underlying store Default is no throttling
      *
      * @return throttler for document store
      */

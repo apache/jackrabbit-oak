@@ -17,9 +17,9 @@
 
 package org.apache.jackrabbit.oak.segment.tool;
 
+import static java.text.DateFormat.getDateTimeInstance;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static java.text.DateFormat.getDateTimeInstance;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 
@@ -32,7 +32,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
-
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -112,10 +111,9 @@ public class Check {
         /**
          * Whether to use memory mapped access or file access.
          *
-         * @param mmap {@code true} for memory mapped access, {@code false} for
-         *             file access {@code null} to determine the access mode
-         *             from the system architecture: memory mapped on 64 bit
-         *             systems, file access on  32 bit systems.
+         * @param mmap {@code true} for memory mapped access, {@code false} for file access
+         *             {@code null} to determine the access mode from the system architecture:
+         *             memory mapped on 64 bit systems, file access on  32 bit systems.
          * @return this builder.
          */
         public Builder withMmap(boolean mmap) {
@@ -124,9 +122,8 @@ public class Check {
         }
 
         /**
-         * The path to the journal of the segment store. This parameter is
-         * optional. If not provided, the journal in the default location is
-         * used.
+         * The path to the journal of the segment store. This parameter is optional. If not
+         * provided, the journal in the default location is used.
          *
          * @param journal the path to the journal of the segment store.
          * @return this builder.
@@ -137,11 +134,11 @@ public class Check {
         }
 
         /**
-         * Number of seconds between successive debug print statements. This
-         * parameter is not required and defaults to an arbitrary large number.
+         * Number of seconds between successive debug print statements. This parameter is not
+         * required and defaults to an arbitrary large number.
          *
-         * @param debugInterval number of seconds between successive debug print
-         *                      statements. It must be positive.
+         * @param debugInterval number of seconds between successive debug print statements. It must
+         *                      be positive.
          * @return this builder.
          */
         public Builder withDebugInterval(long debugInterval) {
@@ -151,11 +148,11 @@ public class Check {
         }
 
         /**
-         * Instruct the command to scan the full content of binary properties.
-         * This parameter is not required and defaults to {@code false}.
+         * Instruct the command to scan the full content of binary properties. This parameter is not
+         * required and defaults to {@code false}.
          *
-         * @param checkBinaries {@code true} if binary properties should be
-         *                      scanned, {@code false} otherwise.
+         * @param checkBinaries {@code true} if binary properties should be scanned, {@code false}
+         *                      otherwise.
          * @return this builder.
          */
         public Builder withCheckBinaries(boolean checkBinaries) {
@@ -164,8 +161,9 @@ public class Check {
         }
 
         /**
-         * Instruct the command to check head state.
-         * This parameter is not required and defaults to {@code true}.
+         * Instruct the command to check head state. This parameter is not required and defaults to
+         * {@code true}.
+         *
          * @param checkHead if {@code true}, will check the head state.
          * @return this builder.
          */
@@ -175,22 +173,23 @@ public class Check {
         }
 
         /**
-         * Instruct the command to check only the last {@code revisionsCount} revisions.
-         * This parameter is not required and defaults to {@code 1}.
+         * Instruct the command to check only the last {@code revisionsCount} revisions. This
+         * parameter is not required and defaults to {@code 1}.
+         *
          * @param revisionsCount number of revisions to check.
          * @return this builder.
          */
-        public Builder withRevisionsCount(Integer revisionsCount){
+        public Builder withRevisionsCount(Integer revisionsCount) {
             this.revisionsCount = revisionsCount;
             return this;
         }
 
         /**
-         * Instruct the command to check specified checkpoints.
-         * This parameter is not required and defaults to "/checkpoints",
-         * i.e. will check all checkpoints when not explicitly overridden.
+         * Instruct the command to check specified checkpoints. This parameter is not required and
+         * defaults to "/checkpoints", i.e. will check all checkpoints when not explicitly
+         * overridden.
          *
-         * @param checkpoints   checkpoints to be checked
+         * @param checkpoints checkpoints to be checked
          * @return this builder.
          */
         public Builder withCheckpoints(Set<String> checkpoints) {
@@ -199,11 +198,9 @@ public class Check {
         }
 
         /**
-         * Content paths to be checked. This parameter is not required and
-         * defaults to "/".
+         * Content paths to be checked. This parameter is not required and defaults to "/".
          *
-         * @param filterPaths
-         *            paths to be checked
+         * @param filterPaths paths to be checked
          * @return this builder.
          */
         public Builder withFilterPaths(Set<String> filterPaths) {
@@ -212,12 +209,11 @@ public class Check {
         }
 
         /**
-         * Instruct the command to print statistics about I/O operations
-         * performed during the check. This parameter is not required and
-         * defaults to {@code false}.
+         * Instruct the command to print statistics about I/O operations performed during the check.
+         * This parameter is not required and defaults to {@code false}.
          *
-         * @param ioStatistics {@code true} if I/O statistics should be
-         *                     provided, {@code false} otherwise.
+         * @param ioStatistics {@code true} if I/O statistics should be provided, {@code false}
+         *                     otherwise.
          * @return this builder.
          */
         public Builder withIOStatistics(boolean ioStatistics) {
@@ -226,8 +222,8 @@ public class Check {
         }
 
         /**
-         * Attach a repository statistics instance to collect info on nodes
-         * and properties checked on head.
+         * Attach a repository statistics instance to collect info on nodes and properties checked
+         * on head.
          *
          * @param repoStatistics instance to collect statistics
          * @return this builder.
@@ -239,6 +235,7 @@ public class Check {
 
         /**
          * The text output stream writer used to print normal output.
+         *
          * @param outWriter the output writer.
          * @return this builder.
          */
@@ -250,6 +247,7 @@ public class Check {
 
         /**
          * The text error stream writer used to print erroneous output.
+         *
          * @param errWriter the error writer.
          * @return this builder.
          */
@@ -294,6 +292,7 @@ public class Check {
     }
 
     public static class RepositoryStatistics {
+
         int headNodeCount;
         int headPropertyCount;
 
@@ -391,7 +390,8 @@ public class Check {
 
             if (ioStatistics) {
                 print("[I/O] Segment read: Number of operations: {0}", ioMonitor.ops.get());
-                print("[I/O] Segment read: Total size: {0} ({1} bytes)", humanReadableByteCount(ioMonitor.bytes.get()), ioMonitor.bytes.get());
+                print("[I/O] Segment read: Total size: {0} ({1} bytes)",
+                    humanReadableByteCount(ioMonitor.bytes.get()), ioMonitor.bytes.get());
                 print("[I/O] Segment read: Total time: {0} ns", ioMonitor.time.get());
             }
 
@@ -411,7 +411,8 @@ public class Check {
         Set<String> checkpoints = requestedCheckpoints;
 
         if (requestedCheckpoints.contains("all")) {
-            checkpoints = Sets.newLinkedHashSet(SegmentNodeStoreBuilders.builder(store).build().checkpoints());
+            checkpoints = Sets.newLinkedHashSet(
+                SegmentNodeStoreBuilders.builder(store).build().checkpoints());
         }
 
         ConsistencyCheckResult result = newConsistencyChecker().checkConsistency(
@@ -425,7 +426,8 @@ public class Check {
             failFast
         );
 
-        print("\nSearched through {0} revisions and {1} checkpoints", result.getCheckedRevisionsCount(), checkpoints.size());
+        print("\nSearched through {0} revisions and {1} checkpoints",
+            result.getCheckedRevisionsCount(), checkpoints.size());
 
         if (isGoodRevisionFound(result)) {
             if (checkHead) {
@@ -438,7 +440,8 @@ public class Check {
                 print("\nCheckpoints");
                 for (String checkpoint : result.getCheckpointRevisions().keySet()) {
                     print("- {0}", checkpoint);
-                    for (Entry<String, Revision> e : result.getCheckpointRevisions().get(checkpoint).entrySet()) {
+                    for (Entry<String, Revision> e : result.getCheckpointRevisions().get(checkpoint)
+                                                           .entrySet()) {
                         printRevision(2, e.getKey(), e.getValue());
                     }
 
@@ -516,7 +519,8 @@ public class Check {
                     headPropertyCount += currentPropertyCount;
                 }
 
-                print("Checked {0} nodes and {1} properties", currentNodeCount, currentPropertyCount);
+                print("Checked {0} nodes and {1} properties", currentNodeCount,
+                    currentPropertyCount);
             }
 
             @Override
@@ -591,17 +595,17 @@ public class Check {
 
     private static boolean hasAnyHeadRevision(ConsistencyCheckResult result) {
         return result.getHeadRevisions()
-            .values()
-            .stream()
-            .anyMatch(Objects::nonNull);
+                     .values()
+                     .stream()
+                     .anyMatch(Objects::nonNull);
     }
 
     private static boolean hasAnyCheckpointRevision(ConsistencyCheckResult result) {
         return result.getCheckpointRevisions()
-            .values()
-            .stream()
-            .flatMap(m -> m.values().stream())
-            .anyMatch(Objects::nonNull);
+                     .values()
+                     .stream()
+                     .flatMap(m -> m.values().stream())
+                     .anyMatch(Objects::nonNull);
     }
 
     private void printRevision(int indent, String path, Revision revision) {

@@ -16,9 +16,8 @@
  */
 
 /**
- * This package contains classes that deal with updating indexes, including how to build indexing backend
- * documents (e.g. Lucene and Solr documents)
+ * This package contains classes that deal with updating indexes, including how to build indexing
+ * backend documents (e.g. Lucene and Solr documents)
  */
 package org.apache.jackrabbit.oak.plugins.index.search.spi.editor;
 
-import org.osgi.annotation.versioning.Version;

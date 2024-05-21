@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.exercise.security.privilege;
 
 import javax.jcr.security.Privilege;
-
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
@@ -79,7 +78,8 @@ public class L6_JcrAllTest extends AbstractSecurityTest {
     public void testManualModification() throws Exception {
         // EXERCISE: fix the test case such that it passes.
 
-        Tree jcrAllTree = PrivilegeUtil.getPrivilegesTree(root).getChild(PrivilegeConstants.JCR_ALL);
+        Tree jcrAllTree = PrivilegeUtil.getPrivilegesTree(root)
+                                       .getChild(PrivilegeConstants.JCR_ALL);
 
         jcrAllTree.removeProperty(PrivilegeConstants.REP_AGGREGATES);
         root.commit();

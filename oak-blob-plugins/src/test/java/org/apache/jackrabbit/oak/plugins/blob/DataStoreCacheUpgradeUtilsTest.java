@@ -16,27 +16,27 @@
  */
 package org.apache.jackrabbit.oak.plugins.blob;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.Map;
-
-import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.guava.common.io.Files;
-import org.apache.commons.io.FileUtils;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
-
 import static org.apache.jackrabbit.oak.plugins.blob.DataStoreCacheUpgradeUtils.DOWNLOAD_DIR;
 import static org.apache.jackrabbit.oak.plugins.blob.DataStoreCacheUpgradeUtils.UPLOAD_STAGING_DIR;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.Map;
+import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.guava.common.collect.Maps;
+import org.apache.jackrabbit.guava.common.io.Files;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+
 /**
  * Tests for {@link DataStoreCacheUpgradeUtils}
  */
 public class DataStoreCacheUpgradeUtilsTest extends AbstractDataStoreCacheTest {
+
     @Rule
     public TemporaryFolder folder = new TemporaryFolder(new File("target"));
 

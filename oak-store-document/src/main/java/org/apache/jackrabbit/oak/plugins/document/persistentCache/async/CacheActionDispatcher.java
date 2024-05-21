@@ -19,14 +19,12 @@ package org.apache.jackrabbit.oak.plugins.document.persistentCache.async;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * An asynchronous buffer of the CacheAction objects. The buffer only accepts
- * {@link #MAX_SIZE} number of elements. If the queue is already full, the new
- * elements are dropped.
+ * An asynchronous buffer of the CacheAction objects. The buffer only accepts {@link #MAX_SIZE}
+ * number of elements. If the queue is already full, the new elements are dropped.
  */
 public class CacheActionDispatcher implements Runnable {
 

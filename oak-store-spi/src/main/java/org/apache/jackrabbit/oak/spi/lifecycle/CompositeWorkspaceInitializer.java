@@ -20,14 +20,13 @@ package org.apache.jackrabbit.oak.spi.lifecycle;
 
 import java.util.Arrays;
 import java.util.Collection;
-
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.jetbrains.annotations.NotNull;
 
 /**
  * Composite repository initializer that delegates the
- * {@link #initialize(org.apache.jackrabbit.oak.spi.state.NodeBuilder, String)}
- * calls in sequence to all the component initializers.
+ * {@link #initialize(org.apache.jackrabbit.oak.spi.state.NodeBuilder, String)} calls in sequence to
+ * all the component initializers.
  */
 public class CompositeWorkspaceInitializer implements WorkspaceInitializer {
 

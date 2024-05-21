@@ -16,20 +16,20 @@
  */
 package org.apache.jackrabbit.oak.commons;
 
+import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
+
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-
 import junit.framework.AssertionFailedError;
 import junit.framework.TestCase;
 import org.junit.Assert;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
-
 /**
  * Test the PathUtils class.
  */
 public class PathUtilsTest extends TestCase {
+
     static boolean assertsEnabled;
 
     static {
@@ -205,7 +205,8 @@ public class PathUtilsTest extends TestCase {
         assertEquals("/", PathUtils.getAncestorPath("/", 1));
         assertEquals("/", PathUtils.getAncestorPath("/" + parent, 1));
         assertEquals("/" + parent, PathUtils.getAncestorPath("/" + parent + "/" + child, 1));
-        assertEquals("/" + parent + "/" + child, PathUtils.getAncestorPath("/" + parent + "/" + child, 0));
+        assertEquals("/" + parent + "/" + child,
+            PathUtils.getAncestorPath("/" + parent + "/" + child, 0));
         assertEquals("/", PathUtils.getAncestorPath("/" + parent + "/" + child, 2));
 
         assertEquals(PathUtils.getParentPath("/foo"), PathUtils.getAncestorPath("/foo", 1));
@@ -249,20 +250,20 @@ public class PathUtilsTest extends TestCase {
 
     public void testMore() {
         String[] paths = {
-                "",
-                "/",
-                "foo",
-                "/foo",
-                "foo/bar",
-                "/foo/bar",
-                "foo/bar/baz",
-                "/foo/bar/baz",
-                "x",
-                "/x",
-                "x/y",
-                "/x/y",
-                "x/y/z",
-                "/x/y/z",
+            "",
+            "/",
+            "foo",
+            "/foo",
+            "foo/bar",
+            "/foo/bar",
+            "foo/bar/baz",
+            "/foo/bar/baz",
+            "x",
+            "/x",
+            "x/y",
+            "/x/y",
+            "x/y/z",
+            "/x/y/z",
         };
 
         for (String path : paths) {
@@ -272,7 +273,7 @@ public class PathUtilsTest extends TestCase {
 
             assertEquals("original: " + path + " parent: " + parent +
                     " name: " + name + " concat: " + concat,
-                    path, concat);
+                path, concat);
         }
     }
 
@@ -288,17 +289,17 @@ public class PathUtilsTest extends TestCase {
 
     public void testValidate() {
         for (String invalid : new String[]{
-                "//",
-                "//test",
-                "/test/",
-                "test/",
-                "/test//",
-                "/test//test",
-                "//x",
-                "/x/",
-                "x/",
-                "/x//",
-                "/x//x",
+            "//",
+            "//test",
+            "/test/",
+            "test/",
+            "/test//",
+            "/test//test",
+            "//x",
+            "/x/",
+            "x/",
+            "/x//",
+            "/x//x",
         }) {
             try {
                 PathUtils.validate(invalid);
@@ -308,16 +309,16 @@ public class PathUtilsTest extends TestCase {
             }
         }
         for (String valid : new String[]{
-                "",
-                "/",
-                "test",
-                "test/test",
-                "/test",
-                "/test/test",
-                "x",
-                "x/x",
-                "/x",
-                "/x/x",
+            "",
+            "/",
+            "test",
+            "test/test",
+            "/test",
+            "/test/test",
+            "x",
+            "x/x",
+            "/x",
+            "/x/x",
         }) {
             PathUtils.validate(valid);
         }
@@ -468,7 +469,7 @@ public class PathUtilsTest extends TestCase {
 
     public void testPathElements() {
         String[] invalidPaths = new String[]{"//", "/a/", "a/", "/a//", "a//b"};
-        for (String path: invalidPaths) {
+        for (String path : invalidPaths) {
             try {
                 PathUtils.elements(path);
                 fail();
@@ -495,7 +496,7 @@ public class PathUtilsTest extends TestCase {
         assertEquals(3, k);
     }
 
-    public void testOptimizeForIncludes() throws Exception{
+    public void testOptimizeForIncludes() throws Exception {
         Set<String> includes = newHashSet("/a", "/a/b");
         Set<String> excludes = newHashSet("/a/b");
         PathUtils.unifyInExcludes(includes, excludes);
@@ -514,7 +515,7 @@ public class PathUtilsTest extends TestCase {
         assertEquals(newHashSet("/a"), includes);
     }
 
-    public void testOptimizeForExcludes() throws Exception{
+    public void testOptimizeForExcludes() throws Exception {
         Set<String> includes = newHashSet("/a", "/b");
         Set<String> excludes = newHashSet("/c");
         PathUtils.unifyInExcludes(includes, excludes);
@@ -530,6 +531,6 @@ public class PathUtilsTest extends TestCase {
         }
         time = System.nanoTime() - time;
         System.out.println("PathUtils.dropIndexFromName(): " +
-                TimeUnit.NANOSECONDS.toMillis(time) + " ms.");
+            TimeUnit.NANOSECONDS.toMillis(time) + " ms.");
     }
 }

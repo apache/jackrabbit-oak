@@ -16,19 +16,19 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
-import java.util.Map;
-import java.util.Set;
-import java.util.SortedMap;
+import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 
-import com.mongodb.ReadPreference;
-import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBObject;
+import com.mongodb.ReadPreference;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.result.UpdateResult;
-
+import java.util.Map;
+import java.util.Set;
+import java.util.SortedMap;
+import org.apache.jackrabbit.guava.common.collect.Maps;
+import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
@@ -37,8 +37,6 @@ import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.cache.NodeDocumentCache;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.bson.conversions.Bson;
-
-import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 
 /**
  * Helper class to access package private methods on MongoDocumentStore.
@@ -57,7 +55,7 @@ public class MongoDocumentStoreHelper {
             System.out.println("No document for path " + path);
             return;
         }
-        
+
         Set<Revision> changes = Sets.newHashSet();
         for (String key : doc.keySet()) {
             if (Utils.isPropertyName(key) || NodeDocument.isDeletedEntry(key)) {
@@ -71,25 +69,25 @@ public class MongoDocumentStoreHelper {
             System.out.println("Nothing to repair on " + path);
             return;
         }
-        
+
         Number modCount = doc.getModCount();
         if (modCount == null) {
             System.err.println("Document does not have a modCount " + path);
             return;
         }
         Bson query = Filters.and(
-                Filters.eq(Document.ID, id),
-                Filters.eq(Document.MOD_COUNT, modCount)
+            Filters.eq(Document.ID, id),
+            Filters.eq(Document.MOD_COUNT, modCount)
         );
         DBObject cr = new BasicDBObject();
         for (Map.Entry<Revision, String> entry : commitRoot.entrySet()) {
             cr.put(entry.getKey().toString(), entry.getValue());
         }
-        
+
         BasicDBObject update = new BasicDBObject();
         update.put("$set", new BasicDBObject(NodeDocumentHelper.commitRoot(), cr));
         update.put("$inc", new BasicDBObject(Document.MOD_COUNT, 1L));
-                
+
         UpdateResult result = col.updateOne(query, update);
         if (result.getModifiedCount() == 1) {
             int num = NodeDocumentHelper.getLocalCommitRoot(doc).size() - commitRoot.size();
@@ -97,16 +95,16 @@ public class MongoDocumentStoreHelper {
         } else {
             System.out.println("Unable to repair " + path + " (concurrent update).");
         }
-        
+
     }
 
     public static <T extends Document> MongoCollection<BasicDBObject> getDBCollection(
-            MongoDocumentStore store, Collection<T> c) {
+        MongoDocumentStore store, Collection<T> c) {
         return store.getDBCollection(c);
     }
 
     public static <T extends Document> T convertFromDBObject(
-            MongoDocumentStore store, Collection<T> col, DBObject obj) {
+        MongoDocumentStore store, Collection<T> col, DBObject obj) {
         return store.convertFromDBObject(col, obj);
     }
 
@@ -114,7 +112,8 @@ public class MongoDocumentStoreHelper {
         return mongoStore.getNodeDocumentCache();
     }
 
-    public static ReadPreference getConfiguredReadPreference(MongoDocumentStore mongoStore, Collection<? extends Document> collection) {
+    public static ReadPreference getConfiguredReadPreference(MongoDocumentStore mongoStore,
+        Collection<? extends Document> collection) {
         return mongoStore.getConfiguredReadPreference(collection);
     }
 

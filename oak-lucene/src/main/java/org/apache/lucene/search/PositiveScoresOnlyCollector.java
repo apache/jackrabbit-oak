@@ -26,46 +26,44 @@ package org.apache.lucene.search;
  */
 
 import java.io.IOException;
-
 import org.apache.lucene.index.AtomicReaderContext;
 
 /**
- * A {@link Collector} implementation which wraps another
- * {@link Collector} and makes sure only documents with
- * scores &gt; 0 are collected.
+ * A {@link Collector} implementation which wraps another {@link Collector} and makes sure only
+ * documents with scores &gt; 0 are collected.
  */
 public class PositiveScoresOnlyCollector extends Collector {
 
-  final private Collector c;
-  private Scorer scorer;
-  
-  public PositiveScoresOnlyCollector(Collector c) {
-    this.c = c;
-  }
-  
-  @Override
-  public void collect(int doc) throws IOException {
-    if (scorer.score() > 0) {
-      c.collect(doc);
+    final private Collector c;
+    private Scorer scorer;
+
+    public PositiveScoresOnlyCollector(Collector c) {
+        this.c = c;
     }
-  }
 
-  @Override
-  public void setNextReader(AtomicReaderContext context) throws IOException {
-    c.setNextReader(context);
-  }
+    @Override
+    public void collect(int doc) throws IOException {
+        if (scorer.score() > 0) {
+            c.collect(doc);
+        }
+    }
 
-  @Override
-  public void setScorer(Scorer scorer) throws IOException {
-    // Set a ScoreCachingWrappingScorer in case the wrapped Collector will call
-    // score() also.
-    this.scorer = new ScoreCachingWrappingScorer(scorer);
-    c.setScorer(this.scorer);
-  }
+    @Override
+    public void setNextReader(AtomicReaderContext context) throws IOException {
+        c.setNextReader(context);
+    }
 
-  @Override
-  public boolean acceptsDocsOutOfOrder() {
-    return c.acceptsDocsOutOfOrder();
-  }
+    @Override
+    public void setScorer(Scorer scorer) throws IOException {
+        // Set a ScoreCachingWrappingScorer in case the wrapped Collector will call
+        // score() also.
+        this.scorer = new ScoreCachingWrappingScorer(scorer);
+        c.setScorer(this.scorer);
+    }
+
+    @Override
+    public boolean acceptsDocsOutOfOrder() {
+        return c.acceptsDocsOutOfOrder();
+    }
 
 }

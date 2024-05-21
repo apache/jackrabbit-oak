@@ -19,15 +19,16 @@
 
 package org.apache.jackrabbit.oak.run.commons;
 
-import java.util.Map;
-
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+
+import java.util.Map;
 
 /**
  * represent an individual Mode for running a COMMAND. It's a substitution for the old Mode enum we
  * used in order to allow reuse of logic.
  */
 public final class Modes {
+
     private final Map<String, Command> MODES;
 
     public Modes(Map<String, Command> modes) {

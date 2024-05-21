@@ -26,22 +26,23 @@ import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 
-public class LuceneIndexQuerySQL2OptimisationCommonTest extends IndexQuerySQL2OptimisationCommonTest {
+public class LuceneIndexQuerySQL2OptimisationCommonTest extends
+    IndexQuerySQL2OptimisationCommonTest {
 
     @Override
     protected Oak getOakRepo() {
         indexOptions = new LuceneIndexOptions();
         LowCostLuceneIndexProvider provider = new LowCostLuceneIndexProvider();
         return new Oak(new MemoryNodeStore(InitialContentHelper.INITIAL_CONTENT))
-                .with(new OpenSecurityProvider())
-                .with((QueryIndexProvider) provider)
-                .with((Observer) provider)
-                .with(new LuceneIndexEditorProvider())
-                .with(new QueryEngineSettings() {
-                    @Override
-                    public boolean isSql2Optimisation() {
-                        return true;
-                    }
-                });
+            .with(new OpenSecurityProvider())
+            .with((QueryIndexProvider) provider)
+            .with((Observer) provider)
+            .with(new LuceneIndexEditorProvider())
+            .with(new QueryEngineSettings() {
+                @Override
+                public boolean isSql2Optimisation() {
+                    return true;
+                }
+            });
     }
 }

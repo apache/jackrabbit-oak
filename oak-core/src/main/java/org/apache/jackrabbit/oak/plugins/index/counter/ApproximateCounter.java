@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.plugins.index.counter;
 
 import java.util.Random;
 import java.util.UUID;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;

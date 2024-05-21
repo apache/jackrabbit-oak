@@ -72,7 +72,7 @@ public class JournalDiffLoaderTest {
     @Test
     public void fromCurrentJournalEntry() throws Exception {
         DocumentNodeStore ns = builderProvider.newBuilder()
-                .clock(clock).setAsyncDelay(0).getNodeStore();
+                                              .clock(clock).setAsyncDelay(0).getNodeStore();
         DocumentNodeState s1 = ns.getRoot();
         NodeBuilder builder = ns.getRoot().builder();
         builder.child("foo");
@@ -85,7 +85,7 @@ public class JournalDiffLoaderTest {
     @Test
     public void fromSingleJournalEntry() throws Exception {
         DocumentNodeStore ns = builderProvider.newBuilder()
-                .clock(clock).setAsyncDelay(0).getNodeStore();
+                                              .clock(clock).setAsyncDelay(0).getNodeStore();
         DocumentNodeState s1 = ns.getRoot();
         NodeBuilder builder = ns.getRoot().builder();
         builder.child("foo");
@@ -99,7 +99,7 @@ public class JournalDiffLoaderTest {
     @Test
     public void fromJournalAndCurrentEntry() throws Exception {
         DocumentNodeStore ns = builderProvider.newBuilder()
-                .clock(clock).setAsyncDelay(0).getNodeStore();
+                                              .clock(clock).setAsyncDelay(0).getNodeStore();
         DocumentNodeState s1 = ns.getRoot();
         NodeBuilder builder = ns.getRoot().builder();
         builder.child("foo");
@@ -118,7 +118,7 @@ public class JournalDiffLoaderTest {
     @Test
     public void fromMultipleJournalEntries() throws Exception {
         DocumentNodeStore ns = builderProvider.newBuilder()
-                .clock(clock).setAsyncDelay(0).getNodeStore();
+                                              .clock(clock).setAsyncDelay(0).getNodeStore();
         DocumentNodeState s1 = ns.getRoot();
         NodeBuilder builder = ns.getRoot().builder();
         builder.child("foo");
@@ -143,7 +143,7 @@ public class JournalDiffLoaderTest {
     @Test
     public void fromPartialJournalEntry() throws Exception {
         DocumentNodeStore ns = builderProvider.newBuilder()
-                .clock(clock).setAsyncDelay(0).getNodeStore();
+                                              .clock(clock).setAsyncDelay(0).getNodeStore();
         DocumentNodeState s1 = ns.getRoot();
         NodeBuilder builder = ns.getRoot().builder();
         builder.child("foo");
@@ -170,9 +170,11 @@ public class JournalDiffLoaderTest {
     public void fromExternalChange() throws Exception {
         DocumentStore store = new MemoryDocumentStore();
         DocumentNodeStore ns1 = builderProvider.newBuilder().setClusterId(1)
-                .clock(clock).setDocumentStore(store).setAsyncDelay(0).getNodeStore();
+                                               .clock(clock).setDocumentStore(store)
+                                               .setAsyncDelay(0).getNodeStore();
         DocumentNodeStore ns2 = builderProvider.newBuilder().setClusterId(2)
-                .clock(clock).setDocumentStore(store).setAsyncDelay(0).getNodeStore();
+                                               .clock(clock).setDocumentStore(store)
+                                               .setAsyncDelay(0).getNodeStore();
 
         DocumentNodeState s1 = ns1.getRoot();
         NodeBuilder builder = ns1.getRoot().builder();
@@ -198,7 +200,7 @@ public class JournalDiffLoaderTest {
     @Test
     public void withPath() throws Exception {
         DocumentNodeStore ns = builderProvider.newBuilder()
-                .clock(clock).setAsyncDelay(0).getNodeStore();
+                                              .clock(clock).setAsyncDelay(0).getNodeStore();
         NodeBuilder builder = ns.getRoot().builder();
         builder.child("foo");
         merge(ns, builder);
@@ -236,9 +238,9 @@ public class JournalDiffLoaderTest {
             @NotNull
             @Override
             public <T extends Document> List<T> query(Collection<T> collection,
-                                                      String fromKey,
-                                                      String toKey,
-                                                      int limit) {
+                String fromKey,
+                String toKey,
+                int limit) {
                 if (collection == Collection.JOURNAL) {
                     journalQueryCounter.incrementAndGet();
                 }
@@ -246,11 +248,15 @@ public class JournalDiffLoaderTest {
             }
         };
         DocumentNodeStore ns1 = builderProvider.newBuilder()
-                .setClusterId(1).clock(clock).setLeaseCheckMode(LeaseCheckMode.DISABLED)
-                .setDocumentStore(ds).setAsyncDelay(0).getNodeStore();
+                                               .setClusterId(1).clock(clock)
+                                               .setLeaseCheckMode(LeaseCheckMode.DISABLED)
+                                               .setDocumentStore(ds).setAsyncDelay(0)
+                                               .getNodeStore();
         DocumentNodeStore ns2 = builderProvider.newBuilder()
-                .setClusterId(2).clock(clock).setLeaseCheckMode(LeaseCheckMode.DISABLED)
-                .setDocumentStore(ds).setAsyncDelay(0).getNodeStore();
+                                               .setClusterId(2).clock(clock)
+                                               .setLeaseCheckMode(LeaseCheckMode.DISABLED)
+                                               .setDocumentStore(ds).setAsyncDelay(0)
+                                               .getNodeStore();
 
         NodeBuilder b1 = ns1.getRoot().builder();
         NodeBuilder foo = b1.child("foo");
@@ -300,8 +306,8 @@ public class JournalDiffLoaderTest {
         fooAfter.compareAgainstBaseState(fooBefore, new DefaultNodeStateDiff() {
             @Override
             public boolean childNodeChanged(String name,
-                                            NodeState before,
-                                            NodeState after) {
+                NodeState before,
+                NodeState after) {
                 changes.add(name);
                 return true;
             }
@@ -320,13 +326,14 @@ public class JournalDiffLoaderTest {
         });
         assertThat(changes, containsInAnyOrder("bar", "baz"));
         assertTrue("must use JournalDiffLoader",
-                journalQueryCounter.get() > 0);
+            journalQueryCounter.get() > 0);
     }
 
     @Test
     public void emptyBranchCommit() throws Exception {
         DocumentNodeStore ns = builderProvider.newBuilder()
-                .clock(clock).setAsyncDelay(0).disableBranches().getNodeStore();
+                                              .clock(clock).setAsyncDelay(0).disableBranches()
+                                              .getNodeStore();
         DocumentStore store = ns.getDocumentStore();
         DocumentNodeState before = ns.getRoot();
         String id = Utils.getIdFromPath("/node-0");
@@ -347,12 +354,13 @@ public class JournalDiffLoaderTest {
     public void ignoreInvalidationEntries() throws Exception {
         CountingDocumentStore store = new CountingDocumentStore(new MemoryDocumentStore());
         DocumentNodeStore ns = builderProvider.newBuilder()
-                .setDocumentStore(store).clock(clock).setAsyncDelay(0)
-                .getNodeStore();
+                                              .setDocumentStore(store).clock(clock).setAsyncDelay(0)
+                                              .getNodeStore();
         DocumentNodeState before = ns.getRoot();
         for (int i = 0; i < 10; i++) {
             NodeBuilder builder = ns.getRoot().builder();
-            builder.child("test").setProperty("binaryProp", ns.createBlob(new RandomStream(4097, i)));
+            builder.child("test")
+                   .setProperty("binaryProp", ns.createBlob(new RandomStream(4097, i)));
             ns.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
             ns.runBackgroundOperations();
         }
@@ -373,8 +381,8 @@ public class JournalDiffLoaderTest {
     }
 
     private static Set<String> changeChildNodes(DocumentNodeStore store,
-                                                AbstractDocumentNodeState before,
-                                                AbstractDocumentNodeState after) {
+        AbstractDocumentNodeState before,
+        AbstractDocumentNodeState after) {
         String diff = new JournalDiffLoader(before, after, store).call();
         final Set<String> changes = newHashSet();
         DiffCache.parseJsopDiff(diff, new DiffCache.Diff() {
@@ -400,7 +408,7 @@ public class JournalDiffLoaderTest {
     }
 
     private static void merge(NodeStore store, NodeBuilder builder)
-            throws CommitFailedException {
+        throws CommitFailedException {
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 }

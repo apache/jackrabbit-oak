@@ -17,34 +17,29 @@
 package org.apache.jackrabbit.oak.spi.security.authentication.callback;
 
 import javax.security.auth.callback.Callback;
-
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 
 /**
- * Callback implementation to set and retrieve the {@link org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard}.
+ * Callback implementation to set and retrieve the
+ * {@link org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard}.
  */
 public class WhiteboardCallback implements Callback {
 
     private Whiteboard whiteboard;
 
     /**
-     * Returns the whiteboard as set using
-     * {@link #setWhiteboard(Whiteboard)}
-     * or {@code null}.
+     * Returns the whiteboard as set using {@link #setWhiteboard(Whiteboard)} or {@code null}.
      *
-     * @return an instance of {@code Whiteboard} or {@code null} if no
-     * provider has been set before.
+     * @return an instance of {@code Whiteboard} or {@code null} if no provider has been set before.
      */
     public Whiteboard getWhiteboard() {
         return whiteboard;
     }
 
     /**
-     * Sets the {@code Whiteboard} that is being used during the
-     * authentication process.
+     * Sets the {@code Whiteboard} that is being used during the authentication process.
      *
-     * @param whiteboard The {@code Whiteboard} to use during the
-     * authentication process.
+     * @param whiteboard The {@code Whiteboard} to use during the authentication process.
      */
     public void setWhiteboard(Whiteboard whiteboard) {
         this.whiteboard = whiteboard;

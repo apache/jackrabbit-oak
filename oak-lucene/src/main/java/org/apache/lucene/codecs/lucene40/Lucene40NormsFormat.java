@@ -26,7 +26,6 @@ package org.apache.lucene.codecs.lucene40;
  */
 
 import java.io.IOException;
-
 import org.apache.lucene.codecs.DocValuesConsumer;
 import org.apache.lucene.codecs.DocValuesProducer;
 import org.apache.lucene.codecs.NormsFormat;
@@ -43,29 +42,33 @@ import org.apache.lucene.store.CompoundFileDirectory;
  *   <li><tt>.nrm.cfs</tt>: {@link CompoundFileDirectory compound container}</li>
  *   <li><tt>.nrm.cfe</tt>: {@link CompoundFileDirectory compound entries}</li>
  * </ul>
- * Norms are implemented as DocValues, so other than file extension, norms are 
+ * Norms are implemented as DocValues, so other than file extension, norms are
  * written exactly the same way as {@link Lucene40DocValuesFormat DocValues}.
- * 
- * @see Lucene40DocValuesFormat
+ *
  * @lucene.experimental
+ * @see Lucene40DocValuesFormat
  * @deprecated Only for reading old 4.0 and 4.1 segments
  */
 @Deprecated
 public class Lucene40NormsFormat extends NormsFormat {
 
-  /** Sole constructor. */
-  public Lucene40NormsFormat() {}
-  
-  @Override
-  public DocValuesConsumer normsConsumer(SegmentWriteState state) throws IOException {
-    throw new UnsupportedOperationException("this codec can only be used for reading");
-  }
+    /**
+     * Sole constructor.
+     */
+    public Lucene40NormsFormat() {
+    }
 
-  @Override
-  public DocValuesProducer normsProducer(SegmentReadState state) throws IOException {
-    String filename = IndexFileNames.segmentFileName(state.segmentInfo.name, 
-                                                     "nrm", 
-                                                     IndexFileNames.COMPOUND_FILE_EXTENSION);
-    return new Lucene40DocValuesReader(state, filename, Lucene40FieldInfosReader.LEGACY_NORM_TYPE_KEY);
-  }
+    @Override
+    public DocValuesConsumer normsConsumer(SegmentWriteState state) throws IOException {
+        throw new UnsupportedOperationException("this codec can only be used for reading");
+    }
+
+    @Override
+    public DocValuesProducer normsProducer(SegmentReadState state) throws IOException {
+        String filename = IndexFileNames.segmentFileName(state.segmentInfo.name,
+            "nrm",
+            IndexFileNames.COMPOUND_FILE_EXTENSION);
+        return new Lucene40DocValuesReader(state, filename,
+            Lucene40FieldInfosReader.LEGACY_NORM_TYPE_KEY);
+    }
 }

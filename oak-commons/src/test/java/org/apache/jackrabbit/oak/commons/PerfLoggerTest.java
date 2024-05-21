@@ -16,12 +16,6 @@
  */
 package org.apache.jackrabbit.oak.commons;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-import org.slf4j.Logger;
-
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.times;
@@ -29,7 +23,14 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.slf4j.Logger;
+
 public class PerfLoggerTest {
+
     @Mock
     Logger logger;
 
@@ -201,22 +202,25 @@ public class PerfLoggerTest {
         when(logger.isTraceEnabled()).thenReturn(true);
         setupDebugLogger();
     }
+
     private void setupDebugLogger() {
         when(logger.isDebugEnabled()).thenReturn(true);
         setupInfoLogger();
     }
+
     private void setupInfoLogger() {
         when(logger.isInfoEnabled()).thenReturn(true);
     }
 
-    private void verifyTraceInteractions(int enabled, boolean shouldLogStart, boolean shouldLogEnd) {
+    private void verifyTraceInteractions(int enabled, boolean shouldLogStart,
+        boolean shouldLogEnd) {
         verify(logger, times(enabled)).isTraceEnabled();
 
         if (shouldLogStart) {
             verify(logger, times(1)).trace(anyString());
         }
         if (shouldLogEnd) {
-            verify(logger, times(1)).trace(anyString(), (Object[])any());
+            verify(logger, times(1)).trace(anyString(), (Object[]) any());
         }
     }
 
@@ -224,7 +228,7 @@ public class PerfLoggerTest {
         verify(logger, times(enabled)).isDebugEnabled();
 
         if (shouldLog) {
-            verify(logger, times(1)).debug(anyString(), (Object[])any());
+            verify(logger, times(1)).debug(anyString(), (Object[]) any());
         }
     }
 
@@ -232,7 +236,7 @@ public class PerfLoggerTest {
         verify(logger, times(enabled)).isInfoEnabled();
 
         if (shouldLog) {
-            verify(logger, times(1)).info(anyString(), (Object[])any());
+            verify(logger, times(1)).info(anyString(), (Object[]) any());
         }
     }
 

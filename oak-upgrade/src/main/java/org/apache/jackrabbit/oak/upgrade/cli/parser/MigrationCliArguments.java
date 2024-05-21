@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.upgrade.cli.parser;
 
 import java.util.ArrayList;
 import java.util.List;
-
 import joptsimple.OptionSet;
 
 public final class MigrationCliArguments {

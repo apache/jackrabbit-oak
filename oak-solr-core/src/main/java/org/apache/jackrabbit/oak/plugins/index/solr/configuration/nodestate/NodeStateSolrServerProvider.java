@@ -17,16 +17,16 @@
 package org.apache.jackrabbit.oak.plugins.index.solr.configuration.nodestate;
 
 import java.io.IOException;
-
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.solr.client.solrj.SolrClient;
 
 /**
- * {@link org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider} using configuration stored in a repository
- * node named "server" as a child of a {@code oak:queryIndexDefinition} node (e.g. under /../a/b/solrIndex/server)
- * having {@code type = solr}
+ * {@link org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider} using
+ * configuration stored in a repository node named "server" as a child of a
+ * {@code oak:queryIndexDefinition} node (e.g. under /../a/b/solrIndex/server) having
+ * {@code type = solr}
  */
 public class NodeStateSolrServerProvider implements SolrServerProvider {
 
@@ -37,10 +37,12 @@ public class NodeStateSolrServerProvider implements SolrServerProvider {
         this.nodeState = nodeState;
     }
 
-    private void checkProviderInitialization() throws IllegalAccessException, java.lang.reflect.InvocationTargetException, InstantiationException {
+    private void checkProviderInitialization()
+        throws IllegalAccessException, java.lang.reflect.InvocationTargetException, InstantiationException {
         synchronized (nodeState) {
             if (provider == null) {
-                this.provider = new NodeStateSolrServerConfigurationProvider(nodeState).getSolrServerConfiguration().getProvider();
+                this.provider = new NodeStateSolrServerConfigurationProvider(
+                    nodeState).getSolrServerConfiguration().getProvider();
             }
         }
     }
@@ -69,11 +71,13 @@ public class NodeStateSolrServerProvider implements SolrServerProvider {
             getSolrServer().close();
         } catch (Exception e) {
             // do nothing
-        } try {
+        }
+        try {
             getIndexingSolrServer().close();
         } catch (Exception e) {
             // do nothing
-        } try {
+        }
+        try {
             getSearchingSolrServer().close();
         } catch (Exception e) {
             // do nothing
@@ -83,8 +87,8 @@ public class NodeStateSolrServerProvider implements SolrServerProvider {
     @Override
     public String toString() {
         return "NodeStateSolrServerProvider{" +
-                "nodeStateChildren=" + Iterables.toString(nodeState.getChildNodeNames()) +
-                ", provider=" + provider +
-                '}';
+            "nodeStateChildren=" + Iterables.toString(nodeState.getChildNodeNames()) +
+            ", provider=" + provider +
+            '}';
     }
 }

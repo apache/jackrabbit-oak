@@ -19,13 +19,15 @@
 
 package org.apache.jackrabbit.oak.plugins.index.search.util;
 
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.api.Type.NAMES;
+
 import javax.jcr.Binary;
 import javax.jcr.Node;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.oak.api.Blob;
@@ -36,9 +38,6 @@ import org.apache.jackrabbit.oak.plugins.tree.factories.TreeFactory;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.api.Type.NAMES;
-
 /**
  * A utility class that allows to copy a new state (including children).
  */
@@ -46,12 +45,12 @@ public class NodeStateCopyUtils {
 
     private static final String OAK_CHILD_ORDER = ":childOrder";
 
-    public static void copyToTree(NodeState state, Tree tree){
+    public static void copyToTree(NodeState state, Tree tree) {
         tree.setOrderableChildren(state.hasProperty(OAK_CHILD_ORDER));
         copyProps(state, tree);
 
         Tree src = TreeFactory.createReadOnlyTree(state);
-        for (Tree srcChild : src.getChildren()){
+        for (Tree srcChild : src.getChildren()) {
             String childName = srcChild.getName();
             Tree child = tree.addChild(childName);
             copyToTree(state.getChildNode(childName), child);
@@ -62,10 +61,10 @@ public class NodeStateCopyUtils {
         copyProps(state, node);
 
         Tree src = TreeFactory.createReadOnlyTree(state);
-        for (Tree srcChild : src.getChildren()){
+        for (Tree srcChild : src.getChildren()) {
             String childName = srcChild.getName();
 
-            if (NodeStateUtils.isHidden(childName)){
+            if (NodeStateUtils.isHidden(childName)) {
                 continue;
             }
 
@@ -76,8 +75,8 @@ public class NodeStateCopyUtils {
     }
 
     private static void copyProps(NodeState state, Tree tree) {
-        for (PropertyState ps : state.getProperties()){
-            if (!ps.getName().equals(OAK_CHILD_ORDER)){
+        for (PropertyState ps : state.getProperties()) {
+            if (!ps.getName().equals(OAK_CHILD_ORDER)) {
                 tree.setProperty(ps);
             }
         }
@@ -85,25 +84,25 @@ public class NodeStateCopyUtils {
 
     private static void copyProps(NodeState state, Node node) throws RepositoryException {
         ValueFactory vf = node.getSession().getValueFactory();
-        for (PropertyState ps : state.getProperties()){
+        for (PropertyState ps : state.getProperties()) {
             String name = ps.getName();
             if (name.equals(JcrConstants.JCR_PRIMARYTYPE)
-                    || name.equals(OAK_CHILD_ORDER)){
+                || name.equals(OAK_CHILD_ORDER)) {
                 continue;
             }
 
-            if (name.equals(JcrConstants.JCR_MIXINTYPES)){
+            if (name.equals(JcrConstants.JCR_MIXINTYPES)) {
                 for (String n : ps.getValue(NAMES)) {
                     node.addMixin(n);
                 }
                 continue;
             }
 
-            if (NodeStateUtils.isHidden(name)){
+            if (NodeStateUtils.isHidden(name)) {
                 continue;
             }
 
-            if (ps.isArray()){
+            if (ps.isArray()) {
                 Value[] values = new Value[ps.count()];
                 for (int i = 0; i < ps.count(); i++) {
                     values[i] = createValue(vf, ps, i);
@@ -115,9 +114,10 @@ public class NodeStateCopyUtils {
         }
     }
 
-    private static Value createValue(ValueFactory vf, PropertyState ps, int index) throws RepositoryException {
-        switch(ps.getType().tag()) {
-            case PropertyType.STRING :
+    private static Value createValue(ValueFactory vf, PropertyState ps, int index)
+        throws RepositoryException {
+        switch (ps.getType().tag()) {
+            case PropertyType.STRING:
                 return vf.createValue(getValue(ps, Type.STRING, index));
             case PropertyType.BINARY:
                 Blob blob = getValue(ps, Type.BINARY, index);
@@ -148,11 +148,12 @@ public class NodeStateCopyUtils {
         }
     }
 
-    private static <T> T getValue(PropertyState ps, Type<T> type, int index){
+    private static <T> T getValue(PropertyState ps, Type<T> type, int index) {
         return index < 0 ? ps.getValue(type) : ps.getValue(type, index);
     }
 
-    private static String primaryType(NodeState state){
-        return checkNotNull(state.getName(JcrConstants.JCR_PRIMARYTYPE), "jcr:primaryType not defined for %s", state);
+    private static String primaryType(NodeState state) {
+        return checkNotNull(state.getName(JcrConstants.JCR_PRIMARYTYPE),
+            "jcr:primaryType not defined for %s", state);
     }
 }

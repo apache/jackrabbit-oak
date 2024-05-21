@@ -20,15 +20,7 @@ package org.apache.jackrabbit.oak.jcr.osgi;
 
 import java.util.Hashtable;
 import java.util.Map;
-
 import javax.jcr.Repository;
-
-import org.osgi.service.component.annotations.Activate;
-import org.osgi.service.component.annotations.Deactivate;
-import org.osgi.service.component.annotations.Component;
-import org.osgi.service.component.annotations.Reference;
-import org.osgi.service.component.annotations.ConfigurationPolicy;
-
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
@@ -48,20 +40,25 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Tracker;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.ConfigurationPolicy;
+import org.osgi.service.component.annotations.Deactivate;
+import org.osgi.service.component.annotations.Reference;
 
 /**
  * RepositoryManager constructs the Repository instance and registers it with OSGi Service Registry.
  * By default it would not be active and would require explicit configuration to be registered so as
- * create repository. This is done to prevent repository creation in scenarios where repository needs
- * to be configured in a custom way
+ * create repository. This is done to prevent repository creation in scenarios where repository
+ * needs to be configured in a custom way
  */
 @Component(
-        configurationPolicy = ConfigurationPolicy.REQUIRE,
-        property = {
-                "oak.observation.queue-length:Integer=10000",
-                "oak.observation.limit-commit-rate:Boolean=false",
-                "oak.query.fastResultSize:Boolean=false"
-        }
+    configurationPolicy = ConfigurationPolicy.REQUIRE,
+    property = {
+        "oak.observation.queue-length:Integer=10000",
+        "oak.observation.limit-commit-rate:Boolean=false",
+        "oak.query.fastResultSize:Boolean=false"
+    }
 )
 public class RepositoryManager {
 
@@ -70,13 +67,13 @@ public class RepositoryManager {
     private static final boolean DEFAULT_FAST_QUERY_RESULT_SIZE = false;
 
     private final WhiteboardEditorProvider editorProvider =
-            new WhiteboardEditorProvider();
+        new WhiteboardEditorProvider();
 
     private final WhiteboardIndexEditorProvider indexEditorProvider =
-            new WhiteboardIndexEditorProvider();
+        new WhiteboardIndexEditorProvider();
 
     private final WhiteboardIndexProvider indexProvider =
-            new WhiteboardIndexProvider();
+        new WhiteboardIndexProvider();
 
     private Tracker<RepositoryInitializer> initializers;
 
@@ -87,7 +84,7 @@ public class RepositoryManager {
     private int observationQueueLength;
 
     private CommitRateLimiter commitRateLimiter;
-    
+
     private boolean fastQueryResultSize;
 
     @Reference
@@ -113,18 +110,18 @@ public class RepositoryManager {
     @Activate
     public void activate(BundleContext bundleContext, Map<String, ?> config) throws Exception {
         observationQueueLength = PropertiesUtil.toInteger(prop(
-                config, bundleContext, OBSERVATION_QUEUE_LENGTH), DEFAULT_OBSERVATION_QUEUE_LENGTH);
+            config, bundleContext, OBSERVATION_QUEUE_LENGTH), DEFAULT_OBSERVATION_QUEUE_LENGTH);
 
-        if(PropertiesUtil.toBoolean(prop(
-                config, bundleContext, COMMIT_RATE_LIMIT), DEFAULT_COMMIT_RATE_LIMIT)) {
+        if (PropertiesUtil.toBoolean(prop(
+            config, bundleContext, COMMIT_RATE_LIMIT), DEFAULT_COMMIT_RATE_LIMIT)) {
             commitRateLimiter = new CommitRateLimiter();
         } else {
             commitRateLimiter = null;
         }
-        
+
         fastQueryResultSize = PropertiesUtil.toBoolean(prop(
-                config, bundleContext, FAST_QUERY_RESULT_SIZE), DEFAULT_FAST_QUERY_RESULT_SIZE);
-        
+            config, bundleContext, FAST_QUERY_RESULT_SIZE), DEFAULT_FAST_QUERY_RESULT_SIZE);
+
         whiteboard = new OsgiWhiteboard(bundleContext);
         initializers = whiteboard.track(RepositoryInitializer.class);
         editorProvider.start(whiteboard);
@@ -165,18 +162,18 @@ public class RepositoryManager {
 
     private ServiceRegistration registerRepository(BundleContext bundleContext) {
         Oak oak = new Oak(store)
-                .with(new InitialContent())
-                .with(new VersionHook())
-                .with(JcrConflictHandler.createJcrConflictHandler())
-                .with(whiteboard)
-                .with(securityProvider)
-                .with(editorProvider)
-                .with(indexEditorProvider)
-                .with(indexProvider)
-                .withFailOnMissingIndexProvider()
-                .withAsyncIndexing();
+            .with(new InitialContent())
+            .with(new VersionHook())
+            .with(JcrConflictHandler.createJcrConflictHandler())
+            .with(whiteboard)
+            .with(securityProvider)
+            .with(editorProvider)
+            .with(indexEditorProvider)
+            .with(indexProvider)
+            .withFailOnMissingIndexProvider()
+            .withAsyncIndexing();
 
-        for(RepositoryInitializer initializer : initializers.getServices()){
+        for (RepositoryInitializer initializer : initializers.getServices()) {
             oak.with(initializer);
         }
 
@@ -185,14 +182,15 @@ public class RepositoryManager {
         }
 
         repository = new OsgiRepository(
-                oak.createContentRepository(),
-                whiteboard,
-                securityProvider,
-                observationQueueLength,
-                commitRateLimiter,
-                fastQueryResultSize
+            oak.createContentRepository(),
+            whiteboard,
+            securityProvider,
+            observationQueueLength,
+            commitRateLimiter,
+            fastQueryResultSize
         );
 
-        return bundleContext.registerService(Repository.class, repository, new Hashtable<String, Object>());
+        return bundleContext.registerService(Repository.class, repository,
+            new Hashtable<String, Object>());
     }
 }

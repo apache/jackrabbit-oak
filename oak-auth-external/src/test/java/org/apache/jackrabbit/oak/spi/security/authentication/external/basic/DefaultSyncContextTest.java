@@ -16,15 +16,51 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.basic;
 
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
+
+import java.io.ByteArrayInputStream;
+import java.math.BigDecimal;
+import java.security.Principal;
+import java.text.Normalizer;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Collection;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import javax.jcr.Binary;
+import javax.jcr.PropertyType;
+import javax.jcr.RepositoryException;
+import javax.jcr.Value;
+import javax.jcr.ValueFactory;
+import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.jackrabbit.api.security.user.Group;
+import org.apache.jackrabbit.api.security.user.User;
+import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.api.security.user.Authorizable;
-import org.apache.jackrabbit.api.security.user.Group;
-import org.apache.jackrabbit.api.security.user.User;
-import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.AbstractExternalAuthTest;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalGroup;
@@ -44,43 +80,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.internal.stubbing.answers.ThrowsException;
-
-import javax.jcr.Binary;
-import javax.jcr.PropertyType;
-import javax.jcr.RepositoryException;
-import javax.jcr.Value;
-import javax.jcr.ValueFactory;
-import java.io.ByteArrayInputStream;
-import java.math.BigDecimal;
-import java.security.Principal;
-import java.text.Normalizer;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Collection;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.withSettings;
 
 public class DefaultSyncContextTest extends AbstractExternalAuthTest {
 
@@ -118,9 +117,9 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
     }
 
     /**
-     * Test utility method to synchronize the given identity into the repository.
-     * This is intended to simplify those tests that require a given user/group
-     * to be synchronized before executing the test.
+     * Test utility method to synchronize the given identity into the repository. This is intended
+     * to simplify those tests that require a given user/group to be synchronized before executing
+     * the test.
      *
      * @param externalIdentity The external identity to be synchronized.
      * @throws Exception
@@ -131,8 +130,10 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
         root.commit();
     }
 
-    private void setExternalID(@NotNull Authorizable authorizable, @Nullable String idpName) throws RepositoryException {
-        authorizable.setProperty(DefaultSyncContext.REP_EXTERNAL_ID, valueFactory.createValue(authorizable.getID() + ';' + idpName));
+    private void setExternalID(@NotNull Authorizable authorizable, @Nullable String idpName)
+        throws RepositoryException {
+        authorizable.setProperty(DefaultSyncContext.REP_EXTERNAL_ID,
+            valueFactory.createValue(authorizable.getID() + ';' + idpName));
     }
 
     @Test
@@ -224,7 +225,8 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
         ExternalIdentity externalGroup = idp.listGroups().next();
         sync(externalGroup);
 
-        ExternalIdentityRef ref = DefaultSyncContext.getIdentityRef(userManager.getAuthorizable(externalGroup.getId()));
+        ExternalIdentityRef ref = DefaultSyncContext.getIdentityRef(
+            userManager.getAuthorizable(externalGroup.getId()));
         assertNotNull(ref);
         assertEquals(externalGroup.getExternalId(), ref);
     }
@@ -234,7 +236,8 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
         ExternalIdentity externalUser = idp.listUsers().next();
         sync(externalUser);
 
-        ExternalIdentityRef ref = DefaultSyncContext.getIdentityRef(userManager.getAuthorizable(externalUser.getId()));
+        ExternalIdentityRef ref = DefaultSyncContext.getIdentityRef(
+            userManager.getAuthorizable(externalUser.getId()));
         assertNotNull(ref);
         assertEquals(externalUser.getExternalId(), ref);
     }
@@ -425,11 +428,12 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
         assertNotNull(si);
         assertEquals(external.getExternalId(), si.getExternalIdRef());
     }
-    
+
     @Test
     public void testSyncExternalIdentityUserManagerFails() throws Exception {
         RepositoryException re = new RepositoryException();
-        UserManager um = mock(UserManager.class, withSettings().defaultAnswer(new ThrowsException(re)));
+        UserManager um = mock(UserManager.class,
+            withSettings().defaultAnswer(new ThrowsException(re)));
         DefaultSyncContext ctx = new DefaultSyncContext(syncConfig, idp, um, valueFactory);
         try {
             ctx.sync(idp.listUsers().next());
@@ -500,7 +504,7 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
 
         Authorizable authorizable = userManager.getAuthorizable(userId);
         assertNotNull(authorizable);
-        assertTrue(((User)authorizable).isDisabled());
+        assertTrue(((User) authorizable).isDisabled());
 
         // add external user back
         addIDPUser(userId);
@@ -508,13 +512,13 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
         result = syncCtx.sync(userId);
         assertEquals(SyncResult.Status.ENABLE, result.getStatus());
         assertNotNull(userManager.getAuthorizable(userId));
-        assertFalse(((User)authorizable).isDisabled());
+        assertFalse(((User) authorizable).isDisabled());
 
         // sync again
         syncCtx.setForceUserSync(true);
         result = syncCtx.sync(userId);
         assertEquals(SyncResult.Status.UPDATE, result.getStatus());
-        assertFalse(((User)authorizable).isDisabled());
+        assertFalse(((User) authorizable).isDisabled());
     }
 
     @Test
@@ -568,7 +572,7 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
         authorizable = userManager.getAuthorizable(user.getId());
         assertNotNull(authorizable);
         assertTrue(authorizable instanceof User);
-        assertTrue(((User)authorizable).isDisabled());
+        assertTrue(((User) authorizable).isDisabled());
     }
 
     @Test
@@ -763,7 +767,8 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
     @Test
     public void testLostMembershipWithExpirationSet() throws Exception {
         long expTime = 2;
-        syncConfig.user().setMembershipNestingDepth(1).setMembershipExpirationTime(expTime).setExpirationTime(expTime);
+        syncConfig.user().setMembershipNestingDepth(1).setMembershipExpirationTime(expTime)
+                  .setExpirationTime(expTime);
 
         Group gr = createTestGroup();
         setExternalID(gr, idp.getName());
@@ -774,7 +779,8 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
         root.commit();
 
         waitUntilExpired(user, root, expTime);
-        DefaultSyncContext newCtx = new DefaultSyncContext(syncConfig, idp, userManager, valueFactory);
+        DefaultSyncContext newCtx = new DefaultSyncContext(syncConfig, idp, userManager,
+            valueFactory);
 
         result = newCtx.sync(user.getID());
         root.commit();
@@ -789,7 +795,8 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
      */
     @Test
     public void testMembershipForExistingForeignGroup() throws Exception {
-        syncConfig.user().setMembershipNestingDepth(1).setMembershipExpirationTime(-1).setExpirationTime(-1);
+        syncConfig.user().setMembershipNestingDepth(1).setMembershipExpirationTime(-1)
+                  .setExpirationTime(-1);
         syncConfig.group().setExpirationTime(-1);
 
         ExternalUser externalUser = idp.getUser(USER_ID);
@@ -923,7 +930,8 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
         sync(externalIdentity);
 
         // create external user with an synced-ext-user as declared group
-        ExternalUser withWrongDeclaredGroup = new ExternalUserWithDeclaredGroup(externalIdentity.getExternalId());
+        ExternalUser withWrongDeclaredGroup = new ExternalUserWithDeclaredGroup(
+            externalIdentity.getExternalId());
 
         try {
             Authorizable a = syncCtx.createUser(withWrongDeclaredGroup);
@@ -961,16 +969,16 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
         syncCtx.syncMembership(extuser, a, 1);
         assertFalse(root.hasPendingChanges());
     }
-    
+
     @Test
     public void testSyncMembershipDeclaredGroupsFails() throws Exception {
         ExternalIdentityProvider extIdp = spy(idp);
 
         ExternalUser externalUser = spy(extIdp.getUser(TestIdentityProvider.ID_TEST_USER));
         when(externalUser.getDeclaredGroups()).thenThrow(new ExternalIdentityException());
-        
+
         Authorizable a = syncCtx.createUser(externalUser);
-        
+
         syncCtx.syncMembership(externalUser, a, 1);
         verify(extIdp, never()).getIdentity(any(ExternalIdentityRef.class));
     }
@@ -978,8 +986,9 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
     @Test
     public void testSyncMembershipRetrieveGroupIdentityFails() throws Exception {
         ExternalIdentityProvider extIdp = spy(idp);
-        doThrow(new ExternalIdentityException()).when(extIdp).getIdentity(any(ExternalIdentityRef.class));
-        
+        doThrow(new ExternalIdentityException()).when(extIdp)
+                                                .getIdentity(any(ExternalIdentityRef.class));
+
         ExternalUser externalUser = spy(extIdp.getUser(TestIdentityProvider.ID_TEST_USER));
 
         UserManager um = spy(userManager);
@@ -987,7 +996,7 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
         Authorizable a = context.createUser(externalUser);
 
         context.syncMembership(externalUser, a, 1);
-        
+
         verify(extIdp, times(3)).getIdentity(any(ExternalIdentityRef.class));
         verify(um, never()).createGroup(any(String.class));
         verify(um, never()).createGroup(any(Principal.class));
@@ -999,11 +1008,11 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
     public void testGetExternalGroupFromGroupRef() throws Exception {
         ExternalGroup gr = idp.listGroups().next();
         ExternalGroup externalGroup = syncCtx.getExternalGroupFromRef(gr.getExternalId());
-        
+
         assertNotNull(externalGroup);
         assertEquals(gr.getId(), externalGroup.getId());
     }
-    
+
     @Test
     public void testGetExternalGroupFromGroupRefIdpMismatch() throws Exception {
         ExternalGroup gr = idp.listGroups().next();
@@ -1014,9 +1023,10 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
 
     @Test
     public void testGetExternalGroupFromRefFails() {
-        assertNull(syncCtx.getExternalGroupFromRef(new ExternalIdentityRef(TestIdentityProvider.ID_EXCEPTION, idp.getName())));
+        assertNull(syncCtx.getExternalGroupFromRef(
+            new ExternalIdentityRef(TestIdentityProvider.ID_EXCEPTION, idp.getName())));
     }
-    
+
     @Test
     public void testGetExternalGroupFromUserRef() throws Exception {
         ExternalUser user = idp.listUsers().next();
@@ -1038,7 +1048,8 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
         sync(externalUser);
         User u = getTestUser();
 
-        syncCtx.applyMembership(userManager.getAuthorizable(externalUser.getId()), ImmutableSet.of(u.getID()));
+        syncCtx.applyMembership(userManager.getAuthorizable(externalUser.getId()),
+            ImmutableSet.of(u.getID()));
         assertFalse(root.hasPendingChanges());
     }
 
@@ -1191,8 +1202,8 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
                 assertEquals(syncCtx.createValue(obj), a.getProperty(propName)[0]);
             } else {
                 Value[] expected = (obj instanceof Collection) ?
-                        syncCtx.createValues((Collection) obj) :
-                        syncCtx.createValues(Arrays.asList((Object[]) obj));
+                    syncCtx.createValues((Collection) obj) :
+                    syncCtx.createValues(Arrays.asList((Object[]) obj));
                 assertArrayEquals(expected, a.getProperty(propName));
             }
         }
@@ -1207,7 +1218,7 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
         Map<String, String> mapping = new HashMap<>();
         Map<String, ?> extProps = externalUser.getProperties();
         for (String propName : extProps.keySet()) {
-            mapping.put("a/"+propName, propName);
+            mapping.put("a/" + propName, propName);
         }
         syncCtx.syncProperties(externalUser, a, mapping);
 
@@ -1222,8 +1233,8 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
                 assertEquals(syncCtx.createValue(obj), a.getProperty(relPath)[0]);
             } else {
                 Value[] expected = (obj instanceof Collection) ?
-                        syncCtx.createValues((Collection) obj) :
-                        syncCtx.createValues(Arrays.asList((Object[]) obj));
+                    syncCtx.createValues((Collection) obj) :
+                    syncCtx.createValues(Arrays.asList((Object[]) obj));
                 assertArrayEquals(expected, a.getProperty(relPath));
             }
         }
@@ -1235,14 +1246,15 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
     @Test
     public void testSyncPropertiesSupplier() throws Exception {
         //given
-        TestIdentityProvider.UserWithSupplierProperties externalUser = new TestIdentityProvider.UserWithSupplierProperties("supplierPropsUser", "idp");
+        TestIdentityProvider.UserWithSupplierProperties externalUser = new TestIdentityProvider.UserWithSupplierProperties(
+            "supplierPropsUser", "idp");
         Authorizable a = syncCtx.createUser(externalUser);
 
         // create exact mapping
         Map<String, String> mapping = new HashMap<>();
         Map<String, ?> extProps = externalUser.getProperties();
         for (String propName : extProps.keySet()) {
-            mapping.put("a/"+propName, propName);
+            mapping.put("a/" + propName, propName);
         }
         //when
         syncCtx.syncProperties(externalUser, a, mapping);
@@ -1255,11 +1267,16 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
         assertTrue(a.hasProperty("a/bigDecimalSuppliedValue"));
         assertTrue(a.hasProperty("a/booleanSuppliedValue"));
 
-        assertEquals(externalUser.getProperties().get("profile/id"), a.getProperty("a/profile/id")[0].getString());
-        assertEquals(externalUser.getProperties().get("profile/name"), a.getProperty("a/profile/name")[0].getString());
-        assertEquals(externalUser.stringValue,  a.getProperty("a/stringSuppliedValue")[0].getString());
-        assertEquals(externalUser.bigDecimal, a.getProperty("a/bigDecimalSuppliedValue")[0].getDecimal());
-        assertEquals(externalUser.boolValue, a.getProperty("a/booleanSuppliedValue")[0].getBoolean());
+        assertEquals(externalUser.getProperties().get("profile/id"),
+            a.getProperty("a/profile/id")[0].getString());
+        assertEquals(externalUser.getProperties().get("profile/name"),
+            a.getProperty("a/profile/name")[0].getString());
+        assertEquals(externalUser.stringValue,
+            a.getProperty("a/stringSuppliedValue")[0].getString());
+        assertEquals(externalUser.bigDecimal,
+            a.getProperty("a/bigDecimalSuppliedValue")[0].getDecimal());
+        assertEquals(externalUser.boolValue,
+            a.getProperty("a/booleanSuppliedValue")[0].getBoolean());
     }
 
     @Test
@@ -1326,7 +1343,7 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
         assertEquals(PropertyType.STRING, v.getType());
         assertEquals("s", v.getString());
 
-        v = syncCtx.createValue(new char[] {'s'});
+        v = syncCtx.createValue(new char[]{'s'});
         assertNotNull(v);
         assertEquals(PropertyType.STRING, v.getType());
         assertEquals("s", v.getString());
@@ -1517,8 +1534,10 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
 
     @Test
     public void testIsSameIDPExternalIdentityRef() throws Exception {
-        assertFalse(syncCtx.isSameIDP(new TestIdentityProvider.ForeignExternalUser().getExternalId()));
-        assertFalse(syncCtx.isSameIDP(new TestIdentityProvider.ForeignExternalGroup().getExternalId()));
+        assertFalse(
+            syncCtx.isSameIDP(new TestIdentityProvider.ForeignExternalUser().getExternalId()));
+        assertFalse(
+            syncCtx.isSameIDP(new TestIdentityProvider.ForeignExternalGroup().getExternalId()));
 
         assertTrue(syncCtx.isSameIDP(new TestIdentityProvider.TestIdentity().getExternalId()));
         assertTrue(syncCtx.isSameIDP(idp.listGroups().next().getExternalId()));
@@ -1527,7 +1546,8 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
 
     @Test
     public void testJoinPaths() {
-        assertEquals(PathUtils.concatRelativePaths("a", "b", "c"), DefaultSyncContext.joinPaths("a", "b", "c"));
+        assertEquals(PathUtils.concatRelativePaths("a", "b", "c"),
+            DefaultSyncContext.joinPaths("a", "b", "c"));
     }
 
     @Test
@@ -1539,7 +1559,8 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
         assertEquals(Normalizer.normalize(id.toLowerCase(), Normalizer.Form.NFKC), user.getID());
     }
 
-    private static final class ExternalUserWithDeclaredGroup extends TestIdentityProvider.TestIdentity implements ExternalUser {
+    private static final class ExternalUserWithDeclaredGroup extends
+        TestIdentityProvider.TestIdentity implements ExternalUser {
 
         private final ExternalIdentityRef declaredGroupRef;
 
@@ -1548,7 +1569,8 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
             this.declaredGroupRef = declaredGroupRef;
         }
 
-        private ExternalUserWithDeclaredGroup(@NotNull ExternalIdentityRef declaredGroupRef, @NotNull ExternalIdentity base) {
+        private ExternalUserWithDeclaredGroup(@NotNull ExternalIdentityRef declaredGroupRef,
+            @NotNull ExternalIdentity base) {
             super(base);
             this.declaredGroupRef = declaredGroupRef;
         }
@@ -1560,7 +1582,8 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
         }
     }
 
-    private static final class ExternalUserFromGroup extends TestIdentityProvider.TestIdentity implements ExternalUser {
+    private static final class ExternalUserFromGroup extends
+        TestIdentityProvider.TestIdentity implements ExternalUser {
 
         private ExternalUserFromGroup(@NotNull ExternalIdentity base) {
             super(base);

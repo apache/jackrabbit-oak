@@ -19,14 +19,18 @@
 
 package org.apache.jackrabbit.oak.run.cli;
 
-import java.io.IOException;
+import static java.util.Collections.emptyMap;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBuilder.newMongoDocumentNodeStoreBuilder;
+import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentNodeStoreBuilder.newRDBDocumentNodeStoreBuilder;
+import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.getService;
 
-import javax.sql.DataSource;
-
-import com.mongodb.client.MongoDatabase;
-import org.apache.jackrabbit.guava.common.io.Closer;
 import com.mongodb.MongoClientURI;
+import com.mongodb.client.MongoDatabase;
+import java.io.IOException;
+import javax.sql.DataSource;
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBuilder;
@@ -39,18 +43,13 @@ import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static java.util.Collections.emptyMap;
-import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBuilder.newMongoDocumentNodeStoreBuilder;
-import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentNodeStoreBuilder.newRDBDocumentNodeStoreBuilder;
-import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.getService;
-
 class DocumentFixtureProvider {
+
     static DocumentNodeStore configureDocumentMk(Options options,
-                                         BlobStore blobStore,
-                                         Whiteboard wb,
-                                         Closer closer,
-                                         boolean readOnly) throws IOException {
+        BlobStore blobStore,
+        Whiteboard wb,
+        Closer closer,
+        boolean readOnly) throws IOException {
         CommonOptions commonOpts = options.getOptionBean(CommonOptions.class);
 
         DocumentNodeStoreBuilder<?> builder;
@@ -62,7 +61,8 @@ class DocumentFixtureProvider {
             throw new IllegalStateException("Unknown DocumentStore");
         }
 
-        StatisticsProvider statisticsProvider = checkNotNull(getService(wb, StatisticsProvider.class));
+        StatisticsProvider statisticsProvider = checkNotNull(
+            getService(wb, StatisticsProvider.class));
 
         DocumentBuilderCustomizer customizer = getService(wb, DocumentBuilderCustomizer.class);
         if (customizer != null) {
@@ -73,7 +73,8 @@ class DocumentFixtureProvider {
             builder.setBlobStore(blobStore);
         }
 
-        DocumentNodeStoreOptions docStoreOpts = options.getOptionBean(DocumentNodeStoreOptions.class);
+        DocumentNodeStoreOptions docStoreOpts = options.getOptionBean(
+            DocumentNodeStoreOptions.class);
 
         builder.setClusterId(docStoreOpts.getClusterId());
         builder.setStatisticsProvider(statisticsProvider);
@@ -91,12 +92,12 @@ class DocumentFixtureProvider {
             builder.disableBranches();
         }
 
-        if (docStoreOpts.isCacheDistributionDefined()){
+        if (docStoreOpts.isCacheDistributionDefined()) {
             builder.memoryCacheDistribution(
-                    docStoreOpts.getNodeCachePercentage(),
-                    docStoreOpts.getPrevDocCachePercentage(),
-                    docStoreOpts.getChildrenCachePercentage(),
-                    docStoreOpts.getDiffCachePercentage()
+                docStoreOpts.getNodeCachePercentage(),
+                docStoreOpts.getPrevDocCachePercentage(),
+                docStoreOpts.getChildrenCachePercentage(),
+                docStoreOpts.getDiffCachePercentage()
             );
         }
 
@@ -105,7 +106,7 @@ class DocumentFixtureProvider {
             MongoClientURI uri = new MongoClientURI(commonOpts.getStoreArg());
             if (uri.getDatabase() == null) {
                 System.err.println("Database missing in MongoDB URI: "
-                        + uri.getURI());
+                    + uri.getURI());
                 System.exit(1);
             }
             MongoConnection mongo = new MongoConnection(uri.getURI());
@@ -113,17 +114,20 @@ class DocumentFixtureProvider {
             wb.register(MongoConnection.class, mongo, emptyMap());
             wb.register(MongoDatabase.class, mongo.getDatabase(), emptyMap());
             closer.register(mongo::close);
-            ((MongoDocumentNodeStoreBuilder) builder).setMongoDB(mongo.getMongoClient(), mongo.getDBName());
+            ((MongoDocumentNodeStoreBuilder) builder).setMongoDB(mongo.getMongoClient(),
+                mongo.getDBName());
             dns = builder.build();
-            wb.register(MongoDocumentStore.class, (MongoDocumentStore) builder.getDocumentStore(), emptyMap());
+            wb.register(MongoDocumentStore.class, (MongoDocumentStore) builder.getDocumentStore(),
+                emptyMap());
         } else if (commonOpts.isRDB()) {
             RDBStoreOptions rdbOpts = options.getOptionBean(RDBStoreOptions.class);
             DataSource ds = RDBDataSourceFactory.forJdbcUrl(commonOpts.getStoreArg(),
-                    rdbOpts.getUser(), rdbOpts.getPassword());
+                rdbOpts.getUser(), rdbOpts.getPassword());
             wb.register(DataSource.class, ds, emptyMap());
             ((RDBDocumentNodeStoreBuilder) builder).setRDBConnection(ds);
             dns = builder.build();
-            wb.register(RDBDocumentStore.class, (RDBDocumentStore) builder.getDocumentStore(), emptyMap());
+            wb.register(RDBDocumentStore.class, (RDBDocumentStore) builder.getDocumentStore(),
+                emptyMap());
         } else {
             throw new IllegalStateException("Unknown DocumentStore");
         }

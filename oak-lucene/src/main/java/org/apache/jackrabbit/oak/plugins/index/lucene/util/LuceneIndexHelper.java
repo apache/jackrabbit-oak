@@ -16,17 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene.util;
 
-import java.util.Set;
-
-import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
-import org.apache.jackrabbit.oak.plugins.index.search.util.IndexHelper;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_PROPERTY_NAME;
@@ -36,43 +27,52 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPER
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 
+import java.util.Set;
+import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.search.util.IndexHelper;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 public class LuceneIndexHelper extends IndexHelper {
 
     public static NodeBuilder newLuceneIndexDefinition(
-            @NotNull NodeBuilder index, @NotNull String name,
-            @Nullable Set<String> propertyTypes) {
+        @NotNull NodeBuilder index, @NotNull String name,
+        @Nullable Set<String> propertyTypes) {
         return newLuceneIndexDefinition(index, name, propertyTypes, null, null, null);
     }
 
     public static NodeBuilder newLuceneIndexDefinition(
-            @NotNull NodeBuilder index, @NotNull String name,
-            @Nullable Set<String> propertyTypes,
-            @Nullable Set<String> excludes, @Nullable String async) {
+        @NotNull NodeBuilder index, @NotNull String name,
+        @Nullable Set<String> propertyTypes,
+        @Nullable Set<String> excludes, @Nullable String async) {
         return newLuceneIndexDefinition(index, name, propertyTypes, excludes,
-                async, null);
+            async, null);
     }
 
     public static NodeBuilder newLuceneIndexDefinition(
-            @NotNull NodeBuilder index, @NotNull String name,
-            @Nullable Set<String> propertyTypes,
-            @Nullable Set<String> excludes, @Nullable String async,
-            @Nullable Boolean stored) {
+        @NotNull NodeBuilder index, @NotNull String name,
+        @Nullable Set<String> propertyTypes,
+        @Nullable Set<String> excludes, @Nullable String async,
+        @Nullable Boolean stored) {
         if (index.hasChildNode(name)) {
             return index.child(name);
         }
         index = index.child(name);
         index.setProperty(JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE, NAME)
-                .setProperty(TYPE_PROPERTY_NAME, TYPE_LUCENE)
-                .setProperty(REINDEX_PROPERTY_NAME, true);
+             .setProperty(TYPE_PROPERTY_NAME, TYPE_LUCENE)
+             .setProperty(REINDEX_PROPERTY_NAME, true);
         if (async != null) {
             index.setProperty(ASYNC_PROPERTY_NAME, async);
         }
         if (propertyTypes != null && !propertyTypes.isEmpty()) {
             index.setProperty(createProperty(FulltextIndexConstants.INCLUDE_PROPERTY_TYPES,
-                    propertyTypes, STRINGS));
+                propertyTypes, STRINGS));
         }
         if (excludes != null && !excludes.isEmpty()) {
-            index.setProperty(createProperty(FulltextIndexConstants.EXCLUDE_PROPERTY_NAMES, excludes,
+            index.setProperty(
+                createProperty(FulltextIndexConstants.EXCLUDE_PROPERTY_NAMES, excludes,
                     STRINGS));
         }
         if (stored != null) {
@@ -82,53 +82,56 @@ public class LuceneIndexHelper extends IndexHelper {
     }
 
     public static NodeBuilder newLuceneFileIndexDefinition(
-            @NotNull NodeBuilder index, @NotNull String name,
-            @Nullable Set<String> propertyTypes, @NotNull String path) {
+        @NotNull NodeBuilder index, @NotNull String name,
+        @Nullable Set<String> propertyTypes, @NotNull String path) {
         return newLuceneFileIndexDefinition(index, name, propertyTypes, null,
-                path, null);
+            path, null);
     }
 
     public static NodeBuilder newLuceneFileIndexDefinition(
-            @NotNull NodeBuilder index, @NotNull String name,
-            @Nullable Set<String> propertyTypes,
-            @Nullable Set<String> excludes, @NotNull String path,
-            @Nullable String async) {
+        @NotNull NodeBuilder index, @NotNull String name,
+        @Nullable Set<String> propertyTypes,
+        @Nullable Set<String> excludes, @NotNull String path,
+        @Nullable String async) {
         if (index.hasChildNode(name)) {
             return index.child(name);
         }
         index = index.child(name);
         index.setProperty(JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE, NAME)
-                .setProperty(TYPE_PROPERTY_NAME, TYPE_LUCENE)
-                .setProperty(FulltextIndexConstants.PERSISTENCE_NAME, FulltextIndexConstants.PERSISTENCE_FILE)
-                .setProperty(FulltextIndexConstants.PERSISTENCE_PATH, path)
-                .setProperty(REINDEX_PROPERTY_NAME, true);
+             .setProperty(TYPE_PROPERTY_NAME, TYPE_LUCENE)
+             .setProperty(FulltextIndexConstants.PERSISTENCE_NAME,
+                 FulltextIndexConstants.PERSISTENCE_FILE)
+             .setProperty(FulltextIndexConstants.PERSISTENCE_PATH, path)
+             .setProperty(REINDEX_PROPERTY_NAME, true);
         if (async != null) {
             index.setProperty(ASYNC_PROPERTY_NAME, async);
         }
         if (propertyTypes != null && !propertyTypes.isEmpty()) {
             index.setProperty(createProperty(FulltextIndexConstants.INCLUDE_PROPERTY_TYPES,
-                    propertyTypes, STRINGS));
+                propertyTypes, STRINGS));
         }
         if (excludes != null && !excludes.isEmpty()) {
-            index.setProperty(createProperty(FulltextIndexConstants.EXCLUDE_PROPERTY_NAMES, excludes,
+            index.setProperty(
+                createProperty(FulltextIndexConstants.EXCLUDE_PROPERTY_NAMES, excludes,
                     STRINGS));
         }
         return index;
     }
 
     public static NodeBuilder newLucenePropertyIndexDefinition(
-            @NotNull NodeBuilder index, @NotNull String name,
-            @NotNull Set<String> includes,
-            @NotNull String async) {
+        @NotNull NodeBuilder index, @NotNull String name,
+        @NotNull Set<String> includes,
+        @NotNull String async) {
         checkArgument(!includes.isEmpty(), "Lucene property index " +
-                "requires explicit list of property names to be indexed");
+            "requires explicit list of property names to be indexed");
 
         index = index.child(name);
         index.setProperty(JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE, NAME)
-                .setProperty(TYPE_PROPERTY_NAME, TYPE_LUCENE)
-                .setProperty(REINDEX_PROPERTY_NAME, true);
+             .setProperty(TYPE_PROPERTY_NAME, TYPE_LUCENE)
+             .setProperty(REINDEX_PROPERTY_NAME, true);
         index.setProperty(FulltextIndexConstants.FULL_TEXT_ENABLED, false);
-        index.setProperty(createProperty(FulltextIndexConstants.INCLUDE_PROPERTY_NAMES, includes, STRINGS));
+        index.setProperty(
+            createProperty(FulltextIndexConstants.INCLUDE_PROPERTY_NAMES, includes, STRINGS));
 
         if (async != null) {
             index.setProperty(ASYNC_PROPERTY_NAME, async);
@@ -136,7 +139,7 @@ public class LuceneIndexHelper extends IndexHelper {
         return index;
     }
 
-    public static boolean isLuceneIndexNode(NodeState node){
+    public static boolean isLuceneIndexNode(NodeState node) {
         return IndexHelper.isIndexNodeOfType(node, TYPE_LUCENE);
     }
 }

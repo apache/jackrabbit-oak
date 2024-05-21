@@ -15,13 +15,17 @@
    limitations under the License.
   -->
 
-*NOTE*: The information in this file is outdated since [OAK-5007](https://issues.apache.org/jira/browse/OAK-5007) aligned this module's release cycle with the rest of Oak.
+*NOTE*: The information in this file is outdated
+since [OAK-5007](https://issues.apache.org/jira/browse/OAK-5007) aligned this module's release cycle
+with the rest of Oak.
 
-*TODO*: Remove or update this file once we clarified the release modalities for Segment Tar wrt. Oak 1.8   
+*TODO*: Remove or update this file once we clarified the release modalities for Segment Tar wrt. Oak
+1.8
 
 # Release HOWTO
 
-This HOWTO explains how to release Oak Segment Tar. I describe the steps required to release version `$VERSION`, assuming that the latest released version is `$PREV` and the next is `$NEXT`.
+This HOWTO explains how to release Oak Segment Tar. I describe the steps required to release
+version `$VERSION`, assuming that the latest released version is `$PREV` and the next is `$NEXT`.
 
 ## Vote
 
@@ -35,7 +39,8 @@ This HOWTO explains how to release Oak Segment Tar. I describe the steps require
 4. Start the vote on oak-dev. See the vote template below.
 5. Wait 72 hours.
 
-A vote is successful if it has at least three +1 and if the number of -1 is less than the number of +1.
+A vote is successful if it has at least three +1 and if the number of -1 is less than the number of
++1.
 
 ## Successful vote
 
@@ -43,9 +48,11 @@ A vote is successful if it has at least three +1 and if the number of -1 is less
 2. Copy the artifacts to the release repository.
     1. Execute the `check_staged_release.sh` script if you haven't already.
     2. Move to the temporary folder created by the script where the artifacts are.
-    3. Execute `svn import https://dist.apache.org/repos/dist/release/jackrabbit/oak/oak-segment-tar/$VERSION`.
+    3.
+   Execute `svn import https://dist.apache.org/repos/dist/release/jackrabbit/oak/oak-segment-tar/$VERSION`.
 3. Delete the old release.
-    1. Execute `svn rm https://dist.apache.org/repos/dist/release/jackrabbit/oak/oak-segment-tar/$PREV`.
+    1.
+   Execute `svn rm https://dist.apache.org/repos/dist/release/jackrabbit/oak/oak-segment-tar/$PREV`.
 4. Release the staged Maven repository.
     1. Log in to https://repository.apache.org.
     2. Click on "Staging Repositories".
@@ -64,7 +71,8 @@ A vote is successful if it has at least three +1 and if the number of -1 is less
 ## Unsuccessful vote
 
 1. Remove the release tag from Subversion.
-    1. Execute `svn rm http://svn.apache.org/repos/asf/jackrabbit/oak/tags/oak-segment-tar-$VERSION`.
+    1.
+   Execute `svn rm http://svn.apache.org/repos/asf/jackrabbit/oak/tags/oak-segment-tar-$VERSION`.
 2. Drop the staged Maven repository.
     1. Log in to https://repository.apache.org.
     2. Click on "Staging Repositories".
@@ -80,7 +88,8 @@ Substitute the following information in the body of the mail:
 - The URL of the version in Jira.
 - The number of the staging repository.
 
-This information is not a function of the released version, so it has to be manually entered at every release.
+This information is not a function of the released version, so it has to be manually entered at
+every release.
 
 ```
 Subject: [VOTE] Release Apache Jackrabbit Oak Segment Tar version $VERSION

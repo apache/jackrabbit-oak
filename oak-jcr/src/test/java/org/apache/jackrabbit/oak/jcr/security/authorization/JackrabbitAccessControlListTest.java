@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.jcr.security.authorization;
 
+import static org.junit.Assert.assertArrayEquals;
+
 import java.security.Principal;
 import java.util.Arrays;
 import java.util.Collections;
@@ -28,7 +30,6 @@ import javax.jcr.security.AccessControlEntry;
 import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.AccessControlPolicyIterator;
 import javax.jcr.security.Privilege;
-
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
@@ -36,8 +37,6 @@ import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils
 import org.apache.jackrabbit.test.NotExecutableException;
 import org.apache.jackrabbit.test.api.security.AbstractAccessControlTest;
 import org.junit.Test;
-
-import static org.junit.Assert.assertArrayEquals;
 
 /**
  * Testing {@code JackrabbitAccessControlList} functionality exposed by the API.
@@ -128,7 +127,8 @@ public class JackrabbitAccessControlListTest extends AbstractAccessControlTest {
     @Test
     public void testAddEntry() throws NotExecutableException, RepositoryException {
         List<AccessControlEntry> entriesBefore = Arrays.asList(acl.getAccessControlEntries());
-        if (acl.addEntry(testPrincipal, testPrivileges, true, Collections.<String, Value>emptyMap())) {
+        if (acl.addEntry(testPrincipal, testPrivileges, true,
+            Collections.<String, Value>emptyMap())) {
             AccessControlEntry[] entries = acl.getAccessControlEntries();
             AccessControlEntry ace = null;
             for (AccessControlEntry entry : entries) {
@@ -140,7 +140,8 @@ public class JackrabbitAccessControlListTest extends AbstractAccessControlTest {
             assertTrue("addEntry was successful -> at least 1 entry.", entries.length > 0);
         } else {
             AccessControlEntry[] entries = acl.getAccessControlEntries();
-            assertEquals("Grant ALL not successful -> entries must not have changed.", entriesBefore, Arrays.asList(entries));
+            assertEquals("Grant ALL not successful -> entries must not have changed.",
+                entriesBefore, Arrays.asList(entries));
         }
     }
 

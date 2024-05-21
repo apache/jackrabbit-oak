@@ -16,6 +16,10 @@
  */
 package org.apache.jackrabbit.oak.segment.file.tar;
 
+import static org.junit.Assert.assertEquals;
+
+import java.io.File;
+import java.io.IOException;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
@@ -30,11 +34,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-
-import java.io.File;
-import java.io.IOException;
-
-import static org.junit.Assert.assertEquals;
 
 public class SegmentTarManagerTest {
 
@@ -58,11 +57,13 @@ public class SegmentTarManagerTest {
 
 
     @Test
-    public void testArchiveRecovery() throws IOException, InvalidFileStoreVersionException, CommitFailedException {
+    public void testArchiveRecovery()
+        throws IOException, InvalidFileStoreVersionException, CommitFailedException {
 
         FileStore store = FileStoreBuilder.fileStoreBuilder(getSourceFileStoreFolder())
-                .withStrictVersionCheck(false)
-                .withCustomPersistence(getPersistence(getSourceFileStoreFolder())).build();
+                                          .withStrictVersionCheck(false)
+                                          .withCustomPersistence(
+                                              getPersistence(getSourceFileStoreFolder())).build();
 
         SegmentNodeStore segmentNodeStore = SegmentNodeStoreBuilders.builder(store).build();
         NodeBuilder builder = segmentNodeStore.getRoot().builder();
@@ -70,11 +71,11 @@ public class SegmentTarManagerTest {
         segmentNodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         store.close();
 
-
         //create second archive
         store = FileStoreBuilder.fileStoreBuilder(getSourceFileStoreFolder())
-                .withStrictVersionCheck(false)
-                .withCustomPersistence(getPersistence(getSourceFileStoreFolder())).build();
+                                .withStrictVersionCheck(false)
+                                .withCustomPersistence(getPersistence(getSourceFileStoreFolder()))
+                                .build();
 
         segmentNodeStore = SegmentNodeStoreBuilders.builder(store).build();
         builder = segmentNodeStore.getRoot().builder();
@@ -83,21 +84,25 @@ public class SegmentTarManagerTest {
         store.flush();
         //we will not close second archive now, thus index will not be written
 
-
-        assertEquals(2, getSourceFileStoreFolder().listFiles((dir, name) -> name.endsWith(".tar")).length);
-        assertEquals(0, getSourceFileStoreFolder().listFiles((dir, name) -> name.endsWith(".tar.bak")).length);
+        assertEquals(2,
+            getSourceFileStoreFolder().listFiles((dir, name) -> name.endsWith(".tar")).length);
+        assertEquals(0,
+            getSourceFileStoreFolder().listFiles((dir, name) -> name.endsWith(".tar.bak")).length);
 
         //clone repository data
         FileUtils.copyDirectory(getSourceFileStoreFolder(), getDestinationileStoreFolder());
 
         // This time, on startup with cloned repository data, recovery will be initiated because previous archive was not closed
         FileStore storeToRecover = FileStoreBuilder.fileStoreBuilder(getDestinationileStoreFolder())
-                .withStrictVersionCheck(false)
-                .withCustomPersistence(getPersistence(getDestinationileStoreFolder())).build();
+                                                   .withStrictVersionCheck(false)
+                                                   .withCustomPersistence(getPersistence(
+                                                       getDestinationileStoreFolder())).build();
 
-
-        assertEquals(2, getDestinationileStoreFolder().listFiles((dir, name) -> name.endsWith(".tar")).length);
-        assertEquals("Backup archive should have been created.", 1, getDestinationileStoreFolder().listFiles((dir, name) -> name.endsWith(".tar.bak")).length);
+        assertEquals(2,
+            getDestinationileStoreFolder().listFiles((dir, name) -> name.endsWith(".tar")).length);
+        assertEquals("Backup archive should have been created.", 1,
+            getDestinationileStoreFolder().listFiles(
+                (dir, name) -> name.endsWith(".tar.bak")).length);
         segmentNodeStore = SegmentNodeStoreBuilders.builder(storeToRecover).build();
 
         assertEquals("bar", segmentNodeStore.getRoot().getString("foo"));

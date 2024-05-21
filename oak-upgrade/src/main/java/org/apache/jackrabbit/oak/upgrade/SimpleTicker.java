@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.upgrade;
 import org.apache.jackrabbit.guava.common.base.Strings;
 
 public class SimpleTicker implements ProgressTicker {
+
     private final int maxTicks;
     private int dotCount;
     private boolean decreasing;
@@ -33,10 +34,10 @@ public class SimpleTicker implements ProgressTicker {
     @Override
     public String tick() {
         int noOfDots = decreasing ? dotCount-- : dotCount++;
-        if(dotCount == 0){
+        if (dotCount == 0) {
             decreasing = false;
         }
-        if(dotCount == maxTicks){
+        if (dotCount == maxTicks) {
             decreasing = true;
         }
         return Strings.repeat(".", noOfDots);

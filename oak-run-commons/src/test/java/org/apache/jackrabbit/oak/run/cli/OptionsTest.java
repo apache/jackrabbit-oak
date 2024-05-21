@@ -19,15 +19,16 @@
 
 package org.apache.jackrabbit.oak.run.cli;
 
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
 import joptsimple.OptionParser;
 import org.junit.Test;
-
-import static org.junit.Assert.*;
 
 public class OptionsTest {
 
     @Test
-    public void noArgs() throws Exception{
+    public void noArgs() throws Exception {
         OptionParser parser = new OptionParser();
         Options opts = new Options().withDisableSystemExit();
         opts.parseAndConfigure(parser, new String[]{});
@@ -35,7 +36,7 @@ public class OptionsTest {
     }
 
     @Test
-    public void help() throws Exception{
+    public void help() throws Exception {
         OptionParser parser = new OptionParser();
         Options opts = new Options().withDisableSystemExit();
         opts.parseAndConfigure(parser, new String[]{"-h"});

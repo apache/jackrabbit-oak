@@ -20,52 +20,52 @@ package org.apache.jackrabbit.oak.scalability.benchmarks;
 
 import javax.jcr.Credentials;
 import javax.jcr.Repository;
-
 import org.apache.jackrabbit.oak.scalability.ScalabilitySuite;
 import org.apache.jackrabbit.oak.scalability.suites.ScalabilityAbstractSuite.ExecutionContext;
 
 
 /**
  * Base class for all the Scalability/Longevity benchmarks/tests.
- * 
+ * <p>
  * The implementations should implement the method
  * {@link ScalabilityBenchmark#execute(Repository, Credentials, ExecutionContext)}.
- * 
+ * <p>
  * This method will then be called from the {@link ScalabilitySuite} where configured.
- * 
  */
 public abstract class ScalabilityBenchmark {
 
     /**
      * Runs the benchmark against the given repository.
      *
-     * @param repository the repository instance
+     * @param repository  the repository instance
      * @param credentials the credentials
-     * @param context the execution context
+     * @param context     the execution context
      * @throws Exception
      */
     public abstract void execute(Repository repository, Credentials credentials,
-            ExecutionContext context) throws Exception;
+        ExecutionContext context) throws Exception;
 
     /**
      * Run any preparatory steps before the benchmark.
      *
-     * @param repository the repository instance
+     * @param repository  the repository instance
      * @param credentials the credentials
-     * @param context the execution context
+     * @param context     the execution context
      */
     public void beforeExecute(Repository repository, Credentials credentials,
-        ExecutionContext context) throws Exception {}
+        ExecutionContext context) throws Exception {
+    }
 
     /**
      * Run any cleanup necessary after the benchmark
      *
-     * @param repository the repository instance
+     * @param repository  the repository instance
      * @param credentials the credentials
-     * @param context the execution context
+     * @param context     the execution context
      */
     public void afterExecute(Repository repository, Credentials credentials,
-        ExecutionContext context) {}
+        ExecutionContext context) {
+    }
 
     @Override
     public String toString() {

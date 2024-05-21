@@ -32,9 +32,10 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-
 import javax.jcr.PropertyType;
-
+import joptsimple.OptionParser;
+import joptsimple.OptionSet;
+import joptsimple.OptionSpec;
 import org.apache.felix.inventory.Format;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
@@ -69,10 +70,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import joptsimple.OptionParser;
-import joptsimple.OptionSet;
-import joptsimple.OptionSpec;
-
 /**
  * Merge custom index definitions with out-of-the-box index definitions.
  */
@@ -100,7 +97,7 @@ public class IndexMerge {
         OptionParser parser = new OptionParser();
         OptionSpec<Void> quietOption = parser.accepts("quiet", "be less chatty");
         OptionSpec<String> indexDirectory = parser.accepts("indexDir", "Index directory").
-                withRequiredArg();
+                                                  withRequiredArg();
         Options opts = new Options();
         OptionSet options = opts.parseAndConfigure(parser, args);
         quiet = options.has(quietOption);
@@ -121,7 +118,8 @@ public class IndexMerge {
                     throw new IllegalArgumentException("No blob store specified");
                 }
                 if (!(blobStore instanceof GarbageCollectableBlobStore)) {
-                    throw new IllegalArgumentException("Not a garbage collectable blob store: " + blobStore);
+                    throw new IllegalArgumentException(
+                        "Not a garbage collectable blob store: " + blobStore);
                 }
             }
             initHook(indexRootDir, (GarbageCollectableBlobStore) blobStore);
@@ -143,7 +141,7 @@ public class IndexMerge {
 
             IndexDefMergerUtils.merge(indexes, indexes);
 
-            Set<String> newIndexKeys =  new HashSet<>(indexes.getChildren().keySet());
+            Set<String> newIndexKeys = new HashSet<>(indexes.getChildren().keySet());
             newIndexKeys.removeAll(indexKeys);
             if (newIndexKeys.isEmpty()) {
                 log("No indexes to merge");
@@ -169,7 +167,7 @@ public class IndexMerge {
     private void storeIndex(NodeStore ns, String newIndexName, JsonObject indexDef) {
         NodeBuilder rootBuilder = ns.getRoot().builder();
         NodeBuilder b = rootBuilder;
-        for(String p : PathUtils.elements(newIndexName)) {
+        for (String p : PathUtils.elements(newIndexName)) {
             b = b.child(p);
         }
         build("  ", b, indexDef);
@@ -182,16 +180,16 @@ public class IndexMerge {
     }
 
     private void build(String linePrefix, NodeBuilder builder, JsonObject json) {
-        for(Entry<String, String> e : json.getProperties().entrySet()) {
+        for (Entry<String, String> e : json.getProperties().entrySet()) {
             String k = e.getKey();
             String value = e.getValue();
             JsopTokenizer tokenizer = new JsopTokenizer(value);
             if (tokenizer.matches('[')) {
                 ArrayList<String> list = new ArrayList<>();
                 while (!tokenizer.matches(']')) {
-                   String jsonString = tokenizer.getToken();
-                   list.add(jsonString);
-                   tokenizer.matches(',');
+                    String jsonString = tokenizer.getToken();
+                    list.add(jsonString);
+                    tokenizer.matches(',');
                 }
                 log(linePrefix + "array " + k + " = " + list + " (String[])");
                 builder.setProperty(k, list, Type.STRINGS);
@@ -228,7 +226,7 @@ public class IndexMerge {
             }
         }
         ArrayList<String> childOrder = new ArrayList<>();
-        for(Entry<String, JsonObject> e : json.getChildren().entrySet()) {
+        for (Entry<String, JsonObject> e : json.getChildren().entrySet()) {
             String k = e.getKey();
             JsonObject el = e.getValue();
             log(linePrefix + "child " + k);
@@ -241,15 +239,14 @@ public class IndexMerge {
     }
 
     /**
-     * Get the names of the index definitions that are superseded in one of the
-     * indexes.
+     * Get the names of the index definitions that are superseded in one of the indexes.
      *
      * @param indexDefs all index definitions
      * @return the superseded indexes
      */
     public static Set<String> getSupersededIndexDefs(JsonObject indexDefs) {
         HashSet<String> supersededIndexes = new HashSet<>();
-        for(JsonObject d : indexDefs.getChildren().values()) {
+        for (JsonObject d : indexDefs.getChildren().values()) {
             String supersedes = d.getProperties().get("supersedes");
             if (supersedes != null) {
                 JsopTokenizer tokenizer = new JsopTokenizer(supersedes);
@@ -261,7 +258,8 @@ public class IndexMerge {
                                 supersededIndexes.add(s);
                             }
                         } else {
-                            throw new IllegalArgumentException("Unexpected token: " + tokenizer.getToken());
+                            throw new IllegalArgumentException(
+                                "Unexpected token: " + tokenizer.getToken());
                         }
                         tokenizer.matches(',');
                     }
@@ -272,15 +270,16 @@ public class IndexMerge {
     }
 
     /**
-     * Get the the index definitions from a node store. It uses the index path
-     * service and index definition printer from Oak.
+     * Get the the index definitions from a node store. It uses the index path service and index
+     * definition printer from Oak.
      *
      * @param nodeStore the source node store
      * @return a JSON object with all index definitions
      */
     private static JsonObject getIndexDefinitions(NodeStore nodeStore) throws IOException {
         IndexPathService imageIndexPathService = new IndexPathServiceImpl(nodeStore);
-        IndexDefinitionPrinter indexDefinitionPrinter = new IndexDefinitionPrinter(nodeStore, imageIndexPathService);
+        IndexDefinitionPrinter indexDefinitionPrinter = new IndexDefinitionPrinter(nodeStore,
+            imageIndexPathService);
         StringWriter writer = new StringWriter();
         PrintWriter printWriter = new PrintWriter(writer);
         indexDefinitionPrinter.print(printWriter, Format.JSON, false);
@@ -291,41 +290,43 @@ public class IndexMerge {
     }
 
     private void log(String message) {
-        if(!quiet) {
+        if (!quiet) {
             System.out.println(message);
         }
     }
 
-    private void initHook(String indexRootDir, GarbageCollectableBlobStore blobStore) throws IOException {
+    private void initHook(String indexRootDir, GarbageCollectableBlobStore blobStore)
+        throws IOException {
         IndexTracker tracker = new IndexTracker();
         executorService = Executors.newFixedThreadPool(2);
         IndexCopier indexCopier = new IndexCopier(executorService, new File(indexRootDir));
         MountInfoProvider mip = createMountInfoProvider();
-        LuceneIndexEditorProvider luceneEditor = new LuceneIndexEditorProvider(indexCopier, tracker, null, null, mip);
+        LuceneIndexEditorProvider luceneEditor = new LuceneIndexEditorProvider(indexCopier, tracker,
+            null, null, mip);
         luceneEditor.setBlobStore(blobStore);
         CompositeIndexEditorProvider indexEditor = new CompositeIndexEditorProvider(
-                luceneEditor,
-                new PropertyIndexEditorProvider().with(mip),
-                new ReferenceEditorProvider().with(mip),
-                new NodeCounterEditorProvider().with(mip)
+            luceneEditor,
+            new PropertyIndexEditorProvider().with(mip),
+            new ReferenceEditorProvider().with(mip),
+            new NodeCounterEditorProvider().with(mip)
         );
         IndexUpdateProvider updateProvider = new IndexUpdateProvider(
-                indexEditor, "async", false);
+            indexEditor, "async", false);
         hook = new EditorHook(updateProvider);
     }
 
     private static MountInfoProvider createMountInfoProvider() {
         // TODO probably need the ability to configure mounts
         return Mounts.newBuilder()
-                .mount("libs", true, Arrays.asList(
-                        // pathsSupportingFragments
-                        "/oak:index/*$"
-                ), Arrays.asList(
-                        // mountedPaths
-                        "/libs",
-                        "/apps",
-                        "/jcr:system/rep:permissionStore/oak:mount-libs-crx.default"))
-                .build();
+                     .mount("libs", true, Arrays.asList(
+                         // pathsSupportingFragments
+                         "/oak:index/*$"
+                     ), Arrays.asList(
+                         // mountedPaths
+                         "/libs",
+                         "/apps",
+                         "/jcr:system/rep:permissionStore/oak:mount-libs-crx.default"))
+                     .build();
     }
 
 }

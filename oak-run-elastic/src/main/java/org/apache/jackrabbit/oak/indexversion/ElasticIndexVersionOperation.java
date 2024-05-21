@@ -18,12 +18,12 @@
  */
 package org.apache.jackrabbit.oak.indexversion;
 
+import java.util.List;
 import org.apache.jackrabbit.oak.plugins.index.IndexName;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
-import java.util.List;
+public class ElasticIndexVersionOperation extends IndexVersionOperation {
 
-public class ElasticIndexVersionOperation extends IndexVersionOperation{
     public ElasticIndexVersionOperation(IndexName indexName) {
         super(indexName);
     }
@@ -42,7 +42,8 @@ public class ElasticIndexVersionOperation extends IndexVersionOperation{
     }
 
     @Override
-    protected IndexName getActiveIndex(List<IndexName> reverseSortedIndexNameList, String parentPath, NodeState rootNode) {
+    protected IndexName getActiveIndex(List<IndexName> reverseSortedIndexNameList,
+        String parentPath, NodeState rootNode) {
         // ES doesn't have a concept of active/inactive index as of now (no hidden oak mount to detect this)
         // So here we simply return the highest versioned index
         return reverseSortedIndexNameList.remove(0);

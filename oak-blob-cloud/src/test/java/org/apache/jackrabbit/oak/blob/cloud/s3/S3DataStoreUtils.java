@@ -18,6 +18,13 @@
  */
 package org.apache.jackrabbit.oak.blob.cloud.s3;
 
+import static org.apache.jackrabbit.guava.common.base.StandardSystemProperty.USER_HOME;
+
+import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.model.DeleteObjectsRequest;
+import com.amazonaws.services.s3.model.ObjectListing;
+import com.amazonaws.services.s3.model.S3ObjectSummary;
+import com.amazonaws.services.s3.transfer.TransferManager;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -31,31 +38,23 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-
 import javax.net.ssl.HttpsURLConnection;
-
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.model.DeleteObjectsRequest;
-import com.amazonaws.services.s3.model.ObjectListing;
-import com.amazonaws.services.s3.model.S3ObjectSummary;
-import com.amazonaws.services.s3.transfer.TransferManager;
+import org.apache.commons.io.IOUtils;
+import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.commons.io.IOUtils;
-import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.StandardSystemProperty.USER_HOME;
-
 /**
  * Extension to {@link DataStoreUtils} to enable S3 extensions for cleaning and initialization.
  */
 public class S3DataStoreUtils extends DataStoreUtils {
+
     private static final Logger log = LoggerFactory.getLogger(S3DataStoreUtils.class);
 
     static final String DEFAULT_CONFIG_PATH = "./src/test/resources/aws.properties";
@@ -84,8 +83,10 @@ public class S3DataStoreUtils extends DataStoreUtils {
      */
     public static boolean isS3Configured() {
         Properties props = getS3Config();
-        if (!props.containsKey(S3Constants.ACCESS_KEY) || !props.containsKey(S3Constants.SECRET_KEY) || !(
-            props.containsKey(S3Constants.S3_REGION) || props.containsKey(S3Constants.S3_END_POINT))) {
+        if (!props.containsKey(S3Constants.ACCESS_KEY) || !props.containsKey(S3Constants.SECRET_KEY)
+            || !(
+            props.containsKey(S3Constants.S3_REGION) || props.containsKey(
+                S3Constants.S3_END_POINT))) {
 
             return false;
         }
@@ -93,8 +94,7 @@ public class S3DataStoreUtils extends DataStoreUtils {
     }
 
     /**
-     * Read any config property configured.
-     * Also, read any props available as system properties.
+     * Read any config property configured. Also, read any props available as system properties.
      * System properties take precedence.
      *
      * @return Properties instance
@@ -122,18 +122,21 @@ public class S3DataStoreUtils extends DataStoreUtils {
                 IOUtils.closeQuietly(is);
             }
             props.putAll(getConfig());
-            Map filtered = Maps.filterEntries(Maps.fromProperties(props), new Predicate<Map.Entry<? extends Object, ? extends Object>>() {
-                @Override public boolean apply(Map.Entry<? extends Object, ? extends Object> input) {
-                    return !Strings.isNullOrEmpty((String) input.getValue());
-                }
-            });
+            Map filtered = Maps.filterEntries(Maps.fromProperties(props),
+                new Predicate<Map.Entry<? extends Object, ? extends Object>>() {
+                    @Override
+                    public boolean apply(Map.Entry<? extends Object, ? extends Object> input) {
+                        return !Strings.isNullOrEmpty((String) input.getValue());
+                    }
+                });
             props = new Properties();
             props.putAll(filtered);
         }
         return props;
     }
 
-    public static DataStore getS3DataStore(String className, Properties props, String homeDir) throws Exception {
+    public static DataStore getS3DataStore(String className, Properties props, String homeDir)
+        throws Exception {
         DataStore ds = Class.forName(className).asSubclass(DataStore.class).newInstance();
         PropertiesUtil.populate(ds, Utils.asMap(props), false);
         // Set the props object
@@ -168,8 +171,9 @@ public class S3DataStoreUtils extends DataStoreUtils {
                         delObjsReq.setKeys(deleteList);
                         s3service.deleteObjects(delObjsReq);
                     }
-                    if (!prevObjectListing.isTruncated())
+                    if (!prevObjectListing.isTruncated()) {
                         break;
+                    }
                     prevObjectListing = s3service.listNextBatchOfObjects(prevObjectListing);
                 }
             }
@@ -182,12 +186,15 @@ public class S3DataStoreUtils extends DataStoreUtils {
         s3service.shutdown();
     }
 
-    protected static HttpsURLConnection getHttpsConnection(long length, URI uri) throws IOException {
+    protected static HttpsURLConnection getHttpsConnection(long length, URI uri)
+        throws IOException {
         HttpsURLConnection conn = (HttpsURLConnection) uri.toURL().openConnection();
         conn.setDoOutput(true);
         conn.setRequestMethod("PUT");
         conn.setRequestProperty("Content-Length", String.valueOf(length));
-        conn.setRequestProperty("Date", DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssX").withZone(ZoneOffset.UTC).format(Instant.now()));
+        conn.setRequestProperty("Date",
+            DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssX").withZone(ZoneOffset.UTC)
+                             .format(Instant.now()));
         conn.setRequestProperty("Host", uri.getHost());
 
         return conn;

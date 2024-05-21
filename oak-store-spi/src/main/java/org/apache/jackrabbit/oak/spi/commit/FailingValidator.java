@@ -21,8 +21,8 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
- * Validator that rejects all changes. Useful as a sentinel or as
- * a tool for testing composite validators.
+ * Validator that rejects all changes. Useful as a sentinel or as a tool for testing composite
+ * validators.
  *
  * @since Oak 0.3
  */
@@ -54,37 +54,37 @@ public class FailingValidator implements Validator {
 
     @Override
     public void propertyAdded(PropertyState after)
-            throws CommitFailedException {
+        throws CommitFailedException {
         throw new CommitFailedException(type, code, message);
     }
 
     @Override
     public void propertyChanged(PropertyState before, PropertyState after)
-            throws CommitFailedException {
+        throws CommitFailedException {
         throw new CommitFailedException(type, code, message);
     }
 
     @Override
     public void propertyDeleted(PropertyState before)
-            throws CommitFailedException {
+        throws CommitFailedException {
         throw new CommitFailedException(type, code, message);
     }
 
     @Override
     public Validator childNodeAdded(String name, NodeState after)
-            throws CommitFailedException {
+        throws CommitFailedException {
         throw new CommitFailedException(type, code, message);
     }
 
     @Override
     public Validator childNodeChanged(
-            String name, NodeState before, NodeState after) {
+        String name, NodeState before, NodeState after) {
         return this; // the subtree might not have changed, so recurse
     }
 
     @Override
     public Validator childNodeDeleted(String name, NodeState before)
-            throws CommitFailedException {
+        throws CommitFailedException {
         throw new CommitFailedException(type, code, message);
     }
 

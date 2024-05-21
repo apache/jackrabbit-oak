@@ -16,19 +16,18 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
+import javax.jcr.Repository;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.index.FacetCommonTest;
 import org.apache.jackrabbit.oak.plugins.index.TestUtil;
 import org.junit.ClassRule;
 
-import javax.jcr.Repository;
-
 public class ElasticFacetTest extends FacetCommonTest {
 
     @ClassRule
     public static final ElasticConnectionRule elasticRule =
-            new ElasticConnectionRule(ElasticTestUtils.ELASTIC_CONNECTION_STRING, "elastic_test_");
+        new ElasticConnectionRule(ElasticTestUtils.ELASTIC_CONNECTION_STRING, "elastic_test_");
 
     protected Repository createJcrRepository() {
         indexOptions = new ElasticIndexOptions();
@@ -40,6 +39,8 @@ public class ElasticFacetTest extends FacetCommonTest {
 
     protected void assertEventually(Runnable r) {
         TestUtil.assertEventually(r,
-                ((repositoryOptionsUtil.isAsync() ? repositoryOptionsUtil.defaultAsyncIndexingTimeInSeconds : 0) + ElasticIndexDefinition.BULK_FLUSH_INTERVAL_MS_DEFAULT) * 5);
+            ((repositoryOptionsUtil.isAsync()
+                ? repositoryOptionsUtil.defaultAsyncIndexingTimeInSeconds : 0)
+                + ElasticIndexDefinition.BULK_FLUSH_INTERVAL_MS_DEFAULT) * 5);
     }
 }

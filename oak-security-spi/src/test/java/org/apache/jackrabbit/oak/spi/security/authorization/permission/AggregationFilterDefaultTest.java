@@ -16,31 +16,33 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.permission;
 
+import static org.junit.Assert.assertFalse;
+import static org.mockito.Mockito.mock;
+
+import java.util.Collections;
+import javax.jcr.security.AccessControlManager;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.junit.Test;
-
-import javax.jcr.security.AccessControlManager;
-import java.util.Collections;
-
-import static org.junit.Assert.assertFalse;
-import static org.mockito.Mockito.mock;
 
 public class AggregationFilterDefaultTest {
 
     @Test
     public void testStopPermissionProvider() {
-        assertFalse(AggregationFilter.DEFAULT.stop(mock(AggregatedPermissionProvider.class), Collections.EMPTY_SET));
+        assertFalse(AggregationFilter.DEFAULT.stop(mock(AggregatedPermissionProvider.class),
+            Collections.EMPTY_SET));
     }
 
     @Test
     public void testStopEffectivePoliciesByPath() {
         assertFalse(AggregationFilter.DEFAULT.stop(mock(AccessControlManager.class), null));
-        assertFalse(AggregationFilter.DEFAULT.stop(mock(AccessControlManager.class), PathUtils.ROOT_PATH));
+        assertFalse(
+            AggregationFilter.DEFAULT.stop(mock(AccessControlManager.class), PathUtils.ROOT_PATH));
     }
 
     @Test
     public void testStopEffectivePoliciesByPrincipals() {
-        assertFalse(AggregationFilter.DEFAULT.stop(mock(JackrabbitAccessControlManager.class), Collections.EMPTY_SET));
+        assertFalse(AggregationFilter.DEFAULT.stop(mock(JackrabbitAccessControlManager.class),
+            Collections.EMPTY_SET));
     }
 }

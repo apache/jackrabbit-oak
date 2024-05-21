@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.jcr.query;
 
+import junit.framework.Test;
+import junit.framework.TestCase;
+import junit.framework.TestSuite;
 import org.apache.jackrabbit.core.query.ExcerptTest;
 import org.apache.jackrabbit.core.query.FulltextQueryTest;
 import org.apache.jackrabbit.core.query.FulltextSQL2QueryTest;
@@ -33,15 +36,11 @@ import org.apache.jackrabbit.core.query.SQLTest;
 import org.apache.jackrabbit.core.query.SkipDeletedNodesTest;
 import org.apache.jackrabbit.test.ConcurrentTestSuite;
 
-import junit.framework.Test;
-import junit.framework.TestCase;
-import junit.framework.TestSuite;
-
 public class QueryJcrTest1IT extends TestCase {
 
     public static Test suite() {
         TestSuite suite = new ConcurrentTestSuite(
-                "Jackrabbit query tests using a Lucene based index");
+            "Jackrabbit query tests using a Lucene based index");
         suite.addTestSuite(FulltextQueryTest.class);
         suite.addTestSuite(SQLTest.class);
         suite.addTestSuite(JoinTest.class);

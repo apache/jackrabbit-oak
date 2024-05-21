@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.plugins.version;
 
 import javax.jcr.RepositoryException;
-
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;

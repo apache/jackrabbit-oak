@@ -21,7 +21,6 @@ import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.security.Privilege;
-
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.junit.Before;
 import org.junit.Test;
@@ -52,21 +51,23 @@ public abstract class AbstractMoveTest extends AbstractEvaluationTest {
         destPath = path + "/destination";
         siblingDestPath = siblingPath + "/destination";
 
-        modifyChildCollection = privilegesFromNames(new String[] {
-                Privilege.JCR_ADD_CHILD_NODES,
-                Privilege.JCR_REMOVE_CHILD_NODES});
+        modifyChildCollection = privilegesFromNames(new String[]{
+            Privilege.JCR_ADD_CHILD_NODES,
+            Privilege.JCR_REMOVE_CHILD_NODES});
     }
 
     abstract protected void move(String source, String dest) throws RepositoryException;
-    abstract protected void move(String source, String dest, Session session) throws RepositoryException;
+
+    abstract protected void move(String source, String dest, Session session)
+        throws RepositoryException;
 
     @Test
     public void testMove() throws Exception {
         // give 'add_child_nodes' and 'nt-management' privilege
         // -> not sufficient privileges for a move
-        allow(path, privilegesFromNames(new String[] {
-                Privilege.JCR_ADD_CHILD_NODES,
-                Privilege.JCR_NODE_TYPE_MANAGEMENT}));
+        allow(path, privilegesFromNames(new String[]{
+            Privilege.JCR_ADD_CHILD_NODES,
+            Privilege.JCR_NODE_TYPE_MANAGEMENT}));
         try {
             move(childNPath, destPath);
             fail("Move requires addChildNodes and removeChildNodes privilege.");
@@ -94,10 +95,10 @@ public abstract class AbstractMoveTest extends AbstractEvaluationTest {
         // grant 'add_child_nodes', 'remove_child_nodes' and 'nt_mgt' at 'path'
         // -> not sufficient for a move since 'remove_node' privilege is missing
         //    on the move-target
-        allow(path, privilegesFromNames(new String[] {
-                Privilege.JCR_ADD_CHILD_NODES,
-                Privilege.JCR_REMOVE_CHILD_NODES,
-                Privilege.JCR_NODE_TYPE_MANAGEMENT}));
+        allow(path, privilegesFromNames(new String[]{
+            Privilege.JCR_ADD_CHILD_NODES,
+            Privilege.JCR_REMOVE_CHILD_NODES,
+            Privilege.JCR_NODE_TYPE_MANAGEMENT}));
         try {
             move(childNPath, destPath);
             fail("Move requires addChildNodes and removeChildNodes privilege.");
@@ -108,10 +109,10 @@ public abstract class AbstractMoveTest extends AbstractEvaluationTest {
 
     @Test
     public void testMove3() throws Exception {
-        allow(path, privilegesFromNames(new String[] {
-                Privilege.JCR_ADD_CHILD_NODES,
-                Privilege.JCR_REMOVE_CHILD_NODES,
-                Privilege.JCR_NODE_TYPE_MANAGEMENT}));
+        allow(path, privilegesFromNames(new String[]{
+            Privilege.JCR_ADD_CHILD_NODES,
+            Privilege.JCR_REMOVE_CHILD_NODES,
+            Privilege.JCR_NODE_TYPE_MANAGEMENT}));
 
         // allow 'remove_node' at childNPath
         // -> now move must succeed
@@ -140,10 +141,10 @@ public abstract class AbstractMoveTest extends AbstractEvaluationTest {
     @Test
     public void testMoveMissingNtManagement() throws Exception {
         // not granting jcr:nodeTypeManagement
-        allow(path, privilegesFromNames(new String[] {
-                Privilege.JCR_ADD_CHILD_NODES,
-                Privilege.JCR_REMOVE_CHILD_NODES,
-                Privilege.JCR_REMOVE_NODE}));
+        allow(path, privilegesFromNames(new String[]{
+            Privilege.JCR_ADD_CHILD_NODES,
+            Privilege.JCR_REMOVE_CHILD_NODES,
+            Privilege.JCR_REMOVE_NODE}));
         try {
             move(childNPath, destPath);
             fail("Move requires jcr:nodeTypeManagement privilege at destination.");
@@ -158,15 +159,15 @@ public abstract class AbstractMoveTest extends AbstractEvaluationTest {
         allow(path, privilegesFromName(PrivilegeConstants.REP_WRITE));
         // revoke privileges such that only 'childNPath' can be removed and added
         deny(childNPath, modifyChildCollection);
-        deny(nodePath3, privilegesFromNames(new String[] {Privilege.JCR_REMOVE_NODE}));
+        deny(nodePath3, privilegesFromNames(new String[]{Privilege.JCR_REMOVE_NODE}));
         move(childNPath, destPath);
     }
 
     @Test
     public void testMissingJcrAddChildNodesAtDestParent() throws Exception {
-        allow(path, privilegesFromNames(new String[] {
-                Privilege.JCR_ADD_CHILD_NODES,
-                Privilege.JCR_REMOVE_CHILD_NODES}));
+        allow(path, privilegesFromNames(new String[]{
+            Privilege.JCR_ADD_CHILD_NODES,
+            Privilege.JCR_REMOVE_CHILD_NODES}));
         try {
             move(childNPath, siblingDestPath);
             fail("Move requires addChildNodes privilege at dest parent");
@@ -178,8 +179,8 @@ public abstract class AbstractMoveTest extends AbstractEvaluationTest {
     @Test
     public void testDifferentDestParent() throws Exception {
         allow(path, privilegesFromName(Privilege.JCR_REMOVE_CHILD_NODES));
-        allow(siblingPath, privilegesFromNames(new String[] {
-                Privilege.JCR_ADD_CHILD_NODES, Privilege.JCR_NODE_TYPE_MANAGEMENT
+        allow(siblingPath, privilegesFromNames(new String[]{
+            Privilege.JCR_ADD_CHILD_NODES, Privilege.JCR_NODE_TYPE_MANAGEMENT
         }));
         allow(childNPath, privilegesFromName(Privilege.JCR_REMOVE_NODE));
 
@@ -257,7 +258,7 @@ public abstract class AbstractMoveTest extends AbstractEvaluationTest {
     public void testMoveNodeWithGlobRestriction() throws Exception {
         // permissions defined @ path
         // restriction: remove read priv to nodeName3 node
-        deny(childNPath, readPrivileges, createGlobRestriction('/' +nodeName3));
+        deny(childNPath, readPrivileges, createGlobRestriction('/' + nodeName3));
 
         assertFalse(testSession.nodeExists(nodePath3));
         assertHasPrivileges(nodePath3, readPrivileges, false);

@@ -18,6 +18,16 @@
  */
 package org.apache.jackrabbit.oak.index;
 
+import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.getService;
+
+import java.io.Closeable;
+import java.io.File;
+import java.io.IOException;
+import java.util.function.Predicate;
+import javax.jcr.Repository;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import javax.jcr.SimpleCredentials;
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.jcr.Jcr;
@@ -29,18 +39,8 @@ import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 
-import javax.jcr.Repository;
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-import javax.jcr.SimpleCredentials;
-import java.io.Closeable;
-import java.io.File;
-import java.io.IOException;
-import java.util.function.Predicate;
-
-import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.getService;
-
 public abstract class IndexRepositoryFixture implements Closeable {
+
     private final File dir;
     private Repository repository;
     private FileStore fileStore;
@@ -76,7 +76,8 @@ public abstract class IndexRepositoryFixture implements Closeable {
 
     public AsyncIndexUpdate getAsyncIndexUpdate(String laneName) {
         return (AsyncIndexUpdate) getService(whiteboard, Runnable.class,
-                (Predicate<Runnable>)((runnable) -> runnable instanceof AsyncIndexUpdate && laneName.equals(((AsyncIndexUpdate)runnable).getName())));
+            (Predicate<Runnable>) ((runnable) -> runnable instanceof AsyncIndexUpdate
+                && laneName.equals(((AsyncIndexUpdate) runnable).getName())));
     }
 
     @Override

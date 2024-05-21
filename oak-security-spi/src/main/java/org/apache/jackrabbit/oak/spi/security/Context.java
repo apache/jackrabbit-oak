@@ -23,18 +23,17 @@ import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * {@code Context} represents item related information in relation to a
- * dedicated {@link org.apache.jackrabbit.oak.spi.security.SecurityConfiguration}.
- * This information allows to determine if a given {@code Tree} or {@link PropertyState}
- * is defined by or related to the security model provided by the configuration.
+ * {@code Context} represents item related information in relation to a dedicated
+ * {@link org.apache.jackrabbit.oak.spi.security.SecurityConfiguration}. This information allows to
+ * determine if a given {@code Tree} or {@link PropertyState} is defined by or related to the
+ * security model provided by the configuration.
  */
 public interface Context extends TreeContext {
 
     Context DEFAULT = new Default();
 
     /**
-     * Default implementation of the {@code Context} interface that always returns
-     * {@code false}.
+     * Default implementation of the {@code Context} interface that always returns {@code false}.
      */
     class Default implements Context {
 

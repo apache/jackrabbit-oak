@@ -16,12 +16,21 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+
 import java.lang.reflect.Field;
 import java.security.Principal;
 import java.util.List;
 import java.util.Set;
 import javax.jcr.security.AccessControlManager;
-
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
@@ -49,20 +58,11 @@ import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-
 public class CugConfigurationTest extends AbstractCugTest {
 
     private static CugConfiguration createConfiguration(ConfigurationParameters params) {
-        SecurityProvider sp = CugSecurityProvider.newTestSecurityProvider(ConfigurationParameters.of(AuthorizationConfiguration.NAME, params));
+        SecurityProvider sp = CugSecurityProvider.newTestSecurityProvider(
+            ConfigurationParameters.of(AuthorizationConfiguration.NAME, params));
         return CugSecurityProvider.getCugConfiguration(sp);
     }
 
@@ -90,7 +90,8 @@ public class CugConfigurationTest extends AbstractCugTest {
 
     @Test
     public void testGetValidators() {
-        List<? extends ValidatorProvider> l = new CugConfiguration().getValidators("wspName", ImmutableSet.of(), new MoveTracker());
+        List<? extends ValidatorProvider> l = new CugConfiguration().getValidators("wspName",
+            ImmutableSet.of(), new MoveTracker());
         assertEquals(1, l.size());
         assertTrue(l.iterator().next() instanceof CugValidatorProvider);
     }
@@ -109,19 +110,23 @@ public class CugConfigurationTest extends AbstractCugTest {
 
     @Test
     public void testGetPermissionProviderDisabled() {
-        CugConfiguration cc = createConfiguration(ConfigurationParameters.of(CugConstants.PARAM_CUG_ENABLED, false));
+        CugConfiguration cc = createConfiguration(
+            ConfigurationParameters.of(CugConstants.PARAM_CUG_ENABLED, false));
 
-        PermissionProvider pp = cc.getPermissionProvider(root, root.getContentSession().getWorkspaceName(), ImmutableSet.of(EveryonePrincipal.getInstance()));
+        PermissionProvider pp = cc.getPermissionProvider(root,
+            root.getContentSession().getWorkspaceName(),
+            ImmutableSet.of(EveryonePrincipal.getInstance()));
         assertSame(EmptyPermissionProvider.getInstance(), pp);
     }
 
     @Test
     public void testGetPermissionProviderDisabled2() {
         ConfigurationParameters params = ConfigurationParameters.of(
-                CugConstants.PARAM_CUG_ENABLED, false,
-                CugConstants.PARAM_CUG_SUPPORTED_PATHS, "/content");
+            CugConstants.PARAM_CUG_ENABLED, false,
+            CugConstants.PARAM_CUG_SUPPORTED_PATHS, "/content");
         CugConfiguration cc = createConfiguration(params);
-        PermissionProvider pp = cc.getPermissionProvider(root, "default", ImmutableSet.of(EveryonePrincipal.getInstance()));
+        PermissionProvider pp = cc.getPermissionProvider(root, "default",
+            ImmutableSet.of(EveryonePrincipal.getInstance()));
         assertSame(EmptyPermissionProvider.getInstance(), pp);
     }
 
@@ -129,33 +134,38 @@ public class CugConfigurationTest extends AbstractCugTest {
     public void testGetPermissionProviderDisabled3() {
         CugConfiguration cc = createConfiguration(ConfigurationParameters.EMPTY);
 
-        PermissionProvider pp = cc.getPermissionProvider(root, "default", ImmutableSet.of(EveryonePrincipal.getInstance()));
+        PermissionProvider pp = cc.getPermissionProvider(root, "default",
+            ImmutableSet.of(EveryonePrincipal.getInstance()));
         assertSame(EmptyPermissionProvider.getInstance(), pp);
     }
 
     @Test
     public void testGetPermissionProviderNoSupportedPaths() {
         // enabled but no supported paths specified
-        CugConfiguration cc = createConfiguration(ConfigurationParameters.of(CugConstants.PARAM_CUG_ENABLED, true));
+        CugConfiguration cc = createConfiguration(
+            ConfigurationParameters.of(CugConstants.PARAM_CUG_ENABLED, true));
 
-        PermissionProvider pp = cc.getPermissionProvider(root, "default", ImmutableSet.of(EveryonePrincipal.getInstance()));
+        PermissionProvider pp = cc.getPermissionProvider(root, "default",
+            ImmutableSet.of(EveryonePrincipal.getInstance()));
         assertSame(EmptyPermissionProvider.getInstance(), pp);
     }
 
     @Test
     public void testGetPermissionProviderSupportedPaths() {
         ConfigurationParameters params = ConfigurationParameters.of(
-                CugConstants.PARAM_CUG_ENABLED, true,
-                CugConstants.PARAM_CUG_SUPPORTED_PATHS, "/content");
+            CugConstants.PARAM_CUG_ENABLED, true,
+            CugConstants.PARAM_CUG_SUPPORTED_PATHS, "/content");
         CugConfiguration cc = createConfiguration(params);
 
-        PermissionProvider pp = cc.getPermissionProvider(root, "default", ImmutableSet.of(EveryonePrincipal.getInstance()));
+        PermissionProvider pp = cc.getPermissionProvider(root, "default",
+            ImmutableSet.of(EveryonePrincipal.getInstance()));
         assertTrue(pp instanceof CugPermissionProvider);
     }
 
     @Test
     public void testGetAccessControlManagerDisabled() {
-        CugConfiguration cc = createConfiguration(ConfigurationParameters.of(CugConstants.PARAM_CUG_ENABLED, false));
+        CugConfiguration cc = createConfiguration(
+            ConfigurationParameters.of(CugConstants.PARAM_CUG_ENABLED, false));
 
         AccessControlManager acMgr = cc.getAccessControlManager(root, NamePathMapper.DEFAULT);
         assertTrue(acMgr instanceof CugAccessControlManager);
@@ -163,7 +173,8 @@ public class CugConfigurationTest extends AbstractCugTest {
 
     @Test
     public void testGetAccessControlManagerNoSupportedPaths() {
-        CugConfiguration cc = createConfiguration(ConfigurationParameters.of(CugConstants.PARAM_CUG_ENABLED, true));
+        CugConfiguration cc = createConfiguration(
+            ConfigurationParameters.of(CugConstants.PARAM_CUG_ENABLED, true));
 
         AccessControlManager acMgr = cc.getAccessControlManager(root, NamePathMapper.DEFAULT);
         assertTrue(acMgr instanceof CugAccessControlManager);
@@ -172,8 +183,8 @@ public class CugConfigurationTest extends AbstractCugTest {
     @Test
     public void testGetAccessControlManagerSupportedPaths() {
         ConfigurationParameters params = ConfigurationParameters.of(
-                CugConstants.PARAM_CUG_ENABLED, true,
-                CugConstants.PARAM_CUG_SUPPORTED_PATHS, "/content");
+            CugConstants.PARAM_CUG_ENABLED, true,
+            CugConstants.PARAM_CUG_SUPPORTED_PATHS, "/content");
         CugConfiguration cc = createConfiguration(params);
 
         AccessControlManager acMgr = cc.getAccessControlManager(root, NamePathMapper.DEFAULT);
@@ -183,14 +194,14 @@ public class CugConfigurationTest extends AbstractCugTest {
     @Test
     public void testExcludedPrincipals() {
         ConfigurationParameters params = ConfigurationParameters.of(
-                CugConstants.PARAM_CUG_ENABLED, true,
-                CugConstants.PARAM_CUG_SUPPORTED_PATHS, "/content");
+            CugConstants.PARAM_CUG_ENABLED, true,
+            CugConstants.PARAM_CUG_SUPPORTED_PATHS, "/content");
         CugConfiguration cc = createConfiguration(params);
 
         List<Principal> excluded = ImmutableList.of(
-                SystemPrincipal.INSTANCE,
-                (AdminPrincipal) () -> "admin",
-                (SystemUserPrincipal) () -> "systemUser");
+            SystemPrincipal.INSTANCE,
+            (AdminPrincipal) () -> "admin",
+            (SystemUserPrincipal) () -> "systemUser");
 
         for (Principal p : excluded) {
             Set<Principal> principals = ImmutableSet.of(p, EveryonePrincipal.getInstance());
@@ -204,8 +215,8 @@ public class CugConfigurationTest extends AbstractCugTest {
     public void testActivate() {
         CugConfiguration cugConfiguration = createConfiguration(ConfigurationParameters.EMPTY);
         cugConfiguration.activate(ImmutableMap.of(
-                CugConstants.PARAM_CUG_ENABLED, false,
-                CugConstants.PARAM_CUG_SUPPORTED_PATHS, new String[] {"/content", "/anotherContent"}
+            CugConstants.PARAM_CUG_ENABLED, false,
+            CugConstants.PARAM_CUG_SUPPORTED_PATHS, new String[]{"/content", "/anotherContent"}
         ));
         assertSupportedPaths(cugConfiguration, "/content", "/anotherContent");
     }
@@ -214,14 +225,17 @@ public class CugConfigurationTest extends AbstractCugTest {
     public void testModified() {
         CugConfiguration cugConfiguration = createConfiguration(ConfigurationParameters.EMPTY);
         cugConfiguration.modified(ImmutableMap.of(
-                CugConstants.PARAM_CUG_SUPPORTED_PATHS, new String[]{"/changed"}
+            CugConstants.PARAM_CUG_SUPPORTED_PATHS, new String[]{"/changed"}
         ));
         assertSupportedPaths(cugConfiguration, "/changed");
     }
 
-    private static void assertSupportedPaths(@NotNull CugConfiguration configuration, @NotNull String... paths) {
+    private static void assertSupportedPaths(@NotNull CugConfiguration configuration,
+        @NotNull String... paths) {
         Set<String> expected = ImmutableSet.copyOf(paths);
-        assertEquals(expected, configuration.getParameters().getConfigValue(CugConstants.PARAM_CUG_SUPPORTED_PATHS, ImmutableSet.of()));
+        assertEquals(expected, configuration.getParameters()
+                                            .getConfigValue(CugConstants.PARAM_CUG_SUPPORTED_PATHS,
+                                                ImmutableSet.of()));
     }
 
     @Test
@@ -258,7 +272,8 @@ public class CugConfigurationTest extends AbstractCugTest {
         }
         assertNotNull(cugConfig);
         RepositoryInitializer ri = cugConfig.getRepositoryInitializer();
-        NodeBuilder rootBuilder = spy(getTreeProvider().asNodeState(root.getTree(PathUtils.ROOT_PATH)).builder());
+        NodeBuilder rootBuilder = spy(
+            getTreeProvider().asNodeState(root.getTree(PathUtils.ROOT_PATH)).builder());
         ri.initialize(rootBuilder);
 
         verify(rootBuilder, times(1)).getNodeState();

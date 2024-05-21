@@ -44,7 +44,8 @@ public class MongoConnectionTest {
     @Test
     public void hasReadConcern() throws Exception {
         assertFalse(MongoConnection.hasReadConcern("mongodb://localhost:27017/foo"));
-        assertTrue(MongoConnection.hasReadConcern("mongodb://localhost:27017/foo?readconcernlevel=majority"));
+        assertTrue(MongoConnection.hasReadConcern(
+            "mongodb://localhost:27017/foo?readconcernlevel=majority"));
     }
 
     @Test
@@ -106,34 +107,35 @@ public class MongoConnectionTest {
     }
 
     private void sufficientWriteConcernReplicaSet(WriteConcern w,
-                                                  boolean sufficient) {
+        boolean sufficient) {
         sufficientWriteConcern(w, true, sufficient);
     }
 
     private void sufficientWriteConcernSingleNode(WriteConcern w,
-                                                      boolean sufficient) {
+        boolean sufficient) {
         sufficientWriteConcern(w, false, sufficient);
     }
 
     private void sufficientWriteConcern(WriteConcern w,
-                                        boolean replicaSet,
-                                        boolean sufficient) {
+        boolean replicaSet,
+        boolean sufficient) {
         MongoClient mongo = mockMongoClient(replicaSet);
         assertEquals(sufficient, MongoConnection.isSufficientWriteConcern(mongo, w));
     }
 
     private void sufficientReadConcernReplicaSet(ReadConcern r,
-                                                 boolean sufficient) {
+        boolean sufficient) {
         sufficientReadConcern(r, true, sufficient);
     }
 
     private void sufficientReadConcernSingleNode(ReadConcern r,
-                                                 boolean sufficient) {
+        boolean sufficient) {
         sufficientReadConcern(r, false, sufficient);
     }
+
     private void sufficientReadConcern(ReadConcern r,
-                                       boolean replicaSet,
-                                       boolean sufficient) {
+        boolean replicaSet,
+        boolean sufficient) {
         MongoClient mongo = mockMongoClient(replicaSet);
         assertEquals(sufficient, MongoConnection.isSufficientReadConcern(mongo, r));
     }

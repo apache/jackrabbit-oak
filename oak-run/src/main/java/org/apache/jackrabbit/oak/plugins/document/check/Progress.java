@@ -16,14 +16,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.check;
 
-import java.util.concurrent.BlockingQueue;
+import static org.apache.jackrabbit.oak.plugins.document.check.DocumentProcessor.nowAsISO8601;
 
+import java.util.concurrent.BlockingQueue;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.Path;
 import org.jetbrains.annotations.NotNull;
-
-import static org.apache.jackrabbit.oak.plugins.document.check.DocumentProcessor.nowAsISO8601;
 
 /**
  * <code>Progress</code>...
@@ -34,8 +33,8 @@ public class Progress implements DocumentProcessor {
 
     @Override
     public void processDocument(@NotNull NodeDocument document,
-                                @NotNull BlockingQueue<Result> results)
-            throws InterruptedException {
+        @NotNull BlockingQueue<Result> results)
+        throws InterruptedException {
         if (++numDocuments % 10000 == 0) {
             results.put(newProgressResult(numDocuments, document.getPath()));
         }

@@ -38,9 +38,9 @@ public class SweepRevisionOnReadOnlyStoreTest {
     public void setup() {
         DocumentStore store = new MemoryDocumentStore();
         ns1 = builderProvider.newBuilder().setDocumentStore(store)
-                .setAsyncDelay(0).getNodeStore();
+                             .setAsyncDelay(0).getNodeStore();
         ns2 = builderProvider.newBuilder().setDocumentStore(store)
-                .setAsyncDelay(0).setReadOnlyMode().getNodeStore();
+                             .setAsyncDelay(0).setReadOnlyMode().getNodeStore();
     }
 
     @Test
@@ -58,7 +58,7 @@ public class SweepRevisionOnReadOnlyStoreTest {
     }
 
     private static void addNode(NodeStore ns, String name)
-            throws CommitFailedException {
+        throws CommitFailedException {
         NodeBuilder builder = ns.getRoot().builder();
         builder.child(name);
         TestUtils.merge(ns, builder);

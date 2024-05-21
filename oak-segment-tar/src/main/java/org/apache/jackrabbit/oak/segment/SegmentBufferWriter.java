@@ -19,14 +19,14 @@
 
 package org.apache.jackrabbit.oak.segment;
 
+import static java.lang.System.arraycopy;
+import static java.lang.System.currentTimeMillis;
+import static java.lang.System.identityHashCode;
 import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
-import static java.lang.System.arraycopy;
-import static java.lang.System.currentTimeMillis;
-import static java.lang.System.identityHashCode;
 import static org.apache.jackrabbit.oak.segment.Segment.GC_FULL_GENERATION_OFFSET;
 import static org.apache.jackrabbit.oak.segment.Segment.GC_GENERATION_OFFSET;
 import static org.apache.jackrabbit.oak.segment.Segment.HEADER_SIZE;
@@ -42,7 +42,6 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Set;
-
 import org.apache.commons.io.HexDump;
 import org.apache.jackrabbit.oak.segment.RecordNumbers.Entry;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
@@ -52,10 +51,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * This class encapsulates the state of a segment being written. It provides methods
- * for writing primitive data types and for pre-allocating buffer space in the current
- * segment. Should the current segment not have enough space left the current segment
- * is flushed and a fresh one is allocated.
+ * This class encapsulates the state of a segment being written. It provides methods for writing
+ * primitive data types and for pre-allocating buffer space in the current segment. Should the
+ * current segment not have enough space left the current segment is flushed and a fresh one is
+ * allocated.
  * <p>
  * The common usage pattern is:
  * <pre>
@@ -63,8 +62,8 @@ import org.slf4j.LoggerFactory;
  *    writer.prepare(...)  // allocate buffer
  *    writer.writeXYZ(...)
  * </pre>
- * The behaviour of this class is undefined should the pre-allocated buffer be
- * overrun be calling any of the write methods.
+ * The behaviour of this class is undefined should the pre-allocated buffer be overrun be calling
+ * any of the write methods.
  * <p>
  * Instances of this class are <em>not thread safe</em>
  */
@@ -87,10 +86,10 @@ public class SegmentBufferWriter implements WriteOperationHandler {
         @Override
         public String toString() {
             return "id=" + id +
-                    ",size=" + size +
-                    ",segmentIdCount=" + segmentIdCount +
-                    ",recordIdCount=" + recordIdCount +
-                    ",recordCount=" + recordCount;
+                ",size=" + size +
+                ",segmentIdCount=" + segmentIdCount +
+                ",recordIdCount=" + recordIdCount +
+                ",recordCount=" + recordCount;
         }
     }
 
@@ -114,42 +113,41 @@ public class SegmentBufferWriter implements WriteOperationHandler {
     private final GCGeneration gcGeneration;
 
     /**
-     * The segment write buffer, filled from the end to the beginning
-     * (see OAK-629).
+     * The segment write buffer, filled from the end to the beginning (see OAK-629).
      */
     private byte[] buffer;
 
     private Segment segment;
 
     /**
-     * The number of bytes already written (or allocated). Counted from
-     * the <em>end</em> of the buffer.
+     * The number of bytes already written (or allocated). Counted from the <em>end</em> of the
+     * buffer.
      */
     private int length;
 
     /**
-     * Current write position within the buffer. Grows up when raw data
-     * is written, but shifted downwards by the prepare methods.
+     * Current write position within the buffer. Grows up when raw data is written, but shifted
+     * downwards by the prepare methods.
      */
     private int position;
 
     private Statistics statistics;
 
     /**
-     * Mark this buffer as dirty. A dirty buffer needs to be flushed to disk
-     * regularly to avoid data loss.
+     * Mark this buffer as dirty. A dirty buffer needs to be flushed to disk regularly to avoid data
+     * loss.
      */
     private boolean dirty;
 
     public SegmentBufferWriter(@NotNull SegmentIdProvider idProvider,
-                               @NotNull SegmentReader reader,
-                               @Nullable String wid,
-                               @NotNull GCGeneration gcGeneration) {
+        @NotNull SegmentReader reader,
+        @Nullable String wid,
+        @NotNull GCGeneration gcGeneration) {
         this.idProvider = checkNotNull(idProvider);
         this.reader = checkNotNull(reader);
         this.wid = (wid == null
-                ? "w-" + identityHashCode(this)
-                : wid);
+            ? "w-" + identityHashCode(this)
+            : wid);
 
         this.gcGeneration = checkNotNull(gcGeneration);
     }
@@ -157,8 +155,8 @@ public class SegmentBufferWriter implements WriteOperationHandler {
     @NotNull
     @Override
     public RecordId execute(@NotNull GCGeneration gcGeneration,
-                            @NotNull WriteOperation writeOperation)
-    throws IOException {
+        @NotNull WriteOperation writeOperation)
+        throws IOException {
         checkState(gcGeneration.equals(this.gcGeneration));
         return writeOperation.execute(this);
     }
@@ -170,9 +168,8 @@ public class SegmentBufferWriter implements WriteOperationHandler {
     }
 
     /**
-     * Allocate a new segment and write the segment meta data.
-     * The segment meta data is a string of the format {@code "{wid=W,sno=S,t=T}"}
-     * where:
+     * Allocate a new segment and write the segment meta data. The segment meta data is a string of
+     * the format {@code "{wid=W,sno=S,t=T}"} where:
      * <ul>
      * <li>{@code W} is the writer id {@code wid}, </li>
      * <li>{@code S} is a unique, increasing sequence number corresponding to the allocation order
@@ -213,9 +210,10 @@ public class SegmentBufferWriter implements WriteOperationHandler {
 
         String metaInfo =
             "{\"wid\":\"" + wid + '"' +
-            ",\"sno\":" + idProvider.getSegmentIdCount() +
-            ",\"t\":" + currentTimeMillis() + "}";
-        segment = new Segment(idProvider.newDataSegmentId(), reader, buffer, recordNumbers, segmentReferences, metaInfo);
+                ",\"sno\":" + idProvider.getSegmentIdCount() +
+                ",\"t\":" + currentTimeMillis() + "}";
+        segment = new Segment(idProvider.newDataSegmentId(), reader, buffer, recordNumbers,
+            segmentReferences, metaInfo);
 
         statistics = new Statistics();
         statistics.id = segment.getSegmentId();
@@ -249,12 +247,12 @@ public class SegmentBufferWriter implements WriteOperationHandler {
     /**
      * Write a record ID.
      *
-     * @param recordId  the record ID.
+     * @param recordId the record ID.
      */
     public void writeRecordId(RecordId recordId) {
         checkNotNull(recordId);
         checkState(segmentReferences.size() + 1 < 0xffff,
-                "Segment cannot have more than 0xffff references");
+            "Segment cannot have more than 0xffff references");
 
         writeShort(toShort(writeSegmentIdReference(recordId.getSegmentId())));
         writeInt(recordId.getRecordNumber());
@@ -309,28 +307,31 @@ public class SegmentBufferWriter implements WriteOperationHandler {
     }
 
     /**
-     * Adds a segment header to the buffer and writes a segment to the segment
-     * store. This is done automatically (called from prepare) when there is not
-     * enough space for a record. It can also be called explicitly.
+     * Adds a segment header to the buffer and writes a segment to the segment store. This is done
+     * automatically (called from prepare) when there is not enough space for a record. It can also
+     * be called explicitly.
      */
     @Override
     public void flush(@NotNull SegmentStore store) throws IOException {
         if (dirty) {
             int referencedSegmentIdCount = segmentReferences.size();
-            BinaryUtils.writeInt(buffer, Segment.REFERENCED_SEGMENT_ID_COUNT_OFFSET, referencedSegmentIdCount);
+            BinaryUtils.writeInt(buffer, Segment.REFERENCED_SEGMENT_ID_COUNT_OFFSET,
+                referencedSegmentIdCount);
 
             statistics.segmentIdCount = referencedSegmentIdCount;
 
             int recordNumberCount = recordNumbers.size();
             BinaryUtils.writeInt(buffer, Segment.RECORD_NUMBER_COUNT_OFFSET, recordNumberCount);
 
-            int totalLength = align(HEADER_SIZE + referencedSegmentIdCount * SEGMENT_REFERENCE_SIZE + recordNumberCount * RECORD_SIZE + length, 16);
+            int totalLength = align(HEADER_SIZE + referencedSegmentIdCount * SEGMENT_REFERENCE_SIZE
+                + recordNumberCount * RECORD_SIZE + length, 16);
 
             if (totalLength > buffer.length) {
                 LOG.warn("Segment buffer corruption detected\n{}", dumpSegmentBuffer());
                 throw new IllegalStateException(String.format(
-                        "Too much data for a segment %s (referencedSegmentIdCount=%d, recordNumberCount=%d, length=%d, totalLength=%d)",
-                        segment.getSegmentId(), referencedSegmentIdCount, recordNumberCount, length, totalLength));
+                    "Too much data for a segment %s (referencedSegmentIdCount=%d, recordNumberCount=%d, length=%d, totalLength=%d)",
+                    segment.getSegmentId(), referencedSegmentIdCount, recordNumberCount, length,
+                    totalLength));
             }
 
             statistics.size = length = totalLength;
@@ -370,24 +371,22 @@ public class SegmentBufferWriter implements WriteOperationHandler {
     }
 
     /**
-     * Before writing a record (which are written backwards, from the end of the
-     * file to the beginning), this method is called, to ensure there is enough
-     * space. A new segment is also created if there is not enough space in the
-     * segment lookup table or elsewhere.
+     * Before writing a record (which are written backwards, from the end of the file to the
+     * beginning), this method is called, to ensure there is enough space. A new segment is also
+     * created if there is not enough space in the segment lookup table or elsewhere.
      * <p>
-     * This method does not actually write into the segment, just allocates the
-     * space (flushing the segment if needed and starting a new one), and sets
-     * the write position (records are written from the end to the beginning,
-     * but within a record from left to right).
+     * This method does not actually write into the segment, just allocates the space (flushing the
+     * segment if needed and starting a new one), and sets the write position (records are written
+     * from the end to the beginning, but within a record from left to right).
      *
      * @param type  the record type (only used for root records)
-     * @param size  the size of the record, excluding the size used for the
-     *              record ids
+     * @param size  the size of the record, excluding the size used for the record ids
      * @param ids   the record ids
      * @param store the {@code SegmentStore} instance to write full segments to
      * @return a new record id
      */
-    public RecordId prepare(RecordType type, int size, Collection<RecordId> ids, SegmentStore store) throws IOException {
+    public RecordId prepare(RecordType type, int size, Collection<RecordId> ids, SegmentStore store)
+        throws IOException {
         checkArgument(size >= 0);
         checkNotNull(ids);
 
@@ -405,7 +404,8 @@ public class SegmentBufferWriter implements WriteOperationHandler {
 
         int recordNumbersCount = recordNumbers.size() + 1;
         int referencedIdCount = segmentReferences.size() + ids.size();
-        int headerSize = HEADER_SIZE + referencedIdCount * SEGMENT_REFERENCE_SIZE + recordNumbersCount * RECORD_SIZE;
+        int headerSize = HEADER_SIZE + referencedIdCount * SEGMENT_REFERENCE_SIZE
+            + recordNumbersCount * RECORD_SIZE;
         int segmentSize = align(headerSize + recordSize + length, 16);
 
         // If the size estimate looks too big, recompute it with a more
@@ -424,9 +424,10 @@ public class SegmentBufferWriter implements WriteOperationHandler {
             }
 
             // Adjust the estimation of the new referenced segment ID count.
-            referencedIdCount =  segmentReferences.size() + segmentIds.size();
+            referencedIdCount = segmentReferences.size() + segmentIds.size();
 
-            headerSize = HEADER_SIZE + referencedIdCount * SEGMENT_REFERENCE_SIZE + recordNumbersCount * RECORD_SIZE;
+            headerSize = HEADER_SIZE + referencedIdCount * SEGMENT_REFERENCE_SIZE
+                + recordNumbersCount * RECORD_SIZE;
             segmentSize = align(headerSize + recordSize + length, 16);
         }
 
@@ -442,7 +443,8 @@ public class SegmentBufferWriter implements WriteOperationHandler {
 
         if (segmentSize > buffer.length) {
             if (dirty) {
-                LOG.debug("Flushing full segment {} (headerSize={}, recordSize={}, length={}, segmentSize={})",
+                LOG.debug(
+                    "Flushing full segment {} (headerSize={}, recordSize={}, length={}, segmentSize={})",
                     segment.getSegmentId(), headerSize, recordSize, length, segmentSize);
                 flush(store);
                 return prepare(type, size, ids, store);

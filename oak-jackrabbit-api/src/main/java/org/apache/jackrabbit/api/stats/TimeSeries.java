@@ -19,9 +19,8 @@ package org.apache.jackrabbit.api.stats;
 import org.osgi.annotation.versioning.ProviderType;
 
 /**
- * Interface for a time series of the measured values per
- * second, minute, hour and day. The type of the value is arbitrary; it
- * could be cache hits or misses, disk reads or writes, created sessions,
+ * Interface for a time series of the measured values per second, minute, hour and day. The type of
+ * the value is arbitrary; it could be cache hits or misses, disk reads or writes, created sessions,
  * completed transactions, or pretty much anything of interest.
  *
  * @since Apache Jackrabbit 2.3.2
@@ -60,7 +59,7 @@ public interface TimeSeries {
     /**
      * The value used to encode missing values i.e. for a period where no value was recorded.
      *
-     * @return  default value
+     * @return default value
      */
     long getMissingValue();
 

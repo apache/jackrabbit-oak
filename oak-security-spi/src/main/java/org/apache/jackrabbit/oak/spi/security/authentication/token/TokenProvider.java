@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.spi.security.authentication.token;
 
 import java.util.Map;
 import javax.jcr.Credentials;
-
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -28,29 +27,26 @@ import org.jetbrains.annotations.Nullable;
 public interface TokenProvider {
 
     /**
-     * Optional configuration parameter to set the token expiration time in ms.
-     * Implementations that do not support this option will ignore any config
-     * options with that name.
+     * Optional configuration parameter to set the token expiration time in ms. Implementations that
+     * do not support this option will ignore any config options with that name.
      */
     String PARAM_TOKEN_EXPIRATION = "tokenExpiration";
 
     /**
-     * Optional configuration parameter to define the length of the key.
-     * Implementations that do not support this option will ignore any config
-     * options with that name.
+     * Optional configuration parameter to define the length of the key. Implementations that do not
+     * support this option will ignore any config options with that name.
      */
     String PARAM_TOKEN_LENGTH = "tokenLength";
 
     /**
-     * Optional configuration parameter to define if a given token should be
-     * refreshed or not. Implementations that do not support this option will
-     * ignore any config options with that name.
+     * Optional configuration parameter to define if a given token should be refreshed or not.
+     * Implementations that do not support this option will ignore any config options with that
+     * name.
      */
     String PARAM_TOKEN_REFRESH = "tokenRefresh";
 
     /**
-     * Returns {@code true} if the given credentials indicate that a new token
-     * needs to be issued.
+     * Returns {@code true} if the given credentials indicate that a new token needs to be issued.
      *
      * @param credentials The current credentials.
      * @return {@code true} if a new login token needs to be created, {@code false} otherwise.
@@ -58,36 +54,33 @@ public interface TokenProvider {
     boolean doCreateToken(@NotNull Credentials credentials);
 
     /**
-     * Issues a new login token for the user with the specified credentials
-     * and returns the associated {@code TokenInfo}.
+     * Issues a new login token for the user with the specified credentials and returns the
+     * associated {@code TokenInfo}.
      *
      * @param credentials The current credentials.
-     * @return The {@code TokenInfo} associated with the new login token or
-     * {@code null} if no token has been created.
+     * @return The {@code TokenInfo} associated with the new login token or {@code null} if no token
+     * has been created.
      */
     @Nullable
     TokenInfo createToken(@NotNull Credentials credentials);
 
     /**
-     * Issues a new login token for the user with the given {@code userId}
-     * and the specified attributes.
+     * Issues a new login token for the user with the given {@code userId} and the specified
+     * attributes.
      *
-     * @param userId The identifier of the user for which a new token should
-     * be created.
+     * @param userId     The identifier of the user for which a new token should be created.
      * @param attributes The attributes associated with the new token.
-     * @return The {@code TokenInfo} associated with the new login token or
-     * {@code null} if no token has been created.
+     * @return The {@code TokenInfo} associated with the new login token or {@code null} if no token
+     * has been created.
      */
     @Nullable
-    TokenInfo createToken(@NotNull String userId, @NotNull Map<String,?> attributes);
+    TokenInfo createToken(@NotNull String userId, @NotNull Map<String, ?> attributes);
 
     /**
-     * Retrieves the {@code TokenInfo} associated with the specified login token
-     * or {@code null}.
+     * Retrieves the {@code TokenInfo} associated with the specified login token or {@code null}.
      *
      * @param token A valid login token.
-     * @return the {@code TokenInfo} associated with the specified login token
-     * or {@code null}.
+     * @return the {@code TokenInfo} associated with the specified login token or {@code null}.
      */
     @Nullable
     TokenInfo getTokenInfo(@NotNull String token);

@@ -19,6 +19,18 @@
 
 package org.apache.jackrabbit.oak.query.facet;
 
+import static java.util.Collections.reverseOrder;
+import static java.util.Comparator.comparingInt;
+
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import javax.jcr.Value;
+import javax.jcr.query.QueryResult;
+import javax.jcr.query.Row;
+import javax.jcr.query.RowIterator;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
@@ -28,22 +40,9 @@ import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import javax.jcr.Value;
-import javax.jcr.query.QueryResult;
-import javax.jcr.query.Row;
-import javax.jcr.query.RowIterator;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import static java.util.Collections.reverseOrder;
-import static java.util.Comparator.comparingInt;
-
 /**
- * A facet result is a wrapper for {@link javax.jcr.query.QueryResult} capable of returning information about facets
- * stored in the query result {@link javax.jcr.query.Row}s.
+ * A facet result is a wrapper for {@link javax.jcr.query.QueryResult} capable of returning
+ * information about facets stored in the query result {@link javax.jcr.query.Row}s.
  */
 public class FacetResult {
 
@@ -64,7 +63,7 @@ public class FacetResult {
         }
     }
 
-    public FacetResult(String[] columnNames, FacetResultRow...rows) {
+    public FacetResult(String[] columnNames, FacetResultRow... rows) {
         try {
             for (FacetResultRow row : rows) {
                 parseJson(columnNames, row);
@@ -96,7 +95,8 @@ public class FacetResult {
     private void parseJson(String[] columnNames, FacetResultRow row) throws Exception {
         for (String column : columnNames) {
             if (column.startsWith(QueryConstants.REP_FACET)) {
-                String dimension = column.substring(QueryConstants.REP_FACET.length() + 1, column.length() - 1);
+                String dimension = column.substring(QueryConstants.REP_FACET.length() + 1,
+                    column.length() - 1);
                 String value = row.getValue(column);
                 if (value != null) {
                     String jsonFacetString = value;
@@ -164,6 +164,7 @@ public class FacetResult {
 
         /**
          * get the facet label
+         *
          * @return a label
          */
         @NotNull
@@ -173,6 +174,7 @@ public class FacetResult {
 
         /**
          * get the facet count
+         *
          * @return an integer
          */
         public int getCount() {
@@ -181,6 +183,7 @@ public class FacetResult {
     }
 
     public interface FacetResultRow {
+
         String getValue(String columnName) throws Exception;
     }
 }

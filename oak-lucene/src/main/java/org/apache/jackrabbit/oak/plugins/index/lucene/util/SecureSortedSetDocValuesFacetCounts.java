@@ -22,7 +22,6 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.spi.query.Filter;
@@ -53,7 +52,8 @@ class SecureSortedSetDocValuesFacetCounts extends SortedSetDocValuesFacetCounts 
     private final SortedSetDocValuesReaderState state;
     private FacetResult facetResult = null;
 
-    SecureSortedSetDocValuesFacetCounts(DefaultSortedSetDocValuesReaderState state, FacetsCollector facetsCollector, Filter filter) throws IOException {
+    SecureSortedSetDocValuesFacetCounts(DefaultSortedSetDocValuesReaderState state,
+        FacetsCollector facetsCollector, Filter filter) throws IOException {
         super(state, facetsCollector);
         this.reader = state.origReader;
         this.facetsCollector = facetsCollector;
@@ -78,7 +78,8 @@ class SecureSortedSetDocValuesFacetCounts extends SortedSetDocValuesFacetCounts 
         }
 
         InaccessibleFacetCountManager inaccessibleFacetCountManager =
-                new InaccessibleFacetCountManager(dim, reader, filter, state, facetsCollector, topChildren.labelValues);
+            new InaccessibleFacetCountManager(dim, reader, filter, state, facetsCollector,
+                topChildren.labelValues);
         inaccessibleFacetCountManager.filterFacets();
         LabelAndValue[] labelAndValues = inaccessibleFacetCountManager.updateLabelAndValue();
 
@@ -92,6 +93,7 @@ class SecureSortedSetDocValuesFacetCounts extends SortedSetDocValuesFacetCounts 
     }
 
     static class InaccessibleFacetCountManager {
+
         private final String dimension;
         private final IndexReader reader;
         private final Filter filter;
@@ -102,8 +104,8 @@ class SecureSortedSetDocValuesFacetCounts extends SortedSetDocValuesFacetCounts 
         private final long[] inaccessibleCounts;
 
         InaccessibleFacetCountManager(String dimension,
-                                      IndexReader reader, Filter filter, SortedSetDocValuesReaderState state,
-                                      FacetsCollector facetsCollector, LabelAndValue[] labelAndValues) {
+            IndexReader reader, Filter filter, SortedSetDocValuesReaderState state,
+            FacetsCollector facetsCollector, LabelAndValue[] labelAndValues) {
             this.dimension = dimension;
             this.reader = reader;
             this.filter = filter;
@@ -139,7 +141,8 @@ class SecureSortedSetDocValuesFacetCounts extends SortedSetDocValuesFacetCounts 
             Document document = reader.document(docId);
 
             // filter using doc values (avoiding requiring stored values)
-            if (!filter.isAccessible(document.getField(FieldNames.PATH).stringValue() + "/" + dimension)) {
+            if (!filter.isAccessible(
+                document.getField(FieldNames.PATH).stringValue() + "/" + dimension)) {
 
                 SortedSetDocValues docValues = state.getDocValues();
                 docValues.setDocument(docId);
@@ -150,7 +153,7 @@ class SecureSortedSetDocValuesFacetCounts extends SortedSetDocValuesFacetCounts 
                 while (ord != SortedSetDocValues.NO_MORE_ORDS) {
                     termsEnum.seekExact(ord);
                     String facetDVTerm = termsEnum.term().utf8ToString();
-                    String [] facetDVDimPaths = FacetsConfig.stringToPath(facetDVTerm);
+                    String[] facetDVDimPaths = FacetsConfig.stringToPath(facetDVTerm);
 
                     // first element is dimention name
                     for (int i = 1; i < facetDVDimPaths.length; i++) {

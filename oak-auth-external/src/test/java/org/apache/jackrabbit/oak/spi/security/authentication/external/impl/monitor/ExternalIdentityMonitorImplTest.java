@@ -16,16 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.monitor;
 
-import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncException;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncResult;
-import org.apache.jackrabbit.oak.stats.MeterStats;
-import org.apache.jackrabbit.oak.stats.StatisticsProvider;
-import org.apache.jackrabbit.oak.stats.StatsOptions;
-import org.apache.jackrabbit.oak.stats.TimerStats;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
@@ -39,6 +29,16 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
+
+import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncException;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncResult;
+import org.apache.jackrabbit.oak.stats.MeterStats;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.apache.jackrabbit.oak.stats.StatsOptions;
+import org.apache.jackrabbit.oak.stats.TimerStats;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 public class ExternalIdentityMonitorImplTest {
 
@@ -62,8 +62,11 @@ public class ExternalIdentityMonitorImplTest {
 
     private StatisticsProvider mockStatisticsProvider() {
         StatisticsProvider statisticsProvider = mock(StatisticsProvider.class);
-        when(statisticsProvider.getMeter(eq("security.authentication.external.sync_external_identity.retries"), any(StatsOptions.class))).thenReturn(retries);
-        when(statisticsProvider.getMeter(eq("security.authentication.external.sync.failed"), any(StatsOptions.class))).thenReturn(failed);
+        when(statisticsProvider.getMeter(
+            eq("security.authentication.external.sync_external_identity.retries"),
+            any(StatsOptions.class))).thenReturn(retries);
+        when(statisticsProvider.getMeter(eq("security.authentication.external.sync.failed"),
+            any(StatsOptions.class))).thenReturn(failed);
         when(statisticsProvider.getTimer(anyString(), any(StatsOptions.class))).thenReturn(timer);
         return statisticsProvider;
     }
@@ -96,7 +99,7 @@ public class ExternalIdentityMonitorImplTest {
 
     @Test
     public void testDoneSyncId() {
-        monitor.doneSyncId(5,  mock(SyncResult.class));
+        monitor.doneSyncId(5, mock(SyncResult.class));
         verify(timer).update(5, NANOSECONDS);
         verifyNoMoreInteractions(timer);
         verifyNoInteractions(retries, failed);

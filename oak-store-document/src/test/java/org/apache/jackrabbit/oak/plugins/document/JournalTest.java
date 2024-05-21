@@ -56,16 +56,16 @@ public class JournalTest extends AbstractJournalTest {
 
     @Rule
     public TestRule logLevelModifier = new LogLevelModifier()
-                                            .addAppenderFilter("file", "warn")
-                                            .setLoggerLevel("org.apache.jackrabbit.oak", "trace");
+        .addAppenderFilter("file", "warn")
+        .setLoggerLevel("org.apache.jackrabbit.oak", "trace");
 
     class DiffingObserver implements Observer, Runnable, NodeStateDiff {
 
         final List<DocumentNodeState> incomingRootStates1 = Lists.newArrayList();
         final List<DocumentNodeState> diffedRootStates1 = Lists.newArrayList();
-        
+
         DocumentNodeState oldRoot = null;
-        
+
         DiffingObserver(boolean startInBackground) {
             if (startInBackground) {
                 // start the diffing in the background - so as to not
@@ -77,50 +77,50 @@ public class JournalTest extends AbstractJournalTest {
         }
 
         public void clear() {
-            synchronized(incomingRootStates1) {
+            synchronized (incomingRootStates1) {
                 incomingRootStates1.clear();
                 diffedRootStates1.clear();
             }
         }
-        
+
         @Override
-        public void contentChanged(@NotNull NodeState root,@NotNull CommitInfo info) {
-            synchronized(incomingRootStates1) {
+        public void contentChanged(@NotNull NodeState root, @NotNull CommitInfo info) {
+            synchronized (incomingRootStates1) {
                 incomingRootStates1.add((DocumentNodeState) root);
                 incomingRootStates1.notifyAll();
             }
         }
-        
+
         public void processAll() {
-            while(processOne()) {
+            while (processOne()) {
                 // continue
             }
         }
 
         public boolean processOne() {
             DocumentNodeState newRoot;
-            synchronized(incomingRootStates1) {
-                if (incomingRootStates1.size()==0) {
+            synchronized (incomingRootStates1) {
+                if (incomingRootStates1.size() == 0) {
                     return false;
                 }
                 newRoot = incomingRootStates1.remove(0);
             }
-            if (oldRoot!=null) {
+            if (oldRoot != null) {
                 newRoot.compareAgainstBaseState(oldRoot, this);
             }
             oldRoot = newRoot;
-            synchronized(incomingRootStates1) {
+            synchronized (incomingRootStates1) {
                 diffedRootStates1.add(newRoot);
             }
             return true;
         }
-        
+
         @Override
         public void run() {
-            while(true) {
+            while (true) {
                 DocumentNodeState newRoot;
-                synchronized(incomingRootStates1) {
-                    while(incomingRootStates1.size()==0) {
+                synchronized (incomingRootStates1) {
+                    while (incomingRootStates1.size() == 0) {
                         try {
                             incomingRootStates1.wait();
                         } catch (InterruptedException e) {
@@ -129,11 +129,11 @@ public class JournalTest extends AbstractJournalTest {
                     }
                     newRoot = incomingRootStates1.remove(0);
                 }
-                if (oldRoot!=null) {
+                if (oldRoot != null) {
                     newRoot.compareAgainstBaseState(oldRoot, this);
                 }
                 oldRoot = newRoot;
-                synchronized(incomingRootStates1) {
+                synchronized (incomingRootStates1) {
                     diffedRootStates1.add(newRoot);
                 }
             }
@@ -161,7 +161,7 @@ public class JournalTest extends AbstractJournalTest {
 
         @Override
         public boolean childNodeChanged(String name, NodeState before,
-                NodeState after) {
+            NodeState after) {
             return true;
         }
 
@@ -171,13 +171,13 @@ public class JournalTest extends AbstractJournalTest {
         }
 
         public int getTotal() {
-            synchronized(incomingRootStates1) {
+            synchronized (incomingRootStates1) {
                 return incomingRootStates1.size() + diffedRootStates1.size();
             }
         }
-        
+
     }
-    
+
     @Test
     public void cleanupTest() throws Exception {
         DocumentMK mk1 = createMK(0 /* clusterId: 0 => uses clusterNodes collection */, 0);
@@ -195,7 +195,7 @@ public class JournalTest extends AbstractJournalTest {
         assertEquals(0, jGC(ns1, 1, TimeUnit.MINUTES));
         assertEquals(0, jGC(ns1, 1, TimeUnit.SECONDS));
         assertEquals(0, jGC(ns1, 1, TimeUnit.MILLISECONDS));
-        
+
         // create some entries that can be deleted thereupon
         mk1.commit("/", "+\"regular1\": {}", null, null);
         mk1.commit("/", "+\"regular2\": {}", null, null);
@@ -213,7 +213,7 @@ public class JournalTest extends AbstractJournalTest {
         assertEquals(0, jGC(ns1, 5, TimeUnit.SECONDS));
         assertEquals(3, jGC(ns1, 1, TimeUnit.MILLISECONDS));
     }
-    
+
     @Test
     public void journalTest() throws Exception {
         DocumentMK mk1 = createMK(1, 0);
@@ -228,7 +228,7 @@ public class JournalTest extends AbstractJournalTest {
 
         final DiffingObserver observer = new DiffingObserver(false);
         ns1.addObserver(observer);
-        
+
         ns1.runBackgroundOperations();
         ns2.runBackgroundOperations();
         observer.processAll(); // to make sure we have an 'oldRoot'
@@ -245,7 +245,7 @@ public class JournalTest extends AbstractJournalTest {
         mk2.commit("/regular2", "+\"regular4\": {}", null, null);
         // flush to journal
         ns2.runBackgroundOperations();
-        
+
         // nothing notified yet
         assertEquals(0, observer.getTotal());
         assertEquals(0, countingDocStore1.getNumFindCalls(Collection.NODES));
@@ -253,7 +253,7 @@ public class JournalTest extends AbstractJournalTest {
         assertEquals(0, countingDocStore1.getNumRemoveCalls(Collection.NODES));
         assertEquals(0, countingDocStore1.getNumCreateOrUpdateCalls(Collection.NODES));
         assertEquals(0, countingDiffCache1.getLoadCount());
-        
+
         // let node 1 read those changes
         // System.err.println("run background ops");
         ns1.runBackgroundOperations();
@@ -263,7 +263,7 @@ public class JournalTest extends AbstractJournalTest {
         // and let the observer process everything
         observer.processAll();
         countingDocStore1.printStacks = false;
-        
+
         // now expect 1 entry in rootStates
         assertEquals(2, observer.getTotal());
         assertEquals(0, countingDiffCache1.getLoadCount());
@@ -272,14 +272,14 @@ public class JournalTest extends AbstractJournalTest {
         assertEquals(0, countingDocStore1.getNumQueryCalls(Collection.NODES));
 //        assertEquals(0, countingDocStore1.getNumFindCalls(Collection.NODES));
     }
-    
+
     @Test
     public void externalBranchChange() throws Exception {
         DocumentMK mk1 = createMK(1, 0);
         DocumentNodeStore ns1 = mk1.getNodeStore();
         DocumentMK mk2 = createMK(2, 0);
         DocumentNodeStore ns2 = mk2.getNodeStore();
-        
+
         ns1.runBackgroundOperations();
         ns2.runBackgroundOperations();
 
@@ -304,29 +304,37 @@ public class JournalTest extends AbstractJournalTest {
         String b1 = mk1.branch(null);
         b1 = mk1.commit("/", "+\"branchVisible\": {}", b1, null);
         mk1.merge(b1, null);
-        
+
         // to flush the branch commit either dispose of mk1
-        // or run the background operations explicitly 
+        // or run the background operations explicitly
         // (as that will propagate the lastRev to the root)
         ns1.runBackgroundOperations();
         ns2.runBackgroundOperations();
-        
+
         String nodes = mk2.getNodes("/", null, 0, 0, 100, null);
-        assertEquals("{\"branchVisible\":{},\"regular1\":{},\"regular2\":{},\"regular3\":{},\"regular4\":{},\"regular5\":{},\":childNodeCount\":6}", nodes);
+        assertEquals(
+            "{\"branchVisible\":{},\"regular1\":{},\"regular2\":{},\"regular3\":{},\"regular4\":{},\"regular5\":{},\":childNodeCount\":6}",
+            nodes);
     }
-    
-    /** Inspired by LastRevRecoveryTest.testRecover() - simplified and extended with journal related asserts **/
+
+    /**
+     * Inspired by LastRevRecoveryTest.testRecover() - simplified and extended with journal related
+     * asserts
+     **/
     @Test
     public void lastRevRecoveryJournalTest() throws Exception {
         doLastRevRecoveryJournalTest(false);
     }
-    
-    /** Inspired by LastRevRecoveryTest.testRecover() - simplified and extended with journal related asserts **/
+
+    /**
+     * Inspired by LastRevRecoveryTest.testRecover() - simplified and extended with journal related
+     * asserts
+     **/
     @Test
     public void lastRevRecoveryJournalTestWithConcurrency() throws Exception {
         doLastRevRecoveryJournalTest(true);
     }
-    
+
     private void doLastRevRecoveryJournalTest(boolean testConcurrency) throws Exception {
         DocumentMK mk1 = createMK(1, 0);
         DocumentNodeStore ds1 = mk1.getNodeStore();
@@ -334,11 +342,11 @@ public class JournalTest extends AbstractJournalTest {
         DocumentMK mk2 = createMK(2, 0);
         DocumentNodeStore ds2 = mk2.getNodeStore();
         final int c2Id = ds2.getClusterId();
-        
+
         // should have none yet
         assertEquals(0, countJournalEntries(ds1, 10));
         assertEquals(0, countJournalEntries(ds2, 10));
-        
+
         //1. Create base structure /x/y
         NodeBuilder b1 = ds1.getRoot().builder();
         b1.child("x").child("y");
@@ -351,7 +359,7 @@ public class JournalTest extends AbstractJournalTest {
         //1.2 Get last rev populated for root node for ds2
         ds2.runBackgroundOperations();
         NodeBuilder b2 = ds2.getRoot().builder();
-        b2.child("x").setProperty("f1","b1");
+        b2.child("x").setProperty("f1", "b1");
         ds2.merge(b2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         ds2.runBackgroundOperations();
 
@@ -383,22 +391,21 @@ public class JournalTest extends AbstractJournalTest {
         final String change2 = "{\"x\":{}}";
         assertJournalEntries(ds2, change2);
 
-
         String change2b = "{\"x\":{\"y\":{\"z\":{}}}}";
 
         if (!testConcurrency) {
             //Do not pass y1 but still y1 should be updated
-            recovery.recover(Lists.newArrayList(x1,z1), c2Id);
-    
+            recovery.recover(Lists.newArrayList(x1, z1), c2Id);
+
             //Post recovery the lastRev should be updated for /x/y and /x
             assertEquals(head2, getDocument(ds1, "/x/y").getLastRev().get(c2Id));
             assertEquals(head2, getDocument(ds1, "/x").getLastRev().get(c2Id));
             assertEquals(head2, getDocument(ds1, "/").getLastRev().get(c2Id));
-    
+
             // now 1 is unchanged, but 2 was recovered now, so has one more:
             assertJournalEntries(ds1, change1); // unchanged
             assertJournalEntries(ds2, change2, change2b);
-            
+
             // just some no-ops:
             recovery.recover(c2Id);
             recovery.recover(Collections.<NodeDocument>emptyList(), c2Id);
@@ -406,8 +413,8 @@ public class JournalTest extends AbstractJournalTest {
             assertJournalEntries(ds2, change2, change2b);
 
         } else {
-        
-            // do some concurrency testing as well to check if 
+
+            // do some concurrency testing as well to check if
             final int NUM_THREADS = 200;
             final CountDownLatch ready = new CountDownLatch(NUM_THREADS);
             final CountDownLatch start = new CountDownLatch(1);
@@ -415,15 +422,16 @@ public class JournalTest extends AbstractJournalTest {
             final List<Exception> exceptions = synchronizedList(new ArrayList<Exception>());
             for (int i = 0; i < NUM_THREADS; i++) {
                 Thread th = new Thread(new Runnable() {
-    
+
                     @Override
                     public void run() {
                         try {
                             ready.countDown();
                             start.await();
-                            recovery.recover(Lists.newArrayList(x1,z1), c2Id);
+                            recovery.recover(Lists.newArrayList(x1, z1), c2Id);
                         } catch (DocumentStoreException e) {
-                            if (e.getMessage().matches("Update of root document to _lastRev .* failed. Detected concurrent update")) {
+                            if (e.getMessage().matches(
+                                "Update of root document to _lastRev .* failed. Detected concurrent update")) {
                                 // we have to accept this exception to happen
                                 end.countDown();
                             } else {
@@ -435,7 +443,7 @@ public class JournalTest extends AbstractJournalTest {
                             end.countDown();
                         }
                     }
-                    
+
                 });
                 th.start();
             }
@@ -473,7 +481,7 @@ public class JournalTest extends AbstractJournalTest {
 
         String id = JournalEntry.asId(h2);
         assertTrue("Background update did not create a journal entry with id " + id,
-                ns1.getDocumentStore().find(Collection.JOURNAL, id) != null);
+            ns1.getDocumentStore().find(Collection.JOURNAL, id) != null);
     }
 
     private int jGC(DocumentNodeStore ns, long maxRevisionAge, TimeUnit unit) {

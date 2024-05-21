@@ -40,7 +40,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,7 +58,8 @@ public class TCPBroadcaster implements Broadcaster {
 
     private final CopyOnWriteArrayList<Listener> listeners = new CopyOnWriteArrayList<Listener>();
     private final ConcurrentHashMap<String, Client> clients = new ConcurrentHashMap<String, Client>();
-    private final ArrayBlockingQueue<ByteBuffer> sendBuffer = new ArrayBlockingQueue<ByteBuffer>(MAX_BUFFER_SIZE * 2);
+    private final ArrayBlockingQueue<ByteBuffer> sendBuffer = new ArrayBlockingQueue<ByteBuffer>(
+        MAX_BUFFER_SIZE * 2);
 
     private volatile DynamicBroadcastConfig broadcastConfig;
     private ServerSocket serverSocket;
@@ -69,28 +69,28 @@ public class TCPBroadcaster implements Broadcaster {
     private String ownListener;
     private String ownKeyUUID = UUID.randomUUID().toString();
     private byte[] ownKey = ownKeyUUID.getBytes(UTF8);
-    
+
     private final AtomicBoolean stop = new AtomicBoolean(false);
-    
+
     public TCPBroadcaster(String config) {
         LOG.info("Init " + config);
         init(config);
     }
-    
+
     public void init(String config) {
         try {
             String[] parts = config.split(";");
             int startPort = 9800;
             int endPort = 9810;
             String key = "";
-            
+
             // for debugging, this will send everything to localhost:
             // String[] sendTo = {"sendTo", "localhost"};
-            
-            // by default, only the entries in the clusterNodes 
+
+            // by default, only the entries in the clusterNodes
             // collection are used:
             String[] sendTo = {"sendTo"};
-            
+
             for (String p : parts) {
                 if (p.startsWith("ports ")) {
                     String[] ports = p.split(" ");
@@ -101,7 +101,7 @@ public class TCPBroadcaster implements Broadcaster {
                 } else if (p.startsWith("sendTo ")) {
                     sendTo = p.split(" ");
                 }
-            }                    
+            }
             sendTo[0] = null;
             MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
             if (key.length() > 0) {
@@ -127,7 +127,7 @@ public class TCPBroadcaster implements Broadcaster {
                         } catch (IOException e) {
                             LOG.debug("Cannot connect to " + send + " " + port);
                             // ignore
-                        }                        
+                        }
                     }
                 }
             }
@@ -140,7 +140,7 @@ public class TCPBroadcaster implements Broadcaster {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-        
+
         acceptThread = new Thread(new Runnable() {
             @Override
             public void run() {
@@ -149,7 +149,7 @@ public class TCPBroadcaster implements Broadcaster {
         }, "Oak TCPBroadcaster: accept #" + id);
         acceptThread.setDaemon(true);
         acceptThread.start();
-        
+
         discoverThread = new Thread(new Runnable() {
             @Override
             public void run() {
@@ -158,7 +158,7 @@ public class TCPBroadcaster implements Broadcaster {
         }, "Oak TCPBroadcaster: discover #" + id);
         discoverThread.setDaemon(true);
         discoverThread.start();
-        
+
         sendThread = new Thread(new Runnable() {
             @Override
             public void run() {
@@ -167,9 +167,9 @@ public class TCPBroadcaster implements Broadcaster {
         }, "Oak TCPBroadcaster: send #" + id);
         sendThread.setDaemon(true);
         sendThread.start();
-        
+
     }
-    
+
     @Override
     public void setBroadcastConfig(DynamicBroadcastConfig broadcastConfig) {
         this.broadcastConfig = broadcastConfig;
@@ -185,7 +185,7 @@ public class TCPBroadcaster implements Broadcaster {
         }
         broadcastConfig.connect(clientInfo);
     }
-    
+
     static String getLocalAddress() {
         String bind = System.getProperty("oak.tcpBindAddress", null);
         try {
@@ -200,7 +200,7 @@ public class TCPBroadcaster implements Broadcaster {
             return "";
         }
     }
-    
+
     void accept() {
         while (isRunning()) {
             try {
@@ -224,7 +224,7 @@ public class TCPBroadcaster implements Broadcaster {
                                 ByteBuffer buff = ByteBuffer.wrap(data);
                                 int start = buff.position();
                                 for (Listener l : listeners) {
-                                    ((Buffer)buff).position(start);
+                                    ((Buffer) buff).position(start);
                                     l.receive(buff);
                                 }
                             }
@@ -243,16 +243,16 @@ public class TCPBroadcaster implements Broadcaster {
                     LOG.warn("Receive failed", e);
                 }
                 // ignore
-            }                   
+            }
         }
-        try {        
+        try {
             serverSocket.close();
         } catch (IOException e) {
             LOG.debug("Closed");
             // ignore
         }
     }
-    
+
     void discover() {
         while (isRunning()) {
             DynamicBroadcastConfig b = broadcastConfig;
@@ -276,10 +276,10 @@ public class TCPBroadcaster implements Broadcaster {
             }
         }
     }
-    
+
     void readClients(DynamicBroadcastConfig b) {
         List<Map<String, String>> list = b.getClientInfo();
-        for(Map<String, String> m : list) {
+        for (Map<String, String> m : list) {
             String listener = m.get(DynamicBroadcastConfig.LISTENER);
             String id = m.get(DynamicBroadcastConfig.ID);
             if (listener.equals(ownListener)) {
@@ -307,7 +307,7 @@ public class TCPBroadcaster implements Broadcaster {
             }
         }
     }
-    
+
     void send() {
         while (isRunning()) {
             try {
@@ -320,12 +320,12 @@ public class TCPBroadcaster implements Broadcaster {
             }
         }
     }
-    
+
     @Override
     public void send(ByteBuffer buff) {
         ByteBuffer b = ByteBuffer.allocate(buff.remaining());
         b.put(buff);
-        ((Buffer)b).flip();
+        ((Buffer) b).flip();
         while (sendBuffer.size() > MAX_BUFFER_SIZE) {
             sendBuffer.poll();
         }
@@ -337,7 +337,7 @@ public class TCPBroadcaster implements Broadcaster {
             // many threads concurrently tried to add
         }
     }
-    
+
     private void sendBuffer(ByteBuffer buff) {
         int len = buff.limit();
         byte[] data = new byte[len];
@@ -394,17 +394,20 @@ public class TCPBroadcaster implements Broadcaster {
     public final boolean isRunning() {
         return !stop.get();
     }
-    
+
     static class Client {
+
         final String host;
         final int port;
         final byte[] key;
         DataOutputStream out;
+
         Client(String host, int port, byte[] key) throws UnknownHostException {
             this.host = host;
             this.port = port;
             this.key = key;
         }
+
         void send(byte[] data) {
             DataOutputStream o = out;
             if (o != null) {
@@ -425,6 +428,7 @@ public class TCPBroadcaster implements Broadcaster {
                 }
             }
         }
+
         void tryConnect() {
             DataOutputStream o = out;
             if (o != null || host == null) {

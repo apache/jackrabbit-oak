@@ -21,7 +21,6 @@ import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull
 
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.ValueFormatException;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Tree.Status;
@@ -31,14 +30,15 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * {@code PropertyDelegate} serve as internal representations of {@code Property}s.
- * Most methods of this class throw an {@code InvalidItemStateException}
- * exception if the instance is stale. An instance is stale if the underlying
- * items does not exist anymore.
+ * {@code PropertyDelegate} serve as internal representations of {@code Property}s. Most methods of
+ * this class throw an {@code InvalidItemStateException} exception if the instance is stale. An
+ * instance is stale if the underlying items does not exist anymore.
  */
 public class PropertyDelegate extends ItemDelegate {
 
-    /** The underlying {@link org.apache.jackrabbit.oak.api.Tree} of this property's parent */
+    /**
+     * The underlying {@link org.apache.jackrabbit.oak.api.Tree} of this property's parent
+     */
     private final Tree parent;
 
     @NotNull
@@ -55,27 +55,29 @@ public class PropertyDelegate extends ItemDelegate {
     }
 
     /**
-     * The session has been updated since the last time this property delegate
-     * was accessed, so we need to re-retrieve the property state to get any
-     * potential updates. It might also be that this property was removed,
-     * in which case the {@link #state} reference will be {@code null}.
+     * The session has been updated since the last time this property delegate was accessed, so we
+     * need to re-retrieve the property state to get any potential updates. It might also be that
+     * this property was removed, in which case the {@link #state} reference will be {@code null}.
      */
     @Override
     protected void update() {
         state = parent.getProperty(name);
     }
 
-    @Override @NotNull
+    @Override
+    @NotNull
     public String getName() {
         return name;
     }
 
-    @Override @NotNull
+    @Override
+    @NotNull
     public String getPath() {
         return PathUtils.concat(parent.getPath(), name);
     }
 
-    @Override @Nullable
+    @Override
+    @Nullable
     public NodeDelegate getParent() {
         return parent.exists() ? new NodeDelegate(sessionDelegate, parent) : null;
     }
@@ -85,7 +87,8 @@ public class PropertyDelegate extends ItemDelegate {
         return state != null;
     }
 
-    @Override @Nullable
+    @Override
+    @Nullable
     public Status getStatus() {
         return parent.getPropertyStatus(name);
     }
@@ -159,13 +162,13 @@ public class PropertyDelegate extends ItemDelegate {
     @Override
     public String toString() {
         return toStringHelper(this)
-                .add("parent", parent)
-                .add("property", parent.getProperty(name))
-                .toString();
+            .add("parent", parent)
+            .add("property", parent.getProperty(name))
+            .toString();
     }
 
     private InvalidItemStateException newInvalidItemStateException() {
         return new InvalidItemStateException(
-                "The " + name + " property does not exist");
+            "The " + name + " property does not exist");
     }
 }

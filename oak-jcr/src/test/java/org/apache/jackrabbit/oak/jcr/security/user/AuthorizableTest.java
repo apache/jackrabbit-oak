@@ -22,7 +22,6 @@ import java.util.Iterator;
 import java.util.Set;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
-
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
@@ -37,6 +36,7 @@ public class AuthorizableTest extends AbstractUserTest {
 
     /**
      * Removing an authorizable that is still listed as member of a group.
+     *
      * @throws javax.jcr.RepositoryException
      * @throws org.apache.jackrabbit.test.NotExecutableException
      */
@@ -121,7 +121,8 @@ public class AuthorizableTest extends AbstractUserTest {
             }
 
             @NotNull
-            public Iterator<String> getPropertyNames(@NotNull String relPath) throws RepositoryException {
+            public Iterator<String> getPropertyNames(@NotNull String relPath)
+                throws RepositoryException {
                 return user.getPropertyNames(relPath);
             }
 
@@ -133,7 +134,8 @@ public class AuthorizableTest extends AbstractUserTest {
                 user.setProperty(name, value);
             }
 
-            public void setProperty(@NotNull String name, Value[] values) throws RepositoryException {
+            public void setProperty(@NotNull String name, Value[] values)
+                throws RepositoryException {
                 user.setProperty(name, values);
             }
 

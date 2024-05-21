@@ -16,6 +16,16 @@
  */
 package org.apache.jackrabbit.oak.jcr.delegate;
 
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
+
+import java.util.Collections;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -36,17 +46,6 @@ import org.mockito.stubbing.Answer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Collections;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.withSettings;
-
 public abstract class AbstractDelegatorTest {
 
     private static final Logger log = LoggerFactory.getLogger(AbstractDelegatorTest.class);
@@ -56,14 +55,15 @@ public abstract class AbstractDelegatorTest {
         PermissionProvider pp = mock(PermissionProvider.class);
         return mockSessionDelegate(mockRoot(pp, true), pp);
     }
-    
+
     @NotNull
     static SessionDelegate mockSessionDelegate(@NotNull Root root, @NotNull PermissionProvider pp) {
         ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
         Whiteboard wb = new DefaultWhiteboard();
         StatisticManager statisticManager = new StatisticManager(wb, executorService);
         return spy(new SessionDelegate(mockContentSession(root), mockSecurityProvider(root, pp),
-                RefreshStrategy.Composite.create(), new ThreadLocal<>(), statisticManager, new Clock.Virtual()));
+            RefreshStrategy.Composite.create(), new ThreadLocal<>(), statisticManager,
+            new Clock.Virtual()));
     }
 
     @NotNull
@@ -91,18 +91,23 @@ public abstract class AbstractDelegatorTest {
     }
 
     @NotNull
-    private static SecurityProvider mockSecurityProvider(@NotNull Root root, @NotNull PermissionProvider pp) {
-        AuthorizationConfiguration authorizationConfiguration = mock(AuthorizationConfiguration.class);
-        when(authorizationConfiguration.getPermissionProvider(root, Oak.DEFAULT_WORKSPACE_NAME, Collections.emptySet())).thenReturn(pp);
+    private static SecurityProvider mockSecurityProvider(@NotNull Root root,
+        @NotNull PermissionProvider pp) {
+        AuthorizationConfiguration authorizationConfiguration = mock(
+            AuthorizationConfiguration.class);
+        when(authorizationConfiguration.getPermissionProvider(root, Oak.DEFAULT_WORKSPACE_NAME,
+            Collections.emptySet())).thenReturn(pp);
 
         SecurityProvider securityProvider = mock(SecurityProvider.class);
-        when(securityProvider.getConfiguration(AuthorizationConfiguration.class)).thenReturn(authorizationConfiguration);
+        when(securityProvider.getConfiguration(AuthorizationConfiguration.class)).thenReturn(
+            authorizationConfiguration);
         return securityProvider;
     }
 
     @NotNull
     private static ContentSession mockContentSession(@NotNull Root root) {
-        ContentSession cs = when(mock(ContentSession.class).getAuthInfo()).thenReturn(AuthInfo.EMPTY).getMock();
+        ContentSession cs = when(mock(ContentSession.class).getAuthInfo()).thenReturn(
+            AuthInfo.EMPTY).getMock();
         when(cs.getWorkspaceName()).thenReturn(Oak.DEFAULT_WORKSPACE_NAME);
         when(cs.getLatestRoot()).thenReturn(root);
         when(root.getContentSession()).thenReturn(cs);

@@ -18,9 +18,8 @@
 Oak API
 --------------------------------------------------------------------------------
 
-
 - [Javadocs](../apidocs/) (latest release)
-- Javadoc of previous releases are available from [javadoc.io](http://www.javadoc.io/): 
+- Javadoc of previous releases are available from [javadoc.io](http://www.javadoc.io/):
     - [oak-jcr](http://www.javadoc.io/doc/org.apache.jackrabbit/oak-jcr/)
     - [oak-core](http://www.javadoc.io/doc/org.apache.jackrabbit/oak-core/)
     - [oak-run](http://www.javadoc.io/doc/org.apache.jackrabbit/oak-run/)
@@ -39,6 +38,7 @@ Oak API
     - [oak-exercise](http://www.javadoc.io/doc/org.apache.jackrabbit/oak-exercise/)
 
 ### Key API entry points
+
 - [ContentRepository]
 - [ContentSession]
 - [Root]
@@ -46,33 +46,49 @@ Oak API
 - [PropertyState]
 
 #### Values
+
 - [PropertyValue]
 - [Type]
 - [Blob]
 
 #### Query
+
 - [QueryEngine]
 - [Query]
 - [ResultRow]
 
 #### Various
+
 - [AuthInfo] : see section [Authentication](../security/authentication.html)
 - [Descriptors]
 - [CommitFailedException] : see also [Error Codes](error_codes.html)
 
-
 <!-- hidden references -->
+
 [ContentRepository]: /oak/docs/apidocs/org/apache/jackrabbit/oak/api/ContentRepository.html
+
 [ContentSession]: /oak/docs/apidocs/org/apache/jackrabbit/oak/api/ContentSession.html
+
 [Root]: /oak/docs/apidocs/org/apache/jackrabbit/oak/api/Root.html
+
 [Tree]: /oak/docs/apidocs/org/apache/jackrabbit/oak/api/Tree.html
+
 [PropertyState]: /oak/docs/apidocs/org/apache/jackrabbit/oak/api/PropertyState.html
+
 [PropertyValue]: /oak/docs/apidocs/org/apache/jackrabbit/oak/api/PropertyValue.html
+
 [Type]: /oak/docs/apidocs/org/apache/jackrabbit/oak/api/Type.html
+
 [Blob]: /oak/docs/apidocs/org/apache/jackrabbit/oak/api/Blob.html
+
 [QueryEngine]: /oak/docs/apidocs/org/apache/jackrabbit/oak/api/QueryEngine.html
+
 [Query]: /oak/docs/apidocs/org/apache/jackrabbit/oak/api/Query.html
+
 [ResultRow]: /oak/docs/apidocs/org/apache/jackrabbit/oak/api/ResultRow.html
+
 [AuthInfo]: /oak/docs/apidocs/org/apache/jackrabbit/oak/api/AuthInfo.html
+
 [Descriptors]: /oak/docs/apidocs/org/apache/jackrabbit/oak/api/Descriptors.html
+
 [CommitFailedException]: /oak/docs/apidocs/org/apache/jackrabbit/oak/api/CommitFailedException.html

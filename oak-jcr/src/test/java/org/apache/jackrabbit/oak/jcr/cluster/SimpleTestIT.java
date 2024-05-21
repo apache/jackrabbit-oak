@@ -22,9 +22,9 @@ import org.junit.Test;
  * A simple cluster test.
  */
 public class SimpleTestIT extends AbstractClusterTest {
-    
+
     @SuppressWarnings("unused")
-    @Test 
+    @Test
     public void test() throws Exception {
         if (s1 == null) {
             return;
@@ -59,5 +59,5 @@ public class SimpleTestIT extends AbstractClusterTest {
         s2.getRootNode().getNode("test").remove();
         s2.save();
     }
-    
+
 }

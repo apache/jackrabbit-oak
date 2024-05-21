@@ -20,9 +20,8 @@ import java.util.Collection;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 
 /**
- * User management related constants. Please note that all names and paths
- * are OAK names/paths and therefore are not suited to be used in JCR context
- * with remapped namespaces.
+ * User management related constants. Please note that all names and paths are OAK names/paths and
+ * therefore are not suited to be used in JCR context with remapped namespaces.
  */
 public interface UserConstants {
 
@@ -51,26 +50,26 @@ public interface UserConstants {
     String REP_PWD_HISTORY = "rep:pwdHistory";
 
     Collection<String> GROUP_PROPERTY_NAMES = ImmutableSet.of(
-            REP_PRINCIPAL_NAME,
-            REP_AUTHORIZABLE_ID,
-            REP_MEMBERS
+        REP_PRINCIPAL_NAME,
+        REP_AUTHORIZABLE_ID,
+        REP_MEMBERS
     );
 
     Collection<String> USER_PROPERTY_NAMES = ImmutableSet.of(
-            REP_PRINCIPAL_NAME,
-            REP_AUTHORIZABLE_ID,
-            REP_PASSWORD,
-            REP_DISABLED,
-            REP_IMPERSONATORS
+        REP_PRINCIPAL_NAME,
+        REP_AUTHORIZABLE_ID,
+        REP_PASSWORD,
+        REP_DISABLED,
+        REP_IMPERSONATORS
     );
 
     Collection<String> PWD_PROPERTY_NAMES = ImmutableSet.of(
-            REP_PASSWORD_LAST_MODIFIED
+        REP_PASSWORD_LAST_MODIFIED
     );
 
     Collection<String> NT_NAMES = ImmutableSet.of(
-            NT_REP_USER, NT_REP_GROUP, NT_REP_PASSWORD,
-            NT_REP_MEMBERS, NT_REP_MEMBER_REFERENCES, NT_REP_MEMBER_REFERENCES_LIST);
+        NT_REP_USER, NT_REP_GROUP, NT_REP_PASSWORD,
+        NT_REP_MEMBERS, NT_REP_MEMBER_REFERENCES, NT_REP_MEMBER_REFERENCES_LIST);
 
     /**
      * Configuration option defining the ID of the administrator user.
@@ -79,14 +78,14 @@ public interface UserConstants {
 
     /**
      * Configuration option defining the names of the impersonatorPrincipals field.
-     * @since Oak 1.54.0
+     *
      * @see <a href="https://issues.apache.org/jira/browse/OAK-10173">OAK-10173</a>
+     * @since Oak 1.54.0
      */
     String PARAM_IMPERSONATOR_PRINCIPAL_NAMES = "impersonatorPrincipals";
 
     /**
-     * Configuration option defining if the admin password should be omitted
-     * upon user creation.
+     * Configuration option defining if the admin password should be omitted upon user creation.
      */
     String PARAM_OMIT_ADMIN_PW = "omitAdminPw";
 
@@ -96,10 +95,9 @@ public interface UserConstants {
     String DEFAULT_ADMIN_ID = "admin";
 
     /**
-     * Configuration option defining the ID of the anonymous user. The ID
-     * might be {@code null} of no anonymous user exists. In this case
-     * Session#getUserID() may return {@code null} if it has been obtained
-     * using {@link javax.jcr.GuestCredentials}.
+     * Configuration option defining the ID of the anonymous user. The ID might be {@code null} of
+     * no anonymous user exists. In this case Session#getUserID() may return {@code null} if it has
+     * been obtained using {@link javax.jcr.GuestCredentials}.
      */
     String PARAM_ANONYMOUS_ID = "anonymousId";
 
@@ -109,13 +107,14 @@ public interface UserConstants {
     String DEFAULT_ANONYMOUS_ID = "anonymous";
 
     /**
-     * Mandatory configuration option denoting the user {@link org.apache.jackrabbit.oak.spi.security.authentication.Authentication} implementation to use in the login module.
+     * Mandatory configuration option denoting the user
+     * {@link org.apache.jackrabbit.oak.spi.security.authentication.Authentication} implementation
+     * to use in the login module.
      */
     String PARAM_USER_AUTHENTICATION_FACTORY = "userAuthenticationFactory";
 
     /**
-     * Configuration option to define the path underneath which user nodes
-     * are being created.
+     * Configuration option to define the path underneath which user nodes are being created.
      */
     String PARAM_USER_PATH = "usersPath";
 
@@ -125,8 +124,7 @@ public interface UserConstants {
     String DEFAULT_USER_PATH = "/rep:security/rep:authorizables/rep:users";
 
     /**
-     * Configuration option to define the path underneath which group nodes
-     * are being created.
+     * Configuration option to define the path underneath which group nodes are being created.
      */
     String PARAM_GROUP_PATH = "groupsPath";
 
@@ -136,8 +134,8 @@ public interface UserConstants {
     String DEFAULT_GROUP_PATH = "/rep:security/rep:authorizables/rep:groups";
 
     /**
-     * Configuration option to define the path relative to the user root node
-     * underneath which system user nodes are being created.
+     * Configuration option to define the path relative to the user root node underneath which
+     * system user nodes are being created.
      */
     String PARAM_SYSTEM_RELATIVE_PATH = "systemRelativePath";
 
@@ -147,8 +145,8 @@ public interface UserConstants {
     String DEFAULT_SYSTEM_RELATIVE_PATH = "system";
 
     /**
-     * Parameter used to change the number of levels that are used by default to
-     * store authorizable nodes.<br>The default number of levels is 2.
+     * Parameter used to change the number of levels that are used by default to store authorizable
+     * nodes.<br>The default number of levels is 2.
      */
     String PARAM_DEFAULT_DEPTH = "defaultDepth";
 
@@ -158,28 +156,26 @@ public interface UserConstants {
     int DEFAULT_DEPTH = 2;
 
     /**
-     * Configuration parameter to change the default algorithm used to generate
-     * password hashes.
+     * Configuration parameter to change the default algorithm used to generate password hashes.
      */
     String PARAM_PASSWORD_HASH_ALGORITHM = "passwordHashAlgorithm";
 
     /**
-     * Configuration parameter to change the number of iterations used for
-     * password hash generation.
+     * Configuration parameter to change the number of iterations used for password hash
+     * generation.
      */
     String PARAM_PASSWORD_HASH_ITERATIONS = "passwordHashIterations";
 
     /**
-     * Configuration parameter to change the number of iterations used for
-     * password hash generation.
+     * Configuration parameter to change the number of iterations used for password hash
+     * generation.
      */
     String PARAM_PASSWORD_SALT_SIZE = "passwordSaltSize";
 
     /**
      * Optionally enables the UsernameCaseMapped profile defined in
-     * https://tools.ietf.org/html/rfc7613#section-3.2 for user name comparison.
-     * Use this if half-width and full-width user names should be considered
-     * equal.
+     * https://tools.ietf.org/html/rfc7613#section-3.2 for user name comparison. Use this if
+     * half-width and full-width user names should be considered equal.
      */
     String PARAM_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE = "enableRFC7613UsercaseMappedProfile";
 
@@ -189,41 +185,41 @@ public interface UserConstants {
     boolean DEFAULT_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE = false;
 
     /**
-     * Optional configuration parameter defining how to generate the name of the
-     * authorizable node from the ID of the new authorizable that is being created.
-     * The value is expected to be an instance of {@link AuthorizableNodeName}.
-     * By default {@link AuthorizableNodeName#DEFAULT} is used.
+     * Optional configuration parameter defining how to generate the name of the authorizable node
+     * from the ID of the new authorizable that is being created. The value is expected to be an
+     * instance of {@link AuthorizableNodeName}. By default {@link AuthorizableNodeName#DEFAULT} is
+     * used.
      */
     String PARAM_AUTHORIZABLE_NODE_NAME = "authorizableNodeName";
 
     /**
      * Optional configuration parameter to set the
-     * {@link org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableActionProvider}
-     * to be used with the given user management implementation.
-     * Unless otherwise specified in the configuration
+     * {@link org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableActionProvider} to be
+     * used with the given user management implementation. Unless otherwise specified in the
+     * configuration
      * {@link org.apache.jackrabbit.oak.spi.security.user.action.DefaultAuthorizableActionProvider}
      * is used.
      */
     String PARAM_AUTHORIZABLE_ACTION_PROVIDER = "authorizableActionProvider";
 
     /**
-     * Optional configuration parameter that might be used to get back support
-     * for the auto-save behavior which has been dropped in the default
-     * user management implementation present with OAK.
+     * Optional configuration parameter that might be used to get back support for the auto-save
+     * behavior which has been dropped in the default user management implementation present with
+     * OAK.
      *
      * <p>Note that this option has been added for those cases where API consumers
-     * rely on the implementation specific behavior present with Jackrabbit 2.x.
-     * In general using this option should not be required as the Jackrabbit
-     * User Management API expects that API consumers tests the auto-save
-     * mode is enabled. Therefore this option should be considered a temporary
-     * workaround after upgrading a repository to OAK; the affected code should
-     * be reviewed and adjusted accordingly.</p>
+     * rely on the implementation specific behavior present with Jackrabbit 2.x. In general using
+     * this option should not be required as the Jackrabbit User Management API expects that API
+     * consumers tests the auto-save mode is enabled. Therefore this option should be considered a
+     * temporary workaround after upgrading a repository to OAK; the affected code should be
+     * reviewed and adjusted accordingly.</p>
      */
     String PARAM_SUPPORT_AUTOSAVE = "supportAutoSave";
 
     /**
      * Optional configuration parameter indicating the maximum age in days a password may have
-     * before it expires. If the value specified is {@code > 0}, password expiry is implicitly enabled.
+     * before it expires. If the value specified is {@code > 0}, password expiry is implicitly
+     * enabled.
      */
     String PARAM_PASSWORD_MAX_AGE = "passwordMaxAge";
 
@@ -233,8 +229,8 @@ public interface UserConstants {
     int DEFAULT_PASSWORD_MAX_AGE = 0;
 
     /**
-     * Optional configuration parameter indicating whether users must change their passwords
-     * on first login. If enabled, passwords are immediately expired upon user creation.
+     * Optional configuration parameter indicating whether users must change their passwords on
+     * first login. If enabled, passwords are immediately expired upon user creation.
      */
     String PARAM_PASSWORD_INITIAL_CHANGE = "initialPasswordChange";
 
@@ -244,16 +240,16 @@ public interface UserConstants {
     boolean DEFAULT_PASSWORD_INITIAL_CHANGE = false;
 
     /**
-     * Name of the {@link javax.jcr.SimpleCredentials} attribute containing the new password.
-     * This may be used change the password via the credentials object.
+     * Name of the {@link javax.jcr.SimpleCredentials} attribute containing the new password. This
+     * may be used change the password via the credentials object.
      */
     String CREDENTIALS_ATTRIBUTE_NEWPASSWORD = "user.newpassword";
 
     /**
-     * Optional configuration parameter indicating the maximum number of passwords recorded for a user after
-     * password changes. If the value specified is {@code > 0}, password history checking during password change is implicitly
-     * enabled and the new password provided during a password change must not be found in the already recorded
-     * history.
+     * Optional configuration parameter indicating the maximum number of passwords recorded for a
+     * user after password changes. If the value specified is {@code > 0}, password history checking
+     * during password change is implicitly enabled and the new password provided during a password
+     * change must not be found in the already recorded history.
      *
      * @since Oak 1.3.3
      */

@@ -22,16 +22,15 @@ package org.apache.jackrabbit.oak.jcr.delegate;
 import java.util.Iterator;
 import java.util.Set;
 import javax.jcr.RepositoryException;
-
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * This implementation of {@code Group} delegates back to a
- * delegatee wrapping each call into a {@link SessionOperation} closure.
+ * This implementation of {@code Group} delegates back to a delegatee wrapping each call into a
+ * {@link SessionOperation} closure.
  *
  * @see SessionDelegate#perform(SessionOperation)
  */
@@ -64,14 +63,16 @@ final class GroupDelegator extends AuthorizableDelegator implements Group {
     @NotNull
     @Override
     public Iterator<Authorizable> getDeclaredMembers() throws RepositoryException {
-        return sessionDelegate.perform(new SessionOperation<Iterator<Authorizable>>("getDeclaredMembers") {
-            @NotNull
-            @Override
-            public Iterator<Authorizable> perform() throws RepositoryException {
-                Iterator<Authorizable> authorizables = getDelegate().getDeclaredMembers();
-                return Iterators.transform(authorizables, authorizable -> wrap(sessionDelegate, authorizable));
-            }
-        });
+        return sessionDelegate.perform(
+            new SessionOperation<Iterator<Authorizable>>("getDeclaredMembers") {
+                @NotNull
+                @Override
+                public Iterator<Authorizable> perform() throws RepositoryException {
+                    Iterator<Authorizable> authorizables = getDelegate().getDeclaredMembers();
+                    return Iterators.transform(authorizables,
+                        authorizable -> wrap(sessionDelegate, authorizable));
+                }
+            });
     }
 
     @NotNull
@@ -82,13 +83,15 @@ final class GroupDelegator extends AuthorizableDelegator implements Group {
             @Override
             public Iterator<Authorizable> perform() throws RepositoryException {
                 Iterator<Authorizable> authorizables = getDelegate().getMembers();
-                return Iterators.transform(authorizables, authorizable -> wrap(sessionDelegate, authorizable));
+                return Iterators.transform(authorizables,
+                    authorizable -> wrap(sessionDelegate, authorizable));
             }
         });
     }
 
     @Override
-    public boolean isDeclaredMember(@NotNull final Authorizable authorizable) throws RepositoryException {
+    public boolean isDeclaredMember(@NotNull final Authorizable authorizable)
+        throws RepositoryException {
         return sessionDelegate.perform(new SessionOperation<Boolean>("isDeclaredMember") {
             @NotNull
             @Override
@@ -133,7 +136,8 @@ final class GroupDelegator extends AuthorizableDelegator implements Group {
     }
 
     @Override
-    public boolean removeMember(@NotNull final Authorizable authorizable) throws RepositoryException {
+    public boolean removeMember(@NotNull final Authorizable authorizable)
+        throws RepositoryException {
         return sessionDelegate.perform(new SessionOperation<Boolean>("removeMember", true) {
             @NotNull
             @Override
@@ -145,7 +149,8 @@ final class GroupDelegator extends AuthorizableDelegator implements Group {
 
     @NotNull
     @Override
-    public Set<String> removeMembers(@NotNull final String... memberIds) throws RepositoryException {
+    public Set<String> removeMembers(@NotNull final String... memberIds)
+        throws RepositoryException {
         return sessionDelegate.perform(new SessionOperation<Set<String>>("removeMembers", true) {
             @NotNull
             @Override

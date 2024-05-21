@@ -16,9 +16,17 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
+import static org.apache.jackrabbit.oak.plugins.tree.TreeUtil.addChild;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+
+import java.util.Collections;
+import java.util.Set;
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
@@ -39,15 +47,6 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermi
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.version.VersionConstants;
 import org.junit.Test;
-
-import java.util.Collections;
-import java.util.Set;
-
-import static org.apache.jackrabbit.oak.plugins.tree.TreeUtil.addChild;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
 
 public class PermissionProviderImplTest extends AbstractSecurityTest implements
     AccessControlConstants {

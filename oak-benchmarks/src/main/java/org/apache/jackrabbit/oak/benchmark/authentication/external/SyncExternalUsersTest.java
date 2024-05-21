@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.benchmark.authentication.external;
 
 import java.util.List;
 import javax.security.auth.login.Configuration;
-
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.ConfigurationUtil;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
@@ -35,8 +34,8 @@ public class SyncExternalUsersTest extends AbstractExternalTest {
     private SynchronizationMBean bean;
 
     public SyncExternalUsersTest(int numberOfUsers, int membershipSize, long expTime,
-                                 boolean dynamicMembership, @NotNull List<String> autoMembership,
-                                 int batchSize) {
+        boolean dynamicMembership, @NotNull List<String> autoMembership,
+        int batchSize) {
         super(numberOfUsers, membershipSize, expTime, dynamicMembership, autoMembership);
         this.batchSize = batchSize;
     }
@@ -49,7 +48,8 @@ public class SyncExternalUsersTest extends AbstractExternalTest {
     @Override
     protected void beforeSuite() throws Exception {
         super.beforeSuite();
-        bean = new SyncMBeanImpl(getContentRepository(), getSecurityProvider(), syncManager, syncConfig.getName(), idpManager, idp.getName());
+        bean = new SyncMBeanImpl(getContentRepository(), getSecurityProvider(), syncManager,
+            syncConfig.getName(), idpManager, idp.getName());
     }
 
     @Override

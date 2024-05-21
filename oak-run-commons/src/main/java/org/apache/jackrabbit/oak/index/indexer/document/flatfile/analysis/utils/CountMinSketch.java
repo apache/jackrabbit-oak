@@ -50,7 +50,8 @@ public class CountMinSketch {
         }
         this.shift = Integer.bitCount(m - 1);
         if (shift * k > 64) {
-            throw new IllegalArgumentException("Too many hash functions or buckets: " + k + " / " + m);
+            throw new IllegalArgumentException(
+                "Too many hash functions or buckets: " + k + " / " + m);
         }
         this.m = m;
         this.k = k;

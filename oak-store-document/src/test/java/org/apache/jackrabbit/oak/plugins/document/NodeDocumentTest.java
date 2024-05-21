@@ -168,7 +168,7 @@ public class NodeDocumentTest {
         // remove most recent previous doc
         NodeDocument toRemove = root.getAllPreviousDocs().next();
         int numDeleted = new SplitDocumentCleanUp(ns.getDocumentStore(), new VersionGCStats(),
-                Collections.singleton(toRemove)).disconnect().deleteSplitDocuments();
+            Collections.singleton(toRemove)).disconnect().deleteSplitDocuments();
         assertEquals(1, numDeleted);
         numChanges -= Iterables.size(toRemove.getAllChanges());
 
@@ -191,7 +191,7 @@ public class NodeDocumentTest {
         // remove oldest previous doc
         NodeDocument toRemove = Iterators.getLast(root.getAllPreviousDocs());
         int numDeleted = new SplitDocumentCleanUp(ns.getDocumentStore(), new VersionGCStats(),
-                Collections.singleton(toRemove)).disconnect().deleteSplitDocuments();
+            Collections.singleton(toRemove)).disconnect().deleteSplitDocuments();
         assertEquals(1, numDeleted);
         numChanges -= Iterables.size(toRemove.getAllChanges());
 
@@ -214,8 +214,8 @@ public class NodeDocumentTest {
         List<DocumentNodeStore> docStores = Lists.newArrayList();
         for (int i = 0; i < NUM_CLUSTER_NODES; i++) {
             DocumentNodeStore ns = new DocumentMK.Builder()
-                    .setDocumentStore(store)
-                    .setAsyncDelay(0).setClusterId(i + 1).getNodeStore();
+                .setDocumentStore(store)
+                .setAsyncDelay(0).setClusterId(i + 1).getNodeStore();
             docStores.add(ns);
         }
         Random r = new Random(42);
@@ -229,8 +229,8 @@ public class NodeDocumentTest {
             if (r.nextFloat() < 0.2) {
                 RevisionVector head = ns.getHeadRevision();
                 for (UpdateOp op : SplitOperations.forDocument(
-                        getRootDocument(store), ns, head,
-                        NO_BINARY, 2)) {
+                    getRootDocument(store), ns, head,
+                    NO_BINARY, 2)) {
                     store.createOrUpdate(NODES, op);
                 }
             }
@@ -274,7 +274,7 @@ public class NodeDocumentTest {
         // remove most recent previous doc
         NodeDocument toRemove = root.getAllPreviousDocs().next();
         int numDeleted = new SplitDocumentCleanUp(ns.getDocumentStore(), new VersionGCStats(),
-                Collections.singleton(toRemove)).disconnect().deleteSplitDocuments();
+            Collections.singleton(toRemove)).disconnect().deleteSplitDocuments();
         assertEquals(1, numDeleted);
 
         root = getRootDocument(ns.getDocumentStore());
@@ -298,7 +298,7 @@ public class NodeDocumentTest {
         // remove oldest previous doc
         NodeDocument toRemove = Iterators.getLast(root.getAllPreviousDocs());
         int numDeleted = new SplitDocumentCleanUp(ns.getDocumentStore(), new VersionGCStats(),
-                Collections.singleton(toRemove)).disconnect().deleteSplitDocuments();
+            Collections.singleton(toRemove)).disconnect().deleteSplitDocuments();
         assertEquals(1, numDeleted);
 
         root = getRootDocument(ns.getDocumentStore());
@@ -353,7 +353,7 @@ public class NodeDocumentTest {
         nodeDocument.put(ID, "_id");
 
         final int uncommittedRevisions = nodeDocument.purgeUncommittedRevisions(1, 50,
-                clusterNodeInfoDocument.isOlderThanLastWrittenRootRevPredicate());
+            clusterNodeInfoDocument.isOlderThanLastWrittenRootRevPredicate());
         verify(store, times(0)).findAndUpdate(any(Collection.class), any(UpdateOp.class));
         assertEquals(0, uncommittedRevisions);
 
@@ -378,7 +378,7 @@ public class NodeDocumentTest {
         nodeDocument.put(ID, "_id");
 
         final int uncommittedRevisions = nodeDocument.purgeUncommittedRevisions(1, 40,
-                clusterNodeInfoDocument.isOlderThanLastWrittenRootRevPredicate());
+            clusterNodeInfoDocument.isOlderThanLastWrittenRootRevPredicate());
         verify(store, times(8)).findAndUpdate(any(Collection.class), any(UpdateOp.class));
         assertEquals(140, uncommittedRevisions);
 
@@ -421,7 +421,7 @@ public class NodeDocumentTest {
         nodeDocument.put(ID, "_id");
 
         int uncommittedRevisions = nodeDocument.purgeCollisionMarkers(1, 50,
-                clusterNodeInfoDocument.isOlderThanLastWrittenRootRevPredicate());
+            clusterNodeInfoDocument.isOlderThanLastWrittenRootRevPredicate());
         verify(store, times(0)).findAndUpdate(any(Collection.class), any(UpdateOp.class));
         assertEquals(0, uncommittedRevisions);
     }
@@ -444,7 +444,7 @@ public class NodeDocumentTest {
         nodeDocument.put(ID, "_id");
 
         int uncommittedRevisions = nodeDocument.purgeCollisionMarkers(1, 30,
-                clusterNodeInfoDocument.isOlderThanLastWrittenRootRevPredicate());
+            clusterNodeInfoDocument.isOlderThanLastWrittenRootRevPredicate());
         verify(store, times(5)).findAndUpdate(any(Collection.class), any(UpdateOp.class));
         assertEquals(140, uncommittedRevisions);
     }
@@ -456,7 +456,7 @@ public class NodeDocumentTest {
         DocumentStore store = new MemoryDocumentStore() {
             @Override
             public <T extends Document> T find(Collection<T> collection,
-                                               String key) {
+                String key) {
                 if (Utils.getPathFromId(key).startsWith("p")) {
                     prevDocCalls.add(key);
                 }
@@ -464,8 +464,8 @@ public class NodeDocumentTest {
             }
         };
         DocumentNodeStore ns = new DocumentMK.Builder()
-                .setDocumentStore(store)
-                .setAsyncDelay(0).getNodeStore();
+            .setDocumentStore(store)
+            .setAsyncDelay(0).getNodeStore();
         // create test data
         for (int i = 0; i < NUM_CHANGES; i++) {
             NodeBuilder builder = ns.getRoot().builder();
@@ -480,15 +480,15 @@ public class NodeDocumentTest {
             if (Math.random() < 0.2) {
                 RevisionVector head = ns.getHeadRevision();
                 NodeDocument doc = ns.getDocumentStore().find(
-                        NODES, Utils.getIdFromPath("/test"));
+                    NODES, Utils.getIdFromPath("/test"));
                 for (UpdateOp op : SplitOperations.forDocument(
-                        doc, ns, head, NO_BINARY, 2)) {
+                    doc, ns, head, NO_BINARY, 2)) {
                     store.createOrUpdate(NODES, op);
                 }
             }
         }
         NodeDocument doc = ns.getDocumentStore().find(
-                NODES, Utils.getIdFromPath("/test"));
+            NODES, Utils.getIdFromPath("/test"));
         // get most recent previous doc
         NodeDocument prev = doc.getAllPreviousDocs().next();
         // simulate a change revision within the range of
@@ -499,10 +499,10 @@ public class NodeDocumentTest {
         // reset calls to previous documents
         prevDocCalls.clear();
         doc.getNewestRevision(ns, new RevisionVector(baseRev), changeRev,
-                null, new HashSet<Revision>());
+            null, new HashSet<Revision>());
         // must not read all previous docs
         assertTrue("too many calls for previous documents: " + prevDocCalls,
-                prevDocCalls.size() <= 5);
+            prevDocCalls.size() <= 5);
 
         ns.dispose();
     }
@@ -522,13 +522,13 @@ public class NodeDocumentTest {
         NodeDocument doc = store.find(NODES, Utils.getIdFromPath("/test"));
         Set<Revision> collisions = newHashSet();
         Revision newest = doc.getNewestRevision(ns1, ns1.getHeadRevision(),
-                ns1.newRevision(), null, collisions);
+            ns1.newRevision(), null, collisions);
         assertEquals(created, newest);
         assertEquals(0, collisions.size());
 
         // from ns2 POV newest must be null, because the node is not yet visible
         newest = doc.getNewestRevision(ns2, ns2.getHeadRevision(),
-                ns2.newRevision(), null, collisions);
+            ns2.newRevision(), null, collisions);
         assertNull(newest);
         assertEquals(1, collisions.size());
         assertEquals(created, collisions.iterator().next());
@@ -540,7 +540,7 @@ public class NodeDocumentTest {
         // now ns2 sees /test
         doc = store.find(NODES, Utils.getIdFromPath("/test"));
         newest = doc.getNewestRevision(ns2, ns2.getHeadRevision(),
-                ns2.newRevision(), null, collisions);
+            ns2.newRevision(), null, collisions);
         assertEquals(created, newest);
         assertEquals(0, collisions.size());
 
@@ -554,7 +554,7 @@ public class NodeDocumentTest {
         // ns1 must report uncommitted in collisions
         doc = store.find(NODES, Utils.getIdFromPath("/test"));
         newest = doc.getNewestRevision(ns1, ns1.getHeadRevision(),
-                ns1.newRevision(), null, collisions);
+            ns1.newRevision(), null, collisions);
         assertEquals(created, newest);
         assertEquals(1, collisions.size());
         assertEquals(uncommitted, collisions.iterator().next());
@@ -562,7 +562,7 @@ public class NodeDocumentTest {
         collisions.clear();
         // ns2 must report uncommitted in collisions
         newest = doc.getNewestRevision(ns2, ns2.getHeadRevision(),
-                ns2.newRevision(), null, collisions);
+            ns2.newRevision(), null, collisions);
         assertEquals(created, newest);
         assertEquals(1, collisions.size());
         assertEquals(uncommitted, collisions.iterator().next());
@@ -578,19 +578,18 @@ public class NodeDocumentTest {
         // because it is older than the base revision
         doc = store.find(NODES, Utils.getIdFromPath("/test"));
         newest = doc.getNewestRevision(ns1, headCreated,
-                ns1.newRevision(), null, collisions);
+            ns1.newRevision(), null, collisions);
         assertEquals(committed, newest);
         assertEquals(0, collisions.size());
 
         // ns2 must report committed revision as collision because
         // it is not yet visible. newest is when the node was created
         newest = doc.getNewestRevision(ns2, ns2.getHeadRevision(),
-                ns2.newRevision(), null, collisions);
+            ns2.newRevision(), null, collisions);
         assertEquals(created, newest);
         assertEquals(2, collisions.size());
         assertTrue(collisions.contains(uncommitted));
         assertTrue(collisions.contains(committed));
-
 
         ns1.dispose();
         ns2.dispose();
@@ -748,7 +747,7 @@ public class NodeDocumentTest {
         List<DocumentNodeStore> nodeStores = Lists.newArrayList(ns1, ns2);
 
         List<RevisionVector> headRevisions = Lists.reverse(
-                createTestData(nodeStores, random, numChanges));
+            createTestData(nodeStores, random, numChanges));
         NodeDocument doc = getRootDocument(store);
         for (int i = 0; i < 10; i++) {
             int idx = random.nextInt(numChanges);
@@ -771,7 +770,7 @@ public class NodeDocumentTest {
         MemoryDocumentStore store = new MemoryDocumentStore() {
             @Override
             public <T extends Document> T find(Collection<T> collection,
-                                               String key) {
+                String key) {
                 if (Utils.getPathFromId(key).startsWith("p")) {
                     prevDocCalls.add(key);
                 }
@@ -790,7 +789,7 @@ public class NodeDocumentTest {
         prevDocCalls.clear();
         assertFalse(doc.isConflicting(op, baseRev, commitRev, false));
         assertTrue("too many calls for previous documents: " + prevDocCalls,
-                prevDocCalls.size() <= 6);
+            prevDocCalls.size() <= 6);
         ns.dispose();
     }
 
@@ -801,7 +800,7 @@ public class NodeDocumentTest {
         MemoryDocumentStore store = new MemoryDocumentStore() {
             @Override
             public <T extends Document> T find(Collection<T> collection,
-                                               String key) {
+                String key) {
                 if (Utils.getPathFromId(key).startsWith("p")) {
                     prevDocCalls.add(key);
                 }
@@ -829,7 +828,7 @@ public class NodeDocumentTest {
         NodeDocument test = ns2.getDocumentStore().find(NODES, testId);
         assertNotNull(test);
         List<UpdateOp> ops = SplitOperations.forDocument(test, ns2,
-                ns2.getHeadRevision(), NO_BINARY, 2);
+            ns2.getHeadRevision(), NO_BINARY, 2);
         assertEquals(2, ops.size());
         for (UpdateOp op : ops) {
             ns2.getDocumentStore().createOrUpdate(NODES, op);
@@ -845,7 +844,7 @@ public class NodeDocumentTest {
             merge(ns1, b1);
             test = ns1.getDocumentStore().find(NODES, testId);
             for (UpdateOp op : SplitOperations.forDocument(test, ns1,
-                    ns1.getHeadRevision(), NO_BINARY, 3)) {
+                ns1.getHeadRevision(), NO_BINARY, 3)) {
                 ns1.getDocumentStore().createOrUpdate(NODES, op);
             }
             headRevs.add(ns1.getHeadRevision());
@@ -859,13 +858,13 @@ public class NodeDocumentTest {
         // simulate a call done by a commit with a
         // base revision somewhat in the past
         test.getNewestRevision(ns1, headRevs.get(16), ns1.newRevision(),
-                null, new HashSet<Revision>());
+            null, new HashSet<Revision>());
         // must only read one previous document for ns1 changes
         assertEquals(1, prevDocCalls.size());
     }
-    
+
     @Test(expected = UnsupportedOperationException.class)
-    public void sealedNodeDocumentFromJSON() throws Exception{
+    public void sealedNodeDocumentFromJSON() throws Exception {
         DocumentNodeStore ns = createTestStore(1);
         NodeDocument root = getRootDocument(ns.getDocumentStore());
         String json = root.asString();
@@ -881,7 +880,7 @@ public class NodeDocumentTest {
         MemoryDocumentStore store = new MemoryDocumentStore() {
             @Override
             public <T extends Document> T find(Collection<T> collection,
-                                               String key) {
+                String key) {
                 if (Utils.getPathFromId(key).startsWith("p")) {
                     prevDocCalls.add(key);
                 }
@@ -896,14 +895,14 @@ public class NodeDocumentTest {
 
         prevDocCalls.clear();
         DocumentNodeState state = doc.getNodeAtRevision(ns,
-                new RevisionVector(oldest), null);
+            new RevisionVector(oldest), null);
         assertNotNull(state);
         PropertyState prop = state.getProperty("p");
         assertNotNull(prop);
         assertEquals(0L, (long) prop.getValue(Type.LONG));
 
         assertTrue("too many calls for previous documents: " + prevDocCalls,
-                prevDocCalls.size() <= 2);
+            prevDocCalls.size() <= 2);
 
         ns.dispose();
     }
@@ -916,7 +915,7 @@ public class NodeDocumentTest {
         MemoryDocumentStore store = new MemoryDocumentStore() {
             @Override
             public <T extends Document> T find(Collection<T> collection,
-                                               String key) {
+                String key) {
                 if (Utils.getPathFromId(key).startsWith("p")) {
                     prevDocCalls.add(key);
                 }
@@ -928,16 +927,17 @@ public class NodeDocumentTest {
         DocumentNodeStore ns2 = createTestStore(store, 2, 0);
         List<DocumentNodeStore> nodeStores = Lists.newArrayList(ns1, ns2);
         List<RevisionVector> headRevisions = Lists.reverse(
-                createTestData(nodeStores, random, numChanges));
+            createTestData(nodeStores, random, numChanges));
 
         NodeDocument doc = getRootDocument(store);
 
         for (int i = 0; i < 20; i++) {
             prevDocCalls.clear();
-            String value = doc.getVisibleChanges("p", headRevisions.get(i)).iterator().next().getValue();
+            String value = doc.getVisibleChanges("p", headRevisions.get(i)).iterator().next()
+                              .getValue();
             assertEquals(String.valueOf(numChanges - (i + 1)), value);
             assertTrue("too many calls for previous documents: " + prevDocCalls,
-                    prevDocCalls.size() <= 3);
+                prevDocCalls.size() <= 3);
         }
 
         ns1.dispose();
@@ -951,7 +951,7 @@ public class NodeDocumentTest {
         MemoryDocumentStore store = new MemoryDocumentStore() {
             @Override
             public <T extends Document> T find(Collection<T> collection,
-                                               String key) {
+                String key) {
                 T doc = super.find(collection, key);
                 if (Utils.getPathFromId(key).startsWith("p")) {
                     prevDocCalls.put(key, doc);
@@ -964,7 +964,7 @@ public class NodeDocumentTest {
         DocumentNodeStore ns2 = createTestStore(store, 2, 0);
         List<DocumentNodeStore> nodeStores = Lists.newArrayList(ns1, ns2);
         List<RevisionVector> headRevisions = Lists.reverse(
-                createTestData(nodeStores, random, numChanges));
+            createTestData(nodeStores, random, numChanges));
 
         NodeBuilder builder = ns1.getRoot().builder();
         builder.setProperty("q", 1);
@@ -979,7 +979,7 @@ public class NodeDocumentTest {
         // do not yet merge, but create more test data
         int numMoreChanges = 50;
         List<RevisionVector> moreRevs = Lists.reverse(
-                createTestData(nodeStores, random, numMoreChanges, numChanges));
+            createTestData(nodeStores, random, numMoreChanges, numChanges));
         headRevisions = Lists.newArrayList(Iterables.concat(moreRevs, headRevisions));
         numChanges += numMoreChanges;
 
@@ -993,7 +993,7 @@ public class NodeDocumentTest {
         // and create yet more test data
         numMoreChanges = 50;
         moreRevs = Lists.reverse(
-                createTestData(nodeStores, random, numMoreChanges, numChanges));
+            createTestData(nodeStores, random, numMoreChanges, numChanges));
         headRevisions = Lists.newArrayList(Iterables.concat(moreRevs, headRevisions));
         numChanges += numMoreChanges;
 
@@ -1001,11 +1001,12 @@ public class NodeDocumentTest {
 
         for (int i = 0; i < 20; i++) {
             prevDocCalls.clear();
-            String value = doc.getVisibleChanges("p", headRevisions.get(i)).iterator().next().getValue();
+            String value = doc.getVisibleChanges("p", headRevisions.get(i)).iterator().next()
+                              .getValue();
             assertEquals(String.valueOf(numChanges - (i + 1)), value);
             assertTrue("too many calls for previous documents ("
-                            + prevDocCalls.size() + "): " + prevDocCalls,
-                    prevDocCalls.size() <= 10);
+                    + prevDocCalls.size() + "): " + prevDocCalls,
+                prevDocCalls.size() <= 10);
         }
 
         ns1.dispose();
@@ -1018,7 +1019,7 @@ public class NodeDocumentTest {
         MemoryDocumentStore store = new MemoryDocumentStore() {
             @Override
             public <T extends Document> T find(Collection<T> collection,
-                                               String key) {
+                String key) {
                 T doc = super.find(collection, key);
                 if (collection == NODES && Utils.getPathFromId(key).startsWith("p")) {
                     prevDocCalls.put(key, doc);
@@ -1049,7 +1050,7 @@ public class NodeDocumentTest {
                 RevisionVector head = ns.getHeadRevision();
                 NodeDocument doc = store.find(NODES, Utils.getIdFromPath("/test"));
                 for (UpdateOp op : SplitOperations.forDocument(
-                        doc, ns, head, NO_BINARY, 2)) {
+                    doc, ns, head, NO_BINARY, 2)) {
                     store.createOrUpdate(NODES, op);
                 }
             }
@@ -1083,7 +1084,8 @@ public class NodeDocumentTest {
         for (int i = 0; i < 10; i++) {
             int idx = random.nextInt(numChanges);
             Revision r = Iterables.get(doc.getValueMap("p").keySet(), idx);
-            Iterable<Map.Entry<Revision, String>> revs = doc.getVisibleChanges("p", new RevisionVector(r));
+            Iterable<Map.Entry<Revision, String>> revs = doc.getVisibleChanges("p",
+                new RevisionVector(r));
             assertEquals(idx, numChanges - Iterables.size(revs));
         }
         ns.dispose();
@@ -1099,7 +1101,7 @@ public class NodeDocumentTest {
         List<DocumentNodeStore> nodeStores = Lists.newArrayList(ns1, ns2);
 
         List<RevisionVector> headRevisions = Lists.reverse(
-                createTestData(nodeStores, random, numChanges));
+            createTestData(nodeStores, random, numChanges));
         NodeDocument doc = getRootDocument(store);
         for (int i = 0; i < 10; i++) {
             int idx = random.nextInt(numChanges);
@@ -1131,7 +1133,7 @@ public class NodeDocumentTest {
         NodeDocument doc = store.find(NODES, id);
         assertNotNull(doc);
         List<UpdateOp> splitOps = SplitOperations.forDocument(
-                doc, ns, ns.getHeadRevision(), NO_BINARY, 1);
+            doc, ns, ns.getHeadRevision(), NO_BINARY, 1);
         assertEquals(2, splitOps.size());
         store.createOrUpdate(NODES, splitOps);
 
@@ -1140,7 +1142,7 @@ public class NodeDocumentTest {
         doc = store.find(NODES, id);
         assertNotNull(doc);
         splitOps = SplitOperations.forDocument(
-                doc, ns, ns.getHeadRevision(), NO_BINARY, 1);
+            doc, ns, ns.getHeadRevision(), NO_BINARY, 1);
         assertEquals(2, splitOps.size());
         store.createOrUpdate(NODES, splitOps);
 
@@ -1187,7 +1189,7 @@ public class NodeDocumentTest {
         DocumentStore ds = new MemoryDocumentStore() {
             @Override
             public <T extends Document> T find(Collection<T> collection,
-                                               String key) {
+                String key) {
                 findCalls.add(key);
                 return super.find(collection, key);
             }
@@ -1229,13 +1231,13 @@ public class NodeDocumentTest {
     }
 
     private DocumentNodeStore createTestStore(DocumentStore store,
-                                              int clusterId,
-                                              int numChanges,
-                                              int commitValueCacheSize)
-            throws Exception {
+        int clusterId,
+        int numChanges,
+        int commitValueCacheSize)
+        throws Exception {
         DocumentNodeStore ns = new DocumentMK.Builder()
-                .setDocumentStore(store).setCommitValueCacheSize(commitValueCacheSize)
-                .setAsyncDelay(0).setClusterId(clusterId).getNodeStore();
+            .setDocumentStore(store).setCommitValueCacheSize(commitValueCacheSize)
+            .setAsyncDelay(0).setClusterId(clusterId).getNodeStore();
         for (int i = 0; i < numChanges; i++) {
             NodeBuilder builder = ns.getRoot().builder();
             builder.setProperty("p", i);
@@ -1243,8 +1245,8 @@ public class NodeDocumentTest {
             if (Math.random() < 0.2) {
                 RevisionVector head = ns.getHeadRevision();
                 for (UpdateOp op : SplitOperations.forDocument(
-                        getRootDocument(store), ns, head,
-                        NO_BINARY, 2)) {
+                    getRootDocument(store), ns, head,
+                    NO_BINARY, 2)) {
                     store.createOrUpdate(NODES, op);
                 }
             }
@@ -1253,23 +1255,23 @@ public class NodeDocumentTest {
     }
 
     private DocumentNodeStore createTestStore(DocumentStore store,
-                                              int clusterId,
-                                              int numChanges) throws Exception {
+        int clusterId,
+        int numChanges) throws Exception {
         return createTestStore(store, clusterId, numChanges, 10000);
     }
 
     private List<RevisionVector> createTestData(List<DocumentNodeStore> nodeStores,
-                                                Random random,
-                                                int numChanges)
-            throws CommitFailedException {
+        Random random,
+        int numChanges)
+        throws CommitFailedException {
         return createTestData(nodeStores, random, numChanges, 0);
     }
 
     private List<RevisionVector> createTestData(List<DocumentNodeStore> nodeStores,
-                                                Random random,
-                                                int numChanges,
-                                                int startValue)
-            throws CommitFailedException {
+        Random random,
+        int numChanges,
+        int startValue)
+        throws CommitFailedException {
         List<RevisionVector> headRevisions = Lists.newArrayList();
         for (int i = startValue; i < numChanges + startValue; i++) {
             DocumentNodeStore ns = nodeStores.get(random.nextInt(nodeStores.size()));
@@ -1285,8 +1287,8 @@ public class NodeDocumentTest {
                 DocumentStore store = ns.getDocumentStore();
                 RevisionVector head = ns.getHeadRevision();
                 for (UpdateOp op : SplitOperations.forDocument(
-                        getRootDocument(store), ns, head,
-                        NO_BINARY, 2)) {
+                    getRootDocument(store), ns, head,
+                    NO_BINARY, 2)) {
                     store.createOrUpdate(NODES, op);
                 }
             }
@@ -1295,12 +1297,12 @@ public class NodeDocumentTest {
     }
 
     private void merge(NodeStore store, NodeBuilder builder)
-            throws CommitFailedException {
+        throws CommitFailedException {
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 
     private void addNode(NodeStore store, String path)
-            throws CommitFailedException {
+        throws CommitFailedException {
         NodeBuilder root = store.getRoot().builder();
         NodeBuilder builder = root;
         for (String name : PathUtils.elements(path)) {
@@ -1311,7 +1313,7 @@ public class NodeDocumentTest {
     }
 
     private void setProperty(NodeStore store, String path, int value)
-            throws CommitFailedException {
+        throws CommitFailedException {
         NodeBuilder root = store.getRoot().builder();
         NodeBuilder builder = root;
         String nodePath = PathUtils.getParentPath(path);

@@ -18,6 +18,22 @@
  */
 package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
+import static java.lang.String.valueOf;
+import static java.util.UUID.randomUUID;
+import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
+import static org.apache.commons.io.IOUtils.closeQuietly;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.oak.commons.FileIOUtils.readStringsAsSet;
+import static org.apache.jackrabbit.oak.commons.FileIOUtils.writeStrings;
+import static org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils.getBlobStore;
+import static org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils.SharedStoreRecordType.BLOBREFERENCES;
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeNoException;
+import static org.junit.Assume.assumeThat;
+
 import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
@@ -28,15 +44,13 @@ import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-
-import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
+import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
-
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
 import org.junit.Before;
@@ -47,27 +61,11 @@ import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
-import static java.lang.String.valueOf;
-import static java.util.UUID.randomUUID;
-import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
-import static org.apache.commons.io.IOUtils.closeQuietly;
-import static org.apache.jackrabbit.oak.commons.FileIOUtils.readStringsAsSet;
-import static org.apache.jackrabbit.oak.commons.FileIOUtils.writeStrings;
-import static org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils.getBlobStore;
-import static org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils
-    .SharedStoreRecordType.BLOBREFERENCES;
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeNoException;
-import static org.junit.Assume.assumeThat;
-
 /**
  * Test for BlobIdTracker to test addition, retrieval and removal of blob ids.
  */
 public class BlobIdTrackerTest {
+
     private static final Logger LOG = LoggerFactory.getLogger(BlobIdTrackerTest.class);
 
     File root;
@@ -184,7 +182,8 @@ public class BlobIdTrackerTest {
             read(dataStore.getAllMetadataRecords(BLOBREFERENCES.getType())));
     }
 
-    private Set<String> snapshotRemove(BlobIdTracker.SnapshotJob job, boolean skipGetBeforeRemove) throws Exception {
+    private Set<String> snapshotRemove(BlobIdTracker.SnapshotJob job, boolean skipGetBeforeRemove)
+        throws Exception {
         Set<String> initAdd = add(tracker, range(0, 4));
         ScheduledFuture<?> scheduledFuture =
             scheduler.schedule(job, 0, TimeUnit.MILLISECONDS);
@@ -284,16 +283,17 @@ public class BlobIdTrackerTest {
     private static Set<String> retrieve(BlobTracker tracker) throws IOException {
         Set<String> retrieved = newHashSet();
         Iterator<String> iter = tracker.get();
-        while(iter.hasNext()) {
+        while (iter.hasNext()) {
             retrieved.add(iter.next());
         }
         if (iter instanceof Closeable) {
-            closeQuietly((Closeable)iter);
+            closeQuietly((Closeable) iter);
         }
         return retrieved;
     }
 
-    private static Set<String> retrieveFile(BlobIdTracker tracker, TemporaryFolder folder) throws IOException {
+    private static Set<String> retrieveFile(BlobIdTracker tracker, TemporaryFolder folder)
+        throws IOException {
         File f = folder.newFile();
         Set<String> retrieved = readStringsAsSet(
             new FileInputStream(tracker.get(f.getAbsolutePath())), false);
@@ -301,7 +301,7 @@ public class BlobIdTrackerTest {
     }
 
     private static void remove(BlobTracker tracker, File temp, Set<String> initAdd,
-            List<String> ints) throws IOException {
+        List<String> ints) throws IOException {
         writeStrings(ints.iterator(), temp, false);
         initAdd.removeAll(ints);
         tracker.remove(temp);

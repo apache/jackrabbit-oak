@@ -40,17 +40,17 @@ public class ElasticIndexOptions extends IndexOptions {
     public ElasticIndexOptions(OptionParser parser) {
         super(parser);
         scheme = parser.accepts("scheme", "Elastic scheme")
-                .withRequiredArg().ofType(String.class);
+                       .withRequiredArg().ofType(String.class);
         host = parser.accepts("host", "Elastic host")
-                .withRequiredArg().ofType(String.class);
+                     .withRequiredArg().ofType(String.class);
         port = parser.accepts("port", "Elastic port")
-                .withRequiredArg().ofType(Integer.class);
+                     .withRequiredArg().ofType(Integer.class);
         apiKeyId = parser.accepts("apiKeyId", "Elastic api key id")
-                .withRequiredArg().ofType(String.class);
+                         .withRequiredArg().ofType(String.class);
         apiKeySecret = parser.accepts("apiKeySecret", "Elastic api key host")
-                .withRequiredArg().ofType(String.class);
+                             .withRequiredArg().ofType(String.class);
         indexPrefix = parser.accepts("indexPrefix", "Elastic indexPrefix")
-                .withRequiredArg().ofType(String.class);
+                            .withRequiredArg().ofType(String.class);
     }
 
     public String getElasticScheme() {

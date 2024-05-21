@@ -18,14 +18,10 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
-import org.apache.jackrabbit.oak.commons.Compression;
-import org.apache.jackrabbit.oak.stats.StatisticsProvider;
-import org.apache.jackrabbit.oak.plugins.index.ConsoleIndexingReporter;
-import org.junit.Rule;
-import org.junit.contrib.java.lang.system.RestoreSystemProperties;
-import org.junit.rules.TemporaryFolder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedStrategy.FLATFILESTORE_CHARSET;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedStrategy.SENTINEL_SORTED_FILES_QUEUE;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.io.BufferedWriter;
 import java.nio.file.Files;
@@ -38,13 +34,17 @@ import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedStrategy.FLATFILESTORE_CHARSET;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedStrategy.SENTINEL_SORTED_FILES_QUEUE;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import org.apache.jackrabbit.oak.commons.Compression;
+import org.apache.jackrabbit.oak.plugins.index.ConsoleIndexingReporter;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.junit.Rule;
+import org.junit.contrib.java.lang.system.RestoreSystemProperties;
+import org.junit.rules.TemporaryFolder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class PipelinedMergeSortTaskTestBase {
+
     static final int LINES_IN_FFS = 100000;
     static final PathElementComparator pathComparator = new PathElementComparator(Set.of());
 
@@ -56,12 +56,13 @@ public class PipelinedMergeSortTaskTestBase {
 
 
     protected List<NodeStateHolder> sortAsNodeStateEntries(List<String> ffsLines) {
-        Comparator<NodeStateHolder> comparatorBinary = (e1, e2) -> pathComparator.compare(e1.getPathElements(), e2.getPathElements());
+        Comparator<NodeStateHolder> comparatorBinary = (e1, e2) -> pathComparator.compare(
+            e1.getPathElements(), e2.getPathElements());
         NodeStateHolderFactory nodeFactory = new NodeStateHolderFactory();
         return ffsLines.stream()
-                .map(ffsLine -> nodeFactory.apply(ffsLine.getBytes(FLATFILESTORE_CHARSET)))
-                .sorted(comparatorBinary)
-                .collect(Collectors.toList());
+                       .map(ffsLine -> nodeFactory.apply(ffsLine.getBytes(FLATFILESTORE_CHARSET)))
+                       .sorted(comparatorBinary)
+                       .collect(Collectors.toList());
     }
 
 
@@ -69,13 +70,15 @@ public class PipelinedMergeSortTaskTestBase {
         List<String> ffsLines = new ArrayList<>(numberOfLines);
         for (int i = 0; i < numberOfLines; i++) {
             String path = "/a/b/c/d/e/f/g/h/i/j/k/l/m/n/o/p/q/r/s/t/u/v/w/x/y/z/" + i;
-            String entry = "{\"_id\":\"" + path + "\",\"property\":[{\"name\":\"jcr:primaryType\",\"values\":[\"nt:unstructured\"]}]}";
+            String entry = "{\"_id\":\"" + path
+                + "\",\"property\":[{\"name\":\"jcr:primaryType\",\"values\":[\"nt:unstructured\"]}]}";
             ffsLines.add(path + "|" + entry);
         }
         return ffsLines;
     }
 
-    protected List<Path> createIntermediateFiles(List<String> ffsLines, int numberOfFiles) throws Exception {
+    protected List<Path> createIntermediateFiles(List<String> ffsLines, int numberOfFiles)
+        throws Exception {
         Iterator<String> ffsIter = ffsLines.iterator();
         Path workFolder = sortFolder.newFolder("merge_many_test").toPath();
         ArrayList<Path> intermediateFiles = new ArrayList<>(numberOfFiles);
@@ -94,7 +97,8 @@ public class PipelinedMergeSortTaskTestBase {
                 }
             }
             List<NodeStateHolder> nodesSorted = sortAsNodeStateEntries(linesInIntermediateFile);
-            try (BufferedWriter bw = Files.newBufferedWriter(intermediateFile, FLATFILESTORE_CHARSET)) {
+            try (BufferedWriter bw = Files.newBufferedWriter(intermediateFile,
+                FLATFILESTORE_CHARSET)) {
                 for (NodeStateHolder node : nodesSorted) {
                     bw.write(new String(node.getLine()));
                     bw.write("\n");
@@ -105,18 +109,19 @@ public class PipelinedMergeSortTaskTestBase {
         return intermediateFiles;
     }
 
-    protected PipelinedMergeSortTask.Result runTestLargeFiles(Compression algorithm, Path... files) throws Exception {
+    protected PipelinedMergeSortTask.Result runTestLargeFiles(Compression algorithm, Path... files)
+        throws Exception {
         Path sortRoot = sortFolder.getRoot().toPath();
         // +1 for the Sentinel.
         ArrayBlockingQueue<Path> sortedFilesQueue = new ArrayBlockingQueue<>(files.length + 1);
         ConsoleIndexingReporter reporter = new ConsoleIndexingReporter();
         PipelinedMergeSortTask mergeSortTask = new PipelinedMergeSortTask(
-                sortRoot,
-                pathComparator,
-                algorithm,
-                sortedFilesQueue,
-                StatisticsProvider.NOOP,
-                reporter);
+            sortRoot,
+            pathComparator,
+            algorithm,
+            sortedFilesQueue,
+            StatisticsProvider.NOOP,
+            reporter);
         // Enqueue all the files that are to be merged
         for (Path file : files) {
             sortedFilesQueue.put(file);
@@ -129,8 +134,10 @@ public class PipelinedMergeSortTaskTestBase {
         try (Stream<Path> stream = Files.list(sortRoot)) {
             filesInWorkDir = stream.filter(Files::isRegularFile).collect(Collectors.toList());
         }
-        assertEquals("The sort work directory should contain only the flat file store, the intermediate files should have been deleted after merged. Instead it contains: " + filesInWorkDir,
-                1, filesInWorkDir.size());
+        assertEquals(
+            "The sort work directory should contain only the flat file store, the intermediate files should have been deleted after merged. Instead it contains: "
+                + filesInWorkDir,
+            1, filesInWorkDir.size());
         assertTrue(Files.exists(result.getFlatFileStoreFile()));
         return result;
     }

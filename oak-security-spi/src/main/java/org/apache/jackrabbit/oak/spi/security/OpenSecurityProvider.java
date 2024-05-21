@@ -25,10 +25,9 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Rudimentary {@code SecurityProvider} implementation that allow every subject
- * to authenticate and grants it full access everywhere. Note, that this
- * implementation does not provide support for other security related features
- * such as e.g. user or access control management.
+ * Rudimentary {@code SecurityProvider} implementation that allow every subject to authenticate and
+ * grants it full access everywhere. Note, that this implementation does not provide support for
+ * other security related features such as e.g. user or access control management.
  *
  * @see org.apache.jackrabbit.oak.spi.security.authentication.OpenAuthenticationConfiguration
  * @see org.apache.jackrabbit.oak.spi.security.authorization.OpenAuthorizationConfiguration
@@ -44,7 +43,8 @@ public class OpenSecurityProvider implements SecurityProvider {
     @NotNull
     @Override
     public Iterable<? extends SecurityConfiguration> getConfigurations() {
-        return ImmutableList.of(new OpenAuthenticationConfiguration(), new OpenAuthorizationConfiguration());
+        return ImmutableList.of(new OpenAuthenticationConfiguration(),
+            new OpenAuthorizationConfiguration());
     }
 
     @NotNull
@@ -55,7 +55,8 @@ public class OpenSecurityProvider implements SecurityProvider {
         } else if (AuthorizationConfiguration.class == configClass) {
             return (T) new OpenAuthorizationConfiguration();
         } else {
-            throw new IllegalArgumentException("Unsupported security configuration class " + configClass);
+            throw new IllegalArgumentException(
+                "Unsupported security configuration class " + configClass);
         }
     }
 }

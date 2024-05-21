@@ -14,6 +14,7 @@
    See the License for the specific language governing permissions and
    limitations under the License.
   -->
+
 # Oak Document Storage
 
 * [Oak Document Storage](#oak-document-storage)
@@ -49,7 +50,7 @@
     * [Pending Topics](#pending-topics)
         * [Conflict Detection and Handling](#conflict-detection-and-handling)
 
-One of the plugins in Oak stores data in a document oriented format. 
+One of the plugins in Oak stores data in a document oriented format.
 The plugin implements the low level `NodeStore` interface.
 
 The document storage optionally uses the [persistent cache](persistent-cache.html)
@@ -57,8 +58,10 @@ to reduce read operations on the backend storage.
 
 ## <a name="new-1.10"></a> New in 1.10
 
-* Use of MongoDB client sessions. See also [read preference](document/mongo-document-store.html#read-preference).
-* [Greedy cluster node info][OAK-7316]. See also [Acquire a Cluster Node ID](#acquire-a-cluster-node-id).
+* Use of MongoDB client sessions. See
+  also [read preference](document/mongo-document-store.html#read-preference).
+* [Greedy cluster node info][OAK-7316]. See
+  also [Acquire a Cluster Node ID](#acquire-a-cluster-node-id).
 
 ## <a name="new-1.8"></a> New in 1.8
 
@@ -71,15 +74,16 @@ to reduce read operations on the backend storage.
 * [Node Bundling](#node-bundling)
 * [Secondary Store](#secondary-store)
 
-
 ## <a name="backend-implementations"></a> Backend implementations
 
 The DocumentNodeStore supports a number of backends, with a storage abstraction
 called `DocumentStore`:
 
 * [`MongoDocumentStore`](document/mongo-document-store.html): stores documents in a MongoDB.
-* [`RDBDocumentStore`](document/rdb-document-store.html): stores documents in a relational data base.
-* `MemoryDocumentStore`: keeps documents in memory. This implementation should only be used for testing purposes.
+* [`RDBDocumentStore`](document/rdb-document-store.html): stores documents in a relational data
+  base.
+* `MemoryDocumentStore`: keeps documents in memory. This implementation should only be used for
+  testing purposes.
 
 The remaining part of the document will focus on the `MongoDocumentStore` to
 explain and illustrate concepts of the DocumentNodeStore.
@@ -314,7 +318,6 @@ are more than 100'000 changes pending. This is not something that can be
 controlled by the application code. See also OSGi
 [configuration](../osgi_config.html#document-node-store) for the `DocumentNodeStoreService`.
 
-
 A branch commit looks very similar to a regular commit, but instead of setting
 the value of an entry in `_revisions` to `c` (committed), it marks it with
 the base revision of the branch commit. In contrast to regular commits where
@@ -536,15 +539,16 @@ documents until the branch is merged.
 Previous documents contain metadata not present on the main document. Each
 previous document has a `_sdType`, which plays a role for the Revision Garbage
 Collector whether a previous document can be collected later. The `_sdType`
-values are defined in the enum [SplitDocType](https://github.com/apache/jackrabbit-oak/blob/jackrabbit-oak-1.12.0/oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/NodeDocument.java#L268).
+values are defined in the
+enum [SplitDocType](https://github.com/apache/jackrabbit-oak/blob/jackrabbit-oak-1.12.0/oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/NodeDocument.java#L268).
 The term "split document" is used as a synonym for "previous document". The
 most commonly used types are (`_sdType` in parentheses):
 
- * DEFAULT(10): contains all kinds of changes and commit information.
- * INTERMEDIATE(40): an intermediate document that creates a tree of split documents.
- * DEFAULT_LEAF(50): contains changes from nodes that were leafs in the node tree.
- * COMMIT_ROOT_ONLY(60): contains only changes where the commit root was not on the document itself.
- * DEFAULT_NO_BRANCH(70): contains all kind of changes and commit information, except from branches.
+* DEFAULT(10): contains all kinds of changes and commit information.
+* INTERMEDIATE(40): an intermediate document that creates a tree of split documents.
+* DEFAULT_LEAF(50): contains changes from nodes that were leafs in the node tree.
+* COMMIT_ROOT_ONLY(60): contains only changes where the commit root was not on the document itself.
+* DEFAULT_NO_BRANCH(70): contains all kind of changes and commit information, except from branches.
 
 The Revision Garbage Collection will only collect `_sdType` with values 40, 50,
 60 and 70 when the previous documents are older than 24 hours (this is
@@ -638,7 +642,6 @@ And a new intermediate split document:
         "_sdMaxRevTime" : NumberLong(1373545435),
         "_modCount" : NumberLong(1)
     }
-
 
 ## <a name="clock-requirements"></a> Clock requirements
 
@@ -777,7 +780,7 @@ environment and would create a new entry.
 
 Each running cluster node updates the `leaseEnd` time of the cluster node ID
 every ten seconds, to ensure each cluster node uses a different cluster node ID.
-The time is the number of milliseconds since 1970 and with every update the 
+The time is the number of milliseconds since 1970 and with every update the
 `leaseEnd` is set two minutes ahead of the current time. This lease mechanism
 allows other cluster nodes to identify active, inactive and crashed cluster nodes.
 
@@ -844,48 +847,48 @@ See [configuration](document/mongo-document-store.html#configuration) of a `Mong
 
 ## <a name="cache"></a> Caching
 
-`DocumentNodeStore` maintains multiple caches to provide an optimum performance. 
-By default the cached instances are kept in heap memory but some of the caches 
+`DocumentNodeStore` maintains multiple caches to provide an optimum performance.
+By default the cached instances are kept in heap memory but some of the caches
 can be backed by [persistent cache](persistent-cache.html).
 
-1. `documentCache` - Document cache is used for caching the `NodeDocument` 
-    instance. These are in memory representation of the persistent state. For 
-    example in case of Mongo it maps to the Mongo document in `nodes` collection 
-    and for RDB its maps to the row in `NODES` table. There is a class of `NodeDocument`
-    (leaf level split documents) which, since `1.3.15` are cached under
-    `prevDocCache` (see below)
-    
-    Depending on the `DocumentStore` implementation different heuristics are 
-    applied for invalidating the cache entries based on changes in backend  
-    
-2. `prevDocCache` - Previous document cache is used for caching the `NodeDocument` 
-    instance representing leaf level split documents. Unlike other type of
-    `NodeDocument`, these are immutable and hence don't require invalidation.
-    If configured, this cache can exploit persistent cache as well.
-    Similar to other `NodeDocument` these are also in memory representation of
-    the persistent state. (since `1.3.15`)
-    
-    Depending on the `DocumentStore` implementation different heuristics are 
-    applied for invalidating the cache entries based on changes in backend  
-    
-3. `docChildrenCache` - Document Children cache is used to cache the children 
-    state for a given parent node. This is invalidated completely upon every 
-    background read. This cache was removed in 1.5.6.
-    
+1. `documentCache` - Document cache is used for caching the `NodeDocument`
+   instance. These are in memory representation of the persistent state. For
+   example in case of Mongo it maps to the Mongo document in `nodes` collection
+   and for RDB its maps to the row in `NODES` table. There is a class of `NodeDocument`
+   (leaf level split documents) which, since `1.3.15` are cached under
+   `prevDocCache` (see below)
+
+   Depending on the `DocumentStore` implementation different heuristics are
+   applied for invalidating the cache entries based on changes in backend
+
+2. `prevDocCache` - Previous document cache is used for caching the `NodeDocument`
+   instance representing leaf level split documents. Unlike other type of
+   `NodeDocument`, these are immutable and hence don't require invalidation.
+   If configured, this cache can exploit persistent cache as well.
+   Similar to other `NodeDocument` these are also in memory representation of
+   the persistent state. (since `1.3.15`)
+
+   Depending on the `DocumentStore` implementation different heuristics are
+   applied for invalidating the cache entries based on changes in backend
+
+3. `docChildrenCache` - Document Children cache is used to cache the children
+   state for a given parent node. This is invalidated completely upon every
+   background read. This cache was removed in 1.5.6.
+
 4. `nodeCache` - Node cache is used to cache the `DocumentNodeState` instances.
-    These are **immutable** view of `NodeDocument` as seen at a given revision
-    hence no consistency checks are to be performed for them
-     
+   These are **immutable** view of `NodeDocument` as seen at a given revision
+   hence no consistency checks are to be performed for them
+
 5. `childrenCache` - Children cache is used to cache the children for a given
-    node. These are also **immutable** and represent the state of children for
-    a given parent at certain revision
-    
+   node. These are also **immutable** and represent the state of children for
+   a given parent at certain revision
+
 5. `diffCache` - Caches the diff for the changes done between successive revision.
-   For local changes done the diff is add to the cache upon commit while for 
-   external changes the diff entries are added upon computation of diff as part 
+   For local changes done the diff is add to the cache upon commit while for
+   external changes the diff entries are added upon computation of diff as part
    of observation call
-   
-All the above caches are managed on heap. For the last 3 `nodeCache`, 
+
+All the above caches are managed on heap. For the last 3 `nodeCache`,
 `childrenCache` and `diffCache` Oak provides support for [persistent cache]
 (persistent-cache.html). By enabling the persistent cache feature Oak can manage
 a much larger cache off heap and thus avoid freeing up heap memory for application
@@ -898,29 +901,29 @@ consistency checks to be performed to keep them in sync with the backend persist
 state. Oak uses a MVCC model under which it maintains a consistent view of a given
 Node at a given revision. This allows using local cache instead of using a global
 clustered cache where changes made by any other cluster node need not be instantly
-reflected on all other nodes. 
+reflected on all other nodes.
 
-Each cluster node periodically performs [background reads](#bg-read) to pickup 
+Each cluster node periodically performs [background reads](#bg-read) to pickup
 changes done by other cluster nodes. At that time it performs [consistency check]
-[OAK-1156] to ensure that cached instance state reflect the state in the backend 
-persisted state. Performing the check would take some time would be proportional 
-number of entries present in the cache. 
-    
-For repository to work properly its important to ensure that such background reads 
-do not consume much time and [work is underway][OAK-2646] to improve current 
-approach. _To ensure that such background operation (which include the cache 
-invalidation checks) perform quickly one should not set a large size for 
+[OAK-1156] to ensure that cached instance state reflect the state in the backend
+persisted state. Performing the check would take some time would be proportional
+number of entries present in the cache.
+
+For repository to work properly its important to ensure that such background reads
+do not consume much time and [work is underway][OAK-2646] to improve current
+approach. _To ensure that such background operation (which include the cache
+invalidation checks) perform quickly one should not set a large size for
 these caches_.
 
 All other caches consist of immutable state and hence no cache invalidation needs
 to be performed for them. For that reason those caches can be backed by persistent
 cache and even having large number of entries in such caches would not be a matter
-of concern. 
+of concern.
 
 ### <a name="cache-configuration"></a> Cache Configuration
 
 In a default setup the [DocumentNodeStoreService][osgi-config]
-takes a single config for `cache` which is internally distributed among the 
+takes a single config for `cache` which is internally distributed among the
 various caches above in following way
 
 1. `nodeCache` - 35% (was 25% until 1.5.14)
@@ -930,30 +933,30 @@ various caches above in following way
 5. `documentCache` - Is given the rest i.e. 16%
 6. `docChildrenCache` - 0% (removed in 1.5.6, default was 3%)
 
-Lately [options are provided][OAK-2546] to have a fine grained control over the 
+Lately [options are provided][OAK-2546] to have a fine grained control over the
 distribution. See [Cache Allocation][cache-allocation]
 
 While distributing ensure that cache left for `documentCache` is not very large
-i.e. prefer to keep that ~500 MB max or lower. As a large `documentCache` can 
+i.e. prefer to keep that ~500 MB max or lower. As a large `documentCache` can
 lead to increase in the time taken to perform cache invalidation.
 
 Further make use of the persistent cache. This reduces pressure on GC by keeping
 instances off heap with slight decrease in performance compared to keeping them
 on heap.
 
-## <a name="unlockUpgrade"></a> Unlock upgrade 
+## <a name="unlockUpgrade"></a> Unlock upgrade
 
 On startup the DocumentNodeStore checks if its version is compatible with the
-format version currently in use. A read-only DocumentNodeStore can read the 
+format version currently in use. A read-only DocumentNodeStore can read the
 current version as well as older versions. A read-write DocumentNodeStore on the
-other hand can only write to the DocumentStore when the format version matches 
+other hand can only write to the DocumentStore when the format version matches
 its own version. The DocumentNodeStore maintains this format version in the
 `settings` collection accessible to all cluster nodes.
 
 Upgrading to a newer Oak version may therefore first require an update of the
 format version before a newer version of a DocumentNodeStore can be started on
 existing data. The oak-run tools contains an `unlockUpgrade` mode to perform
-this operation. Use the oak-run tool with the version matching the target 
+this operation. Use the oak-run tool with the version matching the target
 upgrade version to unlock an upgrade with the following command. The below
 example unlocks an upgrade to 1.8 with a DocumentNodeStore on MongoDB:
 
@@ -971,21 +974,26 @@ paths.
 
 Refer to [Secondary Store](document/secondary-store.html)
 
-## <a name="revision-gc"></a> Revision Garbage Collection 
+## <a name="revision-gc"></a> Revision Garbage Collection
 
 As described in the section [Node Content Model](#node-content-model), the
 DocumentNodeStore does not overwrite existing data but adds it to an existing
 document when a property is updated. Cleaning up old data, which is not needed
 anymore is done with a process called `Revision Garbage Collection`. Depending
 on deployment this process does not run automatically and must be triggered
-periodically by the application. The garbage collection process adds some 
-pressure on the system, so the application should trigger it when it is most 
+periodically by the application. The garbage collection process adds some
+pressure on the system, so the application should trigger it when it is most
 convenient. E.g. at night, when systems are usually not that busy. It is usually
 sufficient to run it once a day. There are several ways how the revision garbage
 collection can be triggered:
 
-* Call `startRevisionGC()` on the [RepositoryManagementMBean](http://jackrabbit.apache.org/oak/docs/apidocs/org/apache/jackrabbit/oak/api/jmx/RepositoryManagementMBean.html)
-* Call [gc()](http://jackrabbit.apache.org/oak/docs/apidocs/org/apache/jackrabbit/oak/plugins/document/VersionGarbageCollector.html#gc-long-java.util.concurrent.TimeUnit-) on the `VersionGarbageCollector` obtained from the `DocumentNodeStore` instance
+* Call `startRevisionGC()` on
+  the [RepositoryManagementMBean](http://jackrabbit.apache.org/oak/docs/apidocs/org/apache/jackrabbit/oak/api/jmx/RepositoryManagementMBean.html)
+*
+
+Call [gc()](http://jackrabbit.apache.org/oak/docs/apidocs/org/apache/jackrabbit/oak/plugins/document/VersionGarbageCollector.html#gc-long-java.util.concurrent.TimeUnit-)
+on the `VersionGarbageCollector` obtained from the `DocumentNodeStore` instance
+
 * Use the oak-run runnable jar file with the `revisions` run mode (`@since Oak 1.8`).
 
 The first two options are not described in more detail, because both of them
@@ -995,8 +1003,8 @@ parameters or options:
 
     revisions mongodb://host:port/database <sub-command> [options]
 
-(or, for RDBMK instances, use "jdbc:...").    
-    
+(or, for RDBMK instances, use "jdbc:...").
+
     where sub-command is one of
     
       info     give information about the revisions state without performing
@@ -1030,7 +1038,7 @@ running. Using the oak-run runnable jar, a revision GC on a system using the
 MongoDB backend can be initiated with:
 
     java -jar oak-run-1.8.0.jar revisions mongodb://localhost:27017/oak collect
-    
+
 This will collect changes identified as garbage, which is older than 24 hours.
 
 Starting with Oak 1.8 the DocumentNodeStoreService can trigger Revision Garbage
@@ -1040,15 +1048,20 @@ as in previous Oak versions. Whereas on MongoDB the RGC runs every five seconds.
 The latter is also known as `Continuous Revision Garbage Collection`. In this
 mode, the RGC will not log every run but only write an INFO message every hour
 summarizing the GC cycles for the past hour.
-For more details, see also the [OSGi configuration][osgi-config] page. 
+For more details, see also the [OSGi configuration][osgi-config] page.
 
 ## <a name="pending-topics"></a> Pending Topics
 
 ### <a name="conflict-detection-and-handling"></a> Conflict Detection and Handling
 
 [OAK-1156]: https://issues.apache.org/jira/browse/OAK-1156
+
 [OAK-2646]: https://issues.apache.org/jira/browse/OAK-2646
+
 [OAK-2546]: https://issues.apache.org/jira/browse/OAK-2546
+
 [OAK-7316]: https://issues.apache.org/jira/browse/OAK-7316
+
 [osgi-config]: ../osgi_config.html#document-node-store
+
 [cache-allocation]: ../osgi_config.html#cache-allocation

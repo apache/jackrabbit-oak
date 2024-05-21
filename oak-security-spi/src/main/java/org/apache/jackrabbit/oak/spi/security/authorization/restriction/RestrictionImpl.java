@@ -37,7 +37,8 @@ public class RestrictionImpl implements Restriction {
     }
 
     public RestrictionImpl(@NotNull PropertyState property, boolean isMandatory) {
-        this.definition = new RestrictionDefinitionImpl(property.getName(), property.getType(), isMandatory);
+        this.definition = new RestrictionDefinitionImpl(property.getName(), property.getType(),
+            isMandatory);
         this.property = property;
     }
 

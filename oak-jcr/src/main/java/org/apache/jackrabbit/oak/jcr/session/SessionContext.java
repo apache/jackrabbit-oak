@@ -26,7 +26,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import javax.jcr.PathNotFoundException;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
@@ -34,7 +33,6 @@ import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.ValueFactory;
 import javax.jcr.observation.ObservationManager;
 import javax.jcr.security.AccessControlManager;
-
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
@@ -76,10 +74,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Instances of this class are passed to all JCR implementation classes
- * (e.g. {@code SessionImpl}, {@code NodeImpl}, etc.) and provide access to
- * the session scoped instances generally needed (e.g. {@code NamePathMapper},
- * {@code ValueFactory}, etc.).
+ * Instances of this class are passed to all JCR implementation classes (e.g. {@code SessionImpl},
+ * {@code NodeImpl}, etc.) and provide access to the session scoped instances generally needed (e.g.
+ * {@code NamePathMapper}, {@code ValueFactory}, etc.).
  */
 public class SessionContext implements NamePathMapper {
 
@@ -109,31 +106,35 @@ public class SessionContext implements NamePathMapper {
     private ObservationManagerImpl observationManager;
     private BlobAccessProvider blobAccessProvider;
 
-    /** Paths (tokens) of all open scoped locks held by this session. */
+    /**
+     * Paths (tokens) of all open scoped locks held by this session.
+     */
     private final Set<String> openScopedLocks = newTreeSet();
 
-    /** Paths of all session scoped locks held by this session. */
+    /**
+     * Paths of all session scoped locks held by this session.
+     */
     private final Set<String> sessionScopedLocks = newHashSet();
-    
+
     private final SessionQuerySettings sessionQuerySettings;
 
     public SessionContext(
-             @NotNull Repository repository, @NotNull StatisticManager statisticManager,
-             @NotNull SecurityProvider securityProvider, @NotNull Whiteboard whiteboard,
-             @NotNull Map<String, Object> attributes, @NotNull final SessionDelegate delegate,
-             int observationQueueLength, CommitRateLimiter commitRateLimiter) {
-        
+        @NotNull Repository repository, @NotNull StatisticManager statisticManager,
+        @NotNull SecurityProvider securityProvider, @NotNull Whiteboard whiteboard,
+        @NotNull Map<String, Object> attributes, @NotNull final SessionDelegate delegate,
+        int observationQueueLength, CommitRateLimiter commitRateLimiter) {
+
         this(repository, statisticManager, securityProvider, whiteboard, attributes, delegate,
             observationQueueLength, commitRateLimiter, null, null, null);
     }
 
     public SessionContext(
-            @NotNull Repository repository, @NotNull StatisticManager statisticManager,
-            @NotNull SecurityProvider securityProvider, @NotNull Whiteboard whiteboard,
-            @NotNull Map<String, Object> attributes, @NotNull final SessionDelegate delegate,
-            int observationQueueLength, CommitRateLimiter commitRateLimiter,
-            MountInfoProvider mountInfoProvider, @Nullable BlobAccessProvider blobAccessProvider,
-            @Nullable SessionQuerySettings sessionQuerySettings) {
+        @NotNull Repository repository, @NotNull StatisticManager statisticManager,
+        @NotNull SecurityProvider securityProvider, @NotNull Whiteboard whiteboard,
+        @NotNull Map<String, Object> attributes, @NotNull final SessionDelegate delegate,
+        int observationQueueLength, CommitRateLimiter commitRateLimiter,
+        MountInfoProvider mountInfoProvider, @Nullable BlobAccessProvider blobAccessProvider,
+        @Nullable SessionQuerySettings sessionQuerySettings) {
         this.repository = checkNotNull(repository);
         this.statisticManager = statisticManager;
         this.securityProvider = checkNotNull(securityProvider);
@@ -143,14 +144,15 @@ public class SessionContext implements NamePathMapper {
         this.observationQueueLength = observationQueueLength;
         this.commitRateLimiter = commitRateLimiter;
         this.mountInfoProvider = mountInfoProvider;
-        this.blobAccessProvider = blobAccessProvider == null ? DEFAULT_BLOB_ACCESS_PROVIDER : blobAccessProvider;
+        this.blobAccessProvider =
+            blobAccessProvider == null ? DEFAULT_BLOB_ACCESS_PROVIDER : blobAccessProvider;
         SessionStats sessionStats = delegate.getSessionStats();
         sessionStats.setAttributes(attributes);
 
         this.namePathMapper = new NamePathMapperImpl(
-                delegate.getNamespaces(), delegate.getIdManager());
+            delegate.getNamespaces(), delegate.getIdManager());
         this.valueFactory = new ValueFactoryImpl(
-                delegate.getRoot(), namePathMapper, this.blobAccessProvider);
+            delegate.getRoot(), namePathMapper, this.blobAccessProvider);
         this.sessionQuerySettings = sessionQuerySettings;
     }
 
@@ -173,9 +175,9 @@ public class SessionContext implements NamePathMapper {
     }
 
     /**
-     * Factory method for creating the {@link javax.jcr.Session} instance for this
-     * context. Called by {@link #getSession()} when first accessed. Can be
-     * overridden by subclasses to customize the session implementation.
+     * Factory method for creating the {@link javax.jcr.Session} instance for this context. Called
+     * by {@link #getSession()} when first accessed. Can be overridden by subclasses to customize
+     * the session implementation.
      *
      * @return session instance
      */
@@ -184,9 +186,9 @@ public class SessionContext implements NamePathMapper {
     }
 
     /**
-     * Factory method for creating the {@link javax.jcr.Workspace} instance for this
-     * context. Called by {@link #getWorkspace()} when first accessed. Can be
-     * overridden by subclasses to customize the workspace implementation.
+     * Factory method for creating the {@link javax.jcr.Workspace} instance for this context. Called
+     * by {@link #getWorkspace()} when first accessed. Can be overridden by subclasses to customize
+     * the workspace implementation.
      *
      * @return session instance
      */
@@ -200,7 +202,7 @@ public class SessionContext implements NamePathMapper {
     }
 
     @NotNull
-    public MeterStats getMeter(Type type){
+    public MeterStats getMeter(Type type) {
         return statisticManager.getMeter(type);
     }
 
@@ -242,10 +244,10 @@ public class SessionContext implements NamePathMapper {
     public AccessControlManager getAccessControlManager() throws RepositoryException {
         if (accessControlManager == null) {
             AccessControlManager acm = getConfig(AuthorizationConfiguration.class)
-                    .getAccessControlManager(delegate.getRoot(), namePathMapper);
+                .getAccessControlManager(delegate.getRoot(), namePathMapper);
             if (acm instanceof JackrabbitAccessControlManager) {
                 accessControlManager = new JackrabbitAccessControlManagerDelegator(
-                        delegate, (JackrabbitAccessControlManager) acm);
+                    delegate, (JackrabbitAccessControlManager) acm);
             } else {
                 accessControlManager = new AccessControlManagerDelegator(delegate, acm);
             }
@@ -257,8 +259,8 @@ public class SessionContext implements NamePathMapper {
     public PrincipalManager getPrincipalManager() {
         if (principalManager == null) {
             principalManager = new PrincipalManagerDelegator(delegate,
-                    getConfig(PrincipalConfiguration.class)
-                            .getPrincipalManager(delegate.getRoot(), namePathMapper));
+                getConfig(PrincipalConfiguration.class)
+                    .getPrincipalManager(delegate.getRoot(), namePathMapper));
         }
         return principalManager;
     }
@@ -267,7 +269,7 @@ public class SessionContext implements NamePathMapper {
     public UserManager getUserManager() {
         if (userManager == null) {
             userManager = new UserManagerDelegator(delegate, getConfig(UserConfiguration.class)
-                    .getUserManager(delegate.getRoot(), namePathMapper));
+                .getUserManager(delegate.getRoot(), namePathMapper));
         }
         return userManager;
     }
@@ -276,8 +278,8 @@ public class SessionContext implements NamePathMapper {
     public PrivilegeManager getPrivilegeManager() {
         if (privilegeManager == null) {
             privilegeManager = new PrivilegeManagerDelegator(delegate,
-                    getConfig(PrivilegeConfiguration.class)
-                            .getPrivilegeManager(delegate.getRoot(), namePathMapper));
+                getConfig(PrivilegeConfiguration.class)
+                    .getPrivilegeManager(delegate.getRoot(), namePathMapper));
         }
         return privilegeManager;
     }
@@ -294,7 +296,8 @@ public class SessionContext implements NamePathMapper {
 
 
     @NotNull
-    public ObservationManager getObservationManager() throws UnsupportedRepositoryOperationException {
+    public ObservationManager getObservationManager()
+        throws UnsupportedRepositoryOperationException {
         if (observationManager == null) {
             observationManager = new ObservationManagerImpl(
                 this,
@@ -309,8 +312,8 @@ public class SessionContext implements NamePathMapper {
         return blobAccessProvider;
     }
 
-    public boolean hasEventListeners(){
-        if (observationManager != null){
+    public boolean hasEventListeners() {
+        if (observationManager != null) {
             return observationManager.getRegisteredEventListeners().hasNext();
         }
         return false;
@@ -323,9 +326,10 @@ public class SessionContext implements NamePathMapper {
     public Set<String> getSessionScopedLocks() {
         return sessionScopedLocks;
     }
-    
+
     public boolean getFastQueryResultSize() {
-        return this.sessionQuerySettings != null && this.sessionQuerySettings.useDirectResultCount();
+        return this.sessionQuerySettings != null
+            && this.sessionQuerySettings.useDirectResultCount();
     }
 
     @Nullable
@@ -429,8 +433,8 @@ public class SessionContext implements NamePathMapper {
     }
 
     /**
-     * Unlocks all existing session-scoped locks (if any). Used for cleanup
-     * when a session is being closed.
+     * Unlocks all existing session-scoped locks (if any). Used for cleanup when a session is being
+     * closed.
      *
      * @throws RepositoryException if an unexpected problem occurs
      */

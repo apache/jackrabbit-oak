@@ -26,7 +26,6 @@ import org.apache.jackrabbit.oak.plugins.version.VersionHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.version.VersionConstants;
 import org.junit.Test;
 
@@ -41,10 +40,10 @@ public class InitialContentTest implements VersionConstants {
         // pre-populated
         NodeState system = INITIAL_CONTENT.getChildNode(JCR_SYSTEM);
         assertTrue(system.exists());
-        
+
         NodeState vs = system.getChildNode(JCR_VERSIONSTORAGE);
         assertTrue(vs.exists());
-        
+
         assertTrue(vs.getChildNodeCount(Integer.MAX_VALUE) == 0);
     }
 
@@ -52,7 +51,7 @@ public class InitialContentTest implements VersionConstants {
     public void versionStoragePrePopulated() throws Exception {
         NodeBuilder root = EMPTY_NODE.builder();
         new InitialContent().withPrePopulatedVersionStore().initialize(root);
-        
+
         NodeBuilder system = root.getChildNode(JCR_SYSTEM);
         assertTrue(system.exists());
 

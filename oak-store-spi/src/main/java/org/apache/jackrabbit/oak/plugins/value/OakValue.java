@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.plugins.value;
 
 import javax.jcr.RepositoryException;
-
 import org.apache.jackrabbit.oak.api.Blob;
 
 /**
@@ -28,10 +27,10 @@ public interface OakValue {
     Blob getBlob() throws RepositoryException;
 
     /**
-     * Returns the Oak internal String representation of a value. Thus, similar
-     * to {@link javax.jcr.Value#getString()} but ignoring any JCR specific namespace
-     * mapping.
-     * @return  A String representation of the value of this property.
+     * Returns the Oak internal String representation of a value. Thus, similar to
+     * {@link javax.jcr.Value#getString()} but ignoring any JCR specific namespace mapping.
+     *
+     * @return A String representation of the value of this property.
      */
     String getOakString() throws RepositoryException;
 }

@@ -21,30 +21,29 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Extension point for validating and modifying content changes. Available
- * commit hooks are called in sequence to process incoming content changes
- * before they get persisted and shared with other clients.
+ * Extension point for validating and modifying content changes. Available commit hooks are called
+ * in sequence to process incoming content changes before they get persisted and shared with other
+ * clients.
  * <p>
- * A commit hook can throw a {@link CommitFailedException} for a particular
- * change to prevent it from being persisted, or it can modify the changes
- * for example to update an in-content index or to add auto-generated content.
+ * A commit hook can throw a {@link CommitFailedException} for a particular change to prevent it
+ * from being persisted, or it can modify the changes for example to update an in-content index or
+ * to add auto-generated content.
  * <p>
- * Note that instead of implementing this interface directly, most commit
- * editors and validators are better expressed as implementations of the
- * more specific extension interfaces defined in this package.
+ * Note that instead of implementing this interface directly, most commit editors and validators are
+ * better expressed as implementations of the more specific extension interfaces defined in this
+ * package.
  *
  * @see <a href="http://jackrabbit.apache.org/oak/docs/nodestate.html#The_commit_hook_mechanism"
- *         >The commit hook mechanism</a>
+ * >The commit hook mechanism</a>
  */
 public interface CommitHook {
 
     /**
-     * Validates and/or modifies the given content change before it gets
-     * persisted.
+     * Validates and/or modifies the given content change before it gets persisted.
      *
      * @param before content tree before the commit
-     * @param after content tree prepared for the commit
-     * @param info metadata associated with this commit
+     * @param after  content tree prepared for the commit
+     * @param info   metadata associated with this commit
      * @return content tree to be committed
      * @throws CommitFailedException if the commit should be rejected
      */

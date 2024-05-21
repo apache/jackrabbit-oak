@@ -19,10 +19,15 @@
 
 package org.apache.jackrabbit.oak.plugins.blob;
 
+import static org.junit.Assert.assertEquals;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.jackrabbit.api.stats.RepositoryStatistics;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
@@ -31,24 +36,19 @@ import org.apache.jackrabbit.oak.stats.StatsOptions;
 import org.junit.After;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 public class BlobStoreStatsTest {
+
     private ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
     private StatisticsProvider statsProvider = new DefaultStatisticsProvider(executor);
     private BlobStoreStats stats = new BlobStoreStats(statsProvider);
 
     @After
-    public void shutDown(){
+    public void shutDown() {
         new ExecutorCloser(executor).close();
     }
 
     @Test
-    public void upload() throws Exception{
+    public void upload() throws Exception {
         stats.uploaded(103, TimeUnit.SECONDS, 1079);
         assertEquals(103, stats.getUploadTotalSeconds());
         assertEquals(1079, stats.getUploadTotalSize());
@@ -66,7 +66,7 @@ public class BlobStoreStatsTest {
     }
 
     @Test
-    public void download() throws Exception{
+    public void download() throws Exception {
         stats.downloaded("foo", 103, TimeUnit.SECONDS, 1079);
         assertEquals(103, stats.getDownloadTotalSeconds());
         assertEquals(1079, stats.getDownloadTotalSize());

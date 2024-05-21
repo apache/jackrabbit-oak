@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
 import java.util.Map;
-
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.api.Root;
@@ -33,7 +32,10 @@ public class ValidatorNoProtectionTest extends ExternalIdentityValidatorTest {
     public void before() throws Exception {
         super.before();
 
-        ConfigurationParameters params = ConfigurationParameters.of(externalPrincipalConfiguration.getParameters(), ConfigurationParameters.of(ExternalIdentityConstants.PARAM_PROTECT_EXTERNAL_IDS, false));
+        ConfigurationParameters params = ConfigurationParameters.of(
+            externalPrincipalConfiguration.getParameters(),
+            ConfigurationParameters.of(ExternalIdentityConstants.PARAM_PROTECT_EXTERNAL_IDS,
+                false));
         externalPrincipalConfiguration.setParameters(params);
     }
 
@@ -42,7 +44,8 @@ public class ValidatorNoProtectionTest extends ExternalIdentityValidatorTest {
     public void testRepExternalIdMultiple() throws Exception {
         Root systemRoot = getSystemRoot();
         Tree userTree = systemRoot.getTree(testUserPath);
-        userTree.setProperty(ExternalIdentityConstants.REP_EXTERNAL_ID, ImmutableList.of("id", "id2"), Type.STRINGS);
+        userTree.setProperty(ExternalIdentityConstants.REP_EXTERNAL_ID,
+            ImmutableList.of("id", "id2"), Type.STRINGS);
         systemRoot.commit();
     }
 
@@ -53,9 +56,9 @@ public class ValidatorNoProtectionTest extends ExternalIdentityValidatorTest {
         Tree userTree = systemRoot.getTree(testUserPath);
 
         Map<Type, Object> valMap = ImmutableMap.of(
-                Type.BOOLEAN, Boolean.TRUE,
-                Type.LONG, 1234L,
-                Type.NAME, "id"
+            Type.BOOLEAN, Boolean.TRUE,
+            Type.LONG, 1234L,
+            Type.NAME, "id"
         );
         for (Type t : valMap.keySet()) {
             Object val = valMap.get(t);
@@ -78,7 +81,8 @@ public class ValidatorNoProtectionTest extends ExternalIdentityValidatorTest {
     @Override
     @Test
     public void testModifyRepExternalId() throws Exception {
-        root.getTree(externalUserPath).setProperty(ExternalIdentityConstants.REP_EXTERNAL_ID, "anotherValue");
+        root.getTree(externalUserPath)
+            .setProperty(ExternalIdentityConstants.REP_EXTERNAL_ID, "anotherValue");
         root.commit();
     }
 

@@ -23,7 +23,6 @@ import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.function.Supplier;
-
 import org.apache.commons.io.input.ClosedInputStream;
 import org.apache.jackrabbit.guava.common.io.ByteSource;
 
@@ -111,7 +110,7 @@ public class LazyInputStream extends FilterInputStream {
         }
     }
 
-    private void ensureOpenWithUnCheckedException(){
+    private void ensureOpenWithUnCheckedException() {
         try {
             ensureOpen();
         } catch (IOException e) {

@@ -19,19 +19,14 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import static javax.jcr.PropertyType.TYPENAME_STRING;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
-import static javax.jcr.PropertyType.TYPENAME_STRING;
+import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DECLARING_NODE_TYPES;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.EVALUATE_PATH_RESTRICTION;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.FACETS;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.INDEX_DATA_CHILD_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.INDEX_RULES;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.ORDERED_PROP_NAMES;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_FUNCTION;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.VERSION;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexStatistics.SYNTHETICALLY_FALLIABLE_FIELD;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.NT_TEST;
@@ -39,9 +34,14 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.child;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.registerTestNodeType;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.newLuceneIndexDefinition;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.newLucenePropertyIndexDefinition;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.EVALUATE_PATH_RESTRICTION;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.FACETS;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.INDEX_DATA_CHILD_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.INDEX_RULES;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.ORDERED_PROP_NAMES;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_FUNCTION;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
-import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.apache.jackrabbit.oak.spi.query.QueryConstants.REP_FACET;
 import static org.hamcrest.Matchers.lessThan;
 import static org.junit.Assert.assertEquals;
@@ -56,7 +56,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
@@ -80,16 +80,16 @@ import org.apache.jackrabbit.oak.query.ast.NodeTypeInfo;
 import org.apache.jackrabbit.oak.query.ast.NodeTypeInfoProvider;
 import org.apache.jackrabbit.oak.query.ast.Operator;
 import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
-import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextAnd;
-import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextContains;
-import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextExpression;
-import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextParser;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.OrderEntry;
+import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextAnd;
+import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextContains;
+import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextExpression;
+import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextParser;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.document.Document;
@@ -103,93 +103,110 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Test;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-
 public class IndexPlannerTest {
+
     private NodeState root = INITIAL_CONTENT;
 
     private NodeBuilder builder = root.builder();
 
     @After
-    public void cleanup(){
+    public void cleanup() {
         FulltextIndexPlanner.setUseActualEntryCount(true);
     }
 
     @Test
-    public void planForSortField() throws Exception{
+    public void planForSortField() throws Exception {
         NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
         defn.setProperty(createProperty(ORDERED_PROP_NAMES, of("foo"), STRINGS));
-        LuceneIndexNode node = createIndexNode(new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"));
-        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", createFilter("nt:base"),
+        LuceneIndexNode node = createIndexNode(
+            new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"));
+        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo",
+            createFilter("nt:base"),
             ImmutableList.of(new OrderEntry("foo", Type.LONG, OrderEntry.Order.ASCENDING)));
         assertNotNull(planner.getPlan());
         assertTrue(pr(planner.getPlan()).isUniquePathsRequired());
     }
 
     @Test
-    public void noPlanForSortOnlyByScore() throws Exception{
+    public void noPlanForSortOnlyByScore() throws Exception {
         NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
-        LuceneIndexNode node = createIndexNode(new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"));
-        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", createFilter("nt:file"),
+        LuceneIndexNode node = createIndexNode(
+            new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"));
+        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo",
+            createFilter("nt:file"),
             ImmutableList.of(new OrderEntry("jcr:score", Type.LONG, OrderEntry.Order.ASCENDING)));
         assertNull(planner.getPlan());
     }
 
     @Test
-    public void fullTextQueryNonFulltextIndex() throws Exception{
+    public void fullTextQueryNonFulltextIndex() throws Exception {
         NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
-        LuceneIndexNode node = createIndexNode(new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"));
+        LuceneIndexNode node = createIndexNode(
+            new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"));
         FilterImpl filter = createFilter("nt:base");
         filter.setFullTextConstraint(FullTextParser.parse(".", "mountain"));
-        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter,
+            Collections.<OrderEntry>emptyList());
         assertNull(planner.getPlan());
     }
 
     @Test
-    public void noApplicableRule() throws Exception{
+    public void noApplicableRule() throws Exception {
         NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
-        defn.setProperty(createProperty(IndexConstants.DECLARING_NODE_TYPES, of("nt:folder"), STRINGS));
-        LuceneIndexNode node = createIndexNode(new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"));
+        defn.setProperty(
+            createProperty(IndexConstants.DECLARING_NODE_TYPES, of("nt:folder"), STRINGS));
+        LuceneIndexNode node = createIndexNode(
+            new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"));
         FilterImpl filter = createFilter("nt:base");
         filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
-        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter,
+            Collections.<OrderEntry>emptyList());
         assertNull(planner.getPlan());
 
         filter = createFilter("nt:folder");
         filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
-        planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        planner = new FulltextIndexPlanner(node, "/foo", filter,
+            Collections.<OrderEntry>emptyList());
         assertNotNull(planner.getPlan());
     }
 
     @Test
-    public void nodeTypeInheritance() throws Exception{
+    public void nodeTypeInheritance() throws Exception {
         //Index if for nt:hierarchyNode and query is for nt:folder
         //as nt:folder extends nt:hierarchyNode we should get a plan
         NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
-        defn.setProperty(createProperty(IndexConstants.DECLARING_NODE_TYPES, of("nt:hierarchyNode"), STRINGS));
-        LuceneIndexNode node = createIndexNode(new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"));
+        defn.setProperty(
+            createProperty(IndexConstants.DECLARING_NODE_TYPES, of("nt:hierarchyNode"), STRINGS));
+        LuceneIndexNode node = createIndexNode(
+            new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"));
         FilterImpl filter = createFilter("nt:folder");
         filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
-        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter,
+            Collections.<OrderEntry>emptyList());
         assertNotNull(planner.getPlan());
     }
 
     @Test
-    public void noMatchingProperty() throws Exception{
+    public void noMatchingProperty() throws Exception {
         NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
-        LuceneIndexNode node = createIndexNode(new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"));
+        LuceneIndexNode node = createIndexNode(
+            new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"));
         FilterImpl filter = createFilter("nt:base");
         filter.restrictProperty("bar", Operator.EQUAL, PropertyValues.newString("bar"));
-        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter,
+            Collections.<OrderEntry>emptyList());
         assertNull(planner.getPlan());
     }
+
     @Test
-    public void matchingProperty() throws Exception{
+    public void matchingProperty() throws Exception {
         NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
-        LuceneIndexNode node = createIndexNode(new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"));
+        LuceneIndexNode node = createIndexNode(
+            new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"));
         FilterImpl filter = createFilter("nt:base");
         filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
-        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter,
+            Collections.<OrderEntry>emptyList());
         QueryIndex.IndexPlan plan = planner.getPlan();
         assertNotNull(plan);
         assertNotNull(pr(plan));
@@ -197,18 +214,20 @@ public class IndexPlannerTest {
     }
 
     @Test
-    public void purePropertyIndexAndPathRestriction() throws Exception{
+    public void purePropertyIndexAndPathRestriction() throws Exception {
         NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
         defn.setProperty(FulltextIndexConstants.EVALUATE_PATH_RESTRICTION, true);
-        LuceneIndexNode node = createIndexNode(new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"));
+        LuceneIndexNode node = createIndexNode(
+            new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"));
         FilterImpl filter = createFilter("nt:base");
         filter.restrictPath("/content", Filter.PathRestriction.ALL_CHILDREN);
-        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter,
+            Collections.<OrderEntry>emptyList());
         assertNull(planner.getPlan());
     }
 
     @Test
-    public void fulltextIndexAndPathRestriction() throws Exception{
+    public void fulltextIndexAndPathRestriction() throws Exception {
         NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
         defn.setProperty(FulltextIndexConstants.EVALUATE_PATH_RESTRICTION, true);
 
@@ -216,10 +235,12 @@ public class IndexPlannerTest {
         NodeBuilder foob = getNode(defn, "indexRules/nt:base/properties/foo");
         foob.setProperty(FulltextIndexConstants.PROP_NODE_SCOPE_INDEX, true);
 
-        LuceneIndexNode node = createIndexNode(new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"));
+        LuceneIndexNode node = createIndexNode(
+            new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"));
         FilterImpl filter = createFilter("nt:base");
         filter.restrictPath("/content", Filter.PathRestriction.ALL_CHILDREN);
-        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter,
+            Collections.<OrderEntry>emptyList());
 
         //For case when a full text property is present then path restriction can be
         //evaluated
@@ -227,7 +248,7 @@ public class IndexPlannerTest {
     }
 
     @Test
-    public void fulltextIndexAndNodeTypeRestriction() throws Exception{
+    public void fulltextIndexAndNodeTypeRestriction() throws Exception {
         NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
         defn.setProperty(FulltextIndexConstants.EVALUATE_PATH_RESTRICTION, true);
         defn.setProperty(IndexConstants.DECLARING_NODE_TYPES, of("nt:file"), NAMES);
@@ -236,9 +257,11 @@ public class IndexPlannerTest {
         NodeBuilder foob = getNode(defn, "indexRules/nt:file/properties/foo");
         foob.setProperty(FulltextIndexConstants.PROP_NODE_SCOPE_INDEX, true);
 
-        LuceneIndexNode node = createIndexNode(new LuceneIndexDefinition(root, defn.getNodeState(),"/foo"));
+        LuceneIndexNode node = createIndexNode(
+            new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"));
         FilterImpl filter = createFilter("nt:file");
-        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter,
+            Collections.<OrderEntry>emptyList());
 
         //For case when a full text property is present then path restriction can be
         //evaluated
@@ -246,7 +269,7 @@ public class IndexPlannerTest {
     }
 
     @Test
-    public void pureNodeTypeWithEvaluatePathRestrictionEnabled() throws Exception{
+    public void pureNodeTypeWithEvaluatePathRestrictionEnabled() throws Exception {
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
         NodeBuilder defn = newLuceneIndexDefinition(index, "lucene",
             of(TYPENAME_STRING));
@@ -256,8 +279,10 @@ public class IndexPlannerTest {
         FilterImpl filter = createFilter("nt:file");
         filter.restrictPath("/", Filter.PathRestriction.ALL_CHILDREN);
 
-        LuceneIndexNode node = createIndexNode(new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"));
-        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        LuceneIndexNode node = createIndexNode(
+            new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"));
+        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter,
+            Collections.<OrderEntry>emptyList());
 
         // /jcr:root//element(*, nt:file)
         //For queries like above Fulltext index should not return a plan
@@ -265,20 +290,22 @@ public class IndexPlannerTest {
     }
 
     @Test
-    public void purePropertyIndexAndNodeTypeRestriction() throws Exception{
+    public void purePropertyIndexAndNodeTypeRestriction() throws Exception {
         NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
         defn.setProperty(FulltextIndexConstants.EVALUATE_PATH_RESTRICTION, true);
         defn.setProperty(IndexConstants.DECLARING_NODE_TYPES, of("nt:file"), NAMES);
 
-        LuceneIndexNode node = createIndexNode(new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"));
+        LuceneIndexNode node = createIndexNode(
+            new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"));
         FilterImpl filter = createFilter("nt:file");
-        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter,
+            Collections.<OrderEntry>emptyList());
 
         assertNull(planner.getPlan());
     }
 
     @Test
-    public void purePropertyIndexAndNodeTypeRestriction2() throws Exception{
+    public void purePropertyIndexAndNodeTypeRestriction2() throws Exception {
         NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
         defn.setProperty(FulltextIndexConstants.EVALUATE_PATH_RESTRICTION, true);
 
@@ -286,16 +313,18 @@ public class IndexPlannerTest {
         NodeBuilder foob = getNode(defn, "indexRules/nt:base/properties/foo");
         foob.setProperty(FulltextIndexConstants.PROP_NODE_SCOPE_INDEX, true);
 
-        LuceneIndexNode node = createIndexNode(new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"));
+        LuceneIndexNode node = createIndexNode(
+            new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"));
         FilterImpl filter = createFilter("nt:file");
-        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter,
+            Collections.<OrderEntry>emptyList());
 
         //No plan should be result for a index with just a rule for nt:base
         assertNull(planner.getPlan());
     }
 
     @Test
-    public void purePropertyIndexAndNodeTypeRestriction3() throws Exception{
+    public void purePropertyIndexAndNodeTypeRestriction3() throws Exception {
         NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
         defn.setProperty(FulltextIndexConstants.EVALUATE_PATH_RESTRICTION, true);
         defn.setProperty(IndexConstants.DECLARING_NODE_TYPES, of("nt:file"), NAMES);
@@ -304,9 +333,11 @@ public class IndexPlannerTest {
         NodeBuilder foob = getNode(defn, "indexRules/nt:file/properties/foo");
         foob.setProperty(FulltextIndexConstants.PROP_NODE_SCOPE_INDEX, true);
 
-        LuceneIndexNode node = createIndexNode(new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"));
+        LuceneIndexNode node = createIndexNode(
+            new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"));
         FilterImpl filter = createFilter("nt:file");
-        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter,
+            Collections.<OrderEntry>emptyList());
 
         QueryIndex.IndexPlan plan = planner.getPlan();
         assertNotNull(plan);
@@ -315,7 +346,7 @@ public class IndexPlannerTest {
     }
 
     @Test
-    public void worksWithIndexFormatV2Onwards() throws Exception{
+    public void worksWithIndexFormatV2Onwards() throws Exception {
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
         NodeBuilder nb = newLuceneIndexDefinition(index, "lucene",
             of(TYPENAME_STRING));
@@ -323,24 +354,28 @@ public class IndexPlannerTest {
         //as a fresh indexing case
         nb.child(INDEX_DATA_CHILD_NAME);
 
-        LuceneIndexNode node = createIndexNode(new LuceneIndexDefinition(root, nb.getNodeState(), "/foo"));
+        LuceneIndexNode node = createIndexNode(
+            new LuceneIndexDefinition(root, nb.getNodeState(), "/foo"));
         FilterImpl filter = createFilter("nt:base");
         filter.setFullTextConstraint(FullTextParser.parse(".", "mountain"));
-        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter,
+            Collections.<OrderEntry>emptyList());
         assertNull(planner.getPlan());
     }
 
     @Test
-    public void propertyIndexCost() throws Exception{
+    public void propertyIndexCost() throws Exception {
         NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
         long numofDocs = IndexDefinition.DEFAULT_ENTRY_COUNT + 1000;
 
         FulltextIndexPlanner.setUseActualEntryCount(false);
-        LuceneIndexDefinition idxDefn = new LuceneIndexDefinition(root, defn.getNodeState(), "/foo");
+        LuceneIndexDefinition idxDefn = new LuceneIndexDefinition(root, defn.getNodeState(),
+            "/foo");
         LuceneIndexNode node = createIndexNode(idxDefn, numofDocs);
         FilterImpl filter = createFilter("nt:base");
         filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
-        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter,
+            Collections.<OrderEntry>emptyList());
         QueryIndex.IndexPlan plan = planner.getPlan();
 
         //For propertyIndex if entry count (default to IndexDefinition.DEFAULT_ENTRY_COUNT) is
@@ -351,16 +386,18 @@ public class IndexPlannerTest {
     }
 
     @Test
-    public void propertyIndexCost2() throws Exception{
+    public void propertyIndexCost2() throws Exception {
         NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
         defn.setProperty(FulltextIndexConstants.COST_PER_ENTRY, 2.0);
         defn.setProperty(FulltextIndexConstants.COST_PER_EXECUTION, 3.0);
 
         long numofDocs = IndexDefinition.DEFAULT_ENTRY_COUNT - 100;
-        LuceneIndexNode node = createIndexNode(new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"), numofDocs);
+        LuceneIndexNode node = createIndexNode(
+            new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"), numofDocs);
         FilterImpl filter = createFilter("nt:base");
         filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
-        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter,
+            Collections.<OrderEntry>emptyList());
         QueryIndex.IndexPlan plan = planner.getPlan();
 
         assertEquals(documentsPerValue(numofDocs), plan.getEstimatedEntryCount());
@@ -370,49 +407,55 @@ public class IndexPlannerTest {
     }
 
     @Test
-    public void propertyIndexCostActualOverriddenByEntryCount() throws Exception{
+    public void propertyIndexCostActualOverriddenByEntryCount() throws Exception {
         NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
         long entryCount = IndexDefinition.DEFAULT_ENTRY_COUNT - 100;
         defn.setProperty(IndexConstants.ENTRY_COUNT_PROPERTY_NAME, entryCount);
 
         long numofDocs = IndexDefinition.DEFAULT_ENTRY_COUNT + 100;
 
-        LuceneIndexNode node = createIndexNode(new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"), numofDocs);
+        LuceneIndexNode node = createIndexNode(
+            new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"), numofDocs);
         FilterImpl filter = createFilter("nt:base");
         filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
-        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter,
+            Collections.<OrderEntry>emptyList());
         QueryIndex.IndexPlan plan = planner.getPlan();
 
         assertEquals(entryCount, plan.getEstimatedEntryCount());
     }
 
     @Test
-    public void propertyIndexCostActualByDefault() throws Exception{
+    public void propertyIndexCostActualByDefault() throws Exception {
         NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
 
         long numofDocs = IndexDefinition.DEFAULT_ENTRY_COUNT + 100;
 
-        LuceneIndexNode node = createIndexNode(new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"), numofDocs);
+        LuceneIndexNode node = createIndexNode(
+            new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"), numofDocs);
         FilterImpl filter = createFilter("nt:base");
         filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
-        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter,
+            Collections.<OrderEntry>emptyList());
         QueryIndex.IndexPlan plan = planner.getPlan();
 
         assertEquals(documentsPerValue(numofDocs), plan.getEstimatedEntryCount());
     }
 
     @Test
-    public void fulltextIndexCost() throws Exception{
+    public void fulltextIndexCost() throws Exception {
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
         NodeBuilder defn = newLuceneIndexDefinition(index, "lucene",
             of(TYPENAME_STRING));
         TestUtil.useV2(defn);
 
         long numofDocs = IndexDefinition.DEFAULT_ENTRY_COUNT + 1000;
-        LuceneIndexNode node = createIndexNode(new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"), numofDocs);
+        LuceneIndexNode node = createIndexNode(
+            new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"), numofDocs);
         FilterImpl filter = createFilter("nt:base");
         filter.setFullTextConstraint(FullTextParser.parse(".", "mountain"));
-        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter,
+            Collections.<OrderEntry>emptyList());
 
         QueryIndex.IndexPlan plan = planner.getPlan();
         assertNotNull(plan);
@@ -420,34 +463,38 @@ public class IndexPlannerTest {
     }
 
     @Test
-    public void nullPropertyCheck() throws Exception{
+    public void nullPropertyCheck() throws Exception {
         NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
 
-        LuceneIndexNode node = createIndexNode(new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"));
+        LuceneIndexNode node = createIndexNode(
+            new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"));
         FilterImpl filter = createFilter("nt:base");
         filter.restrictProperty("foo", Operator.EQUAL, null);
-        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter,
+            Collections.<OrderEntry>emptyList());
         QueryIndex.IndexPlan plan = planner.getPlan();
         assertNull("For null checks no plan should be returned", plan);
     }
 
     @Test
-    public void nullPropertyCheck2() throws Exception{
+    public void nullPropertyCheck2() throws Exception {
         root = registerTestNodeType(builder).getNodeState();
         NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
         NodeBuilder rules = defn.child(INDEX_RULES);
         TestUtil.child(rules, "oak:TestNode/properties/prop2")
-            .setProperty(FulltextIndexConstants.PROP_NAME, "foo")
-            .setProperty(FulltextIndexConstants.PROP_NULL_CHECK_ENABLED, true)
-            .setProperty(FulltextIndexConstants.PROP_PROPERTY_INDEX, true);
+                .setProperty(FulltextIndexConstants.PROP_NAME, "foo")
+                .setProperty(FulltextIndexConstants.PROP_NULL_CHECK_ENABLED, true)
+                .setProperty(FulltextIndexConstants.PROP_PROPERTY_INDEX, true);
 
-        LuceneIndexDefinition idxDefn = new LuceneIndexDefinition(root, builder.getNodeState().getChildNode("test"), "/foo");
+        LuceneIndexDefinition idxDefn = new LuceneIndexDefinition(root,
+            builder.getNodeState().getChildNode("test"), "/foo");
         LuceneIndexNode node = createIndexNode(idxDefn);
 
         FilterImpl filter = createFilter(NT_TEST);
         filter.restrictProperty("foo", Operator.EQUAL, null);
 
-        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter,
+            Collections.<OrderEntry>emptyList());
         QueryIndex.IndexPlan plan = planner.getPlan();
         assertNotNull("For null checks plan should be returned with nullCheckEnabled", plan);
         FulltextIndexPlanner.PlanResult pr =
@@ -456,45 +503,52 @@ public class IndexPlannerTest {
     }
 
     @Test
-    public void noPathRestHasQueryPath() throws Exception{
+    public void noPathRestHasQueryPath() throws Exception {
         NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
         defn.setProperty(createProperty(IndexConstants.QUERY_PATHS, of("/test/a"), Type.STRINGS));
-        LuceneIndexNode node = createIndexNode(new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"));
+        LuceneIndexNode node = createIndexNode(
+            new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"));
 
         FilterImpl filter = createFilter("nt:base");
         filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
         filter.restrictPath("/test2", Filter.PathRestriction.ALL_CHILDREN);
-        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter,
+            Collections.<OrderEntry>emptyList());
         assertNull(planner.getPlan());
     }
 
     @Test
-    public void hasPathRestHasMatchingQueryPaths() throws Exception{
+    public void hasPathRestHasMatchingQueryPaths() throws Exception {
         NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
-        defn.setProperty(createProperty(IndexConstants.QUERY_PATHS, of("/test/a", "/test/b"), Type.STRINGS));
-        LuceneIndexNode node = createIndexNode(new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"));
+        defn.setProperty(
+            createProperty(IndexConstants.QUERY_PATHS, of("/test/a", "/test/b"), Type.STRINGS));
+        LuceneIndexNode node = createIndexNode(
+            new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"));
 
         FilterImpl filter = createFilter("nt:base");
         filter.restrictPath("/test/a", Filter.PathRestriction.ALL_CHILDREN);
         filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
-        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter,
+            Collections.<OrderEntry>emptyList());
         assertNotNull(planner.getPlan());
     }
 
     @Test
-    public void hasPathRestHasNoExplicitQueryPaths() throws Exception{
+    public void hasPathRestHasNoExplicitQueryPaths() throws Exception {
         NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
-        LuceneIndexNode node = createIndexNode(new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"));
+        LuceneIndexNode node = createIndexNode(
+            new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"));
 
         FilterImpl filter = createFilter("nt:base");
         filter.restrictPath("/test2", Filter.PathRestriction.ALL_CHILDREN);
         filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
-        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter,
+            Collections.<OrderEntry>emptyList());
         assertNotNull(planner.getPlan());
     }
 
     @Test
-    public void noPlanForFulltextQueryAndOnlyAnalyzedProperties() throws Exception{
+    public void noPlanForFulltextQueryAndOnlyAnalyzedProperties() throws Exception {
         NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
         defn.setProperty(FulltextIndexConstants.EVALUATE_PATH_RESTRICTION, true);
 
@@ -502,17 +556,19 @@ public class IndexPlannerTest {
         NodeBuilder foob = getNode(defn, "indexRules/nt:base/properties/foo");
         foob.setProperty(FulltextIndexConstants.PROP_ANALYZED, true);
 
-        LuceneIndexNode node = createIndexNode(new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"));
+        LuceneIndexNode node = createIndexNode(
+            new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"));
         FilterImpl filter = createFilter("nt:base");
         filter.setFullTextConstraint(FullTextParser.parse(".", "mountain"));
-        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter,
+            Collections.<OrderEntry>emptyList());
 
         QueryIndex.IndexPlan plan = planner.getPlan();
         assertNull(plan);
     }
 
     @Test
-    public void noPlanForNodeTypeQueryAndOnlyAnalyzedProperties() throws Exception{
+    public void noPlanForNodeTypeQueryAndOnlyAnalyzedProperties() throws Exception {
         NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
         defn.setProperty(FulltextIndexConstants.EVALUATE_PATH_RESTRICTION, true);
         defn.setProperty(IndexConstants.DECLARING_NODE_TYPES, of("nt:file"), NAMES);
@@ -521,17 +577,19 @@ public class IndexPlannerTest {
         NodeBuilder foob = getNode(defn, "indexRules/nt:file/properties/foo");
         foob.setProperty(FulltextIndexConstants.PROP_ANALYZED, true);
 
-        LuceneIndexNode node = createIndexNode(new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"));
+        LuceneIndexNode node = createIndexNode(
+            new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"));
         FilterImpl filter = createFilter("nt:file");
         filter.restrictPath("/foo", Filter.PathRestriction.ALL_CHILDREN);
-        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter,
+            Collections.<OrderEntry>emptyList());
 
         QueryIndex.IndexPlan plan = planner.getPlan();
         assertNull(plan);
     }
 
     @Test
-    public void indexedButZeroWeightProps() throws Exception{
+    public void indexedButZeroWeightProps() throws Exception {
         LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
         defnb.indexRule("nt:base").property("foo").propertyIndex();
         defnb.indexRule("nt:base").property("bar").propertyIndex().weight(0);
@@ -541,23 +599,25 @@ public class IndexPlannerTest {
 
         FilterImpl filter = createFilter("nt:base");
         filter.restrictProperty("bar", Operator.EQUAL, PropertyValues.newString("a"));
-        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter,
+            Collections.<OrderEntry>emptyList());
         //Even though foo is indexed it would not be considered for a query involving just foo
         assertNull(planner.getPlan());
 
         filter = createFilter("nt:base");
         filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("a"));
-        planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        planner = new FulltextIndexPlanner(node, "/foo", filter,
+            Collections.<OrderEntry>emptyList());
         QueryIndex.IndexPlan plan1 = planner.getPlan();
         assertNotNull(plan1);
 
         filter = createFilter("nt:base");
         filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("a"));
         filter.restrictProperty("bar", Operator.EQUAL, PropertyValues.newString("a"));
-        planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        planner = new FulltextIndexPlanner(node, "/foo", filter,
+            Collections.<OrderEntry>emptyList());
         QueryIndex.IndexPlan plan2 = planner.getPlan();
         assertNotNull(plan2);
-
 
         // Since, the index has no entries for "bar", estimated entry count for plan2 would be 0
         assertEquals(0, plan2.getEstimatedEntryCount());
@@ -578,8 +638,10 @@ public class IndexPlannerTest {
         boolean enableSpellcheckIndex = false;
         boolean queryForSugggestion = true;
 
-        LuceneIndexNode node = createSuggestionOrSpellcheckIndex(indexNodeType, enableSuggestionIndex, enableSpellcheckIndex);
-        QueryIndex.IndexPlan plan = getSuggestOrSpellcheckIndexPlan(node, queryNodeType, queryForSugggestion);
+        LuceneIndexNode node = createSuggestionOrSpellcheckIndex(indexNodeType,
+            enableSuggestionIndex, enableSpellcheckIndex);
+        QueryIndex.IndexPlan plan = getSuggestOrSpellcheckIndexPlan(node, queryNodeType,
+            queryForSugggestion);
 
         assertNull(plan);
     }
@@ -593,8 +655,10 @@ public class IndexPlannerTest {
         boolean enableSpellcheckIndex = false;
         boolean queryForSugggestion = false;
 
-        LuceneIndexNode node = createSuggestionOrSpellcheckIndex(indexNodeType, enableSuggestionIndex, enableSpellcheckIndex);
-        QueryIndex.IndexPlan plan = getSuggestOrSpellcheckIndexPlan(node, queryNodeType, queryForSugggestion);
+        LuceneIndexNode node = createSuggestionOrSpellcheckIndex(indexNodeType,
+            enableSuggestionIndex, enableSpellcheckIndex);
+        QueryIndex.IndexPlan plan = getSuggestOrSpellcheckIndexPlan(node, queryNodeType,
+            queryForSugggestion);
 
         assertNull(plan);
     }
@@ -608,8 +672,10 @@ public class IndexPlannerTest {
         boolean enableSpellcheckIndex = false;
         boolean queryForSugggestion = true;
 
-        LuceneIndexNode node = createSuggestionOrSpellcheckIndex(indexNodeType, enableSuggestionIndex, enableSpellcheckIndex);
-        QueryIndex.IndexPlan plan = getSuggestOrSpellcheckIndexPlan(node, queryNodeType, queryForSugggestion);
+        LuceneIndexNode node = createSuggestionOrSpellcheckIndex(indexNodeType,
+            enableSuggestionIndex, enableSpellcheckIndex);
+        QueryIndex.IndexPlan plan = getSuggestOrSpellcheckIndexPlan(node, queryNodeType,
+            queryForSugggestion);
 
         assertNotNull(plan);
         assertFalse(pr(plan).isUniquePathsRequired());
@@ -624,8 +690,10 @@ public class IndexPlannerTest {
         boolean enableSpellcheckIndex = true;
         boolean queryForSugggestion = false;
 
-        LuceneIndexNode node = createSuggestionOrSpellcheckIndex(indexNodeType, enableSuggestionIndex, enableSpellcheckIndex);
-        QueryIndex.IndexPlan plan = getSuggestOrSpellcheckIndexPlan(node, queryNodeType, queryForSugggestion);
+        LuceneIndexNode node = createSuggestionOrSpellcheckIndex(indexNodeType,
+            enableSuggestionIndex, enableSpellcheckIndex);
+        QueryIndex.IndexPlan plan = getSuggestOrSpellcheckIndexPlan(node, queryNodeType,
+            queryForSugggestion);
 
         assertNotNull(plan);
         assertFalse(pr(plan).isUniquePathsRequired());
@@ -640,8 +708,10 @@ public class IndexPlannerTest {
         boolean enableSpellcheckIndex = false;
         boolean queryForSugggestion = true;
 
-        LuceneIndexNode node = createSuggestionOrSpellcheckIndex(indexNodeType, enableSuggestionIndex, enableSpellcheckIndex);
-        QueryIndex.IndexPlan plan = getSuggestOrSpellcheckIndexPlan(node, queryNodeType, queryForSugggestion);
+        LuceneIndexNode node = createSuggestionOrSpellcheckIndex(indexNodeType,
+            enableSuggestionIndex, enableSpellcheckIndex);
+        QueryIndex.IndexPlan plan = getSuggestOrSpellcheckIndexPlan(node, queryNodeType,
+            queryForSugggestion);
 
         assertNull(plan);
     }
@@ -655,29 +725,33 @@ public class IndexPlannerTest {
         boolean enableSpellcheckIndex = true;
         boolean queryForSugggestion = false;
 
-        LuceneIndexNode node = createSuggestionOrSpellcheckIndex(indexNodeType, enableSuggestionIndex, enableSpellcheckIndex);
-        QueryIndex.IndexPlan plan = getSuggestOrSpellcheckIndexPlan(node, queryNodeType, queryForSugggestion);
+        LuceneIndexNode node = createSuggestionOrSpellcheckIndex(indexNodeType,
+            enableSuggestionIndex, enableSpellcheckIndex);
+        QueryIndex.IndexPlan plan = getSuggestOrSpellcheckIndexPlan(node, queryNodeType,
+            queryForSugggestion);
 
         assertNull(plan);
     }
 
     @Test
-    public void fullTextQuery_RelativePath1() throws Exception{
+    public void fullTextQuery_RelativePath1() throws Exception {
         NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
 
         defn = LuceneIndexDefinition.updateDefinition(defn.getNodeState().builder());
         NodeBuilder foob = getNode(defn, "indexRules/nt:base/properties/foo");
         foob.setProperty(FulltextIndexConstants.PROP_ANALYZED, true);
 
-        FulltextIndexPlanner planner = createPlannerForFulltext(defn.getNodeState(), FullTextParser.parse("bar", "mountain"));
+        FulltextIndexPlanner planner = createPlannerForFulltext(defn.getNodeState(),
+            FullTextParser.parse("bar", "mountain"));
 
         //No plan for unindex property
         assertNull(planner.getPlan());
     }
 
     @Test
-    public void fullTextQuery_IndexAllProps() throws Exception{
-        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("allProps"), "async");
+    public void fullTextQuery_IndexAllProps() throws Exception {
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("allProps"),
+            "async");
 
         //Index all props and then perform fulltext
         defn = LuceneIndexDefinition.updateDefinition(defn.getNodeState().builder());
@@ -695,8 +769,9 @@ public class IndexPlannerTest {
     }
 
     @Test
-    public void fullTextQuery_IndexAllProps_NodePathQuery() throws Exception{
-        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("allProps"), "async");
+    public void fullTextQuery_IndexAllProps_NodePathQuery() throws Exception {
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("allProps"),
+            "async");
 
         //Index all props and then perform fulltext
         defn = LuceneIndexDefinition.updateDefinition(defn.getNodeState().builder());
@@ -716,12 +791,14 @@ public class IndexPlannerTest {
     }
 
     @Test
-    public void fullTextQuery_IndexAllProps_AggregatedNodePathQuery() throws Exception{
-        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("allProps"), "async");
+    public void fullTextQuery_IndexAllProps_AggregatedNodePathQuery() throws Exception {
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("allProps"),
+            "async");
 
         //Index all props and then perform fulltext
         defn = LuceneIndexDefinition.updateDefinition(defn.getNodeState().builder());
-        NodeBuilder agg = defn.child(FulltextIndexConstants.AGGREGATES).child("nt:base").child("include0");
+        NodeBuilder agg = defn.child(FulltextIndexConstants.AGGREGATES).child("nt:base")
+                              .child("include0");
         agg.setProperty(FulltextIndexConstants.AGG_PATH, "jcr:content");
         agg.setProperty(FulltextIndexConstants.AGG_RELATIVE_NODE, true);
 
@@ -735,7 +812,7 @@ public class IndexPlannerTest {
     }
 
     @Test
-    public void fullTextQuery_IndexAllProps_NodePathQuery_NoPlan() throws Exception{
+    public void fullTextQuery_IndexAllProps_NodePathQuery_NoPlan() throws Exception {
         NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
 
         //Index all props and then perform fulltext
@@ -754,8 +831,9 @@ public class IndexPlannerTest {
     }
 
     @Test
-    public void fullTextQuery_NonAnalyzedProp_NoPlan() throws Exception{
-        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo", "bar"), "async");
+    public void fullTextQuery_NonAnalyzedProp_NoPlan() throws Exception {
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo", "bar"),
+            "async");
 
         //Index all props and then perform fulltext
         defn = LuceneIndexDefinition.updateDefinition(defn.getNodeState().builder());
@@ -776,8 +854,9 @@ public class IndexPlannerTest {
     }
 
     @Test
-    public void fullTextQuery_RelativePropertyPaths() throws Exception{
-        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo", "bar"), "async");
+    public void fullTextQuery_RelativePropertyPaths() throws Exception {
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo", "bar"),
+            "async");
 
         //Index all props and then perform fulltext
         defn = LuceneIndexDefinition.updateDefinition(defn.getNodeState().builder());
@@ -789,7 +868,6 @@ public class IndexPlannerTest {
         barb.setProperty(FulltextIndexConstants.PROP_NAME, "bar");
         barb.setProperty(FulltextIndexConstants.PROP_ANALYZED, true);
 
-
         //where contains('jcr:content/bar', 'mountain OR valley') and contains('jcr:content/foo', 'mountain OR valley')
         //above query can be evaluated by index which indexes foo and bar with restriction that both belong to same node
         //by displacing the query path to evaluate on contains('bar', ...) and filter out those parents which do not
@@ -797,15 +875,16 @@ public class IndexPlannerTest {
         FullTextExpression fooExp = FullTextParser.parse("jcr:content/bar", "mountain OR valley");
         FullTextExpression barExp = FullTextParser.parse("jcr:content/foo", "mountain OR valley");
         FullTextExpression exp = new FullTextAnd(Arrays.asList(fooExp, barExp));
-        FulltextIndexPlanner planner = createPlannerForFulltext(defn.getNodeState(),exp);
+        FulltextIndexPlanner planner = createPlannerForFulltext(defn.getNodeState(), exp);
 
         //No plan for unindex property
         assertNotNull(planner.getPlan());
     }
 
     @Test
-    public void fullTextQuery_DisjointPropertyPaths() throws Exception{
-        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo", "bar"), "async");
+    public void fullTextQuery_DisjointPropertyPaths() throws Exception {
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo", "bar"),
+            "async");
 
         //Index all props and then perform fulltext
         defn = LuceneIndexDefinition.updateDefinition(defn.getNodeState().builder());
@@ -820,19 +899,19 @@ public class IndexPlannerTest {
         FullTextExpression fooExp = FullTextParser.parse("metadata/bar", "mountain OR valley");
         FullTextExpression barExp = FullTextParser.parse("jcr:content/foo", "mountain OR valley");
         FullTextExpression exp = new FullTextAnd(Arrays.asList(fooExp, barExp));
-        FulltextIndexPlanner planner = createPlannerForFulltext(defn.getNodeState(),exp);
+        FulltextIndexPlanner planner = createPlannerForFulltext(defn.getNodeState(), exp);
 
         //No plan for unindex property
         assertNull(planner.getPlan());
     }
 
     @Test
-    public void valuePattern_Equals() throws Exception{
+    public void valuePattern_Equals() throws Exception {
         LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
         defnb.indexRule("nt:base")
-            .property("foo")
-            .propertyIndex()
-            .valueExcludedPrefixes("/jobs");
+             .property("foo")
+             .propertyIndex()
+             .valueExcludedPrefixes("/jobs");
 
         LuceneIndexDefinition defn = new LuceneIndexDefinition(root, defnb.build(), "/foo");
         LuceneIndexNode node = createIndexNode(defn);
@@ -840,22 +919,24 @@ public class IndexPlannerTest {
         FilterImpl filter = createFilter("nt:base");
         filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("/bar"));
 
-        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter,
+            Collections.<OrderEntry>emptyList());
         assertNotNull(planner.getPlan());
 
         filter = createFilter("nt:base");
         filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("/jobs/a"));
-        planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        planner = new FulltextIndexPlanner(node, "/foo", filter,
+            Collections.<OrderEntry>emptyList());
         assertNull(planner.getPlan());
     }
 
     @Test
-    public void valuePattern_StartsWith() throws Exception{
+    public void valuePattern_StartsWith() throws Exception {
         LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
         defnb.indexRule("nt:base")
-            .property("foo")
-            .propertyIndex()
-            .valueExcludedPrefixes("/jobs");
+             .property("foo")
+             .propertyIndex()
+             .valueExcludedPrefixes("/jobs");
 
         LuceneIndexDefinition defn = new LuceneIndexDefinition(root, defnb.build(), "/foo");
         LuceneIndexNode node = createIndexNode(defn);
@@ -864,19 +945,22 @@ public class IndexPlannerTest {
         filter.restrictProperty("foo", Operator.GREATER_OR_EQUAL, PropertyValues.newString("/bar"));
         filter.restrictProperty("foo", Operator.LESS_OR_EQUAL, PropertyValues.newString("/bar0"));
 
-        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter,
+            Collections.<OrderEntry>emptyList());
         assertNotNull(planner.getPlan());
 
         filter = createFilter("nt:base");
-        filter.restrictProperty("foo", Operator.GREATER_OR_EQUAL, PropertyValues.newString("/jobs"));
+        filter.restrictProperty("foo", Operator.GREATER_OR_EQUAL,
+            PropertyValues.newString("/jobs"));
         filter.restrictProperty("foo", Operator.LESS_OR_EQUAL, PropertyValues.newString("/jobs0"));
 
-        planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        planner = new FulltextIndexPlanner(node, "/foo", filter,
+            Collections.<OrderEntry>emptyList());
         assertNull(planner.getPlan());
     }
 
     @Test
-    public void relativeProperty_Basics() throws Exception{
+    public void relativeProperty_Basics() throws Exception {
         LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
         defnb.indexRule("nt:base").property("foo").propertyIndex();
         defnb.indexRule("nt:base").property("jcr:content/bar").propertyIndex();
@@ -885,10 +969,12 @@ public class IndexPlannerTest {
         LuceneIndexNode node = createIndexNode(defn);
 
         FilterImpl filter = createFilter("nt:base");
-        filter.restrictProperty("jcr:content/foo", Operator.EQUAL, PropertyValues.newString("/bar"));
+        filter.restrictProperty("jcr:content/foo", Operator.EQUAL,
+            PropertyValues.newString("/bar"));
         filter.restrictProperty("bar", Operator.EQUAL, PropertyValues.newString("/bar"));
 
-        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter,
+            Collections.<OrderEntry>emptyList());
         QueryIndex.IndexPlan plan = planner.getPlan();
         assertNotNull(plan);
 
@@ -914,9 +1000,11 @@ public class IndexPlannerTest {
         LuceneIndexNode node = createIndexNode(defn);
 
         FilterImpl filter = createFilter("nt:unstructured");
-        filter.restrictProperty("jcr:content/foo", Operator.EQUAL, PropertyValues.newString("/bar"));
+        filter.restrictProperty("jcr:content/foo", Operator.EQUAL,
+            PropertyValues.newString("/bar"));
 
-        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter,
+            Collections.<OrderEntry>emptyList());
         QueryIndex.IndexPlan plan = planner.getPlan();
 
         //Should not return a plan for index rule other than nt:base
@@ -933,10 +1021,12 @@ public class IndexPlannerTest {
         LuceneIndexNode node = createIndexNode(defn);
 
         FilterImpl filter = createFilter("nt:base");
-        filter.restrictProperty("jcr:content/foo", Operator.EQUAL, PropertyValues.newString("/bar"));
+        filter.restrictProperty("jcr:content/foo", Operator.EQUAL,
+            PropertyValues.newString("/bar"));
         filter.setFullTextConstraint(FullTextParser.parse("jcr:content/bar", "mountain"));
 
-        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter,
+            Collections.<OrderEntry>emptyList());
         QueryIndex.IndexPlan plan = planner.getPlan();
         assertNotNull(plan);
 
@@ -948,7 +1038,7 @@ public class IndexPlannerTest {
     }
 
     @Test
-    public void relativeProperty_FullText() throws Exception{
+    public void relativeProperty_FullText() throws Exception {
         LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
         defnb.indexRule("nt:base").property("foo").propertyIndex();
         defnb.aggregateRule("nt:base").include("*");
@@ -957,18 +1047,20 @@ public class IndexPlannerTest {
         LuceneIndexNode node = createIndexNode(defn);
 
         FilterImpl filter = createFilter("nt:base");
-        filter.restrictProperty("jcr:content/foo", Operator.EQUAL, PropertyValues.newString("/bar"));
+        filter.restrictProperty("jcr:content/foo", Operator.EQUAL,
+            PropertyValues.newString("/bar"));
         FullTextExpression ft = FullTextParser.parse("jcr:content/*", "mountain OR valley");
         filter.setFullTextConstraint(ft);
 
-        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter,
+            Collections.<OrderEntry>emptyList());
         QueryIndex.IndexPlan plan = planner.getPlan();
         FulltextIndexPlanner.PlanResult pr = pr(plan);
         assertFalse(pr.hasProperty("jcr:content/foo"));
     }
 
     @Test
-    public void relativeProperty_MultipleMatch() throws Exception{
+    public void relativeProperty_MultipleMatch() throws Exception {
         LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
         defnb.indexRule("nt:base").property("foo").propertyIndex();
         defnb.indexRule("nt:base").property("bar").propertyIndex();
@@ -978,11 +1070,14 @@ public class IndexPlannerTest {
         LuceneIndexNode node = createIndexNode(defn);
 
         FilterImpl filter = createFilter("nt:base");
-        filter.restrictProperty("jcr:content/foo", Operator.EQUAL, PropertyValues.newString("/bar"));
-        filter.restrictProperty("jcr:content/bar", Operator.EQUAL, PropertyValues.newString("/bar"));
+        filter.restrictProperty("jcr:content/foo", Operator.EQUAL,
+            PropertyValues.newString("/bar"));
+        filter.restrictProperty("jcr:content/bar", Operator.EQUAL,
+            PropertyValues.newString("/bar"));
         filter.restrictProperty("metadata/baz", Operator.EQUAL, PropertyValues.newString("/bar"));
 
-        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter,
+            Collections.<OrderEntry>emptyList());
         QueryIndex.IndexPlan plan = planner.getPlan();
         assertNotNull(plan);
 
@@ -993,15 +1088,17 @@ public class IndexPlannerTest {
     }
 
     @Test
-    public void evaluatePathRestrictionExposesSupportCorrectly() throws Exception{
+    public void evaluatePathRestrictionExposesSupportCorrectly() throws Exception {
         FilterImpl filter = createFilter("nt:base");
         filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
 
         // Evaluates path restriction
         NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async")
             .setProperty(EVALUATE_PATH_RESTRICTION, true);
-        LuceneIndexNode node = createIndexNode(new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"));
-        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        LuceneIndexNode node = createIndexNode(
+            new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"));
+        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter,
+            Collections.<OrderEntry>emptyList());
         QueryIndex.IndexPlan plan = planner.getPlan();
         assertTrue(plan.getSupportsPathRestriction());
 
@@ -1009,16 +1106,16 @@ public class IndexPlannerTest {
         defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async")
             .setProperty(EVALUATE_PATH_RESTRICTION, false);
         node = createIndexNode(new LuceneIndexDefinition(root, defn.getNodeState(), "/foo1"));
-        planner = new FulltextIndexPlanner(node, "/foo1", filter, Collections.<OrderEntry>emptyList());
+        planner = new FulltextIndexPlanner(node, "/foo1", filter,
+            Collections.<OrderEntry>emptyList());
         plan = planner.getPlan();
         assertFalse(plan.getSupportsPathRestriction());
     }
 
-
     //~------------------------------< sync indexes >
 
     @Test
-    public void syncIndex_uniqueIndex() throws Exception{
+    public void syncIndex_uniqueIndex() throws Exception {
         LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
         defnb.indexRule("nt:base").property("foo").propertyIndex().unique();
 
@@ -1028,7 +1125,8 @@ public class IndexPlannerTest {
         FilterImpl filter = createFilter("nt:base");
         filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
 
-        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter,
+            Collections.<OrderEntry>emptyList());
         QueryIndex.IndexPlan plan = planner.getPlan();
         assertNotNull(plan);
 
@@ -1041,7 +1139,7 @@ public class IndexPlannerTest {
     }
 
     @Test
-    public void syncIndex_uniqueAndRelative() throws Exception{
+    public void syncIndex_uniqueAndRelative() throws Exception {
         LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
         defnb.indexRule("nt:base").property("foo").propertyIndex().unique();
 
@@ -1051,7 +1149,8 @@ public class IndexPlannerTest {
         FilterImpl filter = createFilter("nt:base");
         filter.restrictProperty("jcr:content/foo", Operator.EQUAL, PropertyValues.newString("bar"));
 
-        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter,
+            Collections.<OrderEntry>emptyList());
         QueryIndex.IndexPlan plan = planner.getPlan();
         assertNotNull(plan);
 
@@ -1064,7 +1163,7 @@ public class IndexPlannerTest {
     }
 
     @Test
-    public void syncIndex_nonUnique() throws Exception{
+    public void syncIndex_nonUnique() throws Exception {
         LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
         defnb.indexRule("nt:base").property("foo").propertyIndex().sync();
 
@@ -1074,7 +1173,8 @@ public class IndexPlannerTest {
         FilterImpl filter = createFilter("nt:base");
         filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
 
-        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter,
+            Collections.<OrderEntry>emptyList());
         QueryIndex.IndexPlan plan = planner.getPlan();
         assertNotNull(plan);
 
@@ -1090,7 +1190,7 @@ public class IndexPlannerTest {
      * If both non unique and unique indexes are found then unique should be picked
      */
     @Test
-    public void syncIndex_nonUniqueAndUniqueBoth() throws Exception{
+    public void syncIndex_nonUniqueAndUniqueBoth() throws Exception {
         LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
         defnb.indexRule("nt:base").property("foo").propertyIndex().unique();
         defnb.indexRule("nt:base").property("bar").propertyIndex().sync();
@@ -1102,7 +1202,8 @@ public class IndexPlannerTest {
         filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
         filter.restrictProperty("bar", Operator.EQUAL, PropertyValues.newString("foo"));
 
-        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter,
+            Collections.<OrderEntry>emptyList());
         QueryIndex.IndexPlan plan = planner.getPlan();
         assertNotNull(plan);
 
@@ -1115,7 +1216,7 @@ public class IndexPlannerTest {
     }
 
     @Test
-    public void syncIndex_NotUsedWithSort() throws Exception{
+    public void syncIndex_NotUsedWithSort() throws Exception {
         LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
         defnb.indexRule("nt:base").property("foo").propertyIndex().sync();
         defnb.indexRule("nt:base").property("bar").propertyIndex().ordered();
@@ -1138,7 +1239,7 @@ public class IndexPlannerTest {
     }
 
     @Test
-    public void syncIndex_NotUsedWithFulltext() throws Exception{
+    public void syncIndex_NotUsedWithFulltext() throws Exception {
         LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
         defnb.indexRule("nt:base").property("foo").propertyIndex().sync();
         defnb.indexRule("nt:base").property("bar").analyzed();
@@ -1176,7 +1277,7 @@ public class IndexPlannerTest {
         "- * (UNDEFINED) multiple";
 
     @Test
-    public void nodetype_primaryType() throws Exception{
+    public void nodetype_primaryType() throws Exception {
         TestUtil.registerNodeType(builder, testNodeTypeDefn);
         root = builder.getNodeState();
 
@@ -1189,7 +1290,8 @@ public class IndexPlannerTest {
 
         FilterImpl filter = createFilter("oak:TestSuperType");
 
-        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter,
+            Collections.<OrderEntry>emptyList());
         QueryIndex.IndexPlan plan = planner.getPlan();
         assertNotNull(plan);
 
@@ -1199,7 +1301,8 @@ public class IndexPlannerTest {
         //As oak:TestSuperType is parent of oak:TestTypeA the child nodetypes should
         //also be indexed
         filter = createFilter("oak:TestTypeA");
-        planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        planner = new FulltextIndexPlanner(node, "/foo", filter,
+            Collections.<OrderEntry>emptyList());
         plan = planner.getPlan();
 
         assertNotNull(plan);
@@ -1208,7 +1311,7 @@ public class IndexPlannerTest {
     }
 
     @Test
-    public void nodetype_mixin() throws Exception{
+    public void nodetype_mixin() throws Exception {
         TestUtil.registerNodeType(builder, testNodeTypeDefn);
         root = builder.getNodeState();
 
@@ -1221,7 +1324,8 @@ public class IndexPlannerTest {
 
         FilterImpl filter = createFilter("oak:TestMixA");
 
-        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter,
+            Collections.<OrderEntry>emptyList());
         QueryIndex.IndexPlan plan = planner.getPlan();
         assertNotNull(plan);
 
@@ -1230,7 +1334,7 @@ public class IndexPlannerTest {
     }
 
     @Test
-    public void syncNodeTypeIndex() throws Exception{
+    public void syncNodeTypeIndex() throws Exception {
         TestUtil.registerNodeType(builder, testNodeTypeDefn);
         root = builder.getNodeState();
 
@@ -1243,7 +1347,8 @@ public class IndexPlannerTest {
 
         FilterImpl filter = createFilter("oak:TestSuperType");
 
-        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter,
+            Collections.<OrderEntry>emptyList());
         QueryIndex.IndexPlan plan = planner.getPlan();
         assertNotNull(plan);
 
@@ -1252,7 +1357,8 @@ public class IndexPlannerTest {
         assertTrue(r.evaluateSyncNodeTypeRestriction());
     }
 
-    private FulltextIndexPlanner createPlannerForFulltext(NodeState defn, FullTextExpression exp) throws IOException {
+    private FulltextIndexPlanner createPlannerForFulltext(NodeState defn, FullTextExpression exp)
+        throws IOException {
         LuceneIndexNode node = createIndexNode(new LuceneIndexDefinition(root, defn, "/foo"));
         FilterImpl filter = createFilter("nt:base");
         filter.setFullTextConstraint(exp);
@@ -1260,8 +1366,8 @@ public class IndexPlannerTest {
     }
 
     private LuceneIndexNode createSuggestionOrSpellcheckIndex(String nodeType,
-                                                              boolean enableSuggestion,
-                                                              boolean enableSpellcheck) throws Exception {
+        boolean enableSuggestion,
+        boolean enableSpellcheck) throws Exception {
         NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
         defn.setProperty(DECLARING_NODE_TYPES, nodeType);
 
@@ -1270,20 +1376,24 @@ public class IndexPlannerTest {
         foob.setProperty(FulltextIndexConstants.PROP_ANALYZED, true);
         if (enableSuggestion) {
             foob.setProperty(FulltextIndexConstants.PROP_USE_IN_SUGGEST, true);
-        } if (enableSpellcheck) {
+        }
+        if (enableSpellcheck) {
             foob.setProperty(FulltextIndexConstants.PROP_USE_IN_SPELLCHECK, true);
         }
 
-        LuceneIndexDefinition indexDefinition = new LuceneIndexDefinition(root, defn.getNodeState(), "/foo");
+        LuceneIndexDefinition indexDefinition = new LuceneIndexDefinition(root, defn.getNodeState(),
+            "/foo");
         return createIndexNode(indexDefinition);
     }
 
-    private QueryIndex.IndexPlan getSuggestOrSpellcheckIndexPlan(LuceneIndexNode indexNode, String nodeType,
-                                                                 boolean forSugggestion) throws Exception {
+    private QueryIndex.IndexPlan getSuggestOrSpellcheckIndexPlan(LuceneIndexNode indexNode,
+        String nodeType,
+        boolean forSugggestion) throws Exception {
         FilterImpl filter = createFilter(nodeType);
         filter.restrictProperty(indexNode.getDefinition().getFunctionName(), Operator.EQUAL,
-            PropertyValues.newString((forSugggestion?"suggest":"spellcheck") + "?term=foo"));
-        FulltextIndexPlanner planner = new FulltextIndexPlanner(indexNode, "/foo", filter, Collections.<OrderEntry>emptyList());
+            PropertyValues.newString((forSugggestion ? "suggest" : "spellcheck") + "?term=foo"));
+        FulltextIndexPlanner planner = new FulltextIndexPlanner(indexNode, "/foo", filter,
+            Collections.<OrderEntry>emptyList());
 
         return planner.getPlan();
     }
@@ -1291,41 +1401,48 @@ public class IndexPlannerTest {
 
     //------ Cost via doc count per field plan tests
     @Test
-    public void noRestrictionWithSingleSortableField() throws Exception{
+    public void noRestrictionWithSingleSortableField() throws Exception {
         NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
         defn.setProperty(createProperty(ORDERED_PROP_NAMES, of("foo"), STRINGS));
-        LuceneIndexDefinition definition = new LuceneIndexDefinition(root, defn.getNodeState(), "/test");
+        LuceneIndexDefinition definition = new LuceneIndexDefinition(root, defn.getNodeState(),
+            "/test");
         LuceneIndexNode node = createIndexNode(definition);
-        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/test", createFilter("nt:base"),
+        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/test",
+            createFilter("nt:base"),
             ImmutableList.of(new OrderEntry("foo", Type.LONG, OrderEntry.Order.ASCENDING),
                 new OrderEntry("bar", Type.LONG, OrderEntry.Order.ASCENDING)));
 
         assertNotNull(planner.getPlan());
         assertEquals(1, planner.getPlan().getEstimatedEntryCount());
-        assertEquals(definition.getCostPerEntry()/2, planner.getPlan().getCostPerEntry(), 0.0001);
+        assertEquals(definition.getCostPerEntry() / 2, planner.getPlan().getCostPerEntry(), 0.0001);
     }
 
     @Test
-    public void noRestrictionWithTwoSortableFields() throws Exception{
-        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo", "bar"), "async");
+    public void noRestrictionWithTwoSortableFields() throws Exception {
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo", "bar"),
+            "async");
         defn.setProperty(createProperty(ORDERED_PROP_NAMES, of("foo", "bar"), STRINGS));
-        LuceneIndexDefinition definition = new LuceneIndexDefinition(root, defn.getNodeState(), "/test");
+        LuceneIndexDefinition definition = new LuceneIndexDefinition(root, defn.getNodeState(),
+            "/test");
         LuceneIndexNode node = createIndexNode(definition);
-        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/test", createFilter("nt:base"),
+        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/test",
+            createFilter("nt:base"),
             ImmutableList.of(new OrderEntry("foo", Type.LONG, OrderEntry.Order.ASCENDING),
                 new OrderEntry("bar", Type.LONG, OrderEntry.Order.ASCENDING)));
 
         assertNotNull(planner.getPlan());
         assertEquals(1, planner.getPlan().getEstimatedEntryCount());
-        assertEquals(definition.getCostPerEntry()/3, planner.getPlan().getCostPerEntry(), 0.0001);
+        assertEquals(definition.getCostPerEntry() / 3, planner.getPlan().getCostPerEntry(), 0.0001);
     }
 
     @Test
     public void useNumDocsOnFieldForCost() throws Exception {
-        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo", "foo1", "foo2"), "async");
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test",
+            of("foo", "foo1", "foo2"), "async");
         long numOfDocs = IndexDefinition.DEFAULT_ENTRY_COUNT + 1000;
 
-        LuceneIndexDefinition idxDefn = new LuceneIndexDefinition(root, defn.getNodeState(), "/test");
+        LuceneIndexDefinition idxDefn = new LuceneIndexDefinition(root, defn.getNodeState(),
+            "/test");
         Document doc = new Document();
         doc.add(new StringField("foo1", "bar1", Field.Store.NO));
         Directory sampleDirectory = createSampleDirectory(numOfDocs, doc);
@@ -1334,7 +1451,8 @@ public class IndexPlannerTest {
         // Query on "foo"
         FilterImpl filter = createFilter("nt:base");
         filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
-        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/test", filter, Collections.emptyList());
+        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/test", filter,
+            Collections.emptyList());
         QueryIndex.IndexPlan plan = planner.getPlan();
 
         assertEquals(documentsPerValue(numOfDocs), plan.getEstimatedEntryCount());
@@ -1397,11 +1515,12 @@ public class IndexPlannerTest {
     @Test
     public void weightedPropDefs() throws Exception {
         String indexPath = "/test";
-        LuceneIndexDefinitionBuilder idxBuilder = new LuceneIndexDefinitionBuilder(child(builder, indexPath));
+        LuceneIndexDefinitionBuilder idxBuilder = new LuceneIndexDefinitionBuilder(
+            child(builder, indexPath));
         idxBuilder.indexRule("nt:base").property("foo").propertyIndex().weight(500)
-            .enclosingRule().property("foo1").propertyIndex().weight(20)
-            .enclosingRule().property("foo2").propertyIndex().weight(0)
-            .enclosingRule().property("foo3").propertyIndex()
+                  .enclosingRule().property("foo1").propertyIndex().weight(20)
+                  .enclosingRule().property("foo2").propertyIndex().weight(0)
+                  .enclosingRule().property("foo3").propertyIndex()
         ;
         NodeState defn = idxBuilder.build();
 
@@ -1422,7 +1541,8 @@ public class IndexPlannerTest {
         // Query on "foo"
         FilterImpl filter = createFilter("nt:base");
         filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
-        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, indexPath, filter, Collections.emptyList());
+        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, indexPath, filter,
+            Collections.emptyList());
         QueryIndex.IndexPlan plan = planner.getPlan();
 
         //scale down 1000 by 500 = 2
@@ -1471,9 +1591,10 @@ public class IndexPlannerTest {
     @Test
     public void weightedRegexPropDefs() throws Exception {
         String indexPath = "/test";
-        LuceneIndexDefinitionBuilder idxBuilder = new LuceneIndexDefinitionBuilder(child(builder, indexPath));
+        LuceneIndexDefinitionBuilder idxBuilder = new LuceneIndexDefinitionBuilder(
+            child(builder, indexPath));
         idxBuilder.indexRule("nt:base").property("foo").propertyIndex()
-            .enclosingRule().property("bar", "bar.*", true).propertyIndex().weight(20)
+                  .enclosingRule().property("bar", "bar.*", true).propertyIndex().weight(20)
         ;
         NodeState defn = idxBuilder.build();
 
@@ -1496,7 +1617,8 @@ public class IndexPlannerTest {
         // Query on and "bar1"
         FilterImpl filter = createFilter("nt:base");
         filter.restrictProperty("bar1", Operator.EQUAL, PropertyValues.newString("foo1"));
-        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, indexPath, filter, Collections.emptyList());
+        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, indexPath, filter,
+            Collections.emptyList());
         QueryIndex.IndexPlan plan = planner.getPlan();
 
         //scale down 60 by 20 = 3
@@ -1516,9 +1638,11 @@ public class IndexPlannerTest {
     @Test
     public void overflowingWeight() throws Exception {
         String indexPath = "/test";
-        LuceneIndexDefinitionBuilder idxBuilder = new LuceneIndexDefinitionBuilder(child(builder, indexPath));
-        idxBuilder.indexRule("nt:base").property("foo").propertyIndex().weight(Integer.MAX_VALUE/2)
-            .enclosingRule().property("foo1").propertyIndex()
+        LuceneIndexDefinitionBuilder idxBuilder = new LuceneIndexDefinitionBuilder(
+            child(builder, indexPath));
+        idxBuilder.indexRule("nt:base").property("foo").propertyIndex()
+                  .weight(Integer.MAX_VALUE / 2)
+                  .enclosingRule().property("foo1").propertyIndex()
         ;
         NodeState defn = idxBuilder.build();
 
@@ -1536,7 +1660,8 @@ public class IndexPlannerTest {
         // Query on and "foo"
         FilterImpl filter = createFilter("nt:base");
         filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("foo1"));
-        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, indexPath, filter, Collections.emptyList());
+        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, indexPath, filter,
+            Collections.emptyList());
         QueryIndex.IndexPlan plan = planner.getPlan();
 
         //scale down 1000 by INT_MAX/2 and ceil ~= 1.
@@ -1556,16 +1681,18 @@ public class IndexPlannerTest {
     @Test
     public void functionPropDef() throws Exception {
         String indexPath = "/test";
-        LuceneIndexDefinitionBuilder idxBuilder = new LuceneIndexDefinitionBuilder(child(builder, indexPath));
+        LuceneIndexDefinitionBuilder idxBuilder = new LuceneIndexDefinitionBuilder(
+            child(builder, indexPath));
         idxBuilder.indexRule("nt:base").property("foo").propertyIndex();
         Tree fooPD = idxBuilder.getBuilderTree().getChild("indexRules").getChild("nt:base")
-            .getChild("properties").getChild("foo");
+                               .getChild("properties").getChild("foo");
         fooPD.setProperty(PROP_FUNCTION, "lower([foo])");
         NodeState defn = idxBuilder.build();
 
         Document doc = new Document();
         doc.add(new StringField(
-            FunctionIndexProcessor.convertToPolishNotation("lower([foo])"), "bar1", Field.Store.NO));
+            FunctionIndexProcessor.convertToPolishNotation("lower([foo])"), "bar1",
+            Field.Store.NO));
         Directory sampleDirectory = createSampleDirectory(2, doc);
         LuceneIndexDefinition idxDefn = new LuceneIndexDefinition(root, defn, indexPath);
         LuceneIndexNode node = createIndexNode(idxDefn, sampleDirectory);
@@ -1575,19 +1702,21 @@ public class IndexPlannerTest {
         filter.restrictProperty(
             FunctionIndexProcessor.convertToPolishNotation("lower([foo])"), Operator.EQUAL,
             PropertyValues.newString("foo1"));
-        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, indexPath, filter, Collections.emptyList());
+        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, indexPath, filter,
+            Collections.emptyList());
         QueryIndex.IndexPlan plan = planner.getPlan();
 
         assertEquals(1, plan.getEstimatedEntryCount());
     }
 
     @Test
-    public void fullTextWithPropRestriction() throws Exception{
+    public void fullTextWithPropRestriction() throws Exception {
         String indexPath = "/test";
-        LuceneIndexDefinitionBuilder idxBuilder = new LuceneIndexDefinitionBuilder(child(builder, indexPath));
+        LuceneIndexDefinitionBuilder idxBuilder = new LuceneIndexDefinitionBuilder(
+            child(builder, indexPath));
         idxBuilder.indexRule("nt:base").property("foo").nodeScopeIndex()
-            .enclosingRule().property("foo1").propertyIndex()
-            .enclosingRule().property("foo2").analyzed();
+                  .enclosingRule().property("foo1").propertyIndex()
+                  .enclosingRule().property("foo2").analyzed();
         NodeState defn = idxBuilder.build();
 
         long numOfDocs = IndexDefinition.DEFAULT_ENTRY_COUNT + 1000;
@@ -1602,7 +1731,8 @@ public class IndexPlannerTest {
         FilterImpl filter = createFilter("nt:base");
         filter.setFullTextConstraint(FullTextParser.parse(".", "mountain"));
         filter.setFullTextConstraint(FullTextParser.parse("foo2", "hill"));
-        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, indexPath, filter, Collections.emptyList());
+        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, indexPath, filter,
+            Collections.emptyList());
         QueryIndex.IndexPlan plan = planner.getPlan();
 
         assertEquals(numOfDocs + 1, plan.getEstimatedEntryCount());
@@ -1627,7 +1757,8 @@ public class IndexPlannerTest {
         try {
             LuceneIndexStatistics.failReadingFields = true;
             String indexPath = "/test";
-            LuceneIndexDefinitionBuilder idxBuilder = new LuceneIndexDefinitionBuilder(child(builder, indexPath));
+            LuceneIndexDefinitionBuilder idxBuilder = new LuceneIndexDefinitionBuilder(
+                child(builder, indexPath));
             idxBuilder.indexRule("nt:base").property("foo").propertyIndex();
             idxBuilder.indexRule("nt:base").property("bar").propertyIndex();
             NodeState defn = idxBuilder.build();
@@ -1639,7 +1770,8 @@ public class IndexPlannerTest {
 
             FilterImpl filter = createFilter("nt:base");
             filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
-            FulltextIndexPlanner planner = new FulltextIndexPlanner(node, indexPath, filter, Collections.emptyList());
+            FulltextIndexPlanner planner = new FulltextIndexPlanner(node, indexPath, filter,
+                Collections.emptyList());
             QueryIndex.IndexPlan plan = planner.getPlan();
 
             assertEquals(numOfDocs, plan.getEstimatedEntryCount());
@@ -1668,7 +1800,8 @@ public class IndexPlannerTest {
         try {
             LuceneIndexStatistics.failReadingSyntheticallyFalliableField = true;
             String indexPath = "/test";
-            LuceneIndexDefinitionBuilder idxBuilder = new LuceneIndexDefinitionBuilder(child(builder, indexPath));
+            LuceneIndexDefinitionBuilder idxBuilder = new LuceneIndexDefinitionBuilder(
+                child(builder, indexPath));
             idxBuilder.indexRule("nt:base").property("foo").propertyIndex();
             idxBuilder.indexRule("nt:base").property("foo1").propertyIndex();
             idxBuilder.indexRule("nt:base").property(SYNTHETICALLY_FALLIABLE_FIELD).propertyIndex();
@@ -1686,13 +1819,15 @@ public class IndexPlannerTest {
 
             FilterImpl filter = createFilter("nt:base");
             filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
-            FulltextIndexPlanner planner = new FulltextIndexPlanner(node, indexPath, filter, Collections.emptyList());
+            FulltextIndexPlanner planner = new FulltextIndexPlanner(node, indexPath, filter,
+                Collections.emptyList());
             QueryIndex.IndexPlan plan = planner.getPlan();
 
             assertEquals(documentsPerValue(numOfDocs), plan.getEstimatedEntryCount());
 
             filter = createFilter("nt:base");
-            filter.restrictProperty(SYNTHETICALLY_FALLIABLE_FIELD, Operator.EQUAL, PropertyValues.newString("bar"));
+            filter.restrictProperty(SYNTHETICALLY_FALLIABLE_FIELD, Operator.EQUAL,
+                PropertyValues.newString("bar"));
             planner = new FulltextIndexPlanner(node, indexPath, filter, Collections.emptyList());
             plan = planner.getPlan();
 
@@ -1701,7 +1836,8 @@ public class IndexPlannerTest {
 
             filter = createFilter("nt:base");
             filter.restrictProperty("foo1", Operator.EQUAL, PropertyValues.newString("bar"));
-            filter.restrictProperty(SYNTHETICALLY_FALLIABLE_FIELD, Operator.EQUAL, PropertyValues.newString("bar"));
+            filter.restrictProperty(SYNTHETICALLY_FALLIABLE_FIELD, Operator.EQUAL,
+                PropertyValues.newString("bar"));
             planner = new FulltextIndexPlanner(node, indexPath, filter, Collections.emptyList());
             plan = planner.getPlan();
 
@@ -1710,7 +1846,8 @@ public class IndexPlannerTest {
 
             filter = createFilter("nt:base");
             filter.restrictProperty("bar", Operator.EQUAL, PropertyValues.newString("bar"));
-            filter.restrictProperty(SYNTHETICALLY_FALLIABLE_FIELD, Operator.EQUAL, PropertyValues.newString("bar"));
+            filter.restrictProperty(SYNTHETICALLY_FALLIABLE_FIELD, Operator.EQUAL,
+                PropertyValues.newString("bar"));
             planner = new FulltextIndexPlanner(node, indexPath, filter, Collections.emptyList());
             plan = planner.getPlan();
 
@@ -1725,12 +1862,13 @@ public class IndexPlannerTest {
     public void costForPathTransformation() throws Exception {
         LuceneIndexStatistics.failReadingSyntheticallyFalliableField = true;
         String indexPath = "/test";
-        LuceneIndexDefinitionBuilder idxBuilder = new LuceneIndexDefinitionBuilder(child(builder, indexPath));
+        LuceneIndexDefinitionBuilder idxBuilder = new LuceneIndexDefinitionBuilder(
+            child(builder, indexPath));
         idxBuilder.indexRule("nt:base").property("foo").propertyIndex();
         idxBuilder.indexRule("nt:base").property("foo1").propertyIndex();
         idxBuilder.indexRule("nt:base").property("foo2").propertyIndex();
         Tree fooPD = idxBuilder.getBuilderTree().getChild("indexRules").getChild("nt:base")
-            .getChild("properties").getChild("foo2");
+                               .getChild("properties").getChild("foo2");
         fooPD.setProperty(PROP_FUNCTION, "lower([foo])");
         NodeState defn = idxBuilder.build();
 
@@ -1741,7 +1879,8 @@ public class IndexPlannerTest {
 
         FilterImpl filter = createFilter("nt:base");
         filter.restrictProperty("a/foo", Operator.EQUAL, PropertyValues.newString("bar"));
-        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, indexPath, filter, Collections.emptyList());
+        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, indexPath, filter,
+            Collections.emptyList());
         QueryIndex.IndexPlan plan = planner.getPlan();
 
         assertEquals(documentsPerValue(numOfDocs), plan.getEstimatedEntryCount());
@@ -1788,12 +1927,14 @@ public class IndexPlannerTest {
         LuceneIndexNode node = createIndexNode(defn);
 
         FilterImpl filter = createFilter("nt:base");
-        filter.restrictProperty(REP_FACET, Operator.EQUAL, PropertyValues.newString(REP_FACET + "(facet)"));
+        filter.restrictProperty(REP_FACET, Operator.EQUAL,
+            PropertyValues.newString(REP_FACET + "(facet)"));
 
         // just so that the index can be picked..
         filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
 
-        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter,
+            Collections.<OrderEntry>emptyList());
         QueryIndex.IndexPlan plan = planner.getPlan();
         assertNotNull("Index supporting facet should participate", plan);
     }
@@ -1803,19 +1944,23 @@ public class IndexPlannerTest {
         LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
         defnb.indexRule("nt:base").property("foo").propertyIndex();
         defnb.indexRule("nt:base").property("facet1").getBuilderTree().setProperty(FACETS, true);
-        defnb.indexRule("nt:base").property("rel/facet2").getBuilderTree().setProperty(FACETS, true);
+        defnb.indexRule("nt:base").property("rel/facet2").getBuilderTree()
+             .setProperty(FACETS, true);
 
         LuceneIndexDefinition defn = new LuceneIndexDefinition(root, defnb.build(), "/foo");
         LuceneIndexNode node = createIndexNode(defn);
 
         FilterImpl filter = createFilter("nt:base");
-        filter.restrictProperty(REP_FACET, Operator.EQUAL, PropertyValues.newString(REP_FACET + "(facet1)"));
-        filter.restrictProperty(REP_FACET, Operator.EQUAL, PropertyValues.newString(REP_FACET + "(rel/facet2)"));
+        filter.restrictProperty(REP_FACET, Operator.EQUAL,
+            PropertyValues.newString(REP_FACET + "(facet1)"));
+        filter.restrictProperty(REP_FACET, Operator.EQUAL,
+            PropertyValues.newString(REP_FACET + "(rel/facet2)"));
 
         // just so that the index can be picked..
         filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
 
-        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter,
+            Collections.<OrderEntry>emptyList());
         QueryIndex.IndexPlan plan = planner.getPlan();
         assertNotNull("Index supporting all facets should participate", plan);
     }
@@ -1829,12 +1974,14 @@ public class IndexPlannerTest {
         LuceneIndexNode node = createIndexNode(defn);
 
         FilterImpl filter = createFilter("nt:base");
-        filter.restrictProperty(REP_FACET, Operator.EQUAL, PropertyValues.newString(REP_FACET + "(facet)"));
+        filter.restrictProperty(REP_FACET, Operator.EQUAL,
+            PropertyValues.newString(REP_FACET + "(facet)"));
 
         // just so that the index can be picked..
         filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
 
-        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter,
+            Collections.<OrderEntry>emptyList());
         QueryIndex.IndexPlan plan = planner.getPlan();
         assertNull("Index supporting none of the facets mustn't participate", plan);
     }
@@ -1849,13 +1996,16 @@ public class IndexPlannerTest {
         LuceneIndexNode node = createIndexNode(defn);
 
         FilterImpl filter = createFilter("nt:base");
-        filter.restrictProperty(REP_FACET, Operator.EQUAL, PropertyValues.newString(REP_FACET + "(facet)"));
-        filter.restrictProperty(REP_FACET, Operator.EQUAL, PropertyValues.newString(REP_FACET + "(rel/facet)"));
+        filter.restrictProperty(REP_FACET, Operator.EQUAL,
+            PropertyValues.newString(REP_FACET + "(facet)"));
+        filter.restrictProperty(REP_FACET, Operator.EQUAL,
+            PropertyValues.newString(REP_FACET + "(rel/facet)"));
 
         // just so that the index can be picked..
         filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
 
-        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter,
+            Collections.<OrderEntry>emptyList());
         QueryIndex.IndexPlan plan = planner.getPlan();
         assertNull("Index supporting some of the facets mustn't participate", plan);
     }
@@ -1874,7 +2024,8 @@ public class IndexPlannerTest {
 
         FilterImpl filter = createFilter("nt:base");
 
-        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter,
+            Collections.<OrderEntry>emptyList());
         QueryIndex.IndexPlan plan = planner.getPlan();
         assertNull("Index specifying a tag selection policy is not selected", plan);
     }
@@ -1892,28 +2043,38 @@ public class IndexPlannerTest {
 
         FilterImpl filter = createFilter("nt:base");
 
-        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter,
+            Collections.<OrderEntry>emptyList());
         QueryIndex.IndexPlan plan = planner.getPlan();
         assertNull("Index specifying a tag selection policy is not selected", plan);
     }
 
-    private LuceneIndexNode createIndexNode(LuceneIndexDefinition  defn, long numOfDocs) throws IOException {
-        return new LuceneIndexNodeManager("foo", defn, new TestReaderFactory(createSampleDirectory(numOfDocs)).createReaders(defn, EMPTY_NODE, "foo"), null).acquire();
+    private LuceneIndexNode createIndexNode(LuceneIndexDefinition defn, long numOfDocs)
+        throws IOException {
+        return new LuceneIndexNodeManager("foo", defn,
+            new TestReaderFactory(createSampleDirectory(numOfDocs)).createReaders(defn, EMPTY_NODE,
+                "foo"), null).acquire();
     }
 
-    private LuceneIndexNode createIndexNode(LuceneIndexDefinition  defn) throws IOException {
-        return new LuceneIndexNodeManager("foo", defn, new TestReaderFactory(createSampleDirectory()).createReaders(defn, EMPTY_NODE, "foo"), null).acquire();
+    private LuceneIndexNode createIndexNode(LuceneIndexDefinition defn) throws IOException {
+        return new LuceneIndexNodeManager("foo", defn,
+            new TestReaderFactory(createSampleDirectory()).createReaders(defn, EMPTY_NODE, "foo"),
+            null).acquire();
     }
 
-    private LuceneIndexNode createIndexNode(LuceneIndexDefinition  defn, Directory sampleDirectory) throws IOException {
-        return new LuceneIndexNodeManager("foo", defn, new TestReaderFactory(sampleDirectory).createReaders(defn, EMPTY_NODE, "foo"), null).acquire();
+    private LuceneIndexNode createIndexNode(LuceneIndexDefinition defn, Directory sampleDirectory)
+        throws IOException {
+        return new LuceneIndexNodeManager("foo", defn,
+            new TestReaderFactory(sampleDirectory).createReaders(defn, EMPTY_NODE, "foo"),
+            null).acquire();
     }
 
     private FilterImpl createFilter(String nodeTypeName) {
         NodeTypeInfoProvider nodeTypes = new NodeStateNodeTypeInfoProvider(root);
         NodeTypeInfo type = nodeTypes.getNodeTypeInfo(nodeTypeName);
         SelectorImpl selector = new SelectorImpl(type, nodeTypeName);
-        return new FilterImpl(selector, "SELECT * FROM [" + nodeTypeName + "]", new QueryEngineSettings());
+        return new FilterImpl(selector, "SELECT * FROM [" + nodeTypeName + "]",
+            new QueryEngineSettings());
     }
 
     private static Directory createSampleDirectory() throws IOException {
@@ -1924,14 +2085,16 @@ public class IndexPlannerTest {
         return createSampleDirectory(numOfDocs, Collections.emptyList());
     }
 
-    private static Directory createSampleDirectory(long numOfDocs, @NotNull Document doc) throws IOException {
+    private static Directory createSampleDirectory(long numOfDocs, @NotNull Document doc)
+        throws IOException {
         return createSampleDirectory(numOfDocs, Collections.singletonList(doc));
     }
 
-    private static Directory createSampleDirectory(long numOfDocs, Iterable<Document> docs) throws IOException {
+    private static Directory createSampleDirectory(long numOfDocs, Iterable<Document> docs)
+        throws IOException {
         Directory dir = new RAMDirectory();
         IndexWriterConfig config = new IndexWriterConfig(VERSION, LuceneIndexConstants.ANALYZER);
-        IndexWriter writer = new  IndexWriter(dir, config);
+        IndexWriter writer = new IndexWriter(dir, config);
         for (int i = 0; i < numOfDocs; i++) {
             Document doc = new Document();
             doc.add(new StringField("foo", "bar" + i, Field.Store.NO));
@@ -1957,6 +2120,7 @@ public class IndexPlannerTest {
     }
 
     private static class TestReaderFactory implements LuceneIndexReaderFactory {
+
         final Directory directory;
 
         private TestReaderFactory(Directory directory) {
@@ -1964,8 +2128,9 @@ public class IndexPlannerTest {
         }
 
         @Override
-        public List<LuceneIndexReader> createReaders(LuceneIndexDefinition definition, NodeState definitionState,
-                                                     String indexPath) throws IOException {
+        public List<LuceneIndexReader> createReaders(LuceneIndexDefinition definition,
+            NodeState definitionState,
+            String indexPath) throws IOException {
             List<LuceneIndexReader> readers = new ArrayList<>();
             readers.add(new DefaultIndexReader(directory, null, definition.getAnalyzer()));
             return readers;

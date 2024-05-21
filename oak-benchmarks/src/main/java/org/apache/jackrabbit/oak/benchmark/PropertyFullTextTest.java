@@ -17,30 +17,6 @@
 package org.apache.jackrabbit.oak.benchmark;
 
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.benchmark.wikipedia.WikipediaImport;
-import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
-import org.apache.jackrabbit.oak.plugins.tree.factories.TreeFactory;
-import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-import javax.jcr.query.Query;
-import javax.jcr.query.QueryManager;
-import javax.jcr.query.RowIterator;
-
-import java.io.File;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-
-
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
 import static org.apache.jackrabbit.oak.api.Type.LONG;
@@ -56,8 +32,29 @@ import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConsta
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_ANALYZED;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_NODE;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_PROPERTY_INDEX;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_NODE_SCOPE_INDEX;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_PROPERTY_INDEX;
+
+import java.io.File;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import javax.jcr.query.Query;
+import javax.jcr.query.QueryManager;
+import javax.jcr.query.RowIterator;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.benchmark.wikipedia.WikipediaImport;
+import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
+import org.apache.jackrabbit.oak.plugins.tree.factories.TreeFactory;
+import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * <p>
@@ -65,11 +62,11 @@ import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConsta
  * Property index when indexed in conjunction with a Global full-text lucene (same thread). It makes
  * use of the {@link WikipediaImport} to use a Wikipedia dump for content injestion.
  * <p>
- * Extend this class in lucene and elastic benchmarks and override the createRepository method to include respective
- * Index Editor providers.
+ * Extend this class in lucene and elastic benchmarks and override the createRepository method to
+ * include respective Index Editor providers.
  * <p>
- * Suggested dump:
- * <a href="https://dumps.wikimedia.org/enwiki/20150403/enwiki-20150403-pages-articles.xml.bz2">https://dumps.wikimedia.org/enwiki/20150403/enwiki-20150403-pages-articles.xml.bz2</a>
+ * Suggested dump: <a
+ * href="https://dumps.wikimedia.org/enwiki/20150403/enwiki-20150403-pages-articles.xml.bz2">https://dumps.wikimedia.org/enwiki/20150403/enwiki-20150403-pages-articles.xml.bz2</a>
  * <p>
  * Usage example:
  * <pre>
@@ -103,9 +100,9 @@ public class PropertyFullTextTest extends AbstractTest<PropertyFullTextTest.Test
     }
 
     public PropertyFullTextTest(final File dump,
-                                final boolean flat,
-                                final boolean doReport,
-                                final Boolean storageEnabled) {
+        final boolean flat,
+        final boolean doReport,
+        final Boolean storageEnabled) {
         this.importer = new WikipediaImport(dump, flat, doReport) {
 
             @Override
@@ -115,7 +112,7 @@ public class PropertyFullTextTest extends AbstractTest<PropertyFullTextTest.Test
 
             @Override
             protected void pageAdded(String title, String text) {
-                count.set(count.get() == null ? 1 : count.get()  + 1);
+                count.set(count.get() == null ? 1 : count.get() + 1);
                 // We save session in batches of 1000 in wiki import
                 // So doesn't make sense to change the last set title before that
                 // because then we might be querying on a title for a node that hasn't
@@ -136,6 +133,7 @@ public class PropertyFullTextTest extends AbstractTest<PropertyFullTextTest.Test
      * helper class to initialise the Lucene/Elastic Property index definition
      */
     static class FullTextPropertyInitialiser implements RepositoryInitializer {
+
         private String name;
         private Set<String> properties;
         private String type;
@@ -144,8 +142,8 @@ public class PropertyFullTextTest extends AbstractTest<PropertyFullTextTest.Test
         private boolean analyzed;
 
         public FullTextPropertyInitialiser(@NotNull final String name,
-                                           @NotNull final Set<String> properties,
-                                           @NotNull final String type) {
+            @NotNull final Set<String> properties,
+            @NotNull final String type) {
             this.name = name;
             this.properties = properties;
             this.type = type;
@@ -171,7 +169,7 @@ public class PropertyFullTextTest extends AbstractTest<PropertyFullTextTest.Test
 
         private boolean isAlreadyThere(final @NotNull NodeBuilder root) {
             return root.hasChildNode(INDEX_DEFINITIONS_NAME) &&
-                    root.getChildNode(INDEX_DEFINITIONS_NAME).hasChildNode(name);
+                root.getChildNode(INDEX_DEFINITIONS_NAME).hasChildNode(name);
         }
 
         @Override
@@ -180,10 +178,11 @@ public class PropertyFullTextTest extends AbstractTest<PropertyFullTextTest.Test
                 Tree t = TreeFactory.createTree(builder.child(INDEX_DEFINITIONS_NAME));
                 t.setProperty("jcr:primaryType", "nt:unstructured", NAME);
 
-                NodeBuilder uuid = IndexUtils.createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "uuid", true, true,
-                        ImmutableList.<String>of("jcr:uuid"), null);
+                NodeBuilder uuid = IndexUtils.createIndexDefinition(
+                    builder.child(INDEX_DEFINITIONS_NAME), "uuid", true, true,
+                    ImmutableList.<String>of("jcr:uuid"), null);
                 uuid.setProperty("info",
-                        "Oak index for UUID lookup (direct lookup of nodes with the mixin 'mix:referenceable').");
+                    "Oak index for UUID lookup (direct lookup of nodes with the mixin 'mix:referenceable').");
 
                 t = t.addChild(name);
                 t.setProperty("jcr:primaryType", INDEX_DEFINITIONS_NODE_TYPE, NAME);
@@ -227,6 +226,7 @@ public class PropertyFullTextTest extends AbstractTest<PropertyFullTextTest.Test
      * context used across the tests
      */
     class TestContext {
+
         final Session session = loginWriter();
         final String title;
 
@@ -296,7 +296,7 @@ public class PropertyFullTextTest extends AbstractTest<PropertyFullTextTest.Test
 
         while (!performQuery(ec) && sleptSoFar < maxWait) {
             LOG.trace("title '{}' not found. Waiting and retry. sleptSoFar: {}ms", ec.title,
-                    sleptSoFar);
+                sleptSoFar);
             sleptSoFar += waitUnit;
             TimeUnit.MILLISECONDS.sleep(waitUnit);
         }
@@ -304,10 +304,11 @@ public class PropertyFullTextTest extends AbstractTest<PropertyFullTextTest.Test
         if (sleptSoFar < maxWait) {
             // means we exited the loop as we found it.
             LOG.info("{} - {} - title '{}' found with a wait/try of {}ms", getCurrentFixtureName(),
-                    getCurrentTest(), ec.title, sleptSoFar);
+                getCurrentTest(), ec.title, sleptSoFar);
         } else {
-            LOG.warn("{} - {} - title '{}' timed out with a way/try of {}ms.", getCurrentFixtureName(),
-                    getCurrentTest(), ec.title, sleptSoFar);
+            LOG.warn("{} - {} - title '{}' timed out with a way/try of {}ms.",
+                getCurrentFixtureName(),
+                getCurrentTest(), ec.title, sleptSoFar);
         }
     }
 
@@ -316,7 +317,8 @@ public class PropertyFullTextTest extends AbstractTest<PropertyFullTextTest.Test
         // persisted state.
         ec.session.refresh(true);
         QueryManager qm = ec.session.getWorkspace().getQueryManager();
-        Query q = qm.createQuery("SELECT * FROM [nt:base] WHERE [title] = \"" + ec.title + "\"", Query.JCR_SQL2);
+        Query q = qm.createQuery("SELECT * FROM [nt:base] WHERE [title] = \"" + ec.title + "\"",
+            Query.JCR_SQL2);
         LOG.trace("statement: {} - title: {}", q.getStatement(), ec.title);
         RowIterator rows = q.execute().getRows();
         if (rows.hasNext()) {

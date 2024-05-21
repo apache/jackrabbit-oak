@@ -28,9 +28,8 @@ import static org.apache.jackrabbit.oak.plugins.document.Collection.SETTINGS;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * The format version currently in use by the DocumentNodeStore and written
- * to the underlying DocumentStore. A version {@link #canRead} the current or
- * older versions.
+ * The format version currently in use by the DocumentNodeStore and written to the underlying
+ * DocumentStore. A version {@link #canRead} the current or older versions.
  */
 public final class FormatVersion implements Comparable<FormatVersion> {
 
@@ -89,8 +88,7 @@ public final class FormatVersion implements Comparable<FormatVersion> {
     static final FormatVersion V1_8 = new FormatVersion(1, 8, 0);
 
     /**
-     * The ID of the document in the settings collection that contains the
-     * version information.
+     * The ID of the document in the settings collection that contains the version information.
      */
     private static final String VERSION_ID = "version";
 
@@ -115,8 +113,8 @@ public final class FormatVersion implements Comparable<FormatVersion> {
     }
 
     /**
-     * Returns {@code true} if {@code this} version can read data written by the
-     * {@code other} version.
+     * Returns {@code true} if {@code this} version can read data written by the {@code other}
+     * version.
      *
      * @param other the version the data was written in.
      * @return {@code true} if this version can read, {@code false} otherwise.
@@ -126,18 +124,16 @@ public final class FormatVersion implements Comparable<FormatVersion> {
     }
 
     /**
-     * Reads the {@link FormatVersion} from the given store. This method
-     * returns {@link FormatVersion#V0} if the store currently does not have a
-     * version set.
+     * Reads the {@link FormatVersion} from the given store. This method returns
+     * {@link FormatVersion#V0} if the store currently does not have a version set.
      *
      * @param store the store to read from.
      * @return the format version of the store.
-     * @throws DocumentStoreException if an error occurs while reading from the
-     *          store.
+     * @throws DocumentStoreException if an error occurs while reading from the store.
      */
     @NotNull
     public static FormatVersion versionOf(@NotNull DocumentStore store)
-            throws DocumentStoreException {
+        throws DocumentStoreException {
         checkNotNull(store);
         FormatVersion v = V0;
         Document d = store.find(SETTINGS, VERSION_ID);
@@ -155,10 +151,9 @@ public final class FormatVersion implements Comparable<FormatVersion> {
     }
 
     /**
-     * Writes this version to the given document store. The write operation will
-     * fail with a {@link DocumentStoreException} if the version change is
-     * considered incompatible or cannot be applied for some other reason. This
-     * includes:
+     * Writes this version to the given document store. The write operation will fail with a
+     * {@link DocumentStoreException} if the version change is considered incompatible or cannot be
+     * applied for some other reason. This includes:
      * <ul>
      *     <li>An attempt to downgrade the existing version</li>
      *     <li>There are active cluster nodes using an existing version</li>
@@ -166,17 +161,16 @@ public final class FormatVersion implements Comparable<FormatVersion> {
      * </ul>
      *
      * @param store the document store.
-     * @return {@code true} if the version in the store was updated,
-     *      {@code false} otherwise. This method will also return {@code false}
-     *      if the version in the store equals this version and now update was
-     *      required.
-     * @throws DocumentStoreException if the write operation fails. Reasons
-     *      include: 1) an attempt to downgrade the existing version, 2) there
-     *      are active cluster nodes using an existing version, 3) the version
-     *      was changed concurrently.
+     * @return {@code true} if the version in the store was updated, {@code false} otherwise. This
+     * This method will also return {@code false} if the version in the store equals this version
+     * and now update was required.
+     * @throws DocumentStoreException if the write operation fails. Reasons include: 1) an attempt
+     *                                to downgrade the existing version, 2) there are active cluster
+     *                                nodes using an existing version, 3) the version was changed
+     *                                concurrently.
      */
     public boolean writeTo(@NotNull DocumentStore store)
-            throws DocumentStoreException {
+        throws DocumentStoreException {
         checkNotNull(store);
         FormatVersion v = versionOf(store);
         if (v == this) {
@@ -214,16 +208,15 @@ public final class FormatVersion implements Comparable<FormatVersion> {
     }
 
     /**
-     * Returns a format version for the given String representation. This method
-     * either returns one of the well known versions or an entirely new version
-     * if the version is not well known.
+     * Returns a format version for the given String representation. This method either returns one
+     * of the well known versions or an entirely new version if the version is not well known.
      *
      * @param s the String representation of a format version.
      * @return the parsed format version.
      * @throws IllegalArgumentException if the string is malformed.
      */
     public static FormatVersion valueOf(String s)
-            throws IllegalArgumentException {
+        throws IllegalArgumentException {
         String[] parts = s.split("\\.");
         if (parts.length != 3) {
             throw new IllegalArgumentException(s);
@@ -254,17 +247,17 @@ public final class FormatVersion implements Comparable<FormatVersion> {
     @Override
     public boolean equals(Object obj) {
         return obj instanceof FormatVersion
-                && compareTo((FormatVersion) obj) == 0;
+            && compareTo((FormatVersion) obj) == 0;
     }
 
     @Override
     public int compareTo(@NotNull FormatVersion other) {
         checkNotNull(other);
         return ComparisonChain.start()
-                .compare(major, other.major)
-                .compare(minor, other.minor)
-                .compare(micro, other.micro)
-                .result();
+                              .compare(major, other.major)
+                              .compare(minor, other.minor)
+                              .compare(micro, other.micro)
+                              .result();
     }
 
     private static DocumentStoreException concurrentUpdate() {
@@ -273,6 +266,6 @@ public final class FormatVersion implements Comparable<FormatVersion> {
 
     private static DocumentStoreException unableToWrite(String reason) {
         return new DocumentStoreException(
-                "Unable to write format version. " + reason);
+            "Unable to write format version. " + reason);
     }
 }

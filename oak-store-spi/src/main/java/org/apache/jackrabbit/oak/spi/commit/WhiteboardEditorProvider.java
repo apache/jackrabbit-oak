@@ -19,22 +19,17 @@
 package org.apache.jackrabbit.oak.spi.commit;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
-import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
-import org.apache.jackrabbit.oak.spi.commit.Editor;
-import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.whiteboard.AbstractServiceTracker;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Dynamic {@link EditorProvider} based on the available
- * whiteboard services.
+ * Dynamic {@link EditorProvider} based on the available whiteboard services.
  */
 public class WhiteboardEditorProvider
-        extends AbstractServiceTracker<EditorProvider>
-        implements EditorProvider {
+    extends AbstractServiceTracker<EditorProvider>
+    implements EditorProvider {
 
     public WhiteboardEditorProvider() {
         super(EditorProvider.class);
@@ -45,10 +40,10 @@ public class WhiteboardEditorProvider
     @Override
     @Nullable
     public Editor getRootEditor(
-            NodeState before, NodeState after, NodeBuilder builder,
-            CommitInfo info) throws CommitFailedException {
+        NodeState before, NodeState after, NodeBuilder builder,
+        CommitInfo info) throws CommitFailedException {
         EditorProvider provider =
-                CompositeEditorProvider.compose(getServices());
+            CompositeEditorProvider.compose(getServices());
         return provider.getRootEditor(before, after, builder, info);
     }
 

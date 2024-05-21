@@ -20,8 +20,8 @@ package org.apache.jackrabbit.oak.segment.spi.monitor;
 import java.io.File;
 
 /**
- * A void implementation of the {@link IOMonitor}. Can be used for the
- * testing purposes or for the extension.
+ * A void implementation of the {@link IOMonitor}. Can be used for the testing purposes or for the
+ * extension.
  */
 public class IOMonitorAdapter implements IOMonitor {
 

@@ -32,7 +32,6 @@ import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-
 import javax.jcr.Binary;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
@@ -40,7 +39,6 @@ import javax.jcr.Value;
 import javax.jcr.ValueFactory;
 import javax.jcr.observation.Event;
 import javax.jcr.observation.ObservationManager;
-
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.JackrabbitValueFactory;
@@ -75,11 +73,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * This is a unit test for the direct binary access JCR API extension.
- * It uses a mock of the underlying BlobAccessProvider.
- *
- * For a full integration test against real binary cloud storage,
- * see BinaryAccessIt.
+ * This is a unit test for the direct binary access JCR API extension. It uses a mock of the
+ * underlying BlobAccessProvider.
+ * <p>
+ * For a full integration test against real binary cloud storage, see BinaryAccessIt.
  */
 @RunWith(Parameterized.class)
 public class BinaryAccessTest extends AbstractRepositoryTest {
@@ -113,7 +110,9 @@ public class BinaryAccessTest extends AbstractRepositoryTest {
 
     private static String CDN_DOWNLOAD_URL = DEFAULT_CDN_DOWNLOAD_URL;
 
-    private static URI cdnDownloadURI() { return CDN_DOWNLOAD_URL == null ?  null : toURI(CDN_DOWNLOAD_URL); }
+    private static URI cdnDownloadURI() {
+        return CDN_DOWNLOAD_URL == null ? null : toURI(CDN_DOWNLOAD_URL);
+    }
 
     private static final String UPLOAD_TOKEN = "super-safe-encrypted-token";
 
@@ -129,7 +128,9 @@ public class BinaryAccessTest extends AbstractRepositoryTest {
 
     private static String CDN_UPLOAD_URL = DEFAULT_CDN_UPLOAD_URL;
 
-    private static URI cdnUploadURI() { return CDN_UPLOAD_URL == null ? null : toURI(CDN_UPLOAD_URL); }
+    private static URI cdnUploadURI() {
+        return CDN_UPLOAD_URL == null ? null : toURI(CDN_UPLOAD_URL);
+    }
 
     // These tests need to run sync - the lock will force that even if the user tries to run them in parallel
     private static final Lock lock = new ReentrantLock();
@@ -145,26 +146,29 @@ public class BinaryAccessTest extends AbstractRepositoryTest {
     protected Content blobContent;
 
     /**
-     * Adjust JCR repository creation to register a mock BlobAccessProvider in Whiteboard
-     * so it can be picked up by oak-jcr.
+     * Adjust JCR repository creation to register a mock BlobAccessProvider in Whiteboard so it can
+     * be picked up by oak-jcr.
      */
     @Override
     protected Repository createRepository(NodeStore nodeStore) {
         Oak oak = new Oak(nodeStore);
-        oak.getWhiteboard().register(BlobAccessProvider.class, new MockBlobAccessProvider(), Collections.emptyMap());
+        oak.getWhiteboard().register(BlobAccessProvider.class, new MockBlobAccessProvider(),
+            Collections.emptyMap());
         return initJcr(new Jcr(oak)).createRepository();
     }
 
     private class MockBlobAccessProvider implements BlobAccessProvider {
 
         @Override
-        public @Nullable BlobUpload initiateBlobUpload(long maxSize, int maxURIs) throws IllegalArgumentException {
+        public @Nullable BlobUpload initiateBlobUpload(long maxSize, int maxURIs)
+            throws IllegalArgumentException {
             return initiateBlobUpload(maxSize, maxURIs, BlobUploadOptions.DEFAULT);
         }
 
         @Override
-        public @Nullable BlobUpload initiateBlobUpload(long maxSize, int maxURIs, @NotNull final BlobUploadOptions options)
-                throws IllegalArgumentException {
+        public @Nullable BlobUpload initiateBlobUpload(long maxSize, int maxURIs,
+            @NotNull final BlobUploadOptions options)
+            throws IllegalArgumentException {
             return new BlobUpload() {
                 @Override
                 public @NotNull String getUploadToken() {
@@ -195,7 +199,8 @@ public class BinaryAccessTest extends AbstractRepositoryTest {
         }
 
         @Override
-        public @Nullable Blob completeBlobUpload(@NotNull String uploadToken) throws IllegalArgumentException {
+        public @Nullable Blob completeBlobUpload(@NotNull String uploadToken)
+            throws IllegalArgumentException {
             if (!UPLOAD_TOKEN.equals(uploadToken)) {
                 return null;
             }
@@ -228,7 +233,7 @@ public class BinaryAccessTest extends AbstractRepositoryTest {
 
         @Override
         public @Nullable URI getDownloadURI(@NotNull Blob blob,
-                                            @NotNull BlobDownloadOptions blobDownloadOptions) {
+            @NotNull BlobDownloadOptions blobDownloadOptions) {
             URI uri = cdnDownloadURI();
             if (null == uri || blobDownloadOptions.isDomainOverrideIgnored()) {
                 uri = expectedDownloadURI();
@@ -239,7 +244,8 @@ public class BinaryAccessTest extends AbstractRepositoryTest {
 
     private BinaryDownload setupBinaryDownloadTest() throws RepositoryException {
         Content content = Content.createRandom(SEGMENT_INLINE_SIZE * 2);
-        Binary binary = BinaryAccessTestUtils.storeBinaryAndRetrieve(getAdminSession(), FILE_PATH, content);
+        Binary binary = BinaryAccessTestUtils.storeBinaryAndRetrieve(getAdminSession(), FILE_PATH,
+            content);
 
         assertTrue(binary instanceof BinaryDownload);
 
@@ -257,8 +263,7 @@ public class BinaryAccessTest extends AbstractRepositoryTest {
             // we only need test that the we get a URI back (from our mock) to validate oak-jcr's inner workings
             assertNotNull(uri);
             assertEquals(expectedDownloadURI(), uri);
-        }
-        finally {
+        } finally {
             lock.unlock();
         }
     }
@@ -281,8 +286,7 @@ public class BinaryAccessTest extends AbstractRepositoryTest {
             // we only need test that the we get a URI back (from our mock) to validate oak-jcr's inner workings
             assertNotNull(uri);
             assertEquals(toURI(ALT_CDN_DOWNLOAD_URL), uri);
-        }
-        finally {
+        } finally {
             lock.unlock();
         }
     }
@@ -297,7 +301,8 @@ public class BinaryAccessTest extends AbstractRepositoryTest {
             URI uri = null;
             try {
                 CDN_DOWNLOAD_URL = ALT_CDN_DOWNLOAD_URL;
-                uri = binaryDownload.getURI(BinaryDownloadOptions.builder().withDomainOverrideIgnored(true).build());
+                uri = binaryDownload.getURI(
+                    BinaryDownloadOptions.builder().withDomainOverrideIgnored(true).build());
             } finally {
                 CDN_DOWNLOAD_URL = cdnUrlBefore;
             }
@@ -305,8 +310,7 @@ public class BinaryAccessTest extends AbstractRepositoryTest {
             // we only need test that the we get a URI back (from our mock) to validate oak-jcr's inner workings
             assertNotNull(uri);
             assertEquals(expectedDownloadURI(), uri);
-        }
-        finally {
+        } finally {
             lock.unlock();
         }
     }
@@ -344,8 +348,7 @@ public class BinaryAccessTest extends AbstractRepositoryTest {
 
             binary = BinaryAccessTestUtils.getBinary(getAdminSession(), FILE_PATH);
             content.assertEqualsWith(binary.getStream());
-        }
-        finally {
+        } finally {
             lock.unlock();
         }
     }
@@ -376,8 +379,7 @@ public class BinaryAccessTest extends AbstractRepositoryTest {
             assertNotNull(binaryUpload);
             assertNotNull(uploadUri);
             assertEquals(toURI(ALT_CDN_UPLOAD_URL), uploadUri);
-        }
-        finally {
+        } finally {
             lock.unlock();
         }
     }
@@ -400,7 +402,7 @@ public class BinaryAccessTest extends AbstractRepositoryTest {
                 JackrabbitValueFactory valueFactory = (JackrabbitValueFactory) vf;
 
                 binaryUpload = valueFactory.initiateBinaryUpload(content.size(), 1,
-                        BinaryUploadOptions.builder().withDomainOverrideIgnore(true).build());
+                    BinaryUploadOptions.builder().withDomainOverrideIgnore(true).build());
                 uploadUri = binaryUpload.getUploadURIs().iterator().next();
             } finally {
                 CDN_UPLOAD_URL = cdnUrlBefore;
@@ -409,8 +411,7 @@ public class BinaryAccessTest extends AbstractRepositoryTest {
             assertNotNull(binaryUpload);
             assertNotNull(uploadUri);
             assertEquals(expectedUploadURI(), uploadUri);
-        }
-        finally {
+        } finally {
             lock.unlock();
         }
     }
@@ -420,11 +421,13 @@ public class BinaryAccessTest extends AbstractRepositoryTest {
         try {
             lock.lock();
 
-            BinaryAccessTestUtils.storeBinaryAndRetrieve(getAdminSession(), FILE_PATH, Content.createRandom(0));
+            BinaryAccessTestUtils.storeBinaryAndRetrieve(getAdminSession(), FILE_PATH,
+                Content.createRandom(0));
 
             ObservationManager obsMgr = getAdminSession().getWorkspace().getObservationManager();
             EventResult result = new EventResult(new LogPrintWriter(LOG));
-            obsMgr.addEventListener(result, Event.PROPERTY_CHANGED, FILE_PATH, true, null, null, false);
+            obsMgr.addEventListener(result, Event.PROPERTY_CHANGED, FILE_PATH, true, null, null,
+                false);
 
             Content content = Content.createRandom(SEGMENT_INLINE_SIZE * 2);
             BinaryAccessTestUtils.storeBinaryAndRetrieve(getAdminSession(), FILE_PATH, content);
@@ -445,8 +448,7 @@ public class BinaryAccessTest extends AbstractRepositoryTest {
 
             assertNotNull(uri);
             assertEquals(expectedDownloadURI(), uri);
-        }
-        finally {
+        } finally {
             lock.unlock();
         }
     }
@@ -462,7 +464,8 @@ public class BinaryAccessTest extends AbstractRepositoryTest {
             ValueFactory vf = session.getValueFactory();
 
             Content content = Content.createRandom(SEGMENT_INLINE_SIZE * 2);
-            Binary binary = BinaryAccessTestUtils.storeBinaryAndRetrieve(getAdminSession(), FILE_PATH, content);
+            Binary binary = BinaryAccessTestUtils.storeBinaryAndRetrieve(getAdminSession(),
+                FILE_PATH, content);
 
             Authorizable auth = userMgr.getAuthorizable(session.getUserID());
             assertNotNull(auth);
@@ -486,8 +489,7 @@ public class BinaryAccessTest extends AbstractRepositoryTest {
 
             assertNotNull(uri);
             assertEquals(expectedDownloadURI(), uri);
-        }
-        finally {
+        } finally {
             lock.unlock();
         }
     }

@@ -20,10 +20,10 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ServiceLoader;
-
 import javax.jcr.RepositoryException;
-
 import org.apache.jackrabbit.core.RepositoryContext;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
@@ -35,9 +35,6 @@ import org.apache.jackrabbit.oak.upgrade.cli.parser.DatastoreArguments;
 import org.apache.jackrabbit.oak.upgrade.cli.parser.MigrationOptions;
 import org.apache.jackrabbit.oak.upgrade.cli.parser.StoreArguments;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.io.Closer;
-
 public class MigrationFactory {
 
     protected final MigrationOptions options;
@@ -48,14 +45,16 @@ public class MigrationFactory {
 
     protected final Closer closer;
 
-    public MigrationFactory(MigrationOptions options, StoreArguments stores, DatastoreArguments datastores, Closer closer) {
+    public MigrationFactory(MigrationOptions options, StoreArguments stores,
+        DatastoreArguments datastores, Closer closer) {
         this.options = options;
         this.stores = stores;
         this.datastores = datastores;
         this.closer = closer;
     }
 
-    public RepositoryUpgrade createUpgrade() throws IOException, RepositoryException, CliArgumentException {
+    public RepositoryUpgrade createUpgrade()
+        throws IOException, RepositoryException, CliArgumentException {
         RepositoryContext src = stores.getSrcStore().create(closer);
         BlobStore srcBlobStore = new DataStoreBlobStore(src.getDataStore());
         NodeStore dstStore = createTarget(closer, srcBlobStore);
@@ -77,7 +76,8 @@ public class MigrationFactory {
 
     protected RepositoryUpgrade createUpgrade(RepositoryContext source, NodeStore dstStore) {
         RepositoryUpgrade upgrade = new RepositoryUpgrade(source, dstStore);
-        upgrade.setCopyBinariesByReference(datastores.getBlobMigrationCase() == DatastoreArguments.BlobMigrationCase.COPY_REFERENCES);
+        upgrade.setCopyBinariesByReference(datastores.getBlobMigrationCase()
+            == DatastoreArguments.BlobMigrationCase.COPY_REFERENCES);
         upgrade.setCopyVersions(options.getCopyVersions());
         upgrade.setCopyOrphanedVersions(options.getCopyOrphanedVersions());
         if (options.getIncludePaths() != null) {
@@ -90,7 +90,8 @@ public class MigrationFactory {
             upgrade.setMerges(options.getMergePaths());
         }
         upgrade.setFilterLongNames(!stores.getDstType().isSupportLongNames());
-        upgrade.setCheckLongNames(!options.isSkipNameCheck() && !stores.getDstType().isSupportLongNames());
+        upgrade.setCheckLongNames(
+            !options.isSkipNameCheck() && !stores.getDstType().isSupportLongNames());
         upgrade.setSkipOnError(!options.isFailOnError());
         upgrade.setEarlyShutdown(options.isEarlyShutdown());
         upgrade.setSkipInitialization(options.isSkipInitialization());
@@ -111,7 +112,8 @@ public class MigrationFactory {
         if (options.getMergePaths() != null) {
             sidegrade.setMerges(options.getMergePaths());
         }
-        sidegrade.setFilterLongNames(stores.getSrcType().isSupportLongNames() && !stores.getDstType().isSupportLongNames());
+        sidegrade.setFilterLongNames(
+            stores.getSrcType().isSupportLongNames() && !stores.getDstType().isSupportLongNames());
         sidegrade.setVerify(options.isVerify());
         sidegrade.setOnlyVerify(options.isOnlyVerify());
         sidegrade.setSkipCheckpoints(options.isSkipCheckpoints());
@@ -124,7 +126,8 @@ public class MigrationFactory {
     private List<CommitHook> loacCommitHooks() {
         ServiceLoader<CommitHook> loader = ServiceLoader.load(CommitHook.class);
         Iterator<CommitHook> iterator = loader.iterator();
-        ImmutableList.Builder<CommitHook> builder = ImmutableList.<CommitHook> builder().addAll(iterator);
+        ImmutableList.Builder<CommitHook> builder = ImmutableList.<CommitHook>builder()
+                                                                 .addAll(iterator);
         return builder.build();
     }
 

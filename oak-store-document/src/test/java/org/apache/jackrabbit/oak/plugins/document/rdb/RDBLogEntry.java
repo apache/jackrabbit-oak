@@ -43,7 +43,8 @@ public class RDBLogEntry {
     }
 
     public String toString() {
-        return String.format("%d %6d %s %s", this.start / 1000, this.duration / 1000, this.caller, this.message);
+        return String.format("%d %6d %s %s", this.start / 1000, this.duration / 1000, this.caller,
+            this.message);
     }
 
     public static void DUMP(PrintStream out, List<RDBLogEntry> log) {

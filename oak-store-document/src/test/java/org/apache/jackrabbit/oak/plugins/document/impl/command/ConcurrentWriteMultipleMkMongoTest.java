@@ -31,7 +31,7 @@ import org.junit.Test;
  * Tests for multiple MongoMKs writing against the same DB in separate trees.
  */
 public class ConcurrentWriteMultipleMkMongoTest extends
-        AbstractMongoConnectionTest {
+    AbstractMongoConnectionTest {
 
     @Test
     public void testSmall() throws Exception {
@@ -55,7 +55,7 @@ public class ConcurrentWriteMultipleMkMongoTest extends
         List<DocumentMK> mks = new ArrayList<DocumentMK>();
         for (int i = 0; i < numberOfMks; i++) {
             String diff = buildPyramidDiff("/", 0, numberOfChildren,
-                    numberOfNodes, prefixes[i], new StringBuilder()).toString();
+                numberOfNodes, prefixes[i], new StringBuilder()).toString();
             DocumentMK mk = new DocumentMK.Builder().open();
             mks.add(mk);
             GenericWriteTask task = new GenericWriteTask("mk-" + i, mk, diff, 10);
@@ -69,8 +69,8 @@ public class ConcurrentWriteMultipleMkMongoTest extends
     }
 
     private StringBuilder buildPyramidDiff(String startingPoint,
-            int index, int numberOfChildren, long nodesNumber,
-            String nodePrefixName, StringBuilder diff) {
+        int index, int numberOfChildren, long nodesNumber,
+        String nodePrefixName, StringBuilder diff) {
         if (numberOfChildren == 0) {
             for (long i = 0; i < nodesNumber; i++) {
                 diff.append(addNodeToDiff(startingPoint, nodePrefixName + i));
@@ -89,7 +89,7 @@ public class ConcurrentWriteMultipleMkMongoTest extends
             }
             buildPyramidDiff(startingPoint + nodePrefixName + index, index
                     * numberOfChildren + i, numberOfChildren, nodesNumber,
-                    nodePrefixName, diff);
+                nodePrefixName, diff);
         }
         return diff;
     }
@@ -112,7 +112,7 @@ public class ConcurrentWriteMultipleMkMongoTest extends
         private int nodesPerCommit;
 
         public GenericWriteTask(String id, DocumentMK mk, String diff,
-                int nodesPerCommit) {
+            int nodesPerCommit) {
             this.id = id;
             this.mk = mk;
             this.diff = diff;

@@ -24,14 +24,11 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.nodetype.NodeType;
-
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.junit.After;
 import org.junit.Before;
@@ -82,7 +79,7 @@ public class ConcurrentAddReferenceTest extends AbstractRepositoryTest {
         for (int i = 0; i < NUM_WORKERS; i++) {
             String path = testRoot.addNode("node" + i).getPath();
             worker.add(new Thread(new Worker(
-                    createAdminSession(), path, exceptions)));
+                createAdminSession(), path, exceptions)));
         }
         getAdminSession().save();
         for (Thread t : worker) {

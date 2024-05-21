@@ -16,15 +16,15 @@
  */
 package org.apache.jackrabbit.oak.spi.security;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.spi.commit.MoveTracker;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
 
 public class SecurityConfigurationTest {
 
@@ -63,7 +63,9 @@ public class SecurityConfigurationTest {
 
     @Test
     public void testGetValidators() {
-        assertTrue(configuration.getValidators("workspaceName", ImmutableSet.of(), new MoveTracker()).isEmpty());
+        assertTrue(
+            configuration.getValidators("workspaceName", ImmutableSet.of(), new MoveTracker())
+                         .isEmpty());
     }
 
     @Test

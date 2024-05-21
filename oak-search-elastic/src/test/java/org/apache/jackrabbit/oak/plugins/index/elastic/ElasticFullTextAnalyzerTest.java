@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
+import java.util.List;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -27,13 +28,11 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.slf4j.event.Level;
 
-import java.util.List;
-
 public class ElasticFullTextAnalyzerTest extends FullTextAnalyzerCommonTest {
 
     @ClassRule
     public static final ElasticConnectionRule elasticRule =
-            new ElasticConnectionRule(ElasticTestUtils.ELASTIC_CONNECTION_STRING);
+        new ElasticConnectionRule(ElasticTestUtils.ELASTIC_CONNECTION_STRING);
 
     public ElasticFullTextAnalyzerTest() {
         this.indexOptions = new ElasticIndexOptions();
@@ -52,17 +51,24 @@ public class ElasticFullTextAnalyzerTest extends FullTextAnalyzerCommonTest {
 
     @Override
     protected LogCustomizer setupLogCustomizer() {
-        return LogCustomizer.forLogger(ElasticResultRowAsyncIterator.class.getName()).enable(Level.ERROR).create();
+        return LogCustomizer.forLogger(ElasticResultRowAsyncIterator.class.getName())
+                            .enable(Level.ERROR).create();
     }
 
     @Override
     protected List<String> getExpectedLogMessage() {
-        String log1 = "Error while fetching results from Elastic for [Filter(query=select [jcr:path], [jcr:score]," +
-                " * from [nt:base] as a where contains([analyzed_field], 'foo}') /* xpath: //*[jcr:contains(@analyzed_field, 'foo}')]" +
+        String log1 =
+            "Error while fetching results from Elastic for [Filter(query=select [jcr:path], [jcr:score],"
+                +
+                " * from [nt:base] as a where contains([analyzed_field], 'foo}') /* xpath: //*[jcr:contains(@analyzed_field, 'foo}')]"
+                +
                 " */ fullText=analyzed_field:\"foo}\", path=*)]";
 
-        String log2 = "Error while fetching results from Elastic for [Filter(query=select [jcr:path], [jcr:score]," +
-                " * from [nt:base] as a where contains([analyzed_field], 'foo]') /* xpath: //*[jcr:contains(@analyzed_field, 'foo]')]" +
+        String log2 =
+            "Error while fetching results from Elastic for [Filter(query=select [jcr:path], [jcr:score],"
+                +
+                " * from [nt:base] as a where contains([analyzed_field], 'foo]') /* xpath: //*[jcr:contains(@analyzed_field, 'foo]')]"
+                +
                 " */ fullText=analyzed_field:\"foo]\", path=*)]";
 
         return List.of(log1, log2);
@@ -74,7 +80,8 @@ public class ElasticFullTextAnalyzerTest extends FullTextAnalyzerCommonTest {
      */
     public void fulltextSearchWithBuiltInAnalyzerName() throws Exception {
         setup(List.of("foo"), idx -> {
-            Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
+            Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS)
+                          .addChild(FulltextIndexConstants.ANL_DEFAULT);
             anl.setProperty(FulltextIndexConstants.ANL_NAME, "german");
         });
 
@@ -83,13 +90,15 @@ public class ElasticFullTextAnalyzerTest extends FullTextAnalyzerCommonTest {
         root.commit();
 
         // standard german analyzer stems verbs (springen -> spring)
-        assertEventually(() -> assertQuery("select * from [nt:base] where CONTAINS(*, 'spring')", List.of("/content")));
+        assertEventually(() -> assertQuery("select * from [nt:base] where CONTAINS(*, 'spring')",
+            List.of("/content")));
     }
 
     @Test(expected = RuntimeException.class)
     public void fulltextSearchWithNotExistentAnalyzerName() throws Exception {
         setup(List.of("foo"), idx -> {
-            Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
+            Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS)
+                          .addChild(FulltextIndexConstants.ANL_DEFAULT);
             anl.setProperty(FulltextIndexConstants.ANL_NAME, "this_does_not_exists");
         });
     }
@@ -100,8 +109,10 @@ public class ElasticFullTextAnalyzerTest extends FullTextAnalyzerCommonTest {
      */
     public void fulltextSearchWithAdvancedLanguageBasedStemmer() throws Exception {
         setup(List.of("foo"), idx -> {
-            Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
-            anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
+            Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS)
+                          .addChild(FulltextIndexConstants.ANL_DEFAULT);
+            anl.addChild(FulltextIndexConstants.ANL_TOKENIZER)
+               .setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
 
             Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
             addFilter(filters, "LowerCase");
@@ -114,7 +125,8 @@ public class ElasticFullTextAnalyzerTest extends FullTextAnalyzerCommonTest {
         content.addChild("baz").setProperty("foo", "other text");
         root.commit();
 
-        assertEventually(() -> assertQuery("select * from [nt:base] where CONTAINS(*, 'edeel')", List.of("/content/bar")));
+        assertEventually(() -> assertQuery("select * from [nt:base] where CONTAINS(*, 'edeel')",
+            List.of("/content/bar")));
     }
 
     // these filters are only available in elastic
@@ -122,8 +134,10 @@ public class ElasticFullTextAnalyzerTest extends FullTextAnalyzerCommonTest {
     @Test
     public void fulltextSearchWithApostropheFilter() throws Exception {
         setup(List.of("foo"), idx -> {
-            Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
-            anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
+            Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS)
+                          .addChild(FulltextIndexConstants.ANL_DEFAULT);
+            anl.addChild(FulltextIndexConstants.ANL_TOKENIZER)
+               .setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
 
             Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
             addFilter(filters, "Apostrophe");
@@ -134,20 +148,23 @@ public class ElasticFullTextAnalyzerTest extends FullTextAnalyzerCommonTest {
         content.addChild("baz").setProperty("foo", "some other content");
         root.commit();
 
-        assertEventually(() -> assertQuery("select * from [nt:base] where CONTAINS(*, 'oak')", List.of("/content/bar")));
+        assertEventually(() -> assertQuery("select * from [nt:base] where CONTAINS(*, 'oak')",
+            List.of("/content/bar")));
     }
 
     @Test
     public void fulltextSearchWithDictionaryDecompounderFilter() throws Exception {
         setup(List.of("foo"), idx -> {
-            Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
-            anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
+            Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS)
+                          .addChild(FulltextIndexConstants.ANL_DEFAULT);
+            anl.addChild(FulltextIndexConstants.ANL_TOKENIZER)
+               .setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
 
             Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
             Tree dd = addFilter(filters, "dictionary_decompounder");
             dd.setProperty("word_list", "words.txt");
             dd.addChild("words.txt").addChild(JcrConstants.JCR_CONTENT)
-                    .setProperty(JcrConstants.JCR_DATA, "Donau\ndampf\nmeer\nschiff");
+              .setProperty(JcrConstants.JCR_DATA, "Donau\ndampf\nmeer\nschiff");
         });
 
         Tree content = root.getTree("/").addChild("content");
@@ -156,7 +173,8 @@ public class ElasticFullTextAnalyzerTest extends FullTextAnalyzerCommonTest {
         root.commit();
 
         assertEventually(() -> {
-            assertQuery("select * from [nt:base] where CONTAINS(*, 'dampf')", List.of("/content/bar"));
+            assertQuery("select * from [nt:base] where CONTAINS(*, 'dampf')",
+                List.of("/content/bar"));
             assertQuery("select * from [nt:base] where CONTAINS(*, 'damp')", List.of());
         });
     }
@@ -164,8 +182,10 @@ public class ElasticFullTextAnalyzerTest extends FullTextAnalyzerCommonTest {
     @Test
     public void fulltextSearchWithFingerprintFilter() throws Exception {
         setup(List.of("foo"), idx -> {
-            Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
-            anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
+            Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS)
+                          .addChild(FulltextIndexConstants.ANL_DEFAULT);
+            anl.addChild(FulltextIndexConstants.ANL_TOKENIZER)
+               .setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
 
             Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
             Tree dd = addFilter(filters, "fingerprint");
@@ -178,7 +198,8 @@ public class ElasticFullTextAnalyzerTest extends FullTextAnalyzerCommonTest {
         root.commit();
 
         assertEventually(() -> {
-            assertQuery("select * from [nt:base] where CONTAINS(*, 'here')", List.of("/content/bar"));
+            assertQuery("select * from [nt:base] where CONTAINS(*, 'here')",
+                List.of("/content/bar"));
             assertQuery("select * from [nt:base] where CONTAINS(*, 'other')", List.of());
         });
     }
@@ -186,8 +207,10 @@ public class ElasticFullTextAnalyzerTest extends FullTextAnalyzerCommonTest {
     @Test
     public void fulltextSearchWithKeepTypes() throws Exception {
         setup(List.of("foo"), idx -> {
-            Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
-            anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
+            Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS)
+                          .addChild(FulltextIndexConstants.ANL_DEFAULT);
+            anl.addChild(FulltextIndexConstants.ANL_TOKENIZER)
+               .setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
 
             Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
             Tree kt = addFilter(filters, "keep_types");
@@ -208,8 +231,10 @@ public class ElasticFullTextAnalyzerTest extends FullTextAnalyzerCommonTest {
     @Test
     public void fulltextSearchWithMinHash() throws Exception {
         setup(List.of("foo"), idx -> {
-            Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
-            anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
+            Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS)
+                          .addChild(FulltextIndexConstants.ANL_DEFAULT);
+            anl.addChild(FulltextIndexConstants.ANL_TOKENIZER)
+               .setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
 
             Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
             Tree mh = addFilter(filters, "min_hash");
@@ -237,8 +262,10 @@ public class ElasticFullTextAnalyzerTest extends FullTextAnalyzerCommonTest {
     @Test
     public void fulltextSearchWithSnowball() throws Exception {
         setup(List.of("foo"), idx -> {
-            Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
-            anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
+            Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS)
+                          .addChild(FulltextIndexConstants.ANL_DEFAULT);
+            anl.addChild(FulltextIndexConstants.ANL_TOKENIZER)
+               .setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
 
             Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
             Tree snowball = addFilter(filters, "SnowballPorter");
@@ -250,7 +277,8 @@ public class ElasticFullTextAnalyzerTest extends FullTextAnalyzerCommonTest {
         content.addChild("baz").setProperty("foo", "altro testo");
         root.commit();
 
-        assertEventually(() -> assertQuery("select * from [nt:base] where CONTAINS(*, 'mangiare')", List.of("/content/bar")));
+        assertEventually(() -> assertQuery("select * from [nt:base] where CONTAINS(*, 'mangiare')",
+            List.of("/content/bar")));
     }
 
 }

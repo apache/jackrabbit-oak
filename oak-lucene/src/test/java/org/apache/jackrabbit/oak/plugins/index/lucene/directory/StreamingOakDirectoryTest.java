@@ -19,6 +19,11 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
+import static org.apache.jackrabbit.oak.api.Type.BINARY;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.OakDirectory.UNIQUE_KEY_SIZE;
+import static org.junit.Assert.assertEquals;
+
+import java.util.HashMap;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.StringUtils;
@@ -26,13 +31,8 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 
-import java.util.HashMap;
-
-import static org.apache.jackrabbit.oak.api.Type.BINARY;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.OakDirectory.UNIQUE_KEY_SIZE;
-import static org.junit.Assert.assertEquals;
-
 public class StreamingOakDirectoryTest extends OakDirectoryTestBase {
+
     @Override
     void assertBlobSizeInWrite(PropertyState jcrData, int blobSize, int fileSize) {
         Blob blob = jcrData.getValue(BINARY);
@@ -40,7 +40,8 @@ public class StreamingOakDirectoryTest extends OakDirectoryTestBase {
     }
 
     @Override
-    OakDirectoryBuilder getOakDirectoryBuilder(NodeBuilder builder, LuceneIndexDefinition indexDefinition) {
+    OakDirectoryBuilder getOakDirectoryBuilder(NodeBuilder builder,
+        LuceneIndexDefinition indexDefinition) {
         return new OakDirectoryBuilder(builder, indexDefinition, true);
     }
 
@@ -50,6 +51,7 @@ public class StreamingOakDirectoryTest extends OakDirectoryTestBase {
     }
 
     private static class BlackHoleBlobStoreForLargeBlobs extends MemoryBlobStore {
+
         private HashMap<String, Integer> map = new HashMap<>();
 
         @Override

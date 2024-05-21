@@ -66,48 +66,69 @@ public class ReadablePathsAccessControlTest extends AbstractPrincipalBasedTest {
         acMgr = new PrincipalBasedAccessControlManager(getMgrProvider(root), getFilterProvider());
 
         testPrincipal = getTestSystemUser().getPrincipal();
-        Set<String> paths = getConfig(AuthorizationConfiguration.class).getParameters().getConfigValue(PermissionConstants.PARAM_READ_PATHS, PermissionConstants.DEFAULT_READ_PATHS);
+        Set<String> paths = getConfig(AuthorizationConfiguration.class).getParameters()
+                                                                       .getConfigValue(
+                                                                           PermissionConstants.PARAM_READ_PATHS,
+                                                                           PermissionConstants.DEFAULT_READ_PATHS);
         assertFalse(paths.isEmpty());
 
-        readablePaths = Iterators.cycle(Iterables.transform(paths, f -> getNamePathMapper().getJcrPath(f)));
+        readablePaths = Iterators.cycle(
+            Iterables.transform(paths, f -> getNamePathMapper().getJcrPath(f)));
         Set<String> childPaths = Sets.newHashSet();
         for (String path : paths) {
-            Iterables.addAll(childPaths, Iterables.transform(root.getTree(path).getChildren(), tree -> getNamePathMapper().getJcrPath(tree.getPath())));
+            Iterables.addAll(childPaths, Iterables.transform(root.getTree(path).getChildren(),
+                tree -> getNamePathMapper().getJcrPath(tree.getPath())));
         }
         readableChildPaths = Iterators.cycle(childPaths);
     }
 
     private Subject getTestSubject() {
-        return new Subject(true, Collections.singleton(testPrincipal), ImmutableSet.of(), ImmutableSet.of());
+        return new Subject(true, Collections.singleton(testPrincipal), ImmutableSet.of(),
+            ImmutableSet.of());
     }
 
     @Test
     public void testHasPrivilege() throws Exception {
-        try (ContentSession cs = Subject.doAsPrivileged(getTestSubject(), (PrivilegedExceptionAction<ContentSession>) () -> getContentRepository().login(null, null), null)) {
-            PrincipalBasedAccessControlManager testAcMgr = new PrincipalBasedAccessControlManager(getMgrProvider(cs.getLatestRoot()), getFilterProvider());
+        try (ContentSession cs = Subject.doAsPrivileged(getTestSubject(),
+            (PrivilegedExceptionAction<ContentSession>) () -> getContentRepository().login(null,
+                null), null)) {
+            PrincipalBasedAccessControlManager testAcMgr = new PrincipalBasedAccessControlManager(
+                getMgrProvider(cs.getLatestRoot()), getFilterProvider());
 
             Set<Principal> principals = Collections.singleton(testPrincipal);
 
-            assertTrue(testAcMgr.hasPrivileges(readablePaths.next(), principals, privilegesFromNames(JCR_READ)));
-            assertTrue(testAcMgr.hasPrivileges(readablePaths.next(), principals, privilegesFromNames(REP_READ_PROPERTIES)));
+            assertTrue(testAcMgr.hasPrivileges(readablePaths.next(), principals,
+                privilegesFromNames(JCR_READ)));
+            assertTrue(testAcMgr.hasPrivileges(readablePaths.next(), principals,
+                privilegesFromNames(REP_READ_PROPERTIES)));
 
-            assertTrue(testAcMgr.hasPrivileges(readableChildPaths.next(), principals, privilegesFromNames(REP_READ_NODES)));
-            assertTrue(testAcMgr.hasPrivileges(readableChildPaths.next(), principals, privilegesFromNames(REP_READ_NODES, REP_READ_PROPERTIES)));
+            assertTrue(testAcMgr.hasPrivileges(readableChildPaths.next(), principals,
+                privilegesFromNames(REP_READ_NODES)));
+            assertTrue(testAcMgr.hasPrivileges(readableChildPaths.next(), principals,
+                privilegesFromNames(REP_READ_NODES, REP_READ_PROPERTIES)));
         }
     }
 
     @Test
     public void testNotHasPrivilege() throws Exception {
-        try (ContentSession cs = Subject.doAsPrivileged(getTestSubject(), (PrivilegedExceptionAction<ContentSession>) () -> getContentRepository().login(null, null), null)) {
-            PrincipalBasedAccessControlManager testAcMgr = new PrincipalBasedAccessControlManager(getMgrProvider(cs.getLatestRoot()), getFilterProvider());
+        try (ContentSession cs = Subject.doAsPrivileged(getTestSubject(),
+            (PrivilegedExceptionAction<ContentSession>) () -> getContentRepository().login(null,
+                null), null)) {
+            PrincipalBasedAccessControlManager testAcMgr = new PrincipalBasedAccessControlManager(
+                getMgrProvider(cs.getLatestRoot()), getFilterProvider());
 
             Set<Principal> principals = Collections.singleton(testPrincipal);
 
-            assertFalse(testAcMgr.hasPrivileges(readablePaths.next(), principals, privilegesFromNames(JCR_READ, PrivilegeConstants.JCR_READ_ACCESS_CONTROL)));
-            assertFalse(testAcMgr.hasPrivileges(readablePaths.next(), principals, privilegesFromNames(PrivilegeConstants.JCR_ALL)));
+            assertFalse(testAcMgr.hasPrivileges(readablePaths.next(), principals,
+                privilegesFromNames(JCR_READ, PrivilegeConstants.JCR_READ_ACCESS_CONTROL)));
+            assertFalse(testAcMgr.hasPrivileges(readablePaths.next(), principals,
+                privilegesFromNames(PrivilegeConstants.JCR_ALL)));
 
-            assertFalse(testAcMgr.hasPrivileges(readableChildPaths.next(), principals, privilegesFromNames(REP_READ_NODES, PrivilegeConstants.JCR_MODIFY_PROPERTIES)));
-            assertFalse(testAcMgr.hasPrivileges(readableChildPaths.next(), principals, privilegesFromNames(REP_READ_NODES, REP_READ_PROPERTIES, PrivilegeConstants.JCR_NAMESPACE_MANAGEMENT)));
+            assertFalse(testAcMgr.hasPrivileges(readableChildPaths.next(), principals,
+                privilegesFromNames(REP_READ_NODES, PrivilegeConstants.JCR_MODIFY_PROPERTIES)));
+            assertFalse(testAcMgr.hasPrivileges(readableChildPaths.next(), principals,
+                privilegesFromNames(REP_READ_NODES, REP_READ_PROPERTIES,
+                    PrivilegeConstants.JCR_NAMESPACE_MANAGEMENT)));
         }
     }
 
@@ -115,32 +136,45 @@ public class ReadablePathsAccessControlTest extends AbstractPrincipalBasedTest {
     public void testHasPrivilegePrincipal() throws Exception {
         Set<Principal> principals = Collections.singleton(testPrincipal);
 
-        assertTrue(acMgr.hasPrivileges(readablePaths.next(), principals, privilegesFromNames(JCR_READ)));
-        assertTrue(acMgr.hasPrivileges(readablePaths.next(), principals, privilegesFromNames(REP_READ_PROPERTIES)));
+        assertTrue(
+            acMgr.hasPrivileges(readablePaths.next(), principals, privilegesFromNames(JCR_READ)));
+        assertTrue(acMgr.hasPrivileges(readablePaths.next(), principals,
+            privilegesFromNames(REP_READ_PROPERTIES)));
 
-        assertTrue(acMgr.hasPrivileges(readableChildPaths.next(), principals, privilegesFromNames(REP_READ_NODES)));
-        assertTrue(acMgr.hasPrivileges(readableChildPaths.next(), principals, privilegesFromNames(REP_READ_NODES, REP_READ_PROPERTIES)));
+        assertTrue(acMgr.hasPrivileges(readableChildPaths.next(), principals,
+            privilegesFromNames(REP_READ_NODES)));
+        assertTrue(acMgr.hasPrivileges(readableChildPaths.next(), principals,
+            privilegesFromNames(REP_READ_NODES, REP_READ_PROPERTIES)));
     }
 
     @Test
     public void testNotHasPrivilegePrincipal() throws Exception {
         Set<Principal> principals = Collections.singleton(testPrincipal);
 
-        assertFalse(acMgr.hasPrivileges(readablePaths.next(), principals, privilegesFromNames(JCR_READ, PrivilegeConstants.JCR_MODIFY_PROPERTIES)));
-        assertFalse(acMgr.hasPrivileges(readablePaths.next(), principals, privilegesFromNames(PrivilegeConstants.JCR_ALL)));
+        assertFalse(acMgr.hasPrivileges(readablePaths.next(), principals,
+            privilegesFromNames(JCR_READ, PrivilegeConstants.JCR_MODIFY_PROPERTIES)));
+        assertFalse(acMgr.hasPrivileges(readablePaths.next(), principals,
+            privilegesFromNames(PrivilegeConstants.JCR_ALL)));
 
-        assertFalse(acMgr.hasPrivileges(readableChildPaths.next(), principals, privilegesFromNames(REP_READ_NODES, PrivilegeConstants.JCR_READ_ACCESS_CONTROL)));
-        assertFalse(acMgr.hasPrivileges(readableChildPaths.next(), principals, privilegesFromNames(PrivilegeConstants.JCR_VERSION_MANAGEMENT, REP_READ_PROPERTIES)));
+        assertFalse(acMgr.hasPrivileges(readableChildPaths.next(), principals,
+            privilegesFromNames(REP_READ_NODES, PrivilegeConstants.JCR_READ_ACCESS_CONTROL)));
+        assertFalse(acMgr.hasPrivileges(readableChildPaths.next(), principals,
+            privilegesFromNames(PrivilegeConstants.JCR_VERSION_MANAGEMENT, REP_READ_PROPERTIES)));
 
         assertFalse(acMgr.hasPrivileges(ROOT_PATH, principals, privilegesFromNames(JCR_READ)));
-        String systemPath = getNamePathMapper().getJcrPath(PathUtils.concat(ROOT_PATH, JcrConstants.JCR_SYSTEM));
-        assertFalse(acMgr.hasPrivileges(systemPath, principals, privilegesFromNames(REP_READ_PROPERTIES)));
+        String systemPath = getNamePathMapper().getJcrPath(
+            PathUtils.concat(ROOT_PATH, JcrConstants.JCR_SYSTEM));
+        assertFalse(
+            acMgr.hasPrivileges(systemPath, principals, privilegesFromNames(REP_READ_PROPERTIES)));
     }
 
     @Test
     public void testGetPrivileges() throws Exception {
-        try (ContentSession cs = Subject.doAsPrivileged(getTestSubject(), (PrivilegedExceptionAction<ContentSession>) () -> getContentRepository().login(null, null), null)) {
-            PrincipalBasedAccessControlManager testAcMgr = new PrincipalBasedAccessControlManager(getMgrProvider(cs.getLatestRoot()), getFilterProvider());
+        try (ContentSession cs = Subject.doAsPrivileged(getTestSubject(),
+            (PrivilegedExceptionAction<ContentSession>) () -> getContentRepository().login(null,
+                null), null)) {
+            PrincipalBasedAccessControlManager testAcMgr = new PrincipalBasedAccessControlManager(
+                getMgrProvider(cs.getLatestRoot()), getFilterProvider());
 
             Privilege[] expected = privilegesFromNames(JCR_READ);
 
@@ -151,8 +185,11 @@ public class ReadablePathsAccessControlTest extends AbstractPrincipalBasedTest {
 
     @Test(expected = PathNotFoundException.class)
     public void testGetPrivilegesAtRoot() throws Exception {
-        try (ContentSession cs = Subject.doAsPrivileged(getTestSubject(), (PrivilegedExceptionAction<ContentSession>) () -> getContentRepository().login(null, null), null)) {
-            PrincipalBasedAccessControlManager testAcMgr = new PrincipalBasedAccessControlManager(getMgrProvider(cs.getLatestRoot()), getFilterProvider());
+        try (ContentSession cs = Subject.doAsPrivileged(getTestSubject(),
+            (PrivilegedExceptionAction<ContentSession>) () -> getContentRepository().login(null,
+                null), null)) {
+            PrincipalBasedAccessControlManager testAcMgr = new PrincipalBasedAccessControlManager(
+                getMgrProvider(cs.getLatestRoot()), getFilterProvider());
             testAcMgr.getPrivileges(ROOT_PATH);
         }
     }
@@ -166,13 +203,15 @@ public class ReadablePathsAccessControlTest extends AbstractPrincipalBasedTest {
         assertArrayEquals(expected, acMgr.getPrivileges(readableChildPaths.next(), principals));
 
         assertEquals(0, acMgr.getPrivileges(ROOT_PATH, principals).length);
-        assertEquals(0, acMgr.getPrivileges(PathUtils.concat(ROOT_PATH, getNamePathMapper().getJcrName(JcrConstants.JCR_SYSTEM)), principals).length);
+        assertEquals(0, acMgr.getPrivileges(
+            PathUtils.concat(ROOT_PATH, getNamePathMapper().getJcrName(JcrConstants.JCR_SYSTEM)),
+            principals).length);
 
     }
 
     @Test
     public void testGetEffectivePolicies() throws Exception {
-        AccessControlPolicy[] expected = new AccessControlPolicy[] {ReadPolicy.INSTANCE};
+        AccessControlPolicy[] expected = new AccessControlPolicy[]{ReadPolicy.INSTANCE};
 
         assertArrayEquals(expected, acMgr.getEffectivePolicies(readablePaths.next()));
         assertArrayEquals(expected, acMgr.getEffectivePolicies(readableChildPaths.next()));
@@ -185,8 +224,11 @@ public class ReadablePathsAccessControlTest extends AbstractPrincipalBasedTest {
 
     @Test(expected = AccessDeniedException.class)
     public void testGetEffectivePoliciesLimitedAccess() throws Exception {
-        try (ContentSession cs = Subject.doAsPrivileged(getTestSubject(), (PrivilegedExceptionAction<ContentSession>) () -> getContentRepository().login(null, null), null)) {
-            PrincipalBasedAccessControlManager testAcMgr = new PrincipalBasedAccessControlManager(getMgrProvider(cs.getLatestRoot()), getFilterProvider());
+        try (ContentSession cs = Subject.doAsPrivileged(getTestSubject(),
+            (PrivilegedExceptionAction<ContentSession>) () -> getContentRepository().login(null,
+                null), null)) {
+            PrincipalBasedAccessControlManager testAcMgr = new PrincipalBasedAccessControlManager(
+                getMgrProvider(cs.getLatestRoot()), getFilterProvider());
             testAcMgr.getEffectivePolicies(readablePaths.next());
         }
     }
@@ -194,15 +236,21 @@ public class ReadablePathsAccessControlTest extends AbstractPrincipalBasedTest {
     @Test
     public void testGetEffectivePoliciesLimitedAccess2() throws Exception {
         String path = readablePaths.next();
-        setupPrincipalBasedAccessControl(testPrincipal, path, PrivilegeConstants.JCR_READ_ACCESS_CONTROL);
+        setupPrincipalBasedAccessControl(testPrincipal, path,
+            PrivilegeConstants.JCR_READ_ACCESS_CONTROL);
         // default: grant read-ac at root node as nodetype/namespace roots cannot have their mixin changed
-        addDefaultEntry(PathUtils.ROOT_PATH, testPrincipal, PrivilegeConstants.JCR_READ_ACCESS_CONTROL);
+        addDefaultEntry(PathUtils.ROOT_PATH, testPrincipal,
+            PrivilegeConstants.JCR_READ_ACCESS_CONTROL);
         root.commit();
 
         // test-session can read-ac at readable path but cannot access principal-based policy
-        try (ContentSession cs = Subject.doAsPrivileged(getTestSubject(), (PrivilegedExceptionAction<ContentSession>) () -> getContentRepository().login(null, null), null)) {
-            PrincipalBasedAccessControlManager testAcMgr = new PrincipalBasedAccessControlManager(getMgrProvider(cs.getLatestRoot()), getFilterProvider());
-            Set<AccessControlPolicy> effective = ImmutableSet.copyOf(testAcMgr.getEffectivePolicies(path));
+        try (ContentSession cs = Subject.doAsPrivileged(getTestSubject(),
+            (PrivilegedExceptionAction<ContentSession>) () -> getContentRepository().login(null,
+                null), null)) {
+            PrincipalBasedAccessControlManager testAcMgr = new PrincipalBasedAccessControlManager(
+                getMgrProvider(cs.getLatestRoot()), getFilterProvider());
+            Set<AccessControlPolicy> effective = ImmutableSet.copyOf(
+                testAcMgr.getEffectivePolicies(path));
 
             assertEquals(1, effective.size());
             assertTrue(effective.contains(ReadPolicy.INSTANCE));
@@ -212,16 +260,23 @@ public class ReadablePathsAccessControlTest extends AbstractPrincipalBasedTest {
     @Test
     public void testGetEffectivePoliciesLimitedAccess3() throws Exception {
         String path = readablePaths.next();
-        setupPrincipalBasedAccessControl(testPrincipal, path, PrivilegeConstants.JCR_READ_ACCESS_CONTROL);
-        setupPrincipalBasedAccessControl(testPrincipal, getTestSystemUser().getPath(), PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_READ_ACCESS_CONTROL);
+        setupPrincipalBasedAccessControl(testPrincipal, path,
+            PrivilegeConstants.JCR_READ_ACCESS_CONTROL);
+        setupPrincipalBasedAccessControl(testPrincipal, getTestSystemUser().getPath(),
+            PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_READ_ACCESS_CONTROL);
         // default: grant read and read-ac at root node to make sure both policies are accessible
-        addDefaultEntry(PathUtils.ROOT_PATH, testPrincipal, PrivilegeConstants.JCR_READ_ACCESS_CONTROL, PrivilegeConstants.JCR_READ);
+        addDefaultEntry(PathUtils.ROOT_PATH, testPrincipal,
+            PrivilegeConstants.JCR_READ_ACCESS_CONTROL, PrivilegeConstants.JCR_READ);
         root.commit();
 
         // test-session can read-ac at readable path and at principal-based policy
-        try (ContentSession cs = Subject.doAsPrivileged(getTestSubject(), (PrivilegedExceptionAction<ContentSession>) () -> getContentRepository().login(null, null), null)) {
-            PrincipalBasedAccessControlManager testAcMgr = new PrincipalBasedAccessControlManager(getMgrProvider(cs.getLatestRoot()), getFilterProvider());
-            Set<AccessControlPolicy> effective = Sets.newHashSet(testAcMgr.getEffectivePolicies(path));
+        try (ContentSession cs = Subject.doAsPrivileged(getTestSubject(),
+            (PrivilegedExceptionAction<ContentSession>) () -> getContentRepository().login(null,
+                null), null)) {
+            PrincipalBasedAccessControlManager testAcMgr = new PrincipalBasedAccessControlManager(
+                getMgrProvider(cs.getLatestRoot()), getFilterProvider());
+            Set<AccessControlPolicy> effective = Sets.newHashSet(
+                testAcMgr.getEffectivePolicies(path));
 
             assertEquals(2, effective.size());
             assertTrue(effective.remove(ReadPolicy.INSTANCE));
@@ -232,7 +287,8 @@ public class ReadablePathsAccessControlTest extends AbstractPrincipalBasedTest {
     @Test
     public void testGetEffectivePoliciesByPrincipal() throws Exception {
         // OAK-10135 : include read-policy in effective policies by principal result
-        AccessControlPolicy[] effective = acMgr.getEffectivePolicies(Collections.singleton(testPrincipal));
+        AccessControlPolicy[] effective = acMgr.getEffectivePolicies(
+            Collections.singleton(testPrincipal));
         assertEquals(1, effective.length);
         assertTrue(effective[0] instanceof ReadPolicy);
     }

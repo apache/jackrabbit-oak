@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.segment.aws;
 
 import java.io.IOException;
 import java.util.List;
-
 import org.apache.jackrabbit.oak.segment.spi.persistence.GCJournalFile;
 
 public class AwsGCJournalFile implements GCJournalFile {

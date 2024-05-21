@@ -33,12 +33,14 @@ import java.util.List;
 import java.util.Map;
 
 class ImmutablePrincipalPolicy extends ImmutableACL implements PrincipalAccessControlList {
-    
+
     private final Principal principal;
 
     private int hashCode;
 
-    public ImmutablePrincipalPolicy(@NotNull Principal principal, @NotNull String oakPath, @NotNull List<? extends PrincipalAccessControlList.Entry> entries, @NotNull RestrictionProvider restrictionProvider, @NotNull NamePathMapper namePathMapper) {
+    public ImmutablePrincipalPolicy(@NotNull Principal principal, @NotNull String oakPath,
+        @NotNull List<? extends PrincipalAccessControlList.Entry> entries,
+        @NotNull RestrictionProvider restrictionProvider, @NotNull NamePathMapper namePathMapper) {
         super(oakPath, entries, restrictionProvider, namePathMapper);
         this.principal = principal;
     }
@@ -55,12 +57,15 @@ class ImmutablePrincipalPolicy extends ImmutableACL implements PrincipalAccessCo
     }
 
     @Override
-    public boolean addEntry(@Nullable String effectivePath, @NotNull Privilege[] privileges) throws RepositoryException {
+    public boolean addEntry(@Nullable String effectivePath, @NotNull Privilege[] privileges)
+        throws RepositoryException {
         throw new AccessControlException("Immutable PrincipalAccessControlList.");
     }
 
     @Override
-    public boolean addEntry(@Nullable String effectivePath, @NotNull Privilege[] privileges, @NotNull Map<String, Value> restrictions, @NotNull Map<String, Value[]> mvRestrictions) throws RepositoryException {
+    public boolean addEntry(@Nullable String effectivePath, @NotNull Privilege[] privileges,
+        @NotNull Map<String, Value> restrictions, @NotNull Map<String, Value[]> mvRestrictions)
+        throws RepositoryException {
         throw new AccessControlException("Immutable PrincipalAccessControlList.");
     }
 
@@ -81,8 +86,8 @@ class ImmutablePrincipalPolicy extends ImmutableACL implements PrincipalAccessCo
         if (obj instanceof ImmutablePrincipalPolicy) {
             ImmutablePrincipalPolicy other = (ImmutablePrincipalPolicy) obj;
             return Objects.equal(getOakPath(), other.getOakPath())
-                    && principal.equals(other.principal)
-                    && getEntries().equals(other.getEntries());
+                && principal.equals(other.principal)
+                && getEntries().equals(other.getEntries());
         }
         return false;
     }

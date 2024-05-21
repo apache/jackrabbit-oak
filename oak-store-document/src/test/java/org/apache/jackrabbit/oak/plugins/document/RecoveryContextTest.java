@@ -33,7 +33,7 @@ public class RecoveryContextTest {
         int clusterId = 1;
 
         RevisionContext context = new RecoveryContext(doc, Clock.SIMPLE,
-                clusterId, (r, d) -> null);
+            clusterId, (r, d) -> null);
         assertEquals(clusterId, context.getClusterId());
         assertEquals(0, context.getBranches().size());
         assertThat(context.getPendingModifications().getPaths(), empty());

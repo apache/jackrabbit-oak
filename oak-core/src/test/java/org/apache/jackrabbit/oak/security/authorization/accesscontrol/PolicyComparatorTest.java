@@ -16,18 +16,17 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 
-import org.apache.jackrabbit.guava.common.primitives.Ints;
-import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
-import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.ReadPolicy;
-import org.junit.Test;
-
-import javax.jcr.security.AccessControlPolicy;
-
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+
+import javax.jcr.security.AccessControlPolicy;
+import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
+import org.apache.jackrabbit.guava.common.primitives.Ints;
+import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.ReadPolicy;
+import org.junit.Test;
 
 public class PolicyComparatorTest {
 

@@ -143,16 +143,15 @@ public class DocumentDiscoveryLiteServiceTest extends BaseDocumentDiscoveryLiteS
     }
 
     /**
-     * This test creates a large number of documentnodestores which it starts,
-     * runs, stops in a random fashion, always testing to make sure the
-     * clusterView is correct
+     * This test creates a large number of documentnodestores which it starts, runs, stops in a
+     * random fashion, always testing to make sure the clusterView is correct
      */
     @Test
     public void testSmallStartStopFiesta() throws Throwable {
-        logger.info("testSmallStartStopFiesta: start, seed="+SEED);
+        logger.info("testSmallStartStopFiesta: start, seed=" + SEED);
         final int LOOP_CNT = 5; // with too many loops have also seen mongo
-                                 // connections becoming starved thus test
-                                 // failed
+        // connections becoming starved thus test
+        // failed
         doStartStopFiesta(LOOP_CNT);
     }
 

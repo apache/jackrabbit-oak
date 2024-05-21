@@ -28,7 +28,6 @@ import java.io.InputStream;
 import java.io.PrintStream;
 import java.util.HashSet;
 import java.util.Set;
-
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.output.NullOutputStream;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
@@ -74,11 +73,11 @@ public class RecoverJournalTest {
         Set<String> originalRevisions = revisions(file("journal.log"));
 
         int code = RecoverJournal.builder()
-            .withPath(folder.getRoot())
-            .withOut(new PrintStream(new NullOutputStream()))
-            .withErr(new PrintStream(new NullOutputStream()))
-            .build()
-            .run();
+                                 .withPath(folder.getRoot())
+                                 .withOut(new PrintStream(new NullOutputStream()))
+                                 .withErr(new PrintStream(new NullOutputStream()))
+                                 .build()
+                                 .run();
         assertEquals(0, code);
 
         String backupDigest = digest(file("journal.log.bak.000"));

@@ -20,7 +20,6 @@
 package org.apache.jackrabbit.oak.plugins.index;
 
 import java.io.IOException;
-
 import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ConsumerType;
 

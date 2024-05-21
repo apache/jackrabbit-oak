@@ -24,7 +24,6 @@ import java.util.List;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import javax.jcr.Credentials;
 import javax.jcr.GuestCredentials;
 import javax.jcr.Repository;
@@ -32,11 +31,10 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.Subject;
-
-import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.apache.commons.math3.stat.descriptive.SynchronizedDescriptiveStatistics;
+import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.oak.commons.Profiler;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 import org.apache.jackrabbit.oak.spi.security.authentication.SystemSubject;
@@ -51,35 +49,35 @@ import org.slf4j.LoggerFactory;
 public abstract class AbstractTest<T> extends Benchmark implements CSVResultGenerator {
 
     /**
-     * A random string to guarantee concurrently running tests don't overwrite
-     * each others changes (for example in a cluster).
+     * A random string to guarantee concurrently running tests don't overwrite each others changes
+     * (for example in a cluster).
      * <p>
-     * The probability of duplicates, for 50 concurrent processes, is less than
-     * 1 in 1 million.
+     * The probability of duplicates, for 50 concurrent processes, is less than 1 in 1 million.
      */
     static final String TEST_ID = Integer.toHexString(new Random().nextInt());
-    
+
     static AtomicInteger nodeNameCounter = new AtomicInteger();
-    
+
     /**
      * A node name that is guarantee to be unique within the current JVM.
      */
     static String nextNodeName() {
         return "n" + Integer.toHexString(nodeNameCounter.getAndIncrement());
     }
-    
-    private static final Credentials CREDENTIALS = new SimpleCredentials("admin", "admin".toCharArray());
+
+    private static final Credentials CREDENTIALS = new SimpleCredentials("admin",
+        "admin".toCharArray());
 
     private static final long WARMUP = TimeUnit.SECONDS.toMillis(Long.getLong("warmup", 5));
 
     private static final long RUNTIME = TimeUnit.SECONDS.toMillis(Long.getLong("runtime", 60));
 
     private static final boolean SKIP_WARMPUP = Boolean.getBoolean("skipWarmup");
-    
+
     private static final boolean PROFILE = Boolean.getBoolean("profile");
-    
+
     private static final Logger LOG = LoggerFactory.getLogger(AbstractTest.class);
-    
+
     private Repository repository;
 
     private Credentials credentials;
@@ -93,24 +91,25 @@ public abstract class AbstractTest<T> extends Benchmark implements CSVResultGene
     private Profiler profiler;
 
     private PrintStream out;
-    
+
     private RepositoryFixture currentFixture;
-    
+
     /**
      * <p>
      * used to signal the {@link #runTest(int)} if stop running future test planned or not. If set
      * to true, it will exit the loop not performing any more tests.
      * </p>
-     * 
+     *
      * <p>
      * useful when the running of the benchmark makes sense for as long as other processes didn't
      * complete.
      * </p>
-     * 
+     *
      * <p>
-     * Set this variable from within the benchmark itself by using {@link #issueHaltRequest(String)}
+     * Set this variable from within the benchmark itself by using
+     * {@link #issueHaltRequest(String)}
      * </p>
-     * 
+     *
      * <p>
      * <strong>it works only for concurrency level of 1 ({@code --concurrency 1} the
      * default)</strong>
@@ -118,12 +117,12 @@ public abstract class AbstractTest<T> extends Benchmark implements CSVResultGene
      */
     private boolean haltRequested;
 
-    
+
     /**
      * If concurrency level is 1 ({@code --concurrency 1}, the default) it will issue a request to
      * halt any future runs of a single benchmark. Useful when the benchmark makes sense only if run
      * in conjunction of any other parallel operations.
-     * 
+     *
      * @param message an optional message that can be provided. It will logged at info level.
      */
     protected void issueHaltRequest(@Nullable final String message) {
@@ -144,7 +143,7 @@ public abstract class AbstractTest<T> extends Benchmark implements CSVResultGene
      */
     protected void issueHaltChildThreads() {
     }
-    
+
     @Override
     public void setPrintStream(PrintStream out) {
         this.out = out;
@@ -161,12 +160,12 @@ public abstract class AbstractTest<T> extends Benchmark implements CSVResultGene
     /**
      * Prepares this performance benchmark.
      *
-     * @param repository the repository to use
+     * @param repository  the repository to use
      * @param credentials credentials of a user with write access
      * @throws Exception if the benchmark can not be prepared
      */
     public void setUp(Repository repository, Credentials credentials)
-            throws Exception {
+        throws Exception {
         this.repository = repository;
         this.credentials = credentials;
         this.sessions = new LinkedList<Session>();
@@ -175,7 +174,7 @@ public abstract class AbstractTest<T> extends Benchmark implements CSVResultGene
         this.running = true;
 
         haltRequested = false;
-        
+
         beforeSuite();
         if (PROFILE) {
             profiler = new Profiler().startCollecting();
@@ -190,12 +189,12 @@ public abstract class AbstractTest<T> extends Benchmark implements CSVResultGene
     @Override
     public void run(Iterable<RepositoryFixture> fixtures, List<Integer> concurrencyLevels) {
         System.out.format(
-                "# %-26.26s       C     min     10%%     50%%     90%%     max     N       mean%s%n",
-                toString(), statsNamesJoined(false));
+            "# %-26.26s       C     min     10%%     50%%     90%%     max     N       mean%s%n",
+            toString(), statsNamesJoined(false));
         if (out != null) {
             out.format(
-                    "# %-26.26s,      C,    min,    10%%,    50%%,    90%%,    max,    N      mean%s%n",
-                    toString(), statsNamesJoined(true));
+                "# %-26.26s,      C,    min,    10%%,    50%%,    90%%,    max,    N      mean%s%n",
+                toString(), statsNamesJoined(true));
         }
         for (RepositoryFixture fixture : fixtures) {
             currentFixture = fixture;
@@ -212,11 +211,12 @@ public abstract class AbstractTest<T> extends Benchmark implements CSVResultGene
         }
     }
 
-    private void runTest(RepositoryFixture fixture, Repository repository, List<Integer> concurrencyLevels) throws Exception {
+    private void runTest(RepositoryFixture fixture, Repository repository,
+        List<Integer> concurrencyLevels) throws Exception {
 
         setUp(repository, CREDENTIALS);
         try {
-            
+
             if (!SKIP_WARMPUP) {
                 // Run a few iterations to warm up the system
                 long warmupEnd = System.currentTimeMillis() + WARMUP;
@@ -233,10 +233,10 @@ public abstract class AbstractTest<T> extends Benchmark implements CSVResultGene
                 concurrencyLevels = Arrays.asList(1);
             }
 
-            for (Integer concurrency: concurrencyLevels) {
+            for (Integer concurrency : concurrencyLevels) {
                 // Run the test
                 DescriptiveStatistics statistics = runTest(concurrency);
-                Object[] defaultStats = new Object[] {
+                Object[] defaultStats = new Object[]{
                     fixture.toString(),
                     concurrency,
                     statistics.getMin(),
@@ -248,19 +248,21 @@ public abstract class AbstractTest<T> extends Benchmark implements CSVResultGene
                     statistics.getMean()
                 };
 
-                Object[] statsArg =  ArrayUtils.addAll(defaultStats, statsValues());
+                Object[] statsArg = ArrayUtils.addAll(defaultStats, statsValues());
                 String comment = comment();
                 if (comment != null) {
                     statsArg = ArrayUtils.add(statsArg, comment);
                 }
                 if (statistics.getN() > 0) {
                     System.out.format(
-                            "%-28.28s  %6d  %6.0f  %6.0f  %6.0f  %6.0f %6.0f  %6d  %6.0f"+statsFormatsJoined(false)+"%n",
-                            statsArg);
+                        "%-28.28s  %6d  %6.0f  %6.0f  %6.0f  %6.0f %6.0f  %6d  %6.0f"
+                            + statsFormatsJoined(false) + "%n",
+                        statsArg);
                     if (out != null) {
                         out.format(
-                                "%-28.28s, %6d, %6.0f, %6.0f, %6.0f, %6.0f, %6.0f, %6d, %6.0f"+statsFormatsJoined(false)+"%n",
-                                statsArg);
+                            "%-28.28s, %6d, %6.0f, %6.0f, %6.0f, %6.0f, %6.0f, %6d, %6.0f"
+                                + statsFormatsJoined(false) + "%n",
+                            statsArg);
                     }
                 }
 
@@ -273,9 +275,9 @@ public abstract class AbstractTest<T> extends Benchmark implements CSVResultGene
     private String statsFormatsJoined(boolean commaSeparated) {
         String comment = comment();
         String[] formatPattern = statsFormats();
-        if (comment != null){
+        if (comment != null) {
             String commentPattern = commaSeparated ? "#%s" : "    #%s";
-            formatPattern = (String[])ArrayUtils.add(formatPattern, commentPattern);
+            formatPattern = (String[]) ArrayUtils.add(formatPattern, commentPattern);
         }
         Joiner joiner = commaSeparated ? Joiner.on(',') : Joiner.on("  ");
         return joiner.join(formatPattern);
@@ -285,7 +287,7 @@ public abstract class AbstractTest<T> extends Benchmark implements CSVResultGene
         Joiner joiner = commaSeparated ? Joiner.on(',') : Joiner.on("  ");
         String names = joiner.join(statsNames());
         if (!commaSeparated) {
-            names =  " " + names;
+            names = " " + names;
         }
         return names;
     }
@@ -334,12 +336,12 @@ public abstract class AbstractTest<T> extends Benchmark implements CSVResultGene
 
         } else {
             List<Executor> threads = new LinkedList<Executor>();
-            for (int n=0; n<concurrencyLevel; n++) {
+            for (int n = 0; n < concurrencyLevel; n++) {
                 threads.add(new Executor("Background job " + n, statistics));
             }
 
             // start threads
-            for (Thread t: threads) {
+            for (Thread t : threads) {
                 t.start();
             }
 
@@ -352,12 +354,12 @@ public abstract class AbstractTest<T> extends Benchmark implements CSVResultGene
             }
 
             // stop threads
-            for (Executor e: threads) {
+            for (Executor e : threads) {
                 e.running = false;
             }
 
             // wait for threads
-            for (Executor e: threads) {
+            for (Executor e : threads) {
                 e.join();
             }
         }
@@ -385,7 +387,7 @@ public abstract class AbstractTest<T> extends Benchmark implements CSVResultGene
     }
 
     private long execute(T executionContext) throws Exception {
-        if(executionContext == null){
+        if (executionContext == null) {
             return execute();
         }
 
@@ -432,37 +434,36 @@ public abstract class AbstractTest<T> extends Benchmark implements CSVResultGene
     }
 
     /**
-     * Names of additional stats which benchmark wants to be reported as part of
-     * default report. Add required padding to the names to account for stats value
-     * size
+     * Names of additional stats which benchmark wants to be reported as part of default report. Add
+     * required padding to the names to account for stats value size
      */
-    protected String[] statsNames(){
+    protected String[] statsNames() {
         return new String[0];
     }
 
     /**
-     * Format string used for additional stats as per {@link java.util.Formatter}
-     * Example [ "%6d" , "%6.0f" ]
+     * Format string used for additional stats as per {@link java.util.Formatter} Example [ "%6d" ,
+     * "%6.0f" ]
      */
-    protected String[] statsFormats(){
+    protected String[] statsFormats() {
         return new String[0];
     }
 
     /**
      * Stats values which needs to be included in the report
      */
-    protected Object[] statsValues(){
+    protected Object[] statsValues() {
         return new Object[0];
     }
 
     @Nullable
-    protected String comment(){
+    protected String comment() {
         return null;
     }
 
     /**
-     * Run before any iterations of this test get executed. Subclasses can
-     * override this method to set up static test content.
+     * Run before any iterations of this test get executed. Subclasses can override this method to
+     * set up static test content.
      *
      * @throws Exception if an error occurs
      */
@@ -478,8 +479,8 @@ public abstract class AbstractTest<T> extends Benchmark implements CSVResultGene
     }
 
     /**
-     * Run after all iterations of this test have been executed. Subclasses can
-     * override this method to clean up static test content.
+     * Run after all iterations of this test have been executed. Subclasses can override this method
+     * to clean up static test content.
      *
      * @throws Exception if an error occurs
      */
@@ -487,19 +488,17 @@ public abstract class AbstractTest<T> extends Benchmark implements CSVResultGene
     }
 
     /**
-     * Invoked before the thread starts. If the test later requires
-     * some thread local context e.g. JCR session per thread then sub
-     * classes can return a context instance. That instance would be
+     * Invoked before the thread starts. If the test later requires some thread local context e.g.
+     * JCR session per thread then sub classes can return a context instance. That instance would be
      * passed as part of runTest call
      *
-     * @return context instance to be used for runTest call for the
-     * current thread
+     * @return context instance to be used for runTest call for the current thread
      */
-    protected T prepareThreadExecutionContext() throws Exception{
+    protected T prepareThreadExecutionContext() throws Exception {
         return null;
     }
 
-    protected void disposeThreadExecutionContext(T context) throws Exception{
+    protected void disposeThreadExecutionContext(T context) throws Exception {
 
     }
 
@@ -507,9 +506,9 @@ public abstract class AbstractTest<T> extends Benchmark implements CSVResultGene
 
     }
 
-    protected void runTest(T executionContext)  throws Exception {
+    protected void runTest(T executionContext) throws Exception {
         throw new IllegalStateException("If thread execution context is used then subclass must " +
-                "override this method");
+            "override this method");
     }
 
     protected void beforeTest(T executionContext) {
@@ -517,13 +516,13 @@ public abstract class AbstractTest<T> extends Benchmark implements CSVResultGene
     }
 
     protected void failOnRepositoryVersions(String... versions)
-            throws RepositoryException {
+        throws RepositoryException {
         String repositoryVersion =
-                repository.getDescriptor(Repository.REP_VERSION_DESC);
+            repository.getDescriptor(Repository.REP_VERSION_DESC);
         for (String version : versions) {
             if (repositoryVersion.startsWith(version)) {
                 throw new RepositoryException(
-                        "Unable to run " + getClass().getName()
+                    "Unable to run " + getClass().getName()
                         + " on repository version " + version);
             }
         }
@@ -536,14 +535,14 @@ public abstract class AbstractTest<T> extends Benchmark implements CSVResultGene
     protected Credentials getCredentials() {
         return credentials;
     }
-    
+
     protected RepositoryFixture getCurrentFixture() {
         return currentFixture;
     }
 
     /**
-     * Returns a new reader session that will be automatically closed once
-     * all the iterations of this test have been executed.
+     * Returns a new reader session that will be automatically closed once all the iterations of
+     * this test have been executed.
      *
      * @return reader session
      */
@@ -552,34 +551,33 @@ public abstract class AbstractTest<T> extends Benchmark implements CSVResultGene
     }
 
     /**
-     * Returns a new admin session that will be automatically closed once
-     * all the iterations of this test have been executed.
+     * Returns a new admin session that will be automatically closed once all the iterations of this
+     * test have been executed.
      *
      * @return admin session
      */
     protected Session loginAdministrative() {
         return login(CREDENTIALS);
     }
-    
+
     /**
-    * Returns a new session for the given user
-    * that will be automatically closed once
-    * all the iterations of this test have been executed.
-    * 
-    * @param credentials the user credentials
-    * @return user session
-    */
-   protected Session login(Credentials credentials) {
-       try {
-           Session session = repository.login(credentials);
-           synchronized (sessions) {
-               sessions.add(session);
-           }
-           return session;
-       } catch (RepositoryException e) {
-           throw new RuntimeException(e);
-       }
-   }
+     * Returns a new session for the given user that will be automatically closed once all the
+     * iterations of this test have been executed.
+     *
+     * @param credentials the user credentials
+     * @return user session
+     */
+    protected Session login(Credentials credentials) {
+        try {
+            Session session = repository.login(credentials);
+            synchronized (sessions) {
+                sessions.add(session);
+            }
+            return session;
+        } catch (RepositoryException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     protected Session systemLogin() {
         return loginSubject(SystemSubject.INSTANCE);
@@ -601,6 +599,7 @@ public abstract class AbstractTest<T> extends Benchmark implements CSVResultGene
 
     /**
      * Logs out and removes the session from the internal pool.
+     *
      * @param session the session to logout
      */
     protected void logout(Session session) {
@@ -613,8 +612,8 @@ public abstract class AbstractTest<T> extends Benchmark implements CSVResultGene
     }
 
     /**
-     * Returns a new writer session that will be automatically closed once
-     * all the iterations of this test have been executed.
+     * Returns a new writer session that will be automatically closed once all the iterations of
+     * this test have been executed.
      *
      * @return writer session
      */
@@ -632,8 +631,8 @@ public abstract class AbstractTest<T> extends Benchmark implements CSVResultGene
     }
 
     /**
-     * Adds a background thread that repeatedly executes the given job
-     * until all the iterations of this test have been executed.
+     * Adds a background thread that repeatedly executes the given job until all the iterations of
+     * this test have been executed.
      *
      * @param job background job
      */

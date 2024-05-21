@@ -16,21 +16,22 @@
  */
 package org.apache.jackrabbit.oak.exercise.security.privilege;
 
+import static org.junit.Assert.assertEquals;
+
 import java.util.Map;
 import java.util.Set;
 import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.Privilege;
-
+import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
+import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
+import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
-import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
-import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -38,8 +39,6 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
 
 /**
  * <pre>
@@ -133,21 +132,22 @@ public class L3_BuiltInPrivilegesTest extends AbstractSecurityTest {
 
         // EXERCISE: for all aggregated privileges define the mapping of the privilege name to declaredAggregates
         Map<String, Set<Privilege>> expectedResults = ImmutableMap.of(
-                /* EXERCISE */
+            /* EXERCISE */
         );
 
         Iterable<Privilege> aggregated = Iterables.<Privilege>filter(
-                ImmutableList.<Privilege>copyOf(privilegeManager.getRegisteredPrivileges()),
-                new Predicate<Privilege>() {
-                    @Override
-                    public boolean apply(@Nullable Privilege input) {
-                        return input != null && input.isAggregate();
-                    }
-                });
+            ImmutableList.<Privilege>copyOf(privilegeManager.getRegisteredPrivileges()),
+            new Predicate<Privilege>() {
+                @Override
+                public boolean apply(@Nullable Privilege input) {
+                    return input != null && input.isAggregate();
+                }
+            });
 
         for (Privilege aggrPrivilege : aggregated) {
             Set<Privilege> expected = expectedResults.get(aggrPrivilege.getName());
-            assertEquals(expected, ImmutableSet.copyOf(aggrPrivilege.getDeclaredAggregatePrivileges()));
+            assertEquals(expected,
+                ImmutableSet.copyOf(aggrPrivilege.getDeclaredAggregatePrivileges()));
         }
     }
 
@@ -173,12 +173,13 @@ public class L3_BuiltInPrivilegesTest extends AbstractSecurityTest {
 
     private void setupAcl(Privilege privilege, AccessControlManager acMgr) throws Exception {
         JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, "/");
-        acl.addEntry(getTestUser().getPrincipal(), new Privilege[] {privilege}, true);
+        acl.addEntry(getTestUser().getPrincipal(), new Privilege[]{privilege}, true);
         acMgr.setPolicy("/", acl);
         root.commit();
     }
 
-    private void clearAcl(AccessControlManager acMgr) throws RepositoryException, CommitFailedException {
+    private void clearAcl(AccessControlManager acMgr)
+        throws RepositoryException, CommitFailedException {
         AccessControlPolicy[] policies = acMgr.getPolicies("/");
         for (AccessControlPolicy policy : policies) {
             acMgr.removePolicy("/", policy);

@@ -27,8 +27,8 @@ import java.io.PrintWriter;
 import java.sql.Timestamp;
 
 /**
- * A tool that converts a file with date/time and thread dumps into a list of
- * date/time and just the thread names.
+ * A tool that converts a file with date/time and thread dumps into a list of date/time and just the
+ * thread names.
  */
 public class ThreadDumpThreadNames {
 
@@ -39,7 +39,7 @@ public class ThreadDumpThreadNames {
         }
         File target = new File(file.getParentFile(), fileName + ".threadNames.txt");
         PrintWriter writer = new PrintWriter(new BufferedWriter(
-                new FileWriter(target)));
+            new FileWriter(target)));
         try {
             processFile(file, writer);
         } finally {
@@ -50,7 +50,7 @@ public class ThreadDumpThreadNames {
 
     private static void processFile(File file, PrintWriter writer) throws IOException {
         LineNumberReader r = new LineNumberReader(new BufferedReader(
-                new FileReader(file)));
+            new FileReader(file)));
         try {
             process(r, writer);
         } finally {
@@ -67,7 +67,7 @@ public class ThreadDumpThreadNames {
             }
             if (line.length() == "2017-06-29 17:23:17".length()) {
                 boolean isDateTime = true;
-                for(char c : line.toCharArray()) {
+                for (char c : line.toCharArray()) {
                     if (!Character.isDigit(c) && " -:".indexOf(c) < 0) {
                         isDateTime = false;
                         break;

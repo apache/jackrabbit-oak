@@ -51,6 +51,7 @@ import static org.mockito.Mockito.verify;
 
 @SuppressWarnings("Duplicates")
 public class DocumentStoreStatsIT extends AbstractDocumentStoreTest {
+
     private final DocumentStoreStatsCollector stats = mock(DocumentStoreStatsCollector.class);
     @Rule
     public TestName testName = new TestName();
@@ -61,12 +62,12 @@ public class DocumentStoreStatsIT extends AbstractDocumentStoreTest {
     }
 
     @Before
-    public void checkSupportedStores() throws Exception{
+    public void checkSupportedStores() throws Exception {
         assumeFalse(ds instanceof MemoryDocumentStore);
     }
 
     @Test
-    public void create() throws Exception{
+    public void create() throws Exception {
         String id = testName.getMethodName();
 
         UpdateOp up = new UpdateOp(id, true);
@@ -77,7 +78,7 @@ public class DocumentStoreStatsIT extends AbstractDocumentStoreTest {
     }
 
     @Test
-    public void findCached_Uncached() throws Exception{
+    public void findCached_Uncached() throws Exception {
         String id = testName.getMethodName();
 
         UpdateOp up = new UpdateOp(id, true);
@@ -89,7 +90,8 @@ public class DocumentStoreStatsIT extends AbstractDocumentStoreTest {
 
         ds.invalidateCache();
         ds.find(Collection.NODES, id);
-        verify(stats).doneFindUncached(anyLong(), eq(Collection.NODES), eq(id), eq(true), anyBoolean());
+        verify(stats).doneFindUncached(anyLong(), eq(Collection.NODES), eq(id), eq(true),
+            anyBoolean());
     }
 
     @Test
@@ -97,11 +99,12 @@ public class DocumentStoreStatsIT extends AbstractDocumentStoreTest {
         String id = testName.getMethodName();
 
         ds.find(Collection.NODES, id);
-        verify(stats).doneFindUncached(anyLong(), eq(Collection.NODES), eq(id), eq(false), anyBoolean());
+        verify(stats).doneFindUncached(anyLong(), eq(Collection.NODES), eq(id), eq(false),
+            anyBoolean());
     }
 
     @Test
-    public void query() throws Exception{
+    public void query() throws Exception {
         // create ten documents
         String base = testName.getMethodName();
         for (int i = 0; i < 10; i++) {
@@ -114,15 +117,15 @@ public class DocumentStoreStatsIT extends AbstractDocumentStoreTest {
 
         ds.query(Collection.NODES, base, base + "A", 5);
         verify(stats).doneQuery(anyLong(), eq(Collection.NODES), eq(base), eq(base + "A"),
-                eq(false),  //indexedProperty
-                eq(5) , // resultSize
-                anyLong(),   //lockTime
-                anyBoolean() //isSlaveOk
+            eq(false),  //indexedProperty
+            eq(5), // resultSize
+            anyLong(),   //lockTime
+            anyBoolean() //isSlaveOk
         );
     }
 
     @Test
-    public void findAndModify() throws Exception{
+    public void findAndModify() throws Exception {
         String id = testName.getMethodName();
 
         UpdateOp up = new UpdateOp(id, true);
@@ -132,12 +135,12 @@ public class DocumentStoreStatsIT extends AbstractDocumentStoreTest {
         DocumentStoreStatsCollector coll = mock(DocumentStoreStatsCollector.class);
         configureStatsCollector(coll);
 
-
         up = new UpdateOp(id, true);
         up.max("_modified", 122L);
         ds.findAndUpdate(Collection.NODES, up);
 
-        verify(coll).doneFindAndModify(anyLong(), eq(Collection.NODES), eq(id), eq(false), eq(true), anyInt());
+        verify(coll).doneFindAndModify(anyLong(), eq(Collection.NODES), eq(id), eq(false), eq(true),
+            anyInt());
     }
 
     @Test
@@ -172,7 +175,8 @@ public class DocumentStoreStatsIT extends AbstractDocumentStoreTest {
         } else {
             for (int i = 0; i < 10; i++) {
                 String id = base + i;
-                verify(coll).doneFindAndModify(anyLong(), eq(NODES), eq(id), eq(false), eq(true), anyInt());
+                verify(coll).doneFindAndModify(anyLong(), eq(NODES), eq(id), eq(false), eq(true),
+                    anyInt());
             }
         }
     }
@@ -255,10 +259,10 @@ public class DocumentStoreStatsIT extends AbstractDocumentStoreTest {
     }
 
     private void configureStatsCollector(DocumentStoreStatsCollector stats) {
-        if (ds instanceof MongoDocumentStore){
+        if (ds instanceof MongoDocumentStore) {
             ((MongoDocumentStore) ds).setStatsCollector(stats);
         }
-        if (ds instanceof RDBDocumentStore){
+        if (ds instanceof RDBDocumentStore) {
             ((RDBDocumentStore) ds).setStatsCollector(stats);
         }
     }

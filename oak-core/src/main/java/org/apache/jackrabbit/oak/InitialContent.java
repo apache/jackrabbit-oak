@@ -25,7 +25,7 @@ import static org.apache.jackrabbit.oak.spi.version.VersionConstants.VERSION_STO
 
 import java.io.IOException;
 import java.io.InputStream;
-
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Type;
@@ -44,8 +44,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.version.VersionConstants;
 import org.jetbrains.annotations.NotNull;
-
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 
 /**
  * {@code InitialContent} implements a {@link RepositoryInitializer} the creates the initial JCR/Oak

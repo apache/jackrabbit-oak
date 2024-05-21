@@ -30,7 +30,6 @@ import java.util.Collection;
 import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.Random;
-
 import org.apache.jackrabbit.oak.NodeStoreFixtures;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -52,23 +51,25 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Fuzz test running random sequences of operations on {@link Tree}.
- * Run with -DRootFuzzIT-seed=42 to set a specific seed (i.e. 42);
+ * Fuzz test running random sequences of operations on {@link Tree}. Run with -DRootFuzzIT-seed=42
+ * to set a specific seed (i.e. 42);
  */
 @RunWith(value = Parameterized.class)
 public class RootFuzzIT {
+
     static final Logger log = LoggerFactory.getLogger(RootFuzzIT.class);
 
-    @Parameters(name="{0}")
+    @Parameters(name = "{0}")
     public static Collection<Object[]> fixtures() {
-        return NodeStoreFixtures.asJunitParameters(EnumSet.of(Fixture.DOCUMENT_NS, Fixture.SEGMENT_TAR));
+        return NodeStoreFixtures.asJunitParameters(
+            EnumSet.of(Fixture.DOCUMENT_NS, Fixture.SEGMENT_TAR));
     }
 
     private static final int OP_COUNT = 5000;
 
     private static final int SEED = Integer.getInteger(
-            RootFuzzIT.class.getSimpleName() + "-seed",
-            new Random().nextInt());
+        RootFuzzIT.class.getSimpleName() + "-seed",
+        new Random().nextInt());
 
     private static final Random random = new Random();
 
@@ -89,7 +90,7 @@ public class RootFuzzIT {
     @Before
     public void setup() throws CommitFailedException {
         log.info("Running " + getClass().getSimpleName() + " with " +
-                fixture + " and seed " + SEED);
+            fixture + " and seed " + SEED);
 
         random.setSeed(SEED);
         counter = 0;
@@ -155,9 +156,11 @@ public class RootFuzzIT {
     }
 
     abstract static class Operation {
+
         abstract void apply(Root root);
 
         static class AddNode extends Operation {
+
             private final String parentPath;
             private final String name;
 
@@ -178,6 +181,7 @@ public class RootFuzzIT {
         }
 
         static class RemoveNode extends Operation {
+
             private final String path;
 
             RemoveNode(String path) {
@@ -198,6 +202,7 @@ public class RootFuzzIT {
         }
 
         static class MoveNode extends Operation {
+
             private final String source;
             private final String destination;
 
@@ -218,6 +223,7 @@ public class RootFuzzIT {
         }
 
         static class SetProperty extends Operation {
+
             private final String parentPath;
             private final String propertyName;
             private final String propertyValue;
@@ -236,11 +242,12 @@ public class RootFuzzIT {
             @Override
             public String toString() {
                 return '^' + PathUtils.concat(parentPath, propertyName) + ':'
-                        + propertyValue;
+                    + propertyValue;
             }
         }
 
         static class RemoveProperty extends Operation {
+
             private final String parentPath;
             private final String name;
 
@@ -261,6 +268,7 @@ public class RootFuzzIT {
         }
 
         static class Save extends Operation {
+
             @Override
             void apply(Root root) {
                 // empty
@@ -273,6 +281,7 @@ public class RootFuzzIT {
         }
 
         static class Rebase extends Operation {
+
             @Override
             void apply(Root root) {
                 root.rebase();
@@ -338,8 +347,8 @@ public class RootFuzzIT {
         String destParent = chooseNodePath();
         String destName = createNodeName();
         return "/root".equals(source) || destParent.startsWith(source)
-                ? null
-                : new MoveNode(source, destParent, destName);
+            ? null
+            : new MoveNode(source, destParent, destName);
     }
 
     private Operation createAddProperty() {
@@ -421,10 +430,11 @@ public class RootFuzzIT {
 
     private static void checkEqual(Tree tree1, Tree tree2) {
         String message =
-                tree1.getPath() + "!=" + tree2.getPath()
+            tree1.getPath() + "!=" + tree2.getPath()
                 + " (seed " + SEED + ')';
         assertEquals(message, tree1.getPath(), tree2.getPath());
-        assertEquals(message, tree1.getChildrenCount(Long.MAX_VALUE), tree2.getChildrenCount(Long.MAX_VALUE));
+        assertEquals(message, tree1.getChildrenCount(Long.MAX_VALUE),
+            tree2.getChildrenCount(Long.MAX_VALUE));
         assertEquals(message, tree1.getPropertyCount(), tree2.getPropertyCount());
 
         for (PropertyState property1 : tree1.getProperties()) {

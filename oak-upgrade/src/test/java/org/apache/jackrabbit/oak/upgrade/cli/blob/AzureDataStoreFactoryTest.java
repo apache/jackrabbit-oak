@@ -16,14 +16,13 @@
  */
 package org.apache.jackrabbit.oak.upgrade.cli.blob;
 
-import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureDataStore;
-import org.apache.jackrabbit.oak.plugins.blob.AbstractSharedCachingDataStore;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
 
 import java.lang.reflect.Field;
 import java.util.Properties;
-
-import static org.junit.Assert.assertEquals;
+import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureDataStore;
+import org.apache.jackrabbit.oak.plugins.blob.AbstractSharedCachingDataStore;
+import org.junit.Test;
 
 public class AzureDataStoreFactoryTest {
 
@@ -36,32 +35,31 @@ public class AzureDataStoreFactoryTest {
         assertEquals(123, readLong("cacheSize", AbstractSharedCachingDataStore.class, ds));
         assertEquals("/tmp", readString("path", AbstractSharedCachingDataStore.class, ds));
     }
-    
+
     @Test
     public void testPopulatePropertiesNoPath() throws NoSuchFieldException, IllegalAccessException {
         Properties props = new Properties();
         props.setProperty("cacheSize", "123");
-        
+
         String tempDir = System.getProperty("java.io.tmpdir");
-        
 
         AzureDataStore ds = AzureDataStoreFactory.createDS(null, props);
         assertEquals(123, readLong("cacheSize", AbstractSharedCachingDataStore.class, ds));
         assertEquals(tempDir, readString("path", AbstractSharedCachingDataStore.class, ds));
     }
-    
+
     @Test
-    public void testPopulatePropertiesPathFromConfig() throws NoSuchFieldException, IllegalAccessException {
+    public void testPopulatePropertiesPathFromConfig()
+        throws NoSuchFieldException, IllegalAccessException {
         Properties props = new Properties();
         props.setProperty("cacheSize", "123");
-        props.setProperty("path", "/tmp");        
+        props.setProperty("path", "/tmp");
 
         AzureDataStore ds = AzureDataStoreFactory.createDS(null, props);
         assertEquals(123, readLong("cacheSize", AbstractSharedCachingDataStore.class, ds));
         assertEquals("/tmp", readString("path", AbstractSharedCachingDataStore.class, ds));
     }
-    
-   
+
 
     @Test
     public void testStripOsgiPrefix() throws NoSuchFieldException, IllegalAccessException {
@@ -72,13 +70,15 @@ public class AzureDataStoreFactoryTest {
         assertEquals(123, readLong("cacheSize", AbstractSharedCachingDataStore.class, ds));
     }
 
-    private static long readLong(String fieldName, Class<?> clazz, Object object) throws NoSuchFieldException, IllegalAccessException {
+    private static long readLong(String fieldName, Class<?> clazz, Object object)
+        throws NoSuchFieldException, IllegalAccessException {
         Field field = clazz.getDeclaredField(fieldName);
         field.setAccessible(true);
         return field.getLong(object);
     }
-    
-    private static String readString(String fieldName, Class<?> clazz, Object object) throws NoSuchFieldException, IllegalAccessException {
+
+    private static String readString(String fieldName, Class<?> clazz, Object object)
+        throws NoSuchFieldException, IllegalAccessException {
         Field field = clazz.getDeclaredField(fieldName);
         field.setAccessible(true);
         return (String) field.get(object);

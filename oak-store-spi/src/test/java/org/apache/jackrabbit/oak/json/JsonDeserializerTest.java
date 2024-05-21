@@ -19,12 +19,17 @@
 
 package org.apache.jackrabbit.oak.json;
 
+import static java.util.Arrays.asList;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
 import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.Random;
-
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -35,18 +40,13 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
-import static java.util.Arrays.asList;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-
 public class JsonDeserializerTest {
+
     private Base64BlobSerializer blobHandler = new Base64BlobSerializer();
     private Random rnd = new Random();
 
     @Test
-    public void basicStuff() throws Exception{
+    public void basicStuff() throws Exception {
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.child("a").setProperty("foo", "bar");
         builder.child("b").setProperty("foo", 1);
@@ -54,7 +54,7 @@ public class JsonDeserializerTest {
     }
 
     @Test
-    public void variousPropertyTypes() throws Exception{
+    public void variousPropertyTypes() throws Exception {
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.child("a").setProperty("foo", 10);
         builder.child("a").setProperty("foo2", "bar");
@@ -62,39 +62,44 @@ public class JsonDeserializerTest {
         builder.child("a").setProperty("foo4", false);
         builder.child("a").setProperty("foo5", 1.1);
         builder.child("a").setProperty("foo6", "nt:base", Type.NAME);
-        builder.child("a").child("b").setProperty("foo", Lists.newArrayList(1L,2L,3L), Type.LONGS);
-        builder.child("a").child("b").setProperty("foo2", Lists.newArrayList("x", "y", "z"), Type.STRINGS);
-        builder.child("a").child("b").setProperty("foo3", Lists.newArrayList(true, false), Type.BOOLEANS);
-        builder.child("a").child("b").setProperty("foo4", Lists.newArrayList(1.1, 1.2), Type.DOUBLES);
+        builder.child("a").child("b")
+               .setProperty("foo", Lists.newArrayList(1L, 2L, 3L), Type.LONGS);
+        builder.child("a").child("b")
+               .setProperty("foo2", Lists.newArrayList("x", "y", "z"), Type.STRINGS);
+        builder.child("a").child("b")
+               .setProperty("foo3", Lists.newArrayList(true, false), Type.BOOLEANS);
+        builder.child("a").child("b")
+               .setProperty("foo4", Lists.newArrayList(1.1, 1.2), Type.DOUBLES);
         builder.child("a").child(":c").setProperty("foo", "bar");
 
         assertDeserialization(builder);
     }
-    
+
     @Test
-    public void emptyProperty() throws Exception{
+    public void emptyProperty() throws Exception {
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.child("a").setProperty("foo", Collections.emptyList(), Type.NAMES);
         assertDeserialization(builder);
     }
 
     @Test
-    public void binaryProperty() throws Exception{
+    public void binaryProperty() throws Exception {
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.child("a").setProperty("foo", createBlob(100));
-        builder.child("b").setProperty("foo", Lists.newArrayList(createBlob(200), createBlob(300)), Type.BINARIES);
+        builder.child("b").setProperty("foo", Lists.newArrayList(createBlob(200), createBlob(300)),
+            Type.BINARIES);
         assertDeserialization(builder);
     }
 
     @Test
-    public void primaryType() throws Exception{
+    public void primaryType() throws Exception {
         String json = "{\"jcr:primaryType\":\"oak:Unstructured\"}";
         NodeState nodeState2 = deserialize(json);
         assertEquals(Type.NAME, nodeState2.getProperty(JcrConstants.JCR_PRIMARYTYPE).getType());
     }
 
     @Test
-    public void stringPropertyWithNamespace() throws Exception{
+    public void stringPropertyWithNamespace() throws Exception {
         String json = "{\"name\":\"jcr:content/metadata\"}";
         NodeState nodeState = deserialize(json);
         PropertyState name = nodeState.getProperty("name");
@@ -103,7 +108,7 @@ public class JsonDeserializerTest {
     }
 
     @Test
-    public void stringArrayPropertyWithNamespace() throws Exception{
+    public void stringArrayPropertyWithNamespace() throws Exception {
         String json = "{\"name\": [\"jcr:content/metadata\"] }";
         NodeState nodeState = deserialize(json);
         PropertyState name = nodeState.getProperty("name");
@@ -112,17 +117,17 @@ public class JsonDeserializerTest {
     }
 
     @Test
-    public void mixins() throws Exception{
+    public void mixins() throws Exception {
         String json = "{\"jcr:mixinTypes\": [\"oak:Unstructured\", \"mixin:title\"]}";
         NodeState nodeState = deserialize(json);
         assertEquals(Type.NAMES, nodeState.getProperty(JcrConstants.JCR_MIXINTYPES).getType());
         assertEquals(asList("oak:Unstructured", "mixin:title"),
-                nodeState.getProperty(JcrConstants.JCR_MIXINTYPES).getValue(Type.NAMES));
+            nodeState.getProperty(JcrConstants.JCR_MIXINTYPES).getValue(Type.NAMES));
 
     }
 
     @Test
-    public void childOrder() throws Exception{
+    public void childOrder() throws Exception {
         String json = "{\"jcr:primaryType\":\"nam:nt:unstructured\",\"a\":{},\"c\":{},\"b\":{}}";
         NodeState nodeState = deserialize(json);
 
@@ -133,11 +138,12 @@ public class JsonDeserializerTest {
     }
 
     @Test
-    public void otherArrayTypes() throws Exception{
+    public void otherArrayTypes() throws Exception {
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.setProperty("foo1", asList("/content", "/libs"), Type.PATHS);
         builder.setProperty("foo2", asList(1.2, 1.4), Type.DOUBLES);
-        builder.setProperty("foo3", asList(new BigDecimal("3.14159"), new BigDecimal("42.737")), Type.DECIMALS);
+        builder.setProperty("foo3", asList(new BigDecimal("3.14159"), new BigDecimal("42.737")),
+            Type.DECIMALS);
 
         assertDeserialization(builder);
     }
@@ -164,7 +170,7 @@ public class JsonDeserializerTest {
         return deserializer.deserialize(json);
     }
 
-    private String serialize(NodeState nodeState){
+    private String serialize(NodeState nodeState) {
         JsopBuilder json = new JsopBuilder();
         new JsonSerializer(json, blobHandler).serialize(nodeState);
         return json.toString();

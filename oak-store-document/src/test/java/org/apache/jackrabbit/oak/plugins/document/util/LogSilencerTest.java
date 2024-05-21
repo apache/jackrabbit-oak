@@ -31,13 +31,13 @@ public class LogSilencerTest {
         try {
             new LogSilencer(-1, 0);
             fail("<= 0 as cacheSize is not allowed");
-        } catch(Exception e) {
+        } catch (Exception e) {
             // ok
         }
         try {
             new LogSilencer(-1, -1);
             fail("<= 0 as cacheSize is not allowed");
-        } catch(Exception e) {
+        } catch (Exception e) {
             // ok
         }
         LogSilencer l = new LogSilencer();
@@ -46,7 +46,7 @@ public class LogSilencerTest {
     }
 
     private void assertNotSilencedWithRandomKeys(LogSilencer l) {
-        for(int i = 0; i < 1000; i++) {
+        for (int i = 0; i < 1000; i++) {
             final String uuid = UUID.randomUUID().toString();
             assertFalse(l.silence(uuid));
             assertTrue(l.silence(uuid));
@@ -57,7 +57,7 @@ public class LogSilencerTest {
     public void testCacheSize1() throws Exception {
         final LogSilencer l = new LogSilencer(-1, 1);
         assertNotSilencedWithRandomKeys(l);
-        for(int i = 0; i < 1000; i++) {
+        for (int i = 0; i < 1000; i++) {
             assertFalse(l.silence("foo" + i));
             assertTrue(l.silence("foo" + i));
             assertTrue(l.silence("foo" + i));
@@ -68,7 +68,7 @@ public class LogSilencerTest {
     public void testCacheSize2() throws Exception {
         final LogSilencer l = new LogSilencer(-1, 2);
         assertNotSilencedWithRandomKeys(l);
-        for(int i = 0; i < 1000; i++) {
+        for (int i = 0; i < 1000; i++) {
             assertFalse(l.silence("foo" + (2 * i)));
             assertFalse(l.silence("foo" + (2 * i + 1)));
             assertTrue(l.silence("foo" + (2 * i)));

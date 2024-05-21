@@ -18,51 +18,53 @@
   limitations under the License.
 --%><%
 
-URI uri = new URI(request.getRequestURL().toString());
-String href =
-    uri.getScheme() + "://" + uri.getHost() + ":" + uri.getPort()
-    + request.getContextPath()
-    + JcrRemotingServlet.getPathPrefix(pageContext.getServletContext());
-href = Text.encodeIllegalXMLCharacters(href);
-href += "/default/jcr:root";
-    
-%><jsp:include page="header.jsp"/>
+    URI uri = new URI(request.getRequestURL().toString());
+    String href =
+            uri.getScheme() + "://" + uri.getHost() + ":" + uri.getPort()
+                    + request.getContextPath()
+                    + JcrRemotingServlet.getPathPrefix(pageContext.getServletContext());
+    href = Text.encodeIllegalXMLCharacters(href);
+    href += "/default/jcr:root";
+
+%>
+<jsp:include page="header.jsp"/>
 <script src="json.js"></script>
 <script language="javascript">
-    function batchWrite() {
-        var path = document.getElementById("path").value;
-        var diff = document.getElementById(":diff").value;
+  function batchWrite() {
+    var path = document.getElementById("path").value;
+    var diff = document.getElementById(":diff").value;
 
-        if (!diff) {
-            alert("Please enter the Diff.");
-            return false;
-        }
-
-        var headers = new Object();
-        headers["Content-type"] = "application/x-www-form-urlencoded";
-        headers["Authorization"] =  "Basic YWRtaW46YWRtaW4=";
-
-        var params = encodeURIComponent(":diff") + "=" + encodeURIComponent(diff);
-
-        var url = "<%= href %>" + path;
-        var req = getXMLHttpRequest(url, "POST", headers, params);
-        var result = document.getElementById("result");
-
-        if (req && (req.status == 200 || req.status == 201)) {
-            result.innerHTML = "Success<br><a href=\"" + url + "\" target=\"_blank\">View Result</a>";
-        } else {
-            var error = "ERROR: " + ((req) ? (req.status + " : "+ req.responseText) : "Failed to create XMLHttpRequest.");
-            result.innerHTML = error;
-        }
-        return true;
+    if (!diff) {
+      alert("Please enter the Diff.");
+      return false;
     }
+
+    var headers = new Object();
+    headers["Content-type"] = "application/x-www-form-urlencoded";
+    headers["Authorization"] = "Basic YWRtaW46YWRtaW4=";
+
+    var params = encodeURIComponent(":diff") + "=" + encodeURIComponent(diff);
+
+    var url = "<%= href %>" + path;
+    var req = getXMLHttpRequest(url, "POST", headers, params);
+    var result = document.getElementById("result");
+
+    if (req && (req.status == 200 || req.status == 201)) {
+      result.innerHTML = "Success<br><a href=\"" + url + "\" target=\"_blank\">View Result</a>";
+    } else {
+      var error = "ERROR: " + ((req) ? (req.status + " : " + req.responseText)
+          : "Failed to create XMLHttpRequest.");
+      result.innerHTML = error;
+    }
+    return true;
+  }
 
 </script>
 <div id="content">
     <h2>Examples: Batch Write</h2>
     <p>
-    Enter the path of an existing node or property (depending on the desired
-    actions) and enter the <i>:diff</i> value.
+        Enter the path of an existing node or property (depending on the desired
+        actions) and enter the <i>:diff</i> value.
     </p>
     <p>See the introduction to batched <a href="write.jsp#batch_write">writing</a>
         for examples.
@@ -76,9 +78,11 @@ href += "/default/jcr:root";
             <td valign="top">Diff</td>
             <td><textarea rows="10" cols="40" id=":diff"></textarea></td>
         </tr>
-        <tr><td><input type="button" value="Submit" onclick="batchWrite()"></td></tr>
+        <tr>
+            <td><input type="button" value="Submit" onclick="batchWrite()"></td>
+        </tr>
     </table>
     <p>
-    <pre id ="result" class="code"></pre>
+    <pre id="result" class="code"></pre>
 </div>
 <jsp:include page="footer.jsp"/>

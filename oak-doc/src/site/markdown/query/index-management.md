@@ -20,7 +20,8 @@
 In Oak, indexes are managed using the JCR API.
 
 ## Index Management using Oak-Run
-`@since 1.6.0` 
+
+`@since 1.6.0`
 
 Oak-Run support managing indexes using the "branch-less" mode,
 which avoids branch commits, which can be relatively slow on MongoDB.
@@ -28,14 +29,15 @@ In this case, the repository must be accessed in standalone mode,
 meaning no other cluster nodes must run concurrently.
 The tool supports running scripts that contain index definition changes,
 as well an interative mode, for development.
-While developing scripts, it is typically a good idea to verify the [Json is valid](http://jsonlint.com/). 
+While developing scripts, it is typically a good idea to verify
+the [Json is valid](http://jsonlint.com/).
 To start the interactive mode,
 with the branch-less commit option, and MongoDB, use:
 
     java -jar oak-run-*.jar json-index --disableBranches --script - \
       mongodb://localhost:27017/oak --user admin --password admin
 
-When using the segment store, use:      
+When using the segment store, use:
 
     java -jar oak-run-*.jar json-index --disableBranches --script - \
       repository/segmentstore --read-write --user admin --password admin
@@ -53,28 +55,28 @@ An example script creates an index "test", and then re-indexes it:
     {"session": "save"}
     {"xpath": "/jcr:root/oak:index/test", "depth": 2}
 
-This index is re-indexed as follows (note that reindexing is typically only needed 
+This index is re-indexed as follows (note that reindexing is typically only needed
 if the index definition changes):
 
     {"setProperty": "/oak:index/test/reindex", "value": true}
     {"session": "save"}
     {"xpath": "/jcr:root/oak:index/test", "depth": 2}
-    
+
 ### Command Reference
-    
+
 The following commands are available:
 
-* Add a node: `{"addNode": "<path>", "node": { ... }}`. 
+* Add a node: `{"addNode": "<path>", "node": { ... }}`.
   Adding child nodes is supported.
   Property types "String" and "Boolean" are automatically detected,
   for other property types use the property name prefix `{<PropertTypeName>}`.
   Ignored if the node already exists.
-* Add a node: `{"removeNode": "<path>"}`. 
+* Add a node: `{"removeNode": "<path>"}`.
   Ignored if the node does not exist.
-* Set a property: `{"setProperty": "<path>/<propertyName>", "value": <value>}`. 
-  Ignored if the node does not exist. 
+* Set a property: `{"setProperty": "<path>/<propertyName>", "value": <value>}`.
+  Ignored if the node does not exist.
   Use the value `null` to remove a property.
-* Save the changes: `{"session": "save"}`. 
+* Save the changes: `{"session": "save"}`.
 * Query using XPath: `{"xpath": "<query>"}`.
   Optionally, specify `"depth"` of the returned nodes.
   Use `"quiet": true` to disable output.
@@ -93,7 +95,7 @@ The following commands are available:
   Exit by setting the variable `{"$break": true}`.
 * Conditional commands: `{<command>, "if": <a>, "=" <b>}`.
   This can be used for any commands.
-  
+
 ### Examples
 
 #### Reindex Counter Index
@@ -116,7 +118,7 @@ and then switches it back to async mode.
     {"sql": "select [reindexCount] from [nt:base] where [jcr:path] = '/oak:index/counter'"}
     {"print": "done"}
     exit
-    
+
 Such scripts are typically stored as a text file (here `reindex-counter.txt`),
 and executed as follows:
 
@@ -148,7 +150,7 @@ The following script created the index externalId:
         {"xpath": "/jcr:root/oak:index/externalId", "depth": 2}
     ]}
     exit
-    
+
 #### Create Nodes for Testing
 
 The tool can also be used for testing queries, and creating nodes.
@@ -182,5 +184,5 @@ The following will estimate the number of nodes in a given subtree.
 
     {"xpath": "explain measure /jcr:root/content//* option(traversal ok)"}
     exit
-    
+
 The field "cost" will contain the number of estimated nodes.

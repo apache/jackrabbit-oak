@@ -19,6 +19,16 @@
 
 package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
+import static org.apache.commons.io.FileUtils.copyInputStreamToFile;
+import static org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils.randomStream;
+import static org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreTest.FixtureHelper.DATA_STORE.CACHING_FDS;
+import static org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreTest.FixtureHelper.DATA_STORE.FDS;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -30,13 +40,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-
-import org.apache.jackrabbit.guava.common.base.Function;
-import org.apache.jackrabbit.guava.common.base.Strings;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
@@ -44,6 +47,12 @@ import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.FileDataStore;
+import org.apache.jackrabbit.guava.common.base.Function;
+import org.apache.jackrabbit.guava.common.base.Strings;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
+import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Maps;
+import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreTest.FixtureHelper.DATA_STORE;
@@ -56,18 +65,9 @@ import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import static org.apache.commons.io.FileUtils.copyInputStreamToFile;
-import static org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils.randomStream;
-import static org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreTest.FixtureHelper.DATA_STORE.CACHING_FDS;
-import static org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreTest.FixtureHelper.DATA_STORE.FDS;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
 @RunWith(Parameterized.class)
 public class SharedDataStoreTest {
+
     @Rule
     public TemporaryFolder folder = new TemporaryFolder(new File("target"));
 
@@ -77,18 +77,19 @@ public class SharedDataStoreTest {
 
     private DATA_STORE type;
 
-    @Parameterized.Parameters(name="{index}: ({0})")
+    @Parameterized.Parameters(name = "{index}: ({0})")
     public static List<Object[]> fixtures() {
         return FixtureHelper.get();
     }
 
     static class FixtureHelper {
+
         enum DATA_STORE {
             CACHING_FDS, FDS
         }
 
         static List<Object[]> get() {
-            return Lists.newArrayList(new Object[] {CACHING_FDS}, new Object[] {FDS});
+            return Lists.newArrayList(new Object[]{CACHING_FDS}, new Object[]{FDS});
         }
     }
 
@@ -146,14 +147,15 @@ public class SharedDataStoreTest {
         fds.init(null);
 
         Iterator<DataIdentifier> dis = fds.getAllIdentifiers();
-        Set<String> fileNames = Sets.newHashSet(Iterators.transform(dis, new Function<DataIdentifier, String>() {
-            @Override
-            public String apply(@Nullable DataIdentifier input) {
-                return input.toString();
-            }
-        }));
+        Set<String> fileNames = Sets.newHashSet(
+            Iterators.transform(dis, new Function<DataIdentifier, String>() {
+                @Override
+                public String apply(@Nullable DataIdentifier input) {
+                    return input.toString();
+                }
+            }));
 
-        Set<String> expectedNames = Sets.newHashSet("abcdef","bcdefg","cdefgh");
+        Set<String> expectedNames = Sets.newHashSet("abcdef", "bcdefg", "cdefgh");
         assertEquals(expectedNames, fileNames);
         FileUtils.cleanDirectory(testDir);
     }
@@ -174,9 +176,9 @@ public class SharedDataStoreTest {
                     records.put(recordName, data);
 
                     if (fromInputStream) {
-                        fds.addMetadataRecord(new ByteArrayInputStream(data.getBytes()), recordName);
-                    }
-                    else {
+                        fds.addMetadataRecord(new ByteArrayInputStream(data.getBytes()),
+                            recordName);
+                    } else {
                         File testFile = folder.newFile();
                         copyInputStreamToFile(new ByteArrayInputStream(data.getBytes()), testFile);
                         fds.addMetadataRecord(testFile, recordName);
@@ -199,7 +201,8 @@ public class SharedDataStoreTest {
     }
 
     @Test
-    public void testBackendAddMetadataRecordFileNotFoundThrowsDataStoreException() throws IOException {
+    public void testBackendAddMetadataRecordFileNotFoundThrowsDataStoreException()
+        throws IOException {
         SharedDataStore fds = dataStore;
 
         File testFile = folder.newFile();
@@ -208,32 +211,34 @@ public class SharedDataStoreTest {
         try {
             fds.addMetadataRecord(testFile, "name");
             fail();
-        }
-        catch (DataStoreException e) {
+        } catch (DataStoreException e) {
             assertTrue(e.getCause() instanceof FileNotFoundException);
         }
     }
 
     @Test
-    public void testBackendAddMetadataRecordNullInputStreamThrowsNullPointerException() throws DataStoreException {
+    public void testBackendAddMetadataRecordNullInputStreamThrowsNullPointerException()
+        throws DataStoreException {
         expectedEx.expect(IllegalArgumentException.class);
         expectedEx.expectMessage("input should not be null");
 
         SharedDataStore fds = dataStore;
-        fds.addMetadataRecord((InputStream)null, "name");
+        fds.addMetadataRecord((InputStream) null, "name");
     }
 
     @Test
-    public void testBackendAddMetadataRecordNullFileThrowsNullPointerException() throws DataStoreException {
+    public void testBackendAddMetadataRecordNullFileThrowsNullPointerException()
+        throws DataStoreException {
         expectedEx.expect(IllegalArgumentException.class);
         expectedEx.expectMessage("input should not be null");
 
         SharedDataStore fds = dataStore;
-        fds.addMetadataRecord((File)null, "name");
+        fds.addMetadataRecord((File) null, "name");
     }
 
     @Test
-    public void testBackendAddMetadataRecordNullEmptyNameThrowsIllegalArgumentException() throws DataStoreException, IOException {
+    public void testBackendAddMetadataRecordNullEmptyNameThrowsIllegalArgumentException()
+        throws DataStoreException, IOException {
         SharedDataStore fds = dataStore;
 
         final String data = "testData";
@@ -267,7 +272,8 @@ public class SharedDataStoreTest {
             try {
                 fds.getMetadataRecord(name);
                 fail("Expect to throw");
-            } catch(Exception e) {}
+            } catch (Exception e) {
+            }
         }
 
         fds.deleteMetadataRecord("testRecord");
@@ -322,10 +328,9 @@ public class SharedDataStoreTest {
             if (Strings.isNullOrEmpty(name)) {
                 try {
                     fds.deleteMetadataRecord(name);
+                } catch (IllegalArgumentException e) {
                 }
-                catch (IllegalArgumentException e) { }
-            }
-            else {
+            } else {
                 fds.deleteMetadataRecord(name);
                 fail();
             }
@@ -396,10 +401,9 @@ public class SharedDataStoreTest {
             if (Strings.isNullOrEmpty(name)) {
                 try {
                     fds.metadataRecordExists(name);
+                } catch (IllegalArgumentException | NullPointerException e) {
                 }
-                catch (IllegalArgumentException | NullPointerException e) { }
-            }
-            else {
+            } else {
                 assertFalse(fds.metadataRecordExists(name));
             }
         }

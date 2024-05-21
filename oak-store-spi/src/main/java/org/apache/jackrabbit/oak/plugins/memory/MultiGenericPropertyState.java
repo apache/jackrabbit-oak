@@ -18,11 +18,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.value.Conversions;
-import org.apache.jackrabbit.oak.plugins.value.Conversions.Converter;
-
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.oak.api.Type.DATES;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
@@ -31,7 +26,13 @@ import static org.apache.jackrabbit.oak.api.Type.REFERENCES;
 import static org.apache.jackrabbit.oak.api.Type.URIS;
 import static org.apache.jackrabbit.oak.api.Type.WEAKREFERENCES;
 
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.value.Conversions;
+import org.apache.jackrabbit.oak.plugins.value.Conversions.Converter;
+
 public class MultiGenericPropertyState extends MultiPropertyState<String> {
+
     private final Type<?> type;
 
     /**
@@ -46,64 +47,69 @@ public class MultiGenericPropertyState extends MultiPropertyState<String> {
     /**
      * Create a multi valued {@code PropertyState} from a list of dates.
      *
-     * @param name  The name of the property state
-     * @param values  The values of the property state
-     * @return  The new property state of type {@link Type#DATES}
+     * @param name   The name of the property state
+     * @param values The values of the property state
+     * @return The new property state of type {@link Type#DATES}
      */
     public static PropertyState dateProperty(String name, Iterable<String> values) {
         return new MultiGenericPropertyState(name, values, DATES);
     }
 
     /**
-     * Create a multi valued {@code PropertyState} from a list of names.
-     * No validation is performed on the strings passed for {@code values}.
-     * @param name  The name of the property state
-     * @param values  The values of the property state
-     * @return  The new property state of type {@link Type#NAMES}
+     * Create a multi valued {@code PropertyState} from a list of names. No validation is performed
+     * on the strings passed for {@code values}.
+     *
+     * @param name   The name of the property state
+     * @param values The values of the property state
+     * @return The new property state of type {@link Type#NAMES}
      */
     public static PropertyState nameProperty(String name, Iterable<String> values) {
         return new MultiGenericPropertyState(name, values, NAMES);
     }
 
     /**
-     * Create a multi valued {@code PropertyState} from a list of paths.
-     * No validation is performed on the strings passed for {@code values}.
-     * @param name  The name of the property state
-     * @param values  The values of the property state
-     * @return  The new property state of type {@link Type#PATHS}
+     * Create a multi valued {@code PropertyState} from a list of paths. No validation is performed
+     * on the strings passed for {@code values}.
+     *
+     * @param name   The name of the property state
+     * @param values The values of the property state
+     * @return The new property state of type {@link Type#PATHS}
      */
     public static PropertyState pathProperty(String name, Iterable<String> values) {
         return new MultiGenericPropertyState(name, values, PATHS);
     }
 
     /**
-     * Create a multi valued {@code PropertyState} from a list of references.
-     * No validation is performed on the strings passed for {@code values}.
-     * @param name  The name of the property state
-     * @param values  The values of the property state
-     * @return  The new property state of type {@link Type#REFERENCES}
+     * Create a multi valued {@code PropertyState} from a list of references. No validation is
+     * performed on the strings passed for {@code values}.
+     *
+     * @param name   The name of the property state
+     * @param values The values of the property state
+     * @return The new property state of type {@link Type#REFERENCES}
      */
     public static PropertyState referenceProperty(String name, Iterable<String> values) {
         return new MultiGenericPropertyState(name, values, REFERENCES);
     }
 
     /**
-     * Create a multi valued {@code PropertyState} from a list of weak references.
-     * No validation is performed on the strings passed for {@code values}.
-     * @param name  The name of the property state
-     * @param values  The values of the property state
-     * @return  The new property state of type {@link Type#WEAKREFERENCES}
+     * Create a multi valued {@code PropertyState} from a list of weak references. No validation is
+     * performed on the strings passed for {@code values}.
+     *
+     * @param name   The name of the property state
+     * @param values The values of the property state
+     * @return The new property state of type {@link Type#WEAKREFERENCES}
      */
     public static PropertyState weakreferenceProperty(String name, Iterable<String> values) {
         return new MultiGenericPropertyState(name, values, WEAKREFERENCES);
     }
 
     /**
-     * Create a multi valued {@code PropertyState} from a list of URIs.
-     * No validation is performed on the strings passed for {@code values}.
-     * @param name  The name of the property state
-     * @param values  The values of the property state
-     * @return  The new property state of type {@link Type#URIS}
+     * Create a multi valued {@code PropertyState} from a list of URIs. No validation is performed
+     * on the strings passed for {@code values}.
+     *
+     * @param name   The name of the property state
+     * @param values The values of the property state
+     * @return The new property state of type {@link Type#URIS}
      */
     public static PropertyState uriProperty(String name, Iterable<String> values) {
         return new MultiGenericPropertyState(name, values, URIS);

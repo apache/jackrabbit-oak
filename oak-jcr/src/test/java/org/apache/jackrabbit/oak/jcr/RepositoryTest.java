@@ -31,6 +31,11 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.LoggerContext;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.Appender;
+import ch.qos.logback.core.AppenderBase;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -48,7 +53,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-
 import javax.jcr.Binary;
 import javax.jcr.GuestCredentials;
 import javax.jcr.InvalidItemStateException;
@@ -75,13 +79,6 @@ import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.nodetype.NodeTypeTemplate;
 import javax.jcr.nodetype.PropertyDefinitionTemplate;
-
-import ch.qos.logback.classic.Level;
-import ch.qos.logback.classic.LoggerContext;
-import ch.qos.logback.classic.spi.ILoggingEvent;
-import ch.qos.logback.core.Appender;
-import ch.qos.logback.core.AppenderBase;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitNode;
 import org.apache.jackrabbit.api.JackrabbitRepository;
@@ -91,6 +88,7 @@ import org.apache.jackrabbit.commons.cnd.ParseException;
 import org.apache.jackrabbit.commons.jackrabbit.SimpleReferenceBinary;
 import org.apache.jackrabbit.core.data.RandomInputStream;
 import org.apache.jackrabbit.core.security.principal.AdminPrincipal;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.repository.RepositoryImpl;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
@@ -101,10 +99,10 @@ import org.apache.jackrabbit.spi.commons.value.QValueValue;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.mockito.ArgumentMatchers;
 import org.slf4j.LoggerFactory;
 
 public class RepositoryTest extends AbstractRepositoryTest {
+
     private static final String TEST_NODE = "test_node";
     private static final String TEST_PATH = '/' + TEST_NODE;
 
@@ -121,9 +119,9 @@ public class RepositoryTest extends AbstractRepositoryTest {
         foo.setProperty("stringProp", "stringVal");
         foo.setProperty("intProp", 42);
         foo.setProperty("mvProp", new Value[]{
-                valueFactory.createValue(1),
-                valueFactory.createValue(2),
-                valueFactory.createValue(3),
+            valueFactory.createValue(1),
+            valueFactory.createValue(2),
+            valueFactory.createValue(3),
         });
         root.addNode("bar");
         root.addNode(TEST_NODE);
@@ -140,28 +138,33 @@ public class RepositoryTest extends AbstractRepositoryTest {
     public void login() throws RepositoryException {
         Session session = getAdminSession();
         assertNotNull(session);
-        Set<Principal> principals = (Set<Principal>) session.getAttribute(RepositoryImpl.BOUND_PRINCIPALS);
+        Set<Principal> principals = (Set<Principal>) session.getAttribute(
+            RepositoryImpl.BOUND_PRINCIPALS);
         assertNotNull(principals);
         Set<String> expectedPrincipalNames = new HashSet<>(Arrays.asList("admin", "everyone"));
-        assertEquals(expectedPrincipalNames, principals.stream().map(Principal::getName).collect(Collectors.toSet()));
+        assertEquals(expectedPrincipalNames,
+            principals.stream().map(Principal::getName).collect(Collectors.toSet()));
     }
 
     @Test
     public void loginWithAttribute() throws RepositoryException {
         Map<String, Object> attributes = new HashMap<>();
         attributes.put(RepositoryImpl.REFRESH_INTERVAL, 42);
-        attributes.put(RepositoryImpl.BOUND_PRINCIPALS, Collections.singleton(new AdminPrincipal("admin")));
+        attributes.put(RepositoryImpl.BOUND_PRINCIPALS,
+            Collections.singleton(new AdminPrincipal("admin")));
         Session session = ((JackrabbitRepository) getRepository()).login(
-                new GuestCredentials(), null, attributes);
+            new GuestCredentials(), null, attributes);
 
         String[] attributeNames = session.getAttributeNames();
         assertTrue(Arrays.asList(attributeNames).contains(RepositoryImpl.REFRESH_INTERVAL));
         assertEquals(42L, session.getAttribute(RepositoryImpl.REFRESH_INTERVAL));
-        Set<Principal> principals = (Set<Principal>) session.getAttribute(RepositoryImpl.BOUND_PRINCIPALS);
+        Set<Principal> principals = (Set<Principal>) session.getAttribute(
+            RepositoryImpl.BOUND_PRINCIPALS);
         assertNotNull(principals);
         // admin must not be contained in the principals (altough added in the login attributes)
         Set<String> expectedPrincipalNames = new HashSet<>(Arrays.asList("anonymous", "everyone"));
-        assertEquals(expectedPrincipalNames, principals.stream().map(Principal::getName).collect(Collectors.toSet()));
+        assertEquals(expectedPrincipalNames,
+            principals.stream().map(Principal::getName).collect(Collectors.toSet()));
         session.logout();
     }
 
@@ -334,11 +337,10 @@ public class RepositoryTest extends AbstractRepositoryTest {
     }
 
     /**
-     * Test SNS 1-based indexed path.
-     * JCR 2.0, Chapter 22.2:
+     * Test SNS 1-based indexed path. JCR 2.0, Chapter 22.2:
      * <em>
-     *     A name in a content repository path that does not explicitly specify an index implies an index of 1.
-     *     For example, /a/b/c is equivalent to /a[1]/b[1]/c[1].
+     * A name in a content repository path that does not explicitly specify an index implies an
+     * index of 1. For example, /a/b/c is equivalent to /a[1]/b[1]/c[1].
      * </em>
      *
      * @throws RepositoryException
@@ -694,12 +696,14 @@ public class RepositoryTest extends AbstractRepositoryTest {
     @Test
     public void addStringProperty() throws RepositoryException, IOException {
         Node parentNode = getNode(TEST_PATH);
-        addProperty(parentNode, "string", getAdminSession().getValueFactory().createValue("string value"));
+        addProperty(parentNode, "string",
+            getAdminSession().getValueFactory().createValue("string value"));
     }
 
     @Test
     public void testGetItemReturnsNodeBeforeProperty() throws RepositoryException {
-        String snnpSupported = getRepository().getDescriptor(OPTION_NODE_AND_PROPERTY_WITH_SAME_NAME_SUPPORTED);
+        String snnpSupported = getRepository().getDescriptor(
+            OPTION_NODE_AND_PROPERTY_WITH_SAME_NAME_SUPPORTED);
         assumeTrue(Boolean.valueOf(snnpSupported));
 
         String newNodeName = "getItemTest";
@@ -837,7 +841,8 @@ public class RepositoryTest extends AbstractRepositoryTest {
     @Test
     public void addDecimalProperty() throws RepositoryException, IOException {
         Node parentNode = getNode(TEST_PATH);
-        addProperty(parentNode, "decimal", getAdminSession().getValueFactory().createValue(BigDecimal.valueOf(21)));
+        addProperty(parentNode, "decimal",
+            getAdminSession().getValueFactory().createValue(BigDecimal.valueOf(21)));
     }
 
     @Test
@@ -867,7 +872,8 @@ public class RepositoryTest extends AbstractRepositoryTest {
     @Test
     public void addDateProperty() throws RepositoryException, IOException {
         Node parentNode = getNode(TEST_PATH);
-        addProperty(parentNode, "date", getAdminSession().getValueFactory().createValue(Calendar.getInstance()));
+        addProperty(parentNode, "date",
+            getAdminSession().getValueFactory().createValue(Calendar.getInstance()));
     }
 
     @Test
@@ -899,15 +905,19 @@ public class RepositoryTest extends AbstractRepositoryTest {
     @Test
     public void addURIProperty() throws RepositoryException, IOException {
         Node parentNode = getNode(TEST_PATH);
-        addProperty(parentNode, "uri", getAdminSession().getValueFactory().createValue("http://www.day.com/", PropertyType.URI));
+        addProperty(parentNode, "uri", getAdminSession().getValueFactory()
+                                                        .createValue("http://www.day.com/",
+                                                            PropertyType.URI));
     }
 
     @Test
     public void addMultiValuedURI() throws RepositoryException {
         Node parentNode = getNode(TEST_PATH);
         Value[] values = new Value[2];
-        values[0] = getAdminSession().getValueFactory().createValue("http://www.day.com", PropertyType.URI);
-        values[1] = getAdminSession().getValueFactory().createValue("file://var/dam", PropertyType.URI);
+        values[0] = getAdminSession().getValueFactory()
+                                     .createValue("http://www.day.com", PropertyType.URI);
+        values[1] = getAdminSession().getValueFactory()
+                                     .createValue("file://var/dam", PropertyType.URI);
 
         parentNode.setProperty("multi uri", values);
         parentNode.getSession().save();
@@ -929,7 +939,8 @@ public class RepositoryTest extends AbstractRepositoryTest {
     @Test
     public void addNameProperty() throws RepositoryException, IOException {
         Node parentNode = getNode(TEST_PATH);
-        addProperty(parentNode, "name", getAdminSession().getValueFactory().createValue("jcr:something\"", PropertyType.NAME));
+        addProperty(parentNode, "name",
+            getAdminSession().getValueFactory().createValue("jcr:something\"", PropertyType.NAME));
     }
 
     @Test
@@ -999,14 +1010,16 @@ public class RepositoryTest extends AbstractRepositoryTest {
     @Test
     public void addPathProperty() throws RepositoryException, IOException {
         Node parentNode = getNode(TEST_PATH);
-        addProperty(parentNode, "path", getAdminSession().getValueFactory().createValue("/jcr:foo/bar\"", PropertyType.PATH));
+        addProperty(parentNode, "path",
+            getAdminSession().getValueFactory().createValue("/jcr:foo/bar\"", PropertyType.PATH));
     }
 
     @Test
     public void addMultiValuedPath() throws RepositoryException {
         Node parentNode = getNode(TEST_PATH);
         Value[] values = new Value[2];
-        values[0] = getAdminSession().getValueFactory().createValue("/nt:foo/jcr:bar", PropertyType.PATH);
+        values[0] = getAdminSession().getValueFactory()
+                                     .createValue("/nt:foo/jcr:bar", PropertyType.PATH);
         values[1] = getAdminSession().getValueFactory().createValue("/", PropertyType.PATH);
 
         parentNode.setProperty("multi path", values);
@@ -1099,7 +1112,8 @@ public class RepositoryTest extends AbstractRepositoryTest {
         referee.addMixin("mix:referenceable");
         getAdminSession().save();
 
-        addProperty(parentNode, "reference", getAdminSession().getValueFactory().createValue(referee));
+        addProperty(parentNode, "reference",
+            getAdminSession().getValueFactory().createValue(referee));
     }
 
     @Test
@@ -1137,7 +1151,8 @@ public class RepositoryTest extends AbstractRepositoryTest {
         referee.addMixin("mix:referenceable");
         getAdminSession().save();
 
-        addProperty(parentNode, "weak reference", getAdminSession().getValueFactory().createValue(referee, true));
+        addProperty(parentNode, "weak reference",
+            getAdminSession().getValueFactory().createValue(referee, true));
     }
 
     @Test
@@ -1230,7 +1245,8 @@ public class RepositoryTest extends AbstractRepositoryTest {
     @Test
     public void setStringProperty() throws RepositoryException, IOException {
         Node parentNode = getNode(TEST_PATH);
-        addProperty(parentNode, "string", getAdminSession().getValueFactory().createValue("string \" value"));
+        addProperty(parentNode, "string",
+            getAdminSession().getValueFactory().createValue("string \" value"));
 
         Property property = parentNode.getProperty("string");
         property.setValue("new value");
@@ -1425,14 +1441,12 @@ public class RepositoryTest extends AbstractRepositoryTest {
         try {
             bar.getPath();
             fail("Expected InvalidItemStateException");
-        }
-        catch (InvalidItemStateException expected) {
+        } catch (InvalidItemStateException expected) {
         }
         try {
             p.getPath();
             fail("Expected InvalidItemStateException");
-        }
-        catch (InvalidItemStateException expected) {
+        } catch (InvalidItemStateException expected) {
         }
     }
 
@@ -1444,8 +1458,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
         try {
             p.getPath();
             fail("Expected InvalidItemStateException");
-        }
-        catch (InvalidItemStateException expected) {
+        } catch (InvalidItemStateException expected) {
         }
     }
 
@@ -1486,7 +1499,8 @@ public class RepositoryTest extends AbstractRepositoryTest {
         Session session = getAdminSession();
         Node referee = getNode("/foo");
         referee.addMixin("mix:referenceable");
-        getNode(TEST_PATH).setProperty("weak-reference", session.getValueFactory().createValue(referee, true));
+        getNode(TEST_PATH).setProperty("weak-reference",
+            session.getValueFactory().createValue(referee, true));
         session.save();
 
         PropertyIterator refs = referee.getWeakReferences();
@@ -1875,7 +1889,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
     public void invalidItemStateExceptionOnRemovedNode() throws Exception {
         Session session = getAdminSession();
 
-        for (String parentPath : new String[] {"/", TEST_PATH}) {
+        for (String parentPath : new String[]{"/", TEST_PATH}) {
             Node parent = session.getNode(parentPath);
             Node child = parent.addNode("child");
             String childPath = child.getPath();
@@ -1884,15 +1898,15 @@ public class RepositoryTest extends AbstractRepositoryTest {
             try {
                 child.getPath();
                 fail();
+            } catch (InvalidItemStateException expected) {
             }
-            catch (InvalidItemStateException expected) { }
 
             session.save();
             try {
                 child.getPath();
                 fail();
+            } catch (InvalidItemStateException expected) {
             }
-            catch (InvalidItemStateException expected) { }
 
             parent.addNode("child");
             assertEquals(childPath, child.getPath());
@@ -1983,7 +1997,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
     @Test
     public void testNamespaceRegistry() throws RepositoryException {
         NamespaceRegistry nsReg =
-                getAdminSession().getWorkspace().getNamespaceRegistry();
+            getAdminSession().getWorkspace().getNamespaceRegistry();
         assertFalse(asList(nsReg.getPrefixes()).contains("foo"));
         assertFalse(asList(nsReg.getURIs()).contains("file:///foo"));
 
@@ -1999,7 +2013,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
     @Test
     public void sessionRemappedNamespace() throws RepositoryException {
         NamespaceRegistry nsReg =
-                getAdminSession().getWorkspace().getNamespaceRegistry();
+            getAdminSession().getWorkspace().getNamespaceRegistry();
         nsReg.registerNamespace("foo", "file:///foo");
 
         getAdminSession().getRootNode().addNode("foo:test");
@@ -2020,7 +2034,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
     @Test
     public void registryRemappedNamespace() throws RepositoryException {
         NamespaceRegistry nsReg =
-                getAdminSession().getWorkspace().getNamespaceRegistry();
+            getAdminSession().getWorkspace().getNamespaceRegistry();
         nsReg.registerNamespace("foo", "file:///foo");
 
         getAdminSession().getRootNode().addNode("foo:test");
@@ -2048,7 +2062,8 @@ public class RepositoryTest extends AbstractRepositoryTest {
             defs.append("[\"myNodeType\"]\n");
             defs.append("  - prop1\n");
             defs.append("  + * (nt:base) = nt:unstructured \n");
-            Reader cndReader = new InputStreamReader(new ByteArrayInputStream(defs.toString().getBytes()));
+            Reader cndReader = new InputStreamReader(
+                new ByteArrayInputStream(defs.toString().getBytes()));
             CndImporter.registerNodeTypes(cndReader, session);
         }
 
@@ -2178,7 +2193,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
         node.remove();
         session.save();
         session.importXML("/", new ByteArrayInputStream(out.toByteArray()),
-                IMPORT_UUID_CREATE_NEW);
+            IMPORT_UUID_CREATE_NEW);
         session.save();
         node = session.getNode("/node");
         assertFalse(uuid.equals(node.getIdentifier()));
@@ -2198,7 +2213,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
         try {
             valueFactory = session.getValueFactory();
             assertEquals(binary, valueFactory.createValue(
-                    new SimpleReferenceBinary(reference)).getBinary());
+                new SimpleReferenceBinary(reference)).getBinary());
         } finally {
             session.logout();
         }
@@ -2238,25 +2253,25 @@ public class RepositoryTest extends AbstractRepositoryTest {
         Node node = session.getRootNode().addNode("node", "fooType");
         node.setProperty("fooProp", "fooValue");
         session.save();
-        
+
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         session.exportDocumentView("/node", out, true, false);
         node.remove();
         session.save();
 
         session.getWorkspace().importXML(
-                "/", new ByteArrayInputStream(out.toByteArray()), IMPORT_UUID_CREATE_NEW);
+            "/", new ByteArrayInputStream(out.toByteArray()), IMPORT_UUID_CREATE_NEW);
         session.save();
         assertEquals("fooValue", session.getProperty("/node/fooProp").getString());
     }
 
     @Test
-    public void largeMultiValueProperty() throws Exception{
+    public void largeMultiValueProperty() throws Exception {
         final List<String> logMessages = Lists.newArrayList();
         Appender<ILoggingEvent> a = new AppenderBase<ILoggingEvent>() {
             @Override
             protected void append(ILoggingEvent e) {
-                if (Level.WARN.isGreaterOrEqual(e.getLevel())){
+                if (Level.WARN.isGreaterOrEqual(e.getLevel())) {
                     logMessages.add(e.getFormattedMessage());
                 }
             }
@@ -2265,10 +2280,10 @@ public class RepositoryTest extends AbstractRepositoryTest {
         rootLogger().addAppender(a);
         Session session = getAdminSession();
         Node node = session.getRootNode().addNode("largeMultiValueProperty", "nt:unstructured");
-        String[] largeArray = new String[1000+1]; //ItemImpl.MV_PROPERTY_WARN_THRESHOLD - 1000
+        String[] largeArray = new String[1000 + 1]; //ItemImpl.MV_PROPERTY_WARN_THRESHOLD - 1000
         Arrays.fill(largeArray, "x");
         Property p = node.setProperty("fooProp", largeArray);
-        Property p2 = node.setProperty("barProp", new String[] {"x"});
+        Property p2 = node.setProperty("barProp", new String[]{"x"});
         p2.setValue(largeArray);
         session.save();
 
@@ -2277,13 +2292,14 @@ public class RepositoryTest extends AbstractRepositoryTest {
 
         assertTrue(logMessages.size() >= 2);
         assertThat("Warn log message must contains a reference to the large array property path",
-                logMessages.toString(), containsString(p.getPath()));
+            logMessages.toString(), containsString(p.getPath()));
         assertThat("Warn log message must contains a reference to the large array property path",
-                logMessages.toString(), containsString(p2.getPath()));
+            logMessages.toString(), containsString(p2.getPath()));
     }
 
     private static ch.qos.logback.classic.Logger rootLogger() {
-        return ((LoggerContext) LoggerFactory.getILoggerFactory()).getLogger(ch.qos.logback.classic.Logger.ROOT_LOGGER_NAME);
+        return ((LoggerContext) LoggerFactory.getILoggerFactory()).getLogger(
+            ch.qos.logback.classic.Logger.ROOT_LOGGER_NAME);
     }
 
     //------------------------------------------------------------< private >---
@@ -2296,7 +2312,8 @@ public class RepositoryTest extends AbstractRepositoryTest {
         return getAdminSession().getProperty(path);
     }
 
-    private void addProperty(Node parentNode, String name, Value value) throws RepositoryException, IOException {
+    private void addProperty(Node parentNode, String name, Value value)
+        throws RepositoryException, IOException {
         String propertyPath = parentNode.getPath() + '/' + name;
         assertFalse(getAdminSession().propertyExists(propertyPath));
 
@@ -2317,7 +2334,8 @@ public class RepositoryTest extends AbstractRepositoryTest {
                 assertEquals(value.getString(), value2.getString());
             }
 
-            if (value2.getType() == PropertyType.REFERENCE || value2.getType() == PropertyType.WEAKREFERENCE) {
+            if (value2.getType() == PropertyType.REFERENCE
+                || value2.getType() == PropertyType.WEAKREFERENCE) {
                 String ref = value2.getString();
                 assertNotNull(getAdminSession().getNodeByIdentifier(ref));
             }

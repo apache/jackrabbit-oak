@@ -47,8 +47,10 @@ public class CacheConsistencyRDBTest extends AbstractRDBConnectionTest {
     @Override
     public void setUpConnection() throws Exception {
         dataSource = RDBDataSourceFactory.forJdbcUrl(URL, USERNAME, PASSWD);
-        DocumentMK.Builder builder = new DocumentMK.Builder().clock(getTestClock()).setAsyncDelay(0);
-        RDBOptions opt = new RDBOptions().tablePrefix("T" + Long.toHexString(System.currentTimeMillis())).dropTablesOnClose(true);
+        DocumentMK.Builder builder = new DocumentMK.Builder().clock(getTestClock())
+                                                             .setAsyncDelay(0);
+        RDBOptions opt = new RDBOptions().tablePrefix(
+            "T" + Long.toHexString(System.currentTimeMillis())).dropTablesOnClose(true);
         store = new TestStore(dataSource, builder, opt);
         mk = builder.setDocumentStore(store).setLeaseCheckMode(LeaseCheckMode.DISABLED).open();
     }
@@ -65,7 +67,8 @@ public class CacheConsistencyRDBTest extends AbstractRDBConnectionTest {
         Thread t = new Thread(new Runnable() {
             @Override
             public void run() {
-                store.query(NODES, Utils.getKeyLowerLimit(Path.ROOT), Utils.getKeyUpperLimit(Path.ROOT), 10);
+                store.query(NODES, Utils.getKeyLowerLimit(Path.ROOT),
+                    Utils.getKeyUpperLimit(Path.ROOT), 10);
             }
         }, "query");
         // block thread when it tries to convert db objects
@@ -107,7 +110,8 @@ public class CacheConsistencyRDBTest extends AbstractRDBConnectionTest {
         }
 
         @Override
-        protected <T extends Document> T convertFromDBObject(@NotNull Collection<T> collection, @Nullable RDBRow row) {
+        protected <T extends Document> T convertFromDBObject(@NotNull Collection<T> collection,
+            @Nullable RDBRow row) {
             Semaphore s = semaphores.get(Thread.currentThread());
             if (s != null) {
                 s.acquireUninterruptibly();

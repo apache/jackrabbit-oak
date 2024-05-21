@@ -16,15 +16,15 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.monitor;
 
-import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncException;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncResult;
-import org.junit.Test;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verifyNoInteractions;
+
+import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncException;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncResult;
+import org.junit.Test;
 
 public class ExternalIdentityMonitorNoopTest {
 
@@ -36,6 +36,7 @@ public class ExternalIdentityMonitorNoopTest {
         monitor.doneSyncExternalIdentity(1, result, 2);
         verifyNoInteractions(result);
     }
+
     @Test
     public void testDoneSyncId() {
         SyncResult result = mock(SyncResult.class);
@@ -49,7 +50,7 @@ public class ExternalIdentityMonitorNoopTest {
         monitor.syncFailed(ex);
         verifyNoInteractions(ex);
     }
-    
+
     @Test
     public void testGetMonitorClass() {
         assertEquals(ExternalIdentityMonitor.class, monitor.getMonitorClass());

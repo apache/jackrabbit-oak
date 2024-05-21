@@ -19,15 +19,15 @@
 
 package org.apache.jackrabbit.oak.plugins.index.search.spi.binary;
 
-import java.util.concurrent.TimeUnit;
+import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 
+import java.util.concurrent.TimeUnit;
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
-
 class TextExtractionStats {
+
     private static final Logger log = LoggerFactory.getLogger(TextExtractionStats.class);
     /**
      * Log stats only if time spent is more than 1 min
@@ -53,7 +53,7 @@ class TextExtractionStats {
         }
     }
 
-    public void collectStats(ExtractedTextCache cache){
+    public void collectStats(ExtractedTextCache cache) {
         cache.addStats(count, totalTime, totalBytesRead, totalTextLength);
     }
 
@@ -68,17 +68,17 @@ class TextExtractionStats {
     @Override
     public String toString() {
         return String.format(" %d (Time Taken %s, Bytes Read %s, Extracted text size %s)",
-                count,
-                timeInWords(totalTime),
-                humanReadableByteCount(totalBytesRead),
-                humanReadableByteCount(totalTextLength));
+            count,
+            timeInWords(totalTime),
+            humanReadableByteCount(totalBytesRead),
+            humanReadableByteCount(totalTextLength));
     }
 
     private static String timeInWords(long millis) {
         return String.format("%d min, %d sec",
-                TimeUnit.MILLISECONDS.toMinutes(millis),
-                TimeUnit.MILLISECONDS.toSeconds(millis) -
-                        TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(millis))
+            TimeUnit.MILLISECONDS.toMinutes(millis),
+            TimeUnit.MILLISECONDS.toSeconds(millis) -
+                TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(millis))
         );
     }
 }

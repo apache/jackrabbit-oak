@@ -48,7 +48,8 @@ public class FullTextSolrSearchTest extends SearchTest {
     private SolrServerProvider serverProvider;
     private String server;
 
-    public FullTextSolrSearchTest(File dump, boolean flat, boolean doReport, Boolean storageEnabled, String server) {
+    public FullTextSolrSearchTest(File dump, boolean flat, boolean doReport, Boolean storageEnabled,
+        String server) {
         super(dump, flat, doReport, storageEnabled);
         this.server = server;
     }
@@ -72,9 +73,9 @@ public class FullTextSolrSearchTest extends SearchTest {
                         }
                     };
                     oak.with(new SolrQueryIndexProvider(serverProvider, configurationProvider))
-                        .with(new NodeStateSolrServersObserver())
-                        .with(new SolrIndexEditorProvider(serverProvider, configurationProvider))
-                        .with(new SolrIndexInitializer(false));
+                       .with(new NodeStateSolrServersObserver())
+                       .with(new SolrIndexEditorProvider(serverProvider, configurationProvider))
+                       .with(new SolrIndexInitializer(false));
                     return new Jcr(oak);
                 }
             });
@@ -86,10 +87,11 @@ public class FullTextSolrSearchTest extends SearchTest {
         if (server != null && (server.startsWith("http") || server.matches("\\w+\\:\\d{3,5}"))) {
             log.info("using remote Solr {}", server);
             RemoteSolrServerConfiguration remoteSolrServerConfiguration = new RemoteSolrServerConfiguration(
-                    server, "oak", 2, 2, null, 10, 10, server);
+                server, "oak", 2, 2, null, 10, 10, server);
             serverProvider = remoteSolrServerConfiguration.getProvider();
         } else {
-            throw new IllegalArgumentException("server parameter value must be an URL or an host:port String");
+            throw new IllegalArgumentException(
+                "server parameter value must be an URL or an host:port String");
         }
     }
 

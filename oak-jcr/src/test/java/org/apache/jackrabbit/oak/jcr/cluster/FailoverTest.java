@@ -26,15 +26,15 @@ import org.junit.Test;
  */
 @Ignore("OAK-759")
 public class FailoverTest extends AbstractClusterTest {
-    
+
     @Override
     protected NodeStoreFixture getFixture() {
         return new DocumentMongoFixture(
-                "mongodb://localhost:27017,localhost:27018,localhost:27019/oak", null);
+            "mongodb://localhost:27017,localhost:27018,localhost:27019/oak", null);
     }
 
-    @Test 
-    @SuppressWarnings("unused") 
+    @Test
+    @SuppressWarnings("unused")
     public void test() throws Exception {
         if (s1 == null) {
             return;
@@ -70,8 +70,8 @@ public class FailoverTest extends AbstractClusterTest {
                 }
             }
             s2.getRootNode().getNode(nodeName).remove();
-            s2.save();        
+            s2.save();
         }
     }
-        
+
 }

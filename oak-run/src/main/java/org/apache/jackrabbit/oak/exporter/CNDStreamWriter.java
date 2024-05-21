@@ -19,18 +19,17 @@
 
 package org.apache.jackrabbit.oak.exporter;
 
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
+
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Set;
-
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
 /**
  * Writes nodes in CND format
@@ -47,8 +46,11 @@ import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
  * </pre>
  */
 class CNDStreamWriter implements JsopWriter, Closeable {
+
     private static final Set<String> COMMON_TYPE_CODES = ImmutableSet.of("nam:", "dat:");
+
     private enum State {NONE, STARTED, BEGIN, END}
+
     private final PrintWriter w;
     private State arrayState = State.NONE;
     private int depth = 0;
@@ -174,8 +176,8 @@ class CNDStreamWriter implements JsopWriter, Closeable {
 
     private static String stripTypeCode(String value) {
         if (value != null) {
-            for (String code : COMMON_TYPE_CODES){
-                if (value.startsWith(code)){
+            for (String code : COMMON_TYPE_CODES) {
+                if (value.startsWith(code)) {
                     return value.substring(code.length());
                 }
             }

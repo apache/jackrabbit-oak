@@ -58,9 +58,15 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.zip.Deflater;
 import java.util.zip.GZIPOutputStream;
-
 import javax.sql.DataSource;
-
+import org.apache.jackrabbit.guava.common.base.Function;
+import org.apache.jackrabbit.guava.common.base.Stopwatch;
+import org.apache.jackrabbit.guava.common.base.Strings;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
+import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Maps;
+import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
@@ -88,24 +94,14 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.base.Function;
-import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.base.Strings;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.guava.common.collect.Sets;
-
 /**
  * Implementation of {@link DocumentStore} for relational databases.
- * 
+ *
  * <h3 id="apidocs.supported-databases">Supported Databases</h3>
  * <p>
- * The code is supposed to be sufficiently generic to run with a variety of
- * database implementations. However, the tables are created when required to
- * simplify testing, and <em>that</em> code specifically supports these
- * databases:
+ * The code is supposed to be sufficiently generic to run with a variety of database
+ * implementations. However, the tables are created when required to simplify testing, and
+ * <em>that</em> code specifically supports these databases:
  * <ul>
  * <li>H2DB</li>
  * <li>Apache Derby</li>
@@ -115,7 +111,7 @@ import org.apache.jackrabbit.guava.common.collect.Sets;
  * <li>Microsoft SQL Server</li>
  * <li>Oracle</li>
  * </ul>
- * 
+ *
  * <h3 id="apidocs.table-layout">Table Layout</h3>
  * <p>
  * Data for each of the DocumentStore's {@link Collection}s is stored in its own
@@ -237,11 +233,11 @@ import org.apache.jackrabbit.guava.common.collect.Sets;
  * create them "manually". The oak-run "<a href="https://jackrabbit.apache.org/oak/docs/nodestore/document/rdb-document-store.html#rdbddldump"><code>rdbddldump</code></a>"
  * command can be used to print out the DDL statements that would have been used for auto-creation
  * and/or automatic schema updates.
- * 
+ *
  * <h3>Caching</h3>
  * <p>
  * The cache borrows heavily from the {@link MongoDocumentStore} implementation.
- * 
+ *
  * <h3>Queries</h3>
  * <p>
  * The implementation currently supports only three indexed properties: "_bin",
@@ -251,10 +247,11 @@ import org.apache.jackrabbit.guava.common.collect.Sets;
 public class RDBDocumentStore implements DocumentStore {
 
     /**
-     * Creates a {@linkplain RDBDocumentStore} instance using the provided
-     * {@link DataSource}, {@link DocumentNodeStoreBuilder}, and {@link RDBOptions}.
+     * Creates a {@linkplain RDBDocumentStore} instance using the provided {@link DataSource},
+     * {@link DocumentNodeStoreBuilder}, and {@link RDBOptions}.
      */
-    public RDBDocumentStore(DataSource ds, DocumentNodeStoreBuilder<?> builder, RDBOptions options) {
+    public RDBDocumentStore(DataSource ds, DocumentNodeStoreBuilder<?> builder,
+        RDBOptions options) {
         try {
             initialize(ds, builder, options);
         } catch (Exception ex) {
@@ -263,9 +260,8 @@ public class RDBDocumentStore implements DocumentStore {
     }
 
     /**
-     * Creates a {@linkplain RDBDocumentStore} instance using the provided
-     * {@link DataSource}, {@link DocumentNodeStoreBuilder}, and default
-     * {@link RDBOptions}.
+     * Creates a {@linkplain RDBDocumentStore} instance using the provided {@link DataSource},
+     * {@link DocumentNodeStoreBuilder}, and default {@link RDBOptions}.
      */
     public RDBDocumentStore(DataSource ds, DocumentNodeStoreBuilder<?> builder) {
         this(ds, builder, new RDBOptions());
@@ -277,30 +273,35 @@ public class RDBDocumentStore implements DocumentStore {
     }
 
     @Override
-    public <T extends Document> T find(final Collection<T> collection, final String id, int maxCacheAge) {
+    public <T extends Document> T find(final Collection<T> collection, final String id,
+        int maxCacheAge) {
         return readDocumentCached(collection, id, maxCacheAge);
     }
 
     @NotNull
     @Override
-    public <T extends Document> List<T> query(Collection<T> collection, String fromKey, String toKey, int limit) {
+    public <T extends Document> List<T> query(Collection<T> collection, String fromKey,
+        String toKey, int limit) {
         return query(collection, fromKey, toKey, null, 0, limit);
     }
 
     @NotNull
     @Override
-    public <T extends Document> List<T> query(Collection<T> collection, String fromKey, String toKey, String indexedProperty,
-            long startValue, int limit) {
+    public <T extends Document> List<T> query(Collection<T> collection, String fromKey,
+        String toKey, String indexedProperty,
+        long startValue, int limit) {
         List<QueryCondition> conditions = Collections.emptyList();
         if (indexedProperty != null) {
-            conditions = Collections.singletonList(new QueryCondition(indexedProperty, ">=", startValue));
+            conditions = Collections.singletonList(
+                new QueryCondition(indexedProperty, ">=", startValue));
         }
         return internalQuery(collection, fromKey, toKey, EMPTY_KEY_PATTERN, conditions, limit);
     }
 
     @NotNull
-    protected <T extends Document> List<T> query(Collection<T> collection, String fromKey, String toKey,
-            List<String> excludeKeyPatterns, List<QueryCondition> conditions, int limit) {
+    protected <T extends Document> List<T> query(Collection<T> collection, String fromKey,
+        String toKey,
+        List<String> excludeKeyPatterns, List<QueryCondition> conditions, int limit) {
         return internalQuery(collection, fromKey, toKey, excludeKeyPatterns, conditions, limit);
     }
 
@@ -336,8 +337,9 @@ public class RDBDocumentStore implements DocumentStore {
     }
 
     @Override
-    public <T extends Document> int remove(Collection<T> collection, String indexedProperty, long startValue, long endValue)
-            throws DocumentStoreException {
+    public <T extends Document> int remove(Collection<T> collection, String indexedProperty,
+        long startValue, long endValue)
+        throws DocumentStoreException {
         try {
             List<QueryCondition> conditions = new ArrayList<QueryCondition>();
             conditions.add(new QueryCondition(indexedProperty, ">", startValue));
@@ -368,7 +370,8 @@ public class RDBDocumentStore implements DocumentStore {
     }
 
     @Override
-    public <T extends Document> List<T> createOrUpdate(Collection<T> collection, List<UpdateOp> updateOps) {
+    public <T extends Document> List<T> createOrUpdate(Collection<T> collection,
+        List<UpdateOp> updateOps) {
         // fall back to sequential mode if batches are turned off using system
         // property, or the number of update operations is small
         if (!BATCHUPDATES || updateOps.size() < MINIMALBULKUPDATESIZE) {
@@ -384,7 +387,8 @@ public class RDBDocumentStore implements DocumentStore {
 
     private static int MINIMALBULKUPDATESIZE = 3;
 
-    private <T extends Document> List<T> internalCreateOrUpdate(Collection<T> collection, List<UpdateOp> updateOps) {
+    private <T extends Document> List<T> internalCreateOrUpdate(Collection<T> collection,
+        List<UpdateOp> updateOps) {
         final Stopwatch watch = startWatch();
         Map<UpdateOp, T> results = new LinkedHashMap<UpdateOp, T>();
         Map<String, UpdateOp> operationsToCover = new LinkedHashMap<String, UpdateOp>();
@@ -423,8 +427,10 @@ public class RDBDocumentStore implements DocumentStore {
                 break;
             }
 
-            for (List<UpdateOp> partition : partition(newArrayList(operationsToCover.values()), CHUNKSIZE)) {
-                Map<UpdateOp, T> successfulUpdates = bulkUpdate(collection, partition, oldDocs, upsert);
+            for (List<UpdateOp> partition : partition(newArrayList(operationsToCover.values()),
+                CHUNKSIZE)) {
+                Map<UpdateOp, T> successfulUpdates = bulkUpdate(collection, partition, oldDocs,
+                    upsert);
                 results.putAll(successfulUpdates);
                 operationsToCover.values().removeAll(successfulUpdates.keySet());
             }
@@ -435,10 +441,13 @@ public class RDBDocumentStore implements DocumentStore {
             UpdateOp conflictedOp = operationsToCover.remove(updateOp.getId());
             if (conflictedOp != null) {
                 if (collection == Collection.NODES) {
-                    LOG.debug("createOrUpdate: update conflict on {}, invalidating cache and retrying...", updateOp.getId());
+                    LOG.debug(
+                        "createOrUpdate: update conflict on {}, invalidating cache and retrying...",
+                        updateOp.getId());
                     nodesCache.invalidate(updateOp.getId());
                 } else {
-                    LOG.debug("createOrUpdate: update conflict on {}, retrying...", updateOp.getId());
+                    LOG.debug("createOrUpdate: update conflict on {}, retrying...",
+                        updateOp.getId());
                 }
                 results.put(conflictedOp, createOrUpdate(collection, updateOp));
             } else if (duplicates.contains(updateOp)) {
@@ -446,16 +455,17 @@ public class RDBDocumentStore implements DocumentStore {
             }
         }
         stats.doneCreateOrUpdate(watch.elapsed(TimeUnit.NANOSECONDS),
-                collection, Lists.transform(updateOps, new Function<UpdateOp, String>() {
-                    @Override
-                    public String apply(UpdateOp input) {
-                        return input.getId();
-                    }
-                }));
+            collection, Lists.transform(updateOps, new Function<UpdateOp, String>() {
+                @Override
+                public String apply(UpdateOp input) {
+                    return input.getId();
+                }
+            }));
         return new ArrayList<T>(results.values());
     }
 
-    private <T extends Document> Map<String, T> readDocumentCached(Collection<T> collection, Set<String> keys) {
+    private <T extends Document> Map<String, T> readDocumentCached(Collection<T> collection,
+        Set<String> keys) {
         Map<String, T> documents = new HashMap<String, T>();
 
         if (collection == Collection.NODES) {
@@ -481,7 +491,8 @@ public class RDBDocumentStore implements DocumentStore {
         return documents;
     }
 
-    private <T extends Document> Map<String, T> readDocumentsUncached(Collection<T> collection, Set<String> keys) {
+    private <T extends Document> Map<String, T> readDocumentsUncached(Collection<T> collection,
+        Set<String> keys) {
         Map<String, T> result = new HashMap<String, T>();
 
         Connection connection = null;
@@ -506,7 +517,8 @@ public class RDBDocumentStore implements DocumentStore {
     }
 
     @Nullable
-    private <T extends Document> CacheChangesTracker obtainTracker(Collection<T> collection, Set<String> keys) {
+    private <T extends Document> CacheChangesTracker obtainTracker(Collection<T> collection,
+        Set<String> keys) {
         if (collection == Collection.NODES) {
             return this.nodesCache.registerTracker(keys);
         } else {
@@ -515,7 +527,8 @@ public class RDBDocumentStore implements DocumentStore {
     }
 
     @Nullable
-    private <T extends Document> CacheChangesTracker obtainTracker(Collection<T> collection, String fromKey, String toKey) {
+    private <T extends Document> CacheChangesTracker obtainTracker(Collection<T> collection,
+        String fromKey, String toKey) {
         if (collection == Collection.NODES) {
             return this.nodesCache.registerTracker(fromKey, toKey);
         } else {
@@ -523,7 +536,8 @@ public class RDBDocumentStore implements DocumentStore {
         }
     }
 
-    private <T extends Document> Map<UpdateOp, T> bulkUpdate(Collection<T> collection, List<UpdateOp> updates, Map<String, T> oldDocs, boolean upsert) {
+    private <T extends Document> Map<UpdateOp, T> bulkUpdate(Collection<T> collection,
+        List<UpdateOp> updates, Map<String, T> oldDocs, boolean upsert) {
         Set<String> missingDocs = new HashSet<String>();
         for (UpdateOp op : updates) {
             if (!oldDocs.containsKey(op.getId())) {
@@ -541,7 +555,8 @@ public class RDBDocumentStore implements DocumentStore {
         }
         oldDocs.putAll(freshDocs);
 
-        try (CacheChangesTracker tracker = obtainTracker(collection, Sets.union(oldDocs.keySet(), missingDocs) )) {
+        try (CacheChangesTracker tracker = obtainTracker(collection,
+            Sets.union(oldDocs.keySet(), missingDocs))) {
             List<T> docsToUpdate = new ArrayList<T>(updates.size());
             Set<String> keysToUpdate = new HashSet<String>();
             for (UpdateOp update : updates) {
@@ -570,7 +585,8 @@ public class RDBDocumentStore implements DocumentStore {
                 oldDocs.keySet().removeAll(failedUpdates);
 
                 if (LOG.isTraceEnabled()) {
-                    LOG.trace("bulkUpdate: success for {}, failure for {}", successfulUpdates, failedUpdates);
+                    LOG.trace("bulkUpdate: success for {}, failure for {}", successfulUpdates,
+                        failedUpdates);
                 }
 
                 if (collection == Collection.NODES) {
@@ -592,7 +608,8 @@ public class RDBDocumentStore implements DocumentStore {
                 return result;
             } catch (SQLException ex) {
                 this.ch.rollbackConnection(connection);
-                throw handleException("update failed for: " + keysToUpdate, ex, collection, keysToUpdate);
+                throw handleException("update failed for: " + keysToUpdate, ex, collection,
+                    keysToUpdate);
             } finally {
                 this.ch.closeConnection(connection);
             }
@@ -625,7 +642,8 @@ public class RDBDocumentStore implements DocumentStore {
         invalidateCache(collection, id, false);
     }
 
-    private <T extends Document> void invalidateCache(Collection<T> collection, String id, boolean remove) {
+    private <T extends Document> void invalidateCache(Collection<T> collection, String id,
+        boolean remove) {
         if (collection == Collection.NODES) {
             invalidateNodesCache(id, remove);
         }
@@ -671,6 +689,7 @@ public class RDBDocumentStore implements DocumentStore {
     // table names
     private static Map<Collection<? extends Document>, String> TABLEMAP;
     private static List<String> TABLENAMES;
+
     static {
         Map<Collection<? extends Document>, String> tmp = new HashMap<Collection<? extends Document>, String>();
         tmp.put(Collection.CLUSTER_NODES, "CLUSTERNODES");
@@ -688,8 +707,8 @@ public class RDBDocumentStore implements DocumentStore {
     }
 
     /**
-     * Holds the data about a table that can vary: name, whether the primary key
-     * is binary, and the estimated size of the "data" column.
+     * Holds the data about a table that can vary: name, whether the primary key is binary, and the
+     * estimated size of the "data" column.
      */
     static class RDBTableMetaData {
 
@@ -764,7 +783,8 @@ public class RDBDocumentStore implements DocumentStore {
 
         public void setHasSplitDocs(boolean hasSplitDocs) {
             this.hasSplitDocs = hasSplitDocs;
-            this.columnProperties = Collections.unmodifiableSet(hasSplitDocs ? COLUMNPROPERTIES2 : COLUMNPROPERTIES) ;
+            this.columnProperties = Collections.unmodifiableSet(
+                hasSplitDocs ? COLUMNPROPERTIES2 : COLUMNPROPERTIES);
         }
 
         public void setHasVersion(boolean hasVersion) {
@@ -826,7 +846,8 @@ public class RDBDocumentStore implements DocumentStore {
             LOG.warn("Error occurred while closing nodes cache", ex);
         }
         LOG.info("RDBDocumentStore (" + getModuleVersion() + ") disposed" + getCnStats()
-                + (this.droppedTables.isEmpty() ? "" : " (tables dropped: " + this.droppedTables + ")"));
+            + (this.droppedTables.isEmpty() ? ""
+            : " (tables dropped: " + this.droppedTables + ")"));
     }
 
     @Override
@@ -860,8 +881,7 @@ public class RDBDocumentStore implements DocumentStore {
     }
 
     /**
-     * Statistics are generated for each table. The following fields are always
-     * added:
+     * Statistics are generated for each table. The following fields are always added:
      * <dl>
      * <dt><em>tableName</em>.ns</dt>
      * <dd>fully qualified name of the database table</dd>
@@ -895,7 +915,8 @@ public class RDBDocumentStore implements DocumentStore {
         return builder.build();
     }
 
-    private <T extends Document> void toMapBuilder(ImmutableMap.Builder<String, String> builder, Collection<T> collection, RDBTableMetaData meta) {
+    private <T extends Document> void toMapBuilder(ImmutableMap.Builder<String, String> builder,
+        Collection<T> collection, RDBTableMetaData meta) {
         String prefix = collection.toString();
         builder.put(prefix + ".ns", meta.getCatalog() + "." + meta.getName());
         builder.put(prefix + ".schemaInfo", meta.getSchemaInfo());
@@ -904,13 +925,14 @@ public class RDBDocumentStore implements DocumentStore {
             builder.put(prefix + ".updates", getCnStats());
         }
         // live data
-        Map<String, String> map = this.dbInfo.getAdditionalStatistics(this.ch, meta.getCatalog(), meta.getName());
+        Map<String, String> map = this.dbInfo.getAdditionalStatistics(this.ch, meta.getCatalog(),
+            meta.getName());
         map.forEach((k, v) -> builder.put(prefix + "." + k, v));
         try {
-            long c = queryCount(collection, null, null, Collections.emptyList(), Collections.emptyList());
+            long c = queryCount(collection, null, null, Collections.emptyList(),
+                Collections.emptyList());
             builder.put(prefix + ".count", Long.toString(c));
-        }
-        catch (DocumentStoreException ex) {
+        } catch (DocumentStoreException ex) {
             LOG.debug("getting entry count for " + prefix, ex);
         }
     }
@@ -971,31 +993,40 @@ public class RDBDocumentStore implements DocumentStore {
     public static String VERSIONPROP = "__version";
 
     // set of supported indexed properties
-    private static final Set<String> INDEXEDPROPERTIES = new HashSet<String>(Arrays.asList(new String[] { MODIFIED,
-            NodeDocument.HAS_BINARY_FLAG, NodeDocument.DELETED_ONCE, NodeDocument.SD_TYPE, NodeDocument.SD_MAX_REV_TIME_IN_SECS, VERSIONPROP }));
+    private static final Set<String> INDEXEDPROPERTIES = new HashSet<String>(
+        Arrays.asList(new String[]{MODIFIED,
+            NodeDocument.HAS_BINARY_FLAG, NodeDocument.DELETED_ONCE, NodeDocument.SD_TYPE,
+            NodeDocument.SD_MAX_REV_TIME_IN_SECS, VERSIONPROP}));
 
     // set of required table columns
-    private static final Set<String> REQUIREDCOLUMNS = Collections.unmodifiableSet(new HashSet<String>(Arrays.asList(
-            new String[] { "id", "dsize", "deletedonce", "bdata", "data", "cmodcount", "modcount", "hasbinary", "modified" })));
+    private static final Set<String> REQUIREDCOLUMNS = Collections.unmodifiableSet(
+        new HashSet<String>(Arrays.asList(
+            new String[]{"id", "dsize", "deletedonce", "bdata", "data", "cmodcount", "modcount",
+                "hasbinary", "modified"})));
 
     // set of optional table columns
     private static final Set<String> OPTIONALCOLUMNS = Collections
-            .unmodifiableSet(new HashSet<String>(Arrays.asList(new String[] { "version", "sdtype", "sdmaxrevtime" })));
+        .unmodifiableSet(
+            new HashSet<String>(Arrays.asList(new String[]{"version", "sdtype", "sdmaxrevtime"})));
 
     // set of properties not serialized to JSON
     private static final Set<String> COLUMNPROPERTIES = new HashSet<String>(Arrays.asList(
-            new String[] { ID, NodeDocument.HAS_BINARY_FLAG, NodeDocument.DELETED_ONCE, COLLISIONSMODCOUNT, MODIFIED, MODCOUNT }));
+        new String[]{ID, NodeDocument.HAS_BINARY_FLAG, NodeDocument.DELETED_ONCE,
+            COLLISIONSMODCOUNT, MODIFIED, MODCOUNT}));
     // set of properties not serialized to JSON, schema version 2
     private static final Set<String> COLUMNPROPERTIES2 = new HashSet<String>(Arrays.asList(
-            new String[] { ID, NodeDocument.HAS_BINARY_FLAG, NodeDocument.DELETED_ONCE, COLLISIONSMODCOUNT, MODIFIED, MODCOUNT,
-                    NodeDocument.SD_TYPE, NodeDocument.SD_MAX_REV_TIME_IN_SECS, VERSIONPROP }));
+        new String[]{ID, NodeDocument.HAS_BINARY_FLAG, NodeDocument.DELETED_ONCE,
+            COLLISIONSMODCOUNT, MODIFIED, MODCOUNT,
+            NodeDocument.SD_TYPE, NodeDocument.SD_MAX_REV_TIME_IN_SECS, VERSIONPROP}));
 
     private final RDBDocumentSerializer ser = new RDBDocumentSerializer(this);
 
-    private void initialize(DataSource ds, DocumentNodeStoreBuilder<?> builder, RDBOptions options) throws Exception {
+    private void initialize(DataSource ds, DocumentNodeStoreBuilder<?> builder, RDBOptions options)
+        throws Exception {
         this.stats = builder.getDocumentStoreStatsCollector();
 
-        this.callStack = LOG.isDebugEnabled() ? new Exception("call stack of RDBDocumentStore creation") : null;
+        this.callStack =
+            LOG.isDebugEnabled() ? new Exception("call stack of RDBDocumentStore creation") : null;
 
         this.readOnly = builder.getReadOnlyMode();
 
@@ -1009,14 +1040,17 @@ public class RDBDocumentStore implements DocumentStore {
         }
 
         this.tableMeta.put(Collection.NODES,
-                new RDBTableMetaData(catalog, createTableName(options.getTablePrefix(), TABLEMAP.get(Collection.NODES))));
+            new RDBTableMetaData(catalog,
+                createTableName(options.getTablePrefix(), TABLEMAP.get(Collection.NODES))));
         this.tableMeta.put(Collection.CLUSTER_NODES,
-                new RDBTableMetaData(catalog, createTableName(options.getTablePrefix(), TABLEMAP.get(Collection.CLUSTER_NODES))));
+            new RDBTableMetaData(catalog,
+                createTableName(options.getTablePrefix(), TABLEMAP.get(Collection.CLUSTER_NODES))));
         this.tableMeta.put(Collection.JOURNAL,
-                new RDBTableMetaData(catalog, createTableName(options.getTablePrefix(), TABLEMAP.get(Collection.JOURNAL))));
+            new RDBTableMetaData(catalog,
+                createTableName(options.getTablePrefix(), TABLEMAP.get(Collection.JOURNAL))));
         this.tableMeta.put(Collection.SETTINGS,
-                new RDBTableMetaData(catalog, createTableName(options.getTablePrefix(), TABLEMAP.get(Collection.SETTINGS))));
-
+            new RDBTableMetaData(catalog,
+                createTableName(options.getTablePrefix(), TABLEMAP.get(Collection.SETTINGS))));
 
         this.locks = new StripedNodeDocumentLocks();
         this.nodesCache = builder.buildNodeDocumentCache(this, locks);
@@ -1025,40 +1059,43 @@ public class RDBDocumentStore implements DocumentStore {
         String isolationDiags = RDBJDBCTools.isolationLevelToString(isolation);
         if (isolation != Connection.TRANSACTION_READ_COMMITTED) {
             LOG.info("Detected transaction isolation level " + isolationDiags + " is "
-                    + (isolation < Connection.TRANSACTION_READ_COMMITTED ? "lower" : "higher") + " than expected "
-                    + RDBJDBCTools.isolationLevelToString(Connection.TRANSACTION_READ_COMMITTED)
-                    + " - check datasource configuration");
+                + (isolation < Connection.TRANSACTION_READ_COMMITTED ? "lower" : "higher")
+                + " than expected "
+                + RDBJDBCTools.isolationLevelToString(Connection.TRANSACTION_READ_COMMITTED)
+                + " - check datasource configuration");
         }
 
-        String dbDesc = String.format("%s %s (%d.%d)", md.getDatabaseProductName(), md.getDatabaseProductVersion(),
-                md.getDatabaseMajorVersion(), md.getDatabaseMinorVersion()).replaceAll("[\r\n\t]", " ").trim();
-        String driverDesc = String.format("%s %s (%d.%d)", md.getDriverName(), md.getDriverVersion(), md.getDriverMajorVersion(),
-                md.getDriverMinorVersion()).replaceAll("[\r\n\t]", " ").trim();
+        String dbDesc = String.format("%s %s (%d.%d)", md.getDatabaseProductName(),
+                                  md.getDatabaseProductVersion(),
+                                  md.getDatabaseMajorVersion(), md.getDatabaseMinorVersion()).replaceAll("[\r\n\t]", " ")
+                              .trim();
+        String driverDesc = String.format("%s %s (%d.%d)", md.getDriverName(),
+            md.getDriverVersion(), md.getDriverMajorVersion(),
+            md.getDriverMinorVersion()).replaceAll("[\r\n\t]", " ").trim();
         String dbUrl = md.getURL();
 
         this.dbInfo = RDBDocumentStoreDB.getValue(md.getDatabaseProductName());
         this.db = new RDBDocumentStoreJDBC(this.dbInfo, this.ser, QUERYHITSLIMIT, QUERYTIMELIMIT);
-        this.metadata = ImmutableMap.<String,String>builder()
-                .put("type", "rdb")
-                .put("db", md.getDatabaseProductName())
-                .put("version", md.getDatabaseProductVersion())
-                .put("driver", md.getDriverName())
-                .put("driverVersion", md.getDriverVersion())
-                .build();
+        this.metadata = ImmutableMap.<String, String>builder()
+                                    .put("type", "rdb")
+                                    .put("db", md.getDatabaseProductName())
+                                    .put("version", md.getDatabaseProductVersion())
+                                    .put("driver", md.getDriverName())
+                                    .put("driverVersion", md.getDriverVersion())
+                                    .build();
         String versionDiags = dbInfo.checkVersion(md);
         if (!versionDiags.isEmpty()) {
             LOG.error(versionDiags);
         }
 
-        if (! "".equals(dbInfo.getInitializationStatement())) {
+        if (!"".equals(dbInfo.getInitializationStatement())) {
             Statement stmt = null;
             try {
                 stmt = con.createStatement();
                 stmt.execute(dbInfo.getInitializationStatement());
                 stmt.close();
                 con.commit();
-            }
-            finally {
+            } finally {
                 closeStatement(stmt);
             }
         }
@@ -1066,14 +1103,18 @@ public class RDBDocumentStore implements DocumentStore {
         List<String> tablesCreated = new ArrayList<String>();
         List<String> tablesPresent = new ArrayList<String>();
         try {
-            createTableFor(con, Collection.CLUSTER_NODES, this.tableMeta.get(Collection.CLUSTER_NODES), tablesCreated,
-                    tablesPresent, options.getInitialSchema(), options.getUpgradeToSchema());
-            createTableFor(con, Collection.NODES, this.tableMeta.get(Collection.NODES), tablesCreated, tablesPresent,
-                    options.getInitialSchema(), options.getUpgradeToSchema());
-            createTableFor(con, Collection.SETTINGS, this.tableMeta.get(Collection.SETTINGS), tablesCreated, tablesPresent,
-                    options.getInitialSchema(), options.getUpgradeToSchema());
-            createTableFor(con, Collection.JOURNAL, this.tableMeta.get(Collection.JOURNAL), tablesCreated, tablesPresent,
-                    options.getInitialSchema(), options.getUpgradeToSchema());
+            createTableFor(con, Collection.CLUSTER_NODES,
+                this.tableMeta.get(Collection.CLUSTER_NODES), tablesCreated,
+                tablesPresent, options.getInitialSchema(), options.getUpgradeToSchema());
+            createTableFor(con, Collection.NODES, this.tableMeta.get(Collection.NODES),
+                tablesCreated, tablesPresent,
+                options.getInitialSchema(), options.getUpgradeToSchema());
+            createTableFor(con, Collection.SETTINGS, this.tableMeta.get(Collection.SETTINGS),
+                tablesCreated, tablesPresent,
+                options.getInitialSchema(), options.getUpgradeToSchema());
+            createTableFor(con, Collection.JOURNAL, this.tableMeta.get(Collection.JOURNAL),
+                tablesCreated, tablesPresent,
+                options.getInitialSchema(), options.getUpgradeToSchema());
         } finally {
             con.commit();
             con.close();
@@ -1094,29 +1135,34 @@ public class RDBDocumentStore implements DocumentStore {
             tableDiags.insert(0, ", ");
         }
 
-        Map<String, String> diag = dbInfo.getAdditionalDiagnostics(this.ch, this.tableMeta.get(Collection.NODES).getName());
+        Map<String, String> diag = dbInfo.getAdditionalDiagnostics(this.ch,
+            this.tableMeta.get(Collection.NODES).getName());
 
-        LOG.info("RDBDocumentStore (" + getModuleVersion() + ") instantiated for database " + dbDesc + ", using driver: "
-                + driverDesc + ", connecting to: " + dbUrl + (diag.isEmpty() ? "" : (", properties: " + diag.toString()))
-                + ", transaction isolation level: " + isolationDiags + tableDiags);
+        LOG.info("RDBDocumentStore (" + getModuleVersion() + ") instantiated for database " + dbDesc
+            + ", using driver: "
+            + driverDesc + ", connecting to: " + dbUrl + (diag.isEmpty() ? ""
+            : (", properties: " + diag.toString()))
+            + ", transaction isolation level: " + isolationDiags + tableDiags);
         if (!tablesPresent.isEmpty()) {
             LOG.info("Tables present upon startup: " + tablesPresent);
         }
         if (!tablesCreated.isEmpty()) {
             LOG.info("Tables created upon startup: " + tablesCreated
-                    + (options.isDropTablesOnClose() ? " (will be dropped on exit)" : ""));
+                + (options.isDropTablesOnClose() ? " (will be dropped on exit)" : ""));
         }
     }
 
     private static boolean isBinaryType(int sqlType) {
-        return sqlType == Types.VARBINARY || sqlType == Types.BINARY || sqlType == Types.LONGVARBINARY;
+        return sqlType == Types.VARBINARY || sqlType == Types.BINARY
+            || sqlType == Types.LONGVARBINARY;
     }
 
     private static boolean isNChar(int sqlType) {
         return sqlType == Types.NCHAR || sqlType == Types.NVARCHAR || sqlType == Types.LONGNVARCHAR;
     }
 
-    private static void obtainFlagsFromResultSetMeta(ResultSetMetaData met, RDBTableMetaData tmd) throws SQLException {
+    private static void obtainFlagsFromResultSetMeta(ResultSetMetaData met, RDBTableMetaData tmd)
+        throws SQLException {
 
         for (int i = 1; i <= met.getColumnCount(); i++) {
             String lcName = met.getColumnName(i).toLowerCase(Locale.ENGLISH);
@@ -1164,7 +1210,8 @@ public class RDBDocumentStore implements DocumentStore {
         }
     }
 
-    private static String dumpIndexData(DatabaseMetaData met, ResultSetMetaData rmet, String tableName, Set<String> indexedColumns) {
+    private static String dumpIndexData(DatabaseMetaData met, ResultSetMetaData rmet,
+        String tableName, Set<String> indexedColumns) {
 
         ResultSet rs = null;
         try {
@@ -1183,7 +1230,8 @@ public class RDBDocumentStore implements DocumentStore {
             if (indices.isEmpty() && !tableName.equals(tableName.toUpperCase(Locale.ENGLISH))) {
                 // might have failed due to the DB's handling on ucase/lcase,
                 // retry ucase
-                rs = met.getIndexInfo(null, null, tableName.toUpperCase(Locale.ENGLISH), false, true);
+                rs = met.getIndexInfo(null, null, tableName.toUpperCase(Locale.ENGLISH), false,
+                    true);
                 indices = getIndexInformation(rs, rmetSchemaName);
             }
             if (indexedColumns != null) {
@@ -1194,8 +1242,10 @@ public class RDBDocumentStore implements DocumentStore {
             return dumpIndexData(indices);
         } catch (SQLException ex) {
             // well it was best-effort
-            String message = String.format("exception while retrieving index information: %s, code %d, state %s", ex.getMessage(),
-                    ex.getErrorCode(), ex.getSQLState());
+            String message = String.format(
+                "exception while retrieving index information: %s, code %d, state %s",
+                ex.getMessage(),
+                ex.getErrorCode(), ex.getSQLState());
             LOG.debug(message, ex);
             return "/* " + message + "*/";
         } finally {
@@ -1212,7 +1262,9 @@ public class RDBDocumentStore implements DocumentStore {
                 if (sb.length() != 0) {
                     sb.append(", ");
                 }
-                sb.append(String.format("%sindex %s on %s (", info.nonunique ? "" : "unique ", indexName, info.tname));
+                sb.append(
+                    String.format("%sindex %s on %s (", info.nonunique ? "" : "unique ", indexName,
+                        info.tname));
                 String delim = "";
                 for (String field : info.fields.values()) {
                     sb.append(delim);
@@ -1231,10 +1283,12 @@ public class RDBDocumentStore implements DocumentStore {
     }
 
     // see https://docs.oracle.com/javase/7/docs/api/java/sql/DatabaseMetaData.html#getIndexInfo(java.lang.String,%20java.lang.String,%20java.lang.String,%20boolean,%20boolean)
-    private static Map<String, IndexInformation> getIndexInformation(ResultSet rs, String rmetSchemaName) throws SQLException {
+    private static Map<String, IndexInformation> getIndexInformation(ResultSet rs,
+        String rmetSchemaName) throws SQLException {
         Map<String, IndexInformation> result = new TreeMap<>();
         while (rs.next()) {
-            String name = asQualifiedDbName(rs.getString("INDEX_QUALIFIER"), rs.getString("INDEX_NAME"));
+            String name = asQualifiedDbName(rs.getString("INDEX_QUALIFIER"),
+                rs.getString("INDEX_NAME"));
             if (name != null) {
                 IndexInformation info = result.get(name);
                 if (info == null) {
@@ -1246,7 +1300,8 @@ public class RDBDocumentStore implements DocumentStore {
                 info.type = indexTypeAsString(rs.getInt("TYPE"));
                 String inSchema = rs.getString("TABLE_SCHEM");
                 inSchema = Strings.nullToEmpty(inSchema).trim();
-                String filterCondition = Strings.nullToEmpty(rs.getString("FILTER_CONDITION")).trim();
+                String filterCondition = Strings.nullToEmpty(rs.getString("FILTER_CONDITION"))
+                                                .trim();
                 if (!filterCondition.isEmpty()) {
                     info.filterCondition = filterCondition;
                 }
@@ -1255,13 +1310,15 @@ public class RDBDocumentStore implements DocumentStore {
                 Set<String> columns = new HashSet<>();
                 info.columns = columns;
                 // skip indices on tables in other schemas in case we have that information
-                if (rmetSchemaName.isEmpty() || inSchema.isEmpty() || rmetSchemaName.equals(inSchema)) {
+                if (rmetSchemaName.isEmpty() || inSchema.isEmpty() || rmetSchemaName.equals(
+                    inSchema)) {
                     String tname = asQualifiedDbName(inSchema, rs.getString("TABLE_NAME"));
                     info.tname = tname;
                     String cname = rs.getString("COLUMN_NAME");
                     if (cname != null) {
                         columns.add(cname.toUpperCase(Locale.ENGLISH));
-                        String order = "A".equals(rs.getString("ASC_OR_DESC")) ? " ASC" : ("D".equals(rs.getString("ASC_OR_DESC")) ? " DESC" : "");
+                        String order = "A".equals(rs.getString("ASC_OR_DESC")) ? " ASC"
+                            : ("D".equals(rs.getString("ASC_OR_DESC")) ? " DESC" : "");
                         info.fields.put(rs.getInt("ORDINAL_POSITION"), cname + order);
                     }
                 }
@@ -1269,8 +1326,9 @@ public class RDBDocumentStore implements DocumentStore {
         }
         return result;
     }
-    
+
     private static class IndexInformation {
+
         public Map<Integer, String> fields;
         public boolean nonunique;
         public String type;
@@ -1281,8 +1339,9 @@ public class RDBDocumentStore implements DocumentStore {
         public String tname;
     }
 
-    private void createTableFor(Connection con, Collection<? extends Document> col, RDBTableMetaData tmd, List<String> tablesCreated,
-            List<String> tablesPresent, int initialSchema, int upgradeToSchema) throws SQLException {
+    private void createTableFor(Connection con, Collection<? extends Document> col,
+        RDBTableMetaData tmd, List<String> tablesCreated,
+        List<String> tablesPresent, int initialSchema, int upgradeToSchema) throws SQLException {
 
         String dbname = this.dbInfo.toString();
         if (con.getMetaData().getURL() != null) {
@@ -1298,7 +1357,8 @@ public class RDBDocumentStore implements DocumentStore {
         try {
             // avoid PreparedStatement due to weird DB2 behavior (OAK-6237)
             checkStatement = con.createStatement();
-            checkResultSet = checkStatement.executeQuery("select * from " + tableName + " where ID = '0'");
+            checkResultSet = checkStatement.executeQuery(
+                "select * from " + tableName + " where ID = '0'");
 
             // try to discover size of DATA column and binary-ness of ID
             ResultSetMetaData met = checkResultSet.getMetaData();
@@ -1325,15 +1385,17 @@ public class RDBDocumentStore implements DocumentStore {
             }
 
             if (!requiredColumns.isEmpty()) {
-                String message = String.format("Table %s: the following required columns are missing: %s", tableName,
-                        requiredColumns.toString());
+                String message = String.format(
+                    "Table %s: the following required columns are missing: %s", tableName,
+                    requiredColumns.toString());
                 LOG.error(message);
                 throw new DocumentStoreException(message);
             }
 
             if (!unknownColumns.isEmpty()) {
-                String message = String.format("Table %s: the following columns are unknown and will not be maintained: %s",
-                        tableName, unknownColumns.toString());
+                String message = String.format(
+                    "Table %s: the following columns are unknown and will not be maintained: %s",
+                    tableName, unknownColumns.toString());
                 LOG.info(message);
             }
 
@@ -1347,9 +1409,9 @@ public class RDBDocumentStore implements DocumentStore {
             boolean dbWasChanged = false;
 
             if (this.readOnly) {
-                LOG.debug("Skipping table update code because store is initialized in readOnly mode");
-            }
-            else {
+                LOG.debug(
+                    "Skipping table update code because store is initialized in readOnly mode");
+            } else {
                 if (!hasVersionColumn && upgradeToSchema >= 1) {
                     dbWasChanged |= upgradeTable(con, tableName, 1);
                 }
@@ -1375,12 +1437,13 @@ public class RDBDocumentStore implements DocumentStore {
             LOG.debug("trying to read from '" + tableName + "'", ex);
             if (this.readOnly) {
                 throw new SQLException("Would like to create table '" + tableName
-                        + "', but RDBDocumentStore has been initialized in 'readonly' mode");
+                    + "', but RDBDocumentStore has been initialized in 'readonly' mode");
             }
 
             try {
                 creatStatement = con.createStatement();
-                creatStatement.execute(this.dbInfo.getTableCreationStatement(tableName, initialSchema));
+                creatStatement.execute(
+                    this.dbInfo.getTableCreationStatement(tableName, initialSchema));
                 creatStatement.close();
 
                 for (String ic : this.dbInfo.getIndexCreationStatements(tableName, initialSchema)) {
@@ -1402,13 +1465,11 @@ public class RDBDocumentStore implements DocumentStore {
                 tablesCreated.add(tableName);
 
                 getTableMetaData(con, col, tmd);
-            }
-            catch (SQLException ex2) {
+            } catch (SQLException ex2) {
                 LOG.error("Failed to create table '" + tableName + "' in '" + dbname + "'", ex2);
                 throw ex2;
             }
-        }
-        finally {
+        } finally {
             closeResultSet(checkResultSet);
             closeStatement(checkStatement);
             closeStatement(creatStatement);
@@ -1425,13 +1486,15 @@ public class RDBDocumentStore implements DocumentStore {
                 upgradeStatement.execute(statement);
                 upgradeStatement.close();
                 con.commit();
-                LOG.info("Upgraded " + tableName + " to DB level " + level + " using '" + statement + "'");
+                LOG.info("Upgraded " + tableName + " to DB level " + level + " using '" + statement
+                    + "'");
                 wasChanged = true;
             } catch (SQLException exup) {
                 con.rollback();
                 String message = String.format(
-                        "Attempted to upgrade %s to DB level %d using '%s', but failed with SQLException '%s' (code: %d/state: %s) - will continue without.",
-                        tableName, level, statement, exup.getMessage(), exup.getErrorCode(), exup.getSQLState());
+                    "Attempted to upgrade %s to DB level %d using '%s', but failed with SQLException '%s' (code: %d/state: %s) - will continue without.",
+                    tableName, level, statement, exup.getMessage(), exup.getErrorCode(),
+                    exup.getSQLState());
                 if (LOG.isDebugEnabled()) {
                     LOG.debug(message, exup);
                 } else {
@@ -1460,8 +1523,8 @@ public class RDBDocumentStore implements DocumentStore {
         } catch (SQLException exup) {
             con.rollback();
             String message = String.format(
-                    "Attempted to add 'modified' index to %s using '%s', but failed with SQLException '%s' (code: %d/state: %s) - will continue without.",
-                    tableName, statement, exup.getMessage(), exup.getErrorCode(), exup.getSQLState());
+                "Attempted to add 'modified' index to %s using '%s', but failed with SQLException '%s' (code: %d/state: %s) - will continue without.",
+                tableName, statement, exup.getMessage(), exup.getErrorCode(), exup.getSQLState());
             if (LOG.isDebugEnabled()) {
                 LOG.debug(message, exup);
             } else {
@@ -1473,14 +1536,16 @@ public class RDBDocumentStore implements DocumentStore {
 
         return wasChanged;
     }
-    
-    private static void getTableMetaData(Connection con, Collection<? extends Document> col, RDBTableMetaData tmd) throws SQLException {
+
+    private static void getTableMetaData(Connection con, Collection<? extends Document> col,
+        RDBTableMetaData tmd) throws SQLException {
         Statement checkStatement = null;
         ResultSet checkResultSet = null;
 
         try {
             checkStatement = con.createStatement();
-            checkResultSet = checkStatement.executeQuery("select * from " + tmd.getName() + " where ID = '0'");
+            checkResultSet = checkStatement.executeQuery(
+                "select * from " + tmd.getName() + " where ID = '0'");
 
             // try to discover size of DATA column and binary-ness of ID
             ResultSetMetaData met = checkResultSet.getMetaData();
@@ -1508,7 +1573,8 @@ public class RDBDocumentStore implements DocumentStore {
         super.finalize();
     }
 
-    private <T extends Document> T readDocumentCached(final Collection<T> collection, final String id, int maxCacheAge) {
+    private <T extends Document> T readDocumentCached(final Collection<T> collection,
+        final String id, int maxCacheAge) {
         if (collection != Collection.NODES) {
             return readDocumentUncached(collection, id, null);
         } else {
@@ -1519,7 +1585,8 @@ public class RDBDocumentStore implements DocumentStore {
                 if (doc != null) {
                     long lastCheckTime = doc.getLastCheckTime();
                     if (lastCheckTime != 0) {
-                        if (maxCacheAge == Integer.MAX_VALUE || System.currentTimeMillis() - lastCheckTime < maxCacheAge) {
+                        if (maxCacheAge == Integer.MAX_VALUE
+                            || System.currentTimeMillis() - lastCheckTime < maxCacheAge) {
                             stats.doneFindCached(Collection.NODES, id);
                             return castAsT(unwrap(doc));
                         }
@@ -1537,7 +1604,8 @@ public class RDBDocumentStore implements DocumentStore {
                     doc = nodesCache.get(id, new Callable<NodeDocument>() {
                         @Override
                         public NodeDocument call() throws Exception {
-                            NodeDocument doc = (NodeDocument) readDocumentUncached(collection, id, cachedDoc);
+                            NodeDocument doc = (NodeDocument) readDocumentUncached(collection, id,
+                                cachedDoc);
                             if (doc != null) {
                                 doc.seal();
                             }
@@ -1546,14 +1614,17 @@ public class RDBDocumentStore implements DocumentStore {
                     });
                     // inspect the doc whether it can be used
                     long lastCheckTime = doc.getLastCheckTime();
-                    if (lastCheckTime != 0 && (maxCacheAge == 0 || maxCacheAge == Integer.MAX_VALUE)) {
+                    if (lastCheckTime != 0 && (maxCacheAge == 0
+                        || maxCacheAge == Integer.MAX_VALUE)) {
                         // we either just cleared the cache or the caller does
                         // not care;
-                    } else if (lastCheckTime != 0 && (System.currentTimeMillis() - lastCheckTime < maxCacheAge)) {
+                    } else if (lastCheckTime != 0 && (System.currentTimeMillis() - lastCheckTime
+                        < maxCacheAge)) {
                         // is new enough
                     } else {
                         // need to at least revalidate
-                        NodeDocument ndoc = (NodeDocument) readDocumentUncached(collection, id, cachedDoc);
+                        NodeDocument ndoc = (NodeDocument) readDocumentUncached(collection, id,
+                            cachedDoc);
                         if (ndoc != null) {
                             ndoc.seal();
                         }
@@ -1569,7 +1640,8 @@ public class RDBDocumentStore implements DocumentStore {
     }
 
     @Nullable
-    private <T extends Document> boolean internalCreate(Collection<T> collection, List<UpdateOp> updates) {
+    private <T extends Document> boolean internalCreate(Collection<T> collection,
+        List<UpdateOp> updates) {
         final Stopwatch watch = startWatch();
         List<String> ids = new ArrayList<String>(updates.size());
         boolean success = true;
@@ -1586,7 +1658,8 @@ public class RDBDocumentStore implements DocumentStore {
                     addUpdateCounters(update);
                     UpdateUtils.applyChanges(doc, update);
                     if (!update.getId().equals(doc.getId())) {
-                        throw new DocumentStoreException("ID mismatch - UpdateOp: " + update.getId() + ", ID property: "
+                        throw new DocumentStoreException(
+                            "ID mismatch - UpdateOp: " + update.getId() + ", ID property: "
                                 + doc.getId());
                     }
                     docs.add(doc);
@@ -1611,8 +1684,9 @@ public class RDBDocumentStore implements DocumentStore {
     }
 
     @Nullable
-    private <T extends Document> T internalCreateOrUpdate(Collection<T> collection, UpdateOp update, boolean allowCreate,
-            boolean checkConditions, int retries) {
+    private <T extends Document> T internalCreateOrUpdate(Collection<T> collection, UpdateOp update,
+        boolean allowCreate,
+        boolean checkConditions, int retries) {
         T oldDoc = readDocumentCached(collection, update.getId(), Integer.MAX_VALUE);
 
         if (oldDoc == null) {
@@ -1633,7 +1707,8 @@ public class RDBDocumentStore implements DocumentStore {
                 if (collection == Collection.NODES) {
                     nodesCache.putIfAbsent((NodeDocument) doc);
                 }
-                stats.doneFindAndModify(watch.elapsed(TimeUnit.NANOSECONDS), collection, update.getId(), true, true, 0);
+                stats.doneFindAndModify(watch.elapsed(TimeUnit.NANOSECONDS), collection,
+                    update.getId(), true, true, 0);
                 return oldDoc;
             } catch (DocumentStoreException ex) {
                 // may have failed due to a race condition; try update instead
@@ -1643,7 +1718,8 @@ public class RDBDocumentStore implements DocumentStore {
                 oldDoc = readDocumentUncached(collection, update.getId(), null);
                 if (oldDoc == null) {
                     // something else went wrong
-                    LOG.error("insert failed, but document " + update.getId() + " is not present, aborting", ex);
+                    LOG.error("insert failed, but document " + update.getId()
+                        + " is not present, aborting", ex);
                     throw (ex);
                 }
                 return internalUpdate(collection, update, oldDoc, checkConditions, retries);
@@ -1652,12 +1728,13 @@ public class RDBDocumentStore implements DocumentStore {
             T result = internalUpdate(collection, update, oldDoc, checkConditions, retries);
             if (allowCreate && result == null) {
                 if (retries > 0) {
-                    result = internalCreateOrUpdate(collection, update, allowCreate, checkConditions, retries - 1);
-                }
-                else {
-                  LOG.error("update of " + update.getId() + " failed, race condition?");
-                  throw new DocumentStoreException("update of " + update.getId() + " failed, race condition?", null,
-                          DocumentStoreException.Type.TRANSIENT);
+                    result = internalCreateOrUpdate(collection, update, allowCreate,
+                        checkConditions, retries - 1);
+                } else {
+                    LOG.error("update of " + update.getId() + " failed, race condition?");
+                    throw new DocumentStoreException(
+                        "update of " + update.getId() + " failed, race condition?", null,
+                        DocumentStoreException.Type.TRANSIENT);
                 }
             }
             return result;
@@ -1668,8 +1745,9 @@ public class RDBDocumentStore implements DocumentStore {
      * @return previous version of document or <code>null</code>
      */
     @Nullable
-    private <T extends Document> T internalUpdate(Collection<T> collection, UpdateOp update, T oldDoc, boolean checkConditions,
-            int maxRetries) {
+    private <T extends Document> T internalUpdate(Collection<T> collection, UpdateOp update,
+        T oldDoc, boolean checkConditions,
+        int maxRetries) {
         if (checkConditions && !UpdateUtils.checkConditions(oldDoc, update.getConditions())) {
             return null;
         } else {
@@ -1691,8 +1769,9 @@ public class RDBDocumentStore implements DocumentStore {
                             if (lastmodcount == newmodcount) {
                                 // cached copy did not change so it probably was
                                 // updated by a different instance, get a fresh one
-                                LOG.debug("suspect update from different instance (current modcount: {}), refetching: {}...",
-                                        newmodcount, update.getId());
+                                LOG.debug(
+                                    "suspect update from different instance (current modcount: {}), refetching: {}...",
+                                    newmodcount, update.getId());
                                 if (collection == Collection.NODES) {
                                     nodesCache.invalidate(update.getId());
                                 }
@@ -1700,33 +1779,38 @@ public class RDBDocumentStore implements DocumentStore {
                                 if (oldDoc == null) {
                                     LOG.debug("after refetch: {} is gone", update.getId());
                                 } else {
-                                    LOG.debug("after refetch: modcount for {} is {}", update.getId(), modcountOf(oldDoc));
+                                    LOG.debug("after refetch: modcount for {} is {}",
+                                        update.getId(), modcountOf(oldDoc));
                                 }
                             }
                         }
 
                         if (oldDoc == null) {
                             // document was there but is now gone
-                            LOG.debug("failed to apply update because document is gone in the meantime: " + update.getId(), new Exception("call stack"));
+                            LOG.debug(
+                                "failed to apply update because document is gone in the meantime: "
+                                    + update.getId(), new Exception("call stack"));
                             return null;
                         }
 
-                        if (checkConditions && !UpdateUtils.checkConditions(oldDoc, update.getConditions())) {
+                        if (checkConditions && !UpdateUtils.checkConditions(oldDoc,
+                            update.getConditions())) {
                             return null;
-                        }
-                        else {
+                        } else {
                             addUpdateCounters(update);
                             doc = createNewDocument(collection, oldDoc, update);
                         }
                     } else {
                         if (collection == Collection.NODES) {
-                            nodesCache.replaceCachedDocument((NodeDocument) oldDoc, (NodeDocument) doc);
+                            nodesCache.replaceCachedDocument((NodeDocument) oldDoc,
+                                (NodeDocument) doc);
                         }
                     }
                 }
 
                 if (!success) {
-                    throw new DocumentStoreException("failed update of " + doc.getId() + " (race?) after " + maxRetries
+                    throw new DocumentStoreException(
+                        "failed update of " + doc.getId() + " (race?) after " + maxRetries
                             + " retries", null, DocumentStoreException.Type.TRANSIENT);
                 }
 
@@ -1734,13 +1818,14 @@ public class RDBDocumentStore implements DocumentStore {
             } finally {
                 int numOfAttempts = maxRetries - retries - 1;
                 stats.doneFindAndModify(watch.elapsed(TimeUnit.NANOSECONDS), collection,
-                        update.getId(), false, success, numOfAttempts);
+                    update.getId(), false, success, numOfAttempts);
             }
         }
     }
 
     @NotNull
-    private <T extends Document> T createNewDocument(Collection<T> collection, T oldDoc, UpdateOp update) {
+    private <T extends Document> T createNewDocument(Collection<T> collection, T oldDoc,
+        UpdateOp update) {
         T doc = collection.newDocument(this);
         oldDoc.deepCopy(doc);
         UpdateUtils.applyChanges(doc, update);
@@ -1755,13 +1840,16 @@ public class RDBDocumentStore implements DocumentStore {
         update.increment(MODCOUNT, 1);
     }
 
-    private <T extends Document> List<T> internalQuery(Collection<T> collection, String fromKey, String toKey,
-            List<String> excludeKeyPatterns, List<QueryCondition> conditions, int limit) {
+    private <T extends Document> List<T> internalQuery(Collection<T> collection, String fromKey,
+        String toKey,
+        List<String> excludeKeyPatterns, List<QueryCondition> conditions, int limit) {
         Connection connection = null;
         RDBTableMetaData tmd = getTable(collection);
         for (QueryCondition cond : conditions) {
             if (!INDEXEDPROPERTIES.contains(cond.getPropertyName())) {
-                String message = "indexed property " + cond.getPropertyName() + " not supported, query was '" + cond
+                String message =
+                    "indexed property " + cond.getPropertyName() + " not supported, query was '"
+                        + cond
                         + "'; supported properties are " + INDEXEDPROPERTIES;
                 LOG.info(message);
                 throw new DocumentStoreException(message);
@@ -1774,14 +1862,19 @@ public class RDBDocumentStore implements DocumentStore {
         try (CacheChangesTracker tracker = obtainTracker(collection, fromKey, toKey)) {
             long now = System.currentTimeMillis();
             connection = this.ch.getROConnection();
-            String from = collection == Collection.NODES && NodeDocument.MIN_ID_VALUE.equals(fromKey) ? null : fromKey;
-            String to = collection == Collection.NODES && NodeDocument.MAX_ID_VALUE.equals(toKey) ? null : toKey;
+            String from =
+                collection == Collection.NODES && NodeDocument.MIN_ID_VALUE.equals(fromKey) ? null
+                    : fromKey;
+            String to =
+                collection == Collection.NODES && NodeDocument.MAX_ID_VALUE.equals(toKey) ? null
+                    : toKey;
 
             // OAK-6839: only populate the cache with *new* entries if the query
             // isn't open-ended (something done by GC processes)
             boolean populateCache = to != null;
 
-            List<RDBRow> dbresult = db.query(connection, tmd, from, to, excludeKeyPatterns, conditions, limit);
+            List<RDBRow> dbresult = db.query(connection, tmd, from, to, excludeKeyPatterns,
+                conditions, limit);
             connection.commit();
 
             int size = dbresult.size();
@@ -1805,8 +1898,7 @@ public class RDBDocumentStore implements DocumentStore {
                                 ((NodeDocument) doc).markUpToDate(now);
                             }
                         }
-                    }
-                    else {
+                    } else {
                         // we need a fresh document instance
                         doc = convertFromDBObject(collection, row);
                     }
@@ -1819,7 +1911,8 @@ public class RDBDocumentStore implements DocumentStore {
                 } else {
                     Map<String, ModificationStamp> invMap = Maps.newHashMap();
                     for (Document doc : result) {
-                        invMap.put(doc.getId(), new ModificationStamp(modcountOf(doc), modifiedOf(doc)));
+                        invMap.put(doc.getId(),
+                            new ModificationStamp(modcountOf(doc), modifiedOf(doc)));
                     }
                     nodesCache.invalidateOutdated(invMap);
                 }
@@ -1832,29 +1925,38 @@ public class RDBDocumentStore implements DocumentStore {
         } finally {
             this.ch.closeConnection(connection);
             stats.doneQuery(watch.elapsed(TimeUnit.NANOSECONDS), collection, fromKey, toKey,
-                    !conditions.isEmpty(), resultSize, -1, false);
+                !conditions.isEmpty(), resultSize, -1, false);
         }
     }
 
     private static interface MyCloseableIterable<T> extends Closeable, Iterable<T> {
+
     }
 
-    protected <T extends Document> Iterable<T> queryAsIterable(final Collection<T> collection, String fromKey, String toKey,
-            final List<String> excludeKeyPatterns, final List<QueryCondition> conditions, final int limit, final String sortBy) {
+    protected <T extends Document> Iterable<T> queryAsIterable(final Collection<T> collection,
+        String fromKey, String toKey,
+        final List<String> excludeKeyPatterns, final List<QueryCondition> conditions,
+        final int limit, final String sortBy) {
 
         final RDBTableMetaData tmd = getTable(collection);
         Set<String> allowedProps = Sets.intersection(INDEXEDPROPERTIES, tmd.getColumnProperties());
         for (QueryCondition cond : conditions) {
             if (!allowedProps.contains(cond.getPropertyName())) {
-                String message = "indexed property " + cond.getPropertyName() + " not supported, query was '" + cond
+                String message =
+                    "indexed property " + cond.getPropertyName() + " not supported, query was '"
+                        + cond
                         + "'; supported properties are " + allowedProps;
                 LOG.info(message);
                 throw new UnsupportedIndexedPropertyException(message);
             }
         }
 
-        final String from = collection == Collection.NODES && NodeDocument.MIN_ID_VALUE.equals(fromKey) ? null : fromKey;
-        final String to = collection == Collection.NODES && NodeDocument.MAX_ID_VALUE.equals(toKey) ? null : toKey;
+        final String from =
+            collection == Collection.NODES && NodeDocument.MIN_ID_VALUE.equals(fromKey) ? null
+                : fromKey;
+        final String to =
+            collection == Collection.NODES && NodeDocument.MAX_ID_VALUE.equals(toKey) ? null
+                : toKey;
 
         return new MyCloseableIterable<T>() {
 
@@ -1863,8 +1965,9 @@ public class RDBDocumentStore implements DocumentStore {
             @Override
             public Iterator<T> iterator() {
                 try {
-                    Iterator<RDBRow> res = db.queryAsIterator(ch, tmd, from, to, excludeKeyPatterns, conditions,
-                            limit, sortBy);
+                    Iterator<RDBRow> res = db.queryAsIterator(ch, tmd, from, to, excludeKeyPatterns,
+                        conditions,
+                        limit, sortBy);
                     returned.add(res);
                     Iterator<T> tmp = Iterators.transform(res, new Function<RDBRow, T>() {
                         @Override
@@ -1889,38 +1992,51 @@ public class RDBDocumentStore implements DocumentStore {
         };
     }
 
-    protected <T extends Document> long queryCount(final Collection<T> collection, String fromKey, String toKey,
-            final List<String> excludeKeyPatterns, final List<QueryCondition> conditions) {
+    protected <T extends Document> long queryCount(final Collection<T> collection, String fromKey,
+        String toKey,
+        final List<String> excludeKeyPatterns, final List<QueryCondition> conditions) {
 
-        return internalGetAggregate(collection, "COUNT", "*", fromKey, toKey, excludeKeyPatterns, conditions);
+        return internalGetAggregate(collection, "COUNT", "*", fromKey, toKey, excludeKeyPatterns,
+            conditions);
     }
 
-    protected <T extends Document> long getMinValue(final Collection<T> collection, String field, String fromKey, String toKey,
-            final List<String> excludeKeyPatterns, final List<QueryCondition> conditions) {
+    protected <T extends Document> long getMinValue(final Collection<T> collection, String field,
+        String fromKey, String toKey,
+        final List<String> excludeKeyPatterns, final List<QueryCondition> conditions) {
 
-        return internalGetAggregate(collection, "MIN", field, fromKey, toKey, excludeKeyPatterns, conditions);
+        return internalGetAggregate(collection, "MIN", field, fromKey, toKey, excludeKeyPatterns,
+            conditions);
     }
 
-    private <T extends Document> long internalGetAggregate(final Collection<T> collection, final String aggregrate, String field,
-            String fromKey, String toKey, final List<String> excludeKeyPatterns, final List<QueryCondition> conditions) {
+    private <T extends Document> long internalGetAggregate(final Collection<T> collection,
+        final String aggregrate, String field,
+        String fromKey, String toKey, final List<String> excludeKeyPatterns,
+        final List<QueryCondition> conditions) {
 
         final RDBTableMetaData tmd = getTable(collection);
         for (QueryCondition cond : conditions) {
             if (!INDEXEDPROPERTIES.contains(cond.getPropertyName())) {
-                String message = "indexed property " + cond.getPropertyName() + " not supported, query was '" + cond
+                String message =
+                    "indexed property " + cond.getPropertyName() + " not supported, query was '"
+                        + cond
                         + "'; supported properties are " + INDEXEDPROPERTIES;
                 LOG.info(message);
                 throw new DocumentStoreException(message);
             }
         }
 
-        final String from = collection == Collection.NODES && NodeDocument.MIN_ID_VALUE.equals(fromKey) ? null : fromKey;
-        final String to = collection == Collection.NODES && NodeDocument.MAX_ID_VALUE.equals(toKey) ? null : toKey;
+        final String from =
+            collection == Collection.NODES && NodeDocument.MIN_ID_VALUE.equals(fromKey) ? null
+                : fromKey;
+        final String to =
+            collection == Collection.NODES && NodeDocument.MAX_ID_VALUE.equals(toKey) ? null
+                : toKey;
 
         Connection connection = null;
         try {
             connection = ch.getROConnection();
-            long result = db.getLong(connection, tmd, aggregrate, field, from, to, excludeKeyPatterns, conditions);
+            long result = db.getLong(connection, tmd, aggregrate, field, from, to,
+                excludeKeyPatterns, conditions);
             connection.commit();
             return result;
         } catch (SQLException ex) {
@@ -1942,7 +2058,8 @@ public class RDBDocumentStore implements DocumentStore {
     }
 
     @Nullable
-    private <T extends Document> T readDocumentUncached(Collection<T> collection, String id, NodeDocument cachedDoc) {
+    private <T extends Document> T readDocumentUncached(Collection<T> collection, String id,
+        NodeDocument cachedDoc) {
         Connection connection = null;
         RDBTableMetaData tmd = getTable(collection);
         final Stopwatch watch = startWatch();
@@ -1960,7 +2077,8 @@ public class RDBDocumentStore implements DocumentStore {
                 docFound = false;
                 return null;
             } else {
-                if (lastmodcount == row.getModcount() && lastmodified == row.getModified() && lastmodified >= 1) {
+                if (lastmodcount == row.getModcount() && lastmodified == row.getModified()
+                    && lastmodified >= 1) {
                     // we can re-use the cached document
                     cachedDoc.markUpToDate(System.currentTimeMillis());
                     return castAsT(cachedDoc);
@@ -1972,7 +2090,8 @@ public class RDBDocumentStore implements DocumentStore {
             throw asDocumentStoreException(ex, "exception while reading " + id);
         } finally {
             this.ch.closeConnection(connection);
-            stats.doneFindUncached(watch.elapsed(TimeUnit.NANOSECONDS), collection, id, docFound, false);
+            stats.doneFindUncached(watch.elapsed(TimeUnit.NANOSECONDS), collection, id, docFound,
+                false);
         }
     }
 
@@ -2045,7 +2164,8 @@ public class RDBDocumentStore implements DocumentStore {
         return numDeleted;
     }
 
-    private <T extends Document> int deleteWithCondition(Collection<T> collection, List<QueryCondition> conditions) {
+    private <T extends Document> int deleteWithCondition(Collection<T> collection,
+        List<QueryCondition> conditions) {
         int numDeleted = 0;
         RDBTableMetaData tmd = getTable(collection);
         Stopwatch watch = startWatch();
@@ -2064,8 +2184,9 @@ public class RDBDocumentStore implements DocumentStore {
         return numDeleted;
     }
 
-    private <T extends Document> boolean updateDocument(@NotNull Collection<T> collection, @NotNull T document,
-            @NotNull UpdateOp update, Long oldmodcount) {
+    private <T extends Document> boolean updateDocument(@NotNull Collection<T> collection,
+        @NotNull T document,
+        @NotNull UpdateOp update, Long oldmodcount) {
         Connection connection = null;
         RDBTableMetaData tmd = getTable(collection);
         String data = null;
@@ -2085,9 +2206,11 @@ public class RDBDocumentStore implements DocumentStore {
                     try {
                         Operation modOperation = update.getChanges().get(MODIFIEDKEY);
                         long modified = getModifiedFromOperation(modOperation);
-                        boolean modifiedIsConditional = modOperation == null || modOperation.type != UpdateOp.Operation.Type.SET;
-                        success = db.appendingUpdate(connection, tmd, document.getId(), modified, modifiedIsConditional, hasBinary,
-                                deletedOnce, modcount, cmodcount, oldmodcount, appendData);
+                        boolean modifiedIsConditional = modOperation == null
+                            || modOperation.type != UpdateOp.Operation.Type.SET;
+                        success = db.appendingUpdate(connection, tmd, document.getId(), modified,
+                            modifiedIsConditional, hasBinary,
+                            deletedOnce, modcount, cmodcount, oldmodcount, appendData);
                         // if we get here, a retry is not going to help (the SQL
                         // operation succeeded but simply did not select a row
                         // that could be updated, likely because of the check on
@@ -2104,9 +2227,10 @@ public class RDBDocumentStore implements DocumentStore {
             if (!success && shouldRetry) {
                 data = ser.asString(document, tmd.getColumnOnlyProperties());
                 Object m = document.get(MODIFIED);
-                long modified = (m instanceof Long) ? ((Long)m).longValue() : 0;
-                success = db.update(connection, tmd, document.getId(), modified, hasBinary, deletedOnce, modcount, cmodcount,
-                        oldmodcount, data);
+                long modified = (m instanceof Long) ? ((Long) m).longValue() : 0;
+                success = db.update(connection, tmd, document.getId(), modified, hasBinary,
+                    deletedOnce, modcount, cmodcount,
+                    oldmodcount, data);
                 connection.commit();
             }
             return success;
@@ -2115,8 +2239,9 @@ public class RDBDocumentStore implements DocumentStore {
             String addDiags = "";
             if (data != null && RDBJDBCTools.matchesSQLState(ex, "22", "72")) {
                 byte[] bytes = asBytes(data);
-                addDiags = String.format(" (DATA size in Java characters: %d, in octets: %d, computed character limit: %d)",
-                        data.length(), bytes.length, tmd.getDataLimitInOctets() / CHAR2OCTETRATIO);
+                addDiags = String.format(
+                    " (DATA size in Java characters: %d, in octets: %d, computed character limit: %d)",
+                    data.length(), bytes.length, tmd.getDataLimitInOctets() / CHAR2OCTETRATIO);
             }
             String message = String.format("Update for %s failed%s", document.getId(), addDiags);
             LOG.debug(message, ex);
@@ -2128,8 +2253,9 @@ public class RDBDocumentStore implements DocumentStore {
 
     private static void continueIfStringOverflow(SQLException ex) throws SQLException {
         String state = ex.getSQLState();
-        if ("22001".equals(state) /* everybody */|| ("72000".equals(state) && 1489 == ex.getErrorCode()) /* Oracle */
-        		|| ("S0001".equals(state) && 2628 == ex.getErrorCode()) /* MSSQL update*/) {
+        if ("22001".equals(state) /* everybody */ || ("72000".equals(state)
+            && 1489 == ex.getErrorCode()) /* Oracle */
+            || ("S0001".equals(state) && 2628 == ex.getErrorCode()) /* MSSQL update*/) {
             // ok
         } else {
             throw (ex);
@@ -2144,7 +2270,8 @@ public class RDBDocumentStore implements DocumentStore {
         return op == null ? 0L : Long.parseLong(op.value.toString());
     }
 
-    private <T extends Document> boolean insertDocuments(Collection<T> collection, List<T> documents) {
+    private <T extends Document> boolean insertDocuments(Collection<T> collection,
+        List<T> documents) {
         Connection connection = null;
         RDBTableMetaData tmd = getTable(collection);
         try {
@@ -2187,8 +2314,9 @@ public class RDBDocumentStore implements DocumentStore {
                 }
 
                 String m = String
-                        .format(" (potential cause: long data for ID %s - longest octet DATA size in Java characters: %d, in octets: %d, computed character limit: %d)",
-                                id, longest, longestChars, tmd.getDataLimitInOctets() / CHAR2OCTETRATIO);
+                    .format(
+                        " (potential cause: long data for ID %s - longest octet DATA size in Java characters: %d, in octets: %d, computed character limit: %d)",
+                        id, longest, longestChars, tmd.getDataLimitInOctets() / CHAR2OCTETRATIO);
                 messages += m;
             }
 
@@ -2206,33 +2334,39 @@ public class RDBDocumentStore implements DocumentStore {
 
     // Whether to use GZIP compression
     private static final boolean NOGZIP = SystemPropertySupplier
-            .create("org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.NOGZIP", Boolean.FALSE).loggingTo(LOG).get();
+        .create("org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.NOGZIP",
+            Boolean.FALSE).loggingTo(LOG).get();
 
     // Whether to use append operations (string concatenation) in the DATA column
     private static final boolean NOAPPEND = SystemPropertySupplier
-            .create("org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.NOAPPEND", Boolean.FALSE).loggingTo(LOG).get();
+        .create("org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.NOAPPEND",
+            Boolean.FALSE).loggingTo(LOG).get();
 
     // Number of documents to insert at once for batch create
     private static final int CHUNKSIZE = SystemPropertySupplier
-            .create("org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.CHUNKSIZE", 64).loggingTo(LOG)
-            .validateWith(value -> value > 0).get();
+        .create("org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.CHUNKSIZE", 64)
+        .loggingTo(LOG)
+        .validateWith(value -> value > 0).get();
 
     // Number of query hits above which a diagnostic warning is generated
     private static final int QUERYHITSLIMIT = SystemPropertySupplier
-            .create("org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.QUERYHITSLIMIT", 4096).loggingTo(LOG)
-            .validateWith(value -> value > 0).get();
+        .create("org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.QUERYHITSLIMIT",
+            4096).loggingTo(LOG)
+        .validateWith(value -> value > 0).get();
 
     // Number of elapsed ms in a query above which a diagnostic warning is generated
     private static final int QUERYTIMELIMIT = SystemPropertySupplier
-            .create("org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.QUERYTIMELIMIT", 10000).loggingTo(LOG)
-            .validateWith(value -> value > 0).get();
+        .create("org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.QUERYTIMELIMIT",
+            10000).loggingTo(LOG)
+        .validateWith(value -> value > 0).get();
 
     // Whether to use JDBC batch commands for the createOrUpdate (default: true)
     private static final boolean BATCHUPDATES = SystemPropertySupplier
-            .create(RDBDocumentStore.class.getName() + ".BATCHUPDATES", Boolean.TRUE).loggingTo(LOG)
-            .formatSetMessage((name, value) -> {
-                return String.format("Batch updates disabled (system property %s set to '%s')", name, value);
-            }).get();
+        .create(RDBDocumentStore.class.getName() + ".BATCHUPDATES", Boolean.TRUE).loggingTo(LOG)
+        .formatSetMessage((name, value) -> {
+            return String.format("Batch updates disabled (system property %s set to '%s')", name,
+                value);
+        }).get();
 
     public static byte[] asBytes(@NotNull String data) {
         byte[] bytes;
@@ -2253,7 +2387,8 @@ public class RDBDocumentStore implements DocumentStore {
                 byte[] compressedBytes = bos.toByteArray();
                 if (LOG.isTraceEnabled()) {
                     long ratio = (100L * compressedBytes.length) / bytes.length;
-                    LOG.trace("Gzipped {} bytes to {} ({}%)", bytes.length, compressedBytes.length, ratio);
+                    LOG.trace("Gzipped {} bytes to {} ({}%)", bytes.length, compressedBytes.length,
+                        ratio);
                 }
                 return compressedBytes;
             } catch (IOException ex) {
@@ -2263,7 +2398,8 @@ public class RDBDocumentStore implements DocumentStore {
         }
     }
 
-    private static GZIPOutputStream asGZIPOutputStream(OutputStream os, final int level) throws IOException {
+    private static GZIPOutputStream asGZIPOutputStream(OutputStream os, final int level)
+        throws IOException {
         return new GZIPOutputStream(os) {
             {
                 this.def.setLevel(level);
@@ -2320,11 +2456,12 @@ public class RDBDocumentStore implements DocumentStore {
 
     private static long modifiedOf(@NotNull Document doc) {
         Object l = doc.get(NodeDocument.MODIFIED_IN_SECS);
-        return (l instanceof Long) ? ((Long)l).longValue() : -1;
+        return (l instanceof Long) ? ((Long) l).longValue() : -1;
     }
 
     @NotNull
-    protected <T extends Document> T convertFromDBObject(@NotNull Collection<T> collection, @NotNull RDBRow row) {
+    protected <T extends Document> T convertFromDBObject(@NotNull Collection<T> collection,
+        @NotNull RDBRow row) {
         // this method is present here in order to facilitate unit testing for OAK-3566
         return ser.fromRow(collection, row);
     }
@@ -2381,7 +2518,9 @@ public class RDBDocumentStore implements DocumentStore {
             return "";
         } else {
             List<Map.Entry<String, Long>> tmp = new ArrayList<>(cnUpdates.entrySet());
-            Collections.sort(tmp, (Entry<String, Long> o1, Entry<String, Long> o2) -> o1.getKey().compareTo(o2.getKey()));
+            Collections.sort(tmp, (Entry<String, Long> o1, Entry<String, Long> o2) -> o1.getKey()
+                                                                                        .compareTo(
+                                                                                            o2.getKey()));
             return " (Cluster Node updates: " + tmp.toString() + ")";
         }
     }
@@ -2394,8 +2533,9 @@ public class RDBDocumentStore implements DocumentStore {
         return nodesCache;
     }
 
-    private <T extends Document> DocumentStoreException handleException(String message, Exception ex, Collection<T> collection,
-            java.util.Collection<String> ids) {
+    private <T extends Document> DocumentStoreException handleException(String message,
+        Exception ex, Collection<T> collection,
+        java.util.Collection<String> ids) {
         if (collection == Collection.NODES) {
             for (String id : ids) {
                 invalidateCache(collection, id, false);
@@ -2404,8 +2544,9 @@ public class RDBDocumentStore implements DocumentStore {
         return asDocumentStoreException(ex, message);
     }
 
-    private <T extends Document> DocumentStoreException handleException(String message, Exception ex, Collection<T> collection,
-            String id) {
+    private <T extends Document> DocumentStoreException handleException(String message,
+        Exception ex, Collection<T> collection,
+        String id) {
         return handleException(message, ex, collection, Collections.singleton(id));
     }
 
@@ -2477,7 +2618,8 @@ public class RDBDocumentStore implements DocumentStore {
             if (this.operands.isEmpty()) {
                 return String.format("%s %s", propertyName, operator);
             } else if (this.operands.size() == 1) {
-                return String.format("%s %s %s", propertyName, operator, operands.get(0).toString());
+                return String.format("%s %s %s", propertyName, operator,
+                    operands.get(0).toString());
             } else {
                 return String.format("%s %s %s", propertyName, operator, operands.toString());
             }

@@ -16,6 +16,11 @@
  */
 package org.apache.jackrabbit.oak.segment.spi.persistence.split;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+
+import java.io.IOException;
+import java.util.Optional;
 import org.apache.jackrabbit.oak.segment.file.tar.LocalJournalFile;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileReader;
@@ -24,12 +29,6 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-
-import java.io.IOException;
-import java.util.Optional;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
 
 public class SplitJournalFileTest {
 
@@ -63,7 +62,8 @@ public class SplitJournalFileTest {
 
     @Test
     public void testIgnoreNewRoLines() throws IOException {
-        SplitJournalFile splitJournalFile = new SplitJournalFile(roFile, rwFile, Optional.of("line 3"));
+        SplitJournalFile splitJournalFile = new SplitJournalFile(roFile, rwFile,
+            Optional.of("line 3"));
         try (JournalFileReader reader = splitJournalFile.openJournalReader()) {
             for (int i = 6; i >= 1; i--) {
                 assertEquals("line " + i, reader.readLine());

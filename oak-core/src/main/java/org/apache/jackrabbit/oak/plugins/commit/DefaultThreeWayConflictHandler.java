@@ -18,12 +18,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.commit;
 
-import org.apache.jackrabbit.oak.spi.commit.ThreeWayConflictHandler;
-import org.jetbrains.annotations.NotNull;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.spi.commit.ThreeWayConflictHandler;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * This implementation of a {@link ThreeWayConflictHandler} always returns the same resolution. It

@@ -21,7 +21,7 @@ Clustering is currently supported for the MongoDB and RDBMs storage subsystems.
 
 To use clustering, simply connect multiple Oak instances with the same backend storage.
 
-Both the MongoDB and the RDBMs storage subsystems internally use the same 
+Both the MongoDB and the RDBMs storage subsystems internally use the same
 cluster mechanism.
 
 

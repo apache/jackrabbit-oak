@@ -19,6 +19,13 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Random;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
@@ -42,15 +49,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.Random;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
 public class LuceneBlobCacheTest {
+
     private Random rnd = new Random();
 
     @Rule
@@ -66,9 +66,12 @@ public class LuceneBlobCacheTest {
     public void setUp() throws Exception {
         fileDataStore = new ReadAccessCountingDataStore();
         fileDataStore.init(tempFolder.newFolder().getAbsolutePath());
-        FileStoreBuilder fileStoreBuilder = FileStoreBuilder.fileStoreBuilder(tempFolder.newFolder())
-            .withBlobStore(new DataStoreBlobStore(fileDataStore)).withMaxFileSize(256)
-            .withSegmentCacheSize(64).withMemoryMapping(false);
+        FileStoreBuilder fileStoreBuilder = FileStoreBuilder.fileStoreBuilder(
+                                                                tempFolder.newFolder())
+                                                            .withBlobStore(new DataStoreBlobStore(
+                                                                fileDataStore)).withMaxFileSize(256)
+                                                            .withSegmentCacheSize(64)
+                                                            .withMemoryMapping(false);
         store = fileStoreBuilder.build();
         NodeStore nodeStore = SegmentNodeStoreBuilders.builder(store).build();
         root = nodeStore.getRoot();
@@ -112,7 +115,7 @@ public class LuceneBlobCacheTest {
         return data;
     }
 
-    private Directory createDir(NodeBuilder builder, boolean readOnly){
+    private Directory createDir(NodeBuilder builder, boolean readOnly) {
         return new OakDirectory(builder,
             new LuceneIndexDefinition(root, builder.getNodeState(), "/foo"), readOnly);
     }
@@ -124,6 +127,7 @@ public class LuceneBlobCacheTest {
     }
 
     class ReadAccessCountingDataStore extends OakFileDataStore {
+
         int count;
 
         @Override

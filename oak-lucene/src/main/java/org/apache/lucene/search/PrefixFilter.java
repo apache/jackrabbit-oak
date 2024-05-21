@@ -28,26 +28,29 @@ package org.apache.lucene.search;
 import org.apache.lucene.index.Term;
 
 /**
- * A Filter that restricts search results to values that have a matching prefix in a given
- * field.
+ * A Filter that restricts search results to values that have a matching prefix in a given field.
  */
 public class PrefixFilter extends MultiTermQueryWrapperFilter<PrefixQuery> {
 
-  public PrefixFilter(Term prefix) {
-    super(new PrefixQuery(prefix));
-  }
+    public PrefixFilter(Term prefix) {
+        super(new PrefixQuery(prefix));
+    }
 
-  public Term getPrefix() { return query.getPrefix(); }
+    public Term getPrefix() {
+        return query.getPrefix();
+    }
 
-  /** Prints a user-readable version of this query. */
-  @Override
-  public String toString () {
-    StringBuilder buffer = new StringBuilder();
-    buffer.append("PrefixFilter(");
-    buffer.append(getPrefix().toString());
-    buffer.append(")");
-    return buffer.toString();
-  }
+    /**
+     * Prints a user-readable version of this query.
+     */
+    @Override
+    public String toString() {
+        StringBuilder buffer = new StringBuilder();
+        buffer.append("PrefixFilter(");
+        buffer.append(getPrefix().toString());
+        buffer.append(")");
+        return buffer.toString();
+    }
 
 }
 

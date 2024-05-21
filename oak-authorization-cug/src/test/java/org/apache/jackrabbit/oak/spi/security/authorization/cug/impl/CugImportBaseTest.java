@@ -16,6 +16,15 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
+import static org.apache.jackrabbit.oak.spi.security.authorization.cug.impl.CugConstants.MIX_REP_CUG_MIXIN;
+import static org.apache.jackrabbit.oak.spi.security.authorization.cug.impl.CugConstants.NT_REP_CUG_POLICY;
+import static org.apache.jackrabbit.oak.spi.security.authorization.cug.impl.CugConstants.REP_CUG_POLICY;
+import static org.apache.jackrabbit.oak.spi.security.authorization.cug.impl.CugConstants.REP_PRINCIPAL_NAMES;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.Set;
@@ -30,16 +39,15 @@ import javax.jcr.Value;
 import javax.jcr.ValueFactory;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.security.AccessControlException;
-
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.Group;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.jcr.Jcr;
-import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
+import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
@@ -52,15 +60,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.oak.spi.security.authorization.cug.impl.CugConstants.MIX_REP_CUG_MIXIN;
-import static org.apache.jackrabbit.oak.spi.security.authorization.cug.impl.CugConstants.NT_REP_CUG_POLICY;
-import static org.apache.jackrabbit.oak.spi.security.authorization.cug.impl.CugConstants.REP_CUG_POLICY;
-import static org.apache.jackrabbit.oak.spi.security.authorization.cug.impl.CugConstants.REP_PRINCIPAL_NAMES;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-
 public abstract class CugImportBaseTest {
 
     private static final String TEST_NODE_NAME = "testNode";
@@ -68,39 +67,49 @@ public abstract class CugImportBaseTest {
     static final String TEST_GROUP_PRINCIPAL_NAME = "testPrincipal";
 
     static final String XML_CUG_POLICY = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
-            "<sv:node sv:name=\"rep:cugPolicy\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
-                "<sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>rep:CugPolicy</sv:value></sv:property>" +
-                "<sv:property sv:name=\"rep:principalNames\" sv:type=\"String\" sv:multiple=\"true\">" +
-                    "<sv:value>" + TEST_GROUP_PRINCIPAL_NAME + "</sv:value>" +
-                    "<sv:value>" + EveryonePrincipal.NAME + "</sv:value>" +
-                "</sv:property>" +
-            "</sv:node>";
+        "<sv:node sv:name=\"rep:cugPolicy\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">"
+        +
+        "<sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>rep:CugPolicy</sv:value></sv:property>"
+        +
+        "<sv:property sv:name=\"rep:principalNames\" sv:type=\"String\" sv:multiple=\"true\">" +
+        "<sv:value>" + TEST_GROUP_PRINCIPAL_NAME + "</sv:value>" +
+        "<sv:value>" + EveryonePrincipal.NAME + "</sv:value>" +
+        "</sv:property>" +
+        "</sv:node>";
 
     static final String XML_CHILD_WITH_CUG = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
-            "<sv:node sv:name=\"child\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
-                "<sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>oak:Unstructured</sv:value></sv:property>" +
-                "<sv:property sv:name=\"jcr:mixinTypes\" sv:type=\"Name\"><sv:value>rep:CugMixin</sv:value></sv:property>" +
-                "<sv:node sv:name=\"rep:cugPolicy\">" +
-                    "<sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>rep:CugPolicy</sv:value></sv:property>" +
-                    "<sv:property sv:name=\"rep:principalNames\" sv:type=\"String\" sv:multiple=\"true\">" +
-                    "<sv:value>" + TEST_GROUP_PRINCIPAL_NAME + "</sv:value>" +
-                    "<sv:value>" + EveryonePrincipal.NAME + "</sv:value>" +
-                    "</sv:property>" +
-                "</sv:node>" +
-            "</sv:node>";
+        "<sv:node sv:name=\"child\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">"
+        +
+        "<sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>oak:Unstructured</sv:value></sv:property>"
+        +
+        "<sv:property sv:name=\"jcr:mixinTypes\" sv:type=\"Name\"><sv:value>rep:CugMixin</sv:value></sv:property>"
+        +
+        "<sv:node sv:name=\"rep:cugPolicy\">" +
+        "<sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>rep:CugPolicy</sv:value></sv:property>"
+        +
+        "<sv:property sv:name=\"rep:principalNames\" sv:type=\"String\" sv:multiple=\"true\">" +
+        "<sv:value>" + TEST_GROUP_PRINCIPAL_NAME + "</sv:value>" +
+        "<sv:value>" + EveryonePrincipal.NAME + "</sv:value>" +
+        "</sv:property>" +
+        "</sv:node>" +
+        "</sv:node>";
 
-    private static final String XML_NESTED_CUG_POLICY = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
-            "<sv:node sv:name=\"rep:cugPolicy\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
-                "<sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>rep:CugPolicy</sv:value></sv:property>" +
-                "<sv:property sv:name=\"rep:principalNames\" sv:type=\"String\" sv:multiple=\"true\">" +
-                    "<sv:value>" + EveryonePrincipal.NAME + "</sv:value>" +
-                "</sv:property>" +
-                "<sv:node sv:name=\"rep:cugPolicy\">" +
-                    "<sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>rep:CugPolicy</sv:value></sv:property>" +
-                    "<sv:property sv:name=\"rep:principalNames\" sv:type=\"String\" sv:multiple=\"true\">" +
-                            "<sv:value>" + EveryonePrincipal.NAME + "</sv:value>" +
-                    "</sv:property>" +
-                "</sv:node>" +
+    private static final String XML_NESTED_CUG_POLICY =
+        "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
+            "<sv:node sv:name=\"rep:cugPolicy\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">"
+            +
+            "<sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>rep:CugPolicy</sv:value></sv:property>"
+            +
+            "<sv:property sv:name=\"rep:principalNames\" sv:type=\"String\" sv:multiple=\"true\">" +
+            "<sv:value>" + EveryonePrincipal.NAME + "</sv:value>" +
+            "</sv:property>" +
+            "<sv:node sv:name=\"rep:cugPolicy\">" +
+            "<sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>rep:CugPolicy</sv:value></sv:property>"
+            +
+            "<sv:property sv:name=\"rep:principalNames\" sv:type=\"String\" sv:multiple=\"true\">" +
+            "<sv:value>" + EveryonePrincipal.NAME + "</sv:value>" +
+            "</sv:property>" +
+            "</sv:node>" +
             "</sv:node>";
 
     private Repository repo;
@@ -118,7 +127,8 @@ public abstract class CugImportBaseTest {
         jcr.with(securityProvider);
         jcr.with(queryEngineSettings);
         repo = jcr.createRepository();
-        adminSession = repo.login(new SimpleCredentials(UserConstants.DEFAULT_ADMIN_ID, UserConstants.DEFAULT_ADMIN_ID.toCharArray()));
+        adminSession = repo.login(new SimpleCredentials(UserConstants.DEFAULT_ADMIN_ID,
+            UserConstants.DEFAULT_ADMIN_ID.toCharArray()));
 
         adminSession.getRootNode().addNode(TEST_NODE_NAME, NodeTypeConstants.NT_OAK_UNSTRUCTURED);
         adminSession.save();
@@ -149,8 +159,8 @@ public abstract class CugImportBaseTest {
         String importBehavior = getImportBehavior();
         if (importBehavior != null) {
             ConfigurationParameters params = ConfigurationParameters.of(
-                    ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, getImportBehavior(),
-                    CugConstants.PARAM_CUG_SUPPORTED_PATHS, new String[] {TEST_NODE_PATH});
+                ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, getImportBehavior(),
+                CugConstants.PARAM_CUG_SUPPORTED_PATHS, new String[]{TEST_NODE_PATH});
             return ConfigurationParameters.of(AuthorizationConfiguration.NAME, params);
         } else {
             return ConfigurationParameters.EMPTY;
@@ -189,21 +199,24 @@ public abstract class CugImportBaseTest {
         }
     }
 
-    static void assertPrincipalNames(@NotNull Set<String> expectedPrincipalNames, @NotNull Value[] principalNames) {
+    static void assertPrincipalNames(@NotNull Set<String> expectedPrincipalNames,
+        @NotNull Value[] principalNames) {
         assertEquals(expectedPrincipalNames.size(), principalNames.length);
-        Set<String> result = ImmutableSet.copyOf(Iterables.transform(ImmutableSet.copyOf(principalNames), principalName -> {
-            try {
-                return principalName.getString();
-            } catch (RepositoryException e) {
-                throw new IllegalStateException(e);
-            }
-        }));
+        Set<String> result = ImmutableSet.copyOf(
+            Iterables.transform(ImmutableSet.copyOf(principalNames), principalName -> {
+                try {
+                    return principalName.getString();
+                } catch (RepositoryException e) {
+                    throw new IllegalStateException(e);
+                }
+            }));
         assertEquals(expectedPrincipalNames, result);
     }
 
     @Test
     public void testCugValidPrincipals() throws Exception {
-        testGroup = ((JackrabbitSession) adminSession).getUserManager().createGroup(new PrincipalImpl(TEST_GROUP_PRINCIPAL_NAME));
+        testGroup = ((JackrabbitSession) adminSession).getUserManager().createGroup(
+            new PrincipalImpl(TEST_GROUP_PRINCIPAL_NAME));
         adminSession.save();
 
         Node targetNode = getTargetNode();
@@ -218,12 +231,14 @@ public abstract class CugImportBaseTest {
         assertTrue(n.hasProperty(REP_PRINCIPAL_NAMES));
         Property p = n.getProperty(REP_PRINCIPAL_NAMES);
         ValueFactory vf = adminSession.getValueFactory();
-        assertArrayEquals(new Value[] {vf.createValue(TEST_GROUP_PRINCIPAL_NAME), vf.createValue(EveryonePrincipal.NAME)}, p.getValues());
+        assertArrayEquals(new Value[]{vf.createValue(TEST_GROUP_PRINCIPAL_NAME),
+            vf.createValue(EveryonePrincipal.NAME)}, p.getValues());
     }
 
     @Test(expected = AccessControlException.class)
     public void testCugValidPrincipalsNoMixin() throws Exception {
-        testGroup = ((JackrabbitSession) adminSession).getUserManager().createGroup(new PrincipalImpl(TEST_GROUP_PRINCIPAL_NAME));
+        testGroup = ((JackrabbitSession) adminSession).getUserManager().createGroup(
+            new PrincipalImpl(TEST_GROUP_PRINCIPAL_NAME));
         adminSession.save();
 
         doImport(getTargetPath(), XML_CUG_POLICY);
@@ -241,7 +256,8 @@ public abstract class CugImportBaseTest {
 
     @Test
     public void testNodeWithCugValidPrincipals() throws Exception {
-        testGroup = ((JackrabbitSession) adminSession).getUserManager().createGroup(new PrincipalImpl(TEST_GROUP_PRINCIPAL_NAME));
+        testGroup = ((JackrabbitSession) adminSession).getUserManager().createGroup(
+            new PrincipalImpl(TEST_GROUP_PRINCIPAL_NAME));
         adminSession.save();
 
         doImport(getTargetPath(), XML_CHILD_WITH_CUG);
@@ -257,9 +273,11 @@ public abstract class CugImportBaseTest {
     @Test
     public void testCugWithoutPrincipalNames() throws Exception {
         String xmlCugPolicyWithoutPrincipals = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
-                "<sv:node sv:name=\"rep:cugPolicy\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
-                    "<sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>rep:CugPolicy</sv:value></sv:property>" +
-                "</sv:node>";
+            "<sv:node sv:name=\"rep:cugPolicy\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">"
+            +
+            "<sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>rep:CugPolicy</sv:value></sv:property>"
+            +
+            "</sv:node>";
         doImport(getTargetPath(), xmlCugPolicyWithoutPrincipals);
 
         assertFalse(getTargetNode().hasNode(REP_CUG_POLICY));
@@ -269,9 +287,12 @@ public abstract class CugImportBaseTest {
     @Test
     public void testCugWithEmptyPrincipalNames() throws Exception {
         String xmlCugPolicyEmptyPrincipals = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
-            "<sv:node sv:name=\"rep:cugPolicy\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
-                "<sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>rep:CugPolicy</sv:value></sv:property>" +
-                "<sv:property sv:name=\"rep:principalNames\" sv:type=\"String\" sv:multiple=\"true\"></sv:property>" +
+            "<sv:node sv:name=\"rep:cugPolicy\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">"
+            +
+            "<sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>rep:CugPolicy</sv:value></sv:property>"
+            +
+            "<sv:property sv:name=\"rep:principalNames\" sv:type=\"String\" sv:multiple=\"true\"></sv:property>"
+            +
             "</sv:node>";
 
         getTargetNode().addMixin(MIX_REP_CUG_MIXIN);
@@ -316,11 +337,13 @@ public abstract class CugImportBaseTest {
     @Test(expected = ConstraintViolationException.class)
     public void testCugWithInvalidName() throws Exception {
         String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
-            "<sv:node sv:name=\"someOtherNode\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
-                "<sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>rep:CugPolicy</sv:value></sv:property>" +
-                "<sv:property sv:name=\"rep:principalNames\" sv:type=\"String\" sv:multiple=\"true\">" +
-                    "<sv:value>" + EveryonePrincipal.NAME + "</sv:value>" +
-                "</sv:property>" +
+            "<sv:node sv:name=\"someOtherNode\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">"
+            +
+            "<sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>rep:CugPolicy</sv:value></sv:property>"
+            +
+            "<sv:property sv:name=\"rep:principalNames\" sv:type=\"String\" sv:multiple=\"true\">" +
+            "<sv:value>" + EveryonePrincipal.NAME + "</sv:value>" +
+            "</sv:property>" +
             "</sv:node>";
 
         getTargetNode().addMixin(MIX_REP_CUG_MIXIN);

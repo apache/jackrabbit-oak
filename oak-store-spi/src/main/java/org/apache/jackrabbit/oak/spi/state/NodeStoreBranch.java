@@ -22,16 +22,14 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * An instance of this class represents a private branch of the tree in a
- * {@link NodeStore} to which transient changes can be applied and later merged
- * back or discarded.
+ * An instance of this class represents a private branch of the tree in a {@link NodeStore} to which
+ * transient changes can be applied and later merged back or discarded.
  */
 public interface NodeStoreBranch {
 
     /**
-     * Returns the base state of this branch.
-     * The base state is the state of the tree as it was at the time
-     * this branch was created.
+     * Returns the base state of this branch. The base state is the state of the tree as it was at
+     * the time this branch was created.
      *
      * @return root node state
      */
@@ -39,10 +37,9 @@ public interface NodeStoreBranch {
     NodeState getBase();
 
     /**
-     * Returns the head state of this branch.
-     * The head state is the state resulting from the
-     * base state by applying all subsequent modifications to this branch
-     * by {@link #setRoot(NodeState)}.
+     * Returns the head state of this branch. The head state is the state resulting from the base
+     * state by applying all subsequent modifications to this branch by
+     * {@link #setRoot(NodeState)}.
      *
      * @return root node state
      * @throws IllegalStateException if the branch is already merged
@@ -59,9 +56,8 @@ public interface NodeStoreBranch {
     void setRoot(NodeState newRoot);
 
     /**
-     * Merges the changes in this branch to the main content tree.
-     * Merging is done by rebasing the changes in this branch on top of
-     * the current head revision followed by a fast forward merge.
+     * Merges the changes in this branch to the main content tree. Merging is done by rebasing the
+     * changes in this branch on top of the current head revision followed by a fast forward merge.
      *
      * @param hook the commit hook to apply while merging changes
      * @param info commit info associated with this merge operation
@@ -71,11 +67,10 @@ public interface NodeStoreBranch {
      */
     @NotNull
     NodeState merge(@NotNull CommitHook hook, @NotNull CommitInfo info)
-            throws CommitFailedException;
+        throws CommitFailedException;
 
     /**
-     * Rebase the changes from this branch on top of the current
-     * root.
+     * Rebase the changes from this branch on top of the current root.
      */
     void rebase();
 

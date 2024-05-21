@@ -25,15 +25,14 @@ import java.security.SecureRandom;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Tracker of references to segment identifiers and segment instances
- * that are currently kept in memory and factory for creating {@link SegmentId}
- * instances.
+ * Tracker of references to segment identifiers and segment instances that are currently kept in
+ * memory and factory for creating {@link SegmentId} instances.
  */
 public class SegmentTracker implements SegmentIdProvider {
+
     private static final long MSB_MASK = ~(0xfL << 12);
 
     private static final long VERSION = (0x4L << 12);
@@ -51,13 +50,11 @@ public class SegmentTracker implements SegmentIdProvider {
     private final SecureRandom random = new SecureRandom();
 
     /**
-     * Hash table of weak references to segment identifiers that are
-     * currently being accessed. The size of the table is always a power
-     * of two, which optimizes the {@code refresh()} operation. The table is
-     * indexed by the random identifier bits, which guarantees uniform
-     * distribution of entries. Each table entry is either {@code null}
-     * (when there are no matching identifiers) or a list of weak references
-     * to the matching identifiers.
+     * Hash table of weak references to segment identifiers that are currently being accessed. The
+     * size of the table is always a power of two, which optimizes the {@code refresh()} operation.
+     * The table is indexed by the random identifier bits, which guarantees uniform distribution of
+     * entries. Each table entry is either {@code null} (when there are no matching identifiers) or
+     * a list of weak references to the matching identifiers.
      */
     @NotNull
     private final SegmentIdTable[] tables = new SegmentIdTable[32];
@@ -97,11 +94,11 @@ public class SegmentTracker implements SegmentIdProvider {
     }
 
     /**
-     * Get an existing {@code SegmentId} with the given {@code msb} and {@code
-     * lsb} or create a new one if no such id exists with this tracker.
+     * Get an existing {@code SegmentId} with the given {@code msb} and {@code lsb} or create a new
+     * one if no such id exists with this tracker.
      *
-     * @param msb   most significant bits of the segment id
-     * @param lsb   least  significant bits of the segment id
+     * @param msb most significant bits of the segment id
+     * @param lsb least  significant bits of the segment id
      * @return the segment id
      */
     @Override
@@ -141,7 +138,8 @@ public class SegmentTracker implements SegmentIdProvider {
         return newSegmentId(msb, lsb);
     }
 
-    public synchronized void clearSegmentIdTables(@NotNull Set<UUID> reclaimed, @NotNull String gcInfo) {
+    public synchronized void clearSegmentIdTables(@NotNull Set<UUID> reclaimed,
+        @NotNull String gcInfo) {
         for (SegmentIdTable table : tables) {
             table.clearSegmentIdTables(reclaimed, gcInfo);
         }

@@ -31,7 +31,7 @@ public class UnboundConnectionValidator implements LdapConnectionValidator {
      * @return True, if the connection is still valid
      */
     @Override
-    public boolean validate( LdapConnection connection ) {
+    public boolean validate(LdapConnection connection) {
         return connection.isConnected();
     }
 }

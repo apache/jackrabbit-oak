@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.plugins.document.check;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
-
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.jetbrains.annotations.NotNull;
 
@@ -46,8 +45,8 @@ public class CompositeDocumentProcessor implements DocumentProcessor {
 
     @Override
     public void processDocument(@NotNull NodeDocument document,
-                                @NotNull BlockingQueue<Result> results)
-            throws InterruptedException {
+        @NotNull BlockingQueue<Result> results)
+        throws InterruptedException {
         for (DocumentProcessor p : processors) {
             p.processDocument(document, results);
         }
@@ -55,7 +54,7 @@ public class CompositeDocumentProcessor implements DocumentProcessor {
 
     @Override
     public void end(@NotNull BlockingQueue<Result> results)
-            throws InterruptedException {
+        throws InterruptedException {
         for (DocumentProcessor p : processors) {
             p.end(results);
         }

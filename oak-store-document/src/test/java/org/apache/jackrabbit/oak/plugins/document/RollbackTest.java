@@ -81,7 +81,8 @@ public class RollbackTest {
     public void nonBlocking() throws Exception {
         TestStore store = new TestStore();
         DocumentNodeStore ns = builderProvider.newBuilder()
-                .clock(clock).setDocumentStore(store).setAsyncDelay(0).build();
+                                              .clock(clock).setDocumentStore(store).setAsyncDelay(0)
+                                              .build();
         ns.setMaxBackOffMillis(0); // do not retry commits
 
         // create initial node structure
@@ -120,7 +121,7 @@ public class RollbackTest {
 
         assertFalse(store.failCommitOnce.get());
         assertThat(t2 - t1,
-                greaterThanOrEqualTo(1000L));
+            greaterThanOrEqualTo(1000L));
     }
 
     @Test(expected = DocumentStoreException.class)
@@ -139,7 +140,7 @@ public class RollbackTest {
         DocumentStore store = new DocumentStoreWrapper(new MemoryDocumentStore()) {
             @Override
             public <T extends Document> List<T> createOrUpdate(Collection<T> collection,
-                                                               List<UpdateOp> updateOps) {
+                List<UpdateOp> updateOps) {
                 maxBatchSize.set(Math.max(maxBatchSize.get(), updateOps.size()));
                 return super.createOrUpdate(collection, updateOps);
             }
@@ -150,7 +151,7 @@ public class RollbackTest {
             updates.add(new UpdateOp("id-" + i, false));
         }
         new Rollback(Revision.newRevision(1),
-                updates, "id", batchSize).perform(store);
+            updates, "id", batchSize).perform(store);
         assertThat(maxBatchSize.get(), greaterThan(0));
         assertThat(maxBatchSize.get(), lessThanOrEqualTo(batchSize));
     }
@@ -163,10 +164,10 @@ public class RollbackTest {
 
         @Override
         public <T extends Document> T findAndUpdate(Collection<T> collection,
-                                                    UpdateOp update) {
+            UpdateOp update) {
             if (collection == Collection.NODES
-                    && isFinalCommitRootUpdate(update)
-                    && failCommitOnce.compareAndSet(true, false)) {
+                && isFinalCommitRootUpdate(update)
+                && failCommitOnce.compareAndSet(true, false)) {
                 commitFailed.countDown();
                 throw new DocumentStoreException("commit failed");
             }
@@ -175,7 +176,7 @@ public class RollbackTest {
 
         @Override
         public <T extends Document> List<T> createOrUpdate(Collection<T> collection,
-                                                           List<UpdateOp> updateOps) {
+            List<UpdateOp> updateOps) {
             for (UpdateOp op : updateOps) {
                 if (isRollbackUpdate(op)) {
                     try {
@@ -194,7 +195,7 @@ public class RollbackTest {
         private boolean isRollbackUpdate(UpdateOp update) {
             for (Map.Entry<Key, Operation> entry : update.getChanges().entrySet()) {
                 if (entry.getValue().type == Operation.Type.REMOVE_MAP_ENTRY
-                        && !entry.getKey().getName().equals(NodeDocument.COMMIT_ROOT)) {
+                    && !entry.getKey().getName().equals(NodeDocument.COMMIT_ROOT)) {
                     return true;
                 }
             }

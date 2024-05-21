@@ -54,7 +54,7 @@ public class OrphanedBranchCleanupTest {
         DocumentStore store = new MemoryDocumentStore() {
             @Override
             public <T extends Document> T findAndUpdate(Collection<T> collection,
-                                                        UpdateOp update) {
+                UpdateOp update) {
                 if (collection == NODES && isBranchCleanup(update)) {
                     branchCleanupInProgress.release();
                     readHappened.acquireUninterruptibly();
@@ -65,7 +65,7 @@ public class OrphanedBranchCleanupTest {
             private boolean isBranchCleanup(UpdateOp update) {
                 for (Entry<Key, Operation> e : update.getChanges().entrySet()) {
                     if (e.getValue().type == REMOVE_MAP_ENTRY
-                            && NodeDocument.isRevisionsEntry(e.getKey().getName())) {
+                        && NodeDocument.isRevisionsEntry(e.getKey().getName())) {
                         return true;
                     }
                 }
@@ -74,7 +74,7 @@ public class OrphanedBranchCleanupTest {
         };
 
         DocumentNodeStore ns = builderProvider.newBuilder()
-                .setDocumentStore(store).setAsyncDelay(0).build();
+                                              .setDocumentStore(store).setAsyncDelay(0).build();
 
         createOrphanedBranch(ns);
 

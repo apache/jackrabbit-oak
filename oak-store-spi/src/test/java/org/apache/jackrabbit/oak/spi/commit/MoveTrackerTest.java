@@ -16,16 +16,15 @@
  */
 package org.apache.jackrabbit.oak.spi.commit;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
-
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.junit.Ignore;
-import org.junit.Test;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+
+import java.util.LinkedHashMap;
+import java.util.Map;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
+import org.junit.Ignore;
+import org.junit.Test;
 
 public class MoveTrackerTest {
 
@@ -35,8 +34,8 @@ public class MoveTrackerTest {
     }
 
     /**
-     * 1.   >/a:/b >/c:/d     =  >/c:/d >/a:b
-     * See http://svn.apache.org/viewvc/jackrabbit/sandbox/jackrabbit-microkernel/src/main/java/org/apache/jackrabbit/state/ChangeLog.java?view=markup
+     * 1.   >/a:/b >/c:/d     =  >/c:/d >/a:b See
+     * http://svn.apache.org/viewvc/jackrabbit/sandbox/jackrabbit-microkernel/src/main/java/org/apache/jackrabbit/state/ChangeLog.java?view=markup
      * Line 222
      */
     @Test
@@ -52,8 +51,8 @@ public class MoveTrackerTest {
     }
 
     /**
-     * 4.   >/a/b:/c >/a:/d   =  >/a:/d >/d/b:/c
-     * See http://svn.apache.org/viewvc/jackrabbit/sandbox/jackrabbit-microkernel/src/main/java/org/apache/jackrabbit/state/ChangeLog.java?view=markup
+     * 4.   >/a/b:/c >/a:/d   =  >/a:/d >/d/b:/c See
+     * http://svn.apache.org/viewvc/jackrabbit/sandbox/jackrabbit-microkernel/src/main/java/org/apache/jackrabbit/state/ChangeLog.java?view=markup
      * Line 225
      */
     @Test
@@ -69,8 +68,8 @@ public class MoveTrackerTest {
     }
 
     /**
-     * 4.   >/a/b:/c >/a:/c/d    does not commute  (q < s)
-     * See http://svn.apache.org/viewvc/jackrabbit/sandbox/jackrabbit-microkernel/src/main/java/org/apache/jackrabbit/state/ChangeLog.java?view=markup
+     * 4.   >/a/b:/c >/a:/c/d    does not commute  (q < s) See
+     * http://svn.apache.org/viewvc/jackrabbit/sandbox/jackrabbit-microkernel/src/main/java/org/apache/jackrabbit/state/ChangeLog.java?view=markup
      * Line 226
      */
     @Test
@@ -86,8 +85,8 @@ public class MoveTrackerTest {
     }
 
     /**
-     * 7.   >/a:/b >/c:/a        does not commute
-     * See http://svn.apache.org/viewvc/jackrabbit/sandbox/jackrabbit-microkernel/src/main/java/org/apache/jackrabbit/state/ChangeLog.java?view=markup
+     * 7.   >/a:/b >/c:/a        does not commute See
+     * http://svn.apache.org/viewvc/jackrabbit/sandbox/jackrabbit-microkernel/src/main/java/org/apache/jackrabbit/state/ChangeLog.java?view=markup
      * Line 231
      */
     @Test
@@ -103,8 +102,8 @@ public class MoveTrackerTest {
     }
 
     /**
-     * 10.  >/a:/b >/b/c:/d   =  >/a/c:/d >/a:/b
-     * See http://svn.apache.org/viewvc/jackrabbit/sandbox/jackrabbit-microkernel/src/main/java/org/apache/jackrabbit/state/ChangeLog.java?view=markup
+     * 10.  >/a:/b >/b/c:/d   =  >/a/c:/d >/a:/b See
+     * http://svn.apache.org/viewvc/jackrabbit/sandbox/jackrabbit-microkernel/src/main/java/org/apache/jackrabbit/state/ChangeLog.java?view=markup
      * Line 234
      */
     @Test
@@ -120,8 +119,8 @@ public class MoveTrackerTest {
     }
 
     /**
-     * 11.  >/a:/b >/b:/c     =  >/a:/c
-     * See http://svn.apache.org/viewvc/jackrabbit/sandbox/jackrabbit-microkernel/src/main/java/org/apache/jackrabbit/state/ChangeLog.java?view=markup
+     * 11.  >/a:/b >/b:/c     =  >/a:/c See
+     * http://svn.apache.org/viewvc/jackrabbit/sandbox/jackrabbit-microkernel/src/main/java/org/apache/jackrabbit/state/ChangeLog.java?view=markup
      * Line 236
      */
     @Test
@@ -135,8 +134,8 @@ public class MoveTrackerTest {
     }
 
     /**
-     * 12.  >/a:/b/c >/b:/d   =  >/b:/d >/a:/d/c
-     * See http://svn.apache.org/viewvc/jackrabbit/sandbox/jackrabbit-microkernel/src/main/java/org/apache/jackrabbit/state/ChangeLog.java?view=markup
+     * 12.  >/a:/b/c >/b:/d   =  >/b:/d >/a:/d/c See
+     * http://svn.apache.org/viewvc/jackrabbit/sandbox/jackrabbit-microkernel/src/main/java/org/apache/jackrabbit/state/ChangeLog.java?view=markup
      * Line 237
      */
     @Test
@@ -153,8 +152,8 @@ public class MoveTrackerTest {
     }
 
     /**
-     * 14.  >/a:/b >/c:/b/d   =  >/c:/a/d >/a:/b
-     * See http://svn.apache.org/viewvc/jackrabbit/sandbox/jackrabbit-microkernel/src/main/java/org/apache/jackrabbit/state/ChangeLog.java?view=markup
+     * 14.  >/a:/b >/c:/b/d   =  >/c:/a/d >/a:/b See
+     * http://svn.apache.org/viewvc/jackrabbit/sandbox/jackrabbit-microkernel/src/main/java/org/apache/jackrabbit/state/ChangeLog.java?view=markup
      * Line 240
      */
     @Test
@@ -170,8 +169,8 @@ public class MoveTrackerTest {
     }
 
     /**
-     * 14.  >/a/b:/b >/a:/b/d    does not commute  (p > r)
-     * See http://svn.apache.org/viewvc/jackrabbit/sandbox/jackrabbit-microkernel/src/main/java/org/apache/jackrabbit/state/ChangeLog.java?view=markup
+     * 14.  >/a/b:/b >/a:/b/d    does not commute  (p > r) See
+     * http://svn.apache.org/viewvc/jackrabbit/sandbox/jackrabbit-microkernel/src/main/java/org/apache/jackrabbit/state/ChangeLog.java?view=markup
      * Line 241
      */
     @Test
@@ -196,8 +195,8 @@ public class MoveTrackerTest {
     @Test
     public void testSingleMove() {
         Map<String, String> moves = ImmutableMap.of(
-                "/a/b/c", "/d/e/f",
-                "/aa/bb/cc", "/aa/f/cc"
+            "/a/b/c", "/d/e/f",
+            "/aa/bb/cc", "/aa/f/cc"
         );
 
         for (String src : moves.keySet()) {
@@ -213,8 +212,8 @@ public class MoveTrackerTest {
     @Test
     public void testIndependantMoves() {
         Map<String, String> m = ImmutableMap.of(
-                "/a/b/c", "/d/e/f",
-                "/aa/bb/cc", "/aa/f/cc"
+            "/a/b/c", "/d/e/f",
+            "/aa/bb/cc", "/aa/f/cc"
         );
 
         MoveTracker mt = new MoveTracker();
@@ -232,65 +231,53 @@ public class MoveTrackerTest {
 
     /**
      * Existing tree structure:
-     *
-     * - /a/b/c/d/e
-     * - /a/f
-     *
-     * Moves:
-     * - /a/b/c    -> /a/f/c
-     * - /a/f/c/d  -> /a/b/d
-     * - /a/b/d/e  -> /a/f/c/e
-     * - /a/f/c    -> /a/b/c
-     *
-     * Expected mapping original-source vs destination:
-     * - "/a/b/c"     -> "/a/f/c"
-     * - "/a/b/c/d"   -> "/a/b/d"
-     * - "/a/b/c/d/e" -> "/a/f/c/e"
+     * <p>
+     * - /a/b/c/d/e - /a/f
+     * <p>
+     * Moves: - /a/b/c    -> /a/f/c - /a/f/c/d  -> /a/b/d - /a/b/d/e  -> /a/f/c/e - /a/f/c    ->
+     * /a/b/c
+     * <p>
+     * Expected mapping original-source vs destination: - "/a/b/c"     -> "/a/f/c" - "/a/b/c/d"   ->
+     * "/a/b/d" - "/a/b/c/d/e" -> "/a/f/c/e"
      */
     @Test
     public void testMultiMove() {
         MoveTest test = new MoveTest()
-                .addMove("/a/b/c", "/a/f/c", "/a/b/c")
-                .addMove("/a/f/c/d", "/a/b/d", "/a/b/c/d")
-                .addMove("/a/b/d/e", "/a/f/c/e", "/a/b/c/d/e");
+            .addMove("/a/b/c", "/a/f/c", "/a/b/c")
+            .addMove("/a/f/c/d", "/a/b/d", "/a/b/c/d")
+            .addMove("/a/b/d/e", "/a/f/c/e", "/a/b/c/d/e");
         test.assertResult();
     }
 
     /**
      * Existing tree structure:
-     *
-     * - /a/b/c/d/e
-     * - /a/f
-     *
-     * Moves:
-     * - /a/b/c    -> /a/f/c
-     * - /a/f/c/d  -> /a/b/d
-     * - /a/b/d/e  -> /a/f/c/e
-     * - /a/f/c/e  -> /a/f/e
-     *
-     * Expected mapping original-source vs destination:
-     * - "/a/b/c"     -> "/a/f/c"
-     * - "/a/b/c/d"   -> "/a/b/d"
-     * - "/a/b/c/d/e" -> "/a/f/e"
+     * <p>
+     * - /a/b/c/d/e - /a/f
+     * <p>
+     * Moves: - /a/b/c    -> /a/f/c - /a/f/c/d  -> /a/b/d - /a/b/d/e  -> /a/f/c/e - /a/f/c/e  ->
+     * /a/f/e
+     * <p>
+     * Expected mapping original-source vs destination: - "/a/b/c"     -> "/a/f/c" - "/a/b/c/d"   ->
+     * "/a/b/d" - "/a/b/c/d/e" -> "/a/f/e"
      */
     @Test
     public void testMultiMove2() {
         MoveTest test = new MoveTest()
-                .addMove("/a/b/c", "/a/f/c", "/a/b/c")
-                .addMove("/a/f/c/d", "/a/b/d", "/a/b/c/d")
-                .addMove("/a/b/d/e", "/a/f/c/e", "/a/b/c/d/e")
-                .addMove("/a/f/c/e", "/a/f/e", "/a/b/c/d/e");
+            .addMove("/a/b/c", "/a/f/c", "/a/b/c")
+            .addMove("/a/f/c/d", "/a/b/d", "/a/b/c/d")
+            .addMove("/a/b/d/e", "/a/f/c/e", "/a/b/c/d/e")
+            .addMove("/a/f/c/e", "/a/f/e", "/a/b/c/d/e");
         test.assertResult();
     }
 
     @Test
     public void testMultiMove3() {
         MoveTest test = new MoveTest()
-                .addMove("/a/b/c", "/a/f/c", "/a/b/c")
-                .addMove("/a/f/c/d", "/a/b/d", "/a/b/c/d")
-                .addMove("/a/b/d/e", "/a/f/c/e", "/a/b/c/d/e")
-                // move 'e' and rename it to 'c' -> replacing '/a/b/c'
-                .addMove("/a/f/c/e", "/a/b/c", "/a/b/c/d/e");
+            .addMove("/a/b/c", "/a/f/c", "/a/b/c")
+            .addMove("/a/f/c/d", "/a/b/d", "/a/b/c/d")
+            .addMove("/a/b/d/e", "/a/f/c/e", "/a/b/c/d/e")
+            // move 'e' and rename it to 'c' -> replacing '/a/b/c'
+            .addMove("/a/f/c/e", "/a/b/c", "/a/b/c/d/e");
         test.assertResult();
 
         // move the 'd' node to the renamed 'e' node at '/a/b/c'.
@@ -301,32 +288,32 @@ public class MoveTrackerTest {
     @Test
     public void testMultiMove4() {
         MoveTest test = new MoveTest()
-                .addMove("/a/b/c", "/a/f/c", "/a/b/c")
-                .addMove("/a/f/c/d", "/a/b/d", "/a/b/c/d")
-                .addMove("/a/b/d/e", "/a/f/c/e", "/a/b/c/d/e")
-                // move 'c' to '/a/b/d/' and rename it to 'e'
-                .addMove("/a/f/c", "/a/b/d/e", "/a/b/c");
+            .addMove("/a/b/c", "/a/f/c", "/a/b/c")
+            .addMove("/a/f/c/d", "/a/b/d", "/a/b/c/d")
+            .addMove("/a/b/d/e", "/a/f/c/e", "/a/b/c/d/e")
+            // move 'c' to '/a/b/d/' and rename it to 'e'
+            .addMove("/a/f/c", "/a/b/d/e", "/a/b/c");
         test.assertResult();
     }
 
     @Test
     public void testMultiMoveIncludingNewNodes() {
         MoveTest test = new MoveTest()
-                .addMove("/a/b/c", "/a/f/c", "/a/b/c")
-                .addMove("/a/f/c/d", "/a/b/d", "/a/b/c/d")
-                .addMove("/a/b/d/e", "/a/f/c/e", "/a/b/c/d/e")
-                // assume /a/b/c and /a/b/c/d have been recreated again (NEW nodes)
-                // move 'e' to the new structure -> 'original' setup path wise
-                .addMove("/a/b/d/e", "/a/b/c/d/e", "/a/b/c/d/e");
+            .addMove("/a/b/c", "/a/f/c", "/a/b/c")
+            .addMove("/a/f/c/d", "/a/b/d", "/a/b/c/d")
+            .addMove("/a/b/d/e", "/a/f/c/e", "/a/b/c/d/e")
+            // assume /a/b/c and /a/b/c/d have been recreated again (NEW nodes)
+            // move 'e' to the new structure -> 'original' setup path wise
+            .addMove("/a/b/d/e", "/a/b/c/d/e", "/a/b/c/d/e");
         test.assertResult();
     }
 
 
     private static final class MoveTest {
 
-        private final Map<String,String> src2dest = new LinkedHashMap<String, String>();
-        private final Map<String,String> dest2orig = new LinkedHashMap<String, String>();
-        private final Map<String,String> orig2dest = new LinkedHashMap<String, String>();
+        private final Map<String, String> src2dest = new LinkedHashMap<String, String>();
+        private final Map<String, String> dest2orig = new LinkedHashMap<String, String>();
+        private final Map<String, String> orig2dest = new LinkedHashMap<String, String>();
 
         MoveTracker mt = new MoveTracker();
 

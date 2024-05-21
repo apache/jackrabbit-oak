@@ -1,6 +1,6 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
-  * contributor license agreements.  See the NOTICE file distributed with
+ * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
  * The ASF licenses this file to You under the Apache License, Version 2.0
  * (the "License"); you may not use this file except in compliance with
@@ -62,7 +62,7 @@ public class BackgroundSplitFailureTest {
         DocumentStore store = new MemoryDocumentStore();
         FailingDocumentStore failingStore = new FailingDocumentStore(store);
         DocumentNodeStore ns = new DocumentNodeStoreBuilder<>()
-                .setDocumentStore(failingStore).setAsyncDelay(0).clock(clock).build();
+            .setDocumentStore(failingStore).setAsyncDelay(0).clock(clock).build();
         int clusterId = ns.getClusterId();
         Path fooPath = new Path(Path.ROOT, "foo");
         String fooId = Utils.getIdFromPath(fooPath);
@@ -95,16 +95,16 @@ public class BackgroundSplitFailureTest {
         DocumentStore testStore = new DocumentStoreWrapper(store) {
             @Override
             public <T extends Document> boolean create(Collection<T> collection,
-                                                       List<UpdateOp> updateOps) {
+                List<UpdateOp> updateOps) {
                 if (collection == Collection.JOURNAL
-                        && falseOnJournalEntryCreate.get()) {
+                    && falseOnJournalEntryCreate.get()) {
                     return false;
                 }
                 return super.create(collection, updateOps);
             }
         };
         ns = builderProvider.newBuilder().setClusterId(clusterId)
-                .setDocumentStore(testStore).setAsyncDelay(0).clock(clock).build();
+                            .setDocumentStore(testStore).setAsyncDelay(0).clock(clock).build();
         ns.addSplitCandidate(Utils.getIdFromPath(new Path(Path.ROOT, "foo")));
         falseOnJournalEntryCreate.set(true);
         try {

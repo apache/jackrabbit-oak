@@ -59,7 +59,8 @@ public class PrincipalBasedAuthorizationConfigurationOsgiTest extends AbstractPr
 
     @Test(expected = ReferenceViolationException.class)
     public void testMissingMountInfoProviderReference() {
-        context.registerInjectActivateService(new FilterProviderImpl(), ImmutableMap.of("path", SUPPORTED_PATH));
+        context.registerInjectActivateService(new FilterProviderImpl(),
+            ImmutableMap.of("path", SUPPORTED_PATH));
         context.registerInjectActivateService(pbac);
     }
 
@@ -75,7 +76,8 @@ public class PrincipalBasedAuthorizationConfigurationOsgiTest extends AbstractPr
         context.registerInjectActivateService(fp, ImmutableMap.of("path", SUPPORTED_PATH));
 
         MountInfoProviderService mipService = new MountInfoProviderService();
-        context.registerInjectActivateService(mipService, ImmutableMap.of("mountedPaths", new String[] {SUPPORTED_PATH + "/some/subtree", "/etc"}));
+        context.registerInjectActivateService(mipService, ImmutableMap.of("mountedPaths",
+            new String[]{SUPPORTED_PATH + "/some/subtree", "/etc"}));
 
         try {
             context.registerInjectActivateService(pbac, ImmutableMap.of());
@@ -90,7 +92,8 @@ public class PrincipalBasedAuthorizationConfigurationOsgiTest extends AbstractPr
         context.registerInjectActivateService(fp, ImmutableMap.of("path", SUPPORTED_PATH));
 
         MountInfoProviderService mipService = new MountInfoProviderService();
-        context.registerInjectActivateService(mipService, ImmutableMap.of("mountedPaths", new String[] {SUPPORTED_PATH}));
+        context.registerInjectActivateService(mipService,
+            ImmutableMap.of("mountedPaths", new String[]{SUPPORTED_PATH}));
 
         context.registerInjectActivateService(pbac, ImmutableMap.of());
     }
@@ -101,7 +104,8 @@ public class PrincipalBasedAuthorizationConfigurationOsgiTest extends AbstractPr
         context.registerInjectActivateService(fp, ImmutableMap.of("path", SUPPORTED_PATH));
 
         MountInfoProviderService mipService = new MountInfoProviderService();
-        context.registerInjectActivateService(mipService, ImmutableMap.of("mountedPaths", new String[] {Text.getRelativeParent(SUPPORTED_PATH, 1)}));
+        context.registerInjectActivateService(mipService, ImmutableMap.of("mountedPaths",
+            new String[]{Text.getRelativeParent(SUPPORTED_PATH, 1)}));
 
         context.registerInjectActivateService(pbac, ImmutableMap.of());
     }
@@ -112,17 +116,22 @@ public class PrincipalBasedAuthorizationConfigurationOsgiTest extends AbstractPr
         context.registerInjectActivateService(fp, ImmutableMap.of("path", SUPPORTED_PATH));
 
         MountInfoProviderService mipService = new MountInfoProviderService();
-        context.registerInjectActivateService(mipService, ImmutableMap.of("mountedPaths", new String[] {"/etc", "/var/some/mount", UserConstants.DEFAULT_GROUP_PATH}));
+        context.registerInjectActivateService(mipService, ImmutableMap.of("mountedPaths",
+            new String[]{"/etc", "/var/some/mount", UserConstants.DEFAULT_GROUP_PATH}));
 
         context.registerInjectActivateService(pbac, ImmutableMap.of());
     }
 
     @Test
     public void testEnableAggregationFilter() throws Exception {
-        context.registerInjectActivateService(new FilterProviderImpl(), ImmutableMap.of("path", SUPPORTED_PATH));
-        context.registerInjectActivateService(new MountInfoProviderService(), ImmutableMap.of("mountedPaths", new String[] {"/etc", "/var/some/mount", UserConstants.DEFAULT_GROUP_PATH}));
+        context.registerInjectActivateService(new FilterProviderImpl(),
+            ImmutableMap.of("path", SUPPORTED_PATH));
+        context.registerInjectActivateService(new MountInfoProviderService(),
+            ImmutableMap.of("mountedPaths",
+                new String[]{"/etc", "/var/some/mount", UserConstants.DEFAULT_GROUP_PATH}));
 
-        context.registerInjectActivateService(pbac, ImmutableMap.of(Constants.PARAM_ENABLE_AGGREGATION_FILTER, true));
+        context.registerInjectActivateService(pbac,
+            ImmutableMap.of(Constants.PARAM_ENABLE_AGGREGATION_FILTER, true));
         assertNotNull(context.getService(AggregationFilter.class));
 
         context.registerInjectActivateService(new AuthorizationConfigurationImpl());
@@ -134,18 +143,22 @@ public class PrincipalBasedAuthorizationConfigurationOsgiTest extends AbstractPr
         context.registerInjectActivateService(new TreeProviderService());
         context.registerService(StatisticsProvider.class, StatisticsProvider.NOOP);
 
-        context.registerInjectActivateService(new SecurityProviderRegistration(), ImmutableMap.of("requiredServicePids", new String[0]));
+        context.registerInjectActivateService(new SecurityProviderRegistration(),
+            ImmutableMap.of("requiredServicePids", new String[0]));
         SecurityProvider securityProvider = context.getService(SecurityProvider.class);
         assertNotNull(securityProvider);
 
-        AuthorizationConfiguration ac = securityProvider.getConfiguration(AuthorizationConfiguration.class);
+        AuthorizationConfiguration ac = securityProvider.getConfiguration(
+            AuthorizationConfiguration.class);
         assertTrue(ac instanceof CompositeAuthorizationConfiguration);
         assertEquals(2, ((CompositeAuthorizationConfiguration) ac).getConfigurations().size());
 
-        PermissionProvider pp = ac.getPermissionProvider(root, adminSession.getWorkspaceName(), ImmutableSet.of(getTestSystemUser().getPrincipal()));
+        PermissionProvider pp = ac.getPermissionProvider(root, adminSession.getWorkspaceName(),
+            ImmutableSet.of(getTestSystemUser().getPrincipal()));
         assertTrue(pp instanceof PrincipalBasedPermissionProvider);
 
-        pp = ac.getPermissionProvider(root, adminSession.getWorkspaceName(), ImmutableSet.of(getTestUser().getPrincipal()));
+        pp = ac.getPermissionProvider(root, adminSession.getWorkspaceName(),
+            ImmutableSet.of(getTestUser().getPrincipal()));
         assertTrue(pp instanceof PermissionProviderImpl);
     }
 }

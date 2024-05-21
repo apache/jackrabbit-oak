@@ -38,17 +38,16 @@ import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull
 public class MemoryDiffCache extends DiffCache {
 
     /**
-     * Cache entry Strings with a length more than this limit are not put into
-     * the cache.
+     * Cache entry Strings with a length more than this limit are not put into the cache.
      */
     static final int CACHE_VALUE_LIMIT = Integer.getInteger(
-            "oak.memoryDiffCache.limit", 8 * 1024 * 1024);
+        "oak.memoryDiffCache.limit", 8 * 1024 * 1024);
 
     private static final Logger LOG = LoggerFactory.getLogger(MemoryDiffCache.class);
 
     /**
      * Diff cache.
-     *
+     * <p>
      * Key: PathRev, value: StringValue
      */
     protected final Cache<CacheValue, StringValue> diffCache;
@@ -58,15 +57,15 @@ public class MemoryDiffCache extends DiffCache {
     protected MemoryDiffCache(DocumentNodeStoreBuilder<?> builder) {
         diffCache = builder.buildMemoryDiffCache();
         diffCacheStats = new CacheStats(diffCache, "Document-MemoryDiff",
-                builder.getWeigher(), builder.getMemoryDiffCacheSize());
+            builder.getWeigher(), builder.getMemoryDiffCacheSize());
     }
 
     @Nullable
     @Override
     public String getChanges(@NotNull final RevisionVector from,
-                             @NotNull final RevisionVector to,
-                             @NotNull final Path path,
-                             @Nullable final Loader loader) {
+        @NotNull final RevisionVector to,
+        @NotNull final Path path,
+        @Nullable final Loader loader) {
         Key key = new Key(path, from, to);
         StringValue diff;
         if (loader == null) {
@@ -97,8 +96,8 @@ public class MemoryDiffCache extends DiffCache {
     @NotNull
     @Override
     public Entry newEntry(@NotNull RevisionVector from,
-                          @NotNull RevisionVector to,
-                          boolean local /*ignored*/) {
+        @NotNull RevisionVector to,
+        boolean local /*ignored*/) {
         return new MemoryEntry(from, to);
     }
 
@@ -128,7 +127,7 @@ public class MemoryDiffCache extends DiffCache {
             Key key = new Key(path, from, to);
             if (changes.length() > CACHE_VALUE_LIMIT) {
                 LOG.warn("Not caching entry for {} from {} to {}. Length of changes is {}.",
-                        path, from, to, changes.length());
+                    path, from, to, changes.length());
             } else {
                 LOG.debug("Adding cache entry for {} from {} to {}", path, from, to);
                 diffCache.put(key, new StringValue(changes));
@@ -142,30 +141,29 @@ public class MemoryDiffCache extends DiffCache {
     }
 
     /**
-     * Returns {@code true} if it can be inferred from cache entries on
-     * ancestors of the given {@code path} that the node was not changed between
-     * the two revisions. This method returns {@code false} if there are no
-     * matching cache entries for the given revision range or one of them
-     * indicates that the node at the given path may have been modified.
+     * Returns {@code true} if it can be inferred from cache entries on ancestors of the given
+     * {@code path} that the node was not changed between the two revisions. This method returns
+     * {@code false} if there are no matching cache entries for the given revision range or one of
+     * them indicates that the node at the given path may have been modified.
      *
      * @param from the from revision.
-     * @param to the to revision.
+     * @param to   the to revision.
      * @param path the path of the node to check.
-     * @return {@code true} if there are cache entries that indicate the node
-     *      at the given path was modified between the two revisions.
+     * @return {@code true} if there are cache entries that indicate the node at the given path was
+     * modified between the two revisions.
      */
     private boolean isUnchanged(@NotNull final RevisionVector from,
-                                @NotNull final RevisionVector to,
-                                @NotNull final Path path) {
+        @NotNull final RevisionVector to,
+        @NotNull final Path path) {
         Path parent = path.getParent();
         return parent != null
-                && isChildUnchanged(from, to, parent, path.getName());
+            && isChildUnchanged(from, to, parent, path.getName());
     }
 
     private boolean isChildUnchanged(@NotNull final RevisionVector from,
-                                     @NotNull final RevisionVector to,
-                                     @NotNull final Path parent,
-                                     @NotNull final String name) {
+        @NotNull final RevisionVector to,
+        @NotNull final Path parent,
+        @NotNull final String name) {
         Key parentKey = new Key(parent, from, to);
         StringValue parentCachedEntry = diffCache.getIfPresent(parentKey);
         boolean unchanged;
@@ -177,7 +175,7 @@ public class MemoryDiffCache extends DiffCache {
             } else {
                 // recurse down
                 unchanged = isChildUnchanged(from, to,
-                        parent.getParent(), parent.getName());
+                    parent.getParent(), parent.getName());
             }
         } else {
             unchanged = parseJsopDiff(parentCachedEntry.asString(), new Diff() {
@@ -209,8 +207,8 @@ public class MemoryDiffCache extends DiffCache {
         private final RevisionVector to;
 
         public Key(@NotNull Path path,
-                   @NotNull RevisionVector from,
-                   @NotNull RevisionVector to) {
+            @NotNull RevisionVector from,
+            @NotNull RevisionVector to) {
             this.path = checkNotNull(path);
             this.from = checkNotNull(from);
             this.to = checkNotNull(to);
@@ -240,12 +238,12 @@ public class MemoryDiffCache extends DiffCache {
             int idx2 = s.lastIndexOf('@');
             if (idx1 == -1 || idx2 == -1) {
                 throw new IllegalArgumentException("Malformed "
-                        + MemoryDiffCache.Key.class.getSimpleName() + ": " + s);
+                    + MemoryDiffCache.Key.class.getSimpleName() + ": " + s);
             }
             return new Key(
-                    Path.fromString(s.substring(idx1, idx2)),
-                    RevisionVector.fromString(s.substring(0, idx1)),
-                    RevisionVector.fromString(s.substring(idx2 + 1))
+                Path.fromString(s.substring(idx1, idx2)),
+                RevisionVector.fromString(s.substring(0, idx1)),
+                RevisionVector.fromString(s.substring(idx2 + 1))
             );
         }
 
@@ -273,7 +271,8 @@ public class MemoryDiffCache extends DiffCache {
         @Override
         public String toString() {
             int dim = from.getDimensions() + to.getDimensions();
-            StringBuilder sb = new StringBuilder(path.length() + (Revision.REV_STRING_APPROX_SIZE + 1) * dim);
+            StringBuilder sb = new StringBuilder(
+                path.length() + (Revision.REV_STRING_APPROX_SIZE + 1) * dim);
             from.toStringBuilder(sb);
             path.toStringBuilder(sb).append('@');
             to.toStringBuilder(sb);
@@ -296,8 +295,8 @@ public class MemoryDiffCache extends DiffCache {
             } else if (obj instanceof Key) {
                 Key other = (Key) obj;
                 return from.equals(other.from)
-                        && to.equals(other.to)
-                        && path.equals(other.path);
+                    && to.equals(other.to)
+                    && path.equals(other.path);
             }
             return false;
         }

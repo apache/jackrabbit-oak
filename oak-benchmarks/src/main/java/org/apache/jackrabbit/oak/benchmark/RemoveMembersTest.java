@@ -23,7 +23,6 @@ import javax.jcr.Node;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -44,15 +43,15 @@ import org.apache.jackrabbit.util.Text;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Test the performance of removing members from groups. The
- * following parameters can be used to run the benchmark:
- *
- * - numberOfMembers : the number of members that should be added in the test setup
- *   to each group (and removed during the test-run)
- * - batchSize : the size of the memberID-array to be passed to the removeMembers call
- *
- * Note the members to be removed are picked randomly and may or may not/no longer
- * be member of the target group.
+ * Test the performance of removing members from groups. The following parameters can be used to run
+ * the benchmark:
+ * <p>
+ * - numberOfMembers : the number of members that should be added in the test setup to each group
+ * (and removed during the test-run) - batchSize : the size of the memberID-array to be passed to
+ * the removeMembers call
+ * <p>
+ * Note the members to be removed are picked randomly and may or may not/no longer be member of the
+ * target group.
  */
 public class RemoveMembersTest extends AbstractTest {
 
@@ -108,7 +107,8 @@ public class RemoveMembersTest extends AbstractTest {
     public void afterSuite() throws Exception {
         Session s = loginAdministrative();
         try {
-            Authorizable authorizable = ((JackrabbitSession) s).getUserManager().getAuthorizable(GROUP + "0");
+            Authorizable authorizable = ((JackrabbitSession) s).getUserManager()
+                                                               .getAuthorizable(GROUP + "0");
             if (authorizable != null) {
                 Node n = s.getNode(Text.getRelativeParent(authorizable.getPath(), 1));
                 n.remove();
@@ -133,9 +133,10 @@ public class RemoveMembersTest extends AbstractTest {
             return ((OakRepositoryFixture) fixture).setUpCluster(1, new JcrCreator() {
                 @Override
                 public Jcr customize(Oak oak) {
-                    ConfigurationParameters conf = ConfigurationParameters.of(UserConfiguration.NAME,
-                            ConfigurationParameters.of(ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR,
-                                    ImportBehavior.NAME_BESTEFFORT));
+                    ConfigurationParameters conf = ConfigurationParameters.of(
+                        UserConfiguration.NAME,
+                        ConfigurationParameters.of(ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR,
+                            ImportBehavior.NAME_BESTEFFORT));
                     SecurityProvider sp = SecurityProviderBuilder.newBuilder().with(conf).build();
                     return new Jcr(oak).with(sp);
                 }
@@ -166,7 +167,8 @@ public class RemoveMembersTest extends AbstractTest {
         }
     }
 
-    protected void removeMembers(@NotNull UserManager userManger, @NotNull Group group, @NotNull Session s) throws Exception {
+    protected void removeMembers(@NotNull UserManager userManger, @NotNull Group group,
+        @NotNull Session s) throws Exception {
         for (int i = 0; i <= numberOfMembers; i++) {
             if (batchSize <= DEFAULT_BATCH_SIZE) {
                 group.removeMembers(USER + random.nextInt(numberOfMembers));

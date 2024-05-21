@@ -50,7 +50,7 @@ public class ReverseNodeStateDiffTest {
     }
 
     private void compareAgainstBase(Modification modification,
-                                    String jsopDiff) {
+        String jsopDiff) {
         NodeBuilder builder = new MemoryNodeBuilder(base);
         modification.apply(builder);
         NodeState modified = builder.getNodeState();

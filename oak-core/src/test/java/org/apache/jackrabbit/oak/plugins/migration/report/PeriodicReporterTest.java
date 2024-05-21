@@ -18,14 +18,14 @@
  */
 package org.apache.jackrabbit.oak.plugins.migration.report;
 
+import static org.apache.jackrabbit.oak.plugins.migration.report.AssertingPeriodicReporter.hasReportedNode;
+import static org.apache.jackrabbit.oak.plugins.migration.report.AssertingPeriodicReporter.hasReportedProperty;
+import static org.junit.Assert.assertThat;
+
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
-
-import static org.apache.jackrabbit.oak.plugins.migration.report.AssertingPeriodicReporter.hasReportedNode;
-import static org.apache.jackrabbit.oak.plugins.migration.report.AssertingPeriodicReporter.hasReportedProperty;
-import static org.junit.Assert.assertThat;
 
 public class PeriodicReporterTest {
 

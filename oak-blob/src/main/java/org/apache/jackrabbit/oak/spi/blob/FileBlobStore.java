@@ -28,7 +28,6 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Iterator;
 import java.util.List;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.jackrabbit.oak.commons.IOUtils;
@@ -100,7 +99,8 @@ public class FileBlobStore extends AbstractBlobStore {
     }
 
     @Override
-    protected synchronized void storeBlock(byte[] digest, int level, byte[] data) throws IOException {
+    protected synchronized void storeBlock(byte[] digest, int level, byte[] data)
+        throws IOException {
         File f = getFile(digest, false);
         if (f.exists()) {
             FileUtils.touch(f);
@@ -152,10 +152,10 @@ public class FileBlobStore extends AbstractBlobStore {
     public void startMark() throws IOException {
         mark = true;
         for (int j = 0; j < 256; j++) {
-            String sub1 = StringUtils.convertBytesToHex(new byte[] { (byte) j });
+            String sub1 = StringUtils.convertBytesToHex(new byte[]{(byte) j});
             File x = new File(baseDir, sub1);
             for (int i = 0; i < 256; i++) {
-                String sub2 = StringUtils.convertBytesToHex(new byte[] { (byte) i });
+                String sub2 = StringUtils.convertBytesToHex(new byte[]{(byte) i});
                 File d = new File(x, sub2);
                 File old = new File(x, sub2 + OLD_SUFFIX);
                 if (d.exists()) {
@@ -194,10 +194,10 @@ public class FileBlobStore extends AbstractBlobStore {
     public int sweep() throws IOException {
         int count = 0;
         for (int j = 0; j < 256; j++) {
-            String sub1 = StringUtils.convertBytesToHex(new byte[] { (byte) j });
+            String sub1 = StringUtils.convertBytesToHex(new byte[]{(byte) j});
             File x = new File(baseDir, sub1);
             for (int i = 0; i < 256; i++) {
-                String sub = StringUtils.convertBytesToHex(new byte[] { (byte) i });
+                String sub = StringUtils.convertBytesToHex(new byte[]{(byte) i});
                 File old = new File(x, sub + OLD_SUFFIX);
                 if (old.exists()) {
                     for (File p : old.listFiles()) {
@@ -215,7 +215,8 @@ public class FileBlobStore extends AbstractBlobStore {
     }
 
     @Override
-    public long countDeleteChunks(List<String> chunkIds, long maxLastModifiedTime) throws Exception {
+    public long countDeleteChunks(List<String> chunkIds, long maxLastModifiedTime)
+        throws Exception {
         int count = 0;
         for (String chunkId : chunkIds) {
             byte[] digest = StringUtils.convertHexToBytes(chunkId);
@@ -227,7 +228,7 @@ public class FileBlobStore extends AbstractBlobStore {
                 f = getFile(digest, false);
             }
             if ((maxLastModifiedTime <= 0)
-                    || FileUtils.isFileOlder(f, maxLastModifiedTime)) {
+                || FileUtils.isFileOlder(f, maxLastModifiedTime)) {
                 f.delete();
                 count++;
             }
@@ -238,13 +239,14 @@ public class FileBlobStore extends AbstractBlobStore {
     @Override
     public Iterator<String> getAllChunkIds(final long maxLastModifiedTime) throws Exception {
         return FileTreeTraverser.depthFirstPostOrder(baseDir)
-                .filter(file -> {
-                    // Ignore the directories and files newer than maxLastModifiedTime if specified
-                    return !file.isDirectory() &&
-                            ((maxLastModifiedTime <= 0) || FileUtils.isFileOlder(file, maxLastModifiedTime));
-                })
-                .map(file -> FilenameUtils.removeExtension(file.getName()))
-                .iterator();
+                                .filter(file -> {
+                                    // Ignore the directories and files newer than maxLastModifiedTime if specified
+                                    return !file.isDirectory() &&
+                                        ((maxLastModifiedTime <= 0) || FileUtils.isFileOlder(file,
+                                            maxLastModifiedTime));
+                                })
+                                .map(file -> FilenameUtils.removeExtension(file.getName()))
+                                .iterator();
     }
 
     @Override

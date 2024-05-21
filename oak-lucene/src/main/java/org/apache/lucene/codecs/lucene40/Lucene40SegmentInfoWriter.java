@@ -27,7 +27,6 @@ package org.apache.lucene.codecs.lucene40;
 
 import java.io.IOException;
 import java.util.Collections;
-
 import org.apache.lucene.codecs.CodecUtil;
 import org.apache.lucene.codecs.SegmentInfoWriter;
 import org.apache.lucene.index.FieldInfos;
@@ -40,45 +39,52 @@ import org.apache.lucene.util.IOUtils;
 
 /**
  * Lucene 4.0 implementation of {@link SegmentInfoWriter}.
- * 
- * @see Lucene40SegmentInfoFormat
+ *
  * @lucene.experimental
+ * @see Lucene40SegmentInfoFormat
  */
 @Deprecated
 public class Lucene40SegmentInfoWriter extends SegmentInfoWriter {
 
-  /** Sole constructor. */
-  public Lucene40SegmentInfoWriter() {
-  }
-
-  /** Save a single segment's info. */
-  @Override
-  public void write(Directory dir, SegmentInfo si, FieldInfos fis, IOContext ioContext) throws IOException {
-    final String fileName = IndexFileNames.segmentFileName(si.name, "", Lucene40SegmentInfoFormat.SI_EXTENSION);
-    si.addFile(fileName);
-
-    final IndexOutput output = dir.createOutput(fileName, ioContext);
-
-    boolean success = false;
-    try {
-      CodecUtil.writeHeader(output, Lucene40SegmentInfoFormat.CODEC_NAME, Lucene40SegmentInfoFormat.VERSION_CURRENT);
-      // Write the Lucene version that created this segment, since 3.1
-      output.writeString(si.getVersion());
-      output.writeInt(si.getDocCount());
-
-      output.writeByte((byte) (si.getUseCompoundFile() ? SegmentInfo.YES : SegmentInfo.NO));
-      output.writeStringStringMap(si.getDiagnostics());
-      output.writeStringStringMap(Collections.<String,String>emptyMap());
-      output.writeStringSet(si.files());
-
-      success = true;
-    } finally {
-      if (!success) {
-        IOUtils.closeWhileHandlingException(output);
-        si.dir.deleteFile(fileName);
-      } else {
-        output.close();
-      }
+    /**
+     * Sole constructor.
+     */
+    public Lucene40SegmentInfoWriter() {
     }
-  }
+
+    /**
+     * Save a single segment's info.
+     */
+    @Override
+    public void write(Directory dir, SegmentInfo si, FieldInfos fis, IOContext ioContext)
+        throws IOException {
+        final String fileName = IndexFileNames.segmentFileName(si.name, "",
+            Lucene40SegmentInfoFormat.SI_EXTENSION);
+        si.addFile(fileName);
+
+        final IndexOutput output = dir.createOutput(fileName, ioContext);
+
+        boolean success = false;
+        try {
+            CodecUtil.writeHeader(output, Lucene40SegmentInfoFormat.CODEC_NAME,
+                Lucene40SegmentInfoFormat.VERSION_CURRENT);
+            // Write the Lucene version that created this segment, since 3.1
+            output.writeString(si.getVersion());
+            output.writeInt(si.getDocCount());
+
+            output.writeByte((byte) (si.getUseCompoundFile() ? SegmentInfo.YES : SegmentInfo.NO));
+            output.writeStringStringMap(si.getDiagnostics());
+            output.writeStringStringMap(Collections.<String, String>emptyMap());
+            output.writeStringSet(si.files());
+
+            success = true;
+        } finally {
+            if (!success) {
+                IOUtils.closeWhileHandlingException(output);
+                si.dir.deleteFile(fileName);
+            } else {
+                output.close();
+            }
+        }
+    }
 }

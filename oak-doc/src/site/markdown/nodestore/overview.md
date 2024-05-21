@@ -26,7 +26,7 @@ maximal scalability in clustered deployments.
 
 The node storage implement the `NodeStore` APIs.
 Those are ultimately representations of the
-[node state model](../architecture/nodestate.html). 
+[node state model](../architecture/nodestate.html).
 The `NodeStore` exposes its functionality through a pure Java API,
 which is suited to work with in Java, and has lower performance and memory overhead.
 

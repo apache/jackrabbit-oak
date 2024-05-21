@@ -17,9 +17,9 @@
 
 # Runnable jar
 
-Oak comes with a [runnable jar](https://github.com/apache/jackrabbit-oak/blob/trunk/oak-run/README.md),
+Oak comes with
+a [runnable jar](https://github.com/apache/jackrabbit-oak/blob/trunk/oak-run/README.md),
 which contains everything you need for a simple Oak installation.
-
 
 # Using Oak in your project
 

@@ -20,7 +20,6 @@ import java.security.Principal;
 import java.util.Iterator;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
-
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.jetbrains.annotations.NotNull;

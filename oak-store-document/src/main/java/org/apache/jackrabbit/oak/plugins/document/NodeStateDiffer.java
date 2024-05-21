@@ -23,27 +23,27 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.jetbrains.annotations.NotNull;
 
 public interface NodeStateDiffer {
+
     NodeStateDiffer DEFAULT_DIFFER = new NodeStateDiffer() {
         @Override
         public boolean compare(@NotNull AbstractDocumentNodeState node,
-                               @NotNull AbstractDocumentNodeState base, @NotNull NodeStateDiff diff) {
+            @NotNull AbstractDocumentNodeState base, @NotNull NodeStateDiff diff) {
             return node.compareAgainstBaseState(base, diff);
         }
     };
 
 
     /**
-     * Compares the given {@code node} against the {@code base} state and
-     * reports the differences to the {@link NodeStateDiff}.
+     * Compares the given {@code node} against the {@code base} state and reports the differences to
+     * the {@link NodeStateDiff}.
      *
      * @param node the node to compare.
      * @param base the base node to compare against.
      * @param diff handler of node state differences
-     * @return {@code true} if the full diff was performed, or
-     *         {@code false} if it was aborted as requested by the handler
-     *         (see the {@link NodeStateDiff} contract for more details)
+     * @return {@code true} if the full diff was performed, or {@code false} if it was aborted as
+     * requested by the handler (see the {@link NodeStateDiff} contract for more details)
      */
     boolean compare(@NotNull final AbstractDocumentNodeState node,
-                    @NotNull final AbstractDocumentNodeState base,
-                    @NotNull NodeStateDiff diff);
+        @NotNull final AbstractDocumentNodeState base,
+        @NotNull NodeStateDiff diff);
 }

@@ -20,12 +20,11 @@
 package org.apache.jackrabbit.oak.run.osgi
 
 import org.apache.felix.connect.launch.PojoServiceRegistry
-
 import org.apache.jackrabbit.oak.plugins.index.aggregate.SimpleNodeAggregator
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants
 import org.apache.jackrabbit.oak.plugins.index.search.IndexFormatVersion
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexHelper
-import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer
 import org.apache.jackrabbit.oak.spi.query.QueryIndex
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder
@@ -37,9 +36,9 @@ import javax.jcr.Node
 import javax.jcr.Session
 import javax.jcr.query.*
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList
 import static org.apache.jackrabbit.JcrConstants.JCR_CONTENT
 import static org.apache.jackrabbit.JcrConstants.NT_FILE
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME
 import static org.apache.jackrabbit.oak.run.osgi.OakOSGiRepositoryFactory.REPOSITORY_CONFIG_FILE
 
@@ -63,7 +62,7 @@ class LuceneSupportTest extends AbstractRepositoryFactoryTest {
         session = createAdminSession()
 
         Node testNode = session.getRootNode()
-        Node contentNode = testNode.addNode("myFile" ,"nt:file")
+        Node contentNode = testNode.addNode("myFile", "nt:file")
                 .addNode("jcr:content", "oak:Unstructured");
         contentNode.setProperty("jcr:mimeType", "text/plain")
         contentNode.setProperty("jcr:encoding", "UTF-8")
@@ -73,23 +72,23 @@ class LuceneSupportTest extends AbstractRepositoryFactoryTest {
 
         SimpleNodeAggregator agg = new SimpleNodeAggregator().newRuleWithName(
                 NT_FILE, newArrayList(JCR_CONTENT, JCR_CONTENT + "/*"));
-        getRegistry ( ).registerService ( QueryIndex.NodeAggregator.class.name, agg, null )
+        getRegistry().registerService(QueryIndex.NodeAggregator.class.name, agg, null)
 
         //The lucene index is set to synched mode
         retry(30, 200) {
             String query = "SELECT * FROM [nt:base] as f WHERE CONTAINS (f.*, 'dog')"
-            assert [ "/myFile", '/myFile/jcr:content' ] as HashSet == execute ( query )
+            assert ["/myFile", '/myFile/jcr:content'] as HashSet == execute(query)
             return true
         }
     }
 
-    Set<String> execute(String stmt){
+    Set<String> execute(String stmt) {
         QueryManager qm = session.workspace.queryManager
         Query query = qm.createQuery(stmt, "JCR-SQL2");
         QueryResult result = query.execute()
         RowIterator rowItr = result.getRows()
         Set<String> paths = new HashSet<>()
-        rowItr.each {Row r -> paths << r.node.path}
+        rowItr.each { Row r -> paths << r.node.path }
         return paths
     }
 

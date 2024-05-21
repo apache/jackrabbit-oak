@@ -24,8 +24,9 @@ public enum StrictPathRestriction {
     DISABLE;
 
     public static StrictPathRestriction stringToEnum(String strictPathRestrictionInString) {
-    // OAK-260 : Locale english is being used explicitly. (DISABLE[in turkish]  = DİSABLE[in English]--- Mind the dot above I)
-        return StrictPathRestriction.valueOf(strictPathRestrictionInString.toUpperCase(Locale.ENGLISH));
+        // OAK-260 : Locale english is being used explicitly. (DISABLE[in turkish]  = DİSABLE[in English]--- Mind the dot above I)
+        return StrictPathRestriction.valueOf(
+            strictPathRestrictionInString.toUpperCase(Locale.ENGLISH));
     }
 
 }

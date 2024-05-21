@@ -61,14 +61,17 @@ public class PolicyValidatorLimitedUserTest extends AbstractPrincipalBasedTest {
         super.before();
 
         User systemUser = getTestSystemUser();
-        PrincipalPolicyImpl policy = setupPrincipalBasedAccessControl(systemUser.getPrincipal(), testJcrPath, JCR_NODE_TYPE_MANAGEMENT);
+        PrincipalPolicyImpl policy = setupPrincipalBasedAccessControl(systemUser.getPrincipal(),
+            testJcrPath, JCR_NODE_TYPE_MANAGEMENT);
         accessControlledPath = policy.getOakPath();
 
         User testUser = getTestUser();
-        addDefaultEntry(PathUtils.ROOT_PATH, testUser.getPrincipal(), JCR_READ, JCR_READ_ACCESS_CONTROL);
+        addDefaultEntry(PathUtils.ROOT_PATH, testUser.getPrincipal(), JCR_READ,
+            JCR_READ_ACCESS_CONTROL);
         root.commit();
 
-        testSession = login(new SimpleCredentials(testUser.getID(), testUser.getID().toCharArray()));
+        testSession = login(
+            new SimpleCredentials(testUser.getID(), testUser.getID().toCharArray()));
         testRoot = testSession.getLatestRoot();
     }
 
@@ -85,9 +88,11 @@ public class PolicyValidatorLimitedUserTest extends AbstractPrincipalBasedTest {
     }
 
     @NotNull
-    private Tree createPolicyEntryTree(@NotNull Root r, @NotNull String effectiveOakPath, @NotNull String... privNames) throws Exception {
+    private Tree createPolicyEntryTree(@NotNull Root r, @NotNull String effectiveOakPath,
+        @NotNull String... privNames) throws Exception {
         Tree t = r.getTree(accessControlledPath);
-        TreeUtil.addMixin(t, MIX_REP_PRINCIPAL_BASED_MIXIN, r.getTree(NodeTypeConstants.NODE_TYPES_PATH), "uid");
+        TreeUtil.addMixin(t, MIX_REP_PRINCIPAL_BASED_MIXIN,
+            r.getTree(NodeTypeConstants.NODE_TYPES_PATH), "uid");
         Tree policy = TreeUtil.addChild(t, REP_PRINCIPAL_POLICY, NT_REP_PRINCIPAL_POLICY);
         policy.setProperty(REP_PRINCIPAL_NAME, getTestSystemUser().getPrincipal().getName());
         Tree entry = TreeUtil.addChild(policy, "entry", NT_REP_PRINCIPAL_ENTRY);

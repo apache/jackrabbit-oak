@@ -21,7 +21,6 @@ import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 
 import java.util.List;
 import java.util.UUID;
-
 import org.apache.jackrabbit.oak.segment.Segment;
 import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.file.FileStore;

@@ -18,6 +18,25 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
+import static org.apache.jackrabbit.oak.api.QueryEngine.NO_BINDINGS;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
+import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
+import java.util.stream.Collectors;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyValue;
@@ -33,26 +52,6 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import java.text.ParseException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
-import java.util.stream.Collectors;
-
-import static org.apache.jackrabbit.oak.api.QueryEngine.NO_BINDINGS;
-import static org.apache.jackrabbit.oak.api.Type.STRING;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
 public abstract class ExcerptTest extends AbstractQueryTest {
 
     protected IndexOptions indexOptions;
@@ -60,7 +59,8 @@ public abstract class ExcerptTest extends AbstractQueryTest {
 
     protected void assertEventually(Runnable r) {
         TestUtil.assertEventually(r,
-                ((repositoryOptionsUtil.isAsync() ? repositoryOptionsUtil.defaultAsyncIndexingTimeInSeconds : 0) + 3000) * 5);
+            ((repositoryOptionsUtil.isAsync()
+                ? repositoryOptionsUtil.defaultAsyncIndexingTimeInSeconds : 0) + 3000) * 5);
     }
 
     @Before
@@ -75,8 +75,8 @@ public abstract class ExcerptTest extends AbstractQueryTest {
         def.setProperty(FulltextIndexConstants.COMPAT_MODE, IndexFormatVersion.V2.getVersion());
 
         Tree properties = def.addChild(FulltextIndexConstants.INDEX_RULES)
-                .addChild("nt:base")
-                .addChild(FulltextIndexConstants.PROP_NODE);
+                             .addChild("nt:base")
+                             .addChild(FulltextIndexConstants.PROP_NODE);
 
         Tree notIndexedProp = properties.addChild("baz");
         notIndexedProp.setProperty(FulltextIndexConstants.PROP_NODE_SCOPE_INDEX, true);
@@ -90,7 +90,8 @@ public abstract class ExcerptTest extends AbstractQueryTest {
         allProps.setProperty(FulltextIndexConstants.PROP_ANALYZED, true);
         allProps.setProperty(FulltextIndexConstants.PROP_NODE_SCOPE_INDEX, true);
         allProps.setProperty(FulltextIndexConstants.PROP_USE_IN_EXCERPT, true);
-        allProps.setProperty(FulltextIndexConstants.PROP_NAME, FulltextIndexConstants.REGEX_ALL_PROPS);
+        allProps.setProperty(FulltextIndexConstants.PROP_NAME,
+            FulltextIndexConstants.REGEX_ALL_PROPS);
         allProps.setProperty(FulltextIndexConstants.PROP_IS_REGEX, true);
 
         root.commit();
@@ -104,8 +105,10 @@ public abstract class ExcerptTest extends AbstractQueryTest {
         contentRoot.setProperty("baz", "fox ifoxing");
         root.commit();
 
-        List<String> columns = new ArrayList<>(Arrays.asList("rep:excerpt", "rep:excerpt(.)", "rep:excerpt(foo)", "rep:excerpt(bar)"));
-        String selectColumns = columns.stream().map(col -> "[" + col + "]").collect(Collectors.joining(","));
+        List<String> columns = new ArrayList<>(
+            Arrays.asList("rep:excerpt", "rep:excerpt(.)", "rep:excerpt(foo)", "rep:excerpt(bar)"));
+        String selectColumns = columns.stream().map(col -> "[" + col + "]")
+                                      .collect(Collectors.joining(","));
         String query = "SELECT " + selectColumns + " FROM [nt:base] WHERE CONTAINS(*, 'fox')";
         assertEventually(() -> {
             try {
@@ -120,7 +123,7 @@ public abstract class ExcerptTest extends AbstractQueryTest {
 
                     String excerpt = excerptValue.getValue(STRING);
                     assertFalse(col + " didn't evaluate correctly - got '" + excerpt + "'",
-                            excerpt.contains("i<strong>fox</foxing>ing"));
+                        excerpt.contains("i<strong>fox</foxing>ing"));
                 }
             } catch (ParseException e) {
                 fail(e.getMessage());
@@ -147,12 +150,14 @@ public abstract class ExcerptTest extends AbstractQueryTest {
                 assertNotNull("rep:excerpt not evaluated", nodeExcerpt);
                 String excerpt1 = nodeExcerpt.getValue(STRING);
                 assertTrue("rep:excerpt didn't evaluate correctly - got '" + excerpt1 + "'",
-                        "is <strong>fox</strong> ifoxing".equals(excerpt1) || "ifoxing <strong>fox</strong>".equals(excerpt1));
+                    "is <strong>fox</strong> ifoxing".equals(excerpt1)
+                        || "ifoxing <strong>fox</strong>".equals(excerpt1));
 
                 nodeExcerpt = firstRow.getValue("rep:excerpt(.)");
                 assertNotNull("rep:excerpt(.) not evaluated", nodeExcerpt);
                 String excerpt2 = nodeExcerpt.getValue(STRING);
-                assertEquals("excerpt extracted via rep:excerpt not same as rep:excerpt(.)", excerpt1, excerpt2);
+                assertEquals("excerpt extracted via rep:excerpt not same as rep:excerpt(.)",
+                    excerpt1, excerpt2);
             } catch (ParseException e) {
                 fail(e.getMessage());
             }
@@ -175,7 +180,9 @@ public abstract class ExcerptTest extends AbstractQueryTest {
                 ResultRow firstRow = resultIter.next();
 
                 PropertyValue nodeExcerpt = firstRow.getValue("rep:excerpt(baz)");
-                assertNull("rep:excerpt(baz) if requested explicitly must be indexed to be evaluated", nodeExcerpt);
+                assertNull(
+                    "rep:excerpt(baz) if requested explicitly must be indexed to be evaluated",
+                    nodeExcerpt);
             } catch (ParseException e) {
                 fail(e.getMessage());
             }
@@ -199,8 +206,8 @@ public abstract class ExcerptTest extends AbstractQueryTest {
                 PropertyValue nodeExcerpt = firstRow.getValue("rep:excerpt(foo)");
                 assertNotNull("rep:excerpt(foo) not evaluated", nodeExcerpt);
                 String excerpt = nodeExcerpt.getValue(STRING);
-                assertEquals("rep:excerpt(foo) didn't evaluate correctly - got '" + excerpt + "'", 
-                        "is <strong>fox</strong> ifoxing", excerpt);
+                assertEquals("rep:excerpt(foo) didn't evaluate correctly - got '" + excerpt + "'",
+                    "is <strong>fox</strong> ifoxing", excerpt);
             } catch (ParseException e) {
                 fail(e.getMessage());
             }
@@ -225,10 +232,10 @@ public abstract class ExcerptTest extends AbstractQueryTest {
                 assertNotNull("rep:excerpt(foo) not evaluated", nodeExcerpt);
                 String excerpt = nodeExcerpt.getValue(STRING);
                 assertTrue("rep:excerpt(foo) didn't evaluate correctly - got '" + excerpt + "'",
-                        excerpt.contains("<strong>fox</strong>"));
+                    excerpt.contains("<strong>fox</strong>"));
 
                 assertFalse("rep:excerpt(foo) highlighting inside words - got '" + excerpt + "'",
-                        excerpt.contains("i<strong>fox</strong>ing"));
+                    excerpt.contains("i<strong>fox</strong>ing"));
             } catch (ParseException e) {
                 fail(e.getMessage());
             }
@@ -254,10 +261,10 @@ public abstract class ExcerptTest extends AbstractQueryTest {
                 assertNotNull("rep:excerpt(baz) not evaluated", nodeExcerpt);
                 String excerpt = nodeExcerpt.getValue(STRING);
                 assertTrue("rep:excerpt(foo) didn't evaluate correctly - got '" + excerpt + "'",
-                        excerpt.contains("<strong>fox</strong>"));
+                    excerpt.contains("<strong>fox</strong>"));
 
                 assertFalse("rep:excerpt(baz) highlighting inside words - got '" + excerpt + "'",
-                        excerpt.contains("i<strong>fox</strong>ing"));
+                    excerpt.contains("i<strong>fox</strong>ing"));
             } catch (ParseException e) {
                 fail(e.getMessage());
             }
@@ -284,8 +291,9 @@ public abstract class ExcerptTest extends AbstractQueryTest {
                 PropertyValue nodeExcerpt = firstRow.getValue("rep:excerpt(relative/baz)");
                 assertNotNull("rep:excerpt(relative/baz) not evaluated", nodeExcerpt);
                 String excerpt = nodeExcerpt.getValue(STRING);
-                assertEquals("rep:excerpt(relative/baz) didn't evaluate correctly - got '" + excerpt + "'",
-                        "is <strong>fox</strong> ifoxing", excerpt);
+                assertEquals(
+                    "rep:excerpt(relative/baz) didn't evaluate correctly - got '" + excerpt + "'",
+                    "is <strong>fox</strong> ifoxing", excerpt);
             } catch (ParseException e) {
                 fail(e.getMessage());
             }
@@ -314,7 +322,7 @@ public abstract class ExcerptTest extends AbstractQueryTest {
                 String excerpt = nodeExcerpt.getValue(STRING);
                 String expected = binaryText.replaceAll(" fox ", " <strong>fox</strong> ");
                 assertTrue("rep:excerpt didn't evaluate correctly - got '" + excerpt + "'",
-                        excerpt.contains(expected));
+                    excerpt.contains(expected));
             } catch (ParseException e) {
                 fail(e.getMessage());
             }

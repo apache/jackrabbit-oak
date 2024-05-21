@@ -18,31 +18,29 @@
  */
 package org.apache.jackrabbit.oak.spi.whiteboard;
 
+import static java.util.Collections.emptyList;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-import static java.util.Collections.emptyList;
 
 import java.util.List;
 import java.util.Map;
-
 import org.jetbrains.annotations.NotNull;
 
 /**
- * {@code AbstractServiceTracker} is a base class for composite components
- * that dynamically look up the available component services from the
- * whiteboard.
+ * {@code AbstractServiceTracker} is a base class for composite components that dynamically look up
+ * the available component services from the whiteboard.
  */
 public abstract class AbstractServiceTracker<T> {
 
     /**
-     * Sentinel object used as the {@link #tracker} value of an already
-     * stopped instance.
+     * Sentinel object used as the {@link #tracker} value of an already stopped instance.
      */
     private final Tracker<T> stopped = new Tracker<T>() {
         @Override
         public List<T> getServices() {
             return emptyList();
         }
+
         @Override
         public void stop() {
             // do nothing
@@ -56,10 +54,9 @@ public abstract class AbstractServiceTracker<T> {
     private final Map<String, String> filterProperties;
 
     /**
-     * The underlying {@link Tracker}, or the {@link #stopped} sentinel
-     * sentinel object when this instance is not active. This variable
-     * is {@code volatile} so that the {@link #getServices()} method will
-     * always see the latest state without having to be synchronized.
+     * The underlying {@link Tracker}, or the {@link #stopped} sentinel sentinel object when this
+     * instance is not active. This variable is {@code volatile} so that the {@link #getServices()}
+     * method will always see the latest state without having to be synchronized.
      */
     private volatile Tracker<T> tracker = stopped;
 
@@ -68,14 +65,16 @@ public abstract class AbstractServiceTracker<T> {
         this.filterProperties = null;
     }
 
-    protected AbstractServiceTracker(@NotNull Class<T> type, @NotNull Map<String, String> filterProperties) {
+    protected AbstractServiceTracker(@NotNull Class<T> type,
+        @NotNull Map<String, String> filterProperties) {
         this.type = checkNotNull(type);
         this.filterProperties = filterProperties;
     }
 
     public synchronized void start(Whiteboard whiteboard) {
         checkState(tracker == stopped);
-        tracker = (filterProperties == null) ? whiteboard.track(type) : whiteboard.track(type, filterProperties);
+        tracker = (filterProperties == null) ? whiteboard.track(type)
+            : whiteboard.track(type, filterProperties);
     }
 
     public synchronized void stop() {
@@ -87,9 +86,9 @@ public abstract class AbstractServiceTracker<T> {
     }
 
     /**
-     * Returns all services of type {@code T} that are currently available.
-     * This method is intentionally not synchronized to prevent lock
-     * contention when accessed frequently in highly concurrent code.
+     * Returns all services of type {@code T} that are currently available. This method is
+     * intentionally not synchronized to prevent lock contention when accessed frequently in highly
+     * concurrent code.
      *
      * @return currently available services
      */

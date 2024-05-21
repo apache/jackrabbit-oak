@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.plugins.index.solr;
 
 import javax.jcr.NoSuchWorkspaceException;
 import javax.security.auth.login.LoginException;
-
+import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Root;
@@ -28,7 +28,6 @@ import org.apache.jackrabbit.oak.plugins.index.solr.configuration.nodestate.Node
 import org.apache.jackrabbit.oak.plugins.index.solr.index.SolrIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.query.SolrQueryIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.util.SolrIndexInitializer;
-import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
@@ -57,15 +56,15 @@ public abstract class SolrBaseTest {
         server = provider.getSolrServer();
         configuration = provider.getConfiguration();
         hook = new EditorHook(new IndexUpdateProvider(
-                new SolrIndexEditorProvider(provider, provider)));
+            new SolrIndexEditorProvider(provider, provider)));
         Oak oak = new Oak().with(new InitialContent())
-                .with(new OpenSecurityProvider())
-                .with(new SolrIndexInitializer(false)) // synchronous
-                .with(new SolrQueryIndexProvider(provider, provider))
-                .with(new NodeStateSolrServersObserver())
-                .with(new SolrIndexEditorProvider(provider, provider));
+                           .with(new OpenSecurityProvider())
+                           .with(new SolrIndexInitializer(false)) // synchronous
+                           .with(new SolrQueryIndexProvider(provider, provider))
+                           .with(new NodeStateSolrServersObserver())
+                           .with(new SolrIndexEditorProvider(provider, provider));
         repository = oak
-                .createContentRepository();
+            .createContentRepository();
     }
 
     @After

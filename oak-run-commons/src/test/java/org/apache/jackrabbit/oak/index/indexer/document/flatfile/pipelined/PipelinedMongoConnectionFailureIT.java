@@ -18,10 +18,18 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_MONGO_PARALLEL_DUMP;
+
 import eu.rekawek.toxiproxy.Proxy;
 import eu.rekawek.toxiproxy.ToxiproxyClient;
 import eu.rekawek.toxiproxy.model.ToxicDirection;
 import eu.rekawek.toxiproxy.model.toxic.LimitData;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
 import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDockerRule;
@@ -40,31 +48,27 @@ import org.testcontainers.containers.Network;
 import org.testcontainers.containers.ToxiproxyContainer;
 import org.testcontainers.utility.DockerImageName;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_MONGO_PARALLEL_DUMP;
-
 public class PipelinedMongoConnectionFailureIT {
-    private static final Logger LOG = LoggerFactory.getLogger(PipelinedMongoConnectionFailureIT.class);
 
-    private static final DockerImageName TOXIPROXY_IMAGE = DockerImageName.parse("ghcr.io/shopify/toxiproxy:2.6.0");
+    private static final Logger LOG = LoggerFactory.getLogger(
+        PipelinedMongoConnectionFailureIT.class);
+
+    private static final DockerImageName TOXIPROXY_IMAGE = DockerImageName.parse(
+        "ghcr.io/shopify/toxiproxy:2.6.0");
     // We cannot use the MongoDockerRule/MongoConnectionFactory because they don't allow customizing the docker network
     // used to launch the Mongo container.
     private static final int MONGODB_DEFAULT_PORT = 27017;
     @Rule
     public final Network network = Network.newNetwork();
     @Rule
-    public final MongoDBContainer mongoDBContainer = new MongoDBContainer(MongoDockerRule.getDockerImageName())
-            .withNetwork(network)
-            .withNetworkAliases("mongo")
-            .withExposedPorts(MONGODB_DEFAULT_PORT);
+    public final MongoDBContainer mongoDBContainer = new MongoDBContainer(
+        MongoDockerRule.getDockerImageName())
+        .withNetwork(network)
+        .withNetworkAliases("mongo")
+        .withExposedPorts(MONGODB_DEFAULT_PORT);
     @Rule
-    public final ToxiproxyContainer toxiproxy = new ToxiproxyContainer(TOXIPROXY_IMAGE).withNetwork(network);
+    public final ToxiproxyContainer toxiproxy = new ToxiproxyContainer(TOXIPROXY_IMAGE).withNetwork(
+        network);
     @Rule
     public final DocumentMKBuilderProvider builderProvider = new DocumentMKBuilderProvider();
     @Rule
@@ -82,9 +86,13 @@ public class PipelinedMongoConnectionFailureIT {
 
     @Before
     public void before() throws Exception {
-        ToxiproxyClient toxiproxyClient = new ToxiproxyClient(toxiproxy.getHost(), toxiproxy.getControlPort());
-        this.proxy = toxiproxyClient.createProxy("mongo", "0.0.0.0:8666", "mongo:" + MONGODB_DEFAULT_PORT);
-        this.mongoUri = "mongodb://" + toxiproxy.getHost() + ":" + toxiproxy.getMappedPort(8666) + "/" + MongoUtils.DB;
+        ToxiproxyClient toxiproxyClient = new ToxiproxyClient(toxiproxy.getHost(),
+            toxiproxy.getControlPort());
+        this.proxy = toxiproxyClient.createProxy("mongo", "0.0.0.0:8666",
+            "mongo:" + MONGODB_DEFAULT_PORT);
+        this.mongoUri =
+            "mongodb://" + toxiproxy.getHost() + ":" + toxiproxy.getMappedPort(8666) + "/"
+                + MongoUtils.DB;
     }
 
     @Test
@@ -99,7 +107,8 @@ public class PipelinedMongoConnectionFailureIT {
         // Add a test case with more data to test the reconnection logic
         System.setProperty(OAK_INDEXER_PIPELINED_MONGO_PARALLEL_DUMP, "false");
 
-        try (MongoTestBackend rwBackend = PipelineITUtil.createNodeStore(false, mongoUri, builderProvider)) {
+        try (MongoTestBackend rwBackend = PipelineITUtil.createNodeStore(false, mongoUri,
+            builderProvider)) {
             PipelineITUtil.createContent(rwBackend.documentNodeStore);
             rwBackend.documentNodeStore.dispose();
             rwBackend.mongoDocumentStore.dispose();
@@ -107,16 +116,19 @@ public class PipelinedMongoConnectionFailureIT {
 
         Path resultWithoutInterruption;
         LOG.info("Creating a FFS: reference run without failures.");
-        try (MongoTestBackend roBackend = PipelineITUtil.createNodeStore(true, mongoUri, builderProvider)) {
+        try (MongoTestBackend roBackend = PipelineITUtil.createNodeStore(true, mongoUri,
+            builderProvider)) {
             PipelinedStrategy strategy = createStrategy(roBackend);
             resultWithoutInterruption = strategy.createSortedStoreFile().toPath();
         }
 
         Path resultWithInterruption;
         LOG.info("Creating a FFS: test run with disconnection to Mongo.");
-        try (MongoTestBackend roBackend = PipelineITUtil.createNodeStore(true, mongoUri, builderProvider)) {
+        try (MongoTestBackend roBackend = PipelineITUtil.createNodeStore(true, mongoUri,
+            builderProvider)) {
             LimitData cutConnectionUpstream = proxy.toxics()
-                    .limitData("CUT_CONNECTION_UPSTREAM", ToxicDirection.DOWNSTREAM, 30000L);
+                                                   .limitData("CUT_CONNECTION_UPSTREAM",
+                                                       ToxicDirection.DOWNSTREAM, 30000L);
             ScheduledExecutorService scheduleExecutor = Executors.newSingleThreadScheduledExecutor();
             try {
                 scheduleExecutor.schedule(() -> {
@@ -135,8 +147,10 @@ public class PipelinedMongoConnectionFailureIT {
             }
         }
 
-        LOG.info("Comparing resulting FFS with and without Mongo disconnections: {} {}", resultWithoutInterruption, resultWithInterruption);
-        Assert.assertEquals(Files.readAllLines(resultWithoutInterruption), Files.readAllLines(resultWithInterruption));
+        LOG.info("Comparing resulting FFS with and without Mongo disconnections: {} {}",
+            resultWithoutInterruption, resultWithInterruption);
+        Assert.assertEquals(Files.readAllLines(resultWithoutInterruption),
+            Files.readAllLines(resultWithInterruption));
     }
 
     private PipelinedStrategy createStrategy(MongoTestBackend roStore) throws IOException {

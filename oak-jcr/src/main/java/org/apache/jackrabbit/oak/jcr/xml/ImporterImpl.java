@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.jcr.xml;
 
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -23,7 +25,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.Stack;
 import java.util.UUID;
-
 import javax.jcr.ImportUUIDBehavior;
 import javax.jcr.ItemExistsException;
 import javax.jcr.PathNotFoundException;
@@ -35,12 +36,11 @@ import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.NodeDefinition;
 import javax.jcr.nodetype.PropertyDefinition;
 import javax.jcr.version.VersionException;
-
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Predicates;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
@@ -72,9 +72,8 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
-
 public class ImporterImpl implements Importer {
+
     private static final Logger log = LoggerFactory.getLogger(ImporterImpl.class);
 
     private final Tree importTargetTree;
@@ -92,8 +91,8 @@ public class ImporterImpl implements Importer {
     private final Stack<Tree> parents;
 
     /**
-     * helper object that keeps track of remapped uuid's and imported reference
-     * properties that might need correcting depending on the uuid mappings
+     * helper object that keeps track of remapped uuid's and imported reference properties that
+     * might need correcting depending on the uuid mappings
      */
     private final ReferenceChangeTracker refTracker;
 
@@ -107,21 +106,22 @@ public class ImporterImpl implements Importer {
     /**
      * Creates a new importer instance.
      *
-     * @param absPath  The absolute JCR paths such as passed to the JCR call.
-     * @param sessionContext The context of the editing session
-     * @param root The write {@code Root}, which in case of a workspace import
-     * is different from the {@code Root} associated with the editing session.
-     * @param uuidBehavior The uuid behavior
-     * @param isWorkspaceImport {@code true} if this is a workspace import,
-     * {@code false} otherwise.
-     * @throws javax.jcr.RepositoryException If the initial validation of the
-     * path or the state of target node/session fails.
+     * @param absPath           The absolute JCR paths such as passed to the JCR call.
+     * @param sessionContext    The context of the editing session
+     * @param root              The write {@code Root}, which in case of a workspace import is
+     *                          different from the {@code Root} associated with the editing
+     *                          session.
+     * @param uuidBehavior      The uuid behavior
+     * @param isWorkspaceImport {@code true} if this is a workspace import, {@code false}
+     *                          otherwise.
+     * @throws javax.jcr.RepositoryException If the initial validation of the path or the state of
+     *                                       target node/session fails.
      */
     public ImporterImpl(String absPath,
-                        SessionContext sessionContext,
-                        Root root,
-                        int uuidBehavior,
-                        boolean isWorkspaceImport) throws RepositoryException {
+        SessionContext sessionContext,
+        Root root,
+        int uuidBehavior,
+        boolean isWorkspaceImport) throws RepositoryException {
         String oakPath = sessionContext.getOakPath(absPath);
         if (oakPath == null) {
             throw new RepositoryException("Invalid name or path: " + absPath);
@@ -132,7 +132,8 @@ public class ImporterImpl implements Importer {
 
         SessionDelegate sd = sessionContext.getSessionDelegate();
         if (isWorkspaceImport && sd.hasPendingChanges()) {
-            throw new RepositoryException("Pending changes on session. Cannot run workspace import.");
+            throw new RepositoryException(
+                "Pending changes on session. Cannot run workspace import.");
         }
 
         this.uuidBehavior = uuidBehavior;
@@ -145,11 +146,13 @@ public class ImporterImpl implements Importer {
 
         WorkspaceImpl wsp = sessionContext.getWorkspace();
         VersionManagerImpl vMgr = wsp.internalGetVersionManager();
-        NodeDelegate nd = new NodeDelegate(sd, importTargetTree); 
+        NodeDelegate nd = new NodeDelegate(sd, importTargetTree);
         if (!vMgr.isCheckedOut(nd)) {
             throw new VersionException("Target node is checked in: " + absPath);
         }
-        boolean hasLocking = sessionContext.getRepository().getDescriptorValue(Repository.OPTION_LOCKING_SUPPORTED).getBoolean();
+        boolean hasLocking = sessionContext.getRepository()
+                                           .getDescriptorValue(Repository.OPTION_LOCKING_SUPPORTED)
+                                           .getBoolean();
         if (importTargetTree.getStatus() != Tree.Status.NEW && hasLocking && nd.isLocked()) {
             throw new LockException("Target node is locked: " + absPath);
         }
@@ -169,18 +172,21 @@ public class ImporterImpl implements Importer {
         pItemImporters.clear();
         for (ProtectedItemImporter importer : sessionContext.getProtectedItemImporters()) {
             // FIXME this passes the session scoped name path mapper also for workspace imports
-            if (importer.init(sessionContext.getSession(), root, sessionContext, isWorkspaceImport, uuidBehavior, refTracker, sessionContext.getSecurityProvider())) {
+            if (importer.init(sessionContext.getSession(), root, sessionContext, isWorkspaceImport,
+                uuidBehavior, refTracker, sessionContext.getSecurityProvider())) {
                 pItemImporters.add(importer);
             }
         }
     }
 
-    private Tree createTree(@NotNull Tree parent, @NotNull NodeInfo nInfo, @Nullable String uuid) throws RepositoryException {
+    private Tree createTree(@NotNull Tree parent, @NotNull NodeInfo nInfo, @Nullable String uuid)
+        throws RepositoryException {
         String ntName = nInfo.getPrimaryTypeName();
         Tree child = TreeUtil.addChild(
-                parent, nInfo.getName(), ntName, ntTypesRoot, userID);
+            parent, nInfo.getName(), ntName, ntTypesRoot, userID);
         if (ntName != null) {
-            accessManager.checkPermissions(child, child.getProperty(JcrConstants.JCR_PRIMARYTYPE), Permissions.NODE_TYPE_MANAGEMENT);
+            accessManager.checkPermissions(child, child.getProperty(JcrConstants.JCR_PRIMARYTYPE),
+                Permissions.NODE_TYPE_MANAGEMENT);
         }
         if (uuid != null) {
             child.setProperty(JcrConstants.JCR_UUID, uuid);
@@ -191,7 +197,8 @@ public class ImporterImpl implements Importer {
         return child;
     }
 
-    private void createProperty(Tree tree, PropInfo pInfo, PropertyDefinition def) throws RepositoryException {
+    private void createProperty(Tree tree, PropInfo pInfo, PropertyDefinition def)
+        throws RepositoryException {
         tree.setProperty(pInfo.asPropertyState(def));
         int type = pInfo.getType();
         if (type == PropertyType.REFERENCE || type == PropertyType.WEAKREFERENCE) {
@@ -201,9 +208,9 @@ public class ImporterImpl implements Importer {
     }
 
     private Tree resolveUUIDConflict(Tree parent,
-                                     Tree conflicting,
-                                     String conflictingId,
-                                     NodeInfo nodeInfo) throws RepositoryException {
+        Tree conflicting,
+        String conflictingId,
+        NodeInfo nodeInfo) throws RepositoryException {
         Tree tree;
         if (uuidBehavior == ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW) {
             // create new with new uuid
@@ -266,16 +273,18 @@ public class ImporterImpl implements Importer {
     }
 
     private void importProperties(@NotNull Tree tree,
-                                  @NotNull List<PropInfo> propInfos,
-                                  boolean ignoreRegular) throws RepositoryException {
+        @NotNull List<PropInfo> propInfos,
+        boolean ignoreRegular) throws RepositoryException {
         // process properties
         for (PropInfo pi : propInfos) {
             // find applicable definition
             //TODO find better heuristics?
             EffectiveNodeType ent = effectiveNodeTypeProvider.getEffectiveNodeType(tree);
-            PropertyDefinition def = ent.getPropertyDefinition(pi.getName(), pi.getType(), pi.isUnknownMultiple());
+            PropertyDefinition def = ent.getPropertyDefinition(pi.getName(), pi.getType(),
+                pi.isUnknownMultiple());
             if (def == null) {
-                throw new ConstraintViolationException("No matching property definition found for " + pi.getName());
+                throw new ConstraintViolationException(
+                    "No matching property definition found for " + pi.getName());
             }
             if (def.isProtected()) {
                 // skip protected property
@@ -299,31 +308,33 @@ public class ImporterImpl implements Importer {
     }
 
     private Iterable<ProtectedPropertyImporter> getPropertyImporters() {
-        return Iterables.filter(Iterables.transform(pItemImporters, new Function<ProtectedItemImporter, ProtectedPropertyImporter>() {
-            @Nullable
-            @Override
-            public ProtectedPropertyImporter apply(@Nullable ProtectedItemImporter importer) {
-                if (importer instanceof ProtectedPropertyImporter) {
-                    return (ProtectedPropertyImporter) importer;
-                } else {
-                    return null;
+        return Iterables.filter(Iterables.transform(pItemImporters,
+            new Function<ProtectedItemImporter, ProtectedPropertyImporter>() {
+                @Nullable
+                @Override
+                public ProtectedPropertyImporter apply(@Nullable ProtectedItemImporter importer) {
+                    if (importer instanceof ProtectedPropertyImporter) {
+                        return (ProtectedPropertyImporter) importer;
+                    } else {
+                        return null;
+                    }
                 }
-            }
-        }), Predicates.notNull());
+            }), Predicates.notNull());
     }
 
     private Iterable<ProtectedNodeImporter> getNodeImporters() {
-        return Iterables.filter(Iterables.transform(pItemImporters, new Function<ProtectedItemImporter, ProtectedNodeImporter>() {
-            @Nullable
-            @Override
-            public ProtectedNodeImporter apply(@Nullable ProtectedItemImporter importer) {
-                if (importer instanceof ProtectedNodeImporter) {
-                    return (ProtectedNodeImporter) importer;
-                } else {
-                    return null;
+        return Iterables.filter(Iterables.transform(pItemImporters,
+            new Function<ProtectedItemImporter, ProtectedNodeImporter>() {
+                @Nullable
+                @Override
+                public ProtectedNodeImporter apply(@Nullable ProtectedItemImporter importer) {
+                    if (importer instanceof ProtectedNodeImporter) {
+                        return (ProtectedNodeImporter) importer;
+                    } else {
+                        return null;
+                    }
                 }
-            }
-        }), Predicates.notNull());
+            }), Predicates.notNull());
     }
 
     //-----------------------------------------------------------< Importer >---
@@ -335,7 +346,7 @@ public class ImporterImpl implements Importer {
 
     @Override
     public void startNode(@NotNull NodeInfo nodeInfo, @NotNull List<PropInfo> propInfos)
-            throws RepositoryException {
+        throws RepositoryException {
         Tree parent = parents.peek();
         Tree tree = null;
         String id = nodeInfo.getUUID();
@@ -423,9 +434,11 @@ public class ImporterImpl implements Importer {
                     // (see http://issues.apache.org/jira/browse/JCR-1128)
                     String existingIdentifier = IdentifierManager.getIdentifier(existing);
                     if (!(existingIdentifier.equals(id)
-                            && (uuidBehavior == ImportUUIDBehavior.IMPORT_UUID_COLLISION_REMOVE_EXISTING
-                            || uuidBehavior == ImportUUIDBehavior.IMPORT_UUID_COLLISION_REPLACE_EXISTING))) {
-                        throw new ItemExistsException("Node with name " + nodeName + " already exists at this path.");
+                        && (uuidBehavior == ImportUUIDBehavior.IMPORT_UUID_COLLISION_REMOVE_EXISTING
+                        || uuidBehavior
+                        == ImportUUIDBehavior.IMPORT_UUID_COLLISION_REPLACE_EXISTING))) {
+                        throw new ItemExistsException(
+                            "Node with name " + nodeName + " already exists at this path.");
                     }
                     // fall through
                 }
@@ -443,7 +456,8 @@ public class ImporterImpl implements Importer {
                 tree = createTree(parent, nodeInfo, UUID.randomUUID().toString());
                 // remember uuid mapping
                 if (isNodeType(tree, JcrConstants.MIX_REFERENCEABLE)) {
-                    refTracker.put(nodeInfo.getUUID(), TreeUtil.getString(tree, JcrConstants.JCR_UUID));
+                    refTracker.put(nodeInfo.getUUID(),
+                        TreeUtil.getString(tree, JcrConstants.JCR_UUID));
                 }
             } else {
 
@@ -564,38 +578,40 @@ public class ImporterImpl implements Importer {
         }
 
         private void setProperty(String newValue) {
-            PropertyState prop = PropertyStates.createProperty(property.getName(), newValue, property.getType().tag());
+            PropertyState prop = PropertyStates.createProperty(property.getName(), newValue,
+                property.getType().tag());
             tree.setProperty(prop);
         }
 
         private void setProperty(Iterable<String> newValues) {
-            PropertyState prop = PropertyStates.createProperty(property.getName(), newValues, property.getType());
+            PropertyState prop = PropertyStates.createProperty(property.getName(), newValues,
+                property.getType());
             tree.setProperty(prop);
         }
     }
 
     /**
-     * Resolves 'uuid' property values to {@code Tree} objects and optionally
-     * keeps track of newly imported UUIDs.
+     * Resolves 'uuid' property values to {@code Tree} objects and optionally keeps track of newly
+     * imported UUIDs.
      */
     private static final class IdResolver {
+
         /**
          * There are two IdentifierManagers used.
-         *
-         * 1) currentStateIdManager - Associated with current root on which all import
-         *    operations are being performed
-         *
-         * 2) baseStateIdManager - Associated with the initial root on which
-         *    no modifications are performed
+         * <p>
+         * 1) currentStateIdManager - Associated with current root on which all import operations
+         * are being performed
+         * <p>
+         * 2) baseStateIdManager - Associated with the initial root on which no modifications are
+         * performed
          */
         private final IdentifierManager currentStateIdManager;
         private final IdentifierManager baseStateIdManager;
 
         /**
-         * Set of newly created uuid from nodes which are
-         * created in this import, which are only remembered if the editing
-         * session doesn't have any pending transient changes preventing this
-         * performance optimisation from working properly (see OAK-2246).
+         * Set of newly created uuid from nodes which are created in this import, which are only
+         * remembered if the editing session doesn't have any pending transient changes preventing
+         * this performance optimisation from working properly (see OAK-2246).
          */
         private final Set<String> importedUUIDs;
 

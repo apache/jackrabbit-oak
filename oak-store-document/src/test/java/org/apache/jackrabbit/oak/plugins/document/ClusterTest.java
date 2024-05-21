@@ -358,7 +358,7 @@ public class ClusterTest {
         ns1.addObserver(new Observer() {
             @Override
             public void contentChanged(@NotNull NodeState root,
-                                       @NotNull CommitInfo info) {
+                @NotNull CommitInfo info) {
                 rootStates1.add((DocumentNodeState) root);
             }
         });
@@ -367,7 +367,7 @@ public class ClusterTest {
         ns2.addObserver(new Observer() {
             @Override
             public void contentChanged(@NotNull NodeState root,
-                                       @NotNull CommitInfo info) {
+                @NotNull CommitInfo info) {
                 rootStates2.add((DocumentNodeState) root);
             }
         });
@@ -411,7 +411,7 @@ public class ClusterTest {
     }
 
     private static NodeState merge(NodeStore store, NodeBuilder builder)
-            throws CommitFailedException {
+        throws CommitFailedException {
         return store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 
@@ -423,8 +423,8 @@ public class ClusterTest {
         if (MONGO_DB) {
             MongoConnection connection = connectionFactory.getConnection();
             return register(new DocumentMK.Builder()
-                    .setMongoDB(connection.getMongoClient(), connection.getDBName())
-                    .setClusterId(clusterId).setAsyncDelay(asyncDelay).open());
+                .setMongoDB(connection.getMongoClient(), connection.getDBName())
+                .setClusterId(clusterId).setAsyncDelay(asyncDelay).open());
         } else {
             if (ds == null) {
                 ds = new MemoryDocumentStore();
@@ -437,10 +437,10 @@ public class ClusterTest {
     }
 
     private DocumentMK createMK(int clusterId, int asyncDelay,
-                             DocumentStore ds, BlobStore bs) {
+        DocumentStore ds, BlobStore bs) {
         return register(new DocumentMK.Builder().setDocumentStore(ds)
-                .setBlobStore(bs).setClusterId(clusterId)
-                .setAsyncDelay(asyncDelay).open());
+                                                .setBlobStore(bs).setClusterId(clusterId)
+                                                .setAsyncDelay(asyncDelay).open());
     }
 
     private DocumentMK register(DocumentMK mk) {

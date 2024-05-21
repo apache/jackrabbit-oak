@@ -16,16 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
-import org.apache.jackrabbit.oak.AbstractSecurityTest;
-import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
-import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionPattern;
-import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
-import org.jetbrains.annotations.NotNull;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.lang.reflect.Constructor;
-
 import static org.apache.jackrabbit.oak.security.authorization.permission.ReadStatus.ALLOW_ALL;
 import static org.apache.jackrabbit.oak.security.authorization.permission.ReadStatus.DENY_ALL;
 import static org.apache.jackrabbit.oak.security.authorization.permission.ReadStatus.DENY_THIS;
@@ -38,6 +28,15 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
+
+import java.lang.reflect.Constructor;
+import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
+import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionPattern;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
+import org.jetbrains.annotations.NotNull;
+import org.junit.Before;
+import org.junit.Test;
 
 public class ReadStatusTest extends AbstractSecurityTest {
 

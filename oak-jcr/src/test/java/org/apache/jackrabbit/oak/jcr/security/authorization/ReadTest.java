@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.jcr.security.authorization;
 
+import static org.junit.Assert.assertArrayEquals;
+
 import java.security.Principal;
 import java.util.HashSet;
 import java.util.Set;
@@ -27,7 +29,6 @@ import javax.jcr.Session;
 import javax.jcr.security.AccessControlEntry;
 import javax.jcr.security.Privilege;
 import javax.jcr.util.TraversingItemVisitor;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -35,8 +36,6 @@ import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.junit.Test;
-
-import static org.junit.Assert.assertArrayEquals;
 
 /**
  * Permission evaluation tests related to {@link javax.jcr.security.Privilege#JCR_READ} privilege.
@@ -381,7 +380,8 @@ public class ReadTest extends AbstractEvaluationTest {
         try {
             Privilege[] readPrivs = privilegesFromName(Privilege.JCR_READ);
 
-            modify(path, getTestGroup().getPrincipal(), readPrivs, true, createGlobRestriction("/*"));
+            modify(path, getTestGroup().getPrincipal(), readPrivs, true,
+                createGlobRestriction("/*"));
             allow(path, group2.getPrincipal(), readPrivs);
             deny(path, group3.getPrincipal(), readPrivs);
 
@@ -390,8 +390,11 @@ public class ReadTest extends AbstractEvaluationTest {
             principals.add(group2.getPrincipal());
             principals.add(group3.getPrincipal());
 
-            assertFalse(((JackrabbitAccessControlManager) acMgr).hasPrivileges(path, principals, readPrivs));
-            assertFalse(((JackrabbitAccessControlManager) acMgr).hasPrivileges(childNPath, principals, readPrivs));
+            assertFalse(((JackrabbitAccessControlManager) acMgr).hasPrivileges(path, principals,
+                readPrivs));
+            assertFalse(
+                ((JackrabbitAccessControlManager) acMgr).hasPrivileges(childNPath, principals,
+                    readPrivs));
         } finally {
             group2.remove();
             group3.remove();
@@ -410,15 +413,19 @@ public class ReadTest extends AbstractEvaluationTest {
 
             allow(path, group2.getPrincipal(), readPrivs);
             deny(path, group3.getPrincipal(), readPrivs);
-            modify(path, getTestGroup().getPrincipal(), readPrivs, true, createGlobRestriction("/*"));
+            modify(path, getTestGroup().getPrincipal(), readPrivs, true,
+                createGlobRestriction("/*"));
 
             Set<Principal> principals = new HashSet<Principal>();
             principals.add(getTestGroup().getPrincipal());
             principals.add(group2.getPrincipal());
             principals.add(group3.getPrincipal());
 
-            assertFalse(((JackrabbitAccessControlManager) acMgr).hasPrivileges(path, principals, readPrivs));
-            assertTrue(((JackrabbitAccessControlManager) acMgr).hasPrivileges(childNPath, principals, readPrivs));
+            assertFalse(((JackrabbitAccessControlManager) acMgr).hasPrivileges(path, principals,
+                readPrivs));
+            assertTrue(
+                ((JackrabbitAccessControlManager) acMgr).hasPrivileges(childNPath, principals,
+                    readPrivs));
         } finally {
             group2.remove();
             group3.remove();
@@ -427,7 +434,7 @@ public class ReadTest extends AbstractEvaluationTest {
     }
 
     @Test
-    public void testGlobRestriction4()throws Exception{
+    public void testGlobRestriction4() throws Exception {
         Node a = superuser.getNode(path).addNode("a");
         allow(path, readPrivileges);
         deny(path, readPrivileges, createGlobRestriction("*/anotherpath"));
@@ -443,7 +450,7 @@ public class ReadTest extends AbstractEvaluationTest {
     }
 
     @Test
-    public void testGlobRestriction5()throws Exception{
+    public void testGlobRestriction5() throws Exception {
         Node a = superuser.getNode(path).addNode("a");
         allow(path, readPrivileges);
         deny(path, readPrivileges, createGlobRestriction("*/anotherpath"));
@@ -476,7 +483,7 @@ public class ReadTest extends AbstractEvaluationTest {
      * @see <a href="https://issues.apache.org/jira/browse/OAK-2412">OAK-2412</a>
      */
     @Test
-    public void testEmptyGlobRestriction() throws Exception{
+    public void testEmptyGlobRestriction() throws Exception {
         Node grandchild = superuser.getNode(childNPath).addNode("child");
         String ccPath = grandchild.getPath();
         superuser.save();
@@ -504,7 +511,7 @@ public class ReadTest extends AbstractEvaluationTest {
      * @see <a href="https://issues.apache.org/jira/browse/OAK-2412">OAK-2412</a>
      */
     @Test
-    public void testEmptyGlobRestriction2() throws Exception{
+    public void testEmptyGlobRestriction2() throws Exception {
         Node grandchild = superuser.getNode(childNPath).addNode("child");
         String ccPath = grandchild.getPath();
         superuser.save();
@@ -544,10 +551,12 @@ public class ReadTest extends AbstractEvaluationTest {
             modify(path, group1.getPrincipal(), readPrivileges, true, createGlobRestriction(""));
 
             deny(childNPath, group2.getPrincipal(), readPrivileges);
-            modify(childNPath, group2.getPrincipal(), readPrivileges, true, createGlobRestriction(""));
+            modify(childNPath, group2.getPrincipal(), readPrivileges, true,
+                createGlobRestriction(""));
 
             deny(childNPath2, group3.getPrincipal(), readPrivileges);
-            modify(childNPath2, group3.getPrincipal(), readPrivileges, true, createGlobRestriction(""));
+            modify(childNPath2, group3.getPrincipal(), readPrivileges, true,
+                createGlobRestriction(""));
 
             // need to recreate testUser session to force subject being populated
             // with membership that has been added _after_ the testSession creation.
@@ -567,7 +576,7 @@ public class ReadTest extends AbstractEvaluationTest {
      * IllegalArgumentException while adding/removing permission to user/group</a>
      */
     @Test
-    public void testImplicitReorder() throws Exception{
+    public void testImplicitReorder() throws Exception {
         allow(path, testUser.getPrincipal(), readPrivileges);
         assertEntry(0, true);
 
@@ -603,17 +612,19 @@ public class ReadTest extends AbstractEvaluationTest {
     }
 
     private void assertEntry(final int index, final boolean isAllow) throws RepositoryException {
-        AccessControlEntry first = AccessControlUtils.getAccessControlList(superuser, path).getAccessControlEntries()[index];
+        AccessControlEntry first = AccessControlUtils.getAccessControlList(superuser, path)
+                                                     .getAccessControlEntries()[index];
 
         assertEquals(testUser.getPrincipal(), first.getPrincipal());
 
-        Node n = superuser.getNode("/jcr:system/rep:permissionStore/default/" + testUser.getPrincipal().getName());
+        Node n = superuser.getNode(
+            "/jcr:system/rep:permissionStore/default/" + testUser.getPrincipal().getName());
         TraversingItemVisitor v = new TraversingItemVisitor.Default(true, -1) {
             @Override
             protected void entering(Node node, int level) throws RepositoryException {
                 if (node.isNodeType("rep:Permissions")
-                        && node.hasProperty("rep:accessControlledPath")
-                        && path.equals(node.getProperty("rep:accessControlledPath").getString())) {
+                    && node.hasProperty("rep:accessControlledPath")
+                    && path.equals(node.getProperty("rep:accessControlledPath").getString())) {
                     assertEquals(index, node.getProperty("rep:index").getLong());
                     assertEquals(isAllow, node.getProperty("rep:isAllow").getBoolean());
                 }

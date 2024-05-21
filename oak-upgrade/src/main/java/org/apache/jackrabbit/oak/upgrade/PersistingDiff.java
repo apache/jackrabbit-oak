@@ -24,7 +24,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
-
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.Buffer;
@@ -47,11 +46,11 @@ public class PersistingDiff implements NodeStateDiff {
     private static final Logger LOG = LoggerFactory.getLogger(PersistingDiff.class);
 
     /**
-     * Number of content updates that need to happen before the updates
-     * are automatically purged to the underlying segments.
+     * Number of content updates that need to happen before the updates are automatically purged to
+     * the underlying segments.
      */
     private static final int UPDATE_LIMIT =
-            Integer.getInteger("upgrade.update.limit", 10000);
+        Integer.getInteger("upgrade.update.limit", 10000);
 
     private final SegmentWriter writer;
 
@@ -87,7 +86,8 @@ public class PersistingDiff implements NodeStateDiff {
         this.nodeName = nodeName;
     }
 
-    private PersistingDiff(SegmentWriter writer, SegmentReader reader, BlobStore blobStore, @NotNull NodeState base) {
+    private PersistingDiff(SegmentWriter writer, SegmentReader reader, BlobStore blobStore,
+        @NotNull NodeState base) {
         this.writer = writer;
         this.reader = reader;
         this.blobStore = blobStore;
@@ -99,11 +99,12 @@ public class PersistingDiff implements NodeStateDiff {
     }
 
     public static SegmentNodeState applyDiffOnNodeState(
-            FileStore fileStore,
-            @NotNull NodeState before,
-            @NotNull NodeState after,
-            @NotNull NodeState onto) throws IOException {
-        return new PersistingDiff(fileStore.getWriter(), fileStore.getReader(), fileStore.getBlobStore(), onto).diff(before, after);
+        FileStore fileStore,
+        @NotNull NodeState before,
+        @NotNull NodeState after,
+        @NotNull NodeState onto) throws IOException {
+        return new PersistingDiff(fileStore.getWriter(), fileStore.getReader(),
+            fileStore.getBlobStore(), onto).diff(before, after);
     }
 
     private void updated() throws IOException {
@@ -171,7 +172,8 @@ public class PersistingDiff implements NodeStateDiff {
     @Override
     public boolean childNodeAdded(@NotNull String name, @NotNull NodeState after) {
         try {
-            SegmentNodeState segmentNodeState = new PersistingDiff(this, name, EMPTY_NODE).diff(EMPTY_NODE, after);
+            SegmentNodeState segmentNodeState = new PersistingDiff(this, name, EMPTY_NODE).diff(
+                EMPTY_NODE, after);
             if (segmentNodeState != null) {
                 updated();
                 builder.setChildNode(name, segmentNodeState);
@@ -186,9 +188,11 @@ public class PersistingDiff implements NodeStateDiff {
     }
 
     @Override
-    public boolean childNodeChanged(@NotNull String name, @NotNull NodeState before, @NotNull NodeState after) {
+    public boolean childNodeChanged(@NotNull String name, @NotNull NodeState before,
+        @NotNull NodeState after) {
         try {
-            SegmentNodeState compacted = new PersistingDiff(this, name, base.getChildNode(name)).diff(before, after);
+            SegmentNodeState compacted = new PersistingDiff(this, name,
+                base.getChildNode(name)).diff(before, after);
             if (compacted != null) {
                 updated();
                 builder.setChildNode(name, compacted);

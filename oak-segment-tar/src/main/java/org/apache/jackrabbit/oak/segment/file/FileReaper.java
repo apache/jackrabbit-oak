@@ -22,7 +22,6 @@ import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
 import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
 import org.slf4j.Logger;
@@ -46,8 +45,7 @@ public class FileReaper {
     }
 
     /**
-     * Add files to be removed. The same file can be added more than once.
-     * Duplicates are ignored.
+     * Add files to be removed. The same file can be added more than once. Duplicates are ignored.
      *
      * @param files group of files to be removed.
      */

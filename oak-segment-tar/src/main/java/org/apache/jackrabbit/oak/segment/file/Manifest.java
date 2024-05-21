@@ -17,10 +17,9 @@
 
 package org.apache.jackrabbit.oak.segment.file;
 
-import org.apache.jackrabbit.oak.segment.spi.persistence.ManifestFile;
-
 import java.io.IOException;
 import java.util.Properties;
+import org.apache.jackrabbit.oak.segment.spi.persistence.ManifestFile;
 
 class Manifest {
 
@@ -53,13 +52,12 @@ class Manifest {
     }
 
     /**
-     * Return the store version saved in this manifest or a user provided value
-     * if no valid store version is saved in the manifest.
+     * Return the store version saved in this manifest or a user provided value if no valid store
+     * version is saved in the manifest.
      *
-     * @param otherwise The value that will be returned if no valid store
-     *                  version is saved in this manifest.
-     * @return The store version stored in this manifest or the user provided
-     * default value.
+     * @param otherwise The value that will be returned if no valid store version is saved in this
+     *                  manifest.
+     * @return The store version stored in this manifest or the user provided default value.
      */
     int getStoreVersion(int otherwise) {
         return getIntegerProperty(STORE_VERSION, otherwise);

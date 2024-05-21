@@ -21,7 +21,6 @@ import junit.framework.TestCase;
 import junit.framework.TestSuite;
 import org.apache.jackrabbit.core.query.ChildAxisQueryTest;
 import org.apache.jackrabbit.core.query.DerefTest;
-import org.apache.jackrabbit.core.query.ExcerptTest;
 import org.apache.jackrabbit.core.query.FnNameQueryTest;
 import org.apache.jackrabbit.core.query.FulltextQueryTest;
 import org.apache.jackrabbit.core.query.FulltextSQL2QueryTest;
@@ -56,7 +55,7 @@ public class QueryJcrTest extends TestCase {
 
     public static Test suite() {
         TestSuite suite = new ConcurrentTestSuite(
-                "Jackrabbit query tests using a Solr based index");
+            "Jackrabbit query tests using a Solr based index");
         suite.addTestSuite(FulltextQueryTest.class);
         suite.addTestSuite(SQLTest.class);
         suite.addTestSuite(JoinTest.class);

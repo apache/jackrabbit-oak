@@ -20,14 +20,12 @@ import org.osgi.annotation.versioning.ProviderType;
 
 /**
  * Statistics on query operations
- * 
  */
 @ProviderType
 public interface QueryStat {
 
     /**
-     * @return a sorted array containing the top
-     *         {@link #getSlowQueriesQueueSize()} slowest queries
+     * @return a sorted array containing the top {@link #getSlowQueriesQueueSize()} slowest queries
      */
     QueryStatDto[] getSlowQueries();
 
@@ -38,9 +36,8 @@ public interface QueryStat {
 
     /**
      * Change the size of the <b>Slow</b> queue
-     * 
-     * @param size
-     *            the new size
+     *
+     * @param size the new size
      */
     void setSlowQueriesQueueSize(int size);
 
@@ -50,8 +47,8 @@ public interface QueryStat {
     void clearSlowQueriesQueue();
 
     /**
-     * @return a sorted array containing the
-     *         {@link #getPopularQueriesQueueSize()} most popular queries
+     * @return a sorted array containing the {@link #getPopularQueriesQueueSize()} most popular
+     * queries
      */
     QueryStatDto[] getPopularQueries();
 
@@ -62,9 +59,8 @@ public interface QueryStat {
 
     /**
      * Change the size of the <b>Popular</b> queue
-     * 
-     * @param size
-     *            the new size
+     *
+     * @param size the new size
      */
     void setPopularQueriesQueueSize(int size);
 
@@ -77,14 +73,14 @@ public interface QueryStat {
 
     /**
      * If this service is currently registering stats
-     * 
+     *
      * @return <code>true</code> if the service is enabled
      */
     boolean isEnabled();
 
     /**
      * Enables/Disables the service
-     * 
+     *
      * @param enabled
      */
     void setEnabled(boolean enabled);

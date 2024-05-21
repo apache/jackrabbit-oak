@@ -114,14 +114,17 @@ public class JournalEntryTest {
         validateCacheUsage(cache, from, to, "/a/b/c4/e/f/g", true);
 
         //Cases that cache can't answer
-        validateCacheUsage(cache, from, to, "/a/b/c1", false); //cached entry says that c1 sub-tree is changed
-        validateCacheUsage(cache, from, to, "/a/b/c2/d", false); //cached entry says that c2 sub-tree is changed
-        validateCacheUsage(cache, from, to, "/c", false);//there is no cache entry for the whole hierarchy
+        validateCacheUsage(cache, from, to, "/a/b/c1",
+            false); //cached entry says that c1 sub-tree is changed
+        validateCacheUsage(cache, from, to, "/a/b/c2/d",
+            false); //cached entry says that c2 sub-tree is changed
+        validateCacheUsage(cache, from, to, "/c",
+            false);//there is no cache entry for the whole hierarchy
 
         //Fill cache using journal
         List<Path> paths = Lists.newArrayList(
-                p("/content/changed"),
-                p("/content/changed1/child1")
+            p("/content/changed"),
+            p("/content/changed1/child1")
         );
         StringSort sort = JournalEntry.newSorter();
         add(sort, paths);
@@ -288,7 +291,8 @@ public class JournalEntryTest {
 
         StringSort sort = JournalEntry.newSorter();
         StringSort inv = JournalEntry.newSorter();
-        JournalEntry.fillExternalChanges(sort, inv, p("/foo"), r1, r2, store, e -> {}, null, null);
+        JournalEntry.fillExternalChanges(sort, inv, p("/foo"), r1, r2, store, e -> {
+        }, null, null);
         assertEquals(4, sort.getSize());
         assertEquals(0, inv.getSize());
         sort.close();
@@ -302,7 +306,7 @@ public class JournalEntryTest {
         entry.modified(p("/foo"));
         Revision r = Revision.newRevision(1);
         assertTrue(store.create(JOURNAL,
-                Collections.singletonList(entry.asUpdateOp(r))));
+            Collections.singletonList(entry.asUpdateOp(r))));
         entry = store.find(JOURNAL, JournalEntry.asId(r));
         assertEquals(r.getTimestamp(), entry.getRevisionTimestamp());
     }
@@ -436,7 +440,7 @@ public class JournalEntryTest {
     }
 
     private static void add(StringSort sort, List<Path> paths)
-            throws IOException {
+        throws IOException {
         for (Path p : paths) {
             sort.add(p.toString());
         }
@@ -445,7 +449,7 @@ public class JournalEntryTest {
     private static List<String> getChildren(String diff) {
         List<String> children = Lists.newArrayList();
         JsopTokenizer t = new JsopTokenizer(diff);
-        for (;;) {
+        for (; ; ) {
             int r = t.read();
             switch (r) {
                 case '^': {
@@ -465,10 +469,10 @@ public class JournalEntryTest {
     }
 
     private void validateCacheUsage(DiffCache cache,
-                                    RevisionVector from,
-                                    RevisionVector to,
-                                    String path,
-                                    boolean cacheExpected) {
+        RevisionVector from,
+        RevisionVector to,
+        String path,
+        boolean cacheExpected) {
         Path p = p(path);
         String nonLoaderDiff = cache.getChanges(from, to, p, null);
         final AtomicBoolean loaderCalled = new AtomicBoolean(false);
@@ -490,18 +494,19 @@ public class JournalEntryTest {
     }
 
     private static StringSort externalChanges(Revision from,
-                                              Revision to,
-                                              DocumentStore store)
-            throws IOException {
+        Revision to,
+        DocumentStore store)
+        throws IOException {
         StringSort changes = JournalEntry.newSorter();
         StringSort invalidate = JournalEntry.newSorter();
         try {
             JournalEntry.fillExternalChanges(changes, invalidate, from, to, store);
         } finally {
             invalidate.close();
-        } return changes;
+        }
+        return changes;
     }
-    
+
     private static Path p(String path) {
         return Path.fromString(path);
     }

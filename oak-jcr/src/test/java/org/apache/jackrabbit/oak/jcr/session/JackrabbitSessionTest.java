@@ -16,28 +16,27 @@
  */
 package org.apache.jackrabbit.oak.jcr.session;
 
-import org.apache.jackrabbit.api.JackrabbitSession;
-import org.apache.jackrabbit.test.AbstractJCRTest;
-import org.apache.jackrabbit.test.NotExecutableException;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import static org.mockito.Mockito.mock;
 
 import javax.jcr.GuestCredentials;
 import javax.jcr.Item;
 import javax.jcr.Node;
 import javax.jcr.Property;
 import javax.jcr.RepositoryException;
-
-import static org.mockito.Mockito.mock;
+import org.apache.jackrabbit.api.JackrabbitSession;
+import org.apache.jackrabbit.test.AbstractJCRTest;
+import org.apache.jackrabbit.test.NotExecutableException;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class JackrabbitSessionTest extends AbstractJCRTest {
-    
+
     private JackrabbitSession s;
 
     @Override
     protected void setUp() throws Exception {
         super.setUp();
-        
+
         if (superuser instanceof JackrabbitSession) {
             s = (JackrabbitSession) superuser;
         } else {
@@ -54,14 +53,16 @@ public class JackrabbitSessionTest extends AbstractJCRTest {
         assertEquivalentNode(n, s.getParentOrNull(n.getProperty(Property.JCR_PRIMARY_TYPE)));
         assertEquivalentNode(n.getParent(), s.getParentOrNull(n));
     }
-    
-    private static void assertEquivalentNode(@NotNull Node expected, @Nullable Node result) throws Exception {
+
+    private static void assertEquivalentNode(@NotNull Node expected, @Nullable Node result)
+        throws Exception {
         assertNotNull(result);
         assertEquals(expected.getPath(), result.getPath());
     }
-    
+
     public void testGetParentOrNullSessionMismatch() throws Exception {
-        JackrabbitSession guest = (JackrabbitSession) getHelper().getRepository().login(new GuestCredentials());
+        JackrabbitSession guest = (JackrabbitSession) getHelper().getRepository()
+                                                                 .login(new GuestCredentials());
         try {
             guest.getParentOrNull(s.getNode(testRoot));
             fail("RepositoryException expected");
@@ -81,6 +82,6 @@ public class JackrabbitSessionTest extends AbstractJCRTest {
             // success
         }
     }
-    
-    
+
+
 }

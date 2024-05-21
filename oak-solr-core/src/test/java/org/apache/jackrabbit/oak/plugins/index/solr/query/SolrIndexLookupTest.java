@@ -19,6 +19,19 @@
 
 package org.apache.jackrabbit.oak.plugins.index.solr.query;
 
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
+import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
+import static org.apache.jackrabbit.oak.api.Type.NAME;
+import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
+import static org.junit.Assert.assertEquals;
+
 import java.util.Set;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.query.Filter;
@@ -28,19 +41,11 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
-import static org.apache.jackrabbit.oak.api.Type.NAME;
-import static org.apache.jackrabbit.oak.api.Type.STRINGS;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.*;
-import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
-import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
-import static org.junit.Assert.assertEquals;
-
 /**
  * Tests for {@link SolrIndexLookup}
  */
 public class SolrIndexLookupTest {
+
     private NodeState root = INITIAL_CONTENT;
 
     private NodeBuilder builder = root.builder();
@@ -55,7 +60,7 @@ public class SolrIndexLookupTest {
         FilterImpl f = FilterImpl.newTestInstance();
         f.restrictPath("/", Filter.PathRestriction.EXACT);
         assertEquals(of("/oak:index/l1", "/oak:index/l2"),
-                lookup.collectIndexNodePaths(f));
+            lookup.collectIndexNodePaths(f));
     }
 
     @Test
@@ -73,28 +78,28 @@ public class SolrIndexLookupTest {
         FilterImpl f = FilterImpl.newTestInstance();
         f.restrictPath("/a", Filter.PathRestriction.EXACT);
         assertEquals(of("/oak:index/l1", "/a/oak:index/l2"),
-                lookup.collectIndexNodePaths(f));
+            lookup.collectIndexNodePaths(f));
 
         f.restrictPath("/a/b", Filter.PathRestriction.EXACT);
         assertEquals(of("/oak:index/l1", "/a/oak:index/l2", "/a/b/oak:index/l3"),
-                lookup.collectIndexNodePaths(f));
+            lookup.collectIndexNodePaths(f));
     }
 
     private static NodeBuilder newSolrIndexDefinition(
-            @NotNull NodeBuilder index, @NotNull String name,
-            @Nullable Set<String> properties) {
+        @NotNull NodeBuilder index, @NotNull String name,
+        @Nullable Set<String> properties) {
         if (index.hasChildNode(name)) {
             return index.child(name);
         }
         index = index.child(name);
         index.setProperty(JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE, NAME)
-                .setProperty(TYPE_PROPERTY_NAME, "solr")
-                .setProperty(ASYNC_PROPERTY_NAME, "async")
-                .setProperty(REINDEX_PROPERTY_NAME, true);
+             .setProperty(TYPE_PROPERTY_NAME, "solr")
+             .setProperty(ASYNC_PROPERTY_NAME, "async")
+             .setProperty(REINDEX_PROPERTY_NAME, true);
         index.child("server").setProperty("solrServerType", "embedded");
         if (properties != null && !properties.isEmpty()) {
             index.setProperty(createProperty("usedProperties",
-                    properties, STRINGS));
+                properties, STRINGS));
         }
         return index;
     }

@@ -20,14 +20,21 @@
 package org.apache.jackrabbit.oak.jcr.observation;
 
 public interface ChangeProcessorMBean {
+
     String TYPE = "ChangeProcessorStats";
 
-    /** Returns the number of commits that were excluded by the prefiltering mechanism */
+    /**
+     * Returns the number of commits that were excluded by the prefiltering mechanism
+     */
     int getPrefilterExcludeCount();
 
-    /** Returns the number of commits that were included by the prefiltering mechanism */
+    /**
+     * Returns the number of commits that were included by the prefiltering mechanism
+     */
     int getPrefilterIncludeCount();
-    
-    /** Returns the number of commits that skipped prefiltering, thus got included */
+
+    /**
+     * Returns the number of commits that skipped prefiltering, thus got included
+     */
     int getPrefilterSkipCount();
 }

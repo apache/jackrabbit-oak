@@ -17,10 +17,9 @@
 
 package org.apache.jackrabbit.oak.segment.standby.codec;
 
-import java.util.List;
-
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToMessageEncoder;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,7 +28,8 @@ public class GetHeadRequestEncoder extends MessageToMessageEncoder<GetHeadReques
     private static final Logger log = LoggerFactory.getLogger(GetHeadRequestEncoder.class);
 
     @Override
-    protected void encode(ChannelHandlerContext ctx, GetHeadRequest msg, List<Object> out) throws Exception {
+    protected void encode(ChannelHandlerContext ctx, GetHeadRequest msg, List<Object> out)
+        throws Exception {
         log.debug("Sending request from client {} for current head", msg.getClientId());
         out.add(Messages.newGetHeadRequest(msg.getClientId()));
     }

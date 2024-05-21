@@ -19,10 +19,12 @@ package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 
-public class PrincipalBasedAuthorizationConfigurationWithPrincipalCacheTest extends PrincipalBasedAuthorizationConfigurationTest {
+public class PrincipalBasedAuthorizationConfigurationWithPrincipalCacheTest extends
+    PrincipalBasedAuthorizationConfigurationTest {
 
     @Override
     protected ConfigurationParameters getSecurityConfigParameters() {
-        return ConfigurationParameters.of(UserConfiguration.NAME, ConfigurationParameters.of("cacheExpiration", 500));
+        return ConfigurationParameters.of(UserConfiguration.NAME,
+            ConfigurationParameters.of("cacheExpiration", 500));
     }
 }

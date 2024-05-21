@@ -28,7 +28,7 @@ public class PathRevTest {
     public void equals() {
         Path path = Path.fromString("/this/is/a/test/path");
         RevisionVector rv = new RevisionVector(
-                Revision.newRevision(1), Revision.newRevision(2));
+            Revision.newRevision(1), Revision.newRevision(2));
         PathRev expected = new PathRev(path, rv);
         assertEquals(expected, new PathRev(path, rv));
     }

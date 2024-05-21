@@ -44,8 +44,9 @@ public class DocumentMKConcurrentAddTest extends AbstractMongoConnectionTest {
     private DocumentMK createMicroKernel(int clusterId) throws Exception {
         MongoConnection connection = connectionFactory.getConnection();
         return new DocumentMK.Builder().memoryCacheSize(CACHE_SIZE)
-                .setMongoDB(connection.getMongoClient(), connection.getDBName())
-                .setClusterId(clusterId).open();
+                                       .setMongoDB(connection.getMongoClient(),
+                                           connection.getDBName())
+                                       .setClusterId(clusterId).open();
     }
 
     @After
@@ -57,9 +58,8 @@ public class DocumentMKConcurrentAddTest extends AbstractMongoConnectionTest {
     }
 
     /**
-     * Creates NB_THREADS microkernels, each committing two nodes (one parent,
-     * one child) in its own thread. The nodes being committed by separate
-     * threads do not overlap / conflict.
+     * Creates NB_THREADS microkernels, each committing two nodes (one parent, one child) in its own
+     * thread. The nodes being committed by separate threads do not overlap / conflict.
      *
      * @throws Exception
      */

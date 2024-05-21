@@ -41,8 +41,8 @@ public class BatchRollbackTest {
     @Test
     public void batchRollback() throws Exception {
         DocumentNodeStore ns = builderProvider.newBuilder()
-                .setDocumentStore(store)
-                .setAsyncDelay(0).build();
+                                              .setDocumentStore(store)
+                                              .setAsyncDelay(0).build();
         ns.setMaxBackOffMillis(0);
 
         // prepare some test nodes
@@ -78,10 +78,10 @@ public class BatchRollbackTest {
 
         @Override
         public <T extends Document> T findAndUpdate(Collection<T> collection,
-                                                    UpdateOp update) {
+            UpdateOp update) {
             if (collection == Collection.NODES
-                    && isFinalCommitRootUpdate(update)
-                    && failCommitOnce.compareAndSet(true, false)) {
+                && isFinalCommitRootUpdate(update)
+                && failCommitOnce.compareAndSet(true, false)) {
                 throw new DocumentStoreException("commit failed");
             }
             return super.findAndUpdate(collection, update);

@@ -23,15 +23,14 @@ import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
 import java.util.Random;
-
+import org.apache.jackrabbit.guava.common.base.Supplier;
 import org.apache.jackrabbit.guava.common.cache.CacheStats;
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 import org.junit.Before;
 import org.junit.Test;
 
-import org.apache.jackrabbit.guava.common.base.Supplier;
-
 public class RecordCacheStatsTest {
+
     private static final String NAME = "cache stats";
     private static final int KEYS = 100;
 
@@ -40,20 +39,30 @@ public class RecordCacheStatsTest {
 
     private final RecordCache<Integer> cache = newRecordCache(KEYS);
     private final RecordCacheStats cacheStats =
-            new RecordCacheStats(NAME,
-                new Supplier<CacheStats>() {
-                    @Override public CacheStats get() { return cache.getStats(); }
-                },
-                new Supplier<Long>() {
-                    @Override public Long get() { return cache.size(); }
-                },
-                new Supplier<Long>() {
-                    @Override public Long get() { return cache.estimateCurrentWeight(); }
-                });
+        new RecordCacheStats(NAME,
+            new Supplier<CacheStats>() {
+                @Override
+                public CacheStats get() {
+                    return cache.getStats();
+                }
+            },
+            new Supplier<Long>() {
+                @Override
+                public Long get() {
+                    return cache.size();
+                }
+            },
+            new Supplier<Long>() {
+                @Override
+                public Long get() {
+                    return cache.estimateCurrentWeight();
+                }
+            });
 
     private int hits;
 
-    public RecordCacheStatsTest() throws IOException {}
+    public RecordCacheStatsTest() throws IOException {
+    }
 
     private RecordId newRecordId() {
         return TestUtils.newRecordId(store.getSegmentIdProvider(), rnd);
@@ -89,7 +98,7 @@ public class RecordCacheStatsTest {
 
     @Test
     public void getHitRate() {
-        assertEquals(((double)hits)/KEYS, cacheStats.getHitRate(), Double.MIN_VALUE);
+        assertEquals(((double) hits) / KEYS, cacheStats.getHitRate(), Double.MIN_VALUE);
     }
 
     @Test
@@ -99,7 +108,7 @@ public class RecordCacheStatsTest {
 
     @Test
     public void getMissRate() {
-        assertEquals((KEYS - (double)hits)/KEYS, cacheStats.getMissRate(), Double.MIN_VALUE);
+        assertEquals((KEYS - (double) hits) / KEYS, cacheStats.getMissRate(), Double.MIN_VALUE);
     }
 
     @Test

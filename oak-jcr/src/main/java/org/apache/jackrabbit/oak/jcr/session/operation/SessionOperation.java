@@ -19,15 +19,17 @@
 package org.apache.jackrabbit.oak.jcr.session.operation;
 
 import javax.jcr.RepositoryException;
-
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * A {@code SessionOperation} provides an execution context for executing session scoped operations.
+ * A {@code SessionOperation} provides an execution context for executing session scoped
+ * operations.
+ *
  * @see org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate#perform(SessionOperation)
  */
 public abstract class SessionOperation<T> {
+
     private final String name;
     private final boolean update;
 
@@ -80,9 +82,8 @@ public abstract class SessionOperation<T> {
     }
 
     /**
-     * Provide details about the operation being performed.
-     * This default implementation just returns the
-     * name passed to the constructor.
+     * Provide details about the operation being performed. This default implementation just returns
+     * the name passed to the constructor.
      */
     @Override
     public String toString() {

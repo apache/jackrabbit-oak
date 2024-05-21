@@ -19,9 +19,14 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.VERSION;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.ANL_DEFAULT;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.INDEX_ORIGINAL_TERM;
+import static org.apache.jackrabbit.oak.plugins.index.search.util.ConfigUtil.getOptionalValue;
+
 import java.util.Collections;
 import java.util.Map;
-
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.CompressingCodec;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.TokenizerChain;
@@ -47,13 +52,8 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.ANL_DEFAULT;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.INDEX_ORIGINAL_TERM;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.VERSION;
-import static org.apache.jackrabbit.oak.plugins.index.search.util.ConfigUtil.getOptionalValue;
-
 public class LuceneIndexDefinition extends IndexDefinition {
+
     private static final Logger log = LoggerFactory.getLogger(LuceneIndexDefinition.class);
 
     private final boolean saveDirListing;
@@ -66,30 +66,34 @@ public class LuceneIndexDefinition extends IndexDefinition {
     private final int maxFieldLength;
 
     public LuceneIndexDefinition(NodeState root, NodeState defn, String indexPath) {
-        this(root, getIndexDefinitionState(defn), determineIndexFormatVersion(defn), determineUniqueId(defn), indexPath);
+        this(root, getIndexDefinitionState(defn), determineIndexFormatVersion(defn),
+            determineUniqueId(defn), indexPath);
     }
 
-    LuceneIndexDefinition(NodeState root, NodeState defn, IndexFormatVersion version, String uid, String indexPath) {
+    LuceneIndexDefinition(NodeState root, NodeState defn, IndexFormatVersion version, String uid,
+        String indexPath) {
         super(root, defn, version, uid, indexPath);
 
         this.saveDirListing = getOptionalValue(defn, LuceneIndexConstants.SAVE_DIR_LISTING, true);
-        this.maxFieldLength = getOptionalValue(defn, LuceneIndexConstants.MAX_FIELD_LENGTH, DEFAULT_MAX_FIELD_LENGTH);
+        this.maxFieldLength = getOptionalValue(defn, LuceneIndexConstants.MAX_FIELD_LENGTH,
+            DEFAULT_MAX_FIELD_LENGTH);
         this.analyzers = collectAnalyzers(defn);
         this.analyzer = createAnalyzer();
         this.codec = createCodec();
     }
 
-    public static Builder newBuilder(NodeState root, NodeState defn, String indexPath){
-        return (Builder)new Builder()
-                .root(root)
-                .defn(defn)
-                .indexPath(indexPath);
+    public static Builder newBuilder(NodeState root, NodeState defn, String indexPath) {
+        return (Builder) new Builder()
+            .root(root)
+            .defn(defn)
+            .indexPath(indexPath);
     }
 
     public static class Builder extends IndexDefinition.Builder {
+
         @Override
         public LuceneIndexDefinition build() {
-            return (LuceneIndexDefinition)super.build();
+            return (LuceneIndexDefinition) super.build();
         }
 
         @Override
@@ -113,7 +117,7 @@ public class LuceneIndexDefinition extends IndexDefinition {
     protected double getDefaultCostPerEntry(IndexFormatVersion version) {
         //For older format cost per entry would be higher as it does a runtime
         //aggregation
-        return version == IndexFormatVersion.V1 ?  1.5 : 1.0;
+        return version == IndexFormatVersion.V1 ? 1.5 : 1.0;
     }
 
     public boolean saveDirListing() {
@@ -131,7 +135,7 @@ public class LuceneIndexDefinition extends IndexDefinition {
         return createMergePolicy();
     }
 
-    public Analyzer getAnalyzer(){
+    public Analyzer getAnalyzer() {
         return analyzer;
     }
 
@@ -140,21 +144,23 @@ public class LuceneIndexDefinition extends IndexDefinition {
     private Analyzer createAnalyzer() {
         Analyzer result;
         Analyzer defaultAnalyzer = LuceneIndexConstants.ANALYZER;
-        if (analyzers.containsKey(ANL_DEFAULT)){
+        if (analyzers.containsKey(ANL_DEFAULT)) {
             defaultAnalyzer = analyzers.get(ANL_DEFAULT);
         }
-        if (!evaluatePathRestrictions()){
+        if (!evaluatePathRestrictions()) {
             result = defaultAnalyzer;
         } else {
             Map<String, Analyzer> analyzerMap = ImmutableMap.<String, Analyzer>builder()
-                    .put(FieldNames.ANCESTORS,
-                            new TokenizerChain(new PathHierarchyTokenizerFactory(Collections.emptyMap())))
-                    .build();
+                                                            .put(FieldNames.ANCESTORS,
+                                                                new TokenizerChain(
+                                                                    new PathHierarchyTokenizerFactory(
+                                                                        Collections.emptyMap())))
+                                                            .build();
             result = new PerFieldAnalyzerWrapper(defaultAnalyzer, analyzerMap);
         }
 
         //In case of negative value no limits would be applied
-        if (maxFieldLength < 0){
+        if (maxFieldLength < 0) {
             return result;
         }
         return new LimitTokenCountAnalyzer(result, maxFieldLength);
@@ -169,13 +175,13 @@ public class LuceneIndexDefinition extends IndexDefinition {
             analyzerMap.put(cne.getName(), a);
         }
 
-        if (getOptionalValue(analyzersTree, INDEX_ORIGINAL_TERM, false) && !analyzerMap.containsKey(ANL_DEFAULT)) {
+        if (getOptionalValue(analyzersTree, INDEX_ORIGINAL_TERM, false) && !analyzerMap.containsKey(
+            ANL_DEFAULT)) {
             analyzerMap.put(ANL_DEFAULT, new OakAnalyzer(VERSION, true));
         }
 
         return ImmutableMap.copyOf(analyzerMap);
     }
-
 
     //~---------------------------------------------< utility >
 
@@ -208,14 +214,16 @@ public class LuceneIndexDefinition extends IndexDefinition {
             return new CommitMitigatingTieredMergePolicy();
         }
 
-        String mergePolicyName = getOptionalValue(definition, LuceneIndexConstants.MERGE_POLICY_NAME, null);
+        String mergePolicyName = getOptionalValue(definition,
+            LuceneIndexConstants.MERGE_POLICY_NAME, null);
         MergePolicy mergePolicy = null;
         if (mergePolicyName != null) {
             if (mergePolicyName.equalsIgnoreCase("no")) {
                 mergePolicy = NoMergePolicy.COMPOUND_FILES;
             } else if (mergePolicyName.equalsIgnoreCase("mitigated")) {
                 mergePolicy = new CommitMitigatingTieredMergePolicy();
-            } else if (mergePolicyName.equalsIgnoreCase("tiered") || mergePolicyName.equalsIgnoreCase("default")) {
+            } else if (mergePolicyName.equalsIgnoreCase("tiered")
+                || mergePolicyName.equalsIgnoreCase("default")) {
                 mergePolicy = new TieredMergePolicy();
             } else if (mergePolicyName.equalsIgnoreCase("logbyte")) {
                 mergePolicy = new LogByteSizeMergePolicy();

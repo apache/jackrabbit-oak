@@ -22,14 +22,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
+import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
-
-import org.apache.jackrabbit.guava.common.io.Closer;
 
 /**
  * A helper class to manage checkpoints on TarMK and DocumentMK.
@@ -52,16 +50,14 @@ public abstract class Checkpoints {
     /**
      * Remove all checkpoints.
      *
-     * @return the number of removed checkpoints or {@code -1} if the operation
-     *          did not succeed.
+     * @return the number of removed checkpoints or {@code -1} if the operation did not succeed.
      */
     public abstract long removeAll();
 
     /**
      * Remove all unreferenced checkpoints.
      *
-     * @return the number of removed checkpoints or {@code -1} if the operation
-     *          did not succeed.
+     * @return the number of removed checkpoints or {@code -1} if the operation did not succeed.
      */
     public abstract long removeUnreferenced();
 
@@ -69,9 +65,8 @@ public abstract class Checkpoints {
      * Removes the given checkpoint.
      *
      * @param cp a checkpoint string.
-     * @return {@code 1} if the checkpoint was successfully remove, {@code 0} if
-     *          there is no such checkpoint or {@code -1} if the operation did
-     *          not succeed.
+     * @return {@code 1} if the checkpoint was successfully remove, {@code 0} if there is no such
+     * checkpoint or {@code -1} if the operation did not succeed.
      */
     public abstract int remove(String cp);
 
@@ -86,12 +81,12 @@ public abstract class Checkpoints {
     /**
      * Set the property in the checkpoint metadata.
      *
-     * @param cp a checkpoint string.
-     * @param name property name
-     * @param value new value of the property. the property will be removed if the value is {@code null}
-     * @return {@code 1} if the checkpoint was successfully remove, {@code 0} if
-     *          there is no such checkpoint or {@code -1} if the operation did
-     *          not succeed.
+     * @param cp    a checkpoint string.
+     * @param name  property name
+     * @param value new value of the property. the property will be removed if the value is
+     *              {@code null}
+     * @return {@code 1} if the checkpoint was successfully remove, {@code 0} if there is no such
+     * checkpoint or {@code -1} if the operation did not succeed.
      */
     public abstract int setInfoProperty(String cp, String name, String value);
 
@@ -103,7 +98,7 @@ public abstract class Checkpoints {
             if (name.endsWith("async") && ps.getType().equals(Type.STRING)) {
                 String ref = ps.getValue(Type.STRING);
                 System.out.println("Referenced checkpoint from /:async@" + name
-                        + " is " + ref);
+                    + " is " + ref);
                 cps.add(ref);
             }
         }

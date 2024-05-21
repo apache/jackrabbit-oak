@@ -28,7 +28,6 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
-
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.CachingSegmentReader;
@@ -70,31 +69,30 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
     private static final Logger log = LoggerFactory.getLogger(AbstractFileStore.class);
 
     /**
-     * The minimum supported store version. It is possible for an implementation
-     * to support in a transparent and backwards-compatible way older versions
-     * of a repository. In this case, the minimum supported store version
-     * identifies the store format that can still be processed by the
-     * implementation. The minimum store version has to be greater than zero and
-     * less than or equal to the maximum store version.
+     * The minimum supported store version. It is possible for an implementation to support in a
+     * transparent and backwards-compatible way older versions of a repository. In this case, the
+     * minimum supported store version identifies the store format that can still be processed by
+     * the implementation. The minimum store version has to be greater than zero and less than or
+     * equal to the maximum store version.
      */
     private static final int MIN_STORE_VERSION = 1;
 
     /**
-     * The maximum supported store version. It is possible for an implementation
-     * to support in a transparent and forwards-compatible way newer version of
-     * a repository. In this case, the maximum supported store version
-     * identifies the store format that can still be processed by the
-     * implementation. The maximum supported store version has to be greater
-     * than zero and greater than or equal to the minimum store version.
+     * The maximum supported store version. It is possible for an implementation to support in a
+     * transparent and forwards-compatible way newer version of a repository. In this case, the
+     * maximum supported store version identifies the store format that can still be processed by
+     * the implementation. The maximum supported store version has to be greater than zero and
+     * greater than or equal to the minimum store version.
      */
     private static final int MAX_STORE_VERSION = 2;
 
-    static ManifestChecker newManifestChecker(SegmentNodeStorePersistence persistence, boolean strictVersionCheck) throws IOException {
+    static ManifestChecker newManifestChecker(SegmentNodeStorePersistence persistence,
+        boolean strictVersionCheck) throws IOException {
         return ManifestChecker.newManifestChecker(
-                persistence.getManifestFile(),
-                persistence.segmentFilesExist(),
-                strictVersionCheck ? MAX_STORE_VERSION : MIN_STORE_VERSION,
-                MAX_STORE_VERSION
+            persistence.getManifestFile(),
+            persistence.segmentFilesExist(),
+            strictVersionCheck ? MAX_STORE_VERSION : MIN_STORE_VERSION,
+            MAX_STORE_VERSION
         );
     }
 
@@ -118,7 +116,8 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
     final TarRecovery recovery = new TarRecovery() {
 
         @Override
-        public void recoverEntry(UUID uuid, byte[] data, EntryRecovery entryRecovery) throws IOException {
+        public void recoverEntry(UUID uuid, byte[] data, EntryRecovery entryRecovery)
+            throws IOException {
             writeSegment(uuid, data, entryRecovery);
         }
 
@@ -130,13 +129,14 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
     protected final IOMonitor ioMonitor;
 
     protected final RemoteStoreMonitor remoteStoreMonitor;
-    
+
     protected final int binariesInlineThreshold;
 
     AbstractFileStore(final FileStoreBuilder builder) {
         this.directory = builder.getDirectory();
         this.tracker = new SegmentTracker(new SegmentIdFactory() {
-            @Override @NotNull
+            @Override
+            @NotNull
             public SegmentId newSegmentId(long msb, long lsb) {
                 return new SegmentId(AbstractFileStore.this, msb, lsb, segmentCache::recordHit);
             }
@@ -192,7 +192,7 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
     public SegmentIdProvider getSegmentIdProvider() {
         return tracker;
     }
-    
+
     public int getBinariesInlineThreshold() {
         return binariesInlineThreshold;
     }
@@ -203,11 +203,11 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
     public abstract Revisions getRevisions();
 
     /**
-     * Convenience method for accessing the root node for the current head.
-     * This is equivalent to
+     * Convenience method for accessing the root node for the current head. This is equivalent to
      * <pre>
      * fileStore.getReader().readHeadState(fileStore.getRevisions())
      * </pre>
+     *
      * @return the current head node state
      */
     @NotNull
@@ -216,7 +216,7 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
     }
 
     /**
-     * @return  the external BlobStore (if configured) with this store, {@code null} otherwise.
+     * @return the external BlobStore (if configured) with this store, {@code null} otherwise.
      */
     @Nullable
     public BlobStore getBlobStore() {
@@ -228,8 +228,8 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
         long lsb = id.getLeastSignificantBits();
         Buffer buffer = Buffer.wrap(data);
         GCGeneration generation = SegmentId.isDataSegmentId(lsb)
-                ? Segment.getGcGeneration(newSegmentData(buffer), id)
-                : GCGeneration.NULL;
+            ? Segment.getGcGeneration(newSegmentData(buffer), id)
+            : GCGeneration.NULL;
         w.recoverEntry(msb, lsb, data, 0, data.length, generation);
         if (SegmentId.isDataSegmentId(lsb)) {
             SegmentId segmentId = tracker.newSegmentId(msb, lsb);
@@ -253,7 +253,8 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
         final UUID id = segment.getSegmentId().asUUID();
         segment.forEachRecord((number, type, offset) -> {
             if (type == RecordType.BLOB_ID) {
-                w.recoverBinaryReference(generation, id, SegmentBlob.readBlobId(segment, number, w.getRecoveredSegments()));
+                w.recoverBinaryReference(generation, id,
+                    SegmentBlob.readBlobId(segment, number, w.getRecoveredSegments()));
             }
         });
     }
@@ -293,7 +294,8 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
     }
 
     Segment readSegmentUncached(TarFiles tarFiles, SegmentId id) {
-        Buffer buffer = tarFiles.readSegment(id.getMostSignificantBits(), id.getLeastSignificantBits());
+        Buffer buffer = tarFiles.readSegment(id.getMostSignificantBits(),
+            id.getLeastSignificantBits());
         if (buffer == null) {
             throw new SegmentNotFoundException(id);
         }
@@ -302,16 +304,15 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
     }
 
     /**
-     * Finds all external blob references that are currently accessible
-     * in this repository and adds them to the given collector. Useful
-     * for collecting garbage in an external data store.
+     * Finds all external blob references that are currently accessible in this repository and adds
+     * them to the given collector. Useful for collecting garbage in an external data store.
      * <p>
-     * Note that this method only collects blob references that are already
-     * stored in the repository (at the time when this method is called), so
-     * the garbage collector will need some other mechanism for tracking
-     * in-memory references and references stored while this method is
+     * Note that this method only collects blob references that are already stored in the repository
+     * (at the time when this method is called), so the garbage collector will need some other
+     * mechanism for tracking in-memory references and references stored while this method is
      * running.
-     * @param collector  reference collector called back for each blob reference found
+     *
+     * @param collector reference collector called back for each blob reference found
      */
     public abstract void collectBlobReferences(Consumer<String> collector) throws IOException;
 }

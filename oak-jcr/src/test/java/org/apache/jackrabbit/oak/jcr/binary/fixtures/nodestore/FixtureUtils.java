@@ -23,7 +23,6 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.Properties;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.binary.fixtures.datastore.DataStoreFixture;
@@ -34,9 +33,11 @@ import org.jetbrains.annotations.Nullable;
  */
 public abstract class FixtureUtils {
 
-    /** Return a nice label for jUnit Parameterized tests for fixtures */
+    /**
+     * Return a nice label for jUnit Parameterized tests for fixtures
+     */
     public static String getFixtureLabel(NodeStoreFixture fixture,
-                                  DataStoreFixture dataStoreFixture) {
+        DataStoreFixture dataStoreFixture) {
 
         String nodeStoreName = fixture.getClass().getSimpleName();
         String name = StringUtils.removeEnd(nodeStoreName, "Fixture");
@@ -48,7 +49,9 @@ public abstract class FixtureUtils {
 
     }
 
-    /** Create a temporary folder inside the maven build folder "target". */
+    /**
+     * Create a temporary folder inside the maven build folder "target".
+     */
     public static File createTempFolder() throws IOException {
         // create temp folder inside maven's "target" folder
         File parent = new File("target");
@@ -59,18 +62,19 @@ public abstract class FixtureUtils {
     }
 
     /**
-     * Load data store *.properties from path in system property, local file or file inside user home directory.
-     * Returns null if no file was found.
+     * Load data store *.properties from path in system property, local file or file inside user
+     * home directory. Returns null if no file was found.
      */
     @Nullable
     public static Properties loadDataStoreProperties(String systemProperty,
-                                                     String defaultFileName,
-                                                     String homeFolderName) {
+        String defaultFileName,
+        String homeFolderName) {
         Properties props = new Properties();
         try {
             File file = new File(System.getProperty(systemProperty, defaultFileName));
             if (!file.exists()) {
-                file = Paths.get(System.getProperty("user.home"), homeFolderName, defaultFileName).toFile();
+                file = Paths.get(System.getProperty("user.home"), homeFolderName, defaultFileName)
+                            .toFile();
             }
             props.load(new FileReader(file));
         } catch (IOException e) {

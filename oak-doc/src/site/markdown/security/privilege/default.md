@@ -19,6 +19,7 @@ Privilege Management : The Default Implementation
 --------------------------------------------------------------------------------
 
 ### General Notes
+
 As of Oak the built-in and custom privileges are stored in the repository
 underneath `/jcr:system/rep:privileges`. Similar to other repository level date
 (node types, namespaces and versions) this location is shared by all workspaces
@@ -29,6 +30,7 @@ implementations assert the consistency of the privilege store. The built-in
 privileges are installed using a dedicated implementation of the `RepositoryInitializer`.
 
 ### Differences wrt Jackrabbit 2.x
+
 A comprehensive list of changes compared to Jackrabbit 2.x can be found in the
 corresponding [documentation](differences.html).
 
@@ -75,27 +77,37 @@ corresponding [documentation](differences.html).
 Please note the following differences with respect to Jackrabbit 2.x definitions:
 
 - `jcr:read` is now an aggregation of `rep:readNodes` and `rep:readProperties`
-- `jcr:modifyProperties` is now an aggregation of `rep:addProperties`, `rep:alterProperties` and `rep:removeProperties`
+- `jcr:modifyProperties` is now an aggregation of `rep:addProperties`, `rep:alterProperties`
+  and `rep:removeProperties`
 
 #### New Privileges
 
 The new Privileges introduced with Oak 1.0 have the following effect:
 
-- `rep:userManagement`: Privilege required in order to write items that define user or group specific content.
+- `rep:userManagement`: Privilege required in order to write items that define user or group
+  specific content.
 - `rep:readNodes`: Privilege used to allow/deny read access to nodes (aggregate of `jcr:read`)
-- `rep:readProperties`: Privilege used to allow/deny read access to properties (aggregate of `jcr:read`)
-- `rep:addProperties`: Privilege required in order to create new properties (aggreate of `jcr:modifyProperties`)
-- `rep:alterProperties`: Privilege required in order to change existing properties (aggreate of `jcr:modifyProperties`)
-- `rep:removeProperties`: Privilege required in order to remove existing properties (aggreate of `jcr:modifyProperties`)
-- `rep:indexDefinitionManagement`: Privilege required to create, modify or deleate index definitions.
+- `rep:readProperties`: Privilege used to allow/deny read access to properties (aggregate
+  of `jcr:read`)
+- `rep:addProperties`: Privilege required in order to create new properties (aggreate
+  of `jcr:modifyProperties`)
+- `rep:alterProperties`: Privilege required in order to change existing properties (aggreate
+  of `jcr:modifyProperties`)
+- `rep:removeProperties`: Privilege required in order to remove existing properties (aggreate
+  of `jcr:modifyProperties`)
+- `rep:indexDefinitionManagement`: Privilege required to create, modify or deleate index
+  definitions.
 
 #### Mapping Privileges to Items and API Calls
+
 An overview on how the built-in privileges map to API calls and individual items
 can be found in ['Mapping Privileges to Items'](mappingtoitems.html)
 and ['Mapping API Calls to Privileges'](mappingtoprivileges.html).
-See also ['Mapping Privileges to JCR/Jackrabbit Actions'](mappingprivilegestoactions.html) and ['Mapping of JCR Actions to Oak Permissions'](../permission.html#mapping-of-jcr-actions-to-oak-permissions)
+See also ['Mapping Privileges to JCR/Jackrabbit Actions'](mappingprivilegestoactions.html)
+and ['Mapping of JCR Actions to Oak Permissions'](../permission.html#mapping-of-jcr-actions-to-oak-permissions)
 
 <a name="representation"></a>
+
 ### Representation in the Repository
 
 As of Oak 1.0 all privilege definitions are stored in the repository itself
@@ -117,29 +129,31 @@ as they prevent modification of the privilege definitions using regular JCR
 write operations.
 
 <a name="validation"></a>
+
 ### Validation
 
 The consistency of this content structure is asserted by a dedicated `PrivilegeValidator`.
 The corresponding errors are all of type `Constraint` with the following codes:
 
-| Code              | Message                                                  |
-|-------------------|----------------------------------------------------------|
-| 0041              | Modification of existing privilege definition X          |
-| 0042              | Un-register privilege X                                  |
-| 0043              | Next bits not updated                                    |
-| 0044              | Privilege store not initialized                          |
-| 0045              | Modification of existing privilege definition X          |
-| 0046              | Modification of existing privilege definition X          |
-| 0047              | Invalid declared aggregate name X                        |
-| 0048              | PrivilegeBits are missing                                |
-| 0049              | PrivilegeBits already in used                            |
-| 0050              | Singular aggregation is equivalent to existing privilege.|
-| 0051              | Declared aggregate X is not a registered privilege       |
-| 0052              | Detected circular aggregation                            |
-| 0053              | Custom aggregate privilege X is already covered.         |
+| Code | Message                                                   |
+|------|-----------------------------------------------------------|
+| 0041 | Modification of existing privilege definition X           |
+| 0042 | Un-register privilege X                                   |
+| 0043 | Next bits not updated                                     |
+| 0044 | Privilege store not initialized                           |
+| 0045 | Modification of existing privilege definition X           |
+| 0046 | Modification of existing privilege definition X           |
+| 0047 | Invalid declared aggregate name X                         |
+| 0048 | PrivilegeBits are missing                                 |
+| 0049 | PrivilegeBits already in used                             |
+| 0050 | Singular aggregation is equivalent to existing privilege. |
+| 0051 | Declared aggregate X is not a registered privilege        |
+| 0052 | Detected circular aggregation                             |
+| 0053 | Custom aggregate privilege X is already covered.          |
 
 <a name="configuration"></a>
+
 ### Configuration
 
-There are no implementation specific configuration options associated with the 
+There are no implementation specific configuration options associated with the
 privilege management implementation.

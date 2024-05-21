@@ -16,13 +16,15 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.restriction;
 
+import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
+
 import java.security.Principal;
 import java.util.HashMap;
 import java.util.Map;
-
 import javax.jcr.Value;
 import javax.jcr.security.AccessControlManager;
-
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
@@ -39,10 +41,6 @@ import org.apache.jackrabbit.value.StringValue;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
 
 public class PermissionTest extends AbstractSecurityTest {
 

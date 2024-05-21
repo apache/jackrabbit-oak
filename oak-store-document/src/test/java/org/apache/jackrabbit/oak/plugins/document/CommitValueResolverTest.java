@@ -51,7 +51,7 @@ public class CommitValueResolverTest {
     @Before
     public void setup() {
         ns = builderProvider.newBuilder().setDocumentStore(store)
-                .setUpdateLimit(20).setAsyncDelay(0).getNodeStore();
+                            .setUpdateLimit(20).setAsyncDelay(0).getNodeStore();
         resolver = newCachingCommitValueResolver(0);
     }
 
@@ -170,7 +170,7 @@ public class CommitValueResolverTest {
         NodeBuilder builder = addNodeBranched(path);
         Revision r = getDocument("/").getLocalRevisions().firstKey();
         String value = getDocument("/").getLocalRevisions()
-                .entrySet().iterator().next().getValue();
+                                       .entrySet().iterator().next().getValue();
         NodeDocument foo = getDocument(path);
         NodeDocument root = getDocument("/");
         assertNotNull(foo);
@@ -222,7 +222,7 @@ public class CommitValueResolverTest {
         waitABit();
 
         CommitValueResolver cvr = newCachingCommitValueResolver(100)
-                .withEmptyCommitValueCache(true, ns.getClock(), 0);
+            .withEmptyCommitValueCache(true, ns.getClock(), 0);
         NodeDocument foo = getDocument("/foo");
 
         // resolver without negative cache will look up previous docs every time

@@ -16,9 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.prefetch;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.LinkedList;
 import java.util.List;
-
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
@@ -27,8 +28,6 @@ import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static java.util.Objects.requireNonNull;
 
 public class CacheWarming {
 
@@ -41,7 +40,7 @@ public class CacheWarming {
     }
 
     public void prefetch(@NotNull Iterable<String> paths,
-                         @NotNull DocumentNodeState rootState) {
+        @NotNull DocumentNodeState rootState) {
         requireNonNull(paths);
         requireNonNull(rootState);
 
@@ -64,7 +63,7 @@ public class CacheWarming {
             return false;
         }
         DocumentNodeState n = rootState;
-        for(String e : PathUtils.elements(path)) {
+        for (String e : PathUtils.elements(path)) {
             if (!n.exists() || n.hasNoChildren()) {
                 // No need to check further down the path.
                 // Descendants do not exist. We don't gain anything

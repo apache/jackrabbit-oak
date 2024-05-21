@@ -19,18 +19,18 @@
 
 package org.apache.jackrabbit.oak.security.user;
 
+import static org.apache.jackrabbit.oak.security.user.CacheConstants.REP_EXPIRATION;
+import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.Test;
-
-import static org.apache.jackrabbit.oak.security.user.CacheConstants.REP_EXPIRATION;
-import static org.junit.Assert.assertEquals;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 public class CacheConflictHandlerTest extends AbstractSecurityTest {
 

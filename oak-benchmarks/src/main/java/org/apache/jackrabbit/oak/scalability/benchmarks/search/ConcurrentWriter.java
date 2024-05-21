@@ -18,18 +18,20 @@
  */
 package org.apache.jackrabbit.oak.scalability.benchmarks.search;
 
-import org.apache.jackrabbit.oak.scalability.suites.ScalabilityAbstractSuite;
-
+import java.util.UUID;
 import javax.jcr.Credentials;
 import javax.jcr.Repository;
-import java.util.UUID;
+import org.apache.jackrabbit.oak.scalability.suites.ScalabilityAbstractSuite;
 
 /**
- * Writes random paths concurrently with multiple readers/writers configured with {#WRITERS} and {#READERS}.
+ * Writes random paths concurrently with multiple readers/writers configured with {#WRITERS} and
+ * {#READERS}.
  */
 public class ConcurrentWriter extends ConcurrentReader {
+
     @Override
-    public void execute(Repository repository, Credentials credentials, ScalabilityAbstractSuite.ExecutionContext context)
+    public void execute(Repository repository, Credentials credentials,
+        ScalabilityAbstractSuite.ExecutionContext context)
         throws Exception {
         Writer writer = new Writer(this.getClass().getSimpleName() + UUID.randomUUID(),
             100, repository.login(credentials), context);

@@ -16,15 +16,15 @@
  */
 package org.apache.jackrabbit.oak.run;
 
-import org.apache.jackrabbit.oak.run.commons.Command;
-import org.apache.jackrabbit.oak.run.commons.Utils;
-
-import java.util.Locale;
-
 import static java.util.Arrays.copyOfRange;
 import static org.apache.jackrabbit.oak.run.AvailableModes.MODES;
 
+import java.util.Locale;
+import org.apache.jackrabbit.oak.run.commons.Command;
+import org.apache.jackrabbit.oak.run.commons.Utils;
+
 public final class Main {
+
     private Main() {
         // Prevent instantiation.
     }
@@ -32,7 +32,8 @@ public final class Main {
     public static void main(String[] args) throws Exception {
         Utils.printProductInfo(
             args,
-            Main.class.getResourceAsStream("/META-INF/maven/org.apache.jackrabbit/oak-run/pom.properties"));
+            Main.class.getResourceAsStream(
+                "/META-INF/maven/org.apache.jackrabbit/oak-run/pom.properties"));
 
         Command command = MODES.getCommand("help");
 

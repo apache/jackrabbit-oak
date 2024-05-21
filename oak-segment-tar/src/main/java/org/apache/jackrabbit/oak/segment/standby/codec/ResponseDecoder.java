@@ -21,6 +21,9 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static org.apache.jackrabbit.oak.segment.standby.server.FileStoreUtil.roundDiv;
 
+import io.netty.buffer.ByteBuf;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.handler.codec.ByteToMessageDecoder;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -30,12 +33,8 @@ import java.io.OutputStream;
 import java.nio.file.Files;
 import java.util.List;
 import java.util.UUID;
-
 import org.apache.jackrabbit.guava.common.base.Charsets;
 import org.apache.jackrabbit.guava.common.hash.Hashing;
-import io.netty.buffer.ByteBuf;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.handler.codec.ByteToMessageDecoder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,7 +44,8 @@ public class ResponseDecoder extends ByteToMessageDecoder {
 
     private static class DeleteOnCloseFileInputStream extends FileInputStream {
 
-        private static final Logger log = LoggerFactory.getLogger(DeleteOnCloseFileInputStream.class);
+        private static final Logger log = LoggerFactory.getLogger(
+            DeleteOnCloseFileInputStream.class);
 
         private final File file;
 
@@ -76,7 +76,8 @@ public class ResponseDecoder extends ByteToMessageDecoder {
     }
 
     @Override
-    protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) throws Exception {
+    protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out)
+        throws Exception {
         int length = in.readInt();
 
         switch (in.readByte()) {
@@ -127,7 +128,8 @@ public class ResponseDecoder extends ByteToMessageDecoder {
         out.add(new GetSegmentResponse(null, segmentId, data));
     }
 
-    private void decodeGetBlobResponse(int length, ByteBuf in, List<Object> out) throws IOException {
+    private void decodeGetBlobResponse(int length, ByteBuf in, List<Object> out)
+        throws IOException {
         byte mask = in.readByte();
         long blobLength = in.readLong();
 
@@ -147,8 +149,9 @@ public class ResponseDecoder extends ByteToMessageDecoder {
 
         long hash = in.readLong();
 
-        log.debug("Received chunk {}/{} of size {} from blob {}", roundDiv(tempFile.length() + in.readableBytes(), blobChunkSize),
-                roundDiv(blobLength, blobChunkSize), in.readableBytes(), blobId);
+        log.debug("Received chunk {}/{} of size {} from blob {}",
+            roundDiv(tempFile.length() + in.readableBytes(), blobChunkSize),
+            roundDiv(blobLength, blobChunkSize), in.readableBytes(), blobId);
         byte[] chunkData = new byte[in.readableBytes()];
         in.readBytes(chunkData);
 
@@ -167,10 +170,14 @@ public class ResponseDecoder extends ByteToMessageDecoder {
             log.debug("Received entire blob {}", blobId);
 
             if (blobLength == tempFile.length()) {
-                out.add(new GetBlobResponse(null, blobId, new DeleteOnCloseFileInputStream(tempFile), blobLength));
+                out.add(
+                    new GetBlobResponse(null, blobId, new DeleteOnCloseFileInputStream(tempFile),
+                        blobLength));
             } else {
-                log.debug("Blob {} discarded due to size mismatch. Expected size: {}, actual size: {} ", blobId,
-                        blobLength, tempFile.length());
+                log.debug(
+                    "Blob {} discarded due to size mismatch. Expected size: {}, actual size: {} ",
+                    blobId,
+                    blobLength, tempFile.length());
             }
         }
     }
@@ -207,7 +214,8 @@ public class ResponseDecoder extends ByteToMessageDecoder {
     }
 
     private static long hash(byte mask, long blobLength, byte[] data) {
-        return Hashing.murmur3_32().newHasher().putByte(mask).putLong(blobLength).putBytes(data).hash().padToLong();
+        return Hashing.murmur3_32().newHasher().putByte(mask).putLong(blobLength).putBytes(data)
+                      .hash().padToLong();
     }
 
 }

@@ -33,11 +33,11 @@ with each [ContentSession].
 
 #### Token Creation
 
-The creation of a new token is triggered by valid and supported `Credentials` 
+The creation of a new token is triggered by valid and supported `Credentials`
 passed to the login module chain that contain an additional, empty `.token` attribute.
 
 The [TokenLoginModule] will obtain these `Credentials` from the shared state
-during the commit phase (i.e. phase 2 of the JAAS authentication) and will pass 
+during the commit phase (i.e. phase 2 of the JAAS authentication) and will pass
 them to the configured [TokenProvider] implementation the following sequence:
 
     Credentials shared = getSharedCredentials();
@@ -46,29 +46,29 @@ them to the configured [TokenProvider] implementation the following sequence:
         TokenInfo ti = tokenProvider.createToken(shared);
         [...]
     }
-    
-In case of success these steps will have generated a new token and stored 
-it's hash along with all mandatory and informative attributes to the new 
-content node  representing the token.
+
+In case of success these steps will have generated a new token and stored
+it's hash along with all mandatory and informative attributes to the new
+content node representing the token.
 
 ##### Supported Credentials for Token Creation
 
 By default the implementation deals with shared `SimpleCredentials`.
 
-With Oak 1.5.8 the token management has been extended in order to allow 
-for custom `Credentials` implementations. This is achieved by registering 
+With Oak 1.5.8 the token management has been extended in order to allow
+for custom `Credentials` implementations. This is achieved by registering
 a custom implementation of the [CredentialsSupport] interface.
 The default the token management uses [SimpleCredentialsSupport].
 
-See also [OAK-4129] and section [Pluggability](#pluggability) below) for 
+See also [OAK-4129] and section [Pluggability](#pluggability) below) for
 additional information.
 
 #### Token Validation
 
-Once a token has been created it can be used for subsequent repository 
-logins with [TokenCredentials]. This time the [TokenLoginModule] will 
+Once a token has been created it can be used for subsequent repository
+logins with [TokenCredentials]. This time the [TokenLoginModule] will
 attempt to perform the login phase (i.e. phase 1 of the JAAS authentication).
- 
+
 This includes resolving the login token (`TokenProvider.getTokenInfo`) and
 asserting it's validity in case it exists. The validation consists of following steps:
 
@@ -77,11 +77,11 @@ asserting it's validity in case it exists. The validation consists of following 
 
 Only if these steps have been successfully completed the login of the
 [TokenLoginModule] will succeed.
- 
+
 #### Token Removal
 
-A given login token (and the node associated with it) will be removed if 
-the authentication fails due to an expired token or with an explicit API call 
+A given login token (and the node associated with it) will be removed if
+the authentication fails due to an expired token or with an explicit API call
 i.e. `TokenInfo.remove`.
 
 #### Resetting Expiration Time
@@ -107,6 +107,7 @@ throttling method was introduced to only allow the call to go through 1/8 times)
 This is available with Oak 1.7.12 on, see also [OAK-6818]for additional information.
 
 <a name="representation"></a>
+
 ### Representation in the Repository
 
 #### Content Structure
@@ -139,7 +140,8 @@ token as described below
 
 As of Oak 1.0 the login token are represented in the repository as follows:
 
-- the token node is referenceable with the dedicated node type `rep:Token` (used to be unstructured in Jackrabbit 2.x)
+- the token node is referenceable with the dedicated node type `rep:Token` (used to be unstructured
+  in Jackrabbit 2.x)
 - expiration and key properties are defined to be mandatory and protected
 - expiration time is obtained from `PARAM_TOKEN_EXPIRATION` specified in the
   login attributes and falls back to the configuration parameter with the same
@@ -182,26 +184,28 @@ definition:
     }
 
 <a name="validation"></a>
+
 ### Validation
 
 The consistency of this content structure both on creation and modification is
 asserted by a dedicated `TokenValidator`. The corresponding errors are
 all of type `Constraint` with the following codes:
 
-| Code              | Message                                                  |
-|-------------------|----------------------------------------------------------|
-| 0060              | Attempt to create reserved token property in other ctx   |
-| 0061              | Attempt to change existing token key                     |
-| 0062              | Change primary type of existing node to rep:Token        |
-| 0063              | Creation/Manipulation of tokens without using provider   |
-| 0064              | Create a token outside of configured scope               |
-| 0065              | Invalid location of token node                           |
-| 0066              | Invalid token key                                        |
-| 0067              | Mandatory token expiration missing                       |
-| 0068              | Invalid location of .tokens node                         |
-| 0069              | Change type of .tokens parent node                       |
+| Code | Message                                                |
+|------|--------------------------------------------------------|
+| 0060 | Attempt to create reserved token property in other ctx |
+| 0061 | Attempt to change existing token key                   |
+| 0062 | Change primary type of existing node to rep:Token      |
+| 0063 | Creation/Manipulation of tokens without using provider |
+| 0064 | Create a token outside of configured scope             |
+| 0065 | Invalid location of token node                         |
+| 0066 | Invalid token key                                      |
+| 0067 | Mandatory token expiration missing                     |
+| 0068 | Invalid location of .tokens node                       |
+| 0069 | Change type of .tokens parent node                     |
 
 <a name="configuration"></a>
+
 ### Configuration
 
 The default Oak `TokenConfiguration` allows to define the following configuration
@@ -209,34 +213,35 @@ options for the `TokenProvider`:
 
 #### Configuration Parameters
 
-| Parameter                           | Type    | Default                  |
-|-------------------------------------|---------|--------------------------|
-| PARAM_TOKEN_EXPIRATION              | long    | 2 * 3600 * 1000 (2 hours)|
-| PARAM_TOKEN_LENGTH                  | int     | 8                        |
-| PARAM_TOKEN_REFRESH                 | boolean | true                     |
-| PARAM_PASSWORD_HASH_ALGORITHM       | String  | SHA-256                  |
-| PARAM_PASSWORD_HASH_ITERATIONS      | int     | 1000                     |
-| PARAM_PASSWORD_SALT_SIZE            | int     | 8                        |
-| PARAM_TOKEN_CLEANUP_THRESHOLD       | long    | 0 (no cleanup)           |
-| | | |
-
+| Parameter                      | Type    | Default                   |
+|--------------------------------|---------|---------------------------|
+| PARAM_TOKEN_EXPIRATION         | long    | 2 * 3600 * 1000 (2 hours) |
+| PARAM_TOKEN_LENGTH             | int     | 8                         |
+| PARAM_TOKEN_REFRESH            | boolean | true                      |
+| PARAM_PASSWORD_HASH_ALGORITHM  | String  | SHA-256                   |
+| PARAM_PASSWORD_HASH_ITERATIONS | int     | 1000                      |
+| PARAM_PASSWORD_SALT_SIZE       | int     | 8                         |
+| PARAM_TOKEN_CLEANUP_THRESHOLD  | long    | 0 (no cleanup)            |
+|                                |         |                           |
 
 <a name="pluggability"></a>
+
 ### Pluggability
 
-In an OSGi-based setup the default `TokenConfiguration` you can bind a 
-custom implementation of the [CredentialsSupport] interface. Doing so 
+In an OSGi-based setup the default `TokenConfiguration` you can bind a
+custom implementation of the [CredentialsSupport] interface. Doing so
 allows to support any type of custom credentials, which do not reveal
 the ID of the user logging into repository.
 
 In particular when chaining the `TokenLoginModule` and the `ExternalLoginModule`
-the [CredentialsSupport] can be used to authenticate and synchronize 
-users provided by third party systems during phase 1 (login) and generate 
-a login token during phase 2 (commit). See section 
+the [CredentialsSupport] can be used to authenticate and synchronize
+users provided by third party systems during phase 1 (login) and generate
+a login token during phase 2 (commit). See section
 [Authentication with the External Login Module](../externalloginmodule.html)
-for additional details. For this to work the same [CredentialsSupport] 
+for additional details. For this to work the same [CredentialsSupport]
 must be configured with the [ExternalIdentityProvider] and the `TokenConfiguration`
-and `CredentialsSupport.getUserId` must reveal the ID of the synced user (i.e. `ExternalUser.getId`).
+and `CredentialsSupport.getUserId` must reveal the ID of the synced user (
+i.e. `ExternalUser.getId`).
 
 In general the following steps are required in order to plug a different `CredentialsSupport`
 into the default `TokenConfiguration`:
@@ -290,21 +295,31 @@ in order to enable a custom `CredentialsSupport`.
         
         [...]
     }
-    
+
 ###### Example CredentialsSupport in Combination with External Authentication
 
-See section [Authentication with the External Login Module](../externalloginmodule.html#pluggability) 
+See
+section [Authentication with the External Login Module](../externalloginmodule.html#pluggability)
 for an example.
 
 <!-- references -->
 
 [TokenCredentials]: /oak/docs/apidocs/org/apache/jackrabbit/api/security/authentication/token/TokenCredentials.html
+
 [AuthInfo]: /oak/docs/apidocs/org/apache/jackrabbit/oak/api/AuthInfo.html
+
 [ContentSession]: /oak/docs/apidocs/org/apache/jackrabbit/oak/api/ContentSession.html
+
 [TokenProvider]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/token/TokenProvider.html
+
 [TokenInfo]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/token/TokenInfo.html
+
 [TokenLoginModule]: /oak/docs/apidocs/org/apache/jackrabbit/oak/security/authentication/token/TokenLoginModule.html
+
 [CredentialsSupport]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/credentials/CredentialsSupport.html
+
 [SimpleCredentialsSupport]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/credentials/SimpleCredentialsSupport.html
+
 [OAK-4129]: https://issues.apache.org/jira/browse/OAK-4129
+
 [ExternalIdentityProvider]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/ExternalIdentityProvider.html

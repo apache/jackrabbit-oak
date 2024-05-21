@@ -22,14 +22,13 @@ package org.apache.jackrabbit.oak.segment.file.tooling;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-
 import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Utility BlobStore implementation to be used in tooling that can work with a
- * FileStore without the need of the DataStore being present locally
+ * Utility BlobStore implementation to be used in tooling that can work with a FileStore without the
+ * need of the DataStore being present locally
  */
 public class BasicReadOnlyBlobStore implements BlobStore {
 
@@ -41,7 +40,7 @@ public class BasicReadOnlyBlobStore implements BlobStore {
     /**
      * Ignores the options provided and delegates to {@link #writeBlob(InputStream)}.
      *
-     * @param in the input stream to write
+     * @param in      the input stream to write
      * @param options the options to use
      * @return
      * @throws IOException
@@ -53,7 +52,7 @@ public class BasicReadOnlyBlobStore implements BlobStore {
 
     @Override
     public int readBlob(String blobId, long pos, byte[] buff, int off,
-            int length) throws IOException {
+        int length) throws IOException {
         throw new UnsupportedOperationException();
     }
 

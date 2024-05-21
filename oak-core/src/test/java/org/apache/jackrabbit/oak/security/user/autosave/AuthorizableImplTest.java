@@ -16,15 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.user.autosave;
 
-import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.api.security.user.Authorizable;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-
-import javax.jcr.RepositoryException;
-import javax.jcr.Value;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
@@ -36,6 +27,14 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+
+import javax.jcr.RepositoryException;
+import javax.jcr.Value;
+import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 public class AuthorizableImplTest extends AbstractAutoSaveTest {
 

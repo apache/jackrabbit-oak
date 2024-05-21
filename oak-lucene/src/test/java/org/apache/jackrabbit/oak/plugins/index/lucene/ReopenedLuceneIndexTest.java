@@ -19,6 +19,19 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
+import java.io.File;
+import java.io.IOException;
+import java.text.ParseException;
+import java.util.Iterator;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import javax.jcr.RepositoryException;
+import javax.jcr.query.Query;
+import javax.security.auth.login.LoginException;
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -46,21 +59,8 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
-import javax.jcr.RepositoryException;
-import javax.jcr.query.Query;
-import javax.security.auth.login.LoginException;
-import java.io.File;
-import java.io.IOException;
-import java.text.ParseException;
-import java.util.Iterator;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-
-import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
 public class ReopenedLuceneIndexTest {
+
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
 
@@ -78,7 +78,7 @@ public class ReopenedLuceneIndexTest {
     private static final int NUM_NODES = 1000;
     // Use sufficiently large number to cross batched results from index
     private static final int READ_BEFORE_REOPEN = 400;
-    private static final int READ_LIMIT = NUM_NODES  + READ_BEFORE_REOPEN / 2;
+    private static final int READ_LIMIT = NUM_NODES + READ_BEFORE_REOPEN / 2;
 
     private void createRepository() throws RepositoryException, IOException, LoginException {
         System.setProperty("oak.traversing.warning", "100");
@@ -95,12 +95,11 @@ public class ReopenedLuceneIndexTest {
 
         NodeStore nodeStore = new MemoryNodeStore(INITIAL_CONTENT);
         Oak oak = new Oak(nodeStore)
-                .with(new OpenSecurityProvider())
-                .with((QueryIndexProvider) queryIndexProvider)
-                .with((Observer) queryIndexProvider)
-                .with(editorProvider)
-                .with(qeSettings)
-                ;
+            .with(new OpenSecurityProvider())
+            .with((QueryIndexProvider) queryIndexProvider)
+            .with((Observer) queryIndexProvider)
+            .with(editorProvider)
+            .with(qeSettings);
 
         root = oak.createContentRepository().login(null, null).getLatestRoot();
         qe = root.getQueryEngine();
@@ -137,7 +136,9 @@ public class ReopenedLuceneIndexTest {
     @Test
     public void resultSizeAboveLimitCompatV1() throws Exception {
         thrown.expect(RuntimeNodeTraversalException.class);
-        thrown.expectMessage(StringContains.containsString("The query read or traversed more than " + READ_LIMIT + " nodes. To avoid affecting other tasks, processing was stopped."));
+        thrown.expectMessage(StringContains.containsString(
+            "The query read or traversed more than " + READ_LIMIT
+                + " nodes. To avoid affecting other tasks, processing was stopped."));
 
         // Add more data such that the query genuinely supasses query limit
         createData(NUM_NODES, READ_LIMIT + 100);
@@ -148,7 +149,9 @@ public class ReopenedLuceneIndexTest {
     @Test
     public void resultSizeAboveLimitCompatV2() throws Exception {
         thrown.expect(RuntimeNodeTraversalException.class);
-        thrown.expectMessage(StringContains.containsString("The query read or traversed more than " + READ_LIMIT + " nodes. To avoid affecting other tasks, processing was stopped."));
+        thrown.expectMessage(StringContains.containsString(
+            "The query read or traversed more than " + READ_LIMIT
+                + " nodes. To avoid affecting other tasks, processing was stopped."));
 
         // Add more data such that the query genuinely supasses query limit
         createData(NUM_NODES, READ_LIMIT + 100);
@@ -159,21 +162,22 @@ public class ReopenedLuceneIndexTest {
     private void createIndex() throws CommitFailedException {
         LuceneIndexDefinitionBuilder idxBuilderV1 = new LuceneIndexDefinitionBuilder();
         idxBuilderV1.noAsync().evaluatePathRestrictions()
-                .indexRule("nt:base")
-                .property("cons").nodeScopeIndex()
-                // to make a change in index but we won't query for this
-                .enclosingRule().property("foo").propertyIndex();
+                    .indexRule("nt:base")
+                    .property("cons").nodeScopeIndex()
+                    // to make a change in index but we won't query for this
+                    .enclosingRule().property("foo").propertyIndex();
 
         LuceneIndexDefinitionBuilder idxBuilderV2 = new LuceneIndexDefinitionBuilder();
         idxBuilderV2.noAsync().evaluatePathRestrictions()
-                .indexRule("nt:base")
-                .property("cons").propertyIndex()
-                // to make a change in index but we won't query for this
-                .enclosingRule().property("foo").propertyIndex();
+                    .indexRule("nt:base")
+                    .property("cons").propertyIndex()
+                    // to make a change in index but we won't query for this
+                    .enclosingRule().property("foo").propertyIndex();
 
         Tree oi = root.getTree("/oak:index");
 
-        idxBuilderV1.getBuilderTree().setProperty(LuceneIndexConstants.COMPAT_MODE, 1); // to force aggregate index
+        idxBuilderV1.getBuilderTree()
+                    .setProperty(LuceneIndexConstants.COMPAT_MODE, 1); // to force aggregate index
         idxBuilderV1.build(oi.addChild("index-v1"));
 
         idxBuilderV2.build(oi.addChild("index-v2"));
@@ -185,7 +189,8 @@ public class ReopenedLuceneIndexTest {
         createData(0, NUM_NODES);
     }
 
-    private void createData(int initialIndex, int lastIndex /* exclusive */) throws CommitFailedException {
+    private void createData(int initialIndex, int lastIndex /* exclusive */)
+        throws CommitFailedException {
         Tree par = root.getTree("/").addChild("parent");
 
         for (int i = initialIndex; i < lastIndex; i++) {
@@ -195,7 +200,8 @@ public class ReopenedLuceneIndexTest {
         root.commit();
     }
 
-    private int iterateResultWhileReopening(String indexTag) throws ParseException, CommitFailedException {
+    private int iterateResultWhileReopening(String indexTag)
+        throws ParseException, CommitFailedException {
         String queryV1 = "SELECT * FROM [nt:base] WHERE CONTAINS(*, 'val')";
         String queryV2 = "SELECT * FROM [nt:base] WHERE [cons] = 'val'";
 
@@ -203,7 +209,8 @@ public class ReopenedLuceneIndexTest {
 
         int resultSize = 0;
 
-        Result result = qe.executeQuery(query, Query.JCR_SQL2, QueryEngine.NO_BINDINGS, QueryEngine.NO_MAPPINGS);
+        Result result = qe.executeQuery(query, Query.JCR_SQL2, QueryEngine.NO_BINDINGS,
+            QueryEngine.NO_MAPPINGS);
         Iterator<? extends ResultRow> rows = result.getRows().iterator();
 
         // get few rows to open the cursor

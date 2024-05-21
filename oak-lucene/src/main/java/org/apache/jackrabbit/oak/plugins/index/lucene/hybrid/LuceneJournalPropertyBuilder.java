@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 
 import java.util.Collection;
 import java.util.Map;
-
 import org.apache.jackrabbit.guava.common.collect.HashMultimap;
 import org.apache.jackrabbit.guava.common.collect.Multimap;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
@@ -35,6 +34,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 class LuceneJournalPropertyBuilder implements JournalPropertyBuilder<LuceneDocumentHolder> {
+
     private final static Logger log = LoggerFactory.getLogger(LuceneJournalPropertyBuilder.class);
     //Use HashMultimap to ensure that indexPath is not duplicated per node path
     private final Multimap<String, String> indexedNodes = HashMultimap.create();
@@ -48,8 +48,8 @@ class LuceneJournalPropertyBuilder implements JournalPropertyBuilder<LuceneDocum
     //~---------------------------------< serialize >
     @Override
     public void addProperty(@Nullable LuceneDocumentHolder docHolder) {
-        if (docHolder != null){
-            for (LuceneDocInfo d : docHolder.getAllLuceneDocInfo()){
+        if (docHolder != null) {
+            for (LuceneDocInfo d : docHolder.getAllLuceneDocInfo()) {
                 if (sizeWithinLimits()) {
                     indexedNodes.put(d.getDocPath(), d.getIndexPath());
                 }
@@ -61,9 +61,9 @@ class LuceneJournalPropertyBuilder implements JournalPropertyBuilder<LuceneDocum
     public String buildAsString() {
         JsopWriter json = new JsopBuilder();
         json.object();
-        for (Map.Entry<String, Collection<String>> e : indexedNodes.asMap().entrySet()){
+        for (Map.Entry<String, Collection<String>> e : indexedNodes.asMap().entrySet()) {
             json.key(e.getKey()).array();
-            for (String v : e.getValue()){
+            for (String v : e.getValue()) {
                 json.value(v);
             }
             json.endArray();
@@ -76,7 +76,7 @@ class LuceneJournalPropertyBuilder implements JournalPropertyBuilder<LuceneDocum
 
     @Override
     public void addSerializedProperty(@Nullable String json) {
-        if (json == null || json.isEmpty()){
+        if (json == null || json.isEmpty()) {
             return;
         }
         //TODO Add support for overflow
@@ -108,9 +108,11 @@ class LuceneJournalPropertyBuilder implements JournalPropertyBuilder<LuceneDocum
     }
 
     private boolean sizeWithinLimits() {
-        if (indexedNodes.size() >= maxSize){
-            if (!limitWarningLogged){
-                log.warn("Max size of {} reached. Further addition of index path data would be dropped", maxSize);
+        if (indexedNodes.size() >= maxSize) {
+            if (!limitWarningLogged) {
+                log.warn(
+                    "Max size of {} reached. Further addition of index path data would be dropped",
+                    maxSize);
                 limitWarningLogged = true;
             }
             return false;

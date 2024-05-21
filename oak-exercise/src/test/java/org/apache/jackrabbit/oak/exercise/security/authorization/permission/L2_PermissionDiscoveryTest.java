@@ -23,12 +23,11 @@ import javax.jcr.Property;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.security.Privilege;
-
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.exercise.ExerciseUtility;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
@@ -136,18 +135,24 @@ public class L2_PermissionDiscoveryTest extends AbstractJCRTest {
         Node child = testRootNode.addNode(nodeName1);
         childPath = child.getPath();
 
-        User testUser = ExerciseUtility.createTestUser(((JackrabbitSession) superuser).getUserManager());
+        User testUser = ExerciseUtility.createTestUser(
+            ((JackrabbitSession) superuser).getUserManager());
         testPrincipal = testUser.getPrincipal();
 
-        Privilege[] privs = AccessControlUtils.privilegesFromNames(superuser, Privilege.JCR_READ, PrivilegeConstants.REP_ADD_PROPERTIES);
-        Privilege[] privs2 = AccessControlUtils.privilegesFromNames(superuser, Privilege.JCR_ADD_CHILD_NODES);
-        if (!AccessControlUtils.addAccessControlEntry(superuser, testRoot, testPrincipal, privs, true) ||
-            !AccessControlUtils.addAccessControlEntry(superuser, childPath, testPrincipal, privs2, true)) {
+        Privilege[] privs = AccessControlUtils.privilegesFromNames(superuser, Privilege.JCR_READ,
+            PrivilegeConstants.REP_ADD_PROPERTIES);
+        Privilege[] privs2 = AccessControlUtils.privilegesFromNames(superuser,
+            Privilege.JCR_ADD_CHILD_NODES);
+        if (!AccessControlUtils.addAccessControlEntry(superuser, testRoot, testPrincipal, privs,
+            true) ||
+            !AccessControlUtils.addAccessControlEntry(superuser, childPath, testPrincipal, privs2,
+                true)) {
             throw new NotExecutableException();
         }
 
         superuser.save();
-        testSession = superuser.getRepository().login(ExerciseUtility.getTestCredentials(testUser.getID()));
+        testSession = superuser.getRepository()
+                               .login(ExerciseUtility.getTestCredentials(testUser.getID()));
     }
 
     @Override
@@ -156,7 +161,8 @@ public class L2_PermissionDiscoveryTest extends AbstractJCRTest {
             if (testSession != null && testSession.isLive()) {
                 testSession.logout();
             }
-            Authorizable testUser = ((JackrabbitSession) superuser).getUserManager().getAuthorizable(testPrincipal);
+            Authorizable testUser = ((JackrabbitSession) superuser).getUserManager()
+                                                                   .getAuthorizable(testPrincipal);
             if (testUser != null) {
                 testUser.remove();
                 superuser.save();
@@ -166,78 +172,82 @@ public class L2_PermissionDiscoveryTest extends AbstractJCRTest {
         }
     }
 
-    private static Boolean[] existsAndHasPermission(Boolean expectedExists, Boolean expectedHasPermission) {
-        return new Boolean[] {expectedExists, expectedHasPermission};
+    private static Boolean[] existsAndHasPermission(Boolean expectedExists,
+        Boolean expectedHasPermission) {
+        return new Boolean[]{expectedExists, expectedHasPermission};
     }
 
     public void testReadAccess() throws RepositoryException {
         // EXERCISE: fill in the expected values
         Map<String, Boolean[]> nodeTests = ImmutableMap.of(
-                "/", existsAndHasPermission(null, null),
-                testRoot, existsAndHasPermission(null, null),
-                childPath, existsAndHasPermission(null, null),
-                childPath + "/new", existsAndHasPermission(null, null)
+            "/", existsAndHasPermission(null, null),
+            testRoot, existsAndHasPermission(null, null),
+            childPath, existsAndHasPermission(null, null),
+            childPath + "/new", existsAndHasPermission(null, null)
         );
 
         for (String nodePath : nodeTests.keySet()) {
             Boolean[] expected = nodeTests.get(nodePath);
 
             assertEquals(expected[0].booleanValue(), testSession.nodeExists(nodePath));
-            assertEquals(expected[1].booleanValue(), testSession.hasPermission(nodePath, Session.ACTION_READ));
+            assertEquals(expected[1].booleanValue(),
+                testSession.hasPermission(nodePath, Session.ACTION_READ));
         }
 
         // EXERCISE: fill in the expected values
         Map<String, Boolean[]> propertyTests = ImmutableMap.of(
-                "/jcr:primaryType", existsAndHasPermission(null, null),
-                propertyPath, existsAndHasPermission(null, null),
-                childPath + "/new", existsAndHasPermission(null, null)
+            "/jcr:primaryType", existsAndHasPermission(null, null),
+            propertyPath, existsAndHasPermission(null, null),
+            childPath + "/new", existsAndHasPermission(null, null)
         );
 
         for (String pPath : propertyTests.keySet()) {
             Boolean[] expected = propertyTests.get(pPath);
 
             assertEquals(expected[0].booleanValue(), testSession.nodeExists(pPath));
-            assertEquals(expected[1].booleanValue(), testSession.hasPermission(pPath, Session.ACTION_READ));
+            assertEquals(expected[1].booleanValue(),
+                testSession.hasPermission(pPath, Session.ACTION_READ));
         }
     }
 
     public void testModifyPermissions() throws RepositoryException {
         // EXERCISE: fill in the expected values
         Map<String, Boolean> modifyPropertyTests = ImmutableMap.of(
-                "/jcr:primaryType", null,
-                testRoot, null,
-                propertyPath, null
+            "/jcr:primaryType", null,
+            testRoot, null,
+            propertyPath, null
         );
         for (String pPath : modifyPropertyTests.keySet()) {
             boolean canModifyProperty = modifyPropertyTests.get(pPath);
-            assertEquals(canModifyProperty, testSession.hasPermission(pPath, Session.ACTION_SET_PROPERTY));
+            assertEquals(canModifyProperty,
+                testSession.hasPermission(pPath, Session.ACTION_SET_PROPERTY));
         }
     }
 
     public void testRemovePermissions() throws RepositoryException {
         // EXERCISE: fill in the expected values
         Map<String, Boolean> removePropertyTests = ImmutableMap.of(
-                "/jcr:primaryType", null,
-                propertyPath, null,
-                childPath + "/new", null
+            "/jcr:primaryType", null,
+            propertyPath, null,
+            childPath + "/new", null
         );
         for (String pPath : removePropertyTests.keySet()) {
             boolean canRemoveProperty = removePropertyTests.get(pPath);
-            assertEquals(canRemoveProperty, testSession.hasPermission(pPath, Session.ACTION_REMOVE));
+            assertEquals(canRemoveProperty,
+                testSession.hasPermission(pPath, Session.ACTION_REMOVE));
         }
 
         // EXERCISE: fill in the expected values
         Map<String, Boolean> removeNodesTests = ImmutableMap.of(
-                "/", null,
-                testRoot, null,
-                childPath, null,
-                childPath + "/new", null
+            "/", null,
+            testRoot, null,
+            childPath, null,
+            childPath + "/new", null
         );
         for (String nodePath : removeNodesTests.keySet()) {
             boolean canRemoveNode = removeNodesTests.get(nodePath);
             assertEquals(canRemoveNode, testSession.hasPermission(nodePath, Session.ACTION_REMOVE));
         }
-
 
         // EXERCISE : change the permission setup such that the following tests succeed.
         testSession.refresh(false);
@@ -257,23 +267,24 @@ public class L2_PermissionDiscoveryTest extends AbstractJCRTest {
     public void testAddPermissions() throws RepositoryException {
         // EXERCISE: fill in the expected values
         Map<String, Boolean> addPropertyTests = ImmutableMap.of(
-                "/propertyName1", null,
-                testRoot, null,
-                propertyPath, null,
-                childPath + "/new", null
+            "/propertyName1", null,
+            testRoot, null,
+            propertyPath, null,
+            childPath + "/new", null
         );
         for (String pPath : addPropertyTests.keySet()) {
             boolean canAddProperty = addPropertyTests.get(pPath);
-            assertEquals(canAddProperty, testSession.hasPermission(pPath, Session.ACTION_SET_PROPERTY));
+            assertEquals(canAddProperty,
+                testSession.hasPermission(pPath, Session.ACTION_SET_PROPERTY));
         }
 
         // EXERCISE: fill in the expected values
         Map<String, Boolean> addNodesTests = ImmutableMap.of(
-                "/childNode", null,
-                testRoot, null,
-                testRoot + "/new", null,
-                childPath, null,
-                childPath + "/new", null
+            "/childNode", null,
+            testRoot, null,
+            testRoot + "/new", null,
+            childPath, null,
+            childPath + "/new", null
         );
         for (String childPath : addNodesTests.keySet()) {
             boolean canAddNode = addNodesTests.get(childPath);
@@ -295,7 +306,8 @@ public class L2_PermissionDiscoveryTest extends AbstractJCRTest {
 
         testSession.refresh(false);
         assertTrue(testSession.hasPermission(propertyPath, modifyPropertyPermissions));
-        assertFalse(testSession.hasPermission(propertyPath, Permissions.getString(Permissions.REMOVE_PROPERTY|Permissions.ADD_PROPERTY)));
+        assertFalse(testSession.hasPermission(propertyPath,
+            Permissions.getString(Permissions.REMOVE_PROPERTY | Permissions.ADD_PROPERTY)));
 
         String addItemPermissions = null; // EXERCISE
         assertTrue(testSession.hasPermission(childPath, addItemPermissions));

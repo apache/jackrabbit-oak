@@ -61,16 +61,16 @@ public class CollisionRollbackTest {
         this.fixture = fixture;
     }
 
-    @Parameterized.Parameters(name="{0}")
+    @Parameterized.Parameters(name = "{0}")
     public static java.util.Collection<Object[]> fixtures() throws IOException {
         List<Object[]> fixtures = Lists.newArrayList();
-        fixtures.add(new Object[] {new DocumentStoreFixture.MemoryFixture()});
-        fixtures.add(new Object[] {new DocumentStoreFixture.ClusterlikeMemoryFixture()});
-        fixtures.add(new Object[] {new DocumentStoreFixture.RDBFixture()});
+        fixtures.add(new Object[]{new DocumentStoreFixture.MemoryFixture()});
+        fixtures.add(new Object[]{new DocumentStoreFixture.ClusterlikeMemoryFixture()});
+        fixtures.add(new Object[]{new DocumentStoreFixture.RDBFixture()});
 
         DocumentStoreFixture mongo = new DocumentStoreFixture.MongoFixture();
-        if(mongo.isAvailable()){
-            fixtures.add(new Object[] {mongo});
+        if (mongo.isAvailable()) {
+            fixtures.add(new Object[]{mongo});
         }
         return fixtures;
     }
@@ -99,15 +99,14 @@ public class CollisionRollbackTest {
     }
 
     /**
-     * Test to show-case a race-condition between a collision and
-     * MongoDocumentStore's nodesCache: when a document is read into
-     * the nodesCache shortly before a collision is rolled back,
-     * it runs risk of later making uncommitted changes visible.
+     * Test to show-case a race-condition between a collision and MongoDocumentStore's nodesCache:
+     * when a document is read into the nodesCache shortly before a collision is rolled back, it
+     * runs risk of later making uncommitted changes visible.
      * <p/>
      * The test case works as follows:
      * <ul>
      * <li>consider clusterId 2 and 4 being active in a cluster</li>
-     * <li>a target path /parent/foo (and sibling /parent/bar) having 
+     * <li>a target path /parent/foo (and sibling /parent/bar) having
      * formerly been created</li>
      * <li>clusterId 2: now wants to delete /parent/foo and /parent/bar, and starts
      * doing so versus mongo by first setting _deleted:true on those two nodes
@@ -143,10 +142,9 @@ public class CollisionRollbackTest {
     }
 
     /**
-     * Same as {@link #cachingUncommittedBeforeCollisionRollback_withPause()},
-     * except with a crash instead of a pause (of clusterId 2).
-     * This variant should test whether recovery correctly causes cache
-     * invalidation on clusterId 4 as well.
+     * Same as {@link #cachingUncommittedBeforeCollisionRollback_withPause()}, except with a crash
+     * instead of a pause (of clusterId 2). This variant should test whether recovery correctly
+     * causes cache invalidation on clusterId 4 as well.
      */
     @Test
     public void cachingUncommittedBeforeCollisionRollback_crashBeforeRollback() throws Exception {
@@ -154,8 +152,8 @@ public class CollisionRollbackTest {
     }
 
     /**
-     * Same as {@link #cachingUncommittedBeforeCollisionRollback_crashBeforeRollback()},
-     * except it crashes later, after the rollback was applied.
+     * Same as {@link #cachingUncommittedBeforeCollisionRollback_crashBeforeRollback()}, except it
+     * crashes later, after the rollback was applied.
      */
     @Test
     public void cachingUncommittedBeforeCollisionRollback_crashAfterRollback() throws Exception {
@@ -163,8 +161,8 @@ public class CollisionRollbackTest {
     }
 
     public void doCachingUncommittedBeforeCollisionRollback(
-            final boolean crashInsteadOfContinue,
-            final boolean crashAfterRollback) throws Exception {
+        final boolean crashInsteadOfContinue,
+        final boolean crashAfterRollback) throws Exception {
         assumeTrue(fixture.hasSinglePersistence());
         // two nodes part of the game:
         // 2 : the main one that starts to do a subtree deletion
@@ -198,24 +196,27 @@ public class CollisionRollbackTest {
         // RDBFixture only support 1 or 2, so the historically chosen 4 had to be (re)set to 1
         int clusterId4 = 1;
         DocumentStore store1 = fixture.createDocumentStore(clusterId4);
-        final PausableDocumentStore pausableStore2 = new PausableDocumentStore(fixture.createDocumentStore(2));
+        final PausableDocumentStore pausableStore2 = new PausableDocumentStore(
+            fixture.createDocumentStore(2));
         pausableStore2.pauseWith(breakOnceInThread).on(Collection.NODES)
-                .on("2:/parent/foo").after(1).afterOp().eternally();
+                      .on("2:/parent/foo").after(1).afterOp().eternally();
         FailingDocumentStore store2 = new FailingDocumentStore(pausableStore2);
 
         ns = builderProvider.newBuilder().setDocumentStore(store1)
-                // use lenient mode because tests use a virtual clock
-                .setLeaseCheckMode(LeaseCheckMode.LENIENT).setClusterId(clusterId4).clock(clock)
-                // cancelInvalidation on this nodestore doesn't have any effect in the test
-                .setCancelInvalidationFeature(createFeature(true))
-                .setAsyncDelay(0).getNodeStore();
+                            // use lenient mode because tests use a virtual clock
+                            .setLeaseCheckMode(LeaseCheckMode.LENIENT).setClusterId(clusterId4)
+                            .clock(clock)
+                            // cancelInvalidation on this nodestore doesn't have any effect in the test
+                            .setCancelInvalidationFeature(createFeature(true))
+                            .setAsyncDelay(0).getNodeStore();
         DocumentNodeStore ns4 = ns;
         DocumentNodeStore ns2 = builderProvider.newBuilder().setDocumentStore(store2)
-                // use lenient mode because tests use a virtual clock
-                .setLeaseCheckMode(LeaseCheckMode.LENIENT).setClusterId(2).clock(clock)
-                // cancelInvalidation on this nodestore is what fixes the test
-                .setCancelInvalidationFeature(createFeature(true))
-                .setAsyncDelay(0).getNodeStore();
+                                               // use lenient mode because tests use a virtual clock
+                                               .setLeaseCheckMode(LeaseCheckMode.LENIENT)
+                                               .setClusterId(2).clock(clock)
+                                               // cancelInvalidation on this nodestore is what fixes the test
+                                               .setCancelInvalidationFeature(createFeature(true))
+                                               .setAsyncDelay(0).getNodeStore();
 
         {
             // setup
@@ -252,10 +253,10 @@ public class CollisionRollbackTest {
         // prepare a regular collision on 4
         NodeBuilder collisionBuilder4 = ns4.getRoot().builder();
         collisionBuilder4.child("parent").child("bar").setProperty("collideOnPurpose",
-                "indeed");
+            "indeed");
         // do the collision also on /parent/foo
         collisionBuilder4.child("parent").child("foo").setProperty("someotherchange",
-                "42");
+            "42");
 
         // start /parent/foo deletion on 2 in a separate thread
         Thread th2 = new Thread(codeOn2);
@@ -298,20 +299,21 @@ public class CollisionRollbackTest {
         if (crashInsteadOfContinue) {
             try {
                 ns2.dispose();
-            } catch(DocumentStoreException dse) {
+            } catch (DocumentStoreException dse) {
                 // ok
             }
             // start up a fresh ns2 for the below change, to update lastrev
-            for(int seconds=0; seconds < 1800; seconds+=20) {
+            for (int seconds = 0; seconds < 1800; seconds += 20) {
                 clock.waitUntil(clock.getTime() + TimeUnit.SECONDS.toMillis(1));
                 ns4.runBackgroundOperations();
             }
             assertTrue(ns4.getRoot().getChildNode("parent").hasChildNode("foo"));
             store2 = new FailingDocumentStore(fixture.createDocumentStore(2));
             ns2 = builderProvider.newBuilder().setDocumentStore(store2)
-                    // use lenient mode because tests use a virtual clock
-                    .setLeaseCheckMode(LeaseCheckMode.LENIENT).setClusterId(2).clock(clock)
-                    .setAsyncDelay(0).getNodeStore();
+                                 // use lenient mode because tests use a virtual clock
+                                 .setLeaseCheckMode(LeaseCheckMode.LENIENT).setClusterId(2)
+                                 .clock(clock)
+                                 .setAsyncDelay(0).getNodeStore();
             assertTrue(ns4.getRoot().getChildNode("parent").hasChildNode("foo"));
         }
         {
@@ -331,7 +333,8 @@ public class CollisionRollbackTest {
         // "_deleted":{"r123456789a-0-2":"true",..}
         // 2) plus it now resolves to commitValue "c" since it is now passed
         // the sweep revision (since we did another commit/bg just few lines above)
-        assertTrue("/parent/foo should exist", ns4.getRoot().getChildNode("parent").hasChildNode("foo"));
+        assertTrue("/parent/foo should exist",
+            ns4.getRoot().getChildNode("parent").hasChildNode("foo"));
     }
 
     private static Feature createFeature(boolean enabled) {
@@ -342,10 +345,10 @@ public class CollisionRollbackTest {
 
     private DocumentNodeStore createDocumentNodeStore(int clusterId) {
         return builderProvider.newBuilder().setDocumentStore(store)
-                // use lenient mode because tests use a virtual clock
-                .setLeaseCheckMode(LeaseCheckMode.LENIENT)
-                .setClusterId(clusterId).clock(clock).setAsyncDelay(0)
-                .getNodeStore();
+                              // use lenient mode because tests use a virtual clock
+                              .setLeaseCheckMode(LeaseCheckMode.LENIENT)
+                              .setClusterId(clusterId).clock(clock).setAsyncDelay(0)
+                              .getNodeStore();
     }
 
 }

@@ -19,17 +19,6 @@
 
 package org.apache.jackrabbit.oak.plugins.tika;
 
-import org.apache.jackrabbit.guava.common.io.ByteSource;
-import org.apache.jackrabbit.guava.common.io.CountingInputStream;
-import org.apache.jackrabbit.oak.commons.IOUtils;
-import org.apache.jackrabbit.oak.commons.io.LazyInputStream;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.TextWriter;
-import org.apache.tika.metadata.Metadata;
-import org.apache.tika.parser.ParseContext;
-import org.apache.tika.sax.WriteOutContentHandler;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
@@ -44,10 +33,22 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
+import org.apache.jackrabbit.guava.common.io.ByteSource;
+import org.apache.jackrabbit.guava.common.io.CountingInputStream;
+import org.apache.jackrabbit.oak.commons.IOUtils;
+import org.apache.jackrabbit.oak.commons.io.LazyInputStream;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.TextWriter;
+import org.apache.tika.metadata.Metadata;
+import org.apache.tika.parser.ParseContext;
+import org.apache.tika.sax.WriteOutContentHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class TextExtractor implements Closeable {
+
     private static final Logger log = LoggerFactory.getLogger(TextExtractor.class);
-    private static final Logger parserError = LoggerFactory.getLogger("org.apache.jackrabbit.oak.plugins.tika.ParserError");
+    private static final Logger parserError = LoggerFactory.getLogger(
+        "org.apache.jackrabbit.oak.plugins.tika.ParserError");
     private static final int PROGRESS_BATCH_SIZE = 1000;
     private static final int MAX_EXTRACT_LENGTH = 100000;
     private static final String ERROR_TEXT = "TextExtractionError";
@@ -84,7 +85,8 @@ class TextExtractor implements Closeable {
         this.textWriter = textWriter;
     }
 
-    public void extract(Iterable<BinaryResource> binaries) throws InterruptedException, IOException {
+    public void extract(Iterable<BinaryResource> binaries)
+        throws InterruptedException, IOException {
         initialize();
         for (BinaryResource binary : binaries) {
             inputQueue.put(new WorkItem(binary));
@@ -138,9 +140,12 @@ class TextExtractor implements Closeable {
         pw.printf("\t   Error Count             : %d%n", errorCount.get());
         pw.printf("\t   Not Supported Count     : %d%n", notSupportedCount.get());
         pw.printf("\t   Already processed Count : %d%n", alreadyExtractedCount.get());
-        pw.printf("\t Total bytes read          : %s%n", IOUtils.humanReadableByteCount(totalSizeRead.get()));
-        pw.printf("\t Total text extracted      : %s%n", IOUtils.humanReadableByteCount(extractedTextSize.get()));
-        pw.printf("\t   Non empty text          : %s%n", IOUtils.humanReadableByteCount(nonEmptyExtractedTextSize.get()));
+        pw.printf("\t Total bytes read          : %s%n",
+            IOUtils.humanReadableByteCount(totalSizeRead.get()));
+        pw.printf("\t Total text extracted      : %s%n",
+            IOUtils.humanReadableByteCount(extractedTextSize.get()));
+        pw.printf("\t   Non empty text          : %s%n",
+            IOUtils.humanReadableByteCount(nonEmptyExtractedTextSize.get()));
         pw.printf("\t Time taken                : %d sec%n", timeTaken.get() / 1000);
         pw.close();
         log.info(sw.toString());
@@ -152,9 +157,10 @@ class TextExtractor implements Closeable {
             if (stats != null) {
                 double processedPercent = count * 1.0 / stats.getTotalCount() * 100;
                 double indexedPercent = extractionCount.get() * 1.0 / stats.getIndexedCount() * 100;
-                progress = String.format("(%1.2f%%) (Extraction stats %d/%d %1.2f%%, Ignored count %d)",
-                        processedPercent, extractionCount.get(), stats.getIndexedCount(),
-                        indexedPercent, notSupportedCount.get());
+                progress = String.format(
+                    "(%1.2f%%) (Extraction stats %d/%d %1.2f%%, Ignored count %d)",
+                    processedPercent, extractionCount.get(), stats.getIndexedCount(),
+                    indexedPercent, notSupportedCount.get());
             }
             log.info("Processed {} {} binaries so far ...", count, progress);
         }
@@ -174,7 +180,7 @@ class TextExtractor implements Closeable {
         String type = source.getMimeType();
         if (type == null || !tika.isSupportedMediaType(type)) {
             log.trace("Ignoring binary content for node {} due to unsupported " +
-                    "(or null) jcr:mimeType [{}]", source, type);
+                "(or null) jcr:mimeType [{}]", source, type);
             notSupportedCount.incrementAndGet();
             return;
         }
@@ -192,7 +198,8 @@ class TextExtractor implements Closeable {
             metadata.set(Metadata.CONTENT_ENCODING, source.getEncoding());
         }
 
-        String extractedContent = parseStringValue(source.getByteSource(), metadata, source.getPath());
+        String extractedContent = parseStringValue(source.getByteSource(), metadata,
+            source.getPath());
         if (ERROR_TEXT.equals(extractedContent)) {
             textWriter.markError(blobId);
         } else if (extractedContent != null) {
@@ -217,6 +224,7 @@ class TextExtractor implements Closeable {
     }
 
     private class Extractor implements Runnable {
+
         @Override
         public void run() {
             while (true) {
@@ -247,18 +255,18 @@ class TextExtractor implements Closeable {
         long start = System.currentTimeMillis();
         long size = 0;
         try {
-            Supplier<InputStream> inputStreamSupplier = new Supplier<InputStream> () {
+            Supplier<InputStream> inputStreamSupplier = new Supplier<InputStream>() {
                 @Override
                 public InputStream get() {
                     try {
                         return byteSource.openStream();
-                    }
-                    catch (IOException ex) {
+                    } catch (IOException ex) {
                         throw new IllegalStateException(ex);
                     }
                 }
             };
-            CountingInputStream stream = new CountingInputStream(new LazyInputStream(inputStreamSupplier));
+            CountingInputStream stream = new CountingInputStream(
+                new LazyInputStream(inputStreamSupplier));
             try {
                 tika.getParser().parse(stream, handler, metadata, new ParseContext());
             } finally {
@@ -271,7 +279,7 @@ class TextExtractor implements Closeable {
             // selected media types in configuration, so we can simply
             // ignore these errors.
             String format = "Failed to extract text from a binary property: {}. "
-                            + "This often happens when the media types is disabled by configuration.";
+                + "This often happens when the media types is disabled by configuration.";
             log.info(format, path);
             log.debug(format, path, e);
             parserErrorCount.incrementAndGet();
@@ -282,12 +290,13 @@ class TextExtractor implements Closeable {
             if (!handler.isWriteLimitReached(t)) {
                 parserErrorCount.incrementAndGet();
                 String format = "Failed to extract text from a binary property: {}. "
-                        + "This is quite common, and usually nothing to worry about.";
+                    + "This is quite common, and usually nothing to worry about.";
                 parserError.info(format, path);
                 parserError.debug(format, path, t);
                 return ERROR_TEXT;
             } else {
-                parserError.debug("Extracted text size exceeded configured limit({})", maxExtractedLength);
+                parserError.debug("Extracted text size exceeded configured limit({})",
+                    maxExtractedLength);
             }
         }
         String result = handler.toString();
@@ -305,6 +314,7 @@ class TextExtractor implements Closeable {
     //~--------------------------------------< WorkItem >
 
     private static class WorkItem {
+
         final BinaryResource source;
 
         private WorkItem(BinaryResource source) {

@@ -38,19 +38,19 @@ import static org.junit.Assert.assertEquals;
 public class ReplicaSetStatusTest {
 
     private List<ServerAddress> hosts = Arrays.asList(
-            new ServerAddress("localhost", 27017),
-            new ServerAddress("localhost", 27018),
-            new ServerAddress("localhost", 27019)
+        new ServerAddress("localhost", 27017),
+        new ServerAddress("localhost", 27018),
+        new ServerAddress("localhost", 27019)
     );
 
     private List<BsonValue> hostValues = hosts.stream()
-            .map(sa -> new BsonString(sa.toString()))
-            .collect(Collectors.toList());
+                                              .map(sa -> new BsonString(sa.toString()))
+                                              .collect(Collectors.toList());
 
     private List<ConnectionDescription> connections = Arrays.asList(
-            new ConnectionDescription(new ServerId(new ClusterId(), hosts.get(0))),
-            new ConnectionDescription(new ServerId(new ClusterId(), hosts.get(1))),
-            new ConnectionDescription(new ServerId(new ClusterId(), hosts.get(2)))
+        new ConnectionDescription(new ServerId(new ClusterId(), hosts.get(0))),
+        new ConnectionDescription(new ServerId(new ClusterId(), hosts.get(1))),
+        new ConnectionDescription(new ServerId(new ClusterId(), hosts.get(2)))
     );
 
     @Test
@@ -98,7 +98,8 @@ public class ReplicaSetStatusTest {
 
     }
 
-    private ServerHeartbeatSucceededEvent newEvent(int connectionIndex, long localTime, long lastWriteDate) {
+    private ServerHeartbeatSucceededEvent newEvent(int connectionIndex, long localTime,
+        long lastWriteDate) {
         ConnectionDescription description = connections.get(connectionIndex);
         BsonDocument reply = new BsonDocument("localTime", new BsonDateTime(localTime));
         reply.put("hosts", new BsonArray(hostValues));

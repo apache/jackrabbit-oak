@@ -51,7 +51,7 @@ public class CollisionTest {
 
     @Rule
     public DocumentMKBuilderProvider builderProvider = new DocumentMKBuilderProvider();
-    
+
     private static final AtomicInteger COUNTER = new AtomicInteger();
 
     private Clock clock;
@@ -85,7 +85,7 @@ public class CollisionTest {
         DocumentStore store = ns1.getDocumentStore();
 
         DocumentMK mk2 = newBuilder().setClusterId(2)
-                .setDocumentStore(store).open();
+                                     .setDocumentStore(store).open();
         DocumentNodeStore ns2 = mk2.getNodeStore();
 
         createCollision(mk1);
@@ -97,7 +97,7 @@ public class CollisionTest {
         // restart node store
         ns1.dispose();
         mk1 = newBuilder().setClusterId(1)
-                .setDocumentStore(store).open();
+                          .setDocumentStore(store).open();
         ns1 = mk1.getNodeStore();
 
         // must purge collision for clusterId 1
@@ -107,7 +107,7 @@ public class CollisionTest {
         // restart other node store
         ns2.dispose();
         mk2 = newBuilder().setClusterId(2)
-                .setDocumentStore(store).open();
+                          .setDocumentStore(store).open();
         ns2 = mk2.getNodeStore();
 
         // must purge collision for clusterId 2
@@ -118,7 +118,7 @@ public class CollisionTest {
     @Test
     public void isConflicting() throws CommitFailedException {
         DocumentNodeStore ns = newBuilder()
-                .setAsyncDelay(0).getNodeStore();
+            .setAsyncDelay(0).getNodeStore();
         DocumentStore store = ns.getDocumentStore();
         String id = Utils.getIdFromPath("/test");
 
@@ -188,20 +188,20 @@ public class CollisionTest {
     }
 
     private static Collision newCollision(@NotNull NodeDocument document,
-                                          @NotNull Revision theirRev,
-                                          @NotNull UpdateOp ourOp,
-                                          @NotNull Revision ourRev,
-                                          @NotNull RevisionContext context) {
+        @NotNull Revision theirRev,
+        @NotNull UpdateOp ourOp,
+        @NotNull Revision ourRev,
+        @NotNull RevisionContext context) {
         return new Collision(document, theirRev, ourOp, ourRev, context,
-                RevisionVector.fromString(""));
+            RevisionVector.fromString(""));
     }
 
     @Test
     public void collisionOnOrphanedBranch() throws Exception {
         DocumentStore store = new MemoryDocumentStore();
         DocumentNodeStore ns = newBuilder()
-                .setDocumentStore(store).setAsyncDelay(0)
-                .setUpdateLimit(10).build();
+            .setDocumentStore(store).setAsyncDelay(0)
+            .setUpdateLimit(10).build();
 
         NodeBuilder builder = ns.getRoot().builder();
         // force a branch commit
@@ -210,7 +210,7 @@ public class CollisionTest {
         }
         retainBranches(ns);
         ns.dispose();
-        
+
         NodeDocument root = store.find(NODES, Utils.getIdFromPath(ROOT));
         assertNotNull(root);
         assertThat(root.getLocalBranchCommits(), not(empty()));
@@ -221,8 +221,8 @@ public class CollisionTest {
 
         // start it up again
         ns = newBuilder()
-                .setDocumentStore(store).setAsyncDelay(0)
-                .setUpdateLimit(10).build();
+            .setDocumentStore(store).setAsyncDelay(0)
+            .setUpdateLimit(10).build();
         ns.updateClusterState();
 
         root = store.find(NODES, Utils.getIdFromPath(ROOT));
@@ -250,11 +250,11 @@ public class CollisionTest {
     public void collisionOnForeignOrphanedBranch() throws Exception {
         DocumentStore store = new MemoryDocumentStore();
         DocumentNodeStore ns1 = newBuilder()
-                .setDocumentStore(store).setAsyncDelay(0)
-                .setUpdateLimit(10).setClusterId(1).build();
+            .setDocumentStore(store).setAsyncDelay(0)
+            .setUpdateLimit(10).setClusterId(1).build();
         DocumentNodeStore ns2 = newBuilder()
-                .setDocumentStore(store).setAsyncDelay(0)
-                .setUpdateLimit(10).setClusterId(2).build();
+            .setDocumentStore(store).setAsyncDelay(0)
+            .setUpdateLimit(10).setClusterId(2).build();
 
         NodeBuilder builder = ns1.getRoot().builder();
         // force a branch commit
@@ -290,11 +290,11 @@ public class CollisionTest {
     public void collisionOnForeignOrphanedBranchAfterRestart() throws Exception {
         DocumentStore store = new MemoryDocumentStore();
         DocumentNodeStore ns1 = newBuilder()
-                .setDocumentStore(store).setAsyncDelay(0)
-                .setUpdateLimit(10).setClusterId(1).build();
+            .setDocumentStore(store).setAsyncDelay(0)
+            .setUpdateLimit(10).setClusterId(1).build();
         DocumentNodeStore ns2 = newBuilder()
-                .setDocumentStore(store).setAsyncDelay(0)
-                .setUpdateLimit(10).setClusterId(2).build();
+            .setDocumentStore(store).setAsyncDelay(0)
+            .setUpdateLimit(10).setClusterId(2).build();
 
         NodeBuilder builder = ns1.getRoot().builder();
         // force a branch commit
@@ -314,8 +314,8 @@ public class CollisionTest {
 
         // start it up again
         ns1 = newBuilder()
-                .setDocumentStore(store).setAsyncDelay(0)
-                .setUpdateLimit(10).setClusterId(1).build();
+            .setDocumentStore(store).setAsyncDelay(0)
+            .setUpdateLimit(10).setClusterId(1).build();
 
         root = store.find(NODES, Utils.getIdFromPath(ROOT));
         assertNotNull(root);
@@ -345,11 +345,11 @@ public class CollisionTest {
         int updateLimit = 10;
         DocumentStore store = new MemoryDocumentStore();
         DocumentNodeStore ns1 = newBuilder()
-                .setDocumentStore(store).setAsyncDelay(0)
-                .setUpdateLimit(updateLimit).setClusterId(1).build();
+            .setDocumentStore(store).setAsyncDelay(0)
+            .setUpdateLimit(updateLimit).setClusterId(1).build();
         DocumentNodeStore ns2 = newBuilder()
-                .setDocumentStore(store).setAsyncDelay(0)
-                .setUpdateLimit(updateLimit).setClusterId(2).build();
+            .setDocumentStore(store).setAsyncDelay(0)
+            .setUpdateLimit(updateLimit).setClusterId(2).build();
 
         NodeBuilder builder = ns1.getRoot().builder();
         // force a branch commit
@@ -369,8 +369,8 @@ public class CollisionTest {
 
         // start it up again
         ns1 = newBuilder()
-                .setDocumentStore(store).setAsyncDelay(0)
-                .setUpdateLimit(updateLimit).setClusterId(1).build();
+            .setDocumentStore(store).setAsyncDelay(0)
+            .setUpdateLimit(updateLimit).setClusterId(1).build();
 
         root = store.find(NODES, Utils.getIdFromPath(ROOT));
         assertNotNull(root);
@@ -407,7 +407,7 @@ public class CollisionTest {
 
     @NotNull
     private static RevisionVector merge(DocumentNodeStore ns, NodeBuilder nb)
-            throws CommitFailedException {
+        throws CommitFailedException {
         ns.merge(nb, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         return ns.getHeadRevision();
     }
@@ -434,8 +434,8 @@ public class CollisionTest {
     }
 
     /**
-     * Add all known branch referents to {@link #branches} to prevent clean up
-     * of orphaned branches.
+     * Add all known branch referents to {@link #branches} to prevent clean up of orphaned
+     * branches.
      */
     private void retainBranches(DocumentNodeStore ns) {
         NodeDocument root = getRootDocument(ns.getDocumentStore());

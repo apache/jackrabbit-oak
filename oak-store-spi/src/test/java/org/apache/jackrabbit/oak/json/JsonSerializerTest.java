@@ -19,28 +19,24 @@
 
 package org.apache.jackrabbit.oak.json;
 
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.junit.Assert.assertEquals;
+
 import java.util.Arrays;
 import java.util.List;
-
 import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.junit.Assert.*;
-
 public class JsonSerializerTest {
 
     @Test
-    public void childOrder() throws Exception{
+    public void childOrder() throws Exception {
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.child("a");
         builder.child("b");
@@ -67,9 +63,10 @@ public class JsonSerializerTest {
         assertEquals(expectedOrder, childNames);
     }
 
-    private String serialize(NodeState nodeState){
+    private String serialize(NodeState nodeState) {
         JsopBuilder json = new JsopBuilder();
-        new JsonSerializer(json, "{\"properties\":[\"*\", \"-:*\"]}", new BlobSerializer()).serialize(nodeState);
+        new JsonSerializer(json, "{\"properties\":[\"*\", \"-:*\"]}",
+            new BlobSerializer()).serialize(nodeState);
         return json.toString();
     }
 }

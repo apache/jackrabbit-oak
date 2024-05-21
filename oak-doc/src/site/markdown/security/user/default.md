@@ -27,13 +27,15 @@ separately for each JCR workspace.
 
 Consequently, the `UserManager` associated with the editing sessions, performs
 all actions with this editing session. This corresponds to the behavior as defined
-the alternative implementation present with Jackrabbit 2.x ((see Jackrabbit 2.x `UserPerWorkspaceUserManager`).
+the alternative implementation present with Jackrabbit 2.x ((see Jackrabbit
+2.x `UserPerWorkspaceUserManager`).
 
 * The Oak implementation is build on the Oak API. This allows for double usage as
   extension to the JCR API as well as within the Oak layer (aka SPI).
 * The `UserManager` is always associated with the same JCR workspace as the editing
   `Session` from which the class has been obtained.
-* Changes made to the user management API are always transient and require `Session#save()` to be persisted.
+* Changes made to the user management API are always transient and require `Session#save()` to be
+  persisted.
 * In case of any failure during user management related write operations the API
   consumer is in charge of specifically revert pending or invalid transient modifications
   or calling `Session#refresh(false)`.
@@ -52,6 +54,7 @@ The default user management implementation in OAK comes with an initializer that
 creates the following builtin user accounts:
 
 #### Administrator
+
 The admin user is always being created. The ID of this user is retrieved from the
 user configuration parameter `PARAM_ADMIN_ID`, which defaults to `admin`.
 
@@ -60,6 +63,7 @@ password forcing the application to set the password upon start (see `PARAM_OMIT
 configuration parameter).
 
 ##### Anonymous User
+
 In contrast to Jackrabbit 2.x the anonymous (or guest) user is optional. Creation
 will be skipped if the value of the `PARAM_ANONYMOUS_ID` configuration parameter
 is `null` or empty.
@@ -76,7 +80,7 @@ guest login.
 #### Everyone Group
 
 The default user management implementation in Oak contains special handling for
-the optional group that represents the [everyone] principal, which is marked by 
+the optional group that represents the [everyone] principal, which is marked by
 the reserved principal name and by definition has all other principals as members.
 
 This special group always contains all users/groups as member and cannot be edited
@@ -88,23 +92,37 @@ group membership related methods. See also [Principal Management](../principal.h
 #### Reading Authorizables
 
 ##### Handling of the Authorizable ID
-* As of Oak 1.0 the node type definition of `rep:Authorizable` defines a new property `rep:authorizableId` which is intended to store the ID of a user or group.
-* This property is protected and system maintained and cannot be changed after creation through user management API calls.
-* The default implementation comes with a dedicated property index for `rep:authorizableId` which asserts the uniqueness of that ID.
-* For backwards compatibility with Jackrabbit 2.x the ID specified during creation is also reflected in the `jcr:uuid` (protected and mandatory), which is used for the lookup. 
-* `Authorizable#getID` returns the string value contained in `rep:authorizableID` and for backwards compatibility falls back on the node name in case the `rep:authorizableId` property is missing.
-* The name of the authorizable node is generated based on a configurable implementation of the `AuthorizableNodeName` interface (see configuration section below). By default it uses the ID as name hint and includes a conversion to a valid JCR node name.
+
+* As of Oak 1.0 the node type definition of `rep:Authorizable` defines a new
+  property `rep:authorizableId` which is intended to store the ID of a user or group.
+* This property is protected and system maintained and cannot be changed after creation through user
+  management API calls.
+* The default implementation comes with a dedicated property index for `rep:authorizableId` which
+  asserts the uniqueness of that ID.
+* For backwards compatibility with Jackrabbit 2.x the ID specified during creation is also reflected
+  in the `jcr:uuid` (protected and mandatory), which is used for the lookup.
+* `Authorizable#getID` returns the string value contained in `rep:authorizableID` and for backwards
+  compatibility falls back on the node name in case the `rep:authorizableId` property is missing.
+* The name of the authorizable node is generated based on a configurable implementation of
+  the `AuthorizableNodeName` interface (see configuration section below). By default it uses the ID
+  as name hint and includes a conversion to a valid JCR node name.
 
 ##### equals() and hashCode()
+
 The implementation of `Object#equals()` and `Object#hashCode()` for user and
 groups slightly differs from Jackrabbit 2.x. It no longer relies on the _sameness_
 of the underlaying JCR node but only compares IDs and the user manager instance.
 
 #### Creating Authorizables
-* The `rep:password` property is no longer defined to be mandatory. Therefore a new user might be created without specifying a password. Note however, that `User#changePassword` does not allow to remove the password property.
-* Since version 1.1.0 Oak supports the new API to create dedicated system users [JCR-3802](https://issues.apache.org/jira/browse/JCR-3802).
+
+* The `rep:password` property is no longer defined to be mandatory. Therefore a new user might be
+  created without specifying a password. Note however, that `User#changePassword` does not allow to
+  remove the password property.
+* Since version 1.1.0 Oak supports the new API to create dedicated system
+  users [JCR-3802](https://issues.apache.org/jira/browse/JCR-3802).
 
 <a name="query"></a>
+
 #### Searching
 
 #### XPathQueryBuilder
@@ -117,6 +135,7 @@ interface which is passed to the query upon calling `UserManager#findAuthorizabl
 See section [Group Membership](membership.html) for details.
 
 #### Autosave Behavior
+
 Due to the nature of the UserManager (see above) we decided to drop the auto-save
 behavior in the default implementation present with OAK. Consequently,
 
@@ -128,18 +147,23 @@ application code has been written against the Jackrabbit API (and thus testing i
 auto-save mode is enabled or not) this configuration option can be used as last resort.
 
 #### XML Import
+
 As of Oak 1.0 user and group nodes can be imported both with Session and Workspace
 import. Other differences compared to Jackrabbit 2.x:
 
-* Importing an authorizable to another tree than the configured user/group node will only failed upon save (-> see `UserValidator` during the `Root#commit`). With Jackrabbit 2.x core it used to fail immediately.
-* The `BestEffort` behavior is now also implemented for the import of impersonators (was missing in Jackrabbit /2.x).
+* Importing an authorizable to another tree than the configured user/group node will only failed
+  upon save (-> see `UserValidator` during the `Root#commit`). With Jackrabbit 2.x core it used to
+  fail immediately.
+* The `BestEffort` behavior is now also implemented for the import of impersonators (was missing in
+  Jackrabbit /2.x).
 
 #### Password Expiry and Force Initial Password Change
 
 Since Oak 1.1.0 the default user management and authentication implementation
 provides password expiry and initial password change.
 
-By default, these features are disabled. See section [Password Expiry and Force Initial Password Change](expiry.html)
+By default, these features are disabled. See
+section [Password Expiry and Force Initial Password Change](expiry.html)
 for details.
 
 #### Password History
@@ -150,18 +174,22 @@ history support. By default, this feature is disabled.
 See section [Password History](history.html) for details.
 
 #### Impersonation
-The default implementation of the [Impersonation] interface comes with the following limitations and features:
- 
+
+The default implementation of the [Impersonation] interface comes with the following limitations and
+features:
+
 - only user principals can be granted impersonation
 - every user can impersonate itself
 - the admin user always can impersonate all users (and therefore cannot be granted impersonation)
-- the [Configuration](#configuration) allows to define a list of user or group principals that can impersonate all users (since Oak 1.54.0, see [OAK-10173])
+- the [Configuration](#configuration) allows to define a list of user or group principals that can
+  impersonate all users (since Oak 1.54.0, see [OAK-10173])
 
 <a name="representation"></a>
+
 ### Representation in the Repository
 
 The following block lists the built-in node types related to user management tasks:
-  
+
     [rep:Authorizable] > mix:referenceable, nt:hierarchyNode
       abstract
       + * (nt:base) = nt:unstructured VERSION
@@ -210,29 +238,31 @@ The following block lists the built-in node types related to user management tas
       - * (WEAKREFERENCE) protected < 'rep:Authorizable'
 
 <a name="validation"></a>
+
 ### Validation
 
 The consistency of this content structure is asserted by a dedicated `UserValidator`.
 The corresponding errors are all of type `Constraint` with the following codes:
 
-| Code              | Message                                                  |
-|-------------------|----------------------------------------------------------|
-| 0020              | Admin user cannot be disabled                            |
-| 0021              | Invalid jcr:uuid for authorizable (creation)             |
-| 0022              | Changing Id, principal name after creation               |
-| 0023              | Invalid jcr:uuid for authorizable (mod)                  |
-| 0024              | Password may not be plain text                           |
-| 0025              | Attempt to remove id, principalname or pw                |
-| 0026              | Mandatory property rep:principalName missing             |
-| 0027              | The admin user cannot be removed                         |
-| 0028              | Attempt to create outside of configured scope            |
-| 0029              | Intermediate folders not rep:AuthorizableFolder          |
-| 0030              | Missing uuid for group (check for cyclic membership)     |
-| <s>0031</s>        | <s>Cyclic group membership</s> (see [OAK-6072])         |
-| 0032              | Attempt to set password with system user                 |
-| 0033              | Attempt to add rep:pwd node to a system user             |
+| Code        | Message                                              |
+|-------------|------------------------------------------------------|
+| 0020        | Admin user cannot be disabled                        |
+| 0021        | Invalid jcr:uuid for authorizable (creation)         |
+| 0022        | Changing Id, principal name after creation           |
+| 0023        | Invalid jcr:uuid for authorizable (mod)              |
+| 0024        | Password may not be plain text                       |
+| 0025        | Attempt to remove id, principalname or pw            |
+| 0026        | Mandatory property rep:principalName missing         |
+| 0027        | The admin user cannot be removed                     |
+| 0028        | Attempt to create outside of configured scope        |
+| 0029        | Intermediate folders not rep:AuthorizableFolder      |
+| 0030        | Missing uuid for group (check for cyclic membership) |
+| <s>0031</s> | <s>Cyclic group membership</s> (see [OAK-6072])      |
+| 0032        | Attempt to set password with system user             |
+| 0033        | Attempt to add rep:pwd node to a system user         |
 
 <a name="configuration"></a>
+
 ### Configuration
 
 The following user management specific methods are present with the [UserConfiguration]
@@ -242,29 +272,30 @@ as of OAK 1.0:
 
 #### Configuration Parameters supported by the default implementation
 
-| Parameter                           | Type    | Default                                      | Description |
-|-------------------------------------|---------|----------------------------------------------|-------------|
-| `PARAM_ADMIN_ID`                    | String  | "admin"                                      ||
-| `PARAM_OMIT_ADMIN_PW`               | boolean | false                                        ||
-| `PARAM_ANONYMOUS_ID`                | String  | "anonymous" (nullable)                       ||
-| `PARAM_USER_PATH`                   | String  | "/rep:security/rep:authorizables/rep:users"  ||
-| `PARAM_GROUP_PATH`                  | String  | "/rep:security/rep:authorizables/rep:groups" ||
-| `PARAM_DEFAULT_DEPTH`               | int     | 2                                            ||
-| `PARAM_PASSWORD_HASH_ALGORITHM`     | String  | "SHA-256"                                    ||
-| `PARAM_PASSWORD_HASH_ITERATIONS`    | int     | 1000                                         ||
-| `PARAM_PASSWORD_SALT_SIZE`          | int     | 8                                            ||
-| `PARAM_AUTHORIZABLE_NODE_NAME`      | AuthorizableNodeName | AuthorizableNodeName#DEFAULT    ||
-| `PARAM_AUTHORIZABLE_ACTION_PROVIDER`| AuthorizableActionProvider | DefaultAuthorizableActionProvider ||
-| `PARAM_SUPPORT_AUTOSAVE`            | boolean | false                                        ||
-| `PARAM_IMPORT_BEHAVIOR`             | String ("abort", "ignore", "besteffort") | "ignore"    ||
-| `PARAM_PASSWORD_MAX_AGE`            | int     | 0                                            ||
-| `PARAM_PASSWORD_INITIAL_CHANGE`     | boolean | false                                        ||
-| `PARAM_PASSWORD_HISTORY_SIZE`       | int (upper limit: 1000) | 0                            ||
-| `PARAM_CACHE_EXPIRATION`            | long    | 0                                           | Number of milliseconds until the internal [principal cache](../principal/cache.html) expires. If not set or equal/lower than zero no cache is created/evaluated. |
-| `PARAM_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE`| boolean | false                              ||
-| `PARAM_IMPERSONATOR_PRINCIPAL_NAMES` | String | {}                                          | List of users who can impersonate and groups whose members can impersonate any user (since Oak 1.54.0, [OAK-10173]).                                             |
+| Parameter                                      | Type                                     | Default                                      | Description                                                                                                                                                      |
+|------------------------------------------------|------------------------------------------|----------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `PARAM_ADMIN_ID`                               | String                                   | "admin"                                      |                                                                                                                                                                  |
+| `PARAM_OMIT_ADMIN_PW`                          | boolean                                  | false                                        |                                                                                                                                                                  |
+| `PARAM_ANONYMOUS_ID`                           | String                                   | "anonymous" (nullable)                       |                                                                                                                                                                  |
+| `PARAM_USER_PATH`                              | String                                   | "/rep:security/rep:authorizables/rep:users"  |                                                                                                                                                                  |
+| `PARAM_GROUP_PATH`                             | String                                   | "/rep:security/rep:authorizables/rep:groups" |                                                                                                                                                                  |
+| `PARAM_DEFAULT_DEPTH`                          | int                                      | 2                                            |                                                                                                                                                                  |
+| `PARAM_PASSWORD_HASH_ALGORITHM`                | String                                   | "SHA-256"                                    |                                                                                                                                                                  |
+| `PARAM_PASSWORD_HASH_ITERATIONS`               | int                                      | 1000                                         |                                                                                                                                                                  |
+| `PARAM_PASSWORD_SALT_SIZE`                     | int                                      | 8                                            |                                                                                                                                                                  |
+| `PARAM_AUTHORIZABLE_NODE_NAME`                 | AuthorizableNodeName                     | AuthorizableNodeName#DEFAULT                 |                                                                                                                                                                  |
+| `PARAM_AUTHORIZABLE_ACTION_PROVIDER`           | AuthorizableActionProvider               | DefaultAuthorizableActionProvider            |                                                                                                                                                                  |
+| `PARAM_SUPPORT_AUTOSAVE`                       | boolean                                  | false                                        |                                                                                                                                                                  |
+| `PARAM_IMPORT_BEHAVIOR`                        | String ("abort", "ignore", "besteffort") | "ignore"                                     |                                                                                                                                                                  |
+| `PARAM_PASSWORD_MAX_AGE`                       | int                                      | 0                                            |                                                                                                                                                                  |
+| `PARAM_PASSWORD_INITIAL_CHANGE`                | boolean                                  | false                                        |                                                                                                                                                                  |
+| `PARAM_PASSWORD_HISTORY_SIZE`                  | int (upper limit: 1000)                  | 0                                            |                                                                                                                                                                  |
+| `PARAM_CACHE_EXPIRATION`                       | long                                     | 0                                            | Number of milliseconds until the internal [principal cache](../principal/cache.html) expires. If not set or equal/lower than zero no cache is created/evaluated. |
+| `PARAM_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE` | boolean                                  | false                                        |                                                                                                                                                                  |
+| `PARAM_IMPERSONATOR_PRINCIPAL_NAMES`           | String                                   | {}                                           | List of users who can impersonate and groups whose members can impersonate any user (since Oak 1.54.0, [OAK-10173]).                                             |
 
-The following configuration parameters present with the default implementation in Jackrabbit 2.x are no longer supported and will be ignored:
+The following configuration parameters present with the default implementation in Jackrabbit 2.x are
+no longer supported and will be ignored:
 
 * `compatibleJR16`
 * `autoExpandTree`
@@ -277,27 +308,30 @@ It is not related to user management s.str. but affects the implementation
 specific `PrincipalProvider` implementation exposed by `UserConfiguration.getUserPrincipalProvider`.
 
 <a name="pluggability"></a>
+
 ### Pluggability
 
 Within the default user management implementation the following parts can be
 modified or extended at runtime by providing corresponding OSGi services or passing
 appropriate configuration parameters exposing the custom implementations:
 
-- `AuthorizableActionProvider`: Defines the authorizable actions, see [Authorizable Actions](authorizableaction.html).
+- `AuthorizableActionProvider`: Defines the authorizable actions,
+  see [Authorizable Actions](authorizableaction.html).
 - `AuthorizableNodeName`: Defines the generation of the authorizable node names
   in case the user management implementation stores user information in the repository.
   See [Authorizable Node Name Generation](authorizablenodename.html).
 - `UserAuthenticationFactory`: see below
-   
+
 #### UserAuthenticationFactory : Authenticating Users
 
 Since Oak 1.1.5 the default user management implementation allows to configure
 and thus replace the default [UserAuthenticationFactory], which links the user
-management implementation with the authentication (specifically the [uid/pw-login](../authentication/default.html#user_authentication))
+management implementation with the authentication (specifically
+the [uid/pw-login](../authentication/default.html#user_authentication))
 as it exposes the [Authentication] implementation to be used for verification
 of the specified credentials according to details provided by a given user management
-implementation.  
-   
+implementation.
+
 ##### Examples
 
 ###### Example UserAuthenticationFactory
@@ -329,13 +363,19 @@ implementation.
         }
     }
 
-
 <!-- hidden references -->
+
 [everyone]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/principal/EveryonePrincipal.html#NAME
+
 [UserConfiguration]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/user/UserConfiguration.html
+
 [UserAuthenticationFactory]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/user/UserAuthenticationFactory.html
+
 [Authentication]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/Authentication.html
+
 [OAK-6072]: https://issues.apache.org/jira/browse/OAK-6072
+
 [OAK-10173]: https://issues.apache.org/jira/browse/OAK-10173
+
 [Impersonation]: /oak/docs/apidocs/org/apache/jackrabbit/api/security/user/Impersonation.html
 

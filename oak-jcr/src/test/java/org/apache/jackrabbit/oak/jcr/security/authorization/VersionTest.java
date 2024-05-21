@@ -16,6 +16,10 @@
  */
 package org.apache.jackrabbit.oak.jcr.security.authorization;
 
+import static org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest.dispose;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import java.util.ArrayList;
 import java.util.List;
 import javax.jcr.GuestCredentials;
@@ -25,17 +29,12 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 import javax.jcr.security.Privilege;
-
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import static org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest.dispose;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 public class VersionTest {
 
@@ -50,7 +49,7 @@ public class VersionTest {
         sessions.add(admin);
         Node testNode = admin.getRootNode().addNode("testNode");
         AccessControlUtils.addAccessControlEntry(admin, testNode.getPath(),
-                EveryonePrincipal.getInstance(), new String[]{Privilege.JCR_READ}, true);
+            EveryonePrincipal.getInstance(), new String[]{Privilege.JCR_READ}, true);
         admin.save();
     }
 

@@ -19,10 +19,13 @@
 
 package org.apache.jackrabbit.oak.plugins.tika;
 
+import static org.apache.jackrabbit.JcrConstants.JCR_CONTENT;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.junit.Assert.assertEquals;
+
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
@@ -36,11 +39,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import static org.apache.jackrabbit.JcrConstants.JCR_CONTENT;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.junit.Assert.assertEquals;
-
 public class NodeStoreBinaryResourceProviderTest {
+
     @Rule
     public final TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
 
@@ -51,11 +51,12 @@ public class NodeStoreBinaryResourceProviderTest {
         createFileNode(builder, "b", new IdBlob("hello", "id1"), "text/plain");
 
         createFileNode(builder.child("a2"), "c", new IdBlob("hello", "id2"), "text/foo")
-                .setProperty(JcrConstants.JCR_ENCODING, "bar");
+            .setProperty(JcrConstants.JCR_ENCODING, "bar");
 
         NodeStore store = new MemoryNodeStore(builder.getNodeState());
         BlobStore blobStore = new MemoryBlobStore();
-        NodeStoreBinaryResourceProvider extractor = new NodeStoreBinaryResourceProvider(store, blobStore);
+        NodeStoreBinaryResourceProvider extractor = new NodeStoreBinaryResourceProvider(store,
+            blobStore);
 
         assertEquals(2, extractor.getBinaries("/").size());
         assertEquals(1, extractor.getBinaries("/a2").size());
@@ -76,7 +77,8 @@ public class NodeStoreBinaryResourceProviderTest {
 
         NodeStore store = new MemoryNodeStore(builder.getNodeState());
 
-        NodeStoreBinaryResourceProvider extractor = new NodeStoreBinaryResourceProvider(store, blobStore);
+        NodeStoreBinaryResourceProvider extractor = new NodeStoreBinaryResourceProvider(store,
+            blobStore);
         CSVFileGenerator generator = new CSVFileGenerator(csv);
         generator.generate(extractor.getBinaries("/"));
 
@@ -86,7 +88,8 @@ public class NodeStoreBinaryResourceProviderTest {
         csvbrp.close();
     }
 
-    private NodeBuilder createFileNode(NodeBuilder base, String name, Blob content, String mimeType) {
+    private NodeBuilder createFileNode(NodeBuilder base, String name, Blob content,
+        String mimeType) {
         NodeBuilder jcrContent = base.child(name).child(JCR_CONTENT);
         jcrContent.setProperty(JcrConstants.JCR_DATA, content);
         jcrContent.setProperty(JcrConstants.JCR_MIMETYPE, mimeType);
@@ -99,6 +102,7 @@ public class NodeStoreBinaryResourceProviderTest {
     }
 
     private static class IdBlob extends ArrayBasedBlob {
+
         final String id;
 
         public IdBlob(String value, String id) {

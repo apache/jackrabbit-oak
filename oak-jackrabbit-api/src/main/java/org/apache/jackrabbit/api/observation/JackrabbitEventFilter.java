@@ -23,12 +23,14 @@ import org.osgi.annotation.versioning.ConsumerType;
 /**
  * A storage object for event filter configuration.
  * <p>
- * The parameters of the filter can then be set by chaining the set methods,
- * since each method returns the same <code>EventFilter</code> with the indicated parameter set.
+ * The parameters of the filter can then be set by chaining the set methods, since each method
+ * returns the same <code>EventFilter</code> with the indicated parameter set.
  * <p>
  * Once the filter is configured, it and an {@link javax.jcr.observation.EventListener} object are
  * passed to
- * {@link org.apache.jackrabbit.api.observation.JackrabbitObservationManager#addEventListener(javax.jcr.observation.EventListener, JackrabbitEventFilter)}.
+ * {@link
+ * org.apache.jackrabbit.api.observation.JackrabbitObservationManager#addEventListener(javax.jcr.observation.EventListener,
+ * JackrabbitEventFilter)}.
  * <p>
  * The filter restricts which events are sent to the <code>EventListener</code> according to the
  * following parameters. Note that the term <i>associated parent node</i> of an event means the
@@ -84,10 +86,10 @@ import org.osgi.annotation.versioning.ConsumerType;
  * </ul>
  * The restrictions are "ANDed" together. In other words, for a particular node to be "listened to" it
  * must meet all the restrictions.
- *
  */
 @ConsumerType
 public class JackrabbitEventFilter {  // TODO extends EventFilter once JCR 2.1 is out
+
     private int eventTypes;
     private String absPath;
     private boolean isDeep;
@@ -100,8 +102,8 @@ public class JackrabbitEventFilter {  // TODO extends EventFilter once JCR 2.1 i
     private boolean noInternal;
 
     /**
-     * Sets the <code>eventTypes</code> parameter of the filter.
-     * If left unset, this parameter defaults to <code>0</code>.
+     * Sets the <code>eventTypes</code> parameter of the filter. If left unset, this parameter
+     * defaults to <code>0</code>.
      *
      * @param eventTypes an <code>int</code>.
      * @return This EventFilter object with the <code>eventTypes</code> parameter set.
@@ -121,8 +123,8 @@ public class JackrabbitEventFilter {  // TODO extends EventFilter once JCR 2.1 i
     }
 
     /**
-     * Sets the <code>absPath</code> parameter of the filter.
-     * If left unset, this parameter defaults to <code>null</code>.
+     * Sets the <code>absPath</code> parameter of the filter. If left unset, this parameter defaults
+     * to <code>null</code>.
      *
      * @param absPath an absolute path <code>String</code>.
      * @return This EventFilter object with the <code>absPath</code> parameter set.
@@ -142,8 +144,8 @@ public class JackrabbitEventFilter {  // TODO extends EventFilter once JCR 2.1 i
     }
 
     /**
-     * Sets the <code>isDeep</code> parameter of the filter.
-     * If left unset, this parameter defaults to <code>false</code>.
+     * Sets the <code>isDeep</code> parameter of the filter. If left unset, this parameter defaults
+     * to <code>false</code>.
      *
      * @param isDeep a <code>boolean</code>.
      * @return This EventFilter object with the <code>isDeep</code> parameter set.
@@ -163,8 +165,8 @@ public class JackrabbitEventFilter {  // TODO extends EventFilter once JCR 2.1 i
     }
 
     /**
-     * Sets the <code>identifiers</code> parameter of the filter.
-     * If left unset, this parameter defaults to <code>null</code>.
+     * Sets the <code>identifiers</code> parameter of the filter. If left unset, this parameter
+     * defaults to <code>null</code>.
      *
      * @param identifiers a <code>String</code> array.
      * @return This EventFilter object with the <code>identifiers</code> parameter set.
@@ -184,8 +186,8 @@ public class JackrabbitEventFilter {  // TODO extends EventFilter once JCR 2.1 i
     }
 
     /**
-     * Sets the <code>nodeTypeNames</code> parameter of the filter.
-     * If left unset, this parameter defaults to <code>null</code>.
+     * Sets the <code>nodeTypeNames</code> parameter of the filter. If left unset, this parameter
+     * defaults to <code>null</code>.
      *
      * @param nodeTypeNames a <code>String</code> array.
      * @return This EventFilter object with the <code>nodeTypes</code> parameter set.
@@ -205,8 +207,8 @@ public class JackrabbitEventFilter {  // TODO extends EventFilter once JCR 2.1 i
     }
 
     /**
-     * Sets the <code>noLocal</code> parameter of the filter.
-     * If left unset, this parameter defaults to <code>false</code>.
+     * Sets the <code>noLocal</code> parameter of the filter. If left unset, this parameter defaults
+     * to <code>false</code>.
      *
      * @param noLocal a <code>boolean</code>.
      * @return This EventFilter object with the <code>noLocal</code> parameter set.
@@ -226,8 +228,8 @@ public class JackrabbitEventFilter {  // TODO extends EventFilter once JCR 2.1 i
     }
 
     /**
-     * Sets the <code>absPaths</code> parameter of the filter.
-     * If left unset, this parameter defaults to an empty array.
+     * Sets the <code>absPaths</code> parameter of the filter. If left unset, this parameter
+     * defaults to an empty array.
      *
      * @param absPaths an absolute path <code>String</code> array.
      * @return This EventFilter object with the <code>absPaths</code> parameter set.
@@ -247,8 +249,8 @@ public class JackrabbitEventFilter {  // TODO extends EventFilter once JCR 2.1 i
     }
 
     /**
-     * Sets the <code>excludedPaths</code> parameter of the filter.
-     * If left unset, this parameter defaults to an empty array.
+     * Sets the <code>excludedPaths</code> parameter of the filter. If left unset, this parameter
+     * defaults to an empty array.
      *
      * @param excludedPaths an absolute path <code>String</code> array.
      * @return This EventFilter object with the <code>excludedPaths</code> parameter set.
@@ -268,8 +270,8 @@ public class JackrabbitEventFilter {  // TODO extends EventFilter once JCR 2.1 i
     }
 
     /**
-     * Sets the <code>noExternal</code> parameter of the filter.
-     * If left unset, this parameter defaults to <code>false</code>.
+     * Sets the <code>noExternal</code> parameter of the filter. If left unset, this parameter
+     * defaults to <code>false</code>.
      *
      * @param noExternal a <code>boolean</code>.
      * @return This EventFilter object with the <code>noExternal</code> parameter set.
@@ -289,8 +291,8 @@ public class JackrabbitEventFilter {  // TODO extends EventFilter once JCR 2.1 i
     }
 
     /**
-     * Sets the <code>noInternal</code> parameter of the filter.
-     * If left unset, this parameter defaults to <code>false</code>.
+     * Sets the <code>noInternal</code> parameter of the filter. If left unset, this parameter
+     * defaults to <code>false</code>.
      *
      * @param noInternal a <code>boolean</code>.
      * @return This EventFilter object with the <code>noExternal</code> parameter set.

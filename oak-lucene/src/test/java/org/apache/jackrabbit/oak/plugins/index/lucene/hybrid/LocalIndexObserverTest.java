@@ -19,8 +19,11 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 
-import java.util.concurrent.Executor;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
+import java.util.concurrent.Executor;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexTracker;
 import org.apache.jackrabbit.oak.spi.commit.CommitContext;
@@ -30,11 +33,8 @@ import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-
 public class LocalIndexObserverTest {
+
     static final Executor NOOP_EXECUTOR = new Executor() {
         @Override
         public void execute(Runnable command) {
@@ -47,28 +47,28 @@ public class LocalIndexObserverTest {
     private LocalIndexObserver observer;
 
     @Before
-    public void setUp(){
+    public void setUp() {
         collectingQueue = new DocumentQueue(10, tracker, NOOP_EXECUTOR);
         observer = new LocalIndexObserver(collectingQueue, StatisticsProvider.NOOP);
     }
 
     @Test
-    public void externalCommitInfo() throws Exception{
+    public void externalCommitInfo() throws Exception {
         observer.contentChanged(EMPTY_NODE, CommitInfo.EMPTY_EXTERNAL);
     }
 
     @Test
-    public void noCommitContext() throws Exception{
+    public void noCommitContext() throws Exception {
         observer.contentChanged(EMPTY_NODE, CommitInfo.EMPTY);
     }
 
     @Test
-    public void noDocHolder() throws Exception{
+    public void noDocHolder() throws Exception {
         observer.contentChanged(EMPTY_NODE, newCommitInfo());
     }
 
     @Test
-    public void docsAddedToQueue() throws Exception{
+    public void docsAddedToQueue() throws Exception {
         CommitInfo info = newCommitInfo();
         CommitContext cc = (CommitContext) info.getInfo().get(CommitContext.NAME);
 
@@ -83,9 +83,9 @@ public class LocalIndexObserverTest {
         assertNull(cc.get(LuceneDocumentHolder.NAME));
     }
 
-    private CommitInfo newCommitInfo(){
+    private CommitInfo newCommitInfo() {
         return new CommitInfo("admin", "s1",
-                ImmutableMap.<String, Object>of(CommitContext.NAME, new SimpleCommitContext()));
+            ImmutableMap.<String, Object>of(CommitContext.NAME, new SimpleCommitContext()));
     }
 
 

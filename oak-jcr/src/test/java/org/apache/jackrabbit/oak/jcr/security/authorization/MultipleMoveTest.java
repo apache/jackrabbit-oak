@@ -21,7 +21,6 @@ import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.security.Privilege;
-
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -58,12 +57,12 @@ public class MultipleMoveTest extends AbstractEvaluationTest {
 
     private void setupMovePermissions(String source, String dest) throws Exception {
         allow(source, privilegesFromNames(new String[]{
-                Privilege.JCR_REMOVE_NODE,
-                Privilege.JCR_REMOVE_CHILD_NODES
+            Privilege.JCR_REMOVE_NODE,
+            Privilege.JCR_REMOVE_CHILD_NODES
         }));
-        allow(dest, privilegesFromNames(new String[] {
-                Privilege.JCR_ADD_CHILD_NODES,
-                Privilege.JCR_NODE_TYPE_MANAGEMENT}));
+        allow(dest, privilegesFromNames(new String[]{
+            Privilege.JCR_ADD_CHILD_NODES,
+            Privilege.JCR_NODE_TYPE_MANAGEMENT}));
 
     }
 
@@ -86,10 +85,10 @@ public class MultipleMoveTest extends AbstractEvaluationTest {
     @Test
     public void testMoveSubTreeBack2() throws Exception {
         allow(testRootNode.getPath(), privilegesFromNames(new String[]{
-                Privilege.JCR_REMOVE_NODE,
-                Privilege.JCR_REMOVE_CHILD_NODES,
-                Privilege.JCR_ADD_CHILD_NODES,
-                Privilege.JCR_NODE_TYPE_MANAGEMENT
+            Privilege.JCR_REMOVE_NODE,
+            Privilege.JCR_REMOVE_CHILD_NODES,
+            Privilege.JCR_ADD_CHILD_NODES,
+            Privilege.JCR_NODE_TYPE_MANAGEMENT
         }));
 
         //first move must succeed
@@ -119,10 +118,10 @@ public class MultipleMoveTest extends AbstractEvaluationTest {
     @Test
     public void testMoveSubTreeBack4() throws Exception {
         allow(testRootNode.getPath(), privilegesFromNames(new String[]{
-                Privilege.JCR_REMOVE_NODE,
-                Privilege.JCR_REMOVE_CHILD_NODES,
-                Privilege.JCR_ADD_CHILD_NODES,
-                Privilege.JCR_NODE_TYPE_MANAGEMENT
+            Privilege.JCR_REMOVE_NODE,
+            Privilege.JCR_REMOVE_CHILD_NODES,
+            Privilege.JCR_ADD_CHILD_NODES,
+            Privilege.JCR_NODE_TYPE_MANAGEMENT
         }));
 
         //first move must succeed
@@ -152,10 +151,10 @@ public class MultipleMoveTest extends AbstractEvaluationTest {
     @Test
     public void testMoveDestParent2() throws Exception {
         allow(testRootNode.getPath(), privilegesFromNames(new String[]{
-                Privilege.JCR_REMOVE_NODE,
-                Privilege.JCR_REMOVE_CHILD_NODES,
-                Privilege.JCR_ADD_CHILD_NODES,
-                Privilege.JCR_NODE_TYPE_MANAGEMENT
+            Privilege.JCR_REMOVE_NODE,
+            Privilege.JCR_REMOVE_CHILD_NODES,
+            Privilege.JCR_ADD_CHILD_NODES,
+            Privilege.JCR_NODE_TYPE_MANAGEMENT
         }));
 
         //first move must succeed
@@ -185,10 +184,10 @@ public class MultipleMoveTest extends AbstractEvaluationTest {
     @Test
     public void testMoveDestParent4() throws Exception {
         allow(testRootNode.getPath(), privilegesFromNames(new String[]{
-                Privilege.JCR_REMOVE_NODE,
-                Privilege.JCR_REMOVE_CHILD_NODES,
-                Privilege.JCR_ADD_CHILD_NODES,
-                Privilege.JCR_NODE_TYPE_MANAGEMENT
+            Privilege.JCR_REMOVE_NODE,
+            Privilege.JCR_REMOVE_CHILD_NODES,
+            Privilege.JCR_ADD_CHILD_NODES,
+            Privilege.JCR_NODE_TYPE_MANAGEMENT
         }));
 
         //first move must succeed

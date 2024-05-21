@@ -18,12 +18,28 @@
 
 package org.apache.jackrabbit.oak.segment;
 
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+
+import java.io.IOException;
+import java.util.AbstractMap.SimpleImmutableEntry;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map.Entry;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.segment.file.CompactedNodeState;
-import org.apache.jackrabbit.oak.segment.file.GCNodeWriteMonitor;
 import org.apache.jackrabbit.oak.segment.file.CompactionWriter;
+import org.apache.jackrabbit.oak.segment.file.GCNodeWriteMonitor;
 import org.apache.jackrabbit.oak.segment.file.cancel.Canceller;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -32,30 +48,15 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map.Entry;
-import java.util.AbstractMap.SimpleImmutableEntry;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-
 /**
- * This compactor implementation leverages the tree structure of the repository for concurrent compaction.
- * It explores the tree breadth-first until the target node count ({@value EXPLORATION_LOWER_LIMIT}) is reached.
- * Every node at this depth will be an entry point for asynchronous compaction. After the exploration phase,
- * the main thread will collect these compaction results and write their parents' node state to disk.
+ * This compactor implementation leverages the tree structure of the repository for concurrent
+ * compaction. It explores the tree breadth-first until the target node count
+ * ({@value EXPLORATION_LOWER_LIMIT}) is reached. Every node at this depth will be an entry point
+ * for asynchronous compaction. After the exploration phase, the main thread will collect these
+ * compaction results and write their parents' node state to disk.
  */
 public class ParallelCompactor extends CheckpointCompactor {
+
     /**
      * Expand repository tree until there are this many nodes for each worker to compact. Tradeoff
      * between inefficiency of many small tasks and high risk of at least one of the subtrees being
@@ -80,17 +81,19 @@ public class ParallelCompactor extends CheckpointCompactor {
     /**
      * Create a new instance based on the passed arguments.
      *
-     * @param gcListener        listener receiving notifications about the garbage collection process
+     * @param gcListener        listener receiving notifications about the garbage collection
+     *                          process
      * @param writer            segment writer used to serialise to segments
-     * @param compactionMonitor notification call back for each compacted nodes, properties, and binaries
-     * @param nThreads          number of threads to use for parallel compaction,
-     *                          negative numbers are interpreted relative to the number of available processors
+     * @param compactionMonitor notification call back for each compacted nodes, properties, and
+     *                          binaries
+     * @param nThreads          number of threads to use for parallel compaction, negative numbers
+     *                          are interpreted relative to the number of available processors
      */
     public ParallelCompactor(
-            @NotNull GCMonitor gcListener,
-            @NotNull CompactionWriter writer,
-            @NotNull GCNodeWriteMonitor compactionMonitor,
-            int nThreads) {
+        @NotNull GCMonitor gcListener,
+        @NotNull CompactionWriter writer,
+        @NotNull GCNodeWriteMonitor compactionMonitor,
+        int nThreads) {
         super(gcListener, writer, compactionMonitor);
         if (nThreads < 0) {
             nThreads += Runtime.getRuntime().availableProcessors() + 1;
@@ -100,11 +103,12 @@ public class ParallelCompactor extends CheckpointCompactor {
     }
 
     /**
-     * Implementation of {@link NodeStateDiff} to represent structure of repository changes.
-     * Tree is built by exploration process and subsequently used to collect and merge
-     * asynchronous compaction results.
+     * Implementation of {@link NodeStateDiff} to represent structure of repository changes. Tree is
+     * built by exploration process and subsequently used to collect and merge asynchronous
+     * compaction results.
      */
     private class CompactionTree implements NodeStateDiff {
+
         private final @NotNull NodeState before;
         private final @NotNull NodeState after;
         private final @NotNull NodeState onto;
@@ -117,30 +121,34 @@ public class ParallelCompactor extends CheckpointCompactor {
          */
         private @Nullable Future<CompactedNodeState> compactionFuture;
 
-        CompactionTree(@NotNull NodeState before, @NotNull NodeState after, @NotNull NodeState onto) {
+        CompactionTree(@NotNull NodeState before, @NotNull NodeState after,
+            @NotNull NodeState onto) {
             this.before = checkNotNull(before);
             this.after = checkNotNull(after);
             this.onto = checkNotNull(onto);
         }
 
         private class Property {
+
             private final @NotNull PropertyState state;
 
             Property(@NotNull PropertyState state) {
                 this.state = state;
             }
 
-            @NotNull PropertyState compact() {
+            @NotNull
+            PropertyState compact() {
                 return compactor.compact(state);
             }
         }
 
         private boolean compareState(@NotNull Canceller canceller) {
             return after.compareAgainstBaseState(before,
-                    new CancelableDiff(this, () -> canceller.check().isCancelled()));
+                new CancelableDiff(this, () -> canceller.check().isCancelled()));
         }
 
-        @Nullable List<Entry<String, CompactionTree>> expand(@NotNull Canceller hardCanceller) {
+        @Nullable
+        List<Entry<String, CompactionTree>> expand(@NotNull Canceller hardCanceller) {
             checkState(compactionFuture == null);
             CompactedNodeState compactedState = compactor.getPreviouslyCompactedState(after);
             if (compactedState != null) {
@@ -179,7 +187,7 @@ public class ParallelCompactor extends CheckpointCompactor {
         public boolean childNodeAdded(String name, NodeState after) {
             NodeState childOnto = onto.getChildNode(name);
             CompactionTree child = new CompactionTree(EMPTY_NODE, after,
-                    childOnto.exists() ? childOnto : EMPTY_NODE);
+                childOnto.exists() ? childOnto : EMPTY_NODE);
             modifiedChildren.add(new SimpleImmutableEntry<>(name, child));
             return true;
         }
@@ -205,19 +213,19 @@ public class ParallelCompactor extends CheckpointCompactor {
                 checkNotNull(executorService);
                 if (softCanceller == null) {
                     compactionFuture = executorService.submit(() ->
-                            compactor.compact(before, after, onto, hardCanceller));
+                        compactor.compact(before, after, onto, hardCanceller));
                 } else {
                     checkState(onto.equals(after));
                     compactionFuture = executorService.submit(() ->
-                            compactor.compactDown(before, after, hardCanceller, softCanceller));
+                        compactor.compactDown(before, after, hardCanceller, softCanceller));
                 }
             }
         }
 
         /**
-         * Will attempt to cancel pending asynchronous compaction. Already running tasks will not be affected.
-         * Waiting for the compactor to return internally after checking Canceller for all scheduled tasks
-         * causes a lot of overhead which can hereby be avoided.
+         * Will attempt to cancel pending asynchronous compaction. Already running tasks will not be
+         * affected. Waiting for the compactor to return internally after checking Canceller for all
+         * scheduled tasks causes a lot of overhead which can hereby be avoided.
          */
         private boolean tryCancelCompaction() {
             if (compactionFuture != null && compactionFuture.cancel(false)) {
@@ -229,9 +237,11 @@ public class ParallelCompactor extends CheckpointCompactor {
         }
 
         /**
-         * Start synchronous compaction on tree or collect result of asynchronous compaction if it has been started.
+         * Start synchronous compaction on tree or collect result of asynchronous compaction if it
+         * has been started.
          */
-        @Nullable CompactedNodeState compact() throws IOException {
+        @Nullable
+        CompactedNodeState compact() throws IOException {
             if (compactionFuture != null) {
                 try {
                     return compactionFuture.get();
@@ -257,7 +267,7 @@ public class ParallelCompactor extends CheckpointCompactor {
                 // collect results and cancel unfinished tasks in reverse order
                 // increases cancellation success rate since tasks are executed in order
                 if (!compactedState.isComplete()) {
-                    for (int j = modifiedChildren.size()-1; j > i; j--) {
+                    for (int j = modifiedChildren.size() - 1; j > i; j--) {
                         entry = modifiedChildren.get(j);
                         if (!entry.getValue().tryCancelCompaction()) {
                             compactedState = entry.getValue().compact();
@@ -288,10 +298,11 @@ public class ParallelCompactor extends CheckpointCompactor {
     }
 
     /**
-     * Handler class to build {@link CompactionTree} and start asynchronous compaction at
-     * suitable entry points. Performs what is referred to as the exploration phase in other comments.
+     * Handler class to build {@link CompactionTree} and start asynchronous compaction at suitable
+     * entry points. Performs what is referred to as the exploration phase in other comments.
      */
     private class CompactionHandler {
+
         private final @NotNull NodeState base;
         private final @NotNull Canceller hardCanceller;
         private final @Nullable Canceller softCanceller;
@@ -302,13 +313,16 @@ public class ParallelCompactor extends CheckpointCompactor {
             this.softCanceller = null;
         }
 
-        CompactionHandler(@NotNull NodeState base, @NotNull Canceller hardCanceller, @NotNull Canceller softCanceller) {
+        CompactionHandler(@NotNull NodeState base, @NotNull Canceller hardCanceller,
+            @NotNull Canceller softCanceller) {
             this.base = base;
             this.hardCanceller = hardCanceller;
             this.softCanceller = softCanceller;
         }
 
-        @Nullable CompactedNodeState diff(@NotNull NodeState before, @NotNull NodeState after) throws IOException {
+        @Nullable
+        CompactedNodeState diff(@NotNull NodeState before, @NotNull NodeState after)
+            throws IOException {
             checkNotNull(executorService);
             checkState(!executorService.isShutdown());
 
@@ -386,10 +400,10 @@ public class ParallelCompactor extends CheckpointCompactor {
 
     @Override
     protected @Nullable CompactedNodeState compactDownWithDelegate(
-            @NotNull NodeState before,
-            @NotNull NodeState after,
-            @NotNull Canceller hardCanceller,
-            @NotNull Canceller softCanceller
+        @NotNull NodeState before,
+        @NotNull NodeState after,
+        @NotNull Canceller hardCanceller,
+        @NotNull Canceller softCanceller
     ) throws IOException {
         if (initializeExecutor()) {
             return new CompactionHandler(after, hardCanceller, softCanceller).diff(before, after);
@@ -400,10 +414,10 @@ public class ParallelCompactor extends CheckpointCompactor {
 
     @Override
     protected @Nullable CompactedNodeState compactWithDelegate(
-            @NotNull NodeState before,
-            @NotNull NodeState after,
-            @NotNull NodeState onto,
-            @NotNull Canceller canceller
+        @NotNull NodeState before,
+        @NotNull NodeState after,
+        @NotNull NodeState onto,
+        @NotNull Canceller canceller
     ) throws IOException {
         if (initializeExecutor()) {
             return new CompactionHandler(onto, canceller).diff(before, after);

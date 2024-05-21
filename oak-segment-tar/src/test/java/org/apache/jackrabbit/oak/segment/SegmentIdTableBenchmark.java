@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.segment;
 import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.util.Random;
-
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 import org.jetbrains.annotations.NotNull;
 
@@ -52,13 +51,13 @@ public class SegmentIdTableBenchmark {
         long time;
         int repeat = 10000;
         int count = 10000;
-        
+
         long[] array = new long[count];
         Random r = new Random(1);
         for (int i = 0; i < array.length; i++) {
             array[i] = r.nextLong();
         }
-        
+
         time = System.currentTimeMillis();
         MemoryStore store = new MemoryStore();
         SegmentIdFactory maker = newSegmentIdMaker(store);
@@ -70,7 +69,7 @@ public class SegmentIdTableBenchmark {
         }
         time = System.currentTimeMillis() - time;
         System.out.println("SegmentIdTable: " + time);
-        
+
         time = System.currentTimeMillis();
         ConcurrentTable cm = new ConcurrentTable(store, 16 * 1024);
         for (int i = 0; i < repeat; i++) {
@@ -80,7 +79,7 @@ public class SegmentIdTableBenchmark {
         }
         time = System.currentTimeMillis() - time;
         System.out.println("ConcurrentTable: " + time);
-        
+
 //        time = System.currentTimeMillis();
 //        WeakHashMap<SegmentId, SegmentId> map = new WeakHashMap<SegmentId, SegmentId>(count);
 //        for (int i = 0; i < repeat; i++) {
@@ -94,15 +93,18 @@ public class SegmentIdTableBenchmark {
 //        time = System.currentTimeMillis() - time;
 //        System.out.println("WeakHashMap: " + time);
     }
-    
+
     static class ConcurrentTable {
+
         private final SegmentStore store;
         volatile WeakReference<SegmentId>[] map;
+
         @SuppressWarnings("unchecked")
         ConcurrentTable(SegmentStore store, int size) {
             this.store = store;
             map = (WeakReference<SegmentId>[]) new WeakReference[size];
         }
+
         SegmentId getSegmentId(long a, long b) {
             outer:
             while (true) {

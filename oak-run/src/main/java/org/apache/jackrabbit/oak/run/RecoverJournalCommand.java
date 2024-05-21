@@ -22,7 +22,6 @@ package org.apache.jackrabbit.oak.run;
 import static java.util.Arrays.asList;
 
 import java.io.File;
-
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
@@ -36,8 +35,8 @@ class RecoverJournalCommand implements Command {
         OptionParser options = new OptionParser();
         OptionSpec<?> help = options.acceptsAll(asList("h", "help"), "Prints help and exits");
         OptionSpec<File> dir = options.nonOptions()
-            .describedAs("path")
-            .ofType(File.class);
+                                      .describedAs("path")
+                                      .ofType(File.class);
         OptionSet parsed = options.parse(args);
 
         if (parsed.has(help)) {
@@ -56,11 +55,11 @@ class RecoverJournalCommand implements Command {
         }
 
         int code = RecoverJournal.builder()
-            .withPath(dir.value(parsed))
-            .withOut(System.out)
-            .withErr(System.err)
-            .build()
-            .run();
+                                 .withPath(dir.value(parsed))
+                                 .withOut(System.out)
+                                 .withErr(System.err)
+                                 .build()
+                                 .run();
         System.exit(code);
     }
 

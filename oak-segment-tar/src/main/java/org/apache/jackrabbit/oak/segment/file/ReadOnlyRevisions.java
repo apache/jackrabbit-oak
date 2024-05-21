@@ -25,14 +25,13 @@ import static org.apache.jackrabbit.oak.segment.file.FileStoreUtil.findPersisted
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicReference;
-
 import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.Revisions;
 import org.apache.jackrabbit.oak.segment.SegmentIdProvider;
+import org.apache.jackrabbit.oak.segment.SegmentStore;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
-import org.apache.jackrabbit.oak.segment.SegmentStore;
 import org.jetbrains.annotations.NotNull;
 
 public class ReadOnlyRevisions implements Revisions, Closeable {
@@ -51,12 +50,12 @@ public class ReadOnlyRevisions implements Revisions, Closeable {
     /**
      * Bind this instance to a store.
      *
-     * @param store store to bind to
-     * @param idProvider  {@code SegmentIdProvider} of the {@code store}
+     * @param store      store to bind to
+     * @param idProvider {@code SegmentIdProvider} of the {@code store}
      * @throws IOException
      */
     synchronized void bind(@NotNull SegmentStore store, @NotNull SegmentIdProvider idProvider)
-    throws IOException {
+        throws IOException {
         if (head.get() != null) {
             return;
         }
@@ -85,7 +84,8 @@ public class ReadOnlyRevisions implements Revisions, Closeable {
     }
 
     @Override
-    public boolean setHead(@NotNull RecordId expected, @NotNull RecordId head, @NotNull Option... options) {
+    public boolean setHead(@NotNull RecordId expected, @NotNull RecordId head,
+        @NotNull Option... options) {
         checkBound();
         RecordId id = this.head.get();
         return id.equals(expected) && this.head.compareAndSet(id, head);
@@ -93,8 +93,8 @@ public class ReadOnlyRevisions implements Revisions, Closeable {
 
     @Override
     public RecordId setHead(
-            @NotNull Function<RecordId, RecordId> newHead,
-            @NotNull Option... options) throws InterruptedException {
+        @NotNull Function<RecordId, RecordId> newHead,
+        @NotNull Option... options) throws InterruptedException {
         throw new UnsupportedOperationException("ReadOnly Revisions");
     }
 

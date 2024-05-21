@@ -19,28 +19,28 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import java.io.IOException;
 import java.util.Random;
-
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.IOContext;
 import org.apache.lucene.store.IndexOutput;
 import org.apache.lucene.store.RAMDirectory;
 import org.junit.Test;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-
 public class IndexSanityCheckerTest {
+
     private Random rnd = new Random();
 
     private Directory local = new RAMDirectory();
     private Directory remote = new RAMDirectory();
-    
+
     private IndexSanityChecker.IndexSanityStatistics stats = new IndexSanityChecker.IndexSanityStatistics();
 
     @Test
-    public void validDirs() throws Exception{
+    public void validDirs() throws Exception {
         byte[] t1 = writeFile(local, "t1", 100);
         writeFile(remote, "t1", t1);
 
@@ -51,7 +51,7 @@ public class IndexSanityCheckerTest {
     }
 
     @Test
-    public void sizeMismatch() throws Exception{
+    public void sizeMismatch() throws Exception {
         byte[] t1L = writeFile(local, "t1", 100);
         // write t1 remote with at least one byte more
         writeFile(remote, "t1", randomBytes(t1L.length + rnd.nextInt(10) + 1));
@@ -71,7 +71,7 @@ public class IndexSanityCheckerTest {
     }
 
     @Test
-    public void extraLocalFiles() throws Exception{
+    public void extraLocalFiles() throws Exception {
         byte[] t1L = writeFile(local, "t1", 100);
         byte[] t3R = writeFile(remote, "t3", 140);
         writeFile(local, "t3", t3R);

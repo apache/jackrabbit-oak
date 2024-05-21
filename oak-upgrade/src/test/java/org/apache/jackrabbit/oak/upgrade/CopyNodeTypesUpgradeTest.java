@@ -16,26 +16,26 @@
  */
 package org.apache.jackrabbit.oak.upgrade;
 
-import org.apache.jackrabbit.api.JackrabbitSession;
-import org.apache.jackrabbit.commons.cnd.CndImporter;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
 
+import java.io.InputStreamReader;
+import java.io.Reader;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.nodetype.NodeDefinition;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.nodetype.PropertyDefinition;
-import java.io.InputStreamReader;
-import java.io.Reader;
-
-import static org.junit.Assert.assertEquals;
+import org.apache.jackrabbit.api.JackrabbitSession;
+import org.apache.jackrabbit.commons.cnd.CndImporter;
+import org.junit.Test;
 
 public class CopyNodeTypesUpgradeTest extends AbstractRepositoryUpgradeTest {
 
     @Override
     protected void createSourceContent(Session session) throws Exception {
-        final Reader cnd = new InputStreamReader(getClass().getResourceAsStream("/test-nodetypes.cnd"));
+        final Reader cnd = new InputStreamReader(
+            getClass().getResourceAsStream("/test-nodetypes.cnd"));
         CndImporter.registerNodeTypes(cnd, session);
     }
 
@@ -47,7 +47,8 @@ public class CopyNodeTypesUpgradeTest extends AbstractRepositoryUpgradeTest {
         final NodeDefinition[] cnd = testFolderNodeType.getChildNodeDefinitions();
         final PropertyDefinition[] pd = testFolderNodeType.getPropertyDefinitions();
         assertEquals("More than one child node definition", 1, cnd.length);
-        assertEquals("Incorrect default primary type", "test:Folder", cnd[0].getDefaultPrimaryTypeName());
+        assertEquals("Incorrect default primary type", "test:Folder",
+            cnd[0].getDefaultPrimaryTypeName());
         assertEquals("More than two property definitions", 4, pd.length);
         adminSession.logout();
     }

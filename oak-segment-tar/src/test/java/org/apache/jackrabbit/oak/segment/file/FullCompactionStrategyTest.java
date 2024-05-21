@@ -19,6 +19,17 @@
 
 package org.apache.jackrabbit.oak.segment.file;
 
+import static org.apache.jackrabbit.oak.segment.CompactorTestUtils.addTestContent;
+import static org.apache.jackrabbit.oak.segment.DefaultSegmentWriterBuilder.defaultSegmentWriterBuilder;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.Mockito.when;
+
+import java.io.IOException;
 import org.apache.jackrabbit.oak.segment.CompactorTestUtils;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.SegmentBufferWriterPool;
@@ -35,22 +46,10 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import java.io.IOException;
-
-import static org.apache.jackrabbit.oak.segment.CompactorTestUtils.addTestContent;
-import static org.apache.jackrabbit.oak.segment.DefaultSegmentWriterBuilder.defaultSegmentWriterBuilder;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.mockito.Mockito.when;
-
 public class FullCompactionStrategyTest {
 
     private static final Throwable MARKER_THROWABLE =
-            new RuntimeException("We pretend that something went horribly wrong.");
+        new RuntimeException("We pretend that something went horribly wrong.");
 
     @Test
     public void compactionIsAbortedOnAnyThrowable() throws IOException {
@@ -61,11 +60,14 @@ public class FullCompactionStrategyTest {
         when(throwingContext.getGCOptions()).thenThrow(MARKER_THROWABLE);
 
         try {
-            final CompactionResult compactionResult = new FullCompactionStrategy().compact(throwingContext);
-            assertThat("Compaction should be properly aborted.", compactionResult.isSuccess(), is(false));
+            final CompactionResult compactionResult = new FullCompactionStrategy().compact(
+                throwingContext);
+            assertThat("Compaction should be properly aborted.", compactionResult.isSuccess(),
+                is(false));
         } catch (Throwable e) {
             if (e == MARKER_THROWABLE) {
-                fail("The marker throwable was not caught by the CompactionStrategy and therefore not properly aborted.");
+                fail(
+                    "The marker throwable was not caught by the CompactionStrategy and therefore not properly aborted.");
             } else {
                 throw new IllegalStateException("The test likely needs to be adjusted.", e);
             }
@@ -76,9 +78,11 @@ public class FullCompactionStrategyTest {
         CompactionStrategy.Context mockedContext = Mockito.mock(CompactionStrategy.Context.class);
         when(mockedContext.getGCListener()).thenReturn(Mockito.mock(GCListener.class));
         when(mockedContext.getTarFiles()).thenReturn(Mockito.mock(TarFiles.class));
-        when(mockedContext.getSuccessfulCompactionListener()).thenReturn(Mockito.mock(SuccessfulCompactionListener.class));
+        when(mockedContext.getSuccessfulCompactionListener()).thenReturn(
+            Mockito.mock(SuccessfulCompactionListener.class));
         when(mockedContext.getGCOptions()).thenReturn(SegmentGCOptions.defaultGCOptions());
-        when(mockedContext.getFlusher()).thenReturn(() -> {});
+        when(mockedContext.getFlusher()).thenReturn(() -> {
+        });
 
         GCJournal mockedJournal = Mockito.mock(GCJournal.class);
         when(mockedContext.getGCJournal()).thenReturn(mockedJournal);
@@ -88,9 +92,9 @@ public class FullCompactionStrategyTest {
         when(mockedContext.getSegmentReader()).thenReturn(store.getReader());
 
         SegmentWriterFactory writerFactory = generation -> defaultSegmentWriterBuilder("c")
-                .withGeneration(generation)
-                .withWriterPool(SegmentBufferWriterPool.PoolType.THREAD_SPECIFIC)
-                .build(store);
+            .withGeneration(generation)
+            .withWriterPool(SegmentBufferWriterPool.PoolType.THREAD_SPECIFIC)
+            .build(store);
         when(mockedContext.getSegmentWriterFactory()).thenReturn(writerFactory);
 
         return mockedContext;
@@ -110,15 +114,15 @@ public class FullCompactionStrategyTest {
         when(mockedContext.getCompactionMonitor()).thenReturn(gcMonitor);
 
         when(mockedContext.getStateSaveTriggerSupplier()).thenReturn(
-                () -> {
-                    long compactedNodes = gcMonitor.getCompactedNodes();
-                    return Canceller.newCanceller().withCondition("10 more nodes compacted",
-                            () -> gcMonitor.getCompactedNodes() >= compactedNodes + 10);
-                }
+            () -> {
+                long compactedNodes = gcMonitor.getCompactedNodes();
+                return Canceller.newCanceller().withCondition("10 more nodes compacted",
+                    () -> gcMonitor.getCompactedNodes() >= compactedNodes + 10);
+            }
         );
         when(mockedContext.getHardCanceller()).thenReturn(
-                Canceller.newCanceller().withCondition("50 total nodes compacted",
-                        () -> gcMonitor.getCompactedNodes() >= 50)
+            Canceller.newCanceller().withCondition("50 total nodes compacted",
+                () -> gcMonitor.getCompactedNodes() >= 50)
         );
         when(mockedContext.getSoftCanceller()).thenReturn(Canceller.newCanceller());
 
@@ -145,16 +149,17 @@ public class FullCompactionStrategyTest {
         when(mockedContext.getCompactionMonitor()).thenReturn(gcMonitor);
 
         when(mockedContext.getStateSaveTriggerSupplier()).thenReturn(
-                () -> {
-                    long compactedNodes = gcMonitor.getCompactedNodes();
-                    return Canceller.newCanceller().withCondition("10 more nodes compacted",
-                            () -> gcMonitor.getCompactedNodes() >= compactedNodes + 10);
-                }
+            () -> {
+                long compactedNodes = gcMonitor.getCompactedNodes();
+                return Canceller.newCanceller().withCondition("10 more nodes compacted",
+                    () -> gcMonitor.getCompactedNodes() >= compactedNodes + 10);
+            }
         );
         when(mockedContext.getHardCanceller()).thenReturn(Canceller.newCanceller());
         when(mockedContext.getSoftCanceller()).thenReturn(Canceller.newCanceller());
 
-        SegmentNodeState initialHeadState = store.getReader().readNode(store.getRevisions().getHead());
+        SegmentNodeState initialHeadState = store.getReader()
+                                                 .readNode(store.getRevisions().getHead());
         GCGeneration baseGeneration = initialHeadState.getGcGeneration();
         CompactorTestUtils.checkGeneration(initialHeadState, baseGeneration);
 

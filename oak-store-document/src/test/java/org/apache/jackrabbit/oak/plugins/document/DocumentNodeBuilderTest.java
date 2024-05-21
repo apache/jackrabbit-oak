@@ -52,8 +52,8 @@ public class DocumentNodeBuilderTest {
     @Parameters(name = "{0}")
     public static Collection<Object[]> fixtures() {
         return Arrays.asList(new Object[][]{
-                {new MemoryFixture()},
-                {new DocumentMemoryFixture()}
+            {new MemoryFixture()},
+            {new DocumentMemoryFixture()}
         });
     }
 
@@ -104,6 +104,6 @@ public class DocumentNodeBuilderTest {
     private void assertStateEquals(NodeState one, NodeState two) {
         String changesOnTwo = JsopDiff.diffToJsop(one, two);
         assertTrue("Node states are not equal: " + changesOnTwo,
-                EqualsDiff.equals(one, two));
+            EqualsDiff.equals(one, two));
     }
 }

@@ -150,7 +150,7 @@ class FailingDocumentStore extends DocumentStoreWrapper {
 
     @Override
     public <T extends Document> void remove(Collection<T> collection,
-                                            String key) {
+        String key) {
         if (!afterOp) {
             maybeFail(collection);
         }
@@ -165,7 +165,7 @@ class FailingDocumentStore extends DocumentStoreWrapper {
 
     @Override
     public <T extends Document> void remove(Collection<T> collection,
-                                            List<String> keys) {
+        List<String> keys) {
         // redirect to single document remove method
         for (String k : keys) {
             remove(collection, k);
@@ -174,7 +174,7 @@ class FailingDocumentStore extends DocumentStoreWrapper {
 
     @Override
     public <T extends Document> int remove(Collection<T> collection,
-                                           Map<String, Long> toRemove) {
+        Map<String, Long> toRemove) {
         int num = 0;
         // remove individually
         for (Map.Entry<String, Long> rm : toRemove.entrySet()) {
@@ -194,10 +194,10 @@ class FailingDocumentStore extends DocumentStoreWrapper {
 
     @Override
     public <T extends Document> int remove(Collection<T> collection,
-                                           String indexedProperty,
-                                           long startValue,
-                                           long endValue)
-            throws DocumentStoreException {
+        String indexedProperty,
+        long startValue,
+        long endValue)
+        throws DocumentStoreException {
         if (!afterOp) {
             maybeFail(collection);
         }
@@ -213,7 +213,7 @@ class FailingDocumentStore extends DocumentStoreWrapper {
 
     @Override
     public <T extends Document> boolean create(Collection<T> collection,
-                                               List<UpdateOp> updateOps) {
+        List<UpdateOp> updateOps) {
         List<UpdateOp> remaining = new ArrayList<>(updateOps);
         int i = 0;
         // create individually
@@ -236,7 +236,7 @@ class FailingDocumentStore extends DocumentStoreWrapper {
 
     @Override
     public <T extends Document> T createOrUpdate(Collection<T> collection,
-            UpdateOp update) {
+        UpdateOp update) {
         if (!afterOp) {
             maybeFail(collection, singletonList(update));
         }
@@ -251,7 +251,7 @@ class FailingDocumentStore extends DocumentStoreWrapper {
 
     @Override
     public <T extends Document> List<T> createOrUpdate(Collection<T> collection,
-                                                       List<UpdateOp> updateOps) {
+        List<UpdateOp> updateOps) {
         List<UpdateOp> remaining = new ArrayList<>(updateOps);
         List<T> result = Lists.newArrayList();
         int i = 0;
@@ -272,7 +272,7 @@ class FailingDocumentStore extends DocumentStoreWrapper {
 
     @Override
     public <T extends Document> T findAndUpdate(Collection<T> collection,
-                                                UpdateOp update) {
+        UpdateOp update) {
         if (!afterOp) {
             maybeFail(collection, singletonList(update));
         }
@@ -290,11 +290,11 @@ class FailingDocumentStore extends DocumentStoreWrapper {
     }
 
     private <T extends Document> void maybeFail(Collection<T> collection,
-                                                List<UpdateOp> remainingOps) {
+        List<UpdateOp> remainingOps) {
         if ((collectionIncludeList == null || collectionIncludeList.contains(collection)) &&
-                (random.nextFloat() < p || failAfter.getAndDecrement() <= 0) &&
-                (idIncludeList == null || (!remainingOps.isEmpty()
-                        && idIncludeList.contains(remainingOps.get(0).getId())))) {
+            (random.nextFloat() < p || failAfter.getAndDecrement() <= 0) &&
+            (idIncludeList == null || (!remainingOps.isEmpty()
+                && idIncludeList.contains(remainingOps.get(0).getId())))) {
             if (numFailures.getAndDecrement() > 0) {
                 reportRemainingOps(remainingOps);
                 failNow(remainingOps);

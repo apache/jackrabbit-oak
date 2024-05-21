@@ -25,45 +25,48 @@ package org.apache.lucene.util.fst;
  * limitations under the License.
  */
 
-/** Reads in reverse from a single byte[]. */
+/**
+ * Reads in reverse from a single byte[].
+ */
 final class ReverseBytesReader extends FST.BytesReader {
-  private final byte[] bytes;
-  private int pos;
 
-  public ReverseBytesReader(byte[] bytes) {
-    this.bytes = bytes;
-  }
+    private final byte[] bytes;
+    private int pos;
 
-  @Override
-  public byte readByte() {
-    return bytes[pos--];
-  }
-
-  @Override
-  public void readBytes(byte[] b, int offset, int len) {
-    for(int i=0;i<len;i++) {
-      b[offset+i] = bytes[pos--];
+    public ReverseBytesReader(byte[] bytes) {
+        this.bytes = bytes;
     }
-  }
 
-  @Override
-  public void skipBytes(int count) {
-    pos -= count;
-  }
+    @Override
+    public byte readByte() {
+        return bytes[pos--];
+    }
 
-  @Override
-  public long getPosition() {
-    return pos;
-  }
+    @Override
+    public void readBytes(byte[] b, int offset, int len) {
+        for (int i = 0; i < len; i++) {
+            b[offset + i] = bytes[pos--];
+        }
+    }
 
-  @Override
-  public void setPosition(long pos) {
-    this.pos = (int) pos;
-  }
+    @Override
+    public void skipBytes(int count) {
+        pos -= count;
+    }
 
-  @Override
-  public boolean reversed() {
-    return true;
-  }
+    @Override
+    public long getPosition() {
+        return pos;
+    }
+
+    @Override
+    public void setPosition(long pos) {
+        this.pos = (int) pos;
+    }
+
+    @Override
+    public boolean reversed() {
+        return true;
+    }
 }
 

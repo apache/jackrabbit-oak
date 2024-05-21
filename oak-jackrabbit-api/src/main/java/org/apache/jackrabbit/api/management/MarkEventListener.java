@@ -18,7 +18,6 @@ package org.apache.jackrabbit.api.management;
 
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
-
 import org.osgi.annotation.versioning.ConsumerType;
 
 /**
@@ -29,7 +28,7 @@ public interface MarkEventListener {
 
     /**
      * This method is called before a node is scanned.
-     * 
+     *
      * @param node node to be scanned
      */
     void beforeScanning(Node node) throws RepositoryException;

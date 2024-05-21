@@ -21,9 +21,7 @@ import java.io.File;
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
-
 import org.apache.jackrabbit.guava.common.io.Closer;
-
 import org.apache.jackrabbit.oak.checkpoint.Checkpoints;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
@@ -35,7 +33,10 @@ class CheckpointsCommand implements Command {
     @Override
     public void execute(String... args) throws Exception {
 
-        CheckpointsOptions options = new CheckpointsOptions("checkpoints {<path>|<mongo-uri>|<jdbc-uri>} [list|rm-all|rm-unreferenced|rm <checkpoint>|info <checkpoint>|set <checkpoint> <name> [<value>]] [--segment]").parse(args);;
+        CheckpointsOptions options = new CheckpointsOptions(
+            "checkpoints {<path>|<mongo-uri>|<jdbc-uri>} [list|rm-all|rm-unreferenced|rm <checkpoint>|info <checkpoint>|set <checkpoint> <name> [<value>]] [--segment]").parse(
+            args);
+        ;
         if (options.isHelp()) {
             options.printHelpOn(System.out);
             System.exit(0);
@@ -55,15 +56,18 @@ class CheckpointsCommand implements Command {
             String op = "list"; //default operation
             if (opArg.size() > 0) {
                 op = opArg.get(0);
-                if (!"list".equals(op) && !"rm-all".equals(op) && !"rm-unreferenced".equals(op) && !"rm".equals(op) && !"info".equals(op) && !"set".equals(op)) {
+                if (!"list".equals(op) && !"rm-all".equals(op) && !"rm-unreferenced".equals(op)
+                    && !"rm".equals(op) && !"info".equals(op) && !"set".equals(op)) {
                     failWith("Unknown operation: " + op);
                 }
             }
 
-            boolean isDocumentNodeStore = storeArg.startsWith("jdbc:") || storeArg.startsWith("mongodb:");
+            boolean isDocumentNodeStore =
+                storeArg.startsWith("jdbc:") || storeArg.startsWith("mongodb:");
 
             if (isDocumentNodeStore) {
-                DocumentNodeStoreBuilder<?> builder = Utils.createDocumentMKBuilder(options, closer);
+                DocumentNodeStoreBuilder<?> builder = Utils.createDocumentMKBuilder(options,
+                    closer);
                 if (builder == null) {
                     System.err.println("Could not create DocumentNodeStoreBuilder");
                     System.exit(1);
@@ -81,9 +85,9 @@ class CheckpointsCommand implements Command {
                 int cnt = 0;
                 for (Checkpoints.CP cp : cps.list()) {
                     System.out.printf("- %s created %s expires %s%n",
-                            cp.id,
-                            new Timestamp(cp.created),
-                            new Timestamp(cp.expires));
+                        cp.id,
+                        new Timestamp(cp.created),
+                        new Timestamp(cp.expires));
                     cnt++;
                 }
                 System.out.println("Found " + cnt + " checkpoints");
@@ -116,7 +120,7 @@ class CheckpointsCommand implements Command {
                     if (cnt != 0) {
                         if (cnt == 1) {
                             System.out.println("Removed checkpoint " + cp + " in "
-                                    + time + "ms.");
+                                + time + "ms.");
                         } else {
                             failWith("Failed to remove checkpoint " + cp);
                         }
@@ -154,7 +158,7 @@ class CheckpointsCommand implements Command {
                     if (cnt != 0) {
                         if (cnt == 1) {
                             System.out.println("Updated checkpoint " + cp + " in "
-                                    + time + "ms.");
+                                + time + "ms.");
                         } else {
                             failWith("Failed to remove checkpoint " + cp);
                         }
@@ -190,7 +194,7 @@ class CheckpointsCommand implements Command {
             return this;
         }
 
-       boolean isHelp() {
+        boolean isHelp() {
             return options.has(help);
         }
     }

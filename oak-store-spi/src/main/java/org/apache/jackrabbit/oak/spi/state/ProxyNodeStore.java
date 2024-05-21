@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.spi.state;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
-
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
@@ -37,8 +36,8 @@ public abstract class ProxyNodeStore implements NodeStore {
 
     @Override
     public NodeState merge(
-            NodeBuilder builder, CommitHook commitHook, CommitInfo info)
-            throws CommitFailedException {
+        NodeBuilder builder, CommitHook commitHook, CommitInfo info)
+        throws CommitFailedException {
         return getNodeStore().merge(builder, commitHook, info);
     }
 

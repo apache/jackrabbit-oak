@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getModuleVersion;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -41,7 +43,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
@@ -53,8 +54,6 @@ import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getModuleVersion;
-
 /**
  * Utility for dumping contents from {@link RDBDocumentStore}'s tables.
  */
@@ -64,16 +63,20 @@ public class RDBExport {
 
     private enum Format {
         JSON, JSONARRAY, CSV
-    };
+    }
+
+    ;
 
     private static final RDBJSONSupport JSON = new RDBJSONSupport(false);
 
     private static final Set<String> EXCLUDE_COLUMNS = new HashSet<String>();
+
     static {
         EXCLUDE_COLUMNS.add(Document.ID);
     }
 
-    public static void main(String[] args) throws ClassNotFoundException, SQLException, IOException {
+    public static void main(String[] args)
+        throws ClassNotFoundException, SQLException, IOException {
 
         String url = null, user = null, pw = null, table = "nodes", query = null, dumpfile = null, lobdir = null;
         List<String> fieldList = Collections.emptyList();
@@ -113,45 +116,55 @@ public class RDBExport {
                     String fields = args[++i];
                     fieldList = Arrays.asList(fields.split(","));
                 } else if ("--version".equals(param)) {
-                    System.out.println(RDBExport.class.getName() + " version " + getModuleVersion());
+                    System.out.println(
+                        RDBExport.class.getName() + " version " + getModuleVersion());
                     System.exit(0);
                 } else if ("--help".equals(param)) {
                     printHelp();
                     System.exit(0);
                 } else {
-                    System.err.println(RDBExport.class.getName() + ": invalid parameter " + args[i]);
+                    System.err.println(
+                        RDBExport.class.getName() + ": invalid parameter " + args[i]);
                     printUsage();
                     System.exit(2);
                 }
             }
         } catch (IndexOutOfBoundsException ex) {
-            System.err.println(RDBExport.class.getName() + ": value missing for parameter " + param);
+            System.err.println(
+                RDBExport.class.getName() + ": value missing for parameter " + param);
             printUsage();
             System.exit(2);
         }
 
         if (format == Format.CSV && fieldList.isEmpty()) {
-            System.err.println(RDBExport.class.getName() + ": csv output requires specification of field list");
+            System.err.println(
+                RDBExport.class.getName() + ": csv output requires specification of field list");
             System.exit(2);
         }
 
         // JSON output with fieldList missing "_id"
-        if ((format == Format.JSON || format == Format.JSONARRAY) && !fieldList.isEmpty() && !fieldList.contains("_id")) {
+        if ((format == Format.JSON || format == Format.JSONARRAY) && !fieldList.isEmpty()
+            && !fieldList.contains("_id")) {
             fieldList = new ArrayList<String>(fieldList);
             fieldList.add(0, "_id");
         }
 
         if (dumpfile == null && url == null) {
-            System.err.println(RDBExport.class.getName() + ": must use either dump file or JDBC URL");
+            System.err.println(
+                RDBExport.class.getName() + ": must use either dump file or JDBC URL");
             printUsage();
             System.exit(2);
         } else if (dumpfile != null) {
-            columns = (columns == null) ? "id, modified, hasbinary, deletedonce, cmodcount, modcount, dsize, data, bdata" : columns;
-            List<String> columnList = Arrays.asList(columns.toLowerCase(Locale.ENGLISH).replace(" ", "").split(","));
+            columns = (columns == null)
+                ? "id, modified, hasbinary, deletedonce, cmodcount, modcount, dsize, data, bdata"
+                : columns;
+            List<String> columnList = Arrays.asList(
+                columns.toLowerCase(Locale.ENGLISH).replace(" ", "").split(","));
             dumpFile(dumpfile, lobdir, format, out, fieldList, columnList, ser);
         } else {
             if (columns != null) {
-                System.err.println(RDBExport.class.getName() + ": column names ignored when using JDBC");
+                System.err.println(
+                    RDBExport.class.getName() + ": column names ignored when using JDBC");
             }
             dumpJDBC(url, user, pw, table, query, format, out, fieldList, ser);
         }
@@ -160,10 +173,12 @@ public class RDBExport {
         out.close();
     }
 
-    private static void dumpFile(String filename, String lobdir, Format format, PrintStream out, List<String> fieldNames,
-            List<String> columnNames, RDBDocumentSerializer ser) throws IOException {
+    private static void dumpFile(String filename, String lobdir, Format format, PrintStream out,
+        List<String> fieldNames,
+        List<String> columnNames, RDBDocumentSerializer ser) throws IOException {
         File f = new File(filename);
-        File lobDirectory = lobdir == null ? new File(f.getParentFile(), "lobdir") : new File(lobdir);
+        File lobDirectory =
+            lobdir == null ? new File(f.getParentFile(), "lobdir") : new File(lobdir);
 
         int iId = columnNames.indexOf("id");
         int iModified = columnNames.indexOf("modified");
@@ -174,9 +189,11 @@ public class RDBExport {
         int iData = columnNames.indexOf("data");
         int iBData = columnNames.indexOf("bdata");
 
-        if (iId < 0 || iModified < 0 || iHasBinary < 0 || iDeletedOnce < 0 || iModCount < 0 || iCModCount < 0 || iData < 0
-                || iBData < 0) {
-            throw new IOException("required columns: id, modified, hasbinary, deletedonce, modcount, cmodcount, data, bdata");
+        if (iId < 0 || iModified < 0 || iHasBinary < 0 || iDeletedOnce < 0 || iModCount < 0
+            || iCModCount < 0 || iData < 0
+            || iBData < 0) {
+            throw new IOException(
+                "required columns: id, modified, hasbinary, deletedonce, modcount, cmodcount, data, bdata");
         }
 
         FileInputStream fis = new FileInputStream(f);
@@ -213,7 +230,9 @@ public class RDBExport {
                     String startpos = lobfile.substring(lastdot + 1);
                     lobfile = lobfile.substring(0, lastdot);
 
-                    System.err.println("lastdot: " + lastdot + "; length: " + length + "; lobfile: " + lobfile + "; lastdot: " + lastdot + "; startpos: " + startpos);
+                    System.err.println(
+                        "lastdot: " + lastdot + "; length: " + length + "; lobfile: " + lobfile
+                            + "; lastdot: " + lastdot + "; startpos: " + startpos);
                     int s = Integer.valueOf(startpos);
                     int l = Integer.valueOf(length);
                     File lf = new File(lobDirectory, lobfile);
@@ -228,9 +247,11 @@ public class RDBExport {
                 }
             }
             try {
-                RDBRow row = new RDBRow(id, "1".equals(shasbinary) ? 1L : 0L, "1".equals(sdeletedonce),
-                        smodified.length() == 0 ? 0 : Long.parseLong(smodified), Long.parseLong(smodcount),
-                        Long.parseLong(scmodcount), -1L, -1L, -1L, sdata, bytes);
+                RDBRow row = new RDBRow(id, "1".equals(shasbinary) ? 1L : 0L,
+                    "1".equals(sdeletedonce),
+                    smodified.length() == 0 ? 0 : Long.parseLong(smodified),
+                    Long.parseLong(smodcount),
+                    Long.parseLong(scmodcount), -1L, -1L, -1L, sdata, bytes);
                 StringBuilder fulljson = dumpRow(ser, id, row);
                 if (format == Format.CSV) {
                     out.println(asCSV(fieldNames, fulljson));
@@ -243,7 +264,8 @@ public class RDBExport {
                     needComma = true;
                 }
             } catch (DocumentStoreException ex) {
-                System.err.println("Error: skipping line for ID " + id + " because of " + ex.getMessage());
+                System.err.println(
+                    "Error: skipping line for ID " + id + " because of " + ex.getMessage());
             } catch (Exception e) {
                 System.err.println("Error reading fields: " + fields);
                 throw e;
@@ -295,18 +317,23 @@ public class RDBExport {
         return result;
     }
 
-    private static void dumpJDBC(String url, String user, String pw, String table, String query, Format format, PrintStream out,
-            List<String> fieldNames, RDBDocumentSerializer ser) throws SQLException {
+    private static void dumpJDBC(String url, String user, String pw, String table, String query,
+        Format format, PrintStream out,
+        List<String> fieldNames, RDBDocumentSerializer ser) throws SQLException {
         String driver = RDBJDBCTools.driverForDBType(RDBJDBCTools.jdbctype(url));
         try {
             Class.forName(driver);
         } catch (ClassNotFoundException ex) {
-            System.err.println(RDBExport.class.getName() + ":attempt to load class " + driver + " failed:" + ex.getMessage());
+            System.err.println(
+                RDBExport.class.getName() + ":attempt to load class " + driver + " failed:"
+                    + ex.getMessage());
         }
         Connection c = DriverManager.getConnection(url, user, pw);
         c.setReadOnly(true);
         Statement stmt = c.createStatement();
-        String sql = "select ID, MODIFIED, MODCOUNT, CMODCOUNT, HASBINARY, DELETEDONCE, DATA, BDATA from " + table;
+        String sql =
+            "select ID, MODIFIED, MODCOUNT, CMODCOUNT, HASBINARY, DELETEDONCE, DATA, BDATA from "
+                + table;
         if (query != null) {
             sql += " where " + query;
         }
@@ -335,7 +362,8 @@ public class RDBExport {
             String data = rs.getString("DATA");
             byte[] bdata = rs.getBytes("BDATA");
 
-            RDBRow row = new RDBRow(id, hasBinary, deletedOnce, modified, modcount, cmodcount, -1L, -1L, -1L, data, bdata);
+            RDBRow row = new RDBRow(id, hasBinary, deletedOnce, modified, modcount, cmodcount, -1L,
+                -1L, -1L, data, bdata);
             StringBuilder fulljson = dumpRow(ser, id, row);
             if (format == Format.CSV) {
                 out.println(asCSV(fieldNames, fulljson));
@@ -358,13 +386,15 @@ public class RDBExport {
     }
 
     @Nullable
-    private static Boolean readBooleanOrNullFromResultSet(ResultSet res, String field) throws SQLException {
+    private static Boolean readBooleanOrNullFromResultSet(ResultSet res, String field)
+        throws SQLException {
         long v = res.getLong(field);
         return res.wasNull() ? null : Boolean.valueOf(v != 0);
     }
 
     @Nullable
-    private static Long readLongOrNullFromResultSet(ResultSet res, String field) throws SQLException {
+    private static Long readLongOrNullFromResultSet(ResultSet res, String field)
+        throws SQLException {
         long v = res.getLong(field);
         return res.wasNull() ? null : Long.valueOf(v);
     }
@@ -458,14 +488,16 @@ public class RDBExport {
     }
 
     private static boolean isBinaryType(int sqlType) {
-        return sqlType == Types.VARBINARY || sqlType == Types.BINARY || sqlType == Types.LONGVARBINARY;
+        return sqlType == Types.VARBINARY || sqlType == Types.BINARY
+            || sqlType == Types.LONGVARBINARY;
     }
 
     private static void printUsage() {
         System.err.println("Usage: " + RDBExport.class.getName()
-                + " -j/--jdbc-url JDBC-URL [-u/--username username] [-p/--password password] [-c/--collection table] [-q/--query query] [-o/--out file] [--fields list] [--csv] [--jsonArray]");
+            + " -j/--jdbc-url JDBC-URL [-u/--username username] [-p/--password password] [-c/--collection table] [-q/--query query] [-o/--out file] [--fields list] [--csv] [--jsonArray]");
         System.err.println(
-                "Usage: " + RDBExport.class.getName() + " --from-db2-dump file [--lobdir lobdir] [-o/--out file] [--fields list] [--csv] [--jsonArray]");
+            "Usage: " + RDBExport.class.getName()
+                + " --from-db2-dump file [--lobdir lobdir] [-o/--out file] [--fields list] [--csv] [--jsonArray]");
         System.err.println("Usage: " + RDBExport.class.getName() + " --version");
         System.err.println("Usage: " + RDBExport.class.getName() + " --help");
     }
@@ -478,7 +510,8 @@ public class RDBExport {
         System.err.println("  --version                          show version information");
         System.err.println("");
         System.err.println("JDBC options:");
-        System.err.println("  -j/--jdbc-url JDBC-URL             JDBC URL of database to connect to");
+        System.err.println(
+            "  -j/--jdbc-url JDBC-URL             JDBC URL of database to connect to");
         System.err.println("  -u/--username username             database username");
         System.err.println("  -p/--password password             database password");
         System.err.println("  -c/--collection table              table name (defaults to 'nodes')");
@@ -487,15 +520,21 @@ public class RDBExport {
         System.err.println("Dump file options:");
         System.err.println("  --columns column-names             column names (comma separated)");
         System.err.println("  --from-db2-dump file               name of DB2 DEL export file");
-        System.err.println("  --lobdir dir                       name of DB2 DEL export file LOB directory");
-        System.err.println("                                     (defaults to ./lobdir under the dump file)");
+        System.err.println(
+            "  --lobdir dir                       name of DB2 DEL export file LOB directory");
+        System.err.println(
+            "                                     (defaults to ./lobdir under the dump file)");
         System.err.println("");
         System.err.println("Output options:");
-        System.err.println("  -o/--out file                      Output to name file (instead of stdout)");
-        System.err.println("  --jsonArray                        Output a JSON array (instead of one");
+        System.err.println(
+            "  -o/--out file                      Output to name file (instead of stdout)");
+        System.err.println(
+            "  --jsonArray                        Output a JSON array (instead of one");
         System.err.println("                                     JSON doc per line)");
-        System.err.println("  --csv                              Output in CSV format (requires --fields");
-        System.err.println("  --fields names                     field names (comma separated); required");
+        System.err.println(
+            "  --csv                              Output in CSV format (requires --fields");
+        System.err.println(
+            "  --fields names                     field names (comma separated); required");
         System.err.println("                                     for CSV output");
     }
 }

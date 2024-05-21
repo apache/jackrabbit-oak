@@ -16,16 +16,15 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import java.io.File;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.plugins.index.ExcerptTest;
 import org.apache.jackrabbit.oak.plugins.index.LuceneIndexOptions;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
-
-import java.io.File;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 public class LuceneExcerptTest extends ExcerptTest {
 
@@ -35,7 +34,8 @@ public class LuceneExcerptTest extends ExcerptTest {
 
     @Override
     protected ContentRepository createRepository() {
-        repositoryOptionsUtil = new LuceneTestRepositoryBuilder(executorService, temporaryFolder).build();
+        repositoryOptionsUtil = new LuceneTestRepositoryBuilder(executorService,
+            temporaryFolder).build();
         indexOptions = new LuceneIndexOptions();
         return repositoryOptionsUtil.getOak().createContentRepository();
     }

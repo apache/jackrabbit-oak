@@ -13,13 +13,16 @@
   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
   See the License for the specific language governing permissions and
   limitations under the License.
---%><%@page import="org.apache.jackrabbit.util.Text"%><%
-request.setAttribute("title", "Content Repository Ready");
-%><jsp:include page="../header.jsp"/>
+--%>
+<%@page import="org.apache.jackrabbit.util.Text" %>
+<%
+    request.setAttribute("title", "Content Repository Ready");
+%>
+<jsp:include page="../header.jsp"/>
 <p>Your repository is properly configured an running.</p>
 <p>
-To reconfigure or reinstall the repository modify the respective configuration
-files or remove them.
+    To reconfigure or reinstall the repository modify the respective configuration
+    files or remove them.
 </p>
 <p><a href="<%= Text.encodeIllegalXMLCharacters(request.getContextPath()) %>/">home</a></p>
 <jsp:include page="../footer.jsp"/>

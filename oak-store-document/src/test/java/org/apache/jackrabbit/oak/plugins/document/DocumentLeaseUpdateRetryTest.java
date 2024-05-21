@@ -41,7 +41,7 @@ public class DocumentLeaseUpdateRetryTest {
         ClusterNodeInfo.setClock(clock);
         ds = new TestStore();
         ns = new DocumentMK.Builder().clock(clock).setDocumentStore(ds)
-                .setLeaseCheckMode(LeaseCheckMode.LENIENT).getNodeStore();
+                                     .setLeaseCheckMode(LeaseCheckMode.LENIENT).getNodeStore();
     }
 
     @After
@@ -68,7 +68,8 @@ public class DocumentLeaseUpdateRetryTest {
         long leaseEndTime1 = clusterInfo.getLeaseEndTime();
         // TODO: replace privateAccessor.getField with a test-only
         // package-protected access
-        Long leaseUpdateInterval = (Long) PrivateAccessor.getField(clusterInfo, "leaseUpdateInterval");
+        Long leaseUpdateInterval = (Long) PrivateAccessor.getField(clusterInfo,
+            "leaseUpdateInterval");
 
         // assert that lease is fine at this point
         // do this indirectly by trying to invoke some DocumentNodeStore
@@ -118,7 +119,8 @@ public class DocumentLeaseUpdateRetryTest {
         }
 
         @Override
-        public <T extends Document> List<T> query(Collection<T> collection, String fromKey, String toKey, int limit) {
+        public <T extends Document> List<T> query(Collection<T> collection, String fromKey,
+            String toKey, int limit) {
             if (delaying && collection == Collection.CLUSTER_NODES) {
                 try {
                     // make the lookup on the clusterNodes collection *really*

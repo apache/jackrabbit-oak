@@ -16,10 +16,10 @@
  */
 package org.apache.jackrabbit.oak.jcr.session;
 
-import static org.apache.jackrabbit.guava.common.collect.Sets.newTreeSet;
-import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.SESSION_COUNT;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 import static java.util.Objects.requireNonNull;
+import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.SESSION_COUNT;
+import static org.apache.jackrabbit.guava.common.collect.Sets.newTreeSet;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -27,7 +27,6 @@ import java.io.OutputStream;
 import java.security.AccessControlException;
 import java.util.Collections;
 import java.util.Set;
-
 import javax.jcr.AccessDeniedException;
 import javax.jcr.Credentials;
 import javax.jcr.InvalidSerializedDataException;
@@ -45,7 +44,6 @@ import javax.jcr.Workspace;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.retention.RetentionManager;
 import javax.jcr.security.AccessControlManager;
-
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.UserManager;
@@ -83,6 +81,7 @@ import org.xml.sax.SAXException;
  * TODO document
  */
 public class SessionImpl implements JackrabbitSession {
+
     private static final Logger log = LoggerFactory.getLogger(SessionImpl.class);
 
     private SessionContext sessionContext;
@@ -111,7 +110,8 @@ public class SessionImpl implements JackrabbitSession {
         while (--pos >= 0) {
             char ch = jcrPath.charAt(pos);
             if (ch == '[') {
-                throw new RepositoryException("Cannot create a new node using a name including an index");
+                throw new RepositoryException(
+                    "Cannot create a new node using a name including an index");
             }
             if ("0123456789".indexOf(ch) == -1) {
                 return;
@@ -120,6 +120,7 @@ public class SessionImpl implements JackrabbitSession {
     }
 
     private abstract class ReadOperation<T> extends SessionOperation<T> {
+
         protected ReadOperation(String name) {
             super(name);
         }
@@ -131,6 +132,7 @@ public class SessionImpl implements JackrabbitSession {
     }
 
     private abstract class WriteOperation<T> extends SessionOperation<T> {
+
         protected WriteOperation(String name) {
             super(name, true);
         }
@@ -184,7 +186,8 @@ public class SessionImpl implements JackrabbitSession {
             @Override
             public Node performNullable() throws RepositoryException {
                 try {
-                    return NodeImpl.createNodeOrNull(sd.getNode(getOakPathOrThrow(absPath)), sessionContext);
+                    return NodeImpl.createNodeOrNull(sd.getNode(getOakPathOrThrow(absPath)),
+                        sessionContext);
                 } catch (PathNotFoundException e) {
                     return null;
                 }
@@ -247,9 +250,10 @@ public class SessionImpl implements JackrabbitSession {
     }
 
     private static void checkContext(@NotNull ItemImpl item, @NotNull SessionContext context)
-            throws RepositoryException {
+        throws RepositoryException {
         if (item.sessionContext != context) {
-            throw new RepositoryException("Item '" + item + "' has been obtained through a different Session.");
+            throw new RepositoryException(
+                "Item '" + item + "' has been obtained through a different Session.");
         }
     }
 
@@ -258,7 +262,8 @@ public class SessionImpl implements JackrabbitSession {
         if (item instanceof ItemImpl) {
             return (ItemImpl) item;
         } else {
-            throw new RepositoryException("Invalid item implementation '" + item.getClass().getName() + "'. Expected "
+            throw new RepositoryException(
+                "Invalid item implementation '" + item.getClass().getName() + "'. Expected "
                     + ItemImpl.class.getName());
         }
     }
@@ -308,7 +313,8 @@ public class SessionImpl implements JackrabbitSession {
         checkAlive();
 
         ImpersonationCredentials impCreds = new ImpersonationCredentials(
-                requireNonNull(credentials, "parameter 'credentials' must not be null"), sd.getAuthInfo());
+            requireNonNull(credentials, "parameter 'credentials' must not be null"),
+            sd.getAuthInfo());
         return getRepository().login(impCreds, sd.getWorkspaceName());
     }
 
@@ -347,7 +353,8 @@ public class SessionImpl implements JackrabbitSession {
 
     @Override
     public boolean nodeExists(String absPath) throws RepositoryException {
-        return getNodeOrNull(requireNonNull(absPath, "parameter 'absPath' must not be null")) != null;
+        return getNodeOrNull(requireNonNull(absPath, "parameter 'absPath' must not be null"))
+            != null;
     }
 
     @NotNull
@@ -384,7 +391,8 @@ public class SessionImpl implements JackrabbitSession {
 
     @Override
     public Property getProperty(String absPath) throws RepositoryException {
-        Property property = getPropertyOrNull(requireNonNull(absPath, "parameter 'absPath' must not be null"));
+        Property property = getPropertyOrNull(
+            requireNonNull(absPath, "parameter 'absPath' must not be null"));
         if (property == null) {
             throw new PathNotFoundException(absPath);
         }
@@ -393,7 +401,8 @@ public class SessionImpl implements JackrabbitSession {
 
     @Override
     public boolean propertyExists(String absPath) throws RepositoryException {
-        return getPropertyOrNull(requireNonNull(absPath, "parameter 'absPath' must not be null")) != null;
+        return getPropertyOrNull(requireNonNull(absPath, "parameter 'absPath' must not be null"))
+            != null;
     }
 
     @Override
@@ -407,14 +416,16 @@ public class SessionImpl implements JackrabbitSession {
 
     @Override
     public boolean itemExists(String absPath) throws RepositoryException {
-        return getItemOrNull(requireNonNull(absPath, "parameter 'absPath' must not be null")) != null;
+        return getItemOrNull(requireNonNull(absPath, "parameter 'absPath' must not be null"))
+            != null;
     }
 
     @Override
     public void move(String srcAbsPath, final String destAbsPath) throws RepositoryException {
         checkAlive();
         checkIndexOnName(requireNonNull(destAbsPath, "parameter 'destAbsPath' must not be null"));
-        final String srcOakPath = getOakPathOrThrowNotFound(requireNonNull(srcAbsPath, "parameter 'srcAbsPath' must not be null"));
+        final String srcOakPath = getOakPathOrThrowNotFound(
+            requireNonNull(srcAbsPath, "parameter 'srcAbsPath' must not be null"));
         final String destOakPath = getOakPathOrThrowNotFound(destAbsPath);
         sd.performVoid(new WriteOperation<Void>("move") {
             @Override
@@ -434,7 +445,8 @@ public class SessionImpl implements JackrabbitSession {
     @Override
     public void removeItem(final String absPath) throws RepositoryException {
         checkAlive();
-        final String oakPath = getOakPathOrThrowNotFound(requireNonNull(absPath, "parameter 'absPath' must not be null"));
+        final String oakPath = getOakPathOrThrowNotFound(
+            requireNonNull(absPath, "parameter 'absPath' must not be null"));
         sd.performVoid(new WriteOperation<Void>("removeItem") {
             @Override
             public void performVoid() throws RepositoryException {
@@ -512,7 +524,8 @@ public class SessionImpl implements JackrabbitSession {
                         }
                     });
                 } catch (RepositoryException e) {
-                    throw new RuntimeException("Unexpected exception thrown by operation 'logout'", e);
+                    throw new RuntimeException("Unexpected exception thrown by operation 'logout'",
+                        e);
                 } finally {
                     sd = null;
                     sessionContext = null;
@@ -523,17 +536,21 @@ public class SessionImpl implements JackrabbitSession {
 
     @Override
     @NotNull
-    public ContentHandler getImportContentHandler(String parentAbsPath, int uuidBehavior) throws RepositoryException {
-        return new ImportHandler(requireNonNull(parentAbsPath, "parameter 'parentAbsPath' must not be null"), sessionContext,
-                uuidBehavior, false);
+    public ContentHandler getImportContentHandler(String parentAbsPath, int uuidBehavior)
+        throws RepositoryException {
+        return new ImportHandler(
+            requireNonNull(parentAbsPath, "parameter 'parentAbsPath' must not be null"),
+            sessionContext,
+            uuidBehavior, false);
     }
 
     @Override
     public void importXML(String parentAbsPath, InputStream in, int uuidBehavior)
-            throws IOException, RepositoryException {
+        throws IOException, RepositoryException {
         try {
             ContentHandler handler = getImportContentHandler(
-                    requireNonNull(parentAbsPath, "parameter 'parentAbsPath' must not be null"), uuidBehavior);
+                requireNonNull(parentAbsPath, "parameter 'parentAbsPath' must not be null"),
+                uuidBehavior);
             new ParsingContentHandler(handler).parse(in);
         } catch (SAXException e) {
             Throwable exception = e.getException();
@@ -563,7 +580,8 @@ public class SessionImpl implements JackrabbitSession {
      * @throws SAXException        if the SAX event handler failed
      * @throws RepositoryException if another error occurs
      */
-    private synchronized void export(String path, Exporter exporter) throws SAXException, RepositoryException {
+    private synchronized void export(String path, Exporter exporter)
+        throws SAXException, RepositoryException {
         Item item = getItem(path);
         if (item.isNode()) {
             exporter.export((Node) item);
@@ -573,19 +591,24 @@ public class SessionImpl implements JackrabbitSession {
     }
 
     @Override
-    public void exportSystemView(String absPath, ContentHandler contentHandler, boolean skipBinary, boolean noRecurse)
-            throws SAXException, RepositoryException {
-        export(requireNonNull(absPath, "parameter 'absPath' must not be null"), new SystemViewExporter(this,
-                requireNonNull(contentHandler, "parameter 'contentHandler' must not be null"), !noRecurse, !skipBinary));
+    public void exportSystemView(String absPath, ContentHandler contentHandler, boolean skipBinary,
+        boolean noRecurse)
+        throws SAXException, RepositoryException {
+        export(requireNonNull(absPath, "parameter 'absPath' must not be null"),
+            new SystemViewExporter(this,
+                requireNonNull(contentHandler, "parameter 'contentHandler' must not be null"),
+                !noRecurse, !skipBinary));
     }
 
     @Override
-    public void exportSystemView(String absPath, OutputStream out, boolean skipBinary, boolean noRecurse)
-            throws IOException, RepositoryException {
+    public void exportSystemView(String absPath, OutputStream out, boolean skipBinary,
+        boolean noRecurse)
+        throws IOException, RepositoryException {
         try {
-            ContentHandler handler = new ToXmlContentHandler(requireNonNull(out, "parameter 'out' must not be null"));
+            ContentHandler handler = new ToXmlContentHandler(
+                requireNonNull(out, "parameter 'out' must not be null"));
             export(requireNonNull(absPath, "parameter 'absPath' must not be null"),
-                    new SystemViewExporter(this, handler, !noRecurse, !skipBinary));
+                new SystemViewExporter(this, handler, !noRecurse, !skipBinary));
         } catch (SAXException e) {
             Exception exception = e.getException();
             if (exception instanceof RepositoryException) {
@@ -599,19 +622,24 @@ public class SessionImpl implements JackrabbitSession {
     }
 
     @Override
-    public void exportDocumentView(String absPath, ContentHandler contentHandler, boolean skipBinary, boolean noRecurse)
-            throws SAXException, RepositoryException {
-        export(requireNonNull(absPath, "parameter 'absPath' must not be null"), new DocumentViewExporter(this,
-                requireNonNull(contentHandler, "parameter 'contentHandler' must not be null"), !noRecurse, !skipBinary));
+    public void exportDocumentView(String absPath, ContentHandler contentHandler,
+        boolean skipBinary, boolean noRecurse)
+        throws SAXException, RepositoryException {
+        export(requireNonNull(absPath, "parameter 'absPath' must not be null"),
+            new DocumentViewExporter(this,
+                requireNonNull(contentHandler, "parameter 'contentHandler' must not be null"),
+                !noRecurse, !skipBinary));
     }
 
     @Override
-    public void exportDocumentView(String absPath, OutputStream out, boolean skipBinary, boolean noRecurse)
-            throws IOException, RepositoryException {
+    public void exportDocumentView(String absPath, OutputStream out, boolean skipBinary,
+        boolean noRecurse)
+        throws IOException, RepositoryException {
         try {
-            ContentHandler handler = new ToXmlContentHandler(requireNonNull(out, "parameter 'out' must not be null"));
+            ContentHandler handler = new ToXmlContentHandler(
+                requireNonNull(out, "parameter 'out' must not be null"));
             export(requireNonNull(absPath, "parameter 'absPath' must not be null"),
-                    new DocumentViewExporter(this, handler, !noRecurse, !skipBinary));
+                new DocumentViewExporter(this, handler, !noRecurse, !skipBinary));
         } catch (SAXException e) {
             Exception exception = e.getException();
             if (exception instanceof RepositoryException) {
@@ -627,7 +655,8 @@ public class SessionImpl implements JackrabbitSession {
     @Override
     public void addLockToken(String lt) {
         try {
-            getWorkspace().getLockManager().addLockToken(requireNonNull(lt, "parameter 'lt' must not be null"));
+            getWorkspace().getLockManager()
+                          .addLockToken(requireNonNull(lt, "parameter 'lt' must not be null"));
         } catch (RepositoryException e) {
             log.warn("Unable to add lock token " + lt + " to session", e);
         }
@@ -647,7 +676,8 @@ public class SessionImpl implements JackrabbitSession {
     @Override
     public void removeLockToken(String lt) {
         try {
-            getWorkspace().getLockManager().removeLockToken(requireNonNull(lt, "parameter 'lt' must not be null"));
+            getWorkspace().getLockManager()
+                          .removeLockToken(requireNonNull(lt, "parameter 'lt' must not be null"));
         } catch (RepositoryException e) {
             log.warn("Unable to remove lock token " + lt + " from session", e);
         }
@@ -656,7 +686,8 @@ public class SessionImpl implements JackrabbitSession {
     @Override
     public boolean hasPermission(String absPath, final String actions) throws RepositoryException {
         checkAlive();
-        final String oakPath = getOakPathOrThrow(requireNonNull(absPath, "parameter 'absPath' must not be null"));
+        final String oakPath = getOakPathOrThrow(
+            requireNonNull(absPath, "parameter 'absPath' must not be null"));
         requireNonNull(actions, "parameter 'actions' must not be null");
         return sd.perform(new ReadOperation<Boolean>("hasPermission") {
             @NotNull
@@ -670,13 +701,14 @@ public class SessionImpl implements JackrabbitSession {
     @Override
     public void checkPermission(String absPath, String actions) throws RepositoryException {
         if (!hasPermission(requireNonNull(absPath, "parameter 'absPath' must not be null"),
-                requireNonNull(actions, "parameter 'actions' must not be null"))) {
+            requireNonNull(actions, "parameter 'actions' must not be null"))) {
             throw new AccessControlException("Access denied.");
         }
     }
 
     @Override
-    public boolean hasCapability(String methodName, Object target, Object[] arguments) throws RepositoryException {
+    public boolean hasCapability(String methodName, Object target, Object[] arguments)
+        throws RepositoryException {
         requireNonNull(methodName, "parameter 'methodName' must not be null");
         requireNonNull(target, "parameter 'target' must not be null");
         checkAlive();
@@ -693,8 +725,9 @@ public class SessionImpl implements JackrabbitSession {
             if (!parent.internalIsCheckedOut()) {
                 return false;
             }
-            boolean hasLocking = sessionContext.getRepository().getDescriptorValue(Repository.OPTION_LOCKING_SUPPORTED)
-                    .getBoolean();
+            boolean hasLocking = sessionContext.getRepository().getDescriptorValue(
+                                                   Repository.OPTION_LOCKING_SUPPORTED)
+                                               .getBoolean();
             if (hasLocking && parent.isLocked()) {
                 return false;
             }
@@ -707,15 +740,19 @@ public class SessionImpl implements JackrabbitSession {
                     if (relPath != null) {
                         // add-node needs to be checked on the (path of) the
                         // new node that has/will be added
-                        String path = PathUtils.concat(tree.getPath(), sessionContext.getOakPathOrThrow(relPath));
-                        return accessMgr.hasPermissions(path, Session.ACTION_ADD_NODE) && !isMountedReadOnly(path);
+                        String path = PathUtils.concat(tree.getPath(),
+                            sessionContext.getOakPathOrThrow(relPath));
+                        return accessMgr.hasPermissions(path, Session.ACTION_ADD_NODE)
+                            && !isMountedReadOnly(path);
                     } else {
                         // invalid arguments -> cannot verify
-                        log.warn("Cannot verify capability to '{}' due to missing or invalid arguments, required a valid relative path.", methodName);
+                        log.warn(
+                            "Cannot verify capability to '{}' due to missing or invalid arguments, required a valid relative path.",
+                            methodName);
                         return false;
                     }
                 } else if ("setPrimaryType".equals(methodName) || "addMixin".equals(methodName)
-                        || "removeMixin".equals(methodName)) {
+                    || "removeMixin".equals(methodName)) {
                     permission = Permissions.NODE_TYPE_MANAGEMENT;
                 } else if ("orderBefore".equals(methodName)) {
                     if (tree.isRoot()) {
@@ -729,7 +766,8 @@ public class SessionImpl implements JackrabbitSession {
                 } else if ("remove".equals(methodName)) {
                     permission = Permissions.REMOVE_NODE;
                 }
-                return accessMgr.hasPermissions(tree, null, permission) && !isMountedReadOnly(tree.getPath());
+                return accessMgr.hasPermissions(tree, null, permission) && !isMountedReadOnly(
+                    tree.getPath());
             } else {
                 if ("setValue".equals(methodName)) {
                     permission = Permissions.MODIFY_PROPERTY;
@@ -739,13 +777,13 @@ public class SessionImpl implements JackrabbitSession {
                 NodeDelegate parentDelegate = dlg.getParent();
                 if (parentDelegate != null) {
                     return accessMgr.hasPermissions(parentDelegate.getTree(),
-                            ((PropertyDelegate) dlg).getPropertyState(), permission)
-                            && !isMountedReadOnly(parentDelegate.getPath());
+                        ((PropertyDelegate) dlg).getPropertyState(), permission)
+                        && !isMountedReadOnly(parentDelegate.getPath());
                 } else {
                     return accessMgr.hasPermissions(dlg.getPath(),
-                            (permission == Permissions.MODIFY_PROPERTY) ? Session.ACTION_SET_PROPERTY
-                                    : Session.ACTION_REMOVE)
-                            && !isMountedReadOnly(dlg.getPath());
+                        (permission == Permissions.MODIFY_PROPERTY) ? Session.ACTION_SET_PROPERTY
+                            : Session.ACTION_REMOVE)
+                        && !isMountedReadOnly(dlg.getPath());
                 }
             }
         } else if (target instanceof AccessControlManager && isPolicyWriteMethod(methodName)) {
@@ -755,10 +793,13 @@ public class SessionImpl implements JackrabbitSession {
             }
             String path = getFirstArgument(arguments);
             if (path == null) {
-                return getAccessControlManager().hasPrivileges(null, AccessControlUtils.privilegesFromNames(this, PrivilegeConstants.JCR_MODIFY_ACCESS_CONTROL));
+                return getAccessControlManager().hasPrivileges(null,
+                    AccessControlUtils.privilegesFromNames(this,
+                        PrivilegeConstants.JCR_MODIFY_ACCESS_CONTROL));
             } else {
                 String oakPath = getOakPathOrThrow(path);
-                return !isMountedReadOnly(oakPath) && accessMgr.hasPermissions(oakPath, JackrabbitSession.ACTION_MODIFY_ACCESS_CONTROL);
+                return !isMountedReadOnly(oakPath) && accessMgr.hasPermissions(oakPath,
+                    JackrabbitSession.ACTION_MODIFY_ACCESS_CONTROL);
             }
         }
         // TODO: add more best-effort checks
@@ -768,7 +809,7 @@ public class SessionImpl implements JackrabbitSession {
     private static boolean hasArguments(@Nullable Object[] arguments) {
         return arguments != null && arguments.length > 0;
     }
-    
+
     @Nullable
     private static String getFirstArgument(@Nullable Object[] arguments) {
         if (arguments != null && arguments.length > 0) {
@@ -778,7 +819,7 @@ public class SessionImpl implements JackrabbitSession {
             return null;
         }
     }
-    
+
     private static boolean isPolicyWriteMethod(@NotNull String methodName) {
         return "setPolicy".equals(methodName) || "removePolicy".equals(methodName);
     }
@@ -807,8 +848,9 @@ public class SessionImpl implements JackrabbitSession {
 
     @Override
     public void setNamespacePrefix(String prefix, String uri) throws RepositoryException {
-        sessionContext.getNamespaces().setNamespacePrefix(requireNonNull(prefix, "parameter 'prefix' must not be null"),
-                requireNonNull(uri, "parameter 'uri' must not be null"));
+        sessionContext.getNamespaces().setNamespacePrefix(
+            requireNonNull(prefix, "parameter 'prefix' must not be null"),
+            requireNonNull(uri, "parameter 'uri' must not be null"));
     }
 
     @Override
@@ -818,18 +860,21 @@ public class SessionImpl implements JackrabbitSession {
 
     @Override
     public String getNamespaceURI(String prefix) throws RepositoryException {
-        return sessionContext.getNamespaces().getNamespaceURI(requireNonNull(prefix, "parameter 'prefix' must not be null"));
+        return sessionContext.getNamespaces().getNamespaceURI(
+            requireNonNull(prefix, "parameter 'prefix' must not be null"));
     }
 
     @Override
     public String getNamespacePrefix(String uri) throws RepositoryException {
-        return sessionContext.getNamespaces().getNamespacePrefix(requireNonNull(uri, "parameter 'uri' must not be null"));
+        return sessionContext.getNamespaces().getNamespacePrefix(
+            requireNonNull(uri, "parameter 'uri' must not be null"));
     }
 
     // --------------------------------------------------< JackrabbitSession >---
 
     @Override
-    public boolean hasPermission(@NotNull String absPath, @NotNull String... actions) throws RepositoryException {
+    public boolean hasPermission(@NotNull String absPath, @NotNull String... actions)
+        throws RepositoryException {
         return hasPermission(absPath, Text.implode(actions, ","));
     }
 

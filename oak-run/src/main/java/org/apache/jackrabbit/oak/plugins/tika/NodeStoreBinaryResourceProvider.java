@@ -19,10 +19,14 @@
 
 package org.apache.jackrabbit.oak.plugins.tika;
 
+import static org.apache.jackrabbit.guava.common.base.Predicates.notNull;
+import static org.apache.jackrabbit.oak.plugins.tree.factories.TreeFactory.createReadOnlyTree;
+import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.getNode;
+
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.collect.FluentIterable;
 import org.apache.jackrabbit.guava.common.collect.TreeTraverser;
-import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -33,12 +37,10 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Predicates.notNull;
-import static org.apache.jackrabbit.oak.plugins.tree.factories.TreeFactory.createReadOnlyTree;
-import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.getNode;
-
 class NodeStoreBinaryResourceProvider implements BinaryResourceProvider {
-    private static final Logger log = LoggerFactory.getLogger(NodeStoreBinaryResourceProvider.class);
+
+    private static final Logger log = LoggerFactory.getLogger(
+        NodeStoreBinaryResourceProvider.class);
     private final NodeStore nodeStore;
     private final BlobStore blobStore;
 
@@ -49,12 +51,13 @@ class NodeStoreBinaryResourceProvider implements BinaryResourceProvider {
 
     public FluentIterable<BinaryResource> getBinaries(String path) {
         return new OakTreeTraverser()
-                .preOrderTraversal(createReadOnlyTree(getNode(nodeStore.getRoot(), path)))
-                .transform(new TreeToBinarySource())
-                .filter(notNull());
+            .preOrderTraversal(createReadOnlyTree(getNode(nodeStore.getRoot(), path)))
+            .transform(new TreeToBinarySource())
+            .filter(notNull());
     }
 
     private class TreeToBinarySource implements Function<Tree, BinaryResource> {
+
         @Nullable
         @Override
         public BinaryResource apply(Tree tree) {
@@ -73,7 +76,8 @@ class NodeStoreBinaryResourceProvider implements BinaryResourceProvider {
             //Check for ref being non null to ensure its not an inlined binary
             //For Segment ContentIdentity defaults to RecordId
             if (blob.getReference() == null || blobId == null) {
-                log.debug("Ignoring jcr:data property at {} as its an inlined blob", tree.getPath());
+                log.debug("Ignoring jcr:data property at {} as its an inlined blob",
+                    tree.getPath());
                 return null;
             }
 
@@ -81,11 +85,12 @@ class NodeStoreBinaryResourceProvider implements BinaryResourceProvider {
             String encoding = getString(tree, JcrConstants.JCR_ENCODING);
 
             return new BinaryResource(new BlobStoreByteSource(blobStore, blobId), mimeType,
-                    encoding, tree.getPath(), blobId);
+                encoding, tree.getPath(), blobId);
         }
     }
 
     private static class OakTreeTraverser extends TreeTraverser<Tree> {
+
         @Override
         public Iterable<Tree> children(Tree root) {
             return root.getChildren();

@@ -16,6 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -24,13 +30,12 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
-
-import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
+import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
@@ -56,13 +61,8 @@ import org.junit.After;
 import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
 
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_PROPERTY_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
-
 public abstract class AbstractActiveDeletedBlobTest extends AbstractQueryTest {
+
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
     @Rule
@@ -93,15 +93,18 @@ public abstract class AbstractActiveDeletedBlobTest extends AbstractQueryTest {
         IndexDefinition.setDisableStoredIndexDefinition(false);
     }
 
-    public static Tree createIndex(Tree index, String name, Set<String> propNames) throws CommitFailedException {
+    public static Tree createIndex(Tree index, String name, Set<String> propNames)
+        throws CommitFailedException {
         Tree def = index.addChild(INDEX_DEFINITIONS_NAME).addChild(name);
         def.setProperty(JcrConstants.JCR_PRIMARYTYPE,
-                INDEX_DEFINITIONS_NODE_TYPE, Type.NAME);
+            INDEX_DEFINITIONS_NODE_TYPE, Type.NAME);
         def.setProperty(TYPE_PROPERTY_NAME, LuceneIndexConstants.TYPE_LUCENE);
         def.setProperty(REINDEX_PROPERTY_NAME, true);
         def.setProperty(ASYNC_PROPERTY_NAME, "async");
         def.setProperty(FulltextIndexConstants.FULL_TEXT_ENABLED, false);
-        def.setProperty(PropertyStates.createProperty(FulltextIndexConstants.INCLUDE_PROPERTY_NAMES, propNames, Type.STRINGS));
+        def.setProperty(
+            PropertyStates.createProperty(FulltextIndexConstants.INCLUDE_PROPERTY_NAMES, propNames,
+                Type.STRINGS));
         def.setProperty(LuceneIndexConstants.SAVE_DIR_LISTING, true);
         return index.getChild(INDEX_DEFINITIONS_NAME).getChild(name);
     }
@@ -133,169 +136,205 @@ public abstract class AbstractActiveDeletedBlobTest extends AbstractQueryTest {
             this.delegate = delegate;
         }
 
-        @Override public String writeBlob(InputStream in) throws IOException {
+        @Override
+        public String writeBlob(InputStream in) throws IOException {
             String blobId = delegate.writeBlob(in);
             numChunks += Iterators.size(delegate.resolveChunks(blobId));
             return blobId;
         }
 
-        @Override public void setBlockSize(int x) {
+        @Override
+        public void setBlockSize(int x) {
             delegate.setBlockSize(x);
         }
 
-        @Override public String writeBlob(InputStream in, BlobOptions options) throws IOException {
+        @Override
+        public String writeBlob(InputStream in, BlobOptions options) throws IOException {
             String blobId = delegate.writeBlob(in, options);
             numChunks += Iterators.size(delegate.resolveChunks(blobId));
             return blobId;
         }
 
-        @Override public String writeBlob(String tempFileName) throws IOException {
+        @Override
+        public String writeBlob(String tempFileName) throws IOException {
             String blobId = delegate.writeBlob(tempFileName);
             numChunks += Iterators.size(delegate.resolveChunks(blobId));
             return blobId;
         }
 
-        @Override public int sweep() throws IOException {
+        @Override
+        public int sweep() throws IOException {
             return delegate.sweep();
         }
 
-        @Override public void startMark() throws IOException {
+        @Override
+        public void startMark() throws IOException {
             delegate.startMark();
         }
 
-        @Override public int readBlob(String blobId, long pos, byte[] buff, int off, int length) throws IOException {
+        @Override
+        public int readBlob(String blobId, long pos, byte[] buff, int off, int length)
+            throws IOException {
             return delegate.readBlob(blobId, pos, buff, off, length);
         }
 
-        @Override public void clearInUse() {
+        @Override
+        public void clearInUse() {
             delegate.clearInUse();
         }
 
-        @Override public void clearCache() {
+        @Override
+        public void clearCache() {
             delegate.clearCache();
         }
 
-        @Override public long getBlobLength(String blobId) throws IOException {
+        @Override
+        public long getBlobLength(String blobId) throws IOException {
             return delegate.getBlobLength(blobId);
         }
 
-        @Override public long getBlockSizeMin() {
+        @Override
+        public long getBlockSizeMin() {
             return delegate.getBlockSizeMin();
         }
 
-        @Override public Iterator<String> getAllChunkIds(long maxLastModifiedTime) throws Exception {
+        @Override
+        public Iterator<String> getAllChunkIds(long maxLastModifiedTime) throws Exception {
             return delegate.getAllChunkIds(maxLastModifiedTime);
         }
 
-        @Override public InputStream getInputStream(String blobId) throws IOException {
+        @Override
+        public InputStream getInputStream(String blobId) throws IOException {
             return delegate.getInputStream(blobId);
         }
 
-        @Override @Deprecated public boolean deleteChunks(List<String> chunkIds, long maxLastModifiedTime)
+        @Override
+        @Deprecated
+        public boolean deleteChunks(List<String> chunkIds, long maxLastModifiedTime)
             throws Exception {
             numChunks -= chunkIds.size();
             return delegate.deleteChunks(chunkIds, maxLastModifiedTime);
         }
 
-        @Override @Nullable public String getBlobId(@NotNull String reference) {
+        @Override
+        @Nullable
+        public String getBlobId(@NotNull String reference) {
             return delegate.getBlobId(reference);
         }
 
-        @Override @Nullable public String getReference(@NotNull String blobId) {
+        @Override
+        @Nullable
+        public String getReference(@NotNull String blobId) {
             return delegate.getReference(blobId);
         }
 
-        @Override public long countDeleteChunks(List<String> chunkIds, long maxLastModifiedTime) throws Exception {
+        @Override
+        public long countDeleteChunks(List<String> chunkIds, long maxLastModifiedTime)
+            throws Exception {
             long numDeleted = delegate.countDeleteChunks(chunkIds, maxLastModifiedTime);
             numChunks -= numDeleted;
             return numDeleted;
         }
 
-        @Override public Iterator<String> resolveChunks(String blobId) throws IOException {
+        @Override
+        public Iterator<String> resolveChunks(String blobId) throws IOException {
             return delegate.resolveChunks(blobId);
         }
 
-        @Override public void addTracker(BlobTracker tracker) {
+        @Override
+        public void addTracker(BlobTracker tracker) {
             if (delegate instanceof BlobTrackingStore) {
                 ((BlobTrackingStore) delegate).addTracker(tracker);
             }
         }
 
-        @Override public BlobTracker getTracker() {
+        @Override
+        public BlobTracker getTracker() {
             if (delegate instanceof BlobTrackingStore) {
                 return ((BlobTrackingStore) delegate).getTracker();
             }
             return null;
         }
 
-        @Override public void addMetadataRecord(InputStream stream, String name) throws DataStoreException {
+        @Override
+        public void addMetadataRecord(InputStream stream, String name) throws DataStoreException {
             if (delegate instanceof BlobTrackingStore) {
                 ((BlobTrackingStore) delegate).addMetadataRecord(stream, name);
             }
         }
 
-        @Override public void addMetadataRecord(File f, String name) throws DataStoreException {
+        @Override
+        public void addMetadataRecord(File f, String name) throws DataStoreException {
             if (delegate instanceof BlobTrackingStore) {
                 ((BlobTrackingStore) delegate).addMetadataRecord(f, name);
             }
         }
 
-        @Override public DataRecord getMetadataRecord(String name) {
+        @Override
+        public DataRecord getMetadataRecord(String name) {
             if (delegate instanceof BlobTrackingStore) {
                 return ((BlobTrackingStore) delegate).getMetadataRecord(name);
             }
             return null;
         }
 
-        @Override public boolean metadataRecordExists(String name) {
+        @Override
+        public boolean metadataRecordExists(String name) {
             if (delegate instanceof BlobTrackingStore) {
                 return ((BlobTrackingStore) delegate).metadataRecordExists(name);
             }
             return false;
         }
 
-        @Override public List<DataRecord> getAllMetadataRecords(String prefix) {
+        @Override
+        public List<DataRecord> getAllMetadataRecords(String prefix) {
             if (delegate instanceof BlobTrackingStore) {
                 return ((BlobTrackingStore) delegate).getAllMetadataRecords(prefix);
             }
             return null;
         }
 
-        @Override public boolean deleteMetadataRecord(String name) {
+        @Override
+        public boolean deleteMetadataRecord(String name) {
             if (delegate instanceof BlobTrackingStore) {
                 ((BlobTrackingStore) delegate).deleteMetadataRecord(name);
             }
             return false;
         }
 
-        @Override public void deleteAllMetadataRecords(String prefix) {
+        @Override
+        public void deleteAllMetadataRecords(String prefix) {
             if (delegate instanceof BlobTrackingStore) {
                 ((BlobTrackingStore) delegate).deleteAllMetadataRecords(prefix);
             }
         }
 
-        @Override public Iterator<DataRecord> getAllRecords() throws DataStoreException {
+        @Override
+        public Iterator<DataRecord> getAllRecords() throws DataStoreException {
             if (delegate instanceof BlobTrackingStore) {
                 return ((BlobTrackingStore) delegate).getAllRecords();
             }
             return Collections.emptyIterator();
         }
 
-        @Override public DataRecord getRecordForId(DataIdentifier id) throws DataStoreException {
+        @Override
+        public DataRecord getRecordForId(DataIdentifier id) throws DataStoreException {
             if (delegate instanceof BlobTrackingStore) {
                 return ((BlobTrackingStore) delegate).getRecordForId(id);
             }
             return null;
         }
 
-        @Override public Type getType() {
+        @Override
+        public Type getType() {
             if (delegate instanceof BlobTrackingStore) {
                 ((BlobTrackingStore) delegate).getType();
             }
             return Type.DEFAULT;
         }
 
-        @Override public void close() throws Exception {
+        @Override
+        public void close() throws Exception {
         }
     }
 }

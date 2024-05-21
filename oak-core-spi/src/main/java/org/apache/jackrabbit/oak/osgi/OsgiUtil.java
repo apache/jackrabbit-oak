@@ -17,15 +17,14 @@
 
 package org.apache.jackrabbit.oak.osgi;
 
+import java.util.Map;
+import java.util.Objects;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.Constants;
 import org.osgi.framework.Filter;
 import org.osgi.framework.FrameworkUtil;
 import org.osgi.framework.InvalidSyntaxException;
 import org.osgi.service.component.ComponentContext;
-
-import java.util.Map;
-import java.util.Objects;
 
 /**
  * Utility methods to use in an OSGi environment.
@@ -37,22 +36,21 @@ public class OsgiUtil {
     }
 
     /**
-     * Looks a property up by name in a component context. Returns {@code null}
-     * if the property is not found or if the property is found but it is an
-     * empty string.
+     * Looks a property up by name in a component context. Returns {@code null} if the property is
+     * not found or if the property is found but it is an empty string.
      *
      * @param context Component context.
      * @param name    Name of the property.
      * @return The property value serialized as a string, or {@code null}.
      */
     public static String lookup(ComponentContext context, String name) {
-        return asString(Objects.requireNonNull(context).getProperties().get(Objects.requireNonNull(name)));
+        return asString(
+            Objects.requireNonNull(context).getProperties().get(Objects.requireNonNull(name)));
     }
 
     /**
-     * Looks a property up by name in the set of framework properties. Returns
-     * {@code null} if the property is not found or if the property is found but
-     * it is an empty string.
+     * Looks a property up by name in the set of framework properties. Returns {@code null} if the
+     * property is not found or if the property is found but it is an empty string.
      *
      * @param context Bundle context.
      * @param name    Name of the property.
@@ -63,10 +61,9 @@ public class OsgiUtil {
     }
 
     /**
-     * Looks a property up by name in the component context first, falling back
-     * in the framework properties if not found. Returns {@code null} if the
-     * property is not found or if the property is found but it is an empty
-     * string.
+     * Looks a property up by name in the component context first, falling back in the framework
+     * properties if not found. Returns {@code null} if the property is not found or if the property
+     * is found but it is an empty string.
      *
      * @param context Component context.
      * @param name    Name of the property.
@@ -77,17 +74,17 @@ public class OsgiUtil {
     }
 
     /**
-     * Looks a property up by name in the component context first, falling back
-     * in the framework properties if not found. Returns {@code null} if the
-     * property is not found or if the property is found but it is an empty
-     * string.
+     * Looks a property up by name in the component context first, falling back in the framework
+     * properties if not found. Returns {@code null} if the property is not found or if the property
+     * is found but it is an empty string.
      *
      * @param context         Component context.
      * @param nameInComponent Name of the property in the component context.
      * @param nameInFramework Name of the property in the framework properties.
      * @return The property value serialized as a string, or {@code null}.
      */
-    public static String lookupConfigurationThenFramework(ComponentContext context, String nameInComponent, String nameInFramework) {
+    public static String lookupConfigurationThenFramework(ComponentContext context,
+        String nameInComponent, String nameInFramework) {
         String fromComponent = lookup(context, nameInComponent);
 
         if (fromComponent != null) {
@@ -104,10 +101,9 @@ public class OsgiUtil {
     }
 
     /**
-     * Looks a property up by name in the framework properties first, falling
-     * back to the component context if not not found. Returns {@code null} if
-     * the property is not found or if the property is found but it is an empty
-     * string.
+     * Looks a property up by name in the framework properties first, falling back to the component
+     * context if not not found. Returns {@code null} if the property is not found or if the
+     * property is found but it is an empty string.
      *
      * @param context Component context.
      * @param name    Name of the property.
@@ -118,18 +114,19 @@ public class OsgiUtil {
     }
 
     /**
-     * Looks a property up by name in the framework properties first, falling
-     * back to the component context if not not found. Returns {@code null} if
-     * the property is not found or if the property is found but it is an empty
-     * string.
+     * Looks a property up by name in the framework properties first, falling back to the component
+     * context if not not found. Returns {@code null} if the property is not found or if the
+     * property is found but it is an empty string.
      *
      * @param context         Component context.
      * @param nameInComponent Name of the property in the component context.
      * @param nameInFramework Name of the property in the framework properties.
      * @return The property value serialized as a string, or {@code null}.
      */
-    public static String lookupFrameworkThenConfiguration(ComponentContext context, String nameInComponent, String nameInFramework) {
-        String fromFramework = lookup(Objects.requireNonNull(context).getBundleContext(), nameInFramework);
+    public static String lookupFrameworkThenConfiguration(ComponentContext context,
+        String nameInComponent, String nameInFramework) {
+        String fromFramework = lookup(Objects.requireNonNull(context).getBundleContext(),
+            nameInFramework);
 
         if (fromFramework != null) {
             return fromFramework;
@@ -159,9 +156,10 @@ public class OsgiUtil {
     }
 
     /**
-     * Create a {@link Filter} using the passed Class as an objectClass and the map
-     * as the filter attributes.
-     * @param clazz the target objectClass
+     * Create a {@link Filter} using the passed Class as an objectClass and the map as the filter
+     * attributes.
+     *
+     * @param clazz      the target objectClass
      * @param attributes target attributes (null value for the absence)
      * @return OSGi filter representing the input
      */
@@ -174,12 +172,13 @@ public class OsgiUtil {
         filterBuilder.append(')');
         try {
             return FrameworkUtil.createFilter(filterBuilder.toString());
-        } catch(InvalidSyntaxException e) {
+        } catch (InvalidSyntaxException e) {
             throw new IllegalArgumentException(e);
         }
     }
 
-    static StringBuilder appendLdapFilterAttribute(StringBuilder filterBuilder, String key, String value) {
+    static StringBuilder appendLdapFilterAttribute(StringBuilder filterBuilder, String key,
+        String value) {
         if (value == null) {
             filterBuilder.append("(!(").append(key).append("=*))");
         } else {

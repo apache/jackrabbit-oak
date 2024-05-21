@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security;
 
-import org.junit.Test;
-
 import static org.apache.jackrabbit.oak.spi.security.ConfigurationParameters.Milliseconds.FOREVER;
 import static org.apache.jackrabbit.oak.spi.security.ConfigurationParameters.Milliseconds.NEVER;
 import static org.apache.jackrabbit.oak.spi.security.ConfigurationParameters.Milliseconds.NULL;
@@ -25,6 +23,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
+
+import org.junit.Test;
 
 public class MillisecondsTest {
 
@@ -42,8 +42,10 @@ public class MillisecondsTest {
         assertEquals(1500, ConfigurationParameters.Milliseconds.of("1s 500ms").value);
         assertEquals(60 * 1000, ConfigurationParameters.Milliseconds.of("1m").value);
         assertEquals(90 * 1000, ConfigurationParameters.Milliseconds.of("1m30s").value);
-        assertEquals(60 * 60 * 1000 + 90 * 1000, ConfigurationParameters.Milliseconds.of("1h1m30s").value);
-        assertEquals(36 * 60 * 60 * 1000 + 60 * 60 * 1000 + 90 * 1000, ConfigurationParameters.Milliseconds.of("1.5d1h1m30s").value);
+        assertEquals(60 * 60 * 1000 + 90 * 1000,
+            ConfigurationParameters.Milliseconds.of("1h1m30s").value);
+        assertEquals(36 * 60 * 60 * 1000 + 60 * 60 * 1000 + 90 * 1000,
+            ConfigurationParameters.Milliseconds.of("1.5d1h1m30s").value);
     }
 
     @Test
@@ -61,8 +63,10 @@ public class MillisecondsTest {
         assertEquals(1500, ConfigurationParameters.Milliseconds.of("1s 500ms", defValue).value);
         assertEquals(60 * 1000, ConfigurationParameters.Milliseconds.of("1m", defValue).value);
         assertEquals(90 * 1000, ConfigurationParameters.Milliseconds.of("1m30s", defValue).value);
-        assertEquals(60 * 60 * 1000 + 90 * 1000, ConfigurationParameters.Milliseconds.of("1h1m30s", defValue).value);
-        assertEquals(36 * 60 * 60 * 1000 + 60 * 60 * 1000 + 90 * 1000, ConfigurationParameters.Milliseconds.of("1.5d1h1m30s", defValue).value);
+        assertEquals(60 * 60 * 1000 + 90 * 1000,
+            ConfigurationParameters.Milliseconds.of("1h1m30s", defValue).value);
+        assertEquals(36 * 60 * 60 * 1000 + 60 * 60 * 1000 + 90 * 1000,
+            ConfigurationParameters.Milliseconds.of("1.5d1h1m30s", defValue).value);
     }
 
     @Test
@@ -85,12 +89,14 @@ public class MillisecondsTest {
     public void testHashCode() {
         assertNotEquals(NEVER.hashCode(), FOREVER.hashCode());
         assertNotEquals(FOREVER.hashCode(), NULL.hashCode());
-        assertNotEquals(ConfigurationParameters.Milliseconds.of("1ms", NULL).hashCode(), ConfigurationParameters.Milliseconds.of("1s", NULL).hashCode());
+        assertNotEquals(ConfigurationParameters.Milliseconds.of("1ms", NULL).hashCode(),
+            ConfigurationParameters.Milliseconds.of("1s", NULL).hashCode());
     }
 
     @Test
     public void testNotEquals() {
-        ConfigurationParameters.Milliseconds milliseconds = ConfigurationParameters.Milliseconds.of("1ms", NULL);
+        ConfigurationParameters.Milliseconds milliseconds = ConfigurationParameters.Milliseconds.of(
+            "1ms", NULL);
         assertNotEquals(NEVER, NULL);
         assertNotEquals(NULL, milliseconds);
         assertNotEquals(milliseconds, FOREVER);
@@ -107,7 +113,8 @@ public class MillisecondsTest {
         assertEquals(NULL, ConfigurationParameters.Milliseconds.of(NULL.value));
         assertEquals(FOREVER, ConfigurationParameters.Milliseconds.of(FOREVER.value));
 
-        ConfigurationParameters.Milliseconds milliseconds = ConfigurationParameters.Milliseconds.of("1ms", NULL);
+        ConfigurationParameters.Milliseconds milliseconds = ConfigurationParameters.Milliseconds.of(
+            "1ms", NULL);
         assertEquals(milliseconds, ConfigurationParameters.Milliseconds.of(milliseconds.value));
     }
 }

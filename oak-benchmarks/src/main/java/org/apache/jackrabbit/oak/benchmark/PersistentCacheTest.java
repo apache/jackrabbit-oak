@@ -17,9 +17,7 @@
 package org.apache.jackrabbit.oak.benchmark;
 
 import java.util.concurrent.atomic.AtomicLong;
-
 import javax.jcr.Repository;
-
 import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.fixture.OakFixture;
@@ -40,7 +38,8 @@ public class PersistentCacheTest extends AbstractTest {
 
     private static final int ITEMS_TO_ADD = Integer.getInteger("items", 10000);
 
-    private static final String CACHE_OPTIONS = System.getProperty("cacheOptions", "size=100,+compact,-async");
+    private static final String CACHE_OPTIONS = System.getProperty("cacheOptions",
+        "size=100,+compact,-async");
 
     private final StatisticsProvider statsProvider;
 
@@ -67,10 +66,11 @@ public class PersistentCacheTest extends AbstractTest {
                 dns = builder.build();
                 nodesCache = DocumentNodeStoreHelper.getNodesCache(dns);
                 Oak oak = new Oak(dns);
-                return new Repository[] { new Jcr(oak).createRepository() };
+                return new Repository[]{new Jcr(oak).createRepository()};
             }
         }
-        throw new IllegalArgumentException("Fixture " + fixture + " not supported for this benchmark.");
+        throw new IllegalArgumentException(
+            "Fixture " + fixture + " not supported for this benchmark.");
     }
 
     @Override

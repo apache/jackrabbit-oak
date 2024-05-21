@@ -29,14 +29,12 @@ import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-
 import javax.jcr.Node;
 import javax.jcr.PropertyType;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
-
 import org.apache.jackrabbit.guava.common.util.concurrent.Uninterruptibles;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
@@ -94,12 +92,12 @@ public class ConcurrentAddNodesClusterIT {
         for (int i = 0; i < NUM_CLUSTER_NODES; i++) {
             MongoConnection c = createConnection();
             DocumentMK mk = new DocumentMK.Builder()
-                    .setMongoDB(c.getMongoClient(), c.getDBName())
-                    .setClusterId(i + 1).open();
+                .setMongoDB(c.getMongoClient(), c.getDBName())
+                .setClusterId(i + 1).open();
             mks.add(mk);
         }
         Map<String, Exception> exceptions = Collections.synchronizedMap(
-                new HashMap<String, Exception>());
+            new HashMap<String, Exception>());
         for (int i = 0; i < mks.size(); i++) {
             DocumentMK mk = mks.get(i);
             Repository repo = new Jcr(mk.getNodeStore()).createRepository();
@@ -125,18 +123,18 @@ public class ConcurrentAddNodesClusterIT {
         for (int i = 0; i < NUM_CLUSTER_NODES; i++) {
             MongoConnection c = createConnection();
             DocumentMK mk = new DocumentMK.Builder()
-                    .setMongoDB(c.getMongoClient(), c.getDBName())
-                    .setClusterId(i + 1).open();
+                .setMongoDB(c.getMongoClient(), c.getDBName())
+                .setClusterId(i + 1).open();
             mks.add(mk);
         }
         final Map<String, Exception> exceptions = Collections.synchronizedMap(
-                new HashMap<String, Exception>());
+            new HashMap<String, Exception>());
         final CountDownLatch latch = new CountDownLatch(1);
         final AtomicBoolean stop = new AtomicBoolean();
         final UncaughtExceptionHandler ueh = new UncaughtExceptionHandler() {
             @Override
             public void uncaughtException(Thread t, Throwable e) {
-                RuntimeException r = new RuntimeException("Exception in thread "+t.getName(), e);
+                RuntimeException r = new RuntimeException("Exception in thread " + t.getName(), e);
                 r.printStackTrace();
             }
         };
@@ -149,18 +147,21 @@ public class ConcurrentAddNodesClusterIT {
                 final Runnable r = new Runnable() {
                     final Session session = createAdminSession(repo);
                     int count = 0;
+
                     @Override
                     public void run() {
                         try {
                             Uninterruptibles.awaitUninterruptibly(latch);
                             session.refresh(false);
-                            Node node = session.getRootNode().addNode(name+count++, "oak:Unstructured");
-                            for (int j = 0; j < NODE_COUNT && !stop.get() ; j++) {
+                            Node node = session.getRootNode()
+                                               .addNode(name + count++, "oak:Unstructured");
+                            for (int j = 0; j < NODE_COUNT && !stop.get(); j++) {
                                 node.addNode("node" + j);
                                 session.save();
                             }
                         } catch (RepositoryException e) {
-                            RuntimeException r = new RuntimeException("Exception in thread "+name, e);
+                            RuntimeException r = new RuntimeException("Exception in thread " + name,
+                                e);
                             r.printStackTrace();
                             exceptions.put(Thread.currentThread().getName(), r);
                             stop.set(true);
@@ -173,11 +174,11 @@ public class ConcurrentAddNodesClusterIT {
 
                 //Last runnable would be a long running one
                 Runnable runnable = r;
-                if(w == WORKER_COUNT){
+                if (w == WORKER_COUNT) {
                     runnable = new Runnable() {
                         @Override
                         public void run() {
-                            while(!stop.get()){
+                            while (!stop.get()) {
                                 r.run();
                             }
                         }
@@ -212,8 +213,8 @@ public class ConcurrentAddNodesClusterIT {
         for (int i = 0; i < 2; i++) {
             MongoConnection c = createConnection();
             DocumentMK mk = new DocumentMK.Builder()
-                    .setMongoDB(c.getMongoClient(), c.getDBName())
-                    .setClusterId(i + 1).open();
+                .setMongoDB(c.getMongoClient(), c.getDBName())
+                .setClusterId(i + 1).open();
             mks.add(mk);
         }
         final DocumentMK mk1 = mks.get(0);
@@ -230,7 +231,7 @@ public class ConcurrentAddNodesClusterIT {
         ensureIndex(s2.getRootNode(), PROP_NAME);
 
         Map<String, Exception> exceptions = Collections.synchronizedMap(
-                new HashMap<String, Exception>());
+            new HashMap<String, Exception>());
         createNodes(s1, "testroot-1", 1, 1, exceptions);
         createNodes(s2, "testroot-2", 1, 1, exceptions);
 
@@ -247,9 +248,9 @@ public class ConcurrentAddNodesClusterIT {
         for (int i = 0; i < 3; i++) {
             MongoConnection c = createConnection();
             DocumentMK mk = new DocumentMK.Builder()
-                    .setMongoDB(c.getMongoClient(), c.getDBName())
-                    .setAsyncDelay(0)
-                    .setClusterId(i + 1).open();
+                .setMongoDB(c.getMongoClient(), c.getDBName())
+                .setAsyncDelay(0)
+                .setClusterId(i + 1).open();
             mks.add(mk);
         }
         final DocumentMK mk1 = mks.get(0);
@@ -327,9 +328,9 @@ public class ConcurrentAddNodesClusterIT {
         for (int i = 0; i < 2; i++) {
             MongoConnection c = createConnection();
             DocumentMK mk = new DocumentMK.Builder()
-                    .setMongoDB(c.getMongoClient(), c.getDBName())
-                    .setAsyncDelay(0)
-                    .setClusterId(i + 1).open();
+                .setMongoDB(c.getMongoClient(), c.getDBName())
+                .setAsyncDelay(0)
+                .setClusterId(i + 1).open();
             mks.add(mk);
         }
         final DocumentMK mk1 = mks.get(0);
@@ -370,7 +371,7 @@ public class ConcurrentAddNodesClusterIT {
 
     private static MongoConnection createConnection() throws Exception {
         return OakMongoNSRepositoryStub.createConnection(
-                ConcurrentAddNodesClusterIT.class.getSimpleName());
+            ConcurrentAddNodesClusterIT.class.getSimpleName());
     }
 
     private static void dropDB() throws Exception {
@@ -385,11 +386,11 @@ public class ConcurrentAddNodesClusterIT {
     private static void initRepository() throws Exception {
         MongoConnection con = createConnection();
         DocumentMK mk = new DocumentMK.Builder()
-                .setMongoDB(con.getMongoClient(), con.getDBName())
-                .setClusterId(1).open();
+            .setMongoDB(con.getMongoClient(), con.getDBName())
+            .setClusterId(1).open();
         Repository repository = new Jcr(mk.getNodeStore()).createRepository();
         Session session = repository.login(
-                new SimpleCredentials("admin", "admin".toCharArray()));
+            new SimpleCredentials("admin", "admin".toCharArray()));
         session.logout();
         dispose(repository);
         mk.dispose(); // closes connection as well
@@ -397,18 +398,18 @@ public class ConcurrentAddNodesClusterIT {
 
 
     private static void ensureIndex(Node root, String propertyName)
-            throws RepositoryException {
+        throws RepositoryException {
         Node indexDef = root.getNode(IndexConstants.INDEX_DEFINITIONS_NAME);
         if (indexDef.hasNode(propertyName)) {
             return;
         }
         Node index = indexDef.addNode(propertyName, IndexConstants.INDEX_DEFINITIONS_NODE_TYPE);
         index.setProperty(IndexConstants.TYPE_PROPERTY_NAME,
-                PropertyIndexEditorProvider.TYPE);
+            PropertyIndexEditorProvider.TYPE);
         index.setProperty(IndexConstants.REINDEX_PROPERTY_NAME,
-                true);
+            true);
         index.setProperty(IndexConstants.PROPERTY_NAMES,
-                new String[] { propertyName }, PropertyType.NAME);
+            new String[]{propertyName}, PropertyType.NAME);
         try {
             root.getSession().save();
         } catch (RepositoryException e) {
@@ -454,11 +455,11 @@ public class ConcurrentAddNodesClusterIT {
     }
 
     private void createNodes(Session session,
-                             String nodeName,
-                             int loopCount,
-                             int nodeCount,
-                             Map<String, Exception> exceptions)
-            throws RepositoryException {
+        String nodeName,
+        int loopCount,
+        int nodeCount,
+        Map<String, Exception> exceptions)
+        throws RepositoryException {
         Node root = session.getRootNode().addNode(nodeName, "nt:unstructured");
         for (int i = 0; i < loopCount; i++) {
             Node node = root.addNode("testnode" + i, "nt:unstructured");
@@ -474,7 +475,7 @@ public class ConcurrentAddNodesClusterIT {
     }
 
     private void createNodes(Node parent, String child)
-            throws RepositoryException {
+        throws RepositoryException {
         Node node = parent.addNode(child, "nt:unstructured");
         for (int i = 0; i < NODE_COUNT; i++) {
             Node c = node.addNode("node" + i, "nt:unstructured");

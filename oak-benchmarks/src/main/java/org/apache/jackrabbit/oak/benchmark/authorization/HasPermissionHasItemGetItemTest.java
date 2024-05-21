@@ -16,21 +16,22 @@
  */
 package org.apache.jackrabbit.oak.benchmark.authorization;
 
+import java.util.List;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import javax.jcr.security.AccessControlManager;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.util.Text;
 import org.jetbrains.annotations.NotNull;
 
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-import javax.jcr.security.AccessControlManager;
-import java.util.List;
-
 public class HasPermissionHasItemGetItemTest extends AbstractHasItemGetItemTest {
 
-    private static final List<String> PERMISSIONS = Lists.newArrayList(Permissions.PERMISSION_NAMES.values());
+    private static final List<String> PERMISSIONS = Lists.newArrayList(
+        Permissions.PERMISSION_NAMES.values());
 
-    public HasPermissionHasItemGetItemTest(int itemsToRead, int numberOfACEs, int numberOfGroups, boolean doReport) {
+    public HasPermissionHasItemGetItemTest(int itemsToRead, int numberOfACEs, int numberOfGroups,
+        boolean doReport) {
         super(itemsToRead, numberOfACEs, numberOfGroups, doReport);
     }
 
@@ -41,9 +42,11 @@ public class HasPermissionHasItemGetItemTest extends AbstractHasItemGetItemTest 
     }
 
     @Override
-    void additionalOperations(@NotNull String path, @NotNull Session s, @NotNull AccessControlManager acMgr) {
+    void additionalOperations(@NotNull String path, @NotNull Session s,
+        @NotNull AccessControlManager acMgr) {
         try {
-            String actions = Text.implode((String[]) Utils.getRandom(PERMISSIONS, 3).toArray(new String[0]), ",");
+            String actions = Text.implode(
+                (String[]) Utils.getRandom(PERMISSIONS, 3).toArray(new String[0]), ",");
             s.hasPermission(path, actions);
         } catch (RepositoryException e) {
             if (doReport) {

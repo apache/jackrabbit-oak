@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.plugins.observation.filter;
 
 import java.util.List;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;

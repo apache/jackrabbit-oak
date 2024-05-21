@@ -26,31 +26,34 @@ import org.jetbrains.annotations.Nullable;
 public interface SolrServerProvider extends Closeable {
 
     /**
-     * provides an already initialized {@link org.apache.solr.client.solrj.SolrClient} to be used for either searching or
-     * indexing, or both.
+     * provides an already initialized {@link org.apache.solr.client.solrj.SolrClient} to be used
+     * for either searching or indexing, or both.
      *
      * @return a {@link org.apache.solr.client.solrj.SolrClient} instance
-     * @throws Exception if anything goes wrong while initializing the {@link org.apache.solr.client.solrj.SolrClient}
+     * @throws Exception if anything goes wrong while initializing the
+     *                   {@link org.apache.solr.client.solrj.SolrClient}
      */
     @Nullable
     SolrClient getSolrServer() throws Exception;
 
     /**
-     * provides an already initialized {@link org.apache.solr.client.solrj.SolrClient} specifically configured to be
-     * used for indexing.
+     * provides an already initialized {@link org.apache.solr.client.solrj.SolrClient} specifically
+     * configured to be used for indexing.
      *
      * @return a {@link org.apache.solr.client.solrj.SolrClient} instance
-     * @throws Exception if anything goes wrong while initializing the {@link org.apache.solr.client.solrj.SolrClient}
+     * @throws Exception if anything goes wrong while initializing the
+     *                   {@link org.apache.solr.client.solrj.SolrClient}
      */
     @Nullable
     SolrClient getIndexingSolrServer() throws Exception;
 
     /**
-     * provides an already initialized {@link org.apache.solr.client.solrj.SolrClient} specifically configured to be
-     * used for searching.
+     * provides an already initialized {@link org.apache.solr.client.solrj.SolrClient} specifically
+     * configured to be used for searching.
      *
      * @return a {@link org.apache.solr.client.solrj.SolrClient} instance
-     * @throws Exception if anything goes wrong while initializing the {@link org.apache.solr.client.solrj.SolrClient}
+     * @throws Exception if anything goes wrong while initializing the
+     *                   {@link org.apache.solr.client.solrj.SolrClient}
      */
     @Nullable
     SolrClient getSearchingSolrServer() throws Exception;

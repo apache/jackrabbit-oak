@@ -22,7 +22,6 @@ import java.io.ByteArrayInputStream;
 import java.util.Calendar;
 import java.util.Map;
 import java.util.Random;
-
 import javax.jcr.Credentials;
 import javax.jcr.Node;
 import javax.jcr.Repository;
@@ -35,24 +34,24 @@ import org.apache.jackrabbit.oak.scalability.ScalabilitySuite;
 import org.apache.jackrabbit.oak.scalability.benchmarks.ScalabilityBenchmark;
 
 /**
- * This suite test will set up a primary instance and a standby instance. It
- * will create <code>nodeCount</code> nodes on primary, to be synced on the
- * standby. It is the responsibility of the test to start the standby process
- * and to query different JMX MBeans for asserting benchmark duration.
- * 
+ * This suite test will set up a primary instance and a standby instance. It will create
+ * <code>nodeCount</code> nodes on primary, to be synced on the standby. It is the responsibility
+ * of
+ * the test to start the standby process and to query different JMX MBeans for asserting benchmark
+ * duration.
+ *
  * <p>
  * In order to obtain meaningful results, please note that the
  * <code>noWarmup</code> JVM property needs to be set to <code>true</code>. This
  * way "false" sync cycles taking up only a few milliseconds are avoided.
- * 
+ *
  * <p>
  * The following system JVM properties can be defined to configure the suite.
- * 
+ *
  * <ul>
  * <li><code>nodeCount</code> - Controls the number of nodes to be created on
  * the primary. Defaults to 100_000.</li>
  * </ul>
- *
  */
 public class ScalabilityStandbySuite extends ScalabilityAbstractSuite {
 
@@ -75,7 +74,8 @@ public class ScalabilityStandbySuite extends ScalabilityAbstractSuite {
     }
 
     @Override
-    public void setUp(Repository repository, RepositoryFixture fixture, Credentials credentials) throws Exception {
+    public void setUp(Repository repository, RepositoryFixture fixture, Credentials credentials)
+        throws Exception {
         super.setUp(repository, fixture, credentials);
 
         if (!(fixture instanceof OakRepositoryFixture)) {
@@ -93,7 +93,7 @@ public class ScalabilityStandbySuite extends ScalabilityAbstractSuite {
             contextMap.put("stores", stf.getStores());
         } else {
             throw new IllegalArgumentException(
-                    "Cannot run ScalabilityStandbySuite on current fixture. Use Oak-Segment-Tar-Cold instead!");
+                "Cannot run ScalabilityStandbySuite on current fixture. Use Oak-Segment-Tar-Cold instead!");
         }
     }
 
@@ -106,7 +106,8 @@ public class ScalabilityStandbySuite extends ScalabilityAbstractSuite {
     }
 
     @Override
-    protected void executeBenchmark(ScalabilityBenchmark benchmark, ExecutionContext context) throws Exception {
+    protected void executeBenchmark(ScalabilityBenchmark benchmark, ExecutionContext context)
+        throws Exception {
         LOG.info("Started pre benchmark hook : {}", benchmark);
         benchmark.beforeExecute(getRepository(), CREDENTIALS, context);
 

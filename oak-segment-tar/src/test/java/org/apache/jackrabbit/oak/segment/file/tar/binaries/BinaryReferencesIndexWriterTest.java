@@ -28,7 +28,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.junit.Test;
 
@@ -53,7 +52,8 @@ public class BinaryReferencesIndexWriterTest {
 
         byte[] data = writer.write();
 
-        Buffer buffer = loadBinaryReferencesIndex((whence, length) -> Buffer.wrap(data, data.length - whence, length));
+        Buffer buffer = loadBinaryReferencesIndex(
+            (whence, length) -> Buffer.wrap(data, data.length - whence, length));
         BinaryReferencesIndex index = parseBinaryReferencesIndex(buffer);
 
         Generation g1 = new Generation(1, 2, false);

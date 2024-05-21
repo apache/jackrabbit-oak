@@ -19,9 +19,12 @@
 
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
+
 import com.mongodb.BasicDBObject;
 import com.mongodb.ReadPreference;
 import com.mongodb.client.MongoCollection;
+import java.util.function.Predicate;
 import org.apache.jackrabbit.guava.common.collect.FluentIterable;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
@@ -33,11 +36,8 @@ import org.bson.BsonInt64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.function.Predicate;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-
 public class MongoDocumentTraverser {
+
     private static final Logger LOG = LoggerFactory.getLogger(MongoDocumentTraverser.class);
     private final MongoDocumentStore mongoStore;
     private boolean disableReadOnlyCheck;
@@ -46,8 +46,9 @@ public class MongoDocumentTraverser {
         this.mongoStore = mongoStore;
     }
 
-    public <T extends Document> CloseableIterable<T> getAllDocuments(Collection<T> collection, TraversingRange traversingRange,
-                                                                     Predicate<String> filter) {
+    public <T extends Document> CloseableIterable<T> getAllDocuments(Collection<T> collection,
+        TraversingRange traversingRange,
+        Predicate<String> filter) {
         if (!disableReadOnlyCheck) {
             checkState(mongoStore.isReadOnly(), "Traverser can only be used with readOnly store");
         }
@@ -58,16 +59,16 @@ public class MongoDocumentTraverser {
         Iterable<BasicDBObject> cursor;
         if (traversingRange.coversAllDocuments()) {
             cursor = dbCollection
-                    .withReadPreference(mongoStore.getConfiguredReadPreference(collection))
-                    .find();
+                .withReadPreference(mongoStore.getConfiguredReadPreference(collection))
+                .find();
         } else {
             ReadPreference preference = mongoStore.getConfiguredReadPreference(collection);
             LOG.info("Using read preference {}", preference.getName());
             cursor = dbCollection
-                    .withReadPreference(preference)
-                    .find(traversingRange.getFindQuery()).sort(new BsonDocument()
-                            .append(NodeDocument.MODIFIED_IN_SECS, new BsonInt64(1))
-                            .append(NodeDocument.ID, new BsonInt64(1)));
+                .withReadPreference(preference)
+                .find(traversingRange.getFindQuery()).sort(new BsonDocument()
+                    .append(NodeDocument.MODIFIED_IN_SECS, new BsonInt64(1))
+                    .append(NodeDocument.ID, new BsonInt64(1)));
         }
 
         CloseableIterable<BasicDBObject> closeableCursor = CloseableIterable.wrap(cursor);
@@ -75,16 +76,17 @@ public class MongoDocumentTraverser {
 
         @SuppressWarnings("Guava")
         Iterable<T> result = FluentIterable.from(cursor)
-                .filter(o -> filter.test((String) o.get(Document.ID)))
-                .transform(o -> {
-                    T doc = mongoStore.convertFromDBObject(collection, o);
-                    //TODO Review the cache update approach where tracker has to track *all* docs
-                    if (collection == Collection.NODES) {
-                        NodeDocument nodeDoc = (NodeDocument) doc;
-                        getNodeDocCache().put(nodeDoc);
-                    }
-                    return doc;
-                });
+                                           .filter(o -> filter.test((String) o.get(Document.ID)))
+                                           .transform(o -> {
+                                               T doc = mongoStore.convertFromDBObject(collection,
+                                                   o);
+                                               //TODO Review the cache update approach where tracker has to track *all* docs
+                                               if (collection == Collection.NODES) {
+                                                   NodeDocument nodeDoc = (NodeDocument) doc;
+                                                   getNodeDocCache().put(nodeDoc);
+                                               }
+                                               return doc;
+                                           });
         return CloseableIterable.wrap(result, closeableCursor);
     }
 

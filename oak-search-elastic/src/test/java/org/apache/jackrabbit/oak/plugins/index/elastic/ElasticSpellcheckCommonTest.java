@@ -16,6 +16,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
+import static org.apache.jackrabbit.commons.JcrUtils.getOrCreateByPath;
+
+import javax.jcr.Node;
+import javax.jcr.Repository;
+import javax.jcr.query.Query;
+import javax.jcr.query.QueryManager;
+import javax.jcr.query.Row;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.index.SpellcheckCommonTest;
@@ -25,19 +32,11 @@ import org.junit.After;
 import org.junit.ClassRule;
 import org.junit.Test;
 
-import javax.jcr.Node;
-import javax.jcr.Repository;
-import javax.jcr.query.Query;
-import javax.jcr.query.QueryManager;
-import javax.jcr.query.Row;
-
-import static org.apache.jackrabbit.commons.JcrUtils.getOrCreateByPath;
-
 public class ElasticSpellcheckCommonTest extends SpellcheckCommonTest {
 
     @ClassRule
     public static final ElasticConnectionRule elasticRule =
-            new ElasticConnectionRule(ElasticTestUtils.ELASTIC_CONNECTION_STRING);
+        new ElasticConnectionRule(ElasticTestUtils.ELASTIC_CONNECTION_STRING);
 
     @After
     public void cleanup() {
@@ -62,12 +61,16 @@ public class ElasticSpellcheckCommonTest extends SpellcheckCommonTest {
         adminSession.save();
 
         String sql = "EXPLAIN SELECT [rep:spellcheck()] FROM [nt:base] WHERE SPELLCHECK('desent')";
-        String expected = "{\"suggest\":{\"oak:suggestion\":{\"phrase\":{\"field\":\":spellcheck\",\"size\":10,\"collate\":" +
-                "{\"query\":{\"source\":\"{\\\"bool\\\":{\\\"must\\\":[{\\\"match_phrase\\\":{\\\":spellcheck\\\":{\\\"query\\\":\\\"{{suggestion}}\\\"}}}]}}\"}}," +
+        String expected =
+            "{\"suggest\":{\"oak:suggestion\":{\"phrase\":{\"field\":\":spellcheck\",\"size\":10,\"collate\":"
+                +
+                "{\"query\":{\"source\":\"{\\\"bool\\\":{\\\"must\\\":[{\\\"match_phrase\\\":{\\\":spellcheck\\\":{\\\"query\\\":\\\"{{suggestion}}\\\"}}}]}}\"}},"
+                +
                 "\"direct_generator\":[{\"field\":\":spellcheck\",\"size\":10,\"suggest_mode\":\"missing\"}]}},\"text\":\"desent\"}}";
 
         Query q = qm.createQuery(sql, Query.JCR_SQL2);
         Row row = q.execute().getRows().nextRow();
-        MatcherAssert.assertThat(row.getValue("plan").getString(), CoreMatchers.containsString(expected));
+        MatcherAssert.assertThat(row.getValue("plan").getString(),
+            CoreMatchers.containsString(expected));
     }
 }

@@ -30,19 +30,16 @@ import java.util.Map.Entry;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-
 import javax.jcr.Credentials;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
-
+import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
+import org.apache.commons.math3.stat.descriptive.SynchronizedDescriptiveStatistics;
 import org.apache.jackrabbit.guava.common.base.Preconditions;
 import org.apache.jackrabbit.guava.common.base.Splitter;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
-
-import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
-import org.apache.commons.math3.stat.descriptive.SynchronizedDescriptiveStatistics;
 import org.apache.jackrabbit.oak.benchmark.CSVResultGenerator;
 import org.apache.jackrabbit.oak.commons.Profiler;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
@@ -53,7 +50,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Abstract class which defines a lot of the boiler-plate code needed to run the suite of tests.
- * 
+ * <p>
  * Any test suite extending from this class has the following entry points
  * <p>
  * {@link #beforeSuite()} - To configure the whole suite before the tests are started.
@@ -86,13 +83,14 @@ import org.slf4j.LoggerFactory;
  * </ul>
  */
 public abstract class ScalabilityAbstractSuite implements ScalabilitySuite, CSVResultGenerator {
+
     public static final String CTX_SEARCH_PATHS_PROP = "searchPaths";
 
     protected static final Logger LOG = LoggerFactory.getLogger(ScalabilityAbstractSuite.class);
 
     /**
-     * A random string to guarantee concurrently running tests don't overwrite
-     * each others changes (for example in a cluster).
+     * A random string to guarantee concurrently running tests don't overwrite each others changes
+     * (for example in a cluster).
      * <p>
      * The probability of duplicates, for 50 concurrent processes, is less than 1 in 1 million.
      */
@@ -106,10 +104,11 @@ public abstract class ScalabilityAbstractSuite implements ScalabilitySuite, CSVR
      * Controls the incremental load for each iteration
      */
     protected static final List<String> INCREMENTS = Splitter.on(",").trimResults()
-                    .omitEmptyStrings().splitToList(System.getProperty("increments", "1,2,5"));
+                                                             .omitEmptyStrings().splitToList(
+            System.getProperty("increments", "1,2,5"));
 
     protected static final Credentials CREDENTIALS = new SimpleCredentials("admin", "admin"
-            .toCharArray());
+        .toCharArray());
 
     private PrintStream out;
 
@@ -157,7 +156,7 @@ public abstract class ScalabilityAbstractSuite implements ScalabilitySuite, CSVR
     /**
      * Run the full suite on the given fixture.
      *
-     * @param fixture the fixture
+     * @param fixture    the fixture
      * @param repository the repository
      * @throws Exception the exception
      */
@@ -184,17 +183,17 @@ public abstract class ScalabilityAbstractSuite implements ScalabilitySuite, CSVR
 
                 tearDownIteration();
             }
-        } catch(Exception e) {
-           e.printStackTrace(); 
+        } catch (Exception e) {
+            e.printStackTrace();
         } finally {
             tearDown();
         }
     }
-    
+
     /**
-     * Setup the iteration. Calls {@link #beforeIteration(ExecutionContext)} which can be
-     * overridden by subclasses.
-     * 
+     * Setup the iteration. Calls {@link #beforeIteration(ExecutionContext)} which can be overridden
+     * by subclasses.
+     *
      * @param increment the current iteration's increment
      * @throws Exception
      */
@@ -202,9 +201,9 @@ public abstract class ScalabilityAbstractSuite implements ScalabilitySuite, CSVR
         if (LOG.isDebugEnabled()) {
             LOG.debug("Start load : " + increment);
         }
-        
+
         initBackgroundJobs();
-        
+
         // create the load for this iteration
         beforeIteration(context);
 
@@ -214,22 +213,22 @@ public abstract class ScalabilityAbstractSuite implements ScalabilitySuite, CSVR
             }
         }
     }
-    
+
     /**
      * Post processing for the iteration.
-     * 
+     *
      * @throws InterruptedException
      * @throws Exception
      */
     private void tearDownIteration() throws Exception {
         shutdownBackgroundJobs();
-        
+
         afterIteration();
-    }    
+    }
 
     /**
      * Setup any options before the benchmarks.
-     * 
+     *
      * @throws Exception
      */
     protected void beforeSuite() throws Exception {
@@ -241,13 +240,13 @@ public abstract class ScalabilityAbstractSuite implements ScalabilitySuite, CSVR
 
     /**
      * Prepares this performance benchmark.
-     * 
+     *
      * @param repository the repository to use
-     * @param fixture credentials of a user with write access
+     * @param fixture    credentials of a user with write access
      * @throws Exception if the benchmark can not be prepared
      */
     public void setUp(Repository repository, RepositoryFixture fixture, Credentials credentials)
-            throws Exception {
+        throws Exception {
         this.repository = repository;
         this.credentials = credentials;
         this.sessions = new LinkedList<Session>();
@@ -261,14 +260,15 @@ public abstract class ScalabilityAbstractSuite implements ScalabilitySuite, CSVR
 
     /**
      * Cleanup after the benchmarks are run.
-     * 
+     *
      * @throws Exception
      */
-    protected void afterSuite() throws Exception {}
+    protected void afterSuite() throws Exception {
+    }
 
     /**
      * Cleans up after this performance benchmark.
-     * 
+     *
      * @throws Exception if the benchmark can not be cleaned up
      */
     public void tearDown() throws Exception {
@@ -300,29 +300,30 @@ public abstract class ScalabilityAbstractSuite implements ScalabilitySuite, CSVR
     public boolean removeBenchmark(String benchmark) {
         return benchmarks.remove(benchmark) != null;
     }
-    
+
     @Override
     public Map<String, ScalabilityBenchmark> getBenchmarks() {
         return benchmarks;
     }
+
     /**
      * Runs the benchmark.
-     * 
+     *
      * @param benchmark the benchmark to execute
-     * @throws Exception 
+     * @throws Exception
      */
     protected abstract void executeBenchmark(ScalabilityBenchmark benchmark,
-            ExecutionContext context) throws Exception;
+        ExecutionContext context) throws Exception;
 
     /**
      * Runs the iteration of the benchmarks added.
-     * 
+     *
      * @param context the execution context
-     * @throws Exception 
+     * @throws Exception
      */
     private void runIteration(ExecutionContext context) throws Exception {
         Preconditions.checkArgument(benchmarks != null && !benchmarks.isEmpty(),
-                "No Benchmarks configured");
+            "No Benchmarks configured");
 
         for (String key : benchmarks.keySet()) {
             ScalabilityBenchmark benchmark = benchmarks.get(key);
@@ -339,31 +340,33 @@ public abstract class ScalabilityAbstractSuite implements ScalabilitySuite, CSVR
 
             if (LOG.isDebugEnabled()) {
                 LOG.debug("Execution time for " + benchmark + "-"
-                                            + watch.elapsed(TimeUnit.MILLISECONDS));
+                    + watch.elapsed(TimeUnit.MILLISECONDS));
             }
         }
     }
 
     /**
      * Executes once for each iteration.
-     * 
+     *
      * @param context the context
      * @throws Exception the repository exception
      */
-    public void beforeIteration(ExecutionContext context) throws Exception {}
+    public void beforeIteration(ExecutionContext context) throws Exception {
+    }
 
     /**
-     * Run after all iterations of this test have been executed. Subclasses can
-     * override this method to clean up static test content.
-     * 
+     * Run after all iterations of this test have been executed. Subclasses can override this method
+     * to clean up static test content.
+     *
      * @throws Exception if an error occurs
      */
-    protected void afterIteration() throws Exception {}
+    protected void afterIteration() throws Exception {
+    }
 
     /**
-     * Adds a background thread that repeatedly executes the given job
-     * until all the iterations of this test have been executed.
-     * 
+     * Adds a background thread that repeatedly executes the given job until all the iterations of
+     * this test have been executed.
+     *
      * @param job background job
      */
     protected void addBackgroundJob(final Runnable job) {
@@ -379,7 +382,7 @@ public abstract class ScalabilityAbstractSuite implements ScalabilitySuite, CSVR
         thread.start();
         threads.add(thread);
     }
-    
+
     /**
      * Sets the running flag to true.
      */
@@ -387,10 +390,10 @@ public abstract class ScalabilityAbstractSuite implements ScalabilitySuite, CSVR
         this.running = true;
         threads = newArrayList();
     }
-    
+
     /**
      * Shutdown the background threads.
-     * 
+     *
      * @throws InterruptedException
      */
     protected void shutdownBackgroundJobs() throws InterruptedException {
@@ -405,9 +408,9 @@ public abstract class ScalabilityAbstractSuite implements ScalabilitySuite, CSVR
     }
 
     /**
-     * Returns a new writer session that will be automatically closed once
-     * all the iterations of this test have been executed.
-     * 
+     * Returns a new writer session that will be automatically closed once all the iterations of
+     * this test have been executed.
+     *
      * @return writer session
      */
     protected Session loginWriter() {
@@ -426,6 +429,7 @@ public abstract class ScalabilityAbstractSuite implements ScalabilitySuite, CSVR
      * Collects the execution times for each benchmark.
      */
     class Result {
+
         private final Map<ScalabilityBenchmark, DescriptiveStatistics> stats;
 
         public Result() {
@@ -433,7 +437,7 @@ public abstract class ScalabilityAbstractSuite implements ScalabilitySuite, CSVR
         }
 
         public void addBenchmarkStatistics(ScalabilityBenchmark benchmark,
-                SynchronizedDescriptiveStatistics stat) {
+            SynchronizedDescriptiveStatistics stat) {
             stats.put(benchmark, stat);
         }
 
@@ -447,17 +451,28 @@ public abstract class ScalabilityAbstractSuite implements ScalabilitySuite, CSVR
                 ScalabilityBenchmark benchmark = entry.getKey();
 
                 System.out
-                        .format(
-                                "# %-26.26s       min     10%%     50%%     90%%     max       N%n",
-                                benchmark.toString());
+                    .format(
+                        "# %-26.26s       min     10%%     50%%     90%%     max       N%n",
+                        benchmark.toString());
                 if (out != null) {
                     out.format(
-                            "# %-26.26s       min     10%%     50%%     90%%     max       N%n",
-                            benchmark.toString());
+                        "# %-26.26s       min     10%%     50%%     90%%     max       N%n",
+                        benchmark.toString());
                 }
 
                 System.out.format(
-                        "%-30.30s  %6.0f  %6.0f  %6.0f  %6.0f  %6.0f  %6d%n",
+                    "%-30.30s  %6.0f  %6.0f  %6.0f  %6.0f  %6.0f  %6d%n",
+                    fixture.toString(),
+                    statistics.getMin(),
+                    statistics.getPercentile(10.0),
+                    statistics.getPercentile(50.0),
+                    statistics.getPercentile(90.0),
+                    statistics.getMax(),
+                    statistics.getN());
+
+                if (out != null) {
+                    out.format(
+                        "%-30.30s  %-6.0f  %-6.0f  %-6.0f  %-6.0f  %-6.0f  %-6d%n",
                         fixture.toString(),
                         statistics.getMin(),
                         statistics.getPercentile(10.0),
@@ -465,17 +480,6 @@ public abstract class ScalabilityAbstractSuite implements ScalabilitySuite, CSVR
                         statistics.getPercentile(90.0),
                         statistics.getMax(),
                         statistics.getN());
-
-                if (out != null) {
-                    out.format(
-                            "%-30.30s  %-6.0f  %-6.0f  %-6.0f  %-6.0f  %-6.0f  %-6d%n",
-                            fixture.toString(),
-                            statistics.getMin(),
-                            statistics.getPercentile(10.0),
-                            statistics.getPercentile(50.0),
-                            statistics.getPercentile(90.0),
-                            statistics.getMax(),
-                            statistics.getN());
                 }
 
                 StringBuilder header = new StringBuilder();
@@ -512,6 +516,7 @@ public abstract class ScalabilityAbstractSuite implements ScalabilitySuite, CSVR
      * Execution context to be pass information to and from the suite to the benchmarks.
      */
     public static class ExecutionContext {
+
         private Profiler profiler;
         private final AtomicLong iteration = new AtomicLong();
         private Map<Object, Object> map = newConcurrentMap();
@@ -525,7 +530,7 @@ public abstract class ScalabilityAbstractSuite implements ScalabilitySuite, CSVR
         }
 
         public void startProfiler() {
-                profiler = new Profiler().startCollecting();
+            profiler = new Profiler().startCollecting();
         }
 
         public void stopProfiler() {

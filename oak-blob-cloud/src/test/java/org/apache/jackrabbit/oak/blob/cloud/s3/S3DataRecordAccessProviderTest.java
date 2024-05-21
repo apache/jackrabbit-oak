@@ -32,9 +32,7 @@ import java.io.InputStream;
 import java.net.URI;
 import java.util.Map;
 import java.util.Properties;
-
 import javax.net.ssl.HttpsURLConnection;
-
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStore;
@@ -51,6 +49,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 public class S3DataRecordAccessProviderTest extends AbstractDataRecordAccessProviderTest {
+
     @ClassRule
     public static TemporaryFolder homeDir = new TemporaryFolder(new File("target"));
 
@@ -62,9 +61,10 @@ public class S3DataRecordAccessProviderTest extends AbstractDataRecordAccessProv
         dataStore = createDataStore(getS3Config());
     }
 
-    private static S3DataStore createDataStore(@NotNull final Properties properties) throws Exception {
+    private static S3DataStore createDataStore(@NotNull final Properties properties)
+        throws Exception {
         S3DataStore ds = (S3DataStore) getS3DataStore(getFixtures().get(0), properties,
-                homeDir.newFolder().getAbsolutePath());
+            homeDir.newFolder().getAbsolutePath());
 
         ds.setDirectDownloadURIExpirySeconds(expirySeconds);
         ds.setDirectUploadURIExpirySeconds(expirySeconds);
@@ -78,7 +78,8 @@ public class S3DataRecordAccessProviderTest extends AbstractDataRecordAccessProv
     }
 
     @Override
-    protected ConfigurableDataRecordAccessProvider getDataStore(@NotNull Properties overrideProperties) throws Exception {
+    protected ConfigurableDataRecordAccessProvider getDataStore(
+        @NotNull Properties overrideProperties) throws Exception {
         Properties mergedProperties = new Properties();
         mergedProperties.putAll(getS3Config());
         mergedProperties.putAll(overrideProperties);
@@ -86,18 +87,22 @@ public class S3DataRecordAccessProviderTest extends AbstractDataRecordAccessProv
     }
 
     @Override
-    protected DataRecord doGetRecord(DataStore ds, DataIdentifier identifier) throws DataStoreException {
+    protected DataRecord doGetRecord(DataStore ds, DataIdentifier identifier)
+        throws DataStoreException {
         return ds.getRecord(identifier);
     }
 
     @Override
-    protected DataRecord doSynchronousAddRecord(DataStore ds, InputStream in) throws DataStoreException {
-        return ((S3DataStore)ds).addRecord(in, new BlobOptions().setUpload(BlobOptions.UploadType.SYNCHRONOUS));
+    protected DataRecord doSynchronousAddRecord(DataStore ds, InputStream in)
+        throws DataStoreException {
+        return ((S3DataStore) ds).addRecord(in,
+            new BlobOptions().setUpload(BlobOptions.UploadType.SYNCHRONOUS));
     }
 
     @Override
-    protected void doDeleteRecord(DataStore ds, DataIdentifier identifier) throws DataStoreException {
-        ((S3DataStore)ds).deleteRecord(identifier);
+    protected void doDeleteRecord(DataStore ds, DataIdentifier identifier)
+        throws DataStoreException {
+        ((S3DataStore) ds).deleteRecord(identifier);
     }
 
     @Override
@@ -111,15 +116,20 @@ public class S3DataRecordAccessProviderTest extends AbstractDataRecordAccessProv
     }
 
     @Override
-    protected long getProviderMaxSinglePutSize() { return S3Backend.MAX_SINGLE_PUT_UPLOAD_SIZE; }
+    protected long getProviderMaxSinglePutSize() {
+        return S3Backend.MAX_SINGLE_PUT_UPLOAD_SIZE;
+    }
 
     @Override
-    protected long getProviderMaxBinaryUploadSize() { return S3Backend.MAX_BINARY_UPLOAD_SIZE; }
+    protected long getProviderMaxBinaryUploadSize() {
+        return S3Backend.MAX_BINARY_UPLOAD_SIZE;
+    }
 
     @Override
     protected boolean isSinglePutURI(URI uri) {
         Map<String, String> queryParams = parseQueryString(uri);
-        return ! queryParams.containsKey(S3Backend.PART_NUMBER) && ! queryParams.containsKey(S3Backend.UPLOAD_ID);
+        return !queryParams.containsKey(S3Backend.PART_NUMBER) && !queryParams.containsKey(
+            S3Backend.UPLOAD_ID);
     }
 
     @Override
@@ -137,8 +147,7 @@ public class S3DataRecordAccessProviderTest extends AbstractDataRecordAccessProv
             Map<String, String> params = parseQueryString(uploadURI);
             String expiresTime = params.get("X-Amz-Expires");
             assertTrue(60 >= Integer.parseInt(expiresTime));
-        }
-        finally {
+        } finally {
             ds.setDirectUploadURIExpirySeconds(expirySeconds);
         }
     }

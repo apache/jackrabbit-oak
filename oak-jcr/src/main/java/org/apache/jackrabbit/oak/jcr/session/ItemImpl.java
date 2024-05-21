@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.jcr.session;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
 import static java.lang.String.format;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.PATH;
@@ -28,7 +28,6 @@ import static org.apache.jackrabbit.oak.api.Type.UNDEFINEDS;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 
 import java.util.List;
-
 import javax.jcr.AccessDeniedException;
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.Item;
@@ -41,7 +40,6 @@ import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
 import javax.jcr.nodetype.ConstraintViolationException;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -61,18 +59,20 @@ import org.slf4j.LoggerFactory;
  * TODO document
  */
 abstract class ItemImpl<T extends ItemDelegate> implements Item {
+
     private static final Logger log = LoggerFactory.getLogger(ItemImpl.class);
 
     public static final String ITEM_SAVE_DOES_SESSION_SAVE = "item-save-does-session-save";
     public static final int MV_PROPERTY_WARN_THRESHOLD = 1000;
 
     /**
-     * The value of this flag determines the behaviour of {@link #save()}. If {@code false},
-     * save will throw a {@link javax.jcr.UnsupportedRepositoryOperationException} if the
-     * sub tree rooted at this item does not contain <em>all</em> transient changes. If
-     * {@code true}, save will delegate to {@link Session#save()}.
+     * The value of this flag determines the behaviour of {@link #save()}. If {@code false}, save
+     * will throw a {@link javax.jcr.UnsupportedRepositoryOperationException} if the sub tree rooted
+     * at this item does not contain <em>all</em> transient changes. If {@code true}, save will
+     * delegate to {@link Session#save()}.
      */
     public static final boolean SAVE_SESSION;
+
     static {
         String property = System.getProperty(ITEM_SAVE_DOES_SESSION_SAVE);
         SAVE_SESSION = property == null || Boolean.parseBoolean(property);
@@ -89,9 +89,11 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
     }
 
     protected abstract class ItemWriteOperation<U> extends SessionOperation<U> {
+
         protected ItemWriteOperation(String name) {
             super(name, true);
         }
+
         @Override
         public void checkPreconditions() throws RepositoryException {
             dlg.checkAlive();
@@ -103,9 +105,10 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
 
     /**
      * Perform the passed {@link SessionOperation}.
+     *
      * @param op  operation to perform
-     * @param <U>  return type of the operation
-     * @return  the result of {@code op.perform()}
+     * @param <U> return type of the operation
+     * @return the result of {@code op.perform()}
      * @throws RepositoryException as thrown by {@code op.perform()}.
      */
     @NotNull
@@ -127,6 +130,7 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
             public String perform() {
                 return item.getName();
             }
+
             @Override
             public String toString() {
                 return format("getName [%s]", dlg.getPath());
@@ -151,7 +155,8 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
         }));
     }
 
-    @Override @NotNull
+    @Override
+    @NotNull
     public Session getSession() {
         return sessionContext.getSession();
     }
@@ -160,7 +165,7 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
     public Item getAncestor(final int depth) throws RepositoryException {
         if (depth < 0) {
             throw new ItemNotFoundException(
-                    getPath() + "Invalid ancestor depth " + depth);
+                getPath() + "Invalid ancestor depth " + depth);
         } else if (depth == 0) {
             return sessionContext.getSession().getRootNode();
         }
@@ -176,7 +181,7 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
                     slash = PathUtils.getNextSlash(path, slash + 1);
                     if (slash == -1) {
                         throw new ItemNotFoundException(
-                                path + ": Invalid ancestor depth " + depth);
+                            path + ": Invalid ancestor depth " + depth);
                     }
                 }
                 slash = PathUtils.getNextSlash(path, slash + 1);
@@ -199,7 +204,7 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
             return NodeImpl.createNode((NodeDelegate) ancestor, sessionContext);
         } else {
             throw new AccessDeniedException(
-                    getPath() + ": Access denied to ancestor at depth " + depth);
+                getPath() + ": Access denied to ancestor at depth " + depth);
         }
     }
 
@@ -230,14 +235,16 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
 
         // Both objects were acquired through Session objects bound to the same
         // repository workspace.
-        if (!getSession().getWorkspace().getName().equals(otherItem.getSession().getWorkspace().getName())) {
+        if (!getSession().getWorkspace().getName()
+                         .equals(otherItem.getSession().getWorkspace().getName())) {
             return false;
         }
 
         if (isNode()) {
             return ((Node) this).getIdentifier().equals(((Node) otherItem).getIdentifier());
         } else {
-            return getName().equals(otherItem.getName()) && getParent().isSame(otherItem.getParent());
+            return getName().equals(otherItem.getName()) && getParent().isSame(
+                otherItem.getParent());
         }
     }
 
@@ -249,8 +256,6 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
      * {@link javax.jcr.UnsupportedRepositoryOperationException}
      *
      * @see javax.jcr.Item#save()
-     *
-     *
      */
     @Override
     public void save() throws RepositoryException {
@@ -273,8 +278,8 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
                 }
 
                 log.warn("Item#save is only supported when the subtree rooted at that item " +
-                        "contains all transient changes. Falling back to Session#save since " +
-                        "system property " + ITEM_SAVE_DOES_SESSION_SAVE + " is true.");
+                    "contains all transient changes. Falling back to Session#save since " +
+                    "system property " + ITEM_SAVE_DOES_SESSION_SAVE + " is true.");
                 getSession().save();
             } else {
                 throw e;
@@ -296,7 +301,7 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
                 sessionDelegate.refresh(keepChanges);
                 if (!dlg.exists()) {
                     throw new InvalidItemStateException(
-                            "This item no longer exists");
+                        "This item no longer exists");
                 }
             }
 
@@ -360,8 +365,8 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
 
     @NotNull
     protected PropertyState createSingleState(
-            String oakName, Value value, Type<?> type)
-            throws RepositoryException {
+        String oakName, Value value, Type<?> type)
+        throws RepositoryException {
         if (type == UNDEFINED) {
             type = Type.fromTag(value.getType(), false);
         }
@@ -374,15 +379,15 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
 
     @NotNull
     protected PropertyState createMultiState(
-            String oakName, List<Value> values, Type<?> type)
-            throws RepositoryException {
+        String oakName, List<Value> values, Type<?> type)
+        throws RepositoryException {
         if (values.isEmpty()) {
             Type<?> base = type.getBaseType();
             if (base == UNDEFINED) {
                 base = STRING;
             }
             return PropertyBuilder.array(base)
-                    .setName(oakName).getPropertyState();
+                                  .setName(oakName).getPropertyState();
         }
         if (type == UNDEFINEDS) {
             type = Type.fromTag(values.get(0).getType(), true);
@@ -400,7 +405,7 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
     }
 
     private String getOakValue(Value value, Type<?> type)
-            throws RepositoryException {
+        throws RepositoryException {
         if (type == NAME) {
             return getOakName(value.getString());
         } else if (type == PATH) {

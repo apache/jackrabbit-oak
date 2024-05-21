@@ -26,7 +26,6 @@ import static org.junit.Assume.assumeTrue;
 
 import java.io.File;
 import java.io.IOException;
-
 import org.apache.jackrabbit.oak.segment.DefaultSegmentWriter;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.SegmentNodeBuilder;
@@ -38,20 +37,22 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 /**
- * This test asserts that a large number of child nodes can be added in a single
- * transaction. Due to its long running time the test needs to be explicitly enabled
- * via {@code -Dtest=LargeNumberOfChildNodeUpdatesIT}.
- * Used {@code -DLargeNumberOfChildNodeUpdatesIT.child-count=<int>} to control the number
- * of child nodes used by this test. Default is 5000000.
+ * This test asserts that a large number of child nodes can be added in a single transaction. Due to
+ * its long running time the test needs to be explicitly enabled via
+ * {@code -Dtest=LargeNumberOfChildNodeUpdatesIT}. Used
+ * {@code -DLargeNumberOfChildNodeUpdatesIT.child-count=<int>} to control the number of child nodes
+ * used by this test. Default is 5000000.
  */
 public class LargeNumberOfChildNodeUpdatesIT {
 
-    /** Only run if explicitly asked to via -Dtest=LargeNumberOfChildNodeUpdatesIT */
+    /**
+     * Only run if explicitly asked to via -Dtest=LargeNumberOfChildNodeUpdatesIT
+     */
     private static final boolean ENABLED =
-            LargeNumberOfChildNodeUpdatesIT.class.getSimpleName().equals(getProperty("test"));
+        LargeNumberOfChildNodeUpdatesIT.class.getSimpleName().equals(getProperty("test"));
 
     private static final int NODE_COUNT = Integer
-            .getInteger("LargeNumberOfChildNodeUpdatesIT.child-count", 5000000);
+        .getInteger("LargeNumberOfChildNodeUpdatesIT.child-count", 5000000);
 
     @Rule
     public final TemporaryFolder folder = new TemporaryFolder(new File("target"));
@@ -65,8 +66,8 @@ public class LargeNumberOfChildNodeUpdatesIT {
     public void testNode() throws IOException, InvalidFileStoreVersionException {
         try (FileStore fileStore = FileStoreBuilder.fileStoreBuilder(folder.getRoot()).build()) {
             DefaultSegmentWriter writer = defaultSegmentWriterBuilder("test")
-                    .withGeneration(GCGeneration.newGCGeneration(1, 1, false))
-                    .build(fileStore);
+                .withGeneration(GCGeneration.newGCGeneration(1, 1, false))
+                .build(fileStore);
 
             SegmentNodeState root = fileStore.getHead();
             SegmentNodeBuilder builder = root.builder();

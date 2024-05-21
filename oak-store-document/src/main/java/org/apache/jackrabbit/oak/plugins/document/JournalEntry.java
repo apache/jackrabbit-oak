@@ -56,14 +56,13 @@ public final class JournalEntry extends Document {
     private static final Logger LOG = LoggerFactory.getLogger(JournalEntry.class);
 
     /**
-     * The revision format for external changes:
-     * &lt;clusterId>-&lt;timestamp>-&lt;counter>. The string is prefixed with
-     * "b" if it denotes a branch revision or id of an {@link #INVALIDATE_ONLY}
-     * entry.
+     * The revision format for external changes: &lt;clusterId>-&lt;timestamp>-&lt;counter>. The
+     * string is prefixed with "b" if it denotes a branch revision or id of an
+     * {@link #INVALIDATE_ONLY} entry.
      */
     private static final String REVISION_FORMAT = "%d-%0" +
-            Long.toHexString(Long.MAX_VALUE).length() + "x-%0" +
-            Integer.toHexString(Integer.MAX_VALUE).length() + "x";
+        Long.toHexString(Long.MAX_VALUE).length() + "x-%0" +
+        Integer.toHexString(Integer.MAX_VALUE).length() + "x";
 
     private static final String CHANGES = "_c";
 
@@ -81,7 +80,7 @@ public final class JournalEntry extends Document {
      * switch to disk after 2048 paths
      */
     private static final int STRING_SORT_OVERFLOW_TO_DISK_THRESHOLD
-            = Integer.getInteger("oak.overflowToDiskThreshold", StringSort.BATCH_SIZE);
+        = Integer.getInteger("oak.overflowToDiskThreshold", StringSort.BATCH_SIZE);
 
     private final DocumentStore store;
 
@@ -92,13 +91,13 @@ public final class JournalEntry extends Document {
     private volatile TreeNode changes = null;
 
     /**
-     * Counts number of paths changed due to {@code modified()} calls.
-     * Applicable for entries being prepared to be persisted.
+     * Counts number of paths changed due to {@code modified()} calls. Applicable for entries being
+     * prepared to be persisted.
      */
     private volatile int numChangedNodes = 0;
     /**
-     * Tracks if this entry has branch commits or not
-     * Applicable for entries being prepared to be persisted.
+     * Tracks if this entry has branch commits or not Applicable for entries being prepared to be
+     * persisted.
      */
     private boolean hasBranchCommits = false;
 
@@ -109,7 +108,7 @@ public final class JournalEntry extends Document {
     }
 
     JournalEntry(DocumentStore store, boolean concurrent, ChangeSetBuilder changeSetBuilder,
-                 JournalPropertyHandler journalPropertyHandler) {
+        JournalPropertyHandler journalPropertyHandler) {
         this.store = store;
         this.concurrent = concurrent;
         this.changeSetBuilder = changeSetBuilder;
@@ -126,10 +125,10 @@ public final class JournalEntry extends Document {
     }
 
     static void applyTo(@NotNull Iterable<String> changedPaths,
-                        @NotNull DiffCache diffCache,
-                        @NotNull Path path,
-                        @NotNull RevisionVector from,
-                        @NotNull RevisionVector to) throws IOException {
+        @NotNull DiffCache diffCache,
+        @NotNull Path path,
+        @NotNull RevisionVector from,
+        @NotNull RevisionVector to) throws IOException {
         LOG.debug("applyTo: starting for {} from {} to {}", path, from, to);
         // note that it is not de-duplicated yet
         LOG.debug("applyTo: sorting done.");
@@ -212,73 +211,71 @@ public final class JournalEntry extends Document {
         Path p = node.getPath();
         int depthDiff = p.getDepth() - path.getDepth();
         return depthDiff >= 0
-                && Iterables.elementsEqual(path.elements(), p.getAncestor(depthDiff).elements());
+            && Iterables.elementsEqual(path.elements(), p.getAncestor(depthDiff).elements());
     }
 
     /**
-     * Reads all external changes between the two given revisions (with the same
-     * clusterId) from the journal and appends the paths therein to the provided
-     * sorter. If there is no exact match of a journal entry for the given
-     * {@code to} revision, this method will fill external changes from the
-     * next higher journal entry that contains the revision.
+     * Reads all external changes between the two given revisions (with the same clusterId) from the
+     * journal and appends the paths therein to the provided sorter. If there is no exact match of a
+     * journal entry for the given {@code to} revision, this method will fill external changes from
+     * the next higher journal entry that contains the revision.
      *
-     * @param externalChanges the StringSort to which all externally changed paths
-     *               between the provided revisions will be added
-     * @param invalidate the StringSort to which paths of documents will be
-     *               added that must be invalidated if cached.
-     * @param from   the lower bound of the revision range (exclusive).
-     * @param to     the upper bound of the revision range (inclusive).
-     * @param store  the document store to query.
+     * @param externalChanges the StringSort to which all externally changed paths between the
+     *                        provided revisions will be added
+     * @param invalidate      the StringSort to which paths of documents will be added that must be
+     *                        invalidated if cached.
+     * @param from            the lower bound of the revision range (exclusive).
+     * @param to              the upper bound of the revision range (inclusive).
+     * @param store           the document store to query.
      * @return the number of journal entries read from the store.
-     * @throws IOException if adding external changes to the {@code StringSort}
-     *          instances fails with an exception.
+     * @throws IOException if adding external changes to the {@code StringSort} instances fails with
+     *                     an exception.
      */
     static int fillExternalChanges(@NotNull StringSort externalChanges,
-                                   @NotNull StringSort invalidate,
-                                   @NotNull Revision from,
-                                   @NotNull Revision to,
-                                   @NotNull DocumentStore store)
-            throws IOException {
+        @NotNull StringSort invalidate,
+        @NotNull Revision from,
+        @NotNull Revision to,
+        @NotNull DocumentStore store)
+        throws IOException {
         return fillExternalChanges(externalChanges, invalidate, Path.ROOT,
-                from, to, store, entry -> {}, null, null);
+            from, to, store, entry -> {
+            }, null, null);
     }
 
     /**
-     * Reads external changes between the two given revisions (with the same
-     * clusterId) from the journal and appends the paths therein to the provided
-     * sorter. If there is no exact match of a journal entry for the given
-     * {@code to} revision, this method will fill external changes from the
-     * next higher journal entry that contains the revision. The {@code path}
-     * defines the scope of the external changes that should be read and filled
-     * into the {@code sorter}.
+     * Reads external changes between the two given revisions (with the same clusterId) from the
+     * journal and appends the paths therein to the provided sorter. If there is no exact match of a
+     * journal entry for the given {@code to} revision, this method will fill external changes from
+     * the next higher journal entry that contains the revision. The {@code path} defines the scope
+     * of the external changes that should be read and filled into the {@code sorter}.
      *
-     * @param externalChanges the StringSort to which all externally changed paths
-     *               between the provided revisions will be added
-     * @param invalidate the StringSort to which paths of documents will be
-     *               added that must be invalidated if cached.
-     * @param path   a path that defines the scope of the changes to read.
-     * @param from   the lower bound of the revision range (exclusive).
-     * @param to     the upper bound of the revision range (inclusive).
-     * @param store  the document store to query.
-     * @param journalEntryConsumer a consumer for the processed journal entries.
-     * @param changeSetBuilder a nullable ChangeSetBuilder to collect changes from
-     *                         the JournalEntry between given revisions
-     * @param journalPropertyHandler a nullable JournalPropertyHandler to read
-     *                               stored journal properties for builders from JournalPropertyService
+     * @param externalChanges        the StringSort to which all externally changed paths between
+     *                               the provided revisions will be added
+     * @param invalidate             the StringSort to which paths of documents will be added that
+     *                               must be invalidated if cached.
+     * @param path                   a path that defines the scope of the changes to read.
+     * @param from                   the lower bound of the revision range (exclusive).
+     * @param to                     the upper bound of the revision range (inclusive).
+     * @param store                  the document store to query.
+     * @param journalEntryConsumer   a consumer for the processed journal entries.
+     * @param changeSetBuilder       a nullable ChangeSetBuilder to collect changes from the
+     *                               JournalEntry between given revisions
+     * @param journalPropertyHandler a nullable JournalPropertyHandler to read stored journal
+     *                               properties for builders from JournalPropertyService
      * @return the number of journal entries read from the store.
-     * @throws IOException if adding external changes to the {@code StringSort}
-     *          instances fails with an exception.
+     * @throws IOException if adding external changes to the {@code StringSort} instances fails with
+     *                     an exception.
      */
     static int fillExternalChanges(@NotNull StringSort externalChanges,
-                                   @Nullable StringSort invalidate,
-                                   @NotNull Path path,
-                                   @NotNull Revision from,
-                                   @NotNull Revision to,
-                                   @NotNull DocumentStore store,
-                                   @NotNull Consumer<JournalEntry> journalEntryConsumer,
-                                   @Nullable ChangeSetBuilder changeSetBuilder,
-                                   @Nullable JournalPropertyHandler journalPropertyHandler)
-            throws IOException {
+        @Nullable StringSort invalidate,
+        @NotNull Path path,
+        @NotNull Revision from,
+        @NotNull Revision to,
+        @NotNull DocumentStore store,
+        @NotNull Consumer<JournalEntry> journalEntryConsumer,
+        @Nullable ChangeSetBuilder changeSetBuilder,
+        @Nullable JournalPropertyHandler journalPropertyHandler)
+        throws IOException {
         checkNotNull(path);
         checkArgument(checkNotNull(from).getClusterId() == checkNotNull(to).getClusterId());
 
@@ -289,7 +286,7 @@ public final class JournalEntry extends Document {
         // to is inclusive, but DocumentStore.query() toKey is exclusive
         final String inclusiveToId = asId(to);
         to = new Revision(to.getTimestamp(), to.getCounter() + 1,
-                to.getClusterId(), to.isBranch());
+            to.getClusterId(), to.isBranch());
 
         // read in chunks to support very large sets of changes between
         // subsequent background reads to do this, provide a (TODO eventually configurable)
@@ -316,8 +313,8 @@ public final class JournalEntry extends Document {
 
             for (JournalEntry d : partialResult) {
                 fillFromJournalEntry(externalChanges, invalidate, path,
-                        changeSetBuilder, journalPropertyHandler, d,
-                        journalEntryConsumer);
+                    changeSetBuilder, journalPropertyHandler, d,
+                    journalEntryConsumer);
             }
             if (partialResult.size() < READ_CHUNK_SIZE) {
                 break;
@@ -331,11 +328,11 @@ public final class JournalEntry extends Document {
         // read next document. also read next journal entry when none
         // were read so far
         if (numEntries == 0
-                || (lastEntry != null && !lastEntry.getId().equals(inclusiveToId))) {
+            || (lastEntry != null && !lastEntry.getId().equals(inclusiveToId))) {
             String maxId = asId(new Revision(Long.MAX_VALUE, 0, to.getClusterId()));
             for (JournalEntry d : store.query(JOURNAL, inclusiveToId, maxId, 1)) {
                 fillFromJournalEntry(externalChanges, invalidate, path,
-                        changeSetBuilder, journalPropertyHandler, d, journalEntryConsumer);
+                    changeSetBuilder, journalPropertyHandler, d, journalEntryConsumer);
                 numEntries++;
             }
         }
@@ -343,13 +340,13 @@ public final class JournalEntry extends Document {
     }
 
     private static void fillFromJournalEntry(@NotNull StringSort externalChanges,
-                                             @Nullable StringSort invalidate,
-                                             @NotNull Path path,
-                                             @Nullable ChangeSetBuilder changeSetBuilder,
-                                             @Nullable JournalPropertyHandler journalPropertyHandler,
-                                             @NotNull JournalEntry d,
-                                             @NotNull Consumer<JournalEntry> journalEntryConsumer)
-            throws IOException {
+        @Nullable StringSort invalidate,
+        @NotNull Path path,
+        @Nullable ChangeSetBuilder changeSetBuilder,
+        @Nullable JournalPropertyHandler journalPropertyHandler,
+        @NotNull JournalEntry d,
+        @NotNull Consumer<JournalEntry> journalEntryConsumer)
+        throws IOException {
         d.addTo(externalChanges, path);
         if (invalidate != null) {
             d.addInvalidateOnlyTo(invalidate);
@@ -357,7 +354,7 @@ public final class JournalEntry extends Document {
         if (changeSetBuilder != null) {
             d.addTo(changeSetBuilder);
         }
-        if (journalPropertyHandler != null){
+        if (journalPropertyHandler != null) {
             journalPropertyHandler.readFrom(d);
         }
         journalEntryConsumer.accept(d);
@@ -407,18 +404,19 @@ public final class JournalEntry extends Document {
         }
     }
 
-    void addChangeSet(@Nullable ChangeSet changeSet){
-        if (changeSet == null){
+    void addChangeSet(@Nullable ChangeSet changeSet) {
+        if (changeSet == null) {
             if (LOG.isDebugEnabled()) {
-                LOG.debug("Null changeSet found for caller. ChangeSetBuilder will be set to overflow mode",
-                        new Exception("call stack"));
+                LOG.debug(
+                    "Null changeSet found for caller. ChangeSetBuilder will be set to overflow mode",
+                    new Exception("call stack"));
             }
         }
         changeSetBuilder.add(changeSet);
     }
 
     public void readFrom(CommitInfo info) {
-        if (journalPropertyHandler != null){
+        if (journalPropertyHandler != null) {
             journalPropertyHandler.readFrom(info);
         }
     }
@@ -427,7 +425,7 @@ public final class JournalEntry extends Document {
         String cs = (String) get(CHANGE_SET);
         ChangeSet set = null;
 
-        if (cs == null && getChanges().keySet().isEmpty()){
+        if (cs == null && getChanges().keySet().isEmpty()) {
             //Purely a branch commit. So ChangeSet can be empty
             return;
         }
@@ -435,7 +433,9 @@ public final class JournalEntry extends Document {
         if (cs != null) {
             set = ChangeSet.fromString(cs);
         } else {
-            LOG.debug("Null changeSet found for JournalEntry {}. ChangeSetBuilder would be set to overflow mode", getId());
+            LOG.debug(
+                "Null changeSet found for JournalEntry {}. ChangeSetBuilder would be set to overflow mode",
+                getId());
         }
 
         changeSetBuilder.add(set);
@@ -468,7 +468,7 @@ public final class JournalEntry extends Document {
         if (changeSetBuilder != null) {
             op.set(CHANGE_SET, changeSetBuilder.build().asString());
         }
-        if (journalPropertyHandler != null){
+        if (journalPropertyHandler != null) {
             journalPropertyHandler.addTo(op);
         }
 
@@ -487,8 +487,8 @@ public final class JournalEntry extends Document {
     }
 
     /**
-     * Add the given {@code revisions} to the list of referenced journal entries
-     * that contain paths of documents that must be invalidated.
+     * Add the given {@code revisions} to the list of referenced journal entries that contain paths
+     * of documents that must be invalidated.
      *
      * @param revisions the references to invalidate-only journal entries.
      */
@@ -507,13 +507,13 @@ public final class JournalEntry extends Document {
     }
 
     /**
-     * Add changed paths in this journal entry that are in the scope of
-     * {@code path} to {@code sort}.
+     * Add changed paths in this journal entry that are in the scope of {@code path} to
+     * {@code sort}.
      *
      * @param sort where changed paths are added to.
      * @param path the scope for added paths.
-     * @throws IOException if an exception occurs while adding a path to
-     *          {@code sort}. In this case only some paths may have been added.
+     * @throws IOException if an exception occurs while adding a path to {@code sort}. In this case
+     *                     only some paths may have been added.
      */
     void addTo(final StringSort sort, Path path) throws IOException {
         TraversingVisitor v = new TraversingVisitor() {
@@ -552,8 +552,8 @@ public final class JournalEntry extends Document {
     }
 
     /**
-     * Returns {@code true} if this entry contains any changes to be written
-     * to the journal. The following information is considered a change:
+     * Returns {@code true} if this entry contains any changes to be written to the journal. The
+     * following information is considered a change:
      * <ul>
      *     <li>Documents that have been recorded as modified with either
      *      {@link #modified(Path)} or {@link #modified(Iterable)}.</li>
@@ -567,8 +567,8 @@ public final class JournalEntry extends Document {
      */
     boolean hasChanges() {
         return numChangedNodes > 0
-                || hasBranchCommits
-                || hasInvalidateOnlyReferences();
+            || hasBranchCommits
+            || hasInvalidateOnlyReferences();
     }
 
     //-----------------------------< internal >---------------------------------
@@ -592,8 +592,7 @@ public final class JournalEntry extends Document {
     }
 
     /**
-     * Returns the invalidate-only entries that are related to this journal
-     * entry.
+     * Returns the invalidate-only entries that are related to this journal entry.
      *
      * @return the invalidate-only entries.
      */
@@ -628,7 +627,7 @@ public final class JournalEntry extends Document {
                         JournalEntry d = store.find(JOURNAL, id);
                         if (d == null) {
                             throw new IllegalStateException(
-                                    "Missing " + name + " entry for revision: " + id);
+                                "Missing " + name + " entry for revision: " + id);
                         }
                         return d;
                     }
@@ -649,7 +648,8 @@ public final class JournalEntry extends Document {
 
     static String asId(@NotNull Revision revision) {
         checkNotNull(revision);
-        String s = String.format(REVISION_FORMAT, revision.getClusterId(), revision.getTimestamp(), revision.getCounter());
+        String s = String.format(REVISION_FORMAT, revision.getClusterId(), revision.getTimestamp(),
+            revision.getCounter());
         if (revision.isBranch()) {
             s = "b" + s;
         }
@@ -701,7 +701,7 @@ public final class JournalEntry extends Document {
 
         TreeNode(MapFactory mapFactory, TreeNode parent, String name) {
             checkArgument(!name.contains("/"),
-                    "name must not contain '/': {}", name);
+                "name must not contain '/': {}", name);
 
             this.mapFactory = mapFactory;
             this.parent = parent;

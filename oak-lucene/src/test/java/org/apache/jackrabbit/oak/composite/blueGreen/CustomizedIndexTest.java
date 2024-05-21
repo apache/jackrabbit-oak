@@ -25,9 +25,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-
 import javax.jcr.Node;
-
 import org.apache.jackrabbit.oak.plugins.index.IndexInfo;
 import org.apache.jackrabbit.oak.plugins.index.IndexInfoServiceImpl;
 import org.apache.jackrabbit.oak.plugins.index.IndexPathServiceImpl;
@@ -76,9 +74,9 @@ public class CustomizedIndexTest {
         p.session.save();
         IndexUtils.createIndex(p, "test-1", "foo", 10);
         IndexUtils.assertQueryUsesIndexAndReturns(p,
-                "/jcr:root//*[@foo]",
-                "test-1",
-                "[/libs/test]");
+            "/jcr:root//*[@foo]",
+            "test-1",
+            "[/libs/test]");
         p.close();
     }
 
@@ -93,18 +91,18 @@ public class CustomizedIndexTest {
         Persistence p = Persistence.openComposite(globalDir, libs1Dir, config);
         IndexUtils.checkLibsIsReadOnly(p);
         assertEquals("[/oak:index/lucene]",
-                getActiveLuceneIndexes(p).toString());
+            getActiveLuceneIndexes(p).toString());
         p.session.getRootNode().getNode("oak:index").getNode("lucene").remove();
         p.session.save();
         assertEquals("[]",
-                getActiveLuceneIndexes(p).toString());
+            getActiveLuceneIndexes(p).toString());
         IndexUtils.createIndex(p, "test-1", "foo", 10);
         IndexUtils.assertQueryUsesIndexAndReturns(p,
-                "/jcr:root//*[@foo] order by @jcr:path",
-                "test-1",
-                "[/content/test, /libs/test]");
+            "/jcr:root//*[@foo] order by @jcr:path",
+            "test-1",
+            "[/content/test, /libs/test]");
         assertEquals("[/oak:index/test-1]",
-                getActiveLuceneIndexes(p).toString());
+            getActiveLuceneIndexes(p).toString());
         p.close();
     }
 
@@ -116,21 +114,21 @@ public class CustomizedIndexTest {
 
         // the new index must be used in the new version (with libs2)
         IndexUtils.assertQueryUsesIndexAndReturns(p,
-                "/jcr:root//*[@foo] order by @jcr:path",
-                "test-2",
-                "[/content/test, /libs/test2]");
+            "/jcr:root//*[@foo] order by @jcr:path",
+            "test-2",
+            "[/content/test, /libs/test2]");
         assertEquals("[/oak:index/lucene, /oak:index/test-2]",
-                getActiveLuceneIndexes(p).toString());
+            getActiveLuceneIndexes(p).toString());
         p.close();
 
         // the new index must not be used in the old version (with libs1)
         p = Persistence.openComposite(globalDir, libs1Dir, config);
         IndexUtils.assertQueryUsesIndexAndReturns(p,
-                "/jcr:root//*[@foo] order by @jcr:path",
-                "test-1",
-                "[/content/test, /libs/test]");
+            "/jcr:root//*[@foo] order by @jcr:path",
+            "test-1",
+            "[/content/test, /libs/test]");
         assertEquals("[/oak:index/lucene, /oak:index/test-1]",
-                getActiveLuceneIndexes(p).toString());
+            getActiveLuceneIndexes(p).toString());
         p.close();
     }
 
@@ -142,18 +140,18 @@ public class CustomizedIndexTest {
         n.setProperty("merges", new String[]{"/oak:index/test-2"});
         n.getSession().save();
         IndexUtils.assertQueryUsesIndexAndReturns(p,
-                "/jcr:root//*[@foo] order by @jcr:path",
-                "test-2-custom-1",
-                "[/content/test]");
+            "/jcr:root//*[@foo] order by @jcr:path",
+            "test-2-custom-1",
+            "[/content/test]");
         // no let it point to a non-existing node: the index should be used
         n.setProperty("merges", new String[]{"/oak:index/test-does-not-exist"});
         n.getSession().save();
         IndexUtils.assertQueryUsesIndexAndReturns(p,
-                "/jcr:root//*[@foo] order by @jcr:path",
-                "test-2-custom-1",
-                "[/content/test]");
+            "/jcr:root//*[@foo] order by @jcr:path",
+            "test-2-custom-1",
+            "[/content/test]");
         assertEquals("[/oak:index/lucene, /oak:index/test-2-custom-1]",
-                getActiveLuceneIndexes(p).toString());
+            getActiveLuceneIndexes(p).toString());
         p.close();
 
         // the merged index is not used in the old version (with libs1)
@@ -163,18 +161,18 @@ public class CustomizedIndexTest {
         n.setProperty("merges", new String[]{"/oak:index/test-2"});
         n.getSession().save();
         IndexUtils.assertQueryUsesIndexAndReturns(p,
-                "/jcr:root//*[@foo] order by @jcr:path",
-                "test-1",
-                "[/content/test, /libs/test]");
+            "/jcr:root//*[@foo] order by @jcr:path",
+            "test-1",
+            "[/content/test, /libs/test]");
         // no let it point to a non-existing node: the index should be used
         n.setProperty("merges", new String[]{"/oak:index/test-does-not-exist"});
         n.getSession().save();
         IndexUtils.assertQueryUsesIndexAndReturns(p,
-                "/jcr:root//*[@foo] order by @jcr:path",
-                "test-2-custom-1",
-                "[/content/test]");
+            "/jcr:root//*[@foo] order by @jcr:path",
+            "test-2-custom-1",
+            "[/content/test]");
         assertEquals("[/oak:index/lucene, /oak:index/test-2-custom-1]",
-                getActiveLuceneIndexes(p).toString());
+            getActiveLuceneIndexes(p).toString());
         p.close();
     }
 
@@ -184,14 +182,14 @@ public class CustomizedIndexTest {
         p.session.save();
         IndexUtils.createIndex(p, "test-1", "foo", 10);
         IndexUtils.assertQueryUsesIndexAndReturns(p,
-                "/jcr:root//*[@foo]",
-                "test-1",
-                "[/libs/test2]");
+            "/jcr:root//*[@foo]",
+            "test-1",
+            "[/libs/test2]");
         IndexUtils.createIndex(p, "test-2", "foo", 20);
         IndexUtils.assertQueryUsesIndexAndReturns(p,
-                "/jcr:root//*[@foo]",
-                "test-2",
-                "[/libs/test2]");
+            "/jcr:root//*[@foo]",
+            "test-2",
+            "[/libs/test2]");
         p.close();
     }
 
@@ -201,9 +199,9 @@ public class CustomizedIndexTest {
         p.session.save();
         IndexUtils.createIndex(p, "test-3", "foo", 10);
         IndexUtils.assertQueryUsesIndexAndReturns(p,
-                "/jcr:root//*[@foo]",
-                "test-3",
-                "[/libs/test3]");
+            "/jcr:root//*[@foo]",
+            "test-3",
+            "[/libs/test3]");
         p.close();
     }
 
@@ -224,11 +222,11 @@ public class CustomizedIndexTest {
         n21.getSession().save();
 
         IndexUtils.assertQueryUsesIndexAndReturns(p,
-                "/jcr:root//*[@foo] order by @jcr:path",
-                "test-3-custom-1",
-                "[/content/test]");
+            "/jcr:root//*[@foo] order by @jcr:path",
+            "test-3-custom-1",
+            "[/content/test]");
         assertEquals("[/oak:index/lucene, /oak:index/test-3-custom-1]",
-                getActiveLuceneIndexes(p).toString());
+            getActiveLuceneIndexes(p).toString());
     }
 
     private void createFolders() throws IOException {
@@ -247,7 +245,7 @@ public class CustomizedIndexTest {
     private static Collection<String> getActiveLuceneIndexes(NodeStore ns, MountInfoProvider m) {
         ArrayList<String> list = new ArrayList<>();
         IndexInfoServiceImpl indexService = new IndexInfoServiceImpl(ns,
-                new IndexPathServiceImpl(ns, m));
+            new IndexPathServiceImpl(ns, m));
         for (IndexInfo info : indexService.getAllIndexInfo()) {
             if (!LuceneIndexConstants.TYPE_LUCENE.equals(info.getType())) {
                 continue;

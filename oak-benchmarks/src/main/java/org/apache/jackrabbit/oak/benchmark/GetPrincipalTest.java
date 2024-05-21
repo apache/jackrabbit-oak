@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.benchmark;
 
 import java.security.Principal;
 import javax.jcr.Session;
-
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 

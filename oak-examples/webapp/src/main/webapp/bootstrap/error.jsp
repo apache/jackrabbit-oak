@@ -13,11 +13,14 @@
   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
   See the License for the specific language governing permissions and
   limitations under the License.
---%><%@page import="org.apache.jackrabbit.util.Text"%><%
-request.setAttribute("title", "Content Repository Error");
-%><jsp:include page="../header.jsp"/>
+--%>
+<%@page import="org.apache.jackrabbit.util.Text" %>
+<%
+    request.setAttribute("title", "Content Repository Error");
+%>
+<jsp:include page="../header.jsp"/>
 <p>
-  Some error occurred during setup. See the log files for details.
+    Some error occurred during setup. See the log files for details.
 </p>
 <p><a href="<%= Text.encodeIllegalXMLCharacters(request.getContextPath()) %>/admin">back</a></p>
 <jsp:include page="../footer.jsp"/>

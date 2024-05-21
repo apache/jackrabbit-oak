@@ -16,10 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.tree;
 
-import org.apache.jackrabbit.util.Text;
-import org.junit.Before;
-import org.junit.Test;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -27,6 +23,10 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+
+import org.apache.jackrabbit.util.Text;
+import org.junit.Before;
+import org.junit.Test;
 
 public class PropertyLocationTest extends AbstractTreeTest {
 
@@ -56,7 +56,8 @@ public class PropertyLocationTest extends AbstractTreeTest {
 
     @Test
     public void testGetProperty() {
-        assertEquals(root.getTree(CHILD_PATH).getProperty(propertyLocation.getName()), propertyLocation.getProperty());
+        assertEquals(root.getTree(CHILD_PATH).getProperty(propertyLocation.getName()),
+            propertyLocation.getProperty());
     }
 
     @Test

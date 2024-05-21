@@ -18,10 +18,11 @@
 ## Oak Query
 
 Oak does not index as much content by default as does Jackrabbit
+
 2. You need to create custom indexes when necessary, much like in
-traditional RDBMSs. If there is no index for a specific query, then
-the repository will be traversed. That is, the query will still work
-but probably be very slow.
+   traditional RDBMSs. If there is no index for a specific query, then
+   the repository will be traversed. That is, the query will still work
+   but probably be very slow.
 
 * [The Query Engine](./query-engine.html)
 * [XPath Grammar](./grammar-xpath.html)
@@ -42,7 +43,7 @@ documentation page.
 
 For more details on how indexing works (for all index types):
 
-* [Indexing](indexing.html) 
+* [Indexing](indexing.html)
 * [Reindexing](indexing.html#Reindexing)
 
 ### Customisations

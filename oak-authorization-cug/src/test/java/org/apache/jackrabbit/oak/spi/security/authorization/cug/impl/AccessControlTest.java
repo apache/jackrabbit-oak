@@ -16,15 +16,18 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+
 import java.util.List;
-
 import javax.jcr.security.AccessControlManager;
-
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
@@ -40,11 +43,6 @@ import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.util.Text;
 import org.junit.Before;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
 
 public class AccessControlTest extends AbstractCugTest {
 
@@ -74,28 +72,31 @@ public class AccessControlTest extends AbstractCugTest {
          *
          */
         acPaths = ImmutableList.of(
-                "/content/rep:policy",
-                PermissionConstants.PERMISSIONS_STORE_PATH,
-                "/content/a/rep:cugPolicy",
-                "/content/aa/bb/rep:cugPolicy",
-                "/content/a/b/c/rep:cugPolicy",
-                "/content2/rep:cugPolicy"
+            "/content/rep:policy",
+            PermissionConstants.PERMISSIONS_STORE_PATH,
+            "/content/a/rep:cugPolicy",
+            "/content/aa/bb/rep:cugPolicy",
+            "/content/a/b/c/rep:cugPolicy",
+            "/content2/rep:cugPolicy"
         );
 
-        pp = createCugPermissionProvider(ImmutableSet.of(PathUtils.ROOT_PATH), EveryonePrincipal.getInstance(), getTestGroupPrincipal(), getTestUser().getPrincipal());
+        pp = createCugPermissionProvider(ImmutableSet.of(PathUtils.ROOT_PATH),
+            EveryonePrincipal.getInstance(), getTestGroupPrincipal(), getTestUser().getPrincipal());
     }
 
     @Test
     public void testSupportedPermissions() {
         for (String acPath : acPaths) {
-            assertEquals(Permissions.NO_PERMISSION, pp.supportedPermissions(root.getTree(acPath), null, Permissions.READ));
+            assertEquals(Permissions.NO_PERMISSION,
+                pp.supportedPermissions(root.getTree(acPath), null, Permissions.READ));
         }
     }
 
     @Test
     public void testSupportedPermissionsLocation() {
         for (String acPath : acPaths) {
-            assertEquals(Permissions.NO_PERMISSION, pp.supportedPermissions(TreeLocation.create(root, acPath), Permissions.READ));
+            assertEquals(Permissions.NO_PERMISSION,
+                pp.supportedPermissions(TreeLocation.create(root, acPath), Permissions.READ));
         }
     }
 
@@ -117,7 +118,8 @@ public class AccessControlTest extends AbstractCugTest {
                 tp = pp.getTreePermission(t, tp);
             }
             assertSame(TreePermission.NO_RECOURSE, tp);
-            assertEquals(Permissions.NO_PERMISSION, pp.supportedPermissions(tp, null, Permissions.READ));
+            assertEquals(Permissions.NO_PERMISSION,
+                pp.supportedPermissions(tp, null, Permissions.READ));
         }
     }
 
@@ -152,21 +154,30 @@ public class AccessControlTest extends AbstractCugTest {
     @Test
     public void testCombinedSetup() throws Exception {
         AccessControlManager acMgr = getAccessControlManager(root);
-        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, "/content");
-        acl.addAccessControlEntry(getTestGroupPrincipal(), AccessControlUtils.privilegesFromNames(acMgr, PrivilegeConstants.JCR_READ_ACCESS_CONTROL));
+        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr,
+            "/content");
+        acl.addAccessControlEntry(getTestGroupPrincipal(),
+            AccessControlUtils.privilegesFromNames(acMgr,
+                PrivilegeConstants.JCR_READ_ACCESS_CONTROL));
         acMgr.setPolicy(acl.getPath(), acl);
         root.commit();
 
-        PermissionProvider combined = getConfig(AuthorizationConfiguration.class).getPermissionProvider(root, root.getContentSession().getWorkspaceName(), ImmutableSet.of(getTestGroupPrincipal()));
+        PermissionProvider combined = getConfig(
+            AuthorizationConfiguration.class).getPermissionProvider(root,
+            root.getContentSession().getWorkspaceName(), ImmutableSet.of(getTestGroupPrincipal()));
         for (String acPath : acPaths) {
             boolean canReadAc = Text.isDescendantOrEqual("/content", acPath);
             Tree acTree = root.getTree(acPath);
 
-            assertEquals(canReadAc, combined.hasPrivileges(acTree, PrivilegeConstants.JCR_READ_ACCESS_CONTROL));
-            assertEquals(canReadAc, combined.getPrivileges(acTree).contains(PrivilegeConstants.JCR_READ_ACCESS_CONTROL));
+            assertEquals(canReadAc,
+                combined.hasPrivileges(acTree, PrivilegeConstants.JCR_READ_ACCESS_CONTROL));
+            assertEquals(canReadAc, combined.getPrivileges(acTree)
+                                            .contains(PrivilegeConstants.JCR_READ_ACCESS_CONTROL));
 
-            assertEquals(canReadAc, combined.isGranted(acPath, JackrabbitSession.ACTION_READ_ACCESS_CONTROL));
-            assertEquals(canReadAc, combined.isGranted(acTree, null, Permissions.READ_ACCESS_CONTROL));
+            assertEquals(canReadAc,
+                combined.isGranted(acPath, JackrabbitSession.ACTION_READ_ACCESS_CONTROL));
+            assertEquals(canReadAc,
+                combined.isGranted(acTree, null, Permissions.READ_ACCESS_CONTROL));
 
             Tree t = root.getTree("/");
             TreePermission tp = combined.getTreePermission(t, TreePermission.EMPTY);

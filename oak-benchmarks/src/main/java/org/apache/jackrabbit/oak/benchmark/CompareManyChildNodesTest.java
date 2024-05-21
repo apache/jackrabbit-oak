@@ -16,6 +16,15 @@
  */
 package org.apache.jackrabbit.oak.benchmark;
 
+import static org.apache.commons.lang3.reflect.FieldUtils.readField;
+import static org.apache.commons.lang3.reflect.FieldUtils.writeField;
+import static org.apache.commons.lang3.reflect.MethodUtils.invokeMethod;
+
+import java.lang.reflect.InvocationTargetException;
+import java.util.List;
+import javax.jcr.Node;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
 import org.apache.jackrabbit.oak.fixture.OakFixture;
 import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
@@ -23,22 +32,12 @@ import org.apache.jackrabbit.oak.json.JsopDiff;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 
-import javax.jcr.Node;
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-import java.lang.reflect.InvocationTargetException;
-import java.util.List;
-
-import static org.apache.commons.lang3.reflect.FieldUtils.readField;
-import static org.apache.commons.lang3.reflect.FieldUtils.writeField;
-import static org.apache.commons.lang3.reflect.MethodUtils.invokeMethod;
-
 /**
- * Test for measuring the performance of comparing node with many children and
- * each child having multiple properties.
+ * Test for measuring the performance of comparing node with many children and each child having
+ * multiple properties.
  */
 public class CompareManyChildNodesTest extends AbstractTest {
-    
+
     private static final String ROOT_NODE_NAME = "compare" + TEST_ID;
 
     private static final int CHILD_COUNT = 10_000;
@@ -69,7 +68,7 @@ public class CompareManyChildNodesTest extends AbstractTest {
             node.addNode("one_more" + i, "nt:unstructured");
             Node n = node.getNode("node" + i);
             for (int j = 0; j < 10; j++) {
-                n.setProperty("property_"+j, "property_"+j);
+                n.setProperty("property_" + j, "property_" + j);
             }
         }
 
@@ -78,7 +77,8 @@ public class CompareManyChildNodesTest extends AbstractTest {
         invalidateCache();
     }
 
-    private void invalidateCache() throws InvocationTargetException, NoSuchMethodException, IllegalAccessException {
+    private void invalidateCache()
+        throws InvocationTargetException, NoSuchMethodException, IllegalAccessException {
         if (store != null) {
             invokeMethod(store.getDiffCache(), true, "invalidateAll");
         }
@@ -91,10 +91,12 @@ public class CompareManyChildNodesTest extends AbstractTest {
             OakFixture oakFixture = oakRepositoryFixture.getOakFixture();
             if (oakFixture instanceof OakFixture.MongoFixture) {
                 OakFixture.MongoFixture mongoFixture = (OakFixture.MongoFixture) oakFixture;
-                return ((List<DocumentNodeStore>) readField(mongoFixture, "nodeStores", true)).get(0);
+                return ((List<DocumentNodeStore>) readField(mongoFixture, "nodeStores", true)).get(
+                    0);
             }
         }
-        throw new IllegalArgumentException("Fixture " + fixture + " not supported for this benchmark. " +
+        throw new IllegalArgumentException(
+            "Fixture " + fixture + " not supported for this benchmark. " +
                 "Only Mongo Fixture is supported.");
     }
 

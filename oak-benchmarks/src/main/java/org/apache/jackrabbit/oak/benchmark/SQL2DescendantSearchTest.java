@@ -27,10 +27,11 @@ public class SQL2DescendantSearchTest extends DescendantSearchTest {
 
     @Override
     protected Query createQuery(QueryManager manager, int i)
-            throws RepositoryException {
+        throws RepositoryException {
         return manager.createQuery(
-                "SELECT * FROM [nt:base] AS n WHERE ISDESCENDANTNODE(n, '/" + testNodeName +"') AND testcount=" + i,
-                "JCR-SQL2");
+            "SELECT * FROM [nt:base] AS n WHERE ISDESCENDANTNODE(n, '/" + testNodeName
+                + "') AND testcount=" + i,
+            "JCR-SQL2");
     }
 
 }

@@ -19,6 +19,12 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.property;
 
+import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.child;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexTracker;
@@ -30,27 +36,24 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.child;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.junit.Assert.*;
-
 public class LuceneIndexPropertyQueryTest {
+
     private NodeState root = INITIAL_CONTENT;
     private NodeBuilder builder = root.builder();
     private IndexTracker tracker = new IndexTracker();
 
-    private String indexPath  = "/oak:index/foo";
-    private LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder(child(builder, indexPath));
+    private String indexPath = "/oak:index/foo";
+    private LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder(
+        child(builder, indexPath));
 
     private LuceneIndexPropertyQuery query = new LuceneIndexPropertyQuery(tracker, indexPath);
 
     @Test
-    public void simplePropertyIndex() throws Exception{
+    public void simplePropertyIndex() throws Exception {
         defnb.noAsync();
         defnb.indexRule("nt:base").property("foo").propertyIndex();
 
-        assertEquals(0,Iterables.size(query.getIndexedPaths("foo", "bar")));
+        assertEquals(0, Iterables.size(query.getIndexedPaths("foo", "bar")));
 
         NodeState before = builder.getNodeState();
         builder.child("a").setProperty("foo", "bar");
@@ -62,6 +65,6 @@ public class LuceneIndexPropertyQueryTest {
         tracker.update(indexed);
 
         assertThat(query.getIndexedPaths("foo", "bar"),
-                containsInAnyOrder("/a", "/b"));
+            containsInAnyOrder("/a", "/b"));
     }
 }

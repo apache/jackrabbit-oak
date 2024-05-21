@@ -19,10 +19,21 @@
 
 package org.apache.jackrabbit.oak.plugins.blob;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import static org.apache.jackrabbit.oak.plugins.blob.SharedDataStore.Type.SHARED;
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.jmx.CheckpointMBean;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils;
@@ -39,108 +50,106 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.util.List;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-
-import static org.apache.jackrabbit.oak.plugins.blob.SharedDataStore.Type.SHARED;
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
 @RunWith(MockitoJUnitRunner.class)
 public class SharedDataStoreMarkSweepGarbageCollectorTest {
 
-  @Mock
-  private MockGarbageCollectableSharedDataStore blobStore;
+    @Mock
+    private MockGarbageCollectableSharedDataStore blobStore;
 
-  @Mock
-  private BlobReferenceRetriever marker;
+    @Mock
+    private BlobReferenceRetriever marker;
 
-  @Mock
-  private Whiteboard whiteboard;
+    @Mock
+    private Whiteboard whiteboard;
 
-  @Mock
-  private Tracker<CheckpointMBean> tracker;
+    @Mock
+    private Tracker<CheckpointMBean> tracker;
 
-  @Rule
-  public ExpectedException exception = ExpectedException.none();
+    @Rule
+    public ExpectedException exception = ExpectedException.none();
 
-  private MarkSweepGarbageCollector collector;
+    private MarkSweepGarbageCollector collector;
 
-  @Mock
-  private CheckpointMBean checkpointMBean;
+    @Mock
+    private CheckpointMBean checkpointMBean;
 
-  private ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+    private ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
 
-  @Before
-  public void setUp() throws IOException {
-    when(whiteboard.track(CheckpointMBean.class)).thenReturn(tracker);
-    when(tracker.getServices()).thenReturn(ImmutableList.of(checkpointMBean));
+    @Before
+    public void setUp() throws IOException {
+        when(whiteboard.track(CheckpointMBean.class)).thenReturn(tracker);
+        when(tracker.getServices()).thenReturn(ImmutableList.of(checkpointMBean));
 
-    when(blobStore.getType()).thenReturn(SHARED);
+        when(blobStore.getType()).thenReturn(SHARED);
 
-    collector = new MarkSweepGarbageCollector(
-      marker,
-      blobStore,
-      executor,
-      MarkSweepGarbageCollector.TEMP_DIR,
-      1,
-      0L,
-      false,
-      false,
-      "repo",
-      whiteboard,
-      new DefaultStatisticsProvider(executor)
-    );
-  }
+        collector = new MarkSweepGarbageCollector(
+            marker,
+            blobStore,
+            executor,
+            MarkSweepGarbageCollector.TEMP_DIR,
+            1,
+            0L,
+            false,
+            false,
+            "repo",
+            whiteboard,
+            new DefaultStatisticsProvider(executor)
+        );
+    }
 
-  @After
-  public void tear() {
-    new ExecutorCloser(executor).close();
-  }
+    @After
+    public void tear() {
+        new ExecutorCloser(executor).close();
+    }
 
-  @Test
-  public void markAndSweepShouldFailIfNotAllRepositoriesHaveMarkedReferencesAvailable() throws Exception {
-    setupSharedDataRecords("REPO1", "REPO2");
+    @Test
+    public void markAndSweepShouldFailIfNotAllRepositoriesHaveMarkedReferencesAvailable()
+        throws Exception {
+        setupSharedDataRecords("REPO1", "REPO2");
 
-    collector.markAndSweep(false, true);
+        collector.markAndSweep(false, true);
 
-    assertThat(collector.getOperationStats().numDeleted(), is(0L));
-    assertThat(collector.getOperationStats().getFailureCount(), is(1L));
-  }
+        assertThat(collector.getOperationStats().numDeleted(), is(0L));
+        assertThat(collector.getOperationStats().getFailureCount(), is(1L));
+    }
 
-  @Test
-  public void markAndSweepShouldSucceedWhenAllRepositoriesAreAvailable() throws Exception {
-    setupSharedDataRecords("REPO1", "REPO1");
-    when(blobStore.getAllChunkIds(0L)).thenReturn(ImmutableList.<String>of().iterator());
+    @Test
+    public void markAndSweepShouldSucceedWhenAllRepositoriesAreAvailable() throws Exception {
+        setupSharedDataRecords("REPO1", "REPO1");
+        when(blobStore.getAllChunkIds(0L)).thenReturn(ImmutableList.<String>of().iterator());
 
-    collector.markAndSweep(false, true);
+        collector.markAndSweep(false, true);
 
-    assertThat(collector.getOperationStats().numDeleted(), is(0L));
-    assertThat(collector.getOperationStats().getFailureCount(), is(0L));
-  }
+        assertThat(collector.getOperationStats().numDeleted(), is(0L));
+        assertThat(collector.getOperationStats().getFailureCount(), is(0L));
+    }
 
-  private void setupSharedDataRecords(final String refRepoId, final String repoRepoId) throws DataStoreException {
-    DataRecord refDataRecord = mock(DataRecord.class);
-    when(refDataRecord.getIdentifier()).thenReturn(new DataIdentifier("references-" + refRepoId));
-    when(refDataRecord.getStream()).thenReturn(new ByteArrayInputStream(new byte[0]));
-    when(refDataRecord.getLastModified()).thenReturn(10L);
+    private void setupSharedDataRecords(final String refRepoId, final String repoRepoId)
+        throws DataStoreException {
+        DataRecord refDataRecord = mock(DataRecord.class);
+        when(refDataRecord.getIdentifier()).thenReturn(
+            new DataIdentifier("references-" + refRepoId));
+        when(refDataRecord.getStream()).thenReturn(new ByteArrayInputStream(new byte[0]));
+        when(refDataRecord.getLastModified()).thenReturn(10L);
 
-    DataRecord repoDataRecord = mock(DataRecord.class);
-    when(repoDataRecord.getIdentifier()).thenReturn(new DataIdentifier("repository-" + repoRepoId));
+        DataRecord repoDataRecord = mock(DataRecord.class);
+        when(repoDataRecord.getIdentifier()).thenReturn(
+            new DataIdentifier("repository-" + repoRepoId));
 
-    List<DataRecord> refs = ImmutableList.of(refDataRecord);
-    List<DataRecord> repos = ImmutableList.of(repoDataRecord);
+        List<DataRecord> refs = ImmutableList.of(refDataRecord);
+        List<DataRecord> repos = ImmutableList.of(repoDataRecord);
 
-    when(blobStore.getAllMetadataRecords(SharedDataStoreUtils.SharedStoreRecordType.REFERENCES.getType())).thenReturn(refs);
-    when(blobStore.getAllMetadataRecords(SharedDataStoreUtils.SharedStoreRecordType.REPOSITORY.getType())).thenReturn(repos);
-    when(blobStore.getAllMetadataRecords(SharedDataStoreUtils.SharedStoreRecordType.MARKED_START_MARKER.getType())).thenReturn(refs);
-  }
+        when(blobStore.getAllMetadataRecords(
+            SharedDataStoreUtils.SharedStoreRecordType.REFERENCES.getType())).thenReturn(refs);
+        when(blobStore.getAllMetadataRecords(
+            SharedDataStoreUtils.SharedStoreRecordType.REPOSITORY.getType())).thenReturn(repos);
+        when(blobStore.getAllMetadataRecords(
+            SharedDataStoreUtils.SharedStoreRecordType.MARKED_START_MARKER.getType())).thenReturn(
+            refs);
+    }
 
-  private interface MockGarbageCollectableSharedDataStore extends GarbageCollectableBlobStore, SharedDataStore {
-  }
+    private interface MockGarbageCollectableSharedDataStore extends GarbageCollectableBlobStore,
+        SharedDataStore {
+
+    }
 }

@@ -19,16 +19,15 @@
 
 package org.apache.jackrabbit.oak.commons.concurrent;
 
-import java.util.concurrent.Callable;
-
-import org.junit.Test;
-
 import static org.junit.Assert.assertEquals;
+
+import java.util.concurrent.Callable;
+import org.junit.Test;
 
 public class NotifyingFutureTaskTest {
 
     @Test
-    public void onCompletion() throws Exception{
+    public void onCompletion() throws Exception {
         CountingCallable callable = new CountingCallable();
         CountingRunnable runnable = new CountingRunnable();
         NotifyingFutureTask nft = new NotifyingFutureTask(callable);
@@ -42,7 +41,7 @@ public class NotifyingFutureTaskTest {
     }
 
     @Test
-    public void completed() throws Exception{
+    public void completed() throws Exception {
         CountingRunnable runnable = new CountingRunnable();
         NotifyingFutureTask nft = NotifyingFutureTask.completed();
         nft.onComplete(runnable);
@@ -50,7 +49,9 @@ public class NotifyingFutureTaskTest {
     }
 
     private static class CountingRunnable implements Runnable {
+
         int count;
+
         @Override
         public void run() {
             count++;
@@ -58,7 +59,9 @@ public class NotifyingFutureTaskTest {
     }
 
     private static class CountingCallable implements Callable<Void> {
+
         int count;
+
         @Override
         public Void call() throws Exception {
             count++;

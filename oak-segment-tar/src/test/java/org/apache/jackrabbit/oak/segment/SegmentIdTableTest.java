@@ -35,7 +35,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
@@ -90,7 +89,7 @@ public class SegmentIdTableTest {
         assertEquals(2, s.getMostSignificantBits());
         assertEquals(1, s.getLeastSignificantBits());
     }
-    
+
     @Test
     public void randomized() throws IOException {
         SegmentIdFactory maker = newSegmentIdMaker();
@@ -104,7 +103,7 @@ public class SegmentIdTableTest {
         assertEquals(16 * 1024, tbl.getEntryCount());
         assertEquals(16 * 2048, tbl.getMapSize());
         assertEquals(5, tbl.getMapRebuildCount());
-        
+
         r = new Random(1);
         for (int i = 0; i < 16 * 1024; i++) {
             refs.add(tbl.newSegmentId(r.nextLong(), r.nextLong(), maker));
@@ -113,7 +112,7 @@ public class SegmentIdTableTest {
             assertEquals(5, tbl.getMapRebuildCount());
         }
     }
-    
+
     @Test
     public void clearTable() throws IOException {
         SegmentIdFactory maker = newSegmentIdMaker();
@@ -143,7 +142,7 @@ public class SegmentIdTableTest {
             }
         }
     }
-    
+
     @Test
     public void justHashCollisions() throws IOException {
         SegmentIdFactory maker = newSegmentIdMaker();
@@ -157,17 +156,17 @@ public class SegmentIdTableTest {
         }
         assertEquals(originalCount, tbl.getEntryCount());
         assertEquals(1, tbl.getMapRebuildCount());
-        
+
         List<SegmentId> refs2 = new ArrayList<SegmentId>();
         tbl.collectReferencedIds(refs2);
         assertEquals(refs.size(), refs2.size());
 
         assertEquals(originalCount, tbl.getEntryCount());
-        // we don't expect that there was a refresh, 
+        // we don't expect that there was a refresh,
         // because there were just hash collisions
         assertEquals(1, tbl.getMapRebuildCount());
     }
-    
+
     @Test
     public void gc() throws IOException {
         SegmentIdFactory maker = newSegmentIdMaker();
@@ -188,10 +187,10 @@ public class SegmentIdTableTest {
             // getSegmentId would not detect that entries were freed up
             refs.remove(0);
         }
-        for (int gcCalls = 0;; gcCalls++) {
+        for (int gcCalls = 0; ; gcCalls++) {
             // needed here, so some entries can be garbage collected
             System.gc();
-            
+
             for (SegmentId id : refs) {
                 long msb = id.getMostSignificantBits();
                 long lsb = id.getLeastSignificantBits();

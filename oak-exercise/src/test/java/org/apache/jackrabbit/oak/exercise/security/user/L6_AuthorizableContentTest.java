@@ -19,13 +19,12 @@ package org.apache.jackrabbit.oak.exercise.security.user;
 import java.util.List;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
-
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.exercise.ExerciseUtility;
 import org.apache.jackrabbit.test.AbstractJCRTest;
 
@@ -137,7 +136,8 @@ public class L6_AuthorizableContentTest extends AbstractJCRTest {
         assertEquals(testUser.getID(), node.getProperty(idPropertyName).getString());
 
         String principalPropertyName = null; // EXERCISE
-        assertEquals(testUser.getPrincipal().getName(), node.getProperty(principalPropertyName).getString());
+        assertEquals(testUser.getPrincipal().getName(),
+            node.getProperty(principalPropertyName).getString());
 
         String disabledPropertyName = null; // EXERCISE
         assertEquals(testUser.getDisabledReason(), node.getProperty(disabledPropertyName));
@@ -162,7 +162,8 @@ public class L6_AuthorizableContentTest extends AbstractJCRTest {
         assertEquals(testGroup.getID(), node.getProperty(idPropertyName).getString());
 
         String principalPropertyName = null; // EXERCISE
-        assertEquals(testGroup.getPrincipal().getName(), node.getProperty(principalPropertyName).getString());
+        assertEquals(testGroup.getPrincipal().getName(),
+            node.getProperty(principalPropertyName).getString());
 
         String expectedNodeTypeName = null; // EXERCISE
         assertEquals(expectedNodeTypeName, node.getPrimaryNodeType().getName());

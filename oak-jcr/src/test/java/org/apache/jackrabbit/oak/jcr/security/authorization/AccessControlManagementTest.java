@@ -29,7 +29,6 @@ import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.AccessControlPolicyIterator;
 import javax.jcr.security.Privilege;
-
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.test.NotExecutableException;
 import org.apache.jackrabbit.util.Text;
@@ -59,10 +58,10 @@ public class AccessControlManagementTest extends AbstractEvaluationTest {
     public void testAccessControlPrivileges() throws Exception {
         /* grant 'testUser' rep:write, rep:readAccessControl and
            rep:modifyAccessControl privileges at 'path' */
-        Privilege[] privileges = privilegesFromNames(new String[] {
-                REP_WRITE,
-                Privilege.JCR_READ_ACCESS_CONTROL,
-                Privilege.JCR_MODIFY_ACCESS_CONTROL
+        Privilege[] privileges = privilegesFromNames(new String[]{
+            REP_WRITE,
+            Privilege.JCR_READ_ACCESS_CONTROL,
+            Privilege.JCR_MODIFY_ACCESS_CONTROL
         });
         JackrabbitAccessControlList acl = allow(path, privileges);
 
@@ -79,8 +78,8 @@ public class AccessControlManagementTest extends AbstractEvaluationTest {
     }
 
     /**
-     * Test if a new applicable policy can be applied within a
-     * sub-tree where AC-modification is allowed.
+     * Test if a new applicable policy can be applied within a sub-tree where AC-modification is
+     * allowed.
      *
      * @see <a href="https://issues.apache.org/jira/browse/JCR-2869">JCR-2869</a>
      */
@@ -88,10 +87,10 @@ public class AccessControlManagementTest extends AbstractEvaluationTest {
     public void testSetNewPolicy() throws Exception {
         /* grant 'testUser' rep:write, rep:readAccessControl and
            rep:modifyAccessControl privileges at 'path' */
-        Privilege[] privileges = privilegesFromNames(new String[] {
-                REP_WRITE,
-                Privilege.JCR_READ_ACCESS_CONTROL,
-                Privilege.JCR_MODIFY_ACCESS_CONTROL
+        Privilege[] privileges = privilegesFromNames(new String[]{
+            REP_WRITE,
+            Privilege.JCR_READ_ACCESS_CONTROL,
+            Privilege.JCR_MODIFY_ACCESS_CONTROL
         });
         allow(path, privileges);
 
@@ -112,10 +111,10 @@ public class AccessControlManagementTest extends AbstractEvaluationTest {
     public void testSetModifiedPolicy() throws Exception {
         /* grant 'testUser' rep:write, rep:readAccessControl and
            rep:modifyAccessControl privileges at 'path' */
-        Privilege[] privileges = privilegesFromNames(new String[] {
-                REP_WRITE,
-                Privilege.JCR_READ_ACCESS_CONTROL,
-                Privilege.JCR_MODIFY_ACCESS_CONTROL
+        Privilege[] privileges = privilegesFromNames(new String[]{
+            REP_WRITE,
+            Privilege.JCR_READ_ACCESS_CONTROL,
+            Privilege.JCR_MODIFY_ACCESS_CONTROL
         });
 
         JackrabbitAccessControlList acl = allow(path, privileges);
@@ -123,13 +122,14 @@ public class AccessControlManagementTest extends AbstractEvaluationTest {
         /*
          testuser must be allowed to set (modified) policy at target node.
         */
-        AccessControlPolicy[] policies  = testAcMgr.getPolicies(path);
+        AccessControlPolicy[] policies = testAcMgr.getPolicies(path);
 
         assertEquals(1, policies.length);
         assertTrue(policies[0] instanceof AccessControlList);
 
         AccessControlList policy = (AccessControlList) policies[0];
-        if (policy.addAccessControlEntry(testUser.getPrincipal(), privilegesFromName(Privilege.JCR_LOCK_MANAGEMENT))) {
+        if (policy.addAccessControlEntry(testUser.getPrincipal(),
+            privilegesFromName(Privilege.JCR_LOCK_MANAGEMENT))) {
             testAcMgr.setPolicy(path, acl);
             testSession.save();
         }
@@ -145,7 +145,8 @@ public class AccessControlManagementTest extends AbstractEvaluationTest {
          Testuser must still have READ-only access only and must not be
          allowed to view the acl-node that has been created.
         */
-        assertFalse(testAcMgr.hasPrivileges(path, privilegesFromName(Privilege.JCR_MODIFY_ACCESS_CONTROL)));
+        assertFalse(
+            testAcMgr.hasPrivileges(path, privilegesFromName(Privilege.JCR_MODIFY_ACCESS_CONTROL)));
         try {
             testAcMgr.removePolicy(path, policy);
             fail("Test user must not be allowed to remove the access control policy.");
@@ -157,15 +158,16 @@ public class AccessControlManagementTest extends AbstractEvaluationTest {
     @Test
     public void testRemovePolicy() throws Exception {
         // re-grant READ in order to have an ACL-node
-        Privilege[] privileges = privilegesFromNames(new String[] {Privilege.JCR_READ,
-                Privilege.JCR_READ_ACCESS_CONTROL,
-                Privilege.JCR_MODIFY_ACCESS_CONTROL});
+        Privilege[] privileges = privilegesFromNames(new String[]{Privilege.JCR_READ,
+            Privilege.JCR_READ_ACCESS_CONTROL,
+            Privilege.JCR_MODIFY_ACCESS_CONTROL});
         allow(path, privileges);
 
         /*
          Testuser must be allowed to view and remove the acl-node that has been created.
         */
-        assertTrue(testAcMgr.hasPrivileges(path, privilegesFromName(Privilege.JCR_MODIFY_ACCESS_CONTROL)));
+        assertTrue(
+            testAcMgr.hasPrivileges(path, privilegesFromName(Privilege.JCR_MODIFY_ACCESS_CONTROL)));
         testAcMgr.removePolicy(path, testAcMgr.getPolicies(path)[0]);
         testSession.save();
     }
@@ -181,13 +183,13 @@ public class AccessControlManagementTest extends AbstractEvaluationTest {
         */
         assertTrue(testAcMgr.hasPrivileges(path, privileges));
 
-        AccessControlPolicy[] policies  = testAcMgr.getPolicies(path);
+        AccessControlPolicy[] policies = testAcMgr.getPolicies(path);
         assertEquals(1, policies.length);
         assertTrue(policies[0] instanceof JackrabbitAccessControlList);
 
         String aclNodePath = null;
         Node n = superuser.getNode(path);
-        for (NodeIterator itr = n.getNodes(); itr.hasNext();) {
+        for (NodeIterator itr = n.getNodes(); itr.hasNext(); ) {
             Node child = itr.nextNode();
             if (child.isNodeType("rep:Policy")) {
                 aclNodePath = child.getPath();
@@ -201,7 +203,8 @@ public class AccessControlManagementTest extends AbstractEvaluationTest {
         assertTrue(testAcMgr.hasPrivileges(aclNodePath, privileges));
         assertTrue(testSession.hasPermission(aclNodePath, Session.ACTION_READ));
 
-        for (NodeIterator aceNodes = superuser.getNode(aclNodePath).getNodes(); aceNodes.hasNext();) {
+        for (NodeIterator aceNodes = superuser.getNode(aclNodePath).getNodes();
+            aceNodes.hasNext(); ) {
             String aceNodePath = aceNodes.nextNode().getPath();
             assertTrue(testAcMgr.hasPrivileges(aceNodePath, privileges));
             assertTrue(testSession.hasPermission(aceNodePath, Session.ACTION_READ));
@@ -222,7 +225,8 @@ public class AccessControlManagementTest extends AbstractEvaluationTest {
          allowed to view the acl-node nor any item in the subtree that
          has been created.
         */
-        assertFalse(testAcMgr.hasPrivileges(path, privilegesFromName(Privilege.JCR_READ_ACCESS_CONTROL)));
+        assertFalse(
+            testAcMgr.hasPrivileges(path, privilegesFromName(Privilege.JCR_READ_ACCESS_CONTROL)));
         assertFalse(testSession.itemExists(policyPath));
 
         assertFalse(testSession.nodeExists(policyPath));
@@ -244,12 +248,13 @@ public class AccessControlManagementTest extends AbstractEvaluationTest {
         } catch (AccessDeniedException e) {
             // success
         }
-        for (NodeIterator aceNodes = superuser.getNode(policyPath).getNodes(); aceNodes.hasNext();) {
+        for (NodeIterator aceNodes = superuser.getNode(policyPath).getNodes();
+            aceNodes.hasNext(); ) {
             Node aceNode = aceNodes.nextNode();
             String aceNodePath = aceNode.getPath();
             assertFalse(testSession.nodeExists(aceNodePath));
 
-            for (PropertyIterator it = aceNode.getProperties(); it.hasNext();) {
+            for (PropertyIterator it = aceNode.getProperties(); it.hasNext(); ) {
                 assertFalse(testSession.propertyExists(it.nextProperty().getPath()));
             }
         }
@@ -322,10 +327,10 @@ public class AccessControlManagementTest extends AbstractEvaluationTest {
     @Test
     public void testAccessControlModificationWithoutPrivilege() throws Exception {
         // give 'testUser' ADD_CHILD_NODES|MODIFY_PROPERTIES| REMOVE_CHILD_NODES privileges at 'path'
-        Privilege[] privileges = privilegesFromNames(new String[] {
-                Privilege.JCR_ADD_CHILD_NODES,
-                Privilege.JCR_REMOVE_CHILD_NODES,
-                Privilege.JCR_MODIFY_PROPERTIES
+        Privilege[] privileges = privilegesFromNames(new String[]{
+            Privilege.JCR_ADD_CHILD_NODES,
+            Privilege.JCR_REMOVE_CHILD_NODES,
+            Privilege.JCR_MODIFY_PROPERTIES
         });
         JackrabbitAccessControlList tmpl = allow(path, privileges);
         String policyPath = tmpl.getPath() + "/rep:policy";
@@ -353,9 +358,9 @@ public class AccessControlManagementTest extends AbstractEvaluationTest {
     @Test
     public void testAccessControlModification() throws Exception {
         // give 'testUser' READ_AC|MODIFY_AC privileges at 'path'
-        Privilege[] privileges = privilegesFromNames(new String[] {
-                Privilege.JCR_READ_ACCESS_CONTROL,
-                Privilege.JCR_MODIFY_ACCESS_CONTROL
+        Privilege[] privileges = privilegesFromNames(new String[]{
+            Privilege.JCR_READ_ACCESS_CONTROL,
+            Privilege.JCR_MODIFY_ACCESS_CONTROL
         });
         JackrabbitAccessControlList tmpl = allow(path, privileges);
         /*
@@ -372,7 +377,8 @@ public class AccessControlManagementTest extends AbstractEvaluationTest {
         assertTrue(superuser.itemExists(tmpl.getPath() + "/rep:policy"));
 
         // test: MODIFY_AC granted at 'path'
-        assertTrue(testAcMgr.hasPrivileges(path, privilegesFromName(Privilege.JCR_MODIFY_ACCESS_CONTROL)));
+        assertTrue(
+            testAcMgr.hasPrivileges(path, privilegesFromName(Privilege.JCR_MODIFY_ACCESS_CONTROL)));
 
         // test if testuser can READ access control on the path and on the
         // entire subtree that gets the policy inherited.
@@ -388,7 +394,8 @@ public class AccessControlManagementTest extends AbstractEvaluationTest {
         }
 
         // test: MODIFY_AC privilege does not apply outside of the tree.
-        assertFalse(testAcMgr.hasPrivileges(siblingPath, privilegesFromName(Privilege.JCR_MODIFY_ACCESS_CONTROL)));
+        assertFalse(testAcMgr.hasPrivileges(siblingPath,
+            privilegesFromName(Privilege.JCR_MODIFY_ACCESS_CONTROL)));
 
         // test if testuser can modify AC-items
         // 1) add an ac-entry
@@ -397,7 +404,8 @@ public class AccessControlManagementTest extends AbstractEvaluationTest {
         testAcMgr.setPolicy(path, acl);
         testSession.save();
 
-        assertTrue(testAcMgr.hasPrivileges(path, privilegesFromName(Privilege.JCR_REMOVE_CHILD_NODES)));
+        assertTrue(
+            testAcMgr.hasPrivileges(path, privilegesFromName(Privilege.JCR_REMOVE_CHILD_NODES)));
 
         // 2) remove the policy
         testAcMgr.removePolicy(path, policies[0]);
@@ -425,7 +433,8 @@ public class AccessControlManagementTest extends AbstractEvaluationTest {
             throw new NotExecutableException("no policy node found.");
         }
 
-        assertTrue("The rep:Policy node must be protected", policyNode.getDefinition().isProtected());
+        assertTrue("The rep:Policy node must be protected",
+            policyNode.getDefinition().isProtected());
         try {
             policyNode.remove();
             fail("rep:Policy node must be protected.");
@@ -433,7 +442,7 @@ public class AccessControlManagementTest extends AbstractEvaluationTest {
             // success
         }
 
-        for (NodeIterator it = policyNode.getNodes(); it.hasNext();) {
+        for (NodeIterator it = policyNode.getNodes(); it.hasNext(); ) {
             Node n = it.nextNode();
             if (n.isNodeType("rep:ACE")) {
                 try {
@@ -465,7 +474,7 @@ public class AccessControlManagementTest extends AbstractEvaluationTest {
         if (start.isNodeType("rep:Policy")) {
             policyNode = start;
         }
-        for (NodeIterator it = start.getNodes(); it.hasNext() && policyNode == null;) {
+        for (NodeIterator it = start.getNodes(); it.hasNext() && policyNode == null; ) {
             Node n = it.nextNode();
             if (!"jcr:system".equals(n.getName())) {
                 policyNode = findPolicyNode(n);
@@ -490,7 +499,7 @@ public class AccessControlManagementTest extends AbstractEvaluationTest {
         }
 
         // grant all privileges
-        allow(path, privilegesFromNames(new String[] {Privilege.JCR_ALL}));
+        allow(path, privilegesFromNames(new String[]{Privilege.JCR_ALL}));
 
         n.orderBefore(Text.getName(childNPath2), Text.getName(childNPath));
         testSession.save();

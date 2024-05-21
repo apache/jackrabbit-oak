@@ -16,23 +16,23 @@
  */
 package org.apache.jackrabbit.oak.spi.security.user.util;
 
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
+
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.AuthorizableTypeException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
-import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.util.Text;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.api.Type.STRING;
 
 /**
  * Utility methods for user management.
@@ -42,7 +42,8 @@ public final class UserUtil implements UserConstants {
     private UserUtil() {
     }
 
-    public static boolean isAdmin(@NotNull ConfigurationParameters parameters, @NotNull String userId) {
+    public static boolean isAdmin(@NotNull ConfigurationParameters parameters,
+        @NotNull String userId) {
         return getAdminId(parameters).equals(userId);
     }
 
@@ -65,7 +66,8 @@ public final class UserUtil implements UserConstants {
                 case USER:
                     return NT_REP_USER.equals(ntName) || NT_REP_SYSTEM_USER.equals(ntName);
                 default:
-                    return NT_REP_USER.equals(ntName) || NT_REP_GROUP.equals(ntName) || NT_REP_SYSTEM_USER.equals(ntName);
+                    return NT_REP_USER.equals(ntName) || NT_REP_GROUP.equals(ntName)
+                        || NT_REP_SYSTEM_USER.equals(ntName);
             }
         }
         return false;
@@ -92,24 +94,29 @@ public final class UserUtil implements UserConstants {
     }
 
     public static boolean isSystemUser(@Nullable Tree authorizableTree) {
-        return authorizableTree != null && NT_REP_SYSTEM_USER.equals(TreeUtil.getPrimaryTypeName(authorizableTree));
+        return authorizableTree != null && NT_REP_SYSTEM_USER.equals(
+            TreeUtil.getPrimaryTypeName(authorizableTree));
     }
 
     @Nullable
     public static String getAuthorizableRootPath(@NotNull ConfigurationParameters parameters,
-                                                 @Nullable AuthorizableType type) {
+        @Nullable AuthorizableType type) {
         String path = null;
         if (type != null) {
             switch (type) {
                 case USER:
-                    path = parameters.getConfigValue(UserConstants.PARAM_USER_PATH, UserConstants.DEFAULT_USER_PATH);
+                    path = parameters.getConfigValue(UserConstants.PARAM_USER_PATH,
+                        UserConstants.DEFAULT_USER_PATH);
                     break;
                 case GROUP:
-                    path = parameters.getConfigValue(UserConstants.PARAM_GROUP_PATH, UserConstants.DEFAULT_GROUP_PATH);
+                    path = parameters.getConfigValue(UserConstants.PARAM_GROUP_PATH,
+                        UserConstants.DEFAULT_GROUP_PATH);
                     break;
                 default:
-                    path = parameters.getConfigValue(UserConstants.PARAM_USER_PATH, UserConstants.DEFAULT_USER_PATH);
-                    String groupRoot = parameters.getConfigValue(UserConstants.PARAM_GROUP_PATH, UserConstants.DEFAULT_GROUP_PATH);
+                    path = parameters.getConfigValue(UserConstants.PARAM_USER_PATH,
+                        UserConstants.DEFAULT_USER_PATH);
+                    String groupRoot = parameters.getConfigValue(UserConstants.PARAM_GROUP_PATH,
+                        UserConstants.DEFAULT_GROUP_PATH);
                     while (!Text.isDescendantOrEqual(path, groupRoot)) {
                         path = Text.getRelativeParent(path, 1);
                     }
@@ -133,15 +140,16 @@ public final class UserUtil implements UserConstants {
     }
 
     /**
-     * Retrieve the id from the given {@code authorizableTree}, which must have
-     * been verified for being a valid authorizable of the specified type upfront.
+     * Retrieve the id from the given {@code authorizableTree}, which must have been verified for
+     * being a valid authorizable of the specified type upfront.
      *
      * @param authorizableTree The authorizable tree which must be of the given {@code type}/
-     * @param type The type of the authorizable tree.
+     * @param type             The type of the authorizable tree.
      * @return The id retrieved from the specified {@code AuthorizableTree}.
      */
     @NotNull
-    public static String getAuthorizableId(@NotNull Tree authorizableTree, @NotNull AuthorizableType type) {
+    public static String getAuthorizableId(@NotNull Tree authorizableTree,
+        @NotNull AuthorizableType type) {
         checkArgument(UserUtil.isType(authorizableTree, type));
         PropertyState idProp = authorizableTree.getProperty(UserConstants.REP_AUTHORIZABLE_ID);
         if (idProp != null) {
@@ -152,7 +160,8 @@ public final class UserUtil implements UserConstants {
     }
 
     @Nullable
-    public static <T extends Authorizable> T castAuthorizable(@Nullable Authorizable authorizable, Class<T> authorizableClass) throws AuthorizableTypeException {
+    public static <T extends Authorizable> T castAuthorizable(@Nullable Authorizable authorizable,
+        Class<T> authorizableClass) throws AuthorizableTypeException {
         if (authorizable == null) {
             return null;
         }
@@ -160,24 +169,28 @@ public final class UserUtil implements UserConstants {
         if (authorizableClass != null && authorizableClass.isInstance(authorizable)) {
             return authorizableClass.cast(authorizable);
         } else {
-            throw new AuthorizableTypeException("Invalid authorizable type '" + ((authorizableClass == null) ? "null" : authorizableClass) + '\'');
+            throw new AuthorizableTypeException(
+                "Invalid authorizable type '" + ((authorizableClass == null) ? "null"
+                    : authorizableClass) + '\'');
         }
     }
 
     /**
-     * Return the configured {@link org.apache.jackrabbit.oak.spi.xml.ImportBehavior}
-     * for the given {@code config}. The default behavior in case
-     * {@link org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter#PARAM_IMPORT_BEHAVIOR}
-     * is not contained in the {@code config} object is
+     * Return the configured {@link org.apache.jackrabbit.oak.spi.xml.ImportBehavior} for the given
+     * {@code config}. The default behavior in case
+     * {@link org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter#PARAM_IMPORT_BEHAVIOR} is not
+     * contained in the {@code config} object is
      * {@link org.apache.jackrabbit.oak.spi.xml.ImportBehavior#IGNORE}
      *
      * @param config The configuration parameters.
-     * @return The import behavior as defined by {@link org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter#PARAM_IMPORT_BEHAVIOR}
-     * or {@link org.apache.jackrabbit.oak.spi.xml.ImportBehavior#IGNORE} if this
-     * config parameter is missing.
+     * @return The import behavior as defined by
+     * {@link org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter#PARAM_IMPORT_BEHAVIOR} or
+     * {@link org.apache.jackrabbit.oak.spi.xml.ImportBehavior#IGNORE} if this config parameter is
+     * missing.
      */
     public static int getImportBehavior(@NotNull ConfigurationParameters config) {
-        String importBehaviorStr = config.getConfigValue(ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, ImportBehavior.NAME_IGNORE);
+        String importBehaviorStr = config.getConfigValue(
+            ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, ImportBehavior.NAME_IGNORE);
         return ImportBehavior.valueFromString(importBehaviorStr);
     }
 }

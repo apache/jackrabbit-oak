@@ -19,16 +19,14 @@
 
 package org.apache.jackrabbit.oak.index;
 
+import static org.apache.jackrabbit.commons.JcrUtils.getOrCreateByPath;
+
 import java.io.File;
 import java.io.IOException;
-
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexDefinitionBuilder;
-
-import static org.apache.jackrabbit.commons.JcrUtils.getOrCreateByPath;
 
 public class LuceneAbstractIndexCommandTest extends AbstractIndexTestCommand {
 
@@ -38,8 +36,9 @@ public class LuceneAbstractIndexCommandTest extends AbstractIndexTestCommand {
     }
 
     @Override
-    protected void createIndex(String nodeType, String propName, boolean asyncIndex) throws IOException,
-            RepositoryException {
+    protected void createIndex(String nodeType, String propName, boolean asyncIndex)
+        throws IOException,
+        RepositoryException {
         LuceneIndexDefinitionBuilder idxBuilder = new LuceneIndexDefinitionBuilder();
         if (!asyncIndex) {
             idxBuilder.noAsync();
@@ -48,7 +47,7 @@ public class LuceneAbstractIndexCommandTest extends AbstractIndexTestCommand {
 
         Session session = fixture.getAdminSession();
         Node fooIndex = getOrCreateByPath(TEST_INDEX_PATH,
-                "oak:QueryIndexDefinition", session);
+            "oak:QueryIndexDefinition", session);
 
         idxBuilder.build(fooIndex);
         if (fooIndex.hasNode("suggestion")) {

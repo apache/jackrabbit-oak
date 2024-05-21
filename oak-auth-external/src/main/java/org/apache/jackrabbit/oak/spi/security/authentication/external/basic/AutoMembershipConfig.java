@@ -16,24 +16,26 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.basic;
 
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.Set;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.Set;
-
 /**
- * Optional extension of the {@link org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig.Authorizable#getAutoMembership()} 
- * that allows to define conditional auto-membership based on the nature of a given {@link Authorizable}.
+ * Optional extension of the
+ * {@link
+ * org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig.Authorizable#getAutoMembership()}
+ * that allows to define conditional auto-membership based on the nature of a given
+ * {@link Authorizable}.
  */
 public interface AutoMembershipConfig {
 
     /**
-     * Name of the configuration property that defines the name of the synchronization handler for which this instance of 
-     * {@link AutoMembershipConfig} takes effect.
+     * Name of the configuration property that defines the name of the synchronization handler for
+     * which this instance of {@link AutoMembershipConfig} takes effect.
      *
      * @see AutoMembershipAware
      */
@@ -41,15 +43,16 @@ public interface AutoMembershipConfig {
 
     /**
      * Returns the name of the sync handler for which this configuration takes effect.
-     * 
+     *
      * @return the sync handler name.
      * @see #PARAM_SYNC_HANDLER_NAME
      */
-    String getName();        
+    String getName();
 
     /**
-     * Returns the group ids which the given synchronized external user/group should automatically be added as member.
-     * 
+     * Returns the group ids which the given synchronized external user/group should automatically
+     * be added as member.
+     *
      * @param authorizable An external identity that has been synchronized into the repository.
      * @return A set of group ids which define the automatic membership for the given authorizable.
      */
@@ -57,16 +60,20 @@ public interface AutoMembershipConfig {
     Set<String> getAutoMembership(@NotNull Authorizable authorizable);
 
     /**
-     * Best-effort attempt to retrieve all automatically defined members of the given {@link Group}.
-     * 
+     * Best-effort attempt to retrieve all automatically defined members of the given
+     * {@link Group}.
+     *
      * @param userManager The user manager associated with the given {@code group}.
-     * @param group The target group for which the known automatically added synced identities should be retrieved. 
-     * @return An iterator of synced external identities. If the given group is not configured to hold any automatic
-     * members or if the implementation is not able to determined the members an empty iterator is returned.
-     * @see org.apache.jackrabbit.oak.spi.security.user.DynamicMembershipProvider#getMembers(Group, boolean)
+     * @param group       The target group for which the known automatically added synced identities
+     *                    should be retrieved.
+     * @return An iterator of synced external identities. If the given group is not configured to
+     * hold any automatic members or if the implementation is not able to determined the members an
+     * empty iterator is returned.
+     * @see org.apache.jackrabbit.oak.spi.security.user.DynamicMembershipProvider#getMembers(Group,
+     * boolean)
      */
     Iterator<Authorizable> getAutoMembers(@NotNull UserManager userManager, @NotNull Group group);
-    
+
     AutoMembershipConfig EMPTY = new AutoMembershipConfig() {
 
         @Override
@@ -80,9 +87,10 @@ public interface AutoMembershipConfig {
         }
 
         @Override
-        public Iterator<Authorizable> getAutoMembers(@NotNull UserManager userManager, @NotNull Group group) {
+        public Iterator<Authorizable> getAutoMembers(@NotNull UserManager userManager,
+            @NotNull Group group) {
             return Collections.emptyIterator();
         }
     };
-    
+
 }

@@ -19,14 +19,16 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * {@code SyncContext} is used as scope for sync operations. Implementations are free to associate any resources with
- * the sync context. The sync context must not be accessed concurrently and must be closed after use.
+ * {@code SyncContext} is used as scope for sync operations. Implementations are free to associate
+ * any resources with the sync context. The sync context must not be accessed concurrently and must
+ * be closed after use.
  */
 public interface SyncContext {
 
     /**
-     * Defines if synchronization keeps missing external identities on synchronization of authorizables. Default
-     * is {@code false}.
+     * Defines if synchronization keeps missing external identities on synchronization of
+     * authorizables. Default is {@code false}.
+     *
      * @return {@code true} if keep missing.
      */
     boolean isKeepMissing();
@@ -38,7 +40,9 @@ public interface SyncContext {
     SyncContext setKeepMissing(boolean keep);
 
     /**
-     * Defines if synchronization of users always will perform, i.e. ignores the last synced properties.
+     * Defines if synchronization of users always will perform, i.e. ignores the last synced
+     * properties.
+     *
      * @return {@code true} if forced syncing users
      */
     boolean isForceUserSync();
@@ -50,7 +54,9 @@ public interface SyncContext {
     SyncContext setForceUserSync(boolean force);
 
     /**
-     * Defines if synchronization of groups always will perform, i.e. ignores the last synced properties.
+     * Defines if synchronization of groups always will perform, i.e. ignores the last synced
+     * properties.
+     *
      * @return {@code true} if forced syncing groups
      */
     boolean isForceGroupSync();
@@ -72,8 +78,8 @@ public interface SyncContext {
     SyncResult sync(@NotNull ExternalIdentity identity) throws SyncException;
 
     /**
-     * Synchronizes an authorizable with the corresponding external identity with the repository based on the respective
-     * configuration.
+     * Synchronizes an authorizable with the corresponding external identity with the repository
+     * based on the respective configuration.
      *
      * @param id the id of the authorizable
      * @return the result of the operation
@@ -84,9 +90,9 @@ public interface SyncContext {
 
 
     /**
-     * Closes this context and releases any resources bound to it. Note that an implementation must not commit the
-     * {@link org.apache.jackrabbit.oak.api.Root} passed during the creation call. This is the responsibility of the
-     * application.
+     * Closes this context and releases any resources bound to it. Note that an implementation must
+     * not commit the {@link org.apache.jackrabbit.oak.api.Root} passed during the creation call.
+     * This is the responsibility of the application.
      */
     void close();
 

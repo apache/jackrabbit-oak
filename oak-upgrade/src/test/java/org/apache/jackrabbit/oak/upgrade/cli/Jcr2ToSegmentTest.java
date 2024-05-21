@@ -18,11 +18,9 @@ package org.apache.jackrabbit.oak.upgrade.cli;
 
 import java.io.File;
 import java.io.IOException;
-
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
-
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.jcr.repository.RepositoryImpl;
 import org.apache.jackrabbit.oak.plugins.index.reference.ReferenceIndexProvider;
@@ -53,10 +51,13 @@ public class Jcr2ToSegmentTest {
             Util.unzip(AbstractOak2OakTest.class.getResourceAsStream("/jcr2.zip"), tempDir);
         }
 
-        OakUpgrade.main("--copy-binaries", tempDir.getPath(), destinationContainer.getDescription());
+        OakUpgrade.main("--copy-binaries", tempDir.getPath(),
+            destinationContainer.getDescription());
 
         destination = destinationContainer.open();
-        repository = (RepositoryImpl) new Jcr(destination).with("oak.sling").with(new ReferenceIndexProvider()).createRepository();
+        repository = (RepositoryImpl) new Jcr(destination).with("oak.sling")
+                                                          .with(new ReferenceIndexProvider())
+                                                          .createRepository();
         session = repository.login(new SimpleCredentials("admin", "admin".toCharArray()));
     }
 

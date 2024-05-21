@@ -19,17 +19,17 @@
 
 package org.apache.jackrabbit.oak.run.cli;
 
-import joptsimple.OptionParser;
-import joptsimple.OptionSet;
-import joptsimple.OptionSpec;
+import static java.util.Arrays.asList;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-
-import static java.util.Arrays.asList;
+import joptsimple.OptionParser;
+import joptsimple.OptionSet;
+import joptsimple.OptionSpec;
 
 public class CommonOptions implements OptionsBean {
+
     public static final String DEFAULT_CONNECTION_STRING = "{<path-to-repository> | <mongodb-uri>} | <rdb-uri> | memory}";
     private final OptionSpec<Void> help;
     private final OptionSpec<Void> readWriteOption;
@@ -38,7 +38,7 @@ public class CommonOptions implements OptionsBean {
     private final OptionSpec<Void> segment;
     private OptionSet options;
 
-    public CommonOptions(OptionParser parser){
+    public CommonOptions(OptionParser parser) {
         help = parser.acceptsAll(asList("h", "?", "help"), "Show help").forHelp();
         readWriteOption = parser.accepts("read-write", "Connect to repository in read-write mode");
         metrics = parser.accepts("metrics", "Enables metrics based statistics collection");
@@ -51,35 +51,35 @@ public class CommonOptions implements OptionsBean {
         this.options = options;
     }
 
-    public boolean isHelpRequested(){
+    public boolean isHelpRequested() {
         return options.has(help);
     }
 
-    public boolean isReadWrite(){
+    public boolean isReadWrite() {
         return options.has(readWriteOption);
     }
 
-    public List<String> getNonOptions(){
+    public List<String> getNonOptions() {
         return nonOption.values(options);
     }
 
-    public boolean isMongo(){
+    public boolean isMongo() {
         return getStoreArg().startsWith("mongodb://");
     }
 
-    public boolean isRDB(){
+    public boolean isRDB() {
         return getStoreArg().startsWith("jdbc");
     }
 
-    public boolean isOldSegment(){
+    public boolean isOldSegment() {
         return options.has(segment);
     }
 
-    public boolean isDocument(){
+    public boolean isDocument() {
         return isMongo() || isRDB();
     }
 
-    public boolean isMemory(){
+    public boolean isMemory() {
         return getStoreArg().equalsIgnoreCase("memory");
     }
 

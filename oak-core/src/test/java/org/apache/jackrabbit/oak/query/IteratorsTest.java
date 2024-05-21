@@ -27,10 +27,8 @@ import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import org.junit.Test;
-
 import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.junit.Test;
 
 /**
  * Tests the filtering iterators.

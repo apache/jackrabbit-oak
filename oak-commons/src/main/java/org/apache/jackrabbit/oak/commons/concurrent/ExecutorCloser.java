@@ -22,7 +22,6 @@ package org.apache.jackrabbit.oak.commons.concurrent;
 import java.io.Closeable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
-
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,14 +30,14 @@ import org.slf4j.LoggerFactory;
  * <p>
  * Utility class to properly close any ExecutorService.
  * </p>
- * 
+ *
  * <p>
  * It will attempt a graceful close within the provided timeout. If after such any of the contained
  * tasks are not terminated yet, it will force a shutdown and track a warning in the logs.
  * </p>
- * 
  */
 public final class ExecutorCloser implements Closeable {
+
     private static final Logger LOG = LoggerFactory.getLogger(ExecutorCloser.class);
     private final ExecutorService executorService;
     private final int timeout;
@@ -46,7 +45,7 @@ public final class ExecutorCloser implements Closeable {
 
     /**
      * will attempt a graceful close in 5 seconds
-     * 
+     *
      * @param executorService
      */
     public ExecutorCloser(@Nullable ExecutorService executorService) {
@@ -55,10 +54,10 @@ public final class ExecutorCloser implements Closeable {
 
     /**
      * will attempt a graceful close by the provided time.
-     * 
+     *
      * @param executorService the executor to close
-     * @param timeout the time to wait for
-     * @param unit the unit of time
+     * @param timeout         the time to wait for
+     * @param unit            the unit of time
      */
     public ExecutorCloser(@Nullable ExecutorService executorService, int timeout, TimeUnit unit) {
         this.executorService = executorService;

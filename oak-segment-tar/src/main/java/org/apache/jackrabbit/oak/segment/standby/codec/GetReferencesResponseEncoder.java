@@ -17,11 +17,11 @@
 
 package org.apache.jackrabbit.oak.segment.standby.codec;
 
-import org.apache.jackrabbit.guava.common.base.Charsets;
-import org.apache.jackrabbit.guava.common.base.Joiner;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToByteEncoder;
+import org.apache.jackrabbit.guava.common.base.Charsets;
+import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,8 +30,10 @@ public class GetReferencesResponseEncoder extends MessageToByteEncoder<GetRefere
     private static final Logger log = LoggerFactory.getLogger(GetReferencesResponseEncoder.class);
 
     @Override
-    protected void encode(ChannelHandlerContext ctx, GetReferencesResponse msg, ByteBuf out) throws Exception {
-        log.debug("Sending references of segment {} to client {}", msg.getSegmentId(), msg.getClientId());
+    protected void encode(ChannelHandlerContext ctx, GetReferencesResponse msg, ByteBuf out)
+        throws Exception {
+        log.debug("Sending references of segment {} to client {}", msg.getSegmentId(),
+            msg.getClientId());
         encode(msg.getSegmentId(), msg.getReferences(), out);
     }
 

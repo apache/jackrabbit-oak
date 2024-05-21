@@ -56,7 +56,8 @@ public class SegmentNodeStoreMonitorService {
 
     @Activate
     public void activate(Configuration config) {
-        snsStatsMBean.setWriterGroupsForLastMinuteCounts(PropertiesUtil.toStringArray(config.commitsTrackerWriterGroups(), null));
+        snsStatsMBean.setWriterGroupsForLastMinuteCounts(
+            PropertiesUtil.toStringArray(config.commitsTrackerWriterGroups(), null));
     }
 
 }

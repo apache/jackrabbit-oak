@@ -39,7 +39,7 @@ public class DocumentBundlorTest {
     private NodeBuilder builder = EMPTY_NODE.builder();
 
     @Test
-    public void basicSetup() throws Exception{
+    public void basicSetup() throws Exception {
         builder.setProperty(createProperty(PROP_PATTERN, asList("x", "x/y"), STRINGS));
         DocumentBundlor bundlor = DocumentBundlor.from(builder.getNodeState());
 
@@ -48,19 +48,19 @@ public class DocumentBundlorTest {
         assertFalse(bundlor.isBundled("x/y/z"));
         assertFalse(bundlor.isBundled("z"));
     }
-    
+
     @Test(expected = IllegalArgumentException.class)
-    public void invalid() throws Exception{
+    public void invalid() throws Exception {
         DocumentBundlor.from(builder.getNodeState());
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void invalid2() throws Exception{
+    public void invalid2() throws Exception {
         DocumentBundlor.from(Collections.<String>emptyList());
     }
 
     @Test
-    public void asPropertyState() throws Exception{
+    public void asPropertyState() throws Exception {
         builder.setProperty(createProperty(PROP_PATTERN, asList("x", "x/y", "z"), STRINGS));
         DocumentBundlor bundlor = DocumentBundlor.from(builder.getNodeState());
         PropertyState ps = bundlor.asPropertyState();

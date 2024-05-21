@@ -17,27 +17,22 @@
 package org.apache.jackrabbit.oak.plugins.document.spi.lease;
 
 /**
- * A LeaseFailureHandler can be provided to the DocumentMK.Builder 
- * and will be passed on to the ClusterNodeInfo for use upon
- * lease failure.
+ * A LeaseFailureHandler can be provided to the DocumentMK.Builder and will be passed on to the
+ * ClusterNodeInfo for use upon lease failure.
  * <p>
- * When ClusterNodeInfo does not have such a LeaseFailureHandler, 
- * the only thing it does is fail every subsequent access with
- * an exception - but it doesn't do fancy things like stopping
- * the oak-store-document bundle etc. Such an operation must be provided
- * in a LeaseFailureHandler.
+ * When ClusterNodeInfo does not have such a LeaseFailureHandler, the only thing it does is fail
+ * every subsequent access with an exception - but it doesn't do fancy things like stopping the
+ * oak-store-document bundle etc. Such an operation must be provided in a LeaseFailureHandler.
  */
 public interface LeaseFailureHandler {
 
     /**
-     * Invoked by ClusterNodeInfo when it detects a lease
-     * failure and has started preventing any further access
-     * to the DocumentStore by throwing exceptions - what's
-     * now left is any further actions that should be taken
-     * such as eg stopping the oak-store-document bundle. This part
-     * however is optional from the ClusterNodeInfo's pov
-     * and must be done by here in this LeaseFailureHandler.
+     * Invoked by ClusterNodeInfo when it detects a lease failure and has started preventing any
+     * further access to the DocumentStore by throwing exceptions - what's now left is any further
+     * actions that should be taken such as eg stopping the oak-store-document bundle. This part
+     * however is optional from the ClusterNodeInfo's pov and must be done by here in this
+     * LeaseFailureHandler.
      */
     public void handleLeaseFailure();
-    
+
 }

@@ -16,6 +16,21 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
+import static org.apache.jackrabbit.JcrConstants.JCR_CONTENT;
+import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
+import static org.apache.jackrabbit.JcrConstants.NT_FILE;
+import static org.apache.jackrabbit.oak.api.Type.NAME;
+import static org.apache.jackrabbit.oak.plugins.memory.BinaryPropertyState.binaryProperty;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
+import static org.junit.Assert.fail;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Calendar;
+import java.util.List;
+import java.util.stream.StreamSupport;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
@@ -37,23 +52,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Calendar;
-import java.util.List;
-import java.util.stream.StreamSupport;
-
-import static org.apache.jackrabbit.JcrConstants.JCR_CONTENT;
-import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
-import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
-import static org.apache.jackrabbit.JcrConstants.NT_FILE;
-import static org.apache.jackrabbit.oak.api.Type.NAME;
-import static org.apache.jackrabbit.oak.plugins.memory.BinaryPropertyState.binaryProperty;
-import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
-import static org.junit.Assert.fail;
-
 public class ElasticIndexAggregationNtFileTest extends ElasticAbstractQueryTest {
+
     private static final String NT_TEST_ASSET = "test:Asset";
 
     @Override
@@ -66,13 +66,14 @@ public class ElasticIndexAggregationNtFileTest extends ElasticAbstractQueryTest 
                 // registering additional node types for wider testing
                 InputStream stream = null;
                 try {
-                    stream = Thread.currentThread().getContextClassLoader().getResource("test_nodetypes.cnd").openStream();
+                    stream = Thread.currentThread().getContextClassLoader()
+                                   .getResource("test_nodetypes.cnd").openStream();
                     NodeState base = builder.getNodeState();
                     NodeStore store = new MemoryNodeStore(base);
 
                     Root root = RootFactory.createSystemRoot(store, new EditorHook(
-                            new CompositeEditorProvider(new NamespaceEditorProvider(),
-                                    new TypeEditorProvider())), null, null, null);
+                        new CompositeEditorProvider(new NamespaceEditorProvider(),
+                            new TypeEditorProvider())), null, null, null);
                     NodeTypeRegistry.register(root, stream, "testing node types");
                     NodeState target = store.getRoot();
                     target.compareAgainstBaseState(base, new ApplyDiff(builder));
@@ -101,8 +102,8 @@ public class ElasticIndexAggregationNtFileTest extends ElasticAbstractQueryTest 
         if (LOG.isDebugEnabled()) {
             NodeBuilder namespace = builder.child(JCR_SYSTEM).child(JCR_NODE_TYPES);
             StreamSupport.stream(namespace.getChildNodeNames().spliterator(), false)
-                    .sorted()
-                    .forEach(LOG::debug);
+                         .sorted()
+                         .forEach(LOG::debug);
         }
     }
 
@@ -111,11 +112,13 @@ public class ElasticIndexAggregationNtFileTest extends ElasticAbstractQueryTest 
         Tree index = root.getTree("/");
         Tree indexDefn = createTestIndexNode(index, ElasticIndexDefinition.TYPE_ELASTICSEARCH);
         indexDefn.setProperty(ElasticIndexDefinition.FAIL_ON_ERROR, false);
-        indexDefn.setProperty(FulltextIndexConstants.COMPAT_MODE, IndexFormatVersion.V2.getVersion());
+        indexDefn.setProperty(FulltextIndexConstants.COMPAT_MODE,
+            IndexFormatVersion.V2.getVersion());
         Tree includeNtFileContent = indexDefn.addChild(FulltextIndexConstants.AGGREGATES)
-                .addChild(NT_TEST_ASSET).addChild("include10");
+                                             .addChild(NT_TEST_ASSET).addChild("include10");
         includeNtFileContent.setProperty(FulltextIndexConstants.AGG_RELATIVE_NODE, true);
-        includeNtFileContent.setProperty(FulltextIndexConstants.AGG_PATH, "jcr:content/renditions/dam.text.txt/jcr:content");
+        includeNtFileContent.setProperty(FulltextIndexConstants.AGG_PATH,
+            "jcr:content/renditions/dam.text.txt/jcr:content");
         root.commit();
     }
 
@@ -123,7 +126,7 @@ public class ElasticIndexAggregationNtFileTest extends ElasticAbstractQueryTest 
     public void indexNtFileText() throws CommitFailedException {
         setTraversalEnabled(false);
         final String statement = "//element(*, test:Asset)[ " +
-                "jcr:contains(jcr:content/renditions/dam.text.txt/jcr:content, 'quick') ]";
+            "jcr:contains(jcr:content/renditions/dam.text.txt/jcr:content, 'quick') ]";
         Tree content = root.getTree("/").addChild("content");
         Tree page = content.addChild("asset");
         page.setProperty(JCR_PRIMARYTYPE, NT_TEST_ASSET, NAME);
@@ -135,10 +138,10 @@ public class ElasticIndexAggregationNtFileTest extends ElasticAbstractQueryTest 
         resource.setProperty("jcr:encoding", "UTF-8");
         resource.setProperty("jcr:mimeType", "text/plain");
         resource.setProperty(binaryProperty(JCR_DATA,
-                "the quick brown fox jumps over the lazy dog."));
+            "the quick brown fox jumps over the lazy dog."));
         root.commit();
 
-        assertEventually(()-> {
+        assertEventually(() -> {
             assertQuery(statement, "xpath", List.of("/content/asset"));
         });
     }

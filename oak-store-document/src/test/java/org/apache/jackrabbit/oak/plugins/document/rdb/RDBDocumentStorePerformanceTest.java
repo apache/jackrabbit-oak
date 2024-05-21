@@ -36,17 +36,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Tests measuring the performance of various {@link RDBDocumentStore}
- * operations.
+ * Tests measuring the performance of various {@link RDBDocumentStore} operations.
  * <p>
- * These tests are disabled by default due to their long running time. On the
- * command line specify {@code -DRDBDocumentStorePerformanceTest=true} to enable
- * them.
+ * These tests are disabled by default due to their long running time. On the command line specify
+ * {@code -DRDBDocumentStorePerformanceTest=true} to enable them.
  */
 public class RDBDocumentStorePerformanceTest extends AbstractDocumentStoreTest {
 
-    private static final Logger LOG = LoggerFactory.getLogger(RDBDocumentStorePerformanceTest.class);
-    private static final boolean ENABLED = Boolean.getBoolean(RDBDocumentStorePerformanceTest.class.getSimpleName());
+    private static final Logger LOG = LoggerFactory.getLogger(
+        RDBDocumentStorePerformanceTest.class);
+    private static final boolean ENABLED = Boolean.getBoolean(
+        RDBDocumentStorePerformanceTest.class.getSimpleName());
 
     public RDBDocumentStorePerformanceTest(DocumentStoreFixture dsf) {
         super(dsf);
@@ -61,25 +61,30 @@ public class RDBDocumentStorePerformanceTest extends AbstractDocumentStoreTest {
 
     @Test
     public void testPerfUpdateLimitString() throws SQLException, UnsupportedEncodingException {
-        internalTestPerfUpdateLimit("testPerfUpdateLimitString", "raw row update (set long/string)", 1);
+        internalTestPerfUpdateLimit("testPerfUpdateLimitString", "raw row update (set long/string)",
+            1);
     }
 
     @Test
     public void testPerfUpdateLimitStringBlob() throws SQLException, UnsupportedEncodingException {
-        internalTestPerfUpdateLimit("testPerfUpdateLimitStringBlob", "raw row update (set long/string/blob)", 2);
+        internalTestPerfUpdateLimit("testPerfUpdateLimitStringBlob",
+            "raw row update (set long/string/blob)", 2);
     }
 
     @Test
     public void testPerfUpdateAppendString() throws SQLException, UnsupportedEncodingException {
-        internalTestPerfUpdateLimit("testPerfUpdateAppendString", "raw row update (append string)", 3);
+        internalTestPerfUpdateLimit("testPerfUpdateAppendString", "raw row update (append string)",
+            3);
     }
 
     @Test
     public void testPerfUpdateGrowingDoc() throws SQLException, UnsupportedEncodingException {
-        internalTestPerfUpdateLimit("testPerfUpdateGrowingDoc", "raw row update (string + blob)", 4);
+        internalTestPerfUpdateLimit("testPerfUpdateGrowingDoc", "raw row update (string + blob)",
+            4);
     }
 
-    private void internalTestPerfUpdateLimit(String name, String desc, int mode) throws SQLException, UnsupportedEncodingException {
+    private void internalTestPerfUpdateLimit(String name, String desc, int mode)
+        throws SQLException, UnsupportedEncodingException {
         String key = name;
         Connection connection = null;
         String table = DocumentStoreFixture.TABLEPREFIX + "NODES";
@@ -91,7 +96,8 @@ public class RDBDocumentStorePerformanceTest extends AbstractDocumentStoreTest {
             // we use the same pool as the document store, and the
             // connection might have been returned in read-only mode
             connection.setReadOnly(false);
-            PreparedStatement stmt = connection.prepareStatement("insert into " + table + " (ID, MODCOUNT, DATA) values (?, ?, ?)");
+            PreparedStatement stmt = connection.prepareStatement(
+                "insert into " + table + " (ID, MODCOUNT, DATA) values (?, ?, ?)");
             try {
                 setIdInStatement(stmt, 1, key);
                 stmt.setLong(2, 0);
@@ -120,7 +126,8 @@ public class RDBDocumentStorePerformanceTest extends AbstractDocumentStoreTest {
         String sdata = appendString;
         boolean needsConcat = super.dsname.contains("MySQL");
         boolean needsSQLStringConcat = super.dsname.contains("MSSql");
-        int dataInChars = ((super.dsname.contains("Oracle") || (super.dsname.contains("MSSql"))) ? 4000 : 16384);
+        int dataInChars = ((super.dsname.contains("Oracle") || (super.dsname.contains("MSSql")))
+            ? 4000 : 16384);
         int dataInBytes = dataInChars / 3;
 
         while (System.currentTimeMillis() < end) {
@@ -130,7 +137,8 @@ public class RDBDocumentStorePerformanceTest extends AbstractDocumentStoreTest {
                 connection.setAutoCommit(false);
 
                 if (mode == 0) {
-                    PreparedStatement stmt = connection.prepareStatement("update " + table + " set MODCOUNT = ? where ID = ?");
+                    PreparedStatement stmt = connection.prepareStatement(
+                        "update " + table + " set MODCOUNT = ? where ID = ?");
                     try {
                         stmt.setLong(1, cnt);
                         setIdInStatement(stmt, 2, key);
@@ -141,7 +149,8 @@ public class RDBDocumentStorePerformanceTest extends AbstractDocumentStoreTest {
                     }
                 } else if (mode == 1) {
                     PreparedStatement stmt = connection
-                            .prepareStatement("update " + table + " set MODCOUNT = ?, DATA = ? where ID = ?");
+                        .prepareStatement(
+                            "update " + table + " set MODCOUNT = ?, DATA = ? where ID = ?");
                     try {
                         stmt.setLong(1, cnt);
                         stmt.setString(2, "JSON data " + UUID.randomUUID());
@@ -153,7 +162,8 @@ public class RDBDocumentStorePerformanceTest extends AbstractDocumentStoreTest {
                     }
                 } else if (mode == 2) {
                     PreparedStatement stmt = connection
-                            .prepareStatement("update " + table + " set MODCOUNT = ?, DATA = ?, BDATA = ? where ID = ?");
+                        .prepareStatement("update " + table
+                            + " set MODCOUNT = ?, DATA = ?, BDATA = ? where ID = ?");
                     try {
                         stmt.setLong(1, cnt);
                         stmt.setString(2, "JSON data " + UUID.randomUUID());
@@ -173,8 +183,9 @@ public class RDBDocumentStorePerformanceTest extends AbstractDocumentStoreTest {
                     if (needsConcat) {
                         t += "CONCAT(DATA, ?) ";
                     } else if (needsSQLStringConcat) {
-                        t += "CASE WHEN LEN(DATA) <= " + (dataInChars - appendString.length()) + " THEN (DATA + CAST(? AS nvarchar("
-                                + 4000 + "))) ELSE (DATA + CAST(DATA AS nvarchar(max))) END";
+                        t += "CASE WHEN LEN(DATA) <= " + (dataInChars - appendString.length())
+                            + " THEN (DATA + CAST(? AS nvarchar("
+                            + 4000 + "))) ELSE (DATA + CAST(DATA AS nvarchar(max))) END";
                     } else {
                         t += "DATA || CAST(? as varchar(" + dataInChars + "))";
                     }
@@ -192,13 +203,16 @@ public class RDBDocumentStorePerformanceTest extends AbstractDocumentStoreTest {
                         // ex.printStackTrace();
                         String state = ex.getSQLState();
                         if ("22001".equals(state)
-                                /* everybody */ || ("72000".equals(state) && 1489 == ex.getErrorCode()) /* Oracle */
-                                || ("S0001".equals(state) && 2628 == ex.getErrorCode()) /* MSSQL update*/) {
+                            /* everybody */ || ("72000".equals(state)
+                            && 1489 == ex.getErrorCode()) /* Oracle */
+                            || ("S0001".equals(state)
+                            && 2628 == ex.getErrorCode()) /* MSSQL update*/) {
                             // overflow
                             stmt = close(stmt);
                             connection.rollback();
                             stmt = connection
-                                    .prepareStatement("update " + table + " set MODCOUNT = MODCOUNT + 1, DATA = ? where ID = ?");
+                                .prepareStatement("update " + table
+                                    + " set MODCOUNT = MODCOUNT + 1, DATA = ? where ID = ?");
                             stmt.setString(1, "X");
                             setIdInStatement(stmt, 2, key);
                             assertEquals(1, stmt.executeUpdate());
@@ -213,7 +227,7 @@ public class RDBDocumentStorePerformanceTest extends AbstractDocumentStoreTest {
                     }
                 } else if (mode == 4) {
                     PreparedStatement stmt = connection.prepareStatement("update " + table
-                            + " set MODIFIED = ?, HASBINARY = ?, MODCOUNT = ?, CMODCOUNT = ?, DSIZE = ?, DATA = ?, BDATA = ? where ID = ?");
+                        + " set MODIFIED = ?, HASBINARY = ?, MODCOUNT = ?, CMODCOUNT = ?, DSIZE = ?, DATA = ?, BDATA = ? where ID = ?");
                     try {
                         int si = 1;
                         stmt.setObject(si++, System.currentTimeMillis() / 5, Types.BIGINT);
@@ -240,7 +254,7 @@ public class RDBDocumentStorePerformanceTest extends AbstractDocumentStoreTest {
                 }
             } catch (SQLException ex) {
                 LOG.error(ex.getMessage() + " " + ex.getSQLState() + " " + ex.getErrorCode(), ex);
-                throw(ex);
+                throw (ex);
             } finally {
                 connection = close(connection);
             }
@@ -253,7 +267,8 @@ public class RDBDocumentStorePerformanceTest extends AbstractDocumentStoreTest {
             try {
                 connection = super.rdbDataSource.getConnection();
                 connection.setAutoCommit(false);
-                PreparedStatement stmt = connection.prepareStatement("select DATA, MODCOUNT from " + table + " where ID = ?");
+                PreparedStatement stmt = connection.prepareStatement(
+                    "select DATA, MODCOUNT from " + table + " where ID = ?");
                 ResultSet rs = null;
                 try {
                     setIdInStatement(stmt, 1, key);
@@ -272,7 +287,9 @@ public class RDBDocumentStorePerformanceTest extends AbstractDocumentStoreTest {
             }
         }
 
-        LOG.info(desc + " for " + super.dsname + " was " + cnt + " in " + duration + "ms (" + (cnt / (duration / 1000f)) + "/s)");
+        LOG.info(
+            desc + " for " + super.dsname + " was " + cnt + " in " + duration + "ms (" + (cnt / (
+                duration / 1000f)) + "/s)");
     }
 
     private void setIdInStatement(PreparedStatement stmt, int idx, String id) throws SQLException {

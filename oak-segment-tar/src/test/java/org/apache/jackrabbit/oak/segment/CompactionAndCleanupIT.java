@@ -19,10 +19,6 @@
 
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
-import static org.apache.jackrabbit.guava.common.util.concurrent.Uninterruptibles.awaitUninterruptibly;
-import static org.apache.jackrabbit.guava.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.lang.Integer.getInteger;
 import static java.lang.String.valueOf;
 import static java.util.concurrent.Executors.newFixedThreadPool;
@@ -30,6 +26,10 @@ import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.commons.io.FileUtils.byteCountToDisplaySize;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.guava.common.util.concurrent.Uninterruptibles.awaitUninterruptibly;
+import static org.apache.jackrabbit.guava.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
@@ -62,7 +62,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
-
 import org.apache.jackrabbit.guava.common.io.ByteStreams;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -97,7 +96,7 @@ import org.slf4j.LoggerFactory;
 public class CompactionAndCleanupIT {
 
     private static final Logger log = LoggerFactory
-            .getLogger(CompactionAndCleanupIT.class);
+        .getLogger(CompactionAndCleanupIT.class);
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder(new File("target"));
@@ -116,9 +115,9 @@ public class CompactionAndCleanupIT {
     @Test
     public void compactPersistsHead() throws Exception {
         FileStore fileStore = fileStoreBuilder(getFileStoreFolder())
-                .withGCOptions(defaultGCOptions().setRetainedGenerations(2))
-                .withMaxFileSize(1)
-                .build();
+            .withGCOptions(defaultGCOptions().setRetainedGenerations(2))
+            .withMaxFileSize(1)
+            .build();
         SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
 
         try {
@@ -135,7 +134,8 @@ public class CompactionAndCleanupIT {
             fileStore.flush();
 
             fileStore.compactFull();
-            assertEquals(fileStore.getRevisions().getHead(), fileStore.getRevisions().getPersistedHead());
+            assertEquals(fileStore.getRevisions().getHead(),
+                fileStore.getRevisions().getPersistedHead());
         } finally {
             fileStore.close();
         }
@@ -145,10 +145,10 @@ public class CompactionAndCleanupIT {
     public void compactionNoBinaryClone() throws Exception {
         ScheduledExecutorService executor = newSingleThreadScheduledExecutor();
         FileStore fileStore = fileStoreBuilder(getFileStoreFolder())
-                .withGCOptions(defaultGCOptions().setRetainedGenerations(2))
-                .withStatisticsProvider(new DefaultStatisticsProvider(executor))
-                .withMaxFileSize(1)
-                .build();
+            .withGCOptions(defaultGCOptions().setRetainedGenerations(2))
+            .withStatisticsProvider(new DefaultStatisticsProvider(executor))
+            .withMaxFileSize(1)
+            .build();
         SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
 
         try {
@@ -178,7 +178,8 @@ public class CompactionAndCleanupIT {
 
             long size2 = fileStore.getStats().getApproximateSize();
             assertTrue("the store should grow", size2 > size1);
-            assertTrue("the store should grow of at least the size of the blob", size2 - size1 >= blobSize);
+            assertTrue("the store should grow of at least the size of the blob",
+                size2 - size1 >= blobSize);
 
             // Now remove the property. No gc yet -> size doesn't shrink
             builder = nodeStore.getRoot().builder();
@@ -203,7 +204,8 @@ public class CompactionAndCleanupIT {
 
             long size5 = fileStore.getStats().getApproximateSize();
             assertTrue("the store should grow", size5 > size4);
-            assertTrue("the store should grow of at least the size of the blob", size5 - size4 >= blobSize);
+            assertTrue("the store should grow of at least the size of the blob",
+                size5 - size4 >= blobSize);
 
             // 2st gc cycle -> 1st blob should get collected
             fileStore.compactFull();
@@ -211,7 +213,8 @@ public class CompactionAndCleanupIT {
 
             long size6 = fileStore.getStats().getApproximateSize();
             assertTrue("the store should shrink", size6 < size5);
-            assertTrue("the store should shrink of at least the size of the blob", size5 - size6 >= blobSize);
+            assertTrue("the store should shrink of at least the size of the blob",
+                size5 - size6 >= blobSize);
 
             // 3rtd gc cycle -> no  significant change
             fileStore.compactFull();
@@ -221,7 +224,8 @@ public class CompactionAndCleanupIT {
 
             // No data loss
             byte[] blob = ByteStreams.toByteArray(nodeStore.getRoot()
-                    .getProperty("blob2").getValue(Type.BINARY).getNewStream());
+                                                           .getProperty("blob2")
+                                                           .getValue(Type.BINARY).getNewStream());
             assertEquals(blobSize, blob.length);
         } finally {
             fileStore.close();
@@ -233,10 +237,10 @@ public class CompactionAndCleanupIT {
         SegmentGCOptions gcOptions = defaultGCOptions().setOffline();
         ScheduledExecutorService executor = newSingleThreadScheduledExecutor();
         FileStore fileStore = fileStoreBuilder(getFileStoreFolder())
-                .withMaxFileSize(1)
-                .withGCOptions(gcOptions)
-                .withStatisticsProvider(new DefaultStatisticsProvider(executor))
-                .build();
+            .withMaxFileSize(1)
+            .withGCOptions(gcOptions)
+            .withStatisticsProvider(new DefaultStatisticsProvider(executor))
+            .build();
         SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
 
         try {
@@ -266,7 +270,8 @@ public class CompactionAndCleanupIT {
 
             long size2 = fileStore.getStats().getApproximateSize();
             assertTrue("the store should grow", size2 > size1);
-            assertTrue("the store should grow of at least the size of the blob", size2 - size1 > blobSize);
+            assertTrue("the store should grow of at least the size of the blob",
+                size2 - size1 > blobSize);
 
             // Now remove the property. No gc yet -> size doesn't shrink
             builder = nodeStore.getRoot().builder();
@@ -283,7 +288,8 @@ public class CompactionAndCleanupIT {
 
             long size4 = fileStore.getStats().getApproximateSize();
             assertTrue("the store should shrink", size4 < size3);
-            assertTrue("the store should shrink of at least the size of the blob", size3 - size4 >= blobSize);
+            assertTrue("the store should shrink of at least the size of the blob",
+                size3 - size4 >= blobSize);
 
             // Add another 5MB binary
             builder = nodeStore.getRoot().builder();
@@ -293,7 +299,8 @@ public class CompactionAndCleanupIT {
 
             long size5 = fileStore.getStats().getApproximateSize();
             assertTrue("the store should grow", size5 > size4);
-            assertTrue("the store should grow of at least the size of the blob", size5 - size4 > blobSize);
+            assertTrue("the store should grow of at least the size of the blob",
+                size5 - size4 > blobSize);
 
             // 2st gc cycle -> 2nd blob should *not* be collected
             fileStore.compactFull();
@@ -311,7 +318,8 @@ public class CompactionAndCleanupIT {
 
             // No data loss
             byte[] blob = ByteStreams.toByteArray(nodeStore.getRoot()
-                    .getProperty("blob2").getValue(Type.BINARY).getNewStream());
+                                                           .getProperty("blob2")
+                                                           .getValue(Type.BINARY).getNewStream());
             assertEquals(blobSize, blob.length);
         } finally {
             fileStore.close();
@@ -322,8 +330,8 @@ public class CompactionAndCleanupIT {
     public void cancelOfflineCompaction() throws Exception {
         final AtomicBoolean cancelCompaction = new AtomicBoolean(true);
         try (FileStore fileStore = fileStoreBuilder(getFileStoreFolder())
-                .withGCOptions(defaultGCOptions().setOffline())
-                .build()) {
+            .withGCOptions(defaultGCOptions().setOffline())
+            .build()) {
             SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
             // Create ~2MB of data
             NodeBuilder extra = nodeStore.getRoot().builder();
@@ -357,18 +365,18 @@ public class CompactionAndCleanupIT {
     }
 
     /**
-     * Create a lot of data nodes (no binaries) and a few checkpoints, verify
-     * that compacting checkpoints will not cause the size to explode
+     * Create a lot of data nodes (no binaries) and a few checkpoints, verify that compacting
+     * checkpoints will not cause the size to explode
      */
     @Test
     public void offlineCompactionCps() throws Exception {
         SegmentGCOptions gcOptions = defaultGCOptions().setOffline();
         ScheduledExecutorService executor = newSingleThreadScheduledExecutor();
         FileStore fileStore = fileStoreBuilder(getFileStoreFolder())
-                .withMaxFileSize(1)
-                .withGCOptions(gcOptions)
-                .withStatisticsProvider(new DefaultStatisticsProvider(executor))
-                .build();
+            .withMaxFileSize(1)
+            .withGCOptions(gcOptions)
+            .withStatisticsProvider(new DefaultStatisticsProvider(executor))
+            .build();
         SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
         try {
             // Create ~2MB of data
@@ -420,8 +428,8 @@ public class CompactionAndCleanupIT {
         ScheduledExecutorService executor = newSingleThreadScheduledExecutor();
 
         try (FileStore fileStore = fileStoreBuilder(getFileStoreFolder())
-                .withGCOptions(gcOptions)
-                .build()) {
+            .withGCOptions(gcOptions)
+            .build()) {
             SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
 
             // Add initial content
@@ -440,20 +448,20 @@ public class CompactionAndCleanupIT {
     }
 
     /**
-     * Create 2 binary nodes with same content and same reference. Verify
-     * de-duplication capabilities of compaction
+     * Create 2 binary nodes with same content and same reference. Verify de-duplication
+     * capabilities of compaction
      */
     @Test
     public void offlineCompactionBinR1() throws Exception {
         SegmentGCOptions gcOptions = defaultGCOptions().setOffline();
         ScheduledExecutorService executor = newSingleThreadScheduledExecutor();
         FileStore fileStore = fileStoreBuilder(getFileStoreFolder())
-                .withMaxFileSize(1)
-                .withGCOptions(gcOptions)
-                .withStatisticsProvider(new DefaultStatisticsProvider(executor))
-                .build();
+            .withMaxFileSize(1)
+            .withGCOptions(gcOptions)
+            .withStatisticsProvider(new DefaultStatisticsProvider(executor))
+            .build();
         SegmentNodeStore nodeStore = SegmentNodeStoreBuilders
-                .builder(fileStore).build();
+            .builder(fileStore).build();
 
         try {
             NodeBuilder extra = nodeStore.getRoot().builder();
@@ -500,10 +508,10 @@ public class CompactionAndCleanupIT {
         SegmentGCOptions gcOptions = defaultGCOptions().setOffline();
         ScheduledExecutorService executor = newSingleThreadScheduledExecutor();
         FileStore fileStore = fileStoreBuilder(getFileStoreFolder())
-                .withMaxFileSize(1)
-                .withGCOptions(gcOptions)
-                .withStatisticsProvider(new DefaultStatisticsProvider(executor))
-                .build();
+            .withMaxFileSize(1)
+            .withGCOptions(gcOptions)
+            .withStatisticsProvider(new DefaultStatisticsProvider(executor))
+            .build();
         SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
         try {
             NodeBuilder root = nodeStore.getRoot().builder();
@@ -517,24 +525,24 @@ public class CompactionAndCleanupIT {
         Compact.builder().withPath(getFileStoreFolder()).build().run();
 
         fileStore = fileStoreBuilder(getFileStoreFolder())
-                .withMaxFileSize(1)
-                .withGCOptions(gcOptions)
-                .withStatisticsProvider(new DefaultStatisticsProvider(executor))
-                .build();
+            .withMaxFileSize(1)
+            .withGCOptions(gcOptions)
+            .withStatisticsProvider(new DefaultStatisticsProvider(executor))
+            .build();
         nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
         try {
             assertTrue(nodeStore.getRoot().hasChildNode("content"));
         } finally {
             fileStore.close();
         }
-     }
+    }
 
     private static void assertSize(String info, long size, long lower, long upper) {
         log.debug("File Store {} size {}, expected in interval [{},{}]",
-                info, size, lower, upper);
+            info, size, lower, upper);
         assertTrue("File Store " + info + " size expected in interval " +
                 "[" + (lower) + "," + (upper) + "] but was: " + (size),
-                size >= lower && size <= (upper));
+            size >= lower && size <= (upper));
     }
 
     private static Blob createBlob(NodeStore nodeStore, int size) throws IOException {
@@ -545,11 +553,11 @@ public class CompactionAndCleanupIT {
 
     @Test
     public void testCancelCompaction()
-    throws Throwable {
+        throws Throwable {
         final FileStore fileStore = fileStoreBuilder(getFileStoreFolder())
-                .withGCOptions(defaultGCOptions().setRetainedGenerations(2))
-                .withMaxFileSize(1)
-                .build();
+            .withGCOptions(defaultGCOptions().setRetainedGenerations(2))
+            .withMaxFileSize(1)
+            .build();
         SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
 
         NodeBuilder builder = nodeStore.getRoot().builder();
@@ -588,13 +596,13 @@ public class CompactionAndCleanupIT {
      */
     @Test
     public void testCancelCompactionSNFE()
-    throws Throwable {
+        throws Throwable {
         final FileStore fileStore = fileStoreBuilder(getFileStoreFolder())
-                .withGCOptions(defaultGCOptions()
-                        .setRetainedGenerations(2)
-                        .setEstimationDisabled(true))
-                .withMaxFileSize(1)
-                .build();
+            .withGCOptions(defaultGCOptions()
+                .setRetainedGenerations(2)
+                .setEstimationDisabled(true))
+            .withMaxFileSize(1)
+            .build();
         try {
             SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
 
@@ -642,16 +650,15 @@ public class CompactionAndCleanupIT {
     }
 
     /**
-     * Regression test for OAK-2192 testing for mixed segments. This test does not
-     * cover OAK-3348. I.e. it does not assert the segment graph is free of cross
-     * gc generation references.
+     * Regression test for OAK-2192 testing for mixed segments. This test does not cover OAK-3348.
+     * I.e. it does not assert the segment graph is free of cross gc generation references.
      */
     @Test
     public void testMixedSegments() throws Exception {
         FileStore store = fileStoreBuilder(getFileStoreFolder())
-                .withMaxFileSize(2)
-                .withMemoryMapping(true)
-                .build();
+            .withMaxFileSize(2)
+            .withMemoryMapping(true)
+            .build();
         SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(store).build();
         AtomicBoolean compactionSuccess = new AtomicBoolean(true);
 
@@ -661,8 +668,7 @@ public class CompactionAndCleanupIT {
 
         Set<UUID> beforeSegments = new HashSet<UUID>();
         collectSegments(store.getReader(), store.getHead().getRecordId(),
-             segmentId -> beforeSegments.add(segmentId.asUUID()));
-
+            segmentId -> beforeSegments.add(segmentId.asUUID()));
 
         final AtomicReference<Boolean> run = new AtomicReference<Boolean>(true);
         final List<Exception> failedCommits = newArrayList();
@@ -714,9 +720,9 @@ public class CompactionAndCleanupIT {
     @Test
     public void testMixedSegmentsGCGeneration() throws Exception {
         try (FileStore store = fileStoreBuilder(getFileStoreFolder())
-                .withMaxFileSize(2)
-                .withMemoryMapping(true)
-                .build()) {
+            .withMaxFileSize(2)
+            .withMemoryMapping(true)
+            .build()) {
 
             CountDownLatch readyToCompact = new CountDownLatch(1);
             CountDownLatch compactionCompleted = new CountDownLatch(1);
@@ -745,24 +751,23 @@ public class CompactionAndCleanupIT {
             SegmentNodeState gen0NodeState = futureNodeState.get();
             collectSegments(store.getReader(), gen0NodeState.getRecordId(),
                 segmentId -> assertEquals("Full generation should be 0",
-                      0, segmentId.getGcGeneration().getFullGeneration()));
+                    0, segmentId.getGcGeneration().getFullGeneration()));
 
             // Retrieving the node state again should trigger a rewriting to
             // the next generation (1).
             SegmentNodeState gen1NodeState = changes.getNodeState();
             collectSegments(store.getReader(), gen1NodeState.getRecordId(),
                 segmentId -> assertEquals("Full generation should be 1",
-                      1, segmentId.getGcGeneration().getFullGeneration()));
+                    1, segmentId.getGcGeneration().getFullGeneration()));
         }
     }
 
     /**
-     * Set a root node referring to a child node that lives in a different segments. Depending
-     * on the order how the SegmentBufferWriters associated with the threads used to create the
-     * nodes are flushed, this will introduce a forward reference between the segments.
-     * The current cleanup mechanism cannot handle forward references and removes the referenced
-     * segment causing a SNFE.
-     * This is a regression introduced with OAK-1828.
+     * Set a root node referring to a child node that lives in a different segments. Depending on
+     * the order how the SegmentBufferWriters associated with the threads used to create the nodes
+     * are flushed, this will introduce a forward reference between the segments. The current
+     * cleanup mechanism cannot handle forward references and removes the referenced segment causing
+     * a SNFE. This is a regression introduced with OAK-1828.
      */
     @Test
     public void cleanupCyclicGraph() throws Exception {
@@ -776,7 +781,8 @@ public class CompactionAndCleanupIT {
             @Override
             public SegmentNodeState call() throws Exception {
                 NodeBuilder builder = EMPTY_NODE.builder();
-                return new SegmentNodeState(reader, writer, blobStore, writer.writeNode(EMPTY_NODE));
+                return new SegmentNodeState(reader, writer, blobStore,
+                    writer.writeNode(EMPTY_NODE));
             }
         });
         SegmentNodeState newHead = run(new Callable<SegmentNodeState>() {
@@ -784,7 +790,8 @@ public class CompactionAndCleanupIT {
             public SegmentNodeState call() throws Exception {
                 NodeBuilder builder = oldHead.builder();
                 builder.setChildNode("child", child);
-                return new SegmentNodeState(reader, writer, blobStore, writer.writeNode(builder.getNodeState()));
+                return new SegmentNodeState(reader, writer, blobStore,
+                    writer.writeNode(builder.getNodeState()));
             }
         });
 
@@ -822,21 +829,23 @@ public class CompactionAndCleanupIT {
     }
 
     /**
-     * Test asserting OAK-3348: Cross gc sessions might introduce references to pre-compacted segments
+     * Test asserting OAK-3348: Cross gc sessions might introduce references to pre-compacted
+     * segments
      */
     @Test
     public void preCompactionReferences() throws Exception {
-        for (String ref : new String[] {"merge-before-compact", "merge-after-compact"}) {
+        for (String ref : new String[]{"merge-before-compact", "merge-after-compact"}) {
             File repoDir = new File(getFileStoreFolder(), ref);
             FileStore fileStore = fileStoreBuilder(repoDir)
-                    .withMaxFileSize(2)
-                    .withGCOptions(defaultGCOptions())
-                    .build();
+                .withMaxFileSize(2)
+                .withGCOptions(defaultGCOptions())
+                .build();
             final SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
             try {
                 // add some content
                 NodeBuilder preGCBuilder = nodeStore.getRoot().builder();
-                preGCBuilder.setChildNode("test").setProperty("blob", createBlob(nodeStore, 1024 * 1024));
+                preGCBuilder.setChildNode("test")
+                            .setProperty("blob", createBlob(nodeStore, 1024 * 1024));
                 nodeStore.merge(preGCBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
                 // remove it again so we have something to gc
@@ -847,7 +856,8 @@ public class CompactionAndCleanupIT {
                 // with a new builder simulate exceeding the update limit.
                 // This will cause changes to be pre-written to segments
                 preGCBuilder = nodeStore.getRoot().builder();
-                preGCBuilder.setChildNode("test").setChildNode("a").setChildNode("b").setProperty("foo", "bar");
+                preGCBuilder.setChildNode("test").setChildNode("a").setChildNode("b")
+                            .setProperty("foo", "bar");
                 for (int k = 0; k < getInteger("update.limit", 10000); k += 2) {
                     preGCBuilder.setChildNode("dummy").remove();
                 }
@@ -882,15 +892,18 @@ public class CompactionAndCleanupIT {
             try {
                 // The 1M blob should get gc-ed
                 fileStore.cleanup();
-                assertTrue(ref + " repository size " + fileStore.getStats().getApproximateSize() + " < " + 1024 * 1024,
-                        fileStore.getStats().getApproximateSize() < 1024 * 1024);
+                assertTrue(
+                    ref + " repository size " + fileStore.getStats().getApproximateSize() + " < "
+                        + 1024 * 1024,
+                    fileStore.getStats().getApproximateSize() < 1024 * 1024);
             } finally {
                 fileStore.close();
             }
         }
     }
 
-    private static void collectSegments(SegmentReader reader, RecordId headId, Consumer<SegmentId> onSegment) {
+    private static void collectSegments(SegmentReader reader, RecordId headId,
+        Consumer<SegmentId> onSegment) {
         new SegmentParser(reader) {
             @Override
             protected void onNode(RecordId parentId, RecordId nodeId) {
@@ -929,7 +942,8 @@ public class CompactionAndCleanupIT {
             }
 
             @Override
-            protected void onProperty(RecordId parentId, RecordId propertyId, PropertyTemplate template) {
+            protected void onProperty(RecordId parentId, RecordId propertyId,
+                PropertyTemplate template) {
                 super.onProperty(parentId, propertyId, template);
                 onSegment.accept(propertyId.getSegmentId());
             }
@@ -959,7 +973,8 @@ public class CompactionAndCleanupIT {
             }
 
             @Override
-            protected void onListBucket(RecordId parentId, RecordId listId, int index, int count, int capacity) {
+            protected void onListBucket(RecordId parentId, RecordId listId, int index, int count,
+                int capacity) {
                 super.onListBucket(parentId, listId, index, count, capacity);
                 onSegment.accept(listId.getSegmentId());
             }
@@ -978,7 +993,8 @@ public class CompactionAndCleanupIT {
 
     private static void createProperties(NodeBuilder builder, int count) {
         for (int k = 0; k < count; k++) {
-            builder.setProperty("property-" + UUID.randomUUID().toString(), "value-" + UUID.randomUUID().toString());
+            builder.setProperty("property-" + UUID.randomUUID().toString(),
+                "value-" + UUID.randomUUID().toString());
         }
     }
 
@@ -986,9 +1002,9 @@ public class CompactionAndCleanupIT {
     public void propertyRetention() throws Exception {
         SegmentGCOptions gcOptions = defaultGCOptions();
         FileStore fileStore = fileStoreBuilder(getFileStoreFolder())
-                .withMaxFileSize(1)
-                .withGCOptions(gcOptions)
-                .build();
+            .withMaxFileSize(1)
+            .withGCOptions(gcOptions)
+            .build();
         try {
             final SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
 
@@ -1025,7 +1041,8 @@ public class CompactionAndCleanupIT {
             try {
                 fileStore.readSegment(id);
                 fail("Segment " + id + " should be gc'ed");
-            } catch (SegmentNotFoundException ignore) {}
+            } catch (SegmentNotFoundException ignore) {
+            }
         } finally {
             fileStore.close();
         }
@@ -1034,6 +1051,7 @@ public class CompactionAndCleanupIT {
     @Test
     public void checkpointDeduplicationTest() throws Exception {
         class CP {
+
             String id;
             NodeState uncompacted;
             NodeState compacted;
@@ -1157,10 +1175,11 @@ public class CompactionAndCleanupIT {
 
             builder.setChildNode("y").setChildNode("yy");
             builder.getChildNode("a").remove();
-            NodeState deferCompacted = nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+            NodeState deferCompacted = nodeStore.merge(builder, EmptyHook.INSTANCE,
+                CommitInfo.EMPTY);
             assertEquals(
-                    uncompacted.getSegment().getGcGeneration().nextFull().nonGC(),
-                    ((SegmentNodeState)deferCompacted).getSegment().getGcGeneration());
+                uncompacted.getSegment().getGcGeneration().nextFull().nonGC(),
+                ((SegmentNodeState) deferCompacted).getSegment().getGcGeneration());
         }
     }
 
@@ -1171,20 +1190,20 @@ public class CompactionAndCleanupIT {
         SegmentNodeState sns1 = (SegmentNodeState) node1;
         SegmentNodeState sns2 = (SegmentNodeState) node2;
         assertEquals("GC generation should be bumped by one " + path,
-                sns1.getSegment().getGcGeneration().nextFull(), sns2.getSegment().getGcGeneration());
+            sns1.getSegment().getGcGeneration().nextFull(), sns2.getSegment().getGcGeneration());
         assertEquals("Nodes should have same stable id: " + path,
-                sns1.getStableId(), sns2.getStableId());
+            sns1.getStableId(), sns2.getStableId());
 
         for (ChildNodeEntry cne : node1.getChildNodeEntries()) {
             assertStableIds(
-                    cne.getNodeState(), node2.getChildNode(cne.getName()),
-                    concat(path, cne.getName()));
+                cne.getNodeState(), node2.getChildNode(cne.getName()),
+                concat(path, cne.getName()));
         }
     }
 
     /**
-     * Test asserting OAK-4669: No new generation of tar should be created when the segments are the same
-     * and when various indices are created.
+     * Test asserting OAK-4669: No new generation of tar should be created when the segments are the
+     * same and when various indices are created.
      */
     @Test
     public void concurrentWritesCleanupNoNewGen() throws Exception {
@@ -1195,12 +1214,12 @@ public class CompactionAndCleanupIT {
         File fileStoreFolder = getFileStoreFolder();
 
         final FileStore fileStore = fileStoreBuilder(fileStoreFolder)
-                .withGCOptions(defaultGCOptions().setRetainedGenerations(2))
-                .withGCMonitor(fileStoreGCMonitor)
-                .withStatisticsProvider(statsProvider)
-                .withMaxFileSize(1)
-                .withMemoryMapping(false)
-                .build();
+            .withGCOptions(defaultGCOptions().setRetainedGenerations(2))
+            .withGCMonitor(fileStoreGCMonitor)
+            .withStatisticsProvider(statsProvider)
+            .withMaxFileSize(1)
+            .withMemoryMapping(false)
+            .build();
 
         final SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
         ExecutorService executorService = newFixedThreadPool(5);
@@ -1211,7 +1230,8 @@ public class CompactionAndCleanupIT {
                 @Override
                 public Void call() throws Exception {
                     NodeBuilder builder = nodeStore.getRoot().builder();
-                    builder.setProperty("blob-" + counter.getAndIncrement(), createBlob(nodeStore, 512 * 512));
+                    builder.setProperty("blob-" + counter.getAndIncrement(),
+                        createBlob(nodeStore, 512 * 512));
                     nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
                     fileStore.flush();
                     return null;
@@ -1233,8 +1253,9 @@ public class CompactionAndCleanupIT {
                 if (fileName.endsWith(".tar")) {
                     int pos = fileName.length() - "a.tar".length();
                     char generation = fileName.charAt(pos);
-                    assertTrue("Expected generation is 'a', but instead was: '" + generation + "' for file " + fileName,
-                            generation == 'a');
+                    assertTrue("Expected generation is 'a', but instead was: '" + generation
+                            + "' for file " + fileName,
+                        generation == 'a');
                 }
             }
         } finally {
@@ -1251,12 +1272,12 @@ public class CompactionAndCleanupIT {
         final FileStoreGCMonitor fileStoreGCMonitor = new FileStoreGCMonitor(Clock.SIMPLE);
 
         final FileStore fileStore = fileStoreBuilder(getFileStoreFolder())
-                .withGCOptions(defaultGCOptions().setRetainedGenerations(2))
-                .withGCMonitor(fileStoreGCMonitor)
-                .withStatisticsProvider(statsProvider)
-                .withMaxFileSize(1)
-                .withMemoryMapping(false)
-                .build();
+            .withGCOptions(defaultGCOptions().setRetainedGenerations(2))
+            .withGCMonitor(fileStoreGCMonitor)
+            .withStatisticsProvider(statsProvider)
+            .withMaxFileSize(1)
+            .withMemoryMapping(false)
+            .build();
 
         final SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
         ExecutorService executorService = newFixedThreadPool(100);
@@ -1267,7 +1288,8 @@ public class CompactionAndCleanupIT {
                 @Override
                 public Void call() throws Exception {
                     NodeBuilder builder = nodeStore.getRoot().builder();
-                    builder.setProperty("blob-" + counter.getAndIncrement(), createBlob(nodeStore, 25 * 25));
+                    builder.setProperty("blob-" + counter.getAndIncrement(),
+                        createBlob(nodeStore, 25 * 25));
                     nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
                     fileStore.flush();
                     return null;
@@ -1288,7 +1310,7 @@ public class CompactionAndCleanupIT {
 
             long reclaimedSize = fileStoreGCMonitor.getLastReclaimedSize();
             assertEquals("Reclaimed size expected is 0, but instead was: " + reclaimedSize,
-                    0, reclaimedSize);
+                0, reclaimedSize);
         } finally {
             new ExecutorCloser(executorService).close();
             fileStore.close();
@@ -1299,10 +1321,10 @@ public class CompactionAndCleanupIT {
     @Test
     public void randomAccessFileConcurrentReadAndLength() throws Exception {
         final FileStore fileStore = fileStoreBuilder(getFileStoreFolder())
-                .withGCOptions(defaultGCOptions().setRetainedGenerations(2))
-                .withMaxFileSize(1)
-                .withMemoryMapping(false)
-                .build();
+            .withGCOptions(defaultGCOptions().setRetainedGenerations(2))
+            .withMaxFileSize(1)
+            .withMemoryMapping(false)
+            .build();
 
         final SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
         ExecutorService executorService = newFixedThreadPool(300);
@@ -1313,7 +1335,8 @@ public class CompactionAndCleanupIT {
                 @Override
                 public Void call() throws Exception {
                     NodeBuilder builder = nodeStore.getRoot().builder();
-                    builder.setProperty("blob-" + counter.getAndIncrement(), createBlob(nodeStore, 25 * 25));
+                    builder.setProperty("blob-" + counter.getAndIncrement(),
+                        createBlob(nodeStore, 25 * 25));
                     nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
                     fileStore.flush();
                     return null;
@@ -1356,15 +1379,16 @@ public class CompactionAndCleanupIT {
     }
 
     /**
-     * Test asserting OAK-4700: Concurrent cleanup must not remove segments that are still reachable
+     * Test asserting OAK-4700: Concurrent cleanup must not remove segments that are still
+     * reachable
      */
     @Test
     public void concurrentCleanup() throws Exception {
         File fileStoreFolder = getFileStoreFolder();
 
         final FileStore fileStore = fileStoreBuilder(fileStoreFolder)
-                .withMaxFileSize(1)
-                .build();
+            .withMaxFileSize(1)
+            .build();
 
         final SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
         ExecutorService executorService = newFixedThreadPool(50);
@@ -1375,7 +1399,8 @@ public class CompactionAndCleanupIT {
                 @Override
                 public Void call() throws Exception {
                     NodeBuilder builder = nodeStore.getRoot().builder();
-                    builder.setProperty("blob-" + counter.getAndIncrement(), createBlob(nodeStore, 512 * 512));
+                    builder.setProperty("blob-" + counter.getAndIncrement(),
+                        createBlob(nodeStore, 512 * 512));
                     nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
                     fileStore.flush();
                     return null;
@@ -1408,7 +1433,7 @@ public class CompactionAndCleanupIT {
                     int pos = fileName.length() - "a.tar".length();
                     char generation = fileName.charAt(pos);
                     assertEquals("Expected nothing to be cleaned but generation '" + generation +
-                        "' for file " + fileName + " indicates otherwise.",
+                            "' for file " + fileName + " indicates otherwise.",
                         "a", valueOf(generation));
                 }
             }
@@ -1434,12 +1459,11 @@ public class CompactionAndCleanupIT {
 
     @Test
     public void binaryRetentionWithDS()
-    throws IOException, InvalidFileStoreVersionException, CommitFailedException {
+        throws IOException, InvalidFileStoreVersionException, CommitFailedException {
         try (FileStore fileStore = fileStoreBuilder(new File(getFileStoreFolder(), "segmentstore"))
-                .withBlobStore(newBlobStore(new File(getFileStoreFolder(), "blobstore")))
-                .withGCOptions(defaultGCOptions().setGcSizeDeltaEstimation(0))
-                .build())
-        {
+            .withBlobStore(newBlobStore(new File(getFileStoreFolder(), "blobstore")))
+            .withGCOptions(defaultGCOptions().setGcSizeDeltaEstimation(0))
+            .build()) {
             SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
 
             NodeBuilder builder = nodeStore.getRoot().builder();
@@ -1450,12 +1474,12 @@ public class CompactionAndCleanupIT {
             Set<String> expectedReferences = newHashSet();
             fileStore.collectBlobReferences(expectedReferences::add);
 
-            for(int k = 1; k <= 3; k++) {
+            for (int k = 1; k <= 3; k++) {
                 fileStore.fullGC();
                 Set<String> actualReferences = newHashSet();
                 fileStore.collectBlobReferences(actualReferences::add);
                 assertEquals("Binary should be retained after " + k + "-th gc cycle",
-                        expectedReferences, actualReferences);
+                    expectedReferences, actualReferences);
             }
         }
     }
@@ -1463,10 +1487,11 @@ public class CompactionAndCleanupIT {
     @Test
     public void latestFullCompactedStateShouldNotBeDeleted() throws Exception {
         SegmentGCOptions gcOptions = defaultGCOptions()
-                .setEstimationDisabled(true)
-                .setRetainedGenerations(2);
+            .setEstimationDisabled(true)
+            .setRetainedGenerations(2);
 
-        try (FileStore fileStore = fileStoreBuilder(getFileStoreFolder()).withGCOptions(gcOptions).build()) {
+        try (FileStore fileStore = fileStoreBuilder(getFileStoreFolder()).withGCOptions(gcOptions)
+                                                                         .build()) {
             SegmentNodeState previousHead;
             SegmentNodeState head = fileStore.getHead();
 

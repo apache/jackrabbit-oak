@@ -16,8 +16,20 @@
  */
 package org.apache.jackrabbit.oak.security.user.action;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+
+import java.security.Principal;
+import javax.jcr.RepositoryException;
+import javax.jcr.ValueFactory;
 import org.apache.jackrabbit.api.security.user.User;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -31,19 +43,6 @@ import org.apache.jackrabbit.oak.spi.security.user.action.UserAction;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
-
-import javax.jcr.RepositoryException;
-import javax.jcr.ValueFactory;
-import java.security.Principal;
-
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 
 public class UserActionTest extends AbstractSecurityTest {
 

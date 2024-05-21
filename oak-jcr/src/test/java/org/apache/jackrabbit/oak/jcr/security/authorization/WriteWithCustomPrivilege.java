@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.jcr.security.authorization;
 import javax.jcr.Session;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
-
 import org.apache.jackrabbit.api.JackrabbitWorkspace;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
@@ -41,9 +40,9 @@ public class WriteWithCustomPrivilege extends AbstractEvaluationTest {
 
     @Test
     public void testWriteAndCustomPrivilege() throws Exception {
-        Privilege[] privs = privilegesFromNames(new String[] {
-                Privilege.JCR_VERSION_MANAGEMENT, Privilege.JCR_LOCK_MANAGEMENT,
-                "replicate", "rep:write"});
+        Privilege[] privs = privilegesFromNames(new String[]{
+            Privilege.JCR_VERSION_MANAGEMENT, Privilege.JCR_LOCK_MANAGEMENT,
+            "replicate", "rep:write"});
         allow(path, testGroup.getPrincipal(), privs);
 
         assertTrue(testAcMgr.hasPrivileges(path, privilegesFromName("replicate")));
@@ -51,7 +50,8 @@ public class WriteWithCustomPrivilege extends AbstractEvaluationTest {
         assertTrue(testSession.hasPermission(path + "/newNode", Session.ACTION_ADD_NODE));
         assertTrue(testSession.hasPermission(childPPath, Session.ACTION_SET_PROPERTY));
         assertTrue(testSession.hasPermission(path + "/newProperty", Session.ACTION_SET_PROPERTY));
-        assertTrue(testSession.hasPermission(path + "/newProperty", Permissions.getString(Permissions.ADD_PROPERTY)));
+        assertTrue(testSession.hasPermission(path + "/newProperty",
+            Permissions.getString(Permissions.ADD_PROPERTY)));
 
         testSession.getNode(path).setProperty("newProperty", "value");
         testSession.save();
@@ -62,7 +62,8 @@ public class WriteWithCustomPrivilege extends AbstractEvaluationTest {
 
         assertTrue(testSession.hasPermission(childPPath, Session.ACTION_SET_PROPERTY));
         assertTrue(testSession.hasPermission(path + "/newProperty2", Session.ACTION_SET_PROPERTY));
-        assertTrue(testSession.hasPermission(path + "/newProperty2", Permissions.getString(Permissions.ADD_PROPERTY)));
+        assertTrue(testSession.hasPermission(path + "/newProperty2",
+            Permissions.getString(Permissions.ADD_PROPERTY)));
 
         testSession.getNode(path).setProperty("newProperty2", "value");
         testSession.save();
@@ -70,9 +71,9 @@ public class WriteWithCustomPrivilege extends AbstractEvaluationTest {
 
     @Test
     public void testWriteAndCustomPrivilege2() throws Exception {
-        Privilege[] privs = privilegesFromNames(new String[] {
-                Privilege.JCR_VERSION_MANAGEMENT, Privilege.JCR_LOCK_MANAGEMENT,
-                "replicate", "rep:write"});
+        Privilege[] privs = privilegesFromNames(new String[]{
+            Privilege.JCR_VERSION_MANAGEMENT, Privilege.JCR_LOCK_MANAGEMENT,
+            "replicate", "rep:write"});
         allow(path, testGroup.getPrincipal(), privs);
 
         assertTrue(testAcMgr.hasPrivileges(path, privilegesFromName("replicate")));

@@ -20,13 +20,13 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Oak internal utility interface to avoid repeated retrieval of an underlying {@link Tree}.
- * Note, that is is the responsibility of the caller to make user that the content session and root 
- * used to retrieve {@link TreeAware} object remains the same.
+ * Oak internal utility interface to avoid repeated retrieval of an underlying {@link Tree}. Note,
+ * that is is the responsibility of the caller to make user that the content session and root used
+ * to retrieve {@link TreeAware} object remains the same.
  */
 public interface TreeAware {
 
     @NotNull
     Tree getTree();
-    
+
 }

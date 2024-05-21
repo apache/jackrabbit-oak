@@ -18,6 +18,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
+import static org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils.randomStream;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -27,35 +32,28 @@ import java.util.Properties;
 import java.util.Random;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
-
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.guava.common.util.concurrent.Futures;
-import org.apache.jackrabbit.guava.common.util.concurrent.ListenableFuture;
-import org.apache.jackrabbit.guava.common.util.concurrent.ListeningExecutorService;
-import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.util.NamedThreadFactory;
+import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Maps;
+import org.apache.jackrabbit.guava.common.util.concurrent.Futures;
+import org.apache.jackrabbit.guava.common.util.concurrent.ListenableFuture;
+import org.apache.jackrabbit.guava.common.util.concurrent.ListeningExecutorService;
+import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils.randomStream;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 public class FSBackendIT {
 
@@ -105,9 +103,11 @@ public class FSBackendIT {
     public void testSingleThreadFSBackend() {
         try {
             long start = System.currentTimeMillis();
-            LOG.info("Testcase: " + this.getClass().getName() + "#testSingleThread, testDir=" + dataStoreDir);
+            LOG.info("Testcase: " + this.getClass().getName() + "#testSingleThread, testDir="
+                + dataStoreDir);
             doTest(ds, 1, true);
-            LOG.info("Testcase: " + this.getClass().getName() + "#testSingleThread finished, time taken = [" + (
+            LOG.info("Testcase: " + this.getClass().getName()
+                + "#testSingleThread finished, time taken = [" + (
                 System.currentTimeMillis() - start) + "]ms");
         } catch (Exception e) {
             LOG.error("error", e);
@@ -122,9 +122,11 @@ public class FSBackendIT {
     public void testMultiThreadedSame() {
         try {
             long start = System.currentTimeMillis();
-            LOG.info("Testcase: " + this.getClass().getName() + "#testMultiThreadedSame, testDir=" + dataStoreDir);
+            LOG.info("Testcase: " + this.getClass().getName() + "#testMultiThreadedSame, testDir="
+                + dataStoreDir);
             doTest(ds, 10, true);
-            LOG.info("Testcase: " + this.getClass().getName() + "#testMultiThreadedSame finished, time taken = [" + (
+            LOG.info("Testcase: " + this.getClass().getName()
+                + "#testMultiThreadedSame finished, time taken = [" + (
                 System.currentTimeMillis() - start) + "]ms");
         } catch (Exception e) {
             LOG.error("error", e);
@@ -139,9 +141,12 @@ public class FSBackendIT {
     public void testMultiThreadedSameLarge() {
         try {
             long start = System.currentTimeMillis();
-            LOG.info("Testcase: " + this.getClass().getName() + "#testMultiThreadedSameLarge, testDir=" + dataStoreDir);
+            LOG.info(
+                "Testcase: " + this.getClass().getName() + "#testMultiThreadedSameLarge, testDir="
+                    + dataStoreDir);
             doTest(ds, 100, true);
-            LOG.info("Testcase: " + this.getClass().getName() + "#testMultiThreadedSameLarge finished, time taken = [" + (
+            LOG.info("Testcase: " + this.getClass().getName()
+                + "#testMultiThreadedSameLarge finished, time taken = [" + (
                 System.currentTimeMillis() - start) + "]ms");
         } catch (Exception e) {
             LOG.error("error", e);
@@ -156,9 +161,12 @@ public class FSBackendIT {
     public void testMultiThreadedDifferent() {
         try {
             long start = System.currentTimeMillis();
-            LOG.info("Testcase: " + this.getClass().getName() + "#testMultiThreadedDifferent, testDir=" + dataStoreDir);
+            LOG.info(
+                "Testcase: " + this.getClass().getName() + "#testMultiThreadedDifferent, testDir="
+                    + dataStoreDir);
             doTest(ds, 10, false);
-            LOG.info("Testcase: " + this.getClass().getName() + "#testMultiThreadedDifferent finished, time taken = [" + (
+            LOG.info("Testcase: " + this.getClass().getName()
+                + "#testMultiThreadedDifferent finished, time taken = [" + (
                 System.currentTimeMillis() - start) + "]ms");
         } catch (Exception e) {
             LOG.error("error", e);
@@ -173,9 +181,11 @@ public class FSBackendIT {
     public void testMultiThreadedDifferentLarge() {
         try {
             long start = System.currentTimeMillis();
-            LOG.info("Testcase: " + this.getClass().getName() + "#testMultiThreadedDifferentLarge, testDir=" + dataStoreDir);
+            LOG.info("Testcase: " + this.getClass().getName()
+                + "#testMultiThreadedDifferentLarge, testDir=" + dataStoreDir);
             doTest(ds, 100, false);
-            LOG.info("Testcase: " + this.getClass().getName() + "#testMultiThreadedDifferentLarge finished, time taken = [" + (
+            LOG.info("Testcase: " + this.getClass().getName()
+                + "#testMultiThreadedDifferentLarge finished, time taken = [" + (
                 System.currentTimeMillis() - start) + "]ms");
         } catch (Exception e) {
             LOG.error("error", e);
@@ -216,7 +226,8 @@ public class FSBackendIT {
         assertFuture(futures);
     }
 
-    private List<ListenableFuture<Integer>> put(TemporaryFolder folder, List<ListenableFuture<Integer>> futures,
+    private List<ListenableFuture<Integer>> put(TemporaryFolder folder,
+        List<ListenableFuture<Integer>> futures,
         int seed, CountDownLatch writeLatch)
         throws IOException {
 
@@ -254,13 +265,15 @@ public class FSBackendIT {
         }
     }
 
-    private void assertFile(int seed, TemporaryFolder folder) throws IOException, DataStoreException {
+    private void assertFile(int seed, TemporaryFolder folder)
+        throws IOException, DataStoreException {
         DataRecord backendRecord = backend.getRecord(new DataIdentifier("0000ID" + seed));
 
         assertEquals(backendRecord.getLength(), 4 * 1024 * 1024);
         File original = copyToFile(randomStream(seed, 4 * 1024 * 1024), folder.newFile());
         assertTrue("Backend file content differs",
-            FileUtils.contentEquals(original, copyToFile(backendRecord.getStream(), folder.newFile())));
+            FileUtils.contentEquals(original,
+                copyToFile(backendRecord.getStream(), folder.newFile())));
     }
 
     static File copyToFile(InputStream stream, File file) throws IOException {

@@ -33,158 +33,168 @@ import java.io.IOException;
  * @lucene.internal
  */
 public class RAMOutputStream extends IndexOutput {
-  static final int BUFFER_SIZE = 1024;
 
-  private RAMFile file;
+    static final int BUFFER_SIZE = 1024;
 
-  private byte[] currentBuffer;
-  private int currentBufferIndex;
-  
-  private int bufferPosition;
-  private long bufferStart;
-  private int bufferLength;
+    private RAMFile file;
 
-  /** Construct an empty output buffer. */
-  public RAMOutputStream() {
-    this(new RAMFile());
-  }
+    private byte[] currentBuffer;
+    private int currentBufferIndex;
 
-  public RAMOutputStream(RAMFile f) {
-    file = f;
+    private int bufferPosition;
+    private long bufferStart;
+    private int bufferLength;
 
-    // make sure that we switch to the
-    // first needed buffer lazily
-    currentBufferIndex = -1;
-    currentBuffer = null;
-  }
-
-  /** Copy the current contents of this buffer to the named output. */
-  public void writeTo(DataOutput out) throws IOException {
-    flush();
-    final long end = file.length;
-    long pos = 0;
-    int buffer = 0;
-    while (pos < end) {
-      int length = BUFFER_SIZE;
-      long nextPos = pos + length;
-      if (nextPos > end) {                        // at the last buffer
-        length = (int)(end - pos);
-      }
-      out.writeBytes(file.getBuffer(buffer++), length);
-      pos = nextPos;
-    }
-  }
-
-  /** Copy the current contents of this buffer to output
-   *  byte array */
-  public void writeTo(byte[] bytes, int offset) throws IOException {
-    flush();
-    final long end = file.length;
-    long pos = 0;
-    int buffer = 0;
-    int bytesUpto = offset;
-    while (pos < end) {
-      int length = BUFFER_SIZE;
-      long nextPos = pos + length;
-      if (nextPos > end) {                        // at the last buffer
-        length = (int)(end - pos);
-      }
-      System.arraycopy(file.getBuffer(buffer++), 0, bytes, bytesUpto, length);
-      bytesUpto += length;
-      pos = nextPos;
-    }
-  }
-
-  /** Resets this to an empty file. */
-  public void reset() {
-    currentBuffer = null;
-    currentBufferIndex = -1;
-    bufferPosition = 0;
-    bufferStart = 0;
-    bufferLength = 0;
-    file.setLength(0);
-  }
-
-  @Override
-  public void close() throws IOException {
-    flush();
-  }
-
-  @Override
-  public void seek(long pos) throws IOException {
-    // set the file length in case we seek back
-    // and flush() has not been called yet
-    setFileLength();
-    if (pos < bufferStart || pos >= bufferStart + bufferLength) {
-      currentBufferIndex = (int) (pos / BUFFER_SIZE);
-      switchCurrentBuffer();
+    /**
+     * Construct an empty output buffer.
+     */
+    public RAMOutputStream() {
+        this(new RAMFile());
     }
 
-    bufferPosition = (int) (pos % BUFFER_SIZE);
-  }
+    public RAMOutputStream(RAMFile f) {
+        file = f;
 
-  @Override
-  public long length() {
-    return file.length;
-  }
-
-  @Override
-  public void writeByte(byte b) throws IOException {
-    if (bufferPosition == bufferLength) {
-      currentBufferIndex++;
-      switchCurrentBuffer();
+        // make sure that we switch to the
+        // first needed buffer lazily
+        currentBufferIndex = -1;
+        currentBuffer = null;
     }
-    currentBuffer[bufferPosition++] = b;
-  }
 
-  @Override
-  public void writeBytes(byte[] b, int offset, int len) throws IOException {
-    assert b != null;
-    while (len > 0) {
-      if (bufferPosition ==  bufferLength) {
-        currentBufferIndex++;
-        switchCurrentBuffer();
-      }
-
-      int remainInBuffer = currentBuffer.length - bufferPosition;
-      int bytesToCopy = len < remainInBuffer ? len : remainInBuffer;
-      System.arraycopy(b, offset, currentBuffer, bufferPosition, bytesToCopy);
-      offset += bytesToCopy;
-      len -= bytesToCopy;
-      bufferPosition += bytesToCopy;
+    /**
+     * Copy the current contents of this buffer to the named output.
+     */
+    public void writeTo(DataOutput out) throws IOException {
+        flush();
+        final long end = file.length;
+        long pos = 0;
+        int buffer = 0;
+        while (pos < end) {
+            int length = BUFFER_SIZE;
+            long nextPos = pos + length;
+            if (nextPos > end) {                        // at the last buffer
+                length = (int) (end - pos);
+            }
+            out.writeBytes(file.getBuffer(buffer++), length);
+            pos = nextPos;
+        }
     }
-  }
 
-  private final void switchCurrentBuffer() {
-    if (currentBufferIndex == file.numBuffers()) {
-      currentBuffer = file.addBuffer(BUFFER_SIZE);
-    } else {
-      currentBuffer = file.getBuffer(currentBufferIndex);
+    /**
+     * Copy the current contents of this buffer to output byte array
+     */
+    public void writeTo(byte[] bytes, int offset) throws IOException {
+        flush();
+        final long end = file.length;
+        long pos = 0;
+        int buffer = 0;
+        int bytesUpto = offset;
+        while (pos < end) {
+            int length = BUFFER_SIZE;
+            long nextPos = pos + length;
+            if (nextPos > end) {                        // at the last buffer
+                length = (int) (end - pos);
+            }
+            System.arraycopy(file.getBuffer(buffer++), 0, bytes, bytesUpto, length);
+            bytesUpto += length;
+            pos = nextPos;
+        }
     }
-    bufferPosition = 0;
-    bufferStart = (long) BUFFER_SIZE * (long) currentBufferIndex;
-    bufferLength = currentBuffer.length;
-  }
 
-  private void setFileLength() {
-    long pointer = bufferStart + bufferPosition;
-    if (pointer > file.length) {
-      file.setLength(pointer);
+    /**
+     * Resets this to an empty file.
+     */
+    public void reset() {
+        currentBuffer = null;
+        currentBufferIndex = -1;
+        bufferPosition = 0;
+        bufferStart = 0;
+        bufferLength = 0;
+        file.setLength(0);
     }
-  }
 
-  @Override
-  public void flush() throws IOException {
-    setFileLength();
-  }
+    @Override
+    public void close() throws IOException {
+        flush();
+    }
 
-  @Override
-  public long getFilePointer() {
-    return currentBufferIndex < 0 ? 0 : bufferStart + bufferPosition;
-  }
+    @Override
+    public void seek(long pos) throws IOException {
+        // set the file length in case we seek back
+        // and flush() has not been called yet
+        setFileLength();
+        if (pos < bufferStart || pos >= bufferStart + bufferLength) {
+            currentBufferIndex = (int) (pos / BUFFER_SIZE);
+            switchCurrentBuffer();
+        }
 
-  /** Returns byte usage of all buffers. */
-  public long sizeInBytes() {
-    return (long) file.numBuffers() * (long) BUFFER_SIZE;
-  }  
+        bufferPosition = (int) (pos % BUFFER_SIZE);
+    }
+
+    @Override
+    public long length() {
+        return file.length;
+    }
+
+    @Override
+    public void writeByte(byte b) throws IOException {
+        if (bufferPosition == bufferLength) {
+            currentBufferIndex++;
+            switchCurrentBuffer();
+        }
+        currentBuffer[bufferPosition++] = b;
+    }
+
+    @Override
+    public void writeBytes(byte[] b, int offset, int len) throws IOException {
+        assert b != null;
+        while (len > 0) {
+            if (bufferPosition == bufferLength) {
+                currentBufferIndex++;
+                switchCurrentBuffer();
+            }
+
+            int remainInBuffer = currentBuffer.length - bufferPosition;
+            int bytesToCopy = len < remainInBuffer ? len : remainInBuffer;
+            System.arraycopy(b, offset, currentBuffer, bufferPosition, bytesToCopy);
+            offset += bytesToCopy;
+            len -= bytesToCopy;
+            bufferPosition += bytesToCopy;
+        }
+    }
+
+    private final void switchCurrentBuffer() {
+        if (currentBufferIndex == file.numBuffers()) {
+            currentBuffer = file.addBuffer(BUFFER_SIZE);
+        } else {
+            currentBuffer = file.getBuffer(currentBufferIndex);
+        }
+        bufferPosition = 0;
+        bufferStart = (long) BUFFER_SIZE * (long) currentBufferIndex;
+        bufferLength = currentBuffer.length;
+    }
+
+    private void setFileLength() {
+        long pointer = bufferStart + bufferPosition;
+        if (pointer > file.length) {
+            file.setLength(pointer);
+        }
+    }
+
+    @Override
+    public void flush() throws IOException {
+        setFileLength();
+    }
+
+    @Override
+    public long getFilePointer() {
+        return currentBufferIndex < 0 ? 0 : bufferStart + bufferPosition;
+    }
+
+    /**
+     * Returns byte usage of all buffers.
+     */
+    public long sizeInBytes() {
+        return (long) file.numBuffers() * (long) BUFFER_SIZE;
+    }
 }

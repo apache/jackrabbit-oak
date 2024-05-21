@@ -19,13 +19,12 @@
 
 package org.apache.jackrabbit.oak.segment.azure.util;
 
+import static org.junit.Assert.assertEquals;
+
 import com.microsoft.azure.storage.blob.BlobRequestOptions;
+import java.util.concurrent.TimeUnit;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.util.concurrent.TimeUnit;
-
-import static org.junit.Assert.assertEquals;
 
 public class AzureRequestOptionsTest {
 
@@ -39,8 +38,12 @@ public class AzureRequestOptionsTest {
     @Test
     public void testApplyDefaultRequestOptions() {
         AzureRequestOptions.applyDefaultRequestOptions(blobRequestOptions);
-        assertEquals(Long.valueOf(TimeUnit.SECONDS.toMillis(AzureRequestOptions.DEFAULT_TIMEOUT_EXECUTION)), Long.valueOf(blobRequestOptions.getMaximumExecutionTimeInMs()));
-        assertEquals(Long.valueOf(TimeUnit.SECONDS.toMillis(AzureRequestOptions.DEFAULT_TIMEOUT_INTERVAL)), Long.valueOf(blobRequestOptions.getTimeoutIntervalInMs()));
+        assertEquals(
+            Long.valueOf(TimeUnit.SECONDS.toMillis(AzureRequestOptions.DEFAULT_TIMEOUT_EXECUTION)),
+            Long.valueOf(blobRequestOptions.getMaximumExecutionTimeInMs()));
+        assertEquals(
+            Long.valueOf(TimeUnit.SECONDS.toMillis(AzureRequestOptions.DEFAULT_TIMEOUT_INTERVAL)),
+            Long.valueOf(blobRequestOptions.getTimeoutIntervalInMs()));
     }
 
     @Test
@@ -49,8 +52,10 @@ public class AzureRequestOptionsTest {
         System.setProperty(AzureRequestOptions.TIMEOUT_INTERVAL_PROP, "5");
 
         AzureRequestOptions.applyDefaultRequestOptions(blobRequestOptions);
-        assertEquals(Long.valueOf(TimeUnit.SECONDS.toMillis(10)), Long.valueOf(blobRequestOptions.getMaximumExecutionTimeInMs()));
-        assertEquals(Long.valueOf(TimeUnit.SECONDS.toMillis(5)), Long.valueOf(blobRequestOptions.getTimeoutIntervalInMs()));
+        assertEquals(Long.valueOf(TimeUnit.SECONDS.toMillis(10)),
+            Long.valueOf(blobRequestOptions.getMaximumExecutionTimeInMs()));
+        assertEquals(Long.valueOf(TimeUnit.SECONDS.toMillis(5)),
+            Long.valueOf(blobRequestOptions.getTimeoutIntervalInMs()));
 
         System.clearProperty(AzureRequestOptions.TIMEOUT_EXECUTION_PROP);
         System.clearProperty(AzureRequestOptions.TIMEOUT_INTERVAL_PROP);
@@ -58,9 +63,14 @@ public class AzureRequestOptionsTest {
 
     @Test
     public void testOptimiseForWriteOperations() {
-        BlobRequestOptions writeBlobRequestoptions = AzureRequestOptions.optimiseForWriteOperations(blobRequestOptions);
-        assertEquals(Long.valueOf(TimeUnit.SECONDS.toMillis(AzureRequestOptions.DEFAULT_TIMEOUT_EXECUTION)), Long.valueOf(writeBlobRequestoptions.getMaximumExecutionTimeInMs()));
-        assertEquals(Long.valueOf(TimeUnit.SECONDS.toMillis(AzureRequestOptions.DEFAULT_TIMEOUT_INTERVAL)), Long.valueOf(writeBlobRequestoptions.getTimeoutIntervalInMs()));
+        BlobRequestOptions writeBlobRequestoptions = AzureRequestOptions.optimiseForWriteOperations(
+            blobRequestOptions);
+        assertEquals(
+            Long.valueOf(TimeUnit.SECONDS.toMillis(AzureRequestOptions.DEFAULT_TIMEOUT_EXECUTION)),
+            Long.valueOf(writeBlobRequestoptions.getMaximumExecutionTimeInMs()));
+        assertEquals(
+            Long.valueOf(TimeUnit.SECONDS.toMillis(AzureRequestOptions.DEFAULT_TIMEOUT_INTERVAL)),
+            Long.valueOf(writeBlobRequestoptions.getTimeoutIntervalInMs()));
     }
 
     @Test
@@ -68,9 +78,12 @@ public class AzureRequestOptionsTest {
         System.setProperty(AzureRequestOptions.WRITE_TIMEOUT_EXECUTION_PROP, "10");
         System.setProperty(AzureRequestOptions.WRITE_TIMEOUT_INTERVAL_PROP, "5");
 
-        BlobRequestOptions writeBlobRequestoptions = AzureRequestOptions.optimiseForWriteOperations(blobRequestOptions);
-        assertEquals(Long.valueOf(TimeUnit.SECONDS.toMillis(10)), Long.valueOf(writeBlobRequestoptions.getMaximumExecutionTimeInMs()));
-        assertEquals(Long.valueOf(TimeUnit.SECONDS.toMillis(5)), Long.valueOf(writeBlobRequestoptions.getTimeoutIntervalInMs()));
+        BlobRequestOptions writeBlobRequestoptions = AzureRequestOptions.optimiseForWriteOperations(
+            blobRequestOptions);
+        assertEquals(Long.valueOf(TimeUnit.SECONDS.toMillis(10)),
+            Long.valueOf(writeBlobRequestoptions.getMaximumExecutionTimeInMs()));
+        assertEquals(Long.valueOf(TimeUnit.SECONDS.toMillis(5)),
+            Long.valueOf(writeBlobRequestoptions.getTimeoutIntervalInMs()));
 
         System.clearProperty(AzureRequestOptions.WRITE_TIMEOUT_EXECUTION_PROP);
         System.clearProperty(AzureRequestOptions.WRITE_TIMEOUT_INTERVAL_PROP);

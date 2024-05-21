@@ -27,127 +27,131 @@ package org.apache.lucene.index;
 
 import java.io.IOException;
 import java.util.Comparator;
-
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
 
-/** Implements a {@link TermsEnum} wrapping a provided
- * {@link SortedDocValues}. */
+/**
+ * Implements a {@link TermsEnum} wrapping a provided {@link SortedDocValues}.
+ */
 
 class SortedDocValuesTermsEnum extends TermsEnum {
-  private final SortedDocValues values;
-  private int currentOrd = -1;
-  private final BytesRef term = new BytesRef();
 
-  /** Creates a new TermsEnum over the provided values */
-  public SortedDocValuesTermsEnum(SortedDocValues values) {
-    this.values = values;
-  }
+    private final SortedDocValues values;
+    private int currentOrd = -1;
+    private final BytesRef term = new BytesRef();
 
-  @Override
-  public SeekStatus seekCeil(BytesRef text) throws IOException {
-    int ord = values.lookupTerm(text);
-    if (ord >= 0) {
-      currentOrd = ord;
-      term.offset = 0;
-      // TODO: is there a cleaner way?
-      // term.bytes may be pointing to codec-private byte[]
-      // storage, so we must force new byte[] allocation:
-      term.bytes = new byte[text.length];
-      term.copyBytes(text);
-      return SeekStatus.FOUND;
-    } else {
-      currentOrd = -ord-1;
-      if (currentOrd == values.getValueCount()) {
-        return SeekStatus.END;
-      } else {
-        // TODO: hmm can we avoid this "extra" lookup?:
+    /**
+     * Creates a new TermsEnum over the provided values
+     */
+    public SortedDocValuesTermsEnum(SortedDocValues values) {
+        this.values = values;
+    }
+
+    @Override
+    public SeekStatus seekCeil(BytesRef text) throws IOException {
+        int ord = values.lookupTerm(text);
+        if (ord >= 0) {
+            currentOrd = ord;
+            term.offset = 0;
+            // TODO: is there a cleaner way?
+            // term.bytes may be pointing to codec-private byte[]
+            // storage, so we must force new byte[] allocation:
+            term.bytes = new byte[text.length];
+            term.copyBytes(text);
+            return SeekStatus.FOUND;
+        } else {
+            currentOrd = -ord - 1;
+            if (currentOrd == values.getValueCount()) {
+                return SeekStatus.END;
+            } else {
+                // TODO: hmm can we avoid this "extra" lookup?:
+                values.lookupOrd(currentOrd, term);
+                return SeekStatus.NOT_FOUND;
+            }
+        }
+    }
+
+    @Override
+    public boolean seekExact(BytesRef text) throws IOException {
+        int ord = values.lookupTerm(text);
+        if (ord >= 0) {
+            term.offset = 0;
+            // TODO: is there a cleaner way?
+            // term.bytes may be pointing to codec-private byte[]
+            // storage, so we must force new byte[] allocation:
+            term.bytes = new byte[text.length];
+            term.copyBytes(text);
+            currentOrd = ord;
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    @Override
+    public void seekExact(long ord) throws IOException {
+        assert ord >= 0 && ord < values.getValueCount();
+        currentOrd = (int) ord;
         values.lookupOrd(currentOrd, term);
-        return SeekStatus.NOT_FOUND;
-      }
     }
-  }
 
-  @Override
-  public boolean seekExact(BytesRef text) throws IOException {
-    int ord = values.lookupTerm(text);
-    if (ord >= 0) {
-      term.offset = 0;
-      // TODO: is there a cleaner way?
-      // term.bytes may be pointing to codec-private byte[]
-      // storage, so we must force new byte[] allocation:
-      term.bytes = new byte[text.length];
-      term.copyBytes(text);
-      currentOrd = ord;
-      return true;
-    } else {
-      return false;
+    @Override
+    public BytesRef next() throws IOException {
+        currentOrd++;
+        if (currentOrd >= values.getValueCount()) {
+            return null;
+        }
+        values.lookupOrd(currentOrd, term);
+        return term;
     }
-  }
 
-  @Override
-  public void seekExact(long ord) throws IOException {
-    assert ord >= 0 && ord < values.getValueCount();
-    currentOrd = (int) ord;
-    values.lookupOrd(currentOrd, term);
-  }
-
-  @Override
-  public BytesRef next() throws IOException {
-    currentOrd++;
-    if (currentOrd >= values.getValueCount()) {
-      return null;
+    @Override
+    public BytesRef term() throws IOException {
+        return term;
     }
-    values.lookupOrd(currentOrd, term);
-    return term;
-  }
 
-  @Override
-  public BytesRef term() throws IOException {
-    return term;
-  }
+    @Override
+    public long ord() throws IOException {
+        return currentOrd;
+    }
 
-  @Override
-  public long ord() throws IOException {
-    return currentOrd;
-  }
+    @Override
+    public int docFreq() {
+        throw new UnsupportedOperationException();
+    }
 
-  @Override
-  public int docFreq() {
-    throw new UnsupportedOperationException();
-  }
+    @Override
+    public long totalTermFreq() {
+        return -1;
+    }
 
-  @Override
-  public long totalTermFreq() {
-    return -1;
-  }
+    @Override
+    public DocsEnum docs(Bits liveDocs, DocsEnum reuse, int flags) throws IOException {
+        throw new UnsupportedOperationException();
+    }
 
-  @Override
-  public DocsEnum docs(Bits liveDocs, DocsEnum reuse, int flags) throws IOException {
-    throw new UnsupportedOperationException();
-  }
+    @Override
+    public DocsAndPositionsEnum docsAndPositions(Bits liveDocs, DocsAndPositionsEnum reuse,
+        int flags) throws IOException {
+        throw new UnsupportedOperationException();
+    }
 
-  @Override
-  public DocsAndPositionsEnum docsAndPositions(Bits liveDocs, DocsAndPositionsEnum reuse, int flags) throws IOException {
-    throw new UnsupportedOperationException();
-  }
+    @Override
+    public Comparator<BytesRef> getComparator() {
+        return BytesRef.getUTF8SortedAsUnicodeComparator();
+    }
 
-  @Override
-  public Comparator<BytesRef> getComparator() {
-    return BytesRef.getUTF8SortedAsUnicodeComparator();
-  }
+    @Override
+    public void seekExact(BytesRef term, TermState state) throws IOException {
+        assert state != null && state instanceof OrdTermState;
+        this.seekExact(((OrdTermState) state).ord);
+    }
 
-  @Override
-  public void seekExact(BytesRef term, TermState state) throws IOException {
-    assert state != null && state instanceof OrdTermState;
-    this.seekExact(((OrdTermState)state).ord);
-  }
-
-  @Override
-  public TermState termState() throws IOException {
-    OrdTermState state = new OrdTermState();
-    state.ord = currentOrd;
-    return state;
-  }
+    @Override
+    public TermState termState() throws IOException {
+        OrdTermState state = new OrdTermState();
+        state.ord = currentOrd;
+        return state;
+    }
 }
 

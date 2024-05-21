@@ -17,8 +17,8 @@
 
 package org.apache.jackrabbit.oak.run;
 
-import org.apache.jackrabbit.oak.run.commons.Command;
 import org.apache.jackrabbit.oak.console.Console;
+import org.apache.jackrabbit.oak.run.commons.Command;
 
 class ConsoleCommand implements Command {
 

@@ -19,14 +19,16 @@ package org.apache.jackrabbit.oak.spi.security.authentication.token;
 import javax.security.auth.login.CredentialException;
 
 /**
- * Subclass of {@link CredentialException} indicating that the token credentials used for repository login have expired.
- * 
+ * Subclass of {@link CredentialException} indicating that the token credentials used for repository
+ * login have expired.
+ *
  * @since Oak 1.40
  */
 public class TokenCredentialsExpiredException extends CredentialException {
 
     /**
-     * Constructs a {@code TokenCredentialsExpiredException} with the specified detail message describing this particular exception.
+     * Constructs a {@code TokenCredentialsExpiredException} with the specified detail message
+     * describing this particular exception.
      *
      * @param msg the detail message.
      */

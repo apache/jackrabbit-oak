@@ -18,29 +18,8 @@
  */
 package org.apache.jackrabbit.oak.upgrade;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import javax.jcr.NamespaceRegistry;
-import javax.jcr.Node;
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-import javax.jcr.security.Privilege;
-
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.api.JackrabbitSession;
-import org.apache.jackrabbit.api.JackrabbitWorkspace;
-import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
-import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
-import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
-import org.junit.Test;
-
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static java.util.Arrays.asList;
+import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_ADD_CHILD_NODES;
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_ALL;
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_LIFECYCLE_MANAGEMENT;
@@ -72,6 +51,26 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import javax.jcr.NamespaceRegistry;
+import javax.jcr.Node;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import javax.jcr.security.Privilege;
+import org.apache.jackrabbit.api.JackrabbitSession;
+import org.apache.jackrabbit.api.JackrabbitWorkspace;
+import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.collect.Maps;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
+import org.junit.Test;
+
 public class PrivilegeUpgradeTest extends AbstractRepositoryUpgradeTest {
 
     @Override
@@ -83,10 +82,11 @@ public class PrivilegeUpgradeTest extends AbstractRepositoryUpgradeTest {
 
         PrivilegeManager privilegeManager = workspace.getPrivilegeManager();
         privilegeManager.registerPrivilege("test:privilege", false, null);
-        privilegeManager.registerPrivilege("test:aggregate", false, new String[] { "jcr:read", "test:privilege" });
+        privilegeManager.registerPrivilege("test:aggregate", false,
+            new String[]{"jcr:read", "test:privilege"});
         privilegeManager.registerPrivilege("test:privilege2", true, null);
         privilegeManager.registerPrivilege("test:aggregate2", true,
-                new String[] { "test:aggregate", "test:privilege2" });
+            new String[]{"test:aggregate", "test:privilege2"});
     }
 
     @Test
@@ -102,30 +102,34 @@ public class PrivilegeUpgradeTest extends AbstractRepositoryUpgradeTest {
 
         Map<String, Set<String>> aggregatePrivileges = Maps.newHashMap();
         aggregatePrivileges.put(JCR_READ,
-                ImmutableSet.of(REP_READ_NODES, REP_READ_PROPERTIES));
+            ImmutableSet.of(REP_READ_NODES, REP_READ_PROPERTIES));
         aggregatePrivileges.put(JCR_MODIFY_PROPERTIES,
-                ImmutableSet.of(REP_ADD_PROPERTIES, REP_ALTER_PROPERTIES, REP_REMOVE_PROPERTIES));
+            ImmutableSet.of(REP_ADD_PROPERTIES, REP_ALTER_PROPERTIES, REP_REMOVE_PROPERTIES));
         aggregatePrivileges.put(JCR_WRITE,
-                ImmutableSet.of(JCR_MODIFY_PROPERTIES, REP_ADD_PROPERTIES, REP_ALTER_PROPERTIES,
-                        REP_REMOVE_PROPERTIES, JCR_ADD_CHILD_NODES, JCR_REMOVE_CHILD_NODES,
-                        JCR_REMOVE_NODE));
+            ImmutableSet.of(JCR_MODIFY_PROPERTIES, REP_ADD_PROPERTIES, REP_ALTER_PROPERTIES,
+                REP_REMOVE_PROPERTIES, JCR_ADD_CHILD_NODES, JCR_REMOVE_CHILD_NODES,
+                JCR_REMOVE_NODE));
         aggregatePrivileges.put(REP_WRITE,
-                ImmutableSet.of(JCR_WRITE, JCR_MODIFY_PROPERTIES, REP_ADD_PROPERTIES,
-                        REP_ALTER_PROPERTIES, REP_REMOVE_PROPERTIES, JCR_ADD_CHILD_NODES,
-                        JCR_REMOVE_CHILD_NODES, JCR_REMOVE_NODE, JCR_NODE_TYPE_MANAGEMENT));
+            ImmutableSet.of(JCR_WRITE, JCR_MODIFY_PROPERTIES, REP_ADD_PROPERTIES,
+                REP_ALTER_PROPERTIES, REP_REMOVE_PROPERTIES, JCR_ADD_CHILD_NODES,
+                JCR_REMOVE_CHILD_NODES, JCR_REMOVE_NODE, JCR_NODE_TYPE_MANAGEMENT));
         aggregatePrivileges.put(JCR_ALL,
-                ImmutableSet.of(REP_READ_NODES, REP_READ_PROPERTIES, REP_ADD_PROPERTIES, REP_ALTER_PROPERTIES,
-                        REP_REMOVE_PROPERTIES, JCR_ADD_CHILD_NODES, JCR_REMOVE_CHILD_NODES, JCR_REMOVE_NODE,
-                        JCR_READ_ACCESS_CONTROL, JCR_MODIFY_ACCESS_CONTROL, JCR_NODE_TYPE_MANAGEMENT,
-                        JCR_VERSION_MANAGEMENT, JCR_LOCK_MANAGEMENT, JCR_LIFECYCLE_MANAGEMENT,
-                        JCR_RETENTION_MANAGEMENT, JCR_WORKSPACE_MANAGEMENT, JCR_NODE_TYPE_DEFINITION_MANAGEMENT,
-                        JCR_NAMESPACE_MANAGEMENT, REP_PRIVILEGE_MANAGEMENT, REP_USER_MANAGEMENT,
-                        REP_INDEX_DEFINITION_MANAGEMENT, JCR_READ, JCR_MODIFY_PROPERTIES, JCR_WRITE, REP_WRITE,
-                        "test:privilege", "test:privilege2", "test:aggregate", "test:aggregate2"));
+            ImmutableSet.of(REP_READ_NODES, REP_READ_PROPERTIES, REP_ADD_PROPERTIES,
+                REP_ALTER_PROPERTIES,
+                REP_REMOVE_PROPERTIES, JCR_ADD_CHILD_NODES, JCR_REMOVE_CHILD_NODES, JCR_REMOVE_NODE,
+                JCR_READ_ACCESS_CONTROL, JCR_MODIFY_ACCESS_CONTROL, JCR_NODE_TYPE_MANAGEMENT,
+                JCR_VERSION_MANAGEMENT, JCR_LOCK_MANAGEMENT, JCR_LIFECYCLE_MANAGEMENT,
+                JCR_RETENTION_MANAGEMENT, JCR_WORKSPACE_MANAGEMENT,
+                JCR_NODE_TYPE_DEFINITION_MANAGEMENT,
+                JCR_NAMESPACE_MANAGEMENT, REP_PRIVILEGE_MANAGEMENT, REP_USER_MANAGEMENT,
+                REP_INDEX_DEFINITION_MANAGEMENT, JCR_READ, JCR_MODIFY_PROPERTIES, JCR_WRITE,
+                REP_WRITE,
+                "test:privilege", "test:privilege2", "test:aggregate", "test:aggregate2"));
         aggregatePrivileges.put("test:aggregate",
-                ImmutableSet.of(JCR_READ, REP_READ_NODES, REP_READ_PROPERTIES, "test:privilege"));
+            ImmutableSet.of(JCR_READ, REP_READ_NODES, REP_READ_PROPERTIES, "test:privilege"));
         aggregatePrivileges.put("test:aggregate2",
-                ImmutableSet.of(JCR_READ, REP_READ_NODES, REP_READ_PROPERTIES, "test:privilege", "test:privilege2", "test:aggregate"));
+            ImmutableSet.of(JCR_READ, REP_READ_NODES, REP_READ_PROPERTIES, "test:privilege",
+                "test:privilege2", "test:aggregate"));
 
         JackrabbitSession session = createAdminSession();
         try {
@@ -148,10 +152,11 @@ public class PrivilegeUpgradeTest extends AbstractRepositoryUpgradeTest {
                 }
             }
 
-            assertTrue("Missing non aggregate privileges: " + nonAggregatePrivileges, nonAggregatePrivileges.isEmpty());
-            assertTrue("Missing aggregate privileges: " + aggregatePrivileges.keySet(), aggregatePrivileges.isEmpty());
-        }
-        finally {
+            assertTrue("Missing non aggregate privileges: " + nonAggregatePrivileges,
+                nonAggregatePrivileges.isEmpty());
+            assertTrue("Missing aggregate privileges: " + aggregatePrivileges.keySet(),
+                aggregatePrivileges.isEmpty());
+        } finally {
             session.logout();
         }
     }
@@ -196,7 +201,8 @@ public class PrivilegeUpgradeTest extends AbstractRepositoryUpgradeTest {
             assertNotNull(aggregate2);
             assertTrue(aggregate2.isAbstract());
             assertTrue(aggregate2.isAggregate());
-            List<Privilege> agg2 = ImmutableList.copyOf(aggregate2.getDeclaredAggregatePrivileges());
+            List<Privilege> agg2 = ImmutableList.copyOf(
+                aggregate2.getDeclaredAggregatePrivileges());
             assertEquals(2, agg2.size());
             assertTrue(agg2.contains(aggregate));
             assertTrue(agg2.contains(privilege2));
@@ -222,7 +228,6 @@ public class PrivilegeUpgradeTest extends AbstractRepositoryUpgradeTest {
             long l = getLong(testPrivilegeNode);
             PrivilegeBits pb = readBits(testPrivilegeNode, PrivilegeConstants.REP_BITS);
 
-
             Node testPrivilege2Node = privilegeRoot.getNode("test:privilege2");
             long l2 = getLong(testPrivilege2Node);
             PrivilegeBits pb2 = readBits(testPrivilege2Node, PrivilegeConstants.REP_BITS);
@@ -244,7 +249,8 @@ public class PrivilegeUpgradeTest extends AbstractRepositoryUpgradeTest {
 
             Node testAggregateNode = privilegeRoot.getNode("test:aggregate");
             PrivilegeBits aggrPb = readBits(testAggregateNode, PrivilegeConstants.REP_BITS);
-            PrivilegeBits expected = PrivilegeBits.getInstance(PrivilegeBits.BUILT_IN.get(PrivilegeConstants.JCR_READ), pb).unmodifiable();
+            PrivilegeBits expected = PrivilegeBits.getInstance(
+                PrivilegeBits.BUILT_IN.get(PrivilegeConstants.JCR_READ), pb).unmodifiable();
             assertEquals(expected, aggrPb);
 
             Node testAggregate2Node = privilegeRoot.getNode("test:aggregate2");
@@ -258,7 +264,8 @@ public class PrivilegeUpgradeTest extends AbstractRepositoryUpgradeTest {
     }
 
     private static PrivilegeBits readBits(Node node, String name) throws RepositoryException {
-        return PrivilegeBits.getInstance(PropertyStates.createProperty(name, Arrays.asList(node.getProperty(name).getValues())));
+        return PrivilegeBits.getInstance(
+            PropertyStates.createProperty(name, Arrays.asList(node.getProperty(name).getValues())));
     }
 
     private static long getLong(Node node) throws RepositoryException {

@@ -82,7 +82,7 @@ public class VersionGarbageCollector {
      * Split document types which can be safely garbage collected
      */
     private static final Set<NodeDocument.SplitDocType> GC_TYPES = EnumSet.of(
-            DEFAULT_LEAF, COMMIT_ROOT_ONLY, DEFAULT_NO_BRANCH);
+        DEFAULT_LEAF, COMMIT_ROOT_ONLY, DEFAULT_NO_BRANCH);
 
     /**
      * Document id stored in settings collection that keeps info about version gc
@@ -108,7 +108,7 @@ public class VersionGarbageCollector {
     private RevisionGCStats gcStats = new RevisionGCStats(StatisticsProvider.NOOP);
 
     VersionGarbageCollector(DocumentNodeStore nodeStore,
-                            VersionGCSupport gcSupport) {
+        VersionGCSupport gcSupport) {
         this.nodeStore = nodeStore;
         this.versionStore = gcSupport;
         this.ds = gcSupport.getDocumentStore();
@@ -140,18 +140,19 @@ public class VersionGarbageCollector {
                 long averageDurationMs = 0;
                 while (maxRunTime.contains(nodeStore.getClock().getTime() + averageDurationMs)) {
                     gcMonitor.info("Start {}. run (avg duration {} sec)",
-                            overall.iterationCount + 1, averageDurationMs / 1000.0);
+                        overall.iterationCount + 1, averageDurationMs / 1000.0);
                     VersionGCStats stats = job.run();
 
                     overall.addRun(stats);
-                    if (options.maxIterations > 0 && overall.iterationCount >= options.maxIterations) {
+                    if (options.maxIterations > 0
+                        && overall.iterationCount >= options.maxIterations) {
                         break;
                     }
                     if (!overall.needRepeat) {
                         break;
                     }
                     averageDurationMs = ((averageDurationMs * (overall.iterationCount - 1))
-                            + stats.active.elapsed(TimeUnit.MILLISECONDS)) / overall.iterationCount;
+                        + stats.active.elapsed(TimeUnit.MILLISECONDS)) / overall.iterationCount;
                 }
                 success = true;
                 return overall;
@@ -161,8 +162,9 @@ public class VersionGarbageCollector {
                 overall.success = success;
                 gcStats.finished(overall);
                 if (overall.iterationCount > 1) {
-                    gcMonitor.info("Revision garbage collection finished after {} iterations - aggregate statistics: {}",
-                            overall.iterationCount, overall);
+                    gcMonitor.info(
+                        "Revision garbage collection finished after {} iterations - aggregate statistics: {}",
+                        overall.iterationCount, overall);
                 }
             }
         } else {
@@ -203,22 +205,24 @@ public class VersionGarbageCollector {
     }
 
     public VersionGCInfo getInfo(long maxRevisionAge, TimeUnit unit)
-            throws IOException {
+        throws IOException {
         long maxRevisionAgeInMillis = unit.toMillis(maxRevisionAge);
         long now = nodeStore.getClock().getTime();
-        VersionGCRecommendations rec = new VersionGCRecommendations(maxRevisionAgeInMillis, nodeStore.getCheckpoints(),
-                nodeStore.getClock(), versionStore, options, gcMonitor);
+        VersionGCRecommendations rec = new VersionGCRecommendations(maxRevisionAgeInMillis,
+            nodeStore.getCheckpoints(),
+            nodeStore.getClock(), versionStore, options, gcMonitor);
         int estimatedIterations = -1;
         if (rec.suggestedIntervalMs > 0) {
-            estimatedIterations = (int)Math.ceil(
-                    (now - rec.scope.toMs) / rec.suggestedIntervalMs);
+            estimatedIterations = (int) Math.ceil(
+                (now - rec.scope.toMs) / rec.suggestedIntervalMs);
         }
         return new VersionGCInfo(rec.lastOldestTimestamp, rec.scope.fromMs,
-                rec.deleteCandidateCount, rec.maxCollect,
-                rec.suggestedIntervalMs, rec.scope.toMs, estimatedIterations);
+            rec.deleteCandidateCount, rec.maxCollect,
+            rec.suggestedIntervalMs, rec.scope.toMs, estimatedIterations);
     }
 
     public static class VersionGCInfo {
+
         public final long lastSuccess;
         public final long oldestRevisionEstimate;
         public final long revisionsCandidateCount;
@@ -228,12 +232,12 @@ public class VersionGarbageCollector {
         public final int estimatedIterations;
 
         VersionGCInfo(long lastSuccess,
-                      long oldestRevisionEstimate,
-                      long revisionsCandidateCount,
-                      long collectLimit,
-                      long recommendedCleanupInterval,
-                      long recommendedCleanupTimestamp,
-                      int estimatedIterations) {
+            long oldestRevisionEstimate,
+            long revisionsCandidateCount,
+            long collectLimit,
+            long recommendedCleanupInterval,
+            long recommendedCleanupTimestamp,
+            int estimatedIterations) {
             this.lastSuccess = lastSuccess;
             this.oldestRevisionEstimate = oldestRevisionEstimate;
             this.revisionsCandidateCount = revisionsCandidateCount;
@@ -245,6 +249,7 @@ public class VersionGarbageCollector {
     }
 
     public static class VersionGCStats {
+
         boolean ignoredGCDueToCheckPoint;
         boolean canceled;
         boolean success = true;
@@ -266,7 +271,7 @@ public class VersionGarbageCollector {
         final Stopwatch sortDocIds = Stopwatch.createUnstarted();
         final Stopwatch updateResurrectedDocuments = Stopwatch.createUnstarted();
         long activeElapsed, collectDeletedDocsElapsed, checkDeletedDocsElapsed, deleteDeletedDocsElapsed, collectAndDeleteSplitDocsElapsed,
-                deleteSplitDocsElapsed, sortDocIdsElapsed, updateResurrectedDocumentsElapsed;
+            deleteSplitDocsElapsed, sortDocIdsElapsed, updateResurrectedDocumentsElapsed;
 
         @Override
         public String toString() {
@@ -278,39 +283,42 @@ public class VersionGarbageCollector {
                 String timeDeletingSplitDocs = "";
                 if (deleteSplitDocsElapsed > 0) {
                     timeDeletingSplitDocs = String.format(" (of which %s deleting)",
-                            df.format(deleteSplitDocsElapsed, MICROSECONDS));
+                        df.format(deleteSplitDocsElapsed, MICROSECONDS));
                 }
                 timings = String.format(fmt, df.format(collectDeletedDocsElapsed, MICROSECONDS),
-                        df.format(checkDeletedDocsElapsed, MICROSECONDS), df.format(sortDocIdsElapsed, MICROSECONDS),
-                        df.format(updateResurrectedDocumentsElapsed, MICROSECONDS),
-                        df.format(deleteDeletedDocsElapsed, MICROSECONDS),
-                        df.format(collectAndDeleteSplitDocsElapsed, MICROSECONDS),
-                        timeDeletingSplitDocs);
+                    df.format(checkDeletedDocsElapsed, MICROSECONDS),
+                    df.format(sortDocIdsElapsed, MICROSECONDS),
+                    df.format(updateResurrectedDocumentsElapsed, MICROSECONDS),
+                    df.format(deleteDeletedDocsElapsed, MICROSECONDS),
+                    df.format(collectAndDeleteSplitDocsElapsed, MICROSECONDS),
+                    timeDeletingSplitDocs);
             } else {
                 String timeDeletingSplitDocs = "";
                 if (deleteSplitDocs.elapsed(MICROSECONDS) > 0) {
                     timeDeletingSplitDocs = String.format(" (of which %s deleting)",
-                            df.format(deleteSplitDocs.elapsed(MICROSECONDS), MICROSECONDS));
+                        df.format(deleteSplitDocs.elapsed(MICROSECONDS), MICROSECONDS));
                 }
-                timings = String.format(fmt, df.format(collectDeletedDocs.elapsed(MICROSECONDS), MICROSECONDS),
-                        df.format(checkDeletedDocs.elapsed(MICROSECONDS), MICROSECONDS),
-                        df.format(sortDocIds.elapsed(MICROSECONDS), MICROSECONDS),
-                        df.format(updateResurrectedDocuments.elapsed(MICROSECONDS), MICROSECONDS),
-                        df.format(deleteDeletedDocs.elapsed(MICROSECONDS), MICROSECONDS),
-                        df.format(collectAndDeleteSplitDocs.elapsed(MICROSECONDS), MICROSECONDS),
-                        timeDeletingSplitDocs);
+                timings = String.format(fmt,
+                    df.format(collectDeletedDocs.elapsed(MICROSECONDS), MICROSECONDS),
+                    df.format(checkDeletedDocs.elapsed(MICROSECONDS), MICROSECONDS),
+                    df.format(sortDocIds.elapsed(MICROSECONDS), MICROSECONDS),
+                    df.format(updateResurrectedDocuments.elapsed(MICROSECONDS), MICROSECONDS),
+                    df.format(deleteDeletedDocs.elapsed(MICROSECONDS), MICROSECONDS),
+                    df.format(collectAndDeleteSplitDocs.elapsed(MICROSECONDS), MICROSECONDS),
+                    timeDeletingSplitDocs);
             }
 
             return "VersionGCStats{" +
-                    "ignoredGCDueToCheckPoint=" + ignoredGCDueToCheckPoint +
-                    ", canceled=" + canceled +
-                    ", deletedDocGCCount=" + deletedDocGCCount + " (of which leaf: " + deletedLeafDocGCCount + ")" +
-                    ", updateResurrectedGCCount=" + updateResurrectedGCCount +
-                    ", splitDocGCCount=" + splitDocGCCount +
-                    ", intermediateSplitDocGCCount=" + intermediateSplitDocGCCount +
-                    ", iterationCount=" + iterationCount +
-                    ", timeActive=" + df.format(activeElapsed, MICROSECONDS) +
-                    ", " + timings + "}";
+                "ignoredGCDueToCheckPoint=" + ignoredGCDueToCheckPoint +
+                ", canceled=" + canceled +
+                ", deletedDocGCCount=" + deletedDocGCCount + " (of which leaf: "
+                + deletedLeafDocGCCount + ")" +
+                ", updateResurrectedGCCount=" + updateResurrectedGCCount +
+                ", splitDocGCCount=" + splitDocGCCount +
+                ", intermediateSplitDocGCCount=" + intermediateSplitDocGCCount +
+                ", iterationCount=" + iterationCount +
+                ", timeActive=" + df.format(activeElapsed, MICROSECONDS) +
+                ", " + timings + "}";
         }
 
         void addRun(VersionGCStats run) {
@@ -341,10 +349,12 @@ public class VersionGarbageCollector {
                 this.collectDeletedDocsElapsed += run.collectDeletedDocs.elapsed(MICROSECONDS);
                 this.checkDeletedDocsElapsed += run.checkDeletedDocs.elapsed(MICROSECONDS);
                 this.deleteDeletedDocsElapsed += run.deleteDeletedDocs.elapsed(MICROSECONDS);
-                this.collectAndDeleteSplitDocsElapsed += run.collectAndDeleteSplitDocs.elapsed(MICROSECONDS);
+                this.collectAndDeleteSplitDocsElapsed += run.collectAndDeleteSplitDocs.elapsed(
+                    MICROSECONDS);
                 this.deleteSplitDocsElapsed += run.deleteSplitDocs.elapsed(MICROSECONDS);
                 this.sortDocIdsElapsed += run.sortDocIds.elapsed(MICROSECONDS);
-                this.updateResurrectedDocumentsElapsed += run.updateResurrectedDocuments.elapsed(MICROSECONDS);
+                this.updateResurrectedDocumentsElapsed += run.updateResurrectedDocuments.elapsed(
+                    MICROSECONDS);
             }
         }
     }
@@ -388,12 +398,12 @@ public class VersionGarbageCollector {
         }
 
         /**
-         * Attempts to start a GC phase and tracks the time spent in this phase
-         * until {@link #stop(GCPhase)} is called.
+         * Attempts to start a GC phase and tracks the time spent in this phase until
+         * {@link #stop(GCPhase)} is called.
          *
          * @param started the GC phase.
-         * @return {@code true} if the phase was started or {@code false} if the
-         *          revision GC was canceled and the phase should not start.
+         * @return {@code true} if the phase was started or {@code false} if the revision GC was
+         * canceled and the phase should not start.
          */
         public boolean start(GCPhase started) {
             if (canceled.get()) {
@@ -461,8 +471,8 @@ public class VersionGarbageCollector {
         private final Supplier<String> status;
 
         GCJob(long maxRevisionAgeMillis,
-              VersionGCOptions options,
-              GCMonitor gcMonitor) {
+            VersionGCOptions options,
+            GCMonitor gcMonitor) {
             this.maxRevisionAgeMillis = maxRevisionAgeMillis;
             this.options = options;
             GCMessageTracker vgcm = new GCMessageTracker();
@@ -491,8 +501,9 @@ public class VersionGarbageCollector {
         private VersionGCStats gc(long maxRevisionAgeInMillis) throws IOException {
             VersionGCStats stats = new VersionGCStats();
             stats.active.start();
-            VersionGCRecommendations rec = new VersionGCRecommendations(maxRevisionAgeInMillis, nodeStore.getCheckpoints(),
-                    nodeStore.getClock(), versionStore, options, gcMonitor);
+            VersionGCRecommendations rec = new VersionGCRecommendations(maxRevisionAgeInMillis,
+                nodeStore.getCheckpoints(),
+                nodeStore.getClock(), versionStore, options, gcMonitor);
             GCPhases phases = new GCPhases(cancel, stats, gcMonitor);
             try {
                 if (rec.ignoreDueToCheckPoint) {
@@ -516,33 +527,38 @@ public class VersionGarbageCollector {
 
             rec.evaluate(stats);
             monitor.info("Revision garbage collection finished in {}. {}",
-                    TimeDurationFormatter.forLogging().format(phases.elapsed.elapsed(MICROSECONDS), MICROSECONDS), stats);
+                TimeDurationFormatter.forLogging()
+                                     .format(phases.elapsed.elapsed(MICROSECONDS), MICROSECONDS),
+                stats);
             stats.active.stop();
             return stats;
         }
 
         private void collectSplitDocuments(GCPhases phases,
-                                           RevisionVector sweepRevisions,
-                                           VersionGCRecommendations rec) {
+            RevisionVector sweepRevisions,
+            VersionGCRecommendations rec) {
             if (phases.start(GCPhase.SPLITS_CLEANUP)) {
                 int splitDocGCCount = phases.stats.splitDocGCCount;
                 int intermediateSplitDocGCCount = phases.stats.intermediateSplitDocGCCount;
-                versionStore.deleteSplitDocuments(GC_TYPES, sweepRevisions, rec.scope.toMs, phases.stats);
+                versionStore.deleteSplitDocuments(GC_TYPES, sweepRevisions, rec.scope.toMs,
+                    phases.stats);
                 gcStats.splitDocumentsDeleted(phases.stats.splitDocGCCount - splitDocGCCount);
-                gcStats.intermediateSplitDocumentsDeleted(phases.stats.intermediateSplitDocGCCount - intermediateSplitDocGCCount);
+                gcStats.intermediateSplitDocumentsDeleted(
+                    phases.stats.intermediateSplitDocGCCount - intermediateSplitDocGCCount);
                 phases.stop(GCPhase.SPLITS_CLEANUP);
             }
         }
 
         private void collectDeletedDocuments(GCPhases phases,
-                                             RevisionVector headRevision,
-                                             VersionGCRecommendations rec)
-                throws IOException, LimitExceededException {
+            RevisionVector headRevision,
+            VersionGCRecommendations rec)
+            throws IOException, LimitExceededException {
             int docsTraversed = 0;
             DeletedDocsGC gc = new DeletedDocsGC(headRevision, cancel, options, monitor);
             try {
                 if (phases.start(GCPhase.COLLECTING)) {
-                    Iterable<NodeDocument> itr = versionStore.getPossiblyDeletedDocs(rec.scope.fromMs, rec.scope.toMs);
+                    Iterable<NodeDocument> itr = versionStore.getPossiblyDeletedDocs(
+                        rec.scope.fromMs, rec.scope.toMs);
                     try {
                         for (NodeDocument doc : itr) {
                             // continue with GC?
@@ -555,14 +571,16 @@ public class VersionGarbageCollector {
                             // So deleting it is safe
                             docsTraversed++;
                             if (docsTraversed % PROGRESS_BATCH_SIZE == 0) {
-                                monitor.info("Iterated through {} documents so far. {} found to be deleted",
-                                        docsTraversed, gc.getNumDocuments());
+                                monitor.info(
+                                    "Iterated through {} documents so far. {} found to be deleted",
+                                    docsTraversed, gc.getNumDocuments());
                             }
                             if (phases.start(GCPhase.CHECKING)) {
                                 gc.possiblyDeleted(doc);
                                 phases.stop(GCPhase.CHECKING);
                             }
-                            if (rec.maxCollect > 0 && gc.docIdsToDelete.getSize() > rec.maxCollect) {
+                            if (rec.maxCollect > 0
+                                && gc.docIdsToDelete.getSize() > rec.maxCollect) {
                                 throw new LimitExceededException();
                             }
                             if (gc.hasLeafBatch()) {
@@ -629,9 +647,9 @@ public class VersionGarbageCollector {
         private final GCMonitor monitor;
 
         public DeletedDocsGC(@NotNull RevisionVector headRevision,
-                             @NotNull AtomicBoolean cancel,
-                             @NotNull VersionGCOptions options,
-                             @NotNull GCMonitor monitor) {
+            @NotNull AtomicBoolean cancel,
+            @NotNull VersionGCOptions options,
+            @NotNull GCMonitor monitor) {
             this.headRevision = checkNotNull(headRevision);
             this.cancel = checkNotNull(cancel);
             this.timer = Stopwatch.createUnstarted();
@@ -642,26 +660,25 @@ public class VersionGarbageCollector {
         }
 
         /**
-         * @return the number of documents gathers so far that have been
-         * identified as garbage via {@link #possiblyDeleted(NodeDocument)}.
-         * This number does not include the previous documents.
+         * @return the number of documents gathers so far that have been identified as garbage via
+         * {@link #possiblyDeleted(NodeDocument)}. This number does not include the previous
+         * documents.
          */
         long getNumDocuments() {
             return docIdsToDelete.getSize() + leafDocIdsToDelete.size();
         }
 
         /**
-         * Informs the GC that the given document is possibly deleted. The
-         * implementation will check if the node still exists at the head
-         * revision passed to the constructor to this GC. The implementation
-         * will keep track of documents representing deleted nodes and remove
-         * them together with associated previous document
+         * Informs the GC that the given document is possibly deleted. The implementation will check
+         * if the node still exists at the head revision passed to the constructor to this GC. The
+         * implementation will keep track of documents representing deleted nodes and remove them
+         * together with associated previous document
          *
          * @param doc the candidate document.
          * @return true iff document is scheduled for deletion
          */
         boolean possiblyDeleted(NodeDocument doc)
-                throws IOException {
+            throws IOException {
             gcStats.documentRead();
             // construct an id that also contains
             // the _modified time of the document
@@ -690,17 +707,16 @@ public class VersionGarbageCollector {
         }
 
         /**
-         * Removes the documents that have been identified as garbage. This
-         * also includes previous documents. This method will only remove
-         * documents that have not been modified since they were passed to
-         * {@link #possiblyDeleted(NodeDocument)}.
+         * Removes the documents that have been identified as garbage. This also includes previous
+         * documents. This method will only remove documents that have not been modified since they
+         * were passed to {@link #possiblyDeleted(NodeDocument)}.
          *
          * @param stats to track the number of removed documents.
          */
         void removeDocuments(VersionGCStats stats) throws IOException {
             removeLeafDocuments(stats);
             stats.deletedDocGCCount += removeDeletedDocuments(
-                    getDocIdsToDelete(), getDocIdsToDeleteSize(), false, "(other)");
+                getDocIdsToDelete(), getDocIdsToDeleteSize(), false, "(other)");
             // FIXME: this is incorrect because that method also removes intermediate docs
             stats.splitDocGCCount += removeDeletedPreviousDocuments();
         }
@@ -715,7 +731,7 @@ public class VersionGarbageCollector {
 
         void removeLeafDocuments(VersionGCStats stats) throws IOException {
             int removeCount = removeDeletedDocuments(
-                    getLeafDocIdsToDelete(), getLeafDocIdsToDeleteSize(), true, "(leaf)");
+                getLeafDocIdsToDelete(), getLeafDocIdsToDeleteSize(), true, "(leaf)");
             leafDocIdsToDelete.clear();
             stats.deletedLeafDocGCCount += removeCount;
             stats.deletedDocGCCount += removeCount;
@@ -751,8 +767,7 @@ public class VersionGarbageCollector {
                 try {
                     Clock clock = nodeStore.getClock();
                     clock.waitUntil(clock.getTime() + delayMs);
-                }
-                catch (InterruptedException ex) {
+                } catch (InterruptedException ex) {
                     /* ignore */
                 }
             }
@@ -768,22 +783,22 @@ public class VersionGarbageCollector {
                 // documents only.
                 final Path path = doc.getPath();
                 return Iterators.transform(prevRanges.entrySet().iterator(),
-                        new Function<Map.Entry<Revision, Range>, String>() {
-                    @Override
-                    public String apply(Map.Entry<Revision, Range> input) {
-                        int h = input.getValue().getHeight();
-                        return Utils.getPreviousIdFor(path, input.getKey(), h);
-                    }
-                });
+                    new Function<Map.Entry<Revision, Range>, String>() {
+                        @Override
+                        public String apply(Map.Entry<Revision, Range> input) {
+                            int h = input.getValue().getHeight();
+                            return Utils.getPreviousIdFor(path, input.getKey(), h);
+                        }
+                    });
             } else {
                 // need to fetch the previous documents to get their ids
                 return Iterators.transform(doc.getAllPreviousDocs(),
-                        new Function<NodeDocument, String>() {
-                    @Override
-                    public String apply(NodeDocument input) {
-                        return input.getId();
-                    }
-                });
+                    new Function<NodeDocument, String>() {
+                        @Override
+                        public String apply(NodeDocument input) {
+                            return input.getId();
+                        }
+                    });
             }
         }
 
@@ -804,7 +819,7 @@ public class VersionGarbageCollector {
         }
 
         private void addPreviousDocuments(Iterator<String> ids,
-                                          String mainDocId) throws IOException {
+            String mainDocId) throws IOException {
             while (ids.hasNext()) {
                 String id = ids.next();
                 if (id != null) {
@@ -842,18 +857,18 @@ public class VersionGarbageCollector {
         private Iterator<String> getPrevDocIdsToDelete() throws IOException {
             ensureSorted();
             return Iterators.filter(prevDocIdsToDelete.getIds(),
-                    new Predicate<String>() {
-                @Override
-                public boolean apply(String input) {
-                    return !exclude.contains(input);
-                }
-            });
+                new Predicate<String>() {
+                    @Override
+                    public boolean apply(String input) {
+                        return !exclude.contains(input);
+                    }
+                });
         }
 
         private int removeDeletedDocuments(Iterator<String> docIdsToDelete,
-                                           long numDocuments,
-                                           boolean leaves,
-                                           String label) throws IOException {
+            long numDocuments,
+            boolean leaves,
+            String label) throws IOException {
             if (numDocuments == 0) {
                 return 0;
             }
@@ -877,7 +892,8 @@ public class VersionGarbageCollector {
                 }
 
                 if (log.isTraceEnabled()) {
-                    StringBuilder sb = new StringBuilder("Performing batch deletion of documents with following ids. \n");
+                    StringBuilder sb = new StringBuilder(
+                        "Performing batch deletion of documents with following ids. \n");
                     Joiner.on(LINE_SEPARATOR.value()).appendTo(sb, deletionBatch.keySet());
                     log.trace(sb.toString());
                 }
@@ -909,7 +925,8 @@ public class VersionGarbageCollector {
                     if (deletedCount + recreatedCount - lastLoggedCount >= PROGRESS_BATCH_SIZE) {
                         lastLoggedCount = deletedCount + recreatedCount;
                         double progress = lastLoggedCount * 1.0 / getNumDocuments() * 100;
-                        String msg = String.format("Deleted %d (%1.2f%%) documents so far", deletedCount, progress);
+                        String msg = String.format("Deleted %d (%1.2f%%) documents so far",
+                            deletedCount, progress);
                         monitor.info(msg);
                     }
                 } finally {
@@ -920,7 +937,8 @@ public class VersionGarbageCollector {
         }
 
         private int resetDeletedOnce(List<String> resurrectedDocuments) throws IOException {
-            monitor.info("Proceeding to reset [{}] _deletedOnce flags", resurrectedDocuments.size());
+            monitor.info("Proceeding to reset [{}] _deletedOnce flags",
+                resurrectedDocuments.size());
 
             int updateCount = 0;
             timer.reset().start();
@@ -944,8 +962,7 @@ public class VersionGarbageCollector {
                         }
                     }
                 }
-            }
-            finally {
+            } finally {
                 delayOnModifications(timer.stop().elapsed(TimeUnit.MILLISECONDS));
             }
             return updateCount;
@@ -961,13 +978,14 @@ public class VersionGarbageCollector {
             int deletedCount = 0;
             int lastLoggedCount = 0;
             Iterator<List<String>> idListItr =
-                    partition(getPrevDocIdsToDelete(), DELETE_BATCH_SIZE);
+                partition(getPrevDocIdsToDelete(), DELETE_BATCH_SIZE);
             while (idListItr.hasNext() && !cancel.get()) {
                 List<String> deletionBatch = idListItr.next();
                 deletedCount += deletionBatch.size();
 
                 if (log.isDebugEnabled()) {
-                    StringBuilder sb = new StringBuilder("Performing batch deletion of previous documents with following ids. \n");
+                    StringBuilder sb = new StringBuilder(
+                        "Performing batch deletion of previous documents with following ids. \n");
                     Joiner.on(LINE_SEPARATOR.value()).appendTo(sb, deletionBatch);
                     log.debug(sb.toString());
                 }
@@ -979,8 +997,10 @@ public class VersionGarbageCollector {
 
                 if (deletedCount - lastLoggedCount >= PROGRESS_BATCH_SIZE) {
                     lastLoggedCount = deletedCount;
-                    double progress = deletedCount * 1.0 / (prevDocIdsToDelete.getSize() - exclude.size()) * 100;
-                    String msg = String.format("Deleted %d (%1.2f%%) previous documents so far", deletedCount, progress);
+                    double progress =
+                        deletedCount * 1.0 / (prevDocIdsToDelete.getSize() - exclude.size()) * 100;
+                    String msg = String.format("Deleted %d (%1.2f%%) previous documents so far",
+                        deletedCount, progress);
                     monitor.info(msg);
                 }
             }
@@ -996,8 +1016,7 @@ public class VersionGarbageCollector {
         }
 
         /**
-         * Parses an id/modified entry and returns the two components as a
-         * Map.Entry.
+         * Parses an id/modified entry and returns the two components as a Map.Entry.
          *
          * @param entry the id/modified String.
          * @return the parsed components.
@@ -1032,12 +1051,12 @@ public class VersionGarbageCollector {
     };
 
     /**
-     * GCMessageTracker is a partial implementation of GCMonitor. We use it to
-     * keep track of the last message issued by the GC job.
+     * GCMessageTracker is a partial implementation of GCMonitor. We use it to keep track of the
+     * last message issued by the GC job.
      */
     private static class GCMessageTracker
-            extends GCMonitor.Empty
-            implements Supplier<String> {
+        extends GCMonitor.Empty
+        implements Supplier<String> {
 
         private volatile String lastMessage = STATUS_INITIALIZING;
 
@@ -1063,6 +1082,7 @@ public class VersionGarbageCollector {
     }
 
     private static final class LimitExceededException extends Exception {
+
         private static final long serialVersionUID = 6578586397629516408L;
     }
 }

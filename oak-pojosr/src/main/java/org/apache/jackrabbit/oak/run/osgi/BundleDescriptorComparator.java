@@ -23,16 +23,16 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
-
 import org.apache.felix.connect.launch.BundleDescriptor;
 import org.osgi.framework.Constants;
 
 /**
- * Comparator to simulate start level support of OSgi framework by ordering the startup
- * sequence. This is required to ensure that required configured is provisioned with
- * ConfigAdmin before the SCR bundle starts
+ * Comparator to simulate start level support of OSgi framework by ordering the startup sequence.
+ * This is required to ensure that required configured is provisioned with ConfigAdmin before the
+ * SCR bundle starts
  */
 class BundleDescriptorComparator implements Comparator<BundleDescriptor> {
+
     public static final Integer DEFAULT_START_LEVEL = 20;
 
     private final Map<String, Integer> startLevels;
@@ -63,7 +63,8 @@ class BundleDescriptorComparator implements Comparator<BundleDescriptor> {
     }
 
     private Integer getStartLevel(BundleDescriptor bd) {
-        String symbolicName = ((Map<String, String>) bd.getHeaders()).get(Constants.BUNDLE_SYMBOLICNAME);
+        String symbolicName = ((Map<String, String>) bd.getHeaders()).get(
+            Constants.BUNDLE_SYMBOLICNAME);
         Integer level = startLevels.get(symbolicName);
         if (level == null) {
             level = DEFAULT_START_LEVEL;

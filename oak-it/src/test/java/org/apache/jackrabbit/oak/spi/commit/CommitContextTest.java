@@ -19,13 +19,19 @@
 
 package org.apache.jackrabbit.oak.spi.commit;
 
+import static org.apache.jackrabbit.oak.api.CommitFailedException.MERGE;
+import static org.hamcrest.core.StringContains.containsString;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import javax.jcr.NoSuchWorkspaceException;
 import javax.security.auth.login.LoginException;
-
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.OakBaseTest;
@@ -42,15 +48,8 @@ import org.junit.After;
 import org.junit.Assume;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.oak.api.CommitFailedException.MERGE;
-import static org.hamcrest.core.StringContains.containsString;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
 public class CommitContextTest extends OakBaseTest {
+
     private CommitInfoCapturingObserver observer = new CommitInfoCapturingObserver();
     private ContentSession session;
     private ContentRepository repository;
@@ -73,9 +72,9 @@ public class CommitContextTest extends OakBaseTest {
     @Test
     public void basicSetup() throws Exception {
         repository = new Oak(store)
-                .with(new OpenSecurityProvider())
-                .with(observer)
-                .createContentRepository();
+            .with(new OpenSecurityProvider())
+            .with(observer)
+            .createContentRepository();
 
         session = newSession();
         Root root = session.getLatestRoot();
@@ -97,22 +96,22 @@ public class CommitContextTest extends OakBaseTest {
     }
 
     @Test
-    public void attributeAddedByCommitHook() throws Exception{
+    public void attributeAddedByCommitHook() throws Exception {
         repository = new Oak(store)
-                .with(new OpenSecurityProvider())
-                .with(observer)
-                .with(new CommitHook() {
-                    @NotNull
-                    @Override
-                    public NodeState processCommit(NodeState before, NodeState after, CommitInfo info)
-                            throws CommitFailedException {
-                        CommitContext attrs = (CommitContext) info.getInfo().get(CommitContext.NAME);
-                        assertNotNull(attrs);
-                        attrs.set("foo", "bar");
-                        return after;
-                    }
-                })
-                .createContentRepository();
+            .with(new OpenSecurityProvider())
+            .with(observer)
+            .with(new CommitHook() {
+                @NotNull
+                @Override
+                public NodeState processCommit(NodeState before, NodeState after, CommitInfo info)
+                    throws CommitFailedException {
+                    CommitContext attrs = (CommitContext) info.getInfo().get(CommitContext.NAME);
+                    assertNotNull(attrs);
+                    attrs.set("foo", "bar");
+                    return after;
+                }
+            })
+            .createContentRepository();
 
         session = newSession();
         Root root = session.getLatestRoot();
@@ -127,43 +126,43 @@ public class CommitContextTest extends OakBaseTest {
     }
 
     @Test
-    public void attributesBeingReset() throws Exception{
+    public void attributesBeingReset() throws Exception {
         //This test can only work with DocumentNodeStore as only that
         //reattempt a failed merge. SegmentNodeStore would not do another
         //attempt
         assumeDocumentStore();
         final AtomicInteger invokeCount = new AtomicInteger();
         repository = new Oak(store)
-                .with(new OpenSecurityProvider())
-                .with(observer)
-                .with(new CommitHook() {
-                    @NotNull
-                    @Override
-                    public NodeState processCommit(NodeState before, NodeState after, CommitInfo info)
-                            throws CommitFailedException {
-                        CommitContext attrs = (CommitContext) info.getInfo().get(CommitContext.NAME);
-                        int count = invokeCount.getAndIncrement();
-                        if (count == 0) {
-                            attrs.set("a", "1");
-                            attrs.set("b", "2");
-                        } else {
-                            attrs.set("a", "3");
-                        }
-                        return after;
+            .with(new OpenSecurityProvider())
+            .with(observer)
+            .with(new CommitHook() {
+                @NotNull
+                @Override
+                public NodeState processCommit(NodeState before, NodeState after, CommitInfo info)
+                    throws CommitFailedException {
+                    CommitContext attrs = (CommitContext) info.getInfo().get(CommitContext.NAME);
+                    int count = invokeCount.getAndIncrement();
+                    if (count == 0) {
+                        attrs.set("a", "1");
+                        attrs.set("b", "2");
+                    } else {
+                        attrs.set("a", "3");
                     }
-                })
-                .with(new CommitHook() {
-                    @NotNull
-                    @Override
-                    public NodeState processCommit(NodeState before, NodeState after,
-                                                   CommitInfo info) throws CommitFailedException {
-                        if (invokeCount.get() == 1){
-                            throw new CommitFailedException(MERGE, 0, "attribute reset test");
-                        }
-                        return after;
+                    return after;
+                }
+            })
+            .with(new CommitHook() {
+                @NotNull
+                @Override
+                public NodeState processCommit(NodeState before, NodeState after,
+                    CommitInfo info) throws CommitFailedException {
+                    if (invokeCount.get() == 1) {
+                        throw new CommitFailedException(MERGE, 0, "attribute reset test");
                     }
-                })
-                .createContentRepository();
+                    return after;
+                }
+            })
+            .createContentRepository();
 
         session = newSession();
         Root root = session.getLatestRoot();
@@ -187,6 +186,7 @@ public class CommitContextTest extends OakBaseTest {
     }
 
     private static class CommitInfoCapturingObserver implements Observer {
+
         CommitInfo info;
 
         @Override

@@ -21,15 +21,13 @@ import static org.junit.Assert.assertTrue;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest;
 import org.junit.Before;
 import org.junit.Test;
 
 /**
- * Test versionable paths with multiple node stores.
- * See OAK-3169 for details.
+ * Test versionable paths with multiple node stores. See OAK-3169 for details.
  */
 public class VersionablePathNodeStoreTest extends AbstractRepositoryTest {
 
@@ -59,7 +57,7 @@ public class VersionablePathNodeStoreTest extends AbstractRepositoryTest {
         String p = n.getProperty("jcr:versionHistory").getString();
         Node n2 = session.getNodeByIdentifier(p);
         assertTrue("nodeName " + nodeName,
-                n2.isNodeType("rep:VersionablePaths"));
+            n2.isNodeType("rep:VersionablePaths"));
         n.remove();
         session.save();
     }

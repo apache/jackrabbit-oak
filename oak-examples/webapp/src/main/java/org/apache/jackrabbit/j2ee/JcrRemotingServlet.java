@@ -21,11 +21,11 @@ import javax.jcr.Repository;
 /**
  * <code>JcrRemotingServlet</code>...
  */
-public class JcrRemotingServlet extends org.apache.jackrabbit.server.remoting.davex.JcrRemotingServlet {
+public class JcrRemotingServlet extends
+    org.apache.jackrabbit.server.remoting.davex.JcrRemotingServlet {
 
     /**
-     * Returns the repository available from the servlet context of this
-     * servlet.
+     * Returns the repository available from the servlet context of this servlet.
      */
     protected Repository getRepository() {
         return RepositoryAccessServlet.getRepository(getServletContext());

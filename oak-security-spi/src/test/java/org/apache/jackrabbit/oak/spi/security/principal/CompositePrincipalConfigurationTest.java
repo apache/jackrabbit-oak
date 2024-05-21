@@ -16,15 +16,20 @@
  */
 package org.apache.jackrabbit.oak.spi.security.principal;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+
 import java.lang.reflect.Field;
 import java.security.Principal;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.AbstractCompositeConfigurationTest;
@@ -37,13 +42,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
-
-public class CompositePrincipalConfigurationTest extends AbstractCompositeConfigurationTest<PrincipalConfiguration> {
+public class CompositePrincipalConfigurationTest extends
+    AbstractCompositeConfigurationTest<PrincipalConfiguration> {
 
     private final Root root = mock(Root.class);
 
@@ -53,7 +53,8 @@ public class CompositePrincipalConfigurationTest extends AbstractCompositeConfig
     public void before() {
         compositeConfiguration = new CompositePrincipalConfiguration();
         principalConfigurationMock = mock(PrincipalConfiguration.class);
-        Mockito.when(principalConfigurationMock.getParameters()).thenReturn(ConfigurationParameters.EMPTY);
+        Mockito.when(principalConfigurationMock.getParameters())
+               .thenReturn(ConfigurationParameters.EMPTY);
     }
 
     private static void assertSize(int expected, CompositePrincipalProvider pp) throws Exception {
@@ -94,7 +95,8 @@ public class CompositePrincipalConfigurationTest extends AbstractCompositeConfig
         PrincipalProvider pp = getComposite().getPrincipalProvider(root, NamePathMapper.DEFAULT);
 
         assertFalse(pp instanceof CompositePrincipalProvider);
-        assertEquals(testConfig.getPrincipalProvider(root, NamePathMapper.DEFAULT).getClass(), pp.getClass());
+        assertEquals(testConfig.getPrincipalProvider(root, NamePathMapper.DEFAULT).getClass(),
+            pp.getClass());
     }
 
     @Test
@@ -148,16 +150,19 @@ public class CompositePrincipalConfigurationTest extends AbstractCompositeConfig
     }
 
     private static final class TestComposite extends CompositePrincipalConfiguration {
+
         TestComposite(@NotNull SecurityProvider securityProvider) {
             super(securityProvider);
         }
+
         @NotNull
         public SecurityProvider getSecurityProvider() {
             return super.getSecurityProvider();
         }
     }
 
-    private static final class TestPrincipalConfiguration extends ConfigurationBase implements PrincipalConfiguration {
+    private static final class TestPrincipalConfiguration extends ConfigurationBase implements
+        PrincipalConfiguration {
 
         @NotNull
         @Override
@@ -200,7 +205,8 @@ public class CompositePrincipalConfigurationTest extends AbstractCompositeConfig
 
         @NotNull
         @Override
-        public Iterator<? extends Principal> findPrincipals(@Nullable String nameHint, int searchType) {
+        public Iterator<? extends Principal> findPrincipals(@Nullable String nameHint,
+            int searchType) {
             return Collections.emptyIterator();
         }
 
@@ -211,7 +217,8 @@ public class CompositePrincipalConfigurationTest extends AbstractCompositeConfig
         }
     }
 
-    private static final class TestEmptyConfiguration extends ConfigurationBase implements PrincipalConfiguration {
+    private static final class TestEmptyConfiguration extends ConfigurationBase implements
+        PrincipalConfiguration {
 
         @NotNull
         @Override

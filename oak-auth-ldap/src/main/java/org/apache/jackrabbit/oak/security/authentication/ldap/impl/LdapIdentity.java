@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.security.authentication.ldap.impl;
 
 import java.util.Map;
-
 import org.apache.directory.api.ldap.model.entry.Entry;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityException;
@@ -43,7 +42,8 @@ public abstract class LdapIdentity implements ExternalIdentity {
 
     private final LdapIdentityProperties properties = new LdapIdentityProperties();
 
-    protected LdapIdentity(LdapIdentityProvider provider, ExternalIdentityRef ref, String id, String path, Entry entry) {
+    protected LdapIdentity(LdapIdentityProvider provider, ExternalIdentityRef ref, String id,
+        String path, Entry entry) {
         this.provider = provider;
         this.ref = ref;
         this.id = id;
@@ -75,6 +75,7 @@ public abstract class LdapIdentity implements ExternalIdentity {
 
     /**
      * Returns the DN as principal name.
+     *
      * @return the DN
      */
     @NotNull

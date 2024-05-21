@@ -19,8 +19,8 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-/** 
- * @deprecated 
+/**
+ * @deprecated
  */
 @Deprecated
 public class ExternalGroupRef extends ExternalIdentityRef {
@@ -28,7 +28,7 @@ public class ExternalGroupRef extends ExternalIdentityRef {
     /**
      * Creates a new external group ref with the given id and provider name
      *
-     * @param id the id of the identity.
+     * @param id           the id of the identity.
      * @param providerName the name of the identity provider
      */
     public ExternalGroupRef(@NotNull String id, @Nullable String providerName) {

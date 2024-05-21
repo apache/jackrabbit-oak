@@ -35,21 +35,21 @@ public class NodeTypeUtils {
     /**
      * Creates a node type with the given properties.
      *
-     * @param session the session
-     * @param name the name
-     * @param properties the properties
-     * @param superTypes the super types
+     * @param session       the session
+     * @param name          the name
+     * @param properties    the properties
+     * @param superTypes    the super types
      * @param childrenTypes the children types
-     * @param baseType the base type
-     * @param isMixin the is mixin
+     * @param baseType      the base type
+     * @param isMixin       the is mixin
      * @return the string
      * @throws RepositoryException the repository exception
      */
     @SuppressWarnings("unchecked")
     public static String createNodeType(Session session, String name,
-            String[] properties, int propTypes[], String[] superTypes, String[] childrenTypes,
-            String baseType, boolean isMixin)
-            throws RepositoryException {
+        String[] properties, int propTypes[], String[] superTypes, String[] childrenTypes,
+        String baseType, boolean isMixin)
+        throws RepositoryException {
         NodeTypeManager ntm = session.getWorkspace().getNodeTypeManager();
         NodeTypeTemplate ntt = ntm.createNodeTypeTemplate();
         if (baseType != null) {
@@ -66,13 +66,13 @@ public class NodeTypeUtils {
         if (properties != null) {
             for (int count = 0; count < properties.length; count++) {
                 ntt.getPropertyDefinitionTemplates().add(
-                        createPropertyDefTemplate(ntm, properties[count], propTypes[count]));
+                    createPropertyDefTemplate(ntm, properties[count], propTypes[count]));
             }
         }
 
         if (childrenTypes != null) {
             ntt.getNodeDefinitionTemplates().add(
-                    createNodeDefTemplate(ntm, childrenTypes));
+                createNodeDefTemplate(ntm, childrenTypes));
         }
 
         ntt.setMixin(isMixin);
@@ -84,13 +84,13 @@ public class NodeTypeUtils {
     /**
      * Creates the property definition template.
      *
-     * @param ntm the ntm
+     * @param ntm  the ntm
      * @param prop the prop
      * @return the property definition template
      * @throws RepositoryException the repository exception
      */
     private static PropertyDefinitionTemplate createPropertyDefTemplate(NodeTypeManager ntm,
-            String prop, int type) throws RepositoryException {
+        String prop, int type) throws RepositoryException {
         PropertyDefinitionTemplate pdt = ntm.createPropertyDefinitionTemplate();
         pdt.setName(prop);
         pdt.setOnParentVersion(OnParentVersionAction.IGNORE);
@@ -105,7 +105,7 @@ public class NodeTypeUtils {
     /**
      * Creates the node definition template.
      *
-     * @param ntm the ntm
+     * @param ntm   the ntm
      * @param types the types
      * @return the node definition template
      * @throws RepositoryException the repository exception

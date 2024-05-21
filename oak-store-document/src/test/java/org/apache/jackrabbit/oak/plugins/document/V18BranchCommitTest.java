@@ -41,13 +41,12 @@ public class V18BranchCommitTest {
     @Before
     public void setup() {
         ns = builderProvider.newBuilder().setUpdateLimit(10)
-                .setAsyncDelay(0).getNodeStore();
+                            .setAsyncDelay(0).getNodeStore();
     }
 
     /**
-     * This test piggybacks on all the other tests with the idea that they
-     * leave the repository with some useful "_bc" seeds, which the test
-     * is keen on testing by simulating a pre 1.8 upgrade.
+     * This test piggybacks on all the other tests with the idea that they leave the repository with
+     * some useful "_bc" seeds, which the test is keen on testing by simulating a pre 1.8 upgrade.
      */
     @After
     public void tearDownPiggybackTest() {

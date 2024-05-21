@@ -20,9 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
-
 import javax.jcr.Session;
-
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
@@ -30,14 +28,14 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.Assert;
 
 /**
- * Test the performance of adding a configured number of members to groups. The
- * following parameters can be used to run the benchmark:
- *
- * - numberOfMembers : the number of members that should be added in the test run
- * - batchSize : the size of the memberID-array to be passed to the addMembers call
- *
- * In contrast to {@link AddMembersTest}, this benchmark will always add unique
- * members to the given group.
+ * Test the performance of adding a configured number of members to groups. The following parameters
+ * can be used to run the benchmark:
+ * <p>
+ * - numberOfMembers : the number of members that should be added in the test run - batchSize : the
+ * size of the memberID-array to be passed to the addMembers call
+ * <p>
+ * In contrast to {@link AddMembersTest}, this benchmark will always add unique members to the given
+ * group.
  */
 public class AddUniqueMembersTest extends AddMembersTest {
 
@@ -53,8 +51,9 @@ public class AddUniqueMembersTest extends AddMembersTest {
     }
 
     @Override
-    protected void addMembers(@NotNull UserManager userManger, @NotNull Group group, @NotNull Session s)
-            throws Exception {
+    protected void addMembers(@NotNull UserManager userManger, @NotNull Group group,
+        @NotNull Session s)
+        throws Exception {
         long uid = index.getAndIncrement();
 
         for (int i = 0; i <= numberOfMembers; i++) {
@@ -69,7 +68,8 @@ public class AddUniqueMembersTest extends AddMembersTest {
                 }
                 failed = group.addMembers(ids.toArray(new String[ids.size()]));
             }
-            Assert.assertTrue("Group " + group.getID() + ": unable to add: " + failed, failed.isEmpty());
+            Assert.assertTrue("Group " + group.getID() + ": unable to add: " + failed,
+                failed.isEmpty());
             s.save();
         }
     }

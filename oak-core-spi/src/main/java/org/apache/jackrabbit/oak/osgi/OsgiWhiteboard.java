@@ -33,7 +33,6 @@ import java.util.Objects;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicReference;
-
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Tracker;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
@@ -53,7 +52,7 @@ import org.slf4j.LoggerFactory;
 public class OsgiWhiteboard implements Whiteboard {
 
     private static final Logger log = LoggerFactory
-            .getLogger(OsgiWhiteboard.class);
+        .getLogger(OsgiWhiteboard.class);
 
     private final BundleContext context;
 
@@ -63,7 +62,7 @@ public class OsgiWhiteboard implements Whiteboard {
 
     @Override
     public <T> Registration register(
-            final Class<T> type, final T service, Map<?, ?> properties) {
+        final Class<T> type, final T service, Map<?, ?> properties) {
         Objects.requireNonNull(type);
         Objects.requireNonNull(service);
         Objects.requireNonNull(properties);
@@ -77,9 +76,10 @@ public class OsgiWhiteboard implements Whiteboard {
         }
 
         final ServiceRegistration<T> registration =
-                context.registerService(type, service, dictionary);
+            context.registerService(type, service, dictionary);
         return new Registration() {
             private volatile boolean unregistered;
+
             @Override
             public void unregister() {
                 try {
@@ -87,21 +87,21 @@ public class OsgiWhiteboard implements Whiteboard {
                         registration.unregister();
                         unregistered = true;
                     } else {
-                        log.warn("Service {} of type {} unregistered multiple times", service, type);
+                        log.warn("Service {} of type {} unregistered multiple times", service,
+                            type);
                     }
                 } catch (IllegalStateException ex) {
                     log.warn("Error unregistering service: {} of type {}",
-                            service, type.getName(), ex);
+                        service, type.getName(), ex);
                 }
             }
         };
     }
 
     /**
-     * Returns a tracker for services of the given type. The returned tracker
-     * is optimized for frequent {@link Tracker#getServices()} calls through
-     * the use of a pre-compiled list of services that's atomically updated
-     * whenever services are added, modified or removed.
+     * Returns a tracker for services of the given type. The returned tracker is optimized for
+     * frequent {@link Tracker#getServices()} calls through the use of a pre-compiled list of
+     * services that's atomically updated whenever services are added, modified or removed.
      */
     @Override
     public <T> Tracker<T> track(final Class<T> type) {
@@ -116,46 +116,51 @@ public class OsgiWhiteboard implements Whiteboard {
     private <T> Tracker<T> track(Class<T> type, Filter filter) {
         Objects.requireNonNull(type);
         final AtomicReference<List<T>> list =
-                new AtomicReference<List<T>>(Collections.<T>emptyList());
+            new AtomicReference<List<T>>(Collections.<T>emptyList());
         final ServiceTrackerCustomizer customizer =
-                new ServiceTrackerCustomizer() {
-                    private final Map<ServiceReference, T> services =
-                            new HashMap<>();
-                    @Override @SuppressWarnings("unchecked")
-                    public synchronized Object addingService(
-                            ServiceReference reference) {
-                        Object service = context.getService(reference);
-                        if (type.isInstance(service)) {
-                            services.put(reference, (T) service);
-                            list.set(getServiceList(services));
-                            return service;
-                        } else {
-                            context.ungetService(reference);
-                            return null;
-                        }
-                    }
-                    @Override @SuppressWarnings("unchecked")
-                    public synchronized void modifiedService(
-                            ServiceReference reference, Object service) {
-                        // TODO: Figure out if the old reference instance
-                        // would automatically reflect the updated properties.
-                        // For now we play it safe by replacing the old key
-                        // with the new reference instance passed as argument.
-                        services.remove(reference);
+            new ServiceTrackerCustomizer() {
+                private final Map<ServiceReference, T> services =
+                    new HashMap<>();
+
+                @Override
+                @SuppressWarnings("unchecked")
+                public synchronized Object addingService(
+                    ServiceReference reference) {
+                    Object service = context.getService(reference);
+                    if (type.isInstance(service)) {
                         services.put(reference, (T) service);
                         list.set(getServiceList(services));
-                    }
-                    @Override
-                    public synchronized void removedService(
-                            ServiceReference reference, Object service) {
-                        services.remove(reference);
-                        list.set(getServiceList(services));
-                        // TODO: Note that the service might still be in use
-                        // by some client that called getServices() before
-                        // this method was invoked.
+                        return service;
+                    } else {
                         context.ungetService(reference);
+                        return null;
                     }
-                };
+                }
+
+                @Override
+                @SuppressWarnings("unchecked")
+                public synchronized void modifiedService(
+                    ServiceReference reference, Object service) {
+                    // TODO: Figure out if the old reference instance
+                    // would automatically reflect the updated properties.
+                    // For now we play it safe by replacing the old key
+                    // with the new reference instance passed as argument.
+                    services.remove(reference);
+                    services.put(reference, (T) service);
+                    list.set(getServiceList(services));
+                }
+
+                @Override
+                public synchronized void removedService(
+                    ServiceReference reference, Object service) {
+                    services.remove(reference);
+                    list.set(getServiceList(services));
+                    // TODO: Note that the service might still be in use
+                    // by some client that called getServices() before
+                    // this method was invoked.
+                    context.ungetService(reference);
+                }
+            };
 
         final ServiceTracker tracker = new ServiceTracker(context, filter, customizer);
         tracker.open();
@@ -164,6 +169,7 @@ public class OsgiWhiteboard implements Whiteboard {
             public List<T> getServices() {
                 return list.get();
             }
+
             @Override
             public void stop() {
                 tracker.close();
@@ -172,24 +178,24 @@ public class OsgiWhiteboard implements Whiteboard {
     }
 
     /**
-     * Utility method that sorts the service objects in the given map
-     * according to their service rankings and returns the resulting list.
+     * Utility method that sorts the service objects in the given map according to their service
+     * rankings and returns the resulting list.
      *
      * @param services currently available services
      * @return ordered list of the services
      */
     private static <T> List<T> getServiceList(
-            Map<ServiceReference, T> services) {
+        Map<ServiceReference, T> services) {
         switch (services.size()) {
-        case 0:
-            return emptyList();
-        case 1:
-            return singletonList(
+            case 0:
+                return emptyList();
+            case 1:
+                return singletonList(
                     services.values().iterator().next());
-        default:
-            SortedMap<ServiceReference, T> sorted = new TreeMap<>();
-            sorted.putAll(services);
-            return new ArrayList<>(sorted.values());
+            default:
+                SortedMap<ServiceReference, T> sorted = new TreeMap<>();
+                sorted.putAll(services);
+                return new ArrayList<>(sorted.values());
         }
     }
 

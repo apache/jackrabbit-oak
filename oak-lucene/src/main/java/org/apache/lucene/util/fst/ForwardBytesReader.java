@@ -28,43 +28,46 @@ package org.apache.lucene.util.fst;
 // TODO: can we use just ByteArrayDataInput...?  need to
 // add a .skipBytes to DataInput.. hmm and .setPosition
 
-/** Reads from a single byte[]. */
+/**
+ * Reads from a single byte[].
+ */
 final class ForwardBytesReader extends FST.BytesReader {
-  private final byte[] bytes;
-  private int pos;
 
-  public ForwardBytesReader(byte[] bytes) {
-    this.bytes = bytes;
-  }
+    private final byte[] bytes;
+    private int pos;
 
-  @Override
-  public byte readByte() {
-    return bytes[pos++];
-  }
+    public ForwardBytesReader(byte[] bytes) {
+        this.bytes = bytes;
+    }
 
-  @Override
-  public void readBytes(byte[] b, int offset, int len) {
-    System.arraycopy(bytes, pos, b, offset, len);
-    pos += len;
-  }
+    @Override
+    public byte readByte() {
+        return bytes[pos++];
+    }
 
-  @Override
-  public void skipBytes(int count) {
-    pos += count;
-  }
+    @Override
+    public void readBytes(byte[] b, int offset, int len) {
+        System.arraycopy(bytes, pos, b, offset, len);
+        pos += len;
+    }
 
-  @Override
-  public long getPosition() {
-    return pos;
-  }
+    @Override
+    public void skipBytes(int count) {
+        pos += count;
+    }
 
-  @Override
-  public void setPosition(long pos) {
-    this.pos = (int) pos;
-  }
+    @Override
+    public long getPosition() {
+        return pos;
+    }
 
-  @Override
-  public boolean reversed() {
-    return false;
-  }
+    @Override
+    public void setPosition(long pos) {
+        this.pos = (int) pos;
+    }
+
+    @Override
+    public boolean reversed() {
+        return false;
+    }
 }

@@ -26,7 +26,6 @@ import javax.jcr.nodetype.NodeDefinition;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.PropertyDefinition;
 import javax.jcr.util.TraversingItemVisitor;
-
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.test.AbstractJCRTest;
 import org.jetbrains.annotations.NotNull;
@@ -49,7 +48,8 @@ public class NodeTypeDefinitionTest extends AbstractJCRTest {
     }
 
     public void testIndexedChildDefinition() throws Exception {
-        String ntPath = NodeTypeConstants.NODE_TYPES_PATH + '/' + NodeTypeConstants.NT_VERSIONHISTORY;
+        String ntPath =
+            NodeTypeConstants.NODE_TYPES_PATH + '/' + NodeTypeConstants.NT_VERSIONHISTORY;
         assertTrue(superuser.nodeExists(ntPath + "/jcr:childNodeDefinition"));
         assertTrue(superuser.nodeExists(ntPath + "/jcr:childNodeDefinition[1]"));
 
@@ -57,7 +57,8 @@ public class NodeTypeDefinitionTest extends AbstractJCRTest {
         assertEquals(ntPath + "/jcr:childNodeDefinition", cdNode.getPath());
 
         List<String> defNames = new ArrayList();
-        NodeType nt = superuser.getWorkspace().getNodeTypeManager().getNodeType(NodeTypeConstants.NT_VERSIONHISTORY);
+        NodeType nt = superuser.getWorkspace().getNodeTypeManager()
+                               .getNodeType(NodeTypeConstants.NT_VERSIONHISTORY);
         for (NodeDefinition nd : nt.getDeclaredChildNodeDefinitions()) {
             defNames.add(nd.getName());
         }
@@ -67,8 +68,9 @@ public class NodeTypeDefinitionTest extends AbstractJCRTest {
         while (it.hasNext()) {
             Node def = it.nextNode();
             int index = getIndex(def);
-            String name = (def.hasProperty(NodeTypeConstants.JCR_NAME)) ? def.getProperty(NodeTypeConstants.JCR_NAME).getString() : NodeTypeConstants.RESIDUAL_NAME;
-            assertEquals(name, defNames.get(index-1));
+            String name = (def.hasProperty(NodeTypeConstants.JCR_NAME)) ? def.getProperty(
+                NodeTypeConstants.JCR_NAME).getString() : NodeTypeConstants.RESIDUAL_NAME;
+            assertEquals(name, defNames.get(index - 1));
         }
     }
 
@@ -82,7 +84,8 @@ public class NodeTypeDefinitionTest extends AbstractJCRTest {
         assertEquals(ntPath + "/jcr:propertyDefinition", pdNode.getPath());
 
         List<String> defNames = new ArrayList();
-        NodeType nt = superuser.getWorkspace().getNodeTypeManager().getNodeType(NodeTypeConstants.NT_VERSION);
+        NodeType nt = superuser.getWorkspace().getNodeTypeManager()
+                               .getNodeType(NodeTypeConstants.NT_VERSION);
         for (PropertyDefinition nd : nt.getDeclaredPropertyDefinitions()) {
             defNames.add(nd.getName());
         }
@@ -92,14 +95,15 @@ public class NodeTypeDefinitionTest extends AbstractJCRTest {
         while (it.hasNext()) {
             Node def = it.nextNode();
             int index = getIndex(def);
-            String name = (def.hasProperty(NodeTypeConstants.JCR_NAME)) ? def.getProperty(NodeTypeConstants.JCR_NAME).getString() : NodeTypeConstants.RESIDUAL_NAME;
-            assertEquals(name, defNames.get(index-1));
+            String name = (def.hasProperty(NodeTypeConstants.JCR_NAME)) ? def.getProperty(
+                NodeTypeConstants.JCR_NAME).getString() : NodeTypeConstants.RESIDUAL_NAME;
+            assertEquals(name, defNames.get(index - 1));
         }
     }
 
     private static int getIndex(@NotNull Node node) throws RepositoryException {
         String name = node.getName();
         int i = name.lastIndexOf('[');
-        return (i == -1) ? 1 : Integer.valueOf(name.substring(i+1, name.lastIndexOf(']')));
+        return (i == -1) ? 1 : Integer.valueOf(name.substring(i + 1, name.lastIndexOf(']')));
     }
 }

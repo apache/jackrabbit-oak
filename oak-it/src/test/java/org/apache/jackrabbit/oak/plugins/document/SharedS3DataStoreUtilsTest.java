@@ -18,12 +18,14 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import static org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils.deleteBucket;
+import static org.junit.Assume.assumeTrue;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.Date;
 import java.util.List;
 import java.util.Properties;
-
 import org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants;
 import org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStoreUtilsTest;
@@ -35,14 +37,12 @@ import org.junit.runners.Parameterized;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils.deleteBucket;
-import static org.junit.Assume.assumeTrue;
-
 /**
  * SharedDataStoreUtilsTest for S3.
  */
 @RunWith(Parameterized.class)
 public class SharedS3DataStoreUtilsTest extends SharedDataStoreUtilsTest {
+
     private static final Logger log = LoggerFactory.getLogger(SharedS3DataStoreUtilsTest.class);
 
     @Parameterized.Parameter

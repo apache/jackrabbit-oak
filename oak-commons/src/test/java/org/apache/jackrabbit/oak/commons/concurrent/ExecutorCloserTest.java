@@ -19,21 +19,20 @@
 
 package org.apache.jackrabbit.oak.commons.concurrent;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-
 import org.junit.Test;
-
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 public class ExecutorCloserTest {
 
     @Test
-    public void simple() throws Exception{
+    public void simple() throws Exception {
         ExecutorService executorService = Executors.newSingleThreadExecutor();
         assertFalse(executorService.isTerminated());
 
@@ -42,12 +41,12 @@ public class ExecutorCloserTest {
     }
 
     @Test
-    public void nullExecutor() throws Exception{
+    public void nullExecutor() throws Exception {
         new ExecutorCloser(null).close();
     }
 
     @Test
-    public void timeoutHandling() throws Exception{
+    public void timeoutHandling() throws Exception {
         ExecutorService executorService = Executors.newSingleThreadExecutor();
 
         final CountDownLatch latch = new CountDownLatch(1);

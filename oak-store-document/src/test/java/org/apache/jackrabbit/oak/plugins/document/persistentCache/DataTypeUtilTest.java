@@ -141,7 +141,7 @@ public class DataTypeUtilTest {
         Path p = Path.fromString("/foo/bar");
         RevisionVector rootRev = ns.getHeadRevision();
         DocumentNodeState expected = new DocumentNodeState(ns, p, rootRev,
-                Collections.emptyMap(), true, 0, null, false);
+            Collections.emptyMap(), true, 0, null, false);
         DataTypeUtil.stateToBuffer(expected, wb);
         ByteBuffer rb = readBufferFrom(wb);
         assertEquals(expected, DataTypeUtil.stateFromBuffer(ns, rb));
@@ -153,7 +153,7 @@ public class DataTypeUtilTest {
         Path p = Path.fromString("/foo/bar");
         RevisionVector rootRev = ns.getHeadRevision();
         DocumentNodeState expected = new DocumentNodeState(ns, p, rootRev,
-                Collections.emptyMap(), true, 0, rootRev, false);
+            Collections.emptyMap(), true, 0, rootRev, false);
         DataTypeUtil.stateToBuffer(expected, wb);
         ByteBuffer rb = readBufferFrom(wb);
         assertEquals(expected, DataTypeUtil.stateFromBuffer(ns, rb));

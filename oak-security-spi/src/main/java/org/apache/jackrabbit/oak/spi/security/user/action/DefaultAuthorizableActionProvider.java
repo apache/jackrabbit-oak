@@ -35,55 +35,59 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Default implementation of the {@link AuthorizableActionProvider} interface
- * that allows to config all actions provided by the OAK.
+ * Default implementation of the {@link AuthorizableActionProvider} interface that allows to config
+ * all actions provided by the OAK.
  */
 @Component(
-        service = AuthorizableActionProvider.class,
-        property = OAK_SECURITY_NAME + "=org.apache.jackrabbit.oak.spi.security.user.action.DefaultAuthorizableActionProvider")
+    service = AuthorizableActionProvider.class,
+    property = OAK_SECURITY_NAME
+        + "=org.apache.jackrabbit.oak.spi.security.user.action.DefaultAuthorizableActionProvider")
 @Designate(ocd = DefaultAuthorizableActionProvider.Configuration.class)
 public class DefaultAuthorizableActionProvider implements AuthorizableActionProvider {
 
     @ObjectClassDefinition(name = "Apache Jackrabbit Oak AuthorizableActionProvider")
     @interface Configuration {
+
         @AttributeDefinition(
-                name = "Authorizable Actions",
-                description = "The set of actions that is supported by this provider implementation.",
-                cardinality = 4,
-                options = {
-                        @Option(label = "AccessControlAction", value = "org.apache.jackrabbit.oak.spi.security.user.action.AccessControlAction"),
-                        @Option(label = "PasswordValidationAction", value = "org.apache.jackrabbit.oak.spi.security.user.action.PasswordValidationAction"),
-                        @Option(label = "PasswordChangeAction", value = "org.apache.jackrabbit.oak.spi.security.user.action.PasswordChangeAction"),
-                        @Option(label = "ClearMembershipAction", value = "org.apache.jackrabbit.oak.spi.security.user.action.ClearMembershipAction")
-                })
+            name = "Authorizable Actions",
+            description = "The set of actions that is supported by this provider implementation.",
+            cardinality = 4,
+            options = {
+                @Option(label = "AccessControlAction", value = "org.apache.jackrabbit.oak.spi.security.user.action.AccessControlAction"),
+                @Option(label = "PasswordValidationAction", value = "org.apache.jackrabbit.oak.spi.security.user.action.PasswordValidationAction"),
+                @Option(label = "PasswordChangeAction", value = "org.apache.jackrabbit.oak.spi.security.user.action.PasswordChangeAction"),
+                @Option(label = "ClearMembershipAction", value = "org.apache.jackrabbit.oak.spi.security.user.action.ClearMembershipAction")
+            })
         String[] enabledActions();
 
         @AttributeDefinition(
-                name = "Configure AccessControlAction: User Privileges",
-                description = "The name of the privileges that should be granted to a given user on it's home.")
+            name = "Configure AccessControlAction: User Privileges",
+            description = "The name of the privileges that should be granted to a given user on it's home.")
         String[] userPrivilegeNames();
 
         @AttributeDefinition(
-                name = "Configure AccessControlAction: Group Privileges",
-                description = "The name of the privileges that should be granted to a given group on it's home.")
+            name = "Configure AccessControlAction: Group Privileges",
+            description = "The name of the privileges that should be granted to a given group on it's home.")
         String[] groupPrivilegeNames();
 
         @AttributeDefinition(
-                name = "Configure PasswordValidationAction: Password Constraint",
-                description = "A regular expression specifying the pattern that must be matched by a user's password.")
+            name = "Configure PasswordValidationAction: Password Constraint",
+            description = "A regular expression specifying the pattern that must be matched by a user's password.")
         String constraint();
     }
 
-    private static final Logger log = LoggerFactory.getLogger(DefaultAuthorizableActionProvider.class);
+    private static final Logger log = LoggerFactory.getLogger(
+        DefaultAuthorizableActionProvider.class);
 
     private static final Map<String, Class<? extends AuthorizableAction>> SUPPORTED_ACTIONS = ImmutableMap.<String, Class<? extends AuthorizableAction>>of(
-            AccessControlAction.class.getName(), AccessControlAction.class,
-            PasswordValidationAction.class.getName(), PasswordValidationAction.class,
-            PasswordChangeAction.class.getName(), PasswordChangeAction.class,
-            ClearMembershipAction.class.getName(), ClearMembershipAction.class
+        AccessControlAction.class.getName(), AccessControlAction.class,
+        PasswordValidationAction.class.getName(), PasswordValidationAction.class,
+        PasswordChangeAction.class.getName(), PasswordChangeAction.class,
+        ClearMembershipAction.class.getName(), ClearMembershipAction.class
     );
 
-    private static final String[] DEFAULT_ACTIONS = new String[] {AccessControlAction.class.getName()};
+    private static final String[] DEFAULT_ACTIONS = new String[]{
+        AccessControlAction.class.getName()};
 
     static final String ENABLED_ACTIONS = "enabledActions";
 
@@ -92,7 +96,8 @@ public class DefaultAuthorizableActionProvider implements AuthorizableActionProv
     private ConfigurationParameters config = ConfigurationParameters.EMPTY;
 
     @SuppressWarnings("UnusedDeclaration")
-    public DefaultAuthorizableActionProvider() {}
+    public DefaultAuthorizableActionProvider() {
+    }
 
     public DefaultAuthorizableActionProvider(ConfigurationParameters config) {
         if (config != null) {
@@ -103,8 +108,10 @@ public class DefaultAuthorizableActionProvider implements AuthorizableActionProv
     //-----------------------------------------< AuthorizableActionProvider >---
     @NotNull
     @Override
-    public List<? extends AuthorizableAction> getAuthorizableActions(@NotNull SecurityProvider securityProvider) {
-        List<AuthorizableAction> actions = Lists.newArrayListWithExpectedSize(enabledActions.length);
+    public List<? extends AuthorizableAction> getAuthorizableActions(
+        @NotNull SecurityProvider securityProvider) {
+        List<AuthorizableAction> actions = Lists.newArrayListWithExpectedSize(
+            enabledActions.length);
         for (String className : enabledActions) {
             try {
                 Class<? extends AuthorizableAction> cl = SUPPORTED_ACTIONS.get(className);

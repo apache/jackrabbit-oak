@@ -20,7 +20,6 @@
 package org.apache.jackrabbit.oak.index;
 
 import java.io.IOException;
-
 import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.importer.AsyncIndexerLock;
@@ -61,9 +60,9 @@ class IndexImporterSupport extends IndexImporterSupportBase {
         MountInfoProvider mip = extendedIndexHelper.getMountInfoProvider();
         //Later we can add support for property index and other indexes here
         return new CompositeIndexEditorProvider(
-                createLuceneEditorProvider(),
-                new PropertyIndexEditorProvider().with(mip),
-                new ReferenceEditorProvider().with(mip)
+            createLuceneEditorProvider(),
+            new PropertyIndexEditorProvider().with(mip),
+            new ReferenceEditorProvider().with(mip)
         );
     }
 

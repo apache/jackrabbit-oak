@@ -19,12 +19,11 @@ package org.apache.jackrabbit.oak.security.authentication.ldap.impl;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
-
 import org.jetbrains.annotations.Nullable;
 
 /**
- * {@code LdapIdentityProperties} implements a case insensitive hash map that preserves the case of the keys but
- * ignores the case during lookup.
+ * {@code LdapIdentityProperties} implements a case insensitive hash map that preserves the case of
+ * the keys but ignores the case during lookup.
  */
 public class LdapIdentityProperties extends HashMap<String, Object> {
 
@@ -44,7 +43,7 @@ public class LdapIdentityProperties extends HashMap<String, Object> {
 
     public LdapIdentityProperties(Map<? extends String, ?> m) {
         super(m);
-        for (String key: m.keySet()) {
+        for (String key : m.keySet()) {
             keyMapping.put(convert(key), key);
         }
     }
@@ -76,7 +75,7 @@ public class LdapIdentityProperties extends HashMap<String, Object> {
     @Override
     public void putAll(Map<? extends String, ?> m) {
         super.putAll(m);
-        for (String key: m.keySet()) {
+        for (String key : m.keySet()) {
             keyMapping.put(convert(key), key);
         }
     }

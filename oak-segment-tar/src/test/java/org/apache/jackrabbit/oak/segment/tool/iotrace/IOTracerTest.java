@@ -37,7 +37,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
-
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.segment.SegmentNodeBuilder;
@@ -83,8 +82,8 @@ public class IOTracerTest extends IOMonitorAdapter {
     private FileStore createFileStore(IOMonitor ioMonitor) {
         try {
             return fileStoreBuilder(folder.getRoot())
-                    .withSegmentCacheSize(0)
-                    .withIOMonitor(ioMonitor).build();
+                .withSegmentCacheSize(0)
+                .withIOMonitor(ioMonitor).build();
         } catch (InvalidFileStoreVersionException | IOException e) {
             throw new IllegalStateException(e);
         }
@@ -97,13 +96,13 @@ public class IOTracerTest extends IOMonitorAdapter {
 
             IOTracer ioTracer = newIOTracer(factory, out, BreadthFirstTrace.CONTEXT_SPEC);
             ioTracer.collectTrace(
-                    new BreadthFirstTrace(2, "/", ioTracer::setContext));
+                new BreadthFirstTrace(2, "/", ioTracer::setContext));
 
             try (BufferedReader reader = new BufferedReader(new StringReader(out.toString()))) {
                 Optional<String> header = reader.lines().findFirst();
                 List<String[]> entries = reader.lines()
-                    .map(line -> line.split(","))
-                    .collect(toList());
+                                               .map(line -> line.split(","))
+                                               .collect(toList());
 
                 assertTrue(header.isPresent());
                 assertEquals("timestamp,file,segmentId,length,elapsed,depth,count", header.get());
@@ -111,21 +110,21 @@ public class IOTracerTest extends IOMonitorAdapter {
                 long now = currentTimeMillis();
                 assertTrue("The timestamps of all entries must be in the past",
                     entries.stream()
-                        .map(row -> parseLong(row[0]))  // ts
-                        .allMatch(ts -> ts <= now));
+                           .map(row -> parseLong(row[0]))  // ts
+                           .allMatch(ts -> ts <= now));
 
                 assertEquals("Expected depths 0, 1 and 2",
-                        ImmutableSet.of(0, 1, 2),
-                        entries.stream()
-                            .map(row -> parseInt(row[5])) // depth
-                            .distinct().collect(toSet()));
+                    ImmutableSet.of(0, 1, 2),
+                    entries.stream()
+                           .map(row -> parseInt(row[5])) // depth
+                           .distinct().collect(toSet()));
 
                 assertEquals("Expected max 10 nodes",
-                        Optional.of(true),
-                        entries.stream()
-                            .map(row -> parseInt(row[6])) // count
-                            .max(Comparator.naturalOrder())
-                            .map(max -> max <= 10));
+                    Optional.of(true),
+                    entries.stream()
+                           .map(row -> parseInt(row[6])) // count
+                           .max(Comparator.naturalOrder())
+                           .map(max -> max <= 10));
             }
         }
     }
@@ -137,35 +136,36 @@ public class IOTracerTest extends IOMonitorAdapter {
 
             IOTracer ioTracer = newIOTracer(factory, out, DepthFirstTrace.CONTEXT_SPEC);
             ioTracer.collectTrace(
-                    new DepthFirstTrace(2, "/", ioTracer::setContext));
+                new DepthFirstTrace(2, "/", ioTracer::setContext));
 
             try (BufferedReader reader = new BufferedReader(new StringReader(out.toString()))) {
                 Optional<String> header = reader.lines().findFirst();
                 List<String[]> entries = reader.lines()
-                    .map(line -> line.split(","))
-                    .collect(toList());
+                                               .map(line -> line.split(","))
+                                               .collect(toList());
 
                 assertTrue(header.isPresent());
-                assertEquals("timestamp,file,segmentId,length,elapsed,depth,count,path", header.get());
+                assertEquals("timestamp,file,segmentId,length,elapsed,depth,count,path",
+                    header.get());
 
                 long now = currentTimeMillis();
                 assertTrue("The timestamps of all entries must be in the past",
                     entries.stream()
-                        .map(row -> parseLong(row[0]))  // ts
-                        .allMatch(ts -> ts <= now));
+                           .map(row -> parseLong(row[0]))  // ts
+                           .allMatch(ts -> ts <= now));
 
                 assertEquals("Expected depths 0 and 1",
-                        ImmutableSet.of(0, 1),
-                        entries.stream()
-                            .map(row -> parseInt(row[5])) // depth
-                            .distinct().collect(toSet()));
+                    ImmutableSet.of(0, 1),
+                    entries.stream()
+                           .map(row -> parseInt(row[5])) // depth
+                           .distinct().collect(toSet()));
 
                 assertEquals("Expected max 10 nodes",
-                        Optional.of(true),
-                        entries.stream()
-                            .map(row -> parseInt(row[6])) // count
-                            .max(Comparator.naturalOrder())
-                            .map(max -> max <= 10));
+                    Optional.of(true),
+                    entries.stream()
+                           .map(row -> parseInt(row[6])) // count
+                           .max(Comparator.naturalOrder())
+                           .map(max -> max <= 10));
             }
         }
     }
@@ -178,13 +178,13 @@ public class IOTracerTest extends IOMonitorAdapter {
             IOTracer ioTracer = newIOTracer(factory, out, RandomAccessTrace.CONTEXT_SPEC);
             ImmutableList<String> paths = ImmutableList.of("/1a", "/1b", "/foo");
             ioTracer.collectTrace(
-                    new RandomAccessTrace(paths, 0, 10, ioTracer::setContext));
+                new RandomAccessTrace(paths, 0, 10, ioTracer::setContext));
 
             try (BufferedReader reader = new BufferedReader(new StringReader(out.toString()))) {
                 Optional<String> header = reader.lines().findFirst();
                 List<String[]> entries = reader.lines()
-                    .map(line -> line.split(","))
-                    .collect(toList());
+                                               .map(line -> line.split(","))
+                                               .collect(toList());
 
                 assertTrue(header.isPresent());
                 assertEquals("timestamp,file,segmentId,length,elapsed,path", header.get());
@@ -192,13 +192,13 @@ public class IOTracerTest extends IOMonitorAdapter {
                 long now = currentTimeMillis();
                 assertTrue("The timestamps of all entries must be in the past",
                     entries.stream()
-                        .map(row -> parseLong(row[0]))  // ts
-                        .allMatch(ts -> ts <= now));
+                           .map(row -> parseLong(row[0]))  // ts
+                           .allMatch(ts -> ts <= now));
 
                 assertTrue("The path of all entries must be in " + paths,
                     entries.stream()
-                       .map(row -> row[5])  // path
-                       .allMatch(paths::contains));
+                           .map(row -> row[5])  // path
+                           .allMatch(paths::contains));
             }
         }
     }

@@ -75,26 +75,30 @@ import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_S
 import static org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl.Constants.PARAM_ENABLE_AGGREGATION_FILTER;
 
 @Component(
-        service = {AuthorizationConfiguration.class, SecurityConfiguration.class},
-        property = OAK_SECURITY_NAME + "=org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl.PrincipalBasedAuthorizationConfiguration")
+    service = {AuthorizationConfiguration.class, SecurityConfiguration.class},
+    property = OAK_SECURITY_NAME
+        + "=org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl.PrincipalBasedAuthorizationConfiguration")
 @Designate(ocd = PrincipalBasedAuthorizationConfiguration.Configuration.class)
-public class PrincipalBasedAuthorizationConfiguration extends ConfigurationBase implements AuthorizationConfiguration {
+public class PrincipalBasedAuthorizationConfiguration extends ConfigurationBase implements
+    AuthorizationConfiguration {
 
     @ObjectClassDefinition(name = "Apache Jackrabbit Oak Principal Based AuthorizationConfiguration")
     @interface Configuration {
+
         @AttributeDefinition(
-                name = "Ranking",
-                description = "Ranking of this configuration in a setup with multiple authorization configurations.")
+            name = "Ranking",
+            description = "Ranking of this configuration in a setup with multiple authorization configurations.")
         int configurationRanking() default 500;
 
         @AttributeDefinition(
-                name = "Enable AggregationFilter",
-                description = "If enabled effective permission evaluation will stop after this module.")
+            name = "Enable AggregationFilter",
+            description = "If enabled effective permission evaluation will stop after this module.")
         boolean enableAggregationFilter() default false;
     }
 
     /**
-     * Reference to service implementing {@link FilterProvider} to define the principals for which this module should take effect.
+     * Reference to service implementing {@link FilterProvider} to define the principals for which
+     * this module should take effect.
      */
     private FilterProvider filterProvider;
 
@@ -112,20 +116,25 @@ public class PrincipalBasedAuthorizationConfiguration extends ConfigurationBase 
 
     @NotNull
     @Override
-    public AccessControlManager getAccessControlManager(@NotNull Root root, @NotNull NamePathMapper namePathMapper) {
-        return new PrincipalBasedAccessControlManager(new MgrProviderImpl(this, root, namePathMapper), filterProvider);
+    public AccessControlManager getAccessControlManager(@NotNull Root root,
+        @NotNull NamePathMapper namePathMapper) {
+        return new PrincipalBasedAccessControlManager(
+            new MgrProviderImpl(this, root, namePathMapper), filterProvider);
     }
 
     @NotNull
     @Override
     public RestrictionProvider getRestrictionProvider() {
-        return getParameters().getConfigValue(AccessControlConstants.PARAM_RESTRICTION_PROVIDER, RestrictionProvider.EMPTY, RestrictionProvider.class);
+        return getParameters().getConfigValue(AccessControlConstants.PARAM_RESTRICTION_PROVIDER,
+            RestrictionProvider.EMPTY, RestrictionProvider.class);
     }
 
     @NotNull
     @Override
-    public PermissionProvider getPermissionProvider(@NotNull Root root, @NotNull String workspaceName, @NotNull Set<Principal> principals) {
-        Filter f = filterProvider.getFilter(getSecurityProvider(), getRootProvider().createReadOnlyRoot(root), NamePathMapper.DEFAULT);
+    public PermissionProvider getPermissionProvider(@NotNull Root root,
+        @NotNull String workspaceName, @NotNull Set<Principal> principals) {
+        Filter f = filterProvider.getFilter(getSecurityProvider(),
+            getRootProvider().createReadOnlyRoot(root), NamePathMapper.DEFAULT);
         if (!f.canHandle(principals)) {
             return EmptyPermissionProvider.getInstance();
         } else {
@@ -163,14 +172,18 @@ public class PrincipalBasedAuthorizationConfiguration extends ConfigurationBase 
 
     @NotNull
     @Override
-    public List<? extends ValidatorProvider> getValidators(@NotNull String workspaceName, @NotNull Set<Principal> principals, @NotNull MoveTracker moveTracker) {
-        return ImmutableList.of(new PrincipalPolicyValidatorProvider(new MgrProviderImpl(this), principals, workspaceName));
+    public List<? extends ValidatorProvider> getValidators(@NotNull String workspaceName,
+        @NotNull Set<Principal> principals, @NotNull MoveTracker moveTracker) {
+        return ImmutableList.of(
+            new PrincipalPolicyValidatorProvider(new MgrProviderImpl(this), principals,
+                workspaceName));
     }
 
     @NotNull
     @Override
     public List<ProtectedItemImporter> getProtectedItemImporters() {
-        return Collections.singletonList(new PrincipalPolicyImporter(filterProvider, new MgrProviderImpl(this)));
+        return Collections.singletonList(
+            new PrincipalPolicyImporter(filterProvider, new MgrProviderImpl(this)));
     }
 
     @NotNull
@@ -183,7 +196,9 @@ public class PrincipalBasedAuthorizationConfiguration extends ConfigurationBase 
     @Activate
     public void activate(@NotNull BundleContext context, @NotNull Configuration configuration) {
         checkConflictingMount();
-        setParameters(ConfigurationParameters.of(CompositeConfiguration.PARAM_RANKING, configuration.configurationRanking(), PARAM_ENABLE_AGGREGATION_FILTER, configuration.enableAggregationFilter()));
+        setParameters(ConfigurationParameters.of(CompositeConfiguration.PARAM_RANKING,
+            configuration.configurationRanking(), PARAM_ENABLE_AGGREGATION_FILTER,
+            configuration.enableAggregationFilter()));
         if (configuration.enableAggregationFilter()) {
             registerAggregationFilter(context);
         } else {
@@ -222,10 +237,11 @@ public class PrincipalBasedAuthorizationConfiguration extends ConfigurationBase 
     }
 
     //--------------------------------------------------------------------------
+
     /**
-     * While it is perfectly valid if the filter root is the start of or located below a mount, it's illegal if a given
-     * mount would start somewhere in the subtree of the filter root distributing the principal based policies between
-     * different mounts.
+     * While it is perfectly valid if the filter root is the start of or located below a mount, it's
+     * illegal if a given mount would start somewhere in the subtree of the filter root distributing
+     * the principal based policies between different mounts.
      */
     private void checkConflictingMount() {
         String filterRoot = filterProvider.getFilterRoot();
@@ -245,20 +261,24 @@ public class PrincipalBasedAuthorizationConfiguration extends ConfigurationBase 
                 }
             };
             if (!ntMgr.hasNodeType(Constants.NT_REP_PRINCIPAL_POLICY)) {
-                try (InputStream stream = PrincipalBasedAuthorizationConfiguration.class.getResourceAsStream("nodetypes.cnd")) {
-                    NodeTypeRegistry.register(root, stream, "node types for principal based authorization");
+                try (InputStream stream = PrincipalBasedAuthorizationConfiguration.class.getResourceAsStream(
+                    "nodetypes.cnd")) {
+                    NodeTypeRegistry.register(root, stream,
+                        "node types for principal based authorization");
                     return true;
                 }
             }
         } catch (IOException | RepositoryException e) {
-            throw new IllegalStateException("Unable to read node types for principal based authorization", e);
+            throw new IllegalStateException(
+                "Unable to read node types for principal based authorization", e);
         }
         return false;
     }
 
     private void registerAggregationFilter(@NotNull BundleContext context) {
         if (aggregationFilterRegistration == null) {
-            aggregationFilterRegistration = context.registerService(AggregationFilter.class.getName(), new AggregationFilterImpl(), new Hashtable());
+            aggregationFilterRegistration = context.registerService(
+                AggregationFilter.class.getName(), new AggregationFilterImpl(), new Hashtable());
         }
     }
 

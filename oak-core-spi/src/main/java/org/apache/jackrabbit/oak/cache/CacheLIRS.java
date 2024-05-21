@@ -30,7 +30,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.LongAdder;
-
 import org.apache.jackrabbit.guava.common.cache.CacheLoader;
 import org.apache.jackrabbit.guava.common.cache.CacheStats;
 import org.apache.jackrabbit.guava.common.cache.LoadingCache;
@@ -48,33 +47,32 @@ import org.slf4j.LoggerFactory;
 /**
  * <em>For Oak internal use only. Do not use outside Oak components.</em>
  * <p>
- * A scan resistant cache. It is meant to cache objects that are relatively
- * costly to acquire, for example file content.
+ * A scan resistant cache. It is meant to cache objects that are relatively costly to acquire, for
+ * example file content.
  * <p>
- * This implementation is multi-threading safe and supports concurrent access.
- * Null keys or null values are not allowed. The map fill factor is at most 75%.
+ * This implementation is multi-threading safe and supports concurrent access. Null keys or null
+ * values are not allowed. The map fill factor is at most 75%.
  * <p>
- * Each entry is assigned a distinct memory size, and the cache will try to use
- * at most the specified amount of memory. The memory unit is not relevant,
- * however it is suggested to use bytes as the unit.
+ * Each entry is assigned a distinct memory size, and the cache will try to use at most the
+ * specified amount of memory. The memory unit is not relevant, however it is suggested to use bytes
+ * as the unit.
  * <p>
- * This class implements an approximation of the the LIRS replacement algorithm
- * invented by Xiaodong Zhang and Song Jiang as described in
- * http://www.cse.ohio-state.edu/~zhang/lirs-sigmetrics-02.html with a few
- * smaller changes: An additional queue for non-resident entries is used, to
- * prevent unbound memory usage. The maximum size of this queue is at most the
- * size of the rest of the stack. About 6.25% of the mapped entries are cold.
+ * This class implements an approximation of the the LIRS replacement algorithm invented by Xiaodong
+ * Zhang and Song Jiang as described in http://www.cse.ohio-state.edu/~zhang/lirs-sigmetrics-02.html
+ * with a few smaller changes: An additional queue for non-resident entries is used, to prevent
+ * unbound memory usage. The maximum size of this queue is at most the size of the rest of the
+ * stack. About 6.25% of the mapped entries are cold.
  * <p>
- * Internally, the cache is split into a number of segments, and each segment is
- * an individual LIRS cache.
+ * Internally, the cache is split into a number of segments, and each segment is an individual LIRS
+ * cache.
  * <p>
- * Accessed entries are only moved to the top of the stack if at least a number
- * of other entries have been moved to the front (1% by default). Write access
- * and moving entries to the top of the stack is synchronized per segment.
+ * Accessed entries are only moved to the top of the stack if at least a number of other entries
+ * have been moved to the front (1% by default). Write access and moving entries to the top of the
+ * stack is synchronized per segment.
  *
- * @author Thomas Mueller
  * @param <K> the key type
  * @param <V> the value type
+ * @author Thomas Mueller
  */
 @Internal(since = "1.1.1")
 public class CacheLIRS<K, V> implements LoadingCache<K, V> {
@@ -82,14 +80,15 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
     static final Logger LOG = LoggerFactory.getLogger(CacheLIRS.class);
     static final ThreadLocal<Integer> CURRENTLY_LOADING = new ThreadLocal<Integer>();
     private static final AtomicInteger NEXT_CACHE_ID = new AtomicInteger();
-    private static final boolean PUT_HOT = Boolean.parseBoolean(System.getProperty("oak.cacheLIRS.putHot", "true"));
+    private static final boolean PUT_HOT = Boolean.parseBoolean(
+        System.getProperty("oak.cacheLIRS.putHot", "true"));
 
     /**
-     * Listener for items that are evicted from the cache. The listener
-     * is called for both, resident and non-resident items. In the
-     * latter case the passed value is {@code null}.
-     * @param <K>  type of the key
-     * @param <V>  type of the value
+     * Listener for items that are evicted from the cache. The listener is called for both, resident
+     * and non-resident items. In the latter case the passed value is {@code null}.
+     *
+     * @param <K> type of the key
+     * @param <V> type of the value
      */
     public interface EvictionCallback<K, V> {
 
@@ -97,19 +96,19 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
          * Indicates eviction of an item.
          * <p>
          * <em>Note:</em> It is not safe to call any of {@code CacheLIRS}'s
-         * method from withing this callback. Any such call might result in
-         * undefined behaviour and Java level deadlocks.
+         * method from withing this callback. Any such call might result in undefined behaviour and
+         * Java level deadlocks.
          * <p>
-         * The method may be called twice for the same key (first if the entry
-         * is resident, and later if the entry is non-resident).
-         * 
-         * @param key the evicted item's key
+         * The method may be called twice for the same key (first if the entry is resident, and
+         * later if the entry is non-resident).
+         *
+         * @param key   the evicted item's key
          * @param value the evicted item's value or {@code null} if non-resident
          * @param cause the cause of the eviction
          */
         void evicted(@NotNull K key, @Nullable V value, @NotNull RemovalCause cause);
     }
-    
+
     final int cacheId = NEXT_CACHE_ID.getAndIncrement();
 
     /**
@@ -139,18 +138,18 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
     private final EvictionCallback<K, V> evicted;
 
     /**
-     * A concurrent hash map of keys where loading is in progress. Key: the
-     * cache key. Value: a synchronization object. The threads that wait for the
-     * value to be loaded need to wait on the synchronization object. The
-     * loading thread will notify all waiting threads once loading is done.
+     * A concurrent hash map of keys where loading is in progress. Key: the cache key. Value: a
+     * synchronization object. The threads that wait for the value to be loaded need to wait on the
+     * synchronization object. The loading thread will notify all waiting threads once loading is
+     * done.
      */
     final ConcurrentHashMap<K, AtomicBoolean> loadingInProgress =
-            new ConcurrentHashMap<K, AtomicBoolean>();
+        new ConcurrentHashMap<K, AtomicBoolean>();
 
     /**
-     * Create a new cache with the given number of entries, and the default
-     * settings (an average size of 1 per entry, 16 segments, and stack move
-     * distance equals to the maximum number of entries divided by 100).
+     * Create a new cache with the given number of entries, and the default settings (an average
+     * size of 1 per entry, 16 segments, and stack move distance equals to the maximum number of
+     * entries divided by 100).
      *
      * @param maxEntries the maximum number of entries
      */
@@ -161,25 +160,26 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
     /**
      * Create a new cache with the given memory size.
      *
-     * @param maxMemory the maximum memory to use (1 or larger)
-     * @param averageMemory the average memory (1 or larger)
-     * @param segmentCount the number of cache segments (must be a power of 2)
-     * @param stackMoveDistance how many other item are to be moved to the top
-     *        of the stack before the current item is moved
-     * @param  evicted the eviction listener of this segment or {@code null} if none.
+     * @param maxMemory         the maximum memory to use (1 or larger)
+     * @param averageMemory     the average memory (1 or larger)
+     * @param segmentCount      the number of cache segments (must be a power of 2)
+     * @param stackMoveDistance how many other item are to be moved to the top of the stack before
+     *                          the current item is moved
+     * @param evicted           the eviction listener of this segment or {@code null} if none.
      */
     @Deprecated(since = "1.20.0", forRemoval = true)
     @SuppressWarnings("unchecked")
     CacheLIRS(Weigher<K, V> weigher, long maxMemory, int averageMemory,
-            int segmentCount, int stackMoveDistance, final CacheLoader<K, V> loader,
-            EvictionCallback<K, V> evicted, String module) {
+        int segmentCount, int stackMoveDistance, final CacheLoader<K, V> loader,
+        EvictionCallback<K, V> evicted, String module) {
         LOG.debug("Init #{}, module={}, maxMemory={}, segmentCount={}, stackMoveDistance={}",
-                cacheId, module, maxMemory, segmentCount, segmentCount);
+            cacheId, module, maxMemory, segmentCount, segmentCount);
         this.weigher = weigher;
         setMaxMemory(maxMemory);
         setAverageMemory(averageMemory);
         if (Integer.bitCount(segmentCount) != 1) {
-            throw new IllegalArgumentException("The segment count must be a power of 2, is " + segmentCount);
+            throw new IllegalArgumentException(
+                "The segment count must be a power of 2, is " + segmentCount);
         }
         this.segmentCount = segmentCount;
         this.segmentMask = segmentCount - 1;
@@ -200,7 +200,7 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
         for (int i = 0; i < segmentCount; i++) {
             Segment<K, V> old = segments[i];
             Segment<K, V> s = new Segment<K, V>(this,
-                    max, averageMemory, stackMoveDistance);
+                max, averageMemory, stackMoveDistance);
             if (old != null) {
                 s.hitCount = old.hitCount;
                 s.missCount = old.missCount;
@@ -232,8 +232,8 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
     }
 
     /**
-     * Check whether there is a resident entry for the given key. This
-     * method does not adjust the internal state of the cache.
+     * Check whether there is a resident entry for the given key. This method does not adjust the
+     * internal state of the cache.
      *
      * @param key the key (may not be null)
      * @return true if there is a resident entry
@@ -244,8 +244,8 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
     }
 
     /**
-     * Get the value for the given key if the entry is cached. This method does
-     * not modify the internal state.
+     * Get the value for the given key if the entry is cached. This method does not modify the
+     * internal state.
      *
      * @param key the key (may not be null)
      * @return the value, or null if there is no resident entry
@@ -257,13 +257,12 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
     }
 
     /**
-     * Add an entry to the cache. This method is an explicit memory size
-     * (weight), and not using the weigher even if configured. The entry may or
-     * may not exist in the cache yet. This method will usually mark unknown
-     * entries as cold and known entries as hot.
-     * 
-     * @param key the key (may not be null)
-     * @param value the value (may not be null)
+     * Add an entry to the cache. This method is an explicit memory size (weight), and not using the
+     * weigher even if configured. The entry may or may not exist in the cache yet. This method will
+     * usually mark unknown entries as cold and known entries as hot.
+     *
+     * @param key    the key (may not be null)
+     * @param value  the value (may not be null)
      * @param memory the memory used for the given entry
      * @return the old value, or null if there was no resident entry
      */
@@ -273,10 +272,10 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
     }
 
     /**
-     * Add an entry to the cache. If a weigher is specified, it is used,
-     * otherwise the average memory size is used.
-     * 
-     * @param key the key (may not be null)
+     * Add an entry to the cache. If a weigher is specified, it is used, otherwise the average
+     * memory size is used.
+     *
+     * @param key   the key (may not be null)
      * @param value the value (may not be null)
      */
     @Override
@@ -286,7 +285,7 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
 
     @Override
     public V get(K key, Callable<? extends V> valueLoader)
-            throws ExecutionException {
+        throws ExecutionException {
         int hash = getHash(key);
         return getSegment(hash).get(key, hash, valueLoader);
     }
@@ -294,8 +293,7 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
     /**
      * Get the value, loading it if needed.
      * <p>
-     * If there is an exception loading, an UncheckedExecutionException is
-     * thrown.
+     * If there is an exception loading, an UncheckedExecutionException is thrown.
      *
      * @param key the key
      * @return the value
@@ -326,9 +324,8 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
     /**
      * Re-load the value for the given key.
      * <p>
-     * If there is an exception while loading, it is logged and ignored. This
-     * method calls CacheLoader.reload, but synchronously replaces the old
-     * value.
+     * If there is an exception while loading, it is logged and ignored. This method calls
+     * CacheLoader.reload, but synchronously replaces the old value.
      *
      * @param key the key
      */
@@ -363,9 +360,8 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
     }
 
     /**
-     * Get the value for the given key if the entry is cached. This method
-     * adjusts the internal state of the cache sometimes, to ensure commonly
-     * used entries stay in the cache.
+     * Get the value for the given key if the entry is cached. This method adjusts the internal
+     * state of the cache sometimes, to ensure commonly used entries stay in the cache.
      *
      * @param key the key (may not be null)
      * @return the value, or null if there is no resident entry
@@ -378,10 +374,10 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
     }
 
     /**
-     * Get the size of the given value. The default implementation returns the
-     * average memory as configured for this cache.
+     * Get the size of the given value. The default implementation returns the average memory as
+     * configured for this cache.
      *
-     * @param key the key
+     * @param key   the key
      * @param value the value
      * @return the size
      */
@@ -393,8 +389,7 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
     }
 
     /**
-     * Remove an entry. Both resident and non-resident entries can be
-     * removed.
+     * Remove an entry. Both resident and non-resident entries can be removed.
      *
      * @param key the key (may not be null)
      */
@@ -405,8 +400,7 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
     }
 
     /**
-     * Remove an entry. Both resident and non-resident entries can be
-     * removed.
+     * Remove an entry. Both resident and non-resident entries can be removed.
      *
      * @param key the key (may not be null)
      * @return the old value or null
@@ -441,8 +435,8 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
     }
 
     /**
-     * Get the hash code for the given key. The hash code is
-     * further enhanced to spread the values more evenly.
+     * Get the hash code for the given key. The hash code is further enhanced to spread the values
+     * more evenly.
      *
      * @param key the key
      * @return the hash code
@@ -471,9 +465,9 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
     }
 
     /**
-     * Set the maximum memory this cache should use. This will not
-     * immediately cause entries to get removed however; it will only change
-     * the limit. To resize the internal array, call the clear method.
+     * Set the maximum memory this cache should use. This will not immediately cause entries to get
+     * removed however; it will only change the limit. To resize the internal array, call the clear
+     * method.
      *
      * @param maxMemory the maximum size (1 or larger)
      */
@@ -491,8 +485,8 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
     }
 
     /**
-     * Set the average memory used per entry. It is used to calculate the
-     * length of the internal array.
+     * Set the average memory used per entry. It is used to calculate the length of the internal
+     * array.
      *
      * @param averageMemory the average memory used (1 or larger)
      */
@@ -536,7 +530,7 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
         for (K k : keySet()) {
             V v = peek(k);
             if (v != null) {
-                map.put(k,  v);
+                map.put(k, v);
             }
         }
         return map.entrySet();
@@ -643,10 +637,9 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
     }
 
     /**
-     * Get the list of keys. This method allows to read the internal state of
-     * the cache.
+     * Get the list of keys. This method allows to read the internal state of the cache.
      *
-     * @param cold if true, only keys for the cold entries are returned
+     * @param cold        if true, only keys for the cold entries are returned
      * @param nonResident true for non-resident entries
      * @return the key list
      */
@@ -675,7 +668,7 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
             evictionCount += s.evictionCount.longValue();
         }
         CacheStats stats = new CacheStats(hitCount, missCount, loadSuccessCount,
-                loadExceptionCount, totalLoadTime, evictionCount);
+            loadExceptionCount, totalLoadTime, evictionCount);
         return stats;
     }
 
@@ -703,9 +696,9 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
         int queue2Size;
 
         /**
-         * The map array. The size is always a power of 2. The bit mask that is
-         * applied to the key hash code to get the index in the map array. The
-         * mask is the length of the array minus one.
+         * The map array. The size is always a power of 2. The bit mask that is applied to the key
+         * hash code to get the index in the map array. The mask is the length of the array minus
+         * one.
          */
         Entry<K, V>[] entries;
 
@@ -727,8 +720,8 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
         private final CacheLIRS<K, V> cache;
 
         /**
-         * How many other item are to be moved to the top of the stack before
-         * the current item is moved.
+         * How many other item are to be moved to the top of the stack before the current item is
+         * moved.
          */
         private final int stackMoveDistance;
 
@@ -748,10 +741,9 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
         private int stackSize;
 
         /**
-         * The stack of recently referenced elements. This includes all hot
-         * entries, and the recently referenced cold entries. Resident cold
-         * entries that were not recently referenced, as well as non-resident
-         * cold entries, are not in the stack.
+         * The stack of recently referenced elements. This includes all hot entries, and the
+         * recently referenced cold entries. Resident cold entries that were not recently
+         * referenced, as well as non-resident cold entries, are not in the stack.
          * <p>
          * There is always at least one entry: the head entry.
          */
@@ -778,11 +770,12 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
 
         /**
          * Create a new cache.
-         *  @param maxMemory the maximum memory to use
-         * @param averageMemory the average memory usage of an object
-         * @param stackMoveDistance the number of other entries to be moved to
-         *        the top of the stack before moving an entry to the top
-         * @param evicted  the eviction listener of this segment or {@code null} if none.
+         *
+         * @param maxMemory         the maximum memory to use
+         * @param averageMemory     the average memory usage of an object
+         * @param stackMoveDistance the number of other entries to be moved to the top of the stack
+         *                          before moving an entry to the top
+         * @param evicted           the eviction listener of this segment or {@code null} if none.
          */
         Segment(CacheLIRS<K, V> cache, long maxMemory, int averageMemory, int stackMoveDistance) {
             this.cache = cache;
@@ -845,7 +838,7 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
         /**
          * Get the memory used for the given key.
          *
-         * @param key the key (may not be null)
+         * @param key  the key (may not be null)
          * @param hash the hash
          * @return the memory, or 0 if there is no resident entry
          */
@@ -855,11 +848,10 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
         }
 
         /**
-         * Get the value for the given key if the entry is cached. This method
-         * adjusts the internal state of the cache sometimes, to ensure commonly
-         * used entries stay in the cache.
+         * Get the value for the given key if the entry is cached. This method adjusts the internal
+         * state of the cache sometimes, to ensure commonly used entries stay in the cache.
          *
-         * @param key the key (may not be null)
+         * @param key  the key (may not be null)
          * @param hash the hash
          * @return the value, or null if there is no resident entry
          */
@@ -881,7 +873,8 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
             }
             if (e.isHot()) {
                 if (e != stack.stackNext) {
-                    if (stackMoveDistance == 0 || stackMoveCounter - e.topMove > stackMoveDistance) {
+                    if (stackMoveDistance == 0
+                        || stackMoveCounter - e.topMove > stackMoveDistance) {
                         access(key, hash);
                     }
                 }
@@ -893,8 +886,7 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
         }
 
         /**
-         * Access an item, moving the entry to the top of the stack or front of the
-         * queue if found.
+         * Access an item, moving the entry to the top of the stack or front of the queue if found.
          *
          * @param key the key
          */
@@ -905,7 +897,8 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
             }
             if (e.isHot()) {
                 if (e != stack.stackNext) {
-                    if (stackMoveDistance == 0 || stackMoveCounter - e.topMove > stackMoveDistance) {
+                    if (stackMoveDistance == 0
+                        || stackMoveCounter - e.topMove > stackMoveDistance) {
                         // move a hot entry to the top of the stack
                         // unless it is already there
                         boolean wasEnd = e == stack.stackPrev;
@@ -1100,7 +1093,8 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
             return old;
         }
 
-        synchronized void refresh(K key, int hash, CacheLoader<K, V> loader) throws ExecutionException {
+        synchronized void refresh(K key, int hash, CacheLoader<K, V> loader)
+            throws ExecutionException {
             if (loader == null) {
                 // no loader - no refresh
                 return;
@@ -1127,13 +1121,12 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
         }
 
         /**
-         * Add an entry to the cache. The entry may or may not exist in the
-         * cache yet. This method will usually mark unknown entries as cold and
-         * known entries as hot.
+         * Add an entry to the cache. The entry may or may not exist in the cache yet. This method
+         * will usually mark unknown entries as cold and known entries as hot.
          *
-         * @param key the key (may not be null)
-         * @param hash the hash
-         * @param value the value (may not be null)
+         * @param key    the key (may not be null)
+         * @param hash   the hash
+         * @param value  the value (may not be null)
          * @param memory the memory used for the given entry
          * @return the old value, or null if there was no resident entry
          */
@@ -1176,10 +1169,9 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
         }
 
         /**
-         * Remove an entry. Both resident and non-resident entries can be
-         * removed.
+         * Remove an entry. Both resident and non-resident entries can be removed.
          *
-         * @param key the key (may not be null)
+         * @param key  the key (may not be null)
          * @param hash the hash
          */
         synchronized void invalidate(Object key, int hash, RemovalCause cause) {
@@ -1226,9 +1218,8 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
         }
 
         /**
-         * Evict cold entries (resident and non-resident) until the memory limit is
-         * reached. The new entry is added as a cold entry, except if it is the only
-         * entry.
+         * Evict cold entries (resident and non-resident) until the memory limit is reached. The new
+         * entry is added as a cold entry, except if it is the only entry.
          *
          * @param newCold a new cold entry
          */
@@ -1299,7 +1290,7 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
         /**
          * Try to find an entry in the map.
          *
-         * @param key the key
+         * @param key  the key
          * @param hash the hash
          * @return the entry (might be a non-resident)
          */
@@ -1362,10 +1353,9 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
         }
 
         /**
-         * Get the list of keys. This method allows to read the internal state of
-         * the cache.
+         * Get the list of keys. This method allows to read the internal state of the cache.
          *
-         * @param cold if true, only keys for the cold entries are returned
+         * @param cold        if true, only keys for the cold entries are returned
          * @param nonResident true for non-resident entries
          * @return the key list
          */
@@ -1385,10 +1375,10 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
         }
 
         /**
-         * Check whether there is a resident entry for the given key. This
-         * method does not adjust the internal state of the cache.
+         * Check whether there is a resident entry for the given key. This method does not adjust
+         * the internal state of the cache.
          *
-         * @param key the key (may not be null)
+         * @param key  the key (may not be null)
          * @param hash the hash
          * @return true if there is a resident entry
          */
@@ -1414,9 +1404,9 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
         }
 
         /**
-         * Set the maximum memory this cache should use. This will not
-         * immediately cause entries to get removed however; it will only change
-         * the limit. To resize the internal array, call the clear method.
+         * Set the maximum memory this cache should use. This will not immediately cause entries to
+         * get removed however; it will only change the limit. To resize the internal array, call
+         * the clear method.
          *
          * @param maxMemory the maximum size (1 or larger)
          */
@@ -1428,8 +1418,8 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
         }
 
         /**
-         * Set the average memory used per entry. It is used to calculate the
-         * length of the internal array.
+         * Set the average memory used per entry. It is used to calculate the length of the internal
+         * array.
          *
          * @param averageMemory the average memory used (1 or larger)
          */
@@ -1443,11 +1433,10 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
     }
 
     /**
-     * A cache entry. Each entry is either hot (low inter-reference recency;
-     * LIR), cold (high inter-reference recency; HIR), or non-resident-cold. Hot
-     * entries are in the stack only. Cold entries are in the queue, and may be
-     * in the stack. Non-resident-cold entries have their value set to null and
-     * are in the stack and in the non-resident queue.
+     * A cache entry. Each entry is either hot (low inter-reference recency; LIR), cold (high
+     * inter-reference recency; HIR), or non-resident-cold. Hot entries are in the stack only. Cold
+     * entries are in the queue, and may be in the stack. Non-resident-cold entries have their value
+     * set to null and are in the stack and in the non-resident queue.
      *
      * @param <K> the key type
      * @param <V> the value type
@@ -1485,8 +1474,7 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
         Entry<K, V> stackPrev;
 
         /**
-         * The next entry in the queue (either the resident queue or the
-         * non-resident queue).
+         * The next entry in the queue (either the resident queue or the non-resident queue).
          */
         Entry<K, V> queueNext;
 
@@ -1537,16 +1525,16 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
         public Builder<K, V> recordStats() {
             return this;
         }
-        
+
         public Builder<K, V> module(String module) {
             this.module = module;
             return this;
         }
 
         /**
-         * Set the weigher which is used if memory usage of an entry is not
-         * explicitly set (when adding entries).
-         * 
+         * Set the weigher which is used if memory usage of an entry is not explicitly set (when
+         * adding entries).
+         *
          * @param weigher the weigher
          * @return this
          */
@@ -1556,9 +1544,8 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
         }
 
         /**
-         * Set the total maximum weight. If the cache is heavier, then entries
-         * are evicted.
-         * 
+         * Set the total maximum weight. If the cache is heavier, then entries are evicted.
+         *
          * @param maxWeight the maximum weight
          * @return this
          */
@@ -1568,14 +1555,13 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
         }
 
         /**
-         * Set the average weight of an entry. This is used, together with the
-         * maximum weight, to calculate the length of the internal array of the
-         * cache.
-         * 
-         * For higher performance, the weight should be set relatively low, at
-         * the cost of some space. To save space, the average weight should be
-         * set high, at the cost of some performance.
-         * 
+         * Set the average weight of an entry. This is used, together with the maximum weight, to
+         * calculate the length of the internal array of the cache.
+         * <p>
+         * For higher performance, the weight should be set relatively low, at the cost of some
+         * space. To save space, the average weight should be set high, at the cost of some
+         * performance.
+         *
          * @param averageWeight the average weight
          * @return this
          */
@@ -1585,10 +1571,9 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
         }
 
         /**
-         * Set the maximum size (in number of entries). This is the same as
-         * setting the average weight of an entry to 1, and the maximum weight
-         * to the maximum size.
-         * 
+         * Set the maximum size (in number of entries). This is the same as setting the average
+         * weight of an entry to 1, and the maximum weight to the maximum size.
+         *
          * @param maxSize the maximum size
          * @return this
          */
@@ -1608,13 +1593,12 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
         }
 
         /**
-         * How many other item are to be moved to the top of the stack before
-         * the current item is moved. The default is 16. Using higher values
-         * will avoid re-ordering in many cases, so less time is spent
-         * reordering. But this somewhat reduces cache hit rate, and eviction
-         * will become more random. Typically, cache hit rate can be improved by
-         * using smaller values, and access performance can be improved using
-         * larger values. Using values larger than 128 is not recommended.
+         * How many other item are to be moved to the top of the stack before the current item is
+         * moved. The default is 16. Using higher values will avoid re-ordering in many cases, so
+         * less time is spent reordering. But this somewhat reduces cache hit rate, and eviction
+         * will become more random. Typically, cache hit rate can be improved by using smaller
+         * values, and access performance can be improved using larger values. Using values larger
+         * than 128 is not recommended.
          */
         public Builder<K, V> stackMoveDistance(int stackMoveDistance) {
             if (stackMoveDistance < 0) {
@@ -1636,7 +1620,7 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
 
         public CacheLIRS<K, V> build(CacheLoader<K, V> cacheLoader) {
             return new CacheLIRS<K, V>(weigher, maxWeight, averageWeight,
-                    segmentCount, stackMoveDistance, cacheLoader, evicted, module);
+                segmentCount, stackMoveDistance, cacheLoader, evicted, module);
         }
     }
 
@@ -1702,7 +1686,7 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
             public void putAll(Map<? extends K, ? extends V> m) {
                 for (Map.Entry<? extends K, ? extends V> e : m.entrySet()) {
                     put(e.getKey(), e.getValue());
-                }                
+                }
             }
 
             @Override
@@ -1744,7 +1728,7 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
             public V replace(K key, V value) {
                 return CacheLIRS.this.replace(key, value);
             }
-            
+
         };
     }
 
@@ -1762,13 +1746,13 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
 
     @Override
     public ImmutableMap<K, V> getAll(Iterable<? extends K> keys)
-            throws ExecutionException {
+        throws ExecutionException {
         throw new UnsupportedOperationException();
     }
 
     @Override
     public V apply(K key) {
-        throw new UnsupportedOperationException();        
+        throw new UnsupportedOperationException();
     }
 
     public boolean isEmpty() {

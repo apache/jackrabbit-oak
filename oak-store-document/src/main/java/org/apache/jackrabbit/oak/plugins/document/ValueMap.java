@@ -27,31 +27,29 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
-
+import org.apache.jackrabbit.guava.common.base.Objects;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.oak.plugins.document.util.MergeSortedIterators;
 import org.jetbrains.annotations.NotNull;
 
-import org.apache.jackrabbit.guava.common.base.Objects;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
-
 /**
- * A value map contains the versioned values of a property. The key into this
- * map is the revision when the value was set.
+ * A value map contains the versioned values of a property. The key into this map is the revision
+ * when the value was set.
  */
 class ValueMap {
 
     static final SortedMap<Revision, String> EMPTY = Collections.unmodifiableSortedMap(
-            new TreeMap<Revision, String>(StableRevisionComparator.REVERSE));
+        new TreeMap<Revision, String>(StableRevisionComparator.REVERSE));
 
     @NotNull
     static Map<Revision, String> create(@NotNull final NodeDocument doc,
-                                        @NotNull final String property) {
+        @NotNull final String property) {
         final SortedMap<Revision, String> map = doc.getLocalMap(property);
         if (doc.getPreviousRanges().isEmpty()) {
             return map;
         }
         final Set<Map.Entry<Revision, String>> entrySet
-                = new AbstractSet<Map.Entry<Revision, String>>() {
+            = new AbstractSet<Map.Entry<Revision, String>>() {
 
             @Override
             @NotNull
@@ -63,41 +61,41 @@ class ValueMap {
                     docs = doc.getPreviousDocs(property, null).iterator();
                 } else {
                     // merge sort local map into maps of previous documents
-                    List<Iterator<NodeDocument>> iterators = 
-                            new ArrayList<Iterator<NodeDocument>>(2);
+                    List<Iterator<NodeDocument>> iterators =
+                        new ArrayList<Iterator<NodeDocument>>(2);
                     iterators.add(Iterators.singletonIterator(doc));
-                    iterators.add(doc.getPreviousDocs(property, null).iterator());                            
+                    iterators.add(doc.getPreviousDocs(property, null).iterator());
                     docs = Iterators.mergeSorted(iterators, new Comparator<NodeDocument>() {
-                                @Override
-                                public int compare(NodeDocument o1,
-                                                   NodeDocument o2) {
-                                    Revision r1 = getFirstRevision(o1);
-                                    Revision r2 = getFirstRevision(o2);
-                                    return c.compare(r1, r2);
-                                }
-                            
-                                private Revision getFirstRevision(NodeDocument d) {
-                                    Map<Revision, String> values;
-                                    if (Objects.equal(d.getId(), doc.getId())) {
-                                        // return local map for main document
-                                        values = d.getLocalMap(property);
-                                    } else {
-                                        values = d.getValueMap(property);
-                                    }
-                                    return values.keySet().iterator().next();
-                                }
-                        
-                            });
+                        @Override
+                        public int compare(NodeDocument o1,
+                            NodeDocument o2) {
+                            Revision r1 = getFirstRevision(o1);
+                            Revision r2 = getFirstRevision(o2);
+                            return c.compare(r1, r2);
+                        }
+
+                        private Revision getFirstRevision(NodeDocument d) {
+                            Map<Revision, String> values;
+                            if (Objects.equal(d.getId(), doc.getId())) {
+                                // return local map for main document
+                                values = d.getLocalMap(property);
+                            } else {
+                                values = d.getValueMap(property);
+                            }
+                            return values.keySet().iterator().next();
+                        }
+
+                    });
                 }
 
                 return new MergeSortedIterators<Map.Entry<Revision, String>>(
-                        new Comparator<Map.Entry<Revision, String>>() {
-                            @Override
-                            public int compare(Map.Entry<Revision, String> o1,
-                                               Map.Entry<Revision, String> o2) {
-                                return c.compare(o1.getKey(), o2.getKey());
-                            }
+                    new Comparator<Map.Entry<Revision, String>>() {
+                        @Override
+                        public int compare(Map.Entry<Revision, String> o1,
+                            Map.Entry<Revision, String> o2) {
+                            return c.compare(o1.getKey(), o2.getKey());
                         }
+                    }
                 ) {
                     @Override
                     public Iterator<Map.Entry<Revision, String>> nextIterator() {
@@ -117,7 +115,8 @@ class ValueMap {
 
                     @Override
                     public String description() {
-                        return "Revisioned values for property " + doc.getId() + "/" + property + ":";
+                        return "Revisioned values for property " + doc.getId() + "/" + property
+                            + ":";
                     }
                 };
             }

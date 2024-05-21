@@ -30,12 +30,11 @@ import javax.jcr.nodetype.NoSuchNodeTypeException;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.version.LabelExistsVersionException;
 import javax.jcr.version.VersionException;
-
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Main exception thrown by methods defined on the {@code ContentSession}
- * interface indicating that committing a given set of changes failed.
+ * Main exception thrown by methods defined on the {@code ContentSession} interface indicating that
+ * committing a given set of changes failed.
  */
 public class CommitFailedException extends Exception {
 
@@ -121,8 +120,8 @@ public class CommitFailedException extends Exception {
     private final int code;
 
     public CommitFailedException(
-            String source, String type, int code, String message,
-            Throwable cause) {
+        String source, String type, int code, String message,
+        Throwable cause) {
         super(format("%s%s%04d: %s", source, type, code, message), cause);
         this.source = source;
         this.type = type;
@@ -130,7 +129,7 @@ public class CommitFailedException extends Exception {
     }
 
     public CommitFailedException(
-            String type, int code, String message, Throwable cause) {
+        String type, int code, String message, Throwable cause) {
         this(OAK, type, code, message, cause);
     }
 
@@ -203,8 +202,8 @@ public class CommitFailedException extends Exception {
     }
 
     /**
-     * Wraps the given {@link CommitFailedException} instance using the
-     * appropriate {@link javax.jcr.RepositoryException} subclass based on the
+     * Wraps the given {@link CommitFailedException} instance using the appropriate
+     * {@link javax.jcr.RepositoryException} subclass based on the
      * {@link CommitFailedException#getType() type} of the given exception.
      *
      * @return matching repository exception
@@ -214,8 +213,8 @@ public class CommitFailedException extends Exception {
     }
 
     /**
-     * Wraps the given {@link CommitFailedException} instance using the
-     * appropriate {@link javax.jcr.RepositoryException} subclass based on the
+     * Wraps the given {@link CommitFailedException} instance using the appropriate
+     * {@link javax.jcr.RepositoryException} subclass based on the
      * {@link CommitFailedException#getType() type} of the given exception.
      *
      * @param message The exception message.

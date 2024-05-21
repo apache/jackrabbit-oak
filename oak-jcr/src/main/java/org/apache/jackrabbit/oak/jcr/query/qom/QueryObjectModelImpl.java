@@ -15,7 +15,6 @@ package org.apache.jackrabbit.oak.jcr.query.qom;
 
 import java.util.HashMap;
 import java.util.Optional;
-
 import javax.jcr.ItemNotFoundException;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
@@ -28,7 +27,6 @@ import javax.jcr.query.qom.Constraint;
 import javax.jcr.query.qom.Ordering;
 import javax.jcr.query.qom.QueryObjectModel;
 import javax.jcr.query.qom.Source;
-
 import org.apache.jackrabbit.oak.jcr.query.QueryManagerImpl;
 
 /**
@@ -49,8 +47,8 @@ public class QueryObjectModelImpl implements QueryObjectModel {
     private String storedQueryPath;
 
     public QueryObjectModelImpl(QueryManagerImpl queryManager,
-            ValueFactory valueFactory, Source source, Constraint constraint,
-            Ordering[] orderings, Column[] columns) {
+        ValueFactory valueFactory, Source source, Constraint constraint,
+        Ordering[] orderings, Column[] columns) {
         this.queryManager = queryManager;
         this.valueFactory = valueFactory;
         this.source = source;
@@ -112,7 +110,7 @@ public class QueryObjectModelImpl implements QueryObjectModel {
         parse();
         if (!bindVariableMap.containsKey(varName)) {
             throw new IllegalArgumentException("Variable name " + varName +
-                    " is not a valid variable in this query");
+                " is not a valid variable in this query");
         }
         bindVariableMap.put(varName, value);
     }
@@ -122,7 +120,7 @@ public class QueryObjectModelImpl implements QueryObjectModel {
             return;
         }
         String[] names = queryManager.createQuery(getStatement(), Query.JCR_SQL2).
-                getBindVariableNames();
+                                     getBindVariableNames();
         for (String n : names) {
             bindVariableMap.put(n, null);
         }
@@ -132,7 +130,7 @@ public class QueryObjectModelImpl implements QueryObjectModel {
     @Override
     public QueryResult execute() throws RepositoryException {
         return queryManager.executeQuery(getStatement(), Query.JCR_SQL2,
-                limit, offset, bindVariableMap);
+            limit, offset, bindVariableMap);
     }
 
     @Override
@@ -186,7 +184,7 @@ public class QueryObjectModelImpl implements QueryObjectModel {
     @Override
     public Node storeAsNode(String absPath) throws RepositoryException {
         Node n = queryManager.createQuery(getStatement(), Query.JCR_JQOM).
-                storeAsNode(absPath);
+                             storeAsNode(absPath);
         storedQueryPath = n.getPath();
         return n;
     }

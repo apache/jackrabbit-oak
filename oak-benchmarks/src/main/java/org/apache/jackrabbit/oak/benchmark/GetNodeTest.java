@@ -23,15 +23,15 @@ import static org.apache.jackrabbit.commons.jackrabbit.authorization.AccessContr
 
 import javax.jcr.Node;
 import javax.jcr.Session;
-
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 
 /**
- * {@code GetNodeTest} implements a performance test, which reads
- * nodes from the repository. To determine the effect of access control
- * evaluation the test can either run with anonymous or with admin.
+ * {@code GetNodeTest} implements a performance test, which reads nodes from the repository. To
+ * determine the effect of access control evaluation the test can either run with anonymous or with
+ * admin.
  */
 public abstract class GetNodeTest extends AbstractTest {
+
     private final String name;
 
     private Node testRoot;
@@ -69,11 +69,11 @@ public abstract class GetNodeTest extends AbstractTest {
     protected void beforeSuite() throws Exception {
         Session session = loginWriter();
         testRoot = session.getRootNode().addNode(
-                getClass().getSimpleName() + TEST_ID, "nt:unstructured");
+            getClass().getSimpleName() + TEST_ID, "nt:unstructured");
         testRoot.addNode("node1").addNode("node2");
 
         addAccessControlEntry(session, testRoot.getPath(), EveryonePrincipal.getInstance(),
-                new String[] {JCR_READ}, true);
+            new String[]{JCR_READ}, true);
         session.save();
 
         testRoot = login().getNode(testRoot.getPath());

@@ -29,10 +29,10 @@ import org.apache.lucene.codecs.CodecUtil;
 import org.apache.lucene.codecs.SegmentInfoFormat;
 import org.apache.lucene.codecs.SegmentInfoReader;
 import org.apache.lucene.codecs.SegmentInfoWriter;
-import org.apache.lucene.index.IndexWriter; // javadocs
-import org.apache.lucene.index.SegmentInfo; // javadocs
-import org.apache.lucene.index.SegmentInfos; // javadocs
-import org.apache.lucene.store.DataOutput; // javadocs
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.SegmentInfo;
+import org.apache.lucene.index.SegmentInfos;
+import org.apache.lucene.store.DataOutput;
 
 /**
  * Lucene 4.6 Segment info format.
@@ -71,31 +71,36 @@ import org.apache.lucene.store.DataOutput; // javadocs
  *   <li>Files is a list of files referred to by this segment.</li>
  * </ul>
  * </p>
- * 
- * @see SegmentInfos
+ *
  * @lucene.experimental
+ * @see SegmentInfos
  */
 public class Lucene46SegmentInfoFormat extends SegmentInfoFormat {
-  private final SegmentInfoReader reader = new Lucene46SegmentInfoReader();
-  private final SegmentInfoWriter writer = new Lucene46SegmentInfoWriter();
 
-  /** Sole constructor. */
-  public Lucene46SegmentInfoFormat() {
-  }
-  
-  @Override
-  public SegmentInfoReader getSegmentInfoReader() {
-    return reader;
-  }
+    private final SegmentInfoReader reader = new Lucene46SegmentInfoReader();
+    private final SegmentInfoWriter writer = new Lucene46SegmentInfoWriter();
 
-  @Override
-  public SegmentInfoWriter getSegmentInfoWriter() {
-    return writer;
-  }
+    /**
+     * Sole constructor.
+     */
+    public Lucene46SegmentInfoFormat() {
+    }
 
-  /** File extension used to store {@link SegmentInfo}. */
-  public final static String SI_EXTENSION = "si";
-  static final String CODEC_NAME = "Lucene46SegmentInfo";
-  static final int VERSION_START = 0;
-  static final int VERSION_CURRENT = VERSION_START;
+    @Override
+    public SegmentInfoReader getSegmentInfoReader() {
+        return reader;
+    }
+
+    @Override
+    public SegmentInfoWriter getSegmentInfoWriter() {
+        return writer;
+    }
+
+    /**
+     * File extension used to store {@link SegmentInfo}.
+     */
+    public final static String SI_EXTENSION = "si";
+    static final String CODEC_NAME = "Lucene46SegmentInfo";
+    static final int VERSION_START = 0;
+    static final int VERSION_CURRENT = VERSION_START;
 }

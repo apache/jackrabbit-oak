@@ -16,34 +16,35 @@
  */
 package org.apache.jackrabbit.oak.jcr.delegate;
 
-import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
-import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
-import org.junit.Test;
-
-import javax.jcr.security.AccessControlPolicy;
-import javax.jcr.security.Privilege;
-import java.security.Principal;
-import java.util.Collections;
-
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
+import java.security.Principal;
+import java.util.Collections;
+import javax.jcr.security.AccessControlPolicy;
+import javax.jcr.security.Privilege;
+import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
+import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
+import org.junit.Test;
+
 public class JackrabbitAccessControlManagerDelegatorTest extends AbstractDelegatorTest {
-    
+
     private final SessionDelegate sessionDelegate = mockSessionDelegate();
-    private final JackrabbitAccessControlManager jrAcMgr = mock(JackrabbitAccessControlManager.class);
+    private final JackrabbitAccessControlManager jrAcMgr = mock(
+        JackrabbitAccessControlManager.class);
     private final Principal principal = mock(Principal.class);
     private final String absPath = "/path";
-    
-    private final JackrabbitAccessControlManagerDelegator delegator = new JackrabbitAccessControlManagerDelegator(sessionDelegate, jrAcMgr);
-    
+
+    private final JackrabbitAccessControlManagerDelegator delegator = new JackrabbitAccessControlManagerDelegator(
+        sessionDelegate, jrAcMgr);
+
     @Test
     public void testGetApplicablePoliciesByPrincipal() throws Exception {
         delegator.getApplicablePolicies(principal);
-        
+
         verify(jrAcMgr).getApplicablePolicies(principal);
         verify(sessionDelegate).perform(any(SessionOperation.class));
         verifyNoMoreInteractions(jrAcMgr, sessionDelegate);
@@ -73,13 +74,13 @@ public class JackrabbitAccessControlManagerDelegatorTest extends AbstractDelegat
     @Test
     public void testGetEffectivePoliciesByPrincipalsAndPaths() throws Exception {
         delegator.getEffectivePolicies(Collections.singleton(principal), absPath);
-        
+
         verify(jrAcMgr).getEffectivePolicies(Collections.singleton(principal), absPath);
         verify(sessionDelegate).perform(any(SessionOperation.class));
         verifyNoMoreInteractions(jrAcMgr, sessionDelegate);
         verifyNoInteractions(principal);
     }
-    
+
     @Test
     public void testHasPrivilegesByPrincipals() throws Exception {
         delegator.hasPrivileges(absPath, Collections.singleton(principal), new Privilege[0]);
@@ -201,7 +202,7 @@ public class JackrabbitAccessControlManagerDelegatorTest extends AbstractDelegat
         verifyNoMoreInteractions(jrAcMgr, sessionDelegate);
         verifyNoInteractions(principal);
     }
-    
+
     @Test
     public void testRemovePolicy() throws Exception {
         AccessControlPolicy policy = mock(AccessControlPolicy.class);

@@ -60,7 +60,6 @@ import org.apache.jackrabbit.oak.AbstractSecurityTest;
  * - {@link L7_PrivilegeDiscoveryTest}
  *
  * </pre>
- *
  */
 public class L1_IntroductionTest extends AbstractSecurityTest {
 

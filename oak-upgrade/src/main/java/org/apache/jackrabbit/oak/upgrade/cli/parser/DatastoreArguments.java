@@ -16,8 +16,14 @@
  */
 package org.apache.jackrabbit.oak.upgrade.cli.parser;
 
+import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
+import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreType.JCR2_DIR_XML;
+
+import java.io.IOException;
+import java.util.Map;
 import org.apache.commons.lang3.text.StrSubstitutor;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.apache.jackrabbit.oak.upgrade.cli.blob.AzureDataStoreFactory;
 import org.apache.jackrabbit.oak.upgrade.cli.blob.BlobStoreFactory;
 import org.apache.jackrabbit.oak.upgrade.cli.blob.ConstantBlobStoreFactory;
 import org.apache.jackrabbit.oak.upgrade.cli.blob.DummyBlobStoreFactory;
@@ -25,42 +31,35 @@ import org.apache.jackrabbit.oak.upgrade.cli.blob.FileBlobStoreFactory;
 import org.apache.jackrabbit.oak.upgrade.cli.blob.FileDataStoreFactory;
 import org.apache.jackrabbit.oak.upgrade.cli.blob.LoopbackBlobStoreFactory;
 import org.apache.jackrabbit.oak.upgrade.cli.blob.S3DataStoreFactory;
-import org.apache.jackrabbit.oak.upgrade.cli.blob.AzureDataStoreFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.util.Map;
-
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
-import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreType.JCR2_DIR_XML;
-
 /**
- * This class parses the input provided by the user and analyses the given node stores
- * in order to find out which datastore combination should be used for the migration.
- *
- * The desired outcome for the combinations of user input can be found in the table below.
- * The table is a kind of heuristics that tries to match the user intentions.
+ * This class parses the input provided by the user and analyses the given node stores in order to
+ * find out which datastore combination should be used for the migration.
+ * <p>
+ * The desired outcome for the combinations of user input can be found in the table below. The table
+ * is a kind of heuristics that tries to match the user intentions.
  * <pre>
  * For sidegrade:
- || src blobstore defined || src blobs embedded || dst blobstore defined || --copy-binaries || outcome src blobstore || outcome action
- |   -                    |   -                 |  -                     |  -               |  missing               |  copy references¹
- |   -                    |   -                 |  -                     |  +               |  missing               |  (x) not supported
- |   -                    |   -                 |  +                     |  *               |  missing               |  (x) not supported
- |   -                    |   +                 |  -                     |  *               |  embedded              |  copy to embedded
- |   -                    |   +                 |  +                     |  *               |  embedded              |  copy to defined blobstore
- |   +                    |   *                 |  -                     |  -               |  as in src             |  copy references
- |   +                    |   *                 |  -                     |  +               |  as in src             |  copy to embedded
- |   +                    |   *                 |  +                     |  *               |  as in src             |  copy to defined blobstore
-
- ¹ - (x) not supported for SegmentMK -&gt; MongoMK migration
-
- For upgrade:
-
- || dst blobstore defined || --copy-binaries || outcome src blobstore || outcome action
- |  -                     |  -               |  defined by JCR2       |  copy references
- |  -                     |  +               |  defined by JCR2       |  copy to embedded
- |  +                     |  *               |  defined by JCR2       |  copy to defined blobstore
+ * || src blobstore defined || src blobs embedded || dst blobstore defined || --copy-binaries || outcome src blobstore || outcome action
+ * |   -                    |   -                 |  -                     |  -               |  missing               |  copy references¹
+ * |   -                    |   -                 |  -                     |  +               |  missing               |  (x) not supported
+ * |   -                    |   -                 |  +                     |  *               |  missing               |  (x) not supported
+ * |   -                    |   +                 |  -                     |  *               |  embedded              |  copy to embedded
+ * |   -                    |   +                 |  +                     |  *               |  embedded              |  copy to defined blobstore
+ * |   +                    |   *                 |  -                     |  -               |  as in src             |  copy references
+ * |   +                    |   *                 |  -                     |  +               |  as in src             |  copy to embedded
+ * |   +                    |   *                 |  +                     |  *               |  as in src             |  copy to defined blobstore
+ *
+ * ¹ - (x) not supported for SegmentMK -&gt; MongoMK migration
+ *
+ * For upgrade:
+ *
+ * || dst blobstore defined || --copy-binaries || outcome src blobstore || outcome action
+ * |  -                     |  -               |  defined by JCR2       |  copy references
+ * |  -                     |  +               |  defined by JCR2       |  copy to embedded
+ * |  +                     |  *               |  defined by JCR2       |  copy to defined blobstore
  * </pre>
  */
 public class DatastoreArguments {
@@ -79,7 +78,8 @@ public class DatastoreArguments {
 
     private final boolean srcEmbedded;
 
-    public DatastoreArguments(MigrationOptions options, StoreArguments storeArguments, boolean srcEmbedded) throws CliArgumentException {
+    public DatastoreArguments(MigrationOptions options, StoreArguments storeArguments,
+        boolean srcEmbedded) throws CliArgumentException {
         this.storeArguments = storeArguments;
         this.options = options;
         this.srcEmbedded = srcEmbedded;
@@ -92,13 +92,14 @@ public class DatastoreArguments {
         }
 
         if (blobMigrationCase == BlobMigrationCase.UNSUPPORTED) {
-            throw new CliArgumentException("This combination of data- and node-stores is not supported", 1);
+            throw new CliArgumentException(
+                "This combination of data- and node-stores is not supported", 1);
         }
 
         try {
             definedSrcBlob = options.isSrcBlobStoreDefined() ? getDefinedSrcBlobStore() : null;
             definedDstBlob = options.isDstBlobStoreDefined() ? getDefinedDstBlobStore() : null;
-        } catch(IOException e) {
+        } catch (IOException e) {
             log.error("Can't read the blob configuration", e);
             throw new CliArgumentException(1);
         }
@@ -123,7 +124,8 @@ public class DatastoreArguments {
         BlobStoreFactory result;
         if (options.isDstBlobStoreDefined()) {
             result = definedDstBlob;
-        } else if (blobMigrationCase == BlobMigrationCase.COPY_REFERENCES && (options.isSrcBlobStoreDefined() || storeArguments.getSrcType() == JCR2_DIR_XML)) {
+        } else if (blobMigrationCase == BlobMigrationCase.COPY_REFERENCES && (
+            options.isSrcBlobStoreDefined() || storeArguments.getSrcType() == JCR2_DIR_XML)) {
             result = new ConstantBlobStoreFactory(srcBlobStore);
         } else if (blobMigrationCase == BlobMigrationCase.COPY_REFERENCES) {
             result = new LoopbackBlobStoreFactory();
@@ -140,10 +142,12 @@ public class DatastoreArguments {
         if (options.isSrcFbs()) {
             return new FileBlobStoreFactory(options.getSrcFbs());
         } else if (options.isSrcS3()) {
-            return new S3DataStoreFactory(options.getSrcS3Config(), options.getSrcS3(), ignoreMissingBinaries);
+            return new S3DataStoreFactory(options.getSrcS3Config(), options.getSrcS3(),
+                ignoreMissingBinaries);
         } else if (options.isSrcAzure()) {
-            return new AzureDataStoreFactory(options.getSrcAzureConfig(), options.getSrcAzure(), ignoreMissingBinaries);
-        }  else if (options.isSrcFds()) {
+            return new AzureDataStoreFactory(options.getSrcAzureConfig(), options.getSrcAzure(),
+                ignoreMissingBinaries);
+        } else if (options.isSrcFds()) {
             return new FileDataStoreFactory(options.getSrcFds(), ignoreMissingBinaries);
         } else {
             return null;
@@ -156,7 +160,8 @@ public class DatastoreArguments {
         } else if (options.isDstS3()) {
             return new S3DataStoreFactory(options.getDstS3Config(), options.getDstS3(), false);
         } else if (options.isDstAzure()) {
-            return new AzureDataStoreFactory(options.getDstAzureConfig(), options.getDstAzure(), false);
+            return new AzureDataStoreFactory(options.getDstAzureConfig(), options.getDstAzure(),
+                false);
         } else if (options.isDstFds()) {
             return new FileDataStoreFactory(options.getDstFds(), false);
         } else {
@@ -186,9 +191,11 @@ public class DatastoreArguments {
             if (datastoreArguments.storeArguments.getSrcType() == JCR2_DIR_XML) {
                 map.put("srcblob", "CRX2 datastore");
             } else {
-                map.put("srcblob", datastoreArguments.definedSrcBlob == null ? "?" : datastoreArguments.definedSrcBlob.toString());
+                map.put("srcblob", datastoreArguments.definedSrcBlob == null ? "?"
+                    : datastoreArguments.definedSrcBlob.toString());
             }
-            map.put("dstblob", datastoreArguments.definedDstBlob == null ? "?" : datastoreArguments.definedDstBlob.toString());
+            map.put("dstblob", datastoreArguments.definedDstBlob == null ? "?"
+                : datastoreArguments.definedDstBlob.toString());
 
             StrSubstitutor subst = new StrSubstitutor(map);
             return subst.replace(description);
@@ -201,7 +208,8 @@ public class DatastoreArguments {
     }
 
     private BlobMigrationCase discoverBlobMigrationCase() throws IOException {
-        boolean srcDefined = options.isSrcBlobStoreDefined() || storeArguments.getSrcType() == JCR2_DIR_XML;
+        boolean srcDefined =
+            options.isSrcBlobStoreDefined() || storeArguments.getSrcType() == JCR2_DIR_XML;
         boolean dstDefined = options.isDstBlobStoreDefined();
         boolean copyBinaries = options.isCopyBinaries();
 

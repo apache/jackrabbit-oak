@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.segment.spi.persistence.split;
 
 import java.io.IOException;
 import java.util.List;
-
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.file.tar.binaries.BinaryReferencesIndexWriter;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveEntry;
@@ -30,7 +29,8 @@ class UnclosedSegmentArchiveReader implements SegmentArchiveReader {
 
     private final SegmentArchiveReader delegate;
 
-    private static final Buffer EMPTY_BINARY_REF = Buffer.wrap(BinaryReferencesIndexWriter.newBinaryReferencesIndexWriter().write()).asReadOnlyBuffer();
+    private static final Buffer EMPTY_BINARY_REF = Buffer.wrap(
+        BinaryReferencesIndexWriter.newBinaryReferencesIndexWriter().write()).asReadOnlyBuffer();
 
     UnclosedSegmentArchiveReader(SegmentArchiveReader delegate) {
         this.delegate = delegate;

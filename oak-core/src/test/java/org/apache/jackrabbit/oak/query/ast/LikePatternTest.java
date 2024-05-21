@@ -19,8 +19,8 @@
 package org.apache.jackrabbit.oak.query.ast;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import org.apache.jackrabbit.oak.spi.query.fulltext.LikePattern;
 import org.junit.Test;

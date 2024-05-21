@@ -19,36 +19,35 @@
 
 package org.apache.jackrabbit.oak.plugins.index.search.spi.binary;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import java.io.StringReader;
 import java.util.Set;
-
 import org.apache.commons.io.input.ReaderInputStream;
 import org.apache.tika.mime.MediaType;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
 public class TikaParserConfigTest {
 
     @Test
-    public void emptyParser() throws Exception{
+    public void emptyParser() throws Exception {
         String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
-                "<properties>\n" +
-                "  <detectors>\n" +
-                "    <detector class=\"org.apache.tika.detect.TypeDetector\"/>\n" +
-                "  </detectors>\n" +
-                "  <parsers>\n" +
-                "    <parser class=\"org.apache.tika.parser.DefaultParser\"/>\n" +
-                "    <parser class=\"org.apache.tika.parser.EmptyParser\">\n" +
-                "      <mime>application/x-archive</mime>\n" +
-                "      <mime>application/x-bzip</mime>\n" +
-                "    </parser>\n" +
-                "  </parsers>\n" +
-                "</properties>";
+            "<properties>\n" +
+            "  <detectors>\n" +
+            "    <detector class=\"org.apache.tika.detect.TypeDetector\"/>\n" +
+            "  </detectors>\n" +
+            "  <parsers>\n" +
+            "    <parser class=\"org.apache.tika.parser.DefaultParser\"/>\n" +
+            "    <parser class=\"org.apache.tika.parser.EmptyParser\">\n" +
+            "      <mime>application/x-archive</mime>\n" +
+            "      <mime>application/x-bzip</mime>\n" +
+            "    </parser>\n" +
+            "  </parsers>\n" +
+            "</properties>";
 
         Set<MediaType> types = TikaParserConfig.getNonIndexedMediaTypes(
-                new ReaderInputStream(new StringReader(xml), "UTF-8"));
+            new ReaderInputStream(new StringReader(xml), "UTF-8"));
         assertEquals(2, types.size());
         assertTrue(types.contains(MediaType.parse("application/x-archive")));
     }

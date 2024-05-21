@@ -57,6 +57,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class VersionGCDeletionTest {
+
     private Clock clock;
 
     private DocumentNodeStore store;
@@ -78,14 +79,14 @@ public class VersionGCDeletionTest {
     }
 
     @Test
-    public void deleteParentLast() throws Exception{
+    public void deleteParentLast() throws Exception {
         TestDocumentStore ts = new TestDocumentStore();
         store = new DocumentMK.Builder()
-                .clock(clock)
-                .setLeaseCheckMode(LeaseCheckMode.LENIENT)
-                .setDocumentStore(ts)
-                .setAsyncDelay(0)
-                .getNodeStore();
+            .clock(clock)
+            .setLeaseCheckMode(LeaseCheckMode.LENIENT)
+            .setDocumentStore(ts)
+            .setAsyncDelay(0)
+            .getNodeStore();
 
         NodeBuilder b1 = store.getRoot().builder();
         b1.child("x").child("y");
@@ -102,7 +103,7 @@ public class VersionGCDeletionTest {
         store.runBackgroundOperations();
 
         //3. Check that deleted doc does get collected post maxAge
-        clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
+        clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge * 2) + delta);
         VersionGarbageCollector gc = store.getVersionGarbageCollector();
 
         //4. Ensure that while GC is being run /x gets removed but failure occurs
@@ -123,14 +124,14 @@ public class VersionGCDeletionTest {
     }
 
     @Test
-    public void leaveResurrectedNodesAlone() throws Exception{
+    public void leaveResurrectedNodesAlone() throws Exception {
         TestDocumentStore ts = new TestDocumentStore();
         store = new DocumentMK.Builder()
-                .clock(clock)
-                .setLeaseCheckMode(LeaseCheckMode.LENIENT)
-                .setDocumentStore(ts)
-                .setAsyncDelay(0)
-                .getNodeStore();
+            .clock(clock)
+            .setLeaseCheckMode(LeaseCheckMode.LENIENT)
+            .setDocumentStore(ts)
+            .setAsyncDelay(0)
+            .getNodeStore();
 
         String id = Utils.getIdFromPath("/x");
 
@@ -171,20 +172,20 @@ public class VersionGCDeletionTest {
     }
 
     @Test
-    public void deleteLargeNumber() throws Exception{
+    public void deleteLargeNumber() throws Exception {
         int noOfDocsToDelete = 10000;
         DocumentStore ts = new MemoryDocumentStore();
         store = new DocumentMK.Builder()
-                .clock(clock)
-                .setLeaseCheckMode(LeaseCheckMode.LENIENT)
-                .setDocumentStore(new MemoryDocumentStore())
-                .setAsyncDelay(0)
-                .getNodeStore();
+            .clock(clock)
+            .setLeaseCheckMode(LeaseCheckMode.LENIENT)
+            .setDocumentStore(new MemoryDocumentStore())
+            .setAsyncDelay(0)
+            .getNodeStore();
 
         NodeBuilder b1 = store.getRoot().builder();
         NodeBuilder xb = b1.child("x");
-        for (int i = 0; i < noOfDocsToDelete; i++){
-            xb.child("a"+i).child("b"+i);
+        for (int i = 0; i < noOfDocsToDelete; i++) {
+            xb.child("a" + i).child("b" + i);
         }
         store.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
@@ -199,7 +200,7 @@ public class VersionGCDeletionTest {
         store.runBackgroundOperations();
 
         //3. Check that deleted doc does get collected post maxAge
-        clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
+        clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge * 2) + delta);
         VersionGarbageCollector gc = store.getVersionGarbageCollector();
         gc.setOptions(gc.getOptions().withOverflowToDiskThreshold(100));
 
@@ -207,30 +208,29 @@ public class VersionGCDeletionTest {
         assertEquals(noOfDocsToDelete * 2 + 1, stats.deletedDocGCCount);
         assertEquals(noOfDocsToDelete, stats.deletedLeafDocGCCount);
 
-
         assertNull(ts.find(Collection.NODES, "1:/x"));
 
-        for (int i = 0; i < noOfDocsToDelete; i++){
-            assertNull(ts.find(Collection.NODES, "2:/a"+i+"/b"+i));
-            assertNull(ts.find(Collection.NODES, "1:/a"+i));
+        for (int i = 0; i < noOfDocsToDelete; i++) {
+            assertNull(ts.find(Collection.NODES, "2:/a" + i + "/b" + i));
+            assertNull(ts.find(Collection.NODES, "1:/a" + i));
         }
     }
 
     @Test
-    public void gcWithPathsHavingNewLine() throws Exception{
+    public void gcWithPathsHavingNewLine() throws Exception {
         int noOfDocsToDelete = 200;
         DocumentStore ts = new MemoryDocumentStore();
         store = new DocumentMK.Builder()
-                .clock(clock)
-                .setLeaseCheckMode(LeaseCheckMode.LENIENT)
-                .setDocumentStore(ts)
-                .setAsyncDelay(0)
-                .getNodeStore();
+            .clock(clock)
+            .setLeaseCheckMode(LeaseCheckMode.LENIENT)
+            .setDocumentStore(ts)
+            .setAsyncDelay(0)
+            .getNodeStore();
 
         NodeBuilder b1 = store.getRoot().builder();
         NodeBuilder xb = b1.child("x");
-        for (int i = 0; i < noOfDocsToDelete - 1; i++){
-            xb.child("a"+i).child("b"+i);
+        for (int i = 0; i < noOfDocsToDelete - 1; i++) {
+            xb.child("a" + i).child("b" + i);
         }
         xb.child("a-1").child("b\r");
         store.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
@@ -246,7 +246,7 @@ public class VersionGCDeletionTest {
         store.runBackgroundOperations();
 
         //3. Check that deleted doc does get collected post maxAge
-        clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
+        clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge * 2) + delta);
         VersionGarbageCollector gc = store.getVersionGarbageCollector();
         gc.setOptions(gc.getOptions().withOverflowToDiskThreshold(100));
 
@@ -256,21 +256,21 @@ public class VersionGCDeletionTest {
     }
 
     @Test
-    public void gcForPreviousDocs() throws Exception{
+    public void gcForPreviousDocs() throws Exception {
         DocumentStore ts = new MemoryDocumentStore();
         store = new DocumentMK.Builder()
-                .clock(clock)
-                .setLeaseCheckMode(LeaseCheckMode.LENIENT)
-                .setDocumentStore(ts)
-                .setAsyncDelay(0)
-                .getNodeStore();
+            .clock(clock)
+            .setLeaseCheckMode(LeaseCheckMode.LENIENT)
+            .setDocumentStore(ts)
+            .setAsyncDelay(0)
+            .getNodeStore();
 
         NodeBuilder b1;
         NodeBuilder xb;
 
         //Create/remove "/x/split" sufficient times to split it
         boolean create = true;
-        for (int i = 0; create || i < NodeDocument.NUM_REVS_THRESHOLD ; i++) {
+        for (int i = 0; create || i < NodeDocument.NUM_REVS_THRESHOLD; i++) {
             b1 = store.getRoot().builder();
             xb = b1.child("x").child("split");
             if (!create) {
@@ -319,11 +319,11 @@ public class VersionGCDeletionTest {
             @NotNull
             @Override
             public <T extends Document> List<T> query(Collection<T> collection,
-                                                      String fromKey,
-                                                      String toKey,
-                                                      int limit) {
+                String fromKey,
+                String toKey,
+                int limit) {
                 if (collection == Collection.NODES
-                        && Thread.currentThread() != currentThread) {
+                    && Thread.currentThread() != currentThread) {
                     ready.countDown();
                     queries.acquireUninterruptibly();
                 }
@@ -331,8 +331,8 @@ public class VersionGCDeletionTest {
             }
         };
         store = new DocumentMK.Builder().clock(clock)
-                .setLeaseCheckMode(LeaseCheckMode.LENIENT)
-                .setDocumentStore(ms).setAsyncDelay(0).getNodeStore();
+                                        .setLeaseCheckMode(LeaseCheckMode.LENIENT)
+                                        .setDocumentStore(ms).setAsyncDelay(0).getNodeStore();
 
         // create nodes
         NodeBuilder builder = store.getRoot().builder();
@@ -368,17 +368,17 @@ public class VersionGCDeletionTest {
         store.invalidateNodeChildrenCache();
 
         Future<List<String>> f = newSingleThreadExecutor().submit(
-                new Callable<List<String>>() {
-            @Override
-            public List<String> call() {
-                List<String> names = Lists.newArrayList();
-                NodeState n = store.getRoot().getChildNode("node");
-                for (ChildNodeEntry entry : n.getChildNodeEntries()) {
-                    names.add(entry.getName());
+            new Callable<List<String>>() {
+                @Override
+                public List<String> call() {
+                    List<String> names = Lists.newArrayList();
+                    NodeState n = store.getRoot().getChildNode("node");
+                    for (ChildNodeEntry entry : n.getChildNodeEntries()) {
+                        names.add(entry.getName());
+                    }
+                    return names;
                 }
-                return names;
-            }
-        });
+            });
 
         // run GC once the reader thread is collecting documents
         ready.await();
@@ -394,15 +394,17 @@ public class VersionGCDeletionTest {
     }
 
     private void merge(DocumentNodeStore store, NodeBuilder builder)
-            throws CommitFailedException {
+        throws CommitFailedException {
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 
     private static class TestDocumentStore extends MemoryDocumentStore {
+
         boolean throwException;
+
         @Override
         public <T extends Document> void remove(Collection<T> collection, String key) {
-            if (throwException && "2:/x/y".equals(key)){
+            if (throwException && "2:/x/y".equals(key)) {
                 throw new AssertionError();
             }
             super.remove(collection, key);
@@ -412,22 +414,23 @@ public class VersionGCDeletionTest {
         @NotNull
         @Override
         public <T extends Document> List<T> query(Collection<T> collection, String fromKey,
-                                                  String toKey, String indexedProperty, long startValue, int limit) {
-            List<T> result = super.query(collection, fromKey, toKey, indexedProperty, startValue, limit);
+            String toKey, String indexedProperty, long startValue, int limit) {
+            List<T> result = super.query(collection, fromKey, toKey, indexedProperty, startValue,
+                limit);
 
             //Ensure that /x comes before /x/y
-            if (NodeDocument.DELETED_ONCE.equals(indexedProperty)){
-                Collections.sort((List<NodeDocument>)result, new NodeDocComparator());
+            if (NodeDocument.DELETED_ONCE.equals(indexedProperty)) {
+                Collections.sort((List<NodeDocument>) result, new NodeDocComparator());
             }
             return result;
         }
     }
 
     /**
-     * Ensures that NodeDocument with path  /x/y /x/y/z /x get sorted to
-     * /x /x/y /x/y/z
+     * Ensures that NodeDocument with path  /x/y /x/y/z /x get sorted to /x /x/y /x/y/z
      */
     private static class NodeDocComparator implements Comparator<NodeDocument> {
+
         private static Comparator<Path> reverse = Collections.reverseOrder(PathComparator.INSTANCE);
 
         @Override

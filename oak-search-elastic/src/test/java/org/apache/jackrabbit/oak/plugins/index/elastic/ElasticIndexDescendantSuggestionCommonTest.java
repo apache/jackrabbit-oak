@@ -16,18 +16,18 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
+import javax.jcr.Repository;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.index.IndexDescendantSuggestionCommonTest;
 import org.junit.ClassRule;
 
-import javax.jcr.Repository;
-
-public class ElasticIndexDescendantSuggestionCommonTest extends IndexDescendantSuggestionCommonTest {
+public class ElasticIndexDescendantSuggestionCommonTest extends
+    IndexDescendantSuggestionCommonTest {
 
     @ClassRule
     public static final ElasticConnectionRule elasticRule =
-            new ElasticConnectionRule(ElasticTestUtils.ELASTIC_CONNECTION_STRING);
+        new ElasticConnectionRule(ElasticTestUtils.ELASTIC_CONNECTION_STRING);
 
     @Override
     protected Repository createJcrRepository() {

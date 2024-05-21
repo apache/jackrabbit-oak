@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.plugins.blob.migration;
 
 import java.io.File;
 import java.io.IOException;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
@@ -45,7 +44,7 @@ public class DocumentToExternalMigrationTest extends AbstractMigratorTest {
 
     @Override
     public void setup() throws CommitFailedException, IllegalArgumentException,
-            IOException {
+        IOException {
         dropDB();
         super.setup();
     }
@@ -79,7 +78,7 @@ public class DocumentToExternalMigrationTest extends AbstractMigratorTest {
             nodeStore = null;
         }
     }
-    
+
     @BeforeClass
     public static void checkMongoDbAvailable() {
         Assume.assumeTrue(MongoUtils.isAvailable());

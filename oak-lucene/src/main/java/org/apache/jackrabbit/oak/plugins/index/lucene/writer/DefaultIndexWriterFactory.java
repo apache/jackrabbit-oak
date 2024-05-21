@@ -19,6 +19,8 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.writer;
 
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+
 import org.apache.jackrabbit.guava.common.base.Preconditions;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
@@ -30,15 +32,14 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-
 public class DefaultIndexWriterFactory implements LuceneIndexWriterFactory {
+
     private final MountInfoProvider mountInfoProvider;
     private final DirectoryFactory directoryFactory;
     private final LuceneIndexWriterConfig writerConfig;
 
     public DefaultIndexWriterFactory(MountInfoProvider mountInfoProvider,
-                                     DirectoryFactory directoryFactory, LuceneIndexWriterConfig writerConfig) {
+        DirectoryFactory directoryFactory, LuceneIndexWriterConfig writerConfig) {
         this.mountInfoProvider = checkNotNull(mountInfoProvider);
         this.directoryFactory = checkNotNull(directoryFactory);
         this.writerConfig = checkNotNull(writerConfig);
@@ -46,19 +47,19 @@ public class DefaultIndexWriterFactory implements LuceneIndexWriterFactory {
 
     @Override
     public LuceneIndexWriter newInstance(IndexDefinition def, NodeBuilder definitionBuilder,
-                                         CommitInfo commitInfo, boolean reindex) {
+        CommitInfo commitInfo, boolean reindex) {
         Preconditions.checkArgument(def instanceof LuceneIndexDefinition,
-                "Expected {} but found {} for index definition",
-                LuceneIndexDefinition.class, def.getClass());
+            "Expected {} but found {} for index definition",
+            LuceneIndexDefinition.class, def.getClass());
 
-        LuceneIndexDefinition definition = (LuceneIndexDefinition)def;
+        LuceneIndexDefinition definition = (LuceneIndexDefinition) def;
 
-        if (mountInfoProvider.hasNonDefaultMounts()){
+        if (mountInfoProvider.hasNonDefaultMounts()) {
             return new MultiplexingIndexWriter(directoryFactory, mountInfoProvider, definition,
-                    definitionBuilder, reindex, writerConfig);
+                definitionBuilder, reindex, writerConfig);
         }
         return new DefaultIndexWriter(definition, definitionBuilder, directoryFactory,
-                FulltextIndexConstants.INDEX_DATA_CHILD_NAME,
-                LuceneIndexConstants.SUGGEST_DATA_CHILD_NAME, reindex, writerConfig);
+            FulltextIndexConstants.INDEX_DATA_CHILD_NAME,
+            LuceneIndexConstants.SUGGEST_DATA_CHILD_NAME, reindex, writerConfig);
     }
 }

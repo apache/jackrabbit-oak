@@ -20,4 +20,3 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.search.spi.query;
 
-import org.osgi.annotation.versioning.Version;

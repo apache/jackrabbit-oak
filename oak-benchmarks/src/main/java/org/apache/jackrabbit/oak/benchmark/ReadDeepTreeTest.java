@@ -16,12 +16,10 @@
  */
 package org.apache.jackrabbit.oak.benchmark;
 
-import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
-import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
-import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
-import org.apache.jackrabbit.util.Text;
-import org.jetbrains.annotations.NotNull;
-
+import java.io.InputStream;
+import java.security.Principal;
+import java.util.ArrayList;
+import java.util.List;
 import javax.jcr.ImportUUIDBehavior;
 import javax.jcr.Item;
 import javax.jcr.ItemVisitor;
@@ -32,13 +30,11 @@ import javax.jcr.Session;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.Privilege;
 import javax.jcr.util.TraversingItemVisitor;
-import java.io.InputStream;
-import java.security.Principal;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
+import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
+import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
+import org.apache.jackrabbit.util.Text;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Randomly read 1000 items from the deep tree.
@@ -67,11 +63,13 @@ public class ReadDeepTreeTest extends AbstractTest {
         this(runAsAdmin, itemsToRead, doReport, true);
     }
 
-    public ReadDeepTreeTest(boolean runAsAdmin, int itemsToRead, boolean doReport, boolean singleSession) {
+    public ReadDeepTreeTest(boolean runAsAdmin, int itemsToRead, boolean doReport,
+        boolean singleSession) {
         this(runAsAdmin, itemsToRead, doReport, singleSession, DEFAULT_REPEATED_READ);
     }
 
-    public ReadDeepTreeTest(boolean runAsAdmin, int itemsToRead, boolean doReport, boolean singleSession, int repeatedRead) {
+    public ReadDeepTreeTest(boolean runAsAdmin, int itemsToRead, boolean doReport,
+        boolean singleSession, int repeatedRead) {
         this.runAsAdmin = runAsAdmin;
         this.itemsToRead = itemsToRead;
         this.doReport = doReport;
@@ -95,12 +93,13 @@ public class ReadDeepTreeTest extends AbstractTest {
         if (!rn.hasNode(testNodeName)) {
             testRoot = adminSession.getRootNode().addNode(testNodeName, "nt:unstructured");
             InputStream in = getClass().getClassLoader().getResourceAsStream(getImportFileName());
-            adminSession.importXML(testRoot.getPath(), in, ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW);
+            adminSession.importXML(testRoot.getPath(), in,
+                ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW);
             adminSession.save();
         } else {
             testRoot = rn.getNode(testNodeName);
         }
-        System.out.println("Import deep tree: " + (System.currentTimeMillis()-start));
+        System.out.println("Import deep tree: " + (System.currentTimeMillis() - start));
 
         ItemVisitor v = new TraversingItemVisitor.Default() {
             @Override
@@ -108,6 +107,7 @@ public class ReadDeepTreeTest extends AbstractTest {
                 visitingNode(node, i);
                 super.entering(node, i);
             }
+
             @Override
             protected void entering(Property prop, int i) throws RepositoryException {
                 visitingProperty(prop, i);
@@ -149,7 +149,8 @@ public class ReadDeepTreeTest extends AbstractTest {
         randomRead(testSession, allPaths, itemsToRead);
     }
 
-    protected void randomRead(Session testSession, List<String> allPaths, int cnt) throws RepositoryException {
+    protected void randomRead(Session testSession, List<String> allPaths, int cnt)
+        throws RepositoryException {
         boolean logout = false;
         if (testSession == null) {
             testSession = getTestSession();
@@ -163,7 +164,10 @@ public class ReadDeepTreeTest extends AbstractTest {
             }
             long end = System.currentTimeMillis();
             if (doReport) {
-                System.out.println("Session " + testSession.getUserID() + " reading " + (cnt-accessCnt.noAccess) + " (Nodes: "+ accessCnt.nodeCnt +"; Properties: "+accessCnt.propertyCnt+") completed in " + (end - start));
+                System.out.println(
+                    "Session " + testSession.getUserID() + " reading " + (cnt - accessCnt.noAccess)
+                        + " (Nodes: " + accessCnt.nodeCnt + "; Properties: " + accessCnt.propertyCnt
+                        + ") completed in " + (end - start));
             }
         } finally {
             if (logout) {
@@ -195,13 +199,16 @@ public class ReadDeepTreeTest extends AbstractTest {
         }
     }
 
-    protected void addPolicy(AccessControlManager acMgr, Node node, Privilege[] privileges, List<Principal> principals) throws RepositoryException {
+    protected void addPolicy(AccessControlManager acMgr, Node node, Privilege[] privileges,
+        List<Principal> principals) throws RepositoryException {
         addPolicy(acMgr, node, privileges, principals.toArray(new Principal[principals.size()]));
     }
 
-    protected void addPolicy(AccessControlManager acMgr, Node node, Privilege[] privileges, Principal... principals) throws RepositoryException {
+    protected void addPolicy(AccessControlManager acMgr, Node node, Privilege[] privileges,
+        Principal... principals) throws RepositoryException {
         String path = getAccessControllablePath(node);
-        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(node.getSession(), path);
+        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(node.getSession(),
+            path);
         if (acl != null) {
             for (Principal principal : principals) {
                 acl.addAccessControlEntry(principal, privileges);
@@ -234,6 +241,7 @@ public class ReadDeepTreeTest extends AbstractTest {
     }
 
     private static final class Cnt {
+
         private int nodeCnt = 0;
         private int propertyCnt = 0;
         private int noAccess = 0;

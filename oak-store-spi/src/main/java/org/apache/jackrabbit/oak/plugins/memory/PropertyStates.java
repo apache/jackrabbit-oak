@@ -21,14 +21,11 @@ package org.apache.jackrabbit.oak.plugins.memory;
 import java.math.BigDecimal;
 import java.util.Calendar;
 import java.util.List;
-
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
-
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Lists;
-
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -41,19 +38,22 @@ import org.jetbrains.annotations.NotNull;
  * Utility class for creating {@link PropertyState} instances.
  */
 public final class PropertyStates {
-    private PropertyStates() {}
+
+    private PropertyStates() {
+    }
 
     /**
-     * Create a {@code PropertyState} based on a {@link Value}. The
-     * {@link Type} of the property state is determined by the
-     * type of the value.
+     * Create a {@code PropertyState} based on a {@link Value}. The {@link Type} of the property
+     * state is determined by the type of the value.
+     *
      * @param name  The name of the property state
-     * @param value  The value of the property state
-     * @return  The new property state
+     * @param value The value of the property state
+     * @return The new property state
      * @throws RepositoryException forwarded from {@code value}
      */
     @NotNull
-    public static PropertyState createProperty(String name, Value value) throws RepositoryException {
+    public static PropertyState createProperty(String name, Value value)
+        throws RepositoryException {
         int type = value.getType();
         switch (type) {
             case PropertyType.STRING:
@@ -69,25 +69,25 @@ public final class PropertyStates {
             case PropertyType.DECIMAL:
                 return DecimalPropertyState.decimalProperty(name, value.getDecimal());
             default:
-                return new GenericPropertyState(name, getString(value, type), Type.fromTag(type, false));
+                return new GenericPropertyState(name, getString(value, type),
+                    Type.fromTag(type, false));
         }
     }
 
     /**
-     * Create a multi valued {@code PropertyState} based on a list of
-     * {@link Value} instances. The {@link Type} of the property is determined
-     * by the type of the first value in the list or {@link Type#STRING} if the
-     * list is empty.
+     * Create a multi valued {@code PropertyState} based on a list of {@link Value} instances. The
+     * {@link Type} of the property is determined by the type of the first value in the list or
+     * {@link Type#STRING} if the list is empty.
      *
-     * @param name  The name of the property state
-     * @param values  The values of the property state
-     * @return  The new property state
+     * @param name   The name of the property state
+     * @param values The values of the property state
+     * @return The new property state
      * @throws RepositoryException forwarded from {@code value}
      */
     @NotNull
     public static PropertyState createProperty(
-            String name, Iterable<Value> values)
-            throws RepositoryException {
+        String name, Iterable<Value> values)
+        throws RepositoryException {
         int type = PropertyType.STRING;
         Value first = Iterables.getFirst(values, null);
         if (first != null) {
@@ -97,8 +97,8 @@ public final class PropertyStates {
     }
 
     public static PropertyState createProperty(
-            String name, Iterable<Value> values, int type)
-            throws RepositoryException {
+        String name, Iterable<Value> values, int type)
+        throws RepositoryException {
         switch (type) {
             case PropertyType.STRING:
                 List<String> strings = Lists.newArrayList();
@@ -148,9 +148,9 @@ public final class PropertyStates {
     private static String getString(Value value, int type) throws RepositoryException {
         if (value instanceof OakValue) {
             return ((OakValue) value).getOakString();
-        }
-        else if (type == PropertyType.NAME || type == PropertyType.PATH) {
-            throw new IllegalArgumentException("Cannot create name of path property state from Value " +
+        } else if (type == PropertyType.NAME || type == PropertyType.PATH) {
+            throw new IllegalArgumentException(
+                "Cannot create name of path property state from Value " +
                     "of class '" + value.getClass() + '\'');
         } else {
             return value.getString();
@@ -159,10 +159,11 @@ public final class PropertyStates {
 
     /**
      * Create a {@code PropertyState} from a string.
+     *
      * @param name  The name of the property state
-     * @param value  The value of the property state
+     * @param value The value of the property state
      * @param type  The type of the property state
-     * @return  The new property state
+     * @return The new property state
      */
     @NotNull
     public static PropertyState createProperty(String name, String value, int type) {
@@ -170,15 +171,20 @@ public final class PropertyStates {
             case PropertyType.STRING:
                 return StringPropertyState.stringProperty(name, value);
             case PropertyType.BINARY:
-                return  BinaryPropertyState.binaryProperty(name, Conversions.convert(value).toBinary());
+                return BinaryPropertyState.binaryProperty(name,
+                    Conversions.convert(value).toBinary());
             case PropertyType.LONG:
-                return LongPropertyState.createLongProperty(name, Conversions.convert(value).toLong());
+                return LongPropertyState.createLongProperty(name,
+                    Conversions.convert(value).toLong());
             case PropertyType.DOUBLE:
-                return DoublePropertyState.doubleProperty(name, Conversions.convert(value).toDouble());
+                return DoublePropertyState.doubleProperty(name,
+                    Conversions.convert(value).toDouble());
             case PropertyType.BOOLEAN:
-                return BooleanPropertyState.booleanProperty(name, Conversions.convert(value).toBoolean());
+                return BooleanPropertyState.booleanProperty(name,
+                    Conversions.convert(value).toBoolean());
             case PropertyType.DECIMAL:
-                return DecimalPropertyState.decimalProperty(name, Conversions.convert(value).toDecimal());
+                return DecimalPropertyState.decimalProperty(name,
+                    Conversions.convert(value).toDecimal());
             default:
                 return new GenericPropertyState(name, value, Type.fromTag(type, false));
         }
@@ -186,10 +192,11 @@ public final class PropertyStates {
 
     /**
      * Create a {@code PropertyState}.
+     *
      * @param name  The name of the property state
-     * @param value  The value of the property state
+     * @param value The value of the property state
      * @param type  The type of the property state
-     * @return  The new property state
+     * @return The new property state
      */
     @SuppressWarnings("unchecked")
     @NotNull
@@ -197,63 +204,65 @@ public final class PropertyStates {
         switch (type.tag()) {
             case PropertyType.STRING:
                 return type.isArray()
-                ? MultiStringPropertyState.stringProperty(name, (Iterable<String>) value)
-                : StringPropertyState.stringProperty(name, (String) value);
+                    ? MultiStringPropertyState.stringProperty(name, (Iterable<String>) value)
+                    : StringPropertyState.stringProperty(name, (String) value);
             case PropertyType.BINARY:
                 return type.isArray()
-                ? MultiBinaryPropertyState.binaryPropertyFromBlob(name, (Iterable<Blob>) value)
-                : BinaryPropertyState.binaryProperty(name, (Blob) value);
+                    ? MultiBinaryPropertyState.binaryPropertyFromBlob(name, (Iterable<Blob>) value)
+                    : BinaryPropertyState.binaryProperty(name, (Blob) value);
             case PropertyType.LONG:
                 return type.isArray()
-                ? MultiLongPropertyState.createLongProperty(name, (Iterable<Long>) value)
-                : LongPropertyState.createLongProperty(name, (Long) value);
+                    ? MultiLongPropertyState.createLongProperty(name, (Iterable<Long>) value)
+                    : LongPropertyState.createLongProperty(name, (Long) value);
             case PropertyType.DOUBLE:
                 return type.isArray()
-                ? MultiDoublePropertyState.doubleProperty(name, (Iterable<Double>) value)
-                : DoublePropertyState.doubleProperty(name, (Double) value);
+                    ? MultiDoublePropertyState.doubleProperty(name, (Iterable<Double>) value)
+                    : DoublePropertyState.doubleProperty(name, (Double) value);
             case PropertyType.DATE:
                 return type.isArray()
-                ? MultiGenericPropertyState.dateProperty(name, (Iterable<String>) value)
-                : GenericPropertyState.dateProperty(name, (String) value);
+                    ? MultiGenericPropertyState.dateProperty(name, (Iterable<String>) value)
+                    : GenericPropertyState.dateProperty(name, (String) value);
             case PropertyType.BOOLEAN:
                 return type.isArray()
-                ? MultiBooleanPropertyState.booleanProperty(name, (Iterable<Boolean>) value)
-                : BooleanPropertyState.booleanProperty(name, (Boolean) value);
+                    ? MultiBooleanPropertyState.booleanProperty(name, (Iterable<Boolean>) value)
+                    : BooleanPropertyState.booleanProperty(name, (Boolean) value);
             case PropertyType.NAME:
                 return type.isArray()
-                ? MultiGenericPropertyState.nameProperty(name, (Iterable<String>) value)
-                : GenericPropertyState.nameProperty(name, (String) value);
+                    ? MultiGenericPropertyState.nameProperty(name, (Iterable<String>) value)
+                    : GenericPropertyState.nameProperty(name, (String) value);
             case PropertyType.PATH:
                 return type.isArray()
-                ? MultiGenericPropertyState.pathProperty(name, (Iterable<String>) value)
-                : GenericPropertyState.pathProperty(name, (String) value);
+                    ? MultiGenericPropertyState.pathProperty(name, (Iterable<String>) value)
+                    : GenericPropertyState.pathProperty(name, (String) value);
             case PropertyType.REFERENCE:
                 return type.isArray()
-                ? MultiGenericPropertyState.referenceProperty(name, (Iterable<String>) value)
-                : GenericPropertyState.referenceProperty(name, (String) value);
+                    ? MultiGenericPropertyState.referenceProperty(name, (Iterable<String>) value)
+                    : GenericPropertyState.referenceProperty(name, (String) value);
             case PropertyType.WEAKREFERENCE:
                 return type.isArray()
-                ? MultiGenericPropertyState.weakreferenceProperty(name, (Iterable<String>) value)
-                : GenericPropertyState.weakreferenceProperty(name, (String) value);
+                    ? MultiGenericPropertyState.weakreferenceProperty(name,
+                    (Iterable<String>) value)
+                    : GenericPropertyState.weakreferenceProperty(name, (String) value);
             case PropertyType.URI:
                 return type.isArray()
-                ? MultiGenericPropertyState.uriProperty(name, (Iterable<String>) value)
-                : GenericPropertyState.uriProperty(name, (String) value);
+                    ? MultiGenericPropertyState.uriProperty(name, (Iterable<String>) value)
+                    : GenericPropertyState.uriProperty(name, (String) value);
             case PropertyType.DECIMAL:
                 return type.isArray()
-                ? MultiDecimalPropertyState.decimalProperty(name, (Iterable<BigDecimal>) value)
-                : DecimalPropertyState.decimalProperty(name, (BigDecimal) value);
-            default: throw new IllegalArgumentException("Invalid type: " + type);
+                    ? MultiDecimalPropertyState.decimalProperty(name, (Iterable<BigDecimal>) value)
+                    : DecimalPropertyState.decimalProperty(name, (BigDecimal) value);
+            default:
+                throw new IllegalArgumentException("Invalid type: " + type);
         }
     }
 
     /**
-     * Create a {@code PropertyState} where the {@link Type} of the property state
-     * is inferred from the runtime type of {@code T} according to the mapping
-     * established through {@code Type}.
+     * Create a {@code PropertyState} where the {@link Type} of the property state is inferred from
+     * the runtime type of {@code T} according to the mapping established through {@code Type}.
+     *
      * @param name  The name of the property state
-     * @param value  The value of the property state
-     * @return  The new property state
+     * @param value The value of the property state
+     * @return The new property state
      */
     @NotNull
     public static <T> PropertyState createProperty(String name, T value) {
@@ -276,14 +285,15 @@ public final class PropertyStates {
         } else if (value instanceof BigDecimal) {
             return DecimalPropertyState.decimalProperty(name, (BigDecimal) value);
         } else {
-            throw new IllegalArgumentException("Can't infer type of value of class '" + value.getClass() + '\'');
+            throw new IllegalArgumentException(
+                "Can't infer type of value of class '" + value.getClass() + '\'');
         }
     }
 
     public static PropertyState convert(PropertyState state, Type<?> type) {
         if (type == state.getType()
-                || (type == Type.UNDEFINED && !state.isArray())
-                || (type == Type.UNDEFINEDS && state.isArray())) {
+            || (type == Type.UNDEFINED && !state.isArray())
+            || (type == Type.UNDEFINEDS && state.isArray())) {
             return state;
         } else {
             return createProperty(state.getName(), state.getValue(type), type);

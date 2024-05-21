@@ -27,9 +27,9 @@ import java.util.Set;
  * A fulltext "or" condition.
  */
 public class FullTextOr extends FullTextExpression {
-    
+
     public final List<FullTextExpression> list;
-    
+
     public FullTextOr(List<FullTextExpression> list) {
         this.list = list;
     }
@@ -51,13 +51,13 @@ public class FullTextOr extends FullTextExpression {
             return set.iterator().next();
         }
         ArrayList<FullTextExpression> l = new ArrayList<FullTextExpression>(
-                set.size());
+            set.size());
         l.addAll(set);
         return new FullTextOr(l);
     }
-    
+
     static Set<FullTextExpression> getUniqueSet(
-            List<FullTextExpression> list) {
+        List<FullTextExpression> list) {
         // remove duplicates, but keep order
         LinkedHashSet<FullTextExpression> set = new LinkedHashSet<FullTextExpression>(list.size());
         for (int i = 0; i < list.size(); i++) {
@@ -84,12 +84,12 @@ public class FullTextOr extends FullTextExpression {
         }
         return buff.toString();
     }
-    
+
     @Override
     public int getPrecedence() {
         return PRECEDENCE_OR;
     }
-    
+
     @Override
     public boolean accept(FullTextVisitor v) {
         return v.visit(this);

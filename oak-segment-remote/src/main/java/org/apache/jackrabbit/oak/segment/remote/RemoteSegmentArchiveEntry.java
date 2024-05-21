@@ -34,7 +34,8 @@ public class RemoteSegmentArchiveEntry implements SegmentArchiveEntry {
 
     private final boolean compacted;
 
-    public RemoteSegmentArchiveEntry(long msb, long lsb, int position, int length, int generation, int fullGeneration, boolean compacted) {
+    public RemoteSegmentArchiveEntry(long msb, long lsb, int position, int length, int generation,
+        int fullGeneration, boolean compacted) {
         this.msb = msb;
         this.lsb = lsb;
         this.position = position;

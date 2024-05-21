@@ -16,12 +16,12 @@ package org.apache.jackrabbit.oak.api.jmx;
  * limitations under the License.
  */
 
-import org.osgi.annotation.versioning.ProviderType;
-
 import javax.management.openmbean.CompositeData;
+import org.osgi.annotation.versioning.ProviderType;
 
 @ProviderType
 public interface PersistentCacheStatsMBean extends CacheStatsMBean {
+
     String TYPE = "PersistentCacheStats";
 
     CompositeData getRequestRateHistory();

@@ -18,9 +18,33 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
+import static java.lang.management.ManagementFactory.getPlatformMBeanServer;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.MongoDownloaderRegexUtils.LONG_PATH_ID_PATTERN;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelineITUtil.assertMetrics;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelineITUtil.contentDamPathFilter;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelineITUtil.createNodeStore;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_MONGO_PARALLEL_DUMP;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_RETRY_ON_CONNECTION_ERRORS;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import com.codahale.metrics.Counter;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.function.Predicate;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import joptsimple.internal.Strings;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.Compression;
@@ -50,58 +74,34 @@ import org.junit.runners.Parameterized;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Set;
-import java.util.SortedMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.function.Predicate;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-
-import static java.lang.management.ManagementFactory.getPlatformMBeanServer;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.MongoDownloaderRegexUtils.LONG_PATH_ID_PATTERN;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelineITUtil.assertMetrics;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelineITUtil.contentDamPathFilter;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelineITUtil.createNodeStore;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_MONGO_PARALLEL_DUMP;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_RETRY_ON_CONNECTION_ERRORS;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
 
 @RunWith(Parameterized.class)
 public class PipelinedParametrizedIT {
+
     private static final Logger LOG = LoggerFactory.getLogger(PipelinedParametrizedIT.class);
     private static final int LONG_PATH_TEST_LEVELS = 30;
     private static final String LONG_PATH_LEVEL_STRING = "Z12345678901234567890-Level_";
     private static ScheduledExecutorService executorService;
     private static final List<String> EXPECTED_FFS = new ArrayList<>(List.of(
-            "/|{}",
-            "/content|{}",
-            "/content/dam|{}",
-            "/content/dam/1000|{}",
-            "/content/dam/1000/12|{\"p1\":\"v100012\"}",
-            "/content/dam/2022|{}",
-            "/content/dam/2022/01|{\"p1\":\"v202201\"}",
-            "/content/dam/2022/01/01|{\"p1\":\"v20220101\"}",
-            "/content/dam/2022/02|{\"p1\":\"v202202\"}",
-            "/content/dam/2022/02/01|{\"p1\":\"v20220201\"}",
-            "/content/dam/2022/02/02|{\"p1\":\"v20220202\"}",
-            "/content/dam/2022/02/03|{\"p1\":\"v20220203\"}",
-            "/content/dam/2022/02/04|{\"p1\":\"v20220204\"}",
-            "/content/dam/2022/03|{\"p1\":\"v202203\"}",
-            "/content/dam/2022/04|{\"p1\":\"v202204\"}",
-            "/content/dam/2023|{\"p2\":\"v2023\"}",
-            "/content/dam/2023/01|{\"p1\":\"v202301\"}",
-            "/content/dam/2023/02|{}",
-            "/content/dam/2023/02/28|{\"p1\":\"v20230228\"}"
+        "/|{}",
+        "/content|{}",
+        "/content/dam|{}",
+        "/content/dam/1000|{}",
+        "/content/dam/1000/12|{\"p1\":\"v100012\"}",
+        "/content/dam/2022|{}",
+        "/content/dam/2022/01|{\"p1\":\"v202201\"}",
+        "/content/dam/2022/01/01|{\"p1\":\"v20220101\"}",
+        "/content/dam/2022/02|{\"p1\":\"v202202\"}",
+        "/content/dam/2022/02/01|{\"p1\":\"v20220201\"}",
+        "/content/dam/2022/02/02|{\"p1\":\"v20220202\"}",
+        "/content/dam/2022/02/03|{\"p1\":\"v20220203\"}",
+        "/content/dam/2022/02/04|{\"p1\":\"v20220204\"}",
+        "/content/dam/2022/03|{\"p1\":\"v202203\"}",
+        "/content/dam/2022/04|{\"p1\":\"v202204\"}",
+        "/content/dam/2023|{\"p2\":\"v2023\"}",
+        "/content/dam/2023/01|{\"p1\":\"v202301\"}",
+        "/content/dam/2023/02|{}",
+        "/content/dam/2023/02/28|{\"p1\":\"v20230228\"}"
     ));
 
 
@@ -144,18 +144,19 @@ public class PipelinedParametrizedIT {
     @Parameterized.Parameters(name = "retryOnConnectionErrors={0},regexPathFiltering={1},parallelDump={2}")
     public static Collection<Object[]> parameters() {
         return List.of(
-                new Object[]{true, true, true},
-                new Object[]{true, true, false},
-                new Object[]{true, false, true},
-                new Object[]{true, false, false},
-                new Object[]{false, true, true},
-                new Object[]{false, true, false},
-                new Object[]{false, false, true},
-                new Object[]{false, false, false}
+            new Object[]{true, true, true},
+            new Object[]{true, true, false},
+            new Object[]{true, false, true},
+            new Object[]{true, false, false},
+            new Object[]{false, true, true},
+            new Object[]{false, true, false},
+            new Object[]{false, false, true},
+            new Object[]{false, false, false}
         );
     }
 
-    public PipelinedParametrizedIT(boolean retryOnConnectionErrors, boolean regexPathFiltering, boolean parallelDump) {
+    public PipelinedParametrizedIT(boolean retryOnConnectionErrors, boolean regexPathFiltering,
+        boolean parallelDump) {
         this.retryOnConnectionErrors = retryOnConnectionErrors;
         this.regexPathFiltering = regexPathFiltering;
         this.parallelDump = parallelDump;
@@ -164,7 +165,7 @@ public class PipelinedParametrizedIT {
     @Before
     public void before() {
         LOG.info("retryOnConnectionErrors={},regexPathFiltering={},parallelDump={}",
-                retryOnConnectionErrors, regexPathFiltering, parallelDump);
+            retryOnConnectionErrors, regexPathFiltering, parallelDump);
 
         MongoConnection c = connectionFactory.getConnection();
         if (c != null) {
@@ -190,64 +191,79 @@ public class PipelinedParametrizedIT {
     @Test
     public void testCreateFFS() throws IOException, CommitFailedException {
         LOG.info("testCreateFFS");
-        System.setProperty(OAK_INDEXER_PIPELINED_RETRY_ON_CONNECTION_ERRORS, Boolean.toString(retryOnConnectionErrors));
-        System.setProperty(OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING, Boolean.toString(regexPathFiltering));
-        System.setProperty(OAK_INDEXER_PIPELINED_MONGO_PARALLEL_DUMP, Boolean.toString(parallelDump));
+        System.setProperty(OAK_INDEXER_PIPELINED_RETRY_ON_CONNECTION_ERRORS,
+            Boolean.toString(retryOnConnectionErrors));
+        System.setProperty(OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING,
+            Boolean.toString(regexPathFiltering));
+        System.setProperty(OAK_INDEXER_PIPELINED_MONGO_PARALLEL_DUMP,
+            Boolean.toString(parallelDump));
 
-        Predicate<String> pathPredicate = s -> contentDamPathFilter.filter(s) != PathFilter.Result.EXCLUDE;
+        Predicate<String> pathPredicate = s -> contentDamPathFilter.filter(s)
+            != PathFilter.Result.EXCLUDE;
         List<PathFilter> pathFilters = List.of(contentDamPathFilter);
 
         testSuccessfulDownload(pathPredicate, pathFilters);
     }
 
-    private void testSuccessfulDownload(Predicate<String> pathPredicate, List<PathFilter> pathFilters)
-            throws CommitFailedException, IOException {
+    private void testSuccessfulDownload(Predicate<String> pathPredicate,
+        List<PathFilter> pathFilters)
+        throws CommitFailedException, IOException {
         testSuccessfulDownload(pathPredicate, pathFilters, EXPECTED_FFS, false);
     }
 
     private long numberOfDocumentsOnMongo(MongoDatabase mongoDatabase) {
-        return mongoDatabase.getCollection(org.apache.jackrabbit.oak.plugins.document.Collection.NODES.toString()).countDocuments();
+        return mongoDatabase.getCollection(
+                                org.apache.jackrabbit.oak.plugins.document.Collection.NODES.toString())
+                            .countDocuments();
     }
 
     private long numberOfFilteredDocuments(MongoDatabase mongoDatabase, String path) {
         String idRegex = "^[0-9]{1,3}:" + Pattern.quote(path);
         int parentNodes = Path.fromString(path).getDepth();
-        long childNodes = mongoDatabase.getCollection(org.apache.jackrabbit.oak.plugins.document.Collection.NODES.toString())
-                .countDocuments(Filters.or(
-                        Filters.regex(NodeDocument.ID, idRegex),
-                        Filters.regex(NodeDocument.ID, LONG_PATH_ID_PATTERN))
-                );
+        long childNodes = mongoDatabase.getCollection(
+                                           org.apache.jackrabbit.oak.plugins.document.Collection.NODES.toString())
+                                       .countDocuments(Filters.or(
+                                           Filters.regex(NodeDocument.ID, idRegex),
+                                           Filters.regex(NodeDocument.ID, LONG_PATH_ID_PATTERN))
+                                       );
         return parentNodes + childNodes;
     }
 
 
-    private void testSuccessfulDownload(Predicate<String> pathPredicate, List<PathFilter> pathFilters, List<String> expected, boolean ignoreLongPaths)
-            throws CommitFailedException, IOException {
-        try (MongoTestBackend rwStore = createNodeStore(false, connectionFactory, builderProvider)) {
+    private void testSuccessfulDownload(Predicate<String> pathPredicate,
+        List<PathFilter> pathFilters, List<String> expected, boolean ignoreLongPaths)
+        throws CommitFailedException, IOException {
+        try (MongoTestBackend rwStore = createNodeStore(false, connectionFactory,
+            builderProvider)) {
             PipelineITUtil.createContent(rwStore.documentNodeStore);
         }
 
         try (MongoTestBackend roStore = createNodeStore(true, connectionFactory, builderProvider)) {
 
-            PipelinedStrategy pipelinedStrategy = createStrategy(roStore, pathPredicate, pathFilters);
+            PipelinedStrategy pipelinedStrategy = createStrategy(roStore, pathPredicate,
+                pathFilters);
 
             File file = pipelinedStrategy.createSortedStoreFile();
-
 
             SortedMap<String, Counter> counters = statsProvider.getRegistry().getCounters();
 
             long nDocumentsMatchingFilter = regexPathFiltering ?
-                    numberOfFilteredDocuments(roStore.mongoDatabase, "/content/dam") :
-                    numberOfDocumentsOnMongo(roStore.mongoDatabase);
-            long actualDocumentsDownloaded = counters.get(PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_DOWNLOADED_TOTAL).getCount();
+                numberOfFilteredDocuments(roStore.mongoDatabase, "/content/dam") :
+                numberOfDocumentsOnMongo(roStore.mongoDatabase);
+            long actualDocumentsDownloaded = counters.get(
+                PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_DOWNLOADED_TOTAL).getCount();
             if (parallelDump) {
                 // With parallel download, we may download more documents than the ones matching the filter
-                assertTrue("Docs downloaded: " + actualDocumentsDownloaded + " must be between " + nDocumentsMatchingFilter + " and " + nDocumentsMatchingFilter * 2,
-                        nDocumentsMatchingFilter <= actualDocumentsDownloaded && actualDocumentsDownloaded <= nDocumentsMatchingFilter * 2);
+                assertTrue("Docs downloaded: " + actualDocumentsDownloaded + " must be between "
+                        + nDocumentsMatchingFilter + " and " + nDocumentsMatchingFilter * 2,
+                    nDocumentsMatchingFilter <= actualDocumentsDownloaded
+                        && actualDocumentsDownloaded <= nDocumentsMatchingFilter * 2);
             } else {
                 assertEquals(nDocumentsMatchingFilter, actualDocumentsDownloaded);
             }
-            assertEquals(expected.size(), counters.get(PipelinedMetrics.OAK_INDEXER_PIPELINED_ENTRIES_ACCEPTED_TOTAL).getCount());
+            assertEquals(expected.size(),
+                counters.get(PipelinedMetrics.OAK_INDEXER_PIPELINED_ENTRIES_ACCEPTED_TOTAL)
+                        .getCount());
 
             assertTrue(file.exists());
             List<String> result = Files.readAllLines(file.toPath());
@@ -255,34 +271,37 @@ public class PipelinedParametrizedIT {
                 // Remove the long paths from the result. The filter on Mongo is best-effort, it will download long path
                 // documents, even if they do not match the includedPaths.
                 result = result.stream()
-                        .filter(s -> {
-                            var name = s.split("\\|")[0];
-                            return name.length() < Utils.PATH_LONG;
-                        })
-                        .collect(Collectors.toList());
+                               .filter(s -> {
+                                   var name = s.split("\\|")[0];
+                                   return name.length() < Utils.PATH_LONG;
+                               })
+                               .collect(Collectors.toList());
             }
-            assertEquals("Expected:\n" + Strings.join(expected, "\n") + "\nActual: " + Strings.join(result, "\n"), expected, result);
+            assertEquals(
+                "Expected:\n" + Strings.join(expected, "\n") + "\nActual: " + Strings.join(result,
+                    "\n"), expected, result);
             assertMetrics(statsProvider);
         }
     }
 
-    private PipelinedStrategy createStrategy(MongoTestBackend backend, Predicate<String> pathPredicate, List<PathFilter> pathFilters) {
+    private PipelinedStrategy createStrategy(MongoTestBackend backend,
+        Predicate<String> pathPredicate, List<PathFilter> pathFilters) {
         Set<String> preferredPathElements = Set.of();
         RevisionVector rootRevision = backend.documentNodeStore.getRoot().getRootRevision();
         indexingReporter.setIndexNames(List.of("testIndex"));
         return new PipelinedStrategy(
-                backend.mongoClientURI,
-                backend.mongoDocumentStore,
-                backend.documentNodeStore,
-                rootRevision,
-                preferredPathElements,
-                new MemoryBlobStore(),
-                sortFolder.getRoot(),
-                Compression.NONE,
-                pathPredicate,
-                pathFilters,
-                null,
-                statsProvider,
-                indexingReporter);
+            backend.mongoClientURI,
+            backend.mongoDocumentStore,
+            backend.documentNodeStore,
+            rootRevision,
+            preferredPathElements,
+            new MemoryBlobStore(),
+            sortFolder.getRoot(),
+            Compression.NONE,
+            pathPredicate,
+            pathFilters,
+            null,
+            statsProvider,
+            indexingReporter);
     }
 }

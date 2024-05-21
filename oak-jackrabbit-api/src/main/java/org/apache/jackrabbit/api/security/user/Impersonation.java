@@ -17,60 +17,53 @@
 package org.apache.jackrabbit.api.security.user;
 
 import java.security.Principal;
-
 import javax.jcr.RepositoryException;
 import javax.security.auth.Subject;
-
 import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
 import org.jetbrains.annotations.NotNull;
 import org.osgi.annotation.versioning.ProviderType;
 
 /**
- * The <code>Impersonation</code> maintains Principals that are allowed to
- * impersonate. Principals can be added or removed using
- * {@link #grantImpersonation(Principal)} and
+ * The <code>Impersonation</code> maintains Principals that are allowed to impersonate. Principals
+ * can be added or removed using {@link #grantImpersonation(Principal)} and
  * {@link #revokeImpersonation(Principal)}, respectively.
  *
  * @see User#getImpersonation()
  */
 @ProviderType
 public interface Impersonation {
-    
+
     /**
-     * @return An iterator over the <code>Principal</code>s that are allowed
-     * to impersonate the <code>User</code> this <code>Impersonation</code>
-     * object has been created for.
+     * @return An iterator over the <code>Principal</code>s that are allowed to impersonate the
+     * <code>User</code> this <code>Impersonation</code> object has been created for.
      * @throws RepositoryException If an error occurs.
      */
     @NotNull
     PrincipalIterator getImpersonators() throws RepositoryException;
 
     /**
-     * @param principal The principal that should be allowed to impersonate
-     * the <code>User</code> this <code>Impersonation</code> has been built for.
-     * @return true if the specified <code>Principal</code> has not been allowed
-     * to impersonate before and if impersonation has been successfully
-     * granted to it, false otherwise.
+     * @param principal The principal that should be allowed to impersonate the <code>User</code>
+     *                  this <code>Impersonation</code> has been built for.
+     * @return true if the specified <code>Principal</code> has not been allowed to impersonate
+     * before and if impersonation has been successfully granted to it, false otherwise.
      * @throws RepositoryException If an error occurs.
      */
     boolean grantImpersonation(@NotNull Principal principal) throws RepositoryException;
 
     /**
-     * @param principal The principal that should no longer be allowed to
-     * impersonate.
-     * @return If the granted impersonation has been successfully revoked for
-     * the given principal; false otherwise.
+     * @param principal The principal that should no longer be allowed to impersonate.
+     * @return If the granted impersonation has been successfully revoked for the given principal;
+     * false otherwise.
      * @throws RepositoryException If an error occurs.
      */
     boolean revokeImpersonation(@NotNull Principal principal) throws RepositoryException;
 
     /**
-     * Test if the given subject (i.e. any of the principals it contains) is
-     * allowed to impersonate.
+     * Test if the given subject (i.e. any of the principals it contains) is allowed to
+     * impersonate.
      *
      * @param subject to impersonate.
-     * @return true if this <code>Impersonation</code> allows the specified
-     * Subject to impersonate.
+     * @return true if this <code>Impersonation</code> allows the specified Subject to impersonate.
      * @throws RepositoryException If an error occurs.
      */
     boolean allows(@NotNull Subject subject) throws RepositoryException;

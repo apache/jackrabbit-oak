@@ -18,13 +18,11 @@
 package org.apache.jackrabbit.oak.run;
 
 import java.util.Arrays;
-
-import org.apache.jackrabbit.oak.plugins.document.rdb.RDBHelper;
-import org.apache.jackrabbit.oak.run.commons.Command;
-
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
+import org.apache.jackrabbit.oak.plugins.document.rdb.RDBHelper;
+import org.apache.jackrabbit.oak.run.commons.Command;
 
 public class RDBDDLDumpCommand implements Command {
 
@@ -32,12 +30,15 @@ public class RDBDDLDumpCommand implements Command {
     public void execute(String... args) throws Exception {
         OptionParser parser = new OptionParser();
         OptionSpec<Void> helpOption = parser.accepts("help", "show help").forHelp();
-        OptionSpec<String> dbOption = parser.accepts("db", "Database type: one of " + RDBHelper.getSupportedDatabases())
-                .withRequiredArg().ofType(String.class);
-        OptionSpec<Integer> initialSchemaOption = parser.accepts("initial", "Initial DB schema version").withRequiredArg()
-                .ofType(Integer.class);
-        OptionSpec<Integer> upgradeSchemaOption = parser.accepts("upgrade", "DB schema version to upgrade to").withRequiredArg()
-                .ofType(Integer.class);
+        OptionSpec<String> dbOption = parser.accepts("db",
+                                                "Database type: one of " + RDBHelper.getSupportedDatabases())
+                                            .withRequiredArg().ofType(String.class);
+        OptionSpec<Integer> initialSchemaOption = parser.accepts("initial",
+                                                            "Initial DB schema version").withRequiredArg()
+                                                        .ofType(Integer.class);
+        OptionSpec<Integer> upgradeSchemaOption = parser.accepts("upgrade",
+                                                            "DB schema version to upgrade to").withRequiredArg()
+                                                        .ofType(Integer.class);
 
         try {
             OptionSet options = parser.parse(args);

@@ -17,16 +17,16 @@
 package org.apache.jackrabbit.oak.upgrade.cli.blob;
 
 import java.io.IOException;
-
 import org.apache.jackrabbit.oak.upgrade.cli.AbstractOak2OakTest;
+import org.apache.jackrabbit.oak.upgrade.cli.container.AzureDataStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.container.BlobStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.container.FileBlobStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.container.NodeStoreContainer;
-import org.apache.jackrabbit.oak.upgrade.cli.container.AzureDataStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.container.SegmentTarNodeStoreContainer;
 import org.junit.Assume;
 
 public class AzureToFbsTest extends AbstractOak2OakTest {
+
     private static final String AZURE_PROPERTIES = System.getProperty("azure.properties");
 
     private final BlobStoreContainer sourceBlob;
@@ -57,11 +57,12 @@ public class AzureToFbsTest extends AbstractOak2OakTest {
 
     @Override
     protected String[] getArgs() {
-    	
-    	// Don't add '-src-azuredatastore' as discussed on OAK-6632
-        return new String[] { "--copy-binaries", "--src-azureconfig",
-                AZURE_PROPERTIES, "--fileblobstore", destinationBlob.getDescription(), source.getDescription(),
-                destination.getDescription() };
+
+        // Don't add '-src-azuredatastore' as discussed on OAK-6632
+        return new String[]{"--copy-binaries", "--src-azureconfig",
+            AZURE_PROPERTIES, "--fileblobstore", destinationBlob.getDescription(),
+            source.getDescription(),
+            destination.getDescription()};
     }
 
     @Override

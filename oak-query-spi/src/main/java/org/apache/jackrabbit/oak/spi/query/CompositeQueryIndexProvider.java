@@ -19,16 +19,14 @@ package org.apache.jackrabbit.oak.spi.query;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-
 /**
- * This {@code QueryIndexProvider} aggregates a list of query index providers
- * into a single query index provider.
+ * This {@code QueryIndexProvider} aggregates a list of query index providers into a single query
+ * index provider.
  */
 public class CompositeQueryIndexProvider implements QueryIndexProvider {
 
@@ -44,7 +42,7 @@ public class CompositeQueryIndexProvider implements QueryIndexProvider {
 
     @NotNull
     public static QueryIndexProvider compose(
-            @NotNull Collection<QueryIndexProvider> providers) {
+        @NotNull Collection<QueryIndexProvider> providers) {
         if (providers.isEmpty()) {
             return new QueryIndexProvider() {
                 @Override
@@ -56,11 +54,12 @@ public class CompositeQueryIndexProvider implements QueryIndexProvider {
             return providers.iterator().next();
         } else {
             return new CompositeQueryIndexProvider(
-                    ImmutableList.copyOf(providers));
+                ImmutableList.copyOf(providers));
         }
     }
 
-    @Override @NotNull
+    @Override
+    @NotNull
     public List<? extends QueryIndex> getQueryIndexes(NodeState nodeState) {
         List<QueryIndex> indexes = Lists.newArrayList();
         for (QueryIndexProvider provider : providers) {
@@ -68,7 +67,7 @@ public class CompositeQueryIndexProvider implements QueryIndexProvider {
         }
         return indexes;
     }
-    
+
     @Override
     public String toString() {
         return getClass().getName() + ": " + providers.toString();

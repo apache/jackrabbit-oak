@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.exercise.security.authorization.accesscontrol;
 
+import static org.junit.Assert.assertArrayEquals;
+
 import java.security.Principal;
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
@@ -26,20 +28,17 @@ import javax.jcr.nodetype.NodeType;
 import javax.jcr.security.AccessControlList;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.Privilege;
-
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.exercise.ExerciseUtility;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.test.AbstractJCRTest;
 import org.apache.jackrabbit.test.NotExecutableException;
-
-import static org.junit.Assert.assertArrayEquals;
 
 /**
  * <pre>
@@ -115,7 +114,8 @@ public class L6_AccessControlContentTest extends AbstractJCRTest {
 
         acMgr = superuser.getAccessControlManager();
 
-        testPrincipal = ExerciseUtility.createTestGroup(((JackrabbitSession) superuser).getUserManager()).getPrincipal();
+        testPrincipal = ExerciseUtility.createTestGroup(
+            ((JackrabbitSession) superuser).getUserManager()).getPrincipal();
         superuser.save();
 
         acl = AccessControlUtils.getAccessControlList(superuser, testRoot);
@@ -123,13 +123,15 @@ public class L6_AccessControlContentTest extends AbstractJCRTest {
             throw new NotExecutableException();
         }
 
-        testPrivileges = AccessControlUtils.privilegesFromNames(acMgr, Privilege.JCR_READ, Privilege.JCR_WRITE);
+        testPrivileges = AccessControlUtils.privilegesFromNames(acMgr, Privilege.JCR_READ,
+            Privilege.JCR_WRITE);
     }
 
     @Override
     protected void tearDown() throws Exception {
         try {
-            Authorizable testGroup = ((JackrabbitSession) superuser).getUserManager().getAuthorizable(testPrincipal);
+            Authorizable testGroup = ((JackrabbitSession) superuser).getUserManager()
+                                                                    .getAuthorizable(testPrincipal);
             if (testGroup != null) {
                 testGroup.remove();
                 superuser.save();
@@ -184,8 +186,9 @@ public class L6_AccessControlContentTest extends AbstractJCRTest {
     public void testRestrictionContent() throws RepositoryException {
         ValueFactory vf = superuser.getValueFactory();
         acl.addEntry(testPrincipal, testPrivileges, false,
-                ImmutableMap.of(AccessControlConstants.REP_GLOB, vf.createValue("")),
-                ImmutableMap.of(AccessControlConstants.REP_PREFIXES, new Value[] {vf.createValue("jcr"), vf.createValue("mix")}));
+            ImmutableMap.of(AccessControlConstants.REP_GLOB, vf.createValue("")),
+            ImmutableMap.of(AccessControlConstants.REP_PREFIXES,
+                new Value[]{vf.createValue("jcr"), vf.createValue("mix")}));
         acMgr.setPolicy(testRoot, acl);
 
         String policyPath = null; // EXERCISE
@@ -208,7 +211,8 @@ public class L6_AccessControlContentTest extends AbstractJCRTest {
         AccessControlList repoAcl = AccessControlUtils.getAccessControlList(acMgr, null);
 
         assertNotNull(repoAcl);
-        repoAcl.addAccessControlEntry(testPrincipal, AccessControlUtils.privilegesFromNames(acMgr, PrivilegeConstants.JCR_NAMESPACE_MANAGEMENT));
+        repoAcl.addAccessControlEntry(testPrincipal, AccessControlUtils.privilegesFromNames(acMgr,
+            PrivilegeConstants.JCR_NAMESPACE_MANAGEMENT));
         acMgr.setPolicy(null, repoAcl);
 
         // EXERCISE retrieve the policy node and verify the expected name, primary type and child items

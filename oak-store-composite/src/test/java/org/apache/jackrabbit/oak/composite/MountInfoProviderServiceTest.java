@@ -38,6 +38,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 public class MountInfoProviderServiceTest {
+
     @Rule
     public final OsgiContext context = new OsgiContext();
 
@@ -69,10 +70,12 @@ public class MountInfoProviderServiceTest {
 
     @Test
     public void mountWithConfig_Paths() {
-        registerActivateMountInfoConfig(propsBuilder().withMountPaths("/a", "/b").buildMountInfoProps());
+        registerActivateMountInfoConfig(
+            propsBuilder().withMountPaths("/a", "/b").buildMountInfoProps());
 
         MockOsgi.injectServices(service, context.bundleContext());
-        service.activate(context.bundleContext(), withExpectedMounts(MountInfoConfig.Props.DEFAULT_MOUNT_NAME));
+        service.activate(context.bundleContext(),
+            withExpectedMounts(MountInfoConfig.Props.DEFAULT_MOUNT_NAME));
 
         MountInfoProvider provider = context.getService(MountInfoProvider.class);
         assertEquals(1, provider.getNonDefaultMounts().size());
@@ -88,13 +91,17 @@ public class MountInfoProviderServiceTest {
 
     @Test
     public void mountWithConfig_Multiple() {
-        registerActivateMountInfoConfig(propsBuilder().withMountName("foo").withMountPaths("/a").buildMountInfoProps());
-        registerActivateMountInfoConfig(propsBuilder().withMountName("bar").withMountPaths("/b").buildMountInfoProps());
-        registerActivateMountInfoConfig(propsBuilder().withMountName("baz").withMountPaths("/c").buildMountInfoProps());
+        registerActivateMountInfoConfig(
+            propsBuilder().withMountName("foo").withMountPaths("/a").buildMountInfoProps());
+        registerActivateMountInfoConfig(
+            propsBuilder().withMountName("bar").withMountPaths("/b").buildMountInfoProps());
+        registerActivateMountInfoConfig(
+            propsBuilder().withMountName("baz").withMountPaths("/c").buildMountInfoProps());
 
         MockOsgi.injectServices(service, context.bundleContext());
         service.activate(context.bundleContext(), withExpectedMounts("foo", "bar", "baz"));
-        MockOsgi.activate(service, context.bundleContext(), ImmutableMap.of("expectedMounts", new String[]{"foo", "bar", "baz"}));
+        MockOsgi.activate(service, context.bundleContext(),
+            ImmutableMap.of("expectedMounts", new String[]{"foo", "bar", "baz"}));
 
         MountInfoProvider provider = context.getService(MountInfoProvider.class);
         assertEquals(3, provider.getNonDefaultMounts().size());
@@ -125,12 +132,15 @@ public class MountInfoProviderServiceTest {
 
     @Test
     public void mountWithConfig_Multiple_NotAllExpected() {
-        registerActivateMountInfoConfig(propsBuilder().withMountName("foo").withMountPaths("/a").buildMountInfoProps());
-        registerActivateMountInfoConfig(propsBuilder().withMountName("bar").withMountPaths("/b").buildMountInfoProps());
+        registerActivateMountInfoConfig(
+            propsBuilder().withMountName("foo").withMountPaths("/a").buildMountInfoProps());
+        registerActivateMountInfoConfig(
+            propsBuilder().withMountName("bar").withMountPaths("/b").buildMountInfoProps());
 
         MockOsgi.injectServices(service, context.bundleContext());
         service.activate(context.bundleContext(), withExpectedMounts("foo", "bar", "baz"));
-        MockOsgi.activate(service, context.bundleContext(), ImmutableMap.of("expectedMounts", new String[]{"foo", "bar", "baz"}));
+        MockOsgi.activate(service, context.bundleContext(),
+            ImmutableMap.of("expectedMounts", new String[]{"foo", "bar", "baz"}));
 
         MountInfoProvider provider = context.getService(MountInfoProvider.class);
         assertNull("Not all expected mounts have been provided", provider);
@@ -138,7 +148,8 @@ public class MountInfoProviderServiceTest {
 
     @Test
     public void mountWithConfig_Name() {
-        registerActivateMountInfoConfig(propsBuilder().withMountName("foo").withMountPaths("/a", "/b").buildMountInfoProps());
+        registerActivateMountInfoConfig(
+            propsBuilder().withMountName("foo").withMountPaths("/a", "/b").buildMountInfoProps());
 
         MockOsgi.injectServices(service, context.bundleContext());
         service.activate(context.bundleContext(), withExpectedMounts("foo"));
@@ -187,7 +198,8 @@ public class MountInfoProviderServiceTest {
 
     private void registerActivateMountInfoConfig(MountInfoConfig.Props mountInfoProps) {
         MountInfoConfig mountInfoConfig = new MountInfoConfig();
-        context.bundleContext().registerService(MountInfoConfig.class, mountInfoConfig, new Hashtable<String, Object>());
+        context.bundleContext().registerService(MountInfoConfig.class, mountInfoConfig,
+            new Hashtable<String, Object>());
         mountInfoConfig.activate(context.bundleContext(), mountInfoProps);
     }
 
@@ -195,7 +207,8 @@ public class MountInfoProviderServiceTest {
         return new MountInfoPropsBuilder();
     }
 
-    private static MountInfoProviderService.Props withExpectedMounts(final String... expectedMounts) {
+    private static MountInfoProviderService.Props withExpectedMounts(
+        final String... expectedMounts) {
         return propsBuilder().withExpectedMounts(expectedMounts).buildProviderServiceProps();
     }
 }

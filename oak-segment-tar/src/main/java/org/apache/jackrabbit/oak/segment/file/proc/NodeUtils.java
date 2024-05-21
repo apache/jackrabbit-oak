@@ -20,7 +20,6 @@
 package org.apache.jackrabbit.oak.segment.file.proc;
 
 import java.util.stream.StreamSupport;
-
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -33,16 +32,16 @@ class NodeUtils {
 
     static boolean hasChildNode(Iterable<? extends ChildNodeEntry> entries, String name) {
         return StreamSupport.stream(entries.spliterator(), false)
-            .map(ChildNodeEntry::getName)
-            .anyMatch(name::equals);
+                            .map(ChildNodeEntry::getName)
+                            .anyMatch(name::equals);
     }
 
     static NodeState getChildNode(Iterable<? extends ChildNodeEntry> entries, String name) {
         return StreamSupport.stream(entries.spliterator(), false)
-            .filter(e -> e.getName().equals(name))
-            .map(ChildNodeEntry::getNodeState)
-            .findFirst()
-            .orElse(EmptyNodeState.MISSING_NODE);
+                            .filter(e -> e.getName().equals(name))
+                            .map(ChildNodeEntry::getNodeState)
+                            .findFirst()
+                            .orElse(EmptyNodeState.MISSING_NODE);
     }
 
 }

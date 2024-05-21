@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import java.util.List;
 import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.Result;
@@ -31,8 +32,8 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.List;
 class ResultCountingIndexProvider implements QueryIndexProvider {
+
     private final QueryIndexProvider delegate;
     private final CountingCursorFactory cursorFactory;
 
@@ -65,23 +66,26 @@ class ResultCountingIndexProvider implements QueryIndexProvider {
     @Override
     public List<? extends QueryIndex> getQueryIndexes(NodeState nodeState) {
         if (shouldCount) {
-            return Lists.transform(delegate.getQueryIndexes(nodeState), new Function<QueryIndex, QueryIndex>() {
-                @NotNull
-                @Override
-                public QueryIndex apply(@NotNull  QueryIndex input) {
-                    if (input instanceof AdvanceFulltextQueryIndex) {
-                        return new CountingIndex((AdvanceFulltextQueryIndex)input, cursorFactory);
-                    } else {
-                        return input;
+            return Lists.transform(delegate.getQueryIndexes(nodeState),
+                new Function<QueryIndex, QueryIndex>() {
+                    @NotNull
+                    @Override
+                    public QueryIndex apply(@NotNull QueryIndex input) {
+                        if (input instanceof AdvanceFulltextQueryIndex) {
+                            return new CountingIndex((AdvanceFulltextQueryIndex) input,
+                                cursorFactory);
+                        } else {
+                            return input;
+                        }
                     }
-                }
-            });
+                });
         } else {
             return delegate.getQueryIndexes(nodeState);
         }
     }
 
     private static class CountingIndex implements QueryIndex, QueryIndex.AdvancedQueryIndex {
+
         final AdvanceFulltextQueryIndex delegate;
         final CountingCursorFactory cursorFactory;
 
@@ -116,7 +120,8 @@ class ResultCountingIndexProvider implements QueryIndexProvider {
         }
 
         @Override
-        public List<IndexPlan> getPlans(Filter filter, List<OrderEntry> sortOrder, NodeState rootState) {
+        public List<IndexPlan> getPlans(Filter filter, List<OrderEntry> sortOrder,
+            NodeState rootState) {
             return delegate.getPlans(filter, sortOrder, rootState);
         }
 
@@ -132,6 +137,7 @@ class ResultCountingIndexProvider implements QueryIndexProvider {
     }
 
     private static class CountingCursorFactory {
+
         final ResultCountingIndexProvider provider;
 
         CountingCursorFactory(ResultCountingIndexProvider provider) {

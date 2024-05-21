@@ -27,7 +27,8 @@ public class LastModifiedRange {
 
     public LastModifiedRange(long lastModifiedFrom, long lastModifiedTo) {
         if (lastModifiedTo < lastModifiedFrom) {
-            throw new IllegalArgumentException("Invalid range (" + lastModifiedFrom + ", " + lastModifiedTo + ")");
+            throw new IllegalArgumentException(
+                "Invalid range (" + lastModifiedFrom + ", " + lastModifiedTo + ")");
         }
         this.lastModifiedFrom = lastModifiedFrom;
         this.lastModifiedTo = lastModifiedTo;
@@ -54,9 +55,11 @@ public class LastModifiedRange {
 
     public LastModifiedRange mergeWith(LastModifiedRange range) {
         if (!checkOverlap(range)) {
-            throw new IllegalArgumentException("Non overlapping ranges - " + this + " and " + range);
+            throw new IllegalArgumentException(
+                "Non overlapping ranges - " + this + " and " + range);
         }
-        return new LastModifiedRange(Math.min(lastModifiedFrom, range.lastModifiedFrom), Math.max(lastModifiedTo, range.lastModifiedTo));
+        return new LastModifiedRange(Math.min(lastModifiedFrom, range.lastModifiedFrom),
+            Math.max(lastModifiedTo, range.lastModifiedTo));
     }
 
     public boolean coversAllDocuments() {
@@ -70,8 +73,12 @@ public class LastModifiedRange {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         LastModifiedRange that = (LastModifiedRange) o;
         return lastModifiedFrom == that.lastModifiedFrom && lastModifiedTo == that.lastModifiedTo;
     }

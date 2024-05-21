@@ -63,7 +63,7 @@ public class ClusterNodeInfoTest {
         this.invisible = invisible;
     }
 
-    @Parameterized.Parameters(name="{index}: ({0})")
+    @Parameterized.Parameters(name = "{index}: ({0})")
     public static List<Boolean> fixtures() {
         return Lists.newArrayList(false, true);
     }
@@ -224,7 +224,8 @@ public class ClusterNodeInfoTest {
     @Test
     public void renewLeaseDelayed() throws Exception {
         ClusterNodeInfo info = newClusterNodeInfo(1);
-        clock.waitUntil(info.getLeaseEndTime() + ClusterNodeInfo.DEFAULT_LEASE_UPDATE_INTERVAL_MILLIS);
+        clock.waitUntil(
+            info.getLeaseEndTime() + ClusterNodeInfo.DEFAULT_LEASE_UPDATE_INTERVAL_MILLIS);
         recoverClusterNode(1);
         try {
             info.renewLease();
@@ -240,7 +241,8 @@ public class ClusterNodeInfoTest {
     public void renewLeaseWhileRecoveryRunning() throws Exception {
         ClusterNodeInfo info = newClusterNodeInfo(1);
         // wait until after lease end
-        clock.waitUntil(info.getLeaseEndTime() + ClusterNodeInfo.DEFAULT_LEASE_UPDATE_INTERVAL_MILLIS);
+        clock.waitUntil(
+            info.getLeaseEndTime() + ClusterNodeInfo.DEFAULT_LEASE_UPDATE_INTERVAL_MILLIS);
         // simulate a started recovery
         MissingLastRevSeeker seeker = new MissingLastRevSeeker(store.getStore(), clock);
         assertTrue(seeker.acquireRecoveryLock(1, 42));
@@ -257,7 +259,8 @@ public class ClusterNodeInfoTest {
     public void renewLeaseTimedOutWithCheck() throws Exception {
         ClusterNodeInfo info = newClusterNodeInfo(1);
         // wait until after lease end
-        clock.waitUntil(info.getLeaseEndTime() + ClusterNodeInfo.DEFAULT_LEASE_UPDATE_INTERVAL_MILLIS);
+        clock.waitUntil(
+            info.getLeaseEndTime() + ClusterNodeInfo.DEFAULT_LEASE_UPDATE_INTERVAL_MILLIS);
         try {
             info.performLeaseCheck();
             fail("lease check must fail with exception");
@@ -302,7 +305,7 @@ public class ClusterNodeInfoTest {
         try {
             info.renewLease();
             fail("Should not update lease anymore");
-        } catch(DocumentStoreException e) {
+        } catch (DocumentStoreException e) {
             // expected
         }
 
@@ -339,7 +342,7 @@ public class ClusterNodeInfoTest {
         // unusable.
         try {
             info.renewLease();
-        } catch(DocumentStoreException e) {
+        } catch (DocumentStoreException e) {
             // expected
         }
 
@@ -362,7 +365,7 @@ public class ClusterNodeInfoTest {
         waitLeaseUpdateInterval();
 
         long newerLeaseEndTime = clock.getTime() + ClusterNodeInfo.DEFAULT_LEASE_DURATION_MILLIS +
-                ClusterNodeInfo.DEFAULT_LEASE_UPDATE_INTERVAL_MILLIS;
+            ClusterNodeInfo.DEFAULT_LEASE_UPDATE_INTERVAL_MILLIS;
         // simulate a newer renew lease took place
         UpdateOp update = new UpdateOp("1", false);
         update.set(ClusterNodeInfo.LEASE_END_KEY, newerLeaseEndTime);
@@ -394,7 +397,7 @@ public class ClusterNodeInfoTest {
         try {
             info = newClusterNodeInfo(id);
             assertEquals(info.getId(), id);
-        } catch(DocumentStoreException e) {
+        } catch (DocumentStoreException e) {
             // should be able to acquire it again, because it was properly disposed
             fail("Must be able to acquire the cluster again after disposal");
         }
@@ -424,7 +427,7 @@ public class ClusterNodeInfoTest {
         try {
             info = newClusterNodeInfo(id);
             assertEquals(info.getId(), id);
-        } catch(DocumentStoreException e) {
+        } catch (DocumentStoreException e) {
             fail("Must be able to acquire the cluster");
         }
     }
@@ -449,9 +452,10 @@ public class ClusterNodeInfoTest {
         try {
             info.performLeaseCheck();
             fail("Must fail here, and not get cluster node info");
-        } catch(DocumentStoreException e) {
+        } catch (DocumentStoreException e) {
             // expected exception
-            assertTrue(e.getMessage().startsWith("This oak instance failed to update the lease in"));
+            assertTrue(
+                e.getMessage().startsWith("This oak instance failed to update the lease in"));
         }
         infoNew.performLeaseCheck();
     }
@@ -553,13 +557,13 @@ public class ClusterNodeInfoTest {
             tasks.add(() -> newClusterNodeInfo(0, id));
         }
         Map<Integer, ClusterNodeInfo> clusterNodes = executor.invokeAll(tasks)
-                .stream().map(f -> {
-                    try {
-                        return f.get();
-                    } catch (Exception e) {
-                        throw new RuntimeException(e);
-                    }
-                }).collect(Collectors.toMap(ClusterNodeInfo::getId, Function.identity()));
+                                                             .stream().map(f -> {
+                try {
+                    return f.get();
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            }).collect(Collectors.toMap(ClusterNodeInfo::getId, Function.identity()));
 
         // must have different clusterIds
         assertEquals(3, clusterNodes.size());
@@ -646,13 +650,13 @@ public class ClusterNodeInfoTest {
             tasks.add(() -> newClusterNodeInfo(0, id));
         }
         Map<Integer, ClusterNodeInfo> clusterNodes = executor.invokeAll(tasks)
-                .stream().map(f -> {
-                    try {
-                        return f.get();
-                    } catch (Exception e) {
-                        throw new RuntimeException(e);
-                    }
-                }).collect(Collectors.toMap(ClusterNodeInfo::getId, Function.identity()));
+                                                             .stream().map(f -> {
+                try {
+                    return f.get();
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            }).collect(Collectors.toMap(ClusterNodeInfo::getId, Function.identity()));
 
         // must have different clusterIds
         assertEquals(3, clusterNodes.size());
@@ -717,12 +721,13 @@ public class ClusterNodeInfoTest {
         ClusterNodeInfo info = newClusterNodeInfo(1);
         assertEquals(1, info.getId());
         // wait until after lease end
-        clock.waitUntil(info.getLeaseEndTime() + ClusterNodeInfo.DEFAULT_LEASE_UPDATE_INTERVAL_MILLIS);
+        clock.waitUntil(
+            info.getLeaseEndTime() + ClusterNodeInfo.DEFAULT_LEASE_UPDATE_INTERVAL_MILLIS);
         recoverClusterNode(1);
         try {
             info = newClusterNodeInfo(1);
             fail("should fail");
-        } catch(Exception e) {
+        } catch (Exception e) {
             // should fail
         }
         assertEquals(42, newClusterNodeInfo(0).getId());
@@ -732,7 +737,7 @@ public class ClusterNodeInfoTest {
         clock.waitUntil(info.getLeaseEndTime() + reuseAfterRecoverMillis);
         assertEquals(1, newClusterNodeInfo(1).getId());
     }
-      
+
     @Test
     public void recoveryNeededNoDelay() throws Exception {
         ClusterNodeInfo info = newClusterNodeInfo(1);
@@ -769,10 +774,10 @@ public class ClusterNodeInfoTest {
     }
 
     private void expireLease(ClusterNodeInfo info)
-            throws InterruptedException {
+        throws InterruptedException {
         // let lease expire
         clock.waitUntil(info.getLeaseEndTime() +
-                ClusterNodeInfo.DEFAULT_LEASE_UPDATE_INTERVAL_MILLIS);
+            ClusterNodeInfo.DEFAULT_LEASE_UPDATE_INTERVAL_MILLIS);
         // check if expired -> recovery is needed
         MissingLastRevSeeker util = new MissingLastRevSeeker(store, clock);
         String key = String.valueOf(info.getId());
@@ -783,8 +788,8 @@ public class ClusterNodeInfoTest {
 
     private void recoverClusterNode(int clusterId) throws Exception {
         DocumentNodeStore ns = new DocumentMK.Builder()
-                .setDocumentStore(store.getStore()) // use unwrapped store
-                .setAsyncDelay(0).setClusterId(42).clock(clock).getNodeStore();
+            .setDocumentStore(store.getStore()) // use unwrapped store
+            .setAsyncDelay(0).setClusterId(42).clock(clock).getNodeStore();
         try {
             LastRevRecoveryAgent recovery = new LastRevRecoveryAgent(ns.getDocumentStore(), ns);
             recovery.recover(clusterId);
@@ -798,10 +803,10 @@ public class ClusterNodeInfoTest {
     }
 
     private ClusterNodeInfo newClusterNodeInfo(int clusterId,
-                                               String instanceId) {
+        String instanceId) {
         ClusterNodeInfo info = ClusterNodeInfo.getInstance(store,
-                new SimpleRecoveryHandler(store, clock), null, instanceId, clusterId, invisible,
-                reuseAfterRecoverMillis);
+            new SimpleRecoveryHandler(store, clock), null, instanceId, clusterId, invisible,
+            reuseAfterRecoverMillis);
         info.setLeaseFailureHandler(handler);
         return info;
     }
@@ -845,7 +850,7 @@ public class ClusterNodeInfoTest {
 
         @Override
         public <T extends Document> T findAndUpdate(Collection<T> collection,
-                                                    UpdateOp update) {
+            UpdateOp update) {
             maybeDelay();
             maybeDelayOnce();
             maybeThrow(failBeforeUpdate, "update failed before");
@@ -855,7 +860,7 @@ public class ClusterNodeInfoTest {
                 ClusterNodeInfoDocument cdoc = new ClusterNodeInfoDocument();
                 cdoc.data.putAll(getMapAlterReturnDocument());
                 cdoc.seal();
-                return (T)cdoc;
+                return (T) cdoc;
             } else {
                 return doc;
             }
@@ -863,7 +868,7 @@ public class ClusterNodeInfoTest {
 
         @Override
         public <T extends Document> T find(Collection<T> collection,
-                                           String key) {
+            String key) {
             maybeDelay();
             maybeThrow(failFind, "find failed");
             T doc = super.find(collection, key);
@@ -872,7 +877,7 @@ public class ClusterNodeInfoTest {
                 doc.deepCopy(cdoc);
                 cdoc.data.putAll(getMapAlterReturnDocument());
                 cdoc.seal();
-                return (T)cdoc;
+                return (T) cdoc;
             } else {
                 return doc;
             }
@@ -922,7 +927,8 @@ public class ClusterNodeInfoTest {
             return findAndUpdateShouldAlterReturnDocument.get();
         }
 
-        public void setFindAndUpdateShouldAlterReturnDocument(boolean findAndUpdateShouldAlterReturnDocument) {
+        public void setFindAndUpdateShouldAlterReturnDocument(
+            boolean findAndUpdateShouldAlterReturnDocument) {
             this.findAndUpdateShouldAlterReturnDocument.set(findAndUpdateShouldAlterReturnDocument);
         }
 

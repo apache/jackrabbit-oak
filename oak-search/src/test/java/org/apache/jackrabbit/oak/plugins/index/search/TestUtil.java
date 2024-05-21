@@ -19,13 +19,21 @@
 
 package org.apache.jackrabbit.oak.plugins.index.search;
 
+import static org.apache.jackrabbit.JcrConstants.JCR_CONTENT;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
+import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
+
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import javax.jcr.PropertyType;
 import javax.jcr.Repository;
-
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitRepository;
@@ -57,42 +65,36 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
-import static org.apache.jackrabbit.JcrConstants.JCR_CONTENT;
-import static org.apache.jackrabbit.oak.api.Type.STRINGS;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
-import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
-
 public class TestUtil {
+
     private static final AtomicInteger COUNTER = new AtomicInteger();
 
     public static final String NT_TEST = "oak:TestNode";
 
     public static final String TEST_NODE_TYPE = "[oak:TestNode]\n" +
-            " - * (UNDEFINED) multiple\n" +
-            " - * (UNDEFINED)\n" +
-            " + * (nt:base) = oak:TestNode VERSION";
+        " - * (UNDEFINED) multiple\n" +
+        " - * (UNDEFINED)\n" +
+        " + * (nt:base) = oak:TestNode VERSION";
 
     static void useV2(NodeBuilder idxNb) {
         if (!IndexFormatVersion.getDefault().isAtLeast(IndexFormatVersion.V2)) {
-            idxNb.setProperty(FulltextIndexConstants.COMPAT_MODE, IndexFormatVersion.V2.getVersion());
+            idxNb.setProperty(FulltextIndexConstants.COMPAT_MODE,
+                IndexFormatVersion.V2.getVersion());
         }
     }
 
     static void useV2(Tree idxTree) {
         if (!IndexFormatVersion.getDefault().isAtLeast(IndexFormatVersion.V2)) {
-            idxTree.setProperty(FulltextIndexConstants.COMPAT_MODE, IndexFormatVersion.V2.getVersion());
+            idxTree.setProperty(FulltextIndexConstants.COMPAT_MODE,
+                IndexFormatVersion.V2.getVersion());
         }
     }
 
     public static NodeBuilder newFTIndexDefinitionV2(
-            @NotNull NodeBuilder index, @NotNull String name, String type,
-            @Nullable Set<String> propertyTypes) {
-        NodeBuilder nb = IndexHelper.newFTIndexDefinition(index, name, type, propertyTypes, null, null, null);
+        @NotNull NodeBuilder index, @NotNull String name, String type,
+        @Nullable Set<String> propertyTypes) {
+        NodeBuilder nb = IndexHelper.newFTIndexDefinition(index, name, type, propertyTypes, null,
+            null, null);
         useV2(nb);
         return nb;
     }
@@ -101,7 +103,7 @@ public class TestUtil {
         return enableForFullText(props, propName, false);
     }
 
-    public static Tree enableForFullText(Tree props, String propName,  boolean regex) {
+    public static Tree enableForFullText(Tree props, String propName, boolean regex) {
         Tree prop = props.addChild(unique("prop"));
         prop.setProperty(FulltextIndexConstants.PROP_NAME, propName);
         prop.setProperty(FulltextIndexConstants.PROP_PROPERTY_INDEX, true);
@@ -112,14 +114,14 @@ public class TestUtil {
         prop.setProperty(FulltextIndexConstants.PROP_USE_IN_SPELLCHECK, true);
         return prop;
     }
-    
+
     public static Tree enableForOrdered(Tree props, String propName) {
         Tree prop = enablePropertyIndex(props, propName, false);
         prop.setProperty("ordered", true);
         return prop;
     }
 
-    public static Tree enablePropertyIndex(Tree props, String propName,  boolean regex) {
+    public static Tree enablePropertyIndex(Tree props, String propName, boolean regex) {
         Tree prop = props.addChild(unique("prop"));
         prop.setProperty(FulltextIndexConstants.PROP_NAME, propName);
         prop.setProperty(FulltextIndexConstants.PROP_PROPERTY_INDEX, true);
@@ -135,11 +137,11 @@ public class TestUtil {
         return prop;
     }
 
-    public static AggregatorBuilder newNodeAggregator(Tree indexDefn){
+    public static AggregatorBuilder newNodeAggregator(Tree indexDefn) {
         return new AggregatorBuilder(indexDefn);
     }
 
-    public static Tree newRulePropTree(Tree indexDefn, String typeName){
+    public static Tree newRulePropTree(Tree indexDefn, String typeName) {
         Tree rules = indexDefn.addChild(FulltextIndexConstants.INDEX_RULES);
         rules.setOrderableChildren(true);
         Tree rule = rules.addChild(typeName);
@@ -156,6 +158,7 @@ public class TestUtil {
     }
 
     static class AggregatorBuilder {
+
         private final Tree aggs;
 
         private AggregatorBuilder(Tree indexDefn) {
@@ -163,50 +166,52 @@ public class TestUtil {
         }
 
         AggregatorBuilder newRuleWithName(String primaryType,
-                                          List<String> includes){
+            List<String> includes) {
             Tree agg = aggs.addChild(primaryType);
-            for (String include : includes){
-                agg.addChild(unique("include")).setProperty(FulltextIndexConstants.AGG_PATH, include);
+            for (String include : includes) {
+                agg.addChild(unique("include"))
+                   .setProperty(FulltextIndexConstants.AGG_PATH, include);
             }
             return this;
         }
     }
 
-    static String unique(String name){
+    static String unique(String name) {
         return name + COUNTER.getAndIncrement();
     }
 
-    public static NodeBuilder registerTestNodeType(NodeBuilder builder){
+    public static NodeBuilder registerTestNodeType(NodeBuilder builder) {
         registerNodeType(builder, TEST_NODE_TYPE);
         return builder;
     }
 
-    public static void registerNodeType(NodeBuilder builder, String nodeTypeDefn){
+    public static void registerNodeType(NodeBuilder builder, String nodeTypeDefn) {
         //Taken from org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent
         NodeState base = ModifiedNodeState.squeeze(builder.getNodeState());
         NodeStore store = new MemoryNodeStore(base);
         Root root = RootFactory.createSystemRoot(
-                store, new EditorHook(new CompositeEditorProvider(
-                        new NamespaceEditorProvider(),
-                        new TypeEditorProvider())), null, null, null);
+            store, new EditorHook(new CompositeEditorProvider(
+                new NamespaceEditorProvider(),
+                new TypeEditorProvider())), null, null, null);
         NodeTypeRegistry.register(root, IOUtils.toInputStream(nodeTypeDefn), "test node types");
         NodeState target = store.getRoot();
         target.compareAgainstBaseState(base, new ApplyDiff(builder));
     }
 
-    public static Tree createNodeWithType(Tree t, String nodeName, String typeName){
+    public static Tree createNodeWithType(Tree t, String nodeName, String typeName) {
         t = t.addChild(nodeName);
         t.setProperty(JcrConstants.JCR_PRIMARYTYPE, typeName, Type.NAME);
         return t;
     }
 
-    public static NodeBuilder createNodeWithType(NodeBuilder builder, String nodeName, String typeName){
+    public static NodeBuilder createNodeWithType(NodeBuilder builder, String nodeName,
+        String typeName) {
         builder = builder.child(nodeName);
         builder.setProperty(JcrConstants.JCR_PRIMARYTYPE, typeName, Type.NAME);
         return builder;
     }
 
-    public static Tree createFileNode(Tree tree, String name, Blob content, String mimeType){
+    public static Tree createFileNode(Tree tree, String name, Blob content, String mimeType) {
         Tree fileNode = tree.addChild(name);
         fileNode.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_FILE, Type.NAME);
         Tree jcrContent = fileNode.addChild(JCR_CONTENT);
@@ -215,14 +220,15 @@ public class TestUtil {
         return jcrContent;
     }
 
-    public static Tree createFulltextIndex(Tree index, String name, String type) throws CommitFailedException {
+    public static Tree createFulltextIndex(Tree index, String name, String type)
+        throws CommitFailedException {
         Tree def = index.addChild(INDEX_DEFINITIONS_NAME).addChild(name);
         def.setProperty(JcrConstants.JCR_PRIMARYTYPE,
-                INDEX_DEFINITIONS_NODE_TYPE, Type.NAME);
+            INDEX_DEFINITIONS_NODE_TYPE, Type.NAME);
         def.setProperty(TYPE_PROPERTY_NAME, type);
         def.setProperty(REINDEX_PROPERTY_NAME, true);
         def.setProperty(createProperty(FulltextIndexConstants.INCLUDE_PROPERTY_TYPES,
-                of(PropertyType.TYPENAME_STRING, PropertyType.TYPENAME_BINARY), STRINGS));
+            of(PropertyType.TYPENAME_STRING, PropertyType.TYPENAME_BINARY), STRINGS));
         return index.getChild(INDEX_DEFINITIONS_NAME).getChild(name);
     }
 
@@ -232,23 +238,24 @@ public class TestUtil {
         }
     }
 
-    public static NodeBuilder enableIndexingMode(NodeBuilder builder, IndexingMode indexingMode){
+    public static NodeBuilder enableIndexingMode(NodeBuilder builder, IndexingMode indexingMode) {
         builder.setProperty(createAsyncProperty(indexingMode));
         return builder;
     }
 
-    public static Tree enableIndexingMode(Tree tree, IndexingMode indexingMode){
+    public static Tree enableIndexingMode(Tree tree, IndexingMode indexingMode) {
         tree.setProperty(createAsyncProperty(indexingMode));
         return tree;
     }
 
     private static PropertyState createAsyncProperty(String indexingMode) {
-        return createProperty(IndexConstants.ASYNC_PROPERTY_NAME, of(indexingMode , "async"), STRINGS);
+        return createProperty(IndexConstants.ASYNC_PROPERTY_NAME, of(indexingMode, "async"),
+            STRINGS);
     }
 
     private static PropertyState createAsyncProperty(IndexingMode indexingMode) {
-        switch(indexingMode) {
-            case SYNC :
+        switch (indexingMode) {
+            case SYNC:
                 return createAsyncProperty(indexingMode.asyncValueName());
             case ASYNC:
                 return createProperty(IndexConstants.ASYNC_PROPERTY_NAME, of("async"), STRINGS);
@@ -258,11 +265,13 @@ public class TestUtil {
     }
 
     public static class OptionalEditorProvider implements EditorProvider {
+
         public EditorProvider delegate;
 
         @Override
-        public Editor getRootEditor(NodeState before, NodeState after, NodeBuilder builder, CommitInfo info) throws CommitFailedException {
-            if (delegate != null){
+        public Editor getRootEditor(NodeState before, NodeState after, NodeBuilder builder,
+            CommitInfo info) throws CommitFailedException {
+            if (delegate != null) {
                 return delegate.getRootEditor(before, after, builder, info);
             }
             return null;

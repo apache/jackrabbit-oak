@@ -21,8 +21,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
 /**
- * Test for measuring the performance of creating a node with
- * {@value #CHILD_COUNT} child nodes.
+ * Test for measuring the performance of creating a node with {@value #CHILD_COUNT} child nodes.
  */
 public class CreateManyChildNodesTest extends AbstractTest {
 

@@ -18,8 +18,8 @@
 package org.apache.jackrabbit.oak.segment;
 
 /**
- * Exposes selected constants for testing purposes. This class prevents those
- * constants to be visible to production code.
+ * Exposes selected constants for testing purposes. This class prevents those constants to be
+ * visible to production code.
  */
 public class SegmentTestConstants {
 

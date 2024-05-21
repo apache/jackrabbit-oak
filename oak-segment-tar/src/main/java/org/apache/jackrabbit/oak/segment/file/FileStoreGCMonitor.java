@@ -24,7 +24,6 @@ import static org.slf4j.helpers.MessageFormatter.arrayFormat;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
-
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCStatus;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 import org.apache.jackrabbit.oak.stats.Clock;
@@ -34,6 +33,7 @@ import org.jetbrains.annotations.NotNull;
  * {@link GCMonitor} implementation providing the file store gc status.
  */
 public class FileStoreGCMonitor implements GCMonitor {
+
     private final Clock clock;
 
     private long lastCompaction;
@@ -84,7 +84,7 @@ public class FileStoreGCMonitor implements GCMonitor {
         lastReclaimedSize = reclaimed;
         lastRepositorySize = current;
     }
-    
+
     @Override
     public void updateStatus(String status) {
         this.status = status;
@@ -114,7 +114,7 @@ public class FileStoreGCMonitor implements GCMonitor {
     public String getLastLogMessage() {
         return lastLogMessage;
     }
-    
+
     @NotNull
     public String getStatus() {
         return status;

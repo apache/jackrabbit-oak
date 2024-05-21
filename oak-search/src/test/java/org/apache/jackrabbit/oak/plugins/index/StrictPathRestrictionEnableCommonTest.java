@@ -18,22 +18,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
-import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
-import org.apache.jackrabbit.oak.query.AbstractQueryTest;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.junit.Test;
-
-import javax.jcr.Node;
-import java.util.Set;
-
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
-import static java.util.Collections.singletonList;
 import static java.util.Arrays.asList;
+import static java.util.Collections.singletonList;
+import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
@@ -44,6 +31,18 @@ import static org.apache.jackrabbit.oak.spi.filter.PathFilter.PROP_INCLUDED_PATH
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
+
+import java.util.Set;
+import javax.jcr.Node;
+import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.apache.jackrabbit.oak.query.AbstractQueryTest;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.junit.Test;
 
 public abstract class StrictPathRestrictionEnableCommonTest extends AbstractQueryTest {
 
@@ -71,9 +70,14 @@ public abstract class StrictPathRestrictionEnableCommonTest extends AbstractQuer
         root.commit();
 
         assertEventually(() -> {
-            assertFalse(explain("select [jcr:path] from [nt:base] where [propa] = 10").contains(indexOptions.getIndexType() + ":test1"));
-            assertThat(explain("select [jcr:path] from [nt:base] where [propa] = 10 and isDescendantNode('/test/a')"), containsString(indexOptions.getIndexType() + ":test1"));
-            assertQuery("select [jcr:path] from [nt:base] where [propa] = 10 and isDescendantNode('/test/a')", singletonList("/test/a/b"));
+            assertFalse(explain("select [jcr:path] from [nt:base] where [propa] = 10").contains(
+                indexOptions.getIndexType() + ":test1"));
+            assertThat(explain(
+                    "select [jcr:path] from [nt:base] where [propa] = 10 and isDescendantNode('/test/a')"),
+                containsString(indexOptions.getIndexType() + ":test1"));
+            assertQuery(
+                "select [jcr:path] from [nt:base] where [propa] = 10 and isDescendantNode('/test/a')",
+                singletonList("/test/a/b"));
         });
     }
 
@@ -91,19 +95,30 @@ public abstract class StrictPathRestrictionEnableCommonTest extends AbstractQuer
         root.commit();
 
         assertEventually(() -> {
-            assertFalse(explain("select [jcr:path] from [nt:base] where [propa] = 10").contains(indexOptions.getIndexType() + ":test1"));
-            assertThat(explain("select [jcr:path] from [nt:base] where [propa] = 10 and isDescendantNode('/test/c')"), containsString(indexOptions.getIndexType() + ":test1"));
+            assertFalse(explain("select [jcr:path] from [nt:base] where [propa] = 10").contains(
+                indexOptions.getIndexType() + ":test1"));
+            assertThat(explain(
+                    "select [jcr:path] from [nt:base] where [propa] = 10 and isDescendantNode('/test/c')"),
+                containsString(indexOptions.getIndexType() + ":test1"));
 
-            assertQuery("select [jcr:path] from [nt:base] where [propa] = 10 and isDescendantNode('/test/c')", singletonList("/test/c/d"));
+            assertQuery(
+                "select [jcr:path] from [nt:base] where [propa] = 10 and isDescendantNode('/test/c')",
+                singletonList("/test/c/d"));
         });
         //Make some change and then check
         Tree testc = root.getTree("/").getChild("test").getChild("c");
         testc.addChild("e").addChild("f").setProperty("propa", 10);
         root.commit();
         assertEventually(() -> {
-            assertQuery("select [jcr:path] from [nt:base] where [propa] = 10 and isDescendantNode('/test/c')", asList("/test/c/d", "/test/c/e/f"));
-            assertThat(explain("select [jcr:path] from [nt:base] where [propa] = 10 and isDescendantNode('/test/c') and not(isDescendantNode('/test/c/e'))"), containsString(indexOptions.getIndexType() + ":test1"));
-            assertQuery("select [jcr:path] from [nt:base] where [propa] = 10 and isDescendantNode('/test/c') and not(isDescendantNode('/test/c/e'))", singletonList("/test/c/d"));
+            assertQuery(
+                "select [jcr:path] from [nt:base] where [propa] = 10 and isDescendantNode('/test/c')",
+                asList("/test/c/d", "/test/c/e/f"));
+            assertThat(explain(
+                    "select [jcr:path] from [nt:base] where [propa] = 10 and isDescendantNode('/test/c') and not(isDescendantNode('/test/c/e'))"),
+                containsString(indexOptions.getIndexType() + ":test1"));
+            assertQuery(
+                "select [jcr:path] from [nt:base] where [propa] = 10 and isDescendantNode('/test/c') and not(isDescendantNode('/test/c/e'))",
+                singletonList("/test/c/d"));
         });
     }
 
@@ -117,14 +132,17 @@ public abstract class StrictPathRestrictionEnableCommonTest extends AbstractQuer
         return createIndex(index, name, propNames);
     }
 
-    public Tree createIndex(Tree index, String name, Set<String> propNames) throws CommitFailedException {
+    public Tree createIndex(Tree index, String name, Set<String> propNames)
+        throws CommitFailedException {
         Tree def = index.addChild(INDEX_DEFINITIONS_NAME).addChild(name);
         def.setProperty(JcrConstants.JCR_PRIMARYTYPE,
-                INDEX_DEFINITIONS_NODE_TYPE, Type.NAME);
+            INDEX_DEFINITIONS_NODE_TYPE, Type.NAME);
         def.setProperty(TYPE_PROPERTY_NAME, indexOptions.getIndexType());
         def.setProperty(REINDEX_PROPERTY_NAME, true);
         def.setProperty(FulltextIndexConstants.FULL_TEXT_ENABLED, false);
-        def.setProperty(PropertyStates.createProperty(FulltextIndexConstants.INCLUDE_PROPERTY_NAMES, propNames, Type.STRINGS));
+        def.setProperty(
+            PropertyStates.createProperty(FulltextIndexConstants.INCLUDE_PROPERTY_NAMES, propNames,
+                Type.STRINGS));
         return index.getChild(INDEX_DEFINITIONS_NAME).getChild(name);
     }
 

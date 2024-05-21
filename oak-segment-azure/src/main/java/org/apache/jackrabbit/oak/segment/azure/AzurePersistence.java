@@ -16,13 +16,6 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
-import java.io.IOException;
-import java.net.URISyntaxException;
-import java.nio.file.Paths;
-import java.util.Date;
-import java.util.EnumSet;
-import java.util.concurrent.TimeUnit;
-
 import com.microsoft.azure.storage.OperationContext;
 import com.microsoft.azure.storage.RequestCompletedEvent;
 import com.microsoft.azure.storage.StorageEvent;
@@ -32,6 +25,12 @@ import com.microsoft.azure.storage.blob.CloudAppendBlob;
 import com.microsoft.azure.storage.blob.CloudBlobDirectory;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
 import com.microsoft.azure.storage.blob.ListBlobItem;
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.nio.file.Paths;
+import java.util.Date;
+import java.util.EnumSet;
+import java.util.concurrent.TimeUnit;
 import org.apache.jackrabbit.oak.segment.azure.util.AzureRequestOptions;
 import org.apache.jackrabbit.oak.segment.remote.WriteAccessController;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
@@ -47,6 +46,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class AzurePersistence implements SegmentNodeStorePersistence {
+
     private static final Logger log = LoggerFactory.getLogger(AzurePersistence.class);
 
     protected final CloudBlobDirectory segmentstoreDirectory;
@@ -56,19 +56,24 @@ public class AzurePersistence implements SegmentNodeStorePersistence {
     public AzurePersistence(CloudBlobDirectory segmentStoreDirectory) {
         this.segmentstoreDirectory = segmentStoreDirectory;
 
-        AzureRequestOptions.applyDefaultRequestOptions(segmentStoreDirectory.getServiceClient().getDefaultRequestOptions());
+        AzureRequestOptions.applyDefaultRequestOptions(
+            segmentStoreDirectory.getServiceClient().getDefaultRequestOptions());
     }
 
     @Override
-    public SegmentArchiveManager createArchiveManager(boolean mmap, boolean offHeapAccess, IOMonitor ioMonitor, FileStoreMonitor fileStoreMonitor, RemoteStoreMonitor remoteStoreMonitor) {
+    public SegmentArchiveManager createArchiveManager(boolean mmap, boolean offHeapAccess,
+        IOMonitor ioMonitor, FileStoreMonitor fileStoreMonitor,
+        RemoteStoreMonitor remoteStoreMonitor) {
         attachRemoteStoreMonitor(remoteStoreMonitor);
-        return new AzureArchiveManager(segmentstoreDirectory, ioMonitor, fileStoreMonitor, writeAccessController);
+        return new AzureArchiveManager(segmentstoreDirectory, ioMonitor, fileStoreMonitor,
+            writeAccessController);
     }
 
     @Override
     public boolean segmentFilesExist() {
         try {
-            for (ListBlobItem i : segmentstoreDirectory.listBlobs(null, false, EnumSet.noneOf(BlobListingDetails.class), null, null)) {
+            for (ListBlobItem i : segmentstoreDirectory.listBlobs(null, false,
+                EnumSet.noneOf(BlobListingDetails.class), null, null)) {
                 if (i instanceof CloudBlobDirectory) {
                     CloudBlobDirectory dir = (CloudBlobDirectory) i;
                     String name = Paths.get(dir.getPrefix()).getFileName().toString();
@@ -124,28 +129,30 @@ public class AzurePersistence implements SegmentNodeStorePersistence {
     }
 
     private static void attachRemoteStoreMonitor(RemoteStoreMonitor remoteStoreMonitor) {
-        OperationContext.getGlobalRequestCompletedEventHandler().addListener(new StorageEvent<RequestCompletedEvent>() {
+        OperationContext.getGlobalRequestCompletedEventHandler()
+                        .addListener(new StorageEvent<RequestCompletedEvent>() {
 
-            @Override
-            public void eventOccurred(RequestCompletedEvent e) {
-                Date startDate = e.getRequestResult().getStartDate();
-                Date stopDate = e.getRequestResult().getStopDate();
+                            @Override
+                            public void eventOccurred(RequestCompletedEvent e) {
+                                Date startDate = e.getRequestResult().getStartDate();
+                                Date stopDate = e.getRequestResult().getStopDate();
 
-                if (startDate != null && stopDate != null) {
-                    long requestDuration = stopDate.getTime() - startDate.getTime();
-                    remoteStoreMonitor.requestDuration(requestDuration, TimeUnit.MILLISECONDS);
-                }
+                                if (startDate != null && stopDate != null) {
+                                    long requestDuration = stopDate.getTime() - startDate.getTime();
+                                    remoteStoreMonitor.requestDuration(requestDuration,
+                                        TimeUnit.MILLISECONDS);
+                                }
 
-                Exception exception = e.getRequestResult().getException();
+                                Exception exception = e.getRequestResult().getException();
 
-                if (exception == null) {
-                    remoteStoreMonitor.requestCount();
-                } else {
-                    remoteStoreMonitor.requestError();
-                }
-            }
+                                if (exception == null) {
+                                    remoteStoreMonitor.requestCount();
+                                } else {
+                                    remoteStoreMonitor.requestError();
+                                }
+                            }
 
-        });
+                        });
     }
 
     public CloudBlobDirectory getSegmentstoreDirectory() {

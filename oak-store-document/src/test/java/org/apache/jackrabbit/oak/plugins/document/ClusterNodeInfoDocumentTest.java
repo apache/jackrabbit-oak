@@ -56,7 +56,8 @@ public class ClusterNodeInfoDocumentTest {
 
     private ClusterNodeInfoDocument createInactive(boolean invisible) {
         int clusterId = 1;
-        ClusterNodeInfo.getInstance(store, NOOP, "machineId", "instanceId", clusterId, invisible).dispose();
+        ClusterNodeInfo.getInstance(store, NOOP, "machineId", "instanceId", clusterId, invisible)
+                       .dispose();
         return store.find(Collection.CLUSTER_NODES, String.valueOf(clusterId));
     }
 }

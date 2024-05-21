@@ -18,14 +18,15 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 /**
  * Interface to implement throttling for document store.
- *
- * Concrete implementations for this interface are required provide implementation
- * for throttling time based on their internal usage/statistics
+ * <p>
+ * Concrete implementations for this interface are required provide implementation for throttling
+ * time based on their internal usage/statistics
  */
 public interface Throttler {
 
     /**
      * The time duration (in Millis) for which we need to throttle the system.
+     *
      * @return the throttling time duration (in Millis)
      */
     long throttlingTime();

@@ -18,9 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
-import org.apache.jackrabbit.oak.commons.IOUtils;
-import org.apache.jackrabbit.oak.plugins.index.search.IndexMBean;
-
+import java.util.Set;
 import javax.management.openmbean.CompositeDataSupport;
 import javax.management.openmbean.CompositeType;
 import javax.management.openmbean.OpenDataException;
@@ -29,7 +27,8 @@ import javax.management.openmbean.SimpleType;
 import javax.management.openmbean.TabularData;
 import javax.management.openmbean.TabularDataSupport;
 import javax.management.openmbean.TabularType;
-import java.util.Set;
+import org.apache.jackrabbit.oak.commons.IOUtils;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexMBean;
 
 /**
  * {@link IndexMBean} implementation to expose Elastic index details and utility functions.
@@ -49,7 +48,7 @@ class ElasticIndexMBean implements IndexMBean {
         TabularDataSupport tds;
         try {
             TabularType tt = new TabularType(ElasticIndexMBean.class.getName(),
-                    "Elastic Index Stats", ElasticMBeanConfig.TYPE, new String[]{"path"});
+                "Elastic Index Stats", ElasticMBeanConfig.TYPE, new String[]{"path"});
             tds = new TabularDataSupport(tt);
             Set<String> indexes = indexTracker.getIndexNodePaths();
             for (String path : indexes) {
@@ -60,16 +59,17 @@ class ElasticIndexMBean implements IndexMBean {
                         long primaryStoreSize = indexNode.getIndexStatistics().primaryStoreSize();
                         long storeSize = indexNode.getIndexStatistics().storeSize();
                         Object[] values = new Object[]{
-                                path,
-                                IOUtils.humanReadableByteCount(primaryStoreSize),
-                                primaryStoreSize,
-                                IOUtils.humanReadableByteCount(storeSize),
-                                storeSize,
-                                indexNode.getIndexStatistics().numDocs(),
-                                indexNode.getIndexStatistics().luceneNumDocs(),
-                                indexNode.getIndexStatistics().luceneNumDeletedDocs()
+                            path,
+                            IOUtils.humanReadableByteCount(primaryStoreSize),
+                            primaryStoreSize,
+                            IOUtils.humanReadableByteCount(storeSize),
+                            storeSize,
+                            indexNode.getIndexStatistics().numDocs(),
+                            indexNode.getIndexStatistics().luceneNumDocs(),
+                            indexNode.getIndexStatistics().luceneNumDeletedDocs()
                         };
-                        tds.put(new CompositeDataSupport(ElasticMBeanConfig.TYPE, ElasticMBeanConfig.FIELD_NAMES, values));
+                        tds.put(new CompositeDataSupport(ElasticMBeanConfig.TYPE,
+                            ElasticMBeanConfig.FIELD_NAMES, values));
                     }
                 } finally {
                     if (indexNode != null) {
@@ -112,37 +112,37 @@ class ElasticIndexMBean implements IndexMBean {
     private static class ElasticMBeanConfig {
 
         static final String[] FIELD_NAMES = new String[]{
-                "path",
-                "indexSizeStr",
-                "indexSize",
-                "indexSizeWithReplicasStr",
-                "indexSizeWithReplicas",
-                "numDocs",
-                "luceneNumDoc",
-                "luceneNumDeletedDocs"
+            "path",
+            "indexSizeStr",
+            "indexSize",
+            "indexSizeWithReplicasStr",
+            "indexSizeWithReplicas",
+            "numDocs",
+            "luceneNumDoc",
+            "luceneNumDeletedDocs"
         };
 
         static final String[] FIELD_DESCRIPTIONS = new String[]{
-                "Path",
-                "Index size in human readable format",
-                "Index size in bytes",
-                "Index size, including replicas, in human readable format",
-                "Index size, including replicas, in bytes",
-                "Number of documents in this index",
-                "Number of low-level lucene documents in this index, including nested ones",
-                "Number of deleted low-level lucene documents in this index, including nested ones"
+            "Path",
+            "Index size in human readable format",
+            "Index size in bytes",
+            "Index size, including replicas, in human readable format",
+            "Index size, including replicas, in bytes",
+            "Number of documents in this index",
+            "Number of low-level lucene documents in this index, including nested ones",
+            "Number of deleted low-level lucene documents in this index, including nested ones"
         };
 
         @SuppressWarnings("rawtypes")
         static final OpenType[] FIELD_TYPES = new OpenType[]{
-                SimpleType.STRING,
-                SimpleType.STRING,
-                SimpleType.LONG,
-                SimpleType.STRING,
-                SimpleType.LONG,
-                SimpleType.INTEGER,
-                SimpleType.INTEGER,
-                SimpleType.INTEGER
+            SimpleType.STRING,
+            SimpleType.STRING,
+            SimpleType.LONG,
+            SimpleType.STRING,
+            SimpleType.LONG,
+            SimpleType.INTEGER,
+            SimpleType.INTEGER,
+            SimpleType.INTEGER
         };
 
         static final CompositeType TYPE;
@@ -150,11 +150,11 @@ class ElasticIndexMBean implements IndexMBean {
         static {
             try {
                 TYPE = new CompositeType(
-                        ElasticIndexMBean.class.getName(),
-                        "Composite data type for Elastic Index statistics",
-                        FIELD_NAMES,
-                        FIELD_DESCRIPTIONS,
-                        FIELD_TYPES);
+                    ElasticIndexMBean.class.getName(),
+                    "Composite data type for Elastic Index statistics",
+                    FIELD_NAMES,
+                    FIELD_DESCRIPTIONS,
+                    FIELD_TYPES);
             } catch (OpenDataException e) {
                 throw new IllegalStateException(e);
             }

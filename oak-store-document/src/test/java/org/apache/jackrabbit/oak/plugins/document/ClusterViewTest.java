@@ -32,7 +32,9 @@ import org.apache.jackrabbit.oak.commons.json.JsonObject;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.junit.Test;
 
-/** Simple paranoia tests for constructor and getters of ClusterViewImpl **/
+/**
+ * Simple paranoia tests for constructor and getters of ClusterViewImpl
+ **/
 public class ClusterViewTest {
 
     @Test
@@ -46,7 +48,8 @@ public class ClusterViewTest {
         final Set<Integer> deactivating = new HashSet<Integer>();
         final Set<Integer> inactive = new HashSet<Integer>();
         try {
-            new ClusterView(-1, true, clusterViewId, instanceId, instanceIds, deactivating, inactive);
+            new ClusterView(-1, true, clusterViewId, instanceId, instanceIds, deactivating,
+                inactive);
             fail("should complain");
         } catch (IllegalStateException e) {
             // ok
@@ -64,7 +67,8 @@ public class ClusterViewTest {
             // ok
         }
         try {
-            new ClusterView(viewId, true, clusterViewId, instanceId, emptyInstanceIds, deactivating, inactive);
+            new ClusterView(viewId, true, clusterViewId, instanceId, emptyInstanceIds, deactivating,
+                inactive);
             fail("should complain");
         } catch (IllegalStateException e) {
             // ok
@@ -82,17 +86,21 @@ public class ClusterViewTest {
             // ok
         }
         try {
-            new ClusterView(viewId, true, clusterViewId, instanceId, instanceIds, deactivating, null);
+            new ClusterView(viewId, true, clusterViewId, instanceId, instanceIds, deactivating,
+                null);
             fail("should complain");
         } catch (Exception e) {
             // ok
         }
         final Set<Integer> nonEmptyDeactivating = new HashSet<Integer>();
         nonEmptyDeactivating.add(3);
-        new ClusterView(viewId, false, clusterViewId, instanceId, instanceIds, nonEmptyDeactivating, inactive);
-        new ClusterView(viewId, true, clusterViewId, instanceId, instanceIds, nonEmptyDeactivating, inactive);
+        new ClusterView(viewId, false, clusterViewId, instanceId, instanceIds, nonEmptyDeactivating,
+            inactive);
+        new ClusterView(viewId, true, clusterViewId, instanceId, instanceIds, nonEmptyDeactivating,
+            inactive);
         // should not complain about:
-        new ClusterView(viewId, true, clusterViewId, instanceId, instanceIds, deactivating, inactive);
+        new ClusterView(viewId, true, clusterViewId, instanceId, instanceIds, deactivating,
+            inactive);
     }
 
     @Test
@@ -104,7 +112,8 @@ public class ClusterViewTest {
         final Integer instanceId = 2;
         final Set<Integer> deactivating = new HashSet<Integer>();
         final Set<Integer> inactive = new HashSet<Integer>();
-        final ClusterView cv = new ClusterView(viewId, true, clusterViewId, instanceId, instanceIds, deactivating, inactive);
+        final ClusterView cv = new ClusterView(viewId, true, clusterViewId, instanceId, instanceIds,
+            deactivating, inactive);
         assertNotNull(cv);
         assertTrue(cv.asDescriptorValue().length() > 0);
         assertTrue(cv.toString().length() > 0);
@@ -201,7 +210,8 @@ public class ClusterViewTest {
     public void testWithRecoveringAndBacklog() throws Exception {
         String clusterId = UUID.randomUUID().toString();
         ClusterViewBuilder builder = new ClusterViewBuilder(10, 2);
-        ClusterView view = builder.active(2, 3).recovering(4).inactive(5, 6).backlogs(5).asView(clusterId);
+        ClusterView view = builder.active(2, 3).recovering(4).inactive(5, 6).backlogs(5)
+                                  .asView(clusterId);
 
         JsonObject o = asJsonObject(view);
         Map<String, String> props = o.getProperties();

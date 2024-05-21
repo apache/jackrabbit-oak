@@ -64,14 +64,14 @@ public class DocumentBatchSplitTest {
         this.fixture = fixture;
     }
 
-    @Parameterized.Parameters(name="{0}")
+    @Parameterized.Parameters(name = "{0}")
     public static java.util.Collection<Object[]> fixtures() throws IOException {
         List<Object[]> fixtures = Lists.newArrayList();
-        fixtures.add(new Object[] {new DocumentStoreFixture.MemoryFixture()});
+        fixtures.add(new Object[]{new DocumentStoreFixture.MemoryFixture()});
 
         DocumentStoreFixture mongo = new DocumentStoreFixture.MongoFixture();
-        if(mongo.isAvailable()){
-            fixtures.add(new Object[] {mongo});
+        if (mongo.isAvailable()) {
+            fixtures.add(new Object[]{mongo});
         }
         return fixtures;
     }
@@ -107,7 +107,8 @@ public class DocumentBatchSplitTest {
     @Test
     @Ignore(value = "useful for benchmarking only, long execution duration")
     public void batchSplitBenchmark() throws Exception {
-        int[] batchSizes = new int[] {1,2,10,30,50,75,100,200,300,400,500,1000,2000,5000,10000};
+        int[] batchSizes = new int[]{1, 2, 10, 30, 50, 75, 100, 200, 300, 400, 500, 1000, 2000,
+            5000, 10000};
         for (int batchSize : batchSizes) {
             batchSplitTest(batchSize, 10000);
             batchSplitTest(batchSize, 10000);
@@ -134,7 +135,9 @@ public class DocumentBatchSplitTest {
         batchSplitTest(1, 1000);
     }
 
-    /** Make sure we have a test that has log level set to DEBUG */
+    /**
+     * Make sure we have a test that has log level set to DEBUG
+     */
     @Test
     public void debugLogLevelBatchSplit() throws Exception {
         enableLevel("org", Level.DEBUG);
@@ -142,8 +145,8 @@ public class DocumentBatchSplitTest {
     }
 
     private void batchSplitTest(int batchSize, int splitDocCnt) throws Exception {
-        LOG.info("batchSplitTest: batchSize = " + batchSize+ ", splitDocCnt = " + splitDocCnt +
-                ", fixture = " + fixture);
+        LOG.info("batchSplitTest: batchSize = " + batchSize + ", splitDocCnt = " + splitDocCnt +
+            ", fixture = " + fixture);
         // this tests wants to use CountingDocumentStore
         // plus it wants to set the batchSize
         if (mk != null) {
@@ -168,14 +171,14 @@ public class DocumentBatchSplitTest {
         assertEquals(batchSize, ns.getCreateOrUpdateBatchSize());
 
         NodeBuilder builder = ns.getRoot().builder();
-        for(int child = 0; child < 100; child++) {
+        for (int child = 0; child < 100; child++) {
             builder.child("testchild-" + child);
         }
         ns.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        for(int i=0; i<2; i++) {
+        for (int i = 0; i < 2; i++) {
             builder = ns.getRoot().builder();
-            for(int child = 0; child < splitDocCnt; child++) {
+            for (int child = 0; child < splitDocCnt; child++) {
                 PropertyState binary = binaryProperty("prop", randomBytes(5 * 1024));
                 builder.child("testchild-" + child).setProperty(binary);
             }
@@ -190,29 +193,30 @@ public class DocumentBatchSplitTest {
         final long totalSplitDuration = (System.currentTimeMillis() - start);
         final long localSplitPart = totalSplitDuration - remoteCallMeasurement;
         LOG.info("batchSplitTest: batchSize = " + batchSize +
-                ", splitDocCnt = " + splitDocCnt +
-                ", createOrUpdateCalls = " + createOrUpdateCalls +
-                ", fixture = " + fixture.getName() +
-                ", split total ms = " + (System.currentTimeMillis() - start) +
-                " (thereof local = " + localSplitPart +
-                ", remote = " + remoteCallMeasurement + ")");
+            ", splitDocCnt = " + splitDocCnt +
+            ", createOrUpdateCalls = " + createOrUpdateCalls +
+            ", fixture = " + fixture.getName() +
+            ", split total ms = " + (System.currentTimeMillis() - start) +
+            " (thereof local = " + localSplitPart +
+            ", remote = " + remoteCallMeasurement + ")");
         int expected = 2 * (splitDocCnt / batchSize)       /* 2 calls per batch */
-                + 2 * Math.min(1, splitDocCnt % batchSize) /* 1 additional pair for the last batch */
-                + 1;                                       /* 1 more for backgroundWrite's update to root */
+            + 2 * Math.min(1, splitDocCnt % batchSize) /* 1 additional pair for the last batch */
+            + 1;                                       /* 1 more for backgroundWrite's update to root */
         assertTrue("batchSize = " + batchSize
                 + ", splitDocCnt = " + splitDocCnt
                 + ", expected=" + expected
                 + ", createOrUpdates=" + createOrUpdateCalls,
-                createOrUpdateCalls >= expected && createOrUpdateCalls <= expected + 2);
+            createOrUpdateCalls >= expected && createOrUpdateCalls <= expected + 2);
         VersionGarbageCollector gc = ns.getVersionGarbageCollector();
 
         int actualSplitDocGCCount = 0;
         long timeout = ns.getClock().getTime() + 20000;
-        while(actualSplitDocGCCount < splitDocCnt && ns.getClock().getTime() < timeout) {
+        while (actualSplitDocGCCount < splitDocCnt && ns.getClock().getTime() < timeout) {
             VersionGCStats stats = gc.gc(1, TimeUnit.MILLISECONDS);
             actualSplitDocGCCount += stats.splitDocGCCount;
             if (actualSplitDocGCCount != splitDocCnt) {
-                LOG.info("batchSplitTest: Expected " + splitDocCnt + ", actual " + actualSplitDocGCCount);
+                LOG.info("batchSplitTest: Expected " + splitDocCnt + ", actual "
+                    + actualSplitDocGCCount);
                 // advance time a bit to ensure gc does clean up the split docs
                 ns.getClock().waitUntil(ns.getClock().getTime() + 1000);
                 ns.runBackgroundUpdateOperations();
@@ -221,7 +225,7 @@ public class DocumentBatchSplitTest {
 
         // make sure those splitDocCnt split docs are deleted
         assertTrue("gc not as expected: expected " + splitDocCnt
-                + ", got " + actualSplitDocGCCount, splitDocCnt <= actualSplitDocGCCount);
+            + ", got " + actualSplitDocGCCount, splitDocCnt <= actualSplitDocGCCount);
 
         mk.dispose();
         mk = null;
@@ -237,8 +241,8 @@ public class DocumentBatchSplitTest {
     // TODO: from DocumentStoreStatsTest
     // but there are various places such as RevisionsCommand, BroadcastTest that have similar code.
     // we might want to move this to a new common util/helper
-    private static void enableLevel(String logName, Level level){
-        ((LoggerContext)LoggerFactory.getILoggerFactory())
-                .getLogger(logName).setLevel(level);
+    private static void enableLevel(String logName, Level level) {
+        ((LoggerContext) LoggerFactory.getILoggerFactory())
+            .getLogger(logName).setLevel(level);
     }
 }

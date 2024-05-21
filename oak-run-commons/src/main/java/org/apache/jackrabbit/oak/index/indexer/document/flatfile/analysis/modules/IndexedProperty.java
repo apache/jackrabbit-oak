@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modul
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeData;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeProperty;
 
@@ -29,6 +28,7 @@ import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream
  * An indexed property. It can have a list of parent nodes, and a node type.
  */
 public class IndexedProperty {
+
     private final String name;
     private final List<String> parents;
     private final String nodeType;

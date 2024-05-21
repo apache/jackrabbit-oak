@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.spi.security.privilege;
 import java.util.Set;
 import org.apache.jackrabbit.guava.common.base.Objects;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -33,7 +32,8 @@ public final class ImmutablePrivilegeDefinition implements PrivilegeDefinition {
     private final Set<String> declaredAggregateNames;
     private final int hashcode;
 
-    public ImmutablePrivilegeDefinition(@NotNull String name, boolean isAbstract, @Nullable Iterable<String> declaredAggregateNames) {
+    public ImmutablePrivilegeDefinition(@NotNull String name, boolean isAbstract,
+        @Nullable Iterable<String> declaredAggregateNames) {
         this.name = name;
         this.isAbstract = isAbstract;
         ImmutableSet.Builder<String> builder = ImmutableSet.builder();
@@ -76,8 +76,8 @@ public final class ImmutablePrivilegeDefinition implements PrivilegeDefinition {
         if (o instanceof ImmutablePrivilegeDefinition) {
             ImmutablePrivilegeDefinition other = (ImmutablePrivilegeDefinition) o;
             return name.equals(other.name) &&
-                    isAbstract == other.isAbstract &&
-                    declaredAggregateNames.equals(other.declaredAggregateNames);
+                isAbstract == other.isAbstract &&
+                declaredAggregateNames.equals(other.declaredAggregateNames);
         } else {
             return false;
         }

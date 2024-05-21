@@ -16,6 +16,12 @@
  */
 package org.apache.jackrabbit.oak.upgrade;
 
+import static org.junit.Assert.assertThat;
+
+import java.io.InputStream;
+import javax.jcr.Node;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -26,13 +32,6 @@ import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
 import org.junit.Test;
-
-import javax.jcr.Node;
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-import java.io.InputStream;
-
-import static org.junit.Assert.assertThat;
 
 public class AuthorizableFolderEditorTest extends AbstractRepositoryUpgradeTest {
 
@@ -80,9 +79,12 @@ public class AuthorizableFolderEditorTest extends AbstractRepositoryUpgradeTest 
         final Session session = createAdminSession();
         assertExisting(session, HOME_PATH, USERS_PATH, GROUPS_PATH, CONTROL_PATH);
 
-        assertThat(session.getNode(HOME_PATH), hasNodeType(UserConstants.NT_REP_AUTHORIZABLE_FOLDER));
-        assertThat(session.getNode(USERS_PATH), hasNodeType(UserConstants.NT_REP_AUTHORIZABLE_FOLDER));
-        assertThat(session.getNode(GROUPS_PATH), hasNodeType(UserConstants.NT_REP_AUTHORIZABLE_FOLDER));
+        assertThat(session.getNode(HOME_PATH),
+            hasNodeType(UserConstants.NT_REP_AUTHORIZABLE_FOLDER));
+        assertThat(session.getNode(USERS_PATH),
+            hasNodeType(UserConstants.NT_REP_AUTHORIZABLE_FOLDER));
+        assertThat(session.getNode(GROUPS_PATH),
+            hasNodeType(UserConstants.NT_REP_AUTHORIZABLE_FOLDER));
         assertThat(session.getNode(CONTROL_PATH), hasNodeType(JcrConstants.NT_UNSTRUCTURED));
     }
 
@@ -99,11 +101,13 @@ public class AuthorizableFolderEditorTest extends AbstractRepositoryUpgradeTest 
 
             @Override
             public void describeTo(final Description description) {
-                description.appendText("the node " + path + " to be of type ").appendValue(expectedNodeType);
+                description.appendText("the node " + path + " to be of type ")
+                           .appendValue(expectedNodeType);
             }
 
             @Override
-            protected void describeMismatchSafely(final Node node, final Description mismatchDescription) {
+            protected void describeMismatchSafely(final Node node,
+                final Description mismatchDescription) {
                 mismatchDescription.appendText(" was ").appendValue(getNodeTypeName(node));
             }
 

@@ -16,15 +16,15 @@
  */
 package org.apache.jackrabbit.oak.run;
 
+import static java.util.Arrays.copyOfRange;
+
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.run.commons.Command;
 import org.apache.jackrabbit.oak.run.commons.Modes;
 import org.apache.jackrabbit.oak.run.commons.Utils;
 
-import static java.util.Arrays.copyOfRange;
-import static org.apache.jackrabbit.oak.commons.IOUtils.closeQuietly;
-
 public final class Main {
+
     private static final Modes MODES = new Modes(ImmutableMap.<String, Command>of(
         "benchmark", new BenchmarkCommand(),
         "scalability", new ScalabilityCommand()
@@ -37,7 +37,8 @@ public final class Main {
     public static void main(String[] args) throws Exception {
         Utils.printProductInfo(
             args,
-            Main.class.getResourceAsStream("/META-INF/maven/org.apache.jackrabbit/oak-benchmarks/pom.properties")
+            Main.class.getResourceAsStream(
+                "/META-INF/maven/org.apache.jackrabbit/oak-benchmarks/pom.properties")
         );
 
         Command c = MODES.getCommand("benchmark");

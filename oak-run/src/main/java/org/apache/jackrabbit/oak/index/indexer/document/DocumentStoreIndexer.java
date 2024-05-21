@@ -18,19 +18,19 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.oak.index.ExtendedIndexHelper;
-import org.apache.jackrabbit.oak.index.IndexerSupport;
-
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.List;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.oak.index.ExtendedIndexHelper;
+import org.apache.jackrabbit.oak.index.IndexerSupport;
 
 public class DocumentStoreIndexer extends DocumentStoreIndexerBase implements Closeable {
 
     private final ExtendedIndexHelper extendedIndexHelper;
 
-    public DocumentStoreIndexer(ExtendedIndexHelper extendedIndexHelper, IndexerSupport indexerSupport) throws IOException {
+    public DocumentStoreIndexer(ExtendedIndexHelper extendedIndexHelper,
+        IndexerSupport indexerSupport) throws IOException {
         super(extendedIndexHelper, indexerSupport);
         this.extendedIndexHelper = extendedIndexHelper;
         setProviders();
@@ -42,7 +42,7 @@ public class DocumentStoreIndexer extends DocumentStoreIndexerBase implements Cl
 
     protected List<NodeStateIndexerProvider> createProviders() throws IOException {
         List<NodeStateIndexerProvider> providers = ImmutableList.of(
-                createLuceneIndexProvider()
+            createLuceneIndexProvider()
         );
 
         providers.forEach(closer::register);

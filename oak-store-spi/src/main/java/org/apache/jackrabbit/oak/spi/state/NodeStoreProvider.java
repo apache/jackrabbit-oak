@@ -20,11 +20,11 @@
 package org.apache.jackrabbit.oak.spi.state;
 
 /**
- * Provides a NodeStore instance for specific role. A role indicates what type
- * store is it e.g. role set to 'secondary' means that this NodeStore acts like
- * replica of some primary NodeStore
+ * Provides a NodeStore instance for specific role. A role indicates what type store is it e.g. role
+ * set to 'secondary' means that this NodeStore acts like replica of some primary NodeStore
  */
 public interface NodeStoreProvider {
+
     /**
      * Service property name which determine what role this NodeStore is playing.
      */

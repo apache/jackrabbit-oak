@@ -20,7 +20,6 @@ import java.util.UUID;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 import javax.jcr.security.Privilege;
-
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
@@ -43,11 +42,15 @@ public class GroupImportWithoutAdminTest extends GroupImportTest {
         User u = userMgr.createUser(uid, "pw");
         adminSession.save();
 
-        AccessControlUtils.addAccessControlEntry(adminSession, Text.getRelativeParent(getTargetPath(), 1), u.getPrincipal(), new String[] {Privilege.JCR_ALL}, true);
-        AccessControlUtils.addAccessControlEntry(adminSession, null, u.getPrincipal(), new String[] {PrivilegeConstants.JCR_NAMESPACE_MANAGEMENT}, true);
+        AccessControlUtils.addAccessControlEntry(adminSession,
+            Text.getRelativeParent(getTargetPath(), 1), u.getPrincipal(),
+            new String[]{Privilege.JCR_ALL}, true);
+        AccessControlUtils.addAccessControlEntry(adminSession, null, u.getPrincipal(),
+            new String[]{PrivilegeConstants.JCR_NAMESPACE_MANAGEMENT}, true);
         adminSession.save();
 
-        testSession = adminSession.getRepository().login(new SimpleCredentials(uid, "pw".toCharArray()));
+        testSession = adminSession.getRepository()
+                                  .login(new SimpleCredentials(uid, "pw".toCharArray()));
     }
 
     @Override

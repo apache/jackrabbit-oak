@@ -16,20 +16,19 @@
  */
 package org.apache.jackrabbit.oak.security.principal;
 
+import static org.junit.Assert.assertEquals;
+
+import java.security.Principal;
+import java.util.Collection;
+import java.util.Iterator;
+import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-
-import java.security.Principal;
-import java.util.Collection;
-import java.util.Iterator;
-
-import static org.junit.Assert.assertEquals;
 
 @RunWith(Parameterized.class)
 public class EveryoneFilterTest {

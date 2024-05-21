@@ -16,30 +16,30 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.restriction;
 
-import org.apache.jackrabbit.guava.common.collect.Sets;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
-import javax.jcr.RepositoryException;
-import javax.jcr.Value;
-import javax.jcr.security.AccessControlException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import javax.jcr.RepositoryException;
+import javax.jcr.Value;
+import javax.jcr.security.AccessControlException;
+import org.apache.jackrabbit.guava.common.collect.Sets;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
- * Aggregates of a collection of {@link RestrictionProvider} implementations
- * into a single provider.
+ * Aggregates of a collection of {@link RestrictionProvider} implementations into a single
+ * provider.
  */
 public final class CompositeRestrictionProvider implements RestrictionProvider {
 
     private final RestrictionProvider[] providers;
 
-    private CompositeRestrictionProvider(@NotNull Collection<? extends RestrictionProvider> providers) {
+    private CompositeRestrictionProvider(
+        @NotNull Collection<? extends RestrictionProvider> providers) {
         this.providers = providers.toArray(new RestrictionProvider[0]);
         for (RestrictionProvider provider : providers) {
             if (provider instanceof AggregationAware) {
@@ -52,11 +52,15 @@ public final class CompositeRestrictionProvider implements RestrictionProvider {
         return newInstance(Arrays.asList(providers));
     }
 
-    public static RestrictionProvider newInstance(@NotNull Collection<? extends RestrictionProvider> providers) {
+    public static RestrictionProvider newInstance(
+        @NotNull Collection<? extends RestrictionProvider> providers) {
         switch (providers.size()) {
-            case 0: return EMPTY;
-            case 1: return providers.iterator().next();
-            default: return new CompositeRestrictionProvider(providers);
+            case 0:
+                return EMPTY;
+            case 1:
+                return providers.iterator().next();
+            default:
+                return new CompositeRestrictionProvider(providers);
         }
     }
 
@@ -72,13 +76,15 @@ public final class CompositeRestrictionProvider implements RestrictionProvider {
 
     @NotNull
     @Override
-    public Restriction createRestriction(@Nullable String oakPath, @NotNull String oakName, @NotNull Value value) throws RepositoryException {
+    public Restriction createRestriction(@Nullable String oakPath, @NotNull String oakName,
+        @NotNull Value value) throws RepositoryException {
         return getProvider(oakPath, oakName).createRestriction(oakPath, oakName, value);
     }
 
     @NotNull
     @Override
-    public Restriction createRestriction(@Nullable String oakPath, @NotNull String oakName, @NotNull Value... values) throws RepositoryException {
+    public Restriction createRestriction(@Nullable String oakPath, @NotNull String oakName,
+        @NotNull Value... values) throws RepositoryException {
         return getProvider(oakPath, oakName).createRestriction(oakPath, oakName, values);
     }
 
@@ -93,7 +99,8 @@ public final class CompositeRestrictionProvider implements RestrictionProvider {
     }
 
     @Override
-    public void writeRestrictions(@Nullable String oakPath, @NotNull Tree aceTree, @NotNull Set<Restriction> restrictions) throws RepositoryException {
+    public void writeRestrictions(@Nullable String oakPath, @NotNull Tree aceTree,
+        @NotNull Set<Restriction> restrictions) throws RepositoryException {
         for (Restriction r : restrictions) {
             RestrictionProvider rp = getProvider(oakPath, getName(r));
             rp.writeRestrictions(oakPath, aceTree, Collections.singleton(r));
@@ -101,7 +108,8 @@ public final class CompositeRestrictionProvider implements RestrictionProvider {
     }
 
     @Override
-    public void validateRestrictions(@Nullable String oakPath, @NotNull Tree aceTree) throws RepositoryException {
+    public void validateRestrictions(@Nullable String oakPath, @NotNull Tree aceTree)
+        throws RepositoryException {
         for (RestrictionProvider rp : providers) {
             rp.validateRestrictions(oakPath, aceTree);
         }
@@ -122,7 +130,8 @@ public final class CompositeRestrictionProvider implements RestrictionProvider {
 
     @NotNull
     @Override
-    public RestrictionPattern getPattern(@Nullable String oakPath, @NotNull Set<Restriction> restrictions) {
+    public RestrictionPattern getPattern(@Nullable String oakPath,
+        @NotNull Set<Restriction> restrictions) {
         List<RestrictionPattern> patterns = new ArrayList<>();
         for (RestrictionProvider rp : providers) {
             RestrictionPattern pattern = rp.getPattern(oakPath, restrictions);
@@ -135,7 +144,8 @@ public final class CompositeRestrictionProvider implements RestrictionProvider {
 
     //------------------------------------------------------------< private >---
     @NotNull
-    private RestrictionProvider getProvider(@Nullable String oakPath, @NotNull String oakName) throws AccessControlException {
+    private RestrictionProvider getProvider(@Nullable String oakPath, @NotNull String oakName)
+        throws AccessControlException {
         for (RestrictionProvider rp : providers) {
             for (RestrictionDefinition def : rp.getSupportedRestrictions(oakPath)) {
                 if (def.getName().equals(oakName)) {
@@ -143,7 +153,8 @@ public final class CompositeRestrictionProvider implements RestrictionProvider {
                 }
             }
         }
-        throw new AccessControlException("Unsupported restriction (path = " + oakPath + "; name = " + oakName + ')');
+        throw new AccessControlException(
+            "Unsupported restriction (path = " + oakPath + "; name = " + oakName + ')');
     }
 
     @NotNull

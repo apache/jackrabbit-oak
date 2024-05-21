@@ -21,19 +21,17 @@ package org.apache.jackrabbit.oak.plugins.index.search.update;
 
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-
 import org.apache.jackrabbit.oak.stats.Clock;
 
 /**
- * This policy ensures that any writes that have been done to index are made
- * visible *before* any read is performed.
- *
- * Its meant as an alternative to {@link RefreshOnWritePolicy} and for "sync"
- * indexes. For "nrt" indexes {@link TimedRefreshPolicy} should be preferred
+ * This policy ensures that any writes that have been done to index are made visible *before* any
+ * read is performed.
+ * <p>
+ * Its meant as an alternative to {@link RefreshOnWritePolicy} and for "sync" indexes. For "nrt"
+ * indexes {@link TimedRefreshPolicy} should be preferred
  *
  * <p>
- * The readers are not refreshed immediately upon write. Instead they would be
- * refreshed if
+ * The readers are not refreshed immediately upon write. Instead they would be refreshed if
  *
  * <ul>
  * <li>Upon write if refreshDelta time has elapsed then readers would be
@@ -45,10 +43,11 @@ import org.apache.jackrabbit.oak.stats.Clock;
  * <p>
  * This policy can result in some contention if index is being frequently
  * updated and queried.
- *
+ * <p>
  * *This is an experimental policy. Currently it causes high contention*
  */
 public class RefreshOnReadPolicy implements ReaderRefreshPolicy, IndexUpdateListener {
+
     private final AtomicBoolean dirty = new AtomicBoolean();
     private final Object lock = new Object();
     private final Clock clock;
@@ -62,7 +61,7 @@ public class RefreshOnReadPolicy implements ReaderRefreshPolicy, IndexUpdateList
 
     @Override
     public void refreshOnReadIfRequired(Runnable refreshCallback) {
-        if (dirty.get()){
+        if (dirty.get()) {
             refreshWithLock(refreshCallback, false);
         }
     }
@@ -74,7 +73,7 @@ public class RefreshOnReadPolicy implements ReaderRefreshPolicy, IndexUpdateList
             //Do not set dirty instead directly refresh
             refreshWithLock(refreshCallback, true);
         } else {
-            synchronized (lock){
+            synchronized (lock) {
                 //Needs to be done in a lock otherwise
                 //refreshWithLock would override this
                 dirty.set(true);
@@ -91,7 +90,7 @@ public class RefreshOnReadPolicy implements ReaderRefreshPolicy, IndexUpdateList
     }
 
     private void refreshWithLock(Runnable refreshCallback, boolean forceRefresh) {
-        synchronized (lock){
+        synchronized (lock) {
             if (dirty.get() || forceRefresh) {
                 refreshCallback.run();
                 dirty.set(false);

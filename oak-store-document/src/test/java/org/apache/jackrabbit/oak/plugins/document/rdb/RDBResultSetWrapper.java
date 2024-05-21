@@ -91,7 +91,9 @@ public class RDBResultSetWrapper implements ResultSet {
             long start = System.nanoTime();
             List<RDBLogEntry> l = datasource.getLog();
             if (l != null) {
-                String message = results + " results; resultSet.close() after " + ((start - rsstart) / 1000) + "us";
+                String message =
+                    results + " results; resultSet.close() after " + ((start - rsstart) / 1000)
+                        + "us";
                 if (info != null) {
                     message += " " + info;
                 }
@@ -534,11 +536,13 @@ public class RDBResultSetWrapper implements ResultSet {
         resultSet.updateAsciiStream(columnIndex, x);
     }
 
-    public void updateAsciiStream(String columnLabel, InputStream x, int length) throws SQLException {
+    public void updateAsciiStream(String columnLabel, InputStream x, int length)
+        throws SQLException {
         resultSet.updateAsciiStream(columnLabel, x, length);
     }
 
-    public void updateAsciiStream(String columnLabel, InputStream x, long length) throws SQLException {
+    public void updateAsciiStream(String columnLabel, InputStream x, long length)
+        throws SQLException {
         resultSet.updateAsciiStream(columnLabel, x, length);
     }
 
@@ -558,7 +562,8 @@ public class RDBResultSetWrapper implements ResultSet {
         resultSet.updateBinaryStream(columnIndex, x, length);
     }
 
-    public void updateBinaryStream(int columnIndex, InputStream x, long length) throws SQLException {
+    public void updateBinaryStream(int columnIndex, InputStream x, long length)
+        throws SQLException {
         resultSet.updateBinaryStream(columnIndex, x, length);
     }
 
@@ -566,11 +571,13 @@ public class RDBResultSetWrapper implements ResultSet {
         resultSet.updateBinaryStream(columnIndex, x);
     }
 
-    public void updateBinaryStream(String columnLabel, InputStream x, int length) throws SQLException {
+    public void updateBinaryStream(String columnLabel, InputStream x, int length)
+        throws SQLException {
         resultSet.updateBinaryStream(columnLabel, x, length);
     }
 
-    public void updateBinaryStream(String columnLabel, InputStream x, long length) throws SQLException {
+    public void updateBinaryStream(String columnLabel, InputStream x, long length)
+        throws SQLException {
         resultSet.updateBinaryStream(columnLabel, x, length);
     }
 
@@ -582,7 +589,8 @@ public class RDBResultSetWrapper implements ResultSet {
         resultSet.updateBlob(columnIndex, x);
     }
 
-    public void updateBlob(int columnIndex, InputStream inputStream, long length) throws SQLException {
+    public void updateBlob(int columnIndex, InputStream inputStream, long length)
+        throws SQLException {
         resultSet.updateBlob(columnIndex, inputStream, length);
     }
 
@@ -594,7 +602,8 @@ public class RDBResultSetWrapper implements ResultSet {
         resultSet.updateBlob(columnLabel, x);
     }
 
-    public void updateBlob(String columnLabel, InputStream inputStream, long length) throws SQLException {
+    public void updateBlob(String columnLabel, InputStream inputStream, long length)
+        throws SQLException {
         resultSet.updateBlob(columnLabel, inputStream, length);
     }
 
@@ -638,11 +647,13 @@ public class RDBResultSetWrapper implements ResultSet {
         resultSet.updateCharacterStream(columnIndex, x);
     }
 
-    public void updateCharacterStream(String columnLabel, Reader reader, int length) throws SQLException {
+    public void updateCharacterStream(String columnLabel, Reader reader, int length)
+        throws SQLException {
         resultSet.updateCharacterStream(columnLabel, reader, length);
     }
 
-    public void updateCharacterStream(String columnLabel, Reader reader, long length) throws SQLException {
+    public void updateCharacterStream(String columnLabel, Reader reader, long length)
+        throws SQLException {
         resultSet.updateCharacterStream(columnLabel, reader, length);
     }
 
@@ -722,7 +733,8 @@ public class RDBResultSetWrapper implements ResultSet {
         resultSet.updateNCharacterStream(columnIndex, x);
     }
 
-    public void updateNCharacterStream(String columnLabel, Reader reader, long length) throws SQLException {
+    public void updateNCharacterStream(String columnLabel, Reader reader, long length)
+        throws SQLException {
         resultSet.updateNCharacterStream(columnLabel, reader, length);
     }
 

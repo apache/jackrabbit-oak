@@ -25,7 +25,6 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -68,23 +67,23 @@ public class CheckpointTest {
         assertNotNull(cpns);
         if (exists) {
             assertTrue("Node doesn't exist in checkpoint",
-                    cpns.getChildNode("test-checkpoint").exists());
+                cpns.getChildNode("test-checkpoint").exists());
         } else {
             assertFalse("Node shouldn't exist in checkpoint", cpns
-                    .getChildNode("test-checkpoint").exists());
+                .getChildNode("test-checkpoint").exists());
         }
         return cp;
     }
 
     private static void addTestNode(NodeStore store, String name)
-            throws CommitFailedException {
+        throws CommitFailedException {
         NodeBuilder builder = store.getRoot().builder();
         builder.child(name);
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 
     private static void rmTestNode(NodeStore store, String name)
-            throws CommitFailedException {
+        throws CommitFailedException {
         NodeBuilder builder = store.getRoot().builder();
         builder.child(name).remove();
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
@@ -93,7 +92,7 @@ public class CheckpointTest {
     @Test
     public void testCheckpointMax() throws CommitFailedException, IOException {
         SegmentNodeStore store = SegmentNodeStoreBuilders.builder(
-                new MemoryStore()).build();
+            new MemoryStore()).build();
         String cp0 = store.checkpoint(Long.MAX_VALUE);
         String cp1 = store.checkpoint(Long.MAX_VALUE);
         assertNotNull(store.retrieve(cp0));

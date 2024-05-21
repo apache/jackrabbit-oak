@@ -22,8 +22,8 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.util;
 import org.apache.lucene.facet.FacetsConfig;
 
 /**
- * Ensures that FacetsConfig is lazily created only when facets are to be created
- * and only for those indexes where facets are configured
+ * Ensures that FacetsConfig is lazily created only when facets are to be created and only for those
+ * indexes where facets are configured
  */
 public interface FacetsConfigProvider {
 

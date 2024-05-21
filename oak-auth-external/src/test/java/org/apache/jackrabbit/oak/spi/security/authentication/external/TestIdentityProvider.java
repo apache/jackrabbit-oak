@@ -24,13 +24,10 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
-
 import javax.jcr.Credentials;
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.login.LoginException;
-
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.jetbrains.annotations.NotNull;
 
@@ -66,24 +63,24 @@ public class TestIdentityProvider implements ExternalIdentityProvider {
         addGroup(new TestGroup("g%r%", getName()));
 
         addUser(new TestUser(ID_TEST_USER, getName())
-                .withProperty("name", "Test User")
-                .withProperty("profile/name", "Public Name")
-                .withProperty("profile/age", 72)
-                .withProperty("email", "test@testuser.com")
-                .withGroups("a", "b", "c")
+            .withProperty("name", "Test User")
+            .withProperty("profile/name", "Public Name")
+            .withProperty("profile/age", 72)
+            .withProperty("email", "test@testuser.com")
+            .withGroups("a", "b", "c")
         );
 
         addUser(new TestUser(ID_SECOND_USER, getName())
-                .withProperty("profile/name", "Second User")
-                .withProperty("age", 24)
-                .withProperty("col", ImmutableList.of("v1", "v2", "v3"))
-                .withProperty("boolArr", new Boolean[]{true, false})
-                .withProperty("charArr", new char[]{'t', 'o', 'b'})
-                .withProperty("byteArr", new byte[0])
-                .withGroups("secondGroup"));
+            .withProperty("profile/name", "Second User")
+            .withProperty("age", 24)
+            .withProperty("col", ImmutableList.of("v1", "v2", "v3"))
+            .withProperty("boolArr", new Boolean[]{true, false})
+            .withProperty("charArr", new char[]{'t', 'o', 'b'})
+            .withProperty("byteArr", new byte[0])
+            .withGroups("secondGroup"));
 
         addUser(new TestUser(ID_WILDCARD_USER, getName())
-                .withGroups("_gr_u_", "g%r%"));
+            .withGroups("_gr_u_", "g%r%"));
     }
 
     public void addUser(TestIdentity user) {
@@ -101,7 +98,8 @@ public class TestIdentityProvider implements ExternalIdentityProvider {
     }
 
     @Override
-    public ExternalIdentity getIdentity(@NotNull ExternalIdentityRef ref) throws ExternalIdentityException {
+    public ExternalIdentity getIdentity(@NotNull ExternalIdentityRef ref)
+        throws ExternalIdentityException {
         if (ID_EXCEPTION.equals(ref.getId())) {
             throw new ExternalIdentityException(ID_EXCEPTION);
         }
@@ -124,7 +122,8 @@ public class TestIdentityProvider implements ExternalIdentityProvider {
     }
 
     @Override
-    public ExternalUser authenticate(@NotNull Credentials credentials) throws ExternalIdentityException, LoginException {
+    public ExternalUser authenticate(@NotNull Credentials credentials)
+        throws ExternalIdentityException, LoginException {
         if (!(credentials instanceof SimpleCredentials)) {
             return null;
         }
@@ -175,7 +174,8 @@ public class TestIdentityProvider implements ExternalIdentityProvider {
             this(userId, userId, DEFAULT_IDP_NAME);
         }
 
-        public TestIdentity(@NotNull String userId, @NotNull String principalName, @NotNull String idpName) {
+        public TestIdentity(@NotNull String userId, @NotNull String principalName,
+            @NotNull String idpName) {
             this.userId = userId;
             this.principalName = principalName;
             id = new ExternalIdentityRef(userId, idpName);
@@ -229,8 +229,8 @@ public class TestIdentityProvider implements ExternalIdentityProvider {
         }
 
         @NotNull
-        public TestIdentity withGroups(@NotNull String ... grps) {
-            for (String grp: grps) {
+        public TestIdentity withGroups(@NotNull String... grps) {
+            for (String grp : grps) {
                 groups.add(new ExternalIdentityRef(grp, id.getProviderName()));
             }
             return this;
@@ -268,14 +268,16 @@ public class TestIdentityProvider implements ExternalIdentityProvider {
         }
     }
 
-    public static final class ForeignExternalUser extends TestIdentityProvider.TestIdentity implements ExternalUser {
+    public static final class ForeignExternalUser extends
+        TestIdentityProvider.TestIdentity implements ExternalUser {
 
         public ForeignExternalUser() {
             super("externalId", "principalName", "AnotherExternalIDP");
         }
     }
 
-    public static final class ForeignExternalGroup extends TestIdentityProvider.TestIdentity implements ExternalGroup {
+    public static final class ForeignExternalGroup extends
+        TestIdentityProvider.TestIdentity implements ExternalGroup {
 
         public ForeignExternalGroup() {
             super("externalId", "principalName", "AnotherExternalIDP");

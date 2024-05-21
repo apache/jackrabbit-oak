@@ -19,19 +19,17 @@
 package org.apache.jackrabbit.oak.query;
 
 
-import org.apache.jackrabbit.guava.common.io.Closer;
-
-import org.apache.jackrabbit.api.JackrabbitRepository;
-import org.junit.After;
-import org.junit.Before;
-
+import java.io.IOException;
 import javax.jcr.GuestCredentials;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 import javax.jcr.query.QueryManager;
-import java.io.IOException;
+import org.apache.jackrabbit.api.JackrabbitRepository;
+import org.apache.jackrabbit.guava.common.io.Closer;
+import org.junit.After;
+import org.junit.Before;
 
 public abstract class AbstractJcrTest {
 
@@ -46,7 +44,8 @@ public abstract class AbstractJcrTest {
         closer = Closer.create();
         jcrRepository = createJcrRepository();
 
-        adminSession = jcrRepository.login(new SimpleCredentials("admin", "admin".toCharArray()), null);
+        adminSession = jcrRepository.login(new SimpleCredentials("admin", "admin".toCharArray()),
+            null);
         // we'd always query anonymously
         anonymousSession = jcrRepository.login(new GuestCredentials(), null);
         anonymousSession.refresh(true);
@@ -66,8 +65,10 @@ public abstract class AbstractJcrTest {
     }
 
     abstract protected Repository createJcrRepository() throws RepositoryException;
+
     /*
         Use this method to initialize variables/execute something after repository creation
      */
-    protected void initialize(){ }
+    protected void initialize() {
+    }
 }

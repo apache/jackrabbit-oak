@@ -16,14 +16,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
-import java.util.Arrays;
+import static org.junit.Assert.assertEquals;
 
+import java.util.Arrays;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.junit.Assert;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
 
 public class PropertyBuilderTest {
 
@@ -32,11 +31,11 @@ public class PropertyBuilderTest {
         PropertyBuilder builder = PropertyBuilder.scalar(Type.STRING);
         builder.setName("foo").setValue("bar");
         Assert.assertEquals(StringPropertyState.stringProperty("foo", "bar"),
-                builder.getPropertyState());
+            builder.getPropertyState());
 
         builder.setArray();
         Assert.assertEquals(MultiStringPropertyState.stringProperty("foo", Arrays.asList("bar")),
-                builder.getPropertyState());
+            builder.getPropertyState());
     }
 
     @Test
@@ -44,21 +43,21 @@ public class PropertyBuilderTest {
         PropertyBuilder builder = PropertyBuilder.scalar(Type.LONG);
         builder.setName("foo").setValue(42L);
         Assert.assertEquals(LongPropertyState.createLongProperty("foo", 42L),
-                builder.getPropertyState());
+            builder.getPropertyState());
 
         builder.setArray();
         Assert.assertEquals(MultiLongPropertyState.createLongProperty("foo", Arrays.asList(42L)),
-                builder.getPropertyState());
+            builder.getPropertyState());
     }
 
     @Test
     public void testStringsProperty() {
         PropertyBuilder builder = PropertyBuilder.array(Type.STRING);
         builder.setName("foo")
-                .addValue("one")
-                .addValue("two");
+               .addValue("one")
+               .addValue("two");
         assertEquals(MultiStringPropertyState.stringProperty("foo", Arrays.asList("one", "two")),
-                builder.getPropertyState());
+            builder.getPropertyState());
 
         builder.setScalar();
         try {
@@ -69,7 +68,7 @@ public class PropertyBuilderTest {
 
         builder.removeValue("one");
         assertEquals(StringPropertyState.stringProperty("foo", "two"),
-                builder.getPropertyState());
+            builder.getPropertyState());
     }
 
     @Test
@@ -78,10 +77,11 @@ public class PropertyBuilderTest {
         String date1 = "1970-01-01T00:00:00.000Z";
         String date2 = "1971-01-01T00:00:00.000Z";
         builder.setName("foo")
-                .addValue(date1)
-                .addValue(date2);
-        Assert.assertEquals(MultiGenericPropertyState.dateProperty("foo", Arrays.asList(date1, date2)),
-                builder.getPropertyState());
+               .addValue(date1)
+               .addValue(date2);
+        Assert.assertEquals(
+            MultiGenericPropertyState.dateProperty("foo", Arrays.asList(date1, date2)),
+            builder.getPropertyState());
 
         builder.setScalar();
         try {
@@ -91,7 +91,7 @@ public class PropertyBuilderTest {
 
         builder.removeValue(date1);
         Assert.assertEquals(GenericPropertyState.dateProperty("foo", date2),
-                builder.getPropertyState());
+            builder.getPropertyState());
     }
 
     @Test
@@ -100,7 +100,7 @@ public class PropertyBuilderTest {
         PropertyBuilder builder = PropertyBuilder.scalar(Type.STRING);
         builder.assignFrom(source);
         assertEquals(StringPropertyState.stringProperty("foo", "42"),
-                builder.getPropertyState());
+            builder.getPropertyState());
     }
 
     @Test
@@ -109,7 +109,7 @@ public class PropertyBuilderTest {
         PropertyBuilder builder = PropertyBuilder.scalar(Type.LONG);
         builder.assignFrom(source);
         assertEquals(LongPropertyState.createLongProperty("foo", 42L),
-                builder.getPropertyState());
+            builder.getPropertyState());
     }
 
     @Test
@@ -130,27 +130,30 @@ public class PropertyBuilderTest {
 
     @Test
     public void testAssignFromLongs() {
-        PropertyState source = MultiLongPropertyState.createLongProperty("foo", Arrays.asList(1L, 2L, 3L));
+        PropertyState source = MultiLongPropertyState.createLongProperty("foo",
+            Arrays.asList(1L, 2L, 3L));
         PropertyBuilder builder = PropertyBuilder.scalar(Type.STRING);
         builder.assignFrom(source);
         assertEquals(MultiStringPropertyState.stringProperty("foo", Arrays.asList("1", "2", "3")),
-                builder.getPropertyState());
+            builder.getPropertyState());
     }
 
     @Test
     public void testAssignFromStrings() {
-        PropertyState source = MultiStringPropertyState.stringProperty("foo", Arrays.asList("1", "2", "3"));
+        PropertyState source = MultiStringPropertyState.stringProperty("foo",
+            Arrays.asList("1", "2", "3"));
         PropertyBuilder builder = PropertyBuilder.scalar(Type.LONG);
         builder.assignFrom(source);
         assertEquals(MultiLongPropertyState.createLongProperty("foo", Arrays.asList(1L, 2L, 3L)),
-                builder.getPropertyState());
+            builder.getPropertyState());
     }
 
     @Test
     public void testAssignFromDates() {
         String date1 = "1970-01-01T00:00:00.000Z";
         String date2 = "1971-01-01T00:00:00.000Z";
-        PropertyState source = MultiGenericPropertyState.dateProperty("foo", Arrays.asList(date1, date2));
+        PropertyState source = MultiGenericPropertyState.dateProperty("foo",
+            Arrays.asList(date1, date2));
         PropertyBuilder builder = PropertyBuilder.scalar(Type.DATE);
         builder.assignFrom(source);
         assertEquals(source, builder.getPropertyState());
@@ -158,7 +161,8 @@ public class PropertyBuilderTest {
 
     @Test
     public void testAssignInvariant() {
-        PropertyState source = MultiStringPropertyState.stringProperty("source", Arrays.asList("1", "2", "3"));
+        PropertyState source = MultiStringPropertyState.stringProperty("source",
+            Arrays.asList("1", "2", "3"));
         PropertyBuilder builder = PropertyBuilder.scalar(Type.STRING);
         builder.assignFrom(source);
         assertEquals(source, builder.getPropertyState());

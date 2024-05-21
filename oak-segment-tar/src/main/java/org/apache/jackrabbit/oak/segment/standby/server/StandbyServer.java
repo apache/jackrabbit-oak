@@ -21,12 +21,6 @@ package org.apache.jackrabbit.oak.segment.standby.server;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
-import java.io.File;
-import java.security.cert.CertificateException;
-import java.util.concurrent.TimeUnit;
-
-import javax.net.ssl.SSLException;
-
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
@@ -45,6 +39,10 @@ import io.netty.handler.ssl.SslHandler;
 import io.netty.handler.ssl.util.SelfSignedCertificate;
 import io.netty.handler.stream.ChunkedWriteHandler;
 import io.netty.util.CharsetUtil;
+import java.io.File;
+import java.security.cert.CertificateException;
+import java.util.concurrent.TimeUnit;
+import javax.net.ssl.SSLException;
 import org.apache.jackrabbit.core.data.util.NamedThreadFactory;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.standby.codec.GetBlobResponseEncoder;
@@ -60,10 +58,10 @@ import org.slf4j.LoggerFactory;
 class StandbyServer implements AutoCloseable {
 
     private static final Logger log = LoggerFactory.getLogger(StandbyServer.class);
-    
+
     /**
-     * If a persisted head state cannot be acquired in less than this timeout,
-     * the 'get head' request from the client will be discarded.
+     * If a persisted head state cannot be acquired in less than this timeout, the 'get head'
+     * request from the client will be discarded.
      */
     private static final long READ_HEAD_TIMEOUT = Long.getLong("standby.server.timeout", 10_000L);
 
@@ -88,7 +86,7 @@ class StandbyServer implements AutoCloseable {
         private final int port;
 
         private final StoreProvider storeProvider;
-        
+
         private final int blobChunkSize;
 
         private boolean secure;
@@ -117,7 +115,8 @@ class StandbyServer implements AutoCloseable {
 
         private String sslSubjectPattern;
 
-        private Builder(final int port, final StoreProvider storeProvider, final int blobChunkSize) {
+        private Builder(final int port, final StoreProvider storeProvider,
+            final int blobChunkSize) {
             this.port = port;
             this.storeProvider = storeProvider;
             this.blobChunkSize = blobChunkSize;
@@ -218,10 +217,12 @@ class StandbyServer implements AutoCloseable {
 
         if (builder.secure) {
             if (builder.sslKeyFile != null && !"".equals(builder.sslKeyFile)) {
-                sslContext = SslContextBuilder.forServer(new File(builder.sslChainFile), new File(builder.sslKeyFile), builder.sslKeyPassword).build();
+                sslContext = SslContextBuilder.forServer(new File(builder.sslChainFile),
+                    new File(builder.sslKeyFile), builder.sslKeyPassword).build();
             } else {
                 SelfSignedCertificate ssc = new SelfSignedCertificate();
-                sslContext = SslContextBuilder.forServer(ssc.certificate(), ssc.privateKey()).build();
+                sslContext = SslContextBuilder.forServer(ssc.certificate(), ssc.privateKey())
+                                              .build();
             }
         }
 
@@ -243,7 +244,8 @@ class StandbyServer implements AutoCloseable {
             public void initChannel(SocketChannel ch) {
                 ChannelPipeline p = ch.pipeline();
 
-                p.addLast(new ClientFilterHandler(new ClientIpFilter(builder.allowedClientIPRanges)));
+                p.addLast(
+                    new ClientFilterHandler(new ClientIpFilter(builder.allowedClientIPRanges)));
 
                 if (sslContext != null) {
                     SslHandler handler = sslContext.newHandler(ch.alloc());
@@ -267,12 +269,12 @@ class StandbyServer implements AutoCloseable {
 
                 p.addLast(new SnappyFrameEncoder());
 
-                // Use chunking transparently 
-                
+                // Use chunking transparently
+
                 p.addLast(new ChunkedWriteHandler());
-                
+
                 // Other Encoders
-                
+
                 p.addLast(new GetHeadResponseEncoder());
                 p.addLast(new GetSegmentResponseEncoder());
                 p.addLast(new GetBlobResponseEncoder(builder.blobChunkSize));
@@ -333,7 +335,8 @@ class StandbyServer implements AutoCloseable {
     }
 
     private static boolean shutDown(EventLoopGroup group) {
-        return group.shutdownGracefully(0, 5, TimeUnit.SECONDS).awaitUninterruptibly(10, TimeUnit.SECONDS);
+        return group.shutdownGracefully(0, 5, TimeUnit.SECONDS)
+                    .awaitUninterruptibly(10, TimeUnit.SECONDS);
     }
 
     private void onTimelyConnect() {

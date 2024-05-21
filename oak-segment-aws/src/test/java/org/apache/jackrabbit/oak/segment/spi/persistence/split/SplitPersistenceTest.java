@@ -18,14 +18,12 @@ package org.apache.jackrabbit.oak.segment.spi.persistence.split;
 
 import static org.junit.Assert.assertEquals;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.Date;
-
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.amazonaws.services.dynamodbv2.local.embedded.DynamoDBEmbedded;
 import com.amazonaws.services.s3.AmazonS3;
-
+import java.io.File;
+import java.io.IOException;
+import java.util.Date;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
@@ -73,18 +71,20 @@ public class SplitPersistenceTest {
     private SegmentNodeStorePersistence splitPersistence;
 
     @Before
-    public void setup() throws IOException, InvalidFileStoreVersionException, CommitFailedException {
+    public void setup()
+        throws IOException, InvalidFileStoreVersionException, CommitFailedException {
         AmazonS3 s3 = s3Mock.createClient();
         AmazonDynamoDB ddb = DynamoDBEmbedded.create().amazonDynamoDB();
         long time = new Date().getTime();
-        AwsContext awsContext = AwsContext.create(s3, "bucket-" + time, "oak", ddb, "journaltable-" + time, "locktable-" + time);
+        AwsContext awsContext = AwsContext.create(s3, "bucket-" + time, "oak", ddb,
+            "journaltable-" + time, "locktable-" + time);
 
         SegmentNodeStorePersistence sharedPersistence = new AwsPersistence(awsContext);
 
         baseFileStore = FileStoreBuilder
-                .fileStoreBuilder(folder.newFolder())
-                .withCustomPersistence(sharedPersistence)
-                .build();
+            .fileStoreBuilder(folder.newFolder())
+            .withCustomPersistence(sharedPersistence)
+            .build();
         base = SegmentNodeStoreBuilders.builder(baseFileStore).build();
 
         NodeBuilder builder = base.getRoot().builder();
@@ -96,9 +96,9 @@ public class SplitPersistenceTest {
         splitPersistence = new SplitPersistence(sharedPersistence, localPersistence);
 
         splitFileStore = FileStoreBuilder
-                .fileStoreBuilder(folder.newFolder())
-                .withCustomPersistence(splitPersistence)
-                .build();
+            .fileStoreBuilder(folder.newFolder())
+            .withCustomPersistence(splitPersistence)
+            .build();
         split = SegmentNodeStoreBuilders.builder(splitFileStore).build();
     }
 
@@ -115,7 +115,8 @@ public class SplitPersistenceTest {
 
     @Test
     public void testBaseNodeAvailable() {
-        assertEquals("v1", split.getRoot().getChildNode("foo").getChildNode("bar").getString("version"));
+        assertEquals("v1",
+            split.getRoot().getChildNode("foo").getChildNode("bar").getString("version"));
     }
 
     @Test
@@ -124,7 +125,8 @@ public class SplitPersistenceTest {
         builder.child("foo").child("bar").setProperty("version", "v2");
         base.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        assertEquals("v1", split.getRoot().getChildNode("foo").getChildNode("bar").getString("version"));
+        assertEquals("v1",
+            split.getRoot().getChildNode("foo").getChildNode("bar").getString("version"));
     }
 
     @Test
@@ -133,15 +135,18 @@ public class SplitPersistenceTest {
         builder.child("foo").child("bar").setProperty("version", "v2");
         split.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        assertEquals("v1", base.getRoot().getChildNode("foo").getChildNode("bar").getString("version"));
+        assertEquals("v1",
+            base.getRoot().getChildNode("foo").getChildNode("bar").getString("version"));
     }
 
     @Test
-    public void testBinaryReferencesAreNotNull() throws IOException, InvalidBinaryReferencesIndexException {
+    public void testBinaryReferencesAreNotNull()
+        throws IOException, InvalidBinaryReferencesIndexException {
         splitFileStore.close();
         splitFileStore = null;
 
-        SegmentArchiveManager manager = splitPersistence.createArchiveManager(true, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
+        SegmentArchiveManager manager = splitPersistence.createArchiveManager(true, false,
+            new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
         for (String archive : manager.listArchives()) {
             SegmentArchiveReader reader = manager.open(archive);
             BinaryReferencesIndexLoader.parseBinaryReferencesIndex(reader.getBinaryReferences());

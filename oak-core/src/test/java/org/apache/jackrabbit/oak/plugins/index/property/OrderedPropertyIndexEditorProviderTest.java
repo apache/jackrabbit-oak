@@ -25,11 +25,10 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
+import ch.qos.logback.classic.Level;
 import java.util.Collections;
 import java.util.List;
-
 import javax.jcr.RepositoryException;
-
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
@@ -42,8 +41,6 @@ import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
-
-import ch.qos.logback.classic.Level;
 
 public class OrderedPropertyIndexEditorProviderTest {
 

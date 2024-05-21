@@ -30,7 +30,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
@@ -39,7 +38,6 @@ import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
 import javax.jcr.query.QueryResult;
 import javax.jcr.query.qom.QueryObjectModelFactory;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.QueryEngine;
@@ -58,7 +56,9 @@ import org.slf4j.LoggerFactory;
  * The implementation of the corresponding JCR interface.
  */
 public class QueryManagerImpl implements QueryManager {
-    private static final Logger queryOpsLogger = LoggerFactory.getLogger("org.apache.jackrabbit.oak.jcr.operations.query");
+
+    private static final Logger queryOpsLogger = LoggerFactory.getLogger(
+        "org.apache.jackrabbit.oak.jcr.operations.query");
     private final SessionDelegate sessionDelegate;
     private final SessionContext sessionContext;
     private final QueryObjectModelFactoryImpl qomFactory;
@@ -114,34 +114,35 @@ public class QueryManagerImpl implements QueryManager {
 
     /**
      * Parse the query and get the bind variable names.
-     * 
+     *
      * @param statement the query statement
-     * @param language the query language
+     * @param language  the query language
      * @return the bind variable names
      */
     public List<String> parse(String statement, String language) throws InvalidQueryException {
         try {
             return queryEngine.getBindVariableNames(
-                    statement, language,
-                    sessionContext.getSessionLocalMappings());
+                statement, language,
+                sessionContext.getSessionLocalMappings());
         } catch (ParseException e) {
             throw new InvalidQueryException(e);
         }
     }
 
     public QueryResult executeQuery(String statement, String language,
-        Optional<Long> limit, Optional<Long> offset, HashMap<String, Value> bindVariableMap) throws RepositoryException {
+        Optional<Long> limit, Optional<Long> offset, HashMap<String, Value> bindVariableMap)
+        throws RepositoryException {
         try {
             Map<String, PropertyValue> bindMap = convertMap(bindVariableMap);
             TimerStats.Context context = queryDuration.time();
             Result r = queryEngine.executeQuery(
-                    statement, language, limit, offset, bindMap,
-                    sessionContext.getSessionLocalMappings());
+                statement, language, limit, offset, bindMap,
+                sessionContext.getSessionLocalMappings());
             queryCount.mark();
             long millis = TimeUnit.NANOSECONDS.toMillis(context.stop());
             queryOpsLogger.debug("Executed query [{}] in [{}] ms", statement, millis);
             sessionContext.getStatisticManager()
-                    .logQueryEvaluationTime(language, statement, millis);
+                          .logQueryEvaluationTime(language, statement, millis);
             return new QueryResultImpl(sessionContext, r);
         } catch (IllegalArgumentException e) {
             throw new InvalidQueryException(e);
@@ -151,12 +152,12 @@ public class QueryManagerImpl implements QueryManager {
     }
 
     private static Map<String, PropertyValue> convertMap(
-            HashMap<String, Value> bindVariableMap) throws RepositoryException {
+        HashMap<String, Value> bindVariableMap) throws RepositoryException {
         HashMap<String, PropertyValue> map = new HashMap<String, PropertyValue>();
         for (Entry<String, Value> e : bindVariableMap.entrySet()) {
             map.put(e.getKey(),
-                    PropertyValues.create(PropertyStates.createProperty("",
-                            e.getValue())));
+                PropertyValues.create(PropertyStates.createProperty("",
+                    e.getValue())));
         }
         return map;
     }

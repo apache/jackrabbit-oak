@@ -25,8 +25,8 @@ import org.jetbrains.annotations.NotNull;
 import org.osgi.annotation.versioning.ProviderType;
 
 /**
- * Interface that allows to exclude certain principals from the CUG evaluation.
- * For the excluded principals the closed user group policies will be ignored.
+ * Interface that allows to exclude certain principals from the CUG evaluation. For the excluded
+ * principals the closed user group policies will be ignored.
  */
 @ProviderType
 public interface CugExclude {
@@ -34,8 +34,8 @@ public interface CugExclude {
     boolean isExcluded(@NotNull Set<Principal> principals);
 
     /**
-     * Default implementation of the {@link CugExclude} interface that excludes
-     * the following principal classes from CUG evaluation:
+     * Default implementation of the {@link CugExclude} interface that excludes the following
+     * principal classes from CUG evaluation:
      * <ul>
      *     <li>{@link org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal AdminPrincipals}</li>
      *     <li>{@link org.apache.jackrabbit.oak.spi.security.principal.SystemPrincipal SystemPrincipal}</li>

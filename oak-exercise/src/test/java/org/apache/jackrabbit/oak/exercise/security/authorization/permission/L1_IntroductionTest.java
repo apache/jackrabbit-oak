@@ -16,9 +16,10 @@
  */
 package org.apache.jackrabbit.oak.exercise.security.authorization.permission;
 
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+
 import java.security.Principal;
 import javax.jcr.security.AccessControlManager;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
@@ -34,8 +35,6 @@ import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
 /**
  * <pre>
@@ -151,7 +150,8 @@ public class L1_IntroductionTest extends AbstractSecurityTest {
 
         setupPermission(root, "/a", testPrincipal, true, PrivilegeConstants.JCR_READ);
         setupPermission(root, "/a/b", testPrincipal, true, PrivilegeConstants.JCR_ADD_CHILD_NODES);
-        setupPermission(root, "/a/bb", testPrincipal, false, PrivilegeConstants.REP_READ_PROPERTIES);
+        setupPermission(root, "/a/bb", testPrincipal, false,
+            PrivilegeConstants.REP_READ_PROPERTIES);
         setupPermission(root, "/a/b/c", testPrincipal, true, PrivilegeConstants.REP_ADD_PROPERTIES);
 
         root.commit();
@@ -173,21 +173,23 @@ public class L1_IntroductionTest extends AbstractSecurityTest {
     /**
      * Setup simple allow/deny permissions (without restrictions).
      *
-     * @param root The editing root.
-     * @param path The path of the access controlled tree.
-     * @param principal The principal for which new ACE is being created.
-     * @param isAllow {@code true} if privileges are granted; {@code false} otherwise.
+     * @param root           The editing root.
+     * @param path           The path of the access controlled tree.
+     * @param principal      The principal for which new ACE is being created.
+     * @param isAllow        {@code true} if privileges are granted; {@code false} otherwise.
      * @param privilegeNames The privilege names.
      * @throws Exception If an error occurs.
      */
     private void setupPermission(@NotNull Root root,
-                                 @Nullable String path,
-                                 @NotNull Principal principal,
-                                 boolean isAllow,
-                                 @NotNull String... privilegeNames) throws Exception {
+        @Nullable String path,
+        @NotNull Principal principal,
+        boolean isAllow,
+        @NotNull String... privilegeNames) throws Exception {
         AccessControlManager acMgr = getAccessControlManager(root);
-        JackrabbitAccessControlList acl = checkNotNull(AccessControlUtils.getAccessControlList(acMgr, path));
-        acl.addEntry(principal, AccessControlUtils.privilegesFromNames(acMgr, privilegeNames), isAllow);
+        JackrabbitAccessControlList acl = checkNotNull(
+            AccessControlUtils.getAccessControlList(acMgr, path));
+        acl.addEntry(principal, AccessControlUtils.privilegesFromNames(acMgr, privilegeNames),
+            isAllow);
         acMgr.setPolicy(path, acl);
         root.commit();
     }
@@ -245,7 +247,6 @@ public class L1_IntroductionTest extends AbstractSecurityTest {
         } finally {
             testRoot.refresh();
         }
-
 
         // finally we try to add a new property to the 'cTree'
         // EXERCISE: does it work with the current permission setup? if not, why (+ add exception handling)?

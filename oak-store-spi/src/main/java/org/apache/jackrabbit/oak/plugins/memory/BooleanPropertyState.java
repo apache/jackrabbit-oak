@@ -18,15 +18,16 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
+import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.value.Conversions;
 import org.apache.jackrabbit.oak.plugins.value.Conversions.Converter;
 import org.jetbrains.annotations.NotNull;
 
-import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
-
 public class BooleanPropertyState extends SinglePropertyState<Boolean> {
+
     private final boolean value;
 
     public BooleanPropertyState(@NotNull String name, boolean value) {
@@ -36,12 +37,13 @@ public class BooleanPropertyState extends SinglePropertyState<Boolean> {
 
     /**
      * Create a {@code PropertyState} from a boolean.
+     *
      * @param name  The name of the property state
-     * @param value  The value of the property state
-     * @return  The new property state of type {@link Type#BOOLEAN}
+     * @param value The value of the property state
+     * @return The new property state of type {@link Type#BOOLEAN}
      */
     public static PropertyState booleanProperty(
-            @NotNull String name, boolean value) {
+        @NotNull String name, boolean value) {
         return new BooleanPropertyState(name, value);
     }
 

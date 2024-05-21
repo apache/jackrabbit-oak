@@ -27,50 +27,53 @@ package org.apache.lucene.index;
 
 import java.io.IOException;
 
-/** Just switches between two {@link DocFieldConsumer}s. */
+/**
+ * Just switches between two {@link DocFieldConsumer}s.
+ */
 
 class TwoStoredFieldsConsumers extends StoredFieldsConsumer {
-  private final StoredFieldsConsumer first;
-  private final StoredFieldsConsumer second;
 
-  public TwoStoredFieldsConsumers(StoredFieldsConsumer first, StoredFieldsConsumer second) {
-    this.first = first;
-    this.second = second;
-  }
+    private final StoredFieldsConsumer first;
+    private final StoredFieldsConsumer second;
 
-  @Override
-  public void addField(int docID, IndexableField field, FieldInfo fieldInfo) throws IOException {
-    first.addField(docID, field, fieldInfo);
-    second.addField(docID, field, fieldInfo);
-  }
-
-  @Override
-  void flush(SegmentWriteState state) throws IOException {
-    first.flush(state);
-    second.flush(state);
-  }
-
-  @Override
-  void abort() {
-    try {
-      first.abort();
-    } catch (Throwable t) {
+    public TwoStoredFieldsConsumers(StoredFieldsConsumer first, StoredFieldsConsumer second) {
+        this.first = first;
+        this.second = second;
     }
-    try {
-      second.abort();
-    } catch (Throwable t) {
+
+    @Override
+    public void addField(int docID, IndexableField field, FieldInfo fieldInfo) throws IOException {
+        first.addField(docID, field, fieldInfo);
+        second.addField(docID, field, fieldInfo);
     }
-  }
 
-  @Override
-  void startDocument() throws IOException {
-    first.startDocument();
-    second.startDocument();
-  }
+    @Override
+    void flush(SegmentWriteState state) throws IOException {
+        first.flush(state);
+        second.flush(state);
+    }
 
-  @Override
-  void finishDocument() throws IOException {
-    first.finishDocument();
-    second.finishDocument();
-  }
+    @Override
+    void abort() {
+        try {
+            first.abort();
+        } catch (Throwable t) {
+        }
+        try {
+            second.abort();
+        } catch (Throwable t) {
+        }
+    }
+
+    @Override
+    void startDocument() throws IOException {
+        first.startDocument();
+        second.startDocument();
+    }
+
+    @Override
+    void finishDocument() throws IOException {
+        first.finishDocument();
+        second.finishDocument();
+    }
 }

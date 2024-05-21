@@ -22,7 +22,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
-
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeData;
 import org.apache.jackrabbit.oak.plugins.index.counter.SipHash;
 
@@ -44,7 +43,7 @@ public class NodeCount implements StatsCollector {
         List<String> pathElements = node.getPathElements();
         SipHash hash = new SipHash(seed);
         ArrayList<String> parents = new ArrayList<>();
-        for(String pe : pathElements) {
+        for (String pe : pathElements) {
             hash = new SipHash(hash, pe.hashCode());
             parents.add(pe);
         }
@@ -54,7 +53,7 @@ public class NodeCount implements StatsCollector {
             long offset = bitMask + 1;
             storage.add("/", offset);
             StringBuilder buff = new StringBuilder();
-            for(String p : parents) {
+            for (String p : parents) {
                 buff.append('/').append(p);
                 String pa = buff.toString();
                 storage.add(pa, offset);
@@ -68,7 +67,7 @@ public class NodeCount implements StatsCollector {
         // this would sort by value:
         // Collections.sort(entryList, (o1, o2) -> o2.getValue().compareTo(o1.getValue()));
         // but it's unclear if that's better or not
-        for(Entry<String, Long> e : entryList) {
+        for (Entry<String, Long> e : entryList) {
             if (e.getValue() > 1_000_000) {
                 result.add(e.getKey() + ": " + (e.getValue() / 1_000_000));
             }

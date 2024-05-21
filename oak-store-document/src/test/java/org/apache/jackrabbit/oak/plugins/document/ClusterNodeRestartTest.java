@@ -37,11 +37,11 @@ public class ClusterNodeRestartTest {
     public void restart() throws Exception {
         MemoryDocumentStore docStore = new MemoryDocumentStore();
         DocumentNodeStore ns1 = builderProvider.newBuilder()
-                .setDocumentStore(docStore).setClusterId(1)
-                .setAsyncDelay(0).getNodeStore();
+                                               .setDocumentStore(docStore).setClusterId(1)
+                                               .setAsyncDelay(0).getNodeStore();
         DocumentNodeStore ns2 = builderProvider.newBuilder()
-                .setDocumentStore(docStore).setClusterId(2)
-                .setAsyncDelay(0).getNodeStore();
+                                               .setDocumentStore(docStore).setClusterId(2)
+                                               .setAsyncDelay(0).getNodeStore();
 
         NodeBuilder builder = ns1.getRoot().builder();
         builder.child("foo").child("bar");
@@ -60,13 +60,13 @@ public class ClusterNodeRestartTest {
         assertTrue(ns1.getRoot().getChildNode("foo").getChildNode("bar").hasProperty("p"));
 
         ns2 = builderProvider.newBuilder()
-                .setDocumentStore(docStore).setClusterId(2)
-                .setAsyncDelay(0).getNodeStore();
+                             .setDocumentStore(docStore).setClusterId(2)
+                             .setAsyncDelay(0).getNodeStore();
         assertTrue(ns2.getRoot().getChildNode("foo").getChildNode("bar").hasProperty("p"));
     }
 
     private void merge(NodeStore store, NodeBuilder builder)
-            throws CommitFailedException {
+        throws CommitFailedException {
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 }

@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.stream.Collectors;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ProtectionConfig;
@@ -23,12 +26,8 @@ import org.jetbrains.annotations.NotNull;
 import org.osgi.framework.BundleContext;
 import org.osgi.util.tracker.ServiceTracker;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.stream.Collectors;
-
 class ProtectionConfigTracker extends ServiceTracker implements ProtectionConfig {
-    
+
     public ProtectionConfigTracker(@NotNull BundleContext context) {
         super(context, ProtectionConfig.class.getName(), null);
     }
@@ -44,7 +43,7 @@ class ProtectionConfigTracker extends ServiceTracker implements ProtectionConfig
         }
         return false;
     }
-    
+
     @Override
     public boolean isProtectedTree(@NotNull Tree tree) {
         for (ProtectionConfig pe : getProtectionConfigs()) {
@@ -62,7 +61,8 @@ class ProtectionConfigTracker extends ServiceTracker implements ProtectionConfig
         if (services == null) {
             return Collections.singletonList(ProtectionConfig.DEFAULT);
         } else {
-            return Arrays.stream(services).map(ProtectionConfig.class::cast).collect(Collectors.toList());
+            return Arrays.stream(services).map(ProtectionConfig.class::cast)
+                         .collect(Collectors.toList());
         }
     }
 }

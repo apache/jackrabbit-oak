@@ -24,8 +24,7 @@ import org.jetbrains.annotations.NotNull;
 import org.osgi.annotation.versioning.ProviderType;
 
 /**
- * Provides {@link SessionQuerySettings} for principals with access to the content
- * repository.
+ * Provides {@link SessionQuerySettings} for principals with access to the content repository.
  */
 @ProviderType
 @FunctionalInterface

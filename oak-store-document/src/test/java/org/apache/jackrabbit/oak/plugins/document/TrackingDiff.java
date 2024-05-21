@@ -38,9 +38,9 @@ class TrackingDiff extends DefaultNodeStateDiff {
     }
 
     private TrackingDiff(String path,
-                         Set<String> added,
-                         Set<String> deleted,
-                         Set<String> modified) {
+        Set<String> added,
+        Set<String> deleted,
+        Set<String> modified) {
         this.path = path;
         this.added = added;
         this.deleted = deleted;
@@ -51,13 +51,14 @@ class TrackingDiff extends DefaultNodeStateDiff {
     public boolean childNodeAdded(String name, NodeState after) {
         String p = PathUtils.concat(path, name);
         added.add(p);
-        return after.compareAgainstBaseState(EMPTY_NODE, new TrackingDiff(p, added, deleted, modified));
+        return after.compareAgainstBaseState(EMPTY_NODE,
+            new TrackingDiff(p, added, deleted, modified));
     }
 
     @Override
     public boolean childNodeChanged(String name,
-                                    NodeState before,
-                                    NodeState after) {
+        NodeState before,
+        NodeState after) {
         String p = PathUtils.concat(path, name);
         modified.add(p);
         return after.compareAgainstBaseState(before, new TrackingDiff(p, added, deleted, modified));
@@ -67,6 +68,7 @@ class TrackingDiff extends DefaultNodeStateDiff {
     public boolean childNodeDeleted(String name, NodeState before) {
         String p = PathUtils.concat(path, name);
         deleted.add(p);
-        return MISSING_NODE.compareAgainstBaseState(before, new TrackingDiff(p, added, deleted, modified));
+        return MISSING_NODE.compareAgainstBaseState(before,
+            new TrackingDiff(p, added, deleted, modified));
     }
 }

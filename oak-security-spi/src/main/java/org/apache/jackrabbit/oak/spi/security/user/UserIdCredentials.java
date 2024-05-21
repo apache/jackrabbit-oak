@@ -17,13 +17,12 @@
 package org.apache.jackrabbit.oak.spi.security.user;
 
 import javax.jcr.Credentials;
-
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Credentials implementation that only contains a {@code userId} but no password.
- * It can be used for {@link org.apache.jackrabbit.api.security.user.User#getCredentials()},
- * where the corresponding user doesn't have a password set.
+ * Credentials implementation that only contains a {@code userId} but no password. It can be used
+ * for {@link org.apache.jackrabbit.api.security.user.User#getCredentials()}, where the
+ * corresponding user doesn't have a password set.
  */
 public final class UserIdCredentials implements Credentials {
 

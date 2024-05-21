@@ -16,15 +16,15 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.permission;
 
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
-import org.junit.Test;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertSame;
+
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.junit.Test;
 
 public class EmptyTreePermissionTest {
 
@@ -33,7 +33,8 @@ public class EmptyTreePermissionTest {
 
     @Test
     public void testGetChildPermission() {
-        assertSame(TreePermission.EMPTY, empty.getChildPermission("name", EmptyNodeState.EMPTY_NODE));
+        assertSame(TreePermission.EMPTY,
+            empty.getChildPermission("name", EmptyNodeState.EMPTY_NODE));
     }
 
     @Test
@@ -68,7 +69,7 @@ public class EmptyTreePermissionTest {
 
     @Test
     public void testToString() {
-        assertEquals(empty.toString(),  TreePermission.EMPTY.toString());
+        assertEquals(empty.toString(), TreePermission.EMPTY.toString());
         assertNotEquals(empty.toString(), TreePermission.ALL.toString());
     }
 }

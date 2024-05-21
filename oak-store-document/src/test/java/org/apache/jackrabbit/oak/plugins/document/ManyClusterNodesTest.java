@@ -51,10 +51,10 @@ public class ManyClusterNodesTest {
         ds = new MemoryDocumentStore();
         for (int i = 0; i < NUM_CLUSTER_NODES; i++) {
             stores.add(builderProvider.newBuilder()
-                    .setClusterId(i + 1)
-                    .setDocumentStore(ds)
-                    .setAsyncDelay(0)
-                    .getNodeStore());
+                                      .setClusterId(i + 1)
+                                      .setDocumentStore(ds)
+                                      .setAsyncDelay(0)
+                                      .getNodeStore());
             stores.get(i).runBackgroundOperations();
         }
     }

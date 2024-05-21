@@ -16,17 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
-import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
-import org.apache.jackrabbit.oak.query.AbstractQueryTest;
-import org.junit.Test;
-
-import java.util.Calendar;
-import java.util.List;
-
 import static org.apache.jackrabbit.JcrConstants.JCR_CONTENT;
 import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
@@ -36,7 +25,18 @@ import static org.apache.jackrabbit.oak.plugins.memory.BinaryPropertyState.binar
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Calendar;
+import java.util.List;
+import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
+import org.apache.jackrabbit.oak.query.AbstractQueryTest;
+import org.junit.Test;
+
 public abstract class IndexAggregationCommonTest extends AbstractQueryTest {
+
     protected IndexOptions indexOptions;
     protected TestRepository repositoryOptionsUtil;
 
@@ -77,18 +77,18 @@ public abstract class IndexAggregationCommonTest extends AbstractQueryTest {
         resource.setProperty("jcr:encoding", "UTF-8");
         resource.setProperty("jcr:mimeType", "text/plain");
         resource.setProperty(binaryProperty(JCR_DATA,
-                "the quick brown fox jumps over the lazy dog."));
+            "the quick brown fox jumps over the lazy dog."));
         root.commit();
 
         assertEventually(() -> assertQuery(sqlDog, List.of("/content/myFile")));
 
         // update jcr:data
         root.getTree("/content")
-                .getChild("myFile")
-                .getChild(JCR_CONTENT)
-                .setProperty(
-                        binaryProperty(JCR_DATA,
-                                "the quick brown fox jumps over the lazy cat."));
+            .getChild("myFile")
+            .getChild(JCR_CONTENT)
+            .setProperty(
+                binaryProperty(JCR_DATA,
+                    "the quick brown fox jumps over the lazy cat."));
         root.commit();
 
         assertEventually(() -> {
@@ -100,13 +100,13 @@ public abstract class IndexAggregationCommonTest extends AbstractQueryTest {
         root.getTree("/content").getChild("myFile").getChild(JCR_CONTENT).remove();
 
         Tree unstrContent = root.getTree("/content").getChild("myFile")
-                .addChild(JCR_CONTENT);
+                                .addChild(JCR_CONTENT);
         unstrContent.setProperty(JCR_PRIMARYTYPE, JcrConstants.NT_UNSTRUCTURED,
-                Type.NAME);
+            Type.NAME);
 
         Tree foo = unstrContent.addChild("foo");
         foo.setProperty(JCR_PRIMARYTYPE, JcrConstants.NT_UNSTRUCTURED,
-                Type.NAME);
+            Type.NAME);
         foo.setProperty("text", "the quick brown fox jumps over the lazy dog.");
         root.commit();
 
@@ -117,7 +117,7 @@ public abstract class IndexAggregationCommonTest extends AbstractQueryTest {
 
         // remove foo
         root.getTree("/content").getChild("myFile").getChild(JCR_CONTENT)
-                .getChild("foo").remove();
+            .getChild("foo").remove();
 
         root.commit();
 
@@ -135,7 +135,7 @@ public abstract class IndexAggregationCommonTest extends AbstractQueryTest {
         resource.setProperty("jcr:encoding", "UTF-8");
         resource.setProperty("jcr:mimeType", "text/plain");
         resource.setProperty(binaryProperty(JCR_DATA,
-                "the quick brown fox jumps over the lazy cat."));
+            "the quick brown fox jumps over the lazy cat."));
         root.commit();
 
         assertEventually(() -> {
@@ -155,7 +155,7 @@ public abstract class IndexAggregationCommonTest extends AbstractQueryTest {
         resource.setProperty("jcr:encoding", "UTF-8");
         resource.setProperty("jcr:mimeType", "text/plain");
         resource.setProperty(binaryProperty(JCR_DATA,
-                "the quick brown fox jumps over the lazy dog."));
+            "the quick brown fox jumps over the lazy dog."));
 
         resource.setProperty("jcr:title", "title");
         resource.setProperty("jcr:description", "description");
@@ -197,7 +197,7 @@ public abstract class IndexAggregationCommonTest extends AbstractQueryTest {
         resource.setProperty("jcr:encoding", "UTF-8");
         resource.setProperty("jcr:mimeType", "text/plain");
         resource.setProperty(binaryProperty(JCR_DATA,
-                "the quick brown fox jumps over the lazy dog."));
+            "the quick brown fox jumps over the lazy dog."));
 
         root.commit();
 
@@ -238,7 +238,7 @@ public abstract class IndexAggregationCommonTest extends AbstractQueryTest {
         resource.setProperty("jcr:encoding", "UTF-8");
         resource.setProperty("jcr:mimeType", "text/plain");
         resource.setProperty(binaryProperty(JCR_DATA,
-                "the quick brown fox jumps over the lazy dog."));
+            "the quick brown fox jumps over the lazy dog."));
 
         root.commit();
 
@@ -247,7 +247,8 @@ public abstract class IndexAggregationCommonTest extends AbstractQueryTest {
             assertQuery(matchContentSimple, "xpath", List.of("/content/myFolder/myFile"));
 
             String matchContentDouble = "//*[( jcr:contains(., 'dog') and (@jcr:primaryType = 'nt:file' or @jcr:primaryType = 'nt:folder') )]";
-            assertQuery(matchContentDouble, "xpath", List.of("/content/myFolder", "/content/myFolder/myFile"));
+            assertQuery(matchContentDouble, "xpath",
+                List.of("/content/myFolder", "/content/myFolder/myFile"));
         });
     }
 
@@ -280,7 +281,7 @@ public abstract class IndexAggregationCommonTest extends AbstractQueryTest {
         resource.setProperty("jcr:encoding", "UTF-8");
         resource.setProperty("jcr:mimeType", "text/plain");
         resource.setProperty(binaryProperty(JCR_DATA,
-                "the quick brown fox jumps over the lazy dog."));
+            "the quick brown fox jumps over the lazy dog."));
     }
 
     @Test
@@ -294,7 +295,7 @@ public abstract class IndexAggregationCommonTest extends AbstractQueryTest {
         resource.setProperty("jcr:encoding", "UTF-8");
         resource.setProperty("jcr:mimeType", "text/plain");
         resource.setProperty(binaryProperty(JCR_DATA,
-                "the quick brown fox jumps over the lazy dog."));
+            "the quick brown fox jumps over the lazy dog."));
 
         resource.setProperty("jcr:title", "title");
         resource.setProperty("jcr:description", "description");
@@ -318,7 +319,7 @@ public abstract class IndexAggregationCommonTest extends AbstractQueryTest {
         Tree resource = file.addChild(JCR_CONTENT);
         resource.setProperty(JCR_PRIMARYTYPE, "nt:resource", Type.NAME);
         resource.setProperty(binaryProperty(JCR_DATA,
-                "the quick brown fox jumps over the lazy dog."));
+            "the quick brown fox jumps over the lazy dog."));
         resource.setProperty("jcr:title", "title");
         resource.setProperty("jcr:description", "description");
 
@@ -327,7 +328,7 @@ public abstract class IndexAggregationCommonTest extends AbstractQueryTest {
         Tree resource2 = file2.addChild(JCR_CONTENT);
         resource2.setProperty(JCR_PRIMARYTYPE, "nt:resource", Type.NAME);
         resource2.setProperty(binaryProperty(JCR_DATA,
-                "the quick brown fox jumps over the lazy dog."));
+            "the quick brown fox jumps over the lazy dog."));
         resource2.setProperty("jcr:title", "other");
         resource.setProperty("jcr:description", "title");
 
@@ -350,7 +351,7 @@ public abstract class IndexAggregationCommonTest extends AbstractQueryTest {
         resource.setProperty("jcr:encoding", "UTF-8");
         resource.setProperty("jcr:mimeType", "text/plain");
         resource.setProperty(binaryProperty(JCR_DATA,
-                "the quick brown fox jumps over the lazy dog."));
+            "the quick brown fox jumps over the lazy dog."));
         root.commit();
 
         String matchChildSimple = "//element(*, nt:file)[( jcr:contains(., 'fox') )]";
@@ -374,27 +375,28 @@ public abstract class IndexAggregationCommonTest extends AbstractQueryTest {
         resource.setProperty("jcr:encoding", "UTF-8");
         resource.setProperty("jcr:mimeType", "text/plain");
         resource.setProperty(binaryProperty(JCR_DATA,
-                "the quick brown fox jumps over the lazy dog."));
+            "the quick brown fox jumps over the lazy dog."));
 
         root.commit();
 
         assertEventually(() -> {
             assertQuery(
-                    "//element(*, nt:file)[jcr:contains(., 'dog')]",
-                    "xpath", List.of("/content/myFolder/myFile"));
+                "//element(*, nt:file)[jcr:contains(., 'dog')]",
+                "xpath", List.of("/content/myFolder/myFile"));
 
             assertQuery(
-                    "//element(*, nt:file)[jcr:contains(., 'title')]",
-                    "xpath", List.of("/content/myFolder/myFile"));
+                "//element(*, nt:file)[jcr:contains(., 'title')]",
+                "xpath", List.of("/content/myFolder/myFile"));
 
             assertQuery(
-                    "//element(*, nt:file)[jcr:contains(., 'dog') and jcr:contains(., 'title')]",
-                    "xpath", List.of("/content/myFolder/myFile"));
+                "//element(*, nt:file)[jcr:contains(., 'dog') and jcr:contains(., 'title')]",
+                "xpath", List.of("/content/myFolder/myFile"));
 
             // double aggregation dupes
             assertQuery(
-                    "//*[(jcr:contains(., 'dog') or jcr:contains(jcr:content, 'dog') )]",
-                    "xpath", List.of("/content/myFolder", "/content/myFolder/myFile", "/content/myFolder/myFile/jcr:content"));
+                "//*[(jcr:contains(., 'dog') or jcr:contains(jcr:content, 'dog') )]",
+                "xpath", List.of("/content/myFolder", "/content/myFolder/myFile",
+                    "/content/myFolder/myFile/jcr:content"));
         });
     }
 
@@ -437,17 +439,17 @@ public abstract class IndexAggregationCommonTest extends AbstractQueryTest {
 
         assertEventually(() -> {
             assertQuery(
-                    "SELECT * FROM [nt:folder] WHERE ISDESCENDANTNODE('/content/test') AND CONTAINS(foo, 'bar')",
-                    List.of("/content/test/a", "/content/test/d"));
+                "SELECT * FROM [nt:folder] WHERE ISDESCENDANTNODE('/content/test') AND CONTAINS(foo, 'bar')",
+                List.of("/content/test/a", "/content/test/d"));
             assertQuery(
-                    "SELECT * FROM [nt:folder] WHERE ISDESCENDANTNODE('/content/test') AND NOT CONTAINS(foo, 'bar')",
-                    List.of("/content/test/b", "/content/test/c"));
+                "SELECT * FROM [nt:folder] WHERE ISDESCENDANTNODE('/content/test') AND NOT CONTAINS(foo, 'bar')",
+                List.of("/content/test/b", "/content/test/c"));
             assertQuery(
-                    "SELECT * FROM [nt:folder] WHERE ISDESCENDANTNODE('/content/test') AND CONTAINS(foo, 'bar cat')",
-                    List.of("/content/test/d"));
+                "SELECT * FROM [nt:folder] WHERE ISDESCENDANTNODE('/content/test') AND CONTAINS(foo, 'bar cat')",
+                List.of("/content/test/d"));
             assertQuery(
-                    "SELECT * FROM [nt:folder] WHERE ISDESCENDANTNODE('/content/test') AND NOT CONTAINS(foo, 'bar cat')",
-                    List.of("/content/test/c"));
+                "SELECT * FROM [nt:folder] WHERE ISDESCENDANTNODE('/content/test') AND NOT CONTAINS(foo, 'bar cat')",
+                List.of("/content/test/c"));
         });
 
         setTraversalEnabled(true);
@@ -455,6 +457,7 @@ public abstract class IndexAggregationCommonTest extends AbstractQueryTest {
 
     protected void assertEventually(Runnable r) {
         TestUtil.assertEventually(r,
-                ((repositoryOptionsUtil.isAsync() ? repositoryOptionsUtil.defaultAsyncIndexingTimeInSeconds : 0) + 3000) * 5);
+            ((repositoryOptionsUtil.isAsync()
+                ? repositoryOptionsUtil.defaultAsyncIndexingTimeInSeconds : 0) + 3000) * 5);
     }
 }

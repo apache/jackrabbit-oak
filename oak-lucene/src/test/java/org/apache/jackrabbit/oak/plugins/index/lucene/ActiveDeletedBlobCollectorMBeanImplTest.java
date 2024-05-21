@@ -19,6 +19,26 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors.newDirectExecutorService;
+import static org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean.STATUS_DONE;
+import static org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean.STATUS_RUNNING;
+import static org.apache.jackrabbit.oak.plugins.index.IndexCommitCallback.IndexProgress.COMMIT_SUCCEDED;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.OakDirectory.PROP_UNSAFE_FOR_ACTIVE_DELETION;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.io.File;
+import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Supplier;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.InitialContent;
@@ -66,26 +86,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import java.io.File;
-import java.util.List;
-import java.util.concurrent.Callable;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Supplier;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors.newDirectExecutorService;
-import static org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean.STATUS_DONE;
-import static org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean.STATUS_RUNNING;
-import static org.apache.jackrabbit.oak.plugins.index.IndexCommitCallback.IndexProgress.COMMIT_SUCCEDED;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.OakDirectory.PROP_UNSAFE_FOR_ACTIVE_DELETION;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
 public class ActiveDeletedBlobCollectorMBeanImplTest {
 
     @Rule
@@ -125,38 +125,44 @@ public class ActiveDeletedBlobCollectorMBeanImplTest {
 
         final AtomicLong returnExecCount = new AtomicLong(2L);
 
-        AsyncIndexInfoService asyncIndexInfoService = MockRegistrar.getAsyncIndexInfoService(newArrayList(
+        AsyncIndexInfoService asyncIndexInfoService = MockRegistrar.getAsyncIndexInfoService(
+            newArrayList(
                 new IndexMBeanInfoSupplier("foo-async", statusSupplier, returnExecCount::get)
-        ));
+            ));
 
         ActiveDeletedBlobCollectorMBean bean = getTestBean(indexPathService, asyncIndexInfoService);
 
         long start = clock.getTime();
         bean.flagActiveDeletionUnsafeForCurrentState();
         long elapsed = clock.getTime() - start;
-        assertTrue("Non running index lane was polled for " + TimeUnit.MILLISECONDS.toSeconds(elapsed) + " seconds.",
-                elapsed < TimeUnit.SECONDS.toMillis(5));
+        assertTrue(
+            "Non running index lane was polled for " + TimeUnit.MILLISECONDS.toSeconds(elapsed)
+                + " seconds.",
+            elapsed < TimeUnit.SECONDS.toMillis(5));
 
         // running index with stalled exec count waits for 2 minutes
         statusSupplier.status = STATUS_RUNNING;
         start = clock.getTime();
         bean.flagActiveDeletionUnsafeForCurrentState();
         elapsed = clock.getTime() - start;
-        assertTrue("Running index lane without changing execCnt was polled for " + TimeUnit.MILLISECONDS.toSeconds(elapsed) + " seconds.",
-                elapsed > TimeUnit.SECONDS.toMillis(120) && elapsed < TimeUnit.SECONDS.toMillis(125));
+        assertTrue("Running index lane without changing execCnt was polled for "
+                + TimeUnit.MILLISECONDS.toSeconds(elapsed) + " seconds.",
+            elapsed > TimeUnit.SECONDS.toMillis(120) && elapsed < TimeUnit.SECONDS.toMillis(125));
 
         // running index with not stalled exec count doesn't wait
         statusSupplier.status = STATUS_RUNNING;
         asyncIndexInfoService = MockRegistrar.getAsyncIndexInfoService(newArrayList(
-                new IndexMBeanInfoSupplier("foo-async", statusSupplier, returnExecCount::incrementAndGet)
+            new IndexMBeanInfoSupplier("foo-async", statusSupplier,
+                returnExecCount::incrementAndGet)
         ));
         bean = getTestBean(indexPathService, asyncIndexInfoService);
 
         start = clock.getTime();
         bean.flagActiveDeletionUnsafeForCurrentState();
         elapsed = clock.getTime() - start;
-        assertTrue("Running index lane without changing execCnt was polled for " + TimeUnit.MILLISECONDS.toSeconds(elapsed) + " seconds.",
-                elapsed < TimeUnit.SECONDS.toMillis(5));
+        assertTrue("Running index lane without changing execCnt was polled for "
+                + TimeUnit.MILLISECONDS.toSeconds(elapsed) + " seconds.",
+            elapsed < TimeUnit.SECONDS.toMillis(5));
     }
 
     @Test
@@ -165,9 +171,10 @@ public class ActiveDeletedBlobCollectorMBeanImplTest {
         createFakeIndex(indexPath);
 
         IndexPathService indexPathService = MockRegistrar.getIndexPathsService(indexPaths);
-        AsyncIndexInfoService asyncIndexInfoService = MockRegistrar.getAsyncIndexInfoService(newArrayList(
+        AsyncIndexInfoService asyncIndexInfoService = MockRegistrar.getAsyncIndexInfoService(
+            newArrayList(
                 new IndexMBeanInfoSupplier("foo-async", () -> STATUS_DONE, () -> 2L)
-        ));
+            ));
 
         ActiveDeletedBlobCollectorMBean bean = getTestBean(indexPathService, asyncIndexInfoService);
 
@@ -181,73 +188,78 @@ public class ActiveDeletedBlobCollectorMBeanImplTest {
     @Test
     public void pauseResumeSetsInMemFlag() {
         IndexPathService indexPathService = MockRegistrar.getIndexPathsService(indexPaths);
-        AsyncIndexInfoService asyncIndexInfoService = MockRegistrar.getAsyncIndexInfoService(newArrayList(
+        AsyncIndexInfoService asyncIndexInfoService = MockRegistrar.getAsyncIndexInfoService(
+            newArrayList(
                 new IndexMBeanInfoSupplier("foo-async", () -> STATUS_DONE, () -> 2L)
-        ));
+            ));
 
         ActiveDeletedBlobCollectorMBean bean = getTestBean(indexPathService, asyncIndexInfoService);
 
         assertFalse("Bean should delegate the call correctly",
-                bean.isActiveDeletionUnsafe());
+            bean.isActiveDeletionUnsafe());
 
         bean.flagActiveDeletionUnsafeForCurrentState();
 
         assertTrue("Active deleted blob collector isn't notified to stop marking",
-                ActiveDeletedBlobCollectorFactory.NOOP.isActiveDeletionUnsafe());
+            ActiveDeletedBlobCollectorFactory.NOOP.isActiveDeletionUnsafe());
 
         assertTrue("Bean should delegate the call correctly",
-                bean.isActiveDeletionUnsafe());
+            bean.isActiveDeletionUnsafe());
 
         bean.flagActiveDeletionSafe();
 
         assertFalse("Active deleted blob collector isn't notified to resume marking",
-                ActiveDeletedBlobCollectorFactory.NOOP.isActiveDeletionUnsafe());
+            ActiveDeletedBlobCollectorFactory.NOOP.isActiveDeletionUnsafe());
 
         assertFalse("Bean should delegate the call correctly",
-                bean.isActiveDeletionUnsafe());
+            bean.isActiveDeletionUnsafe());
     }
 
     @Test
     public void timedOutWhileWaitingForIndexerShouldAutoResume() {
         IndexPathService indexPathService = MockRegistrar.getIndexPathsService(indexPaths);
-        AsyncIndexInfoService asyncIndexInfoService = MockRegistrar.getAsyncIndexInfoService(newArrayList(
+        AsyncIndexInfoService asyncIndexInfoService = MockRegistrar.getAsyncIndexInfoService(
+            newArrayList(
                 new IndexMBeanInfoSupplier("foo-async", () -> STATUS_RUNNING, () -> 2L)
-        ));
+            ));
 
         ActiveDeletedBlobCollectorMBean bean = getTestBean(indexPathService, asyncIndexInfoService);
 
         bean.flagActiveDeletionUnsafeForCurrentState();
 
         assertFalse("Timing out on running indexer didn't resume marking blobs",
-                bean.isActiveDeletionUnsafe());
+            bean.isActiveDeletionUnsafe());
     }
 
     @Test
     public void failureToFlagAllIndexFilesShouldAutoResume() {
         IndexPathService indexPathService = MockRegistrar.getIndexPathsService(indexPaths);
-        AsyncIndexInfoService asyncIndexInfoService = MockRegistrar.getAsyncIndexInfoService(newArrayList(
+        AsyncIndexInfoService asyncIndexInfoService = MockRegistrar.getAsyncIndexInfoService(
+            newArrayList(
                 new IndexMBeanInfoSupplier("foo-async", () -> STATUS_DONE, () -> 2L)
-        ));
+            ));
 
         NodeStore failingNodeStore = new MemoryNodeStore() {
             @NotNull
             @Override
-            public synchronized NodeState merge(@NotNull NodeBuilder builder, @NotNull CommitHook commitHook,
-                                                @NotNull CommitInfo info) throws CommitFailedException {
+            public synchronized NodeState merge(@NotNull NodeBuilder builder,
+                @NotNull CommitHook commitHook,
+                @NotNull CommitInfo info) throws CommitFailedException {
                 throw new CommitFailedException("TestFail", 1, "We must never merge");
             }
         };
 
         ActiveDeletedBlobCollectorMBeanImpl bean =
-                new ActiveDeletedBlobCollectorMBeanImpl(ActiveDeletedBlobCollectorFactory.NOOP, wb, failingNodeStore,
-                        indexPathService, asyncIndexInfoService,
-                        new MemoryBlobStore(), newDirectExecutorService());
+            new ActiveDeletedBlobCollectorMBeanImpl(ActiveDeletedBlobCollectorFactory.NOOP, wb,
+                failingNodeStore,
+                indexPathService, asyncIndexInfoService,
+                new MemoryBlobStore(), newDirectExecutorService());
         bean.clock = clock;
 
         bean.flagActiveDeletionUnsafeForCurrentState();
 
         assertFalse("Failure to update head index files didn't resume marking blobs",
-                bean.isActiveDeletionUnsafe());
+            bean.isActiveDeletionUnsafe());
     }
 
     @Test
@@ -257,24 +269,27 @@ public class ActiveDeletedBlobCollectorMBeanImplTest {
 
         IndexPathService indexPathService = mock(IndexPathService.class);
         when(indexPathService.getIndexPaths()).then(mockObj -> {
-            assertTrue("Must wait for indexers before going to update index files", hadWaitedForIndex.get());
+            assertTrue("Must wait for indexers before going to update index files",
+                hadWaitedForIndex.get());
             return indexPaths;
         });
-        AsyncIndexInfoService asyncIndexInfoService = MockRegistrar.getAsyncIndexInfoService(newArrayList(
+        AsyncIndexInfoService asyncIndexInfoService = MockRegistrar.getAsyncIndexInfoService(
+            newArrayList(
                 new IndexMBeanInfoSupplier("foo-async", () -> {
                     assertTrue("Must pause before waiting for indexers", isPaused.get());
                     hadWaitedForIndex.set(true);
                     return STATUS_DONE;
                 }, () -> 2L)
-        ));
+            ));
 
         ActiveDeletedBlobCollectorMBeanImpl bean =
-                new ActiveDeletedBlobCollectorMBeanImpl(new PauseNotifyingActiveDeletedBlobCollector(() -> {
+            new ActiveDeletedBlobCollectorMBeanImpl(
+                new PauseNotifyingActiveDeletedBlobCollector(() -> {
                     isPaused.set(true);
                     return null;
                 }), wb, nodeStore,
-                        indexPathService, asyncIndexInfoService,
-                        new MemoryBlobStore(), newDirectExecutorService());
+                indexPathService, asyncIndexInfoService,
+                new MemoryBlobStore(), newDirectExecutorService());
         bean.clock = clock;
 
         bean.flagActiveDeletionUnsafeForCurrentState();
@@ -288,17 +303,17 @@ public class ActiveDeletedBlobCollectorMBeanImplTest {
         MemoryDocumentStore mds1 = new MemoryDocumentStore();
 
         DocumentNodeStore dns1 = builderProvider.newBuilder()
-                .setDocumentStore(mds1).setBlobStore(bs).build();
+                                                .setDocumentStore(mds1).setBlobStore(bs).build();
 
         // Create initial repo with InitialContent. It has enough data to create blobs
         LuceneIndexEditorProvider editorProvider = new LuceneIndexEditorProvider();
         ContentRepository repository = new Oak(dns1)
-                .with(new InitialContent())
-                .with(new OpenSecurityProvider())
-                .with(editorProvider)
-                .with(new PropertyIndexEditorProvider())
-                .with(new NodeTypeIndexProvider())
-                .createContentRepository();
+            .with(new InitialContent())
+            .with(new OpenSecurityProvider())
+            .with(editorProvider)
+            .with(new PropertyIndexEditorProvider())
+            .with(new NodeTypeIndexProvider())
+            .createContentRepository();
         ContentSession session = repository.login(null, null);
         Root root = session.getLatestRoot();
         TestUtil.createFulltextIndex(root.getTree("/"), "testIndex");
@@ -306,13 +321,15 @@ public class ActiveDeletedBlobCollectorMBeanImplTest {
 
         // pause active deletion
         IndexPathService indexPathService = new IndexPathServiceImpl(dns1);
-        AsyncIndexInfoService asyncIndexInfoService = MockRegistrar.getAsyncIndexInfoService(newArrayList(
+        AsyncIndexInfoService asyncIndexInfoService = MockRegistrar.getAsyncIndexInfoService(
+            newArrayList(
                 new IndexMBeanInfoSupplier("foo-async", () -> STATUS_DONE, () -> 2L)
-        ));
+            ));
         ActiveDeletedBlobCollectorMBeanImpl bean =
-                new ActiveDeletedBlobCollectorMBeanImpl(ActiveDeletedBlobCollectorFactory.NOOP, wb, dns1,
-                        indexPathService, asyncIndexInfoService,
-                        new MemoryBlobStore(), newDirectExecutorService());
+            new ActiveDeletedBlobCollectorMBeanImpl(ActiveDeletedBlobCollectorFactory.NOOP, wb,
+                dns1,
+                indexPathService, asyncIndexInfoService,
+                new MemoryBlobStore(), newDirectExecutorService());
         bean.clock = clock;
 
         bean.flagActiveDeletionUnsafeForCurrentState();
@@ -323,30 +340,31 @@ public class ActiveDeletedBlobCollectorMBeanImplTest {
         // (and later dns2 doesn't have it)
         root = session.getLatestRoot();
         assertTrue("First pass indexing should generate segments_1",
-                root.getTree("/oak:index/testIndex/:data/segments_1").exists());
+            root.getTree("/oak:index/testIndex/:data/segments_1").exists());
 
         // shutdown first instance
         dns1.dispose();
 
         // clone
         MemoryDocumentStore mds2 = mds1.copy();
-        DocumentNodeStore dns2 = builderProvider.newBuilder().setDocumentStore(mds2).setBlobStore(bs).build();
+        DocumentNodeStore dns2 = builderProvider.newBuilder().setDocumentStore(mds2)
+                                                .setBlobStore(bs).build();
 
         // create some churn to delete some index files - using clone store
         // we'd setup lucene editor with active deletion collector
 
         DeletedFileTrackingADBC deletedFileTrackingADBC = new DeletedFileTrackingADBC(
-                new File(temporaryFolder.getRoot(), "adbc-workdir"));
+            new File(temporaryFolder.getRoot(), "adbc-workdir"));
         editorProvider = new LuceneIndexEditorProvider(null, null,
-                new ExtractedTextCache(0, 0),
-                null, Mounts.defaultMountInfoProvider(),
-                deletedFileTrackingADBC, null, null);
+            new ExtractedTextCache(0, 0),
+            null, Mounts.defaultMountInfoProvider(),
+            deletedFileTrackingADBC, null, null);
         repository = new Oak(dns2)
-                .with(new OpenSecurityProvider())
-                .with(editorProvider)
-                .with(new PropertyIndexEditorProvider())
-                .with(new NodeTypeIndexProvider())
-                .createContentRepository();
+            .with(new OpenSecurityProvider())
+            .with(editorProvider)
+            .with(new PropertyIndexEditorProvider())
+            .with(new NodeTypeIndexProvider())
+            .createContentRepository();
         session = repository.login(null, null);
         root = session.getLatestRoot();
         Tree rootTree = root.getTree("/");
@@ -362,11 +380,12 @@ public class ActiveDeletedBlobCollectorMBeanImplTest {
         // OR, iow, we need to play the rold of AsyncIndexUpdate explicitly
         deletedFileTrackingADBC.blobDeletionCallback.commitProgress(COMMIT_SUCCEDED);
 
-        deletedFileTrackingADBC.purgeBlobsDeleted(Clock.SIMPLE.getTime() + TimeUnit.SECONDS.toMillis(1), bs);
+        deletedFileTrackingADBC.purgeBlobsDeleted(
+            Clock.SIMPLE.getTime() + TimeUnit.SECONDS.toMillis(1), bs);
 
         root = session.getLatestRoot();
         assertFalse("Churn created via dns2 should delete segments_1",
-                root.getTree("/oak:index/testIndex/:data/segments_1").exists());
+            root.getTree("/oak:index/testIndex/:data/segments_1").exists());
 
         dns2.dispose();
 
@@ -374,19 +393,24 @@ public class ActiveDeletedBlobCollectorMBeanImplTest {
         // after dns2's churn
         dns1 = builderProvider.newBuilder().setDocumentStore(mds1).setBlobStore(bs).build();
 
-        IndexConsistencyChecker checker = new IndexConsistencyChecker(dns1.getRoot(), "/oak:index/testIndex",
-                new File(temporaryFolder.getRoot(), "checker-workdir"));
-        IndexConsistencyChecker.Result result = checker.check(IndexConsistencyChecker.Level.BLOBS_ONLY);
-        assertFalse("Nodestore1 can't read blobs: " + result.missingBlobIds + " while reading index",
-                result.missingBlobs);
+        IndexConsistencyChecker checker = new IndexConsistencyChecker(dns1.getRoot(),
+            "/oak:index/testIndex",
+            new File(temporaryFolder.getRoot(), "checker-workdir"));
+        IndexConsistencyChecker.Result result = checker.check(
+            IndexConsistencyChecker.Level.BLOBS_ONLY);
+        assertFalse(
+            "Nodestore1 can't read blobs: " + result.missingBlobIds + " while reading index",
+            result.missingBlobs);
     }
 
     private class IndexMBeanInfoSupplier {
+
         private final String name;
         private final Supplier<String> statusSupplier;
         private final Supplier<Long> execCntSupplier;
 
-        IndexMBeanInfoSupplier(String name, Supplier<String> statusSupplier, Supplier<Long> execCntSupplier) {
+        IndexMBeanInfoSupplier(String name, Supplier<String> statusSupplier,
+            Supplier<Long> execCntSupplier) {
             this.name = name;
             this.statusSupplier = statusSupplier;
             this.execCntSupplier = execCntSupplier;
@@ -406,7 +430,9 @@ public class ActiveDeletedBlobCollectorMBeanImplTest {
     }
 
     private static class MockRegistrar {
-        static AsyncIndexInfoService getAsyncIndexInfoService(List<IndexMBeanInfoSupplier> infoSuppliers) {
+
+        static AsyncIndexInfoService getAsyncIndexInfoService(
+            List<IndexMBeanInfoSupplier> infoSuppliers) {
 
             AsyncIndexInfoService service = mock(AsyncIndexInfoService.class);
 
@@ -421,11 +447,11 @@ public class ActiveDeletedBlobCollectorMBeanImplTest {
                 when(bean.getTotalExecutionCount()).then(mockObj -> info.getExecCnt());
 
                 when(service.getInfo(lane)).then(mockObj -> new AsyncIndexInfo(
-                        lane,
-                        1324L,
-                        4567L,
-                        STATUS_RUNNING.equals(info.getStatus()),
-                        bean
+                    lane,
+                    1324L,
+                    4567L,
+                    STATUS_RUNNING.equals(info.getStatus()),
+                    bean
                 ));
 
                 asyncLanes.add(lane);
@@ -443,6 +469,7 @@ public class ActiveDeletedBlobCollectorMBeanImplTest {
     }
 
     private static class StatusSupplier implements Supplier<String> {
+
         String status = STATUS_DONE;
 
         @Override
@@ -452,12 +479,14 @@ public class ActiveDeletedBlobCollectorMBeanImplTest {
     }
 
     private static class PauseNotifyingActiveDeletedBlobCollector
-            implements ActiveDeletedBlobCollector {
+        implements ActiveDeletedBlobCollector {
+
         private final Callable callback;
 
-        PauseNotifyingActiveDeletedBlobCollector (Callable callback) {
+        PauseNotifyingActiveDeletedBlobCollector(Callable callback) {
             this.callback = callback;
         }
+
         @Override
         public BlobDeletionCallback getBlobDeletionCallback() {
             return ActiveDeletedBlobCollectorFactory.NOOP.getBlobDeletionCallback();
@@ -490,13 +519,15 @@ public class ActiveDeletedBlobCollectorMBeanImplTest {
     }
 
     private static class DeletedFileTrackingADBC implements ActiveDeletedBlobCollector {
+
         final List<String> deletedFiles = newArrayList();
         BlobDeletionCallback blobDeletionCallback = null;
 
         private final ActiveDeletedBlobCollector delegate;
 
         DeletedFileTrackingADBC(File tempFolder) {
-            delegate = ActiveDeletedBlobCollectorFactory.newInstance(tempFolder, newDirectExecutorService());
+            delegate = ActiveDeletedBlobCollectorFactory.newInstance(tempFolder,
+                newDirectExecutorService());
         }
 
         @Override
@@ -573,11 +604,13 @@ public class ActiveDeletedBlobCollectorMBeanImplTest {
         return state;
     }
 
-    private ActiveDeletedBlobCollectorMBean getTestBean(IndexPathService indexPathService, AsyncIndexInfoService asyncIndexInfoService) {
+    private ActiveDeletedBlobCollectorMBean getTestBean(IndexPathService indexPathService,
+        AsyncIndexInfoService asyncIndexInfoService) {
         ActiveDeletedBlobCollectorMBeanImpl bean =
-                new ActiveDeletedBlobCollectorMBeanImpl(ActiveDeletedBlobCollectorFactory.NOOP, wb, nodeStore,
-                        indexPathService, asyncIndexInfoService,
-                        new MemoryBlobStore(), newDirectExecutorService());
+            new ActiveDeletedBlobCollectorMBeanImpl(ActiveDeletedBlobCollectorFactory.NOOP, wb,
+                nodeStore,
+                indexPathService, asyncIndexInfoService,
+                new MemoryBlobStore(), newDirectExecutorService());
         bean.clock = clock;
 
         return bean;

@@ -20,7 +20,6 @@
 package org.apache.jackrabbit.oak.plugins.tika;
 
 import java.io.IOException;
-
 import org.apache.jackrabbit.guava.common.collect.FluentIterable;
 
 /**

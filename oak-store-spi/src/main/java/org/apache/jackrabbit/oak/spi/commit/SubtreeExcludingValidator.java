@@ -18,18 +18,17 @@
  */
 package org.apache.jackrabbit.oak.spi.commit;
 
-import java.util.List;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
+import java.util.List;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-
 /**
- * Validator that excludes a subtree from the validation process and delegates
- * validation of other changes to another given validator.
+ * Validator that excludes a subtree from the validation process and delegates validation of other
+ * changes to another given validator.
  *
  * @see SubtreeValidator
  * @since Oak 0.9
@@ -57,7 +56,7 @@ public class SubtreeExcludingValidator extends DefaultValidator {
 
     @Override
     public void propertyChanged(PropertyState before, PropertyState after)
-            throws CommitFailedException {
+        throws CommitFailedException {
         validator.propertyChanged(before, after);
     }
 
@@ -74,14 +73,14 @@ public class SubtreeExcludingValidator extends DefaultValidator {
 
     @Override
     public Validator childNodeChanged(String name, NodeState before, NodeState after)
-            throws CommitFailedException {
+        throws CommitFailedException {
         validator.childNodeChanged(name, before, after);
         return descend(name);
     }
 
     @Override
     public Validator childNodeDeleted(String name, NodeState before)
-            throws CommitFailedException {
+        throws CommitFailedException {
         validator.childNodeDeleted(name, before);
         return descend(name);
     }

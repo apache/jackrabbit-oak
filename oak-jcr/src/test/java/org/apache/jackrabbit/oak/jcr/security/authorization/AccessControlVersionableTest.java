@@ -16,18 +16,17 @@
  */
 package org.apache.jackrabbit.oak.jcr.security.authorization;
 
+import static org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants.MIX_REP_ACCESS_CONTROLLABLE;
+import static org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants.REP_GLOB;
+
+import java.util.Collections;
+import javax.jcr.Node;
+import javax.jcr.nodetype.NodeType;
+import javax.jcr.version.VersionManager;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import javax.jcr.Node;
-import javax.jcr.nodetype.NodeType;
-import javax.jcr.version.VersionManager;
-import java.util.Collections;
-
-import static org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants.MIX_REP_ACCESS_CONTROLLABLE;
-import static org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants.REP_GLOB;
 
 public class AccessControlVersionableTest extends AbstractEvaluationTest {
 
@@ -70,6 +69,7 @@ public class AccessControlVersionableTest extends AbstractEvaluationTest {
      */
     @Test
     public void testAddRestrictionOnCheckedIn() throws Exception {
-        modify(path, EveryonePrincipal.getInstance(), readPrivileges, false, Collections.singletonMap(REP_GLOB, superuser.getValueFactory().createValue("/*")));
+        modify(path, EveryonePrincipal.getInstance(), readPrivileges, false,
+            Collections.singletonMap(REP_GLOB, superuser.getValueFactory().createValue("/*")));
     }
 }

@@ -16,16 +16,18 @@
  */
 package org.apache.jackrabbit.oak.segment.spi.persistence.split;
 
+import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
+import static org.junit.Assert.assertEquals;
+
+import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
+import com.amazonaws.services.dynamodbv2.local.embedded.DynamoDBEmbedded;
+import com.amazonaws.services.s3.AmazonS3;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.util.Date;
 import java.util.Random;
 import java.util.Set;
-
-import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
-import com.amazonaws.services.dynamodbv2.local.embedded.DynamoDBEmbedded;
-import com.amazonaws.services.s3.AmazonS3;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -33,9 +35,9 @@ import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.OakFileDataStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
-import org.apache.jackrabbit.oak.segment.aws.S3MockRule;
 import org.apache.jackrabbit.oak.segment.aws.AwsContext;
 import org.apache.jackrabbit.oak.segment.aws.AwsPersistence;
+import org.apache.jackrabbit.oak.segment.aws.S3MockRule;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
@@ -52,9 +54,6 @@ import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
-import static org.junit.Assert.assertEquals;
 
 public class SplitPersistenceBlobTest {
 
@@ -77,22 +76,24 @@ public class SplitPersistenceBlobTest {
     private SegmentNodeStorePersistence splitPersistence;
 
     @Before
-    public void setup() throws IOException, InvalidFileStoreVersionException, CommitFailedException {
+    public void setup()
+        throws IOException, InvalidFileStoreVersionException, CommitFailedException {
         AmazonS3 s3 = s3Mock.createClient();
         AmazonDynamoDB ddb = DynamoDBEmbedded.create().amazonDynamoDB();
         long time = new Date().getTime();
-        AwsContext awsContext = AwsContext.create(s3, "bucket-" + time, "oak", ddb, "journaltable-" + time, "locktable-" + time);
+        AwsContext awsContext = AwsContext.create(s3, "bucket-" + time, "oak", ddb,
+            "journaltable-" + time, "locktable-" + time);
 
         SegmentNodeStorePersistence sharedPersistence = new AwsPersistence(awsContext);
-        
+
         File dataStoreDir = new File(folder.getRoot(), "blobstore");
         BlobStore blobStore = newBlobStore(dataStoreDir);
 
         baseFileStore = FileStoreBuilder
-                .fileStoreBuilder(folder.newFolder())
-                .withCustomPersistence(sharedPersistence)
-                .withBlobStore(blobStore)
-                .build();
+            .fileStoreBuilder(folder.newFolder())
+            .withCustomPersistence(sharedPersistence)
+            .withBlobStore(blobStore)
+            .build();
         base = SegmentNodeStoreBuilders.builder(baseFileStore).build();
 
         NodeBuilder builder = base.getRoot().builder();

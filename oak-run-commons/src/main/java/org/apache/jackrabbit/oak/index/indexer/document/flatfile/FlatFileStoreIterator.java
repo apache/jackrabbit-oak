@@ -25,7 +25,7 @@ import static org.apache.jackrabbit.guava.common.collect.Iterators.singletonIter
 import java.io.Closeable;
 import java.util.Iterator;
 import java.util.Set;
-
+import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry.NodeStateEntryBuilder;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.linkedList.FlatFileBufferLinkedList;
@@ -36,9 +36,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
+class FlatFileStoreIterator extends AbstractIterator<NodeStateEntry> implements
+    Iterator<NodeStateEntry>, Closeable {
 
-class FlatFileStoreIterator extends AbstractIterator<NodeStateEntry> implements Iterator<NodeStateEntry>, Closeable {
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final Iterator<NodeStateEntry> baseItr;
     private final NodeStateEntryList buffer;
@@ -50,12 +50,14 @@ class FlatFileStoreIterator extends AbstractIterator<NodeStateEntry> implements 
     // by default, use the PersistedLinkedList
     private static final int DEFAULT_BUFFER_MEM_LIMIT_IN_MB = 0;
 
-    public FlatFileStoreIterator(BlobStore blobStore, String fileName, Iterator<NodeStateEntry> baseItr, Set<String> preferredPathElements) {
+    public FlatFileStoreIterator(BlobStore blobStore, String fileName,
+        Iterator<NodeStateEntry> baseItr, Set<String> preferredPathElements) {
         this(blobStore, fileName, baseItr, preferredPathElements,
-                Integer.getInteger(BUFFER_MEM_LIMIT_CONFIG_NAME, DEFAULT_BUFFER_MEM_LIMIT_IN_MB));
+            Integer.getInteger(BUFFER_MEM_LIMIT_CONFIG_NAME, DEFAULT_BUFFER_MEM_LIMIT_IN_MB));
     }
 
-    public FlatFileStoreIterator(BlobStore blobStore, String fileName, Iterator<NodeStateEntry> baseItr, Set<String> preferredPathElements, int memLimitConfig) {
+    public FlatFileStoreIterator(BlobStore blobStore, String fileName,
+        Iterator<NodeStateEntry> baseItr, Set<String> preferredPathElements, int memLimitConfig) {
         this.baseItr = baseItr;
         this.preferredPathElements = preferredPathElements;
 
@@ -73,7 +75,7 @@ class FlatFileStoreIterator extends AbstractIterator<NodeStateEntry> implements 
         }
     }
 
-    int getBufferSize(){
+    int getBufferSize() {
         return buffer.size();
     }
 
@@ -97,7 +99,7 @@ class FlatFileStoreIterator extends AbstractIterator<NodeStateEntry> implements 
         if (buffer.size() > maxBufferSize) {
             maxBufferSize = buffer.size();
             log.info("Max buffer size changed {} (estimated memory usage: {} bytes) for path {}",
-                    maxBufferSize, buffer.estimatedMemoryUsage(), current.getPath());
+                maxBufferSize, buffer.estimatedMemoryUsage(), current.getPath());
         }
         if (!buffer.isEmpty()) {
             NodeStateEntry e = buffer.remove();
@@ -111,8 +113,9 @@ class FlatFileStoreIterator extends AbstractIterator<NodeStateEntry> implements 
 
     private NodeStateEntry wrap(NodeStateEntry baseEntry) {
         NodeState state = new LazyChildrenNodeState(baseEntry.getNodeState(),
-                new ChildNodeStateProvider(getEntries(), baseEntry.getPath(), preferredPathElements));
-        return new NodeStateEntryBuilder(state, baseEntry.getPath()).withMemUsage(baseEntry.estimatedMemUsage()).build();
+            new ChildNodeStateProvider(getEntries(), baseEntry.getPath(), preferredPathElements));
+        return new NodeStateEntryBuilder(state, baseEntry.getPath()).withMemUsage(
+            baseEntry.estimatedMemUsage()).build();
     }
 
     private Iterable<NodeStateEntry> getEntries() {

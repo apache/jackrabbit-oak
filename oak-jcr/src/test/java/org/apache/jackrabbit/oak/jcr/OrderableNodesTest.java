@@ -23,12 +23,10 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
-
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-
 import org.apache.jackrabbit.commons.iterator.NodeIterable;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
@@ -235,7 +233,7 @@ public class OrderableNodesTest extends AbstractRepositoryTest {
     }
 
     private static List<String> getChildNames(Node node)
-            throws RepositoryException {
+        throws RepositoryException {
         List<String> names = new ArrayList<String>();
         for (Node child : new NodeIterable(node.getNodes())) {
             names.add(child.getName());

@@ -34,32 +34,34 @@ import org.apache.lucene.util.RamUsageEstimator;
 
 final class DocFieldProcessorPerField {
 
-  final DocFieldConsumerPerField consumer;
-  final FieldInfo fieldInfo;
+    final DocFieldConsumerPerField consumer;
+    final FieldInfo fieldInfo;
 
-  DocFieldProcessorPerField next;
-  int lastGen = -1;
+    DocFieldProcessorPerField next;
+    int lastGen = -1;
 
-  int fieldCount;
-  IndexableField[] fields = new IndexableField[1];
+    int fieldCount;
+    IndexableField[] fields = new IndexableField[1];
 
-  public DocFieldProcessorPerField(final DocFieldProcessor docFieldProcessor, final FieldInfo fieldInfo) {
-    this.consumer = docFieldProcessor.consumer.addField(fieldInfo);
-    this.fieldInfo = fieldInfo;
-  }
-
-  public void addField(IndexableField field) {
-    if (fieldCount == fields.length) {
-      int newSize = ArrayUtil.oversize(fieldCount + 1, RamUsageEstimator.NUM_BYTES_OBJECT_REF);
-      IndexableField[] newArray = new IndexableField[newSize];
-      System.arraycopy(fields, 0, newArray, 0, fieldCount);
-      fields = newArray;
+    public DocFieldProcessorPerField(final DocFieldProcessor docFieldProcessor,
+        final FieldInfo fieldInfo) {
+        this.consumer = docFieldProcessor.consumer.addField(fieldInfo);
+        this.fieldInfo = fieldInfo;
     }
 
-    fields[fieldCount++] = field;
-  }
+    public void addField(IndexableField field) {
+        if (fieldCount == fields.length) {
+            int newSize = ArrayUtil.oversize(fieldCount + 1,
+                RamUsageEstimator.NUM_BYTES_OBJECT_REF);
+            IndexableField[] newArray = new IndexableField[newSize];
+            System.arraycopy(fields, 0, newArray, 0, fieldCount);
+            fields = newArray;
+        }
 
-  public void abort() {
-    consumer.abort();
-  }
+        fields[fieldCount++] = field;
+    }
+
+    public void abort() {
+        consumer.abort();
+    }
 }

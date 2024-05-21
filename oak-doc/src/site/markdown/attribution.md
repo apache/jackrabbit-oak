@@ -17,7 +17,7 @@
 
 ### Supporting software attribution
 
-Developers use various tools to assist with their work, such as 
-[IntelliJ IDEA](http://www.jetbrains.com/idea/opensource/) or 
-[Eclipse](http://www.eclipse.org/). Most tools do not require attribution, but some do 
+Developers use various tools to assist with their work, such as
+[IntelliJ IDEA](http://www.jetbrains.com/idea/opensource/) or
+[Eclipse](http://www.eclipse.org/). Most tools do not require attribution, but some do
 ([YourKit Java Profiler](http://www.yourkit.com/)).

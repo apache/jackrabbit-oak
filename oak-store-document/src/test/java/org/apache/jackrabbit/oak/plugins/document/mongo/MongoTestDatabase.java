@@ -46,9 +46,9 @@ public class MongoTestDatabase implements MongoDatabase {
     private final AtomicReference<String> afterUpdateException;
 
     public MongoTestDatabase(MongoDatabase db,
-                      AtomicReference<String> beforeQueryException,
-                      AtomicReference<String> beforeUpdateException,
-                      AtomicReference<String> afterUpdateException) {
+        AtomicReference<String> beforeQueryException,
+        AtomicReference<String> beforeUpdateException,
+        AtomicReference<String> afterUpdateException) {
         this.db = db;
         this.beforeQueryException = beforeQueryException;
         this.beforeUpdateException = beforeUpdateException;
@@ -88,38 +88,44 @@ public class MongoTestDatabase implements MongoDatabase {
     @NotNull
     @Override
     public MongoDatabase withCodecRegistry(@NotNull CodecRegistry codecRegistry) {
-        return new MongoTestDatabase(db.withCodecRegistry(codecRegistry), beforeQueryException, beforeUpdateException, afterUpdateException);
+        return new MongoTestDatabase(db.withCodecRegistry(codecRegistry), beforeQueryException,
+            beforeUpdateException, afterUpdateException);
     }
 
     @NotNull
     @Override
     public MongoDatabase withReadPreference(@NotNull ReadPreference readPreference) {
-        return new MongoTestDatabase(db.withReadPreference(readPreference), beforeQueryException, beforeUpdateException, afterUpdateException);
+        return new MongoTestDatabase(db.withReadPreference(readPreference), beforeQueryException,
+            beforeUpdateException, afterUpdateException);
     }
 
     @NotNull
     @Override
     public MongoDatabase withWriteConcern(@NotNull WriteConcern writeConcern) {
-        return new MongoTestDatabase(db.withWriteConcern(writeConcern), beforeQueryException, beforeUpdateException, afterUpdateException);
+        return new MongoTestDatabase(db.withWriteConcern(writeConcern), beforeQueryException,
+            beforeUpdateException, afterUpdateException);
     }
 
     @NotNull
     @Override
     public MongoDatabase withReadConcern(@NotNull ReadConcern readConcern) {
-        return new MongoTestDatabase(db.withReadConcern(readConcern), beforeQueryException, beforeUpdateException, afterUpdateException);
+        return new MongoTestDatabase(db.withReadConcern(readConcern), beforeQueryException,
+            beforeUpdateException, afterUpdateException);
     }
 
     @NotNull
     @Override
     public MongoCollection<Document> getCollection(@NotNull String collectionName) {
-        return new MongoTestCollection<>(db.getCollection(collectionName), beforeQueryException, beforeUpdateException, afterUpdateException);
+        return new MongoTestCollection<>(db.getCollection(collectionName), beforeQueryException,
+            beforeUpdateException, afterUpdateException);
     }
 
     @NotNull
     @Override
     public <TDocument> MongoCollection<TDocument> getCollection(@NotNull String collectionName,
-                                                                @NotNull Class<TDocument> tDocumentClass) {
-        return new MongoTestCollection<>(db.getCollection(collectionName, tDocumentClass), beforeQueryException, beforeUpdateException, afterUpdateException);
+        @NotNull Class<TDocument> tDocumentClass) {
+        return new MongoTestCollection<>(db.getCollection(collectionName, tDocumentClass),
+            beforeQueryException, beforeUpdateException, afterUpdateException);
     }
 
     @NotNull
@@ -131,54 +137,54 @@ public class MongoTestDatabase implements MongoDatabase {
     @NotNull
     @Override
     public Document runCommand(@NotNull Bson command,
-                               @NotNull ReadPreference readPreference) {
+        @NotNull ReadPreference readPreference) {
         return db.runCommand(command, readPreference);
     }
 
     @NotNull
     @Override
     public <TResult> TResult runCommand(@NotNull Bson command,
-                                        @NotNull Class<TResult> tResultClass) {
+        @NotNull Class<TResult> tResultClass) {
         return db.runCommand(command, tResultClass);
     }
 
     @NotNull
     @Override
     public <TResult> TResult runCommand(@NotNull Bson command,
-                                        @NotNull ReadPreference readPreference,
-                                        @NotNull Class<TResult> tResultClass) {
+        @NotNull ReadPreference readPreference,
+        @NotNull Class<TResult> tResultClass) {
         return db.runCommand(command, readPreference, tResultClass);
     }
 
     @NotNull
     @Override
     public Document runCommand(@NotNull ClientSession clientSession,
-                               @NotNull Bson command) {
+        @NotNull Bson command) {
         return db.runCommand(clientSession, command);
     }
 
     @NotNull
     @Override
     public Document runCommand(@NotNull ClientSession clientSession,
-                               @NotNull Bson command,
-                               @NotNull ReadPreference readPreference) {
+        @NotNull Bson command,
+        @NotNull ReadPreference readPreference) {
         return db.runCommand(clientSession, command, readPreference);
     }
 
     @NotNull
     @Override
     public <TResult> TResult runCommand(@NotNull ClientSession clientSession,
-                                        @NotNull Bson command,
-                                        @NotNull Class<TResult> tResultClass) {
+        @NotNull Bson command,
+        @NotNull Class<TResult> tResultClass) {
         return db.runCommand(clientSession, command, tResultClass);
     }
 
     @NotNull
     @Override
     public <TResult> TResult runCommand(@NotNull ClientSession clientSession,
-                                        @NotNull Bson command,
-                                        @NotNull ReadPreference readPreference,
-                                        @NotNull Class<TResult> tResultClass) {
+        @NotNull Bson command,
+        @NotNull ReadPreference readPreference,
+        @NotNull Class<TResult> tResultClass) {
         return db.runCommand(clientSession, command, readPreference, tResultClass);
     }
 
@@ -206,7 +212,8 @@ public class MongoTestDatabase implements MongoDatabase {
 
     @NotNull
     @Override
-    public <TResult> ListCollectionsIterable<TResult> listCollections(@NotNull Class<TResult> tResultClass) {
+    public <TResult> ListCollectionsIterable<TResult> listCollections(
+        @NotNull Class<TResult> tResultClass) {
         return db.listCollections(tResultClass);
     }
 
@@ -225,8 +232,8 @@ public class MongoTestDatabase implements MongoDatabase {
     @NotNull
     @Override
     public <TResult> ListCollectionsIterable<TResult> listCollections(
-            @NotNull ClientSession clientSession,
-            @NotNull Class<TResult> tResultClass) {
+        @NotNull ClientSession clientSession,
+        @NotNull Class<TResult> tResultClass) {
         return db.listCollections(clientSession, tResultClass);
     }
 
@@ -237,52 +244,52 @@ public class MongoTestDatabase implements MongoDatabase {
 
     @Override
     public void createCollection(@NotNull String collectionName,
-                                 @NotNull CreateCollectionOptions createCollectionOptions) {
+        @NotNull CreateCollectionOptions createCollectionOptions) {
         db.createCollection(collectionName, createCollectionOptions);
     }
 
     @Override
     public void createCollection(@NotNull ClientSession clientSession,
-                                 @NotNull String collectionName) {
+        @NotNull String collectionName) {
         db.createCollection(clientSession, collectionName);
     }
 
     @Override
     public void createCollection(@NotNull ClientSession clientSession,
-                                 @NotNull String collectionName,
-                                 @NotNull CreateCollectionOptions createCollectionOptions) {
+        @NotNull String collectionName,
+        @NotNull CreateCollectionOptions createCollectionOptions) {
         db.createCollection(clientSession, collectionName, createCollectionOptions);
     }
 
     @Override
     public void createView(@NotNull String viewName,
-                           @NotNull String viewOn,
-                           @NotNull List<? extends Bson> pipeline) {
+        @NotNull String viewOn,
+        @NotNull List<? extends Bson> pipeline) {
         db.createView(viewName, viewOn, pipeline);
     }
 
     @Override
     public void createView(@NotNull String viewName,
-                           @NotNull String viewOn,
-                           @NotNull List<? extends Bson> pipeline,
-                           @NotNull CreateViewOptions createViewOptions) {
+        @NotNull String viewOn,
+        @NotNull List<? extends Bson> pipeline,
+        @NotNull CreateViewOptions createViewOptions) {
         db.createView(viewName, viewOn, pipeline, createViewOptions);
     }
 
     @Override
     public void createView(@NotNull ClientSession clientSession,
-                           @NotNull String viewName,
-                           @NotNull String viewOn,
-                           @NotNull List<? extends Bson> pipeline) {
+        @NotNull String viewName,
+        @NotNull String viewOn,
+        @NotNull List<? extends Bson> pipeline) {
         db.createView(clientSession, viewName, viewOn, pipeline);
     }
 
     @Override
     public void createView(@NotNull ClientSession clientSession,
-                           @NotNull String viewName,
-                           @NotNull String viewOn,
-                           @NotNull List<? extends Bson> pipeline,
-                           @NotNull CreateViewOptions createViewOptions) {
+        @NotNull String viewName,
+        @NotNull String viewOn,
+        @NotNull List<? extends Bson> pipeline,
+        @NotNull CreateViewOptions createViewOptions) {
         db.createView(clientSession, viewName, viewOn, pipeline, createViewOptions);
     }
 
@@ -307,7 +314,7 @@ public class MongoTestDatabase implements MongoDatabase {
     @NotNull
     @Override
     public <TResult> ChangeStreamIterable<TResult> watch(@NotNull List<? extends Bson> pipeline,
-                                                         @NotNull Class<TResult> tResultClass) {
+        @NotNull Class<TResult> tResultClass) {
         return db.watch(pipeline, tResultClass);
     }
 
@@ -320,22 +327,22 @@ public class MongoTestDatabase implements MongoDatabase {
     @NotNull
     @Override
     public <TResult> ChangeStreamIterable<TResult> watch(@NotNull ClientSession clientSession,
-                                                         @NotNull Class<TResult> tResultClass) {
+        @NotNull Class<TResult> tResultClass) {
         return db.watch(clientSession, tResultClass);
     }
 
     @NotNull
     @Override
     public ChangeStreamIterable<Document> watch(@NotNull ClientSession clientSession,
-                                                @NotNull List<? extends Bson> pipeline) {
+        @NotNull List<? extends Bson> pipeline) {
         return db.watch(clientSession, pipeline);
     }
 
     @NotNull
     @Override
     public <TResult> ChangeStreamIterable<TResult> watch(@NotNull ClientSession clientSession,
-                                                         @NotNull List<? extends Bson> pipeline,
-                                                         @NotNull Class<TResult> tResultClass) {
+        @NotNull List<? extends Bson> pipeline,
+        @NotNull Class<TResult> tResultClass) {
         return db.watch(clientSession, pipeline, tResultClass);
     }
 
@@ -348,22 +355,22 @@ public class MongoTestDatabase implements MongoDatabase {
     @NotNull
     @Override
     public <TResult> AggregateIterable<TResult> aggregate(@NotNull List<? extends Bson> pipeline,
-                                                          @NotNull Class<TResult> tResultClass) {
+        @NotNull Class<TResult> tResultClass) {
         return db.aggregate(pipeline, tResultClass);
     }
 
     @NotNull
     @Override
     public AggregateIterable<Document> aggregate(@NotNull ClientSession clientSession,
-                                                 @NotNull List<? extends Bson> pipeline) {
+        @NotNull List<? extends Bson> pipeline) {
         return db.aggregate(clientSession, pipeline);
     }
 
     @NotNull
     @Override
     public <TResult> AggregateIterable<TResult> aggregate(@NotNull ClientSession clientSession,
-                                                          @NotNull List<? extends Bson> pipeline,
-                                                          @NotNull Class<TResult> tResultClass) {
+        @NotNull List<? extends Bson> pipeline,
+        @NotNull Class<TResult> tResultClass) {
         return db.aggregate(clientSession, pipeline, tResultClass);
     }
 }

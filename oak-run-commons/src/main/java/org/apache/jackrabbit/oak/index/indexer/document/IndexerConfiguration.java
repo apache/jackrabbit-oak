@@ -25,19 +25,22 @@ import org.apache.commons.io.FileUtils;
  * Indexer configuration for parallel indexing
  */
 public class IndexerConfiguration {
+
     public static final String PROP_OAK_INDEXER_THREAD_POOL_SIZE = "oak.indexer.threadPoolSize";
     static final int DEFAULT_OAK_INDEXER_THREAD_POOL_SIZE = 1;
-    
+
     public static int indexThreadPoolSize() {
-        return Integer.getInteger(PROP_OAK_INDEXER_THREAD_POOL_SIZE, DEFAULT_OAK_INDEXER_THREAD_POOL_SIZE);
+        return Integer.getInteger(PROP_OAK_INDEXER_THREAD_POOL_SIZE,
+            DEFAULT_OAK_INDEXER_THREAD_POOL_SIZE);
     }
-    
+
     public static final String PROP_OAK_INDEXER_MIN_SPLIT_THRESHOLD = "oak.indexer.minSplitThreshold";
     static final long DEFAULT_OAK_INDEXER_MINIMUM_SPLIT_THRESHOLD = 10 * FileUtils.ONE_MB;
-    
+
     public static long minSplitThreshold() {
         return
-            Long.getLong(PROP_OAK_INDEXER_MIN_SPLIT_THRESHOLD, DEFAULT_OAK_INDEXER_MINIMUM_SPLIT_THRESHOLD);
+            Long.getLong(PROP_OAK_INDEXER_MIN_SPLIT_THRESHOLD,
+                DEFAULT_OAK_INDEXER_MINIMUM_SPLIT_THRESHOLD);
     }
 
     /**
@@ -51,7 +54,7 @@ public class IndexerConfiguration {
     }
 
     public static final String PROP_OAK_INDEXER_PARALLEL_INDEX = "oak.indexer.parallelIndex";
-    
+
     public static boolean parallelIndexEnabled() {
         return Boolean.getBoolean(PROP_OAK_INDEXER_PARALLEL_INDEX);
     }

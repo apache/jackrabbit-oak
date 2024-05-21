@@ -21,12 +21,12 @@ package org.apache.jackrabbit.oak.run.cli;
 
 import java.util.Collections;
 import java.util.Set;
-
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
 
 public class DocumentNodeStoreOptions implements OptionsBean {
+
     private final OptionSpec<Integer> clusterId;
     private final OptionSpec<Void> disableBranchesSpec;
     private final OptionSpec<Integer> cacheSizeSpec;
@@ -36,26 +36,28 @@ public class DocumentNodeStoreOptions implements OptionsBean {
     private final OptionSpec<Integer> diffCachePercentage;
     private OptionSet options;
 
-    public DocumentNodeStoreOptions(OptionParser parser){
+    public DocumentNodeStoreOptions(OptionParser parser) {
         clusterId = parser.accepts("clusterId", "Cluster node instance id")
-                .withRequiredArg().ofType(Integer.class).defaultsTo(0);
+                          .withRequiredArg().ofType(Integer.class).defaultsTo(0);
         disableBranchesSpec = parser.
-                accepts("disableBranches", "Disable branches");
+            accepts("disableBranches", "Disable branches");
         cacheSizeSpec = parser.
-                accepts("cacheSize", "The cache size")
-                .withRequiredArg().ofType(Integer.class).defaultsTo(0);
+            accepts("cacheSize", "The cache size")
+            .withRequiredArg().ofType(Integer.class).defaultsTo(0);
         nodeCachePercentage = parser.
-                accepts("nodeCachePercentage", "Percentage of cache to be allocated towards Node cache")
-                .withRequiredArg().ofType(Integer.class).defaultsTo(35);
+            accepts("nodeCachePercentage", "Percentage of cache to be allocated towards Node cache")
+            .withRequiredArg().ofType(Integer.class).defaultsTo(35);
         prevDocCachePercentage = parser.
-                accepts("prevDocCachePercentage", "Percentage of cache to be allocated towards Previous Document cache")
-                .withRequiredArg().ofType(Integer.class).defaultsTo(4);
+            accepts("prevDocCachePercentage",
+                "Percentage of cache to be allocated towards Previous Document cache")
+            .withRequiredArg().ofType(Integer.class).defaultsTo(4);
         childrenCachePercentage = parser.
-                accepts("childrenCachePercentage", "Percentage of cache to be allocated towards Children cache")
-                .withRequiredArg().ofType(Integer.class).defaultsTo(15);
+            accepts("childrenCachePercentage",
+                "Percentage of cache to be allocated towards Children cache")
+            .withRequiredArg().ofType(Integer.class).defaultsTo(15);
         diffCachePercentage = parser.
-                accepts("diffCachePercentage", "Percentage of cache to be allocated towards Diff cache")
-                .withRequiredArg().ofType(Integer.class).defaultsTo(30);
+            accepts("diffCachePercentage", "Percentage of cache to be allocated towards Diff cache")
+            .withRequiredArg().ofType(Integer.class).defaultsTo(30);
     }
 
     @Override
@@ -71,7 +73,7 @@ public class DocumentNodeStoreOptions implements OptionsBean {
     @Override
     public String description() {
         return "Options related to constructing a DocumentNodeStore. \n" +
-                "Note that left over of sum of all cache ratio defined is allocated to documentCache.";
+            "Note that left over of sum of all cache ratio defined is allocated to documentCache.";
     }
 
     @Override
@@ -84,7 +86,7 @@ public class DocumentNodeStoreOptions implements OptionsBean {
         return Collections.emptySet();
     }
 
-    public int getClusterId(){
+    public int getClusterId() {
         return clusterId.value(options);
     }
 
@@ -112,10 +114,10 @@ public class DocumentNodeStoreOptions implements OptionsBean {
         return diffCachePercentage.value(options);
     }
 
-    public boolean isCacheDistributionDefined(){
+    public boolean isCacheDistributionDefined() {
         return options.has(nodeCachePercentage) ||
-                options.has(prevDocCachePercentage) ||
-                options.has(childrenCachePercentage) ||
-                options.has(diffCachePercentage);
+            options.has(prevDocCachePercentage) ||
+            options.has(childrenCachePercentage) ||
+            options.has(diffCachePercentage);
     }
 }

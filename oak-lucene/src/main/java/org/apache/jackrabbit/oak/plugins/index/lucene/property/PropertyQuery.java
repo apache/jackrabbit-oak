@@ -22,10 +22,10 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.property;
 import java.util.Collections;
 
 /**
- * Abstraction to enable performing simple property=value query
- * across various types of storage
+ * Abstraction to enable performing simple property=value query across various types of storage
  */
 public interface PropertyQuery {
+
     PropertyQuery DEFAULT = (propertyRelativePath, value) -> Collections.emptyList();
 
     Iterable<String> getIndexedPaths(String propertyRelativePath, String value);

@@ -19,17 +19,18 @@
 package org.apache.jackrabbit.oak.composite;
 
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.api.JackrabbitSession;
-import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
-import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
-import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
-import org.apache.jackrabbit.oak.spi.mount.Mounts;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_COUNT;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.shutdown;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
 
+import java.util.List;
 import javax.jcr.Node;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
@@ -38,18 +39,16 @@ import javax.jcr.SimpleCredentials;
 import javax.jcr.query.QueryManager;
 import javax.jcr.query.QueryResult;
 import javax.jcr.query.RowIterator;
-import java.util.List;
-
-import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_COUNT;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.shutdown;
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
+import org.apache.jackrabbit.api.JackrabbitSession;
+import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
+import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
+import org.apache.jackrabbit.oak.spi.mount.Mounts;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 @SuppressWarnings("ConstantConditions")
 public class CompositeNodeStoreLuceneIndexTest extends CompositeNodeStoreQueryTestBase {
@@ -83,17 +82,14 @@ public class CompositeNodeStoreLuceneIndexTest extends CompositeNodeStoreQueryTe
     }
 
     /**
-     * Steps overview -
-     * Add a new index to composite repo and reindex
-     * Add the index def in global read write part of composite repo (read write part)
-     * Add the index def in read only repo
-     * Add content served by this index in both parts
-     * Query using composite repo session to see if index is used and results from both parts are returned correctly
-     * Reindex on composite session
+     * Steps overview - Add a new index to composite repo and reindex Add the index def in global
+     * read write part of composite repo (read write part) Add the index def in read only repo Add
+     * content served by this index in both parts Query using composite repo session to see if index
+     * is used and results from both parts are returned correctly Reindex on composite session
      */
     @Test
     public void addLuceneIndexAndReindex() throws Exception {
-        // create indexes in read-only and read write parts of repo 
+        // create indexes in read-only and read write parts of repo
         // and content covered by them and check if index is used properly
         repoV1.setupIndexAndContentInRepo("luceneTest", "foo", false, VERSION_1);
 
@@ -110,8 +106,8 @@ public class CompositeNodeStoreLuceneIndexTest extends CompositeNodeStoreQueryTe
     }
 
     /**
-     * Given a composite node store , create an index in read-write part
-     * with the same index node already existing in the read-only part already.
+     * Given a composite node store , create an index in read-write part with the same index node
+     * already existing in the read-only part already.
      */
     @Test
     public void addIndexInReadWriteWithIndexExistinginReadOnly() throws Exception {
@@ -132,11 +128,10 @@ public class CompositeNodeStoreLuceneIndexTest extends CompositeNodeStoreQueryTe
     }
 
     /**
-     * Given a composite jcr repo with a lucene index with indexed data from both read only and read write parts
-     * We create a V2 of this repo which will have the lucene index removed -
-     * Expected behaviour - The same query that returned results from both readonly
-     * and readwrite in V1 should now return
-     * results - but it would be a traversal query and not use the index .
+     * Given a composite jcr repo with a lucene index with indexed data from both read only and read
+     * write parts We create a V2 of this repo which will have the lucene index removed - Expected
+     * behaviour - The same query that returned results from both readonly and readwrite in V1
+     * should now return results - but it would be a traversal query and not use the index .
      */
     @Test
     public void removeLuceneIndex() throws Exception {
@@ -158,27 +153,27 @@ public class CompositeNodeStoreLuceneIndexTest extends CompositeNodeStoreQueryTe
         // since it is now disabled as path corresponding to useIfExists property is not present in new read only lib
         QueryResult result = repoV2.executeQuery("explain /jcr:root//*[@foo = 'bar']", "xpath");
         assertThat(result.getRows().next().toString(),
-                containsString("allDescendents: /"));
+            containsString("allDescendents: /"));
 
-        // Check that proper nodes are returned by the query 
+        // Check that proper nodes are returned by the query
         // even after traversal from both readonly version 2 and global read write parts
         result = repoV2.executeQuery("/jcr:root//*[@foo = 'bar'] order by @jcr:path", "xpath");
         assertEquals("/content-foo/node-0, /content-foo/node-1, " +
-                "/libs/node-foo-0", getResult(result, "jcr:path"));
+            "/libs/node-foo-0", getResult(result, "jcr:path"));
 
         // Now just for sake of completeness - check that the index is still used if we use V1 of composite app.
         result = repoV1.executeQuery("explain /jcr:root//*[@foo = 'bar']", "xpath");
         assertThat(result.getRows().next().toString(),
-                containsString("/oak:index/luceneTest"));
+            containsString("/oak:index/luceneTest"));
 
         result = repoV1.executeQuery("/jcr:root//*[@foo = 'bar'] order by @jcr:path", "xpath");
         assertEquals("/content-foo/node-0, " +
-                "/content-foo/node-1, " +
-                "/libs/node-luceneTest-0, " +
-                "/libs/node-luceneTest-1, " +
-                "/libs/node-luceneTest-2", getResult(result, "jcr:path"));
+            "/content-foo/node-1, " +
+            "/libs/node-luceneTest-0, " +
+            "/libs/node-luceneTest-1, " +
+            "/libs/node-luceneTest-2", getResult(result, "jcr:path"));
 
-        // At this point we have a V2 of app up and runnin with the index removed . 
+        // At this point we have a V2 of app up and runnin with the index removed .
         // We can now close the V1 of the app
         // and remove the index defintion from the global repo
 
@@ -188,27 +183,26 @@ public class CompositeNodeStoreLuceneIndexTest extends CompositeNodeStoreQueryTe
 
         result = repoV2.executeQuery("explain /jcr:root//*[@foo = 'bar']", "xpath");
         assertThat(result.getRows().next().toString(),
-                containsString("allDescendents: /"));
+            containsString("allDescendents: /"));
 
-        // Check that proper nodes are returned by the query 
+        // Check that proper nodes are returned by the query
         // even after traversal from both readonly version 2 and global read write parts
         result = repoV2.executeQuery("/jcr:root//*[@foo = 'bar'] order by jcr:path", "xpath");
         assertEquals("/content-foo/node-0, " +
-                "/content-foo/node-1, " +
-                "/libs/node-foo-0", getResult(result, "jcr:path"));
+            "/content-foo/node-1, " +
+            "/libs/node-foo-0", getResult(result, "jcr:path"));
 
         repoV2.cleanup();
 
     }
 
     /**
-     * Steps Overview -
-     * Create 2 indexes A and B and corresponding content in V1 app - in both global/composite  and readonly v1 repos
-     * Create 2 indexes B2 and C in read only v2 - B2 is effective replacement of B and C is a new index .
-     * Create respective content and new indexes in global repo as well.
-     * Create a version 2 of composite repo using the new read only repo V2
-     * Check that B2 and C are NOT used in composite repo V1 and are correctly used in composite repo V2
-     * Check that A and B are NOT used in composite repo V2 .
+     * Steps Overview - Create 2 indexes A and B and corresponding content in V1 app - in both
+     * global/composite  and readonly v1 repos Create 2 indexes B2 and C in read only v2 - B2 is
+     * effective replacement of B and C is a new index . Create respective content and new indexes
+     * in global repo as well. Create a version 2 of composite repo using the new read only repo V2
+     * Check that B2 and C are NOT used in composite repo V1 and are correctly used in composite
+     * repo V2 Check that A and B are NOT used in composite repo V2 .
      */
     @Test
     public void updateLuceneIndex() throws Exception {
@@ -232,9 +226,9 @@ public class CompositeNodeStoreLuceneIndexTest extends CompositeNodeStoreQueryTe
         // Check V2 now uses luceneTest2_V2 for foo2 and no index for foo i.e traversal
         QueryResult result = repoV2.executeQuery("explain /jcr:root//*[@foo = 'bar']", "xpath");
         assertThat(result.getRows().next().toString(),
-                containsString("allDescendents: /"));
+            containsString("allDescendents: /"));
 
-        // Check that proper nodes are returned by the query 
+        // Check that proper nodes are returned by the query
         // even after traversal from both readonly version 2 and global read write parts
         result = repoV2.executeQuery("/jcr:root//*[@foo = 'bar'] order by @jcr:path", "xpath");
         assertEquals("/content-foo/node-0, /content-foo/node-1", getResult(result, "jcr:path"));
@@ -242,64 +236,65 @@ public class CompositeNodeStoreLuceneIndexTest extends CompositeNodeStoreQueryTe
         // Checking for prop foo2 now
         result = repoV2.executeQuery("explain /jcr:root//*[@foo2 = 'bar']", "xpath");
         assertThat(result.getRows().next().toString(),
-                containsString("/oak:index/luceneTest2_V2"));
+            containsString("/oak:index/luceneTest2_V2"));
 
         result = repoV2.executeQuery("/jcr:root//*[@foo2 = 'bar'] order by @jcr:path", "xpath");
         assertEquals("/content-foo2/node-0, /content-foo2/node-1, " +
-                "/libs/node-luceneTest2_V2-0, " +
-                "/libs/node-luceneTest2_V2-1, " +
-                "/libs/node-luceneTest2_V2-2", getResult(result, "jcr:path"));
+            "/libs/node-luceneTest2_V2-0, " +
+            "/libs/node-luceneTest2_V2-1, " +
+            "/libs/node-luceneTest2_V2-2", getResult(result, "jcr:path"));
 
         // Checking for foo3 now - new index on V2
         result = repoV2.executeQuery("explain /jcr:root//*[@foo3 = 'bar']", "xpath");
         assertThat(result.getRows().next().toString(),
-                containsString("/oak:index/luceneTest3"));
+            containsString("/oak:index/luceneTest3"));
 
-        // Check that proper nodes are returned by the query 
+        // Check that proper nodes are returned by the query
         // even after traversal from both readonly version 2 and global read write parts
         result = repoV2.executeQuery("/jcr:root//*[@foo3 = 'bar'] order by @jcr:path", "xpath");
         assertEquals("/content-foo3/node-0, " +
-                "/content-foo3/node-1, " +
-                "/libs/node-luceneTest3-0, " +
-                "/libs/node-luceneTest3-1, " +
-                "/libs/node-luceneTest3-2", getResult(result, "jcr:path"));
+            "/content-foo3/node-1, " +
+            "/libs/node-luceneTest3-0, " +
+            "/libs/node-luceneTest3-1, " +
+            "/libs/node-luceneTest3-2", getResult(result, "jcr:path"));
 
         // Now check that the V1 instance still uses B for foo2 , A for foo and traverses for foo3
         result = repoV1.executeQuery("explain /jcr:root//*[@foo = 'bar']", "xpath");
         assertThat(result.getRows().next().toString(),
-                containsString("/oak:index/luceneTest"));
+            containsString("/oak:index/luceneTest"));
 
         result = repoV1.executeQuery("/jcr:root//*[@foo = 'bar'] order by @jcr:path", "xpath");
         assertEquals("/content-foo/node-0, " +
-                "/content-foo/node-1, " +
-                "/libs/node-luceneTest-0, " +
-                "/libs/node-luceneTest-1, " +
-                "/libs/node-luceneTest-2", getResult(result, "jcr:path"));
+            "/content-foo/node-1, " +
+            "/libs/node-luceneTest-0, " +
+            "/libs/node-luceneTest-1, " +
+            "/libs/node-luceneTest-2", getResult(result, "jcr:path"));
 
         // foo 2 check
         result = repoV1.executeQuery("explain /jcr:root//*[@foo2 = 'bar']", "xpath");
         assertThat(result.getRows().next().toString(),
-                containsString("/oak:index/luceneTest2"));
+            containsString("/oak:index/luceneTest2"));
 
         result = repoV1.executeQuery("/jcr:root//*[@foo2 = 'bar'] order by @jcr:path", "xpath");
         assertEquals("/content-foo2/node-0, " +
-                "/content-foo2/node-1, " +
-                "/libs/node-luceneTest2-0, " +
-                "/libs/node-luceneTest2-1, " +
-                "/libs/node-luceneTest2-2", getResult(result, "jcr:path"));
+            "/content-foo2/node-1, " +
+            "/libs/node-luceneTest2-0, " +
+            "/libs/node-luceneTest2-1, " +
+            "/libs/node-luceneTest2-2", getResult(result, "jcr:path"));
 
         // foo 3 check
         repoV1.login();
         result = repoV1.executeQuery("explain /jcr:root//*[@foo3 = 'bar']", "xpath");
         assertThat(result.getRows().next().toString(),
-                containsString("allDescendents: /"));
+            containsString("allDescendents: /"));
 
         result = repoV1.executeQuery("/jcr:root//*[@foo3 = 'bar'] order by @jcr:path", "xpath");
         assertEquals("/content-foo3/node-0, " +
-                "/content-foo3/node-1", getResult(result, "jcr:path"));
+            "/content-foo3/node-1", getResult(result, "jcr:path"));
     }
 
-    private static String getResult(QueryResult result, String propertyName) throws RepositoryException {
+    private static String getResult(QueryResult result, String propertyName)
+        throws RepositoryException {
         StringBuilder buff = new StringBuilder();
         RowIterator it = result.getRows();
         while (it.hasNext()) {
@@ -311,7 +306,8 @@ public class CompositeNodeStoreLuceneIndexTest extends CompositeNodeStoreQueryTe
         return buff.toString();
     }
 
-    private static Node createLuceneIndex(JackrabbitSession session, String name, String property) throws Exception {
+    private static Node createLuceneIndex(JackrabbitSession session, String name, String property)
+        throws Exception {
         Node n = session.getRootNode().getNode(INDEX_DEFINITIONS_NAME);
         n = n.addNode(name);
         n.setPrimaryType(IndexConstants.INDEX_DEFINITIONS_NODE_TYPE);
@@ -324,11 +320,13 @@ public class CompositeNodeStoreLuceneIndexTest extends CompositeNodeStoreQueryTe
         return n;
     }
 
-    private static Node addOrGetNode(Node parent, String path, String primaryType) throws Exception {
+    private static Node addOrGetNode(Node parent, String path, String primaryType)
+        throws Exception {
         return parent.hasNode(path) ? parent.getNode(path) : parent.addNode(path, primaryType);
     }
 
     private class CompositeRepo {
+
         private Repository compositeRepository;
         private JackrabbitSession compositeSession;
         private Node compositeRoot;
@@ -360,7 +358,8 @@ public class CompositeNodeStoreLuceneIndexTest extends CompositeNodeStoreQueryTe
             return compositeRoot;
         }
 
-        public QueryResult executeQuery(String statement, String language) throws RepositoryException {
+        public QueryResult executeQuery(String statement, String language)
+            throws RepositoryException {
             return compositeQueryManager.createQuery(statement, language).execute();
         }
 
@@ -372,27 +371,31 @@ public class CompositeNodeStoreLuceneIndexTest extends CompositeNodeStoreQueryTe
 
             initReadOnlySeedRepo();
             List<MountedNodeStore> nonDefaultStores = Lists.newArrayList();
-            nonDefaultStores.add(new MountedNodeStore(this.mip.getMountByName(readOnlyMountName), readOnlyStore));
+            nonDefaultStores.add(
+                new MountedNodeStore(this.mip.getMountByName(readOnlyMountName), readOnlyStore));
             this.store = new CompositeNodeStore(this.mip, globalStore, nonDefaultStores);
 
         }
 
         private void initCompositeRepo() throws Exception {
             compositeRepository = createJCRRepository(this.store, this.mip);
-            compositeSession = (JackrabbitSession) compositeRepository.login(new SimpleCredentials("admin", "admin".toCharArray()));
+            compositeSession = (JackrabbitSession) compositeRepository.login(
+                new SimpleCredentials("admin", "admin".toCharArray()));
             compositeRoot = compositeSession.getRootNode();
             compositeQueryManager = compositeSession.getWorkspace().getQueryManager();
         }
 
         private void initReadOnlySeedRepo() throws Exception {
             readOnlyRepository = createJCRRepository(readOnlyStore, this.mip);
-            readOnlySession = (JackrabbitSession) readOnlyRepository.login(new SimpleCredentials("admin", "admin".toCharArray()));
+            readOnlySession = (JackrabbitSession) readOnlyRepository.login(
+                new SimpleCredentials("admin", "admin".toCharArray()));
             readOnlyRoot = readOnlySession.getRootNode();
             Node libs = readOnlyRoot.addNode("libs", NT_UNSTRUCTURED);
             libs.setPrimaryType(NT_UNSTRUCTURED);
         }
 
-        private void setupIndexAndContentInRepo(String indexName, String indexedProperty, boolean createIndexInReadOnlyFirst, int version) throws Exception {
+        private void setupIndexAndContentInRepo(String indexName, String indexedProperty,
+            boolean createIndexInReadOnlyFirst, int version) throws Exception {
             String versionProp = (version == VERSION_1) ? "@v1" : "@v2";
 
             if (createIndexInReadOnlyFirst) {
@@ -400,7 +403,8 @@ public class CompositeNodeStoreLuceneIndexTest extends CompositeNodeStoreQueryTe
             }
 
             Node indexNode = createLuceneIndex(compositeSession, indexName, indexedProperty);
-            indexNode.setProperty(IndexConstants.USE_IF_EXISTS, "/libs/indexes/" + indexName + "/" + versionProp);
+            indexNode.setProperty(IndexConstants.USE_IF_EXISTS,
+                "/libs/indexes/" + indexName + "/" + versionProp);
             indexNode.setProperty(FulltextIndexConstants.PROP_REFRESH_DEFN, true);
 
             // Add some content to read write now
@@ -426,36 +430,41 @@ public class CompositeNodeStoreLuceneIndexTest extends CompositeNodeStoreQueryTe
             compositeSession.save();
 
             login();
-            QueryResult result = executeQuery("explain /jcr:root//*[@" + indexedProperty + " = 'bar']", "xpath");
+            QueryResult result = executeQuery(
+                "explain /jcr:root//*[@" + indexedProperty + " = 'bar']", "xpath");
 
             assertThat(result.getRows().next().toString(),
-                    containsString("/oak:index/" + indexName));
+                containsString("/oak:index/" + indexName));
 
-            result = executeQuery("/jcr:root//*[@" + indexedProperty + " = 'bar'] order by @jcr:path", "xpath");
+            result = executeQuery(
+                "/jcr:root//*[@" + indexedProperty + " = 'bar'] order by @jcr:path", "xpath");
             assertEquals("/content-" + indexedProperty + "/node-0, " +
-                    "/content-" + indexedProperty + "/node-1, " +
-                    "/libs/node-" + indexName + "-0, " +
-                    "/libs/node-" + indexName + "-1, " +
-                    "/libs/node-" + indexName + "-2", getResult(result, "jcr:path"));
+                "/content-" + indexedProperty + "/node-1, " +
+                "/libs/node-" + indexName + "-0, " +
+                "/libs/node-" + indexName + "-1, " +
+                "/libs/node-" + indexName + "-2", getResult(result, "jcr:path"));
         }
 
-        private void setupIndexAndContentInReadOnly(String indexName, String indexedProperty, int version) throws Exception {
+        private void setupIndexAndContentInReadOnly(String indexName, String indexedProperty,
+            int version) throws Exception {
             String versionProp = (version == 1) ? "@v1" : "@v2";
             // Add some content to read-only  repo
             for (int i = 0; i < 3; i++) {
-                Node b = readOnlyRoot.getNode("libs").addNode("node-" + indexName + "-" + i, NT_UNSTRUCTURED);
+                Node b = readOnlyRoot.getNode("libs")
+                                     .addNode("node-" + indexName + "-" + i, NT_UNSTRUCTURED);
                 b.setProperty(indexedProperty, "bar");
                 b.setPrimaryType(NT_UNSTRUCTURED);
             }
 
             // index creation
             Node readOnlyIndex = createLuceneIndex(readOnlySession, indexName, indexedProperty);
-            readOnlyIndex.setProperty(IndexConstants.USE_IF_EXISTS, "/libs/indexes/" + indexName + "/@" + versionProp);
+            readOnlyIndex.setProperty(IndexConstants.USE_IF_EXISTS,
+                "/libs/indexes/" + indexName + "/@" + versionProp);
             readOnlyIndex.setProperty(FulltextIndexConstants.PROP_REFRESH_DEFN, true);
 
             // Add /libs/indexes/luceneTest/@v1 to make this index usable/enabled
             addOrGetNode(readOnlyRoot.getNode("libs"), "indexes", NT_UNSTRUCTURED).
-                    addNode(indexName, NT_UNSTRUCTURED).setProperty(versionProp.replace("@", ""), true);
+                addNode(indexName, NT_UNSTRUCTURED).setProperty(versionProp.replace("@", ""), true);
             readOnlySession.save();
         }
 
@@ -464,7 +473,8 @@ public class CompositeNodeStoreLuceneIndexTest extends CompositeNodeStoreQueryTe
             shutdown(compositeRepository);
 
             List<MountedNodeStore> nonDefaultStores = Lists.newArrayList();
-            nonDefaultStores.add(new MountedNodeStore(this.mip.getMountByName(readOnlyMountName), readOnlyStore));
+            nonDefaultStores.add(
+                new MountedNodeStore(this.mip.getMountByName(readOnlyMountName), readOnlyStore));
             this.store = new CompositeNodeStore(this.mip, globalStore, nonDefaultStores);
             compositeRepository = createJCRRepository(this.store, this.mip);
             login();
@@ -474,7 +484,8 @@ public class CompositeNodeStoreLuceneIndexTest extends CompositeNodeStoreQueryTe
             if (compositeSession != null) {
                 compositeSession.logout();
             }
-            compositeSession = (JackrabbitSession) compositeRepository.login(new SimpleCredentials("admin", "admin".toCharArray()));
+            compositeSession = (JackrabbitSession) compositeRepository.login(
+                new SimpleCredentials("admin", "admin".toCharArray()));
             compositeRoot = compositeSession.getRootNode();
             compositeQueryManager = compositeSession.getWorkspace().getQueryManager();
         }

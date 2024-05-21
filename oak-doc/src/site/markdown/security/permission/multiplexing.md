@@ -34,8 +34,10 @@ Given the following mount setup
     default
         - /
 
-In above setup nodes under /apps and /libs (include apps and libs) are part of "private" mount (mount name is "private") and all other paths are part of default mount.
-A dedicated PermissionStore will be created under `oak:mount-private-default` that contains information relevant to this specific mount.
+In above setup nodes under /apps and /libs (include apps and libs) are part of "private" mount (
+mount name is "private") and all other paths are part of default mount.
+A dedicated PermissionStore will be created under `oak:mount-private-default` that contains
+information relevant to this specific mount.
 
     /jcr:system/rep:permissionStore
         + oak:mount-private-default
@@ -55,5 +57,6 @@ A dedicated PermissionStore will be created under `oak:mount-private-default` th
 
 ### PermissionStore updates (writing)
 
-The `PermissionHook` is now mount-aware and will delegate changes to specific path to their designated components based on path.
+The `PermissionHook` is now mount-aware and will delegate changes to specific path to their
+designated components based on path.
 

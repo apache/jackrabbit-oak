@@ -21,7 +21,6 @@ import static org.apache.jackrabbit.oak.commons.Buffer.wrap;
 
 import java.io.IOException;
 import java.util.zip.CRC32;
-
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.util.ReaderAtEnd;
 
@@ -56,7 +55,8 @@ class IndexLoaderV1 {
             throw new InvalidIndexException("Invalid size alignment");
         }
 
-        Buffer entries = reader.readAtEnd(IndexV1.FOOTER_SIZE + count * IndexEntryV1.SIZE, count * IndexEntryV1.SIZE);
+        Buffer entries = reader.readAtEnd(IndexV1.FOOTER_SIZE + count * IndexEntryV1.SIZE,
+            count * IndexEntryV1.SIZE);
 
         CRC32 checksum = new CRC32();
         entries.mark();

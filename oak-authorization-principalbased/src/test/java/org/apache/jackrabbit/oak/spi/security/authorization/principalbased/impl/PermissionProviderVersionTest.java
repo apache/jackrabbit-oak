@@ -70,21 +70,24 @@ public class PermissionProviderVersionTest extends AbstractPrincipalBasedTest {
         grandchildPath = PathUtils.getAncestorPath(TEST_OAK_PATH, 1);
 
         // setup permissions on childPath + TEST_OAK_PATH
-        PrincipalPolicyImpl policy = setupPrincipalBasedAccessControl(testPrincipal, getNamePathMapper().getJcrPath(childPath), JCR_READ);
-        addPrincipalBasedEntry(policy, getNamePathMapper().getJcrPath(TEST_OAK_PATH), PrivilegeConstants.JCR_VERSION_MANAGEMENT);
+        PrincipalPolicyImpl policy = setupPrincipalBasedAccessControl(testPrincipal,
+            getNamePathMapper().getJcrPath(childPath), JCR_READ);
+        addPrincipalBasedEntry(policy, getNamePathMapper().getJcrPath(TEST_OAK_PATH),
+            PrivilegeConstants.JCR_VERSION_MANAGEMENT);
 
         // versionabel nodes: contentPath + grandChildPath + TEST_OAK_PATH
         // -> 1 TEST_OAK_PATH node hold policy, grandchildPath get it inherited and contentPath has no permissions granted
         Tree typeRoot = root.getTree(NodeTypeConstants.NODE_TYPES_PATH);
-        for (String path : new String[] {contentPath, grandchildPath, TEST_OAK_PATH}) {
+        for (String path : new String[]{contentPath, grandchildPath, TEST_OAK_PATH}) {
             Tree versionable = root.getTree(path);
-            TreeUtil.addMixin(root.getTree(path), NodeTypeConstants.MIX_VERSIONABLE, typeRoot, "uid");
+            TreeUtil.addMixin(root.getTree(path), NodeTypeConstants.MIX_VERSIONABLE, typeRoot,
+                "uid");
         }
         root.commit();
 
         // force creation of a new version for grandchildPath, TEST_OAK_PATH but not for contentPath
         // removing tree for contentPath will then also result in removal of VH upon removal.
-        for (String path : new String[] {grandchildPath, TEST_OAK_PATH}) {
+        for (String path : new String[]{grandchildPath, TEST_OAK_PATH}) {
             root.getTree(path).setProperty(JCR_ISCHECKEDOUT, false);
             root.commit();
             root.getTree(path).setProperty(JCR_ISCHECKEDOUT, true);
@@ -190,32 +193,40 @@ public class PermissionProviderVersionTest extends AbstractPrincipalBasedTest {
 
     @Test
     public void testIsGranted() throws Exception {
-        assertFalse(permissionProvider.isGranted(getVersionTree(contentPath, true), null, Permissions.READ_NODE));
-        assertFalse(permissionProvider.isGranted(getVersionTree(grandchildPath, true), null, Permissions.READ_NODE|Permissions.VERSION_MANAGEMENT));
-        assertFalse(permissionProvider.isGranted(getVersionTree(TEST_OAK_PATH, true), null, Permissions.READ|Permissions.WRITE));
+        assertFalse(permissionProvider.isGranted(getVersionTree(contentPath, true), null,
+            Permissions.READ_NODE));
+        assertFalse(permissionProvider.isGranted(getVersionTree(grandchildPath, true), null,
+            Permissions.READ_NODE | Permissions.VERSION_MANAGEMENT));
+        assertFalse(permissionProvider.isGranted(getVersionTree(TEST_OAK_PATH, true), null,
+            Permissions.READ | Permissions.WRITE));
 
-
-        assertTrue(permissionProvider.isGranted(getVersionTree(grandchildPath, true), null, Permissions.READ_NODE));
-        assertTrue(permissionProvider.isGranted(getVersionTree(TEST_OAK_PATH, true), null, Permissions.READ|Permissions.VERSION_MANAGEMENT));
+        assertTrue(permissionProvider.isGranted(getVersionTree(grandchildPath, true), null,
+            Permissions.READ_NODE));
+        assertTrue(permissionProvider.isGranted(getVersionTree(TEST_OAK_PATH, true), null,
+            Permissions.READ | Permissions.VERSION_MANAGEMENT));
     }
 
     @Test
     public void testIsGrantedWithProperty() throws Exception {
         Tree t = getVersionTree(contentPath, true);
-        assertFalse(permissionProvider.isGranted(t, t.getProperty(JCR_PRIMARYTYPE), Permissions.READ_PROPERTY));
+        assertFalse(permissionProvider.isGranted(t, t.getProperty(JCR_PRIMARYTYPE),
+            Permissions.READ_PROPERTY));
 
         t = getVersionTree(grandchildPath, false);
-        assertFalse(permissionProvider.isGranted(t, t.getProperty(JCR_PRIMARYTYPE), Permissions.READ_PROPERTY|Permissions.VERSION_MANAGEMENT));
+        assertFalse(permissionProvider.isGranted(t, t.getProperty(JCR_PRIMARYTYPE),
+            Permissions.READ_PROPERTY | Permissions.VERSION_MANAGEMENT));
 
         t = getVersionTree(TEST_OAK_PATH, true);
-        assertFalse(permissionProvider.isGranted(t, t.getProperty(JCR_PRIMARYTYPE), Permissions.READ_PROPERTY|Permissions.WRITE));
-
+        assertFalse(permissionProvider.isGranted(t, t.getProperty(JCR_PRIMARYTYPE),
+            Permissions.READ_PROPERTY | Permissions.WRITE));
 
         t = getVersionTree(grandchildPath, true);
-        assertTrue(permissionProvider.isGranted(t, t.getProperty(JCR_PRIMARYTYPE), Permissions.READ_PROPERTY));
+        assertTrue(permissionProvider.isGranted(t, t.getProperty(JCR_PRIMARYTYPE),
+            Permissions.READ_PROPERTY));
 
         t = getVersionTree(TEST_OAK_PATH, false);
-        assertTrue(permissionProvider.isGranted(t, t.getProperty(JCR_PRIMARYTYPE), Permissions.READ_PROPERTY|Permissions.VERSION_MANAGEMENT));
+        assertTrue(permissionProvider.isGranted(t, t.getProperty(JCR_PRIMARYTYPE),
+            Permissions.READ_PROPERTY | Permissions.VERSION_MANAGEMENT));
     }
 
     @Test
@@ -230,7 +241,8 @@ public class PermissionProviderVersionTest extends AbstractPrincipalBasedTest {
         assertTrue(versionTree.exists());
 
         // permissions not affected as they are stored with the principal.
-        assertTrue(permissionProvider.isGranted(versionTree, null, Permissions.READ|Permissions.VERSION_MANAGEMENT));
+        assertTrue(permissionProvider.isGranted(versionTree, null,
+            Permissions.READ | Permissions.VERSION_MANAGEMENT));
     }
 
     @Test
@@ -245,7 +257,8 @@ public class PermissionProviderVersionTest extends AbstractPrincipalBasedTest {
         assertFalse(vhTree.exists());
 
         // permissions affected because unable to resolve versionable tree
-        assertFalse(permissionProvider.isGranted(vhTree, null, Permissions.READ|Permissions.VERSION_MANAGEMENT));
+        assertFalse(permissionProvider.isGranted(vhTree, null,
+            Permissions.READ | Permissions.VERSION_MANAGEMENT));
     }
 
     @Test
@@ -257,24 +270,31 @@ public class PermissionProviderVersionTest extends AbstractPrincipalBasedTest {
         assertTrue(permissionProvider.isGranted(tl, Permissions.READ));
 
         tl = TreeLocation.create(root, getVersionPath(TEST_OAK_PATH, false));
-        assertTrue(permissionProvider.isGranted(tl, Permissions.READ|Permissions.VERSION_MANAGEMENT));
+        assertTrue(
+            permissionProvider.isGranted(tl, Permissions.READ | Permissions.VERSION_MANAGEMENT));
     }
 
     @Test
     public void testIsGrantedByPath() throws Exception {
         assertFalse(permissionProvider.isGranted(getVersionPath(contentPath, false), ACTION_READ));
-        assertFalse(permissionProvider.isGranted(getVersionPath(grandchildPath, true), Permissions.getString(Permissions.READ|Permissions.VERSION_MANAGEMENT)));
-        assertFalse(permissionProvider.isGranted(getVersionPath(TEST_OAK_PATH, false), Permissions.getString(Permissions.READ|Permissions.WRITE)));
+        assertFalse(permissionProvider.isGranted(getVersionPath(grandchildPath, true),
+            Permissions.getString(Permissions.READ | Permissions.VERSION_MANAGEMENT)));
+        assertFalse(permissionProvider.isGranted(getVersionPath(TEST_OAK_PATH, false),
+            Permissions.getString(Permissions.READ | Permissions.WRITE)));
 
-        assertTrue(permissionProvider.isGranted(getVersionPath(grandchildPath, false), ACTION_READ));
-        assertTrue(permissionProvider.isGranted(getVersionPath(TEST_OAK_PATH, true), Permissions.getString(Permissions.READ|Permissions.VERSION_MANAGEMENT)));
+        assertTrue(
+            permissionProvider.isGranted(getVersionPath(grandchildPath, false), ACTION_READ));
+        assertTrue(permissionProvider.isGranted(getVersionPath(TEST_OAK_PATH, true),
+            Permissions.getString(Permissions.READ | Permissions.VERSION_MANAGEMENT)));
     }
 
     @Test
     public void testGetPrivileges() throws Exception {
         assertTrue(permissionProvider.getPrivileges(getVersionTree(contentPath, true)).isEmpty());
-        assertEquals(Sets.newHashSet(JCR_READ), permissionProvider.getPrivileges(getVersionTree(grandchildPath, false)));
-        assertEquals(Sets.newHashSet(JCR_READ, JCR_VERSION_MANAGEMENT), permissionProvider.getPrivileges(getVersionTree(TEST_OAK_PATH, true)));
+        assertEquals(Sets.newHashSet(JCR_READ),
+            permissionProvider.getPrivileges(getVersionTree(grandchildPath, false)));
+        assertEquals(Sets.newHashSet(JCR_READ, JCR_VERSION_MANAGEMENT),
+            permissionProvider.getPrivileges(getVersionTree(TEST_OAK_PATH, true)));
     }
 
     @Test
@@ -292,7 +312,8 @@ public class PermissionProviderVersionTest extends AbstractPrincipalBasedTest {
 
         // permissions not affected (as long as no restrictions involved) due to the fact that permissions are not
         // stored with the versionable node.
-        assertEquals(Sets.newHashSet(JCR_READ, JCR_VERSION_MANAGEMENT), permissionProvider.getPrivileges(versionTree));
+        assertEquals(Sets.newHashSet(JCR_READ, JCR_VERSION_MANAGEMENT),
+            permissionProvider.getPrivileges(versionTree));
     }
 
     @Test
@@ -312,10 +333,14 @@ public class PermissionProviderVersionTest extends AbstractPrincipalBasedTest {
     @Test
     public void testHasPrivileges() {
         assertFalse(permissionProvider.hasPrivileges(getVersionTree(contentPath, false), JCR_READ));
-        assertFalse(permissionProvider.hasPrivileges(getVersionTree(grandchildPath, true), JCR_VERSION_MANAGEMENT));
-        assertFalse(permissionProvider.hasPrivileges(getVersionTree(TEST_OAK_PATH, false), JCR_READ, JCR_LOCK_MANAGEMENT));
+        assertFalse(permissionProvider.hasPrivileges(getVersionTree(grandchildPath, true),
+            JCR_VERSION_MANAGEMENT));
+        assertFalse(permissionProvider.hasPrivileges(getVersionTree(TEST_OAK_PATH, false), JCR_READ,
+            JCR_LOCK_MANAGEMENT));
 
-        assertTrue(permissionProvider.hasPrivileges(getVersionTree(grandchildPath, false), JCR_READ));
-        assertTrue(permissionProvider.hasPrivileges(getVersionTree(TEST_OAK_PATH, true), JCR_READ, JCR_VERSION_MANAGEMENT));
+        assertTrue(
+            permissionProvider.hasPrivileges(getVersionTree(grandchildPath, false), JCR_READ));
+        assertTrue(permissionProvider.hasPrivileges(getVersionTree(TEST_OAK_PATH, true), JCR_READ,
+            JCR_VERSION_MANAGEMENT));
     }
 }

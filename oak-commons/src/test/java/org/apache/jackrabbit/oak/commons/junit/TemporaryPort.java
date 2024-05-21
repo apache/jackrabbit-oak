@@ -18,7 +18,6 @@
 package org.apache.jackrabbit.oak.commons.junit;
 
 import java.net.ServerSocket;
-
 import org.junit.rules.ExternalResource;
 
 public class TemporaryPort extends ExternalResource {

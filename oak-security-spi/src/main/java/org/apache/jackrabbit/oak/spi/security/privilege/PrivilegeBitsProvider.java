@@ -24,7 +24,6 @@ import java.util.Map;
 import java.util.Set;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
-
 import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Predicates;
 import org.apache.jackrabbit.guava.common.collect.FluentIterable;
@@ -41,8 +40,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Allows to obtain the internal {@link PrivilegeBits representation} of privileges (or their names) and to covert the 
- * internal representation back to privilege names.
+ * Allows to obtain the internal {@link PrivilegeBits representation} of privileges (or their names)
+ * and to covert the internal representation back to privilege names.
  */
 public final class PrivilegeBitsProvider implements PrivilegeConstants {
 
@@ -59,8 +58,7 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
     }
 
     /**
-     * Returns the root tree for all privilege definitions stored in the content
-     * repository.
+     * Returns the root tree for all privilege definitions stored in the content repository.
      *
      * @return The privileges root.
      */
@@ -71,7 +69,7 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
 
     /**
      * Returns the bits for the given privilege names.
-     * 
+     *
      * @param privilegeNames the names
      * @return the privilege bits representing the given privilege names.
      */
@@ -85,8 +83,9 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
     }
 
     /**
-     * Returns the bits for the given privilege names. Note, that any invalid privilege names will be ignored.
-     * 
+     * Returns the bits for the given privilege names. Note, that any invalid privilege names will
+     * be ignored.
+     *
      * @param privilegeNames the names
      * @return the privilege bits representing the given privilege names.
      */
@@ -102,18 +101,22 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
     }
 
     /**
-     * Returns the bits for the given privilege names with the option to verify that all privilege names point to a valid,
-     * registered privilege.
-     * 
+     * Returns the bits for the given privilege names with the option to verify that all privilege
+     * names point to a valid, registered privilege.
+     *
      * @param privilegeNames An iterable of privilege names.
-     * @param validateNames If set to {@code true} this method will throw an AccessControlException if an invalid privilege 
-     * name is found (i.e. one that doesn't represent a registered privilege). If set to {@code false} invalid privilege 
-     * names will be ignored i.e. making this method equivalent to {@link #getBits(String...)}.
+     * @param validateNames  If set to {@code true} this method will throw an AccessControlException
+     *                       if an invalid privilege name is found (i.e. one that doesn't represent
+     *                       a registered privilege). If set to {@code false} invalid privilege
+     *                       names will be ignored i.e. making this method equivalent to
+     *                       {@link #getBits(String...)}.
      * @return the privilege bits representing the given privilege names.
-     * @throws AccessControlException If {@code validateNames} is {@code true} and the any of the specified privilege names is invalid.
+     * @throws AccessControlException If {@code validateNames} is {@code true} and the any of the
+     *                                specified privilege names is invalid.
      */
     @NotNull
-    public PrivilegeBits getBits(@NotNull Iterable<String> privilegeNames, boolean validateNames) throws AccessControlException {
+    public PrivilegeBits getBits(@NotNull Iterable<String> privilegeNames, boolean validateNames)
+        throws AccessControlException {
         if (!validateNames) {
             return getBits(privilegeNames);
         }
@@ -122,12 +125,14 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
         }
         PrivilegeBits bits = PrivilegeBits.getInstance();
         if (!collectBits(privilegeNames, bits)) {
-            throw new AccessControlException("Invalid privilege name contained in " + privilegeNames);
+            throw new AccessControlException(
+                "Invalid privilege name contained in " + privilegeNames);
         }
         return bits.unmodifiable();
     }
-    
-    private boolean collectBits(@NotNull Iterable<String> privilegeNames, @NotNull PrivilegeBits bits) {
+
+    private boolean collectBits(@NotNull Iterable<String> privilegeNames,
+        @NotNull PrivilegeBits bits) {
         Tree privilegesTree = null;
         boolean allNamesValid = true;
         for (String privilegeName : privilegeNames) {
@@ -136,7 +141,7 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
                 bits.add(builtIn);
             } else if (nameToBits.containsKey(privilegeName)) {
                 bits.add(nameToBits.get(privilegeName));
-            }  else {
+            } else {
                 if (privilegesTree == null) {
                     privilegesTree = getPrivilegesTree();
                 }
@@ -162,17 +167,18 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
      * @return the privilege bits representing the given array of privileges.
      */
     @NotNull
-    public PrivilegeBits getBits(@NotNull Privilege[] privileges, @NotNull final NameMapper nameMapper) {
-        return getBits(Iterables.filter(Iterables.transform(Arrays.asList(privileges), privilege -> nameMapper.getOakNameOrNull(privilege.getName())), Predicates.notNull()));
+    public PrivilegeBits getBits(@NotNull Privilege[] privileges,
+        @NotNull final NameMapper nameMapper) {
+        return getBits(Iterables.filter(Iterables.transform(Arrays.asList(privileges),
+            privilege -> nameMapper.getOakNameOrNull(privilege.getName())), Predicates.notNull()));
     }
 
     /**
      * Resolve the given privilege bits to the corresponding set of privilege names.
      *
      * @param privilegeBits An instance of privilege bits.
-     * @return The names of the registered privileges associated with the given
-     *         bits. Any bits that don't have a corresponding privilege definition will
-     *         be ignored.
+     * @return The names of the registered privileges associated with the given bits. Any bits that
+     * don't have a corresponding privilege definition will be ignored.
      */
     @NotNull
     public Set<String> getPrivilegeNames(@Nullable PrivilegeBits privilegeBits) {
@@ -192,7 +198,8 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
 
             if (bitsToNames.isEmpty()) {
                 for (Tree child : privilegesTree.getChildren()) {
-                    bitsToNames.put(PrivilegeBits.getInstance(child), Collections.singleton(child.getName()));
+                    bitsToNames.put(PrivilegeBits.getInstance(child),
+                        Collections.singleton(child.getName()));
                 }
             }
 
@@ -208,7 +215,8 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
     }
 
     @NotNull
-    private static Set<String> collectPrivilegeNames(@NotNull Tree privilegesTree, @NotNull PrivilegeBits pb) {
+    private static Set<String> collectPrivilegeNames(@NotNull Tree privilegesTree,
+        @NotNull PrivilegeBits pb) {
         Set<String> privilegeNames = new HashSet<>();
         Set<String> aggregates = new HashSet<>();
         for (Tree child : privilegesTree.getChildren()) {
@@ -216,7 +224,8 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
             if (pb.includes(bits)) {
                 privilegeNames.add(child.getName());
                 if (child.hasProperty(REP_AGGREGATES)) {
-                    aggregates.addAll(PrivilegeUtil.readDefinition(child).getDeclaredAggregateNames());
+                    aggregates.addAll(
+                        PrivilegeUtil.readDefinition(child).getDeclaredAggregateNames());
                 }
             }
         }
@@ -225,12 +234,12 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
     }
 
     /**
-     * Return the names of the non-aggregate privilege names corresponding to the
-     * specified {@code privilegeNames}.
+     * Return the names of the non-aggregate privilege names corresponding to the specified
+     * {@code privilegeNames}.
      *
      * @param privilegeNames The privilege names to be converted.
-     * @return The names of the non-aggregate privileges that correspond to the
-     * given {@code privilegeNames}.
+     * @return The names of the non-aggregate privileges that correspond to the given
+     * {@code privilegeNames}.
      */
     @NotNull
     public Iterable<String> getAggregatedPrivilegeNames(@NotNull String... privilegeNames) {
@@ -261,7 +270,8 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
 
     @NotNull
     private Iterable<String> extractAggregatedPrivileges(@NotNull Iterable<String> privilegeNames) {
-        return FluentIterable.from(privilegeNames).transformAndConcat(new ExtractAggregatedPrivileges());
+        return FluentIterable.from(privilegeNames)
+                             .transformAndConcat(new ExtractAggregatedPrivileges());
     }
 
     @NotNull
@@ -280,6 +290,7 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
     }
 
     private final class ExtractAggregatedPrivileges implements Function<String, Iterable<String>> {
+
         @NotNull
         @Override
         public Iterable<String> apply(@Nullable String privName) {
@@ -305,7 +316,8 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
             }
         }
 
-        private void fillAggregation(@NotNull Tree privTree, @NotNull ImmutableSet.Builder<String> builder) {
+        private void fillAggregation(@NotNull Tree privTree,
+            @NotNull ImmutableSet.Builder<String> builder) {
             if (!privTree.exists()) {
                 return;
             }

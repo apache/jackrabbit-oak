@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.exercise.security.principal;
 
 import java.security.Principal;
 import javax.jcr.RepositoryException;
-
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
@@ -107,7 +106,9 @@ public class L3_EveryoneTest extends AbstractJCRTest {
         assertNotNull(everyone);
         assertTrue(everyone instanceof GroupPrincipal);
 
-        Authorizable everyoneAuthorizable = ((JackrabbitSession) superuser).getUserManager().getAuthorizable(everyone);
+        Authorizable everyoneAuthorizable = ((JackrabbitSession) superuser).getUserManager()
+                                                                           .getAuthorizable(
+                                                                               everyone);
         assertNull(everyoneAuthorizable);
     }
 

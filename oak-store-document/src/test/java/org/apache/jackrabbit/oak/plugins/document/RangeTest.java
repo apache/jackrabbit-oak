@@ -57,7 +57,7 @@ public class RangeTest {
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void invalidRange() throws Exception{
+    public void invalidRange() throws Exception {
         Revision low = new Revision(0x100, 0, 1);
         Revision high = new Revision(0x300, 0, 1);
 

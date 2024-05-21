@@ -18,13 +18,11 @@ package org.apache.jackrabbit.oak.benchmark;
 
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
-
 import javax.jcr.Node;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
-
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.UserManager;
@@ -35,12 +33,11 @@ import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.util.Text;
 
 /**
- * Measure impact of synchronous token cleanup on the repository login with
- * tokens over multiple users. Concurrency can be set via the benchmark runner.
- *
- * Default expiration time login tokens is 2 hours, this benchmark uses 15
- * seconds to allow for cleanup during the benchmark.
- *
+ * Measure impact of synchronous token cleanup on the repository login with tokens over multiple
+ * users. Concurrency can be set via the benchmark runner.
+ * <p>
+ * Default expiration time login tokens is 2 hours, this benchmark uses 15 seconds to allow for
+ * cleanup during the benchmark.
  */
 public class LoginWithTokensTest extends AbstractLoginTest {
 
@@ -67,10 +64,12 @@ public class LoginWithTokensTest extends AbstractLoginTest {
 
     @Override
     protected ConfigurationParameters prepare(ConfigurationParameters conf) {
-        ConfigurationParameters tkns = ConfigurationParameters.of(TokenProvider.PARAM_TOKEN_EXPIRATION, tknExpy,
-                "tokenCleanupThreshold", cleanupThreshold);
+        ConfigurationParameters tkns = ConfigurationParameters.of(
+            TokenProvider.PARAM_TOKEN_EXPIRATION, tknExpy,
+            "tokenCleanupThreshold", cleanupThreshold);
 
-        ConfigurationParameters tokenConfig = ConfigurationParameters.of(TokenConfiguration.NAME, tkns);
+        ConfigurationParameters tokenConfig = ConfigurationParameters.of(TokenConfiguration.NAME,
+            tkns);
         return ConfigurationParameters.of(conf, tokenConfig);
     }
 
@@ -98,7 +97,8 @@ public class LoginWithTokensTest extends AbstractLoginTest {
     public void afterSuite() throws Exception {
         Session s = loginAdministrative();
         try {
-            Authorizable authorizable = ((JackrabbitSession) s).getUserManager().getAuthorizable(USER + "0");
+            Authorizable authorizable = ((JackrabbitSession) s).getUserManager()
+                                                               .getAuthorizable(USER + "0");
             if (authorizable != null) {
                 Node n = s.getNode(Text.getRelativeParent(authorizable.getPath(), 1));
                 n.remove();

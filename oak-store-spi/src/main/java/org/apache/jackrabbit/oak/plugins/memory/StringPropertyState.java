@@ -18,16 +18,17 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.value.Conversions;
 import org.apache.jackrabbit.oak.plugins.value.Conversions.Converter;
 import org.jetbrains.annotations.NotNull;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.api.Type.STRING;
-
 public class StringPropertyState extends SinglePropertyState<String> {
+
     private final String value;
 
     public StringPropertyState(@NotNull String name, @NotNull String value) {
@@ -37,12 +38,13 @@ public class StringPropertyState extends SinglePropertyState<String> {
 
     /**
      * Create a {@code PropertyState} from a string.
+     *
      * @param name  The name of the property state
-     * @param value  The value of the property state
-     * @return  The new property state of type {@link Type#STRING}
+     * @param value The value of the property state
+     * @return The new property state of type {@link Type#STRING}
      */
     public static PropertyState stringProperty(
-            @NotNull String name, @NotNull String value) {
+        @NotNull String name, @NotNull String value) {
         return new StringPropertyState(name, value);
     }
 

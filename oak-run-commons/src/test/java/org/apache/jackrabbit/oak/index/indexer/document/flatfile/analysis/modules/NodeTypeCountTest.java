@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modul
 import static org.junit.Assert.assertEquals;
 
 import java.util.Arrays;
-
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeData;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeProperty;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeProperty.ValueType;
@@ -36,16 +35,19 @@ public class NodeTypeCountTest {
             NodeProperty p1, p2;
             if (i % 10 == 0) {
                 p1 = new NodeProperty("jcr:primaryType", ValueType.NAME, "nt:unstructured");
-                p2 = new NodeProperty("jcr:mixinTypes", ValueType.NAME, new String[] {"mix:a", "mix:b"}, true);
+                p2 = new NodeProperty("jcr:mixinTypes", ValueType.NAME,
+                    new String[]{"mix:a", "mix:b"}, true);
             } else {
                 p1 = new NodeProperty("jcr:primaryType", ValueType.NAME, "oak:unstructured");
-                p2 = new NodeProperty("jcr:mixinTypes", ValueType.NAME, new String[] {"mix:a", "mix:c"}, true);
+                p2 = new NodeProperty("jcr:mixinTypes", ValueType.NAME,
+                    new String[]{"mix:a", "mix:c"}, true);
             }
-            NodeData n = new NodeData(Arrays.asList("content", "dam", "folder" + (i % 10), "n" + i), Arrays.asList(p1, p2));
+            NodeData n = new NodeData(Arrays.asList("content", "dam", "folder" + (i % 10), "n" + i),
+                Arrays.asList(p1, p2));
             nc.add(n);
         }
         assertEquals(
-                "NodeTypeCount\n"
+            "NodeTypeCount\n"
                 + "mixin/mix:a: 10000\n"
                 + "mixin/mix:b: 1000\n"
                 + "mixin/mix:c: 9000\n"

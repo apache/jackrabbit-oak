@@ -19,13 +19,14 @@
 package org.apache.jackrabbit.oak.index.indexer.document.indexstore;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import org.apache.jackrabbit.oak.commons.Compression;
-
 import java.io.File;
 import java.io.IOException;
+import org.apache.jackrabbit.oak.commons.Compression;
 
 public interface IndexStoreMetadataOperator<M> {
+
     File createMetadataFile(M t, File storeDir, Compression algorithm) throws IOException;
 
-    M getIndexStoreMetadata(File metadataFile, Compression algorithm, TypeReference<M> clazz) throws IOException;
+    M getIndexStoreMetadata(File metadataFile, Compression algorithm, TypeReference<M> clazz)
+        throws IOException;
 }

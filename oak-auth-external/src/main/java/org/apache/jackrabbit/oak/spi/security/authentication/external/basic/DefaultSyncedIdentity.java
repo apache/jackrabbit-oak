@@ -34,7 +34,8 @@ public class DefaultSyncedIdentity implements SyncedIdentity {
 
     private final long lastSynced;
 
-    public DefaultSyncedIdentity(@NotNull String id, @Nullable ExternalIdentityRef ref, boolean isGroup, long lastSynced) {
+    public DefaultSyncedIdentity(@NotNull String id, @Nullable ExternalIdentityRef ref,
+        boolean isGroup, long lastSynced) {
         this.id = id;
         this.ref = ref;
         this.isGroup = isGroup;

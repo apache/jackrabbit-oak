@@ -21,7 +21,6 @@ import static org.junit.Assert.assertEquals;
 
 import java.util.HashMap;
 import java.util.Map;
-
 import org.apache.jackrabbit.oak.segment.RecordNumbers.Entry;
 import org.junit.Test;
 

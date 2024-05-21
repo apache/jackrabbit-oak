@@ -18,17 +18,6 @@
  */
 package org.apache.jackrabbit.oak.cache.impl;
 
-import java.util.Map;
-import java.util.Random;
-
-import com.codahale.metrics.Counter;
-import com.codahale.metrics.MetricRegistry;
-
-import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
-import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
-import org.jetbrains.annotations.NotNull;
-import org.junit.Test;
-
 import static org.apache.jackrabbit.oak.cache.impl.CacheStatsMetrics.ELEMENT;
 import static org.apache.jackrabbit.oak.cache.impl.CacheStatsMetrics.EVICTION;
 import static org.apache.jackrabbit.oak.cache.impl.CacheStatsMetrics.HIT;
@@ -37,6 +26,15 @@ import static org.apache.jackrabbit.oak.cache.impl.CacheStatsMetrics.REQUEST;
 import static org.apache.jackrabbit.oak.cache.impl.CacheStatsMetrics.metricName;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+
+import com.codahale.metrics.Counter;
+import com.codahale.metrics.MetricRegistry;
+import java.util.Map;
+import java.util.Random;
+import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
+import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
+import org.jetbrains.annotations.NotNull;
+import org.junit.Test;
 
 public class CacheStatsMetricsTest {
 

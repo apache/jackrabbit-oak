@@ -17,16 +17,14 @@
 
 package org.apache.jackrabbit.oak.run;
 
+import java.io.IOException;
+import java.io.PrintWriter;
+import joptsimple.OptionParser;
+import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
 import org.apache.jackrabbit.oak.run.commons.Command;
 import org.apache.jackrabbit.oak.segment.aws.tool.AwsSegmentCopy;
 import org.apache.jackrabbit.oak.segment.azure.tool.SegmentCopy;
-
-import java.io.IOException;
-import java.io.PrintWriter;
-
-import joptsimple.OptionParser;
-import joptsimple.OptionSet;
 
 class SegmentCopyCommand implements Command {
 
@@ -34,17 +32,19 @@ class SegmentCopyCommand implements Command {
     public void execute(String... args) throws Exception {
         OptionParser parser = new OptionParser();
 
-        OptionSpec<Integer> last = parser.accepts("last", "define the number of revisions to be copied (default: 1)")
-                .withOptionalArg()
-                .ofType(Integer.class);
+        OptionSpec<Integer> last = parser.accepts("last",
+                                             "define the number of revisions to be copied (default: 1)")
+                                         .withOptionalArg()
+                                         .ofType(Integer.class);
 
         OptionSpec<Void> flat = parser.accepts("flat", "copy segments in flat hierarchy");
 
         OptionSpec<Void> append = parser.accepts("append", "skip existing segments");
 
-        OptionSpec<Integer> maxSizeGb = parser.accepts("max-size-gb", "define maximum size of archives to be copied")
-                .withOptionalArg()
-                .ofType(Integer.class);
+        OptionSpec<Integer> maxSizeGb = parser.accepts("max-size-gb",
+                                                  "define maximum size of archives to be copied")
+                                              .withOptionalArg()
+                                              .ofType(Integer.class);
 
         OptionSet options = parser.parse(args);
 
@@ -60,10 +60,10 @@ class SegmentCopyCommand implements Command {
 
         if (AwsSegmentCopy.canExecute(source, destination)) {
             AwsSegmentCopy.Builder builder = AwsSegmentCopy.builder()
-                    .withSource(source)
-                    .withDestination(destination)
-                    .withOutWriter(out)
-                    .withErrWriter(err);
+                                                           .withSource(source)
+                                                           .withDestination(destination)
+                                                           .withOutWriter(out)
+                                                           .withErrWriter(err);
 
             if (options.has(last)) {
                 builder.withRevisionsCount(last.value(options) != null ? last.value(options) : 1);
@@ -72,11 +72,11 @@ class SegmentCopyCommand implements Command {
             System.exit(builder.build().run());
         } else {
             SegmentCopy.Builder builder = SegmentCopy.builder()
-                    .withSource(source)
-                    .withDestination(destination)
-                    .withOutWriter(out)
-                    .withErrWriter(err)
-                    .withAppendMode(options.has(append));
+                                                     .withSource(source)
+                                                     .withDestination(destination)
+                                                     .withOutWriter(out)
+                                                     .withErrWriter(err)
+                                                     .withAppendMode(options.has(append));
 
             if (options.has(last)) {
                 builder.withRevisionsCount(last.value(options) != null ? last.value(options) : 1);
@@ -91,7 +91,8 @@ class SegmentCopyCommand implements Command {
         }
     }
 
-    private void printUsage(OptionParser parser, PrintWriter err, String... messages) throws IOException {
+    private void printUsage(OptionParser parser, PrintWriter err, String... messages)
+        throws IOException {
         for (String message : messages) {
             err.println(message);
         }

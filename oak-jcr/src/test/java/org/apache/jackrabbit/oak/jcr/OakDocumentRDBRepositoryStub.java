@@ -21,10 +21,8 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Properties;
-
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
-
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentNodeStoreBuilder;
@@ -35,7 +33,8 @@ import org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions;
  */
 public class OakDocumentRDBRepositoryStub extends BaseRepositoryStub {
 
-    protected static final String URL = System.getProperty("rdb.jdbc-url", "jdbc:h2:file:./{fname}oaktest;DB_CLOSE_ON_EXIT=FALSE");
+    protected static final String URL = System.getProperty("rdb.jdbc-url",
+        "jdbc:h2:file:./{fname}oaktest;DB_CLOSE_ON_EXIT=FALSE");
 
     protected static final String USERNAME = System.getProperty("rdb.jdbc-user", "sa");
 
@@ -48,11 +47,9 @@ public class OakDocumentRDBRepositoryStub extends BaseRepositoryStub {
 
     /**
      * Constructor as required by the JCR TCK.
-     * 
-     * @param settings
-     *            repository settings
-     * @throws javax.jcr.RepositoryException
-     *             If an error occurs.
+     *
+     * @param settings repository settings
+     * @throws javax.jcr.RepositoryException If an error occurs.
      */
     public OakDocumentRDBRepositoryStub(Properties settings) throws RepositoryException {
         super(settings);
@@ -62,10 +59,11 @@ public class OakDocumentRDBRepositoryStub extends BaseRepositoryStub {
             String prefix = "T" + Long.toHexString(System.currentTimeMillis());
             RDBOptions options = new RDBOptions().tablePrefix(prefix).dropTablesOnClose(true);
             m = new RDBDocumentNodeStoreBuilder().
-                    memoryCacheSize(64 * 1024 * 1024).
-                    setPersistentCache("target/persistentCache,time").
-                    setRDBConnection(RDBDataSourceFactory.forJdbcUrl(jdbcUrl, USERNAME, PASSWD), options).
-                    build();
+                memoryCacheSize(64 * 1024 * 1024).
+                setPersistentCache("target/persistentCache,time").
+                setRDBConnection(RDBDataSourceFactory.forJdbcUrl(jdbcUrl, USERNAME, PASSWD),
+                    options).
+                build();
             Jcr jcr = new Jcr(m);
             preCreateRepository(jcr);
             this.repository = jcr.createRepository();
@@ -83,11 +81,11 @@ public class OakDocumentRDBRepositoryStub extends BaseRepositoryStub {
 
     public static boolean isAvailable() {
         try {
-            Connection c = DriverManager.getConnection(OakDocumentRDBRepositoryStub.jdbcUrl, USERNAME, PASSWD);
+            Connection c = DriverManager.getConnection(OakDocumentRDBRepositoryStub.jdbcUrl,
+                USERNAME, PASSWD);
             c.close();
             return true;
-        }
-        catch (SQLException ex) {
+        } catch (SQLException ex) {
             // expected
             return false;
         }
@@ -95,7 +93,7 @@ public class OakDocumentRDBRepositoryStub extends BaseRepositoryStub {
 
     /**
      * Returns the configured repository instance.
-     * 
+     *
      * @return the configured repository instance.
      */
     @Override

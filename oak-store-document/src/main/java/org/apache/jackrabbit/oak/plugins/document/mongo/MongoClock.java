@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
 import com.mongodb.client.ClientSession;
-
 import org.bson.BsonDocument;
 import org.bson.BsonTimestamp;
 

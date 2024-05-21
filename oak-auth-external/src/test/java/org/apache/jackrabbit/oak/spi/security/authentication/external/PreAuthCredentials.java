@@ -18,7 +18,6 @@
 package org.apache.jackrabbit.oak.spi.security.authentication.external;
 
 import javax.jcr.Credentials;
-
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 

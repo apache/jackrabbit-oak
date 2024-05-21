@@ -24,7 +24,6 @@ import static org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEdit
 import static org.junit.Assert.assertTrue;
 
 import javax.jcr.query.Query;
-
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;

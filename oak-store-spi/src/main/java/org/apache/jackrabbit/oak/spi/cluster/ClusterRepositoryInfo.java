@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.spi.cluster;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
 import java.util.UUID;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -36,6 +35,7 @@ import org.slf4j.LoggerFactory;
  * Utility class to manage a unique cluster/repository id for the cluster.
  */
 public class ClusterRepositoryInfo {
+
     private static final Logger log = LoggerFactory.getLogger(ClusterRepositoryInfo.class);
     public static final String OAK_CLUSTERID_REPOSITORY_DESCRIPTOR_KEY = "oak.clusterid";
     public static final String CLUSTER_CONFIG_NODE = ":clusterConfig";
@@ -45,17 +45,14 @@ public class ClusterRepositoryInfo {
     }
 
     /**
-     * Gets the {# CLUSTER_ID_PROP} if available, if it doesn't it 
-     * creates it and returns the newly created one (or if that
-     * happened concurrently and another cluster instance won,
-     * return that one)
+     * Gets the {# CLUSTER_ID_PROP} if available, if it doesn't it creates it and returns the newly
+     * created one (or if that happened concurrently and another cluster instance won, return that
+     * one)
      * <p>
-     * Note that this method doesn't require synchronization as
-     * concurrent execution within the VM would be covered
-     * within NodeStore's merge and result in a conflict for
-     * one of the two threads - in which case the looser would
-     * re-read and find the clusterId set.
-     * 
+     * Note that this method doesn't require synchronization as concurrent execution within the VM
+     * would be covered within NodeStore's merge and result in a conflict for one of the two threads
+     * - in which case the looser would re-read and find the clusterId set.
+     *
      * @param store the NodeStore instance
      * @return the persistent clusterId
      */
@@ -70,13 +67,13 @@ public class ClusterRepositoryInfo {
             // clusterId is set - this is the normal case
             return node.getProperty(CLUSTER_ID_PROP).getValue(Type.STRING);
         }
-        
+
         // otherwise either the config node or the property doesn't exist.
         // then try to create it - but since this could be executed concurrently
         // in a cluster, it might result in a conflict. in that case, re-read
         // the node
         NodeBuilder builder = root.builder();
-        
+
         // choose a new random clusterId
         String newRandomClusterId = UUID.randomUUID().toString();
         builder.child(CLUSTER_CONFIG_NODE).setProperty(CLUSTER_ID_PROP, newRandomClusterId);
@@ -96,7 +93,7 @@ public class ClusterRepositoryInfo {
                 // clusterId is set - this is the normal case
                 return node.getProperty(CLUSTER_ID_PROP).getValue(Type.STRING);
             }
-            
+
             // this should not happen
             String path = "/" + CLUSTER_CONFIG_NODE + "/" + CLUSTER_ID_PROP;
             log.error("getOrCreateId: both setting and then reading of " + path + "failed");

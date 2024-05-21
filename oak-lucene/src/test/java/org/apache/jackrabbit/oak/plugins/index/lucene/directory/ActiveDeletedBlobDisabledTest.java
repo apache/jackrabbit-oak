@@ -19,9 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 import static org.junit.Assert.assertEquals;
 
 import java.util.concurrent.Executor;
-
 import javax.management.openmbean.CompositeData;
-
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoService;
 import org.apache.jackrabbit.oak.plugins.index.IndexPathService;
 import org.apache.jackrabbit.oak.plugins.index.lucene.ActiveDeletedBlobCollectorMBeanImpl;
@@ -47,13 +45,13 @@ public class ActiveDeletedBlobDisabledTest {
                 }
             };
             ActiveDeletedBlobCollectorMBeanImpl b = new ActiveDeletedBlobCollectorMBeanImpl(
-                    ActiveDeletedBlobCollectorFactory.NOOP,
-                    new DefaultWhiteboard(),
-                    store,
-                    indexPathService,
-                    asyncIndexInfoService,
-                    new MemoryBlobStore(),
-                    executor);
+                ActiveDeletedBlobCollectorFactory.NOOP,
+                new DefaultWhiteboard(),
+                store,
+                indexPathService,
+                asyncIndexInfoService,
+                new MemoryBlobStore(),
+                executor);
             b.isActiveDeletionUnsafe();
             b.isDisabled();
             CompositeData d = b.startActiveCollection();
@@ -64,8 +62,9 @@ public class ActiveDeletedBlobDisabledTest {
             } else {
                 // failed
                 assertEquals(5, d.get("code"));
-                assertEquals("Active lucene index blobs collection couldn't be run as a safe timestamp for purging lucene index blobs couldn't be evaluated",
-                        d.get("message"));
+                assertEquals(
+                    "Active lucene index blobs collection couldn't be run as a safe timestamp for purging lucene index blobs couldn't be evaluated",
+                    d.get("message"));
             }
         } finally {
             System.clearProperty(property);

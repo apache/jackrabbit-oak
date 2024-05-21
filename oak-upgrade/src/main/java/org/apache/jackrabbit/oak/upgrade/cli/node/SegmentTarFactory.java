@@ -16,13 +16,13 @@
  */
 package org.apache.jackrabbit.oak.upgrade.cli.node;
 
-import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.apache.jackrabbit.oak.segment.SegmentCache.DEFAULT_SEGMENT_CACHE_MB;
+import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.apache.jackrabbit.oak.upgrade.cli.node.FileStoreUtils.asCloseable;
 
 import java.io.File;
 import java.io.IOException;
-
+import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
@@ -31,8 +31,6 @@ import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.upgrade.cli.node.FileStoreUtils.NodeStoreWithFileStore;
-
-import org.apache.jackrabbit.guava.common.io.Closer;
 
 public class SegmentTarFactory implements NodeStoreFactory {
 
@@ -44,7 +42,8 @@ public class SegmentTarFactory implements NodeStoreFactory {
 
     private final boolean readOnly;
 
-    public SegmentTarFactory(String directory, boolean disableMmap, int segmentCacheSize, boolean readOnly) {
+    public SegmentTarFactory(String directory, boolean disableMmap, int segmentCacheSize,
+        boolean readOnly) {
         this.dir = new File(directory);
         this.disableMmap = disableMmap;
         this.segmentCacheSize = segmentCacheSize;
@@ -77,7 +76,8 @@ public class SegmentTarFactory implements NodeStoreFactory {
         try {
             if (readOnly) {
                 final ReadOnlyFileStore fs;
-                builder.withSegmentCacheSize(segmentCacheSize > 0 ? segmentCacheSize : DEFAULT_SEGMENT_CACHE_MB);
+                builder.withSegmentCacheSize(
+                    segmentCacheSize > 0 ? segmentCacheSize : DEFAULT_SEGMENT_CACHE_MB);
                 fs = builder.buildReadOnly();
                 closer.register(asCloseable(fs));
                 return SegmentNodeStoreBuilders.builder(fs).build();

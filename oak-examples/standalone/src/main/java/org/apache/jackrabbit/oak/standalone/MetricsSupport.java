@@ -35,9 +35,9 @@ public class MetricsSupport {
     private PojoServiceRegistry serviceRegistry;
 
     @Bean
-    public MetricRegistry getMetricsRegistry(){
+    public MetricRegistry getMetricsRegistry() {
         ServiceReference<?> metricRegistry =
-                serviceRegistry.getServiceReference(MetricRegistry.class.getName());
+            serviceRegistry.getServiceReference(MetricRegistry.class.getName());
         return (MetricRegistry) serviceRegistry.getService(metricRegistry);
     }
 }

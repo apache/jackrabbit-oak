@@ -19,20 +19,20 @@
 
 package org.apache.jackrabbit.oak.index;
 
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.output.TeeOutputStream;
 import org.apache.felix.inventory.Format;
 import org.apache.felix.inventory.InventoryPrinter;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-
 class PrinterDumper {
+
     private final File outDir;
     private final String fileName;
     private final boolean dumpToSysOut;
@@ -40,7 +40,8 @@ class PrinterDumper {
     private final InventoryPrinter printer;
     private File outFile;
 
-    public PrinterDumper(File outDir, String fileName, boolean dumpToSysOut, Format format, InventoryPrinter printer) {
+    public PrinterDumper(File outDir, String fileName, boolean dumpToSysOut, Format format,
+        InventoryPrinter printer) {
         this.outDir = outDir;
         this.fileName = fileName;
         this.dumpToSysOut = dumpToSysOut;

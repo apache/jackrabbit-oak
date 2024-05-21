@@ -65,8 +65,9 @@ public class PermissionProviderVersionStoreTest extends AbstractPrincipalBasedTe
         String andPath = PathUtils.getAncestorPath(TEST_OAK_PATH, 3);
 
         Tree typeRoot = root.getTree(NodeTypeConstants.NODE_TYPES_PATH);
-        for (String path : new String[] {contentPath, andPath, TEST_OAK_PATH}) {
-            TreeUtil.addMixin(root.getTree(path), NodeTypeConstants.MIX_VERSIONABLE, typeRoot, "uid");
+        for (String path : new String[]{contentPath, andPath, TEST_OAK_PATH}) {
+            TreeUtil.addMixin(root.getTree(path), NodeTypeConstants.MIX_VERSIONABLE, typeRoot,
+                "uid");
         }
         root.commit();
 
@@ -81,8 +82,10 @@ public class PermissionProviderVersionStoreTest extends AbstractPrincipalBasedTe
     private void grantReadOnVersionStoreTrees() throws Exception {
         JackrabbitAccessControlManager jacm = getAccessControlManager(root);
         PrincipalPolicyImpl policy = getPrincipalPolicyImpl(testPrincipal, jacm);
-        Map<String, Value[]> restr = ImmutableMap.of(REP_NT_NAMES, new Value[] {getValueFactory(root).createValue(REP_VERSIONSTORAGE, PropertyType.NAME)});
-        policy.addEntry(PathUtils.ROOT_PATH, privilegesFromNames(PrivilegeConstants.JCR_READ), ImmutableMap.of(), restr);
+        Map<String, Value[]> restr = ImmutableMap.of(REP_NT_NAMES,
+            new Value[]{getValueFactory(root).createValue(REP_VERSIONSTORAGE, PropertyType.NAME)});
+        policy.addEntry(PathUtils.ROOT_PATH, privilegesFromNames(PrivilegeConstants.JCR_READ),
+            ImmutableMap.of(), restr);
         jacm.setPolicy(policy.getPath(), policy);
         root.commit();
 
@@ -125,12 +128,14 @@ public class PermissionProviderVersionStoreTest extends AbstractPrincipalBasedTe
     public void testIsGranted() throws Exception {
         Tree versionStore = root.getTree(VERSION_STORE_PATH);
         assertFalse(permissionProvider.isGranted(versionStore, null, Permissions.READ_NODE));
-        assertFalse(permissionProvider.isGranted(versionStore, versionStore.getProperty(JcrConstants.JCR_PRIMARYTYPE), Permissions.READ_PROPERTY));
+        assertFalse(permissionProvider.isGranted(versionStore,
+            versionStore.getProperty(JcrConstants.JCR_PRIMARYTYPE), Permissions.READ_PROPERTY));
 
         grantReadOnVersionStoreTrees();
 
         assertTrue(permissionProvider.isGranted(versionStore, null, Permissions.READ_NODE));
-        assertTrue(permissionProvider.isGranted(versionStore, versionStore.getProperty(JcrConstants.JCR_PRIMARYTYPE), Permissions.READ_PROPERTY));
+        assertTrue(permissionProvider.isGranted(versionStore,
+            versionStore.getProperty(JcrConstants.JCR_PRIMARYTYPE), Permissions.READ_PROPERTY));
     }
 
     @Test
@@ -145,7 +150,8 @@ public class PermissionProviderVersionStoreTest extends AbstractPrincipalBasedTe
 
     @Test
     public void testIsGrantedPropertyLocation() throws Exception {
-        TreeLocation tl = TreeLocation.create(root, VERSION_STORE_PATH).getChild(JcrConstants.JCR_PRIMARYTYPE);
+        TreeLocation tl = TreeLocation.create(root, VERSION_STORE_PATH)
+                                      .getChild(JcrConstants.JCR_PRIMARYTYPE);
         assertNotNull(tl.getProperty());
 
         assertFalse(permissionProvider.isGranted(tl, Permissions.READ_PROPERTY));
@@ -190,16 +196,19 @@ public class PermissionProviderVersionStoreTest extends AbstractPrincipalBasedTe
 
         grantReadOnVersionStoreTrees();
 
-        assertTrue(Iterables.elementsEqual(ImmutableSet.of(PrivilegeConstants.JCR_READ), permissionProvider.getPrivileges(versionStore)));
+        assertTrue(Iterables.elementsEqual(ImmutableSet.of(PrivilegeConstants.JCR_READ),
+            permissionProvider.getPrivileges(versionStore)));
     }
 
     @Test
     public void testHasPrivileges() throws Exception {
         Tree versionStore = root.getTree(VERSION_STORE_PATH);
-        assertFalse(permissionProvider.hasPrivileges(versionStore, PrivilegeConstants.REP_READ_NODES));
+        assertFalse(
+            permissionProvider.hasPrivileges(versionStore, PrivilegeConstants.REP_READ_NODES));
 
         grantReadOnVersionStoreTrees();
 
-        assertTrue(permissionProvider.hasPrivileges(versionStore, PrivilegeConstants.REP_READ_NODES, PrivilegeConstants.REP_READ_PROPERTIES));
+        assertTrue(permissionProvider.hasPrivileges(versionStore, PrivilegeConstants.REP_READ_NODES,
+            PrivilegeConstants.REP_READ_PROPERTIES));
     }
 }

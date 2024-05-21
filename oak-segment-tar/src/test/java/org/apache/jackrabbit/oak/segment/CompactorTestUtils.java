@@ -23,6 +23,10 @@ import static org.apache.jackrabbit.oak.plugins.memory.MultiBinaryPropertyState.
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.util.List;
+import java.util.Random;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.segment.file.CompactedNodeState;
@@ -36,26 +40,25 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.jetbrains.annotations.NotNull;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.util.List;
-import java.util.Random;
-
 public class CompactorTestUtils {
 
-    private CompactorTestUtils() {}
+    private CompactorTestUtils() {
+    }
 
     public interface SimpleCompactor {
+
         CompactedNodeState compact(NodeState nodeState, Canceller canceller) throws IOException;
     }
 
     public interface SimpleCompactorFactory {
+
         SimpleCompactor newSimpleCompactor(Compactor compactor);
     }
 
     public static void checkGeneration(NodeState node, GCGeneration gcGeneration) {
         assertTrue(node instanceof SegmentNodeState);
-        assertEquals(gcGeneration, ((SegmentNodeState) node).getRecordId().getSegmentId().getGcGeneration());
+        assertEquals(gcGeneration,
+            ((SegmentNodeState) node).getRecordId().getSegmentId().getGcGeneration());
 
         for (ChildNodeEntry cne : node.getChildNodeEntries()) {
             checkGeneration(cne.getNodeState(), gcGeneration);
@@ -64,9 +67,9 @@ public class CompactorTestUtils {
 
     public static NodeState getCheckpoint(NodeState superRoot, String name) {
         NodeState checkpoint = superRoot
-                .getChildNode("checkpoints")
-                .getChildNode(name)
-                .getChildNode("root");
+            .getChildNode("checkpoints")
+            .getChildNode(name)
+            .getChildNode("root");
         assertTrue(checkpoint.exists());
         return checkpoint;
     }
@@ -76,8 +79,8 @@ public class CompactorTestUtils {
         assertTrue(node2 instanceof SegmentNodeState);
 
         assertEquals("Nodes should have the same stable ids",
-                ((SegmentNodeState) node1).getStableId(),
-                ((SegmentNodeState) node2).getStableId());
+            ((SegmentNodeState) node1).getStableId(),
+            ((SegmentNodeState) node2).getStableId());
     }
 
     public static void assertSameRecord(NodeState node1, NodeState node2) {
@@ -85,18 +88,20 @@ public class CompactorTestUtils {
         assertTrue(node2 instanceof SegmentNodeState);
 
         assertEquals("Nodes should have been deduplicated",
-                ((SegmentNodeState) node1).getRecordId(),
-                ((SegmentNodeState) node2).getRecordId());
+            ((SegmentNodeState) node1).getRecordId(),
+            ((SegmentNodeState) node2).getRecordId());
     }
 
-    public static void addTestContent(@NotNull String parent, @NotNull NodeStore nodeStore, int binPropertySize)
-            throws CommitFailedException, IOException {
+    public static void addTestContent(@NotNull String parent, @NotNull NodeStore nodeStore,
+        int binPropertySize)
+        throws CommitFailedException, IOException {
         NodeBuilder rootBuilder = nodeStore.getRoot().builder();
         NodeBuilder parentBuilder = rootBuilder.child(parent);
         parentBuilder.setChildNode("a").setChildNode("aa").setProperty("p", 42);
         parentBuilder.getChildNode("a").setChildNode("bb").setChildNode("bbb");
         parentBuilder.setChildNode("b").setProperty("bin", createBlob(nodeStore, binPropertySize));
-        parentBuilder.setChildNode("c").setProperty(binaryPropertyFromBlob("bins", createBlobs(nodeStore, 42, 43, 44)));
+        parentBuilder.setChildNode("c").setProperty(
+            binaryPropertyFromBlob("bins", createBlobs(nodeStore, 42, 43, 44)));
         nodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 

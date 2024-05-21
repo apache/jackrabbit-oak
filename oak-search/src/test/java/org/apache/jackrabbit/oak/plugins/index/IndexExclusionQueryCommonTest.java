@@ -16,23 +16,22 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.query.AbstractQueryTest;
-import org.junit.Test;
-
-import java.util.List;
-
-import static org.apache.jackrabbit.guava.common.collect.ImmutableList.of;
 import static javax.jcr.PropertyType.TYPENAME_BINARY;
 import static javax.jcr.PropertyType.TYPENAME_STRING;
 import static org.apache.jackrabbit.JcrConstants.JCR_LASTMODIFIED;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
+import static org.apache.jackrabbit.guava.common.collect.ImmutableList.of;
 import static org.apache.jackrabbit.oak.api.Type.DATE;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.EXCLUDE_PROPERTY_NAMES;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.INCLUDE_PROPERTY_TYPES;
+
+import java.util.List;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.query.AbstractQueryTest;
+import org.junit.Test;
 
 /**
  * Tests the IndexProvider exclusion settings
@@ -47,7 +46,7 @@ public abstract class IndexExclusionQueryCommonTest extends AbstractQueryTest {
     protected void createTestIndexNode() throws Exception {
         Tree index = createTestIndexNode(root.getTree("/"), indexOptions.getIndexType());
         index.setProperty(INCLUDE_PROPERTY_TYPES,
-                of(TYPENAME_BINARY, TYPENAME_STRING), STRINGS);
+            of(TYPENAME_BINARY, TYPENAME_STRING), STRINGS);
         index.setProperty(EXCLUDE_PROPERTY_NAMES, of(NOT_IN), STRINGS);
         TestUtil.useV2(index);
         root.commit();
@@ -69,8 +68,8 @@ public abstract class IndexExclusionQueryCommonTest extends AbstractQueryTest {
         root.commit();
 
         String query = "/jcr:root/content//*[jcr:contains(., 'abc' )"
-                + " and (@" + JCR_LASTMODIFIED
-                + " > xs:dateTime('2014-04-01T08:58:03.231Z')) ]";
+            + " and (@" + JCR_LASTMODIFIED
+            + " > xs:dateTime('2014-04-01T08:58:03.231Z')) ]";
 
         TestUtil.assertEventually(() -> assertQuery(query, "xpath", of("/content/two")), 3000 * 3);
     }
@@ -93,7 +92,7 @@ public abstract class IndexExclusionQueryCommonTest extends AbstractQueryTest {
         root.commit();
 
         String query = "/jcr:root/content//*[jcr:contains(., 'abc' )"
-                + " and (@" + NOT_IN + " = 'querty') ]";
+            + " and (@" + NOT_IN + " = 'querty') ]";
         TestUtil.assertEventually(() -> assertQuery(query, "xpath", expected), 3000 * 3);
     }
 

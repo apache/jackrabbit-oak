@@ -21,13 +21,14 @@ import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * {@code AuthorizableActionProvider} is used to provide {@code AuthorizableAction}s
- * for each instance of {@code UserManager}.
+ * {@code AuthorizableActionProvider} is used to provide {@code AuthorizableAction}s for each
+ * instance of {@code UserManager}.
  *
  * @since OAK 1.0
  */
 public interface AuthorizableActionProvider {
 
     @NotNull
-    List<? extends AuthorizableAction> getAuthorizableActions(@NotNull SecurityProvider securityProvider);
+    List<? extends AuthorizableAction> getAuthorizableActions(
+        @NotNull SecurityProvider securityProvider);
 }

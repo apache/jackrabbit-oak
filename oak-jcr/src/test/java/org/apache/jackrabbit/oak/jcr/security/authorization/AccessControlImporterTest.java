@@ -32,7 +32,6 @@ import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.AccessControlPolicyIterator;
 import javax.jcr.security.Privilege;
-
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
@@ -44,124 +43,134 @@ public class AccessControlImporterTest extends AbstractJCRTest {
     private static final String VALID_PRINCIPAL_NAME = "anonymous";
 
     public static final String XML_POLICY_TREE = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
-            "<sv:node sv:name=\"test\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
-            "  <sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>nt:unstructured</sv:value></sv:property>" +
-            "  <sv:property sv:name=\"jcr:mixinTypes\" sv:type=\"Name\">" +
-            "     <sv:value>rep:AccessControllable</sv:value>" +
-            "  </sv:property>" +
-            "  <sv:node sv:name=\"rep:policy\">" +
-            "     <sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>rep:ACL</sv:value></sv:property>" +
-            "     <sv:node sv:name=\"allow\">" +
-            "         <sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\">" +
-            "             <sv:value>rep:GrantACE</sv:value>" +
-            "         </sv:property>" +
-            "         <sv:property sv:name=\"rep:principalName\" sv:type=\"String\">" +
-            "             <sv:value>"+EveryonePrincipal.NAME+"</sv:value>" +
-            "         </sv:property>" +
-            "         <sv:property sv:name=\"rep:privileges\" sv:type=\"Name\">" +
-            "             <sv:value>jcr:write</sv:value>" +
-            "         </sv:property>" +
-            "     </sv:node>" +
-            "  </sv:node>" +
-            "</sv:node>";
+        "<sv:node sv:name=\"test\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">"
+        +
+        "  <sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>nt:unstructured</sv:value></sv:property>"
+        +
+        "  <sv:property sv:name=\"jcr:mixinTypes\" sv:type=\"Name\">" +
+        "     <sv:value>rep:AccessControllable</sv:value>" +
+        "  </sv:property>" +
+        "  <sv:node sv:name=\"rep:policy\">" +
+        "     <sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>rep:ACL</sv:value></sv:property>"
+        +
+        "     <sv:node sv:name=\"allow\">" +
+        "         <sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\">" +
+        "             <sv:value>rep:GrantACE</sv:value>" +
+        "         </sv:property>" +
+        "         <sv:property sv:name=\"rep:principalName\" sv:type=\"String\">" +
+        "             <sv:value>" + EveryonePrincipal.NAME + "</sv:value>" +
+        "         </sv:property>" +
+        "         <sv:property sv:name=\"rep:privileges\" sv:type=\"Name\">" +
+        "             <sv:value>jcr:write</sv:value>" +
+        "         </sv:property>" +
+        "     </sv:node>" +
+        "  </sv:node>" +
+        "</sv:node>";
 
     public static final String XML_POLICY_TREE_2 = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
-            "<sv:node sv:name=\"rep:policy\" " +
-            "xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
-            "<sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\">" +
-            "<sv:value>rep:ACL</sv:value>" +
-            "</sv:property>" +
-            "<sv:node sv:name=\"allow\">" +
-            "<sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\">" +
-            "<sv:value>rep:GrantACE</sv:value>" +
-            "</sv:property>" +
-            "<sv:property sv:name=\"rep:principalName\" sv:type=\"String\">" +
-            "<sv:value>"+EveryonePrincipal.NAME+"</sv:value>" +
-            "</sv:property>" +
-            "<sv:property sv:name=\"rep:privileges\" sv:type=\"Name\">" +
-            "<sv:value>jcr:write</sv:value>" +
-            "</sv:property>" +
-            "</sv:node>" +
-            "</sv:node>";
+        "<sv:node sv:name=\"rep:policy\" " +
+        "xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">"
+        +
+        "<sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\">" +
+        "<sv:value>rep:ACL</sv:value>" +
+        "</sv:property>" +
+        "<sv:node sv:name=\"allow\">" +
+        "<sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\">" +
+        "<sv:value>rep:GrantACE</sv:value>" +
+        "</sv:property>" +
+        "<sv:property sv:name=\"rep:principalName\" sv:type=\"String\">" +
+        "<sv:value>" + EveryonePrincipal.NAME + "</sv:value>" +
+        "</sv:property>" +
+        "<sv:property sv:name=\"rep:privileges\" sv:type=\"Name\">" +
+        "<sv:value>jcr:write</sv:value>" +
+        "</sv:property>" +
+        "</sv:node>" +
+        "</sv:node>";
 
     public static final String XML_POLICY_TREE_3 = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
-            "<sv:node sv:name=\"rep:policy\" " +
-            "xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
-            "<sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\">" +
-            "<sv:value>rep:ACL</sv:value>" +
-            "</sv:property>" +
-            "<sv:node sv:name=\"allow\">" +
-            "<sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\">" +
-            "<sv:value>rep:GrantACE</sv:value>" +
-            "</sv:property>" +
-            "<sv:property sv:name=\"rep:principalName\" sv:type=\"String\">" +
-            "<sv:value>"+EveryonePrincipal.NAME+"</sv:value>" +
-            "</sv:property>" +
-            "<sv:property sv:name=\"rep:privileges\" sv:type=\"Name\">" +
-            "<sv:value>jcr:write</sv:value>" +
-            "</sv:property>" +
-            "</sv:node>" +
-            "<sv:node sv:name=\"allow0\">" +
-            "<sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\">" +
-            "<sv:value>rep:GrantACE</sv:value>" +
-            "</sv:property>" +
-            "<sv:property sv:name=\"rep:principalName\" sv:type=\"String\">" +
-            "<sv:value>"+VALID_PRINCIPAL_NAME+"</sv:value>" +
-            "</sv:property>" +
-            "<sv:property sv:name=\"rep:privileges\" sv:type=\"Name\">" +
-            "<sv:value>jcr:write</sv:value>" +
-            "</sv:property>" +
-            "</sv:node>" +
-            "</sv:node>";
+        "<sv:node sv:name=\"rep:policy\" " +
+        "xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">"
+        +
+        "<sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\">" +
+        "<sv:value>rep:ACL</sv:value>" +
+        "</sv:property>" +
+        "<sv:node sv:name=\"allow\">" +
+        "<sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\">" +
+        "<sv:value>rep:GrantACE</sv:value>" +
+        "</sv:property>" +
+        "<sv:property sv:name=\"rep:principalName\" sv:type=\"String\">" +
+        "<sv:value>" + EveryonePrincipal.NAME + "</sv:value>" +
+        "</sv:property>" +
+        "<sv:property sv:name=\"rep:privileges\" sv:type=\"Name\">" +
+        "<sv:value>jcr:write</sv:value>" +
+        "</sv:property>" +
+        "</sv:node>" +
+        "<sv:node sv:name=\"allow0\">" +
+        "<sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\">" +
+        "<sv:value>rep:GrantACE</sv:value>" +
+        "</sv:property>" +
+        "<sv:property sv:name=\"rep:principalName\" sv:type=\"String\">" +
+        "<sv:value>" + VALID_PRINCIPAL_NAME + "</sv:value>" +
+        "</sv:property>" +
+        "<sv:property sv:name=\"rep:privileges\" sv:type=\"Name\">" +
+        "<sv:value>jcr:write</sv:value>" +
+        "</sv:property>" +
+        "</sv:node>" +
+        "</sv:node>";
 
     public static final String XML_POLICY_TREE_5 = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
-            "<sv:node sv:name=\"rep:policy\" " +
-            "xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
-            "<sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\">" +
-            "<sv:value>rep:ACL</sv:value>" +
-            "</sv:property>" +
-            "<sv:node sv:name=\"allow0\">" +
-            "<sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\">" +
-            "<sv:value>rep:GrantACE</sv:value>" +
-            "</sv:property>" +
-            "<sv:property sv:name=\"rep:principalName\" sv:type=\"String\">" +
-            "<sv:value>"+VALID_PRINCIPAL_NAME+"</sv:value>" +
-            "</sv:property>" +
-            "<sv:property sv:name=\"rep:privileges\" sv:type=\"Name\">" +
-            "<sv:value>jcr:write</sv:value>" +
-            "</sv:property>" +
-            "</sv:node>" +
-            "</sv:node>";
+        "<sv:node sv:name=\"rep:policy\" " +
+        "xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">"
+        +
+        "<sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\">" +
+        "<sv:value>rep:ACL</sv:value>" +
+        "</sv:property>" +
+        "<sv:node sv:name=\"allow0\">" +
+        "<sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\">" +
+        "<sv:value>rep:GrantACE</sv:value>" +
+        "</sv:property>" +
+        "<sv:property sv:name=\"rep:principalName\" sv:type=\"String\">" +
+        "<sv:value>" + VALID_PRINCIPAL_NAME + "</sv:value>" +
+        "</sv:property>" +
+        "<sv:property sv:name=\"rep:privileges\" sv:type=\"Name\">" +
+        "<sv:value>jcr:write</sv:value>" +
+        "</sv:property>" +
+        "</sv:node>" +
+        "</sv:node>";
 
     public static final String XML_REPO_POLICY_TREE = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
-            "<sv:node sv:name=\"rep:repoPolicy\" " +
-            "xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
-            "<sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\">" +
-            "<sv:value>rep:ACL</sv:value>" +
-            "</sv:property>" +
-            "<sv:node sv:name=\"allow\">" +
-            "<sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\">" +
-            "<sv:value>rep:GrantACE</sv:value>" +
-            "</sv:property>" +
-            "<sv:property sv:name=\"rep:principalName\" sv:type=\"String\">" +
-            "<sv:value>"+VALID_PRINCIPAL_NAME+"</sv:value>" +
-            "</sv:property>" +
-            "<sv:property sv:name=\"rep:privileges\" sv:type=\"Name\">" +
-            "<sv:value>jcr:workspaceManagement</sv:value>" +
-            "</sv:property>" +
-            "</sv:node>" +
-            "</sv:node>";
+        "<sv:node sv:name=\"rep:repoPolicy\" " +
+        "xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">"
+        +
+        "<sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\">" +
+        "<sv:value>rep:ACL</sv:value>" +
+        "</sv:property>" +
+        "<sv:node sv:name=\"allow\">" +
+        "<sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\">" +
+        "<sv:value>rep:GrantACE</sv:value>" +
+        "</sv:property>" +
+        "<sv:property sv:name=\"rep:principalName\" sv:type=\"String\">" +
+        "<sv:value>" + VALID_PRINCIPAL_NAME + "</sv:value>" +
+        "</sv:property>" +
+        "<sv:property sv:name=\"rep:privileges\" sv:type=\"Name\">" +
+        "<sv:value>jcr:workspaceManagement</sv:value>" +
+        "</sv:property>" +
+        "</sv:node>" +
+        "</sv:node>";
 
     public static final String XML_POLICY_ONLY = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
-            "<sv:node sv:name=\"test\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
-            "  <sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>nt:unstructured</sv:value></sv:property>" +
-            "  <sv:property sv:name=\"jcr:mixinTypes\" sv:type=\"Name\">" +
-            "     <sv:value>rep:AccessControllable</sv:value>" +
-            "  </sv:property>" +
-            "  <sv:node sv:name=\"rep:policy\">" +
-            "     <sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>rep:ACL</sv:value></sv:property>" +
-            "  </sv:node>" +
-            "</sv:node>";
+        "<sv:node sv:name=\"test\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">"
+        +
+        "  <sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>nt:unstructured</sv:value></sv:property>"
+        +
+        "  <sv:property sv:name=\"jcr:mixinTypes\" sv:type=\"Name\">" +
+        "     <sv:value>rep:AccessControllable</sv:value>" +
+        "  </sv:property>" +
+        "  <sv:node sv:name=\"rep:policy\">" +
+        "     <sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>rep:ACL</sv:value></sv:property>"
+        +
+        "  </sv:node>" +
+        "</sv:node>";
 
     protected void doImport(String parentPath, String xml) throws IOException, RepositoryException {
         InputStream in = new ByteArrayInputStream(xml.getBytes("UTF-8"));
@@ -169,7 +178,8 @@ public class AccessControlImporterTest extends AbstractJCRTest {
             superuser.importXML(parentPath, in, ImportUUIDBehavior.IMPORT_UUID_COLLISION_THROW);
         } else {
             superuser.save();
-            superuser.getWorkspace().importXML(parentPath, in, ImportUUIDBehavior.IMPORT_UUID_COLLISION_THROW);
+            superuser.getWorkspace()
+                     .importXML(parentPath, in, ImportUUIDBehavior.IMPORT_UUID_COLLISION_THROW);
         }
     }
 
@@ -186,14 +196,17 @@ public class AccessControlImporterTest extends AbstractJCRTest {
         return target;
     }
 
-    private Node createImportTargetWithPolicy(@Nullable Principal principal) throws RepositoryException {
+    private Node createImportTargetWithPolicy(@Nullable Principal principal)
+        throws RepositoryException {
         Node target = testRootNode.addNode("test", "test:sameNameSibsFalseChildNodeDefinition");
         AccessControlManager acMgr = superuser.getAccessControlManager();
-        for (AccessControlPolicyIterator it = acMgr.getApplicablePolicies(target.getPath()); it.hasNext(); ) {
+        for (AccessControlPolicyIterator it = acMgr.getApplicablePolicies(target.getPath());
+            it.hasNext(); ) {
             AccessControlPolicy policy = it.nextAccessControlPolicy();
             if (policy instanceof AccessControlList) {
                 if (principal != null) {
-                    Privilege[] privs = new Privilege[]{acMgr.privilegeFromName(Privilege.JCR_LOCK_MANAGEMENT)};
+                    Privilege[] privs = new Privilege[]{
+                        acMgr.privilegeFromName(Privilege.JCR_LOCK_MANAGEMENT)};
                     ((AccessControlList) policy).addAccessControlEntry(principal, privs);
                 }
                 acMgr.setPolicy(target.getPath(), policy);
@@ -308,8 +321,8 @@ public class AccessControlImporterTest extends AbstractJCRTest {
     }
 
     /**
-     * Imports a resource-based ACL containing a single entry for a policy that
-     * already exists: expected outcome its that the existing ACE is replaced.
+     * Imports a resource-based ACL containing a single entry for a policy that already exists:
+     * expected outcome its that the existing ACE is replaced.
      */
     public void testImportPolicyExists() throws Exception {
         try {
@@ -348,7 +361,8 @@ public class AccessControlImporterTest extends AbstractJCRTest {
             Node target = createImportTargetWithPolicy(null);
             doImport(target.getPath(), XML_POLICY_ONLY);
 
-            AccessControlPolicy[] policies = superuser.getAccessControlManager().getPolicies(target.getPath());
+            AccessControlPolicy[] policies = superuser.getAccessControlManager()
+                                                      .getPolicies(target.getPath());
 
             assertEquals(1, policies.length);
             assertTrue(policies[0] instanceof JackrabbitAccessControlList);
@@ -391,7 +405,8 @@ public class AccessControlImporterTest extends AbstractJCRTest {
             AccessControlEntry[] entries = ((JackrabbitAccessControlList) policies[0]).getAccessControlEntries();
             assertEquals(1, entries.length);
             assertEquals(1, entries[0].getPrivileges().length);
-            assertEquals(acMgr.privilegeFromName("jcr:workspaceManagement"), entries[0].getPrivileges()[0]);
+            assertEquals(acMgr.privilegeFromName("jcr:workspaceManagement"),
+                entries[0].getPrivileges()[0]);
 
             assertTrue(target.hasNode("rep:repoPolicy"));
             assertTrue(target.hasNode("rep:repoPolicy/allow"));
@@ -412,8 +427,7 @@ public class AccessControlImporterTest extends AbstractJCRTest {
     }
 
     /**
-     * Make sure repo-level acl is not imported below any other node than the
-     * root node.
+     * Make sure repo-level acl is not imported below any other node than the root node.
      *
      * @throws Exception
      */
@@ -428,7 +442,8 @@ public class AccessControlImporterTest extends AbstractJCRTest {
             assertFalse(target.hasNode("rep:repoPolicy/allow0"));
 
             Node n = target.getNode("rep:repoPolicy");
-            assertEquals("rep:RepoAccessControllable", n.getDefinition().getDeclaringNodeType().getName());
+            assertEquals("rep:RepoAccessControllable",
+                n.getDefinition().getDeclaringNodeType().getName());
 
             try {
                 superuser.save();

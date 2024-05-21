@@ -16,11 +16,11 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.callback;
 
+import static org.junit.Assert.assertSame;
+
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.junit.Test;
-
-import static org.junit.Assert.assertSame;
 
 public class SecurityProviderCallbackTest {
 

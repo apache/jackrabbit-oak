@@ -23,17 +23,18 @@ import javax.jcr.Node;
  *
  */
 public class OrderedIndexInsertOrderedPropertyTest extends OrderedIndexInsertBaseTest {
-   private Node index = null;
-   
-   @Override
-   void defineIndex() throws Exception{
-       index = defineOrderedPropertyIndex(session);
-   }
 
-   @Override
-   protected void afterTest() throws Exception {
-      //deleting the index. no need for session.save(); as it will be run by the super.afterTest();
-      index.remove();
-      super.afterTest();
-   }
+    private Node index = null;
+
+    @Override
+    void defineIndex() throws Exception {
+        index = defineOrderedPropertyIndex(session);
+    }
+
+    @Override
+    protected void afterTest() throws Exception {
+        //deleting the index. no need for session.save(); as it will be run by the super.afterTest();
+        index.remove();
+        super.afterTest();
+    }
 }

@@ -23,10 +23,9 @@ import javax.jcr.Value;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.Privilege;
-
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.benchmark.AbstractTest;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
@@ -105,11 +104,15 @@ public class AceCreationTest extends AbstractTest {
 
     private void createAce(Session session, int count) throws RepositoryException {
         AccessControlManager acManager = session.getAccessControlManager();
-        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acManager, nodePath);
+        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acManager,
+            nodePath);
 
         for (int i = 0; i < count; i++) {
-            ImmutableMap<String, Value> restrictions = ImmutableMap.of(AccessControlConstants.REP_GLOB, session.getValueFactory().createValue(i + ""));
-            acl.addEntry(EveryonePrincipal.getInstance(), AccessControlUtils.privilegesFromNames(acManager, Privilege.JCR_ADD_CHILD_NODES), true, restrictions);
+            ImmutableMap<String, Value> restrictions = ImmutableMap.of(
+                AccessControlConstants.REP_GLOB, session.getValueFactory().createValue(i + ""));
+            acl.addEntry(EveryonePrincipal.getInstance(),
+                AccessControlUtils.privilegesFromNames(acManager, Privilege.JCR_ADD_CHILD_NODES),
+                true, restrictions);
         }
 
         acManager.setPolicy(nodePath, acl);
@@ -128,7 +131,7 @@ public class AceCreationTest extends AbstractTest {
     }
 
     private Session createOrGetSystemSession() {
-        if(transientWrites && transientSession != null) {
+        if (transientWrites && transientSession != null) {
             return transientSession;
         }
 

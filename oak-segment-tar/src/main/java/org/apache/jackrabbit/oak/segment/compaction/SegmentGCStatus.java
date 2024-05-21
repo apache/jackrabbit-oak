@@ -26,13 +26,13 @@ public enum SegmentGCStatus {
     COMPACTION_RETRY("compaction-retry-"),
     COMPACTION_FORCE_COMPACT("compaction-force-compact"),
     CLEANUP("cleanup");
-    
+
     private final String message;
-    
+
     SegmentGCStatus(String message) {
         this.message = message;
     }
-    
+
     public String message() {
         return message;
     }

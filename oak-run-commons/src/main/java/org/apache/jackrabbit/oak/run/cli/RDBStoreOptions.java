@@ -21,19 +21,21 @@ package org.apache.jackrabbit.oak.run.cli;
 
 import java.util.Collections;
 import java.util.Set;
-
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
 
 public class RDBStoreOptions implements OptionsBean {
+
     private final OptionSpec<String> rdbjdbcuser;
     private final OptionSpec<String> rdbjdbcpasswd;
     private OptionSet options;
 
-    public RDBStoreOptions(OptionParser parser){
-        rdbjdbcuser = parser.accepts("rdbjdbcuser", "RDB JDBC user").withOptionalArg().defaultsTo("");
-        rdbjdbcpasswd = parser.accepts("rdbjdbcpasswd", "RDB JDBC password").withOptionalArg().defaultsTo("");
+    public RDBStoreOptions(OptionParser parser) {
+        rdbjdbcuser = parser.accepts("rdbjdbcuser", "RDB JDBC user").withOptionalArg()
+                            .defaultsTo("");
+        rdbjdbcpasswd = parser.accepts("rdbjdbcpasswd", "RDB JDBC password").withOptionalArg()
+                              .defaultsTo("");
     }
 
     @Override
@@ -61,11 +63,11 @@ public class RDBStoreOptions implements OptionsBean {
         return Collections.emptySet();
     }
 
-    public String getUser(){
+    public String getUser() {
         return rdbjdbcuser.value(options);
     }
 
-    public String getPassword(){
+    public String getPassword() {
         return rdbjdbcpasswd.value(options);
     }
 }

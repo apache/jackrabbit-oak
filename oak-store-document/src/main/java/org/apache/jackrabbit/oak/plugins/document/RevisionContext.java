@@ -26,8 +26,7 @@ import org.jetbrains.annotations.Nullable;
 public interface RevisionContext {
 
     /**
-     * @return the branches of the local DocumentMK instance, which are not yet
-     *         merged.
+     * @return the branches of the local DocumentMK instance, which are not yet merged.
      */
     UnmergedBranches getBranches();
 
@@ -60,8 +59,8 @@ public interface RevisionContext {
     Clock getClock();
 
     /**
-     * Retrieves the commit value for a given change. This method returns the
-     * following types of commit values:
+     * Retrieves the commit value for a given change. This method returns the following types of
+     * commit values:
      * <ul>
      *     <li>"c" : the change revision is committed as is.</li>
      *     <li>"c-rX-Y-Z" : the change revision is a branch commit merged in
@@ -73,11 +72,10 @@ public interface RevisionContext {
      * </ul>
      *
      * @param changeRevision the revision a change was made.
-     * @param doc the document where the change was made.
-     * @return the commit value or {@code null} if the change does not
-     *          have a commit value (yet).
+     * @param doc            the document where the change was made.
+     * @return the commit value or {@code null} if the change does not have a commit value (yet).
      */
     @Nullable
     String getCommitValue(@NotNull Revision changeRevision,
-                          @NotNull NodeDocument doc);
+        @NotNull NodeDocument doc);
 }

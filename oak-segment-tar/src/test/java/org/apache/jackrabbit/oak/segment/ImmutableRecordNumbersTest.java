@@ -17,14 +17,13 @@
 
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
 import static java.util.Arrays.fill;
+import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
 import static org.junit.Assert.assertEquals;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-
 import org.apache.jackrabbit.oak.segment.RecordNumbers.Entry;
 import org.junit.Test;
 

@@ -16,7 +16,14 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene.dynamicBoost;
 
+import static org.junit.Assert.assertEquals;
+
 import ch.qos.logback.classic.Level;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -45,14 +52,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-
-import static org.junit.Assert.assertEquals;
-
 public class LuceneDynamicBoostTest extends DynamicBoostCommonTest {
 
     private final ExecutorService executorService = Executors.newFixedThreadPool(2);
@@ -63,17 +62,19 @@ public class LuceneDynamicBoostTest extends DynamicBoostCommonTest {
 
     @Override
     protected ContentRepository createRepository() {
-        repositoryOptionsUtil = new LuceneTestRepositoryBuilder(executorService, temporaryFolder).build();
+        repositoryOptionsUtil = new LuceneTestRepositoryBuilder(executorService,
+            temporaryFolder).build();
         indexOptions = new LuceneIndexOptions();
         IndexTracker tracker = new IndexTracker();
-        LuceneIndexEditorProvider editorProvider = new LuceneIndexEditorProvider(null, new ExtractedTextCache(0, 0), factory,
-                Mounts.defaultMountInfoProvider());
+        LuceneIndexEditorProvider editorProvider = new LuceneIndexEditorProvider(null,
+            new ExtractedTextCache(0, 0), factory,
+            Mounts.defaultMountInfoProvider());
         LuceneIndexProvider provider = new LuceneIndexProvider(tracker, factory);
         return new Oak().with(new OpenSecurityProvider())
-                .with((QueryIndexProvider) provider)
-                .with((Observer) provider)
-                .with(editorProvider)
-                .createContentRepository();
+                        .with((QueryIndexProvider) provider)
+                        .with((Observer) provider)
+                        .with(editorProvider)
+                        .createContentRepository();
     }
 
     @Override
@@ -89,7 +90,7 @@ public class LuceneDynamicBoostTest extends DynamicBoostCommonTest {
     @Override
     protected String getTestQueryDynamicBoostBasicExplained() {
         return "(full:title:plant :fulltext:plant) " +
-                "((jcr:content/metadata/predictedTags/plant:1 jcr:content/metadata/predictedTags/plant:1)^1.0E-4)";
+            "((jcr:content/metadata/predictedTags/plant:1 jcr:content/metadata/predictedTags/plant:1)^1.0E-4)";
     }
 
     @Override
@@ -99,14 +100,17 @@ public class LuceneDynamicBoostTest extends DynamicBoostCommonTest {
 
     @Test
     public void indexingFieldProvider() throws Exception {
-        NodeTypeRegistry.register(root, new ByteArrayInputStream(ASSET_NODE_TYPE.getBytes()), "test nodeType");
+        NodeTypeRegistry.register(root, new ByteArrayInputStream(ASSET_NODE_TYPE.getBytes()),
+            "test nodeType");
         createIndex("dam:Asset", false);
         root.commit();
         factory.indexFieldProvider = new IndexFieldProviderImpl();
         factory.queryTermsProvider = new FulltextQueryTermsProviderImpl();
 
         String log = runIndexingTest(IndexFieldProviderImpl.class, true);
-        assertEquals("[" + "Added augmented fields: jcr:content/metadata/predictedTags/[my, a, my:a], 10.0" + "]", log);
+        assertEquals(
+            "[" + "Added augmented fields: jcr:content/metadata/predictedTags/[my, a, my:a], 10.0"
+                + "]", log);
     }
 
     @Test
@@ -115,17 +119,18 @@ public class LuceneDynamicBoostTest extends DynamicBoostCommonTest {
 
         String log = runIndexingTest(LuceneDocumentMaker.class, true);
         assertEquals(
-                "[" + "Added augmented fields: jcr:content/metadata/predictedTags/[my, a, my:a], 10.0, " +
-                        "Added augmented fields: jcr:content/metadata/predictedTags/[my, a, my:a], 30.0, " +
-                        "confidence is not finite: jcr:content/metadata/predictedTags, " +
-                        "confidence is not finite: jcr:content/metadata/predictedTags, " +
-                        "confidence parsing failed: jcr:content/metadata/predictedTags, " +
-                        "confidence parsing failed: jcr:content/metadata/predictedTags, " +
-                        "confidence is an array: jcr:content/metadata/predictedTags, " +
-                        "confidence is an array: jcr:content/metadata/predictedTags, " +
-                        "name is an array: jcr:content/metadata/predictedTags, " +
-                        "name is an array: jcr:content/metadata/predictedTags" +
-                        "]", log);
+            "[" + "Added augmented fields: jcr:content/metadata/predictedTags/[my, a, my:a], 10.0, "
+                +
+                "Added augmented fields: jcr:content/metadata/predictedTags/[my, a, my:a], 30.0, " +
+                "confidence is not finite: jcr:content/metadata/predictedTags, " +
+                "confidence is not finite: jcr:content/metadata/predictedTags, " +
+                "confidence parsing failed: jcr:content/metadata/predictedTags, " +
+                "confidence parsing failed: jcr:content/metadata/predictedTags, " +
+                "confidence is an array: jcr:content/metadata/predictedTags, " +
+                "confidence is an array: jcr:content/metadata/predictedTags, " +
+                "name is an array: jcr:content/metadata/predictedTags, " +
+                "name is an array: jcr:content/metadata/predictedTags" +
+                "]", log);
     }
 
     @Test
@@ -151,8 +156,8 @@ public class LuceneDynamicBoostTest extends DynamicBoostCommonTest {
         prepareTestAssets();
 
         assertEventually(() ->
-                assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'blue flower')", SQL2,
-                        List.of("/test/asset1", "/test/asset2", "/test/asset3")));
+            assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'blue flower')", SQL2,
+                List.of("/test/asset1", "/test/asset2", "/test/asset3")));
 
     }
 
@@ -161,7 +166,8 @@ public class LuceneDynamicBoostTest extends DynamicBoostCommonTest {
         createAssetsIndexAndProperties(true, true);
         prepareTestAssets();
 
-        assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'FLOWER')", SQL2, List.of("/test/asset1", "/test/asset2"));
+        assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'FLOWER')", SQL2,
+            List.of("/test/asset1", "/test/asset2"));
     }
 
     @Test
@@ -169,8 +175,10 @@ public class LuceneDynamicBoostTest extends DynamicBoostCommonTest {
         createAssetsIndexAndProperties(true, true);
         prepareTestAssets();
 
-        assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'coffee flower')", SQL2, List.of("/test/asset2"));
-        assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'blue   plant')", SQL2, List.of("/test/asset3"));
+        assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'coffee flower')", SQL2,
+            List.of("/test/asset2"));
+        assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'blue   plant')", SQL2,
+            List.of("/test/asset3"));
     }
 
     @Test
@@ -179,26 +187,34 @@ public class LuceneDynamicBoostTest extends DynamicBoostCommonTest {
         prepareTestAssets();
 
         assertOrderedQuery("select [jcr:path] from [dam:Asset] where contains(*, 'long OR plant')",
-                List.of("/test/asset1", "/test/asset2", "/test/asset3"));
-        assertOrderedQuery("select [jcr:path] from [dam:Asset] where contains(*, 'short OR coffee')",
-                List.of("/test/asset3", "/test/asset2"));
+            List.of("/test/asset1", "/test/asset2", "/test/asset3"));
+        assertOrderedQuery(
+            "select [jcr:path] from [dam:Asset] where contains(*, 'short OR coffee')",
+            List.of("/test/asset3", "/test/asset2"));
     }
 
     @Override
-    protected void createAssetsIndexAndProperties(boolean lite, boolean similarityTags) throws Exception {
+    protected void createAssetsIndexAndProperties(boolean lite, boolean similarityTags)
+        throws Exception {
         factory.queryTermsProvider = new FulltextQueryTermsProviderImpl();
         super.createAssetsIndexAndProperties(lite, similarityTags);
     }
 
-    private String runIndexingTest(Class<?> loggerClass, boolean nameProperty) throws CommitFailedException {
-        LogCustomizer customLogs = LogCustomizer.forLogger(loggerClass).enable(Level.TRACE).create();
+    private String runIndexingTest(Class<?> loggerClass, boolean nameProperty)
+        throws CommitFailedException {
+        LogCustomizer customLogs = LogCustomizer.forLogger(loggerClass).enable(Level.TRACE)
+                                                .create();
         customLogs.starting();
         try {
-            Tree test = createNodeWithType(root.getTree("/"), "test", JcrConstants.NT_UNSTRUCTURED, "");
+            Tree test = createNodeWithType(root.getTree("/"), "test", JcrConstants.NT_UNSTRUCTURED,
+                "");
             Tree node = createNodeWithType(test, "item", "dam:Asset", "");
             Tree predicted = createNodeWithType(
-                    createNodeWithType(createNodeWithType(node, JcrConstants.JCR_CONTENT, JcrConstants.NT_UNSTRUCTURED, ""), "metadata",
-                            JcrConstants.NT_UNSTRUCTURED, ""), "predictedTags", JcrConstants.NT_UNSTRUCTURED, "");
+                createNodeWithType(
+                    createNodeWithType(node, JcrConstants.JCR_CONTENT, JcrConstants.NT_UNSTRUCTURED,
+                        ""), "metadata",
+                    JcrConstants.NT_UNSTRUCTURED, ""), "predictedTags",
+                JcrConstants.NT_UNSTRUCTURED, "");
             Tree t = createNodeWithType(predicted, "a", JcrConstants.NT_UNSTRUCTURED, "");
             if (nameProperty) {
                 t.setProperty("name", "my:a");
@@ -252,6 +268,7 @@ public class LuceneDynamicBoostTest extends DynamicBoostCommonTest {
     }
 
     private static class SimpleIndexAugmentorFactory extends IndexAugmentorFactory {
+
         IndexFieldProvider indexFieldProvider = IndexFieldProvider.DEFAULT;
         FulltextQueryTermsProvider queryTermsProvider = FulltextQueryTermsProvider.DEFAULT;
 

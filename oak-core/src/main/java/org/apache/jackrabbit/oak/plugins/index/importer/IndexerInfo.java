@@ -19,17 +19,16 @@
 
 package org.apache.jackrabbit.oak.plugins.index.importer;
 
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+
 import java.io.File;
 import java.io.FileFilter;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Properties;
-
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.commons.io.filefilter.DirectoryFileFilter;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 
 /**
  * Represents the index data created by oak-run tooling on the file system. It looks for

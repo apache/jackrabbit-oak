@@ -45,7 +45,8 @@ public class VersionGCSweepTest extends AbstractTwoNodeTest {
 
     @Test
     public void oldSweepRevision() throws Exception {
-        clock.waitUntil(clock.getTime() + TimeUnit.SECONDS.toMillis(NodeDocument.MODIFIED_IN_SECS_RESOLUTION * 2));
+        clock.waitUntil(clock.getTime() + TimeUnit.SECONDS.toMillis(
+            NodeDocument.MODIFIED_IN_SECS_RESOLUTION * 2));
         // run background update and read, but no sweep
         manyChanges(ds1, "/foo");
         ds1.runBackgroundUpdateOperations();
@@ -75,7 +76,7 @@ public class VersionGCSweepTest extends AbstractTwoNodeTest {
     }
 
     private void manyChanges(DocumentNodeStore ns, String path)
-            throws Exception {
+        throws Exception {
         for (int i = 0; i < 100; i++) {
             NodeBuilder builder = ns.getRoot().builder();
             NodeBuilder nb = builder;
@@ -97,13 +98,13 @@ public class VersionGCSweepTest extends AbstractTwoNodeTest {
         DocumentStore store = ns.getDocumentStore();
         NodeDocument doc = getRootDocument(store);
         List<UpdateOp> ops = forDocument(doc, ns, ns.getHeadRevision(),
-                TestUtils.NO_BINARY, 2);
+            TestUtils.NO_BINARY, 2);
         assertFalse(ops.isEmpty());
         store.createOrUpdate(NODES, ops);
     }
 
     private static int getNumSplitDocuments(DocumentStore store, String path)
-            throws Exception {
+        throws Exception {
         NodeDocument doc = store.find(NODES, getIdFromPath(path));
         assertNotNull(doc);
         return Iterators.size(doc.getAllPreviousDocs());

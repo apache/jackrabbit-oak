@@ -16,14 +16,6 @@
  */
 package org.apache.jackrabbit.oak.jcr.delegate;
 
-import org.apache.jackrabbit.api.security.user.Impersonation;
-import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
-import org.jetbrains.annotations.NotNull;
-import org.junit.Test;
-
-import javax.security.auth.Subject;
-import java.security.Principal;
-
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -31,13 +23,21 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
+import java.security.Principal;
+import javax.security.auth.Subject;
+import org.apache.jackrabbit.api.security.user.Impersonation;
+import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
+import org.jetbrains.annotations.NotNull;
+import org.junit.Test;
+
 public class ImpersonationDelegatorTest extends AbstractDelegatorTest {
-    
+
     private final SessionDelegate sessionDelegate = mockSessionDelegate();
     private final Impersonation impersonation = mock(Impersonation.class);
     private final ImpersonationDelegator delegator = mockDelegator(sessionDelegate, impersonation);
 
-    private static ImpersonationDelegator mockDelegator(@NotNull SessionDelegate sd, @NotNull Impersonation impersonation) {
+    private static ImpersonationDelegator mockDelegator(@NotNull SessionDelegate sd,
+        @NotNull Impersonation impersonation) {
         Impersonation i = ImpersonationDelegator.wrap(sd, impersonation);
         assertTrue(i instanceof ImpersonationDelegator);
         return spy((ImpersonationDelegator) i);
@@ -47,16 +47,16 @@ public class ImpersonationDelegatorTest extends AbstractDelegatorTest {
     public void testWrapDelegator() {
         ImpersonationDelegator.wrap(sessionDelegate, delegator);
     }
-    
+
     @Test
     public void testGetImpersonators() throws Exception {
         delegator.getImpersonators();
-        
+
         verify(impersonation).getImpersonators();
         verify(sessionDelegate).perform(any(SessionOperation.class));
         verifyNoMoreInteractions(impersonation, sessionDelegate);
     }
-    
+
     @Test
     public void testGrantImpersonation() throws Exception {
         Principal principal = mock(Principal.class);
@@ -66,7 +66,7 @@ public class ImpersonationDelegatorTest extends AbstractDelegatorTest {
         verify(sessionDelegate).perform(any(SessionOperation.class));
         verifyNoMoreInteractions(impersonation, sessionDelegate);
     }
-    
+
     @Test
     public void testRevokeImpersonation() throws Exception {
         Principal principal = mock(Principal.class);

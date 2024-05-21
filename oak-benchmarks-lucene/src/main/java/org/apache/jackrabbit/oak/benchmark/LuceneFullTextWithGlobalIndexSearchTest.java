@@ -19,6 +19,9 @@
 package org.apache.jackrabbit.oak.benchmark;
 
 
+import java.io.File;
+import java.io.IOException;
+import javax.jcr.Repository;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.fixture.JcrCreator;
 import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
@@ -31,15 +34,12 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneInitializerHelp
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 
-import javax.jcr.Repository;
-import java.io.File;
-import java.io.IOException;
-
 public class LuceneFullTextWithGlobalIndexSearchTest extends SearchTest {
 
     private final boolean disableCopyOnRead = Boolean.getBoolean("disableCopyOnRead");
 
-    public LuceneFullTextWithGlobalIndexSearchTest(File dump, boolean flat, boolean doReport, Boolean storageEnabled) {
+    public LuceneFullTextWithGlobalIndexSearchTest(File dump, boolean flat, boolean doReport,
+        Boolean storageEnabled) {
         super(dump, flat, doReport, storageEnabled);
     }
 
@@ -52,10 +52,10 @@ public class LuceneFullTextWithGlobalIndexSearchTest extends SearchTest {
                 public Jcr customize(Oak oak) {
                     LuceneIndexProvider provider = createLuceneIndexProvider();
                     oak.with((QueryIndexProvider) provider)
-                            .with((Observer) provider)
-                            .with(new LuceneIndexEditorProvider())
-                            .with(new LuceneInitializerHelper("luceneGlobal", storageEnabled))
-                            .with(new UUIDInitializer());
+                       .with((Observer) provider)
+                       .with(new LuceneIndexEditorProvider())
+                       .with(new LuceneInitializerHelper("luceneGlobal", storageEnabled))
+                       .with(new UUIDInitializer());
                     return new Jcr(oak);
                 }
             });

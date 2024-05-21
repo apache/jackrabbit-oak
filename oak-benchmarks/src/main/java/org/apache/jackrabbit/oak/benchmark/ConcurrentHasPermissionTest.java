@@ -19,34 +19,35 @@ package org.apache.jackrabbit.oak.benchmark;
 import java.util.List;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 
 /**
- * Concurrently calls Session#hasPermission on the deep tree:
- * - the path argument a random path out of the deep tree
- * - the actions are randomly selected from the combinations listed in {@link #ACTIONS}
+ * Concurrently calls Session#hasPermission on the deep tree: - the path argument a random path out
+ * of the deep tree - the actions are randomly selected from the combinations listed in
+ * {@link #ACTIONS}
  */
 public class ConcurrentHasPermissionTest extends ConcurrentReadDeepTreeTest {
 
     private static final List<String> ACTIONS = ImmutableList.of(
-            Session.ACTION_READ,
-            Session.ACTION_ADD_NODE,
-            Session.ACTION_SET_PROPERTY,
-            Session.ACTION_REMOVE,
-            Session.ACTION_READ + "," + Session.ACTION_ADD_NODE + "," + Session.ACTION_SET_PROPERTY + "," + Session.ACTION_REMOVE,
-            Session.ACTION_ADD_NODE + "," + Session.ACTION_SET_PROPERTY + "," + Session.ACTION_REMOVE,
-            Session.ACTION_ADD_NODE + "," + Session.ACTION_REMOVE,
-            Session.ACTION_SET_PROPERTY + "," + Session.ACTION_REMOVE,
-            Session.ACTION_READ + "," + Session.ACTION_ADD_NODE,
-            Session.ACTION_READ + "," + Session.ACTION_SET_PROPERTY
+        Session.ACTION_READ,
+        Session.ACTION_ADD_NODE,
+        Session.ACTION_SET_PROPERTY,
+        Session.ACTION_REMOVE,
+        Session.ACTION_READ + "," + Session.ACTION_ADD_NODE + "," + Session.ACTION_SET_PROPERTY
+            + "," + Session.ACTION_REMOVE,
+        Session.ACTION_ADD_NODE + "," + Session.ACTION_SET_PROPERTY + "," + Session.ACTION_REMOVE,
+        Session.ACTION_ADD_NODE + "," + Session.ACTION_REMOVE,
+        Session.ACTION_SET_PROPERTY + "," + Session.ACTION_REMOVE,
+        Session.ACTION_READ + "," + Session.ACTION_ADD_NODE,
+        Session.ACTION_READ + "," + Session.ACTION_SET_PROPERTY
     );
 
     protected ConcurrentHasPermissionTest(boolean runAsAdmin, int itemsToRead, boolean doReport) {
         super(runAsAdmin, itemsToRead, doReport);
     }
 
-    protected void randomRead(Session testSession, List<String> allPaths, int cnt) throws RepositoryException {
+    protected void randomRead(Session testSession, List<String> allPaths, int cnt)
+        throws RepositoryException {
         boolean logout = false;
         if (testSession == null) {
             testSession = getTestSession();
@@ -68,7 +69,9 @@ public class ConcurrentHasPermissionTest extends ConcurrentReadDeepTreeTest {
             }
             long end = System.currentTimeMillis();
             if (doReport) {
-                System.out.println("Session " + testSession.getUserID() + " calling #hasPermission (Allows: "+ allows +"; Denies: "+ denies +") completed in " + (end - start));
+                System.out.println(
+                    "Session " + testSession.getUserID() + " calling #hasPermission (Allows: "
+                        + allows + "; Denies: " + denies + ") completed in " + (end - start));
             }
         } finally {
             if (logout) {

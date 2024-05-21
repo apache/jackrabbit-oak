@@ -43,7 +43,8 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class QueryHintTest extends AbstractMongoConnectionTest {
-    final Logger TRACE_LOGGER = Logger.getLogger( "com.mongodb.TRACE" );
+
+    final Logger TRACE_LOGGER = Logger.getLogger("com.mongodb.TRACE");
     final TestHandler testHandler = new TestHandler();
 
     private MongoDocumentStore mongoDS;
@@ -57,14 +58,14 @@ public class QueryHintTest extends AbstractMongoConnectionTest {
         //If we retain this feature then need to have better config support for it
         System.setProperty("oak.mongo.maxDeltaForModTimeIdxSecs", "120");
         mongoDS = new MongoDocumentStore(mongoConnection.getMongoClient(),
-                mongoConnection.getDatabase(), new DocumentMK.Builder());
+            mongoConnection.getDatabase(), new DocumentMK.Builder());
         mongoDS.setClock(clock);
         TRACE_LOGGER.addHandler(testHandler);
         TRACE_LOGGER.setLevel(Level.FINEST);
     }
 
     @Test
-    public void testHints() throws Exception{
+    public void testHints() throws Exception {
         assertFalse(mongoDS.getDisableIndexHint());
 
         long delta = mongoDS.getMaxDeltaForModTimeIdxSecs();
@@ -76,30 +77,31 @@ public class QueryHintTest extends AbstractMongoConnectionTest {
         assertTrue(mongoDS.canUseModifiedTimeIdx(10));
 
         mongoDS.query(Collection.NODES,
-                Utils.getKeyLowerLimit(Path.ROOT),
-                Utils.getKeyUpperLimit(Path.ROOT),
-                NodeDocument.MODIFIED_IN_SECS,
-                50,
-                10);
+            Utils.getKeyLowerLimit(Path.ROOT),
+            Utils.getKeyUpperLimit(Path.ROOT),
+            NodeDocument.MODIFIED_IN_SECS,
+            50,
+            10);
         //TODO Use log message for better assert on
         //what hint is used
         //System.out.println(testHandler.records);
     }
 
     @After
-    public void cleanup(){
+    public void cleanup() {
         TRACE_LOGGER.removeHandler(testHandler);
         testHandler.close();
         TRACE_LOGGER.setLevel(null);
     }
 
     private static class TestHandler extends Handler {
+
         final List<String> records = Lists.newArrayList();
 
         @Override
         public void publish(LogRecord record) {
             String msg = record.getMessage();
-            if(msg != null && msg.startsWith("find:")) {
+            if (msg != null && msg.startsWith("find:")) {
                 String json = msg.substring(msg.indexOf('{'));
                 records.add(json);
             }

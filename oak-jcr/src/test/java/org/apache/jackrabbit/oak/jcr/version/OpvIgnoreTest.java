@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.jcr.version;
 
+import java.util.List;
 import javax.jcr.Node;
 import javax.jcr.Property;
 import javax.jcr.PropertyType;
@@ -29,7 +30,6 @@ import javax.jcr.security.Privilege;
 import javax.jcr.version.OnParentVersionAction;
 import javax.jcr.version.Version;
 import javax.jcr.version.VersionManager;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
@@ -38,8 +38,6 @@ import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.Access
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.test.AbstractJCRTest;
 import org.jetbrains.annotations.NotNull;
-
-import java.util.List;
 
 /**
  * Test OPV IGNORE
@@ -53,7 +51,8 @@ public class OpvIgnoreTest extends AbstractJCRTest {
         super.setUp();
 
         // add child nodes that have OPV COPY and thus end up in the frozen node
-        testRootNode.addNode(nodeName1, NodeTypeConstants.NT_OAK_UNSTRUCTURED).addNode(nodeName2, NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        testRootNode.addNode(nodeName1, NodeTypeConstants.NT_OAK_UNSTRUCTURED)
+                    .addNode(nodeName2, NodeTypeConstants.NT_OAK_UNSTRUCTURED);
         superuser.save();
 
         versionManager = superuser.getWorkspace().getVersionManager();
@@ -61,8 +60,10 @@ public class OpvIgnoreTest extends AbstractJCRTest {
 
     private void addIgnoredChild(@NotNull Node node) throws Exception {
         AccessControlManager acMgr = superuser.getAccessControlManager();
-        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, node.getPath());
-        acl.addAccessControlEntry(EveryonePrincipal.getInstance(), AccessControlUtils.privilegesFromNames(acMgr, Privilege.JCR_READ));
+        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr,
+            node.getPath());
+        acl.addAccessControlEntry(EveryonePrincipal.getInstance(),
+            AccessControlUtils.privilegesFromNames(acMgr, Privilege.JCR_READ));
         acMgr.setPolicy(acl.getPath(), acl);
         superuser.save();
 
@@ -105,7 +106,8 @@ public class OpvIgnoreTest extends AbstractJCRTest {
     public void testWritePropertyWithIgnoreOPVAfterCheckIn() throws RepositoryException {
         Node ignoreTestNode = testRootNode.addNode("ignoreTestNode", JcrConstants.NT_UNSTRUCTURED);
         String ignoredPropertyName = "ignoredProperty";
-        NodeTypeTemplate mixinWithIgnoreProperty = createNodeTypeWithIgnoreOPVProperty(ignoredPropertyName);
+        NodeTypeTemplate mixinWithIgnoreProperty = createNodeTypeWithIgnoreOPVProperty(
+            ignoredPropertyName);
 
         Node node = ignoreTestNode.addNode("testNode", testNodeType);
         node.addMixin(mixinWithIgnoreProperty.getName());
@@ -127,7 +129,8 @@ public class OpvIgnoreTest extends AbstractJCRTest {
     public void testRemovePropertyWithIgnoreOPVAfterCheckIn() throws RepositoryException {
         Node ignoreTestNode = testRootNode.addNode("ignoreTestNode", JcrConstants.NT_UNSTRUCTURED);
         String ignoredPropertyName = "test:ignoredProperty";
-        NodeTypeTemplate mixinWithIgnoreProperty = createNodeTypeWithIgnoreOPVProperty(ignoredPropertyName);
+        NodeTypeTemplate mixinWithIgnoreProperty = createNodeTypeWithIgnoreOPVProperty(
+            ignoredPropertyName);
 
         Node node = ignoreTestNode.addNode("testNode", testNodeType);
         node.addMixin(mixinWithIgnoreProperty.getName());
@@ -160,7 +163,8 @@ public class OpvIgnoreTest extends AbstractJCRTest {
         }
         vMgr.checkin(ignoreTestNode.getPath());
 
-        Node expected = ignoreTestNode.addNode(nodeDefinition.getName(), NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        Node expected = ignoreTestNode.addNode(nodeDefinition.getName(),
+            NodeTypeConstants.NT_OAK_UNSTRUCTURED);
 
         superuser.save();
         Node childNode = ignoreTestNode.getNode(nodeDefinition.getName());
@@ -175,7 +179,8 @@ public class OpvIgnoreTest extends AbstractJCRTest {
 
         ignoreTestNode.addMixin(JcrConstants.MIX_VERSIONABLE);
         ignoreTestNode.addMixin(nodeTypeName);
-        Node expected = ignoreTestNode.addNode(nodeDefinition.getName(), NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        Node expected = ignoreTestNode.addNode(nodeDefinition.getName(),
+            NodeTypeConstants.NT_OAK_UNSTRUCTURED);
         superuser.save();
 
         VersionManager vMgr = superuser.getWorkspace().getVersionManager();
@@ -199,7 +204,8 @@ public class OpvIgnoreTest extends AbstractJCRTest {
 
         test.addMixin(JcrConstants.MIX_VERSIONABLE);
         test.addMixin(nodeTypeName);
-        Node ignored = test.addNode(nodeDefinition.getName(), NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        Node ignored = test.addNode(nodeDefinition.getName(),
+            NodeTypeConstants.NT_OAK_UNSTRUCTURED);
         superuser.save();
 
         VersionManager vMgr = superuser.getWorkspace().getVersionManager();
@@ -209,7 +215,8 @@ public class OpvIgnoreTest extends AbstractJCRTest {
         assertTrue(vMgr.isCheckedOut(ignored.getPath()));
     }
 
-    private NodeTypeTemplate createNodeTypeWithIgnoreOPVProperty(String propertyName) throws RepositoryException {
+    private NodeTypeTemplate createNodeTypeWithIgnoreOPVProperty(String propertyName)
+        throws RepositoryException {
         NodeTypeManager manager = superuser.getWorkspace().getNodeTypeManager();
 
         NodeTypeTemplate nt = manager.createNodeTypeTemplate();
@@ -227,7 +234,8 @@ public class OpvIgnoreTest extends AbstractJCRTest {
         return nt;
     }
 
-    private NodeDefinitionTemplate createNodeDefinitionWithIgnoreOPVNode(String nodeTypeName) throws RepositoryException {
+    private NodeDefinitionTemplate createNodeDefinitionWithIgnoreOPVNode(String nodeTypeName)
+        throws RepositoryException {
         NodeTypeManager manager = superuser.getWorkspace().getNodeTypeManager();
 
         NodeDefinitionTemplate def = manager.createNodeDefinitionTemplate();

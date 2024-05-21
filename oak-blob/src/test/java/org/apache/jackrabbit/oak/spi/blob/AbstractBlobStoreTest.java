@@ -38,19 +38,17 @@ import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.output.CountingOutputStream;
 import org.apache.commons.io.output.NullOutputStream;
+import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.spi.blob.stats.BlobStatsCollector;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 
 /**
  * Tests a BlobStore implementation.
@@ -125,6 +123,7 @@ public abstract class AbstractBlobStoreTest {
             public void close() {
                 closed.set(true);
             }
+
             @Override
             public int read() throws IOException {
                 return -1;
@@ -142,6 +141,7 @@ public abstract class AbstractBlobStoreTest {
             public void close() {
                 closed.set(true);
             }
+
             @Override
             public int read() throws IOException {
                 throw new RuntimeException("abc");
@@ -295,14 +295,14 @@ public abstract class AbstractBlobStoreTest {
     private void doTest(int maxLength, int count) throws Exception {
         String[] s = new String[count * 2];
         Random r = new Random(0);
-        for (int i = 0; i < s.length;) {
+        for (int i = 0; i < s.length; ) {
             byte[] data = new byte[r.nextInt(maxLength)];
             r.nextBytes(data);
             s[i++] = store.writeBlob(new ByteArrayInputStream(data));
             s[i++] = store.writeBlob(new ByteArrayInputStream(data));
         }
         r.setSeed(0);
-        for (int i = 0; i < s.length;) {
+        for (int i = 0; i < s.length; ) {
             int expectedLen = r.nextInt(maxLength);
             byte[] expectedData = new byte[expectedLen];
             r.nextBytes(expectedData);
@@ -343,7 +343,8 @@ public abstract class AbstractBlobStoreTest {
         extractFiles(store, id, "target/test");
     }
 
-    public static void extractFiles(BlobStore store, String listingId, String target) throws IOException {
+    public static void extractFiles(BlobStore store, String listingId, String target)
+        throws IOException {
         String listing = new String(BlobStoreInputStream.readFully(store, listingId), "UTF-8");
         JsopTokenizer t = new JsopTokenizer(listing);
         File targetDir = new File(target);
@@ -428,7 +429,7 @@ public abstract class AbstractBlobStoreTest {
 
         assertTrue(ret.toString(), ret.isEmpty());
     }
-    
+
     @Test
     public void deleteCount() throws Exception {
         Set<String> ids = createArtifacts();
@@ -503,12 +504,12 @@ public abstract class AbstractBlobStoreTest {
     }
 
     protected void setupCollector(BlobStatsCollector statsCollector) {
-        if (store instanceof AbstractBlobStore){
+        if (store instanceof AbstractBlobStore) {
             ((AbstractBlobStore) store).setStatsCollector(statsCollector);
         }
     }
 
-    protected boolean supportsStatsCollection(){
+    protected boolean supportsStatsCollection() {
         return false;
     }
 
@@ -532,13 +533,15 @@ public abstract class AbstractBlobStoreTest {
         return new ByteArrayInputStream(data);
     }
 
-    private static void assertCollectedSize(long collectedSize, long expectedSize){
+    private static void assertCollectedSize(long collectedSize, long expectedSize) {
         if (collectedSize < expectedSize) {
-            fail(String.format("Collected size %d is less that expected size %d", collectedSize, expectedSize));
+            fail(String.format("Collected size %d is less that expected size %d", collectedSize,
+                expectedSize));
         }
     }
 
     private static class TestCollector implements BlobStatsCollector {
+
         long size;
         int uploadCount;
         int downloadCount;
@@ -554,81 +557,108 @@ public abstract class AbstractBlobStoreTest {
         }
 
         @Override
-        public void uploadFailed() { }
+        public void uploadFailed() {
+        }
 
         @Override
-        public void downloaded(String blobId, long timeTaken, TimeUnit unit, long size) { this.size += size; }
+        public void downloaded(String blobId, long timeTaken, TimeUnit unit, long size) {
+            this.size += size;
+        }
 
         @Override
-        public void downloadCompleted(String blobId) { downloadCount++; }
+        public void downloadCompleted(String blobId) {
+            downloadCount++;
+        }
 
         @Override
-        public void downloadFailed(String blobId) { }
+        public void downloadFailed(String blobId) {
+        }
 
         @Override
-        public void deleted(String blobId, long timeTaken, TimeUnit unit) { }
+        public void deleted(String blobId, long timeTaken, TimeUnit unit) {
+        }
 
         @Override
-        public void deleteCompleted(String blobId) { }
+        public void deleteCompleted(String blobId) {
+        }
 
         @Override
-        public void deleteFailed() { }
+        public void deleteFailed() {
+        }
 
         @Override
-        public void deletedAllOlderThan(long timeTaken, TimeUnit unit, long min) { }
+        public void deletedAllOlderThan(long timeTaken, TimeUnit unit, long min) {
+        }
 
         @Override
-        public void deleteAllOlderThanCompleted(int deletedCount) { }
+        public void deleteAllOlderThanCompleted(int deletedCount) {
+        }
 
         @Override
-        public void deleteAllOlderThanFailed(long min) { }
+        public void deleteAllOlderThanFailed(long min) {
+        }
 
         @Override
-        public void recordAdded(long timeTaken, TimeUnit unit, long size) { }
+        public void recordAdded(long timeTaken, TimeUnit unit, long size) {
+        }
 
         @Override
-        public void addRecordCompleted(String blobId) { }
+        public void addRecordCompleted(String blobId) {
+        }
 
         @Override
-        public void addRecordFailed() { }
+        public void addRecordFailed() {
+        }
 
         @Override
-        public void getRecordCalled(long timeTaken, TimeUnit unit, long size) { }
+        public void getRecordCalled(long timeTaken, TimeUnit unit, long size) {
+        }
 
         @Override
-        public void getRecordCompleted(String blobId) { }
+        public void getRecordCompleted(String blobId) {
+        }
 
         @Override
-        public void getRecordFailed(String blobId) { }
+        public void getRecordFailed(String blobId) {
+        }
 
         @Override
-        public void getRecordIfStoredCalled(long timeTaken, TimeUnit unit, long size) { }
+        public void getRecordIfStoredCalled(long timeTaken, TimeUnit unit, long size) {
+        }
 
         @Override
-        public void getRecordIfStoredCompleted(String blobId) { }
+        public void getRecordIfStoredCompleted(String blobId) {
+        }
 
         @Override
-        public void getRecordIfStoredFailed(String blobId) { }
+        public void getRecordIfStoredFailed(String blobId) {
+        }
 
         @Override
-        public void getRecordFromReferenceCalled(long timeTaken, TimeUnit unit, long size) { }
+        public void getRecordFromReferenceCalled(long timeTaken, TimeUnit unit, long size) {
+        }
 
         @Override
-        public void getRecordFromReferenceCompleted(String reference) { }
+        public void getRecordFromReferenceCompleted(String reference) {
+        }
 
         @Override
-        public void getRecordFromReferenceFailed(String reference) { }
+        public void getRecordFromReferenceFailed(String reference) {
+        }
 
         @Override
-        public void getAllIdentifiersCalled(long timeTaken, TimeUnit unit) { }
+        public void getAllIdentifiersCalled(long timeTaken, TimeUnit unit) {
+        }
 
         @Override
-        public void getAllIdentifiersCompleted() { }
+        public void getAllIdentifiersCompleted() {
+        }
 
         @Override
-        public void getAllIdentifiersFailed() { }
+        public void getAllIdentifiersFailed() {
+        }
 
-        void reset(){
+        void reset() {
             size = 0;
             downloadCount = 0;
             uploadCount = 0;

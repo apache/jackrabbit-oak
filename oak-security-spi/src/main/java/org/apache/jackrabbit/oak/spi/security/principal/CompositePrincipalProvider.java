@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.spi.security.principal;
 
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+
 import java.security.Principal;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -27,17 +29,14 @@ import java.util.Spliterators;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * {@code PrincipalProvider} implementation that aggregates a list of principal
- * providers into a single.
+ * {@code PrincipalProvider} implementation that aggregates a list of principal providers into a
+ * single.
  */
 public class CompositePrincipalProvider implements PrincipalProvider {
 
@@ -50,13 +49,13 @@ public class CompositePrincipalProvider implements PrincipalProvider {
     public static PrincipalProvider of(@NotNull List<PrincipalProvider> providers) {
         PrincipalProvider pp;
         switch (providers.size()) {
-            case 0 :
+            case 0:
                 pp = EmptyPrincipalProvider.INSTANCE;
                 break;
-            case 1 :
+            case 1:
                 pp = providers.get(0);
                 break;
-            default :
+            default:
                 pp = new CompositePrincipalProvider(providers);
         }
         return pp;
@@ -129,14 +128,20 @@ public class CompositePrincipalProvider implements PrincipalProvider {
 
     @NotNull
     @Override
-    public Iterator<? extends Principal> findPrincipals(@Nullable String nameHint, boolean fullText, int searchType,
-            long offset, long limit) {
+    public Iterator<? extends Principal> findPrincipals(@Nullable String nameHint, boolean fullText,
+        int searchType,
+        long offset, long limit) {
 
         List<Iterator<? extends Principal>> all = providers.stream()
-                .map((p) -> p.findPrincipals(nameHint, fullText, searchType, 0, limit + offset)).collect(Collectors.toList());
-        Iterator<? extends Principal> principals = Iterators.mergeSorted(all, Comparator.comparing(Principal::getName));
+                                                           .map((p) -> p.findPrincipals(nameHint,
+                                                               fullText, searchType, 0,
+                                                               limit + offset))
+                                                           .collect(Collectors.toList());
+        Iterator<? extends Principal> principals = Iterators.mergeSorted(all,
+            Comparator.comparing(Principal::getName));
 
-        Spliterator<? extends Principal> spliterator = Spliterators.spliteratorUnknownSize(principals, 0);
+        Spliterator<? extends Principal> spliterator = Spliterators.spliteratorUnknownSize(
+            principals, 0);
         Stream<? extends Principal> stream = StreamSupport.stream(spliterator, false);
         if (offset > 0) {
             stream = stream.skip(offset);

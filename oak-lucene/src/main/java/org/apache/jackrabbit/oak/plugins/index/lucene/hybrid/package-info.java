@@ -16,8 +16,8 @@
  */
 
 /**
- * This package contains classes related to lucene hybrid indices that forms the basis of NRT indexing.
+ * This package contains classes related to lucene hybrid indices that forms the basis of NRT
+ * indexing.
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 
-import org.osgi.annotation.versioning.Version;

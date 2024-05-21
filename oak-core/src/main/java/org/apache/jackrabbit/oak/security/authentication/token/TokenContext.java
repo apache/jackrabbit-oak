@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.security.authentication.token;
 
+import static org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConstants.TOKEN_NT_NAME;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
@@ -23,8 +25,6 @@ import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConstants;
 import org.jetbrains.annotations.NotNull;
-
-import static org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConstants.TOKEN_NT_NAME;
 
 final class TokenContext implements Context {
 

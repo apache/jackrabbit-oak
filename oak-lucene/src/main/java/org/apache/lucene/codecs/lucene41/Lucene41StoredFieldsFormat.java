@@ -40,12 +40,11 @@ import org.apache.lucene.util.packed.PackedInts;
  *
  * <p><b>Principle</b></p>
  * <p>This {@link StoredFieldsFormat} compresses blocks of 16KB of documents in
- * order to improve the compression ratio compared to document-level
- * compression. It uses the <a href="http://code.google.com/p/lz4/">LZ4</a>
- * compression algorithm, which is fast to compress and very fast to decompress
- * data. Although the compression method that is used focuses more on speed
- * than on compression ratio, it should provide interesting compression ratios
- * for redundant inputs (such as log files, HTML or plain text).</p>
+ * order to improve the compression ratio compared to document-level compression. It uses the <a
+ * href="http://code.google.com/p/lz4/">LZ4</a> compression algorithm, which is fast to compress and
+ * very fast to decompress data. Although the compression method that is used focuses more on speed
+ * than on compression ratio, it should provide interesting compression ratios for redundant inputs
+ * (such as log files, HTML or plain text).</p>
  * <p><b>File formats</b></p>
  * <p>Stored fields are represented by two files:</p>
  * <ol>
@@ -123,13 +122,16 @@ import org.apache.lucene.util.packed.PackedInts;
  * larger than (<tt>2<sup>31</sup> - 2<sup>14</sup></tt>) bytes. In case this
  * is a problem, you should use another format, such as
  * {@link Lucene40StoredFieldsFormat}.</p>
+ *
  * @lucene.experimental
  */
 public final class Lucene41StoredFieldsFormat extends CompressingStoredFieldsFormat {
 
-  /** Sole constructor. */
-  public Lucene41StoredFieldsFormat() {
-    super("Lucene41StoredFields", CompressionMode.FAST, 1 << 14);
-  }
+    /**
+     * Sole constructor.
+     */
+    public Lucene41StoredFieldsFormat() {
+        super("Lucene41StoredFields", CompressionMode.FAST, 1 << 14);
+    }
 
 }

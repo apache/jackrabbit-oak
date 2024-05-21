@@ -24,12 +24,11 @@ import java.io.IOException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.run.cli.OptionsBean;
 import org.apache.jackrabbit.oak.run.cli.OptionsBeanFactory;
 
@@ -61,22 +60,25 @@ public class DataStoreOptions implements OptionsBean {
 
     public DataStoreOptions(OptionParser parser) {
         collectGarbage = parser.accepts("collect-garbage",
-            "Performs DataStore Garbage Collection on the repository/datastore defined. An option boolean specifying "
-                + "'markOnly' required if only mark phase of garbage collection is to be executed")
-            .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.FALSE);
+                                   "Performs DataStore Garbage Collection on the repository/datastore defined. An option boolean specifying "
+                                       + "'markOnly' required if only mark phase of garbage collection is to be executed")
+                               .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.FALSE);
 
         checkConsistencyAfterGC = parser.accepts("check-consistency-gc",
-            "Performs a consistency check immediately after DSGC")
-            .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.FALSE);
+                                            "Performs a consistency check immediately after DSGC")
+                                        .withOptionalArg().ofType(Boolean.class)
+                                        .defaultsTo(Boolean.FALSE);
 
         sweepIfRefsPastRetention = parser.accepts("sweep-only-refs-past-retention",
-            "Only allows sweep if all references available older than retention time (Default false)")
-            .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.FALSE);
+                                             "Only allows sweep if all references available older than retention time (Default false)")
+                                         .withOptionalArg().ofType(Boolean.class)
+                                         .defaultsTo(Boolean.FALSE);
 
         consistencyCheck =
-            parser.accepts("check-consistency", "Performs a consistency check on the repository/datastore defined. An optional boolean specifying "
-                + "'markOnly' required if only collecting references")
-            .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.FALSE);
+            parser.accepts("check-consistency",
+                      "Performs a consistency check on the repository/datastore defined. An optional boolean specifying "
+                          + "'markOnly' required if only collecting references")
+                  .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.FALSE);
 
         refOp = parser.accepts("dump-ref", "Gets a dump of Blob References");
 
@@ -87,36 +89,46 @@ public class DataStoreOptions implements OptionsBean {
                 + "(earliest time of references file if available)` in the DataStore repository/datastore defined");
 
         blobGcMaxAgeInSecs = parser.accepts("max-age", "")
-            .withRequiredArg().ofType(Long.class).defaultsTo(86400L);
+                                   .withRequiredArg().ofType(Long.class).defaultsTo(86400L);
         batchCount = parser.accepts("batch", "Batch count")
-            .withRequiredArg().ofType(Integer.class).defaultsTo(2048);
+                           .withRequiredArg().ofType(Integer.class).defaultsTo(2048);
 
         workDirOpt = parser.accepts("work-dir", "Directory used for storing temporary files")
-            .withRequiredArg().ofType(File.class).defaultsTo(new File("temp"));
+                           .withRequiredArg().ofType(File.class).defaultsTo(new File("temp"));
         outputDirOpt = parser.accepts("out-dir", "Directory for storing output files")
-            .withRequiredArg().ofType(File.class).defaultsTo(new File("datastore-out"));
+                             .withRequiredArg().ofType(File.class)
+                             .defaultsTo(new File("datastore-out"));
 
         verbose =
-            parser.accepts("verbose", "Option to get all the paths and implementation specific blob ids");
+            parser.accepts("verbose",
+                "Option to get all the paths and implementation specific blob ids");
 
         // Option NOT available for garbage collection operation - we throw an
         // exception if both --collect-garbage and
         // --verboseRootPath are provided in the command.
         verboseRootPath = parser.accepts("verboseRootPath",
-                "Root path to output backend formatted ids/paths").availableUnless(collectGarbage).availableIf(verbose)
-                .withRequiredArg().withValuesSeparatedBy(DELIM).ofType(String.class);
+                                    "Root path to output backend formatted ids/paths").availableUnless(collectGarbage)
+                                .availableIf(verbose)
+                                .withRequiredArg().withValuesSeparatedBy(DELIM)
+                                .ofType(String.class);
 
-        verbosePathInclusionRegex = parser.accepts("verbosePathInclusionRegex", "Regex to provide an inclusion list for " +
-                "nodes that will be scanned under the path provided with the option --verboseRootPath").availableIf(verboseRootPath).
-                withRequiredArg().withValuesSeparatedBy(DELIM).ofType(String.class);
+        verbosePathInclusionRegex = parser.accepts("verbosePathInclusionRegex",
+                                              "Regex to provide an inclusion list for " +
+                                                  "nodes that will be scanned under the path provided with the option --verboseRootPath")
+                                          .availableIf(verboseRootPath).
+                                          withRequiredArg().withValuesSeparatedBy(DELIM)
+                                          .ofType(String.class);
 
-        useDirListing = parser.accepts("useDirListing", "Use dirListing property for efficient reading of Lucene index files");
+        useDirListing = parser.accepts("useDirListing",
+            "Use dirListing property for efficient reading of Lucene index files");
 
         resetLoggingConfig =
-            parser.accepts("reset-log-config", "Reset logging config for testing purposes only").withOptionalArg()
-                .ofType(Boolean.class).defaultsTo(Boolean.TRUE);
+            parser.accepts("reset-log-config", "Reset logging config for testing purposes only")
+                  .withOptionalArg()
+                  .ofType(Boolean.class).defaultsTo(Boolean.TRUE);
         exportMetrics = parser.accepts("export-metrics",
-            "type, URI to export the metrics and optional metadata all delimeted by semi-colon(;)").withRequiredArg();
+                                  "type, URI to export the metrics and optional metadata all delimeted by semi-colon(;)")
+                              .withRequiredArg();
 
         //Set of options which define action
         actionOpts = ImmutableSet.of(collectGarbage, consistencyCheck, idOp, refOp, metadataOp);
@@ -150,7 +162,7 @@ public class DataStoreOptions implements OptionsBean {
 
     public boolean anyActionSelected() {
         for (OptionSpec spec : actionOpts) {
-            if (options.has(spec)){
+            if (options.has(spec)) {
                 return true;
             }
         }
@@ -171,7 +183,7 @@ public class DataStoreOptions implements OptionsBean {
         return options.has(collectGarbage);
     }
 
-    public boolean checkConsistency(){
+    public boolean checkConsistency() {
         return options.has(consistencyCheck);
     }
 
@@ -183,12 +195,12 @@ public class DataStoreOptions implements OptionsBean {
         return options.has(idOp);
     }
 
-    public boolean getMetadata(){
+    public boolean getMetadata() {
         return options.has(metadataOp);
     }
 
     public boolean checkConsistencyAfterGC() {
-        return options.has(checkConsistencyAfterGC) && checkConsistencyAfterGC.value(options) ;
+        return options.has(checkConsistencyAfterGC) && checkConsistencyAfterGC.value(options);
     }
 
     public boolean markOnly() {
@@ -198,7 +210,7 @@ public class DataStoreOptions implements OptionsBean {
     public boolean consistencyCheckMarkOnly() {
         return consistencyCheck.value(options);
     }
-    
+
     public long getBlobGcMaxAgeInSecs() {
         return blobGcMaxAgeInSecs.value(options);
     }
@@ -225,7 +237,7 @@ public class DataStoreOptions implements OptionsBean {
 
     private static Set<String> collectionOperationNames(Set<OptionSpec> actionOpts) {
         Set<String> result = new HashSet<>();
-        for (OptionSpec spec : actionOpts){
+        for (OptionSpec spec : actionOpts) {
             result.addAll(spec.options());
         }
         return result;
@@ -252,6 +264,6 @@ public class DataStoreOptions implements OptionsBean {
     }
 
     public boolean sweepIfRefsPastRetention() {
-        return options.has(sweepIfRefsPastRetention) && sweepIfRefsPastRetention.value(options) ;
+        return options.has(sweepIfRefsPastRetention) && sweepIfRefsPastRetention.value(options);
     }
 }

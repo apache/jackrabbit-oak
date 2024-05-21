@@ -20,8 +20,8 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 
 /**
- * {@code TextValue} represents a serialized property value read
- * from a System or Document View XML document.
+ * {@code TextValue} represents a serialized property value read from a System or Document View XML
+ * document.
  */
 public interface TextValue {
 
@@ -30,9 +30,8 @@ public interface TextValue {
     Value getValue(int targetType) throws RepositoryException;
 
     /**
-     * Dispose this value, i.e. free all bound resources. Once a value has
-     * been disposed, further method invocations will cause an IOException
-     * to be thrown.
+     * Dispose this value, i.e. free all bound resources. Once a value has been disposed, further
+     * method invocations will cause an IOException to be thrown.
      */
     void dispose();
 

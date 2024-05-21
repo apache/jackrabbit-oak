@@ -18,21 +18,21 @@
   -->
 <configuration>
 
-    <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
-        <encoder>
-            <pattern>%d{dd.MM.yyyy HH:mm:ss.SSS} *%level* [%thread] %logger %message%n</pattern>
-        </encoder>
-    </appender>
+  <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <pattern>%d{dd.MM.yyyy HH:mm:ss.SSS} *%level* [%thread] %logger %message%n</pattern>
+    </encoder>
+  </appender>
 
-    <appender name="file" class="ch.qos.logback.core.FileAppender">
-        <file>target/unit-tests.log</file>
-        <encoder>
-            <pattern>%d{dd.MM.yyyy HH:mm:ss.SSS} *%level* [%thread] %logger %message%n</pattern>
-        </encoder>
-    </appender>
+  <appender name="file" class="ch.qos.logback.core.FileAppender">
+    <file>target/unit-tests.log</file>
+    <encoder>
+      <pattern>%d{dd.MM.yyyy HH:mm:ss.SSS} *%level* [%thread] %logger %message%n</pattern>
+    </encoder>
+  </appender>
 
-    <root level="INFO">
-        <appender-ref ref="file"/>
-    </root>
+  <root level="INFO">
+    <appender-ref ref="file"/>
+  </root>
 
 </configuration>

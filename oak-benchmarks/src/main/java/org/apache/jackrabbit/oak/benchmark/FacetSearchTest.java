@@ -17,37 +17,9 @@
 package org.apache.jackrabbit.oak.benchmark;
 
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
-import org.apache.jackrabbit.oak.plugins.tree.factories.TreeFactory;
-import org.apache.jackrabbit.oak.query.facet.FacetResult;
-import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.jcr.Node;
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-import javax.jcr.query.Query;
-import javax.jcr.query.QueryManager;
-import javax.jcr.query.QueryResult;
-import javax.jcr.security.Privilege;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.Set;
-
+import static org.apache.jackrabbit.commons.JcrUtils.getOrCreateByPath;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
-import static org.apache.jackrabbit.commons.JcrUtils.getOrCreateByPath;
 import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
 import static org.apache.jackrabbit.oak.api.Type.LONG;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
@@ -68,6 +40,32 @@ import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConsta
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_STATISTICAL_FACET_SAMPLE_SIZE;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.STATISTICAL_FACET_SAMPLE_SIZE_DEFAULT;
 
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.Set;
+import javax.jcr.Node;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import javax.jcr.query.Query;
+import javax.jcr.query.QueryManager;
+import javax.jcr.query.QueryResult;
+import javax.jcr.security.Privilege;
+import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.Maps;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
+import org.apache.jackrabbit.oak.plugins.tree.factories.TreeFactory;
+import org.apache.jackrabbit.oak.query.facet.FacetResult;
+import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class FacetSearchTest extends AbstractTest<FacetSearchTest.TestContext> {
 
     private static final Logger LOG = LoggerFactory.getLogger(FacetSearchTest.class);
@@ -75,7 +73,8 @@ public class FacetSearchTest extends AbstractTest<FacetSearchTest.TestContext> {
 
     // Number of sub nodes to be created
     // Total number of nodes created will be NUM_LEAF_NODES*NUM_LABELS
-    private static final int NUM_LEAF_NODES = Integer.getInteger("numFacetLeafNodes", STATISTICAL_FACET_SAMPLE_SIZE_DEFAULT);
+    private static final int NUM_LEAF_NODES = Integer.getInteger("numFacetLeafNodes",
+        STATISTICAL_FACET_SAMPLE_SIZE_DEFAULT);
     private static final int NUM_LABELS = Integer.getInteger("numLabelsForFacets", 4);
     protected static final String SECURE_FACET = "SECURE";
     protected static final String INSECURE_FACET = "INSECURE";
@@ -144,7 +143,8 @@ public class FacetSearchTest extends AbstractTest<FacetSearchTest.TestContext> {
 
     protected String getQuery() {
         List<String> samples = newArrayList(propVals);
-        return "SELECT [rep:facet(foo)], [rep:facet(bar)] FROM [nt:base] WHERE [cons] = '" + samples.get(rgen.nextInt(samples.size())) + "'";
+        return "SELECT [rep:facet(foo)], [rep:facet(bar)] FROM [nt:base] WHERE [cons] = '"
+            + samples.get(rgen.nextInt(samples.size())) + "'";
     }
 
 
@@ -169,7 +169,7 @@ public class FacetSearchTest extends AbstractTest<FacetSearchTest.TestContext> {
                 int foolabelNum = rGen.nextInt(NUM_LABELS);
                 int barlabelNum = rGen1.nextInt(NUM_LABELS);
 
-                String val = "val_" + j/100;
+                String val = "val_" + j / 100;
                 propVals.add(val);
                 Node child = subPar.addNode("c" + j);
                 child.setProperty("cons", val);
@@ -218,6 +218,7 @@ public class FacetSearchTest extends AbstractTest<FacetSearchTest.TestContext> {
     }
 
     class TestContext {
+
         final Session session = loginWriter();
     }
 
@@ -232,7 +233,9 @@ public class FacetSearchTest extends AbstractTest<FacetSearchTest.TestContext> {
         private String type;
         private String facetMode;
 
-        public FacetIndexInitializer(@NotNull final String name, @NotNull final Map<String, Boolean> props, @NotNull String type, @NotNull String facetMode) {
+        public FacetIndexInitializer(@NotNull final String name,
+            @NotNull final Map<String, Boolean> props, @NotNull String type,
+            @NotNull String facetMode) {
             this.name = name;
             this.props = props;
             this.type = type;
@@ -245,10 +248,11 @@ public class FacetSearchTest extends AbstractTest<FacetSearchTest.TestContext> {
                 Tree t = TreeFactory.createTree(builder.child(INDEX_DEFINITIONS_NAME));
                 t.setProperty("jcr:primaryType", "nt:unstructured", NAME);
 
-                NodeBuilder uuid = IndexUtils.createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "uuid", true, true,
-                        ImmutableList.<String>of("jcr:uuid"), null);
+                NodeBuilder uuid = IndexUtils.createIndexDefinition(
+                    builder.child(INDEX_DEFINITIONS_NAME), "uuid", true, true,
+                    ImmutableList.<String>of("jcr:uuid"), null);
                 uuid.setProperty("info",
-                        "Oak index for UUID lookup (direct lookup of nodes with the mixin 'mix:referenceable').");
+                    "Oak index for UUID lookup (direct lookup of nodes with the mixin 'mix:referenceable').");
 
                 t = t.addChild(name);
                 t.setProperty("jcr:primaryType", INDEX_DEFINITIONS_NODE_TYPE, NAME);
@@ -258,14 +262,16 @@ public class FacetSearchTest extends AbstractTest<FacetSearchTest.TestContext> {
 
                 if (!SECURE_FACET.equals(facetMode)) {
                     Tree facetConfig = t.addChild(FACETS);
-                    facetConfig.setProperty("jcr:primaryType","nt:unstructured", NAME);
-                    switch(facetMode) {
-                        case INSECURE_FACET :
+                    facetConfig.setProperty("jcr:primaryType", "nt:unstructured", NAME);
+                    switch (facetMode) {
+                        case INSECURE_FACET:
 
-                            facetConfig.setProperty(PROP_SECURE_FACETS, PROP_SECURE_FACETS_VALUE_INSECURE);
+                            facetConfig.setProperty(PROP_SECURE_FACETS,
+                                PROP_SECURE_FACETS_VALUE_INSECURE);
                             break;
                         case STATISTICAL_FACET:
-                            facetConfig.setProperty(PROP_SECURE_FACETS, PROP_SECURE_FACETS_VALUE_STATISTICAL);
+                            facetConfig.setProperty(PROP_SECURE_FACETS,
+                                PROP_SECURE_FACETS_VALUE_STATISTICAL);
                             facetConfig.setProperty(PROP_STATISTICAL_FACET_SAMPLE_SIZE, 3000);
                             break;
                         default:
@@ -298,7 +304,7 @@ public class FacetSearchTest extends AbstractTest<FacetSearchTest.TestContext> {
 
         private boolean isAlreadyThere(final @NotNull NodeBuilder root) {
             return root.hasChildNode(INDEX_DEFINITIONS_NAME) &&
-                    root.getChildNode(INDEX_DEFINITIONS_NAME).hasChildNode(name);
+                root.getChildNode(INDEX_DEFINITIONS_NAME).hasChildNode(name);
         }
     }
 }

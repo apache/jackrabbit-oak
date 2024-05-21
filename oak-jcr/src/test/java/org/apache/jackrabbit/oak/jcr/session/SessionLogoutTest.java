@@ -20,9 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
-
 import javax.jcr.Session;
-
 import org.apache.jackrabbit.test.AbstractJCRTest;
 
 public class SessionLogoutTest extends AbstractJCRTest {

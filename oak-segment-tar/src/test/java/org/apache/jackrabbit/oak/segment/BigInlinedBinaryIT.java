@@ -28,7 +28,6 @@ import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreB
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
@@ -45,8 +44,8 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 /**
- * Integration test trying to inline a large (67GB) binary.
- * Skipped unless -Dtest=BigInlinedBinaryIT is specified.
+ * Integration test trying to inline a large (67GB) binary. Skipped unless -Dtest=BigInlinedBinaryIT
+ * is specified.
  */
 public class BigInlinedBinaryIT {
 
@@ -64,16 +63,17 @@ public class BigInlinedBinaryIT {
 
     @Test
     public void largeBlob()
-    throws IOException, CommitFailedException, InvalidFileStoreVersionException {
+        throws IOException, CommitFailedException, InvalidFileStoreVersionException {
         try (FileStore fileStore = fileStoreBuilder(getFileStoreFolder()).build()) {
             SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
 
             NodeBuilder builder = nodeStore.getRoot().builder();
             builder.setChildNode("node").setProperty("blob",
-                    createBlob((LEVEL_SIZE * LEVEL_SIZE * LEVEL_SIZE + 1L) * BLOCK_SIZE));
+                createBlob((LEVEL_SIZE * LEVEL_SIZE * LEVEL_SIZE + 1L) * BLOCK_SIZE));
             nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-            Blob blob = nodeStore.getRoot().getChildNode("node").getProperty("blob").getValue(BINARY);
+            Blob blob = nodeStore.getRoot().getChildNode("node").getProperty("blob")
+                                 .getValue(BINARY);
 
             byte[] buffer = new byte[4096];
             blob.getNewStream().read(buffer, 0, buffer.length);
@@ -83,35 +83,36 @@ public class BigInlinedBinaryIT {
     @NotNull
     private static Blob createBlob(long blobSize) {
         return new Blob() {
-                @NotNull
-                @Override
-                public InputStream getNewStream() {
-                    return new InputStream() {
-                        long pos = 0;
-                        @Override
-                        public int read() {
-                            return signum(blobSize - ++pos);
-                        }
-                    };
-                }
+            @NotNull
+            @Override
+            public InputStream getNewStream() {
+                return new InputStream() {
+                    long pos = 0;
 
-                @Override
-                public long length() {
-                    return blobSize;
-                }
+                    @Override
+                    public int read() {
+                        return signum(blobSize - ++pos);
+                    }
+                };
+            }
 
-                @Nullable
-                @Override
-                public String getReference() {
-                    return null;
-                }
+            @Override
+            public long length() {
+                return blobSize;
+            }
 
-                @Nullable
-                @Override
-                public String getContentIdentity() {
-                    return null;
-                }
-            };
+            @Nullable
+            @Override
+            public String getReference() {
+                return null;
+            }
+
+            @Nullable
+            @Override
+            public String getContentIdentity() {
+                return null;
+            }
+        };
     }
 
 }

@@ -27,309 +27,312 @@ package org.apache.lucene.search;
 
 import java.io.IOException;
 import java.util.Arrays;
-
-import org.apache.lucene.index.*;
+import org.apache.lucene.index.DocsAndPositionsEnum;
 import org.apache.lucene.search.similarities.Similarity;
 
 final class ExactPhraseScorer extends Scorer {
-  private final int endMinus1;
 
-  private final static int CHUNK = 4096;
+    private final int endMinus1;
 
-  private int gen;
-  private final int[] counts = new int[CHUNK];
-  private final int[] gens = new int[CHUNK];
+    private final static int CHUNK = 4096;
 
-  boolean noDocs;
-  private final long cost;
+    private int gen;
+    private final int[] counts = new int[CHUNK];
+    private final int[] gens = new int[CHUNK];
 
-  private final static class ChunkState {
-    final DocsAndPositionsEnum posEnum;
-    final int offset;
-    final boolean useAdvance;
-    int posUpto;
-    int posLimit;
-    int pos;
-    int lastPos;
+    boolean noDocs;
+    private final long cost;
 
-    public ChunkState(DocsAndPositionsEnum posEnum, int offset, boolean useAdvance) {
-      this.posEnum = posEnum;
-      this.offset = offset;
-      this.useAdvance = useAdvance;
+    private final static class ChunkState {
+
+        final DocsAndPositionsEnum posEnum;
+        final int offset;
+        final boolean useAdvance;
+        int posUpto;
+        int posLimit;
+        int pos;
+        int lastPos;
+
+        public ChunkState(DocsAndPositionsEnum posEnum, int offset, boolean useAdvance) {
+            this.posEnum = posEnum;
+            this.offset = offset;
+            this.useAdvance = useAdvance;
+        }
     }
-  }
 
-  private final ChunkState[] chunkStates;
+    private final ChunkState[] chunkStates;
 
-  private int docID = -1;
-  private int freq;
+    private int docID = -1;
+    private int freq;
 
-  private final Similarity.SimScorer docScorer;
-  
-  ExactPhraseScorer(Weight weight, PhraseQuery.PostingsAndFreq[] postings,
-                    Similarity.SimScorer docScorer) throws IOException {
-    super(weight);
-    this.docScorer = docScorer;
+    private final Similarity.SimScorer docScorer;
 
-    chunkStates = new ChunkState[postings.length];
+    ExactPhraseScorer(Weight weight, PhraseQuery.PostingsAndFreq[] postings,
+        Similarity.SimScorer docScorer) throws IOException {
+        super(weight);
+        this.docScorer = docScorer;
 
-    endMinus1 = postings.length-1;
-    
-    // min(cost)
-    cost = postings[0].postings.cost();
+        chunkStates = new ChunkState[postings.length];
 
-    for(int i=0;i<postings.length;i++) {
+        endMinus1 = postings.length - 1;
 
-      // Coarse optimization: advance(target) is fairly
-      // costly, so, if the relative freq of the 2nd
-      // rarest term is not that much (> 1/5th) rarer than
-      // the first term, then we just use .nextDoc() when
-      // ANDing.  This buys ~15% gain for phrases where
-      // freq of rarest 2 terms is close:
-      final boolean useAdvance = postings[i].docFreq > 5*postings[0].docFreq;
-      chunkStates[i] = new ChunkState(postings[i].postings, -postings[i].position, useAdvance);
-      if (i > 0 && postings[i].postings.nextDoc() == DocIdSetIterator.NO_MORE_DOCS) {
-        noDocs = true;
-        return;
-      }
-    }
-  }
+        // min(cost)
+        cost = postings[0].postings.cost();
 
-  @Override
-  public int nextDoc() throws IOException {
-    while(true) {
+        for (int i = 0; i < postings.length; i++) {
 
-      // first (rarest) term
-      final int doc = chunkStates[0].posEnum.nextDoc();
-      if (doc == DocIdSetIterator.NO_MORE_DOCS) {
-        docID = doc;
-        return doc;
-      }
-
-      // not-first terms
-      int i = 1;
-      while(i < chunkStates.length) {
-        final ChunkState cs = chunkStates[i];
-        int doc2 = cs.posEnum.docID();
-        if (cs.useAdvance) {
-          if (doc2 < doc) {
-            doc2 = cs.posEnum.advance(doc);
-          }
-        } else {
-          int iter = 0;
-          while(doc2 < doc) {
-            // safety net -- fallback to .advance if we've
-            // done too many .nextDocs
-            if (++iter == 50) {
-              doc2 = cs.posEnum.advance(doc);
-              break;
-            } else {
-              doc2 = cs.posEnum.nextDoc();
+            // Coarse optimization: advance(target) is fairly
+            // costly, so, if the relative freq of the 2nd
+            // rarest term is not that much (> 1/5th) rarer than
+            // the first term, then we just use .nextDoc() when
+            // ANDing.  This buys ~15% gain for phrases where
+            // freq of rarest 2 terms is close:
+            final boolean useAdvance = postings[i].docFreq > 5 * postings[0].docFreq;
+            chunkStates[i] = new ChunkState(postings[i].postings, -postings[i].position,
+                useAdvance);
+            if (i > 0 && postings[i].postings.nextDoc() == DocIdSetIterator.NO_MORE_DOCS) {
+                noDocs = true;
+                return;
             }
-          }
         }
-        if (doc2 > doc) {
-          break;
-        }
-        i++;
-      }
-
-      if (i == chunkStates.length) {
-        // this doc has all the terms -- now test whether
-        // phrase occurs
-        docID = doc;
-
-        freq = phraseFreq();
-        if (freq != 0) {
-          return docID;
-        }
-      }
-    }
-  }
-
-  @Override
-  public int advance(int target) throws IOException {
-
-    // first term
-    int doc = chunkStates[0].posEnum.advance(target);
-    if (doc == DocIdSetIterator.NO_MORE_DOCS) {
-      docID = DocIdSetIterator.NO_MORE_DOCS;
-      return doc;
     }
 
-    while(true) {
-      
-      // not-first terms
-      int i = 1;
-      while(i < chunkStates.length) {
-        int doc2 = chunkStates[i].posEnum.docID();
-        if (doc2 < doc) {
-          doc2 = chunkStates[i].posEnum.advance(doc);
-        }
-        if (doc2 > doc) {
-          break;
-        }
-        i++;
-      }
+    @Override
+    public int nextDoc() throws IOException {
+        while (true) {
 
-      if (i == chunkStates.length) {
-        // this doc has all the terms -- now test whether
-        // phrase occurs
-        docID = doc;
-        freq = phraseFreq();
-        if (freq != 0) {
-          return docID;
-        }
-      }
-
-      doc = chunkStates[0].posEnum.nextDoc();
-      if (doc == DocIdSetIterator.NO_MORE_DOCS) {
-        docID = doc;
-        return doc;
-      }
-    }
-  }
-
-  @Override
-  public String toString() {
-    return "ExactPhraseScorer(" + weight + ")";
-  }
-
-  @Override
-  public int freq() {
-    return freq;
-  }
-
-  @Override
-  public int docID() {
-    return docID;
-  }
-
-  @Override
-  public float score() {
-    return docScorer.score(docID, freq);
-  }
-
-  private int phraseFreq() throws IOException {
-
-    freq = 0;
-
-    // init chunks
-    for(int i=0;i<chunkStates.length;i++) {
-      final ChunkState cs = chunkStates[i];
-      cs.posLimit = cs.posEnum.freq();
-      cs.pos = cs.offset + cs.posEnum.nextPosition();
-      cs.posUpto = 1;
-      cs.lastPos = -1;
-    }
-
-    int chunkStart = 0;
-    int chunkEnd = CHUNK;
-
-    // process chunk by chunk
-    boolean end = false;
-
-    // TODO: we could fold in chunkStart into offset and
-    // save one subtract per pos incr
-
-    while(!end) {
-
-      gen++;
-
-      if (gen == 0) {
-        // wraparound
-        Arrays.fill(gens, 0);
-        gen++;
-      }
-
-      // first term
-      {
-        final ChunkState cs = chunkStates[0];
-        while(cs.pos < chunkEnd) {
-          if (cs.pos > cs.lastPos) {
-            cs.lastPos = cs.pos;
-            final int posIndex = cs.pos - chunkStart;
-            counts[posIndex] = 1;
-            assert gens[posIndex] != gen;
-            gens[posIndex] = gen;
-          }
-
-          if (cs.posUpto == cs.posLimit) {
-            end = true;
-            break;
-          }
-          cs.posUpto++;
-          cs.pos = cs.offset + cs.posEnum.nextPosition();
-        }
-      }
-
-      // middle terms
-      boolean any = true;
-      for(int t=1;t<endMinus1;t++) {
-        final ChunkState cs = chunkStates[t];
-        any = false;
-        while(cs.pos < chunkEnd) {
-          if (cs.pos > cs.lastPos) {
-            cs.lastPos = cs.pos;
-            final int posIndex = cs.pos - chunkStart;
-            if (posIndex >= 0 && gens[posIndex] == gen && counts[posIndex] == t) {
-              // viable
-              counts[posIndex]++;
-              any = true;
+            // first (rarest) term
+            final int doc = chunkStates[0].posEnum.nextDoc();
+            if (doc == DocIdSetIterator.NO_MORE_DOCS) {
+                docID = doc;
+                return doc;
             }
-          }
 
-          if (cs.posUpto == cs.posLimit) {
-            end = true;
-            break;
-          }
-          cs.posUpto++;
-          cs.pos = cs.offset + cs.posEnum.nextPosition();
-        }
-
-        if (!any) {
-          break;
-        }
-      }
-
-      if (!any) {
-        // petered out for this chunk
-        chunkStart += CHUNK;
-        chunkEnd += CHUNK;
-        continue;
-      }
-
-      // last term
-
-      {
-        final ChunkState cs = chunkStates[endMinus1];
-        while(cs.pos < chunkEnd) {
-          if (cs.pos > cs.lastPos) {
-            cs.lastPos = cs.pos;
-            final int posIndex = cs.pos - chunkStart;
-            if (posIndex >= 0 && gens[posIndex] == gen && counts[posIndex] == endMinus1) {
-              freq++;
+            // not-first terms
+            int i = 1;
+            while (i < chunkStates.length) {
+                final ChunkState cs = chunkStates[i];
+                int doc2 = cs.posEnum.docID();
+                if (cs.useAdvance) {
+                    if (doc2 < doc) {
+                        doc2 = cs.posEnum.advance(doc);
+                    }
+                } else {
+                    int iter = 0;
+                    while (doc2 < doc) {
+                        // safety net -- fallback to .advance if we've
+                        // done too many .nextDocs
+                        if (++iter == 50) {
+                            doc2 = cs.posEnum.advance(doc);
+                            break;
+                        } else {
+                            doc2 = cs.posEnum.nextDoc();
+                        }
+                    }
+                }
+                if (doc2 > doc) {
+                    break;
+                }
+                i++;
             }
-          }
 
-          if (cs.posUpto == cs.posLimit) {
-            end = true;
-            break;
-          }
-          cs.posUpto++;
-          cs.pos = cs.offset + cs.posEnum.nextPosition();
+            if (i == chunkStates.length) {
+                // this doc has all the terms -- now test whether
+                // phrase occurs
+                docID = doc;
+
+                freq = phraseFreq();
+                if (freq != 0) {
+                    return docID;
+                }
+            }
         }
-      }
-
-      chunkStart += CHUNK;
-      chunkEnd += CHUNK;
     }
 
-    return freq;
-  }
+    @Override
+    public int advance(int target) throws IOException {
 
-  @Override
-  public long cost() {
-    return cost;
-  }
+        // first term
+        int doc = chunkStates[0].posEnum.advance(target);
+        if (doc == DocIdSetIterator.NO_MORE_DOCS) {
+            docID = DocIdSetIterator.NO_MORE_DOCS;
+            return doc;
+        }
+
+        while (true) {
+
+            // not-first terms
+            int i = 1;
+            while (i < chunkStates.length) {
+                int doc2 = chunkStates[i].posEnum.docID();
+                if (doc2 < doc) {
+                    doc2 = chunkStates[i].posEnum.advance(doc);
+                }
+                if (doc2 > doc) {
+                    break;
+                }
+                i++;
+            }
+
+            if (i == chunkStates.length) {
+                // this doc has all the terms -- now test whether
+                // phrase occurs
+                docID = doc;
+                freq = phraseFreq();
+                if (freq != 0) {
+                    return docID;
+                }
+            }
+
+            doc = chunkStates[0].posEnum.nextDoc();
+            if (doc == DocIdSetIterator.NO_MORE_DOCS) {
+                docID = doc;
+                return doc;
+            }
+        }
+    }
+
+    @Override
+    public String toString() {
+        return "ExactPhraseScorer(" + weight + ")";
+    }
+
+    @Override
+    public int freq() {
+        return freq;
+    }
+
+    @Override
+    public int docID() {
+        return docID;
+    }
+
+    @Override
+    public float score() {
+        return docScorer.score(docID, freq);
+    }
+
+    private int phraseFreq() throws IOException {
+
+        freq = 0;
+
+        // init chunks
+        for (int i = 0; i < chunkStates.length; i++) {
+            final ChunkState cs = chunkStates[i];
+            cs.posLimit = cs.posEnum.freq();
+            cs.pos = cs.offset + cs.posEnum.nextPosition();
+            cs.posUpto = 1;
+            cs.lastPos = -1;
+        }
+
+        int chunkStart = 0;
+        int chunkEnd = CHUNK;
+
+        // process chunk by chunk
+        boolean end = false;
+
+        // TODO: we could fold in chunkStart into offset and
+        // save one subtract per pos incr
+
+        while (!end) {
+
+            gen++;
+
+            if (gen == 0) {
+                // wraparound
+                Arrays.fill(gens, 0);
+                gen++;
+            }
+
+            // first term
+            {
+                final ChunkState cs = chunkStates[0];
+                while (cs.pos < chunkEnd) {
+                    if (cs.pos > cs.lastPos) {
+                        cs.lastPos = cs.pos;
+                        final int posIndex = cs.pos - chunkStart;
+                        counts[posIndex] = 1;
+                        assert gens[posIndex] != gen;
+                        gens[posIndex] = gen;
+                    }
+
+                    if (cs.posUpto == cs.posLimit) {
+                        end = true;
+                        break;
+                    }
+                    cs.posUpto++;
+                    cs.pos = cs.offset + cs.posEnum.nextPosition();
+                }
+            }
+
+            // middle terms
+            boolean any = true;
+            for (int t = 1; t < endMinus1; t++) {
+                final ChunkState cs = chunkStates[t];
+                any = false;
+                while (cs.pos < chunkEnd) {
+                    if (cs.pos > cs.lastPos) {
+                        cs.lastPos = cs.pos;
+                        final int posIndex = cs.pos - chunkStart;
+                        if (posIndex >= 0 && gens[posIndex] == gen && counts[posIndex] == t) {
+                            // viable
+                            counts[posIndex]++;
+                            any = true;
+                        }
+                    }
+
+                    if (cs.posUpto == cs.posLimit) {
+                        end = true;
+                        break;
+                    }
+                    cs.posUpto++;
+                    cs.pos = cs.offset + cs.posEnum.nextPosition();
+                }
+
+                if (!any) {
+                    break;
+                }
+            }
+
+            if (!any) {
+                // petered out for this chunk
+                chunkStart += CHUNK;
+                chunkEnd += CHUNK;
+                continue;
+            }
+
+            // last term
+
+            {
+                final ChunkState cs = chunkStates[endMinus1];
+                while (cs.pos < chunkEnd) {
+                    if (cs.pos > cs.lastPos) {
+                        cs.lastPos = cs.pos;
+                        final int posIndex = cs.pos - chunkStart;
+                        if (posIndex >= 0 && gens[posIndex] == gen
+                            && counts[posIndex] == endMinus1) {
+                            freq++;
+                        }
+                    }
+
+                    if (cs.posUpto == cs.posLimit) {
+                        end = true;
+                        break;
+                    }
+                    cs.posUpto++;
+                    cs.pos = cs.offset + cs.posEnum.nextPosition();
+                }
+            }
+
+            chunkStart += CHUNK;
+            chunkEnd += CHUNK;
+        }
+
+        return freq;
+    }
+
+    @Override
+    public long cost() {
+        return cost;
+    }
 }

@@ -19,17 +19,16 @@
 
 package org.apache.jackrabbit.oak.exporter;
 
+import static java.util.Arrays.asList;
+
 import java.io.File;
 import java.util.Collections;
 import java.util.Set;
-
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
 import org.apache.jackrabbit.oak.run.cli.OptionsBean;
 import org.apache.jackrabbit.oak.run.cli.OptionsBeanFactory;
-
-import static java.util.Arrays.asList;
 
 
 class ExportOptions implements OptionsBean {
@@ -49,34 +48,39 @@ class ExportOptions implements OptionsBean {
     private OptionSet options;
 
 
-    public ExportOptions(OptionParser parser){
-        filterFileOpt = parser.accepts("filter-file", "Filter file which contains the filter json expression")
-                .withRequiredArg().ofType(File.class);
-        outDirOpt = parser.acceptsAll(asList("o", "out"), "Output directory where the exported json and blobs are stored")
-                .withRequiredArg().ofType(File.class).defaultsTo(new File("."));
+    public ExportOptions(OptionParser parser) {
+        filterFileOpt = parser.accepts("filter-file",
+                                  "Filter file which contains the filter json expression")
+                              .withRequiredArg().ofType(File.class);
+        outDirOpt = parser.acceptsAll(asList("o", "out"),
+                              "Output directory where the exported json and blobs are stored")
+                          .withRequiredArg().ofType(File.class).defaultsTo(new File("."));
 
-        filter = parser.acceptsAll(asList("f", "filter"), "Filter expression as json to filter out which " +
-                "nodes and properties are included in exported file")
-                .withRequiredArg().ofType(String.class).defaultsTo(defaultFilter);
+        filter = parser.acceptsAll(asList("f", "filter"),
+                           "Filter expression as json to filter out which " +
+                               "nodes and properties are included in exported file")
+                       .withRequiredArg().ofType(String.class).defaultsTo(defaultFilter);
 
         path = parser.acceptsAll(asList("p", "path"), "Repository path to export")
-                .withRequiredArg().ofType(String.class).defaultsTo("/");
+                     .withRequiredArg().ofType(String.class).defaultsTo("/");
         format = parser.accepts("format", "Export format 'json' or 'txt'")
-                .withRequiredArg().ofType(String.class).defaultsTo("json");
+                       .withRequiredArg().ofType(String.class).defaultsTo("json");
 
         serializeBlobContent = parser.acceptsAll(asList("b", "blobs"), "Export blobs also. " +
-                "By default blobs are not exported")
-                .withOptionalArg().ofType(Boolean.class).defaultsTo(false);
+                                         "By default blobs are not exported")
+                                     .withOptionalArg().ofType(Boolean.class).defaultsTo(false);
 
         prettyPrint = parser.accepts("pretty", "Pretty print the json output")
-                .withOptionalArg().ofType(Boolean.class).defaultsTo(true);
+                            .withOptionalArg().ofType(Boolean.class).defaultsTo(true);
 
         depth = parser.acceptsAll(asList("d", "depth"), "Max depth to include in output")
-                .withOptionalArg().ofType(Integer.class).defaultsTo(Integer.MAX_VALUE);
+                      .withOptionalArg().ofType(Integer.class).defaultsTo(Integer.MAX_VALUE);
 
-        maxChildNodes = parser.acceptsAll(asList("n", "max-child-nodes"), "Maximum number of child nodes " +
-                "to include for a any parent")
-                .withOptionalArg().ofType(Integer.class).defaultsTo(Integer.MAX_VALUE);
+        maxChildNodes = parser.acceptsAll(asList("n", "max-child-nodes"),
+                                  "Maximum number of child nodes " +
+                                      "to include for a any parent")
+                              .withOptionalArg().ofType(Integer.class)
+                              .defaultsTo(Integer.MAX_VALUE);
 
     }
 
@@ -92,7 +96,9 @@ class ExportOptions implements OptionsBean {
 
     @Override
     public String description() {
-        return "The export command supports exporting nodes from a repository in json. It also provide options " +
+        return
+            "The export command supports exporting nodes from a repository in json. It also provide options "
+                +
                 "to export the blobs which are stored in FileDataStore format";
     }
 

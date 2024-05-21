@@ -26,7 +26,7 @@ public class JoinImpl extends SourceImpl implements Join {
     private final SourceImpl right;
 
     public JoinImpl(SourceImpl left, SourceImpl right, JoinType joinType,
-            JoinConditionImpl joinCondition) {
+        JoinConditionImpl joinCondition) {
         this.left = left;
         this.right = right;
         this.joinType = joinType;

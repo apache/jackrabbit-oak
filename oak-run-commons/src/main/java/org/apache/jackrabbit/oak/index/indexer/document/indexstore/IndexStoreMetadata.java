@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.index.indexer.document.indexstore;
 import java.util.Set;
 
 public class IndexStoreMetadata {
+
     private String checkpoint;
     private String storeType;
     private String strategy;
@@ -30,7 +31,7 @@ public class IndexStoreMetadata {
     }
 
     public IndexStoreMetadata(String checkpoint, String storeType, String strategy,
-                              Set<String> preferredPaths) {
+        Set<String> preferredPaths) {
         this.checkpoint = checkpoint;
         this.storeType = storeType;
         this.strategy = strategy;

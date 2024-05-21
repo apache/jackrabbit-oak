@@ -16,18 +16,16 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.credentials;
 
+import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
+import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
+
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
-
 import javax.jcr.Credentials;
-
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
-
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -41,11 +39,13 @@ public final class CompositeCredentialsSupport implements CredentialsSupport {
     @NotNull
     private final Supplier<Collection<CredentialsSupport>> credentialSupplier;
 
-    private CompositeCredentialsSupport(@NotNull Supplier<Collection<CredentialsSupport>> credentialSupplier) {
+    private CompositeCredentialsSupport(
+        @NotNull Supplier<Collection<CredentialsSupport>> credentialSupplier) {
         this.credentialSupplier = credentialSupplier;
     }
 
-    public static CredentialsSupport newInstance(@NotNull Supplier<Collection<CredentialsSupport>> credentialSupplier) {
+    public static CredentialsSupport newInstance(
+        @NotNull Supplier<Collection<CredentialsSupport>> credentialSupplier) {
         return new CompositeCredentialsSupport(credentialSupplier);
     }
 
@@ -97,7 +97,8 @@ public final class CompositeCredentialsSupport implements CredentialsSupport {
     }
 
     @Override
-    public boolean setAttributes(@NotNull Credentials credentials, @NotNull Map<String, ?> attributes) {
+    public boolean setAttributes(@NotNull Credentials credentials,
+        @NotNull Map<String, ?> attributes) {
         boolean set = false;
         Collection<CredentialsSupport> all = this.credentialSupplier.get();
         for (CredentialsSupport c : all) {

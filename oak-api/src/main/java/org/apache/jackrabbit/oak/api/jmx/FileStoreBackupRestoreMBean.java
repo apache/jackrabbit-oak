@@ -20,7 +20,6 @@
 package org.apache.jackrabbit.oak.api.jmx;
 
 import javax.management.openmbean.CompositeData;
-
 import org.jetbrains.annotations.NotNull;
 import org.osgi.annotation.versioning.ProviderType;
 
@@ -31,12 +30,13 @@ import org.osgi.annotation.versioning.ProviderType;
  */
 @ProviderType
 public interface FileStoreBackupRestoreMBean {
+
     String TYPE = "FileStoreBackupRestore";
-    
+
     /**
      * Initiate a backup operation.
      *
-     * @return  the status of the operation right after it was initiated
+     * @return the status of the operation right after it was initiated
      */
     @NotNull
     CompositeData startBackup();
@@ -44,8 +44,8 @@ public interface FileStoreBackupRestoreMBean {
     /**
      * Backup status
      *
-     * @return  the status of the ongoing operation or if none the terminal
-     * status of the last operation or <em>Status not available</em> if none.
+     * @return the status of the ongoing operation or if none the terminal status of the last
+     * operation or <em>Status not available</em> if none.
      */
     @NotNull
     CompositeData getBackupStatus();
@@ -53,7 +53,7 @@ public interface FileStoreBackupRestoreMBean {
     /**
      * Initiate a restore operation.
      *
-     * @return  the status of the operation right after it was initiated
+     * @return the status of the operation right after it was initiated
      */
     @NotNull
     CompositeData startRestore();
@@ -61,22 +61,19 @@ public interface FileStoreBackupRestoreMBean {
     /**
      * Restore status
      *
-     * @return  the status of the ongoing operation or if none the terminal
-     * status of the last operation or <em>Status not available</em> if none.
+     * @return the status of the ongoing operation or if none the terminal status of the last
+     * operation or <em>Status not available</em> if none.
      */
     @NotNull
     CompositeData getRestoreStatus();
 
     /**
-     * Creates a new checkpoint of the latest root of the tree. The checkpoint
-     * remains valid for at least as long as requested and allows that state
-     * of the repository to be retrieved using the returned opaque string
-     * reference.
+     * Creates a new checkpoint of the latest root of the tree. The checkpoint remains valid for at
+     * least as long as requested and allows that state of the repository to be retrieved using the
+     * returned opaque string reference.
      *
-     * @param lifetime time (in milliseconds, &gt; 0) that the checkpoint
-     *                 should remain available
+     * @param lifetime time (in milliseconds, &gt; 0) that the checkpoint should remain available
      * @return string reference of this checkpoint
-     *
      * @deprecated Use {@link org.apache.jackrabbit.oak.api.jmx.CheckpointMBean} instead
      */
     @Deprecated

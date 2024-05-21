@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
 
 class BackgroundReadStats {
+
     CacheInvalidationStats cacheStats;
     long readHead;
     long cacheInvalidationTime;
@@ -35,19 +36,19 @@ class BackgroundReadStats {
     @Override
     public String toString() {
         String cacheStatsMsg = "NOP";
-        if (cacheStats != null){
+        if (cacheStats != null) {
             cacheStatsMsg = cacheStats.summaryReport();
         }
-        return  "ReadStats{" +
-                "cacheStats:" + cacheStatsMsg +
-                ", head:" + readHead +
-                ", cache:" + cacheInvalidationTime +
-                ", diff: " + populateDiffCache +
-                ", lock:" + lock +
-                ", dispatch:" + dispatchChanges +
-                ", numExternalChanges:" + numExternalChanges +
-                ", externalChangesLag:" + externalChangesLag+
-                ", totalReadTime:" + totalReadTime +
-                '}';
+        return "ReadStats{" +
+            "cacheStats:" + cacheStatsMsg +
+            ", head:" + readHead +
+            ", cache:" + cacheInvalidationTime +
+            ", diff: " + populateDiffCache +
+            ", lock:" + lock +
+            ", dispatch:" + dispatchChanges +
+            ", numExternalChanges:" + numExternalChanges +
+            ", externalChangesLag:" + externalChangesLag +
+            ", totalReadTime:" + totalReadTime +
+            '}';
     }
 }

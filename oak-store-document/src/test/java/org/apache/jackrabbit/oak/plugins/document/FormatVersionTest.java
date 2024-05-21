@@ -128,11 +128,12 @@ public class FormatVersionTest {
     public void concurrentUpdate1() throws Exception {
         DocumentStore store = new MemoryDocumentStore() {
             private final AtomicBoolean once = new AtomicBoolean(false);
+
             @Override
             public <T extends Document> T findAndUpdate(Collection<T> collection,
-                                                        UpdateOp update) {
+                UpdateOp update) {
                 if (collection == SETTINGS
-                        && !once.getAndSet(true)) {
+                    && !once.getAndSet(true)) {
                     V1_2.writeTo(this);
                 }
                 return super.findAndUpdate(collection, update);
@@ -149,9 +150,9 @@ public class FormatVersionTest {
 
             @Override
             public <T extends Document> boolean create(Collection<T> collection,
-                                                       List<UpdateOp> updateOps) {
+                List<UpdateOp> updateOps) {
                 if (collection == SETTINGS
-                        && !once.getAndSet(true)) {
+                    && !once.getAndSet(true)) {
                     V1_0.writeTo(this);
                 }
                 return super.create(collection, updateOps);

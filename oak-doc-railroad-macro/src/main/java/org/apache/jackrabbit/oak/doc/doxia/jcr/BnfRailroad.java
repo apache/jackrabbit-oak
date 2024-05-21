@@ -34,6 +34,7 @@ public class BnfRailroad implements BnfVisitor {
     private static final boolean RAILROAD_DOTS = true;
 
     private static final Map<String, String> XPATH_KEYWORD_TO_ESCAPE = new HashMap<>();
+
     static {
         XPATH_KEYWORD_TO_ESCAPE.put("|", "@PIPE@");
         XPATH_KEYWORD_TO_ESCAPE.put("element", "@ELEMENT@");
@@ -88,7 +89,7 @@ public class BnfRailroad implements BnfVisitor {
     /**
      * Generate the HTML for the given syntax.
      *
-     * @param bnf the BNF parser
+     * @param bnf         the BNF parser
      * @param syntaxLines the syntax
      * @return the HTML
      */
@@ -105,7 +106,7 @@ public class BnfRailroad implements BnfVisitor {
 
             bnf.visit(this, s);
             html = StringUtils.replaceAll(html, "</code></td>" +
-                    "<td class=\"d\"><code class=\"c\">", " ");
+                "<td class=\"d\"><code class=\"c\">", " ");
 
             for (Map.Entry<String, String> entry : XPATH_KEYWORD_TO_ESCAPE.entrySet()) {
                 html = StringUtils.replaceAll(html, entry.getValue(), entry.getKey());
@@ -166,36 +167,36 @@ public class BnfRailroad implements BnfVisitor {
      */
     static String getHtmlText(int type) {
         switch (type) {
-        case RuleFixed.YMD:
-            return "2000-01-01";
-        case RuleFixed.HMS:
-            return "12:00:00";
-        case RuleFixed.NANOS:
-            return "000000000";
-        case RuleFixed.ANY_UNTIL_EOL:
-        case RuleFixed.ANY_EXCEPT_SINGLE_QUOTE:
-        case RuleFixed.ANY_EXCEPT_DOUBLE_QUOTE:
-        case RuleFixed.ANY_WORD:
-        case RuleFixed.ANY_EXCEPT_2_DOLLAR:
-        case RuleFixed.ANY_UNTIL_END: {
-            return "anything";
-        }
-        case RuleFixed.HEX_START:
-            return "0x";
-        case RuleFixed.CONCAT:
-            return "||";
-        case RuleFixed.AZ_UNDERSCORE:
-            return "A-Z | _";
-        case RuleFixed.AF:
-            return "A-F";
-        case RuleFixed.DIGIT:
-            return "0-9";
-        case RuleFixed.OPEN_BRACKET:
-            return "[";
-        case RuleFixed.CLOSE_BRACKET:
-            return "]";
-        default:
-            throw new AssertionError("type="+type);
+            case RuleFixed.YMD:
+                return "2000-01-01";
+            case RuleFixed.HMS:
+                return "12:00:00";
+            case RuleFixed.NANOS:
+                return "000000000";
+            case RuleFixed.ANY_UNTIL_EOL:
+            case RuleFixed.ANY_EXCEPT_SINGLE_QUOTE:
+            case RuleFixed.ANY_EXCEPT_DOUBLE_QUOTE:
+            case RuleFixed.ANY_WORD:
+            case RuleFixed.ANY_EXCEPT_2_DOLLAR:
+            case RuleFixed.ANY_UNTIL_END: {
+                return "anything";
+            }
+            case RuleFixed.HEX_START:
+                return "0x";
+            case RuleFixed.CONCAT:
+                return "||";
+            case RuleFixed.AZ_UNDERSCORE:
+                return "A-Z | _";
+            case RuleFixed.AF:
+                return "A-F";
+            case RuleFixed.DIGIT:
+                return "0-9";
+            case RuleFixed.OPEN_BRACKET:
+                return "[";
+            case RuleFixed.CLOSE_BRACKET:
+                return "]";
+            default:
+                throw new AssertionError("type=" + type);
         }
     }
 
@@ -209,7 +210,7 @@ public class BnfRailroad implements BnfVisitor {
                 String a = i == 0 ? "t" : i == list.size() - 1 ? "l" : "k";
                 i++;
                 buff.append("<tr class=\"railroad\"><td class=\"" +
-                        a + "s\"></td><td class=\"d\">");
+                    a + "s\"></td><td class=\"d\">");
                 r.accept(this);
                 buff.append(html);
                 buff.append("</td><td class=\"" + a + "e\"></td></tr>");
@@ -234,15 +235,15 @@ public class BnfRailroad implements BnfVisitor {
         StringBuilder buff = new StringBuilder();
         buff.append("<table class=\"railroad\">");
         buff.append("<tr class=\"railroad\"><td class=\"ts\"></td>" +
-                "<td class=\"d\">&nbsp;</td><td class=\"te\"></td></tr>");
+            "<td class=\"d\">&nbsp;</td><td class=\"te\"></td></tr>");
         buff.append("<tr class=\"railroad\">" +
-                "<td class=\"ls\"></td><td class=\"d\">");
+            "<td class=\"ls\"></td><td class=\"d\">");
         rule.accept(this);
         buff.append(html);
         buff.append("</td><td class=\"le\"></td></tr></table>");
         html = buff.toString();
     }
-    
+
     @Override
     public void visitRuleOptional(ArrayList<Rule> list) {
         for (Rule r : list) {
@@ -253,6 +254,6 @@ public class BnfRailroad implements BnfVisitor {
     @Override
     public void visitRuleExtension(Rule rule, boolean compatibility) {
         // not used
-    }    
+    }
 
 }

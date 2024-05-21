@@ -16,11 +16,9 @@
  */
 package org.apache.jackrabbit.oak.segment.aws;
 
+import com.amazonaws.services.s3.AmazonS3;
 import java.io.IOException;
 import java.util.Date;
-
-import com.amazonaws.services.s3.AmazonS3;
-
 import org.apache.jackrabbit.oak.segment.file.tar.TarWriterTest;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
@@ -54,7 +52,8 @@ public class AwsTarWriterTest extends TarWriterTest {
         return new AwsArchiveManager(directory, ioMonitor, monitor) {
             @Override
             public SegmentArchiveWriter create(String archiveName) {
-                return new AwsSegmentArchiveWriter(directory.withDirectory(archiveName), archiveName, ioMonitor, monitor) {
+                return new AwsSegmentArchiveWriter(directory.withDirectory(archiveName),
+                    archiveName, ioMonitor, monitor) {
                     @Override
                     public void writeGraph(byte[] data) throws IOException {
                         throw new IOException("test");

@@ -18,6 +18,9 @@
  */
 package org.apache.jackrabbit.oak.index.async;
 
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.index.ExtendedIndexHelper;
 import org.apache.jackrabbit.oak.index.LuceneIndexHelper;
@@ -28,17 +31,15 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
-
 
 public class AsyncIndexerLucene extends AsyncIndexerBase {
 
     private static final Logger log = LoggerFactory.getLogger(AsyncIndexerLucene.class);
     private final ExtendedIndexHelper extendedIndexHelper;
     private final boolean enableCowCor;
-    public AsyncIndexerLucene(ExtendedIndexHelper extendedIndexHelper, boolean enableCowCor, Closer close, List<String> names, long delay) {
+
+    public AsyncIndexerLucene(ExtendedIndexHelper extendedIndexHelper, boolean enableCowCor,
+        Closer close, List<String> names, long delay) {
         super(extendedIndexHelper, close, names, delay);
         this.extendedIndexHelper = extendedIndexHelper;
         this.enableCowCor = enableCowCor;
@@ -48,7 +49,8 @@ public class AsyncIndexerLucene extends AsyncIndexerBase {
     public IndexEditorProvider getIndexEditorProvider() {
         try {
             return CompositeIndexEditorProvider
-                    .compose(Arrays.asList(createLuceneEditorProvider(), new NodeCounterEditorProvider()));
+                .compose(
+                    Arrays.asList(createLuceneEditorProvider(), new NodeCounterEditorProvider()));
         } catch (IOException e) {
             log.error("Exception while initializing IndexEditorProvider", e);
             return null;

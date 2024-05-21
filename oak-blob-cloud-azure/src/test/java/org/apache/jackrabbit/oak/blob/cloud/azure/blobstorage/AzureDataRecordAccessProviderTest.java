@@ -29,9 +29,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Map;
 import java.util.Properties;
-
 import javax.net.ssl.HttpsURLConnection;
-
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStore;
@@ -52,6 +50,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 public class AzureDataRecordAccessProviderTest extends AbstractDataRecordAccessProviderTest {
+
     @ClassRule
     public static TemporaryFolder homeDir = new TemporaryFolder(new File("target"));
 
@@ -59,11 +58,13 @@ public class AzureDataRecordAccessProviderTest extends AbstractDataRecordAccessP
 
     @BeforeClass
     public static void setupDataStore() throws Exception {
-        dataStore = AzureDataStoreUtils.setupDirectAccessDataStore(homeDir, expirySeconds, expirySeconds);
+        dataStore = AzureDataStoreUtils.setupDirectAccessDataStore(homeDir, expirySeconds,
+            expirySeconds);
     }
 
     private static AzureDataStore createDataStore(@NotNull Properties properties) throws Exception {
-        return AzureDataStoreUtils.setupDirectAccessDataStore(homeDir, expirySeconds, expirySeconds, properties);
+        return AzureDataStoreUtils.setupDirectAccessDataStore(homeDir, expirySeconds, expirySeconds,
+            properties);
     }
 
     @Override
@@ -72,23 +73,29 @@ public class AzureDataRecordAccessProviderTest extends AbstractDataRecordAccessP
     }
 
     @Override
-    protected ConfigurableDataRecordAccessProvider getDataStore(@NotNull Properties overrideProperties) throws Exception {
-        return createDataStore(AzureDataStoreUtils.getDirectAccessDataStoreProperties(overrideProperties));
+    protected ConfigurableDataRecordAccessProvider getDataStore(
+        @NotNull Properties overrideProperties) throws Exception {
+        return createDataStore(
+            AzureDataStoreUtils.getDirectAccessDataStoreProperties(overrideProperties));
     }
 
     @Override
-    protected DataRecord doGetRecord(DataStore ds, DataIdentifier identifier) throws DataStoreException {
+    protected DataRecord doGetRecord(DataStore ds, DataIdentifier identifier)
+        throws DataStoreException {
         return ds.getRecord(identifier);
     }
 
     @Override
-    protected DataRecord doSynchronousAddRecord(DataStore ds, InputStream in) throws DataStoreException {
-        return ((AzureDataStore)ds).addRecord(in, new BlobOptions().setUpload(BlobOptions.UploadType.SYNCHRONOUS));
+    protected DataRecord doSynchronousAddRecord(DataStore ds, InputStream in)
+        throws DataStoreException {
+        return ((AzureDataStore) ds).addRecord(in,
+            new BlobOptions().setUpload(BlobOptions.UploadType.SYNCHRONOUS));
     }
 
     @Override
-    protected void doDeleteRecord(DataStore ds, DataIdentifier identifier) throws DataStoreException {
-        ((AzureDataStore)ds).deleteRecord(identifier);
+    protected void doDeleteRecord(DataStore ds, DataIdentifier identifier)
+        throws DataStoreException {
+        ((AzureDataStore) ds).deleteRecord(identifier);
     }
 
     @Override
@@ -102,10 +109,14 @@ public class AzureDataRecordAccessProviderTest extends AbstractDataRecordAccessP
     }
 
     @Override
-    protected long getProviderMaxSinglePutSize() { return AzureBlobStoreBackend.MAX_SINGLE_PUT_UPLOAD_SIZE; }
+    protected long getProviderMaxSinglePutSize() {
+        return AzureBlobStoreBackend.MAX_SINGLE_PUT_UPLOAD_SIZE;
+    }
 
     @Override
-    protected long getProviderMaxBinaryUploadSize() { return AzureBlobStoreBackend.MAX_BINARY_UPLOAD_SIZE; }
+    protected long getProviderMaxBinaryUploadSize() {
+        return AzureBlobStoreBackend.MAX_BINARY_UPLOAD_SIZE;
+    }
 
     @Override
     protected boolean isSinglePutURI(URI uri) {
@@ -132,8 +143,7 @@ public class AzureDataRecordAccessProviderTest extends AbstractDataRecordAccessP
             String expiryDateStr = params.get("se");
             Instant expiry = Instant.parse(expiryDateStr);
             assertEquals(now, expiry.minusSeconds(60));
-        }
-        finally {
+        } finally {
             ds.setDirectUploadURIExpirySeconds(expirySeconds);
         }
     }
@@ -171,7 +181,8 @@ public class AzureDataRecordAccessProviderTest extends AbstractDataRecordAccessP
             DataIdentifier id = record.getIdentifier();
             URI uri = dataStore.getDownloadURI(id, downloadOptionsWithMimeType(null));
             Assert.assertNotNull(uri);
-            URI uriWithContentType = dataStore.getDownloadURI(id, downloadOptionsWithMimeType("application/octet-stream"));
+            URI uriWithContentType = dataStore.getDownloadURI(id,
+                downloadOptionsWithMimeType("application/octet-stream"));
             Assert.assertNotNull(uriWithContentType);
             // must generate different download URIs
             assertNotEquals(uri.toString(), uriWithContentType.toString());
@@ -185,12 +196,12 @@ public class AzureDataRecordAccessProviderTest extends AbstractDataRecordAccessP
 
     private static DataRecordDownloadOptions downloadOptionsWithMimeType(String mimeType) {
         return DataRecordDownloadOptions.fromBlobDownloadOptions(
-                new BlobDownloadOptions(
-                        mimeType,
-                        BlobDownloadOptions.DEFAULT.getCharacterEncoding(),
-                        BlobDownloadOptions.DEFAULT.getFileName(),
-                        BlobDownloadOptions.DEFAULT.getDispositionType()
-                )
+            new BlobDownloadOptions(
+                mimeType,
+                BlobDownloadOptions.DEFAULT.getCharacterEncoding(),
+                BlobDownloadOptions.DEFAULT.getFileName(),
+                BlobDownloadOptions.DEFAULT.getDispositionType()
+            )
         );
     }
 }

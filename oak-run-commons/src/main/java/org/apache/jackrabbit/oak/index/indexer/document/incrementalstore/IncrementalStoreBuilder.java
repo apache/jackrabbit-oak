@@ -18,6 +18,17 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.incrementalstore;
 
+import static java.util.Collections.unmodifiableSet;
+import static org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils.OAK_INDEXER_USE_LZ4;
+import static org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils.OAK_INDEXER_USE_ZIP;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.util.Collections;
+import java.util.Objects;
+import java.util.Set;
+import java.util.function.Predicate;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.index.IndexHelper;
@@ -29,19 +40,8 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.util.Collections;
-import java.util.Objects;
-import java.util.Set;
-import java.util.function.Predicate;
-
-import static java.util.Collections.unmodifiableSet;
-import static org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils.OAK_INDEXER_USE_LZ4;
-import static org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils.OAK_INDEXER_USE_ZIP;
-
 public class IncrementalStoreBuilder {
+
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     private static final String INCREMENTAL_STORE_DIR_NAME_PREFIX = "inc-store";
@@ -57,14 +57,17 @@ public class IncrementalStoreBuilder {
     private final Compression algorithm = IndexStoreUtils.compressionAlgorithm();
 
     /**
-     * System property name for sort strategy. This takes precedence over {@link #INCREMENTAL_SORT_STRATEGY_TYPE}.
-     * Allowed values are the values from enum {@link IncrementalStoreBuilder.IncrementalSortStrategyType}
+     * System property name for sort strategy. This takes precedence over
+     * {@link #INCREMENTAL_SORT_STRATEGY_TYPE}. Allowed values are the values from enum
+     * {@link IncrementalStoreBuilder.IncrementalSortStrategyType}
      */
     public static final String INCREMENTAL_SORT_STRATEGY_TYPE = "oak.indexer.incrementalSortStrategyType";
 
 
-    private final String sortStrategyTypeString = System.getProperty(INCREMENTAL_SORT_STRATEGY_TYPE);
-    private IncrementalStoreBuilder.IncrementalSortStrategyType sortStrategyType = sortStrategyTypeString != null
+    private final String sortStrategyTypeString = System.getProperty(
+        INCREMENTAL_SORT_STRATEGY_TYPE);
+    private IncrementalStoreBuilder.IncrementalSortStrategyType sortStrategyType =
+        sortStrategyTypeString != null
             ? IncrementalStoreBuilder.IncrementalSortStrategyType.valueOf(sortStrategyTypeString)
             : IncrementalSortStrategyType.INCREMENTAL_FFS_STORE;
 
@@ -78,7 +81,7 @@ public class IncrementalStoreBuilder {
     }
 
     public IncrementalStoreBuilder(File workDir, IndexHelper indexHelper,
-                                   @NotNull String initialCheckpoint, @NotNull String finalCheckpoint) {
+        @NotNull String initialCheckpoint, @NotNull String finalCheckpoint) {
         this.workDir = workDir;
         this.indexHelper = indexHelper;
         this.initialCheckpoint = Objects.requireNonNull(initialCheckpoint);
@@ -90,7 +93,8 @@ public class IncrementalStoreBuilder {
         return this;
     }
 
-    public IncrementalStoreBuilder withSortStrategyType(IncrementalStoreBuilder.IncrementalSortStrategyType sortStrategyType) {
+    public IncrementalStoreBuilder withSortStrategyType(
+        IncrementalStoreBuilder.IncrementalSortStrategyType sortStrategyType) {
         this.sortStrategyType = sortStrategyType;
         return this;
     }
@@ -110,19 +114,22 @@ public class IncrementalStoreBuilder {
         logFlags();
         File dir = createStoreDir();
 
-        if (Objects.requireNonNull(sortStrategyType) == IncrementalSortStrategyType.INCREMENTAL_FFS_STORE) {
-            IncrementalFlatFileStoreNodeStateEntryWriter entryWriter = new IncrementalFlatFileStoreNodeStateEntryWriter(blobStore);
+        if (Objects.requireNonNull(sortStrategyType)
+            == IncrementalSortStrategyType.INCREMENTAL_FFS_STORE) {
+            IncrementalFlatFileStoreNodeStateEntryWriter entryWriter = new IncrementalFlatFileStoreNodeStateEntryWriter(
+                blobStore);
             IncrementalIndexStoreSortStrategy strategy = new IncrementalFlatFileStoreStrategy(
-                    indexHelper.getNodeStore(),
-                    initialCheckpoint,
-                    finalCheckpoint,
-                    dir, preferredPathElements, algorithm, pathPredicate, entryWriter);
+                indexHelper.getNodeStore(),
+                initialCheckpoint,
+                finalCheckpoint,
+                dir, preferredPathElements, algorithm, pathPredicate, entryWriter);
             File metadataFile = strategy.createMetadataFile();
             File incrementalStoreFile = strategy.createSortedStoreFile();
             long entryCount = strategy.getEntryCount();
-            IndexStore store = new IncrementalFlatFileStore(blobStore, incrementalStoreFile, metadataFile,
-                    new IncrementalFlatFileStoreNodeStateEntryReader(blobStore),
-                    unmodifiableSet(preferredPathElements), algorithm);
+            IndexStore store = new IncrementalFlatFileStore(blobStore, incrementalStoreFile,
+                metadataFile,
+                new IncrementalFlatFileStoreNodeStateEntryReader(blobStore),
+                unmodifiableSet(preferredPathElements), algorithm);
             if (entryCount > 0) {
                 store.setEntryCount(entryCount);
             }
@@ -141,7 +148,9 @@ public class IncrementalStoreBuilder {
 
     private void logFlags() {
         log.info("Preferred path elements are {}", Iterables.toString(preferredPathElements));
-        log.info("Compression enabled while sorting : {} ({})", IndexStoreUtils.compressionEnabled(), OAK_INDEXER_USE_ZIP);
-        log.info("LZ4 enabled for compression algorithm : {} ({})", IndexStoreUtils.useLZ4(), OAK_INDEXER_USE_LZ4);
+        log.info("Compression enabled while sorting : {} ({})",
+            IndexStoreUtils.compressionEnabled(), OAK_INDEXER_USE_ZIP);
+        log.info("LZ4 enabled for compression algorithm : {} ({})", IndexStoreUtils.useLZ4(),
+            OAK_INDEXER_USE_LZ4);
     }
 }

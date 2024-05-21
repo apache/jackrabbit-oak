@@ -40,8 +40,8 @@ class JsopNodeStateDiffer implements NodeStateDiffer {
 
     @Override
     public boolean compare(@NotNull final AbstractDocumentNodeState node,
-                           @NotNull final AbstractDocumentNodeState base,
-                           @NotNull final NodeStateDiff diff) {
+        @NotNull final AbstractDocumentNodeState base,
+        @NotNull final NodeStateDiff diff) {
         if (!withoutPropertyChanges) {
             if (!AbstractNodeState.comparePropertiesAgainstBaseState(node, base, diff)) {
                 return false;
@@ -52,7 +52,7 @@ class JsopNodeStateDiffer implements NodeStateDiffer {
             @Override
             public boolean childNodeAdded(String name) {
                 return diff.childNodeAdded(name,
-                        node.getChildNode(name));
+                    node.getChildNode(name));
             }
 
             @Override
@@ -63,15 +63,15 @@ class JsopNodeStateDiffer implements NodeStateDiffer {
                 if (baseChild.exists()) {
                     if (nodeChild.exists()) {
                         continueComparison = compareExisting(
-                                baseChild, nodeChild, name, diff);
+                            baseChild, nodeChild, name, diff);
                     } else {
                         continueComparison = diff.childNodeDeleted(name,
-                                baseChild);
+                            baseChild);
                     }
                 } else {
                     if (nodeChild.exists()) {
                         continueComparison = diff.childNodeAdded(name,
-                                nodeChild);
+                            nodeChild);
                     }
                 }
                 return continueComparison;
@@ -80,17 +80,17 @@ class JsopNodeStateDiffer implements NodeStateDiffer {
             @Override
             public boolean childNodeDeleted(String name) {
                 return diff.childNodeDeleted(name,
-                        base.getChildNode(name));
+                    base.getChildNode(name));
             }
         });
     }
 
     private static boolean compareExisting(NodeState baseChild,
-                                           NodeState nodeChild,
-                                           String name,
-                                           NodeStateDiff diff) {
+        NodeState nodeChild,
+        String name,
+        NodeStateDiff diff) {
         if (baseChild instanceof AbstractDocumentNodeState
-                && nodeChild instanceof AbstractDocumentNodeState) {
+            && nodeChild instanceof AbstractDocumentNodeState) {
             AbstractDocumentNodeState beforeChild = (AbstractDocumentNodeState) baseChild;
             AbstractDocumentNodeState afterChild = (AbstractDocumentNodeState) nodeChild;
             if (beforeChild.getLastRevision().equals(afterChild.getLastRevision())) {

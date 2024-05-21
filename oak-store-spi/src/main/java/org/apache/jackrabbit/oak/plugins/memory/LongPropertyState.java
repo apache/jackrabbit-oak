@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.plugins.value.Conversions.Converter;
 import org.jetbrains.annotations.NotNull;
 
 public class LongPropertyState extends SinglePropertyState<Long> {
+
     private final long value;
 
     public LongPropertyState(@NotNull String name, long value) {
@@ -34,12 +35,13 @@ public class LongPropertyState extends SinglePropertyState<Long> {
 
     /**
      * Create a {@code PropertyState} from a long.
+     *
      * @param name  The name of the property state
-     * @param value  The value of the property state
-     * @return  The new property state of type {@link Type#LONG}
+     * @param value The value of the property state
+     * @return The new property state of type {@link Type#LONG}
      */
     public static PropertyState createLongProperty(
-            @NotNull String name, long value) {
+        @NotNull String name, long value) {
         return new LongPropertyState(name, value);
     }
 

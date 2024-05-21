@@ -26,7 +26,7 @@ public class GetBlobResponse {
     private final String blobId;
 
     private final InputStream in;
-    
+
     private final long length;
 
     public GetBlobResponse(String clientId, String blobId, InputStream in, long length) {

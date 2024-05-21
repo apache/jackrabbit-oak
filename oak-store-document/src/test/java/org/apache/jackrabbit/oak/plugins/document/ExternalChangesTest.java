@@ -60,6 +60,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 public class ExternalChangesTest {
+
     @Rule
     public final DocumentMKBuilderProvider builderProvider = new DocumentMKBuilderProvider();
 
@@ -83,13 +84,13 @@ public class ExternalChangesTest {
     }
 
     @Test
-    public void defaultConfig() throws Exception{
+    public void defaultConfig() throws Exception {
         assertEquals(50, ns1.getChangeSetMaxItems());
         assertEquals(9, ns1.getChangeSetMaxDepth());
     }
 
     @Test
-    public void changeSetForExternalChanges() throws Exception{
+    public void changeSetForExternalChanges() throws Exception {
         NodeBuilder b1 = ns1.getRoot().builder();
         b1.child("a");
         b1.setProperty("foo1", "bar");
@@ -115,7 +116,7 @@ public class ExternalChangesTest {
     }
 
     @Test
-    public void missingChangeSetResultsInOverflow() throws Exception{
+    public void missingChangeSetResultsInOverflow() throws Exception {
         NodeBuilder b1 = ns1.getRoot().builder();
         b1.child("a");
         b1.setProperty("foo1", "bar");
@@ -143,7 +144,7 @@ public class ExternalChangesTest {
     }
 
     @Test
-    public void changeSetForBranchCommit() throws Exception{
+    public void changeSetForBranchCommit() throws Exception {
         final int NUM_NODES = DocumentMK.UPDATE_LIMIT / 2;
         final int NUM_PROPS = 10;
 
@@ -174,7 +175,7 @@ public class ExternalChangesTest {
     }
 
     @Test
-    public void journalService() throws Exception{
+    public void journalService() throws Exception {
         wb.register(JournalPropertyService.class, new TestJournalService(), null);
 
         //Do a dummy write so that journal property handler gets refreshed
@@ -215,40 +216,43 @@ public class ExternalChangesTest {
         assertThat(ct.values, containsInAnyOrder("foo", "bar", "NULL"));
     }
 
-    private CommitHook newCollectingHook(){
+    private CommitHook newCollectingHook() {
         return new EditorHook(new ChangeCollectorProvider());
     }
 
-    private CommitInfo newCommitInfo(){
+    private CommitInfo newCommitInfo() {
         return newCommitInfo(new SimpleCommitContext());
     }
 
-    private CommitInfo newCommitInfo(CommitContext commitContext){
-        Map<String, Object> info = ImmutableMap.<String, Object>of(CommitContext.NAME, commitContext);
+    private CommitInfo newCommitInfo(CommitContext commitContext) {
+        Map<String, Object> info = ImmutableMap.<String, Object>of(CommitContext.NAME,
+            commitContext);
         return new CommitInfo(CommitInfo.OAK_UNKNOWN, CommitInfo.OAK_UNKNOWN, info);
     }
 
     private DocumentNodeStore newDocumentNodeStore(DocumentStore store, int clusterId) {
         return builderProvider.newBuilder()
-                .setAsyncDelay(0)
-                .setDocumentStore(store)
-                .setJournalPropertyHandlerFactory(tracker)
-                .setLeaseCheckMode(LeaseCheckMode.DISABLED) // disabled for debugging purposes
-                .setClusterId(clusterId)
-                .getNodeStore();
+                              .setAsyncDelay(0)
+                              .setDocumentStore(store)
+                              .setJournalPropertyHandlerFactory(tracker)
+                              .setLeaseCheckMode(
+                                  LeaseCheckMode.DISABLED) // disabled for debugging purposes
+                              .setClusterId(clusterId)
+                              .getNodeStore();
     }
 
     private static class CommitInfoCollector implements Observer {
+
         List<CommitInfo> infos = Lists.newArrayList();
 
         @Override
         public void contentChanged(@NotNull NodeState root, @NotNull CommitInfo info) {
-           infos.add(info);
+            infos.add(info);
         }
 
-        public CommitInfo getExternalChange(){
+        public CommitInfo getExternalChange() {
             List<CommitInfo> result = Lists.newArrayList();
-            for (CommitInfo info : infos){
+            for (CommitInfo info : infos) {
                 if (info.isExternal()) {
                     result.add(info);
                 }
@@ -257,7 +261,7 @@ public class ExternalChangesTest {
             return result.get(0);
         }
 
-        void reset(){
+        void reset() {
             infos.clear();
         }
     }
@@ -276,6 +280,7 @@ public class ExternalChangesTest {
     }
 
     private static class TestProperty implements JournalProperty {
+
         static final String NAME = "test.props";
         final String value;
 
@@ -285,10 +290,12 @@ public class ExternalChangesTest {
     }
 
     private static class CumulativeTestProperty implements JournalProperty {
+
         final Set<String> values = Sets.newHashSet();
     }
 
-    private static class TestJournalBuilder implements JournalPropertyBuilder<TestProperty>{
+    private static class TestJournalBuilder implements JournalPropertyBuilder<TestProperty> {
+
         final CumulativeTestProperty allProps = new CumulativeTestProperty();
 
         @Override
@@ -307,7 +314,7 @@ public class ExternalChangesTest {
 
         @Override
         public void addSerializedProperty(@Nullable String s) {
-            if (s != null){
+            if (s != null) {
                 Iterables.addAll(allProps.values, Splitter.on(',').split(s));
             }
         }

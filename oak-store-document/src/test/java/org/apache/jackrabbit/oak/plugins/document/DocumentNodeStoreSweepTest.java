@@ -143,7 +143,7 @@ public class DocumentNodeStoreSweepTest {
         // split the root
         NodeDocument doc = getRootDocument(store);
         List<UpdateOp> ops = SplitOperations.forDocument(doc, ns,
-                ns.getHeadRevision(), NO_BINARY, 2);
+            ns.getHeadRevision(), NO_BINARY, 2);
         String prevId = null;
         for (UpdateOp op : ops) {
             if (Utils.isPreviousDocId(op.getId())) {
@@ -243,14 +243,14 @@ public class DocumentNodeStoreSweepTest {
             @NotNull
             @Override
             public <T extends Document> List<T> query(Collection<T> collection,
-                                                      String fromKey,
-                                                      String toKey,
-                                                      String indexedProperty,
-                                                      long startValue,
-                                                      int limit) {
+                String fromKey,
+                String toKey,
+                String indexedProperty,
+                long startValue,
+                int limit) {
                 queries.put(indexedProperty, startValue);
                 return super.query(collection, fromKey, toKey,
-                        indexedProperty, startValue, limit);
+                    indexedProperty, startValue, limit);
             }
         });
         ns = createDocumentNodeStore(0);
@@ -323,18 +323,19 @@ public class DocumentNodeStoreSweepTest {
         for (NodeDocument doc : getAllDocuments(store)) {
             for (Revision c : doc.getAllChanges()) {
                 String commitValue = ns.getCommitValue(c, doc);
-                assertTrue("Revision " + c + " on " + doc.getId() + " is not committed: " + commitValue,
-                        Utils.isCommitted(commitValue));
+                assertTrue(
+                    "Revision " + c + " on " + doc.getId() + " is not committed: " + commitValue,
+                    Utils.isCommitted(commitValue));
             }
         }
     }
 
     private DocumentNodeStore createDocumentNodeStore(int clusterId) {
         return builderProvider.newBuilder().setDocumentStore(store)
-                // use lenient mode because tests use a virtual clock
-                .setLeaseCheckMode(LeaseCheckMode.LENIENT)
-                .setClusterId(clusterId).clock(clock).setAsyncDelay(0)
-                .getNodeStore();
+                              // use lenient mode because tests use a virtual clock
+                              .setLeaseCheckMode(LeaseCheckMode.LENIENT)
+                              .setClusterId(clusterId).clock(clock).setAsyncDelay(0)
+                              .getNodeStore();
     }
 
     private void crashDocumentNodeStore() {

@@ -22,7 +22,7 @@ package org.apache.jackrabbit.oak.commons.json;
 public class JsopTokenizer implements JsopReader {
 
     private static final String[] TYPE = {
-            "end", "string", "number", "true", "false", "null", "error"
+        "end", "string", "number", "true", "false", "null", "error"
     };
 
     private final String jsop;
@@ -69,9 +69,8 @@ public class JsopTokenizer implements JsopReader {
     }
 
     /**
-     * Get the last token value if the the token type was STRING or NUMBER. For
-     * STRING, the text is decoded; for NUMBER, it is returned as parsed. In all
-     * other cases the result is undefined.
+     * Get the last token value if the the token type was STRING or NUMBER. For STRING, the text is
+     * decoded; for NUMBER, it is returned as parsed. In all other cases the result is undefined.
      *
      * @return the token
      */
@@ -378,10 +377,10 @@ public class JsopTokenizer implements JsopReader {
     }
 
     /**
-     * Add an asterisk ('[*]') at the given position. This format is used to
-     * show where parsing failed in a statement.
+     * Add an asterisk ('[*]') at the given position. This format is used to show where parsing
+     * failed in a statement.
      *
-     * @param s the text
+     * @param s     the text
      * @param index the position
      * @return the text with asterisk
      */
@@ -394,8 +393,7 @@ public class JsopTokenizer implements JsopReader {
     }
 
     /**
-     * Read a value and return the raw Json representation. This includes arrays
-     * and nested arrays.
+     * Read a value and return the raw Json representation. This includes arrays and nested arrays.
      *
      * @return the Json representation of the value
      */

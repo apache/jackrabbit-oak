@@ -16,20 +16,19 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.query;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.util.Arrays;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.DefaultSolrConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.junit.Test;
-
-import java.util.Arrays;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 /**
  * Testcase for {@link FilterQueryParser}
@@ -50,7 +49,7 @@ public class FilterQueryParserTest {
     public void testAllChildrenQueryParsing() throws Exception {
         String query = "select [jcr:path], [jcr:score], * from [nt:hierarchy] as a where isdescendantnode(a, '/')";
         Filter filter = mock(Filter.class);
-        OakSolrConfiguration configuration = new DefaultSolrConfiguration(){
+        OakSolrConfiguration configuration = new DefaultSolrConfiguration() {
             @Override
             public boolean useForPathRestrictions() {
                 return true;
@@ -64,7 +63,8 @@ public class FilterQueryParserTest {
         SolrQuery solrQuery = FilterQueryParser.getQuery(filter, plan, configuration);
         assertNotNull(solrQuery);
         String[] filterQueries = solrQuery.getFilterQueries();
-        assertTrue(Arrays.asList(filterQueries).contains(configuration.getFieldForPathRestriction(pathRestriction) + ":\\/"));
+        assertTrue(Arrays.asList(filterQueries).contains(
+            configuration.getFieldForPathRestriction(pathRestriction) + ":\\/"));
         assertEquals("*:*", solrQuery.get("q"));
     }
 
@@ -72,7 +72,7 @@ public class FilterQueryParserTest {
     public void testCollapseJcrContentNodes() throws Exception {
         String query = "select [jcr:path], [jcr:score], * from [nt:hierarchy] as a where isdescendantnode(a, '/')";
         Filter filter = mock(Filter.class);
-        OakSolrConfiguration configuration = new DefaultSolrConfiguration(){
+        OakSolrConfiguration configuration = new DefaultSolrConfiguration() {
             @Override
             public boolean collapseJcrContentNodes() {
                 return true;
@@ -83,8 +83,10 @@ public class FilterQueryParserTest {
         SolrQuery solrQuery = FilterQueryParser.getQuery(filter, plan, configuration);
         assertNotNull(solrQuery);
         String[] filterQueries = solrQuery.getFilterQueries();
-        assertTrue(Arrays.asList(filterQueries).contains("{!collapse field=" + configuration.getCollapsedPathField()
-                + " min=" + configuration.getPathDepthField() + " hint=top_fc nullPolicy=expand}"));
+        assertTrue(Arrays.asList(filterQueries)
+                         .contains("{!collapse field=" + configuration.getCollapsedPathField()
+                             + " min=" + configuration.getPathDepthField()
+                             + " hint=top_fc nullPolicy=expand}"));
         assertEquals("*:*", solrQuery.get("q"));
     }
 

@@ -30,17 +30,19 @@ import java.util.Map;
 /**
  * RailroadMacro macro that prints out the content of a file or a URL.
  */
-@Component( role = Macro.class, hint = "railroad" )
+@Component(role = Macro.class, hint = "railroad")
 public class RailroadMacro
-        extends AbstractMacro
-{
+    extends AbstractMacro {
+
     private final Map<String, Railroad> railroadCache = new HashMap<String, Railroad>();
 
 
-    /** {@inheritDoc} */
-    public void execute( Sink sink, MacroRequest request ) throws MacroExecutionException {
+    /**
+     * {@inheritDoc}
+     */
+    public void execute(Sink sink, MacroRequest request) throws MacroExecutionException {
         try {
-            String fileName = (String) request.getParameter( "file" );
+            String fileName = (String) request.getParameter("file");
             required("file", fileName);
             getLog().debug("fileName: " + fileName);
 
@@ -49,16 +51,16 @@ public class RailroadMacro
             getLog().debug("topic: " + topic);
 
             boolean setAnchor = true;
-            String setAnchorParam = (String) request.getParameter( "setAnchor" );
-            if ( setAnchorParam != null && !"".equals( setAnchorParam ) ) {
-                setAnchor = Boolean.valueOf( setAnchorParam ).booleanValue();
+            String setAnchorParam = (String) request.getParameter("setAnchor");
+            if (setAnchorParam != null && !"".equals(setAnchorParam)) {
+                setAnchor = Boolean.valueOf(setAnchorParam).booleanValue();
             }
             getLog().debug("Set Anchor: " + setAnchor);
 
             boolean renderLink = false;
-            String renderLinkParam = (String) request.getParameter( "renderLink" );
-            if ( renderLinkParam != null && !"".equals( renderLinkParam ) ) {
-                renderLink = Boolean.valueOf( renderLinkParam ).booleanValue();
+            String renderLinkParam = (String) request.getParameter("renderLink");
+            if (renderLinkParam != null && !"".equals(renderLinkParam)) {
+                renderLink = Boolean.valueOf(renderLinkParam).booleanValue();
             }
             getLog().debug("Render Link: " + renderLink);
 
@@ -78,7 +80,8 @@ public class RailroadMacro
                 }
                 String str = railroad.render(topic);
                 if (str == null) {
-                    throw new MacroExecutionException("NO RAILROAD FOR " + topic + " in " + fileName);
+                    throw new MacroExecutionException(
+                        "NO RAILROAD FOR " + topic + " in " + fileName);
                 } else {
                     sink.rawText(str);
                 }

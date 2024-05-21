@@ -37,21 +37,24 @@ public class SolrQueryIndexProvider implements QueryIndexProvider {
 
     private final QueryIndex.NodeAggregator aggregator;
 
-    public SolrQueryIndexProvider(@NotNull SolrServerProvider solrServerProvider, @NotNull OakSolrConfigurationProvider oakSolrConfigurationProvider,
-                                  @Nullable QueryIndex.NodeAggregator nodeAggregator) {
+    public SolrQueryIndexProvider(@NotNull SolrServerProvider solrServerProvider,
+        @NotNull OakSolrConfigurationProvider oakSolrConfigurationProvider,
+        @Nullable QueryIndex.NodeAggregator nodeAggregator) {
         this.oakSolrConfigurationProvider = oakSolrConfigurationProvider;
         this.solrServerProvider = solrServerProvider;
         this.aggregator = nodeAggregator;
     }
 
-    public SolrQueryIndexProvider(@NotNull SolrServerProvider solrServerProvider, @NotNull OakSolrConfigurationProvider oakSolrConfigurationProvider) {
+    public SolrQueryIndexProvider(@NotNull SolrServerProvider solrServerProvider,
+        @NotNull OakSolrConfigurationProvider oakSolrConfigurationProvider) {
         this(solrServerProvider, oakSolrConfigurationProvider, null);
     }
 
     @NotNull
     @Override
     public List<? extends QueryIndex> getQueryIndexes(NodeState nodeState) {
-        return ImmutableList.of(new SolrQueryIndex(aggregator, oakSolrConfigurationProvider, solrServerProvider));
+        return ImmutableList.of(
+            new SolrQueryIndex(aggregator, oakSolrConfigurationProvider, solrServerProvider));
     }
 
 }

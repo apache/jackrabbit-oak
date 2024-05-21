@@ -20,7 +20,6 @@
 package org.apache.jackrabbit.oak.segment;
 
 import java.io.IOException;
-
 import org.apache.jackrabbit.oak.plugins.blob.BlobReferenceRetriever;
 import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
 import org.apache.jackrabbit.oak.segment.file.AbstractFileStore;

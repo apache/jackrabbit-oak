@@ -18,13 +18,13 @@
 
 package org.apache.jackrabbit.oak.segment.file;
 
+import java.util.concurrent.TimeUnit;
 import org.apache.jackrabbit.oak.segment.spi.monitor.RemoteStoreMonitorAdapter;
 import org.apache.jackrabbit.oak.stats.CounterStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatsOptions;
 import org.apache.jackrabbit.oak.stats.TimerStats;
 import org.jetbrains.annotations.NotNull;
-import java.util.concurrent.TimeUnit;
 
 public class MetricsRemoteStoreMonitor extends RemoteStoreMonitorAdapter {
 
@@ -39,12 +39,14 @@ public class MetricsRemoteStoreMonitor extends RemoteStoreMonitorAdapter {
     public MetricsRemoteStoreMonitor(@NotNull StatisticsProvider statisticsProvider) {
         requestCountStats = statisticsProvider.getCounterStats(REQUEST_COUNT, StatsOptions.DEFAULT);
         requestErrorStats = statisticsProvider.getCounterStats(REQUEST_ERROR, StatsOptions.DEFAULT);
-        requestDurationStats = statisticsProvider.getTimer(REQUEST_DURATION, StatsOptions.METRICS_ONLY);
+        requestDurationStats = statisticsProvider.getTimer(REQUEST_DURATION,
+            StatsOptions.METRICS_ONLY);
     }
 
     @Override
     public void requestCount() {
-        requestCountStats.inc(); }
+        requestCountStats.inc();
+    }
 
     @Override
     public void requestError() {

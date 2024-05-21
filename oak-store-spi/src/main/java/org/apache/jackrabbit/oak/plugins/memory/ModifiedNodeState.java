@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
+import static java.util.Collections.emptyList;
+import static java.util.Collections.emptyMap;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.guava.common.base.Predicates.in;
 import static org.apache.jackrabbit.guava.common.base.Predicates.not;
@@ -24,14 +26,13 @@ import static org.apache.jackrabbit.guava.common.collect.Iterables.concat;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.guava.common.collect.Maps.filterValues;
 import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
-import static java.util.Collections.emptyList;
-import static java.util.Collections.emptyMap;
 import static org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry.iterable;
 
 import java.util.Map;
 import java.util.Map.Entry;
-
 import org.apache.jackrabbit.guava.common.base.Function;
+import org.apache.jackrabbit.guava.common.base.Predicate;
+import org.apache.jackrabbit.guava.common.base.Predicates;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -40,9 +41,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import org.apache.jackrabbit.guava.common.base.Predicate;
-import org.apache.jackrabbit.guava.common.base.Predicates;
 
 /**
  * Immutable snapshot of a mutable node state.
@@ -53,40 +51,40 @@ public class ModifiedNodeState extends AbstractNodeState {
      * Mapping from a PropertyState instance to its name.
      */
     private static final Function<PropertyState, String> GET_NAME =
-            new Function<PropertyState, String>() {
-                @Override @Nullable
-                public String apply(@Nullable PropertyState input) {
-                    if (input != null) {
-                        return input.getName();
-                    } else {
-                        return null;
-                    }
+        new Function<PropertyState, String>() {
+            @Override
+            @Nullable
+            public String apply(@Nullable PropertyState input) {
+                if (input != null) {
+                    return input.getName();
+                } else {
+                    return null;
                 }
-            };
+            }
+        };
 
     /**
-     * Unwraps the given {@code NodeState} instance into the given internals
-     * of a {@link MutableNodeState} instance that is being created or reset.
+     * Unwraps the given {@code NodeState} instance into the given internals of a
+     * {@link MutableNodeState} instance that is being created or reset.
      * <p>
-     * If the given base state is a {@code ModifiedNodeState} instance,
-     * then the contained modifications are applied to the given properties
-     * property and child node maps and the contained base state is returned
-     * for use as the base state of the {@link MutableNodeState} instance.
+     * If the given base state is a {@code ModifiedNodeState} instance, then the contained
+     * modifications are applied to the given properties property and child node maps and the
+     * contained base state is returned for use as the base state of the {@link MutableNodeState}
+     * instance.
      * <p>
-     * If the given base state is not a {@code ModifiedNodeState}, then
-     * the given property and child node maps are simply reset and the given
-     * base state is returned as-is for use as the base state of the
-     * {@link MutableNodeState} instance.
+     * If the given base state is not a {@code ModifiedNodeState}, then the given property and child
+     * node maps are simply reset and the given base state is returned as-is for use as the base
+     * state of the {@link MutableNodeState} instance.
      *
-     * @param base new base state
+     * @param base       new base state
      * @param properties {@link MutableNodeState} property map
-     * @param nodes {@link MutableNodeState} child node map
+     * @param nodes      {@link MutableNodeState} child node map
      * @return new {@link MutableNodeState} base state
      */
     static NodeState unwrap(
-            @NotNull NodeState base,
-            @NotNull Map<String, PropertyState> properties,
-            @NotNull Map<String, MutableNodeState> nodes) {
+        @NotNull NodeState base,
+        @NotNull Map<String, PropertyState> properties,
+        @NotNull Map<String, MutableNodeState> nodes) {
         properties.clear();
         for (Entry<String, MutableNodeState> entry : nodes.entrySet()) {
             entry.getValue().reset(base.getChildNode(entry.getKey()));
@@ -110,8 +108,8 @@ public class ModifiedNodeState extends AbstractNodeState {
     }
 
     /**
-     * "Squeezes" {@link ModifiedNodeState} instances into equivalent
-     * {@link MemoryNodeState}s. Other kinds of states are returned as-is.
+     * "Squeezes" {@link ModifiedNodeState} instances into equivalent {@link MemoryNodeState}s.
+     * Other kinds of states are returned as-is.
      */
     public static NodeState squeeze(NodeState state) {
         if (state instanceof ModifiedNodeState) {
@@ -132,7 +130,7 @@ public class ModifiedNodeState extends AbstractNodeState {
 
 
     static long getPropertyCount(
-            NodeState base, Map<String, PropertyState> properties) {
+        NodeState base, Map<String, PropertyState> properties) {
         long count = 0;
         if (base.exists()) {
             count = base.getPropertyCount();
@@ -149,8 +147,8 @@ public class ModifiedNodeState extends AbstractNodeState {
     }
 
     static boolean hasProperty(
-            NodeState base, Map<String, PropertyState> properties,
-            String name) {
+        NodeState base, Map<String, PropertyState> properties,
+        String name) {
         if (properties.containsKey(name)) {
             return properties.get(name) != null;
         } else {
@@ -159,8 +157,8 @@ public class ModifiedNodeState extends AbstractNodeState {
     }
 
     static PropertyState getProperty(
-            NodeState base, Map<String, PropertyState> properties,
-            String name) {
+        NodeState base, Map<String, PropertyState> properties,
+        String name) {
         PropertyState property = properties.get(name);
         if (property == null && !properties.containsKey(name)) {
             property = base.getProperty(name);
@@ -169,8 +167,8 @@ public class ModifiedNodeState extends AbstractNodeState {
     }
 
     static Iterable<? extends PropertyState> getProperties(
-            NodeState base, Map<String, PropertyState> properties,
-            boolean copy) {
+        NodeState base, Map<String, PropertyState> properties,
+        boolean copy) {
         if (!base.exists()) {
             return emptyList();
         } else if (properties.isEmpty()) {
@@ -180,21 +178,21 @@ public class ModifiedNodeState extends AbstractNodeState {
                 properties = newHashMap(properties);
             }
             Predicate<PropertyState> predicate = Predicates.compose(
-                    not(in(properties.keySet())), GET_NAME);
+                not(in(properties.keySet())), GET_NAME);
             return concat(
-                    filter(base.getProperties(), predicate),
-                    filter(properties.values(), notNull()));
+                filter(base.getProperties(), predicate),
+                filter(properties.values(), notNull()));
         }
     }
 
     static long getChildNodeCount(
-            NodeState base, Map<String, ? extends NodeState> nodes, long max) {
+        NodeState base, Map<String, ? extends NodeState> nodes, long max) {
         if (!base.exists()) {
             return 0;
         }
         long deleted = 0, added = 0;
         for (Entry<String, ? extends NodeState> entry
-                : nodes.entrySet()) {
+            : nodes.entrySet()) {
             if (!base.hasChildNode(entry.getKey())) {
                 added++;
             }
@@ -202,7 +200,7 @@ public class ModifiedNodeState extends AbstractNodeState {
                 deleted++;
             }
         }
-        // if we deleted 100 entries, then we need to 
+        // if we deleted 100 entries, then we need to
         // be sure there are 100 more entries than max
         if (max + deleted < 0) {
             // avoid overflow
@@ -220,8 +218,8 @@ public class ModifiedNodeState extends AbstractNodeState {
     }
 
     static Iterable<String> getChildNodeNames(
-            NodeState base, Map<String, ? extends NodeState> nodes,
-            boolean copy) {
+        NodeState base, Map<String, ? extends NodeState> nodes,
+        boolean copy) {
         if (!base.exists()) {
             return emptyList();
         } else if (nodes.isEmpty()) {
@@ -231,8 +229,8 @@ public class ModifiedNodeState extends AbstractNodeState {
                 nodes = newHashMap(nodes);
             }
             return concat(
-                    filter(base.getChildNodeNames(), not(in(nodes.keySet()))),
-                    filterValues(nodes, NodeState.EXISTS).keySet());
+                filter(base.getChildNodeNames(), not(in(nodes.keySet()))),
+                filterValues(nodes, NodeState.EXISTS).keySet());
         }
     }
 
@@ -242,29 +240,27 @@ public class ModifiedNodeState extends AbstractNodeState {
     private final NodeState base;
 
     /**
-     * Set of added, modified or removed ({@code null} value)
-     * property states.
+     * Set of added, modified or removed ({@code null} value) property states.
      */
     private final Map<String, PropertyState> properties;
 
     /**
-     * Set of added, modified or removed (non-existent value)
-     * child nodes.
+     * Set of added, modified or removed (non-existent value) child nodes.
      */
     private final Map<String, NodeState> nodes;
 
     /**
-     * Creates an immutable snapshot of the given internal state of a
-     * {@link MutableNodeState} instance.
+     * Creates an immutable snapshot of the given internal state of a {@link MutableNodeState}
+     * instance.
      *
-     * @param base base state
+     * @param base       base state
      * @param properties current property modifications
-     * @param nodes current child node modifications
+     * @param nodes      current child node modifications
      */
     ModifiedNodeState(
-            @NotNull NodeState base,
-            @NotNull Map<String, PropertyState> properties,
-            @NotNull Map<String, MutableNodeState> nodes) {
+        @NotNull NodeState base,
+        @NotNull Map<String, PropertyState> properties,
+        @NotNull Map<String, MutableNodeState> nodes) {
         this.base = checkNotNull(base);
 
         if (checkNotNull(properties).isEmpty()) {
@@ -361,24 +357,22 @@ public class ModifiedNodeState extends AbstractNodeState {
             return base.getChildNodeEntries(); // shortcut
         } else {
             Predicate<ChildNodeEntry> predicate = Predicates.compose(
-                    not(in(nodes.keySet())), ChildNodeEntry.GET_NAME);
+                not(in(nodes.keySet())), ChildNodeEntry.GET_NAME);
             return concat(
-                    filter(base.getChildNodeEntries(), predicate),
-                    iterable(filterValues(nodes, NodeState.EXISTS).entrySet()));
+                filter(base.getChildNodeEntries(), predicate),
+                iterable(filterValues(nodes, NodeState.EXISTS).entrySet()));
         }
     }
 
     /**
-     * Since we keep track of an explicit base node state for a
-     * {@link ModifiedNodeState} instance, we can do this in two steps:
-     * first compare all the modified properties and child nodes to those
-     * of the given base state, and then compare the base states to each
-     * other, ignoring all changed properties and child nodes that were
-     * already covered earlier.
+     * Since we keep track of an explicit base node state for a {@link ModifiedNodeState} instance,
+     * we can do this in two steps: first compare all the modified properties and child nodes to
+     * those of the given base state, and then compare the base states to each other, ignoring all
+     * changed properties and child nodes that were already covered earlier.
      */
     @Override
     public boolean compareAgainstBaseState(
-            NodeState base, final NodeStateDiff diff) {
+        NodeState base, final NodeStateDiff diff) {
         if (this == base) {
             return true; // no differences
         }
@@ -395,7 +389,7 @@ public class ModifiedNodeState extends AbstractNodeState {
                     return false;
                 }
             } else if (!before.equals(after)
-                    && !diff.propertyChanged(before, after)) {
+                && !diff.propertyChanged(before, after)) {
                 return false;
             }
         }
@@ -413,7 +407,7 @@ public class ModifiedNodeState extends AbstractNodeState {
                     return false;
                 }
             } else if (before != after // TODO: fastEquals?
-                    && !diff.childNodeChanged(name, before, after)) {
+                && !diff.childNodeChanged(name, before, after)) {
                 return false;
             }
         }
@@ -422,33 +416,38 @@ public class ModifiedNodeState extends AbstractNodeState {
             @Override
             public boolean propertyAdded(PropertyState after) {
                 return properties.containsKey(after.getName())
-                        || diff.propertyAdded(after);
+                    || diff.propertyAdded(after);
             }
+
             @Override
             public boolean propertyChanged(
-                    PropertyState before, PropertyState after) {
+                PropertyState before, PropertyState after) {
                 return properties.containsKey(before.getName())
-                        || diff.propertyChanged(before, after);
+                    || diff.propertyChanged(before, after);
             }
+
             @Override
             public boolean propertyDeleted(PropertyState before) {
                 return properties.containsKey(before.getName())
-                        || diff.propertyDeleted(before);
+                    || diff.propertyDeleted(before);
             }
+
             @Override
             public boolean childNodeAdded(String name, NodeState after) {
                 return nodes.containsKey(name)
-                        || diff.childNodeAdded(name, after);
+                    || diff.childNodeAdded(name, after);
             }
+
             @Override
             public boolean childNodeChanged(String name, NodeState before, NodeState after) {
                 return nodes.containsKey(name)
-                        || diff.childNodeChanged(name, before, after);
+                    || diff.childNodeChanged(name, before, after);
             }
+
             @Override
             public boolean childNodeDeleted(String name, NodeState before) {
                 return nodes.containsKey(name)
-                        || diff.childNodeDeleted(name, before);
+                    || diff.childNodeDeleted(name, before);
             }
         });
     }

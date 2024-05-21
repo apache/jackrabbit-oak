@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.segment;
 import org.apache.jackrabbit.oak.segment.CacheWeights.ReaderStringCacheWeigher;
 
 public class StringCache extends ReaderCache<String> {
+
     /**
      * The maximum number of characters of string so they go into the fast cache
      */

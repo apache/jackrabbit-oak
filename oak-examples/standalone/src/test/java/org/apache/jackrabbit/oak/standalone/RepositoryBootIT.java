@@ -22,7 +22,6 @@ package org.apache.jackrabbit.oak.standalone;
 import javax.jcr.Repository;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
-
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,7 +40,7 @@ public class RepositoryBootIT {
     private Repository repository;
 
     @Test
-    public void repositoryLogin() throws Exception{
+    public void repositoryLogin() throws Exception {
         //Simple sanity test to see if repository is working
         Session session = repository.login(new SimpleCredentials("admin", "admin".toCharArray()));
         session.logout();

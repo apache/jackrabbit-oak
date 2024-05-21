@@ -19,14 +19,13 @@ package org.apache.jackrabbit.oak.api;
 import java.security.Principal;
 import java.util.Collections;
 import java.util.Set;
-
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * {@code AuthInfo} instances provide access to information related
- * to authentication and authorization of a given content session.
- * {@code AuthInfo} instances are guaranteed to be immutable.
+ * {@code AuthInfo} instances provide access to information related to authentication and
+ * authorization of a given content session. {@code AuthInfo} instances are guaranteed to be
+ * immutable.
  */
 public interface AuthInfo {
 
@@ -62,9 +61,8 @@ public interface AuthInfo {
     };
 
     /**
-     * Return the user ID to be exposed on the JCR Session object. It refers
-     * to the ID of the user associated with the Credentials passed to the
-     * repository login.
+     * Return the user ID to be exposed on the JCR Session object. It refers to the ID of the user
+     * associated with the Credentials passed to the repository login.
      *
      * @return the user ID such as exposed on the JCR Session object.
      */
@@ -74,15 +72,15 @@ public interface AuthInfo {
     /**
      * Returns the attribute names associated with this instance.
      *
-     * @return The attribute names with that instance or an empty array if
-     * no attributes are present.
+     * @return The attribute names with that instance or an empty array if no attributes are
+     * present.
      */
     @NotNull
     String[] getAttributeNames();
 
     /**
-     * Returns the attribute with the given name or {@code null} if no attribute
-     * with that {@code attributeName} exists.
+     * Returns the attribute with the given name or {@code null} if no attribute with that
+     * {@code attributeName} exists.
      *
      * @param attributeName The attribute name.
      * @return The attribute or {@code null}.

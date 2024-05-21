@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.run;
 
+import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.run.commons.Command;
@@ -25,26 +26,22 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
-import org.apache.jackrabbit.guava.common.io.Closer;
-
 /**
- * OFFLINE utility to delete the clusterId stored as hidden
- * property as defined by ClusterRepositoryInfo.
+ * OFFLINE utility to delete the clusterId stored as hidden property as defined by
+ * ClusterRepositoryInfo.
  * <p>
- * This utility is meant to be the only mechanism to delete
- * this id and yes, it is meant to be used offline only
- * (as otherwise this would correspond to breaking the
- * requirement that the clusterId be stable and persistent).
+ * This utility is meant to be the only mechanism to delete this id and yes, it is meant to be used
+ * offline only (as otherwise this would correspond to breaking the requirement that the clusterId
+ * be stable and persistent).
  * <p>
- * Target use case for this tool is to avoid duplicate 
- * clusterIds after a repository was cloned.
+ * Target use case for this tool is to avoid duplicate clusterIds after a repository was cloned.
  */
 class ResetClusterIdCommand implements Command {
 
     private static void deleteClusterId(NodeStore store) {
         NodeBuilder builder = store.getRoot().builder();
         NodeBuilder clusterConfigNode = builder.getChildNode(
-                ClusterRepositoryInfo.CLUSTER_CONFIG_NODE);
+            ClusterRepositoryInfo.CLUSTER_CONFIG_NODE);
 
         if (!clusterConfigNode.exists()) {
             // if it doesn't exist, then there is no way to delete
@@ -53,13 +50,13 @@ class ResetClusterIdCommand implements Command {
         }
 
         if (!clusterConfigNode.hasProperty(ClusterRepositoryInfo.CLUSTER_ID_PROP)) {
-            // the config node exists, but the clusterId not 
+            // the config node exists, but the clusterId not
             // so again, no way to delete
             System.out.println("clusterId was never set or already deleted.");
             return;
         }
         String oldClusterId = clusterConfigNode.getProperty(ClusterRepositoryInfo.CLUSTER_ID_PROP)
-                .getValue(Type.STRING);
+                                               .getValue(Type.STRING);
         clusterConfigNode.removeProperty(ClusterRepositoryInfo.CLUSTER_ID_PROP);
         try {
             store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);

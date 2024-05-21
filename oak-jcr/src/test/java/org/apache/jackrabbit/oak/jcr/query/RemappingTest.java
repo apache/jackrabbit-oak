@@ -24,7 +24,6 @@ import javax.jcr.Session;
 import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
 import javax.jcr.query.QueryResult;
-
 import org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants;
 import org.apache.jackrabbit.test.AbstractJCRTest;
 
@@ -40,12 +39,14 @@ public class RemappingTest extends AbstractJCRTest {
     protected void setUp() throws Exception {
         super.setUp();
 
-        superuser.getWorkspace().getNamespaceRegistry().registerNamespace("qTest", "http://jackrabbit-oak-2.apache.org");
+        superuser.getWorkspace().getNamespaceRegistry()
+                 .registerNamespace("qTest", "http://jackrabbit-oak-2.apache.org");
 
         Node n = testRootNode.addNode("qTest:node").addNode("qTest:node2").addNode("qTest:node3");
         n.setProperty("qTest:property", superuser.getValueFactory().createValue("stringValue"));
         n.setProperty("qTest:booleanProperty", superuser.getValueFactory().createValue(true));
-        n.setProperty("qTest:nameProperty", superuser.getValueFactory().createValue("qTest:nameValue", PropertyType.NAME));
+        n.setProperty("qTest:nameProperty",
+            superuser.getValueFactory().createValue("qTest:nameValue", PropertyType.NAME));
         superuser.save();
 
         session = getHelper().getSuperuserSession();
@@ -65,13 +66,13 @@ public class RemappingTest extends AbstractJCRTest {
 
         QueryManager qm = session.getWorkspace().getQueryManager();
         QueryResult qr = qm.createQuery(statement, "xpath").execute();
-        
-        // xpath: 
+
+        // xpath:
         // /jcr:root/testroot/my:node//element(*)[@my:property='stringValue']
-        // select [jcr:path], [jcr:score], * from [nt:base] as a 
-        // where [my:property] = 'stringValue' 
-        // and isdescendantnode(a, '/testroot/my:node') 
-        
+        // select [jcr:path], [jcr:score], * from [nt:base] as a
+        // where [my:property] = 'stringValue'
+        // and isdescendantnode(a, '/testroot/my:node')
+
         NodeIterator ni = qr.getNodes();
         assertTrue(ni.hasNext());
         assertEquals(resultPath, ni.nextNode().getPath());
@@ -98,13 +99,13 @@ public class RemappingTest extends AbstractJCRTest {
     }
 
     public void testQuery4() throws Exception {
-        String statement = 
-                "/jcr:root/myRep:security/myRep:authorizables//" + 
+        String statement =
+            "/jcr:root/myRep:security/myRep:authorizables//" +
                 "element(*,myRep:Authorizable)[@my:property='value']";
 
         QueryManager qm = session.getWorkspace().getQueryManager();
         Query q = qm.createQuery(statement, "xpath");
-        
+
         q.getBindVariableNames();
 
         QueryResult qr = q.execute();
@@ -112,11 +113,12 @@ public class RemappingTest extends AbstractJCRTest {
         while (ni.hasNext()) {
             ni.next();
         }
-        
+
     }
 
     private String createStatement(String propertyName, String value) throws RepositoryException {
-        return "/jcr:root"+ testRootNode.getPath() +"/my:node//element(*)[@"+propertyName+"='"+value+"']";
+        return "/jcr:root" + testRootNode.getPath() + "/my:node//element(*)[@" + propertyName + "='"
+            + value + "']";
     }
 
 }

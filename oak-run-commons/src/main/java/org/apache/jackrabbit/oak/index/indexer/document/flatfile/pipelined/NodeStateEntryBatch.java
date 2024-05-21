@@ -25,6 +25,7 @@ import java.nio.charset.StandardCharsets;
 public class NodeStateEntryBatch {
 
     public static class BufferFullException extends RuntimeException {
+
         public BufferFullException(String message) {
             super(message);
         }
@@ -37,9 +38,11 @@ public class NodeStateEntryBatch {
     // Must be large enough to hold a full node state entry
     static final int MIN_BUFFER_SIZE = 256 * 1024;
 
-    public static NodeStateEntryBatch createNodeStateEntryBatch(int bufferSizeBytes, int maxNumEntries) {
+    public static NodeStateEntryBatch createNodeStateEntryBatch(int bufferSizeBytes,
+        int maxNumEntries) {
         if (bufferSizeBytes < MIN_BUFFER_SIZE) {
-            throw new IllegalArgumentException("Buffer size must be at least " + MIN_BUFFER_SIZE + " bytes");
+            throw new IllegalArgumentException(
+                "Buffer size must be at least " + MIN_BUFFER_SIZE + " bytes");
         }
         if (maxNumEntries < 1) {
             throw new IllegalArgumentException("Max number of entries must be at least 1");
@@ -60,7 +63,8 @@ public class NodeStateEntryBatch {
 
     public int addEntry(String path, byte[] entryData) throws BufferFullException {
         if (numberOfEntries == maxEntries) {
-            throw new BufferFullException("Sort buffer size is full, reached max entries: " + numberOfEntries);
+            throw new BufferFullException(
+                "Sort buffer size is full, reached max entries: " + numberOfEntries);
         }
         int bufferPos = buffer.position();
         byte[] pathBytes = path.getBytes(StandardCharsets.UTF_8);
@@ -76,7 +80,8 @@ public class NodeStateEntryBatch {
             return totalSize;
         } catch (BufferOverflowException e) {
             buffer.position(bufferPos);
-            throw new BufferFullException("while adding entry " + path + " of size: " + totalSize, e);
+            throw new BufferFullException("while adding entry " + path + " of size: " + totalSize,
+                e);
         }
     }
 
@@ -86,7 +91,8 @@ public class NodeStateEntryBatch {
 
     public boolean isAtMaxEntries() {
         if (numberOfEntries > maxEntries) {
-            throw new AssertionError("Sort buffer size exceeded max entries: " + numberOfEntries + " > " + maxEntries);
+            throw new AssertionError(
+                "Sort buffer size exceeded max entries: " + numberOfEntries + " > " + maxEntries);
         }
         return numberOfEntries == maxEntries;
     }

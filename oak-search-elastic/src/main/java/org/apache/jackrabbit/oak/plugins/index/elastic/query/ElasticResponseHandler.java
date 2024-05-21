@@ -16,7 +16,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.query;
 
+import co.elastic.clients.elasticsearch.core.search.Hit;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner.PlanResult;
@@ -24,15 +30,6 @@ import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.fasterxml.jackson.databind.JsonNode;
-
-import co.elastic.clients.elasticsearch.core.search.Hit;
-
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
 
 /**
  * Class to process Elastic response objects.
@@ -45,7 +42,8 @@ public class ElasticResponseHandler {
     private final Filter filter;
     private final Set<String> seenPaths = new HashSet<>();
 
-    ElasticResponseHandler(@NotNull FulltextIndexPlanner.PlanResult planResult, @NotNull Filter filter) {
+    ElasticResponseHandler(@NotNull FulltextIndexPlanner.PlanResult planResult,
+        @NotNull Filter filter) {
         this.planResult = planResult;
         this.filter = filter;
     }
@@ -79,11 +77,10 @@ public class ElasticResponseHandler {
     }
 
     /**
-     * Reads excerpts from elasticsearch response.
-     * rep:excerpt and rep:excerpt(.) keys are used for :fulltext
-     * rep:excerpt(PROPERTY) for other fields.
-     * Note: properties to get excerpt from must be included in the _source, which means ingested,
-     * not necessarily Elasticsearch indexed, neither included in the mapping properties.
+     * Reads excerpts from elasticsearch response. rep:excerpt and rep:excerpt(.) keys are used for
+     * :fulltext rep:excerpt(PROPERTY) for other fields. Note: properties to get excerpt from must
+     * be included in the _source, which means ingested, not necessarily Elasticsearch indexed,
+     * neither included in the mapping properties.
      */
     public Map<String, String> excerpts(Hit<ObjectNode> searchHit) {
         Map<String, String> excerpts = new HashMap<>();

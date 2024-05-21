@@ -16,6 +16,13 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
+
+import java.security.Principal;
+import javax.jcr.Session;
+import javax.jcr.security.AccessControlManager;
+import javax.jcr.security.AccessControlPolicy;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
@@ -24,14 +31,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.jcr.Session;
-import javax.jcr.security.AccessControlManager;
-import javax.jcr.security.AccessControlPolicy;
-import java.security.Principal;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
 
 public class MoveRenameTest extends AbstractCugTest {
 
@@ -57,8 +56,8 @@ public class MoveRenameTest extends AbstractCugTest {
         // nested cug at "/content/a/b/c" for everyone (below 'testPath')
         // cug at "/content2" for everyone (i.e. directly at SUPPORTED_PATH2), no nested CUGs
         setupCugsAndAcls("/content/a", "/content/a/b/c", "/content2");
-        testPath = PathUtils.concat(SUPPORTED_PATH ,new String[] {"a"});
-        nestedPath = PathUtils.concat(SUPPORTED_PATH ,"a", "b", "c");
+        testPath = PathUtils.concat(SUPPORTED_PATH, new String[]{"a"});
+        nestedPath = PathUtils.concat(SUPPORTED_PATH, "a", "b", "c");
 
         assertCugPrivileges(testgroup, true, testPath);
         assertCugPrivileges(everyone, true, nestedPath, SUPPORTED_PATH2);
@@ -67,8 +66,10 @@ public class MoveRenameTest extends AbstractCugTest {
         assertCugPrivileges(everyone, false, testPath);
     }
 
-    private void assertCugPrivileges(@NotNull Principal principal, boolean isGranted, String... paths) {
-        CugPermissionProvider pp = createCugPermissionProvider(ImmutableSet.copyOf(SUPPORTED_PATHS), principal);
+    private void assertCugPrivileges(@NotNull Principal principal, boolean isGranted,
+        String... paths) {
+        CugPermissionProvider pp = createCugPermissionProvider(ImmutableSet.copyOf(SUPPORTED_PATHS),
+            principal);
         for (String path : paths) {
             assertEquals(isGranted, pp.isGranted(path, Session.ACTION_READ));
         }
@@ -95,7 +96,7 @@ public class MoveRenameTest extends AbstractCugTest {
         assertCugPrivileges(everyone, true, destPath);
         assertCugPrivileges(everyone, false, SUPPORTED_PATH2);
 
-        assertNestedCugs(root, getRootProvider(), PathUtils.ROOT_PATH, false, destPath,  testPath);
+        assertNestedCugs(root, getRootProvider(), PathUtils.ROOT_PATH, false, destPath, testPath);
     }
 
     @Test
@@ -112,7 +113,7 @@ public class MoveRenameTest extends AbstractCugTest {
         assertCugPrivileges(everyone, false, destPath);
         assertCugPrivileges(everyone, false, SUPPORTED_PATH2);
 
-        assertNestedCugs(root, getRootProvider(), PathUtils.ROOT_PATH, false, destPath2,  testPath);
+        assertNestedCugs(root, getRootProvider(), PathUtils.ROOT_PATH, false, destPath2, testPath);
     }
 
     @Test
@@ -128,7 +129,8 @@ public class MoveRenameTest extends AbstractCugTest {
         assertCugPrivileges(everyone, true, SUPPORTED_PATH2);
         assertCugPrivileges(everyone, false, destPath);
 
-        assertNestedCugs(root, getRootProvider(), PathUtils.ROOT_PATH, false, SUPPORTED_PATH2,  testPath);
+        assertNestedCugs(root, getRootProvider(), PathUtils.ROOT_PATH, false, SUPPORTED_PATH2,
+            testPath);
     }
 
     @Test
@@ -137,7 +139,8 @@ public class MoveRenameTest extends AbstractCugTest {
         root.move(testPath, destPath);
         root.commit();
 
-        String nestedDestPath = PathUtils.concat(destPath, PathUtils.relativize(testPath, nestedPath));
+        String nestedDestPath = PathUtils.concat(destPath,
+            PathUtils.relativize(testPath, nestedPath));
         assertCugPrivileges(testgroup, true, destPath);
         assertCugPrivileges(everyone, true, nestedDestPath);
         assertCugPrivileges(testgroup, false, nestedDestPath);
@@ -161,7 +164,8 @@ public class MoveRenameTest extends AbstractCugTest {
         assertCugPrivileges(testgroup, true, destPath2);
         assertCugPrivileges(testgroup, false, destPath);
 
-        String nestedDestPath = PathUtils.concat(destPath2, PathUtils.relativize(testPath, nestedPath));
+        String nestedDestPath = PathUtils.concat(destPath2,
+            PathUtils.relativize(testPath, nestedPath));
         assertCugPrivileges(everyone, true, nestedDestPath);
         assertCugPrivileges(testgroup, false, nestedDestPath);
 
@@ -174,10 +178,12 @@ public class MoveRenameTest extends AbstractCugTest {
         root.move(SUPPORTED_PATH, destPath);
         root.commit();
 
-        String destCugPath = PathUtils.concat(destPath, PathUtils.relativize(SUPPORTED_PATH, testPath));
+        String destCugPath = PathUtils.concat(destPath,
+            PathUtils.relativize(SUPPORTED_PATH, testPath));
         assertNestedCugs(root, getRootProvider(), PathUtils.ROOT_PATH, false, SUPPORTED_PATH2);
         assertNestedCugs(root, getRootProvider(), SUPPORTED_PATH2, true, destCugPath);
-        String destNestedCugPath = PathUtils.concat(destCugPath, PathUtils.relativize(testPath, nestedPath));
+        String destNestedCugPath = PathUtils.concat(destCugPath,
+            PathUtils.relativize(testPath, nestedPath));
         assertNestedCugs(root, getRootProvider(), destCugPath, true, destNestedCugPath);
     }
 
@@ -195,7 +201,8 @@ public class MoveRenameTest extends AbstractCugTest {
         assertCugPrivileges(everyone, true, nestedPath);
         assertCugPrivileges(testgroup, false, nestedPath);
 
-        assertNestedCugs(root, getRootProvider(), PathUtils.ROOT_PATH, false, testPath,  SUPPORTED_PATH2);
+        assertNestedCugs(root, getRootProvider(), PathUtils.ROOT_PATH, false, testPath,
+            SUPPORTED_PATH2);
         assertNestedCugs(root, getRootProvider(), testPath, true, nestedPath);
     }
 
@@ -206,17 +213,20 @@ public class MoveRenameTest extends AbstractCugTest {
         root.commit();
 
         String cugDestPath = PathUtils.concat(destPath, "a");
-        String nestedCugDestPath = PathUtils.concat(cugDestPath, PathUtils.relativize(testPath, nestedPath));
+        String nestedCugDestPath = PathUtils.concat(cugDestPath,
+            PathUtils.relativize(testPath, nestedPath));
         assertCugPrivileges(testgroup, false, destPath);
         assertCugPrivileges(everyone, true, nestedCugDestPath);
         assertCugPrivileges(testgroup, false, nestedCugDestPath);
 
-        assertNestedCugs(root, getRootProvider(), PathUtils.ROOT_PATH, false, cugDestPath,  SUPPORTED_PATH2);
+        assertNestedCugs(root, getRootProvider(), PathUtils.ROOT_PATH, false, cugDestPath,
+            SUPPORTED_PATH2);
         assertNestedCugs(root, getRootProvider(), cugDestPath, true, nestedCugDestPath);
 
         removeCug(cugDestPath);
 
-        assertNestedCugs(root, getRootProvider(), PathUtils.ROOT_PATH, false, nestedCugDestPath,  SUPPORTED_PATH2);
+        assertNestedCugs(root, getRootProvider(), PathUtils.ROOT_PATH, false, nestedCugDestPath,
+            SUPPORTED_PATH2);
     }
 
     @Test
@@ -226,9 +236,11 @@ public class MoveRenameTest extends AbstractCugTest {
         root.commit();
 
         assertCugPrivileges(testgroup, true, destPath);
-        assertCugPrivileges(everyone, true, PathUtils.concat(destPath, PathUtils.relativize(testPath, nestedPath)));
+        assertCugPrivileges(everyone, true,
+            PathUtils.concat(destPath, PathUtils.relativize(testPath, nestedPath)));
 
-        assertNestedCugs(root, getRootProvider(), PathUtils.ROOT_PATH, false, destPath,  SUPPORTED_PATH2);
+        assertNestedCugs(root, getRootProvider(), PathUtils.ROOT_PATH, false, destPath,
+            SUPPORTED_PATH2);
         assertNestedCugs(root, getRootProvider(), destPath, true, destPath + "/b/c");
     }
 
@@ -240,12 +252,14 @@ public class MoveRenameTest extends AbstractCugTest {
 
         removeCug(destPath);
 
-        String nestedDepthPath = PathUtils.concat(destPath, PathUtils.relativize(testPath, nestedPath));
+        String nestedDepthPath = PathUtils.concat(destPath,
+            PathUtils.relativize(testPath, nestedPath));
         assertCugPrivileges(testgroup, false, testPath);
         assertCugPrivileges(testgroup, false, destPath);
         assertCugPrivileges(everyone, true, nestedDepthPath);
 
-        assertNestedCugs(root, getRootProvider(), PathUtils.ROOT_PATH, false, nestedDepthPath,  SUPPORTED_PATH2);
+        assertNestedCugs(root, getRootProvider(), PathUtils.ROOT_PATH, false, nestedDepthPath,
+            SUPPORTED_PATH2);
     }
 
     @Test
@@ -256,7 +270,8 @@ public class MoveRenameTest extends AbstractCugTest {
         root.move("/content/a2", testPath);
         root.commit();
 
-        assertNestedCugs(root, getRootProvider(), PathUtils.ROOT_PATH, false, testPath,  SUPPORTED_PATH2);
+        assertNestedCugs(root, getRootProvider(), PathUtils.ROOT_PATH, false, testPath,
+            SUPPORTED_PATH2);
         assertNestedCugs(root, getRootProvider(), testPath, true, nestedPath);
 
         removeCug(testPath);
@@ -264,6 +279,7 @@ public class MoveRenameTest extends AbstractCugTest {
         assertCugPrivileges(testgroup, false, testPath);
         assertCugPrivileges(everyone, true, nestedPath);
 
-        assertNestedCugs(root, getRootProvider(), PathUtils.ROOT_PATH, false, nestedPath,  SUPPORTED_PATH2);
+        assertNestedCugs(root, getRootProvider(), PathUtils.ROOT_PATH, false, nestedPath,
+            SUPPORTED_PATH2);
     }
 }

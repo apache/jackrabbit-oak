@@ -51,10 +51,10 @@ class HybridIndexDisabledTest extends AbstractRepositoryFactoryTest {
     }
 
     @Test
-    void luceneIndexingWithHybridDisabled() throws Exception{
+    void luceneIndexingWithHybridDisabled() throws Exception {
         config[REPOSITORY_CONFIG] = [
-                'org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProviderService' : [
-                        'enableHybridIndexing' : false
+                'org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProviderService': [
+                        'enableHybridIndexing': false
                 ]
         ]
         repository = repositoryFactory.getRepository(config)

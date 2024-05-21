@@ -30,39 +30,38 @@ import org.apache.lucene.util.BytesRef;
 
 /**
  * <p>
- * Field that stores
- * a per-document {@link BytesRef} value, indexed for
- * sorting.  Here's an example usage:
- * 
+ * Field that stores a per-document {@link BytesRef} value, indexed for sorting.  Here's an example
+ * usage:
+ *
  * <pre class="prettyprint">
  *   document.add(new SortedDocValuesField(name, new BytesRef("hello")));
  * </pre>
- * 
+ *
  * <p>
- * If you also need to store the value, you should add a
- * separate {@link StoredField} instance.
- * 
- * */
+ * If you also need to store the value, you should add a separate {@link StoredField} instance.
+ */
 
 public class SortedDocValuesField extends Field {
 
-  /**
-   * Type for sorted bytes DocValues
-   */
-  public static final FieldType TYPE = new FieldType();
-  static {
-    TYPE.setDocValueType(FieldInfo.DocValuesType.SORTED);
-    TYPE.freeze();
-  }
+    /**
+     * Type for sorted bytes DocValues
+     */
+    public static final FieldType TYPE = new FieldType();
 
-  /**
-   * Create a new sorted DocValues field.
-   * @param name field name
-   * @param bytes binary content
-   * @throws IllegalArgumentException if the field name is null
-   */
-  public SortedDocValuesField(String name, BytesRef bytes) {
-    super(name, TYPE);
-    fieldsData = bytes;
-  }
+    static {
+        TYPE.setDocValueType(FieldInfo.DocValuesType.SORTED);
+        TYPE.freeze();
+    }
+
+    /**
+     * Create a new sorted DocValues field.
+     *
+     * @param name  field name
+     * @param bytes binary content
+     * @throws IllegalArgumentException if the field name is null
+     */
+    public SortedDocValuesField(String name, BytesRef bytes) {
+        super(name, TYPE);
+        fieldsData = bytes;
+    }
 }

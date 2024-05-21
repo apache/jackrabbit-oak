@@ -28,17 +28,19 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Simple wrapper class for {@code SegmentNodeState} to keep track of fully and partially compacted nodes.
+ * Simple wrapper class for {@code SegmentNodeState} to keep track of fully and partially compacted
+ * nodes.
  */
 public abstract class CompactedNodeState extends SegmentNodeState {
+
     final boolean complete;
 
     private CompactedNodeState(
-            @NotNull SegmentReader reader,
-            @NotNull SegmentWriter writer,
-            @Nullable BlobStore blobStore,
-            @NotNull RecordId id,
-            boolean complete) {
+        @NotNull SegmentReader reader,
+        @NotNull SegmentWriter writer,
+        @Nullable BlobStore blobStore,
+        @NotNull RecordId id,
+        boolean complete) {
         super(reader, writer, blobStore, id);
         this.complete = complete;
     }
@@ -48,21 +50,23 @@ public abstract class CompactedNodeState extends SegmentNodeState {
     }
 
     final static class FullyCompactedNodeState extends CompactedNodeState {
+
         FullyCompactedNodeState(
-                @NotNull SegmentReader reader,
-                @NotNull SegmentWriter writer,
-                @Nullable BlobStore blobStore,
-                @NotNull RecordId id) {
+            @NotNull SegmentReader reader,
+            @NotNull SegmentWriter writer,
+            @Nullable BlobStore blobStore,
+            @NotNull RecordId id) {
             super(reader, writer, blobStore, id, true);
         }
     }
 
     final static class PartiallyCompactedNodeState extends CompactedNodeState {
+
         PartiallyCompactedNodeState(
-                @NotNull SegmentReader reader,
-                @NotNull SegmentWriter writer,
-                @Nullable BlobStore blobStore,
-                @NotNull RecordId id) {
+            @NotNull SegmentReader reader,
+            @NotNull SegmentWriter writer,
+            @Nullable BlobStore blobStore,
+            @NotNull RecordId id) {
             super(reader, writer, blobStore, id, false);
         }
     }

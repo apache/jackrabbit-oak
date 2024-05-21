@@ -18,13 +18,13 @@
  */
 package org.apache.jackrabbit.oak.indexversion;
 
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
 
 import org.apache.jackrabbit.oak.plugins.index.IndexName;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 
 public class LucenePurgeOldIndexVersion extends PurgeOldIndexVersion {
+
     @Override
     protected String getIndexType() {
         return TYPE_LUCENE;
@@ -32,7 +32,7 @@ public class LucenePurgeOldIndexVersion extends PurgeOldIndexVersion {
 
     @Override
     protected void postDeleteOp(String idxPath) {
-     // NOOP
+        // NOOP
     }
 
     @Override

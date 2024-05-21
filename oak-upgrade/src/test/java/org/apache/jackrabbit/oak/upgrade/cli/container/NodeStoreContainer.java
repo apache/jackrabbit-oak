@@ -18,10 +18,10 @@ package org.apache.jackrabbit.oak.upgrade.cli.container;
 
 import java.io.Closeable;
 import java.io.IOException;
-
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 public interface NodeStoreContainer extends Closeable {
+
     NodeStore open() throws IOException;
 
     void close();

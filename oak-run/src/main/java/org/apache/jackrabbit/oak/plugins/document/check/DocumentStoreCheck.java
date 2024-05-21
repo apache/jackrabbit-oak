@@ -16,6 +16,17 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.check;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.jackrabbit.JcrConstants.JCR_BASEVERSION;
+import static org.apache.jackrabbit.JcrConstants.JCR_PREDECESSORS;
+import static org.apache.jackrabbit.JcrConstants.JCR_SUCCESSORS;
+import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
+import static org.apache.jackrabbit.JcrConstants.JCR_VERSIONHISTORY;
+import static org.apache.jackrabbit.oak.plugins.document.check.Result.END;
+import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStoreCheckHelper.getAllNodeDocuments;
+import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStoreCheckHelper.getEstimatedDocumentCount;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getAllDocuments;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
@@ -33,9 +44,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
-
 import org.apache.jackrabbit.guava.common.io.Closer;
-
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
@@ -44,17 +53,6 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
-
-import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.jackrabbit.JcrConstants.JCR_BASEVERSION;
-import static org.apache.jackrabbit.JcrConstants.JCR_PREDECESSORS;
-import static org.apache.jackrabbit.JcrConstants.JCR_SUCCESSORS;
-import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
-import static org.apache.jackrabbit.JcrConstants.JCR_VERSIONHISTORY;
-import static org.apache.jackrabbit.oak.plugins.document.check.Result.END;
-import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStoreCheckHelper.getAllNodeDocuments;
-import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStoreCheckHelper.getEstimatedDocumentCount;
-import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getAllDocuments;
 
 /**
  * <code>DocumentStoreCheck</code>...
@@ -98,22 +96,22 @@ public class DocumentStoreCheck {
     private final List<String> paths;
 
     private DocumentStoreCheck(DocumentNodeStore ns,
-                               DocumentStore store,
-                               Closer closer,
-                               boolean progress,
-                               boolean silent,
-                               boolean summary,
-                               boolean counter,
-                               int numThreads,
-                               String output,
-                               boolean orphan,
-                               boolean baseVersion,
-                               boolean versionHistory,
-                               boolean predecessors,
-                               boolean successors,
-                               boolean uuid,
-                               boolean consistency,
-                               List<String> paths) {
+        DocumentStore store,
+        Closer closer,
+        boolean progress,
+        boolean silent,
+        boolean summary,
+        boolean counter,
+        int numThreads,
+        String output,
+        boolean orphan,
+        boolean baseVersion,
+        boolean versionHistory,
+        boolean predecessors,
+        boolean successors,
+        boolean uuid,
+        boolean consistency,
+        List<String> paths) {
         this.ns = ns;
         this.store = store;
         this.closer = closer;
@@ -123,9 +121,9 @@ public class DocumentStoreCheck {
         this.counter = counter;
         this.numThreads = numThreads;
         this.executorService = new ThreadPoolExecutor(
-                numThreads, numThreads, 1, TimeUnit.MINUTES,
-                new LinkedBlockingQueue<>(1000),
-                new ThreadPoolExecutor.CallerRunsPolicy()
+            numThreads, numThreads, 1, TimeUnit.MINUTES,
+            new LinkedBlockingQueue<>(1000),
+            new ThreadPoolExecutor.CallerRunsPolicy()
         );
         this.closer.register(new ExecutorCloser(executorService, 5, TimeUnit.MINUTES));
         this.output = output;
@@ -155,7 +153,7 @@ public class DocumentStoreCheck {
     }
 
     private void shutdownExecutorService(BlockingQueue<Result> results)
-            throws InterruptedException {
+        throws InterruptedException {
         executorService.shutdown();
         if (!executorService.awaitTermination(5, TimeUnit.MINUTES)) {
             String msg = "Checks still not finished after the last one has been submitted 5 minutes ago";
@@ -171,10 +169,11 @@ public class DocumentStoreCheck {
     }
 
     private void scheduleResultWriter(BlockingQueue<Result> results)
-            throws IOException {
+        throws IOException {
         Consumer<String> log;
         if (silent) {
-            log = s -> {};
+            log = s -> {
+            };
         } else {
             log = System.out::println;
         }
@@ -213,16 +212,20 @@ public class DocumentStoreCheck {
             processors.add(new OrphanedNodeCheck(ns, ns.getHeadRevision(), executorService));
         }
         if (versionHistory) {
-            processors.add(new ReferenceCheck(JCR_VERSIONHISTORY, ns, ns.getHeadRevision(), executorService));
+            processors.add(
+                new ReferenceCheck(JCR_VERSIONHISTORY, ns, ns.getHeadRevision(), executorService));
         }
         if (predecessors) {
-            processors.add(new ReferenceCheck(JCR_PREDECESSORS, ns, ns.getHeadRevision(), executorService));
+            processors.add(
+                new ReferenceCheck(JCR_PREDECESSORS, ns, ns.getHeadRevision(), executorService));
         }
         if (successors) {
-            processors.add(new ReferenceCheck(JCR_SUCCESSORS, ns, ns.getHeadRevision(), executorService));
+            processors.add(
+                new ReferenceCheck(JCR_SUCCESSORS, ns, ns.getHeadRevision(), executorService));
         }
         if (baseVersion) {
-            processors.add(new ReferenceCheck(JCR_BASEVERSION, ns, ns.getHeadRevision(), executorService));
+            processors.add(
+                new ReferenceCheck(JCR_BASEVERSION, ns, ns.getHeadRevision(), executorService));
         }
         if (uuid) {
             processors.add(new ReferenceCheck(JCR_UUID, ns, ns.getHeadRevision(), executorService));
@@ -242,11 +245,11 @@ public class DocumentStoreCheck {
     }
 
     private static Iterable<NodeDocument> getDocs(DocumentStore store,
-                                                  List<String> paths) {
+        List<String> paths) {
         return paths.stream()
-                .map(p -> store.find(Collection.NODES, Utils.getIdFromPath(p)))
-                .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+                    .map(p -> store.find(Collection.NODES, Utils.getIdFromPath(p)))
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
     }
 
     public static class Builder {
@@ -286,8 +289,8 @@ public class DocumentStoreCheck {
         private final List<String> paths = new ArrayList<>();
 
         public Builder(DocumentNodeStore ns,
-                       DocumentStore store,
-                       Closer closer) {
+            DocumentStore store,
+            Closer closer) {
             this.ns = ns;
             this.store = store;
             this.closer = closer;
@@ -366,8 +369,8 @@ public class DocumentStoreCheck {
 
         public DocumentStoreCheck build() {
             return new DocumentStoreCheck(ns, store, closer, progress, silent,
-                    summary, counter, numThreads, output, orphan, baseVersion,
-                    versionHistory, predecessors, successors, uuid, consistency, paths);
+                summary, counter, numThreads, output, orphan, baseVersion,
+                versionHistory, predecessors, successors, uuid, consistency, paths);
         }
     }
 

@@ -38,30 +38,44 @@ public abstract class RDBBlobStoreFixture {
 
     public abstract boolean isAvailable();
 
-    public static final RDBBlobStoreFixture RDB_DB2 = new MyFixture("RDB-DB2", System.getProperty("rdb-db2-jdbc-url",
-            "jdbc:db2://localhost:50000/OAK"), System.getProperty("rdb-db2-jdbc-user", "oak"), System.getProperty(
+    public static final RDBBlobStoreFixture RDB_DB2 = new MyFixture("RDB-DB2",
+        System.getProperty("rdb-db2-jdbc-url",
+            "jdbc:db2://localhost:50000/OAK"), System.getProperty("rdb-db2-jdbc-user", "oak"),
+        System.getProperty(
             "rdb-db2-jdbc-passwd", "geheim"));
-    public static final RDBBlobStoreFixture RDB_MYSQL = new MyFixture("RDB-MySQL", System.getProperty("rdb-mysql-jdbc-url",
-            "jdbc:mysql://localhost:3306/oak"), System.getProperty("rdb-mysql-jdbc-user", "root"), System.getProperty(
+    public static final RDBBlobStoreFixture RDB_MYSQL = new MyFixture("RDB-MySQL",
+        System.getProperty("rdb-mysql-jdbc-url",
+            "jdbc:mysql://localhost:3306/oak"), System.getProperty("rdb-mysql-jdbc-user", "root"),
+        System.getProperty(
             "rdb-mysql-jdbc-passwd", "geheim"));
-    public static final RDBBlobStoreFixture RDB_ORACLE = new MyFixture("RDB-Oracle", System.getProperty("rdb-oracle-jdbc-url",
-            "jdbc:oracle:thin:@localhost:1521:orcl"), System.getProperty("rdb-oracle-jdbc-user", "system"), System.getProperty(
-            "rdb-oracle-jdbc-passwd", "geheim"));
-    public static final RDBBlobStoreFixture RDB_MSSQL = new MyFixture("RDB-MSSql", System.getProperty("rdb-mssql-jdbc-url",
-            "jdbc:sqlserver://localhost:1433;databaseName=OAK"), System.getProperty("rdb-mssql-jdbc-user", "sa"),
-            System.getProperty("rdb-mssql-jdbc-passwd", "geheim"));
-    public static final RDBBlobStoreFixture RDB_H2 = new MyFixture("RDB-H2(file)", System.getProperty("rdb-h2-jdbc-url",
-            "jdbc:h2:file:./target/hs-bs-test"), System.getProperty("rdb-h2-jdbc-user", "sa"), System.getProperty(
+    public static final RDBBlobStoreFixture RDB_ORACLE = new MyFixture("RDB-Oracle",
+        System.getProperty("rdb-oracle-jdbc-url",
+            "jdbc:oracle:thin:@localhost:1521:orcl"),
+        System.getProperty("rdb-oracle-jdbc-user", "system"), System.getProperty(
+        "rdb-oracle-jdbc-passwd", "geheim"));
+    public static final RDBBlobStoreFixture RDB_MSSQL = new MyFixture("RDB-MSSql",
+        System.getProperty("rdb-mssql-jdbc-url",
+            "jdbc:sqlserver://localhost:1433;databaseName=OAK"),
+        System.getProperty("rdb-mssql-jdbc-user", "sa"),
+        System.getProperty("rdb-mssql-jdbc-passwd", "geheim"));
+    public static final RDBBlobStoreFixture RDB_H2 = new MyFixture("RDB-H2(file)",
+        System.getProperty("rdb-h2-jdbc-url",
+            "jdbc:h2:file:./target/hs-bs-test"), System.getProperty("rdb-h2-jdbc-user", "sa"),
+        System.getProperty(
             "rdb-h2-jdbc-passwd", ""));
-    public static final RDBBlobStoreFixture RDB_DERBY = new MyFixture("RDB-Derby(embedded)", System.getProperty(
+    public static final RDBBlobStoreFixture RDB_DERBY = new MyFixture("RDB-Derby(embedded)",
+        System.getProperty(
             "rdb-derby-jdbc-url", "jdbc:derby:./target/derby-bs-test;create=true"),
-            System.getProperty("rdb-derby-jdbc-user", "sa"), System.getProperty("rdb-derby-jdbc-passwd", ""));
-    public static final RDBBlobStoreFixture RDB_PG = new MyFixture("RDB-Postgres", System.getProperty("rdb-postgres-jdbc-url",
-            "jdbc:postgresql:oak"), System.getProperty("rdb-postgres-jdbc-user", "postgres"), System.getProperty(
+        System.getProperty("rdb-derby-jdbc-user", "sa"),
+        System.getProperty("rdb-derby-jdbc-passwd", ""));
+    public static final RDBBlobStoreFixture RDB_PG = new MyFixture("RDB-Postgres",
+        System.getProperty("rdb-postgres-jdbc-url",
+            "jdbc:postgresql:oak"), System.getProperty("rdb-postgres-jdbc-user", "postgres"),
+        System.getProperty(
             "rdb-postgres-jdbc-passwd", "geheim"));
 
     public String toString() {
-        return getClass().getSimpleName() + ": "+ getName();
+        return getClass().getSimpleName() + ": " + getName();
     }
 
     private static class MyFixture extends RDBBlobStoreFixture {
@@ -69,12 +83,14 @@ public abstract class RDBBlobStoreFixture {
         private String name;
         private RDBDataSourceWrapper dataSource;
         private RDBBlobStore bs;
-        private RDBOptions options = new RDBOptions().tablePrefix(TABLEPREFIX).dropTablesOnClose(true);
+        private RDBOptions options = new RDBOptions().tablePrefix(TABLEPREFIX)
+                                                     .dropTablesOnClose(true);
 
         public MyFixture(String name, String url, String username, String passwd) {
             this.name = name;
             try {
-                dataSource = new RDBDataSourceWrapper(RDBDataSourceFactory.forJdbcUrl(url, username, passwd));
+                dataSource = new RDBDataSourceWrapper(
+                    RDBDataSourceFactory.forJdbcUrl(url, username, passwd));
             } catch (Exception ex) {
                 LOG.info("Database instance not available at " + url + ", skipping tests...", ex);
             }

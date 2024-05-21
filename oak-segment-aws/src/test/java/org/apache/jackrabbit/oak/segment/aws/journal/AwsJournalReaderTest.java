@@ -16,12 +16,10 @@
  */
 package org.apache.jackrabbit.oak.segment.aws.journal;
 
-import java.io.IOException;
-import java.util.Date;
-
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.amazonaws.services.dynamodbv2.local.embedded.DynamoDBEmbedded;
-
+import java.io.IOException;
+import java.util.Date;
 import org.apache.jackrabbit.oak.segment.aws.AwsJournalFile;
 import org.apache.jackrabbit.oak.segment.aws.DynamoDBClient;
 import org.apache.jackrabbit.oak.segment.file.JournalReader;
@@ -36,7 +34,7 @@ public class AwsJournalReaderTest extends JournalReaderTest {
     public void setup() throws IOException {
         AmazonDynamoDB ddb = DynamoDBEmbedded.create().amazonDynamoDB();
         long time = new Date().getTime();
-        dynamoDBClient = new DynamoDBClient(ddb,  "journaltable-" + time, "locktable-" + time);
+        dynamoDBClient = new DynamoDBClient(ddb, "journaltable-" + time, "locktable-" + time);
         dynamoDBClient.ensureTables();
     }
 

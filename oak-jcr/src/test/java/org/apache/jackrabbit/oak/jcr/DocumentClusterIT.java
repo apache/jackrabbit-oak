@@ -23,12 +23,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import javax.jcr.Credentials;
 import javax.jcr.Repository;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
-
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -46,6 +44,7 @@ import org.slf4j.Logger;
  * DocumentMKs for having some utility methods available.
  */
 public abstract class DocumentClusterIT {
+
     List<Repository> repos = new ArrayList<Repository>();
     List<DocumentMK> mks = new ArrayList<DocumentMK>();
 
@@ -53,26 +52,26 @@ public abstract class DocumentClusterIT {
      * the number of nodes we'd like to run against
      */
     static final int NUM_CLUSTER_NODES = Integer.getInteger("it.documentmk.cluster.nodes", 5);
-    
+
     /**
      * credentials for logging in as {@code admin}
      */
     static final Credentials ADMIN = new SimpleCredentials("admin", "admin".toCharArray());
-    
+
     static final int NOT_PROVIDED = Integer.MIN_VALUE;
-    
+
     @Before
     public void before() throws Exception {
         dropDB(this.getClass());
-        
+
         List<Repository> rs = new ArrayList<Repository>();
         List<DocumentMK> ds = new ArrayList<DocumentMK>();
-        
+
         initRepository(this.getClass(), rs, ds, 1, NOT_PROVIDED);
-        
+
         Repository repository = rs.get(0);
         DocumentMK mk = ds.get(0);
-        
+
         Session session = repository.login(ADMIN);
         session.logout();
         dispose(repository);
@@ -82,7 +81,7 @@ public abstract class DocumentClusterIT {
     protected void dispose(@NotNull Repository repo) {
         AbstractRepositoryTest.dispose(checkNotNull(repo));
     }
-    
+
     @After
     public void after() throws Exception {
         for (Repository repo : repos) {
@@ -96,13 +95,13 @@ public abstract class DocumentClusterIT {
 
     /**
      * raise the exception passed into the provided Map
-     * 
+     *
      * @param exceptions
-     * @param log may be null. If valid Logger it will be logged
+     * @param log        may be null. If valid Logger it will be logged
      * @throws Exception
      */
-    static void raiseExceptions(@NotNull final Map<String, Exception> exceptions, 
-                                @Nullable final Logger log) throws Exception {
+    static void raiseExceptions(@NotNull final Map<String, Exception> exceptions,
+        @Nullable final Logger log) throws Exception {
         if (exceptions != null) {
             for (Map.Entry<String, Exception> entry : exceptions.entrySet()) {
                 if (log != null) {
@@ -114,7 +113,7 @@ public abstract class DocumentClusterIT {
     }
 
     /**
-     * <p> 
+     * <p>
      * ensures that the cluster is aligned by running all the background operations
      * </p>
      *
@@ -134,45 +133,45 @@ public abstract class DocumentClusterIT {
             mk.getNodeStore().runBackgroundOperations();
         }
     }
-    
+
     /**
      * set up the cluster connections. Same as {@link #setUpCluster(Class, List, List, int)}
      * providing {@link #NOT_PROVIDED} as {@code asyncDelay}
-     * 
+     *
      * @param clazz class used for logging into Mongo itself
-     * @param mks the list of mks to work on.
+     * @param mks   the list of mks to work on.
      * @param repos list of {@link Repository} created on each {@code mks}
      * @throws Exception
      */
-    void setUpCluster(@NotNull final Class<?> clazz, 
-                             @NotNull final List<DocumentMK> mks,
-                             @NotNull final List<Repository> repos) throws Exception {
+    void setUpCluster(@NotNull final Class<?> clazz,
+        @NotNull final List<DocumentMK> mks,
+        @NotNull final List<Repository> repos) throws Exception {
         setUpCluster(clazz, mks, repos, NOT_PROVIDED);
     }
 
     /**
      * set up the cluster connections
-     * 
-     * @param clazz class used for logging into Mongo itself
-     * @param mks the list of mks to work on
-     * @param repos list of {@link Repository} created on each {@code mks}
+     *
+     * @param clazz      class used for logging into Mongo itself
+     * @param mks        the list of mks to work on
+     * @param repos      list of {@link Repository} created on each {@code mks}
      * @param asyncDelay the maximum delay for the cluster to sync with last revision. Use
-     *            {@link #NOT_PROVIDED} for implementation default. Use {@code 0} for switching to
-     *            manual and sync with {@link #alignCluster(List)}.
+     *                   {@link #NOT_PROVIDED} for implementation default. Use {@code 0} for
+     *                   switching to manual and sync with {@link #alignCluster(List)}.
      * @throws Exception
      */
-    void setUpCluster(@NotNull final Class<?> clazz, 
-                             @NotNull final List<DocumentMK> mks,
-                             @NotNull final List<Repository> repos,
-                             final int asyncDelay) throws Exception {
+    void setUpCluster(@NotNull final Class<?> clazz,
+        @NotNull final List<DocumentMK> mks,
+        @NotNull final List<Repository> repos,
+        final int asyncDelay) throws Exception {
         for (int i = 0; i < NUM_CLUSTER_NODES; i++) {
             initRepository(clazz, repos, mks, i + 1, asyncDelay);
-        }        
+        }
     }
 
     static MongoConnection createConnection(@NotNull final Class<?> clazz) throws Exception {
         return OakMongoNSRepositoryStub.createConnection(
-                checkNotNull(clazz).getSimpleName());
+            checkNotNull(clazz).getSimpleName());
     }
 
     static void dropDB(@NotNull final Class<?> clazz) throws Exception {
@@ -186,19 +185,19 @@ public abstract class DocumentClusterIT {
 
     /**
      * initialise the repository
-     * 
-     * @param clazz the current class. Used for logging. Cannot be null.
-     * @param repos list to which add the created repository. Cannot be null.
-     * @param mks list to which add the created MK. Cannot be null.
-     * @param clusterId the cluster ID to use. Must be greater than 0.
+     *
+     * @param clazz      the current class. Used for logging. Cannot be null.
+     * @param repos      list to which add the created repository. Cannot be null.
+     * @param mks        list to which add the created MK. Cannot be null.
+     * @param clusterId  the cluster ID to use. Must be greater than 0.
      * @param asyncDelay the async delay to set. For default use {@link #NOT_PROVIDED}
      * @throws Exception
      */
-    protected void initRepository(@NotNull final Class<?> clazz, 
-                                  @NotNull final List<Repository> repos, 
-                                  @NotNull final List<DocumentMK> mks,
-                                  final int clusterId,
-                                  final int asyncDelay) throws Exception {
+    protected void initRepository(@NotNull final Class<?> clazz,
+        @NotNull final List<Repository> repos,
+        @NotNull final List<DocumentMK> mks,
+        final int clusterId,
+        final int asyncDelay) throws Exception {
         DocumentMK.Builder builder = new DocumentMK.Builder();
         MongoConnection c = createConnection(checkNotNull(clazz));
         builder.setMongoDB(c.getMongoClient(), c.getDBName());
@@ -206,27 +205,27 @@ public abstract class DocumentClusterIT {
             builder.setAsyncDelay(asyncDelay);
         }
         builder.setClusterId(clusterId);
-        
+
         DocumentMK mk = builder.open();
         Jcr j = getJcr(mk.getNodeStore());
-        
+
         Set<IndexEditorProvider> ieps = additionalIndexEditorProviders();
         if (ieps != null) {
             for (IndexEditorProvider p : ieps) {
                 j = j.with(p);
             }
         }
-        
+
         if (isAsyncIndexing()) {
             j = j.withAsyncIndexing();
         }
-        
+
         Repository repository = j.createRepository();
-        
+
         checkNotNull(repos).add(repository);
         checkNotNull(mks).add(mk);
     }
-    
+
     protected Jcr getJcr(@NotNull NodeStore store) {
         Jcr j = new Jcr(checkNotNull(store));
         if (store instanceof Clusterable) {
@@ -234,27 +233,28 @@ public abstract class DocumentClusterIT {
         }
         return j;
     }
-    
+
     /**
      * <p>
      * the default {@link #initRepository(Class, List, List, int, int)} uses this for registering
      * any additional {@link IndexEditorProvider}. Override and return all the provider you'd like
      * to have running other than the OOTB one.
      * </p>
-     * 
+     *
      * <p>
      * the default implementation returns {@code null}
      * </p>
+     *
      * @return
      */
     protected Set<IndexEditorProvider> additionalIndexEditorProviders() {
         return null;
     }
-    
+
     /**
      * override to change default behaviour. If {@code true} will enable the async indexing in the
      * cluster. Default is {@code false}
-     * 
+     *
      * @return
      */
     protected boolean isAsyncIndexing() {

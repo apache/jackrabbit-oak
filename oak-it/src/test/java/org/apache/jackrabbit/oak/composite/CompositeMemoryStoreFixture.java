@@ -31,8 +31,8 @@ public class CompositeMemoryStoreFixture extends NodeStoreFixture {
     @Override
     public NodeStore createNodeStore() {
         MountInfoProvider mip = Mounts.newBuilder()
-                .readOnlyMount("temp", MOUNT_PATH)
-                .build();
+                                      .readOnlyMount("temp", MOUNT_PATH)
+                                      .build();
 
         NodeStore globalStore = new MemoryNodeStore();
         NodeStore tempMount = new MemoryNodeStore();

@@ -29,50 +29,50 @@ public enum ConflictType {
     /**
      * A property has been removed while a property of the same name has been changed in trunk.
      */
-    DELETE_CHANGED_PROPERTY("deleteChangedProperty",false),
+    DELETE_CHANGED_PROPERTY("deleteChangedProperty", false),
 
     /**
      * A node has been removed while a node of the same name has been changed in trunk.
      */
-    DELETE_CHANGED_NODE("deleteChangedNode",true),
+    DELETE_CHANGED_NODE("deleteChangedNode", true),
 
     /**
-     * A property has been added that has a different value than a property with the same name
-     * that has been added in trunk.
+     * A property has been added that has a different value than a property with the same name that
+     * has been added in trunk.
      */
-    ADD_EXISTING_PROPERTY("addExistingProperty",false),
+    ADD_EXISTING_PROPERTY("addExistingProperty", false),
 
     /**
      * A property has been changed while a property of the same name has been removed in trunk.
      */
-    CHANGE_DELETED_PROPERTY("changeDeletedProperty",false),
+    CHANGE_DELETED_PROPERTY("changeDeletedProperty", false),
 
     /**
-     * A property has been changed while a property of the same name has been changed to a
-     * different value in trunk.
+     * A property has been changed while a property of the same name has been changed to a different
+     * value in trunk.
      */
-    CHANGE_CHANGED_PROPERTY("changeChangedProperty",false),
+    CHANGE_CHANGED_PROPERTY("changeChangedProperty", false),
 
     /**
      * A property has been removed while a property of the same name has been removed in trunk.
      */
-    DELETE_DELETED_PROPERTY("deleteDeletedProperty",false),
+    DELETE_DELETED_PROPERTY("deleteDeletedProperty", false),
 
     /**
-     * A node has been added that is different from a node of them same name that has been added
-     * to the trunk.
+     * A node has been added that is different from a node of them same name that has been added to
+     * the trunk.
      */
-    ADD_EXISTING_NODE("addExistingNode",true),
+    ADD_EXISTING_NODE("addExistingNode", true),
 
     /**
      * A node has been changed while a node of the same name has been removed in trunk.
      */
-    CHANGE_DELETED_NODE("changeDeletedNode",true),
+    CHANGE_DELETED_NODE("changeDeletedNode", true),
 
     /**
      * A node has been removed while a node of the same name has been removed in trunk.
      */
-    DELETE_DELETED_NODE("deleteDeletedNode",true),
+    DELETE_DELETED_NODE("deleteDeletedNode", true),
     ;
 
     public String getName() {

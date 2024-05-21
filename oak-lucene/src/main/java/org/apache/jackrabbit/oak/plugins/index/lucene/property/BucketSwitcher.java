@@ -19,25 +19,24 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.property;
 
-import java.util.Objects;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.PROP_ASYNC_INDEXED_TO_TIME_AT_SWITCH;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.PROP_HEAD_BUCKET;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.PROP_PREVIOUS_BUCKET;
 
+import java.util.Objects;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 
-import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.PROP_ASYNC_INDEXED_TO_TIME_AT_SWITCH;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.PROP_HEAD_BUCKET;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.PROP_PREVIOUS_BUCKET;
-
 /**
- * Takes care of switching the buckets used by non unique property indexes
- * based on the associated async indexer lastIndexedTo time.
- *
- * It also ensures that unnecessary changes are not done if the property index
- * does not get updated
+ * Takes care of switching the buckets used by non unique property indexes based on the associated
+ * async indexer lastIndexedTo time.
+ * <p>
+ * It also ensures that unnecessary changes are not done if the property index does not get updated
  */
 class BucketSwitcher {
+
     private final NodeBuilder builder;
 
     public BucketSwitcher(NodeBuilder builder) {
@@ -98,7 +97,7 @@ class BucketSwitcher {
         String head = builder.getString(PROP_HEAD_BUCKET);
         String previous = builder.getString(PROP_PREVIOUS_BUCKET);
         return Iterables.filter(builder.getChildNodeNames(),
-                name -> !Objects.equals(name, head) && !Objects.equals(name, previous)
+            name -> !Objects.equals(name, head) && !Objects.equals(name, previous)
         );
     }
 
@@ -106,13 +105,13 @@ class BucketSwitcher {
         String previous = builder.getString(PROP_PREVIOUS_BUCKET);
         if (previous != null) {
             long previousAsyncIndexedTo = getOptionalValue(builder.getChildNode(previous),
-                    PROP_ASYNC_INDEXED_TO_TIME_AT_SWITCH, 0);
+                PROP_ASYNC_INDEXED_TO_TIME_AT_SWITCH, 0);
             return previousAsyncIndexedTo == lastIndexedTo;
         }
         return false;
     }
 
-    private static long getOptionalValue(NodeBuilder nb, String propName, int defaultVal){
+    private static long getOptionalValue(NodeBuilder nb, String propName, int defaultVal) {
         PropertyState ps = nb.getProperty(propName);
         return ps == null ? defaultVal : ps.getValue(Type.LONG);
     }

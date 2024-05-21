@@ -18,6 +18,9 @@
  */
 package org.apache.jackrabbit.oak.benchmark;
 
+import java.io.File;
+import java.util.Collections;
+import javax.jcr.Repository;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.benchmark.util.ElasticGlobalInitializer;
 import org.apache.jackrabbit.oak.benchmark.util.TestHelper;
@@ -33,13 +36,9 @@ import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticIndexProvide
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
-import javax.jcr.Repository;
-import java.io.File;
-import java.util.Collections;
-
 /**
- * same as {@link ElasticPropertyFTIndexedContentAvailability} but will initialise a repository where the global
- * full-text runs on a separate thread from elastic property.
+ * same as {@link ElasticPropertyFTIndexedContentAvailability} but will initialise a repository
+ * where the global full-text runs on a separate thread from elastic property.
  */
 public class ElasticPropertyFTSeparatedIndexedContentAvailability extends PropertyFullTextTest {
 
@@ -49,9 +48,9 @@ public class ElasticPropertyFTSeparatedIndexedContentAvailability extends Proper
     private String elasticTitleIndexName;
 
     ElasticPropertyFTSeparatedIndexedContentAvailability(final File dump,
-                                                         final boolean flat,
-                                                         final boolean doReport,
-                                                         final Boolean storageEnabled, ElasticConnection connection) {
+        final boolean flat,
+        final boolean doReport,
+        final Boolean storageEnabled, ElasticConnection connection) {
         super(dump, flat, doReport, storageEnabled);
         this.connection = connection;
     }
@@ -74,19 +73,23 @@ public class ElasticPropertyFTSeparatedIndexedContentAvailability extends Proper
             currentFixtureName = fixture.toString();
             return ((OakRepositoryFixture) fixture).setUpCluster(1, oak -> {
                 ElasticIndexTracker indexTracker = new ElasticIndexTracker(connection,
-                        new ElasticMetricHandler(StatisticsProvider.NOOP));
-                ElasticIndexEditorProvider editorProvider = new ElasticIndexEditorProvider(indexTracker, connection,
-                        new ExtractedTextCache(10 * FileUtils.ONE_MB, 100));
+                    new ElasticMetricHandler(StatisticsProvider.NOOP));
+                ElasticIndexEditorProvider editorProvider = new ElasticIndexEditorProvider(
+                    indexTracker, connection,
+                    new ExtractedTextCache(10 * FileUtils.ONE_MB, 100));
                 ElasticIndexProvider indexProvider = new ElasticIndexProvider(indexTracker);
                 oak.with(editorProvider)
-                        .with(indexProvider)
-                        .with(indexProvider)
-                        .with((new ElasticGlobalInitializer(elasticGlobalIndexName, storageEnabled)).async("fulltext-async"))
-                        // the WikipediaImporter set a property `title`
-                        .with(new FullTextPropertyInitialiser(elasticTitleIndexName, Collections.singleton("title"),
-                                ElasticIndexDefinition.TYPE_ELASTICSEARCH).async())
-                        .withAsyncIndexing("async", 5)
-                        .withAsyncIndexing("fulltext-async", 5);
+                   .with(indexProvider)
+                   .with(indexProvider)
+                   .with(
+                       (new ElasticGlobalInitializer(elasticGlobalIndexName, storageEnabled)).async(
+                           "fulltext-async"))
+                   // the WikipediaImporter set a property `title`
+                   .with(new FullTextPropertyInitialiser(elasticTitleIndexName,
+                       Collections.singleton("title"),
+                       ElasticIndexDefinition.TYPE_ELASTICSEARCH).async())
+                   .withAsyncIndexing("async", 5)
+                   .withAsyncIndexing("fulltext-async", 5);
                 return new Jcr(oak);
             });
         }

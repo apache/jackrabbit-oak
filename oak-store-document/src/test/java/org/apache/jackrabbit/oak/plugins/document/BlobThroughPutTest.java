@@ -44,6 +44,7 @@ import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.junit.Assert.assertNotNull;
 
 public class BlobThroughPutTest {
+
     private static final int NO_OF_NODES = 100;
     private static final int BLOB_SIZE = 1024 * 1024 * 2;
 
@@ -56,17 +57,17 @@ public class BlobThroughPutTest {
 
     private final List<Result> results = new ArrayList<Result>();
 
-    private static final BiMap<WriteConcern,String> namedConcerns;
+    private static final BiMap<WriteConcern, String> namedConcerns;
 
     static {
-        BiMap<WriteConcern,String> bimap = HashBiMap.create();
-        bimap.put(WriteConcern.FSYNC_SAFE,"FSYNC_SAFE");
-        bimap.put(WriteConcern.JOURNAL_SAFE,"JOURNAL_SAFE");
+        BiMap<WriteConcern, String> bimap = HashBiMap.create();
+        bimap.put(WriteConcern.FSYNC_SAFE, "FSYNC_SAFE");
+        bimap.put(WriteConcern.JOURNAL_SAFE, "JOURNAL_SAFE");
 //        bimap.put(WriteConcern.MAJORITY,"MAJORITY");
-        bimap.put(WriteConcern.UNACKNOWLEDGED,"UNACKNOWLEDGED");
-        bimap.put(WriteConcern.NORMAL,"NORMAL");
+        bimap.put(WriteConcern.UNACKNOWLEDGED, "UNACKNOWLEDGED");
+        bimap.put(WriteConcern.NORMAL, "NORMAL");
 //        bimap.put(WriteConcern.REPLICAS_SAFE,"REPLICAS_SAFE");
-        bimap.put(WriteConcern.SAFE,"SAFE");
+        bimap.put(WriteConcern.SAFE, "SAFE");
         namedConcerns = Maps.unmodifiableBiMap(bimap);
     }
 
@@ -96,7 +97,7 @@ public class BlobThroughPutTest {
         final MongoCollection<BasicDBObject> blobs = db.getCollection("blobs", BasicDBObject.class);
         int readers = 0;
         int writers = 2;
-        for(WriteConcern wc : namedConcerns.keySet()){
+        for (WriteConcern wc : namedConcerns.keySet()) {
             prepareDB(nodes, blobs);
             final Benchmark b = new Benchmark(nodes, blobs);
             Result r = b.run(readers, writers, true, wc);
@@ -118,11 +119,15 @@ public class BlobThroughPutTest {
         }
     }
 
-    private void run(MongoClient mongo, boolean useSameDB, boolean remote) throws InterruptedException {
+    private void run(MongoClient mongo, boolean useSameDB, boolean remote)
+        throws InterruptedException {
         final MongoDatabase nodeDB = mongo.getDatabase(TEST_DB1);
-        final MongoDatabase blobDB = useSameDB ? mongo.getDatabase(TEST_DB1) : mongo.getDatabase(TEST_DB2);
-        final MongoCollection<BasicDBObject> nodes = nodeDB.getCollection("nodes", BasicDBObject.class);
-        final MongoCollection<BasicDBObject> blobs = blobDB.getCollection("blobs", BasicDBObject.class);
+        final MongoDatabase blobDB =
+            useSameDB ? mongo.getDatabase(TEST_DB1) : mongo.getDatabase(TEST_DB2);
+        final MongoCollection<BasicDBObject> nodes = nodeDB.getCollection("nodes",
+            BasicDBObject.class);
+        final MongoCollection<BasicDBObject> blobs = blobDB.getCollection("blobs",
+            BasicDBObject.class);
 
         for (int readers : READERS) {
             for (int writers : WRITERS) {
@@ -135,7 +140,7 @@ public class BlobThroughPutTest {
     }
 
     private void prepareDB(MongoCollection<BasicDBObject> nodes,
-                           MongoCollection<BasicDBObject> blobs) {
+        MongoCollection<BasicDBObject> blobs) {
         MongoUtils.dropCollections(nodes.getNamespace().getDatabaseName());
         MongoUtils.dropCollections(blobs.getNamespace().getDatabaseName());
 
@@ -145,14 +150,15 @@ public class BlobThroughPutTest {
     private void createTestNodes(MongoCollection<BasicDBObject> nodes) {
         for (int i = 0; i < NO_OF_NODES; i++) {
             BasicDBObject obj = new BasicDBObject("_id", i)
-                    .append("foo", "bar1" + i);
+                .append("foo", "bar1" + i);
             nodes.insertOne(obj);
         }
     }
 
     private static class Result {
+
         final static String OUTPUT_FORMAT = "remote, samedb, readers, writers, reads, writes, " +
-                "time, readThroughPut, writeThroughPut, writeConcern";
+            "time, readThroughPut, writeThroughPut, writeConcern";
         int totalReads;
         int totalWrites = 0;
         int noOfReaders;
@@ -171,27 +177,28 @@ public class BlobThroughPutTest {
             return totalWrites * dataSize / execTime;
         }
 
-        String getWriteConcern(){
+        String getWriteConcern() {
             return namedConcerns.get(writeConcern);
         }
 
         @Override
         public String toString() {
             return String.format("%s,%s,%d,%d,%d,%d,%d,%1.0f,%s,%s",
-                    remote,
-                    sameDB,
-                    noOfReaders,
-                    noOfWriters,
-                    totalReads,
-                    totalWrites,
-                    execTime,
-                    readThroughPut(),
-                    humanReadableByteCount((long) writeThroughPut()),
-                    getWriteConcern());
+                remote,
+                sameDB,
+                noOfReaders,
+                noOfWriters,
+                totalReads,
+                totalWrites,
+                execTime,
+                readThroughPut(),
+                humanReadableByteCount((long) writeThroughPut()),
+                getWriteConcern());
         }
     }
 
     private static class Benchmark {
+
         private final MongoCollection<BasicDBObject> nodes;
         private final MongoCollection<BasicDBObject> blobs;
         private final Random random = new Random();
@@ -208,13 +215,15 @@ public class BlobThroughPutTest {
         }
 
         private Benchmark(MongoCollection<BasicDBObject> nodes,
-                          MongoCollection<BasicDBObject> blobs) {
+            MongoCollection<BasicDBObject> blobs) {
             this.nodes = nodes;
             this.blobs = blobs;
         }
 
-        public Result run(int noOfReaders, int noOfWriters, boolean remote, WriteConcern writeConcern) throws InterruptedException {
-            boolean sameDB = nodes.getNamespace().getDatabaseName().equals(blobs.getNamespace().getDatabaseName());
+        public Result run(int noOfReaders, int noOfWriters, boolean remote,
+            WriteConcern writeConcern) throws InterruptedException {
+            boolean sameDB = nodes.getNamespace().getDatabaseName()
+                                  .equals(blobs.getNamespace().getDatabaseName());
 
             List<Reader> readers = new ArrayList<Reader>(noOfReaders);
             List<Writer> writers = new ArrayList<Writer>(noOfWriters);
@@ -244,7 +253,8 @@ public class BlobThroughPutTest {
 
             System.err.printf("Running with [%d] readers and [%d] writers. " +
                     "Same DB [%s], Remote server [%s], Max Time [%d] seconds, WriteConcern [%s] %n",
-                    noOfReaders, noOfWriters, sameDB, remote, MAX_EXEC_TIME,namedConcerns.get(writeConcern));
+                noOfReaders, noOfWriters, sameDB, remote, MAX_EXEC_TIME,
+                namedConcerns.get(writeConcern));
 
             startLatch.countDown();
 
@@ -273,7 +283,8 @@ public class BlobThroughPutTest {
             r.sameDB = sameDB;
             r.writeConcern = writeConcern;
 
-            System.err.printf("Run complete. Reads [%d] and writes [%d] %n", totalReads, totalWrites);
+            System.err.printf("Run complete. Reads [%d] and writes [%d] %n", totalReads,
+                totalWrites);
             System.err.println(r.toString());
             return r;
         }
@@ -287,6 +298,7 @@ public class BlobThroughPutTest {
         }
 
         private class Reader implements Runnable {
+
             int readCount = 0;
             final CountDownLatch stopLatch;
 
@@ -307,6 +319,7 @@ public class BlobThroughPutTest {
         }
 
         private class Writer implements Runnable {
+
             int writeCount = 0;
             final int id;
             final CountDownLatch stopLatch;
@@ -323,7 +336,7 @@ public class BlobThroughPutTest {
                 while (!stopTest.get()) {
                     String _id = id + "-" + writeCount;
                     BasicDBObject obj = new BasicDBObject()
-                            .append("foo", _id);
+                        .append("foo", _id);
                     obj.put("blob", DATA);
                     blobs.withWriteConcern(writeConcern).insertOne(obj);
                     writeCount++;

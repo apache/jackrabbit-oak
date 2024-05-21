@@ -28,8 +28,8 @@ import org.apache.jackrabbit.guava.common.collect.Maps;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
 /**
- * Queues updates on a commit root document and batches them into a single
- * call to the {@link DocumentStore}.
+ * Queues updates on a commit root document and batches them into a single call to the
+ * {@link DocumentStore}.
  */
 final class BatchCommitQueue {
 
@@ -82,7 +82,7 @@ final class BatchCommitQueue {
             LOG.debug("BatchCommit finished with id {}", id);
             if (inProgress.remove(id) == null) {
                 throw new IllegalStateException("BatchCommit for " +
-                        id + " is not in progress");
+                    id + " is not in progress");
             }
             commit = pending.remove(id);
             if (commit != null) {

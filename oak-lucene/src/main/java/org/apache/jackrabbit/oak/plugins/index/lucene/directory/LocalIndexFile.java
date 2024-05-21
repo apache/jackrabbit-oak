@@ -19,16 +19,16 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
+import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
+
 import java.io.File;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.store.FilterDirectory;
 
-import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
-
 public final class LocalIndexFile {
+
     final File dir;
     final String name;
     final long size;
@@ -37,19 +37,19 @@ public final class LocalIndexFile {
     final long creationTime = System.currentTimeMillis();
 
     public LocalIndexFile(Directory dir, String fileName,
-                          long size, boolean copyFromRemote){
+        long size, boolean copyFromRemote) {
         this.copyFromRemote = copyFromRemote;
         this.dir = getFSDir(dir);
         this.name = fileName;
         this.size = size;
     }
 
-    public LocalIndexFile(Directory dir, String fileName){
+    public LocalIndexFile(Directory dir, String fileName) {
         this(dir, fileName, DirectoryUtils.getFileLength(dir, fileName), true);
     }
 
-    public String getKey(){
-        if (dir != null){
+    public String getKey() {
+        if (dir != null) {
             return new File(dir, name).getAbsolutePath();
         }
         return name;
@@ -63,7 +63,7 @@ public final class LocalIndexFile {
         return size;
     }
 
-    public void incrementAttemptToDelete(){
+    public void incrementAttemptToDelete() {
         deleteAttemptCount++;
     }
 
@@ -71,27 +71,32 @@ public final class LocalIndexFile {
         return deleteAttemptCount;
     }
 
-    public String deleteLog(){
+    public String deleteLog() {
         return String.format("%s (%s, %d attempts, %d s)", name,
-                humanReadableByteCount(size), deleteAttemptCount, timeTaken());
+            humanReadableByteCount(size), deleteAttemptCount, timeTaken());
     }
 
-    public String copyLog(){
+    public String copyLog() {
         return String.format("%s (%s, %1.1f%%, %s, %d s)", name,
-                humanReadableByteCount(actualSize()),
-                copyProgress(),
-                humanReadableByteCount(size), timeTaken());
+            humanReadableByteCount(actualSize()),
+            copyProgress(),
+            humanReadableByteCount(size), timeTaken());
     }
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
 
         LocalIndexFile localIndexFile = (LocalIndexFile) o;
 
-        if (dir != null ? !dir.equals(localIndexFile.dir) : localIndexFile.dir != null)
+        if (dir != null ? !dir.equals(localIndexFile.dir) : localIndexFile.dir != null) {
             return false;
+        }
         return name.equals(localIndexFile.name);
 
     }
@@ -103,24 +108,24 @@ public final class LocalIndexFile {
         return result;
     }
 
-    private long timeTaken(){
+    private long timeTaken() {
         return TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis() - creationTime);
     }
 
-    private float copyProgress(){
+    private float copyProgress() {
         return actualSize() * 1.0f / size * 100;
     }
 
-    public long actualSize(){
+    public long actualSize() {
         return dir != null ? new File(dir, name).length() : 0;
     }
 
     public static File getFSDir(Directory dir) {
-        if (dir instanceof FilterDirectory){
+        if (dir instanceof FilterDirectory) {
             dir = ((FilterDirectory) dir).getDelegate();
         }
 
-        if (dir instanceof FSDirectory){
+        if (dir instanceof FSDirectory) {
             return ((FSDirectory) dir).getDirectory();
         }
 

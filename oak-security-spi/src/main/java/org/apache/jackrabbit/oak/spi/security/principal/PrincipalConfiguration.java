@@ -30,11 +30,10 @@ public interface PrincipalConfiguration extends SecurityConfiguration {
     String NAME = "org.apache.jackrabbit.oak.principal";
 
     /**
-     * Returns an instance of {@link PrincipalManager} that can be used
-     * to query and retrieve principals such as needed for JCR access control
-     * management.
+     * Returns an instance of {@link PrincipalManager} that can be used to query and retrieve
+     * principals such as needed for JCR access control management.
      *
-     * @param root The target root.
+     * @param root           The target root.
      * @param namePathMapper The {@code NamePathMapper} to be used.
      * @return An instance of {@link PrincipalManager}.
      * @see org.apache.jackrabbit.api.JackrabbitSession#getPrincipalManager()
@@ -47,23 +46,21 @@ public interface PrincipalConfiguration extends SecurityConfiguration {
      *
      * <h3>Backwards compatibility with Jackrabbit 2.x</h3>
      * <h4>Configuration of Principal Providers</h4>
-     * In Jackrabbit 2.x the configuration of principal providers was tied to
-     * the LoginModule configuration and thus mixing authentication concerns
-     * with the principal management. Since OAK makes the {@code PrincipalProvider}
-     * a public interface of the SPI, it's configuration goes along with the
-     * configuration of the JCR level {@link PrincipalManager}. The authentication
-     * setup may have access to the principal configuration if the
-     * {@link org.apache.jackrabbit.oak.spi.security.SecurityProvider} is
-     * made available in the {@link org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConfiguration}.
+     * In Jackrabbit 2.x the configuration of principal providers was tied to the LoginModule
+     * configuration and thus mixing authentication concerns with the principal management. Since
+     * OAK makes the {@code PrincipalProvider} a public interface of the SPI, it's configuration
+     * goes along with the configuration of the JCR level {@link PrincipalManager}. The
+     * authentication setup may have access to the principal configuration if the
+     * {@link org.apache.jackrabbit.oak.spi.security.SecurityProvider} is made available in the
+     * {@link org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConfiguration}.
      *
      * <h4>Multiple Sources for Principals</h4>
-     * In Jackrabbit 2.x it was possible to configure multiple principal providers.
-     * As of OAK there is only one single principal provider implementation
-     * responsible for a given configuration. If principals originate from different
-     * sources it is recommended to define a separate {@link PrincipalConfiguration}
-     * for each source.
+     * In Jackrabbit 2.x it was possible to configure multiple principal providers. As of OAK there
+     * is only one single principal provider implementation responsible for a given configuration.
+     * If principals originate from different sources it is recommended to define a separate
+     * {@link PrincipalConfiguration} for each source.
      *
-     * @param root The target {@code Root}.
+     * @param root           The target {@code Root}.
      * @param namePathMapper The {@code NamePathMapper} to be used.
      * @return An instance of {@link PrincipalProvider}.
      */

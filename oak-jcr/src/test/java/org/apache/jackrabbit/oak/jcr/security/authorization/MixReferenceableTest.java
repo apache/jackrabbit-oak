@@ -17,8 +17,7 @@
 package org.apache.jackrabbit.oak.jcr.security.authorization;
 
 /**
- * Implementation of {@code AbstractAutoCreatedPropertyTest} for mix:referenceable
- * nodes.
+ * Implementation of {@code AbstractAutoCreatedPropertyTest} for mix:referenceable nodes.
  */
 public class MixReferenceableTest extends AbstractAutoCreatedPropertyTest {
 

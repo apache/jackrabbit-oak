@@ -19,12 +19,15 @@
 
 package org.apache.jackrabbit.oak.plugins.document.bundlor;
 
+import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -34,11 +37,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.Nullable;
 
-import static org.apache.jackrabbit.oak.api.Type.STRINGS;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
-
 public class BundledTypesRegistry {
+
     public static BundledTypesRegistry NOOP = BundledTypesRegistry.from(EMPTY_NODE);
     private final Map<String, DocumentBundlor> bundlors;
 
@@ -46,11 +46,11 @@ public class BundledTypesRegistry {
         this.bundlors = Collections.unmodifiableMap(new HashMap<>(bundlors));
     }
 
-    public static BundledTypesRegistry from(NodeState configParentState){
+    public static BundledTypesRegistry from(NodeState configParentState) {
         Map<String, DocumentBundlor> bundlors = new HashMap<>();
-        for (ChildNodeEntry e : configParentState.getChildNodeEntries()){
+        for (ChildNodeEntry e : configParentState.getChildNodeEntries()) {
             NodeState config = e.getNodeState();
-            if (config.getBoolean(DocumentBundlor.PROP_DISABLED)){
+            if (config.getBoolean(DocumentBundlor.PROP_DISABLED)) {
                 continue;
             }
             bundlors.put(e.getName(), DocumentBundlor.from(config));
@@ -60,13 +60,13 @@ public class BundledTypesRegistry {
 
     @Nullable
     public DocumentBundlor getBundlor(NodeState state) {
-        if (isVersionedNode(state)){
+        if (isVersionedNode(state)) {
             return getBundlorForVersionedNode(state);
         }
         //Prefer mixin (as they are more specific) over primaryType
-        for (String mixin : getMixinNames(state, JcrConstants.JCR_MIXINTYPES)){
+        for (String mixin : getMixinNames(state, JcrConstants.JCR_MIXINTYPES)) {
             DocumentBundlor bundlor = bundlors.get(mixin);
-            if (bundlor != null){
+            if (bundlor != null) {
                 return bundlor;
             }
         }
@@ -75,9 +75,9 @@ public class BundledTypesRegistry {
 
     private DocumentBundlor getBundlorForVersionedNode(NodeState state) {
         //Prefer mixin (as they are more specific) over primaryType
-        for (String mixin : getMixinNames(state, JcrConstants.JCR_FROZENMIXINTYPES)){
+        for (String mixin : getMixinNames(state, JcrConstants.JCR_FROZENMIXINTYPES)) {
             DocumentBundlor bundlor = bundlors.get(mixin);
-            if (bundlor != null){
+            if (bundlor != null) {
                 return bundlor;
             }
         }
@@ -89,7 +89,8 @@ public class BundledTypesRegistry {
     }
 
     private static boolean isVersionedNode(NodeState state) {
-        return JcrConstants.NT_FROZENNODE.equals(getPrimaryTypeName(state, JcrConstants.JCR_PRIMARYTYPE));
+        return JcrConstants.NT_FROZENNODE.equals(
+            getPrimaryTypeName(state, JcrConstants.JCR_PRIMARYTYPE));
     }
 
     private static String getPrimaryTypeName(NodeState nodeState, String typePropName) {
@@ -104,26 +105,28 @@ public class BundledTypesRegistry {
 
     //~--------------------------------------------< Builder >
 
-    public static BundledTypesRegistryBuilder builder(){
+    public static BundledTypesRegistryBuilder builder() {
         return new BundledTypesRegistryBuilder(EMPTY_NODE.builder());
     }
 
     public static class BundledTypesRegistryBuilder {
+
         private final NodeBuilder builder;
 
         public BundledTypesRegistryBuilder(NodeBuilder builder) {
             this.builder = builder;
         }
 
-        public TypeBuilder forType(String typeName){
+        public TypeBuilder forType(String typeName) {
             NodeBuilder child = builder.child(typeName);
-            child.setProperty(JcrConstants.JCR_PRIMARYTYPE, NodeTypeConstants.NT_OAK_UNSTRUCTURED, Type.NAME);
+            child.setProperty(JcrConstants.JCR_PRIMARYTYPE, NodeTypeConstants.NT_OAK_UNSTRUCTURED,
+                Type.NAME);
             return new TypeBuilder(this, child);
         }
 
-        public TypeBuilder forType(String typeName, String ... includes){
+        public TypeBuilder forType(String typeName, String... includes) {
             TypeBuilder typeBuilder = forType(typeName);
-            for (String include : includes){
+            for (String include : includes) {
                 typeBuilder.include(include);
             }
             return typeBuilder;
@@ -133,11 +136,12 @@ public class BundledTypesRegistry {
             return BundledTypesRegistry.from(builder.getNodeState());
         }
 
-        public NodeState build(){
+        public NodeState build() {
             return builder.getNodeState();
         }
 
         public static class TypeBuilder {
+
             private final BundledTypesRegistryBuilder parent;
             private final NodeBuilder typeBuilder;
             private final Set<String> patterns = new HashSet<>();
@@ -147,28 +151,29 @@ public class BundledTypesRegistry {
                 this.typeBuilder = typeBuilder;
             }
 
-            public TypeBuilder include(String pattern){
+            public TypeBuilder include(String pattern) {
                 patterns.add(pattern);
                 return this;
             }
 
-            public BundledTypesRegistry buildRegistry(){
+            public BundledTypesRegistry buildRegistry() {
                 setupPatternProp();
                 return parent.buildRegistry();
             }
 
-            public BundledTypesRegistryBuilder registry(){
+            public BundledTypesRegistryBuilder registry() {
                 setupPatternProp();
                 return parent;
             }
 
-            public NodeState build(){
+            public NodeState build() {
                 setupPatternProp();
                 return parent.build();
             }
 
             private void setupPatternProp() {
-                typeBuilder.setProperty(createProperty(DocumentBundlor.PROP_PATTERN, patterns, STRINGS));
+                typeBuilder.setProperty(
+                    createProperty(DocumentBundlor.PROP_PATTERN, patterns, STRINGS));
             }
         }
     }

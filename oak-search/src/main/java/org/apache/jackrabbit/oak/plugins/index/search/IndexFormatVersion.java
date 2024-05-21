@@ -21,7 +21,7 @@ package org.apache.jackrabbit.oak.plugins.index.search;
 
 /**
  * The version of an index (property "compatVersion").
- *
+ * <p>
  * The default is version 2. Version 1 is supported for backward compatibility.
  */
 public enum IndexFormatVersion {
@@ -41,12 +41,12 @@ public enum IndexFormatVersion {
     }
 
     /**
-     * Returns <code>true</code> if this version is at least as high as the
-     * given <code>version</code>.
+     * Returns <code>true</code> if this version is at least as high as the given
+     * <code>version</code>.
      *
      * @param version the other version to compare.
      * @return <code>true</code> if this version is at least as high as the
-     *         provided; <code>false</code> otherwise.
+     * provided; <code>false</code> otherwise.
      */
     public boolean isAtLeast(IndexFormatVersion version) {
         return this.version >= version.getVersion();
@@ -57,18 +57,21 @@ public enum IndexFormatVersion {
     }
 
     public static IndexFormatVersion getVersion(int version) {
-        switch(version){
-            case 1 : return V1;
-            case 2 : return V2;
-            default : throw new IllegalArgumentException("Unknown version : " + version);
+        switch (version) {
+            case 1:
+                return V1;
+            case 2:
+                return V2;
+            default:
+                throw new IllegalArgumentException("Unknown version : " + version);
         }
     }
 
-    public static IndexFormatVersion getDefault(){
+    public static IndexFormatVersion getDefault() {
         return V2;
     }
 
-    public static IndexFormatVersion max(IndexFormatVersion o1, IndexFormatVersion o2){
+    public static IndexFormatVersion max(IndexFormatVersion o1, IndexFormatVersion o2) {
         return o1.version > o2.version ? o1 : o2;
     }
 

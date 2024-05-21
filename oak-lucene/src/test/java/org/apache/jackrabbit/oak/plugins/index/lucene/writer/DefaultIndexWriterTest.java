@@ -19,8 +19,18 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.writer;
 
-import java.io.File;
+import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newPathField;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.SUGGEST_DATA_CHILD_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.INDEX_DATA_CHILD_NAME;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
+import java.io.File;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.DefaultDirectoryFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.FSDirectoryFactory;
@@ -33,17 +43,6 @@ import org.apache.lucene.index.SerialMergeScheduler;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-
-import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newPathField;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.SUGGEST_DATA_CHILD_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.INDEX_DATA_CHILD_NAME;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 
 public class DefaultIndexWriterTest {
 
@@ -58,21 +57,24 @@ public class DefaultIndexWriterTest {
 
     @Test
     public void lazyInit() throws Exception {
-        LuceneIndexDefinition defn = new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
+        LuceneIndexDefinition defn = new LuceneIndexDefinition(root, builder.getNodeState(),
+            "/foo");
         DefaultIndexWriter writer = createWriter(defn, false);
         assertFalse(writer.close(0));
     }
 
     @Test
     public void writeInitializedUponReindex() throws Exception {
-        LuceneIndexDefinition defn = new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
+        LuceneIndexDefinition defn = new LuceneIndexDefinition(root, builder.getNodeState(),
+            "/foo");
         DefaultIndexWriter writer = createWriter(defn, true);
         assertTrue(writer.close(0));
     }
 
     @Test
     public void indexUpdated() throws Exception {
-        LuceneIndexDefinition defn = new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
+        LuceneIndexDefinition defn = new LuceneIndexDefinition(root, builder.getNodeState(),
+            "/foo");
         DefaultIndexWriter writer = createWriter(defn, false);
 
         Document document = new Document();
@@ -84,8 +86,9 @@ public class DefaultIndexWriterTest {
     }
 
     @Test
-    public void indexWriterConfig_Scheduler_Remote() throws Exception{
-        LuceneIndexDefinition defn = new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
+    public void indexWriterConfig_Scheduler_Remote() throws Exception {
+        LuceneIndexDefinition defn = new LuceneIndexDefinition(root, builder.getNodeState(),
+            "/foo");
         DefaultIndexWriter writer = createWriter(defn, true);
 
         IndexWriter w = writer.getWriter();
@@ -93,21 +96,23 @@ public class DefaultIndexWriterTest {
     }
 
     @Test
-    public void indexWriterConfig_Scheduler_Local() throws Exception{
+    public void indexWriterConfig_Scheduler_Local() throws Exception {
         FSDirectoryFactory fsdir = new FSDirectoryFactory(folder.getRoot());
-        LuceneIndexDefinition defn = new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
+        LuceneIndexDefinition defn = new LuceneIndexDefinition(root, builder.getNodeState(),
+            "/foo");
         DefaultIndexWriter writer = new DefaultIndexWriter(defn, builder,
-                fsdir, INDEX_DATA_CHILD_NAME, SUGGEST_DATA_CHILD_NAME, true, writerConfig);
+            fsdir, INDEX_DATA_CHILD_NAME, SUGGEST_DATA_CHILD_NAME, true, writerConfig);
 
         IndexWriter w = writer.getWriter();
         assertThat(w.getConfig().getMergeScheduler(), instanceOf(ConcurrentMergeScheduler.class));
     }
 
     @Test
-    public void configRAMSize() throws Exception{
+    public void configRAMSize() throws Exception {
         writerConfig = new LuceneIndexWriterConfig(42);
 
-        LuceneIndexDefinition defn = new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
+        LuceneIndexDefinition defn = new LuceneIndexDefinition(root, builder.getNodeState(),
+            "/foo");
         DefaultIndexWriter writer = createWriter(defn, true);
 
         IndexWriter w = writer.getWriter();
@@ -115,8 +120,9 @@ public class DefaultIndexWriterTest {
     }
 
     @Test
-    public void useAddForReindex() throws Exception{
-        LuceneIndexDefinition defn = new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
+    public void useAddForReindex() throws Exception {
+        LuceneIndexDefinition defn = new LuceneIndexDefinition(root, builder.getNodeState(),
+            "/foo");
         DefaultIndexWriter writer = createWriter(defn, true);
 
         Document document = new Document();
@@ -129,8 +135,9 @@ public class DefaultIndexWriterTest {
     }
 
     @Test
-    public void useUpdateForNormalIndexing() throws Exception{
-        LuceneIndexDefinition defn = new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
+    public void useUpdateForNormalIndexing() throws Exception {
+        LuceneIndexDefinition defn = new LuceneIndexDefinition(root, builder.getNodeState(),
+            "/foo");
         DefaultIndexWriter writer = createWriter(defn, false);
 
         Document document = new Document();
@@ -144,8 +151,8 @@ public class DefaultIndexWriterTest {
 
     private DefaultIndexWriter createWriter(LuceneIndexDefinition defn, boolean reindex) {
         return new DefaultIndexWriter(defn, builder,
-                new DefaultDirectoryFactory(null, null), INDEX_DATA_CHILD_NAME,
-                SUGGEST_DATA_CHILD_NAME, reindex, writerConfig);
+            new DefaultDirectoryFactory(null, null), INDEX_DATA_CHILD_NAME,
+            SUGGEST_DATA_CHILD_NAME, reindex, writerConfig);
     }
 
 

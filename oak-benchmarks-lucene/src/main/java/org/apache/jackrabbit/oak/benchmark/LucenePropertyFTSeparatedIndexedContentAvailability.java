@@ -19,9 +19,7 @@ package org.apache.jackrabbit.oak.benchmark;
 import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
 
 import java.io.File;
-
 import javax.jcr.Repository;
-
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.fixture.JcrCreator;
 import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
@@ -35,8 +33,8 @@ import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 
 /**
- * same as {@link LucenePropertyFTIndexedContentAvailability} but will initialise a repository where the global
- * full-text runs on a separate thread from lucene property.
+ * same as {@link LucenePropertyFTIndexedContentAvailability} but will initialise a repository where
+ * the global full-text runs on a separate thread from lucene property.
  */
 public class LucenePropertyFTSeparatedIndexedContentAvailability extends PropertyFullTextTest {
 
@@ -53,9 +51,9 @@ public class LucenePropertyFTSeparatedIndexedContentAvailability extends Propert
     }
 
     public LucenePropertyFTSeparatedIndexedContentAvailability(final File dump,
-                                                               final boolean flat,
-                                                               final boolean doReport,
-                                                               final Boolean storageEnabled) {
+        final boolean flat,
+        final boolean doReport,
+        final Boolean storageEnabled) {
         super(dump, flat, doReport, storageEnabled);
         currentTest = this.getClass().getSimpleName();
     }
@@ -69,14 +67,15 @@ public class LucenePropertyFTSeparatedIndexedContentAvailability extends Propert
                 public Jcr customize(Oak oak) {
                     LuceneIndexProvider provider = new LuceneIndexProvider();
                     oak.with((QueryIndexProvider) provider)
-                            .with((Observer) provider)
-                            .with(new LuceneIndexEditorProvider())
-                            .with((new LuceneInitializerHelper("luceneGlobal", storageEnabled))
-                                            .async("fulltext-async"))
-                                    // the WikipediaImporter set a property `title`
-                            .with(new FullTextPropertyInitialiser("luceneTitle", of("title"), LuceneIndexConstants.TYPE_LUCENE).async())
-                            .withAsyncIndexing("async", 5)
-                            .withAsyncIndexing("fulltext-async", 5);
+                       .with((Observer) provider)
+                       .with(new LuceneIndexEditorProvider())
+                       .with((new LuceneInitializerHelper("luceneGlobal", storageEnabled))
+                           .async("fulltext-async"))
+                       // the WikipediaImporter set a property `title`
+                       .with(new FullTextPropertyInitialiser("luceneTitle", of("title"),
+                           LuceneIndexConstants.TYPE_LUCENE).async())
+                       .withAsyncIndexing("async", 5)
+                       .withAsyncIndexing("fulltext-async", 5);
                     return new Jcr(oak);
                 }
             });

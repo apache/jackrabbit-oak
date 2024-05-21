@@ -16,14 +16,6 @@
  */
 package org.apache.jackrabbit.api;
 
-import org.junit.Test;
-import org.mockito.Answers;
-
-import javax.jcr.AccessDeniedException;
-import javax.jcr.Item;
-import javax.jcr.ItemNotFoundException;
-import javax.jcr.Node;
-
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.mockito.Mockito.doThrow;
@@ -31,17 +23,25 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
 
+import javax.jcr.AccessDeniedException;
+import javax.jcr.Item;
+import javax.jcr.ItemNotFoundException;
+import javax.jcr.Node;
+import org.junit.Test;
+import org.mockito.Answers;
+
 public class JackrabbitSessionTest {
-    
+
     @Test
     public void testGetParentOrNull() throws Exception {
-        JackrabbitSession s = mock(JackrabbitSession.class, withSettings().defaultAnswer(Answers.CALLS_REAL_METHODS));
+        JackrabbitSession s = mock(JackrabbitSession.class,
+            withSettings().defaultAnswer(Answers.CALLS_REAL_METHODS));
         Node parent = mock(Node.class);
         Item item = mock(Item.class);
-        
+
         when(item.getParent()).thenReturn(parent).getMock();
         assertSame(parent, s.getParentOrNull(item));
-        
+
         doThrow(new AccessDeniedException()).when(item).getParent();
         assertNull(s.getParentOrNull(item));
 

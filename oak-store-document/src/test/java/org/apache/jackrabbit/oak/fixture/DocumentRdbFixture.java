@@ -59,9 +59,10 @@ public class DocumentRdbFixture extends NodeStoreFixture {
         //do not reuse the whiteboard
         setWhiteboard(new DefaultWhiteboard());
         RDBDocumentNodeStoreBuilder builder = new RDBDocumentNodeStoreBuilder();
-        builder.setNoChildOrderCleanupFeature(Feature.newFeature("FT_NOCOCLEANUP_OAK-10660", getWhiteboard()));
+        builder.setNoChildOrderCleanupFeature(
+            Feature.newFeature("FT_NOCOCLEANUP_OAK-10660", getWhiteboard()));
         NodeStore result = builder.setPersistentCache("target/persistentCache,time")
-                .setRDBConnection(ds, options).build();
+                                  .setRDBConnection(ds, options).build();
         this.dataSources.put(result, ds);
         return result;
     }
@@ -74,7 +75,7 @@ public class DocumentRdbFixture extends NodeStoreFixture {
         DataSource ds = this.dataSources.remove(nodeStore);
         if (ds instanceof Closeable) {
             try {
-                ((Closeable)ds).close();
+                ((Closeable) ds).close();
             } catch (IOException ex) {
                 throw new RuntimeException(ex);
             }

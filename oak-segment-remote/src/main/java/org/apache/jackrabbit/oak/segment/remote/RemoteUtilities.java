@@ -18,14 +18,13 @@ package org.apache.jackrabbit.oak.segment.remote;
 
 import static java.lang.Boolean.getBoolean;
 
-import org.apache.jackrabbit.oak.segment.remote.RemoteSegmentArchiveEntry;
-import org.jetbrains.annotations.NotNull;
-
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.jetbrains.annotations.NotNull;
 
 public final class RemoteUtilities {
+
     public static final boolean OFF_HEAP = getBoolean("access.off.heap");
     public static final String SEGMENT_FILE_NAME_PATTERN = "^([0-9a-f]{4})\\.([0-9a-f-]+)$";
 
@@ -36,7 +35,8 @@ public final class RemoteUtilities {
     }
 
     public static String getSegmentFileName(RemoteSegmentArchiveEntry indexEntry) {
-        return getSegmentFileName(indexEntry.getPosition(), indexEntry.getMsb(), indexEntry.getLsb());
+        return getSegmentFileName(indexEntry.getPosition(), indexEntry.getMsb(),
+            indexEntry.getLsb());
     }
 
     public static String getSegmentFileName(long offset, long msb, long lsb) {

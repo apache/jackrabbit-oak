@@ -22,6 +22,7 @@ import java.io.Closeable;
 
 /**
  * Fixture encapsulating metrics exporter instance of T
+ *
  * @param <T>
  */
 public interface MetricsExporterFixture<T> extends Closeable {

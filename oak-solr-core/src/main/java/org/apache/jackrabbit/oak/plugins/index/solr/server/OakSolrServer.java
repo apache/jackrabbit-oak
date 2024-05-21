@@ -26,8 +26,9 @@ import org.apache.solr.common.util.NamedList;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * An Oak {@link org.apache.solr.client.solrj.SolrClient}, caching a {@link org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider}
- * for dispatching requests to indexing or searching specialized {@link org.apache.solr.client.solrj.SolrClient}s.
+ * An Oak {@link org.apache.solr.client.solrj.SolrClient}, caching a
+ * {@link org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider} for dispatching
+ * requests to indexing or searching specialized {@link org.apache.solr.client.solrj.SolrClient}s.
  */
 public class OakSolrServer extends SolrClient {
 
@@ -44,7 +45,8 @@ public class OakSolrServer extends SolrClient {
     }
 
     @Override
-    public NamedList<Object> request(SolrRequest request, String collection) throws SolrServerException, IOException {
+    public NamedList<Object> request(SolrRequest request, String collection)
+        throws SolrServerException, IOException {
         try {
 
             SolrClient server = getServer(request);
@@ -57,16 +59,21 @@ public class OakSolrServer extends SolrClient {
 
     private synchronized SolrClient getServer(SolrRequest request) throws Exception {
         boolean isIndex = request.getPath().contains("/update");
-        SolrServerRegistry.Strategy strategy = isIndex ? SolrServerRegistry.Strategy.INDEXING : SolrServerRegistry.Strategy.SEARCHING;
+        SolrServerRegistry.Strategy strategy =
+            isIndex ? SolrServerRegistry.Strategy.INDEXING : SolrServerRegistry.Strategy.SEARCHING;
         SolrClient solrServer = SolrServerRegistry.get(solrServerConfiguration, strategy);
         if (solrServer == null) {
-            if (solrServerConfiguration.getClass().getName().indexOf("EmbeddedSolrServerConfiguration") >= 0) {
+            if (solrServerConfiguration.getClass().getName()
+                                       .indexOf("EmbeddedSolrServerConfiguration") >= 0) {
                 solrServer = solrServerProvider.getSolrServer();
                 // the same Solr server has to be used for both
-                SolrServerRegistry.register(solrServerConfiguration, solrServer, SolrServerRegistry.Strategy.INDEXING);
-                SolrServerRegistry.register(solrServerConfiguration, solrServer, SolrServerRegistry.Strategy.SEARCHING);
+                SolrServerRegistry.register(solrServerConfiguration, solrServer,
+                    SolrServerRegistry.Strategy.INDEXING);
+                SolrServerRegistry.register(solrServerConfiguration, solrServer,
+                    SolrServerRegistry.Strategy.SEARCHING);
             } else {
-                solrServer = isIndex ? solrServerProvider.getIndexingSolrServer() : solrServerProvider.getSearchingSolrServer();
+                solrServer = isIndex ? solrServerProvider.getIndexingSolrServer()
+                    : solrServerProvider.getSearchingSolrServer();
                 SolrServerRegistry.register(solrServerConfiguration, solrServer, strategy);
             }
         }
@@ -85,8 +92,10 @@ public class OakSolrServer extends SolrClient {
     public void close() throws IOException {
         try {
             solrServerProvider.close();
-            SolrServerRegistry.unregister(solrServerConfiguration, SolrServerRegistry.Strategy.INDEXING);
-            SolrServerRegistry.unregister(solrServerConfiguration, SolrServerRegistry.Strategy.SEARCHING);
+            SolrServerRegistry.unregister(solrServerConfiguration,
+                SolrServerRegistry.Strategy.INDEXING);
+            SolrServerRegistry.unregister(solrServerConfiguration,
+                SolrServerRegistry.Strategy.SEARCHING);
         } catch (IOException e) {
             // do nothing
         }

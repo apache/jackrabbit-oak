@@ -18,12 +18,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.blob;
 
+import static org.junit.Assert.assertTrue;
+
 import java.util.Date;
 import java.util.Map;
 import java.util.Set;
-
 import javax.management.openmbean.TabularData;
-
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.jmx.CheckpointMBean;
@@ -33,12 +33,11 @@ import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.junit.Assert.assertTrue;
-
 /**
  * Adds BlobGC tests related to retrieving oldest checkpoint reference
  */
 public class BlobGCCheckpointRefTest extends BlobGCTest {
+
     protected CheckpointMBean checkpointMBean;
 
     @Override
@@ -64,7 +63,8 @@ public class BlobGCCheckpointRefTest extends BlobGCTest {
 
         log.info("{} blobs remaining : {}", present.size(), present);
 
-        Set<String> existingAfterGC = executeGarbageCollection(cluster, cluster.getCollector(maxGcAge), false);
+        Set<String> existingAfterGC = executeGarbageCollection(cluster,
+            cluster.getCollector(maxGcAge), false);
         assertTrue(Sets.symmetricDifference(present, existingAfterGC).isEmpty());
     }
 
@@ -78,8 +78,10 @@ public class BlobGCCheckpointRefTest extends BlobGCTest {
         checkpointMBean.createCheckpoint(100);
         long maxGcAge = checkpointMBean.getOldestCheckpointCreationTimestamp() - afterSetupTime;
 
-        Set<String> existingAfterGC = executeGarbageCollection(cluster, cluster.getCollector(maxGcAge), false);
-        assertTrue(Sets.symmetricDifference(cluster.blobStoreState.blobsPresent, existingAfterGC).isEmpty());
+        Set<String> existingAfterGC = executeGarbageCollection(cluster,
+            cluster.getCollector(maxGcAge), false);
+        assertTrue(Sets.symmetricDifference(cluster.blobStoreState.blobsPresent, existingAfterGC)
+                       .isEmpty());
     }
 
     @Test
@@ -93,20 +95,25 @@ public class BlobGCCheckpointRefTest extends BlobGCTest {
         Set<String> afterCheckpointBlobs = createBlobs(cluster.blobStore, 2, 100);
         cluster.blobStoreState.blobsPresent.addAll(afterCheckpointBlobs);
 
-        log.info("{} blobs added : {}", cluster.blobStoreState.blobsAdded.size(), cluster.blobStoreState.blobsAdded);
-        log.info("{} blobs remaining : {}", cluster.blobStoreState.blobsPresent.size(), cluster.blobStoreState.blobsPresent);
+        log.info("{} blobs added : {}", cluster.blobStoreState.blobsAdded.size(),
+            cluster.blobStoreState.blobsAdded);
+        log.info("{} blobs remaining : {}", cluster.blobStoreState.blobsPresent.size(),
+            cluster.blobStoreState.blobsPresent);
 
         long maxGcAge = checkpointMBean.getOldestCheckpointCreationTimestamp() - afterSetupTime;
         log.info("Max age configured {}", maxGcAge);
 
-        Set<String> existingAfterGC = executeGarbageCollection(cluster, cluster.getCollector(maxGcAge), false);
-        assertTrue(Sets.symmetricDifference(cluster.blobStoreState.blobsPresent, existingAfterGC).isEmpty());
+        Set<String> existingAfterGC = executeGarbageCollection(cluster,
+            cluster.getCollector(maxGcAge), false);
+        assertTrue(Sets.symmetricDifference(cluster.blobStoreState.blobsPresent, existingAfterGC)
+                       .isEmpty());
     }
 
     /**
      * CheckpointMBean implementation for MemoryNodeStore
      */
     static class MemoryStoreCheckpointMBean implements CheckpointMBean {
+
         private static final String CREATION_DATE = "creationDate";
         private final Clock clock;
         private final NodeStore nodeStore;
@@ -116,11 +123,13 @@ public class BlobGCCheckpointRefTest extends BlobGCTest {
             this.clock = clock;
         }
 
-        @Override public TabularData listCheckpoints() {
+        @Override
+        public TabularData listCheckpoints() {
             throw new UnsupportedOperationException("Operation not supported");
         }
 
-        @Override public long getOldestCheckpointCreationTimestamp() {
+        @Override
+        public long getOldestCheckpointCreationTimestamp() {
             Iterable<String> checkpoints = nodeStore.checkpoints();
             long minCreationDate = Long.MAX_VALUE;
             for (String checkpoint : checkpoints) {
@@ -139,11 +148,13 @@ public class BlobGCCheckpointRefTest extends BlobGCTest {
             return minCreationDate;
         }
 
-        @Override public Date getOldestCheckpointCreationDate() {
+        @Override
+        public Date getOldestCheckpointCreationDate() {
             return new Date(getOldestCheckpointCreationTimestamp());
         }
 
-        @Override public String createCheckpoint(long lifetime) {
+        @Override
+        public String createCheckpoint(long lifetime) {
             Map<String, String> props = Maps.newHashMap();
             props.put(CREATION_DATE, String.valueOf(clock.getTime()));
             String checkpoint = nodeStore.checkpoint(lifetime, props);
@@ -151,7 +162,8 @@ public class BlobGCCheckpointRefTest extends BlobGCTest {
             return checkpoint;
         }
 
-        @Override public boolean releaseCheckpoint(String id) {
+        @Override
+        public boolean releaseCheckpoint(String id) {
             return nodeStore.release(id);
         }
     }

@@ -18,14 +18,12 @@
 package org.apache.jackrabbit.oak.segment;
 
 import java.util.Iterator;
-
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
-
 import org.jetbrains.annotations.NotNull;
 
 /**
- * An immutable record table. It is initialized at construction time and can
- * never be changed afterwards.
+ * An immutable record table. It is initialized at construction time and can never be changed
+ * afterwards.
  * <p>
  * This implementation is trivially thread-safe.
  */
@@ -41,8 +39,8 @@ class ImmutableRecordNumbers implements RecordNumbers {
      * <em>Note:</em> for performance reasons these arrays are directly referenced
      * by this class and must not anymore be modified from other places.
      *
-     * @param offsets  Offsets per position. -1 if not mapped.
-     * @param type     Types per position. Not defined if not mapped.
+     * @param offsets Offsets per position. -1 if not mapped.
+     * @param type    Types per position. Not defined if not mapped.
      */
     public ImmutableRecordNumbers(int @NotNull [] offsets, byte @NotNull [] type) {
         this.offsets = offsets;
@@ -64,9 +62,11 @@ class ImmutableRecordNumbers implements RecordNumbers {
     public Iterator<Entry> iterator() {
         return new AbstractIterator<Entry>() {
             private int pos = -1;
+
             @Override
             protected Entry computeNext() {
-                while (++pos < offsets.length && offsets[pos] < 0) { }
+                while (++pos < offsets.length && offsets[pos] < 0) {
+                }
                 if (pos < offsets.length) {
                     return new Entry() {
                         @Override

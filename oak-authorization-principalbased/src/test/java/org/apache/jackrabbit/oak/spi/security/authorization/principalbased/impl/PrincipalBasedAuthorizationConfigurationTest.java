@@ -72,22 +72,26 @@ public class PrincipalBasedAuthorizationConfigurationTest extends AbstractPrinci
 
     @Test
     public void testEmptyConstructor() {
-        assertEquals(ConfigurationParameters.EMPTY, new PrincipalBasedAuthorizationConfiguration().getParameters());
+        assertEquals(ConfigurationParameters.EMPTY,
+            new PrincipalBasedAuthorizationConfiguration().getParameters());
     }
 
     @Test
     public void testGetName() {
-        assertEquals(AuthorizationConfiguration.NAME, new PrincipalBasedAuthorizationConfiguration().getName());
+        assertEquals(AuthorizationConfiguration.NAME,
+            new PrincipalBasedAuthorizationConfiguration().getName());
     }
 
     @Test
     public void testGetCommitHooks() {
-        assertTrue(new PrincipalBasedAuthorizationConfiguration().getCommitHooks("wspName").isEmpty());
+        assertTrue(
+            new PrincipalBasedAuthorizationConfiguration().getCommitHooks("wspName").isEmpty());
     }
 
     @Test
     public void testGetValidators() {
-        List<? extends ValidatorProvider> l = new PrincipalBasedAuthorizationConfiguration().getValidators("wspName", ImmutableSet.of(), new MoveTracker());
+        List<? extends ValidatorProvider> l = new PrincipalBasedAuthorizationConfiguration().getValidators(
+            "wspName", ImmutableSet.of(), new MoveTracker());
         assertEquals(1, l.size());
         assertTrue(l.get(0) instanceof PrincipalPolicyValidatorProvider);
     }
@@ -107,8 +111,10 @@ public class PrincipalBasedAuthorizationConfigurationTest extends AbstractPrinci
 
     @Test
     public void testInitialized() throws Exception {
-        NodeTypeManager nodeTypeManager = ReadOnlyNodeTypeManager.getInstance(root, NamePathMapper.DEFAULT);
-        for (String ntName : new String[] {NT_REP_PRINCIPAL_POLICY, NT_REP_PRINCIPAL_ENTRY, NT_REP_RESTRICTIONS}) {
+        NodeTypeManager nodeTypeManager = ReadOnlyNodeTypeManager.getInstance(root,
+            NamePathMapper.DEFAULT);
+        for (String ntName : new String[]{NT_REP_PRINCIPAL_POLICY, NT_REP_PRINCIPAL_ENTRY,
+            NT_REP_RESTRICTIONS}) {
             assertTrue(nodeTypeManager.hasNodeType(ntName));
         }
     }
@@ -116,9 +122,10 @@ public class PrincipalBasedAuthorizationConfigurationTest extends AbstractPrinci
     @Test
     public void testGetRepositoryInitializerInitialized() {
         Root r = getRootProvider().createReadOnlyRoot(root);
-        CompositeConfiguration<AuthorizationConfiguration> cc = (CompositeConfiguration) getSecurityProvider().getConfiguration(AuthorizationConfiguration.class);
+        CompositeConfiguration<AuthorizationConfiguration> cc = (CompositeConfiguration) getSecurityProvider().getConfiguration(
+            AuthorizationConfiguration.class);
         PrincipalBasedAuthorizationConfiguration pbac = null;
-        for (AuthorizationConfiguration ac : cc.getConfigurations())  {
+        for (AuthorizationConfiguration ac : cc.getConfigurations()) {
             if (ac instanceof PrincipalBasedAuthorizationConfiguration) {
                 pbac = (PrincipalBasedAuthorizationConfiguration) ac;
                 break;
@@ -132,19 +139,23 @@ public class PrincipalBasedAuthorizationConfigurationTest extends AbstractPrinci
 
     @Test
     public void testGetContext() {
-        assertSame(ContextImpl.INSTANCE, new PrincipalBasedAuthorizationConfiguration().getContext());
+        assertSame(ContextImpl.INSTANCE,
+            new PrincipalBasedAuthorizationConfiguration().getContext());
     }
 
     @Test
     public void testGetPermissionProviderUnsupportedPrincipals() throws Exception {
-        FilterProvider fp = when(mock(FilterProvider.class).getFilter(any(SecurityProvider.class), any(Root.class), any(NamePathMapper.class))).thenReturn(mock(Filter.class)).getMock();
+        FilterProvider fp = when(
+            mock(FilterProvider.class).getFilter(any(SecurityProvider.class), any(Root.class),
+                any(NamePathMapper.class))).thenReturn(mock(Filter.class)).getMock();
 
         PrincipalBasedAuthorizationConfiguration pbac = new PrincipalBasedAuthorizationConfiguration();
         pbac.bindFilterProvider(fp);
         pbac.setSecurityProvider(securityProvider);
         pbac.setRootProvider(getRootProvider());
 
-        Set<Principal> principals = ImmutableSet.of(EveryonePrincipal.getInstance(), getTestUser().getPrincipal());
+        Set<Principal> principals = ImmutableSet.of(EveryonePrincipal.getInstance(),
+            getTestUser().getPrincipal());
         PermissionProvider pp = pbac.getPermissionProvider(root, "wspName", principals);
         assertSame(EmptyPermissionProvider.getInstance(), pp);
 
@@ -158,7 +169,9 @@ public class PrincipalBasedAuthorizationConfigurationTest extends AbstractPrinci
         Filter filter = mock(Filter.class);
         when(filter.canHandle(any(Set.class))).thenReturn(Boolean.TRUE);
         when(filter.getOakPath(any(Principal.class))).thenReturn("/some/path");
-        FilterProvider fp = when(mock(FilterProvider.class).getFilter(any(SecurityProvider.class), any(Root.class), any(NamePathMapper.class))).thenReturn(filter).getMock();
+        FilterProvider fp = when(
+            mock(FilterProvider.class).getFilter(any(SecurityProvider.class), any(Root.class),
+                any(NamePathMapper.class))).thenReturn(filter).getMock();
 
         PrincipalBasedAuthorizationConfiguration pbac = new PrincipalBasedAuthorizationConfiguration();
         pbac.bindFilterProvider(fp);
@@ -200,7 +213,7 @@ public class PrincipalBasedAuthorizationConfigurationTest extends AbstractPrinci
         pbac.setParameters(getSecurityProvider().getParameters(AuthorizationConfiguration.NAME));
         RestrictionProvider rp = pbac.getRestrictionProvider();
 
-        assert(rp instanceof RestrictionProviderImpl);
+        assert (rp instanceof RestrictionProviderImpl);
     }
 
     @Test
@@ -208,7 +221,8 @@ public class PrincipalBasedAuthorizationConfigurationTest extends AbstractPrinci
         PrincipalBasedAuthorizationConfiguration pbac = getPrincipalBasedAuthorizationConfiguration();
 
         BundleContext ctx = mock(BundleContext.class);
-        PrincipalBasedAuthorizationConfiguration.Configuration config = mock(PrincipalBasedAuthorizationConfiguration.Configuration.class);
+        PrincipalBasedAuthorizationConfiguration.Configuration config = mock(
+            PrincipalBasedAuthorizationConfiguration.Configuration.class);
         when(config.configurationRanking()).thenReturn(50);
         when(config.enableAggregationFilter()).thenReturn(true);
         pbac.activate(ctx, config);
@@ -217,7 +231,8 @@ public class PrincipalBasedAuthorizationConfigurationTest extends AbstractPrinci
         assertEquals(50, params.get(PARAM_RANKING));
         assertEquals(Boolean.TRUE, params.get(PARAM_ENABLE_AGGREGATION_FILTER));
 
-        verify(ctx, times(1)).registerService(anyString(), any(AggregationFilter.class), any(Hashtable.class));
+        verify(ctx, times(1)).registerService(anyString(), any(AggregationFilter.class),
+            any(Hashtable.class));
     }
 
     @Test
@@ -225,8 +240,11 @@ public class PrincipalBasedAuthorizationConfigurationTest extends AbstractPrinci
         PrincipalBasedAuthorizationConfiguration pbac = getPrincipalBasedAuthorizationConfiguration();
 
         ServiceRegistration registrationMock = mock(ServiceRegistration.class);
-        BundleContext ctx = when(mock(BundleContext.class).registerService(anyString(), any(AggregationFilter.class), any(Hashtable.class))).thenReturn(registrationMock).getMock();
-        PrincipalBasedAuthorizationConfiguration.Configuration config = mock(PrincipalBasedAuthorizationConfiguration.Configuration.class);
+        BundleContext ctx = when(
+            mock(BundleContext.class).registerService(anyString(), any(AggregationFilter.class),
+                any(Hashtable.class))).thenReturn(registrationMock).getMock();
+        PrincipalBasedAuthorizationConfiguration.Configuration config = mock(
+            PrincipalBasedAuthorizationConfiguration.Configuration.class);
         when(config.configurationRanking()).thenReturn(50);
         when(config.enableAggregationFilter()).thenReturn(true);
         pbac.activate(ctx, config);
@@ -239,7 +257,8 @@ public class PrincipalBasedAuthorizationConfigurationTest extends AbstractPrinci
         assertEquals(85, params.get(PARAM_RANKING));
         assertEquals(Boolean.TRUE, params.get(PARAM_ENABLE_AGGREGATION_FILTER));
 
-        verify(ctx, times(1)).registerService(anyString(), any(AggregationFilter.class), any(Hashtable.class));
+        verify(ctx, times(1)).registerService(anyString(), any(AggregationFilter.class),
+            any(Hashtable.class));
     }
 
     @Test
@@ -247,8 +266,11 @@ public class PrincipalBasedAuthorizationConfigurationTest extends AbstractPrinci
         PrincipalBasedAuthorizationConfiguration pbac = getPrincipalBasedAuthorizationConfiguration();
 
         ServiceRegistration registrationMock = mock(ServiceRegistration.class);
-        BundleContext ctx = when(mock(BundleContext.class).registerService(anyString(), any(AggregationFilter.class), any(Hashtable.class))).thenReturn(registrationMock).getMock();
-        PrincipalBasedAuthorizationConfiguration.Configuration config = mock(PrincipalBasedAuthorizationConfiguration.Configuration.class);
+        BundleContext ctx = when(
+            mock(BundleContext.class).registerService(anyString(), any(AggregationFilter.class),
+                any(Hashtable.class))).thenReturn(registrationMock).getMock();
+        PrincipalBasedAuthorizationConfiguration.Configuration config = mock(
+            PrincipalBasedAuthorizationConfiguration.Configuration.class);
         when(config.configurationRanking()).thenReturn(50);
         when(config.enableAggregationFilter()).thenReturn(true);
         pbac.activate(ctx, config);
@@ -269,8 +291,11 @@ public class PrincipalBasedAuthorizationConfigurationTest extends AbstractPrinci
         PrincipalBasedAuthorizationConfiguration pbac = getPrincipalBasedAuthorizationConfiguration();
 
         ServiceRegistration registrationMock = mock(ServiceRegistration.class);
-        BundleContext ctx = when(mock(BundleContext.class).registerService(anyString(), any(AggregationFilter.class), any(Hashtable.class))).thenReturn(registrationMock).getMock();
-        PrincipalBasedAuthorizationConfiguration.Configuration config = mock(PrincipalBasedAuthorizationConfiguration.Configuration.class);
+        BundleContext ctx = when(
+            mock(BundleContext.class).registerService(anyString(), any(AggregationFilter.class),
+                any(Hashtable.class))).thenReturn(registrationMock).getMock();
+        PrincipalBasedAuthorizationConfiguration.Configuration config = mock(
+            PrincipalBasedAuthorizationConfiguration.Configuration.class);
         when(config.configurationRanking()).thenReturn(50);
         when(config.enableAggregationFilter()).thenReturn(true);
         pbac.activate(ctx, config);
@@ -281,7 +306,8 @@ public class PrincipalBasedAuthorizationConfigurationTest extends AbstractPrinci
 
     @Test
     public void testBindUnbindFilterProvider() throws Exception {
-        Field fp = PrincipalBasedAuthorizationConfiguration.class.getDeclaredField("filterProvider");
+        Field fp = PrincipalBasedAuthorizationConfiguration.class.getDeclaredField(
+            "filterProvider");
         fp.setAccessible(true);
 
         PrincipalBasedAuthorizationConfiguration pbac = new PrincipalBasedAuthorizationConfiguration();
@@ -295,7 +321,8 @@ public class PrincipalBasedAuthorizationConfigurationTest extends AbstractPrinci
 
     @Test
     public void testBindUnbindMountInfoProvider() throws Exception {
-        Field f = PrincipalBasedAuthorizationConfiguration.class.getDeclaredField("mountInfoProvider");
+        Field f = PrincipalBasedAuthorizationConfiguration.class.getDeclaredField(
+            "mountInfoProvider");
         f.setAccessible(true);
 
         PrincipalBasedAuthorizationConfiguration pbac = new PrincipalBasedAuthorizationConfiguration();

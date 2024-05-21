@@ -66,9 +66,9 @@ public class Sweep2Test {
     public void testSweep2UnecessaryPre18Direct() throws Exception {
         MemoryDocumentStore store = new MemoryDocumentStore();
         DocumentNodeStore ns = builderProvider.newBuilder()
-                .setAsyncDelay(0)
-                .setClusterId(1)
-                .setDocumentStore(store).build();
+                                              .setAsyncDelay(0)
+                                              .setClusterId(1)
+                                              .setDocumentStore(store).build();
         assertFalse(isSweep2Necessary(ns));
         NodeBuilder builder = ns.getRoot().builder();
         builder.child("n");
@@ -85,9 +85,9 @@ public class Sweep2Test {
     public void testSweep2UnnecessaryPre18IndirectNoBcs() throws Exception {
         MemoryDocumentStore store = new MemoryDocumentStore();
         DocumentNodeStore ns = builderProvider.newBuilder()
-                .setAsyncDelay(0)
-                .setClusterId(1)
-                .setDocumentStore(store).build();
+                                              .setAsyncDelay(0)
+                                              .setClusterId(1)
+                                              .setDocumentStore(store).build();
         assertFalse(isSweep2Necessary(ns));
         NodeBuilder builder = ns.getRoot().builder();
         builder.child("n");
@@ -101,15 +101,16 @@ public class Sweep2Test {
     /**
      * Another test for case 3 : a pre-1.8 repo was previously upgraded to 1.8, now comes OAK-9176
      * (This time with branch commits that are fine)
+     *
      * @throws Exception
      */
     @Test
     public void testSweep2NecessaryPre18IndirectWithBcs() throws Exception {
         MemoryDocumentStore store = new MemoryDocumentStore();
         DocumentNodeStore ns = builderProvider.newBuilder()
-                .setAsyncDelay(0)
-                .setClusterId(1)
-                .setDocumentStore(store).build();
+                                              .setAsyncDelay(0)
+                                              .setClusterId(1)
+                                              .setDocumentStore(store).build();
         assertFalse(isSweep2Necessary(ns));
         NodeBuilder builder = ns.getRoot().builder();
         builder.child("a").child("b").child("c");
@@ -125,16 +126,17 @@ public class Sweep2Test {
     public void testSweep2() throws Exception {
         MemoryDocumentStore store = new MemoryDocumentStore();
         DocumentNodeStore ns = builderProvider.newBuilder()
-                .setAsyncDelay(0)
-                .setClusterId(1)
-                .setDocumentStore(store).build();
+                                              .setAsyncDelay(0)
+                                              .setClusterId(1)
+                                              .setDocumentStore(store).build();
         assertFalse(isSweep2Necessary(ns));
         NodeBuilder builder = ns.getRoot().builder();
         builder.child("a").child("b").child("c");
         persistToBranch(builder);
         merge(ns, builder);
 
-        DocumentNodeStore ns2 = Sweep2TestHelper.applyPre18Aging(store, withAsyncDelay(builderProvider, 0), 2);
+        DocumentNodeStore ns2 = Sweep2TestHelper.applyPre18Aging(store,
+            withAsyncDelay(builderProvider, 0), 2);
         Sweep2TestHelper.removeSweep2Status(store);
 
         builder = ns.getRoot().builder();
@@ -152,13 +154,14 @@ public class Sweep2Test {
         MemoryDocumentStore store = new MemoryDocumentStore();
         FailingDocumentStore fStore = new FailingDocumentStore(store, 42);
         DocumentNodeStore ns = builderProvider.newBuilder()
-                .setAsyncDelay(0)
-                .setClusterId(1)
-                .setDocumentStore(fStore).build();
+                                              .setAsyncDelay(0)
+                                              .setClusterId(1)
+                                              .setDocumentStore(fStore).build();
         assertFalse(isSweep2Necessary(ns));
 
         DocumentNodeStoreSweepIT.createUncommittedChanges(ns, fStore);
-        DocumentNodeStore ns2 = Sweep2TestHelper.applyPre18Aging(fStore, withAsyncDelay(builderProvider, 0), 2);
+        DocumentNodeStore ns2 = Sweep2TestHelper.applyPre18Aging(fStore,
+            withAsyncDelay(builderProvider, 0), 2);
         Sweep2TestHelper.removeSweep2Status(fStore);
 
         // node-1 is not committed
@@ -174,16 +177,17 @@ public class Sweep2Test {
         MemoryDocumentStore store = new MemoryDocumentStore();
         FailingDocumentStore fStore = new FailingDocumentStore(store, 42);
         DocumentNodeStore ns = builderProvider.newBuilder()
-                .setAsyncDelay(0)
-                .setClusterId(1)
-                .setDocumentStore(fStore).build();
+                                              .setAsyncDelay(0)
+                                              .setClusterId(1)
+                                              .setDocumentStore(fStore).build();
         assertFalse(isSweep2Necessary(ns));
         NodeBuilder builder = ns.getRoot().builder();
         builder.child("a").child("b").child("c");
         persistToBranch(builder);
         merge(ns, builder);
         assertEquals(0, Sweep2TestHelper.scanForMissingBranchCommits(ns).size());
-        DocumentNodeStore ns2 = Sweep2TestHelper.applyPre18Aging(fStore, withAsyncDelay(builderProvider, 0), 2);
+        DocumentNodeStore ns2 = Sweep2TestHelper.applyPre18Aging(fStore,
+            withAsyncDelay(builderProvider, 0), 2);
         assertEquals(4, Sweep2TestHelper.scanForMissingBranchCommits(ns).size());
         Sweep2TestHelper.removeSweep2Status(fStore);
 
@@ -204,30 +208,35 @@ public class Sweep2Test {
     /**
      * Another test for case 3 : a pre-1.8 repo was previously upgraded to 1.8, now comes OAK-9176
      * (This time with branch commits that are fine)
+     *
      * @throws Exception
      */
     @Test
     public void testSweep2NecessaryPre18IndirectWithBcsAndSplitDocs() throws Exception {
         MemoryDocumentStore store = new MemoryDocumentStore();
         DocumentNodeStore ns = builderProvider.newBuilder()
-                .setAsyncDelay(0)
-                .setClusterId(1)
-                .setDocumentStore(store).build();
+                                              .setAsyncDelay(0)
+                                              .setClusterId(1)
+                                              .setDocumentStore(store).build();
         assertFalse(isSweep2Necessary(ns));
         NodeBuilder builder = ns.getRoot().builder();
         builder.child("a").child("b").child("c");
         persistToBranch(builder);
         merge(ns, builder);
         String data = new String(new byte[16 * 1024]);
-        for(int i = 0; i < 50; i++) {
+        for (int i = 0; i < 50; i++) {
             builder = ns.getRoot().builder();
             builder.setProperty("p-" + i, data);
             merge(ns, builder);
         }
-        assertEquals(4, store.query(Collection.NODES, NodeDocument.MIN_ID_VALUE, NodeDocument.MAX_ID_VALUE, Integer.MAX_VALUE).size());
+        assertEquals(4,
+            store.query(Collection.NODES, NodeDocument.MIN_ID_VALUE, NodeDocument.MAX_ID_VALUE,
+                Integer.MAX_VALUE).size());
         ns.runBackgroundUpdateOperations();
         // make sure we have a split doc
-        assertEquals(5, store.query(Collection.NODES, NodeDocument.MIN_ID_VALUE, NodeDocument.MAX_ID_VALUE, Integer.MAX_VALUE).size());
+        assertEquals(5,
+            store.query(Collection.NODES, NodeDocument.MIN_ID_VALUE, NodeDocument.MAX_ID_VALUE,
+                Integer.MAX_VALUE).size());
         assertFalse(isSweep2Necessary(ns));
         DocumentNodeStore ns2 = Sweep2TestHelper.applyPre18Aging(store, builderProvider, 2);
         Sweep2TestHelper.removeSweep2Status(store);
@@ -238,9 +247,9 @@ public class Sweep2Test {
     public void testSweep2Lock() throws Exception {
         MemoryDocumentStore store = new MemoryDocumentStore();
         DocumentNodeStore ns = builderProvider.newBuilder()
-                .setAsyncDelay(0)
-                .setClusterId(1)
-                .setDocumentStore(store).build();
+                                              .setAsyncDelay(0)
+                                              .setClusterId(1)
+                                              .setDocumentStore(store).build();
         NodeBuilder builder = ns.getRoot().builder();
         builder.child("n");
         merge(ns, builder);
@@ -268,7 +277,8 @@ public class Sweep2Test {
         store = new MemoryDocumentStore();
         assertEquals(1, Sweep2StatusDocument.acquireOrUpdateSweep2Lock(store, 1, false));
         assertSweep2Status(store, true, false, false, null);
-        assertEquals(2, Sweep2StatusDocument.acquireOrUpdateSweep2Lock(store, 2 /*1 crashed*/, false));
+        assertEquals(2,
+            Sweep2StatusDocument.acquireOrUpdateSweep2Lock(store, 2 /*1 crashed*/, false));
         assertSweep2Status(store, true, false, false, null);
         assertTrue(Sweep2StatusDocument.forceReleaseSweep2LockAndMarkSwept(store, 2));
         assertSweep2Status(store, false, false, true, 2);
@@ -279,7 +289,8 @@ public class Sweep2Test {
         assertSweep2Status(store, true, false, false, null);
         assertEquals(2, Sweep2StatusDocument.acquireOrUpdateSweep2Lock(store, 1, true));
         assertSweep2Status(store, false, true, false, null);
-        assertEquals(3, Sweep2StatusDocument.acquireOrUpdateSweep2Lock(store, 2 /*1 crashed*/, false));
+        assertEquals(3,
+            Sweep2StatusDocument.acquireOrUpdateSweep2Lock(store, 2 /*1 crashed*/, false));
         assertSweep2Status(store, false, true, false, null);
         assertTrue(Sweep2StatusDocument.forceReleaseSweep2LockAndMarkSwept(store, 2));
         assertSweep2Status(store, false, false, true, 2);
@@ -318,27 +329,30 @@ public class Sweep2Test {
     }
 
     private void assertSweep2Status(MemoryDocumentStore store,
-            boolean checking, boolean sweeping, boolean swept, Integer sweptById) {
+        boolean checking, boolean sweeping, boolean swept, Integer sweptById) {
         Sweep2StatusDocument status = Sweep2StatusDocument.readFrom(store);
-        assertEquals("checking status mismatch, expected " + checking, checking, status.isChecking());
-        assertEquals("sweeping status mismatch, expected " + sweeping, sweeping, status.isSweeping());
+        assertEquals("checking status mismatch, expected " + checking, checking,
+            status.isChecking());
+        assertEquals("sweeping status mismatch, expected " + sweeping, sweeping,
+            status.isSweeping());
         assertEquals("swept status mismatch, expected " + swept, swept, status.isSwept());
-        assertEquals("swept by clusterId mismatch, expected " + sweptById, sweptById, status.getSweptById());
+        assertEquals("swept by clusterId mismatch, expected " + sweptById, sweptById,
+            status.getSweptById());
     }
 
     @Test
     public void largeBranchCommitsWidthTest() throws Exception {
         MemoryDocumentStore store = new MemoryDocumentStore();
         DocumentNodeStore ns = builderProvider.newBuilder()
-                .setAsyncDelay(0)
-                .setClusterId(1)
-                .setDocumentStore(store).build();
+                                              .setAsyncDelay(0)
+                                              .setClusterId(1)
+                                              .setDocumentStore(store).build();
 
         NodeBuilder builder = ns.getRoot().builder();
         builder.child("a");
         merge(ns, builder);
 
-        for(int i = 0; i < 1000; i ++) {
+        for (int i = 0; i < 1000; i++) {
             if (i % 100 == 0) {
                 System.out.println("AT i = " + i);
             }
@@ -352,19 +366,25 @@ public class Sweep2Test {
     }
 
     @SuppressWarnings("unchecked")
-    private Cache<Revision, String> forceGetCommitValueResolverCache(DocumentNodeStore ns) throws NoSuchFieldException {
-        final CachingCommitValueResolver commitValueResolver = (CachingCommitValueResolver) PrivateAccessor.getField(ns, "commitValueResolver");
-        assertNotNull("could not get the commitValueResolver from DocumentNodeStore", commitValueResolver);
-        final Cache<Revision, String> commitValueCache = (Cache<Revision, String>) PrivateAccessor.getField(commitValueResolver, "commitValueCache");
-        assertNotNull("could not get the commitValueCache from CachingCommitValueResolver", commitValueCache);
+    private Cache<Revision, String> forceGetCommitValueResolverCache(DocumentNodeStore ns)
+        throws NoSuchFieldException {
+        final CachingCommitValueResolver commitValueResolver = (CachingCommitValueResolver) PrivateAccessor.getField(
+            ns, "commitValueResolver");
+        assertNotNull("could not get the commitValueResolver from DocumentNodeStore",
+            commitValueResolver);
+        final Cache<Revision, String> commitValueCache = (Cache<Revision, String>) PrivateAccessor.getField(
+            commitValueResolver, "commitValueCache");
+        assertNotNull("could not get the commitValueCache from CachingCommitValueResolver",
+            commitValueCache);
         return commitValueCache;
     }
 
     /**
-     * This method checks that sweep2 doesn't block the shutdown/dispose().
-     * - phase A : In order to do so, it first has to make sure there's some data for sweep2 to process.
-     * - phase B : Then bring that sweep2 into the right position by using semaphores and such
-     * - phase C : trigger the dispose - which initially should be blocked by above semaphore
+     * This method checks that sweep2 doesn't block the shutdown/dispose(). - phase A : In order to
+     * do so, it first has to make sure there's some data for sweep2 to process. - phase B : Then
+     * bring that sweep2 into the right position by using semaphores and such - phase C : trigger
+     * the dispose - which initially should be blocked by above semaphore
+     *
      * @throws Exception
      */
     @Test
@@ -372,19 +392,21 @@ public class Sweep2Test {
         // phase A : make sure there's some data for sweep2 to process
         MemoryDocumentStore store = new MemoryDocumentStore();
         DocumentNodeStore ns = builderProvider.newBuilder()
-                .setClusterId(1)
-                .setAsyncDelay(0) // dont run the bg operations
-                .setDocumentStore(store).build();
+                                              .setClusterId(1)
+                                              .setAsyncDelay(0) // dont run the bg operations
+                                              .setDocumentStore(store).build();
         NodeBuilder builder = ns.getRoot().builder();
         builder.child("a1").child("b").child("c").setProperty("p", "v");
         persistToBranch(builder);
         merge(ns, builder);
         ns.dispose();
         // aging, and keep instance 2 running thereafter - it holds a fake sweep2 lock
-        DocumentNodeStore ns2 = Sweep2TestHelper.applyPre18Aging(store, withAsyncDelay(builderProvider, 0), 2);
+        DocumentNodeStore ns2 = Sweep2TestHelper.applyPre18Aging(store,
+            withAsyncDelay(builderProvider, 0), 2);
         // add clusterId 1 to the _sweepRev to make sure it gets included in any subsequent sweep2
         UpdateOp addSweepRev1 = new UpdateOp(Utils.getIdFromPath("/"), false);
-        addSweepRev1.setMapEntry("_sweepRev", new Revision(0, 0, 1), new Revision(0, 0, 1).toString());
+        addSweepRev1.setMapEntry("_sweepRev", new Revision(0, 0, 1),
+            new Revision(0, 0, 1).toString());
         assertNotNull(store.findAndUpdate(Collection.NODES, addSweepRev1));
         Sweep2TestHelper.removeSweep2Status(store, false);
         assertTrue(Sweep2StatusDocument.acquireOrUpdateSweep2Lock(store, 2, true) > 0);
@@ -393,9 +415,9 @@ public class Sweep2Test {
         // phase B : bring a sweep2 (on instance 3) right before it would be doing its business
         // start up an instance normally, which should trigger a sweep2
         DocumentNodeStore ns3 = builderProvider.newBuilder()
-                .setAsyncDelay(1 /*0 would disable sweep2*/)
-                .setClusterId(3)
-                .setDocumentStore(store).build();
+                                               .setAsyncDelay(1 /*0 would disable sweep2*/)
+                                               .setClusterId(3)
+                                               .setDocumentStore(store).build();
         // now clusterId 3's sweep2 bgthread will wait because instance 2 is sweeping
         // it will wait until the sweep2 status is either done or instance 2 crashes
         // let's make sure if instance 3 does do a sweep2 it is paused before it can finish
@@ -412,7 +434,8 @@ public class Sweep2Test {
                     }
                 } catch (InterruptedException e) {
                     fail("interrupted acquiring the pause permit");
-                }            }
+                }
+            }
         });
         final AtomicReference<Throwable> failure = new AtomicReference<>();
         // the blocker thread makes sure the above Observer blocks things
@@ -433,25 +456,27 @@ public class Sweep2Test {
         // which should let instance 3 take notice and continue sweep2
         ns2.dispose();
         // wait until instance 3 has the sweep2 lock
-        waitMax(5000, () -> {return Sweep2StatusDocument.readFrom(store).getLockClusterId() == 3;});
+        waitMax(5000, () -> {
+            return Sweep2StatusDocument.readFrom(store).getLockClusterId() == 3;
+        });
         assertTrue(Sweep2StatusDocument.readFrom(store).isSweeping());
         // the release thread releases the Observer, thus unblocking the commit
         // - the latter unblocks the sweep2 (which is what we wanted to achieve in the first place)
         final Thread releaseThread = new Thread(() -> {
-                // make sure this happens 1sec after ns3.dispose
-                try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException e) {
-                    // lets assume this doesn't happen
-                }
-                // let go of the observer-lock
-                doContinue.release(1000);
-            }, "observer-lock-releaser");
+            // make sure this happens 1sec after ns3.dispose
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                // lets assume this doesn't happen
+            }
+            // let go of the observer-lock
+            doContinue.release(1000);
+        }, "observer-lock-releaser");
         releaseThread.setDaemon(true);
         // dispose 3 -> this is the actual test happening here: does dispose now
         // interrupt sweep2 as expected?
         final Thread disposeThread = new Thread(() -> {
-                ns3.dispose();
+            ns3.dispose();
         }, "disposer");
         disposeThread.setDaemon(true);
         disposeThread.start();
@@ -470,7 +495,7 @@ public class Sweep2Test {
 
     private void waitMax(int maxWaitMillis, Supplier<Boolean> r) throws InterruptedException {
         final long timeout = System.currentTimeMillis() + 5000;
-        while(!r.get()) {
+        while (!r.get()) {
             if (System.currentTimeMillis() > timeout) {
                 fail("instance 3 did not pick up the sweep2 lock within time");
             }
@@ -482,9 +507,9 @@ public class Sweep2Test {
     public void branchCommitLastRevTest() throws Exception {
         MemoryDocumentStore store = new MemoryDocumentStore();
         DocumentNodeStore ns = builderProvider.newBuilder()
-                .setClusterId(1)
-                .setAsyncDelay(0) // dont run the bg operations
-                .setDocumentStore(store).build();
+                                              .setClusterId(1)
+                                              .setAsyncDelay(0) // dont run the bg operations
+                                              .setDocumentStore(store).build();
 
         @NotNull
         NodeBuilder builder = ns.getRoot().builder();
@@ -509,7 +534,7 @@ public class Sweep2Test {
         MemoryDocumentStore orig = store.copy();
 
         ns = Sweep2TestHelper.applyPre18Aging(
-                Sweep2TestHelper.getMemoryDocumentStore(ns), builderProvider, 2);
+            Sweep2TestHelper.getMemoryDocumentStore(ns), builderProvider, 2);
         store = Sweep2TestHelper.getMemoryDocumentStore(ns);
         UpdateOp update = new UpdateOp("1", false);
         update.set("leaseEnd", 0L);
@@ -535,6 +560,7 @@ public class Sweep2Test {
      * <pre>
      * org.apache.jackrabbit.oak.plugins.document.DocumentStoreException: Aborting getChildNodes() - DocumentNodeState is null
      * </pre>
+     *
      * @throws Exception
      */
     @Test
@@ -542,9 +568,9 @@ public class Sweep2Test {
     public void abortingGetChildNodesDocumentNodeStateIsNullTest() throws Exception {
         MemoryDocumentStore store = new MemoryDocumentStore();
         DocumentNodeStore ns = builderProvider.newBuilder()
-                .setAsyncDelay(0)
-                .setClusterId(1)
-                .setDocumentStore(store).build();
+                                              .setAsyncDelay(0)
+                                              .setClusterId(1)
+                                              .setDocumentStore(store).build();
         // step 1 : create some structure where some nodes (parent) do not have a "_bc"
         NodeBuilder builder = ns.getRoot().builder();
         builder.child("base").child("camp");
@@ -561,15 +587,15 @@ public class Sweep2Test {
         NodeDocumentSweeper.SWEEP_ONE_PREDICATE = Utils.PROPERTY_OR_DELETED;
         Sweep2StatusDocument.forceReleaseSweep2LockAndMarkSwept(memStore, 1);
         ns = builderProvider.newBuilder()
-                .setAsyncDelay(0)
-                .setClusterId(1)
-                .setDocumentStore(memStore).build();
+                            .setAsyncDelay(0)
+                            .setClusterId(1)
+                            .setDocumentStore(memStore).build();
         // do another restart to flush the cache - since the above did another sweep..
         ns.dispose();
         ns = builderProvider.newBuilder()
-                .setAsyncDelay(0)
-                .setClusterId(1)
-                .setDocumentStore(memStore).build();
+                            .setAsyncDelay(0)
+                            .setClusterId(1)
+                            .setDocumentStore(memStore).build();
 
         // initialization of the DocumentNodeStore did add a few entries to the
         // caches which we want full control over - so let's clear them all.
@@ -582,10 +608,13 @@ public class Sweep2Test {
         Set<Revision> origRootBcs = origRootDoc.getLocalBranchCommits();
 
         // step 2 : get a DocumentNodeState of such a parent loaded with lastRev on a branch commit
-        DocumentNodeState a = (DocumentNodeState) ns.getRoot().getChildNode("base").getChildNode("camp").getChildNode("a");
+        DocumentNodeState a = (DocumentNodeState) ns.getRoot().getChildNode("base")
+                                                    .getChildNode("camp").getChildNode("a");
         RevisionVector lastRev = a.getLastRevision();
         Revision lastRev1 = lastRev.iterator().next();
-        assertTrue("DocumentNodeState(/base/camp/a) not created with a lastRev matching a branchCommit: " + a, origRootBcs.contains(lastRev1));
+        assertTrue(
+            "DocumentNodeState(/base/camp/a) not created with a lastRev matching a branchCommit: "
+                + a, origRootBcs.contains(lastRev1));
         Cache<Revision, String> commitValueCache = forceGetCommitValueResolverCache(ns);
         String cachedCommitValue = commitValueCache.getIfPresent(lastRev1);
         assertNotNull(cachedCommitValue);
@@ -596,11 +625,14 @@ public class Sweep2Test {
         //            DocumentNodeState.Children children = nodeChildrenCache
         // -> this step should find the child
         // --> this is when CachingCommitValueResolver contains a "c" for a lastRev
-        assertTrue(ns.getRoot().getChildNode("base").getChildNode("camp").getChildNode("a").exists());
-        assertTrue(ns.getRoot().getChildNode("base").getChildNode("camp").getChildNode("a").getChildNode("b").exists());
+        assertTrue(
+            ns.getRoot().getChildNode("base").getChildNode("camp").getChildNode("a").exists());
+        assertTrue(ns.getRoot().getChildNode("base").getChildNode("camp").getChildNode("a")
+                     .getChildNode("b").exists());
         NamePathRev key = new NamePathRev("", Path.fromString("/base/camp/a"), lastRev);
         assertNull(ns.getNodeChildrenCache().getIfPresent(key));
-        ns.getRoot().getChildNode("base").getChildNode("camp").getChildNode("a").getChildNodeEntries().iterator().next();
+        ns.getRoot().getChildNode("base").getChildNode("camp").getChildNode("a")
+          .getChildNodeEntries().iterator().next();
         assertNotNull(ns.getNodeChildrenCache().getIfPresent(key));
 
         // step 3.2 : then the CachingCommitValueResolver's cache has an overflow
@@ -612,24 +644,27 @@ public class Sweep2Test {
         // -> this step should NOT find the child
         // --> this is automatic if the CachingCommitValueResolver's cache is empty
         //     and a fresh lookup is done on a document where the "_bc" is set
-        assertTrue(ns.getRoot().getChildNode("base").getChildNode("camp").getChildNode("a").exists());
-        assertNotNull(ns.getRoot().getChildNode("base").getChildNode("camp").getChildNode("a").getChildNodeEntries().iterator().next());
-        assertTrue(ns.getRoot().getChildNode("base").getChildNode("camp").getChildNode("a").getChildNode("b").exists());
+        assertTrue(
+            ns.getRoot().getChildNode("base").getChildNode("camp").getChildNode("a").exists());
+        assertNotNull(ns.getRoot().getChildNode("base").getChildNode("camp").getChildNode("a")
+                        .getChildNodeEntries().iterator().next());
+        assertTrue(ns.getRoot().getChildNode("base").getChildNode("camp").getChildNode("a")
+                     .getChildNode("b").exists());
     }
 
     /**
-     * This tests a repository which contains a mix of revisions from clusterNodeIds
-     * that have not been swept and some that have - and then sweep2 comes along.
+     * This tests a repository which contains a mix of revisions from clusterNodeIds that have not
+     * been swept and some that have - and then sweep2 comes along.
      */
     @Test
     public void testPartiallySwept() throws Exception {
         MemoryDocumentStore store = new MemoryDocumentStore();
-        for(int clusterId = 1; clusterId <= 5; clusterId++) {
+        for (int clusterId = 1; clusterId <= 5; clusterId++) {
             // create some changes with this specific clusterId
             DocumentNodeStore ns = builderProvider.newBuilder()
-                    .setAsyncDelay(0)
-                    .setClusterId(clusterId)
-                    .setDocumentStore(store).build();
+                                                  .setAsyncDelay(0)
+                                                  .setClusterId(clusterId)
+                                                  .setDocumentStore(store).build();
             NodeBuilder builder = ns.getRoot().builder();
             builder.child("a" + clusterId).child("b" + clusterId).child("c" + clusterId);
             persistToBranch(builder);
@@ -642,16 +677,17 @@ public class Sweep2Test {
         assertFalse(sweep2Done(store));
         Sweep2TestHelper.revertToPre18State(store);
         // then do a sweep1 for some of the clusterIds only
-        for (DocumentNodeStore ns : Sweep2TestHelper.applyPre18Aging(store, builderProvider, 1, 2)) {
+        for (DocumentNodeStore ns : Sweep2TestHelper.applyPre18Aging(store, builderProvider, 1,
+            2)) {
             ns.dispose();
         }
         store.remove(Collection.SETTINGS, Sweep2StatusDocument.SWEEP2_STATUS_ID);
         assertFalse(sweep2Done(store));
         // now start up an instance normally, which should trigger a sweep2
         DocumentNodeStore ns = builderProvider.newBuilder()
-                .setAsyncDelay(1 /*0 would disable sweep2*/)
-                .setClusterId(3)
-                .setDocumentStore(store).build();
+                                              .setAsyncDelay(1 /*0 would disable sweep2*/)
+                                              .setClusterId(3)
+                                              .setDocumentStore(store).build();
         assertTrue(waitForSweep2Done(store, 2000));
         ns.dispose();
         assertTrue(sweep2Done(store));
@@ -677,9 +713,10 @@ public class Sweep2Test {
         return bc != null && !bc.isEmpty();
     }
 
-    private boolean waitForSweep2Done(MemoryDocumentStore store, int maxWaitMillis) throws InterruptedException {
+    private boolean waitForSweep2Done(MemoryDocumentStore store, int maxWaitMillis)
+        throws InterruptedException {
         final long timeout = System.currentTimeMillis() + maxWaitMillis;
-        while(!sweep2Done(store) && System.currentTimeMillis() < timeout) {
+        while (!sweep2Done(store) && System.currentTimeMillis() < timeout) {
             Thread.sleep(10);
         }
         return sweep2Done(store);
@@ -697,15 +734,18 @@ public class Sweep2Test {
         return Sweep2Helper.isSweep2Necessary(ns.getDocumentStore());
     }
 
-    private static long acquireOrUpdateSweep2Lock(DocumentNodeStore ns, boolean forceSweepingStatus) {
-        return Sweep2StatusDocument.acquireOrUpdateSweep2Lock(ns.getDocumentStore(), ns.getClusterId(), forceSweepingStatus);
+    private static long acquireOrUpdateSweep2Lock(DocumentNodeStore ns,
+        boolean forceSweepingStatus) {
+        return Sweep2StatusDocument.acquireOrUpdateSweep2Lock(ns.getDocumentStore(),
+            ns.getClusterId(), forceSweepingStatus);
     }
 
     private static boolean forceReleaseSweep2LockAndMarkSwept(DocumentStore store, int clusterId) {
         return Sweep2StatusDocument.forceReleaseSweep2LockAndMarkSwept(store, clusterId);
     }
 
-    private DocumentMKBuilderProvider withAsyncDelay(DocumentMKBuilderProvider builderProvider, int asyncDelay) {
+    private DocumentMKBuilderProvider withAsyncDelay(DocumentMKBuilderProvider builderProvider,
+        int asyncDelay) {
         return new DocumentMKBuilderProvider() {
             @Override
             public Builder newBuilder() {

@@ -17,12 +17,12 @@
 
 package org.apache.jackrabbit.oak.segment.tool;
 
+import static java.util.Collections.emptySet;
+import static org.apache.commons.io.FileUtils.sizeOfDirectory;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.guava.common.collect.Sets.difference;
 import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
-import static java.util.Collections.emptySet;
-import static org.apache.commons.io.FileUtils.sizeOfDirectory;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.apache.jackrabbit.oak.segment.SegmentCache.DEFAULT_SEGMENT_CACHE_MB;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.defaultGCOptions;
@@ -34,18 +34,17 @@ import java.io.PrintStream;
 import java.util.Date;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.segment.SegmentCache;
-import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.GCType;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.CompactorType;
-import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
-import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileWriter;
+import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.GCType;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.file.JournalReader;
 import org.apache.jackrabbit.oak.segment.file.tar.LocalJournalFile;
+import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
+import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileWriter;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -103,10 +102,9 @@ public class Compact {
         /**
          * Whether to use memory mapped access or file access.
          *
-         * @param mmap {@code true} for memory mapped access, {@code false} for
-         *             file access {@code null} to determine the access mode
-         *             from the system architecture: memory mapped on 64 bit
-         *             systems, file access on  32 bit systems.
+         * @param mmap {@code true} for memory mapped access, {@code false} for file access
+         *             {@code null} to determine the access mode from the system architecture:
+         *             memory mapped on 64 bit systems, file access on  32 bit systems.
          * @return this builder.
          */
         public Builder withMmap(@Nullable Boolean mmap) {
@@ -117,8 +115,7 @@ public class Compact {
         /**
          * Which operating system the code is running on.
          *
-         * @param os The operating system as returned by the "os.name" standard
-         *           system property.
+         * @param os The operating system as returned by the "os.name" standard system property.
          * @return this builder.
          */
         public Builder withOs(String os) {
@@ -127,8 +124,7 @@ public class Compact {
         }
 
         /**
-         * Whether to fail if run on an older version of the store of force
-         * upgrading its format.
+         * Whether to fail if run on an older version of the store of force upgrading its format.
          *
          * @param force upgrade iff {@code true}
          * @return this builder.
@@ -139,14 +135,12 @@ public class Compact {
         }
 
         /**
-         * The size of the segment cache in MB. The default of {@link
-         * SegmentCache#DEFAULT_SEGMENT_CACHE_MB} when this method is not
-         * invoked.
+         * The size of the segment cache in MB. The default of
+         * {@link SegmentCache#DEFAULT_SEGMENT_CACHE_MB} when this method is not invoked.
          *
          * @param segmentCacheSize cache size in MB
          * @return this builder
-         * @throws IllegalArgumentException if {@code segmentCacheSize} is not a
-         *                                  positive integer.
+         * @throws IllegalArgumentException if {@code segmentCacheSize} is not a positive integer.
          */
         public Builder withSegmentCacheSize(int segmentCacheSize) {
             checkArgument(segmentCacheSize > 0, "segmentCacheSize must be strictly positive");
@@ -155,9 +149,9 @@ public class Compact {
         }
 
         /**
-         * The number of nodes after which an update about the compaction
-         * process is logged. Set to a negative number to disable progress
-         * logging. If not specified, it defaults to 150,000 nodes.
+         * The number of nodes after which an update about the compaction process is logged. Set to
+         * a negative number to disable progress logging. If not specified, it defaults to 150,000
+         * nodes.
          *
          * @param gcLogInterval The log interval.
          * @return this builder.
@@ -169,6 +163,7 @@ public class Compact {
 
         /**
          * The garbage collection type used. If not specified it defaults to full compaction
+         *
          * @param gcType the GC type
          * @return this builder
          */
@@ -178,8 +173,9 @@ public class Compact {
         }
 
         /**
-         * The compactor type to be used by compaction. If not specified it defaults to
-         * "parallel" compactor
+         * The compactor type to be used by compaction. If not specified it defaults to "parallel"
+         * compactor
+         *
          * @param compactorType the compactor type
          * @return this builder
          */
@@ -189,7 +185,9 @@ public class Compact {
         }
 
         /**
-         * The number of threads to be used for compaction. This only applies to the "parallel" compactor
+         * The number of threads to be used for compaction. This only applies to the "parallel"
+         * compactor
+         *
          * @param concurrency the number of threads
          * @return this builder
          */
@@ -309,7 +307,8 @@ public class Compact {
     }
 
     public int run() {
-        System.out.printf("Compacting %s with %s and %s compactor type\n", path, fileAccessMode.description, compactorType.description());
+        System.out.printf("Compacting %s with %s and %s compactor type\n", path,
+            fileAccessMode.description, compactorType.description());
         System.out.printf("    before\n");
         Set<File> beforeFiles = listFiles(path);
         printFiles(System.out, beforeFiles);
@@ -338,7 +337,8 @@ public class Compact {
             JournalFile journal = new LocalJournalFile(path, "journal.log");
             String head;
             try (JournalReader journalReader = new JournalReader(journal)) {
-                head = String.format("%s root %s\n", journalReader.next().getRevision(), System.currentTimeMillis());
+                head = String.format("%s root %s\n", journalReader.next().getRevision(),
+                    System.currentTimeMillis());
             }
 
             try (JournalFileWriter journalWriter = journal.openJournalWriter()) {

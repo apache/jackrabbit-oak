@@ -16,10 +16,18 @@
  */
 package org.apache.jackrabbit.oak;
 
+import static org.junit.Assert.assertTrue;
+
 import ch.qos.logback.classic.Level;
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
+import javax.jcr.Node;
+import javax.jcr.Repository;
+import javax.jcr.SimpleCredentials;
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.api.JackrabbitSession;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexPlan;
@@ -37,16 +45,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import javax.jcr.Node;
-import javax.jcr.Repository;
-import javax.jcr.SimpleCredentials;
-import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
-
-import static org.junit.Assert.assertTrue;
-
 public class IndexCostEvaluationTest {
+
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
 
@@ -60,23 +60,23 @@ public class IndexCostEvaluationTest {
     @Before
     public void before() throws Exception {
         custom = LogCustomizer
-                .forLogger(
-                        "org.apache.jackrabbit.oak.query.QueryImpl")
-                .enable(Level.DEBUG).create();
+            .forLogger(
+                "org.apache.jackrabbit.oak.query.QueryImpl")
+            .enable(Level.DEBUG).create();
         custom.starting();
-
 
         TestIndexProvider testProvider = new TestIndexProvider();
         TestIndexProvider2 testProvider2 = new TestIndexProvider2();
         TestIndexProvider3 testProvider3 = new TestIndexProvider3();
 
         Jcr jcr = new Jcr()
-                .with((QueryIndexProvider) testProvider)
-                .with((QueryIndexProvider) testProvider2)
-                .with((QueryIndexProvider) testProvider3);
+            .with((QueryIndexProvider) testProvider)
+            .with((QueryIndexProvider) testProvider2)
+            .with((QueryIndexProvider) testProvider3);
 
         repository = jcr.createRepository();
-        session = (JackrabbitSession) repository.login(new SimpleCredentials("admin", "admin".toCharArray()));
+        session = (JackrabbitSession) repository.login(
+            new SimpleCredentials("admin", "admin".toCharArray()));
         root = session.getRootNode();
     }
 
@@ -97,10 +97,12 @@ public class IndexCostEvaluationTest {
         boolean evaluationContinueLogPresent = false;
         boolean evaluationSkipLogPresent = false;
         for (String log : custom.getLogs()) {
-            if (log.equals("minCost: 2.1 of index :test-index2 > best Cost: 2.0 from index: test-index, but both indexes have same minimum cost - cost evaluation will continue")) {
+            if (log.equals(
+                "minCost: 2.1 of index :test-index2 > best Cost: 2.0 from index: test-index, but both indexes have same minimum cost - cost evaluation will continue")) {
                 evaluationContinueLogPresent = true;
             }
-            if (log.equals("minCost: 2.11 of index :test-index3 < best Cost: 2.0 from index: test-index. Further index evaluation will be skipped")) {
+            if (log.equals(
+                "minCost: 2.11 of index :test-index3 < best Cost: 2.0 from index: test-index. Further index evaluation will be skipped")) {
                 evaluationSkipLogPresent = true;
             }
         }
@@ -109,6 +111,7 @@ public class IndexCostEvaluationTest {
     }
 
     private class TestIndexProvider implements QueryIndexProvider {
+
         TestIndex index = new TestIndex();
 
         @Override
@@ -118,6 +121,7 @@ public class IndexCostEvaluationTest {
     }
 
     private class TestIndexProvider2 extends TestIndexProvider {
+
         public TestIndexProvider2() {
             this.index = new TestIndex() {
                 public String getIndexName() {
@@ -128,6 +132,7 @@ public class IndexCostEvaluationTest {
     }
 
     private class TestIndexProvider3 extends TestIndexProvider {
+
         public TestIndexProvider3() {
             this.index = new TestIndex() {
                 public String getIndexName() {
@@ -169,10 +174,12 @@ public class IndexCostEvaluationTest {
         }
 
         @Override
-        public List<IndexPlan> getPlans(Filter filter, List<OrderEntry> sortOrder, NodeState rootState) {
+        public List<IndexPlan> getPlans(Filter filter, List<OrderEntry> sortOrder,
+            NodeState rootState) {
             IndexPlan.Builder b = new IndexPlan.Builder();
             Filter f = new FilterImpl(null, "SELECT * FROM [nt:file]", new QueryEngineSettings());
-            IndexPlan plan1 = b.setEstimatedEntryCount(10).setPlanName("testIndexPlan1").setFilter(f).build();
+            IndexPlan plan1 = b.setEstimatedEntryCount(10).setPlanName("testIndexPlan1")
+                               .setFilter(f).build();
             List<IndexPlan> indexList = new ArrayList<IndexPlan>();
 
             indexList.add(plan1);

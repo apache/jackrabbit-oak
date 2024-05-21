@@ -26,6 +26,7 @@ validation.
 - [Pre-Authentication without Repository Involvement](#withoutrepository)
 
 <a name="withloginchain"></a>
+
 ### Pre-Authentication combined with Login Module Chain
 
 This first variant allows to support 3rd party login modules that wish to provide
@@ -50,7 +51,8 @@ into the repository.
 The basic steps of the pre-authentication in combination with regular JAAS login
 module chain are outlined as follows:
 
-1. verify the identity in the layer on top of the JCR repository (e.g. in a custom Sling Authentication Handler)
+1. verify the identity in the layer on top of the JCR repository (e.g. in a custom Sling
+   Authentication Handler)
 2. pass a custom, non-public Credentials implementation to the repository login
 3. create a custom login module that only supports these dedicated credentials and
    pushes both a new instance of `PreAuthenticatedLogin` and other information
@@ -100,6 +102,7 @@ marker to the shared state:
     }
 
 <a name="withoutrepository"></a>
+
 ### Pre-Authentication without Repository Involvement
 
 Like in Jackrabbit-core the repository internal authentication verification can
@@ -118,7 +121,8 @@ Since the `LoginContextProvider` is a configurable with the authentication setup
 OAK users also have the following options by providing a custom `LoginContextProvider`:
 
 - Disable pre-authentication by not trying to retrieve a pre-authenticated `Subject`.
-- Add support for extending the pre-authenticated subject by always passing writable subjects to the `JaasLoginContext`
+- Add support for extending the pre-authenticated subject by always passing writable subjects to
+  the `JaasLoginContext`
 - Dropping JAAS altogether by providing a custom implementation of the
   `org.apache.jackrabbit.oak.spi.security.authentication.LoginContext` [2] interface.
 
@@ -148,4 +152,5 @@ Example how to use this type of pre-authentication:
     }
 
 <!-- references -->
+
 [PreAuthenticatedLogin]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/PreAuthenticatedLogin.html

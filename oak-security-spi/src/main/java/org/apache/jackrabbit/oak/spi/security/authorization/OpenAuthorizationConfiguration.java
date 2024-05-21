@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.spi.security.authorization;
 import java.security.Principal;
 import java.util.Set;
 import javax.jcr.security.AccessControlManager;
-
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
@@ -29,15 +28,16 @@ import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restrict
 import org.jetbrains.annotations.NotNull;
 
 /**
- * This class implements an {@link AuthorizationConfiguration} which grants
- * full access to any {@link javax.security.auth.Subject}.
+ * This class implements an {@link AuthorizationConfiguration} which grants full access to any
+ * {@link javax.security.auth.Subject}.
  */
 public class OpenAuthorizationConfiguration extends SecurityConfiguration.Default
-        implements AuthorizationConfiguration {
+    implements AuthorizationConfiguration {
 
     @NotNull
     @Override
-    public AccessControlManager getAccessControlManager(@NotNull Root root, @NotNull NamePathMapper namePathMapper) {
+    public AccessControlManager getAccessControlManager(@NotNull Root root,
+        @NotNull NamePathMapper namePathMapper) {
         throw new UnsupportedOperationException();
     }
 
@@ -49,7 +49,8 @@ public class OpenAuthorizationConfiguration extends SecurityConfiguration.Defaul
 
     @NotNull
     @Override
-    public PermissionProvider getPermissionProvider(@NotNull Root root, @NotNull String workspaceName, @NotNull Set<Principal> principals) {
+    public PermissionProvider getPermissionProvider(@NotNull Root root,
+        @NotNull String workspaceName, @NotNull Set<Principal> principals) {
         return OpenPermissionProvider.getInstance();
     }
 

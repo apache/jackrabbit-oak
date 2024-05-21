@@ -16,9 +16,13 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.login.LoginException;
-
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -27,11 +31,6 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 
 /**
  * ExternalLoginTest...
@@ -80,14 +79,16 @@ public class ExternalLoginTest extends ExternalLoginTestBase {
         }
     }
 
-    private static void assertUser(@NotNull UserManager userManager, @NotNull ExternalIdentityProvider idp) throws Exception {
+    private static void assertUser(@NotNull UserManager userManager,
+        @NotNull ExternalIdentityProvider idp) throws Exception {
         Authorizable a = userManager.getAuthorizable(USER_ID);
         assertNotNull(a);
         ExternalUser user = idp.getUser(USER_ID);
         for (String prop : user.getProperties().keySet()) {
             assertTrue(a.hasProperty(prop));
         }
-        assertEquals(TEST_CONSTANT_PROPERTY_VALUE, a.getProperty(TEST_CONSTANT_PROPERTY_NAME)[0].getString());
+        assertEquals(TEST_CONSTANT_PROPERTY_VALUE,
+            a.getProperty(TEST_CONSTANT_PROPERTY_NAME)[0].getString());
     }
 
     @Test
@@ -122,7 +123,8 @@ public class ExternalLoginTest extends ExternalLoginTestBase {
         UserManager userManager = getUserManager(root);
         ExternalUser externalUser = idp.getUser(USER_ID);
         Authorizable user = userManager.createUser(externalUser.getId(), null);
-        user.setProperty(DefaultSyncContext.REP_EXTERNAL_ID, getValueFactory().createValue(externalUser.getExternalId().getString()));
+        user.setProperty(DefaultSyncContext.REP_EXTERNAL_ID,
+            getValueFactory().createValue(externalUser.getExternalId().getString()));
         root.commit();
 
         try (ContentSession cs = login(new SimpleCredentials(USER_ID, new char[0]))) {

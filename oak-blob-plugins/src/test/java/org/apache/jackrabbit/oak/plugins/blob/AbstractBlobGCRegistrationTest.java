@@ -18,8 +18,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.blob;
 
-import java.io.File;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
+import java.io.File;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
@@ -33,10 +35,8 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.osgi.framework.ServiceRegistration;
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-
 public abstract class AbstractBlobGCRegistrationTest {
+
     @Rule
     public final TemporaryFolder target = new TemporaryFolder(new File("target"));
     @Rule
@@ -47,7 +47,7 @@ public abstract class AbstractBlobGCRegistrationTest {
     protected ServiceRegistration blobStore;
 
     @Before
-    public void setUp() throws  Exception {
+    public void setUp() throws Exception {
         context.registerService(StatisticsProvider.class, StatisticsProvider.NOOP);
         repoHome = target.newFolder().getAbsolutePath();
     }
@@ -82,7 +82,8 @@ public abstract class AbstractBlobGCRegistrationTest {
 
     protected void registerBlobStore() throws Exception {
         DataStoreBlobStore blobStore = DataStoreUtils.getBlobStore(repoHome);
-        this.blobStore = context.bundleContext().registerService(BlobStore.class.getName(), blobStore, null);
+        this.blobStore = context.bundleContext()
+                                .registerService(BlobStore.class.getName(), blobStore, null);
     }
 
     protected void unregisterBlobStore() {

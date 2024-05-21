@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.stats.StatsOptions;
 import org.apache.jackrabbit.oak.stats.TimerStats;
 
 public class DocumentNodeStoreStats implements DocumentNodeStoreStatsCollector {
+
     private static final String BGR_READ_HEAD = "DOCUMENT_NS_BGR_READ_HEAD";
     private static final String BGR_CACHE_INVALIDATE = "DOCUMENT_NS_BGR_CACHE_INVALIDATE";
     private static final String BGR_DIFF_CACHE = "DOCUMENT_NS_BGR_DIFF_CACHE";
@@ -115,7 +116,8 @@ public class DocumentNodeStoreStats implements DocumentNodeStoreStatsCollector {
         readLock = sp.getTimer(BGR_LOCK, StatsOptions.METRICS_ONLY);
         readDispatch = sp.getTimer(BGR_DISPATCH, StatsOptions.METRICS_ONLY);
         readTotalTime = sp.getTimer(BGR_TOTAL_TIME, StatsOptions.METRICS_ONLY);
-        numChangesRate = sp.getMeter(BGR_NUM_CHANGES_RATE, StatsOptions.DEFAULT); //Enable time series
+        numChangesRate = sp.getMeter(BGR_NUM_CHANGES_RATE,
+            StatsOptions.DEFAULT); //Enable time series
         numChangesHisto = sp.getHistogram(BGR_NUM_CHANGES_HISTO, StatsOptions.METRICS_ONLY);
         changesLag = sp.getMeter(BGR_LAG, StatsOptions.METRICS_ONLY);
 
@@ -130,12 +132,15 @@ public class DocumentNodeStoreStats implements DocumentNodeStoreStatsCollector {
         leaseUpdate = sp.getTimer(LEASE_UPDATE, StatsOptions.METRICS_ONLY);
 
         mergeSuccessRetries = sp.getHistogram(MERGE_SUCCESS_NUM_RETRY, StatsOptions.METRICS_ONLY);
-        mergeSuccessRate = sp.getMeter(MERGE_SUCCESS_COUNT, StatsOptions.DEFAULT); //Enable time series
+        mergeSuccessRate = sp.getMeter(MERGE_SUCCESS_COUNT,
+            StatsOptions.DEFAULT); //Enable time series
         mergeSuccessTime = sp.getTimer(MERGE_SUCCESS_TIME, StatsOptions.METRICS_ONLY);
-        mergeSuccessNormalizedTime = sp.getTimer(MERGE_SUCCESS_NORMALIZED_TIME, StatsOptions.METRICS_ONLY);
+        mergeSuccessNormalizedTime = sp.getTimer(MERGE_SUCCESS_NORMALIZED_TIME,
+            StatsOptions.METRICS_ONLY);
         mergeSuccessExclusive = sp.getMeter(MERGE_SUCCESS_EXCLUSIVE, StatsOptions.METRICS_ONLY);
         mergeSuccessSuspended = sp.getMeter(MERGE_SUCCESS_SUSPENDED, StatsOptions.METRICS_ONLY);
-        mergeFailedExclusive = sp.getMeter(MERGE_FAILED_EXCLUSIVE, StatsOptions.DEFAULT); //Enable time series
+        mergeFailedExclusive = sp.getMeter(MERGE_FAILED_EXCLUSIVE,
+            StatsOptions.DEFAULT); //Enable time series
         headOfQueueWaitTime = sp.getTimer(HEAD_OF_QUEUE_WAIT_TIME, StatsOptions.METRICS_ONLY);
         mergeSuspendTime = sp.getTimer(MERGE_SUSPEND_TIME, StatsOptions.METRICS_ONLY);
         mergeLockTime = sp.getTimer(MERGE_LOCK_TIME, StatsOptions.METRICS_ONLY);
@@ -196,10 +201,10 @@ public class DocumentNodeStoreStats implements DocumentNodeStoreStatsCollector {
 
     @Override
     public void doneMerge(int numChanges,
-                          int numRetries,
-                          long timeMillis,
-                          long suspendMillis,
-                          boolean exclusive) {
+        int numRetries,
+        long timeMillis,
+        long suspendMillis,
+        boolean exclusive) {
         mergeSuccessRate.mark();
         mergeSuccessRetries.update(numRetries);
         mergeSuccessTime.update(timeMillis, TimeUnit.MILLISECONDS);
@@ -220,8 +225,9 @@ public class DocumentNodeStoreStats implements DocumentNodeStoreStatsCollector {
     }
 
     @Override
-    public void failedMerge(int numRetries, long timeMillis, long suspendMillis, boolean exclusive) {
-        if (exclusive){
+    public void failedMerge(int numRetries, long timeMillis, long suspendMillis,
+        boolean exclusive) {
+        if (exclusive) {
             mergeFailedExclusive.mark();
         }
     }

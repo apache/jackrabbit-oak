@@ -37,7 +37,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-
 import javax.jcr.Node;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
@@ -46,10 +45,8 @@ import javax.jcr.SimpleCredentials;
 import javax.jcr.observation.EventIterator;
 import javax.jcr.observation.EventListener;
 import javax.jcr.observation.ObservationManager;
-
-import org.apache.jackrabbit.guava.common.collect.Lists;
-
 import org.apache.jackrabbit.commons.JcrUtils;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.fixture.JcrCreator;
 import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
@@ -60,8 +57,9 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.jetbrains.annotations.Nullable;
 
 public class ObservationTest extends Benchmark {
+
     public static final int EVENT_TYPES = NODE_ADDED | NODE_REMOVED | NODE_MOVED |
-            PROPERTY_ADDED | PROPERTY_REMOVED | PROPERTY_CHANGED | PERSIST;
+        PROPERTY_ADDED | PROPERTY_REMOVED | PROPERTY_CHANGED | PERSIST;
     private static final int EVENTS_PER_NODE = 2; // NODE_ADDED and PROPERTY_ADDED
     private static final int SAVE_INTERVAL = Integer.getInteger("saveInterval", 100);
     private static final int OUTPUT_RESOLUTION = 100;
@@ -78,13 +76,14 @@ public class ObservationTest extends Benchmark {
                     final AtomicReference<Whiteboard> whiteboardRef = new AtomicReference<Whiteboard>();
                     Repository[] cluster;
                     if (fixture instanceof OakRepositoryFixture) {
-                        cluster = ((OakRepositoryFixture) fixture).setUpCluster(1, new JcrCreator() {
-                            @Override
-                            public Jcr customize(Oak oak) {
-                                whiteboardRef.set(oak.getWhiteboard());
-                                return new Jcr(oak);
-                            }
-                        });
+                        cluster = ((OakRepositoryFixture) fixture).setUpCluster(1,
+                            new JcrCreator() {
+                                @Override
+                                public Jcr customize(Oak oak) {
+                                    whiteboardRef.set(oak.getWhiteboard());
+                                    return new Jcr(oak);
+                                }
+                            });
                     } else {
                         cluster = fixture.setUpCluster(1);
                     }
@@ -101,7 +100,7 @@ public class ObservationTest extends Benchmark {
     }
 
     private void run(Repository repository, @Nullable Whiteboard whiteboard)
-            throws RepositoryException, ExecutionException, InterruptedException {
+        throws RepositoryException, ExecutionException, InterruptedException {
         Session session = createSession(repository);
         long t0 = System.currentTimeMillis();
         try {
@@ -113,8 +112,8 @@ public class ObservationTest extends Benchmark {
     }
 
     public void observationThroughput(final Repository repository,
-                                      @Nullable Whiteboard whiteboard)
-            throws RepositoryException, InterruptedException, ExecutionException {
+        @Nullable Whiteboard whiteboard)
+        throws RepositoryException, InterruptedException, ExecutionException {
         long t = 0;
         final AtomicInteger eventCount = new AtomicInteger();
         final AtomicInteger nodeCount = new AtomicInteger();
@@ -143,7 +142,8 @@ public class ObservationTest extends Benchmark {
                 sessions.add(createSession(repository));
                 listeners.add(new Listener(eventCount));
                 ObservationManager obsMgr = sessions.get(k).getWorkspace().getObservationManager();
-                obsMgr.addEventListener(listeners.get(k), EVENT_TYPES, pathFilter, true, null, null, false);
+                obsMgr.addEventListener(listeners.get(k), EVENT_TYPES, pathFilter, true, null, null,
+                    false);
             }
             // also add a listener on the root node
             addRootListener(repository, sessions, listeners);
@@ -173,7 +173,7 @@ public class ObservationTest extends Benchmark {
                     }
 
                     private void createChildren(Node node, int count)
-                            throws RepositoryException {
+                        throws RepositoryException {
                         for (int c = 0; c < count; c++) {
                             node.addNode("n" + c);
                             nodeCount.incrementAndGet();
@@ -185,8 +185,10 @@ public class ObservationTest extends Benchmark {
                 }));
             }
 
-            System.out.println("ms      #node   nodes/s #event  event/s event-ratio queue external");
-            while (!isDone(createNodes) || (eventCount.get() / LISTENER_COUNT < nodeCount.get() * EVENTS_PER_NODE)) {
+            System.out.println(
+                "ms      #node   nodes/s #event  event/s event-ratio queue external");
+            while (!isDone(createNodes) || (eventCount.get() / LISTENER_COUNT
+                < nodeCount.get() * EVENTS_PER_NODE)) {
                 long t0 = System.currentTimeMillis();
                 Thread.sleep(OUTPUT_RESOLUTION);
                 t += System.currentTimeMillis() - t0;
@@ -200,8 +202,8 @@ public class ObservationTest extends Benchmark {
                 double epn = (double) ec / nc / EVENTS_PER_NODE;
 
                 System.out.format(
-                        "%7d %7d %7.1f %7d %7.1f %7.2f %7d %7d%n",
-                           t, nc,  nps, ec,  eps,  epn, ql[0], ql[1]);
+                    "%7d %7d %7.1f %7d %7.1f %7.2f %7d %7d%n",
+                    t, nc, nps, ec, eps, epn, ql[0], ql[1]);
             }
             get(createNodes);
         } finally {
@@ -216,9 +218,9 @@ public class ObservationTest extends Benchmark {
     }
 
     private void addRootListener(Repository repository,
-                                 List<Session> sessions,
-                                 List<EventListener> listeners)
-            throws RepositoryException {
+        List<Session> sessions,
+        List<EventListener> listeners)
+        throws RepositoryException {
         Session s = createSession(repository);
         sessions.add(s);
         Listener listener = new Listener(new AtomicInteger());
@@ -250,18 +252,19 @@ public class ObservationTest extends Benchmark {
     }
 
     private static void get(Iterable<Future<Object>> futures)
-            throws ExecutionException, InterruptedException {
+        throws ExecutionException, InterruptedException {
         for (Future f : futures) {
             f.get();
         }
     }
 
     private static Session createSession(Repository repository)
-            throws RepositoryException {
+        throws RepositoryException {
         return repository.login(new SimpleCredentials("admin", "admin".toCharArray()));
     }
 
     private static class Listener implements EventListener {
+
         private final AtomicInteger eventCount;
 
         public Listener(AtomicInteger eventCount) {

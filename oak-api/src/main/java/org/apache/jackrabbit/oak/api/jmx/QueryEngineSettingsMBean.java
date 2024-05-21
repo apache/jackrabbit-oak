@@ -21,41 +21,40 @@ import org.osgi.annotation.versioning.ProviderType;
 
 @ProviderType
 public interface QueryEngineSettingsMBean {
+
     String TYPE = "QueryEngineSettings";
-    
+
     /**
-     * Get the limit on how many nodes a query may read at most into memory, for
-     * "order by" and "distinct" queries. If this limit is exceeded, the query
-     * throws an exception.
-     * 
+     * Get the limit on how many nodes a query may read at most into memory, for "order by" and
+     * "distinct" queries. If this limit is exceeded, the query throws an exception.
+     *
      * @return the limit
      */
     @Description("Get the limit on how many nodes a query may read at most into memory, for " +
-            "\"order by\" and \"distinct\" queries. If this limit is exceeded, the query throws an exception.")    
+        "\"order by\" and \"distinct\" queries. If this limit is exceeded, the query throws an exception.")
     long getLimitInMemory();
-    
+
     /**
      * Change the limit.
-     * 
+     *
      * @param limitInMemory the new limit
      */
     void setLimitInMemory(long limitInMemory);
-    
+
     /**
-     * Get the limit on how many nodes a query may read at most (raw read
-     * operations, including skipped nodes). If this limit is exceeded, the
-     * query throws an exception.
-     * 
+     * Get the limit on how many nodes a query may read at most (raw read operations, including
+     * skipped nodes). If this limit is exceeded, the query throws an exception.
+     *
      * @return the limit
      */
     @Description("Get the limit on how many nodes a query may read at most (raw read " +
-            "operations, including skipped nodes). If this limit is exceeded, the " +
-            "query throws an exception.")    
+        "operations, including skipped nodes). If this limit is exceeded, the " +
+        "query throws an exception.")
     long getLimitReads();
-    
+
     /**
      * Change the limit.
-     * 
+     *
      * @param limitReads the new limit
      */
     void setLimitReads(long limitReads);
@@ -91,18 +90,18 @@ public interface QueryEngineSettingsMBean {
     String getAutoOptionsMappingJson();
 
     /**
-     * Whether queries that don't use an index will fail (throw an exception).
-     * The default is false.
-     * 
+     * Whether queries that don't use an index will fail (throw an exception). The default is
+     * false.
+     *
      * @return true if they fail
      */
     @Description("Whether queries that don't use an index will fail (throw an exception). " +
-            "The default is false.")    
+        "The default is false.")
     boolean getFailTraversal();
 
     /**
      * Set whether queries that don't use an index will fail (throw an exception).
-     * 
+     *
      * @param failTraversal the new value for this setting
      */
     void setFailTraversal(boolean failTraversal);
@@ -112,7 +111,7 @@ public interface QueryEngineSettingsMBean {
      *
      * @return true if enabled
      */
-    @Description("Whether the query result size should return an estimation for large queries.")    
+    @Description("Whether the query result size should return an estimation for large queries.")
     boolean isFastQuerySize();
 
     void setFastQuerySize(boolean fastQuerySize);
@@ -125,66 +124,69 @@ public interface QueryEngineSettingsMBean {
     String getStrictPathRestriction();
 
     /**
-     *  Whether path restrictions of indexes (excludedPaths / includedPaths) are taken into account during query execution,
-     *  for Lucene indexes. When enabled, only indexes are considered if the index path restriction is compatible with the
-     *  query path restrictions. When disabled, only the queryPaths of the index is taken into account.
+     * Whether path restrictions of indexes (excludedPaths / includedPaths) are taken into account
+     * during query execution, for Lucene indexes. When enabled, only indexes are considered if the
+     * index path restriction is compatible with the query path restrictions. When disabled, only
+     * the queryPaths of the index is taken into account.
      *
      * @param pathRestriction Set path restriction: Expected value is either of ENABLE/DISABLE/WARN
-     *                        ENABLE: enable path restriction- Index won't be used if index definition path restrictions are not compatible with query's path restriction
-     *                        DISABLE: path restrictions are not taken into account while querying
-     *                        WARN: path restrictions are not taken into account but a warning will be logged if query path restrictions are not compatible with index path restrictions 
+     *                        ENABLE: enable path restriction- Index won't be used if index
+     *                        definition path restrictions are not compatible with query's path
+     *                        restriction DISABLE: path restrictions are not taken into account
+     *                        while querying WARN: path restrictions are not taken into account but
+     *                        a warning will be logged if query path restrictions are not compatible
+     *                        with index path restrictions
      */
-     @Description("Set path restriction: Expected value is either of ENABLE/DISABLE/WARN.   " +
-                    "ENABLE: enable path restriction- Index won't be used if index definition path restrictions are not compatible with query's path restriction.  " +
-                    "DISABLE: path restrictions are not taken into account while querying.  " +
-                    "WARN: path restrictions are not taken into account but a warning will be logged if query path restrictions are not compatible with index path restrictions."
-                    )
+    @Description("Set path restriction: Expected value is either of ENABLE/DISABLE/WARN.   " +
+        "ENABLE: enable path restriction- Index won't be used if index definition path restrictions are not compatible with query's path restriction.  "
+        +
+        "DISABLE: path restrictions are not taken into account while querying.  " +
+        "WARN: path restrictions are not taken into account but a warning will be logged if query path restrictions are not compatible with index path restrictions."
+    )
     void setStrictPathRestriction(
-            @Name("pathRestriction")
-                    String pathRestriction);
+        @Name("pathRestriction")
+        String pathRestriction);
 
     /**
      * Set or remove a query validator pattern.
      *
-     * @param key the key
-     * @param pattern the regular expression pattern (empty to remove the
-     *            pattern)
-     * @param comment a comment
-     * @param failQuery whether matching queries should fail (true) or just log
-     *            a warning (false)
+     * @param key       the key
+     * @param pattern   the regular expression pattern (empty to remove the pattern)
+     * @param comment   a comment
+     * @param failQuery whether matching queries should fail (true) or just log a warning (false)
      */
     @Description("Set or remove a query validator pattern.")
     void setQueryValidatorPattern(
-            @Description("the key")
-            @Name("key")
-            String key,
-            @Description("the regular expression pattern (empty to remove the pattern)")
-            @Name("pattern")
-            String pattern,
-            @Description("a comment")
-            @Name("comment")
-            String comment,
-            @Description("whether matching queries should fail (true) or just log a warning (false)")
-            @Name("failQuery")
-            boolean failQuery);
+        @Description("the key")
+        @Name("key")
+        String key,
+        @Description("the regular expression pattern (empty to remove the pattern)")
+        @Name("pattern")
+        String pattern,
+        @Description("a comment")
+        @Name("comment")
+        String comment,
+        @Description("whether matching queries should fail (true) or just log a warning (false)")
+        @Name("failQuery")
+        boolean failQuery);
 
     @Description("Get the query validator data as a JSON string.")
     String getQueryValidatorJson();
 
     /**
-     * Set or remove java package/class names which are ignored from finding the 
-     * invoking class for queries.
-     * 
+     * Set or remove java package/class names which are ignored from finding the invoking class for
+     * queries.
+     * <p>
      * It can be either Java package names or fully-qualified class names (package + class name).
-     * 
+     *
      * @param classNames the class names to be ignored.
      */
     @Description("Set or remove Java package / fully qualified class names to ignore in Call Trace analysis")
     void setIgnoredClassNamesInCallTrace(
-            @Description("package or fully qualified class names")
-            @Name("class names")
-            @NotNull String[] classNames);
-    
+        @Description("package or fully qualified class names")
+        @Name("class names")
+        @NotNull String[] classNames);
+
     // @Description("Get the Java package / fully qualified class names to ignore when finding the caller of query")
     @NotNull
     String[] getIgnoredClassNamesInCallTrace();

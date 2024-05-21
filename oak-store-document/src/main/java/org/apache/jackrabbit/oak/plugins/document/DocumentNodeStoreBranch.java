@@ -55,39 +55,50 @@ import org.slf4j.LoggerFactory;
  * Implementation of a DocumentMK based node store branch.
  */
 class DocumentNodeStoreBranch implements NodeStoreBranch {
+
     private static final Logger LOG = LoggerFactory.getLogger(DocumentNodeStoreBranch.class);
     private static final PerfLogger perfLogger = new PerfLogger(
-            LoggerFactory.getLogger(DocumentNodeStoreBranch.class.getName()
-                    + ".perf"));
-    private static final int MAX_LOCK_TRY_TIME_MULTIPLIER = Integer.getInteger("oak.maxLockTryTimeMultiplier", 30);
+        LoggerFactory.getLogger(DocumentNodeStoreBranch.class.getName()
+            + ".perf"));
+    private static final int MAX_LOCK_TRY_TIME_MULTIPLIER = Integer.getInteger(
+        "oak.maxLockTryTimeMultiplier", 30);
 
     private static final Random RANDOM = new Random();
     private static final long MIN_BACKOFF = 50;
 
-    /** The underlying store to which this branch belongs */
+    /**
+     * The underlying store to which this branch belongs
+     */
     protected final DocumentNodeStore store;
 
     protected final long maximumBackoff;
 
-    /** The maximum time in milliseconds to wait for the merge lock. */
+    /**
+     * The maximum time in milliseconds to wait for the merge lock.
+     */
     protected final long maxLockTryTimeMS;
 
-    /** Lock for coordinating concurrent merge operations */
+    /**
+     * Lock for coordinating concurrent merge operations
+     */
     private final ReadWriteLock mergeLock;
 
-    /** The maximum number of updates to keep in memory */
+    /**
+     * The maximum number of updates to keep in memory
+     */
     private final int updateLimit;
 
     /**
      * State of the this branch. Either {@link Unmodified}, {@link InMemory}, {@link Persisted},
      * {@link ResetFailed} or {@link Merged}.
+     *
      * @see BranchState
      */
     private BranchState branchState;
 
     DocumentNodeStoreBranch(DocumentNodeStore store,
-                            DocumentNodeState base,
-                            ReadWriteLock mergeLock) {
+        DocumentNodeState base,
+        ReadWriteLock mergeLock) {
         this.store = checkNotNull(store);
         this.branchState = new Unmodified(checkNotNull(base));
         this.maximumBackoff = Math.max((long) store.getMaxBackOffMillis(), MIN_BACKOFF);
@@ -116,7 +127,7 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
     @NotNull
     @Override
     public NodeState merge(@NotNull CommitHook hook, @NotNull CommitInfo info)
-            throws CommitFailedException {
+        throws CommitFailedException {
         try {
             return merge0(hook, info, false);
         } catch (CommitFailedException e) {
@@ -160,9 +171,9 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
 
     @NotNull
     private NodeState merge0(@NotNull CommitHook hook,
-                             @NotNull CommitInfo info,
-                             boolean exclusive)
-            throws CommitFailedException {
+        @NotNull CommitInfo info,
+        boolean exclusive)
+        throws CommitFailedException {
         CommitFailedException ex = null;
         Set<Revision> conflictRevisions = new HashSet<Revision>();
         long time = System.currentTimeMillis();
@@ -178,26 +189,27 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
                     if (!conflictRevisions.isEmpty()) {
                         // suspend until conflicting revision is visible
                         LOG.debug("Suspending until {} is visible. Current head {}.",
-                                conflictRevisions, store.getHeadRevision());
+                            conflictRevisions, store.getHeadRevision());
                         suspendMillis += store.suspendUntilAll(conflictRevisions);
                         conflictRevisions.clear();
                         LOG.debug("Resumed. Current head {}.", store.getHeadRevision());
                     } else {
-                        long sleepMillis = backoff + RANDOM.nextInt((int) Math.min(backoff, Integer.MAX_VALUE));
+                        long sleepMillis =
+                            backoff + RANDOM.nextInt((int) Math.min(backoff, Integer.MAX_VALUE));
                         suspendMillis += sleepMillis;
                         Thread.sleep(sleepMillis);
                     }
                     perfLogger.end(start, 1, "Merge - Retry attempt [{}]", numRetries);
                 } catch (InterruptedException e) {
                     throw new CommitFailedException(
-                            MERGE, 3, "Merge interrupted", e);
+                        MERGE, 3, "Merge interrupted", e);
                 }
             }
             try {
                 NodeState result = branchState.merge(checkNotNull(hook),
-                        checkNotNull(info), exclusive);
+                    checkNotNull(info), exclusive);
                 store.getStatsCollector().doneMerge(branchState.getMergedChanges(),
-                        numRetries, System.currentTimeMillis() - time, suspendMillis, exclusive);
+                    numRetries, System.currentTimeMillis() - time, suspendMillis, exclusive);
                 return result;
             } catch (FailedWithConflictException e) {
                 ex = e;
@@ -219,21 +231,19 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
         store.getStatsCollector().failedMerge(numRetries, time, suspendMillis, exclusive);
         String msg = ex.getMessage() + " (retries " + numRetries + ", " + time + " ms)";
         throw new CommitFailedException(ex.getSource(), ex.getType(),
-                ex.getCode(), msg, ex.getCause());
+            ex.getCode(), msg, ex.getCause());
     }
 
     /**
      * Acquires the merge lock either exclusive or shared.
      *
      * @param exclusive whether to acquire the merge lock exclusive.
-     * @return the acquired merge lock or {@code null} if the operation timed
-     * out.
-     * @throws CommitFailedException if the current thread is interrupted while
-     *                               acquiring the lock
+     * @return the acquired merge lock or {@code null} if the operation timed out.
+     * @throws CommitFailedException if the current thread is interrupted while acquiring the lock
      */
     @Nullable
     private Lock acquireMergeLock(boolean exclusive)
-            throws CommitFailedException {
+        throws CommitFailedException {
         final long start = System.nanoTime();
         Lock lock;
         if (exclusive) {
@@ -246,7 +256,7 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
             acquired = lock.tryLock(maxLockTryTimeMS, MILLISECONDS);
         } catch (InterruptedException e) {
             throw new CommitFailedException(OAK, 1,
-                    "Unable to acquire merge lock", e);
+                "Unable to acquire merge lock", e);
         }
         String mode = exclusive ? "exclusive" : "shared";
         if (acquired) {
@@ -261,31 +271,30 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
     }
 
     /**
-     * Persists the changes between {@code toPersist} and {@code base}
-     * to the underlying store.
+     * Persists the changes between {@code toPersist} and {@code base} to the underlying store.
      *
      * @param toPersist the state with the changes on top of {@code base}.
-     * @param base the base state.
-     * @param info the commit info.
-     * @param stats the merge stats.
+     * @param base      the base state.
+     * @param info      the commit info.
+     * @param stats     the merge stats.
      * @return the state with the persisted changes.
-     * @throws ConflictException if changes cannot be persisted because a
-     *          conflict occurred. The exception may contain the revisions of
-     *          the conflicting operations.
-     * @throws DocumentStoreException if the persist operation failed because
-     *          of an exception in the underlying {@link DocumentStore}.
+     * @throws ConflictException      if changes cannot be persisted because a conflict occurred.
+     *                                The exception may contain the revisions of the conflicting
+     *                                operations.
+     * @throws DocumentStoreException if the persist operation failed because of an exception in the
+     *                                underlying {@link DocumentStore}.
      */
     private DocumentNodeState persist(final @NotNull NodeState toPersist,
-                                      final @NotNull DocumentNodeState base,
-                                      final @NotNull CommitInfo info,
-                                      final @NotNull MergeStats stats)
-            throws ConflictException, DocumentStoreException {
+        final @NotNull DocumentNodeState base,
+        final @NotNull CommitInfo info,
+        final @NotNull MergeStats stats)
+        throws ConflictException, DocumentStoreException {
         return persist(new Changes() {
             @Override
             public void with(@NotNull CommitBuilder commitBuilder) {
                 CommitDiff diff = new CommitDiff(
-                        store.getBundlingConfigHandler().newBundlingHandler(),
-                        commitBuilder, store.getBlobSerializer());
+                    store.getBundlingConfigHandler().newBundlingHandler(),
+                    commitBuilder, store.getBlobSerializer());
                 toPersist.compareAgainstBaseState(base, diff);
                 stats.numDocuments += diff.getNumChanges();
             }
@@ -295,20 +304,20 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
     /**
      * Persist some changes on top of the given base state.
      *
-     * @param op the changes to persist.
+     * @param op   the changes to persist.
      * @param base the base state.
      * @param info the commit info.
      * @return the result state.
-     * @throws ConflictException if changes cannot be persisted because a
-     *          conflict occurred. The exception may contain the revisions of
-     *          the conflicting operations.
-     * @throws DocumentStoreException if the persist operation failed because
-     *          of an exception in the underlying {@link DocumentStore}.
+     * @throws ConflictException      if changes cannot be persisted because a conflict occurred.
+     *                                The exception may contain the revisions of the conflicting
+     *                                operations.
+     * @throws DocumentStoreException if the persist operation failed because of an exception in the
+     *                                underlying {@link DocumentStore}.
      */
     private DocumentNodeState persist(@NotNull Changes op,
-                                      @NotNull DocumentNodeState base,
-                                      @NotNull CommitInfo info)
-            throws ConflictException, DocumentStoreException {
+        @NotNull DocumentNodeState base,
+        @NotNull CommitInfo info)
+        throws ConflictException, DocumentStoreException {
         boolean success = false;
         Commit c = store.newCommit(op, base.getRootRevision(), this);
         RevisionVector rev;
@@ -346,11 +355,14 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
     }
 
     /**
-     * Sub classes of this class represent a state a branch can be in. See the individual
-     * sub classes for permissible state transitions.
+     * Sub classes of this class represent a state a branch can be in. See the individual sub
+     * classes for permissible state transitions.
      */
     private abstract class BranchState {
-        /** Root state of the base revision of this branch */
+
+        /**
+         * Root state of the base revision of this branch
+         */
         protected DocumentNodeState base;
 
         protected BranchState(DocumentNodeState base) {
@@ -367,7 +379,7 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
             return p;
         }
 
-        DocumentNodeState getBase(){
+        DocumentNodeState getBase() {
             return base;
         }
 
@@ -383,30 +395,28 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
         abstract void rebase();
 
         /**
-         * Runs the commit hook on the changes tracked with this branch state
-         * merges the result.
+         * Runs the commit hook on the changes tracked with this branch state merges the result.
          * <p>
-         * In addition to the {@link CommitFailedException}, an implementation
-         * may also throw an unchecked exception when an error occurs while
-         * persisting the changes. This exception is implementation specific
-         * and it is the responsibility of the caller to convert it into a
+         * In addition to the {@link CommitFailedException}, an implementation may also throw an
+         * unchecked exception when an error occurs while persisting the changes. This exception is
+         * implementation specific and it is the responsibility of the caller to convert it into a
          * {@link CommitFailedException}.
          *
-         * @param hook the commit hook to run.
-         * @param info the associated commit info.
-         * @param exclusive whether the merge lock must be acquired exclusively
-         *                  or shared while performing the merge.
+         * @param hook      the commit hook to run.
+         * @param info      the associated commit info.
+         * @param exclusive whether the merge lock must be acquired exclusively or shared while
+         *                  performing the merge.
          * @return the result of the merge.
-         * @throws CommitFailedException if a commit hook rejected the changes
-         *          or the actual merge operation failed. An implementation must
-         *          use the appropriate type in {@code CommitFailedException} to
-         *          indicate the cause of the exception.
+         * @throws CommitFailedException if a commit hook rejected the changes or the actual merge
+         *                               operation failed. An implementation must use the
+         *                               appropriate type in {@code CommitFailedException} to
+         *                               indicate the cause of the exception.
          */
         @NotNull
         abstract NodeState merge(@NotNull CommitHook hook,
-                                 @NotNull CommitInfo info,
-                                 boolean exclusive)
-                throws CommitFailedException;
+            @NotNull CommitInfo info,
+            boolean exclusive)
+            throws CommitFailedException;
     }
 
     /**
@@ -420,6 +430,7 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
      * </ul>
      */
     private class Unmodified extends BranchState {
+
         Unmodified(DocumentNodeState base) {
             super(base);
         }
@@ -450,16 +461,16 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
         @Override
         @NotNull
         NodeState merge(@NotNull CommitHook hook,
-                        @NotNull CommitInfo info,
-                        boolean exclusive) {
+            @NotNull CommitInfo info,
+            boolean exclusive) {
             branchState = new Merged(base, new MergeStats());
             return base;
         }
     }
 
     /**
-     * Instances of this class represent a branch whose base and head differ.
-     * All changes are kept in memory.
+     * Instances of this class represent a branch whose base and head differ. All changes are kept
+     * in memory.
      * <p>
      * Transitions to:
      * <ul>
@@ -472,7 +483,10 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
      * </ul>
      */
     private class InMemory extends BranchState {
-        /** Root state of the transient head. */
+
+        /**
+         * Root state of the transient head.
+         */
         private NodeState head;
 
         @Override
@@ -526,9 +540,9 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
         @Override
         @NotNull
         NodeState merge(@NotNull CommitHook hook,
-                        @NotNull CommitInfo info,
-                        boolean exclusive)
-                throws CommitFailedException {
+            @NotNull CommitInfo info,
+            boolean exclusive)
+            throws CommitFailedException {
             checkNotNull(hook);
             checkNotNull(info);
             Lock lock = acquireMergeLock(exclusive);
@@ -538,8 +552,9 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
                 NodeState previousHead = head;
                 try {
                     DocumentNodeStoreStatsCollector stats = store.getStatsCollector();
-                    NodeState toCommit = TimingHook.wrap(hook, (time, unit) -> stats.doneCommitHookProcessed(unit.toMicros(time)))
-                            .processCommit(base, head, info);
+                    NodeState toCommit = TimingHook.wrap(hook,
+                                                       (time, unit) -> stats.doneCommitHookProcessed(unit.toMicros(time)))
+                                                   .processCommit(base, head, info);
                     try {
                         MergeStats ms = new MergeStats();
                         NodeState newHead;
@@ -550,7 +565,8 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
                             newHead = store.getRoot(store.merge(branchRev, info));
                             stats.doneMergeBranch(p.numCommits, p.getMergedChanges());
                         } else {
-                            newHead = DocumentNodeStoreBranch.this.persist(toCommit, base, info, ms);
+                            newHead = DocumentNodeStoreBranch.this.persist(toCommit, base, info,
+                                ms);
                         }
                         branchState = new Merged(base, ms);
                         success = true;
@@ -594,7 +610,7 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
             if (b != null) {
                 try {
                     store.reset(branchHeadRev,
-                            b.getBase().asBranchRevision(store.getClusterId()));
+                        b.getBase().asBranchRevision(store.getClusterId()));
                 } catch (Exception e) {
                     LOG.warn("Resetting persisted branch failed", e);
                 }
@@ -602,13 +618,14 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
         }
 
         private ModifiedDocumentNodeState newModifiedDocumentNodeState(NodeState modified) {
-            return new ModifiedDocumentNodeState(store, DocumentNodeStoreBranch.this, base, modified);
+            return new ModifiedDocumentNodeState(store, DocumentNodeStoreBranch.this, base,
+                modified);
         }
     }
 
     /**
-     * Instances of this class represent a branch whose head is persisted to an
-     * underlying branch in the {@code NodeStore}.
+     * Instances of this class represent a branch whose head is persisted to an underlying branch in
+     * the {@code NodeStore}.
      * <p>
      * Transitions to:
      * <ul>
@@ -617,7 +634,10 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
      * </ul>
      */
     private class Persisted extends BranchState {
-        /** Root state of the transient head, top of persisted branch. */
+
+        /**
+         * Root state of the transient head, top of persisted branch.
+         */
         private DocumentNodeState head;
 
         /**
@@ -671,16 +691,16 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
             DocumentNodeState root = store.getRoot();
             // perform rebase in store
             head = store.getRoot(store.rebase(head.getRootRevision(), root.getRootRevision()))
-                    .asBranchRootState(DocumentNodeStoreBranch.this);
+                        .asBranchRootState(DocumentNodeStoreBranch.this);
             base = root;
         }
 
         @Override
         @NotNull
         NodeState merge(@NotNull final CommitHook hook,
-                        @NotNull final CommitInfo info,
-                        boolean exclusive)
-                throws CommitFailedException {
+            @NotNull final CommitInfo info,
+            boolean exclusive)
+            throws CommitFailedException {
             boolean success = false;
             DocumentNodeState previousHead = head;
             Lock lock = acquireMergeLock(exclusive);
@@ -689,10 +709,12 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
                 previousHead = head;
                 checkForConflicts();
                 DocumentNodeStoreStatsCollector stats = store.getStatsCollector();
-                NodeState toCommit = TimingHook.wrap(checkNotNull(hook), (time, unit) -> stats.doneCommitHookProcessed(unit.toMicros(time)))
-                        .processCommit(base, head, info);
+                NodeState toCommit = TimingHook.wrap(checkNotNull(hook),
+                                                   (time, unit) -> stats.doneCommitHookProcessed(unit.toMicros(time)))
+                                               .processCommit(base, head, info);
                 persistTransientHead(toCommit);
-                DocumentNodeState newRoot = store.getRoot(store.merge(head.getRootRevision(), info));
+                DocumentNodeState newRoot = store.getRoot(
+                    store.merge(head.getRootRevision(), info));
                 success = true;
                 branchState = new Merged(base, ms);
                 stats.doneMergeBranch(numCommits, branchState.getMergedChanges());
@@ -714,10 +736,10 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
         }
 
         private void persistTransientHead(NodeState newHead)
-                throws DocumentStoreException {
+            throws DocumentStoreException {
             try {
                 head = DocumentNodeStoreBranch.this.persist(newHead, head, CommitInfo.EMPTY, ms)
-                        .asBranchRootState(DocumentNodeStoreBranch.this);
+                                                   .asBranchRootState(DocumentNodeStoreBranch.this);
             } catch (ConflictException e) {
                 throw DocumentStoreException.convert(e);
             }
@@ -728,21 +750,20 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
         private void resetBranch(DocumentNodeState branchHead, DocumentNodeState ancestor) {
             try {
                 head = store.getRoot(store.reset(branchHead.getRootRevision(),
-                            ancestor.getRootRevision()))
-                        .asBranchRootState(DocumentNodeStoreBranch.this);
+                                ancestor.getRootRevision()))
+                            .asBranchRootState(DocumentNodeStoreBranch.this);
             } catch (Exception e) {
                 CommitFailedException ex = new CommitFailedException(
-                        OAK, 100, "Branch reset failed", e);
+                    OAK, 100, "Branch reset failed", e);
                 branchState = new ResetFailed(base, ex);
             }
         }
 
         /**
-         * Checks if any of the commits on this branch have a collision marker
-         * set.
+         * Checks if any of the commits on this branch have a collision marker set.
          *
-         * @throws CommitFailedException if a collision marker is set for one
-         *          of the commits on this branch.
+         * @throws CommitFailedException if a collision marker is set for one of the commits on this
+         *                               branch.
          */
         private void checkForConflicts() throws CommitFailedException {
             Branch b = store.getBranches().getBranch(head.getRootRevision());
@@ -752,23 +773,23 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
             NodeDocument doc = Utils.getRootDocument(store.getDocumentStore());
             Set<Revision> collisions = Sets.newHashSet(doc.getLocalMap(COLLISIONS).keySet());
             Set<Revision> commits = Sets.newHashSet(Iterables.transform(b.getCommits(),
-                    new Function<Revision, Revision>() {
-                        @Override
-                        public Revision apply(Revision input) {
-                            return input.asTrunkRevision();
-                        }
-                    }));
+                new Function<Revision, Revision>() {
+                    @Override
+                    public Revision apply(Revision input) {
+                        return input.asTrunkRevision();
+                    }
+                }));
             Set<Revision> conflicts = Sets.intersection(collisions, commits);
             if (!conflicts.isEmpty()) {
                 throw new CommitFailedException(STATE, 2,
-                        "Conflicting concurrent change on branch commits " + conflicts);
+                    "Conflicting concurrent change on branch commits " + conflicts);
             }
         }
     }
 
     /**
-     * Instances of this class represent a branch that has already been merged.
-     * All methods throw an {@code IllegalStateException}.
+     * Instances of this class represent a branch that has already been merged. All methods throw an
+     * {@code IllegalStateException}.
      * <p>
      * Transitions to: none.
      */
@@ -777,7 +798,7 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
         private final MergeStats stats;
 
         protected Merged(@NotNull DocumentNodeState base,
-                         @NotNull MergeStats stats) {
+            @NotNull MergeStats stats) {
             super(base);
             this.stats = stats;
         }
@@ -806,8 +827,8 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
         @Override
         @NotNull
         NodeState merge(@NotNull CommitHook hook,
-                        @NotNull CommitInfo info,
-                        boolean exclusive) {
+            @NotNull CommitInfo info,
+            boolean exclusive) {
             throw new IllegalStateException("Branch has already been merged");
         }
 
@@ -818,8 +839,8 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
     }
 
     /**
-     * Instances of this class represent a branch with persisted changes and
-     * a failed attempt to reset changes.
+     * Instances of this class represent a branch with persisted changes and a failed attempt to
+     * reset changes.
      * <p>
      * Transitions to: none.
      */
@@ -852,17 +873,17 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
         }
 
         /**
-         * Always throws the {@code CommitFailedException} passed to the
-         * constructor of this branch state.
+         * Always throws the {@code CommitFailedException} passed to the constructor of this branch
+         * state.
          *
          * @throws CommitFailedException the exception of the failed reset.
          */
         @NotNull
         @Override
         NodeState merge(@NotNull CommitHook hook,
-                        @NotNull CommitInfo info,
-                        boolean exclusive)
-                throws CommitFailedException {
+            @NotNull CommitInfo info,
+            boolean exclusive)
+            throws CommitFailedException {
             throw ex;
         }
     }

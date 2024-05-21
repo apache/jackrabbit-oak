@@ -24,7 +24,6 @@ import static javax.management.openmbean.SimpleType.STRING;
 import java.util.Date;
 import java.util.Map;
 import java.util.Map.Entry;
-
 import javax.management.openmbean.ArrayType;
 import javax.management.openmbean.CompositeDataSupport;
 import javax.management.openmbean.CompositeType;
@@ -33,21 +32,21 @@ import javax.management.openmbean.OpenType;
 import javax.management.openmbean.TabularData;
 import javax.management.openmbean.TabularDataSupport;
 import javax.management.openmbean.TabularType;
-
 import org.apache.jackrabbit.oak.api.jmx.CheckpointMBean;
 
 /**
- * Abstract base class for {@code CheckpointMBean} implementations.
- * This class provides the basic functionality for converting checkpoints
- * into tabular data.
+ * Abstract base class for {@code CheckpointMBean} implementations. This class provides the basic
+ * functionality for converting checkpoints into tabular data.
  */
 public abstract class AbstractCheckpointMBean implements CheckpointMBean {
-    private static final String[] FIELD_NAMES = new String[] { "id", "created", "expires", "properties"};
+
+    private static final String[] FIELD_NAMES = new String[]{"id", "created", "expires",
+        "properties"};
     private static final String[] FIELD_DESCRIPTIONS = FIELD_NAMES;
 
     @SuppressWarnings("rawtypes")
-    private static final OpenType[] FIELD_TYPES = new OpenType[] {
-            STRING, STRING, STRING, createStringArrayType()};
+    private static final OpenType[] FIELD_TYPES = new OpenType[]{
+        STRING, STRING, STRING, createStringArrayType()};
 
     private static ArrayType<String> createStringArrayType() {
         try {
@@ -59,18 +58,18 @@ public abstract class AbstractCheckpointMBean implements CheckpointMBean {
 
     private CompositeType createCompositeType() {
         try {
-            return new CompositeType(getTypeName(), "Checkpoints", FIELD_NAMES, FIELD_DESCRIPTIONS, FIELD_TYPES);
+            return new CompositeType(getTypeName(), "Checkpoints", FIELD_NAMES, FIELD_DESCRIPTIONS,
+                FIELD_TYPES);
         } catch (OpenDataException e) {
             throw new IllegalStateException(e);
         }
     }
 
     /**
-     * Called to collect the tabular data for the checkpoints.
-     * Each checkpoint should be represented by a single row in {@code tab}.
-     * Implementors should use the {@link #toCompositeData} utility method for converting
-     * the individual fields associated with a checkpoint into the correct composite data
-     * format.
+     * Called to collect the tabular data for the checkpoints. Each checkpoint should be represented
+     * by a single row in {@code tab}. Implementors should use the {@link #toCompositeData} utility
+     * method for converting the individual fields associated with a checkpoint into the correct
+     * composite data format.
      *
      * @param tab
      * @throws OpenDataException
@@ -81,8 +80,8 @@ public abstract class AbstractCheckpointMBean implements CheckpointMBean {
     public TabularData listCheckpoints() {
         try {
             TabularDataSupport tab = new TabularDataSupport(
-                    new TabularType(getTypeName(),
-                            "Checkpoints", createCompositeType(), new String[] { "id" }));
+                new TabularType(getTypeName(),
+                    "Checkpoints", createCompositeType(), new String[]{"id"}));
 
             collectCheckpoints(tab);
             return tab;
@@ -101,20 +100,19 @@ public abstract class AbstractCheckpointMBean implements CheckpointMBean {
 
 
     /**
-     * Utility method for converting the fields associated with a checkpoint to
-     * the composite data format.
+     * Utility method for converting the fields associated with a checkpoint to the composite data
+     * format.
      *
      * @param id      id of the checkpoint
      * @param created creation data of the checkpoint
      * @param expires expiry data of the checkpoint
-     * @return composite data representation of the fields associated with the
-     * checkpoint
+     * @return composite data representation of the fields associated with the checkpoint
      * @throws OpenDataException
      */
     protected final CompositeDataSupport toCompositeData(String id, String created, String expires,
-                                                          Map<String, String> properties) throws OpenDataException {
-        return new CompositeDataSupport(createCompositeType(), FIELD_NAMES, new Object[] {
-                id, created, expires, toArray(properties) });
+        Map<String, String> properties) throws OpenDataException {
+        return new CompositeDataSupport(createCompositeType(), FIELD_NAMES, new Object[]{
+            id, created, expires, toArray(properties)});
     }
 
     private static String[] toArray(Map<String, String> properties) {

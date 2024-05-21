@@ -19,16 +19,6 @@
 
 package org.apache.jackrabbit.oak.index;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Sets;
-import joptsimple.OptionParser;
-import joptsimple.OptionSet;
-import joptsimple.OptionSpec;
-import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.oak.run.cli.OptionsBean;
-import org.apache.jackrabbit.oak.run.cli.OptionsBeanFactory;
-
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -36,6 +26,15 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import joptsimple.OptionParser;
+import joptsimple.OptionSet;
+import joptsimple.OptionSpec;
+import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.guava.common.base.Strings;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.collect.Sets;
+import org.apache.jackrabbit.oak.run.cli.OptionsBean;
+import org.apache.jackrabbit.oak.run.cli.OptionsBeanFactory;
 
 public class IndexOptions implements OptionsBean {
 
@@ -67,63 +66,80 @@ public class IndexOptions implements OptionsBean {
     private final OptionSpec<File> existingDataDumpDirOpt;
 
 
-
-    public IndexOptions(OptionParser parser){
+    public IndexOptions(OptionParser parser) {
         workDirOpt = parser.accepts("index-temp-dir", "Directory used for storing temporary files")
-                .withRequiredArg().ofType(File.class).defaultsTo(new File("temp"));
+                           .withRequiredArg().ofType(File.class).defaultsTo(new File("temp"));
         outputDirOpt = parser.accepts("index-out-dir", "Directory used for output files")
-                .withRequiredArg().ofType(File.class).defaultsTo(new File("indexing-result"));
-        preExtractedTextOpt = parser.accepts("pre-extracted-text-dir", "Directory storing pre extracted text")
-                .withRequiredArg().ofType(File.class);
-        indexDefinitionsOpt = parser.accepts("index-definitions-file", "index definition file which " +
-                "include new index definitions or changes to existing index definitions")
-                .withRequiredArg().ofType(File.class);
+                             .withRequiredArg().ofType(File.class)
+                             .defaultsTo(new File("indexing-result"));
+        preExtractedTextOpt = parser.accepts("pre-extracted-text-dir",
+                                        "Directory storing pre extracted text")
+                                    .withRequiredArg().ofType(File.class);
+        indexDefinitionsOpt = parser.accepts("index-definitions-file",
+                                        "index definition file which " +
+                                            "include new index definitions or changes to existing index definitions")
+                                    .withRequiredArg().ofType(File.class);
 
-        stats = parser.accepts("index-info", "Collects and dumps various statistics related to the indexes");
+        stats = parser.accepts("index-info",
+            "Collects and dumps various statistics related to the indexes");
         definitions = parser.accepts("index-definitions", "Collects and dumps index definitions");
-        indexPaths = parser.accepts("index-paths", "Comma separated list of index paths for which the " +
-                "selected operations need to be performed")
-                .withRequiredArg().ofType(String.class).withValuesSeparatedBy(",");
+        indexPaths = parser.accepts("index-paths",
+                               "Comma separated list of index paths for which the " +
+                                   "selected operations need to be performed")
+                           .withRequiredArg().ofType(String.class).withValuesSeparatedBy(",");
 
-        checkpoint = parser.accepts("checkpoint", "The checkpoint up to which the index is updated, when " +
-                "indexing in read only mode. For testing purpose, it can be set to 'head' to indicate that the head " +
-                "state should be used.")
-                .withRequiredArg().ofType(String.class);
+        checkpoint = parser.accepts("checkpoint",
+                               "The checkpoint up to which the index is updated, when " +
+                                   "indexing in read only mode. For testing purpose, it can be set to 'head' to indicate that the head "
+                                   +
+                                   "state should be used.")
+                           .withRequiredArg().ofType(String.class);
 
         consistencyCheck = parser.accepts("index-consistency-check", "Performs consistency check " +
-                "for indexes as specified by --index-paths (if this not set, all indexes are checked). Currently " +
-                "only Lucene indexes are supported. Possible values 1 - Basic check, 2 - Full check (slower)")
-                .withOptionalArg().ofType(Integer.class).defaultsTo(1);
+                                     "for indexes as specified by --index-paths (if this not set, all indexes are checked). Currently "
+                                     +
+                                     "only Lucene indexes are supported. Possible values 1 - Basic check, 2 - Full check (slower)")
+                                 .withOptionalArg().ofType(Integer.class).defaultsTo(1);
 
-        asyncDelay = parser.accepts("async-delay", "Delay (in seconds) between the execution of async cycles for a given lane")
-                .withOptionalArg().ofType(Long.class).defaultsTo(5L);
+        asyncDelay = parser.accepts("async-delay",
+                               "Delay (in seconds) between the execution of async cycles for a given lane")
+                           .withOptionalArg().ofType(Long.class).defaultsTo(5L);
 
         dumpIndex = parser.accepts("index-dump", "Dumps index content");
-        reindex = parser.accepts("reindex", "Reindex the indexes specified by --index-paths or --index-definitions-file");
-        ignoreMissingTikaDep = parser.accepts("ignore-missing-tika-dep", "Ignore when there are missing tika dependencies and continue to run");
+        reindex = parser.accepts("reindex",
+            "Reindex the indexes specified by --index-paths or --index-definitions-file");
+        ignoreMissingTikaDep = parser.accepts("ignore-missing-tika-dep",
+            "Ignore when there are missing tika dependencies and continue to run");
         asyncIndex = parser.accepts("async-index", "Runs async index cycle");
 
-        asyncIndexLanes = parser.accepts("async-index-lanes", "Comma separated list of async index lanes for which the " +
-                "async index cycles would run")
-                .withRequiredArg().ofType(String.class).withValuesSeparatedBy(",");
+        asyncIndexLanes = parser.accepts("async-index-lanes",
+                                    "Comma separated list of async index lanes for which the " +
+                                        "async index cycles would run")
+                                .withRequiredArg().ofType(String.class).withValuesSeparatedBy(",");
 
         importIndex = parser.accepts("index-import", "Imports index");
-        docTraversal = parser.accepts("doc-traversal-mode", "Use Document traversal mode for reindex in " +
+        docTraversal = parser.accepts("doc-traversal-mode",
+            "Use Document traversal mode for reindex in " +
                 "DocumentNodeStore setups. This may provide better performance in some cases (experimental)");
-        enableCowCor = parser.accepts("enable-cow-cor", "Enables COW/COR during async indexing using oak-run");
-        buildFlatFileStoreSeparately = parser.accepts("build-flatfilestore-separately", "Builds FlatFileStore as a separate step and then uses it as part of the doc-traversal-mode for reindexing");
+        enableCowCor = parser.accepts("enable-cow-cor",
+            "Enables COW/COR during async indexing using oak-run");
+        buildFlatFileStoreSeparately = parser.accepts("build-flatfilestore-separately",
+            "Builds FlatFileStore as a separate step and then uses it as part of the doc-traversal-mode for reindexing");
 
-        indexImportDir = parser.accepts("index-import-dir", "Directory containing index files. This " +
-                "is required when --index-import operation is selected")
-                .requiredIf(importIndex)
-                .withRequiredArg().ofType(File.class);
+        indexImportDir = parser.accepts("index-import-dir",
+                                   "Directory containing index files. This " +
+                                       "is required when --index-import operation is selected")
+                               .requiredIf(importIndex)
+                               .withRequiredArg().ofType(File.class);
 
         //Set of options which define action
-        actionOpts = ImmutableSet.of(stats, definitions, consistencyCheck, dumpIndex, reindex, importIndex);
+        actionOpts = ImmutableSet.of(stats, definitions, consistencyCheck, dumpIndex, reindex,
+            importIndex);
         operationNames = collectionOperationNames(actionOpts);
-        existingDataDumpDirOpt = parser.accepts("existing-data-dump-dir", "Directory containing document store dumps" +
-                " from previous incomplete run")
-                .withRequiredArg().ofType(File.class);
+        existingDataDumpDirOpt = parser.accepts("existing-data-dump-dir",
+                                           "Directory containing document store dumps" +
+                                               " from previous incomplete run")
+                                       .withRequiredArg().ofType(File.class);
     }
 
     @Override
@@ -138,9 +154,13 @@ public class IndexOptions implements OptionsBean {
 
     @Override
     public String description() {
-        return "The index command supports the following operations. Most operations are read only.\n" + 
-                "BloStore related options must be provided, as operations access the binaries stored there.\n" +
-                "If no explicit operation is selected, --index-info and --index-definitions operation are performed.\n" +
+        return
+            "The index command supports the following operations. Most operations are read only.\n"
+                +
+                "BloStore related options must be provided, as operations access the binaries stored there.\n"
+                +
+                "If no explicit operation is selected, --index-info and --index-definitions operation are performed.\n"
+                +
                 "Use --index-paths to restrict the set of indexes on which the operation needs to be run.";
     }
 
@@ -181,11 +201,11 @@ public class IndexOptions implements OptionsBean {
         return indexImportDir.value(options);
     }
 
-    public boolean dumpStats(){
+    public boolean dumpStats() {
         return options.has(stats) || !anyActionSelected();
     }
 
-    public boolean dumpDefinitions(){
+    public boolean dumpDefinitions() {
         return options.has(definitions) || !anyActionSelected();
     }
 
@@ -193,16 +213,16 @@ public class IndexOptions implements OptionsBean {
         return options.has(dumpIndex);
     }
 
-    public boolean checkConsistency(){
+    public boolean checkConsistency() {
         return options.has(consistencyCheck);
     }
 
-    public int consistencyCheckLevel(){
+    public int consistencyCheckLevel() {
         return consistencyCheck.value(options);
     }
 
     public long aysncDelay() {
-        return  asyncDelay.value(options);
+        return asyncDelay.value(options);
     }
 
     public boolean isReindex() {
@@ -222,7 +242,7 @@ public class IndexOptions implements OptionsBean {
     }
 
     public boolean isDocTraversalMode() {
-        return  options.has(docTraversal);
+        return options.has(docTraversal);
     }
 
     public boolean isCowCorEnabled() {
@@ -233,21 +253,22 @@ public class IndexOptions implements OptionsBean {
         return options.has(buildFlatFileStoreSeparately);
     }
 
-    public String getCheckpoint(){
+    public String getCheckpoint() {
         return checkpoint.value(options);
     }
 
-    public List<String> getIndexPaths(){
+    public List<String> getIndexPaths() {
         return options.has(indexPaths) ? trim(indexPaths.values(options)) : Collections.emptyList();
     }
 
-    public List<String> getAsyncLanes(){
-        return options.has(asyncIndexLanes) ? trim(asyncIndexLanes.values(options)) : Collections.emptyList();
+    public List<String> getAsyncLanes() {
+        return options.has(asyncIndexLanes) ? trim(asyncIndexLanes.values(options))
+            : Collections.emptyList();
     }
 
-    private boolean anyActionSelected(){
-        for (OptionSpec spec : actionOpts){
-            if (options.has(spec)){
+    private boolean anyActionSelected() {
+        for (OptionSpec spec : actionOpts) {
+            if (options.has(spec)) {
                 return true;
             }
         }
@@ -265,9 +286,9 @@ public class IndexOptions implements OptionsBean {
         return new ArrayList<>(paths);
     }
 
-    private static Set<String> collectionOperationNames(Set<OptionSpec> actionOpts){
+    private static Set<String> collectionOperationNames(Set<OptionSpec> actionOpts) {
         Set<String> result = new HashSet<>();
-        for (OptionSpec spec : actionOpts){
+        for (OptionSpec spec : actionOpts) {
             result.addAll(spec.options());
         }
         return result;

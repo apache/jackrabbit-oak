@@ -19,55 +19,50 @@
 
 package org.apache.jackrabbit.oak.run.osgi;
 
+import static org.junit.Assert.assertNotNull;
+
 import java.io.File;
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-
 import javax.jcr.Repository;
-
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.commons.JcrUtils;
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import static org.junit.Assert.assertNotNull;
-
 public class SimpleRepositoryFactoryTest {
+
     @Rule
     public final TemporaryFolder tmpFolder = new TemporaryFolder(new File("target"));
 
     @Test(timeout = 60 * 1000)
-    public void testRepositoryService() throws Exception{
-        Map<String,String> config = new HashMap<String, String>();
+    public void testRepositoryService() throws Exception {
+        Map<String, String> config = new HashMap<String, String>();
         config.put("org.apache.jackrabbit.repository.home",
-                tmpFolder.getRoot().getAbsolutePath());
+            tmpFolder.getRoot().getAbsolutePath());
         config.put("org.apache.jackrabbit.oak.repository.configFile",
-                path("oak-base-config.json")+","+path("oak-tar-config.json"));
+            path("oak-base-config.json") + "," + path("oak-tar-config.json"));
 
         Repository repository = JcrUtils.getRepository(config);
         assertNotNull(repository);
-        ((JackrabbitRepository)repository).shutdown();
+        ((JackrabbitRepository) repository).shutdown();
     }
-
 
 
     private static String getBaseDir() {
         // 'basedir' is set by Maven Surefire. It always points to the current subproject,
         // even in reactor builds.
         String baseDir = System.getProperty("basedir");
-        if(baseDir != null) {
+        if (baseDir != null) {
             return baseDir;
         }
         return new File(".").getAbsolutePath();
     }
 
-    private static String path(String path){
-        File file = new File(FilenameUtils.concat(getBaseDir(), "src/test/resources/"+path));
+    private static String path(String path) {
+        File file = new File(FilenameUtils.concat(getBaseDir(), "src/test/resources/" + path));
         assert file.exists() : "No file found at " + file.getAbsolutePath();
         return file.getAbsolutePath();
     }

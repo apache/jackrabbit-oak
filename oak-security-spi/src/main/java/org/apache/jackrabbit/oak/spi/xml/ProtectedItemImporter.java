@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.spi.xml;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -37,32 +36,31 @@ public interface ProtectedItemImporter {
     /**
      * Initializes the importer.
      *
-     * @param session The session that is running the import.
-     * @param root The root associated with the import.
-     * @param namePathMapper The name/path mapper used to translate names
-     * between their jcr and oak form.
-     * @param isWorkspaceImport A flag indicating whether the import has been
-     * started from the {@link javax.jcr.Workspace} or from the
-     * {@link javax.jcr.Session}. Implementations are free to implement both
-     * types of imports or only a single one. For example it doesn't make sense
-     * to allow for importing versions along with a Session import as
-     * version operations are required to never leave transient changes behind.
-     * @param uuidBehavior The uuid behavior specified with the import call.
-     * @param referenceTracker The uuid/reference helper.
-     * @param securityProvider The security provider.
-     * @return {@code true} if this importer was successfully initialized and
-     * is able to handle an import with the given setup; {@code false} otherwise.
+     * @param session           The session that is running the import.
+     * @param root              The root associated with the import.
+     * @param namePathMapper    The name/path mapper used to translate names between their jcr and
+     *                          oak form.
+     * @param isWorkspaceImport A flag indicating whether the import has been started from the
+     *                          {@link javax.jcr.Workspace} or from the {@link javax.jcr.Session}.
+     *                          Implementations are free to implement both types of imports or only
+     *                          a single one. For example it doesn't make sense to allow for
+     *                          importing versions along with a Session import as version operations
+     *                          are required to never leave transient changes behind.
+     * @param uuidBehavior      The uuid behavior specified with the import call.
+     * @param referenceTracker  The uuid/reference helper.
+     * @param securityProvider  The security provider.
+     * @return {@code true} if this importer was successfully initialized and is able to handle an
+     * import with the given setup; {@code false} otherwise.
      */
     boolean init(@NotNull Session session, @NotNull Root root,
-            @NotNull NamePathMapper namePathMapper,
-            boolean isWorkspaceImport, int uuidBehavior,
-            @NotNull ReferenceChangeTracker referenceTracker,
-            @NotNull SecurityProvider securityProvider);
+        @NotNull NamePathMapper namePathMapper,
+        boolean isWorkspaceImport, int uuidBehavior,
+        @NotNull ReferenceChangeTracker referenceTracker,
+        @NotNull SecurityProvider securityProvider);
 
     /**
-     * Post processing protected reference properties underneath a protected
-     * or non-protected parent node. If the parent is protected it has been
-     * handled by this importer already.
+     * Post processing protected reference properties underneath a protected or non-protected parent
+     * node. If the parent is protected it has been handled by this importer already.
      *
      * @throws javax.jcr.RepositoryException If an error occurs.
      */

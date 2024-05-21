@@ -19,11 +19,11 @@
 
 package org.apache.jackrabbit.oak.spi.commit;
 
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
 public enum ResetCommitAttributeHook implements CommitHook {
     INSTANCE;
@@ -31,7 +31,7 @@ public enum ResetCommitAttributeHook implements CommitHook {
     @NotNull
     @Override
     public NodeState processCommit(NodeState before, NodeState after, CommitInfo info)
-            throws CommitFailedException {
+        throws CommitFailedException {
         //Reset the attributes upon each commit attempt
         resetAttributes(info);
         return after;

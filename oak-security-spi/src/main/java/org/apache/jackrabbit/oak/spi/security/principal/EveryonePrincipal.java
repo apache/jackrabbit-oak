@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.spi.security.principal;
 
 import java.security.Principal;
 import java.util.Enumeration;
-
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.principal.JackrabbitPrincipal;
 import org.jetbrains.annotations.NotNull;
@@ -32,7 +31,8 @@ public final class EveryonePrincipal implements JackrabbitPrincipal, GroupPrinci
 
     private static final EveryonePrincipal INSTANCE = new EveryonePrincipal();
 
-    private EveryonePrincipal() { }
+    private EveryonePrincipal() {
+    }
 
     public static EveryonePrincipal getInstance() {
         return INSTANCE;

@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.spi.query;
 
 import java.util.Iterator;
-
 import org.apache.jackrabbit.oak.api.Result.SizePrecision;
 
 /**
@@ -30,24 +29,21 @@ public interface Cursor extends Iterator<IndexRow> {
     /**
      * The next row within this index.
      * <p>
-     * The row may only contains the path, if a path is available. It may also
-     * (or just) contain so-called "pseudo-properties" such as "jcr:score" and
-     * "rep:excerpt", in case the index supports those properties and if the
-     * properties were requested when running the query. The query engine will
-     * indicate that those pseudo properties were requested by setting an
+     * The row may only contains the path, if a path is available. It may also (or just) contain
+     * so-called "pseudo-properties" such as "jcr:score" and "rep:excerpt", in case the index
+     * supports those properties and if the properties were requested when running the query. The
+     * query engine will indicate that those pseudo properties were requested by setting an
      * appropriate (possibly unrestricted) filter condition.
      * <p>
-     * The index should return a row with those properties that are stored in
-     * the index itself, so that the query engine doesn't have to load the whole
-     * row / node unnecessarily (avoiding to load the whole row is sometimes
-     * called "index only scan"), specially for rows that are anyway skipped. If
-     * the index does not have an (efficient) way to return some (or any) of the
-     * properties, it doesn't have to provide those values. In this case, the
-     * query engine will load the node itself if required. If all conditions
-     * match, the query engine will sometimes load the node to do access checks,
-     * but this is not always the case, and it is not the case if any of the
-     * (join) conditions do not match.
-     * 
+     * The index should return a row with those properties that are stored in the index itself, so
+     * that the query engine doesn't have to load the whole row / node unnecessarily (avoiding to
+     * load the whole row is sometimes called "index only scan"), specially for rows that are anyway
+     * skipped. If the index does not have an (efficient) way to return some (or any) of the
+     * properties, it doesn't have to provide those values. In this case, the query engine will load
+     * the node itself if required. If all conditions match, the query engine will sometimes load
+     * the node to do access checks, but this is not always the case, and it is not the case if any
+     * of the (join) conditions do not match.
+     *
      * @return the row
      */
     @Override
@@ -55,11 +51,11 @@ public interface Cursor extends Iterator<IndexRow> {
 
     /**
      * Get the size if known.
-     * 
+     *
      * @param precision the required precision
-     * @param max the maximum nodes read (for an exact size)
+     * @param max       the maximum nodes read (for an exact size)
      * @return the size, or -1 if unknown
      */
     long getSize(SizePrecision precision, long max);
-    
+
 }

@@ -16,34 +16,34 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableList.copyOf;
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
-import static org.apache.jackrabbit.guava.common.collect.Iterators.transform;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
-import static org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors.newDirectExecutorService;
 import static java.util.Arrays.asList;
 import static javax.jcr.PropertyType.TYPENAME_STRING;
 import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
 import static org.apache.jackrabbit.JcrConstants.NT_FILE;
+import static org.apache.jackrabbit.guava.common.collect.ImmutableList.copyOf;
+import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
+import static org.apache.jackrabbit.guava.common.collect.Iterators.transform;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors.newDirectExecutorService;
+import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.apache.jackrabbit.oak.api.Type.BINARIES;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.ANALYZERS;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.ANL_DEFAULT;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.ANL_FILTERS;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.ANL_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.ANL_TOKENIZER;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.NT_TEST;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.createNodeWithType;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.newLuceneIndexDefinitionV2;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.newLuceneIndexDefinition;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.newLucenePropertyIndexDefinition;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.writer.IndexWriterUtils.getIndexWriterConfig;
-import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.ANALYZERS;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.ANL_DEFAULT;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.ANL_FILTERS;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.ANL_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.ANL_TOKENIZER;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.INCLUDE_PROPERTY_NAMES;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.INDEX_RULES;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PERSISTENCE_FILE;
@@ -55,6 +55,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import ch.qos.logback.classic.Level;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -62,12 +63,13 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-
 import javax.jcr.PropertyType;
-
-import ch.qos.logback.classic.Level;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
@@ -117,11 +119,6 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
-
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 
 @SuppressWarnings("ConstantConditions")
 public class LuceneIndexTest {
@@ -191,7 +188,7 @@ public class LuceneIndexTest {
         filter.restrictPath("/", Filter.PathRestriction.EXACT);
         filter.restrictProperty("foo", Operator.EQUAL,
             PropertyValues.newString("bar"));
-        List<IndexPlan>  plans = queryIndex.getPlans(filter, null, builder.getNodeState());
+        List<IndexPlan> plans = queryIndex.getPlans(filter, null, builder.getNodeState());
         Cursor cursor = queryIndex.query(plans.get(0), indexed);
         assertTrue(cursor.hasNext());
         assertEquals("/", cursor.next().getPath());
@@ -206,8 +203,8 @@ public class LuceneIndexTest {
         NodeState before = builder.getNodeState();
         builder.setProperty("foo", "bar");
 
-        for(int i = 0; i < LuceneIndex.LUCENE_QUERY_BATCH_SIZE; i++){
-            builder.child("parent").child("child"+i).setProperty("foo", "bar");
+        for (int i = 0; i < LuceneIndex.LUCENE_QUERY_BATCH_SIZE; i++) {
+            builder.child("parent").child("child" + i).setProperty("foo", "bar");
         }
 
         NodeState after = builder.getNodeState();
@@ -267,20 +264,22 @@ public class LuceneIndexTest {
         NodeBuilder index = newLucenePropertyIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
             "lucene", ImmutableSet.of("foo"), null);
         NodeBuilder rules = index.child(INDEX_RULES);
-        NodeBuilder fooProp = rules.child("nt:base").child(FulltextIndexConstants.PROP_NODE).child("foo");
+        NodeBuilder fooProp = rules.child("nt:base").child(FulltextIndexConstants.PROP_NODE)
+                                   .child("foo");
         fooProp.setProperty(FulltextIndexConstants.PROP_PROPERTY_INDEX, true);
-        fooProp.setProperty(FulltextIndexConstants.PROP_INCLUDED_TYPE, PropertyType.TYPENAME_STRING);
+        fooProp.setProperty(FulltextIndexConstants.PROP_INCLUDED_TYPE,
+            PropertyType.TYPENAME_STRING);
 
         NodeState before = builder.getNodeState();
         builder.setProperty("foo", "bar");
         builder.child("a").setProperty("foo", "bar");
         builder.child("a").child("b").setProperty("foo", "bar", Type.NAME);
         builder.child("a").child("b").child("c")
-            .setProperty("foo", "bar", Type.NAME);
+               .setProperty("foo", "bar", Type.NAME);
 
         NodeState after = builder.getNodeState();
 
-        NodeState indexed = HOOK.processCommit(before, after,CommitInfo.EMPTY);
+        NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
 
         tracker = new IndexTracker();
         tracker.update(indexed);
@@ -303,18 +302,19 @@ public class LuceneIndexTest {
         NodeBuilder index = newLucenePropertyIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
             "lucene", ImmutableSet.of("foo"), null);
         NodeBuilder rules = index.child(INDEX_RULES);
-        NodeBuilder fooProp = rules.child("nt:base").child(FulltextIndexConstants.PROP_NODE).child("foo");
+        NodeBuilder fooProp = rules.child("nt:base").child(FulltextIndexConstants.PROP_NODE)
+                                   .child("foo");
         fooProp.setProperty(FulltextIndexConstants.PROP_PROPERTY_INDEX, true);
 
         //1. Create 60 nodes
         NodeState before = builder.getNodeState();
         int noOfDocs = LuceneIndex.LUCENE_QUERY_BATCH_SIZE + 10;
         for (int i = 0; i < noOfDocs; i++) {
-            builder.child("a"+i).setProperty("foo", (long)i);
+            builder.child("a" + i).setProperty("foo", (long) i);
         }
         NodeState after = builder.getNodeState();
 
-        NodeState indexed = HOOK.processCommit(before, after,CommitInfo.EMPTY);
+        NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
 
         tracker = new IndexTracker();
         tracker.update(indexed);
@@ -333,7 +333,7 @@ public class LuceneIndexTest {
         before = indexed;
         builder = indexed.builder();
         for (int i = 0; i < noOfDocs - 10; i++) {
-            builder.child("a"+i).remove();
+            builder.child("a" + i).remove();
         }
         after = builder.getNodeState();
         indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
@@ -342,7 +342,8 @@ public class LuceneIndexTest {
         //Ensure that Lucene actually removes deleted docs
         NodeBuilder idx = builder.child(INDEX_DEFINITIONS_NAME).child("lucene");
         purgeDeletedDocs(idx, new LuceneIndexDefinition(root, idx.getNodeState(), "/foo"));
-        int numDeletes = getDeletedDocCount(idx, new LuceneIndexDefinition(root, idx.getNodeState(), "/foo"));
+        int numDeletes = getDeletedDocCount(idx,
+            new LuceneIndexDefinition(root, idx.getNodeState(), "/foo"));
         Assert.assertEquals(0, numDeletes);
 
         //Update the IndexSearcher
@@ -353,7 +354,7 @@ public class LuceneIndexTest {
         //deleted by QE for the revision at which query was triggered
         //So just checking for >
         List<String> resultPaths = Lists.newArrayList();
-        while(cursor.hasNext()){
+        while (cursor.hasNext()) {
             resultPaths.add(cursor.next().getPath());
         }
 
@@ -362,15 +363,19 @@ public class LuceneIndexTest {
         assertFalse(uniquePaths.isEmpty());
     }
 
-    private void purgeDeletedDocs(NodeBuilder idx, LuceneIndexDefinition definition) throws IOException {
-        Directory dir = new DefaultDirectoryFactory(null, null).newInstance(definition, idx, FulltextIndexConstants.INDEX_DATA_CHILD_NAME, false);
+    private void purgeDeletedDocs(NodeBuilder idx, LuceneIndexDefinition definition)
+        throws IOException {
+        Directory dir = new DefaultDirectoryFactory(null, null).newInstance(definition, idx,
+            FulltextIndexConstants.INDEX_DATA_CHILD_NAME, false);
         IndexWriter writer = new IndexWriter(dir, getIndexWriterConfig(definition, true));
         writer.forceMergeDeletes();
         writer.close();
     }
 
-    public int getDeletedDocCount(NodeBuilder idx, LuceneIndexDefinition definition) throws IOException {
-        Directory  dir = new DefaultDirectoryFactory(null, null).newInstance(definition, idx, FulltextIndexConstants.INDEX_DATA_CHILD_NAME, false);
+    public int getDeletedDocCount(NodeBuilder idx, LuceneIndexDefinition definition)
+        throws IOException {
+        Directory dir = new DefaultDirectoryFactory(null, null).newInstance(definition, idx,
+            FulltextIndexConstants.INDEX_DATA_CHILD_NAME, false);
         IndexReader reader = DirectoryReader.open(dir);
         int numDeletes = reader.numDeletedDocs();
         reader.close();
@@ -397,7 +402,7 @@ public class LuceneIndexTest {
 
         NodeState after = builder.getNodeState();
 
-        NodeState indexed = HOOK.processCommit(before, after,CommitInfo.EMPTY);
+        NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
 
         tracker = new IndexTracker();
         tracker.update(indexed);
@@ -428,7 +433,7 @@ public class LuceneIndexTest {
 
         NodeState after = builder.getNodeState();
 
-        NodeState indexed = HOOK.processCommit(before, after,CommitInfo.EMPTY);
+        NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
 
         tracker = new IndexTracker();
         tracker.update(indexed);
@@ -436,7 +441,7 @@ public class LuceneIndexTest {
 
         FilterImpl filter = createFilter(NT_TEST);
         filter.restrictProperty("foo", Operator.NOT_EQUAL, null);
-        assertFilter(filter, queryIndex, indexed, ImmutableList.of("/a","/b"));
+        assertFilter(filter, queryIndex, indexed, ImmutableList.of("/a", "/b"));
     }
 
 
@@ -450,9 +455,9 @@ public class LuceneIndexTest {
         NodeBuilder propNode = rules.child(NT_TEST).child(FulltextIndexConstants.PROP_NODE);
 
         propNode.child("bar")
-            .setProperty(FulltextIndexConstants.PROP_NAME, "jcr:content/bar")
-            .setProperty(FulltextIndexConstants.PROP_PROPERTY_INDEX, true)
-            .setProperty(FulltextIndexConstants.PROP_NULL_CHECK_ENABLED, true);
+                .setProperty(FulltextIndexConstants.PROP_NAME, "jcr:content/bar")
+                .setProperty(FulltextIndexConstants.PROP_PROPERTY_INDEX, true)
+                .setProperty(FulltextIndexConstants.PROP_NULL_CHECK_ENABLED, true);
 
         NodeState before = builder.getNodeState();
 
@@ -464,7 +469,7 @@ public class LuceneIndexTest {
 
         NodeState after = builder.getNodeState();
 
-        NodeState indexed = HOOK.processCommit(before, after,CommitInfo.EMPTY);
+        NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
 
         tracker = new IndexTracker();
         tracker.update(indexed);
@@ -499,7 +504,7 @@ public class LuceneIndexTest {
 
         NodeState after = builder.getNodeState();
 
-        NodeState indexed = HOOK.processCommit(before, after,CommitInfo.EMPTY);
+        NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
 
         tracker = new IndexTracker();
         tracker.update(indexed);
@@ -523,7 +528,7 @@ public class LuceneIndexTest {
     }
 
     @Test
-    public void nodeNameIndex() throws Exception{
+    public void nodeNameIndex() throws Exception {
         NodeBuilder index = newLucenePropertyIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
             "lucene", ImmutableSet.of("foo"), null);
         NodeBuilder rules = index.child(INDEX_RULES);
@@ -535,33 +540,36 @@ public class LuceneIndexTest {
         createNodeWithType(builder, "camelCase", NT_FILE);
         NodeState after = builder.getNodeState();
 
-        NodeState indexed = HOOK.processCommit(before, after,CommitInfo.EMPTY);
+        NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
 
         tracker = new IndexTracker();
         tracker.update(indexed);
         AdvancedQueryIndex queryIndex = new LucenePropertyIndex(tracker);
 
         FilterImpl filter = createFilter(NT_FILE);
-        filter.restrictProperty(QueryConstants.RESTRICTION_LOCAL_NAME, Operator.EQUAL, PropertyValues.newString("foo"));
+        filter.restrictProperty(QueryConstants.RESTRICTION_LOCAL_NAME, Operator.EQUAL,
+            PropertyValues.newString("foo"));
         assertFilter(filter, queryIndex, indexed, ImmutableList.of("/foo"));
 
         filter = createFilter(NT_FILE);
-        filter.restrictProperty(QueryConstants.RESTRICTION_LOCAL_NAME, Operator.LIKE, PropertyValues.newString("camelCase"));
+        filter.restrictProperty(QueryConstants.RESTRICTION_LOCAL_NAME, Operator.LIKE,
+            PropertyValues.newString("camelCase"));
         assertFilter(filter, queryIndex, indexed, ImmutableList.of("/camelCase"));
 
         filter = createFilter(NT_FILE);
-        filter.restrictProperty(QueryConstants.RESTRICTION_LOCAL_NAME, Operator.LIKE, PropertyValues.newString("camel%"));
+        filter.restrictProperty(QueryConstants.RESTRICTION_LOCAL_NAME, Operator.LIKE,
+            PropertyValues.newString("camel%"));
         assertFilter(filter, queryIndex, indexed, ImmutableList.of("/camelCase"));
     }
 
-    private FilterImpl createTestFilter(){
+    private FilterImpl createTestFilter() {
         FilterImpl filter = createFilter(NT_BASE);
         filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
         return filter;
     }
 
     @Test
-    public void analyzerWithStopWords() throws Exception{
+    public void analyzerWithStopWords() throws Exception {
         NodeBuilder nb = newLuceneIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "lucene",
             of(TYPENAME_STRING));
         TestUtil.useV2(nb);
@@ -569,7 +577,7 @@ public class LuceneIndexTest {
         builder.setProperty("foo", "fox jumping");
         NodeState after = builder.getNodeState();
 
-        NodeState indexed = HOOK.processCommit(before, after,CommitInfo.EMPTY);
+        NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
 
         tracker = new IndexTracker();
         tracker.update(indexed);
@@ -594,7 +602,7 @@ public class LuceneIndexTest {
         before = after;
         after = builder.getNodeState();
 
-        indexed = HOOK.processCommit(before, after,CommitInfo.EMPTY);
+        indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
         tracker.update(indexed);
         queryIndex = new LucenePropertyIndex(tracker);
 
@@ -633,19 +641,20 @@ public class LuceneIndexTest {
     }
 
     @Test
-    public void luceneWithFSDirectory() throws Exception{
+    public void luceneWithFSDirectory() throws Exception {
         //Issue is not reproducible with MemoryNodeBuilder and
         //MemoryNodeState as they cannot determine change in childNode without
         //entering
         NodeStore nodeStore = SegmentNodeStoreBuilders.builder(new MemoryStore()).build();
         tracker = new IndexTracker();
-        ((Observable)nodeStore).addObserver((root, info) -> tracker.update(root));
+        ((Observable) nodeStore).addObserver((root, info) -> tracker.update(root));
         builder = nodeStore.getRoot().builder();
 
         //Also initialize the NodeType registry required for Lucene index to work
         builder.setChildNode(JCR_SYSTEM, INITIAL_CONTENT.getChildNode(JCR_SYSTEM));
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
-        NodeBuilder idxb = newLucenePropertyIndexDefinition(index, "lucene", ImmutableSet.of("foo", "foo2"), null);
+        NodeBuilder idxb = newLucenePropertyIndexDefinition(index, "lucene",
+            ImmutableSet.of("foo", "foo2"), null);
         idxb.setProperty(PERSISTENCE_NAME, PERSISTENCE_FILE);
         idxb.setProperty(PERSISTENCE_PATH, getIndexDir());
 
@@ -666,7 +675,7 @@ public class LuceneIndexTest {
     }
 
     @Test
-    public void luceneWithCopyOnReadDir() throws Exception{
+    public void luceneWithCopyOnReadDir() throws Exception {
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
         newLucenePropertyIndexDefinition(index, "lucene", ImmutableSet.of("foo", "foo2"), null);
 
@@ -674,7 +683,7 @@ public class LuceneIndexTest {
         builder.setProperty("foo", "bar");
         NodeState after = builder.getNodeState();
 
-        NodeState indexed = HOOK.processCommit(before, after,CommitInfo.EMPTY);
+        NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
 
         File indexRootDir = new File(getIndexDir());
         tracker = new IndexTracker(new IndexCopier(newDirectExecutorService(), indexRootDir));
@@ -684,24 +693,25 @@ public class LuceneIndexTest {
 
         builder = indexed.builder();
         builder.setProperty("foo2", "bar2");
-        indexed = HOOK.processCommit(indexed, builder.getNodeState(),CommitInfo.EMPTY);
+        indexed = HOOK.processCommit(indexed, builder.getNodeState(), CommitInfo.EMPTY);
         tracker.update(indexed);
 
         assertQuery(tracker, indexed, "foo2", "bar2");
     }
 
     @Test
-    public void luceneWithCopyOnReadDirAndReindex() throws Exception{
+    public void luceneWithCopyOnReadDirAndReindex() throws Exception {
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
         NodeBuilder defnState =
-            newLucenePropertyIndexDefinition(index, "lucene", ImmutableSet.of("foo", "foo2", "foo3"), null);
+            newLucenePropertyIndexDefinition(index, "lucene",
+                ImmutableSet.of("foo", "foo2", "foo3"), null);
         IndexDefinition definition = new IndexDefinition(root, defnState.getNodeState(), "/foo");
 
         //1. Create index in two increments
         NodeState before = builder.getNodeState();
         builder.setProperty("foo", "bar");
 
-        NodeState indexed = HOOK.processCommit(before, builder.getNodeState(),CommitInfo.EMPTY);
+        NodeState indexed = HOOK.processCommit(before, builder.getNodeState(), CommitInfo.EMPTY);
 
         IndexCopier copier = new IndexCopier(newDirectExecutorService(), new File(getIndexDir()));
         tracker = new IndexTracker(copier);
@@ -712,7 +722,7 @@ public class LuceneIndexTest {
 
         builder = indexed.builder();
         builder.setProperty("foo2", "bar2");
-        indexed = HOOK.processCommit(indexed, builder.getNodeState(),CommitInfo.EMPTY);
+        indexed = HOOK.processCommit(indexed, builder.getNodeState(), CommitInfo.EMPTY);
         tracker.update(indexed);
 
         assertQuery(tracker, indexed, "foo2", "bar2");
@@ -720,8 +730,9 @@ public class LuceneIndexTest {
 
         //2. Reindex. This would create index with different index content
         builder = indexed.builder();
-        builder.child(INDEX_DEFINITIONS_NAME).child("lucene").setProperty(REINDEX_PROPERTY_NAME, true);
-        indexed = HOOK.processCommit(indexed, builder.getNodeState(),CommitInfo.EMPTY);
+        builder.child(INDEX_DEFINITIONS_NAME).child("lucene")
+               .setProperty(REINDEX_PROPERTY_NAME, true);
+        indexed = HOOK.processCommit(indexed, builder.getNodeState(), CommitInfo.EMPTY);
         tracker.update(indexed);
 
         defnState = builder.child(INDEX_DEFINITIONS_NAME).child("lucene");
@@ -735,14 +746,15 @@ public class LuceneIndexTest {
         //orphaned directory must be removed
         builder = indexed.builder();
         builder.setProperty("foo3", "bar3");
-        indexed = HOOK.processCommit(indexed, builder.getNodeState(),CommitInfo.EMPTY);
+        indexed = HOOK.processCommit(indexed, builder.getNodeState(), CommitInfo.EMPTY);
         tracker.update(indexed);
         assertQuery(tracker, indexed, "foo3", "bar3");
         assertEquals(0, copier.getInvalidFileCount());
-        List<LocalIndexDir> idxDirs = copier.getIndexRootDirectory().getLocalIndexes("/oak:index/lucene");
+        List<LocalIndexDir> idxDirs = copier.getIndexRootDirectory()
+                                            .getLocalIndexes("/oak:index/lucene");
         List<LocalIndexDir> nonEmptyDirs = Lists.newArrayList();
-        for (LocalIndexDir dir : idxDirs){
-            if (!dir.isEmpty()){
+        for (LocalIndexDir dir : idxDirs) {
+            if (!dir.isEmpty()) {
                 nonEmptyDirs.add(dir);
             }
         }
@@ -751,11 +763,13 @@ public class LuceneIndexTest {
 
     @Test
     public void multiValuesForOrderedIndexShouldNotThrow() {
-        NodeBuilder index = newLuceneIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "lucene", null);
+        NodeBuilder index = newLuceneIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+            "lucene", null);
         NodeBuilder singleProp = TestUtil.child(index, "indexRules/nt:base/properties/single");
         singleProp.setProperty(FulltextIndexConstants.PROP_PROPERTY_INDEX, true);
         singleProp.setProperty(FulltextIndexConstants.PROP_ORDERED, true);
-        singleProp.setProperty(FulltextIndexConstants.PROP_INCLUDED_TYPE, PropertyType.TYPENAME_STRING);
+        singleProp.setProperty(FulltextIndexConstants.PROP_INCLUDED_TYPE,
+            PropertyType.TYPENAME_STRING);
 
         NodeState before = builder.getNodeState();
         builder.setProperty("single", asList("baz", "bar"), Type.STRINGS);
@@ -769,7 +783,7 @@ public class LuceneIndexTest {
     }
 
     @Test
-    public void indexNodeLockHandling() throws Exception{
+    public void indexNodeLockHandling() throws Exception {
         tracker = new IndexTracker();
 
         //Create 2 indexes. /oak:index/lucene and /test/oak:index/lucene
@@ -828,27 +842,31 @@ public class LuceneIndexTest {
         NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
 
         String indexPath = "/oak:index/lucene";
-        IndexDefinition defn = new IndexDefinition(root, indexed.getChildNode("oak:index").getChildNode("lucene"), indexPath);
+        IndexDefinition defn = new IndexDefinition(root,
+            indexed.getChildNode("oak:index").getChildNode("lucene"), indexPath);
 
         assertEquals(indexPath, defn.getIndexName());
         assertEquals(indexPath, defn.getIndexPath());
     }
-    
+
     /**
-     * Given a lucene index with a config error, it should not block other
-     * indexes to index content and should log a meaningful Exception. Once
-     * fixed and reindexed - it should reindex content as expected.
+     * Given a lucene index with a config error, it should not block other indexes to index content
+     * and should log a meaningful Exception. Once fixed and reindexed - it should reindex content
+     * as expected.
      */
     @Test
     public void testConfigErrorInIndexDefintion() throws Exception {
-        LogCustomizer customLogs = LogCustomizer.forLogger(IndexUpdate.class.getName()).enable(Level.ERROR).create();
+        LogCustomizer customLogs = LogCustomizer.forLogger(IndexUpdate.class.getName())
+                                                .enable(Level.ERROR).create();
 
         // Create 2 index def - one with config related error and one without
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
         newLucenePropertyIndexDefinition(index, "luceneTest", ImmutableSet.of("foo"), null);
         newLucenePropertyIndexDefinition(index, "luceneTest2", ImmutableSet.of("foo2"), null);
 
-        builder.child(INDEX_DEFINITIONS_NAME).child("luceneTest").setProperty(IndexConstants.ENTRY_COUNT_PROPERTY_NAME, ImmutableList.of(2L), Type.LONGS);
+        builder.child(INDEX_DEFINITIONS_NAME).child("luceneTest")
+               .setProperty(IndexConstants.ENTRY_COUNT_PROPERTY_NAME, ImmutableList.of(2L),
+                   Type.LONGS);
 
         NodeState before = builder.getNodeState();
         // Add some content that qualifies to be indexed by both of the above indexes (separately)
@@ -860,13 +878,15 @@ public class LuceneIndexTest {
         NodeState indexed;
         try {
             customLogs.starting();
-            String expectedLogMessage = "Unable to get Index Editor for index at /oak:index/luceneTest . " +
+            String expectedLogMessage =
+                "Unable to get Index Editor for index at /oak:index/luceneTest . " +
                     "Please correct the index definition and reindex after correction. " +
                     "Additional Info : java.lang.IllegalStateException: Multiple values provided for property entryCount in index definition . Single value was expected";
             indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
             tracker = new IndexTracker();
             tracker.update(indexed);
-            Assert.assertThat(customLogs.getLogs(), IsCollectionContaining.hasItems(expectedLogMessage));
+            Assert.assertThat(customLogs.getLogs(),
+                IsCollectionContaining.hasItems(expectedLogMessage));
 
         } finally {
             customLogs.finished();
@@ -875,7 +895,7 @@ public class LuceneIndexTest {
         AdvancedQueryIndex queryIndex = new LucenePropertyIndex(tracker);
         FilterImpl filter = createFilter(NT_BASE);
         filter.restrictProperty("foo", Operator.EQUAL,
-                PropertyValues.newString("bar"));
+            PropertyValues.newString("bar"));
         List<IndexPlan> plans = queryIndex.getPlans(filter, null, indexed);
 
         // Since the index serving property foo has a config error, no plan should be available
@@ -884,7 +904,7 @@ public class LuceneIndexTest {
         // Now we check the config error in index1 should not impact the query results and content getting indexed for index 2
         FilterImpl filter2 = createFilter(NT_BASE);
         filter2.restrictProperty("foo2", Operator.EQUAL,
-                PropertyValues.newString("bar"));
+            PropertyValues.newString("bar"));
         List<IndexPlan> plans2 = queryIndex.getPlans(filter2, null, indexed);
         Cursor cursor2 = queryIndex.query(plans2.get(0), indexed);
 
@@ -895,8 +915,10 @@ public class LuceneIndexTest {
         // Now let's fix the config error in index1 and check it now indexes the correct data
 
         before = builder.getNodeState();
-        builder.child(INDEX_DEFINITIONS_NAME).child("luceneTest").setProperty(IndexConstants.ENTRY_COUNT_PROPERTY_NAME, 2L, Type.LONG);
-        builder.child(INDEX_DEFINITIONS_NAME).child("luceneTest").setProperty(IndexConstants.REINDEX_PROPERTY_NAME, true);
+        builder.child(INDEX_DEFINITIONS_NAME).child("luceneTest")
+               .setProperty(IndexConstants.ENTRY_COUNT_PROPERTY_NAME, 2L, Type.LONG);
+        builder.child(INDEX_DEFINITIONS_NAME).child("luceneTest")
+               .setProperty(IndexConstants.REINDEX_PROPERTY_NAME, true);
 
         after = builder.getNodeState();
         try {
@@ -906,9 +928,8 @@ public class LuceneIndexTest {
             // Since the config error is now fixed - there should not be any more errors here
             assertEquals(0, customLogs.getLogs().size());
         } finally {
-           customLogs.finished();
+            customLogs.finished();
         }
-
 
         plans = queryIndex.getPlans(filter, null, indexed);
         Cursor cursor = queryIndex.query(plans.get(0), indexed);
@@ -922,11 +943,11 @@ public class LuceneIndexTest {
 
 
     @After
-    public void cleanUp(){
+    public void cleanUp() {
         if (tracker != null) {
             tracker.close();
         }
-        for (File d: dirs){
+        for (File d : dirs) {
             FileUtils.deleteQuietly(d);
         }
     }
@@ -935,10 +956,11 @@ public class LuceneIndexTest {
         NodeTypeInfoProvider nodeTypes = new NodeStateNodeTypeInfoProvider(root);
         NodeTypeInfo type = nodeTypes.getNodeTypeInfo(nodeTypeName);
         SelectorImpl selector = new SelectorImpl(type, nodeTypeName);
-        return new FilterImpl(selector, "SELECT * FROM [" + nodeTypeName + "]", new QueryEngineSettings());
+        return new FilterImpl(selector, "SELECT * FROM [" + nodeTypeName + "]",
+            new QueryEngineSettings());
     }
 
-    private void assertQuery(IndexTracker tracker, NodeState indexed, String key, String value){
+    private void assertQuery(IndexTracker tracker, NodeState indexed, String key, String value) {
         AdvancedQueryIndex queryIndex = new LucenePropertyIndex(tracker);
         FilterImpl filter = createFilter(NT_BASE);
         filter.restrictPath("/", Filter.PathRestriction.EXACT);
@@ -952,7 +974,7 @@ public class LuceneIndexTest {
     }
 
     private static List<String> assertFilter(Filter filter, AdvancedQueryIndex queryIndex,
-                                             NodeState indexed, List<String> expected) {
+        NodeState indexed, List<String> expected) {
         List<IndexPlan> plans = queryIndex.getPlans(filter, null, indexed);
         Cursor cursor = queryIndex.query(plans.get(0), indexed);
 
@@ -969,13 +991,14 @@ public class LuceneIndexTest {
         return paths;
     }
 
-    private String getIndexDir(){
-        File dir = new File("target", "indexdir"+System.nanoTime());
+    private String getIndexDir() {
+        File dir = new File("target", "indexdir" + System.nanoTime());
         dirs.add(dir);
         return dir.getAbsolutePath();
     }
 
     private static class FailingBlob extends ArrayBasedBlob {
+
         public FailingBlob(byte[] b) {
             super(b);
         }

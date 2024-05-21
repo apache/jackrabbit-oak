@@ -45,7 +45,8 @@ public class FilterProviderImplTest {
     @Rule
     public final OsgiContext context = new OsgiContext();
 
-    private final FilterProviderImpl provider = AbstractPrincipalBasedTest.createFilterProviderImpl(PATH);
+    private final FilterProviderImpl provider = AbstractPrincipalBasedTest.createFilterProviderImpl(
+        PATH);
 
     @Test
     public void testHandlesPath() {
@@ -76,32 +77,43 @@ public class FilterProviderImplTest {
         FilterProviderImpl fp = new FilterProviderImpl();
         assertNull(fp.getFilterRoot());
 
-        fp.activate(when(mock(FilterProviderImpl.Configuration.class).path()).thenReturn(PATH).getMock(), Collections.emptyMap());
+        fp.activate(
+            when(mock(FilterProviderImpl.Configuration.class).path()).thenReturn(PATH).getMock(),
+            Collections.emptyMap());
         assertEquals(PATH, fp.getFilterRoot());
     }
 
     @Test(expected = IllegalStateException.class)
     public void testActivateEmptyPath() {
         FilterProviderImpl fp = new FilterProviderImpl();
-        fp.activate(when(mock(FilterProviderImpl.Configuration.class).path()).thenReturn("").getMock(), Collections.emptyMap());
+        fp.activate(
+            when(mock(FilterProviderImpl.Configuration.class).path()).thenReturn("").getMock(),
+            Collections.emptyMap());
     }
 
     @Test(expected = IllegalStateException.class)
     public void testActivateNullPath() {
         FilterProviderImpl fp = new FilterProviderImpl();
-        fp.activate(when(mock(FilterProviderImpl.Configuration.class).path()).thenReturn(null).getMock(), Collections.emptyMap());
+        fp.activate(
+            when(mock(FilterProviderImpl.Configuration.class).path()).thenReturn(null).getMock(),
+            Collections.emptyMap());
     }
 
     @Test(expected = IllegalStateException.class)
     public void testActivateRelativePath() {
         FilterProviderImpl fp = new FilterProviderImpl();
-        fp.activate(when(mock(FilterProviderImpl.Configuration.class).path()).thenReturn("rel/path").getMock(), Collections.emptyMap());
+        fp.activate(when(mock(FilterProviderImpl.Configuration.class).path()).thenReturn("rel/path")
+                                                                             .getMock(),
+            Collections.emptyMap());
     }
 
     @Test
     public void testModified() {
         String modifiedPath = "/modified/path";
-        provider.modified(when(mock(FilterProviderImpl.Configuration.class).path()).thenReturn(modifiedPath).getMock(), Collections.emptyMap());
+        provider.modified(
+            when(mock(FilterProviderImpl.Configuration.class).path()).thenReturn(modifiedPath)
+                                                                     .getMock(),
+            Collections.emptyMap());
         assertEquals(modifiedPath, provider.getFilterRoot());
     }
 

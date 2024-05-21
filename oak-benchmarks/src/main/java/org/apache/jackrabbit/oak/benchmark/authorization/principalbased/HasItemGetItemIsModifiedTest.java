@@ -16,21 +16,24 @@
  */
 package org.apache.jackrabbit.oak.benchmark.authorization.principalbased;
 
-import org.jetbrains.annotations.NotNull;
-
+import java.util.List;
 import javax.jcr.Item;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-import java.util.List;
+import org.jetbrains.annotations.NotNull;
 
 public class HasItemGetItemIsModifiedTest extends PrinicipalBasedReadTest {
 
-    public HasItemGetItemIsModifiedTest(int itemsToRead, int numberOfACEs, int subjectSize, boolean entriesForEachPrincipal, boolean testDefault, @NotNull String compositionType, boolean useAggregationFilter, boolean doReport) {
-        super(itemsToRead, numberOfACEs, subjectSize, entriesForEachPrincipal, testDefault, compositionType, useAggregationFilter, doReport);
+    public HasItemGetItemIsModifiedTest(int itemsToRead, int numberOfACEs, int subjectSize,
+        boolean entriesForEachPrincipal, boolean testDefault, @NotNull String compositionType,
+        boolean useAggregationFilter, boolean doReport) {
+        super(itemsToRead, numberOfACEs, subjectSize, entriesForEachPrincipal, testDefault,
+            compositionType, useAggregationFilter, doReport);
     }
 
     @Override
-    protected void randomRead(Session testSession, List<String> allPaths, int cnt) throws RepositoryException {
+    protected void randomRead(Session testSession, List<String> allPaths, int cnt)
+        throws RepositoryException {
         boolean logout = false;
         if (testSession == null) {
             testSession = getTestSession();
@@ -60,7 +63,10 @@ public class HasItemGetItemIsModifiedTest extends PrinicipalBasedReadTest {
             }
             long end = System.currentTimeMillis();
             if (doReport) {
-                System.out.println("Session " + testSession.getUserID() + " reading " + cnt + " (Nodes: "+ nodeCnt +"; Properties: "+propertyCnt+"; no access: "+noAccess+") completed in " + (end - start));
+                System.out.println(
+                    "Session " + testSession.getUserID() + " reading " + cnt + " (Nodes: " + nodeCnt
+                        + "; Properties: " + propertyCnt + "; no access: " + noAccess
+                        + ") completed in " + (end - start));
             }
         } finally {
             if (logout) {

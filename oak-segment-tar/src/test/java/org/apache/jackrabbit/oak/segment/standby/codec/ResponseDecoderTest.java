@@ -17,10 +17,10 @@
 
 package org.apache.jackrabbit.oak.segment.standby.codec;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterables.elementsEqual;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.elementsEqual;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.oak.segment.standby.StandbyTestUtils.createBlobChunkBuffer;
 import static org.apache.jackrabbit.oak.segment.standby.StandbyTestUtils.createMask;
 import static org.apache.jackrabbit.oak.segment.standby.StandbyTestUtils.hash;
@@ -29,15 +29,14 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-import java.io.File;
-import java.io.InputStream;
-import java.util.UUID;
-
-import org.apache.jackrabbit.guava.common.base.Charsets;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.embedded.EmbeddedChannel;
+import java.io.File;
+import java.io.InputStream;
+import java.util.UUID;
 import org.apache.commons.io.IOUtils;
+import org.apache.jackrabbit.guava.common.base.Charsets;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -60,7 +59,7 @@ public class ResponseDecoderTest {
 
     @Test
     public void shouldDecodeValidOneChunkGetBlobResponses() throws Exception {
-        byte[] blobData = new byte[] {1, 2, 3};
+        byte[] blobData = new byte[]{1, 2, 3};
 
         String blobId = "blobId";
         byte mask = createMask(1, 1);
@@ -79,22 +78,24 @@ public class ResponseDecoderTest {
 
     @Test
     public void shouldDecodeValidTwoChunksGetBlobResponses() throws Exception {
-        byte[] blobData = new byte[] {1, 2, 3, 4};
-        byte[] firstChunkData = new byte[] {1, 2};
-        byte[] secondChunkbData = new byte[] {3, 4};
+        byte[] blobData = new byte[]{1, 2, 3, 4};
+        byte[] firstChunkData = new byte[]{1, 2};
+        byte[] secondChunkbData = new byte[]{3, 4};
 
         String blobId = "blobId";
-        
+
         byte firstMask = createMask(1, 2);
-        ByteBuf firstBuf = createBlobChunkBuffer(Messages.HEADER_BLOB, 4L, blobId, firstChunkData, firstMask);
-        
+        ByteBuf firstBuf = createBlobChunkBuffer(Messages.HEADER_BLOB, 4L, blobId, firstChunkData,
+            firstMask);
+
         byte secondMask = createMask(2, 2);
-        ByteBuf secondBuf = createBlobChunkBuffer(Messages.HEADER_BLOB, 4L, blobId, secondChunkbData, secondMask);
+        ByteBuf secondBuf = createBlobChunkBuffer(Messages.HEADER_BLOB, 4L, blobId,
+            secondChunkbData, secondMask);
 
         EmbeddedChannel channel = new EmbeddedChannel(new ResponseDecoder(folder.newFolder()));
         channel.writeInbound(firstBuf);
         channel.writeInbound(secondBuf);
-        
+
         GetBlobResponse response = (GetBlobResponse) channel.readInbound();
         assertEquals("blobId", response.getBlobId());
         assertEquals(blobData.length, response.getLength());
@@ -106,7 +107,7 @@ public class ResponseDecoderTest {
 
     @Test
     public void shouldDropInvalidGetBlobResponses() throws Exception {
-        byte[] blobData = new byte[] {1, 2, 3};
+        byte[] blobData = new byte[]{1, 2, 3};
 
         String blobId = "blobId";
         byte[] blobIdBytes = blobId.getBytes(Charsets.UTF_8);
@@ -146,7 +147,7 @@ public class ResponseDecoderTest {
     @Test
     public void shouldDecodeValidGetSegmentResponses() throws Exception {
         UUID uuid = new UUID(1, 2);
-        byte[] data = new byte[] {3, 4, 5};
+        byte[] data = new byte[]{3, 4, 5};
 
         ByteBuf buf = Unpooled.buffer();
         buf.writeInt(data.length + 25);
@@ -228,7 +229,7 @@ public class ResponseDecoderTest {
     @Test
     public void shouldDropInvalidGetSegmentResponses() throws Exception {
         UUID uuid = new UUID(1, 2);
-        byte[] data = new byte[] {3, 4, 5};
+        byte[] data = new byte[]{3, 4, 5};
 
         ByteBuf buf = Unpooled.buffer();
         buf.writeInt(data.length + 25);

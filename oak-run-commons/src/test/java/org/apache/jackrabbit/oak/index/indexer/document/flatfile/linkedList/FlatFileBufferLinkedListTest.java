@@ -19,17 +19,16 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.linkedList;
 
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+
+import java.io.IOException;
+import java.util.Iterator;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry.NodeStateEntryBuilder;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-
-import java.io.IOException;
-import java.util.Iterator;
 
 public class FlatFileBufferLinkedListTest {
 
@@ -70,23 +69,26 @@ public class FlatFileBufferLinkedListTest {
         Assert.assertEquals("empty list must be 0-sized", 0, Iterators.size(list.iterator()));
 
         list.add(testNode("/"));
-        Assert.assertEquals("single entry list must be 1-sized", 1, Iterators.size(list.iterator()));
+        Assert.assertEquals("single entry list must be 1-sized", 1,
+            Iterators.size(list.iterator()));
         Assert.assertEquals("single entry list must be 1-sized on separate iterators",
-                1, Iterators.size(list.iterator()));
+            1, Iterators.size(list.iterator()));
 
         list.add(testNode("/a"));
-        Assert.assertEquals("2 entries in list must be 2-sized", 2, Iterators.size(list.iterator()));
+        Assert.assertEquals("2 entries in list must be 2-sized", 2,
+            Iterators.size(list.iterator()));
 
         Assert.assertEquals("2 entries in list must be 2-sized on separate iterators",
-                2, Iterators.size(list.iterator()));
+            2, Iterators.size(list.iterator()));
 
         Iterator<NodeStateEntry> iter2 = list.iterator();
         Iterator<NodeStateEntry> iter1 = list.iterator();
         Assert.assertEquals("/", iter2.next().toString());
         Assert.assertEquals("2 entries in list must be 1-sized after consuming an item",
-                1, Iterators.size(iter2));
-        Assert.assertEquals("2 entries in list must be 2-sized even if some other iterator consumed an item",
-                2, Iterators.size(iter1));
+            1, Iterators.size(iter2));
+        Assert.assertEquals(
+            "2 entries in list must be 2-sized even if some other iterator consumed an item",
+            2, Iterators.size(iter1));
 
         list.add(testNode("/b"));
         iter1 = list.iterator();
@@ -109,7 +111,7 @@ public class FlatFileBufferLinkedListTest {
         //this should work
         Assert.assertEquals(testNode("/b"), iter2.next());
         Assert.assertEquals("2 entries in list must be 1-sized after removal of an iterm",
-                1, Iterators.size(list.iterator()));
+            1, Iterators.size(list.iterator()));
     }
 
     @Test
@@ -118,15 +120,18 @@ public class FlatFileBufferLinkedListTest {
 
         list.add(testNode("/"));
         Assert.assertEquals("single entry list must be 1-sized", 1, list.size());
-        Assert.assertEquals("single entry list must be 1-sized on separate iterators", 1, list.size());
+        Assert.assertEquals("single entry list must be 1-sized on separate iterators", 1,
+            list.size());
 
         list.add(testNode("/"));
         Assert.assertEquals("2 entries in list must be 2-sized", 2, list.size());
 
-        Assert.assertEquals("2 entries in list must be 2-sized on separate iterators", 2, list.size());
+        Assert.assertEquals("2 entries in list must be 2-sized on separate iterators", 2,
+            list.size());
 
         list.remove();
-        Assert.assertEquals("2 entries in list must be 1-sized after removing an item", 1, list.size());
+        Assert.assertEquals("2 entries in list must be 1-sized after removing an item", 1,
+            list.size());
     }
 
     @Test
@@ -157,7 +162,8 @@ public class FlatFileBufferLinkedListTest {
     @Test
     public void memLimit() {
         list = new FlatFileBufferLinkedList(10);
-        NodeStateEntry e10Bytes = new NodeStateEntryBuilder(EMPTY_NODE, "/").withMemUsage(10).build();
+        NodeStateEntry e10Bytes = new NodeStateEntryBuilder(EMPTY_NODE, "/").withMemUsage(10)
+                                                                            .build();
         NodeStateEntry e1Byte = new NodeStateEntryBuilder(EMPTY_NODE, "/").withMemUsage(1).build();
 
         list.add(e10Bytes); //this should succeed
@@ -171,7 +177,8 @@ public class FlatFileBufferLinkedListTest {
         }
 
         Assert.assertEquals("Addition beyond mem limit shouldn't get added", 1, list.size());
-        Assert.assertEquals("Addition beyond mem limit shouldn't show up in usage", 1, list.estimatedMemoryUsage());
+        Assert.assertEquals("Addition beyond mem limit shouldn't show up in usage", 1,
+            list.estimatedMemoryUsage());
     }
 
     @Test

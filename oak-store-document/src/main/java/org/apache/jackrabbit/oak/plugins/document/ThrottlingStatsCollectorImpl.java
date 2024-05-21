@@ -44,7 +44,9 @@ import static org.slf4j.LoggerFactory.getLogger;
  * Throttling statistics helper class.
  */
 public class ThrottlingStatsCollectorImpl implements ThrottlingStatsCollector {
-    private final Logger perfLog = getLogger(ThrottlingStatsCollectorImpl.class.getName() + ".perf");
+
+    private final Logger perfLog = getLogger(
+        ThrottlingStatsCollectorImpl.class.getName() + ".perf");
 
     public static final int PERF_LOG_THRESHOLD = 1;
 
@@ -71,73 +73,93 @@ public class ThrottlingStatsCollectorImpl implements ThrottlingStatsCollector {
     public ThrottlingStatsCollectorImpl(StatisticsProvider provider) {
 
         // metrics for throttling
-        MeterStats createSplitNodeThrottlingMeter = provider.getMeter(NODES_CREATE_SPLIT_THROTTLING, DEFAULT);
+        MeterStats createSplitNodeThrottlingMeter = provider.getMeter(NODES_CREATE_SPLIT_THROTTLING,
+            DEFAULT);
 
-        MeterStats updateNodeFailureThrottlingMeter = provider.getMeter(NODES_UPDATE_FAILURE_THROTTLING, DEFAULT);
-        MeterStats updateNodeRetryCountThrottlingMeter = provider.getMeter(NODES_UPDATE_RETRY_COUNT_THROTTLING, DEFAULT);
+        MeterStats updateNodeFailureThrottlingMeter = provider.getMeter(
+            NODES_UPDATE_FAILURE_THROTTLING, DEFAULT);
+        MeterStats updateNodeRetryCountThrottlingMeter = provider.getMeter(
+            NODES_UPDATE_RETRY_COUNT_THROTTLING, DEFAULT);
 
         MeterStats createNodeThrottlingMeter = provider.getMeter(NODES_CREATE_THROTTLING, DEFAULT);
-        TimerStats createNodeThrottlingTimer = provider.getTimer(NODES_CREATE_THROTTLING_TIMER, METRICS_ONLY);
+        TimerStats createNodeThrottlingTimer = provider.getTimer(NODES_CREATE_THROTTLING_TIMER,
+            METRICS_ONLY);
 
-        MeterStats createNodeUpsertThrottlingMeter = provider.getMeter(NODES_CREATE_UPSERT_THROTTLING, DEFAULT);
-        TimerStats createNodeUpsertThrottlingTimer = provider.getTimer(NODES_CREATE_UPSERT_THROTTLING_TIMER, METRICS_ONLY);
+        MeterStats createNodeUpsertThrottlingMeter = provider.getMeter(
+            NODES_CREATE_UPSERT_THROTTLING, DEFAULT);
+        TimerStats createNodeUpsertThrottlingTimer = provider.getTimer(
+            NODES_CREATE_UPSERT_THROTTLING_TIMER, METRICS_ONLY);
 
         MeterStats updateNodeThrottlingMeter = provider.getMeter(NODES_UPDATE_THROTTLING, DEFAULT);
-        TimerStats updateNodeThrottlingTimer = provider.getTimer(NODES_UPDATE_THROTTLING_TIMER, METRICS_ONLY);
+        TimerStats updateNodeThrottlingTimer = provider.getTimer(NODES_UPDATE_THROTTLING_TIMER,
+            METRICS_ONLY);
 
         MeterStats createJournalThrottling = provider.getMeter(JOURNAL_CREATE_THROTTLING, DEFAULT);
-        TimerStats createJournalThrottlingTimer = provider.getTimer(JOURNAL_CREATE_THROTTLING_TIMER, METRICS_ONLY);
+        TimerStats createJournalThrottlingTimer = provider.getTimer(JOURNAL_CREATE_THROTTLING_TIMER,
+            METRICS_ONLY);
 
         MeterStats removeNodesThrottling = provider.getMeter(NODES_REMOVE_THROTTLING, DEFAULT);
-        TimerStats removeNodesThrottlingTimer = provider.getTimer(NODES_REMOVE_THROTTLING_TIMER, METRICS_ONLY);
+        TimerStats removeNodesThrottlingTimer = provider.getTimer(NODES_REMOVE_THROTTLING_TIMER,
+            METRICS_ONLY);
 
-        removeMetricUpdater = new RemoveMetricUpdater(removeNodesThrottling, removeNodesThrottlingTimer);
+        removeMetricUpdater = new RemoveMetricUpdater(removeNodesThrottling,
+            removeNodesThrottlingTimer);
 
-        createMetricUpdater = new CreateMetricUpdater(createNodeThrottlingMeter, createSplitNodeThrottlingMeter, createNodeThrottlingTimer, createJournalThrottling,
-                createJournalThrottlingTimer);
+        createMetricUpdater = new CreateMetricUpdater(createNodeThrottlingMeter,
+            createSplitNodeThrottlingMeter, createNodeThrottlingTimer, createJournalThrottling,
+            createJournalThrottlingTimer);
 
-        upsertMetricUpdater = new UpsertMetricUpdater(createNodeUpsertThrottlingMeter, createSplitNodeThrottlingMeter, createNodeUpsertThrottlingTimer);
+        upsertMetricUpdater = new UpsertMetricUpdater(createNodeUpsertThrottlingMeter,
+            createSplitNodeThrottlingMeter, createNodeUpsertThrottlingTimer);
 
-        modifyMetricUpdater = new ModifyMetricUpdater(createNodeUpsertThrottlingMeter, createNodeUpsertThrottlingTimer, updateNodeThrottlingMeter, updateNodeThrottlingTimer,
-                updateNodeRetryCountThrottlingMeter, updateNodeFailureThrottlingMeter);
+        modifyMetricUpdater = new ModifyMetricUpdater(createNodeUpsertThrottlingMeter,
+            createNodeUpsertThrottlingTimer, updateNodeThrottlingMeter, updateNodeThrottlingTimer,
+            updateNodeRetryCountThrottlingMeter, updateNodeFailureThrottlingMeter);
     }
 
     //~------------------------------------------< ThrottlingStatsCollector >
 
     @Override
-    public void doneCreate(long throttlingTimeNanos, Collection<? extends Document> collection, List<String> ids, boolean insertSuccess) {
+    public void doneCreate(long throttlingTimeNanos, Collection<? extends Document> collection,
+        List<String> ids, boolean insertSuccess) {
 
-        createMetricUpdater.update(collection, throttlingTimeNanos, ids, insertSuccess, isNodesCollectionUpdated(),
-                getCreateStatsConsumer(), c -> c == JOURNAL, getJournalStatsConsumer());
+        createMetricUpdater.update(collection, throttlingTimeNanos, ids, insertSuccess,
+            isNodesCollectionUpdated(),
+            getCreateStatsConsumer(), c -> c == JOURNAL, getJournalStatsConsumer());
 
         perfLog(perfLog, PERF_LOG_THRESHOLD, throttlingTimeNanos, "create");
     }
 
     @Override
-    public void doneCreateOrUpdate(long throttlingTimeNanos, Collection<? extends Document> collection, List<String> ids) {
+    public void doneCreateOrUpdate(long throttlingTimeNanos,
+        Collection<? extends Document> collection, List<String> ids) {
 
         upsertMetricUpdater.update(collection, throttlingTimeNanos, ids, isNodesCollectionUpdated(),
-                getCreateStatsConsumer());
+            getCreateStatsConsumer());
 
         perfLog(perfLog, PERF_LOG_THRESHOLD, throttlingTimeNanos, "createOrUpdate {}", ids);
     }
 
     @Override
-    public void doneFindAndModify(long throttlingTimeNanos, Collection<? extends Document> collection, String key, boolean newEntry,
-                                  boolean success, int retryCount) {
+    public void doneFindAndModify(long throttlingTimeNanos,
+        Collection<? extends Document> collection, String key, boolean newEntry,
+        boolean success, int retryCount) {
 
-        modifyMetricUpdater.update(collection, retryCount, throttlingTimeNanos, success, newEntry, of(key), isNodesCollectionUpdated(),
-                getStatsConsumer(), getStatsConsumer(), MeterStats::mark, MeterStats::mark);
+        modifyMetricUpdater.update(collection, retryCount, throttlingTimeNanos, success, newEntry,
+            of(key), isNodesCollectionUpdated(),
+            getStatsConsumer(), getStatsConsumer(), MeterStats::mark, MeterStats::mark);
 
         perfLog(perfLog, PERF_LOG_THRESHOLD, throttlingTimeNanos, "findAndModify [{}]", key);
     }
 
     @Override
-    public void doneFindAndModify(long throttlingTimeNanos, Collection<? extends Document> collection, List<String> ids,
-                                  boolean success, int retryCount) {
+    public void doneFindAndModify(long throttlingTimeNanos,
+        Collection<? extends Document> collection, List<String> ids,
+        boolean success, int retryCount) {
 
-        modifyMetricUpdater.update(collection, retryCount, throttlingTimeNanos, success, false, ids, isNodesCollectionUpdated(),
-                getStatsConsumer(), getStatsConsumer(), MeterStats::mark, MeterStats::mark);
+        modifyMetricUpdater.update(collection, retryCount, throttlingTimeNanos, success, false, ids,
+            isNodesCollectionUpdated(),
+            getStatsConsumer(), getStatsConsumer(), MeterStats::mark, MeterStats::mark);
 
         perfLog(perfLog, PERF_LOG_THRESHOLD, throttlingTimeNanos, "findAndModify {}", ids);
     }
@@ -146,7 +168,7 @@ public class ThrottlingStatsCollectorImpl implements ThrottlingStatsCollector {
     public void doneRemove(long throttlingTimeNanos, Collection<? extends Document> collection) {
 
         removeMetricUpdater.update(collection, 1, throttlingTimeNanos, isNodesCollectionUpdated(),
-                getStatsConsumer());
+            getStatsConsumer());
 
         perfLog(perfLog, PERF_LOG_THRESHOLD, throttlingTimeNanos, "remove [{}]", 1);
     }

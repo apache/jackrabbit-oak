@@ -26,7 +26,6 @@ import static org.mockito.Mockito.mock;
 import java.io.File;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
@@ -41,18 +40,19 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 public class FileStoreStatsTest {
+
     @Rule
     public final TemporaryFolder segmentFolder = new TemporaryFolder(new File("target"));
 
     private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
 
     @After
-    public void shutDown(){
+    public void shutDown() {
         new ExecutorCloser(executor).close();
     }
 
     @Test
-    public void initCall() throws Exception{
+    public void initCall() throws Exception {
         FileStore store = mock(FileStore.class);
         StatisticsProvider statsProvider = new DefaultStatisticsProvider(executor);
 
@@ -71,7 +71,8 @@ public class FileStoreStatsTest {
     @Test
     public void testJournalWriteStats() throws Exception {
         StatisticsProvider statsProvider = new DefaultStatisticsProvider(executor);
-        FileStore fileStore = fileStoreBuilder(segmentFolder.newFolder()).withStatisticsProvider(statsProvider).build();
+        FileStore fileStore = fileStoreBuilder(segmentFolder.newFolder()).withStatisticsProvider(
+            statsProvider).build();
         FileStoreStats stats = new FileStoreStats(statsProvider, fileStore, 0);
 
         SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();

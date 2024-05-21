@@ -19,6 +19,10 @@
 
 package org.apache.jackrabbit.oak.spi.blob.split;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
@@ -26,20 +30,13 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
-
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.FileBlobStore;
-import org.apache.jackrabbit.oak.spi.blob.split.DefaultSplitBlobStore;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import org.apache.jackrabbit.guava.common.io.Files;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 public class SplitBlobStoreTest {
 
@@ -64,7 +61,8 @@ public class SplitBlobStoreTest {
         repository = Files.createTempDir();
         oldBlobStore = new FileBlobStore(repository.getPath() + "/old");
         newBlobStore = new FileBlobStore(repository.getPath() + "/new");
-        splitBlobStore = new DefaultSplitBlobStore(repository.getPath(), oldBlobStore, newBlobStore);
+        splitBlobStore = new DefaultSplitBlobStore(repository.getPath(), oldBlobStore,
+            newBlobStore);
         oldBlobIds = addBlobs(oldBlobStore);
         newBlobIds = addBlobs(splitBlobStore);
     }
@@ -144,7 +142,8 @@ public class SplitBlobStoreTest {
         return ids;
     }
 
-    private static void assertStreamEquals(InputStream expected, InputStream actual) throws IOException {
+    private static void assertStreamEquals(InputStream expected, InputStream actual)
+        throws IOException {
         while (true) {
             int expectedByte = expected.read();
             int actualByte = actual.read();

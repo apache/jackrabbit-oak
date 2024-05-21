@@ -48,7 +48,7 @@ public class DocumentNodeStoreBranchInCommitHookTest {
     @Test
     public void manyChangesInCommitHooks() throws Exception {
         DocumentNodeStore ns = builderProvider.newBuilder()
-                .setAsyncDelay(0).setUpdateLimit(10).build();
+                                              .setAsyncDelay(0).setUpdateLimit(10).build();
 
         // get initial branch commits
         NodeDocument root = Utils.getRootDocument(ns.getDocumentStore());
@@ -67,7 +67,7 @@ public class DocumentNodeStoreBranchInCommitHookTest {
     @Test
     public void manyChangesInMultipleCommitHooks() throws Exception {
         DocumentNodeStore ns = builderProvider.newBuilder()
-                .setAsyncDelay(0).setUpdateLimit(10).build();
+                                              .setAsyncDelay(0).setUpdateLimit(10).build();
 
         // get initial branch commits
         NodeDocument root = Utils.getRootDocument(ns.getDocumentStore());
@@ -91,7 +91,7 @@ public class DocumentNodeStoreBranchInCommitHookTest {
     @Test
     public void manyChangesInCommitHooksMultipleBranchCommits() throws Exception {
         DocumentNodeStore ns = builderProvider.newBuilder()
-                .setAsyncDelay(0).setUpdateLimit(10).build();
+                                              .setAsyncDelay(0).setUpdateLimit(10).build();
 
         // get initial branch commits
         NodeDocument root = Utils.getRootDocument(ns.getDocumentStore());
@@ -113,7 +113,7 @@ public class DocumentNodeStoreBranchInCommitHookTest {
     @Test
     public void commitHookTriggersBranchWithConflict() throws Exception {
         DocumentNodeStore ns = builderProvider.newBuilder()
-                .setAsyncDelay(0).setUpdateLimit(10).build();
+                                              .setAsyncDelay(0).setUpdateLimit(10).build();
 
         // get initial branch commits
         NodeDocument root = Utils.getRootDocument(ns.getDocumentStore());
@@ -123,8 +123,8 @@ public class DocumentNodeStoreBranchInCommitHookTest {
         builder.child("test");
         TestHook hook = new TestHook(41);
         ns.merge(builder, new CompositeHook(hook,
-                        new FailingHook(1)), // fail once
-                CommitInfo.EMPTY);
+                new FailingHook(1)), // fail once
+            CommitInfo.EMPTY);
 
         // must have created branch commits
         root = Utils.getRootDocument(ns.getDocumentStore());
@@ -165,13 +165,13 @@ public class DocumentNodeStoreBranchInCommitHookTest {
         @NotNull
         @Override
         public NodeState processCommit(NodeState before,
-                                       NodeState after,
-                                       CommitInfo info)
-                throws CommitFailedException {
+            NodeState after,
+            CommitInfo info)
+            throws CommitFailedException {
             if (countDown-- > 0) {
                 throw new ConflictException("Conflict",
-                        new Revision(0, 0, 1))
-                        .asCommitFailedException();
+                    new Revision(0, 0, 1))
+                    .asCommitFailedException();
             }
             return after;
         }
@@ -213,9 +213,9 @@ public class DocumentNodeStoreBranchInCommitHookTest {
 
         @Override
         public Editor getRootEditor(NodeState before,
-                                    NodeState after,
-                                    NodeBuilder builder,
-                                    CommitInfo info) {
+            NodeState after,
+            NodeBuilder builder,
+            CommitInfo info) {
             return new TestEditor(parentName, numChanges, builder);
         }
     }

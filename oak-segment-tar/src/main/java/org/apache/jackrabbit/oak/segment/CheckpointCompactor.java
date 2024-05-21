@@ -20,9 +20,6 @@ package org.apache.jackrabbit.oak.segment;
 
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newLinkedHashMap;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
@@ -37,12 +34,11 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.segment.file.CompactedNodeState;
-import org.apache.jackrabbit.oak.segment.file.GCNodeWriteMonitor;
 import org.apache.jackrabbit.oak.segment.file.CompactionWriter;
+import org.apache.jackrabbit.oak.segment.file.GCNodeWriteMonitor;
 import org.apache.jackrabbit.oak.segment.file.cancel.Canceller;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -53,8 +49,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * This compactor implementation is aware of the checkpoints in the repository.
- * It uses this information to further optimise the compaction result by
+ * This compactor implementation is aware of the checkpoints in the repository. It uses this
+ * information to further optimise the compaction result by
  * <ul>
  *     <li>Rebasing the checkpoints and subsequently the root on top of each other
  *     in chronological order. This results minimises the deltas that need to be
@@ -64,6 +60,7 @@ import org.jetbrains.annotations.Nullable;
  * </ul>
  */
 public class CheckpointCompactor extends Compactor {
+
     protected final @NotNull GCMonitor gcListener;
 
     private final @NotNull Map<NodeState, CompactedNodeState> cpCache = new HashMap<>();
@@ -73,27 +70,29 @@ public class CheckpointCompactor extends Compactor {
     /**
      * Create a new instance based on the passed arguments.
      *
-     * @param gcListener        listener receiving notifications about the garbage collection process
-     * @param writer           segment writer used to serialise to segments
-     * @param compactionMonitor notification call back for each compacted nodes,
-     *                          properties, and binaries
+     * @param gcListener        listener receiving notifications about the garbage collection
+     *                          process
+     * @param writer            segment writer used to serialise to segments
+     * @param compactionMonitor notification call back for each compacted nodes, properties, and
+     *                          binaries
      */
     public CheckpointCompactor(
-            @NotNull GCMonitor gcListener,
-            @NotNull CompactionWriter writer,
-            @NotNull GCNodeWriteMonitor compactionMonitor) {
+        @NotNull GCMonitor gcListener,
+        @NotNull CompactionWriter writer,
+        @NotNull GCNodeWriteMonitor compactionMonitor) {
         this.gcListener = gcListener;
         this.compactor = new ClassicCompactor(writer, compactionMonitor);
     }
 
     @Override
     public @Nullable CompactedNodeState compactDown(
-            @NotNull NodeState before,
-            @NotNull NodeState after,
-            @NotNull Canceller hardCanceller,
-            @NotNull Canceller softCanceller
+        @NotNull NodeState before,
+        @NotNull NodeState after,
+        @NotNull Canceller hardCanceller,
+        @NotNull Canceller softCanceller
     ) throws IOException {
-        Iterator<Entry<String, NodeState>> iterator = collectRoots(before, after).entrySet().iterator();
+        Iterator<Entry<String, NodeState>> iterator = collectRoots(before, after).entrySet()
+                                                                                 .iterator();
         Entry<String, NodeState> entry = iterator.next();
         String path = entry.getKey();
 
@@ -101,7 +100,8 @@ public class CheckpointCompactor extends Compactor {
         CompactedNodeState compacted = cpCache.get(entry.getValue());
         gcListener.info("compacting {}.", path);
         if (compacted == null) {
-            compacted = compactDownWithDelegate(getRoot(before), entry.getValue(), hardCanceller, softCanceller);
+            compacted = compactDownWithDelegate(getRoot(before), entry.getValue(), hardCanceller,
+                softCanceller);
             if (compacted == null) {
                 return null;
             }
@@ -144,10 +144,10 @@ public class CheckpointCompactor extends Compactor {
 
     @Override
     public @Nullable CompactedNodeState compact(
-            @NotNull NodeState before,
-            @NotNull NodeState after,
-            @NotNull NodeState onto,
-            @NotNull Canceller canceller
+        @NotNull NodeState before,
+        @NotNull NodeState after,
+        @NotNull NodeState onto,
+        @NotNull Canceller canceller
     ) throws IOException {
         LinkedHashMap<String, NodeState> roots = collectRoots(before, after);
 
@@ -174,10 +174,10 @@ public class CheckpointCompactor extends Compactor {
     }
 
     private @Nullable CompactedNodeState compactWithCache(
-            @NotNull NodeState before,
-            @NotNull NodeState after,
-            @NotNull NodeState onto,
-            @NotNull Canceller canceller
+        @NotNull NodeState before,
+        @NotNull NodeState after,
+        @NotNull NodeState onto,
+        @NotNull Canceller canceller
     ) throws IOException {
         CompactedNodeState compacted = cpCache.get(after);
         if (compacted == null) {
@@ -192,22 +192,21 @@ public class CheckpointCompactor extends Compactor {
     }
 
     /**
-     * Collect a chronologically ordered list of roots for the base and the uncompacted
-     * state from a {@code superRoot}. This list consists of all checkpoints followed by
-     * the root.
+     * Collect a chronologically ordered list of roots for the base and the uncompacted state from a
+     * {@code superRoot}. This list consists of all checkpoints followed by the root.
      */
     private @NotNull LinkedHashMap<String, NodeState> collectRoots(
-            @NotNull NodeState superRootBefore,
-            @NotNull NodeState superRootAfter) {
+        @NotNull NodeState superRootBefore,
+        @NotNull NodeState superRootAfter) {
         List<ChildNodeEntry> checkpoints = new ArrayList<>();
         superRootAfter.getChildNode("checkpoints").compareAgainstBaseState(
-                superRootBefore.getChildNode("checkpoints"), new DefaultNodeStateDiff() {
-                    @Override
-                    public boolean childNodeAdded(String name, NodeState after) {
-                        checkpoints.add(new MemoryChildNodeEntry(name, after));
-                        return true;
-                    }
+            superRootBefore.getChildNode("checkpoints"), new DefaultNodeStateDiff() {
+                @Override
+                public boolean childNodeAdded(String name, NodeState after) {
+                    checkpoints.add(new MemoryChildNodeEntry(name, after));
+                    return true;
                 }
+            }
         );
 
         checkpoints.sort((cne1, cne2) -> {
@@ -221,7 +220,7 @@ public class CheckpointCompactor extends Compactor {
             String name = checkpoint.getName();
             NodeState node = checkpoint.getNodeState();
             gcListener.info("found checkpoint {} created on {}.",
-                    name, new Date(node.getLong("created")));
+                name, new Date(node.getLong("created")));
             roots.put("checkpoints/" + name + "/root", node.getChildNode("root"));
         }
         roots.put("root", superRootAfter.getChildNode("root"));
@@ -244,19 +243,19 @@ public class CheckpointCompactor extends Compactor {
      * Delegate compaction to another, usually simpler, implementation.
      */
     protected @Nullable CompactedNodeState compactDownWithDelegate(
-            @NotNull NodeState before,
-            @NotNull NodeState after,
-            @NotNull Canceller hardCanceller,
-            @NotNull Canceller softCanceller
+        @NotNull NodeState before,
+        @NotNull NodeState after,
+        @NotNull Canceller hardCanceller,
+        @NotNull Canceller softCanceller
     ) throws IOException {
         return compactor.compactDown(before, after, hardCanceller, softCanceller);
     }
 
     protected @Nullable CompactedNodeState compactWithDelegate(
-            @NotNull NodeState before,
-            @NotNull NodeState after,
-            @NotNull NodeState onto,
-            @NotNull Canceller canceller
+        @NotNull NodeState before,
+        @NotNull NodeState after,
+        @NotNull NodeState onto,
+        @NotNull Canceller canceller
     ) throws IOException {
         return compactor.compact(before, after, onto, canceller);
     }

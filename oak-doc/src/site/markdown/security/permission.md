@@ -19,6 +19,7 @@ Permissions
 --------------------------------------------------------------------------------
 
 <a name="jcr_api"></a>
+
 ### JCR and Jackrabbit API
 
 While access control management is a optional feature, a JCR implementation is
@@ -33,7 +34,8 @@ The methods defined to check permissions:
 
 - `Session#hasPermission(String absPath, String actions)`
 - `Session#checkPermission(String absPath, String actions)`
-- `JackrabbitSession.hasPermission(String absPath, @Nonnull String... actions)` (since Jackrabbit API 2.11.0 and Oak 1.4)
+- `JackrabbitSession.hasPermission(String absPath, @Nonnull String... actions)` (since Jackrabbit
+  API 2.11.0 and Oak 1.4)
 
 The actions are expected to be a comma separated list of any of the following string constants:
 
@@ -58,10 +60,11 @@ And defined by Jackrabbit API the following additional actions (since Jackrabbit
 **Note**: As of Oak 1.0 the these methods also handle the names of the permissions
 defined by Oak (see `Permissions#getString(long permissions)`).
 
-See also section [Permissions vs Privileges](permission/permissionsandprivileges.html) for 
-a comparison of these permission checks and testing privileges on the `AccessControlManager`. 
+See also section [Permissions vs Privileges](permission/permissionsandprivileges.html) for
+a comparison of these permission checks and testing privileges on the `AccessControlManager`.
 
 ##### Examples
+
 ###### Test if session has permission to add a new node (JCR API)
 
 Important: `absPath` refers to the node to be created
@@ -89,6 +92,7 @@ Important: `absPath` refers to the node to be created
     }
 
 <a name="oak_permissions"></a>
+
 ### Oak Permissions
 
 #### General Notes
@@ -96,7 +100,8 @@ Important: `absPath` refers to the node to be created
 As of Oak 1.0 Permission evaluation is intended to be completely separated from
 the access control management as defined by JCR and Jackrabbit API. While
 the evaluation and enforcing permissions is considered to be an internal feature
-of the Oak core module, the package `org.apache.jackrabbit.oak.spi.security.authorization.permission`
+of the Oak core module, the
+package `org.apache.jackrabbit.oak.spi.security.authorization.permission`
 provides some extensions points that allow to plug custom extensions or
 implementations the evaluation (see [API Extensions](#api_extensions) below).
 
@@ -127,8 +132,10 @@ Write operations:
 
 Since Oak 1.0:
 
-- `USER_MANAGEMENT`: : execute user management related tasks such as e.g. creating or removing user/group, changing user password and editing group membership.
-- `INDEX_DEFINITION_MANAGEMENT`: create, modify and remove the oak:index node and it's subtree which is expected to contain the index definitions.
+- `USER_MANAGEMENT`: : execute user management related tasks such as e.g. creating or removing
+  user/group, changing user password and editing group membership.
+- `INDEX_DEFINITION_MANAGEMENT`: create, modify and remove the oak:index node and it's subtree which
+  is expected to contain the index definitions.
 
 Repository operations:
 
@@ -152,7 +159,8 @@ Not used in Oak 1.0:
 
 #### Mapping of JCR Actions to Oak Permissions
 
-See also section ['Mapping Privileges to JCR/Jackrabbit Actions'](privilege/mappingprivilegestoactions.html).
+See also
+section ['Mapping Privileges to JCR/Jackrabbit Actions'](privilege/mappingprivilegestoactions.html).
 
 `ACTION_READ`:
 
@@ -223,64 +231,67 @@ See also section ['Mapping Privileges to JCR/Jackrabbit Actions'](privilege/mapp
 
 - `Permissions.USER_MANAGEMENT`
 
-
 #### Permissions for Different Operations
 
 ##### Reading
 
 - **Regular Items**:
-    Due to the fine grained read permissions Oak read access can be separately granted/denied
-    for nodes and properties. Granting the `jcr:read` privilege will result in a backwards compatible
-    read access for nodes and their properties, while specifying `rep:readNodes` or
-    `rep:readProperties` privileges allows to grant or deny access to
-    nodes and properties (see also [Privilege Management](privilege.html) for changes
-    in the privilege definitions).
-    Together with the restrictions this new behavior now allows to individually grant/deny
-    access to properties that match a given name/path/nodetype (and as a possible extension even property value).
+  Due to the fine grained read permissions Oak read access can be separately granted/denied
+  for nodes and properties. Granting the `jcr:read` privilege will result in a backwards compatible
+  read access for nodes and their properties, while specifying `rep:readNodes` or
+  `rep:readProperties` privileges allows to grant or deny access to
+  nodes and properties (see also [Privilege Management](privilege.html) for changes
+  in the privilege definitions).
+  Together with the restrictions this new behavior now allows to individually grant/deny
+  access to properties that match a given name/path/nodetype (and as a possible extension even
+  property value).
 - **Version Content**:
-    The accessibility of version content located underneath `/jcr:system/jcr:versionStore`
-    is defined by the permissions present with the versionable node. In case the version
-    information does no longer have a versionable node in this workspace it's original
-    versionable path is used to evaluate the effective permissions that would apply
-    to that item if the version was restored. This change is covered by [OAK-444] and
-    addresses concerns summarized in [JCR-2963].
+  The accessibility of version content located underneath `/jcr:system/jcr:versionStore`
+  is defined by the permissions present with the versionable node. In case the version
+  information does no longer have a versionable node in this workspace it's original
+  versionable path is used to evaluate the effective permissions that would apply
+  to that item if the version was restored. This change is covered by [OAK-444] and
+  addresses concerns summarized in [JCR-2963].
 - **Access Control Content**
-    Read access to access control content such node storing policy or ACE information
-    requires `READ_ACCESS_CONTROL` permission.
+  Read access to access control content such node storing policy or ACE information
+  requires `READ_ACCESS_CONTROL` permission.
 
 ##### Writing
 
 - **Property Modification**:
-    Since Oak the former `SET_PROPERTY` permission has been split such to allow for
-    more fined grained control on writing JCR properties. In particular Oak clearly
-    distinguishes between creating a new property that didn't exist before, modifying
-    or removing an existing property. This will allow to cover those cases where a given `Subject` is only allowed
-    to create content without having the ability to modify/delete it later on.
+  Since Oak the former `SET_PROPERTY` permission has been split such to allow for
+  more fined grained control on writing JCR properties. In particular Oak clearly
+  distinguishes between creating a new property that didn't exist before, modifying
+  or removing an existing property. This will allow to cover those cases where a given `Subject` is
+  only allowed
+  to create content without having the ability to modify/delete it later on.
 - **Node Removal**:
-    As of Oak `Node#remove()` only requires sufficient permissions to remove the
-    target node. See below for configuration parameters to obtain backwards compatible behavior.
+  As of Oak `Node#remove()` only requires sufficient permissions to remove the
+  target node. See below for configuration parameters to obtain backwards compatible behavior.
 - **Rename**:
-    Due to the nature of the diff mechanism in Oak it is no longer possible to distinguish
-    between `JackrabbitNode#rename` and a move with subsequent reordering.
+  Due to the nature of the diff mechanism in Oak it is no longer possible to distinguish
+  between `JackrabbitNode#rename` and a move with subsequent reordering.
 - **Move**:
-    The current permission evaluation attempts to provide a best-effort handling to
-    achieve a similar behavior that it was present in Jackrabbit 2.x by keeping track
-    of transient move operations. The current implementation has the following limitations with respect to multiple
-    move operations within a given set of transient operations:
+  The current permission evaluation attempts to provide a best-effort handling to
+  achieve a similar behavior that it was present in Jackrabbit 2.x by keeping track
+  of transient move operations. The current implementation has the following limitations with
+  respect to multiple
+  move operations within a given set of transient operations:
     - Move operations that replace an node that has been moved away will not be
-        detected as modification by the diff mechanism and regular permission checks for
-        on the subtree will be performed.
+      detected as modification by the diff mechanism and regular permission checks for
+      on the subtree will be performed.
     - Moving an ancestor of a node that has been moved will only detect the second
-        move and will enforce regular permissions checks on the child that has been moved
-        in a first step.
+      move and will enforce regular permissions checks on the child that has been moved
+      in a first step.
 - **Managing Index Definitions**:
-    Writing query index definitions requires the specific index definition management
-    which is enforce on nodes named "oak:index" and the subtree defined by them.
-    Note that the corresponding items are not protected in the JCR sense. Consequently
-    any other modification in these subtrees like e.g. changing the primary type
-    or adding mixin types is governed by the corresponding privileges.
+  Writing query index definitions requires the specific index definition management
+  which is enforce on nodes named "oak:index" and the subtree defined by them.
+  Note that the corresponding items are not protected in the JCR sense. Consequently
+  any other modification in these subtrees like e.g. changing the primary type
+  or adding mixin types is governed by the corresponding privileges.
 
 ##### Writing Protected Items
+
 Writing protected items requires specific permissions and is not covered by
 regular JCR write permissions. This affects:
 
@@ -288,14 +299,16 @@ regular JCR write permissions. This affects:
 - **Access Control Content**: `MODIFY_ACCESS_CONTROL`
 - **Locking**: `LOCK_MANAGEMENT`
 - **Versioning**:
-    Executing version related operations and thus writing to the version store
-    requires `VERSION_MANAGEMENT` permission instead of the regular JCR write permissions.
-    Similarly, the content in the version store can only be modified using the dedicated
-    version management API.
+  Executing version related operations and thus writing to the version store
+  requires `VERSION_MANAGEMENT` permission instead of the regular JCR write permissions.
+  Similarly, the content in the version store can only be modified using the dedicated
+  version management API.
 - **User Management**:
-    By default user management operations require the specific user management related
-    permission `USER_MANAGEMENT` to be granted for the editing subject. This permission (including a corresponding privilege)
-    has been introduced with Oak 1.0. See below for configuration parameters to obtain backwards compatible behavior.
+  By default user management operations require the specific user management related
+  permission `USER_MANAGEMENT` to be granted for the editing subject. This permission (including a
+  corresponding privilege)
+  has been introduced with Oak 1.0. See below for configuration parameters to obtain backwards
+  compatible behavior.
 
 ##### Observation
 
@@ -307,12 +320,12 @@ However, it is important to understand that events are only delivered once
 the modifications have been successfully persisted and permissions will
 be evaluated against the persisted state.
 
-In other words: Changing the permission setup along with the modifications 
+In other words: Changing the permission setup along with the modifications
 to be reported to the `EventListener` will result in events being included
 or excluded according to the modified permissions. See [OAK-4196] for an example.
 
-
 <a name="api_extensions"></a>
+
 ### API Extensions
 
 Due to the separation of access control management from permission evaluation,
@@ -324,17 +337,21 @@ The package `org.apache.jackrabbit.oak.spi.security.authorization.permission`
 defines the following interfaces and classes:
 
 - [PermissionProvider]: Main entry point for permission discovery and evaluation.
-    - [TreePermission]: Evaluates the permissions of a given Oak `Tree`, exposed by `PermissionProvider`.
-    - [RepositoryPermission]: Evaluates the repository level permissions, exposed by `PermissionProvider`.
-- [AggregatedPermissionProvider]: Extension of the [PermissionProvider] required for implementations that are intended to be used in an aggregation of multiple providers (since Oak 1.4)
+    - [TreePermission]: Evaluates the permissions of a given Oak `Tree`, exposed
+      by `PermissionProvider`.
+    - [RepositoryPermission]: Evaluates the repository level permissions, exposed
+      by `PermissionProvider`.
+- [AggregatedPermissionProvider]: Extension of the [PermissionProvider] required for implementations
+  that are intended to be used in an aggregation of multiple providers (since Oak 1.4)
 - [Permissions]: The permissions defined, respected and evaluated by the repository.
 - [PermissionConstants]: Constants used throughout the permission evaluation.
 
 <a name="default_implementation"></a>
+
 ### Characteristics of the Permission Evaluation
 
 As explained above permission evaluation is completely separated from the access
-control management and the associated ccontent.  The evaluation itself is done by
+control management and the associated ccontent. The evaluation itself is done by
 the configured `PermissionProvider`.
 
 Each JCR `Session` (and Oak `ContentSession`) gets it's own `PermissionProvider`
@@ -348,11 +365,12 @@ see the corresponding [documentation](permission/differences.html).
 
 #### Details on the Default Permission Evaluation
 
-The behavior of the default permission implementation is described in sections 
-[Permissions: The Default Implementation](permission/default.html) and 
+The behavior of the default permission implementation is described in sections
+[Permissions: The Default Implementation](permission/default.html) and
 [Permission Evaluation in Detail: The Default Implementation](permission/evaluation.html).
 
 <a name="configuration"></a>
+
 ### Configuration
 
 The configuration of the permission evaluation implementation is handled
@@ -364,9 +382,11 @@ methods:
 
 #### Configuration Parameters
 
-The supported configuration options of the default implementation are described in the corresponding [section](permission/default.html#configuration).
+The supported configuration options of the default implementation are described in the
+corresponding [section](permission/default.html#configuration).
 
 <a name="further_reading"></a>
+
 ### Further Reading
 
 - [Permissions vs Privileges](permission/permissionsandprivileges.html)
@@ -377,15 +397,27 @@ The supported configuration options of the default implementation are described 
 - [Restriction Management](authorization/restriction.html)
 
 <!-- references -->
+
 [Permissions]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authorization/permission/Permissions.html
+
 [PermissionProvider]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authorization/permission/PermissionProvider.html
+
 [TreePermission]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authorization/permission/TreePermission.html
+
 [RepositoryPermission]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authorization/permission/RepositoryPermission.html
+
 [PermissionConstants]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authorization/permission/PermissionConstants.html
+
 [AuthorizationConfiguration]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authorization/AuthorizationConfiguration.html
+
 [PermissionHook]: /oak/docs/apidocs/org/apache/jackrabbit/oak/security/authorization/permission/PermissionHook.html
+
 [AggregatedPermissionProvider]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authorization/permission/AggregatedPermissionProvider.html
+
 [OAK-444]: https://issues.apache.org/jira/browse/OAK-444
+
 [JCR-2963]: https://issues.apache.org/jira/browse/JCR-2963
+
 [OAK-1268]: https://issues.apache.org/jira/browse/OAK-1268
+
 [OAK-4196]: https://issues.apache.org/jira/browse/OAK-4196

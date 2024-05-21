@@ -19,25 +19,25 @@
 
 package org.apache.jackrabbit.oak.index;
 
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
+
 import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
-
-import org.apache.jackrabbit.guava.common.base.Charsets;
-import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.commons.io.output.WriterOutputStream;
 import org.apache.felix.inventory.Format;
 import org.apache.felix.inventory.InventoryPrinter;
+import org.apache.jackrabbit.guava.common.base.Charsets;
+import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.IndexConsistencyChecker;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.IndexConsistencyChecker.Level;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
-
 class IndexConsistencyCheckPrinter implements InventoryPrinter {
+
     private final IndexHelper indexHelper;
     private final Level level;
 
@@ -57,12 +57,13 @@ class IndexConsistencyCheckPrinter implements InventoryPrinter {
 
         for (String indexPath : indexHelper.getIndexPathService().getIndexPaths()) {
             NodeState indexState = NodeStateUtils.getNode(root, indexPath);
-            if (!TYPE_LUCENE.equals(indexState.getString(TYPE_PROPERTY_NAME))){
+            if (!TYPE_LUCENE.equals(indexState.getString(TYPE_PROPERTY_NAME))) {
                 ignoredIndexes.add(indexPath);
                 continue;
             }
 
-            IndexConsistencyChecker checker = new IndexConsistencyChecker(root, indexPath, indexHelper.getWorkDir());
+            IndexConsistencyChecker checker = new IndexConsistencyChecker(root, indexPath,
+                indexHelper.getWorkDir());
             checker.setPrintStream(new PrintStream(new WriterOutputStream(pw, Charsets.UTF_8)));
             try {
                 IndexConsistencyChecker.Result result = checker.check(level);
@@ -75,7 +76,8 @@ class IndexConsistencyCheckPrinter implements InventoryPrinter {
                 System.out.printf("%s => %s%n", indexPath, result.clean ? "valid" : "invalid <==");
             } catch (Exception e) {
                 invalidIndexes.add(indexPath);
-                pw.printf("Error occurred while performing consistency check for index [%s]%n", indexPath);
+                pw.printf("Error occurred while performing consistency check for index [%s]%n",
+                    indexPath);
                 e.printStackTrace(pw);
             }
             pw.println();

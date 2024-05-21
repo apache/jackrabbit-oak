@@ -42,6 +42,7 @@ import org.junit.runners.Parameterized;
  */
 @RunWith(Parameterized.class)
 public class LastRevSingleNodeRecoveryTest {
+
     private DocumentStoreFixture fixture;
 
     private Clock clock;
@@ -59,7 +60,7 @@ public class LastRevSingleNodeRecoveryTest {
         List<Object[]> fixtures = Lists.newArrayList();
         DocumentStoreFixture mongo = new DocumentStoreFixture.MongoFixture();
         if (mongo.isAvailable()) {
-            fixtures.add(new Object[] {mongo});
+            fixtures.add(new Object[]{mongo});
         }
         return fixtures;
     }
@@ -78,10 +79,10 @@ public class LastRevSingleNodeRecoveryTest {
 
         DocumentMK.Builder builder = new DocumentMK.Builder();
         builder.setAsyncDelay(0)
-                .setClusterId(clusterId)
-                .clock(clock)
-                .setLeaseCheckMode(LeaseCheckMode.DISABLED)
-                .setDocumentStore(store);
+               .setClusterId(clusterId)
+               .clock(clock)
+               .setLeaseCheckMode(LeaseCheckMode.DISABLED)
+               .setDocumentStore(store);
         mk = builder.open();
         clock.waitUntil(Revision.getCurrentTimestamp());
 
@@ -167,7 +168,7 @@ public class LastRevSingleNodeRecoveryTest {
         /** There should have been no updates **/
         assertEquals(pendingCount, recoveryAgent.recover(mk.getClusterInfo().getId()));
     }
-    
+
     @Test
     public void testNodeRecoveryNeeded() throws InterruptedException {
         clock.waitUntil(clock.getTime() + mk.getClusterInfo().getLeaseTime() + 10);
@@ -185,7 +186,7 @@ public class LastRevSingleNodeRecoveryTest {
         Iterable<Integer> cids = recoveryAgent.getRecoveryCandidateNodes();
         assertEquals(0, Iterables.size(cids));
     }
-    
+
     private void setupScenario() throws InterruptedException {
         // add some nodes which won't be returned
         mk.commit("/", "+\"u\" : { \"v\": {}}", null, null);

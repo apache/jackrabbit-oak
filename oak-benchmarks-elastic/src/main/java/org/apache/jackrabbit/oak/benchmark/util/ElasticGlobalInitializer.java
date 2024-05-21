@@ -18,17 +18,16 @@
  */
 package org.apache.jackrabbit.oak.benchmark.util;
 
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+
+import java.util.Set;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexHelper;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.jetbrains.annotations.NotNull;
-
-import java.util.Set;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 
 public class ElasticGlobalInitializer implements RepositoryInitializer {
 
@@ -58,17 +57,17 @@ public class ElasticGlobalInitializer implements RepositoryInitializer {
     }
 
     public ElasticGlobalInitializer(String name, Set<String> propertyTypes,
-                                    Set<String> excludes) {
+        Set<String> excludes) {
         this(name, propertyTypes, excludes, null, null);
     }
 
     public ElasticGlobalInitializer(String name, Set<String> propertyTypes,
-                                    String filePath) {
+        String filePath) {
         this(name, propertyTypes, null, filePath, null);
     }
 
     public ElasticGlobalInitializer(String name, Set<String> propertyTypes,
-                                    Set<String> excludes, String filePath, Boolean storageEnabled) {
+        Set<String> excludes, String filePath, Boolean storageEnabled) {
         this.name = name;
         this.propertyTypes = propertyTypes;
         this.excludes = excludes;
@@ -99,12 +98,12 @@ public class ElasticGlobalInitializer implements RepositoryInitializer {
     @Override
     public void initialize(@NotNull NodeBuilder builder) {
         if (builder.hasChildNode(INDEX_DEFINITIONS_NAME)
-                && builder.getChildNode(INDEX_DEFINITIONS_NAME).hasChildNode(this.name)) {
+            && builder.getChildNode(INDEX_DEFINITIONS_NAME).hasChildNode(this.name)) {
             // do nothing
         } else {
             IndexHelper.newFTIndexDefinition(IndexUtils.getOrCreateOakIndex(builder),
-                    this.name, ElasticIndexDefinition.TYPE_ELASTICSEARCH,
-                    propertyTypes, excludes, async, storageEnabled);
+                this.name, ElasticIndexDefinition.TYPE_ELASTICSEARCH,
+                propertyTypes, excludes, async, storageEnabled);
         }
     }
 }

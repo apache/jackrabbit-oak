@@ -23,7 +23,6 @@ import static org.junit.Assert.fail;
 
 import java.util.Map;
 import java.util.UUID;
-
 import javax.jcr.ItemExistsException;
 import javax.jcr.NamespaceException;
 import javax.jcr.Node;
@@ -31,10 +30,10 @@ import javax.jcr.PathNotFoundException;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.util.KnownIssuesIgnoreRule;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -44,13 +43,11 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
-import org.apache.jackrabbit.guava.common.collect.Maps;
-
 public class ValidNamesTest extends AbstractRepositoryTest {
 
     @Rule
     public KnownIssuesIgnoreRule customIgnoreRule = new KnownIssuesIgnoreRule();
-    
+
     private static final String TEST_NODE = "test_node";
     private static final String TEST_PATH = '/' + TEST_NODE;
     private static final Map<NodeStoreFixture, NodeStore> STORES = Maps.newConcurrentMap();
@@ -242,7 +239,7 @@ public class ValidNamesTest extends AbstractRepositoryTest {
     // OAK-74 and OAK-9584
     @Test
     public void testRepNamespaceUri() throws RepositoryException {
-        JackrabbitSession jrSession = (JackrabbitSession)session;
+        JackrabbitSession jrSession = (JackrabbitSession) session;
         UserManager userManager = jrSession.getUserManager();
         User user = userManager.createUser("test", "test");
 
@@ -251,9 +248,9 @@ public class ValidNamesTest extends AbstractRepositoryTest {
 
         String repNamespaceUri = session.getNamespaceURI("rep");
         assertTrue(n.hasProperty("rep:authorizableId"));
-        assertTrue(n.hasProperty("{"+repNamespaceUri+"}authorizableId"));
+        assertTrue(n.hasProperty("{" + repNamespaceUri + "}authorizableId"));
     }
- 
+
     // TODO: questionable exception
     @Test
     public void testValidNamespaceUriInCurlysWrongPlace() {
@@ -370,14 +367,13 @@ public class ValidNamesTest extends AbstractRepositoryTest {
             testNode.addNode(nodeName);
             testNode.getSession().save();
             fail("should have failed with " + clazz);
-        }
-        catch (RepositoryException ex) {
-            assertTrue("should have failed with " + clazz + ", but got " + ex.getClass(), clazz.isAssignableFrom(ex.getClass()));
+        } catch (RepositoryException ex) {
+            assertTrue("should have failed with " + clazz + ", but got " + ex.getClass(),
+                clazz.isAssignableFrom(ex.getClass()));
         }
     }
 
-    private Repository createRepository(NodeStoreFixture fixture) throws RepositoryException
-            {
+    private Repository createRepository(NodeStoreFixture fixture) throws RepositoryException {
         NodeStore ns = null;
         for (Map.Entry<NodeStoreFixture, NodeStore> e : STORES.entrySet()) {
             if (e.getKey().getClass().equals(fixture.getClass())) {

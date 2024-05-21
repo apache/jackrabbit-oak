@@ -39,8 +39,11 @@ public final class JcrPathParser {
     }
 
     public interface Listener extends JcrNameParser.Listener {
+
         boolean root();
+
         boolean current();
+
         boolean parent();
     }
 
@@ -56,7 +59,7 @@ public final class JcrPathParser {
 
         @Override
         public void error(String message) {
-            listener.error("'" + jcrPath + "' is not a valid path. " +  message);
+            listener.error("'" + jcrPath + "' is not a valid path. " + message);
         }
 
         @Override
@@ -127,14 +130,15 @@ public final class JcrPathParser {
                         return false;
                     }
                     if (state == STATE_PREFIX
-                            || state == STATE_NAME
-                            || state == STATE_INDEX_END
-                            || state == STATE_URI_END) {
+                        || state == STATE_NAME
+                        || state == STATE_INDEX_END
+                        || state == STATE_URI_END) {
 
                         // eof path element
                         if (name == null) {
                             if (wasSlash) {
-                                pathAwareListener.error("Trailing slashes not allowed in prefixes and names.");
+                                pathAwareListener.error(
+                                    "Trailing slashes not allowed in prefixes and names.");
                                 return false;
                             }
                             name = jcrPath.substring(lastPos, pos - 1);
@@ -160,7 +164,7 @@ public final class JcrPathParser {
                         lastPos = pos;
                         state = STATE_PREFIX_START;
                     } else if (state != STATE_URI
-                            && !(state == STATE_PREFIX_START && c == EOF)) { // ignore trailing slash
+                        && !(state == STATE_PREFIX_START && c == EOF)) { // ignore trailing slash
                         pathAwareListener.error("'" + c + "' not allowed in name.");
                         return false;
                     } else if (state == STATE_URI && c == EOF) {
@@ -189,7 +193,8 @@ public final class JcrPathParser {
                         return false;
                     } else if (state == STATE_PREFIX) {
                         if (wasSlash) {
-                            pathAwareListener.error("Trailing slashes not allowed in prefixes and names.");
+                            pathAwareListener.error(
+                                "Trailing slashes not allowed in prefixes and names.");
                             return false;
                         }
                         state = STATE_NAME_START;
@@ -206,7 +211,7 @@ public final class JcrPathParser {
                             index = Integer.parseInt(jcrPath.substring(lastPos, pos - 1));
                         } catch (NumberFormatException e) {
                             pathAwareListener.error("NumberFormatException in index: " +
-                                    jcrPath.substring(lastPos, pos - 1));
+                                jcrPath.substring(lastPos, pos - 1));
                             return false;
                         }
                         if (index < 0) {
@@ -225,12 +230,13 @@ public final class JcrPathParser {
                     pathAwareListener.error("'" + c + "' not allowed in name.");
                     return false;
                 case '{':
-                    if (state == STATE_PREFIX_START && lastPos == pos-1) {
+                    if (state == STATE_PREFIX_START && lastPos == pos - 1) {
                         // '{' marks the start of a uri enclosed in an expanded name
                         // instead of the usual namespace prefix, if it is
                         // located at the beginning of a new segment.
                         state = STATE_URI;
-                    } else if (state == STATE_NAME_START || state == STATE_DOT || state == STATE_DOTDOT) {
+                    } else if (state == STATE_NAME_START || state == STATE_DOT
+                        || state == STATE_DOTDOT) {
                         // otherwise it's part of the local name
                         state = STATE_NAME;
                     }
@@ -245,7 +251,8 @@ public final class JcrPathParser {
                 case '[':
                     if (state == STATE_PREFIX || state == STATE_NAME) {
                         if (wasSlash) {
-                            pathAwareListener.error("Trailing slashes not allowed in prefixes and names.");
+                            pathAwareListener.error(
+                                "Trailing slashes not allowed in prefixes and names.");
                             return false;
                         }
                         state = STATE_INDEX;
@@ -256,7 +263,8 @@ public final class JcrPathParser {
                     // intentionally no break, so we get the default treatment for all other states
 
                 default:
-                    if (state == STATE_PREFIX_START || state == STATE_DOT || state == STATE_DOTDOT) {
+                    if (state == STATE_PREFIX_START || state == STATE_DOT
+                        || state == STATE_DOTDOT) {
                         state = STATE_PREFIX;
                     } else if (state == STATE_NAME_START) {
                         state = STATE_NAME;
@@ -274,12 +282,12 @@ public final class JcrPathParser {
         Listener listener = new Listener() {
             int depth;
             boolean hasRoot;
+
             @Override
             public boolean root() {
                 if (hasRoot) {
                     return false;
-                }
-                else {
+                } else {
                     hasRoot = true;
                     return true;
                 }

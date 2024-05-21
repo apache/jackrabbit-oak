@@ -63,7 +63,7 @@ public class RecoveryLockTest {
         clock.waitUntil(System.currentTimeMillis());
         ClusterNodeInfo.setClock(clock);
         info1 = ClusterNodeInfo.getInstance(store, RecoveryHandler.NOOP,
-                null, "node1", 1);
+            null, "node1", 1);
     }
 
     @After
@@ -151,13 +151,13 @@ public class RecoveryLockTest {
         Semaphore recovered = new Semaphore(0);
         // simulate new startup and get info again
         Future<ClusterNodeInfo> infoFuture = executor.submit(() ->
-                ClusterNodeInfo.getInstance(store, clusterId -> {
-                    assertTrue(lock1.acquireRecoveryLock(1));
-                    recovering.release();
-                    recovered.acquireUninterruptibly();
-                    lock1.releaseRecoveryLock(true);
-                    return true;
-        }, null, "node1", 1));
+            ClusterNodeInfo.getInstance(store, clusterId -> {
+                assertTrue(lock1.acquireRecoveryLock(1));
+                recovering.release();
+                recovered.acquireUninterruptibly();
+                lock1.releaseRecoveryLock(true);
+                return true;
+            }, null, "node1", 1));
         // wait until submitted task is in recovery
         recovering.acquireUninterruptibly();
 
@@ -193,7 +193,7 @@ public class RecoveryLockTest {
         DocumentStore store = spy(new MemoryDocumentStore());
 
         info1 = ClusterNodeInfo.getInstance(store, RecoveryHandler.NOOP,
-                null, "node1", 1);
+            null, "node1", 1);
         RecoveryLock recLock = new RecoveryLock(store, clock, 1);
 
         // expire clusterId 1
@@ -203,13 +203,13 @@ public class RecoveryLockTest {
         Semaphore recovered = new Semaphore(0);
         // simulate new startup and get info again
         executor.submit(() ->
-                ClusterNodeInfo.getInstance(store, clusterId -> {
-                    assertTrue(recLock.acquireRecoveryLock(1));
-                    recovering.release();
-                    recovered.acquireUninterruptibly();
-                    recLock.releaseRecoveryLock(true);
-                    return true;
-        }, null, "node1", 1));
+            ClusterNodeInfo.getInstance(store, clusterId -> {
+                assertTrue(recLock.acquireRecoveryLock(1));
+                recovering.release();
+                recovered.acquireUninterruptibly();
+                recLock.releaseRecoveryLock(true);
+                return true;
+            }, null, "node1", 1));
         // wait until submitted task is in recovery
         recovering.acquireUninterruptibly();
 
@@ -221,9 +221,10 @@ public class RecoveryLockTest {
 
         mockClusterInfo.put(ClusterNodeInfo.LEASE_END_KEY, null);
         doReturn(false).when(mockClusterInfo).isActive();
-        when(store.find(CLUSTER_NODES, String.valueOf(1))).thenCallRealMethod().thenReturn(mockClusterInfo);
+        when(store.find(CLUSTER_NODES, String.valueOf(1))).thenCallRealMethod()
+                                                          .thenReturn(mockClusterInfo);
 
-        // clusterId 2 should be able to acquire (break) the recovery lock, instead of 
+        // clusterId 2 should be able to acquire (break) the recovery lock, instead of
         // throwing "java.lang.NullPointerException: Lease End Time not set"
         assertTrue(recLock.acquireRecoveryLock(2));
 

@@ -18,19 +18,18 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.search;
 
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+
+import java.util.Collection;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Collection;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-
 /**
  * Composite {@link PropertyUpdateCallback}
  */
-public class CompositePropertyUpdateCallback implements PropertyUpdateCallback{
+public class CompositePropertyUpdateCallback implements PropertyUpdateCallback {
 
     private final Collection<PropertyUpdateCallback> callbacks;
 
@@ -41,7 +40,7 @@ public class CompositePropertyUpdateCallback implements PropertyUpdateCallback{
 
     @Override
     public void propertyUpdated(String nodePath, String propertyRelativePath, PropertyDefinition pd,
-                                @Nullable PropertyState before, @Nullable PropertyState after) {
+        @Nullable PropertyState before, @Nullable PropertyState after) {
         for (PropertyUpdateCallback callback : callbacks) {
             callback.propertyUpdated(nodePath, propertyRelativePath, pd, before, after);
         }

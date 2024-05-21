@@ -55,7 +55,7 @@ public class CommitBuilderTest {
         try {
             builder.build();
             fail("CommitBuilder.build() must fail when the builder " +
-                    "was created without a commit revision");
+                "was created without a commit revision");
         } catch (IllegalStateException e) {
             // expected
         }
@@ -146,7 +146,7 @@ public class CommitBuilderTest {
         Commit c = builder.build(ns.newRevision());
         UpdateOp up = c.getUpdateOperationForNode(path);
         UpdateOp.Operation op = up.getChanges().get(
-                new UpdateOp.Key("_deleted", c.getRevision()));
+            new UpdateOp.Key("_deleted", c.getRevision()));
         assertNotNull(op);
     }
 
@@ -161,7 +161,7 @@ public class CommitBuilderTest {
     @Test
     public void branchCommit() {
         RevisionVector baseRev = ns.getHeadRevision()
-                .update(ns.newRevision().asBranchRevision());
+                                   .update(ns.newRevision().asBranchRevision());
         CommitBuilder builder = new CommitBuilder(ns, baseRev);
         Path path = Path.fromString("/foo");
         builder.addNode(path);
@@ -169,7 +169,7 @@ public class CommitBuilderTest {
         Commit c = builder.build(commitRev);
         UpdateOp up = c.getUpdateOperationForNode(path);
         UpdateOp.Operation op = up.getChanges().get(
-                new UpdateOp.Key("_bc", commitRev));
+            new UpdateOp.Key("_bc", commitRev));
         assertNotNull(op);
     }
 
@@ -184,7 +184,7 @@ public class CommitBuilderTest {
         Commit c = builder.build(ns.newRevision());
         UpdateOp up = c.getUpdateOperationForNode(path);
         UpdateOp.Operation op = up.getChanges().get(
-                new UpdateOp.Key("_deleted", c.getRevision()));
+            new UpdateOp.Key("_deleted", c.getRevision()));
         assertNotNull(op);
     }
 
@@ -236,7 +236,7 @@ public class CommitBuilderTest {
         Commit c = builder.build(ns.newRevision());
         UpdateOp up = c.getUpdateOperationForNode(path);
         UpdateOp.Operation op = up.getChanges().get(
-                new UpdateOp.Key("p", c.getRevision()));
+            new UpdateOp.Key("p", c.getRevision()));
         assertNotNull(op);
     }
 
@@ -248,7 +248,7 @@ public class CommitBuilderTest {
         Commit c = builder.build(ns.newRevision());
         UpdateOp up = c.getUpdateOperationForNode(path);
         UpdateOp.Operation op = up.getChanges().get(
-                new UpdateOp.Key("p", c.getRevision()));
+            new UpdateOp.Key("p", c.getRevision()));
         assertNotNull(op);
     }
 
@@ -289,7 +289,7 @@ public class CommitBuilderTest {
     public void withStartRevisions() {
         RevisionVector head = ns.getHeadRevision();
         CommitBuilder builder = new CommitBuilder(ns, head)
-                .withStartRevisions(head);
+            .withStartRevisions(head);
         Commit c = builder.build(ns.newRevision());
         assertEquals(head, c.getStartRevisions());
     }

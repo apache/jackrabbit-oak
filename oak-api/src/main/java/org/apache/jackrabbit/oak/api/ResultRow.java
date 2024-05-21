@@ -24,7 +24,7 @@ public interface ResultRow {
 
     /**
      * The path, assuming there is only one selector.
-     * 
+     *
      * @return the path
      * @throws IllegalArgumentException if there are multiple selectors
      */
@@ -32,11 +32,11 @@ public interface ResultRow {
 
     /**
      * The path for the given selector name.
-     * 
+     *
      * @param selectorName the selector name (null if there is only one selector)
      * @return the path
-     * @throws IllegalArgumentException if the selector was not found,
-     *      or if there are multiple selectors but the passed selectorName is null
+     * @throws IllegalArgumentException if the selector was not found, or if there are multiple
+     *                                  selectors but the passed selectorName is null
      */
     String getPath(String selectorName);
 
@@ -45,14 +45,14 @@ public interface ResultRow {
      *
      * @param selectorName the selector name (null if there is only one selector)
      * @return the tree
-     * @throws IllegalArgumentException if the selector was not found,
-     *      or if there are multiple selectors but the passed selectorName is null
+     * @throws IllegalArgumentException if the selector was not found, or if there are multiple
+     *                                  selectors but the passed selectorName is null
      */
     Tree getTree(String selectorName);
 
     /**
      * The property value.
-     * 
+     *
      * @param columnName the column name
      * @return the value
      * @throws IllegalArgumentException if the column was not found
@@ -61,7 +61,7 @@ public interface ResultRow {
 
     /**
      * Get the list of values.
-     * 
+     *
      * @return the values
      */
     PropertyValue[] getValues();

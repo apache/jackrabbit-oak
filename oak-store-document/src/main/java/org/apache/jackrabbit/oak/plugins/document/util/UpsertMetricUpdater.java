@@ -18,6 +18,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.util;
 
+import static java.util.Objects.requireNonNull;
+
+import java.util.List;
+import java.util.function.BiPredicate;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
@@ -25,15 +29,13 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentStoreStatsCollector;
 import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.TimerStats;
 
-import java.util.List;
-import java.util.function.BiPredicate;
-
-import static java.util.Objects.requireNonNull;
-
 /**
- * Base class to update the metrics for {@link DocumentStoreStatsCollector#doneCreateOrUpdate(long, Collection, List)} for underlying {@link DocumentStore}
+ * Base class to update the metrics for
+ * {@link DocumentStoreStatsCollector#doneCreateOrUpdate(long, Collection, List)} for underlying
+ * {@link DocumentStore}
  *
- * <p>Users provide instances of {@link MeterStats}, {@link TimerStats} based on whether throttling is ongoing or not
+ * <p>Users provide instances of {@link MeterStats}, {@link TimerStats} based on whether throttling
+ * is ongoing or not
  */
 public final class UpsertMetricUpdater {
 
@@ -42,16 +44,17 @@ public final class UpsertMetricUpdater {
     private final TimerStats createNodeUpsertTimer;
 
     public UpsertMetricUpdater(final MeterStats createNodeUpsertMeter,
-                               final MeterStats createSplitNodeMeter,
-                               final TimerStats createNodeUpsertTimer) {
+        final MeterStats createSplitNodeMeter,
+        final TimerStats createNodeUpsertTimer) {
         this.createNodeUpsertMeter = createNodeUpsertMeter;
         this.createSplitNodeMeter = createSplitNodeMeter;
         this.createNodeUpsertTimer = createNodeUpsertTimer;
     }
 
     public void update(final Collection<? extends Document> collection, final long timeTakenNanos,
-                       final List<String> ids, final BiPredicate<Collection<? extends Document>, Integer> isNodesCollectionUpdated,
-                       final TriStatsConsumer upsertStatsConsumer) {
+        final List<String> ids,
+        final BiPredicate<Collection<? extends Document>, Integer> isNodesCollectionUpdated,
+        final TriStatsConsumer upsertStatsConsumer) {
 
         requireNonNull(isNodesCollectionUpdated);
         requireNonNull(upsertStatsConsumer);
@@ -59,6 +62,7 @@ public final class UpsertMetricUpdater {
         if (isNodesCollectionUpdated.negate().test(collection, ids.size())) {
             return;
         }
-        upsertStatsConsumer.accept(createNodeUpsertMeter, createSplitNodeMeter, createNodeUpsertTimer, ids, timeTakenNanos);
+        upsertStatsConsumer.accept(createNodeUpsertMeter, createSplitNodeMeter,
+            createNodeUpsertTimer, ids, timeTakenNanos);
     }
 }

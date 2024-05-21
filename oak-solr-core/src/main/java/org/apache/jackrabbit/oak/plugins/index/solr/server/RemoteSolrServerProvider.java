@@ -24,7 +24,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
-
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfigurationDefaults;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.RemoteSolrServerConfiguration;
@@ -43,7 +42,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * {@link org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider} for remote Solr installations.
+ * {@link org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider} for remote Solr
+ * installations.
  */
 public class RemoteSolrServerProvider implements SolrServerProvider {
 
@@ -60,19 +60,24 @@ public class RemoteSolrServerProvider implements SolrServerProvider {
     public SolrClient getSolrServer() throws Exception {
 
         SolrClient solrServer = null;
-        if (remoteSolrServerConfiguration.getSolrZkHost() != null && remoteSolrServerConfiguration.getSolrZkHost().length() > 0) {
+        if (remoteSolrServerConfiguration.getSolrZkHost() != null
+            && remoteSolrServerConfiguration.getSolrZkHost().length() > 0) {
             try {
                 solrServer = initializeWithCloudSolrServer();
             } catch (Exception e) {
-                log.warn("unable to initialize SolrCloud client for {}", remoteSolrServerConfiguration.getSolrZkHost(), e);
+                log.warn("unable to initialize SolrCloud client for {}",
+                    remoteSolrServerConfiguration.getSolrZkHost(), e);
             }
         }
-        if (solrServer == null && remoteSolrServerConfiguration.getSolrHttpUrls() != null && remoteSolrServerConfiguration.getSolrHttpUrls().length == 1
-                && remoteSolrServerConfiguration.getSolrHttpUrls()[0] != null && remoteSolrServerConfiguration.getSolrHttpUrls()[0].length() > 0) {
+        if (solrServer == null && remoteSolrServerConfiguration.getSolrHttpUrls() != null
+            && remoteSolrServerConfiguration.getSolrHttpUrls().length == 1
+            && remoteSolrServerConfiguration.getSolrHttpUrls()[0] != null
+            && remoteSolrServerConfiguration.getSolrHttpUrls()[0].length() > 0) {
             try {
                 solrServer = initializeWithExistingHttpServer();
             } catch (Exception e1) {
-                log.warn("unable to initialize Solr HTTP client for {}", remoteSolrServerConfiguration.getSolrHttpUrls(), e1);
+                log.warn("unable to initialize Solr HTTP client for {}",
+                    remoteSolrServerConfiguration.getSolrHttpUrls(), e1);
             }
         }
         if (solrServer == null) {
@@ -90,7 +95,8 @@ public class RemoteSolrServerProvider implements SolrServerProvider {
         if (server instanceof HttpSolrClient) {
             String url = ((HttpSolrClient) server).getBaseURL();
             ConcurrentUpdateSolrClient s1 = new ConcurrentUpdateSolrClient.Builder(
-                    url).withQueueSize(1000).withThreadCount(Runtime.getRuntime().availableProcessors()).build();
+                url).withQueueSize(1000).withThreadCount(Runtime.getRuntime().availableProcessors())
+                    .build();
             s1.setConnectionTimeout(remoteSolrServerConfiguration.getConnectionTimeout());
             s1.setSoTimeout(remoteSolrServerConfiguration.getSocketTimeout());
             server = s1;
@@ -106,7 +112,8 @@ public class RemoteSolrServerProvider implements SolrServerProvider {
 
     private SolrClient initializeWithExistingHttpServer() throws IOException, SolrServerException {
         // try basic Solr HTTP client
-        HttpSolrClient httpSolrServer = new HttpSolrClient.Builder(remoteSolrServerConfiguration.getSolrHttpUrls()[0]).build();
+        HttpSolrClient httpSolrServer = new HttpSolrClient.Builder(
+            remoteSolrServerConfiguration.getSolrHttpUrls()[0]).build();
         httpSolrServer.setConnectionTimeout(remoteSolrServerConfiguration.getConnectionTimeout());
         httpSolrServer.setSoTimeout(remoteSolrServerConfiguration.getSocketTimeout());
         SolrPingResponse ping = httpSolrServer.ping();
@@ -122,7 +129,7 @@ public class RemoteSolrServerProvider implements SolrServerProvider {
     private SolrClient initializeWithCloudSolrServer() throws IOException {
         // try SolrCloud client
         CloudSolrClient cloudSolrServer = new CloudSolrClient.Builder().withZkHost(Arrays.asList(
-                    remoteSolrServerConfiguration.getSolrZkHost().split(","))).build();
+            remoteSolrServerConfiguration.getSolrZkHost().split(","))).build();
         cloudSolrServer.setZkConnectTimeout(remoteSolrServerConfiguration.getConnectionTimeout());
         cloudSolrServer.setSoTimeout(remoteSolrServerConfiguration.getSocketTimeout());
 
@@ -130,14 +137,16 @@ public class RemoteSolrServerProvider implements SolrServerProvider {
 
         if (connectToZK(cloudSolrServer)) {
             log.debug("CloudSolrServer connected");
-            cloudSolrServer.setDefaultCollection("collection1"); // workaround for first request when the needed collection may not exist
+            cloudSolrServer.setDefaultCollection(
+                "collection1"); // workaround for first request when the needed collection may not exist
 
             // create specified collection if it doesn't exists
             try {
                 createCollectionIfNeeded(cloudSolrServer);
             } catch (Throwable t) {
                 if (log.isWarnEnabled()) {
-                    log.warn("could not create the collection on {}", remoteSolrServerConfiguration.getSolrZkHost(), t);
+                    log.warn("could not create the collection on {}",
+                        remoteSolrServerConfiguration.getSolrZkHost(), t);
                 }
             }
             cloudSolrServer.setDefaultCollection(remoteSolrServerConfiguration.getSolrCollection());
@@ -171,7 +180,8 @@ public class RemoteSolrServerProvider implements SolrServerProvider {
             throw new IOException("the found SolrCloud server is not alive");
         } else {
             cloudSolrServer.close();
-            throw new IOException("could not connect to Zookeeper hosted at " + remoteSolrServerConfiguration.getSolrZkHost());
+            throw new IOException("could not connect to Zookeeper hosted at "
+                + remoteSolrServerConfiguration.getSolrZkHost());
         }
 
     }
@@ -196,7 +206,8 @@ public class RemoteSolrServerProvider implements SolrServerProvider {
         return connected;
     }
 
-    private void createCollectionIfNeeded(CloudSolrClient cloudSolrServer) throws SolrServerException {
+    private void createCollectionIfNeeded(CloudSolrClient cloudSolrServer)
+        throws SolrServerException {
         String solrCollection = remoteSolrServerConfiguration.getSolrCollection();
         ZkStateReader zkStateReader = cloudSolrServer.getZkStateReader();
         SolrZkClient zkClient = zkStateReader.getZkClient();
@@ -222,8 +233,10 @@ public class RemoteSolrServerProvider implements SolrServerProvider {
 
                 log.debug("creating collection {}", solrCollection);
 
-                CollectionAdminRequest.Create req = CollectionAdminRequest.Create.createCollection(solrCollection,
-                        remoteSolrServerConfiguration.getSolrShardsNo(),remoteSolrServerConfiguration.getSolrReplicationFactor());
+                CollectionAdminRequest.Create req = CollectionAdminRequest.Create.createCollection(
+                    solrCollection,
+                    remoteSolrServerConfiguration.getSolrShardsNo(),
+                    remoteSolrServerConfiguration.getSolrReplicationFactor());
                 CollectionAdminResponse response = req.process(cloudSolrServer);
 
                 log.info("collection creation response {}", response);
@@ -239,7 +252,7 @@ public class RemoteSolrServerProvider implements SolrServerProvider {
     private void copy(String name, Path tempDirectory) throws IOException {
         InputStream inputStream = getClass().getResourceAsStream("/solr/oak/conf/" + name + ".xml");
         File dir = tempDirectory.toFile();
-        File newFile = new File(dir, name+".xml");
+        File newFile = new File(dir, name + ".xml");
         assert newFile.createNewFile();
         FileOutputStream outputStream = new FileOutputStream(newFile);
         IOUtils.copy(inputStream, outputStream);

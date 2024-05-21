@@ -48,8 +48,8 @@ public interface LuceneIndexConstants extends FulltextIndexConstants {
     String MERGE_POLICY_NAME = "mergePolicy";
 
     /**
-     * Boolean property to indicate that LuceneIndex is being used in testMode
-     * and it should participate in every test
+     * Boolean property to indicate that LuceneIndex is being used in testMode and it should
+     * participate in every test
      */
     String TEST_MODE = "testMode";
 
@@ -68,7 +68,7 @@ public interface LuceneIndexConstants extends FulltextIndexConstants {
     String TIKA_MAX_EXTRACT_LENGTH = "maxExtractLength";
 
     /**
-     *  Config node under tika which defines mime type mappings
+     * Config node under tika which defines mime type mappings
      */
     String TIKA_MIME_TYPES = "mimeTypes";
 
@@ -78,16 +78,14 @@ public interface LuceneIndexConstants extends FulltextIndexConstants {
     String TIKA_MAPPED_TYPE = "mappedType";
 
     /**
-     * The maximum number of terms that will be indexed for a single field in a
-     * document.  This limits the amount of memory required for indexing, so that
-     * collections with very large files will not crash the indexing process by
-     * running out of memory.
+     * The maximum number of terms that will be indexed for a single field in a document.  This
+     * limits the amount of memory required for indexing, so that collections with very large files
+     * will not crash the indexing process by running out of memory.
      * <p>
-     * Note that this effectively truncates large documents, excluding from the
-     * index terms that occur further in the document.  If you know your source
-     * documents are large, be sure to set this value high enough to accommodate
-     * the expected size.  If you set it to Integer.MAX_VALUE, then the only limit
-     * is your memory, but you should anticipate an OutOfMemoryError.
+     * Note that this effectively truncates large documents, excluding from the index terms that
+     * occur further in the document.  If you know your source documents are large, be sure to set
+     * this value high enough to accommodate the expected size.  If you set it to Integer.MAX_VALUE,
+     * then the only limit is your memory, but you should anticipate an OutOfMemoryError.
      * <p>
      * By default, no more than 10,000 terms will be indexed for a field.
      */
@@ -119,29 +117,27 @@ public interface LuceneIndexConstants extends FulltextIndexConstants {
     String PROP_USE_IN_SIMILARITY = "useInSimilarity";
 
     /**
-     * IndexRule level config to indicate that Node name should also be index
-     * to support fn:name() queries
+     * IndexRule level config to indicate that Node name should also be index to support fn:name()
+     * queries
      */
     String INDEX_NODE_NAME = "indexNodeName";
 
     /**
-     * Property definition name to indicate indexing node name
-     * Its value should match {@link FieldNames#NODE_NAME}
+     * Property definition name to indicate indexing node name Its value should match
+     * {@link FieldNames#NODE_NAME}
      */
     String PROPDEF_PROP_NODE_NAME = ":nodeName";
 
     /**
-     * Boolean property indicating that Lucene directory content
-     * should be saved as part of NodeState itself as a multi value property
-     * to allow faster reads (OAK-2809)
+     * Boolean property indicating that Lucene directory content should be saved as part of
+     * NodeState itself as a multi value property to allow faster reads (OAK-2809)
      */
     String SAVE_DIR_LISTING = "saveDirectoryListing";
 
     /**
      * Optional  Property to store the path of index in the repository. Path at which index
-     * definition is defined is not known to IndexEditor. To make use of CopyOnWrite
-     * feature its required to know the indexPath to optimize the lookup and read of
-     * existing index files
+     * definition is defined is not known to IndexEditor. To make use of CopyOnWrite feature its
+     * required to know the indexPath to optimize the lookup and read of existing index files
      *
      * @deprecated With OAK-4152 no need to explicitly define indexPath property
      */

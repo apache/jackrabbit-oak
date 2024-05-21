@@ -17,7 +17,9 @@
    limitations under the License.
   -->
 
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd ">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd ">
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
@@ -51,7 +53,8 @@
               org.apache.jackrabbit.oak.plugins.document.spi,
               org.apache.jackrabbit.oak.plugins.document.spi.lease
             </Export-Package>
-            <Embed-Dependency>quartz;inline=org/quartz/CronExpression*|org/quartz/ValueSet*</Embed-Dependency>
+            <Embed-Dependency>quartz;inline=org/quartz/CronExpression*|org/quartz/ValueSet*
+            </Embed-Dependency>
           </instructions>
         </configuration>
       </plugin>
@@ -72,7 +75,9 @@
     <profile>
       <id>replicaset</id>
       <properties>
-        <mongo.url>mongodb://localhost:27017,localhost:27018,localhost:27019/MongoMKDB?readPreference=secondaryPreferred</mongo.url>
+        <mongo.url>
+          mongodb://localhost:27017,localhost:27018,localhost:27019/MongoMKDB?readPreference=secondaryPreferred
+        </mongo.url>
       </properties>
     </profile>
   </profiles>

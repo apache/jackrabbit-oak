@@ -23,7 +23,6 @@ import javax.jcr.LoginException;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
-
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.Impersonation;
 import org.apache.jackrabbit.api.security.user.User;
@@ -150,10 +149,12 @@ public class L7_ImpersonationTest extends AbstractJCRTest {
         impersonation.grantImpersonation(principal);
         superuser.save();
 
-        Session testSession = superuser.getRepository().login(ExerciseUtility.getTestCredentials(testUser.getID()));
+        Session testSession = superuser.getRepository()
+                                       .login(ExerciseUtility.getTestCredentials(testUser.getID()));
         sessionList.add(testSession);
 
-        Session impersonated = testSession.impersonate(new SimpleCredentials(anotherUser.getID(), new char[0]));
+        Session impersonated = testSession.impersonate(
+            new SimpleCredentials(anotherUser.getID(), new char[0]));
         sessionList.add(impersonated);
 
         assertEquals(anotherUser.getID(), impersonated.getUserID());
@@ -162,10 +163,12 @@ public class L7_ImpersonationTest extends AbstractJCRTest {
     public void testImpersonateOneSelf() throws RepositoryException {
         // EXERCISE: walk through this impersonation. does it work? if it does: why?
 
-        Session testSession = superuser.getRepository().login(ExerciseUtility.getTestCredentials(testUser.getID()));
+        Session testSession = superuser.getRepository()
+                                       .login(ExerciseUtility.getTestCredentials(testUser.getID()));
         sessionList.add(testSession);
 
-        Session impersonated = testSession.impersonate(new SimpleCredentials(testUser.getID(), new char[0]));
+        Session impersonated = testSession.impersonate(
+            new SimpleCredentials(testUser.getID(), new char[0]));
         sessionList.add(impersonated);
 
         assertEquals(testUser.getID(), impersonated.getUserID());
@@ -174,7 +177,8 @@ public class L7_ImpersonationTest extends AbstractJCRTest {
     public void testAdminCanImpersonateEveryone() throws RepositoryException {
         // EXERCISE: walk through this impersonation. does it work? if it does: why?
 
-        Session impersonated = superuser.impersonate(new SimpleCredentials(anotherUser.getID(), new char[0]));
+        Session impersonated = superuser.impersonate(
+            new SimpleCredentials(anotherUser.getID(), new char[0]));
         sessionList.add(impersonated);
 
         assertEquals(anotherUser.getID(), impersonated.getUserID());
@@ -183,7 +187,8 @@ public class L7_ImpersonationTest extends AbstractJCRTest {
     public void testAdvancedImpersonationTest() throws RepositoryException {
         // EXERCISE: change the permission setup such that the test-user is allowed to make himself an impersonator of 'another' user.
 
-        Session testSession = superuser.getRepository().login(ExerciseUtility.getTestCredentials(testUser.getID()));
+        Session testSession = superuser.getRepository()
+                                       .login(ExerciseUtility.getTestCredentials(testUser.getID()));
         sessionList.add(testSession);
 
         UserManager uMgr = ((JackrabbitSession) testSession).getUserManager();
@@ -200,7 +205,8 @@ public class L7_ImpersonationTest extends AbstractJCRTest {
         // EXERCISE: withouth changing the permission setup. what API calls do you have at hand?
 
         try {
-            Session s = testSession.impersonate(new SimpleCredentials(anotherUser.getID(), new char[0]));
+            Session s = testSession.impersonate(
+                new SimpleCredentials(anotherUser.getID(), new char[0]));
             sessionList.add(s);
             fail("Test user must no longer be able to edit the impersonation of the test user");
         } catch (LoginException e) {

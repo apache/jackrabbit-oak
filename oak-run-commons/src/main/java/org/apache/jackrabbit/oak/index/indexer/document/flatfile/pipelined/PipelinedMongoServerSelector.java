@@ -27,31 +27,30 @@ import com.mongodb.event.ClusterDescriptionChangedEvent;
 import com.mongodb.event.ClusterListener;
 import com.mongodb.event.ClusterOpeningEvent;
 import com.mongodb.selector.ServerSelector;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
- * Selects a Mongo server that is available for a new connection. This policy is used by PipelinedMongoDownloadTask,
- * the goal being to spread the two connections between the secondaries and avoid downloading from the primary.
- * The policy tries to ensure the following:
+ * Selects a Mongo server that is available for a new connection. This policy is used by
+ * PipelinedMongoDownloadTask, the goal being to spread the two connections between the secondaries
+ * and avoid downloading from the primary. The policy tries to ensure the following:
  *
  * <p>
- * - Establish new connections only to secondaries.
- * - Do not establish more than one connection to a secondary.
- * - If there is a connection to a secondary and that secondary is promoted to primary, the thread should disconnect
- * from the primary and reconnect to a secondary.
+ * - Establish new connections only to secondaries. - Do not establish more than one connection to a
+ * secondary. - If there is a connection to a secondary and that secondary is promoted to primary,
+ * the thread should disconnect from the primary and reconnect to a secondary.
  * <p>
- * This class uses the thread id of the caller to distribute the connections, that is, it assumes that there are
- * two threads downloading from Mongo and each thread should be sent to a different secondary. If a thread calls several
- * times the selection logic, it will receive always the same server. The thread id is used to identify the calling
- * thread.
+ * This class uses the thread id of the caller to distribute the connections, that is, it assumes
+ * that there are two threads downloading from Mongo and each thread should be sent to a different
+ * secondary. If a thread calls several times the selection logic, it will receive always the same
+ * server. The thread id is used to identify the calling thread.
  */
 public class PipelinedMongoServerSelector implements ServerSelector, ClusterListener {
+
     private static final Logger LOG = LoggerFactory.getLogger(PipelinedMongoServerSelector.class);
 
     // Thread ID -> ServerAddress
@@ -63,8 +62,9 @@ public class PipelinedMongoServerSelector implements ServerSelector, ClusterList
     private ClusterDescription lastSeenClusterDescription;
 
     /**
-     * @param threadNamePrefix Threads that start with this prefix will be assigned only to secondary server. Other
-     *                         threads will be assigned all servers available.
+     * @param threadNamePrefix Threads that start with this prefix will be assigned only to
+     *                         secondary server. Other threads will be assigned all servers
+     *                         available.
      */
     public PipelinedMongoServerSelector(String threadNamePrefix) {
         this.threadNamePrefix = threadNamePrefix;
@@ -76,7 +76,8 @@ public class PipelinedMongoServerSelector implements ServerSelector, ClusterList
     }
 
     // Exposed for testing
-    List<ServerDescription> select(ClusterType clusterType, List<ServerDescription> serverDescriptions) {
+    List<ServerDescription> select(ClusterType clusterType,
+        List<ServerDescription> serverDescriptions) {
         if (clusterType != ClusterType.REPLICA_SET) {
             LOG.info("Cluster is not a replica set, returning all servers");
             return serverDescriptions;
@@ -89,11 +90,15 @@ public class PipelinedMongoServerSelector implements ServerSelector, ClusterList
 
         Long threadId = Thread.currentThread().getId();
         LOG.debug("Selecting server from cluster: {}", serverDescriptions.stream()
-                .map(sd -> sd.getAddress() + ", " + sd.getType() + ", " + sd.getState())
-                .collect(Collectors.joining("\n", "\n", "")));
+                                                                         .map(sd -> sd.getAddress()
+                                                                             + ", " + sd.getType()
+                                                                             + ", " + sd.getState())
+                                                                         .collect(
+                                                                             Collectors.joining(
+                                                                                 "\n", "\n", "")));
         var secondaries = serverDescriptions.stream()
-                .filter(ServerDescription::isSecondary)
-                .collect(Collectors.toSet());
+                                            .filter(ServerDescription::isSecondary)
+                                            .collect(Collectors.toSet());
         if (secondaries.isEmpty()) {
             LOG.info("No secondaries found, not selecting the primary. Returning empty list.");
             return List.of();
@@ -140,15 +145,15 @@ public class PipelinedMongoServerSelector implements ServerSelector, ClusterList
         // Check if any thread is connected to primary
         connectedToPrimaryThreads.clear();
         lastSeenClusterDescription.getServerDescriptions().stream()
-                .filter(ServerDescription::isPrimary)
-                .map(ServerDescription::getAddress)
-                .forEach(primaryAddress -> {
-                    for (var entry : serverAddressHashMap.entrySet()) {
-                        if (entry.getValue().equals(primaryAddress)) {
-                            connectedToPrimaryThreads.add(entry.getKey());
-                        }
-                    }
-                });
+                                  .filter(ServerDescription::isPrimary)
+                                  .map(ServerDescription::getAddress)
+                                  .forEach(primaryAddress -> {
+                                      for (var entry : serverAddressHashMap.entrySet()) {
+                                          if (entry.getValue().equals(primaryAddress)) {
+                                              connectedToPrimaryThreads.add(entry.getKey());
+                                          }
+                                      }
+                                  });
     }
 
     /**
@@ -166,8 +171,8 @@ public class PipelinedMongoServerSelector implements ServerSelector, ClusterList
     }
 
     /**
-     * Called by the downloader thread when it finishes downloading. This method removes the thread from the list of
-     * active threads.
+     * Called by the downloader thread when it finishes downloading. This method removes the thread
+     * from the list of active threads.
      */
     public synchronized void threadFinished() {
         LOG.info("Thread finished downloading. Unregistering.");

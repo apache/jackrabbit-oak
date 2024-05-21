@@ -38,8 +38,8 @@ import org.slf4j.LoggerFactory;
 import static org.junit.Assert.assertEquals;
 
 /**
- * Updates multiple nodes in the same commit with multiple threads and verifies
- * the commit is atomic.
+ * Updates multiple nodes in the same commit with multiple threads and verifies the commit is
+ * atomic.
  */
 public class ConcurrentConflictTest extends BaseDocumentMKTest {
 
@@ -78,7 +78,8 @@ public class ConcurrentConflictTest extends BaseDocumentMKTest {
     }
 
     private DocumentMK openDocumentMK(int clusterId) {
-        return new DocumentMK.Builder().setAsyncDelay(10).setDocumentStore(store).setClusterId(clusterId).open();
+        return new DocumentMK.Builder().setAsyncDelay(10).setDocumentStore(store)
+                                       .setClusterId(clusterId).open();
     }
 
     @Test
@@ -107,12 +108,13 @@ public class ConcurrentConflictTest extends BaseDocumentMKTest {
         LOG.info("====== Start test =======");
         final AtomicInteger conflicts = new AtomicInteger();
         final List<Exception> exceptions = Collections.synchronizedList(
-                new ArrayList<Exception>());
+            new ArrayList<Exception>());
         List<Thread> writers = new ArrayList<Thread>();
         for (final DocumentMK mk : kernels) {
             writers.add(new Thread(new Runnable() {
                 Random random = new Random();
                 Map<Integer, JSONObject> nodes = new HashMap<Integer, JSONObject>();
+
                 @Override
                 public void run() {
                     BitSet conflictSet = new BitSet();
@@ -179,7 +181,8 @@ public class ConcurrentConflictTest extends BaseDocumentMKTest {
                     if (useBranch) {
                         rev = mk.merge(rev, null);
                     }
-                    log("Successful transfer @" + oldRev + ": " + jsop.toString() + " (new rev: " + rev + ")");
+                    log("Successful transfer @" + oldRev + ": " + jsop.toString() + " (new rev: "
+                        + rev + ")");
                     long s = calculateSum(mk, rev);
                     if (s != NUM_NODES * 100) {
                         throw new Exception("Sum mismatch: " + s);
@@ -202,7 +205,7 @@ public class ConcurrentConflictTest extends BaseDocumentMKTest {
         String rev = mk.getHeadRevision();
         long sum = calculateSum(mk, rev);
         log("Conflict rate: " + conflicts.get() +
-                "/" + (NUM_WRITERS * NUM_TRANSFERS_PER_THREAD));
+            "/" + (NUM_WRITERS * NUM_TRANSFERS_PER_THREAD));
         System.out.print(logBuffer);
         assertEquals(NUM_NODES * 100, sum);
         if (!exceptions.isEmpty()) {

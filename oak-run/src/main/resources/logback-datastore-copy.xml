@@ -22,19 +22,21 @@
   <appender name="datastore-copy" class="ch.qos.logback.core.FileAppender">
     <file>${oak.workDir}/datastore-copy.log</file>
     <encoder>
-      <pattern>%d{dd.MM.yyyy HH:mm:ss.SSS} %-5(*%level*) [%thread] %logger{30} %marker- %msg %n</pattern>
+      <pattern>%d{dd.MM.yyyy HH:mm:ss.SSS} %-5(*%level*) [%thread] %logger{30} %marker- %msg %n
+      </pattern>
     </encoder>
   </appender>
 
   <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
     <target>System.out</target>
     <encoder>
-      <pattern>%d{dd.MM.yyyy HH:mm:ss.SSS} %-5(*%level*) [%thread] %logger{30} %marker- %msg %n</pattern>
+      <pattern>%d{dd.MM.yyyy HH:mm:ss.SSS} %-5(*%level*) [%thread] %logger{30} %marker- %msg %n
+      </pattern>
     </encoder>
   </appender>
 
   <root level="INFO">
-    <appender-ref ref="datastore-copy" />
+    <appender-ref ref="datastore-copy"/>
   </root>
 
 </configuration>

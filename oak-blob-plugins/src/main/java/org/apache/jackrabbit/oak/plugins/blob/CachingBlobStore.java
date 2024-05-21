@@ -41,7 +41,7 @@ public abstract class CachingBlobStore extends AbstractBlobStore {
     private final Weigher<String, byte[]> weigher = new Weigher<String, byte[]>() {
         @Override
         public int weigh(@NotNull String key, @NotNull byte[] value) {
-            long weight = (long)StringUtils.estimateMemoryUsage(key) + value.length;
+            long weight = (long) StringUtils.estimateMemoryUsage(key) + value.length;
             if (weight > Integer.MAX_VALUE) {
                 LOG.debug("Calculated weight larger than Integer.MAX_VALUE: {}.", weight);
                 weight = Integer.MAX_VALUE;
@@ -57,12 +57,12 @@ public abstract class CachingBlobStore extends AbstractBlobStore {
     public CachingBlobStore(long cacheSize) {
         this.blobCacheSize = cacheSize;
         cache = CacheLIRS.<String, byte[]>newBuilder().
-                recordStats().
-                module(MEM_CACHE_NAME).
-                maximumWeight(cacheSize).
-                averageWeight(getBlockSize() / 2).
-                weigher(weigher).
-                build();
+                         recordStats().
+                         module(MEM_CACHE_NAME).
+                         maximumWeight(cacheSize).
+                         averageWeight(getBlockSize() / 2).
+                         weigher(weigher).
+                         build();
 
         cacheStats = new CacheStats(cache, MEM_CACHE_NAME, weigher, cacheSize);
     }

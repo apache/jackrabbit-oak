@@ -21,8 +21,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * A revision context that represents a cluster node with an expired lease for
- * which recovery is performed.
+ * A revision context that represents a cluster node with an expired lease for which recovery is
+ * performed.
  */
 final class RecoveryContext implements RevisionContext {
 
@@ -34,15 +34,15 @@ final class RecoveryContext implements RevisionContext {
     /**
      * A new recovery context.
      *
-     * @param root the current root document.
-     * @param clock the clock.
+     * @param root      the current root document.
+     * @param clock     the clock.
      * @param clusterId the clusterId for which to run recovery.
-     * @param resolver a commit resolver.
+     * @param resolver  a commit resolver.
      */
     RecoveryContext(NodeDocument root,
-                    Clock clock,
-                    int clusterId,
-                    CommitValueResolver resolver) {
+        Clock clock,
+        int clusterId,
+        CommitValueResolver resolver) {
         this.root = root;
         this.clock = clock;
         this.clusterId = clusterId;
@@ -88,7 +88,7 @@ final class RecoveryContext implements RevisionContext {
     @Nullable
     @Override
     public String getCommitValue(@NotNull Revision changeRevision,
-                                 @NotNull NodeDocument doc) {
+        @NotNull NodeDocument doc) {
         return resolver.resolve(changeRevision, doc);
     }
 }

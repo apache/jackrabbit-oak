@@ -18,12 +18,10 @@
  */
 package org.apache.jackrabbit.oak.segment.aws;
 
-import java.io.IOException;
-import java.util.Date;
-
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.amazonaws.services.dynamodbv2.local.embedded.DynamoDBEmbedded;
-
+import java.io.IOException;
+import java.util.Date;
 import org.apache.jackrabbit.oak.segment.file.GcJournalTest;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
@@ -84,8 +82,9 @@ public class AwsGCJournalFileTest extends GcJournalTest {
         }
 
         @Override
-        public SegmentArchiveManager createArchiveManager(boolean arg0, boolean arg1, IOMonitor arg2,
-                FileStoreMonitor arg3, RemoteStoreMonitor arg4) throws IOException {
+        public SegmentArchiveManager createArchiveManager(boolean arg0, boolean arg1,
+            IOMonitor arg2,
+            FileStoreMonitor arg3, RemoteStoreMonitor arg4) throws IOException {
             throw new IOException();
         }
 

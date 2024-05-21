@@ -16,15 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.search.util;
 
-import java.util.Set;
-
-import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_PROPERTY_NAME;
@@ -39,6 +32,12 @@ import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConsta
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PERSISTENCE_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PERSISTENCE_PATH;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
+
+import java.util.Set;
+import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * A second utility to build index definitions.
@@ -56,7 +55,7 @@ public class IndexDefinitionUtils {
         @Nullable Set<String> propertyTypes,
         @Nullable Set<String> excludes, @Nullable String async) {
         return newFTIndexDefinition(index, type, name, propertyTypes, excludes,
-                async, null);
+            async, null);
     }
 
     public static NodeBuilder newFTIndexDefinition(
@@ -69,18 +68,18 @@ public class IndexDefinitionUtils {
         }
         index = index.child(name);
         index.setProperty(JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE, NAME)
-                .setProperty(TYPE_PROPERTY_NAME, type)
-                .setProperty(REINDEX_PROPERTY_NAME, true);
+             .setProperty(TYPE_PROPERTY_NAME, type)
+             .setProperty(REINDEX_PROPERTY_NAME, true);
         if (async != null) {
             index.setProperty(ASYNC_PROPERTY_NAME, async);
         }
         if (propertyTypes != null && !propertyTypes.isEmpty()) {
             index.setProperty(createProperty(INCLUDE_PROPERTY_TYPES,
-                    propertyTypes, STRINGS));
+                propertyTypes, STRINGS));
         }
         if (excludes != null && !excludes.isEmpty()) {
             index.setProperty(createProperty(EXCLUDE_PROPERTY_NAMES, excludes,
-                    STRINGS));
+                STRINGS));
         }
         if (stored != null) {
             index.setProperty(createProperty(EXPERIMENTAL_STORAGE, stored));
@@ -92,7 +91,7 @@ public class IndexDefinitionUtils {
         @NotNull NodeBuilder index, @NotNull String name, String type,
         @Nullable Set<String> propertyTypes, @NotNull String path) {
         return newFTFileIndexDefinition(index, type, name, propertyTypes, null,
-                path, null);
+            path, null);
     }
 
     public static NodeBuilder newFTFileIndexDefinition(
@@ -105,20 +104,20 @@ public class IndexDefinitionUtils {
         }
         index = index.child(name);
         index.setProperty(JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE, NAME)
-                .setProperty(TYPE_PROPERTY_NAME, type)
-                .setProperty(PERSISTENCE_NAME, PERSISTENCE_FILE)
-                .setProperty(PERSISTENCE_PATH, path)
-                .setProperty(REINDEX_PROPERTY_NAME, true);
+             .setProperty(TYPE_PROPERTY_NAME, type)
+             .setProperty(PERSISTENCE_NAME, PERSISTENCE_FILE)
+             .setProperty(PERSISTENCE_PATH, path)
+             .setProperty(REINDEX_PROPERTY_NAME, true);
         if (async != null) {
             index.setProperty(ASYNC_PROPERTY_NAME, async);
         }
         if (propertyTypes != null && !propertyTypes.isEmpty()) {
             index.setProperty(createProperty(INCLUDE_PROPERTY_TYPES,
-                    propertyTypes, STRINGS));
+                propertyTypes, STRINGS));
         }
         if (excludes != null && !excludes.isEmpty()) {
             index.setProperty(createProperty(EXCLUDE_PROPERTY_NAMES, excludes,
-                    STRINGS));
+                STRINGS));
         }
         return index;
     }
@@ -128,12 +127,12 @@ public class IndexDefinitionUtils {
         @NotNull Set<String> includes,
         @NotNull String async) {
         checkArgument(!includes.isEmpty(), "Fulltext property index " +
-                "requires explicit list of property names to be indexed");
+            "requires explicit list of property names to be indexed");
 
         index = index.child(name);
         index.setProperty(JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE, NAME)
-                .setProperty(TYPE_PROPERTY_NAME, type)
-                .setProperty(REINDEX_PROPERTY_NAME, true);
+             .setProperty(TYPE_PROPERTY_NAME, type)
+             .setProperty(REINDEX_PROPERTY_NAME, true);
         index.setProperty(FulltextIndexConstants.FULL_TEXT_ENABLED, false);
         index.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, includes, STRINGS));
 

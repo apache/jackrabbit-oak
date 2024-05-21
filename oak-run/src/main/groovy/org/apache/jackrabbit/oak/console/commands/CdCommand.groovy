@@ -18,16 +18,16 @@
  */
 package org.apache.jackrabbit.oak.console.commands
 
+import jline.console.completer.Completer
 import org.apache.jackrabbit.guava.common.collect.Iterables
 import org.apache.jackrabbit.guava.common.collect.Lists
-import jline.console.completer.Completer
 import org.apache.jackrabbit.oak.commons.PathUtils
 import org.apache.jackrabbit.oak.console.ConsoleSession
 import org.codehaus.groovy.tools.shell.CommandSupport
 import org.codehaus.groovy.tools.shell.Groovysh
 import org.codehaus.groovy.tools.shell.util.SimpleCompletor
 
-class CdCommand extends CommandSupport{
+class CdCommand extends CommandSupport {
     public static final String COMMAND_NAME = 'change-dir'
 
     public CdCommand(Groovysh shell) {
@@ -36,7 +36,7 @@ class CdCommand extends CommandSupport{
 
     @Override
     protected List<Completer> createCompleters() {
-        SimpleCompletor completor = new SimpleCompletor(){
+        SimpleCompletor completor = new SimpleCompletor() {
             @Override
             SortedSet getCandidates() {
                 SortedSet<String> names = new TreeSet<String>()
@@ -52,7 +52,7 @@ class CdCommand extends CommandSupport{
 
     @Override
     Object execute(List<String> args) {
-        if(args.isEmpty()){
+        if (args.isEmpty()) {
             return;
         }
 
@@ -68,7 +68,7 @@ class CdCommand extends CommandSupport{
             path = PathUtils.concat(session.getWorkingPath(), arg);
         }
         List<String> elements = Lists.newArrayList();
-        PathUtils.elements(path).each{String element ->
+        PathUtils.elements(path).each { String element ->
             if (PathUtils.denotesParent(element)) {
                 if (!elements.isEmpty()) {
                     elements.remove(elements.size() - 1);
@@ -81,11 +81,11 @@ class CdCommand extends CommandSupport{
         String old = session.setWorkingPath(path);
         if (!session.getWorkingNode().exists()) {
             session.setWorkingPath(old);
-            io.out.println("No such node ["+path+"]");
+            io.out.println("No such node [" + path + "]");
         }
     }
 
-    ConsoleSession getSession(){
-        return (ConsoleSession)variables.session
+    ConsoleSession getSession() {
+        return (ConsoleSession) variables.session
     }
 }

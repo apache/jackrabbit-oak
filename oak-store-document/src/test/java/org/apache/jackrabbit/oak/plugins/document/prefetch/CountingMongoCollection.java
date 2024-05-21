@@ -36,17 +36,18 @@ public class CountingMongoCollection<TDocument> extends MongoTestCollection<TDoc
     private AtomicInteger nodesDeleteMany = new AtomicInteger(0);
 
     CountingMongoCollection(MongoCollection<TDocument> collection,
-            AtomicReference<String> beforeQueryException,
-            AtomicReference<String> beforeUpdateException,
-            AtomicReference<String> afterUpdateException) {
+        AtomicReference<String> beforeQueryException,
+        AtomicReference<String> beforeUpdateException,
+        AtomicReference<String> afterUpdateException) {
         super(collection, beforeQueryException, beforeUpdateException, afterUpdateException);
         this.countingCollectionDelegate = collection;
     }
 
     CountingMongoCollection(
-            CountingMongoCollection<TDocument> countingMongoCollection,
-            @NotNull MongoCollection<TDocument> collection) {
-        super(collection, new AtomicReference<String>(), new AtomicReference<String>(), new AtomicReference<String>());
+        CountingMongoCollection<TDocument> countingMongoCollection,
+        @NotNull MongoCollection<TDocument> collection) {
+        super(collection, new AtomicReference<String>(), new AtomicReference<String>(),
+            new AtomicReference<String>());
         this.findCounter = countingMongoCollection.findCounter;
         this.countingCollectionDelegate = collection;
     }
@@ -78,22 +79,34 @@ public class CountingMongoCollection<TDocument> extends MongoTestCollection<TDoc
     public com.mongodb.client.result.DeleteResult deleteMany(org.bson.conversions.Bson filter) {
         incNodesDeleteMany();
         return countingCollectionDelegate.deleteMany(filter);
-    };
+    }
 
-    public com.mongodb.client.result.DeleteResult deleteMany(org.bson.conversions.Bson filter, com.mongodb.client.model.DeleteOptions options) {
+    ;
+
+    public com.mongodb.client.result.DeleteResult deleteMany(org.bson.conversions.Bson filter,
+        com.mongodb.client.model.DeleteOptions options) {
         incNodesDeleteMany();
         return countingCollectionDelegate.deleteMany(filter, options);
-    };
+    }
 
-    public com.mongodb.client.result.DeleteResult deleteMany(com.mongodb.client.ClientSession clientSession, org.bson.conversions.Bson filter) {
+    ;
+
+    public com.mongodb.client.result.DeleteResult deleteMany(
+        com.mongodb.client.ClientSession clientSession, org.bson.conversions.Bson filter) {
         incNodesDeleteMany();
         return countingCollectionDelegate.deleteMany(clientSession, filter);
-    };
+    }
 
-    public com.mongodb.client.result.DeleteResult deleteMany(com.mongodb.client.ClientSession clientSession, org.bson.conversions.Bson filter, com.mongodb.client.model.DeleteOptions options) {
+    ;
+
+    public com.mongodb.client.result.DeleteResult deleteMany(
+        com.mongodb.client.ClientSession clientSession, org.bson.conversions.Bson filter,
+        com.mongodb.client.model.DeleteOptions options) {
         incNodesDeleteMany();
         return countingCollectionDelegate.deleteMany(clientSession, filter, options);
-    };
+    }
+
+    ;
 
     @NotNull
     @Override
@@ -119,7 +132,7 @@ public class CountingMongoCollection<TDocument> extends MongoTestCollection<TDoc
     @NotNull
     @Override
     public <TResult> FindIterable<TResult> find(@NotNull Bson filter,
-                                                @NotNull Class<TResult> tResultClass) {
+        @NotNull Class<TResult> tResultClass) {
         incFindCounter();
         return countingCollectionDelegate.find(filter, tResultClass);
     }
@@ -134,7 +147,7 @@ public class CountingMongoCollection<TDocument> extends MongoTestCollection<TDoc
     @NotNull
     @Override
     public <TResult> FindIterable<TResult> find(@NotNull ClientSession clientSession,
-                                                @NotNull Class<TResult> tResultClass) {
+        @NotNull Class<TResult> tResultClass) {
         incFindCounter();
         return countingCollectionDelegate.find(clientSession, tResultClass);
     }
@@ -142,7 +155,7 @@ public class CountingMongoCollection<TDocument> extends MongoTestCollection<TDoc
     @NotNull
     @Override
     public FindIterable<TDocument> find(@NotNull ClientSession clientSession,
-                                        @NotNull Bson filter) {
+        @NotNull Bson filter) {
         incFindCounter();
         return countingCollectionDelegate.find(clientSession, filter);
     }
@@ -150,17 +163,18 @@ public class CountingMongoCollection<TDocument> extends MongoTestCollection<TDoc
     @NotNull
     @Override
     public <TResult> FindIterable<TResult> find(@NotNull ClientSession clientSession,
-                                                @NotNull Bson filter,
-                                                @NotNull Class<TResult> tResultClass) {
+        @NotNull Bson filter,
+        @NotNull Class<TResult> tResultClass) {
         incFindCounter();
         return countingCollectionDelegate.find(clientSession, filter, tResultClass);
     }
 
     @Override
     public @NotNull MongoCollection<TDocument> withReadConcern(
-            @NotNull ReadConcern readConcern) {
+        @NotNull ReadConcern readConcern) {
         return new CountingMongoCollection(this, super.withReadConcern(readConcern));
     }
+
     public MongoCollection<TDocument> withReadPreference(@NotNull ReadPreference readPreference) {
         return new CountingMongoCollection(this, super.withReadPreference(readPreference));
     }

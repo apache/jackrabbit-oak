@@ -20,14 +20,10 @@ import javax.jcr.AccessDeniedException;
 import javax.jcr.Node;
 import javax.jcr.Session;
 import javax.jcr.security.Privilege;
-
 import org.junit.Test;
 
 /**
- * Specific tests for the individual property modification permissions:
- * - add
- * - modify
- * - remove
+ * Specific tests for the individual property modification permissions: - add - modify - remove
  *
  * @since OAK 1.0
  */
@@ -36,7 +32,7 @@ public class WritePropertyTest extends AbstractEvaluationTest {
     @Test
     public void testAddProperty() throws Exception {
         // grant 'testUser' ADD_PROPERTIES privileges at 'path'
-        Privilege[] privileges = privilegesFromNames(new String[] {"rep:addProperties"});
+        Privilege[] privileges = privilegesFromNames(new String[]{"rep:addProperties"});
         allow(path, privileges);
 
         /*
@@ -101,7 +97,7 @@ public class WritePropertyTest extends AbstractEvaluationTest {
     @Test
     public void testModifyProperty() throws Exception {
         // grant 'testUser' ALTER_PROPERTIES privileges at 'path'
-        Privilege[] privileges = privilegesFromNames(new String[] {"rep:alterProperties"});
+        Privilege[] privileges = privilegesFromNames(new String[]{"rep:alterProperties"});
         allow(path, privileges);
 
         /*
@@ -168,7 +164,7 @@ public class WritePropertyTest extends AbstractEvaluationTest {
     @Test
     public void testRemoveProperty() throws Exception {
         // grant 'testUser' REMOVE_PROPERTIES privileges at 'path'
-        Privilege[] privileges = privilegesFromNames(new String[] {"rep:removeProperties"});
+        Privilege[] privileges = privilegesFromNames(new String[]{"rep:removeProperties"});
         allow(path, privileges);
 
         /*
@@ -230,7 +226,7 @@ public class WritePropertyTest extends AbstractEvaluationTest {
     @Test
     public void testRemoveProperty2() throws Exception {
         // grant 'testUser' REMOVE_PROPERTIES privileges at 'path'
-        Privilege[] privileges = privilegesFromNames(new String[] {"rep:removeProperties"});
+        Privilege[] privileges = privilegesFromNames(new String[]{"rep:removeProperties"});
         allow(path, privileges);
 
         superuser.getNode(path).setProperty("newProperty", "value");

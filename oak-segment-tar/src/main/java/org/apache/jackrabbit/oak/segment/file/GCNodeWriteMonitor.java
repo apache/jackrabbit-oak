@@ -22,13 +22,14 @@ import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Monitors the compaction cycle and keeps a compacted nodes counter, in order
- * to provide a best effort progress log based on extrapolating the previous
- * size and node count and current size to deduce current node count.
+ * Monitors the compaction cycle and keeps a compacted nodes counter, in order to provide a best
+ * effort progress log based on extrapolating the previous size and node count and current size to
+ * deduce current node count.
  */
 public class GCNodeWriteMonitor {
+
     public static final GCNodeWriteMonitor EMPTY = new GCNodeWriteMonitor(
-            -1, GCMonitor.EMPTY);
+        -1, GCMonitor.EMPTY);
 
     /**
      * Number of nodes the monitor will log a message, -1 to disable
@@ -48,8 +49,8 @@ public class GCNodeWriteMonitor {
     private long estimated = -1;
 
     /**
-     * Number of compacted nodes. This is queried much more often than other properties,
-     * therefore it is the only one to use {@link AtomicLong} instead of {@link LongAdder}.
+     * Number of compacted nodes. This is queried much more often than other properties, therefore
+     * it is the only one to use {@link AtomicLong} instead of {@link LongAdder}.
      */
     private long nodes;
 
@@ -71,12 +72,9 @@ public class GCNodeWriteMonitor {
     }
 
     /**
-     * @param prevSize
-     *            size from latest successful compaction
-     * @param prevCompactedNodes
-     *            number of nodes compacted during latest compaction operation
-     * @param currentSize
-     *            current repository size
+     * @param prevSize           size from latest successful compaction
+     * @param prevCompactedNodes number of nodes compacted during latest compaction operation
+     * @param currentSize        current repository size
      */
     public synchronized void init(long prevSize, long prevCompactedNodes, long currentSize) {
         if (prevCompactedNodes > 0) {
@@ -86,7 +84,8 @@ public class GCNodeWriteMonitor {
                     + "on disk in previous compaction and current size of {} bytes on disk.",
                 estimated, prevCompactedNodes, prevSize, currentSize);
         } else {
-            gcMonitor.info("unable to estimate number of nodes for compaction, missing gc history.");
+            gcMonitor.info(
+                "unable to estimate number of nodes for compaction, missing gc history.");
         }
         nodes = 0;
         properties = 0;
@@ -99,7 +98,8 @@ public class GCNodeWriteMonitor {
         nodes++;
         if (gcProgressLog > 0 && nodes % gcProgressLog == 0) {
             gcMonitor.info("compacted {} nodes, {} properties, {} binaries in {} ms. {}",
-                nodes, properties, binaries, System.currentTimeMillis() - start, getPercentageDone());
+                nodes, properties, binaries, System.currentTimeMillis() - start,
+                getPercentageDone());
         }
     }
 
@@ -123,8 +123,8 @@ public class GCNodeWriteMonitor {
     }
 
     /**
-     * Estimated nodes to compact in current cycle. Can be {@code -1} if the
-     * estimation could not be performed.
+     * Estimated nodes to compact in current cycle. Can be {@code -1} if the estimation could not be
+     * performed.
      */
     public synchronized long getEstimatedTotal() {
         return estimated;
@@ -138,8 +138,7 @@ public class GCNodeWriteMonitor {
     }
 
     /**
-     * Estimated completion percentage. Can be {@code -1} if the estimation
-     * could not be performed.
+     * Estimated completion percentage. Can be {@code -1} if the estimation could not be performed.
      */
     public synchronized int getEstimatedPercentage() {
         if (estimated > 0) {

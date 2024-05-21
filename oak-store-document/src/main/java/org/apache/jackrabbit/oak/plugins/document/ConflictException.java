@@ -26,9 +26,8 @@ import java.util.Collections;
 import java.util.Set;
 
 /**
- * An exception with an optional conflict revision. The DocumentNodeStore
- * implementation will throw this exception when a commit or merge fails with a
- * conflict.
+ * An exception with an optional conflict revision. The DocumentNodeStore implementation will throw
+ * this exception when a commit or merge fails with a conflict.
  */
 class ConflictException extends Exception {
 
@@ -40,21 +39,21 @@ class ConflictException extends Exception {
     private final Set<Revision> conflictRevisions;
 
     /**
-     * @param message the exception / conflict message.
+     * @param message          the exception / conflict message.
      * @param conflictRevision the conflict revision
      */
     ConflictException(@NotNull String message,
-                      @NotNull Revision conflictRevision) {
+        @NotNull Revision conflictRevision) {
         super(checkNotNull(message));
         this.conflictRevisions = Collections.singleton(checkNotNull(conflictRevision));
     }
 
     /**
-     * @param message the exception / conflict message.
+     * @param message           the exception / conflict message.
      * @param conflictRevisions the conflict revision list
      */
     ConflictException(@NotNull String message,
-                      @NotNull Set<Revision> conflictRevisions) {
+        @NotNull Set<Revision> conflictRevisions) {
         super(checkNotNull(message));
         this.conflictRevisions = checkNotNull(conflictRevisions);
     }
@@ -68,8 +67,8 @@ class ConflictException extends Exception {
     }
 
     /**
-     * Convert this exception into a {@link CommitFailedException}. This
-     * exception will be set as the cause of the returned exception.
+     * Convert this exception into a {@link CommitFailedException}. This exception will be set as
+     * the cause of the returned exception.
      *
      * @return a {@link CommitFailedException}.
      */
@@ -78,7 +77,7 @@ class ConflictException extends Exception {
             return new FailedWithConflictException(conflictRevisions, getMessage(), this);
         } else {
             return new CommitFailedException(MERGE, 1,
-                    "Failed to merge changes to the underlying store", this);
+                "Failed to merge changes to the underlying store", this);
         }
     }
 

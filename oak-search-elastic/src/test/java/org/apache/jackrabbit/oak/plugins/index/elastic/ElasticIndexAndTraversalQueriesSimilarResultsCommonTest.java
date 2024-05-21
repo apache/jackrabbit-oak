@@ -22,11 +22,12 @@ import org.apache.jackrabbit.oak.plugins.index.IndexAndTraversalQueriesSimilarRe
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.junit.ClassRule;
 
-public class ElasticIndexAndTraversalQueriesSimilarResultsCommonTest extends IndexAndTraversalQueriesSimilarResultsCommonTest {
+public class ElasticIndexAndTraversalQueriesSimilarResultsCommonTest extends
+    IndexAndTraversalQueriesSimilarResultsCommonTest {
 
     @ClassRule
     public static final ElasticConnectionRule elasticRule =
-            new ElasticConnectionRule(ElasticTestUtils.ELASTIC_CONNECTION_STRING);
+        new ElasticConnectionRule(ElasticTestUtils.ELASTIC_CONNECTION_STRING);
 
     public ElasticIndexAndTraversalQueriesSimilarResultsCommonTest() {
         indexOptions = new ElasticIndexOptions();
@@ -34,8 +35,10 @@ public class ElasticIndexAndTraversalQueriesSimilarResultsCommonTest extends Ind
 
     @Override
     protected ContentRepository createRepository() {
-        ElasticTestRepositoryBuilder elasticTestRepositoryBuilder = new ElasticTestRepositoryBuilder(elasticRule);
-        elasticTestRepositoryBuilder.setNodeStore(new MemoryNodeStore(InitialContentHelper.INITIAL_CONTENT));
+        ElasticTestRepositoryBuilder elasticTestRepositoryBuilder = new ElasticTestRepositoryBuilder(
+            elasticRule);
+        elasticTestRepositoryBuilder.setNodeStore(
+            new MemoryNodeStore(InitialContentHelper.INITIAL_CONTENT));
         elasticTestRepositoryBuilder.setAsync(true);
         repositoryOptionsUtil = elasticTestRepositoryBuilder.build();
         return repositoryOptionsUtil.getOak().createContentRepository();

@@ -32,7 +32,8 @@ public class IncrementalFlatFileStoreNodeStateEntryWriter extends NodeStateEntry
         this(blobStore, false);
     }
 
-    public IncrementalFlatFileStoreNodeStateEntryWriter(BlobStore blobStore, boolean includeChildOrder) {
+    public IncrementalFlatFileStoreNodeStateEntryWriter(BlobStore blobStore,
+        boolean includeChildOrder) {
         super(blobStore, includeChildOrder);
     }
 

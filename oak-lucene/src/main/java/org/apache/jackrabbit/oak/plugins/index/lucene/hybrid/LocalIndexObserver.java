@@ -29,6 +29,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class LocalIndexObserver implements Observer {
+
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final DocumentQueue docQueue;
 
@@ -38,26 +39,27 @@ public class LocalIndexObserver implements Observer {
 
     @Override
     public void contentChanged(@NotNull NodeState root, @NotNull CommitInfo info) {
-        if (info.isExternal()){
-           return;
+        if (info.isExternal()) {
+            return;
         }
 
         CommitContext commitContext = (CommitContext) info.getInfo().get(CommitContext.NAME);
         //Commit done internally i.e. one not using Root/Tree API
-        if (commitContext == null){
+        if (commitContext == null) {
             return;
         }
 
-        LuceneDocumentHolder holder = (LuceneDocumentHolder) commitContext.get(LuceneDocumentHolder.NAME);
+        LuceneDocumentHolder holder = (LuceneDocumentHolder) commitContext.get(
+            LuceneDocumentHolder.NAME);
         //Nothing to be indexed
-        if (holder == null){
+        if (holder == null) {
             return;
         }
 
         commitContext.remove(LuceneDocumentHolder.NAME);
 
         int droppedCount = 0;
-        for (LuceneDoc doc : holder.getNRTIndexedDocs()){
+        for (LuceneDoc doc : holder.getNRTIndexedDocs()) {
             if (!docQueue.add(doc)) {
                 droppedCount++;
             }
@@ -68,7 +70,7 @@ public class LocalIndexObserver implements Observer {
         //up by the time sync one are finished
         docQueue.addAllSynchronously(holder.getSyncIndexedDocs());
 
-        if (droppedCount > 0){
+        if (droppedCount > 0) {
             //TODO Ensure that log do not flood
             log.warn("Dropped [{}] docs from indexing as queue is full", droppedCount);
         }

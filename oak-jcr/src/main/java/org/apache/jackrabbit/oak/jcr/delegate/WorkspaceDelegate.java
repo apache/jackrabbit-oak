@@ -16,6 +16,12 @@
  */
 package org.apache.jackrabbit.oak.jcr.delegate;
 
+import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -23,10 +29,9 @@ import java.util.Map;
 import javax.jcr.ItemExistsException;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
-
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
@@ -45,12 +50,6 @@ import org.apache.jackrabbit.util.Text;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
-import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
-import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
-
 /**
  * Delegate class for workspace operations.
  */
@@ -64,8 +63,9 @@ public class WorkspaceDelegate {
 
     /**
      * Copy a node
+     *
      * @param srcPath  oak path to the source node to copy
-     * @param destPath  oak path to the destination
+     * @param destPath oak path to the destination
      * @throws RepositoryException
      */
     public void copy(@NotNull String srcPath, @NotNull String destPath) throws RepositoryException {
@@ -93,7 +93,8 @@ public class WorkspaceDelegate {
             throw new PathNotFoundException(srcPath);
         }
 
-        accessManager.checkPermissions(destPath, Permissions.getString(Permissions.NODE_TYPE_MANAGEMENT));
+        accessManager.checkPermissions(destPath,
+            Permissions.getString(Permissions.NODE_TYPE_MANAGEMENT));
 
         String userId = sessionDelegate.getAuthInfo().getUserID();
         new WorkspaceCopy(src, destParent, Text.getName(destPath)).perform(root, userId);
@@ -103,19 +104,22 @@ public class WorkspaceDelegate {
     //---------------------------< internal >-----------------------------------
 
     private static final class WorkspaceCopy {
+
         private final Map<String, String> translated = Maps.newHashMap();
 
         private final Tree source;
         private final Tree destParent;
         private final String destName;
 
-        public WorkspaceCopy(@NotNull Tree source, @NotNull Tree destParent, @NotNull String destName) {
+        public WorkspaceCopy(@NotNull Tree source, @NotNull Tree destParent,
+            @NotNull String destName) {
             this.source = source;
             this.destParent = destParent;
             this.destName = destName;
         }
 
-        public void perform(@NotNull Root root, @Nullable String userId) throws RepositoryException {
+        public void perform(@NotNull Root root, @Nullable String userId)
+            throws RepositoryException {
             try {
                 Tree typeRoot = root.getTree(NODE_TYPES_PATH);
                 copy(source, destParent, destName, typeRoot, userId);
@@ -124,7 +128,8 @@ public class WorkspaceDelegate {
                 Map<String, String> copyInfo = new HashMap<>();
                 copyInfo.put("copy-source", source.getPath());
                 if (TreeUtil.isNodeType(source, JcrConstants.MIX_VERSIONABLE, typeRoot)) {
-                    String sourceBaseVersionId = source.getProperty(JcrConstants.JCR_BASEVERSION).getValue(Type.STRING);
+                    String sourceBaseVersionId = source.getProperty(JcrConstants.JCR_BASEVERSION)
+                                                       .getValue(Type.STRING);
                     copyInfo.put(VersionConstants.JCR_COPIED_FROM, sourceBaseVersionId);
                 }
                 root.commit(ImmutableMap.copyOf(copyInfo));
@@ -133,8 +138,9 @@ public class WorkspaceDelegate {
             }
         }
 
-        private void copy(@NotNull Tree source, @NotNull Tree destParent, @NotNull String destName, @NotNull Tree typeRoot, @Nullable String userId)
-                throws RepositoryException {
+        private void copy(@NotNull Tree source, @NotNull Tree destParent, @NotNull String destName,
+            @NotNull Tree typeRoot, @Nullable String userId)
+            throws RepositoryException {
             String primaryType = TreeUtil.getPrimaryTypeName(source);
             Tree dest = TreeUtil.addChild(destParent, destName, primaryType, typeRoot, userId);
             for (PropertyState property : source.getProperties()) {
@@ -151,8 +157,8 @@ public class WorkspaceDelegate {
                         translated.put(sourceId, newId);
                     }
                 } else if (!JCR_PRIMARYTYPE.equals(propName)
-                        && !VersionConstants.VERSION_PROPERTY_NAMES.contains(propName)
-                        && !LockConstants.LOCK_PROPERTY_NAMES.contains(propName)) {
+                    && !VersionConstants.VERSION_PROPERTY_NAMES.contains(propName)
+                    && !LockConstants.LOCK_PROPERTY_NAMES.contains(propName)) {
                     dest.setProperty(property);
                 }
             }
@@ -170,7 +176,8 @@ public class WorkspaceDelegate {
          */
         private void updateReferences(@NotNull Tree src, @NotNull Tree dest) {
             for (PropertyState prop : src.getProperties()) {
-                if (isReferenceType(prop) && !VersionConstants.VERSION_PROPERTY_NAMES.contains(prop.getName())) {
+                if (isReferenceType(prop) && !VersionConstants.VERSION_PROPERTY_NAMES.contains(
+                    prop.getName())) {
                     updateProperty(prop, dest);
                 }
             }
@@ -182,15 +189,15 @@ public class WorkspaceDelegate {
         private static boolean isReferenceType(@NotNull PropertyState property) {
             Type<?> type = property.getType();
             return (type == Type.REFERENCE
-                    || type == Type.REFERENCES
-                    || type == Type.WEAKREFERENCE
-                    || type == Type.WEAKREFERENCES);
+                || type == Type.REFERENCES
+                || type == Type.WEAKREFERENCE
+                || type == Type.WEAKREFERENCES);
         }
 
         private void updateProperty(@NotNull PropertyState prop, @NotNull Tree dest) {
             boolean multi = prop.isArray();
             boolean weak = prop.getType() == Type.WEAKREFERENCE
-                    || prop.getType() == Type.WEAKREFERENCES;
+                || prop.getType() == Type.WEAKREFERENCES;
             List<String> ids = new ArrayList<>();
             for (int i = 0; i < prop.count(); i++) {
                 String id;
@@ -205,10 +212,10 @@ public class WorkspaceDelegate {
             if (multi) {
                 if (weak) {
                     p = MultiGenericPropertyState.weakreferenceProperty(
-                            prop.getName(), ids);
+                        prop.getName(), ids);
                 } else {
                     p = MultiGenericPropertyState.referenceProperty(
-                            prop.getName(), ids);
+                        prop.getName(), ids);
                 }
             } else {
                 if (weak) {

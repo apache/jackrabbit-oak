@@ -33,15 +33,15 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * A simple CPU profiling tool similar to java -Xrunhprof. It can be used
- * in-process (to profile the current application) or as a standalone program
- * (to profile a different process, or files containing full thread dumps).
+ * A simple CPU profiling tool similar to java -Xrunhprof. It can be used in-process (to profile the
+ * current application) or as a standalone program (to profile a different process, or files
+ * containing full thread dumps).
  */
 public class Profiler implements Runnable {
 
     private static Instrumentation instrumentation;
     private static final String LINE_SEPARATOR =
-            System.getProperty("line.separator", "\n");
+        System.getProperty("line.separator", "\n");
     private static final int MAX_ELEMENTS = 1000;
 
     public int interval = 2;
@@ -53,22 +53,22 @@ public class Profiler implements Runnable {
     private int pid;
 
     private final String[] ignoreLines = (
-            "java," +
+        "java," +
             "sun," +
             "com.sun.," +
             "com.mongodb.," +
             "org.bson.,"
-            ).split(",");
+    ).split(",");
     private final String[] ignorePackages = (
-            "java," +
+        "java," +
             "sun," +
             "com.sun.," +
             "org.apache.jackrabbit.oak.guava.common.," +
             "com.mongodb.," +
             "org.bson"
-            ).split(",");
+    ).split(",");
     private final String[] ignoreThreads = (
-            "java.lang.Object.wait," +
+        "java.lang.Object.wait," +
             "java.lang.Thread.dumpThreads," +
             "java.lang.Thread.getThreads," +
             "java.lang.Thread.sleep," +
@@ -86,18 +86,18 @@ public class Profiler implements Runnable {
             "sun.nio.ch.ServerSocketChannelImpl.accept," +
             "dalvik.system.VMStack.getThreadStackTrace," +
             "dalvik.system.NativeStart.run"
-            ).split(",");
+    ).split(",");
 
     private volatile boolean stop;
     private final HashMap<String, Integer> counts =
-            new HashMap<String, Integer>();
+        new HashMap<String, Integer>();
 
     /**
-     * The summary (usually one entry per package, unless sumClasses is enabled,
-     * in which case it's one entry per class).
+     * The summary (usually one entry per package, unless sumClasses is enabled, in which case it's
+     * one entry per class).
      */
     private final HashMap<String, Integer> summary =
-            new HashMap<String, Integer>();
+        new HashMap<String, Integer>();
     private int minCount = 1;
     private int total;
     private Thread thread;
@@ -109,7 +109,7 @@ public class Profiler implements Runnable {
      * This method is called when the agent is installed.
      *
      * @param agentArgs the agent arguments
-     * @param inst the instrumentation object
+     * @param inst      the instrumentation object
      */
     public static void premain(String agentArgs, Instrumentation inst) {
         instrumentation = inst;
@@ -125,11 +125,10 @@ public class Profiler implements Runnable {
     }
 
     /**
-     * Run the command line version of the profiler. The JDK (jps and jstack)
-     * need to be in the path.
+     * Run the command line version of the profiler. The JDK (jps and jstack) need to be in the
+     * path.
      *
-     * @param args the process id of the process - if not set the java processes
-     *        are listed
+     * @param args the process id of the process - if not set the java processes are listed
      */
     public static void main(String... args) {
         new Profiler().run(args);
@@ -139,7 +138,7 @@ public class Profiler implements Runnable {
         if (args.length == 0) {
             System.out.println("Show profiling data");
             System.out.println("Usage: java " + getClass().getName() +
-                    " <pid> | <stackTraceFileNames>");
+                " <pid> | <stackTraceFileNames>");
             System.out.println("Processes:");
             String processes = exec("jps", "-l");
             System.out.println(processes);
@@ -178,7 +177,7 @@ public class Profiler implements Runnable {
                 Reader reader;
                 LineNumberReader r;
                 reader = new InputStreamReader(
-                        new FileInputStream(file), "CP1252");
+                    new FileInputStream(file), "CP1252");
                 r = new LineNumberReader(reader);
                 while (true) {
                     String line = r.readLine();
@@ -190,7 +189,7 @@ public class Profiler implements Runnable {
                 }
                 reader.close();
                 reader = new InputStreamReader(
-                        new FileInputStream(file), "CP1252");
+                    new FileInputStream(file), "CP1252");
                 r = new LineNumberReader(reader);
                 processList(readStackTrace(r));
                 reader.close();
@@ -222,7 +221,7 @@ public class Profiler implements Runnable {
         try {
             String jstack = exec("jstack", "" + pid);
             LineNumberReader r = new LineNumberReader(
-                    new StringReader(jstack));
+                new StringReader(jstack));
             return readStackTrace(r);
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -230,7 +229,7 @@ public class Profiler implements Runnable {
     }
 
     private static List<Object[]> readStackTrace(LineNumberReader r)
-            throws IOException {
+        throws IOException {
         ArrayList<Object[]> list = new ArrayList<Object[]>();
         while (true) {
             String line = r.readLine();
@@ -293,7 +292,7 @@ public class Profiler implements Runnable {
     }
 
     private static void copyInThread(final InputStream in,
-            final OutputStream out) {
+        final OutputStream out) {
         new Thread("Profiler stream copy") {
             @Override
             public void run() {
@@ -435,7 +434,7 @@ public class Profiler implements Runnable {
     }
 
     private static int increment(HashMap<String, Integer> map, String trace,
-            int minCount) {
+        int minCount) {
         Integer oldCount = map.get(trace);
         if (oldCount == null) {
             map.put(trace, 1);
@@ -444,7 +443,7 @@ public class Profiler implements Runnable {
         }
         while (map.size() > MAX_ELEMENTS) {
             for (Iterator<Map.Entry<String, Integer>> ei =
-                    map.entrySet().iterator(); ei.hasNext();) {
+                map.entrySet().iterator(); ei.hasNext(); ) {
                 Map.Entry<String, Integer> e = ei.next();
                 if (e.getValue() <= minCount) {
                     ei.remove();
@@ -491,8 +490,8 @@ public class Profiler implements Runnable {
     }
 
     private static void appendTop(StringBuilder buff,
-            HashMap<String, Integer> map, int count, int total, boolean table) {
-        for (int x = 0, min = 0;;) {
+        HashMap<String, Integer> map, int count, int total, boolean table) {
+        for (int x = 0, min = 0; ; ) {
             int highest = 0;
             Map.Entry<String, Integer> best = null;
             for (Map.Entry<String, Integer> el : map.entrySet()) {

@@ -18,14 +18,6 @@
  */
 package org.apache.jackrabbit.oak.index.async;
 
-import org.apache.jackrabbit.guava.common.io.Closer;
-import org.apache.jackrabbit.oak.index.IndexHelper;
-import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
-import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
-import org.apache.jackrabbit.oak.stats.StatisticsProvider;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.List;
@@ -33,6 +25,13 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import org.apache.jackrabbit.guava.common.io.Closer;
+import org.apache.jackrabbit.oak.index.IndexHelper;
+import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
+import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class AsyncIndexerBase implements Closeable {
 
@@ -45,7 +44,8 @@ public abstract class AsyncIndexerBase implements Closeable {
     private final ScheduledExecutorService pool;
     private final CountDownLatch latch;
 
-    public AsyncIndexerBase(IndexHelper indexHelper, Closer closer, List<String> names, long delay) {
+    public AsyncIndexerBase(IndexHelper indexHelper, Closer closer, List<String> names,
+        long delay) {
         this.indexHelper = indexHelper;
         this.closer = closer;
         this.names = names;
@@ -66,7 +66,7 @@ public abstract class AsyncIndexerBase implements Closeable {
         for (String name : names) {
             log.info("Setting up Async executor for lane - " + name);
             AsyncIndexUpdate task = new AsyncIndexUpdate(name, indexHelper.getNodeStore(),
-                    editorProvider, StatisticsProvider.NOOP, false);
+                editorProvider, StatisticsProvider.NOOP, false);
             closer.register(task);
 
             pool.scheduleWithFixedDelay(task, INIT_DELAY, delay, TimeUnit.SECONDS);
@@ -85,9 +85,10 @@ public abstract class AsyncIndexerBase implements Closeable {
     }
 
     /**
-    Since this would be running continuously in a loop, we can't possibly call closures in a normal conventional manner
-    otherwise resources would be closed from the main thread and spawned off threads will still be running and will fail.
-    So we handle closures as part of shut down hooks in case of SIGINT, SIGTERM etc.
+     * Since this would be running continuously in a loop, we can't possibly call closures in a
+     * normal conventional manner otherwise resources would be closed from the main thread and
+     * spawned off threads will still be running and will fail. So we handle closures as part of
+     * shut down hooks in case of SIGINT, SIGTERM etc.
      **/
     private void addShutDownHook() {
         Runtime.getRuntime().addShutdownHook(new Thread() {

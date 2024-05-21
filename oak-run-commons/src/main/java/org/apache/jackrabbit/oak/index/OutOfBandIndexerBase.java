@@ -18,10 +18,19 @@
  */
 package org.apache.jackrabbit.oak.index;
 
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+
 import com.codahale.metrics.MetricRegistry;
+import java.io.Closeable;
+import java.io.File;
+import java.io.IOException;
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.plugins.index.*;
+import org.apache.jackrabbit.oak.plugins.index.CorruptIndexHandler;
+import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.IndexUpdate;
+import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
+import org.apache.jackrabbit.oak.plugins.index.NodeTraversalCallback;
 import org.apache.jackrabbit.oak.plugins.index.progress.MetricRateEstimator;
 import org.apache.jackrabbit.oak.plugins.index.progress.NodeCounterMBeanEstimator;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
@@ -35,13 +44,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
-import java.io.Closeable;
-import java.io.File;
-import java.io.IOException;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-
-public abstract class OutOfBandIndexerBase implements Closeable, IndexUpdateCallback, NodeTraversalCallback{
+public abstract class OutOfBandIndexerBase implements Closeable, IndexUpdateCallback,
+    NodeTraversalCallback {
 
     protected final Closer closer = Closer.create();
     private final IndexHelper indexHelper;
@@ -53,8 +57,7 @@ public abstract class OutOfBandIndexerBase implements Closeable, IndexUpdateCall
      */
     private static final String REINDEX_LANE = "offline-reindex-async";
     /**
-     * Directory name in output directory under which indexes are
-     * stored
+     * Directory name in output directory under which indexes are stored
      */
     public static final String LOCAL_INDEX_ROOT_DIR = "indexes";
 
@@ -95,22 +98,24 @@ public abstract class OutOfBandIndexerBase implements Closeable, IndexUpdateCall
     }
 
     @Override
-    public void traversedNode(NodeTraversalCallback.PathSource pathSource) throws CommitFailedException {
+    public void traversedNode(NodeTraversalCallback.PathSource pathSource)
+        throws CommitFailedException {
 
     }
 
-    protected void preformIndexUpdate(NodeState baseState) throws IOException, CommitFailedException {
+    protected void preformIndexUpdate(NodeState baseState)
+        throws IOException, CommitFailedException {
         NodeBuilder builder = copyOnWriteStore.getRoot().builder();
 
         IndexUpdate indexUpdate = new IndexUpdate(
-                createIndexEditorProvider(),
-                REINDEX_LANE,
-                copyOnWriteStore.getRoot(),
-                builder,
-                this,
-                this,
-                CommitInfo.EMPTY,
-                CorruptIndexHandler.NOOP
+            createIndexEditorProvider(),
+            REINDEX_LANE,
+            copyOnWriteStore.getRoot(),
+            builder,
+            this,
+            this,
+            CommitInfo.EMPTY,
+            CorruptIndexHandler.NOOP
         );
 
         configureEstimators(indexUpdate);
@@ -123,7 +128,7 @@ public abstract class OutOfBandIndexerBase implements Closeable, IndexUpdateCall
         NodeState after = copyOnWriteStore.getRoot();
 
         CommitFailedException exception =
-                EditorDiff.process(VisibleEditor.wrap(indexUpdate), before, after);
+            EditorDiff.process(VisibleEditor.wrap(indexUpdate), before, after);
 
         if (exception != null) {
             throw exception;
@@ -141,7 +146,8 @@ public abstract class OutOfBandIndexerBase implements Closeable, IndexUpdateCall
             indexUpdate.setTraversalRateEstimator(new MetricRateEstimator(REINDEX_LANE, registry));
         }
 
-        NodeCounterMBeanEstimator estimator = new NodeCounterMBeanEstimator(indexHelper.getNodeStore());
+        NodeCounterMBeanEstimator estimator = new NodeCounterMBeanEstimator(
+            indexHelper.getNodeStore());
         indexUpdate.setNodeCountEstimator(estimator);
     }
 

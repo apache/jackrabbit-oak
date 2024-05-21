@@ -178,9 +178,11 @@ public class DocumentNodeStoreTest {
             }
         };
         final DocumentNodeStore store1 = builderProvider.newBuilder().setAsyncDelay(0)
-                .setDocumentStore(testStore).setClusterId(1).getNodeStore();
+                                                        .setDocumentStore(testStore).setClusterId(1)
+                                                        .getNodeStore();
         DocumentNodeStore store2 = builderProvider.newBuilder().setAsyncDelay(0)
-                .setDocumentStore(docStore).setClusterId(2).getNodeStore();
+                                                  .setDocumentStore(docStore).setClusterId(2)
+                                                  .getNodeStore();
 
         NodeBuilder builder = store2.getRoot().builder();
         builder.child("node2");
@@ -194,7 +196,7 @@ public class DocumentNodeStoreTest {
         builder = store1.getRoot().builder();
         builder.child("node1");
         NodeState root =
-                store1.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+            store1.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         semaphore.acquireUninterruptibly();
         Thread t = new Thread(new Runnable() {
@@ -237,7 +239,7 @@ public class DocumentNodeStoreTest {
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         builder = store.getRoot().builder();
         String name = new ArrayList<String>(children).get(
-                100 / 2);
+            100 / 2);
         builder.child(name).remove();
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         int numEntries = Iterables.size(store.getRoot().getChildNodeEntries());
@@ -251,15 +253,15 @@ public class DocumentNodeStoreTest {
             @NotNull
             @Override
             public <T extends Document> List<T> query(Collection<T> collection,
-                                                      String fromKey,
-                                                      String toKey,
-                                                      int limit) {
+                String fromKey,
+                String toKey,
+                int limit) {
                 counter.incrementAndGet();
                 return super.query(collection, fromKey, toKey, limit);
             }
         };
         DocumentNodeStore store = builderProvider.newBuilder()
-                .setDocumentStore(docStore).getNodeStore();
+                                                 .setDocumentStore(docStore).getNodeStore();
         NodeBuilder root = store.getRoot().builder();
         for (int i = 0; i < 10; i++) {
             root.child("node-" + i);
@@ -277,12 +279,12 @@ public class DocumentNodeStoreTest {
     @Test
     public void rollback() throws Exception {
         final Map<Thread, Semaphore> locks = Collections.synchronizedMap(
-                new HashMap<Thread, Semaphore>());
+            new HashMap<Thread, Semaphore>());
         final Semaphore created = new Semaphore(0);
         DocumentStore docStore = new MemoryDocumentStore() {
             @Override
             public <T extends Document> List<T> createOrUpdate(Collection<T> collection,
-                                                               List<UpdateOp> updateOps) {
+                List<UpdateOp> updateOps) {
                 Semaphore semaphore = locks.get(Thread.currentThread());
                 List<T> result = super.createOrUpdate(collection, updateOps);
                 if (semaphore != null) {
@@ -294,7 +296,7 @@ public class DocumentNodeStoreTest {
         };
         final List<Exception> exceptions = new ArrayList<Exception>();
         final DocumentMK mk = builderProvider.newBuilder()
-                .setDocumentStore(docStore).setAsyncDelay(0).open();
+                                             .setDocumentStore(docStore).setAsyncDelay(0).open();
         final DocumentNodeStore store = mk.getNodeStore();
 
         NodeBuilder builder = store.getRoot().builder();
@@ -312,10 +314,10 @@ public class DocumentNodeStoreTest {
             @Override
             public void run() {
                 Commit c = new CommitBuilder(store, store.newRevision(), head)
-                        .addNode(Path.fromString("/newConflictingNode"))
-                        .addNode(Path.fromString("/deletedNode"))
-                        .updateProperty(Path.fromString("/updateNode"), "foo", "baz")
-                        .build();
+                    .addNode(Path.fromString("/newConflictingNode"))
+                    .addNode(Path.fromString("/deletedNode"))
+                    .updateProperty(Path.fromString("/updateNode"), "foo", "baz")
+                    .build();
                 try {
                     c.apply();
                 } catch (Exception e) {
@@ -333,9 +335,9 @@ public class DocumentNodeStoreTest {
         // commit will succeed and add collision marker to writer commit
         Revision r = store.newRevision();
         Commit c = new CommitBuilder(store, r, head)
-                .addNode(Path.fromString("/newConflictingNode"))
-                .addNode(Path.fromString("/newNonConflictingNode"))
-                .build();
+            .addNode(Path.fromString("/newConflictingNode"))
+            .addNode(Path.fromString("/newNonConflictingNode"))
+            .build();
         c.apply();
         // allow writer to continue
         s.release(10);
@@ -346,32 +348,35 @@ public class DocumentNodeStoreTest {
         NodeDocument doc = docStore.find(NODES, id);
         assertNotNull("document with id " + id + " does not exist", doc);
         assertTrue("document with id " + id + " should get _deletedOnce marked due to rollback",
-                doc.wasDeletedOnce());
+            doc.wasDeletedOnce());
 
         id = Utils.getIdFromPath("/newNonConflictingNode");
         doc = docStore.find(NODES, id);
         assertNull("document with id " + id + " must not have _deletedOnce",
-                doc.get(NodeDocument.DELETED_ONCE));
+            doc.get(NodeDocument.DELETED_ONCE));
 
         id = Utils.getIdFromPath("/deletedNode");
         doc = docStore.find(NODES, id);
         assertTrue("document with id " + id + " should get _deletedOnce marked due to rollback",
-                doc.wasDeletedOnce());
+            doc.wasDeletedOnce());
 
         id = Utils.getIdFromPath("/updateNode");
         doc = docStore.find(NODES, id);
         assertNull("document with id " + id + " must not have _deletedOnce despite rollback",
-                doc.get(NodeDocument.DELETED_ONCE));
+            doc.get(NodeDocument.DELETED_ONCE));
     }
 
     // OAK-9909
     @Test
     public void noThrottlingWrapperCreatedByDefault() {
         DocumentStore documentStore = new MemoryDocumentStore();
-        DocumentNodeStore documentNodeStore = builderProvider.newBuilder().setDocumentStore(documentStore)
-                .setLeaseCheckMode(DISABLED).getNodeStore();
+        DocumentNodeStore documentNodeStore = builderProvider.newBuilder()
+                                                             .setDocumentStore(documentStore)
+                                                             .setLeaseCheckMode(DISABLED)
+                                                             .getNodeStore();
         DocumentStore store = documentNodeStore.getDocumentStore();
-        assertTrue("No Throttling wrapper has been created by default", store instanceof MemoryDocumentStore);
+        assertTrue("No Throttling wrapper has been created by default",
+            store instanceof MemoryDocumentStore);
     }
 
     @Test
@@ -379,12 +384,16 @@ public class DocumentNodeStoreTest {
         DocumentStore documentStore = new MemoryDocumentStore();
         Feature docStoreThrottlingFeature = mock(Feature.class);
         when(docStoreThrottlingFeature.isEnabled()).thenReturn(false);
-        DocumentNodeStore documentNodeStore = builderProvider.newBuilder().setDocumentStore(documentStore)
-                .setLeaseCheckMode(DISABLED).setThrottlingEnabled(false)
-                .setDocStoreThrottlingFeature(docStoreThrottlingFeature).getNodeStore();
+        DocumentNodeStore documentNodeStore = builderProvider.newBuilder()
+                                                             .setDocumentStore(documentStore)
+                                                             .setLeaseCheckMode(DISABLED)
+                                                             .setThrottlingEnabled(false)
+                                                             .setDocStoreThrottlingFeature(
+                                                                 docStoreThrottlingFeature)
+                                                             .getNodeStore();
         DocumentStore store = documentNodeStore.getDocumentStore();
         assertTrue("No Throttling wrapper has been created when throttling is disabled",
-                store instanceof MemoryDocumentStore);
+            store instanceof MemoryDocumentStore);
     }
 
     @Test
@@ -393,13 +402,18 @@ public class DocumentNodeStoreTest {
         ThrottlingStatsCollector throttlingStatsCollector = mock(ThrottlingStatsCollector.class);
         Feature docStoreThrottlingFeature = mock(Feature.class);
         when(docStoreThrottlingFeature.isEnabled()).thenReturn(false);
-        DocumentNodeStore documentNodeStore = builderProvider.newBuilder().setDocumentStore(documentStore)
-                .setLeaseCheckMode(DISABLED).setThrottlingEnabled(true)
-                .setDocStoreThrottlingFeature(docStoreThrottlingFeature)
-                .setThrottlingStatsCollector(throttlingStatsCollector).getNodeStore();
+        DocumentNodeStore documentNodeStore = builderProvider.newBuilder()
+                                                             .setDocumentStore(documentStore)
+                                                             .setLeaseCheckMode(DISABLED)
+                                                             .setThrottlingEnabled(true)
+                                                             .setDocStoreThrottlingFeature(
+                                                                 docStoreThrottlingFeature)
+                                                             .setThrottlingStatsCollector(
+                                                                 throttlingStatsCollector)
+                                                             .getNodeStore();
         DocumentStore store = documentNodeStore.getDocumentStore();
         assertTrue("Throttling wrapper has been created when throttling is enabled via config",
-                store instanceof ThrottlingDocumentStoreWrapper);
+            store instanceof ThrottlingDocumentStoreWrapper);
     }
 
     @Test
@@ -408,13 +422,19 @@ public class DocumentNodeStoreTest {
         ThrottlingStatsCollector throttlingStatsCollector = mock(ThrottlingStatsCollector.class);
         Feature docStoreThrottlingFeature = mock(Feature.class);
         when(docStoreThrottlingFeature.isEnabled()).thenReturn(true);
-        DocumentNodeStore documentNodeStore = builderProvider.newBuilder().setDocumentStore(documentStore)
-                .setLeaseCheckMode(DISABLED).setThrottlingEnabled(false)
-                .setDocStoreThrottlingFeature(docStoreThrottlingFeature)
-                .setThrottlingStatsCollector(throttlingStatsCollector).getNodeStore();
+        DocumentNodeStore documentNodeStore = builderProvider.newBuilder()
+                                                             .setDocumentStore(documentStore)
+                                                             .setLeaseCheckMode(DISABLED)
+                                                             .setThrottlingEnabled(false)
+                                                             .setDocStoreThrottlingFeature(
+                                                                 docStoreThrottlingFeature)
+                                                             .setThrottlingStatsCollector(
+                                                                 throttlingStatsCollector)
+                                                             .getNodeStore();
         DocumentStore store = documentNodeStore.getDocumentStore();
-        assertTrue("Throttling wrapper has been created when throttling is enabled via feature toggle",
-                store instanceof ThrottlingDocumentStoreWrapper);
+        assertTrue(
+            "Throttling wrapper has been created when throttling is enabled via feature toggle",
+            store instanceof ThrottlingDocumentStoreWrapper);
     }
     // END -- OAK-9909
 
@@ -423,14 +443,17 @@ public class DocumentNodeStoreTest {
     public void renewClusterIdLeaseTrue() throws IllegalAccessException {
         DocumentStore documentStore = new MemoryDocumentStore();
 
-        DocumentNodeStoreStatsCollector statsCollector = mock(DocumentNodeStoreStatsCollector.class);
+        DocumentNodeStoreStatsCollector statsCollector = mock(
+            DocumentNodeStoreStatsCollector.class);
         doNothing().when(statsCollector).doneLeaseUpdate(anyLong());
 
         ClusterNodeInfo clusterNodeInfo = mock(ClusterNodeInfo.class);
         when(clusterNodeInfo.renewLease()).thenReturn(true);
 
-        DocumentNodeStore nodeStore = builderProvider.newBuilder().setNodeStoreStatsCollector(statsCollector)
-                .setDocumentStore(documentStore).getNodeStore();
+        DocumentNodeStore nodeStore = builderProvider.newBuilder()
+                                                     .setNodeStoreStatsCollector(statsCollector)
+                                                     .setDocumentStore(documentStore)
+                                                     .getNodeStore();
         writeField(nodeStore, "clusterNodeInfo", clusterNodeInfo, true);
 
         assertTrue(nodeStore.renewClusterIdLease());
@@ -441,14 +464,17 @@ public class DocumentNodeStoreTest {
     public void renewClusterIdLeaseException() throws IllegalAccessException {
         DocumentStore documentStore = new MemoryDocumentStore();
 
-        DocumentNodeStoreStatsCollector statsCollector = mock(DocumentNodeStoreStatsCollector.class);
+        DocumentNodeStoreStatsCollector statsCollector = mock(
+            DocumentNodeStoreStatsCollector.class);
         doNothing().when(statsCollector).doneLeaseUpdate(anyLong());
 
         ClusterNodeInfo clusterNodeInfo = mock(ClusterNodeInfo.class);
         when(clusterNodeInfo.renewLease()).thenThrow(DocumentStoreException.class);
 
-        DocumentNodeStore nodeStore = builderProvider.newBuilder().setNodeStoreStatsCollector(statsCollector)
-                .setDocumentStore(documentStore).getNodeStore();
+        DocumentNodeStore nodeStore = builderProvider.newBuilder()
+                                                     .setNodeStoreStatsCollector(statsCollector)
+                                                     .setDocumentStore(documentStore)
+                                                     .getNodeStore();
         writeField(nodeStore, "clusterNodeInfo", clusterNodeInfo, true);
 
         nodeStore.renewClusterIdLease(); // should throw an exception
@@ -460,14 +486,17 @@ public class DocumentNodeStoreTest {
     public void renewClusterIdLeaseFalse() throws IllegalAccessException {
         DocumentStore documentStore = new MemoryDocumentStore();
 
-        DocumentNodeStoreStatsCollector statsCollector = mock(DocumentNodeStoreStatsCollector.class);
+        DocumentNodeStoreStatsCollector statsCollector = mock(
+            DocumentNodeStoreStatsCollector.class);
         doNothing().when(statsCollector).doneLeaseUpdate(anyLong());
 
         ClusterNodeInfo clusterNodeInfo = mock(ClusterNodeInfo.class);
         when(clusterNodeInfo.renewLease()).thenReturn(false);
 
-        DocumentNodeStore nodeStore = builderProvider.newBuilder().setNodeStoreStatsCollector(statsCollector)
-                .setDocumentStore(documentStore).getNodeStore();
+        DocumentNodeStore nodeStore = builderProvider.newBuilder()
+                                                     .setNodeStoreStatsCollector(statsCollector)
+                                                     .setDocumentStore(documentStore)
+                                                     .getNodeStore();
         writeField(nodeStore, "clusterNodeInfo", clusterNodeInfo, true);
 
         assertFalse(nodeStore.renewClusterIdLease());
@@ -480,13 +509,13 @@ public class DocumentNodeStoreTest {
     public void getNewestRevision() throws Exception {
         DocumentStore docStore = new MemoryDocumentStore();
         DocumentNodeStore ns1 = builderProvider.newBuilder()
-                .setDocumentStore(docStore).setAsyncDelay(0)
-                .setClusterId(1).getNodeStore();
+                                               .setDocumentStore(docStore).setAsyncDelay(0)
+                                               .setClusterId(1).getNodeStore();
         ns1.getRoot();
         ns1.runBackgroundOperations();
         DocumentNodeStore ns2 = builderProvider.newBuilder()
-                .setDocumentStore(docStore).setAsyncDelay(0)
-                .setClusterId(2).getNodeStore();
+                                               .setDocumentStore(docStore).setAsyncDelay(0)
+                                               .setClusterId(2).getNodeStore();
         ns2.getRoot();
 
         NodeBuilder b1 = ns1.getRoot().builder();
@@ -506,14 +535,14 @@ public class DocumentNodeStoreTest {
     public void getNewestRevision2() throws Exception {
         DocumentStore docStore = new MemoryDocumentStore();
         DocumentNodeStore ns1 = builderProvider.newBuilder()
-                .setDocumentStore(docStore).setAsyncDelay(0)
-                .setClusterId(1).getNodeStore();
+                                               .setDocumentStore(docStore).setAsyncDelay(0)
+                                               .setClusterId(1).getNodeStore();
         ns1.getRoot();
         Revision r1 = ns1.getHeadRevision().getRevision(ns1.getClusterId());
         ns1.runBackgroundOperations();
         DocumentNodeStore ns2 = builderProvider.newBuilder()
-                .setDocumentStore(docStore).setAsyncDelay(0)
-                .setClusterId(2).getNodeStore();
+                                               .setDocumentStore(docStore).setAsyncDelay(0)
+                                               .setClusterId(2).getNodeStore();
         ns2.getRoot();
 
         NodeBuilder b1 = ns1.getRoot().builder();
@@ -526,8 +555,8 @@ public class DocumentNodeStoreTest {
         NodeDocument doc = docStore.find(NODES, Utils.getIdFromPath("/"));
         assertNotNull(doc);
         Revision newest = doc.getNewestRevision(ns2, ns2.getHeadRevision(),
-                Revision.newRevision(ns2.getClusterId()),
-                null, Sets.<Revision>newHashSet());
+            Revision.newRevision(ns2.getClusterId()),
+            null, Sets.<Revision>newHashSet());
         assertEquals(r1, newest);
     }
 
@@ -547,7 +576,7 @@ public class DocumentNodeStoreTest {
         try {
             ns.merge(builder, CompositeHook.compose(
                     Arrays.asList(new TestHook("p"), new TestHook("q"), FAILING_HOOK)),
-                    CommitInfo.EMPTY);
+                CommitInfo.EMPTY);
             fail("merge must fail and reset changes done by commit hooks");
         } catch (CommitFailedException e) {
             // expected
@@ -569,7 +598,7 @@ public class DocumentNodeStoreTest {
         }
         ns.merge(builder, CompositeHook.compose(
                 Arrays.<CommitHook>asList(new TestHook("p"), new TestHook("q"))),
-                CommitInfo.EMPTY);
+            CommitInfo.EMPTY);
 
         builder = ns.getRoot().builder();
         // must see properties changed by commit hook
@@ -594,16 +623,16 @@ public class DocumentNodeStoreTest {
         Revision.setClock(clock);
         MemoryDocumentStore docStore = new MemoryDocumentStore();
         DocumentNodeStore ns1 = builderProvider.newBuilder()
-                .setDocumentStore(docStore).setClusterId(1)
-                .setAsyncDelay(0).clock(clock).getNodeStore();
+                                               .setDocumentStore(docStore).setClusterId(1)
+                                               .setAsyncDelay(0).clock(clock).getNodeStore();
         NodeBuilder builder1 = ns1.getRoot().builder();
         builder1.child("node");
         ns1.merge(builder1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         ns1.runBackgroundOperations();
 
         DocumentNodeStore ns2 = builderProvider.newBuilder()
-                .setDocumentStore(docStore).setClusterId(2)
-                .setAsyncDelay(0).clock(clock).getNodeStore();
+                                               .setDocumentStore(docStore).setClusterId(2)
+                                               .setAsyncDelay(0).clock(clock).getNodeStore();
 
         NodeBuilder builder2 = ns2.getRoot().builder();
         builder2.child("node").child("child-2");
@@ -613,7 +642,7 @@ public class DocumentNodeStoreTest {
         // not be necessary. e.g. when the clock passes the resolution boundary
         // exactly at this time
         clock.waitUntil(System.currentTimeMillis() +
-                SECONDS.toMillis(MODIFIED_IN_SECS_RESOLUTION + 1));
+            SECONDS.toMillis(MODIFIED_IN_SECS_RESOLUTION + 1));
 
         builder1 = ns1.getRoot().builder();
         builder1.child("node").child("child-1");
@@ -641,9 +670,9 @@ public class DocumentNodeStoreTest {
             @NotNull
             @Override
             public <T extends Document> List<T> query(Collection<T> collection,
-                                                      String fromKey,
-                                                      String toKey,
-                                                      int limit) {
+                String fromKey,
+                String toKey,
+                int limit) {
                 if (collection == NODES) {
                     maxLimit.set(Math.max(limit, maxLimit.get()));
                 }
@@ -651,8 +680,8 @@ public class DocumentNodeStoreTest {
             }
         };
         DocumentNodeStore ns = builderProvider.newBuilder()
-                .setDocumentStore(docStore)
-                .setAsyncDelay(0).getNodeStore();
+                                              .setDocumentStore(docStore)
+                                              .setAsyncDelay(0).getNodeStore();
         NodeBuilder builder = ns.getRoot().builder();
         for (int i = 0; i < 1000; i++) {
             builder.child("node-" + i);
@@ -671,7 +700,7 @@ public class DocumentNodeStoreTest {
         }
         // must not read more than DocumentNodeState.INITIAL_FETCH_SIZE + 1
         assertTrue(maxLimit.get() + " > " + (DocumentNodeState.INITIAL_FETCH_SIZE + 1),
-                maxLimit.get() <= DocumentNodeState.INITIAL_FETCH_SIZE + 1);
+            maxLimit.get() <= DocumentNodeState.INITIAL_FETCH_SIZE + 1);
     }
 
     // OAK-1972
@@ -679,14 +708,14 @@ public class DocumentNodeStoreTest {
     public void readFromPreviousDoc() throws CommitFailedException {
         DocumentStore docStore = new MemoryDocumentStore();
         DocumentNodeStore ns = builderProvider.newBuilder()
-                .setDocumentStore(docStore).getNodeStore();
+                                              .setDocumentStore(docStore).getNodeStore();
         NodeBuilder builder = ns.getRoot().builder();
         builder.child("test").setProperty("prop", "initial");
         ns.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         ns.dispose();
 
         ns = builderProvider.newBuilder().setClusterId(2).setAsyncDelay(0)
-                .setDocumentStore(docStore).getNodeStore();
+                            .setDocumentStore(docStore).getNodeStore();
         builder = ns.getRoot().builder();
         builder.child("test").setProperty("prop", "value");
         ns.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
@@ -725,11 +754,13 @@ public class DocumentNodeStoreTest {
 
         DocumentStore docStore = new MemoryDocumentStore();
         DocumentNodeStore ns1 = builderProvider.newBuilder().setAsyncDelay(0)
-                .clock(clock).setDocumentStore(docStore).setClusterId(1)
-                .getNodeStore();
+                                               .clock(clock).setDocumentStore(docStore)
+                                               .setClusterId(1)
+                                               .getNodeStore();
         DocumentNodeStore ns2 = builderProvider.newBuilder().setAsyncDelay(0)
-                .clock(clock).setDocumentStore(docStore).setClusterId(2)
-                .getNodeStore();
+                                               .clock(clock).setDocumentStore(docStore)
+                                               .setClusterId(2)
+                                               .getNodeStore();
 
         NodeBuilder builder = ns1.getRoot().builder();
         NodeBuilder test = builder.child("test");
@@ -786,12 +817,12 @@ public class DocumentNodeStoreTest {
     public void updateClusterState() {
         DocumentStore docStore = new MemoryDocumentStore();
         DocumentNodeStore ns1 = builderProvider.newBuilder().setAsyncDelay(0)
-                .setClusterId(1).setDocumentStore(docStore)
-                .getNodeStore();
+                                               .setClusterId(1).setDocumentStore(docStore)
+                                               .getNodeStore();
         int cId1 = ns1.getClusterId();
         DocumentNodeStore ns2 = builderProvider.newBuilder().setAsyncDelay(0)
-                .setClusterId(2).setDocumentStore(docStore)
-                .getNodeStore();
+                                               .setClusterId(2).setDocumentStore(docStore)
+                                               .getNodeStore();
         int cId2 = ns2.getClusterId();
 
         ns1.updateClusterState();
@@ -819,8 +850,8 @@ public class DocumentNodeStoreTest {
     public void lastRevisionRecovery() throws Exception {
         DocumentStore docStore = new MemoryDocumentStore();
         DocumentNodeStore ns1 = builderProvider.newBuilder().setAsyncDelay(0)
-                .setClusterId(1).setDocumentStore(docStore)
-                .getNodeStore();
+                                               .setClusterId(1).setDocumentStore(docStore)
+                                               .getNodeStore();
         int cId1 = ns1.getClusterId();
         NodeBuilder builder = ns1.getRoot().builder();
 
@@ -828,25 +859,29 @@ public class DocumentNodeStoreTest {
         try {
             ns1.getMBean().recover(null, cId1);
             fail("must fail with NullPointerException");
-        } catch (NullPointerException expected) {}
+        } catch (NullPointerException expected) {
+        }
 
         //Validating empty path
         try {
             ns1.getMBean().recover("", cId1);
             fail("must fail with IllegalArgumentException");
-        } catch (IllegalArgumentException expected) {}
+        } catch (IllegalArgumentException expected) {
+        }
 
         //Validating negative clusterId
         try {
             ns1.getMBean().recover("/foo", -1);
             fail("must fail with IllegalArgumentException");
-        } catch (IllegalArgumentException expected) {}
+        } catch (IllegalArgumentException expected) {
+        }
 
         //Validating recovery on active node
         try {
             ns1.getMBean().recover("/foo", cId1);
             fail("must fail with IllegalStateException");
-        } catch (IllegalStateException expected) {}
+        } catch (IllegalStateException expected) {
+        }
 
         builder.child("foo").child("bar");
         merge(ns1, builder);
@@ -862,21 +897,23 @@ public class DocumentNodeStoreTest {
 
         //Validate no. of affected paths in readOnlyMode
         DocumentNodeStore ns2 = builderProvider.newBuilder().setAsyncDelay(0)
-                .setClusterId(2).setDocumentStore(docStore).setReadOnlyMode()
-                .getNodeStore();
+                                               .setClusterId(2).setDocumentStore(docStore)
+                                               .setReadOnlyMode()
+                                               .getNodeStore();
         assertEquals(1, ns2.getMBean().recover("/foo", cId1));
 
         //Validate no. of recovered paths
         DocumentNodeStore ns3 = builderProvider.newBuilder().setAsyncDelay(0)
-                .setClusterId(3).setDocumentStore(docStore)
-                .getNodeStore();
+                                               .setClusterId(3).setDocumentStore(docStore)
+                                               .getNodeStore();
         assertEquals(1, ns3.getMBean().recover("/foo", cId1));
 
         //Validating recovery on non existing path
         try {
             ns2.getMBean().recover("/foo1", cId1);
             fail("must fail with DocumentStoreException");
-        } catch (DocumentStoreException expected) {}
+        } catch (DocumentStoreException expected) {
+        }
     }
 
     //OAK-8466
@@ -886,9 +923,9 @@ public class DocumentNodeStoreTest {
 
         int clusterId = 1;
         DocumentNodeStore dns1 = builderProvider.newBuilder()
-                .setDocumentStore(store)
-                .setAsyncDelay(0).setClusterId(clusterId)
-                .getNodeStore();
+                                                .setDocumentStore(store)
+                                                .setAsyncDelay(0).setClusterId(clusterId)
+                                                .getNodeStore();
         dns1.dispose();
 
         NodeDocument beforeRootDoc = store.find(NODES, Utils.getIdFromPath(ROOT));
@@ -899,32 +936,35 @@ public class DocumentNodeStoreTest {
         long now = System.currentTimeMillis();
         // DocumentNodeStore refreshes the head revision and _lastRev
         // when there was no commit for one minute
-        clock.waitUntil( now + TimeUnit.MINUTES.toMillis(1));
+        clock.waitUntil(now + TimeUnit.MINUTES.toMillis(1));
         long timeBeforeStartup = clock.getTime();
         ClusterNodeInfo.setClock(clock);
         Revision.setClock(clock);
 
         builderProvider.newBuilder()
-                .setDocumentStore(store).clock(clock)
-                .setAsyncDelay(0).setClusterId(clusterId)
-                .getNodeStore();
+                       .setDocumentStore(store).clock(clock)
+                       .setAsyncDelay(0).setClusterId(clusterId)
+                       .getNodeStore();
 
         NodeDocument afterRootDoc = store.find(NODES, Utils.getIdFromPath(ROOT));
         assertNotNull(afterRootDoc);
         Revision afterLastRev = afterRootDoc.getLastRev().get(clusterId);
 
-        assertThat("lastRev must be greater or equal '" + Utils.timestampToString(timeBeforeStartup) + "', but was '"
-            + Utils.timestampToString(afterLastRev.getTimestamp()) + "'", afterLastRev.getTimestamp(), 
+        assertThat("lastRev must be greater or equal '" + Utils.timestampToString(timeBeforeStartup)
+                + "', but was '"
+                + Utils.timestampToString(afterLastRev.getTimestamp()) + "'",
+            afterLastRev.getTimestamp(),
             OrderingComparison.greaterThanOrEqualTo(timeBeforeStartup));
-        assertNotEquals("Last revision should be updated after 1 minute even if background thread is not running",
-                beforeLastRev, afterLastRev);
+        assertNotEquals(
+            "Last revision should be updated after 1 minute even if background thread is not running",
+            beforeLastRev, afterLastRev);
     }
 
     // OAK-2288
     @Test
     public void mergedBranchVisibility() throws Exception {
         final DocumentNodeStore store = builderProvider.newBuilder()
-                .setAsyncDelay(0).getNodeStore();
+                                                       .setAsyncDelay(0).getNodeStore();
         DocumentStore docStore = store.getDocumentStore();
 
         NodeBuilder builder1 = store.getRoot().builder();
@@ -962,9 +1002,9 @@ public class DocumentNodeStoreTest {
         MemoryDocumentStore docStore = new MemoryDocumentStore();
 
         DocumentNodeStore store1 = builderProvider.newBuilder()
-                .setDocumentStore(docStore)
-                .setAsyncDelay(0).clock(clock).setClusterId(1)
-                .getNodeStore();
+                                                  .setDocumentStore(docStore)
+                                                  .setAsyncDelay(0).clock(clock).setClusterId(1)
+                                                  .getNodeStore();
 
         NodeBuilder builder = store1.getRoot().builder();
         builder.child("test");
@@ -978,7 +1018,7 @@ public class DocumentNodeStoreTest {
         int i = 0;
         // force creation of a branch
         while (docStore.find(NODES, id) == null) {
-            node.child("foo-"+ i++);
+            node.child("foo-" + i++);
         }
         merge(store1, builder);
 
@@ -991,9 +1031,9 @@ public class DocumentNodeStoreTest {
 
         // start a second store
         DocumentNodeStore store2 = builderProvider.newBuilder()
-                .setDocumentStore(docStore)
-                .setAsyncDelay(0).clock(clock).setClusterId(2)
-                .getNodeStore();
+                                                  .setDocumentStore(docStore)
+                                                  .setAsyncDelay(0).clock(clock).setClusterId(2)
+                                                  .getNodeStore();
         // must see /test/node
         assertTrue(store2.getRoot().getChildNode("test").getChildNode("node").exists());
     }
@@ -1013,8 +1053,9 @@ public class DocumentNodeStoreTest {
                 }
             };
 
-            DocumentNodeStore store1 = builderProvider.newBuilder().setDocumentStore(docStore).setAsyncDelay(0).clock(clock)
-                    .setClusterId(1).getNodeStore();
+            DocumentNodeStore store1 = builderProvider.newBuilder().setDocumentStore(docStore)
+                                                      .setAsyncDelay(0).clock(clock)
+                                                      .setClusterId(1).getNodeStore();
 
             ClusterNodeInfo.setClock(clock);
             // wait until lease expires
@@ -1027,7 +1068,8 @@ public class DocumentNodeStoreTest {
             } catch (DocumentStoreException expected) {
                 // due to lease update failure
             }
-            assertTrue("The DocumentStore instance's dispose() method was not called", documentStoreDisposeWasReached.get());
+            assertTrue("The DocumentStore instance's dispose() method was not called",
+                documentStoreDisposeWasReached.get());
         } finally {
             ClusterNodeInfo.resetClockToDefault();
         }
@@ -1040,13 +1082,14 @@ public class DocumentNodeStoreTest {
         DocumentStore store = new MemoryDocumentStore() {
             @Override
             public <T extends Document> T find(Collection<T> collection,
-                                               String key) {
+                String key) {
                 readSet.add(key);
                 return super.find(collection, key);
             }
         };
         DocumentNodeStore ns = builderProvider.newBuilder()
-                .setDocumentStore(store).setAsyncDelay(0).getNodeStore();
+                                              .setDocumentStore(store).setAsyncDelay(0)
+                                              .getNodeStore();
         NodeBuilder builder = ns.getRoot().builder();
         String testId = Utils.getIdFromPath("/test");
         NodeBuilder test = builder.child("test");
@@ -1091,18 +1134,18 @@ public class DocumentNodeStoreTest {
             @NotNull
             @Override
             public <T extends Document> List<T> query(Collection<T> collection,
-                                                      String fromKey,
-                                                      String toKey,
-                                                      String indexedProperty,
-                                                      long startValue,
-                                                      int limit) {
+                String fromKey,
+                String toKey,
+                String indexedProperty,
+                long startValue,
+                int limit) {
                 numQueries.getAndIncrement();
                 return super.query(collection, fromKey, toKey,
-                        indexedProperty, startValue, limit);
+                    indexedProperty, startValue, limit);
             }
         };
         final DocumentMK mk = builderProvider.newBuilder()
-                .setDocumentStore(store).open();
+                                             .setDocumentStore(store).open();
         final DocumentNodeStore ns = mk.getNodeStore();
         NodeBuilder builder = ns.getRoot().builder();
         // make sure we have enough children to trigger diffManyChildren
@@ -1115,7 +1158,7 @@ public class DocumentNodeStoreTest {
         Revision localHead = head.getRevision(ns.getClusterId());
         assertNotNull(localHead);
         final RevisionVector to = new RevisionVector(new Revision(
-                localHead.getTimestamp() + 1000, 0, localHead.getClusterId()));
+            localHead.getTimestamp() + 1000, 0, localHead.getClusterId()));
         int numReaders = 10;
         final CountDownLatch ready = new CountDownLatch(numReaders);
         final CountDownLatch go = new CountDownLatch(1);
@@ -1158,14 +1201,14 @@ public class DocumentNodeStoreTest {
         MemoryDocumentStore docStore = new MemoryDocumentStore() {
             @Override
             public <T extends Document> T find(Collection<T> collection,
-                                               String key) {
+                String key) {
                 reads.add(key);
                 return super.find(collection, key);
             }
         };
         DocumentNodeStore store = builderProvider.newBuilder()
-                .setClusterId(1).setAsyncDelay(0)
-                .setDocumentStore(docStore).getNodeStore();
+                                                 .setClusterId(1).setAsyncDelay(0)
+                                                 .setDocumentStore(docStore).getNodeStore();
 
         NodeBuilder builder = store.getRoot().builder();
         builder.child("test").setProperty("foo", "bar");
@@ -1205,14 +1248,14 @@ public class DocumentNodeStoreTest {
         MemoryDocumentStore docStore = new MemoryDocumentStore() {
             @Override
             public <T extends Document> T find(Collection<T> collection,
-                                               String key) {
+                String key) {
                 reads.add(key);
                 return super.find(collection, key);
             }
         };
         DocumentNodeStore store = builderProvider.newBuilder()
-                .setClusterId(1).setAsyncDelay(0)
-                .setDocumentStore(docStore).getNodeStore();
+                                                 .setClusterId(1).setAsyncDelay(0)
+                                                 .setDocumentStore(docStore).getNodeStore();
 
         NodeBuilder builder = store.getRoot().builder();
         builder.child("a");
@@ -1222,7 +1265,8 @@ public class DocumentNodeStoreTest {
         NodeState parentState = store.getRoot().getChildNode("b");
         reads.clear();
         NodeState nonExistingChild = parentState.getChildNode("non-existing-node-1");
-        assertEquals("Should not go to DocStore::find for a known non-existent child", 0, reads.size());
+        assertEquals("Should not go to DocStore::find for a known non-existent child", 0,
+            reads.size());
         assertFalse("Non existing children should be reported as such", nonExistingChild.exists());
 
         builder = store.getRoot().builder();
@@ -1234,7 +1278,7 @@ public class DocumentNodeStoreTest {
         reads.clear();
         nonExistingChild = parentState.getChildNode("non-existing-node-2");
         assertEquals("Should not go to DocStore::find for a known non-existent child," +
-                " even if another merge has happened (on another sub-tree)", 0, reads.size());
+            " even if another merge has happened (on another sub-tree)", 0, reads.size());
         assertFalse("Non existing children should be reported as such", nonExistingChild.exists());
 
         store.invalidateNodeChildrenCache();
@@ -1246,7 +1290,7 @@ public class DocumentNodeStoreTest {
         reads.clear();
         nonExistingChild = parentState.getChildNode("non-existing-node-3");
         assertEquals("Should not go to DocStore::find when doc child cache is filled by reading",
-                0, reads.size());
+            0, reads.size());
         assertFalse("Non existing children should be reported as such", nonExistingChild.exists());
     }
 
@@ -1256,15 +1300,15 @@ public class DocumentNodeStoreTest {
         MemoryDocumentStore docStore = new MemoryDocumentStore() {
             @Override
             public <T extends Document> T find(Collection<T> collection,
-                                               String key) {
+                String key) {
                 reads.add(key);
                 return super.find(collection, key);
             }
         };
         DocumentNodeStore store = builderProvider.newBuilder()
-                .setUseSimpleRevision(true)
-                .setClusterId(1).setAsyncDelay(0)
-                .setDocumentStore(docStore).getNodeStore();
+                                                 .setUseSimpleRevision(true)
+                                                 .setClusterId(1).setAsyncDelay(0)
+                                                 .setDocumentStore(docStore).getNodeStore();
         NodeBuilder builder = store.getRoot().builder();
         NodeBuilder parentBuilder = builder.child("a");
 
@@ -1285,7 +1329,7 @@ public class DocumentNodeStoreTest {
         reads.clear();
         NodeState nonExistingChild = parentNodeState.getChildNode("non-existing-child-1");
         assertTrue("DocStore should be queried when no doc child cache entry has all children",
-                reads.size() > 0);
+            reads.size() > 0);
         assertFalse("Non existing children should be reported as such", nonExistingChild.exists());
     }
 
@@ -1293,21 +1337,22 @@ public class DocumentNodeStoreTest {
     public void docChildCacheWithIncompatiblDocStoreSort() throws CommitFailedException {
         final Set<String> reads = Sets.newHashSet();
         final ConcurrentSkipListMap<String, NodeDocument> nodes = new ConcurrentSkipListMap<String, NodeDocument>(
-                new Comparator<String>() {
-                    @Override
-                    public int compare(String o1, String o2) {
-                        int ret = o1.compareTo(o2);
-                        if ( o1.indexOf("child") > 0 && o2.indexOf("child") > 0 ) {
-                            ret = (-ret);
-                        }
-                        return ret;
+            new Comparator<String>() {
+                @Override
+                public int compare(String o1, String o2) {
+                    int ret = o1.compareTo(o2);
+                    if (o1.indexOf("child") > 0 && o2.indexOf("child") > 0) {
+                        ret = (-ret);
                     }
+                    return ret;
                 }
+            }
         );
         MemoryDocumentStore docStore = new MemoryDocumentStore() {
             @Override
             @SuppressWarnings("unchecked")
-            protected <T extends Document> ConcurrentSkipListMap<String, T> getMap(Collection<T> collection) {
+            protected <T extends Document> ConcurrentSkipListMap<String, T> getMap(
+                Collection<T> collection) {
                 if (collection == Collection.NODES) {
                     return (ConcurrentSkipListMap<String, T>) nodes;
                 } else {
@@ -1317,16 +1362,16 @@ public class DocumentNodeStoreTest {
 
             @Override
             public <T extends Document> T find(Collection<T> collection,
-                                               String key) {
+                String key) {
                 reads.add(key);
                 return super.find(collection, key);
             }
 
         };
         DocumentNodeStore store = builderProvider.newBuilder()
-                .setUseSimpleRevision(true)
-                .setClusterId(1).setAsyncDelay(0)
-                .setDocumentStore(docStore).getNodeStore();
+                                                 .setUseSimpleRevision(true)
+                                                 .setClusterId(1).setAsyncDelay(0)
+                                                 .setDocumentStore(docStore).getNodeStore();
 
         NodeBuilder builder = store.getRoot().builder();
 
@@ -1346,7 +1391,8 @@ public class DocumentNodeStoreTest {
 
         reads.clear();
         NodeState nonExistingChild = parentNodeState.getChildNode("child501-non-existing-child");
-        assertEquals("Fully cached entry in doc child cache should be able to find non existing children" +
+        assertEquals(
+            "Fully cached entry in doc child cache should be able to find non existing children" +
                 " even if doc store sort order is incompatible to that of Java", 0, reads.size());
         assertFalse("Non existing children should be reported as such", nonExistingChild.exists());
 
@@ -1354,7 +1400,8 @@ public class DocumentNodeStoreTest {
 
         reads.clear();
         NodeState existingChild = parentNodeState.getChildNode("child25");
-        assertTrue("Fully cached entry in doc child cache should be able to find existing children" +
+        assertTrue(
+            "Fully cached entry in doc child cache should be able to find existing children" +
                 " even if doc store sort order is incompatible to that of Java", reads.size() > 0);
         assertTrue("Existing children should be reported as such", existingChild.exists());
     }
@@ -1368,8 +1415,9 @@ public class DocumentNodeStoreTest {
         c1.waitUntil(now);
         Revision.setClock(c1);
         DocumentNodeStore ns1 = builderProvider.newBuilder().clock(c1)
-                .setDocumentStore(store).setAsyncDelay(0).setClusterId(1)
-                .getNodeStore();
+                                               .setDocumentStore(store).setAsyncDelay(0)
+                                               .setClusterId(1)
+                                               .getNodeStore();
         NodeBuilder b1 = ns1.getRoot().builder();
         b1.child("node");
         merge(ns1, b1);
@@ -1383,8 +1431,9 @@ public class DocumentNodeStoreTest {
         Revision.setClock(c2);
 
         DocumentNodeStore ns2 = builderProvider.newBuilder().clock(c2)
-                .setDocumentStore(store).setAsyncDelay(0).setClusterId(2)
-                .getNodeStore();
+                                               .setDocumentStore(store).setAsyncDelay(0)
+                                               .setClusterId(2)
+                                               .getNodeStore();
         // ns2 sees /node
         assertTrue(ns2.getRoot().hasChildNode("node"));
 
@@ -1423,14 +1472,14 @@ public class DocumentNodeStoreTest {
     public void parentWithUnseenChildrenMustNotBeDeleted() throws Exception {
         final MemoryDocumentStore docStore = new MemoryDocumentStore();
         final DocumentNodeStore store1 = builderProvider.newBuilder()
-                .setDocumentStore(docStore).setAsyncDelay(0)
-                .setClusterId(1)
-                .getNodeStore();
+                                                        .setDocumentStore(docStore).setAsyncDelay(0)
+                                                        .setClusterId(1)
+                                                        .getNodeStore();
         store1.setEnableConcurrentAddRemove(true);
         final DocumentNodeStore store2 = builderProvider.newBuilder()
-                .setDocumentStore(docStore).setAsyncDelay(0)
-                .setClusterId(2)
-                .getNodeStore();
+                                                        .setDocumentStore(docStore).setAsyncDelay(0)
+                                                        .setClusterId(2)
+                                                        .getNodeStore();
         store2.setEnableConcurrentAddRemove(true);
 
         NodeBuilder builder = store1.getRoot().builder();
@@ -1465,7 +1514,7 @@ public class DocumentNodeStoreTest {
         String parentPath = "/:hidden/parent";
         NodeDocument parentDoc = docStore.find(Collection.NODES, Utils.getIdFromPath(parentPath));
         assertFalse("parent node of unseen children must not get deleted",
-                isDocDeleted(parentDoc, store1));
+            isDocDeleted(parentDoc, store1));
 
         //Test 2 - parent shouldn't be removable if order of operation is:
         //# N1 and N2 know about /:hidden
@@ -1483,7 +1532,7 @@ public class DocumentNodeStoreTest {
 
         parentDoc = docStore.find(Collection.NODES, Utils.getIdFromPath(parentPath));
         assertFalse("parent node of unseen children must not get deleted",
-                isDocDeleted(parentDoc, store1));
+            isDocDeleted(parentDoc, store1));
 
         store1.runBackgroundOperations();
         store2.runBackgroundOperations();
@@ -1517,7 +1566,7 @@ public class DocumentNodeStoreTest {
         parentPath = "/:hidden/parent1";
         parentDoc = docStore.find(Collection.NODES, Utils.getIdFromPath(parentPath));
         assertFalse("parent node of unseen children must not get deleted",
-                isDocDeleted(parentDoc, store1));
+            isDocDeleted(parentDoc, store1));
 
         //Test 4 - parent shouldn't be removable if order of operation is:
         //# N1 and N2 know about /:hidden/parent1
@@ -1534,21 +1583,21 @@ public class DocumentNodeStoreTest {
 
         parentDoc = docStore.find(Collection.NODES, Utils.getIdFromPath(parentPath));
         assertFalse("parent node of unseen children must not get deleted",
-                isDocDeleted(parentDoc, store1));
+            isDocDeleted(parentDoc, store1));
     }
 
     @Test
     public void mergeInternalDocAcrossCluster() throws Exception {
         MemoryDocumentStore docStore = new MemoryDocumentStore();
         final DocumentNodeStore store1 = builderProvider.newBuilder()
-                .setDocumentStore(docStore).setAsyncDelay(0)
-                .setClusterId(1)
-                .getNodeStore();
+                                                        .setDocumentStore(docStore).setAsyncDelay(0)
+                                                        .setClusterId(1)
+                                                        .getNodeStore();
         store1.setEnableConcurrentAddRemove(true);
         final DocumentNodeStore store2 = builderProvider.newBuilder()
-                .setDocumentStore(docStore).setAsyncDelay(0)
-                .setClusterId(2)
-                .getNodeStore();
+                                                        .setDocumentStore(docStore).setAsyncDelay(0)
+                                                        .setClusterId(2)
+                                                        .getNodeStore();
         store2.setEnableConcurrentAddRemove(true);
 
         NodeState root;
@@ -1613,7 +1662,8 @@ public class DocumentNodeStoreTest {
         } catch (CommitFailedException cfe) {
             commitFailed = true;
         }
-        assertTrue("Concurrent creation of hidden node with properties across cluster must fail", commitFailed);
+        assertTrue("Concurrent creation of hidden node with properties across cluster must fail",
+            commitFailed);
 
         commitFailed = false;
         try {
@@ -1623,7 +1673,8 @@ public class DocumentNodeStoreTest {
         } catch (CommitFailedException cfe) {
             commitFailed = true;
         }
-        assertTrue("Delete changed merge across cluster must fail even under hidden tree", commitFailed);
+        assertTrue("Delete changed merge across cluster must fail even under hidden tree",
+            commitFailed);
 
         commitFailed = false;
         try {
@@ -1633,7 +1684,8 @@ public class DocumentNodeStoreTest {
         } catch (CommitFailedException cfe) {
             commitFailed = true;
         }
-        assertTrue("Change deleted merge across cluster must fail even under hidden tree", commitFailed);
+        assertTrue("Change deleted merge across cluster must fail even under hidden tree",
+            commitFailed);
     }
 
     @Test
@@ -1645,10 +1697,10 @@ public class DocumentNodeStoreTest {
         builder.child(":b");
         merge(store, builder);
         SingleInstanceConflictUtility.generateConflict(store,
-                new String[]{":1"}, new String[]{":a"},
-                new String[]{":2"}, new String[]{":b"},
-                new String[]{":3"}, new String[]{":a", ":b"},
-                true, "Delete-delete merge conflicts for internal docs should be resolved");
+            new String[]{":1"}, new String[]{":a"},
+            new String[]{":2"}, new String[]{":b"},
+            new String[]{":3"}, new String[]{":a", ":b"},
+            true, "Delete-delete merge conflicts for internal docs should be resolved");
     }
 
     @Test
@@ -1660,10 +1712,10 @@ public class DocumentNodeStoreTest {
         builder.child(":b");
         merge(store, builder);
         SingleInstanceConflictUtility.generateConflict(store,
-                new String[]{":1"}, new String[]{":a"},
-                new String[]{":2"}, new String[]{":b"},
-                new String[]{":3"}, new String[]{":a", ":b"},
-                false, "Delete-delete merge conflicts for non-empty internal docs should fail");
+            new String[]{":1"}, new String[]{":a"},
+            new String[]{":2"}, new String[]{":b"},
+            new String[]{":3"}, new String[]{":a", ":b"},
+            false, "Delete-delete merge conflicts for non-empty internal docs should fail");
     }
 
     @Test
@@ -1675,10 +1727,10 @@ public class DocumentNodeStoreTest {
         builder.child("b");
         merge(store, builder);
         SingleInstanceConflictUtility.generateConflict(store,
-                new String[]{":1"}, new String[]{"a"},
-                new String[]{":2"}, new String[]{"b"},
-                new String[]{":3"}, new String[]{"a", "b"},
-                false, "Delete-delete merge conflicts for normal docs should fail");
+            new String[]{":1"}, new String[]{"a"},
+            new String[]{":2"}, new String[]{"b"},
+            new String[]{":3"}, new String[]{"a", "b"},
+            false, "Delete-delete merge conflicts for normal docs should fail");
     }
 
     @Test
@@ -1686,10 +1738,10 @@ public class DocumentNodeStoreTest {
         final DocumentNodeStore store = builderProvider.newBuilder().getNodeStore();
         store.setEnableConcurrentAddRemove(true);
         SingleInstanceConflictUtility.generateConflict(store,
-                new String[]{":1", ":a"}, new String[]{},
-                new String[]{":2", ":b"}, new String[]{},
-                new String[]{":3", ":a", ":b"}, new String[]{},
-                true, "Add-add merge conflicts for internal docs should be resolvable");
+            new String[]{":1", ":a"}, new String[]{},
+            new String[]{":2", ":b"}, new String[]{},
+            new String[]{":3", ":a", ":b"}, new String[]{},
+            true, "Add-add merge conflicts for internal docs should be resolvable");
     }
 
     @Test
@@ -1697,10 +1749,10 @@ public class DocumentNodeStoreTest {
         final DocumentNodeStore store = builderProvider.newBuilder().getNodeStore();
         store.setEnableConcurrentAddRemove(true);
         SingleInstanceConflictUtility.generateConflict(store,
-                new String[]{":1", ":a"}, new String[]{}, true,
-                new String[]{":2", ":b"}, new String[]{}, true,
-                new String[]{":3", ":a", ":b"}, new String[]{}, false,
-                false, "Add-add merge conflicts for non empty internal docs should fail");
+            new String[]{":1", ":a"}, new String[]{}, true,
+            new String[]{":2", ":b"}, new String[]{}, true,
+            new String[]{":3", ":a", ":b"}, new String[]{}, false,
+            false, "Add-add merge conflicts for non empty internal docs should fail");
     }
 
     @Test
@@ -1708,10 +1760,10 @@ public class DocumentNodeStoreTest {
         final DocumentNodeStore store = builderProvider.newBuilder().getNodeStore();
         store.setEnableConcurrentAddRemove(true);
         SingleInstanceConflictUtility.generateConflict(store,
-                new String[]{":1", "a"}, new String[]{},
-                new String[]{":2", "b"}, new String[]{},
-                new String[]{":3", "a", "b"}, new String[]{},
-                false, "Add-add merge conflicts for normal docs should fail");
+            new String[]{":1", "a"}, new String[]{},
+            new String[]{":2", "b"}, new String[]{},
+            new String[]{":3", "a", "b"}, new String[]{},
+            false, "Add-add merge conflicts for normal docs should fail");
     }
 
     @Test
@@ -1723,10 +1775,10 @@ public class DocumentNodeStoreTest {
         builder.child(":b");
         merge(store, builder);
         SingleInstanceConflictUtility.generateConflict(store,
-                new String[]{":1", ":a"}, new String[]{}, true,
-                new String[]{":2", ":b"}, new String[]{}, true,
-                new String[]{":3"}, new String[]{":a", ":b"}, false,
-                false, "Delete changed merge conflicts for internal docs should fail");
+            new String[]{":1", ":a"}, new String[]{}, true,
+            new String[]{":2", ":b"}, new String[]{}, true,
+            new String[]{":3"}, new String[]{":a", ":b"}, false,
+            false, "Delete changed merge conflicts for internal docs should fail");
     }
 
     @Test
@@ -1738,10 +1790,10 @@ public class DocumentNodeStoreTest {
         builder.child(":b");
         merge(store, builder);
         SingleInstanceConflictUtility.generateConflict(store,
-                new String[]{":1"}, new String[]{":a"}, false,
-                new String[]{":2"}, new String[]{":b"}, false,
-                new String[]{":3", ":a", ":b"}, new String[]{}, true,
-                false, "Change deleted merge conflicts for internal docs should fail");
+            new String[]{":1"}, new String[]{":a"}, false,
+            new String[]{":2"}, new String[]{":b"}, false,
+            new String[]{":3", ":a", ":b"}, new String[]{}, true,
+            false, "Change deleted merge conflicts for internal docs should fail");
     }
 
     @Test
@@ -1765,8 +1817,8 @@ public class DocumentNodeStoreTest {
         c1.waitUntil(now);
         Revision.setClock(c1);
         DocumentNodeStore ns1 = builderProvider.newBuilder().clock(c1)
-                .setDocumentStore(store).setAsyncDelay(0)
-                .setClusterId(1).getNodeStore();
+                                               .setDocumentStore(store).setAsyncDelay(0)
+                                               .setClusterId(1).getNodeStore();
         NodeBuilder b1 = ns1.getRoot().builder();
         b1.child("node");
         merge(ns1, b1);
@@ -1780,8 +1832,8 @@ public class DocumentNodeStoreTest {
         Revision.setClock(c2);
 
         DocumentNodeStore ns2 = builderProvider.newBuilder().clock(c2)
-                .setDocumentStore(store).setAsyncDelay(0)
-                .setClusterId(2).getNodeStore();
+                                               .setDocumentStore(store).setAsyncDelay(0)
+                                               .setClusterId(2).getNodeStore();
         // ns2 sees /node
         assertTrue(ns2.getRoot().hasChildNode("node"));
 
@@ -1818,8 +1870,8 @@ public class DocumentNodeStoreTest {
         c1.waitUntil(now);
         Revision.setClock(c1);
         DocumentNodeStore ns1 = builderProvider.newBuilder().clock(c1)
-                .setDocumentStore(store).setAsyncDelay(0)
-                .setClusterId(1).getNodeStore();
+                                               .setDocumentStore(store).setAsyncDelay(0)
+                                               .setClusterId(1).getNodeStore();
         NodeBuilder b1 = ns1.getRoot().builder();
         b1.child("node").setProperty("p", 1);
         merge(ns1, b1);
@@ -1833,11 +1885,12 @@ public class DocumentNodeStoreTest {
         Revision.setClock(c2);
 
         DocumentNodeStore ns2 = builderProvider.newBuilder().clock(c2)
-                .setDocumentStore(store).setAsyncDelay(0)
-                .setClusterId(2).getNodeStore();
+                                               .setDocumentStore(store).setAsyncDelay(0)
+                                               .setClusterId(2).getNodeStore();
         // ns2 sees /node
         assertTrue(ns2.getRoot().hasChildNode("node"));
-        assertEquals(1, ns2.getRoot().getChildNode("node").getProperty("p").getValue(Type.LONG).longValue());
+        assertEquals(1,
+            ns2.getRoot().getChildNode("node").getProperty("p").getValue(Type.LONG).longValue());
 
         // increment /node/p ns2
         NodeBuilder b2 = ns2.getRoot().builder();
@@ -1868,11 +1921,11 @@ public class DocumentNodeStoreTest {
     public void notYetVisibleExceptionMessage() throws Exception {
         MemoryDocumentStore store = new MemoryDocumentStore();
         DocumentNodeStore ns1 = builderProvider.newBuilder()
-                .setDocumentStore(store).setAsyncDelay(0)
-                .setClusterId(1).getNodeStore();
+                                               .setDocumentStore(store).setAsyncDelay(0)
+                                               .setClusterId(1).getNodeStore();
         DocumentNodeStore ns2 = builderProvider.newBuilder()
-                .setDocumentStore(store).setAsyncDelay(0)
-                .setClusterId(2).getNodeStore();
+                                               .setDocumentStore(store).setAsyncDelay(0)
+                                               .setClusterId(2).getNodeStore();
         ns2.setMaxBackOffMillis(0);
 
         NodeBuilder b1 = ns1.getRoot().builder();
@@ -1919,7 +1972,7 @@ public class DocumentNodeStoreTest {
         }
         assertNotEquals(-1, clusterId);
         DocumentNodeStore ns = builderProvider.newBuilder().setAsyncDelay(0)
-                .setClusterId(clusterId).getNodeStore();
+                                              .setClusterId(clusterId).getNodeStore();
         for (int i = 0; i < 10; i++) {
             if (!backgroundLeaseUpdateThreadRunning(clusterId)) {
                 Thread.sleep(100);
@@ -1939,15 +1992,15 @@ public class DocumentNodeStoreTest {
         Revision.setClock(clock);
         MemoryDocumentStore store = new MemoryDocumentStore();
         DocumentNodeStore ns1 = builderProvider.newBuilder()
-                .setAsyncDelay(0).clock(clock)
-                .setLeaseCheckMode(LeaseCheckMode.LENIENT)
-                .setDocumentStore(store)
-                .setClusterId(1).getNodeStore();
+                                               .setAsyncDelay(0).clock(clock)
+                                               .setLeaseCheckMode(LeaseCheckMode.LENIENT)
+                                               .setDocumentStore(store)
+                                               .setClusterId(1).getNodeStore();
         DocumentNodeStore ns2 = builderProvider.newBuilder()
-                .setAsyncDelay(0).clock(clock)
-                .setLeaseCheckMode(LeaseCheckMode.LENIENT)
-                .setDocumentStore(store)
-                .setClusterId(2).getNodeStore();
+                                               .setAsyncDelay(0).clock(clock)
+                                               .setLeaseCheckMode(LeaseCheckMode.LENIENT)
+                                               .setDocumentStore(store)
+                                               .setClusterId(2).getNodeStore();
 
         // create some children under /foo/bar
         NodeBuilder b1 = ns1.getRoot().builder();
@@ -1975,7 +2028,8 @@ public class DocumentNodeStoreTest {
         merge(ns2, b2);
 
         // on cluster node 2, remove of child-0 is not yet visible
-        DocumentNodeState bar = asDocumentNodeState(ns2.getRoot().getChildNode("foo").getChildNode("bar"));
+        DocumentNodeState bar = asDocumentNodeState(
+            ns2.getRoot().getChildNode("foo").getChildNode("bar"));
         List<ChildNodeEntry> children = Lists.newArrayList(bar.getChildNodeEntries());
         assertEquals(2, Iterables.size(children));
         RevisionVector invalidate = bar.getLastRevision();
@@ -1993,7 +2047,8 @@ public class DocumentNodeStoreTest {
         // forget cache entry for deleted node
         ns2.invalidateNodeCache("/foo/bar/child-0", invalidate);
 
-        children = Lists.newArrayList(ns2.getRoot().getChildNode("foo").getChildNode("bar").getChildNodeEntries());
+        children = Lists.newArrayList(
+            ns2.getRoot().getChildNode("foo").getChildNode("bar").getChildNodeEntries());
         assertEquals(1, Iterables.size(children));
     }
 
@@ -2006,11 +2061,11 @@ public class DocumentNodeStoreTest {
         Revision.setClock(clock);
         MemoryDocumentStore store = new MemoryDocumentStore();
         DocumentNodeStore ns1 = builderProvider.newBuilder()
-                .setClusterId(1).setAsyncDelay(0).clock(clock)
-                .setDocumentStore(store).getNodeStore();
+                                               .setClusterId(1).setAsyncDelay(0).clock(clock)
+                                               .setDocumentStore(store).getNodeStore();
         DocumentNodeStore ns2 = builderProvider.newBuilder()
-                .setClusterId(2).setAsyncDelay(0).clock(clock)
-                .setDocumentStore(store).getNodeStore();
+                                               .setClusterId(2).setAsyncDelay(0).clock(clock)
+                                               .setDocumentStore(store).getNodeStore();
 
         // create initial /foo
         NodeBuilder b1 = ns1.getRoot().builder();
@@ -2035,7 +2090,8 @@ public class DocumentNodeStoreTest {
         merge(ns2, b2);
 
         // on cluster node 2, add of child-1 is not yet visible
-        List<ChildNodeEntry> children = Lists.newArrayList(ns2.getRoot().getChildNode("foo").getChildNodeEntries());
+        List<ChildNodeEntry> children = Lists.newArrayList(
+            ns2.getRoot().getChildNode("foo").getChildNodeEntries());
         assertEquals(1, Iterables.size(children));
 
         // this will make changes from cluster node 1 visible
@@ -2069,44 +2125,48 @@ public class DocumentNodeStoreTest {
      * methods would mark the test to fail.
      */
     private static class SingleInstanceConflictUtility {
+
         /**
-         * Wrapper of {@link #generateConflict(DocumentNodeStore, String[], String[], boolean, String[], String[], boolean, String[], String[], boolean, boolean, String)}
-         * with value of {@code change1, change2, and change3} as {@code false}
+         * Wrapper of
+         * {@link #generateConflict(DocumentNodeStore, String[], String[], boolean, String[],
+         * String[], boolean, String[], String[], boolean, boolean, String)} with value of
+         * {@code change1, change2, and change3} as {@code false}
          */
         public static void generateConflict(final DocumentNodeStore store,
-                                            String [] normalAddChildren1, String [] normalRemoveChildren1,
-                                            String [] normalAddChildren2, String [] normalRemoveChildren2,
-                                            String [] conflictingAddChildren3, String [] conflictingRemoveChildren3,
-                                            boolean shouldMerge, String assertMessage)
-                throws CommitFailedException, InterruptedException {
+            String[] normalAddChildren1, String[] normalRemoveChildren1,
+            String[] normalAddChildren2, String[] normalRemoveChildren2,
+            String[] conflictingAddChildren3, String[] conflictingRemoveChildren3,
+            boolean shouldMerge, String assertMessage)
+            throws CommitFailedException, InterruptedException {
             generateConflict(store,
-                    normalAddChildren1, normalRemoveChildren1, false,
-                    normalAddChildren2, normalRemoveChildren2, false,
-                    conflictingAddChildren3, conflictingRemoveChildren3, false,
-                    shouldMerge, assertMessage
-                    );
+                normalAddChildren1, normalRemoveChildren1, false,
+                normalAddChildren2, normalRemoveChildren2, false,
+                conflictingAddChildren3, conflictingRemoveChildren3, false,
+                shouldMerge, assertMessage
+            );
         }
 
         /**
-         * This method takes 3 descriptions of changes for conflict to happen. Each description has a set of
-         * {@code AddChildren}, {@code RemoveChildren}, and {@code change} parameters. {@code AddChidren} is an
-         * array of children to be added, {@code RemoveChildren} is an array of children to be removed, and
-         * {@code change} controls if a property (hard-coded to {@code @foo=bar}) needs to be set on children
-         * that are part of {@code AddChildren} array.
-         * The changes should be such that set1 changes and set2 changes should be safe. The conflict should be
-         * represented by changes in set3 -- and the conflict should exist against both set1 and set2.
-         * These 3 description are then used to create changes on 3 threads in such a way that by the time thread3
-         * gets around to persist its changes, there are more revisions which get committed. In case the conflict
-         * couldn't be resolved, thread3 would report an exception which is tested
-         * against {@code mergeable}.
+         * This method takes 3 descriptions of changes for conflict to happen. Each description has
+         * a set of {@code AddChildren}, {@code RemoveChildren}, and {@code change} parameters.
+         * {@code AddChidren} is an array of children to be added, {@code RemoveChildren} is an
+         * array of children to be removed, and {@code change} controls if a property (hard-coded to
+         * {@code @foo=bar}) needs to be set on children that are part of {@code AddChildren} array.
+         * The changes should be such that set1 changes and set2 changes should be safe. The
+         * conflict should be represented by changes in set3 -- and the conflict should exist
+         * against both set1 and set2. These 3 description are then used to create changes on 3
+         * threads in such a way that by the time thread3 gets around to persist its changes, there
+         * are more revisions which get committed. In case the conflict couldn't be resolved,
+         * thread3 would report an exception which is tested against {@code mergeable}.
+         *
          * @throws InterruptedException
          */
         public static void generateConflict(final DocumentNodeStore store,
-                                            String [] normalAddChildren1, String [] normalRemoveChildren1, boolean change1,
-                                            String [] normalAddChildren2, String [] normalRemoveChildren2, boolean change2,
-                                            String [] conflictingAddChildren3, String [] conflictingRemoveChildren3, boolean change3,
-                                            boolean mergeable, String assertMessage)
-                throws InterruptedException {
+            String[] normalAddChildren1, String[] normalRemoveChildren1, boolean change1,
+            String[] normalAddChildren2, String[] normalRemoveChildren2, boolean change2,
+            String[] conflictingAddChildren3, String[] conflictingRemoveChildren3, boolean change3,
+            boolean mergeable, String assertMessage)
+            throws InterruptedException {
             //This would result in 0 retries... 1 rebase would happen and we'd control it :D
             store.setMaxBackOffMillis(0);
 
@@ -2147,28 +2207,31 @@ public class DocumentNodeStoreTest {
         private final Semaphore controllee = new Semaphore(0);
 
         private void startMerge(final NodeStore store,
-                                @NotNull String [] addChildren, @NotNull String [] removeChildren, boolean change) {
+            @NotNull String[] addChildren, @NotNull String[] removeChildren, boolean change) {
             startMerge(store, null, addChildren, removeChildren, change);
         }
 
         private void startMerge(final NodeStore store, final CommitHook hook,
-                                @NotNull String [] addChildren, @NotNull String [] removeChildren, boolean change) {
+            @NotNull String[] addChildren, @NotNull String[] removeChildren, boolean change) {
             setDontBlock(false);
 
             //our controller is controllee for merge thread (and vice versa)
-            merger = createMergeThread(store, hook, controllee, controller, addChildren, removeChildren, change);
+            merger = createMergeThread(store, hook, controllee, controller, addChildren,
+                removeChildren, change);
             merger.start();
             controllee.acquireUninterruptibly();//wait for merge thread to get to blocking hook
         }
 
-        private void waitForNextMerge() throws InterruptedException{
+        private void waitForNextMerge() throws InterruptedException {
             controller.release();
             controllee.tryAcquire(2, TimeUnit.SECONDS);
         }
+
         private void unblock() {
             setDontBlock(true);
             controller.release();
         }
+
         private void join() throws InterruptedException {
             unblock();
             merger.join();
@@ -2177,27 +2240,30 @@ public class DocumentNodeStoreTest {
         private synchronized void setDontBlock(boolean dontBlock) {
             this.dontBlock = dontBlock;
         }
+
         private synchronized boolean getDontBlock() {
             return dontBlock;
         }
+
         private CommitFailedException getException() {
             return mergeException;
         }
 
         private Thread createMergeThread(final NodeStore store, final CommitHook hook,
-                                         final Semaphore controller, final Semaphore controllee,
-                                         @NotNull final String [] addChildren, @NotNull final String [] removeChildren,
-                                         final boolean change) {
+            final Semaphore controller, final Semaphore controllee,
+            @NotNull final String[] addChildren, @NotNull final String[] removeChildren,
+            final boolean change) {
             return new Thread(new Runnable() {
                 @Override
                 public void run() {
                     final CommitHook blockingHook = new CommitHook() {
                         @NotNull
                         @Override
-                        public NodeState processCommit(NodeState before, NodeState after, CommitInfo info)
-                                throws CommitFailedException {
+                        public NodeState processCommit(NodeState before, NodeState after,
+                            CommitInfo info)
+                            throws CommitFailedException {
                             controller.release();
-                            if(!getDontBlock()) {
+                            if (!getDontBlock()) {
                                 controllee.acquireUninterruptibly();
                             }
                             return after;
@@ -2218,7 +2284,7 @@ public class DocumentNodeStoreTest {
                         }
 
                         List<CommitHook> hookList = new ArrayList<CommitHook>();
-                        if(hook != null) {
+                        if (hook != null) {
                             hookList.add(hook);
                         }
                         hookList.add(blockingHook);
@@ -2252,17 +2318,17 @@ public class DocumentNodeStoreTest {
         merge(ns, builder);
 
         builder = ns.getRoot().builder();
-        int[] rebaseCounts = {2,3,1,8,3};
-        for (int r = 0; r < REBASE_COUNT; r++){
+        int[] rebaseCounts = {2, 3, 1, 8, 3};
+        for (int r = 0; r < REBASE_COUNT; r++) {
             for (int i = 0; i < NUM_NODES / 2; i++) {
                 NodeBuilder c = deepTree(builder.child("n" + i), 5);
                 for (int j = 0; j < NUM_PROPS; j++) {
-                    c.setProperty("q"+ r + "" + j, "value");
+                    c.setProperty("q" + r + "" + j, "value");
                 }
             }
 
             //Do multiple rebase for each round of branch commit phase
-            for (int k = 0; k < rebaseCounts[r]; k++){
+            for (int k = 0; k < rebaseCounts[r]; k++) {
                 doSomeChange(ns);
                 ns.rebase(builder);
             }
@@ -2284,7 +2350,7 @@ public class DocumentNodeStoreTest {
         MemoryDocumentStore docStore = new MemoryDocumentStore() {
             @Override
             public <T extends Document> T createOrUpdate(Collection<T> collection,
-                                                         UpdateOp update) {
+                UpdateOp update) {
                 if (throttleUpdates.get() && TestUtils.isLastRevUpdate(update)) {
                     try {
                         updates.put(update.getId());
@@ -2296,8 +2362,8 @@ public class DocumentNodeStoreTest {
             }
         };
         final DocumentNodeStore store = builderProvider.newBuilder()
-                .setClusterId(1).setAsyncDelay(0)
-                .setDocumentStore(docStore).getNodeStore();
+                                                       .setClusterId(1).setAsyncDelay(0)
+                                                       .setDocumentStore(docStore).getNodeStore();
         updates.clear();
 
         NodeBuilder builder = store.getRoot().builder();
@@ -2321,7 +2387,7 @@ public class DocumentNodeStoreTest {
         // background ops in dispose is still in progress
         assertTrue(t.isAlive());
         // wait until next update comes in
-        for (;;) {
+        for (; ; ) {
             if (updates.peek() != null) {
                 break;
             }
@@ -2346,8 +2412,8 @@ public class DocumentNodeStoreTest {
 
         // start new store with clusterId 2
         DocumentNodeStore store2 = builderProvider.newBuilder()
-                .setClusterId(2).setAsyncDelay(0)
-                .setDocumentStore(docStore).getNodeStore();
+                                                  .setClusterId(2).setAsyncDelay(0)
+                                                  .setDocumentStore(docStore).getNodeStore();
 
         // perform recovery if needed
         LastRevRecoveryAgent agent = new LastRevRecoveryAgent(docStore, store2);
@@ -2417,15 +2483,16 @@ public class DocumentNodeStoreTest {
             @NotNull
             @Override
             public <T extends Document> List<T> query(Collection<T> collection,
-                                                      String fromKey,
-                                                      String toKey,
-                                                      int limit) {
+                String fromKey,
+                String toKey,
+                int limit) {
                 numQueries.incrementAndGet();
                 return super.query(collection, fromKey, toKey, limit);
             }
         };
         DocumentNodeStore ns = builderProvider.newBuilder()
-                .setDocumentStore(store).setAsyncDelay(0).getNodeStore();
+                                              .setDocumentStore(store).setAsyncDelay(0)
+                                              .getNodeStore();
 
         NodeBuilder builder = ns.getRoot().builder();
         builder.child("foo").child("child");
@@ -2446,16 +2513,15 @@ public class DocumentNodeStoreTest {
         numQueries.set(0);
         final List<String> added = Lists.newArrayList();
         ns.compare(asDocumentNodeState(after.getChildNode("foo").getChildNode("child")),
-                asDocumentNodeState(before.getChildNode("foo").getChildNode("child")),
-                new DefaultNodeStateDiff() {
-                    @Override
-                    public boolean childNodeAdded(String name,
-                                                  NodeState after) {
-                        added.add(name);
-                        return super.childNodeAdded(name, after);
-                    }
-                });
-
+            asDocumentNodeState(before.getChildNode("foo").getChildNode("child")),
+            new DefaultNodeStateDiff() {
+                @Override
+                public boolean childNodeAdded(String name,
+                    NodeState after) {
+                    added.add(name);
+                    return super.childNodeAdded(name, after);
+                }
+            });
 
         assertEquals(1, added.size());
         assertEquals("node", added.get(0));
@@ -2477,11 +2543,11 @@ public class DocumentNodeStoreTest {
             @NotNull
             @Override
             public <T extends Document> List<T> query(Collection<T> collection,
-                                                      String fromKey,
-                                                      String toKey,
-                                                      String indexedProperty,
-                                                      long startValue,
-                                                      int limit) {
+                String fromKey,
+                String toKey,
+                String indexedProperty,
+                long startValue,
+                int limit) {
                 if (indexedProperty != null) {
                     startValues.add(startValue);
                 }
@@ -2489,8 +2555,8 @@ public class DocumentNodeStoreTest {
             }
         };
         DocumentNodeStore ns = builderProvider.newBuilder().clock(clock)
-                .setLeaseCheckMode(LeaseCheckMode.LENIENT)
-                .setDocumentStore(ds).setAsyncDelay(0).getNodeStore();
+                                              .setLeaseCheckMode(LeaseCheckMode.LENIENT)
+                                              .setDocumentStore(ds).setAsyncDelay(0).getNodeStore();
 
         NodeBuilder builder = ns.getRoot().builder();
         NodeBuilder test = builder.child("test");
@@ -2541,16 +2607,16 @@ public class DocumentNodeStoreTest {
     public void nonBlockingReset() throws Exception {
         final List<String> failure = Lists.newArrayList();
         final AtomicReference<ReentrantReadWriteLock> mergeLock
-                = new AtomicReference<ReentrantReadWriteLock>();
+            = new AtomicReference<ReentrantReadWriteLock>();
         MemoryDocumentStore store = new MemoryDocumentStore() {
             @Override
             public <T extends Document> T findAndUpdate(Collection<T> collection,
-                                                        UpdateOp update) {
+                UpdateOp update) {
                 for (Map.Entry<Key, Operation> entry : update.getChanges().entrySet()) {
                     if (entry.getKey().getName().equals(NodeDocument.COLLISIONS)) {
                         ReentrantReadWriteLock rwLock = mergeLock.get();
                         if (rwLock.getReadHoldCount() > 0
-                                || rwLock.getWriteHoldCount() > 0) {
+                            || rwLock.getWriteHoldCount() > 0) {
                             failure.add("Branch reset still holds merge lock");
                             break;
                         }
@@ -2560,8 +2626,8 @@ public class DocumentNodeStoreTest {
             }
         };
         DocumentNodeStore ds = builderProvider.newBuilder()
-                .setDocumentStore(store)
-                .setAsyncDelay(0).getNodeStore();
+                                              .setDocumentStore(store)
+                                              .setAsyncDelay(0).getNodeStore();
         ds.setMaxBackOffMillis(0); // do not retry merges
 
         DocumentNodeState root = ds.getRoot();
@@ -2584,9 +2650,9 @@ public class DocumentNodeStoreTest {
                 @NotNull
                 @Override
                 public NodeState processCommit(NodeState before,
-                                               NodeState after,
-                                               CommitInfo info)
-                        throws CommitFailedException {
+                    NodeState after,
+                    CommitInfo info)
+                    throws CommitFailedException {
                     NodeBuilder foo = after.builder().child("foo");
                     for (int i = 0; i <= DocumentMK.UPDATE_LIMIT; i++) {
                         foo.setProperty("prop", i);
@@ -2609,7 +2675,7 @@ public class DocumentNodeStoreTest {
         MemoryDocumentStore store = new MemoryDocumentStore() {
             @Override
             public <T extends Document> T findAndUpdate(Collection<T> collection,
-                                                        UpdateOp update) {
+                UpdateOp update) {
                 for (Key k : update.getConditions().keySet()) {
                     if (k.getName().equals(NodeDocument.COLLISIONS)) {
                         mergeAttempts.incrementAndGet();
@@ -2620,8 +2686,8 @@ public class DocumentNodeStoreTest {
             }
         };
         DocumentNodeStore ds = builderProvider.newBuilder()
-                .setDocumentStore(store)
-                .setAsyncDelay(0).getNodeStore();
+                                              .setDocumentStore(store)
+                                              .setAsyncDelay(0).getNodeStore();
 
         DocumentNodeState root = ds.getRoot();
         DocumentNodeStoreBranch b = ds.createBranch(root);
@@ -2650,7 +2716,7 @@ public class DocumentNodeStoreTest {
         }
 
         assertTrue("too many merge attempts: " + mergeAttempts.get(),
-                mergeAttempts.get() <= 1);
+            mergeAttempts.get() <= 1);
     }
 
     // OAK-3586
@@ -2658,8 +2724,8 @@ public class DocumentNodeStoreTest {
     public void resolveMultipleConflictedRevisions() throws Exception {
         MemoryDocumentStore store = new MemoryDocumentStore();
         final DocumentNodeStore ds = builderProvider.newBuilder()
-                .setDocumentStore(store)
-                .setAsyncDelay(0).getNodeStore();
+                                                    .setDocumentStore(store)
+                                                    .setAsyncDelay(0).getNodeStore();
 
         DocumentNodeState root = ds.getRoot();
         final DocumentNodeStoreBranch b = ds.createBranch(root);
@@ -2672,7 +2738,8 @@ public class DocumentNodeStoreTest {
         final List<Commit> commits = new ArrayList<Commit>();
         for (int i = 0; i < 10; i++) {
             Revision revision = ds.newRevision();
-            Commit commit = ds.newCommit(nop -> {}, new RevisionVector(revision), ds.createBranch(root));
+            Commit commit = ds.newCommit(nop -> {
+            }, new RevisionVector(revision), ds.createBranch(root));
             commits.add(commit);
             revisions.add(revision);
         }
@@ -2681,7 +2748,8 @@ public class DocumentNodeStoreTest {
         Thread t = new Thread(new Runnable() {
             public void run() {
                 try {
-                    CommitFailedException exception = new ConflictException("Can't merge", revisions).asCommitFailedException();
+                    CommitFailedException exception = new ConflictException("Can't merge",
+                        revisions).asCommitFailedException();
                     b.merge(new HookFailingOnce(exception), CommitInfo.EMPTY);
                     merged.set(true);
                 } catch (CommitFailedException e) {
@@ -2725,11 +2793,11 @@ public class DocumentNodeStoreTest {
     public void sameSeenAtRevision() throws Exception {
         MemoryDocumentStore store = new MemoryDocumentStore();
         DocumentNodeStore ns1 = builderProvider.newBuilder()
-                .setDocumentStore(store).setAsyncDelay(0)
-                .setClusterId(1).getNodeStore();
+                                               .setDocumentStore(store).setAsyncDelay(0)
+                                               .setClusterId(1).getNodeStore();
         DocumentNodeStore ns2 = builderProvider.newBuilder()
-                .setDocumentStore(store).setAsyncDelay(0)
-                .setClusterId(2).getNodeStore();
+                                               .setDocumentStore(store).setAsyncDelay(0)
+                                               .setClusterId(2).getNodeStore();
 
         NodeBuilder b2 = ns2.getRoot().builder();
         b2.child("test");
@@ -2744,8 +2812,8 @@ public class DocumentNodeStoreTest {
         ns1.runBackgroundOperations();
 
         DocumentNodeStore ns3 = builderProvider.newBuilder()
-                .setDocumentStore(store).setAsyncDelay(0)
-                .setClusterId(3).getNodeStore();
+                                               .setDocumentStore(store).setAsyncDelay(0)
+                                               .setClusterId(3).getNodeStore();
         ns3.setMaxBackOffMillis(0);
         NodeBuilder b3 = ns3.getRoot().builder();
         assertFalse(b3.hasChildNode("test"));
@@ -2758,11 +2826,11 @@ public class DocumentNodeStoreTest {
     public void sameSeenAtRevision2() throws Exception {
         MemoryDocumentStore store = new MemoryDocumentStore();
         DocumentNodeStore ns1 = builderProvider.newBuilder()
-                .setDocumentStore(store).setAsyncDelay(0)
-                .setClusterId(1).getNodeStore();
+                                               .setDocumentStore(store).setAsyncDelay(0)
+                                               .setClusterId(1).getNodeStore();
         DocumentNodeStore ns2 = builderProvider.newBuilder()
-                .setDocumentStore(store).setAsyncDelay(0)
-                .setClusterId(2).getNodeStore();
+                                               .setDocumentStore(store).setAsyncDelay(0)
+                                               .setClusterId(2).getNodeStore();
 
         NodeBuilder b2 = ns2.getRoot().builder();
         b2.child("test");
@@ -2780,8 +2848,8 @@ public class DocumentNodeStoreTest {
         ns1.runBackgroundOperations();
 
         DocumentNodeStore ns3 = builderProvider.newBuilder()
-                .setDocumentStore(store).setAsyncDelay(0)
-                .setClusterId(3).getNodeStore();
+                                               .setDocumentStore(store).setAsyncDelay(0)
+                                               .setClusterId(3).getNodeStore();
         ns3.setMaxBackOffMillis(0);
         NodeBuilder b3 = ns3.getRoot().builder();
         assertTrue(b3.hasChildNode("test"));
@@ -2796,7 +2864,7 @@ public class DocumentNodeStoreTest {
         MemoryDocumentStore store = new MemoryDocumentStore() {
             @Override
             public <T extends Document> T find(Collection<T> collection,
-                                               String key) {
+                String key) {
                 if (Utils.getPathFromId(key).startsWith("p")) {
                     numPreviousFinds.incrementAndGet();
                 }
@@ -2804,7 +2872,8 @@ public class DocumentNodeStoreTest {
             }
         };
         DocumentNodeStore ns = builderProvider.newBuilder()
-                .setDocumentStore(store).setAsyncDelay(0).getNodeStore();
+                                              .setDocumentStore(store).setAsyncDelay(0)
+                                              .getNodeStore();
 
         String id = Utils.getIdFromPath("/test");
         NodeBuilder b = ns.getRoot().builder();
@@ -2844,8 +2913,8 @@ public class DocumentNodeStoreTest {
         Revision.setClock(clock);
         ClusterNodeInfo.setClock(clock);
         DocumentNodeStore ns = builderProvider.newBuilder()
-                .clock(clock)
-                .setAsyncDelay(0).getNodeStore();
+                                              .clock(clock)
+                                              .setAsyncDelay(0).getNodeStore();
         // initial state
         NodeBuilder builder = ns.getRoot().builder();
         NodeBuilder p = builder.child("parent");
@@ -2904,7 +2973,7 @@ public class DocumentNodeStoreTest {
         }
 
         //must not have duplicated cache entries
-        assertTrue(ns.getNodeChildrenCacheStats().getElementCount() < 2*DocumentMK.UPDATE_LIMIT);
+        assertTrue(ns.getNodeChildrenCacheStats().getElementCount() < 2 * DocumentMK.UPDATE_LIMIT);
     }
 
     // OAK-4601
@@ -2914,7 +2983,7 @@ public class DocumentNodeStoreTest {
 
         NodeBuilder b1 = ns.getRoot().builder();
 
-        final int NUM_CHILDREN = 3*DocumentMK.UPDATE_LIMIT + 1;
+        final int NUM_CHILDREN = 3 * DocumentMK.UPDATE_LIMIT + 1;
         //this would push node cache entries for children
         for (int i = 0; i < NUM_CHILDREN; i++) {
             b1.child("child" + i);
@@ -2926,18 +2995,18 @@ public class DocumentNodeStoreTest {
         }
 
         //must not have duplicated cache entries
-        assertTrue(ns.getNodeCacheStats().getElementCount() < 2*NUM_CHILDREN);
+        assertTrue(ns.getNodeCacheStats().getElementCount() < 2 * NUM_CHILDREN);
     }
 
     @Test
     public void lastRevWithRevisionVector() throws Exception {
         MemoryDocumentStore store = new MemoryDocumentStore();
         DocumentNodeStore ns1 = builderProvider.newBuilder()
-                .setClusterId(1).setDocumentStore(store)
-                .setAsyncDelay(0).getNodeStore();
+                                               .setClusterId(1).setDocumentStore(store)
+                                               .setAsyncDelay(0).getNodeStore();
         DocumentNodeStore ns2 = builderProvider.newBuilder()
-                .setClusterId(2).setDocumentStore(store)
-                .setAsyncDelay(0).getNodeStore();
+                                               .setClusterId(2).setDocumentStore(store)
+                                               .setAsyncDelay(0).getNodeStore();
 
         NodeBuilder b1 = ns1.getRoot().builder();
         b1.child("parent");
@@ -2963,8 +3032,8 @@ public class DocumentNodeStoreTest {
     public void branchBaseBeforeClusterJoin() throws Exception {
         MemoryDocumentStore store = new MemoryDocumentStore();
         DocumentNodeStore ns1 = builderProvider.newBuilder()
-                .setClusterId(1).setDocumentStore(store)
-                .setAsyncDelay(0).getNodeStore();
+                                               .setClusterId(1).setDocumentStore(store)
+                                               .setAsyncDelay(0).getNodeStore();
 
         NodeBuilder b1 = ns1.getRoot().builder();
         b1.child("parent");
@@ -2972,8 +3041,8 @@ public class DocumentNodeStoreTest {
         ns1.runBackgroundOperations();
 
         DocumentNodeStore ns2 = builderProvider.newBuilder()
-                .setClusterId(2).setDocumentStore(store)
-                .setAsyncDelay(0).getNodeStore();
+                                               .setClusterId(2).setDocumentStore(store)
+                                               .setAsyncDelay(0).getNodeStore();
         NodeBuilder b2 = ns2.getRoot().builder();
         b2.child("parent").child("baz");
         merge(ns2, b2);
@@ -3008,14 +3077,14 @@ public class DocumentNodeStoreTest {
     }
 
     @Test
-    public void exceptionHandlingInCommit() throws Exception{
+    public void exceptionHandlingInCommit() throws Exception {
         DocumentNodeStore ns = builderProvider.newBuilder().getNodeStore();
         final TestException testException = new TestException();
         final AtomicBoolean failCommit = new AtomicBoolean();
         ns.addObserver(new Observer() {
             @Override
             public void contentChanged(@NotNull NodeState root, @NotNull CommitInfo info) {
-                if (failCommit.get()){
+                if (failCommit.get()) {
                     throw testException;
                 }
             }
@@ -3027,7 +3096,7 @@ public class DocumentNodeStoreTest {
         try {
             merge(ns, b1);
             fail();
-        } catch(Exception e){
+        } catch (Exception e) {
             assertSame(testException, Throwables.getRootCause(e));
         }
     }
@@ -3040,9 +3109,9 @@ public class DocumentNodeStoreTest {
             @NotNull
             @Override
             public <T extends Document> List<T> query(Collection<T> collection,
-                                                      String fromKey,
-                                                      String toKey,
-                                                      int limit) {
+                String fromKey,
+                String toKey,
+                int limit) {
                 if (collection == Collection.NODES) {
                     numQueries.incrementAndGet();
                 }
@@ -3050,13 +3119,15 @@ public class DocumentNodeStoreTest {
             }
         };
         DocumentNodeStore ns1 = builderProvider.newBuilder().setClusterId(1)
-                .setAsyncDelay(0).setDocumentStore(store).getNodeStore();
+                                               .setAsyncDelay(0).setDocumentStore(store)
+                                               .getNodeStore();
         NodeBuilder builder = ns1.getRoot().builder();
         builder.child("node-1");
         merge(ns1, builder);
         ns1.runBackgroundOperations();
         DocumentNodeStore ns2 = builderProvider.newBuilder().setClusterId(2)
-                .setAsyncDelay(0).setDocumentStore(store).getNodeStore();
+                                               .setAsyncDelay(0).setDocumentStore(store)
+                                               .getNodeStore();
         builder = ns2.getRoot().builder();
         builder.child("node-2");
         merge(ns2, builder);
@@ -3099,13 +3170,13 @@ public class DocumentNodeStoreTest {
         DocumentStore store = new MemoryDocumentStore() {
             @Override
             public <T extends Document> T getIfCached(Collection<T> collection,
-                                                      String key) {
+                String key) {
                 return super.find(collection, key);
             }
 
             @Override
             public <T extends Document> T find(Collection<T> collection,
-                                               String key) {
+                String key) {
                 if (collection == Collection.NODES) {
                     finds.add(key);
                 }
@@ -3113,13 +3184,15 @@ public class DocumentNodeStoreTest {
             }
         };
         DocumentNodeStore ns1 = builderProvider.newBuilder().setClusterId(1)
-                .setAsyncDelay(0).setDocumentStore(store).getNodeStore();
+                                               .setAsyncDelay(0).setDocumentStore(store)
+                                               .getNodeStore();
         NodeBuilder builder = ns1.getRoot().builder();
         builder.child("node-1");
         merge(ns1, builder);
         ns1.runBackgroundOperations();
         DocumentNodeStore ns2 = builderProvider.newBuilder().setClusterId(2)
-                .setAsyncDelay(0).setDocumentStore(store).getNodeStore();
+                                               .setAsyncDelay(0).setDocumentStore(store)
+                                               .getNodeStore();
         builder = ns2.getRoot().builder();
         builder.child("node-2");
         merge(ns2, builder);
@@ -3162,7 +3235,7 @@ public class DocumentNodeStoreTest {
 
         RevisionVector headRev = ns.getHeadRevision();
         Iterable<DocumentNodeState> nodes = ns.getChildNodes(
-                asDocumentNodeState(ns.getRoot().getChildNode("foo")), "", 10);
+            asDocumentNodeState(ns.getRoot().getChildNode("foo")), "", 10);
         assertEquals(2, Iterables.size(nodes));
         for (DocumentNodeState c : nodes) {
             assertEquals(headRev, c.getRootRevision());
@@ -3195,7 +3268,7 @@ public class DocumentNodeStoreTest {
         DocumentStore store = new MemoryDocumentStore() {
             @Override
             public <T extends Document> boolean create(Collection<T> collection,
-                                                       List<UpdateOp> updateOps) {
+                List<UpdateOp> updateOps) {
                 if (collection == Collection.JOURNAL && failJournalOps.get()) {
                     throw new DocumentStoreException("failure");
                 }
@@ -3203,7 +3276,7 @@ public class DocumentNodeStoreTest {
             }
         };
         DocumentNodeStore ns = builderProvider.newBuilder().setAsyncDelay(0)
-                .setDocumentStore(store).getNodeStore();
+                                              .setDocumentStore(store).getNodeStore();
         ns.setMaxBackOffMillis(0);
         ns.setJournalPushThreshold(2);
 
@@ -3247,10 +3320,11 @@ public class DocumentNodeStoreTest {
     }
 
     @Test
-    public void commitRootSameAsModifiedPath() throws Exception{
+    public void commitRootSameAsModifiedPath() throws Exception {
         WriteCountingStore ws = new WriteCountingStore(true);
 
-        DocumentNodeStore ns = builderProvider.newBuilder().setAsyncDelay(0).setDocumentStore(ws).getNodeStore();
+        DocumentNodeStore ns = builderProvider.newBuilder().setAsyncDelay(0).setDocumentStore(ws)
+                                              .getNodeStore();
         NodeBuilder builder = ns.getRoot().builder();
         builder.child("a").child("b");
         merge(ns, builder);
@@ -3265,10 +3339,10 @@ public class DocumentNodeStoreTest {
     }
 
     @Test
-    public void commitRootSameAsModifiedPathWithConflicts() throws Exception{
+    public void commitRootSameAsModifiedPathWithConflicts() throws Exception {
         MemoryDocumentStore store = new MemoryDocumentStore(true);
         final DocumentNodeStore ns = builderProvider.newBuilder().setAsyncDelay(0)
-                .setDocumentStore(store).getNodeStore();
+                                                    .setDocumentStore(store).getNodeStore();
         NodeBuilder builder = ns.getRoot().builder();
         builder.child("a").child("b").setProperty("p", 0L);
         merge(ns, builder);
@@ -3278,8 +3352,8 @@ public class DocumentNodeStoreTest {
         Runnable task = new Runnable() {
 
             CommitHook hook = new CompositeHook(
-                    new ConflictHook(new AnnotatingConflictHandler()),
-                    new EditorHook(new ConflictValidatorProvider())
+                new ConflictHook(new AnnotatingConflictHandler()),
+                new EditorHook(new ConflictValidatorProvider())
             );
 
             @Override
@@ -3340,10 +3414,11 @@ public class DocumentNodeStoreTest {
 
     @Ignore("OAK-5791")
     @Test
-    public void createChildNodeAndCheckNoOfCalls() throws Exception{
+    public void createChildNodeAndCheckNoOfCalls() throws Exception {
         WriteCountingStore ws = new WriteCountingStore();
 
-        DocumentNodeStore ns = builderProvider.newBuilder().setAsyncDelay(0).setDocumentStore(ws).getNodeStore();
+        DocumentNodeStore ns = builderProvider.newBuilder().setAsyncDelay(0).setDocumentStore(ws)
+                                              .getNodeStore();
         NodeBuilder builder = ns.getRoot().builder();
         builder.child("a").child("b");
         merge(ns, builder);
@@ -3363,7 +3438,7 @@ public class DocumentNodeStoreTest {
     public void setUpdateLimit() throws Exception {
         final int updateLimit = 17;
         DocumentNodeStore ns = builderProvider.newBuilder().setUpdateLimit(updateLimit)
-                .setAsyncDelay(0).getNodeStore();
+                                              .setAsyncDelay(0).getNodeStore();
         DocumentStore store = ns.getDocumentStore();
         NodeBuilder builder = ns.getRoot().builder();
         for (int i = 0; i <= updateLimit * 2; i++) {
@@ -3427,7 +3502,7 @@ public class DocumentNodeStoreTest {
         clock.waitUntil(System.currentTimeMillis());
         Revision.setClock(clock);
         DocumentNodeStore ns = builderProvider.newBuilder()
-                .clock(clock).setAsyncDelay(0).getNodeStore();
+                                              .clock(clock).setAsyncDelay(0).getNodeStore();
         doSomeChange(ns);
         ns.runBackgroundOperations();
         Revision head1 = ns.getHeadRevision().getRevision(ns.getClusterId());
@@ -3455,8 +3530,8 @@ public class DocumentNodeStoreTest {
         Revision.setClock(clock);
         DocumentStore store = new MemoryDocumentStore();
         builderProvider.newBuilder().clock(clock)
-                .setDocumentStore(store).setAsyncDelay(0).setClusterId(1)
-                .getNodeStore();
+                       .setDocumentStore(store).setAsyncDelay(0).setClusterId(1)
+                       .getNodeStore();
 
         // now startup second node store with a custom lastRev seeker
         final AtomicInteger candidateCalls = new AtomicInteger();
@@ -3474,8 +3549,8 @@ public class DocumentNodeStoreTest {
             }
         };
         DocumentNodeStore ns2 = nsBuilder.clock(clock)
-                .setDocumentStore(store).setAsyncDelay(0).setClusterId(2)
-                .getNodeStore();
+                                         .setDocumentStore(store).setAsyncDelay(0).setClusterId(2)
+                                         .getNodeStore();
         try {
             assertEquals(0, candidateCalls.get());
         } finally {
@@ -3498,7 +3573,7 @@ public class DocumentNodeStoreTest {
         assertNotNull(ns.getNodeCache().getIfPresent(new PathRev(path, before)));
 
         ns.applyChanges(before, after, rev, path, false,
-                emptyList(), emptyList(), emptyList());
+            emptyList(), emptyList(), emptyList());
         assertNull(ns.getNodeCache().getIfPresent(new PathRev(path, before)));
     }
 
@@ -3546,9 +3621,9 @@ public class DocumentNodeStoreTest {
         clock.waitUntil(System.currentTimeMillis());
         Revision.setClock(clock);
         DocumentNodeStore ns = builderProvider.newBuilder().disableBranches()
-                .setUpdateLimit(100).clock(clock)
-                .setLeaseCheckMode(LeaseCheckMode.LENIENT)
-                .setAsyncDelay(0).getNodeStore();
+                                              .setUpdateLimit(100).clock(clock)
+                                              .setLeaseCheckMode(LeaseCheckMode.LENIENT)
+                                              .setAsyncDelay(0).getNodeStore();
         RevisionVector head = ns.getHeadRevision();
         NodeBuilder b = ns.getRoot().builder();
         for (int i = 0; i < 100; i++) {
@@ -3568,7 +3643,7 @@ public class DocumentNodeStoreTest {
         DocumentStore store = new MemoryDocumentStore() {
             @Override
             public <T extends Document> List<T> createOrUpdate(Collection<T> collection,
-                                                               List<UpdateOp> updateOps) {
+                List<UpdateOp> updateOps) {
                 if (Thread.currentThread() != current) {
                     updates.add(updateOps.size());
                 }
@@ -3576,8 +3651,9 @@ public class DocumentNodeStoreTest {
             }
         };
         final DocumentNodeStore ns = builderProvider.newBuilder().disableBranches()
-                .setDocumentStore(store).setUpdateLimit(20).setAsyncDelay(0)
-                .getNodeStore();
+                                                    .setDocumentStore(store).setUpdateLimit(20)
+                                                    .setAsyncDelay(0)
+                                                    .getNodeStore();
         NodeBuilder builder = ns.getRoot().builder();
         for (int i = 0; i < 30; i++) {
             builder.child("node-" + i).child("test");
@@ -3620,24 +3696,24 @@ public class DocumentNodeStoreTest {
         assertThat(updates, everyItem(is(30)));
         assertEquals(1, updates.size());
     }
-    
+
     // OAK-6276
     @Test
     public void visibilityToken() throws Exception {
         DocumentStore docStore = new MemoryDocumentStore();
         DocumentNodeStore ns1 = builderProvider.newBuilder()
-                .setDocumentStore(docStore).setAsyncDelay(0)
-                .setClusterId(1).getNodeStore();
+                                               .setDocumentStore(docStore).setAsyncDelay(0)
+                                               .setClusterId(1).getNodeStore();
         ns1.getRoot();
         ns1.runBackgroundOperations();
         DocumentNodeStore ns2 = builderProvider.newBuilder()
-                .setDocumentStore(docStore).setAsyncDelay(0)
-                .setClusterId(2).getNodeStore();
+                                               .setDocumentStore(docStore).setAsyncDelay(0)
+                                               .setClusterId(2).getNodeStore();
         ns2.getRoot();
-        
+
         String vt1 = ns1.getVisibilityToken();
         String vt2 = ns2.getVisibilityToken();
-        
+
         assertTrue(ns1.isVisible(vt1, -1));
         assertTrue(ns1.isVisible(vt1, 1));
         assertTrue(ns1.isVisible(vt1, 100000000));
@@ -3652,7 +3728,7 @@ public class DocumentNodeStoreTest {
         ns1.runBackgroundOperations();
         assertTrue(ns1.isVisible(vt2, -1));
         assertTrue(ns2.isVisible(vt1, -1));
-        
+
         vt1 = ns1.getVisibilityToken();
         vt2 = ns2.getVisibilityToken();
         assertTrue(ns1.isVisible(vt1, -1));
@@ -3663,7 +3739,7 @@ public class DocumentNodeStoreTest {
         assertTrue(ns2.isVisible(vt2, 100000000));
         assertTrue(ns1.isVisible(vt2, 100000000));
         assertTrue(ns2.isVisible(vt1, 100000000));
-        
+
         NodeBuilder b1 = ns1.getRoot().builder();
         b1.setProperty("p1", "1");
         ns1.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
@@ -3676,7 +3752,7 @@ public class DocumentNodeStoreTest {
         assertTrue(ns2.isVisible(vt2, -1));
         assertTrue(ns1.isVisible(vt2, -1));
         assertTrue(ns2.isVisible(vt1, -1));
-        
+
         vt1 = ns1.getVisibilityToken();
         vt2 = ns2.getVisibilityToken();
         assertTrue(ns1.isVisible(vt1, -1));
@@ -3706,7 +3782,7 @@ public class DocumentNodeStoreTest {
         assertTrue(ns2.isVisible(vt2, -1));
         assertTrue(ns1.isVisible(vt2, -1));
         assertTrue(ns2.isVisible(vt1, -1));
-        
+
         vt1 = ns1.getVisibilityToken();
         vt2 = ns2.getVisibilityToken();
         assertTrue(ns1.isVisible(vt2, -1));
@@ -3726,17 +3802,17 @@ public class DocumentNodeStoreTest {
                 return null;
             }
         });
-        try{
+        try {
             asyncResult.get(500, TimeUnit.MILLISECONDS);
             fail("should have thrown a timeout exception");
-        } catch(TimeoutException te) {
+        } catch (TimeoutException te) {
             // ok
         }
         ns1.runBackgroundOperations();
-        try{
+        try {
             asyncResult.get(500, TimeUnit.MILLISECONDS);
             fail("should have thrown a timeout exception");
-        } catch(TimeoutException te) {
+        } catch (TimeoutException te) {
             // ok
         }
         ns2.runBackgroundOperations();
@@ -3751,11 +3827,11 @@ public class DocumentNodeStoreTest {
         Revision.setClock(clock);
         MemoryDocumentStore docStore = new MemoryDocumentStore();
         DocumentNodeStore ns = builderProvider.newBuilder()
-                .setLeaseCheckMode(LeaseCheckMode.LENIENT)
-                .setDocumentStore(docStore).setUpdateLimit(100)
-                .setJournalGCMaxAge(TimeUnit.HOURS.toMillis(6))
-                .setBundlingDisabled(true)
-                .setAsyncDelay(0).clock(clock).getNodeStore();
+                                              .setLeaseCheckMode(LeaseCheckMode.LENIENT)
+                                              .setDocumentStore(docStore).setUpdateLimit(100)
+                                              .setJournalGCMaxAge(TimeUnit.HOURS.toMillis(6))
+                                              .setBundlingDisabled(true)
+                                              .setAsyncDelay(0).clock(clock).getNodeStore();
         NodeBuilder builder = ns.getRoot().builder();
         builder.child("test");
         merge(ns, builder);
@@ -3806,10 +3882,10 @@ public class DocumentNodeStoreTest {
         Revision.setClock(clock);
         MemoryDocumentStore docStore = new MemoryDocumentStore();
         DocumentNodeStore ns = builderProvider.newBuilder()
-                .setLeaseCheckMode(LeaseCheckMode.LENIENT)
-                .setDocumentStore(docStore).setUpdateLimit(100)
-                .setJournalGCMaxAge(TimeUnit.HOURS.toMillis(6))
-                .setAsyncDelay(0).clock(clock).getNodeStore();
+                                              .setLeaseCheckMode(LeaseCheckMode.LENIENT)
+                                              .setDocumentStore(docStore).setUpdateLimit(100)
+                                              .setJournalGCMaxAge(TimeUnit.HOURS.toMillis(6))
+                                              .setAsyncDelay(0).clock(clock).getNodeStore();
 
         NodeBuilder builder = ns.getRoot().builder();
         NodeBuilder test = builder.child("test");
@@ -3845,10 +3921,10 @@ public class DocumentNodeStoreTest {
         Revision.setClock(clock);
         MemoryDocumentStore docStore = new MemoryDocumentStore();
         DocumentNodeStore ns = builderProvider.newBuilder()
-                .setDocumentStore(docStore).setUpdateLimit(100)
-                .setJournalGCMaxAge(TimeUnit.HOURS.toMillis(6))
-                .setBundlingDisabled(true)
-                .setAsyncDelay(0).clock(clock).getNodeStore();
+                                              .setDocumentStore(docStore).setUpdateLimit(100)
+                                              .setJournalGCMaxAge(TimeUnit.HOURS.toMillis(6))
+                                              .setBundlingDisabled(true)
+                                              .setAsyncDelay(0).clock(clock).getNodeStore();
 
         NodeBuilder builder = ns.getRoot().builder();
         builder.child("test");
@@ -3896,7 +3972,7 @@ public class DocumentNodeStoreTest {
     public void getChildNodeCount() throws Exception {
         CountingDocumentStore store = new CountingDocumentStore(new MemoryDocumentStore());
         DocumentNodeStore ns = builderProvider.newBuilder().setAsyncDelay(0)
-                .setDocumentStore(store).getNodeStore();
+                                              .setDocumentStore(store).getNodeStore();
         NodeBuilder builder = ns.getRoot().builder();
         for (int i = 0; i < 100; i++) {
             builder.child("test").child("node-" + i);
@@ -3920,28 +3996,28 @@ public class DocumentNodeStoreTest {
         final long UL = Long.MAX_VALUE; // unknown
         // childNodeCount = none
         getChildNodeCountTest(0,
-                of(0L, 1L),
-                of(0L, 0L)
+            of(0L, 1L),
+            of(0L, 0L)
         );
         // childNodeCount = less than initial fetch size 42
         getChildNodeCountTest(42,
-                of( 0L,  1L, 41L, 42L, 43L, 100L),
-                of(42L, 42L, 42L, 42L, 42L, 42L)
+            of(0L, 1L, 41L, 42L, 43L, 100L),
+            of(42L, 42L, 42L, 42L, 42L, 42L)
         );
         // childNodeCount = initial fetch size (100)
         getChildNodeCountTest(100,
-                of(  0L,   1L,  99L, 100L, 101L, 200L),
-                of(100L, 100L, 100L, 100L, 100L, 100L)
+            of(0L, 1L, 99L, 100L, 101L, 200L),
+            of(100L, 100L, 100L, 100L, 100L, 100L)
         );
         // childNodeCount = initial fetch size + 1 (100 + 1)
         getChildNodeCountTest(101,
-                of(0L, 1L, 99L, 100L, 101L, 200L),
-                of(UL, UL,  UL,   UL, 101L, 101L)
+            of(0L, 1L, 99L, 100L, 101L, 200L),
+            of(UL, UL, UL, UL, 101L, 101L)
         );
         // childNodeCount = first two fetches (100 + 200)
         getChildNodeCountTest(300,
-                of(0L, 1L, 99L, 100L, 101L, 200L, 299L, 300L, 301L, 400L),
-                of(UL, UL,  UL,   UL, 300L, 300L, 300L, 300L, 300L, 300L)
+            of(0L, 1L, 99L, 100L, 101L, 200L, 299L, 300L, 301L, 400L),
+            of(UL, UL, UL, UL, 300L, 300L, 300L, 300L, 300L, 300L)
         );
     }
 
@@ -3949,7 +4025,8 @@ public class DocumentNodeStoreTest {
     public void retryOnTransientDocumentStoreException() {
         FailingDocumentStore store = new FailingDocumentStore(new MemoryDocumentStore());
         DocumentNodeStore ns = builderProvider.newBuilder()
-                .setAsyncDelay(0).setDocumentStore(store).getNodeStore();
+                                              .setAsyncDelay(0).setDocumentStore(store)
+                                              .getNodeStore();
         NodeBuilder builder = ns.getRoot().builder();
         builder.child("foo");
 
@@ -3983,7 +4060,7 @@ public class DocumentNodeStoreTest {
         Revision.setClock(clock);
         ClusterNodeInfo.setClock(clock);
         DocumentNodeStore ns = builderProvider.newBuilder().setAsyncDelay(0)
-                .clock(clock).build();
+                                              .clock(clock).build();
         NodeBuilder builder = ns.getRoot().builder();
         builder.child("foo");
         merge(ns, builder);
@@ -4006,7 +4083,7 @@ public class DocumentNodeStoreTest {
         Revision.setClock(clock);
         ClusterNodeInfo.setClock(clock);
         DocumentNodeStore ns = builderProvider.newBuilder().setAsyncDelay(0)
-                .setUpdateLimit(10).clock(clock).build();
+                                              .setUpdateLimit(10).clock(clock).build();
         NodeBuilder builder = ns.getRoot().builder();
         builder.child("foo");
         merge(ns, builder);
@@ -4030,7 +4107,7 @@ public class DocumentNodeStoreTest {
         Revision.setClock(clock);
         ClusterNodeInfo.setClock(clock);
         DocumentNodeStore ns = builderProvider.newBuilder().setAsyncDelay(0)
-                .setUpdateLimit(10).clock(clock).build();
+                                              .setUpdateLimit(10).clock(clock).build();
         NodeBuilder builder = ns.getRoot().builder();
         builder.child("foo");
         merge(ns, builder);
@@ -4059,9 +4136,9 @@ public class DocumentNodeStoreTest {
 
         DocumentStore store = new MemoryDocumentStore();
         DocumentNodeStore ns = builderProvider.newBuilder()
-                .setLeaseCheckMode(LeaseCheckMode.LENIENT)
-                .setClusterId(1).clock(clock)
-                .setDocumentStore(store).build();
+                                              .setLeaseCheckMode(LeaseCheckMode.LENIENT)
+                                              .setClusterId(1).clock(clock)
+                                              .setDocumentStore(store).build();
         // wait two minutes
         clock.waitUntil(clock.getTime() + TimeUnit.MINUTES.toMillis(2));
         doSomeChange(ns);
@@ -4076,8 +4153,8 @@ public class DocumentNodeStoreTest {
 
         try {
             builderProvider.newBuilder()
-                    .setClusterId(1).clock(clock)
-                    .setDocumentStore(store).build();
+                           .setClusterId(1).clock(clock)
+                           .setDocumentStore(store).build();
             fail("must fail with DocumentStoreException");
         } catch (DocumentStoreException e) {
             assertThat(e.getMessage(), containsString("newer than current time"));
@@ -4094,7 +4171,7 @@ public class DocumentNodeStoreTest {
         DocumentStore store = new MemoryDocumentStore();
         try {
             builderProvider.newBuilder().setDocumentStore(store)
-                    .setReadOnlyMode().build();
+                           .setReadOnlyMode().build();
             fail("must fail with DocumentStoreException");
         } catch (Exception e) {
             // must not hit last line of defence (ReadOnlyDocumentStoreWrapper)
@@ -4108,7 +4185,7 @@ public class DocumentNodeStoreTest {
         DocumentStore store = new DocumentStoreWrapper(new MemoryDocumentStore()) {
             @Override
             public <T extends Document> List<T> createOrUpdate(Collection<T> collection,
-                                                               List<UpdateOp> updateOps) {
+                List<UpdateOp> updateOps) {
                 maxBatchSize.set(Math.max(maxBatchSize.get(), updateOps.size()));
                 return super.createOrUpdate(collection, updateOps);
             }
@@ -4116,10 +4193,10 @@ public class DocumentNodeStoreTest {
         // set batch size to half the update limit
         int batchSize = DocumentNodeStoreBuilder.UPDATE_LIMIT / 2;
         System.setProperty("oak.documentMK.createOrUpdateBatchSize",
-                String.valueOf(batchSize));
+            String.valueOf(batchSize));
         try {
             DocumentNodeStore ns = builderProvider.newBuilder()
-                    .setAsyncDelay(0).setDocumentStore(store).build();
+                                                  .setAsyncDelay(0).setDocumentStore(store).build();
             NodeBuilder builder = ns.getRoot().builder();
             for (int i = 0; i < DocumentNodeStoreBuilder.UPDATE_LIMIT; i++) {
                 builder.child("c-" + i);
@@ -4138,7 +4215,7 @@ public class DocumentNodeStoreTest {
         DocumentStore store = new DocumentStoreWrapper(new MemoryDocumentStore()) {
             @Override
             public <T extends Document> List<T> createOrUpdate(Collection<T> collection,
-                                                               List<UpdateOp> updateOps) {
+                List<UpdateOp> updateOps) {
                 maxBatchSize.set(Math.max(maxBatchSize.get(), updateOps.size()));
                 return super.createOrUpdate(collection, updateOps);
             }
@@ -4146,10 +4223,10 @@ public class DocumentNodeStoreTest {
         // set batch size to half the update limit
         int batchSize = DocumentNodeStoreBuilder.UPDATE_LIMIT / 2;
         System.setProperty("oak.documentMK.createOrUpdateBatchSize",
-                String.valueOf(batchSize));
+            String.valueOf(batchSize));
         try {
             DocumentNodeStore ns = builderProvider.newBuilder()
-                    .setAsyncDelay(0).setDocumentStore(store).build();
+                                                  .setAsyncDelay(0).setDocumentStore(store).build();
             DocumentNodeStoreBranch branch = ns.createBranch(ns.getRoot());
             NodeBuilder builder = branch.getBase().builder();
             for (int i = 0; i < DocumentNodeStoreBuilder.UPDATE_LIMIT * 2; i++) {
@@ -4160,7 +4237,8 @@ public class DocumentNodeStoreTest {
 
             maxBatchSize.set(0);
             ns.reset(asDocumentNodeState(branch.getHead()).getRootRevision(),
-                    asDocumentNodeState(branch.getBase()).getRootRevision().asBranchRevision(ns.getClusterId()));
+                asDocumentNodeState(branch.getBase()).getRootRevision()
+                                                     .asBranchRevision(ns.getClusterId()));
             assertThat(maxBatchSize.get(), greaterThan(0));
             assertThat(maxBatchSize.get(), lessThanOrEqualTo(batchSize));
         } finally {
@@ -4180,7 +4258,8 @@ public class DocumentNodeStoreTest {
     public void createCheckpointWithPropertiesAfterDispose() {
         DocumentNodeStore store = new DocumentMK.Builder().getNodeStore();
         store.dispose();
-        Assert.assertThrows(IllegalStateException.class, () -> store.checkpoint(60000, Collections.emptyMap()));
+        Assert.assertThrows(IllegalStateException.class,
+            () -> store.checkpoint(60000, Collections.emptyMap()));
     }
 
     @Test
@@ -4220,9 +4299,9 @@ public class DocumentNodeStoreTest {
     public void manyNodesBelowRoot() throws Exception {
         CountingDocumentStore store = new CountingDocumentStore(new MemoryDocumentStore());
         DocumentNodeStore ns = builderProvider.newBuilder()
-                .setBundlingDisabled(true)
-                .setDocumentStore(store).setAsyncDelay(0)
-                .getNodeStore();
+                                              .setBundlingDisabled(true)
+                                              .setDocumentStore(store).setAsyncDelay(0)
+                                              .getNodeStore();
         NodeBuilder builder = ns.getRoot().builder();
         for (int i = 0; i < 250; i++) {
             builder.child("node-" + i);
@@ -4232,9 +4311,9 @@ public class DocumentNodeStoreTest {
         store.resetCounters();
 
         ns = builderProvider.newBuilder()
-                .setBundlingDisabled(true)
-                .setDocumentStore(store).setAsyncDelay(0).setUpdateLimit(5)
-                .getNodeStore();
+                            .setBundlingDisabled(true)
+                            .setDocumentStore(store).setAsyncDelay(0).setUpdateLimit(5)
+                            .getNodeStore();
 
         builder = ns.getRoot().builder();
         for (int i = 0; i < 10; i++) {
@@ -4264,8 +4343,9 @@ public class DocumentNodeStoreTest {
     public void expandCheckpointWithRevision() throws Exception {
         DocumentStore store = new MemoryDocumentStore();
         DocumentNodeStore ns1 = builderProvider.newBuilder()
-                .setDocumentStore(store).setAsyncDelay(0).setClusterId(1)
-                .getNodeStore();
+                                               .setDocumentStore(store).setAsyncDelay(0)
+                                               .setClusterId(1)
+                                               .getNodeStore();
         NodeBuilder builder = ns1.getRoot().builder();
         builder.child("foo");
         merge(ns1, builder);
@@ -4273,8 +4353,9 @@ public class DocumentNodeStoreTest {
         RevisionVector head = ns1.getHeadRevision();
 
         DocumentNodeStore ns2 = builderProvider.newBuilder()
-                .setDocumentStore(store).setAsyncDelay(0).setClusterId(2)
-                .getNodeStore();
+                                               .setDocumentStore(store).setAsyncDelay(0)
+                                               .setClusterId(2)
+                                               .getNodeStore();
         builder = ns2.getRoot().builder();
         builder.child("bar");
         merge(ns2, builder);
@@ -4290,13 +4371,13 @@ public class DocumentNodeStoreTest {
         assertTrue(root.hasChildNode("foo"));
         assertFalse(root.hasChildNode("bar"));
     }
-    
+
     private void getChildNodeCountTest(int numChildren,
-                                       Iterable<Long> maxValues,
-                                       Iterable<Long> expectedValues)
-            throws Exception {
+        Iterable<Long> maxValues,
+        Iterable<Long> expectedValues)
+        throws Exception {
         DocumentNodeStore ns = builderProvider.newBuilder()
-                .setAsyncDelay(0).getNodeStore();
+                                              .setAsyncDelay(0).getNodeStore();
         NodeBuilder builder = ns.getRoot().builder();
         for (int i = 0; i < numChildren; i++) {
             builder.child("test").child("node-" + i);
@@ -4312,6 +4393,7 @@ public class DocumentNodeStoreTest {
     }
 
     private static class WriteCountingStore extends MemoryDocumentStore {
+
         private final ThreadLocal<Boolean> createMulti = new ThreadLocal<>();
         int count;
 
@@ -4325,16 +4407,21 @@ public class DocumentNodeStoreTest {
         @Override
         public <T extends Document> T createOrUpdate(Collection<T> collection, UpdateOp update) {
             if (createMulti.get() == null) {
-                if (collection == Collection.NODES) System.out.println("createOrUpdate " + update);
+                if (collection == Collection.NODES) {
+                    System.out.println("createOrUpdate " + update);
+                }
                 incrementCounter(collection);
             }
             return super.createOrUpdate(collection, update);
         }
 
         @Override
-        public <T extends Document> List<T> createOrUpdate(Collection<T> collection, List<UpdateOp> updateOps) {
+        public <T extends Document> List<T> createOrUpdate(Collection<T> collection,
+            List<UpdateOp> updateOps) {
             incrementCounter(collection);
-            if (collection == Collection.NODES) System.out.println( "createOrUpdate (multi) " + updateOps);
+            if (collection == Collection.NODES) {
+                System.out.println("createOrUpdate (multi) " + updateOps);
+            }
             try {
                 createMulti.set(true);
                 return super.createOrUpdate(collection, updateOps);
@@ -4345,12 +4432,14 @@ public class DocumentNodeStoreTest {
 
         @Override
         public <T extends Document> T findAndUpdate(Collection<T> collection, UpdateOp update) {
-            if (collection == Collection.NODES) System.out.println( "findAndUpdate " + update);
+            if (collection == Collection.NODES) {
+                System.out.println("findAndUpdate " + update);
+            }
             incrementCounter(collection);
             return super.findAndUpdate(collection, update);
         }
 
-        public void reset(){
+        public void reset() {
             count = 0;
         }
 
@@ -4378,10 +4467,10 @@ public class DocumentNodeStoreTest {
         merge(ns, b);
     }
 
-    private NodeBuilder deepTree(NodeBuilder parent, int depth){
+    private NodeBuilder deepTree(NodeBuilder parent, int depth) {
         NodeBuilder nb = parent;
-        for (int i = depth ; i >= 0; i--){
-            nb = nb.child("c"+i);
+        for (int i = depth; i >= 0; i--) {
+            nb = nb.child("c" + i);
         }
         return nb;
     }
@@ -4389,13 +4478,13 @@ public class DocumentNodeStoreTest {
     private static void assertNoPreviousDocs(Set<String> ids) {
         for (String id : ids) {
             assertFalse("must not read previous document: " +
-                            id + " (all: " + ids + ")",
-                    Utils.getPathFromId(id).startsWith("p"));
+                    id + " (all: " + ids + ")",
+                Utils.getPathFromId(id).startsWith("p"));
         }
     }
 
     private static NodeState merge(NodeStore store, NodeBuilder root)
-            throws CommitFailedException {
+        throws CommitFailedException {
         return store.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 
@@ -4406,10 +4495,10 @@ public class DocumentNodeStoreTest {
                 @Nullable
                 @Override
                 public Editor getRootEditor(NodeState before,
-                                            NodeState after,
-                                            NodeBuilder builder,
-                                            CommitInfo info)
-                        throws CommitFailedException {
+                    NodeState after,
+                    NodeBuilder builder,
+                    CommitInfo info)
+                    throws CommitFailedException {
                     return new TestEditor(builder, prefix);
                 }
             });
@@ -4420,9 +4509,9 @@ public class DocumentNodeStoreTest {
         @NotNull
         @Override
         public NodeState processCommit(NodeState before,
-                                       NodeState after,
-                                       CommitInfo info)
-                throws CommitFailedException {
+            NodeState after,
+            CommitInfo info)
+            throws CommitFailedException {
             throw new CommitFailedException(CONSTRAINT, 0, "fail");
         }
     };
@@ -4439,7 +4528,7 @@ public class DocumentNodeStoreTest {
 
         @Override
         public NodeState processCommit(NodeState before, NodeState after, CommitInfo info)
-                throws CommitFailedException {
+            throws CommitFailedException {
             if (failedAlready.getAndSet(true)) {
                 return after;
             } else {
@@ -4461,13 +4550,13 @@ public class DocumentNodeStoreTest {
 
         @Override
         public Editor childNodeAdded(String name, NodeState after)
-                throws CommitFailedException {
+            throws CommitFailedException {
             return new TestEditor(builder.child(name), prefix);
         }
 
         @Override
         public void propertyAdded(PropertyState after)
-                throws CommitFailedException {
+            throws CommitFailedException {
             if (after.getName().startsWith(prefix)) {
                 builder.setProperty(after.getName(), "test");
             }
@@ -4481,7 +4570,7 @@ public class DocumentNodeStoreTest {
     private boolean isDocDeleted(NodeDocument doc, RevisionContext context) {
         boolean latestDeleted = false;
         SortedMap<Revision, String> localDeleted =
-                Maps.newTreeMap(StableRevisionComparator.REVERSE);
+            Maps.newTreeMap(StableRevisionComparator.REVERSE);
         localDeleted.putAll(doc.getLocalDeleted());
 
         for (Map.Entry<Revision, String> entry : localDeleted.entrySet()) {

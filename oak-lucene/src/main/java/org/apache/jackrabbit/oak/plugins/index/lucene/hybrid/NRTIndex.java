@@ -19,6 +19,10 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryUtils.dirSize;
+
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
@@ -27,10 +31,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
-
+import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.LuceneIndexReader;
@@ -54,15 +57,12 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryUtils.dirSize;
-
 
 public class NRTIndex implements Closeable {
 
     private static final boolean REGULAR_CLOSE = Boolean.getBoolean("oak.lucene.nrt.regularClose");
-    private static final boolean RETAIN_DURING_CLOSE = Boolean.getBoolean("oak.lucene.nrt.retainDuringClose");
+    private static final boolean RETAIN_DURING_CLOSE = Boolean.getBoolean(
+        "oak.lucene.nrt.retainDuringClose");
 
     private static final AtomicInteger COUNTER = new AtomicInteger();
     private static final Logger log = LoggerFactory.getLogger(NRTIndex.class);
@@ -100,9 +100,9 @@ public class NRTIndex implements Closeable {
 
 
     public NRTIndex(LuceneIndexDefinition definition, IndexCopier indexCopier,
-                    IndexUpdateListener refreshPolicy, @Nullable NRTIndex previous,
-                    StatisticsProvider statisticsProvider, NRTDirectoryFactory directoryFactory,
-                    boolean assertAllReadersClosed) {
+        IndexUpdateListener refreshPolicy, @Nullable NRTIndex previous,
+        StatisticsProvider statisticsProvider, NRTDirectoryFactory directoryFactory,
+        boolean assertAllReadersClosed) {
         this.definition = definition;
         this.indexCopier = indexCopier;
         this.refreshPolicy = refreshPolicy;
@@ -114,14 +114,16 @@ public class NRTIndex implements Closeable {
         statsProviderUtil = new StatsProviderUtil(statisticsProvider);
         labels = Collections.singletonMap("index", definition.getIndexPath());
 
-        this.refreshTimer = statsProviderUtil.getTimerStats().apply(metricName("REFRESH_TIME"), labels);
+        this.refreshTimer = statsProviderUtil.getTimerStats()
+                                             .apply(metricName("REFRESH_TIME"), labels);
         this.sizeHisto = statsProviderUtil.getHistoStats().apply(metricName("SIZE"), labels);
-        this.openTime = statsProviderUtil.getTimerStats().apply(metricName("OPEN_TIME"), labels).time();
+        this.openTime = statsProviderUtil.getTimerStats().apply(metricName("OPEN_TIME"), labels)
+                                         .time();
     }
 
     /**
-     * Note that this method is called from a different NRTIndex instance getReaders
-     * call. So "dirReader" instance changed here is different
+     * Note that this method is called from a different NRTIndex instance getReaders call. So
+     * "dirReader" instance changed here is different
      */
     @Nullable
     private LuceneIndexReader getPrimaryReader() {
@@ -145,9 +147,8 @@ public class NRTIndex implements Closeable {
     }
 
     /**
-     * Returns the list of LuceneIndexReader. If the writer has not received
-     * any updates between 2 calls to this method then same list would be
-     * returned.
+     * Returns the list of LuceneIndexReader. If the writer has not received any updates between 2
+     * calls to this method then same list would be returned.
      */
     public synchronized List<LuceneIndexReader> getReaders() {
         checkState(!closed);
@@ -155,7 +156,7 @@ public class NRTIndex implements Closeable {
         DirectoryReader latestReader = createReader(dirReader);
         //reader not changed i.e. no change in index
         //reuse old readers
-        if (latestReader == dirReader && readers != null){
+        if (latestReader == dirReader && readers != null) {
             return readers;
         }
 
@@ -182,11 +183,11 @@ public class NRTIndex implements Closeable {
     }
 
     /**
-     * Disconnects the previous reader used by this NRTIndex. Note that this would be
-     * different from 'dirReaderUsedForPrevious' which is meant to be used by newer NRTIndex
-     * which refers to this NRTIndex as previous
+     * Disconnects the previous reader used by this NRTIndex. Note that this would be different from
+     * 'dirReaderUsedForPrevious' which is meant to be used by newer NRTIndex which refers to this
+     * NRTIndex as previous
      */
-    public void disconnectPrevious(){
+    public void disconnectPrevious() {
         decrementReaderUseCount(readers);
         readers = Collections.emptyList();
 
@@ -264,14 +265,15 @@ public class NRTIndex implements Closeable {
         return indexDir;
     }
 
-    private String getName(){
+    private String getName() {
         return indexDir != null ? indexDir.getName() : "UNKNOWN";
     }
 
     private void assertAllReadersAreClosed() {
-        for (IndexReader r : openedReaders){
-            if (r.getRefCount() != 0){
-                String msg = String.format("Unclosed reader found with refCount %d for index %s", r.getRefCount(), toString());
+        for (IndexReader r : openedReaders) {
+            if (r.getRefCount() != 0) {
+                String msg = String.format("Unclosed reader found with refCount %d for index %s",
+                    r.getRefCount(), toString());
                 throw new IllegalStateException(msg);
             }
         }
@@ -292,13 +294,13 @@ public class NRTIndex implements Closeable {
             }
         } catch (IOException e) {
             log.warn("[{}] Error occurred while releasing reader instance {}",
-                    definition.getIndexPath(), toString(), e);
+                definition.getIndexPath(), toString(), e);
         }
     }
 
     /**
-     * If index was updated then a new reader would be returned otherwise
-     * existing reader would be returned
+     * If index was updated then a new reader would be returned otherwise existing reader would be
+     * returned
      */
     @Nullable
     private synchronized DirectoryReader createReader(DirectoryReader dirReader) {
@@ -316,7 +318,8 @@ public class NRTIndex implements Closeable {
             if (dirReader == null || dirReader.getRefCount() == 0) {
                 result = DirectoryReader.open(indexWriter, false);
             } else {
-                DirectoryReader newReader = DirectoryReader.openIfChanged(dirReader, indexWriter, false);
+                DirectoryReader newReader = DirectoryReader.openIfChanged(dirReader, indexWriter,
+                    false);
                 if (newReader != null) {
                     result = newReader;
                 }
@@ -349,7 +352,7 @@ public class NRTIndex implements Closeable {
         return new NRTIndexWriter(indexWriter);
     }
 
-    IndexReader getPrimaryReaderForTest(){
+    IndexReader getPrimaryReaderForTest() {
         return getReaders().get(0).getReader();
     }
 
@@ -359,6 +362,7 @@ public class NRTIndex implements Closeable {
     }
 
     private static class NRTReader implements LuceneIndexReader {
+
         private final IndexReader indexReader;
         private final Directory directory;
 
@@ -394,16 +398,19 @@ public class NRTIndex implements Closeable {
     }
 
     private class NRTIndexWriter implements LuceneIndexWriter {
+
         private final IndexWriter indexWriter;
         private final MeterStats updateMeter;
 
         public NRTIndexWriter(IndexWriter indexWriter) {
             this.indexWriter = indexWriter;
-            this.updateMeter = statsProviderUtil.getMeterStats().apply(metricName("UPDATES"), labels);
+            this.updateMeter = statsProviderUtil.getMeterStats()
+                                                .apply(metricName("UPDATES"), labels);
         }
 
         @Override
-        public void updateDocument(String path, Iterable<? extends IndexableField> doc) throws IOException {
+        public void updateDocument(String path, Iterable<? extends IndexableField> doc)
+            throws IOException {
             //For NRT case documents are never updated
             //instead they are just added. This would cause duplicates
             //That should be taken care at query side via unique cursor
@@ -423,7 +430,7 @@ public class NRTIndex implements Closeable {
         }
     }
 
-    private String metricName(String suffix){
+    private String metricName(String suffix) {
         return String.format("NRT_%s", suffix);
     }
 }

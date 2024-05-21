@@ -1,7 +1,7 @@
 Oak Runnable Jar
 ================
 
-This jar contains everything you need for a simple Oak installation. 
+This jar contains everything you need for a simple Oak installation.
 
 The following runmodes are currently available:
 
@@ -33,7 +33,6 @@ The following runmodes are currently available:
     * tika            : Performs text extraction
     * unlockUpgrade   : Unlock a DocumentMK upgrade to a newer version
     * upgrade         : Migrate existing Jackrabbit 2.x repository to Oak
-    
 
 Some of the features related to Jackrabbit 2.x are provided by oak-run-jr2 jar. See
 the [Oak Runnable JR2](#jr2) section for more details.
@@ -43,25 +42,28 @@ Logging
 
 Oak run uses [Logback](https://logback.qos.ch/) for logging. To customize the logging
 you can specify a custom logback config file via `logback.configurationFile` system property
- 
+
     java -Dlogback.configurationFile=./logback.xml -jar oak-run-*.jar console /path/to/oak/repository
-    
-See [here](https://github.com/apache/jackrabbit-oak/blob/trunk/oak-run/src/main/resources/logback.xml) for the default 
+
+See [here](https://github.com/apache/jackrabbit-oak/blob/trunk/oak-run/src/main/resources/logback.xml)
+for the default
 logback config file used
 
 Command Line Format
 -------------------
 
-Oak run uses [joptsimple](http://jopt-simple.github.io/jopt-simple/) library for parsing the command line 
-options. 
+Oak run uses [joptsimple](http://jopt-simple.github.io/jopt-simple/) library for parsing the command
+line
+options.
 
 * A option's argument can occur:
     * `--foo=bar` - right up against the option separated by an equals sign (=)
     * `--foo bar` - in the position on the command line after the option
 * `--foo=bar,baz` - Sets multiple values for option `foo` separated by `,`
-* `--foo` - Enables `foo` option where foo is a boolean option. 
+* `--foo` - Enables `foo` option where foo is a boolean option.
 * Most commands provide help via `-h` option
-* An argument consisting only of two hyphens (--) signals that the remaining arguments are to be treated as non-options.
+* An argument consisting only of two hyphens (--) signals that the remaining arguments are to be
+  treated as non-options.
 
 Refer to [examples](http://jopt-simple.github.io/jopt-simple/examples.html) for more details
 
@@ -72,22 +74,26 @@ See the subsections below for more details on how to use these modes.
 Backup
 ------
 
-See the [official documentation](http://jackrabbit.apache.org/oak/docs/nodestore/segment/overview.html#backup).
+See
+the [official documentation](http://jackrabbit.apache.org/oak/docs/nodestore/segment/overview.html#backup).
 
 Restore
 -------
 
-See the [official documentation](http://jackrabbit.apache.org/oak/docs/nodestore/segment/overview.html#restore).
+See
+the [official documentation](http://jackrabbit.apache.org/oak/docs/nodestore/segment/overview.html#restore).
 
 Debug
 -----
 
-See the [official documentation](http://jackrabbit.apache.org/oak/docs/nodestore/segment/overview.html#debug).
+See
+the [official documentation](http://jackrabbit.apache.org/oak/docs/nodestore/segment/overview.html#debug).
 
 IOTrace
 -----
 
-See the [official documentation](http://jackrabbit.apache.org/oak/docs/nodestore/segment/overview.html#iotrace).
+See
+the [official documentation](http://jackrabbit.apache.org/oak/docs/nodestore/segment/overview.html#iotrace).
 
 
 Console
@@ -99,34 +105,37 @@ supported commands. The console currently supports TarMK and MongoMK. To start
 the console for a TarMK repository, use:
 
     $ java -jar oak-run-*.jar console /path/to/oak/repository
-    
+
 To start the console for a DocumentMK/Mongo repository, use:
 
     $ java -jar oak-run-*.jar console mongodb://host
 
-To start the console for a DocumentMK/RDB repository, see the [documention for oak-run on RDB](https://jackrabbit.apache.org/oak/docs/nodestore/document/rdb-document-store.html#oak-run).
-    
+To start the console for a DocumentMK/RDB repository, see
+the [documention for oak-run on RDB](https://jackrabbit.apache.org/oak/docs/nodestore/document/rdb-document-store.html#oak-run).
+
 To start the console connecting to a repository in read-write mode, use either of:
 
     $ java -jar oak-run-*.jar console --read-write /path/to/oak/repository
     $ java -jar oak-run-*.jar console --read-write mongodb://host
     $ java -jar oak-run-*.jar console --read-write --rdbjdbcuser username --rdbjdbcpasswd password console jdbc:...
 
-To specify FDS path while connecting to a repository, use `--fds-path` option (valid for segment and document repos):
+To specify FDS path while connecting to a repository, use `--fds-path` option (valid for segment and
+document repos):
 
     $ java -jar oak-run-*.jar console --fds-path /path/to-data/store /path/to/oak/repository
 
-Console is based on [Groovy Shell](http://groovy.codehaus.org/Groovy+Shell) and hence one 
-can use all Groovy constructs. It also exposes the `org.apache.jackrabbit.oak.console.ConsoleSession`
-instance as through `session` variable. For example when using SegmentNodeStore you can 
+Console is based on [Groovy Shell](http://groovy.codehaus.org/Groovy+Shell) and hence one
+can use all Groovy constructs. It also exposes
+the `org.apache.jackrabbit.oak.console.ConsoleSession`
+instance as through `session` variable. For example when using SegmentNodeStore you can
 dump the current segment info to a file
 
     > new File("segment.txt") << session.workingNode.segment.toString()
-    
-In above case the `workingNode` captures the current `NodeState` which in case of 
+
+In above case the `workingNode` captures the current `NodeState` which in case of
 Segment/TarMK is `SegmentNodeState`
 
-You can also load external script at launch time via passing an extra argument as shown 
+You can also load external script at launch time via passing an extra argument as shown
 below
 
     $ java -jar oak-run-*.jar console mongodb://host ":load /path/to/script.groovy"
@@ -162,7 +171,7 @@ The following options are currently supported:
 
 The command uses a pool of threads to check consistency of the repository. The
 size of the pool is determined by the number of available cores, unless specified
-explicitly with the `--numThreads` option. 
+explicitly with the `--numThreads` option.
 
 Explore
 -------
@@ -172,7 +181,8 @@ browsing of an existing oak repository.
 
     $ java -jar oak-run-*.jar explore /path/to/oak/repository [--skip-size-check]
 
-Microsoft Azure node stores are also supported using the following command.  The secret key must be supplied as an environment variable `AZURE_SECRET_KEY`.  
+Microsoft Azure node stores are also supported using the following command. The secret key must be
+supplied as an environment variable `AZURE_SECRET_KEY`.
 
     $ java -jar oak-run-*.jar explore az:https://myaccount.blob.core.windows.net/container/repository [--skip-size-check]
 
@@ -219,17 +229,20 @@ there are existing use cases of nt:frozenNode being a mix:referenceable.
 History
 -------
 
-See the [official documentation](http://jackrabbit.apache.org/oak/docs/nodestore/segment/overview.html#history).
+See
+the [official documentation](http://jackrabbit.apache.org/oak/docs/nodestore/segment/overview.html#history).
 
 Check
 -----
 
-See the [official documentation](http://jackrabbit.apache.org/oak/docs/nodestore/segment/overview.html#check).
+See
+the [official documentation](http://jackrabbit.apache.org/oak/docs/nodestore/segment/overview.html#check).
 
 Compact
 -------
 
-See the [official documentation](http://jackrabbit.apache.org/oak/docs/nodestore/segment/overview.html#compact).
+See
+the [official documentation](http://jackrabbit.apache.org/oak/docs/nodestore/segment/overview.html#compact).
 
 Checkpoints
 -----------
@@ -239,20 +252,22 @@ To start this mode, use:
 
     $ java -jar oak-run-*.jar checkpoints { /path/to/oak/repository | mongodb://host:port/database } [list|rm-all|rm-unreferenced|rm <checkpoint>]
 
-The 'list' option (treated as a default when nothing is specified) will list all existing checkpoints.
+The 'list' option (treated as a default when nothing is specified) will list all existing
+checkpoints.
 The 'rm-all' option will wipe clean the 'checkpoints' node.
-The 'rm-unreferenced' option will remove all checkpoints except the one referenced from the async indexer (/:async@async).
+The 'rm-unreferenced' option will remove all checkpoints except the one referenced from the async
+indexer (/:async@async).
 The 'rm <checkpoint>' option will remove a specific checkpoint from the repository.
 The 'info <checkpoint>' option will return metadata information for the given checkpoint.
-The 'set <checkpoint> <name> \[<value>\]' option will set the metadata property. If the value is omitted, the property will be removed. 
+The 'set <checkpoint> <name> \[<value>\]' option will set the metadata property. If the value is
+omitted, the property will be removed.
 
 <a name="tika"></a>
 Tika
 ----
 
-The 'tika' mode enables performing text extraction, report generation and 
+The 'tika' mode enables performing text extraction, report generation and
 csv generation required for text extraction
-
 
     Apache Jackrabbit Oak 1.4-SNAPSHOT
     Non-option arguments:                                                         
@@ -280,6 +295,7 @@ csv generation required for text extraction
     --tika-config <File>   Tika config file path   
 
 <a name="tika-csv"></a>
+
 ### CSV File Format
 
 Text extraction tool reads a csv file which contains details regarding those
@@ -294,27 +310,28 @@ below
 
 Where the columns are in following order
 
-1. BlobId - Value of [Jackrabbit ContentIdentity](http://jackrabbit.apache.org/api/2.0/org/apache/jackrabbit/api/JackrabbitValue.html)
+1. BlobId - Value
+   of [Jackrabbit ContentIdentity](http://jackrabbit.apache.org/api/2.0/org/apache/jackrabbit/api/JackrabbitValue.html)
 2. Length
 3. jcr:mimeType
 4. jcr:encoding
-5. path of parent node    
+5. path of parent node
 
 The csv file can be generated programmatically. For Oak based repositories
-it can be generated via `generate` command. 
+it can be generated via `generate` command.
 
 ### Generate
 
-CSV file required for `extract` and `report` can  be generated via `generate` 
+CSV file required for `extract` and `report` can be generated via `generate`
 mode
 
     java -jar oak-run.jar tika \  
     --fds-path /path/to/datastore \
     --nodestore /path/to/segmentstore --data-file dump.csv generate
 
-Above command would scan the NodeStore and create the csv file. This file can 
+Above command would scan the NodeStore and create the csv file. This file can
 then be passed to `extract` command
-    
+
 ### Report
 
 Tool can generate a summary report from a [csv](#tika-csv) file
@@ -352,9 +369,9 @@ Extraction can be performed via following command
     --data-file binary-stats.csv \
     --store-path ./store 
     --fds-path /path/to/datastore  extract
-    
-You would need to provide the tika-app jar which contains all the parsers. 
-It can be downloaded from [here](https://tika.apache.org/download.html). 
+
+You would need to provide the tika-app jar which contains all the parsers.
+It can be downloaded from [here](https://tika.apache.org/download.html).
 Extraction would then be performed in a multi threaded mode. Extracted text
 would be stored in the `store-path`
 
@@ -398,7 +415,7 @@ Oak server mode
 ---------------
 
 The Oak server mode starts a NodeStore or full Oak instance with the
-standard JCR plugins and makes it available over a simple HTTP mapping 
+standard JCR plugins and makes it available over a simple HTTP mapping
 defined in the `oak-http` component. To start this mode, use:
 
     $ java -jar oak-run-*.jar server [uri] [fixture] [options]
@@ -411,16 +428,16 @@ repository backend.
 The optional fixture argument allows to specify the repository implementation
 to be used. The following fixtures are currently supported:
 
-| Fixture              | Description                                           |
-|----------------------|-------------------------------------------------------|
-| Jackrabbit(*)        | Jackrabbit with the default embedded Derby  bundle PM |
-| Oak-Memory           | Oak with default in-memory storage                    |
-| Oak-MemoryNS         | Oak with default in-memory NodeStore                  |
-| Oak-Mongo            | Oak with the default Mongo backend                    |
-| Oak-Mongo-DS         | Oak with the default Mongo backend and DataStore      |
-| Oak-MongoNS          | Oak with the Mongo NodeStore                          |
-| Oak-Segment-Tar      | Oak with the Tar backend (aka Segment NodeStore)      |
-| Oak-Segment-Tar-DS   | Oak with the Tar backend and DataStore                |
+| Fixture            | Description                                           |
+|--------------------|-------------------------------------------------------|
+| Jackrabbit(*)      | Jackrabbit with the default embedded Derby  bundle PM |
+| Oak-Memory         | Oak with default in-memory storage                    |
+| Oak-MemoryNS       | Oak with default in-memory NodeStore                  |
+| Oak-Mongo          | Oak with the default Mongo backend                    |
+| Oak-Mongo-DS       | Oak with the default Mongo backend and DataStore      |
+| Oak-MongoNS        | Oak with the Mongo NodeStore                          |
+| Oak-Segment-Tar    | Oak with the Tar backend (aka Segment NodeStore)      |
+| Oak-Segment-Tar-DS | Oak with the Tar backend and DataStore                |
 
 Jackrabbit fixture requires [Oak Runnable JR2 jar](#jr2)
 
@@ -485,7 +502,7 @@ The recovery mode can be used to check the consistency of `_lastRev` fields
 of a DocumentMK repository. It can be invoked like this:
 
     $ java -jar oak-run-*.jar recovery [options] mongodb://host:port/database [dryRun] --clusterId id
-    
+
 (or, for RDBMK instances, use "jdbc:...").
 
 The following recovery options are currently supported:
@@ -544,8 +561,8 @@ is provided. It includes [some useful function][1] to navigate the data in Mongo
     > oak.getChildStats('/')
     { "count" : 593191, "size" : 302005011, "simple" : "288.01 MB" }
     >
-    
-For reporting any issue related to Oak the script provides a function to collect important stats and 
+
+For reporting any issue related to Oak the script provides a function to collect important stats and
 can be dumped to a file
 
     $ mongo localhost/oak --eval "load('/path/to/oak-mongo.js');printjson(oak.systemStats());" --quiet > oak-stats.json
@@ -555,13 +572,15 @@ can be dumped to a file
 Oak TarMK Revision Diff
 =======================
 
-See the [official documentation](http://jackrabbit.apache.org/oak/docs/nodestore/segment/overview.html#diff).
+See
+the [official documentation](http://jackrabbit.apache.org/oak/docs/nodestore/segment/overview.html#diff).
 
 Oak DataStore Check
 -------------------
 
 Consistency checker for the DataStore.
-Also can be used to list all the blob references in the node store and all the blob ids available in the data store. 
+Also can be used to list all the blob references in the node store and all the blob ids available in
+the data store.
 Use the following command:
 
     $ java -jar oak-run-*.jar datastorecheck [--id] [--ref] [--consistency] \
@@ -594,6 +613,7 @@ The following options are available:
     --verboseRootPath- Paths under which backend friendly blobids are required (Optional). If not specified, then --verbose uses "/" as the default path. For example,
                        to list all blobids under /oak:index and /content/oak:index, use --verboseRootPath /oak:index,/content/oak:index (If providing more than one arguments to this option, 
                        use comma as a delimiter).
+
 Note:
 
 The command to be executed for S3DataStore
@@ -619,29 +639,28 @@ The config files should be formatted according to the OSGi configuration admin s
     cat > org.apache.jackrabbit.oak.plugins.FileDataStore.config << EOF 
     path="/data/datastore"
     EOF        
-    
-    
+
 Oak DataStore
 -------------------
 
 Maintenance commands for the DataStore:
+
 * Data store garbage collection
 * Data store consistency check
 
-
-    $ java -jar oak-run-*.jar datastore [--check-consistency [true]|--collect-garbage [true]] \
-            [--s3ds <s3ds_config>|--fds <fds_config>|--azureds <s3ds_config>|fake-ds-path <ds_path>] \
-            [--out-dir <output_path>] \
-            [--work-dir <temporary_path>] \
-            [--max-age <seconds>] \
-            [--verbose] \
-            [--verboseRootPath] \
-            [--useDirListing] \
-            [<store_path>|<mongo_uri>]
-            [--metrics] [--export-metrics]
+  $ java -jar oak-run-*.jar datastore [--check-consistency [true]|--collect-garbage [true]] \
+  [--s3ds <s3ds_config>|--fds <fds_config>|--azureds <s3ds_config>|fake-ds-path <ds_path>] \
+  [--out-dir <output_path>] \
+  [--work-dir <temporary_path>] \
+  [--max-age <seconds>] \
+  [--verbose] \
+  [--verboseRootPath] \
+  [--useDirListing] \
+  [<store_path>|<mongo_uri>]
+  [--metrics] [--export-metrics]
 
 The following operations are available:
-    
+
     --collect-garbage          - Execute garbage collection on the data store. If only mark phase to be run specify a true parameter.
     --check-consistency        - List all the missing blobs by doing a consistency check. If only mark phase to be run specify a true parameter, in which case only the references will be retrieved.
     --dump-ref                 - List all the blob references in the node store
@@ -683,10 +702,13 @@ The following options are available:
                                        Boolean (Optional). Defaults to False. Only applicable for --collect-garbage
     --check-consistency-gc    - Performs a consistency check immediately after the GC.        
                                 Boolean (Optional). Defaults to False. Only applicable for --collect-garbage                           
+
 Note:
 
-Note: When using --export-metrics the following additional jars have to be downloaded to support Prometheus Pushgatway
-* [simpleclient_common-0.6.0.jar](http://central.maven.org/maven2/io/prometheus/simpleclient_common/0.6.0/simpleclient_common-0.6.0.jar) 
+Note: When using --export-metrics the following additional jars have to be downloaded to support
+Prometheus Pushgatway
+
+* [simpleclient_common-0.6.0.jar](http://central.maven.org/maven2/io/prometheus/simpleclient_common/0.6.0/simpleclient_common-0.6.0.jar)
 * [simpleclient-0.6.0.jar](http://central.maven.org/maven2/io/prometheus/simpleclient/0.6.0/simpleclient-0.6.0.jar)
 * [simpleclient_pushgateway-0.6.0.jar](http://central.maven.org/maven2/io/prometheus/simpleclient_pushgateway/0.6.0/simpleclient_pushgateway-0.6.0.jar)
 * [simpleclient_dropwizard-0.6.0.jar](http://central.maven.org/maven2/io/prometheus/simpleclient_dropwizard/0.6.0/simpleclient_dropwizard-0.6.0.jar)
@@ -703,7 +725,7 @@ The command to be executed when using this option is:
         [--verbose] \
         [<store_path>|<mongo_uri>]
         [--metrics] [--export-metrics]
-    
+
 Data Store and node store configuration is mandatory.
 
 The config files should be formatted according to the OSGi configuration admin specification
@@ -770,7 +792,8 @@ The cluster id will be removed and will be generated on next server start up.
 Oak DataStore Cache Upgrade
 ---------------------------
 
-Upgrades the JR2 DataStore cache by moving files to the Upload staging and the download cache of the DataStore.
+Upgrades the JR2 DataStore cache by moving files to the Upload staging and the download cache of the
+DataStore.
 
     $ java -classpath oak-run-*.jar datastorecacheupgrade \
         --homeDir <home_directory> \
@@ -781,22 +804,27 @@ Upgrades the JR2 DataStore cache by moving files to the Upload staging and the d
 Unlock DocumentMK upgrade
 -------------------------
 
-See the [official documentation](http://jackrabbit.apache.org/oak/docs/nodestore/documentmk.html#unlockUpgrade).
+See
+the [official documentation](http://jackrabbit.apache.org/oak/docs/nodestore/documentmk.html#unlockUpgrade).
 
 Revisions
 ---------
 
-See the [official documentation](http://jackrabbit.apache.org/oak/docs/nodestore/documentmk.html#revision-gc).
+See
+the [official documentation](http://jackrabbit.apache.org/oak/docs/nodestore/documentmk.html#revision-gc).
 
 Export
 ------
 
-Dumps the repository content under any repository path as json. It can also dump the blobs referred in the dumped content
+Dumps the repository content under any repository path as json. It can also dump the blobs referred
+in the dumped content
 
     java -jar oak-run-*.jar export -p /path/in/repo /path/of/segmentstore -o /path/of/output/dir
-    
-This would create a json file `nodestates.json` in the output dir containing nodes content in json format. Blobs can be 
-included via `-b=true` option. When enabled the blob would be stored under `blobs` directory of output dir
+
+This would create a json file `nodestates.json` in the output dir containing nodes content in json
+format. Blobs can be
+included via `-b=true` option. When enabled the blob would be stored under `blobs` directory of
+output dir
 
 It support various options which can be seen by help `-h`
 
@@ -819,8 +847,9 @@ It support various options which can be seen by help `-h`
     -o, --out <File>                 Output directory where the exported json and blobs are stored (default: .)        
     -p, --path <String>              Repository path to export (default: /)                                            
     --pretty [Boolean]               Pretty print the json output (default: true) 
-    
-The command can connect to any type of Oak repository. Refer to [Oak Run NodeStore Connection][1] for details
+
+The command can connect to any type of Oak repository. Refer to [Oak Run NodeStore Connection][1]
+for details
 
 License
 -------
@@ -830,11 +859,11 @@ License
 Collective work: Copyright 2012 The Apache Software Foundation.
 
 Licensed to the Apache Software Foundation (ASF) under one or more
-contributor license agreements.  See the NOTICE file distributed with
+contributor license agreements. See the NOTICE file distributed with
 this work for additional information regarding copyright ownership.
 The ASF licenses this file to You under the Apache License, Version 2.0
 (the "License"); you may not use this file except in compliance with
-the License.  You may obtain a copy of the License at
+the License. You may obtain a copy of the License at
 
      http://www.apache.org/licenses/LICENSE-2.0
 

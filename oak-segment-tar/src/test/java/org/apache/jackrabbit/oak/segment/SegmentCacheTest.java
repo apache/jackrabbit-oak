@@ -30,18 +30,21 @@ import static org.mockito.Mockito.when;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
-
 import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
 import org.junit.Test;
 
 public class SegmentCacheTest {
+
     private final SegmentCache cache = newSegmentCache(DEFAULT_SEGMENT_CACHE_MB);
 
-    private final SegmentId id1 = new SegmentId(EMPTY_STORE, 0x0000000000000001L, 0xa000000000000001L, cache::recordHit);
+    private final SegmentId id1 = new SegmentId(EMPTY_STORE, 0x0000000000000001L,
+        0xa000000000000001L, cache::recordHit);
     private final Segment segment1 = mock(Segment.class);
-    private final SegmentId id2 = new SegmentId(EMPTY_STORE, 0x0000000000000002L, 0xa000000000000002L, cache::recordHit);
+    private final SegmentId id2 = new SegmentId(EMPTY_STORE, 0x0000000000000002L,
+        0xa000000000000002L, cache::recordHit);
     private final Segment segment2 = mock(Segment.class);
-    private final SegmentId id3 = new SegmentId(EMPTY_STORE, 0x0000000000000003L, 0xa000000000000003L, cache::recordHit);
+    private final SegmentId id3 = new SegmentId(EMPTY_STORE, 0x0000000000000003L,
+        0xa000000000000003L, cache::recordHit);
     private final Segment segment3 = mock(Segment.class);
 
     {
@@ -219,7 +222,8 @@ public class SegmentCacheTest {
         try {
             id1.getSegment();
             fail(id1 + " should not be in the cache");
-        } catch (SegmentNotFoundException expected) {}
+        } catch (SegmentNotFoundException expected) {
+        }
 
         cache.clear();
         assertEquals(0, stats.getElementCount());
@@ -246,14 +250,14 @@ public class SegmentCacheTest {
         } catch (Throwable e) {
             if (!exceptionType.isAssignableFrom(e.getClass())) {
                 throw new AssertionError(
-                        "Unexpected exception: " + e.getClass().getSimpleName() + ". " +
-                                "Expected: " + exceptionType.getSimpleName(), e);
+                    "Unexpected exception: " + e.getClass().getSimpleName() + ". " +
+                        "Expected: " + exceptionType.getSimpleName(), e);
             } else {
                 return;
             }
         }
         throw new AssertionError("Expected exception " +
-                exceptionType.getSimpleName() + " not thrown");
+            exceptionType.getSimpleName() + " not thrown");
     }
 
     private static Segment failToLoad(SegmentId id) {

@@ -16,11 +16,11 @@
    limitations under the License.
   -->
 <config>
-    <!--
-     Defines the ProtectedItemRemoveHandler implementation(s) responsible for removing
-     protected items using the JCR server.
-    -->
-       <protecteditemremovehandler>
-            <class name="org.apache.jackrabbit.server.remoting.davex.AclRemoveHandler" />
-       </protecteditemremovehandler>
+  <!--
+   Defines the ProtectedItemRemoveHandler implementation(s) responsible for removing
+   protected items using the JCR server.
+  -->
+  <protecteditemremovehandler>
+    <class name="org.apache.jackrabbit.server.remoting.davex.AclRemoveHandler"/>
+  </protecteditemremovehandler>
 </config>

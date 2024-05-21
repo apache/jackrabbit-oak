@@ -19,16 +19,17 @@
 
 package org.apache.jackrabbit.oak.plugins.index.search.spi.binary;
 
+import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
+import static org.junit.Assert.assertTrue;
+
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
-import static org.junit.Assert.assertTrue;
-
 public class FulltextBinaryTextExtractorTest {
+
     private final NodeState root = INITIAL_CONTENT;
 
     private final NodeBuilder builder = root.builder();
@@ -37,7 +38,8 @@ public class FulltextBinaryTextExtractorTest {
     @Test
     public void tikaConfigServiceLoader() throws Exception {
         IndexDefinition idxDefn = new IndexDefinition(root, builder.getNodeState(), "/foo");
-        FulltextBinaryTextExtractor extractor = new FulltextBinaryTextExtractor(cache, idxDefn, false);
+        FulltextBinaryTextExtractor extractor = new FulltextBinaryTextExtractor(cache, idxDefn,
+            false);
         assertTrue(extractor.getTikaConfig().getServiceLoader().isDynamic());
     }
 

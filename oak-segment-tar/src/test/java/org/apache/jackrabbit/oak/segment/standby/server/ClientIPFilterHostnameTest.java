@@ -22,14 +22,13 @@ import static org.junit.Assert.assertEquals;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
-
 import org.junit.Test;
 
 public class ClientIPFilterHostnameTest {
 
     @Test
     public void testInvalidHostname() throws Exception {
-        String[] filters = new String[] {"foobar"};
+        String[] filters = new String[]{"foobar"};
 
         AddressResolver dummyAddressResolver = new AddressResolver() {
 
@@ -46,7 +45,7 @@ public class ClientIPFilterHostnameTest {
 
     @Test
     public void testHostnameWithDash() {
-        String[] filters = new String[] {"foo-bar"};
+        String[] filters = new String[]{"foo-bar"};
 
         AddressResolver anythingToLocalhostResolver = new AddressResolver() {
 
@@ -73,7 +72,7 @@ public class ClientIPFilterHostnameTest {
 
     @Test
     public void testHostnameWithMultipleDashes() {
-        String[] filters = new String[] {"foo-bar-baz"};
+        String[] filters = new String[]{"foo-bar-baz"};
 
         AddressResolver anythingToLocalhostResolver = new AddressResolver() {
 

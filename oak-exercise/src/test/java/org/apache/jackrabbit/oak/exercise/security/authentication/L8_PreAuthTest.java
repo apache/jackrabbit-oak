@@ -23,7 +23,6 @@ import javax.jcr.NoSuchWorkspaceException;
 import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.Configuration;
 import javax.security.auth.login.LoginException;
-
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl;
@@ -80,7 +79,9 @@ import org.junit.Test;
  * </pre>
  *
  * @see org.apache.jackrabbit.oak.spi.security.authentication.PreAuthenticatedLogin
- * @see <a href="http://jackrabbit.apache.org/oak/docs/security/authentication/preauthentication.html">Pre-Authentication Documentation</a>
+ * @see <a
+ * href="http://jackrabbit.apache.org/oak/docs/security/authentication/preauthentication.html">Pre-Authentication
+ * Documentation</a>
  */
 public class L8_PreAuthTest extends AbstractSecurityTest {
 
@@ -90,23 +91,30 @@ public class L8_PreAuthTest extends AbstractSecurityTest {
         return new Configuration() {
             @Override
             public AppConfigurationEntry[] getAppConfigurationEntry(String applicationName) {
-                Map<String, ?> options = getSecurityConfigParameters().getConfigValue(applicationName, Collections.<String, Object>emptyMap());
+                Map<String, ?> options = getSecurityConfigParameters().getConfigValue(
+                    applicationName, Collections.<String, Object>emptyMap());
                 return new AppConfigurationEntry[]{
-                        new AppConfigurationEntry(CustomLoginModule.class.getName(), AppConfigurationEntry.LoginModuleControlFlag.OPTIONAL, options),
-                        new AppConfigurationEntry(LoginModuleImpl.class.getName(), AppConfigurationEntry.LoginModuleControlFlag.REQUIRED, options)};
+                    new AppConfigurationEntry(CustomLoginModule.class.getName(),
+                        AppConfigurationEntry.LoginModuleControlFlag.OPTIONAL, options),
+                    new AppConfigurationEntry(LoginModuleImpl.class.getName(),
+                        AppConfigurationEntry.LoginModuleControlFlag.REQUIRED, options)};
             }
         };
     }
 
     @Test
-    public void testPreAuthenticatedLogin() throws IOException, LoginException, NoSuchWorkspaceException {
+    public void testPreAuthenticatedLogin()
+        throws IOException, LoginException, NoSuchWorkspaceException {
         // EXERCISE: adjust the CustomLoginModule such that the following test passes, the jaas configuration has already been adjusted for you above.
 
         // login as admin with CustomCredentials and without a password
         // -> no password verification in the module required as this is expected
         //    to have already happened during the pre-auth setp (which is missing here)
-        String loginID = getUserConfiguration().getParameters().getConfigValue(UserConstants.DEFAULT_ADMIN_ID, UserConstants.DEFAULT_ADMIN_ID);
-        ContentSession contentSession = login(new CustomCredentials(loginID, null, Collections.EMPTY_MAP));
+        String loginID = getUserConfiguration().getParameters()
+                                               .getConfigValue(UserConstants.DEFAULT_ADMIN_ID,
+                                                   UserConstants.DEFAULT_ADMIN_ID);
+        ContentSession contentSession = login(
+            new CustomCredentials(loginID, null, Collections.EMPTY_MAP));
 
         // EXERCISE: add verification of the AuthInfo according to your implementation of the custom login module.
 

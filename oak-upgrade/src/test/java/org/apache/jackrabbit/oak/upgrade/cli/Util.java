@@ -23,7 +23,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
-
 import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,7 +40,7 @@ public final class Util {
         final ZipInputStream zis = new ZipInputStream(is);
         try {
             ZipEntry entry = null;
-            while((entry = zis.getNextEntry()) != null) {
+            while ((entry = zis.getNextEntry()) != null) {
                 if (entry.isDirectory()) {
                     new File(targetDir, entry.getName()).mkdirs();
                 } else {
@@ -59,7 +58,7 @@ public final class Util {
             zis.close();
         }
         final long delta = System.currentTimeMillis() - start;
-        if(delta > 1000L) {
+        if (delta > 1000L) {
             log.info("Unzip took {} msec", delta);
         }
     }

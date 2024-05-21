@@ -29,13 +29,14 @@ public class JsonObjectTest {
     public void fromJson() {
         JsonObject a = JsonObject.fromJson(" { } ", false);
         assertEquals("{}", a.toString());
-        JsonObject b = JsonObject.fromJson("{\"az\": 1, \"b\": [2, 3], \"c\": null, \"d\": {}}", true);
-        assertEquals("{\n" + 
-                "  \"az\": 1,\n" + 
-                "  \"b\": [2, 3],\n" + 
-                "  \"c\": null,\n" + 
-                "  \"d\": {}\n" + 
-                "}", b.toString());
+        JsonObject b = JsonObject.fromJson("{\"az\": 1, \"b\": [2, 3], \"c\": null, \"d\": {}}",
+            true);
+        assertEquals("{\n" +
+            "  \"az\": 1,\n" +
+            "  \"b\": [2, 3],\n" +
+            "  \"c\": null,\n" +
+            "  \"d\": {}\n" +
+            "}", b.toString());
         assertEquals("{az=1, b=[2, 3], c=null}", b.getProperties().toString());
         assertEquals("{d={}}", b.getChildren().toString());
     }
@@ -59,10 +60,10 @@ public class JsonObjectTest {
         a.getProperties().put("az", "1");
         a.getProperties().put("b", "2");
         // we expect it's a LinkedHashMap or similar
-        assertEquals("{\n" + 
-                "  \"az\": 1,\n" + 
-                "  \"b\": 2\n" + 
-                "}", a.toString());
+        assertEquals("{\n" +
+            "  \"az\": 1,\n" +
+            "  \"b\": 2\n" +
+            "}", a.toString());
         assertEquals("{az=1, b=2}", a.getProperties().toString());
     }
 
@@ -71,8 +72,8 @@ public class JsonObjectTest {
         JsonObject a = new JsonObject(true);
         a.getChildren().put("test", (JsonObject) null);
         assertEquals("{\n" +
-                "  \"test\": null\n" +
-                "}", a.toString());
+            "  \"test\": null\n" +
+            "}", a.toString());
 
     }
 
@@ -80,8 +81,8 @@ public class JsonObjectTest {
     public void handlesParsingNullValue() {
         JsonObject b = JsonObject.fromJson("{\"key\": null}", true);
         assertEquals("{\n" +
-                "  \"key\": null\n" +
-                "}", b.toString());
+            "  \"key\": null\n" +
+            "}", b.toString());
     }
 
     @Test
@@ -89,7 +90,7 @@ public class JsonObjectTest {
         JsonObject b = new JsonObject(true);
         b.getProperties().put("key", null);
         assertEquals("{\n" +
-                "  \"key\": null\n" +
-                "}", b.toString());
+            "  \"key\": null\n" +
+            "}", b.toString());
     }
 }

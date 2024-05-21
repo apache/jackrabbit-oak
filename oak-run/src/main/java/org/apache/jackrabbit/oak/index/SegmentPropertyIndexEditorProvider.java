@@ -19,10 +19,12 @@
 
 package org.apache.jackrabbit.oak.index;
 
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
-
 import joptsimple.OptionParser;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -46,9 +48,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-
 /**
  * Editor implementation which stores the property index NodeState data in a different
  * SegmentNodeStore used solely for property index storage purpose
@@ -68,8 +67,8 @@ public class SegmentPropertyIndexEditorProvider implements IndexEditorProvider, 
     @Nullable
     @Override
     public Editor getIndexEditor(@NotNull String type, @NotNull NodeBuilder definition,
-                                 @NotNull NodeState root, @NotNull IndexUpdateCallback callback)
-            throws CommitFailedException {
+        @NotNull NodeState root, @NotNull IndexUpdateCallback callback)
+        throws CommitFailedException {
         if (!PropertyIndexEditorProvider.TYPE.equals(type)) {
             return null;
         }
@@ -121,7 +120,8 @@ public class SegmentPropertyIndexEditorProvider implements IndexEditorProvider, 
             indexStoreDir.mkdirs();
             fixture = NodeStoreFixtureProvider.create(createSegmentOptions(indexStoreDir), false);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to create Segment store at " + indexStoreDir.getAbsolutePath(), e);
+            throw new RuntimeException(
+                "Failed to create Segment store at " + indexStoreDir.getAbsolutePath(), e);
         }
         return fixture.getStore().getRoot().builder();
     }
@@ -129,7 +129,7 @@ public class SegmentPropertyIndexEditorProvider implements IndexEditorProvider, 
     private static Options createSegmentOptions(File storePath) throws IOException {
         OptionParser parser = new OptionParser();
         Options opts = new Options().withDisableSystemExit();
-        opts.parseAndConfigure(parser, new String[] {storePath.getAbsolutePath()});
+        opts.parseAndConfigure(parser, new String[]{storePath.getAbsolutePath()});
         return opts;
     }
 
@@ -145,24 +145,25 @@ public class SegmentPropertyIndexEditorProvider implements IndexEditorProvider, 
         return this;
     }
 
-    private static NodeState cloneVisibleState(NodeState state){
+    private static NodeState cloneVisibleState(NodeState state) {
         NodeBuilder builder = EMPTY_NODE.builder();
         new ApplyVisibleDiff(builder).apply(state);
         return builder.getNodeState();
     }
 
     private static class ApplyVisibleDiff extends ApplyDiff {
+
         public ApplyVisibleDiff(NodeBuilder builder) {
             super(builder);
         }
 
         @Override
         public boolean childNodeAdded(String name, NodeState after) {
-            if (NodeStateUtils.isHidden(name)){
+            if (NodeStateUtils.isHidden(name)) {
                 return true;
             }
             return after.compareAgainstBaseState(
-                    EMPTY_NODE, new ApplyVisibleDiff(builder.child(name)));
+                EMPTY_NODE, new ApplyVisibleDiff(builder.child(name)));
         }
     }
 }

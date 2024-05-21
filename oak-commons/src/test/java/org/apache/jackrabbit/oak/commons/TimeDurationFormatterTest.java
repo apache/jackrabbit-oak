@@ -20,7 +20,6 @@ import static org.junit.Assert.assertEquals;
 
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
-
 import org.junit.Test;
 
 public class TimeDurationFormatterTest {

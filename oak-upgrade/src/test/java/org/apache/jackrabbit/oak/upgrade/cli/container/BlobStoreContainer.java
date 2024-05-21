@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.upgrade.cli.container;
 
 import java.io.Closeable;
 import java.io.IOException;
-
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 
 public interface BlobStoreContainer extends Closeable {

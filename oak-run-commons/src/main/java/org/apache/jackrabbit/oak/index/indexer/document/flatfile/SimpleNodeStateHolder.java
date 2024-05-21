@@ -19,15 +19,15 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
-import java.util.List;
-
-import org.apache.jackrabbit.oak.commons.StringUtils;
-
 import static org.apache.jackrabbit.guava.common.collect.ImmutableList.copyOf;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryWriter.getPath;
 
-public class SimpleNodeStateHolder implements NodeStateHolder{
+import java.util.List;
+import org.apache.jackrabbit.oak.commons.StringUtils;
+
+public class SimpleNodeStateHolder implements NodeStateHolder {
+
     private final String line;
     private final List<String> pathElements;
 

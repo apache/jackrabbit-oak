@@ -19,6 +19,27 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean.STATUS_RUNNING;
+import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.Status.failed;
+import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.Status.initiated;
+import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.done;
+import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.newManagementOperation;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.OakDirectory.PROP_UNSAFE_FOR_ACTIVE_DELETION;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.INDEX_DATA_CHILD_NAME;
+
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
+import javax.management.openmbean.CompositeData;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -41,30 +62,10 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.management.openmbean.CompositeData;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.Callable;
-import java.util.concurrent.Executor;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
-import static org.apache.jackrabbit.oak.api.Type.STRING;
-import static org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean.STATUS_RUNNING;
-import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.Status.failed;
-import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.Status.initiated;
-import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.done;
-import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.newManagementOperation;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.INDEX_DATA_CHILD_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.OakDirectory.PROP_UNSAFE_FOR_ACTIVE_DELETION;
-
 public class ActiveDeletedBlobCollectorMBeanImpl implements ActiveDeletedBlobCollectorMBean {
-    private static final Logger LOG = LoggerFactory.getLogger(ActiveDeletedBlobCollectorMBeanImpl.class);
+
+    private static final Logger LOG = LoggerFactory.getLogger(
+        ActiveDeletedBlobCollectorMBeanImpl.class);
 
     private static final String OP_NAME = "Active lucene index blobs collection";
 
@@ -72,9 +73,10 @@ public class ActiveDeletedBlobCollectorMBeanImpl implements ActiveDeletedBlobCol
      * Actively deleted blob must be deleted for at least this long (in seconds)
      */
     private final long MIN_BLOB_AGE_TO_ACTIVELY_DELETE = Long.getLong("oak.active.deletion.minAge",
-            TimeUnit.HOURS.toSeconds(24));
+        TimeUnit.HOURS.toSeconds(24));
 
-    private final boolean ACTIVE_DELETION_DISABLED = Boolean.getBoolean("oak.active.deletion.disabled");
+    private final boolean ACTIVE_DELETION_DISABLED = Boolean.getBoolean(
+        "oak.active.deletion.disabled");
 
     Clock clock = Clock.SIMPLE; // package private for tests
 
@@ -99,26 +101,27 @@ public class ActiveDeletedBlobCollectorMBeanImpl implements ActiveDeletedBlobCol
     private ManagementOperation<Void> gcOp = done(OP_NAME, null);
 
     /**
-     * @param activeDeletedBlobCollector    deleted index blobs collector
-     * @param whiteboard                    An instance of {@link Whiteboard}. It will be
-     *                                      used to get checkpoing manager mbean.
-     * @param store                         {@link NodeStore} instance to access repository state
-     * @param indexPathService              {@link IndexPathService} instance to collect indexes available in
-     *                                                              the repository
-     * @param asyncIndexInfoService         {@link AsyncIndexInfoService} instance to acess state of async
-     *                                                                   indexer lanes
-     * @param blobStore                     An instance of {@link GarbageCollectableBlobStore}. It will be
-     *                                      used to purge blobs which have been deleted from lucene indexes.
-     * @param executor                      executor for running the collection task
+     * @param activeDeletedBlobCollector deleted index blobs collector
+     * @param whiteboard                 An instance of {@link Whiteboard}. It will be used to get
+     *                                   checkpoing manager mbean.
+     * @param store                      {@link NodeStore} instance to access repository state
+     * @param indexPathService           {@link IndexPathService} instance to collect indexes
+     *                                   available in the repository
+     * @param asyncIndexInfoService      {@link AsyncIndexInfoService} instance to acess state of
+     *                                   async indexer lanes
+     * @param blobStore                  An instance of {@link GarbageCollectableBlobStore}. It will
+     *                                   be used to purge blobs which have been deleted from lucene
+     *                                   indexes.
+     * @param executor                   executor for running the collection task
      */
     public ActiveDeletedBlobCollectorMBeanImpl(
-            @NotNull ActiveDeletedBlobCollector activeDeletedBlobCollector,
-            @NotNull Whiteboard whiteboard,
-            @NotNull NodeStore store,
-            @NotNull IndexPathService indexPathService,
-            @NotNull AsyncIndexInfoService asyncIndexInfoService,
-            @NotNull GarbageCollectableBlobStore blobStore,
-            @NotNull Executor executor) {
+        @NotNull ActiveDeletedBlobCollector activeDeletedBlobCollector,
+        @NotNull Whiteboard whiteboard,
+        @NotNull NodeStore store,
+        @NotNull IndexPathService indexPathService,
+        @NotNull AsyncIndexInfoService asyncIndexInfoService,
+        @NotNull GarbageCollectableBlobStore blobStore,
+        @NotNull Executor executor) {
         this.activeDeletedBlobCollector = checkNotNull(activeDeletedBlobCollector);
         this.whiteboard = checkNotNull(whiteboard);
         this.store = store;
@@ -127,7 +130,8 @@ public class ActiveDeletedBlobCollectorMBeanImpl implements ActiveDeletedBlobCol
         this.blobStore = checkNotNull(blobStore);
         this.executor = checkNotNull(executor);
 
-        LOG.info("Active blob collector initialized with minAge: {}", MIN_BLOB_AGE_TO_ACTIVELY_DELETE);
+        LOG.info("Active blob collector initialized with minAge: {}",
+            MIN_BLOB_AGE_TO_ACTIVELY_DELETE);
     }
 
     @Override
@@ -139,16 +143,18 @@ public class ActiveDeletedBlobCollectorMBeanImpl implements ActiveDeletedBlobCol
     @Override
     public CompositeData startActiveCollection() {
         if (isDisabled()) {
-            return ManagementOperation.Status.none(gcOp, "Active deletion is disabled").toCompositeData();
+            return ManagementOperation.Status.none(gcOp, "Active deletion is disabled")
+                                             .toCompositeData();
         }
         if (gcOp.isDone()) {
             long safeTimestampForDeletedBlobs = getSafeTimestampForDeletedBlobs();
             if (safeTimestampForDeletedBlobs == -1) {
                 return failed(OP_NAME + " couldn't be run as a safe timestamp for" +
-                        " purging lucene index blobs couldn't be evaluated").toCompositeData();
+                    " purging lucene index blobs couldn't be evaluated").toCompositeData();
             }
             gcOp = newManagementOperation(OP_NAME, () -> {
-                activeDeletedBlobCollector.purgeBlobsDeleted(safeTimestampForDeletedBlobs, blobStore);
+                activeDeletedBlobCollector.purgeBlobsDeleted(safeTimestampForDeletedBlobs,
+                    blobStore);
                 return null;
             });
             executor.execute(gcOp);
@@ -167,7 +173,8 @@ public class ActiveDeletedBlobCollectorMBeanImpl implements ActiveDeletedBlobCol
                 activeDeletedBlobCollector.cancelBlobCollection();
                 return null;
             }));
-            return initiated(gcOp, "Active lucene index blobs collection cancelled").toCompositeData();
+            return initiated(gcOp,
+                "Active lucene index blobs collection cancelled").toCompositeData();
         } else {
             return failed(OP_NAME + " not running").toCompositeData();
         }
@@ -196,7 +203,9 @@ public class ActiveDeletedBlobCollectorMBeanImpl implements ActiveDeletedBlobCol
         try {
             markCurrentIndexFilesUnsafeForActiveDeletion();
         } catch (CommitFailedException e) {
-            LOG.warn("Could not set current index files unsafe for active deletion. Resume and quit gracefully", e);
+            LOG.warn(
+                "Could not set current index files unsafe for active deletion. Resume and quit gracefully",
+                e);
             activeDeletedBlobCollector.flagActiveDeletionUnsafe(false);
         }
     }
@@ -213,28 +222,31 @@ public class ActiveDeletedBlobCollectorMBeanImpl implements ActiveDeletedBlobCol
      */
     private boolean waitForRunningIndexCycles() {
         Map<IndexStatsMBean, Long> origIndexLaneToExecutinoCountMap = Maps.asMap(
-                Sets.newHashSet(StreamSupport.stream(asyncIndexInfoService.getAsyncLanes().spliterator(), false)
-                        .map(lane -> asyncIndexInfoService.getInfo(lane).getStatsMBean())
-                        .filter(bean -> {
-                            String beanStatus;
-                            try {
-                                if (bean != null) {
-                                    beanStatus = bean.getStatus();
-                                } else {
-                                    return false;
-                                }
-                            } catch (Exception e) {
-                                LOG.warn("Exception during getting status for {}. Ignoring this indexer lane", bean.getName(), e);
-                                return false;
-                            }
-                            return STATUS_RUNNING.equals(beanStatus);
-                        })
-                        .collect(Collectors.toList())),
-                IndexStatsMBean::getTotalExecutionCount);
+            Sets.newHashSet(
+                StreamSupport.stream(asyncIndexInfoService.getAsyncLanes().spliterator(), false)
+                             .map(lane -> asyncIndexInfoService.getInfo(lane).getStatsMBean())
+                             .filter(bean -> {
+                                 String beanStatus;
+                                 try {
+                                     if (bean != null) {
+                                         beanStatus = bean.getStatus();
+                                     } else {
+                                         return false;
+                                     }
+                                 } catch (Exception e) {
+                                     LOG.warn(
+                                         "Exception during getting status for {}. Ignoring this indexer lane",
+                                         bean.getName(), e);
+                                     return false;
+                                 }
+                                 return STATUS_RUNNING.equals(beanStatus);
+                             })
+                             .collect(Collectors.toList())),
+            IndexStatsMBean::getTotalExecutionCount);
 
         if (!origIndexLaneToExecutinoCountMap.isEmpty()) {
             LOG.info("Found running index lanes ({}). Sleep a bit before continuing.",
-                    transform(origIndexLaneToExecutinoCountMap.keySet(), IndexStatsMBean::getName));
+                transform(origIndexLaneToExecutinoCountMap.keySet(), IndexStatsMBean::getName));
             try {
                 clock.waitUntil(clock.getTime() + TimeUnit.SECONDS.toMillis(1));
             } catch (InterruptedException e) {
@@ -245,7 +257,9 @@ public class ActiveDeletedBlobCollectorMBeanImpl implements ActiveDeletedBlobCol
 
         long start = clock.getTime();
         while (!origIndexLaneToExecutinoCountMap.isEmpty()) {
-            Map.Entry<IndexStatsMBean, Long> indexLaneEntry = origIndexLaneToExecutinoCountMap.entrySet().iterator().next();
+            Map.Entry<IndexStatsMBean, Long> indexLaneEntry = origIndexLaneToExecutinoCountMap.entrySet()
+                                                                                              .iterator()
+                                                                                              .next();
             IndexStatsMBean indexLaneBean = indexLaneEntry.getKey();
 
             long oldExecCnt = indexLaneEntry.getValue();
@@ -254,12 +268,14 @@ public class ActiveDeletedBlobCollectorMBeanImpl implements ActiveDeletedBlobCol
 
             if (!STATUS_RUNNING.equals(beanStatus) || oldExecCnt != newExecCnt) {
                 origIndexLaneToExecutinoCountMap.remove(indexLaneBean);
-                LOG.info("Lane {} has moved - oldExecCnt {}, newExecCnt {}", indexLaneBean.getName(), oldExecCnt, newExecCnt);
+                LOG.info("Lane {} has moved - oldExecCnt {}, newExecCnt {}",
+                    indexLaneBean.getName(), oldExecCnt, newExecCnt);
             } else if (clock.getTime() - start > TimeUnit.MINUTES.toMillis(2)) {
                 LOG.warn("Timed out while waiting for running index lane executions");
                 break;
             } else {
-                LOG.info("Lane {} still has execution count {}. Waiting....", indexLaneBean.getName(), newExecCnt);
+                LOG.info("Lane {} still has execution count {}. Waiting....",
+                    indexLaneBean.getName(), newExecCnt);
 
                 try {
                     clock.waitUntil(clock.getTime() + TimeUnit.SECONDS.toMillis(1));
@@ -283,9 +299,11 @@ public class ActiveDeletedBlobCollectorMBeanImpl implements ActiveDeletedBlobCol
         store.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 
-    private void markCurrentIndexFilesUnsafeForActiveDeletionFor(NodeBuilder rootBuilder, String indexPath) {
+    private void markCurrentIndexFilesUnsafeForActiveDeletionFor(NodeBuilder rootBuilder,
+        String indexPath) {
         NodeBuilder indexPathBuilder = getBuilderForPath(rootBuilder, indexPath);
-        if (!TYPE_LUCENE.equals(indexPathBuilder.getProperty(TYPE_PROPERTY_NAME).getValue(STRING))) {
+        if (!TYPE_LUCENE.equals(
+            indexPathBuilder.getProperty(TYPE_PROPERTY_NAME).getValue(STRING))) {
             LOG.debug("Ignoring index {} as it's not a lucene index", indexPath);
             return;
         }
@@ -307,7 +325,8 @@ public class ActiveDeletedBlobCollectorMBeanImpl implements ActiveDeletedBlobCol
     }
 
     private long getSafeTimestampForDeletedBlobs() {
-        long timestamp = clock.getTime() - TimeUnit.SECONDS.toMillis(MIN_BLOB_AGE_TO_ACTIVELY_DELETE);
+        long timestamp =
+            clock.getTime() - TimeUnit.SECONDS.toMillis(MIN_BLOB_AGE_TO_ACTIVELY_DELETE);
 
         long minCheckpointTimestamp = getOldestCheckpointCreationTimestamp();
 
@@ -316,7 +335,9 @@ public class ActiveDeletedBlobCollectorMBeanImpl implements ActiveDeletedBlobCol
         }
 
         if (minCheckpointTimestamp < timestamp) {
-            LOG.info("Oldest checkpoint timestamp ({}) is older than buffer period ({}) for deleted blobs." +
+            LOG.info(
+                "Oldest checkpoint timestamp ({}) is older than buffer period ({}) for deleted blobs."
+                    +
                     " Using that instead", minCheckpointTimestamp, timestamp);
             timestamp = minCheckpointTimestamp;
         }
@@ -335,7 +356,8 @@ public class ActiveDeletedBlobCollectorMBeanImpl implements ActiveDeletedBlobCol
                 LOG.warn("Unable to get checkpoint mbean. No service of required type found.");
                 return -1;
             } else {
-                LOG.warn("Unable to get checkpoint mbean. Multiple services of required type found.");
+                LOG.warn(
+                    "Unable to get checkpoint mbean. Multiple services of required type found.");
                 return -1;
             }
         } finally {

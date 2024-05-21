@@ -42,14 +42,17 @@ import org.slf4j.LoggerFactory;
 /**
  * Custom principal configuration that is disabled by default.
  */
-@Component(service = {PrincipalConfiguration.class, SecurityConfiguration.class}, configurationPolicy = ConfigurationPolicy.REQUIRE)
+@Component(service = {PrincipalConfiguration.class,
+    SecurityConfiguration.class}, configurationPolicy = ConfigurationPolicy.REQUIRE)
 @Designate(ocd = CustomPrincipalConfiguration.Configuration.class)
-public class CustomPrincipalConfiguration extends ConfigurationBase implements PrincipalConfiguration {
+public class CustomPrincipalConfiguration extends ConfigurationBase implements
+    PrincipalConfiguration {
 
     @ObjectClassDefinition(name = "Apache Jackrabbit Oak CustomPrincipalConfiguration (Oak Exercises)")
     @interface Configuration {
+
         @AttributeDefinition(
-                name = "knownPrincipals", description = "Hardcoded list of known principal names.", cardinality = 100)
+            name = "knownPrincipals", description = "Hardcoded list of known principal names.", cardinality = 100)
         int knownPrincipals();
     }
 
@@ -83,14 +86,16 @@ public class CustomPrincipalConfiguration extends ConfigurationBase implements P
     @SuppressWarnings("UnusedDeclaration")
     @Activate
     private void activate(Map<String, Object> properties) {
-        knownPrincipals = PropertiesUtil.toStringArray(properties.get(PARAM_KNOWN_PRINCIPALS), new String[0]);
+        knownPrincipals = PropertiesUtil.toStringArray(properties.get(PARAM_KNOWN_PRINCIPALS),
+            new String[0]);
         log.info("CustomPrincipalConfiguration.activate: {}", knownPrincipals);
     }
 
     @SuppressWarnings("UnusedDeclaration")
     @Modified
     private void modified(Map<String, Object> properties) {
-        knownPrincipals = PropertiesUtil.toStringArray(properties.get(PARAM_KNOWN_PRINCIPALS), new String[0]);
+        knownPrincipals = PropertiesUtil.toStringArray(properties.get(PARAM_KNOWN_PRINCIPALS),
+            new String[0]);
         log.info("CustomPrincipalConfiguration.modified: {}", knownPrincipals);
     }
 

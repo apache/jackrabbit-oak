@@ -60,7 +60,9 @@ public class BundlingHandlerTest {
 
     @Test
     public void ntFileBundled() throws Exception {
-        BundledTypesRegistry registry = BundledTypesRegistry.builder().forType("nt:file", "jcr:content").buildRegistry();
+        BundledTypesRegistry registry = BundledTypesRegistry.builder()
+                                                            .forType("nt:file", "jcr:content")
+                                                            .buildRegistry();
 
         childBuilder(builder, "sunrise.jpg/jcr:content").setProperty("jcr:data", "foo");
         childBuilder(builder, "sunrise.jpg/jcr:content/bar").setProperty("jcr:data", "foo");
@@ -76,7 +78,8 @@ public class BundlingHandlerTest {
         assertFalse(fileHandler.isBundledNode());
         assertEquals("foo", fileHandler.getPropertyPath("foo"));
 
-        BundlingHandler jcrContentHandler = childHandler(handler, state, "/sunrise.jpg/jcr:content");
+        BundlingHandler jcrContentHandler = childHandler(handler, state,
+            "/sunrise.jpg/jcr:content");
         assertEquals(Path.fromString("/sunrise.jpg"), jcrContentHandler.getRootBundlePath());
         assertFalse(jcrContentHandler.isBundlingRoot());
         assertTrue(jcrContentHandler.isBundledNode());
@@ -90,42 +93,48 @@ public class BundlingHandlerTest {
 
         // /sunrise.jpg/jcr:content/bar should have bundle root reset
         BundlingHandler barHandler = childHandler(handler, state, "/sunrise.jpg/jcr:content/bar");
-        assertEquals(Path.fromString("/sunrise.jpg/jcr:content/bar"), barHandler.getRootBundlePath());
+        assertEquals(Path.fromString("/sunrise.jpg/jcr:content/bar"),
+            barHandler.getRootBundlePath());
         assertTrue(barHandler.isBundlingRoot());
         assertEquals("foo", barHandler.getPropertyPath("foo"));
     }
 
     @Test
-    public void childAdded_BundlingStart() throws Exception{
-        BundledTypesRegistry registry = BundledTypesRegistry.builder().forType("nt:file", "jcr:content").buildRegistry();
+    public void childAdded_BundlingStart() throws Exception {
+        BundledTypesRegistry registry = BundledTypesRegistry.builder()
+                                                            .forType("nt:file", "jcr:content")
+                                                            .buildRegistry();
 
         BundlingHandler handler = new BundlingHandler(registry);
         childBuilder(builder, "sunrise.jpg/jcr:content").setProperty("jcr:data", "foo");
         type(childBuilder(builder, "sunrise.jpg"), "nt:file");
         NodeState state = builder.getNodeState();
 
-        BundlingHandler fileHandler = handler.childAdded("sunrise.jpg", state.getChildNode("sunrise.jpg"));
+        BundlingHandler fileHandler = handler.childAdded("sunrise.jpg",
+            state.getChildNode("sunrise.jpg"));
         assertEquals(Path.fromString("/sunrise.jpg"), fileHandler.getRootBundlePath());
         assertTrue(fileHandler.isBundlingRoot());
         assertEquals("foo", fileHandler.getPropertyPath("foo"));
         assertEquals(1, fileHandler.getMetaProps().size());
     }
-    
+
     @Test
-    public void childAdded_NoBundling() throws Exception{
+    public void childAdded_NoBundling() throws Exception {
         BundlingHandler handler = new BundlingHandler(BundledTypesRegistry.from(EMPTY_NODE));
         childBuilder(builder, "sunrise.jpg/jcr:content").setProperty("jcr:data", "foo");
         type(childBuilder(builder, "sunrise.jpg"), "nt:file");
         NodeState state = builder.getNodeState();
 
-        BundlingHandler fileHandler = handler.childAdded("sunrise.jpg", state.getChildNode("sunrise.jpg"));
+        BundlingHandler fileHandler = handler.childAdded("sunrise.jpg",
+            state.getChildNode("sunrise.jpg"));
         assertEquals(Path.fromString("/sunrise.jpg"), fileHandler.getRootBundlePath());
         assertTrue(fileHandler.isBundlingRoot());
         assertEquals("foo", fileHandler.getPropertyPath("foo"));
         assertEquals(0, fileHandler.getMetaProps().size());
     }
 
-    private BundlingHandler childHandler(BundlingHandler parent, NodeState parentState, String childPath) {
+    private BundlingHandler childHandler(BundlingHandler parent, NodeState parentState,
+        String childPath) {
         BundlingHandler result = parent;
         NodeState state = parentState;
         for (String name : PathUtils.elements(checkNotNull(childPath))) {

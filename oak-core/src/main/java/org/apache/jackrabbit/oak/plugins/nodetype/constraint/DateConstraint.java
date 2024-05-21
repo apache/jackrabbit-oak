@@ -17,10 +17,8 @@
 package org.apache.jackrabbit.oak.plugins.nodetype.constraint;
 
 import java.util.Calendar;
-
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
-
 import org.apache.jackrabbit.value.DateValue;
 
 public class DateConstraint extends NumericConstraint<Calendar> {

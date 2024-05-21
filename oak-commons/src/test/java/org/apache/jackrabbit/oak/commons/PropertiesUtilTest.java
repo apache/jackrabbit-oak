@@ -19,16 +19,15 @@
 
 package org.apache.jackrabbit.oak.commons;
 
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import org.junit.Test;
-
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 public class PropertiesUtilTest {
 
@@ -108,11 +107,16 @@ public class PropertiesUtilTest {
         assertArrayEquals(null, PropertiesUtil.toStringArray(null));
         assertArrayEquals(defaultValue, PropertiesUtil.toStringArray(5, defaultValue));
         assertArrayEquals(defaultValue, PropertiesUtil.toStringArray(null, defaultValue));
-        assertArrayEquals(new String[]{"hallo"}, PropertiesUtil.toStringArray("hallo", defaultValue));
-        assertArrayEquals(new String[]{"hallo"}, PropertiesUtil.toStringArray(new String[]{"hallo"}, defaultValue));
-        assertArrayEquals(new String[]{"hallo", "you"}, PropertiesUtil.toStringArray(new String[]{"hallo", "you"}, defaultValue));
-        assertArrayEquals(new String[]{"5", "1"}, PropertiesUtil.toStringArray(new Integer[]{5, 1}, defaultValue));
-        assertArrayEquals(new String[]{"5", "1"}, PropertiesUtil.toStringArray(new Integer[]{5, null, 1}, defaultValue));
+        assertArrayEquals(new String[]{"hallo"},
+            PropertiesUtil.toStringArray("hallo", defaultValue));
+        assertArrayEquals(new String[]{"hallo"},
+            PropertiesUtil.toStringArray(new String[]{"hallo"}, defaultValue));
+        assertArrayEquals(new String[]{"hallo", "you"},
+            PropertiesUtil.toStringArray(new String[]{"hallo", "you"}, defaultValue));
+        assertArrayEquals(new String[]{"5", "1"},
+            PropertiesUtil.toStringArray(new Integer[]{5, 1}, defaultValue));
+        assertArrayEquals(new String[]{"5", "1"},
+            PropertiesUtil.toStringArray(new Integer[]{5, null, 1}, defaultValue));
         final List<String> l = new ArrayList<String>();
         assertArrayEquals(new String[]{}, PropertiesUtil.toStringArray(l, defaultValue));
         l.add("1");
@@ -153,6 +157,7 @@ public class PropertiesUtilTest {
     }
 
     private static class TestBeanA {
+
         private String string;
         private Boolean bool;
         private int integer;

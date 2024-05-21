@@ -22,8 +22,8 @@ import org.jetbrains.annotations.NotNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
 /**
- * Test handler that does not actually perform recovery, but simply acquires the
- * recovery lock and releases it again with a success status.
+ * Test handler that does not actually perform recovery, but simply acquires the recovery lock and
+ * releases it again with a success status.
  */
 public class SimpleRecoveryHandler implements RecoveryHandler {
 
@@ -32,7 +32,7 @@ public class SimpleRecoveryHandler implements RecoveryHandler {
     private final Clock clock;
 
     public SimpleRecoveryHandler(@NotNull DocumentStore store,
-                                 @NotNull Clock clock) {
+        @NotNull Clock clock) {
         this.store = checkNotNull(store);
         this.clock = checkNotNull(clock);
     }

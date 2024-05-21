@@ -28,25 +28,23 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 import javax.jcr.RepositoryException;
-
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.guava.common.collect.Maps;
+import org.apache.jackrabbit.guava.common.io.Closer;
+import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStore;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
-
-import org.apache.jackrabbit.guava.common.io.Closer;
-import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
 public class S3DataStoreFactory implements BlobStoreFactory {
 
-    private static final Pattern STRIP_VALUE_PATTERN = Pattern.compile("^[TILFDXSCB]?\"(.*)\"\\W*$");
+    private static final Pattern STRIP_VALUE_PATTERN = Pattern.compile(
+        "^[TILFDXSCB]?\"(.*)\"\\W*$");
 
     private final Properties props;
 
@@ -56,7 +54,8 @@ public class S3DataStoreFactory implements BlobStoreFactory {
 
     private final boolean ignoreMissingBlobs;
 
-    public S3DataStoreFactory(String configuration, String directory, boolean ignoreMissingBlobs) throws IOException {
+    public S3DataStoreFactory(String configuration, String directory, boolean ignoreMissingBlobs)
+        throws IOException {
         this.props = new Properties();
         FileReader reader = new FileReader(new File(configuration));
         try {

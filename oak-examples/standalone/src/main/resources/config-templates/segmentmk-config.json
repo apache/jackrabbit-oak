@@ -1,5 +1,5 @@
 {
-  "org.apache.jackrabbit.oak.segment.SegmentNodeStoreService" : {
-    "customBlobStore" : true
+  "org.apache.jackrabbit.oak.segment.SegmentNodeStoreService": {
+    "customBlobStore": true
   }
 }

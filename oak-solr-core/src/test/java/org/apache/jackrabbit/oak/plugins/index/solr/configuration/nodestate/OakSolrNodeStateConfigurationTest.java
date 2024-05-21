@@ -30,7 +30,9 @@ import org.junit.Before;
 import org.junit.Test;
 
 /**
- * Tests for {@link org.apache.jackrabbit.oak.plugins.index.solr.configuration.nodestate.OakSolrNodeStateConfiguration}
+ * Tests for
+ * {@link
+ * org.apache.jackrabbit.oak.plugins.index.solr.configuration.nodestate.OakSolrNodeStateConfiguration}
  */
 public class OakSolrNodeStateConfigurationTest {
 
@@ -58,7 +60,8 @@ public class OakSolrNodeStateConfigurationTest {
     @Test
     public void testExistingPath() throws Exception {
         NodeState idxDef = store.getRoot().getChildNode("oak:index").getChildNode("solrIdx");
-        OakSolrNodeStateConfiguration nodeStateConfiguration = new OakSolrNodeStateConfiguration(idxDef);
+        OakSolrNodeStateConfiguration nodeStateConfiguration = new OakSolrNodeStateConfiguration(
+            idxDef);
         assertNotNull(nodeStateConfiguration.getCatchAllField());
     }
 

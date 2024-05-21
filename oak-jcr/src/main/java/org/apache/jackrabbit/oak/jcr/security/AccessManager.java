@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.jcr.security;
 
 import javax.jcr.AccessDeniedException;
 import javax.jcr.RepositoryException;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
@@ -50,7 +49,8 @@ public class AccessManager {
         });
     }
 
-    public boolean hasPermissions(@NotNull final Tree tree, @Nullable final PropertyState property, final long permissions) {
+    public boolean hasPermissions(@NotNull final Tree tree, @Nullable final PropertyState property,
+        final long permissions) {
         return delegate.safePerform(new SessionOperation<Boolean>("hasPermissions") {
             @NotNull
             @Override
@@ -60,13 +60,15 @@ public class AccessManager {
         });
     }
 
-    public void checkPermissions(@NotNull String oakPath, @NotNull String actions) throws RepositoryException {
+    public void checkPermissions(@NotNull String oakPath, @NotNull String actions)
+        throws RepositoryException {
         if (!hasPermissions(oakPath, actions)) {
             throw new AccessDeniedException("Access denied.");
         }
     }
 
-    public void checkPermissions(@NotNull Tree tree, @Nullable PropertyState property, long permissions) throws RepositoryException {
+    public void checkPermissions(@NotNull Tree tree, @Nullable PropertyState property,
+        long permissions) throws RepositoryException {
         if (!hasPermissions(tree, property, permissions)) {
             throw new AccessDeniedException("Access denied.");
         }

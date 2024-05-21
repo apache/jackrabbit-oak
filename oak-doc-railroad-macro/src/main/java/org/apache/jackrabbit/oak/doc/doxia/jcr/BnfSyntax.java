@@ -36,7 +36,7 @@ public class BnfSyntax implements BnfVisitor {
     /**
      * Get the HTML syntax for the given syntax.
      *
-     * @param bnf the BNF
+     * @param bnf         the BNF
      * @param syntaxLines the syntax
      * @return the HTML
      */
@@ -61,7 +61,7 @@ public class BnfSyntax implements BnfVisitor {
     /**
      * Get the HTML link to the given token.
      *
-     * @param bnf the BNF
+     * @param bnf   the BNF
      * @param token the token
      * @return the HTML link
      */
@@ -113,7 +113,7 @@ public class BnfSyntax implements BnfVisitor {
     public void visitRuleRepeat(boolean comma, Rule rule) {
         // not used
     }
-    
+
     @Override
     public void visitRuleOptional(ArrayList<Rule> list) {
         // not used
@@ -122,6 +122,6 @@ public class BnfSyntax implements BnfVisitor {
     @Override
     public void visitRuleExtension(Rule rule, boolean compatibility) {
         // not used
-    }    
+    }
 
 }

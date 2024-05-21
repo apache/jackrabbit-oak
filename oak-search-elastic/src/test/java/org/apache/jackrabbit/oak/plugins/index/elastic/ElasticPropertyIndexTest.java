@@ -16,7 +16,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROPDEF_PROP_NODE_NAME;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.MatcherAssert.assertThat;
+
 import ch.qos.logback.classic.Level;
+import java.io.IOException;
+import java.util.List;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -25,13 +31,6 @@ import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexDefiniti
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.junit.Assert;
 import org.junit.Test;
-
-import java.io.IOException;
-import java.util.List;
-
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROPDEF_PROP_NODE_NAME;
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.MatcherAssert.assertThat;
 
 public class ElasticPropertyIndexTest extends ElasticAbstractQueryTest {
 
@@ -70,9 +69,9 @@ public class ElasticPropertyIndexTest extends ElasticAbstractQueryTest {
     @Test
     public void bulkProcessorSizeFlushLimit() throws Exception {
         LogCustomizer customLogger = LogCustomizer
-                .forLogger(
-                        "org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticBulkProcessorHandler")
-                .enable(Level.DEBUG).create();
+            .forLogger(
+                "org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticBulkProcessorHandler")
+            .enable(Level.DEBUG).create();
         try {
             customLogger.starting();
         /*
@@ -99,14 +98,18 @@ public class ElasticPropertyIndexTest extends ElasticAbstractQueryTest {
             }
             root.commit();
 
-            String propaQuery = "select [jcr:path] from [nt:base] where [propa] = 'foo" + docCountBreachingBulkSize + "'";
+            String propaQuery =
+                "select [jcr:path] from [nt:base] where [propa] = 'foo" + docCountBreachingBulkSize
+                    + "'";
             assertEventually(() -> {
                 assertThat(explain(propaQuery), containsString("elasticsearch:test1"));
                 assertQuery(propaQuery, List.of("/test/a" + docCountBreachingBulkSize));
             });
 
-            Assert.assertEquals(1, customLogger.getLogs().stream().filter(n -> n.contains("Bulk with id 2 processed in")).count());
-            Assert.assertEquals(0, customLogger.getLogs().stream().filter(n -> n.contains("Bulk with id 3 processed in")).count());
+            Assert.assertEquals(1, customLogger.getLogs().stream().filter(
+                n -> n.contains("Bulk with id 2 processed in")).count());
+            Assert.assertEquals(0, customLogger.getLogs().stream().filter(
+                n -> n.contains("Bulk with id 3 processed in")).count());
         } finally {
             customLogger.finished();
         }
@@ -129,11 +132,14 @@ public class ElasticPropertyIndexTest extends ElasticAbstractQueryTest {
 
         assertEventually(() -> {
             assertThat(explain(propaQuery), containsString("elasticsearch:test1"));
-            assertThat(explain("select [jcr:path] from [nt:base] where [propc] = 'foo'"), containsString("elasticsearch:test2"));
+            assertThat(explain("select [jcr:path] from [nt:base] where [propc] = 'foo'"),
+                containsString("elasticsearch:test2"));
 
             assertQuery(propaQuery, List.of("/test/a", "/test/b"));
-            assertQuery("select [jcr:path] from [nt:base] where [propa] = 'foo2'", List.of("/test/c"));
-            assertQuery("select [jcr:path] from [nt:base] where [propc] = 'foo'", List.of("/test/d"));
+            assertQuery("select [jcr:path] from [nt:base] where [propa] = 'foo2'",
+                List.of("/test/c"));
+            assertQuery("select [jcr:path] from [nt:base] where [propc] = 'foo'",
+                List.of("/test/d"));
         });
     }
 
@@ -143,8 +149,8 @@ public class ElasticPropertyIndexTest extends ElasticAbstractQueryTest {
         //make index
         IndexDefinitionBuilder builder = createIndex();
         builder.includedPaths("/test")
-                .indexRule("nt:base")
-                .property("nodeName", PROPDEF_PROP_NODE_NAME);
+               .indexRule("nt:base")
+               .property("nodeName", PROPDEF_PROP_NODE_NAME);
         setIndex("test1", builder);
         root.commit();
 
@@ -185,7 +191,8 @@ public class ElasticPropertyIndexTest extends ElasticAbstractQueryTest {
         test.addChild("b");
         root.commit();
 
-        assertEventually(() -> assertThat(explain("select [jcr:path] from [nt:base] where [propa] = 'foo'"),
+        assertEventually(
+            () -> assertThat(explain("select [jcr:path] from [nt:base] where [propa] = 'foo'"),
                 containsString("elasticsearch:test1")));
     }
 
@@ -200,7 +207,8 @@ public class ElasticPropertyIndexTest extends ElasticAbstractQueryTest {
         }
         root.commit();
         assertEventually(() -> {
-            assertThat(explain(query), containsString("{\"terms\":{\"propa\":[\"a\",\"e\",\"i\"]}}"));
+            assertThat(explain(query),
+                containsString("{\"terms\":{\"propa\":[\"a\",\"e\",\"i\"]}}"));
             assertQuery(query, SQL2, List.of("/test/node-a", "/test/node-e", "/test/node-i"));
         });
     }
@@ -218,7 +226,8 @@ public class ElasticPropertyIndexTest extends ElasticAbstractQueryTest {
 
         assertEventually(() -> {
             assertThat(explain(query), containsString("{\"terms\":{\"propa\":[2,3,5,7]}}"));
-            assertQuery(query, SQL2, List.of("/test/node-2", "/test/node-3", "/test/node-5", "/test/node-7"));
+            assertQuery(query, SQL2,
+                List.of("/test/node-2", "/test/node-3", "/test/node-5", "/test/node-7"));
         });
     }
 
@@ -236,7 +245,8 @@ public class ElasticPropertyIndexTest extends ElasticAbstractQueryTest {
 
         assertEventually(() -> {
             assertThat(explain(query), containsString("{\"terms\":{\"propa\":[2.0,3.0,5.0,7.0]}}"));
-            assertQuery(query, SQL2, List.of("/test/node-2", "/test/node-3", "/test/node-5", "/test/node-7"));
+            assertQuery(query, SQL2,
+                List.of("/test/node-2", "/test/node-3", "/test/node-5", "/test/node-7"));
         });
     }
 
@@ -244,8 +254,8 @@ public class ElasticPropertyIndexTest extends ElasticAbstractQueryTest {
     public void indexFailuresWithFailOnErrorOn() throws Exception {
         IndexDefinitionBuilder builder = createIndex("a");
         builder.includedPaths("/test")
-                .indexRule("nt:base")
-                .property("nodeName", PROPDEF_PROP_NODE_NAME);
+               .indexRule("nt:base")
+               .property("nodeName", PROPDEF_PROP_NODE_NAME);
 
         // configuring the index with a regex property and strict mapping to simulate failures
         builder.indexRule("nt:base").property("b", true).propertyIndex();
@@ -280,12 +290,15 @@ public class ElasticPropertyIndexTest extends ElasticAbstractQueryTest {
         }
 
         assertThat("no exception thrown", cfe != null);
-        assertThat("the exception cause has to be an IOException", cfe.getCause() instanceof IOException);
-        assertThat("there should be 5 suppressed exception", cfe.getCause().getSuppressed().length == 5);
+        assertThat("the exception cause has to be an IOException",
+            cfe.getCause() instanceof IOException);
+        assertThat("there should be 5 suppressed exception",
+            cfe.getCause().getSuppressed().length == 5);
 
         String query = "select [jcr:path] from [nt:base] where [a] = 'foo'";
         assertEventually(() -> assertQuery(query, SQL2,
-                List.of("/test/a1", "/test/a2", "/test/a100", "/test/a101", "/test/a102", "/test/a103", "/test/a104")
+            List.of("/test/a1", "/test/a2", "/test/a100", "/test/a101", "/test/a102", "/test/a103",
+                "/test/a104")
         ));
     }
 
@@ -293,8 +306,8 @@ public class ElasticPropertyIndexTest extends ElasticAbstractQueryTest {
     public void indexFailuresWithFailOnErrorOff() throws Exception {
         IndexDefinitionBuilder builder = createIndex("a");
         builder.includedPaths("/test")
-                .indexRule("nt:base")
-                .property("nodeName", PROPDEF_PROP_NODE_NAME);
+               .indexRule("nt:base")
+               .property("nodeName", PROPDEF_PROP_NODE_NAME);
 
         // configuring the index with a regex property and strict mapping to simulate failures
         builder.indexRule("nt:base").property("b", true).propertyIndex();
@@ -325,7 +338,8 @@ public class ElasticPropertyIndexTest extends ElasticAbstractQueryTest {
 
         String query = "select [jcr:path] from [nt:base] where [a] = 'foo'";
         assertEventually(() -> assertQuery(query, SQL2,
-                List.of("/test/a1", "/test/a2", "/test/a100", "/test/a101", "/test/a102", "/test/a103", "/test/a104")
+            List.of("/test/a1", "/test/a2", "/test/a100", "/test/a101", "/test/a102", "/test/a103",
+                "/test/a104")
         ));
     }
 
@@ -333,9 +347,9 @@ public class ElasticPropertyIndexTest extends ElasticAbstractQueryTest {
         IndexDefinitionBuilder builder = new ElasticIndexDefinitionBuilder();
         builder.noAsync();
         builder.indexRule("nt:base")
-                .property("propa")
-                .propertyIndex()
-                .type(type);
+               .property("propa")
+               .propertyIndex()
+               .type(type);
 
         setIndex("test", builder);
         root.commit();

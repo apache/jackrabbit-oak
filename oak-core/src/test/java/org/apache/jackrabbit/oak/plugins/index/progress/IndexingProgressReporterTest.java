@@ -19,12 +19,14 @@
 
 package org.apache.jackrabbit.oak.plugins.index.progress;
 
+import static org.hamcrest.Matchers.hasItems;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.NodeTraversalCallback;
 import org.junit.Test;
-
-import static org.hamcrest.Matchers.hasItems;
-import static org.junit.Assert.*;
 
 public class IndexingProgressReporterTest {
 

@@ -19,11 +19,11 @@
 
 package org.apache.jackrabbit.oak.segment.file.tar;
 
+import static java.util.Collections.singletonList;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.guava.common.collect.Maps.newLinkedHashMap;
 import static org.apache.jackrabbit.guava.common.collect.Maps.newTreeMap;
 import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
-import static java.util.Collections.singletonList;
 import static org.apache.jackrabbit.oak.segment.file.tar.GCGeneration.newGCGeneration;
 
 import java.io.Closeable;
@@ -41,9 +41,7 @@ import java.util.SortedMap;
 import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
-
 import org.apache.jackrabbit.guava.common.base.Predicate;
-
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.Segment;
 import org.apache.jackrabbit.oak.segment.SegmentId;
@@ -72,20 +70,19 @@ public class TarReader implements Closeable {
     }
 
     /**
-     * Creates a {@link TarReader} instance for reading content from a tar file.
-     * If there exist multiple generations of the same tar file, they are all
-     * passed to this method. The latest generation with a valid tar index
-     * (which is a good indication of general validity of the file) is opened
-     * and the other generations are removed to clean things up. If none of the
-     * generations has a valid index, then something must have gone wrong and
-     * we'll try recover as much content as we can from the existing tar
-     * generations.
+     * Creates a {@link TarReader} instance for reading content from a tar file. If there exist
+     * multiple generations of the same tar file, they are all passed to this method. The latest
+     * generation with a valid tar index (which is a good indication of general validity of the
+     * file) is opened and the other generations are removed to clean things up. If none of the
+     * generations has a valid index, then something must have gone wrong and we'll try recover as
+     * much content as we can from the existing tar generations.
      *
-     * @param files         The generations of the same TAR file.
-     * @param recovery      Strategy for recovering a damaged TAR file.
+     * @param files    The generations of the same TAR file.
+     * @param recovery Strategy for recovering a damaged TAR file.
      * @return An instance of {@link TarReader}.
      */
-    static TarReader open(Map<Character, String> files, TarRecovery recovery, SegmentArchiveManager archiveManager) throws IOException {
+    static TarReader open(Map<Character, String> files, TarRecovery recovery,
+        SegmentArchiveManager archiveManager) throws IOException {
         SortedMap<Character, String> sorted = newTreeMap();
         sorted.putAll(files);
 
@@ -118,10 +115,13 @@ public class TarReader implements Closeable {
 
     @FunctionalInterface
     private interface OpenStrategy {
-        SegmentArchiveReader open(SegmentArchiveManager segmentArchiveManager, String archiveName) throws IOException;
+
+        SegmentArchiveReader open(SegmentArchiveManager segmentArchiveManager, String archiveName)
+            throws IOException;
     }
 
-    static TarReader openRO(Map<Character, String> files, TarRecovery recovery, SegmentArchiveManager archiveManager) throws IOException {
+    static TarReader openRO(Map<Character, String> files, TarRecovery recovery,
+        SegmentArchiveManager archiveManager) throws IOException {
         // for readonly store only try the latest generation of a given
         // tar file to prevent any rollback or rewrite
         String file = files.get(Collections.max(files.keySet()));
@@ -137,8 +137,10 @@ public class TarReader implements Closeable {
             return segmentArchiveManager.open(bakFile);
         };
 
-        for (OpenStrategy openStrategy : new OpenStrategy[]{SegmentArchiveManager::open, SegmentArchiveManager::forceOpen, recoverAndOpen}) {
-            TarReader reader = openFirstFileWithValidIndex(singletonList(file), archiveManager, openStrategy);
+        for (OpenStrategy openStrategy : new OpenStrategy[]{SegmentArchiveManager::open,
+            SegmentArchiveManager::forceOpen, recoverAndOpen}) {
+            TarReader reader = openFirstFileWithValidIndex(singletonList(file), archiveManager,
+                openStrategy);
             if (reader != null) {
                 return reader;
             }
@@ -147,15 +149,15 @@ public class TarReader implements Closeable {
     }
 
     /**
-     * Collects all entries from the given file and optionally backs-up the
-     * file, by renaming it to a ".bak" extension
+     * Collects all entries from the given file and optionally backs-up the file, by renaming it to
+     * a ".bak" extension
      *
      * @param file    The TAR file.
-     * @param entries The map where the recovered entries will be collected
-     *                into.
+     * @param entries The map where the recovered entries will be collected into.
      * @param backup  If {@code true}, performs a backup of the TAR file.
      */
-    private static void collectFileEntries(String file, LinkedHashMap<UUID, byte[]> entries, boolean backup, SegmentArchiveManager archiveManager) throws IOException {
+    private static void collectFileEntries(String file, LinkedHashMap<UUID, byte[]> entries,
+        boolean backup, SegmentArchiveManager archiveManager) throws IOException {
         log.info("Recovering segments from tar file {}", file);
         try {
             archiveManager.recoverEntries(file, entries);
@@ -171,13 +173,13 @@ public class TarReader implements Closeable {
     /**
      * Regenerates a tar file from a list of entries.
      *
-     * @param entries   Map of entries to recover. The entries will be recovered
-     *                  in the iteration order of this {@link LinkedHashMap}.
-     * @param file      The output file that will contain the recovered
-     *                  entries.
-     * @param recovery  The recovery strategy to execute.
+     * @param entries  Map of entries to recover. The entries will be recovered in the iteration
+     *                 order of this {@link LinkedHashMap}.
+     * @param file     The output file that will contain the recovered entries.
+     * @param recovery The recovery strategy to execute.
      */
-    private static void generateTarFile(LinkedHashMap<UUID, byte[]> entries, String file, TarRecovery recovery, SegmentArchiveManager archiveManager) throws IOException {
+    private static void generateTarFile(LinkedHashMap<UUID, byte[]> entries, String file,
+        TarRecovery recovery, SegmentArchiveManager archiveManager) throws IOException {
         log.info("Regenerating tar file {}", file);
 
         try (TarWriter writer = new TarWriter(archiveManager, file)) {
@@ -187,7 +189,8 @@ public class TarReader implements Closeable {
                 try {
                     recovery.recoverEntry(entry.getKey(), entry.getValue(), new EntryRecovery() {
                         @Override
-                        public void recoverEntry(long msb, long lsb, byte[] data, int offset, int size, GCGeneration generation) throws IOException {
+                        public void recoverEntry(long msb, long lsb, byte[] data, int offset,
+                            int size, GCGeneration generation) throws IOException {
                             writer.writeEntry(msb, lsb, data, offset, size, generation);
                         }
 
@@ -197,7 +200,8 @@ public class TarReader implements Closeable {
                         }
 
                         @Override
-                        public void recoverBinaryReference(GCGeneration generation, UUID segmentId, String reference) {
+                        public void recoverBinaryReference(GCGeneration generation, UUID segmentId,
+                            String reference) {
                             writer.addBinaryReference(generation, segmentId, reference);
                         }
 
@@ -215,21 +219,23 @@ public class TarReader implements Closeable {
                         }
                     });
                 } catch (IOException e) {
-                    throw new IOException(String.format("Unable to recover entry %s for file %s", entry.getKey(), file), e);
+                    throw new IOException(
+                        String.format("Unable to recover entry %s for file %s", entry.getKey(),
+                            file), e);
                 }
             }
         }
     }
 
     /**
-     * Backup this tar file for manual inspection. Something went wrong earlier
-     * so we want to prevent the data from being accidentally removed or
-     * overwritten.
+     * Backup this tar file for manual inspection. Something went wrong earlier so we want to
+     * prevent the data from being accidentally removed or overwritten.
      *
-     * @param file File to backup.
+     * @param file             File to backup.
      * @param recoveredEntries
      */
-    private static void backupSafely(SegmentArchiveManager archiveManager, String file, Set<UUID> recoveredEntries) throws IOException {
+    private static void backupSafely(SegmentArchiveManager archiveManager, String file,
+        Set<UUID> recoveredEntries) throws IOException {
         String backup = findAvailGen(file, ".bak", archiveManager);
         log.info("Backing up {} to {}", file, backup);
 
@@ -237,13 +243,14 @@ public class TarReader implements Closeable {
     }
 
     /**
-     * Fine next available generation number so that a generated file doesn't
-     * overwrite another existing file.
+     * Fine next available generation number so that a generated file doesn't overwrite another
+     * existing file.
      *
      * @param name The file to backup.
      * @param ext  The extension of the backed up file.
      */
-    private static String findAvailGen(String name, String ext, SegmentArchiveManager archiveManager) {
+    private static String findAvailGen(String name, String ext,
+        SegmentArchiveManager archiveManager) {
         String backup = name + ext;
         for (int i = 2; archiveManager.exists(backup); i++) {
             backup = name + "." + i + ext;
@@ -251,11 +258,13 @@ public class TarReader implements Closeable {
         return backup;
     }
 
-    private static TarReader openFirstFileWithValidIndex(List<String> archives, SegmentArchiveManager archiveManager) {
+    private static TarReader openFirstFileWithValidIndex(List<String> archives,
+        SegmentArchiveManager archiveManager) {
         return openFirstFileWithValidIndex(archives, archiveManager, SegmentArchiveManager::open);
     }
 
-    private static TarReader openFirstFileWithValidIndex(List<String> archives, SegmentArchiveManager archiveManager, OpenStrategy openStrategy) {
+    private static TarReader openFirstFileWithValidIndex(List<String> archives,
+        SegmentArchiveManager archiveManager, OpenStrategy openStrategy) {
         for (String name : archives) {
             try {
                 SegmentArchiveReader reader = openStrategy.open(archiveManager, name);
@@ -288,9 +297,9 @@ public class TarReader implements Closeable {
         this.archiveManager = archiveManager;
         this.archive = archive;
         this.segmentUUIDs = archive.listSegments()
-                .stream()
-                .map(e -> new UUID(e.getMsb(), e.getLsb()))
-                .collect(Collectors.toSet());
+                                   .stream()
+                                   .map(e -> new UUID(e.getMsb(), e.getLsb()))
+                                   .collect(Collectors.toSet());
     }
 
     long size() {
@@ -298,8 +307,7 @@ public class TarReader implements Closeable {
     }
 
     /**
-     * Reads and returns the identifier of every segment included in the index
-     * of this TAR file.
+     * Reads and returns the identifier of every segment included in the index of this TAR file.
      *
      * @return An instance of {@link Set}.
      */
@@ -312,19 +320,17 @@ public class TarReader implements Closeable {
      *
      * @param msb The most significant bits of the entry identifier.
      * @param lsb The least significant bits of the entry identifier.
-     * @return {@code true} if the entry exists in this TAR file, {@code false}
-     * otherwise.
+     * @return {@code true} if the entry exists in this TAR file, {@code false} otherwise.
      */
     boolean containsEntry(long msb, long lsb) {
         return archive.containsSegment(msb, lsb);
     }
 
     /**
-     * If the given segment is in this file, get the byte buffer that allows
-     * reading it.
+     * If the given segment is in this file, get the byte buffer that allows reading it.
      * <p>
-     * Whether or not this will read from the file depends on whether memory
-     * mapped files are used or not.
+     * Whether or not this will read from the file depends on whether memory mapped files are used
+     * or not.
      *
      * @param msb the most significant bits of the segment id
      * @param lsb the least significant bits of the segment id
@@ -364,23 +370,22 @@ public class TarReader implements Closeable {
     }
 
     /**
-     * Collect the references of those BLOBs that are reachable from the entries
-     * in this TAR file.
+     * Collect the references of those BLOBs that are reachable from the entries in this TAR file.
      * <p>
-     * The user-provided {@link Predicate} determines if entries belonging to a
-     * specific generation should be inspected for binary references of not.
-     * Given a generation number as input, if the predicate returns {@code
-     * true}, entries from that generation will be skipped. If the predicate
-     * returns {@code false}, entries from that generation will be inspected for
+     * The user-provided {@link Predicate} determines if entries belonging to a specific generation
+     * should be inspected for binary references of not. Given a generation number as input, if the
+     * predicate returns {@code true}, entries from that generation will be skipped. If the
+     * predicate returns {@code false}, entries from that generation will be inspected for
      * references.
      * <p>
-     * The provided {@link Consumer} is callback object that will be invoked for
-     * every reference found in the inspected entries.
+     * The provided {@link Consumer} is callback object that will be invoked for every reference
+     * found in the inspected entries.
      *
      * @param collector      An instance of {@link Consumer}.
      * @param skipGeneration An instance of {@link Predicate}.
      */
-    void collectBlobReferences(@NotNull Consumer<String> collector, Predicate<GCGeneration> skipGeneration) {
+    void collectBlobReferences(@NotNull Consumer<String> collector,
+        Predicate<GCGeneration> skipGeneration) {
         BinaryReferencesIndex references = getBinaryReferences();
 
         if (references == null) {
@@ -398,37 +403,33 @@ public class TarReader implements Closeable {
     /**
      * Mark entries that can be reclaimed.
      * <p>
-     * A data segment is reclaimable iff its generation is in the {@code
-     * reclaimGeneration} predicate. A bulk segment is reclaimable if it is not
-     * in {@code bulkRefs} or if it is transitively reachable through a non
-     * reclaimable data segment.
+     * A data segment is reclaimable iff its generation is in the {@code reclaimGeneration}
+     * predicate. A bulk segment is reclaimable if it is not in {@code bulkRefs} or if it is
+     * transitively reachable through a non reclaimable data segment.
      * <p>
-     * The algorithm implemented by this method uses a couple of supporting data
-     * structures.
+     * The algorithm implemented by this method uses a couple of supporting data structures.
      * <p>
-     * The first of the supporting data structures is the set of bulk segments
-     * to keep. When this method is invoked, this set initially contains the set
-     * of bulk segments that are currently in use. The algorithm removes a
-     * reference from this set if the corresponding bulk segment is not
-     * referenced (either directly or transitively) from a marked data segment.
-     * The algorithm adds a reference to this set if a marked data segment is
-     * references the corresponding bulk segment. When this method returns, the
-     * references in this set represent bulk segments that are currently in use
-     * and should not be removed.
+     * The first of the supporting data structures is the set of bulk segments to keep. When this
+     * method is invoked, this set initially contains the set of bulk segments that are currently in
+     * use. The algorithm removes a reference from this set if the corresponding bulk segment is not
+     * referenced (either directly or transitively) from a marked data segment. The algorithm adds a
+     * reference to this set if a marked data segment is references the corresponding bulk segment.
+     * When this method returns, the references in this set represent bulk segments that are
+     * currently in use and should not be removed.
      * <p>
-     * The second of the supporting data structures is the set of segments to
-     * reclaim. This set contains references to bulk and data segments. A
-     * reference to a bulk segment is added if the bulk segment is not
-     * referenced (either directly or transitively) by marked data segment. A
-     * reference to a data segment is added if the user-provided predicate
-     * returns {@code true} for that segment. When this method returns, this set
-     * contains segments that are not marked and can be removed.
+     * The second of the supporting data structures is the set of segments to reclaim. This set
+     * contains references to bulk and data segments. A reference to a bulk segment is added if the
+     * bulk segment is not referenced (either directly or transitively) by marked data segment. A
+     * reference to a data segment is added if the user-provided predicate returns {@code true} for
+     * that segment. When this method returns, this set contains segments that are not marked and
+     * can be removed.
      *
      * @param references  The set of bulk segments to keep.
      * @param reclaimable The set of segments to remove.
      * @param context     An instance of {@link CleanupContext}.
      */
-    void mark(Set<UUID> references, Set<UUID> reclaimable, CleanupContext context) throws IOException {
+    void mark(Set<UUID> references, Set<UUID> reclaimable, CleanupContext context)
+        throws IOException {
         Map<UUID, List<UUID>> graph = getGraph();
         SegmentArchiveEntry[] entries = getEntries();
         for (int i = entries.length - 1; i >= 0; i--) {
@@ -455,37 +456,31 @@ public class TarReader implements Closeable {
     /**
      * Try to remove every segment contained in a user-provided set.
      * <p>
-     * This method might refuse to remove the segments under the following
-     * circumstances.
+     * This method might refuse to remove the segments under the following circumstances.
      * <p>
-     * First, if this TAR files does not contain any of the segments that are
-     * supposed to be removed. In this case, the method returns {@code null}.
+     * First, if this TAR files does not contain any of the segments that are supposed to be
+     * removed. In this case, the method returns {@code null}.
      * <p>
-     * Second, if this method contains some of the segments that are supposed to
-     * be removed, but the reclaimable space is be less than 1/4 of the current
-     * size of the TAR file. In this case, this method returns this {@link
-     * TarReader}.
+     * Second, if this method contains some of the segments that are supposed to be removed, but the
+     * reclaimable space is be less than 1/4 of the current size of the TAR file. In this case, this
+     * method returns this {@link TarReader}.
      * <p>
-     * Third, if this TAR file is in the highest generation possible ('z') and
-     * thus a new generation for this TAR file can't be created. In this case,
-     * the method returns this {@link TarReader}.
+     * Third, if this TAR file is in the highest generation possible ('z') and thus a new generation
+     * for this TAR file can't be created. In this case, the method returns this {@link TarReader}.
      * <p>
-     * Fourth, if a new TAR file has been created but it is unreadable for
-     * unknown reasons. In this case, this method returns this {@link
-     * TarReader}.
+     * Fourth, if a new TAR file has been created but it is unreadable for unknown reasons. In this
+     * case, this method returns this {@link TarReader}.
      * <p>
-     * If none of the above conditions apply, this method returns a new {@link
-     * TarReader} instance tha points to a TAR file that doesn't contain the
-     * removed segments. The returned {@link TarReader} will belong to the next
-     * generation of this {@link TarReader}. In this case, the {@code reclaimed}
-     * set will be updated to contain the identifiers of the segments that were
-     * removed from this TAR file.
+     * If none of the above conditions apply, this method returns a new {@link TarReader} instance
+     * tha points to a TAR file that doesn't contain the removed segments. The returned
+     * {@link TarReader} will belong to the next generation of this {@link TarReader}. In this case,
+     * the {@code reclaimed} set will be updated to contain the identifiers of the segments that
+     * were removed from this TAR file.
      *
      * @param reclaim   Set of segment sto reclaim.
-     * @param reclaimed Set of reclaimed segments. It will be update if this TAR
-     *                  file is rewritten.
-     * @return Either this {@link TarReader}, or a new instance of {@link
-     * TarReader}, or {@code null}.
+     * @param reclaimed Set of reclaimed segments. It will be update if this TAR file is rewritten.
+     * @return Either this {@link TarReader}, or a new instance of {@link TarReader}, or
+     * {@code null}.
      */
     TarReader sweep(@NotNull Set<UUID> reclaim, @NotNull Set<UUID> reclaimed) throws IOException {
         String name = archive.getName();
@@ -520,7 +515,7 @@ public class TarReader implements Closeable {
             // in which case we'll always generate a new tar file with
             // the graph to speed up future garbage collection runs.
             log.debug("Not enough space savings. ({}/{}). Skipping clean up of {}",
-                    archive.length() - afterSize, archive.length(), name);
+                archive.length() - afterSize, archive.length(), name);
             return this;
         }
         if (!hasGraph()) {
@@ -605,8 +600,7 @@ public class TarReader implements Closeable {
     }
 
     /**
-     * Loads and parses the optional pre-compiled graph entry from the given tar
-     * file.
+     * Loads and parses the optional pre-compiled graph entry from the given tar file.
      *
      * @return The parsed graph, or {@code null} if one was not found.
      */
@@ -626,11 +620,10 @@ public class TarReader implements Closeable {
     /**
      * Read the index of binary references from this TAR file.
      * <p>
-     * The index of binary references is a two-level map. The key to the first
-     * level of the map is the generation. The key to the second level of the
-     * map is the identifier of a data segment in this TAR file. The value of
-     * the second-level map is the set of binary references contained in the
-     * segment.
+     * The index of binary references is a two-level map. The key to the first level of the map is
+     * the generation. The key to the second level of the map is the identifier of a data segment in
+     * this TAR file. The value of the second-level map is the set of binary references contained in
+     * the segment.
      *
      * @return An instance of {@link Map}.
      */
@@ -643,7 +636,9 @@ public class TarReader implements Closeable {
 
                 // This can happen because segment files and binary references files are flushed one after another in
                 // {@link TarWriter#flush}
-                log.info("The remote archive directory {} still does not have file with binary references written.", archive.getName());
+                log.info(
+                    "The remote archive directory {} still does not have file with binary references written.",
+                    archive.getName());
                 return null;
             }
             index = BinaryReferencesIndexLoader.parseBinaryReferencesIndex(binaryReferences);

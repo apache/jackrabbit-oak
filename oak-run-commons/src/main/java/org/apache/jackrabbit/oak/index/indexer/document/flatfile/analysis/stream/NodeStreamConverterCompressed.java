@@ -26,7 +26,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
-
 import net.jpountz.lz4.LZ4FrameOutputStream;
 
 /**
@@ -55,9 +54,11 @@ public class NodeStreamConverterCompressed implements Closeable {
 
     public static void convert(String sourceFileName, String targetFileName) throws IOException {
         try (NodeLineReader in = NodeLineReader.open(sourceFileName)) {
-            try (OutputStream fileOut = new BufferedOutputStream(new FileOutputStream(targetFileName))) {
+            try (OutputStream fileOut = new BufferedOutputStream(
+                new FileOutputStream(targetFileName))) {
                 try (OutputStream out = new LZ4FrameOutputStream(fileOut)) {
-                    try (NodeStreamConverterCompressed writer = new NodeStreamConverterCompressed(out)) {
+                    try (NodeStreamConverterCompressed writer = new NodeStreamConverterCompressed(
+                        out)) {
                         int count = 0;
                         while (true) {
                             NodeData node = in.readNode();
@@ -77,7 +78,7 @@ public class NodeStreamConverterCompressed implements Closeable {
 
     private void writeNode(NodeData node) throws IOException {
         writeVarInt(out, node.getPathElements().size());
-        for(String s : node.getPathElements()) {
+        for (String s : node.getPathElements()) {
             writeString(s);
         }
         writeVarInt(out, node.getProperties().size());

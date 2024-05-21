@@ -90,11 +90,11 @@ public class RecoveryWithIncorrectClockTest {
     }
 
     private DocumentNodeStore createDocumentNodeStore(int clusterId,
-                                                      DocumentStore s) {
+        DocumentStore s) {
         return builderProvider.newBuilder()
-                .setDocumentStore(s)
-                .clock(clock)
-                .setClusterId(clusterId)
-                .build();
+                              .setDocumentStore(s)
+                              .clock(clock)
+                              .setClusterId(clusterId)
+                              .build();
     }
 }

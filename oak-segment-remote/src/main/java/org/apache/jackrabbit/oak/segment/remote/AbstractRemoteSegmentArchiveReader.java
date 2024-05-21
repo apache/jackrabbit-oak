@@ -16,15 +16,8 @@
  */
 package org.apache.jackrabbit.oak.segment.remote;
 
-import static org.apache.jackrabbit.oak.segment.remote.RemoteUtilities.getSegmentFileName;
 import static org.apache.jackrabbit.oak.segment.remote.RemoteUtilities.OFF_HEAP;
-
-import org.apache.jackrabbit.guava.common.base.Stopwatch;
-
-import org.apache.jackrabbit.oak.commons.Buffer;
-import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
-import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveEntry;
-import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveReader;
+import static org.apache.jackrabbit.oak.segment.remote.RemoteUtilities.getSegmentFileName;
 
 import java.io.File;
 import java.io.IOException;
@@ -34,8 +27,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import org.apache.jackrabbit.guava.common.base.Stopwatch;
+import org.apache.jackrabbit.oak.commons.Buffer;
+import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveEntry;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveReader;
 
 public abstract class AbstractRemoteSegmentArchiveReader implements SegmentArchiveReader {
+
     protected final IOMonitor ioMonitor;
 
     protected final Map<UUID, RemoteSegmentArchiveEntry> index = new LinkedHashMap<>();
@@ -90,7 +89,8 @@ public abstract class AbstractRemoteSegmentArchiveReader implements SegmentArchi
         if (hasGraph == null) {
             try {
                 getGraph();
-            } catch (IOException ignore) { }
+            } catch (IOException ignore) {
+            }
         }
         return hasGraph != null ? hasGraph : false;
     }
@@ -112,19 +112,25 @@ public abstract class AbstractRemoteSegmentArchiveReader implements SegmentArchi
 
     /**
      * Populates the archive index, summing up each entry's length.
+     *
      * @return length, the total length of the archive
      */
     protected abstract long computeArchiveIndexAndLength() throws IOException;
 
     /**
      * Reads the segment from the remote storage.
-     * @param segmentFileName, the name of the segment (msb + lsb) prefixed by its position in the archive
-     * @param buffer, the buffer to which to read
+     *
+     * @param segmentFileName, the name of the segment (msb + lsb) prefixed by its position in the
+     *                         archive
+     * @param buffer,          the buffer to which to read
      */
-    protected abstract void doReadSegmentToBuffer(String segmentFileName, Buffer buffer) throws IOException;
+    protected abstract void doReadSegmentToBuffer(String segmentFileName, Buffer buffer)
+        throws IOException;
 
     /**
-     * Reads a data file inside the archive. This entry is not a segment. Its full name is given by archive name + extension.
+     * Reads a data file inside the archive. This entry is not a segment. Its full name is given by
+     * archive name + extension.
+     *
      * @param extension, extension of the file
      * @return the buffer containing the data file bytes
      */
@@ -132,6 +138,7 @@ public abstract class AbstractRemoteSegmentArchiveReader implements SegmentArchi
 
     /**
      * Returns the decoded file component of this archive.
+     *
      * @return the decoded file component of this archive.
      */
     protected abstract File archivePathAsFile();

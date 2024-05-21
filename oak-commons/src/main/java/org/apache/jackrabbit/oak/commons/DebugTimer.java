@@ -37,7 +37,7 @@ public class DebugTimer {
     public void mark(String msg) {
         long then = now;
         now = System.nanoTime();
-        timestamps.add(new TimeStamp(now-then, msg));
+        timestamps.add(new TimeStamp(now - then, msg));
     }
 
     public String getString() {
@@ -45,7 +45,7 @@ public class DebugTimer {
             return "";
         }
         StringBuilder b = new StringBuilder();
-        for (TimeStamp t: timestamps) {
+        for (TimeStamp t : timestamps) {
             if (b.length() > 0) {
                 b.append(", ");
             } else {
@@ -53,7 +53,7 @@ public class DebugTimer {
             }
             int u = 0;
             double time = t.time;
-            while (time > 1000 && u<units.length-1) {
+            while (time > 1000 && u < units.length - 1) {
                 time = time / 1000;
                 u++;
             }
@@ -61,7 +61,7 @@ public class DebugTimer {
         }
         return b.append(')').toString();
     }
-    
+
     public String toString() {
         return getString();
     }

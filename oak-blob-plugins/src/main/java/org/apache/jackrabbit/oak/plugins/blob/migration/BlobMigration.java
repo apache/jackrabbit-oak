@@ -20,9 +20,9 @@
 package org.apache.jackrabbit.oak.plugins.blob.migration;
 
 import static java.lang.System.nanoTime;
+import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.Status.formatTime;
 import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.done;
 import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.newManagementOperation;
-import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.Status.formatTime;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 
 import java.util.HashMap;
@@ -30,14 +30,12 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
-
 import javax.management.openmbean.CompositeData;
 import javax.management.openmbean.CompositeDataSupport;
 import javax.management.openmbean.CompositeType;
 import javax.management.openmbean.OpenDataException;
 import javax.management.openmbean.OpenType;
 import javax.management.openmbean.SimpleType;
-
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Deactivate;
@@ -71,9 +69,11 @@ public class BlobMigration extends AnnotatedStandardMBean implements BlobMigrati
         CompositeType type;
         try {
             type = new CompositeType("BlobMigrationStatus", "Status of the blob migraiton",
-                    new String[] { "isRunning", "migratedNodes", "lastProcessedPath", "operationStatus" },
-                    new String[] { "Migration in progress", "Total number of migrated nodes", "Last processed path", "Status of the operation" },
-                    new OpenType[] { SimpleType.BOOLEAN, SimpleType.INTEGER, SimpleType.STRING, ManagementOperation.Status.ITEM_TYPES });
+                new String[]{"isRunning", "migratedNodes", "lastProcessedPath", "operationStatus"},
+                new String[]{"Migration in progress", "Total number of migrated nodes",
+                    "Last processed path", "Status of the operation"},
+                new OpenType[]{SimpleType.BOOLEAN, SimpleType.INTEGER, SimpleType.STRING,
+                    ManagementOperation.Status.ITEM_TYPES});
         } catch (OpenDataException e) {
             type = null;
             log.error("Can't create a CompositeType", e);
@@ -101,7 +101,8 @@ public class BlobMigration extends AnnotatedStandardMBean implements BlobMigrati
     private void activate(BundleContext ctx) {
         Whiteboard wb = new OsgiWhiteboard(ctx);
         migrator = new BlobMigrator((SplitBlobStore) splitBlobStore, nodeStore);
-        mbeanReg = registerMBean(wb, BlobMigrationMBean.class, this, BlobMigrationMBean.TYPE, OP_NAME);
+        mbeanReg = registerMBean(wb, BlobMigrationMBean.class, this, BlobMigrationMBean.TYPE,
+            OP_NAME);
     }
 
     @Deactivate

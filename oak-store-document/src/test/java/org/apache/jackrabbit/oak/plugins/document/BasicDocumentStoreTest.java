@@ -363,8 +363,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
             up.equals("foo", "bar");
             super.ds.create(Collection.NODES, Collections.singletonList(up));
             fail("conditional create should fail");
-        }
-        catch (IllegalStateException expected) {
+        } catch (IllegalStateException expected) {
             // reported by UpdateOp
         }
 
@@ -377,8 +376,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
             up.equals("foo", "bar");
             super.ds.createOrUpdate(Collection.NODES, up);
             fail("conditional createOrUpdate should fail");
-        }
-        catch (IllegalArgumentException expected) {
+        } catch (IllegalArgumentException expected) {
             // reported by DocumentStore
         }
 
@@ -387,8 +385,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
             up.equals("foo", "bar");
             super.ds.createOrUpdate(Collection.NODES, Collections.singletonList(up));
             fail("conditional createOrUpdate should fail");
-        }
-        catch (IllegalArgumentException expected) {
+        } catch (IllegalArgumentException expected) {
             // reported by DocumentStore
         }
     }
@@ -396,7 +393,8 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
     @Test
     public void testMaxIdAscii() {
         int result = testMaxId(true);
-        assertTrue("needs to support keys of 512 bytes length, but only supports " + result, result >= 512);
+        assertTrue("needs to support keys of 512 bytes length, but only supports " + result,
+            result >= 512);
     }
 
     @Test
@@ -407,11 +405,13 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
     @Test
     public void testLongId() {
         String id = "0:/" + generateId(2048, true);
-        assertNull("find() with ultra-long id needs to return 'null'", super.ds.find(Collection.NODES, id));
+        assertNull("find() with ultra-long id needs to return 'null'",
+            super.ds.find(Collection.NODES, id));
 
         if (!super.dsname.contains("Memory") && !super.dsname.contains("MongoDB")) {
-            UpdateOp up = new UpdateOp(id,  true);
-            assertFalse("create() with ultra-long id needs to fail", super.ds.create(Collection.NODES, Collections.singletonList(up)));
+            UpdateOp up = new UpdateOp(id, true);
+            assertFalse("create() with ultra-long id needs to fail",
+                super.ds.create(Collection.NODES, Collections.singletonList(up)));
         }
     }
 
@@ -437,26 +437,26 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         }
 
         assertEquals("Number of entries removed didn't match", 3,
-                ds.remove(Collection.JOURNAL, "_modified", 20, 24));
+            ds.remove(Collection.JOURNAL, "_modified", 20, 24));
 
         assertEquals("Number of entries removed didn't match", 0,
-                ds.remove(Collection.JOURNAL, "_modified", 20, 24));
+            ds.remove(Collection.JOURNAL, "_modified", 20, 24));
 
         assertEquals("Number of entries removed didn't match", 4,
-                ds.remove(Collection.JOURNAL, "_modified", -1, 5));
+            ds.remove(Collection.JOURNAL, "_modified", -1, 5));
 
         assertEquals("Number of entries removed didn't match", 5,
-                ds.remove(Collection.JOURNAL, "_modified", 0, 10));
+            ds.remove(Collection.JOURNAL, "_modified", 0, 10));
 
         // interesting cases
         assertEquals("Number of entries removed didn't match", 0,
-                ds.remove(Collection.JOURNAL, "_modified", 20, 19));
+            ds.remove(Collection.JOURNAL, "_modified", 20, 19));
 
         assertEquals("Number of entries removed didn't match", 0,
-                ds.remove(Collection.JOURNAL, "_modified", 31, 40));
+            ds.remove(Collection.JOURNAL, "_modified", 31, 40));
 
         assertEquals("Number of entries removed didn't match", 2,
-                ds.remove(Collection.JOURNAL, "_modified", 28, 40));
+            ds.remove(Collection.JOURNAL, "_modified", 28, 40));
     }
 
     private int testMaxId(boolean ascii) {
@@ -488,7 +488,8 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
             }
         }
 
-        LOG.info("max " + (ascii ? "ASCII ('0')" : "non-ASCII (U+1F4A9)") + " id length for " + super.dsname + " was " + last);
+        LOG.info("max " + (ascii ? "ASCII ('0')" : "non-ASCII (U+1F4A9)") + " id length for "
+            + super.dsname + " was " + last);
         return last;
     }
 
@@ -524,7 +525,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
                     max = test;
                 }
             } catch (DocumentStoreException ex) {
-                LOG.info("create with property size "+ test + " failed for " + super.dsname, ex);
+                LOG.info("create with property size " + test + " failed for " + super.dsname, ex);
                 max = test;
             }
         }
@@ -565,8 +566,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
                 } else {
                     max = test;
                 }
-            }
-            catch (DocumentStoreException ex) {
+            } catch (DocumentStoreException ex) {
                 LOG.debug("trying prop length (update) for " + super.dsname, ex);
                 max = test;
                 super.ds.remove(Collection.NODES, id);
@@ -599,13 +599,15 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
                     assertNotNull(findme.get(pname));
                 }
             } catch (Throwable ex) {
-                LOG.error("trying to add " + i + "th 1MB property " + super.dsname + ": " + ex.getMessage(), ex);
+                LOG.error("trying to add " + i + "th 1MB property " + super.dsname + ": "
+                    + ex.getMessage(), ex);
                 exception = ex.getMessage();
             }
         }
 
         super.ds.remove(Collection.NODES, id);
-        LOG.info("max number of 1MB property additions for " + super.dsname + " was " + i + " (" + exception + ")");
+        LOG.info("max number of 1MB property additions for " + super.dsname + " was " + i + " ("
+            + exception + ")");
     }
 
     @Test
@@ -631,19 +633,22 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
                     assertNotNull(findme.get(pname));
                 }
             } catch (Throwable ex) {
-                LOG.error("trying to add " + i + "th 1MB property " + super.dsname + ": " + ex.getMessage(), ex);
+                LOG.error("trying to add " + i + "th 1MB property " + super.dsname + ": "
+                    + ex.getMessage(), ex);
                 exception = ex.getMessage();
             }
         }
 
         super.ds.remove(Collection.NODES, id);
-        LOG.info("max number of 1MB property updates for " + super.dsname + " was " + i + " (" + exception + ")");
+        LOG.info("max number of 1MB property updates for " + super.dsname + " was " + i + " ("
+            + exception + ")");
     }
 
     @Test
     public void testInterestingPropLengths() throws UnsupportedEncodingException {
-        int lengths[] = { 1, 10, 100, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000, 11000, 12000, 13000, 14000,
-                15000, 16000, 20000 };
+        int lengths[] = {1, 10, 100, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000,
+            11000, 12000, 13000, 14000,
+            15000, 16000, 20000};
 
         for (int test : lengths) {
             String id = this.getClass().getName() + ".testInterestingPropLengths-" + test;
@@ -652,7 +657,8 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
             up.set("foo", pval);
             super.ds.remove(Collection.NODES, id);
             boolean success = super.ds.create(Collection.NODES, Collections.singletonList(up));
-            assertTrue("failed to insert a document with property of length " + test + "(ASCII) in " + super.dsname, success);
+            assertTrue("failed to insert a document with property of length " + test + "(ASCII) in "
+                + super.dsname, success);
             super.ds.remove(Collection.NODES, id);
         }
 
@@ -664,8 +670,9 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
             super.ds.remove(Collection.NODES, id);
             boolean success = super.ds.create(Collection.NODES, Collections.singletonList(up));
             assertTrue("failed to insert a document with property of length " + test
-                    + " (potentially non-ASCII, actual octet length with UTF-8 encoding: " + pval.getBytes("UTF-8").length + ") in "
-                    + super.dsname, success);
+                + " (potentially non-ASCII, actual octet length with UTF-8 encoding: "
+                + pval.getBytes("UTF-8").length + ") in "
+                + super.dsname, success);
             // check that update works as well
             if (success) {
                 try {
@@ -673,8 +680,9 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
                 } catch (Exception ex) {
                     ex.printStackTrace(System.err);
                     fail("failed to update a document with property of length " + test
-                            + " (potentially non-ASCII, actual octet length with UTF-8 encoding: " + pval.getBytes("UTF-8").length + ") in "
-                            + super.dsname);
+                        + " (potentially non-ASCII, actual octet length with UTF-8 encoding: "
+                        + pval.getBytes("UTF-8").length + ") in "
+                        + super.dsname);
                 }
             }
             super.ds.remove(Collection.NODES, id);
@@ -701,8 +709,10 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         // this should find the document; will fail if the MAX operation wasn't applied to the indexed property
         String startId = this.getClass().getName() + ".testModifiedMaxUpdatd";
         String endId = this.getClass().getName() + ".testModifiedMaxUpdatf";
-        List<NodeDocument> results = super.ds.query(Collection.NODES, startId, endId, "_modified", 1000, 1);
-        assertEquals("document not found, maybe indexed _modified property not properly updated", 1, results.size());
+        List<NodeDocument> results = super.ds.query(Collection.NODES, startId, endId, "_modified",
+            1000, 1);
+        assertEquals("document not found, maybe indexed _modified property not properly updated", 1,
+            results.size());
     }
 
     @Test
@@ -723,7 +733,8 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
             super.ds.findAndUpdate(Collection.NODES, up2);
             super.ds.invalidateCache();
             NodeDocument doc = super.ds.find(Collection.NODES, id, 0);
-            assertEquals("modified should not have been set back (test iteration " + i + ")", 1000, (long)doc.getModified());
+            assertEquals("modified should not have been set back (test iteration " + i + ")", 1000,
+                (long) doc.getModified());
         }
     }
 
@@ -739,7 +750,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         removeMe.add(id);
         NodeDocument nd = super.ds.find(Collection.NODES, id, 0);
         assertNotNull(nd);
-        Boolean dovalue = (Boolean)nd.get(NodeDocument.DELETED_ONCE);
+        Boolean dovalue = (Boolean) nd.get(NodeDocument.DELETED_ONCE);
         if (dovalue != null) {
             // RDB persistence does not distinguish null and false
             assertEquals(dovalue.booleanValue(), Boolean.FALSE);
@@ -751,8 +762,9 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         // https://jira.mongodb.org/browse/JAVA-1305
         boolean repoUsesBadUnicodeAPI = dsf instanceof DocumentStoreFixture.MongoFixture;
 
-        String[] tests = new String[] { "simple:foo", "cr:a\n\b", "dquote:a\"b", "bs:a\\b", "euro:a\u201c", "gclef:\uD834\uDD1E",
-                "tab:a\tb", "nul:a\u0000b", "brokensurrogate:\ud800" };
+        String[] tests = new String[]{"simple:foo", "cr:a\n\b", "dquote:a\"b", "bs:a\\b",
+            "euro:a\u201c", "gclef:\uD834\uDD1E",
+            "tab:a\tb", "nul:a\u0000b", "brokensurrogate:\ud800"};
 
         for (String t : tests) {
             boolean roundTrips = roundtripsThroughJavaUTF8(t);
@@ -769,14 +781,17 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
             UpdateOp up = new UpdateOp(id, true);
             up.set("foo", test);
             boolean success = super.ds.create(Collection.NODES, Collections.singletonList(up));
-            assertTrue("failed to insert a document with property value of " + test + " (" + testname + ") in " + super.dsname
+            assertTrue(
+                "failed to insert a document with property value of " + test + " (" + testname
+                    + ") in " + super.dsname
                     + " (JDK roundtripping: " + roundTrips + ")", success);
             // re-read from persistence
             super.ds.invalidateCache();
             NodeDocument nd = super.ds.find(Collection.NODES, id);
             assertEquals(
-                    "failure to round-trip " + testname + " through " + super.dsname + " (JDK roundtripping: " + roundTrips + ")",
-                    test, nd.get("foo"));
+                "failure to round-trip " + testname + " through " + super.dsname
+                    + " (JDK roundtripping: " + roundTrips + ")",
+                test, nd.get("foo"));
             super.ds.remove(Collection.NODES, id);
         }
     }
@@ -784,17 +799,20 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
     @Test
     public void testInterestingValidIds() {
         // OAK-7261
-        String[] tests = new String[] { "simple:foo", "cr:a\n\b", "dquote:a\"b", "bs:a\\b", "euro:a\u201c", "gclef:\uD834\uDD1E",
-                "tab:a\tb" };
+        String[] tests = new String[]{"simple:foo", "cr:a\n\b", "dquote:a\"b", "bs:a\\b",
+            "euro:a\u201c", "gclef:\uD834\uDD1E",
+            "tab:a\tb"};
 
         for (String t : tests) {
             int pos = t.indexOf(":");
             String test = t.substring(pos + 1);
-            String id = Utils.getIdFromPath("/" + this.getClass().getName() + ".testInterestingValidIds-" + test);
+            String id = Utils.getIdFromPath(
+                "/" + this.getClass().getName() + ".testInterestingValidIds-" + test);
             super.ds.remove(Collection.NODES, id);
             UpdateOp up = new UpdateOp(id, true);
             boolean success = super.ds.create(Collection.NODES, Collections.singletonList(up));
-            assertTrue("failed to insert a document with id '" + id + "' in " + super.dsname, success);
+            assertTrue("failed to insert a document with id '" + id + "' in " + super.dsname,
+                success);
             // re-read from persistence
             super.ds.invalidateCache();
             NodeDocument nd = super.ds.find(Collection.NODES, id);
@@ -806,14 +824,16 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
     @Test
     public void testInterestingInvalidIds() {
         // see OAK-7261
-        assumeTrue("fails on MongoDocumentStore, see OAK-7271", !(dsf instanceof DocumentStoreFixture.MongoFixture));
+        assumeTrue("fails on MongoDocumentStore, see OAK-7271",
+            !(dsf instanceof DocumentStoreFixture.MongoFixture));
 
-        String[] tests = new String[] { "nul:a\u0000b", "brokensurrogate:\ud800" };
+        String[] tests = new String[]{"nul:a\u0000b", "brokensurrogate:\ud800"};
 
         for (String t : tests) {
             int pos = t.indexOf(":");
             String test = t.substring(pos + 1);
-            String id = Utils.getIdFromPath("/" + this.getClass().getName() + ".testInterestingInvalidIds-" + test);
+            String id = Utils.getIdFromPath(
+                "/" + this.getClass().getName() + ".testInterestingInvalidIds-" + test);
 
             try {
                 super.ds.remove(Collection.NODES, id);
@@ -831,7 +851,8 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
                 // re-read from persistence
                 super.ds.invalidateCache();
                 NodeDocument nd = super.ds.find(Collection.NODES, id);
-                assertEquals("failure to round-trip " + t + " through " + super.dsname, id, nd.getId());
+                assertEquals("failure to round-trip " + t + " through " + super.dsname, id,
+                    nd.getId());
 
                 // if the character does not round-trip through UTF-8, try to
                 // delete the remapped one and do another lookup
@@ -841,7 +862,8 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
                     super.ds.remove(Collection.NODES, mapped);
                     super.ds.invalidateCache();
                     NodeDocument nd2 = super.ds.find(Collection.NODES, id);
-                    assertNotNull("deleting '" + mapped + "' has caused '" + id + "' to disappear", nd2);
+                    assertNotNull("deleting '" + mapped + "' has caused '" + id + "' to disappear",
+                        nd2);
                 }
 
                 super.ds.remove(Collection.NODES, id);
@@ -918,7 +940,8 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
     @SuppressWarnings("unchecked")
     @Test
     public void testDeleteNonExistingMapEntry() {
-        String id = this.getClass().getName() + ".testDeleteNonExistingMapEntry-" + UUID.randomUUID();
+        String id =
+            this.getClass().getName() + ".testDeleteNonExistingMapEntry-" + UUID.randomUUID();
         String propname = ":childOrder";
 
         UpdateOp up = new UpdateOp(id, true);
@@ -945,7 +968,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         // check previous state, map should only contain entry for r1 -> "foo"
         assertNotNull(d1);
         assertNotNull(d1.get(propname));
-        Map<Revision, String> mresulting1 = (Map<Revision, String>)d1.get(propname);
+        Map<Revision, String> mresulting1 = (Map<Revision, String>) d1.get(propname);
         assertEquals(propname + " + map should contain one entry", 1, mresulting1.size());
         assertEquals("foo", mresulting1.get(r1));
 
@@ -961,7 +984,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         // check previous state, map should only contain entry for r2 -> "bar"
         assertNotNull(d2);
         assertNotNull(d2.get(propname));
-        Map<Revision, String> mresulting2 = (Map<Revision, String>)d2.get(propname);
+        Map<Revision, String> mresulting2 = (Map<Revision, String>) d2.get(propname);
         assertEquals(propname + " + map should contain one entry", 1, mresulting2.size());
         assertEquals("bar", mresulting2.get(r2));
 
@@ -969,7 +992,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         Document d3 = ds.find(Collection.NODES, id, -1);
         assertNotNull(d3);
         assertNotNull(d3.get(propname));
-        Map<Revision, String> mresulting3 = (Map<Revision, String>)d3.get(propname);
+        Map<Revision, String> mresulting3 = (Map<Revision, String>) d3.get(propname);
         assertEquals(propname + " + map should contain one entry", 1, mresulting3.size());
         assertEquals("on " + super.dsname + ", got: " + mresulting3, "qux", mresulting3.get(r3));
     }
@@ -983,7 +1006,8 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
 
     @Test
     public void testDeleteNonExistingMultiple() {
-        String id = this.getClass().getName() + ".testDeleteNonExistingMultiple-" + UUID.randomUUID();
+        String id =
+            this.getClass().getName() + ".testDeleteNonExistingMultiple-" + UUID.randomUUID();
         // create a test node
         UpdateOp up = new UpdateOp(id + "-2", true);
         boolean success = super.ds.create(Collection.NODES, Collections.singletonList(up));
@@ -1013,7 +1037,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
 
         up = new UpdateOp(id, true);
         up.set("_modified", 123L);
-        super.ds.findAndUpdate(Collection.SETTINGS, up); 
+        super.ds.findAndUpdate(Collection.SETTINGS, up);
 
         d = super.ds.find(Collection.SETTINGS, id);
         m = d.get("_modified");
@@ -1022,7 +1046,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
 
         up = new UpdateOp(id, true);
         up.max("_modified", 122L);
-        super.ds.findAndUpdate(Collection.SETTINGS, up); 
+        super.ds.findAndUpdate(Collection.SETTINGS, up);
 
         d = super.ds.find(Collection.SETTINGS, id);
         m = d.get("_modified");
@@ -1031,7 +1055,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
 
         up = new UpdateOp(id, true);
         up.max("_modified", 124L);
-        super.ds.findAndUpdate(Collection.SETTINGS, up); 
+        super.ds.findAndUpdate(Collection.SETTINGS, up);
 
         ds.invalidateCache();
         d = super.ds.find(Collection.SETTINGS, id);
@@ -1076,7 +1100,8 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
             removeMe.add(id);
         }
 
-        List<String> result = getKeys(ds.query(Collection.NODES, base, base + "Z", NodeDocument.HAS_BINARY_FLAG,
+        List<String> result = getKeys(
+            ds.query(Collection.NODES, base, base + "Z", NodeDocument.HAS_BINARY_FLAG,
                 NodeDocument.HAS_BINARY_VAL, 1000));
         assertEquals(5, result.size());
         assertTrue(result.contains(base + "1"));
@@ -1096,7 +1121,8 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
             removeMe.add(id);
         }
 
-        List<String> result = getKeys(ds.query(Collection.NODES, base, base + "Z", NodeDocument.DELETED_ONCE,
+        List<String> result = getKeys(
+            ds.query(Collection.NODES, base, base + "Z", NodeDocument.DELETED_ONCE,
                 1L, 1000));
         assertEquals(5, result.size());
         assertTrue(result.contains(base + "0"));
@@ -1140,7 +1166,9 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         if (!diff.isEmpty()) {
             fail("missing query results (broken collation handling in persistence?): " + diff);
         }
-        assertEquals("incorrect result ordering in query result (broken collation handling in persistence?)", expected, result);
+        assertEquals(
+            "incorrect result ordering in query result (broken collation handling in persistence?)",
+            expected, result);
     }
 
     @Test
@@ -1200,8 +1228,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         for (int i = 0; i < length; i++) {
             if (ascii) {
                 sb.append("0");
-            }
-            else {
+            } else {
                 sb.append(Character.toChars(0x1F4A9));
             }
         }
@@ -1229,12 +1256,11 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         // get it
         nd = super.ds.find(Collection.NODES, id);
         assertNotNull(nd);
-        Number cmc = (Number)nd.get("_collisionsModCount");
+        Number cmc = (Number) nd.get("_collisionsModCount");
         if (cmc == null) {
             // not supported
-        }
-        else {
-            // update 
+        } else {
+            // update
             Revision revision2 = Revision.fromString("r0-0-2");
             UpdateOp up2 = new UpdateOp(id, false);
             up2.setMapEntry("_collisions", revision2, "foobar");
@@ -1243,11 +1269,11 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
 
             nd = super.ds.find(Collection.NODES, id, 0);
             assertNotNull(nd);
-            Number cmc2 = (Number)nd.get("_collisionsModCount");
+            Number cmc2 = (Number) nd.get("_collisionsModCount");
             assertNotNull(cmc2);
             assertTrue(cmc2.longValue() > cmc.longValue());
 
-            // update 
+            // update
             UpdateOp up3 = new UpdateOp(id, false);
             up3.set("foo", "bar");
             old = super.ds.findAndUpdate(Collection.NODES, up3);
@@ -1255,14 +1281,14 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
 
             nd = super.ds.find(Collection.NODES, id, 0);
             assertNotNull(nd);
-            Number cmc3 = (Number)nd.get("_collisionsModCount");
+            Number cmc3 = (Number) nd.get("_collisionsModCount");
             assertNotNull(cmc3);
             assertTrue(cmc2.longValue() == cmc3.longValue());
         }
     }
 
     @Test
-    public void description() throws Exception{
+    public void description() throws Exception {
         Map<String, String> desc = ds.getMetadata();
         assertNotNull(desc.get("type"));
     }
@@ -1345,6 +1371,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
     private static void assumeMaxMemory(int mb) {
         long max = Runtime.getRuntime().maxMemory();
         long required = mb * 1024L * 1024L;
-        assumeTrue("test requires " + required + " bytes of max memory, but only has " + max, max >= required);
+        assumeTrue("test requires " + required + " bytes of max memory, but only has " + max,
+            max >= required);
     }
 }

@@ -16,13 +16,15 @@
  */
 package org.apache.jackrabbit.oak.exercise.security.user;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import java.security.Principal;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import javax.jcr.Credentials;
 import javax.jcr.RepositoryException;
-
 import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -34,12 +36,9 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.exercise.ExerciseUtility;
 import org.apache.jackrabbit.oak.exercise.security.authorization.permission.L3_PrecedenceRulesTest;
-import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 /**
  * <pre>
@@ -110,7 +109,8 @@ public class L13_SystemUserTest extends AbstractSecurityTest {
     public void before() throws Exception {
         super.before();
 
-        systemUser = getUserManager(root).createSystemUser(ExerciseUtility.getTestId("testSystemUser"), null);
+        systemUser = getUserManager(root).createSystemUser(
+            ExerciseUtility.getTestId("testSystemUser"), null);
         testGroup = ExerciseUtility.createTestGroup(getUserManager(root));
         testGroup.addMember(systemUser);
         root.commit();
@@ -163,7 +163,8 @@ public class L13_SystemUserTest extends AbstractSecurityTest {
         assertEquals(expectedPrimaryTypeName, TreeUtil.getPrimaryTypeName(systemUserTree));
 
         String expectedId = null; // EXERCISE
-        assertEquals(expectedId, TreeUtil.getString(systemUserTree, UserConstants.REP_AUTHORIZABLE_ID));
+        assertEquals(expectedId,
+            TreeUtil.getString(systemUserTree, UserConstants.REP_AUTHORIZABLE_ID));
 
         String expectedPw = null; // EXERCISE
         assertEquals(expectedPw, TreeUtil.getString(systemUserTree, UserConstants.REP_PASSWORD));

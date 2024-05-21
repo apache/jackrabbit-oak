@@ -21,14 +21,13 @@ package org.apache.jackrabbit.oak.segment.spi.persistence;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.List;
-
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * This interface represents a read-only segment archive. Since the underlying
- * data structure is immutable, the implementation <b>should be</b> thread safe.
+ * This interface represents a read-only segment archive. Since the underlying data structure is
+ * immutable, the implementation <b>should be</b> thread safe.
  */
 public interface SegmentArchiveReader extends Closeable {
 
@@ -61,8 +60,7 @@ public interface SegmentArchiveReader extends Closeable {
     /**
      * Load the segment graph.
      *
-     * @return byte buffer representing the graph or null if the graph hasn't been
-     * persisted.
+     * @return byte buffer representing the graph or null if the graph hasn't been persisted.
      */
     @Nullable
     Buffer getGraph() throws IOException;
@@ -104,20 +102,21 @@ public interface SegmentArchiveReader extends Closeable {
     void close() throws IOException;
 
     /**
-     * Transforms the segment size in bytes into the effective size on disk for
-     * the given entry (eg. by adding the number of padding bytes, header, etc.)
+     * Transforms the segment size in bytes into the effective size on disk for the given entry (eg.
+     * by adding the number of padding bytes, header, etc.)
      *
      * @param size the segment size in bytes
-     * @return the number of bytes effectively used on the storage to save the
-     * segment
+     * @return the number of bytes effectively used on the storage to save the segment
      */
     int getEntrySize(int size);
 
     /**
-     * This method returns {@code true} if the storage is accessed via a network protocol, not tight to the traditional storage technology,
-     * for example, HTTP. Based on that info, for instance, calling classes can decide to update archive metadata (graph, binary references, index) more frequently,
-     * and not only when the archive is being closed. With that multiple Oak processes can access the storage simultaneously, with one process in read-write mode and
-     * one or more processes in read-only mode.
+     * This method returns {@code true} if the storage is accessed via a network protocol, not tight
+     * to the traditional storage technology, for example, HTTP. Based on that info, for instance,
+     * calling classes can decide to update archive metadata (graph, binary references, index) more
+     * frequently, and not only when the archive is being closed. With that multiple Oak processes
+     * can access the storage simultaneously, with one process in read-write mode and one or more
+     * processes in read-only mode.
      *
      * @return
      */

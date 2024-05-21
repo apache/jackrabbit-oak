@@ -28,13 +28,11 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Set;
-
 import javax.jcr.Credentials;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.core.RepositoryContext;
 import org.apache.jackrabbit.core.RepositoryImpl;
@@ -47,7 +45,8 @@ import org.junit.Test;
 
 public class SameNodeSiblingsTest {
 
-    public static final Credentials CREDENTIALS = new SimpleCredentials("admin", "admin".toCharArray());
+    public static final Credentials CREDENTIALS = new SimpleCredentials("admin",
+        "admin".toCharArray());
 
     private File crx2RepoDir;
 
@@ -74,8 +73,8 @@ public class SameNodeSiblingsTest {
                 session.save();
 
                 parent.setPrimaryType("nt:folder"); // change parent type to
-                                                    // something that doesn't
-                                                    // allow SNS
+                // something that doesn't
+                // allow SNS
                 session.save();
             }
         });
@@ -131,13 +130,15 @@ public class SameNodeSiblingsTest {
         try {
             NodeState parent = nodeStore.getRoot().getChildNode("parent");
             Set<String> children = newHashSet(parent.getChildNodeNames());
-            assertEquals(of("child", "child_2_", "child_3_", "child_2_2", "child_3_2", "child_3_3"), children);
+            assertEquals(of("child", "child_2_", "child_3_", "child_2_2", "child_3_2", "child_3_3"),
+                children);
         } finally {
             nodeStore.dispose();
         }
     }
 
-    private DocumentNodeStore migrate(SourceDataCreator sourceDataCreator) throws RepositoryException, IOException {
+    private DocumentNodeStore migrate(SourceDataCreator sourceDataCreator)
+        throws RepositoryException, IOException {
         RepositoryConfig config = RepositoryConfig.install(crx2RepoDir);
         RepositoryImpl repository = RepositoryImpl.create(config);
 
@@ -162,6 +163,7 @@ public class SameNodeSiblingsTest {
     }
 
     private static interface SourceDataCreator {
+
         void create(Session session) throws RepositoryException;
     }
 }

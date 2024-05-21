@@ -16,14 +16,14 @@
  */
 package org.apache.jackrabbit.oak.plugins.tree.factories;
 
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.tree.impl.ImmutableTree;
 import org.apache.jackrabbit.oak.plugins.tree.impl.NodeBuilderTree;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 
 /**
  * Factory to obtain {@code Tree} objects from {@code NodeState}s and {@code NodeBuilder}s.

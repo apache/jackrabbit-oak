@@ -24,9 +24,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.zip.CRC32;
-
 import org.apache.jackrabbit.guava.common.base.Charsets;
-
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.util.ReaderAtEnd;
 
@@ -36,7 +34,8 @@ class BinaryReferencesIndexLoaderV2 {
 
     static final int FOOTER_SIZE = 16;
 
-    static Buffer loadBinaryReferencesIndex(ReaderAtEnd reader) throws IOException, InvalidBinaryReferencesIndexException {
+    static Buffer loadBinaryReferencesIndex(ReaderAtEnd reader)
+        throws IOException, InvalidBinaryReferencesIndexException {
         Buffer meta = reader.readAtEnd(FOOTER_SIZE, FOOTER_SIZE);
 
         int crc32 = meta.getInt();
@@ -57,7 +56,8 @@ class BinaryReferencesIndexLoaderV2 {
         return reader.readAtEnd(size, size);
     }
 
-    public static BinaryReferencesIndex parseBinaryReferencesIndex(Buffer buffer) throws InvalidBinaryReferencesIndexException {
+    public static BinaryReferencesIndex parseBinaryReferencesIndex(Buffer buffer)
+        throws InvalidBinaryReferencesIndexException {
         Buffer data = buffer.slice();
         data.limit(data.limit() - FOOTER_SIZE);
 
@@ -91,7 +91,8 @@ class BinaryReferencesIndexLoaderV2 {
         return new BinaryReferencesIndex(parseBinaryReferencesIndex(count, data));
     }
 
-    private static Map<Generation, Map<UUID, Set<String>>> parseBinaryReferencesIndex(int count, Buffer buffer) {
+    private static Map<Generation, Map<UUID, Set<String>>> parseBinaryReferencesIndex(int count,
+        Buffer buffer) {
         Map<Generation, Map<UUID, Set<String>>> result = new HashMap<>(count);
         for (int i = 0; i < count; i++) {
             Generation k = parseGeneration(buffer);

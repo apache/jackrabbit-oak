@@ -19,22 +19,6 @@
 
 package org.apache.jackrabbit.oak.plugins.index.search;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-
-import javax.jcr.PropertyType;
-
-import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
-import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.IndexingRule;
-import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.IndexingMode;
-import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.junit.Test;
-
 import static javax.jcr.PropertyType.TYPENAME_LONG;
 import static javax.jcr.PropertyType.TYPENAME_STRING;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
@@ -65,6 +49,20 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+import javax.jcr.PropertyType;
+import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.IndexingMode;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.IndexingRule;
+import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.junit.Test;
+
 public class IndexDefinitionTest {
 
     private NodeState root = INITIAL_CONTENT;
@@ -83,7 +81,8 @@ public class IndexDefinitionTest {
         IndexDefinition.IndexingRule rule = idxDefn.getApplicableIndexingRule(NT_BASE);
         assertTrue("By default fulltext is enabled", idxDefn.isFullTextEnabled());
         assertTrue("By default everything is indexed", rule.isIndexed("foo"));
-        assertTrue("Property types need to be defined", rule.includePropertyType(PropertyType.DATE));
+        assertTrue("Property types need to be defined",
+            rule.includePropertyType(PropertyType.DATE));
         assertTrue("For fulltext storage is enabled", rule.getConfig("foo").stored);
 
         assertFalse(rule.getConfig("foo").skipTokenization("foo"));
@@ -120,7 +119,8 @@ public class IndexDefinitionTest {
 
     @Test
     public void propertyDefinition() {
-        builder.child(PROP_NODE).child("foo").setProperty(FulltextIndexConstants.PROP_TYPE, PropertyType.TYPENAME_DATE);
+        builder.child(PROP_NODE).child("foo")
+               .setProperty(FulltextIndexConstants.PROP_TYPE, PropertyType.TYPENAME_DATE);
         builder.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, Set.of("foo", "bar"), STRINGS));
         IndexDefinition idxDefn = new IndexDefinition(root, builder.getNodeState(), "/foo");
         IndexDefinition.IndexingRule rule = idxDefn.getApplicableIndexingRule(NT_BASE);
@@ -133,7 +133,8 @@ public class IndexDefinitionTest {
 
     @Test
     public void propertyDefinitionWithExcludes() {
-        builder.child(PROP_NODE).child("foo").setProperty(FulltextIndexConstants.PROP_TYPE, PropertyType.TYPENAME_DATE);
+        builder.child(PROP_NODE).child("foo")
+               .setProperty(FulltextIndexConstants.PROP_TYPE, PropertyType.TYPENAME_DATE);
         IndexDefinition idxDefn = new IndexDefinition(root, builder.getNodeState(), "/foo");
         IndexDefinition.IndexingRule rule = idxDefn.getApplicableIndexingRule(NT_BASE);
         assertTrue(rule.isIndexed("foo"));
@@ -201,7 +202,8 @@ public class IndexDefinitionTest {
 
         IndexDefinition defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
 
-        assertNotNull(defn.getApplicableIndexingRule(asState(newNode("nt:folder", "mix:mimeType"))));
+        assertNotNull(
+            defn.getApplicableIndexingRule(asState(newNode("nt:folder", "mix:mimeType"))));
         assertNull(defn.getApplicableIndexingRule(asState(newNode("nt:folder"))));
 
         //nt:resource > mix:mimeType
@@ -213,15 +215,15 @@ public class IndexDefinitionTest {
         NodeBuilder rules = builder.child(INDEX_RULES);
         builder.setProperty(PROP_NAME, "testIndex");
         rules.child("nt:hierarchyNode")
-                .setProperty(FulltextIndexConstants.FIELD_BOOST, 2.0)
-                .setProperty(FulltextIndexConstants.RULE_INHERITED, false);
+             .setProperty(FulltextIndexConstants.FIELD_BOOST, 2.0)
+             .setProperty(FulltextIndexConstants.RULE_INHERITED, false);
 
         IndexDefinition defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
 
         assertNull(defn.getApplicableIndexingRule(asState(newNode("nt:base"))));
         assertNotNull(defn.getApplicableIndexingRule(asState(newNode("nt:hierarchyNode"))));
         assertNull("nt:folder should not be index as rule is not inheritable",
-                defn.getApplicableIndexingRule(asState(newNode("nt:folder"))));
+            defn.getApplicableIndexingRule(asState(newNode("nt:folder"))));
     }
 
     @Test
@@ -289,7 +291,6 @@ public class IndexDefinitionTest {
                 .setProperty(FulltextIndexConstants.PROP_IS_REGEX, true)
                 .setProperty(FulltextIndexConstants.FIELD_BOOST, 4.0);
 
-
         IndexDefinition defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
 
         IndexingRule rule1 = defn.getApplicableIndexingRule(asState(newNode("nt:folder")));
@@ -316,7 +317,8 @@ public class IndexDefinitionTest {
                 .setProperty(FulltextIndexConstants.PROP_IS_REGEX, true)
                 .setProperty(FulltextIndexConstants.FIELD_BOOST, 4.0);
 
-        rules.child("nt:folder").child(PROP_NODE).setProperty(OAK_CHILD_ORDER, List.of("prop2", "prop1"), NAMES);
+        rules.child("nt:folder").child(PROP_NODE)
+             .setProperty(OAK_CHILD_ORDER, List.of("prop2", "prop1"), NAMES);
 
         IndexDefinition defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
 
@@ -332,7 +334,8 @@ public class IndexDefinitionTest {
         assertEquals(4.0f, rule1.getConfig("fooProp").boost, 0);
 
         //Order it correctly to get expected result
-        rules.child("nt:folder").child(PROP_NODE).setProperty(OAK_CHILD_ORDER, List.of("prop1", "prop2"), NAMES);
+        rules.child("nt:folder").child(PROP_NODE)
+             .setProperty(OAK_CHILD_ORDER, List.of("prop1", "prop2"), NAMES);
         defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
         rule1 = defn.getApplicableIndexingRule(asState(newNode("nt:folder")));
         assertEquals(3.0f, rule1.getConfig("fooProp").boost, 0);
@@ -380,7 +383,7 @@ public class IndexDefinitionTest {
     @Test
     public void formatUpdate() {
         NodeBuilder defnb = newFTIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
-                "lucene", Set.of(TYPENAME_STRING), Set.of("foo", "Bar"), "async");
+            "lucene", Set.of(TYPENAME_STRING), Set.of("foo", "Bar"), "async");
         IndexDefinition defn = new IndexDefinition(root, defnb.getNodeState(), "/foo");
         assertTrue(defn.isOfOldFormat());
 
@@ -397,7 +400,7 @@ public class IndexDefinitionTest {
     @Test
     public void propertyRegExAndRelativeProperty() {
         NodeBuilder defnb = newFTIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
-                "lucene", Set.of(TYPENAME_STRING), Set.of("foo"), "async");
+            "lucene", Set.of(TYPENAME_STRING), Set.of("foo"), "async");
         IndexDefinition defn = new IndexDefinition(root, defnb.getNodeState(), "/foo");
         assertTrue(defn.isOfOldFormat());
 
@@ -406,13 +409,15 @@ public class IndexDefinitionTest {
 
         IndexingRule rule = defn2.getApplicableIndexingRule(asState(newNode("nt:base")));
         assertNotNull(rule.getConfig("foo"));
-        assertNull("Property regex used should not allow relative properties", rule.getConfig("foo/bar"));
+        assertNull("Property regex used should not allow relative properties",
+            rule.getConfig("foo/bar"));
     }
 
     @Test
     public void fulltextEnabledAndAggregate() {
-        NodeBuilder defnb = newFTPropertyIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
-                "lucene", Set.of("foo"), "async");
+        NodeBuilder defnb = newFTPropertyIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+            "foo",
+            "lucene", Set.of("foo"), "async");
         IndexDefinition defn = new IndexDefinition(root, defnb.getNodeState(), "/foo");
         assertFalse(defn.isFullTextEnabled());
 
@@ -426,8 +431,9 @@ public class IndexDefinitionTest {
 
     @Test
     public void costConfig() {
-        NodeBuilder defnb = newFTPropertyIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
-                "lucene", Set.of("foo"), "async");
+        NodeBuilder defnb = newFTPropertyIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+            "foo",
+            "lucene", Set.of("foo"), "async");
         IndexDefinition defn = new IndexDefinition(root, defnb.getNodeState(), "/foo");
         assertEquals(1.0, defn.getCostPerEntry(), 0);
         assertEquals(1.0, defn.getCostPerExecution(), 0);
@@ -446,12 +452,13 @@ public class IndexDefinitionTest {
 
     @Test
     public void fulltextCost() {
-        NodeBuilder defnb = newFTPropertyIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
-                "lucene", Set.of("foo"), "async");
+        NodeBuilder defnb = newFTPropertyIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+            "foo",
+            "lucene", Set.of("foo"), "async");
         IndexDefinition defn = new IndexDefinition(root, defnb.getNodeState(), "/foo");
         assertEquals(300, defn.getFulltextEntryCount(300));
         assertEquals(IndexDefinition.DEFAULT_ENTRY_COUNT + 100,
-                defn.getFulltextEntryCount(IndexDefinition.DEFAULT_ENTRY_COUNT + 100));
+            defn.getFulltextEntryCount(IndexDefinition.DEFAULT_ENTRY_COUNT + 100));
 
         //Once count is explicitly defined then it would influence the cost
         defnb.setProperty(IndexConstants.ENTRY_COUNT_PROPERTY_NAME, 100);
@@ -463,14 +470,14 @@ public class IndexDefinitionTest {
     @Test
     public void customTikaConfig() {
         NodeBuilder defnb = newFTIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
-                "lucene", Set.of(TYPENAME_STRING));
+            "lucene", Set.of(TYPENAME_STRING));
         IndexDefinition defn = new IndexDefinition(root, defnb.getNodeState(), "/foo");
         assertFalse(defn.hasCustomTikaConfig());
 
         defnb.child(FulltextIndexConstants.TIKA)
-                .child(FulltextIndexConstants.TIKA_CONFIG)
-                .child(JcrConstants.JCR_CONTENT)
-                .setProperty(JcrConstants.JCR_DATA, "hello".getBytes());
+             .child(FulltextIndexConstants.TIKA_CONFIG)
+             .child(JcrConstants.JCR_CONTENT)
+             .setProperty(JcrConstants.JCR_DATA, "hello".getBytes());
         defn = new IndexDefinition(root, defnb.getNodeState(), "/foo");
         assertTrue(defn.hasCustomTikaConfig());
     }
@@ -478,29 +485,30 @@ public class IndexDefinitionTest {
     @Test
     public void customTikaMimeTypes() {
         NodeBuilder defnb = newFTIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
-                "lucene", Set.of(TYPENAME_STRING));
+            "lucene", Set.of(TYPENAME_STRING));
         IndexDefinition defn = new IndexDefinition(root, defnb.getNodeState(), "/foo");
         assertEquals("application/test", defn.getTikaMappedMimeType("application/test"));
 
         NodeBuilder app = defnb.child(FulltextIndexConstants.TIKA)
-                .child(FulltextIndexConstants.TIKA_MIME_TYPES)
-                .child("application");
+                               .child(FulltextIndexConstants.TIKA_MIME_TYPES)
+                               .child("application");
         app.child("test").setProperty(FulltextIndexConstants.TIKA_MAPPED_TYPE, "text/plain");
         app.child("test2").setProperty(FulltextIndexConstants.TIKA_MAPPED_TYPE, "text/plain");
         defn = new IndexDefinition(root, defnb.getNodeState(), "/foo");
         assertEquals("text/plain", defn.getTikaMappedMimeType("application/test"));
         assertEquals("text/plain", defn.getTikaMappedMimeType("application/test2"));
-        assertEquals("application/test-unmapped", defn.getTikaMappedMimeType("application/test-unmapped"));
+        assertEquals("application/test-unmapped",
+            defn.getTikaMappedMimeType("application/test-unmapped"));
     }
 
     @Test
     public void maxExtractLength() {
         NodeBuilder defnb = newFTIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
-                "lucene", Set.of(TYPENAME_STRING));
+            "lucene", Set.of(TYPENAME_STRING));
         IndexDefinition defn = new IndexDefinition(root, defnb.getNodeState(), "/foo");
-        assertEquals(-IndexDefinition.DEFAULT_MAX_EXTRACT_LENGTH * IndexDefinition.DEFAULT_MAX_FIELD_LENGTH,
-                defn.getMaxExtractLength());
-
+        assertEquals(
+            -IndexDefinition.DEFAULT_MAX_EXTRACT_LENGTH * IndexDefinition.DEFAULT_MAX_FIELD_LENGTH,
+            defn.getMaxExtractLength());
 
         defnb.child(TIKA).setProperty(FulltextIndexConstants.TIKA_MAX_EXTRACT_LENGTH, 1000);
 
@@ -510,7 +518,8 @@ public class IndexDefinitionTest {
 
     @Test(expected = IllegalStateException.class)
     public void nullCheckEnabledWithNtBase() {
-        builder.child(PROP_NODE).child("foo").setProperty(FulltextIndexConstants.PROP_NULL_CHECK_ENABLED, true);
+        builder.child(PROP_NODE).child("foo")
+               .setProperty(FulltextIndexConstants.PROP_NULL_CHECK_ENABLED, true);
         IndexDefinition idxDefn = new IndexDefinition(root, builder.getNodeState(), "/foo");
     }
 
@@ -534,7 +543,9 @@ public class IndexDefinitionTest {
                 .setProperty(FulltextIndexConstants.PROP_NULL_CHECK_ENABLED, true);
         root = registerTestNodeType(builder).getNodeState();
         IndexDefinition idxDefn = new IndexDefinition(root, builder.getNodeState(), "/foo");
-        assertTrue(!idxDefn.getApplicableIndexingRule(TestUtil.NT_TEST).getNullCheckEnabledProperties().isEmpty());
+        assertTrue(
+            !idxDefn.getApplicableIndexingRule(TestUtil.NT_TEST).getNullCheckEnabledProperties()
+                    .isEmpty());
     }
 
     @Test
@@ -545,7 +556,9 @@ public class IndexDefinitionTest {
                 .setProperty(FulltextIndexConstants.PROP_NOT_NULL_CHECK_ENABLED, true);
         root = registerTestNodeType(builder).getNodeState();
         IndexDefinition idxDefn = new IndexDefinition(root, builder.getNodeState(), "/foo");
-        assertTrue(!idxDefn.getApplicableIndexingRule(TestUtil.NT_TEST).getNotNullCheckEnabledProperties().isEmpty());
+        assertTrue(
+            !idxDefn.getApplicableIndexingRule(TestUtil.NT_TEST).getNotNullCheckEnabledProperties()
+                    .isEmpty());
     }
 
     //OAK-2477
@@ -563,17 +576,18 @@ public class IndexDefinitionTest {
         indexRoot.child(FulltextIndexConstants.SUGGESTION_CONFIG);
         idxDefn = new IndexDefinition(root, indexRoot.getNodeState(), "/foo");
         assertEquals("Namespaced config node should shadow global config",
-                10, idxDefn.getSuggesterUpdateFrequencyMinutes());
+            10, idxDefn.getSuggesterUpdateFrequencyMinutes());
 
         //config for backward config
         indexRoot = builder.child("backwardCompatibilityRoot");
         indexRoot.setProperty(FulltextIndexConstants.SUGGEST_UPDATE_FREQUENCY_MINUTES, suggestFreq);
         idxDefn = new IndexDefinition(root, indexRoot.getNodeState(), "/foo");
-        assertEquals("Backward compatibility config", suggestFreq, idxDefn.getSuggesterUpdateFrequencyMinutes());
+        assertEquals("Backward compatibility config", suggestFreq,
+            idxDefn.getSuggesterUpdateFrequencyMinutes());
 
         indexRoot = builder.child("indexRoot");
         indexRoot.child(FulltextIndexConstants.SUGGESTION_CONFIG)
-                .setProperty(FulltextIndexConstants.SUGGEST_UPDATE_FREQUENCY_MINUTES, suggestFreq);
+                 .setProperty(FulltextIndexConstants.SUGGEST_UPDATE_FREQUENCY_MINUTES, suggestFreq);
         idxDefn = new IndexDefinition(root, indexRoot.getNodeState(), "/foo");
         assertEquals("Set config", suggestFreq, idxDefn.getSuggesterUpdateFrequencyMinutes());
     }
@@ -591,7 +605,8 @@ public class IndexDefinitionTest {
         indexRoot.setProperty(FulltextIndexConstants.SUGGEST_ANALYZED, true);
         indexRoot.child(FulltextIndexConstants.SUGGESTION_CONFIG);
         idxDefn = new IndexDefinition(root, indexRoot.getNodeState(), "/foo");
-        assertFalse("Namespaced config node should shadow global config", idxDefn.isSuggestAnalyzed());
+        assertFalse("Namespaced config node should shadow global config",
+            idxDefn.isSuggestAnalyzed());
 
         //config for backward config
         indexRoot = builder.child("backwardCompatibilityRoot");
@@ -601,7 +616,7 @@ public class IndexDefinitionTest {
 
         indexRoot = builder.child("indexRoot");
         indexRoot.child(FulltextIndexConstants.SUGGESTION_CONFIG)
-                .setProperty(FulltextIndexConstants.SUGGEST_ANALYZED, true);
+                 .setProperty(FulltextIndexConstants.SUGGEST_ANALYZED, true);
         idxDefn = new IndexDefinition(root, indexRoot.getNodeState(), "/foo");
         assertTrue("Set config", idxDefn.isSuggestAnalyzed());
     }
@@ -785,7 +800,8 @@ public class IndexDefinitionTest {
 
     @Test
     public void uniqueIdForFreshIndex() {
-        IndexDefinition defn = IndexDefinition.newBuilder(root, builder.getNodeState(), "/foo").build();
+        IndexDefinition defn = IndexDefinition.newBuilder(root, builder.getNodeState(), "/foo")
+                                              .build();
         assertEquals("0", defn.getUniqueId());
 
         builder.child(":status");
@@ -795,11 +811,11 @@ public class IndexDefinitionTest {
 
     @Test
     public void nodeTypeChange() {
-        IndexDefinition defn = IndexDefinition.newBuilder(root, builder.getNodeState(), "/foo").build();
+        IndexDefinition defn = IndexDefinition.newBuilder(root, builder.getNodeState(), "/foo")
+                                              .build();
         NodeBuilder b2 = root.builder();
         TestUtil.registerNodeType(b2, TestUtil.TEST_NODE_TYPE);
         NodeState root2 = b2.getNodeState();
-
 
         NodeBuilder b3 = root.builder();
         b3.child("x");
@@ -843,22 +859,21 @@ public class IndexDefinitionTest {
 
 
     final String testNodeTypeDefn = "[oak:TestMixA]\n" +
-            "  mixin\n" +
-            "\n" +
-            "[oak:TestSuperType]\n" +
-            "- * (UNDEFINED) multiple\n" +
-            "\n" +
-            "[oak:TestTypeA] > oak:TestSuperType\n" +
-            "- * (UNDEFINED) multiple\n" +
-            "\n" +
-            "[oak:TestTypeB] > oak:TestSuperType, oak:TestMixA\n" +
-            "- * (UNDEFINED) multiple";
+        "  mixin\n" +
+        "\n" +
+        "[oak:TestSuperType]\n" +
+        "- * (UNDEFINED) multiple\n" +
+        "\n" +
+        "[oak:TestTypeA] > oak:TestSuperType\n" +
+        "- * (UNDEFINED) multiple\n" +
+        "\n" +
+        "[oak:TestTypeB] > oak:TestSuperType, oak:TestMixA\n" +
+        "- * (UNDEFINED) multiple";
 
     @Test
     public void nodeTypeIndexed() {
         TestUtil.registerNodeType(builder, testNodeTypeDefn);
         root = builder.getNodeState();
-
 
         IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
         defnb.nodeTypeIndex();
@@ -912,7 +927,6 @@ public class IndexDefinitionTest {
         defnb.indexRule("oak:TestSuperType").sync();
         defnb.indexRule("oak:TestSuperType").property("foo").propertyIndex();
 
-
         IndexDefinition defn = IndexDefinition.newBuilder(root, defnb.build(), "/foo").build();
 
         IndexingRule ruleSuper = getRule(defn, "oak:TestSuperType");
@@ -933,7 +947,6 @@ public class IndexDefinitionTest {
         defnb.indexRule("oak:TestSuperType").sync();
         defnb.aggregateRule("oak:TestSuperType").include("*");
 
-
         IndexDefinition defn = IndexDefinition.newBuilder(root, defnb.build(), "/foo").build();
 
         IndexingRule ruleSuper = getRule(defn, "oak:TestSuperType");
@@ -950,14 +963,12 @@ public class IndexDefinitionTest {
         TestUtil.registerNodeType(builder, testNodeTypeDefn);
         root = builder.getNodeState();
 
-
         IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
         defnb.nodeTypeIndex();
         defnb.indexRule("oak:TestMixA");
 
         IndexDefinition defn = IndexDefinition.newBuilder(root, defnb.build(), "/foo").build();
         assertFalse(defn.hasSyncPropertyDefinitions());
-
 
         assertNotNull(getRule(defn, "oak:TestTypeB"));
         assertTrue(getRule(defn, "oak:TestTypeB").indexesAllNodesOfMatchingType());
@@ -973,10 +984,10 @@ public class IndexDefinitionTest {
         TestUtil.registerNodeType(builder, testNodeTypeDefn);
         root = builder.getNodeState();
 
-
         IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
         defnb.indexRule("oak:TestMixA").property(JcrConstants.JCR_PRIMARYTYPE).propertyIndex();
-        defnb.indexRule("oak:TestSuperType").property(JcrConstants.JCR_PRIMARYTYPE).propertyIndex().sync();
+        defnb.indexRule("oak:TestSuperType").property(JcrConstants.JCR_PRIMARYTYPE).propertyIndex()
+             .sync();
 
         IndexDefinition defn = IndexDefinition.newBuilder(root, defnb.build(), "/foo").build();
 
@@ -1022,7 +1033,8 @@ public class IndexDefinitionTest {
         defnb.aggregateRule("nt:base").include("*");
 
         IndexDefinition defn = IndexDefinition.newBuilder(root, defnb.build(), "/foo").build();
-        assertThat(defn.getRelativeNodeNames(), containsInAnyOrder("jcr:content", "metadata", "type"));
+        assertThat(defn.getRelativeNodeNames(),
+            containsInAnyOrder("jcr:content", "metadata", "type"));
         assertTrue(defn.indexesRelativeNodes());
     }
 
@@ -1051,7 +1063,7 @@ public class IndexDefinitionTest {
         assertThat(rule.getAggregate().getIncludes(), is(empty()));
         assertFalse(rule.getAggregate().hasNodeAggregates());
         List<Aggregate.Matcher> matchers = rule.getAggregate()
-                .createMatchers(new TestRoot("/"));
+                                               .createMatchers(new TestRoot("/"));
         assertThat(matchers, is(empty()));
         assertThat(def.getRelativeNodeNames(), is(empty()));
     }

@@ -25,39 +25,50 @@ package org.apache.lucene.search;
  * limitations under the License.
  */
 
-import org.apache.lucene.index.TermsEnum; // javadocs
+import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.util.BytesRef;
+
 /**
  * Contains statistics for a specific term
+ *
  * @lucene.experimental
  */
 public class TermStatistics {
-  private final BytesRef term;
-  private final long docFreq;
-  private final long totalTermFreq;
-  
-  public TermStatistics(BytesRef term, long docFreq, long totalTermFreq) {
-    assert docFreq >= 0;
-    assert totalTermFreq == -1 || totalTermFreq >= docFreq; // #positions must be >= #postings
-    this.term = term;
-    this.docFreq = docFreq;
-    this.totalTermFreq = totalTermFreq;
-  }
-  
-  /** returns the term text */
-  public final BytesRef term() {
-    return term;
-  }
-  
-  /** returns the number of documents this term occurs in 
-   * @see TermsEnum#docFreq() */
-  public final long docFreq() {
-    return docFreq;
-  }
-  
-  /** returns the total number of occurrences of this term
-   * @see TermsEnum#totalTermFreq() */
-  public final long totalTermFreq() {
-    return totalTermFreq;
-  }
+
+    private final BytesRef term;
+    private final long docFreq;
+    private final long totalTermFreq;
+
+    public TermStatistics(BytesRef term, long docFreq, long totalTermFreq) {
+        assert docFreq >= 0;
+        assert totalTermFreq == -1 || totalTermFreq >= docFreq; // #positions must be >= #postings
+        this.term = term;
+        this.docFreq = docFreq;
+        this.totalTermFreq = totalTermFreq;
+    }
+
+    /**
+     * returns the term text
+     */
+    public final BytesRef term() {
+        return term;
+    }
+
+    /**
+     * returns the number of documents this term occurs in
+     *
+     * @see TermsEnum#docFreq()
+     */
+    public final long docFreq() {
+        return docFreq;
+    }
+
+    /**
+     * returns the total number of occurrences of this term
+     *
+     * @see TermsEnum#totalTermFreq()
+     */
+    public final long totalTermFreq() {
+        return totalTermFreq;
+    }
 }

@@ -35,7 +35,8 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
-
+import junit.framework.AssertionFailedError;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.observation.Filter;
 import org.apache.jackrabbit.oak.plugins.observation.FilteringAwareObserver;
@@ -45,10 +46,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Test;
-
-import org.apache.jackrabbit.guava.common.collect.Lists;
-
-import junit.framework.AssertionFailedError;
 
 public class BackgroundObserverTest {
 

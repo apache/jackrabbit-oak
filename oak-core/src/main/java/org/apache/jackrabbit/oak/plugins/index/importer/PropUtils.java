@@ -19,6 +19,8 @@
 
 package org.apache.jackrabbit.oak.plugins.index.importer;
 
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -28,8 +30,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Properties;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
 final class PropUtils {
 

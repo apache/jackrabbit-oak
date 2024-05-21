@@ -16,6 +16,14 @@
  */
 package org.apache.jackrabbit.oak.security.authentication.ldap.impl;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
+import javax.jcr.SimpleCredentials;
 import org.apache.directory.server.constants.ServerDNConstants;
 import org.apache.jackrabbit.oak.security.authentication.ldap.InternalLdapServer;
 import org.apache.jackrabbit.oak.security.authentication.ldap.LdapServerClassLoader;
@@ -25,15 +33,6 @@ import org.apache.jackrabbit.util.Text;
 import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Before;
-
-import javax.jcr.SimpleCredentials;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 
 public abstract class AbstractLdapIdentityProviderTest {
 
@@ -55,7 +54,7 @@ public abstract class AbstractLdapIdentityProviderTest {
     public static final String TEST_GROUP1_DN = "cn=HMS Lydia,ou=crews,ou=groups,ou=system";
     public static final String TEST_GROUP1_NAME = "HMS Lydia";
     public static final String[] TEST_GROUP1_MEMBERS = {
-            TEST_USER0_DN, TEST_USER1_DN, TEST_USER2_DN, TEST_USER3_DN, TEST_USER4_DN
+        TEST_USER0_DN, TEST_USER1_DN, TEST_USER2_DN, TEST_USER3_DN, TEST_USER4_DN
     };
 
     public static final String TEST_GROUP2_DN = "cn=HMS Victory,ou=crews,ou=groups,ou=system";
@@ -64,7 +63,8 @@ public abstract class AbstractLdapIdentityProviderTest {
     public static final String TEST_GROUP3_DN = "cn=HMS Bounty,ou=crews,ou=groups,ou=system";
     public static final String TEST_GROUP3_NAME = "HMS Bounty";
 
-    public static final String[] TEST_USER0_GROUPS = {TEST_GROUP1_DN, TEST_GROUP2_DN, TEST_GROUP3_DN};
+    public static final String[] TEST_USER0_GROUPS = {TEST_GROUP1_DN, TEST_GROUP2_DN,
+        TEST_GROUP3_DN};
     public static final String[] TEST_USER1_GROUPS = {TEST_GROUP1_DN};
 
     //loaded by a separate ClassLoader unavailable to the client (needed because the server is using old libraries)
@@ -73,11 +73,12 @@ public abstract class AbstractLdapIdentityProviderTest {
     private static final String TUTORIAL_LDIF = "apache-ds-tutorial.ldif";
     public static final String IDP_NAME = "ldap";
 
-    public static final String[] DEFAULT_USER_PROPERTIES = new String[] { "objectclass", "uid", "givenname", "description", "sn", "cn"};
+    public static final String[] DEFAULT_USER_PROPERTIES = new String[]{"objectclass", "uid",
+        "givenname", "description", "sn", "cn"};
 
     protected LdapIdentityProvider idp;
     protected LdapProviderConfig providerConfig;
-    
+
     protected boolean useSSL;
     protected boolean useTLS;
 
@@ -113,40 +114,45 @@ public abstract class AbstractLdapIdentityProviderTest {
     @NotNull
     protected LdapProviderConfig createProviderConfig(@NotNull String[] userProperties) {
         LdapProviderConfig providerConfig = new LdapProviderConfig()
-                .setName(IDP_NAME)
-                .setHostname("127.0.0.1")
-                .setPort(proxy.port)
-                .setBindDN(ServerDNConstants.ADMIN_SYSTEM_DN)
-                .setBindPassword(InternalLdapServer.ADMIN_PW)
-                .setGroupMemberAttribute("uniquemember")
-                .setCustomAttributes(userProperties);
+            .setName(IDP_NAME)
+            .setHostname("127.0.0.1")
+            .setPort(proxy.port)
+            .setBindDN(ServerDNConstants.ADMIN_SYSTEM_DN)
+            .setBindPassword(InternalLdapServer.ADMIN_PW)
+            .setGroupMemberAttribute("uniquemember")
+            .setCustomAttributes(userProperties);
 
         providerConfig.getUserConfig()
-                .setBaseDN(ServerDNConstants.USERS_SYSTEM_DN)
-                .setObjectClasses("inetOrgPerson");
+                      .setBaseDN(ServerDNConstants.USERS_SYSTEM_DN)
+                      .setObjectClasses("inetOrgPerson");
         providerConfig.getGroupConfig()
-                .setBaseDN(ServerDNConstants.GROUPS_SYSTEM_DN)
-                .setObjectClasses("groupOfUniqueNames");
+                      .setBaseDN(ServerDNConstants.GROUPS_SYSTEM_DN)
+                      .setObjectClasses("groupOfUniqueNames");
 
         providerConfig.getAdminPoolConfig().setMaxActive(0);
         providerConfig.getUserPoolConfig().setMaxActive(0);
         return providerConfig;
     }
 
-    public static void assertAuthenticate(@NotNull LdapIdentityProvider idp, @NotNull String id, @NotNull String expectedId, @NotNull String expectedUserRef) throws Exception {
-        assertAuthenticate(idp, new SimpleCredentials(id, "pass".toCharArray()), expectedId, expectedUserRef);
+    public static void assertAuthenticate(@NotNull LdapIdentityProvider idp, @NotNull String id,
+        @NotNull String expectedId, @NotNull String expectedUserRef) throws Exception {
+        assertAuthenticate(idp, new SimpleCredentials(id, "pass".toCharArray()), expectedId,
+            expectedUserRef);
     }
 
-    public static void assertAuthenticate(@NotNull LdapIdentityProvider idp, @NotNull SimpleCredentials credentials, @NotNull String expectedId, @NotNull String expectedUserRef) throws Exception {
+    public static void assertAuthenticate(@NotNull LdapIdentityProvider idp,
+        @NotNull SimpleCredentials credentials, @NotNull String expectedId,
+        @NotNull String expectedUserRef) throws Exception {
         ExternalUser user = idp.authenticate(credentials);
         assertNotNull("User 1 must authenticate", user);
-        assertEquals("User Ref", expectedUserRef, ((LdapUser)user).getEntry().getDn().getName());
+        assertEquals("User Ref", expectedUserRef, ((LdapUser) user).getEntry().getDn().getName());
         assertEquals("User Id", expectedId, user.getExternalId().getId());
     }
 
-    public static void assertIfEquals(@NotNull String message, @NotNull String[] expected, @NotNull Iterable<ExternalIdentityRef> result) {
+    public static void assertIfEquals(@NotNull String message, @NotNull String[] expected,
+        @NotNull Iterable<ExternalIdentityRef> result) {
         List<String> dns = new LinkedList<>();
-        for (ExternalIdentityRef ref: result) {
+        for (ExternalIdentityRef ref : result) {
             dns.add(ref.getId());
         }
         Collections.sort(dns);

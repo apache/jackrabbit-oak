@@ -54,9 +54,9 @@ public class ConcurrentReadAndAddTest {
             @NotNull
             @Override
             public <T extends Document> List<T> query(Collection<T> collection,
-                                                      String fromKey,
-                                                      String toKey,
-                                                      int limit) {
+                String fromKey,
+                String toKey,
+                int limit) {
                 List<T> docs = super.query(collection, fromKey, toKey, limit);
                 if (delayQuery && Thread.currentThread() == main) {
                     try {
@@ -123,7 +123,7 @@ public class ConcurrentReadAndAddTest {
     }
 
     private void merge(NodeBuilder builder)
-            throws CommitFailedException {
+        throws CommitFailedException {
         ns.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 }

@@ -18,6 +18,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.index;
 
+import java.io.IOException;
+import java.util.List;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -33,16 +35,13 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.util.List;
-
 public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument> {
 
     private static final Logger LOG = LoggerFactory.getLogger(ElasticDocumentMaker.class);
 
     public ElasticDocumentMaker(@Nullable FulltextBinaryTextExtractor textExtractor,
-                                @NotNull IndexDefinition definition,
-                                IndexDefinition.IndexingRule indexingRule, @NotNull String path) {
+        @NotNull IndexDefinition definition,
+        IndexDefinition.IndexingRule indexingRule, @NotNull String path) {
         super(textExtractor, definition, indexingRule, path);
     }
 
@@ -66,7 +65,8 @@ public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument>
     }
 
     @Override
-    protected boolean indexTypeOrderedFields(ElasticDocument doc, String pname, int tag, PropertyState property, PropertyDefinition pd) {
+    protected boolean indexTypeOrderedFields(ElasticDocument doc, String pname, int tag,
+        PropertyState property, PropertyDefinition pd) {
         // TODO: check the conjecture below
         // ES doesn't seem to require special mapping to sort so we don't need to add anything
         return false;
@@ -89,7 +89,8 @@ public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument>
     }
 
     @Override
-    protected boolean indexFacetProperty(ElasticDocument doc, int tag, PropertyState property, String pname) {
+    protected boolean indexFacetProperty(ElasticDocument doc, int tag, PropertyState property,
+        String pname) {
         // faceting on ES works automatically for keyword (propertyIndex) and subsequently query params.
         // We don't need to add anything.
         // https://www.elastic.co/guide/en/elasticsearch/reference/current/search-aggregations-bucket-terms-aggregation.html
@@ -97,7 +98,8 @@ public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument>
     }
 
     @Override
-    protected void indexAnalyzedProperty(ElasticDocument doc, String pname, String value, PropertyDefinition pd) {
+    protected void indexAnalyzedProperty(ElasticDocument doc, String pname, String value,
+        PropertyDefinition pd) {
         // no need to do anything here. Analyzed properties are persisted in Elastic
         // using multi fields. The analyzed properties are set calling #indexTypedProperty
     }
@@ -133,8 +135,9 @@ public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument>
     }
 
     /**
-     * We store the value in :fulltext only when the {@link PropertyDefinition} has a regular expression (that means we
-     * were not able to create a ft property at mapping time) or the property is not analyzed.
+     * We store the value in :fulltext only when the {@link PropertyDefinition} has a regular
+     * expression (that means we were not able to create a ft property at mapping time) or the
+     * property is not analyzed.
      */
     @Override
     protected boolean isFulltextValuePersistedAtNode(PropertyDefinition pd) {
@@ -142,7 +145,8 @@ public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument>
     }
 
     @Override
-    protected void indexTypedProperty(ElasticDocument doc, PropertyState property, String pname, PropertyDefinition pd, int i) {
+    protected void indexTypedProperty(ElasticDocument doc, PropertyState property, String pname,
+        PropertyDefinition pd, int i) {
         // Get the Type tag from the defined index definition here - and not from the actual persisted property state - this way in case
         // If the actual property value is different from the property type defined in the index definition/mapping - this will try to convert the property if possible,
         // otherwise will log a warning and not try and add the property to index. If we try and index incompatible data types (like String to Date),
@@ -165,10 +169,10 @@ public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument>
             doc.addProperty(pname, f);
         } catch (Exception e) {
             LOG.warn(
-                    "[{}] Ignoring property. Could not convert property {} of type {} to type {} for path {}",
-                    getIndexName(), pname,
-                    Type.fromTag(property.getType().tag(), false),
-                    Type.fromTag(tag, false), path, e);
+                "[{}] Ignoring property. Could not convert property {} of type {} to type {} for path {}",
+                getIndexName(), pname,
+                Type.fromTag(property.getType().tag(), false),
+                Type.fromTag(tag, false), path, e);
         }
     }
 
@@ -191,7 +195,8 @@ public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument>
     }
 
     @Override
-    protected void indexAggregateValue(ElasticDocument doc, Aggregate.NodeIncludeResult result, String value, PropertyDefinition pd) {
+    protected void indexAggregateValue(ElasticDocument doc, Aggregate.NodeIncludeResult result,
+        String value, PropertyDefinition pd) {
         if (result.isRelativeNode()) {
             doc.addFulltextRelative(result.rootIncludePath, value);
         } else {
@@ -215,20 +220,24 @@ public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument>
     }
 
     @Override
-    protected void indexSimilarityBinaries(ElasticDocument doc, PropertyDefinition pd, Blob blob) throws IOException {
+    protected void indexSimilarityBinaries(ElasticDocument doc, PropertyDefinition pd, Blob blob)
+        throws IOException {
         // without this check, if the vector size is not correct, the entire document will be skipped
         if (pd.getSimilaritySearchDenseVectorSize() == blob.length() / 8) {
             // see https://www.elastic.co/blog/text-similarity-search-with-vectors-in-elasticsearch
             // see https://www.elastic.co/guide/en/elasticsearch/reference/current/dense-vector.html
             doc.addSimilarityField(pd.name, blob);
         } else {
-            LOG.warn("[{}] Ignoring binary property {} for path {}. Expected dimension is {} but got {}",
-                    getIndexName(), pd.name, this.path, pd.getSimilaritySearchDenseVectorSize(), blob.length() / 8);
+            LOG.warn(
+                "[{}] Ignoring binary property {} for path {}. Expected dimension is {} but got {}",
+                getIndexName(), pd.name, this.path, pd.getSimilaritySearchDenseVectorSize(),
+                blob.length() / 8);
         }
     }
 
     @Override
-    protected void indexSimilarityStrings(ElasticDocument doc, PropertyDefinition pd, String value) {
+    protected void indexSimilarityStrings(ElasticDocument doc, PropertyDefinition pd,
+        String value) {
         // TODO : not implemented
     }
 
@@ -239,7 +248,8 @@ public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument>
     }
 
     @Override
-    protected boolean indexDynamicBoost(ElasticDocument doc, String parent, String nodeName, String token, double boost) {
+    protected boolean indexDynamicBoost(ElasticDocument doc, String parent, String nodeName,
+        String token, double boost) {
         if (token.length() > 0) {
             doc.addDynamicBoostField(nodeName, token, boost);
             return true;

@@ -34,7 +34,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Function;
-
 import javax.management.openmbean.CompositeDataSupport;
 import javax.management.openmbean.CompositeType;
 import javax.management.openmbean.OpenDataException;
@@ -43,7 +42,10 @@ import javax.management.openmbean.SimpleType;
 import javax.management.openmbean.TabularData;
 import javax.management.openmbean.TabularDataSupport;
 import javax.management.openmbean.TabularType;
-
+import org.apache.jackrabbit.guava.common.base.Stopwatch;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.apache.jackrabbit.guava.common.collect.Sets;
+import org.apache.jackrabbit.guava.common.collect.TreeTraverser;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.jmx.Name;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -92,14 +94,10 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Sets;
-import org.apache.jackrabbit.guava.common.collect.TreeTraverser;
-
 public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements LuceneIndexMBean {
 
-    private static final boolean LOAD_INDEX_FOR_STATS = Boolean.parseBoolean(System.getProperty("oak.lucene.LoadIndexForStats", "false"));
+    private static final boolean LOAD_INDEX_FOR_STATS = Boolean.parseBoolean(
+        System.getProperty("oak.lucene.LoadIndexForStats", "false"));
 
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final IndexTracker indexTracker;
@@ -108,7 +106,8 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
     private final File workDir;
     private final PropertyIndexCleaner propertyIndexCleaner;
 
-    public LuceneIndexMBeanImpl(IndexTracker indexTracker, NodeStore nodeStore, IndexPathService indexPathService, File workDir, @Nullable PropertyIndexCleaner cleaner) {
+    public LuceneIndexMBeanImpl(IndexTracker indexTracker, NodeStore nodeStore,
+        IndexPathService indexPathService, File workDir, @Nullable PropertyIndexCleaner cleaner) {
         super(LuceneIndexMBean.class);
         this.indexTracker = checkNotNull(indexTracker);
         this.nodeStore = checkNotNull(nodeStore);
@@ -122,7 +121,7 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
         TabularDataSupport tds;
         try {
             TabularType tt = new TabularType(LuceneIndexMBeanImpl.class.getName(),
-                    "Lucene Index Stats", IndexStats.TYPE, new String[]{"path"});
+                "Lucene Index Stats", IndexStats.TYPE, new String[]{"path"});
             tds = new TabularDataSupport(tt);
             Set<String> indexes = indexTracker.getIndexNodePaths();
             for (String path : indexes) {
@@ -165,12 +164,12 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
         TabularDataSupport tds;
         try {
             TabularType tt = new TabularType(LuceneIndexMBeanImpl.class.getName(),
-                    "Lucene Bad Index Stats", BadIndexStats.TYPE, new String[]{"path"});
+                "Lucene Bad Index Stats", BadIndexStats.TYPE, new String[]{"path"});
             tds = new TabularDataSupport(tt);
             Set<String> indexes = indexTracker.getBadIndexTracker().getIndexPaths();
             for (String path : indexes) {
                 BadIndexTracker.BadIndexInfo info = indexTracker.getBadIndexTracker().getInfo(path);
-                if (info != null){
+                if (info != null) {
                     BadIndexStats stats = new BadIndexStats(info);
                     tds.put(stats.toCompositeData());
                 }
@@ -186,12 +185,12 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
         TabularDataSupport tds;
         try {
             TabularType tt = new TabularType(LuceneIndexMBeanImpl.class.getName(),
-                    "Lucene Bad Persisted Index Stats", BadIndexStats.TYPE, new String[]{"path"});
+                "Lucene Bad Persisted Index Stats", BadIndexStats.TYPE, new String[]{"path"});
             tds = new TabularDataSupport(tt);
             Set<String> indexes = indexTracker.getBadIndexTracker().getBadPersistedIndexPaths();
             for (String path : indexes) {
                 BadIndexInfo info = indexTracker.getBadIndexTracker().getPersistedIndexInfo(path);
-                if (info != null){
+                if (info != null) {
                     BadIndexStats stats = new BadIndexStats(info);
                     tds.put(stats.toCompositeData());
                 }
@@ -208,19 +207,22 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
     }
 
     @Override
-    public String[] getIndexedPaths(String indexPath, int maxLevel, int maxPathCount) throws IOException {
+    public String[] getIndexedPaths(String indexPath, int maxLevel, int maxPathCount)
+        throws IOException {
         LuceneIndexNode indexNode = null;
         try {
-            if(indexPath == null){
+            if (indexPath == null) {
                 indexPath = "/";
             }
 
             indexNode = indexTracker.acquireIndexNode(indexPath);
             if (indexNode != null) {
                 IndexDefinition defn = indexNode.getDefinition();
-                if (!defn.evaluatePathRestrictions()){
-                    String msg = String.format("Index at [%s] does not have [%s] enabled. So paths statistics cannot " +
-                            "be determined for this index", indexPath, FulltextIndexConstants.EVALUATE_PATH_RESTRICTION);
+                if (!defn.evaluatePathRestrictions()) {
+                    String msg = String.format(
+                        "Index at [%s] does not have [%s] enabled. So paths statistics cannot " +
+                            "be determined for this index", indexPath,
+                        FulltextIndexConstants.EVALUATE_PATH_RESTRICTION);
                     return createMsg(msg);
                 }
 
@@ -267,16 +269,19 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
     }
 
     @Override
-    public String[] getFieldTermInfo(String indexPath, String field, String term) throws IOException {
+    public String[] getFieldTermInfo(String indexPath, String field, String term)
+        throws IOException {
         return getFieldTermPrefixInfo(indexPath, field, Integer.MAX_VALUE, term, null);
     }
 
     @Override
-    public String[] getFieldTermsInfo(String indexPath, String field, String fieldType, int max) throws IOException {
+    public String[] getFieldTermsInfo(String indexPath, String field, String fieldType, int max)
+        throws IOException {
         return getFieldTermPrefixInfo(indexPath, field, max, null, fieldType);
     }
 
-    private String[] getFieldTermPrefixInfo(String indexPath, String field, int max, String term, String type) throws IOException {
+    private String[] getFieldTermPrefixInfo(String indexPath, String field, int max, String term,
+        String type) throws IOException {
         TreeSet<String> indexes = new TreeSet<>();
         if (indexPath == null || indexPath.isEmpty()) {
             indexes.addAll(indexTracker.getIndexNodePaths());
@@ -305,13 +310,14 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
     public String getStoredIndexDefinition(@Name("indexPath") String indexPath) {
         IndexDefinition defn = indexTracker.getIndexDefinition(indexPath);
         NodeState state;
-        if (defn != null){
+        if (defn != null) {
             state = defn.getDefinitionNodeState();
         } else {
-            state = NodeStateUtils.getNode(indexTracker.getRoot(), indexPath + "/" + INDEX_DEFINITION_NODE);
+            state = NodeStateUtils.getNode(indexTracker.getRoot(),
+                indexPath + "/" + INDEX_DEFINITION_NODE);
         }
 
-        if (state.exists()){
+        if (state.exists()) {
             return NodeStateUtils.toString(state);
         }
         return "No index found at given path";
@@ -319,9 +325,10 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
 
     @Override
     public String diffStoredIndexDefinition(@Name("indexPath") String indexPath) {
-        NodeState stored = NodeStateUtils.getNode(indexTracker.getRoot(), indexPath + "/" + INDEX_DEFINITION_NODE);
+        NodeState stored = NodeStateUtils.getNode(indexTracker.getRoot(),
+            indexPath + "/" + INDEX_DEFINITION_NODE);
         NodeState current = NodeStateUtils.getNode(indexTracker.getRoot(), indexPath);
-        if (stored.exists()){
+        if (stored.exists()) {
             current = NodeStateCloner.cloneVisibleState(current);
             JsopDiff diff = new JsopDiff();
             current.compareAgainstBaseState(stored, diff);
@@ -344,7 +351,8 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
         NodeState root = nodeStore.getRoot();
         for (String indexPath : indexPathService.getIndexPaths()) {
             NodeState idxState = NodeStateUtils.getNode(root, indexPath);
-            if (LuceneIndexConstants.TYPE_LUCENE.equals(idxState.getString(IndexConstants.TYPE_PROPERTY_NAME))) {
+            if (LuceneIndexConstants.TYPE_LUCENE.equals(
+                idxState.getString(IndexConstants.TYPE_PROPERTY_NAME))) {
                 Result result = getConsistencyCheckResult(indexPath, fullCheck);
                 String msg = "OK";
                 if (!result.clean) {
@@ -364,7 +372,8 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
         boolean clean = true;
         for (String indexPath : indexPathService.getIndexPaths()) {
             NodeState idxState = NodeStateUtils.getNode(root, indexPath);
-            if (LuceneIndexConstants.TYPE_LUCENE.equals(idxState.getString(IndexConstants.TYPE_PROPERTY_NAME))) {
+            if (LuceneIndexConstants.TYPE_LUCENE.equals(
+                idxState.getString(IndexConstants.TYPE_PROPERTY_NAME))) {
                 Result result = getConsistencyCheckResult(indexPath, fullCheck);
                 if (!result.clean) {
                     clean = false;
@@ -377,10 +386,12 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
     }
 
     @Override
-    public String performPropertyIndexCleanup(String paths, int batchSize, int sleepPerBatch, int maxRemoveCount) throws CommitFailedException {
+    public String performPropertyIndexCleanup(String paths, int batchSize, int sleepPerBatch,
+        int maxRemoveCount) throws CommitFailedException {
         String result = "PropertyIndexCleaner not enabled";
         if (propertyIndexCleaner != null) {
-            result = "Removed nodes: " + propertyIndexCleaner.performCleanup(paths, batchSize, sleepPerBatch, maxRemoveCount);
+            result = "Removed nodes: " + propertyIndexCleaner.performCleanup(paths, batchSize,
+                sleepPerBatch, maxRemoveCount);
         }
         log.info("Explicit cleanup run done with result {}", result);
         return result;
@@ -422,7 +433,8 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
         return String.valueOf(getIndexStats(indexPath).numDocs);
     }
 
-    private Result getConsistencyCheckResult(String indexPath, boolean fullCheck) throws IOException {
+    private Result getConsistencyCheckResult(String indexPath, boolean fullCheck)
+        throws IOException {
         NodeState root = nodeStore.getRoot();
         Level level = fullCheck ? Level.FULL : Level.BLOBS_ONLY;
         IndexConsistencyChecker checker = new IndexConsistencyChecker(root, indexPath, workDir);
@@ -432,7 +444,7 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
     public void dumpIndexContent(String sourcePath, String destPath) throws IOException {
         LuceneIndexNode indexNode = null;
         try {
-            if(sourcePath == null){
+            if (sourcePath == null) {
                 sourcePath = "/";
             }
 
@@ -453,12 +465,13 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
         }
     }
 
-    private static ArrayList<String> getFieldInfo(String path, IndexSearcher searcher) throws IOException {
+    private static ArrayList<String> getFieldInfo(String path, IndexSearcher searcher)
+        throws IOException {
         ArrayList<String> list = new ArrayList<String>();
         IndexReader reader = searcher.getIndexReader();
         Fields fields = MultiFields.getFields(reader);
         if (fields != null) {
-            for(String f : fields) {
+            for (String f : fields) {
                 list.add(path + " " + f + " " + reader.getDocCount(f));
             }
         }
@@ -477,20 +490,21 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
     }
 
     private static ArrayList<String> getFieldTerms(String path,
-            String field, int max, String term, IndexSearcher searcher, String type) throws IOException {
+        String field, int max, String term, IndexSearcher searcher, String type)
+        throws IOException {
         if (field == null || field.isEmpty()) {
             ArrayList<String> list = new ArrayList<>();
             IndexReader reader = searcher.getIndexReader();
             Fields fields = MultiFields.getFields(reader);
             if (fields != null) {
-                for(String f : fields) {
+                for (String f : fields) {
                     list.addAll(getFieldTerms(path, f, max, term, searcher, null));
                 }
             }
             return list;
         }
 
-        Function<BytesRef,String> handler = getTypeHandler(type);
+        Function<BytesRef, String> handler = getTypeHandler(type);
         IndexReader reader = searcher.getIndexReader();
         Terms terms = MultiFields.getTerms(reader, field);
         ArrayList<String> result = new ArrayList<>();
@@ -500,8 +514,10 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
         TermsEnum iterator = terms.iterator(null);
         BytesRef byteRef = null;
         class Entry implements Comparable<Entry> {
+
             String term;
             int count;
+
             @Override
             public int compareTo(Entry o) {
                 int c = Integer.compare(count, o.count);
@@ -513,7 +529,7 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
         }
         ArrayList<Entry> list = new ArrayList<>();
         long totalCount = 0;
-        while((byteRef = iterator.next()) != null) {
+        while ((byteRef = iterator.next()) != null) {
             Entry e = new Entry();
             e.term = handler.apply(byteRef);
             if (term != null) {
@@ -532,7 +548,7 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
         }
         sortAndTruncateList(list, max);
         result.add(totalCount + " (total for field " + field + ")");
-        for(Entry e : list) {
+        for (Entry e : list) {
             result.add(e.count + " " + e.term);
         }
         return result;
@@ -545,19 +561,22 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
         }
     }
 
-    private static String[] determineIndexedPaths(IndexSearcher searcher, final int maxLevel, int maxPathCount)
-            throws IOException {
+    private static String[] determineIndexedPaths(IndexSearcher searcher, final int maxLevel,
+        int maxPathCount)
+        throws IOException {
         Set<String> paths = Sets.newHashSet();
         int startDepth = getStartDepth(searcher, maxLevel);
-        if (startDepth < 0){
-            return createMsg("startDepth cannot be determined after search for upto maxLevel ["+maxLevel+"]");
+        if (startDepth < 0) {
+            return createMsg(
+                "startDepth cannot be determined after search for upto maxLevel [" + maxLevel
+                    + "]");
         }
 
         SearchContext sc = new SearchContext(searcher);
         List<LuceneDoc> docs = getDocsAtLevel(startDepth, sc);
         int maxPathLimitBreachedAtLevel = -1;
         topLevel:
-        for (LuceneDoc doc : docs){
+        for (LuceneDoc doc : docs) {
             TreeTraverser<LuceneDoc> traverser = new TreeTraverser<LuceneDoc>() {
                 @Override
                 public Iterable<LuceneDoc> children(@NotNull LuceneDoc root) {
@@ -599,16 +618,16 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
     }
 
     /**
-     * Look for the startDepth. An index might have dat only at paths like /a/b/c so
-     * to determine the start depth which needs to be used for query we need to find
-     * out depth at which we start getting any entry
+     * Look for the startDepth. An index might have dat only at paths like /a/b/c so to determine
+     * the start depth which needs to be used for query we need to find out depth at which we start
+     * getting any entry
      */
     private static int getStartDepth(IndexSearcher searcher, int maxLevel) throws IOException {
         int depth = 0;
-        while(depth < maxLevel){
+        while (depth < maxLevel) {
             //Confirm if we have any hit at current depth
             TopDocs docs = searcher.search(newDepthQuery(depth), 1);
-            if (docs.totalHits != 0){
+            if (docs.totalHits != 0) {
                 return depth;
             }
             depth++;
@@ -616,12 +635,14 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
         return -1;
     }
 
-    private static List<LuceneDoc> getDocsAtLevel(int startDepth, SearchContext sc) throws IOException {
+    private static List<LuceneDoc> getDocsAtLevel(int startDepth, SearchContext sc)
+        throws IOException {
         TopDocs docs = sc.searcher.search(newDepthQuery(startDepth), Integer.MAX_VALUE);
         return getLuceneDocs(docs, sc);
     }
 
-    private static class SearchContext{
+    private static class SearchContext {
+
         final IndexSearcher searcher;
 
         SearchContext(IndexSearcher searcher) {
@@ -630,6 +651,7 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
     }
 
     private static class LuceneDoc {
+
         final String path;
         final SearchContext sc;
         final int depth;
@@ -643,7 +665,8 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
         public Iterable<LuceneDoc> getChildren() {
             //Perform a query for immediate child nodes at given path
             BooleanQuery bq = new BooleanQuery();
-            bq.add(new BooleanClause(new TermQuery(newAncestorTerm(path)), BooleanClause.Occur.MUST));
+            bq.add(
+                new BooleanClause(new TermQuery(newAncestorTerm(path)), BooleanClause.Occur.MUST));
             bq.add(new BooleanClause(newDepthQuery(path), BooleanClause.Occur.MUST));
 
             try {
@@ -655,10 +678,11 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
         }
     }
 
-    private static List<LuceneDoc> getLuceneDocs(TopDocs docs, SearchContext sc) throws IOException {
+    private static List<LuceneDoc> getLuceneDocs(TopDocs docs, SearchContext sc)
+        throws IOException {
         List<LuceneDoc> result = new ArrayList<LuceneDoc>(docs.scoreDocs.length);
         IndexReader reader = sc.searcher.getIndexReader();
-        for (ScoreDoc doc : docs.scoreDocs){
+        for (ScoreDoc doc : docs.scoreDocs) {
             result.add(new LuceneDoc(getPath(reader, doc), sc));
         }
         return result;
@@ -679,52 +703,53 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
         return NumericRangeQuery.newIntRange(FieldNames.PATH_DEPTH, depth, depth, true, true);
     }
 
-    private static String[] createMsg(String msg){
-        return new String[] {msg};
+    private static String[] createMsg(String msg) {
+        return new String[]{msg};
     }
 
     private static class IndexStats {
+
         static final String[] FIELD_NAMES = new String[]{
-                "path",
-                "indexSizeStr",
-                "indexSize",
-                "suggesterSizeStr",
-                "suggesterSize",
-                "numDocs",
-                "maxDoc",
-                "numDeletedDocs",
-                "nrtIndexSize",
-                "nrtIndexSizeStr",
-                "nrtNumDocs"
+            "path",
+            "indexSizeStr",
+            "indexSize",
+            "suggesterSizeStr",
+            "suggesterSize",
+            "numDocs",
+            "maxDoc",
+            "numDeletedDocs",
+            "nrtIndexSize",
+            "nrtIndexSizeStr",
+            "nrtNumDocs"
         };
 
         static final String[] FIELD_DESCRIPTIONS = new String[]{
-                "Path",
-                "Index size in human readable format",
-                "Index size in bytes",
-                "Suggester size in human readable format",
-                "Suggester size in bytes",
-                "Number of documents in this index.",
-                "The time and date for when the longest query took place",
-                "Number of deleted documents",
-                "NRT Index Size in bytes",
-                "NRT Index Size in human readable format",
-                "Number of documents in NRT index"
+            "Path",
+            "Index size in human readable format",
+            "Index size in bytes",
+            "Suggester size in human readable format",
+            "Suggester size in bytes",
+            "Number of documents in this index.",
+            "The time and date for when the longest query took place",
+            "Number of deleted documents",
+            "NRT Index Size in bytes",
+            "NRT Index Size in human readable format",
+            "Number of documents in NRT index"
         };
 
         @SuppressWarnings("rawtypes")
         static final OpenType[] FIELD_TYPES = new OpenType[]{
-                SimpleType.STRING,
-                SimpleType.STRING,
-                SimpleType.LONG,
-                SimpleType.STRING,
-                SimpleType.LONG,
-                SimpleType.INTEGER,
-                SimpleType.INTEGER,
-                SimpleType.INTEGER,
-                SimpleType.LONG,
-                SimpleType.STRING,
-                SimpleType.INTEGER
+            SimpleType.STRING,
+            SimpleType.STRING,
+            SimpleType.LONG,
+            SimpleType.STRING,
+            SimpleType.LONG,
+            SimpleType.INTEGER,
+            SimpleType.INTEGER,
+            SimpleType.INTEGER,
+            SimpleType.LONG,
+            SimpleType.STRING,
+            SimpleType.INTEGER
         };
 
         static final CompositeType TYPE = createCompositeType();
@@ -732,11 +757,11 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
         static CompositeType createCompositeType() {
             try {
                 return new CompositeType(
-                        IndexStats.class.getName(),
-                        "Composite data type for Lucene Index statistics",
-                        IndexStats.FIELD_NAMES,
-                        IndexStats.FIELD_DESCRIPTIONS,
-                        IndexStats.FIELD_TYPES);
+                    IndexStats.class.getName(),
+                    "Composite data type for Lucene Index statistics",
+                    IndexStats.FIELD_NAMES,
+                    IndexStats.FIELD_DESCRIPTIONS,
+                    IndexStats.FIELD_TYPES);
             } catch (OpenDataException e) {
                 throw new IllegalStateException(e);
             }
@@ -770,17 +795,17 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
 
         CompositeDataSupport toCompositeData() {
             Object[] values = new Object[]{
-                    path,
-                    indexSizeStr,
-                    indexSize,
-                    suggesterSizeStr,
-                    suggesterSize,
-                    numDocs,
-                    maxDoc,
-                    numDeletedDocs,
-                    nrtIndexSize,
-                    nrtIndexSizeStr,
-                    numDocsNRT
+                path,
+                indexSizeStr,
+                indexSize,
+                suggesterSizeStr,
+                suggesterSize,
+                numDocs,
+                maxDoc,
+                numDeletedDocs,
+                nrtIndexSize,
+                nrtIndexSizeStr,
+                numDocsNRT
             };
             try {
                 return new CompositeDataSupport(TYPE, FIELD_NAMES, values);
@@ -791,26 +816,27 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
     }
 
     private static class BadIndexStats {
+
         static final String[] FIELD_NAMES = new String[]{
-                "path",
-                "stats",
-                "failingSince",
-                "exception"
+            "path",
+            "stats",
+            "failingSince",
+            "exception"
         };
 
         static final String[] FIELD_DESCRIPTIONS = new String[]{
-                "Path",
-                "Failure stats",
-                "Failure start time",
-                "Exception"
+            "Path",
+            "Failure stats",
+            "Failure start time",
+            "Exception"
         };
 
         @SuppressWarnings("rawtypes")
         static final OpenType[] FIELD_TYPES = new OpenType[]{
-                SimpleType.STRING,
-                SimpleType.STRING,
-                SimpleType.STRING,
-                SimpleType.STRING,
+            SimpleType.STRING,
+            SimpleType.STRING,
+            SimpleType.STRING,
+            SimpleType.STRING,
         };
 
         static final CompositeType TYPE = createCompositeType();
@@ -818,11 +844,11 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
         static CompositeType createCompositeType() {
             try {
                 return new CompositeType(
-                        BadIndexStats.class.getName(),
-                        "Composite data type for Lucene Bad Index statistics",
-                        BadIndexStats.FIELD_NAMES,
-                        BadIndexStats.FIELD_DESCRIPTIONS,
-                        BadIndexStats.FIELD_TYPES);
+                    BadIndexStats.class.getName(),
+                    "Composite data type for Lucene Bad Index statistics",
+                    BadIndexStats.FIELD_NAMES,
+                    BadIndexStats.FIELD_DESCRIPTIONS,
+                    BadIndexStats.FIELD_TYPES);
             } catch (OpenDataException e) {
                 throw new IllegalStateException(e);
             }
@@ -830,16 +856,16 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
 
         private final BadIndexTracker.BadIndexInfo info;
 
-        public BadIndexStats(BadIndexTracker.BadIndexInfo info){
+        public BadIndexStats(BadIndexTracker.BadIndexInfo info) {
             this.info = info;
         }
 
         CompositeDataSupport toCompositeData() {
             Object[] values = new Object[]{
-                    info.path,
-                    info.getStats(),
-                    String.format("%tc", info.getCreatedTime()),
-                    info.getException(),
+                info.path,
+                info.getStats(),
+                String.format("%tc", info.getCreatedTime()),
+                info.getException(),
             };
             try {
                 return new CompositeDataSupport(TYPE, FIELD_NAMES, values);
@@ -856,7 +882,7 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
 
     private static long getIndexSize(List<LuceneIndexReader> readers) throws IOException {
         long totalSize = 0;
-        for (LuceneIndexReader r : readers){
+        for (LuceneIndexReader r : readers) {
             totalSize += r.getIndexSize();
         }
         return totalSize;
@@ -871,7 +897,7 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
 
     private static int getNumDocs(List<LuceneIndexReader> readers) {
         int numDoc = 0;
-        for (LuceneIndexReader r : readers){
+        for (LuceneIndexReader r : readers) {
             numDoc += r.getReader().numDocs();
         }
         return numDoc;

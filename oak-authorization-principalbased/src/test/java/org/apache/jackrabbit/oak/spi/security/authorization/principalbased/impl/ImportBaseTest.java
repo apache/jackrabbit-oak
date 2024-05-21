@@ -86,9 +86,12 @@ public abstract class ImportBaseTest extends AbstractPrincipalBasedTest {
         jcr.with(getSecurityProvider());
         jcr.with(getQueryEngineSettings());
         repo = jcr.createRepository();
-        adminSession = (JackrabbitSession) repo.login(new SimpleCredentials(UserConstants.DEFAULT_ADMIN_ID, UserConstants.DEFAULT_ADMIN_ID.toCharArray()));
+        adminSession = (JackrabbitSession) repo.login(
+            new SimpleCredentials(UserConstants.DEFAULT_ADMIN_ID,
+                UserConstants.DEFAULT_ADMIN_ID.toCharArray()));
 
-        User u = getUserManager().createSystemUser("testSystemUser" + UUID.randomUUID(), getNamePathMapper().getJcrPath(INTERMEDIATE_PATH));
+        User u = getUserManager().createSystemUser("testSystemUser" + UUID.randomUUID(),
+            getNamePathMapper().getJcrPath(INTERMEDIATE_PATH));
         adminSession.save();
         uid = u.getID();
         testPath = u.getPath();
@@ -118,7 +121,8 @@ public abstract class ImportBaseTest extends AbstractPrincipalBasedTest {
     @Override
     protected ConfigurationParameters getSecurityConfigParameters() {
         return ConfigurationParameters.of(AuthorizationConfiguration.NAME,
-                ConfigurationParameters.of(ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, getImportBehavior())
+            ConfigurationParameters.of(ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR,
+                getImportBehavior())
         );
     }
 
@@ -140,7 +144,8 @@ public abstract class ImportBaseTest extends AbstractPrincipalBasedTest {
         doImport(adminSession, parentPath, xml, ImportUUIDBehavior.IMPORT_UUID_COLLISION_THROW);
     }
 
-    void doImport(Session importSession, String parentPath, String xml, int importUUIDBehavior) throws Exception {
+    void doImport(Session importSession, String parentPath, String xml, int importUUIDBehavior)
+        throws Exception {
         InputStream in;
         if (xml.charAt(0) == '<') {
             in = new ByteArrayInputStream(xml.getBytes());
@@ -157,9 +162,12 @@ public abstract class ImportBaseTest extends AbstractPrincipalBasedTest {
     @Test(expected = ConstraintViolationException.class)
     public void testPolicyWithoutPrincipalName() throws Exception {
         String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
-                "<sv:node sv:name=\""+REP_PRINCIPAL_POLICY+"\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
-                    "<sv:property sv:name=\""+JCR_PRIMARYTYPE+"\" sv:type=\"Name\"><sv:value>"+NT_REP_PRINCIPAL_POLICY+"</sv:value></sv:property>" +
-                "</sv:node>";
+            "<sv:node sv:name=\"" + REP_PRINCIPAL_POLICY
+            + "\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">"
+            +
+            "<sv:property sv:name=\"" + JCR_PRIMARYTYPE + "\" sv:type=\"Name\"><sv:value>"
+            + NT_REP_PRINCIPAL_POLICY + "</sv:value></sv:property>" +
+            "</sv:node>";
         adminSession.getNode(testPath).addMixin(MIX_REP_PRINCIPAL_BASED_MIXIN);
         doImport(testPath, xml);
 
@@ -170,10 +178,14 @@ public abstract class ImportBaseTest extends AbstractPrincipalBasedTest {
     @Test
     public void testEmptyPolicyMissingMixinType() throws Exception {
         String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
-                "<sv:node sv:name=\""+REP_PRINCIPAL_POLICY+"\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
-                    "<sv:property sv:name=\""+JCR_PRIMARYTYPE+"\" sv:type=\"Name\"><sv:value>"+NT_REP_PRINCIPAL_POLICY+"</sv:value></sv:property>" +
-                    "<sv:property sv:name=\""+REP_PRINCIPAL_NAME+"\" sv:type=\"String\"><sv:value>" + testPrincipalName + "</sv:value></sv:property>" +
-                "</sv:node>";
+            "<sv:node sv:name=\"" + REP_PRINCIPAL_POLICY
+            + "\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">"
+            +
+            "<sv:property sv:name=\"" + JCR_PRIMARYTYPE + "\" sv:type=\"Name\"><sv:value>"
+            + NT_REP_PRINCIPAL_POLICY + "</sv:value></sv:property>" +
+            "<sv:property sv:name=\"" + REP_PRINCIPAL_NAME + "\" sv:type=\"String\"><sv:value>"
+            + testPrincipalName + "</sv:value></sv:property>" +
+            "</sv:node>";
         doImport(testPath, xml);
 
         assertTrue(adminSession.getNode(testPath).isNodeType(MIX_REP_PRINCIPAL_BASED_MIXIN));
@@ -184,14 +196,19 @@ public abstract class ImportBaseTest extends AbstractPrincipalBasedTest {
     @Test
     public void testEmptyPolicy() throws Exception {
         String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
-                "<sv:node sv:name=\""+REP_PRINCIPAL_POLICY+"\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
-                    "<sv:property sv:name=\""+JCR_PRIMARYTYPE+"\" sv:type=\"Name\"><sv:value>"+NT_REP_PRINCIPAL_POLICY+"</sv:value></sv:property>" +
-                    "<sv:property sv:name=\""+REP_PRINCIPAL_NAME+"\" sv:type=\"String\"><sv:value>" + testPrincipalName + "</sv:value></sv:property>" +
-                "</sv:node>";
+            "<sv:node sv:name=\"" + REP_PRINCIPAL_POLICY
+            + "\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">"
+            +
+            "<sv:property sv:name=\"" + JCR_PRIMARYTYPE + "\" sv:type=\"Name\"><sv:value>"
+            + NT_REP_PRINCIPAL_POLICY + "</sv:value></sv:property>" +
+            "<sv:property sv:name=\"" + REP_PRINCIPAL_NAME + "\" sv:type=\"String\"><sv:value>"
+            + testPrincipalName + "</sv:value></sv:property>" +
+            "</sv:node>";
         adminSession.getNode(testPath).addMixin(MIX_REP_PRINCIPAL_BASED_MIXIN);
         doImport(testPath, xml);
 
-        PrincipalPolicyImpl policy = getPrincipalPolicyImpl(testPrincipal, getAccessControlManager());
+        PrincipalPolicyImpl policy = getPrincipalPolicyImpl(testPrincipal,
+            getAccessControlManager());
         assertTrue(policy.isEmpty());
         adminSession.save();
     }
@@ -199,10 +216,13 @@ public abstract class ImportBaseTest extends AbstractPrincipalBasedTest {
     @Test(expected = ConstraintViolationException.class)
     public void testEmptyPolicyWithInvalidNodeName() throws Exception {
         String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
-                "<sv:node sv:name=\"someOtherNode\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
-                    "<sv:property sv:name=\""+JCR_PRIMARYTYPE+"\" sv:type=\"Name\"><sv:value>"+NT_REP_PRINCIPAL_POLICY+"</sv:value></sv:property>" +
-                    "<sv:property sv:name=\""+REP_PRINCIPAL_NAME+"\" sv:type=\"String\"><sv:value>" + testPrincipalName + "</sv:value></sv:property>" +
-                "</sv:node>";
+            "<sv:node sv:name=\"someOtherNode\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">"
+            +
+            "<sv:property sv:name=\"" + JCR_PRIMARYTYPE + "\" sv:type=\"Name\"><sv:value>"
+            + NT_REP_PRINCIPAL_POLICY + "</sv:value></sv:property>" +
+            "<sv:property sv:name=\"" + REP_PRINCIPAL_NAME + "\" sv:type=\"String\"><sv:value>"
+            + testPrincipalName + "</sv:value></sv:property>" +
+            "</sv:node>";
 
         adminSession.getNode(testPath).addMixin(MIX_REP_PRINCIPAL_BASED_MIXIN);
         doImport(testPath, xml);
@@ -212,10 +232,14 @@ public abstract class ImportBaseTest extends AbstractPrincipalBasedTest {
     @Test(expected = ConstraintViolationException.class)
     public void testEmptyPolicyPrincipalNameTypeMismatch() throws Exception {
         String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
-                "<sv:node sv:name=\""+REP_PRINCIPAL_POLICY+"\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
-                    "<sv:property sv:name=\""+JCR_PRIMARYTYPE+"\" sv:type=\"Name\"><sv:value>"+NT_REP_PRINCIPAL_POLICY+"</sv:value></sv:property>" +
-                    "<sv:property sv:name=\""+REP_PRINCIPAL_NAME+"\" sv:type=\"Name\"><sv:value>" + getTestUser().getPrincipal().getName() + "</sv:value></sv:property>" +
-                "</sv:node>";
+            "<sv:node sv:name=\"" + REP_PRINCIPAL_POLICY
+            + "\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">"
+            +
+            "<sv:property sv:name=\"" + JCR_PRIMARYTYPE + "\" sv:type=\"Name\"><sv:value>"
+            + NT_REP_PRINCIPAL_POLICY + "</sv:value></sv:property>" +
+            "<sv:property sv:name=\"" + REP_PRINCIPAL_NAME + "\" sv:type=\"Name\"><sv:value>"
+            + getTestUser().getPrincipal().getName() + "</sv:value></sv:property>" +
+            "</sv:node>";
         adminSession.getNode(testPath).addMixin(MIX_REP_PRINCIPAL_BASED_MIXIN);
         doImport(testPath, xml);
     }
@@ -223,10 +247,15 @@ public abstract class ImportBaseTest extends AbstractPrincipalBasedTest {
     @Test(expected = ConstraintViolationException.class)
     public void testEmptyPolicyPrincipalNameMultiple() throws Exception {
         String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
-                "<sv:node sv:name=\""+REP_PRINCIPAL_POLICY+"\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
-                    "<sv:property sv:name=\""+JCR_PRIMARYTYPE+"\" sv:type=\"Name\"><sv:value>"+NT_REP_PRINCIPAL_POLICY+"</sv:value></sv:property>" +
-                    "<sv:property sv:name=\""+REP_PRINCIPAL_NAME+"\" sv:type=\"String\" sv:multiple=\"true\"><sv:value>" + testPrincipalName + "</sv:value></sv:property>" +
-                "</sv:node>";
+            "<sv:node sv:name=\"" + REP_PRINCIPAL_POLICY
+            + "\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">"
+            +
+            "<sv:property sv:name=\"" + JCR_PRIMARYTYPE + "\" sv:type=\"Name\"><sv:value>"
+            + NT_REP_PRINCIPAL_POLICY + "</sv:value></sv:property>" +
+            "<sv:property sv:name=\"" + REP_PRINCIPAL_NAME
+            + "\" sv:type=\"String\" sv:multiple=\"true\"><sv:value>" + testPrincipalName
+            + "</sv:value></sv:property>" +
+            "</sv:node>";
         adminSession.getNode(testPath).addMixin(MIX_REP_PRINCIPAL_BASED_MIXIN);
         doImport(testPath, xml);
     }
@@ -234,14 +263,22 @@ public abstract class ImportBaseTest extends AbstractPrincipalBasedTest {
     @Test(expected = ConstraintViolationException.class)
     public void testNestedPolicy() throws Exception {
         String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
-                "<sv:node sv:name=\""+REP_PRINCIPAL_POLICY+"\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
-                    "<sv:property sv:name=\""+JCR_PRIMARYTYPE+"\" sv:type=\"Name\"><sv:value>"+NT_REP_PRINCIPAL_POLICY+"</sv:value></sv:property>" +
-                    "<sv:property sv:name=\""+REP_PRINCIPAL_NAME+"\" sv:type=\"String\"><sv:value>" + testPrincipalName + "</sv:value></sv:property>" +
-                     "<sv:node sv:name=\""+REP_PRINCIPAL_POLICY+"\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
-                         "<sv:property sv:name=\""+JCR_PRIMARYTYPE+"\" sv:type=\"Name\"><sv:value>"+NT_REP_PRINCIPAL_POLICY+"</sv:value></sv:property>" +
-                         "<sv:property sv:name=\""+REP_PRINCIPAL_NAME+"\" sv:type=\"String\"><sv:value>" + testPrincipalName + "</sv:value></sv:property>" +
-                    "</sv:node>" +
-                "</sv:node>";
+            "<sv:node sv:name=\"" + REP_PRINCIPAL_POLICY
+            + "\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">"
+            +
+            "<sv:property sv:name=\"" + JCR_PRIMARYTYPE + "\" sv:type=\"Name\"><sv:value>"
+            + NT_REP_PRINCIPAL_POLICY + "</sv:value></sv:property>" +
+            "<sv:property sv:name=\"" + REP_PRINCIPAL_NAME + "\" sv:type=\"String\"><sv:value>"
+            + testPrincipalName + "</sv:value></sv:property>" +
+            "<sv:node sv:name=\"" + REP_PRINCIPAL_POLICY
+            + "\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">"
+            +
+            "<sv:property sv:name=\"" + JCR_PRIMARYTYPE + "\" sv:type=\"Name\"><sv:value>"
+            + NT_REP_PRINCIPAL_POLICY + "</sv:value></sv:property>" +
+            "<sv:property sv:name=\"" + REP_PRINCIPAL_NAME + "\" sv:type=\"String\"><sv:value>"
+            + testPrincipalName + "</sv:value></sv:property>" +
+            "</sv:node>" +
+            "</sv:node>";
 
         adminSession.getNode(testPath).addMixin(MIX_REP_PRINCIPAL_BASED_MIXIN);
         doImport(testPath, xml);
@@ -250,10 +287,14 @@ public abstract class ImportBaseTest extends AbstractPrincipalBasedTest {
     @Test(expected = ConstraintViolationException.class)
     public void testEmptyPolicyWithInvalidPrincipalName() throws Exception {
         String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
-                "<sv:node sv:name=\""+REP_PRINCIPAL_POLICY+"\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
-                    "<sv:property sv:name=\""+JCR_PRIMARYTYPE+"\" sv:type=\"Name\"><sv:value>"+NT_REP_PRINCIPAL_POLICY+"</sv:value></sv:property>" +
-                    "<sv:property sv:name=\""+REP_PRINCIPAL_NAME+"\" sv:type=\"String\"><sv:value>"+getTestUser().getPrincipal().getName()+"</sv:value></sv:property>" +
-                "</sv:node>";
+            "<sv:node sv:name=\"" + REP_PRINCIPAL_POLICY
+            + "\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">"
+            +
+            "<sv:property sv:name=\"" + JCR_PRIMARYTYPE + "\" sv:type=\"Name\"><sv:value>"
+            + NT_REP_PRINCIPAL_POLICY + "</sv:value></sv:property>" +
+            "<sv:property sv:name=\"" + REP_PRINCIPAL_NAME + "\" sv:type=\"String\"><sv:value>"
+            + getTestUser().getPrincipal().getName() + "</sv:value></sv:property>" +
+            "</sv:node>";
 
         adminSession.getNode(testPath).addMixin(MIX_REP_PRINCIPAL_BASED_MIXIN);
         doImport(testPath, xml);
@@ -263,98 +304,138 @@ public abstract class ImportBaseTest extends AbstractPrincipalBasedTest {
     @Test(expected = ConstraintViolationException.class)
     public void testEntryWithMissingEffectivePath() throws Exception {
         String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
-                "<sv:node sv:name=\""+REP_PRINCIPAL_POLICY+"\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
-                    "<sv:property sv:name=\""+JCR_PRIMARYTYPE+"\" sv:type=\"Name\"><sv:value>"+NT_REP_PRINCIPAL_POLICY+"</sv:value></sv:property>" +
-                    "<sv:property sv:name=\""+REP_PRINCIPAL_NAME+"\" sv:type=\"String\"><sv:value>"+testPrincipalName+"</sv:value></sv:property>" +
-                    "<sv:node sv:name=\"entry0\">" +
-                        "<sv:property sv:name=\""+JCR_PRIMARYTYPE+"\" sv:type=\"Name\"><sv:value>"+NT_REP_PRINCIPAL_ENTRY+"</sv:value></sv:property>" +
-                        "<sv:property sv:name=\""+REP_PRIVILEGES+"\" sv:type=\"Name\" sv:multiple=\"true\">" +
-                            "<sv:value>"+JCR_READ+"</sv:value>" +
-                        "</sv:property>" +
-                    "</sv:node>" +
-                "</sv:node>";
+            "<sv:node sv:name=\"" + REP_PRINCIPAL_POLICY
+            + "\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">"
+            +
+            "<sv:property sv:name=\"" + JCR_PRIMARYTYPE + "\" sv:type=\"Name\"><sv:value>"
+            + NT_REP_PRINCIPAL_POLICY + "</sv:value></sv:property>" +
+            "<sv:property sv:name=\"" + REP_PRINCIPAL_NAME + "\" sv:type=\"String\"><sv:value>"
+            + testPrincipalName + "</sv:value></sv:property>" +
+            "<sv:node sv:name=\"entry0\">" +
+            "<sv:property sv:name=\"" + JCR_PRIMARYTYPE + "\" sv:type=\"Name\"><sv:value>"
+            + NT_REP_PRINCIPAL_ENTRY + "</sv:value></sv:property>" +
+            "<sv:property sv:name=\"" + REP_PRIVILEGES + "\" sv:type=\"Name\" sv:multiple=\"true\">"
+            +
+            "<sv:value>" + JCR_READ + "</sv:value>" +
+            "</sv:property>" +
+            "</sv:node>" +
+            "</sv:node>";
         doImport(testPath, xml);
     }
 
     @Test(expected = ConstraintViolationException.class)
     public void testEntryWithEffectivePathTypeMismatch() throws Exception {
         String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
-                "<sv:node sv:name=\""+REP_PRINCIPAL_POLICY+"\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
-                    "<sv:property sv:name=\""+JCR_PRIMARYTYPE+"\" sv:type=\"Name\"><sv:value>"+NT_REP_PRINCIPAL_POLICY+"</sv:value></sv:property>" +
-                    "<sv:property sv:name=\""+REP_PRINCIPAL_NAME+"\" sv:type=\"String\"><sv:value>"+testPrincipalName+"</sv:value></sv:property>" +
-                    "<sv:node sv:name=\"entry0\">" +
-                        "<sv:property sv:name=\""+JCR_PRIMARYTYPE+"\" sv:type=\"Name\"><sv:value>"+NT_REP_PRINCIPAL_ENTRY+"</sv:value></sv:property>" +
-                        "<sv:property sv:name=\""+REP_EFFECTIVE_PATH+"\" sv:type=\"String\"><sv:value>/content</sv:value></sv:property>" +
-                        "<sv:property sv:name=\""+REP_PRIVILEGES+"\" sv:type=\"Name\" sv:multiple=\"true\">" +
-                        "<sv:value>"+JCR_READ+"</sv:value>" +
-                        "</sv:property>" +
-                    "</sv:node>" +
-                "</sv:node>";
+            "<sv:node sv:name=\"" + REP_PRINCIPAL_POLICY
+            + "\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">"
+            +
+            "<sv:property sv:name=\"" + JCR_PRIMARYTYPE + "\" sv:type=\"Name\"><sv:value>"
+            + NT_REP_PRINCIPAL_POLICY + "</sv:value></sv:property>" +
+            "<sv:property sv:name=\"" + REP_PRINCIPAL_NAME + "\" sv:type=\"String\"><sv:value>"
+            + testPrincipalName + "</sv:value></sv:property>" +
+            "<sv:node sv:name=\"entry0\">" +
+            "<sv:property sv:name=\"" + JCR_PRIMARYTYPE + "\" sv:type=\"Name\"><sv:value>"
+            + NT_REP_PRINCIPAL_ENTRY + "</sv:value></sv:property>" +
+            "<sv:property sv:name=\"" + REP_EFFECTIVE_PATH
+            + "\" sv:type=\"String\"><sv:value>/content</sv:value></sv:property>" +
+            "<sv:property sv:name=\"" + REP_PRIVILEGES + "\" sv:type=\"Name\" sv:multiple=\"true\">"
+            +
+            "<sv:value>" + JCR_READ + "</sv:value>" +
+            "</sv:property>" +
+            "</sv:node>" +
+            "</sv:node>";
         doImport(testPath, xml);
     }
 
     @Test(expected = RepositoryException.class)
     public void testEntryWithEffectivePathMV() throws Exception {
         String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
-                "<sv:node sv:name=\""+REP_PRINCIPAL_POLICY+"\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
-                    "<sv:property sv:name=\""+JCR_PRIMARYTYPE+"\" sv:type=\"Name\"><sv:value>"+NT_REP_PRINCIPAL_POLICY+"</sv:value></sv:property>" +
-                    "<sv:property sv:name=\""+REP_PRINCIPAL_NAME+"\" sv:type=\"String\"><sv:value>"+testPrincipalName+"</sv:value></sv:property>" +
-                    "<sv:node sv:name=\"entry0\">" +
-                        "<sv:property sv:name=\""+JCR_PRIMARYTYPE+"\" sv:type=\"Name\"><sv:value>"+NT_REP_PRINCIPAL_ENTRY+"</sv:value></sv:property>" +
-                        "<sv:property sv:name=\""+REP_EFFECTIVE_PATH+"\" sv:type=\"Path\" sv:multiple=\"true\"><sv:value>/content</sv:value></sv:property>" +
-                        "<sv:property sv:name=\""+REP_PRIVILEGES+"\" sv:type=\"Name\" sv:multiple=\"true\">" +
-                        "<sv:value>"+JCR_READ+"</sv:value>" +
-                        "</sv:property>" +
-                    "</sv:node>" +
-                "</sv:node>";
+            "<sv:node sv:name=\"" + REP_PRINCIPAL_POLICY
+            + "\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">"
+            +
+            "<sv:property sv:name=\"" + JCR_PRIMARYTYPE + "\" sv:type=\"Name\"><sv:value>"
+            + NT_REP_PRINCIPAL_POLICY + "</sv:value></sv:property>" +
+            "<sv:property sv:name=\"" + REP_PRINCIPAL_NAME + "\" sv:type=\"String\"><sv:value>"
+            + testPrincipalName + "</sv:value></sv:property>" +
+            "<sv:node sv:name=\"entry0\">" +
+            "<sv:property sv:name=\"" + JCR_PRIMARYTYPE + "\" sv:type=\"Name\"><sv:value>"
+            + NT_REP_PRINCIPAL_ENTRY + "</sv:value></sv:property>" +
+            "<sv:property sv:name=\"" + REP_EFFECTIVE_PATH
+            + "\" sv:type=\"Path\" sv:multiple=\"true\"><sv:value>/content</sv:value></sv:property>"
+            +
+            "<sv:property sv:name=\"" + REP_PRIVILEGES + "\" sv:type=\"Name\" sv:multiple=\"true\">"
+            +
+            "<sv:value>" + JCR_READ + "</sv:value>" +
+            "</sv:property>" +
+            "</sv:node>" +
+            "</sv:node>";
         doImport(testPath, xml);
     }
 
     @Test(expected = ConstraintViolationException.class)
     public void testEntryWithMissingPrivileges() throws Exception {
         String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
-                "<sv:node sv:name=\""+REP_PRINCIPAL_POLICY+"\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
-                    "<sv:property sv:name=\""+JCR_PRIMARYTYPE+"\" sv:type=\"Name\"><sv:value>"+NT_REP_PRINCIPAL_POLICY+"</sv:value></sv:property>" +
-                    "<sv:property sv:name=\""+REP_PRINCIPAL_NAME+"\" sv:type=\"String\"><sv:value>"+testPrincipalName+"</sv:value></sv:property>" +
-                    "<sv:node sv:name=\"entry0\">" +
-                        "<sv:property sv:name=\""+JCR_PRIMARYTYPE+"\" sv:type=\"Name\"><sv:value>"+NT_REP_PRINCIPAL_ENTRY+"</sv:value></sv:property>" +
-                        "<sv:property sv:name=\""+REP_EFFECTIVE_PATH+"\" sv:type=\"Path\"><sv:value>/content</sv:value></sv:property>" +
-                    "</sv:node>" +
-                "</sv:node>";
+            "<sv:node sv:name=\"" + REP_PRINCIPAL_POLICY
+            + "\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">"
+            +
+            "<sv:property sv:name=\"" + JCR_PRIMARYTYPE + "\" sv:type=\"Name\"><sv:value>"
+            + NT_REP_PRINCIPAL_POLICY + "</sv:value></sv:property>" +
+            "<sv:property sv:name=\"" + REP_PRINCIPAL_NAME + "\" sv:type=\"String\"><sv:value>"
+            + testPrincipalName + "</sv:value></sv:property>" +
+            "<sv:node sv:name=\"entry0\">" +
+            "<sv:property sv:name=\"" + JCR_PRIMARYTYPE + "\" sv:type=\"Name\"><sv:value>"
+            + NT_REP_PRINCIPAL_ENTRY + "</sv:value></sv:property>" +
+            "<sv:property sv:name=\"" + REP_EFFECTIVE_PATH
+            + "\" sv:type=\"Path\"><sv:value>/content</sv:value></sv:property>" +
+            "</sv:node>" +
+            "</sv:node>";
         doImport(testPath, xml);
     }
 
     @Test(expected = ConstraintViolationException.class)
     public void testEntryWithPrivilegesTypeMismatch() throws Exception {
         String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
-                "<sv:node sv:name=\""+REP_PRINCIPAL_POLICY+"\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
-                    "<sv:property sv:name=\""+JCR_PRIMARYTYPE+"\" sv:type=\"Name\"><sv:value>"+NT_REP_PRINCIPAL_POLICY+"</sv:value></sv:property>" +
-                    "<sv:property sv:name=\""+REP_PRINCIPAL_NAME+"\" sv:type=\"String\"><sv:value>"+testPrincipalName+"</sv:value></sv:property>" +
-                    "<sv:node sv:name=\"entry0\">" +
-                        "<sv:property sv:name=\""+JCR_PRIMARYTYPE+"\" sv:type=\"Name\"><sv:value>"+NT_REP_PRINCIPAL_ENTRY+"</sv:value></sv:property>" +
-                        "<sv:property sv:name=\""+REP_EFFECTIVE_PATH+"\" sv:type=\"Path\"><sv:value>/content</sv:value></sv:property>" +
-                        "<sv:property sv:name=\""+REP_PRIVILEGES+"\" sv:type=\"String\" sv:multiple=\"true\">" +
-                            "<sv:value>"+JCR_READ+"</sv:value>" +
-                        "</sv:property>" +
-                    "</sv:node>" +
-                "</sv:node>";
+            "<sv:node sv:name=\"" + REP_PRINCIPAL_POLICY
+            + "\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">"
+            +
+            "<sv:property sv:name=\"" + JCR_PRIMARYTYPE + "\" sv:type=\"Name\"><sv:value>"
+            + NT_REP_PRINCIPAL_POLICY + "</sv:value></sv:property>" +
+            "<sv:property sv:name=\"" + REP_PRINCIPAL_NAME + "\" sv:type=\"String\"><sv:value>"
+            + testPrincipalName + "</sv:value></sv:property>" +
+            "<sv:node sv:name=\"entry0\">" +
+            "<sv:property sv:name=\"" + JCR_PRIMARYTYPE + "\" sv:type=\"Name\"><sv:value>"
+            + NT_REP_PRINCIPAL_ENTRY + "</sv:value></sv:property>" +
+            "<sv:property sv:name=\"" + REP_EFFECTIVE_PATH
+            + "\" sv:type=\"Path\"><sv:value>/content</sv:value></sv:property>" +
+            "<sv:property sv:name=\"" + REP_PRIVILEGES
+            + "\" sv:type=\"String\" sv:multiple=\"true\">" +
+            "<sv:value>" + JCR_READ + "</sv:value>" +
+            "</sv:property>" +
+            "</sv:node>" +
+            "</sv:node>";
         doImport(testPath, xml);
     }
 
     @Test
     public void testEntryWithPrivilegesSingleValue() throws Exception {
         String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
-                "<sv:node sv:name=\""+REP_PRINCIPAL_POLICY+"\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
-                    "<sv:property sv:name=\""+JCR_PRIMARYTYPE+"\" sv:type=\"Name\"><sv:value>"+NT_REP_PRINCIPAL_POLICY+"</sv:value></sv:property>" +
-                    "<sv:property sv:name=\""+REP_PRINCIPAL_NAME+"\" sv:type=\"String\"><sv:value>"+testPrincipalName+"</sv:value></sv:property>" +
-                    "<sv:node sv:name=\"entry0\">" +
-                        "<sv:property sv:name=\""+JCR_PRIMARYTYPE+"\" sv:type=\"Name\"><sv:value>"+NT_REP_PRINCIPAL_ENTRY+"</sv:value></sv:property>" +
-                        "<sv:property sv:name=\""+REP_EFFECTIVE_PATH+"\" sv:type=\"Path\"><sv:value>/content</sv:value></sv:property>" +
-                        "<sv:property sv:name=\""+REP_PRIVILEGES+"\" sv:type=\"Name\">" +
-                            "<sv:value>"+JCR_READ+"</sv:value>" +
-                        "</sv:property>" +
-                    "</sv:node>" +
-                "</sv:node>";
+            "<sv:node sv:name=\"" + REP_PRINCIPAL_POLICY
+            + "\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">"
+            +
+            "<sv:property sv:name=\"" + JCR_PRIMARYTYPE + "\" sv:type=\"Name\"><sv:value>"
+            + NT_REP_PRINCIPAL_POLICY + "</sv:value></sv:property>" +
+            "<sv:property sv:name=\"" + REP_PRINCIPAL_NAME + "\" sv:type=\"String\"><sv:value>"
+            + testPrincipalName + "</sv:value></sv:property>" +
+            "<sv:node sv:name=\"entry0\">" +
+            "<sv:property sv:name=\"" + JCR_PRIMARYTYPE + "\" sv:type=\"Name\"><sv:value>"
+            + NT_REP_PRINCIPAL_ENTRY + "</sv:value></sv:property>" +
+            "<sv:property sv:name=\"" + REP_EFFECTIVE_PATH
+            + "\" sv:type=\"Path\"><sv:value>/content</sv:value></sv:property>" +
+            "<sv:property sv:name=\"" + REP_PRIVILEGES + "\" sv:type=\"Name\">" +
+            "<sv:value>" + JCR_READ + "</sv:value>" +
+            "</sv:property>" +
+            "</sv:node>" +
+            "</sv:node>";
         doImport(testPath, xml);
         adminSession.save();
 
@@ -367,56 +448,78 @@ public abstract class ImportBaseTest extends AbstractPrincipalBasedTest {
     @Test
     public void testTwoIdenticalEntries() throws Exception {
         String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
-                "<sv:node sv:name=\""+REP_PRINCIPAL_POLICY+"\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
-                    "<sv:property sv:name=\""+JCR_PRIMARYTYPE+"\" sv:type=\"Name\"><sv:value>"+NT_REP_PRINCIPAL_POLICY+"</sv:value></sv:property>" +
-                    "<sv:property sv:name=\""+REP_PRINCIPAL_NAME+"\" sv:type=\"String\"><sv:value>"+testPrincipalName+"</sv:value></sv:property>" +
-                    "<sv:node sv:name=\"entry0\">" +
-                        "<sv:property sv:name=\""+JCR_PRIMARYTYPE+"\" sv:type=\"Name\"><sv:value>"+NT_REP_PRINCIPAL_ENTRY+"</sv:value></sv:property>" +
-                        "<sv:property sv:name=\""+REP_EFFECTIVE_PATH+"\" sv:type=\"Path\"><sv:value>/content</sv:value></sv:property>" +
-                        "<sv:property sv:name=\""+REP_PRIVILEGES+"\" sv:type=\"Name\" sv:multiple=\"true\">" +
-                        "<sv:value>"+JCR_READ+"</sv:value>" +
-                        "</sv:property>" +
-                    "</sv:node>" +
-                    "<sv:node sv:name=\"entry1\">" +
-                        "<sv:property sv:name=\""+JCR_PRIMARYTYPE+"\" sv:type=\"Name\"><sv:value>"+NT_REP_PRINCIPAL_ENTRY+"</sv:value></sv:property>" +
-                        "<sv:property sv:name=\""+REP_EFFECTIVE_PATH+"\" sv:type=\"Path\"><sv:value>/content</sv:value></sv:property>" +
-                        "<sv:property sv:name=\""+REP_PRIVILEGES+"\" sv:type=\"Name\" sv:multiple=\"true\">" +
-                        "<sv:value>"+JCR_READ+"</sv:value>" +
-                        "</sv:property>" +
-                    "</sv:node>" +
-                "</sv:node>";
+            "<sv:node sv:name=\"" + REP_PRINCIPAL_POLICY
+            + "\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">"
+            +
+            "<sv:property sv:name=\"" + JCR_PRIMARYTYPE + "\" sv:type=\"Name\"><sv:value>"
+            + NT_REP_PRINCIPAL_POLICY + "</sv:value></sv:property>" +
+            "<sv:property sv:name=\"" + REP_PRINCIPAL_NAME + "\" sv:type=\"String\"><sv:value>"
+            + testPrincipalName + "</sv:value></sv:property>" +
+            "<sv:node sv:name=\"entry0\">" +
+            "<sv:property sv:name=\"" + JCR_PRIMARYTYPE + "\" sv:type=\"Name\"><sv:value>"
+            + NT_REP_PRINCIPAL_ENTRY + "</sv:value></sv:property>" +
+            "<sv:property sv:name=\"" + REP_EFFECTIVE_PATH
+            + "\" sv:type=\"Path\"><sv:value>/content</sv:value></sv:property>" +
+            "<sv:property sv:name=\"" + REP_PRIVILEGES + "\" sv:type=\"Name\" sv:multiple=\"true\">"
+            +
+            "<sv:value>" + JCR_READ + "</sv:value>" +
+            "</sv:property>" +
+            "</sv:node>" +
+            "<sv:node sv:name=\"entry1\">" +
+            "<sv:property sv:name=\"" + JCR_PRIMARYTYPE + "\" sv:type=\"Name\"><sv:value>"
+            + NT_REP_PRINCIPAL_ENTRY + "</sv:value></sv:property>" +
+            "<sv:property sv:name=\"" + REP_EFFECTIVE_PATH
+            + "\" sv:type=\"Path\"><sv:value>/content</sv:value></sv:property>" +
+            "<sv:property sv:name=\"" + REP_PRIVILEGES + "\" sv:type=\"Name\" sv:multiple=\"true\">"
+            +
+            "<sv:value>" + JCR_READ + "</sv:value>" +
+            "</sv:property>" +
+            "</sv:node>" +
+            "</sv:node>";
         doImport(testPath, xml);
         adminSession.save();
 
-        PrincipalPolicyImpl policy = getPrincipalPolicyImpl(testPrincipal, getAccessControlManager());
+        PrincipalPolicyImpl policy = getPrincipalPolicyImpl(testPrincipal,
+            getAccessControlManager());
         assertEquals(1, policy.size());
     }
 
     @Test
     public void testTwoDifferentEntries() throws Exception {
         String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
-                "<sv:node sv:name=\""+REP_PRINCIPAL_POLICY+"\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
-                    "<sv:property sv:name=\""+JCR_PRIMARYTYPE+"\" sv:type=\"Name\"><sv:value>"+NT_REP_PRINCIPAL_POLICY+"</sv:value></sv:property>" +
-                    "<sv:property sv:name=\""+REP_PRINCIPAL_NAME+"\" sv:type=\"String\"><sv:value>"+testPrincipalName+"</sv:value></sv:property>" +
-                    "<sv:node sv:name=\"entry0\">" +
-                        "<sv:property sv:name=\""+JCR_PRIMARYTYPE+"\" sv:type=\"Name\"><sv:value>"+NT_REP_PRINCIPAL_ENTRY+"</sv:value></sv:property>" +
-                        "<sv:property sv:name=\""+REP_EFFECTIVE_PATH+"\" sv:type=\"Path\"><sv:value>/content</sv:value></sv:property>" +
-                        "<sv:property sv:name=\""+REP_PRIVILEGES+"\" sv:type=\"Name\" sv:multiple=\"true\">" +
-                            "<sv:value>"+JCR_READ+"</sv:value>" +
-                        "</sv:property>" +
-                    "</sv:node>" +
-                    "<sv:node sv:name=\"entry1\">" +
-                        "<sv:property sv:name=\""+JCR_PRIMARYTYPE+"\" sv:type=\"Name\"><sv:value>"+NT_REP_PRINCIPAL_ENTRY+"</sv:value></sv:property>" +
-                        "<sv:property sv:name=\""+REP_EFFECTIVE_PATH+"\" sv:type=\"Path\"><sv:value></sv:value></sv:property>" +
-                        "<sv:property sv:name=\""+REP_PRIVILEGES+"\" sv:type=\"Name\" sv:multiple=\"true\">" +
-                            "<sv:value>"+JCR_NAMESPACE_MANAGEMENT+"</sv:value>" +
-                        "</sv:property>" +
-                    "</sv:node>" +
-                "</sv:node>";
+            "<sv:node sv:name=\"" + REP_PRINCIPAL_POLICY
+            + "\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">"
+            +
+            "<sv:property sv:name=\"" + JCR_PRIMARYTYPE + "\" sv:type=\"Name\"><sv:value>"
+            + NT_REP_PRINCIPAL_POLICY + "</sv:value></sv:property>" +
+            "<sv:property sv:name=\"" + REP_PRINCIPAL_NAME + "\" sv:type=\"String\"><sv:value>"
+            + testPrincipalName + "</sv:value></sv:property>" +
+            "<sv:node sv:name=\"entry0\">" +
+            "<sv:property sv:name=\"" + JCR_PRIMARYTYPE + "\" sv:type=\"Name\"><sv:value>"
+            + NT_REP_PRINCIPAL_ENTRY + "</sv:value></sv:property>" +
+            "<sv:property sv:name=\"" + REP_EFFECTIVE_PATH
+            + "\" sv:type=\"Path\"><sv:value>/content</sv:value></sv:property>" +
+            "<sv:property sv:name=\"" + REP_PRIVILEGES + "\" sv:type=\"Name\" sv:multiple=\"true\">"
+            +
+            "<sv:value>" + JCR_READ + "</sv:value>" +
+            "</sv:property>" +
+            "</sv:node>" +
+            "<sv:node sv:name=\"entry1\">" +
+            "<sv:property sv:name=\"" + JCR_PRIMARYTYPE + "\" sv:type=\"Name\"><sv:value>"
+            + NT_REP_PRINCIPAL_ENTRY + "</sv:value></sv:property>" +
+            "<sv:property sv:name=\"" + REP_EFFECTIVE_PATH
+            + "\" sv:type=\"Path\"><sv:value></sv:value></sv:property>" +
+            "<sv:property sv:name=\"" + REP_PRIVILEGES + "\" sv:type=\"Name\" sv:multiple=\"true\">"
+            +
+            "<sv:value>" + JCR_NAMESPACE_MANAGEMENT + "</sv:value>" +
+            "</sv:property>" +
+            "</sv:node>" +
+            "</sv:node>";
         doImport(testPath, xml);
         adminSession.save();
 
-        PrincipalPolicyImpl policy = getPrincipalPolicyImpl(testPrincipal, getAccessControlManager());
+        PrincipalPolicyImpl policy = getPrincipalPolicyImpl(testPrincipal,
+            getAccessControlManager());
         assertEquals(2, policy.size());
         List<PrincipalPolicyImpl.EntryImpl> entries = policy.getEntries();
         assertEquals("/content", entries.get(0).getEffectivePath());
@@ -426,24 +529,33 @@ public abstract class ImportBaseTest extends AbstractPrincipalBasedTest {
     @Test
     public void testEffectivePathInRestriction() throws Exception {
         String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
-                "<sv:node sv:name=\""+REP_PRINCIPAL_POLICY+"\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
-                    "<sv:property sv:name=\""+JCR_PRIMARYTYPE+"\" sv:type=\"Name\"><sv:value>"+NT_REP_PRINCIPAL_POLICY+"</sv:value></sv:property>" +
-                    "<sv:property sv:name=\""+REP_PRINCIPAL_NAME+"\" sv:type=\"String\"><sv:value>"+testPrincipalName+"</sv:value></sv:property>" +
-                    "<sv:node sv:name=\"entry0\">" +
-                        "<sv:property sv:name=\""+JCR_PRIMARYTYPE+"\" sv:type=\"Name\"><sv:value>"+NT_REP_PRINCIPAL_ENTRY+"</sv:value></sv:property>" +
-                        "<sv:property sv:name=\""+REP_PRIVILEGES+"\" sv:type=\"Name\" sv:multiple=\"true\">" +
-                            "<sv:value>"+JCR_READ+"</sv:value>" +
-                        "</sv:property>" +
-                        "<sv:node sv:name=\""+REP_RESTRICTIONS+"\">" +
-                            "<sv:property sv:name=\""+JCR_PRIMARYTYPE+"\" sv:type=\"Name\"><sv:value>"+NT_REP_RESTRICTIONS+"</sv:value></sv:property>" +
-                            "<sv:property sv:name=\""+ AccessControlConstants.REP_NODE_PATH+"\" sv:type=\"String\"><sv:value>/content</sv:value></sv:property>" +
-                         "</sv:node>" +
-                    "</sv:node>" +
-                "</sv:node>";
+            "<sv:node sv:name=\"" + REP_PRINCIPAL_POLICY
+            + "\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">"
+            +
+            "<sv:property sv:name=\"" + JCR_PRIMARYTYPE + "\" sv:type=\"Name\"><sv:value>"
+            + NT_REP_PRINCIPAL_POLICY + "</sv:value></sv:property>" +
+            "<sv:property sv:name=\"" + REP_PRINCIPAL_NAME + "\" sv:type=\"String\"><sv:value>"
+            + testPrincipalName + "</sv:value></sv:property>" +
+            "<sv:node sv:name=\"entry0\">" +
+            "<sv:property sv:name=\"" + JCR_PRIMARYTYPE + "\" sv:type=\"Name\"><sv:value>"
+            + NT_REP_PRINCIPAL_ENTRY + "</sv:value></sv:property>" +
+            "<sv:property sv:name=\"" + REP_PRIVILEGES + "\" sv:type=\"Name\" sv:multiple=\"true\">"
+            +
+            "<sv:value>" + JCR_READ + "</sv:value>" +
+            "</sv:property>" +
+            "<sv:node sv:name=\"" + REP_RESTRICTIONS + "\">" +
+            "<sv:property sv:name=\"" + JCR_PRIMARYTYPE + "\" sv:type=\"Name\"><sv:value>"
+            + NT_REP_RESTRICTIONS + "</sv:value></sv:property>" +
+            "<sv:property sv:name=\"" + AccessControlConstants.REP_NODE_PATH
+            + "\" sv:type=\"String\"><sv:value>/content</sv:value></sv:property>" +
+            "</sv:node>" +
+            "</sv:node>" +
+            "</sv:node>";
         doImport(testPath, xml);
         adminSession.save();
 
-        PrincipalPolicyImpl policy = getPrincipalPolicyImpl(testPrincipal, getAccessControlManager());
+        PrincipalPolicyImpl policy = getPrincipalPolicyImpl(testPrincipal,
+            getAccessControlManager());
         assertEquals(1, policy.size());
         PrincipalPolicyImpl.EntryImpl entry = policy.getEntries().get(0);
         assertEquals("/content", entry.getOakPath());
@@ -453,22 +565,30 @@ public abstract class ImportBaseTest extends AbstractPrincipalBasedTest {
     @Test(expected = ConstraintViolationException.class)
     public void testUnsupportedPath() throws Exception {
         // move user node outside of supported path.
-        String unsupportedPath = PathUtils.concat(PathUtils.getAncestorPath(testPath, 2), PathUtils.getName(testPath));
+        String unsupportedPath = PathUtils.concat(PathUtils.getAncestorPath(testPath, 2),
+            PathUtils.getName(testPath));
         adminSession.move(testPath, unsupportedPath);
         adminSession.save();
 
         String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
-                "<sv:node sv:name=\""+REP_PRINCIPAL_POLICY+"\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
-                    "<sv:property sv:name=\""+JCR_PRIMARYTYPE+"\" sv:type=\"Name\"><sv:value>"+NT_REP_PRINCIPAL_POLICY+"</sv:value></sv:property>" +
-                    "<sv:property sv:name=\""+REP_PRINCIPAL_NAME+"\" sv:type=\"String\"><sv:value>"+testPrincipalName+"</sv:value></sv:property>" +
-                    "<sv:node sv:name=\"entry0\">" +
-                        "<sv:property sv:name=\""+JCR_PRIMARYTYPE+"\" sv:type=\"Name\"><sv:value>"+NT_REP_PRINCIPAL_ENTRY+"</sv:value></sv:property>" +
-                        "<sv:property sv:name=\""+REP_EFFECTIVE_PATH+"\" sv:type=\"Path\"><sv:value>/content</sv:value></sv:property>" +
-                        "<sv:property sv:name=\""+REP_PRIVILEGES+"\" sv:type=\"Name\" sv:multiple=\"true\">" +
-                            "<sv:value>"+JCR_READ+"</sv:value>" +
-                        "</sv:property>" +
-                    "</sv:node>" +
-                "</sv:node>";
+            "<sv:node sv:name=\"" + REP_PRINCIPAL_POLICY
+            + "\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">"
+            +
+            "<sv:property sv:name=\"" + JCR_PRIMARYTYPE + "\" sv:type=\"Name\"><sv:value>"
+            + NT_REP_PRINCIPAL_POLICY + "</sv:value></sv:property>" +
+            "<sv:property sv:name=\"" + REP_PRINCIPAL_NAME + "\" sv:type=\"String\"><sv:value>"
+            + testPrincipalName + "</sv:value></sv:property>" +
+            "<sv:node sv:name=\"entry0\">" +
+            "<sv:property sv:name=\"" + JCR_PRIMARYTYPE + "\" sv:type=\"Name\"><sv:value>"
+            + NT_REP_PRINCIPAL_ENTRY + "</sv:value></sv:property>" +
+            "<sv:property sv:name=\"" + REP_EFFECTIVE_PATH
+            + "\" sv:type=\"Path\"><sv:value>/content</sv:value></sv:property>" +
+            "<sv:property sv:name=\"" + REP_PRIVILEGES + "\" sv:type=\"Name\" sv:multiple=\"true\">"
+            +
+            "<sv:value>" + JCR_READ + "</sv:value>" +
+            "</sv:property>" +
+            "</sv:node>" +
+            "</sv:node>";
 
         // import will leave incomplete policy
         doImport(unsupportedPath, xml);
@@ -478,25 +598,35 @@ public abstract class ImportBaseTest extends AbstractPrincipalBasedTest {
     @Test
     public void testEntryWithRestriction() throws Exception {
         String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
-                "<sv:node sv:name=\""+REP_PRINCIPAL_POLICY+"\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
-                    "<sv:property sv:name=\""+JCR_PRIMARYTYPE+"\" sv:type=\"Name\"><sv:value>"+NT_REP_PRINCIPAL_POLICY+"</sv:value></sv:property>" +
-                    "<sv:property sv:name=\""+REP_PRINCIPAL_NAME+"\" sv:type=\"String\"><sv:value>"+testPrincipalName+"</sv:value></sv:property>" +
-                    "<sv:node sv:name=\"entry0\">" +
-                        "<sv:property sv:name=\""+JCR_PRIMARYTYPE+"\" sv:type=\"Name\"><sv:value>"+NT_REP_PRINCIPAL_ENTRY+"</sv:value></sv:property>" +
-                        "<sv:property sv:name=\""+REP_EFFECTIVE_PATH+"\" sv:type=\"Path\"><sv:value>/content</sv:value></sv:property>" +
-                        "<sv:property sv:name=\""+REP_PRIVILEGES+"\" sv:type=\"Name\" sv:multiple=\"true\">" +
-                            "<sv:value>"+JCR_READ+"</sv:value>" +
-                        "</sv:property>" +
-                        "<sv:node sv:name=\""+REP_RESTRICTIONS+"\">" +
-                            "<sv:property sv:name=\""+JCR_PRIMARYTYPE+"\" sv:type=\"Name\"><sv:value>"+NT_REP_RESTRICTIONS+"</sv:value></sv:property>" +
-                            "<sv:property sv:name=\""+ REP_GLOB+"\" sv:type=\"String\"><sv:value>*</sv:value></sv:property>" +
-                         "</sv:node>" +
-                    "</sv:node>" +
-                "</sv:node>";
+            "<sv:node sv:name=\"" + REP_PRINCIPAL_POLICY
+            + "\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">"
+            +
+            "<sv:property sv:name=\"" + JCR_PRIMARYTYPE + "\" sv:type=\"Name\"><sv:value>"
+            + NT_REP_PRINCIPAL_POLICY + "</sv:value></sv:property>" +
+            "<sv:property sv:name=\"" + REP_PRINCIPAL_NAME + "\" sv:type=\"String\"><sv:value>"
+            + testPrincipalName + "</sv:value></sv:property>" +
+            "<sv:node sv:name=\"entry0\">" +
+            "<sv:property sv:name=\"" + JCR_PRIMARYTYPE + "\" sv:type=\"Name\"><sv:value>"
+            + NT_REP_PRINCIPAL_ENTRY + "</sv:value></sv:property>" +
+            "<sv:property sv:name=\"" + REP_EFFECTIVE_PATH
+            + "\" sv:type=\"Path\"><sv:value>/content</sv:value></sv:property>" +
+            "<sv:property sv:name=\"" + REP_PRIVILEGES + "\" sv:type=\"Name\" sv:multiple=\"true\">"
+            +
+            "<sv:value>" + JCR_READ + "</sv:value>" +
+            "</sv:property>" +
+            "<sv:node sv:name=\"" + REP_RESTRICTIONS + "\">" +
+            "<sv:property sv:name=\"" + JCR_PRIMARYTYPE + "\" sv:type=\"Name\"><sv:value>"
+            + NT_REP_RESTRICTIONS + "</sv:value></sv:property>" +
+            "<sv:property sv:name=\"" + REP_GLOB
+            + "\" sv:type=\"String\"><sv:value>*</sv:value></sv:property>" +
+            "</sv:node>" +
+            "</sv:node>" +
+            "</sv:node>";
         doImport(testPath, xml);
         adminSession.save();
 
-        PrincipalPolicyImpl policy = getPrincipalPolicyImpl(testPrincipal, getAccessControlManager());
+        PrincipalPolicyImpl policy = getPrincipalPolicyImpl(testPrincipal,
+            getAccessControlManager());
         assertEquals(1, policy.size());
         PrincipalPolicyImpl.EntryImpl entry = policy.getEntries().get(0);
         assertEquals("*", entry.getRestriction(REP_GLOB).getString());
@@ -506,16 +636,20 @@ public abstract class ImportBaseTest extends AbstractPrincipalBasedTest {
     public void testExportImport() throws Exception {
         JackrabbitAccessControlManager acmgr = getAccessControlManager();
         PrincipalPolicyImpl policy = getPrincipalPolicyImpl(testPrincipal, acmgr);
-        policy.addEntry("/content", AccessControlUtils.privilegesFromNames(acmgr, PrivilegeConstants.JCR_READ));
-        policy.addEntry(null, AccessControlUtils.privilegesFromNames(acmgr, PrivilegeConstants.REP_PRIVILEGE_MANAGEMENT));
+        policy.addEntry("/content",
+            AccessControlUtils.privilegesFromNames(acmgr, PrivilegeConstants.JCR_READ));
+        policy.addEntry(null, AccessControlUtils.privilegesFromNames(acmgr,
+            PrivilegeConstants.REP_PRIVILEGE_MANAGEMENT));
         AccessControlEntry[] expected = policy.getAccessControlEntries();
         acmgr.setPolicy(policy.getPath(), policy);
 
         ByteArrayOutputStream output = new ByteArrayOutputStream();
-        adminSession.exportSystemView(PathUtils.concat(policy.getPath(), REP_PRINCIPAL_POLICY), output, true, false);
+        adminSession.exportSystemView(PathUtils.concat(policy.getPath(), REP_PRINCIPAL_POLICY),
+            output, true, false);
         adminSession.refresh(false);
 
-        adminSession.importXML(policy.getPath(), new ByteArrayInputStream(output.toByteArray()), ImportUUIDBehavior.IMPORT_UUID_COLLISION_THROW);
+        adminSession.importXML(policy.getPath(), new ByteArrayInputStream(output.toByteArray()),
+            ImportUUIDBehavior.IMPORT_UUID_COLLISION_THROW);
         policy = getPrincipalPolicyImpl(testPrincipal, acmgr);
         assertArrayEquals(expected, policy.getAccessControlEntries());
     }

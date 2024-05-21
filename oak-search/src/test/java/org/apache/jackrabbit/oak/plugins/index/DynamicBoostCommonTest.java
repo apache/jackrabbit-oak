@@ -23,7 +23,6 @@ import static org.junit.Assert.assertEquals;
 import java.io.ByteArrayInputStream;
 import java.util.List;
 import java.util.UUID;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -38,7 +37,9 @@ import org.junit.Test;
 
 public abstract class DynamicBoostCommonTest extends AbstractQueryTest {
 
-    protected static final String ASSET_NODE_TYPE = "[dam:Asset]\n" + " - * (UNDEFINED) multiple\n" + " - * (UNDEFINED)\n" + " + * (nt:base) = oak:TestNode VERSION";
+    protected static final String ASSET_NODE_TYPE =
+        "[dam:Asset]\n" + " - * (UNDEFINED) multiple\n" + " - * (UNDEFINED)\n"
+            + " + * (nt:base) = oak:TestNode VERSION";
 
     protected IndexOptions indexOptions;
     protected TestRepository repositoryOptionsUtil;
@@ -49,12 +50,13 @@ public abstract class DynamicBoostCommonTest extends AbstractQueryTest {
         prepareTestAssets();
 
         assertThat(explain("//element(*, dam:Asset)[jcr:contains(., 'plant')]", XPATH),
-                containsString(getTestQueryDynamicBoostBasicExplained()));
+            containsString(getTestQueryDynamicBoostBasicExplained()));
 
         assertEventually(() -> {
             assertQuery("//element(*, dam:Asset)[jcr:contains(., 'plant')]", XPATH,
-                    List.of("/test/asset1", "/test/asset2", "/test/asset3"));
-            assertQuery("//element(*, dam:Asset)[jcr:contains(., 'flower')]", XPATH, List.of("/test/asset1", "/test/asset2"));
+                List.of("/test/asset1", "/test/asset2", "/test/asset3"));
+            assertQuery("//element(*, dam:Asset)[jcr:contains(., 'flower')]", XPATH,
+                List.of("/test/asset1", "/test/asset2"));
         });
     }
 
@@ -62,13 +64,16 @@ public abstract class DynamicBoostCommonTest extends AbstractQueryTest {
     public void dynamicBoostWithMultipleTerms() throws Exception {
         createAssetsIndexAndProperties(false, false);
 
-        Tree testParent = createNodeWithType(root.getTree("/"), "test", JcrConstants.NT_UNSTRUCTURED, "");
+        Tree testParent = createNodeWithType(root.getTree("/"), "test",
+            JcrConstants.NT_UNSTRUCTURED, "");
 
-        Tree predicted1 = createAssetNodeWithPredicted(testParent, "asset1", "flower with a lot of red and a bit of blue");
+        Tree predicted1 = createAssetNodeWithPredicted(testParent, "asset1",
+            "flower with a lot of red and a bit of blue");
         createPredictedTag(predicted1, "red", 9.0);
         createPredictedTag(predicted1, "blue", 1.0);
 
-        Tree predicted2 = createAssetNodeWithPredicted(testParent, "asset2", "flower with a lot of blue and a bit of red");
+        Tree predicted2 = createAssetNodeWithPredicted(testParent, "asset2",
+            "flower with a lot of blue and a bit of red");
         createPredictedTag(predicted2, "red", 1.0);
         createPredictedTag(predicted2, "blue", 9.0);
 
@@ -76,11 +81,12 @@ public abstract class DynamicBoostCommonTest extends AbstractQueryTest {
 
         assertEventually(() -> {
             assertQuery("//element(*, dam:Asset)[jcr:contains(., 'flower')]",
-                    XPATH, List.of("/test/asset1", "/test/asset2"));
+                XPATH, List.of("/test/asset1", "/test/asset2"));
             assertOrderedQuery("select [jcr:path] from [dam:Asset] where contains(*, 'red flower')",
-                    List.of("/test/asset1", "/test/asset2"));
-            assertOrderedQuery("select [jcr:path] from [dam:Asset] where contains(*, 'blue flower')",
-                    List.of("/test/asset2", "/test/asset1"));
+                List.of("/test/asset1", "/test/asset2"));
+            assertOrderedQuery(
+                "select [jcr:path] from [dam:Asset] where contains(*, 'blue flower')",
+                List.of("/test/asset2", "/test/asset1"));
         });
     }
 
@@ -90,7 +96,8 @@ public abstract class DynamicBoostCommonTest extends AbstractQueryTest {
         prepareTestAssets();
 
         assertEventually(() ->
-                assertQuery("//element(*, dam:Asset)[jcr:contains(., 'FLOWER')]", XPATH, List.of("/test/asset1", "/test/asset2")));
+            assertQuery("//element(*, dam:Asset)[jcr:contains(., 'FLOWER')]", XPATH,
+                List.of("/test/asset1", "/test/asset2")));
 
     }
 
@@ -100,8 +107,8 @@ public abstract class DynamicBoostCommonTest extends AbstractQueryTest {
         prepareTestAssets();
 
         assertEventually(() ->
-                assertOrderedQuery("select [jcr:path] from [dam:Asset] where contains(*, 'plant')",
-                        List.of("/test/asset2", "/test/asset3", "/test/asset1")));
+            assertOrderedQuery("select [jcr:path] from [dam:Asset] where contains(*, 'plant')",
+                List.of("/test/asset2", "/test/asset3", "/test/asset1")));
     }
 
     @Test
@@ -111,12 +118,18 @@ public abstract class DynamicBoostCommonTest extends AbstractQueryTest {
         prepareTestAssets();
 
         assertEventually(() -> {
-            assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'blu?')", SQL2, List.of("/test/asset3"));
-            assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'bl?e')", SQL2, List.of("/test/asset3"));
-            assertQuery("select [jcr:path] from [dam:Asset] where contains(*, '?lue')", SQL2, List.of("/test/asset3"));
-            assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'coff*')", SQL2, List.of("/test/asset2"));
-            assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'co*ee')", SQL2, List.of("/test/asset2"));
-            assertQuery("select [jcr:path] from [dam:Asset] where contains(*, '*ffee')", SQL2, List.of("/test/asset2"));
+            assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'blu?')", SQL2,
+                List.of("/test/asset3"));
+            assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'bl?e')", SQL2,
+                List.of("/test/asset3"));
+            assertQuery("select [jcr:path] from [dam:Asset] where contains(*, '?lue')", SQL2,
+                List.of("/test/asset3"));
+            assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'coff*')", SQL2,
+                List.of("/test/asset2"));
+            assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'co*ee')", SQL2,
+                List.of("/test/asset2"));
+            assertQuery("select [jcr:path] from [dam:Asset] where contains(*, '*ffee')", SQL2,
+                List.of("/test/asset2"));
         });
     }
 
@@ -127,10 +140,12 @@ public abstract class DynamicBoostCommonTest extends AbstractQueryTest {
         prepareTestAssets();
 
         assertEventually(() -> {
-            assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'blue OR flower')", SQL2,
-                    List.of("/test/asset1", "/test/asset2", "/test/asset3"));
-            assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'blue OR coffee')", SQL2,
-                    List.of("/test/asset2", "/test/asset3"));
+            assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'blue OR flower')",
+                SQL2,
+                List.of("/test/asset1", "/test/asset2", "/test/asset3"));
+            assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'blue OR coffee')",
+                SQL2,
+                List.of("/test/asset2", "/test/asset3"));
         });
     }
 
@@ -141,8 +156,10 @@ public abstract class DynamicBoostCommonTest extends AbstractQueryTest {
         prepareTestAssets();
 
         assertEventually(() -> {
-            assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'plant -flower')", SQL2, List.of("/test/asset3"));
-            assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'flower -coffee')", SQL2, List.of("/test/asset1"));
+            assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'plant -flower')",
+                SQL2, List.of("/test/asset3"));
+            assertQuery("select [jcr:path] from [dam:Asset] where contains(*, 'flower -coffee')",
+                SQL2, List.of("/test/asset1"));
         });
 
     }
@@ -154,10 +171,12 @@ public abstract class DynamicBoostCommonTest extends AbstractQueryTest {
         prepareTestAssets();
 
         assertEventually(() -> {
-            assertOrderedQuery("select [jcr:path] from [dam:Asset] where contains(*, 'titleone OR blue')",
-                    List.of("/test/asset1", "/test/asset3"));
-            assertOrderedQuery("select [jcr:path] from [dam:Asset] where contains(*, 'short OR coffee')",
-                    List.of("/test/asset3", "/test/asset2"));
+            assertOrderedQuery(
+                "select [jcr:path] from [dam:Asset] where contains(*, 'titleone OR blue')",
+                List.of("/test/asset1", "/test/asset3"));
+            assertOrderedQuery(
+                "select [jcr:path] from [dam:Asset] where contains(*, 'short OR coffee')",
+                List.of("/test/asset3", "/test/asset2"));
         });
     }
 
@@ -169,9 +188,9 @@ public abstract class DynamicBoostCommonTest extends AbstractQueryTest {
 
         assertEventually(() -> {
             assertOrderedQuery("select [jcr:path] from [dam:Asset] where contains(*, 'long')",
-                    List.of("/test/asset1", "/test/asset2", "/test/asset3"));
+                List.of("/test/asset1", "/test/asset2", "/test/asset3"));
             assertOrderedQuery("select [jcr:path] from [dam:Asset] where contains(title, 'long')",
-                    List.of("/test/asset1", "/test/asset2"));
+                List.of("/test/asset1", "/test/asset2"));
         });
     }
 
@@ -181,8 +200,9 @@ public abstract class DynamicBoostCommonTest extends AbstractQueryTest {
         createAssetsIndexAndProperties(lite, lite);
         prepareTestAssets();
 
-        assertEventually(() -> assertOrderedQuery("select [jcr:path] from [dam:Asset] where similar(., '/test/asset1')",
-                List.of("/test/asset1", "/test/asset2", "/test/asset3")));
+        assertEventually(() -> assertOrderedQuery(
+            "select [jcr:path] from [dam:Asset] where similar(., '/test/asset1')",
+            List.of("/test/asset1", "/test/asset2", "/test/asset3")));
     }
 
     protected abstract String getTestQueryDynamicBoostBasicExplained();
@@ -192,7 +212,8 @@ public abstract class DynamicBoostCommonTest extends AbstractQueryTest {
     }
 
     protected void prepareTestAssets() throws CommitFailedException {
-        Tree testParent = createNodeWithType(root.getTree("/"), "test", JcrConstants.NT_UNSTRUCTURED, "");
+        Tree testParent = createNodeWithType(root.getTree("/"), "test",
+            JcrConstants.NT_UNSTRUCTURED, "");
 
         Tree predicted1 = createAssetNodeWithPredicted(testParent, "asset1", "titleone long");
         predicted1.setProperty("jcr:mixinTypes", List.of("mix:referenceable"), Type.STRINGS);
@@ -216,11 +237,15 @@ public abstract class DynamicBoostCommonTest extends AbstractQueryTest {
         root.commit();
     }
 
-    protected Tree createAssetNodeWithPredicted(Tree parent, String assetNodeName, String assetTitle) {
+    protected Tree createAssetNodeWithPredicted(Tree parent, String assetNodeName,
+        String assetTitle) {
         Tree node = createNodeWithType(parent, assetNodeName, "dam:Asset", assetTitle);
         return createNodeWithType(
-                createNodeWithType(createNodeWithType(node, JcrConstants.JCR_CONTENT, JcrConstants.NT_UNSTRUCTURED, ""), "metadata",
-                        JcrConstants.NT_UNSTRUCTURED, ""), "predictedTags", JcrConstants.NT_UNSTRUCTURED, "");
+            createNodeWithType(
+                createNodeWithType(node, JcrConstants.JCR_CONTENT, JcrConstants.NT_UNSTRUCTURED,
+                    ""), "metadata",
+                JcrConstants.NT_UNSTRUCTURED, ""), "predictedTags", JcrConstants.NT_UNSTRUCTURED,
+            "");
     }
 
     protected void createPredictedTag(Tree parent, String tagName, double confidence) {
@@ -229,17 +254,21 @@ public abstract class DynamicBoostCommonTest extends AbstractQueryTest {
         node.setProperty("confidence", confidence);
     }
 
-    protected void createAssetsIndexAndProperties(boolean lite, boolean similarityTags) throws Exception {
-        NodeTypeRegistry.register(root, new ByteArrayInputStream(ASSET_NODE_TYPE.getBytes()), "test nodeType");
+    protected void createAssetsIndexAndProperties(boolean lite, boolean similarityTags)
+        throws Exception {
+        NodeTypeRegistry.register(root, new ByteArrayInputStream(ASSET_NODE_TYPE.getBytes()),
+            "test nodeType");
         Tree indexRuleProps = createIndex("dam:Asset", lite);
 
-        Tree predictedTagsDynamicBoost = createNodeWithType(indexRuleProps, "predictedTagsDynamicBoost", JcrConstants.NT_UNSTRUCTURED, "");
+        Tree predictedTagsDynamicBoost = createNodeWithType(indexRuleProps,
+            "predictedTagsDynamicBoost", JcrConstants.NT_UNSTRUCTURED, "");
         predictedTagsDynamicBoost.setProperty("name", "jcr:content/metadata/predictedTags/.*");
         predictedTagsDynamicBoost.setProperty("isRegexp", true);
         predictedTagsDynamicBoost.setProperty("dynamicBoost", true);
 
         if (similarityTags) {
-            Tree predictedTags = createNodeWithType(indexRuleProps, "predictedTags", JcrConstants.NT_UNSTRUCTURED, "");
+            Tree predictedTags = createNodeWithType(indexRuleProps, "predictedTags",
+                JcrConstants.NT_UNSTRUCTURED, "");
             predictedTags.setProperty("name", "jcr:content/metadata/predictedTags/*/name");
             predictedTags.setProperty("isRegexp", true);
             predictedTags.setProperty("similarityTags", true);
@@ -250,13 +279,13 @@ public abstract class DynamicBoostCommonTest extends AbstractQueryTest {
 
     protected Tree createIndex(String nodeType, boolean lite) {
         IndexDefinitionBuilder builder = indexOptions.createIndex(
-                indexOptions.createIndexDefinitionBuilder(), nodeType, false);
+            indexOptions.createIndexDefinitionBuilder(), nodeType, false);
         builder.noAsync();
         builder.evaluatePathRestrictions();
         builder.indexRule(nodeType)
-                .property("title")
-                .propertyIndex()
-                .nodeScopeIndex().analyzed();
+               .property("title")
+               .propertyIndex()
+               .nodeScopeIndex().analyzed();
 
         Tree index = indexOptions.setIndex(root, TEST_INDEX_NAME, builder);
         index.setProperty(FulltextIndexConstants.COMPAT_MODE, IndexFormatVersion.V2.getVersion());
@@ -275,7 +304,8 @@ public abstract class DynamicBoostCommonTest extends AbstractQueryTest {
 
     protected void assertEventually(Runnable r) {
         TestUtil.assertEventually(r,
-                ((repositoryOptionsUtil.isAsync() ? repositoryOptionsUtil.defaultAsyncIndexingTimeInSeconds : 0) + 3000) * 5);
+            ((repositoryOptionsUtil.isAsync()
+                ? repositoryOptionsUtil.defaultAsyncIndexingTimeInSeconds : 0) + 3000) * 5);
     }
 
     protected String explain(String query, String lang) {

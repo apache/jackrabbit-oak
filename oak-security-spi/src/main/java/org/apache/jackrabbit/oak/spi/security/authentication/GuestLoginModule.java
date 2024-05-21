@@ -25,22 +25,20 @@ import javax.security.auth.callback.Callback;
 import javax.security.auth.callback.CallbackHandler;
 import javax.security.auth.callback.UnsupportedCallbackException;
 import javax.security.auth.spi.LoginModule;
-
 import org.apache.jackrabbit.oak.spi.security.authentication.callback.CredentialsCallback;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * The {@code GuestLoginModule} is intended to provide backwards compatibility
- * with the login handling present in the JCR reference implementation located
- * in jackrabbit-core. While the specification claims that {@link javax.jcr.Repository#login}
- * with {@code null} Credentials implies that the authentication process is
- * handled externally, the default implementation jackrabbit-core treated it
- * as 'anonymous' login such as covered by using {@link GuestCredentials}.<p>
- *
- * This {@code LoginModule} implementation performs the following tasks upon
- * {@link #login()}.
+ * The {@code GuestLoginModule} is intended to provide backwards compatibility with the login
+ * handling present in the JCR reference implementation located in jackrabbit-core. While the
+ * specification claims that {@link javax.jcr.Repository#login} with {@code null} Credentials
+ * implies that the authentication process is handled externally, the default implementation
+ * jackrabbit-core treated it as 'anonymous' login such as covered by using
+ * {@link GuestCredentials}.<p>
+ * <p>
+ * This {@code LoginModule} implementation performs the following tasks upon {@link #login()}.
  *
  * <ol>
  *     <li>Try to retrieve JCR credentials from the {@link CallbackHandler} using
@@ -50,13 +48,13 @@ import org.slf4j.LoggerFactory;
  *     in the authentication process may retrieve the {@link GuestCredentials}
  *     instead of failing to obtain any credentials.</li>
  * </ol>
- *
+ * <p>
  * If this login module pushed {@link GuestLoginModule} to the shared state
  * in phase 1 it will add those credentials and the {@link EveryonePrincipal}
  * to the subject in phase 2 of the login process. Subsequent login modules
  * my choose to provide additional principals/credentials associated with
  * a guest login.<p>
- *
+ * <p>
  * The authentication configuration using this {@code LoginModule} could for
  * example look as follows:
  *
@@ -68,7 +66,7 @@ import org.slf4j.LoggerFactory;
  *    };
  *
  * </pre>
- *
+ * <p>
  * In this case calling {@link javax.jcr.Repository#login()} would be equivalent
  * to {@link javax.jcr.Repository#login(javax.jcr.Credentials) repository.login(new GuestCredentials()}.
  */
@@ -84,7 +82,8 @@ public final class GuestLoginModule implements LoginModule {
 
     //--------------------------------------------------------< LoginModule >---
     @Override
-    public void initialize(Subject subject, CallbackHandler callbackHandler, Map<String, ?> sharedState, Map<String, ?> options) {
+    public void initialize(Subject subject, CallbackHandler callbackHandler,
+        Map<String, ?> sharedState, Map<String, ?> options) {
         this.subject = subject;
         this.callbackHandler = callbackHandler;
         this.sharedState = sharedState;
@@ -95,7 +94,7 @@ public final class GuestLoginModule implements LoginModule {
         if (callbackHandler != null) {
             CredentialsCallback ccb = new CredentialsCallback();
             try {
-                callbackHandler.handle(new Callback[] {ccb});
+                callbackHandler.handle(new Callback[]{ccb});
                 Credentials credentials = ccb.getCredentials();
                 if (credentials == null) {
                     guestCredentials = new GuestCredentials();

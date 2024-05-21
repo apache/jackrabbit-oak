@@ -15,17 +15,16 @@
  * limitations under the License.
  */
 /**
- * 
+ *
  */
 package org.apache.jackrabbit.oak.commons.sort;
 
 /**
  * Source copied from a publicly available library.
- * @see <a
- *  href="https://code.google.com/p/externalsortinginjava/">https://code.google.com/p/externalsortinginjava</a>
- * 
+ *
  * @author Eleftherios Chetzakis
- * 
+ * @see <a
+ * href="https://code.google.com/p/externalsortinginjava/">https://code.google.com/p/externalsortinginjava</a>
  */
 public final class StringSizeEstimator {
 
@@ -63,7 +62,7 @@ public final class StringSizeEstimator {
             }
         }
         IS_64_BIT_JVM = is64Bit;
-        // The sizes below are a bit rough as we don't take into account 
+        // The sizes below are a bit rough as we don't take into account
         // advanced JVM options such as compressed oops
         // however if our calculation is not accurate it'll be a bit over
         // so there is no danger of an out of memory error because of this.
@@ -76,7 +75,7 @@ public final class StringSizeEstimator {
 
     /**
      * Estimates the size of a {@link String} object in bytes.
-     * 
+     *
      * @param s The string to estimate memory footprint.
      * @return The <strong>estimated</strong> size in bytes.
      */

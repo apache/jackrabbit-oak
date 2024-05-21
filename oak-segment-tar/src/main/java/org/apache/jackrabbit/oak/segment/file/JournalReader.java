@@ -22,20 +22,18 @@ package org.apache.jackrabbit.oak.segment.file;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.List;
-
+import org.apache.jackrabbit.guava.common.base.Splitter;
+import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.base.Splitter;
-import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
-
 /**
- * Iterator over the revisions in the journal in reverse order
- * (end of the file to beginning).
+ * Iterator over the revisions in the journal in reverse order (end of the file to beginning).
  */
 public final class JournalReader extends AbstractIterator<JournalEntry> implements Closeable {
+
     private static final Logger LOG = LoggerFactory.getLogger(JournalReader.class);
 
     private final JournalFileReader reader;
@@ -45,8 +43,8 @@ public final class JournalReader extends AbstractIterator<JournalEntry> implemen
     }
 
     /**
-     * @throws IllegalStateException  if an {@code IOException} occurs while reading from
-     *                                the journal file.
+     * @throws IllegalStateException if an {@code IOException} occurs while reading from the journal
+     *                               file.
      */
     @Override
     protected JournalEntry computeNext() {
@@ -57,12 +55,13 @@ public final class JournalReader extends AbstractIterator<JournalEntry> implemen
                     List<String> splits = Splitter.on(' ').splitToList(line);
                     String revision = splits.get(0);
                     long timestamp = -1L;
-                    
+
                     if (splits.size() > 2) {
                         try {
                             timestamp = Long.parseLong(splits.get(2));
                         } catch (NumberFormatException e) {
-                            LOG.warn("Ignoring malformed timestamp {} for revision {}", splits.get(2), revision);
+                            LOG.warn("Ignoring malformed timestamp {} for revision {}",
+                                splits.get(2), revision);
                         }
                     } else {
                         LOG.warn("Timestamp information is missing for revision {}", revision);

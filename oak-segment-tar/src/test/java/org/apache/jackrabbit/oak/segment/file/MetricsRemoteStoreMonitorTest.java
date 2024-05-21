@@ -18,23 +18,25 @@
 
 package org.apache.jackrabbit.oak.segment.file;
 
+import static org.apache.jackrabbit.oak.segment.file.MetricsRemoteStoreMonitor.REQUEST_COUNT;
+import static org.apache.jackrabbit.oak.segment.file.MetricsRemoteStoreMonitor.REQUEST_DURATION;
+import static org.apache.jackrabbit.oak.segment.file.MetricsRemoteStoreMonitor.REQUEST_ERROR;
+import static org.junit.Assert.assertEquals;
+
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.stats.CounterStats;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatsOptions;
 import org.apache.jackrabbit.oak.stats.TimerStats;
 import org.junit.After;
-
-import static org.apache.jackrabbit.oak.segment.file.MetricsRemoteStoreMonitor.*;
-import static org.junit.Assert.assertEquals;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-
 public class MetricsRemoteStoreMonitorTest {
+
     private ScheduledExecutorService executor;
 
     private CounterStats requestCount;
@@ -45,18 +47,19 @@ public class MetricsRemoteStoreMonitorTest {
     private int requestErrorCountExpected = 2;
 
     @Before
-    public void setup(){
+    public void setup() {
         executor = Executors.newSingleThreadScheduledExecutor();
         DefaultStatisticsProvider statisticsProvider = new DefaultStatisticsProvider(executor);
-        MetricsRemoteStoreMonitor remoteStoreMonitor = new MetricsRemoteStoreMonitor(statisticsProvider);
+        MetricsRemoteStoreMonitor remoteStoreMonitor = new MetricsRemoteStoreMonitor(
+            statisticsProvider);
         requestCount = statisticsProvider.getCounterStats(REQUEST_COUNT, StatsOptions.DEFAULT);
         requestErrorCount = statisticsProvider.getCounterStats(REQUEST_ERROR, StatsOptions.DEFAULT);
-        requestDuration =  statisticsProvider.getTimer(REQUEST_DURATION, StatsOptions.METRICS_ONLY);
+        requestDuration = statisticsProvider.getTimer(REQUEST_DURATION, StatsOptions.METRICS_ONLY);
 
-        for(int i = 0; i < requestCountExpected; i++){
+        for (int i = 0; i < requestCountExpected; i++) {
             remoteStoreMonitor.requestCount();
         }
-        for(int i = 0; i < requestErrorCountExpected; i++){
+        for (int i = 0; i < requestErrorCountExpected; i++) {
             requestErrorCount.inc();
         }
         requestDuration.update(100, TimeUnit.MILLISECONDS);
@@ -64,12 +67,12 @@ public class MetricsRemoteStoreMonitorTest {
     }
 
     @After
-    public void tearDown(){
+    public void tearDown() {
         new ExecutorCloser(executor).close();
     }
 
     @Test
-    public void testStats(){
+    public void testStats() {
         assertEquals(requestCountExpected, requestCount.getCount());
         assertEquals(requestErrorCountExpected, requestErrorCount.getCount());
         assertEquals(1, requestDuration.getCount());

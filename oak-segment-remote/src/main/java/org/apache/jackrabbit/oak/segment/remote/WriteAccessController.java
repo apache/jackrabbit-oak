@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.segment.remote;
 
 public class WriteAccessController {
+
     private volatile boolean isWritingAllowed = false;
 
     private Object lock = new Object();
@@ -40,7 +41,8 @@ public class WriteAccessController {
                     lock.wait();
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
-                    throw new RuntimeException("Interrupted while waiting for writing to be allowed", e);
+                    throw new RuntimeException(
+                        "Interrupted while waiting for writing to be allowed", e);
                 }
             }
         }

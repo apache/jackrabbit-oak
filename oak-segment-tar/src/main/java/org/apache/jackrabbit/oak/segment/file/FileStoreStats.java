@@ -22,7 +22,6 @@ package org.apache.jackrabbit.oak.segment.file;
 import static org.apache.jackrabbit.stats.TimeSeriesStatsUtil.asCompositeData;
 
 import javax.management.openmbean.CompositeData;
-
 import org.apache.jackrabbit.api.stats.TimeSeries;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.segment.SegmentId;
@@ -35,7 +34,9 @@ import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatsOptions;
 import org.jetbrains.annotations.NotNull;
 
-public class FileStoreStats implements FileStoreStatsMBean, FileStoreMonitor, SegmentNotFoundExceptionListener {
+public class FileStoreStats implements FileStoreStatsMBean, FileStoreMonitor,
+    SegmentNotFoundExceptionListener {
+
     public static final String SEGMENT_REPO_SIZE = "SEGMENT_REPO_SIZE";
     public static final String SEGMENT_WRITES = "SEGMENT_WRITES";
     public static final String JOURNAL_WRITES = "JOURNAL_WRITES";
@@ -48,7 +49,8 @@ public class FileStoreStats implements FileStoreStatsMBean, FileStoreMonitor, Se
     private final MeterStats journalWriteStats;
     private final CounterStats snfeCountStats;
 
-    public FileStoreStats(StatisticsProvider statisticsProvider, FileStore store, long initialSize) {
+    public FileStoreStats(StatisticsProvider statisticsProvider, FileStore store,
+        long initialSize) {
         this.statisticsProvider = statisticsProvider;
         this.store = store;
         this.writeStats = statisticsProvider.getMeter(SEGMENT_WRITES, StatsOptions.DEFAULT);
@@ -119,8 +121,8 @@ public class FileStoreStats implements FileStoreStatsMBean, FileStoreMonitor, Se
     public String fileStoreInfoAsString() {
         return String.format("Segment store size : %s%n" +
                 "Number of tar files : %d",
-                IOUtils.humanReadableByteCount(getApproximateSize()),
-                getTarFileCount());
+            IOUtils.humanReadableByteCount(getApproximateSize()),
+            getTarFileCount());
     }
 
     @Override

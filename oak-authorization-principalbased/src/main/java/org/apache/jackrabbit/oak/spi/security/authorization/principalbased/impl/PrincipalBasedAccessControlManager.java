@@ -79,9 +79,11 @@ import java.util.Set;
  * Implementation of the {@link org.apache.jackrabbit.api.security.JackrabbitAccessControlManager}
  * interface that allows to create, modify and remove closed user group policies.
  */
-class PrincipalBasedAccessControlManager extends AbstractAccessControlManager implements PolicyOwner, Constants {
+class PrincipalBasedAccessControlManager extends AbstractAccessControlManager implements
+    PolicyOwner, Constants {
 
-    private static final Logger log = LoggerFactory.getLogger(PrincipalBasedAccessControlManager.class);
+    private static final Logger log = LoggerFactory.getLogger(
+        PrincipalBasedAccessControlManager.class);
 
     private final MgrProvider mgrProvider;
     private final int importBehavior;
@@ -94,22 +96,27 @@ class PrincipalBasedAccessControlManager extends AbstractAccessControlManager im
     private final Filter filter;
 
     PrincipalBasedAccessControlManager(@NotNull MgrProvider mgrProvider,
-                                       @NotNull FilterProvider filterProvider) {
-        super(mgrProvider.getRoot(), mgrProvider.getNamePathMapper(), mgrProvider.getSecurityProvider());
+        @NotNull FilterProvider filterProvider) {
+        super(mgrProvider.getRoot(), mgrProvider.getNamePathMapper(),
+            mgrProvider.getSecurityProvider());
 
         this.mgrProvider = mgrProvider;
 
         ConfigurationParameters configParams = getConfig().getParameters();
-        importBehavior = ImportBehavior.valueFromString(configParams.getConfigValue(ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, ImportBehavior.NAME_ABORT));
-        readPaths = configParams.getConfigValue(PermissionConstants.PARAM_READ_PATHS, PermissionConstants.DEFAULT_READ_PATHS);
+        importBehavior = ImportBehavior.valueFromString(
+            configParams.getConfigValue(ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR,
+                ImportBehavior.NAME_ABORT));
+        readPaths = configParams.getConfigValue(PermissionConstants.PARAM_READ_PATHS,
+            PermissionConstants.DEFAULT_READ_PATHS);
 
         principalManager = mgrProvider.getPrincipalManager();
         privilegeBitsProvider = mgrProvider.getPrivilegeBitsProvider();
 
         this.filterProvider = filterProvider;
-        filter = filterProvider.getFilter(mgrProvider.getSecurityProvider(), mgrProvider.getRoot(), mgrProvider.getNamePathMapper());
+        filter = filterProvider.getFilter(mgrProvider.getSecurityProvider(), mgrProvider.getRoot(),
+            mgrProvider.getNamePathMapper());
     }
-    
+
     @Override
     protected @NotNull PrivilegeBitsProvider getPrivilegeBitsProvider() {
         return mgrProvider.getPrivilegeBitsProvider();
@@ -119,12 +126,14 @@ class PrincipalBasedAccessControlManager extends AbstractAccessControlManager im
 
     @NotNull
     @Override
-    public JackrabbitAccessControlPolicy[] getApplicablePolicies(@NotNull Principal principal) throws RepositoryException {
+    public JackrabbitAccessControlPolicy[] getApplicablePolicies(@NotNull Principal principal)
+        throws RepositoryException {
         if (canHandle(principal)) {
             String oakPath = filter.getOakPath(principal);
             Tree tree = getTree(oakPath, Permissions.READ_ACCESS_CONTROL, true);
             if (!tree.hasChild(REP_PRINCIPAL_POLICY)) {
-                return new JackrabbitAccessControlPolicy[]{new PrincipalPolicyImpl(principal, oakPath, mgrProvider)};
+                return new JackrabbitAccessControlPolicy[]{
+                    new PrincipalPolicyImpl(principal, oakPath, mgrProvider)};
             }
         }
         return new JackrabbitAccessControlPolicy[0];
@@ -132,17 +141,20 @@ class PrincipalBasedAccessControlManager extends AbstractAccessControlManager im
 
     @NotNull
     @Override
-    public JackrabbitAccessControlPolicy[] getPolicies(@NotNull Principal principal) throws RepositoryException {
+    public JackrabbitAccessControlPolicy[] getPolicies(@NotNull Principal principal)
+        throws RepositoryException {
         JackrabbitAccessControlPolicy policy = null;
         if (canHandle(principal)) {
             policy = createPolicy(principal, false, Collections.emptyList());
         }
-        return (policy == null) ? new JackrabbitAccessControlPolicy[0] : new JackrabbitAccessControlPolicy[]{policy};
+        return (policy == null) ? new JackrabbitAccessControlPolicy[0]
+            : new JackrabbitAccessControlPolicy[]{policy};
     }
 
     @NotNull
     @Override
-    public AccessControlPolicy[] getEffectivePolicies(@NotNull Set<Principal> principals) throws RepositoryException {
+    public AccessControlPolicy[] getEffectivePolicies(@NotNull Set<Principal> principals)
+        throws RepositoryException {
         // this implementation only takes effect if the complete set of principals can be handled. see also
         // PrincipalBasedAuthorizationConfiguration.getPermissionProvider
         if (canHandle(principals)) {
@@ -154,7 +166,8 @@ class PrincipalBasedAccessControlManager extends AbstractAccessControlManager im
                 }
             }
             // add read-policy if there are configured paths
-            if (ReadPolicy.canAccessReadPolicy(getPermissionProvider(), readPaths.toArray(new String[0]))) {
+            if (ReadPolicy.canAccessReadPolicy(getPermissionProvider(),
+                readPaths.toArray(new String[0]))) {
                 effective.add(ReadPolicy.INSTANCE);
             }
             return effective.toArray(new AccessControlPolicy[0]);
@@ -164,7 +177,9 @@ class PrincipalBasedAccessControlManager extends AbstractAccessControlManager im
     }
 
     @Override
-    public @NotNull Iterator<AccessControlPolicy> getEffectivePolicies(@NotNull Set<Principal> principals, @Nullable String... absPaths) throws RepositoryException {
+    public @NotNull Iterator<AccessControlPolicy> getEffectivePolicies(
+        @NotNull Set<Principal> principals, @Nullable String... absPaths)
+        throws RepositoryException {
         // this implementation only takes effect if the complete set of principals can be handled. see also
         // PrincipalBasedAuthorizationConfiguration.getPermissionProvider
         if (canHandle(principals)) {
@@ -177,7 +192,8 @@ class PrincipalBasedAccessControlManager extends AbstractAccessControlManager im
                 }
             }
             // add read-policy if there are configured paths
-            boolean hasReadPolicy = oakPaths.isEmpty() || oakPaths.stream().anyMatch(p -> ReadPolicy.hasEffectiveReadPolicy(readPaths, p));
+            boolean hasReadPolicy = oakPaths.isEmpty() || oakPaths.stream().anyMatch(
+                p -> ReadPolicy.hasEffectiveReadPolicy(readPaths, p));
             if (hasReadPolicy) {
                 effective.add(ReadPolicy.INSTANCE);
             }
@@ -193,7 +209,8 @@ class PrincipalBasedAccessControlManager extends AbstractAccessControlManager im
     public AccessControlPolicy[] getPolicies(String absPath) throws RepositoryException {
         getTree(getOakPath(absPath), Permissions.READ_ACCESS_CONTROL, true);
 
-        log.debug("Editing access control policies by path is not supported. Use JackrabbitAccessControlManager.getPolicies(Principal principal)");
+        log.debug(
+            "Editing access control policies by path is not supported. Use JackrabbitAccessControlManager.getPolicies(Principal principal)");
         return new AccessControlPolicy[0];
     }
 
@@ -219,37 +236,45 @@ class PrincipalBasedAccessControlManager extends AbstractAccessControlManager im
         try {
             // run query on persisted content omitting any transient modifications
             QueryEngine queryEngine = getLatestRoot().getQueryEngine();
-            Result result = queryEngine.executeQuery(stmt.toString(), Query.XPATH, QueryEngine.NO_BINDINGS, QueryEngine.NO_MAPPINGS);
+            Result result = queryEngine.executeQuery(stmt.toString(), Query.XPATH,
+                QueryEngine.NO_BINDINGS, QueryEngine.NO_MAPPINGS);
 
             Map<Principal, List<AbstractEntry>> m = new HashMap<>();
             for (ResultRow row : result.getRows()) {
                 Tree entryTree = row.getTree(null);
                 AbstractEntry entry = createEffectiveEntry(entryTree);
                 if (entry != null) {
-                    List<AbstractEntry> entries = m.computeIfAbsent(entry.getPrincipal(), s -> new ArrayList<>());
+                    List<AbstractEntry> entries = m.computeIfAbsent(entry.getPrincipal(),
+                        s -> new ArrayList<>());
                     entries.add(entry);
                 }
             }
-            Iterable<PrincipalAccessControlList> acls = Iterables.transform(m.entrySet(), entry -> new ImmutablePrincipalPolicy(entry.getKey(), filter.getOakPath(entry.getKey()), entry.getValue(), mgrProvider.getRestrictionProvider(), getNamePathMapper()));
+            Iterable<PrincipalAccessControlList> acls = Iterables.transform(m.entrySet(),
+                entry -> new ImmutablePrincipalPolicy(entry.getKey(),
+                    filter.getOakPath(entry.getKey()), entry.getValue(),
+                    mgrProvider.getRestrictionProvider(), getNamePathMapper()));
 
             if (ReadPolicy.hasEffectiveReadPolicy(readPaths, oakPath)) {
-                Iterable<AccessControlPolicy> iterable = Iterables.concat(acls, Collections.singleton(ReadPolicy.INSTANCE));
+                Iterable<AccessControlPolicy> iterable = Iterables.concat(acls,
+                    Collections.singleton(ReadPolicy.INSTANCE));
                 return Iterables.toArray(iterable, AccessControlPolicy.class);
             } else {
                 return Iterables.toArray(acls, PrincipalAccessControlList.class);
             }
         } catch (ParseException e) {
-            String msg = "Error while collecting effective policies at " +absPath;
+            String msg = "Error while collecting effective policies at " + absPath;
             log.error(msg, e);
             throw new RepositoryException(msg, e);
         }
     }
 
     @Override
-    public AccessControlPolicyIterator getApplicablePolicies(String absPath) throws RepositoryException {
+    public AccessControlPolicyIterator getApplicablePolicies(String absPath)
+        throws RepositoryException {
         getTree(getOakPath(absPath), Permissions.READ_ACCESS_CONTROL, true);
 
-        log.debug("Editing access control policies by path is not supported. Use JackrabbitAccessControlManager.getApplicablePolicies(Principal principal)");
+        log.debug(
+            "Editing access control policies by path is not supported. Use JackrabbitAccessControlManager.getApplicablePolicies(Principal principal)");
         return AccessControlPolicyIteratorAdapter.EMPTY;
     }
 
@@ -265,7 +290,9 @@ class PrincipalBasedAccessControlManager extends AbstractAccessControlManager im
         }
 
         // make sure parent has mixin set and policy node is properly initialized
-        TreeUtil.addMixin(tree, MIX_REP_PRINCIPAL_BASED_MIXIN, getRoot().getTree(NodeTypeConstants.NODE_TYPES_PATH), getRoot().getContentSession().getAuthInfo().getUserID());
+        TreeUtil.addMixin(tree, MIX_REP_PRINCIPAL_BASED_MIXIN,
+            getRoot().getTree(NodeTypeConstants.NODE_TYPES_PATH),
+            getRoot().getContentSession().getAuthInfo().getUserID());
         policyTree = TreeUtil.addChild(tree, REP_PRINCIPAL_POLICY, NT_REP_PRINCIPAL_POLICY);
         policyTree.setOrderableChildren(true);
         policyTree.setProperty(Constants.REP_PRINCIPAL_NAME, pp.getPrincipal().getName());
@@ -279,22 +306,27 @@ class PrincipalBasedAccessControlManager extends AbstractAccessControlManager im
                 throw new AccessDeniedException("Access denied.");
             }
             entryTree.setProperty(REP_EFFECTIVE_PATH, effectiveOakPath, Type.PATH);
-            entryTree.setProperty(Constants.REP_PRIVILEGES, privilegeBitsProvider.getPrivilegeNames(entry.getPrivilegeBits()), Type.NAMES);
+            entryTree.setProperty(Constants.REP_PRIVILEGES,
+                privilegeBitsProvider.getPrivilegeNames(entry.getPrivilegeBits()), Type.NAMES);
             restrictionProvider.writeRestrictions(oakPath, entryTree, entry.getRestrictions());
         }
     }
 
     @Override
-    public void removePolicy(String absPath, AccessControlPolicy policy) throws RepositoryException {
+    public void removePolicy(String absPath, AccessControlPolicy policy)
+        throws RepositoryException {
         PrincipalPolicyImpl pp = checkValidPolicy(absPath, policy);
-        Tree policyTree = getPolicyTree(getTree(pp.getOakPath(), Permissions.MODIFY_ACCESS_CONTROL, true));
+        Tree policyTree = getPolicyTree(
+            getTree(pp.getOakPath(), Permissions.MODIFY_ACCESS_CONTROL, true));
         if (policyTree.exists()) {
             for (Tree child : policyTree.getChildren()) {
                 if (Utils.isPrincipalEntry(child)) {
                     PropertyState effectivePath = child.getProperty(REP_EFFECTIVE_PATH);
                     if (effectivePath == null) {
-                        throw new AccessControlException("Missing mandatory property rep:effectivePath; cannot validate permissions to modify policy.");
-                    } else if (!Utils.hasModAcPermission(getPermissionProvider(), effectivePath.getValue(Type.PATH))) {
+                        throw new AccessControlException(
+                            "Missing mandatory property rep:effectivePath; cannot validate permissions to modify policy.");
+                    } else if (!Utils.hasModAcPermission(getPermissionProvider(),
+                        effectivePath.getValue(Type.PATH))) {
                         throw new AccessDeniedException("Access denied.");
                     }
                 }
@@ -307,30 +339,34 @@ class PrincipalBasedAccessControlManager extends AbstractAccessControlManager im
 
     //--------------------------------------------------------< PolicyOwner >---
     @Override
-    public boolean defines(@Nullable String absPath, @NotNull AccessControlPolicy accessControlPolicy) {
+    public boolean defines(@Nullable String absPath,
+        @NotNull AccessControlPolicy accessControlPolicy) {
         String oakPath = (absPath == null) ? null : getNamePathMapper().getOakPath(absPath);
-        if (oakPath == null || !filterProvider.handlesPath(oakPath) ||  !(accessControlPolicy instanceof PrincipalPolicyImpl)) {
+        if (oakPath == null || !filterProvider.handlesPath(oakPath)
+            || !(accessControlPolicy instanceof PrincipalPolicyImpl)) {
             return false;
         }
         return oakPath.equals(((PrincipalPolicyImpl) accessControlPolicy).getOakPath());
     }
 
     //--------------------------------------------------------------------------
+
     /**
-     * Validate the specified {@code principal} taking the configured
-     * {@link ImportBehavior} into account.
+     * Validate the specified {@code principal} taking the configured {@link ImportBehavior} into
+     * account.
      *
      * @param principal The principal to validate.
      * @return if the principal can be handled by the filter
-     * @throws AccessControlException If the principal has an invalid name or
-     * if {@link ImportBehavior#ABORT} is configured and this principal cannot be handled by the filter.
+     * @throws AccessControlException If the principal has an invalid name or if
+     *                                {@link ImportBehavior#ABORT} is configured and this principal
+     *                                cannot be handled by the filter.
      */
     private boolean canHandle(@Nullable Principal principal) throws AccessControlException {
         String name = (principal == null) ? null : principal.getName();
         if (Strings.isNullOrEmpty(name)) {
             throw new AccessControlException("Invalid principal " + name);
         }
-        if (importBehavior ==  ImportBehavior.ABORT || importBehavior == ImportBehavior.IGNORE) {
+        if (importBehavior == ImportBehavior.ABORT || importBehavior == ImportBehavior.IGNORE) {
             principal = principalManager.getPrincipal(name);
             if (principal == null) {
                 if (importBehavior == ImportBehavior.IGNORE) {
@@ -354,9 +390,10 @@ class PrincipalBasedAccessControlManager extends AbstractAccessControlManager im
         return true;
     }
 
-    private PrincipalPolicyImpl checkValidPolicy(@Nullable String absPath, @NotNull AccessControlPolicy policy) throws AccessControlException {
+    private PrincipalPolicyImpl checkValidPolicy(@Nullable String absPath,
+        @NotNull AccessControlPolicy policy) throws AccessControlException {
         if (!defines(absPath, policy)) {
-            throw new AccessControlException("Invalid policy "+ policy + " at path " + absPath);
+            throw new AccessControlException("Invalid policy " + policy + " at path " + absPath);
         }
         return (PrincipalPolicyImpl) policy;
     }
@@ -368,8 +405,8 @@ class PrincipalBasedAccessControlManager extends AbstractAccessControlManager im
 
     @Nullable
     private JackrabbitAccessControlPolicy createPolicy(@NotNull Principal principal,
-                                                       boolean isEffectivePolicy,
-                                                       @NotNull Collection<String> oakPaths) throws RepositoryException {
+        boolean isEffectivePolicy,
+        @NotNull Collection<String> oakPaths) throws RepositoryException {
         String oakPath = filter.getOakPath(principal);
         Tree tree = getTree(oakPath, Permissions.READ_ACCESS_CONTROL, true);
         if (isEffectivePolicy) {
@@ -417,25 +454,29 @@ class PrincipalBasedAccessControlManager extends AbstractAccessControlManager im
     }
 
     @Nullable
-    private AbstractEntry createEffectiveEntry(@NotNull Tree entryTree) throws AccessControlException {
-        String principalName = TreeUtil.getString(entryTree.getParent(), AccessControlConstants.REP_PRINCIPAL_NAME);
+    private AbstractEntry createEffectiveEntry(@NotNull Tree entryTree)
+        throws AccessControlException {
+        String principalName = TreeUtil.getString(entryTree.getParent(),
+            AccessControlConstants.REP_PRINCIPAL_NAME);
         Principal principal = principalManager.getPrincipal(principalName);
         if (principal == null || !filter.canHandle(Collections.singleton(principal))) {
             return null;
         }
         String oakPath = Strings.emptyToNull(TreeUtil.getString(entryTree, REP_EFFECTIVE_PATH));
-        PrivilegeBits bits = privilegeBitsProvider.getBits(entryTree.getProperty(Constants.REP_PRIVILEGES).getValue(Type.NAMES));
-        
+        PrivilegeBits bits = privilegeBitsProvider.getBits(
+            entryTree.getProperty(Constants.REP_PRIVILEGES).getValue(Type.NAMES));
+
         RestrictionProvider rp = mgrProvider.getRestrictionProvider();
         if (!Utils.hasValidRestrictions(oakPath, entryTree, rp)) {
             return null;
         }
-        
+
         Set<Restriction> restrictions = Utils.readRestrictions(rp, oakPath, entryTree);
         NamePathMapper npMapper = getNamePathMapper();
         return new AbstractEntry(oakPath, principal, bits, restrictions, npMapper) {
             @Override
-            @NotNull NamePathMapper getNamePathMapper() {
+            @NotNull
+            NamePathMapper getNamePathMapper() {
                 return npMapper;
             }
 
@@ -443,11 +484,12 @@ class PrincipalBasedAccessControlManager extends AbstractAccessControlManager im
             protected @NotNull PrivilegeBitsProvider getPrivilegeBitsProvider() {
                 return privilegeBitsProvider;
             }
-            
+
             @Override
             public Privilege[] getPrivileges() {
-                Set<String> names =  privilegeBitsProvider.getPrivilegeNames(getPrivilegeBits());
-                return Utils.privilegesFromOakNames(names, mgrProvider.getPrivilegeManager(), getNamePathMapper());
+                Set<String> names = privilegeBitsProvider.getPrivilegeNames(getPrivilegeBits());
+                return Utils.privilegesFromOakNames(names, mgrProvider.getPrivilegeManager(),
+                    getNamePathMapper());
             }
         };
     }

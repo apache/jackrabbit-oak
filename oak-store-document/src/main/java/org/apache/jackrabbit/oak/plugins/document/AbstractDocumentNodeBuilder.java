@@ -27,8 +27,7 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE
 import static org.apache.jackrabbit.oak.spi.state.AbstractNodeState.checkValidName;
 
 /**
- * Abstract base class for {@link DocumentRootBuilder} and
- * {@link DocumentNodeBuilder}.
+ * Abstract base class for {@link DocumentRootBuilder} and {@link DocumentNodeBuilder}.
  */
 abstract class AbstractDocumentNodeBuilder extends MemoryNodeBuilder {
 
@@ -37,17 +36,16 @@ abstract class AbstractDocumentNodeBuilder extends MemoryNodeBuilder {
     }
 
     protected AbstractDocumentNodeBuilder(MemoryNodeBuilder parent,
-                                          String name) {
+        String name) {
         super(parent, name);
     }
 
     /**
-     * Sets the named subtree to the given state. To avoid running out
-     * of memory with large change-sets, the implementation recursively
-     * copies all properties and child nodes to this builder so that the
-     * purge mechanism has a chance to periodically flush partial changes
-     * to the underlying storage database.
-     *
+     * Sets the named subtree to the given state. To avoid running out of memory with large
+     * change-sets, the implementation recursively copies all properties and child nodes to this
+     * builder so that the purge mechanism has a chance to periodically flush partial changes to the
+     * underlying storage database.
+     * <p>
      * See also: OAK-1768
      */
     @Override

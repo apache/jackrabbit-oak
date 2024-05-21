@@ -28,12 +28,14 @@ package org.apache.lucene.index;
 import java.io.IOException;
 
 /**
- * This exception is thrown when Lucene detects
- * an inconsistency in the index.
+ * This exception is thrown when Lucene detects an inconsistency in the index.
  */
 public class CorruptIndexException extends IOException {
-  /** Sole constructor. */
-  public CorruptIndexException(String message) {
-    super(message);
-  }
+
+    /**
+     * Sole constructor.
+     */
+    public CorruptIndexException(String message) {
+        super(message);
+    }
 }

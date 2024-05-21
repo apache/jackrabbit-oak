@@ -17,12 +17,10 @@
 package org.apache.jackrabbit.oak.spi.security.authentication.callback;
 
 import javax.security.auth.callback.Callback;
-
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 
 /**
- * Callback implementation used to pass a {@link PrincipalProvider} to the
- * login module.
+ * Callback implementation used to pass a {@link PrincipalProvider} to the login module.
  */
 public class PrincipalProviderCallback implements Callback {
 
@@ -30,22 +28,21 @@ public class PrincipalProviderCallback implements Callback {
 
     /**
      * Returns the principal provider as set using
-     * {@link #setPrincipalProvider(org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider)}
-     * or {@code null}.
+     * {@link
+     * #setPrincipalProvider(org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider)} or
+     * {@code null}.
      *
-     * @return an instance of {@code PrincipalProvider} or {@code null} if no
-     * provider has been set before.
+     * @return an instance of {@code PrincipalProvider} or {@code null} if no provider has been set
+     * before.
      */
     public PrincipalProvider getPrincipalProvider() {
         return principalProvider;
     }
 
     /**
-     * Sets the {@code PrincipalProvider} that is being used during the
-     * authentication process.
+     * Sets the {@code PrincipalProvider} that is being used during the authentication process.
      *
-     * @param principalProvider The principal provider to use during the
-     * authentication process.
+     * @param principalProvider The principal provider to use during the authentication process.
      */
     public void setPrincipalProvider(PrincipalProvider principalProvider) {
         this.principalProvider = principalProvider;

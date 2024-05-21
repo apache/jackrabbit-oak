@@ -17,20 +17,19 @@
 package org.apache.jackrabbit.oak.benchmark;
 
 import java.util.Random;
-
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
 /**
- * Test case that traverses 10k unstructured nodes (100x100) while 50 concurrent
- * readers randomly access nodes from within this tree.
+ * Test case that traverses 10k unstructured nodes (100x100) while 50 concurrent readers randomly
+ * access nodes from within this tree.
  */
 public class ConcurrentReadTest extends AbstractTest {
 
     protected static final int NODE_COUNT = 100;
-    
+
     protected static final String ROOT_NODE_NAME = "test" + TEST_ID;
 
     private final int backgroundReaderCount;
@@ -42,8 +41,8 @@ public class ConcurrentReadTest extends AbstractTest {
     private Runnable foregroundTask;
 
     protected ConcurrentReadTest(
-            int backgroundReaderCount, int backgroundWriterCount,
-            boolean foregroundIsReader) {
+        int backgroundReaderCount, int backgroundWriterCount,
+        boolean foregroundIsReader) {
         this.backgroundReaderCount = backgroundReaderCount;
         this.backgroundWriterCount = backgroundWriterCount;
         this.foregroundIsReader = foregroundIsReader;
@@ -115,7 +114,7 @@ public class ConcurrentReadTest extends AbstractTest {
                     int a = random.nextInt(NODE_COUNT);
                     int b = random.nextInt(NODE_COUNT);
                     Node node = session.getRootNode().getNode(
-                            ROOT_NODE_NAME + "/node" + a + "/node" + b);
+                        ROOT_NODE_NAME + "/node" + a + "/node" + b);
                     boolean done = false;
                     while (!done) {
                         try {

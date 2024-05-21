@@ -21,11 +21,11 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
 /**
- * Test for measuring the performance of creating a nodes (with a low fanout,
- * that is, with few child nodes for each node).
+ * Test for measuring the performance of creating a nodes (with a low fanout, that is, with few
+ * child nodes for each node).
  */
 public class CreateManyNodesTest extends AbstractTest {
-    
+
     protected static final String ROOT_NODE_NAME = "many" + TEST_ID;
 
     private static final int FANOUT = 5;
@@ -41,7 +41,7 @@ public class CreateManyNodesTest extends AbstractTest {
         session = loginWriter();
         testRootNode = session.getRootNode().addNode(ROOT_NODE_NAME, "nt:unstructured");
     }
-    
+
     @Override
     public void afterSuite() throws RepositoryException {
         testRootNode.remove();
@@ -55,7 +55,7 @@ public class CreateManyNodesTest extends AbstractTest {
         addChildNodes(node, LEVELS);
         session.save();
     }
-    
+
     private void addChildNodes(Node parent, int level) throws Exception {
         for (int i = 0; i < FANOUT; i++) {
             nodeCount++;

@@ -16,13 +16,14 @@
  */
 package org.apache.jackrabbit.oak.benchmark;
 
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+
 import java.security.Principal;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import javax.jcr.Repository;
 import javax.jcr.security.AccessControlManager;
-
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
@@ -32,9 +33,9 @@ import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.plugins.tree.factories.RootFactory;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
 import org.apache.jackrabbit.oak.plugins.tree.TreeType;
+import org.apache.jackrabbit.oak.plugins.tree.factories.RootFactory;
 import org.apache.jackrabbit.oak.security.authorization.composite.CompositeAuthorizationConfiguration;
 import org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
@@ -59,11 +60,8 @@ import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-
 /**
- * Test the effect of multiple authorization configurations on the general read
- * operations.
+ * Test the effect of multiple authorization configurations on the general read operations.
  */
 public class CompositeAuthorizationTest extends ReadDeepTreeTest {
 
@@ -71,7 +69,7 @@ public class CompositeAuthorizationTest extends ReadDeepTreeTest {
 
     protected CompositeAuthorizationTest(boolean runAsAdmin, int cntConfigurations) {
         super(runAsAdmin, 1000, false);
-        cnt =  cntConfigurations;
+        cnt = cntConfigurations;
     }
 
     @Override
@@ -92,7 +90,7 @@ public class CompositeAuthorizationTest extends ReadDeepTreeTest {
         SecurityProvider delegate = SecurityProviderBuilder.newBuilder().build();
 
         AuthorizationConfiguration authorizationConfiguration = delegate
-                .getConfiguration(AuthorizationConfiguration.class);
+            .getConfiguration(AuthorizationConfiguration.class);
         if (!(authorizationConfiguration instanceof CompositeAuthorizationConfiguration)) {
             throw new IllegalStateException();
         } else {
@@ -116,7 +114,8 @@ public class CompositeAuthorizationTest extends ReadDeepTreeTest {
 
         @NotNull
         @Override
-        public AccessControlManager getAccessControlManager(@NotNull Root root, @NotNull NamePathMapper namePathMapper) {
+        public AccessControlManager getAccessControlManager(@NotNull Root root,
+            @NotNull NamePathMapper namePathMapper) {
             return defConfig.getAccessControlManager(root, namePathMapper);
         }
 
@@ -128,7 +127,8 @@ public class CompositeAuthorizationTest extends ReadDeepTreeTest {
 
         @NotNull
         @Override
-        public PermissionProvider getPermissionProvider(@NotNull Root root, @NotNull String workspaceName, @NotNull Set<Principal> principals) {
+        public PermissionProvider getPermissionProvider(@NotNull Root root,
+            @NotNull String workspaceName, @NotNull Set<Principal> principals) {
             return new TmpPermissionProvider(root);
         }
 
@@ -164,7 +164,8 @@ public class CompositeAuthorizationTest extends ReadDeepTreeTest {
 
         @NotNull
         @Override
-        public List<? extends ValidatorProvider> getValidators(@NotNull String workspaceName, @NotNull Set<Principal> principals, @NotNull MoveTracker moveTracker) {
+        public List<? extends ValidatorProvider> getValidators(@NotNull String workspaceName,
+            @NotNull Set<Principal> principals, @NotNull MoveTracker moveTracker) {
             return Collections.EMPTY_LIST;
         }
 
@@ -198,6 +199,7 @@ public class CompositeAuthorizationTest extends ReadDeepTreeTest {
             this.root = root;
             immutableRoot = RootFactory.createReadOnlyRoot(root);
         }
+
         @Override
         public void refresh() {
             immutableRoot = RootFactory.createReadOnlyRoot(root);
@@ -224,13 +226,15 @@ public class CompositeAuthorizationTest extends ReadDeepTreeTest {
 
         @NotNull
         @Override
-        public TreePermission getTreePermission(@NotNull Tree tree, @NotNull TreePermission parentPermission) {
+        public TreePermission getTreePermission(@NotNull Tree tree,
+            @NotNull TreePermission parentPermission) {
             performSomeRead(tree);
             return TreePermission.ALL;
         }
 
         @Override
-        public boolean isGranted(@NotNull Tree tree, @Nullable PropertyState property, long permissions) {
+        public boolean isGranted(@NotNull Tree tree, @Nullable PropertyState property,
+            long permissions) {
             performSomeRead(tree);
             return true;
         }
@@ -250,12 +254,15 @@ public class CompositeAuthorizationTest extends ReadDeepTreeTest {
 
         @NotNull
         @Override
-        public PrivilegeBits supportedPrivileges(@Nullable Tree tree, @Nullable PrivilegeBits privilegeBits) {
-            return (privilegeBits != null) ? privilegeBits : new PrivilegeBitsProvider(immutableRoot).getBits(PrivilegeConstants.JCR_ALL);
+        public PrivilegeBits supportedPrivileges(@Nullable Tree tree,
+            @Nullable PrivilegeBits privilegeBits) {
+            return (privilegeBits != null) ? privilegeBits
+                : new PrivilegeBitsProvider(immutableRoot).getBits(PrivilegeConstants.JCR_ALL);
         }
 
         @Override
-        public long supportedPermissions(@Nullable Tree tree, @Nullable PropertyState property, long permissions) {
+        public long supportedPermissions(@Nullable Tree tree, @Nullable PropertyState property,
+            long permissions) {
             return permissions;
         }
 
@@ -265,7 +272,8 @@ public class CompositeAuthorizationTest extends ReadDeepTreeTest {
         }
 
         @Override
-        public long supportedPermissions(@NotNull TreePermission treePermission, @Nullable PropertyState property, long permissions) {
+        public long supportedPermissions(@NotNull TreePermission treePermission,
+            @Nullable PropertyState property, long permissions) {
             return permissions;
         }
 
@@ -276,7 +284,8 @@ public class CompositeAuthorizationTest extends ReadDeepTreeTest {
 
         @NotNull
         @Override
-        public TreePermission getTreePermission(@NotNull Tree tree, @NotNull TreeType type, @NotNull TreePermission parentPermission) {
+        public TreePermission getTreePermission(@NotNull Tree tree, @NotNull TreeType type,
+            @NotNull TreePermission parentPermission) {
             return getTreePermission(tree, parentPermission);
         }
     }

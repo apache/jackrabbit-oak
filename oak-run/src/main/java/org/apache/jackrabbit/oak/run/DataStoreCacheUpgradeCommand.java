@@ -17,31 +17,31 @@
 
 package org.apache.jackrabbit.oak.run;
 
-import java.io.File;
+import static java.util.Arrays.asList;
 
+import java.io.File;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
-import org.apache.jackrabbit.oak.run.commons.Command;
 import org.apache.jackrabbit.oak.plugins.blob.DataStoreCacheUpgradeUtils;
-
-import static java.util.Arrays.asList;
+import org.apache.jackrabbit.oak.run.commons.Command;
 
 /**
  * Command to upgrade JR2 DataStore cache.
  */
 public class DataStoreCacheUpgradeCommand implements Command {
+
     @Override
     public void execute(String... args) throws Exception {
         OptionParser parser = new OptionParser();
 
         try {
             OptionSpec<File> homeDirOption = parser.accepts("homeDir",
-                "Home directory of the datastore where the pending uploads is serialized")
-                .withRequiredArg().ofType(File.class).required();
+                                                       "Home directory of the datastore where the pending uploads is serialized")
+                                                   .withRequiredArg().ofType(File.class).required();
             OptionSpec<File> pathOption =
                 parser.accepts("path", "Parent directory of the datastore").withRequiredArg()
-                    .ofType(File.class).required();
+                      .ofType(File.class).required();
             OptionSpec<Boolean> moveCacheOption = parser
                 .accepts("moveCache", "Move DataStore download cache")
                 .withOptionalArg().ofType(Boolean.class).defaultsTo(true);

@@ -19,8 +19,8 @@ package org.apache.jackrabbit.j2ee;
 import javax.servlet.ServletException;
 
 /**
- * Utility class that links {@link ServletException} with support for
- * the exception chaining mechanism in {@link Throwable}.
+ * Utility class that links {@link ServletException} with support for the exception chaining
+ * mechanism in {@link Throwable}.
  *
  * @see <a href="https://issues.apache.org/jira/browse/JCR-1598">JCR-1598</a>
  */
@@ -35,7 +35,7 @@ public class ServletExceptionWithCause extends ServletException {
      * Creates a servlet exception with the given message and cause.
      *
      * @param message exception message
-     * @param cause cause of the exception
+     * @param cause   cause of the exception
      */
     public ServletExceptionWithCause(String message, Throwable cause) {
         super(message, cause);

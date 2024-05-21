@@ -55,8 +55,9 @@ public class ClusterViewDocumentTest {
     }
 
     private String callSetToCsv(Set<Integer> input) throws Throwable {
-        return (String) PrivateAccessor.invoke(ClusterViewDocument.class, "setToCsv", new Class[] { Set.class },
-                new Object[] { input });
+        return (String) PrivateAccessor.invoke(ClusterViewDocument.class, "setToCsv",
+            new Class[]{Set.class},
+            new Object[]{input});
     }
 
     @Test
@@ -66,15 +67,16 @@ public class ClusterViewDocumentTest {
         assertNull(callArrayToCsv(new Integer[0]));
 
         // one element only
-        assertEquals("101", callArrayToCsv(new Integer[] { 101 }));
-        assertEquals("101,102", callArrayToCsv(new Integer[] { 101, 102 }));
-        assertEquals("101,102,103", callArrayToCsv(new Integer[] { 101, 102, 103 }));
-        assertEquals("101,102,103,104", callArrayToCsv(new Integer[] { 101, 102, 103, 104 }));
+        assertEquals("101", callArrayToCsv(new Integer[]{101}));
+        assertEquals("101,102", callArrayToCsv(new Integer[]{101, 102}));
+        assertEquals("101,102,103", callArrayToCsv(new Integer[]{101, 102, 103}));
+        assertEquals("101,102,103,104", callArrayToCsv(new Integer[]{101, 102, 103, 104}));
     }
 
     private String callArrayToCsv(Integer[] input) throws Throwable {
-        return (String) PrivateAccessor.invoke(ClusterViewDocument.class, "arrayToCsv", new Class[] { Integer[].class },
-                new Object[] { input });
+        return (String) PrivateAccessor.invoke(ClusterViewDocument.class, "arrayToCsv",
+            new Class[]{Integer[].class},
+            new Object[]{input});
     }
 
     @Test
@@ -111,7 +113,7 @@ public class ClusterViewDocumentTest {
         assertTrue(doc.getInactiveIds().contains(8));
 
     }
-    
+
     @Test
     public void testHistory() throws Exception {
         final int localClusterId = 1;
@@ -126,13 +128,14 @@ public class ClusterViewDocumentTest {
         for (int i = 0; i < LOOP_CNT; i++) {
             // create a new instance
             activeIds.add(i + 2);
-            ClusterViewDocument result = ClusterViewDocument.readOrUpdate(ns, activeIds, null, null);
+            ClusterViewDocument result = ClusterViewDocument.readOrUpdate(ns, activeIds, null,
+                null);
             assertNotNull(result);
-            assertEquals(i+2, result.getActiveIds().size());
-            if (i<10) {
-                assertEquals(i+1, result.getHistory().size());
+            assertEquals(i + 2, result.getActiveIds().size());
+            if (i < 10) {
+                assertEquals(i + 1, result.getHistory().size());
             } else {
-                assertTrue(result.getHistory().size()<=ClusterViewDocument.HISTORY_LIMIT);
+                assertTrue(result.getHistory().size() <= ClusterViewDocument.HISTORY_LIMIT);
             }
         }
     }
@@ -161,7 +164,8 @@ public class ClusterViewDocumentTest {
         Set<Integer> recoveringIds = null;
         Set<Integer> inactiveIds = null;
         // first ever view:
-        ClusterViewDocument doc = ClusterViewDocument.readOrUpdate(ns, activeIds, recoveringIds, inactiveIds);
+        ClusterViewDocument doc = ClusterViewDocument.readOrUpdate(ns, activeIds, recoveringIds,
+            inactiveIds);
         String createdAt = doc.getCreatedAt();
         assertTrue(createdAt != null && createdAt.length() > 0);
         long createdBy = doc.getCreatedBy();
@@ -249,8 +253,9 @@ public class ClusterViewDocumentTest {
     }
 
     private static DocumentMK create(DocumentStore ds, int clusterId) {
-        return new DocumentMK.Builder().setAsyncDelay(0).setDocumentStore(ds).setClusterId(clusterId)
-                .setPersistentCache("target/persistentCache,time").open();
+        return new DocumentMK.Builder().setAsyncDelay(0).setDocumentStore(ds)
+                                       .setClusterId(clusterId)
+                                       .setPersistentCache("target/persistentCache,time").open();
     }
 
 }

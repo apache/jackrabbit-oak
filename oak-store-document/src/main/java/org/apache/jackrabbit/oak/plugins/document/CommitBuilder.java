@@ -37,7 +37,9 @@ import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull
  */
 class CommitBuilder {
 
-    /** A marker revision when the commit is initially built */
+    /**
+     * A marker revision when the commit is initially built
+     */
     static final Revision PSEUDO_COMMIT_REVISION = new Revision(Long.MIN_VALUE, 0, 0);
 
     private final DocumentNodeStore nodeStore;
@@ -49,33 +51,34 @@ class CommitBuilder {
     private final Set<Path> addedNodes = new HashSet<>();
     private final Set<Path> removedNodes = new HashSet<>();
 
-    /** Set of all nodes which have binary properties. **/
+    /**
+     * Set of all nodes which have binary properties.
+     **/
     private final Set<Path> nodesWithBinaries = new HashSet<>();
     private final Map<Path, Path> bundledNodes = new HashMap<>();
 
     /**
-     * Creates a new builder with a pseudo commit revision. Building the commit
-     * must be done by calling {@link #build(Revision)}.
+     * Creates a new builder with a pseudo commit revision. Building the commit must be done by
+     * calling {@link #build(Revision)}.
      *
-     * @param nodeStore the node store.
+     * @param nodeStore    the node store.
      * @param baseRevision the base revision if available.
      */
     CommitBuilder(@NotNull DocumentNodeStore nodeStore,
-                  @Nullable RevisionVector baseRevision) {
+        @Nullable RevisionVector baseRevision) {
         this(nodeStore, PSEUDO_COMMIT_REVISION, baseRevision);
     }
 
     /**
      * Creates a new builder with the given commit {@code revision}.
      *
-     * @param nodeStore the node store.
-     * @param revision the commit revision.
-     * @param baseRevision the base revision of the commit or {@code null} if
-     *          none is set.
+     * @param nodeStore    the node store.
+     * @param revision     the commit revision.
+     * @param baseRevision the base revision of the commit or {@code null} if none is set.
      */
     CommitBuilder(@NotNull DocumentNodeStore nodeStore,
-                  @NotNull Revision revision,
-                  @Nullable RevisionVector baseRevision) {
+        @NotNull Revision revision,
+        @Nullable RevisionVector baseRevision) {
         this.nodeStore = checkNotNull(nodeStore);
         this.revision = checkNotNull(revision);
         this.baseRevision = baseRevision;
@@ -114,12 +117,12 @@ class CommitBuilder {
      *
      * @param node the node state to add.
      * @return {@code this} builder.
-     * @throws DocumentStoreException if there's already a modification for
-     *      a node at the given {@code path} in this commit builder.
+     * @throws DocumentStoreException if there's already a modification for a node at the given
+     *                                {@code path} in this commit builder.
      */
     @NotNull
     CommitBuilder addNode(@NotNull DocumentNodeState node)
-            throws DocumentStoreException {
+        throws DocumentStoreException {
         checkNotNull(node);
 
         Path path = node.getPath();
@@ -142,16 +145,16 @@ class CommitBuilder {
     }
 
     /**
-     * Instructs the commit builder that the bundling root of the node at
-     * {@code path} is at {@code bundlingRootPath}.
+     * Instructs the commit builder that the bundling root of the node at {@code path} is at
+     * {@code bundlingRootPath}.
      *
-     * @param path the path of a node.
+     * @param path             the path of a node.
      * @param bundlingRootPath the bundling root for the node.
      * @return {@code this} builder.
      */
     @NotNull
     CommitBuilder addBundledNode(@NotNull Path path,
-                                 @NotNull Path bundlingRootPath) {
+        @NotNull Path bundlingRootPath) {
         checkNotNull(path);
         checkNotNull(bundlingRootPath);
 
@@ -162,16 +165,16 @@ class CommitBuilder {
     /**
      * Removes a node in this commit.
      *
-     * @param path the path of the node to remove.
+     * @param path  the path of the node to remove.
      * @param state the node state representing the node to remove.
      * @return {@code this} builder.
-     * @throws DocumentStoreException if there's already a modification for
-     *      a node at the given {@code path} in this commit builder.
+     * @throws DocumentStoreException if there's already a modification for a node at the given
+     *                                {@code path} in this commit builder.
      */
     @NotNull
     CommitBuilder removeNode(@NotNull Path path,
-                             @NotNull NodeState state)
-            throws DocumentStoreException {
+        @NotNull NodeState state)
+        throws DocumentStoreException {
         checkNotNull(path);
         checkNotNull(state);
 
@@ -192,15 +195,15 @@ class CommitBuilder {
     /**
      * Updates a property to a given value.
      *
-     * @param path the path of the node.
+     * @param path         the path of the node.
      * @param propertyName the name of the property.
-     * @param value the value of the property.
+     * @param value        the value of the property.
      * @return {@code this} builder.
      */
     @NotNull
     CommitBuilder updateProperty(@NotNull Path path,
-                                 @NotNull String propertyName,
-                                 @Nullable String value) {
+        @NotNull String propertyName,
+        @Nullable String value) {
         checkNotNull(path);
         checkNotNull(propertyName);
 
@@ -211,8 +214,8 @@ class CommitBuilder {
     }
 
     /**
-     * Instructs the commit builder that the node at the given {@code path} has
-     * a reference to a binary.
+     * Instructs the commit builder that the node at the given {@code path} has a reference to a
+     * binary.
      *
      * @param path the path of the node.
      * @return {@code this} builder.
@@ -228,8 +231,8 @@ class CommitBuilder {
     /**
      * Sets the start revisions of known clusterIds on this commit builder.
      *
-     * @param startRevisions the start revisions derived from the start time
-     *          in the clusterNodes entries.
+     * @param startRevisions the start revisions derived from the start time in the clusterNodes
+     *                       entries.
      * @return {@code this} builder.
      */
     @NotNull
@@ -242,9 +245,8 @@ class CommitBuilder {
      * Builds the commit with the modifications.
      *
      * @return {@code this} builder.
-     * @throws IllegalStateException if this builder was created without an
-     *      explicit commit revision and {@link #build(Revision)} should have
-     *      been called instead.
+     * @throws IllegalStateException if this builder was created without an explicit commit revision
+     *                               and {@link #build(Revision)} should have been called instead.
      */
     @NotNull
     Commit build() {
@@ -253,8 +255,8 @@ class CommitBuilder {
             throw new IllegalStateException(msg);
         }
         return new Commit(nodeStore, revision, baseRevision, startRevisions,
-                operations, addedNodes, removedNodes, nodesWithBinaries,
-                bundledNodes);
+            operations, addedNodes, removedNodes, nodesWithBinaries,
+            bundledNodes);
     }
 
     /**
@@ -269,15 +271,14 @@ class CommitBuilder {
 
         Revision from = this.revision;
         Map<Path, UpdateOp> operations = Maps.transformValues(
-                this.operations, op -> rewrite(op, from, revision));
+            this.operations, op -> rewrite(op, from, revision));
         return new Commit(nodeStore, revision, baseRevision, startRevisions,
-                operations, addedNodes, removedNodes, nodesWithBinaries,
-                bundledNodes);
+            operations, addedNodes, removedNodes, nodesWithBinaries,
+            bundledNodes);
     }
 
     /**
-     * Returns the number of operations currently recorded by this commit
-     * builder.
+     * Returns the number of operations currently recorded by this commit builder.
      *
      * @return the number of operations.
      */
@@ -297,8 +298,8 @@ class CommitBuilder {
     }
 
     private static UpdateOp createUpdateOp(Path path,
-                                           Revision revision,
-                                           boolean isBranch) {
+        Revision revision,
+        boolean isBranch) {
         String id = Utils.getIdFromPath(path);
         UpdateOp op = new UpdateOp(id, false);
         NodeDocument.setModified(op, revision);
@@ -323,7 +324,8 @@ class CommitBuilder {
             if (from.equals(k.getRevision())) {
                 k = new UpdateOp.Key(k.getName(), to);
             } else if (NodeDocument.MODIFIED_IN_SECS.equals(k.getName())) {
-                op = new UpdateOp.Operation(op.type, NodeDocument.getModifiedInSecs(to.getTimestamp()));
+                op = new UpdateOp.Operation(op.type,
+                    NodeDocument.getModifiedInSecs(to.getTimestamp()));
             }
             changes.put(k, op);
         }

@@ -32,16 +32,14 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 import javax.jcr.Node;
 import javax.jcr.Session;
 import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
 import javax.jcr.query.QueryResult;
 import javax.jcr.query.RowIterator;
-
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.benchmark.wikipedia.WikipediaImport;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
@@ -54,11 +52,10 @@ public class SearchTest extends AbstractTest<SearchTest.TestContext> {
 
     private static final Logger LOG = LoggerFactory.getLogger(SearchTest.class);
     /**
-     * Pattern used to find words and other searchable tokens within the
-     * imported Wikipedia pages.
+     * Pattern used to find words and other searchable tokens within the imported Wikipedia pages.
      */
     private static final Pattern WORD_PATTERN =
-            Pattern.compile("\\p{LD}{3,}");
+        Pattern.compile("\\p{LD}{3,}");
 
     private int maxSampleSize = 100;
 
@@ -89,11 +86,11 @@ public class SearchTest extends AbstractTest<SearchTest.TestContext> {
             protected void pageAdded(String title, String text) {
                 count++;
                 if (count % 100 == 0
-                        && sampleSet.size() < maxSampleSize
-                        && text != null) {
+                    && sampleSet.size() < maxSampleSize
+                    && text != null) {
                     List<String> words = newArrayList();
 
-                    if(isFullTextSearch()) {
+                    if (isFullTextSearch()) {
                         Matcher matcher = WORD_PATTERN.matcher(text);
                         while (matcher.find()) {
                             words.add(matcher.group());
@@ -162,7 +159,8 @@ public class SearchTest extends AbstractTest<SearchTest.TestContext> {
             } else {
                 for (int rows = 0; it.hasNext() && rows < maxRowsToFetch; rows++) {
                     Node n = it.nextRow().getNode();
-                    LOG.trace("Result found for fulltext search on word " + word + "on path " + n.getPath());
+                    LOG.trace("Result found for fulltext search on word " + word + "on path "
+                        + n.getPath());
                     ec.hash += n.getProperty("text").getString().hashCode();
                     ec.hash += n.getProperty("title").getString().hashCode();
                 }
@@ -187,6 +185,7 @@ public class SearchTest extends AbstractTest<SearchTest.TestContext> {
     }
 
     class TestContext {
+
         final Session session = loginWriter();
         final String[] words = getRandomWords();
         int hash = 0; // summary variable to prevent JIT compiler tricks
@@ -215,13 +214,15 @@ public class SearchTest extends AbstractTest<SearchTest.TestContext> {
 
 
     protected class UUIDInitializer implements RepositoryInitializer {
+
         @Override
         public void initialize(@NotNull NodeBuilder builder) {
 
-            NodeBuilder uuid = IndexUtils.createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "uuid", true, true,
-                    ImmutableList.<String>of("jcr:uuid"), null);
+            NodeBuilder uuid = IndexUtils.createIndexDefinition(
+                builder.child(INDEX_DEFINITIONS_NAME), "uuid", true, true,
+                ImmutableList.<String>of("jcr:uuid"), null);
             uuid.setProperty("info",
-                    "Oak index for UUID lookup (direct lookup of nodes with the mixin 'mix:referenceable').");
+                "Oak index for UUID lookup (direct lookup of nodes with the mixin 'mix:referenceable').");
 
         }
     }

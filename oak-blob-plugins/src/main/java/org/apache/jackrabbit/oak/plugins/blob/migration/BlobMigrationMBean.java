@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.plugins.blob.migration;
 
 import javax.management.openmbean.CompositeData;
 import javax.management.openmbean.OpenDataException;
-
 import org.apache.jackrabbit.oak.api.jmx.Description;
 import org.apache.jackrabbit.oak.api.jmx.Name;
 import org.jetbrains.annotations.NotNull;
@@ -33,7 +32,7 @@ public interface BlobMigrationMBean {
     @NotNull
     @Description("Start or resume the blob migration")
     String startBlobMigration(
-            @Name("resume") @Description("true to resume stopped migration or false to start it from scratch") boolean resume);
+        @Name("resume") @Description("true to resume stopped migration or false to start it from scratch") boolean resume);
 
     @NotNull
     @Description("Stop the blob migration")

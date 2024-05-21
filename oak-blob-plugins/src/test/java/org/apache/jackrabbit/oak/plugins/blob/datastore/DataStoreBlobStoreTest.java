@@ -19,36 +19,6 @@
 
 package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Random;
-import java.util.Set;
-import java.util.UUID;
-
-import org.apache.jackrabbit.guava.common.base.Function;
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Sets;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
-import org.apache.jackrabbit.core.data.DataIdentifier;
-import org.apache.jackrabbit.core.data.DataRecord;
-import org.apache.jackrabbit.core.data.DataStore;
-import org.apache.jackrabbit.core.data.DataStoreException;
-import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
-import org.apache.jackrabbit.oak.spi.blob.AbstractBlobStoreTest;
-import org.apache.jackrabbit.oak.spi.blob.BlobStoreInputStream;
-import org.apache.jackrabbit.oak.spi.blob.stats.BlobStatsCollector;
-import org.jetbrains.annotations.Nullable;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-
 import static org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore.BlobId;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -59,7 +29,37 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Random;
+import java.util.Set;
+import java.util.UUID;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
+import org.apache.jackrabbit.core.data.DataIdentifier;
+import org.apache.jackrabbit.core.data.DataRecord;
+import org.apache.jackrabbit.core.data.DataStore;
+import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.guava.common.base.Function;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Sets;
+import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
+import org.apache.jackrabbit.oak.spi.blob.AbstractBlobStoreTest;
+import org.apache.jackrabbit.oak.spi.blob.BlobStoreInputStream;
+import org.apache.jackrabbit.oak.spi.blob.stats.BlobStatsCollector;
+import org.jetbrains.annotations.Nullable;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+
 public class DataStoreBlobStoreTest extends AbstractBlobStoreTest {
+
     @Before
     @Override
     public void setUp() throws Exception {
@@ -68,7 +68,7 @@ public class DataStoreBlobStoreTest extends AbstractBlobStoreTest {
 
     @Override
     protected void setupCollector(BlobStatsCollector statsCollector) {
-        if (store instanceof DataStoreBlobStore){
+        if (store instanceof DataStoreBlobStore) {
             ((DataStoreBlobStore) store).setBlobStatsCollector(statsCollector);
         }
     }
@@ -93,14 +93,15 @@ public class DataStoreBlobStoreTest extends AbstractBlobStoreTest {
         assertTrue(InMemoryDataRecord.isInstance(dr.getIdentifier().toString()));
         assertTrue(IOUtils.contentEquals(new ByteArrayInputStream(data), dr.getStream()));
         assertTrue(IOUtils.contentEquals(new ByteArrayInputStream(data),
-                new BlobStoreInputStream(ds, dr.getIdentifier().toString(), 0)));
+            new BlobStoreInputStream(ds, dr.getIdentifier().toString(), 0)));
 
         assertEquals(dr, ds.getRecordIfStored(dr.getIdentifier()));
         assertEquals(dr, ds.getRecord(dr.getIdentifier()));
 
         //Check for BlobStore methods
         assertEquals(maxInlineSize, ds.getBlobLength(dr.getIdentifier().toString()));
-        assertEquals(dr.getIdentifier().toString(), BlobId.of(ds.writeBlob(new ByteArrayInputStream(data))).blobId);
+        assertEquals(dr.getIdentifier().toString(),
+            BlobId.of(ds.writeBlob(new ByteArrayInputStream(data))).blobId);
 
         BlobStoreBlob blob = new BlobStoreBlob(ds, dr.getIdentifier().toString());
         assertTrue(blob.isInlined());
@@ -124,20 +125,20 @@ public class DataStoreBlobStoreTest extends AbstractBlobStoreTest {
         when(mockedDS.addRecord(any(InputStream.class))).thenReturn(testDR);
         DataStoreBlobStore ds = new DataStoreBlobStore(mockedDS);
 
-
         DataRecord dr = ds.addRecord(new ByteArrayInputStream(data));
         assertFalse(InMemoryDataRecord.isInstance(dr.getIdentifier().toString()));
         assertEquals(testDI, dr.getIdentifier());
         assertTrue(IOUtils.contentEquals(new ByteArrayInputStream(data), dr.getStream()));
         assertTrue(IOUtils.contentEquals(new ByteArrayInputStream(data),
-                new BlobStoreInputStream(ds, dr.getIdentifier().toString(), 0)));
+            new BlobStoreInputStream(ds, dr.getIdentifier().toString(), 0)));
 
         assertEquals(dr, ds.getRecordIfStored(dr.getIdentifier()));
         assertEquals(dr, ds.getRecord(dr.getIdentifier()));
 
 //        assertTrue(ds.getInputStream(dr.getIdentifier().toString()) instanceof BufferedInputStream);
         assertEquals(actualSize, ds.getBlobLength(dr.getIdentifier().toString()));
-        assertEquals(testDI.toString(), BlobId.of(ds.writeBlob(new ByteArrayInputStream(data))).blobId);
+        assertEquals(testDI.toString(),
+            BlobId.of(ds.writeBlob(new ByteArrayInputStream(data))).blobId);
 
         BlobStoreBlob blob = new BlobStoreBlob(ds, dr.getIdentifier().toString());
         assertFalse(blob.isInlined());
@@ -156,19 +157,19 @@ public class DataStoreBlobStoreTest extends AbstractBlobStoreTest {
         when(mockedDS.getRecordIfStored(testDI)).thenReturn(testDR);
         DataStoreBlobStore ds = new DataStoreBlobStore(mockedDS);
 
-        assertEquals(reference,ds.getReference(blobId));
+        assertEquals(reference, ds.getReference(blobId));
         assertEquals(blobId, BlobId.of(ds.getBlobId(reference)).blobId);
-        assertEquals(BlobId.of(testDR).encodedValue(),ds.getBlobId(reference));
+        assertEquals(BlobId.of(testDR).encodedValue(), ds.getBlobId(reference));
 
         String inMemBlobId = InMemoryDataRecord.getInstance("foo".getBytes())
-                .getIdentifier().toString();
+                                               .getIdentifier().toString();
 
         //For in memory record the reference should be null
         assertNull(ds.getReference(inMemBlobId));
     }
 
     @Test
-    public void testGetAllChunks() throws Exception{
+    public void testGetAllChunks() throws Exception {
         DataIdentifier d10 = new DataIdentifier("d-10");
         DataIdentifier d20 = new DataIdentifier("d-20");
         DataIdentifier d30 = new DataIdentifier("d-30");
@@ -180,7 +181,7 @@ public class DataStoreBlobStoreTest extends AbstractBlobStoreTest {
                 public DataRecord apply(@Nullable DataIdentifier input) {
                     return new TimeDataRecord(input);
                 }
-        }));
+            }));
         OakFileDataStore mockedDS = mock(OakFileDataStore.class);
         when(mockedDS.getAllRecords()).thenReturn(recs.iterator());
         when(mockedDS.getRecord(new DataIdentifier("d-10"))).thenReturn(new TimeDataRecord(d10));
@@ -189,24 +190,24 @@ public class DataStoreBlobStoreTest extends AbstractBlobStoreTest {
         DataStoreBlobStore ds = new DataStoreBlobStore(mockedDS);
 
         Iterator<String> chunks = ds.getAllChunkIds(25);
-        Set<String> expected = Sets.newHashSet("d-10","d-20");
+        Set<String> expected = Sets.newHashSet("d-10", "d-20");
         assertEquals(expected, Sets.newHashSet(chunks));
     }
 
     @Test
-    public void testEncodedBlobId() throws Exception{
-        BlobId blobId = new BlobId("abc"+BlobId.SEP+"123");
+    public void testEncodedBlobId() throws Exception {
+        BlobId blobId = new BlobId("abc" + BlobId.SEP + "123");
         assertEquals("abc", blobId.blobId);
         assertEquals(123, blobId.length);
 
-        blobId = new BlobId("abc"+BlobId.SEP+"abc"+BlobId.SEP+"123");
-        assertEquals("abc"+BlobId.SEP+"abc", blobId.blobId);
+        blobId = new BlobId("abc" + BlobId.SEP + "abc" + BlobId.SEP + "123");
+        assertEquals("abc" + BlobId.SEP + "abc", blobId.blobId);
         assertEquals(123, blobId.length);
 
-        blobId = new BlobId("abc",123);
-        assertEquals("abc"+BlobId.SEP+"123", blobId.encodedValue());
+        blobId = new BlobId("abc", 123);
+        assertEquals("abc" + BlobId.SEP + "123", blobId.encodedValue());
 
-        assertTrue(BlobId.isEncoded("abc"+BlobId.SEP+"123"));
+        assertTrue(BlobId.isEncoded("abc" + BlobId.SEP + "123"));
         assertFalse(BlobId.isEncoded("abc"));
     }
 
@@ -221,7 +222,8 @@ public class DataStoreBlobStoreTest extends AbstractBlobStoreTest {
         DataStoreBlobStore ds = new DataStoreBlobStore(mockedDS);
 
         BlobIdTracker mockedTracker = mock(BlobIdTracker.class);
-        doThrow(new IOException("Mocking tracking error")).when(mockedTracker).add(any(String.class));
+        doThrow(new IOException("Mocking tracking error")).when(mockedTracker)
+                                                          .add(any(String.class));
         ds.addTracker(mockedTracker);
 
         String id = ds.writeBlob(new ByteArrayInputStream(data));
@@ -234,7 +236,8 @@ public class DataStoreBlobStoreTest extends AbstractBlobStoreTest {
         ((DataStoreBlobStore) store).setRepositoryId(repoId);
         assertEquals(repoId, ((DataStoreBlobStore) store).getRepositoryId());
         DataRecord metadataRecord = ((DataStoreBlobStore) store)
-            .getMetadataRecord(SharedDataStoreUtils.SharedStoreRecordType.REPOSITORY.getNameFromId(repoId));
+            .getMetadataRecord(
+                SharedDataStoreUtils.SharedStoreRecordType.REPOSITORY.getNameFromId(repoId));
 
         assertEquals(repoId, SharedDataStoreUtils.SharedStoreRecordType.REPOSITORY
             .getIdFromName(metadataRecord.getIdentifier().toString()));
@@ -262,6 +265,7 @@ public class DataStoreBlobStoreTest extends AbstractBlobStoreTest {
     }
 
     private static class ByteArrayDataRecord implements DataRecord {
+
         private final byte[] data;
         private final DataIdentifier identifier;
         private final String reference;
@@ -299,6 +303,7 @@ public class DataStoreBlobStoreTest extends AbstractBlobStoreTest {
     }
 
     private static class TimeDataRecord implements DataRecord {
+
         private final DataIdentifier id;
 
         private TimeDataRecord(DataIdentifier id) {
@@ -327,7 +332,7 @@ public class DataStoreBlobStoreTest extends AbstractBlobStoreTest {
 
         @Override
         public long getLastModified() {
-            return Long.valueOf(id.toString().substring(id.toString().indexOf('-')+1));
+            return Long.valueOf(id.toString().substring(id.toString().indexOf('-') + 1));
         }
     }
 }

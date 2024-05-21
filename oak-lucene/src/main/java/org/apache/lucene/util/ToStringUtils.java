@@ -30,35 +30,38 @@ package org.apache.lucene.util;
  */
 public final class ToStringUtils {
 
-  private ToStringUtils() {} // no instance
+    private ToStringUtils() {
+    } // no instance
 
-  /**
-   * for printing boost only if not 1.0
-   */
-  public static String boost(float boost) {
-    if (boost != 1.0f) {
-      return "^" + Float.toString(boost);
-    } else return "";
-  }
-
-  public static void byteArray(StringBuilder buffer, byte[] bytes) {
-    for (int i = 0; i < bytes.length; i++) {
-      buffer.append("b[").append(i).append("]=").append(bytes[i]);
-      if (i < bytes.length - 1) {
-        buffer.append(',');
-      }
-
+    /**
+     * for printing boost only if not 1.0
+     */
+    public static String boost(float boost) {
+        if (boost != 1.0f) {
+            return "^" + Float.toString(boost);
+        } else {
+            return "";
+        }
     }
-  }
 
-  private final static char [] HEX = "0123456789abcdef".toCharArray();
+    public static void byteArray(StringBuilder buffer, byte[] bytes) {
+        for (int i = 0; i < bytes.length; i++) {
+            buffer.append("b[").append(i).append("]=").append(bytes[i]);
+            if (i < bytes.length - 1) {
+                buffer.append(',');
+            }
 
-  public static String longHex(long x) {
-    char [] asHex = new char [16];
-    for (int i = 16; --i >= 0; x >>>= 4) {
-      asHex[i] = HEX[(int) x & 0x0F];
+        }
     }
-    return "0x" + new String(asHex);
-  }
+
+    private final static char[] HEX = "0123456789abcdef".toCharArray();
+
+    public static String longHex(long x) {
+        char[] asHex = new char[16];
+        for (int i = 16; --i >= 0; x >>>= 4) {
+            asHex[i] = HEX[(int) x & 0x0F];
+        }
+        return "0x" + new String(asHex);
+    }
 
 }

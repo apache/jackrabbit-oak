@@ -16,6 +16,15 @@
  */
 package org.apache.jackrabbit.oak.exercise.security.authentication.external;
 
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
+import javax.jcr.Credentials;
+import javax.jcr.SimpleCredentials;
+import javax.security.auth.login.LoginException;
 import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
@@ -39,16 +48,6 @@ import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.jcr.Credentials;
-import javax.jcr.SimpleCredentials;
-import javax.security.auth.login.LoginException;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
-
 @Component(service = ExternalIdentityProvider.class, immediate = true, configurationPolicy = ConfigurationPolicy.REQUIRE)
 @Designate(ocd = CustomExternalIdentityProvider.Configuration.class)
 public class CustomExternalIdentityProvider implements ExternalIdentityProvider {
@@ -57,9 +56,9 @@ public class CustomExternalIdentityProvider implements ExternalIdentityProvider 
     @interface Configuration {
 
         @AttributeDefinition(
-                name = "External Identities",
-                description = "Define external identities in the format: userid [, groupids], where groupids = groupid [, groupids]",
-                cardinality = Integer.MAX_VALUE
+            name = "External Identities",
+            description = "Define external identities in the format: userid [, groupids], where groupids = groupid [, groupids]",
+            cardinality = Integer.MAX_VALUE
         )
         String externalidentities() default "testUser,a,b,c";
     }
@@ -69,7 +68,10 @@ public class CustomExternalIdentityProvider implements ExternalIdentityProvider 
     private Map<String, Set<String>> userGroupMap = new HashMap<>();
     private Set<String> groupIds = new HashSet<>();
 
-    public CustomExternalIdentityProvider() {};
+    public CustomExternalIdentityProvider() {
+    }
+
+    ;
 
 
     //----------------------------------------------------< SCR integration >---
@@ -77,7 +79,8 @@ public class CustomExternalIdentityProvider implements ExternalIdentityProvider 
     @Activate
     public void activate(Map<String, Object> properties) {
         ConfigurationParameters config = ConfigurationParameters.of(properties);
-        for (String entry : config.getConfigValue("externalidentities", Collections.<String>emptySet())) {
+        for (String entry : config.getConfigValue("externalidentities",
+            Collections.<String>emptySet())) {
             String[] strs = Text.explode(entry, ',', false);
             String uid = strs[0].trim();
             Set<String> declaredGroups = new HashSet<>();
@@ -155,13 +158,14 @@ public class CustomExternalIdentityProvider implements ExternalIdentityProvider 
                     if (groupIds == null || groupIds.isEmpty()) {
                         return ImmutableSet.of();
                     } else {
-                        return Iterables.transform(groupIds, new Function<String, ExternalIdentityRef>() {
-                            @Nullable
-                            @Override
-                            public ExternalIdentityRef apply(String input) {
-                                return new ExternalIdentityRef(input, getName());
-                            }
-                        });
+                        return Iterables.transform(groupIds,
+                            new Function<String, ExternalIdentityRef>() {
+                                @Nullable
+                                @Override
+                                public ExternalIdentityRef apply(String input) {
+                                    return new ExternalIdentityRef(input, getName());
+                                }
+                            });
                     }
                 }
 

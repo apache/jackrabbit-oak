@@ -16,20 +16,20 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.callback;
 
-import org.apache.jackrabbit.oak.api.ContentRepository;
-import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
-import org.apache.jackrabbit.oak.spi.security.authentication.LoginModuleMonitor;
-import org.junit.Test;
-
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
 
+import org.apache.jackrabbit.oak.api.ContentRepository;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.apache.jackrabbit.oak.spi.security.authentication.LoginModuleMonitor;
+import org.junit.Test;
+
 public class RepositoryCallbackTest {
 
     private final RepositoryCallback cb = new RepositoryCallback();
-    
+
     @Test
     public void testSetContentRepository() {
         assertNull(cb.getContentRepository());

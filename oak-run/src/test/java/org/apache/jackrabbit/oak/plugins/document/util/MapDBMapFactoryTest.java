@@ -16,14 +16,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.util;
 
+import static org.junit.Assert.assertEquals;
+
 import java.io.IOException;
 import java.util.concurrent.ConcurrentMap;
-
 import org.apache.jackrabbit.oak.plugins.document.Path;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
 
 public class MapDBMapFactoryTest {
 
@@ -35,7 +34,8 @@ public class MapDBMapFactoryTest {
                 map.put(Path.fromString("/some/test/path/node-" + i), new Revision(i, 0, 1));
             }
             for (int i = 0; i < 10000; i++) {
-                assertEquals(new Revision(i, 0, 1), map.get(Path.fromString("/some/test/path/node-" + i)));
+                assertEquals(new Revision(i, 0, 1),
+                    map.get(Path.fromString("/some/test/path/node-" + i)));
             }
         }
     }

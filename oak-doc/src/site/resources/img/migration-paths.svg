@@ -16,8 +16,9 @@
    limitations under the License.
   -->
 <!-- Generator: Adobe Illustrator 19.1.0, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
-<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
-	 viewBox="0 0 1920 1080" style="enable-background:new 0 0 1920 1080;" xml:space="preserve">
+<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+  viewBox="0 0 1920 1080" style="enable-background:new 0 0 1920 1080;" xml:space="preserve">
 <style type="text/css">
 	.st0{fill:#FFFFFF;}
 	.st1{clip-path:url(#SVGID_2_);fill:#FFFFFF;}
@@ -41,27 +42,27 @@
 	.st19{clip-path:url(#SVGID_18_);fill:#FF0000;}
 	.st20{clip-path:url(#SVGID_18_);fill:none;stroke:#000000;stroke-width:2;}
 </style>
-<rect class="st0" width="1920" height="1080"/>
-<g>
+  <rect class="st0" width="1920" height="1080"/>
+  <g>
 	<defs>
 		<rect id="SVGID_1_" width="1920" height="1080"/>
 	</defs>
-	<clipPath id="SVGID_2_">
-		<use xlink:href="#SVGID_1_"  style="overflow:visible;"/>
+    <clipPath id="SVGID_2_">
+		<use xlink:href="#SVGID_1_" style="overflow:visible;"/>
 	</clipPath>
-	<rect class="st1" width="1920" height="1080"/>
-	<g class="st2">
+    <rect class="st1" width="1920" height="1080"/>
+    <g class="st2">
 		<text transform="matrix(1 0 0 1 981 969)" class="st3 st4">2</text>
 	</g>
-	<g class="st2">
+    <g class="st2">
 		<defs>
 			<rect id="SVGID_3_" x="392" y="233" width="293" height="653"/>
 		</defs>
-		<clipPath id="SVGID_4_">
-			<use xlink:href="#SVGID_3_"  style="overflow:visible;"/>
+      <clipPath id="SVGID_4_">
+			<use xlink:href="#SVGID_3_" style="overflow:visible;"/>
 		</clipPath>
-		<g style="clip-path:url(#SVGID_4_);">
-			
+      <g style="clip-path:url(#SVGID_4_);">
+
 				<image style="overflow:visible;" width="250" height="556" xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAPkAAAIpCAYAAABg7p6WAAAACXBIWXMAAAlhAAAJYQHPYu7hAAAA
 GXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAABSXlJREFUeNrsfQmwZHdV/nf33vvt
 28ybJTOTmewJIRCCLEEEQTZRFFABN1yosgABSy0t8I+ilKVWgRQIsqlQgiKrgGGTLYRskIVkJrO/
@@ -1543,20 +1544,21 @@ YzOZlRfWZjxuQG3MgPypxujMpPfbSZ/qa68Ea8kIJFtc6oKA2dGv5coIxidntCTFxhOVShbWrlUr
 AvYaSpo8y/YZO9O/l2XAbcyA/OkBHVdd5tfqsz3HPecJ3mpJ57aPjdZUCEHHNErIkMsl8TWZe6fs
 +HCRwgDemAH5LlxNyMy5XEZBXCzGg7FNFzwD65KsbYBtzIB81+PcGtq0YszYC8fMJ9qYMQNyY8aM
 GZAbM2bMgNyYMWMG5MaMGTMgN2bMmAG5MWPGDMiNGTMgN2bMmAG5MWPGDMiNGTNmQG7MmDEDcmPG
-jBmQGzNmzIDcmDEDcmPGjL0w7f8IMABIJxECCQUc/QAAAABJRU5ErkJggg==" transform="matrix(1.172 0 0 1.1745 392 233)">
+jBmQGzNmzIDcmDEDcmPGjL0w7f8IMABIJxECCQUc/QAAAABJRU5ErkJggg=="
+          transform="matrix(1.172 0 0 1.1745 392 233)">
 			</image>
 		</g>
 	</g>
-	<rect x="392" y="233" class="st5" width="293" height="653"/>
-	<g class="st2">
+    <rect x="392" y="233" class="st5" width="293" height="653"/>
+    <g class="st2">
 		<defs>
 			<rect id="SVGID_5_" x="1105" y="233" width="294" height="653"/>
 		</defs>
-		<clipPath id="SVGID_6_">
-			<use xlink:href="#SVGID_5_"  style="overflow:visible;"/>
+      <clipPath id="SVGID_6_">
+			<use xlink:href="#SVGID_5_" style="overflow:visible;"/>
 		</clipPath>
-		<g style="clip-path:url(#SVGID_6_);">
-			
+      <g style="clip-path:url(#SVGID_6_);">
+
 				<image style="overflow:visible;" width="250" height="556" xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAPkAAAIpCAIAAADvjAnBAAAACXBIWXMAAAlhAAAJYQHPYu7hAAAA
 GXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAABAFBJREFUeNrsvXm0ZVV5PbrW7vfp
 z7n9rVt9S9EXPYggKKGTKIJIjEiSH3HYJCMO8/KHLyOakfySGB+Jxrz3jM8uDjskioI0ChYgvUAB
@@ -2714,50 +2716,59 @@ AABJRU5ErkJggg==" transform="matrix(1.176 0 0 1.1745 1105 233)">
 			</image>
 		</g>
 	</g>
-	<rect x="1105" y="233" class="st5" width="294" height="653"/>
-	<polyline class="st6" points="598.9,424.4 1116.2,424.4 1117.7,424.4 	"/>
-	<polygon class="st2" points="1116.2,431 1129.4,424.4 1116.2,417.8 	"/>
-	<polyline class="st6" points="558.8,806.9 1118.8,806.9 1120.3,806.9 	"/>
-	<polygon class="st2" points="1118.8,813.5 1132,806.9 1118.8,800.3 	"/>
-	<g class="st2">
-		<text transform="matrix(1 0 0 1 760 240)"><tspan x="0" y="0" class="st7 st8">I</tspan><tspan x="8.7" y="0" class="st7 st8">n</tspan><tspan x="27.9" y="0" class="st7 st8">c</tspan><tspan x="43.2" y="0" class="st7 st8">l</tspan><tspan x="51.6" y="0" class="st7 st8">ude</tspan></text>
+    <rect x="1105" y="233" class="st5" width="294" height="653"/>
+    <polyline class="st6" points="598.9,424.4 1116.2,424.4 1117.7,424.4 	"/>
+    <polygon class="st2" points="1116.2,431 1129.4,424.4 1116.2,417.8 	"/>
+    <polyline class="st6" points="558.8,806.9 1118.8,806.9 1120.3,806.9 	"/>
+    <polygon class="st2" points="1118.8,813.5 1132,806.9 1118.8,800.3 	"/>
+    <g class="st2">
+		<text transform="matrix(1 0 0 1 760 240)"><tspan x="0" y="0" class="st7 st8">I</tspan>
+      <tspan x="8.7" y="0" class="st7 st8">n</tspan>
+      <tspan x="27.9" y="0" class="st7 st8">c</tspan>
+      <tspan x="43.2" y="0" class="st7 st8">l</tspan>
+      <tspan x="51.6" y="0" class="st7 st8">ude</tspan></text>
 	</g>
-	<g class="st2">
-		<text transform="matrix(1 0 0 1 760 413)"><tspan x="0" y="0" class="st7 st8">M</tspan><tspan x="29.6" y="0" class="st7 st8">erge</tspan></text>
+    <g class="st2">
+		<text transform="matrix(1 0 0 1 760 413)"><tspan x="0" y="0" class="st7 st8">M</tspan>
+      <tspan x="29.6" y="0" class="st7 st8">erge</tspan></text>
 	</g>
-	<g class="st2">
-		<text transform="matrix(1 0 0 1 757 803)"><tspan x="0" y="0" class="st7 st8 st9">E</tspan><tspan x="19.6" y="0" class="st7 st8">x</tspan><tspan x="35" y="0" class="st7 st8">c</tspan><tspan x="50.3" y="0" class="st7 st8">l</tspan><tspan x="58.7" y="0" class="st7 st8">ude</tspan></text>
+    <g class="st2">
+		<text transform="matrix(1 0 0 1 757 803)"><tspan x="0" y="0" class="st7 st8 st9">E</tspan>
+      <tspan x="19.6" y="0" class="st7 st8">x</tspan>
+      <tspan x="35" y="0" class="st7 st8">c</tspan>
+      <tspan x="50.3" y="0" class="st7 st8">l</tspan>
+      <tspan x="58.7" y="0" class="st7 st8">ude</tspan></text>
 	</g>
-	<rect x="1142.3" y="783" class="st1" width="167.2" height="39.2"/>
-	<line class="st10" x1="376.3" y1="424.4" x2="446" y2="424.4"/>
-	<line class="st10" x1="379.2" y1="260.7" x2="379.2" y2="423.3"/>
-	<line class="st10" x1="65.6" y1="261.9" x2="374.3" y2="261.9"/>
-	<line class="st10" x1="64.6" y1="263.1" x2="64.6" y2="296.8"/>
-	<line class="st10" x1="1309.6" y1="424.4" x2="1454.9" y2="424.4"/>
+    <rect x="1142.3" y="783" class="st1" width="167.2" height="39.2"/>
+    <line class="st10" x1="376.3" y1="424.4" x2="446" y2="424.4"/>
+    <line class="st10" x1="379.2" y1="260.7" x2="379.2" y2="423.3"/>
+    <line class="st10" x1="65.6" y1="261.9" x2="374.3" y2="261.9"/>
+    <line class="st10" x1="64.6" y1="263.1" x2="64.6" y2="296.8"/>
+    <line class="st10" x1="1309.6" y1="424.4" x2="1454.9" y2="424.4"/>
 </g>
-<g>
+  <g>
 	<defs>
 		<rect id="SVGID_7_" x="47" y="299" width="319" height="577"/>
 	</defs>
-	<clipPath id="SVGID_8_">
-		<use xlink:href="#SVGID_7_"  style="overflow:visible;"/>
+    <clipPath id="SVGID_8_">
+		<use xlink:href="#SVGID_7_" style="overflow:visible;"/>
 	</clipPath>
-	<g class="st11">
+    <g class="st11">
 		<defs>
 			<rect id="SVGID_9_" width="1920" height="1080"/>
 		</defs>
-		<clipPath id="SVGID_10_">
-			<use xlink:href="#SVGID_9_"  style="overflow:visible;"/>
+      <clipPath id="SVGID_10_">
+			<use xlink:href="#SVGID_9_" style="overflow:visible;"/>
 		</clipPath>
-		<g class="st12">
+      <g class="st12">
 			<defs>
 				<rect id="SVGID_11_" x="18" y="299" width="378" height="794"/>
 			</defs>
-			<clipPath id="SVGID_12_">
-				<use xlink:href="#SVGID_11_"  style="overflow:visible;"/>
+        <clipPath id="SVGID_12_">
+				<use xlink:href="#SVGID_11_" style="overflow:visible;"/>
 			</clipPath>
-			<g style="clip-path:url(#SVGID_12_);">
-				
+        <g style="clip-path:url(#SVGID_12_);">
+
 					<image style="overflow:visible;" width="378" height="794" xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAXoAAAMaCAIAAAAHqRq0AAAACXBIWXMAAAsSAAALEgHS3X78AAAA
 GXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAACBO9JREFUeNrsvQmcHEX5Pl7VPd09
 Pdfeu9nc5L5MDAHkMBGRgMghoIAgQji8EPiLcunHA9EffNUPityIHAG5DKcSJAgkHJGQBHIfyybZ
@@ -5087,47 +5098,49 @@ r6GqXXAV3V2/aaaZdgnY/xdgAE+zrcnnSGncAAAAAElFTkSuQmCC" transform="matrix(1 0 0 1 
 		</g>
 	</g>
 </g>
-<g>
+  <g>
 	<defs>
 		<rect id="SVGID_13_" width="1920" height="1080"/>
 	</defs>
-	<clipPath id="SVGID_14_">
-		<use xlink:href="#SVGID_13_"  style="overflow:visible;"/>
+    <clipPath id="SVGID_14_">
+		<use xlink:href="#SVGID_13_" style="overflow:visible;"/>
 	</clipPath>
-	<rect x="47.1" y="298.5" class="st13" width="319.3" height="577.7"/>
-	<line class="st14" x1="1455.2" y1="126" x2="1455.2" y2="423.7"/>
-	<line class="st14" x1="1456.1" y1="123.9" x2="1502.3" y2="123.9"/>
+    <rect x="47.1" y="298.5" class="st13" width="319.3" height="577.7"/>
+    <line class="st14" x1="1455.2" y1="126" x2="1455.2" y2="423.7"/>
+    <line class="st14" x1="1456.1" y1="123.9" x2="1502.3" y2="123.9"/>
 </g>
-<g>
+  <g>
 	<defs>
 		<rect id="SVGID_15_" x="877" y="380" width="58" height="39"/>
 	</defs>
-	<clipPath id="SVGID_16_">
-		<use xlink:href="#SVGID_15_"  style="overflow:visible;"/>
+    <clipPath id="SVGID_16_">
+		<use xlink:href="#SVGID_15_" style="overflow:visible;"/>
 	</clipPath>
-	<polygon class="st15" points="922.9,380 922.9,387.3 877,387.3 877,394.6 902.6,394.6 891.9,411.7 877,411.7 877,419 895.9,419 
+    <polygon class="st15" points="922.9,380 922.9,387.3 877,387.3 877,394.6 902.6,394.6 891.9,411.7 877,411.7 877,419 895.9,419
 		911.2,394.6 922.9,394.6 922.9,401.9 935,391 	"/>
 </g>
-<g>
+  <g>
 	<defs>
 		<rect id="SVGID_17_" width="1920" height="1080"/>
 	</defs>
-	<clipPath id="SVGID_18_">
-		<use xlink:href="#SVGID_17_"  style="overflow:visible;"/>
+    <clipPath id="SVGID_18_">
+		<use xlink:href="#SVGID_17_" style="overflow:visible;"/>
 	</clipPath>
-	<polyline class="st16" points="485.2,251.8 1095.6,251.8 1097.1,251.8 	"/>
-	<polygon class="st17" points="1095.6,258.4 1108.8,251.8 1095.6,245.2 	"/>
-	<polygon class="st18" points="923.7,229.1 923.7,238.2 934.7,225.8 923.7,213.4 923.7,222.5 876.9,222.5 876.9,229.1 	"/>
-	<polygon class="st19" points="932.3,792.4 932.3,801.6 943.3,789.1 932.3,776.7 932.3,785.8 885.5,785.8 885.5,792.4 	"/>
-	<g class="st17">
+    <polyline class="st16" points="485.2,251.8 1095.6,251.8 1097.1,251.8 	"/>
+    <polygon class="st17" points="1095.6,258.4 1108.8,251.8 1095.6,245.2 	"/>
+    <polygon class="st18"
+      points="923.7,229.1 923.7,238.2 934.7,225.8 923.7,213.4 923.7,222.5 876.9,222.5 876.9,229.1 	"/>
+    <polygon class="st19"
+      points="932.3,792.4 932.3,801.6 943.3,789.1 932.3,776.7 932.3,785.8 885.5,785.8 885.5,792.4 	"/>
+    <g class="st17">
 		<defs>
 			<rect id="SVGID_19_" x="1511" y="104" width="362" height="763"/>
 		</defs>
-		<clipPath id="SVGID_20_">
-			<use xlink:href="#SVGID_19_"  style="overflow:visible;"/>
+      <clipPath id="SVGID_20_">
+			<use xlink:href="#SVGID_19_" style="overflow:visible;"/>
 		</clipPath>
-		<g transform="matrix(1 0 0 1 0 0)" style="clip-path:url(#SVGID_20_);">
-			
+      <g transform="matrix(1 0 0 1 0 0)" style="clip-path:url(#SVGID_20_);">
+
 				<image style="overflow:visible;" width="189" height="398" xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAL8AAAGTCAYAAAB588P/AAAACXBIWXMAAAXYAAAF2AEJGiq9AAAA
 GXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAuXRJREFUeNrsfQd4XOWV9ju9aKQZ
 9WZJttxt3LCpNsVUE0JNWUI6IT2k7Z/sJpvdLNmSZEuyhM0m2VQgHTYQCL2DDcbYuBfc1aXR9Hrn
@@ -5962,10 +5975,11 @@ Vq/7pXo1NpIcaZoZifwfhSCd1KRJjGZbPxrthzG5uGxX1NgqRjwPgI5Dg2A9m6+nZczdu8aNLX+Y
 xvFclcux5Jk2/o9EkI6bMz7258OfK9LkirbT4I8jOueM/yXt2VY4NTT48dxeE/k91x75s4bxvD/V
 RP7p4Mf8ncPkcsbHEPm1njrcXhoagttz7cYf8PlMOp4GV/L0RSVOoN8bFvhDIKzhN3l9eFRLKp7i
 sj+57iR4spKR5ER7Z8zghnfPVL8809iImq1br/ngXadOoaC8/EMdiFWe+jYvWrv8OD8YRPtgCP2+
-sFkTIshL0yhMU7hzxTxsuykP6enpcDk5rjNmYPxXgAEA5J+xF2MXK3AAAAAASUVORK5CYII=" transform="matrix(1.9153 0 0 1.9171 1511 104)">
+sFkTIshL0yhMU7hzxTxsuykP6enpcDk5rjNmYPxXgAEA5J+xF2MXK3AAAAAASUVORK5CYII="
+          transform="matrix(1.9153 0 0 1.9171 1511 104)">
 			</image>
 		</g>
 	</g>
-	<rect x="1511" y="104" class="st20" width="362" height="763"/>
+    <rect x="1511" y="104" class="st20" width="362" height="763"/>
 </g>
 </svg>

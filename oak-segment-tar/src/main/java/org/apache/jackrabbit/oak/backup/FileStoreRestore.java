@@ -20,12 +20,12 @@ package org.apache.jackrabbit.oak.backup;
 
 import java.io.File;
 import java.io.IOException;
-
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 
 public interface FileStoreRestore {
 
-    void restore(File source, File destination) throws IOException, InvalidFileStoreVersionException;
+    void restore(File source, File destination)
+        throws IOException, InvalidFileStoreVersionException;
 
     void restore(File source);
 

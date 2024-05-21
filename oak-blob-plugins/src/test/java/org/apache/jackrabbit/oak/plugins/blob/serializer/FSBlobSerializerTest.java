@@ -19,12 +19,15 @@
 
 package org.apache.jackrabbit.oak.plugins.blob.serializer;
 
+import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.io.File;
 import java.io.InputStream;
-
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.oak.api.Blob;
-import org.apache.jackrabbit.oak.plugins.blob.serializer.FSBlobSerializer;
 import org.apache.jackrabbit.oak.plugins.memory.AbstractBlob;
 import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
 import org.jetbrains.annotations.NotNull;
@@ -32,18 +35,13 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
 public class FSBlobSerializerTest {
 
     @Rule
     public final TemporaryFolder folder = new TemporaryFolder(new File("target"));
 
     @Test
-    public void blobs() throws Exception{
+    public void blobs() throws Exception {
         int maxInlineSize = 100;
         FSBlobSerializer serializer = new FSBlobSerializer(folder.getRoot(), maxInlineSize);
         String data = Strings.repeat("x", maxInlineSize * 10);
@@ -58,16 +56,16 @@ public class FSBlobSerializerTest {
 
 
     @Test
-    public void errorBlob() throws Exception{
+    public void errorBlob() throws Exception {
         FSBlobSerializer serializer = new FSBlobSerializer(folder.getRoot(), 1);
         String blobValue = serializer.serialize(new BadBlob());
 
-        try{
+        try {
             Blob b = serializer.deserialize(blobValue);
             assertEquals("foo", b.getContentIdentity());
             b.getNewStream();
             fail();
-        } catch (RuntimeException ignore){
+        } catch (RuntimeException ignore) {
 
         }
     }
@@ -82,7 +80,7 @@ public class FSBlobSerializerTest {
         @NotNull
         @Override
         public InputStream getNewStream() {
-           throw new RuntimeException();
+            throw new RuntimeException();
         }
 
         @Override

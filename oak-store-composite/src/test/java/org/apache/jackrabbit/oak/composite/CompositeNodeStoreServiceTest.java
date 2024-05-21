@@ -41,138 +41,148 @@ import static org.junit.Assert.assertNotNull;
 
 public class CompositeNodeStoreServiceTest {
 
-	@Rule
-	public final OsgiContext ctx = new OsgiContext();
+    @Rule
+    public final OsgiContext ctx = new OsgiContext();
 
-	@Test
-	public void bootstrapMultiMount() throws CommitFailedException {
+    @Test
+    public void bootstrapMultiMount() throws CommitFailedException {
 
-		// Create node stores
-		MemoryNodeStore nodeStoreLibs = new MemoryNodeStore();
-		MemoryNodeStore nodeStoreApps = new MemoryNodeStore();
-		MemoryNodeStore globalStore = new MemoryNodeStore();
-		NodeBuilder globalRoot = globalStore.getRoot().builder();
-		NodeBuilder global = globalRoot.child("content");
-		global.child("content1");
-		global.child("content2");
-		globalStore.merge(globalRoot, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        // Create node stores
+        MemoryNodeStore nodeStoreLibs = new MemoryNodeStore();
+        MemoryNodeStore nodeStoreApps = new MemoryNodeStore();
+        MemoryNodeStore globalStore = new MemoryNodeStore();
+        NodeBuilder globalRoot = globalStore.getRoot().builder();
+        NodeBuilder global = globalRoot.child("content");
+        global.child("content1");
+        global.child("content2");
+        globalStore.merge(globalRoot, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-		// Initialise node stores
-		NodeBuilder appsRoot = nodeStoreApps.getRoot().builder();
-		NodeBuilder apps = appsRoot.child("apps");
-		apps.child("app1");
-		apps.child("app2");
-		nodeStoreApps.merge(appsRoot, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        // Initialise node stores
+        NodeBuilder appsRoot = nodeStoreApps.getRoot().builder();
+        NodeBuilder apps = appsRoot.child("apps");
+        apps.child("app1");
+        apps.child("app2");
+        nodeStoreApps.merge(appsRoot, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-		NodeBuilder libsRoot = nodeStoreLibs.getRoot().builder();
-		NodeBuilder libs = libsRoot.child("libs");
-		libs.child("lib1");
-		libs.child("lib2");
-		nodeStoreLibs.merge(libsRoot, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        NodeBuilder libsRoot = nodeStoreLibs.getRoot().builder();
+        NodeBuilder libs = libsRoot.child("libs");
+        libs.child("lib1");
+        libs.child("lib2");
+        nodeStoreLibs.merge(libsRoot, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-		// Define read-only mounts
-		registerActivateMountInfoConfig("libs", ImmutableList.of("/libs"));
-		registerActivateMountInfoConfig("apps", ImmutableList.of("/apps"));
+        // Define read-only mounts
+        registerActivateMountInfoConfig("libs", ImmutableList.of("/libs"));
+        registerActivateMountInfoConfig("apps", ImmutableList.of("/apps"));
 
         registerMountInfoProviderService("libs", "apps");
-        
-		// Register node stores
-		ctx.registerService(StatisticsProvider.class, StatisticsProvider.NOOP);
-		ctx.registerService(NodeStoreProvider.class, new SimpleNodeStoreProvider(globalStore), ImmutableMap.of("role", "composite-global", "registerDescriptors", Boolean.TRUE));
-		ctx.registerService(NodeStoreProvider.class, new SimpleNodeStoreProvider(nodeStoreLibs), ImmutableMap.of("role", "composite-mount-libs"));
-		ctx.registerService(NodeStoreProvider.class, new SimpleNodeStoreProvider(nodeStoreApps), ImmutableMap.of("role", "composite-mount-apps"));
-		ctx.registerInjectActivateService(new NodeStoreChecksService());
 
-		ctx.registerInjectActivateService(new CompositeNodeStoreService());
+        // Register node stores
+        ctx.registerService(StatisticsProvider.class, StatisticsProvider.NOOP);
+        ctx.registerService(NodeStoreProvider.class, new SimpleNodeStoreProvider(globalStore),
+            ImmutableMap.of("role", "composite-global", "registerDescriptors", Boolean.TRUE));
+        ctx.registerService(NodeStoreProvider.class, new SimpleNodeStoreProvider(nodeStoreLibs),
+            ImmutableMap.of("role", "composite-mount-libs"));
+        ctx.registerService(NodeStoreProvider.class, new SimpleNodeStoreProvider(nodeStoreApps),
+            ImmutableMap.of("role", "composite-mount-apps"));
+        ctx.registerInjectActivateService(new NodeStoreChecksService());
 
+        ctx.registerInjectActivateService(new CompositeNodeStoreService());
 
-		NodeStore nodeStore = ctx.getService(NodeStore.class);
-		assertNotNull(nodeStore.getRoot().getChildNode("content").getChildNode("content1"));
-		assertNotNull(nodeStore.getRoot().getChildNode("apps").getChildNode("app1"));
-		assertNotNull(nodeStore.getRoot().getChildNode("libs").getChildNode("lib1"));
-	}
+        NodeStore nodeStore = ctx.getService(NodeStore.class);
+        assertNotNull(nodeStore.getRoot().getChildNode("content").getChildNode("content1"));
+        assertNotNull(nodeStore.getRoot().getChildNode("apps").getChildNode("app1"));
+        assertNotNull(nodeStore.getRoot().getChildNode("libs").getChildNode("lib1"));
+    }
 
-	/**
-	 *  Verifies that a minimally-configured <tt>CompositeNodeStore</tt> can be registered successfully
-	 */
-	@Test
-	public void bootstrap() {
-		
-		MemoryNodeStore mount = new MemoryNodeStore();
-		MemoryNodeStore global = new MemoryNodeStore();
-		
-		MountInfoProvider mip = Mounts.newBuilder().readOnlyMount("libs", "/libs", "/apps").build();
-		
-		ctx.registerService(MountInfoProvider.class, mip);
-		ctx.registerService(StatisticsProvider.class, StatisticsProvider.NOOP);
-		ctx.registerService(NodeStoreProvider.class, new SimpleNodeStoreProvider(global), ImmutableMap.of("role", "composite-global", "registerDescriptors", Boolean.TRUE));
-		ctx.registerService(NodeStoreProvider.class, new SimpleNodeStoreProvider(mount), ImmutableMap.of("role", "composite-mount-libs"));
-		ctx.registerInjectActivateService(new NodeStoreChecksService());
-		
-		ctx.registerInjectActivateService(new CompositeNodeStoreService());
+    /**
+     * Verifies that a minimally-configured <tt>CompositeNodeStore</tt> can be registered
+     * successfully
+     */
+    @Test
+    public void bootstrap() {
 
+        MemoryNodeStore mount = new MemoryNodeStore();
+        MemoryNodeStore global = new MemoryNodeStore();
 
-		assertThat("No NodeStore registered", ctx.getService(NodeStore.class), notNullValue());
-	}
-	
-	/**
-	 * Verifies that a missing mount will result in the node store not being registered
-	 */
-	@Test
-	public void bootstrap_missingMount() {
+        MountInfoProvider mip = Mounts.newBuilder().readOnlyMount("libs", "/libs", "/apps").build();
 
-		MemoryNodeStore mount = new MemoryNodeStore();
-		MemoryNodeStore global = new MemoryNodeStore();
-		
-		MountInfoProvider mip = Mounts.newBuilder().readOnlyMount("libs", "/libs", "/apps").readOnlyMount("missing", "/missing").build();
-		
-		ctx.registerService(MountInfoProvider.class, mip);
-		ctx.registerService(StatisticsProvider.class, StatisticsProvider.NOOP);
-		ctx.registerService(NodeStoreProvider.class, new SimpleNodeStoreProvider(global), ImmutableMap.of("role", "composite-global", "registerDescriptors", Boolean.TRUE));
-		ctx.registerService(NodeStoreProvider.class, new SimpleNodeStoreProvider(mount), ImmutableMap.of("role", "composite-mount-libs"));
-		ctx.registerInjectActivateService(new NodeStoreChecksService());
-		
-		ctx.registerInjectActivateService(new CompositeNodeStoreService());
-		
-		assertThat("NodeStore registered, but it should not have been", ctx.getService(NodeStore.class), nullValue());
-	}
-	
-	/**
-	 *  Verifies that a missing global mount will result in the node store not being registered
-	 */
-	@Test
-	public void bootstrap_missingGlobalMount() {
-		
-		MemoryNodeStore mount = new MemoryNodeStore();
-		
-		MountInfoProvider mip = Mounts.newBuilder().readOnlyMount("libs", "/libs", "/apps").build();
-		
-		ctx.registerService(MountInfoProvider.class, mip);
-		ctx.registerService(StatisticsProvider.class, StatisticsProvider.NOOP);
-		ctx.registerService(NodeStoreProvider.class, new SimpleNodeStoreProvider(mount), ImmutableMap.of("role", "composite-mount-libs"));
-		ctx.registerInjectActivateService(new NodeStoreChecksService());
-		
-		ctx.registerInjectActivateService(new CompositeNodeStoreService());
-		
-		assertThat("NodeStore registered, but it should not have been", ctx.getService(NodeStore.class), nullValue());
-	}	
+        ctx.registerService(MountInfoProvider.class, mip);
+        ctx.registerService(StatisticsProvider.class, StatisticsProvider.NOOP);
+        ctx.registerService(NodeStoreProvider.class, new SimpleNodeStoreProvider(global),
+            ImmutableMap.of("role", "composite-global", "registerDescriptors", Boolean.TRUE));
+        ctx.registerService(NodeStoreProvider.class, new SimpleNodeStoreProvider(mount),
+            ImmutableMap.of("role", "composite-mount-libs"));
+        ctx.registerInjectActivateService(new NodeStoreChecksService());
 
-	private static class SimpleNodeStoreProvider implements NodeStoreProvider {
+        ctx.registerInjectActivateService(new CompositeNodeStoreService());
 
-		private final NodeStore nodeStore;
+        assertThat("No NodeStore registered", ctx.getService(NodeStore.class), notNullValue());
+    }
 
-		private SimpleNodeStoreProvider(NodeStore nodeStore) {
-			this.nodeStore = nodeStore;
-		}
+    /**
+     * Verifies that a missing mount will result in the node store not being registered
+     */
+    @Test
+    public void bootstrap_missingMount() {
 
-		@Override
-		public NodeStore getNodeStore() {
-			return nodeStore;
-		}
+        MemoryNodeStore mount = new MemoryNodeStore();
+        MemoryNodeStore global = new MemoryNodeStore();
 
-	}
+        MountInfoProvider mip = Mounts.newBuilder().readOnlyMount("libs", "/libs", "/apps")
+                                      .readOnlyMount("missing", "/missing").build();
 
-	private void registerActivateMountInfoConfig(String mountName, List<String> mountedPaths) {
+        ctx.registerService(MountInfoProvider.class, mip);
+        ctx.registerService(StatisticsProvider.class, StatisticsProvider.NOOP);
+        ctx.registerService(NodeStoreProvider.class, new SimpleNodeStoreProvider(global),
+            ImmutableMap.of("role", "composite-global", "registerDescriptors", Boolean.TRUE));
+        ctx.registerService(NodeStoreProvider.class, new SimpleNodeStoreProvider(mount),
+            ImmutableMap.of("role", "composite-mount-libs"));
+        ctx.registerInjectActivateService(new NodeStoreChecksService());
+
+        ctx.registerInjectActivateService(new CompositeNodeStoreService());
+
+        assertThat("NodeStore registered, but it should not have been",
+            ctx.getService(NodeStore.class), nullValue());
+    }
+
+    /**
+     * Verifies that a missing global mount will result in the node store not being registered
+     */
+    @Test
+    public void bootstrap_missingGlobalMount() {
+
+        MemoryNodeStore mount = new MemoryNodeStore();
+
+        MountInfoProvider mip = Mounts.newBuilder().readOnlyMount("libs", "/libs", "/apps").build();
+
+        ctx.registerService(MountInfoProvider.class, mip);
+        ctx.registerService(StatisticsProvider.class, StatisticsProvider.NOOP);
+        ctx.registerService(NodeStoreProvider.class, new SimpleNodeStoreProvider(mount),
+            ImmutableMap.of("role", "composite-mount-libs"));
+        ctx.registerInjectActivateService(new NodeStoreChecksService());
+
+        ctx.registerInjectActivateService(new CompositeNodeStoreService());
+
+        assertThat("NodeStore registered, but it should not have been",
+            ctx.getService(NodeStore.class), nullValue());
+    }
+
+    private static class SimpleNodeStoreProvider implements NodeStoreProvider {
+
+        private final NodeStore nodeStore;
+
+        private SimpleNodeStoreProvider(NodeStore nodeStore) {
+            this.nodeStore = nodeStore;
+        }
+
+        @Override
+        public NodeStore getNodeStore() {
+            return nodeStore;
+        }
+
+    }
+
+    private void registerActivateMountInfoConfig(String mountName, List<String> mountedPaths) {
         MountInfoConfig mountInfoConfig = new MountInfoConfig();
         ctx.registerService(mountInfoConfig);
         mountInfoConfig.activate(ctx.bundleContext(), new MountInfoPropsBuilder()

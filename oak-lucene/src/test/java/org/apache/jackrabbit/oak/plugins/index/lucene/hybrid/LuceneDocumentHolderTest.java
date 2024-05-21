@@ -19,24 +19,24 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.hasItems;
+import static org.junit.Assert.assertThat;
+
 import java.util.Collection;
 import java.util.Map;
-
 import org.apache.jackrabbit.guava.common.collect.ArrayListMultimap;
 import org.apache.jackrabbit.guava.common.collect.ListMultimap;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.junit.Test;
 
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.hasItems;
-import static org.junit.Assert.assertThat;
-
 public class LuceneDocumentHolderTest {
+
     private DummyQueue queue = new DummyQueue();
     private LuceneDocumentHolder holder = new LuceneDocumentHolder(queue, 100);
 
     @Test
-    public void testAllLuceneDocReturned() throws Exception{
+    public void testAllLuceneDocReturned() throws Exception {
         queue.enabled = false;
         holder.add(true, LuceneDoc.forDelete("/oak:index/foo", "/a"));
         holder.add(false, LuceneDoc.forDelete("/oak:index/bar", "/b"));
@@ -45,11 +45,12 @@ public class LuceneDocumentHolderTest {
         holder.add(true, LuceneDoc.forDelete("/oak:index/foo", "/c"));
         holder.add(false, LuceneDoc.forDelete("/oak:index/bar", "/d"));
 
-        assertThat(asMultiMap(holder.getAllLuceneDocInfo()).values(), hasItems("/a", "/b", "/c", "/d"));
+        assertThat(asMultiMap(holder.getAllLuceneDocInfo()).values(),
+            hasItems("/a", "/b", "/c", "/d"));
     }
 
     @Test
-    public void unprocessedSyncQueuedDocs() throws Exception{
+    public void unprocessedSyncQueuedDocs() throws Exception {
         queue.enabled = true;
         holder.add(true, LuceneDoc.forDelete("/oak:index/foo", "/a"));
         holder.add(true, LuceneDoc.forDelete("/oak:index/foo", "/c"));
@@ -59,21 +60,22 @@ public class LuceneDocumentHolderTest {
 
         queue.luceneDocs.get("/c").markProcessed();
 
-        assertThat(asMultiMap(holder.getSyncIndexedDocs()).values(), containsInAnyOrder("/a", "/b"));
+        assertThat(asMultiMap(holder.getSyncIndexedDocs()).values(),
+            containsInAnyOrder("/a", "/b"));
     }
 
-    private static ListMultimap<String, String> asMultiMap(Iterable<? extends LuceneDocInfo> itr){
+    private static ListMultimap<String, String> asMultiMap(Iterable<? extends LuceneDocInfo> itr) {
         ListMultimap<String, String> docs = ArrayListMultimap.create();
-        for (LuceneDocInfo d : itr){
+        for (LuceneDocInfo d : itr) {
             docs.put(d.getIndexPath(), d.getDocPath());
         }
         return docs;
     }
 
-    private static ListMultimap<String, String> asMultiMap(Map<String, Collection<LuceneDoc>> map){
+    private static ListMultimap<String, String> asMultiMap(Map<String, Collection<LuceneDoc>> map) {
         ListMultimap<String, String> docs = ArrayListMultimap.create();
-        for (Collection<LuceneDoc> lds : map.values()){
-            for (LuceneDoc d : lds){
+        for (Collection<LuceneDoc> lds : map.values()) {
+            for (LuceneDoc d : lds) {
                 docs.put(d.getIndexPath(), d.getDocPath());
             }
         }
@@ -81,13 +83,14 @@ public class LuceneDocumentHolderTest {
     }
 
     private static class DummyQueue implements IndexingQueue {
+
         boolean enabled;
         ListMultimap<String, String> docs = ArrayListMultimap.create();
         Map<String, LuceneDoc> luceneDocs = Maps.newHashMap();
 
         @Override
         public boolean addIfNotFullWithoutWait(LuceneDoc doc) {
-            if (enabled){
+            if (enabled) {
                 docs.put(doc.indexPath, doc.docPath);
                 luceneDocs.put(doc.docPath, doc);
             }

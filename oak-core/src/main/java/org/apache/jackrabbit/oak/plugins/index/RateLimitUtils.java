@@ -21,10 +21,8 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Calendar;
 import java.util.Set;
-
 import javax.management.MBeanServerConnection;
 import javax.management.ObjectName;
-
 import org.apache.jackrabbit.util.ISO8601;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

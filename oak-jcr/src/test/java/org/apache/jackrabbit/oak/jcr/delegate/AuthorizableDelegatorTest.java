@@ -16,16 +16,6 @@
  */
 package org.apache.jackrabbit.oak.jcr.delegate;
 
-import org.apache.jackrabbit.api.security.user.Authorizable;
-import org.apache.jackrabbit.api.security.user.Group;
-import org.apache.jackrabbit.api.security.user.User;
-import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
-import org.jetbrains.annotations.NotNull;
-import org.junit.Test;
-
-import javax.jcr.Value;
-import java.util.Collections;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNull;
@@ -42,33 +32,49 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
 
+import java.util.Collections;
+import javax.jcr.Value;
+import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.jackrabbit.api.security.user.Group;
+import org.apache.jackrabbit.api.security.user.User;
+import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
+import org.jetbrains.annotations.NotNull;
+import org.junit.Test;
+
 public class AuthorizableDelegatorTest extends AbstractDelegatorTest {
-    
+
     private final SessionDelegate sessionDelegate = mockSessionDelegate();
     private final Authorizable authorizable = mock(Authorizable.class);
-    private final Authorizable user = when(mock(Authorizable.class, withSettings().extraInterfaces(User.class)).isGroup()).thenReturn(false).getMock();
-    private final Authorizable group = when(mock(Authorizable.class, withSettings().extraInterfaces(Group.class)).isGroup()).thenReturn(true).getMock();
+    private final Authorizable user = when(
+        mock(Authorizable.class, withSettings().extraInterfaces(User.class)).isGroup()).thenReturn(
+        false).getMock();
+    private final Authorizable group = when(
+        mock(Authorizable.class, withSettings().extraInterfaces(Group.class)).isGroup()).thenReturn(
+        true).getMock();
     private final AuthorizableDelegator ad = mockDelegator(sessionDelegate, authorizable);
 
-    private static AuthorizableDelegator mockDelegator(@NotNull SessionDelegate sd, @NotNull Authorizable a) {
-        return mock(AuthorizableDelegator.class, withSettings().useConstructor(sd, a).defaultAnswer(CALLS_REAL_METHODS));
+    private static AuthorizableDelegator mockDelegator(@NotNull SessionDelegate sd,
+        @NotNull Authorizable a) {
+        return mock(AuthorizableDelegator.class,
+            withSettings().useConstructor(sd, a).defaultAnswer(CALLS_REAL_METHODS));
     }
-    
+
     @Test(expected = IllegalArgumentException.class)
     public void testCreateFromDelegator() {
-        new AuthorizableDelegator(sessionDelegate, ad) {};
+        new AuthorizableDelegator(sessionDelegate, ad) {
+        };
     }
-    
+
     @Test
     public void testWrap() {
         assertNull(AuthorizableDelegator.wrap(sessionDelegate, null));
-        
+
         Authorizable a = AuthorizableDelegator.wrap(sessionDelegate, group);
         assertTrue(a instanceof GroupDelegator);
 
         a = AuthorizableDelegator.wrap(sessionDelegate, user);
         assertTrue(a instanceof UserDelegator);
-        
+
         verify(user).isGroup();
         verify(group).isGroup();
         verifyNoMoreInteractions(user, group);
@@ -104,11 +110,11 @@ public class AuthorizableDelegatorTest extends AbstractDelegatorTest {
         verify(sessionDelegate, times(2)).perform(any(SessionOperation.class));
         verifyNoMoreInteractions(user, group, sessionDelegate);
     }
-    
+
     @Test
     public void testIsGroup() throws Exception {
         ad.isGroup();
-        
+
         verify(authorizable).isGroup();
         verify(sessionDelegate).perform(any(SessionOperation.class));
         verify(sessionDelegate).safePerform(any(SessionOperation.class));
@@ -132,7 +138,7 @@ public class AuthorizableDelegatorTest extends AbstractDelegatorTest {
         verify(sessionDelegate).perform(any(SessionOperation.class));
         verifyNoMoreInteractions(authorizable, sessionDelegate);
     }
-    
+
     @Test
     public void testMemberOf() throws Exception {
         doReturn(Collections.emptyIterator()).when(authorizable).memberOf();
@@ -161,18 +167,18 @@ public class AuthorizableDelegatorTest extends AbstractDelegatorTest {
         verify(sessionDelegate).performVoid(any(SessionOperation.class));
         verifyNoMoreInteractions(authorizable, sessionDelegate);
     }
-    
+
     @Test
     public void testGetPropertyNames() throws Exception {
         ad.getPropertyNames();
         ad.getPropertyNames("rel/path");
-        
+
         verify(authorizable).getPropertyNames();
         verify(authorizable).getPropertyNames("rel/path");
         verify(sessionDelegate, times(2)).perform(any(SessionOperation.class));
         verifyNoMoreInteractions(authorizable, sessionDelegate);
     }
-    
+
     @Test
     public void testHasProperty() throws Exception {
         ad.hasProperty("rel/path");
@@ -193,9 +199,9 @@ public class AuthorizableDelegatorTest extends AbstractDelegatorTest {
     public void testSetProperty() throws Exception {
         Value v = mock(Value.class);
         ad.setProperty("rel/path", v);
-        ad.setProperty("rel/path", new Value[] {v});
+        ad.setProperty("rel/path", new Value[]{v});
         verify(authorizable).setProperty("rel/path", v);
-        verify(authorizable).setProperty("rel/path", new Value[] {v});
+        verify(authorizable).setProperty("rel/path", new Value[]{v});
         verify(sessionDelegate, times(2)).performVoid(any(SessionOperation.class));
         verifyNoMoreInteractions(authorizable, sessionDelegate);
     }
@@ -216,17 +222,20 @@ public class AuthorizableDelegatorTest extends AbstractDelegatorTest {
         verify(sessionDelegate).perform(any(SessionOperation.class));
         verifyNoMoreInteractions(authorizable, sessionDelegate);
     }
-    
+
     @Test
     public void testEquals() {
-        AuthorizableDelegator delegator = (AuthorizableDelegator) AuthorizableDelegator.wrap(sessionDelegate, user);
+        AuthorizableDelegator delegator = (AuthorizableDelegator) AuthorizableDelegator.wrap(
+            sessionDelegate, user);
         assertTrue(delegator.equals(delegator));
         assertNotEquals(delegator, user);
-        
-        AuthorizableDelegator uDelegator = (AuthorizableDelegator) AuthorizableDelegator.wrap(sessionDelegate, user);
+
+        AuthorizableDelegator uDelegator = (AuthorizableDelegator) AuthorizableDelegator.wrap(
+            sessionDelegate, user);
         assertEquals(delegator, uDelegator);
 
-        AuthorizableDelegator gDelegator = (AuthorizableDelegator) AuthorizableDelegator.wrap(sessionDelegate, group);
+        AuthorizableDelegator gDelegator = (AuthorizableDelegator) AuthorizableDelegator.wrap(
+            sessionDelegate, group);
         assertNotEquals(delegator, gDelegator);
     }
 }

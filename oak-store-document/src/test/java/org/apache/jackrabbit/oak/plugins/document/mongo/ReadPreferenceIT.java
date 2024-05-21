@@ -55,23 +55,23 @@ public class ReadPreferenceIT extends AbstractMongoConnectionTest {
         assertNotNull(mongoConnection);
         MongoUtils.dropCollections(mongoConnection.getDBName());
         mk = new DocumentMK.Builder()
-                .clock(clock)
-                .setClusterId(1)
-                .setClientSessionDisabled(true)
-                .setMongoDB(mongoConnection.getMongoClient(), mongoConnection.getDBName())
-                .setLeaseCheckMode(LeaseCheckMode.DISABLED)
-                .open();
+            .clock(clock)
+            .setClusterId(1)
+            .setClientSessionDisabled(true)
+            .setMongoDB(mongoConnection.getMongoClient(), mongoConnection.getDBName())
+            .setLeaseCheckMode(LeaseCheckMode.DISABLED)
+            .open();
         mongoDS = (MongoDocumentStore) mk.getDocumentStore();
 
         // use a separate connection for cluster node 2
         MongoConnection mongoConnection2 = connectionFactory.getConnection();
         mk2 = new DocumentMK.Builder()
-                .clock(clock)
-                .setClusterId(2)
-                .setClientSessionDisabled(true)
-                .setMongoDB(mongoConnection2.getMongoClient(), mongoConnection2.getDBName())
-                .setLeaseCheckMode(LeaseCheckMode.DISABLED)
-                .open();
+            .clock(clock)
+            .setClusterId(2)
+            .setClientSessionDisabled(true)
+            .setMongoDB(mongoConnection2.getMongoClient(), mongoConnection2.getDBName())
+            .setLeaseCheckMode(LeaseCheckMode.DISABLED)
+            .open();
     }
 
     @After
@@ -87,27 +87,29 @@ public class ReadPreferenceIT extends AbstractMongoConnectionTest {
         mongoDS.setReadWriteMode(rwMode(ReadPreference.primary()));
 
         assertEquals(ReadPreference.primary(),
-                mongoDS.getMongoReadPreference(NODES,"foo", DocumentReadPreference.PRIMARY));
+            mongoDS.getMongoReadPreference(NODES, "foo", DocumentReadPreference.PRIMARY));
 
         assertEquals(ReadPreference.primaryPreferred(),
-                mongoDS.getMongoReadPreference(NODES,"foo", DocumentReadPreference.PREFER_PRIMARY));
+            mongoDS.getMongoReadPreference(NODES, "foo", DocumentReadPreference.PREFER_PRIMARY));
 
         //By default Mongo read preference is primary
         assertEquals(ReadPreference.primary(),
-                mongoDS.getMongoReadPreference(NODES,"foo", DocumentReadPreference.PREFER_SECONDARY));
+            mongoDS.getMongoReadPreference(NODES, "foo", DocumentReadPreference.PREFER_SECONDARY));
 
         //Change the default and assert again
         mongoDS.setReadWriteMode(rwMode(ReadPreference.secondary()));
         assertEquals(ReadPreference.secondary(),
-                mongoDS.getMongoReadPreference(NODES,"foo", DocumentReadPreference.PREFER_SECONDARY));
+            mongoDS.getMongoReadPreference(NODES, "foo", DocumentReadPreference.PREFER_SECONDARY));
 
         //for case where parent age cannot be determined the preference should be primary
         assertEquals(ReadPreference.primary(),
-                mongoDS.getMongoReadPreference(NODES,"foo", DocumentReadPreference.PREFER_SECONDARY_IF_OLD_ENOUGH));
+            mongoDS.getMongoReadPreference(NODES, "foo",
+                DocumentReadPreference.PREFER_SECONDARY_IF_OLD_ENOUGH));
 
         //For collection other than NODES always primary
         assertEquals(ReadPreference.primary(),
-                mongoDS.getMongoReadPreference(SETTINGS,"foo", DocumentReadPreference.PREFER_SECONDARY_IF_OLD_ENOUGH));
+            mongoDS.getMongoReadPreference(SETTINGS, "foo",
+                DocumentReadPreference.PREFER_SECONDARY_IF_OLD_ENOUGH));
 
     }
 
@@ -118,7 +120,8 @@ public class ReadPreferenceIT extends AbstractMongoConnectionTest {
 
         mongoDS.setReadWriteMode("readPreference=secondary&w=2&safe=true&j=true");
 
-        assertEquals(ReadPreference.secondary(), mongoDS.getDBCollection(NODES).getReadPreference());
+        assertEquals(ReadPreference.secondary(),
+            mongoDS.getDBCollection(NODES).getReadPreference());
         assertEquals(2, mongoDS.getDBCollection(NODES).getWriteConcern().getW());
         Boolean journal = mongoDS.getDBCollection(NODES).getWriteConcern().getJournal();
         assertNotNull(journal);
@@ -133,7 +136,7 @@ public class ReadPreferenceIT extends AbstractMongoConnectionTest {
         mongoDS.setReadWriteMode(rwMode(ReadPreference.secondaryPreferred()));
         mongoDS.find(NODES, id);
         ReadPreference readPref = mongoDS.getMongoReadPreference(NODES, id,
-                DocumentReadPreference.PREFER_SECONDARY_IF_OLD_ENOUGH);
+            DocumentReadPreference.PREFER_SECONDARY_IF_OLD_ENOUGH);
         assertEquals(ReadPreference.primary(), readPref);
     }
 

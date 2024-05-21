@@ -16,19 +16,16 @@
  */
 package org.apache.jackrabbit.oak.namepath;
 
-import org.junit.Ignore;
-import org.junit.Test;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
 
-import javax.jcr.RepositoryException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
-
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import javax.jcr.RepositoryException;
+import org.junit.Ignore;
+import org.junit.Test;
 
 public class PathParserTest {
 
@@ -68,10 +65,10 @@ public class PathParserTest {
         @Override
         public int hashCode() {
             if (type == ParserCallbackResultType.CALLBACK_NAME) {
-                return data == null? 0 : data.hashCode();
+                return data == null ? 0 : data.hashCode();
             }
             if (type == ParserCallbackResultType.CALLBACK_ERROR) {
-                return data == null? 0 : data.hashCode();
+                return data == null ? 0 : data.hashCode();
             }
             return type.ordinal();
         }
@@ -81,7 +78,8 @@ public class PathParserTest {
             if (obj instanceof ParserCallbackResult) {
                 ParserCallbackResult result = (ParserCallbackResult) obj;
                 if (result.getType() == getType()) {
-                    return result.getData() == null || data == null || (result.getData().equals(data) && result.getIndex() == index);
+                    return result.getData() == null || data == null || (
+                        result.getData().equals(data) && result.getIndex() == index);
                 }
             }
             return false;
@@ -93,27 +91,36 @@ public class PathParserTest {
         }
     }
 
-    private static final ParserCallbackResult CALLBACKRESULT_ROOT = new ParserCallbackResult(ParserCallbackResultType.CALLBACK_ROOT, null, 0);
-    private static final ParserCallbackResult CALLBACKRESULT_CURRENT = new ParserCallbackResult(ParserCallbackResultType.CALLBACK_CURRENT, null, 0);
-    private static final ParserCallbackResult CALLBACKRESULT_PARENT = new ParserCallbackResult(ParserCallbackResultType.CALLBACK_PARENT, null, 0);
+    private static final ParserCallbackResult CALLBACKRESULT_ROOT = new ParserCallbackResult(
+        ParserCallbackResultType.CALLBACK_ROOT, null, 0);
+    private static final ParserCallbackResult CALLBACKRESULT_CURRENT = new ParserCallbackResult(
+        ParserCallbackResultType.CALLBACK_CURRENT, null, 0);
+    private static final ParserCallbackResult CALLBACKRESULT_PARENT = new ParserCallbackResult(
+        ParserCallbackResultType.CALLBACK_PARENT, null, 0);
+
     private static ParserCallbackResult CALLBACKRESULT_NAME(String name) {
         return new ParserCallbackResult(ParserCallbackResultType.CALLBACK_NAME, name, 0);
     }
+
     private static ParserCallbackResult CALLBACKRESULT_NAME(String name, int index) {
         return new ParserCallbackResult(ParserCallbackResultType.CALLBACK_NAME, name, index);
     }
+
     private static ParserCallbackResult CALLBACKRESULT_ERROR(String error) {
         return new ParserCallbackResult(ParserCallbackResultType.CALLBACK_ERROR, error, 0);
     }
-    private static ParserCallbackResult CALLBACKRESULT_ERROR_ANY = new ParserCallbackResult(ParserCallbackResultType.CALLBACK_ERROR, null, 0);
+
+    private static ParserCallbackResult CALLBACKRESULT_ERROR_ANY = new ParserCallbackResult(
+        ParserCallbackResultType.CALLBACK_ERROR, null, 0);
 
     private static class TestListener implements JcrPathParser.Listener {
 
         private List<ParserCallbackResult> expectedCallbackResults;
         private List<ParserCallbackResult> callbackResults = new ArrayList<>();
 
-        TestListener(ParserCallbackResult ... expectedCallbackResult) {
-            this.expectedCallbackResults = Arrays.stream(expectedCallbackResult).collect(Collectors.toList());
+        TestListener(ParserCallbackResult... expectedCallbackResult) {
+            this.expectedCallbackResults = Arrays.stream(expectedCallbackResult)
+                                                 .collect(Collectors.toList());
         }
 
         @Override
@@ -146,7 +153,8 @@ public class PathParserTest {
         }
 
         public void evaluate() {
-            assertArrayEquals("Parser produced an unexpected sequence of callbacks", expectedCallbackResults.toArray(), callbackResults.toArray());
+            assertArrayEquals("Parser produced an unexpected sequence of callbacks",
+                expectedCallbackResults.toArray(), callbackResults.toArray());
         }
 
         public void reset() {
@@ -159,29 +167,29 @@ public class PathParserTest {
     public void testGeneralPath() {
         String path = "/a/{http://www.jcp.org/jcr/1.0}b/{http://www.jcp.org/jcr/1.0}c[50]/{d}e/./../x:y[1]/z";
         TestListener listener = new TestListener(
-                CALLBACKRESULT_ROOT,
-                CALLBACKRESULT_NAME("a"),
-                CALLBACKRESULT_NAME("{http://www.jcp.org/jcr/1.0}b"),
-                CALLBACKRESULT_NAME("{http://www.jcp.org/jcr/1.0}c", 50),
-                CALLBACKRESULT_NAME("{d}e"),
-                CALLBACKRESULT_CURRENT,
-                CALLBACKRESULT_PARENT,
-                CALLBACKRESULT_NAME("x:y", 1),
-                CALLBACKRESULT_NAME("z")
+            CALLBACKRESULT_ROOT,
+            CALLBACKRESULT_NAME("a"),
+            CALLBACKRESULT_NAME("{http://www.jcp.org/jcr/1.0}b"),
+            CALLBACKRESULT_NAME("{http://www.jcp.org/jcr/1.0}c", 50),
+            CALLBACKRESULT_NAME("{d}e"),
+            CALLBACKRESULT_CURRENT,
+            CALLBACKRESULT_PARENT,
+            CALLBACKRESULT_NAME("x:y", 1),
+            CALLBACKRESULT_NAME("z")
         );
         verifyResult(path, listener, false);
 
         path += ']';
         listener = new TestListener(
-                CALLBACKRESULT_ROOT,
-                CALLBACKRESULT_NAME("a"),
-                CALLBACKRESULT_NAME("{http://www.jcp.org/jcr/1.0}b"),
-                CALLBACKRESULT_NAME("{http://www.jcp.org/jcr/1.0}c", 50),
-                CALLBACKRESULT_NAME("{d}e"),
-                CALLBACKRESULT_CURRENT,
-                CALLBACKRESULT_PARENT,
-                CALLBACKRESULT_NAME("x:y", 1),
-                CALLBACKRESULT_ERROR(errorCharacterNotAllowedInName(path, ']'))
+            CALLBACKRESULT_ROOT,
+            CALLBACKRESULT_NAME("a"),
+            CALLBACKRESULT_NAME("{http://www.jcp.org/jcr/1.0}b"),
+            CALLBACKRESULT_NAME("{http://www.jcp.org/jcr/1.0}c", 50),
+            CALLBACKRESULT_NAME("{d}e"),
+            CALLBACKRESULT_CURRENT,
+            CALLBACKRESULT_PARENT,
+            CALLBACKRESULT_NAME("x:y", 1),
+            CALLBACKRESULT_ERROR(errorCharacterNotAllowedInName(path, ']'))
         );
         verifyResult(path, listener, false);
     }
@@ -206,45 +214,45 @@ public class PathParserTest {
         final String prefix = "{http://www.jcp.org/jcr/1.0}";
         String path = prefix;
         TestListener listener = new TestListener(
-                CALLBACKRESULT_ERROR(errorEmptyLocalName(path))
+            CALLBACKRESULT_ERROR(errorEmptyLocalName(path))
         );
         verifyResult(path, listener, false);
 
         path = prefix + "a";
         listener = new TestListener(
-                CALLBACKRESULT_NAME(prefix + "a")
+            CALLBACKRESULT_NAME(prefix + "a")
         );
         verifyResult(path, listener, true);
 
         path = "/" + prefix + "a";
         listener = new TestListener(
-                CALLBACKRESULT_ROOT,
-                CALLBACKRESULT_NAME(prefix + "a")
+            CALLBACKRESULT_ROOT,
+            CALLBACKRESULT_NAME(prefix + "a")
         );
         verifyResult(path, listener, true);
 
         path = prefix + "/b";
         listener = new TestListener(
-                CALLBACKRESULT_ERROR(errorEmptyLocalName(path))
+            CALLBACKRESULT_ERROR(errorEmptyLocalName(path))
         );
         verifyResult(path, listener, false);
 
         path = "{a}b";
         listener = new TestListener(
-                CALLBACKRESULT_NAME("{a}b")
+            CALLBACKRESULT_NAME("{a}b")
         );
         verifyResult(path, listener, true);
 
         path = "/{a}b";
         listener = new TestListener(
-                CALLBACKRESULT_ROOT,
-                CALLBACKRESULT_NAME("{a}b")
+            CALLBACKRESULT_ROOT,
+            CALLBACKRESULT_NAME("{a}b")
         );
         verifyResult(path, listener, true);
 
         path = "{a}b[1]";
         listener = new TestListener(
-                CALLBACKRESULT_NAME("{a}b", 1)
+            CALLBACKRESULT_NAME("{a}b", 1)
         );
         verifyResult(path, listener, true);
     }
@@ -253,49 +261,49 @@ public class PathParserTest {
     public void testUnexpectedOpeningSquareBracket() throws RepositoryException {
         String path = "[";
         TestListener listener = new TestListener(
-                CALLBACKRESULT_ERROR(errorCharacterNotAllowedInName(path,'['))
+            CALLBACKRESULT_ERROR(errorCharacterNotAllowedInName(path, '['))
         );
         verifyResult(path, listener, false);
 
         path = "/[";
         listener = new TestListener(
-                CALLBACKRESULT_ROOT,
-                CALLBACKRESULT_ERROR(errorCharacterNotAllowedInName(path,'['))
+            CALLBACKRESULT_ROOT,
+            CALLBACKRESULT_ERROR(errorCharacterNotAllowedInName(path, '['))
         );
         verifyResult(path, listener, false);
 
         path = "./[";
         listener = new TestListener(
-                CALLBACKRESULT_CURRENT,
-                CALLBACKRESULT_ERROR(errorCharacterNotAllowedInName(path,'['))
+            CALLBACKRESULT_CURRENT,
+            CALLBACKRESULT_ERROR(errorCharacterNotAllowedInName(path, '['))
         );
         verifyResult(path, listener, false);
 
         path = "../[";
         listener = new TestListener(
-                CALLBACKRESULT_PARENT,
-                CALLBACKRESULT_ERROR(errorCharacterNotAllowedInName(path,'['))
+            CALLBACKRESULT_PARENT,
+            CALLBACKRESULT_ERROR(errorCharacterNotAllowedInName(path, '['))
         );
         verifyResult(path, listener, false);
 
         path = ".[";
         listener = new TestListener(
-                CALLBACKRESULT_ERROR(errorCharacterNotAllowedInName(path,'['))
+            CALLBACKRESULT_ERROR(errorCharacterNotAllowedInName(path, '['))
         );
         verifyResult(path, listener, false);
 
         path = "..[";
         listener = new TestListener(
-                CALLBACKRESULT_ERROR(errorCharacterNotAllowedInName(path,'['))
+            CALLBACKRESULT_ERROR(errorCharacterNotAllowedInName(path, '['))
         );
         verifyResult(path, listener, false);
 
         path = "a[[";
         listener = new TestListener(
-                //TODO OAK-10616
-                //the parser actually produces an error, but we should change the error message to something like
-                //CALLBACKRESULT_ERROR(errorClosingSquareBracketExpected(path))
-                CALLBACKRESULT_ERROR_ANY
+            //TODO OAK-10616
+            //the parser actually produces an error, but we should change the error message to something like
+            //CALLBACKRESULT_ERROR(errorClosingSquareBracketExpected(path))
+            CALLBACKRESULT_ERROR_ANY
         );
         verifyResult(path, listener, false);
     }
@@ -304,11 +312,11 @@ public class PathParserTest {
     public void testMissingClosingSquareBracket() throws RepositoryException {
         String path = "/a[";
         TestListener listener = new TestListener(
-                CALLBACKRESULT_ROOT,
-                //TODO OAK-10616
-                //the parser actually produces an error, but we should change the error message to something like
-                //CALLBACKRESULT_ERROR(errorClosingSquareBracketExpected(path))
-                CALLBACKRESULT_ERROR_ANY
+            CALLBACKRESULT_ROOT,
+            //TODO OAK-10616
+            //the parser actually produces an error, but we should change the error message to something like
+            //CALLBACKRESULT_ERROR(errorClosingSquareBracketExpected(path))
+            CALLBACKRESULT_ERROR_ANY
         );
         verifyResult(path, listener, false);
     }
@@ -317,38 +325,38 @@ public class PathParserTest {
     public void testUnxepectedClosingSquareBracket() throws RepositoryException {
         String path = "]";
         TestListener listener = new TestListener(
-                CALLBACKRESULT_ERROR(errorCharacterNotAllowedInName(path, ']'))
+            CALLBACKRESULT_ERROR(errorCharacterNotAllowedInName(path, ']'))
         );
         verifyResult(path, listener, false);
 
         path = "/]";
         listener = new TestListener(
-                CALLBACKRESULT_ROOT,
-                CALLBACKRESULT_ERROR(errorCharacterNotAllowedInName(path, ']'))
+            CALLBACKRESULT_ROOT,
+            CALLBACKRESULT_ERROR(errorCharacterNotAllowedInName(path, ']'))
         );
         verifyResult(path, listener, false);
 
         path = ".]";
         listener = new TestListener(
-                CALLBACKRESULT_ERROR(errorCharacterNotAllowedInName(path, ']'))
+            CALLBACKRESULT_ERROR(errorCharacterNotAllowedInName(path, ']'))
         );
         verifyResult(path, listener, false);
 
         path = "..]";
         listener = new TestListener(
-                CALLBACKRESULT_ERROR(errorCharacterNotAllowedInName(path, ']'))
+            CALLBACKRESULT_ERROR(errorCharacterNotAllowedInName(path, ']'))
         );
         verifyResult(path, listener, false);
 
         path = "{]}";
         listener = new TestListener(
-                CALLBACKRESULT_ERROR(errorCharacterNotAllowedInName(path, ']'))
+            CALLBACKRESULT_ERROR(errorCharacterNotAllowedInName(path, ']'))
         );
         verifyResult(path, listener, false);
 
         path = "a[]]";
         listener = new TestListener(
-                CALLBACKRESULT_ERROR(errorNumberFormatExceptionInIndex(path))
+            CALLBACKRESULT_ERROR(errorNumberFormatExceptionInIndex(path))
         );
         verifyResult(path, listener, false);
     }
@@ -358,224 +366,224 @@ public class PathParserTest {
     public void testCurlyBracketsInNames() throws RepositoryException {
         String path = "{a";
         TestListener listener = new TestListener(
-                CALLBACKRESULT_NAME("{a")
+            CALLBACKRESULT_NAME("{a")
         );
         verifyResult(path, listener, true);
 
         path = "/a{";
         listener = new TestListener(
-                CALLBACKRESULT_ROOT,
-                CALLBACKRESULT_NAME("a{")
+            CALLBACKRESULT_ROOT,
+            CALLBACKRESULT_NAME("a{")
         );
         verifyResult(path, listener, true);
 
         path = "{a[1]";
         listener = new TestListener(
-                CALLBACKRESULT_NAME("{a", 1)
+            CALLBACKRESULT_NAME("{a", 1)
         );
         verifyResult(path, listener, true);
 
         path = "/a{[1]";
         listener = new TestListener(
-                CALLBACKRESULT_ROOT,
-                CALLBACKRESULT_NAME("a{", 1)
+            CALLBACKRESULT_ROOT,
+            CALLBACKRESULT_NAME("a{", 1)
         );
         verifyResult(path, listener, true);
 
         path = "/{/a";
         listener = new TestListener(
-                CALLBACKRESULT_ROOT,
-                CALLBACKRESULT_NAME("{"),
-                CALLBACKRESULT_NAME("a")
+            CALLBACKRESULT_ROOT,
+            CALLBACKRESULT_NAME("{"),
+            CALLBACKRESULT_NAME("a")
         );
         verifyResult(path, listener, true);
 
         path = "/{[1]/a";
         listener = new TestListener(
-                CALLBACKRESULT_ROOT,
-                CALLBACKRESULT_NAME("{", 1),
-                CALLBACKRESULT_NAME("a")
+            CALLBACKRESULT_ROOT,
+            CALLBACKRESULT_NAME("{", 1),
+            CALLBACKRESULT_NAME("a")
         );
         verifyResult(path, listener, true);
 
         path = "{";
         listener = new TestListener(
-                CALLBACKRESULT_NAME("{")
+            CALLBACKRESULT_NAME("{")
         );
         verifyResult(path, listener, true);
 
         path = "{[1]";
         listener = new TestListener(
-                CALLBACKRESULT_NAME("{", 1)
+            CALLBACKRESULT_NAME("{", 1)
         );
         verifyResult(path, listener, true);
 
         path = "/{";
         listener = new TestListener(
-                CALLBACKRESULT_ROOT,
-                CALLBACKRESULT_NAME("{")
+            CALLBACKRESULT_ROOT,
+            CALLBACKRESULT_NAME("{")
         );
         verifyResult(path, listener, true);
 
         path = "/{[1]";
         listener = new TestListener(
-                CALLBACKRESULT_ROOT,
-                CALLBACKRESULT_NAME("{", 1)
+            CALLBACKRESULT_ROOT,
+            CALLBACKRESULT_NAME("{", 1)
         );
         verifyResult(path, listener, true);
 
         path = "/}";
         listener = new TestListener(
-                CALLBACKRESULT_ROOT,
-                CALLBACKRESULT_NAME("}")
+            CALLBACKRESULT_ROOT,
+            CALLBACKRESULT_NAME("}")
         );
         verifyResult(path, listener, true);
 
         path = "/}[1]";
         listener = new TestListener(
-                CALLBACKRESULT_ROOT,
-                CALLBACKRESULT_NAME("}", 1)
+            CALLBACKRESULT_ROOT,
+            CALLBACKRESULT_NAME("}", 1)
         );
         verifyResult(path, listener, true);
 
         path = "/a}";
         listener = new TestListener(
-                CALLBACKRESULT_ROOT,
-                CALLBACKRESULT_NAME("a}")
+            CALLBACKRESULT_ROOT,
+            CALLBACKRESULT_NAME("a}")
         );
         verifyResult(path, listener, true);
 
         path = "/a}[1]";
         listener = new TestListener(
-                CALLBACKRESULT_ROOT,
-                CALLBACKRESULT_NAME("a}", 1)
+            CALLBACKRESULT_ROOT,
+            CALLBACKRESULT_NAME("a}", 1)
         );
         verifyResult(path, listener, true);
 
         path = "/a{}";
         listener = new TestListener(
-                CALLBACKRESULT_ROOT,
-                CALLBACKRESULT_NAME("a{}")
+            CALLBACKRESULT_ROOT,
+            CALLBACKRESULT_NAME("a{}")
         );
         verifyResult(path, listener, true);
 
         path = "/a{}[1]";
         listener = new TestListener(
-                CALLBACKRESULT_ROOT,
-                CALLBACKRESULT_NAME("a{}", 1)
+            CALLBACKRESULT_ROOT,
+            CALLBACKRESULT_NAME("a{}", 1)
         );
         verifyResult(path, listener, true);
 
         path = "/a}{";
         listener = new TestListener(
-                CALLBACKRESULT_ROOT,
-                CALLBACKRESULT_NAME("a}{")
+            CALLBACKRESULT_ROOT,
+            CALLBACKRESULT_NAME("a}{")
         );
         verifyResult(path, listener, true);
 
         path = "/a}{[1]";
         listener = new TestListener(
-                CALLBACKRESULT_ROOT,
-                CALLBACKRESULT_NAME("a}{", 1)
+            CALLBACKRESULT_ROOT,
+            CALLBACKRESULT_NAME("a}{", 1)
         );
         verifyResult(path, listener, true);
 
         path = "/a{b}:c";
         listener = new TestListener(
-                CALLBACKRESULT_ROOT,
-                CALLBACKRESULT_ERROR("'/a{b}:c' is not a valid path. Invalid name prefix: a{b}")
+            CALLBACKRESULT_ROOT,
+            CALLBACKRESULT_ERROR("'/a{b}:c' is not a valid path. Invalid name prefix: a{b}")
         );
         verifyResult(path, listener, false);
 
         path = "/a{b:c";
         listener = new TestListener(
-                CALLBACKRESULT_ROOT,
-                CALLBACKRESULT_ERROR("'/a{b:c' is not a valid path. Invalid name prefix: a{b")
+            CALLBACKRESULT_ROOT,
+            CALLBACKRESULT_ERROR("'/a{b:c' is not a valid path. Invalid name prefix: a{b")
         );
         verifyResult(path, listener, false);
 
         path = "/ab}:c";
         listener = new TestListener(
-                CALLBACKRESULT_ROOT,
-                CALLBACKRESULT_ERROR("'/ab}:c' is not a valid path. Invalid name prefix: ab}")
+            CALLBACKRESULT_ROOT,
+            CALLBACKRESULT_ERROR("'/ab}:c' is not a valid path. Invalid name prefix: ab}")
         );
         verifyResult(path, listener, false);
 
         path = "/a:{";
         listener = new TestListener(
-                CALLBACKRESULT_ROOT,
-                CALLBACKRESULT_NAME("a:{")
+            CALLBACKRESULT_ROOT,
+            CALLBACKRESULT_NAME("a:{")
         );
         verifyResult(path, listener, true);
 
         path = "/a:}";
         listener = new TestListener(
-                CALLBACKRESULT_ROOT,
-                CALLBACKRESULT_NAME("a:}")
+            CALLBACKRESULT_ROOT,
+            CALLBACKRESULT_NAME("a:}")
         );
         verifyResult(path, listener, true);
 
         path = "/a:{}";
         listener = new TestListener(
-                CALLBACKRESULT_ROOT,
-                CALLBACKRESULT_NAME("a:{}")
+            CALLBACKRESULT_ROOT,
+            CALLBACKRESULT_NAME("a:{}")
         );
         verifyResult(path, listener, true);
 
         path = "/a:}{";
         listener = new TestListener(
-                CALLBACKRESULT_ROOT,
-                CALLBACKRESULT_NAME("a:}{")
+            CALLBACKRESULT_ROOT,
+            CALLBACKRESULT_NAME("a:}{")
         );
         verifyResult(path, listener, true);
 
         path = "/a:{[1]";
         listener = new TestListener(
-                CALLBACKRESULT_ROOT,
-                CALLBACKRESULT_NAME("a:{", 1)
+            CALLBACKRESULT_ROOT,
+            CALLBACKRESULT_NAME("a:{", 1)
         );
         verifyResult(path, listener, true);
 
         path = "/a:}[1]";
         listener = new TestListener(
-                CALLBACKRESULT_ROOT,
-                CALLBACKRESULT_NAME("a:}", 1)
+            CALLBACKRESULT_ROOT,
+            CALLBACKRESULT_NAME("a:}", 1)
         );
         verifyResult(path, listener, true);
 
         path = "/a:{}[1]";
         listener = new TestListener(
-                CALLBACKRESULT_ROOT,
-                CALLBACKRESULT_NAME("a:{}", 1)
+            CALLBACKRESULT_ROOT,
+            CALLBACKRESULT_NAME("a:{}", 1)
         );
         verifyResult(path, listener, true);
 
         path = "/a:}{[1]";
         listener = new TestListener(
-                CALLBACKRESULT_ROOT,
-                CALLBACKRESULT_NAME("a:}{", 1)
+            CALLBACKRESULT_ROOT,
+            CALLBACKRESULT_NAME("a:}{", 1)
         );
         verifyResult(path, listener, true);
 
         path = "{a}";
         listener = new TestListener(
-                CALLBACKRESULT_NAME("{a}")
+            CALLBACKRESULT_NAME("{a}")
         );
         verifyResult(path, listener, true);
 
         path = "{[}";
         listener = new TestListener(
-                //TODO OAK-10616
-                //the error message is could be improved (Empty local name is not allowed).
-                CALLBACKRESULT_ERROR("'{[}' is not a valid path. '[' not allowed in name.")
+            //TODO OAK-10616
+            //the error message is could be improved (Empty local name is not allowed).
+            CALLBACKRESULT_ERROR("'{[}' is not a valid path. '[' not allowed in name.")
         );
         verifyResult(path, listener, false);
 
         path = "{[}/a";
         listener = new TestListener(
-                //TODO OAK-10616
-                //the error message is could be improved (Empty local name is not allowed).
-                CALLBACKRESULT_ERROR("'{[}/a' is not a valid path. '[' not allowed in name.")
+            //TODO OAK-10616
+            //the error message is could be improved (Empty local name is not allowed).
+            CALLBACKRESULT_ERROR("'{[}/a' is not a valid path. '[' not allowed in name.")
         );
         verifyResult(path, listener, false);
     }
@@ -584,56 +592,56 @@ public class PathParserTest {
     public void testPrefixes() throws RepositoryException {
         String path = "/a:b";
         TestListener listener = new TestListener(
-                CALLBACKRESULT_ROOT,
-                CALLBACKRESULT_NAME("a:b")
+            CALLBACKRESULT_ROOT,
+            CALLBACKRESULT_NAME("a:b")
         );
         verifyResult(path, listener, true);
 
         path = "/a:b[1]";
         listener = new TestListener(
-                CALLBACKRESULT_ROOT,
-                CALLBACKRESULT_NAME("a:b", 1)
+            CALLBACKRESULT_ROOT,
+            CALLBACKRESULT_NAME("a:b", 1)
         );
         verifyResult(path, listener, true);
 
         path = "/a:";
         listener = new TestListener(
-                CALLBACKRESULT_ROOT,
-                //TODO OAK-10616
-                //the parser actually produces an error, but the error message contains an EOF.
-                CALLBACKRESULT_ERROR_ANY
+            CALLBACKRESULT_ROOT,
+            //TODO OAK-10616
+            //the parser actually produces an error, but the error message contains an EOF.
+            CALLBACKRESULT_ERROR_ANY
         );
         verifyResult(path, listener, false);
 
         path = "/a:/b";
         listener = new TestListener(
-                CALLBACKRESULT_ROOT,
-                //TODO OAK-10616
-                //the error message is could be improved (Empty local name is not allowed).
-                CALLBACKRESULT_ERROR("'/a:/b' is not a valid path. '/' not allowed in name.")
+            CALLBACKRESULT_ROOT,
+            //TODO OAK-10616
+            //the error message is could be improved (Empty local name is not allowed).
+            CALLBACKRESULT_ERROR("'/a:/b' is not a valid path. '/' not allowed in name.")
         );
         verifyResult(path, listener, false);
 
         path = "/a:b:c";
         listener = new TestListener(
-                CALLBACKRESULT_ROOT,
-                CALLBACKRESULT_ERROR(errorCharacterNotAllowedInName(path, ':'))
+            CALLBACKRESULT_ROOT,
+            CALLBACKRESULT_ERROR(errorCharacterNotAllowedInName(path, ':'))
         );
         verifyResult(path, listener, false);
 
         path = "/a:]";
         listener = new TestListener(
-                CALLBACKRESULT_ROOT,
-                CALLBACKRESULT_ERROR(errorCharacterNotAllowedInName(path, ']'))
+            CALLBACKRESULT_ROOT,
+            CALLBACKRESULT_ERROR(errorCharacterNotAllowedInName(path, ']'))
         );
         verifyResult(path, listener, false);
 
         path = "/a:[1]";
         listener = new TestListener(
-                CALLBACKRESULT_ROOT,
-                //TODO OAK-10616
-                //the parser actually produces an error, but the error message is misleading
-               CALLBACKRESULT_ERROR("'/a:[1]' is not a valid path. ']' not allowed in name.")
+            CALLBACKRESULT_ROOT,
+            //TODO OAK-10616
+            //the parser actually produces an error, but the error message is misleading
+            CALLBACKRESULT_ERROR("'/a:[1]' is not a valid path. ']' not allowed in name.")
         );
         verifyResult(path, listener, false);
     }

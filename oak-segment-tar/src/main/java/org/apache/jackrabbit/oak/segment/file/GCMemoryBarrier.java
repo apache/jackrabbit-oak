@@ -29,20 +29,17 @@ import java.lang.management.MemoryNotificationInfo;
 import java.lang.management.MemoryPoolMXBean;
 import java.lang.management.MemoryUsage;
 import java.util.concurrent.atomic.AtomicBoolean;
-
 import javax.management.ListenerNotFoundException;
 import javax.management.Notification;
 import javax.management.NotificationEmitter;
 import javax.management.NotificationListener;
 import javax.management.openmbean.CompositeData;
-
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Responsible for raising the low memory flag whenever the available memory
- * falls under a specified threshold. Uses {@link MemoryPoolMXBean} to register
- * for memory related notifications.
+ * Responsible for raising the low memory flag whenever the available memory falls under a specified
+ * threshold. Uses {@link MemoryPoolMXBean} to register for memory related notifications.
  */
 public class GCMemoryBarrier implements Closeable {
 
@@ -62,8 +59,8 @@ public class GCMemoryBarrier implements Closeable {
     private final MemoryListener listener;
 
     public GCMemoryBarrier(@NotNull AtomicBoolean sufficientMemory,
-                           @NotNull GCListener gcListener,
-                           @NotNull SegmentGCOptions gcOptions) {
+        @NotNull GCListener gcListener,
+        @NotNull SegmentGCOptions gcOptions) {
         this.sufficientMemory = sufficientMemory;
         this.gcListener = gcListener;
         this.gcOptions = gcOptions;
@@ -85,7 +82,7 @@ public class GCMemoryBarrier implements Closeable {
             long required = maxMemory * percentage / 100;
             gcListener
                 .info(
-            "setting up a listener to cancel compaction if available memory on pool '{}' drops below {} / {}%.",
+                    "setting up a listener to cancel compaction if available memory on pool '{}' drops below {} / {}%.",
                     pool.getName(),
                     newPrintableBytes(required),
                     percentage);
@@ -109,7 +106,7 @@ public class GCMemoryBarrier implements Closeable {
         MemoryPoolMXBean maxPool = null;
         for (MemoryPoolMXBean pool : getMemoryPoolMXBeans()) {
             if (HEAP == pool.getType()
-                    && pool.isCollectionUsageThresholdSupported()) {
+                && pool.isCollectionUsageThresholdSupported()) {
                 // Get usage after a GC, which is more stable, if available
                 long poolSize = pool.getCollectionUsage().getMax();
                 // Keep the pool with biggest size, by default it should be Old Gen Space
@@ -129,7 +126,8 @@ public class GCMemoryBarrier implements Closeable {
         long required = maxMemory * percentage / 100;
         if (avail <= required) {
             gcListener
-                .warn("canceling compaction because available memory level {} is too low, expecting at least {}",
+                .warn(
+                    "canceling compaction because available memory level {} is too low, expecting at least {}",
                     newPrintableBytes(avail),
                     newPrintableBytes(required));
             sufficientMemory.set(false);
@@ -154,17 +152,18 @@ public class GCMemoryBarrier implements Closeable {
     }
 
     private class MemoryListener implements NotificationListener {
+
         @Override
         public void handleNotification(Notification notification,
-                                       Object handback) {
+            Object handback) {
             if (notification
-                    .getType()
-                    .equals(MemoryNotificationInfo.MEMORY_COLLECTION_THRESHOLD_EXCEEDED)) {
+                .getType()
+                .equals(MemoryNotificationInfo.MEMORY_COLLECTION_THRESHOLD_EXCEEDED)) {
                 if (sufficientMemory.get()) {
                     CompositeData cd = (CompositeData) notification
-                            .getUserData();
+                        .getUserData();
                     MemoryNotificationInfo info = MemoryNotificationInfo
-                            .from(cd);
+                        .from(cd);
                     checkMemory(info.getUsage());
                 }
             }

@@ -27,7 +27,6 @@ import static org.junit.Assert.assertEquals;
 import java.io.File;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
 import org.apache.jackrabbit.oak.stats.MeterStats;
@@ -38,6 +37,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class MetricsIOMonitorTest {
+
     private ScheduledExecutorService executor;
 
     private MeterStats segmentReadBytes;
@@ -51,13 +51,13 @@ public class MetricsIOMonitorTest {
         DefaultStatisticsProvider statisticsProvider = new DefaultStatisticsProvider(executor);
         MetricsIOMonitor ioMonitor = new MetricsIOMonitor(statisticsProvider);
         segmentReadBytes = statisticsProvider.getMeter(
-                OAK_SEGMENT_SEGMENT_READ_BYTES, StatsOptions.METRICS_ONLY);
+            OAK_SEGMENT_SEGMENT_READ_BYTES, StatsOptions.METRICS_ONLY);
         segmentWriteBytes = statisticsProvider.getMeter(
-                OAK_SEGMENT_SEGMENT_WRITE_BYTES, StatsOptions.METRICS_ONLY);
+            OAK_SEGMENT_SEGMENT_WRITE_BYTES, StatsOptions.METRICS_ONLY);
         segmentReadTime = statisticsProvider.getTimer(
-                OAK_SEGMENT_SEGMENT_READ_TIME, StatsOptions.METRICS_ONLY);
+            OAK_SEGMENT_SEGMENT_READ_TIME, StatsOptions.METRICS_ONLY);
         segmentWriteTime = statisticsProvider.getTimer(
-                OAK_SEGMENT_SEGMENT_WRITE_TIME, StatsOptions.METRICS_ONLY);
+            OAK_SEGMENT_SEGMENT_WRITE_TIME, StatsOptions.METRICS_ONLY);
 
         File file = new File("");
         ioMonitor.afterSegmentRead(file, 0, 0, 4, 0);

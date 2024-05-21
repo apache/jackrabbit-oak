@@ -20,7 +20,6 @@
 package org.apache.jackrabbit.oak.plugins.index.property;
 
 import java.util.function.Supplier;
-
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.CommitFailedException;

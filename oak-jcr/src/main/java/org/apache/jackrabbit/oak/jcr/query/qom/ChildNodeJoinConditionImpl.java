@@ -23,7 +23,8 @@ import javax.jcr.query.qom.ChildNodeJoinCondition;
 /**
  * The implementation of the corresponding JCR interface.
  */
-public class ChildNodeJoinConditionImpl extends JoinConditionImpl implements ChildNodeJoinCondition {
+public class ChildNodeJoinConditionImpl extends JoinConditionImpl implements
+    ChildNodeJoinCondition {
 
     private final String childSelectorName;
     private final String parentSelectorName;
@@ -46,8 +47,8 @@ public class ChildNodeJoinConditionImpl extends JoinConditionImpl implements Chi
     @Override
     public String toString() {
         return "ISCHILDNODE(" +
-                quoteSelectorName(childSelectorName) + ", " +
-                quoteSelectorName(parentSelectorName) + ")";
+            quoteSelectorName(childSelectorName) + ", " +
+            quoteSelectorName(parentSelectorName) + ")";
     }
 
 }

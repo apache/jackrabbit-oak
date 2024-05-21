@@ -31,7 +31,7 @@ import javax.jcr.Session
 import static org.apache.jackrabbit.oak.run.osgi.OakOSGiRepositoryFactory.REPOSITORY_CONFIG_FILE
 
 @Slf4j
-class RepositoryClosedTest extends AbstractRepositoryFactoryTest{
+class RepositoryClosedTest extends AbstractRepositoryFactoryTest {
 
     @Before
     void setupRepo() {
@@ -39,7 +39,7 @@ class RepositoryClosedTest extends AbstractRepositoryFactoryTest{
     }
 
     @Test
-    public void sessionUsePostClose() throws Exception{
+    public void sessionUsePostClose() throws Exception {
         repository = repositoryFactory.getRepository(config)
         PojoServiceRegistry registry = getRegistry()
 
@@ -61,7 +61,7 @@ class RepositoryClosedTest extends AbstractRepositoryFactoryTest{
         try {
             s.save()
             Assert.fail("Session save should have failed due to invalid name")
-        } catch (RepositoryException ignore){
+        } catch (RepositoryException ignore) {
 
         }
 

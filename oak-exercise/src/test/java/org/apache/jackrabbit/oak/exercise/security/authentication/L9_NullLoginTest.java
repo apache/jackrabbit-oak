@@ -24,7 +24,6 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.security.auth.Subject;
 import javax.security.auth.login.Configuration;
-
 import org.apache.jackrabbit.test.AbstractJCRTest;
 
 /**
@@ -71,7 +70,9 @@ import org.apache.jackrabbit.test.AbstractJCRTest;
  *
  * </pre>
  *
- * @see <a href="http://jackrabbit.apache.org/oak/docs/security/authentication/preauthentication.html">Pre-Authentication Documentation</a>
+ * @see <a
+ * href="http://jackrabbit.apache.org/oak/docs/security/authentication/preauthentication.html">Pre-Authentication
+ * Documentation</a>
  */
 public class L9_NullLoginTest extends AbstractJCRTest {
 

@@ -18,7 +18,6 @@
 package org.apache.jackrabbit.oak.run;
 
 import java.io.File;
-
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import org.apache.jackrabbit.oak.run.commons.Command;
@@ -40,10 +39,10 @@ class RestoreCommand implements Command {
         File source = new File(options.nonOptionArguments().get(1).toString());
 
         int statusCode = Restore.builder()
-            .withSource(source)
-            .withTarget(target)
-            .build()
-            .run();
+                                .withSource(source)
+                                .withTarget(target)
+                                .build()
+                                .run();
         System.exit(statusCode);
     }
 

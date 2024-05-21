@@ -24,7 +24,7 @@ public class ElasticFullTextIndexTest extends FullTextIndexCommonTest {
 
     @ClassRule
     public static final ElasticConnectionRule elasticRule =
-            new ElasticConnectionRule(ElasticTestUtils.ELASTIC_CONNECTION_STRING);
+        new ElasticConnectionRule(ElasticTestUtils.ELASTIC_CONNECTION_STRING);
 
     public ElasticFullTextIndexTest() {
         this.indexOptions = new ElasticIndexOptions();

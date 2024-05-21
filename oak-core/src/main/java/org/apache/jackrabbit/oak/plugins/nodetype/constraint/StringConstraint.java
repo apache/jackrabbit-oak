@@ -20,10 +20,8 @@ import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
-
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

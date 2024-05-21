@@ -17,25 +17,25 @@
  */
 package org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache;
 
+import java.util.concurrent.Callable;
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.concurrent.Callable;
-
 /**
- * This interface represents a cache which survives segment store restarts.
- * The cache is agnostic to any archive structure. Segments are only
- * identified by their UUIDs, specified as msb and lsb parts of the segment id.
+ * This interface represents a cache which survives segment store restarts. The cache is agnostic to
+ * any archive structure. Segments are only identified by their UUIDs, specified as msb and lsb
+ * parts of the segment id.
  */
 public interface PersistentCache {
 
     /**
      * Reads the segment from cache.
      *
-     * @param msb the most significant bits of the identifier of the segment
-     * @param lsb the least significant bits of the identifier of the segment
-     * @param loader in case of cache miss, with {@code loader.call()} missing element will be retrieved
+     * @param msb    the most significant bits of the identifier of the segment
+     * @param lsb    the least significant bits of the identifier of the segment
+     * @param loader in case of cache miss, with {@code loader.call()} missing element will be
+     *               retrieved
      * @return byte buffer containing the segment data or null if the segment doesn't exist
      */
     @Nullable
@@ -53,15 +53,15 @@ public interface PersistentCache {
     /**
      * Writes the segment to the cache.
      *
-     * @param msb the most significant bits of the identifier of the segment
-     * @param lsb the least significant bits of the identifier of the segment
+     * @param msb    the most significant bits of the identifier of the segment
+     * @param lsb    the least significant bits of the identifier of the segment
      * @param buffer the byte buffer containing the segment data
      */
     void writeSegment(long msb, long lsb, Buffer buffer);
 
     /**
-     * Purges the cache entries according to the implementation policy (e.g. maximum
-     * cache size, maximum number of entries, etc.)
+     * Purges the cache entries according to the implementation policy (e.g. maximum cache size,
+     * maximum number of entries, etc.)
      */
     void cleanUp();
 }

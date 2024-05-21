@@ -16,6 +16,15 @@
  */
 package org.apache.jackrabbit.oak.plugins.blob;
 
+import static org.apache.commons.codec.binary.Hex.encodeHexString;
+import static org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors.newDirectExecutorService;
+import static org.apache.jackrabbit.oak.spi.blob.BlobOptions.UploadType.SYNCHRONOUS;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -29,10 +38,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-
-import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.io.Closer;
-import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
@@ -41,6 +46,9 @@ import org.apache.commons.io.output.NullOutputStream;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
+import org.apache.jackrabbit.guava.common.io.Closer;
+import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
 import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
@@ -56,19 +64,11 @@ import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors.newDirectExecutorService;
-import static org.apache.commons.codec.binary.Hex.encodeHexString;
-import static org.apache.jackrabbit.oak.spi.blob.BlobOptions.UploadType.SYNCHRONOUS;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-
 /**
  * Tests for {@link AbstractSharedCachingDataStore}
  */
 public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
+
     private static final Logger LOG = LoggerFactory.getLogger(CachingDataStoreTest.class);
     private static final String ID_PREFIX = "12345";
 
@@ -120,11 +120,13 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
         this.backend = testBackend;
 
         dataStore = new AbstractSharedCachingDataStore() {
-            @Override protected AbstractSharedBackend createBackend() {
+            @Override
+            protected AbstractSharedBackend createBackend() {
                 return testBackend;
             }
 
-            @Override public int getMinRecordLength() {
+            @Override
+            public int getMinRecordLength() {
                 return 0;
             }
         };
@@ -161,16 +163,19 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
         init(1, (int) cacheSize, 0);
         String path = FilenameUtils
             .normalizeNoEndSeparator(new File(dsPath).getAbsolutePath());
-        String home = FilenameUtils.normalizeNoEndSeparator(new File(root.getAbsolutePath()).getAbsolutePath());
+        String home = FilenameUtils.normalizeNoEndSeparator(
+            new File(root.getAbsolutePath()).getAbsolutePath());
 
-        dataStore.cache = new CompositeDataStoreCache(path , new File(home), cacheSize, 0,
+        dataStore.cache = new CompositeDataStoreCache(path, new File(home), cacheSize, 0,
             0,
             new TestErrorCacheLoader(backendRoot, 40, true), new StagingUploader() {
-            @Override public void write(String id, File file) throws DataStoreException {
+            @Override
+            public void write(String id, File file) throws DataStoreException {
                 backend.write(new DataIdentifier(id), file);
             }
 
-            @Override public void adopt(File f, File moved) throws IOException {
+            @Override
+            public void adopt(File f, File moved) throws IOException {
                 FileUtils.moveFile(f, moved);
             }
         }, statsProvider, listeningExecutor, scheduledExecutor, dataStore.executor, 300,
@@ -194,7 +199,7 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
 
         assertNotNull(is);
         assertTrue(is instanceof LazyFileInputStream);
-        ((LazyFileInputStream)is).open();
+        ((LazyFileInputStream) is).open();
 
         File tmp = new File(new File(path), "tmp");
         Collection<File> temp0cacheFiles =
@@ -208,6 +213,7 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
 
     /**
      * Add, get, delete when zero cache size.
+     *
      * @throws Exception
      */
     @Test
@@ -240,6 +246,7 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
 
     /**
      * Add, get, delete when staging cache is 0.
+     *
      * @throws Exception
      */
     @Test
@@ -272,6 +279,7 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
 
     /**
      * Add, get, delete with synchronous option.
+     *
      * @throws Exception
      */
     @Test
@@ -302,6 +310,7 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
 
     /**
      * Add, get forcing load in cache.
+     *
      * @throws Exception
      */
     @Test
@@ -331,6 +340,7 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
 
     /**
      * Add sync and delete temp
+     *
      * @throws Exception
      */
     @Test
@@ -347,7 +357,8 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
         assertFile(rec.getStream(), f, folder);
 
         Collection<File> files =
-            FileUtils.listFiles(new File(dsPath, "tmp"), FileFilterUtils.prefixFileFilter("upload"), null);
+            FileUtils.listFiles(new File(dsPath, "tmp"), FileFilterUtils.prefixFileFilter("upload"),
+                null);
         assertEquals(0, files.size());
 
         LOG.info("Finished syncAddTempDelete");
@@ -415,6 +426,7 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
 
     /**
      * {@link CompositeDataStoreCache#get(String)} when no cache.
+     *
      * @throws IOException
      */
     @Test
@@ -459,6 +471,7 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
 
     /**
      * Add in staging and delete.
+     *
      * @throws Exception
      */
     @Test
@@ -592,7 +605,8 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
         dataStore.close();
     }
 
-    private static void assertFile(InputStream is, File org, TemporaryFolder folder) throws IOException {
+    private static void assertFile(InputStream is, File org, TemporaryFolder folder)
+        throws IOException {
         assertFile(is, org, folder, true);
     }
 
@@ -631,7 +645,8 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
             afterExecuteLatch.await();
             // Force execute removal from staging cache
             ScheduledFuture<?> scheduledFuture = scheduledExecutor
-                .schedule(dataStore.getCache().getStagingCache().new RemoveJob(), 0, TimeUnit.MILLISECONDS);
+                .schedule(dataStore.getCache().getStagingCache().new RemoveJob(), 0,
+                    TimeUnit.MILLISECONDS);
             scheduledFuture.get();
             LOG.info("After jobs completed");
         } catch (Exception e) {

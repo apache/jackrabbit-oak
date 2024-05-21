@@ -20,15 +20,13 @@ import org.osgi.annotation.versioning.ProviderType;
 
 /**
  * Statistics on core repository operations
- * 
  */
 @ProviderType
 public interface RepositoryStatistics {
 
     /**
-     * The values of this enum determine the type of the time
-     * series returned by {@link #getTimeSeries(Type)}
-     * and link {@link #getTimeSeries(String, boolean)}.
+     * The values of this enum determine the type of the time series returned by
+     * {@link #getTimeSeries(Type)} and link {@link #getTimeSeries(String, boolean)}.
      */
     enum Type {
         BUNDLE_READ_COUNTER(true),
@@ -54,9 +52,8 @@ public interface RepositoryStatistics {
         SESSION_READ_DURATION(true),
 
         /**
-         * Average time spent reading from sessions in nano seconds.
-         * This is the sum of all read durations divided by the number
-         * of reads in the respective time period.
+         * Average time spent reading from sessions in nano seconds. This is the sum of all read
+         * durations divided by the number of reads in the respective time period.
          */
         SESSION_READ_AVERAGE(false),
 
@@ -71,9 +68,8 @@ public interface RepositoryStatistics {
         SESSION_WRITE_DURATION(true),
 
         /**
-         * Average time spent writing to sessions in nano seconds.
-         * This is the sum of all write durations divided by the number
-         * of writes in the respective time period.
+         * Average time spent writing to sessions in nano seconds. This is the sum of all write
+         * durations divided by the number of writes in the respective time period.
          */
         SESSION_WRITE_AVERAGE(false),
 
@@ -98,29 +94,27 @@ public interface RepositoryStatistics {
         QUERY_DURATION(true),
 
         /**
-         * Average time spent evaluating queries in milli seconds.
-         * This is the sum of all query durations divided by the number
-         * of queries in the respective time period.
+         * Average time spent evaluating queries in milli seconds. This is the sum of all query
+         * durations divided by the number of queries in the respective time period.
          */
         QUERY_AVERAGE(true),
 
         /**
-         * Total number of observation {@code Event} instances delivered
-         * to all observation listeners.
+         * Total number of observation {@code Event} instances delivered to all observation
+         * listeners.
          */
         OBSERVATION_EVENT_COUNTER(true),
 
         /**
-         * Total time spent processing observation events by all observation
-         * listeners in nano seconds.
+         * Total time spent processing observation events by all observation listeners in nano
+         * seconds.
          */
         OBSERVATION_EVENT_DURATION(true),
 
         /**
-         * Average time spent processing observation events by all observation
-         * listeners in nano seconds.
-         * This is the sum of all observation durations divided by the number
-         * of observation events in the respective time period.
+         * Average time spent processing observation events by all observation listeners in nano
+         * seconds. This is the sum of all observation durations divided by the number of
+         * observation events in the respective time period.
          */
         OBSERVATION_EVENT_AVERAGE(true);
 
@@ -134,7 +128,8 @@ public interface RepositoryStatistics {
             Type realType = null;
             try {
                 realType = valueOf(type);
-            } catch (IllegalArgumentException ignore) {}
+            } catch (IllegalArgumentException ignore) {
+            }
             return realType;
         }
 

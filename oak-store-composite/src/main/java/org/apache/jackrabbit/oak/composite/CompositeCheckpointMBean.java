@@ -49,22 +49,22 @@ public class CompositeCheckpointMBean extends AbstractCheckpointMBean {
         for (String id : store.checkpoints()) {
             Map<String, String> info = store.allCheckpointInfo(id);
             tab.put(id, toCompositeData(
-                    id,
-                    getDate(info, CHECKPOINT_METADATA + "created"),
-                    getDate(info, CHECKPOINT_METADATA + "expires"),
-                    store.checkpointInfo(id)));
+                id,
+                getDate(info, CHECKPOINT_METADATA + "created"),
+                getDate(info, CHECKPOINT_METADATA + "expires"),
+                store.checkpointInfo(id)));
         }
     }
 
     @Override
     public long getOldestCheckpointCreationTimestamp() {
         return StreamSupport.stream(store.checkpoints().spliterator(), false)
-                .map(store::allCheckpointInfo)
-                .map(i -> i.get(CHECKPOINT_METADATA + "created"))
-                .mapToLong(l -> l == null ? 0 : Long.valueOf(l))
-                .sorted()
-                .findFirst()
-                .orElse(0);
+                            .map(store::allCheckpointInfo)
+                            .map(i -> i.get(CHECKPOINT_METADATA + "created"))
+                            .mapToLong(l -> l == null ? 0 : Long.valueOf(l))
+                            .sorted()
+                            .findFirst()
+                            .orElse(0);
     }
 
     private static String getDate(Map<String, String> info, String name) {

@@ -53,8 +53,8 @@ public class LastRevRecoveryRandomizedIT {
 
     private static final Logger LOG = LoggerFactory.getLogger(LastRevRecoveryRandomizedIT.class);
     private static final int SEED = Integer.getInteger(
-            LastRevRecoveryRandomizedIT.class.getSimpleName() + "-seed",
-            new Random().nextInt());
+        LastRevRecoveryRandomizedIT.class.getSimpleName() + "-seed",
+        new Random().nextInt());
 
     private Random random = new Random();
 
@@ -83,8 +83,8 @@ public class LastRevRecoveryRandomizedIT {
         random.setSeed(SEED);
         store = new MemoryDocumentStore();
         ns = new DocumentMK.Builder().setDocumentStore(store)
-                .setLeaseCheckMode(LeaseCheckMode.DISABLED).clock(clock)
-                .setAsyncDelay(0).getNodeStore();
+                                     .setLeaseCheckMode(LeaseCheckMode.DISABLED).clock(clock)
+                                     .setAsyncDelay(0).getNodeStore();
         builder = newBuilder(ns);
         builder.child("root");
         merge(ns, builder);
@@ -257,20 +257,20 @@ public class LastRevRecoveryRandomizedIT {
         }
         // will trigger recovery on startup
         DocumentNodeStore dns = new DocumentMK.Builder()
-                .setClusterId(ns.getClusterId())
-                .clock(clock).setLeaseCheckMode(LeaseCheckMode.DISABLED)
-                .setDocumentStore(s).setAsyncDelay(0).getNodeStore();
+            .setClusterId(ns.getClusterId())
+            .clock(clock).setLeaseCheckMode(LeaseCheckMode.DISABLED)
+            .setDocumentStore(s).setAsyncDelay(0).getNodeStore();
         Map<String, NodeState> states = Maps.newHashMap(currentState);
         NodeState root = dns.getRoot().getChildNode("root");
         compareAndTraverse(root, "/root", states);
         assertTrue("missing nodes: " + states.keySet() + " (seed=" + SEED + ")",
-                states.isEmpty());
+            states.isEmpty());
         dns.dispose();
     }
 
     private void compareAndTraverse(NodeState state,
-                                    final String path,
-                                    Map<String, NodeState> states) {
+        final String path,
+        Map<String, NodeState> states) {
         NodeState expected = states.remove(path);
         if (expected == null) {
             fail("unexpected node at " + path + " (seed=" + SEED + ")");
@@ -285,9 +285,9 @@ public class LastRevRecoveryRandomizedIT {
 
             @Override
             public boolean propertyChanged(PropertyState before,
-                                           PropertyState after) {
+                PropertyState after) {
                 assertEquals("property mismatch on node " + path + " (seed=" + SEED + ")",
-                        before, after);
+                    before, after);
                 return super.propertyChanged(before, after);
             }
 
@@ -308,7 +308,7 @@ public class LastRevRecoveryRandomizedIT {
     }
 
     private static void merge(NodeStore ns, NodeBuilder builder)
-            throws CommitFailedException {
+        throws CommitFailedException {
         ns.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 }

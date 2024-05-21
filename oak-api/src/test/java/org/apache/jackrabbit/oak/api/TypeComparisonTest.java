@@ -17,44 +17,43 @@
 
 package org.apache.jackrabbit.oak.api;
 
-import org.junit.Test;
-
-import java.util.Arrays;
-
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+
+import java.util.Arrays;
+import org.junit.Test;
 
 public class TypeComparisonTest {
 
     @Test
     public void compareTypes() {
         Type[] types = new Type[]{
-                Type.BINARIES,
-                Type.BINARY,
-                Type.BOOLEANS,
-                Type.BOOLEAN,
-                Type.DATES,
-                Type.DATE,
-                Type.DECIMALS,
-                Type.DECIMAL,
-                Type.DOUBLES,
-                Type.DOUBLE,
-                Type.LONGS,
-                Type.LONG,
-                Type.NAMES,
-                Type.NAME,
-                Type.PATHS,
-                Type.PATH,
-                Type.REFERENCES,
-                Type.REFERENCE,
-                Type.STRINGS,
-                Type.STRING,
-                Type.UNDEFINEDS,
-                Type.UNDEFINED,
-                Type.URIS,
-                Type.URI,
-                Type.WEAKREFERENCES,
-                Type.WEAKREFERENCE,
+            Type.BINARIES,
+            Type.BINARY,
+            Type.BOOLEANS,
+            Type.BOOLEAN,
+            Type.DATES,
+            Type.DATE,
+            Type.DECIMALS,
+            Type.DECIMAL,
+            Type.DOUBLES,
+            Type.DOUBLE,
+            Type.LONGS,
+            Type.LONG,
+            Type.NAMES,
+            Type.NAME,
+            Type.PATHS,
+            Type.PATH,
+            Type.REFERENCES,
+            Type.REFERENCE,
+            Type.STRINGS,
+            Type.STRING,
+            Type.UNDEFINEDS,
+            Type.UNDEFINED,
+            Type.URIS,
+            Type.URI,
+            Type.WEAKREFERENCES,
+            Type.WEAKREFERENCE,
 
         };
 

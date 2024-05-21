@@ -64,12 +64,14 @@ public final class Utils {
      * @param connectionString connectionString to configure @link {@link CloudBlobClient}
      * @return {@link CloudBlobClient}
      */
-    public static CloudBlobClient getBlobClient(@NotNull final String connectionString) throws URISyntaxException, InvalidKeyException {
+    public static CloudBlobClient getBlobClient(@NotNull final String connectionString)
+        throws URISyntaxException, InvalidKeyException {
         return getBlobClient(connectionString, null);
     }
 
     public static CloudBlobClient getBlobClient(@NotNull final String connectionString,
-                                                @Nullable final BlobRequestOptions requestOptions) throws URISyntaxException, InvalidKeyException {
+        @Nullable final BlobRequestOptions requestOptions)
+        throws URISyntaxException, InvalidKeyException {
         CloudStorageAccount account = CloudStorageAccount.parse(connectionString);
         CloudBlobClient client = account.createCloudBlobClient();
         if (null != requestOptions) {
@@ -79,18 +81,18 @@ public final class Utils {
     }
 
     public static CloudBlobContainer getBlobContainer(@NotNull final String connectionString,
-                                                      @NotNull final String containerName) throws DataStoreException {
+        @NotNull final String containerName) throws DataStoreException {
         return getBlobContainer(connectionString, containerName, null);
     }
 
     public static CloudBlobContainer getBlobContainer(@NotNull final String connectionString,
-                                                      @NotNull final String containerName,
-                                                      @Nullable final BlobRequestOptions requestOptions) throws DataStoreException {
+        @NotNull final String containerName,
+        @Nullable final BlobRequestOptions requestOptions) throws DataStoreException {
         try {
             CloudBlobClient client = (
-                    (null == requestOptions)
-                            ? Utils.getBlobClient(connectionString)
-                            : Utils.getBlobClient(connectionString, requestOptions)
+                (null == requestOptions)
+                    ? Utils.getBlobClient(connectionString)
+                    : Utils.getBlobClient(connectionString, requestOptions)
             );
             return client.getContainerReference(containerName);
         } catch (InvalidKeyException | URISyntaxException | StorageException e) {
@@ -127,7 +129,8 @@ public final class Utils {
 
         String sasUri = properties.getProperty(AzureConstants.AZURE_SAS, "");
         String blobEndpoint = properties.getProperty(AzureConstants.AZURE_BLOB_ENDPOINT, "");
-        String connectionString = properties.getProperty(AzureConstants.AZURE_CONNECTION_STRING, "");
+        String connectionString = properties.getProperty(AzureConstants.AZURE_CONNECTION_STRING,
+            "");
         String accountName = properties.getProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME, "");
         String accountKey = properties.getProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_KEY, "");
 
@@ -140,12 +143,13 @@ public final class Utils {
         }
 
         return getConnectionString(
-                accountName,
-                accountKey, 
-                blobEndpoint);
+            accountName,
+            accountKey,
+            blobEndpoint);
     }
 
-    private static String getConnectionStringForSas(String sasUri, String blobEndpoint, String accountName) {
+    private static String getConnectionStringForSas(String sasUri, String blobEndpoint,
+        String accountName) {
         if (StringUtils.isEmpty(blobEndpoint)) {
             return String.format("AccountName=%s;SharedAccessSignature=%s", accountName, sasUri);
         } else {
@@ -156,12 +160,13 @@ public final class Utils {
     public static String getConnectionString(final String accountName, final String accountKey) {
         return getConnectionString(accountName, accountKey, null);
     }
-    
-    public static String getConnectionString(final String accountName, final String accountKey, String blobEndpoint) {
+
+    public static String getConnectionString(final String accountName, final String accountKey,
+        String blobEndpoint) {
         StringBuilder connString = new StringBuilder("DefaultEndpointsProtocol=https");
         connString.append(";AccountName=").append(accountName);
         connString.append(";AccountKey=").append(accountKey);
-        
+
         if (!Strings.isNullOrEmpty(blobEndpoint)) {
             connString.append(";BlobEndpoint=").append(blobEndpoint);
         }
@@ -169,8 +174,8 @@ public final class Utils {
     }
 
     /**
-     * Read a configuration properties file. If the file name ends with ";burn",
-     * the file is deleted after reading.
+     * Read a configuration properties file. If the file name ends with ";burn", the file is deleted
+     * after reading.
      *
      * @param fileName the properties file name
      * @return the properties

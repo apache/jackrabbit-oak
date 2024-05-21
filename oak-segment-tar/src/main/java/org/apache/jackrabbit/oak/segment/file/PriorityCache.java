@@ -19,51 +19,51 @@
 
 package org.apache.jackrabbit.oak.segment.file;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static java.lang.Integer.bitCount;
 import static java.lang.Integer.numberOfTrailingZeros;
 import static java.lang.Long.numberOfLeadingZeros;
 import static java.lang.Math.max;
 import static java.util.Arrays.fill;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.concurrent.locks.ReentrantLock;
-
-import org.apache.jackrabbit.oak.segment.CacheWeights;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.base.Supplier;
 import org.apache.jackrabbit.guava.common.cache.CacheStats;
 import org.apache.jackrabbit.guava.common.cache.Weigher;
+import org.apache.jackrabbit.oak.segment.CacheWeights;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
- * {@code PriorityCache} implements a partial mapping from keys of type {@code K} to values
- * of type  {@code V}. Mappings are associates with a cost, which states how expensive it is
- * to recreate that mapping. This cache uses the cost such that mappings with a higher cost
- * have a lower chance of being evicted than mappings with a lower cost. When an item from
- * this cache is successfully looked up its cost is incremented by one, unless it has reached
- * its maximum cost of {@link Byte#MAX_VALUE} already.
+ * {@code PriorityCache} implements a partial mapping from keys of type {@code K} to values of type
+ * {@code V}. Mappings are associates with a cost, which states how expensive it is to recreate that
+ * mapping. This cache uses the cost such that mappings with a higher cost have a lower chance of
+ * being evicted than mappings with a lower cost. When an item from this cache is successfully
+ * looked up its cost is incremented by one, unless it has reached its maximum cost of
+ * {@link Byte#MAX_VALUE} already.
  * <p>
- * Additionally, this cache tracks a generation for mappings. Mappings of later generations
- * always take precedence over mappings of earlier generations. That is, putting a mapping of
- * a later generation into the cache can cause any mapping of an earlier generation to be evicted
- * regardless of its cost.
+ * Additionally, this cache tracks a generation for mappings. Mappings of later generations always
+ * take precedence over mappings of earlier generations. That is, putting a mapping of a later
+ * generation into the cache can cause any mapping of an earlier generation to be evicted regardless
+ * of its cost.
  * <p>
- * This cache uses rehashing to resolve clashes. The number of rehashes is configurable. When
- * a clash cannot be resolved by rehashing the given number of times the put operation fails.
+ * This cache uses rehashing to resolve clashes. The number of rehashes is configurable. When a
+ * clash cannot be resolved by rehashing the given number of times the put operation fails.
  * <p>
  * This cache is thread safe.
- * @param <K>  type of the keys
- * @param <V>  type of the values
+ *
+ * @param <K> type of the keys
+ * @param <V> type of the values
  */
 public class PriorityCache<K, V> {
+
     private final int rehash;
-    private final Entry<?,?>[] entries;
+    private final Entry<?, ?>[] entries;
     private final AtomicInteger[] costs;
     private final AtomicInteger[] evictions;
 
@@ -74,7 +74,9 @@ public class PriorityCache<K, V> {
     private final LongAdder evictionCount = new LongAdder();
     private final LongAdder size = new LongAdder();
 
-    private static class Segment extends ReentrantLock {}
+    private static class Segment extends ReentrantLock {
+
+    }
 
     @NotNull
     private final Segment[] segments;
@@ -85,10 +87,12 @@ public class PriorityCache<K, V> {
 
     /**
      * Static factory for creating new {@code PriorityCache} instances.
-     * @param size  size of the cache. Must be a power of 2.
-     * @return  a new {@code PriorityCache} instance of the given {@code size}.
+     *
+     * @param size size of the cache. Must be a power of 2.
+     * @return a new {@code PriorityCache} instance of the given {@code size}.
      */
-    public static <K, V> Supplier<PriorityCache<K, V>> factory(final int size, @NotNull final Weigher<K, V> weigher) {
+    public static <K, V> Supplier<PriorityCache<K, V>> factory(final int size,
+        @NotNull final Weigher<K, V> weigher) {
         checkArgument(bitCount(size) == 1);
         checkNotNull(weigher);
         return () -> new PriorityCache<>(size, weigher);
@@ -96,8 +100,9 @@ public class PriorityCache<K, V> {
 
     /**
      * Static factory for creating new {@code PriorityCache} instances.
-     * @param size  size of the cache. Must be a power of 2.
-     * @return  a new {@code PriorityCache} instance of the given {@code size}.
+     *
+     * @param size size of the cache. Must be a power of 2.
+     * @return a new {@code PriorityCache} instance of the given {@code size}.
      */
     public static <K, V> Supplier<PriorityCache<K, V>> factory(final int size) {
         checkArgument(bitCount(size) == 1);
@@ -105,6 +110,7 @@ public class PriorityCache<K, V> {
     }
 
     private static class Entry<K, V> {
+
         static final Entry<Void, Void> NULL = new Entry<>(null, null, -1, Byte.MIN_VALUE);
 
         final K key;
@@ -129,6 +135,7 @@ public class PriorityCache<K, V> {
 
     /**
      * Round {@code size} up to the next power of two or 1 for negative values.
+     *
      * @param size
      * @return the next power of two starting from {@code size}.
      */
@@ -137,34 +144,37 @@ public class PriorityCache<K, V> {
     }
 
     /**
-     * Create a new instance of the given {@code size}. {@code rehash} specifies the number
-     * of rehashes to resolve a clash.
-     * @param size      Size of the cache. Must be a power of {@code 2}.
-     * @param rehash    Number of rehashes. Must be greater or equal to {@code 0} and
-     *                  smaller than {@code 32 - numberOfTrailingZeros(size)}.
+     * Create a new instance of the given {@code size}. {@code rehash} specifies the number of
+     * rehashes to resolve a clash.
+     *
+     * @param size   Size of the cache. Must be a power of {@code 2}.
+     * @param rehash Number of rehashes. Must be greater or equal to {@code 0} and smaller than
+     *               {@code 32 - numberOfTrailingZeros(size)}.
      */
     PriorityCache(int size, int rehash) {
         this(size, rehash, CacheWeights.noopWeigher());
     }
 
     /**
-     * Create a new instance of the given {@code size}. {@code rehash} specifies the number
-     * of rehashes to resolve a clash.
-     * @param size      Size of the cache. Must be a power of {@code 2}.
-     * @param rehash    Number of rehashes. Must be greater or equal to {@code 0} and
-     *                  smaller than {@code 32 - numberOfTrailingZeros(size)}.
-     * @param weigher   Needed to provide an estimation of the cache weight in memory
+     * Create a new instance of the given {@code size}. {@code rehash} specifies the number of
+     * rehashes to resolve a clash.
+     *
+     * @param size    Size of the cache. Must be a power of {@code 2}.
+     * @param rehash  Number of rehashes. Must be greater or equal to {@code 0} and smaller than
+     *                {@code 32 - numberOfTrailingZeros(size)}.
+     * @param weigher Needed to provide an estimation of the cache weight in memory
      */
     public PriorityCache(int size, int rehash, @NotNull Weigher<K, V> weigher) {
         this(size, rehash, weigher, 1024);
     }
 
     /**
-     * Create a new instance of the given {@code size}. {@code rehash} specifies the number
-     * of rehashes to resolve a clash.
+     * Create a new instance of the given {@code size}. {@code rehash} specifies the number of
+     * rehashes to resolve a clash.
+     *
      * @param size        Size of the cache. Must be a power of {@code 2}.
-     * @param rehash      Number of rehashes. Must be greater or equal to {@code 0} and
-     *                    smaller than {@code 32 - numberOfTrailingZeros(size)}.
+     * @param rehash      Number of rehashes. Must be greater or equal to {@code 0} and smaller than
+     *                    {@code 32 - numberOfTrailingZeros(size)}.
      * @param weigher     Needed to provide an estimation of the cache weight in memory
      * @param numSegments Number of separately locked segments. The implementation assumes an equal
      *                    number of entries in each segment, requiring numSegments to divide size.
@@ -175,13 +185,13 @@ public class PriorityCache<K, V> {
         checkArgument(rehash >= 0);
         checkArgument(rehash < 32 - numberOfTrailingZeros(size));
         this.rehash = rehash;
-        entries = new Entry<?,?>[size];
+        entries = new Entry<?, ?>[size];
         fill(entries, Entry.NULL);
         this.weigher = checkNotNull(weigher);
 
         numSegments = Math.min(numSegments, size);
         checkArgument((size % numSegments) == 0,
-                "Cache size is not a multiple of its segment count.");
+            "Cache size is not a multiple of its segment count.");
 
         segments = new Segment[numSegments];
         for (int s = 0; s < numSegments; s++) {
@@ -197,9 +207,10 @@ public class PriorityCache<K, V> {
     }
 
     /**
-     * Create a new instance of the given {@code size}. The number of rehashes is
-     * the maximum number allowed by the given {@code size}. ({@code 31 - numberOfTrailingZeros(size)}.
-     * @param size      Size of the cache. Must be a power of {@code 2}.
+     * Create a new instance of the given {@code size}. The number of rehashes is the maximum number
+     * allowed by the given {@code size}. ({@code 31 - numberOfTrailingZeros(size)}.
+     *
+     * @param size Size of the cache. Must be a power of {@code 2}.
      */
     public PriorityCache(int size, @NotNull Weigher<K, V> weigher) {
         this(size, 31 - numberOfTrailingZeros(size), weigher);
@@ -219,7 +230,7 @@ public class PriorityCache<K, V> {
     }
 
     /**
-     * @return  the number of mappings in this cache.
+     * @return the number of mappings in this cache.
      */
     public long size() {
         return size.sum();
@@ -227,11 +238,12 @@ public class PriorityCache<K, V> {
 
     /**
      * Add a mapping to the cache.
-     * @param key            the key of the mapping
-     * @param value          the value of the mapping
-     * @param generation     the generation of the mapping
-     * @param initialCost    the initial cost associated with this mapping
-     * @return  {@code true} if the mapping has been added, {@code false} otherwise.
+     *
+     * @param key         the key of the mapping
+     * @param value       the value of the mapping
+     * @param generation  the generation of the mapping
+     * @param initialCost the initial cost associated with this mapping
+     * @return {@code true} if the mapping has been added, {@code false} otherwise.
      */
     public boolean put(@NotNull K key, @NotNull V value, int generation, byte initialCost) {
         int hashCode = key.hashCode();
@@ -314,10 +326,11 @@ public class PriorityCache<K, V> {
 
     /**
      * Look up a mapping from this cache by its {@code key} and {@code generation}.
-     * @param key         key of the mapping to look up
-     * @param generation  generation of the mapping to look up
-     * @return  the mapping for {@code key} and {@code generation} or {@code null} if this
-     *          cache does not contain such a mapping.
+     *
+     * @param key        key of the mapping to look up
+     * @param generation generation of the mapping to look up
+     * @return the mapping for {@code key} and {@code generation} or {@code null} if this cache does
+     * not contain such a mapping.
      */
     @SuppressWarnings("unchecked")
     @Nullable
@@ -348,8 +361,9 @@ public class PriorityCache<K, V> {
     }
 
     /**
-     * Purge all keys from this cache whose entry's generation matches the
-     * passed {@code purge} predicate.
+     * Purge all keys from this cache whose entry's generation matches the passed {@code purge}
+     * predicate.
+     *
      * @param purge
      */
     public void purgeGenerations(@NotNull Predicate<Integer> purge) {
@@ -380,8 +394,8 @@ public class PriorityCache<K, V> {
     @Override
     public String toString() {
         return "PriorityCache" +
-                "{ costs=" + toString(costs) +
-                ", evictions=" + toString(evictions) + " }";
+            "{ costs=" + toString(costs) +
+            ", evictions=" + toString(evictions) + " }";
     }
 
     private static String toString(AtomicInteger[] ints) {
@@ -398,12 +412,12 @@ public class PriorityCache<K, V> {
     }
 
     /**
-     * @return  access statistics for this cache
+     * @return access statistics for this cache
      */
     @NotNull
     public CacheStats getStats() {
         return new CacheStats(hitCount.sum(), missCount.sum(), loadCount.sum(),
-                loadExceptionCount.sum(), 0, evictionCount.sum());
+            loadExceptionCount.sum(), 0, evictionCount.sum());
     }
 
     public long estimateCurrentWeight() {

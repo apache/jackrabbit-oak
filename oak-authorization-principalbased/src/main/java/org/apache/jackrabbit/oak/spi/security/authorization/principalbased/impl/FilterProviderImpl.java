@@ -49,7 +49,8 @@ import java.util.Set;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
 /**
- * Implementation of the {@link org.apache.jackrabbit.oak.spi.security.authorization.principalbased.Filter} interface that
+ * Implementation of the
+ * {@link org.apache.jackrabbit.oak.spi.security.authorization.principalbased.Filter} interface that
  * consists of the following two filtering conditions:
  *
  * <ol>
@@ -63,9 +64,10 @@ public class FilterProviderImpl implements FilterProvider {
 
     @ObjectClassDefinition(name = "Apache Jackrabbit Oak Filter for Principal Based Authorization")
     @interface Configuration {
+
         @AttributeDefinition(
-                name = "Path",
-                description = "Required path underneath which all filtered system-user-principals must be located in the repository.")
+            name = "Path",
+            description = "Required path underneath which all filtered system-user-principals must be located in the repository.")
         String path();
     }
 
@@ -78,6 +80,7 @@ public class FilterProviderImpl implements FilterProvider {
 
     /**
      * Constructor to use outside OSGi containers
+     *
      * @param oakPath the repository path where the principals are located
      * @since 1.54
      */
@@ -100,8 +103,10 @@ public class FilterProviderImpl implements FilterProvider {
 
     @NotNull
     @Override
-    public Filter getFilter(@NotNull SecurityProvider securityProvider, @NotNull Root root, @NotNull NamePathMapper namePathMapper) {
-        PrincipalProvider principalProvider = securityProvider.getConfiguration(PrincipalConfiguration.class).getPrincipalProvider(root, namePathMapper);
+    public Filter getFilter(@NotNull SecurityProvider securityProvider, @NotNull Root root,
+        @NotNull NamePathMapper namePathMapper) {
+        PrincipalProvider principalProvider = securityProvider.getConfiguration(
+            PrincipalConfiguration.class).getPrincipalProvider(root, namePathMapper);
         return new FilterImpl(root, principalProvider, namePathMapper);
     }
 
@@ -137,7 +142,8 @@ public class FilterProviderImpl implements FilterProvider {
         private final PrincipalProvider principalProvider;
         private final NamePathMapper namePathMapper;
 
-        private FilterImpl(@NotNull Root root, @NotNull PrincipalProvider principalProvider, @NotNull NamePathMapper namePathMapper) {
+        private FilterImpl(@NotNull Root root, @NotNull PrincipalProvider principalProvider,
+            @NotNull NamePathMapper namePathMapper) {
             this.root = root;
             this.principalProvider = principalProvider;
             this.namePathMapper = namePathMapper;
@@ -205,15 +211,18 @@ public class FilterProviderImpl implements FilterProvider {
         }
 
         /**
-         * Besteffort validation if the given entry in 'validatedPrincipalNamesPathMap' is points to the correct path.
-         * Note, that this will just be performed for instances of {@code ItemBasedPrincipal}, where obtaining the path
-         * doesn't require looking up the principal again.
+         * Besteffort validation if the given entry in 'validatedPrincipalNamesPathMap' is points to
+         * the correct path. Note, that this will just be performed for instances of
+         * {@code ItemBasedPrincipal}, where obtaining the path doesn't require looking up the
+         * principal again.
          *
          * @param principal The target principal to be validated
-         * @param oakPath The Oak path stored in 'validatedPrincipalNamesPathMap' for the given principal.
-         * @return {@code true}, if the principal is an instance of {@code ItemBasedPrincipal}, whose Oak path is equal
-         * to the given {@code oakPath} and {@code false} if the paths are not equal. For any other types of principal
-         * this method will return {@code true} in order to avoid excessive principal lookup.
+         * @param oakPath   The Oak path stored in 'validatedPrincipalNamesPathMap' for the given
+         *                  principal.
+         * @return {@code true}, if the principal is an instance of {@code ItemBasedPrincipal},
+         * whose Oak path is equal to the given {@code oakPath} and {@code false} if the paths are
+         * not equal. For any other types of principal this method will return {@code true} in order
+         * to avoid excessive principal lookup.
          */
         private boolean isValidMapEntry(@NotNull Principal principal, @NotNull String oakPath) {
             if (principal instanceof ItemBasedPrincipal) {
@@ -248,7 +257,8 @@ public class FilterProviderImpl implements FilterProvider {
             try {
                 return namePathMapper.getOakPath(principal.getPath());
             } catch (RepositoryException e) {
-                log.error("Error while retrieving path from ItemBasedPrincipal {}, {}", principal.getName(), e.getMessage());
+                log.error("Error while retrieving path from ItemBasedPrincipal {}, {}",
+                    principal.getName(), e.getMessage());
                 return null;
             }
         }

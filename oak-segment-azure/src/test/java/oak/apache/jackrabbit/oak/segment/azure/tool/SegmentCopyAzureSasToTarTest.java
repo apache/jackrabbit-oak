@@ -21,7 +21,8 @@ package oak.apache.jackrabbit.oak.segment.azure.tool;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 
 
-public class SegmentCopyAzureSasToTarTest extends SegmentCopyTestBase{
+public class SegmentCopyAzureSasToTarTest extends SegmentCopyTestBase {
+
     @Override
     protected SegmentNodeStorePersistence getSrcPersistence() throws Exception {
         return getAzurePersistence();
@@ -33,7 +34,7 @@ public class SegmentCopyAzureSasToTarTest extends SegmentCopyTestBase{
     }
 
     @Override
-    protected String getSrcPathOrUri(){
+    protected String getSrcPathOrUri() {
         return getAzurePersistencePathOrUriSas();
     }
 

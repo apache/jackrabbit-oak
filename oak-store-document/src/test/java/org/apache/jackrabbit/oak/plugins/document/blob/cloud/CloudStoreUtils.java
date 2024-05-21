@@ -27,8 +27,7 @@ public class CloudStoreUtils {
      * Gets the blob store.
      *
      * @return the blob store
-     * @throws Exception
-     *             the exception
+     * @throws Exception the exception
      */
     public static AbstractBlobStore getBlobStore() throws Exception {
         //TODO Need to be implemented

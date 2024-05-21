@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.security.user;
 
 import javax.jcr.nodetype.ConstraintViolationException;
-
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;

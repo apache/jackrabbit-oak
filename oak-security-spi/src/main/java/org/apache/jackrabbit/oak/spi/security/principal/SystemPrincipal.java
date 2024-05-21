@@ -25,7 +25,8 @@ public final class SystemPrincipal implements Principal {
 
     public static final SystemPrincipal INSTANCE = new SystemPrincipal();
 
-    private SystemPrincipal() { }
+    private SystemPrincipal() {
+    }
 
     //----------------------------------------------------------< Principal >---
     @Override

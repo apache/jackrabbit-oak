@@ -20,4 +20,5 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene.util;
 
 public class ConfigUtil extends org.apache.jackrabbit.oak.plugins.index.search.util.ConfigUtil {
+
 }

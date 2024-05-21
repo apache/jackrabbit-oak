@@ -33,8 +33,8 @@ public interface IndexingQueue {
     boolean addIfNotFullWithoutWait(LuceneDoc doc);
 
     /**
-     * Adds the given doc to a queue with possible wait if queue is full.
-     * The wait would be having an upper limit
+     * Adds the given doc to a queue with possible wait if queue is full. The wait would be having
+     * an upper limit
      *
      * @param doc LuceneDoc to be added
      * @return true if the doc was added to the queue

@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.plugins.index.aggregate;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
-
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.IndexPlan;

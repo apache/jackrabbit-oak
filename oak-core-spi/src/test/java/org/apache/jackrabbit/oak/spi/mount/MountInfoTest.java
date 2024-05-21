@@ -23,15 +23,13 @@ import static org.apache.jackrabbit.guava.common.collect.ImmutableList.of;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import org.apache.jackrabbit.oak.spi.mount.MountInfo;
-import org.junit.Test;
-
 import java.util.Collections;
+import org.junit.Test;
 
 public class MountInfoTest {
 
     @Test
-    public void testIsMounted() throws Exception{
+    public void testIsMounted() throws Exception {
         MountInfo md = new MountInfo("foo", false, of("/x/y"), of("/a", "/b"));
         assertTrue(md.isMounted("/a"));
         assertTrue(md.isMounted("/b"));
@@ -45,7 +43,8 @@ public class MountInfoTest {
 
     @Test
     public void testIsUnder() {
-        MountInfo md = new MountInfo("foo", false, Collections.<String>emptyList(), of("/apps", "/etc/config", "/content/my/site", "/var"));
+        MountInfo md = new MountInfo("foo", false, Collections.<String>emptyList(),
+            of("/apps", "/etc/config", "/content/my/site", "/var"));
         assertTrue(md.isUnder("/etc"));
         assertTrue(md.isUnder("/content"));
         assertTrue(md.isUnder("/content/my"));
@@ -56,7 +55,8 @@ public class MountInfoTest {
 
     @Test
     public void testIsDirectlyUnder() {
-        MountInfo md = new MountInfo("foo", false, Collections.<String>emptyList(), of("/apps", "/etc/my/config", "/var"));
+        MountInfo md = new MountInfo("foo", false, Collections.<String>emptyList(),
+            of("/apps", "/etc/my/config", "/var"));
         assertFalse(md.isDirectlyUnder("/etc"));
         assertTrue(md.isDirectlyUnder("/etc/my"));
         assertFalse(md.isDirectlyUnder("/etc/my/config"));
@@ -65,7 +65,8 @@ public class MountInfoTest {
 
     @Test
     public void testSupportFragment() {
-        MountInfo md = new MountInfo("foo", false, of("/apps", "/libs/*/site", "/content/*$", "/var$"), Collections.emptyList());
+        MountInfo md = new MountInfo("foo", false,
+            of("/apps", "/libs/*/site", "/content/*$", "/var$"), Collections.emptyList());
 
         assertFalse(md.isSupportFragment("/"));
         assertTrue(md.isSupportFragment("/apps"));
@@ -86,7 +87,8 @@ public class MountInfoTest {
 
     @Test
     public void testSupportFragmentUnder() {
-        MountInfo md = new MountInfo("foo", false, of("/apps", "/libs/*/site", "/content/*$", "/var$"), Collections.emptyList());
+        MountInfo md = new MountInfo("foo", false,
+            of("/apps", "/libs/*/site", "/content/*$", "/var$"), Collections.emptyList());
 
         assertTrue(md.isSupportFragmentUnder("/"));
         assertTrue(md.isSupportFragmentUnder("/apps"));
@@ -107,7 +109,8 @@ public class MountInfoTest {
 
     @Test
     public void testIsMountedWithFragments() {
-        MountInfo md = new MountInfo("foo", false, of("/apps", "/libs/*/site", "/content/*$", "/var$"), Collections.emptyList());
+        MountInfo md = new MountInfo("foo", false,
+            of("/apps", "/libs/*/site", "/content/*$", "/var$"), Collections.emptyList());
 
         assertFalse(md.isMounted("/oak:mount-foo"));
         assertTrue(md.isMounted("/apps/oak:mount-foo"));

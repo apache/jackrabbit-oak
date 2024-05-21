@@ -24,10 +24,9 @@ import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.Map;
 import java.util.Set;
-
+import org.apache.felix.utils.properties.InterpolationHelper;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.collect.Sets;
-import org.apache.felix.utils.properties.InterpolationHelper;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.Constants;
 import org.osgi.framework.InvalidSyntaxException;
@@ -37,6 +36,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 class ConfigInstaller {
+
     private static final String MARKER_NAME = "oak.configinstall.name";
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final ConfigurationAdmin cm;
@@ -48,7 +48,7 @@ class ConfigInstaller {
     }
 
     public void installConfigs(Map<String, Map<String, Object>> osgiConfig)
-            throws Exception {
+        throws Exception {
         for (Map.Entry<String, Map<String, Object>> pidEntry : osgiConfig.entrySet()) {
             final String pidString = pidEntry.getKey();
 
@@ -61,7 +61,7 @@ class ConfigInstaller {
 
             @SuppressWarnings("unchecked") Dictionary<String, Object> props = config.getProperties();
             Hashtable<String, Object> old = props != null ?
-                    new Hashtable<String, Object>(new DictionaryAsMap<String, Object>(props)) : null;
+                new Hashtable<String, Object>(new DictionaryAsMap<String, Object>(props)) : null;
             if (old != null) {
                 old.remove(MARKER_NAME);
                 old.remove(Constants.SERVICE_PID);
@@ -91,7 +91,8 @@ class ConfigInstaller {
         }
 
         if (!pidsToBeRemoved.isEmpty()) {
-            log.info("Configuration belonging to following pids have been removed {}", pidsToBeRemoved);
+            log.info("Configuration belonging to following pids have been removed {}",
+                pidsToBeRemoved);
         }
     }
 
@@ -129,7 +130,7 @@ class ConfigInstaller {
     }
 
     private Configuration getConfiguration(String pidString, String pid, String factoryPid)
-            throws Exception {
+        throws Exception {
         Configuration oldConfiguration = findExistingConfiguration(pidString);
         if (oldConfiguration != null) {
             return oldConfiguration;
@@ -167,14 +168,14 @@ class ConfigInstaller {
             String factoryPid = pid.substring(n + 1);
             pid = pid.substring(0, n);
             return new String[]
-                    {
-                            pid, factoryPid
-                    };
+                {
+                    pid, factoryPid
+                };
         } else {
             return new String[]
-                    {
-                            pid, null
-                    };
+                {
+                    pid, null
+                };
         }
     }
 }

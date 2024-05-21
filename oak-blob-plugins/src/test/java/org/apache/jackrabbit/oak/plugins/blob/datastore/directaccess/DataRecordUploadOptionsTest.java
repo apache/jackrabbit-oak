@@ -28,19 +28,22 @@ import org.apache.jackrabbit.oak.api.blob.BlobUploadOptions;
 import org.junit.Test;
 
 public class DataRecordUploadOptionsTest {
+
     private void verifyUploadOptions(DataRecordUploadOptions options,
-                                     boolean expectedIsDomainOverrideIgnored) {
+        boolean expectedIsDomainOverrideIgnored) {
         assertNotNull(options);
-        if (expectedIsDomainOverrideIgnored)
+        if (expectedIsDomainOverrideIgnored) {
             assertTrue(options.isDomainOverrideIgnored());
-        else
+        } else {
             assertFalse(options.isDomainOverrideIgnored());
+        }
     }
 
     @Test
     public void testConstruct() {
         BlobUploadOptions blobOptions = new BlobUploadOptions(false);
-        DataRecordUploadOptions options = DataRecordUploadOptions.fromBlobUploadOptions(blobOptions);
+        DataRecordUploadOptions options = DataRecordUploadOptions.fromBlobUploadOptions(
+            blobOptions);
         verifyUploadOptions(options, false);
     }
 
@@ -54,17 +57,17 @@ public class DataRecordUploadOptionsTest {
         try {
             DataRecordUploadOptions.fromBlobUploadOptions(null);
             fail("Exception expected but not thrown");
+        } catch (NullPointerException | IllegalArgumentException e) {
         }
-        catch (NullPointerException | IllegalArgumentException e) { }
     }
 
     @Test
     public void testIsDomainOverrideIgnored() {
         verifyUploadOptions(
-                DataRecordUploadOptions.fromBlobUploadOptions(
-                        new BlobUploadOptions(true)
-                ),
-                true
+            DataRecordUploadOptions.fromBlobUploadOptions(
+                new BlobUploadOptions(true)
+            ),
+            true
         );
     }
 }

@@ -19,8 +19,9 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.reader;
 
-import java.io.IOException;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryUtils.dirSize;
 
+import java.io.IOException;
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.SuggestHelper;
 import org.apache.lucene.analysis.Analyzer;
@@ -30,16 +31,16 @@ import org.apache.lucene.search.suggest.analyzing.AnalyzingInfixSuggester;
 import org.apache.lucene.store.Directory;
 import org.jetbrains.annotations.Nullable;
 
-import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryUtils.dirSize;
-
 public class DefaultIndexReader implements LuceneIndexReader {
+
     private final Closer closer;
     private final Directory directory;
     private final Directory suggestDirectory;
     private final IndexReader reader;
     private final AnalyzingInfixSuggester lookup;
 
-    public DefaultIndexReader(Directory directory, @Nullable Directory suggestDirectory, Analyzer analyzer) throws IOException {
+    public DefaultIndexReader(Directory directory, @Nullable Directory suggestDirectory,
+        Analyzer analyzer) throws IOException {
         this.closer = Closer.create();
         this.directory = directory;
         closer.register(this.directory);

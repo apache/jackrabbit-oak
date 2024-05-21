@@ -16,12 +16,11 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 
-import org.apache.jackrabbit.guava.common.primitives.Ints;
-import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
-import org.apache.jackrabbit.oak.commons.PathUtils;
-
-import javax.jcr.security.AccessControlPolicy;
 import java.util.Comparator;
+import javax.jcr.security.AccessControlPolicy;
+import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
+import org.apache.jackrabbit.guava.common.primitives.Ints;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 
 final class PolicyComparator implements Comparator<AccessControlPolicy> {
 

@@ -39,7 +39,8 @@ public class RemoteBlobMetadata {
     public static HashMap<String, String> toSegmentMetadata(RemoteSegmentArchiveEntry indexEntry) {
         HashMap<String, String> map = new HashMap<>();
         map.put(METADATA_TYPE, TYPE_SEGMENT);
-        map.put(METADATA_SEGMENT_UUID, new UUID(indexEntry.getMsb(), indexEntry.getLsb()).toString());
+        map.put(METADATA_SEGMENT_UUID,
+            new UUID(indexEntry.getMsb(), indexEntry.getLsb()).toString());
         map.put(METADATA_SEGMENT_POSITION, String.valueOf(indexEntry.getPosition()));
         map.put(METADATA_SEGMENT_GENERATION, String.valueOf(indexEntry.getGeneration()));
         map.put(METADATA_SEGMENT_FULL_GENERATION, String.valueOf(indexEntry.getFullGeneration()));
@@ -55,7 +56,8 @@ public class RemoteBlobMetadata {
         int generation = Integer.parseInt(metadata.get(METADATA_SEGMENT_GENERATION));
         int fullGeneration = Integer.parseInt(metadata.get(METADATA_SEGMENT_FULL_GENERATION));
         boolean compacted = Boolean.parseBoolean(metadata.get(METADATA_SEGMENT_COMPACTED));
-        return new RemoteSegmentArchiveEntry(msb, lsb, position, length, generation, fullGeneration, compacted);
+        return new RemoteSegmentArchiveEntry(msb, lsb, position, length, generation, fullGeneration,
+            compacted);
     }
 
     public static boolean isSegment(Map<String, String> metadata) {

@@ -27,11 +27,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-
+import net.jpountz.lz4.LZ4FrameInputStream;
 import org.apache.commons.io.input.CountingInputStream;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeProperty.ValueType;
-
-import net.jpountz.lz4.LZ4FrameInputStream;
 
 /**
  * A node stream reader with compression for repeated strings.

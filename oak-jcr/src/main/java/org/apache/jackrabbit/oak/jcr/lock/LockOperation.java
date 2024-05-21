@@ -18,10 +18,9 @@ package org.apache.jackrabbit.oak.jcr.lock;
 
 import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
-
-import org.apache.jackrabbit.oak.jcr.session.SessionContext;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
+import org.apache.jackrabbit.oak.jcr.session.SessionContext;
 import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
 import org.jetbrains.annotations.NotNull;
 
@@ -36,7 +35,7 @@ public abstract class LockOperation<T> extends SessionOperation<T> {
     private final String path;
 
     protected LockOperation(SessionContext context, String absPath, String name)
-            throws PathNotFoundException {
+        throws PathNotFoundException {
         super(name);
         this.session = context.getSessionDelegate();
         this.path = context.getOakPathOrThrowNotFound(absPath);

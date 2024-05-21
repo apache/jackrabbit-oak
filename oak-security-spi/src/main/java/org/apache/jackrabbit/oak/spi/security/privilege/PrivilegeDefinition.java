@@ -20,8 +20,8 @@ import java.util.Set;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * The {@code PrivilegeDefinition} interface defines the characteristics of
- * a JCR {@link javax.jcr.security.Privilege}.
+ * The {@code PrivilegeDefinition} interface defines the characteristics of a JCR
+ * {@link javax.jcr.security.Privilege}.
  */
 public interface PrivilegeDefinition {
 
@@ -34,18 +34,15 @@ public interface PrivilegeDefinition {
     String getName();
 
     /**
-     * Returns {@code true} if the privilege described by this definition
-     * is abstract.
+     * Returns {@code true} if the privilege described by this definition is abstract.
      *
-     * @return {@code true} if the resulting privilege is abstract;
-     * {@code false} otherwise.
+     * @return {@code true} if the resulting privilege is abstract; {@code false} otherwise.
      */
     boolean isAbstract();
 
     /**
-     * Returns the internal names of the declared aggregated privileges or
-     * an empty array if the privilege defined by this definition isn't
-     * an aggregate.
+     * Returns the internal names of the declared aggregated privileges or an empty array if the
+     * privilege defined by this definition isn't an aggregate.
      *
      * @return The internal names of the aggregated privileges or an empty array.
      */

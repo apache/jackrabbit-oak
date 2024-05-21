@@ -19,18 +19,17 @@
 
 package org.apache.jackrabbit.oak.plugins.blob;
 
-import java.util.Map;
+import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
+import static org.apache.sling.testing.mock.osgi.MockOsgi.deactivate;
+import static org.junit.Assume.assumeTrue;
 
+import java.util.Map;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService;
 import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
 import org.apache.sling.testing.mock.osgi.MockOsgi;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
-
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
-import static org.apache.sling.testing.mock.osgi.MockOsgi.deactivate;
-import static org.junit.Assume.assumeTrue;
 
 /**
  * Tests OSGi registration for {@link BlobTrackingStore} in {@link DocumentNodeStoreService}.
@@ -65,7 +64,7 @@ public class DocumentBlobTrackerRegistrationTest extends AbstractBlobTrackerRegi
         properties.put("mongouri", MongoUtils.URL);
         properties.put("db", MongoUtils.DB);
         MockOsgi.setConfigForPid(context.bundleContext(),
-                DocumentNodeStoreService.class.getName(), properties);
+            DocumentNodeStoreService.class.getName(), properties);
         service = context.registerInjectActivateService(new DocumentNodeStoreService());
     }
 

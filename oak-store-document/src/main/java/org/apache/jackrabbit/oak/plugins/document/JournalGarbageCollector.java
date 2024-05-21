@@ -32,13 +32,11 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.SETTINGS;
 
 /**
- * The JournalGarbageCollector can clean up JournalEntries that are older than a
- * particular age.
+ * The JournalGarbageCollector can clean up JournalEntries that are older than a particular age.
  * <p>
- * It would typically be invoked in conjunction with the VersionGarbageCollector
- * but must not be confused with that one - 'journal' refers to the separate
- * collection that contains changed paths per background writes used for
- * observation.
+ * It would typically be invoked in conjunction with the VersionGarbageCollector but must not be
+ * confused with that one - 'journal' refers to the separate collection that contains changed paths
+ * per background writes used for observation.
  */
 public class JournalGarbageCollector {
 
@@ -63,15 +61,14 @@ public class JournalGarbageCollector {
     private Revision tailRevision;
 
     public JournalGarbageCollector(DocumentNodeStore nodeStore,
-                                   long maxRevisionAgeMillis) {
+        long maxRevisionAgeMillis) {
         this.ns = nodeStore;
         this.maxRevisionAgeMillis = maxRevisionAgeMillis;
         this.tailRevision = new Revision(0, 0, ns.getClusterId());
     }
 
     /**
-     * Deletes entries in the journal that are older than
-     * {@link #getMaxRevisionAgeMillis()}.
+     * Deletes entries in the journal that are older than {@link #getMaxRevisionAgeMillis()}.
      *
      * @return the number of entries that have been removed
      */
@@ -89,11 +86,11 @@ public class JournalGarbageCollector {
         if (keep != null && keep < gcOlderThan) {
             gcOlderThan = keep;
             log.debug("gc: Checkpoint {} is older than maxRevisionAge: {} min",
-                    keep, MILLISECONDS.toMinutes(maxRevisionAgeMillis));
+                keep, MILLISECONDS.toMinutes(maxRevisionAgeMillis));
         }
         if (log.isDebugEnabled()) {
             log.debug("gc: Journal garbage collection starts with maxAge: {} min.",
-                    MILLISECONDS.toMinutes(maxRevisionAgeMillis));
+                MILLISECONDS.toMinutes(maxRevisionAgeMillis));
         }
         Stopwatch sw = Stopwatch.createStarted();
 
@@ -106,8 +103,9 @@ public class JournalGarbageCollector {
         sw.stop();
 
         if (numDeleted > 0) {
-            log.info("gc: Journal garbage collection took {}, deleted {} entries that were older than {} min.",
-                    sw, numDeleted, MILLISECONDS.toMinutes(now - gcOlderThan));
+            log.info(
+                "gc: Journal garbage collection took {}, deleted {} entries that were older than {} min.",
+                sw, numDeleted, MILLISECONDS.toMinutes(now - gcOlderThan));
         }
         return numDeleted;
     }

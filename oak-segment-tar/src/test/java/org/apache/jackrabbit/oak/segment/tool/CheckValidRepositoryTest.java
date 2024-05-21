@@ -25,7 +25,6 @@ import java.io.StringWriter;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
-
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.junit.Test;
 
@@ -46,28 +45,30 @@ public class CheckValidRepositoryTest extends CheckRepositoryTestBase {
         filterPaths.add("/");
 
         Check.builder()
-            .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
-            .withDebugInterval(Long.MAX_VALUE)
-            .withCheckBinaries(true)
-            .withCheckHead(true)
-            .withCheckpoints(new HashSet<String>())
-            .withFilterPaths(filterPaths)
-            .withIOStatistics(true)
-            .withOutWriter(outWriter)
-            .withErrWriter(errWriter)
-            .build()
-            .run();
+             .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
+             .withDebugInterval(Long.MAX_VALUE)
+             .withCheckBinaries(true)
+             .withCheckHead(true)
+             .withCheckpoints(new HashSet<String>())
+             .withFilterPaths(filterPaths)
+             .withIOStatistics(true)
+             .withOutWriter(outWriter)
+             .withErrWriter(errWriter)
+             .build()
+             .run();
 
         outWriter.close();
         errWriter.close();
 
-        assertExpectedOutput(strOut.toString(), Lists.newArrayList("Checking head", "Searched through 1 revisions and 0 checkpoints",
-            "Checked 7 nodes and 21 properties", "Path / is consistent"));
+        assertExpectedOutput(strOut.toString(),
+            Lists.newArrayList("Checking head", "Searched through 1 revisions and 0 checkpoints",
+                "Checked 7 nodes and 21 properties", "Path / is consistent"));
         assertExpectedOutput(strErr.toString(), Lists.newArrayList(""));
     }
 
     @Test
-    public void testSuccessfulOnlyRootKidsCheckWithBinaryTraversalAndFilterPaths() throws Exception {
+    public void testSuccessfulOnlyRootKidsCheckWithBinaryTraversalAndFilterPaths()
+        throws Exception {
         StringWriter strOut = new StringWriter();
         StringWriter strErr = new StringWriter();
 
@@ -83,25 +84,28 @@ public class CheckValidRepositoryTest extends CheckRepositoryTestBase {
         filterPaths.add("/f");
 
         Check.builder()
-            .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
-            .withDebugInterval(Long.MAX_VALUE)
-            .withCheckBinaries(true)
-            .withCheckHead(true)
-            .withCheckpoints(new HashSet<String>())
-            .withFilterPaths(filterPaths)
-            .withIOStatistics(true)
-            .withOutWriter(outWriter)
-            .withErrWriter(errWriter)
-            .build()
-            .run();
+             .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
+             .withDebugInterval(Long.MAX_VALUE)
+             .withCheckBinaries(true)
+             .withCheckHead(true)
+             .withCheckpoints(new HashSet<String>())
+             .withFilterPaths(filterPaths)
+             .withIOStatistics(true)
+             .withOutWriter(outWriter)
+             .withErrWriter(errWriter)
+             .build()
+             .run();
 
         outWriter.close();
         errWriter.close();
 
-        assertExpectedOutput(strOut.toString(), Lists.newArrayList("Checking head", "Searched through 1 revisions and 0 checkpoints",
-            "Checked 1 nodes and 1 properties", "Checked 1 nodes and 2 properties", "Checked 1 nodes and 3 properties",
-            "Path /a is consistent", "Path /b is consistent", "Path /c is consistent", "Path /d is consistent", "Path /e is consistent",
-            "Path /f is consistent"));
+        assertExpectedOutput(strOut.toString(),
+            Lists.newArrayList("Checking head", "Searched through 1 revisions and 0 checkpoints",
+                "Checked 1 nodes and 1 properties", "Checked 1 nodes and 2 properties",
+                "Checked 1 nodes and 3 properties",
+                "Path /a is consistent", "Path /b is consistent", "Path /c is consistent",
+                "Path /d is consistent", "Path /e is consistent",
+                "Path /f is consistent"));
         assertExpectedOutput(strErr.toString(), Lists.newArrayList(""));
     }
 
@@ -117,22 +121,23 @@ public class CheckValidRepositoryTest extends CheckRepositoryTestBase {
         filterPaths.add("/");
 
         Check.builder()
-            .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
-            .withDebugInterval(Long.MAX_VALUE)
-            .withCheckHead(true)
-            .withCheckpoints(new HashSet<String>())
-            .withFilterPaths(filterPaths)
-            .withIOStatistics(true)
-            .withOutWriter(outWriter)
-            .withErrWriter(errWriter)
-            .build()
-            .run();
+             .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
+             .withDebugInterval(Long.MAX_VALUE)
+             .withCheckHead(true)
+             .withCheckpoints(new HashSet<String>())
+             .withFilterPaths(filterPaths)
+             .withIOStatistics(true)
+             .withOutWriter(outWriter)
+             .withErrWriter(errWriter)
+             .build()
+             .run();
 
         outWriter.close();
         errWriter.close();
 
-        assertExpectedOutput(strOut.toString(), Lists.newArrayList("Checking head", "Searched through 1 revisions and 0 checkpoints",
-            "Checked 7 nodes and 15 properties", "Path / is consistent"));
+        assertExpectedOutput(strOut.toString(),
+            Lists.newArrayList("Checking head", "Searched through 1 revisions and 0 checkpoints",
+                "Checked 7 nodes and 15 properties", "Path / is consistent"));
         assertExpectedOutput(strErr.toString(), Lists.newArrayList(""));
     }
 
@@ -151,23 +156,26 @@ public class CheckValidRepositoryTest extends CheckRepositoryTestBase {
         filterPaths.add("/e");
 
         Check.builder()
-            .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
-            .withDebugInterval(Long.MAX_VALUE)
-            .withCheckHead(true)
-            .withCheckpoints(new HashSet<String>())
-            .withFilterPaths(filterPaths)
-            .withIOStatistics(true)
-            .withOutWriter(outWriter)
-            .withErrWriter(errWriter)
-            .build()
-            .run();
+             .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
+             .withDebugInterval(Long.MAX_VALUE)
+             .withCheckHead(true)
+             .withCheckpoints(new HashSet<String>())
+             .withFilterPaths(filterPaths)
+             .withIOStatistics(true)
+             .withOutWriter(outWriter)
+             .withErrWriter(errWriter)
+             .build()
+             .run();
 
         outWriter.close();
         errWriter.close();
 
-        assertExpectedOutput(strOut.toString(), Lists.newArrayList("Checking head", "Searched through 1 revisions and 0 checkpoints",
-            "Checked 1 nodes and 0 properties", "Checked 1 nodes and 4 properties", "Checked 1 nodes and 5 properties",
-            "Path /a is consistent", "Path /b is consistent", "Path /d is consistent", "Path /e is consistent"));
+        assertExpectedOutput(strOut.toString(),
+            Lists.newArrayList("Checking head", "Searched through 1 revisions and 0 checkpoints",
+                "Checked 1 nodes and 0 properties", "Checked 1 nodes and 4 properties",
+                "Checked 1 nodes and 5 properties",
+                "Path /a is consistent", "Path /b is consistent", "Path /d is consistent",
+                "Path /e is consistent"));
         assertExpectedOutput(strErr.toString(), Lists.newArrayList(""));
     }
 
@@ -183,22 +191,23 @@ public class CheckValidRepositoryTest extends CheckRepositoryTestBase {
         filterPaths.add("/g");
 
         Check.builder()
-            .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
-            .withDebugInterval(Long.MAX_VALUE)
-            .withCheckHead(true)
-            .withCheckpoints(new HashSet<String>())
-            .withFilterPaths(filterPaths)
-            .withIOStatistics(true)
-            .withOutWriter(outWriter)
-            .withErrWriter(errWriter)
-            .build()
-            .run();
+             .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
+             .withDebugInterval(Long.MAX_VALUE)
+             .withCheckHead(true)
+             .withCheckpoints(new HashSet<String>())
+             .withFilterPaths(filterPaths)
+             .withIOStatistics(true)
+             .withOutWriter(outWriter)
+             .withErrWriter(errWriter)
+             .build()
+             .run();
 
         outWriter.close();
         errWriter.close();
 
-        assertExpectedOutput(strOut.toString(), Lists.newArrayList("Checking head", "Searched through 1 revisions and 0 checkpoints",
-            "No good revision found"));
+        assertExpectedOutput(strOut.toString(),
+            Lists.newArrayList("Checking head", "Searched through 1 revisions and 0 checkpoints",
+                "No good revision found"));
         assertExpectedOutput(strErr.toString(), Lists.newArrayList("Path /g not found"));
     }
 
@@ -218,25 +227,28 @@ public class CheckValidRepositoryTest extends CheckRepositoryTestBase {
         filterPaths.add("/e");
 
         Check.builder()
-            .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
-            .withDebugInterval(Long.MAX_VALUE)
-            .withFilterPaths(filterPaths)
-            .withCheckBinaries(true)
-            .withCheckHead(true)
-            .withCheckpoints(new HashSet<String>())
-            .withIOStatistics(true)
-            .withOutWriter(outWriter)
-            .withErrWriter(errWriter)
-            .build()
-            .run();
+             .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
+             .withDebugInterval(Long.MAX_VALUE)
+             .withFilterPaths(filterPaths)
+             .withCheckBinaries(true)
+             .withCheckHead(true)
+             .withCheckpoints(new HashSet<String>())
+             .withIOStatistics(true)
+             .withOutWriter(outWriter)
+             .withErrWriter(errWriter)
+             .build()
+             .run();
 
         outWriter.close();
         errWriter.close();
 
-        assertExpectedOutput(strOut.toString(), Lists.newArrayList("Checking head", "Searched through 1 revisions and 0 checkpoints",
-            "Checked 1 nodes and 1 properties", "Checked 1 nodes and 6 properties", "Checked 1 nodes and 4 properties",
-            "Checked 1 nodes and 5 properties",
-            "Path /a is consistent", "Path /f is consistent", "Path /d is consistent", "Path /e is consistent"));
+        assertExpectedOutput(strOut.toString(),
+            Lists.newArrayList("Checking head", "Searched through 1 revisions and 0 checkpoints",
+                "Checked 1 nodes and 1 properties", "Checked 1 nodes and 6 properties",
+                "Checked 1 nodes and 4 properties",
+                "Checked 1 nodes and 5 properties",
+                "Path /a is consistent", "Path /f is consistent", "Path /d is consistent",
+                "Path /e is consistent"));
         assertExpectedOutput(strErr.toString(), Lists.newArrayList("Path /g not found"));
     }
 
@@ -252,23 +264,25 @@ public class CheckValidRepositoryTest extends CheckRepositoryTestBase {
         filterPaths.add("/");
 
         Check.builder()
-            .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
-            .withDebugInterval(Long.MAX_VALUE)
-            .withFilterPaths(filterPaths)
-            .withCheckBinaries(true)
-            .withCheckHead(true)
-            .withCheckpoints(checkpoints)
-            .withIOStatistics(true)
-            .withOutWriter(outWriter)
-            .withErrWriter(errWriter)
-            .build()
-            .run();
+             .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
+             .withDebugInterval(Long.MAX_VALUE)
+             .withFilterPaths(filterPaths)
+             .withCheckBinaries(true)
+             .withCheckHead(true)
+             .withCheckpoints(checkpoints)
+             .withIOStatistics(true)
+             .withOutWriter(outWriter)
+             .withErrWriter(errWriter)
+             .build()
+             .run();
 
         outWriter.close();
         errWriter.close();
 
-        assertExpectedOutput(strOut.toString(), Lists.newArrayList("Checking head", "Checking checkpoints",
-            "Searched through 1 revisions and 2 checkpoints", "Checked 7 nodes and 21 properties", "Path / is consistent"));
+        assertExpectedOutput(strOut.toString(),
+            Lists.newArrayList("Checking head", "Checking checkpoints",
+                "Searched through 1 revisions and 2 checkpoints",
+                "Checked 7 nodes and 21 properties", "Path / is consistent"));
         assertExpectedOutput(strErr.toString(), Lists.newArrayList(""));
     }
 
@@ -284,23 +298,25 @@ public class CheckValidRepositoryTest extends CheckRepositoryTestBase {
         filterPaths.add("/f");
 
         Check.builder()
-            .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
-            .withDebugInterval(Long.MAX_VALUE)
-            .withFilterPaths(filterPaths)
-            .withCheckBinaries(true)
-            .withCheckHead(true)
-            .withCheckpoints(checkpoints)
-            .withIOStatistics(true)
-            .withOutWriter(outWriter)
-            .withErrWriter(errWriter)
-            .build()
-            .run();
+             .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
+             .withDebugInterval(Long.MAX_VALUE)
+             .withFilterPaths(filterPaths)
+             .withCheckBinaries(true)
+             .withCheckHead(true)
+             .withCheckpoints(checkpoints)
+             .withIOStatistics(true)
+             .withOutWriter(outWriter)
+             .withErrWriter(errWriter)
+             .build()
+             .run();
 
         outWriter.close();
         errWriter.close();
 
-        assertExpectedOutput(strOut.toString(), Lists.newArrayList("Checking head", "Checking checkpoints",
-            "Searched through 1 revisions and 2 checkpoints", "Checked 1 nodes and 6 properties", "Path /f is consistent"));
+        assertExpectedOutput(strOut.toString(),
+            Lists.newArrayList("Checking head", "Checking checkpoints",
+                "Searched through 1 revisions and 2 checkpoints",
+                "Checked 1 nodes and 6 properties", "Path /f is consistent"));
         assertExpectedOutput(strErr.toString(), Lists.newArrayList(""));
     }
 
@@ -319,22 +335,24 @@ public class CheckValidRepositoryTest extends CheckRepositoryTestBase {
         checkpoints.add("bogus-checkpoint");
 
         Check.builder()
-            .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
-            .withDebugInterval(Long.MAX_VALUE)
-            .withFilterPaths(filterPaths)
-            .withCheckBinaries(true)
-            .withCheckpoints(checkpoints)
-            .withIOStatistics(true)
-            .withOutWriter(outWriter)
-            .withErrWriter(errWriter)
-            .build()
-            .run();
+             .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
+             .withDebugInterval(Long.MAX_VALUE)
+             .withFilterPaths(filterPaths)
+             .withCheckBinaries(true)
+             .withCheckpoints(checkpoints)
+             .withIOStatistics(true)
+             .withOutWriter(outWriter)
+             .withErrWriter(errWriter)
+             .build()
+             .run();
 
         outWriter.close();
         errWriter.close();
 
-        assertExpectedOutput(strOut.toString(), Lists.newArrayList("Checking checkpoints", "Searched through 1 revisions and 1 checkpoints",
+        assertExpectedOutput(strOut.toString(), Lists.newArrayList("Checking checkpoints",
+            "Searched through 1 revisions and 1 checkpoints",
             "No good revision found"));
-        assertExpectedOutput(strErr.toString(), Lists.newArrayList("Checkpoint bogus-checkpoint not found in this revision!"));
+        assertExpectedOutput(strErr.toString(),
+            Lists.newArrayList("Checkpoint bogus-checkpoint not found in this revision!"));
     }
 }

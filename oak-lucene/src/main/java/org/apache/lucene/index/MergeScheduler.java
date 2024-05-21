@@ -28,35 +28,40 @@ package org.apache.lucene.index;
 import java.io.Closeable;
 import java.io.IOException;
 
-/** <p>Expert: {@link IndexWriter} uses an instance
- *  implementing this interface to execute the merges
- *  selected by a {@link MergePolicy}.  The default
- *  MergeScheduler is {@link ConcurrentMergeScheduler}.</p>
- *  <p>Implementers of sub-classes should make sure that {@link #clone()}
- *  returns an independent instance able to work with any {@link IndexWriter}
- *  instance.</p>
+/**
+ * <p>Expert: {@link IndexWriter} uses an instance
+ * implementing this interface to execute the merges selected by a {@link MergePolicy}.  The default
+ * MergeScheduler is {@link ConcurrentMergeScheduler}.</p>
+ * <p>Implementers of sub-classes should make sure that {@link #clone()}
+ * returns an independent instance able to work with any {@link IndexWriter} instance.</p>
+ *
  * @lucene.experimental
-*/
+ */
 public abstract class MergeScheduler implements Closeable, Cloneable {
 
-  /** Sole constructor. (For invocation by subclass 
-   *  constructors, typically implicit.) */
-  protected MergeScheduler() {
-  }
-
-  /** Run the merges provided by {@link IndexWriter#getNextMerge()}. */
-  public abstract void merge(IndexWriter writer) throws IOException;
-
-  /** Close this MergeScheduler. */
-  @Override
-  public abstract void close() throws IOException;
-
-  @Override
-  public MergeScheduler clone() {
-    try {
-      return (MergeScheduler) super.clone();
-    } catch (CloneNotSupportedException e) {
-      throw new Error(e);
+    /**
+     * Sole constructor. (For invocation by subclass constructors, typically implicit.)
+     */
+    protected MergeScheduler() {
     }
-  }
+
+    /**
+     * Run the merges provided by {@link IndexWriter#getNextMerge()}.
+     */
+    public abstract void merge(IndexWriter writer) throws IOException;
+
+    /**
+     * Close this MergeScheduler.
+     */
+    @Override
+    public abstract void close() throws IOException;
+
+    @Override
+    public MergeScheduler clone() {
+        try {
+            return (MergeScheduler) super.clone();
+        } catch (CloneNotSupportedException e) {
+            throw new Error(e);
+        }
+    }
 }

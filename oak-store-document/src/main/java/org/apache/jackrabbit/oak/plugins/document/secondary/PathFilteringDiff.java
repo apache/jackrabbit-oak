@@ -19,8 +19,13 @@
 
 package org.apache.jackrabbit.oak.plugins.document.secondary;
 
-import java.util.List;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.plugins.document.secondary.DelegatingDocumentNodeState.PROP_LAST_REV;
+import static org.apache.jackrabbit.oak.plugins.document.secondary.DelegatingDocumentNodeState.PROP_REVISION;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 
+import java.util.List;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.document.AbstractDocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
@@ -31,22 +36,19 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.oak.plugins.document.secondary.DelegatingDocumentNodeState.PROP_LAST_REV;
-import static org.apache.jackrabbit.oak.plugins.document.secondary.DelegatingDocumentNodeState.PROP_REVISION;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
-
 class PathFilteringDiff extends ApplyDiff {
+
     private static final Logger logger = LoggerFactory.getLogger(PathFilteringDiff.class);
     private final DiffContext ctx;
     private final AbstractDocumentNodeState parent;
 
-    public PathFilteringDiff(NodeBuilder builder, PathFilter pathFilter, List<String> metaPropNames, AbstractDocumentNodeState parent) {
+    public PathFilteringDiff(NodeBuilder builder, PathFilter pathFilter, List<String> metaPropNames,
+        AbstractDocumentNodeState parent) {
         this(builder, new DiffContext(pathFilter, metaPropNames), parent);
     }
 
-    private PathFilteringDiff(NodeBuilder builder, DiffContext ctx, AbstractDocumentNodeState parent) {
+    private PathFilteringDiff(NodeBuilder builder, DiffContext ctx,
+        AbstractDocumentNodeState parent) {
         super(builder);
         this.ctx = ctx;
         this.parent = parent;
@@ -57,7 +59,7 @@ class PathFilteringDiff extends ApplyDiff {
         AbstractDocumentNodeState afterDoc = asDocumentState(after, name);
         String nextPath = afterDoc.getPath().toString();
         PathFilter.Result result = ctx.pathFilter.filter(nextPath);
-        if (result == PathFilter.Result.EXCLUDE){
+        if (result == PathFilter.Result.EXCLUDE) {
             return true;
         }
 
@@ -68,7 +70,7 @@ class PathFilteringDiff extends ApplyDiff {
         NodeBuilder childBuilder = builder.child(name);
         copyMetaProperties(afterDoc, childBuilder, ctx.metaPropNames);
         return after.compareAgainstBaseState(EMPTY_NODE,
-                new PathFilteringDiff(childBuilder, ctx, afterDoc));
+            new PathFilteringDiff(childBuilder, ctx, afterDoc));
     }
 
     @Override
@@ -80,7 +82,7 @@ class PathFilteringDiff extends ApplyDiff {
             NodeBuilder childBuilder = builder.getChildNode(name);
             copyMetaProperties(afterDoc, childBuilder, ctx.metaPropNames);
             return after.compareAgainstBaseState(
-                    before, new PathFilteringDiff(builder.getChildNode(name), ctx, afterDoc));
+                before, new PathFilteringDiff(builder.getChildNode(name), ctx, afterDoc));
         }
         return true;
     }
@@ -94,14 +96,15 @@ class PathFilteringDiff extends ApplyDiff {
         return true;
     }
 
-    private AbstractDocumentNodeState asDocumentState(NodeState state, String name){
+    private AbstractDocumentNodeState asDocumentState(NodeState state, String name) {
         checkArgument(state instanceof AbstractDocumentNodeState, "Node %s (%s) at [%s/%s] is not" +
                 " of expected type i.e. AbstractDocumentNodeState. Parent %s (%s)",
-                state, state.getClass(), parent.getPath(), name, parent, parent.getClass());
+            state, state.getClass(), parent.getPath(), name, parent, parent.getClass());
         return (AbstractDocumentNodeState) state;
     }
 
-    static void copyMetaProperties(AbstractDocumentNodeState state, NodeBuilder builder, List<String> metaPropNames) {
+    static void copyMetaProperties(AbstractDocumentNodeState state, NodeBuilder builder,
+        List<String> metaPropNames) {
         //Only set root revision on root node
         if (state.getPath().isRoot()) {
             builder.setProperty(asPropertyState(PROP_REVISION, state.getRootRevision()));
@@ -110,9 +113,9 @@ class PathFilteringDiff extends ApplyDiff {
         //LastRev would be set on each node
         builder.setProperty(asPropertyState(PROP_LAST_REV, state.getLastRevision()));
 
-        for (String metaProp : metaPropNames){
+        for (String metaProp : metaPropNames) {
             PropertyState ps = state.getProperty(metaProp);
-            if (ps != null){
+            if (ps != null) {
                 builder.setProperty(ps);
             }
         }
@@ -123,6 +126,7 @@ class PathFilteringDiff extends ApplyDiff {
     }
 
     private static class DiffContext {
+
         private long count;
         final PathFilter pathFilter;
         final List<String> metaPropNames;
@@ -132,7 +136,7 @@ class PathFilteringDiff extends ApplyDiff {
             this.metaPropNames = metaPropNames;
         }
 
-        public void traversingNode(String path){
+        public void traversingNode(String path) {
             if (++count % 10000 == 0) {
                 logger.info("Updating Secondary Store. Traversed #{} - {}", count, path);
             }

@@ -57,17 +57,23 @@ public class PermissionProviderInternalTypeTest extends AbstractPrincipalBasedTe
 
     @Test
     public void testHasPrivileges() {
-        assertFalse(permissionProvider.hasPrivileges(mockReadOnlyTree(TreeType.INTERNAL), PrivilegeConstants.REP_READ_NODES));
+        assertFalse(permissionProvider.hasPrivileges(mockReadOnlyTree(TreeType.INTERNAL),
+            PrivilegeConstants.REP_READ_NODES));
     }
 
     @Test
     public void testIsGranted() {
-        assertFalse(permissionProvider.isGranted(mockReadOnlyTree(TreeType.INTERNAL), null, Permissions.ALL));
-        assertFalse(permissionProvider.isGranted(mockReadOnlyTree(TreeType.INTERNAL), mock(PropertyState.class), Permissions.ALL));
+        assertFalse(permissionProvider.isGranted(mockReadOnlyTree(TreeType.INTERNAL), null,
+            Permissions.ALL));
+        assertFalse(permissionProvider.isGranted(mockReadOnlyTree(TreeType.INTERNAL),
+            mock(PropertyState.class), Permissions.ALL));
     }
+
     @Test
     public void testGetTreePermission() {
-        assertSame(TreePermission.EMPTY, permissionProvider.getTreePermission(mockReadOnlyTree(TreeType.INTERNAL), TreeType.INTERNAL, mock(AbstractTreePermission.class)));
+        assertSame(TreePermission.EMPTY,
+            permissionProvider.getTreePermission(mockReadOnlyTree(TreeType.INTERNAL),
+                TreeType.INTERNAL, mock(AbstractTreePermission.class)));
     }
 
     @Test

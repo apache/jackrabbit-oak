@@ -63,7 +63,7 @@ public class MountInfoConfig {
         String[] pathsSupportingFragments() default {"/"};
 
     }
-    
+
     private List<String> paths;
     private String mountName;
     private List<String> pathsSupportingFragments;
@@ -72,7 +72,8 @@ public class MountInfoConfig {
     public MountInfoConfig() {
     }
 
-    MountInfoConfig(String mountName, List<String> paths, List<String> pathsSupportingFragments, boolean readOnly) {
+    MountInfoConfig(String mountName, List<String> paths, List<String> pathsSupportingFragments,
+        boolean readOnly) {
         this.mountName = mountName;
         this.paths = trimAll(paths);
         this.pathsSupportingFragments = trimAll(pathsSupportingFragments);
@@ -105,7 +106,7 @@ public class MountInfoConfig {
 
     private static List<String> trimAll(List<String> strings) {
         return strings.stream()
-            .map(String::trim)
-            .collect(toList());
+                      .map(String::trim)
+                      .collect(toList());
     }
 }

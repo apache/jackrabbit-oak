@@ -33,7 +33,8 @@ public class ExternalIdentityRef {
 
     /**
      * Creates a new external identity ref with the given id and provider name
-     * @param id the id of the identity.
+     *
+     * @param id           the id of the identity.
      * @param providerName the name of the identity provider
      */
     public ExternalIdentityRef(@NotNull String id, @Nullable String providerName) {
@@ -46,11 +47,12 @@ public class ExternalIdentityRef {
             b.append(';');
             escape(b, this.providerName);
         }
-        string =  b.toString();
+        string = b.toString();
     }
 
     /**
      * Returns the name of the identity provider.
+     *
      * @return the name of the identity provider.
      */
     @Nullable
@@ -60,6 +62,7 @@ public class ExternalIdentityRef {
 
     /**
      * Returns the id of the external identity. for example the DN of an LDAP user.
+     *
      * @return the id
      */
     @NotNull
@@ -69,6 +72,7 @@ public class ExternalIdentityRef {
 
     /**
      * Returns a string representation of this external identity reference
+     *
      * @return a string representation.
      */
     @NotNull
@@ -78,6 +82,7 @@ public class ExternalIdentityRef {
 
     /**
      * Creates an external identity reference from a string representation.
+     *
      * @param str the string
      * @return the reference
      */
@@ -88,20 +93,21 @@ public class ExternalIdentityRef {
             return new ExternalIdentityRef(Text.unescape(str), null);
         } else {
             return new ExternalIdentityRef(
-                    Text.unescape(str.substring(0, idx)),
-                    Text.unescape(str.substring(idx+1))
+                Text.unescape(str.substring(0, idx)),
+                Text.unescape(str.substring(idx + 1))
             );
         }
     }
 
     /**
      * Escapes the given string and appends it to the builder.
+     *
      * @param builder the builder
-     * @param str the string
+     * @param str     the string
      */
     private static void escape(@NotNull StringBuilder builder, @NotNull CharSequence str) {
         final int len = str.length();
-        for (int i=0; i<len; i++) {
+        for (int i = 0; i < len; i++) {
             char c = str.charAt(i);
             if (c == '%') {
                 builder.append("%25");
@@ -115,14 +121,14 @@ public class ExternalIdentityRef {
 
     @Override
     public String toString() {
-        return "ExternalIdentityRef{" + "id='" + id + '\'' + ", providerName='" + providerName + '\'' + '}';
+        return "ExternalIdentityRef{" + "id='" + id + '\'' + ", providerName='" + providerName
+            + '\'' + '}';
     }
 
     /**
-     * Tests if the given object is an external identity reference and if it's
-     * getString() is equal to this. Note, that there is no need to
-     * include {@code id} and {@code provider} fields in the comparison as
-     * the string representation already incorporates both.
+     * Tests if the given object is an external identity reference and if it's getString() is equal
+     * to this. Note, that there is no need to include {@code id} and {@code provider} fields in the
+     * comparison as the string representation already incorporates both.
      */
     @Override
     public boolean equals(Object o) {

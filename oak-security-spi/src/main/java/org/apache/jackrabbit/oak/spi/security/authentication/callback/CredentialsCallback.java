@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.spi.security.authentication.callback;
 
 import javax.jcr.Credentials;
 import javax.security.auth.callback.Callback;
-
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -42,9 +41,11 @@ public class CredentialsCallback implements Callback {
     /**
      * Set the credentials.
      *
-     * @param credentials The credentials to be used in the authentication
-     * process. They may be null if no credentials have been specified in
-     * {@link org.apache.jackrabbit.oak.api.ContentRepository#login(javax.jcr.Credentials, String)}
+     * @param credentials The credentials to be used in the authentication process. They may be null
+     *                    if no credentials have been specified in
+     *                    {@link
+     *                    org.apache.jackrabbit.oak.api.ContentRepository#login(javax.jcr.Credentials,
+     *                    String)}
      */
     public void setCredentials(Credentials credentials) {
         this.credentials = credentials;

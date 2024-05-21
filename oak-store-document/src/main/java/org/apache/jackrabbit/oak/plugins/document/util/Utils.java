@@ -16,6 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.util;
 
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.isCommitRootEntry;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.isDeletedEntry;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.isRevisionsEntry;
+
 import java.io.Closeable;
 import java.io.IOException;
 import java.math.BigInteger;
@@ -36,7 +42,6 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
-
 import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
@@ -61,16 +66,11 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
-import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.isDeletedEntry;
-import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.isCommitRootEntry;
-import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.isRevisionsEntry;
-
 /**
  * Utility methods.
  */
 public class Utils {
+
     private static final Logger LOG = LoggerFactory.getLogger(Utils.class);
 
     private static String MODULE_VERSION = null;
@@ -79,19 +79,17 @@ public class Utils {
      * Approximate length of a Revision string.
      */
     private static final int REVISION_LENGTH =
-            new Revision(System.currentTimeMillis(), 0, 0).toString().length();
+        new Revision(System.currentTimeMillis(), 0, 0).toString().length();
 
     /**
-     * The length of path (in characters), whose UTF-8 representation can not
-     * possibly be too large to be used for the primary key for the document
-     * store.
+     * The length of path (in characters), whose UTF-8 representation can not possibly be too large
+     * to be used for the primary key for the document store.
      */
     public static final int PATH_SHORT = Integer.getInteger("oak.pathShort", 165);
 
     /**
-     * The maximum length of the parent path, in bytes. If the parent path is
-     * longer, then the id of a document is no longer the path, but the hash of
-     * the parent, and then the node name.
+     * The maximum length of the parent path, in bytes. If the parent path is longer, then the id of
+     * a document is no longer the path, but the hash of the parent, and then the node name.
      */
     public static final int PATH_LONG = Integer.getInteger("oak.pathLong", 350);
 
@@ -120,7 +118,8 @@ public class Utils {
     public static final Predicate<String> PROPERTY_OR_DELETED_OR_COMMITROOT_OR_REVISIONS = new Predicate<String>() {
         @Override
         public boolean apply(@Nullable String input) {
-            return Utils.isPropertyName(input) || isDeletedEntry(input) || isCommitRootEntry(input) || isRevisionsEntry(input);
+            return Utils.isPropertyName(input) || isDeletedEntry(input) || isCommitRootEntry(input)
+                || isRevisionsEntry(input);
         }
     };
 
@@ -148,9 +147,8 @@ public class Utils {
     }
 
     /**
-     * Calculates the depth prefix of the id for the given {@code path}. The is
-     * the same as {@link #pathDepth(String)}, but takes a {@link Path}
-     * argument.
+     * Calculates the depth prefix of the id for the given {@code path}. The is the same as
+     * {@link #pathDepth(String)}, but takes a {@link Path} argument.
      *
      * @param path a path.
      * @return the id depth prefix for the given {@code path}.
@@ -186,7 +184,7 @@ public class Utils {
             } else if (o instanceof Integer) {
                 size += 8;
             } else if (o instanceof Map) {
-                size += 8 + (long)estimateMemoryUsage((Map<String, Object>) o);
+                size += 8 + (long) estimateMemoryUsage((Map<String, Object>) o);
             } else if (o == null) {
                 // zero
             } else {
@@ -198,7 +196,7 @@ public class Utils {
         // TreeMap (80) + unmodifiable wrapper (32)
         size += 112;
         // 64 bytes per entry
-        size += (long)map.size() * 64;
+        size += (long) map.size() * 64;
 
         if (size > Integer.MAX_VALUE) {
             LOG.debug("Estimated memory footprint larger than Integer.MAX_VALUE: {}.", size);
@@ -208,13 +206,14 @@ public class Utils {
     }
 
     private static class PropertyStats {
+
         public int count;
         public int size;
     }
 
     /**
-     * Generates diagnostics about the structure of the entries of the document
-     * by counting properties and their lengths.
+     * Generates diagnostics about the structure of the entries of the document by counting
+     * properties and their lengths.
      */
     public static String mapEntryDiagnostics(@NotNull Set<Entry<String, Object>> entries) {
         Map<String, PropertyStats> stats = new TreeMap<>();
@@ -242,7 +241,7 @@ public class Utils {
                 stat.count += 1;
             } else if (o instanceof Map) {
                 @SuppressWarnings("unchecked")
-                Map<Object, Object> x = (Map<Object, Object>)o;
+                Map<Object, Object> x = (Map<Object, Object>) o;
                 stat.size += 8 + Utils.estimateMemoryUsage(x);
                 stat.count += x.size();
             } else if (o == null) {
@@ -256,9 +255,10 @@ public class Utils {
 
         // sort by estimated entry size, highest first
         Comparator<Map.Entry<String, PropertyStats>> bySize = (Map.Entry<String, PropertyStats> o1,
-                Map.Entry<String, PropertyStats> o2) -> o2.getValue().size - o1.getValue().size;
+            Map.Entry<String, PropertyStats> o2) -> o2.getValue().size - o1.getValue().size;
 
-        return stats.entrySet().stream().sorted(bySize).map(e -> diagsForEntry(e)).collect(Collectors.joining(", "));
+        return stats.entrySet().stream().sorted(bySize).map(e -> diagsForEntry(e))
+                    .collect(Collectors.joining(", "));
     }
 
     /**
@@ -268,24 +268,27 @@ public class Utils {
         String name = member.getKey();
         PropertyStats stat = member.getValue();
         if (stat.count <= 1) {
-            return redactMemberName(name) + ": "+ stat.size + " bytes";
+            return redactMemberName(name) + ": " + stat.size + " bytes";
         } else {
-            return redactMemberName(name) + ": "+ stat.size + " bytes in " + stat.count + " entries (" + stat.size / stat.count + " avg)";
+            return redactMemberName(name) + ": " + stat.size + " bytes in " + stat.count
+                + " entries (" + stat.size / stat.count + " avg)";
         }
     }
 
     /**
-     * List of property names that are system-defined by JCR and thus do not
-     * need to be redacted (to be expanded later)
+     * List of property names that are system-defined by JCR and thus do not need to be redacted (to
+     * be expanded later)
      */
-    private static final Set<String> POS_PROPERTY_LIST = Set.of("jcr:primaryType", "jcr:mixinTypes");
+    private static final Set<String> POS_PROPERTY_LIST = Set.of("jcr:primaryType",
+        "jcr:mixinTypes");
 
     /**
-     * Redacts names for use in log entries. Attempts to hide all names that are
-     * not under system control.
+     * Redacts names for use in log entries. Attempts to hide all names that are not under system
+     * control.
      */
     private static String redactMemberName(String name) {
-        boolean redact = isPropertyName(name) && !name.startsWith(":") && !POS_PROPERTY_LIST.contains(name);
+        boolean redact =
+            isPropertyName(name) && !name.startsWith(":") && !POS_PROPERTY_LIST.contains(name);
         return redact ? "(name redacted)" : "'" + name + "'";
     }
 
@@ -307,14 +310,14 @@ public class Utils {
             c = propertyName.charAt(i);
             char rep;
             switch (c) {
-            case '.':
-                rep = 'd';
-                break;
-            case '\\':
-                rep = '\\';
-                break;
-            default:
-                rep = 0;
+                case '.':
+                    rep = 'd';
+                    break;
+                case '\\':
+                    rep = '\\';
+                    break;
+                default:
+                    rep = 0;
             }
             if (rep != 0) {
                 if (buff == null) {
@@ -331,7 +334,7 @@ public class Utils {
     public static String unescapePropertyName(String key) {
         int len = key.length();
         if (key.startsWith("_")
-                && (key.startsWith("__") || key.startsWith("_$") || len == 1)) {
+            && (key.startsWith("__") || key.startsWith("_$") || len == 1)) {
             key = key.substring(1);
             len--;
         }
@@ -398,12 +401,11 @@ public class Utils {
     }
 
     /**
-     * Encodes the given data as hexadecimal string representation and appends
-     * it to the {@code StringBuilder}. The hex digits are in lower case.
+     * Encodes the given data as hexadecimal string representation and appends it to the
+     * {@code StringBuilder}. The hex digits are in lower case.
      *
      * @param data the bytes to encode.
-     * @param sb the hexadecimal string representation is appended to this
-     *           {@code StringBuilder}.
+     * @param sb   the hexadecimal string representation is appended to this {@code StringBuilder}.
      * @return the {@code StringBuilder} passed to this method.
      */
     public static StringBuilder encodeHexString(byte[] data, StringBuilder sb) {
@@ -423,19 +425,20 @@ public class Utils {
      *     <li>If id is for root path</li>
      *     <li>If id is for an invalid path</li>
      * </ul>
+     *
      * @param id id for which parent id needs to be determined
      * @return parent id. null if parent id cannot be determined
      */
     @Nullable
-    public static String getParentId(String id){
-        if(Utils.isIdFromLongPath(id)){
+    public static String getParentId(String id) {
+        if (Utils.isIdFromLongPath(id)) {
             return null;
         }
         String path = Utils.getPathFromId(id);
         if (!PathUtils.isValid(path)) {
             return null;
         }
-        if(PathUtils.denotesRoot(path)){
+        if (PathUtils.denotesRoot(path)) {
             return null;
         }
         String parentPath = PathUtils.getParentPath(path);
@@ -455,7 +458,8 @@ public class Utils {
 
     /**
      * Checks whether Node name is too long or not based on underlining document store
-     * @param path node path
+     *
+     * @param path      node path
      * @param sizeLimit sizeLimit for node name
      * @return true if node name is long else false
      */
@@ -525,9 +529,9 @@ public class Utils {
      * @param id id to check
      * @return true if the id belongs to a previous doc
      */
-    public static boolean isPreviousDocId(String id){
+    public static boolean isPreviousDocId(String id) {
         int indexOfColon = id.indexOf(':');
-        if (indexOfColon > 0 && indexOfColon < id.length() - 1){
+        if (indexOfColon > 0 && indexOfColon < id.length() - 1) {
             return id.charAt(indexOfColon + 1) == 'p';
         }
         return false;
@@ -539,7 +543,7 @@ public class Utils {
      * @param id id to check
      * @return true if the id belongs to a leaf level previous doc
      */
-    public static boolean isLeafPreviousDocId(String id){
+    public static boolean isLeafPreviousDocId(String id) {
         return isPreviousDocId(id) && id.endsWith("/0");
     }
 
@@ -548,7 +552,7 @@ public class Utils {
      *
      * @param source the source map
      * @param target the target map
-     * @param <K> the type of the map key
+     * @param <K>    the type of the map key
      */
     public static <K> void deepCopyMap(Map<K, Object> source, Map<K, Object> target) {
         for (Entry<K, Object> e : source.entrySet()) {
@@ -597,26 +601,26 @@ public class Utils {
     }
 
     /**
-     * Returns parentId extracted from the fromKey. fromKey is usually constructed
-     * using Utils#getKeyLowerLimit
+     * Returns parentId extracted from the fromKey. fromKey is usually constructed using
+     * Utils#getKeyLowerLimit
      *
      * @param fromKey key used as start key in queries
      * @return parentId if possible.
      */
     @Nullable
-    public static String getParentIdFromLowerLimit(String fromKey){
+    public static String getParentIdFromLowerLimit(String fromKey) {
         //If key just ends with slash 2:/foo/ then append a fake
         //name to create a proper id
-        if(fromKey.endsWith("/")){
+        if (fromKey.endsWith("/")) {
             fromKey = fromKey + "a";
         }
         return getParentId(fromKey);
     }
 
     /**
-     * Returns <code>true</code> if a revision tagged with the given revision
-     * should be considered committed, <code>false</code> otherwise. Committed
-     * revisions have a tag, which equals 'c' or starts with 'c-'.
+     * Returns <code>true</code> if a revision tagged with the given revision should be considered
+     * committed, <code>false</code> otherwise. Committed revisions have a tag, which equals 'c' or
+     * starts with 'c-'.
      *
      * @param tag the tag (may be <code>null</code>).
      * @return <code>true</code> if committed; <code>false</code> otherwise.
@@ -626,8 +630,8 @@ public class Utils {
     }
 
     /**
-     * Resolve the commit revision for the given revision <code>rev</code> and
-     * the associated commit tag.
+     * Resolve the commit revision for the given revision <code>rev</code> and the associated commit
+     * tag.
      *
      * @param rev a revision.
      * @param tag the associated commit tag.
@@ -635,20 +639,20 @@ public class Utils {
      */
     @NotNull
     public static Revision resolveCommitRevision(@NotNull Revision rev,
-                                                 @NotNull String tag) {
+        @NotNull String tag) {
         return checkNotNull(tag).startsWith("c-") ?
-                Revision.fromString(tag.substring(2)) : rev;
+            Revision.fromString(tag.substring(2)) : rev;
     }
 
     /**
-     * Closes the obj its of type {@link java.io.Closeable}. It is mostly
-     * used to close Iterator/Iterables which are backed by say DBCursor
+     * Closes the obj its of type {@link java.io.Closeable}. It is mostly used to close
+     * Iterator/Iterables which are backed by say DBCursor
      *
      * @param obj object to close
      */
-    public static void closeIfCloseable(Object obj){
-        if(obj instanceof Closeable){
-            try{
+    public static void closeIfCloseable(Object obj) {
+        if (obj instanceof Closeable) {
+            try {
                 ((Closeable) obj).close();
             } catch (IOException e) {
                 LOG.warn("Error occurred while closing {}", obj, e);
@@ -659,14 +663,14 @@ public class Utils {
     /**
      * Provides a readable string for given timestamp
      */
-    public static String timestampToString(long timestamp){
+    public static String timestampToString(long timestamp) {
         return (new Timestamp(timestamp) + "00").substring(0, 23);
     }
 
     /**
-     * Returns the revision with the newer timestamp or {@code null} if both
-     * revisions are {@code null}. The implementation will return the first
-     * revision if both have the same timestamp.
+     * Returns the revision with the newer timestamp or {@code null} if both revisions are
+     * {@code null}. The implementation will return the first revision if both have the same
+     * timestamp.
      *
      * @param a the first revision (or {@code null}).
      * @param b the second revision (or {@code null}).
@@ -678,10 +682,9 @@ public class Utils {
     }
 
     /**
-     * Returns the revision which is considered more recent or {@code null} if
-     * both revisions are {@code null}. The implementation will return the first
-     * revision if both are considered equal. The comparison is done using the
-     * provided comparator.
+     * Returns the revision which is considered more recent or {@code null} if both revisions are
+     * {@code null}. The implementation will return the first revision if both are considered equal.
+     * The comparison is done using the provided comparator.
      *
      * @param a the first revision (or {@code null}).
      * @param b the second revision (or {@code null}).
@@ -690,8 +693,8 @@ public class Utils {
      */
     @Nullable
     public static Revision max(@Nullable Revision a,
-                               @Nullable Revision b,
-                               @NotNull Comparator<Revision> c) {
+        @Nullable Revision b,
+        @NotNull Comparator<Revision> c) {
         if (a == null) {
             return b;
         } else if (b == null) {
@@ -701,9 +704,9 @@ public class Utils {
     }
 
     /**
-     * Returns the revision with the older timestamp or {@code null} if both
-     * revisions are {@code null}. The implementation will return the first
-     * revision if both have the same timestamp.
+     * Returns the revision with the older timestamp or {@code null} if both revisions are
+     * {@code null}. The implementation will return the first revision if both have the same
+     * timestamp.
      *
      * @param a the first revision (or {@code null}).
      * @param b the second revision (or {@code null}).
@@ -715,10 +718,9 @@ public class Utils {
     }
 
     /**
-     * Returns the revision which is considered older or {@code null} if
-     * both revisions are {@code null}. The implementation will return the first
-     * revision if both are considered equal. The comparison is done using the
-     * provided comparator.
+     * Returns the revision which is considered older or {@code null} if both revisions are
+     * {@code null}. The implementation will return the first revision if both are considered equal.
+     * The comparison is done using the provided comparator.
      *
      * @param a the first revision (or {@code null}).
      * @param b the second revision (or {@code null}).
@@ -727,8 +729,8 @@ public class Utils {
      */
     @Nullable
     public static Revision min(@Nullable Revision a,
-                               @Nullable Revision b,
-                               @NotNull Comparator<Revision> c) {
+        @Nullable Revision b,
+        @NotNull Comparator<Revision> c) {
         if (a == null) {
             return b;
         } else if (b == null) {
@@ -741,13 +743,11 @@ public class Utils {
     private static final int DEFAULT_BATCH_SIZE = 100;
 
     /**
-     * Returns an {@link Iterable} over all {@link NodeDocument}s in the given
-     * store. The returned {@linkplain Iterable} does not guarantee a consistent
-     * view on the store. it may return documents that have been added to the
-     * store after this method had been called.
+     * Returns an {@link Iterable} over all {@link NodeDocument}s in the given store. The returned
+     * {@linkplain Iterable} does not guarantee a consistent view on the store. it may return
+     * documents that have been added to the store after this method had been called.
      *
-     * @param store
-     *            a {@link DocumentStore}.
+     * @param store a {@link DocumentStore}.
      * @return an {@link Iterable} over all documents in the store.
      */
     public static Iterable<NodeDocument> getAllDocuments(final DocumentStore store) {
@@ -755,11 +755,10 @@ public class Utils {
     }
 
     /**
-     * Returns the root node document of the given document store. The returned
-     * document is retrieved from the document store via
-     * {@link DocumentStore#find(Collection, String)}, which means the
-     * implementation is allowed to return a cached version of the document.
-     * The document is therefore not guaranteed to be up-to-date.
+     * Returns the root node document of the given document store. The returned document is
+     * retrieved from the document store via {@link DocumentStore#find(Collection, String)}, which
+     * means the implementation is allowed to return a cached version of the document. The document
+     * is therefore not guaranteed to be up-to-date.
      *
      * @param store a document store.
      * @return the root document.
@@ -776,38 +775,34 @@ public class Utils {
     }
 
     /**
-     * Returns an {@link Iterable} over all {@link NodeDocument}s in the given
-     * store matching a condition on an <em>indexed property</em>. The returned
-     * {@link Iterable} does not guarantee a consistent view on the store.
-     * it may return documents that have been added to the store after this
-     * method had been called.
+     * Returns an {@link Iterable} over all {@link NodeDocument}s in the given store matching a
+     * condition on an <em>indexed property</em>. The returned {@link Iterable} does not guarantee a
+     * consistent view on the store. it may return documents that have been added to the store after
+     * this method had been called.
      *
-     * @param store
-     *            a {@link DocumentStore}.
+     * @param store           a {@link DocumentStore}.
      * @param indexedProperty the name of the indexed property.
-     * @param startValue the lower bound value for the indexed property
-     *                   (inclusive).
-     * @param batchSize number of documents to fetch at once
-     * @return an {@link Iterable} over all documents in the store matching the
-     *         condition
+     * @param startValue      the lower bound value for the indexed property (inclusive).
+     * @param batchSize       number of documents to fetch at once
+     * @return an {@link Iterable} over all documents in the store matching the condition
      */
     public static Iterable<NodeDocument> getSelectedDocuments(
-            DocumentStore store, String indexedProperty, long startValue, int batchSize) {
+        DocumentStore store, String indexedProperty, long startValue, int batchSize) {
         return internalGetSelectedDocuments(store, indexedProperty, startValue, batchSize);
     }
 
     /**
-     * Like {@link #getSelectedDocuments(DocumentStore, String, long, int)} with
-     * a default {@code batchSize}.
+     * Like {@link #getSelectedDocuments(DocumentStore, String, long, int)} with a default
+     * {@code batchSize}.
      */
     public static Iterable<NodeDocument> getSelectedDocuments(
-            DocumentStore store, String indexedProperty, long startValue) {
+        DocumentStore store, String indexedProperty, long startValue) {
         return internalGetSelectedDocuments(store, indexedProperty, startValue, DEFAULT_BATCH_SIZE);
     }
 
     private static Iterable<NodeDocument> internalGetSelectedDocuments(
-            final DocumentStore store, final String indexedProperty,
-            final long startValue, final int batchSize) {
+        final DocumentStore store, final String indexedProperty,
+        final long startValue, final int batchSize) {
         if (batchSize < 2) {
             throw new IllegalArgumentException("batchSize must be > 1");
         }
@@ -839,9 +834,12 @@ public class Utils {
                     }
 
                     private Iterator<NodeDocument> nextBatch() {
-                        List<NodeDocument> result = indexedProperty == null ? store.query(Collection.NODES, startId,
-                                NodeDocument.MAX_ID_VALUE, batchSize) : store.query(Collection.NODES, startId,
-                                NodeDocument.MAX_ID_VALUE, indexedProperty, startValue, batchSize);
+                        List<NodeDocument> result =
+                            indexedProperty == null ? store.query(Collection.NODES, startId,
+                                NodeDocument.MAX_ID_VALUE, batchSize)
+                                : store.query(Collection.NODES, startId,
+                                    NodeDocument.MAX_ID_VALUE, indexedProperty, startValue,
+                                    batchSize);
                         return result.iterator();
                     }
                 };
@@ -850,20 +848,19 @@ public class Utils {
     }
 
     /**
-     * @return if {@code path} represent oak's internal path. That is, a path
-     *          element start with a colon.
+     * @return if {@code path} represent oak's internal path. That is, a path element start with a
+     * colon.
      */
     public static boolean isHiddenPath(@NotNull String path) {
         return path.contains("/:");
     }
 
     /**
-     * Transforms the given {@link Iterable} from {@link String} to
-     * {@link StringValue} elements. The {@link Iterable} must no have
-     * {@code null} values.
+     * Transforms the given {@link Iterable} from {@link String} to {@link StringValue} elements.
+     * The {@link Iterable} must no have {@code null} values.
      */
     public static Iterable<StringValue> asStringValueIterable(
-            @NotNull Iterable<String> values) {
+        @NotNull Iterable<String> values) {
         return transform(values, new Function<String, StringValue>() {
             @Override
             public StringValue apply(String input) {
@@ -880,17 +877,15 @@ public class Utils {
     }
 
     /**
-     * Returns the highest timestamp of all the passed external revisions.
-     * A revision is considered external if the clusterId is different from the
-     * passed {@code localClusterId}.
+     * Returns the highest timestamp of all the passed external revisions. A revision is considered
+     * external if the clusterId is different from the passed {@code localClusterId}.
      *
-     * @param revisions the revisions to consider.
+     * @param revisions      the revisions to consider.
      * @param localClusterId the id of the local cluster node.
-     * @return the highest timestamp or {@link Long#MIN_VALUE} if none of the
-     *          revisions is external.
+     * @return the highest timestamp or {@link Long#MIN_VALUE} if none of the revisions is external.
      */
     public static long getMaxExternalTimestamp(Iterable<Revision> revisions,
-                                               int localClusterId) {
+        int localClusterId) {
         long maxTime = Long.MIN_VALUE;
         for (Revision r : revisions) {
             if (r.getClusterId() == localClusterId) {
@@ -905,8 +900,7 @@ public class Utils {
      * Returns the given number instance as a {@code Long}.
      *
      * @param n a number or {@code null}.
-     * @return the number converted to a {@code Long} or {@code null}
-     *      if {@code n} is {@code null}.
+     * @return the number converted to a {@code Long} or {@code null} if {@code n} is {@code null}.
      */
     public static Long asLong(@Nullable Number n) {
         if (n == null) {
@@ -919,16 +913,16 @@ public class Utils {
     }
 
     /**
-     * Returns a revision vector that contains a revision for each of the passed
-     * cluster nodes with a revision timestamp that corresponds to the last
-     * known time when the cluster node was started.
+     * Returns a revision vector that contains a revision for each of the passed cluster nodes with
+     * a revision timestamp that corresponds to the last known time when the cluster node was
+     * started.
      *
      * @param clusterNodes the cluster node information.
-     * @return revision vector representing the last known time when the cluster
-     *      nodes were started.
+     * @return revision vector representing the last known time when the cluster nodes were started.
      */
     @NotNull
-    public static RevisionVector getStartRevisions(@NotNull Iterable<ClusterNodeInfoDocument> clusterNodes) {
+    public static RevisionVector getStartRevisions(
+        @NotNull Iterable<ClusterNodeInfoDocument> clusterNodes) {
         List<Revision> revs = new ArrayList<>();
         for (ClusterNodeInfoDocument doc : clusterNodes) {
             revs.add(new Revision(doc.getStartTime(), 0, doc.getClusterId()));
@@ -937,18 +931,18 @@ public class Utils {
     }
 
     /**
-     * Returns the minimum timestamp to use for a query for child documents that
-     * have been modified between {@code fromRev} and {@code toRev}.
+     * Returns the minimum timestamp to use for a query for child documents that have been modified
+     * between {@code fromRev} and {@code toRev}.
      *
-     * @param fromRev the from revision.
-     * @param toRev the to revision.
-     * @param minRevisions the minimum revisions of foreign cluster nodes. These
-     *                     are derived from the startTime of a cluster node.
+     * @param fromRev      the from revision.
+     * @param toRev        the to revision.
+     * @param minRevisions the minimum revisions of foreign cluster nodes. These are derived from
+     *                     the startTime of a cluster node.
      * @return the minimum timestamp.
      */
     public static long getMinTimestampForDiff(@NotNull RevisionVector fromRev,
-                                              @NotNull RevisionVector toRev,
-                                              @NotNull RevisionVector minRevisions) {
+        @NotNull RevisionVector toRev,
+        @NotNull RevisionVector minRevisions) {
         // make sure we have minimum revisions for all known cluster nodes
         fromRev = fromRev.pmax(minRevisions);
         toRev = toRev.pmax(minRevisions);
@@ -974,54 +968,53 @@ public class Utils {
      */
     public static boolean isThrottlingEnabled(final DocumentNodeStoreBuilder<?> builder) {
         final Feature docStoreThrottlingFeature = builder.getDocStoreThrottlingFeature();
-        return builder.isThrottlingEnabled() || (docStoreThrottlingFeature != null && docStoreThrottlingFeature.isEnabled());
+        return builder.isThrottlingEnabled() || (docStoreThrottlingFeature != null
+            && docStoreThrottlingFeature.isEnabled());
     }
 
     /**
-     * Returns true if all the revisions in the {@code a} greater or equals
-     * to their counterparts in {@code b}. If {@code b} contains revisions
-     * for cluster nodes that are not present in {@code a}, return false.
+     * Returns true if all the revisions in the {@code a} greater or equals to their counterparts in
+     * {@code b}. If {@code b} contains revisions for cluster nodes that are not present in
+     * {@code a}, return false.
      *
      * @param a
      * @param b
-     * @return true if all the revisions in the {@code a} are at least
-     * as recent as their counterparts in the {@code b}
+     * @return true if all the revisions in the {@code a} are at least as recent as their
+     * counterparts in the {@code b}
      */
     public static boolean isGreaterOrEquals(@NotNull RevisionVector a,
-                                            @NotNull RevisionVector b) {
+        @NotNull RevisionVector b) {
         return a.pmax(b).equals(a);
     }
 
     /**
-     * Returns {@code true} if changes identified by the {@code from} and
-     * {@code to} {@code RevisionVector} are considered local changes. That is
-     * the only difference between the two revision vectors are for the given
-     * (local) {@code clusterId}.
+     * Returns {@code true} if changes identified by the {@code from} and {@code to}
+     * {@code RevisionVector} are considered local changes. That is the only difference between the
+     * two revision vectors are for the given (local) {@code clusterId}.
      *
-     * @param from the from revision vector.
-     * @param to the to revision vector.
+     * @param from      the from revision vector.
+     * @param to        the to revision vector.
      * @param clusterId the local clusterId.
      * @return whether the changes are considered local.
      */
     public static boolean isLocalChange(@NotNull RevisionVector from,
-                                        @NotNull RevisionVector to,
-                                        int clusterId) {
+        @NotNull RevisionVector to,
+        int clusterId) {
         RevisionVector diff = to.difference(from);
         return diff.getDimensions() == 1 && diff.getRevision(clusterId) != null;
     }
 
     /**
-     * Wraps the given iterable and aborts iteration over elements when the
-     * predicate on an element evaluates to {@code false}. Calling
-     * {@code close()} on the returned iterable will close the passed iterable
-     * if it is {@link Closeable}.
+     * Wraps the given iterable and aborts iteration over elements when the predicate on an element
+     * evaluates to {@code false}. Calling {@code close()} on the returned iterable will close the
+     * passed iterable if it is {@link Closeable}.
      *
      * @param iterable the iterable to wrap.
-     * @param p the predicate.
+     * @param p        the predicate.
      * @return the aborting iterable.
      */
     public static <T> CloseableIterable<T> abortingIterable(Iterable<T> iterable,
-                                                            Predicate<T> p) {
+        Predicate<T> p) {
         checkNotNull(iterable);
         checkNotNull(p);
         return new CloseableIterable<T>(() -> {
@@ -1042,25 +1035,24 @@ public class Utils {
     }
 
     /**
-     * Makes sure the current time is after the most recent external revision
-     * timestamp in the _lastRev map of the given root document. If necessary
-     * the current thread waits until {@code clock} is after the external
-     * revision timestamp.
+     * Makes sure the current time is after the most recent external revision timestamp in the
+     * _lastRev map of the given root document. If necessary the current thread waits until
+     * {@code clock} is after the external revision timestamp.
      *
-     * @param rootDoc the root document.
-     * @param clock the clock.
-     * @param clusterId the local clusterId.
-     * @param warnThresholdMillis log a warning when an external change in
-     *          the future is detected with more than this time difference.
-     * @throws InterruptedException if the current thread is interrupted while
-     *          waiting. The interrupted status on the current thread is cleared
-     *          when this exception is thrown.
+     * @param rootDoc             the root document.
+     * @param clock               the clock.
+     * @param clusterId           the local clusterId.
+     * @param warnThresholdMillis log a warning when an external change in the future is detected
+     *                            with more than this time difference.
+     * @throws InterruptedException if the current thread is interrupted while waiting. The
+     *                              interrupted status on the current thread is cleared when this
+     *                              exception is thrown.
      */
     public static void alignWithExternalRevisions(@NotNull NodeDocument rootDoc,
-                                                  @NotNull Clock clock,
-                                                  int clusterId,
-                                                  long warnThresholdMillis)
-            throws InterruptedException {
+        @NotNull Clock clock,
+        int clusterId,
+        long warnThresholdMillis)
+        throws InterruptedException {
         Map<Integer, Revision> lastRevMap = checkNotNull(rootDoc).getLastRev();
         long externalTime = Utils.getMaxExternalTimestamp(lastRevMap.values(), clusterId);
         long localTime = clock.getTime();
@@ -1068,12 +1060,12 @@ public class Utils {
             long timeDiff = externalTime - localTime;
             double delay = ((double) externalTime - localTime) / 1000d;
             String fmt = "Background read will be delayed by %.1f seconds. " +
-                    "Please check system time on cluster nodes.";
+                "Please check system time on cluster nodes.";
             if (timeDiff > warnThresholdMillis) {
                 LOG.warn("Detected clock differences. Local time is '{}', " +
-                                "while most recent external time is '{}'. " +
-                                "Current _lastRev entries: {}",
-                        new Date(localTime), new Date(externalTime), lastRevMap.values());
+                        "while most recent external time is '{}'. " +
+                        "Current _lastRev entries: {}",
+                    new Date(localTime), new Date(externalTime), lastRevMap.values());
                 String msg = String.format(fmt, delay);
                 LOG.warn(msg);
             }
@@ -1088,14 +1080,14 @@ public class Utils {
             // make sure local time is past external time
             // but only log at debug
             LOG.debug("Local and external time are equal. Waiting until local" +
-                    "time is more recent than external reported time.");
+                "time is more recent than external reported time.");
             clock.waitUntil(externalTime + 1);
         }
     }
 
     /**
-     * Calls {@link Thread#join()} on each of the passed threads and catches
-     * any potentially thrown {@link InterruptedException}.
+     * Calls {@link Thread#join()} on each of the passed threads and catches any potentially thrown
+     * {@link InterruptedException}.
      *
      * @param threads the threads to join.
      */
@@ -1126,21 +1118,20 @@ public class Utils {
     }
 
     /**
-     * Check the revision age on the root document for the given cluster node
-     * info. The check will fail with a {@link DocumentStoreException} if the
-     * {@code _lastRev} timestamp for the cluster node is newer then the current
-     * {@code clock} time. The check will not fail if the root document does
-     * not exist or does not have a {@code _lastRev} entry for the cluster node.
+     * Check the revision age on the root document for the given cluster node info. The check will
+     * fail with a {@link DocumentStoreException} if the {@code _lastRev} timestamp for the cluster
+     * node is newer then the current {@code clock} time. The check will not fail if the root
+     * document does not exist or does not have a {@code _lastRev} entry for the cluster node.
      *
      * @param store the document store from where to read the root document.
-     * @param info the cluster node info with the clusterId.
+     * @param info  the cluster node info with the clusterId.
      * @param clock the clock to get the current time.
      * @throws DocumentStoreException if the check fails.
      */
     public static void checkRevisionAge(DocumentStore store,
-                                        ClusterNodeInfo info,
-                                        Clock clock)
-            throws DocumentStoreException {
+        ClusterNodeInfo info,
+        Clock clock)
+        throws DocumentStoreException {
         NodeDocument root = store.find(Collection.NODES, getIdFromPath(Path.ROOT));
         if (root == null) {
             return;
@@ -1155,16 +1146,16 @@ public class Utils {
             String msg = String.format("Cluster id %d has a _lastRev %s (%s) " +
                     "newer than current time %s. Please check system time on " +
                     "cluster nodes.", clusterId, rev.toString(),
-                    timestampToString(rev.getTimestamp()), timestampToString(now));
+                timestampToString(rev.getTimestamp()), timestampToString(now));
             throw new DocumentStoreException(msg);
         }
     }
 
     /**
-     * Calculates the sum of the given long values. The implementation protects
-     * against overflow by returning {@code Long#MAX_VALUE} when the result
-     * would actually be bigger than that. Similarly, {@code Long#MIN_VALUE} is
-     * returned when the result would actually be smaller than that.
+     * Calculates the sum of the given long values. The implementation protects against overflow by
+     * returning {@code Long#MAX_VALUE} when the result would actually be bigger than that.
+     * Similarly, {@code Long#MIN_VALUE} is returned when the result would actually be smaller than
+     * that.
      *
      * @param addends the values.
      * @return the sum of the values.
@@ -1187,5 +1178,5 @@ public class Utils {
      */
     public static String asISO8601(long ms) {
         return DateTimeFormatter.ISO_INSTANT.format(Instant.ofEpochMilli(ms));
-   }
+    }
 }

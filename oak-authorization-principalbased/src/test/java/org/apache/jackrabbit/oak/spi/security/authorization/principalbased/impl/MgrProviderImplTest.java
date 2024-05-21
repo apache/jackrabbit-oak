@@ -44,7 +44,8 @@ public class MgrProviderImplTest extends AbstractPrincipalBasedTest {
 
     @Test
     public void testGetContext() {
-        assertSame(getConfig(AuthorizationConfiguration.class).getContext(), mgrProvider.getContext());
+        assertSame(getConfig(AuthorizationConfiguration.class).getContext(),
+            mgrProvider.getContext());
     }
 
     @Test

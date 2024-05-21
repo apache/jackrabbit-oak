@@ -18,21 +18,22 @@
  */
 package org.apache.jackrabbit.oak.commons.io;
 
-import org.apache.jackrabbit.guava.common.graph.SuccessorsFunction;
-import org.apache.jackrabbit.guava.common.graph.Traverser;
-import org.jetbrains.annotations.NotNull;
-
 import java.io.File;
 import java.util.Arrays;
 import java.util.Set;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
+import org.apache.jackrabbit.guava.common.graph.SuccessorsFunction;
+import org.apache.jackrabbit.guava.common.graph.Traverser;
+import org.jetbrains.annotations.NotNull;
 
 public class FileTreeTraverser {
+
     private static final FileSystemTree FILE_SYSTEM_TREE = new FileSystemTree();
 
     public static Stream<File> depthFirstPostOrder(File startNode) {
-        Iterable<File> iterable = Traverser.forTree(FILE_SYSTEM_TREE).depthFirstPostOrder(startNode);
+        Iterable<File> iterable = Traverser.forTree(FILE_SYSTEM_TREE)
+                                           .depthFirstPostOrder(startNode);
         return StreamSupport.stream(iterable.spliterator(), false);
     }
 
@@ -47,6 +48,7 @@ public class FileTreeTraverser {
     }
 
     private static class FileSystemTree implements SuccessorsFunction<File> {
+
         @Override
         public @NotNull Iterable<? extends File> successors(File file) {
             if (!file.isDirectory()) {

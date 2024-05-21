@@ -40,7 +40,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.LineIterator;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
@@ -48,11 +47,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Utility class to store a list of string and perform sort on that. For small size
- * the list would be maintained in memory. If the size crosses the required threshold then
- * the sorting would be performed externally
+ * Utility class to store a list of string and perform sort on that. For small size the list would
+ * be maintained in memory. If the size crosses the required threshold then the sorting would be
+ * performed externally
  */
 public class StringSort implements Iterable<String>, Closeable {
+
     private final Logger log = LoggerFactory.getLogger(getClass());
     public static final int BATCH_SIZE = 2048;
 
@@ -81,7 +81,8 @@ public class StringSort implements Iterable<String>, Closeable {
                 flushToFile(ids);
                 useFile = true;
                 log.debug("In memory buffer crossed the threshold of {}. " +
-                        "Switching to filesystem [{}] to manage the state", overflowToDiskThreshold, persistentState);
+                        "Switching to filesystem [{}] to manage the state", overflowToDiskThreshold,
+                    persistentState);
             }
         }
         size++;
@@ -160,6 +161,7 @@ public class StringSort implements Iterable<String>, Closeable {
     }
 
     private static class PersistentState implements Closeable {
+
         /**
          * Maximum loop count when creating temp directories.
          */
@@ -186,7 +188,8 @@ public class StringSort implements Iterable<String>, Closeable {
             if (idFile == null) {
                 idFile = new File(workDir, "strings.txt");
                 sortedFile = new File(workDir, "strings-sorted.txt");
-                writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(idFile), charset));
+                writer = new BufferedWriter(
+                    new OutputStreamWriter(new FileOutputStream(idFile), charset));
             }
             return writer;
         }
@@ -195,25 +198,26 @@ public class StringSort implements Iterable<String>, Closeable {
             closeWriter();
 
             List<File> sortedFiles = ExternalSort.sortInBatch(idFile,
-                    comparator, //Comparator to use
-                    ExternalSort.DEFAULTMAXTEMPFILES,
-                    ExternalSort.DEFAULT_MAX_MEM_BYTES,
-                    charset, //charset
-                    workDir,  //temp directory where intermediate files are created
-                    true //distinct
+                comparator, //Comparator to use
+                ExternalSort.DEFAULTMAXTEMPFILES,
+                ExternalSort.DEFAULT_MAX_MEM_BYTES,
+                charset, //charset
+                workDir,  //temp directory where intermediate files are created
+                true //distinct
             );
 
             ExternalSort.mergeSortedFiles(sortedFiles,
-                    sortedFile,
-                    comparator,
-                    charset,
-                    true
+                sortedFile,
+                comparator,
+                charset,
+                true
             );
         }
 
         public Iterator<String> getIterator() throws IOException {
             CloseableIterator itr = new CloseableIterator(
-                    new BufferedReader(new InputStreamReader(new FileInputStream(sortedFile), charset)));
+                new BufferedReader(
+                    new InputStreamReader(new FileInputStream(sortedFile), charset)));
             openedIterators.add(itr);
             return itr;
         }
@@ -248,8 +252,7 @@ public class StringSort implements Iterable<String>, Closeable {
         }
 
         /**
-         * Taken from com.google.common.io.Files#createTempDir()
-         * Modified to provide a prefix
+         * Taken from com.google.common.io.Files#createTempDir() Modified to provide a prefix
          */
         private static File createTempDir(String prefix) {
             File baseDir = new File(System.getProperty("java.io.tmpdir"));
@@ -262,8 +265,8 @@ public class StringSort implements Iterable<String>, Closeable {
                 }
             }
             throw new IllegalStateException("Failed to create directory within "
-                    + TEMP_DIR_ATTEMPTS + " attempts (tried "
-                    + baseName + "0 to " + baseName + (TEMP_DIR_ATTEMPTS - 1) + ')');
+                + TEMP_DIR_ATTEMPTS + " attempts (tried "
+                + baseName + "0 to " + baseName + (TEMP_DIR_ATTEMPTS - 1) + ')');
         }
 
         // inspired by Guava Closer, see
@@ -287,6 +290,7 @@ public class StringSort implements Iterable<String>, Closeable {
     }
 
     private static class CloseableIterator extends LineIterator implements Closeable {
+
         public CloseableIterator(Reader reader) throws IllegalArgumentException {
             super(reader);
         }

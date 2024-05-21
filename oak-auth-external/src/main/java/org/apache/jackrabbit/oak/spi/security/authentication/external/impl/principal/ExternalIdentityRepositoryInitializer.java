@@ -16,18 +16,16 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.jetbrains.annotations.NotNull;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-
 /**
- * Implementation of the {@code RepositoryInitializer} interface responsible for
- * setting up query indices for the system maintained, protected properties defined
- * by this module:
+ * Implementation of the {@code RepositoryInitializer} interface responsible for setting up query
+ * indices for the system maintained, protected properties defined by this module:
  *
  * <ul>
  *     <li>Index Definition <i>externalPrincipalNames</i>: Indexing
@@ -53,15 +51,18 @@ class ExternalIdentityRepositoryInitializer implements RepositoryInitializer {
         // "rep:externalPrincipalNames"
         NodeBuilder index = IndexUtils.getOrCreateOakIndex(builder);
         if (enforceUniqueIds && !index.hasChildNode("externalId")) {
-            NodeBuilder definition = IndexUtils.createIndexDefinition(index, "externalId", true, true,
-                    ImmutableList.of(ExternalIdentityConstants.REP_EXTERNAL_ID), null);
-            definition.setProperty("info", "Oak index assuring uniqueness of rep:externalId properties.");
+            NodeBuilder definition = IndexUtils.createIndexDefinition(index, "externalId", true,
+                true,
+                ImmutableList.of(ExternalIdentityConstants.REP_EXTERNAL_ID), null);
+            definition.setProperty("info",
+                "Oak index assuring uniqueness of rep:externalId properties.");
         }
         if (!index.hasChildNode("externalPrincipalNames")) {
-            NodeBuilder definition = IndexUtils.createIndexDefinition(index, "externalPrincipalNames", true, false,
-                    ImmutableList.of(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES), null);
+            NodeBuilder definition = IndexUtils.createIndexDefinition(index,
+                "externalPrincipalNames", true, false,
+                ImmutableList.of(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES), null);
             definition.setProperty("info",
-                    "Oak index used by the principal management provided by the external authentication module.");
+                "Oak index used by the principal management provided by the external authentication module.");
         }
     }
 }

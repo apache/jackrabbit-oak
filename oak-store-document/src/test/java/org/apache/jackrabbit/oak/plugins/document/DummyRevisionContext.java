@@ -61,7 +61,7 @@ public class DummyRevisionContext implements RevisionContext {
 
     @Override
     public String getCommitValue(@NotNull Revision changeRevision,
-                                 @NotNull NodeDocument doc) {
+        @NotNull NodeDocument doc) {
         return doc.resolveCommitValue(changeRevision);
     }
 }

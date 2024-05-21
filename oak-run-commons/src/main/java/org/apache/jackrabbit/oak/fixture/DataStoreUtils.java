@@ -18,23 +18,21 @@
  */
 package org.apache.jackrabbit.oak.fixture;
 
+import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.model.DeleteObjectsRequest;
+import com.amazonaws.services.s3.model.ObjectListing;
+import com.amazonaws.services.s3.model.S3ObjectSummary;
+import com.amazonaws.services.s3.transfer.TransferManager;
+import com.microsoft.azure.storage.blob.CloudBlobContainer;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.model.DeleteObjectsRequest;
-import com.amazonaws.services.s3.model.ObjectListing;
-import com.amazonaws.services.s3.model.S3ObjectSummary;
-import com.amazonaws.services.s3.transfer.TransferManager;
-import org.apache.jackrabbit.guava.common.base.Strings;
-import com.microsoft.azure.storage.blob.CloudBlobContainer;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.core.data.DataStore;
+import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants;
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureDataStore;
 import org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants;
@@ -45,9 +43,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Extension to {@link DataStoreUtils} to enable S3 / AzureBlob extensions for cleaning and initialization.
+ * Extension to {@link DataStoreUtils} to enable S3 / AzureBlob extensions for cleaning and
+ * initialization.
  */
 public class DataStoreUtils {
+
     private static final Logger log = LoggerFactory.getLogger(DataStoreUtils.class);
 
     private static Class S3 = S3DataStore.class;
@@ -59,12 +59,12 @@ public class DataStoreUtils {
 
     public static boolean isAzureDataStore(String dsName) {
         return (dsName != null) &&
-               (dsName.equals(AZURE.getName()));
+            (dsName.equals(AZURE.getName()));
     }
 
     public static DataStore configureIfCloudDataStore(String className, DataStore ds,
-                                                      Map<String, ?> config, String bucket,
-                                                      StatisticsProvider statisticsProvider) throws Exception {
+        Map<String, ?> config, String bucket,
+        StatisticsProvider statisticsProvider) throws Exception {
         // Add bucket info
         Properties props = new Properties();
         props.putAll(config);
@@ -85,7 +85,6 @@ public class DataStoreUtils {
             ((AzureDataStore) ds).setStatisticsProvider(statisticsProvider);
         }
 
-
         return ds;
     }
 
@@ -93,11 +92,12 @@ public class DataStoreUtils {
      * Clean directory and if S3 bucket/Azure container is configured delete that.
      *
      * @param storeDir the local directory
-     * @param config the datastore config
-     * @param bucket the S3 bucket name / Azure container name
+     * @param config   the datastore config
+     * @param bucket   the S3 bucket name / Azure container name
      * @throws Exception
      */
-    public static void cleanup(File storeDir, Map<String, ?> config, String bucket) throws Exception {
+    public static void cleanup(File storeDir, Map<String, ?> config, String bucket)
+        throws Exception {
         FileUtils.deleteQuietly(storeDir);
         if (config.containsKey(S3Constants.S3_BUCKET)) {
             if (!Strings.isNullOrEmpty(bucket)) {
@@ -119,7 +119,7 @@ public class DataStoreUtils {
             for (int i = 0; i < 4; i++) {
                 tmx.abortMultipartUploads(bucket, date);
                 ObjectListing prevObjectListing = s3service.listObjects(bucket);
-                while (prevObjectListing != null ) {
+                while (prevObjectListing != null) {
                     List<DeleteObjectsRequest.KeyVersion>
                         deleteList = new ArrayList<DeleteObjectsRequest.KeyVersion>();
                     for (S3ObjectSummary s3ObjSumm : prevObjectListing.getObjectSummaries()) {
@@ -132,7 +132,9 @@ public class DataStoreUtils {
                         delObjsReq.setKeys(deleteList);
                         s3service.deleteObjects(delObjsReq);
                     }
-                    if (!prevObjectListing.isTruncated()) break;
+                    if (!prevObjectListing.isTruncated()) {
+                        break;
+                    }
                     prevObjectListing = s3service.listNextBatchOfObjects(prevObjectListing);
                 }
             }
@@ -145,7 +147,8 @@ public class DataStoreUtils {
         s3service.shutdown();
     }
 
-    public static void deleteAzureContainer(Map<String, ?> config, String containerName) throws Exception {
+    public static void deleteAzureContainer(Map<String, ?> config, String containerName)
+        throws Exception {
         if (Strings.isNullOrEmpty(containerName)) {
             return;
         }
@@ -157,11 +160,13 @@ public class DataStoreUtils {
                 Strings.isNullOrEmpty(accountKey)) {
                 return;
             }
-            connectionString = org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.Utils.getConnectionString(accountName, accountKey);
+            connectionString = org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.Utils.getConnectionString(
+                accountName, accountKey);
         }
         log.info("deleting container [{}]", containerName);
-        CloudBlobContainer container = 
-            org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.Utils.getBlobContainer(connectionString, containerName);
+        CloudBlobContainer container =
+            org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.Utils.getBlobContainer(
+                connectionString, containerName);
         if (container.deleteIfExists()) {
             log.info("container [{}] deleted", containerName);
         } else {

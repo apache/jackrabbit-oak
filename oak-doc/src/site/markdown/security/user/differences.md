@@ -14,6 +14,7 @@
    See the License for the specific language governing permissions and
    limitations under the License.
   -->
+
 ### User Management : Differences to Jackrabbit 2.x
 
 The default user management implementation present has the following characteristics
@@ -21,11 +22,12 @@ that differ from the default behavior in Jackrabbit 2.x
 
 #### General
 
-* changes made to the user management API are always transient and require `Session#save()` to be persisted.
+* changes made to the user management API are always transient and require `Session#save()` to be
+  persisted.
 * In case of a failure `Session#refresh` is no longer called in order to prevent
-reverting other changes unrelated to the user management operation. Consequently
-it's the responsibility of the API consumer to specifically revert pending or
-invalid transient modifications.
+  reverting other changes unrelated to the user management operation. Consequently
+  it's the responsibility of the API consumer to specifically revert pending or
+  invalid transient modifications.
 
 #### Differences by Interface
 
@@ -62,23 +64,28 @@ invalid transient modifications.
   in Oak 1.0. See section [Group Membership](membership.html) for a detailed description.
 
 <a name="query"></a>
+
 ##### QueryBuilder
 
 The user query is expected to work as in Jackrabbit 2.x with the following notable
 bug fixes:
 
-* `QueryBuilder#setScope(String groupID, boolean declaredOnly)` now also works properly for the `everyone` group (see [OAK-949])
-* `QueryBuilder#impersonates(String principalName)` works properly for the admin principal which are specially treated in the implementation of the `Impersonation` interface (see [OAK-1183]).
-* `QueryBuilder#impersonates(String principalName)` respects the `PARAM_IMPERSONATOR_PRINCIPAL_NAMES` configuration option (see [OAK-10173])
+* `QueryBuilder#setScope(String groupID, boolean declaredOnly)` now also works properly for
+  the `everyone` group (see [OAK-949])
+* `QueryBuilder#impersonates(String principalName)` works properly for the admin principal which are
+  specially treated in the implementation of the `Impersonation` interface (see [OAK-1183]).
+* `QueryBuilder#impersonates(String principalName)` respects
+  the `PARAM_IMPERSONATOR_PRINCIPAL_NAMES` configuration option (see [OAK-10173])
 
 #### Additional Functionality
 
 ##### XML Import
 
-* Importing an authorizable to another tree than the configured user/group node 
-  will only failed upon save (-> see `UserValidator` during the `Root#commit`). 
+* Importing an authorizable to another tree than the configured user/group node
+  will only failed upon save (-> see `UserValidator` during the `Root#commit`).
   With Jackrabbit 2.x core it used to fail immediately.
-* The `BestEffort` behavior is now also implemented for the import of impersonators (was missing in Jackrabbit /2.x).
+* The `BestEffort` behavior is now also implemented for the import of impersonators (was missing in
+  Jackrabbit /2.x).
 * Oak also supports workspace import for authorizables
 
 ##### Built-in Users
@@ -89,9 +96,11 @@ bug fixes:
 
 ##### Group representing the Everyone Principal
 
-- the implementation of the optional special group representing the [everyone] principal is consistent throughout all group membership related methods.
+- the implementation of the optional special group representing the [everyone] principal is
+  consistent throughout all group membership related methods.
 
 ##### Authorizable Actions
+
 The former internal interface `AuthorizableAction` has been slightly adjusted to
 match OAK requirements and is now part of the public OAK SPI interfaces.
 
@@ -130,6 +139,9 @@ in Jackrabbit 2.x are no longer supported and will be ignored:
 <!-- hidden references -->
 
 [OAK-949]: https://issues.apache.org/jira/browse/OAK-949
+
 [OAK-1183]: https://issues.apache.org/jira/browse/OAK-1183
+
 [OAK-10173]: https://issues.apache.org/jira/browse/OAK-10173
+
 [everyone]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/principal/EveryonePrincipal.html

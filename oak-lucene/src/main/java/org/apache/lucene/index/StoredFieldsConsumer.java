@@ -28,9 +28,14 @@ package org.apache.lucene.index;
 import java.io.IOException;
 
 abstract class StoredFieldsConsumer {
-  abstract void addField(int docID, IndexableField field, FieldInfo fieldInfo) throws IOException;
-  abstract void flush(SegmentWriteState state) throws IOException;
-  abstract void abort() throws IOException;
-  abstract void startDocument() throws IOException;
-  abstract void finishDocument() throws IOException;
+
+    abstract void addField(int docID, IndexableField field, FieldInfo fieldInfo) throws IOException;
+
+    abstract void flush(SegmentWriteState state) throws IOException;
+
+    abstract void abort() throws IOException;
+
+    abstract void startDocument() throws IOException;
+
+    abstract void finishDocument() throws IOException;
 }

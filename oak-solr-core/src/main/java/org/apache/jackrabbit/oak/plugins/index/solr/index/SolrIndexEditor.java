@@ -16,11 +16,15 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.index;
 
+import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
+import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
+import static org.apache.jackrabbit.oak.plugins.index.solr.util.SolrUtils.getSortingField;
+import static org.apache.jackrabbit.oak.plugins.index.solr.util.SolrUtils.partialEscape;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.LinkedList;
 import java.util.List;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -42,11 +46,6 @@ import org.apache.tika.parser.Parser;
 import org.apache.tika.sax.WriteOutContentHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
-import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
-import static org.apache.jackrabbit.oak.plugins.index.solr.util.SolrUtils.getSortingField;
-import static org.apache.jackrabbit.oak.plugins.index.solr.util.SolrUtils.partialEscape;
 
 /**
  * Index editor for keeping a Solr index up to date.
@@ -81,9 +80,9 @@ class SolrIndexEditor implements IndexEditor {
     private static final Parser parser = new AutoDetectParser();
 
     SolrIndexEditor(
-            SolrClient solrServer,
-            OakSolrConfiguration configuration,
-            IndexUpdateCallback callback) {
+        SolrClient solrServer,
+        OakSolrConfiguration configuration,
+        IndexUpdateCallback callback) {
         this.parent = null;
         this.name = null;
         this.path = "/";
@@ -114,17 +113,17 @@ class SolrIndexEditor implements IndexEditor {
 
     @Override
     public void leave(NodeState before, NodeState after)
-            throws CommitFailedException {
+        throws CommitFailedException {
         if (propertiesChanged || !before.exists()) {
             updateCallback.indexUpdate();
             try {
                 solrServer.add(docFromState(after));
             } catch (SolrServerException e) {
                 throw new CommitFailedException(
-                        "Solr", 2, "Failed to add a document to Solr", e);
+                    "Solr", 2, "Failed to add a document to Solr", e);
             } catch (IOException e) {
                 throw new CommitFailedException(
-                        "Solr", 6, "Failed to send data to Solr", e);
+                    "Solr", 6, "Failed to send data to Solr", e);
             }
         }
 
@@ -133,15 +132,16 @@ class SolrIndexEditor implements IndexEditor {
                 commitByPolicy(solrServer, configuration.getCommitPolicy());
             } catch (SolrServerException e) {
                 throw new CommitFailedException(
-                        "Solr", 3, "Failed to commit changes to Solr", e);
+                    "Solr", 3, "Failed to commit changes to Solr", e);
             } catch (IOException e) {
                 throw new CommitFailedException(
-                        "Solr", 6, "Failed to send data to Solr", e);
+                    "Solr", 6, "Failed to send data to Solr", e);
             }
         }
     }
 
-    private void commitByPolicy(SolrClient solrServer, OakSolrConfiguration.CommitPolicy commitPolicy) throws IOException, SolrServerException {
+    private void commitByPolicy(SolrClient solrServer,
+        OakSolrConfiguration.CommitPolicy commitPolicy) throws IOException, SolrServerException {
         switch (commitPolicy) {
             case HARD: {
                 solrServer.commit();
@@ -179,17 +179,17 @@ class SolrIndexEditor implements IndexEditor {
 
     @Override
     public Editor childNodeChanged(
-            String name, NodeState before, NodeState after) {
+        String name, NodeState before, NodeState after) {
         return new SolrIndexEditor(this, name);
     }
 
     @Override
     public Editor childNodeDeleted(String name, NodeState before)
-            throws CommitFailedException {
+        throws CommitFailedException {
         String path = partialEscape(PathUtils.concat(getPath(), name)).toString();
         try {
             String formattedQuery = String.format(
-                    "%s:%s*", configuration.getPathField(), path);
+                "%s:%s*", configuration.getPathField(), path);
             if (log.isDebugEnabled()) {
                 log.debug("deleting by query {}", formattedQuery);
             }
@@ -197,10 +197,10 @@ class SolrIndexEditor implements IndexEditor {
             updateCallback.indexUpdate();
         } catch (SolrServerException e) {
             throw new CommitFailedException(
-                    "Solr", 5, "Failed to remove documents from Solr", e);
+                "Solr", 5, "Failed to remove documents from Solr", e);
         } catch (IOException e) {
             throw new CommitFailedException(
-                    "Solr", 6, "Failed to send data to Solr", e);
+                "Solr", 6, "Failed to send data to Solr", e);
         }
 
         return null; // no need to recurse down the removed subtree
@@ -222,8 +222,10 @@ class SolrIndexEditor implements IndexEditor {
         }
 
         for (PropertyState property : state.getProperties()) {
-            if ((configuration.getUsedProperties().size() > 0 && configuration.getUsedProperties().contains(property.getName()))
-                    || !configuration.getIgnoredProperties().contains(property.getName())) {
+            if ((configuration.getUsedProperties().size() > 0 && configuration.getUsedProperties()
+                                                                              .contains(
+                                                                                  property.getName()))
+                || !configuration.getIgnoredProperties().contains(property.getName())) {
                 // try to get the field to use for this property from configuration
                 String fieldName = configuration.getFieldNameFor(property.getType());
                 Object fieldValue;
@@ -267,14 +269,15 @@ class SolrIndexEditor implements IndexEditor {
                 }
 
                 // add sort field
-                inputDocument.addField(getSortingField(property.getType().tag(), property.getName()), sortValue);
+                inputDocument.addField(
+                    getSortingField(property.getType().tag(), property.getName()), sortValue);
             }
         }
         return inputDocument;
     }
 
     private List<String> extractTextValues(
-            PropertyState property, NodeState state) {
+        PropertyState property, NodeState state) {
         List<String> values = new LinkedList<String>();
         Metadata metadata = new Metadata();
         if (JCR_DATA.equals(property.getName())) {
@@ -313,9 +316,9 @@ class SolrIndexEditor implements IndexEditor {
             // The special STOP exception is used for normal termination.
             if (!handler.isWriteLimitReached(t)) {
                 log.debug("Failed to extract text from a binary property: "
-                        + " This is a fairly common case, and nothing to"
-                        + " worry about. The stack trace is included to"
-                        + " help improve the text extraction feature.", t);
+                    + " This is a fairly common case, and nothing to"
+                    + " worry about. The stack trace is included to"
+                    + " help improve the text extraction feature.", t);
                 return "TextExtractionError";
             }
         }

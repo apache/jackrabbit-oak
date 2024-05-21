@@ -19,14 +19,15 @@ package org.apache.jackrabbit.oak.segment.osgi;
 final class DeprecationMessage {
 
     private static final String MOVED_PID_FORMAT = "Deprecated configuration detected!\n\n" +
-            "  A configuration for %s\n" +
-            "  was detected. The oak-segment bundle used to contain this component,\n" +
-            "  but the bundle is now deprecated and should not be included in your\n" +
-            "  deployment. The oak-segment-tar bundle exposes an equivalent and improved\n" +
-            "  functionality but you need to rename your configuration to target the\n" +
-            "  new component using the PID %s.\n";
+        "  A configuration for %s\n" +
+        "  was detected. The oak-segment bundle used to contain this component,\n" +
+        "  but the bundle is now deprecated and should not be included in your\n" +
+        "  deployment. The oak-segment-tar bundle exposes an equivalent and improved\n" +
+        "  functionality but you need to rename your configuration to target the\n" +
+        "  new component using the PID %s.\n";
 
-    private DeprecationMessage() {}
+    private DeprecationMessage() {
+    }
 
     static String movedPid(String oldPid, String newPid) {
         return String.format(MOVED_PID_FORMAT, oldPid, newPid);

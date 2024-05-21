@@ -24,12 +24,13 @@ import org.apache.jackrabbit.oak.spi.state.MoveValidator;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
- * {@code MoveValidator} that does nothing by default and doesn't recurse into subtrees.
- * Useful as a sentinel or as a base class for more complex validators.
+ * {@code MoveValidator} that does nothing by default and doesn't recurse into subtrees. Useful as a
+ * sentinel or as a base class for more complex validators.
  *
  * @see DefaultValidator
  */
 public class DefaultMoveValidator extends DefaultValidator implements MoveValidator {
+
     @Override
     public void move(String name, String sourcePath, NodeState moved) throws CommitFailedException {
         // do nothing
@@ -42,13 +43,15 @@ public class DefaultMoveValidator extends DefaultValidator implements MoveValida
     }
 
     @Override
-    public MoveValidator childNodeChanged(String name, NodeState before, NodeState after) throws CommitFailedException {
+    public MoveValidator childNodeChanged(String name, NodeState before, NodeState after)
+        throws CommitFailedException {
         // do nothing
         return null;
     }
 
     @Override
-    public MoveValidator childNodeDeleted(String name, NodeState before) throws CommitFailedException {
+    public MoveValidator childNodeDeleted(String name, NodeState before)
+        throws CommitFailedException {
         // do nothing
         return null;
     }

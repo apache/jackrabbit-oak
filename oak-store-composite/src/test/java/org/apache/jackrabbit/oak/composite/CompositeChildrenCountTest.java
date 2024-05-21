@@ -57,7 +57,8 @@ public class CompositeChildrenCountTest {
     public void singleContributingStore() {
         MountInfoProvider mip = Mounts.newBuilder().build();
         NodeStore globalStore = new MemoryNodeStore();
-        CompositeNodeStore compositeNodeStore = new CompositeNodeStore.Builder(mip, globalStore).build();
+        CompositeNodeStore compositeNodeStore = new CompositeNodeStore.Builder(mip,
+            globalStore).build();
 
         CompositeNodeStoreBuilder b = new CompositeNodeStoreBuilder(compositeNodeStore.ctx);
         b.configureMount("/", MAX_VALUE);
@@ -69,11 +70,13 @@ public class CompositeChildrenCountTest {
 
     @Test
     public void multipleContributingStores() {
-        MountInfoProvider mip = Mounts.newBuilder().readOnlyMount("libs", "/libs", "/libs1", "/libs2", "/libs3", "/libs4").build();
+        MountInfoProvider mip = Mounts.newBuilder()
+                                      .readOnlyMount("libs", "/libs", "/libs1", "/libs2", "/libs3",
+                                          "/libs4").build();
         NodeStore globalStore = new MemoryNodeStore();
         NodeStore libsStore = new MemoryNodeStore();
 
-        List<MountedNodeStore> mounts = Lists.newArrayList(); 
+        List<MountedNodeStore> mounts = Lists.newArrayList();
         mounts.add(new MountedNodeStore(mip.getMountByName("libs"), libsStore));
         CompositeNodeStore compositeNodeStore = new CompositeNodeStore(mip, globalStore, mounts);
 
@@ -120,11 +123,13 @@ public class CompositeChildrenCountTest {
 
     @Test
     public void contributingStoreReturnsInfinity() {
-        MountInfoProvider mip = Mounts.newBuilder().readOnlyMount("libs", "/libs", "/libs1", "/libs2", "/libs3", "/libs4").build();
+        MountInfoProvider mip = Mounts.newBuilder()
+                                      .readOnlyMount("libs", "/libs", "/libs1", "/libs2", "/libs3",
+                                          "/libs4").build();
         NodeStore globalStore = new MemoryNodeStore();
         NodeStore libsStore = new MemoryNodeStore();
 
-        List<MountedNodeStore> mounts = Lists.newArrayList(); 
+        List<MountedNodeStore> mounts = Lists.newArrayList();
         mounts.add(new MountedNodeStore(mip.getMountByName("libs"), libsStore));
         CompositeNodeStore compositeNodeStore = new CompositeNodeStore(mip, globalStore, mounts);
 
@@ -221,16 +226,19 @@ public class CompositeChildrenCountTest {
         @Override
         public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
             if (children == null) {
-                Iterable<? extends ChildNodeEntry> childrenIterable = cycle(new MemoryChildNodeEntry("child", EMPTY_NODE));
-                return asCountingIterable(limit(childrenIterable, childrenCount == MAX_VALUE ? 1000 : (int) childrenCount));
+                Iterable<? extends ChildNodeEntry> childrenIterable = cycle(
+                    new MemoryChildNodeEntry("child", EMPTY_NODE));
+                return asCountingIterable(limit(childrenIterable,
+                    childrenCount == MAX_VALUE ? 1000 : (int) childrenCount));
             } else {
-                return asCountingIterable(transform(asList(children), new Function<String, ChildNodeEntry>() {
-                    @Nullable
-                    @Override
-                    public ChildNodeEntry apply(@Nullable String input) {
-                        return new MemoryChildNodeEntry(input, EMPTY_NODE);
-                    }
-                }));
+                return asCountingIterable(
+                    transform(asList(children), new Function<String, ChildNodeEntry>() {
+                        @Nullable
+                        @Override
+                        public ChildNodeEntry apply(@Nullable String input) {
+                            return new MemoryChildNodeEntry(input, EMPTY_NODE);
+                        }
+                    }));
             }
         }
 

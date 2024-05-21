@@ -16,18 +16,17 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.property;
 
-import java.util.UUID;
+import static org.junit.Assert.fail;
 
+import java.util.UUID;
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.junit.Test;
-
-import static org.junit.Assert.fail;
 
 /**
  * UniquePropertyTest...

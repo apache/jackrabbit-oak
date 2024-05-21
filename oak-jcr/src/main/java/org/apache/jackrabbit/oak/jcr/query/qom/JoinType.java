@@ -51,27 +51,26 @@ public enum JoinType {
     /**
      * Returns the join of the given sources.
      *
-     * @param factory factory for creating the join
-     * @param left left join source
-     * @param right right join source
+     * @param factory   factory for creating the join
+     * @param left      left join source
+     * @param right     right join source
      * @param condition join condition
      * @return join
      * @throws RepositoryException if the join can not be created
      */
     public Join join(
-            QueryObjectModelFactory factory,
-            Source left, Source right, JoinCondition condition)
-            throws RepositoryException {
+        QueryObjectModelFactory factory,
+        Source left, Source right, JoinCondition condition)
+        throws RepositoryException {
         return factory.join(left, right, name, condition);
     }
 
     /**
-     * Formats an SQL join with this join type and the given sources and
-     * join condition. The sources and condition are simply used as-is,
-     * without any quoting or escaping.
+     * Formats an SQL join with this join type and the given sources and join condition. The sources
+     * and condition are simply used as-is, without any quoting or escaping.
      *
-     * @param left left source
-     * @param right right source
+     * @param left      left source
+     * @param right     right source
      * @param condition join condition
      * @return SQL join, {@code left join right}
      */
@@ -82,8 +81,8 @@ public enum JoinType {
     /**
      * Returns the JCR 2.0 name of this join type.
      *
-     * @see QueryObjectModelConstants
      * @return JCR name of this join type
+     * @see QueryObjectModelConstants
      */
     @Override
     public String toString() {
@@ -96,7 +95,7 @@ public enum JoinType {
      * @param name JCR name of a join type
      * @return join type with the given name
      */
-    public static JoinType getJoinTypeByName(String name)  {
+    public static JoinType getJoinTypeByName(String name) {
         for (JoinType type : JoinType.values()) {
             if (type.name.equals(name)) {
                 return type;

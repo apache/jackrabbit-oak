@@ -36,14 +36,14 @@ import org.jetbrains.annotations.Nullable;
 public class ClusterNodeInfoDocument extends Document {
 
     /**
-     * All ClusterNodeInfoDocument ID value would be greater than this value
-     * It can be used as startKey in DocumentStore#query methods
+     * All ClusterNodeInfoDocument ID value would be greater than this value It can be used as
+     * startKey in DocumentStore#query methods
      */
     private static final String MIN_ID_VALUE = "0";
 
     /**
-     * All ClusterNodeInfoDocument ID value would be less than this value
-     * It can be used as endKey in DocumentStore#query methods
+     * All ClusterNodeInfoDocument ID value would be less than this value It can be used as endKey
+     * in DocumentStore#query methods
      */
     private static final String MAX_ID_VALUE = "a";
 
@@ -59,13 +59,12 @@ public class ClusterNodeInfoDocument extends Document {
         return created;
     }
 
-    public long getLeaseEndTime(){
+    public long getLeaseEndTime() {
         return checkNotNull((Long) get(ClusterNodeInfo.LEASE_END_KEY), "Lease End Time not set");
     }
 
     /**
-     * @return the time when this cluster node was started or {@code -1} if not
-     *          available.
+     * @return the time when this cluster node was started or {@code -1} if not available.
      */
     public long getStartTime() {
         Long startTime = (Long) get(ClusterNodeInfo.START_TIME_KEY);
@@ -83,50 +82,49 @@ public class ClusterNodeInfoDocument extends Document {
         return (String) get(ClusterNodeInfo.RUNTIME_ID_KEY);
     }
 
-    public boolean isActive(){
+    public boolean isActive() {
         return getState() == ClusterNodeState.ACTIVE;
     }
 
     /**
      * @return {@code true} if the recovery lock state is
-     *          {@link RecoverLockState#ACQUIRED ACQUIRED}.
+     * {@link RecoverLockState#ACQUIRED ACQUIRED}.
      */
-    public boolean isBeingRecovered(){
+    public boolean isBeingRecovered() {
         return getRecoveryState() == RecoverLockState.ACQUIRED;
     }
 
     /**
-     * Check if _lastRev recovery is needed for cluster node info document.
-     * Returns {@code true} if both of the below conditions are {@code true}:
+     * Check if _lastRev recovery is needed for cluster node info document. Returns {@code true} if
+     * both of the below conditions are {@code true}:
      * <ul>
      *     <li>State is Active</li>
      *     <li>Current time is past the leaseEnd time or there is a recovery
      *          lock on the cluster node info document</li>
      * </ul>
-     * @param currentTimeMillis the current time in milliseconds since the start
-     *                          start of the epoch.
+     *
+     * @param currentTimeMillis the current time in milliseconds since the start start of the
+     *                          epoch.
      */
     public boolean isRecoveryNeeded(long currentTimeMillis) {
         return isActive() &&
-                (currentTimeMillis - getLeaseEndTime() > ClusterNodeInfo.getRecoveryDelayMillis() ||
-                        isBeingRecovered());
+            (currentTimeMillis - getLeaseEndTime() > ClusterNodeInfo.getRecoveryDelayMillis() ||
+                isBeingRecovered());
     }
 
     /**
-     * Returns {@code true} if the cluster node represented by this document
-     * is currently being recovered by the given {@code clusterId}.
+     * Returns {@code true} if the cluster node represented by this document is currently being
+     * recovered by the given {@code clusterId}.
      *
      * @param clusterId the id of a cluster node.
-     * @return {@code true} if being recovered by the given id; {@code false}
-     *          otherwise.
+     * @return {@code true} if being recovered by the given id; {@code false} otherwise.
      */
     public boolean isBeingRecoveredBy(int clusterId) {
         return Long.valueOf(clusterId).equals(getRecoveryBy());
     }
 
     /**
-     * @return the id of the cluster node performing recovery or {@code null} if
-     *          currently not set.
+     * @return the id of the cluster node performing recovery or {@code null} if currently not set.
      */
     @Nullable
     public Long getRecoveryBy() {
@@ -143,8 +141,7 @@ public class ClusterNodeInfoDocument extends Document {
     }
 
     /**
-     * Returns all cluster node info documents currently available in the given
-     * document store.
+     * Returns all cluster node info documents currently available in the given document store.
      *
      * @param store the document store.
      * @return list of cluster node info documents.
@@ -152,16 +149,16 @@ public class ClusterNodeInfoDocument extends Document {
     public static List<ClusterNodeInfoDocument> all(DocumentStore store) {
         // keys between "0" and "a" includes all possible numbers
         return store.query(Collection.CLUSTER_NODES,
-                MIN_ID_VALUE, MAX_ID_VALUE, Integer.MAX_VALUE);
+            MIN_ID_VALUE, MAX_ID_VALUE, Integer.MAX_VALUE);
     }
 
     //-----------------------< internal >---------------------------------------
 
-    private ClusterNodeState getState(){
+    private ClusterNodeState getState() {
         return ClusterNodeState.fromString((String) get(ClusterNodeInfo.STATE));
     }
 
-    private RecoverLockState getRecoveryState(){
+    private RecoverLockState getRecoveryState() {
         return RecoverLockState.fromString((String) get(ClusterNodeInfo.REV_RECOVERY_LOCK));
     }
 
@@ -174,8 +171,8 @@ public class ClusterNodeInfoDocument extends Document {
 
     /**
      * Is the cluster node marked as invisible
-     * @return {@code true} if invisible; {@code false}
-     *         otherwise.
+     *
+     * @return {@code true} if invisible; {@code false} otherwise.
      */
     public boolean isInvisible() {
         Boolean invisible = (Boolean) get(ClusterNodeInfo.INVISIBLE);
@@ -190,6 +187,7 @@ public class ClusterNodeInfoDocument extends Document {
     @NotNull
     @VisibleForTesting
     Predicate<Revision> isOlderThanLastWrittenRootRevPredicate() {
-        return r -> nonNull(getLastWrittenRootRev()) && getTimestampDifference(r, fromString(getLastWrittenRootRev())) < 0;
+        return r -> nonNull(getLastWrittenRootRev())
+            && getTimestampDifference(r, fromString(getLastWrittenRootRev())) < 0;
     }
 }

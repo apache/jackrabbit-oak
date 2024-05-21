@@ -47,7 +47,7 @@ public class DocumentPropertyStateTest {
     private BlobStore bs = new MemoryBlobStore() {
         @Override
         public InputStream getInputStream(String blobId)
-                throws IOException {
+            throws IOException {
             reads.add(blobId);
             return super.getInputStream(blobId);
         }

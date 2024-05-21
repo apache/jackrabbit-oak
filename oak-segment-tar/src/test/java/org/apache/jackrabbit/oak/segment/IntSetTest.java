@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.segment.RecordIdSet.IntSet;
 import org.junit.Test;
 
 public class IntSetTest {
+
     private final IntSet set = new IntSet();
 
     @Test

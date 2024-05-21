@@ -25,30 +25,32 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * {@code Cache} wrapper exposing the number of read accesses and the
- * number of misses ot the underlying cache via the {@link StatisticsProvider}.
+ * {@code Cache} wrapper exposing the number of read accesses and the number of misses ot the
+ * underlying cache via the {@link StatisticsProvider}.
  */
-public class CacheAccessTracker<K, V> implements Cache<K,V> {
+public class CacheAccessTracker<K, V> implements Cache<K, V> {
+
     private final Cache<K, V> delegate;
     private final CounterStats accessCount;
     private final CounterStats missCount;
 
     /**
-     * Create a new wrapper exposing the access statistics under the given
-     * {@code name} to the passed {@code statisticsProvider}.
-     * @param name                 name under which to expose the access statistics
-     * @param statisticsProvider   statistics provider where the access statistics is recorded to
-     * @param delegate             the underlying, wrapped cache.
+     * Create a new wrapper exposing the access statistics under the given {@code name} to the
+     * passed {@code statisticsProvider}.
+     *
+     * @param name               name under which to expose the access statistics
+     * @param statisticsProvider statistics provider where the access statistics is recorded to
+     * @param delegate           the underlying, wrapped cache.
      */
     public CacheAccessTracker(
-            @NotNull String name,
-            @NotNull StatisticsProvider statisticsProvider,
-            @NotNull Cache<K, V> delegate) {
+        @NotNull String name,
+        @NotNull StatisticsProvider statisticsProvider,
+        @NotNull Cache<K, V> delegate) {
         this.delegate = delegate;
         this.accessCount = statisticsProvider.getCounterStats(
-                name + ".access-count", StatsOptions.DEFAULT);
+            name + ".access-count", StatsOptions.DEFAULT);
         this.missCount = statisticsProvider.getCounterStats(
-                name + ".miss-count", StatsOptions.DEFAULT);
+            name + ".miss-count", StatsOptions.DEFAULT);
     }
 
     @Override

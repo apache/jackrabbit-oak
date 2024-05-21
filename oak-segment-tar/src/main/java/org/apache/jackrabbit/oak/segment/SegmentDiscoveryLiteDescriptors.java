@@ -18,7 +18,6 @@
 package org.apache.jackrabbit.oak.segment;
 
 import javax.jcr.Value;
-
 import org.apache.jackrabbit.commons.SimpleValueFactory;
 import org.apache.jackrabbit.oak.api.Descriptors;
 import org.apache.jackrabbit.oak.spi.cluster.ClusterRepositoryInfo;
@@ -31,8 +30,9 @@ import org.jetbrains.annotations.NotNull;
 class SegmentDiscoveryLiteDescriptors implements Descriptors {
 
     /**
-     * Name of the repository descriptor via which the clusterView is published - which is the reason d'etre of the
-     * DocumentDiscoveryLiteService TODO: move this constant to a generic place for both segment and document
+     * Name of the repository descriptor via which the clusterView is published - which is the
+     * reason d'etre of the DocumentDiscoveryLiteService TODO: move this constant to a generic place
+     * for both segment and document
      **/
     private static final String OAK_DISCOVERYLITE_CLUSTERVIEW = "oak.discoverylite.clusterview";
 
@@ -47,7 +47,7 @@ class SegmentDiscoveryLiteDescriptors implements Descriptors {
     @NotNull
     @Override
     public String[] getKeys() {
-        return new String[] {OAK_DISCOVERYLITE_CLUSTERVIEW};
+        return new String[]{OAK_DISCOVERYLITE_CLUSTERVIEW};
     }
 
     @Override
@@ -73,7 +73,7 @@ class SegmentDiscoveryLiteDescriptors implements Descriptors {
         if (!OAK_DISCOVERYLITE_CLUSTERVIEW.equals(key)) {
             return null;
         }
-        return new Value[] {getValue(key)};
+        return new Value[]{getValue(key)};
     }
 
     private String getClusterViewAsDescriptorValue() {
@@ -83,12 +83,13 @@ class SegmentDiscoveryLiteDescriptors implements Descriptors {
         // OAK-3672 : 'id' is now allowed to be null (supported by upper layers),
         //            and for tarMk we're doing exactly that (id==null) - indicating
         //            to upper layers that we're not really in a cluster and that
-        //            this low level descriptor doesn't manage the 'cluster id' 
+        //            this low level descriptor doesn't manage the 'cluster id'
         //            in such a case.
         // OAK-4006: but ClusterRepositoryInfo now provides a persistent clusterId,
         //           so that is now used also for discovery-lite via exactly below 'id'
         String clusterId = ClusterRepositoryInfo.getOrCreateId(store);
-        return "{\"seq\":1,\"final\":true,\"me\":1,\"id\":\"" + clusterId + "\",\"active\":[1],\"deactivating\":[],\"inactive\":[]}";
+        return "{\"seq\":1,\"final\":true,\"me\":1,\"id\":\"" + clusterId
+            + "\",\"active\":[1],\"deactivating\":[],\"inactive\":[]}";
     }
 
 }

@@ -22,7 +22,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.ItemExistsException;
 import javax.jcr.Node;
@@ -40,7 +39,6 @@ import javax.jcr.version.Version;
 import javax.jcr.version.VersionException;
 import javax.jcr.version.VersionHistory;
 import javax.jcr.version.VersionManager;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
@@ -61,7 +59,8 @@ public class VersionManagerImpl implements VersionManager {
 
     public VersionManagerImpl(SessionContext sessionContext) {
         this.sessionContext = sessionContext;
-        this.versionManagerDelegate = VersionManagerDelegate.create(sessionContext.getSessionDelegate());
+        this.versionManagerDelegate = VersionManagerDelegate.create(
+            sessionContext.getSessionDelegate());
     }
 
     @Override
@@ -71,16 +70,17 @@ public class VersionManagerImpl implements VersionManager {
 
     @Override
     public void restoreByLabel(
-            String absPath, String versionLabel, boolean removeExisting)
-            throws RepositoryException {
-        throw new UnsupportedRepositoryOperationException("OAK-168: Restore of by label not implemented.");
+        String absPath, String versionLabel, boolean removeExisting)
+        throws RepositoryException {
+        throw new UnsupportedRepositoryOperationException(
+            "OAK-168: Restore of by label not implemented.");
     }
 
     @Override
     public void restore(final String absPath,
-                        final Version version,
-                        final boolean removeExisting)
-            throws RepositoryException {
+        final Version version,
+        final boolean removeExisting)
+        throws RepositoryException {
         final SessionDelegate sessionDelegate = sessionContext.getSessionDelegate();
         sessionDelegate.performVoid(new SessionOperation<Void>("restore", true) {
             @Override
@@ -89,10 +89,10 @@ public class VersionManagerImpl implements VersionManager {
                 NodeDelegate nodeDelegate = sessionDelegate.getNode(oakPath);
                 if (nodeDelegate != null) {
                     throw new VersionException(
-                            "VersionManager.restore(String, Version, boolean)"
-                                    + " not allowed on existing nodes; use"
-                                    + " VersionManager.restore(Version, boolean) instead: "
-                                    + absPath);
+                        "VersionManager.restore(String, Version, boolean)"
+                            + " not allowed on existing nodes; use"
+                            + " VersionManager.restore(Version, boolean) instead: "
+                            + absPath);
                 }
                 // check if parent exists
                 NodeDelegate parent = ensureParentExists(sessionDelegate, absPath);
@@ -102,7 +102,7 @@ public class VersionManagerImpl implements VersionManager {
                 checkNotLocked(parent);
                 // check for existing nodes
                 List<NodeDelegate> existing = getExisting(version,
-                        Collections.<String>emptySet());
+                    Collections.<String>emptySet());
                 boolean success = false;
                 try {
                     if (!existing.isEmpty()) {
@@ -114,15 +114,15 @@ public class VersionManagerImpl implements VersionManager {
                                 paths.add(nd.getPath());
                             }
                             throw new ItemExistsException("Unable to restore with " +
-                                    "removeExisting=false. Existing nodes in " +
-                                    "workspace: " + paths);
+                                "removeExisting=false. Existing nodes in " +
+                                "workspace: " + paths);
                         }
                     }
                     // ready for restore
                     VersionDelegate vd = versionManagerDelegate.getVersionByIdentifier(
-                            version.getIdentifier());
+                        version.getIdentifier());
                     versionManagerDelegate.restore(
-                            parent, PathUtils.getName(oakPath), vd);
+                        parent, PathUtils.getName(oakPath), vd);
                     sessionDelegate.commit();
                     success = true;
                 } catch (CommitFailedException e) {
@@ -139,27 +139,28 @@ public class VersionManagerImpl implements VersionManager {
 
     @Override
     public void restore(final String absPath,
-                        final String versionName,
-                        final boolean removeExisting)
-            throws RepositoryException {
+        final String versionName,
+        final boolean removeExisting)
+        throws RepositoryException {
         VersionHistory history = getVersionHistory(absPath);
         restore(new Version[]{history.getVersion(versionName)}, removeExisting);
     }
 
     @Override
     public void restore(Version version, boolean removeExisting)
-            throws RepositoryException {
+        throws RepositoryException {
         restore(new Version[]{version}, removeExisting);
     }
 
     @Override
     public void restore(final Version[] versions,
-                        final boolean removeExisting)
-            throws ItemExistsException,
-            UnsupportedRepositoryOperationException, VersionException,
-            LockException, InvalidItemStateException, RepositoryException {
+        final boolean removeExisting)
+        throws ItemExistsException,
+        UnsupportedRepositoryOperationException, VersionException,
+        LockException, InvalidItemStateException, RepositoryException {
         if (versions.length > 1) {
-            throw new UnsupportedRepositoryOperationException("OAK-168: Restore of multiple versions not implemented.");
+            throw new UnsupportedRepositoryOperationException(
+                "OAK-168: Restore of multiple versions not implemented.");
         }
         final Version version = versions[0];
         VersionHistory history = (VersionHistory) version.getParent();
@@ -176,13 +177,13 @@ public class VersionManagerImpl implements VersionManager {
                 NodeDelegate n = sessionDelegate.getNodeByIdentifier(versionableId);
                 if (n == null) {
                     throw new VersionException("Unable to restore version. " +
-                            "No versionable node with identifier: " + versionableId);
+                        "No versionable node with identifier: " + versionableId);
                 }
                 // check lock status
                 checkNotLocked(n);
                 // check for existing nodes
                 List<NodeDelegate> existing = getExisting(version,
-                        Collections.singleton(n.getPath()));
+                    Collections.singleton(n.getPath()));
                 boolean success = false;
                 try {
                     if (!existing.isEmpty()) {
@@ -194,12 +195,13 @@ public class VersionManagerImpl implements VersionManager {
                                 paths.add(nd.getPath());
                             }
                             throw new ItemExistsException("Unable to restore with " +
-                                    "removeExisting=false. Existing nodes in " +
-                                    "workspace: " + paths);
+                                "removeExisting=false. Existing nodes in " +
+                                "workspace: " + paths);
                         }
                     }
                     // ready for restore
-                    VersionDelegate vd = versionManagerDelegate.getVersionByIdentifier(version.getIdentifier());
+                    VersionDelegate vd = versionManagerDelegate.getVersionByIdentifier(
+                        version.getIdentifier());
                     versionManagerDelegate.restore(n.getParent(), n.getName(), vd);
                     sessionDelegate.commit();
                     success = true;
@@ -217,23 +219,23 @@ public class VersionManagerImpl implements VersionManager {
 
     @Override
     public void removeActivity(Node activityNode)
-            throws RepositoryException {
+        throws RepositoryException {
         throw new UnsupportedRepositoryOperationException("OAK-827: Activities not implemented.");
     }
 
     @Override
     public NodeIterator merge(
-            String absPath, String srcWorkspace,
-            boolean bestEffort, boolean isShallow)
-            throws RepositoryException {
+        String absPath, String srcWorkspace,
+        boolean bestEffort, boolean isShallow)
+        throws RepositoryException {
         // TODO mind OAK-1370 when implementing this
         throw new UnsupportedRepositoryOperationException("OAK-1402: Merge not implemented.");
     }
 
     @Override
     public NodeIterator merge(
-            String absPath, String srcWorkspace, boolean bestEffort)
-            throws RepositoryException {
+        String absPath, String srcWorkspace, boolean bestEffort)
+        throws RepositoryException {
         // TODO mind OAK-1370 when implementing this
         throw new UnsupportedRepositoryOperationException("OAK-1402: Merge not implemented.");
     }
@@ -267,14 +269,14 @@ public class VersionManagerImpl implements VersionManager {
 
     @Override
     public VersionHistory getVersionHistory(final String absPath)
-            throws RepositoryException {
+        throws RepositoryException {
         final SessionDelegate sessionDelegate = sessionContext.getSessionDelegate();
         return sessionDelegate.perform(new SessionOperation<VersionHistory>("getVersionHistory") {
             @NotNull
             @Override
             public VersionHistory perform() throws RepositoryException {
                 return new VersionHistoryImpl(
-                        internalGetVersionHistory(absPath), sessionContext);
+                    internalGetVersionHistory(absPath), sessionContext);
             }
         });
     }
@@ -292,7 +294,7 @@ public class VersionManagerImpl implements VersionManager {
                     throw new PathNotFoundException(absPath);
                 }
                 return new VersionImpl(
-                        versionManagerDelegate.getBaseVersion(nodeDelegate), sessionContext);
+                    versionManagerDelegate.getBaseVersion(nodeDelegate), sessionContext);
             }
         });
     }
@@ -304,13 +306,14 @@ public class VersionManagerImpl implements VersionManager {
 
     @Override
     public void doneMerge(String absPath, Version version)
-            throws RepositoryException {
+        throws RepositoryException {
         throw new UnsupportedRepositoryOperationException("OAK-1402: Merge not implemented.");
     }
 
     @Override
     public Node createConfiguration(String absPath) throws RepositoryException {
-        throw new UnsupportedRepositoryOperationException("OAK-1403: Configurations not implemented.");
+        throw new UnsupportedRepositoryOperationException(
+            "OAK-1403: Configurations not implemented.");
     }
 
     @Override
@@ -355,7 +358,8 @@ public class VersionManagerImpl implements VersionManager {
                 if (nodeDelegate == null) {
                     throw new PathNotFoundException(absPath);
                 }
-                return new VersionImpl(versionManagerDelegate.checkin(nodeDelegate), sessionContext);
+                return new VersionImpl(versionManagerDelegate.checkin(nodeDelegate),
+                    sessionContext);
             }
         });
     }
@@ -367,7 +371,8 @@ public class VersionManagerImpl implements VersionManager {
 
     //----------------------------< internal >----------------------------------
 
-    public boolean isCheckedOut(final @NotNull NodeDelegate nodeDelegate) throws RepositoryException {
+    public boolean isCheckedOut(final @NotNull NodeDelegate nodeDelegate)
+        throws RepositoryException {
         boolean isCheckedOut = versionManagerDelegate.isCheckedOut(nodeDelegate);
         if (!isCheckedOut) {
             // check OPV
@@ -385,10 +390,10 @@ public class VersionManagerImpl implements VersionManager {
     }
 
     private void checkPendingChangesForRestore(SessionDelegate sessionDelegate)
-            throws InvalidItemStateException {
+        throws InvalidItemStateException {
         if (sessionDelegate.hasPendingChanges()) {
             throw new InvalidItemStateException(
-                    "Unable to restore. Session has pending changes.");
+                "Unable to restore. Session has pending changes.");
         }
     }
 
@@ -408,16 +413,16 @@ public class VersionManagerImpl implements VersionManager {
      * {@link PathNotFoundException} if it doesn't exist.
      *
      * @param sessionDelegate session delegate.
-     * @param absPath an absolute path
+     * @param absPath         an absolute path
      * @return the parent for the given <code>absPath</code>.
      * @throws PathNotFoundException if the node does not exist.
      */
     @NotNull
     private NodeDelegate ensureParentExists(@NotNull SessionDelegate sessionDelegate,
-                                            @NotNull String absPath)
-            throws PathNotFoundException {
+        @NotNull String absPath)
+        throws PathNotFoundException {
         String oakParentPath = getOakPathOrThrowNotFound(
-                PathUtils.getParentPath(checkNotNull(absPath)));
+            PathUtils.getParentPath(checkNotNull(absPath)));
         NodeDelegate parent = checkNotNull(sessionDelegate).getNode(oakParentPath);
         if (parent == null) {
             throw new PathNotFoundException(PathUtils.getParentPath(absPath));
@@ -426,24 +431,23 @@ public class VersionManagerImpl implements VersionManager {
     }
 
     /**
-     * Returns referenceable nodes outside of the versionable sub-graphs
-     * identified by <code>versionablePaths</code>, which are also present
-     * in the versionable state captured by <code>version</code>.
+     * Returns referenceable nodes outside of the versionable sub-graphs identified by
+     * <code>versionablePaths</code>, which are also present in the versionable state captured by
+     * <code>version</code>.
      *
-     * @param version the version.
-     * @param versionablePaths identifies the starting points of the versionable
-     *                         sub-graphs.
+     * @param version          the version.
+     * @param versionablePaths identifies the starting points of the versionable sub-graphs.
      * @return existing nodes in this workspace.
      */
     private List<NodeDelegate> getExisting(@NotNull Version version,
-                                           @NotNull Set<String> versionablePaths)
-            throws RepositoryException {
+        @NotNull Set<String> versionablePaths)
+        throws RepositoryException {
         // collect uuids
         final List<String> uuids = new ArrayList<String>();
         version.getFrozenNode().accept(new TraversingItemVisitor.Default() {
             @Override
             protected void entering(Node node, int level)
-                    throws RepositoryException {
+                throws RepositoryException {
                 if (node.isNodeType(NodeType.NT_FROZEN_NODE)) {
                     String id = node.getProperty(Property.JCR_FROZEN_UUID).getString();
                     if (id.length() > 0) {
@@ -451,7 +455,7 @@ public class VersionManagerImpl implements VersionManager {
                     }
                 } else if (node.isNodeType(NodeType.NT_VERSIONED_CHILD)) {
                     Node history = node.getProperty(
-                            Property.JCR_CHILD_VERSION_HISTORY).getNode();
+                        Property.JCR_CHILD_VERSION_HISTORY).getNode();
                     uuids.add(history.getProperty(Property.JCR_VERSIONABLE_UUID).getString());
                     // TODO: further traverse versioned children with some selector (date?)
                 }
@@ -481,18 +485,18 @@ public class VersionManagerImpl implements VersionManager {
     }
 
     /**
-     * Removes existing nodes and throws a {@link RepositoryException} if
-     * removing one of them fails.
+     * Removes existing nodes and throws a {@link RepositoryException} if removing one of them
+     * fails.
      *
      * @param existing nodes to remove.
      * @throws RepositoryException if the operation fails.
      */
     private void removeExistingNodes(List<NodeDelegate> existing)
-            throws RepositoryException {
+        throws RepositoryException {
         for (NodeDelegate nd : existing) {
             if (!nd.remove()) {
                 throw new RepositoryException(
-                        "Unable to remove existing node: " + nd.getPath());
+                    "Unable to remove existing node: " + nd.getPath());
             }
         }
     }
@@ -502,17 +506,16 @@ public class VersionManagerImpl implements VersionManager {
      *
      * @param absPathVersionable path to a versionable node.
      * @return the version history.
-     * @throws PathNotFoundException if the given path does not reference an
-     *                               existing node.
-     * @throws UnsupportedRepositoryOperationException
-     *                               if the node at the given path is not
-     *                               mix:versionable.
-     * @throws RepositoryException if some other error occurs.
+     * @throws PathNotFoundException                   if the given path does not reference an
+     *                                                 existing node.
+     * @throws UnsupportedRepositoryOperationException if the node at the given path is not
+     *                                                 mix:versionable.
+     * @throws RepositoryException                     if some other error occurs.
      */
     @NotNull
     private VersionHistoryDelegate internalGetVersionHistory(
-            @NotNull String absPathVersionable)
-            throws RepositoryException, UnsupportedRepositoryOperationException {
+        @NotNull String absPathVersionable)
+        throws RepositoryException, UnsupportedRepositoryOperationException {
         SessionDelegate sessionDelegate = sessionContext.getSessionDelegate();
         String oakPath = getOakPathOrThrowNotFound(checkNotNull(absPathVersionable));
         NodeDelegate nodeDelegate = sessionDelegate.getNode(oakPath);

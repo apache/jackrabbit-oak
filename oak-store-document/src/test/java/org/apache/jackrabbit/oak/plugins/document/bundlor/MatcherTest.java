@@ -26,18 +26,18 @@ import static org.junit.Assert.*;
 public class MatcherTest {
 
     @Test
-    public void failingMatcher() throws Exception{
+    public void failingMatcher() throws Exception {
         assertFalse(Matcher.NON_MATCHING.isMatch());
         assertFalse(Matcher.NON_MATCHING.next("x").isMatch());
     }
 
     @Test(expected = IllegalStateException.class)
-    public void failingMatcherInvalidPath() throws Exception{
+    public void failingMatcherInvalidPath() throws Exception {
         Matcher.NON_MATCHING.getMatchedPath();
     }
 
     @Test
-    public void includeAll() throws Exception{
+    public void includeAll() throws Exception {
         Matcher m = new IncludeAllMatcher("x", 1);
         assertTrue(m.isMatch());
         assertTrue(m.matchesAllChildren());

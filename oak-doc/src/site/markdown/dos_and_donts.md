@@ -14,12 +14,13 @@
    See the License for the specific language governing permissions and
    limitations under the License.
   -->
-  
+
 # Best Practices when Using Jackrabbit Oak
 
 <!-- MACRO{toc} -->
 
 ## Session Management
+
 ### Session refresh behavior
 
 Oak is based on the MVCC model where each session starts with a snapshot
@@ -49,14 +50,15 @@ multiple threads. When doing so Oak will protect its internal data structures
 from becoming corrupted but will not make any guarantees beyond that. In
 particular violating clients might suffer from lock contentions or deadlocks.
 
-If Oak detects concurrent write access to a session it will log a warning. 
-For concurrent read access the warning will only be logged if `DEBUG` level 
+If Oak detects concurrent write access to a session it will log a warning.
+For concurrent read access the warning will only be logged if `DEBUG` level
 is enabled for `org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate`.
-In this case the stack trace of the other session involved will also be 
-logged. For efficiency reasons the stack trace will not be logged if 
+In this case the stack trace of the other session involved will also be
+logged. For efficiency reasons the stack trace will not be logged if
 `DEBUG` level is not enabled.
 
 ## Content Modelling
+
 ### Large number of direct child node
 
 Oak scales to large number of direct child nodes of a node as long as those
@@ -67,18 +69,21 @@ type, which is equivalent to ``nt:unstructured`` except that it is not orderable
 
 ### Large Multi Value Property
 
-Using nodes with large multi value property would not scale well. Depending on 
-NodeStore it might hit some size limit restriction also. For e.g. with 
-DocumentMK the MVP would be stored in the backing Document which on Mongo has a 
+Using nodes with large multi value property would not scale well. Depending on
+NodeStore it might hit some size limit restriction also. For e.g. with
+DocumentMK the MVP would be stored in the backing Document which on Mongo has a
 16MB limit.
 
 More efficient alternatives to large MVPs include:
+
 * store the list of values in a binary property
-* use a [PropertySequence](https://jackrabbit.apache.org/api/trunk/org/apache/jackrabbit/commons/flat/PropertySequence.html) available in jackrabbit-commons (JCR-2688)
+* use
+  a [PropertySequence](https://jackrabbit.apache.org/api/trunk/org/apache/jackrabbit/commons/flat/PropertySequence.html)
+  available in jackrabbit-commons (JCR-2688)
 
 ### Inlining large binaries
 
-Most of the `BlobStore` provide an option to inline small binary content as part of 
+Most of the `BlobStore` provide an option to inline small binary content as part of
 node property itself. For example `FileDataStore` supports `minRecordLength` property.
 If that is set to say 4096 then any binary with size less than 4kb would be stored
 as part of node data itself and not in BlobStore.
@@ -99,15 +104,23 @@ node type `oak:Resource` instead and add the mixin type `mix:referenceble`
 only upon demand (see [OAK-4567](https://issues.apache.org/jira/browse/OAK-4567))
 
 ## Hierarchy Operations
+
 ### Tree traversal
 
-As explained in [Understanding the node state model](https://jackrabbit.apache.org/oak/docs/architecture/nodestate.html), Oak stores content in a tree hierarchy. 
-Considering that, when traversing the path to access parent or child nodes, even though being equivalent operations, 
-it is preferable to use JCR Node API instead of Session API. The reason behind is that session API uses an absolute path, 
-and to get to the desired parent or child node, all ancestor nodes will have to be traversed before reaching the target node. 
-Traversal for each ancestor node includes building the node state and associating it with 
-TreePermission (check [Permission Evaluation in Detail](https://jackrabbit.apache.org/oak/docs/security/permission/evaluation.html)), 
+As explained
+in [Understanding the node state model](https://jackrabbit.apache.org/oak/docs/architecture/nodestate.html),
+Oak stores content in a tree hierarchy.
+Considering that, when traversing the path to access parent or child nodes, even though being
+equivalent operations,
+it is preferable to use JCR Node API instead of Session API. The reason behind is that session API
+uses an absolute path,
+and to get to the desired parent or child node, all ancestor nodes will have to be traversed before
+reaching the target node.
+Traversal for each ancestor node includes building the node state and associating it with
+TreePermission (
+check [Permission Evaluation in Detail](https://jackrabbit.apache.org/oak/docs/security/permission/evaluation.html)),
 where this is not needed when using Node API and relative paths.
+
 ```
 Node c = session.getNode("/a/b/c");
 Node d = null;
@@ -120,28 +133,43 @@ d = c.getNode("d");                             // preferred way to fetch the ch
 c = session.getNode("/a/b/c");
 c = d.getParent();                              // preferred way to fetch the parent node
 ```
+
 ## Security
+
 - [Best Practices for Authorization](security/authorization/bestpractices.html)
 - [Best Practices for External Authentication](security/authentication/external/bestpractices.html)
 
 ## Misc
+
 ### Don't use Thread.interrupt()
 
-`Thread.interrupt()` can severely impact or even stop the repository. The reason for 
-this is that Oak internally uses various classes from the `nio` package that implement 
-`InterruptibleChannel`, which are [asynchronously closed](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/nio/channels/InterruptibleChannel.html) 
-when receiving an `InterruptedException` while blocked on IO. See [OAK-2609](https://issues.apache.org/jira/browse/OAK-2609).  
+`Thread.interrupt()` can severely impact or even stop the repository. The reason for
+this is that Oak internally uses various classes from the `nio` package that implement
+`InterruptibleChannel`, which
+are [asynchronously closed](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/nio/channels/InterruptibleChannel.html)
+when receiving an `InterruptedException` while blocked on IO.
+See [OAK-2609](https://issues.apache.org/jira/browse/OAK-2609).
 
 ### Avoid or minimize conflicts
+
 To reduce the possiblity of having errors like `OakState0001: Unresolved conflicts in ...`:
 
-1. Make sure you always release the session by calling session.logout(). If possible, avoid long-running sessions. If they are required (e.g. for observation) make sure 
-to always call session.refresh(false) before applying changes or session.refresh(true) before saving the changes. 
+1. Make sure you always release the session by calling session.logout(). If possible, avoid
+   long-running sessions. If they are required (e.g. for observation) make sure
+   to always call session.refresh(false) before applying changes or session.refresh(true) before
+   saving the changes.
 
-2. Enable the DEBUG level for `org.apache.jackrabbit.oak.plugins.commit.MergingNodeStateDiff` and `org.apache.jackrabbit.oak.plugins.commit.ConflictValidator` loggers if you want 
-to have more information on the circumstances of a conflict that happened in a point of time.
+2. Enable the DEBUG level for `org.apache.jackrabbit.oak.plugins.commit.MergingNodeStateDiff`
+   and `org.apache.jackrabbit.oak.plugins.commit.ConflictValidator` loggers if you want
+   to have more information on the circumstances of a conflict that happened in a point of time.
 
-3. Write your own conflict handler and add it when configuring your Oak or WhiteBoard instances. Only if you know what you are doing (i.e. you know how to resolve 
-the conflict in each one of the possible situations). By default, the [AnnotatingConflictHandler](https://jackrabbit.apache.org/oak/docs/apidocs/org/apache/jackrabbit/oak/plugins/commit/AnnotatingConflictHandler.html) instance will discard your changes 
-and your commit will fail. If persisting changes fails with a conflict and you cannot lose them, refactor your code such that you can retry after having called session.refresh(false).
-Check the source code of [JcrLastModifiedConflictHandler](https://jackrabbit.apache.org/oak/docs/apidocs/org/apache/jackrabbit/oak/plugins/commit/JcrLastModifiedConflictHandler.html) for an example of a conflict handler.
+3. Write your own conflict handler and add it when configuring your Oak or WhiteBoard instances.
+   Only if you know what you are doing (i.e. you know how to resolve
+   the conflict in each one of the possible situations). By default,
+   the [AnnotatingConflictHandler](https://jackrabbit.apache.org/oak/docs/apidocs/org/apache/jackrabbit/oak/plugins/commit/AnnotatingConflictHandler.html)
+   instance will discard your changes
+   and your commit will fail. If persisting changes fails with a conflict and you cannot lose them,
+   refactor your code such that you can retry after having called session.refresh(false).
+   Check the source code
+   of [JcrLastModifiedConflictHandler](https://jackrabbit.apache.org/oak/docs/apidocs/org/apache/jackrabbit/oak/plugins/commit/JcrLastModifiedConflictHandler.html)
+   for an example of a conflict handler.

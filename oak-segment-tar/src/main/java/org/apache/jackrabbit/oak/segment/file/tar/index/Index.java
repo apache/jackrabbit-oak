@@ -37,8 +37,7 @@ public interface Index {
      *
      * @param msb The most significant bits of the identifier.
      * @param lsb The least significant bits of the identifier.
-     * @return The index of the entry in this index, or {@code -1} if the entry
-     * was not found.
+     * @return The index of the entry in this index, or {@code -1} if the entry was not found.
      */
     int findEntry(long msb, long lsb);
 

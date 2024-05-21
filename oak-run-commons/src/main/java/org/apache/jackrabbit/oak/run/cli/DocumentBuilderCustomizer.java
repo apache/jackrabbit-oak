@@ -20,12 +20,10 @@
 package org.apache.jackrabbit.oak.run.cli;
 
 import java.io.IOException;
-
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
 
 /**
- * Extension point which needs to be registered with the Whiteboard
- * attached to Options
+ * Extension point which needs to be registered with the Whiteboard attached to Options
  */
 public interface DocumentBuilderCustomizer {
 

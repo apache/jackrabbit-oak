@@ -22,17 +22,15 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
-
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.collect.PeekingIterator;
 
 /**
  * <code>MergeSortedIterators</code> is a specialized implementation of a
- * merge sort of already sorted iterators of some type of comparable elements.
- * The input iterators must return the elements in sorted order according to
- * the provided Comparator. In addition the sequence of iterators must also
- * be sorted in a way that the first element of the next iterator is greater
- * than the first element of the previous iterator.
+ * merge sort of already sorted iterators of some type of comparable elements. The input iterators
+ * must return the elements in sorted order according to the provided Comparator. In addition the
+ * sequence of iterators must also be sorted in a way that the first element of the next iterator is
+ * greater than the first element of the previous iterator.
  *
  * @param <T> the entry type
  */
@@ -99,10 +97,10 @@ public abstract class MergeSortedIterators<T> implements Iterator<T> {
         if (it != null && it.hasNext()) {
             PeekingIterator<T> pIt = Iterators.peekingIterator(it);
             if (!iterators.isEmpty()
-                    &&  comparator.compare(pIt.peek(), lastPeek) < 0) {
-                throw new IllegalStateException(description() + 
-                        " First element of next iterator (" + pIt.peek() + ")" +
-                        " must be after previous iterator (" + lastPeek + ")");
+                && comparator.compare(pIt.peek(), lastPeek) < 0) {
+                throw new IllegalStateException(description() +
+                    " First element of next iterator (" + pIt.peek() + ")" +
+                    " must be after previous iterator (" + lastPeek + ")");
             }
             lastPeek = pIt.peek();
             iterators.add(pIt);

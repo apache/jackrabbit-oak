@@ -31,9 +31,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Random;
-
-import org.apache.jackrabbit.guava.common.io.ByteStreams;
 import org.apache.commons.io.IOUtils;
+import org.apache.jackrabbit.guava.common.io.ByteStreams;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -115,7 +114,8 @@ public abstract class DataStoreTestBase extends TestBase {
         return data;
     }
 
-    private void addTestContentOnTheFly(NodeStore store, String child, long size, int seed) throws CommitFailedException, IOException {
+    private void addTestContentOnTheFly(NodeStore store, String child, long size, int seed)
+        throws CommitFailedException, IOException {
         NodeBuilder builder = store.getRoot().builder();
         builder.child(child).setProperty("ts", System.currentTimeMillis());
 
@@ -151,19 +151,19 @@ public abstract class DataStoreTestBase extends TestBase {
         // run 1: unsuccessful
         try (
             StandbyServerSync serverSync = StandbyServerSync.builder()
-                .withPort(serverPort.getPort())
-                .withFileStore(primary)
-                .withBlobChunkSize(MB)
-                .build();
+                                                            .withPort(serverPort.getPort())
+                                                            .withFileStore(primary)
+                                                            .withBlobChunkSize(MB)
+                                                            .build();
             StandbyClientSync cl = StandbyClientSync.builder()
-                .withHost(getServerHost())
-                .withPort(serverPort.getPort())
-                .withFileStore(secondary)
-                .withSecureConnection(false)
-                .withReadTimeoutMs(4_000)
-                .withAutoClean(false)
-                .withSpoolFolder(spoolFolder)
-                .build()
+                                                    .withHost(getServerHost())
+                                                    .withPort(serverPort.getPort())
+                                                    .withFileStore(secondary)
+                                                    .withSecureConnection(false)
+                                                    .withReadTimeoutMs(4_000)
+                                                    .withAutoClean(false)
+                                                    .withSpoolFolder(spoolFolder)
+                                                    .build()
         ) {
             serverSync.start();
             // no persisted head on primary
@@ -176,19 +176,19 @@ public abstract class DataStoreTestBase extends TestBase {
         // run 2: successful
         try (
             StandbyServerSync serverSync = StandbyServerSync.builder()
-                .withPort(serverPort.getPort())
-                .withFileStore(primary)
-                .withBlobChunkSize(MB)
-                .build();
+                                                            .withPort(serverPort.getPort())
+                                                            .withFileStore(primary)
+                                                            .withBlobChunkSize(MB)
+                                                            .build();
             StandbyClientSync cl = StandbyClientSync.builder()
-                .withHost(getServerHost())
-                .withPort(serverPort.getPort())
-                .withFileStore(secondary)
-                .withSecureConnection(false)
-                .withReadTimeoutMs(4_000)
-                .withAutoClean(false)
-                .withSpoolFolder(spoolFolder)
-                .build()
+                                                    .withHost(getServerHost())
+                                                    .withPort(serverPort.getPort())
+                                                    .withFileStore(secondary)
+                                                    .withSecureConnection(false)
+                                                    .withReadTimeoutMs(4_000)
+                                                    .withAutoClean(false)
+                                                    .withSpoolFolder(spoolFolder)
+                                                    .build()
         ) {
             serverSync.start();
             // this time persisted head will be available on primary
@@ -201,7 +201,7 @@ public abstract class DataStoreTestBase extends TestBase {
         assertTrue(secondary.getStats().getApproximateSize() < MB);
 
         PropertyState ps = secondary.getHead().getChildNode("root")
-            .getChildNode("server").getProperty("testBlob");
+                                    .getChildNode("server").getProperty("testBlob");
         assertNotNull(ps);
         assertEquals(Type.BINARY.tag(), ps.getType().tag());
         Blob b = ps.getValue(Type.BINARY);
@@ -225,19 +225,19 @@ public abstract class DataStoreTestBase extends TestBase {
         byte[] data = addTestContent(store, "server", blobSize);
         try (
             StandbyServerSync serverSync = StandbyServerSync.builder()
-                .withPort(serverPort.getPort())
-                .withFileStore(primary)
-                .withBlobChunkSize(MB)
-                .build();
+                                                            .withPort(serverPort.getPort())
+                                                            .withFileStore(primary)
+                                                            .withBlobChunkSize(MB)
+                                                            .build();
             StandbyClientSync cl = StandbyClientSync.builder()
-                .withHost(getServerHost())
-                .withPort(serverPort.getPort())
-                .withFileStore(secondary)
-                .withSecureConnection(false)
-                .withReadTimeoutMs(getClientTimeout())
-                .withAutoClean(false)
-                .withSpoolFolder(folder.newFolder())
-                .build()
+                                                    .withHost(getServerHost())
+                                                    .withPort(serverPort.getPort())
+                                                    .withFileStore(secondary)
+                                                    .withSecureConnection(false)
+                                                    .withReadTimeoutMs(getClientTimeout())
+                                                    .withAutoClean(false)
+                                                    .withSpoolFolder(folder.newFolder())
+                                                    .build()
         ) {
             serverSync.start();
             primary.flush();
@@ -249,7 +249,7 @@ public abstract class DataStoreTestBase extends TestBase {
         assertTrue(secondary.getStats().getApproximateSize() < MB);
 
         PropertyState ps = secondary.getHead().getChildNode("root")
-            .getChildNode("server").getProperty("testBlob");
+                                    .getChildNode("server").getProperty("testBlob");
         assertNotNull(ps);
         assertEquals(Type.BINARY.tag(), ps.getType().tag());
         Blob b = ps.getValue(Type.BINARY);
@@ -279,19 +279,19 @@ public abstract class DataStoreTestBase extends TestBase {
 
         try (
             StandbyServerSync serverSync = StandbyServerSync.builder()
-                .withPort(serverPort.getPort())
-                .withFileStore(primary)
-                .withBlobChunkSize(8 * MB)
-                .build();
+                                                            .withPort(serverPort.getPort())
+                                                            .withFileStore(primary)
+                                                            .withBlobChunkSize(8 * MB)
+                                                            .build();
             StandbyClientSync cl = StandbyClientSync.builder()
-                .withHost(getServerHost())
-                .withPort(serverPort.getPort())
-                .withFileStore(secondary)
-                .withSecureConnection(false)
-                .withReadTimeoutMs(4 * 60 * 1000)
-                .withAutoClean(false)
-                .withSpoolFolder(folder.newFolder())
-                .build()
+                                                    .withHost(getServerHost())
+                                                    .withPort(serverPort.getPort())
+                                                    .withFileStore(secondary)
+                                                    .withSecureConnection(false)
+                                                    .withReadTimeoutMs(4 * 60 * 1000)
+                                                    .withAutoClean(false)
+                                                    .withSpoolFolder(folder.newFolder())
+                                                    .build()
         ) {
             serverSync.start();
             primary.flush();
@@ -303,7 +303,7 @@ public abstract class DataStoreTestBase extends TestBase {
         assertTrue(secondary.getStats().getApproximateSize() < MB);
 
         PropertyState ps = secondary.getHead().getChildNode("root")
-            .getChildNode("server").getProperty("testBlob");
+                                    .getChildNode("server").getProperty("testBlob");
         assertNotNull(ps);
         assertEquals(Type.BINARY.tag(), ps.getType().tag());
         Blob b = ps.getValue(Type.BINARY);
@@ -330,19 +330,19 @@ public abstract class DataStoreTestBase extends TestBase {
         NodeStore store = SegmentNodeStoreBuilders.builder(primary).build();
         try (
             StandbyServerSync serverSync = StandbyServerSync.builder()
-                .withPort(serverPort.getPort())
-                .withFileStore(primary)
-                .withBlobChunkSize(MB)
-                .build();
+                                                            .withPort(serverPort.getPort())
+                                                            .withFileStore(primary)
+                                                            .withBlobChunkSize(MB)
+                                                            .build();
             StandbyClientSync clientSync = StandbyClientSync.builder()
-                .withHost(getServerHost())
-                .withPort(serverPort.getPort())
-                .withFileStore(secondary)
-                .withSecureConnection(false)
-                .withReadTimeoutMs(getClientTimeout())
-                .withAutoClean(false)
-                .withSpoolFolder(folder.newFolder())
-                .build()
+                                                            .withHost(getServerHost())
+                                                            .withPort(serverPort.getPort())
+                                                            .withFileStore(secondary)
+                                                            .withSecureConnection(false)
+                                                            .withReadTimeoutMs(getClientTimeout())
+                                                            .withAutoClean(false)
+                                                            .withSpoolFolder(folder.newFolder())
+                                                            .build()
         ) {
             serverSync.start();
 
@@ -393,7 +393,8 @@ public abstract class DataStoreTestBase extends TestBase {
         useProxy(0, 0, 150000, true);
     }
 
-    private void useProxy(int skipPosition, int skipBytes, int flipPosition, boolean intermediateChange) throws Exception {
+    private void useProxy(int skipPosition, int skipBytes, int flipPosition,
+        boolean intermediateChange) throws Exception {
         int blobSize = 5 * MB;
 
         FileStore primary = getPrimary();
@@ -405,26 +406,28 @@ public abstract class DataStoreTestBase extends TestBase {
 
         try (
             StandbyServerSync serverSync = StandbyServerSync.builder()
-                .withPort(serverPort.getPort())
-                .withFileStore(primary)
-                .withBlobChunkSize(MB)
-                .build()
+                                                            .withPort(serverPort.getPort())
+                                                            .withFileStore(primary)
+                                                            .withBlobChunkSize(MB)
+                                                            .build()
         ) {
             serverSync.start();
 
             File spoolFolder = folder.newFolder();
 
             try (
-                NetworkErrorProxy ignored = new NetworkErrorProxy(proxyPort.getPort(), getServerHost(), serverPort.getPort(), flipPosition, skipPosition, skipBytes);
+                NetworkErrorProxy ignored = new NetworkErrorProxy(proxyPort.getPort(),
+                    getServerHost(), serverPort.getPort(), flipPosition, skipPosition, skipBytes);
                 StandbyClientSync clientSync = StandbyClientSync.builder()
-                    .withHost(getServerHost())
-                    .withPort(proxyPort.getPort())
-                    .withFileStore(secondary)
-                    .withSecureConnection(false)
-                    .withReadTimeoutMs(getClientTimeout())
-                    .withAutoClean(false)
-                    .withSpoolFolder(spoolFolder)
-                    .build()
+                                                                .withHost(getServerHost())
+                                                                .withPort(proxyPort.getPort())
+                                                                .withFileStore(secondary)
+                                                                .withSecureConnection(false)
+                                                                .withReadTimeoutMs(
+                                                                    getClientTimeout())
+                                                                .withAutoClean(false)
+                                                                .withSpoolFolder(spoolFolder)
+                                                                .build()
             ) {
                 clientSync.run();
             }
@@ -440,14 +443,15 @@ public abstract class DataStoreTestBase extends TestBase {
             }
 
             try (StandbyClientSync clientSync = StandbyClientSync.builder()
-                .withHost(getServerHost())
-                .withPort(serverPort.getPort())
-                .withFileStore(secondary)
-                .withSecureConnection(false)
-                .withReadTimeoutMs(getClientTimeout())
-                .withAutoClean(false)
-                .withSpoolFolder(spoolFolder)
-                .build()
+                                                                 .withHost(getServerHost())
+                                                                 .withPort(serverPort.getPort())
+                                                                 .withFileStore(secondary)
+                                                                 .withSecureConnection(false)
+                                                                 .withReadTimeoutMs(
+                                                                     getClientTimeout())
+                                                                 .withAutoClean(false)
+                                                                 .withSpoolFolder(spoolFolder)
+                                                                 .build()
             ) {
                 clientSync.run();
             }
@@ -459,9 +463,9 @@ public abstract class DataStoreTestBase extends TestBase {
         assertTrue(secondary.getStats().getApproximateSize() < MB);
 
         PropertyState ps = secondary.getHead()
-            .getChildNode("root")
-            .getChildNode("server")
-            .getProperty("testBlob");
+                                    .getChildNode("root")
+                                    .getChildNode("server")
+                                    .getProperty("testBlob");
         assertNotNull(ps);
         assertEquals(Type.BINARY.tag(), ps.getType().tag());
         Blob b = ps.getValue(Type.BINARY);

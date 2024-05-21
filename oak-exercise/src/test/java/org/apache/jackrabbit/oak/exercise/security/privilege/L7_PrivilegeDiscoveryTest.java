@@ -25,9 +25,6 @@ import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.Privilege;
-
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -35,6 +32,8 @@ import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.exercise.security.authorization.permission.L2_PermissionDiscoveryTest;
 import org.apache.jackrabbit.oak.exercise.security.authorization.permission.L4_PrivilegesAndPermissionsTest;
@@ -113,7 +112,8 @@ import org.apache.jackrabbit.test.AbstractJCRTest;
  *
  * @see AccessControlManager#hasPrivileges(String, Privilege[])
  * @see AccessControlManager#getPrivileges(String)
- * @see org.apache.jackrabbit.api.security.JackrabbitAccessControlManager#hasPrivileges(String, Privilege[])
+ * @see org.apache.jackrabbit.api.security.JackrabbitAccessControlManager#hasPrivileges(String,
+ * Privilege[])
  * @see org.apache.jackrabbit.api.security.JackrabbitAccessControlManager#getPrivileges(String)
  */
 public class L7_PrivilegeDiscoveryTest extends AbstractJCRTest {
@@ -147,13 +147,13 @@ public class L7_PrivilegeDiscoveryTest extends AbstractJCRTest {
         propPath = p.getPath();
 
         Privilege[] privs = AccessControlUtils.privilegesFromNames(superuser,
-                Privilege.JCR_VERSION_MANAGEMENT,
-                Privilege.JCR_ADD_CHILD_NODES,
-                Privilege.JCR_MODIFY_PROPERTIES);
+            Privilege.JCR_VERSION_MANAGEMENT,
+            Privilege.JCR_ADD_CHILD_NODES,
+            Privilege.JCR_MODIFY_PROPERTIES);
         AccessControlUtils.addAccessControlEntry(superuser, n.getPath(), gPrincipal,
-                privs, true);
+            privs, true);
         AccessControlUtils.addAccessControlEntry(superuser, n.getPath(), uPrincipal,
-                new String[] {Privilege.JCR_VERSION_MANAGEMENT}, false);
+            new String[]{Privilege.JCR_VERSION_MANAGEMENT}, false);
 
         Node child = n.addNode(nodeName2);
         childPath = child.getPath();
@@ -192,21 +192,23 @@ public class L7_PrivilegeDiscoveryTest extends AbstractJCRTest {
         AccessControlManager acMgr = userSession.getAccessControlManager();
 
         Map<String, String[]> expectedAllow = ImmutableMap.of(
-                testRoot, new String[] {null, null, null, null, null, "..."}, // EXERCISE
-                testPath, new String[] {null, null, null, null, null, "..."}, // EXERCISE
-                childPath, new String[] {null, null, null, null, null, "..."} // EXERCISE
+            testRoot, new String[]{null, null, null, null, null, "..."}, // EXERCISE
+            testPath, new String[]{null, null, null, null, null, "..."}, // EXERCISE
+            childPath, new String[]{null, null, null, null, null, "..."} // EXERCISE
         );
         for (String path : expectedAllow.keySet()) {
-            assertTrue(acMgr.hasPrivileges(path, AccessControlUtils.privilegesFromNames(userSession, expectedAllow.get(path))));
+            assertTrue(acMgr.hasPrivileges(path,
+                AccessControlUtils.privilegesFromNames(userSession, expectedAllow.get(path))));
         }
 
         Map<String, String[]> expectedDeny = ImmutableMap.of(
-                testRoot, new String[] {null, null, null, null, null, "..."}, // EXERCISE
-                testPath, new String[] {null, null, null, null, null, "..."}, // EXERCISE
-                childPath, new String[] {null, null, null, null, null, "..."} // EXERCISE
+            testRoot, new String[]{null, null, null, null, null, "..."}, // EXERCISE
+            testPath, new String[]{null, null, null, null, null, "..."}, // EXERCISE
+            childPath, new String[]{null, null, null, null, null, "..."} // EXERCISE
         );
         for (String path : expectedDeny.keySet()) {
-            assertFalse(acMgr.hasPrivileges(path, AccessControlUtils.privilegesFromNames(userSession, expectedAllow.get(path))));
+            assertFalse(acMgr.hasPrivileges(path,
+                AccessControlUtils.privilegesFromNames(userSession, expectedAllow.get(path))));
         }
     }
 
@@ -228,7 +230,6 @@ public class L7_PrivilegeDiscoveryTest extends AbstractJCRTest {
 
         // 2. EXERCISE: modify the test-case by replacing user-session by the superuser session
         //              explain the difference
-
 
         // 3. EXERCISE: change the target path to testPath + "/otherChild" and run
         //              the test again (user or admin session).
@@ -258,9 +259,9 @@ public class L7_PrivilegeDiscoveryTest extends AbstractJCRTest {
         // 1. EXERCISE: expected privileges for the 'uPrincipal' only
         Set<Principal> principals = ImmutableSet.of(uPrincipal);
         Map<String, Set<Privilege>> expected = ImmutableMap.of(
-                testRoot, null, // EXERCISE
-                testPath, null, // EXERCISE
-                childPath, null // EXERCISE
+            testRoot, null, // EXERCISE
+            testPath, null, // EXERCISE
+            childPath, null // EXERCISE
         );
         for (String path : expected.keySet()) {
             Set<Privilege> expectedPrivs = expected.get(path);
@@ -271,9 +272,9 @@ public class L7_PrivilegeDiscoveryTest extends AbstractJCRTest {
         // 2. EXERCISE: expected privileges for the 'gPrincipal' only
         principals = ImmutableSet.of(gPrincipal);
         expected = ImmutableMap.of(
-                testRoot, null,
-                testPath, null,
-                childPath, null
+            testRoot, null,
+            testPath, null,
+            childPath, null
         );
         for (String path : expected.keySet()) {
             Set<Privilege> expectedPrivs = expected.get(path);
@@ -284,9 +285,9 @@ public class L7_PrivilegeDiscoveryTest extends AbstractJCRTest {
         // 3. EXERCISE: expected privileges for the 'uPrincipal' and 'gPrincipal'
         principals = ImmutableSet.of(uPrincipal, gPrincipal);
         expected = ImmutableMap.of(
-                testRoot, null,
-                testPath, null,
-                childPath, null
+            testRoot, null,
+            testPath, null,
+            childPath, null
         );
         for (String path : expected.keySet()) {
             Set<Privilege> expectedPrivs = expected.get(path);
@@ -297,9 +298,9 @@ public class L7_PrivilegeDiscoveryTest extends AbstractJCRTest {
         // 4. EXERCISE: expected privileges for the 'uPrincipal', 'gPrincipal' + everyone
         principals = ImmutableSet.of(uPrincipal, gPrincipal, EveryonePrincipal.getInstance());
         expected = ImmutableMap.of(
-                testRoot, null,
-                testPath, null,
-                childPath, null
+            testRoot, null,
+            testPath, null,
+            childPath, null
         );
         for (String path : expected.keySet()) {
             Set<Privilege> expectedPrivs = expected.get(path);
@@ -325,20 +326,26 @@ public class L7_PrivilegeDiscoveryTest extends AbstractJCRTest {
         // between hasPermission and hasPrivilege. explain!
 
         Boolean canAddNode = null;
-        assertEquals(canAddNode.booleanValue(), userSession.hasPermission(testPath, Session.ACTION_ADD_NODE));
+        assertEquals(canAddNode.booleanValue(),
+            userSession.hasPermission(testPath, Session.ACTION_ADD_NODE));
         Boolean canAddChild = null;
-        assertEquals(canAddChild.booleanValue(), userSession.hasPermission(testPath + "/newChild", Session.ACTION_ADD_NODE));
+        assertEquals(canAddChild.booleanValue(),
+            userSession.hasPermission(testPath + "/newChild", Session.ACTION_ADD_NODE));
 
         Boolean hasAddChildPrivilege = null;
-        assertEquals(hasAddChildPrivilege.booleanValue(), acMgr.hasPrivileges(testPath, AccessControlUtils.privilegesFromNames(acMgr, Privilege.JCR_ADD_CHILD_NODES)));
+        assertEquals(hasAddChildPrivilege.booleanValue(), acMgr.hasPrivileges(testPath,
+            AccessControlUtils.privilegesFromNames(acMgr, Privilege.JCR_ADD_CHILD_NODES)));
 
         Boolean canModifyProperty = null;
-        assertEquals(canModifyProperty.booleanValue(), userSession.hasPermission(propPath, Session.ACTION_SET_PROPERTY));
+        assertEquals(canModifyProperty.booleanValue(),
+            userSession.hasPermission(propPath, Session.ACTION_SET_PROPERTY));
 
         Boolean canAddProperty = null;
-        assertEquals(canAddProperty.booleanValue(), userSession.hasPermission(testPath + "/newProp", JackrabbitSession.ACTION_ADD_PROPERTY));
+        assertEquals(canAddProperty.booleanValue(), userSession.hasPermission(testPath + "/newProp",
+            JackrabbitSession.ACTION_ADD_PROPERTY));
 
         Boolean hasModifyPropertiesPrivilege = null;
-        assertEquals(hasModifyPropertiesPrivilege.booleanValue(), acMgr.hasPrivileges(propPath, AccessControlUtils.privilegesFromNames(acMgr, Privilege.JCR_MODIFY_PROPERTIES)));
+        assertEquals(hasModifyPropertiesPrivilege.booleanValue(), acMgr.hasPrivileges(propPath,
+            AccessControlUtils.privilegesFromNames(acMgr, Privilege.JCR_MODIFY_PROPERTIES)));
     }
 }

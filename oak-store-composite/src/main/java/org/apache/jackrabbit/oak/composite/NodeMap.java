@@ -44,20 +44,23 @@ public class NodeMap<T> {
         if (!suppliers.containsKey(nodeStore)) {
             Mount mount = nodeStore.getMount();
             String mountName = mount.isDefault() ? "[default]" : mount.getName();
-            throw new IllegalStateException("Node is not available for the node store " + mountName);
+            throw new IllegalStateException(
+                "Node is not available for the node store " + mountName);
         }
         return suppliers.get(nodeStore).get();
     }
 
     public <R> NodeMap<R> getAndApply(BiFunction<MountedNodeStore, T, R> function) {
         ImmutableMap.Builder<MountedNodeStore, CacheableSupplier<R>> newSuppliers = ImmutableMap.builder();
-        suppliers.forEach((mns, node) -> newSuppliers.put(mns, node.getAndApply(curry(function, mns))));
+        suppliers.forEach(
+            (mns, node) -> newSuppliers.put(mns, node.getAndApply(curry(function, mns))));
         return new NodeMap<>(newSuppliers.build());
     }
 
     public <R> NodeMap<R> lazyApply(BiFunction<MountedNodeStore, T, R> function) {
         ImmutableMap.Builder<MountedNodeStore, CacheableSupplier<R>> newSuppliers = ImmutableMap.builder();
-        suppliers.forEach((mns, node) -> newSuppliers.put(mns, node.lazyApply(curry(function, mns))));
+        suppliers.forEach(
+            (mns, node) -> newSuppliers.put(mns, node.lazyApply(curry(function, mns))));
         return new NodeMap<>(newSuppliers.build());
     }
 

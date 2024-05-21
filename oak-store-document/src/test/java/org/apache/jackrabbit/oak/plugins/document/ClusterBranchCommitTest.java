@@ -42,9 +42,9 @@ public class ClusterBranchCommitTest {
     public void before() {
         DocumentStore store = new MemoryDocumentStore();
         ns1 = builderProvider.newBuilder().setDocumentStore(store)
-                .setAsyncDelay(0).setClusterId(1).getNodeStore();
+                             .setAsyncDelay(0).setClusterId(1).getNodeStore();
         ns2 = builderProvider.newBuilder().setDocumentStore(store)
-                .setAsyncDelay(0).setClusterId(2).getNodeStore();
+                             .setAsyncDelay(0).setClusterId(2).getNodeStore();
     }
 
     @Test
@@ -80,8 +80,8 @@ public class ClusterBranchCommitTest {
     }
 
     private static NodeState merge(DocumentNodeStore ns,
-                                   NodeBuilder builder)
-            throws CommitFailedException {
+        NodeBuilder builder)
+        throws CommitFailedException {
         return ns.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 }

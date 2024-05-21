@@ -17,16 +17,14 @@
 
 package org.apache.jackrabbit.oak.plugins.index.solr.server;
 
+import static org.junit.Assert.assertNotNull;
+
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.RemoteSolrServerConfiguration;
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.impl.CloudSolrClient;
 import org.apache.solr.client.solrj.request.UpdateRequest;
 import org.apache.solr.common.util.NamedList;
 import org.junit.Test;
-
-import java.util.Collections;
-
-import static org.junit.Assert.assertNotNull;
 
 /**
  * Testcase for {@link RemoteSolrServerProvider}
@@ -63,7 +61,7 @@ public class RemoteSolrServerProviderIT {
             if (cloudServerAvailable) {
                 String collection = "sample_" + System.nanoTime();
                 RemoteSolrServerProvider remoteSolrServerProvider = new RemoteSolrServerProvider(
-                        new RemoteSolrServerConfiguration(host, collection, 2, 2, null, 10, 10, null));
+                    new RemoteSolrServerConfiguration(host, collection, 2, 2, null, 10, 10, null));
                 SolrClient solrServer = remoteSolrServerProvider.getSolrServer();
                 assertNotNull(solrServer);
                 solrServer.close();

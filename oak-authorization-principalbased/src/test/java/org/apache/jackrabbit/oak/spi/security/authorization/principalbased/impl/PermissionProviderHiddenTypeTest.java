@@ -59,22 +59,29 @@ public class PermissionProviderHiddenTypeTest extends AbstractPrincipalBasedTest
 
     @Test
     public void testHasPrivileges() {
-        assertFalse(permissionProvider.hasPrivileges(mockReadOnlyTree(TreeType.HIDDEN), PrivilegeConstants.REP_READ_NODES));
+        assertFalse(permissionProvider.hasPrivileges(mockReadOnlyTree(TreeType.HIDDEN),
+            PrivilegeConstants.REP_READ_NODES));
     }
 
     @Test
     public void testIsGranted() {
-        assertTrue(permissionProvider.isGranted(mockReadOnlyTree(TreeType.HIDDEN), null, Permissions.ALL));
-        assertTrue(permissionProvider.isGranted(mockReadOnlyTree(TreeType.HIDDEN), mock(PropertyState.class), Permissions.ALL));
+        assertTrue(
+            permissionProvider.isGranted(mockReadOnlyTree(TreeType.HIDDEN), null, Permissions.ALL));
+        assertTrue(permissionProvider.isGranted(mockReadOnlyTree(TreeType.HIDDEN),
+            mock(PropertyState.class), Permissions.ALL));
     }
+
     @Test
     public void testGetTreePermission() {
-        assertSame(TreePermission.ALL, permissionProvider.getTreePermission(mockReadOnlyTree(TreeType.HIDDEN), TreeType.HIDDEN, mock(AbstractTreePermission.class)));
+        assertSame(TreePermission.ALL,
+            permissionProvider.getTreePermission(mockReadOnlyTree(TreeType.HIDDEN), TreeType.HIDDEN,
+                mock(AbstractTreePermission.class)));
     }
 
     @Test
     public void testGetChildTreePermission() {
-        String indexPath = "/" + IndexConstants.INDEX_DEFINITIONS_NAME + "/acPrincipalName/" + IndexConstants.INDEX_CONTENT_NODE_NAME;
+        String indexPath = "/" + IndexConstants.INDEX_DEFINITIONS_NAME + "/acPrincipalName/"
+            + IndexConstants.INDEX_CONTENT_NODE_NAME;
         Tree readOnly = getRootProvider().createReadOnlyRoot(root).getTree(PathUtils.ROOT_PATH);
         TreePermission tp = permissionProvider.getTreePermission(readOnly, TreePermission.EMPTY);
         NodeState ns = getTreeProvider().asNodeState(readOnly);

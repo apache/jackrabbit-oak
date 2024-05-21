@@ -25,10 +25,8 @@ import static org.junit.Assert.fail;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-
 import javax.jcr.Binary;
 import javax.jcr.RepositoryException;
-
 import org.apache.jackrabbit.oak.api.Blob;
 import org.junit.Test;
 
@@ -72,6 +70,7 @@ public class BinaryBasedBlobTest {
     }
 
     private static class TestBinary implements Binary {
+
         private final byte[] data;
 
         public TestBinary(byte[] data) {
@@ -94,10 +93,12 @@ public class BinaryBasedBlobTest {
         }
 
         @Override
-        public void dispose() { }
+        public void dispose() {
+        }
     }
 
     private static class FailingBinary implements Binary {
+
         @Override
         public InputStream getStream() throws RepositoryException {
             throw new RepositoryException("no stream");
@@ -114,7 +115,8 @@ public class BinaryBasedBlobTest {
         }
 
         @Override
-        public void dispose() { }
+        public void dispose() {
+        }
     }
 
 }

@@ -22,7 +22,6 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.LinkedHashSet;
 import java.util.Set;
-
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
@@ -34,36 +33,43 @@ class CheckCommand implements Command {
     @Override
     public void execute(String... args) throws Exception {
         OptionParser parser = new OptionParser();
-        OptionSpec<Boolean> mmapArg = parser.accepts("mmap", "use memory mapping for the file store (default: true)")
-            .withOptionalArg()
-            .ofType(Boolean.class)
-            .defaultsTo(true);
+        OptionSpec<Boolean> mmapArg = parser.accepts("mmap",
+                                                "use memory mapping for the file store (default: true)")
+                                            .withOptionalArg()
+                                            .ofType(Boolean.class)
+                                            .defaultsTo(true);
         OptionSpec<File> journal = parser.accepts("journal", "journal file")
-            .withRequiredArg()
-            .ofType(File.class);
-        OptionSpec<Long> notify = parser.accepts("notify", "number of seconds between progress notifications")
-            .withRequiredArg()
-            .ofType(Long.class)
-            .defaultsTo(Long.MAX_VALUE);
-        OptionSpec<Integer> last = parser.accepts("last", "define the number of revisions to be checked (default: 1)")
-                .withOptionalArg()
-                .ofType(Integer.class);
+                                         .withRequiredArg()
+                                         .ofType(File.class);
+        OptionSpec<Long> notify = parser.accepts("notify",
+                                            "number of seconds between progress notifications")
+                                        .withRequiredArg()
+                                        .ofType(Long.class)
+                                        .defaultsTo(Long.MAX_VALUE);
+        OptionSpec<Integer> last = parser.accepts("last",
+                                             "define the number of revisions to be checked (default: 1)")
+                                         .withOptionalArg()
+                                         .ofType(Integer.class);
         OptionSpec<?> bin = parser.accepts("bin", "read the content of binary properties");
-        OptionSpec<String> filter = parser.accepts("filter", "comma separated content paths to be checked")
-            .withRequiredArg()
-            .ofType(String.class)
-            .withValuesSeparatedBy(',')
-            .defaultsTo("/");
-        OptionSpec<?> head = parser.accepts("head", "checks only latest /root (i.e without checkpoints)");
-        OptionSpec<String> cp = parser.accepts("checkpoints", "checks only specified checkpoints (comma separated); use --checkpoints all to check all checkpoints")
-            .withOptionalArg()
-            .ofType(String.class)
-            .withValuesSeparatedBy(',')
-            .defaultsTo("all");
-        OptionSpec<?> ioStatistics = parser.accepts("io-stats", "Print I/O statistics (only for oak-segment-tar)");
+        OptionSpec<String> filter = parser.accepts("filter",
+                                              "comma separated content paths to be checked")
+                                          .withRequiredArg()
+                                          .ofType(String.class)
+                                          .withValuesSeparatedBy(',')
+                                          .defaultsTo("/");
+        OptionSpec<?> head = parser.accepts("head",
+            "checks only latest /root (i.e without checkpoints)");
+        OptionSpec<String> cp = parser.accepts("checkpoints",
+                                          "checks only specified checkpoints (comma separated); use --checkpoints all to check all checkpoints")
+                                      .withOptionalArg()
+                                      .ofType(String.class)
+                                      .withValuesSeparatedBy(',')
+                                      .defaultsTo("all");
+        OptionSpec<?> ioStatistics = parser.accepts("io-stats",
+            "Print I/O statistics (only for oak-segment-tar)");
         OptionSpec<File> dir = parser.nonOptions()
-            .describedAs("path")
-            .ofType(File.class);
+                                     .describedAs("path")
+                                     .ofType(File.class);
         OptionSet options = parser.parse(args);
 
         if (options.valuesOf(dir).isEmpty()) {
@@ -75,16 +81,16 @@ class CheckCommand implements Command {
         }
 
         Check.Builder builder = Check.builder()
-            .withPath(options.valueOf(dir))
-            .withMmap(mmapArg.value(options))
-            .withDebugInterval(notify.value(options))
-            .withCheckBinaries(options.has(bin))
-            .withCheckHead(shouldCheckHead(options, head, cp))
-            .withCheckpoints(toCheckpointsSet(options, head, cp))
-            .withFilterPaths(toSet(options, filter))
-            .withIOStatistics(options.has(ioStatistics))
-            .withOutWriter(new PrintWriter(System.out, true))
-            .withErrWriter(new PrintWriter(System.err, true));
+                                     .withPath(options.valueOf(dir))
+                                     .withMmap(mmapArg.value(options))
+                                     .withDebugInterval(notify.value(options))
+                                     .withCheckBinaries(options.has(bin))
+                                     .withCheckHead(shouldCheckHead(options, head, cp))
+                                     .withCheckpoints(toCheckpointsSet(options, head, cp))
+                                     .withFilterPaths(toSet(options, filter))
+                                     .withIOStatistics(options.has(ioStatistics))
+                                     .withOutWriter(new PrintWriter(System.out, true))
+                                     .withErrWriter(new PrintWriter(System.err, true));
 
         if (options.has(journal)) {
             builder.withJournal(journal.value(options));
@@ -110,7 +116,8 @@ class CheckCommand implements Command {
         return new LinkedHashSet<>(option.values(options));
     }
 
-    private static Set<String> toCheckpointsSet(OptionSet options, OptionSpec<?> head, OptionSpec<String> cp) {
+    private static Set<String> toCheckpointsSet(OptionSet options, OptionSpec<?> head,
+        OptionSpec<String> cp) {
         Set<String> checkpoints = new LinkedHashSet<>();
         if (options.has(cp) || !options.has(head)) {
             checkpoints.addAll(cp.values(options));
@@ -118,7 +125,8 @@ class CheckCommand implements Command {
         return checkpoints;
     }
 
-    private static boolean shouldCheckHead(OptionSet options, OptionSpec<?> head, OptionSpec<String> cp) {
+    private static boolean shouldCheckHead(OptionSet options, OptionSpec<?> head,
+        OptionSpec<String> cp) {
         return !options.has(cp) || options.has(head);
     }
 

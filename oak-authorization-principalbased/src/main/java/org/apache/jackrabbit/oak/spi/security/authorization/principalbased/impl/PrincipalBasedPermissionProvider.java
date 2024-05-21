@@ -53,7 +53,8 @@ import static org.apache.jackrabbit.oak.spi.security.authorization.permission.Tr
 
 class PrincipalBasedPermissionProvider implements AggregatedPermissionProvider, Constants {
 
-    private static final Logger log = LoggerFactory.getLogger(PrincipalBasedPermissionProvider.class);
+    private static final Logger log = LoggerFactory.getLogger(
+        PrincipalBasedPermissionProvider.class);
 
     private final Root root;
     private final String workspaceName;
@@ -70,19 +71,22 @@ class PrincipalBasedPermissionProvider implements AggregatedPermissionProvider, 
     private ReadablePaths readablePaths;
 
     PrincipalBasedPermissionProvider(@NotNull Root root,
-                                     @NotNull String workspaceName,
-                                     @NotNull Iterable<String> principalPaths,
-                                     @NotNull PrincipalBasedAuthorizationConfiguration authorizationConfiguration) {
+        @NotNull String workspaceName,
+        @NotNull Iterable<String> principalPaths,
+        @NotNull PrincipalBasedAuthorizationConfiguration authorizationConfiguration) {
         this.root = root;
         this.workspaceName = workspaceName;
         this.principalPaths = principalPaths;
 
         immutableRoot = authorizationConfiguration.getRootProvider().createReadOnlyRoot(root);
-        mgrProvider = new MgrProviderImpl(authorizationConfiguration, immutableRoot, NamePathMapper.DEFAULT);
+        mgrProvider = new MgrProviderImpl(authorizationConfiguration, immutableRoot,
+            NamePathMapper.DEFAULT);
         typeProvider = new TreeTypeProvider(mgrProvider.getContext());
-        modAcBits = mgrProvider.getPrivilegeBitsProvider().getBits(PrivilegeConstants.JCR_MODIFY_ACCESS_CONTROL);
+        modAcBits = mgrProvider.getPrivilegeBitsProvider()
+                               .getBits(PrivilegeConstants.JCR_MODIFY_ACCESS_CONTROL);
 
-        entryCache = new EntryCache(immutableRoot, principalPaths, mgrProvider.getRestrictionProvider());
+        entryCache = new EntryCache(immutableRoot, principalPaths,
+            mgrProvider.getRestrictionProvider());
         readablePaths = new ReadablePaths(mgrProvider);
     }
 
@@ -93,7 +97,8 @@ class PrincipalBasedPermissionProvider implements AggregatedPermissionProvider, 
         immutableRoot = mgrProvider.getRootProvider().createReadOnlyRoot(root);
         mgrProvider.reset(immutableRoot, NamePathMapper.DEFAULT);
 
-        entryCache = new EntryCache(immutableRoot, principalPaths, mgrProvider.getRestrictionProvider());
+        entryCache = new EntryCache(immutableRoot, principalPaths,
+            mgrProvider.getRestrictionProvider());
         if (repositoryPermission != null) {
             repositoryPermission.refresh();
         }
@@ -103,12 +108,14 @@ class PrincipalBasedPermissionProvider implements AggregatedPermissionProvider, 
     @NotNull
     @Override
     public Set<String> getPrivileges(@Nullable Tree tree) {
-        return mgrProvider.getPrivilegeBitsProvider().getPrivilegeNames(getGrantedPrivilegeBits(tree));
+        return mgrProvider.getPrivilegeBitsProvider()
+                          .getPrivilegeNames(getGrantedPrivilegeBits(tree));
     }
 
     @Override
     public boolean hasPrivileges(@Nullable Tree tree, @NotNull String... privilegeNames) {
-        return getGrantedPrivilegeBits(tree).includes(mgrProvider.getPrivilegeBitsProvider().getBits(privilegeNames));
+        return getGrantedPrivilegeBits(tree).includes(
+            mgrProvider.getPrivilegeBitsProvider().getBits(privilegeNames));
     }
 
     @Override
@@ -120,19 +127,23 @@ class PrincipalBasedPermissionProvider implements AggregatedPermissionProvider, 
     }
 
     @Override
-    public @NotNull TreePermission getTreePermission(@NotNull Tree tree, @NotNull TreePermission parentPermission) {
+    public @NotNull TreePermission getTreePermission(@NotNull Tree tree,
+        @NotNull TreePermission parentPermission) {
         Tree readOnly = getReadOnlyTree(tree);
         TreeType parentType;
         if (parentPermission instanceof AbstractTreePermission) {
             parentType = ((AbstractTreePermission) parentPermission).getType();
         } else {
-            parentType = (tree.isRoot()) ? TreeType.DEFAULT : typeProvider.getType(tree.getParent());
+            parentType =
+                (tree.isRoot()) ? TreeType.DEFAULT : typeProvider.getType(tree.getParent());
         }
-        return getTreePermission(readOnly, typeProvider.getType(readOnly, parentType), parentPermission);
+        return getTreePermission(readOnly, typeProvider.getType(readOnly, parentType),
+            parentPermission);
     }
 
     @Override
-    public boolean isGranted(@NotNull Tree tree, @Nullable PropertyState property, long permissions) {
+    public boolean isGranted(@NotNull Tree tree, @Nullable PropertyState property,
+        long permissions) {
         Tree readOnly = getReadOnlyTree(tree);
         TreeType type = typeProvider.getType(readOnly);
         switch (type) {
@@ -161,7 +172,8 @@ class PrincipalBasedPermissionProvider implements AggregatedPermissionProvider, 
                 break;
         }
 
-        return isGranted(readOnly.getPath(), EntryPredicate.create(readOnly, property), EntryPredicate.createParent(readOnly, permissions), permissions);
+        return isGranted(readOnly.getPath(), EntryPredicate.create(readOnly, property),
+            EntryPredicate.createParent(readOnly, permissions), permissions);
     }
 
     @Override
@@ -177,13 +189,16 @@ class PrincipalBasedPermissionProvider implements AggregatedPermissionProvider, 
     //---------------------------------------< AggregatedPermissionProvider >---
 
     @Override
-    public @NotNull PrivilegeBits supportedPrivileges(@Nullable Tree tree, @Nullable PrivilegeBits privilegeBits) {
-        return (privilegeBits != null) ? privilegeBits : new PrivilegeBitsProvider(immutableRoot).getBits(PrivilegeConstants.JCR_ALL);
+    public @NotNull PrivilegeBits supportedPrivileges(@Nullable Tree tree,
+        @Nullable PrivilegeBits privilegeBits) {
+        return (privilegeBits != null) ? privilegeBits
+            : new PrivilegeBitsProvider(immutableRoot).getBits(PrivilegeConstants.JCR_ALL);
 
     }
 
     @Override
-    public long supportedPermissions(@Nullable Tree tree, @Nullable PropertyState property, long permissions) {
+    public long supportedPermissions(@Nullable Tree tree, @Nullable PropertyState property,
+        long permissions) {
         return permissions;
     }
 
@@ -193,7 +208,8 @@ class PrincipalBasedPermissionProvider implements AggregatedPermissionProvider, 
     }
 
     @Override
-    public long supportedPermissions(@NotNull TreePermission treePermission, @Nullable PropertyState property, long permissions) {
+    public long supportedPermissions(@NotNull TreePermission treePermission,
+        @Nullable PropertyState property, long permissions) {
         return permissions;
     }
 
@@ -207,16 +223,21 @@ class PrincipalBasedPermissionProvider implements AggregatedPermissionProvider, 
         if (tree != null) {
             isGranted = isGranted(tree, property, permissions);
         } else if (!oakPath.startsWith(VersionConstants.VERSION_STORE_PATH)) {
-            Predicate<PermissionEntry> parentPredicate = EntryPredicate.createParent(tl.getPath(), tl.getParent().getTree(), permissions);
-            isGranted = isGranted(oakPath, EntryPredicate.create(oakPath), parentPredicate, permissions);
+            Predicate<PermissionEntry> parentPredicate = EntryPredicate.createParent(tl.getPath(),
+                tl.getParent().getTree(), permissions);
+            isGranted = isGranted(oakPath, EntryPredicate.create(oakPath), parentPredicate,
+                permissions);
         } else {
-            log.debug("Cannot determine permissions for non-existing location {} below the version storage", location);
+            log.debug(
+                "Cannot determine permissions for non-existing location {} below the version storage",
+                location);
         }
         return isGranted;
     }
 
     @Override
-    public @NotNull TreePermission getTreePermission(@NotNull Tree tree, @NotNull TreeType type, @NotNull TreePermission parentPermission) {
+    public @NotNull TreePermission getTreePermission(@NotNull Tree tree, @NotNull TreeType type,
+        @NotNull TreePermission parentPermission) {
         Tree readOnly = getReadOnlyTree(tree);
         if (readOnly.isRoot()) {
             return new RegularTreePermission(readOnly, TreeType.DEFAULT);
@@ -229,7 +250,8 @@ class PrincipalBasedPermissionProvider implements AggregatedPermissionProvider, 
             case VERSION:
                 if (!isVersionStoreTree(readOnly)) {
                     if (parentPermission instanceof VersionTreePermission) {
-                        return parentPermission.getChildPermission(readOnly.getName(), mgrProvider.getTreeProvider().asNodeState(readOnly));
+                        return parentPermission.getChildPermission(readOnly.getName(),
+                            mgrProvider.getTreeProvider().asNodeState(readOnly));
                     } else {
                         Tree versionableTree = getVersionableTree(readOnly);
                         if (versionableTree == null) {
@@ -251,12 +273,13 @@ class PrincipalBasedPermissionProvider implements AggregatedPermissionProvider, 
 
     //--------------------------------------------------------------------------
 
-    private Iterator<PermissionEntry> getEntryIterator(@NotNull String path, @NotNull Predicate<PermissionEntry> predicate) {
+    private Iterator<PermissionEntry> getEntryIterator(@NotNull String path,
+        @NotNull Predicate<PermissionEntry> predicate) {
         return new EntryIterator(path, predicate, entryCache);
     }
 
     private boolean isGranted(@NotNull String path, @NotNull Predicate<PermissionEntry> predicate,
-                              @NotNull Predicate<PermissionEntry> parentPredicate, long permissions) {
+        @NotNull Predicate<PermissionEntry> parentPredicate, long permissions) {
         long allows = Permissions.NO_PERMISSION;
         if (readablePaths.isReadable(path)) {
             allows = Permissions.READ;
@@ -351,14 +374,15 @@ class PrincipalBasedPermissionProvider implements AggregatedPermissionProvider, 
     }
 
     /**
-     * In case the tree of type access-control represents a principal-based entry or a restriction defined below,
-     * modify-access-control is only granted if it is also granted on the effective target path.
-     * Calculate if those permissions are granted and if not subtract them later from the final result.
+     * In case the tree of type access-control represents a principal-based entry or a restriction
+     * defined below, modify-access-control is only granted if it is also granted on the effective
+     * target path. Calculate if those permissions are granted and if not subtract them later from
+     * the final result.
      *
      * @param tree A read-only tree of type ACCESS_CONTROL.
-     * @return PrivilegeBits to be subtracted from the final result or {@link PrivilegeBits#EMPTY}, if the given tree
-     * does not represent a principal-based entry or both read and modify access control is granted and nothing needs to
-     * be subtracted.
+     * @return PrivilegeBits to be subtracted from the final result or {@link PrivilegeBits#EMPTY},
+     * if the given tree does not represent a principal-based entry or both read and modify access
+     * control is granted and nothing needs to be subtracted.
      */
     @NotNull
     PrivilegeBits getBitsToSubtract(@NotNull Tree tree) {
@@ -366,12 +390,14 @@ class PrincipalBasedPermissionProvider implements AggregatedPermissionProvider, 
         if (effectivePath == null) {
             return PrivilegeBits.EMPTY;
         } else {
-            return modAcBits.modifiable().diff(getGrantedPrivilegeBits(effectivePath, EntryPredicate.create(effectivePath, false)));
+            return modAcBits.modifiable().diff(getGrantedPrivilegeBits(effectivePath,
+                EntryPredicate.create(effectivePath, false)));
         }
     }
 
     @NotNull
-    private PrivilegeBits getGrantedPrivilegeBits(@NotNull String oakPath, @NotNull Predicate<PermissionEntry> predicate) {
+    private PrivilegeBits getGrantedPrivilegeBits(@NotNull String oakPath,
+        @NotNull Predicate<PermissionEntry> predicate) {
         PrivilegeBits pb = PrivilegeBits.getInstance();
         Iterator<PermissionEntry> entries = getEntryIterator(oakPath, predicate);
         while (entries.hasNext()) {
@@ -400,12 +426,14 @@ class PrincipalBasedPermissionProvider implements AggregatedPermissionProvider, 
         } else if (Utils.isPrincipalEntry(tree.getParent())) {
             principalEntry = tree.getParent();
         }
-        return (principalEntry == null) ? null :  principalEntry.getProperty(REP_EFFECTIVE_PATH).getValue(Type.STRING);
+        return (principalEntry == null) ? null
+            : principalEntry.getProperty(REP_EFFECTIVE_PATH).getValue(Type.STRING);
     }
 
     @Nullable
     private Tree getVersionableTree(@NotNull Tree versionTree) {
-        return ReadOnlyVersionManager.getInstance(immutableRoot, NamePathMapper.DEFAULT).getVersionable(versionTree, workspaceName);
+        return ReadOnlyVersionManager.getInstance(immutableRoot, NamePathMapper.DEFAULT)
+                                     .getVersionable(versionTree, workspaceName);
     }
 
     private static boolean isVersionStoreTree(@NotNull Tree tree) {
@@ -413,9 +441,13 @@ class PrincipalBasedPermissionProvider implements AggregatedPermissionProvider, 
     }
 
     @NotNull
-    TreePermission getTreePermission(@NotNull String name, @NotNull NodeState nodeState, @NotNull AbstractTreePermission parentTreePermission) {
-        Tree readOnly = mgrProvider.getTreeProvider().createReadOnlyTree(parentTreePermission.getTree(), name, nodeState);
-        return getTreePermission(readOnly, typeProvider.getType(readOnly, parentTreePermission.getType()), parentTreePermission);
+    TreePermission getTreePermission(@NotNull String name, @NotNull NodeState nodeState,
+        @NotNull AbstractTreePermission parentTreePermission) {
+        Tree readOnly = mgrProvider.getTreeProvider()
+                                   .createReadOnlyTree(parentTreePermission.getTree(), name,
+                                       nodeState);
+        return getTreePermission(readOnly,
+            typeProvider.getType(readOnly, parentTreePermission.getType()), parentTreePermission);
     }
 
     //--------------------------------------------------------------------------
@@ -430,8 +462,10 @@ class PrincipalBasedPermissionProvider implements AggregatedPermissionProvider, 
 
         private long getGranted() {
             if (grantedPermissions == -1) {
-                PrivilegeBits pb = getGrantedPrivilegeBits(REPOSITORY_PERMISSION_PATH, EntryPredicate.create());
-                grantedPermissions = PrivilegeBits.calculatePermissions(pb, PrivilegeBits.EMPTY, true);
+                PrivilegeBits pb = getGrantedPrivilegeBits(REPOSITORY_PERMISSION_PATH,
+                    EntryPredicate.create());
+                grantedPermissions = PrivilegeBits.calculatePermissions(pb, PrivilegeBits.EMPTY,
+                    true);
             }
             return grantedPermissions;
         }
@@ -453,7 +487,8 @@ class PrincipalBasedPermissionProvider implements AggregatedPermissionProvider, 
         }
     }
 
-    private final class VersionTreePermission extends AbstractTreePermission implements VersionConstants {
+    private final class VersionTreePermission extends AbstractTreePermission implements
+        VersionConstants {
 
         private final Tree versionTree;
 
@@ -468,8 +503,11 @@ class PrincipalBasedPermissionProvider implements AggregatedPermissionProvider, 
         }
 
         @Override
-        public @NotNull TreePermission getChildPermission(@NotNull String childName, @NotNull NodeState childState) {
-            Tree childVersionTree = mgrProvider.getTreeProvider().createReadOnlyTree(versionTree, childName, childState);
+        public @NotNull TreePermission getChildPermission(@NotNull String childName,
+            @NotNull NodeState childState) {
+            Tree childVersionTree = mgrProvider.getTreeProvider()
+                                               .createReadOnlyTree(versionTree, childName,
+                                                   childState);
             Tree childVersionableTree;
             String primaryType = NodeStateUtils.getPrimaryTypeName(childState);
             if (VERSION_NODE_NAMES.contains(childName) || NT_VERSION.equals(primaryType)) {
@@ -491,13 +529,16 @@ class PrincipalBasedPermissionProvider implements AggregatedPermissionProvider, 
         private final PrivilegeBits readBits;
 
         private ReadablePaths(@NotNull MgrProvider mgrProvider) {
-            paths = mgrProvider.getSecurityProvider().getParameters(AuthorizationConfiguration.NAME).getConfigValue(PermissionConstants.PARAM_READ_PATHS, PermissionConstants.DEFAULT_READ_PATHS).toArray(new String[0]);
+            paths = mgrProvider.getSecurityProvider().getParameters(AuthorizationConfiguration.NAME)
+                               .getConfigValue(PermissionConstants.PARAM_READ_PATHS,
+                                   PermissionConstants.DEFAULT_READ_PATHS).toArray(new String[0]);
             substrPaths = new String[paths.length];
             int i = 0;
             for (String p : this.paths) {
                 substrPaths[i++] = p + '/';
             }
-            this.readBits = mgrProvider.getPrivilegeBitsProvider().getBits(PrivilegeConstants.JCR_READ);
+            this.readBits = mgrProvider.getPrivilegeBitsProvider()
+                                       .getBits(PrivilegeConstants.JCR_READ);
         }
 
         public boolean isReadable(@NotNull String treePath) {

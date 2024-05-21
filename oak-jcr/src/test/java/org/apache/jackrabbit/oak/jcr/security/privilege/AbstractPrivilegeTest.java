@@ -20,7 +20,6 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.Workspace;
 import javax.jcr.security.Privilege;
-
 import org.apache.jackrabbit.api.JackrabbitWorkspace;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.test.AbstractJCRTest;
@@ -55,6 +54,6 @@ abstract class AbstractPrivilegeTest extends AbstractJCRTest {
         String privName = priv.getName();
         assertEquals(privName, privName, name);
         assertEquals(privName, isAggregate, priv.isAggregate());
-        assertEquals(privName,isAbstract, priv.isAbstract());
+        assertEquals(privName, isAbstract, priv.isAbstract());
     }
 }

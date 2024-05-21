@@ -19,8 +19,6 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
-import org.apache.jackrabbit.oak.commons.Compression;
-
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -32,13 +30,16 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.util.List;
+import org.apache.jackrabbit.oak.commons.Compression;
 
 /**
  * This class provides common utility functions for building FlatFileStore.
  *
- * @deprecated Use {@link org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils} instead
+ * @deprecated Use
+ * {@link org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils} instead
  */
 public class FlatFileStoreUtils {
+
     public static final String METADATA_SUFFIX = ".metadata";
 
     /**
@@ -60,7 +61,8 @@ public class FlatFileStoreUtils {
     /**
      * This function by default uses GNU zip as compression algorithm for backward compatibility.
      */
-    public static BufferedWriter createWriter(File file, boolean compressionEnabled) throws IOException {
+    public static BufferedWriter createWriter(File file, boolean compressionEnabled)
+        throws IOException {
         return createWriter(file, compressionEnabled ? Compression.GZIP : Compression.NONE);
     }
 

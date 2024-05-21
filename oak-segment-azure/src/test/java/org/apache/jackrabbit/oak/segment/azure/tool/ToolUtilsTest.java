@@ -18,33 +18,6 @@
  */
 package org.apache.jackrabbit.oak.segment.azure.tool;
 
-import ch.qos.logback.classic.Level;
-import ch.qos.logback.classic.LoggerContext;
-import ch.qos.logback.classic.spi.ILoggingEvent;
-import ch.qos.logback.core.Appender;
-import ch.qos.logback.core.read.ListAppender;
-import com.microsoft.azure.storage.StorageCredentials;
-import com.microsoft.azure.storage.StorageCredentialsAccountAndKey;
-import com.microsoft.azure.storage.StorageCredentialsSharedAccessSignature;
-
-import java.net.URISyntaxException;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.blob.CloudBlobDirectory;
-import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzuriteDockerRule;
-import org.apache.jackrabbit.oak.segment.azure.AzureUtilities;
-import org.apache.jackrabbit.oak.segment.azure.util.Environment;
-import org.jetbrains.annotations.NotNull;
-import org.junit.Test;
-import org.mockito.ArgumentCaptor;
-import org.mockito.MockedStatic;
-import org.slf4j.LoggerFactory;
-
 import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.AZURE_ACCOUNT_NAME;
 import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.AZURE_CLIENT_ID;
 import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.AZURE_CLIENT_SECRET;
@@ -59,7 +32,33 @@ import static org.junit.Assume.assumeNotNull;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mockStatic;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.LoggerContext;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.Appender;
+import ch.qos.logback.core.read.ListAppender;
+import com.microsoft.azure.storage.StorageCredentials;
+import com.microsoft.azure.storage.StorageCredentialsAccountAndKey;
+import com.microsoft.azure.storage.StorageCredentialsSharedAccessSignature;
+import com.microsoft.azure.storage.StorageException;
+import com.microsoft.azure.storage.blob.CloudBlobDirectory;
+import java.net.URISyntaxException;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzuriteDockerRule;
+import org.apache.jackrabbit.oak.segment.azure.AzureUtilities;
+import org.apache.jackrabbit.oak.segment.azure.util.Environment;
+import org.jetbrains.annotations.NotNull;
+import org.junit.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.MockedStatic;
+import org.slf4j.LoggerFactory;
+
 public class ToolUtilsTest {
+
     private static final Environment ENVIRONMENT = new Environment();
 
     private static final String CONTAINER_URL_FORMAT = "https://%s.blob.core.windows.net/%s";
@@ -68,8 +67,10 @@ public class ToolUtilsTest {
     private static final String DEFAULT_ACCOUNT_NAME = "myaccount";
     private static final String DEFAULT_CONTAINER_NAME = "oak";
     private static final String DEFAULT_REPO_DIR = "repository";
-    private static final String DEFAULT_CONTAINER_URL = String.format(CONTAINER_URL_FORMAT, DEFAULT_ACCOUNT_NAME, DEFAULT_CONTAINER_NAME);
-    private static final String DEFAULT_SEGMENT_STORE_PATH = String.format(SEGMENT_STORE_PATH_FORMAT, DEFAULT_ACCOUNT_NAME, DEFAULT_CONTAINER_NAME, DEFAULT_REPO_DIR);
+    private static final String DEFAULT_CONTAINER_URL = String.format(CONTAINER_URL_FORMAT,
+        DEFAULT_ACCOUNT_NAME, DEFAULT_CONTAINER_NAME);
+    private static final String DEFAULT_SEGMENT_STORE_PATH = String.format(
+        SEGMENT_STORE_PATH_FORMAT, DEFAULT_ACCOUNT_NAME, DEFAULT_CONTAINER_NAME, DEFAULT_REPO_DIR);
     public static final String AZURE_SECRET_KEY_WARNING = "AZURE_CLIENT_ID, AZURE_CLIENT_SECRET and AZURE_TENANT_ID environment variables empty or missing. Switching to authentication with AZURE_SECRET_KEY.";
 
     private final TestEnvironment environment = new TestEnvironment();
@@ -81,12 +82,14 @@ public class ToolUtilsTest {
         final ListAppender<ILoggingEvent> logAppender = subscribeAppender();
 
         StorageCredentialsAccountAndKey credentials = expectCredentials(
-            StorageCredentialsAccountAndKey.class, 
+            StorageCredentialsAccountAndKey.class,
             () -> ToolUtils.createCloudBlobDirectory(DEFAULT_SEGMENT_STORE_PATH, environment),
             DEFAULT_CONTAINER_URL
         );
 
-        assertTrue(checkLogContainsMessage(AZURE_SECRET_KEY_WARNING, logAppender.list.stream().map(ILoggingEvent::getFormattedMessage).collect(Collectors.toList())));
+        assertTrue(checkLogContainsMessage(AZURE_SECRET_KEY_WARNING,
+            logAppender.list.stream().map(ILoggingEvent::getFormattedMessage)
+                            .collect(Collectors.toList())));
         assertEquals(Level.WARN, logAppender.list.get(0).getLevel());
 
         assertEquals(DEFAULT_ACCOUNT_NAME, credentials.getAccountName());
@@ -115,17 +118,19 @@ public class ToolUtilsTest {
         String sasToken = "sig=qL%2Fi%2BP7J6S0sA8Ihc%2BKq75U5uJcnukpfktT2fm1ckXk%3D&se=2022-02-09T11%3A52%3A42Z&sv=2019-02-02&sp=rl&sr=c";
 
         StorageCredentialsSharedAccessSignature credentials = expectCredentials(
-            StorageCredentialsSharedAccessSignature.class, 
+            StorageCredentialsSharedAccessSignature.class,
             () -> ToolUtils.createCloudBlobDirectory(DEFAULT_SEGMENT_STORE_PATH + '?' + sasToken),
             DEFAULT_CONTAINER_URL
         );
 
         assertEquals(sasToken, credentials.getToken());
-        assertNull("AccountName should be null when SAS credentials are used", credentials.getAccountName());
+        assertNull("AccountName should be null when SAS credentials are used",
+            credentials.getAccountName());
     }
 
     @Test
-    public void createCloudBlobDirectoryWithServicePrincipal() throws URISyntaxException, StorageException {
+    public void createCloudBlobDirectoryWithServicePrincipal()
+        throws URISyntaxException, StorageException {
         assumeNotNull(ENVIRONMENT.getVariable(AZURE_ACCOUNT_NAME));
         assumeNotNull(ENVIRONMENT.getVariable(AZURE_TENANT_ID));
         assumeNotNull(ENVIRONMENT.getVariable(AZURE_CLIENT_ID));
@@ -133,14 +138,17 @@ public class ToolUtilsTest {
 
         String accountName = ENVIRONMENT.getVariable(AZURE_ACCOUNT_NAME);
         String containerName = "oak";
-        String segmentStorePath = String.format(SEGMENT_STORE_PATH_FORMAT, accountName, containerName, DEFAULT_REPO_DIR);
+        String segmentStorePath = String.format(SEGMENT_STORE_PATH_FORMAT, accountName,
+            containerName, DEFAULT_REPO_DIR);
 
-        CloudBlobDirectory cloudBlobDirectory = ToolUtils.createCloudBlobDirectory(segmentStorePath, ENVIRONMENT);
+        CloudBlobDirectory cloudBlobDirectory = ToolUtils.createCloudBlobDirectory(segmentStorePath,
+            ENVIRONMENT);
         assertNotNull(cloudBlobDirectory);
         assertEquals(containerName, cloudBlobDirectory.getContainer().getName());
     }
 
-    private static <T extends StorageCredentials> T expectCredentials(Class<T> clazz, Runnable body, String containerUrl) {
+    private static <T extends StorageCredentials> T expectCredentials(Class<T> clazz, Runnable body,
+        String containerUrl) {
         ArgumentCaptor<T> credentialsCaptor = ArgumentCaptor.forClass(clazz);
         try (MockedStatic<AzureUtilities> mockedAzureUtilities = mockStatic(AzureUtilities.class)) {
             body.run();
@@ -171,16 +179,17 @@ public class ToolUtilsTest {
         appender.setName("asynclogcollector");
         appender.start();
         ((LoggerContext) LoggerFactory.getILoggerFactory()).getLogger(
-                ch.qos.logback.classic.Logger.ROOT_LOGGER_NAME).addAppender(appender);
+            ch.qos.logback.classic.Logger.ROOT_LOGGER_NAME).addAppender(appender);
         return appender;
     }
 
     private void unsubscribe(@NotNull final Appender<ILoggingEvent> appender) {
         ((LoggerContext) LoggerFactory.getILoggerFactory()).getLogger(
-                ch.qos.logback.classic.Logger.ROOT_LOGGER_NAME).detachAppender(appender);
+            ch.qos.logback.classic.Logger.ROOT_LOGGER_NAME).detachAppender(appender);
     }
 
     static class TestEnvironment extends Environment {
+
         private final Map<String, String> envs = new HashMap<>();
 
         @Override

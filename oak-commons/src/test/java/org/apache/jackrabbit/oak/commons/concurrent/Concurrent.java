@@ -33,14 +33,15 @@ public class Concurrent {
      * Run a task concurrently in 2 threads for 1 second.
      *
      * @param message the message
-     * @param task the task
+     * @param task    the task
      * @throws Exception the first exception that is thrown (if any)
      */
     public static void run(String message, Task task) throws Exception {
         run(message, task, 2, 1000);
     }
 
-    public static void run(String message, final Task task, int threadCount, int millis) throws Exception {
+    public static void run(String message, final Task task, int threadCount, int millis)
+        throws Exception {
         final AtomicBoolean stopped = new AtomicBoolean();
         final AtomicReference<Throwable> exception = new AtomicReference<Throwable>();
         ArrayList<Thread> threads = new ArrayList<Thread>();
@@ -94,6 +95,7 @@ public class Concurrent {
     }
 
     public interface Task {
+
         void call() throws Exception;
     }
 

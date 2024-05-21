@@ -31,10 +31,9 @@ import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 /**
- * A node state based on a {@link DocumentNodeState} with some modifications
- * applied on top of it represented by {@link #modified}. This node state is
- * a thin wrapper around {@link #modified} and creates a new {@link NodeBuilder}
- * connected to the {@link #branch} on {@link #builder()}.
+ * A node state based on a {@link DocumentNodeState} with some modifications applied on top of it
+ * represented by {@link #modified}. This node state is a thin wrapper around {@link #modified} and
+ * creates a new {@link NodeBuilder} connected to the {@link #branch} on {@link #builder()}.
  */
 class ModifiedDocumentNodeState extends AbstractNodeState {
 
@@ -47,9 +46,9 @@ class ModifiedDocumentNodeState extends AbstractNodeState {
     private final NodeState modified;
 
     ModifiedDocumentNodeState(@NotNull DocumentNodeStore store,
-                              @NotNull DocumentNodeStoreBranch branch,
-                              @NotNull DocumentNodeState base,
-                              @NotNull NodeState modified) {
+        @NotNull DocumentNodeStoreBranch branch,
+        @NotNull DocumentNodeState base,
+        @NotNull NodeState modified) {
         this.store = checkNotNull(store);
         this.branch = checkNotNull(branch);
         this.base = checkNotNull(base);
@@ -75,7 +74,7 @@ class ModifiedDocumentNodeState extends AbstractNodeState {
     @NotNull
     @Override
     public NodeState getChildNode(@NotNull String name)
-            throws IllegalArgumentException {
+        throws IllegalArgumentException {
         return modified.getChildNode(name);
     }
 
@@ -147,7 +146,7 @@ class ModifiedDocumentNodeState extends AbstractNodeState {
     }
 
     private boolean revisionEquals(AbstractDocumentNodeState a,
-                                   AbstractDocumentNodeState b) {
+        AbstractDocumentNodeState b) {
         RevisionVector rv1 = a.getLastRevision();
         rv1 = rv1 != null ? rv1.asTrunkRevision() : null;
         RevisionVector rv2 = b.getLastRevision();

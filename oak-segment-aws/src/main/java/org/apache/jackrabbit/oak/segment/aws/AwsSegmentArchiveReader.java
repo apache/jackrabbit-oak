@@ -21,7 +21,6 @@ import static org.apache.jackrabbit.oak.segment.remote.RemoteUtilities.OFF_HEAP;
 import java.io.File;
 import java.io.IOException;
 import java.util.UUID;
-
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.remote.AbstractRemoteSegmentArchiveReader;
 import org.apache.jackrabbit.oak.segment.remote.RemoteSegmentArchiveEntry;
@@ -35,7 +34,8 @@ public class AwsSegmentArchiveReader extends AbstractRemoteSegmentArchiveReader 
 
     private final long length;
 
-    AwsSegmentArchiveReader(S3Directory directory, String archiveName, IOMonitor ioMonitor) throws IOException {
+    AwsSegmentArchiveReader(S3Directory directory, String archiveName, IOMonitor ioMonitor)
+        throws IOException {
         super(ioMonitor);
         this.directory = directory;
         this.archiveName = archiveName;
@@ -65,8 +65,9 @@ public class AwsSegmentArchiveReader extends AbstractRemoteSegmentArchiveReader 
             int fullGeneration = buffer.getInt();
             boolean compacted = buffer.get() != 0;
 
-            RemoteSegmentArchiveEntry indexEntry = new RemoteSegmentArchiveEntry(msb, lsb, position, contentLength,
-                    generation, fullGeneration, compacted);
+            RemoteSegmentArchiveEntry indexEntry = new RemoteSegmentArchiveEntry(msb, lsb, position,
+                contentLength,
+                generation, fullGeneration, compacted);
             index.put(new UUID(indexEntry.getMsb(), indexEntry.getLsb()), indexEntry);
             length += contentLength;
         }

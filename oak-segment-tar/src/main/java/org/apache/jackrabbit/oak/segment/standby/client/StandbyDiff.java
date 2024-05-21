@@ -23,9 +23,6 @@ import static org.apache.jackrabbit.oak.api.Type.BINARIES;
 import static org.apache.jackrabbit.oak.api.Type.BINARY;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
-import java.io.IOException;
-import java.io.InputStream;
-
 import org.apache.jackrabbit.guava.common.base.Supplier;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -56,18 +53,21 @@ class StandbyDiff implements NodeStateDiff {
 
     private final BlobProcessor blobProcessor;
 
-    StandbyDiff(NodeBuilder builder, FileStore store, StandbyClient client, Supplier<Boolean> running) {
+    StandbyDiff(NodeBuilder builder, FileStore store, StandbyClient client,
+        Supplier<Boolean> running) {
         this(builder, store, client, "/", running);
     }
 
     private static BlobProcessor newBinaryFetcher(BlobStore blobStore, StandbyClient client) {
         if (blobStore == null) {
-            return (blob) -> {};
+            return (blob) -> {
+            };
         }
         return new RemoteBlobProcessor(blobStore, client::getBlob);
     }
 
-    private StandbyDiff(NodeBuilder builder, FileStore store, StandbyClient client, String path, Supplier<Boolean> running) {
+    private StandbyDiff(NodeBuilder builder, FileStore store, StandbyClient client, String path,
+        Supplier<Boolean> running) {
         this.builder = builder;
         this.store = store;
         this.client = client;
@@ -122,8 +122,10 @@ class StandbyDiff implements NodeStateDiff {
         return true;
     }
 
-    public SegmentNodeState process(String name, NodeState before, NodeState after, NodeBuilder onto) {
-        return new StandbyDiff(onto, store, client, path + name + "/", running).diff(name, before, after);
+    public SegmentNodeState process(String name, NodeState before, NodeState after,
+        NodeBuilder onto) {
+        return new StandbyDiff(onto, store, client, path + name + "/", running).diff(name, before,
+            after);
     }
 
     SegmentNodeState diff(String name, NodeState before, NodeState after) {
@@ -145,7 +147,8 @@ class StandbyDiff implements NodeStateDiff {
                 processBinary(propertyState);
             }
 
-            boolean success = after.compareAgainstBaseState(before, new CancelableDiff(this, newCanceledSupplier()));
+            boolean success = after.compareAgainstBaseState(before,
+                new CancelableDiff(this, newCanceledSupplier()));
             if (success) {
                 return (SegmentNodeState) after;
             } else {
@@ -202,7 +205,8 @@ class StandbyDiff implements NodeStateDiff {
             );
             throw new IllegalStateException(message, e);
         } catch (BlobTypeUnknownException e) {
-            log.warn("Unknown Blob {} at {}, ignoring", b.getClass().getName(), path + "#" + propertyName);
+            log.warn("Unknown Blob {} at {}, ignoring", b.getClass().getName(),
+                path + "#" + propertyName);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }

@@ -18,27 +18,28 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.util;
 
-import org.apache.jackrabbit.oak.plugins.document.Collection;
-import org.apache.jackrabbit.oak.plugins.document.Document;
-import org.slf4j.Logger;
-
-import java.util.function.BiPredicate;
-
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isPreviousDocId;
+
+import java.util.function.BiPredicate;
+import org.apache.jackrabbit.oak.plugins.document.Collection;
+import org.apache.jackrabbit.oak.plugins.document.Document;
+import org.slf4j.Logger;
 
 /**
  * Statistics Util class.
  */
 public class StatsCollectorUtil {
 
-    private StatsCollectorUtil() {}
+    private StatsCollectorUtil() {
+    }
 
-    public static void perfLog(final Logger perfLog, final int perfLogThreshold, long timeTakenNanos, String logMsgPrefix,
-                               Object... arguments) {
+    public static void perfLog(final Logger perfLog, final int perfLogThreshold,
+        long timeTakenNanos, String logMsgPrefix,
+        Object... arguments) {
 
-        if (!perfLog.isDebugEnabled()){
+        if (!perfLog.isDebugEnabled()) {
             return;
         }
 

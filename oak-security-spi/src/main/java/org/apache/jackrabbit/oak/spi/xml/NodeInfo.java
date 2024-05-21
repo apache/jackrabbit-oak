@@ -21,13 +21,12 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Information about a node being imported. This class is used
- * by the XML import handlers to pass the parsed node information to the
- * import process.
+ * Information about a node being imported. This class is used by the XML import handlers to pass
+ * the parsed node information to the import process.
  * <p>
- * An instance of this class is simply a container for the node name,
- * node uuidentifier, and the node type information. See the {@link PropInfo}
- * class for the related carrier of property information.
+ * An instance of this class is simply a container for the node name, node uuidentifier, and the
+ * node type information. See the {@link PropInfo} class for the related carrier of property
+ * information.
  */
 public class NodeInfo {
 
@@ -54,16 +53,18 @@ public class NodeInfo {
     /**
      * Creates a node information instance.
      *
-     * @param name name of the node being imported
+     * @param name            name of the node being imported
      * @param primaryTypeName name of the primary type of the node being imported
-     * @param mixinTypeNames names of the mixin types of the node being imported
-     * @param uuid uuid of the node being imported
+     * @param mixinTypeNames  names of the mixin types of the node being imported
+     * @param uuid            uuid of the node being imported
      */
-    public NodeInfo(@NotNull String name, @Nullable String primaryTypeName, @Nullable Iterable<String> mixinTypeNames,
-                    @Nullable String uuid) {
+    public NodeInfo(@NotNull String name, @Nullable String primaryTypeName,
+        @Nullable Iterable<String> mixinTypeNames,
+        @Nullable String uuid) {
         this.name = name;
         this.primaryTypeName = primaryTypeName;
-        this.mixinTypeNames = (mixinTypeNames == null) ? Collections.<String>emptyList() : mixinTypeNames;
+        this.mixinTypeNames =
+            (mixinTypeNames == null) ? Collections.<String>emptyList() : mixinTypeNames;
         this.uuid = uuid;
     }
 

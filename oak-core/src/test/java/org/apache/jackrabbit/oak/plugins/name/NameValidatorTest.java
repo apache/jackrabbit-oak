@@ -22,7 +22,6 @@ import static org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants.REP_PRE
 import static org.junit.Assert.assertEquals;
 
 import java.util.Collections;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.commit.Validator;

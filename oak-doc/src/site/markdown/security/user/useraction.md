@@ -29,39 +29,49 @@ such as
 - revoke the ability to impersonate the target user for a given principal
 
 <a name="api_extensions"></a>
+
 ### UserAction API
 
-The following public interface is provided by Oak in the package `org.apache.jackrabbit.oak.spi.security.user.action`:
+The following public interface is provided by Oak in the
+package `org.apache.jackrabbit.oak.spi.security.user.action`:
 
 - [UserAction]
 
-The `UserAction` interface extends from `AuthorizableAction` and itself allows to perform validations or write
-additional application specific content while executing user specific operations. Therefore these actions are executed as part of the transient 
+The `UserAction` interface extends from `AuthorizableAction` and itself allows to perform
+validations or write
+additional application specific content while executing user specific operations. Therefore these
+actions are executed as part of the transient
 user management modifications. This contrasts to `org.apache.jackrabbit.oak.spi.commit.CommitHook`s
 which in turn are only triggered once modifications are persisted.
 
-Consequently, implementations of the `UserAction` interface are expected 
+Consequently, implementations of the `UserAction` interface are expected
 to adhere to this rule and perform transient repository operations or validation.
-They must not force changes to be persisted by calling `org.apache.jackrabbit.oak.api.Root.commit()`.
+They must not force changes to be persisted by
+calling `org.apache.jackrabbit.oak.api.Root.commit()`.
 
 Any user actions are executed with the editing session and the
 target operation will fail if any of the configured actions fails (e.g. due to
 insufficient permissions by the editing Oak ContentSession).
 
 <a name="default_implementation"></a>
+
 ### Default Implementations
 
 Oak 1.10 doesn't provide any base implementation for `UserAction`.
 
 <a name="xml_import"></a>
+
 ### XML Import
 
-During import the user actions are called in the same way as when the corresponding API calls are invoked.
+During import the user actions are called in the same way as when the corresponding API calls are
+invoked.
 
 <a name="pluggability"></a>
+
 ### Pluggability
 
-Refer to [Authorizable Actions | Pluggability ](authorizableaction.html#Pluggability) for details on how to plug
+Refer to [Authorizable Actions | Pluggability ](authorizableaction.html#Pluggability) for details on
+how to plug
 a new user action into the system.
 
 ##### Examples
@@ -84,4 +94,5 @@ This example action removes the profile nodes upon disabling the user:
     }
 
 <!-- hidden references -->
+
 [UserAction]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/user/action/UserAction.html

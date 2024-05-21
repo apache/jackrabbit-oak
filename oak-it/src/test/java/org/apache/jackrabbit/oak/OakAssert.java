@@ -19,10 +19,8 @@ package org.apache.jackrabbit.oak;
 import static org.junit.Assert.assertEquals;
 
 import java.util.List;
-
-import org.apache.jackrabbit.oak.api.Tree;
-
 import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.oak.api.Tree;
 
 public final class OakAssert {
 

@@ -24,16 +24,15 @@ import org.junit.Test;
 public class DocumentDiscoveryLiteServiceIT extends BaseDocumentDiscoveryLiteServiceTest {
 
     /**
-     * This test creates a large number of documentnodestores which it starts,
-     * runs, stops in a random fashion, always testing to make sure the
-     * clusterView is correct
+     * This test creates a large number of documentnodestores which it starts, runs, stops in a
+     * random fashion, always testing to make sure the clusterView is correct
      */
     @Test
     public void testLargeStartStopFiesta() throws Throwable {
-        logger.info("testLargeStartStopFiesta: start, seed="+SEED);
+        logger.info("testLargeStartStopFiesta: start, seed=" + SEED);
         final int LOOP_CNT = 40; // with too many loops have also seen mongo
-                                 // connections becoming starved thus test
-                                 // failed
+        // connections becoming starved thus test
+        // failed
         doStartStopFiesta(LOOP_CNT);
     }
 

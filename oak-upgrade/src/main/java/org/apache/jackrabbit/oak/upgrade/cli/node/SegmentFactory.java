@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.upgrade.cli.node;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
-
+import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
@@ -28,8 +28,6 @@ import org.apache.jackrabbit.oak.plugins.segment.file.InvalidFileStoreVersionExc
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.jetbrains.annotations.Nullable;
-
-import org.apache.jackrabbit.guava.common.io.Closer;
 
 public class SegmentFactory implements NodeStoreFactory {
 
@@ -131,5 +129,6 @@ public class SegmentFactory implements NodeStoreFactory {
     }
 
     private static class ExternalBlobFound extends RuntimeException {
+
     }
 }

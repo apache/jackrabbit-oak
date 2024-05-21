@@ -19,8 +19,11 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import java.io.File;
+import static org.junit.Assert.assertNotNull;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
+import java.io.File;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfo;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoService;
 import org.apache.jackrabbit.oak.plugins.index.IndexInfo;
@@ -34,10 +37,6 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-
-import static org.junit.Assert.assertNotNull;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class LuceneIndexInfoProviderTest {
 
@@ -66,7 +65,7 @@ public class LuceneIndexInfoProviderTest {
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         when(asyncService.getInfo("async"))
-                .thenReturn(new AsyncIndexInfo("async", 0,0, false, null));
+            .thenReturn(new AsyncIndexInfo("async", 0, 0, false, null));
 
         IndexInfo info = provider.getInfo("/oak:index/fooIndex");
 

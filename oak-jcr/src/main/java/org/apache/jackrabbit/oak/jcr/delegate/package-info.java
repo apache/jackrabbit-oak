@@ -16,16 +16,14 @@
  */
 
 /**
- * This package contains the delegates for the various JCR API entities.
- * While the JCR API implementation classes directly implement the client
- * facing JCR API, they do so without implementing much of the business
- * logic themselves but rather rely on the functionality provided by the
- * delegates. This separation of the JCR functionality into external and
- * internal variants guarantees that JCR API consumers cannot gain access
- * to internals by simply casting to an implementation class. Further it
- * makes internal round-tripping through the JCR API unnecessary since
- * all functionality is provided by the internal interface (i.e. delegates),
- * which simplifies maintaining and checking state invariants.<p>
+ * This package contains the delegates for the various JCR API entities. While the JCR API
+ * implementation classes directly implement the client facing JCR API, they do so without
+ * implementing much of the business logic themselves but rather rely on the functionality provided
+ * by the delegates. This separation of the JCR functionality into external and internal variants
+ * guarantees that JCR API consumers cannot gain access to internals by simply casting to an
+ * implementation class. Further it makes internal round-tripping through the JCR API unnecessary
+ * since all functionality is provided by the internal interface (i.e. delegates), which simplifies
+ * maintaining and checking state invariants.<p>
  *
  * <b>Responsibilities of JCR API implementation classes:</b>
  * <ul>

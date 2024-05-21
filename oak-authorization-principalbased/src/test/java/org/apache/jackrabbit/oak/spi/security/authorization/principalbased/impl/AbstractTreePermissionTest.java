@@ -45,7 +45,8 @@ public class AbstractTreePermissionTest {
 
     }
 
-    private AbstractTreePermission createAbstractTreePermission(@NotNull Tree tree, @NotNull TreeType type, @NotNull PrincipalBasedPermissionProvider pp) {
+    private AbstractTreePermission createAbstractTreePermission(@NotNull Tree tree,
+        @NotNull TreeType type, @NotNull PrincipalBasedPermissionProvider pp) {
         return new AbstractTreePermission(tree, type) {
             @Override
             PrincipalBasedPermissionProvider getPermissionProvider() {
@@ -85,7 +86,8 @@ public class AbstractTreePermissionTest {
 
     @Test
     public void testCanReadAcType() {
-        AbstractTreePermission atp = createAbstractTreePermission(tree, TreeType.ACCESS_CONTROL, pp);
+        AbstractTreePermission atp = createAbstractTreePermission(tree, TreeType.ACCESS_CONTROL,
+            pp);
         atp.canRead();
 
         verify(pp, times(1)).isGranted(tree, null, Permissions.READ_ACCESS_CONTROL);
@@ -105,7 +107,8 @@ public class AbstractTreePermissionTest {
     public void testCanReadWithPropertyAcType() {
         PropertyState ps = mock(PropertyState.class);
 
-        AbstractTreePermission atp = createAbstractTreePermission(tree, TreeType.ACCESS_CONTROL, pp);
+        AbstractTreePermission atp = createAbstractTreePermission(tree, TreeType.ACCESS_CONTROL,
+            pp);
         atp.canRead(ps);
 
         verify(pp, times(1)).isGranted(tree, ps, Permissions.READ_ACCESS_CONTROL);
@@ -125,7 +128,8 @@ public class AbstractTreePermissionTest {
 
     @Test
     public void testIsGranted() {
-        AbstractTreePermission atp = createAbstractTreePermission(tree, TreeType.ACCESS_CONTROL, pp);
+        AbstractTreePermission atp = createAbstractTreePermission(tree, TreeType.ACCESS_CONTROL,
+            pp);
         atp.isGranted(Permissions.ALL);
 
         verify(pp, times(1)).isGranted(tree, null, Permissions.ALL);
@@ -136,10 +140,12 @@ public class AbstractTreePermissionTest {
         PropertyState ps = mock(PropertyState.class);
 
         AbstractTreePermission atp = createAbstractTreePermission(tree, TreeType.VERSION, pp);
-        atp.isGranted(Permissions.SET_PROPERTY|Permissions.VERSION_MANAGEMENT, ps);
+        atp.isGranted(Permissions.SET_PROPERTY | Permissions.VERSION_MANAGEMENT, ps);
 
-        verify(pp, times(1)).isGranted(tree, ps, Permissions.SET_PROPERTY|Permissions.VERSION_MANAGEMENT);
-        verify(pp, never()).isGranted(tree, null, Permissions.SET_PROPERTY|Permissions.VERSION_MANAGEMENT);
+        verify(pp, times(1)).isGranted(tree, ps,
+            Permissions.SET_PROPERTY | Permissions.VERSION_MANAGEMENT);
+        verify(pp, never()).isGranted(tree, null,
+            Permissions.SET_PROPERTY | Permissions.VERSION_MANAGEMENT);
     }
 
 }

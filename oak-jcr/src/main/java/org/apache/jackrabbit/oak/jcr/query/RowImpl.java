@@ -22,13 +22,11 @@ import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.query.Row;
-
+import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
-
-import org.apache.jackrabbit.guava.common.base.Joiner;
 
 /**
  * The implementation of the corresponding JCR interface.
@@ -72,7 +70,7 @@ public class RowImpl implements Row {
             throw new RepositoryException(e);
         }
     }
-    
+
     @Override
     public String toString() {
         return row.toString();
@@ -116,8 +114,8 @@ public class RowImpl implements Row {
 
     private static PropertyValue mvpToString(PropertyValue pv) {
         String v = Joiner.on(' ')
-                .appendTo(new StringBuilder(), pv.getValue(Type.STRINGS))
-                .toString();
+                         .appendTo(new StringBuilder(), pv.getValue(Type.STRINGS))
+                         .toString();
         return PropertyValues.newString(v);
     }
 

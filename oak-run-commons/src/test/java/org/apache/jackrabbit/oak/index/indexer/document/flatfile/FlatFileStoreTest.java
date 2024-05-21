@@ -19,14 +19,10 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
-import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
-import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverser;
-import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
-import org.jetbrains.annotations.NotNull;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
-import org.mockito.Mockito;
+import static java.util.Arrays.asList;
+import static java.util.Collections.singleton;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_SORT_STRATEGY_TYPE;
+import static org.junit.Assert.assertEquals;
 
 import java.io.File;
 import java.util.Iterator;
@@ -35,11 +31,14 @@ import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
-
-import static java.util.Arrays.asList;
-import static java.util.Collections.singleton;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_SORT_STRATEGY_TYPE;
-import static org.junit.Assert.assertEquals;
+import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
+import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverser;
+import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
+import org.jetbrains.annotations.NotNull;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+import org.mockito.Mockito;
 
 @SuppressWarnings("StaticPseudoFunctionalStyleMethod")
 public class FlatFileStoreTest {
@@ -54,21 +53,25 @@ public class FlatFileStoreTest {
 
     private void runBasicTest() throws Exception {
         List<String> paths = createTestPaths();
-        FlatFileNodeStoreBuilder spyBuilder = Mockito.spy(new FlatFileNodeStoreBuilder(folder.getRoot()));
+        FlatFileNodeStoreBuilder spyBuilder = Mockito.spy(
+            new FlatFileNodeStoreBuilder(folder.getRoot()));
         FlatFileStore flatStore = spyBuilder.withBlobStore(new MemoryBlobStore())
-                .withPreferredPathElements(preferred)
-                .withPathPredicate(pathPredicate)
-                .withNodeStateEntryTraverserFactory(range -> new NodeStateEntryTraverser("NS-1", null, null,null, range) {
-                    @Override
-                    public @NotNull Iterator<NodeStateEntry> iterator() {
-                        return TestUtils.createEntries(paths).iterator();
-                    }
-                })
-                .build();
+                                            .withPreferredPathElements(preferred)
+                                            .withPathPredicate(pathPredicate)
+                                            .withNodeStateEntryTraverserFactory(
+                                                range -> new NodeStateEntryTraverser("NS-1", null,
+                                                    null, null, range) {
+                                                    @Override
+                                                    public @NotNull Iterator<NodeStateEntry> iterator() {
+                                                        return TestUtils.createEntries(paths)
+                                                                        .iterator();
+                                                    }
+                                                })
+                                            .build();
 
         List<String> entryPaths = StreamSupport.stream(flatStore.spliterator(), false)
-                .map(NodeStateEntry::getPath)
-                .collect(Collectors.toList());
+                                               .map(NodeStateEntry::getPath)
+                                               .collect(Collectors.toList());
 
         List<String> sortedPaths = TestUtils.sortPaths(paths, preferred);
         sortedPaths = TestUtils.extractPredicatePaths(sortedPaths, pathPredicate);
@@ -79,7 +82,8 @@ public class FlatFileStoreTest {
     @Test
     public void basicTestStoreAndSortStrategy() throws Exception {
         try {
-            System.setProperty(OAK_INDEXER_SORT_STRATEGY_TYPE, FlatFileNodeStoreBuilder.SortStrategyType.STORE_AND_SORT.toString());
+            System.setProperty(OAK_INDEXER_SORT_STRATEGY_TYPE,
+                FlatFileNodeStoreBuilder.SortStrategyType.STORE_AND_SORT.toString());
             runBasicTest();
         } finally {
             System.clearProperty(OAK_INDEXER_SORT_STRATEGY_TYPE);
@@ -89,7 +93,8 @@ public class FlatFileStoreTest {
     @Test
     public void basicTestTraverseAndSortStrategy() throws Exception {
         try {
-            System.setProperty(OAK_INDEXER_SORT_STRATEGY_TYPE, FlatFileNodeStoreBuilder.SortStrategyType.TRAVERSE_WITH_SORT.toString());
+            System.setProperty(OAK_INDEXER_SORT_STRATEGY_TYPE,
+                FlatFileNodeStoreBuilder.SortStrategyType.TRAVERSE_WITH_SORT.toString());
             runBasicTest();
         } finally {
             System.clearProperty(OAK_INDEXER_SORT_STRATEGY_TYPE);

@@ -16,32 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.api.security.user.Authorizable;
-import org.apache.jackrabbit.api.security.user.Group;
-import org.apache.jackrabbit.api.security.user.User;
-import org.apache.jackrabbit.api.security.user.UserManager;
-import org.apache.jackrabbit.oak.api.QueryEngine;
-import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
-import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
-import org.jetbrains.annotations.NotNull;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-
-import javax.jcr.RepositoryException;
-import java.text.ParseException;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
-
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants.REP_EXTERNAL_ID;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -58,18 +32,43 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import java.text.ParseException;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
+import javax.jcr.RepositoryException;
+import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.jackrabbit.api.security.user.Group;
+import org.apache.jackrabbit.api.security.user.User;
+import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
+import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.oak.api.QueryEngine;
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
+import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
+import org.jetbrains.annotations.NotNull;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+
 @RunWith(Parameterized.class)
 public class AutoMembershipProviderTest extends AbstractAutoMembershipTest {
-    
+
     @Parameterized.Parameters(name = "name={1}")
     public static Collection<Object[]> parameters() {
         return Lists.newArrayList(
-                new Object[] { false, "Dynamic-Groups = false" },
-                new Object[] { true, "Dynamic-Groups = true" });
+            new Object[]{false, "Dynamic-Groups = false"},
+            new Object[]{true, "Dynamic-Groups = true"});
     }
-    
+
     private final boolean dynamicGroupsEnabled;
-    
+
     private AutoMembershipProvider provider;
 
     public AutoMembershipProviderTest(boolean dynamicGroupsEnabled, @NotNull String name) {
@@ -86,7 +85,8 @@ public class AutoMembershipProviderTest extends AbstractAutoMembershipTest {
         Root sr = getSystemRoot();
         sr.refresh();
         Authorizable a = getUserManager(sr).getAuthorizable(id);
-        a.setProperty(REP_EXTERNAL_ID, getValueFactory(sr).createValue(new ExternalIdentityRef(id, idpName).getString()));
+        a.setProperty(REP_EXTERNAL_ID,
+            getValueFactory(sr).createValue(new ExternalIdentityRef(id, idpName).getString()));
         sr.commit();
         root.refresh();
     }
@@ -102,12 +102,15 @@ public class AutoMembershipProviderTest extends AbstractAutoMembershipTest {
     }
 
     @NotNull
-    private AutoMembershipProvider createAutoMembershipProvider(@NotNull Root root, @NotNull UserManager userManager) {
+    private AutoMembershipProvider createAutoMembershipProvider(@NotNull Root root,
+        @NotNull UserManager userManager) {
         Map<String, String[]> groupMapping = (dynamicGroupsEnabled) ? MAPPING_GROUP : null;
-        return new AutoMembershipProvider(root, userManager, getNamePathMapper(), MAPPING, groupMapping, getAutoMembershipConfigMapping());
+        return new AutoMembershipProvider(root, userManager, getNamePathMapper(), MAPPING,
+            groupMapping, getAutoMembershipConfigMapping());
     }
-    
-    private static void assertMatchingEntries(@NotNull Iterator<Authorizable> it, @NotNull String... expectedIds) {
+
+    private static void assertMatchingEntries(@NotNull Iterator<Authorizable> it,
+        @NotNull String... expectedIds) {
         Set<String> ids = ImmutableSet.copyOf(Iterators.transform(it, authorizable -> {
             try {
                 return authorizable.getID();
@@ -121,12 +124,13 @@ public class AutoMembershipProviderTest extends AbstractAutoMembershipTest {
     @Test
     public void testCoversAllMembers() throws RepositoryException {
         assertFalse(provider.coversAllMembers(automembershipGroup1));
-        assertFalse(provider.coversAllMembers(userManager.createGroup(EveryonePrincipal.getInstance())));
+        assertFalse(
+            provider.coversAllMembers(userManager.createGroup(EveryonePrincipal.getInstance())));
         Group gr = mock(Group.class);
         assertFalse(provider.coversAllMembers(gr));
         verifyNoInteractions(gr);
     }
-    
+
     @Test
     public void testGetMembersNoExternalUsers() throws Exception {
         // no user has rep:externalId set to the configured IPD-names
@@ -137,7 +141,7 @@ public class AutoMembershipProviderTest extends AbstractAutoMembershipTest {
     @Test
     public void testGetMembersExternalUser() throws Exception {
         setExternalId(getTestUser().getID(), IDP_VALID_AM);
-        
+
         Iterator<Authorizable> it = provider.getMembers(automembershipGroup1, false);
         assertTrue(it.hasNext());
         assertEquals(getTestUser().getID(), it.next().getID());
@@ -189,7 +193,8 @@ public class AutoMembershipProviderTest extends AbstractAutoMembershipTest {
 
         if (dynamicGroupsEnabled) {
             // external group does have 'automembershipGroup3' as configured autom-membership
-            assertMatchingEntries(provider.getMembers(automembershipGroup3, false), testGroup.getID());
+            assertMatchingEntries(provider.getMembers(automembershipGroup3, false),
+                testGroup.getID());
 
             // external group doesn't have 'automembershipGroup1' as configured autom-membership
             assertFalse(provider.getMembers(automembershipGroup1, false).hasNext());
@@ -205,11 +210,12 @@ public class AutoMembershipProviderTest extends AbstractAutoMembershipTest {
 
         if (dynamicGroupsEnabled) {
             // external group does have 'automembershipGroup3' as configured autom-membership
-            assertMatchingEntries(provider.getMembers(automembershipGroup3, true), testGroup.getID());
-            
+            assertMatchingEntries(provider.getMembers(automembershipGroup3, true),
+                testGroup.getID());
+
             // external group doesn't have 'automembershipGroup1' as configured autom-membership
             assertFalse(provider.getMembers(automembershipGroup1, true).hasNext());
-            
+
         } else {
             assertFalse(provider.getMembers(automembershipGroup3, true).hasNext());
         }
@@ -221,35 +227,38 @@ public class AutoMembershipProviderTest extends AbstractAutoMembershipTest {
         setExternalId(testGroup.getID(), IDP_VALID_AM);
         String testUserId = getTestUser().getID();
         setExternalId(testUserId, IDP_VALID_AM);
-        
+
         // create provider with a group mapping that contains same group as user-mapping
         if (dynamicGroupsEnabled) {
-            Map<String, String[]> grMapping = ImmutableMap.of(IDP_VALID_AM, new String[] {AUTOMEMBERSHIP_GROUP_ID_1});
-            AutoMembershipProvider amp = new AutoMembershipProvider(root, userManager, getNamePathMapper(), MAPPING, grMapping, getAutoMembershipConfigMapping());
+            Map<String, String[]> grMapping = ImmutableMap.of(IDP_VALID_AM,
+                new String[]{AUTOMEMBERSHIP_GROUP_ID_1});
+            AutoMembershipProvider amp = new AutoMembershipProvider(root, userManager,
+                getNamePathMapper(), MAPPING, grMapping, getAutoMembershipConfigMapping());
             // external group does have 'automembershipGroup3' as configured autom-membership
             Iterator<Authorizable> it = amp.getMembers(automembershipGroup1, false);
             assertMatchingEntries(it, testGroup.getID(), testUserId);
         } else {
-            AutoMembershipProvider amp = new AutoMembershipProvider(root, userManager, getNamePathMapper(), MAPPING, null, getAutoMembershipConfigMapping());
+            AutoMembershipProvider amp = new AutoMembershipProvider(root, userManager,
+                getNamePathMapper(), MAPPING, null, getAutoMembershipConfigMapping());
             Iterator<Authorizable> it = amp.getMembers(automembershipGroup1, false);
             assertMatchingEntries(it, testUserId);
         }
     }
-    
+
     @Test
     public void testGetMembersCannotRetrievePrincipalFromGroup() throws Exception {
         Group gr = mock(Group.class);
         when(gr.getPrincipal()).thenThrow(new RepositoryException());
-        
+
         assertFalse(provider.getMembers(gr, false).hasNext());
         assertFalse(provider.getMembers(gr, true).hasNext());
     }
-    
+
     @Test
     public void testGetMembersGroupNotConfigured() throws Exception {
         Group gr = mock(Group.class);
         when(gr.getPrincipal()).thenReturn(EveryonePrincipal.getInstance());
-        
+
         assertFalse(provider.getMembers(gr, false).hasNext());
         assertFalse(provider.getMembers(gr, true).hasNext());
     }
@@ -260,7 +269,7 @@ public class AutoMembershipProviderTest extends AbstractAutoMembershipTest {
 
         UserManager um = spy(userManager);
         doThrow(new RepositoryException()).when(um).getAuthorizableByPath(anyString());
-        
+
         AutoMembershipProvider amp = createAutoMembershipProvider(root, um);
         assertFalse(amp.getMembers(automembershipGroup1, false).hasNext());
     }
@@ -268,13 +277,14 @@ public class AutoMembershipProviderTest extends AbstractAutoMembershipTest {
     @Test(expected = RepositoryException.class)
     public void testGetMembersQueryFails() throws Exception {
         QueryEngine qe = mock(QueryEngine.class);
-        when(qe.executeQuery(anyString(), anyString(), any(Map.class), any(Map.class))).thenThrow(new ParseException("query failed", 0));
+        when(qe.executeQuery(anyString(), anyString(), any(Map.class), any(Map.class))).thenThrow(
+            new ParseException("query failed", 0));
         Root r = when(mock(Root.class).getQueryEngine()).thenReturn(qe).getMock();
-        
+
         AutoMembershipProvider amp = createAutoMembershipProvider(r, userManager);
         assertFalse(amp.getMembers(automembershipGroup1, false).hasNext());
     }
-    
+
     @Test
     public void testIsMemberLocalUser() throws Exception {
         assertFalse(provider.isMember(automembershipGroup1, getTestUser(), true));
@@ -299,7 +309,7 @@ public class AutoMembershipProviderTest extends AbstractAutoMembershipTest {
     public void testIsMemberExternalUserInherited() throws Exception {
         User testUser = getTestUser();
         setExternalId(testUser.getID(), IDP_VALID_AM);
-        
+
         Group testGroup = getTestGroup(automembershipGroup1);
 
         assertFalse(provider.isMember(testGroup, testUser, false));
@@ -318,7 +328,7 @@ public class AutoMembershipProviderTest extends AbstractAutoMembershipTest {
 
         assertFalse(provider.isMember(base, testUser, false));
         assertFalse(provider.isMember(base, testUser, true));
-        
+
         // add 'automembership-group' as nested members
         testGroup.addMember(automembershipGroup1);
         root.commit();
@@ -326,7 +336,7 @@ public class AutoMembershipProviderTest extends AbstractAutoMembershipTest {
         assertFalse(provider.isMember(base, testUser, false));
         assertTrue(provider.isMember(base, testUser, true));
     }
-    
+
     @Test
     public void testIsMemberExternalUserIdpMismatch() throws Exception {
         setExternalId(getTestUser().getID(), IDP_INVALID_AM);
@@ -335,10 +345,10 @@ public class AutoMembershipProviderTest extends AbstractAutoMembershipTest {
     }
 
     @Test
-    public void testIsMemberExternalGroupSelf() throws Exception { 
+    public void testIsMemberExternalGroupSelf() throws Exception {
         Group testGroup = getTestGroup();
         setExternalId(testGroup.getID(), IDP_VALID_AM);
-        
+
         assertFalse(provider.isMember(testGroup, testGroup, false));
         assertFalse(provider.isMember(testGroup, testGroup, true));
     }
@@ -351,18 +361,18 @@ public class AutoMembershipProviderTest extends AbstractAutoMembershipTest {
         if (dynamicGroupsEnabled) {
             assertTrue(provider.isMember(automembershipGroup3, testGroup, false));
             assertTrue(provider.isMember(automembershipGroup3, testGroup, true));
-            
+
             // automembershipGroup1 not configured for groups
             assertFalse(provider.isMember(automembershipGroup1, testGroup, false));
             assertFalse(provider.isMember(automembershipGroup1, testGroup, true));
         } else {
-            for (Group gr : new Group[] {automembershipGroup1, automembershipGroup3}) {
+            for (Group gr : new Group[]{automembershipGroup1, automembershipGroup3}) {
                 assertFalse(provider.isMember(gr, testGroup, false));
                 assertFalse(provider.isMember(gr, testGroup, true));
             }
         }
     }
-    
+
     @Test
     public void testGetMembershipLocalUser() throws Exception {
         assertFalse(provider.getMembership(getTestUser(), true).hasNext());
@@ -374,7 +384,7 @@ public class AutoMembershipProviderTest extends AbstractAutoMembershipTest {
         assertFalse(provider.getMembership(automembershipGroup1, true).hasNext());
         assertFalse(provider.getMembership(automembershipGroup1, false).hasNext());
     }
-    
+
     @Test
     public void testGetMembershipExternalUser() throws Exception {
         setExternalId(getTestUser().getID(), IDP_VALID_AM);
@@ -418,7 +428,7 @@ public class AutoMembershipProviderTest extends AbstractAutoMembershipTest {
 
         // create dynamic group everyone. both automembershipGroups are members thereof without explicit add-member
         Group everyone = userManager.createGroup(EveryonePrincipal.getInstance());
-        // in addition establish a 2 level inheritance for automembershipGroup1 
+        // in addition establish a 2 level inheritance for automembershipGroup1
         automembershipGroup2.addMember(automembershipGroup1);
         root.commit();
 
@@ -428,7 +438,8 @@ public class AutoMembershipProviderTest extends AbstractAutoMembershipTest {
         assertTrue(groups.contains(automembershipGroup2));
 
         groups = ImmutableSet.copyOf(provider.getMembership(getTestUser(), true));
-        assertEquals(2, groups.size()); // all duplicates must be properly filtered and everyone must be omitted
+        assertEquals(2,
+            groups.size()); // all duplicates must be properly filtered and everyone must be omitted
         assertTrue(groups.contains(automembershipGroup1));
         assertTrue(groups.contains(automembershipGroup2));
         assertFalse(groups.contains(everyone));
@@ -462,11 +473,11 @@ public class AutoMembershipProviderTest extends AbstractAutoMembershipTest {
             assertFalse(provider.getMembership(testGroup, true).hasNext());
         }
     }
-    
+
     @Test
     public void testGetMembershipAutogroupIsUser() throws Exception {
         UserManager um = spy(userManager);
-        
+
         User user = mock(User.class);
         when(user.isGroup()).thenReturn(false);
         doReturn(user).when(um).getAuthorizable(automembershipGroup1.getID());
@@ -476,7 +487,7 @@ public class AutoMembershipProviderTest extends AbstractAutoMembershipTest {
 
         AutoMembershipProvider amp = createAutoMembershipProvider(root, um);
         assertFalse(amp.getMembership(getTestUser(), false).hasNext());
-        
+
         verify(um, times(2)).getAuthorizable(anyString());
         verifyNoMoreInteractions(um);
     }
@@ -490,10 +501,10 @@ public class AutoMembershipProviderTest extends AbstractAutoMembershipTest {
         doThrow(new RepositoryException()).when(um).getAuthorizable(any(String.class));
 
         setExternalId(getTestUser().getID(), IDP_VALID_AM);
-        
+
         AutoMembershipProvider amp = createAutoMembershipProvider(root, um);
         assertFalse(amp.getMembership(getTestUser(), false).hasNext());
-        
+
         verify(um, times(2)).getAuthorizable(anyString());
         verifyNoMoreInteractions(um);
     }
@@ -503,10 +514,10 @@ public class AutoMembershipProviderTest extends AbstractAutoMembershipTest {
         // establish nested groups
         automembershipGroup2.addMember(automembershipGroup1);
         root.commit();
-        
+
         Group spiedGroup = spy(automembershipGroup1);
         when(spiedGroup.memberOf()).thenThrow(new RepositoryException());
-        
+
         UserManager um = spy(userManager);
         when(um.getAuthorizable(automembershipGroup1.getPrincipal())).thenReturn(spiedGroup);
 
@@ -516,15 +527,15 @@ public class AutoMembershipProviderTest extends AbstractAutoMembershipTest {
         Set<Group> membership = ImmutableSet.copyOf(amp.getMembership(getTestUser(), true));
         assertEquals(2, membership.size());
     }
-    
+
     @Test
     public void testGetMembershipAutogroupRemoved() throws Exception {
         setExternalId(getTestUser().getID(), IDP_VALID_AM);
-        
+
         automembershipGroup1.remove();
         assertEquals(1, Iterators.size(provider.getMembership(getTestUser(), false)));
         assertEquals(1, Iterators.size(provider.getMembership(getTestUser(), true)));
-        
+
         // remove second group : but read principal from cache
         automembershipGroup2.remove();
         assertFalse(provider.getMembership(getTestUser(), false).hasNext());

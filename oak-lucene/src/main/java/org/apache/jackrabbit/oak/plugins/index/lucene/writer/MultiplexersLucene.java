@@ -20,12 +20,13 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene.writer;
 
 
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.SUGGEST_DATA_CHILD_NAME;
+
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.spi.mount.Mount;
 
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.SUGGEST_DATA_CHILD_NAME;
-
 public final class MultiplexersLucene {
+
     /**
      * Prefix used to decorate mount names to represent index directory
      */
@@ -34,7 +35,7 @@ public final class MultiplexersLucene {
     public static final String SUGGEST_DIR_SUFFIX = "-suggest-data";
 
     public static String getIndexDirName(Mount mount) {
-        if (mount.isDefault()){
+        if (mount.isDefault()) {
             return FulltextIndexConstants.INDEX_DATA_CHILD_NAME;
         }
         String name = mount.getPathFragmentName();
@@ -42,20 +43,19 @@ public final class MultiplexersLucene {
     }
 
     /**
-     * Checks if the node name represent an index directory node name.
-     * There may be nodes for other directory like for suggester etc also.
-     * This method can be used to determine if node represents index
-     * directory root
-
+     * Checks if the node name represent an index directory node name. There may be nodes for other
+     * directory like for suggester etc also. This method can be used to determine if node
+     * represents index directory root
+     *
      * @param name node name
      */
     public static boolean isIndexDirName(String name) {
         return name.endsWith(INDEX_DIR_SUFFIX)
-                || name.equals(FulltextIndexConstants.INDEX_DATA_CHILD_NAME);
+            || name.equals(FulltextIndexConstants.INDEX_DATA_CHILD_NAME);
     }
 
     public static String getSuggestDirName(Mount mount) {
-        if (mount.isDefault()){
+        if (mount.isDefault()) {
             return SUGGEST_DATA_CHILD_NAME;
         }
         String name = mount.getPathFragmentName();
@@ -64,6 +64,6 @@ public final class MultiplexersLucene {
 
     public static boolean isSuggestIndexDirName(String name) {
         return name.endsWith(SUGGEST_DIR_SUFFIX)
-                || name.equals(SUGGEST_DATA_CHILD_NAME);
+            || name.equals(SUGGEST_DATA_CHILD_NAME);
     }
 }

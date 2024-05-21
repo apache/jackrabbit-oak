@@ -27,7 +27,6 @@ import javax.jcr.Property;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
-
 import org.apache.jackrabbit.test.AbstractJCRTest;
 import org.junit.Assert;
 
@@ -54,10 +53,10 @@ public class ImportMvPropertyTest extends AbstractJCRTest {
         n1.setProperty("test:multiProperty", "v1");
 
         Node n2 = node.addNode(nodeName2, "test:setProperty");
-        n2.setProperty("test:multiProperty", new String[] {"v1", "v2"});
+        n2.setProperty("test:multiProperty", new String[]{"v1", "v2"});
 
         Node n3 = node.addNode(nodeName3, "test:setProperty");
-        n3.setProperty("test:multiProperty", new String[] {});
+        n3.setProperty("test:multiProperty", new String[]{});
 
         targetPath = testRootNode.addNode("target").getPath();
 
@@ -72,7 +71,8 @@ public class ImportMvPropertyTest extends AbstractJCRTest {
     }
 
     public void testSingleValues() throws Exception {
-        superuser.importXML(targetPath, getImportStream(), ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW);
+        superuser.importXML(targetPath, getImportStream(),
+            ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW);
         superuser.save();
 
         Node n = superuser.getNode(targetPath).getNode(nodeName4);
@@ -84,7 +84,8 @@ public class ImportMvPropertyTest extends AbstractJCRTest {
     }
 
     public void testMultiValues() throws Exception {
-        superuser.importXML(targetPath, getImportStream(), ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW);
+        superuser.importXML(targetPath, getImportStream(),
+            ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW);
         superuser.save();
 
         Node n = superuser.getNode(targetPath).getNode(nodeName4);
@@ -92,12 +93,13 @@ public class ImportMvPropertyTest extends AbstractJCRTest {
 
         assertTrue(p.isMultiple());
         assertTrue(p.getDefinition().isMultiple());
-        Value[] expected = new Value[] {vf.createValue("v1"), vf.createValue("v2")};
+        Value[] expected = new Value[]{vf.createValue("v1"), vf.createValue("v2")};
         Assert.assertArrayEquals(expected, p.getValues());
     }
 
     public void testEmptyValues() throws Exception {
-        superuser.importXML(targetPath, getImportStream(), ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW);
+        superuser.importXML(targetPath, getImportStream(),
+            ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW);
         superuser.save();
 
         Node n = superuser.getNode(targetPath).getNode(nodeName4);

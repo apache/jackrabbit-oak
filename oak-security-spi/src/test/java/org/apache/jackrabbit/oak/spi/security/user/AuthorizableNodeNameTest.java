@@ -16,19 +16,21 @@
  */
 package org.apache.jackrabbit.oak.spi.security.user;
 
+import static org.junit.Assert.assertEquals;
+
 import org.apache.jackrabbit.util.Text;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
 
 public class AuthorizableNodeNameTest {
 
     @Test
     public void testDefault() {
 
-        String[] hints = new String[] {"abc", "ABC", "[abc]", "abc[]", "a/b/c", "a,b,*","\\'\".;:abc", "{abc}", "a:bc"};
+        String[] hints = new String[]{"abc", "ABC", "[abc]", "abc[]", "a/b/c", "a,b,*",
+            "\\'\".;:abc", "{abc}", "a:bc"};
         for (String hint : hints) {
-            assertEquals(Text.escapeIllegalJcrChars(hint), AuthorizableNodeName.DEFAULT.generateNodeName(hint));
+            assertEquals(Text.escapeIllegalJcrChars(hint),
+                AuthorizableNodeName.DEFAULT.generateNodeName(hint));
         }
 
     }

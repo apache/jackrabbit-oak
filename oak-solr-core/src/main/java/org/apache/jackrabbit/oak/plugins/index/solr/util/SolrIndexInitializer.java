@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.util;
 
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
+
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
@@ -24,8 +26,6 @@ import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
-
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 
 /**
  * A {@link org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer} for Solr index
@@ -49,7 +49,8 @@ public class SolrIndexInitializer implements RepositoryInitializer {
     }
 
     /**
-     * build Solr index definition with a specific node name and defaults (reindex enabled, asynchronous):
+     * build Solr index definition with a specific node name and defaults (reindex enabled,
+     * asynchronous):
      *
      * @param name the name of the node holding the Solr index definition
      */
@@ -62,8 +63,8 @@ public class SolrIndexInitializer implements RepositoryInitializer {
     /**
      * build Solr index definition by specifying if it should be async or not
      *
-     * @param async if <code>true</code> for the index to be asynchronous, <code>false</code> to make
-     *              it synchronous
+     * @param async if <code>true</code> for the index to be asynchronous, <code>false</code> to
+     *              make it synchronous
      */
     public SolrIndexInitializer(boolean async) {
         this.name = SOLR_IDX;
@@ -74,8 +75,8 @@ public class SolrIndexInitializer implements RepositoryInitializer {
     /**
      * build Solr index definition by specifying all the configurable parameters
      *
-     * @param async   if <code>true</code> for the index to be asynchronous, <code>false</code> to make
-     *                it synchronous
+     * @param async   if <code>true</code> for the index to be asynchronous, <code>false</code> to
+     *                make it synchronous
      * @param name    the name of the node holding the Solr index definition
      * @param reindex <code>true</code> if the reindexing should be enabled
      */
@@ -88,13 +89,16 @@ public class SolrIndexInitializer implements RepositoryInitializer {
     @Override
     public void initialize(@NotNull NodeBuilder builder) {
         if (builder.hasChildNode(IndexConstants.INDEX_DEFINITIONS_NAME)
-                && !builder.getChildNode(IndexConstants.INDEX_DEFINITIONS_NAME).hasChildNode(SOLR_IDX)) {
-            NodeBuilder indexDefinitionsNode = builder.getChildNode(IndexConstants.INDEX_DEFINITIONS_NAME);
+            && !builder.getChildNode(IndexConstants.INDEX_DEFINITIONS_NAME)
+                       .hasChildNode(SOLR_IDX)) {
+            NodeBuilder indexDefinitionsNode = builder.getChildNode(
+                IndexConstants.INDEX_DEFINITIONS_NAME);
             if (!indexDefinitionsNode.hasChildNode(name)) {
                 NodeBuilder solrIndexDefinitionNode = indexDefinitionsNode.child(name);
-                solrIndexDefinitionNode.setProperty(JcrConstants.JCR_PRIMARYTYPE, IndexConstants.INDEX_DEFINITIONS_NODE_TYPE, Type.NAME)
-                        .setProperty(IndexConstants.TYPE_PROPERTY_NAME, SOLR_IDX)
-                        .setProperty(IndexConstants.REINDEX_PROPERTY_NAME, reindex);
+                solrIndexDefinitionNode.setProperty(JcrConstants.JCR_PRIMARYTYPE,
+                                           IndexConstants.INDEX_DEFINITIONS_NODE_TYPE, Type.NAME)
+                                       .setProperty(IndexConstants.TYPE_PROPERTY_NAME, SOLR_IDX)
+                                       .setProperty(IndexConstants.REINDEX_PROPERTY_NAME, reindex);
                 if (async != null) {
                     solrIndexDefinitionNode.setProperty(IndexConstants.ASYNC_PROPERTY_NAME, async);
                 }

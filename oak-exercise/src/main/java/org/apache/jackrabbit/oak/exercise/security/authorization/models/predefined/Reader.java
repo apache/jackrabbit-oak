@@ -17,10 +17,7 @@
 package org.apache.jackrabbit.oak.exercise.security.authorization.models.predefined;
 
 import java.security.Principal;
-
 import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class Reader implements Principal {
 

@@ -31,12 +31,12 @@ class DocumentBranchRootNodeState extends DocumentNodeState {
     private final DocumentNodeStoreBranch branch;
 
     DocumentBranchRootNodeState(@NotNull DocumentNodeStore store,
-                                @NotNull DocumentNodeStoreBranch branch,
-                                @NotNull Path path,
-                                @NotNull RevisionVector rootRevision,
-                                @Nullable RevisionVector lastRevision,
-                                @NotNull BundlingContext bundlingContext,
-                                int memory) {
+        @NotNull DocumentNodeStoreBranch branch,
+        @NotNull Path path,
+        @NotNull RevisionVector rootRevision,
+        @Nullable RevisionVector lastRevision,
+        @NotNull BundlingContext bundlingContext,
+        int memory) {
         super(store, path, lastRevision, rootRevision, false, bundlingContext, memory);
         this.store = store;
         this.branch = checkNotNull(branch);

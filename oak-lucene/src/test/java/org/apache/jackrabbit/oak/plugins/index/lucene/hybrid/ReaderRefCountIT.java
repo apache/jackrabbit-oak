@@ -19,6 +19,14 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 
+import static java.util.Collections.singletonList;
+import static org.apache.jackrabbit.guava.common.collect.ImmutableMap.of;
+import static org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors.newDirectExecutorService;
+import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newPathField;
+import static org.apache.jackrabbit.oak.spi.mount.Mounts.defaultMountInfoProvider;
+import static org.junit.Assert.fail;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -30,11 +38,10 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexTracker;
-import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexNode;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorContext;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexNode;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.DefaultIndexReaderFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -48,15 +55,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableMap.of;
-import static org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors.newDirectExecutorService;
-import static java.util.Collections.singletonList;
-import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newPathField;
-import static org.apache.jackrabbit.oak.spi.mount.Mounts.defaultMountInfoProvider;
-import static org.junit.Assert.fail;
-
 public class ReaderRefCountIT {
+
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
 
@@ -71,7 +71,7 @@ public class ReaderRefCountIT {
     }
 
     @Test
-    public void syncIndex() throws Exception{
+    public void syncIndex() throws Exception {
         LuceneIndexDefinitionBuilder idx = new LuceneIndexDefinitionBuilder();
         idx.indexRule("nt:base").property("foo").propertyIndex();
         idx.async("async", "sync");
@@ -81,34 +81,34 @@ public class ReaderRefCountIT {
     }
 
     @Test
-    public void nrtIndex() throws Exception{
+    public void nrtIndex() throws Exception {
         LuceneIndexDefinitionBuilder idx = new LuceneIndexDefinitionBuilder();
         idx.indexRule("nt:base").property("foo").propertyIndex();
         idx.async("async", "nrt");
 
         NRTIndexFactory nrtFactory = new NRTIndexFactory(indexCopier, Clock.SIMPLE,
-                0 , StatisticsProvider.NOOP);
+            0, StatisticsProvider.NOOP);
         runMultiReaderScenario(idx, nrtFactory, false);
     }
 
     /**
-     * This test enables 1 more thread which updates the IndexTracker
-     * This causes the IndexNodeManager to switch to newer indexes
-     * and hence lead to creation and closing of older NRTIndexes
+     * This test enables 1 more thread which updates the IndexTracker This causes the
+     * IndexNodeManager to switch to newer indexes and hence lead to creation and closing of older
+     * NRTIndexes
      */
     @Test
-    public void indexTrackerUpdatesAndNRT() throws Exception{
+    public void indexTrackerUpdatesAndNRT() throws Exception {
         LuceneIndexDefinitionBuilder idx = new LuceneIndexDefinitionBuilder();
         idx.indexRule("nt:base").property("foo").propertyIndex();
         idx.async("async", "nrt");
 
         NRTIndexFactory nrtFactory = new NRTIndexFactory(indexCopier, Clock.SIMPLE,
-                0 , StatisticsProvider.NOOP);
+            0, StatisticsProvider.NOOP);
         runMultiReaderScenario(idx, nrtFactory, true);
     }
 
     private void runMultiReaderScenario(LuceneIndexDefinitionBuilder defnb,
-                                       NRTIndexFactory nrtFactory, boolean updateIndex) throws Exception{
+        NRTIndexFactory nrtFactory, boolean updateIndex) throws Exception {
         NodeBuilder builder = root.builder();
         builder.child("oak:index").setChildNode("fooIndex", defnb.build());
         LuceneIndexEditorContext.configureUniqueId(builder.child("oak:index").child("fooIndex"));
@@ -119,7 +119,8 @@ public class ReaderRefCountIT {
         AtomicBoolean stop = new AtomicBoolean();
         List<Throwable> exceptionList = new CopyOnWriteArrayList<>();
 
-        IndexTracker tracker = new IndexTracker(new DefaultIndexReaderFactory(defaultMountInfoProvider(), indexCopier), nrtFactory);
+        IndexTracker tracker = new IndexTracker(
+            new DefaultIndexReaderFactory(defaultMountInfoProvider(), indexCopier), nrtFactory);
         tracker.update(repoState);
 
         CountDownLatch errorLatch = new CountDownLatch(1);
@@ -135,14 +136,13 @@ public class ReaderRefCountIT {
         DocumentQueue queue = new DocumentQueue(100, tracker, newDirectExecutorService());
         queue.setExceptionHandler(uh);
 
-
         //Writer should try to refresh same IndexNode within same lock
         //i.e. simulate a scenario where DocumentQueue pushes multiple
         //sync index docs in same commit
         Runnable writer = new Runnable() {
             @Override
             public void run() {
-                while(!stop.get()) {
+                while (!stop.get()) {
                     Document d1 = new Document();
                     d1.add(newPathField("/a/b"));
                     LuceneDoc lcDoc = LuceneDoc.forUpdate(indexPath, "/a", d1);
@@ -155,7 +155,7 @@ public class ReaderRefCountIT {
         Runnable reader = new Runnable() {
             @Override
             public void run() {
-                while(!stop.get()) {
+                while (!stop.get()) {
                     LuceneIndexNode indexNode = tracker.acquireIndexNode(indexPath);
                     if (indexNode != null) {
                         try {
@@ -174,9 +174,10 @@ public class ReaderRefCountIT {
             @Override
             public void run() {
                 int count = 0;
-                while(!stop.get()) {
+                while (!stop.get()) {
                     NodeBuilder b = repoState.builder();
-                    b.getChildNode("oak:index").getChildNode("fooIndex").setProperty("count", count++);
+                    b.getChildNode("oak:index").getChildNode("fooIndex")
+                     .setProperty("count", count++);
                     tracker.update(b.getNodeState());
                 }
             }

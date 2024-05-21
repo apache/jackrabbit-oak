@@ -23,7 +23,6 @@ import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.Map;
 import java.util.Properties;
-
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.plugins.blob.AbstractSharedCachingDataStore;
@@ -33,6 +32,7 @@ import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.ComponentContext;
 
 public abstract class AbstractS3DataStoreService extends AbstractDataStoreService {
+
     private static final String DESCRIPTION = "oak.datastore.description";
 
     private ServiceRegistration delegateReg;
@@ -50,10 +50,10 @@ public abstract class AbstractS3DataStoreService extends AbstractDataStoreServic
         props.put(Constants.SERVICE_PID, dataStore.getClass().getName());
         props.put(DESCRIPTION, getDescription());
 
-        delegateReg = context.getBundleContext().registerService(new String[] {
+        delegateReg = context.getBundleContext().registerService(new String[]{
             AbstractSharedCachingDataStore.class.getName(),
             AbstractSharedCachingDataStore.class.getName()
-        }, dataStore , props);
+        }, dataStore, props);
 
         return dataStore;
     }
@@ -67,6 +67,6 @@ public abstract class AbstractS3DataStoreService extends AbstractDataStoreServic
 
     @Override
     protected String[] getDescription() {
-        return new String[] {"type=S3"};
+        return new String[]{"type=S3"};
     }
 }

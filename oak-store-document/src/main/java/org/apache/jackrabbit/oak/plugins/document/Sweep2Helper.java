@@ -23,8 +23,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Helper methods for sweep2 functionality introduced with OAK-9176.
- * Kept separate from DocumentNodeStore to limit its size.
+ * Helper methods for sweep2 functionality introduced with OAK-9176. Kept separate from
+ * DocumentNodeStore to limit its size.
  */
 public class Sweep2Helper {
 
@@ -37,13 +37,13 @@ public class Sweep2Helper {
             LOG.warn("isSweep2Necessary : cannot get root node - assuming no sweep2 needed");
             return false;
         }
-    
+
         if (rootNodeDoc.get("_sweepRev") == null) {
             // this indicates a pre 1.8 repository upgrade (case 1).
             // no sweep2 is needed as it is embedded in the normal sweep[1].
             return false;
         }
-    
+
         // in this case we have a post (>=) 1.8 repository
         // which might or might not have previously been a pre (<) 1.8
         // and we need to distinguish those 2 cases - which, to repeat, are:
@@ -56,7 +56,7 @@ public class Sweep2Helper {
         Map<Revision, String> valueMap = rootNodeDoc.getValueMap(NodeDocument.REVISIONS);
         for (Map.Entry<Revision, String> entry : valueMap.entrySet()) {
             Revision rev = entry.getKey();
-    
+
             // consider all clusterIds..
             String cv = entry.getValue();
             if (cv == null) {
@@ -83,7 +83,7 @@ public class Sweep2Helper {
                 return true;
             }
         }
-    
+
         // this is case 2
         return false;
     }
@@ -91,8 +91,9 @@ public class Sweep2Helper {
     /**
      * Acquires a cluster singleton lock for doing a sweep2 unless a sweep2 was already done.
      * <p/>
-     * 'If necessary' refers to the sweep2 status in the settings collection - no further
-     * check is done based on content in the nodes collection in this method.
+     * 'If necessary' refers to the sweep2 status in the settings collection - no further check is
+     * done based on content in the nodes collection in this method.
+     *
      * @return <ul>
      * <li>
      * &gt;0: the lock was successfully acquired and a sweep2 must now be done
@@ -118,32 +119,35 @@ public class Sweep2Helper {
             // this should be the most frequent case.
             return -1;
         }
-    
+
         if (status == null) {
             return Sweep2StatusDocument.acquireOrUpdateSweep2Lock(store, clusterId, false);
         }
         // otherwise a status could have been set by ourselves or by another instance
-    
+
         int lockClusterId = status.getLockClusterId();
         if (lockClusterId == clusterId) {
             // the local instance was the originator of the sweeping lock, but likely crashed
             // hence we need to redo the work from scratch as we can't know if we finished it properly
-            LOG.info("acquireSweep2LockIfNecessary : sweep2 status was sweeping, locked by own instance ({}). "
+            LOG.info(
+                "acquireSweep2LockIfNecessary : sweep2 status was sweeping, locked by own instance ({}). "
                     + "Another sweep2 is required.",
-                    clusterId);
+                clusterId);
             return status.getLockValue();
         }
-    
+
         // another instance marked as sweeping - check to see if it is still active or it might have crashed
         if (ClusterNodeInfoDocument.all(store).stream()
-                .anyMatch(info -> info.getClusterId() == lockClusterId && info.isActive())) {
+                                   .anyMatch(info -> info.getClusterId() == lockClusterId
+                                       && info.isActive())) {
             // then another instance is busy sweep2-ing, which is fine.
             // but we should continue monitoring until that other instance is done
-            LOG.debug("acquireSweep2LockIfNecessary : another instance (id {}) is (still) busy doing a sweep2.",
-                    lockClusterId);
+            LOG.debug(
+                "acquireSweep2LockIfNecessary : another instance (id {}) is (still) busy doing a sweep2.",
+                lockClusterId);
             return 0;
         }
-    
+
         // otherwise the lockClusterId is no longer active, so we
         // try to overwrite/reacquire the lock for us
         return Sweep2StatusDocument.acquireOrUpdateSweep2Lock(store, clusterId, false);

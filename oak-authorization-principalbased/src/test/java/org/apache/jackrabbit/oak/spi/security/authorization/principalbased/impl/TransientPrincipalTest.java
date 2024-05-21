@@ -72,7 +72,9 @@ public class TransientPrincipalTest extends AbstractPrincipalBasedTest {
 
     @Override
     protected ConfigurationParameters getSecurityConfigParameters() {
-        return ConfigurationParameters.of(AuthorizationConfiguration.NAME, ConfigurationParameters.of(ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, ImportBehavior.NAME_BESTEFFORT));
+        return ConfigurationParameters.of(AuthorizationConfiguration.NAME,
+            ConfigurationParameters.of(ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR,
+                ImportBehavior.NAME_BESTEFFORT));
     }
 
     private PrincipalPolicyImpl getApplicable() throws Exception {
@@ -85,7 +87,8 @@ public class TransientPrincipalTest extends AbstractPrincipalBasedTest {
         JackrabbitAccessControlPolicy[] applicable = acMgr.getApplicablePolicies(principal);
         assertEquals(1, applicable.length);
         assertTrue(applicable[0] instanceof PrincipalPolicyImpl);
-        assertEquals(principal.getName(), ((PrincipalPolicyImpl) applicable[0]).getPrincipal().getName());
+        assertEquals(principal.getName(),
+            ((PrincipalPolicyImpl) applicable[0]).getPrincipal().getName());
     }
 
     @Test
@@ -182,12 +185,15 @@ public class TransientPrincipalTest extends AbstractPrincipalBasedTest {
     public void testGetPermissionProvider() throws Exception {
         PrincipalBasedAuthorizationConfiguration pbac = getPrincipalBasedAuthorizationConfiguration();
         // with remapped namespaces
-        PermissionProvider pp = pbac.getPermissionProvider(root, root.getContentSession().getWorkspaceName(), ImmutableSet.of(principal));
+        PermissionProvider pp = pbac.getPermissionProvider(root,
+            root.getContentSession().getWorkspaceName(), ImmutableSet.of(principal));
         assertSame(EmptyPermissionProvider.getInstance(), pp);
 
         // with default ns-mapping as used to create permission provider
-        Principal transientWithDefaultNs = getConfig(UserConfiguration.class).getUserManager(root, NamePathMapper.DEFAULT).getAuthorizable(uid).getPrincipal();
-        pp = pbac.getPermissionProvider(root, root.getContentSession().getWorkspaceName(), ImmutableSet.of(transientWithDefaultNs));
+        Principal transientWithDefaultNs = getConfig(UserConfiguration.class).getUserManager(root,
+            NamePathMapper.DEFAULT).getAuthorizable(uid).getPrincipal();
+        pp = pbac.getPermissionProvider(root, root.getContentSession().getWorkspaceName(),
+            ImmutableSet.of(transientWithDefaultNs));
         // since permission provider is created with a read-only root the transient principal node does not exist and
         // no evaluation will take place
         assertSame(EmptyPermissionProvider.getInstance(), pp);

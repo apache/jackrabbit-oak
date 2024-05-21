@@ -22,7 +22,9 @@
 ## Backward compatibility
 
 Oak implements the JCR API and we expect most applications to work out of the box. However, the Oak
-code base is a rewrite from scratch and therefore differs from Jackrabbit 2 in some aspects. Some of the more obscure parts of JCR are not (yet) implemented. If you encounter a problem running your application on Oak, please cross
+code base is a rewrite from scratch and therefore differs from Jackrabbit 2 in some aspects. Some of
+the more obscure parts of JCR are not (yet) implemented. If you encounter a problem running your
+application on Oak, please cross
 check against Jackrabbit 2 before reporting an issue against Oak.
 
 ## Reporting issues
@@ -30,7 +32,8 @@ check against Jackrabbit 2 before reporting an issue against Oak.
 If you encounter a problem where functionality is missing or Oak does not behave as expected please
 check whether this is a [known change in behaviour](https://issues.apache.org/jira/browse/OAK-14) or
 a [known issue](https://issues.apache.org/jira/browse/OAK). If in doubt ask on the [Oak dev list]
-(http://oak.markmail.org/). Otherwise create a [new issue](https://issues.apache.org/jira/browse/OAK).
+(http://oak.markmail.org/). Otherwise create
+a [new issue](https://issues.apache.org/jira/browse/OAK).
 
 ## Notable changes
 
@@ -75,7 +78,7 @@ relying on one session seeing the other session's changes. Oak requires explicit
 > synchronisation.
 >
 > The `SessionMBean` provides further information on when a session is refreshed and wheter
-> a refresh will happen on the next access. 
+> a refresh will happen on the next access.
 
 On Oak `Item.refresh()` is deprecated and will always cause an `Session.refresh()`. The former call
 will result in a warning written to the log in order to facilitate locating trouble spots.
@@ -88,7 +91,8 @@ if the sub-tree rooted at the respective item does not contain all transient cha
 
 ### Query
 
-Oak does not index as much content by default as does Jackrabbit 2. You need to create custom indexes when
+Oak does not index as much content by default as does Jackrabbit 2. You need to create custom
+indexes when
 necessary, much like in traditional RDBMSs. If there is no index for a specific query then the
 repository will be traversed. That is, the query will still work but probably be very slow.
 See the [query overview page](query/query.html) for how to create a custom index.
@@ -96,13 +100,13 @@ See the [query overview page](query/query.html) for how to create a custom index
 There were some smaller bugfixes in the query parser which might lead to incompatibility.
 See the [query overview page](query/query.html) for details.
 
-In Oak, the method `QueryManager.createQuery` does not 
+In Oak, the method `QueryManager.createQuery` does not
 return an object of type `QueryObjectModel`.
 
 ### Observation
 
-* `Event.getInfo()` contains the primary and mixin node types of the associated parent node of the 
-  event. The key `jcr:primaryType` maps to the primary type and the key `jcr:mixinTypes` maps to an 
+* `Event.getInfo()` contains the primary and mixin node types of the associated parent node of the
+  event. The key `jcr:primaryType` maps to the primary type and the key `jcr:mixinTypes` maps to an
   array containing the mixin types.
 
 * `Event.getUserId()`, `Event.getUserData()`and `Event.getDate()` will only be available for locally
@@ -129,40 +133,42 @@ return an object of type `QueryObjectModel`.
 
     * Touched properties: Jackrabbit 2 used to generate a `PROPERTY_CHANGED` event when touching a
       property (i.e. setting a property to its current value). Oak keeps closer to the specification
-      and [omits such events](https://issues.apache.org/jira/browse/OAK-948). More generally removing
+      and [omits such events](https://issues.apache.org/jira/browse/OAK-948). More generally
+      removing
       a subtree and replacing it with the same subtree will not generate any event.
 
-    * Removing a referenceable node and adding it again will result in a `PROPERTY_CHANGED` event for
+    * Removing a referenceable node and adding it again will result in a `PROPERTY_CHANGED` event
+      for
       `jcr:uuid`; the same applies for other built-in protected and mandatory properties
       such as e.g. jcr:versionHistory if the corresponding versionable node
       was removed and a versionable node with the same name is being created.
 
     * Limited support for `Event.NODE_MOVED`:
 
-      + A node that is added and subsequently moved will not generate a `Event.NODE_MOVED`
-        but a `Event.NODE_ADDED` for its final location.
+        + A node that is added and subsequently moved will not generate a `Event.NODE_MOVED`
+          but a `Event.NODE_ADDED` for its final location.
 
-      + A node that is moved and subsequently removed will not generate a `Event.NODE_MOVED`
-        but a `Event.NODE_REMOVED` for its initial location.
+        + A node that is moved and subsequently removed will not generate a `Event.NODE_MOVED`
+          but a `Event.NODE_REMOVED` for its initial location.
 
-      + A node that is moved and subsequently moved again will only generate a single
-        `Event.NODE_MOVED` reporting its initial location as `srcAbsPath` and its
-         final location as `destAbsPath`.
+        + A node that is moved and subsequently moved again will only generate a single
+          `Event.NODE_MOVED` reporting its initial location as `srcAbsPath` and its
+          final location as `destAbsPath`.
 
-      + A node whose parent was moved and that moved itself subsequently reports its initial
-        location as `srcAbsPath` instead of the location it had under the moved parent.
+        + A node whose parent was moved and that moved itself subsequently reports its initial
+          location as `srcAbsPath` instead of the location it had under the moved parent.
 
-      + A node that was moved and subsequently its parent is moved will report its final
-        location as `destAbsPath` instead of the location it had before its parent moved.
+        + A node that was moved and subsequently its parent is moved will report its final
+          location as `destAbsPath` instead of the location it had before its parent moved.
 
-      + Removing a node and adding a node with the same name at the same parent will be
-        reported as `NODE_MOVED` event as if it where caused by `Node.orderBefore()` if
-        the parent node is orderable and the sequence of operations caused a change in
-        the order of the child nodes.
+        + Removing a node and adding a node with the same name at the same parent will be
+          reported as `NODE_MOVED` event as if it where caused by `Node.orderBefore()` if
+          the parent node is orderable and the sequence of operations caused a change in
+          the order of the child nodes.
 
-      + The exact sequence of `Node.orderBefore()` will not be reflected through `NODE_MOVED`
-        events: given two child nodes `a` and `b`, ordering `a` after `b` may be reported as
-        ordering `b` before `a`.
+        + The exact sequence of `Node.orderBefore()` will not be reflected through `NODE_MOVED`
+          events: given two child nodes `a` and `b`, ordering `a` after `b` may be reported as
+          ordering `b` before `a`.
 
 * The sequence of differences Oak generates observation events from is guaranteed to contain the
   before and after states of all cluster local changes. This guarantee does not hold for cluster
@@ -244,7 +250,8 @@ modify the document.
 
 Same name siblings (SNS) are deprecated in Oak. We figured that the actual benefit supporting same
 name siblings as mandated by JCR is dwarfed by the additional implementation complexity. Instead
-there are ideas to implement a feature for automatic [disambiguation of node names](https://issues.apache.org/jira/browse/OAK-129).
+there are ideas to implement a feature for
+automatic [disambiguation of node names](https://issues.apache.org/jira/browse/OAK-129).
 
 In the meanwhile we have [basic support](https://issues.apache.org/jira/browse/OAK-203) for same
 name siblings but that might not cover all cases.
@@ -258,13 +265,14 @@ UUID when it detects an existing conflicting node with the same UUID. Oak always
 even if there is no conflicting node. The are mainly two reasons why this is done in Oak:
 
 * The implementation in Oak is closer to what the JCR specification says: *Incoming nodes are
-assigned newly created identifiers upon addition to the workspace. As a result, identifier
-collisions never occur.*
+  assigned newly created identifiers upon addition to the workspace. As a result, identifier
+  collisions never occur.*
 * Oak uses a MVCC model where a session operates on a snapshot of the repository. It is therefore
-very difficult to ensure new UUIDs only in case of a conflict. Based on the snapshot view of a
-session, an existing node with a conflicting UUID may not be visible until commit.
+  very difficult to ensure new UUIDs only in case of a conflict. Based on the snapshot view of a
+  session, an existing node with a conflicting UUID may not be visible until commit.
 
-In contrast to Jackrabbit 2 [expanded names][5] are not supported in System View documents for neither nodes nor properties ([OAK-9586](https://issues.apache.org/jira/browse/OAK-9586)).
+In contrast to Jackrabbit 2 [expanded names][5] are not supported in System View documents for
+neither nodes nor properties ([OAK-9586](https://issues.apache.org/jira/browse/OAK-9586)).
 
 ### Identifiers
 
@@ -290,17 +298,19 @@ is only visible to the current session and bound to the session lifetime. See
 
 ### Versioning
 
-* Because of the different identifier implementation in Oak, the value of a `jcr:frozenUuid` property
-on a frozen node will not always be a UUID (see also section about Identifiers). The property
-reflects the value returned by `Node.getIdentifier()` when a node is copied into the version storage
-as a frozen node. This also means a node restored from a frozen node will only have a `jcr:uuid`
-when it is actually referenceable.
+* Because of the different identifier implementation in Oak, the value of a `jcr:frozenUuid`
+  property
+  on a frozen node will not always be a UUID (see also section about Identifiers). The property
+  reflects the value returned by `Node.getIdentifier()` when a node is copied into the version
+  storage
+  as a frozen node. This also means a node restored from a frozen node will only have a `jcr:uuid`
+  when it is actually referenceable.
 
 * Oak does currently not implement activities (`OPTION_ACTIVITIES_SUPPORTED`), configurations and
-baselines (`OPTION_BASELINES_SUPPORTED`).
+  baselines (`OPTION_BASELINES_SUPPORTED`).
 
 * Oak does currently not implement the various variants of `VersionManager.merge` but throws an
-`UnsupportedRepositoryOperationException` if such a method is called.
+  `UnsupportedRepositoryOperationException` if such a method is called.
 
 ### Security
 
@@ -329,17 +339,24 @@ property. See also [do's and don'ts](dos_and_donts.html).
 
 ### Session Attributes
 
-Oak exposes the following attributes via [`Session.getAttribute(...)`][1] and [`Session.getAttributeNames()`][2] in addition to the ones set through [Credentials][3]' attributes passed to [Repository.login(...)][4].
+Oak exposes the following attributes via [`Session.getAttribute(...)`][1]
+and [`Session.getAttributeNames()`][2] in addition to the ones set through [Credentials][3]'
+attributes passed to [Repository.login(...)][4].
 
-Attribute Name | Attribute Value Type | Description
---- | --- | ---
-`oak.refresh-interval` | `Long` | The session refresh interval in seconds.
-`oak.relaxed-locking` | `Boolean` | Whether relaxed locking behaviour is enabled for the session. See [OAK-1329](https://issues.apache.org/jira/browse/OAK-1329).
-`oak.bound-principals` | `Set<Principal>` | The principals associated with the JCR session. See [OAK-9415](https://issues.apache.org/jira/browse/OAK-9415)
+ Attribute Name         | Attribute Value Type | Description                                                                                                                   
+------------------------|----------------------|-------------------------------------------------------------------------------------------------------------------------------
+ `oak.refresh-interval` | `Long`               | The session refresh interval in seconds.                                                                                      
+ `oak.relaxed-locking`  | `Boolean`            | Whether relaxed locking behaviour is enabled for the session. See [OAK-1329](https://issues.apache.org/jira/browse/OAK-1329). 
+ `oak.bound-principals` | `Set<Principal>`     | The principals associated with the JCR session. See [OAK-9415](https://issues.apache.org/jira/browse/OAK-9415)                
 
 [0]: https://s.apache.org/jcr-2.0-javadoc/javax/jcr/Session.html#setNamespacePrefix(java.lang.String,%20java.lang.String)
+
 [1]: https://s.apache.org/jcr-2.0-javadoc/javax/jcr/Session.html#getAttribute(java.lang.String)
+
 [2]: https://s.apache.org/jcr-2.0-javadoc/javax/jcr/Session.html#getAttributeNames()
+
 [3]: https://s.apache.org/jcr-2.0-javadoc/javax/jcr/Credentials.html
+
 [4]: https://s.apache.org/jcr-2.0-javadoc/javax/jcr/Repository.html#login(javax.jcr.Credentials,%20java.lang.String)
+
 [5]: https://s.apache.org/jcr-2.0-spec/3_Repository_Model.html#3.2.5.1%20Expanded%20Form

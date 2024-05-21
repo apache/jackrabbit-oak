@@ -23,10 +23,10 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Aggregates of a list of {@link RestrictionPattern}s into a single pattern.
- * The implementations of {@code matches} returns {@code true} if all aggregated
- * patterns successfully validate the given parameters and returns {@code false}
- * as soon as the first aggregated pattern returns {@code false}.
+ * Aggregates of a list of {@link RestrictionPattern}s into a single pattern. The implementations of
+ * {@code matches} returns {@code true} if all aggregated patterns successfully validate the given
+ * parameters and returns {@code false} as soon as the first aggregated pattern returns
+ * {@code false}.
  */
 public final class CompositePattern implements RestrictionPattern {
 
@@ -38,9 +38,12 @@ public final class CompositePattern implements RestrictionPattern {
 
     public static RestrictionPattern create(@NotNull List<RestrictionPattern> patterns) {
         switch (patterns.size()) {
-            case 0 : return RestrictionPattern.EMPTY;
-            case 1 : return patterns.get(0);
-            default : return new CompositePattern(patterns);
+            case 0:
+                return RestrictionPattern.EMPTY;
+            case 1:
+                return patterns.get(0);
+            default:
+                return new CompositePattern(patterns);
         }
     }
 
@@ -73,7 +76,7 @@ public final class CompositePattern implements RestrictionPattern {
         }
         return true;
     }
-    
+
     @Override
     public boolean matches() {
         for (RestrictionPattern pattern : patterns) {

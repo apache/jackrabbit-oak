@@ -32,8 +32,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import static org.apache.jackrabbit.oak.api.CommitFailedException.ACCESS;
-
 public class MoveAwarePermissionValidator extends PermissionValidator {
 
     private final MoveContext moveCtx;

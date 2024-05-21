@@ -16,15 +16,15 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.util;
 
+import static java.util.Objects.requireNonNull;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 
-import static java.util.Objects.requireNonNull;
-
 /**
- * Implementation of a {@code NodeStateDiff} that reports the inverse operation
- * to the wrapped {@code NodeStateDiff}.
+ * Implementation of a {@code NodeStateDiff} that reports the inverse operation to the wrapped
+ * {@code NodeStateDiff}.
  */
 public class ReverseNodeStateDiff implements NodeStateDiff {
 
@@ -41,7 +41,7 @@ public class ReverseNodeStateDiff implements NodeStateDiff {
 
     @Override
     public boolean propertyChanged(PropertyState before,
-                                   PropertyState after) {
+        PropertyState after) {
         return diff.propertyChanged(after, before);
     }
 
@@ -52,20 +52,20 @@ public class ReverseNodeStateDiff implements NodeStateDiff {
 
     @Override
     public boolean childNodeAdded(String name,
-                                  NodeState after) {
+        NodeState after) {
         return diff.childNodeDeleted(name, after);
     }
 
     @Override
     public boolean childNodeChanged(String name,
-                                    NodeState before,
-                                    NodeState after) {
+        NodeState before,
+        NodeState after) {
         return diff.childNodeChanged(name, after, before);
     }
 
     @Override
     public boolean childNodeDeleted(String name,
-                                    NodeState before) {
+        NodeState before) {
         return diff.childNodeAdded(name, before);
     }
 }

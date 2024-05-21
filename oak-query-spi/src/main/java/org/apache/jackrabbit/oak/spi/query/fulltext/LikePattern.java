@@ -41,7 +41,8 @@ public class LikePattern {
     }
 
     public boolean matches(String value) {
-        return !invalidPattern && compareAt(value, 0, 0, value.length(), patternChars, patternTypes);
+        return !invalidPattern && compareAt(value, 0, 0, value.length(), patternChars,
+            patternTypes);
     }
 
     private static boolean compare(char[] pattern, String s, int pi, int si) {
@@ -52,29 +53,30 @@ public class LikePattern {
         for (; pi < patternLength; pi++) {
             int type = types[pi];
             switch (type) {
-            case MATCH:
-                if (si >= sLen || !compare(pattern, s, pi, si++)) {
-                    return false;
-                }
-                break;
-            case ONE:
-                if (si++ >= sLen) {
-                    return false;
-                }
-                break;
-            case ANY:
-                if (++pi >= patternLength) {
-                    return true;
-                }
-                while (si < sLen) {
-                    if (compare(pattern, s, pi, si) && compareAt(s, pi, si, sLen, pattern, types)) {
+                case MATCH:
+                    if (si >= sLen || !compare(pattern, s, pi, si++)) {
+                        return false;
+                    }
+                    break;
+                case ONE:
+                    if (si++ >= sLen) {
+                        return false;
+                    }
+                    break;
+                case ANY:
+                    if (++pi >= patternLength) {
                         return true;
                     }
-                    si++;
-                }
-                return false;
-            default:
-                throw new IllegalArgumentException("Internal error: " + type);
+                    while (si < sLen) {
+                        if (compare(pattern, s, pi, si) && compareAt(s, pi, si, sLen, pattern,
+                            types)) {
+                            return true;
+                        }
+                        si++;
+                    }
+                    return false;
+                default:
+                    throw new IllegalArgumentException("Internal error: " + type);
             }
         }
         return si == sLen;

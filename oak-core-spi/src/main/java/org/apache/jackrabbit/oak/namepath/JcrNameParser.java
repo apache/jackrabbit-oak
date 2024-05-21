@@ -17,14 +17,12 @@
 package org.apache.jackrabbit.oak.namepath;
 
 import javax.jcr.nodetype.ConstraintViolationException;
-
 import org.apache.jackrabbit.util.XMLChar;
 
 /**
  * Parses and validates JCR names. Upon successful completion of
- * {@link #parse(String, Listener, int)}
- * the specified listener is informed about the (resulting) JCR name.
- * In case of failure {@link JcrNameParser.Listener#error(String)} is called indicating
+ * {@link #parse(String, Listener, int)} the specified listener is informed about the (resulting)
+ * JCR name. In case of failure {@link JcrNameParser.Listener#error(String)} is called indicating
  * the reason.
  */
 public final class JcrNameParser {
@@ -54,8 +52,8 @@ public final class JcrNameParser {
          * Informs this listener about the result of
          * {@link JcrNameParser#parse(String, Listener, int)}
          *
-         * @param name The resulting name upon successful completion of
-         * {@link JcrNameParser#parse(String, Listener, int)}
+         * @param name  The resulting name upon successful completion of
+         *              {@link JcrNameParser#parse(String, Listener, int)}
          * @param index the index (or {@code 0} when not specified)
          */
         boolean name(String name, int index);
@@ -68,12 +66,12 @@ public final class JcrNameParser {
     }
 
     /**
-     * Parse the specified jcr name and inform the specified {@code listener}
-     * about the result or any error that may occur during parsing.
+     * Parse the specified jcr name and inform the specified {@code listener} about the result or
+     * any error that may occur during parsing.
      *
-     * @param jcrName The jcr name to be parsed.
+     * @param jcrName  The jcr name to be parsed.
      * @param listener The listener to be informed about success or failure.
-     * @param index index, or {@code 0} when not specified
+     * @param index    index, or {@code 0} when not specified
      * @return whether parsing was successful
      */
     public static boolean parse(String jcrName, Listener listener, int index) {
@@ -102,7 +100,7 @@ public final class JcrNameParser {
                 } else if (state == STATE_PREFIX) {
                     prefix = jcrName.substring(0, i);
                     if (!XMLChar.isValidNCName(prefix)) {
-                        listener.error("Invalid name prefix: "+ prefix);
+                        listener.error("Invalid name prefix: " + prefix);
                         return false;
                     }
                     state = STATE_NAME_START;
@@ -155,7 +153,7 @@ public final class JcrNameParser {
                         nameStart = 0;
                     } else {
                         listener.error("The URI prefix of the name " + jcrName + " is " +
-                                "neither a valid URI nor a valid part of a local name.");
+                            "neither a valid URI nor a valid part of a local name.");
                         return false;
                     }
                 } else if (state == STATE_PREFIX_START) {
@@ -205,7 +203,8 @@ public final class JcrNameParser {
         return parse(jcrName, listener, 0);
     }
 
-    public static void checkName(String jcrName, boolean allowResidual) throws ConstraintViolationException {
+    public static void checkName(String jcrName, boolean allowResidual)
+        throws ConstraintViolationException {
         if (jcrName == null || !(allowResidual && "*".equals(jcrName) || validate(jcrName))) {
             throw new ConstraintViolationException("Not a valid JCR name '" + jcrName + '\'');
         }

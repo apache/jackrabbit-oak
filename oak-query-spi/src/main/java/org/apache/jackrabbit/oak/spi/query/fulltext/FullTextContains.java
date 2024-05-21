@@ -19,15 +19,15 @@
 package org.apache.jackrabbit.oak.spi.query.fulltext;
 
 /**
- * A group of full-text expressions that reflects a "contains(...)" expression,
- * and allows to access the original (unparsed) full text term.
+ * A group of full-text expressions that reflects a "contains(...)" expression, and allows to access
+ * the original (unparsed) full text term.
  */
 public class FullTextContains extends FullTextExpression {
-    
+
     private final String propertyName;
     private final String rawText;
     private final FullTextExpression base;
-    
+
     public FullTextContains(String propertyName, String rawText, FullTextExpression base) {
         this.propertyName = propertyName;
         this.rawText = rawText;
@@ -62,7 +62,7 @@ public class FullTextContains extends FullTextExpression {
     public boolean accept(FullTextVisitor v) {
         return v.visit(this);
     }
-    
+
     public FullTextExpression getBase() {
         return base;
     }

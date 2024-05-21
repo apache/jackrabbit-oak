@@ -19,22 +19,22 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.property;
 
-import java.util.Objects;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.TreeTraverser;
-import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
-import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
-
 import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.PROPERTY_INDEX;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.PROP_HEAD_BUCKET;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.PROP_PREVIOUS_BUCKET;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.simplePropertyIndex;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.uniquePropertyIndex;
 
+import java.util.Objects;
+import java.util.concurrent.atomic.AtomicInteger;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.apache.jackrabbit.guava.common.collect.TreeTraverser;
+import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
+import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+
 public class HybridPropertyIndexInfo {
+
     private final JsopBuilder json = new JsopBuilder();
     private final NodeState idx;
 
@@ -42,7 +42,7 @@ public class HybridPropertyIndexInfo {
         this.idx = idx;
     }
 
-    public String getInfoAsJson(){
+    public String getInfoAsJson() {
         json.resetWriter();
         json.object();
         NodeState propertyIndexNode = idx.getChildNode(PROPERTY_INDEX);
@@ -91,17 +91,18 @@ public class HybridPropertyIndexInfo {
         TreeTraverser<NodeState> t = new TreeTraverser<NodeState>() {
             @Override
             public Iterable<NodeState> children(NodeState root) {
-                return Iterables.transform(root.getChildNodeEntries(), ChildNodeEntry::getNodeState);
+                return Iterables.transform(root.getChildNodeEntries(),
+                    ChildNodeEntry::getNodeState);
             }
         };
         AtomicInteger matches = new AtomicInteger();
         int totalCount = t.preOrderTraversal(bucket)
-                .transform((st) -> {
-                    if (st.getBoolean("match")) {
-                        matches.incrementAndGet();
-                    }
-                    return st;
-                }).size();
+                          .transform((st) -> {
+                              if (st.getBoolean("match")) {
+                                  matches.incrementAndGet();
+                              }
+                              return st;
+                          }).size();
         json.key("entryCount").value(matches.get());
         json.key("totalCount").value(totalCount);
     }

@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.plugins.blob;
 
 import java.io.File;
 import java.io.IOException;
-
 import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,6 +28,7 @@ import org.slf4j.LoggerFactory;
  * Common utility methods used for DataStore caches.
  */
 public class DataStoreCacheUtils {
+
     private static final Logger LOG = LoggerFactory.getLogger(DataStoreCacheUtils.class);
 
     /**

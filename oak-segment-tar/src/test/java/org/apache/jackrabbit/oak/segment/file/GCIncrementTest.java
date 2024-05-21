@@ -19,12 +19,12 @@
 
 package org.apache.jackrabbit.oak.segment.file;
 
-import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
-import org.junit.Test;
-
 import static org.apache.jackrabbit.oak.segment.file.tar.GCGeneration.newGCGeneration;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+
+import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
+import org.junit.Test;
 
 public class GCIncrementTest {
 

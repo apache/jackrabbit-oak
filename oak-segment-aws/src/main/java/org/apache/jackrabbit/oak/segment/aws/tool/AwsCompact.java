@@ -28,14 +28,12 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Collections;
 import java.util.List;
-
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.io.Files;
-
 import org.apache.jackrabbit.oak.segment.SegmentCache;
 import org.apache.jackrabbit.oak.segment.aws.tool.AwsToolUtils.SegmentStoreType;
-import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.GCType;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.CompactorType;
+import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.GCType;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.JournalReader;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitorAdapter;
@@ -96,8 +94,7 @@ public class AwsCompact {
         }
 
         /**
-         * Whether to fail if run on an older version of the store of force upgrading
-         * its format.
+         * Whether to fail if run on an older version of the store of force upgrading its format.
          *
          * @param force upgrade iff {@code true}
          * @return this builder.
@@ -109,13 +106,11 @@ public class AwsCompact {
 
         /**
          * The size of the segment cache in MB. The default of
-         * {@link SegmentCache#DEFAULT_SEGMENT_CACHE_MB} when this method is not
-         * invoked.
+         * {@link SegmentCache#DEFAULT_SEGMENT_CACHE_MB} when this method is not invoked.
          *
          * @param segmentCacheSize cache size in MB
          * @return this builder
-         * @throws IllegalArgumentException if {@code segmentCacheSize} is not a
-         *                                  positive integer.
+         * @throws IllegalArgumentException if {@code segmentCacheSize} is not a positive integer.
          */
         public Builder withSegmentCacheSize(int segmentCacheSize) {
             checkArgument(segmentCacheSize > 0, "segmentCacheSize must be strictly positive");
@@ -124,9 +119,9 @@ public class AwsCompact {
         }
 
         /**
-         * The number of nodes after which an update about the compaction process is
-         * logged. Set to a negative number to disable progress logging. If not
-         * specified, it defaults to 150,000 nodes.
+         * The number of nodes after which an update about the compaction process is logged. Set to
+         * a negative number to disable progress logging. If not specified, it defaults to 150,000
+         * nodes.
          *
          * @param gcLogInterval The log interval.
          * @return this builder.
@@ -138,6 +133,7 @@ public class AwsCompact {
 
         /**
          * The garbage collection type used. If not specified it defaults to full compaction
+         *
          * @param gcType the GC type
          * @return this builder
          */
@@ -147,8 +143,9 @@ public class AwsCompact {
         }
 
         /**
-         * The compactor type to be used by compaction. If not specified it defaults to
-         * "parallel" compactor
+         * The compactor type to be used by compaction. If not specified it defaults to "parallel"
+         * compactor
+         *
          * @param compactorType the compactor type
          * @return this builder
          */
@@ -158,7 +155,9 @@ public class AwsCompact {
         }
 
         /**
-         * The number of threads to be used for compaction. This only applies to the "parallel" compactor
+         * The number of threads to be used for compaction. This only applies to the "parallel"
+         * compactor
+         *
          * @param concurrency the number of threads
          * @return this builder
          */
@@ -204,9 +203,11 @@ public class AwsCompact {
 
     public int run() throws IOException {
         Stopwatch watch = Stopwatch.createStarted();
-        SegmentNodeStorePersistence persistence = newSegmentNodeStorePersistence(SegmentStoreType.AWS, path);
-        SegmentArchiveManager archiveManager = persistence.createArchiveManager(false, false, new IOMonitorAdapter(),
-                new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
+        SegmentNodeStorePersistence persistence = newSegmentNodeStorePersistence(
+            SegmentStoreType.AWS, path);
+        SegmentArchiveManager archiveManager = persistence.createArchiveManager(false, false,
+            new IOMonitorAdapter(),
+            new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
 
         System.out.printf("Compacting %s\n", path);
         System.out.printf("    before\n");
@@ -220,8 +221,9 @@ public class AwsCompact {
         printArchives(System.out, beforeArchives);
         System.out.printf("    -> compacting\n");
 
-        try (FileStore store = newFileStore(persistence, Files.createTempDir(), strictVersionCheck, segmentCacheSize,
-                gcLogInterval, compactorType, concurrency)) {
+        try (FileStore store = newFileStore(persistence, Files.createTempDir(), strictVersionCheck,
+            segmentCacheSize,
+            gcLogInterval, compactorType, concurrency)) {
             boolean success = false;
             switch (gcType) {
                 case FULL:
@@ -241,7 +243,8 @@ public class AwsCompact {
             JournalFile journal = persistence.getJournalFile();
             String head;
             try (JournalReader journalReader = new JournalReader(journal)) {
-                head = String.format("%s root %s\n", journalReader.next().getRevision(), System.currentTimeMillis());
+                head = String.format("%s root %s\n", journalReader.next().getRevision(),
+                    System.currentTimeMillis());
             }
 
             try (JournalFileWriter journalWriter = journal.openJournalWriter()) {

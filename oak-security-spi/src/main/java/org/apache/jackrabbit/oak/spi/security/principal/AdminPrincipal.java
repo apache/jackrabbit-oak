@@ -19,10 +19,9 @@ package org.apache.jackrabbit.oak.spi.security.principal;
 import java.security.Principal;
 
 /**
- * Principal used to mark an administrator. The aim of this principal
- * is to simplify the check whether a given set of principals is supplied with
- * special (admin) access permissions. It may be used as the single or as
- * additional non-group principal.
+ * Principal used to mark an administrator. The aim of this principal is to simplify the check
+ * whether a given set of principals is supplied with special (admin) access permissions. It may be
+ * used as the single or as additional non-group principal.
  */
 public interface AdminPrincipal extends Principal {
 

@@ -17,10 +17,9 @@
 package org.apache.jackrabbit.oak.spi.state;
 
 /**
- * Abstract base class for {@link ChildNodeEntry} implementations.
- * This base class contains default implementations of the
- * {@link #equals(Object)} and {@link #hashCode()} methods based on
- * the implemented interface.
+ * Abstract base class for {@link ChildNodeEntry} implementations. This base class contains default
+ * implementations of the {@link #equals(Object)} and {@link #hashCode()} methods based on the
+ * implemented interface.
  */
 public abstract class AbstractChildNodeEntry implements ChildNodeEntry {
 
@@ -41,14 +40,12 @@ public abstract class AbstractChildNodeEntry implements ChildNodeEntry {
     }
 
     /**
-     * Checks whether the given object is equal to this one. Two child node
-     * entries are considered equal if both their names and referenced node
-     * states match. Subclasses may override this method with a more efficient
-     * equality check if one is available.
+     * Checks whether the given object is equal to this one. Two child node entries are considered
+     * equal if both their names and referenced node states match. Subclasses may override this
+     * method with a more efficient equality check if one is available.
      *
      * @param that target of the comparison
-     * @return {@code true} if the objects are equal,
-     *         {@code false} otherwise
+     * @return {@code true} if the objects are equal, {@code false} otherwise
      */
     @Override
     public boolean equals(Object that) {
@@ -57,7 +54,7 @@ public abstract class AbstractChildNodeEntry implements ChildNodeEntry {
         } else if (that instanceof ChildNodeEntry) {
             ChildNodeEntry other = (ChildNodeEntry) that;
             return getName().equals(other.getName())
-                    && getNodeState().equals(other.getNodeState());
+                && getNodeState().equals(other.getNodeState());
         } else {
             return false;
         }
@@ -65,11 +62,9 @@ public abstract class AbstractChildNodeEntry implements ChildNodeEntry {
     }
 
     /**
-     * Returns a hash code that's compatible with how the
-     * {@link #equals(Object)} method is implemented. The current
-     * implementation simply returns the hash code of the child node name
-     * since {@link ChildNodeEntry} instances are not intended for use as
-     * hash keys.
+     * Returns a hash code that's compatible with how the {@link #equals(Object)} method is
+     * implemented. The current implementation simply returns the hash code of the child node name
+     * since {@link ChildNodeEntry} instances are not intended for use as hash keys.
      *
      * @return hash code
      */

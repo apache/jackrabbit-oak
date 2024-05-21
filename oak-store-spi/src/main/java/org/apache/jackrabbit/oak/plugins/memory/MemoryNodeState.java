@@ -22,7 +22,6 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NO
 
 import java.util.HashMap;
 import java.util.Map;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -41,17 +40,16 @@ class MemoryNodeState extends AbstractNodeState {
     private final Map<String, NodeState> nodes;
 
     /**
-     * Creates a new node state with the given properties and child nodes.
-     * The given maps are stored as references, so their contents and
-     * iteration order must remain unmodified at least for as long as this
-     * node state instance is in use.
+     * Creates a new node state with the given properties and child nodes. The given maps are stored
+     * as references, so their contents and iteration order must remain unmodified at least for as
+     * long as this node state instance is in use.
      *
      * @param properties properties
-     * @param nodes child nodes
+     * @param nodes      child nodes
      */
     public MemoryNodeState(
-            Map<String, PropertyState> properties,
-            Map<String, NodeState> nodes) {
+        Map<String, PropertyState> properties,
+        Map<String, NodeState> nodes) {
         this.properties = properties;
         this.nodes = nodes;
     }
@@ -116,9 +114,8 @@ class MemoryNodeState extends AbstractNodeState {
     }
 
     /**
-     * We don't keep track of a separate base node state for
-     * {@link MemoryNodeState} instances, so this method will just do
-     * a generic diff against the given state.
+     * We don't keep track of a separate base node state for {@link MemoryNodeState} instances, so
+     * this method will just do a generic diff against the given state.
      */
     @Override
     public boolean compareAgainstBaseState(NodeState base, NodeStateDiff diff) {
@@ -127,7 +124,7 @@ class MemoryNodeState extends AbstractNodeState {
         }
 
         Map<String, PropertyState> newProperties =
-                new HashMap<String, PropertyState>(properties);
+            new HashMap<String, PropertyState>(properties);
         for (PropertyState before : base.getProperties()) {
             PropertyState after = newProperties.remove(before.getName());
             if (after == null) {
@@ -148,7 +145,7 @@ class MemoryNodeState extends AbstractNodeState {
         }
 
         Map<String, NodeState> newNodes =
-                new HashMap<String, NodeState>(nodes);
+            new HashMap<String, NodeState>(nodes);
         for (ChildNodeEntry entry : base.getChildNodeEntries()) {
             String name = entry.getName();
             NodeState before = entry.getNodeState();

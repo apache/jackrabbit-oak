@@ -16,15 +16,15 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.permission;
 
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
-import org.junit.Test;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.junit.Test;
 
 public class AllTreePermissionTest {
 
@@ -68,7 +68,7 @@ public class AllTreePermissionTest {
 
     @Test
     public void testToString() {
-        assertEquals(all.toString(),  TreePermission.ALL.toString());
+        assertEquals(all.toString(), TreePermission.ALL.toString());
         assertNotEquals(all.toString(), TreePermission.NO_RECOURSE.toString());
     }
 }

@@ -16,6 +16,14 @@
  */
 package org.apache.jackrabbit.oak.upgrade;
 
+import static java.util.Arrays.asList;
+import static org.junit.Assert.fail;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import javax.jcr.RepositoryException;
 import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.upgrade.cli.AbstractOak2OakTest;
@@ -31,22 +39,12 @@ import org.apache.jackrabbit.oak.upgrade.cli.parser.MigrationCliArguments;
 import org.apache.jackrabbit.oak.upgrade.cli.parser.MigrationOptions;
 import org.apache.jackrabbit.oak.upgrade.cli.parser.OptionParserFactory;
 import org.apache.jackrabbit.oak.upgrade.cli.parser.StoreArguments;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.jcr.RepositoryException;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-
-import static java.util.Arrays.asList;
-import static org.junit.Assert.fail;
 
 @RunWith(Parameterized.class)
 public class CopyCheckpointsTest extends AbstractOak2OakTest {
@@ -63,25 +61,25 @@ public class CopyCheckpointsTest extends AbstractOak2OakTest {
 
         BlobStoreContainer blob = new FileDataStoreContainer();
         params.add(new Object[]{
-                "Without data store defined it always copies checkpoints",
-                new SegmentNodeStoreContainer(blob),
-                new SegmentNodeStoreContainer(blob),
-                asList(),
-                Result.CHECKPOINTS_COPIED
+            "Without data store defined it always copies checkpoints",
+            new SegmentNodeStoreContainer(blob),
+            new SegmentNodeStoreContainer(blob),
+            asList(),
+            Result.CHECKPOINTS_COPIED
         });
         params.add(new Object[]{
-                "Suppress the warning",
-                new SegmentNodeStoreContainer(blob),
-                new SegmentNodeStoreContainer(blob),
-                asList("--skip-checkpoints"),
-                Result.CHECKPOINTS_MISSING
+            "Suppress the warning",
+            new SegmentNodeStoreContainer(blob),
+            new SegmentNodeStoreContainer(blob),
+            asList("--skip-checkpoints"),
+            Result.CHECKPOINTS_MISSING
         });
         params.add(new Object[]{
-                "Source data store defined, checkpoints migrated",
-                new SegmentTarNodeStoreContainer(blob),
-                new SegmentTarNodeStoreContainer(blob),
-                asList("--src-datastore=" + blob.getDescription()),
-                Result.CHECKPOINTS_COPIED
+            "Source data store defined, checkpoints migrated",
+            new SegmentTarNodeStoreContainer(blob),
+            new SegmentTarNodeStoreContainer(blob),
+            asList("--src-datastore=" + blob.getDescription()),
+            Result.CHECKPOINTS_COPIED
         });
         return params;
     }
@@ -94,7 +92,9 @@ public class CopyCheckpointsTest extends AbstractOak2OakTest {
 
     private final Result expectedResult;
 
-    public CopyCheckpointsTest(String name, NodeStoreContainer source, NodeStoreContainer destination, List<String> args, Result expectedResult) throws IOException, CliArgumentException {
+    public CopyCheckpointsTest(String name, NodeStoreContainer source,
+        NodeStoreContainer destination, List<String> args, Result expectedResult)
+        throws IOException, CliArgumentException {
         this.source = source;
         this.destination = destination;
         this.args = args;
@@ -117,7 +117,8 @@ public class CopyCheckpointsTest extends AbstractOak2OakTest {
     @Override
     protected String[] getArgs() {
         List<String> result = new ArrayList<>(args);
-        result.addAll(asList("--disable-mmap", source.getDescription(), destination.getDescription()));
+        result.addAll(
+            asList("--disable-mmap", source.getDescription(), destination.getDescription()));
         return result.toArray(new String[result.size()]);
     }
 
@@ -134,12 +135,14 @@ public class CopyCheckpointsTest extends AbstractOak2OakTest {
         String[] args = getArgs();
         log.info("oak2oak {}", Joiner.on(' ').join(args));
         try {
-            MigrationCliArguments cliArgs = new MigrationCliArguments(OptionParserFactory.create().parse(args));
+            MigrationCliArguments cliArgs = new MigrationCliArguments(
+                OptionParserFactory.create().parse(args));
             MigrationOptions options = new MigrationOptions(cliArgs);
             StoreArguments stores = new StoreArguments(options, cliArgs.getArguments());
-            DatastoreArguments datastores = new DatastoreArguments(options, stores, stores.srcUsesEmbeddedDatastore());
+            DatastoreArguments datastores = new DatastoreArguments(options, stores,
+                stores.srcUsesEmbeddedDatastore());
             OakUpgrade.migrate(options, stores, datastores);
-        } catch(RuntimeException e) {
+        } catch (RuntimeException e) {
             if (expectedResult == Result.EXCEPTION) {
                 return;
             } else {

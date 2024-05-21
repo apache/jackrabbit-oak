@@ -17,13 +17,12 @@
 
 package org.apache.jackrabbit.oak.segment.standby.codec;
 
-import java.util.UUID;
-
-import org.apache.jackrabbit.guava.common.hash.Hasher;
-import org.apache.jackrabbit.guava.common.hash.Hashing;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToByteEncoder;
+import java.util.UUID;
+import org.apache.jackrabbit.guava.common.hash.Hasher;
+import org.apache.jackrabbit.guava.common.hash.Hashing;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,7 +38,8 @@ public class GetSegmentResponseEncoder extends MessageToByteEncoder<GetSegmentRe
     private static final int EXTRA_HEADERS_WO_SIZE = EXTRA_HEADERS_LEN - 4;
 
     @Override
-    protected void encode(ChannelHandlerContext ctx, GetSegmentResponse msg, ByteBuf out) throws Exception {
+    protected void encode(ChannelHandlerContext ctx, GetSegmentResponse msg, ByteBuf out)
+        throws Exception {
         log.debug("Sending segment {} to client {}", msg.getSegmentId(), msg.getClientId());
         encode(msg.getSegmentId(), msg.getSegmentData(), out);
     }

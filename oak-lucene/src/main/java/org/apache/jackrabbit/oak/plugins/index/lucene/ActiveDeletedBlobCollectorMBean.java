@@ -20,16 +20,15 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import javax.management.openmbean.CompositeData;
-
 import org.jetbrains.annotations.NotNull;
 
 /**
- * MBean for starting and monitoring the progress of
- * collection of deleted lucene index blobs.
+ * MBean for starting and monitoring the progress of collection of deleted lucene index blobs.
  *
  * @see org.apache.jackrabbit.oak.api.jmx.RepositoryManagementMBean
  */
 public interface ActiveDeletedBlobCollectorMBean {
+
     String TYPE = "ActiveDeletedBlobCollector";
 
     /**
@@ -41,8 +40,8 @@ public interface ActiveDeletedBlobCollectorMBean {
     CompositeData startActiveCollection();
 
     /**
-     * Cancel a running collection of deleted lucene index blobs operation.
-     * Does nothing if collection is not running.
+     * Cancel a running collection of deleted lucene index blobs operation. Does nothing if
+     * collection is not running.
      *
      * @return the status of the operation right after it was initiated
      */
@@ -52,8 +51,8 @@ public interface ActiveDeletedBlobCollectorMBean {
     /**
      * Status of collection of deleted lucene index blobs.
      *
-     * @return  the status of the ongoing operation or if none the terminal
-     * status of the last operation or <em>Status not available</em> if none.
+     * @return the status of the ongoing operation or if none the terminal status of the last
+     * operation or <em>Status not available</em> if none.
      */
     @NotNull
     CompositeData getActiveCollectionStatus();
@@ -65,17 +64,16 @@ public interface ActiveDeletedBlobCollectorMBean {
     boolean isActiveDeletionUnsafe();
 
     /**
-     * Flag current blobs (head state) referred by all indexes so that they won't
-     * be marked to be collected by active deletion later. It would also set an
-     * in-memory flag so that new blobs also are flagged to be not marked for deletion
-     * by active deletion
+     * Flag current blobs (head state) referred by all indexes so that they won't be marked to be
+     * collected by active deletion later. It would also set an in-memory flag so that new blobs
+     * also are flagged to be not marked for deletion by active deletion
      */
     @NotNull
     void flagActiveDeletionUnsafeForCurrentState();
 
     /**
-     * Resets the in-memory flag so that new blobs are not flagged anymore and hence
-     * would get marked for active deletion when active deletion is active.
+     * Resets the in-memory flag so that new blobs are not flagged anymore and hence would get
+     * marked for active deletion when active deletion is active.
      */
     void flagActiveDeletionSafe();
 

@@ -16,17 +16,17 @@
  */
 package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
+import static org.junit.Assert.assertTrue;
+
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.util.Map;
 import java.util.Properties;
-
 import javax.jcr.RepositoryException;
-
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStore;
+import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.junit.After;
 import org.junit.Assert;
@@ -35,12 +35,11 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.junit.Assert.assertTrue;
-
 /**
  * Tests for {@link CachingFileDataStore}.
  */
 public class CachingFileDataStoreTest extends AbstractDataStoreTest {
+
     protected static final Logger LOG = LoggerFactory.getLogger(CachingFileDataStoreTest.class);
 
     private Properties props;

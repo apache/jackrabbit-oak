@@ -49,7 +49,8 @@ class TailCompactionStrategy extends AbstractCompactionStrategy {
         NodeState base = getBase(context);
 
         if (base == null) {
-            context.getGCListener().info("no base state available, tail compaction is not applicable");
+            context.getGCListener()
+                   .info("no base state available, tail compaction is not applicable");
             return CompactionResult.notApplicable(context.getGCCount());
         }
 

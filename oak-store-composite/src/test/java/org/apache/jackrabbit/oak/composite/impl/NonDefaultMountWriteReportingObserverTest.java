@@ -40,48 +40,51 @@ import org.junit.Rule;
 import org.junit.Test;
 
 public class NonDefaultMountWriteReportingObserverTest {
-    
+
     @Rule
     public final OsgiContext context = new OsgiContext();
 
     private SpyChangeReporter reporter;
     private NonDefaultMountWriteReportingObserver observer;
-    
+
     @Before
     public void prepare() {
         registerMountInfoProviderService();
-        observer = context.registerInjectActivateService(new NonDefaultMountWriteReportingObserver(), "ignoredClassNameFragments", "MarkerToBeIgnored");
+        observer = context.registerInjectActivateService(
+            new NonDefaultMountWriteReportingObserver(), "ignoredClassNameFragments",
+            "MarkerToBeIgnored");
         reporter = new SpyChangeReporter();
         observer.setReporter(reporter);
     }
 
     @Test
     public void pathAddedUnderNonDefaultMount() throws CommitFailedException {
-        
+
         MemoryNodeStore nodeStore = new MemoryNodeStore();
         nodeStore.addObserver(observer);
-        
+
         NodeBuilder builder = nodeStore.getRoot().builder();
         builder
             .child("foo")
             .child("bar")
             .child("baz");
-        
+
         nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        assertThat(reporter.changes, equalTo(Arrays.asList("Added|/foo/bar", "Added|/foo/bar/baz") ) );
+        assertThat(reporter.changes,
+            equalTo(Arrays.asList("Added|/foo/bar", "Added|/foo/bar/baz")));
     }
 
     @Test
     public void subPathAddedUnderNonDefaultMount() throws CommitFailedException {
-        
+
         MemoryNodeStore nodeStore = new MemoryNodeStore();
         nodeStore.addObserver(observer);
-        
+
         NodeBuilder builder = nodeStore.getRoot().builder();
         builder
             .child("foo")
             .child("bar");
-        
+
         nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         reporter.changes.clear();
 
@@ -92,22 +95,23 @@ public class NonDefaultMountWriteReportingObserverTest {
             .child("baz");
 
         nodeStore.merge(builder2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        
-        assertThat(reporter.changes, equalTo(Arrays.asList("Changed|/foo/bar", "Added|/foo/bar/baz") ) );
+
+        assertThat(reporter.changes,
+            equalTo(Arrays.asList("Changed|/foo/bar", "Added|/foo/bar/baz")));
     }
-    
+
     @Test
     public void propertyChangedUnderNonDefaultMount() throws CommitFailedException {
-        
+
         MemoryNodeStore nodeStore = new MemoryNodeStore();
         nodeStore.addObserver(observer);
-        
+
         NodeBuilder builder = nodeStore.getRoot().builder();
         builder
             .child("foo")
             .child("bar")
             .child("baz");
-        
+
         nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         reporter.changes.clear();
 
@@ -119,46 +123,48 @@ public class NonDefaultMountWriteReportingObserverTest {
             .setProperty("prop", "val");
 
         nodeStore.merge(builder2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        
-        assertThat(reporter.changes, equalTo(Arrays.asList("Changed|/foo/bar", "Changed|/foo/bar/baz")));
-    }    
-    
+
+        assertThat(reporter.changes,
+            equalTo(Arrays.asList("Changed|/foo/bar", "Changed|/foo/bar/baz")));
+    }
+
     @Test
     public void subPathAddedUnderDefaultMount() throws CommitFailedException {
-        
+
         MemoryNodeStore nodeStore = new MemoryNodeStore();
         nodeStore.addObserver(observer);
-        
+
         NodeBuilder builder = nodeStore.getRoot().builder();
         builder
             .child("baz");
-        
+
         nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        assertThat(reporter.changes, equalTo(Arrays.asList() ) );
+        assertThat(reporter.changes, equalTo(Arrays.asList()));
     }
-    
+
     @Test
     public void subPathUnderNonDefaultMountButWithExpectedComponent() throws Exception {
         MemoryNodeStore nodeStore = new MemoryNodeStore();
         nodeStore.addObserver(observer);
-        
+
         NodeBuilder builder = nodeStore.getRoot().builder();
         builder
             .child("foo")
             .child("bar");
-        
-        MarkerToBeIgnored.call( () -> nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY));
-        
-        assertThat(reporter.changes, equalTo(Arrays.asList() ) );
+
+        MarkerToBeIgnored.call(
+            () -> nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY));
+
+        assertThat(reporter.changes, equalTo(Arrays.asList()));
     }
-    
+
     @Test
     public void commitWithMixedDefaultAndNonDefaultMounts() throws CommitFailedException {
 
         MemoryNodeStore nodeStore = new MemoryNodeStore();
         nodeStore.addObserver(observer);
-        
+
         NodeBuilder builder = nodeStore.getRoot().builder();
         builder
             .child("foo")
@@ -171,19 +177,19 @@ public class NonDefaultMountWriteReportingObserverTest {
 
         assertThat(reporter.changes, equalTo(Arrays.asList("Added|/foo/bar")));
     }
-    
+
     @Test
     public void commitWithDeletedNodeUnderNonDefaultMount() throws CommitFailedException {
 
         MemoryNodeStore nodeStore = new MemoryNodeStore();
         nodeStore.addObserver(observer);
-        
+
         NodeBuilder builder = nodeStore.getRoot().builder();
         builder
             .child("foo")
             .child("bar")
             .child("baz");
-        
+
         nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         reporter.changes.clear();
 
@@ -195,8 +201,9 @@ public class NonDefaultMountWriteReportingObserverTest {
             .remove();
 
         nodeStore.merge(builder2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        
-        assertThat(reporter.changes, equalTo(Arrays.asList("Changed|/foo/bar", "Deleted|/foo/bar/baz")));        
+
+        assertThat(reporter.changes,
+            equalTo(Arrays.asList("Changed|/foo/bar", "Deleted|/foo/bar/baz")));
     }
 
     private void registerMountInfoProviderService() {
@@ -206,21 +213,22 @@ public class NonDefaultMountWriteReportingObserverTest {
             .withMountPaths("/foo/bar")
             .buildProviderServiceProps());
     }
-    
+
     static class SpyChangeReporter extends ChangeReporter {
+
         List<String> changes = new ArrayList<>();
-        
+
         @Override
         void reportChanges(Map<String, String> changes, Stream<StackTraceElement> stackTrace) {
-            changes.forEach( (path, type) -> this.changes.add(type + "|" + path) );
+            changes.forEach((path, type) -> this.changes.add(type + "|" + path));
         }
     }
-    
+
     static class MarkerToBeIgnored {
-        
+
         static <T> void call(Callable<T> callable) throws Exception {
             callable.call();
         }
     }
-    
+
 }

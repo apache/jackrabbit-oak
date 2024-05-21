@@ -18,18 +18,19 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import java.io.File;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import org.apache.jackrabbit.oak.api.ContentRepository;
-import org.apache.jackrabbit.oak.plugins.index.LuceneIndexOptions;
 import org.apache.jackrabbit.oak.plugins.index.IndexAndTraversalQueriesSimilarResultsCommonTest;
+import org.apache.jackrabbit.oak.plugins.index.LuceneIndexOptions;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
 
-import java.io.File;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+public class LuceneIndexAndTraversalQueriesSimilarResultsCommonTest extends
+    IndexAndTraversalQueriesSimilarResultsCommonTest {
 
-public class LuceneIndexAndTraversalQueriesSimilarResultsCommonTest extends IndexAndTraversalQueriesSimilarResultsCommonTest {
     private final ExecutorService executorService = Executors.newFixedThreadPool(2);
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
@@ -40,7 +41,8 @@ public class LuceneIndexAndTraversalQueriesSimilarResultsCommonTest extends Inde
 
     @Override
     protected ContentRepository createRepository() {
-        LuceneTestRepositoryBuilder builder = new LuceneTestRepositoryBuilder(executorService, temporaryFolder);
+        LuceneTestRepositoryBuilder builder = new LuceneTestRepositoryBuilder(executorService,
+            temporaryFolder);
         repositoryOptionsUtil = builder.build();
         indexOptions = new LuceneIndexOptions();
         return repositoryOptionsUtil.getOak().createContentRepository();

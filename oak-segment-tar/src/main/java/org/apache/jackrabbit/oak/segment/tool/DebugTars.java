@@ -31,9 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-
 import javax.jcr.PropertyType;
-
 import org.apache.jackrabbit.guava.common.escape.Escapers;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -88,9 +86,8 @@ public class DebugTars {
         }
 
         /**
-         * Add a TAR file. The command will print information about every TAR
-         * file added via this method. It is mandatory to add at least one TAR
-         * file.
+         * Add a TAR file. The command will print information about every TAR file added via this
+         * method. It is mandatory to add at least one TAR file.
          *
          * @param tar the name of a TAR file.
          * @return this builder.
@@ -185,7 +182,8 @@ public class DebugTars {
         }
     }
 
-    private void filterNodeStates(Set<UUID> uuids, List<String> paths, SegmentNodeState state, String path) {
+    private void filterNodeStates(Set<UUID> uuids, List<String> paths, SegmentNodeState state,
+        String path) {
         Set<String> localPaths = newTreeSet();
         for (PropertyState ps : state.getProperties()) {
             if (ps instanceof SegmentPropertyState) {
@@ -234,13 +232,14 @@ public class DebugTars {
             NodeState c = ce.getNodeState();
             if (c instanceof SegmentNodeState) {
                 filterNodeStates(uuids, paths, (SegmentNodeState) c,
-                        path + ce.getName() + "/");
+                    path + ce.getName() + "/");
             }
         }
     }
 
     private static String getLocalPath(String path, PropertyState ps, String value, RecordId id) {
-        return path + ps.getName() + " = " + value + " [SegmentPropertyState<" + ps.getType() + ">@" + id + "]";
+        return path + ps.getName() + " = " + value + " [SegmentPropertyState<" + ps.getType() + ">@"
+            + id + "]";
     }
 
     private static String getLocalPath(String path, PropertyState ps, RecordId id) {
@@ -253,11 +252,11 @@ public class DebugTars {
         }
 
         String escaped = Escapers.builder()
-                .setSafeRange(' ', '~')
-                .addEscape('"', "\\\"")
-                .addEscape('\\', "\\\\")
-                .build()
-                .escape(value);
+                                 .setSafeRange(' ', '~')
+                                 .addEscape('"', "\\\"")
+                                 .addEscape('\\', "\\\\")
+                                 .build()
+                                 .escape(value);
 
         return '"' + escaped + '"';
     }

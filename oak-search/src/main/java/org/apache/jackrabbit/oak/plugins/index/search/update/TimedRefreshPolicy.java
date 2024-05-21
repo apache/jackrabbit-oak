@@ -21,16 +21,16 @@ package org.apache.jackrabbit.oak.plugins.index.search.update;
 
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-
 import org.apache.jackrabbit.oak.stats.Clock;
 
 /**
- * This policy refreshes the index (if changed) if it wasn't refreshed for a
- * configured time. For example once per second.
- *
+ * This policy refreshes the index (if changed) if it wasn't refreshed for a configured time. For
+ * example once per second.
+ * <p>
  * It is the default policy for asynchronous indexes.
  */
 public class TimedRefreshPolicy implements ReaderRefreshPolicy, IndexUpdateListener {
+
     private final AtomicBoolean dirty = new AtomicBoolean();
     private final Clock clock;
     private final long refreshDelta;
@@ -57,10 +57,10 @@ public class TimedRefreshPolicy implements ReaderRefreshPolicy, IndexUpdateListe
     }
 
     private void refreshIfRequired(Runnable refreshCallback) {
-        if (dirty.get()){
+        if (dirty.get()) {
             long currentTime = clock.getTime();
             if (currentTime - lastRefreshTime > refreshDelta
-                    && dirty.compareAndSet(true, false)){
+                && dirty.compareAndSet(true, false)) {
                 lastRefreshTime = currentTime;
                 refreshCallback.run();
             }

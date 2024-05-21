@@ -19,6 +19,19 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.oak.api.Type.BINARIES;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.OakDirectory.UNIQUE_KEY_SIZE;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Arrays;
+import java.util.List;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -36,36 +49,22 @@ import org.apache.lucene.store.IOContext;
 import org.apache.lucene.store.IndexOutput;
 import org.junit.Test;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Arrays;
-import java.util.List;
-
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.oak.api.Type.BINARIES;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.OakDirectory.UNIQUE_KEY_SIZE;
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
-
 public class ChunkedOakDirectoryTest extends OakDirectoryTestBase {
 
     @Test
-    public void writes_CustomBlobSize() throws Exception{
+    public void writes_CustomBlobSize() throws Exception {
         builder.setProperty(FulltextIndexConstants.BLOB_SIZE, 1300);
         Directory dir = createDir(builder, false, "/foo");
         assertWrites(dir, 1300);
     }
 
     @Test
-    public void dirNameInException_Flush() throws Exception{
+    public void dirNameInException_Flush() throws Exception {
         FailOnDemandBlobStore blobStore = new FailOnDemandBlobStore();
         FileStore store = FileStoreBuilder.fileStoreBuilder(tempFolder.getRoot())
-                .withMemoryMapping(false)
-                .withBlobStore(blobStore)
-                .build();
+                                          .withMemoryMapping(false)
+                                          .withBlobStore(blobStore)
+                                          .build();
         SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(store).build();
 
         String indexPath = "/foo/bar";
@@ -99,7 +98,8 @@ public class ChunkedOakDirectoryTest extends OakDirectoryTestBase {
     }
 
     @Override
-    OakDirectoryBuilder getOakDirectoryBuilder(NodeBuilder builder, LuceneIndexDefinition indexDefinition) {
+    OakDirectoryBuilder getOakDirectoryBuilder(NodeBuilder builder,
+        LuceneIndexDefinition indexDefinition) {
         return new OakDirectoryBuilder(builder, indexDefinition, false);
     }
 
@@ -109,8 +109,10 @@ public class ChunkedOakDirectoryTest extends OakDirectoryTestBase {
     }
 
     private static class BlackHoleBlobStoreForSmallBlobs extends MemoryBlobStore {
+
         private String blobId;
         private byte[] data;
+
         @Override
         protected synchronized void storeBlock(byte[] digest, int level, byte[] data) {
             //Eat up all the writes

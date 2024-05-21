@@ -26,78 +26,74 @@ import org.jetbrains.annotations.NotNull;
 public abstract class Collection<T extends Document> {
 
     /**
-     * The 'nodes' collection. It contains all the node data, with one document
-     * per node, and the path as the primary key. Each document possibly
-     * contains multiple revisions.
+     * The 'nodes' collection. It contains all the node data, with one document per node, and the
+     * path as the primary key. Each document possibly contains multiple revisions.
      * <p>
      * Key: the path, value: the node data (possibly multiple revisions)
      * <p>
-     * Old revisions are removed after some time, either by the process that
-     * removed or updated the node, lazily when reading, or in a background
-     * process.
+     * Old revisions are removed after some time, either by the process that removed or updated the
+     * node, lazily when reading, or in a background process.
      */
     public static final Collection<NodeDocument> NODES =
-            new Collection<NodeDocument>("nodes") {
-                @Override
-                @NotNull
-                public NodeDocument newDocument(DocumentStore store) {
-                    return new NodeDocument(store);
-                }
-            };
+        new Collection<NodeDocument>("nodes") {
+            @Override
+            @NotNull
+            public NodeDocument newDocument(DocumentStore store) {
+                return new NodeDocument(store);
+            }
+        };
 
     /**
-     * The 'clusterNodes' collection contains the list of currently running
-     * cluster nodes. The key is the clusterNodeId (0, 1, 2,...).
+     * The 'clusterNodes' collection contains the list of currently running cluster nodes. The key
+     * is the clusterNodeId (0, 1, 2,...).
      */
     public static final Collection<ClusterNodeInfoDocument> CLUSTER_NODES =
-            new Collection<ClusterNodeInfoDocument>("clusterNodes") {
-                @Override
-                @NotNull
-                public ClusterNodeInfoDocument newDocument(DocumentStore store) {
-                    return new ClusterNodeInfoDocument();
-                }
-            };
+        new Collection<ClusterNodeInfoDocument>("clusterNodes") {
+            @Override
+            @NotNull
+            public ClusterNodeInfoDocument newDocument(DocumentStore store) {
+                return new ClusterNodeInfoDocument();
+            }
+        };
 
     /**
      * The 'settings' collection contains setting/state data required for DocumentNodeStore
      */
     public static final Collection<Document> SETTINGS =
-            new Collection<Document>("settings") {
-                @Override
-                @NotNull
-                public Document newDocument(DocumentStore store) {
-                    return new Document();
-                }
-            };
+        new Collection<Document>("settings") {
+            @Override
+            @NotNull
+            public Document newDocument(DocumentStore store) {
+                return new Document();
+            }
+        };
 
     /**
-     * The 'journal' collection contains documents with consolidated
-     * diffs for changes performed by a cluster node between two background
-     * updates.
+     * The 'journal' collection contains documents with consolidated diffs for changes performed by
+     * a cluster node between two background updates.
      */
     public static final Collection<JournalEntry> JOURNAL =
-            new Collection<JournalEntry>("journal") {
-        @NotNull
-        @Override
-        public JournalEntry newDocument(DocumentStore store) {
-            return new JournalEntry(store);
-        }
-    };
+        new Collection<JournalEntry>("journal") {
+            @NotNull
+            @Override
+            public JournalEntry newDocument(DocumentStore store) {
+                return new JournalEntry(store);
+            }
+        };
 
     /**
      * The 'blobs' collection contains data from the blob store. The method
-     * {@link #newDocument(DocumentStore)} always throws an
-     * {@link UnsupportedOperationException} because blobs are not stored as
-     * {@link Document}s.
+     * {@link #newDocument(DocumentStore)} always throws an {@link UnsupportedOperationException}
+     * because blobs are not stored as {@link Document}s.
      */
     public static final Collection<Document> BLOBS =
-            new Collection<Document>("blobs") {
-        @NotNull
-        @Override
-        public Document newDocument(DocumentStore store) {
-            throw new UnsupportedOperationException();
-        }
-    };
+        new Collection<Document>("blobs") {
+            @NotNull
+            @Override
+            public Document newDocument(DocumentStore store) {
+                throw new UnsupportedOperationException();
+            }
+        };
 
 
     private final String name;

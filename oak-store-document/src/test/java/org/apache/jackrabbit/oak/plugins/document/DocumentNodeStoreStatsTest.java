@@ -36,13 +36,14 @@ import static java.util.concurrent.TimeUnit.MICROSECONDS;
 import static org.junit.Assert.assertEquals;
 
 public class DocumentNodeStoreStatsTest {
+
     private ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
     private MetricStatisticsProvider statsProvider =
-            new MetricStatisticsProvider(ManagementFactory.getPlatformMBeanServer(),executor);
+        new MetricStatisticsProvider(ManagementFactory.getPlatformMBeanServer(), executor);
     private DocumentNodeStoreStats stats = new DocumentNodeStoreStats(statsProvider);
 
     @After
-    public void shutDown(){
+    public void shutDown() {
         statsProvider.close();
         new ExecutorCloser(executor).close();
     }

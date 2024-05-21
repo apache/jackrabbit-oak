@@ -25,24 +25,21 @@ import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveEntry;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Instances of this class represent the garbage collection generation related
- * information of a segment. It consists of the segment's generation, its full
- * generation and its compaction flag. The segment's generation records the number
- * of garbage collection cycles a segment went through and is incremented with
- * every garbage collection regardless its type. The segment's full generation
- * records the number of full garbage collection cycles a segment went through.
- * It is only incremented on full garbage collection cycles. The segment's compaction
- * flag is set for those segments that have been created by a compaction operation.
- * It is never set for segments created by normal write operations or defer
- * compactions triggered by such. Segments written by normal repository writes will
- * inherit the generation and full generation of the segment written by the previous
- * compaction process with the compacted flag cleared.
+ * Instances of this class represent the garbage collection generation related information of a
+ * segment. It consists of the segment's generation, its full generation and its compaction flag.
+ * The segment's generation records the number of garbage collection cycles a segment went through
+ * and is incremented with every garbage collection regardless its type. The segment's full
+ * generation records the number of full garbage collection cycles a segment went through. It is
+ * only incremented on full garbage collection cycles. The segment's compaction flag is set for
+ * those segments that have been created by a compaction operation. It is never set for segments
+ * created by normal write operations or defer compactions triggered by such. Segments written by
+ * normal repository writes will inherit the generation and full generation of the segment written
+ * by the previous compaction process with the compacted flag cleared.
  * <p>
- * The information recorded in this way allows to determine the reclamation status
- * of a segment by just looking at the {@code GCGeneration} instances of that segment
- * and of the segment containing the repository head: Let {@code s} be a segment,
- * {@code h} be the segment containing the current repository head and {@code n} be
- * the number of retained generations.
+ * The information recorded in this way allows to determine the reclamation status of a segment by
+ * just looking at the {@code GCGeneration} instances of that segment and of the segment containing
+ * the repository head: Let {@code s} be a segment, {@code h} be the segment containing the current
+ * repository head and {@code n} be the number of retained generations.
  * <ul>
  *     <li>{@code s} is old iff {@code h.generation - s.generation >= n}</li>
  *     <li>{@code s} is in the same compaction tail than h iff
@@ -54,12 +51,14 @@ public final class GCGeneration {
 
     public static final GCGeneration NULL = new GCGeneration(0, 0, false);
 
-    public static GCGeneration newGCGeneration(int generation, int fullGeneration, boolean isCompacted) {
+    public static GCGeneration newGCGeneration(int generation, int fullGeneration,
+        boolean isCompacted) {
         return new GCGeneration(generation, fullGeneration, isCompacted);
     }
 
     public static GCGeneration newGCGeneration(SegmentArchiveEntry indexEntry) {
-        return new GCGeneration(indexEntry.getGeneration(), indexEntry.getFullGeneration(), indexEntry.isCompacted());
+        return new GCGeneration(indexEntry.getGeneration(), indexEntry.getFullGeneration(),
+            indexEntry.isCompacted());
     }
 
     private final int generation;
@@ -87,8 +86,8 @@ public final class GCGeneration {
     }
 
     /**
-     * Create a new instance with the generation and the full generation incremented by one
-     * and the compaction flag set.
+     * Create a new instance with the generation and the full generation incremented by one and the
+     * compaction flag set.
      */
     @NotNull
     public GCGeneration nextFull() {
@@ -96,8 +95,8 @@ public final class GCGeneration {
     }
 
     /**
-     * Create a new instance with the generation incremented by one, the full
-     * generation left unchanged and the compaction flag set.
+     * Create a new instance with the generation incremented by one, the full generation left
+     * unchanged and the compaction flag set.
      */
     @NotNull
     public GCGeneration nextTail() {
@@ -105,8 +104,8 @@ public final class GCGeneration {
     }
 
     /**
-     * Create a new instance with the compaction flag set and the generation and the
-     * full generation left unchanged.
+     * Create a new instance with the compaction flag set and the generation and the full generation
+     * left unchanged.
      */
     @NotNull
     public GCGeneration nextPartial() {
@@ -114,8 +113,8 @@ public final class GCGeneration {
     }
 
     /**
-     * Create a new instance with the compaction flag unset and the generation and the
-     * full generation left unchanged.
+     * Create a new instance with the compaction flag unset and the generation and the full
+     * generation left unchanged.
      */
     @NotNull
     public GCGeneration nonGC() {
@@ -124,8 +123,9 @@ public final class GCGeneration {
 
     /**
      * Compare this generation with {@code gcGeneration}
-     * @param gcGeneration  the generation this generation is compared against.
-     * @return  Number of generations between this generation and {@code gcGeneration}
+     *
+     * @param gcGeneration the generation this generation is compared against.
+     * @return Number of generations between this generation and {@code gcGeneration}
      */
     public int compareWith(@NotNull GCGeneration gcGeneration) {
         return generation - checkNotNull(gcGeneration).generation;
@@ -133,9 +133,10 @@ public final class GCGeneration {
 
     /**
      * Compare this full generation the full generation of {@code gcGeneration}
-     * @param gcGeneration  the generation this generation is compared against.
-     * @return  Number of generations between the full generations of this generation
-     *          and {@code gcGeneration}
+     *
+     * @param gcGeneration the generation this generation is compared against.
+     * @return Number of generations between the full generations of this generation and
+     * {@code gcGeneration}
      */
     public int compareFullGenerationWith(@NotNull GCGeneration gcGeneration) {
         return fullGeneration - checkNotNull(gcGeneration).fullGeneration;
@@ -151,8 +152,8 @@ public final class GCGeneration {
         }
         GCGeneration that = (GCGeneration) other;
         return generation == that.generation
-                && fullGeneration == that.fullGeneration
-                && isCompacted == that.isCompacted;
+            && fullGeneration == that.fullGeneration
+            && isCompacted == that.isCompacted;
     }
 
     @Override
@@ -163,9 +164,9 @@ public final class GCGeneration {
     @Override
     public String toString() {
         return "GCGeneration{" +
-                "generation=" + generation + ", " +
-                "fullGeneration=" + fullGeneration +  ", " +
-                "isCompacted=" + isCompacted + '}';
+            "generation=" + generation + ", " +
+            "fullGeneration=" + fullGeneration + ", " +
+            "isCompacted=" + isCompacted + '}';
     }
 
 }

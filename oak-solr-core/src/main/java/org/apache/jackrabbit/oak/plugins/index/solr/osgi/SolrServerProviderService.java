@@ -43,14 +43,14 @@ import org.slf4j.LoggerFactory;
  */
 @Component(metatype = true, label = "Apache Jackrabbit Oak Solr server provider", immediate = true)
 @References({
-        @Reference(name = "solrServerConfigurationProvider",
-                referenceInterface = SolrServerConfigurationProvider.class,
-                cardinality = ReferenceCardinality.MANDATORY_MULTIPLE,
-                policy = ReferencePolicy.DYNAMIC,
-                bind = "bindSolrServerConfigurationProvider",
-                unbind = "unbindSolrServerConfigurationProvider",
-                updated = "updatedSolrServerConfigurationProvider"
-        )
+    @Reference(name = "solrServerConfigurationProvider",
+        referenceInterface = SolrServerConfigurationProvider.class,
+        cardinality = ReferenceCardinality.MANDATORY_MULTIPLE,
+        policy = ReferencePolicy.DYNAMIC,
+        bind = "bindSolrServerConfigurationProvider",
+        unbind = "unbindSolrServerConfigurationProvider",
+        updated = "updatedSolrServerConfigurationProvider"
+    )
 })
 @Service(SolrServerProvider.class)
 public class SolrServerProviderService implements SolrServerProvider {
@@ -58,16 +58,16 @@ public class SolrServerProviderService implements SolrServerProvider {
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     @Property(options = {
-            @PropertyOption(name = "none",
-                    value = "None"
-            ),
-            @PropertyOption(name = "embedded",
-                    value = "Embedded Solr"
-            ),
-            @PropertyOption(name = "remote",
-                    value = "Remote Solr"
-            )},
-            value = "none"
+        @PropertyOption(name = "none",
+            value = "None"
+        ),
+        @PropertyOption(name = "embedded",
+            value = "Embedded Solr"
+        ),
+        @PropertyOption(name = "remote",
+            value = "Remote Solr"
+        )},
+        value = "none"
     )
     private static final String SERVER_TYPE = "server.type";
 
@@ -94,14 +94,17 @@ public class SolrServerProviderService implements SolrServerProvider {
             try {
                 cachedSolrServer.close();
             } catch (Exception e) {
-                log.error("could not correctly shutdown Solr {} server {}", serverType, cachedSolrServer);
+                log.error("could not correctly shutdown Solr {} server {}", serverType,
+                    cachedSolrServer);
             } finally {
                 cachedSolrServer = null;
             }
         }
     }
 
-    protected void bindSolrServerConfigurationProvider(final SolrServerConfigurationProvider solrServerConfigurationProvider, Map<String, Object> properties) {
+    protected void bindSolrServerConfigurationProvider(
+        final SolrServerConfigurationProvider solrServerConfigurationProvider,
+        Map<String, Object> properties) {
         synchronized (solrServerConfigurationProviders) {
             String name = String.valueOf(properties.get("name"));
             solrServerConfigurationProviders.put(name, solrServerConfigurationProvider);
@@ -113,7 +116,9 @@ public class SolrServerProviderService implements SolrServerProvider {
         }
     }
 
-    protected void unbindSolrServerConfigurationProvider(final SolrServerConfigurationProvider solrServerConfigurationProvider, Map<String, Object> properties) {
+    protected void unbindSolrServerConfigurationProvider(
+        final SolrServerConfigurationProvider solrServerConfigurationProvider,
+        Map<String, Object> properties) {
         synchronized (solrServerConfigurationProviders) {
             String name = String.valueOf(properties.get("name"));
             solrServerConfigurationProviders.remove(name);
@@ -125,7 +130,9 @@ public class SolrServerProviderService implements SolrServerProvider {
         }
     }
 
-    protected void updatedSolrServerConfigurationProvider(final SolrServerConfigurationProvider solrServerConfigurationProvider, Map<String, Object> properties) {
+    protected void updatedSolrServerConfigurationProvider(
+        final SolrServerConfigurationProvider solrServerConfigurationProvider,
+        Map<String, Object> properties) {
         synchronized (solrServerConfigurationProviders) {
             String name = String.valueOf(properties.get("name"));
             solrServerConfigurationProviders.put(name, solrServerConfigurationProvider);
@@ -163,7 +170,8 @@ public class SolrServerProviderService implements SolrServerProvider {
     private SolrClient getServer() {
         SolrClient solrServer = null;
         if (serverType != null && !"none".equals(serverType)) {
-            SolrServerConfigurationProvider solrServerConfigurationProvider = solrServerConfigurationProviders.get(serverType);
+            SolrServerConfigurationProvider solrServerConfigurationProvider = solrServerConfigurationProviders.get(
+                serverType);
             if (solrServerConfigurationProvider != null) {
                 try {
                     solrServer = new OakSolrServer(solrServerConfigurationProvider);

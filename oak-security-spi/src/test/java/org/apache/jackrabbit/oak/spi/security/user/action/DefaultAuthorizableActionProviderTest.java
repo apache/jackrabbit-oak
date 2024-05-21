@@ -16,20 +16,19 @@
  */
 package org.apache.jackrabbit.oak.spi.security.user.action;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.when;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.junit.Test;
 import org.mockito.Mockito;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.when;
 
 public class DefaultAuthorizableActionProviderTest {
 
@@ -45,13 +44,14 @@ public class DefaultAuthorizableActionProviderTest {
 
     @Test
     public void testNoConfig() {
-        AuthorizableActionProvider[] providers = new AuthorizableActionProvider[] {
-                new DefaultAuthorizableActionProvider(),
-                new DefaultAuthorizableActionProvider(null)
+        AuthorizableActionProvider[] providers = new AuthorizableActionProvider[]{
+            new DefaultAuthorizableActionProvider(),
+            new DefaultAuthorizableActionProvider(null)
         };
 
         for (AuthorizableActionProvider actionProvider : providers) {
-            List<? extends AuthorizableAction> actions = actionProvider.getAuthorizableActions(getSecurityProvider());
+            List<? extends AuthorizableAction> actions = actionProvider.getAuthorizableActions(
+                getSecurityProvider());
             assertNotNull(actions);
             assertEquals(1, actions.size());
             assertTrue(actions.get(0) instanceof AccessControlAction);
@@ -60,9 +60,11 @@ public class DefaultAuthorizableActionProviderTest {
 
     @Test
     public void testEmptyConfig() {
-        AuthorizableActionProvider actionProvider = new DefaultAuthorizableActionProvider(ConfigurationParameters.EMPTY);
+        AuthorizableActionProvider actionProvider = new DefaultAuthorizableActionProvider(
+            ConfigurationParameters.EMPTY);
 
-        List<? extends AuthorizableAction> actions = actionProvider.getAuthorizableActions(getSecurityProvider());
+        List<? extends AuthorizableAction> actions = actionProvider.getAuthorizableActions(
+            getSecurityProvider());
         assertEquals(1, actions.size());
         assertTrue(actions.get(0) instanceof AccessControlAction);
     }
@@ -72,8 +74,10 @@ public class DefaultAuthorizableActionProviderTest {
         Map<String, String[]> m = new HashMap<>();
         m.put(DefaultAuthorizableActionProvider.ENABLED_ACTIONS, null);
 
-        AuthorizableActionProvider actionProvider = new DefaultAuthorizableActionProvider(ConfigurationParameters.of(m));
-        List<? extends AuthorizableAction> actions = actionProvider.getAuthorizableActions(getSecurityProvider());
+        AuthorizableActionProvider actionProvider = new DefaultAuthorizableActionProvider(
+            ConfigurationParameters.of(m));
+        List<? extends AuthorizableAction> actions = actionProvider.getAuthorizableActions(
+            getSecurityProvider());
         assertEquals(1, actions.size());
         assertTrue(actions.get(0) instanceof AccessControlAction);
     }
@@ -81,36 +85,42 @@ public class DefaultAuthorizableActionProviderTest {
     @Test
     public void testEmtpyActionConfig() {
         AuthorizableActionProvider actionProvider = new DefaultAuthorizableActionProvider(
-                ConfigurationParameters.of(DefaultAuthorizableActionProvider.ENABLED_ACTIONS, new String[0]));
-        List<? extends AuthorizableAction> actions = actionProvider.getAuthorizableActions(getSecurityProvider());
+            ConfigurationParameters.of(DefaultAuthorizableActionProvider.ENABLED_ACTIONS,
+                new String[0]));
+        List<? extends AuthorizableAction> actions = actionProvider.getAuthorizableActions(
+            getSecurityProvider());
         assertNotNull(actions);
         assertEquals(0, actions.size());
     }
 
     @Test
     public void testNonExistingClassName() {
-        String[] classNames = new String[] {
-                "org.apache.jackrabbit.oak.spi.security.user.action.NonExistingAction",
-                ""
+        String[] classNames = new String[]{
+            "org.apache.jackrabbit.oak.spi.security.user.action.NonExistingAction",
+            ""
         };
         AuthorizableActionProvider actionProvider = new DefaultAuthorizableActionProvider(
-                ConfigurationParameters.of(DefaultAuthorizableActionProvider.ENABLED_ACTIONS, classNames));
+            ConfigurationParameters.of(DefaultAuthorizableActionProvider.ENABLED_ACTIONS,
+                classNames));
 
-        List<? extends AuthorizableAction> actions = actionProvider.getAuthorizableActions(getSecurityProvider());
+        List<? extends AuthorizableAction> actions = actionProvider.getAuthorizableActions(
+            getSecurityProvider());
         assertNotNull(actions);
         assertEquals(0, actions.size());
     }
 
     @Test
     public void testValidConfig() {
-        String[] classNames = new String[] {
-                PasswordChangeAction.class.getName(),
-                PasswordValidationAction.class.getName()
+        String[] classNames = new String[]{
+            PasswordChangeAction.class.getName(),
+            PasswordValidationAction.class.getName()
         };
         AuthorizableActionProvider actionProvider = new DefaultAuthorizableActionProvider(
-                ConfigurationParameters.of(DefaultAuthorizableActionProvider.ENABLED_ACTIONS, classNames));
+            ConfigurationParameters.of(DefaultAuthorizableActionProvider.ENABLED_ACTIONS,
+                classNames));
 
-        List<? extends AuthorizableAction> actions = actionProvider.getAuthorizableActions(getSecurityProvider());
+        List<? extends AuthorizableAction> actions = actionProvider.getAuthorizableActions(
+            getSecurityProvider());
         assertNotNull(actions);
         assertEquals(2, actions.size());
         assertTrue(actions.get(0) instanceof PasswordChangeAction);

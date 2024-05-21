@@ -22,6 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class FacetTestHelper {
+
     private static final Logger LOG = LoggerFactory.getLogger(FacetTestHelper.class);
 
     public static void sleep(int timeInMillis) {

@@ -22,7 +22,6 @@ import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSetWithExpe
 
 import java.util.Set;
 import java.util.UUID;
-
 import org.apache.jackrabbit.oak.commons.Buffer;
 
 class IndexV2 implements Index {
@@ -62,9 +61,9 @@ class IndexV2 implements Index {
 
         while (lowIndex <= highIndex) {
             int guessIndex = lowIndex + Math.round(
-                    (highIndex - lowIndex)
-                            * (targetValue - lowValue)
-                            / (highValue - lowValue));
+                (highIndex - lowIndex)
+                    * (targetValue - lowValue)
+                    / (highValue - lowValue));
             int position = entries.position() + guessIndex * IndexEntryV2.SIZE;
             long m = entries.getLong(position);
             if (msb < m) {

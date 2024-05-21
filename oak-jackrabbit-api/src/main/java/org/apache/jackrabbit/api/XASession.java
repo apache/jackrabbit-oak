@@ -18,31 +18,28 @@ package org.apache.jackrabbit.api;
 
 import javax.jcr.Session;
 import javax.transaction.xa.XAResource;
-
 import org.osgi.annotation.versioning.ProviderType;
 
 /**
- * The XASession interface extends the capability of {@link Session} by adding
- * access to a JCR repository's support for the Java Transaction API (JTA).
+ * The XASession interface extends the capability of {@link Session} by adding access to a JCR
+ * repository's support for the Java Transaction API (JTA).
  * <p>
- * This support takes the form of a {@link javax.transaction.xa.XAResource}
- * object. The functionality of this object closely resembles that defined by
- * the standard X/Open XA Resource interface.
+ * This support takes the form of a {@link javax.transaction.xa.XAResource} object. The
+ * functionality of this object closely resembles that defined by the standard X/Open XA Resource
+ * interface.
  * <p>
- * This interface is used by the transaction manager; an application does not
- * use it directly.
+ * This interface is used by the transaction manager; an application does not use it directly.
  *
  * @since 1.4
  * @deprecated An XA-enabled session should directly implement the
- *             {@link javax.transaction.xa.XAResource} interface
+ * {@link javax.transaction.xa.XAResource} interface
  */
 @ProviderType
 public interface XASession extends Session {
 
     /**
-     * Retrieves an {@link XAResource} object that the transaction manager
-     * will use to manage this XASession object's participation in
-     * a distributed transaction.
+     * Retrieves an {@link XAResource} object that the transaction manager will use to manage this
+     * XASession object's participation in a distributed transaction.
      *
      * @return the {@link XAResource} object.
      */

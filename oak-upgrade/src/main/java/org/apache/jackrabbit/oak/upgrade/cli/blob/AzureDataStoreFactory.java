@@ -28,12 +28,13 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 import javax.jcr.RepositoryException;
-
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.guava.common.collect.Maps;
+import org.apache.jackrabbit.guava.common.io.Closer;
+import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureDataStore;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
@@ -41,13 +42,10 @@ import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
-import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.guava.common.io.Closer;
-import org.apache.jackrabbit.guava.common.io.Files;
-
 public class AzureDataStoreFactory implements BlobStoreFactory {
 
-    private static final Pattern STRIP_VALUE_PATTERN = Pattern.compile("^[TILFDXSCB]?\"(.*)\"\\W*$");
+    private static final Pattern STRIP_VALUE_PATTERN = Pattern.compile(
+        "^[TILFDXSCB]?\"(.*)\"\\W*$");
 
     private final Properties props;
 
@@ -57,7 +55,8 @@ public class AzureDataStoreFactory implements BlobStoreFactory {
 
     private final boolean ignoreMissingBlobs;
 
-    public AzureDataStoreFactory(String configuration, String directory, boolean ignoreMissingBlobs) throws IOException {
+    public AzureDataStoreFactory(String configuration, String directory, boolean ignoreMissingBlobs)
+        throws IOException {
         this.props = new Properties();
         FileReader reader = new FileReader(new File(configuration));
         try {
@@ -65,7 +64,7 @@ public class AzureDataStoreFactory implements BlobStoreFactory {
         } finally {
             IOUtils.closeQuietly(reader);
         }
-        
+
         // Default directory
 
         this.directory = directory;
@@ -114,10 +113,10 @@ public class AzureDataStoreFactory implements BlobStoreFactory {
         Map<String, String> map = Maps.newHashMap();
 
         // Default path value as-per OAK-6632
-        if(StringUtils.isEmpty(directory) && !map.containsKey("path")) {
-        	directory = System.getProperty("java.io.tmpdir");
+        if (StringUtils.isEmpty(directory) && !map.containsKey("path")) {
+            directory = System.getProperty("java.io.tmpdir");
         }
-          
+
         for (Object key : new HashSet<>(props.keySet())) {
             String strippedValue = stripValue(props.getProperty((String) key));
 

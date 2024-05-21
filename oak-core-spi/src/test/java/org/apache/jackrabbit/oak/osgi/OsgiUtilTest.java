@@ -17,16 +17,6 @@
 
 package org.apache.jackrabbit.oak.osgi;
 
-import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
-import org.junit.Test;
-import org.osgi.framework.BundleContext;
-import org.osgi.framework.FrameworkUtil;
-import org.osgi.framework.InvalidSyntaxException;
-import org.osgi.service.component.ComponentContext;
-
-import java.util.Dictionary;
-import java.util.Map;
-
 import static org.apache.jackrabbit.guava.common.collect.Maps.newLinkedHashMap;
 import static org.apache.jackrabbit.oak.osgi.OsgiUtil.appendEscapedLdapValue;
 import static org.apache.jackrabbit.oak.osgi.OsgiUtil.appendLdapFilterAttribute;
@@ -38,6 +28,14 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+
+import java.util.Dictionary;
+import java.util.Map;
+import org.junit.Test;
+import org.osgi.framework.BundleContext;
+import org.osgi.framework.FrameworkUtil;
+import org.osgi.framework.InvalidSyntaxException;
+import org.osgi.service.component.ComponentContext;
 
 public class OsgiUtilTest {
 
@@ -208,15 +206,18 @@ public class OsgiUtilTest {
         doReturn(dictionary).when(componentContext).getProperties();
         doReturn(bundleContext).when(componentContext).getBundleContext();
 
-        assertEquals("cvalue", lookupConfigurationThenFramework(componentContext, "cname", "fname"));
-        assertEquals("fvalue", lookupFrameworkThenConfiguration(componentContext, "cname", "fname"));
+        assertEquals("cvalue",
+            lookupConfigurationThenFramework(componentContext, "cname", "fname"));
+        assertEquals("fvalue",
+            lookupFrameworkThenConfiguration(componentContext, "cname", "fname"));
     }
 
     @Test
     public void filterBuilding() throws InvalidSyntaxException {
         StringBuilder b = new StringBuilder();
 
-        assertEquals("foo\\\\bar\\(foo\\)bar\\*foo", appendEscapedLdapValue(b, "foo\\bar(foo)bar*foo").toString());
+        assertEquals("foo\\\\bar\\(foo\\)bar\\*foo",
+            appendEscapedLdapValue(b, "foo\\bar(foo)bar*foo").toString());
         b.setLength(0);
 
         assertEquals("(foo=bar)", appendLdapFilterAttribute(b, "foo", "bar").toString());
@@ -232,7 +233,9 @@ public class OsgiUtilTest {
         m.put("foo", "bar");
         m.put("empty", null);
         m.put("escaped", "*xyz)");
-        assertEquals(FrameworkUtil.createFilter("(&(objectClass=java.lang.String)(foo=bar)(!(empty=*))(escaped=\\*xyz\\)))"), getFilter(String.class, m));
+        assertEquals(FrameworkUtil.createFilter(
+                "(&(objectClass=java.lang.String)(foo=bar)(!(empty=*))(escaped=\\*xyz\\)))"),
+            getFilter(String.class, m));
         b.setLength(0);
     }
 }

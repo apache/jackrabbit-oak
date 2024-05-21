@@ -18,9 +18,10 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
 /**
  * Marker interface identifying classes that map a given
- * {@link org.apache.jackrabbit.oak.spi.security.authentication.external.SyncHandler SyncHandler}
- * to an {@link org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProvider ExternalIdentityProvider}
- * where both are identified by their name.
+ * {@link org.apache.jackrabbit.oak.spi.security.authentication.external.SyncHandler SyncHandler} to
+ * an
+ * {@link org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProvider
+ * ExternalIdentityProvider} where both are identified by their name.
  *
  * @see org.apache.jackrabbit.oak.spi.security.authentication.external.SyncManager#getSyncHandler(String)
  * @see org.apache.jackrabbit.oak.spi.security.authentication.external.SyncHandler#getName()

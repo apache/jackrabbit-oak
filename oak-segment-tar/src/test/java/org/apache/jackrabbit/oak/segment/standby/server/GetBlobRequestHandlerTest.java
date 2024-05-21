@@ -23,10 +23,9 @@ import static org.junit.Assert.assertNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import io.netty.channel.embedded.EmbeddedChannel;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-
-import io.netty.channel.embedded.EmbeddedChannel;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.segment.standby.codec.GetBlobRequest;
 import org.apache.jackrabbit.oak.segment.standby.codec.GetBlobResponse;
@@ -36,7 +35,7 @@ public class GetBlobRequestHandlerTest {
 
     @Test
     public void successfulReadsShouldGenerateResponses() throws Exception {
-        byte[] blobData = new byte[] {99, 114, 97, 112};
+        byte[] blobData = new byte[]{99, 114, 97, 112};
 
         StandbyBlobReader reader = mock(StandbyBlobReader.class);
         when(reader.readBlob("blobId")).thenReturn(new ByteArrayInputStream(blobData));

@@ -29,9 +29,9 @@ public class RDBExportTest {
         String[] result;
 
         result = RDBExport.parseDel("1,2,3").toArray(empty);
-        assertArrayEquals(new String[] { "1", "2", "3" }, result);
+        assertArrayEquals(new String[]{"1", "2", "3"}, result);
 
         result = RDBExport.parseDel("\"a\",\"b,c\",\"d\"\"e\"").toArray(empty);
-        assertArrayEquals(new String[] { "a", "b,c", "d\"e" }, result);
+        assertArrayEquals(new String[]{"a", "b,c", "d\"e"}, result);
     }
 }

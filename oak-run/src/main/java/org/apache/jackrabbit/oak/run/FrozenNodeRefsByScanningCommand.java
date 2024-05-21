@@ -24,7 +24,6 @@ import java.util.Collections;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
-
 import javax.jcr.ItemNotFoundException;
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
@@ -39,7 +38,11 @@ import javax.jcr.Value;
 import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
 import javax.jcr.query.QueryResult;
-
+import joptsimple.OptionParser;
+import joptsimple.OptionSet;
+import joptsimple.OptionSpec;
+import org.apache.jackrabbit.guava.common.io.Closer;
+import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexTracker;
@@ -56,23 +59,16 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
-import org.apache.jackrabbit.guava.common.io.Closer;
-import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
-
-import joptsimple.OptionParser;
-import joptsimple.OptionSet;
-import joptsimple.OptionSpec;
-
 /**
- * Scans and lists all references to nt:frozenNode and returns an exit code of 1 if any are found (0 otherwise).
+ * Scans and lists all references to nt:frozenNode and returns an exit code of 1 if any are found (0
+ * otherwise).
  * <p>
- * This variant does a *very expensive repository scan* for all properties formatted as uuid
- * ( LIKE \"________-____-____-____-____________\" )
- * and checking if any reference points to an nt:frozenNode (under /jcr:system/jcr:versionStorage
- * at depth &gt; 7).
+ * This variant does a *very expensive repository scan* for all properties formatted as uuid ( LIKE
+ * \"________-____-____-____-____________\" ) and checking if any reference points to an
+ * nt:frozenNode (under /jcr:system/jcr:versionStorage at depth &gt; 7).
  * <p>
- * Note that any property with uuid that cannot be resolved will *not be reported*, as that
- * is a legitimate use case of uuid property use. Only uuids that resolve will be analysed.
+ * Note that any property with uuid that cannot be resolved will *not be reported*, as that is a
+ * legitimate use case of uuid property use. Only uuids that resolve will be analysed.
  * <p>
  * Example:
  * <pre>
@@ -104,8 +100,10 @@ public class FrozenNodeRefsByScanningCommand implements Command {
         opts.setSummary(summary);
         opts.setConnectionString(CommonOptions.DEFAULT_CONNECTION_STRING);
 
-        OptionSpec<String> userOption = parser.accepts("user", "User name").withOptionalArg().defaultsTo("admin");
-        OptionSpec<String> passwordOption = parser.accepts("password", "Password").withOptionalArg().defaultsTo("admin");
+        OptionSpec<String> userOption = parser.accepts("user", "User name").withOptionalArg()
+                                              .defaultsTo("admin");
+        OptionSpec<String> passwordOption = parser.accepts("password", "Password").withOptionalArg()
+                                                  .defaultsTo("admin");
 
         OptionSet options = opts.parseAndConfigure(parser, args);
 
@@ -116,20 +114,22 @@ public class FrozenNodeRefsByScanningCommand implements Command {
 
         int count = uuidscan(userOption, passwordOption, options, nodeStoreFixture);
         if (count > 0) {
-            System.err.println("FAILURE: " + count + " Reference(s) (in any uuid formatted property value) to nt:frozenNode found.");
+            System.err.println("FAILURE: " + count
+                + " Reference(s) (in any uuid formatted property value) to nt:frozenNode found.");
             System.exit(1);
         } else {
-            System.out.println("SUCCESS: No references (in any uuid formatted property value) to nt:frozenNode found.");
+            System.out.println(
+                "SUCCESS: No references (in any uuid formatted property value) to nt:frozenNode found.");
         }
     }
 
     /**
-     * Scans the repository (via an expensive traversing query, ouch, hence it needs username/password)
-     * and returns the number of references found. For this, any value formatted like a UUID is considered,
-     * then verified if it points to an nt:frozenNode.
+     * Scans the repository (via an expensive traversing query, ouch, hence it needs
+     * username/password) and returns the number of references found. For this, any value formatted
+     * like a UUID is considered, then verified if it points to an nt:frozenNode.
      */
     private int uuidscan(OptionSpec<String> userOption, OptionSpec<String> passwordOption,
-            OptionSet options, NodeStoreFixture nodeStoreFixture) throws IOException {
+        OptionSet options, NodeStoreFixture nodeStoreFixture) throws IOException {
         NodeStore nodeStore = nodeStoreFixture.getStore();
         String user = userOption.value(options);
         String password = passwordOption.value(options);
@@ -149,7 +149,9 @@ public class FrozenNodeRefsByScanningCommand implements Command {
 
             // query for only getting 'Reference' and 'WeakReference' would be :
             // SELECT * FROM [nt:base] AS p WHERE PROPERTY(*, 'Reference') IS NOT NULL OR PROPERTY(*, 'WeakReference') IS NOT NULL
-            Query q = qm.createQuery("SELECT * FROM [nt:base] AS p WHERE PROPERTY(*, '*') LIKE \"________-____-____-____-____________\"", "JCR-SQL2");
+            Query q = qm.createQuery(
+                "SELECT * FROM [nt:base] AS p WHERE PROPERTY(*, '*') LIKE \"________-____-____-____-____________\"",
+                "JCR-SQL2");
             QueryResult qr = q.execute();
             NodeIterator it = qr.getNodes();
 
@@ -194,7 +196,8 @@ public class FrozenNodeRefsByScanningCommand implements Command {
         }
     }
 
-    private boolean verify(Session session, Node n, Property p, String propValue) throws RepositoryException {
+    private boolean verify(Session session, Node n, Property p, String propValue)
+        throws RepositoryException {
         try {
             Node node = session.getNodeByIdentifier(propValue);
             String path = node.getPath();
@@ -214,9 +217,11 @@ public class FrozenNodeRefsByScanningCommand implements Command {
             String uuid = propValue;
             String referrerPath = n.getPath();
             String referrerProperty = p.getName();
-            FrozenNodeRef ref = new FrozenNodeRef(referrerPath, referrerProperty, PropertyType.nameFromValue(p.getType()), uuid, path);
+            FrozenNodeRef ref = new FrozenNodeRef(referrerPath, referrerProperty,
+                PropertyType.nameFromValue(p.getType()), uuid, path);
 
-            System.out.println(FrozenNodeRef.REFERENCE_TO_NT_FROZEN_NODE_FOUND_PREFIX + ref.toInfoString());
+            System.out.println(
+                FrozenNodeRef.REFERENCE_TO_NT_FROZEN_NODE_FOUND_PREFIX + ref.toInfoString());
 
             return true;
         } catch (ItemNotFoundException notFound) {
@@ -226,15 +231,18 @@ public class FrozenNodeRefsByScanningCommand implements Command {
     }
 
     // from JsonIndexCommand, slightly modified to be able to set the workspace name
-    public static Session openSession(NodeStore nodeStore, String workspaceName, String user, String password) throws RepositoryException {
+    public static Session openSession(NodeStore nodeStore, String workspaceName, String user,
+        String password) throws RepositoryException {
         if (nodeStore == null) {
             return null;
         }
         StatisticsProvider statisticsProvider = StatisticsProvider.NOOP;
         Oak oak = new Oak(nodeStore).with(ManagementFactory.getPlatformMBeanServer());
-        oak.getWhiteboard().register(StatisticsProvider.class, statisticsProvider, Collections.emptyMap());
+        oak.getWhiteboard()
+           .register(StatisticsProvider.class, statisticsProvider, Collections.emptyMap());
         LuceneIndexProvider provider = /*JsonIndexCommand.*/createLuceneIndexProvider();
-        oak.with((QueryIndexProvider) provider).with((Observer) provider).with(/*JsonIndexCommand.*/createLuceneIndexEditorProvider());
+        oak.with((QueryIndexProvider) provider).with((Observer) provider)
+           .with(/*JsonIndexCommand.*/createLuceneIndexEditorProvider());
         Jcr jcr = new Jcr(oak);
         jcr.with(workspaceName);
         Repository repository = jcr.createRepository();
@@ -245,12 +253,14 @@ public class FrozenNodeRefsByScanningCommand implements Command {
     private static LuceneIndexEditorProvider createLuceneIndexEditorProvider() {
         LuceneIndexEditorProvider ep = new LuceneIndexEditorProvider();
         ScheduledExecutorService executorService = MoreExecutors
-                .getExitingScheduledExecutorService((ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(5));
+            .getExitingScheduledExecutorService(
+                (ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(5));
         StatisticsProvider statsProvider = StatisticsProvider.NOOP;
         int queueSize = Integer.getInteger("queueSize", 1000);
         long queueTimeout = Long.getLong("queueTimeoutMillis", 100);
         IndexTracker tracker = new IndexTracker();
-        DocumentQueue queue = new DocumentQueue(queueSize, queueTimeout, tracker, executorService, statsProvider);
+        DocumentQueue queue = new DocumentQueue(queueSize, queueTimeout, tracker, executorService,
+            statsProvider);
         ep.setIndexingQueue(queue);
         return ep;
     }

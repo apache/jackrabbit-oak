@@ -16,15 +16,16 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.util;
 
+import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition.TYPE_ELASTICSEARCH;
+
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-
-import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition.TYPE_ELASTICSEARCH;
 
 /**
  * Utility class to create Elasticsearch Index Definitions along with the relevant node structure.
  */
 public class ElasticIndexDefinitionBuilder extends IndexDefinitionBuilder {
+
     @Override
     protected String getIndexType() {
         return TYPE_ELASTICSEARCH;

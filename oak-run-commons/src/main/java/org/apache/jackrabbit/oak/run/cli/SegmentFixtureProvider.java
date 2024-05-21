@@ -19,9 +19,12 @@
 
 package org.apache.jackrabbit.oak.run.cli;
 
+import static java.util.Collections.emptyMap;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.getService;
+
 import java.io.File;
 import java.io.IOException;
-
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
@@ -31,20 +34,18 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static java.util.Collections.emptyMap;
-import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.getService;
-
 @SuppressWarnings("deprecation")
 class SegmentFixtureProvider {
 
-    static NodeStore create(Options options, BlobStore blobStore, Whiteboard wb, Closer closer, boolean readOnly)
-            throws IOException, InvalidFileStoreVersionException {
-        StatisticsProvider statisticsProvider = checkNotNull(getService(wb, StatisticsProvider.class));
+    static NodeStore create(Options options, BlobStore blobStore, Whiteboard wb, Closer closer,
+        boolean readOnly)
+        throws IOException, InvalidFileStoreVersionException {
+        StatisticsProvider statisticsProvider = checkNotNull(
+            getService(wb, StatisticsProvider.class));
 
         String path = options.getOptionBean(CommonOptions.class).getStoreArg();
         FileStore.Builder builder = FileStore.builder(new File(path))
-                .withMaxFileSize(256).withDefaultMemoryMapping();
+                                             .withMaxFileSize(256).withDefaultMemoryMapping();
 
         FileStoreBuilderCustomizer customizer = getService(wb, FileStoreBuilderCustomizer.class);
         if (customizer != null) {
@@ -58,15 +59,15 @@ class SegmentFixtureProvider {
         NodeStore nodeStore;
         if (readOnly) {
             FileStore.ReadOnlyStore fileStore = builder
-                    .withStatisticsProvider(statisticsProvider)
-                    .buildReadOnly();
+                .withStatisticsProvider(statisticsProvider)
+                .buildReadOnly();
             closer.register(fileStore);
             nodeStore = SegmentNodeStore.builder(fileStore).build();
             wb.register(FileStore.ReadOnlyStore.class, fileStore, emptyMap());
         } else {
             FileStore fileStore = builder
-                    .withStatisticsProvider(statisticsProvider)
-                    .build();
+                .withStatisticsProvider(statisticsProvider)
+                .build();
             closer.register(fileStore);
             nodeStore = SegmentNodeStore.builder(fileStore).build();
             wb.register(FileStore.class, fileStore, emptyMap());

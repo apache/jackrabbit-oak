@@ -25,7 +25,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -39,7 +38,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 class SegmentTarCheckpoints extends Checkpoints {
 
-    private static FileStore newFileStore(File path) throws IOException, InvalidFileStoreVersionException {
+    private static FileStore newFileStore(File path)
+        throws IOException, InvalidFileStoreVersionException {
         return fileStoreBuilder(path).withStrictVersionCheck(true).build();
     }
 
@@ -64,7 +64,7 @@ class SegmentTarCheckpoints extends Checkpoints {
         for (ChildNodeEntry cne : ns.getChildNodeEntries()) {
             NodeState cneNs = cne.getNodeState();
             list.add(new CP(cne.getName(),
-                    cneNs.getLong("created"), cneNs.getLong("timestamp")));
+                cneNs.getLong("created"), cneNs.getLong("timestamp")));
         }
         return list;
     }
@@ -77,7 +77,8 @@ class SegmentTarCheckpoints extends Checkpoints {
         NodeBuilder cps = builder.getChildNode("checkpoints");
         long cnt = cps.getChildNodeCount(Integer.MAX_VALUE);
         builder.setChildNode("checkpoints");
-        if (store.getRevisions().setHead(head.getRecordId(), asSegmentNodeState(builder).getRecordId())) {
+        if (store.getRevisions()
+                 .setHead(head.getRecordId(), asSegmentNodeState(builder).getRecordId())) {
             return cnt;
         } else {
             return -1;
@@ -101,7 +102,8 @@ class SegmentTarCheckpoints extends Checkpoints {
             cnt++;
         }
 
-        if (store.getRevisions().setHead(head.getRecordId(), asSegmentNodeState(builder).getRecordId())) {
+        if (store.getRevisions()
+                 .setHead(head.getRecordId(), asSegmentNodeState(builder).getRecordId())) {
             return cnt;
         } else {
             return -1;
@@ -114,10 +116,11 @@ class SegmentTarCheckpoints extends Checkpoints {
         NodeBuilder builder = head.builder();
 
         NodeBuilder cpn = builder.getChildNode("checkpoints")
-                .getChildNode(cp);
+                                 .getChildNode(cp);
         if (cpn.exists()) {
             cpn.remove();
-            if (store.getRevisions().setHead(head.getRecordId(), asSegmentNodeState(builder).getRecordId())) {
+            if (store.getRevisions()
+                     .setHead(head.getRecordId(), asSegmentNodeState(builder).getRecordId())) {
                 return 1;
             } else {
                 return -1;
@@ -130,7 +133,8 @@ class SegmentTarCheckpoints extends Checkpoints {
     @Override
     public Map<String, String> getInfo(String cp) {
         SegmentNodeState head = store.getHead();
-        NodeState props = head.getChildNode("checkpoints").getChildNode(cp).getChildNode("properties");
+        NodeState props = head.getChildNode("checkpoints").getChildNode(cp)
+                              .getChildNode("properties");
         if (props.exists()) {
             Map<String, String> info = new HashMap<>();
             for (PropertyState p : props.getProperties()) {
@@ -147,14 +151,16 @@ class SegmentTarCheckpoints extends Checkpoints {
         SegmentNodeState head = store.getHead();
         NodeBuilder builder = head.builder();
 
-        NodeBuilder props = builder.getChildNode("checkpoints").getChildNode(cp).getChildNode("properties");
+        NodeBuilder props = builder.getChildNode("checkpoints").getChildNode(cp)
+                                   .getChildNode("properties");
         if (props.exists()) {
             if (value == null) {
                 props.removeProperty(name);
             } else {
                 props.setProperty(name, value, Type.STRING);
             }
-            if (store.getRevisions().setHead(head.getRecordId(), asSegmentNodeState(builder).getRecordId())) {
+            if (store.getRevisions()
+                     .setHead(head.getRecordId(), asSegmentNodeState(builder).getRecordId())) {
                 return 1;
             } else {
                 return -1;

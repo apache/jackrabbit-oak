@@ -16,17 +16,16 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene.util.fv;
 
+import static org.junit.Assert.assertEquals;
+
 import java.io.StringReader;
 import java.util.LinkedList;
 import java.util.List;
-
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.core.WhitespaceTokenizer;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.util.Version;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
 
 /**
  * Tests for {@link FeaturePositionTokenFilter}
@@ -35,7 +34,8 @@ public class FeaturePositionTokenFilterTest {
 
     @Test
     public void testFiltering() throws Exception {
-        TokenStream stream = new WhitespaceTokenizer(Version.LUCENE_47, new StringReader("0.10 0.20 0.30 0.40"));
+        TokenStream stream = new WhitespaceTokenizer(Version.LUCENE_47,
+            new StringReader("0.10 0.20 0.30 0.40"));
         FeaturePositionTokenFilter filter = new FeaturePositionTokenFilter(stream);
         filter.reset();
         List<String> expectedTokens = new LinkedList<>();
@@ -45,10 +45,10 @@ public class FeaturePositionTokenFilterTest {
         expectedTokens.add("4_0.40");
         int i = 0;
         while (filter.incrementToken()) {
-          CharTermAttribute charTermAttribute = filter.getAttribute(CharTermAttribute.class);
-          String token = new String(charTermAttribute.buffer(), 0, charTermAttribute.length());
-          assertEquals(expectedTokens.get(i), token);
-          i++;
+            CharTermAttribute charTermAttribute = filter.getAttribute(CharTermAttribute.class);
+            String token = new String(charTermAttribute.buffer(), 0, charTermAttribute.length());
+            assertEquals(expectedTokens.get(i), token);
+            i++;
         }
         filter.close();
     }

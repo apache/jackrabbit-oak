@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.util.Iterator;
 
 public class CloseableIterator<T> implements Iterator<T>, Closeable {
+
     private final Iterator<T> iterator;
     private final Closeable closeable;
 

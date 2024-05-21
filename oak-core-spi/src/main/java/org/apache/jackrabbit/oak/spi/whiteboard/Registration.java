@@ -17,8 +17,7 @@
 package org.apache.jackrabbit.oak.spi.whiteboard;
 
 /**
- * Whiteboard service registration. Used to unregister a service when it
- * is no longer available.
+ * Whiteboard service registration. Used to unregister a service when it is no longer available.
  */
 public interface Registration {
 

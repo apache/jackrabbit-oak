@@ -19,10 +19,17 @@
 
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
+import static java.util.Arrays.asList;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getPathFromId;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assume.assumeTrue;
+
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
-
 import org.apache.jackrabbit.oak.index.indexer.document.LastModifiedRange;
 import org.apache.jackrabbit.oak.plugins.document.AbstractDocumentStoreTest;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
@@ -34,14 +41,6 @@ import org.apache.jackrabbit.oak.plugins.document.util.CloseableIterable;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.junit.Test;
 
-import static java.util.Arrays.asList;
-import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getPathFromId;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assume.assumeTrue;
-
 public class DocumentTraverserTest extends AbstractDocumentStoreTest {
 
     public DocumentTraverserTest(DocumentStoreFixture dsf) {
@@ -49,12 +48,12 @@ public class DocumentTraverserTest extends AbstractDocumentStoreTest {
     }
 
     @Test
-    public void getAllDocuments() throws Exception{
+    public void getAllDocuments() throws Exception {
         assumeTrue(ds instanceof MongoDocumentStore);
         ds.create(Collection.NODES, asList(
-                newDocument("/a/b", 1),
-                newDocument("/a/c", 1),
-                newDocument("/d", 1)
+            newDocument("/a/b", 1),
+            newDocument("/a/c", 1),
+            newDocument("/d", 1)
         ));
 
         ds.invalidateCache();
@@ -62,16 +61,15 @@ public class DocumentTraverserTest extends AbstractDocumentStoreTest {
         MongoDocumentTraverser traverser = new MongoDocumentTraverser((MongoDocumentStore) ds);
         traverser.disableReadOnlyCheck();
         CloseableIterable<NodeDocument> itr = traverser.getAllDocuments(Collection.NODES,
-                new TraversingRange(new LastModifiedRange(0, Long.MAX_VALUE), null),
-                id -> getPathFromId(id).startsWith("/a"));
+            new TraversingRange(new LastModifiedRange(0, Long.MAX_VALUE), null),
+            id -> getPathFromId(id).startsWith("/a"));
         Set<String> paths = StreamSupport.stream(itr.spliterator(), false)
-                .map(NodeDocument::getPath)
-                .map(Path::toString)
-                .collect(Collectors.toSet());
+                                         .map(NodeDocument::getPath)
+                                         .map(Path::toString)
+                                         .collect(Collectors.toSet());
 
         itr.close();
         assertThat(paths, containsInAnyOrder("/a/b", "/a/c"));
-
 
         assertNotNull(ds.getIfCached(Collection.NODES, Utils.getIdFromPath("/a/b")));
         assertNotNull(ds.getIfCached(Collection.NODES, Utils.getIdFromPath("/a/c")));

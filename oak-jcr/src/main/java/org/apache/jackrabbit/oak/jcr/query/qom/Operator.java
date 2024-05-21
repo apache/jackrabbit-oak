@@ -73,26 +73,25 @@ public enum Operator {
      * Returns a comparison between the given operands using this operator.
      *
      * @param factory factory for creating the comparison
-     * @param left operand on the left hand side
-     * @param right operand on the right hand side
+     * @param left    operand on the left hand side
+     * @param right   operand on the right hand side
      * @return comparison
      * @throws RepositoryException if the comparison can not be created
      */
     public Comparison comparison(
-            QueryObjectModelFactory factory,
-            DynamicOperand left, StaticOperand right)
-            throws RepositoryException {
+        QueryObjectModelFactory factory,
+        DynamicOperand left, StaticOperand right)
+        throws RepositoryException {
         return factory.comparison(left, name, right);
     }
 
     /**
-     * Formats an XPath constraint with this operator and the given operands.
-     * The operands are simply used as-is, without any quoting or escaping.
+     * Formats an XPath constraint with this operator and the given operands. The operands are
+     * simply used as-is, without any quoting or escaping.
      *
      * @param a first operand
      * @param b second operand
-     * @return XPath constraint, {@code a op b} or
-     *         {@code jcr:like(a, b)} for {@link #LIKE}
+     * @return XPath constraint, {@code a op b} or {@code jcr:like(a, b)} for {@link #LIKE}
      */
     public String formatXpath(String a, String b) {
         if (this == LIKE) {
@@ -102,8 +101,8 @@ public enum Operator {
     }
 
     /**
-     * Formats an SQL constraint with this operator and the given operands.
-     * The operands are simply used as-is, without any quoting or escaping.
+     * Formats an SQL constraint with this operator and the given operands. The operands are simply
+     * used as-is, without any quoting or escaping.
      *
      * @param a first operand
      * @param b second operand
@@ -116,8 +115,8 @@ public enum Operator {
     /**
      * Returns the JCR 2.0 name of this query operator.
      *
-     * @see QueryObjectModelConstants
      * @return JCR name of this operator
+     * @see QueryObjectModelConstants
      */
     @Override
     public String toString() {
@@ -130,14 +129,14 @@ public enum Operator {
      * @return names of all query operators
      */
     public static String[] getAllQueryOperators() {
-        return new String[] {
-                EQ.toString(),
-                NE.toString(),
-                GT.toString(),
-                GE.toString(),
-                LT.toString(),
-                LE.toString(),
-                LIKE.toString()
+        return new String[]{
+            EQ.toString(),
+            NE.toString(),
+            GT.toString(),
+            GE.toString(),
+            LT.toString(),
+            LE.toString(),
+            LIKE.toString()
         };
     }
 

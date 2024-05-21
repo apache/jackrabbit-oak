@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.upgrade;
 
+import java.io.IOException;
+import java.lang.reflect.Method;
+import javax.jcr.RepositoryException;
 import org.apache.jackrabbit.core.RepositoryContext;
 import org.apache.jackrabbit.core.RepositoryImpl;
 import org.apache.jackrabbit.core.SearchManager;
@@ -25,10 +28,6 @@ import org.apache.lucene.index.IndexReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.jcr.RepositoryException;
-import java.io.IOException;
-import java.lang.reflect.Method;
-
 public final class IndexAccessor {
 
     private static final Logger logger = LoggerFactory.getLogger(IndexAccessor.class);
@@ -36,13 +35,15 @@ public final class IndexAccessor {
     private IndexAccessor() {
     }
 
-    public static IndexReader getReader(RepositoryContext ctx) throws RepositoryException, IOException {
+    public static IndexReader getReader(RepositoryContext ctx)
+        throws RepositoryException, IOException {
         RepositoryImpl repo = ctx.getRepository();
         SearchManager searchMgr = null;
         try {
             Method gsm = RepositoryImpl.class.getDeclaredMethod("getSearchManager", String.class);
             gsm.setAccessible(true);
-            searchMgr = (SearchManager) gsm.invoke(repo, ctx.getRepositoryConfig().getDefaultWorkspaceName());
+            searchMgr = (SearchManager) gsm.invoke(repo,
+                ctx.getRepositoryConfig().getDefaultWorkspaceName());
         } catch (Exception ex) {
             logger.error("getting search manager", ex);
         }

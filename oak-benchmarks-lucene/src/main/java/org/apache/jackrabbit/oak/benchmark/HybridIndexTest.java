@@ -19,6 +19,14 @@
 
 package org.apache.jackrabbit.oak.benchmark;
 
+import static java.util.Collections.singleton;
+import static java.util.Collections.singletonList;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DECLARING_NODE_TYPES;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NT_OAK_UNSTRUCTURED;
+import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.scheduleWithFixedDelay;
+
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -27,14 +35,13 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Queue;
 import java.util.Random;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingDeque;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
-
 import javax.jcr.Node;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
@@ -42,12 +49,11 @@ import javax.jcr.Session;
 import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
 import javax.jcr.query.QueryResult;
-
+import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
-import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean;
@@ -92,31 +98,24 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static java.util.Collections.singleton;
-import static java.util.Collections.singletonList;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DECLARING_NODE_TYPES;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
-import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NT_OAK_UNSTRUCTURED;
-import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.scheduleWithFixedDelay;
-
 public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
+
     enum Status {
         NONE, STARTING, STARTED, STOPPING, STOPPED, ABORTED;
 
         private int count;
 
-        public void inc(){
+        public void inc() {
             count++;
         }
 
-        public int count(){
+        public int count() {
             return count;
         }
 
-        public Status next(){
+        public Status next() {
             Status[] ss = values();
-            if (ordinal() == ss.length - 1){
+            if (ordinal() == ss.length - 1) {
                 return ss[0];
             }
             return ss[ordinal() + 1];
@@ -135,10 +134,12 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
     private boolean hybridIndexEnabled = Boolean.getBoolean("hybridIndexEnabled");
     private boolean dumpStats = Boolean.getBoolean("dumpStats");
     private boolean useOakCodec = Boolean.parseBoolean(System.getProperty("useOakCodec", "true"));
-    private boolean syncIndexing = Boolean.parseBoolean(System.getProperty("syncIndexing", "false"));
+    private boolean syncIndexing = Boolean.parseBoolean(
+        System.getProperty("syncIndexing", "false"));
     private String indexingMode = System.getProperty("indexingMode", "nrt");
 
-    private boolean searcherEnabled = Boolean.parseBoolean(System.getProperty("searcherEnabled", "true"));
+    private boolean searcherEnabled = Boolean.parseBoolean(
+        System.getProperty("searcherEnabled", "true"));
     private File indexCopierDir;
     private IndexCopier copier;
     private NRTIndexFactory nrtIndexFactory;
@@ -157,7 +158,7 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
     private final StatisticsProvider statsProvider;
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final ExecutorService executorService = MoreExecutors.getExitingExecutorService(
-            (ThreadPoolExecutor) Executors.newFixedThreadPool(5));
+        (ThreadPoolExecutor) Executors.newFixedThreadPool(5));
     private final List<Registration> regs = new ArrayList<>();
     private BackgroundObserver backgroundObserver;
 
@@ -177,12 +178,13 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
                     whiteboard = oak.getWhiteboard();
                     prepareLuceneIndexer(workDir, getNodeStore(oak));
 
-                    backgroundObserver = new BackgroundObserver(luceneIndexProvider, executorService, 5);
+                    backgroundObserver = new BackgroundObserver(luceneIndexProvider,
+                        executorService, 5);
 
                     jcr.with((QueryIndexProvider) luceneIndexProvider)
-                            .with(backgroundObserver)
-                            .with(luceneEditorProvider)
-                            .with(new NodeTypeIndexFixerInitializer());
+                       .with(backgroundObserver)
+                       .with(luceneEditorProvider)
+                       .with(new NodeTypeIndexFixerInitializer());
 
                     if (hybridIndexEnabled) {
                         jcr.with(localIndexObserver);
@@ -236,7 +238,7 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
     }
 
     @Override
-    protected void runTest(TestContext ctx)  throws Exception {
+    protected void runTest(TestContext ctx) throws Exception {
         //Create tree in breadth first fashion with each node having 50 child
         Node parent = ctx.session.getNode(ctx.paths.remove());
         Status status = Status.NONE;
@@ -263,12 +265,12 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
         //and before NodeStore teardown
         getAsyncIndexUpdate().close();
 
-        if (backgroundObserver != null){
+        if (backgroundObserver != null) {
             backgroundObserver.close();
         }
 
         int sleepCount = 0;
-        while (backgroundObserver.getMBean().getQueueSize()> 0 && ++sleepCount < 100) {
+        while (backgroundObserver.getMBean().getQueueSize() > 0 && ++sleepCount < 100) {
             TimeUnit.MILLISECONDS.sleep(100);
         }
 
@@ -277,7 +279,7 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
         }
 
         //Close hybrid stuff after async is closed
-        if (hybridIndexEnabled){
+        if (hybridIndexEnabled) {
             queue.close();
             nrtIndexFactory.close();
         }
@@ -285,11 +287,13 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
         if (indexCopierDir != null) {
             FileUtils.deleteDirectory(indexCopierDir);
         }
-        System.out.printf("numOfIndexes: %d, refreshDeltaMillis: %d, asyncInterval: %d, queueSize: %d , " +
-                        "hybridIndexEnabled: %s, indexingMode: %s, useOakCodec: %s, cleanerIntervalInSecs: %d, " +
-                        "syncIndexing: %s %n",
-                numOfIndexes, refreshDeltaMillis, asyncInterval, queueSize, hybridIndexEnabled,
-                indexingMode, useOakCodec, cleanerIntervalInSecs, syncIndexing);
+        System.out.printf(
+            "numOfIndexes: %d, refreshDeltaMillis: %d, asyncInterval: %d, queueSize: %d , " +
+                "hybridIndexEnabled: %s, indexingMode: %s, useOakCodec: %s, cleanerIntervalInSecs: %d, "
+                +
+                "syncIndexing: %s %n",
+            numOfIndexes, refreshDeltaMillis, asyncInterval, queueSize, hybridIndexEnabled,
+            indexingMode, useOakCodec, cleanerIntervalInSecs, syncIndexing);
 
         if (dumpStats) {
             dumpStats();
@@ -314,10 +318,10 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
     @Override
     protected String comment() {
         List<String> commentElements = new ArrayList<>();
-        if (hybridIndexEnabled){
+        if (hybridIndexEnabled) {
             commentElements.add(indexingMode);
 
-            if (useOakCodec){
+            if (useOakCodec) {
                 commentElements.add("oakCodec");
             }
             if (syncIndexing) {
@@ -327,11 +331,12 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
             commentElements.add("property");
         }
 
-        commentElements.add("numIdxs:"+ numOfIndexes);
+        commentElements.add("numIdxs:" + numOfIndexes);
         return Joiner.on(',').join(commentElements);
     }
 
     protected class TestContext {
+
         final Session session = loginWriter();
         final Queue<String> paths = new LinkedBlockingDeque<>();
 
@@ -339,12 +344,12 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
 
         public TestContext() throws RepositoryException {
             dump = session.getRootNode()
-                    .addNode(nextNodeName(), NT_OAK_UNSTRUCTURED)
-                    .addNode(nextNodeName(), NT_OAK_UNSTRUCTURED)
-                    .addNode(nextNodeName(), NT_OAK_UNSTRUCTURED)
-                    .addNode(nextNodeName(), NT_OAK_UNSTRUCTURED)
-                    .addNode(nextNodeName(), NT_OAK_UNSTRUCTURED)
-                    .addNode(nextNodeName(), NT_OAK_UNSTRUCTURED);
+                          .addNode(nextNodeName(), NT_OAK_UNSTRUCTURED)
+                          .addNode(nextNodeName(), NT_OAK_UNSTRUCTURED)
+                          .addNode(nextNodeName(), NT_OAK_UNSTRUCTURED)
+                          .addNode(nextNodeName(), NT_OAK_UNSTRUCTURED)
+                          .addNode(nextNodeName(), NT_OAK_UNSTRUCTURED)
+                          .addNode(nextNodeName(), NT_OAK_UNSTRUCTURED);
             session.save();
             paths.add(dump.getPath());
         }
@@ -373,7 +378,7 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
         AsyncIndexInfoService asyncIndexInfoService = new AsyncIndexInfoServiceImpl(nodeStore);
 
         nrtIndexFactory = new NRTIndexFactory(copier, Clock.SIMPLE,
-                TimeUnit.MILLISECONDS.toSeconds(refreshDeltaMillis), StatisticsProvider.NOOP);
+            TimeUnit.MILLISECONDS.toSeconds(refreshDeltaMillis), StatisticsProvider.NOOP);
         MountInfoProvider mip = Mounts.defaultMountInfoProvider();
         LuceneIndexReaderFactory indexReaderFactory = new DefaultIndexReaderFactory(mip, copier);
 
@@ -381,21 +386,21 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
 
         luceneIndexProvider = new LuceneIndexProvider(tracker);
         luceneEditorProvider = new LuceneIndexEditorProvider(copier,
-                tracker,
-                null, //extractedTextCache
-                null, //augmentorFactory
-                mip);
+            tracker,
+            null, //extractedTextCache
+            null, //augmentorFactory
+            mip);
 
         queue = new DocumentQueue(queueSize, queueTimeout, tracker, executorService, statsProvider);
         localIndexObserver = new LocalIndexObserver(queue, statsProvider);
         luceneEditorProvider.setIndexingQueue(queue);
 
         if (syncIndexing) {
-            PropertyIndexCleaner cleaner = new PropertyIndexCleaner(nodeStore, indexPathService, asyncIndexInfoService, statsProvider);
+            PropertyIndexCleaner cleaner = new PropertyIndexCleaner(nodeStore, indexPathService,
+                asyncIndexInfoService, statsProvider);
             regs.add(scheduleWithFixedDelay(whiteboard, cleaner,
-                    cleanerIntervalInSecs, true, true));
+                cleanerIntervalInSecs, true, true));
         }
-
 
         Thread.setDefaultUncaughtExceptionHandler((t, e) -> log.warn("Uncaught exception", e));
     }
@@ -405,7 +410,8 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
     }
 
     private AsyncIndexUpdate getAsyncIndexUpdate() {
-        return (AsyncIndexUpdate)WhiteboardUtils.getService(whiteboard, Runnable.class, new Predicate<Runnable>() {
+        return (AsyncIndexUpdate) WhiteboardUtils.getService(whiteboard, Runnable.class,
+            new Predicate<Runnable>() {
                 @Override
                 public boolean test(@Nullable Runnable input) {
                     return input instanceof AsyncIndexUpdate;
@@ -416,8 +422,9 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
     private void dumpStats() {
         IndexStatsMBean indexStats = WhiteboardUtils.getService(whiteboard, IndexStatsMBean.class);
         System.out.println(indexStats.getConsolidatedExecutionStats());
-        String queueSize = Arrays.toString(statsProvider.getStats().getTimeSeries("HYBRID_QUEUE_SIZE", false)
-                .getValuePerSecond());
+        String queueSize = Arrays.toString(
+            statsProvider.getStats().getTimeSeries("HYBRID_QUEUE_SIZE", false)
+                         .getValuePerSecond());
         System.out.println("Queue size - " + queueSize);
     }
 
@@ -450,11 +457,11 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
             }
         }
 
-        private void addPropIndexDefn(NodeBuilder parent, String propName){
+        private void addPropIndexDefn(NodeBuilder parent, String propName) {
             try {
                 NodeBuilder idx = IndexUtils.createIndexDefinition(parent, propName, false,
-                        singleton(propName), null, "property", null);
-                if ( propName.equals(indexedPropName)) {
+                    singleton(propName), null, "property", null);
+                if (propName.equals(indexedPropName)) {
                     idx.setProperty("tags", singletonList("fooIndex"), Type.STRINGS);
                 }
             } catch (RepositoryException e) {
@@ -465,6 +472,7 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
     }
 
     private class LuceneIndexInitializer implements RepositoryInitializer {
+
         @Override
         public void initialize(@NotNull NodeBuilder builder) {
             NodeBuilder oakIndex = IndexUtils.getOrCreateOakIndex(builder);
@@ -472,7 +480,9 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
             LuceneIndexDefinitionBuilder defnBuilder = new LuceneIndexDefinitionBuilder();
             defnBuilder.evaluatePathRestrictions();
             defnBuilder.async("async", indexingMode, "async");
-            IndexDefinitionBuilder.PropertyRule pr = defnBuilder.indexRule("nt:base").property(indexedPropName).propertyIndex();
+            IndexDefinitionBuilder.PropertyRule pr = defnBuilder.indexRule("nt:base")
+                                                                .property(indexedPropName)
+                                                                .propertyIndex();
             if (syncIndexing) {
                 pr.sync();
             }
@@ -485,11 +495,13 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
             }
 
             oakIndex.setChildNode(indexedPropName, defnBuilder.build());
-            oakIndex.child(indexedPropName).setProperty("tags", singletonList("fooIndex"), Type.STRINGS);
+            oakIndex.child(indexedPropName)
+                    .setProperty("tags", singletonList("fooIndex"), Type.STRINGS);
         }
     }
 
     private class LuceneFullTextInitializer implements RepositoryInitializer {
+
         @Override
         public void initialize(@NotNull NodeBuilder builder) {
             NodeBuilder oakIndex = IndexUtils.getOrCreateOakIndex(builder);
@@ -498,8 +510,8 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
             defnBuilder.async("async", "async");
             defnBuilder.codec("Lucene46");
             defnBuilder.indexRule("nt:base")
-                    .property(FulltextIndexConstants.REGEX_ALL_PROPS, true)
-                    .nodeScopeIndex();
+                       .property(FulltextIndexConstants.REGEX_ALL_PROPS, true)
+                       .nodeScopeIndex();
             oakIndex.setChildNode("globalIndex", defnBuilder.build());
         }
     }
@@ -513,8 +525,9 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
             NodeBuilder nodetype = builder.getChildNode("oak:index").getChildNode("nodetype");
             if (nodetype.exists()) {
                 List<String> nodetypes = Lists.newArrayList();
-                if (nodetype.hasProperty(DECLARING_NODE_TYPES)){
-                    nodetypes = Lists.newArrayList(nodetype.getProperty(DECLARING_NODE_TYPES).getValue(Type.STRINGS));
+                if (nodetype.hasProperty(DECLARING_NODE_TYPES)) {
+                    nodetypes = Lists.newArrayList(
+                        nodetype.getProperty(DECLARING_NODE_TYPES).getValue(Type.STRINGS));
                 }
 
                 if (nodetypes.isEmpty()) {
@@ -534,11 +547,13 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
     }
 
     private class Searcher implements Runnable {
+
         final Session session = loginWriter();
         int resultSize = 0;
+
         @Override
         public void run() {
-            try{
+            try {
                 run0();
             } catch (RepositoryException e) {
                 throw new RuntimeException(e);
@@ -548,7 +563,8 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
         private void run0() throws RepositoryException {
             session.refresh(false);
             QueryManager qm = session.getWorkspace().getQueryManager();
-            Query q = qm.createQuery("select * from [nt:base] where [" + indexedPropName + "] = $status " +
+            Query q = qm.createQuery(
+                "select * from [nt:base] where [" + indexedPropName + "] = $status " +
                     "option(index tag fooIndex)", Query.JCR_SQL2);
             q.bindValue("status", session.getValueFactory().createValue(randomStatus()));
             QueryResult result = q.execute();
@@ -560,11 +576,13 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
     }
 
     private class Mutator implements Runnable {
+
         final Session session = loginWriter();
         int mutationCount = 0;
+
         @Override
         public void run() {
-            try{
+            try {
                 run0();
             } catch (RepositoryException e) {
                 throw new RuntimeException(e);
@@ -575,9 +593,9 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
             TestContext ctx = contexts.get(random.nextInt(contexts.size()));
             String path = ctx.paths.peek();
             session.refresh(false);
-            if (path != null){
+            if (path != null) {
                 Node node = session.getNode(path);
-                if(node.hasProperty(indexedPropName)){
+                if (node.hasProperty(indexedPropName)) {
                     String value = node.getProperty(indexedPropName).getString();
                     String newValue = Status.valueOf(value).next().name();
                     node.setProperty(indexedPropName, newValue);

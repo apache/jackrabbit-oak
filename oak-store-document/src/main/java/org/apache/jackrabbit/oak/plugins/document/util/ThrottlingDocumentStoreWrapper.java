@@ -16,6 +16,16 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.util;
 
+import static java.lang.System.currentTimeMillis;
+import static java.lang.Thread.sleep;
+import static java.util.Objects.isNull;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.stream.Collectors.toList;
+import static org.apache.jackrabbit.oak.plugins.document.Collection.CLUSTER_NODES;
+import static org.slf4j.LoggerFactory.getLogger;
+
+import java.util.List;
+import java.util.Map;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
@@ -28,20 +38,9 @@ import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 
-import java.util.List;
-import java.util.Map;
-
-import static java.lang.System.currentTimeMillis;
-import static java.lang.Thread.sleep;
-import static java.util.Objects.isNull;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.stream.Collectors.toList;
-import static org.apache.jackrabbit.oak.plugins.document.Collection.CLUSTER_NODES;
-import static org.slf4j.LoggerFactory.getLogger;
-
 /**
- * Wrapper of another DocumentStore that does a throttling check on any method
- * invocation (create, update or delete) and throttled the system if under high load.
+ * Wrapper of another DocumentStore that does a throttling check on any method invocation (create,
+ * update or delete) and throttled the system if under high load.
  */
 public class ThrottlingDocumentStoreWrapper implements DocumentStore {
 
@@ -54,7 +53,7 @@ public class ThrottlingDocumentStoreWrapper implements DocumentStore {
     private final ThrottlingStatsCollector throttlingStatsCollector;
 
     public ThrottlingDocumentStoreWrapper(final @NotNull DocumentStore store,
-                                          final @NotNull ThrottlingStatsCollector throttlingStatsCollector) {
+        final @NotNull ThrottlingStatsCollector throttlingStatsCollector) {
         this.store = store;
         this.throttlingStatsCollector = throttlingStatsCollector;
     }
@@ -66,31 +65,33 @@ public class ThrottlingDocumentStoreWrapper implements DocumentStore {
 
     @Override
     public <T extends Document> T find(final Collection<T> collection, final String key,
-                                       final int maxCacheAge) {
+        final int maxCacheAge) {
         return store.find(collection, key, maxCacheAge);
     }
 
     @NotNull
     @Override
     public <T extends Document> List<T> query(final Collection<T> collection, final String fromKey,
-                                              final String toKey, final int limit) {
+        final String toKey, final int limit) {
         return store.query(collection, fromKey, toKey, limit);
     }
 
     @Override
     @NotNull
     public <T extends Document> List<T> query(final Collection<T> collection, final String fromKey,
-                                              final String toKey, final String indexedProperty,
-                                              final long startValue, final int limit) {
+        final String toKey, final String indexedProperty,
+        final long startValue, final int limit) {
         return store.query(collection, fromKey, toKey, indexedProperty, startValue, limit);
     }
 
     @Override
     @NotNull
-    public <T extends Document> List<T> query(final Collection<T> collection, final String fromKey, final String toKey,
-                                              final String indexedProperty, final long startValue, final int limit,
-                                              final List<String> projection) throws DocumentStoreException {
-        return store.query(collection, fromKey, toKey, indexedProperty, startValue, limit, projection);
+    public <T extends Document> List<T> query(final Collection<T> collection, final String fromKey,
+        final String toKey,
+        final String indexedProperty, final long startValue, final int limit,
+        final List<String> projection) throws DocumentStoreException {
+        return store.query(collection, fromKey, toKey, indexedProperty, startValue, limit,
+            projection);
     }
 
     @Override
@@ -114,7 +115,8 @@ public class ThrottlingDocumentStoreWrapper implements DocumentStore {
     }
 
     @Override
-    public <T extends Document> int remove(final Collection<T> collection, final Map<String, Long> toRemove) {
+    public <T extends Document> int remove(final Collection<T> collection,
+        final Map<String, Long> toRemove) {
         long throttlingTime = performThrottling(collection);
         int count = 0;
         try {
@@ -126,8 +128,9 @@ public class ThrottlingDocumentStoreWrapper implements DocumentStore {
     }
 
     @Override
-    public <T extends Document> int remove(final Collection<T> collection, final String indexedProperty,
-                                           final long startValue, final long endValue) throws DocumentStoreException {
+    public <T extends Document> int remove(final Collection<T> collection,
+        final String indexedProperty,
+        final long startValue, final long endValue) throws DocumentStoreException {
         long throttlingTime = performThrottling(collection);
         int count = 0;
         try {
@@ -139,66 +142,75 @@ public class ThrottlingDocumentStoreWrapper implements DocumentStore {
     }
 
     @Override
-    public <T extends Document> boolean create(final Collection<T> collection, final List<UpdateOp> updateOps) {
+    public <T extends Document> boolean create(final Collection<T> collection,
+        final List<UpdateOp> updateOps) {
         long throttlingTime = performThrottling(collection);
         boolean isSuccess = false;
         try {
             isSuccess = store.create(collection, updateOps);
         } finally {
             throttlingStatsCollector.doneCreate(MILLISECONDS.toNanos(throttlingTime), collection,
-                    updateOps.stream().map(UpdateOp::getId).collect(toList()), isSuccess);
+                updateOps.stream().map(UpdateOp::getId).collect(toList()), isSuccess);
         }
         return isSuccess;
     }
 
     @Override
-    public <T extends Document> T createOrUpdate(final Collection<T> collection, final UpdateOp update) {
+    public <T extends Document> T createOrUpdate(final Collection<T> collection,
+        final UpdateOp update) {
         long throttlingTime = performThrottling(collection);
         T oldDoc = null;
         try {
             oldDoc = store.createOrUpdate(collection, update);
         } finally {
-            throttlingStatsCollector.doneFindAndModify(MILLISECONDS.toNanos(throttlingTime), collection, update.getId(),
-                    (isNull(oldDoc) && update.isNew()), true, 0);
+            throttlingStatsCollector.doneFindAndModify(MILLISECONDS.toNanos(throttlingTime),
+                collection, update.getId(),
+                (isNull(oldDoc) && update.isNew()), true, 0);
         }
         return oldDoc;
     }
 
     @Override
-    public <T extends Document> List<T> createOrUpdate(final Collection<T> collection, final List<UpdateOp> updateOps) {
+    public <T extends Document> List<T> createOrUpdate(final Collection<T> collection,
+        final List<UpdateOp> updateOps) {
         long throttlingTime = performThrottling(collection);
         List<T> results = null;
         try {
             results = store.createOrUpdate(collection, updateOps);
         } finally {
-            throttlingStatsCollector.doneCreateOrUpdate(MILLISECONDS.toNanos(throttlingTime), collection,
-                    updateOps.stream().map(UpdateOp::getId).collect(toList()));
+            throttlingStatsCollector.doneCreateOrUpdate(MILLISECONDS.toNanos(throttlingTime),
+                collection,
+                updateOps.stream().map(UpdateOp::getId).collect(toList()));
         }
         return results;
     }
 
     @Override
-    public <T extends Document> T findAndUpdate(final Collection<T> collection, final UpdateOp update) {
+    public <T extends Document> T findAndUpdate(final Collection<T> collection,
+        final UpdateOp update) {
         long throttlingTime = performThrottling(collection);
         T oldDoc = null;
         try {
             oldDoc = store.findAndUpdate(collection, update);
         } finally {
-            throttlingStatsCollector.doneFindAndModify(MILLISECONDS.toNanos(throttlingTime), collection, update.getId(),
-                    false, true, 0);
+            throttlingStatsCollector.doneFindAndModify(MILLISECONDS.toNanos(throttlingTime),
+                collection, update.getId(),
+                false, true, 0);
         }
         return oldDoc;
     }
 
     @Override
     @NotNull
-    public <T extends Document> List<T> findAndUpdate(@NotNull Collection<T> collection, @NotNull List<UpdateOp> updateOps) {
+    public <T extends Document> List<T> findAndUpdate(@NotNull Collection<T> collection,
+        @NotNull List<UpdateOp> updateOps) {
         final long throttlingTime = performThrottling(collection);
         try {
             return store.findAndUpdate(collection, updateOps);
         } finally {
-            throttlingStatsCollector.doneFindAndModify(MILLISECONDS.toNanos(throttlingTime), collection,
-                    updateOps.stream().map(UpdateOp::getId).collect(toList()), true, 0);
+            throttlingStatsCollector.doneFindAndModify(MILLISECONDS.toNanos(throttlingTime),
+                collection,
+                updateOps.stream().map(UpdateOp::getId).collect(toList()), true, 0);
         }
     }
 
@@ -206,7 +218,7 @@ public class ThrottlingDocumentStoreWrapper implements DocumentStore {
     public CacheInvalidationStats invalidateCache() {
         return store.invalidateCache();
     }
-    
+
     @Override
     public CacheInvalidationStats invalidateCache(Iterable<String> keys) {
         return store.invalidateCache(keys);
@@ -264,8 +276,7 @@ public class ThrottlingDocumentStoreWrapper implements DocumentStore {
     }
 
     /**
-     * Return the {@link Throttler} for the underlying store
-     * Default is no throttling
+     * Return the {@link Throttler} for the underlying store Default is no throttling
      *
      * @return throttler for document store
      */
@@ -295,7 +306,8 @@ public class ThrottlingDocumentStoreWrapper implements DocumentStore {
             final int currentDecaSecond = (int) (currentTimeMillis() / 10_000);
             if (currentDecaSecond > lastLogTime) {
                 lastLogTime = currentDecaSecond;
-                LOG.warn("Throttling the system for {} ms for {} collection", throttleTime, collection);
+                LOG.warn("Throttling the system for {} ms for {} collection", throttleTime,
+                    collection);
             }
             sleep(throttleTime);
         } catch (InterruptedException e) {

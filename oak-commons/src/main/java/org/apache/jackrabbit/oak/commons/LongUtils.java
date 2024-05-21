@@ -20,15 +20,16 @@ import java.util.Date;
 
 public final class LongUtils {
 
-    private LongUtils() {}
+    private LongUtils() {
+    }
 
     /**
-     * Sums {@code a} and {@code b} and verifies that it doesn't overflow in
-     * signed long arithmetic, in which case {@link Long#MAX_VALUE} will be
-     * returned instead of the result.
-     *
-     * Note: this method is a variant of {@link org.apache.jackrabbit.guava.common.math.LongMath#checkedAdd(long, long)}
-     * that returns {@link Long#MAX_VALUE} instead of throwing {@code ArithmeticException}.
+     * Sums {@code a} and {@code b} and verifies that it doesn't overflow in signed long arithmetic,
+     * in which case {@link Long#MAX_VALUE} will be returned instead of the result.
+     * <p>
+     * Note: this method is a variant of
+     * {@link org.apache.jackrabbit.guava.common.math.LongMath#checkedAdd(long, long)} that returns
+     * {@link Long#MAX_VALUE} instead of throwing {@code ArithmeticException}.
      *
      * @see org.apache.jackrabbit.guava.common.math.LongMath#checkedAdd(long, long)
      */
@@ -42,8 +43,8 @@ public final class LongUtils {
     }
 
     /**
-     * Calculate an expiration time based on {@code new Date().getTime()} and
-     * the specified {@code expiration} in number of milliseconds.
+     * Calculate an expiration time based on {@code new Date().getTime()} and the specified
+     * {@code expiration} in number of milliseconds.
      *
      * @param expiration The expiration in milliseconds.
      * @return The expiration time.

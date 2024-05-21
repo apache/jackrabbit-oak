@@ -35,17 +35,21 @@ class GetReferencesRequestHandler extends SimpleChannelInboundHandler<GetReferen
     }
 
     @Override
-    protected void channelRead0(ChannelHandlerContext ctx, GetReferencesRequest msg) throws Exception {
-        log.debug("Reading references of segment {} for client {}", msg.getSegmentId(), msg.getClientId());
+    protected void channelRead0(ChannelHandlerContext ctx, GetReferencesRequest msg)
+        throws Exception {
+        log.debug("Reading references of segment {} for client {}", msg.getSegmentId(),
+            msg.getClientId());
 
         Iterable<String> references = reader.readReferences(msg.getSegmentId());
 
         if (references == null) {
-            log.debug("References for segment {} not found, discarding request from client {}", msg.getSegmentId(), msg.getClientId());
+            log.debug("References for segment {} not found, discarding request from client {}",
+                msg.getSegmentId(), msg.getClientId());
             return;
         }
 
-        ctx.writeAndFlush(new GetReferencesResponse(msg.getClientId(), msg.getSegmentId(), references));
+        ctx.writeAndFlush(
+            new GetReferencesResponse(msg.getClientId(), msg.getSegmentId(), references));
     }
 
 }

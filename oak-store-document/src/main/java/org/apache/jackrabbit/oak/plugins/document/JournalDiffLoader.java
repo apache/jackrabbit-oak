@@ -53,14 +53,14 @@ class JournalDiffLoader implements DiffCache.Loader {
     private Stats stats;
 
     JournalDiffLoader(@NotNull AbstractDocumentNodeState base,
-                      @NotNull AbstractDocumentNodeState node,
-                      @NotNull DocumentNodeStore ns) {
+        @NotNull AbstractDocumentNodeState node,
+        @NotNull DocumentNodeStore ns) {
         this.base = checkNotNull(base);
         this.node = checkNotNull(node);
         this.ns = checkNotNull(ns);
         checkArgument(base.getPath().equals(node.getPath()),
-                "nodes must have matching paths: {} != {}",
-                base.getPath(), node.getPath());
+            "nodes must have matching paths: {} != {}",
+            base.getPath(), node.getPath());
     }
 
     @Override
@@ -92,8 +92,8 @@ class JournalDiffLoader implements DiffCache.Loader {
     }
 
     private void readBranchChanges(Path path,
-                                   RevisionVector rv,
-                                   StringSort changes) throws IOException {
+        RevisionVector rv,
+        StringSort changes) throws IOException {
         if (!rv.isBranch() || ns.isDisableBranches()) {
             return;
         }
@@ -120,9 +120,9 @@ class JournalDiffLoader implements DiffCache.Loader {
     }
 
     private void readTrunkChanges(Path path,
-                                  RevisionVector beforeRev,
-                                  RevisionVector afterRev,
-                                  StringSort changes) throws IOException {
+        RevisionVector beforeRev,
+        RevisionVector afterRev,
+        StringSort changes) throws IOException {
         JournalEntry localPending = ns.getCurrentJournalEntry();
         DocumentStore store = ns.getDocumentStore();
         NodeDocument root = Utils.getRootDocument(store);
@@ -137,7 +137,7 @@ class JournalDiffLoader implements DiffCache.Loader {
         }
         if (localLastRev == null) {
             throw new IllegalStateException("Root document does not have a " +
-                    "lastRev entry for local clusterId " + clusterId);
+                "lastRev entry for local clusterId " + clusterId);
         }
 
         if (ns.isDisableBranches()) {
@@ -156,7 +156,7 @@ class JournalDiffLoader implements DiffCache.Loader {
 
         // do we need to include changes from pending local changes?
         if (!max.isRevisionNewer(localLastRev)
-                && !localLastRev.equals(max.getRevision(clusterId))) {
+            && !localLastRev.equals(max.getRevision(clusterId))) {
             // journal does not contain all local changes
             localPending.addTo(changes, path);
             stats.numJournalEntries++;
@@ -170,7 +170,8 @@ class JournalDiffLoader implements DiffCache.Loader {
                 from = new Revision(0, 0, to.getClusterId());
             }
             stats.numJournalEntries += fillExternalChanges(changes, null,
-                    path, from, to, ns.getDocumentStore(), entry -> {}, null, null);
+                path, from, to, ns.getDocumentStore(), entry -> {
+                }, null, null);
         }
     }
 
@@ -225,12 +226,12 @@ class JournalDiffLoader implements DiffCache.Loader {
         @Override
         public String toString() {
             String msg = "%d diffs for %s (%s/%s) loaded from %d journal entries in %s. " +
-                    "Keys: %s, values: %s, total: %s";
+                "Keys: %s, values: %s, total: %s";
             return String.format(msg, numDiffEntries, path, from, to,
-                    numJournalEntries, sw,
-                    byteCountToDisplaySize(keyMemory),
-                    byteCountToDisplaySize(valueMemory),
-                    byteCountToDisplaySize(keyMemory + valueMemory));
+                numJournalEntries, sw,
+                byteCountToDisplaySize(keyMemory),
+                byteCountToDisplaySize(valueMemory),
+                byteCountToDisplaySize(keyMemory + valueMemory));
         }
     }
 
@@ -242,8 +243,8 @@ class JournalDiffLoader implements DiffCache.Loader {
         private Stats stats;
 
         WrappedDiffCache(Path path,
-                         DiffCache cache,
-                         Stats stats) {
+            DiffCache cache,
+            Stats stats) {
             this.path = path;
             this.cache = cache;
             this.stats = stats;
@@ -256,22 +257,22 @@ class JournalDiffLoader implements DiffCache.Loader {
 
         @Override
         String getChanges(@NotNull RevisionVector from,
-                          @NotNull RevisionVector to,
-                          @NotNull Path path,
-                          @Nullable Loader loader) {
+            @NotNull RevisionVector to,
+            @NotNull Path path,
+            @Nullable Loader loader) {
             return cache.getChanges(from, to, path, loader);
         }
 
         @NotNull
         @Override
         Entry newEntry(@NotNull final RevisionVector from,
-                       @NotNull final RevisionVector to,
-                       boolean local) {
+            @NotNull final RevisionVector to,
+            boolean local) {
             final Entry entry = cache.newEntry(from, to, local);
             return new Entry() {
                 @Override
                 public void append(@NotNull Path path,
-                                   @NotNull String changes) {
+                    @NotNull String changes) {
                     trackStats(path, from, to, changes);
                     entry.append(path, changes);
                     if (path.equals(WrappedDiffCache.this.path)) {
@@ -287,9 +288,9 @@ class JournalDiffLoader implements DiffCache.Loader {
         }
 
         private void trackStats(Path path,
-                                RevisionVector from,
-                                RevisionVector to,
-                                String changes) {
+            RevisionVector from,
+            RevisionVector to,
+            String changes) {
             stats.numDiffEntries++;
             stats.keyMemory += path.getMemory();
             stats.keyMemory += from.getMemory();

@@ -14,13 +14,13 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 --%>
-      </div>
-      <div id="footer">
-        <p>
-          Powered by
-          <a href="http://jackrabbit.apache.org/">Apache Jackrabbit</a>.
-        </p>
-      </div>
-    </div>
-  </body>
+</div>
+<div id="footer">
+    <p>
+        Powered by
+        <a href="http://jackrabbit.apache.org/">Apache Jackrabbit</a>.
+    </p>
+</div>
+</div>
+</body>
 </html>

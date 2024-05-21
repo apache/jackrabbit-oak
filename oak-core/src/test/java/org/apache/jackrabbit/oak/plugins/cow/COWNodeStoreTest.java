@@ -16,6 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.cow;
 
+import static org.apache.jackrabbit.guava.common.collect.ImmutableMap.of;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
+import java.util.Map;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
@@ -26,13 +32,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.util.Map;
-
-import static org.apache.jackrabbit.guava.common.collect.ImmutableMap.of;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 public class COWNodeStoreTest {
 

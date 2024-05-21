@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.segment;
 
 import java.util.Collections;
 import java.util.Iterator;
-
 import org.apache.jackrabbit.oak.segment.RecordNumbers.Entry;
 import org.jetbrains.annotations.NotNull;
 
@@ -48,8 +47,8 @@ interface RecordNumbers extends Iterable<Entry> {
      * Translate a record number to an offset.
      *
      * @param recordNumber A record number.
-     * @return the offset corresponding to the record number, or {@code -1} if
-     * no offset is associated to the record number.
+     * @return the offset corresponding to the record number, or {@code -1} if no offset is
+     * associated to the record number.
      */
     int getOffset(int recordNumber);
 

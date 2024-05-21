@@ -16,9 +16,10 @@
  */
 package org.apache.jackrabbit.oak.benchmark;
 
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+
 import java.util.List;
 import javax.jcr.Repository;
-
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.fixture.JcrCreator;
 import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
@@ -32,12 +33,9 @@ import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfigu
 import org.apache.jackrabbit.oak.spi.security.authorization.cug.impl.CugConfiguration;
 import org.jetbrains.annotations.NotNull;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-
 /**
- * Test the effect of multiple authorization configurations on the general read
- * operations.
- *
+ * Test the effect of multiple authorization configurations on the general read operations.
+ * <p>
  * TODO: setup configured number of cugs.
  */
 public class CugTest extends ReadDeepTreeTest {
@@ -45,11 +43,13 @@ public class CugTest extends ReadDeepTreeTest {
     private final ConfigurationParameters params;
     private final boolean reverseOrder;
 
-    protected CugTest(boolean runAsAdmin, int itemsToRead, boolean singleSession, @NotNull List<String> supportedPaths, boolean reverseOrder) {
+    protected CugTest(boolean runAsAdmin, int itemsToRead, boolean singleSession,
+        @NotNull List<String> supportedPaths, boolean reverseOrder) {
         super(runAsAdmin, itemsToRead, false, singleSession);
-        this.params = ConfigurationParameters.of(AuthorizationConfiguration.NAME, ConfigurationParameters.of(
-                    "cugSupportedPaths", supportedPaths.toArray(new String[supportedPaths.size()]),
-                    "cugEnabled", true));
+        this.params = ConfigurationParameters.of(AuthorizationConfiguration.NAME,
+            ConfigurationParameters.of(
+                "cugSupportedPaths", supportedPaths.toArray(new String[supportedPaths.size()]),
+                "cugEnabled", true));
         this.reverseOrder = reverseOrder;
     }
 
@@ -63,7 +63,8 @@ public class CugTest extends ReadDeepTreeTest {
                 }
             });
         } else {
-            throw new IllegalArgumentException("Fixture " + fixture + " not supported for this benchmark.");
+            throw new IllegalArgumentException(
+                "Fixture " + fixture + " not supported for this benchmark.");
         }
     }
 
@@ -82,11 +83,12 @@ public class CugTest extends ReadDeepTreeTest {
     }
 
     private static SecurityProvider newTestSecurityProvider(@NotNull ConfigurationParameters params,
-            boolean reverseOrder) {
+        boolean reverseOrder) {
         SecurityProvider delegate = SecurityProviderBuilder.newBuilder().with(params).build();
         CompositeAuthorizationConfiguration authorizationConfiguration = (CompositeAuthorizationConfiguration) delegate
-                .getConfiguration((AuthorizationConfiguration.class));
-        AuthorizationConfiguration defaultAuthorization = checkNotNull(authorizationConfiguration.getDefaultConfig());
+            .getConfiguration((AuthorizationConfiguration.class));
+        AuthorizationConfiguration defaultAuthorization = checkNotNull(
+            authorizationConfiguration.getDefaultConfig());
         if (reverseOrder) {
             authorizationConfiguration.addConfiguration(defaultAuthorization);
             authorizationConfiguration.addConfiguration(new CugConfiguration(delegate));

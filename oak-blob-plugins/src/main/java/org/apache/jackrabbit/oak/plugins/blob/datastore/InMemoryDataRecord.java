@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.plugins.blob.datastore;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.Arrays;
-
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
@@ -86,6 +85,7 @@ public class InMemoryDataRecord implements DataRecord {
 
     /**
      * Checks if String can be converted to an instance of this class.
+     *
      * @param id DataRecord identifier
      * @return true if it can be converted
      */
@@ -95,6 +95,7 @@ public class InMemoryDataRecord implements DataRecord {
 
     /**
      * Convert a String to an instance of this class.
+     *
      * @param id DataRecord identifier
      * @return the instance
      */
@@ -111,7 +112,8 @@ public class InMemoryDataRecord implements DataRecord {
         byte[] data = new byte[len];
         try {
             for (int i = 0; i < len; i++) {
-                data[i] = (byte) ((Character.digit(id.charAt(2 * i), 16) << 4) | (Character.digit(id.charAt(2 * i + 1), 16)));
+                data[i] = (byte) ((Character.digit(id.charAt(2 * i), 16) << 4) | (Character.digit(
+                    id.charAt(2 * i + 1), 16)));
             }
         } catch (NumberFormatException e) {
             String msg = "unable to deserialize byte array " + id;
@@ -171,8 +173,8 @@ public class InMemoryDataRecord implements DataRecord {
     }
 
     /**
-     * Returns zero to satisfy the Object equals/hashCode contract.
-     * This class is mutable and not meant to be used as a hash key.
+     * Returns zero to satisfy the Object equals/hashCode contract. This class is mutable and not
+     * meant to be used as a hash key.
      *
      * @return always zero
      * @see Object#hashCode()

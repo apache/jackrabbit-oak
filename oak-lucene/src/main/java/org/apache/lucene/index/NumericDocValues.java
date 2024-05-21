@@ -29,23 +29,28 @@ package org.apache.lucene.index;
  * A per-document numeric value.
  */
 public abstract class NumericDocValues {
-  
-  /** Sole constructor. (For invocation by subclass 
-   * constructors, typically implicit.) */
-  protected NumericDocValues() {}
 
-  /**
-   * Returns the numeric value for the specified document ID.
-   * @param docID document ID to lookup
-   * @return numeric value
-   */
-  public abstract long get(int docID);
-
-  /** An empty NumericDocValues which returns zero for every document */
-  public static final NumericDocValues EMPTY = new NumericDocValues() {
-    @Override
-    public long get(int docID) {
-      return 0;
+    /**
+     * Sole constructor. (For invocation by subclass constructors, typically implicit.)
+     */
+    protected NumericDocValues() {
     }
-  };
+
+    /**
+     * Returns the numeric value for the specified document ID.
+     *
+     * @param docID document ID to lookup
+     * @return numeric value
+     */
+    public abstract long get(int docID);
+
+    /**
+     * An empty NumericDocValues which returns zero for every document
+     */
+    public static final NumericDocValues EMPTY = new NumericDocValues() {
+        @Override
+        public long get(int docID) {
+            return 0;
+        }
+    };
 }

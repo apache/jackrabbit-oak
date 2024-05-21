@@ -16,10 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import static org.apache.jackrabbit.oak.plugins.index.search.FieldNames.isPropertyField;
+
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
-
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexStatistics;
 import org.apache.lucene.index.Fields;
@@ -28,14 +29,13 @@ import org.apache.lucene.index.MultiFields;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.oak.plugins.index.search.FieldNames.isPropertyField;
-
 /**
- * This class would populate some statistics from a reader. We want to be careful here such that
- * we only collect statistics which don't incur reads from the index i.e. we would only collect
- * stats that lucene would already have read into memory when the reader was opened.
+ * This class would populate some statistics from a reader. We want to be careful here such that we
+ * only collect statistics which don't incur reads from the index i.e. we would only collect stats
+ * that lucene would already have read into memory when the reader was opened.
  */
 public class LuceneIndexStatistics implements IndexStatistics {
+
     private static final Logger LOG = LoggerFactory.getLogger(LuceneIndexStatistics.class);
     private final int numDocs;
     private final Map<String, Integer> numDocsForField;
@@ -63,18 +63,20 @@ public class LuceneIndexStatistics implements IndexStatistics {
             }
             fields = MultiFields.getFields(reader);
         } catch (IOException e) {
-            LOG.warn("Couldn't open fields for reader ({}). Won't extract doc count per field", reader);
+            LOG.warn("Couldn't open fields for reader ({}). Won't extract doc count per field",
+                reader);
             numDocsForField = null;
         }
 
-
         if (fields != null) {
-            for(String f : fields) {
+            for (String f : fields) {
                 if (isPropertyField(f)) {
                     int docCntForField = -1;
                     try {
-                        if (failReadingSyntheticallyFalliableField && SYNTHETICALLY_FALLIABLE_FIELD.equals(f)) {
-                            throw new IOException("Synthetically fail to read count for field jcr:title");
+                        if (failReadingSyntheticallyFalliableField
+                            && SYNTHETICALLY_FALLIABLE_FIELD.equals(f)) {
+                            throw new IOException(
+                                "Synthetically fail to read count for field jcr:title");
                         }
                         docCntForField = reader.getDocCount(f);
                     } catch (IOException e) {
@@ -103,12 +105,11 @@ public class LuceneIndexStatistics implements IndexStatistics {
 
     /**
      * @param field Index field for which number of indexed documents are to be return
-     * @return number of indexed documents (without subtracting potentially deleted ones)
-     *         for the given {@code field}.<br>
-     *         -1: if index codec doesn't store doc-count-for-field statistics, OR <br>
-     *             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;reader threw an exception while reading fields, OR <br>
-     *             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;exception thrown while reading count for the field, OR <br>
-     *             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;doc-count is asked for a non-property field.
+     * @return number of indexed documents (without subtracting potentially deleted ones) for the
+     * given {@code field}.<br> -1: if index codec doesn't store doc-count-for-field statistics, OR
+     * <br> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;reader threw an exception while reading fields, OR
+     * <br> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;exception thrown while reading count for the field,
+     * OR <br> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;doc-count is asked for a non-property field.
      */
     public int getDocCountFor(String field) {
         if (!safelyInitialized) {

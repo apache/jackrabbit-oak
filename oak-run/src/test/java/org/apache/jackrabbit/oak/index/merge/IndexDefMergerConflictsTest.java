@@ -21,16 +21,14 @@ package org.apache.jackrabbit.oak.index.merge;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 
+import groovy.json.StringEscapeUtils;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
-
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
-
-import groovy.json.StringEscapeUtils;
 
 /**
  * Test merging conflict detection
@@ -40,28 +38,30 @@ public class IndexDefMergerConflictsTest extends ParameterizedMergingTestBase {
 
     @Parameters(name = "{0}")
     public static Collection<Object[]> data() {
-        return Arrays.asList(new Object[][] {
-                testCase("product and custom properties must equal if not in ancestor",
-                        "conflict-new-properties.json")
+        return Arrays.asList(new Object[][]{
+            testCase("product and custom properties must equal if not in ancestor",
+                "conflict-new-properties.json")
         });
     }
 
     private final String expectedMessage;
 
     public IndexDefMergerConflictsTest(String name, String testCaseFile)
-            throws IOException {
+        throws IOException {
         super(name, testCaseFile);
-        this.expectedMessage = StringEscapeUtils.unescapeJavaScript(testCase.getProperties().get("expected"));
+        this.expectedMessage = StringEscapeUtils.unescapeJavaScript(
+            testCase.getProperties().get("expected"));
     }
 
     @Test
     public void verifyExpectedConflict() {
         UnsupportedOperationException exception = assertThrows(
-                "Expected exception not thrown for test case:" + super.testCaseName,
-                UnsupportedOperationException.class,
-                () -> IndexDefMergerUtils.merge(buildIndexes, runIndexes));
-        assertEquals("Unexpected exception message validating: " + super.testCaseName, "" + expectedMessage,
-                "\"" + exception.getMessage() + "\"");
+            "Expected exception not thrown for test case:" + super.testCaseName,
+            UnsupportedOperationException.class,
+            () -> IndexDefMergerUtils.merge(buildIndexes, runIndexes));
+        assertEquals("Unexpected exception message validating: " + super.testCaseName,
+            "" + expectedMessage,
+            "\"" + exception.getMessage() + "\"");
     }
 
 }

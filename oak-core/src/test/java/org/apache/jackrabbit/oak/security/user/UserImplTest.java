@@ -16,9 +16,18 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+import static javax.jcr.Property.JCR_PRIMARY_TYPE;
+import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.NT_REP_GROUP;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 import javax.jcr.Credentials;
 import javax.jcr.RepositoryException;
-
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -32,16 +41,6 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import static javax.jcr.Property.JCR_PRIMARY_TYPE;
-import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.NT_REP_GROUP;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class UserImplTest extends AbstractSecurityTest {
 

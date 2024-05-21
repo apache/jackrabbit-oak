@@ -21,7 +21,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.channels.Channels;
 import java.nio.channels.WritableByteChannel;
-
 import org.apache.commons.io.HexDump;
 import org.apache.jackrabbit.oak.commons.Buffer;
 

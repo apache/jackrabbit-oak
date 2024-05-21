@@ -22,7 +22,6 @@ package org.apache.jackrabbit.oak.plugins.index.search;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.base.Throwables;
 import org.apache.jackrabbit.guava.common.base.Ticker;
@@ -32,18 +31,18 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Track of bad (corrupt) indexes.
- *
- * An index can be corrupt for reads (an exception was thrown when index was
- * opened for query), and persistent (an exception was thrown when index is
- * reopened after an update).
- *
- * Indexes marked bad for reads might become good again later, if another
- * cluster node fixed the corruption (eg. by reindexing).
+ * <p>
+ * An index can be corrupt for reads (an exception was thrown when index was opened for query), and
+ * persistent (an exception was thrown when index is reopened after an update).
+ * <p>
+ * Indexes marked bad for reads might become good again later, if another cluster node fixed the
+ * corruption (eg. by reindexing).
  */
 public class BadIndexTracker {
+
     /**
-     * Time interval in millis after which a bad index would be accessed again
-     * to check if it has been fixed
+     * Time interval in millis after which a bad index would be accessed again to check if it has
+     * been fixed
      */
     private static final long DEFAULT_RECHECK_INTERVAL = TimeUnit.MINUTES.toMillis(15);
 
@@ -61,7 +60,7 @@ public class BadIndexTracker {
     public BadIndexTracker(long recheckIntervalMillis) {
         this.recheckIntervalMillis = recheckIntervalMillis;
         log.info("Bad Index recheck interval set to {} seconds",
-                TimeUnit.MILLISECONDS.toSeconds(recheckIntervalMillis));
+            TimeUnit.MILLISECONDS.toSeconds(recheckIntervalMillis));
     }
 
     public void markGoodIndexes(Set<String> updatedIndexPaths) {
@@ -76,16 +75,16 @@ public class BadIndexTracker {
         badPersistedIndexes.remove(indexPath);
         if (info != null) {
             log.info("Index [{}] which was not working {} is found to be healthy again",
-                    indexPath, info.getStats());
+                indexPath, info.getStats());
         }
     }
 
     /**
-     * Invoked to mark a persisted index as bad i.e. where exception is thrown when index is reopened
-     * after update
+     * Invoked to mark a persisted index as bad i.e. where exception is thrown when index is
+     * reopened after update
      *
      * @param path index path
-     * @param e exception
+     * @param e    exception
      */
     public void markBadPersistedIndex(String path, Throwable e) {
         BadIndexInfo badIndex = badPersistedIndexes.get(path);
@@ -95,13 +94,13 @@ public class BadIndexTracker {
         } else {
             badIndex.failedAccess(e);
             log.error("Could not open the Fulltext index at [{}] . {}",
-                    path, badIndex.getStats(), e);
+                path, badIndex.getStats(), e);
         }
     }
 
     /**
-     * Invoked to mark a local index as bad i.e. where exception was thrown when index was
-     * opened for query. It can h
+     * Invoked to mark a local index as bad i.e. where exception was thrown when index was opened
+     * for query. It can h
      */
     public void markBadIndexForRead(String path, Throwable e) {
         BadIndexInfo badIndex = badIndexesForRead.get(path);
@@ -111,7 +110,7 @@ public class BadIndexTracker {
         } else {
             badIndex.failedAccess(e);
             log.error("Could not access the Fulltext index at [{}] . {}",
-                    path, badIndex.getStats(), e);
+                path, badIndex.getStats(), e);
         }
     }
 
@@ -127,7 +126,7 @@ public class BadIndexTracker {
         return badIndexesForRead.keySet();
     }
 
-    public BadIndexInfo getInfo(String indexPath){
+    public BadIndexInfo getInfo(String indexPath) {
         return badIndexesForRead.get(indexPath);
     }
 
@@ -135,7 +134,7 @@ public class BadIndexTracker {
         return badPersistedIndexes.keySet();
     }
 
-    public BadIndexInfo getPersistedIndexInfo(String indexPath){
+    public BadIndexInfo getPersistedIndexInfo(String indexPath) {
         return badPersistedIndexes.get(indexPath);
     }
 
@@ -147,11 +146,12 @@ public class BadIndexTracker {
         this.ticker = ticker;
     }
 
-    public boolean hasBadIndexes(){
+    public boolean hasBadIndexes() {
         return !(badIndexesForRead.isEmpty() && badPersistedIndexes.isEmpty());
     }
 
     public class BadIndexInfo {
+
         public final String path;
         final int lastIndexerCycleCount = indexerCycleCount;
         private final long createdTime = TimeUnit.NANOSECONDS.toMillis(ticker.read());
@@ -178,14 +178,15 @@ public class BadIndexTracker {
             }
 
             if (log.isDebugEnabled()) {
-                log.debug("Ignoring index [{}] which is not working correctly {}", path, getStats());
+                log.debug("Ignoring index [{}] which is not working correctly {}", path,
+                    getStats());
             }
             return false;
         }
 
         public String getStats() {
             return String.format("since %s ,%d indexing cycles, accessed %d times",
-                    created, getCycleCount(), accessCount);
+                created, getCycleCount(), accessCount);
         }
 
         public int getFailedAccessCount() {

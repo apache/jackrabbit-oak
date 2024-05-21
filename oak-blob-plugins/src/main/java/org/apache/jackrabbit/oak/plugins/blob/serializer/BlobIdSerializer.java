@@ -28,12 +28,12 @@ import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 
 /**
  * Blob serializer which serializes blobs depending on type
- *
- * In memory blobs (having contentIdentity as null) would be serialized as base64
- * encoded string. For normal blobs there contentIdentity would be the serialized
- * value
+ * <p>
+ * In memory blobs (having contentIdentity as null) would be serialized as base64 encoded string.
+ * For normal blobs there contentIdentity would be the serialized value
  */
 public class BlobIdSerializer extends BlobSerializer implements BlobDeserializer {
+
     private static final String PREFIX = "0y";
     private final Base64BlobSerializer base64 = new Base64BlobSerializer();
     private final BlobStore blobStore;

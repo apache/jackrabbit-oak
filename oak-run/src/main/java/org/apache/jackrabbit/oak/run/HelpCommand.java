@@ -17,10 +17,10 @@
 
 package org.apache.jackrabbit.oak.run;
 
+import static org.apache.jackrabbit.oak.run.AvailableModes.MODES;
+
 import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.oak.run.commons.Command;
-
-import static org.apache.jackrabbit.oak.run.AvailableModes.MODES;
 
 class HelpCommand implements Command {
 

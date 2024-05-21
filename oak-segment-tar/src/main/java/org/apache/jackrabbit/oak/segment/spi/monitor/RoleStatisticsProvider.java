@@ -26,7 +26,7 @@ import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatsOptions;
 import org.apache.jackrabbit.oak.stats.TimerStats;
 
-public class RoleStatisticsProvider implements StatisticsProvider{
+public class RoleStatisticsProvider implements StatisticsProvider {
 
     private final StatisticsProvider delegate;
     private final String role;
@@ -45,7 +45,8 @@ public class RoleStatisticsProvider implements StatisticsProvider{
 
             @Override
             public TimeSeries getTimeSeries(String type, boolean resetValueEachSecond) {
-                return delegate.getStats().getTimeSeries(addRoleToName(type, role), resetValueEachSecond);
+                return delegate.getStats()
+                               .getTimeSeries(addRoleToName(type, role), resetValueEachSecond);
             }
         };
     }

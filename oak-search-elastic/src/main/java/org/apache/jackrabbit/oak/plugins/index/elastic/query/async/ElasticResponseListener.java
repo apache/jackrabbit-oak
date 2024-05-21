@@ -19,11 +19,10 @@ package org.apache.jackrabbit.oak.plugins.index.elastic.query.async;
 import co.elastic.clients.elasticsearch._types.aggregations.Aggregate;
 import co.elastic.clients.elasticsearch.core.search.Hit;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
-import org.osgi.annotation.versioning.ProviderType;
-
 import java.util.Map;
 import java.util.Set;
+import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
+import org.osgi.annotation.versioning.ProviderType;
 
 /**
  * Generic listener of Elastic response
@@ -60,14 +59,16 @@ public interface ElasticResponseListener {
         }
 
         /**
-         * This method is invoked at the beginning of the listener lifecycle to notify the number of hits this
-         * listener could receive
+         * This method is invoked at the beginning of the listener lifecycle to notify the number of
+         * hits this listener could receive
+         *
          * @param totalHits the total number of hits
          */
         default void startData(long totalHits) { /*empty*/ }
 
         /**
          * This method is called for each {@link Hit} retrieved
+         *
          * @param searchHit a search result
          * @return true if the search hit was successfully processed, false otherwise
          */
@@ -81,7 +82,9 @@ public interface ElasticResponseListener {
 
         /**
          * This method is called once when the aggregations are retrieved
-         * @param aggregations the {@link Map} with aggregations or {@code null} if there are no results
+         *
+         * @param aggregations the {@link Map} with aggregations or {@code null} if there are no
+         *                     results
          */
         void on(Map<String, Aggregate> aggregations);
     }

@@ -21,9 +21,8 @@ package org.apache.jackrabbit.oak.segment.spi.persistence;
 import java.io.IOException;
 
 /**
- * This type represents the lock that has been already acquired on the segment
- * store. The lock should prevent local and remote processes from accessing the
- * same segment store.
+ * This type represents the lock that has been already acquired on the segment store. The lock
+ * should prevent local and remote processes from accessing the same segment store.
  */
 public interface RepositoryLock {
 

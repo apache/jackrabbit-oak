@@ -55,7 +55,7 @@ public class MongodProcess {
     private final MongodConfig config;
 
     MongodProcess(MongodStarter starter, String rsName, int port)
-            throws IOException {
+        throws IOException {
         this.starter = starter;
         this.config = createConfiguration(rsName, port);
     }
@@ -99,18 +99,20 @@ public class MongodProcess {
     }
 
     private MongodConfig createConfiguration(String rsName, int p)
-            throws IOException {
+        throws IOException {
         return ImmutableMongodConfig.builder()
-                .version(Versions.withFeatures(() -> VERSION, Feature.NO_HTTP_INTERFACE_ARG))
-                .net(new Net(InetAddress.getLoopbackAddress().getHostAddress(), p, false))
-                .replication(newStorage(p, rsName))
-                // enable journal
-                .cmdOptions(ImmutableMongoCmdOptions.builder()
-                        .useNoPrealloc(false)
-                        .useNoJournal(false)
-                        .useSmallFiles(false)
-                        .build())
-                .build();
+                                    .version(Versions.withFeatures(() -> VERSION,
+                                        Feature.NO_HTTP_INTERFACE_ARG))
+                                    .net(new Net(InetAddress.getLoopbackAddress().getHostAddress(),
+                                        p, false))
+                                    .replication(newStorage(p, rsName))
+                                    // enable journal
+                                    .cmdOptions(ImmutableMongoCmdOptions.builder()
+                                                                        .useNoPrealloc(false)
+                                                                        .useNoJournal(false)
+                                                                        .useSmallFiles(false)
+                                                                        .build())
+                                    .build();
     }
 
     private Storage newStorage(int port, String rs) throws IOException {

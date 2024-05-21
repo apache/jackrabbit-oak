@@ -23,7 +23,6 @@ import static org.apache.jackrabbit.oak.commons.IOUtils.closeQuietly;
 
 import java.io.IOException;
 import java.io.InputStream;
-
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.segment.SegmentBlob;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
@@ -103,7 +102,8 @@ class RemoteBlobProcessor implements BlobProcessor {
         try {
             data = blobStore.getInputStream(blobId);
         } catch (Exception e) {
-            logger.warn("Unable to open a stream for blob {}, the blob will be downloaded", blobId, e);
+            logger.warn("Unable to open a stream for blob {}, the blob will be downloaded", blobId,
+                e);
             return true;
         }
 
@@ -114,7 +114,8 @@ class RemoteBlobProcessor implements BlobProcessor {
         try {
             data.read();
         } catch (Exception e) {
-            logger.warn("Unable to read the content for blob {}, the blob will be downloaded", blobId, e);
+            logger.warn("Unable to read the content for blob {}, the blob will be downloaded",
+                blobId, e);
             return true;
         } finally {
             closeQuietly(data);

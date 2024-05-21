@@ -26,6 +26,6 @@ public class MemoryBlobStoreTest extends AbstractBlobStoreTest {
         store = new MemoryBlobStore();
         store.setBlockSize(128);
         ((MemoryBlobStore) store).setBlockSizeMin(48);
-    }    
+    }
 
 }

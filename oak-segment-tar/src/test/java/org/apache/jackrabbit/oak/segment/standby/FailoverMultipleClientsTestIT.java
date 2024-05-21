@@ -22,7 +22,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
 import java.io.File;
-
 import org.apache.jackrabbit.oak.commons.junit.TemporaryPort;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.SegmentTestUtils;
@@ -51,9 +50,9 @@ public class FailoverMultipleClientsTestIT extends TestBase {
 
     @Rule
     public RuleChain chain = RuleChain.outerRule(folder)
-            .around(serverFileStore)
-            .around(clientFileStore1)
-            .around(clientFileStore2);
+                                      .around(serverFileStore)
+                                      .around(clientFileStore1)
+                                      .around(clientFileStore2);
 
     @Test
     public void testMultipleClients() throws Exception {
@@ -64,35 +63,37 @@ public class FailoverMultipleClientsTestIT extends TestBase {
         NodeStore store = SegmentNodeStoreBuilders.builder(storeS).build();
         try (
             StandbyServerSync serverSync = StandbyServerSync.builder()
-                .withPort(serverPort.getPort())
-                .withFileStore(storeS)
-                .withBlobChunkSize(MB)
-                .build();
+                                                            .withPort(serverPort.getPort())
+                                                            .withFileStore(storeS)
+                                                            .withBlobChunkSize(MB)
+                                                            .build();
             StandbyClientSync cl1 = StandbyClientSync.builder()
-                .withHost(getServerHost())
-                .withPort(serverPort.getPort())
-                .withFileStore(storeC)
-                .withSecureConnection(false)
-                .withReadTimeoutMs(getClientTimeout())
-                .withAutoClean(false)
-                .withSpoolFolder(folder.newFolder())
-                .build();
+                                                     .withHost(getServerHost())
+                                                     .withPort(serverPort.getPort())
+                                                     .withFileStore(storeC)
+                                                     .withSecureConnection(false)
+                                                     .withReadTimeoutMs(getClientTimeout())
+                                                     .withAutoClean(false)
+                                                     .withSpoolFolder(folder.newFolder())
+                                                     .build();
             StandbyClientSync cl2 = StandbyClientSync.builder()
-                .withHost(getServerHost())
-                .withPort(serverPort.getPort())
-                .withFileStore(storeC2)
-                .withSecureConnection(false)
-                .withReadTimeoutMs(getClientTimeout())
-                .withAutoClean(false)
-                .withSpoolFolder(folder.newFolder())
-                .build()
+                                                     .withHost(getServerHost())
+                                                     .withPort(serverPort.getPort())
+                                                     .withFileStore(storeC2)
+                                                     .withSecureConnection(false)
+                                                     .withReadTimeoutMs(getClientTimeout())
+                                                     .withAutoClean(false)
+                                                     .withSpoolFolder(folder.newFolder())
+                                                     .build()
         ) {
             serverSync.start();
             SegmentTestUtils.addTestContent(store, "server");
             storeS.flush();  // this speeds up the test a little bit...
 
-            assertFalse("first client has invalid initial store!", storeS.getHead().equals(storeC.getHead()));
-            assertFalse("second client has invalid initial store!", storeS.getHead().equals(storeC2.getHead()));
+            assertFalse("first client has invalid initial store!",
+                storeS.getHead().equals(storeC.getHead()));
+            assertFalse("second client has invalid initial store!",
+                storeS.getHead().equals(storeC2.getHead()));
             assertEquals(storeC.getHead(), storeC2.getHead());
 
             cl1.run();
@@ -108,7 +109,8 @@ public class FailoverMultipleClientsTestIT extends TestBase {
             cl2.run();
 
             assertEquals(storeS.getHead(), storeC2.getHead());
-            assertFalse("first client updated in stopped state!", storeS.getHead().equals(storeC.getHead()));
+            assertFalse("first client updated in stopped state!",
+                storeS.getHead().equals(storeC.getHead()));
 
             cl1.start();
             cl1.run();

@@ -17,19 +17,7 @@
  */
 package org.apache.jackrabbit.oak.segment.remote.persistentcache;
 
-import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.oak.commons.Buffer;
-import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
-import org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache.AbstractPersistentCache;
-import org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache.SegmentCacheStats;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import redis.clients.jedis.Jedis;
-import redis.clients.jedis.JedisPool;
-import redis.clients.jedis.JedisPoolConfig;
-import redis.clients.jedis.exceptions.JedisException;
-import redis.clients.jedis.params.SetParams;
+import static org.apache.jackrabbit.oak.segment.remote.RemoteUtilities.OFF_HEAP;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -39,10 +27,21 @@ import java.nio.channels.WritableByteChannel;
 import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-
-import static org.apache.jackrabbit.oak.segment.remote.RemoteUtilities.OFF_HEAP;
+import org.apache.jackrabbit.guava.common.base.Stopwatch;
+import org.apache.jackrabbit.oak.commons.Buffer;
+import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
+import org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache.AbstractPersistentCache;
+import org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache.SegmentCacheStats;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import redis.clients.jedis.Jedis;
+import redis.clients.jedis.JedisPool;
+import redis.clients.jedis.JedisPoolConfig;
+import redis.clients.jedis.exceptions.JedisException;
+import redis.clients.jedis.params.SetParams;
 
 public class PersistentRedisCache extends AbstractPersistentCache {
+
     private static final Logger logger = LoggerFactory.getLogger(PersistentRedisCache.class);
     public static final int DEFAULT_REDIS_CACHE_EXPIRE_SECONDS = 3600 * 24 * 2;
     public static final String NAME = "Segment Redis Cache";
@@ -52,11 +51,14 @@ public class PersistentRedisCache extends AbstractPersistentCache {
     private final JedisPool redisPool;
     private final SetParams setParamsWithExpire;
 
-    public PersistentRedisCache(String redisHost, int redisPort, int redisExpireSeconds, int redisSocketTimeout,
-            int redisConnectionTimeout, int redisMinConnections, int redisMaxConnections, int redisMaxTotalConnections,
-            int redisDBIndex, IOMonitor redisCacheIOMonitor) {
+    public PersistentRedisCache(String redisHost, int redisPort, int redisExpireSeconds,
+        int redisSocketTimeout,
+        int redisConnectionTimeout, int redisMinConnections, int redisMaxConnections,
+        int redisMaxTotalConnections,
+        int redisDBIndex, IOMonitor redisCacheIOMonitor) {
         this.redisCacheIOMonitor = redisCacheIOMonitor;
-        int redisExpireSeconds1 = redisExpireSeconds < 0 ? DEFAULT_REDIS_CACHE_EXPIRE_SECONDS : redisExpireSeconds;
+        int redisExpireSeconds1 =
+            redisExpireSeconds < 0 ? DEFAULT_REDIS_CACHE_EXPIRE_SECONDS : redisExpireSeconds;
         setParamsWithExpire = SetParams.setParams().ex(redisExpireSeconds1);
 
         if (redisPort == 0) {
@@ -70,14 +72,16 @@ public class PersistentRedisCache extends AbstractPersistentCache {
         jedisPoolConfig.setMaxIdle(redisMaxConnections);
         jedisPoolConfig.setMaxTotal(redisMaxTotalConnections);
 
-        this.redisPool = new JedisPool(jedisPoolConfig, redisHost, redisPort, redisConnectionTimeout,
-                redisSocketTimeout, null, redisDBIndex, null);
-        this.segmentCacheStats = new SegmentCacheStats(NAME, this::getRedisMaxMemory, this::getCacheElementCount,
-                this::getCurrentWeight, this::getNumberOfEvictedKeys);
+        this.redisPool = new JedisPool(jedisPoolConfig, redisHost, redisPort,
+            redisConnectionTimeout,
+            redisSocketTimeout, null, redisDBIndex, null);
+        this.segmentCacheStats = new SegmentCacheStats(NAME, this::getRedisMaxMemory,
+            this::getCacheElementCount,
+            this::getCurrentWeight, this::getNumberOfEvictedKeys);
     }
 
     private long getCacheElementCount() {
-        try(Jedis redis = redisPool.getResource()) {
+        try (Jedis redis = redisPool.getResource()) {
             return redis.dbSize();
         } catch (JedisException e) {
             logger.error("Error getting number of elements in redis", e);
@@ -87,8 +91,8 @@ public class PersistentRedisCache extends AbstractPersistentCache {
     }
 
     private long getRedisMaxMemory() {
-        try{
-            return Long.parseLong(getRedisProperty("memory",   "maxmemory"));
+        try {
+            return Long.parseLong(getRedisProperty("memory", "maxmemory"));
         } catch (JedisException | IOException e) {
             logger.error("Error getting redis configuration value for 'maxmemory'", e);
         }
@@ -96,8 +100,8 @@ public class PersistentRedisCache extends AbstractPersistentCache {
     }
 
     private long getCurrentWeight() {
-        try{
-            return Long.parseLong(getRedisProperty("memory",   "used_memory"));
+        try {
+            return Long.parseLong(getRedisProperty("memory", "used_memory"));
         } catch (JedisException | IOException e) {
             logger.error("Error getting number of elements in redis", e);
         }
@@ -105,8 +109,8 @@ public class PersistentRedisCache extends AbstractPersistentCache {
     }
 
     private long getNumberOfEvictedKeys() {
-        try{
-            return Long.parseLong(getRedisProperty("stats",   "evicted_keys"));
+        try {
+            return Long.parseLong(getRedisProperty("stats", "evicted_keys"));
         } catch (JedisException | IOException e) {
             logger.error("Error getting number of evicted elements in redis", e);
         }
@@ -114,7 +118,7 @@ public class PersistentRedisCache extends AbstractPersistentCache {
     }
 
     private String getRedisProperty(String section, String propertyName) throws IOException {
-        try(Jedis redis = redisPool.getResource()) {
+        try (Jedis redis = redisPool.getResource()) {
             String redisInfoString = redis.info(section);
             Properties props = new Properties();
             props.load(new StringReader(redisInfoString));
@@ -127,7 +131,7 @@ public class PersistentRedisCache extends AbstractPersistentCache {
         String segmentId = new UUID(msb, lsb).toString();
 
         Stopwatch stopwatch = Stopwatch.createStarted();
-        try(Jedis redis = redisPool.getResource()) {
+        try (Jedis redis = redisPool.getResource()) {
             redisCacheIOMonitor.beforeSegmentRead(null, msb, lsb, 0);
 
             final byte[] bytes = redis.get((REDIS_PREFIX + ":" + segmentId).getBytes());
@@ -173,7 +177,8 @@ public class PersistentRedisCache extends AbstractPersistentCache {
         Runnable task = () -> {
             if (writesPending.add(segmentId)) {
                 final ByteArrayOutputStream bos = new ByteArrayOutputStream();
-                try (WritableByteChannel channel = Channels.newChannel(bos); Jedis redis = redisPool.getResource()) {
+                try (WritableByteChannel channel = Channels.newChannel(
+                    bos); Jedis redis = redisPool.getResource()) {
                     while (bufferCopy.hasRemaining()) {
                         bufferCopy.write(channel);
                     }
@@ -181,7 +186,8 @@ public class PersistentRedisCache extends AbstractPersistentCache {
                     redis.set(key, bos.toByteArray(), setParamsWithExpire);
                     cacheSize.addAndGet(bos.size());
                 } catch (Throwable t) {
-                    logger.debug("Unable to write segment {} to cache: {}", segmentId, t.getMessage());
+                    logger.debug("Unable to write segment {} to cache: {}", segmentId,
+                        t.getMessage());
                 } finally {
                     writesPending.remove(segmentId);
                 }

@@ -29,7 +29,6 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.util.Random;
-
 import org.apache.jackrabbit.core.data.FileDataStore;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -48,6 +47,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 public class BinariesInlineThresholdIT {
+
     private static final int SMALL_BINARIES_INLINE_THRESHOLD = 1024;
 
     @Rule
@@ -60,23 +60,24 @@ public class BinariesInlineThresholdIT {
         return new DataStoreBlobStore(fds);
     }
 
-	 private FileStore createFileStore(File dir, BlobStore blobStore, int binariesInlineThreshold) throws Throwable {
-	     FileStoreBuilder builder = fileStoreBuilder(dir)
-                .withMaxFileSize(1)
-                .withMemoryMapping(false)
-                .withNodeDeduplicationCacheSize(1)
-                .withSegmentCacheSize(256)
-                .withStringCacheSize(0)
-                .withTemplateCacheSize(0)
-                .withBinariesInlineThreshold(binariesInlineThreshold);
-        
-	     if (blobStore != null) {
-	         builder.withBlobStore(blobStore);
-	     }
+    private FileStore createFileStore(File dir, BlobStore blobStore, int binariesInlineThreshold)
+        throws Throwable {
+        FileStoreBuilder builder = fileStoreBuilder(dir)
+            .withMaxFileSize(1)
+            .withMemoryMapping(false)
+            .withNodeDeduplicationCacheSize(1)
+            .withSegmentCacheSize(256)
+            .withStringCacheSize(0)
+            .withTemplateCacheSize(0)
+            .withBinariesInlineThreshold(binariesInlineThreshold);
 
-	     return builder.build();
+        if (blobStore != null) {
+            builder.withBlobStore(blobStore);
+        }
+
+        return builder.build();
     }
-	
+
     @Test
     public void testInlineBinaries() throws Throwable {
         File fileStoreDir = folder.newFolder();
@@ -171,7 +172,8 @@ public class BinariesInlineThresholdIT {
         return ps.getValue(Type.BINARY);
     }
 
-    private Blob addTestContent(NodeStore store, String child, int size) throws CommitFailedException, IOException {
+    private Blob addTestContent(NodeStore store, String child, int size)
+        throws CommitFailedException, IOException {
         NodeBuilder builder = store.getRoot().builder();
         builder.child(child).setProperty("ts", System.currentTimeMillis());
 

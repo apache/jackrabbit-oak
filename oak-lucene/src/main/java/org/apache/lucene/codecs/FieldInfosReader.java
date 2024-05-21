@@ -26,22 +26,26 @@ package org.apache.lucene.codecs;
  */
 
 import java.io.IOException;
-
 import org.apache.lucene.index.FieldInfos;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.IOContext;
 
 /**
  * Codec API for reading {@link FieldInfos}.
+ *
  * @lucene.experimental
  */
 public abstract class FieldInfosReader {
-  /** Sole constructor. (For invocation by subclass 
-   *  constructors, typically implicit.) */
-  protected FieldInfosReader() {
-  }
 
-  /** Read the {@link FieldInfos} previously written with {@link
-   *  FieldInfosWriter}. */
-  public abstract FieldInfos read(Directory directory, String segmentName, String segmentSuffix, IOContext iocontext) throws IOException;
+    /**
+     * Sole constructor. (For invocation by subclass constructors, typically implicit.)
+     */
+    protected FieldInfosReader() {
+    }
+
+    /**
+     * Read the {@link FieldInfos} previously written with {@link FieldInfosWriter}.
+     */
+    public abstract FieldInfos read(Directory directory, String segmentName, String segmentSuffix,
+        IOContext iocontext) throws IOException;
 }

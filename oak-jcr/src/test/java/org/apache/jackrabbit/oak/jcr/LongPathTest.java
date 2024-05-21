@@ -19,11 +19,9 @@ package org.apache.jackrabbit.oak.jcr;
 import static org.junit.Assert.assertEquals;
 
 import java.util.ArrayList;
-
 import javax.jcr.Node;
 import javax.jcr.Session;
 import javax.jcr.nodetype.ConstraintViolationException;
-
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.junit.Ignore;
 import org.junit.Test;

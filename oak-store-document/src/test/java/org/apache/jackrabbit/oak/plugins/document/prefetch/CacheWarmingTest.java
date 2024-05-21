@@ -86,7 +86,7 @@ public class CacheWarmingTest {
     public void noop1() {
         DocumentStore store = new MemoryDocumentStore();
         DocumentNodeStore ns = builderProvider.newBuilder()
-                .setDocumentStore(store).build();
+                                              .setDocumentStore(store).build();
         ns.prefetch(null, null);
     }
 
@@ -108,8 +108,9 @@ public class CacheWarmingTest {
         db = new CountingMongoDatabase(mongoConnection.getDatabase());
         MongoUtils.dropCollections(db);
         DocumentMK.Builder builder = new DocumentMK.Builder()
-                .clock(getTestClock()).setAsyncDelay(0);
-        MongoDocumentStore store = new MongoDocumentStore(mongoConnection.getMongoClient(), db, builder);
+            .clock(getTestClock()).setAsyncDelay(0);
+        MongoDocumentStore store = new MongoDocumentStore(mongoConnection.getMongoClient(), db,
+            builder);
 //        mk = builder.setDocumentStore(store).open();
         return store;
     }
@@ -139,7 +140,7 @@ public class CacheWarmingTest {
         DocumentStore ds = newMongoDocumentStore();
         CacheWarming cw = new CacheWarming(ds);
         DocumentNodeStore store = builderProvider.newBuilder().setAsyncDelay(0)
-                .setDocumentStore(ds).getNodeStore();
+                                                 .setDocumentStore(ds).getNodeStore();
         SortedSet<String> children = new TreeSet<String>();
         NodeBuilder builder = store.getRoot().builder();
         for (int i = 0; i < 10; i++) {
@@ -169,19 +170,20 @@ public class CacheWarmingTest {
     }
 
     private void doSimple(boolean cleanCaches, boolean prefetch)
-            throws InterruptedException, CommitFailedException {
-        System.out.println("=== doSimple( cleanCaches = " + cleanCaches + ", prefetch = " + prefetch + " )");
+        throws InterruptedException, CommitFailedException {
+        System.out.println(
+            "=== doSimple( cleanCaches = " + cleanCaches + ", prefetch = " + prefetch + " )");
         Stopwatch sw = Stopwatch.createStarted();
         DocumentStore ds = newMongoDocumentStore();
         final CountingDocumentStore cds = new CountingDocumentStore(ds);
         logAndReset("after init      ", cds, sw);
         DocumentNodeStore store = builderProvider.newBuilder().setAsyncDelay(0)
-                .setDocumentStore(cds).getNodeStore();
+                                                 .setDocumentStore(cds).getNodeStore();
         NodeBuilder builder = store.getRoot().builder();
         SortedSet<String> children = new TreeSet<String>();
         // create a bunch of nodes
         // make it 4 levels deep to avoid things like 'readChildren' to be able to use optimizations such as query()
-        for (int i = 0; i < 4*1024; i++) {
+        for (int i = 0; i < 4 * 1024; i++) {
             String name = "c" + i;
             children.add("/" + name + "/" + name + "/" + name + "/" + name);
             builder.child(name).child(name).child(name).child(name);
@@ -207,7 +209,8 @@ public class CacheWarmingTest {
         }
         // read the children again
         for (String aChild : root.getChildNodeNames()) {
-            assertTrue(root.getChildNode(aChild).getChildNode(aChild).getChildNode(aChild).getChildNode(aChild).exists());
+            assertTrue(root.getChildNode(aChild).getChildNode(aChild).getChildNode(aChild)
+                           .getChildNode(aChild).exists());
         }
         // raw find calls must be reasonably low with prefetch
         int rawFindCalls = getRawFindCalls();
@@ -231,15 +234,15 @@ public class CacheWarmingTest {
     }
 
     private void logAndReset(String context,
-                             CountingDocumentStore cds,
-                             Stopwatch sw) {
+        CountingDocumentStore cds,
+        Stopwatch sw) {
         System.out.println(context
-                + " -> createOrUpdateCalls = " + cds.getNumCreateOrUpdateCalls(Collection.NODES)
-                + ", findCalls = " + cds.getNumFindCalls(Collection.NODES)
-                + ", queryCalls = " + cds.getNumQueryCalls(Collection.NODES)
-                + ", removalCalls = " + cds.getNumRemoveCalls(Collection.NODES)
-                + ", rawFindCalls = " + getRawFindCalls()
-                + ", " + sw);
+            + " -> createOrUpdateCalls = " + cds.getNumCreateOrUpdateCalls(Collection.NODES)
+            + ", findCalls = " + cds.getNumFindCalls(Collection.NODES)
+            + ", queryCalls = " + cds.getNumQueryCalls(Collection.NODES)
+            + ", removalCalls = " + cds.getNumRemoveCalls(Collection.NODES)
+            + ", rawFindCalls = " + getRawFindCalls()
+            + ", " + sw);
         db.getCachedCountingCollection("nodes").resetFindCounter();
         cds.resetCounters();
         sw.reset().start();

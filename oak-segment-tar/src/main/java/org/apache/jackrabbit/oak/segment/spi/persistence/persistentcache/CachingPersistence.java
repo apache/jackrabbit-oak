@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache;
 
+import java.io.IOException;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.RemoteStoreMonitor;
@@ -26,23 +27,26 @@ import org.apache.jackrabbit.oak.segment.spi.persistence.RepositoryLock;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 
-import java.io.IOException;
-
 public class CachingPersistence implements SegmentNodeStorePersistence {
 
     private final SegmentNodeStorePersistence delegate;
 
     private final PersistentCache persistentCache;
 
-    public CachingPersistence(PersistentCache persistentCache, SegmentNodeStorePersistence delegate) {
+    public CachingPersistence(PersistentCache persistentCache,
+        SegmentNodeStorePersistence delegate) {
         this.delegate = delegate;
         this.persistentCache = persistentCache;
     }
 
     @Override
-    public SegmentArchiveManager createArchiveManager(boolean memoryMapping, boolean offHeapAccess, IOMonitor ioMonitor,
-            FileStoreMonitor fileStoreMonitor, RemoteStoreMonitor remoteStoreMonitor) throws IOException {
-        return  new CachingArchiveManager(persistentCache, delegate.createArchiveManager(memoryMapping, offHeapAccess, ioMonitor, fileStoreMonitor, remoteStoreMonitor));
+    public SegmentArchiveManager createArchiveManager(boolean memoryMapping, boolean offHeapAccess,
+        IOMonitor ioMonitor,
+        FileStoreMonitor fileStoreMonitor, RemoteStoreMonitor remoteStoreMonitor)
+        throws IOException {
+        return new CachingArchiveManager(persistentCache,
+            delegate.createArchiveManager(memoryMapping, offHeapAccess, ioMonitor, fileStoreMonitor,
+                remoteStoreMonitor));
     }
 
     @Override

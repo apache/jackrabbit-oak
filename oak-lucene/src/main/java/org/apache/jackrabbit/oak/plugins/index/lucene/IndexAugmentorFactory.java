@@ -20,14 +20,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.LinkedListMultimap;
-import org.apache.jackrabbit.guava.common.collect.ListMultimap;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Reference;
@@ -35,6 +27,13 @@ import org.apache.felix.scr.annotations.ReferenceCardinality;
 import org.apache.felix.scr.annotations.ReferencePolicy;
 import org.apache.felix.scr.annotations.References;
 import org.apache.felix.scr.annotations.Service;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
+import org.apache.jackrabbit.guava.common.collect.LinkedListMultimap;
+import org.apache.jackrabbit.guava.common.collect.ListMultimap;
+import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Maps;
+import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.plugins.index.lucene.spi.FulltextQueryTermsProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.spi.IndexFieldProvider;
@@ -51,19 +50,19 @@ import org.slf4j.LoggerFactory;
 @Component
 @Service(value = IndexAugmentorFactory.class)
 @References({
-        @Reference(name = "IndexFieldProvider",
-                policy = ReferencePolicy.DYNAMIC,
-                cardinality = ReferenceCardinality.OPTIONAL_MULTIPLE,
-                referenceInterface = IndexFieldProvider.class),
-        @Reference(name = "FulltextQueryTermsProvider",
-                policy = ReferencePolicy.DYNAMIC,
-                cardinality = ReferenceCardinality.OPTIONAL_MULTIPLE,
-                referenceInterface = FulltextQueryTermsProvider.class)
+    @Reference(name = "IndexFieldProvider",
+        policy = ReferencePolicy.DYNAMIC,
+        cardinality = ReferenceCardinality.OPTIONAL_MULTIPLE,
+        referenceInterface = IndexFieldProvider.class),
+    @Reference(name = "FulltextQueryTermsProvider",
+        policy = ReferencePolicy.DYNAMIC,
+        cardinality = ReferenceCardinality.OPTIONAL_MULTIPLE,
+        referenceInterface = FulltextQueryTermsProvider.class)
 })
 public class IndexAugmentorFactory {
 
     private static final PerfLogger PERFLOG = new PerfLogger(
-            LoggerFactory.getLogger(IndexAugmentorFactory.class.getName() + ".perf"));
+        LoggerFactory.getLogger(IndexAugmentorFactory.class.getName() + ".perf"));
 
     private final Set<IndexFieldProvider> indexFieldProviders;
     private final Set<FulltextQueryTermsProvider> fulltextQueryTermsProviders;
@@ -105,19 +104,21 @@ public class IndexAugmentorFactory {
         refreshIndexFieldProviders();
     }
 
-    synchronized void bindFulltextQueryTermsProvider(FulltextQueryTermsProvider fulltextQueryTermsProvider) {
+    synchronized void bindFulltextQueryTermsProvider(
+        FulltextQueryTermsProvider fulltextQueryTermsProvider) {
         fulltextQueryTermsProviders.add(fulltextQueryTermsProvider);
         refreshFulltextQueryTermsProviders();
     }
 
-    synchronized void unbindFulltextQueryTermsProvider(FulltextQueryTermsProvider fulltextQueryTermsProvider) {
+    synchronized void unbindFulltextQueryTermsProvider(
+        FulltextQueryTermsProvider fulltextQueryTermsProvider) {
         fulltextQueryTermsProviders.remove(fulltextQueryTermsProvider);
         refreshFulltextQueryTermsProviders();
     }
 
     private void refreshIndexFieldProviders() {
         ListMultimap<String, IndexFieldProvider> providerMultimap =
-                LinkedListMultimap.create();
+            LinkedListMultimap.create();
         for (IndexFieldProvider provider : indexFieldProviders) {
             Set<String> supportedNodeTypes = provider.getSupportedTypes();
             for (String nodeType : supportedNodeTypes) {
@@ -129,7 +130,7 @@ public class IndexAugmentorFactory {
         for (String nodeType : providerMultimap.keySet()) {
             List<IndexFieldProvider> providers = providerMultimap.get(nodeType);
             CompositeIndexFieldProvider compositeIndexFieldProvider =
-                    new CompositeIndexFieldProvider(nodeType, providers);
+                new CompositeIndexFieldProvider(nodeType, providers);
             providerMap.put(nodeType, compositeIndexFieldProvider);
         }
 
@@ -138,7 +139,7 @@ public class IndexAugmentorFactory {
 
     private void refreshFulltextQueryTermsProviders() {
         ListMultimap<String, FulltextQueryTermsProvider> providerMultimap =
-                LinkedListMultimap.create();
+            LinkedListMultimap.create();
         for (FulltextQueryTermsProvider provider : fulltextQueryTermsProviders) {
             Set<String> supportedNodeTypes = provider.getSupportedTypes();
             for (String nodeType : supportedNodeTypes) {
@@ -150,7 +151,7 @@ public class IndexAugmentorFactory {
         for (String nodeType : providerMultimap.keySet()) {
             List<FulltextQueryTermsProvider> providers = providerMultimap.get(nodeType);
             CompositeFulltextQueryTermsProvider compositeFulltextQueryTermsProvider =
-                    new CompositeFulltextQueryTermsProvider(nodeType, providers);
+                new CompositeFulltextQueryTermsProvider(nodeType, providers);
             providerMap.put(nodeType, compositeFulltextQueryTermsProvider);
         }
 
@@ -167,9 +168,9 @@ public class IndexAugmentorFactory {
 
     boolean isStateEmpty() {
         return indexFieldProviders.size() == 0 &&
-                indexFieldProviderMap.size() == 0 &&
-                fulltextQueryTermsProviders.size() == 0 &&
-                fulltextQueryTermsProviderMap.size() == 0;
+            indexFieldProviderMap.size() == 0 &&
+            fulltextQueryTermsProviders.size() == 0 &&
+            fulltextQueryTermsProviderMap.size() == 0;
     }
 
     class CompositeIndexFieldProvider implements IndexFieldProvider {
@@ -185,13 +186,14 @@ public class IndexAugmentorFactory {
         @NotNull
         @Override
         public List<Field> getAugmentedFields(final String path,
-                                              final NodeState document, final NodeState indexDefinition) {
+            final NodeState document, final NodeState indexDefinition) {
             List<Field> fields = Lists.newArrayList();
             for (IndexFieldProvider indexFieldProvider : providers) {
                 final long start = PERFLOG.start();
-                Iterable<Field> providedFields = indexFieldProvider.getAugmentedFields(path, document, indexDefinition);
+                Iterable<Field> providedFields = indexFieldProvider.getAugmentedFields(path,
+                    document, indexDefinition);
                 PERFLOG.end(start, 1, "indexFieldProvider: {}, path: {}, doc: {}, indexDef: {}",
-                        indexFieldProvider, path, document, indexDefinition);
+                    indexFieldProvider, path, document, indexDefinition);
                 for (Field f : providedFields) {
                     fields.add(f);
                 }
@@ -211,18 +213,22 @@ public class IndexAugmentorFactory {
         private final String nodeType;
         private final List<FulltextQueryTermsProvider> providers;
 
-        CompositeFulltextQueryTermsProvider(String nodeType, List<FulltextQueryTermsProvider> providers) {
+        CompositeFulltextQueryTermsProvider(String nodeType,
+            List<FulltextQueryTermsProvider> providers) {
             this.nodeType = nodeType;
             this.providers = ImmutableList.copyOf(providers);
         }
 
         @Override
-        public Query getQueryTerm(final String text, final Analyzer analyzer, NodeState indexDefinition) {
+        public Query getQueryTerm(final String text, final Analyzer analyzer,
+            NodeState indexDefinition) {
             List<Query> subQueries = Lists.newArrayList();
             for (FulltextQueryTermsProvider fulltextQueryTermsProvider : providers) {
                 final long start = PERFLOG.start();
-                Query subQuery = fulltextQueryTermsProvider.getQueryTerm(text, analyzer, indexDefinition);
-                PERFLOG.end(start, 1, "fulltextQueryTermsProvider: {}, text: {}", fulltextQueryTermsProvider, text);
+                Query subQuery = fulltextQueryTermsProvider.getQueryTerm(text, analyzer,
+                    indexDefinition);
+                PERFLOG.end(start, 1, "fulltextQueryTermsProvider: {}, text: {}",
+                    fulltextQueryTermsProvider, text);
                 if (subQuery != null) {
                     subQueries.add(subQuery);
                 }
@@ -235,7 +241,7 @@ public class IndexAugmentorFactory {
                 ret = subQueries.get(0);
             } else {
                 BooleanQuery query = new BooleanQuery();
-                for ( Query subQuery : subQueries ) {
+                for (Query subQuery : subQueries) {
                     query.add(subQuery, BooleanClause.Occur.SHOULD);
                 }
                 ret = query;

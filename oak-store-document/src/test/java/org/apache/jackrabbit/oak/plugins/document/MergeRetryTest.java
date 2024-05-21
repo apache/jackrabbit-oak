@@ -32,8 +32,8 @@ import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
 /**
- * Test for conflicts introduced by commit hook, which can be overcome by
- * retrying BranchState.merge().
+ * Test for conflicts introduced by commit hook, which can be overcome by retrying
+ * BranchState.merge().
  */
 public class MergeRetryTest {
 
@@ -42,12 +42,12 @@ public class MergeRetryTest {
         @Nullable
         @Override
         public Editor getRootEditor(
-                NodeState before, NodeState after, final NodeBuilder builder,
-                CommitInfo info) throws CommitFailedException {
+            NodeState before, NodeState after, final NodeBuilder builder,
+            CommitInfo info) throws CommitFailedException {
             return new DefaultEditor() {
                 @Override
                 public void enter(NodeState before, NodeState after)
-                        throws CommitFailedException {
+                    throws CommitFailedException {
                     if (!builder.hasChildNode("foo")) {
                         builder.child("foo");
                     }
@@ -120,8 +120,9 @@ public class MergeRetryTest {
     }
 
     private DocumentNodeStore createMK(int clusterId, int asyncDelay,
-            DocumentStore ds, BlobStore bs) {
+        DocumentStore ds, BlobStore bs) {
         return new DocumentMK.Builder().setDocumentStore(ds).setBlobStore(bs)
-                .setClusterId(clusterId).setAsyncDelay(asyncDelay).getNodeStore();
+                                       .setClusterId(clusterId).setAsyncDelay(asyncDelay)
+                                       .getNodeStore();
     }
 }

@@ -26,7 +26,6 @@ import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
 import javax.jcr.query.QueryResult;
 import javax.jcr.query.RowIterator;
-
 import org.apache.jackrabbit.core.query.AbstractQueryTest;
 
 /**
@@ -56,7 +55,7 @@ public class QueryFulltextTest extends AbstractQueryTest {
         QueryManager qm = session.getWorkspace().getQueryManager();
 
         String sql2 = "select [jcr:path] as [path] from [nt:base] " +
-                "where native('solr', '*:*')";
+            "where native('solr', '*:*')";
         Query q = qm.createQuery(sql2, Query.JCR_SQL2);
         QueryResult result = q.execute();
         NodeIterator nodes = result.getNodes();
@@ -79,7 +78,7 @@ public class QueryFulltextTest extends AbstractQueryTest {
 
         // lowercase "or" mean search for the term "or"
         String sql2 = "select [jcr:path] as [path] from [nt:base] " +
-                "where contains([text], 'hello or hallo') order by [jcr:path]";
+            "where contains([text], 'hello or hallo') order by [jcr:path]";
         Query q = qm.createQuery(sql2, Query.JCR_SQL2);
         assertEquals("", getResult(q.execute(), "path"));
 
@@ -98,27 +97,27 @@ public class QueryFulltextTest extends AbstractQueryTest {
 
         Query q;
 
-        String sql2 = "select [jcr:path] as [path] from [nt:base] " + 
-                "where ISCHILDNODE([/testroot])" + 
-                " AND CONTAINS(text, 'hallo')";
+        String sql2 = "select [jcr:path] as [path] from [nt:base] " +
+            "where ISCHILDNODE([/testroot])" +
+            " AND CONTAINS(text, 'hallo')";
 
         q = qm.createQuery(sql2, Query.JCR_SQL2);
         assertEquals("/testroot/node2, /testroot/node3", getResult(q.execute(), "path"));
 
         sql2 = "select [jcr:path] as [path] from [nt:base] "
-                + "where contains([node1/text], 'hello') order by [jcr:path]";
+            + "where contains([node1/text], 'hello') order by [jcr:path]";
         q = qm.createQuery(sql2, Query.JCR_SQL2);
         assertEquals("/testroot", getResult(q.execute(), "path"));
 
         sql2 = "select [jcr:path] as [path] from [nt:base] "
-                + "where contains([node2/text], 'hello OR hallo') order by [jcr:path]";
+            + "where contains([node2/text], 'hello OR hallo') order by [jcr:path]";
         q = qm.createQuery(sql2, Query.JCR_SQL2);
         assertEquals("/testroot", getResult(q.execute(), "path"));
 
         sql2 = "select [jcr:path] as [path] from [nt:base] "
-        + "where contains([node1/text], 'hello') "
-        + "and contains([node2/text], 'hallo') "
-        + "order by [jcr:path]";
+            + "where contains([node1/text], 'hello') "
+            + "and contains([node2/text], 'hallo') "
+            + "order by [jcr:path]";
         q = qm.createQuery(sql2, Query.JCR_SQL2);
         assertEquals("/testroot", getResult(q.execute(), "path"));
     }
@@ -136,7 +135,7 @@ public class QueryFulltextTest extends AbstractQueryTest {
         session.save();
 
         String sql2 = "select [jcr:path] as [path], [jcr:score], * from [nt:base] as a " +
-                "where [text] in('hello', 'hallo')";
+            "where [text] in('hello', 'hallo')";
 
         Query q = qm.createQuery(sql2, Query.JCR_SQL2);
         String path = getResult(q.execute(), "path");
@@ -155,5 +154,5 @@ public class QueryFulltextTest extends AbstractQueryTest {
         }
         return buff.toString();
     }
-    
+
 }

@@ -16,20 +16,19 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
+import static org.apache.jackrabbit.oak.spi.security.authentication.external.TestIdentityProvider.DEFAULT_IDP_NAME;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verifyNoInteractions;
+
+import java.util.Collections;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.DefaultValidator;
 import org.apache.jackrabbit.oak.spi.commit.SubtreeValidator;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
-
-import java.util.Collections;
-
-import static org.apache.jackrabbit.oak.spi.security.authentication.external.TestIdentityProvider.DEFAULT_IDP_NAME;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verifyNoInteractions;
 
 public class DynamicGroupValidatorProviderTest extends AbstractPrincipalTest {
 
@@ -38,14 +37,18 @@ public class DynamicGroupValidatorProviderTest extends AbstractPrincipalTest {
 
     @Test
     public void testGetRootValidatorEmptyIdpNames() {
-        DynamicGroupValidatorProvider provider = new DynamicGroupValidatorProvider(getRootProvider(), getTreeProvider(), getSecurityProvider(), Collections.emptySet());
-        assertSame(DefaultValidator.INSTANCE, provider.getRootValidator(nsBefore, nsAfter, CommitInfo.EMPTY));
+        DynamicGroupValidatorProvider provider = new DynamicGroupValidatorProvider(
+            getRootProvider(), getTreeProvider(), getSecurityProvider(), Collections.emptySet());
+        assertSame(DefaultValidator.INSTANCE,
+            provider.getRootValidator(nsBefore, nsAfter, CommitInfo.EMPTY));
         verifyNoInteractions(nsBefore, nsAfter);
     }
 
     @Test
     public void testGetRootValidatorWithIdpName() {
-        DynamicGroupValidatorProvider provider = new DynamicGroupValidatorProvider(getRootProvider(), getTreeProvider(), getSecurityProvider(), Collections.singleton(DEFAULT_IDP_NAME));
+        DynamicGroupValidatorProvider provider = new DynamicGroupValidatorProvider(
+            getRootProvider(), getTreeProvider(), getSecurityProvider(),
+            Collections.singleton(DEFAULT_IDP_NAME));
         Validator validator = provider.getRootValidator(nsBefore, nsAfter, CommitInfo.EMPTY);
         assertTrue(validator instanceof SubtreeValidator);
         verifyNoInteractions(nsBefore, nsAfter);

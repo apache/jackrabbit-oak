@@ -17,19 +17,6 @@
 
 package org.apache.jackrabbit.oak.blob.cloud.s3;
 
-import com.amazonaws.services.s3.model.CopyObjectRequest;
-import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
-import com.amazonaws.services.s3.model.GetObjectMetadataRequest;
-import com.amazonaws.services.s3.model.GetObjectRequest;
-import com.amazonaws.services.s3.model.InitiateMultipartUploadRequest;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.model.PutObjectRequest;
-import com.amazonaws.services.s3.model.SSEAlgorithm;
-import com.amazonaws.services.s3.model.SSEAwsKeyManagementParams;
-import com.amazonaws.services.s3.model.SSECustomerKey;
-
-import java.util.Properties;
-
 import static com.amazonaws.HttpMethod.GET;
 import static com.amazonaws.services.s3.model.SSEAlgorithm.AES256;
 import static com.amazonaws.util.StringUtils.hasValue;
@@ -40,11 +27,23 @@ import static org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants.S3_ENCRYPTION_
 import static org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants.S3_SSE_C_KEY;
 import static org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants.S3_SSE_KMS_KEYID;
 
+import com.amazonaws.services.s3.model.CopyObjectRequest;
+import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
+import com.amazonaws.services.s3.model.GetObjectMetadataRequest;
+import com.amazonaws.services.s3.model.GetObjectRequest;
+import com.amazonaws.services.s3.model.InitiateMultipartUploadRequest;
+import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.PutObjectRequest;
+import com.amazonaws.services.s3.model.SSEAlgorithm;
+import com.amazonaws.services.s3.model.SSEAwsKeyManagementParams;
+import com.amazonaws.services.s3.model.SSECustomerKey;
+import java.util.Properties;
+
 /**
  * This class to sets encrption mode in S3 request.
- *
  */
 public class S3RequestDecorator {
+
     DataEncryption dataEncryption = DataEncryption.NONE;
     SSEAwsKeyManagementParams sseParams;
 
@@ -102,8 +101,8 @@ public class S3RequestDecorator {
      */
     public PutObjectRequest decorate(PutObjectRequest request) {
         ObjectMetadata metadata = request.getMetadata() == null
-                                      ? new ObjectMetadata()
-                                      : request.getMetadata();
+            ? new ObjectMetadata()
+            : request.getMetadata();
         switch (getDataEncryption()) {
             case SSE_S3:
                 metadata.setSSEAlgorithm(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION);
@@ -128,8 +127,9 @@ public class S3RequestDecorator {
      */
     public CopyObjectRequest decorate(CopyObjectRequest request) {
         ObjectMetadata metadata = request.getNewObjectMetadata() == null
-                                      ? new ObjectMetadata()
-                                      : request.getNewObjectMetadata();;
+            ? new ObjectMetadata()
+            : request.getNewObjectMetadata();
+        ;
         switch (getDataEncryption()) {
             case SSE_S3:
                 metadata.setSSEAlgorithm(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION);
@@ -140,7 +140,8 @@ public class S3RequestDecorator {
                 break;
             case SSE_C:
                 metadata.setSSEAlgorithm(AES256.getAlgorithm());
-                request.withSourceSSECustomerKey(sseCustomerKey).withDestinationSSECustomerKey(sseCustomerKey);
+                request.withSourceSSECustomerKey(sseCustomerKey)
+                       .withDestinationSSECustomerKey(sseCustomerKey);
                 break;
             case NONE:
                 break;
@@ -151,8 +152,9 @@ public class S3RequestDecorator {
 
     public InitiateMultipartUploadRequest decorate(InitiateMultipartUploadRequest request) {
         ObjectMetadata metadata = request.getObjectMetadata() == null
-                                      ? new ObjectMetadata()
-                                      : request.getObjectMetadata();;
+            ? new ObjectMetadata()
+            : request.getObjectMetadata();
+        ;
         switch (getDataEncryption()) {
             case SSE_S3:
                 metadata.setSSEAlgorithm(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION);
@@ -173,19 +175,21 @@ public class S3RequestDecorator {
 
     public GeneratePresignedUrlRequest decorate(GeneratePresignedUrlRequest request) {
         switch (getDataEncryption()) {
-          case SSE_KMS:
-              if (request.getMethod() == GET) break; // KMS is not valid for GET Requests
-              String keyId = getSSEParams().getAwsKmsKeyId();
-              request = request.withSSEAlgorithm(SSEAlgorithm.KMS.getAlgorithm());
-              if (keyId != null) {
-                  request = request.withKmsCmkId(keyId);
-              }
-              break;
-          case SSE_C:
-              request = request.withSSECustomerKey(sseCustomerKey);
-              break;
-          default:
-              break;
+            case SSE_KMS:
+                if (request.getMethod() == GET) {
+                    break; // KMS is not valid for GET Requests
+                }
+                String keyId = getSSEParams().getAwsKmsKeyId();
+                request = request.withSSEAlgorithm(SSEAlgorithm.KMS.getAlgorithm());
+                if (keyId != null) {
+                    request = request.withKmsCmkId(keyId);
+                }
+                break;
+            case SSE_C:
+                request = request.withSSECustomerKey(sseCustomerKey);
+                break;
+            default:
+                break;
         }
         return request;
     }
@@ -200,7 +204,6 @@ public class S3RequestDecorator {
 
     /**
      * Enum to indicate S3 encryption mode
-     *
      */
     private enum DataEncryption {
         SSE_S3, SSE_KMS, SSE_C, NONE;

@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.SortedMap;
-
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -30,16 +29,16 @@ public class NodeDocumentHelper {
 
     @NotNull
     public static SortedMap<Revision, String> getLocalMap(
-            NodeDocument doc, String key) {
+        NodeDocument doc, String key) {
         return doc.getLocalMap(key);
     }
-    
+
     @NotNull
     public static SortedMap<Revision, String> getLocalCommitRoot(
-            NodeDocument doc) {
+        NodeDocument doc) {
         return doc.getLocalCommitRoot();
     }
-    
+
     @NotNull
     public static String commitRoot() {
         return NodeDocument.COMMIT_ROOT;

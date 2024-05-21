@@ -26,6 +26,7 @@ import org.jetbrains.annotations.NotNull;
 
 //TODO Move this to org.apache.jackrabbit.oak.plugins.memory
 class PropertyStateWrapper extends AbstractPropertyState implements PropertyState {
+
     private final PropertyState delegate;
 
     public PropertyStateWrapper(PropertyState delegate) {

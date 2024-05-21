@@ -21,7 +21,6 @@ import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
-
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 
 public class ManyNodes extends Benchmark {
@@ -41,7 +40,7 @@ public class ManyNodes extends Benchmark {
                     Repository[] cluster = fixture.setUpCluster(1);
                     try {
                         Session session = cluster[0].login(new SimpleCredentials(
-                                "admin", "admin".toCharArray()));
+                            "admin", "admin".toCharArray()));
                         try {
                             addManyNodes(session);
                         } finally {

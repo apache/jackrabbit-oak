@@ -33,7 +33,6 @@ import java.util.Map.Entry;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
-
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
 import javax.jcr.Property;
@@ -50,12 +49,10 @@ import javax.jcr.query.QueryManager;
 import javax.jcr.query.QueryResult;
 import javax.jcr.query.Row;
 import javax.jcr.query.RowIterator;
-
-import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
-
+import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.json.JsonObject;
@@ -67,16 +64,17 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.IndexTracker;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.DocumentQueue;
+import org.apache.jackrabbit.oak.run.cli.NodeStoreFixture;
 import org.apache.jackrabbit.oak.run.cli.NodeStoreFixtureProvider;
 import org.apache.jackrabbit.oak.run.cli.Options;
 import org.apache.jackrabbit.oak.run.commons.Command;
-import org.apache.jackrabbit.oak.run.cli.NodeStoreFixture;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
 public class JsonIndexCommand implements Command {
+
     public static final String INDEX = "json-index";
 
     PrintStream output = System.out;
@@ -88,14 +86,14 @@ public class JsonIndexCommand implements Command {
     public void execute(String... args) throws Exception {
         OptionParser parser = new OptionParser();
         OptionSpec<String> scriptOption = parser
-                .accepts("script", "Path to Script").withOptionalArg()
-                .defaultsTo("");
+            .accepts("script", "Path to Script").withOptionalArg()
+            .defaultsTo("");
         OptionSpec<String> userOption = parser
-                .accepts("user", "User name").withOptionalArg()
-                .defaultsTo("admin");
+            .accepts("user", "User name").withOptionalArg()
+            .defaultsTo("admin");
         OptionSpec<String> passwordOption = parser
-                .accepts("password", "Password").withOptionalArg()
-                .defaultsTo("admin");
+            .accepts("password", "Password").withOptionalArg()
+            .defaultsTo("admin");
 
         Options oakOptions = new Options();
         OptionSet options = oakOptions.parseAndConfigure(parser, args);
@@ -117,7 +115,7 @@ public class JsonIndexCommand implements Command {
     }
 
     private LineNumberReader openScriptReader(String script)
-            throws IOException {
+        throws IOException {
         Reader reader;
         if ("-".equals(script)) {
             reader = new InputStreamReader(System.in);
@@ -129,7 +127,7 @@ public class JsonIndexCommand implements Command {
     }
 
     public void process(NodeStore nodeStore, LineNumberReader reader, String user, String password)
-            throws Exception {
+        throws Exception {
         session = openSession(nodeStore, user, password);
         System.out.println("Nodestore is open");
         if (interactive) {
@@ -226,9 +224,9 @@ public class JsonIndexCommand implements Command {
                 if (session.nodeExists(nodePath)) {
                     String propertyName = PathUtils.getName(itemPath);
                     Object propertyValue = getValueOrVariable(properties
-                            .get("value"));
+                        .get("value"));
                     setProperty(session.getNode(nodePath), propertyName,
-                            propertyValue);
+                        propertyValue);
                 }
             } else if ("session".equals(k)) {
                 if ("save".equals(value)) {
@@ -239,7 +237,7 @@ public class JsonIndexCommand implements Command {
                 String columnName = "xpath".equals(k) ? "jcr:path" : null;
                 boolean quiet = properties.containsKey("quiet");
                 int depth = properties.containsKey("depth") ? Integer
-                        .parseInt(properties.get("depth")) : 0;
+                    .parseInt(properties.get("depth")) : 0;
                 runQuery(value.toString(), language, columnName, quiet, depth);
             } else if ("print".equals(k)) {
                 output.println(value);
@@ -247,7 +245,7 @@ public class JsonIndexCommand implements Command {
                 String name = JsopTokenizer.decodeQuoted(properties.get(k));
                 Object old = data.get(name);
                 String[] commands = (String[]) getValueOrVariable(properties
-                        .get("do"));
+                    .get("do"));
                 for (String x : (String[]) value) {
                     data.put(name, x);
                     for (String c : commands) {
@@ -271,7 +269,7 @@ public class JsonIndexCommand implements Command {
     }
 
     private void setVariable(Map<String, String> properties, String k,
-            Object value) {
+        Object value) {
         if (k.startsWith("$$")) {
             k = "$" + getValueOrVariable("\"" + k.substring(1) + "\"");
         }
@@ -303,7 +301,7 @@ public class JsonIndexCommand implements Command {
     }
 
     private void addNode(Node p, String nodeName, JsonObject json)
-            throws RepositoryException {
+        throws RepositoryException {
         Map<String, String> properties = json.getProperties();
         Map<String, JsonObject> children = json.getChildren();
         String primaryType = properties.get("jcr:primaryType");
@@ -363,7 +361,7 @@ public class JsonIndexCommand implements Command {
     }
 
     private static void setProperty(Node n, String propertyName, Object value)
-            throws RepositoryException {
+        throws RepositoryException {
         int type = PropertyType.UNDEFINED;
         if (propertyName.startsWith("{")) {
             String t = propertyName.substring(1, propertyName.indexOf('}'));
@@ -397,7 +395,7 @@ public class JsonIndexCommand implements Command {
     }
 
     private void runQuery(String query, String language, String columnName,
-            boolean quiet, int depth) throws RepositoryException {
+        boolean quiet, int depth) throws RepositoryException {
         ArrayList<String> list = new ArrayList<String>();
         columnName = query.startsWith("explain") ? "plan" : columnName;
         QueryManager qm = session.getWorkspace().getQueryManager();
@@ -451,15 +449,15 @@ public class JsonIndexCommand implements Command {
     }
 
     private void appendNode(JsopBuilder builder, Node n, int depth)
-            throws RepositoryException {
+        throws RepositoryException {
         builder.object();
         for (PropertyIterator it = n.getProperties(); depth != 0 &&
-                it.hasNext();) {
+            it.hasNext(); ) {
             Property p = it.nextProperty();
             String name = (p.getType() == PropertyType.STRING ||
-                    p.getName().equals("jcr:primaryType") ? "" : "{" +
-                    PropertyType.nameFromValue(p.getType()) + "}") +
-                    p.getName();
+                p.getName().equals("jcr:primaryType") ? "" : "{" +
+                PropertyType.nameFromValue(p.getType()) + "}") +
+                p.getName();
             builder.key(name);
             if (p.isMultiple()) {
                 builder.array();
@@ -471,7 +469,7 @@ public class JsonIndexCommand implements Command {
                 builder.value(p.getValue().getString());
             }
         }
-        for (NodeIterator it = n.getNodes(); depth != 0 && it.hasNext();) {
+        for (NodeIterator it = n.getNodes(); depth != 0 && it.hasNext(); ) {
             Node n2 = it.nextNode();
             builder.key(n2.getName());
             appendNode(builder, n2, depth - 1);
@@ -479,17 +477,19 @@ public class JsonIndexCommand implements Command {
         builder.endObject();
     }
 
-    public static Session openSession(NodeStore nodeStore, String user, String password) throws RepositoryException {
+    public static Session openSession(NodeStore nodeStore, String user, String password)
+        throws RepositoryException {
         if (nodeStore == null) {
             return null;
         }
         StatisticsProvider statisticsProvider = StatisticsProvider.NOOP;
         Oak oak = new Oak(nodeStore).with(ManagementFactory.getPlatformMBeanServer());
-        oak.getWhiteboard().register(StatisticsProvider.class, statisticsProvider, Collections.emptyMap());
+        oak.getWhiteboard()
+           .register(StatisticsProvider.class, statisticsProvider, Collections.emptyMap());
         LuceneIndexProvider provider = createLuceneIndexProvider();
         oak.with((QueryIndexProvider) provider)
-                .with((Observer) provider)
-                .with(createLuceneIndexEditorProvider());
+           .with((Observer) provider)
+           .with(createLuceneIndexEditorProvider());
         Jcr jcr = new Jcr(oak);
         Repository repository = jcr.createRepository();
         return repository.login(new SimpleCredentials(user, password.toCharArray()));
@@ -498,12 +498,13 @@ public class JsonIndexCommand implements Command {
     private static LuceneIndexEditorProvider createLuceneIndexEditorProvider() {
         LuceneIndexEditorProvider ep = new LuceneIndexEditorProvider();
         ScheduledExecutorService executorService = MoreExecutors.getExitingScheduledExecutorService(
-                (ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(5));
+            (ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(5));
         StatisticsProvider statsProvider = StatisticsProvider.NOOP;
         int queueSize = Integer.getInteger("queueSize", 1000);
         long queueTimeout = Long.getLong("queueTimeoutMillis", 100);
         IndexTracker tracker = new IndexTracker();
-        DocumentQueue queue = new DocumentQueue(queueSize, queueTimeout, tracker, executorService, statsProvider);
+        DocumentQueue queue = new DocumentQueue(queueSize, queueTimeout, tracker, executorService,
+            statsProvider);
         ep.setIndexingQueue(queue);
         return ep;
     }

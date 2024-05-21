@@ -29,24 +29,22 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * A simple scheduler for executing and scheduling tasks in the background.
- * This implementation delegates all background execution to an instance
- * of a {@link ScheduledExecutorService} with core pool size 1. The behaviour
- * of this underlying scheduler service determines the semantics of the methods
- * in this class. Namely: Execution of background tasks never overlaps and is
- * FIFO for tasks scheduled for the same time.
- * In addition all tasks scheduled through methods of this class are automatically
- * wrapped into {@link SafeRunnable} instances. The background thread executing
+ * A simple scheduler for executing and scheduling tasks in the background. This implementation
+ * delegates all background execution to an instance of a {@link ScheduledExecutorService} with core
+ * pool size 1. The behaviour of this underlying scheduler service determines the semantics of the
+ * methods in this class. Namely: Execution of background tasks never overlaps and is FIFO for tasks
+ * scheduled for the same time. In addition all tasks scheduled through methods of this class are
+ * automatically wrapped into {@link SafeRunnable} instances. The background thread executing
  * submitted tasks is a deamon thread.
  */
 public class Scheduler implements Closeable {
+
     private static int schedulerNumber = 0;
     private static final Logger LOG = LoggerFactory.getLogger(Scheduler.class);
 
@@ -60,8 +58,9 @@ public class Scheduler implements Closeable {
     private final ScheduledExecutorService executor;
 
     /**
-     * Create a new instance with the given {@code name}. The name is used to
-     * derive the default name of the background thread from..
+     * Create a new instance with the given {@code name}. The name is used to derive the default
+     * name of the background thread from..
+     *
      * @param name
      */
     public Scheduler(@Nullable String name) {
@@ -77,8 +76,9 @@ public class Scheduler implements Closeable {
     }
 
     /**
-     * Immediately execute {@code task}. The background thread's name is
-     * set to {@code name} during execution of {@code task}.
+     * Immediately execute {@code task}. The background thread's name is set to {@code name} during
+     * execution of {@code task}.
+     *
      * @param name
      * @param task
      * @see ScheduledExecutorService#execute(Runnable)
@@ -88,8 +88,9 @@ public class Scheduler implements Closeable {
     }
 
     /**
-     * Run {@code task} once after some delay. The background thread's name is
-     * set to {@code name} during execution of {@code task}.
+     * Run {@code task} once after some delay. The background thread's name is set to {@code name}
+     * during execution of {@code task}.
+     *
      * @param name
      * @param delay
      * @param unit
@@ -97,16 +98,17 @@ public class Scheduler implements Closeable {
      * @see ScheduledExecutorService#schedule(Runnable, long, TimeUnit)
      */
     public void scheduleOnce(
-            @NotNull String name,
-            long delay,
-            @NotNull TimeUnit unit,
-            @NotNull Runnable task) {
+        @NotNull String name,
+        long delay,
+        @NotNull TimeUnit unit,
+        @NotNull Runnable task) {
         executor.schedule(new SafeRunnable(name, task), delay, unit);
     }
 
     /**
-     * Run {@code task} regularly at a given interval. The background thread's name is
-     * set to {@code name} during execution of {@code task}.
+     * Run {@code task} regularly at a given interval. The background thread's name is set to
+     * {@code name} during execution of {@code task}.
+     *
      * @param name
      * @param period
      * @param unit
@@ -114,16 +116,17 @@ public class Scheduler implements Closeable {
      * @see ScheduledExecutorService#scheduleAtFixedRate(Runnable, long, long, TimeUnit)
      */
     public void scheduleAtFixedRate(
-            @NotNull String name,
-            long period,
-            @NotNull TimeUnit unit,
-            @NotNull Runnable task) {
+        @NotNull String name,
+        long period,
+        @NotNull TimeUnit unit,
+        @NotNull Runnable task) {
         executor.scheduleAtFixedRate(new SafeRunnable(name, task), period, period, unit);
     }
 
     /**
-     * Run {@code task} regularly after a fixed delay. The background thread's name is
-     * set to {@code name} during execution of {@code task}.
+     * Run {@code task} regularly after a fixed delay. The background thread's name is set to
+     * {@code name} during execution of {@code task}.
+     *
      * @param name
      * @param delay
      * @param unit
@@ -131,15 +134,16 @@ public class Scheduler implements Closeable {
      * @see ScheduledExecutorService#scheduleWithFixedDelay(Runnable, long, long, TimeUnit)
      */
     public void scheduleWithFixedDelay(
-            @NotNull String name,
-            long delay,
-            @NotNull TimeUnit unit,
-            @NotNull Runnable task) {
+        @NotNull String name,
+        long delay,
+        @NotNull TimeUnit unit,
+        @NotNull Runnable task) {
         executor.scheduleWithFixedDelay(new SafeRunnable(name, task), delay, delay, unit);
     }
 
     /**
      * Close this scheduler.
+     *
      * @see ScheduledExecutorService#shutdown()
      */
     @Override
@@ -158,6 +162,7 @@ public class Scheduler implements Closeable {
     }
 
     private static class SchedulerThreadFactory implements ThreadFactory {
+
         private final ThreadFactory threadFactory = defaultThreadFactory();
 
         @NotNull

@@ -23,7 +23,6 @@ import static org.apache.jackrabbit.oak.plugins.document.CheckpointsHelper.remov
 
 import java.util.List;
 import java.util.Map;
-
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.plugins.document.CheckpointsHelper;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
@@ -42,8 +41,8 @@ class DocumentCheckpoints extends Checkpoints {
         List<CP> list = Lists.newArrayList();
         for (Map.Entry<Revision, Long> entry : getCheckpoints(store).entrySet()) {
             list.add(new CP(entry.getKey().toString(),
-                    entry.getKey().getTimestamp(),
-                    entry.getValue()));
+                entry.getKey().getTimestamp(),
+                entry.getValue()));
         }
         return list;
     }

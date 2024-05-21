@@ -37,7 +37,8 @@ public class AbandonedBranchTest {
         int clusterId = 1;
         DocumentStore store = new MemoryDocumentStore();
         DocumentNodeStore ns = builderProvider.newBuilder()
-                .setDocumentStore(store).setClusterId(clusterId).build();
+                                              .setDocumentStore(store).setClusterId(clusterId)
+                                              .build();
         NodeBuilder builder = ns.getRoot().builder();
         for (int i = 0; i < 10; i++) {
             builder.child("test").child("node-" + i);
@@ -45,7 +46,7 @@ public class AbandonedBranchTest {
         }
         ns.dispose();
         ns = builderProvider.newBuilder()
-                .setDocumentStore(store).setClusterId(clusterId).build();
+                            .setDocumentStore(store).setClusterId(clusterId).build();
         assertFalse(ns.getRoot().hasChildNode("test"));
         NodeDocument doc = Utils.getRootDocument(store);
         assertThat(doc.getLocalBranchCommits(), empty());

@@ -19,6 +19,14 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import static org.apache.lucene.search.BooleanClause.Occur.SHOULD;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Sets;
@@ -40,23 +48,15 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.Rule;
 import org.junit.Test;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-import static org.apache.lucene.search.BooleanClause.Occur.SHOULD;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-
 public class IndexAugmentorFactoryTest {
+
     private IndexAugmentorFactory indexAugmentorFactory = new IndexAugmentorFactory();
 
     @Rule
     public final OsgiContext context = new OsgiContext();
 
     @Test
-    public void compositeIndexProvider()
-    {
+    public void compositeIndexProvider() {
         final String typeA = "type:A";
         final String typeB = "type:B";
         final String typeC = "type:C";
@@ -82,8 +82,7 @@ public class IndexAugmentorFactoryTest {
     }
 
     @Test
-    public void compositeQueryTermsProvider()
-    {
+    public void compositeQueryTermsProvider() {
         final String typeA = "type:A";
         final String typeB = "type:B";
         final String typeC = "type:C";
@@ -98,7 +97,8 @@ public class IndexAugmentorFactoryTest {
         new IdentifiableQueryTermsProvider(null, Sets.newHashSet(typeE));
 
         //register an instance which would be unregistered before validation
-        FulltextQueryTermsProvider unreg = new IdentifiableQueryTermsProvider("4", Sets.newHashSet(typeD));
+        FulltextQueryTermsProvider unreg = new IdentifiableQueryTermsProvider("4",
+            Sets.newHashSet(typeD));
         indexAugmentorFactory.unbindFulltextQueryTermsProvider(unreg);
 
         validateComposedQueryTerms(typeA, "1", "3");
@@ -111,12 +111,13 @@ public class IndexAugmentorFactoryTest {
         validateDeactivatedService();
     }
 
-    void validateComposedFields(String type, String ... expected) {
-        IndexFieldProvider compositeIndexProvider = indexAugmentorFactory.getIndexFieldProvider(type);
+    void validateComposedFields(String type, String... expected) {
+        IndexFieldProvider compositeIndexProvider = indexAugmentorFactory.getIndexFieldProvider(
+            type);
 
         if (expected.length > 0) {
             assertTrue("Composed index field provider doesn't declare correct supported type",
-                    compositeIndexProvider.getSupportedTypes().contains(type));
+                compositeIndexProvider.getSupportedTypes().contains(type));
         }
 
         Iterable<Field> fields = compositeIndexProvider.getAugmentedFields(null, null, null);
@@ -129,12 +130,13 @@ public class IndexAugmentorFactoryTest {
         assertThat(ids, CoreMatchers.hasItems(expected));
     }
 
-    void validateComposedQueryTerms(String type, String ... expected) {
-        FulltextQueryTermsProvider compositeQueryTermsProvider = indexAugmentorFactory.getFulltextQueryTermsProvider(type);
+    void validateComposedQueryTerms(String type, String... expected) {
+        FulltextQueryTermsProvider compositeQueryTermsProvider = indexAugmentorFactory.getFulltextQueryTermsProvider(
+            type);
 
         if (expected.length > 0) {
             assertTrue("Composed query terms provider doesn't declare correct supported type",
-                    compositeQueryTermsProvider.getSupportedTypes().contains(type));
+                compositeQueryTermsProvider.getSupportedTypes().contains(type));
         }
 
         Query q = compositeQueryTermsProvider.getQueryTerm(null, null, null);
@@ -163,10 +165,12 @@ public class IndexAugmentorFactoryTest {
     }
 
     private void validateDeactivatedService() {
-        assertTrue("All data structures must be empty after deactivate", indexAugmentorFactory.isStateEmpty());
+        assertTrue("All data structures must be empty after deactivate",
+            indexAugmentorFactory.isStateEmpty());
     }
 
     class IdentifiableIndexFiledProvider implements IndexFieldProvider {
+
         private final Field id;
         private final Set<String> nodeTypes;
 
@@ -178,7 +182,8 @@ public class IndexAugmentorFactoryTest {
 
         @NotNull
         @Override
-        public Iterable<Field> getAugmentedFields(String path, NodeState document, NodeState indexDefinition) {
+        public Iterable<Field> getAugmentedFields(String path, NodeState document,
+            NodeState indexDefinition) {
             return Lists.newArrayList(id);
         }
 
@@ -190,11 +195,12 @@ public class IndexAugmentorFactoryTest {
     }
 
     class IdentifiableQueryTermsProvider implements FulltextQueryTermsProvider {
+
         private final Query id;
         private final Set<String> nodeTypes;
 
         IdentifiableQueryTermsProvider(String id, Set<String> nodeTypes) {
-            this.id = (id == null)?null:new TermQuery(new Term(id, "1"));
+            this.id = (id == null) ? null : new TermQuery(new Term(id, "1"));
             this.nodeTypes = nodeTypes;
             context.registerService(FulltextQueryTermsProvider.class, this);
         }

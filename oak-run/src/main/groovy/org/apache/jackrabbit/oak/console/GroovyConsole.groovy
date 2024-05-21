@@ -23,9 +23,9 @@ import groovy.transform.TypeCheckingMode
 import jline.Terminal
 import jline.TerminalFactory
 import jline.console.history.FileHistory
-import org.apache.jackrabbit.oak.run.commons.Utils
 import org.apache.jackrabbit.oak.console.commands.*
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore
+import org.apache.jackrabbit.oak.run.commons.Utils
 import org.codehaus.groovy.runtime.StackTraceUtils
 import org.codehaus.groovy.tools.shell.*
 import org.codehaus.groovy.tools.shell.Command as ShellCommand
@@ -48,7 +48,7 @@ class GroovyConsole {
 
             // Register jline ansi detector
             Ansi.setDetector(new AnsiDetector())
-        } catch (UnsatisfiedLinkError e){
+        } catch (UnsatisfiedLinkError e) {
             Logger.create(GroovyConsole.class).warn("Error loading console support. Some console features might not work properly. See " +
                     "https://issues.apache.org/jira/browse/OAK-5961 for details", e)
         }
@@ -70,15 +70,15 @@ class GroovyConsole {
         }
     }
 
-    int run(){
+    int run() {
         shell.run(null, null)
     }
 
-    int execute(List<String> args){
+    int execute(List<String> args) {
         try {
             shell.execute(args.join(' '))
             return 0;
-        }catch(Throwable t){
+        } catch (Throwable t) {
             t.printStackTrace();
             return 1;
         }
@@ -94,7 +94,7 @@ class GroovyConsole {
         return sh
     }
 
-    private void registerCommands(Groovysh shell){
+    private void registerCommands(Groovysh shell) {
         List<? extends ShellCommand> commands = []
         commands.addAll([
                 new ExitCommand(shell),
@@ -131,7 +131,7 @@ class GroovyConsole {
                 new ExportCommand(shell)
         ])
 
-        if(session.store instanceof DocumentNodeStore){
+        if (session.store instanceof DocumentNodeStore) {
             commands.addAll([
                     //Oak Commands
                     new PrintDocumentCommand(shell),
@@ -139,7 +139,7 @@ class GroovyConsole {
             ])
         }
 
-        commands.each {ShellCommand command ->
+        commands.each { ShellCommand command ->
             shell.register(command)
         }
     }
@@ -152,7 +152,7 @@ class GroovyConsole {
         }
 
         public String renderPrompt() {
-            return AnsiRenderer.render( buildPrompt() )
+            return AnsiRenderer.render(buildPrompt())
         }
 
         //Following methods are copied because they are private in parent however
@@ -286,7 +286,7 @@ class GroovyConsole {
 
     }
 
-    private static String getProductInfo(){
+    private static String getProductInfo() {
         return Utils.getProductInfo(
                 GroovyConsole.class.getResourceAsStream("/META-INF/maven/org.apache.jackrabbit/oak-run/pom.properties"));
     }

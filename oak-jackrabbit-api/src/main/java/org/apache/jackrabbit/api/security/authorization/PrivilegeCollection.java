@@ -21,77 +21,92 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Stream;
-
 import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.Privilege;
-
 import org.jetbrains.annotations.NotNull;
 import org.osgi.annotation.versioning.ProviderType;
 
 /**
- * <p>Wrapper around a set of {@link Privilege}s that allows to test if a given list of privilege names in included. This 
- * avoids repeated calls to {@link AccessControlManager#hasPrivileges(String, Privilege[])} or having to manually resolve 
- * the privilege aggregation when using {@link AccessControlManager#getPrivileges(String)}.</p>
- * 
- * While a {@link PrivilegeCollection.Default default} is available for backwards compatibility, it uses regular 
- * JCR API. Therefore it is recommended to provide custom implementations of 
- * {@link org.apache.jackrabbit.api.security.JackrabbitAccessControlManager#getPrivilegeCollection(String)} and 
- * {@link org.apache.jackrabbit.api.security.JackrabbitAccessControlManager#getPrivilegeCollection(String, Set)} with 
- * efficient implementations of the {@code PrivilegeCollection}.
- * 
+ * <p>Wrapper around a set of {@link Privilege}s that allows to test if a given list of privilege
+ * names in included. This avoids repeated calls to
+ * {@link AccessControlManager#hasPrivileges(String, Privilege[])} or having to manually resolve the
+ * privilege aggregation when using {@link AccessControlManager#getPrivileges(String)}.</p>
+ * <p>
+ * While a {@link PrivilegeCollection.Default default} is available for backwards compatibility, it
+ * uses regular JCR API. Therefore it is recommended to provide custom implementations of
+ * {@link
+ * org.apache.jackrabbit.api.security.JackrabbitAccessControlManager#getPrivilegeCollection(String)}
+ * and
+ * {@link
+ * org.apache.jackrabbit.api.security.JackrabbitAccessControlManager#getPrivilegeCollection(String,
+ * Set)} with efficient implementations of the {@code PrivilegeCollection}.
+ *
+ * @see org.apache.jackrabbit.api.security.JackrabbitAccessControlManager#getPrivilegeCollection(String)
+ * @see org.apache.jackrabbit.api.security.JackrabbitAccessControlManager#getPrivilegeCollection(String,
+ * Set)
  * @since Oak 1.42.0
- * @see org.apache.jackrabbit.api.security.JackrabbitAccessControlManager#getPrivilegeCollection(String) 
- * @see org.apache.jackrabbit.api.security.JackrabbitAccessControlManager#getPrivilegeCollection(String, Set) 
  */
 @ProviderType
 public interface PrivilegeCollection {
 
     /**
      * Return the underlying privilege array.
-     * 
+     *
      * @return the privilege array for which this instance has been created.
      * @throws RepositoryException If an error occurs.
      */
     Privilege[] getPrivileges() throws RepositoryException;
 
     /**
-     * Tests whether the given JCR {@code privilegeNames} are contained in the privileges for which this instance of 
-     * {@code PrivilegeEvaluation} has been created such as e.g. through 
-     * {@link org.apache.jackrabbit.api.security.JackrabbitAccessControlManager#getPrivilegeCollection(String)} or  
-     * {@link org.apache.jackrabbit.api.security.JackrabbitAccessControlManager#getPrivilegeCollection(String, Set)}. 
-     * The inclusion can either be direct or through privilege aggregation.
-     * 
-     * @param privilegeNames The JCR names of privileges to be tested. They can be passed in expanded form 
-     * (like e.g. {@link Privilege#JCR_READ}) or in qualified form (i.e. 'jcr:read' if 'jcr' was the prefixed defined for 
-     * the 'http://www.jcp.org/jcr/1.0' namespace.
-     * @return {@code true} if the underlying {@code privileges} include all specified privilege names either directly 
-     * or by means of aggregation; {@code false} if one or multiple privileges are not included. If {@code jcr:all} privilege 
-     * is part of this collection or if no privilege names are specified this method will return {@code true}. 
-     * If no privileges are granted {@code false} is returned.
-     * @throws AccessControlException If any of the given privilege names is invalid i.e. no such privilege exists.
-     * @throws RepositoryException If another error occurs.
+     * Tests whether the given JCR {@code privilegeNames} are contained in the privileges for which
+     * this instance of {@code PrivilegeEvaluation} has been created such as e.g. through
+     * {@link
+     * org.apache.jackrabbit.api.security.JackrabbitAccessControlManager#getPrivilegeCollection(String)}
+     * or
+     * {@link
+     * org.apache.jackrabbit.api.security.JackrabbitAccessControlManager#getPrivilegeCollection(String,
+     * Set)}. The inclusion can either be direct or through privilege aggregation.
+     *
+     * @param privilegeNames The JCR names of privileges to be tested. They can be passed in
+     *                       expanded form (like e.g. {@link Privilege#JCR_READ}) or in qualified
+     *                       form (i.e. 'jcr:read' if 'jcr' was the prefixed defined for the
+     *                       'http://www.jcp.org/jcr/1.0' namespace.
+     * @return {@code true} if the underlying {@code privileges} include all specified privilege
+     * names either directly or by means of aggregation; {@code false} if one or multiple privileges
+     * are not included. If {@code jcr:all} privilege is part of this collection or if no privilege
+     * names are specified this method will return {@code true}. If no privileges are granted
+     * {@code false} is returned.
+     * @throws AccessControlException If any of the given privilege names is invalid i.e. no such
+     *                                privilege exists.
+     * @throws RepositoryException    If another error occurs.
      * @since Oak 1.42.0
      */
     boolean includes(@NotNull String... privilegeNames) throws RepositoryException;
 
     /**
      * Default implementation of the {@link PrivilegeCollection} interface.
-     * 
-     * Note that this implementation uses JCR API to resolve privilege aggregation, which is expected to be inefficient.
-     * Implementations of {@link org.apache.jackrabbit.api.security.JackrabbitAccessControlManager#getPrivilegeCollection(String)} 
-     * and {@link org.apache.jackrabbit.api.security.JackrabbitAccessControlManager#getPrivilegeCollection(String, Set)} 
-     * therefore should provide improved implementations of the {@code PrivilegeCollection} interface.
-     * 
+     * <p>
+     * Note that this implementation uses JCR API to resolve privilege aggregation, which is
+     * expected to be inefficient. Implementations of
+     * {@link
+     * org.apache.jackrabbit.api.security.JackrabbitAccessControlManager#getPrivilegeCollection(String)}
+     * and
+     * {@link
+     * org.apache.jackrabbit.api.security.JackrabbitAccessControlManager#getPrivilegeCollection(String,
+     * Set)} therefore should provide improved implementations of the {@code PrivilegeCollection}
+     * interface.
+     *
      * @since Oak 1.42.0
      */
     class Default implements PrivilegeCollection {
-        
+
         private final Privilege[] privileges;
         private final AccessControlManager accessControlManager;
-        
-        public Default(@NotNull Privilege[] privileges, @NotNull AccessControlManager accessControlManager) {
+
+        public Default(@NotNull Privilege[] privileges,
+            @NotNull AccessControlManager accessControlManager) {
             this.privileges = privileges;
             this.accessControlManager = accessControlManager;
         }
@@ -117,7 +132,9 @@ public interface PrivilegeCollection {
             if (privilegeSet.containsAll(toTest)) {
                 return true;
             } else {
-                Stream.of(privileges).filter(Privilege::isAggregate).forEach(privilege -> Collections.addAll(privilegeSet, privilege.getAggregatePrivileges()));
+                Stream.of(privileges).filter(Privilege::isAggregate).forEach(
+                    privilege -> Collections.addAll(privilegeSet,
+                        privilege.getAggregatePrivileges()));
                 return privilegeSet.containsAll(toTest);
             }
         }

@@ -19,8 +19,8 @@ package org.apache.jackrabbit.oak.namepath;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 
 /**
- * Simple utility class for lazily tracking the current path during
- * a tree traversal that recurses down a subtree.
+ * Simple utility class for lazily tracking the current path during a tree traversal that recurses
+ * down a subtree.
  */
 public class PathTracker {
 

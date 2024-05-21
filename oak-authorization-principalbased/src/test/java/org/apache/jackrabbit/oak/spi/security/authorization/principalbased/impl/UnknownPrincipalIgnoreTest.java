@@ -44,14 +44,15 @@ public class UnknownPrincipalIgnoreTest extends AbstractPrincipalBasedTest {
     @Override
     protected ConfigurationParameters getSecurityConfigParameters() {
         return ConfigurationParameters.of(AuthorizationConfiguration.NAME,
-                ConfigurationParameters.of(
-                        ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, ImportBehavior.NAME_IGNORE)
+            ConfigurationParameters.of(
+                ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, ImportBehavior.NAME_IGNORE)
         );
     }
 
     @Test
     public void testGetApplicablePolicies() throws Exception {
-        AccessControlPolicy[] applicable = acMgr.getApplicablePolicies((SystemUserPrincipal) () -> "unknown");
+        AccessControlPolicy[] applicable = acMgr.getApplicablePolicies(
+            (SystemUserPrincipal) () -> "unknown");
         assertEquals(0, applicable.length);
     }
 
@@ -63,7 +64,8 @@ public class UnknownPrincipalIgnoreTest extends AbstractPrincipalBasedTest {
 
     @Test
     public void testGetEffectivePolicies() throws Exception {
-        AccessControlPolicy[] policies = acMgr.getEffectivePolicies(ImmutableSet.of(getTestSystemUser().getPrincipal(), new PrincipalImpl("unknown")));
+        AccessControlPolicy[] policies = acMgr.getEffectivePolicies(
+            ImmutableSet.of(getTestSystemUser().getPrincipal(), new PrincipalImpl("unknown")));
         assertEquals(0, policies.length);
     }
 }

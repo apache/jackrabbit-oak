@@ -19,11 +19,15 @@
 
 package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
-import org.apache.jackrabbit.guava.common.base.Preconditions;
+import java.util.Dictionary;
+import java.util.Hashtable;
+import java.util.Map;
+import java.util.Properties;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.ConfigurationPolicy;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.jackrabbit.core.data.DataStore;
+import org.apache.jackrabbit.guava.common.base.Preconditions;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.plugins.blob.AbstractSharedCachingDataStore;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
@@ -33,13 +37,9 @@ import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Dictionary;
-import java.util.Hashtable;
-import java.util.Map;
-import java.util.Properties;
-
 @Component(policy = ConfigurationPolicy.REQUIRE, name = FileDataStoreService.NAME)
 public class FileDataStoreService extends AbstractDataStoreService {
+
     public static final String NAME = "org.apache.jackrabbit.oak.plugins.blob.datastore.FileDataStore";
 
     private static final String DESCRIPTION = "oak.datastore.description";
@@ -64,7 +64,7 @@ public class FileDataStoreService extends AbstractDataStoreService {
         if (cacheSize > 0) {
             String fsBackendPath = PropertiesUtil.toString(config.get(PATH), null);
             Preconditions.checkNotNull(fsBackendPath, "Cannot create " +
-                    "FileDataStoreService with caching. [{path}] property not configured.");
+                "FileDataStoreService with caching. [{path}] property not configured.");
 
             config.remove(PATH);
             config.remove(CACHE_SIZE);
@@ -95,14 +95,14 @@ public class FileDataStoreService extends AbstractDataStoreService {
         config.put(Constants.SERVICE_PID, dataStore.getClass().getName());
         config.put(DESCRIPTION, getDescription());
 
-        delegateReg = context.getBundleContext().registerService(new String[] {
+        delegateReg = context.getBundleContext().registerService(new String[]{
             AbstractSharedCachingDataStore.class.getName(),
             AbstractSharedCachingDataStore.class.getName()
-        }, dataStore , config);
+        }, dataStore, config);
         return dataStore;
     }
 
-    protected StatisticsProvider getStatisticsProvider(){
+    protected StatisticsProvider getStatisticsProvider() {
         return statisticsProvider;
     }
 

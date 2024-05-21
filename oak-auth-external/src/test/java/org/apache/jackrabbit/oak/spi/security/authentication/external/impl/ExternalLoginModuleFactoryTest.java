@@ -19,6 +19,18 @@
 
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+
+import java.lang.reflect.Field;
+import javax.jcr.Repository;
+import javax.jcr.SimpleCredentials;
+import javax.security.auth.login.AppConfigurationEntry;
+import javax.security.auth.login.Configuration;
 import org.apache.felix.jaas.LoginModuleFactory;
 import org.apache.felix.jaas.boot.ProxyLoginModule;
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -32,19 +44,6 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncManage
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
-
-import javax.jcr.Repository;
-import javax.jcr.SimpleCredentials;
-import javax.security.auth.login.AppConfigurationEntry;
-import javax.security.auth.login.Configuration;
-import java.lang.reflect.Field;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
 
 public class ExternalLoginModuleFactoryTest extends ExternalLoginTestBase {
 
@@ -63,10 +62,10 @@ public class ExternalLoginModuleFactoryTest extends ExternalLoginTestBase {
             @Override
             public AppConfigurationEntry[] getAppConfigurationEntry(String s) {
                 AppConfigurationEntry entry = new AppConfigurationEntry(
-                        //Use ProxyLoginModule so that factory mode can be used
-                        ProxyLoginModule.class.getName(),
-                        AppConfigurationEntry.LoginModuleControlFlag.REQUIRED,
-                        options);
+                    //Use ProxyLoginModule so that factory mode can be used
+                    ProxyLoginModule.class.getName(),
+                    AppConfigurationEntry.LoginModuleControlFlag.REQUIRED,
+                    options);
                 return new AppConfigurationEntry[]{entry};
             }
         };
@@ -91,7 +90,8 @@ public class ExternalLoginModuleFactoryTest extends ExternalLoginTestBase {
             for (String prop : user.getProperties().keySet()) {
                 assertTrue(a.hasProperty(prop));
             }
-            assertEquals(TEST_CONSTANT_PROPERTY_VALUE, a.getProperty(TEST_CONSTANT_PROPERTY_NAME)[0].getString());
+            assertEquals(TEST_CONSTANT_PROPERTY_VALUE,
+                a.getProperty(TEST_CONSTANT_PROPERTY_NAME)[0].getString());
         } finally {
             if (cs != null) {
                 cs.close();
@@ -101,16 +101,19 @@ public class ExternalLoginModuleFactoryTest extends ExternalLoginTestBase {
     }
 
     /**
-     * Prepares the OSGi part with required services injected and configures
-     * the factory in JAAS options which then delegates to ExternalLoginModuleFactory
+     * Prepares the OSGi part with required services injected and configures the factory in JAAS
+     * options which then delegates to ExternalLoginModuleFactory
      */
     private void setUpJaasFactoryWithInjection() {
         context.registerService(Repository.class, mock(Repository.class));
         context.registerService(SyncManager.class, new SyncManagerImpl(whiteboard));
-        context.registerService(ExternalIdentityProviderManager.class, new ExternalIDPManagerImpl(whiteboard));
+        context.registerService(ExternalIdentityProviderManager.class,
+            new ExternalIDPManagerImpl(whiteboard));
 
-        final LoginModuleFactory lmf = context.registerInjectActivateService(new ExternalLoginModuleFactory());
-        options.put(ProxyLoginModule.PROP_LOGIN_MODULE_FACTORY, (ProxyLoginModule.BootLoginModuleFactory) lmf::createLoginModule);
+        final LoginModuleFactory lmf = context.registerInjectActivateService(
+            new ExternalLoginModuleFactory());
+        options.put(ProxyLoginModule.PROP_LOGIN_MODULE_FACTORY,
+            (ProxyLoginModule.BootLoginModuleFactory) lmf::createLoginModule);
     }
 
     @Test
@@ -131,7 +134,8 @@ public class ExternalLoginModuleFactoryTest extends ExternalLoginTestBase {
     @Test
     public void testBindNullContentRepository() throws Exception {
         context.registerService(SyncManager.class, mock(SyncManager.class));
-        context.registerService(ExternalIdentityProviderManager.class, mock(ExternalIdentityProviderManager.class));
+        context.registerService(ExternalIdentityProviderManager.class,
+            mock(ExternalIdentityProviderManager.class));
 
         ExternalLoginModuleFactory factory = new ExternalLoginModuleFactory();
         context.registerInjectActivateService(factory);
@@ -152,7 +156,8 @@ public class ExternalLoginModuleFactoryTest extends ExternalLoginTestBase {
     @Test
     public void testBindNullSecurityProvider() throws Exception {
         context.registerService(SyncManager.class, mock(SyncManager.class));
-        context.registerService(ExternalIdentityProviderManager.class, mock(ExternalIdentityProviderManager.class));
+        context.registerService(ExternalIdentityProviderManager.class,
+            mock(ExternalIdentityProviderManager.class));
 
         ExternalLoginModuleFactory factory = new ExternalLoginModuleFactory();
         context.registerInjectActivateService(factory);
@@ -199,7 +204,8 @@ public class ExternalLoginModuleFactoryTest extends ExternalLoginTestBase {
     @Test
     public void testMbeanRegistration() throws Exception {
         context.registerService(SyncManager.class, mock(SyncManager.class));
-        context.registerService(ExternalIdentityProviderManager.class, mock(ExternalIdentityProviderManager.class));
+        context.registerService(ExternalIdentityProviderManager.class,
+            mock(ExternalIdentityProviderManager.class));
 
         ExternalLoginModuleFactory factory = new ExternalLoginModuleFactory();
         context.registerInjectActivateService(factory);
@@ -222,7 +228,8 @@ public class ExternalLoginModuleFactoryTest extends ExternalLoginTestBase {
     @Test
     public void testMBeanRegistrationAlreadyPresent() throws Exception {
         context.registerService(SyncManager.class, mock(SyncManager.class));
-        context.registerService(ExternalIdentityProviderManager.class, mock(ExternalIdentityProviderManager.class));
+        context.registerService(ExternalIdentityProviderManager.class,
+            mock(ExternalIdentityProviderManager.class));
 
         ExternalLoginModuleFactory factory = new ExternalLoginModuleFactory();
         context.registerInjectActivateService(factory);
@@ -239,7 +246,8 @@ public class ExternalLoginModuleFactoryTest extends ExternalLoginTestBase {
         assertSame(mbeanregistration, getMBeanRegistration(factory));
     }
 
-    private static Registration getMBeanRegistration(@NotNull ExternalLoginModuleFactory factory) throws Exception {
+    private static Registration getMBeanRegistration(@NotNull ExternalLoginModuleFactory factory)
+        throws Exception {
         Field f = ExternalLoginModuleFactory.class.getDeclaredField("mbeanRegistration");
         f.setAccessible(true);
 

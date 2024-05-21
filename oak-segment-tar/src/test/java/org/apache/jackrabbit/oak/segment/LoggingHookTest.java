@@ -26,7 +26,6 @@ import static org.junit.Assert.assertEquals;
 import java.io.File;
 import java.util.Arrays;
 import java.util.function.Consumer;
-
 import org.apache.jackrabbit.oak.segment.test.TemporaryFileStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -44,7 +43,7 @@ public class LoggingHookTest {
 
     @Rule
     public RuleChain chain = RuleChain.outerRule(folder)
-        .around(fileStore);
+                                      .around(fileStore);
 
     @Test
     public void testChildNodeAdded() throws Exception {
@@ -125,14 +124,16 @@ public class LoggingHookTest {
                 "p+ a+string <STRING> = a+string/slash:colon%25percent%24dollar%5Cbackslash%0Anewline",
                 "n!"
             ),
-            root -> root.setProperty("a string", "a string/slash:colon%percent$dollar\\backslash\nnewline")
+            root -> root.setProperty("a string",
+                "a string/slash:colon%percent$dollar\\backslash\nnewline")
         );
         assertCommitProduces(
             lines(
                 "p+ strings <STRINGS> = [a+string,another+string]",
                 "n!"
             ),
-            root -> root.setProperty("strings", Arrays.asList("a string", "another string"), STRINGS)
+            root -> root.setProperty("strings", Arrays.asList("a string", "another string"),
+                STRINGS)
         );
         assertCommitProduces(
             lines(
@@ -206,12 +207,14 @@ public class LoggingHookTest {
         );
     }
 
-    private void assertCommitProduces(String expected, Consumer<NodeBuilder> committer) throws Exception {
+    private void assertCommitProduces(String expected, Consumer<NodeBuilder> committer)
+        throws Exception {
         StringBuilder result = new StringBuilder();
 
         SegmentNodeStore store = SegmentNodeStoreBuilders.builder(fileStore.fileStore())
-            .withLoggingHook(s -> result.append(s).append("\n"))
-            .build();
+                                                         .withLoggingHook(
+                                                             s -> result.append(s).append("\n"))
+                                                         .build();
 
         NodeBuilder root = store.getRoot().builder();
         root.setChildNode("existing");

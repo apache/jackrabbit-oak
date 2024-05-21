@@ -23,21 +23,21 @@ import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull
 import java.io.BufferedWriter;
 import java.io.PrintWriter;
 import java.io.Writer;
-
 import org.jetbrains.annotations.NotNull;
 
 /**
- * This {@link IOTraceWriter} implementation implements persistence
- * through a {@code Writer} instance.
+ * This {@link IOTraceWriter} implementation implements persistence through a {@code Writer}
+ * instance.
  */
 public class DefaultIOTraceWriter implements IOTraceWriter {
+
     @NotNull
     private final PrintWriter out;
 
     /**
-     * Create a new instance persisting to {@code writer}.
-     * It is the callers responsibility to close the {@code writer} when
-     * not needed anymore.
+     * Create a new instance persisting to {@code writer}. It is the callers responsibility to close
+     * the {@code writer} when not needed anymore.
+     *
      * @param writer
      */
     public DefaultIOTraceWriter(@NotNull Writer writer) {

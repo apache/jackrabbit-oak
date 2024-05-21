@@ -18,12 +18,16 @@
  */
 package org.apache.jackrabbit.oak.blob.cloud.s3;
 
+import static org.apache.jackrabbit.guava.common.base.Strings.isNullOrEmpty;
+import static org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils.getFixtures;
+import static org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils.getS3DataStore;
+import static org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils.isS3Configured;
+import static org.junit.Assume.assumeTrue;
+
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
-
 import javax.net.ssl.HttpsURLConnection;
-
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStore;
@@ -34,16 +38,11 @@ import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.rules.TemporaryFolder;
 
-import static org.apache.jackrabbit.guava.common.base.Strings.isNullOrEmpty;
-import static org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils.getFixtures;
-import static org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils.getS3DataStore;
-import static org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils.isS3Configured;
-import static org.junit.Assume.assumeTrue;
-
 /**
  * The test is memory intensive and requires -Dtest.opts.memory=-Xmx2G
  */
 public class S3DataRecordAccessProviderIT extends AbstractDataRecordAccessProviderIT {
+
     @ClassRule
     public static TemporaryFolder homeDir = new TemporaryFolder(new File("target"));
 
@@ -52,7 +51,8 @@ public class S3DataRecordAccessProviderIT extends AbstractDataRecordAccessProvid
     @BeforeClass
     public static void setupDataStore() throws Exception {
         assumeTrue(isS3Configured() && !isNullOrEmpty(System.getProperty("test.opts.memory")));
-        dataStore = (S3DataStore) getS3DataStore(getFixtures().get(0), S3DataStoreUtils.getS3Config(),
+        dataStore = (S3DataStore) getS3DataStore(getFixtures().get(0),
+            S3DataStoreUtils.getS3Config(),
             homeDir.newFolder().getAbsolutePath());
 
         dataStore.setDirectDownloadURIExpirySeconds(expirySeconds);
@@ -65,13 +65,15 @@ public class S3DataRecordAccessProviderIT extends AbstractDataRecordAccessProvid
     }
 
     @Override
-    protected DataRecord doGetRecord(DataStore ds, DataIdentifier identifier) throws DataStoreException {
+    protected DataRecord doGetRecord(DataStore ds, DataIdentifier identifier)
+        throws DataStoreException {
         return ds.getRecord(identifier);
     }
 
     @Override
-    protected void doDeleteRecord(DataStore ds, DataIdentifier identifier) throws DataStoreException {
-        ((S3DataStore)ds).deleteRecord(identifier);
+    protected void doDeleteRecord(DataStore ds, DataIdentifier identifier)
+        throws DataStoreException {
+        ((S3DataStore) ds).deleteRecord(identifier);
     }
 
     @Override

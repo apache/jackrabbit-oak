@@ -19,14 +19,25 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 
+import static org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors.newDirectExecutorService;
+import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newPathField;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
-
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
-import org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorContext;
+import org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.LuceneIndexReader;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriter;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
@@ -40,19 +51,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import static org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors.newDirectExecutorService;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newPathField;
-import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
 public class NRTIndexTest {
+
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
 
@@ -77,7 +77,7 @@ public class NRTIndexTest {
     }
 
     @Test
-    public void getReaderWithoutWriter() throws Exception{
+    public void getReaderWithoutWriter() throws Exception {
         LuceneIndexDefinition idxDefn = getSyncIndexDefinition("/foo");
 
         NRTIndex idx1 = indexFactory.createIndex(idxDefn);
@@ -93,7 +93,7 @@ public class NRTIndexTest {
     }
 
     @Test
-    public void writerCreation() throws Exception{
+    public void writerCreation() throws Exception {
         LuceneIndexDefinition idxDefn = getSyncIndexDefinition("/foo");
         NRTIndex idx = indexFactory.createIndex(idxDefn);
         LuceneIndexWriter writer = idx.getWriter();
@@ -108,7 +108,7 @@ public class NRTIndexTest {
     }
 
     @Test
-    public void dirDeletedUponClose() throws Exception{
+    public void dirDeletedUponClose() throws Exception {
         LuceneIndexDefinition idxDefn = getSyncIndexDefinition("/foo");
         NRTIndex idx = indexFactory.createIndex(idxDefn);
         LuceneIndexWriter writer = idx.getWriter();
@@ -119,23 +119,23 @@ public class NRTIndexTest {
         idx.close();
         assertFalse(indexDir.exists());
 
-        try{
+        try {
             idx.getReaders();
             fail();
-        } catch (IllegalStateException ignore){
+        } catch (IllegalStateException ignore) {
 
         }
 
-        try{
+        try {
             idx.getWriter();
             fail();
-        } catch (IllegalStateException ignore){
+        } catch (IllegalStateException ignore) {
 
         }
     }
 
     @Test
-    public void multipleUpdateForSamePath() throws Exception{
+    public void multipleUpdateForSamePath() throws Exception {
         LuceneIndexDefinition idxDefn = getSyncIndexDefinition("/foo");
         NRTIndex idx = indexFactory.createIndex(idxDefn);
         LuceneIndexWriter writer = idx.getWriter();
@@ -154,7 +154,7 @@ public class NRTIndexTest {
     }
 
     @Test
-    public void previousIndexInitialized() throws Exception{
+    public void previousIndexInitialized() throws Exception {
         LuceneIndexDefinition idxDefn = getSyncIndexDefinition("/foo");
         NRTIndex idx1 = indexFactory.createIndex(idxDefn);
         LuceneIndexWriter w1 = idx1.getWriter();
@@ -173,7 +173,7 @@ public class NRTIndexTest {
     }
 
     @Test
-    public void sameReaderIfNoChange() throws Exception{
+    public void sameReaderIfNoChange() throws Exception {
         LuceneIndexDefinition idxDefn = getSyncIndexDefinition("/foo");
         NRTIndex idx1 = indexFactory.createIndex(idxDefn);
         LuceneIndexWriter w1 = idx1.getWriter();
@@ -197,7 +197,6 @@ public class NRTIndexTest {
 
         return new LuceneIndexDefinition(root, builder.getNodeState(), indexPath);
     }
-
 
 
 }

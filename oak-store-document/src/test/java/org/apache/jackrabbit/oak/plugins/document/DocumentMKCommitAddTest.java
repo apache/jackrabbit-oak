@@ -37,7 +37,8 @@ public class DocumentMKCommitAddTest extends BaseDocumentMKTest {
     public void addSingleNode() throws Exception {
         mk.commit("/", "+\"a\" : {}", null, null);
 
-        String nodes = mk.getNodes("/", null, 0 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        String nodes = mk.getNodes("/", null, 0 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/,
+            null /*filter*/);
         JSONObject obj = parseJSONObject(nodes);
         assertPropertyValue(obj, ":childNodeCount", 1L);
     }
@@ -113,10 +114,12 @@ public class DocumentMKCommitAddTest extends BaseDocumentMKTest {
     public void setSingleProperty() throws Exception {
         mk.commit("/", "+\"a\" : {} ^\"a/key1\" : \"value1\"", null, null);
 
-        String nodes = mk.getNodes("/", null, 0 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        String nodes = mk.getNodes("/", null, 0 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/,
+            null /*filter*/);
         JSONObject obj = parseJSONObject(nodes);
         assertPropertyValue(obj, ":childNodeCount", 1L);
-        nodes = mk.getNodes("/a", null, 0 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        nodes = mk.getNodes("/a", null, 0 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/,
+            null /*filter*/);
         obj = parseJSONObject(nodes);
         assertPropertyValue(obj, "key1", "value1");
     }
@@ -128,10 +131,12 @@ public class DocumentMKCommitAddTest extends BaseDocumentMKTest {
         mk.commit("/", "^\"a/key3\" : false", null, null);
         mk.commit("/", "^\"a/key4\" : 0.25", null, null);
 
-        String nodes = mk.getNodes("/", null, 0 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        String nodes = mk.getNodes("/", null, 0 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/,
+            null /*filter*/);
         JSONObject obj = parseJSONObject(nodes);
         assertPropertyValue(obj, ":childNodeCount", 1L);
-        nodes = mk.getNodes("/a", null, 0 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        nodes = mk.getNodes("/a", null, 0 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/,
+            null /*filter*/);
         obj = parseJSONObject(nodes);
         assertPropertyValue(obj, "key1", "value1");
         assertPropertyValue(obj, "key2", 2L);
@@ -145,22 +150,26 @@ public class DocumentMKCommitAddTest extends BaseDocumentMKTest {
         mk.commit("/", "+\"a\" : {}", null, null);
 
         mk.commit("/", "^\"a/_id\" : \"value\"", null, null);
-        String nodes = mk.getNodes("/a", null, 0 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        String nodes = mk.getNodes("/a", null, 0 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/,
+            null /*filter*/);
         JSONObject obj = parseJSONObject(nodes);
         assertPropertyValue(obj, "_id", "value");
 
         mk.commit("/", "^\"a/ke.y1\" : \"value\"", null, null);
-        nodes = mk.getNodes("/a", null, 0 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        nodes = mk.getNodes("/a", null, 0 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/,
+            null /*filter*/);
         obj = parseJSONObject(nodes);
         assertPropertyValue(obj, "ke.y1", "value");
 
         mk.commit("/", "^\"a/ke.y.1\" : \"value\"", null, null);
-        nodes = mk.getNodes("/a", null, 0 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        nodes = mk.getNodes("/a", null, 0 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/,
+            null /*filter*/);
         obj = parseJSONObject(nodes);
         assertPropertyValue(obj, "ke.y.1", "value");
 
         mk.commit("/", "^\"a/$key1\" : \"value\"", null, null);
-        nodes = mk.getNodes("/a", null, 0 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        nodes = mk.getNodes("/a", null, 0 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/,
+            null /*filter*/);
         obj = parseJSONObject(nodes);
         assertPropertyValue(obj, "$key1", "value");
     }
@@ -193,10 +202,11 @@ public class DocumentMKCommitAddTest extends BaseDocumentMKTest {
         // now overwrite with correct base revision
         mk.commit("/", "^\"a/key1\" : \"value3\"", rev2, null);
 
-        String nodes = mk.getNodes("/a", null, 0 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        String nodes = mk.getNodes("/a", null, 0 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/,
+            null /*filter*/);
         JSONObject obj = parseJSONObject(nodes);
         assertPropertyValue(obj, "key1", "value3");
-   }
+    }
 
     // This is a test to make sure commit time stays the same as time goes on.
     @Test
@@ -206,7 +216,7 @@ public class DocumentMKCommitAddTest extends BaseDocumentMKTest {
         final Stopwatch watch = Stopwatch.createUnstarted();
         for (int i = 0; i < 1000; i++) {
             watch.start();
-            String diff = "+\"a"+i+"\" : {} +\"b"+i+"\" : {} +\"c"+i+"\" : {}";
+            String diff = "+\"a" + i + "\" : {} +\"b" + i + "\" : {} +\"c" + i + "\" : {}";
             if (debug) {
                 System.out.println("Committing: " + diff);
             }
@@ -231,10 +241,12 @@ public class DocumentMKCommitAddTest extends BaseDocumentMKTest {
         mk.commit("/", "^\"a/key2\" : \"value2\"", rev, null);
 
         // Check that key1 and b were merged
-        String nodes = mk.getNodes("/", null, 0 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        String nodes = mk.getNodes("/", null, 0 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/,
+            null /*filter*/);
         JSONObject obj = parseJSONObject(nodes);
         assertPropertyValue(obj, ":childNodeCount", 1L);
-        nodes = mk.getNodes("/a", null, 0 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        nodes = mk.getNodes("/a", null, 0 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/,
+            null /*filter*/);
         obj = parseJSONObject(nodes);
         assertPropertyValue(obj, "key1", "value1");
         assertPropertyValue(obj, "key2", "value2");

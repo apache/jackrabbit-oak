@@ -45,7 +45,8 @@ import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 /**
  * Implementation of a DocumentNodeStoreMBean.
  */
-final class DocumentNodeStoreMBeanImpl extends AnnotatedStandardMBean implements DocumentNodeStoreMBean {
+final class DocumentNodeStoreMBeanImpl extends AnnotatedStandardMBean implements
+    DocumentNodeStoreMBean {
 
     private static final String ISO_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS zzz";
     private static final TimeZone TZ_UTC = TimeZone.getTimeZone("UTC");
@@ -58,9 +59,9 @@ final class DocumentNodeStoreMBeanImpl extends AnnotatedStandardMBean implements
     private final Logger log = LoggerFactory.getLogger(this.getClass());
 
     DocumentNodeStoreMBeanImpl(DocumentNodeStore nodeStore,
-                               RepositoryStatistics repoStats,
-                               Iterable<ClusterNodeInfoDocument> clusterNodes,
-                               long revisionGCMaxAgeMillis) {
+        RepositoryStatistics repoStats,
+        Iterable<ClusterNodeInfoDocument> clusterNodes,
+        long revisionGCMaxAgeMillis) {
         super(DocumentNodeStoreMBean.class);
         this.nodeStore = nodeStore;
         this.repoStats = repoStats;
@@ -91,12 +92,12 @@ final class DocumentNodeStoreMBeanImpl extends AnnotatedStandardMBean implements
     @Override
     public String[] getInactiveClusterNodes() {
         return toArray(transform(filter(clusterNodes,
-                new Predicate<ClusterNodeInfoDocument>() {
-            @Override
-            public boolean apply(ClusterNodeInfoDocument input) {
-                return !input.isActive();
-            }
-        }), new Function<ClusterNodeInfoDocument, String>() {
+            new Predicate<ClusterNodeInfoDocument>() {
+                @Override
+                public boolean apply(ClusterNodeInfoDocument input) {
+                    return !input.isActive();
+                }
+            }), new Function<ClusterNodeInfoDocument, String>() {
             @Override
             public String apply(ClusterNodeInfoDocument input) {
                 return input.getClusterId() + "=" + input.getCreated();
@@ -107,12 +108,12 @@ final class DocumentNodeStoreMBeanImpl extends AnnotatedStandardMBean implements
     @Override
     public String[] getActiveClusterNodes() {
         return toArray(transform(filter(clusterNodes,
-                new Predicate<ClusterNodeInfoDocument>() {
-            @Override
-            public boolean apply(ClusterNodeInfoDocument input) {
-                return input.isActive();
-            }
-        }), new Function<ClusterNodeInfoDocument, String>() {
+            new Predicate<ClusterNodeInfoDocument>() {
+                @Override
+                public boolean apply(ClusterNodeInfoDocument input) {
+                    return input.isActive();
+                }
+            }), new Function<ClusterNodeInfoDocument, String>() {
             @Override
             public String apply(ClusterNodeInfoDocument input) {
                 return input.getClusterId() + "=" + input.getLeaseEndTime();
@@ -123,12 +124,12 @@ final class DocumentNodeStoreMBeanImpl extends AnnotatedStandardMBean implements
     @Override
     public String[] getLastKnownRevisions() {
         return toArray(transform(filter(nodeStore.getHeadRevision(),
-                new Predicate<Revision>() {
-            @Override
-            public boolean apply(Revision input) {
-                return input.getClusterId() != getClusterId();
-            }
-        }), new Function<Revision, String>() {
+            new Predicate<Revision>() {
+                @Override
+                public boolean apply(Revision input) {
+                    return input.getClusterId() != getClusterId();
+                }
+            }), new Function<Revision, String>() {
             @Override
             public String apply(Revision input) {
                 return input.getClusterId() + "=" + input.toString();
@@ -154,39 +155,39 @@ final class DocumentNodeStoreMBeanImpl extends AnnotatedStandardMBean implements
     @Override
     public CompositeData getMergeSuccessHistory() {
         return getTimeSeriesData(DocumentNodeStoreStats.MERGE_SUCCESS_COUNT,
-                "Merge Success Count");
+            "Merge Success Count");
     }
 
     @Override
     public CompositeData getMergeFailureHistory() {
         return getTimeSeriesData(DocumentNodeStoreStats.MERGE_FAILED_EXCLUSIVE,
-                "Merge failure count");
+            "Merge failure count");
     }
 
     @Override
     public CompositeData getExternalChangeCountHistory() {
         return getTimeSeriesData(DocumentNodeStoreStats.BGR_NUM_CHANGES_RATE,
-                "Count of nodes modified by other " +
-                        "cluster nodes since last background read");
+            "Count of nodes modified by other " +
+                "cluster nodes since last background read");
     }
 
     @Override
     public CompositeData getBackgroundUpdateCountHistory() {
         return getTimeSeriesData(DocumentNodeStoreStats.BGW_NUM_WRITES_RATE,
-                "Count of nodes updated as part of " +
-                        "background update");
+            "Count of nodes updated as part of " +
+                "background update");
     }
 
     @Override
     public CompositeData getBranchCommitHistory() {
         return getTimeSeriesData(DocumentNodeStoreStats.BRANCH_COMMIT_COUNT,
-                "Branch commit count");
+            "Branch commit count");
     }
 
     @Override
     public CompositeData getMergeBranchCommitHistory() {
         return getTimeSeriesData(DocumentNodeStoreStats.MERGE_BRANCH_COMMIT_COUNT,
-                "Number of merged branch commits");
+            "Number of merged branch commits");
     }
 
     private CompositeData getTimeSeriesData(String name, String desc) {
@@ -214,18 +215,19 @@ final class DocumentNodeStoreMBeanImpl extends AnnotatedStandardMBean implements
 
         if (isActive) {
             throw new IllegalStateException(
-                    "Cannot run recover on clusterId " + clusterId + " as it's currently active");
+                "Cannot run recover on clusterId " + clusterId + " as it's currently active");
         }
 
         String p = path;
         NodeDocument nodeDocument = docStore.find(Collection.NODES, Utils.getIdFromPath(p));
-        if(nodeDocument == null) {
-            throw new DocumentStoreException("Document node with given path = " + p + " does not exist");
+        if (nodeDocument == null) {
+            throw new DocumentStoreException(
+                "Document node with given path = " + p + " does not exist");
         }
 
         boolean dryRun = nodeStore.isReadOnlyMode();
         int sum = 0;
-        for (;;) {
+        for (; ; ) {
             log.info("Running recovery on child documents of path = " + p);
             List<NodeDocument> childDocs = getChildDocs(p);
             sum += nodeStore.getLastRevRecoveryAgent().recover(childDocs, clusterId, dryRun);
@@ -237,7 +239,7 @@ final class DocumentNodeStoreMBeanImpl extends AnnotatedStandardMBean implements
         return sum;
     }
 
-    private List<NodeDocument> getChildDocs(String path) { 
+    private List<NodeDocument> getChildDocs(String path) {
         Path pathRef = Path.fromString(path);
         final String to = Utils.getKeyUpperLimit(pathRef);
         final String from = Utils.getKeyLowerLimit(pathRef);
@@ -255,7 +257,7 @@ final class DocumentNodeStoreMBeanImpl extends AnnotatedStandardMBean implements
 
     @Override
     public String cleanIndividualCache(String name) {
-        switch(name.toUpperCase()) {
+        switch (name.toUpperCase()) {
             case "DIFF":
                 nodeStore.getDiffCache().invalidateAll();
                 return "DiffCache invalidated.";
@@ -290,14 +292,18 @@ final class DocumentNodeStoreMBeanImpl extends AnnotatedStandardMBean implements
             // has a CompositeCheckpointTest to prevent a regression should the
             // implementation ever change.
             info.put(COMPOSITE_INFO + "created", Long.toString(rev.getTimestamp()));
-            info.put(COMPOSITE_INFO + "expires", Long.toString(Utils.sum(rev.getTimestamp() + lifetime)));
+            info.put(COMPOSITE_INFO + "expires",
+                Long.toString(Utils.sum(rev.getTimestamp() + lifetime)));
 
             String cp = nodeStore.getCheckpoints().create(lifetime, info, rev).toString();
-            log.info("Created checkpoint [{}] with lifetime {} for Revision {}", cp, lifetime, revision);
-            return String.format("Created checkpoint [%s] with lifetime %d for Revision %s", cp, lifetime, revision);
+            log.info("Created checkpoint [{}] with lifetime {} for Revision {}", cp, lifetime,
+                revision);
+            return String.format("Created checkpoint [%s] with lifetime %d for Revision %s", cp,
+                lifetime, revision);
         } else {
-            throw new IllegalArgumentException(String.format("Cannot create a checkpoint for revision %s. " +
-                    "Revision timestamp is %d and oldest timestamp to keep is %d",
+            throw new IllegalArgumentException(
+                String.format("Cannot create a checkpoint for revision %s. " +
+                        "Revision timestamp is %d and oldest timestamp to keep is %d",
                     revision, rev.getTimestamp(), oldestTimestamp));
         }
     }

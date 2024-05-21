@@ -16,6 +16,17 @@
  */
 package org.apache.jackrabbit.oak.spi.security;
 
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+
+import java.security.Principal;
+import java.util.List;
+import java.util.Set;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
@@ -38,18 +49,6 @@ import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 import org.junit.Test;
 import org.osgi.framework.Constants;
-
-import java.security.Principal;
-import java.util.List;
-import java.util.Set;
-
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
 
 public class CompositeConfigurationTest extends AbstractCompositeConfigurationTest {
 
@@ -75,7 +74,8 @@ public class CompositeConfigurationTest extends AbstractCompositeConfigurationTe
             public <T> T getConfiguration(@NotNull Class<T> configClass) {
                 throw new UnsupportedOperationException();
             }
-        }) {};
+        }) {
+        };
     }
 
     @Test
@@ -130,10 +130,12 @@ public class CompositeConfigurationTest extends AbstractCompositeConfigurationTe
     @Test
     public void testAddConfigurationWithRanking() {
         SecurityConfiguration r100 = new SecurityConfiguration.Default();
-        compositeConfiguration.addConfiguration(r100, ConfigurationParameters.of(Constants.SERVICE_RANKING, 100));
+        compositeConfiguration.addConfiguration(r100,
+            ConfigurationParameters.of(Constants.SERVICE_RANKING, 100));
 
         SecurityConfiguration r200 = new SecurityConfiguration.Default();
-        compositeConfiguration.addConfiguration(r200, ConfigurationParameters.of(Constants.SERVICE_RANKING, 200));
+        compositeConfiguration.addConfiguration(r200,
+            ConfigurationParameters.of(Constants.SERVICE_RANKING, 200));
 
         SecurityConfiguration r150 = new SecurityConfiguration.Default() {
             @NotNull
@@ -157,10 +159,12 @@ public class CompositeConfigurationTest extends AbstractCompositeConfigurationTe
         compositeConfiguration.addConfiguration(rUndef, ConfigurationParameters.EMPTY);
 
         SecurityConfiguration r200second = new SecurityConfiguration.Default();
-        compositeConfiguration.addConfiguration(r200second, ConfigurationParameters.of(Constants.SERVICE_RANKING, 200));
+        compositeConfiguration.addConfiguration(r200second,
+            ConfigurationParameters.of(Constants.SERVICE_RANKING, 200));
 
         List<?> l = getConfigurations();
-        assertArrayEquals(new SecurityConfiguration[]{r200, r200second, r150, r100, r50, rUndef}, l.toArray(new SecurityConfiguration[0]));
+        assertArrayEquals(new SecurityConfiguration[]{r200, r200second, r150, r100, r50, rUndef},
+            l.toArray(new SecurityConfiguration[0]));
 
         // remove and add new
         removeConfiguration(r150);
@@ -168,10 +172,12 @@ public class CompositeConfigurationTest extends AbstractCompositeConfigurationTe
         removeConfiguration(r100);
 
         SecurityConfiguration r75 = new SecurityConfiguration.Default();
-        compositeConfiguration.addConfiguration(r75, ConfigurationParameters.of(Constants.SERVICE_RANKING, 75));
+        compositeConfiguration.addConfiguration(r75,
+            ConfigurationParameters.of(Constants.SERVICE_RANKING, 75));
 
         l = getConfigurations();
-        assertArrayEquals(new SecurityConfiguration[]{r200, r200second, r75, rUndef}, l.toArray(new SecurityConfiguration[0]));
+        assertArrayEquals(new SecurityConfiguration[]{r200, r200second, r75, rUndef},
+            l.toArray(new SecurityConfiguration[0]));
     }
 
     @Test
@@ -195,13 +201,15 @@ public class CompositeConfigurationTest extends AbstractCompositeConfigurationTe
 
     @Test(expected = IllegalStateException.class)
     public void testGetSecurityProviderNotInitialized() {
-        CompositeConfiguration cc = new CompositeConfiguration("name") {};
+        CompositeConfiguration cc = new CompositeConfiguration("name") {
+        };
         cc.getSecurityProvider();
     }
 
     @Test()
     public void testSetSecurityProvider() {
-        CompositeConfiguration cc = new CompositeConfiguration("name") {};
+        CompositeConfiguration cc = new CompositeConfiguration("name") {
+        };
 
         SecurityProvider securityProvider = mock(SecurityProvider.class);
         cc.setSecurityProvider(securityProvider);
@@ -211,13 +219,15 @@ public class CompositeConfigurationTest extends AbstractCompositeConfigurationTe
 
     @Test(expected = IllegalStateException.class)
     public void testGetRootProviderNotInitialized() {
-        CompositeConfiguration cc = new CompositeConfiguration("name") {};
+        CompositeConfiguration cc = new CompositeConfiguration("name") {
+        };
         cc.getRootProvider();
     }
 
     @Test()
     public void testSetRootProvider() {
-        CompositeConfiguration cc = new CompositeConfiguration("name") {};
+        CompositeConfiguration cc = new CompositeConfiguration("name") {
+        };
 
         RootProvider rootProvider = mock(RootProvider.class);
         cc.setRootProvider(rootProvider);
@@ -227,13 +237,15 @@ public class CompositeConfigurationTest extends AbstractCompositeConfigurationTe
 
     @Test(expected = IllegalStateException.class)
     public void testGetTreeProviderNotInitialized() {
-        CompositeConfiguration cc = new CompositeConfiguration("name") {};
+        CompositeConfiguration cc = new CompositeConfiguration("name") {
+        };
         cc.getTreeProvider();
     }
 
     @Test()
     public void testSetTreeProvider() {
-        CompositeConfiguration cc = new CompositeConfiguration("name") {};
+        CompositeConfiguration cc = new CompositeConfiguration("name") {
+        };
 
         TreeProvider treeProvider = mock(TreeProvider.class);
         cc.setTreeProvider(treeProvider);
@@ -300,29 +312,36 @@ public class CompositeConfigurationTest extends AbstractCompositeConfigurationTe
 
     @Test
     public void testGetValidators() {
-        assertTrue(compositeConfiguration.getValidators(null, ImmutableSet.of(), new MoveTracker()).isEmpty());
+        assertTrue(compositeConfiguration.getValidators(null, ImmutableSet.of(), new MoveTracker())
+                                         .isEmpty());
 
         addConfiguration(new SecurityConfiguration.Default());
-        assertTrue(compositeConfiguration.getValidators(null, ImmutableSet.of(), new MoveTracker()).isEmpty());
+        assertTrue(compositeConfiguration.getValidators(null, ImmutableSet.of(), new MoveTracker())
+                                         .isEmpty());
 
         SecurityConfiguration withValidator = new SecurityConfiguration.Default() {
             @NotNull
             @Override
-            public List<? extends ValidatorProvider> getValidators(@NotNull String workspaceName, @NotNull Set<Principal> principals, @NotNull MoveTracker moveTracker) {
+            public List<? extends ValidatorProvider> getValidators(@NotNull String workspaceName,
+                @NotNull Set<Principal> principals, @NotNull MoveTracker moveTracker) {
                 return ImmutableList.of(mock(ValidatorProvider.class));
             }
         };
         addConfiguration(withValidator);
 
-        assertEquals(1, compositeConfiguration.getValidators(null, ImmutableSet.of(), new MoveTracker()).size());
+        assertEquals(1,
+            compositeConfiguration.getValidators(null, ImmutableSet.of(), new MoveTracker())
+                                  .size());
     }
 
     @Test
     public void testGetWorkspaceInitializer() {
-        assertTrue(compositeConfiguration.getWorkspaceInitializer() instanceof CompositeWorkspaceInitializer);
+        assertTrue(
+            compositeConfiguration.getWorkspaceInitializer() instanceof CompositeWorkspaceInitializer);
 
         addConfiguration(new SecurityConfiguration.Default());
-        assertTrue(compositeConfiguration.getWorkspaceInitializer() instanceof CompositeWorkspaceInitializer);
+        assertTrue(
+            compositeConfiguration.getWorkspaceInitializer() instanceof CompositeWorkspaceInitializer);
 
         SecurityConfiguration withWorkspaceInitializer = new SecurityConfiguration.Default() {
             @NotNull
@@ -333,15 +352,18 @@ public class CompositeConfigurationTest extends AbstractCompositeConfigurationTe
         };
         addConfiguration(withWorkspaceInitializer);
 
-        assertTrue(compositeConfiguration.getWorkspaceInitializer() instanceof CompositeWorkspaceInitializer);
+        assertTrue(
+            compositeConfiguration.getWorkspaceInitializer() instanceof CompositeWorkspaceInitializer);
     }
 
     @Test
     public void testGetRepositoryInitializer() {
-        assertTrue(compositeConfiguration.getRepositoryInitializer() instanceof CompositeInitializer);
+        assertTrue(
+            compositeConfiguration.getRepositoryInitializer() instanceof CompositeInitializer);
 
         addConfiguration(new SecurityConfiguration.Default());
-        assertTrue(compositeConfiguration.getRepositoryInitializer() instanceof CompositeInitializer);
+        assertTrue(
+            compositeConfiguration.getRepositoryInitializer() instanceof CompositeInitializer);
 
         SecurityConfiguration withRepositoryInitializer = new SecurityConfiguration.Default() {
             @NotNull
@@ -352,7 +374,8 @@ public class CompositeConfigurationTest extends AbstractCompositeConfigurationTe
         };
         addConfiguration(withRepositoryInitializer);
 
-        assertTrue(compositeConfiguration.getRepositoryInitializer() instanceof CompositeInitializer);
+        assertTrue(
+            compositeConfiguration.getRepositoryInitializer() instanceof CompositeInitializer);
     }
 
     @Test
@@ -372,7 +395,8 @@ public class CompositeConfigurationTest extends AbstractCompositeConfigurationTe
         };
         addConfiguration(withParams);
 
-        assertEquals(ImmutableSet.copyOf(params.keySet()), ImmutableSet.copyOf(compositeConfiguration.getParameters().keySet()));
+        assertEquals(ImmutableSet.copyOf(params.keySet()),
+            ImmutableSet.copyOf(compositeConfiguration.getParameters().keySet()));
 
         ConfigurationParameters params2 = ConfigurationParameters.of("a", "valueA2", "c", "valueC");
         SecurityConfiguration withParams2 = new SecurityConfiguration.Default() {
@@ -386,7 +410,8 @@ public class CompositeConfigurationTest extends AbstractCompositeConfigurationTe
 
         ConfigurationParameters compositeParams = compositeConfiguration.getParameters();
         assertEquals(3, compositeParams.size());
-        assertEquals(ImmutableSet.copyOf(ConfigurationParameters.of(params, params2).keySet()), ImmutableSet.copyOf(compositeParams.keySet()));
+        assertEquals(ImmutableSet.copyOf(ConfigurationParameters.of(params, params2).keySet()),
+            ImmutableSet.copyOf(compositeParams.keySet()));
         assertEquals("valueA2", compositeParams.getConfigValue("a", "def"));
     }
 
@@ -402,7 +427,8 @@ public class CompositeConfigurationTest extends AbstractCompositeConfigurationTe
         SecurityConfiguration withMonitors = new SecurityConfiguration.Default() {
             @NotNull
             @Override
-            public Iterable<Monitor<?>> getMonitors(@NotNull StatisticsProvider statisticsProvider) {
+            public Iterable<Monitor<?>> getMonitors(
+                @NotNull StatisticsProvider statisticsProvider) {
                 return ImmutableList.of(monitor);
             }
         };

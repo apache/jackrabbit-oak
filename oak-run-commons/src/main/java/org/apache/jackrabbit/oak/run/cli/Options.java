@@ -19,23 +19,23 @@
 
 package org.apache.jackrabbit.oak.run.cli;
 
-import org.apache.jackrabbit.guava.common.collect.ClassToInstanceMap;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.MutableClassToInstanceMap;
-import org.apache.jackrabbit.guava.common.collect.Sets;
-import joptsimple.OptionParser;
-import joptsimple.OptionSet;
-import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
-import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
+import static java.util.Arrays.asList;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
 import java.io.IOException;
 import java.util.EnumSet;
 import java.util.Set;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static java.util.Arrays.asList;
+import joptsimple.OptionParser;
+import joptsimple.OptionSet;
+import org.apache.jackrabbit.guava.common.collect.ClassToInstanceMap;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.apache.jackrabbit.guava.common.collect.MutableClassToInstanceMap;
+import org.apache.jackrabbit.guava.common.collect.Sets;
+import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
+import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 
 public class Options {
+
     private final Set<OptionsBeanFactory> beanFactories = Sets.newHashSet();
     private final EnumSet<OptionBeans> oakRunOptions;
     private final ClassToInstanceMap<OptionsBean> optionBeans = MutableClassToInstanceMap.create();
@@ -47,7 +47,7 @@ public class Options {
     private final Whiteboard whiteboard = new DefaultWhiteboard();
     private String tempDirectory;
 
-    public Options(){
+    public Options() {
         this.oakRunOptions = EnumSet.allOf(OptionBeans.class);
     }
 
@@ -62,18 +62,20 @@ public class Options {
     /**
      * Parses the arguments and configures the OptionBeans
      *
-     * @param parser option parser instance
-     * @param args command line arguments
-     * @param checkNonOptions if true then it checks that non options are specified i.e. some NodeStore is
-     *                        selected
+     * @param parser          option parser instance
+     * @param args            command line arguments
+     * @param checkNonOptions if true then it checks that non options are specified i.e. some
+     *                        NodeStore is selected
      * @return optionSet returned from OptionParser
      */
-    public OptionSet parseAndConfigure(OptionParser parser, String[] args, boolean checkNonOptions) throws IOException {
-        for (OptionsBeanFactory o : Iterables.concat(oakRunOptions, beanFactories)){
+    public OptionSet parseAndConfigure(OptionParser parser, String[] args, boolean checkNonOptions)
+        throws IOException {
+        for (OptionsBeanFactory o : Iterables.concat(oakRunOptions, beanFactories)) {
             OptionsBean bean = o.newInstance(parser);
             optionBeans.put(bean.getClass(), bean);
         }
-        parser.formatHelpWith(new OakHelpFormatter(optionBeans.values(), commandName, summary, connectionString));
+        parser.formatHelpWith(
+            new OakHelpFormatter(optionBeans.values(), commandName, summary, connectionString));
         optionSet = parser.parse(args);
         configure(optionSet);
         checkForHelp(parser);
@@ -88,14 +90,14 @@ public class Options {
     }
 
     @SuppressWarnings("unchecked")
-    public <T extends OptionsBean> T getOptionBean(Class<T> clazz){
+    public <T extends OptionsBean> T getOptionBean(Class<T> clazz) {
         Object o = optionBeans.get(clazz);
         checkNotNull(o, "No [%s] found in [%s]",
-                clazz.getSimpleName(), optionBeans);
+            clazz.getSimpleName(), optionBeans);
         return (T) o;
     }
 
-    public void registerOptionsFactory(OptionsBeanFactory factory){
+    public void registerOptionsFactory(OptionsBeanFactory factory) {
         beanFactories.add(factory);
     }
 
@@ -128,7 +130,7 @@ public class Options {
         return tempDirectory;
     }
 
-    public CommonOptions getCommonOpts(){
+    public CommonOptions getCommonOpts() {
         return getOptionBean(CommonOptions.class);
     }
 
@@ -136,15 +138,15 @@ public class Options {
         return whiteboard;
     }
 
-    private void configure(OptionSet optionSet){
-        for (OptionsBean bean : optionBeans.values()){
+    private void configure(OptionSet optionSet) {
+        for (OptionsBean bean : optionBeans.values()) {
             bean.configure(optionSet);
         }
     }
 
     private void checkForHelp(OptionParser parser) throws IOException {
         if (optionBeans.containsKey(CommonOptions.class)
-                && getCommonOpts().isHelpRequested()){
+            && getCommonOpts().isHelpRequested()) {
             parser.printHelpOn(System.out);
             systemExit(0);
         }
@@ -153,7 +155,7 @@ public class Options {
     public void checkNonOptions() throws IOException {
         //Some non option should be provided to enable
         if (optionBeans.containsKey(CommonOptions.class)
-                && getCommonOpts().getNonOptions().isEmpty()){
+            && getCommonOpts().getNonOptions().isEmpty()) {
             System.out.println("NodeStore details not provided");
             systemExit(1);
         }

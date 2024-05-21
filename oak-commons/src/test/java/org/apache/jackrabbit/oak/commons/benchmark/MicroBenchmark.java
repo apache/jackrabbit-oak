@@ -20,7 +20,6 @@
 package org.apache.jackrabbit.oak.commons.benchmark;
 
 import java.util.concurrent.TimeUnit;
-
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 
 
@@ -31,7 +30,9 @@ import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
  * Execution consists of a warm up phase followed by the actual benchmark run.
  */
 public final class MicroBenchmark {
-    private MicroBenchmark() { }
+
+    private MicroBenchmark() {
+    }
 
     /**
      * Benchmark base class.
@@ -39,64 +40,69 @@ public final class MicroBenchmark {
     public abstract static class Benchmark {
 
         /**
-         * The benchmark runner calls this method first and exactly once by for setting up
-         * the test fixture.
+         * The benchmark runner calls this method first and exactly once by for setting up the test
+         * fixture.
          */
-        public void setup() throws Exception { }
+        public void setup() throws Exception {
+        }
 
         /**
-         * The benchmark runner calls the method  before every call to the {@code run}
-         * method for setting the scope of the subsequent call to {@code run}.
+         * The benchmark runner calls the method  before every call to the {@code run} method for
+         * setting the scope of the subsequent call to {@code run}.
          */
-        public void beforeRun() throws Exception { }
+        public void beforeRun() throws Exception {
+        }
 
         /**
-         * The benchmark runner calls this method a number of times to measure its
-         * runtime performance.
+         * The benchmark runner calls this method a number of times to measure its runtime
+         * performance.
          */
         public abstract void run() throws Exception;
 
         /**
-         * The benchmark runner calls the method  after every call to the {@code run}
-         * method for tearing down the scope of the previous call to {@code run}.
+         * The benchmark runner calls the method  after every call to the {@code run} method for
+         * tearing down the scope of the previous call to {@code run}.
          */
-        public void afterRun() throws Exception { }
+        public void afterRun() throws Exception {
+        }
 
         /**
-         * The benchmark runner calls this method exactly once and only if the benchmark
-         * did not result in an error. This default implementation tabulates
-         * the percentiles of the gathered test statistics.
+         * The benchmark runner calls this method exactly once and only if the benchmark did not
+         * result in an error. This default implementation tabulates the percentiles of the gathered
+         * test statistics.
          */
         public void result(DescriptiveStatistics statistics) {
             System.out.println(this);
             if (statistics.getN() > 0) {
                 System.out.format(
-                        "%6s  %6s  %6s  %6s  %6s  %6s  %6s  %6s%n",
-                        "min", "10%", "50%", "90%", "max", "mean", "stdev", "N");
+                    "%6s  %6s  %6s  %6s  %6s  %6s  %6s  %6s%n",
+                    "min", "10%", "50%", "90%", "max", "mean", "stdev", "N");
                 System.out.format(
-                        "%6.0f  %6.0f  %6.0f  %6.0f  %6.0f  %6.0f  %6.0f  %6d%n",
-                        statistics.getMin() / 1000000,
-                        statistics.getPercentile(10.0) / 1000000,
-                        statistics.getPercentile(50.0) / 1000000,
-                        statistics.getPercentile(90.0) / 1000000,
-                        statistics.getMax() / 1000000,
-                        statistics.getMean() / 1000000,
-                        statistics.getStandardDeviation() / 1000000,
-                        statistics.getN());
+                    "%6.0f  %6.0f  %6.0f  %6.0f  %6.0f  %6.0f  %6.0f  %6d%n",
+                    statistics.getMin() / 1000000,
+                    statistics.getPercentile(10.0) / 1000000,
+                    statistics.getPercentile(50.0) / 1000000,
+                    statistics.getPercentile(90.0) / 1000000,
+                    statistics.getMax() / 1000000,
+                    statistics.getMean() / 1000000,
+                    statistics.getStandardDeviation() / 1000000,
+                    statistics.getN());
             } else {
                 System.out.println("No results");
             }
         }
 
         /**
-         * The benchmark runner calls this method last and exactly once for tearing down
-         * the test fixture.
+         * The benchmark runner calls this method last and exactly once for tearing down the test
+         * fixture.
          */
-        public void tearDown() throws Exception { }
+        public void tearDown() throws Exception {
+        }
     }
 
     /**
      * Run a {@code benchmark}
+     *
      * @param benchmark
      * @throws Exception
      */

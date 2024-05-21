@@ -16,33 +16,15 @@
  */
 package org.apache.jackrabbit.oak.plugins.migration;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-
-import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.junit.Before;
-import org.junit.Test;
-
-import javax.jcr.RepositoryException;
-import java.io.IOException;
-import java.util.Set;
-import java.util.UUID;
-
+import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 import static org.apache.jackrabbit.oak.plugins.migration.FilteringNodeState.wrap;
 import static org.apache.jackrabbit.oak.plugins.migration.NodeStateTestUtils.assertExists;
 import static org.apache.jackrabbit.oak.plugins.migration.NodeStateTestUtils.assertMissing;
-import static org.apache.jackrabbit.oak.plugins.migration.NodeStateTestUtils.create;
 import static org.apache.jackrabbit.oak.plugins.migration.NodeStateTestUtils.commit;
+import static org.apache.jackrabbit.oak.plugins.migration.NodeStateTestUtils.create;
 import static org.apache.jackrabbit.oak.plugins.migration.NodeStateTestUtils.createNodeStoreWithContent;
 import static org.apache.jackrabbit.oak.plugins.migration.NodeStateTestUtils.getNodeState;
 import static org.apache.jackrabbit.oak.plugins.tree.TreeConstants.OAK_CHILD_ORDER;
@@ -53,6 +35,22 @@ import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+
+import java.io.IOException;
+import java.util.Set;
+import java.util.UUID;
+import javax.jcr.RepositoryException;
+import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.guava.common.base.Predicate;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.junit.Before;
+import org.junit.Test;
 
 public class FilteringNodeStateTest {
 

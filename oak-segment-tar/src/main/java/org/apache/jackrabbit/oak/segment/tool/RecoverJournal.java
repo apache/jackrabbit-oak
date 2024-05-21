@@ -36,7 +36,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Set;
-
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.RecordType;
 import org.apache.jackrabbit.oak.segment.SegmentId;
@@ -261,10 +260,12 @@ public class RecoverJournal {
             // If the head has a corrupted path, remove this revision and check
             // the previous one. We don't even bother to check the checkpoints.
 
-            String badHeadPath = checker.checkTreeConsistency(nodeStore.getRoot(), corruptedPaths, true);
+            String badHeadPath = checker.checkTreeConsistency(nodeStore.getRoot(), corruptedPaths,
+                true);
 
             if (badHeadPath != null) {
-                out.printf("Skipping revision %s, corrupted path in head: %s\n", entry.recordId, badHeadPath);
+                out.printf("Skipping revision %s, corrupted path in head: %s\n", entry.recordId,
+                    badHeadPath);
                 corruptedPaths.add(badHeadPath);
                 i.remove();
                 continue;
@@ -278,7 +279,8 @@ public class RecoverJournal {
                 NodeState root = nodeStore.retrieve(checkpoint);
 
                 if (root == null) {
-                    out.printf("Skipping revision %s, found unreachable checkpoint %s\n", entry.recordId, checkpoint);
+                    out.printf("Skipping revision %s, found unreachable checkpoint %s\n",
+                        entry.recordId, checkpoint);
                     i.remove();
                     continue nextRevision;
                 }
@@ -286,7 +288,8 @@ public class RecoverJournal {
                 String badCheckpointPath = checker.checkTreeConsistency(root, corruptedPaths, true);
 
                 if (badCheckpointPath != null) {
-                    out.printf("Skipping revision %s, corrupted path in checkpoint %s: %s\n", entry.recordId, checkpoint, badCheckpointPath);
+                    out.printf("Skipping revision %s, corrupted path in checkpoint %s: %s\n",
+                        entry.recordId, checkpoint, badCheckpointPath);
                     corruptedPaths.add(badCheckpointPath);
                     i.remove();
                     continue nextRevision;
@@ -304,7 +307,8 @@ public class RecoverJournal {
         return entries;
     }
 
-    private void recoverEntries(ReadOnlyFileStore fileStore, SegmentId segmentId, List<Entry> entries) {
+    private void recoverEntries(ReadOnlyFileStore fileStore, SegmentId segmentId,
+        List<Entry> entries) {
         if (segmentId.isBulkSegmentId()) {
             return;
         }
@@ -328,7 +332,8 @@ public class RecoverJournal {
         });
     }
 
-    private void recoverEntries(ReadOnlyFileStore fileStore, long timestamp, RecordId recordId, List<Entry> entries) {
+    private void recoverEntries(ReadOnlyFileStore fileStore, long timestamp, RecordId recordId,
+        List<Entry> entries) {
         SegmentNodeState nodeState = fileStore.getReader().readNode(recordId);
 
         if (nodeState.hasChildNode("checkpoints") && nodeState.hasChildNode("root")) {

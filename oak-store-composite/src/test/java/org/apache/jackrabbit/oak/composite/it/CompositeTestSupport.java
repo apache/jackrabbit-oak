@@ -39,9 +39,10 @@ import static org.ops4j.pax.exam.CoreOptions.vmOption;
 
 /**
  * PaxExam support for oak-store-composite integration tests.
- * 
- * WARNING: when running the integration tests in an IDE, make sure to generate the oak-store-composite JAR first, otherwise your latest
- * code changes will be ignored. Just run `mvn package` to generate the JAR.
+ * <p>
+ * WARNING: when running the integration tests in an IDE, make sure to generate the
+ * oak-store-composite JAR first, otherwise your latest code changes will be ignored. Just run `mvn
+ * package` to generate the JAR.
  */
 public abstract class CompositeTestSupport extends TestSupport {
 
@@ -53,10 +54,12 @@ public abstract class CompositeTestSupport extends TestSupport {
     protected ModifiableCompositeOption baseConfiguration() {
         String bundlePath = System.getProperty("bundle.filename");
         if (bundlePath == null) {
-            throw new IllegalArgumentException("This IT has to be called with system property 'bundle.filename' set to the path of this bundle jar");
+            throw new IllegalArgumentException(
+                "This IT has to be called with system property 'bundle.filename' set to the path of this bundle jar");
         }
         if (!Files.exists(Paths.get(bundlePath))) {
-            throw new IllegalArgumentException("The bundle jar to be tested needs to be built first with 'mvn package'");
+            throw new IllegalArgumentException(
+                "The bundle jar to be tested needs to be built first with 'mvn package'");
         }
         return composite(
             super.baseConfiguration(),
@@ -74,25 +77,36 @@ public abstract class CompositeTestSupport extends TestSupport {
             scr(),
             slingCommonsMetrics(),
             jackrabbit(),
-            mavenBundle().groupId(JACKRABBIT_GROUP_ID).artifactId("oak-shaded-guava").versionAsInProject(),
-            mavenBundle().groupId(JACKRABBIT_GROUP_ID).artifactId("oak-commons").versionAsInProject(),
+            mavenBundle().groupId(JACKRABBIT_GROUP_ID).artifactId("oak-shaded-guava")
+                         .versionAsInProject(),
+            mavenBundle().groupId(JACKRABBIT_GROUP_ID).artifactId("oak-commons")
+                         .versionAsInProject(),
             mavenBundle().groupId(JACKRABBIT_GROUP_ID).artifactId("oak-api").versionAsInProject(),
             mavenBundle().groupId(JACKRABBIT_GROUP_ID).artifactId("oak-blob").versionAsInProject(),
-            mavenBundle().groupId(JACKRABBIT_GROUP_ID).artifactId("oak-blob-plugins").versionAsInProject(),
+            mavenBundle().groupId(JACKRABBIT_GROUP_ID).artifactId("oak-blob-plugins")
+                         .versionAsInProject(),
             mavenBundle().groupId(JACKRABBIT_GROUP_ID).artifactId("oak-core").versionAsInProject(),
-            mavenBundle().groupId(JACKRABBIT_GROUP_ID).artifactId("oak-core-spi").versionAsInProject(),
-            mavenBundle().groupId(JACKRABBIT_GROUP_ID).artifactId("oak-jackrabbit-api").versionAsInProject(),
-            mavenBundle().groupId(JACKRABBIT_GROUP_ID).artifactId("oak-query-spi").versionAsInProject(),
-            mavenBundle().groupId(JACKRABBIT_GROUP_ID).artifactId("oak-security-spi").versionAsInProject(),
-            mavenBundle().groupId(JACKRABBIT_GROUP_ID).artifactId("oak-segment-tar").versionAsInProject(),
-            mavenBundle().groupId(JACKRABBIT_GROUP_ID).artifactId("oak-store-spi").versionAsInProject()
+            mavenBundle().groupId(JACKRABBIT_GROUP_ID).artifactId("oak-core-spi")
+                         .versionAsInProject(),
+            mavenBundle().groupId(JACKRABBIT_GROUP_ID).artifactId("oak-jackrabbit-api")
+                         .versionAsInProject(),
+            mavenBundle().groupId(JACKRABBIT_GROUP_ID).artifactId("oak-query-spi")
+                         .versionAsInProject(),
+            mavenBundle().groupId(JACKRABBIT_GROUP_ID).artifactId("oak-security-spi")
+                         .versionAsInProject(),
+            mavenBundle().groupId(JACKRABBIT_GROUP_ID).artifactId("oak-segment-tar")
+                         .versionAsInProject(),
+            mavenBundle().groupId(JACKRABBIT_GROUP_ID).artifactId("oak-store-spi")
+                         .versionAsInProject()
         );
     }
 
     public static Option jackrabbit() {
         return composite(
-            mavenBundle().groupId(JACKRABBIT_GROUP_ID).artifactId("jackrabbit-data").version("2.20.4"),
-            mavenBundle().groupId(JACKRABBIT_GROUP_ID).artifactId("jackrabbit-jcr-commons").version("2.20.4"),
+            mavenBundle().groupId(JACKRABBIT_GROUP_ID).artifactId("jackrabbit-data")
+                         .version("2.20.4"),
+            mavenBundle().groupId(JACKRABBIT_GROUP_ID).artifactId("jackrabbit-jcr-commons")
+                         .version("2.20.4"),
             mavenBundle().groupId("javax.jcr").artifactId("jcr").versionAsInProject(),
             mavenBundle().groupId("commons-codec").artifactId("commons-codec").versionAsInProject(),
             mavenBundle().groupId("commons-io").artifactId("commons-io").versionAsInProject()
@@ -111,15 +125,16 @@ public abstract class CompositeTestSupport extends TestSupport {
         return composite(
             mavenBundle("org.apache.felix", "org.apache.felix.configadmin", "1.9.22"),
             mavenBundle("org.apache.felix", "org.apache.felix.fileinstall", "3.7.4"),
-            systemProperty("felix.fileinstall.dir").value(getConfigDir().toAbsolutePath().toString()),
+            systemProperty("felix.fileinstall.dir").value(
+                getConfigDir().toAbsolutePath().toString()),
             systemProperty("felix.fileinstall.enableConfigSave").value("false"),
             systemProperty("felix.fileinstall.noInitialDelay").value("true")
         );
     }
 
     /**
-     * to debug a test, add this configuration and "run" the test which would block due to suspend="y"
-     * then run remote debugger with specified port
+     * to debug a test, add this configuration and "run" the test which would block due to
+     * suspend="y" then run remote debugger with specified port
      */
     protected static Option debugConfiguration() {
         return vmOption("-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005");

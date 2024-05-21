@@ -19,16 +19,18 @@
 
 package org.apache.jackrabbit.oak.stats;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
-
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.api.jmx.QueryStatManagerMBean;
 import org.apache.jackrabbit.api.stats.RepositoryStatistics;
 import org.apache.jackrabbit.api.stats.RepositoryStatistics.Type;
+import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.jmx.RepositoryStatsMBean;
 import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
@@ -37,10 +39,8 @@ import org.apache.jackrabbit.stats.TimeSeriesMax;
 import org.junit.After;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-
 public class StatisticManagerTest {
+
     private ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
 
     @Test
@@ -68,10 +68,10 @@ public class StatisticManagerTest {
     }
 
     @Test
-    public void timeSeriesOnly() throws Exception{
+    public void timeSeriesOnly() throws Exception {
         Whiteboard wb = new DefaultWhiteboard();
         final Map<String, StatsOptions> optionsPassed = Maps.newHashMap();
-        wb.register(StatisticsProvider.class, new DummyStatsProvider(){
+        wb.register(StatisticsProvider.class, new DummyStatsProvider() {
             @Override
             public MeterStats getMeter(String name, StatsOptions options) {
                 optionsPassed.put(name, options);
@@ -81,7 +81,8 @@ public class StatisticManagerTest {
         StatisticManager mgr = new StatisticManager(wb, executorService);
 
         mgr.getMeter(Type.SESSION_READ_COUNTER);
-        assertEquals(StatsOptions.TIME_SERIES_ONLY, optionsPassed.get(Type.SESSION_READ_COUNTER.name()));
+        assertEquals(StatsOptions.TIME_SERIES_ONLY,
+            optionsPassed.get(Type.SESSION_READ_COUNTER.name()));
 
         mgr.getMeter(Type.SESSION_WRITE_COUNTER);
         assertEquals(StatsOptions.DEFAULT, optionsPassed.get(Type.SESSION_WRITE_COUNTER.name()));
@@ -95,7 +96,7 @@ public class StatisticManagerTest {
         wb.register(StatisticsProvider.class, new DummyStatsProvider() {
             @Override
             public CounterStats getCounterStats(String name,
-                                                StatsOptions options) {
+                StatsOptions options) {
                 if (name.equals(RepositoryStats.OBSERVATION_QUEUE_MAX_LENGTH)) {
                     return stats;
                 }

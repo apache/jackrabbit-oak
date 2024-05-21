@@ -16,20 +16,21 @@
  */
 package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
 
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
 
 import java.util.Properties;
-
-import static org.junit.Assert.assertEquals;
+import org.junit.Test;
 
 public class UtilsTest {
 
     @Test
     public void testConnectionStringIsBasedOnProperty() {
         Properties properties = new Properties();
-        properties.put(AzureConstants.AZURE_CONNECTION_STRING, "DefaultEndpointsProtocol=https;AccountName=accountName;AccountKey=accountKey");
+        properties.put(AzureConstants.AZURE_CONNECTION_STRING,
+            "DefaultEndpointsProtocol=https;AccountName=accountName;AccountKey=accountKey");
         String connectionString = Utils.getConnectionStringFromProperties(properties);
-        assertEquals(connectionString,"DefaultEndpointsProtocol=https;AccountName=accountName;AccountKey=accountKey");
+        assertEquals(connectionString,
+            "DefaultEndpointsProtocol=https;AccountName=accountName;AccountKey=accountKey");
     }
 
     @Test
@@ -39,7 +40,7 @@ public class UtilsTest {
         properties.put(AzureConstants.AZURE_BLOB_ENDPOINT, "endpoint");
         String connectionString = Utils.getConnectionStringFromProperties(properties);
         assertEquals(connectionString,
-                String.format("BlobEndpoint=%s;SharedAccessSignature=%s", "endpoint", "sas"));
+            String.format("BlobEndpoint=%s;SharedAccessSignature=%s", "endpoint", "sas"));
     }
 
     @Test
@@ -49,7 +50,7 @@ public class UtilsTest {
         properties.put(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME, "account");
         String connectionString = Utils.getConnectionStringFromProperties(properties);
         assertEquals(connectionString,
-                String.format("AccountName=%s;SharedAccessSignature=%s", "account", "sas"));
+            String.format("AccountName=%s;SharedAccessSignature=%s", "account", "sas"));
     }
 
     @Test
@@ -60,7 +61,8 @@ public class UtilsTest {
 
         String connectionString = Utils.getConnectionStringFromProperties(properties);
         assertEquals(connectionString,
-                String.format("DefaultEndpointsProtocol=https;AccountName=%s;AccountKey=%s","accessKey","secretKey"));
+            String.format("DefaultEndpointsProtocol=https;AccountName=%s;AccountKey=%s",
+                "accessKey", "secretKey"));
     }
 
     @Test
@@ -74,7 +76,7 @@ public class UtilsTest {
 
         String connectionString = Utils.getConnectionStringFromProperties(properties);
         assertEquals(connectionString,
-                String.format("BlobEndpoint=%s;SharedAccessSignature=%s", "endpoint", "sas"));
+            String.format("BlobEndpoint=%s;SharedAccessSignature=%s", "endpoint", "sas"));
     }
 
 

@@ -16,12 +16,12 @@
  */
 package org.apache.jackrabbit.oak.jcr.version;
 
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.jetbrains.annotations.NotNull;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
 /**
  * Simple abstraction of the version storage.
@@ -29,7 +29,7 @@ import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull
 public class VersionStorage {
 
     public static final String VERSION_STORAGE_PATH
-            = '/' + JcrConstants.JCR_SYSTEM + '/' + JcrConstants.JCR_VERSIONSTORAGE;
+        = '/' + JcrConstants.JCR_SYSTEM + '/' + JcrConstants.JCR_VERSIONSTORAGE;
 
     private final Root root;
 
@@ -44,8 +44,7 @@ public class VersionStorage {
     /**
      * The version storage tree. I.e. the tree at path
      * <code>/jcr:system/jcr:versionStorage</code>, though the returned
-     * tree instance may not necessarily return this path on
-     * {@link Tree#getPath()}!
+     * tree instance may not necessarily return this path on {@link Tree#getPath()}!
      *
      * @return the version storage tree.
      */
@@ -62,6 +61,7 @@ public class VersionStorage {
 
     /**
      * Returns the version storage tree for the given workspace.
+     *
      * @param workspaceRoot the root of the workspace.
      * @return the version storage tree.
      */

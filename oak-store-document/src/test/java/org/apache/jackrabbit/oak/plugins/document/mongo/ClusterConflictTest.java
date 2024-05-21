@@ -46,12 +46,13 @@ public class ClusterConflictTest extends AbstractMongoConnectionTest {
         super.setUpConnection();
         MongoConnection connection = connectionFactory.getConnection();
         ns2 = newBuilder(connection.getMongoClient(), connection.getDBName())
-                .setClusterId(2).getNodeStore();
+            .setClusterId(2).getNodeStore();
     }
 
     @Override
     protected DocumentMK.Builder newBuilder(MongoClient client, String dbName) throws Exception {
-        return super.newBuilder(client, dbName).setAsyncDelay(0).setLeaseCheckMode(LeaseCheckMode.DISABLED);
+        return super.newBuilder(client, dbName).setAsyncDelay(0)
+                    .setLeaseCheckMode(LeaseCheckMode.DISABLED);
     }
 
     @Override
@@ -108,9 +109,9 @@ public class ClusterConflictTest extends AbstractMongoConnectionTest {
                 @NotNull
                 @Override
                 public NodeState processCommit(NodeState before,
-                                               NodeState after,
-                                               CommitInfo info)
-                        throws CommitFailedException {
+                    NodeState after,
+                    CommitInfo info)
+                    throws CommitFailedException {
                     runBackgroundRead(ns2);
 
                     NodeBuilder builder = after.builder();
@@ -118,8 +119,8 @@ public class ClusterConflictTest extends AbstractMongoConnectionTest {
                         builder.child("a").child("b").child("c").child("bar");
                     } else {
                         throw new CommitFailedException(
-                                CommitFailedException.OAK, 0,
-                                "/a/b/c does not exist anymore");
+                            CommitFailedException.OAK, 0,
+                            "/a/b/c does not exist anymore");
                     }
                     return builder.getNodeState();
                 }
@@ -138,7 +139,7 @@ public class ClusterConflictTest extends AbstractMongoConnectionTest {
     }
 
     private static void merge(NodeStore store,
-                              NodeBuilder builder) throws Exception {
+        NodeBuilder builder) throws Exception {
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 }

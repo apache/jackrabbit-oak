@@ -16,11 +16,14 @@
  */
 package org.apache.jackrabbit.oak.jcr.document;
 
+import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.closeIfCloseable;
+import static org.junit.Assert.assertEquals;
+
 import javax.jcr.Node;
 import javax.jcr.Repository;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
-
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.document.CountingDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
@@ -31,14 +34,9 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
-import static org.apache.jackrabbit.oak.plugins.document.util.Utils.closeIfCloseable;
-import static org.junit.Assert.assertEquals;
-
 /**
- * Test for OAK-7195 using a DocumentNodeStore to verify there are no calls
- * that check the existence of a jcr:mixinTypes child node when
- * getMixinNodeTypes() is called.
+ * Test for OAK-7195 using a DocumentNodeStore to verify there are no calls that check the existence
+ * of a jcr:mixinTypes child node when getMixinNodeTypes() is called.
  */
 public class GetMixinNodeTypesTest {
 
@@ -56,7 +54,7 @@ public class GetMixinNodeTypesTest {
     @Before
     public void before() throws Exception {
         ns = builderProvider.newBuilder().setAsyncDelay(0)
-                .setDocumentStore(store).build();
+                            .setDocumentStore(store).build();
         repository = new Jcr(ns).createRepository();
         session = repository.login(new SimpleCredentials("admin", "admin".toCharArray()));
     }

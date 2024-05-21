@@ -75,12 +75,11 @@ public abstract class AbstractDataRecord implements DataRecord {
     }
 
     /**
-     * Checks if the given object is a data record with the same identifier
-     * as this one.
+     * Checks if the given object is a data record with the same identifier as this one.
      *
      * @param object other object
      * @return <code>true</code> if the other object is a data record and has
-     *         the same identifier as this one, <code>false</code> otherwise
+     * the same identifier as this one, <code>false</code> otherwise
      */
     public boolean equals(Object object) {
         return (object instanceof DataRecord)

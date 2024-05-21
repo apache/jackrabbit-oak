@@ -29,10 +29,8 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
-
 import org.apache.jackrabbit.commons.SimpleValueFactory;
 import org.apache.jackrabbit.oak.api.Descriptors;
 import org.apache.jackrabbit.oak.spi.whiteboard.Tracker;
@@ -41,6 +39,7 @@ import org.junit.Test;
 public class AggregatingDescriptorsTest {
 
     static class DescriptorEntry {
+
         private final String key;
         private final Value value;
         private final Value[] values;
@@ -48,7 +47,7 @@ public class AggregatingDescriptorsTest {
         private final boolean standard;
 
         DescriptorEntry(String key, Value value, Value[] values, boolean singleValued,
-                boolean standard) {
+            boolean standard) {
             this.key = key;
             this.value = value;
             this.values = values;
@@ -57,23 +56,23 @@ public class AggregatingDescriptorsTest {
         }
 
         static DescriptorEntry fromKey(String key,
-                Descriptors descriptors) {
+            Descriptors descriptors) {
             if (descriptors.isSingleValueDescriptor(key)) {
                 return newSingleValuedEntry(key, descriptors.getValue(key),
-                        descriptors.isStandardDescriptor(key));
+                    descriptors.isStandardDescriptor(key));
             } else {
                 return newMultiValuedEntry(key, descriptors.getValues(key),
-                        descriptors.isStandardDescriptor(key));
+                    descriptors.isStandardDescriptor(key));
             }
         }
 
         private static DescriptorEntry newMultiValuedEntry(String key,
-                Value[] values, boolean standardDescriptor) {
+            Value[] values, boolean standardDescriptor) {
             return new DescriptorEntry(key, null, values, false, standardDescriptor);
         }
 
         private static DescriptorEntry newSingleValuedEntry(String key,
-                Value value, boolean standardDescriptor) {
+            Value value, boolean standardDescriptor) {
             return new DescriptorEntry(key, value, null, true, standardDescriptor);
         }
 
@@ -142,7 +141,7 @@ public class AggregatingDescriptorsTest {
     }
 
     private void assertMatches(AggregatingDescriptors aggregator, int expectedEntryCount,
-            GenericDescriptors... descriptors) {
+        GenericDescriptors... descriptors) {
         // prepare the expectedEntries map
         final Map<String, DescriptorEntry> expectedEntries = new HashMap<String, AggregatingDescriptorsTest.DescriptorEntry>();
         for (int i = 0; i < descriptors.length; i++) {
@@ -156,13 +155,13 @@ public class AggregatingDescriptorsTest {
                 expectedEntries.put(keys[j], entry);
             }
         }
-        
+
         assertEquals(expectedEntryCount, expectedEntries.size());
-        
+
         // now go through the resulting expectedEntries and match them
         // with the aggregator one
         final Collection<DescriptorEntry> entries = expectedEntries.values();
-        for (Iterator<DescriptorEntry> it = entries.iterator(); it.hasNext();) {
+        for (Iterator<DescriptorEntry> it = entries.iterator(); it.hasNext(); ) {
             DescriptorEntry entry = it.next();
             assertEquals(entry.standard, aggregator.isStandardDescriptor(entry.key));
             if (entry.singleValued) {
@@ -175,7 +174,7 @@ public class AggregatingDescriptorsTest {
                 Value[] expectedValues = entry.values;
                 Value[] actualValues = aggregator.getValues(entry.key);
                 assertEquals(expectedValues.length, actualValues.length);
-                for(int i=0; i<expectedValues.length; i++) {
+                for (int i = 0; i < expectedValues.length; i++) {
                     assertEquals(expectedValues[i], actualValues[i]);
                 }
             }

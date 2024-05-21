@@ -19,6 +19,9 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -29,10 +32,9 @@ import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-
-import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.core.data.FileDataStore;
+import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
@@ -75,9 +77,6 @@ import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-
 /**
  * Tests for checking impacts of Lucene writes wrt storage / configuration adjustments on the
  * {@link org.apache.jackrabbit.oak.segment.SegmentNodeStore}.
@@ -114,7 +113,8 @@ public class LuceneWritesOnSegmentStatsTest extends AbstractQueryTest {
     private String indexPath;
 
 
-    public LuceneWritesOnSegmentStatsTest(boolean copyOnRW, String codec, boolean indexOnFS, int minRecordLength, String mergePolicy) {
+    public LuceneWritesOnSegmentStatsTest(boolean copyOnRW, String codec, boolean indexOnFS,
+        int minRecordLength, String mergePolicy) {
         this.copyOnRW = copyOnRW;
         this.codec = codec;
         this.indexOnFS = indexOnFS;
@@ -125,24 +125,24 @@ public class LuceneWritesOnSegmentStatsTest extends AbstractQueryTest {
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
         return Arrays.asList(new Object[][]{
-                {false, "oakCodec", false, 4096, "tiered"},
-                {false, "oakCodec", false, 4096, "mitigated"},
-                {false, "oakCodec", false, 4096, "no"},
-                {false, "Lucene46", false, 4096, "tiered"},
-                {false, "Lucene46", false, 4096, "mitigated"},
-                {false, "Lucene46", false, 4096, "no"},
-                {false, "oakCodec", false, 100, "tiered"},
-                {false, "oakCodec", false, 100, "mitigated"},
-                {false, "oakCodec", false, 100, "no"},
-                {false, "Lucene46", false, 100, "tiered"},
-                {false, "Lucene46", false, 100, "mitigated"},
-                {false, "Lucene46", false, 100, "no"},
-                {false, "compressingCodec", false, 4096, "tiered"},
-                {false, "compressingCodec", false, 4096, "mitigated"},
-                {false, "compressingCodec", false, 4096, "no"},
-                {false, "compressingCodec", false, 100, "tiered"},
-                {false, "compressingCodec", false, 100, "mitigated"},
-                {false, "compressingCodec", false, 100, "no"},
+            {false, "oakCodec", false, 4096, "tiered"},
+            {false, "oakCodec", false, 4096, "mitigated"},
+            {false, "oakCodec", false, 4096, "no"},
+            {false, "Lucene46", false, 4096, "tiered"},
+            {false, "Lucene46", false, 4096, "mitigated"},
+            {false, "Lucene46", false, 4096, "no"},
+            {false, "oakCodec", false, 100, "tiered"},
+            {false, "oakCodec", false, 100, "mitigated"},
+            {false, "oakCodec", false, 100, "no"},
+            {false, "Lucene46", false, 100, "tiered"},
+            {false, "Lucene46", false, 100, "mitigated"},
+            {false, "Lucene46", false, 100, "no"},
+            {false, "compressingCodec", false, 4096, "tiered"},
+            {false, "compressingCodec", false, 4096, "mitigated"},
+            {false, "compressingCodec", false, 4096, "no"},
+            {false, "compressingCodec", false, 100, "tiered"},
+            {false, "compressingCodec", false, 100, "mitigated"},
+            {false, "compressingCodec", false, 100, "no"},
         });
     }
 
@@ -178,7 +178,8 @@ public class LuceneWritesOnSegmentStatsTest extends AbstractQueryTest {
         LuceneIndexProvider provider;
         if (copyOnRW) {
             IndexCopier copier = createIndexCopier();
-            editorProvider = new LuceneIndexEditorProvider(copier, new ExtractedTextCache(10 * FileUtils.ONE_MB, 100));
+            editorProvider = new LuceneIndexEditorProvider(copier,
+                new ExtractedTextCache(10 * FileUtils.ONE_MB, 100));
             provider = new LuceneIndexProvider(copier);
         } else {
             editorProvider = new LuceneIndexEditorProvider();
@@ -189,23 +190,23 @@ public class LuceneWritesOnSegmentStatsTest extends AbstractQueryTest {
         try {
             statisticsProvider = new DefaultStatisticsProvider(scheduledExecutorService);
             fileStore = FileStoreBuilder.fileStoreBuilder(DIRECTORY)
-                    .withStatisticsProvider(statisticsProvider)
-                    .withBlobStore(createBlobStore())
-                    .build();
+                                        .withStatisticsProvider(statisticsProvider)
+                                        .withBlobStore(createBlobStore())
+                                        .build();
             nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
         } catch (IOException | InvalidFileStoreVersionException e) {
             throw new RuntimeException(e);
         }
         return new Oak(nodeStore)
-                .with(new InitialContent())
-                .with(new OpenSecurityProvider())
-                .with((QueryIndexProvider) provider)
-                .with((Observer) provider)
-                .with(editorProvider)
-                .with(optionalEditorProvider)
-                .with(new PropertyIndexEditorProvider())
-                .with(new NodeTypeIndexProvider())
-                .createContentRepository();
+            .with(new InitialContent())
+            .with(new OpenSecurityProvider())
+            .with((QueryIndexProvider) provider)
+            .with((Observer) provider)
+            .with(editorProvider)
+            .with(optionalEditorProvider)
+            .with(new PropertyIndexEditorProvider())
+            .with(new NodeTypeIndexProvider())
+            .createContentRepository();
     }
 
     private BlobStore createBlobStore() {
@@ -228,7 +229,7 @@ public class LuceneWritesOnSegmentStatsTest extends AbstractQueryTest {
             return new IndexCopier(executorService, temporaryFolder.getRoot()) {
                 @Override
                 public Directory wrapForRead(String indexPath, LuceneIndexDefinition definition,
-                                             Directory remote, String dirName) throws IOException {
+                    Directory remote, String dirName) throws IOException {
                     Directory ret = super.wrapForRead(indexPath, definition, remote, dirName);
                     corDir = getFSDirPath(ret);
                     return ret;
@@ -236,9 +237,10 @@ public class LuceneWritesOnSegmentStatsTest extends AbstractQueryTest {
 
                 @Override
                 public Directory wrapForWrite(LuceneIndexDefinition definition,
-                                              Directory remote, boolean reindexMode, String dirName,
-                                              COWDirectoryTracker cowDirectoryTracker) throws IOException {
-                    Directory ret = super.wrapForWrite(definition, remote, reindexMode, dirName, cowDirectoryTracker);
+                    Directory remote, boolean reindexMode, String dirName,
+                    COWDirectoryTracker cowDirectoryTracker) throws IOException {
+                    Directory ret = super.wrapForWrite(definition, remote, reindexMode, dirName,
+                        cowDirectoryTracker);
                     cowDir = getFSDirPath(ret);
                     return ret;
                 }
@@ -277,9 +279,12 @@ public class LuceneWritesOnSegmentStatsTest extends AbstractQueryTest {
 
     @Test
     public void testLuceneIndexSegmentStats() throws Exception {
-        IndexDefinitionBuilder idxb = new LuceneIndexDefinitionBuilder().noAsync().codec(codec).mergePolicy(mergePolicy);
-        idxb.indexRule("nt:base").property("foo").analyzed().nodeScopeIndex().ordered().useInExcerpt().propertyIndex();
-        idxb.indexRule("nt:base").property("bin").analyzed().nodeScopeIndex().ordered().useInExcerpt().propertyIndex();
+        IndexDefinitionBuilder idxb = new LuceneIndexDefinitionBuilder().noAsync().codec(codec)
+                                                                        .mergePolicy(mergePolicy);
+        idxb.indexRule("nt:base").property("foo").analyzed().nodeScopeIndex().ordered()
+            .useInExcerpt().propertyIndex();
+        idxb.indexRule("nt:base").property("bin").analyzed().nodeScopeIndex().ordered()
+            .useInExcerpt().propertyIndex();
         Tree idx = root.getTree("/").getChild("oak:index").addChild("lucenePropertyIndex");
         Tree idxDef = idxb.build(idx);
         if (!codec.equals("oakCodec") && indexOnFS) {
@@ -288,11 +293,11 @@ public class LuceneWritesOnSegmentStatsTest extends AbstractQueryTest {
             idxDef.setProperty("path", indexPath);
         }
 
-
         Random r = new Random();
 
         System.out.println("***");
-        System.out.println(codec + "," + copyOnRW + "," + indexOnFS + "," + minRecordLength + "," + mergePolicy);
+        System.out.println(
+            codec + "," + copyOnRW + "," + indexOnFS + "," + minRecordLength + "," + mergePolicy);
 
         long start = System.currentTimeMillis();
         int multiplier = 5;
@@ -349,7 +354,7 @@ public class LuceneWritesOnSegmentStatsTest extends AbstractQueryTest {
         long q1Start = System.currentTimeMillis();
         List<String> res1 = executeQuery(fooQuery, SQL2);
         long q1End = System.currentTimeMillis();
-        double time =  (q1End - q1Start) / 1000d;
+        double time = (q1End - q1Start) / 1000d;
         assertNotNull(res1);
         assertTrue(res1.size() > 0);
         return time;
@@ -365,13 +370,16 @@ public class LuceneWritesOnSegmentStatsTest extends AbstractQueryTest {
 
         double time = evaluateQuery(FOO_QUERY);
 
-        System.err.println("||codec||min record length||merge policy||segment size||FDS size||query time||");
-        System.err.println("|" + codec + "|" + minRecordLength + "|" + mergePolicy + "|" + IOUtils.humanReadableByteCount(
-                stats.getApproximateSize()) + "|" + fdsSize + "|" + time + " s|");
+        System.err.println(
+            "||codec||min record length||merge policy||segment size||FDS size||query time||");
+        System.err.println("|" + codec + "|" + minRecordLength + "|" + mergePolicy + "|"
+            + IOUtils.humanReadableByteCount(
+            stats.getApproximateSize()) + "|" + fdsSize + "|" + time + " s|");
 
         if (indexOnFS) {
             long sizeOfFSIndex = FileUtils.sizeOfDirectory(new File(indexPath));
-            System.out.println("Index on FS size : " + FileUtils.byteCountToDisplaySize(sizeOfFSIndex));
+            System.out.println(
+                "Index on FS size : " + FileUtils.byteCountToDisplaySize(sizeOfFSIndex));
         }
     }
 

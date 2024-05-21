@@ -20,16 +20,14 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.isAbsolute;
 
 import java.util.HashSet;
 import java.util.Iterator;
-
+import org.apache.jackrabbit.guava.common.base.Predicate;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.oak.query.FilterIterators;
 import org.apache.jackrabbit.oak.query.index.IndexRowImpl;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.IndexRow;
 import org.apache.jackrabbit.oak.spi.query.QueryLimits;
 import org.jetbrains.annotations.Nullable;
-
-import org.apache.jackrabbit.guava.common.base.Predicate;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 
 /**
  * <code>PathCursor</code> implements a simple {@link Cursor} that iterates

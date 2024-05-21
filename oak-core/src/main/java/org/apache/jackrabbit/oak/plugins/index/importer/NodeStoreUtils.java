@@ -20,8 +20,10 @@
 package org.apache.jackrabbit.oak.plugins.index.importer;
 
 
-import java.util.Map;
+import static java.util.Collections.singletonList;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
+import java.util.Map;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -39,9 +41,6 @@ import org.apache.jackrabbit.oak.spi.commit.ResetCommitAttributeHook;
 import org.apache.jackrabbit.oak.spi.commit.SimpleCommitContext;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static java.util.Collections.singletonList;
 
 final class NodeStoreUtils {
 

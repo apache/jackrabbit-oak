@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.jcr.security.authorization;
 
+import static org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest.dispose;
+import static org.junit.Assert.assertEquals;
+
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -30,7 +33,6 @@ import javax.jcr.SimpleCredentials;
 import javax.jcr.security.AccessControlList;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
-
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder;
@@ -44,29 +46,27 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest.dispose;
-import static org.junit.Assert.assertEquals;
-
 public class ImportIgnoreTest {
 
     private static final String XML = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
-            "<sv:node sv:name=\"rep:policy\" " +
-            "xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
-            "<sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\">" +
-            "<sv:value>rep:ACL</sv:value>" +
-            "</sv:property>" +
-            "<sv:node sv:name=\"allow\">" +
-            "<sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\">" +
-            "<sv:value>rep:GrantACE</sv:value>" +
-            "</sv:property>" +
-            "<sv:property sv:name=\"rep:principalName\" sv:type=\"String\">" +
-            "<sv:value>unknownprincipal</sv:value>" +
-            "</sv:property>" +
-            "<sv:property sv:name=\"rep:privileges\" sv:type=\"Name\">" +
-            "<sv:value>jcr:write</sv:value>" +
-            "</sv:property>" +
-            "</sv:node>" +
-            "</sv:node>";
+        "<sv:node sv:name=\"rep:policy\" " +
+        "xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">"
+        +
+        "<sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\">" +
+        "<sv:value>rep:ACL</sv:value>" +
+        "</sv:property>" +
+        "<sv:node sv:name=\"allow\">" +
+        "<sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\">" +
+        "<sv:value>rep:GrantACE</sv:value>" +
+        "</sv:property>" +
+        "<sv:property sv:name=\"rep:principalName\" sv:type=\"String\">" +
+        "<sv:value>unknownprincipal</sv:value>" +
+        "</sv:property>" +
+        "<sv:property sv:name=\"rep:privileges\" sv:type=\"Name\">" +
+        "<sv:value>jcr:write</sv:value>" +
+        "</sv:property>" +
+        "</sv:node>" +
+        "</sv:node>";
 
     private Repository repo;
     protected Session adminSession;
@@ -79,7 +79,8 @@ public class ImportIgnoreTest {
         if (importBehavior != null) {
             Map<String, String> params = new HashMap<String, String>();
             params.put(ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, getImportBehavior());
-            ConfigurationParameters config = ConfigurationParameters.of(AuthorizationConfiguration.NAME, ConfigurationParameters.of(params));
+            ConfigurationParameters config = ConfigurationParameters.of(
+                AuthorizationConfiguration.NAME, ConfigurationParameters.of(params));
 
             securityProvider = SecurityProviderBuilder.newBuilder().with(config).build();
         } else {
@@ -93,7 +94,8 @@ public class ImportIgnoreTest {
         jcr.with(securityProvider);
         jcr.with(queryEngineSettings);
         repo = jcr.createRepository();
-        adminSession = repo.login(new SimpleCredentials(UserConstants.DEFAULT_ADMIN_ID, UserConstants.DEFAULT_ADMIN_ID.toCharArray()));
+        adminSession = repo.login(new SimpleCredentials(UserConstants.DEFAULT_ADMIN_ID,
+            UserConstants.DEFAULT_ADMIN_ID.toCharArray()));
 
         target = adminSession.getRootNode().addNode("nodeName1");
         target.addMixin("rep:AccessControllable");
@@ -117,7 +119,8 @@ public class ImportIgnoreTest {
         String path = target.getPath();
 
         InputStream in = new ByteArrayInputStream(XML.getBytes("UTF-8"));
-        adminSession.importXML(target.getPath(), in, ImportUUIDBehavior.IMPORT_UUID_COLLISION_THROW);
+        adminSession.importXML(target.getPath(), in,
+            ImportUUIDBehavior.IMPORT_UUID_COLLISION_THROW);
 
     }
 

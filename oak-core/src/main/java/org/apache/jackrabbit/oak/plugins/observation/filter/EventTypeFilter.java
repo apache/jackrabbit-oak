@@ -20,7 +20,6 @@
 package org.apache.jackrabbit.oak.plugins.observation.filter;
 
 import javax.jcr.observation.Event;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 

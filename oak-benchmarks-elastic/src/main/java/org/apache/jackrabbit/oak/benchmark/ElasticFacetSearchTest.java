@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.benchmark;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+import javax.jcr.Repository;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.benchmark.util.TestHelper;
 import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
@@ -31,10 +34,6 @@ import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
-
-import javax.jcr.Repository;
-import java.util.LinkedHashMap;
-import java.util.Map;
 
 public class ElasticFacetSearchTest extends FacetSearchTest {
 
@@ -56,17 +55,18 @@ public class ElasticFacetSearchTest extends FacetSearchTest {
         if (fixture instanceof OakRepositoryFixture) {
             return ((OakRepositoryFixture) fixture).setUpCluster(1, oak -> {
                 ElasticIndexTracker indexTracker = new ElasticIndexTracker(connection,
-                        new ElasticMetricHandler(StatisticsProvider.NOOP));
-                ElasticIndexEditorProvider editorProvider = new ElasticIndexEditorProvider(indexTracker, connection,
-                        new ExtractedTextCache(10 * FileUtils.ONE_MB, 100));
+                    new ElasticMetricHandler(StatisticsProvider.NOOP));
+                ElasticIndexEditorProvider editorProvider = new ElasticIndexEditorProvider(
+                    indexTracker, connection,
+                    new ExtractedTextCache(10 * FileUtils.ONE_MB, 100));
                 ElasticIndexProvider indexProvider = new ElasticIndexProvider(indexTracker);
                 oak.with(editorProvider)
-                        .with(indexTracker)
-                        .with(indexProvider)
-                        .with(new PropertyIndexEditorProvider())
-                        .with(new NodeTypeIndexProvider())
-                        .with(new FacetIndexInitializer(indexName, propMap,
-                                ElasticIndexDefinition.TYPE_ELASTICSEARCH, getFacetMode()));
+                   .with(indexTracker)
+                   .with(indexProvider)
+                   .with(new PropertyIndexEditorProvider())
+                   .with(new NodeTypeIndexProvider())
+                   .with(new FacetIndexInitializer(indexName, propMap,
+                       ElasticIndexDefinition.TYPE_ELASTICSEARCH, getFacetMode()));
                 return new Jcr(oak);
             });
         }

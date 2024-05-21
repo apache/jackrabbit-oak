@@ -26,9 +26,8 @@ import java.util.UUID;
 public interface CleanupContext {
 
     /**
-     * Initial references to TAR entries. These references represent the entries
-     * that are currently in use. The transitive closure of these entries will
-     * be computed by the cleanup algorithm.
+     * Initial references to TAR entries. These references represent the entries that are currently
+     * in use. The transitive closure of these entries will be computed by the cleanup algorithm.
      *
      * @return An instance of {@link Collection}.
      */
@@ -39,21 +38,19 @@ public interface CleanupContext {
      *
      * @param id         The identifier of the entry.
      * @param generation The generation of the entry.
-     * @param referenced If this entry was referenced directly or indirectly by
-     *                   the initial set of references.
-     * @return {@code true} if the entry should be reclaimed, {@code false}
-     * otherwise.
+     * @param referenced If this entry was referenced directly or indirectly by the initial set of
+     *                   references.
+     * @return {@code true} if the entry should be reclaimed, {@code false} otherwise.
      */
     boolean shouldReclaim(UUID id, GCGeneration generation, boolean referenced);
 
     /**
-     * Determine if a reference between two entries should be followed, and if
-     * the referenced entry should be marked.
+     * Determine if a reference between two entries should be followed, and if the referenced entry
+     * should be marked.
      *
      * @param from The identifier of the referencing entry.
      * @param to   The identifier of the referenced entry.
-     * @return {@code true} if the reference should be followed, {@code false}
-     * otherwise.
+     * @return {@code true} if the reference should be followed, {@code false} otherwise.
      */
     boolean shouldFollow(UUID from, UUID to);
 

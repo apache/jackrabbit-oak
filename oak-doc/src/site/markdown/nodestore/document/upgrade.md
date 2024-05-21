@@ -14,6 +14,7 @@
    See the License for the specific language governing permissions and
    limitations under the License.
   -->
+
 # DocumentNodeStore upgrade instructions
 
 In general Oak aims to provide a smooth upgrade path that allows a new version
@@ -27,14 +28,14 @@ OAK-9176 introduces a fix to the sweep functionality. The original sweep
 prior to this fix had cases where it could missing setting the branch commit
 ("_bc") properties appropriately. OAK-9176 fixes this for any new sweep.
 However, documents that went through a sweep prior to OAK-9176 might have
-missing "_bc" entries. In order to resolve this, OAK-9176 introduces 
+missing "_bc" entries. In order to resolve this, OAK-9176 introduces
 a one-time sweep2.
 
 Sweep2 automatically runs at startup once Oak is upgraded and detects
 whether or not it needs to run. If it needs to run, it will do so
 in the background, occupying only 50% of CPU max - however, it has to
-travers the repository and does therefore take some time. 
-When sweep2 finished (or determined it is not necessary), it stores 
+travers the repository and does therefore take some time.
+When sweep2 finished (or determined it is not necessary), it stores
 this information in the settings collection. Subsequent startups
 will therefore from then on skip sweep2.
 
@@ -59,7 +60,7 @@ application. This is the recommended approach because it minimizes downtime.
 * The new Oak version and/or application that bundles or uses Oak
 * The oak-run tool in the same version as used by the updated application
 * A successful test run of below steps on a clone of the production system
-before they are applied to production.
+  before they are applied to production.
 
 ### Instructions
 
@@ -67,50 +68,50 @@ The following instructions assume a cluster with two nodes C1 and C2 running on
 Oak 1.6 or older.
 
 * Remove documents potentially created by [OAK-4345][0]. The issue only affected
-deployments based on MongoDB. Connect to the database with a MongoDB shell and
-then execute:
+  deployments based on MongoDB. Connect to the database with a MongoDB shell and
+  then execute:
 
         > db.nodes.remove({_id:{$type:7}})
 * Stop cluster node C1. If possible, the cluster node should be shut down
-gracefully because the next step can only be executed when C1 is considered
-inactive. A recovery of C1 is otherwise necessary if it is forcefully killed.
-This happens automatically when there are other active nodes in the cluster, but
-is only initiated after the lease of C1 timed out. The DocumentNodeStore MBean
-of an active cluster node can be inspected to find out whether some other
-cluster node is considered inactive (see InactiveClusterNodes attribute).
+  gracefully because the next step can only be executed when C1 is considered
+  inactive. A recovery of C1 is otherwise necessary if it is forcefully killed.
+  This happens automatically when there are other active nodes in the cluster, but
+  is only initiated after the lease of C1 timed out. The DocumentNodeStore MBean
+  of an active cluster node can be inspected to find out whether some other
+  cluster node is considered inactive (see InactiveClusterNodes attribute).
 * Run the revisions sweep command using the oak-run tool for C1. A sweep can
-only run on an inactive cluster node, otherwise the command will refuse to run.
-Assuming C1 used clusterId 1, the command line would look like this:
+  only run on an inactive cluster node, otherwise the command will refuse to run.
+  Assuming C1 used clusterId 1, the command line would look like this:
 
         > java -Xmx2g -jar oak-run-1.8.0.jar revisions mongodb://localhost:27017/oak sweep --clusterId 1
-    
-    For larger repositories it is recommended to be more generous with the cache
-    size, which will speed up the sweep operation: `--cacheSize 1024`
-    More detailed progress is available when `--verbose` is added.
-    
-    Once finished the tool will print a summary:
-    
+
+  For larger repositories it is recommended to be more generous with the cache
+  size, which will speed up the sweep operation: `--cacheSize 1024`
+  More detailed progress is available when `--verbose` is added.
+
+  Once finished the tool will print a summary:
+
         Updated sweep revision to r15d12cb1836-0-1. Branch commit markers added to 8907 documents. Reverted uncommitted changes on 19 documents. (7.94 min)
 
-* C1 is now ready for an upgrade to Oak 1.8. 
+* C1 is now ready for an upgrade to Oak 1.8.
 * Stop cluster node C2. This is when downtime of the system starts.
 * Unlock the repository for an upgrade to Oak 1.8. This step is only possible
-when *all* nodes of a cluster are inactive.
-See also [unlock upgrade](../documentmk.html) section. At this point the
-previous Oak version cannot use the DocumentStore anymore. A restore from the
-backup will be necessary should any of the following steps fail for some reason
-and the upgrade needs to be rolled back.
+  when *all* nodes of a cluster are inactive.
+  See also [unlock upgrade](../documentmk.html) section. At this point the
+  previous Oak version cannot use the DocumentStore anymore. A restore from the
+  backup will be necessary should any of the following steps fail for some reason
+  and the upgrade needs to be rolled back.
 * Start cluster node C1 with the new version of Oak and the application.
 * Run the revisions sweep command using the oak-run tool for C2 (assuming it
-used clusterId 2):
-         
+  used clusterId 2):
+
          > java -Xmx2g -jar oak-run-1.8.0.jar revisions mongodb://localhost:27017/oak sweep --clusterId 2
-         
+
 * Start cluster node C2 with the new version of Oak and the application.
 * Create recommended indexes in MongoDB and remove old ones. For a more
-efficient Revision GC, the existing indexes on `_deletedOnce` and `_sdType`
-should be replaced. Please note, the partial index on `_deletedOnce` and
-`_modified` requires at least MongoDB 3.2.
+  efficient Revision GC, the existing indexes on `_deletedOnce` and `_sdType`
+  should be replaced. Please note, the partial index on `_deletedOnce` and
+  `_modified` requires at least MongoDB 3.2.
 
         > db.nodes.createIndex({_sdType:1, _sdMaxRevTime:1}, {sparse:true})
         {
@@ -130,9 +131,10 @@ should be replaced. Please note, the partial index on `_deletedOnce` and
         }
         > db.nodes.dropIndex("_deletedOnce_1")
         { "nIndexesWas" : 6, "ok" : 1 }
-        
-    See also instructions how to [build indexes on a replica set][1] to minimize
-    impact on the system.
+
+  See also instructions how to [build indexes on a replica set][1] to minimize
+  impact on the system.
 
 [0]: https://issues.apache.org/jira/browse/OAK-4345
+
 [1]: https://docs.mongodb.com/manual/tutorial/build-indexes-on-replica-sets/#index-building-replica-sets

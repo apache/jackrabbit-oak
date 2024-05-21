@@ -29,7 +29,6 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
-
 import org.apache.jackrabbit.api.stats.RepositoryStatistics;
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.stats.CounterStats;
@@ -45,34 +44,35 @@ public class SegmentBufferMonitorTest {
 
     private final Map<String, CounterStats> stats = newHashMap();
 
-    private final SegmentBufferMonitor segmentBufferMonitor = new SegmentBufferMonitor(new StatisticsProvider() {
-        @Override
-        public RepositoryStatistics getStats() {
-            throw new IllegalStateException();
-        }
+    private final SegmentBufferMonitor segmentBufferMonitor = new SegmentBufferMonitor(
+        new StatisticsProvider() {
+            @Override
+            public RepositoryStatistics getStats() {
+                throw new IllegalStateException();
+            }
 
-        @Override
-        public MeterStats getMeter(String name, StatsOptions options) {
-            throw new IllegalStateException();
-        }
+            @Override
+            public MeterStats getMeter(String name, StatsOptions options) {
+                throw new IllegalStateException();
+            }
 
-        @Override
-        public CounterStats getCounterStats(String name, StatsOptions options) {
-            SimpleStats simpleStats = new SimpleStats(new AtomicLong(), COUNTER);
-            stats.put(name, simpleStats);
-            return simpleStats;
-        }
+            @Override
+            public CounterStats getCounterStats(String name, StatsOptions options) {
+                SimpleStats simpleStats = new SimpleStats(new AtomicLong(), COUNTER);
+                stats.put(name, simpleStats);
+                return simpleStats;
+            }
 
-        @Override
-        public TimerStats getTimer(String name, StatsOptions options) {
-            throw new IllegalStateException();
-        }
+            @Override
+            public TimerStats getTimer(String name, StatsOptions options) {
+                throw new IllegalStateException();
+            }
 
-        @Override
-        public HistogramStats getHistogram(String name, StatsOptions options) {
-            throw new IllegalStateException();
-        }
-    });
+            @Override
+            public HistogramStats getHistogram(String name, StatsOptions options) {
+                throw new IllegalStateException();
+            }
+        });
 
     @Test
     public void emptyStats() {

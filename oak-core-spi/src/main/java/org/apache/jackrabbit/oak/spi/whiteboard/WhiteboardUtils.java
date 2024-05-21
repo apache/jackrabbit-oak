@@ -16,26 +16,23 @@
  */
 package org.apache.jackrabbit.oak.spi.whiteboard;
 
+import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.ScheduleExecutionInstanceTypes.DEFAULT;
+import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.ScheduleExecutionInstanceTypes.RUN_ON_LEADER;
+import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.ScheduleExecutionInstanceTypes.RUN_ON_SINGLE;
+
 import java.util.Collections;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
-
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
-
-import org.apache.jackrabbit.oak.commons.jmx.JmxUtil;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-
-import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.ScheduleExecutionInstanceTypes.DEFAULT;
-import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.ScheduleExecutionInstanceTypes.RUN_ON_LEADER;
-import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.ScheduleExecutionInstanceTypes.RUN_ON_SINGLE;
+import org.apache.jackrabbit.oak.commons.jmx.JmxUtil;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class WhiteboardUtils {
 
@@ -51,33 +48,38 @@ public class WhiteboardUtils {
     }
 
     public static Registration scheduleWithFixedDelay(
-            Whiteboard whiteboard, Runnable runnable, long delayInSeconds) {
+        Whiteboard whiteboard, Runnable runnable, long delayInSeconds) {
         return scheduleWithFixedDelay(whiteboard, runnable, delayInSeconds, false, false);
     }
 
     public static Registration scheduleWithFixedDelay(
-            Whiteboard whiteboard, Runnable runnable, long delayInSeconds, boolean runOnSingleClusterNode,
-            boolean useDedicatedPool) {
+        Whiteboard whiteboard, Runnable runnable, long delayInSeconds,
+        boolean runOnSingleClusterNode,
+        boolean useDedicatedPool) {
         return scheduleWithFixedDelay(whiteboard, runnable, Collections.<String, Object>emptyMap(),
-                delayInSeconds, runOnSingleClusterNode, useDedicatedPool);
+            delayInSeconds, runOnSingleClusterNode, useDedicatedPool);
     }
 
     public static Registration scheduleWithFixedDelay(
-            Whiteboard whiteboard, Runnable runnable, Map<String, Object> extraProps, long delayInSeconds, boolean runOnSingleClusterNode,
-            boolean useDedicatedPool) {
+        Whiteboard whiteboard, Runnable runnable, Map<String, Object> extraProps,
+        long delayInSeconds, boolean runOnSingleClusterNode,
+        boolean useDedicatedPool) {
         return scheduleWithFixedDelay(whiteboard, runnable, extraProps, delayInSeconds,
-                runOnSingleClusterNode ? RUN_ON_SINGLE : DEFAULT,
-                useDedicatedPool);
+            runOnSingleClusterNode ? RUN_ON_SINGLE : DEFAULT,
+            useDedicatedPool);
     }
 
     public static Registration scheduleWithFixedDelay(
-            Whiteboard whiteboard, Runnable runnable, Map<String, Object> extraProps, long delayInSeconds,
-            ScheduleExecutionInstanceTypes scheduleExecutionInstanceTypes, boolean useDedicatedPool) {
+        Whiteboard whiteboard, Runnable runnable, Map<String, Object> extraProps,
+        long delayInSeconds,
+        ScheduleExecutionInstanceTypes scheduleExecutionInstanceTypes, boolean useDedicatedPool) {
 
         ImmutableMap.Builder<String, Object> builder = ImmutableMap.<String, Object>builder()
-                .putAll(extraProps)
-                .put("scheduler.period", delayInSeconds)
-                .put("scheduler.concurrent", false);
+                                                                   .putAll(extraProps)
+                                                                   .put("scheduler.period",
+                                                                       delayInSeconds)
+                                                                   .put("scheduler.concurrent",
+                                                                       false);
         if (scheduleExecutionInstanceTypes == RUN_ON_SINGLE) {
             //Make use of feature while running in Sling SLING-5387
             builder.put("scheduler.runOn", "SINGLE");
@@ -90,18 +92,19 @@ public class WhiteboardUtils {
             builder.put("scheduler.threadPool", "oak");
         }
         return whiteboard.register(
-                Runnable.class, runnable, builder.build());
+            Runnable.class, runnable, builder.build());
     }
 
     public static <T> Registration registerMBean(
-            Whiteboard whiteboard,
-            Class<T> iface, T bean, String type, String name) {
-        return registerMBean(whiteboard, iface, bean, type, name, Collections.<String, String>emptyMap());
+        Whiteboard whiteboard,
+        Class<T> iface, T bean, String type, String name) {
+        return registerMBean(whiteboard, iface, bean, type, name,
+            Collections.<String, String>emptyMap());
     }
 
     public static <T> Registration registerMBean(
-            Whiteboard whiteboard,
-            Class<T> iface, T bean, String type, String name, Map<String, String> attrs) {
+        Whiteboard whiteboard,
+        Class<T> iface, T bean, String type, String name, Map<String, String> attrs) {
         try {
 
             Hashtable<String, String> table = new Hashtable<String, String>(attrs);
@@ -120,10 +123,10 @@ public class WhiteboardUtils {
 
     /**
      * Returns the currently available services from the whiteboard of the tracked type.
-     *
+     * <p>
      * Note that the underlying tracker is closed automatically.
      *
-     * @param wb the whiteboard
+     * @param wb   the whiteboard
      * @param type the service type
      * @return a list of services
      */
@@ -134,7 +137,7 @@ public class WhiteboardUtils {
 
     /**
      * Returns the one of the currently available services from the whiteboard of the tracked type.
-     *
+     * <p>
      * Note that the underlying tracker is closed automatically.
      *
      * @return one service or {@code null}
@@ -145,24 +148,27 @@ public class WhiteboardUtils {
     }
 
     /**
-     * Returns the currently available services from the whiteboard of the tracked type. If {@code predicate} is
-     * not {@code null} the returned list is limited to the ones that match the predicate.
-     *
+     * Returns the currently available services from the whiteboard of the tracked type. If
+     * {@code predicate} is not {@code null} the returned list is limited to the ones that match the
+     * predicate.
+     * <p>
      * Note that the underlying tracker is stopped automatically after the services are returned.
      *
-     * @param wb the whiteboard
-     * @param type the service type
+     * @param wb        the whiteboard
+     * @param type      the service type
      * @param predicate filtering predicate or {@code null}
      * @return a list of services
      */
     @NotNull
-    public static <T> List<T> getServices(@NotNull Whiteboard wb, @NotNull Class<T> type, @Nullable Predicate<T> predicate) {
+    public static <T> List<T> getServices(@NotNull Whiteboard wb, @NotNull Class<T> type,
+        @Nullable Predicate<T> predicate) {
         Tracker<T> tracker = wb.track(type);
         try {
             if (predicate == null) {
                 return tracker.getServices();
             } else {
-                return ImmutableList.copyOf(Iterables.filter(tracker.getServices(), (input) -> predicate.test(input)));
+                return ImmutableList.copyOf(
+                    Iterables.filter(tracker.getServices(), (input) -> predicate.test(input)));
             }
         } finally {
             tracker.stop();
@@ -170,18 +176,20 @@ public class WhiteboardUtils {
     }
 
     /**
-     * Returns the one of the currently available services from the whiteboard of the tracked type. If {@code predicate} is
-     * not {@code null} only a service that match the predicate is returned.
-     *
+     * Returns the one of the currently available services from the whiteboard of the tracked type.
+     * If {@code predicate} is not {@code null} only a service that match the predicate is
+     * returned.
+     * <p>
      * Note that the underlying tracker is closed automatically.
      *
-     * @param wb the whiteboard
-     * @param type the service type
+     * @param wb        the whiteboard
+     * @param type      the service type
      * @param predicate filtering predicate or {@code null}
      * @return one service or {@code null}
      */
     @Nullable
-    public static <T> T getService(@NotNull Whiteboard wb, @NotNull Class<T> type, @Nullable Predicate<T> predicate) {
+    public static <T> T getService(@NotNull Whiteboard wb, @NotNull Class<T> type,
+        @Nullable Predicate<T> predicate) {
         Tracker<T> tracker = wb.track(type);
         try {
             for (T service : tracker.getServices()) {

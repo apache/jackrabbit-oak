@@ -20,13 +20,14 @@ package org.apache.jackrabbit.oak.scalability.benchmarks.search;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.query.QueryManager;
-
 import org.apache.jackrabbit.oak.scalability.suites.ScalabilityAbstractSuite.ExecutionContext;
 
 /**
- * Simulates keyset pagination over the search {@link org.apache.jackrabbit.oak.scalability.benchmarks.search.MultiFilterOrderBySearcher}
+ * Simulates keyset pagination over the search
+ * {@link org.apache.jackrabbit.oak.scalability.benchmarks.search.MultiFilterOrderBySearcher}
  */
 public class MultiFilterOrderByKeysetPageSearcher extends MultiFilterOrderBySearcher {
+
     @Override
     protected void search(QueryManager qm, ExecutionContext context) throws RepositoryException {
         processResultsKeysetPagination(qm, context);

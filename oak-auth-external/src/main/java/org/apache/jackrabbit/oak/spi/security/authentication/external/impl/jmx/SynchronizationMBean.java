@@ -20,9 +20,9 @@ import org.jetbrains.annotations.NotNull;
 import org.osgi.annotation.versioning.ProviderType;
 
 /**
- * Provides utilities to manage synchronized external identities.
- * The operations return a single or array of messages of the operations performed. for simplicity the messages are
- * JSON serialized strings:
+ * Provides utilities to manage synchronized external identities. The operations return a single or
+ * array of messages of the operations performed. for simplicity the messages are JSON serialized
+ * strings:
  * <pre>{@code
  * {
  *     "op": "upd",
@@ -30,7 +30,7 @@ import org.osgi.annotation.versioning.ProviderType;
  *     "eid": "cn=bob,o=apache"
  * }
  * }</pre>
- *
+ * <p>
  * With the following operations:
  * <ul>
  * <li>nop: nothing changed</li>
@@ -39,15 +39,16 @@ import org.osgi.annotation.versioning.ProviderType;
  * <li>del: entry deleted</li>
  * <li>err: operation failed. in this case, the 'msg' property will contain a reason</li>
  * </ul>
- *
+ * <p>
  * Note that this interface is not exported via OSGi as it is not intended to use outside of JMX (yet).
  */
 @ProviderType
 public interface SynchronizationMBean {
 
     /**
-     * Returns the name of the {@link org.apache.jackrabbit.oak.spi.security.authentication.external.SyncHandler}
-     * that this MBean operates on.
+     * Returns the name of the
+     * {@link org.apache.jackrabbit.oak.spi.security.authentication.external.SyncHandler} that this
+     * MBean operates on.
      *
      * @return the name of the sync handler.
      */
@@ -55,8 +56,10 @@ public interface SynchronizationMBean {
     String getSyncHandlerName();
 
     /**
-     * Returns the name of the {@link org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProvider}
-     * that this MBean operates on.
+     * Returns the name of the
+     * {@link
+     * org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProvider} that
+     * this MBean operates on.
      *
      * @return the name of the IDP.
      */
@@ -65,16 +68,17 @@ public interface SynchronizationMBean {
 
     /**
      * Synchronizes the local users with the given user ids.
+     *
      * @param userIds the user ids
-     * @param purge if {@code true} users that don't exist in the IDP are deleted.
+     * @param purge   if {@code true} users that don't exist in the IDP are deleted.
      * @return result messages.
      */
     @NotNull
     String[] syncUsers(@NotNull String[] userIds, boolean purge);
 
     /**
-     * Synchronizes all local users for the given IDP. Note that this can be an expensive operation since all
-     * potential users need to be examined.
+     * Synchronizes all local users for the given IDP. Note that this can be an expensive operation
+     * since all potential users need to be examined.
      *
      * @param purge if {@code true} users that don't exist in the IDP are deleted.
      * @return result messages.
@@ -84,6 +88,7 @@ public interface SynchronizationMBean {
 
     /**
      * Synchronizes the external users with the given external ids.
+     *
      * @param externalIds the external id
      * @return result messages.
      */
@@ -91,8 +96,8 @@ public interface SynchronizationMBean {
     String[] syncExternalUsers(@NotNull String[] externalIds);
 
     /**
-     * Synchronizes all the external users, i.e. basically imports the entire IDP. Note that this can be an expensive
-     * operation.
+     * Synchronizes all the external users, i.e. basically imports the entire IDP. Note that this
+     * can be an expensive operation.
      *
      * @return result messages.
      */
@@ -100,16 +105,18 @@ public interface SynchronizationMBean {
     String[] syncAllExternalUsers();
 
     /**
-     * Returns a list of orphaned users, i.e. users that don't exist anymore on the IDP. Note that this can be an
-     * expensive operation since all potential users need to be examined.
+     * Returns a list of orphaned users, i.e. users that don't exist anymore on the IDP. Note that
+     * this can be an expensive operation since all potential users need to be examined.
+     *
      * @return a list of the user ids of orphaned users.
      */
     @NotNull
     String[] listOrphanedUsers();
 
     /**
-     * Purges all orphaned users. this is similar to invoke {@link #syncUsers(String[], boolean)} with the list of
-     * orphaned users. Note tha this can be an expensive operation since all potential users need to be examined.
+     * Purges all orphaned users. this is similar to invoke {@link #syncUsers(String[], boolean)}
+     * with the list of orphaned users. Note tha this can be an expensive operation since all
+     * potential users need to be examined.
      *
      * @return result messages.
      */
@@ -117,15 +124,17 @@ public interface SynchronizationMBean {
     String[] purgeOrphanedUsers();
 
     /**
-     * <p>Migrates all previously synchronized users to have dynamic membership if the {@code SyncHandler} has the dynamic 
-     * membership option enabled. Otherwise this method will have no effect.
+     * <p>Migrates all previously synchronized users to have dynamic membership if the
+     * {@code SyncHandler} has the dynamic membership option enabled. Otherwise this method will
+     * have no effect.
      * </p>
-     * Note: calling this method will only migrate existing group membership information to the dynamic persistence format. 
-     * It does not retrieve the latest membership information from the external identity provider. Membership information 
-     * will therefore only be updated upon the next synchronization.
-     * 
+     * Note: calling this method will only migrate existing group membership information to the
+     * dynamic persistence format. It does not retrieve the latest membership information from the
+     * external identity provider. Membership information will therefore only be updated upon the
+     * next synchronization.
+     *
      * @return result messages
-     * @see org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig.User#getDynamicMembership() 
+     * @see org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig.User#getDynamicMembership()
      */
     @NotNull
     String[] convertToDynamicMembership();

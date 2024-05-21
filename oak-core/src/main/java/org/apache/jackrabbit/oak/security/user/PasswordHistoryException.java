@@ -16,9 +16,8 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import org.jetbrains.annotations.NotNull;
-
 import javax.jcr.nodetype.ConstraintViolationException;
+import org.jetbrains.annotations.NotNull;
 
 class PasswordHistoryException extends ConstraintViolationException {
 

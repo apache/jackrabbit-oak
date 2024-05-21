@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.plugins.index.property;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 
 import java.util.List;
-
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;

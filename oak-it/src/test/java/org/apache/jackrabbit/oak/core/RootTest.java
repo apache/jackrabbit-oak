@@ -26,7 +26,6 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
-
 import org.apache.jackrabbit.oak.OakBaseTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -242,7 +241,7 @@ public class RootTest extends OakBaseTest {
         assertFalse(tree.hasChild("x"));
         assertTrue(tree.hasChild("xx"));
         assertEquals("/xx", x.getPath());
-        
+
         root.commit();
 
         assertFalse(tree.hasChild("x"));
@@ -257,7 +256,7 @@ public class RootTest extends OakBaseTest {
         checkEqual(root1.getTree("/"), root2.getTree("/"));
 
         root2.getTree("/").addChild("one").addChild("two").addChild("three")
-                .setProperty("p1", "V1");
+             .setProperty("p1", "V1");
         root2.commit();
 
         root1.rebase();
@@ -310,7 +309,7 @@ public class RootTest extends OakBaseTest {
         checkEqual(root1.getTree("/"), root2.getTree("/"));
 
         root2.getTree("/").addChild("one").addChild("two").addChild("three")
-                .setProperty("p1", "V1");
+             .setProperty("p1", "V1");
         root2.commit();
 
         root1.getTree("/").addChild("child");
@@ -328,7 +327,7 @@ public class RootTest extends OakBaseTest {
         checkEqual(root1.getTree("/"), root2.getTree("/"));
 
         root2.getTree("/").addChild("one").addChild("two").addChild("three")
-                .setProperty("p1", "V1");
+             .setProperty("p1", "V1");
         root2.commit();
 
         root1.getTree("/").getChild("x").remove();
@@ -346,7 +345,7 @@ public class RootTest extends OakBaseTest {
         checkEqual(root1.getTree("/"), root2.getTree("/"));
 
         root2.getTree("/").addChild("one").addChild("two").addChild("three")
-                .setProperty("p1", "V1");
+             .setProperty("p1", "V1");
         root2.commit();
 
         root1.getTree("/").setProperty("new", 42);
@@ -364,7 +363,7 @@ public class RootTest extends OakBaseTest {
         checkEqual(root1.getTree("/"), root2.getTree("/"));
 
         root2.getTree("/").addChild("one").addChild("two").addChild("three")
-                .setProperty("p1", "V1");
+             .setProperty("p1", "V1");
         root2.commit();
 
         root1.getTree("/").removeProperty("a");
@@ -382,7 +381,7 @@ public class RootTest extends OakBaseTest {
         checkEqual(root1.getTree("/"), root2.getTree("/"));
 
         root2.getTree("/").addChild("one").addChild("two").addChild("three")
-                .setProperty("p1", "V1");
+             .setProperty("p1", "V1");
         root2.commit();
 
         root1.getTree("/").setProperty("a", 42);
@@ -400,7 +399,7 @@ public class RootTest extends OakBaseTest {
         checkEqual(root1.getTree("/"), root2.getTree("/"));
 
         root2.getTree("/").addChild("one").addChild("two").addChild("three")
-                .setProperty("p1", "V1");
+             .setProperty("p1", "V1");
         root2.commit();
 
         root1.move("/x", "/y/x-moved");
@@ -423,9 +422,10 @@ public class RootTest extends OakBaseTest {
         r.getChild("N6").remove();
         root.commit();
     }
-    
+
     private static void checkEqual(Tree tree1, Tree tree2) {
-        assertEquals(tree1.getChildrenCount(Long.MAX_VALUE), tree2.getChildrenCount(Long.MAX_VALUE));
+        assertEquals(tree1.getChildrenCount(Long.MAX_VALUE),
+            tree2.getChildrenCount(Long.MAX_VALUE));
         assertEquals(tree1.getPropertyCount(), tree2.getPropertyCount());
 
         for (PropertyState property1 : tree1.getProperties()) {

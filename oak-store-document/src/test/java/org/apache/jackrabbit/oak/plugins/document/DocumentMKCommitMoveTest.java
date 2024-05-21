@@ -118,14 +118,16 @@ public class DocumentMKCommitMoveTest extends BaseDocumentMKTest {
     public void moveNodeWithProperties() throws Exception {
         mk.commit("/", "+\"a\" : { \"key1\" : \"value1\" }", null, null);
         assertTrue(mk.nodeExists("/a", null));
-        String nodes = mk.getNodes("/a", null, 0 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        String nodes = mk.getNodes("/a", null, 0 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/,
+            null /*filter*/);
         JSONObject obj = parseJSONObject(nodes);
         assertPropertyValue(obj, "key1", "value1");
 
         mk.commit("/", ">\"a\" : \"c\"", null, null);
         assertFalse(mk.nodeExists("/a", null));
         assertTrue(mk.nodeExists("/c", null));
-        nodes = mk.getNodes("/c", null, 0 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        nodes = mk.getNodes("/c", null, 0 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/,
+            null /*filter*/);
         obj = parseJSONObject(nodes);
         assertPropertyValue(obj, "key1", "value1");
     }
@@ -157,7 +159,7 @@ public class DocumentMKCommitMoveTest extends BaseDocumentMKTest {
     public void addNodeAndMove() {
         mk.commit("/", "+\"a\":{}", null, null);
         mk.commit("/", "+\"a/b\": {}\n"
-                     + ">\"a/b\":\"c\"", null, null);
+            + ">\"a/b\":\"c\"", null, null);
 
         assertFalse(mk.nodeExists("/a/b", null));
         assertTrue(mk.nodeExists("/a", null));
@@ -179,7 +181,7 @@ public class DocumentMKCommitMoveTest extends BaseDocumentMKTest {
     public void addNodeWithChildrenAndMove() {
         mk.commit("/", "+\"a\":{}", null, null);
         mk.commit("/", "+\"a/b\":{ \"c\" : {}, \"d\" : {} }\n"
-                     + ">\"a/b\":\"e\"", null, null);
+            + ">\"a/b\":\"e\"", null, null);
 
         assertTrue(mk.nodeExists("/a", null));
         assertFalse(mk.nodeExists("/a/b", null));
@@ -195,7 +197,7 @@ public class DocumentMKCommitMoveTest extends BaseDocumentMKTest {
     public void addNodeWithNestedChildrenAndMove() {
         mk.commit("/", "+\"a\":{ \"b\" : { \"c\" : { } } }", null, null);
         mk.commit("/", "+\"a/b/c/d\":{}\n"
-                     + ">\"a\":\"e\"", null, null);
+            + ">\"a\":\"e\"", null, null);
 
         assertFalse(mk.nodeExists("/a/b/c/d", null));
         assertTrue(mk.nodeExists("/e/b/c/d", null));
@@ -205,7 +207,7 @@ public class DocumentMKCommitMoveTest extends BaseDocumentMKTest {
     public void addNodeAndMoveParent() {
         mk.commit("/", "+\"a\":{}", null, null);
         mk.commit("/", "+\"a/b\":{}\n" +
-                        ">\"a\":\"c\"", null, null);
+            ">\"a\":\"c\"", null, null);
 
         assertFalse(mk.nodeExists("/a", null));
         assertFalse(mk.nodeExists("/a/b", null));
@@ -219,7 +221,7 @@ public class DocumentMKCommitMoveTest extends BaseDocumentMKTest {
 
         try {
             mk.commit("/", "-\"a/b\"\n"
-                         + ">\"a/b\":\"c\"", null, null);
+                + ">\"a/b\":\"c\"", null, null);
             fail("Expected expected");
         } catch (Exception expected) {
             // expected
@@ -230,7 +232,7 @@ public class DocumentMKCommitMoveTest extends BaseDocumentMKTest {
     public void removeNodeWithNestedChildrenAndMove() {
         mk.commit("/", "+\"a\":{ \"b\" : { \"c\" : { \"d\" : {} } } }", null, null);
         mk.commit("/", "-\"a/b/c/d\"\n"
-                     + ">\"a\" : \"e\"", null, null);
+            + ">\"a\" : \"e\"", null, null);
 
         assertFalse(mk.nodeExists("/a", null));
         assertTrue(mk.nodeExists("/e/b/c", null));
@@ -241,7 +243,7 @@ public class DocumentMKCommitMoveTest extends BaseDocumentMKTest {
     public void removeNodeAndMoveParent() {
         mk.commit("/", "+\"a\":{ \"b\" : {} }", null, null);
         mk.commit("/", "-\"a/b\"\n"
-                     + ">\"a\":\"c\"", null, null);
+            + ">\"a\":\"c\"", null, null);
 
         assertFalse(mk.nodeExists("/a/b", null));
         assertTrue(mk.nodeExists("/c", null));
@@ -252,12 +254,13 @@ public class DocumentMKCommitMoveTest extends BaseDocumentMKTest {
     public void setPropertyAndMove() {
         mk.commit("/", "+\"a\":{}", null, null);
         mk.commit("/", "^\"a/key1\": \"value1\"\n" +
-                        ">\"a\":\"c\"", null, null);
+            ">\"a\":\"c\"", null, null);
 
         assertFalse(mk.nodeExists("/a", null));
         assertTrue(mk.nodeExists("/c", null));
 
-        String nodes = mk.getNodes("/c", null, 0 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        String nodes = mk.getNodes("/c", null, 0 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/,
+            null /*filter*/);
         JSONObject obj = parseJSONObject(nodes);
         assertPropertyValue(obj, "key1", "value1");
     }
@@ -266,14 +269,15 @@ public class DocumentMKCommitMoveTest extends BaseDocumentMKTest {
     public void setNestedPropertyAndMove() {
         mk.commit("/", "+\"a\":{ \"b\" : {} }", null, null);
         mk.commit("/", "^\"a/b/key1\": \"value1\"\n" +
-                        ">\"a\":\"c\"", null, null);
+            ">\"a\":\"c\"", null, null);
 
         assertFalse(mk.nodeExists("/a", null));
         assertFalse(mk.nodeExists("/a/b", null));
         assertTrue(mk.nodeExists("/c", null));
         assertTrue(mk.nodeExists("/c/b", null));
 
-        String nodes = mk.getNodes("/c/b", null, 0 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        String nodes = mk.getNodes("/c/b", null, 0 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/,
+            null /*filter*/);
         JSONObject obj = parseJSONObject(nodes);
         assertPropertyValue(obj, "key1", "value1");
     }
@@ -282,14 +286,15 @@ public class DocumentMKCommitMoveTest extends BaseDocumentMKTest {
     public void modifyParentAddPropertyAndMove() {
         mk.commit("/", "+\"a\":{}", null, null);
         mk.commit("/", "+\"b\" : {}\n"
-                     + "^\"a/key1\": \"value1\"\n"
-                     + ">\"a\":\"c\"", null, null);
+            + "^\"a/key1\": \"value1\"\n"
+            + ">\"a\":\"c\"", null, null);
 
         assertFalse(mk.nodeExists("/a", null));
         assertTrue(mk.nodeExists("/b", null));
         assertTrue(mk.nodeExists("/c", null));
 
-        String nodes = mk.getNodes("/c", null, 0 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        String nodes = mk.getNodes("/c", null, 0 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/,
+            null /*filter*/);
         JSONObject obj = parseJSONObject(nodes);
         assertPropertyValue(obj, "key1", "value1");
     }
@@ -298,14 +303,15 @@ public class DocumentMKCommitMoveTest extends BaseDocumentMKTest {
     public void removePropertyAndMove() {
         mk.commit("/", "+\"a\":{ \"b\" : { \"key1\" : \"value1\" } }", null, null);
         mk.commit("/", "^\"a/b/key1\": null\n"
-                     + ">\"a\":\"c\"", null, null);
+            + ">\"a\":\"c\"", null, null);
 
         assertFalse(mk.nodeExists("/a", null));
         assertFalse(mk.nodeExists("/a/b", null));
         assertTrue(mk.nodeExists("/c", null));
         assertTrue(mk.nodeExists("/c/b", null));
 
-        String nodes = mk.getNodes("/c/b", null, 0 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        String nodes = mk.getNodes("/c/b", null, 0 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/,
+            null /*filter*/);
         JSONObject obj = parseJSONObject(nodes);
         assertPropertyNotExists(obj, "key1");
     }
@@ -314,12 +320,13 @@ public class DocumentMKCommitMoveTest extends BaseDocumentMKTest {
     public void removeNestedPropertyAndMove() {
         mk.commit("/", "+\"a\":{ \"key1\" : \"value1\"}", null, null);
         mk.commit("/", "^\"a/key1\" : null\n"
-                     + ">\"a\":\"c\"", null, null);
+            + ">\"a\":\"c\"", null, null);
 
         assertFalse(mk.nodeExists("/a", null));
         assertTrue(mk.nodeExists("/c", null));
 
-        String nodes = mk.getNodes("/c", null, 0 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        String nodes = mk.getNodes("/c", null, 0 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/,
+            null /*filter*/);
         JSONObject obj = parseJSONObject(nodes);
         assertPropertyNotExists(obj, "key1");
     }
@@ -328,14 +335,15 @@ public class DocumentMKCommitMoveTest extends BaseDocumentMKTest {
     public void modifyParentRemovePropertyAndMove() {
         mk.commit("/", "+\"a\":{ \"key1\" : \"value1\"}", null, null);
         mk.commit("/", "+\"b\" : {}\n"
-                     + "^\"a/key1\" : null\n"
-                     + ">\"a\":\"c\"", null, null);
+            + "^\"a/key1\" : null\n"
+            + ">\"a\":\"c\"", null, null);
 
         assertFalse(mk.nodeExists("/a", null));
         assertTrue(mk.nodeExists("/b", null));
         assertTrue(mk.nodeExists("/c", null));
 
-        String nodes = mk.getNodes("/c", null, 0 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        String nodes = mk.getNodes("/c", null, 0 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/,
+            null /*filter*/);
         JSONObject obj = parseJSONObject(nodes);
         assertPropertyNotExists(obj, "key1");
     }

@@ -16,11 +16,10 @@
  */
 package org.apache.jackrabbit.oak.spi.blob;
 
-import org.osgi.annotation.versioning.ProviderType;
-
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
+import org.osgi.annotation.versioning.ProviderType;
 
 /**
  * A blob store that supports garbage collection.
@@ -29,17 +28,16 @@ import java.util.List;
 public interface GarbageCollectableBlobStore extends BlobStore {
 
     /**
-     * Set the block size used by this blob store, if the blob store splits
-     * binaries into blocks. If not, this setting is ignored.
-     * 
+     * Set the block size used by this blob store, if the blob store splits binaries into blocks. If
+     * not, this setting is ignored.
+     *
      * @param x the block size in bytes.
      */
     void setBlockSize(int x);
 
     /**
-     * Write a blob from a temporary file. The temporary file is removed
-     * afterwards. A file based blob stores might simply rename the file, so
-     * that no additional writes are necessary.
+     * Write a blob from a temporary file. The temporary file is removed afterwards. A file based
+     * blob stores might simply rename the file, so that no additional writes are necessary.
      *
      * @param tempFileName the temporary file name
      * @return the blob id
@@ -48,7 +46,7 @@ public interface GarbageCollectableBlobStore extends BlobStore {
 
     /**
      * Remove all unused blocks.
-     * 
+     *
      * @return the number of removed blocks
      */
     int sweep() throws IOException;
@@ -70,29 +68,27 @@ public interface GarbageCollectableBlobStore extends BlobStore {
 
     /**
      * Get the minimum block size (if there is any).
-     * 
+     *
      * @return the block size
      */
     long getBlockSizeMin();
 
     /**
      * Gets all the identifiers.
-     * 
-     * @param maxLastModifiedTime
-     *            the max last modified time to consider for retrieval,
-     *            with the special value '0' meaning no filtering by time
+     *
+     * @param maxLastModifiedTime the max last modified time to consider for retrieval, with the
+     *                            special value '0' meaning no filtering by time
      * @return the identifiers
-     * @throws Exception
-     *             the exception
+     * @throws Exception the exception
      */
     Iterator<String> getAllChunkIds(long maxLastModifiedTime) throws Exception;
 
     /**
      * Deletes the blobs with the given ids.
      *
-     * @param chunkIds the chunk ids
-     * @param maxLastModifiedTime the max last modified time to consider for retrieval,
-     *            with the special value '0' meaning no filtering by time
+     * @param chunkIds            the chunk ids
+     * @param maxLastModifiedTime the max last modified time to consider for retrieval, with the
+     *                            special value '0' meaning no filtering by time
      * @return true, if successful
      * @throws Exception the exception
      */
@@ -102,22 +98,21 @@ public interface GarbageCollectableBlobStore extends BlobStore {
     /**
      * Deletes the blobs with the given ids.
      *
-     * @param chunkIds the chunk ids
-     * @param maxLastModifiedTime the max last modified time to consider for retrieval,
-     *            with the special value '0' meaning no filtering by time
+     * @param chunkIds            the chunk ids
+     * @param maxLastModifiedTime the max last modified time to consider for retrieval, with the
+     *                            special value '0' meaning no filtering by time
      * @return long the count of successful deletions
      * @throws Exception the exception
      */
     long countDeleteChunks(List<String> chunkIds, long maxLastModifiedTime) throws Exception;
 
     /**
-     * Resolve chunks stored in the blob store from the given Id.
-     * This will not return any chunks stored in-line in the id.
-     * 
+     * Resolve chunks stored in the blob store from the given Id. This will not return any chunks
+     * stored in-line in the id.
+     *
      * @param blobId the blob id
      * @return the iterator
-     * @throws IOException
-     *             Signals that an I/O exception has occurred.
+     * @throws IOException Signals that an I/O exception has occurred.
      */
     Iterator<String> resolveChunks(String blobId) throws IOException;
 }

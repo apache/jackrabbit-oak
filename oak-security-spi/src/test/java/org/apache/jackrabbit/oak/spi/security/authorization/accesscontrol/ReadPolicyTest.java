@@ -16,19 +16,18 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
-import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
-import org.junit.Test;
-
-import java.util.Collections;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+
+import java.util.Collections;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
+import org.junit.Test;
 
 public class ReadPolicyTest {
 
@@ -36,37 +35,49 @@ public class ReadPolicyTest {
     public void testGetName() throws Exception {
         assertEquals("Grants read access on configured trees.", ReadPolicy.INSTANCE.getName());
     }
-    
+
     @Test
     public void testHasEffectiveReadPolicyNullPath() {
         assertFalse(ReadPolicy.hasEffectiveReadPolicy(Collections.emptySet(), null));
-        assertFalse(ReadPolicy.hasEffectiveReadPolicy(Collections.singleton(PathUtils.ROOT_PATH), null));
-        assertFalse(ReadPolicy.hasEffectiveReadPolicy(ImmutableSet.of("/some/path", "/another/path"), null));
+        assertFalse(
+            ReadPolicy.hasEffectiveReadPolicy(Collections.singleton(PathUtils.ROOT_PATH), null));
+        assertFalse(
+            ReadPolicy.hasEffectiveReadPolicy(ImmutableSet.of("/some/path", "/another/path"),
+                null));
     }
 
     @Test
     public void testHasEffectiveReadPolicy() {
         String path = "/some/random/path";
         assertFalse(ReadPolicy.hasEffectiveReadPolicy(Collections.emptySet(), path));
-        assertFalse(ReadPolicy.hasEffectiveReadPolicy(Collections.singleton("/another/path"), path));
-        assertFalse(ReadPolicy.hasEffectiveReadPolicy(Collections.singleton(path+"-sibling"), path));
-        assertFalse(ReadPolicy.hasEffectiveReadPolicy(Collections.singleton(path+"/child"), path));
-        
+        assertFalse(
+            ReadPolicy.hasEffectiveReadPolicy(Collections.singleton("/another/path"), path));
+        assertFalse(
+            ReadPolicy.hasEffectiveReadPolicy(Collections.singleton(path + "-sibling"), path));
+        assertFalse(
+            ReadPolicy.hasEffectiveReadPolicy(Collections.singleton(path + "/child"), path));
+
         assertTrue(ReadPolicy.hasEffectiveReadPolicy(Collections.singleton(path), path));
-        assertTrue(ReadPolicy.hasEffectiveReadPolicy(Collections.singleton(PathUtils.ROOT_PATH), path));
+        assertTrue(
+            ReadPolicy.hasEffectiveReadPolicy(Collections.singleton(PathUtils.ROOT_PATH), path));
         assertTrue(ReadPolicy.hasEffectiveReadPolicy(ImmutableSet.of("/some/random"), path));
-        assertTrue(ReadPolicy.hasEffectiveReadPolicy(ImmutableSet.of("/another/path", "/some/random/path"), path));
-        assertTrue(ReadPolicy.hasEffectiveReadPolicy(ImmutableSet.of("/another/path", PathUtils.ROOT_PATH), path));
+        assertTrue(
+            ReadPolicy.hasEffectiveReadPolicy(ImmutableSet.of("/another/path", "/some/random/path"),
+                path));
+        assertTrue(
+            ReadPolicy.hasEffectiveReadPolicy(ImmutableSet.of("/another/path", PathUtils.ROOT_PATH),
+                path));
     }
-    
+
     @Test
     public void testCanAccessReadPolicy() {
         PermissionProvider pp = mock(PermissionProvider.class);
-        
+
         assertFalse(ReadPolicy.canAccessReadPolicy(pp));
         assertFalse(ReadPolicy.canAccessReadPolicy(pp, "/test/path"));
-        
-        when(pp.isGranted("/test/path", Permissions.PERMISSION_NAMES.get(Permissions.READ_ACCESS_CONTROL))).thenReturn(true);
+
+        when(pp.isGranted("/test/path",
+            Permissions.PERMISSION_NAMES.get(Permissions.READ_ACCESS_CONTROL))).thenReturn(true);
 
         assertFalse(ReadPolicy.canAccessReadPolicy(pp));
         assertFalse(ReadPolicy.canAccessReadPolicy(pp, "/different/path"));

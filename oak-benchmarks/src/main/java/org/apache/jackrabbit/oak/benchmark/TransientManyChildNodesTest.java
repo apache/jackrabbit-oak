@@ -21,9 +21,8 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
 /**
- * Test for measuring the performance of {@value #ITERATIONS} iterations of
- * transiently adding and removing a child node to a node that already has
- * {@value #CHILD_COUNT} existing child nodes.
+ * Test for measuring the performance of {@value #ITERATIONS} iterations of transiently adding and
+ * removing a child node to a node that already has {@value #CHILD_COUNT} existing child nodes.
  */
 public class TransientManyChildNodesTest extends AbstractTest {
 

@@ -35,7 +35,6 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
@@ -44,7 +43,13 @@ import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.MultiDataStoreAware;
+import org.apache.jackrabbit.guava.common.base.Function;
+import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.cache.CacheLoader;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
+import org.apache.jackrabbit.guava.common.io.Closeables;
+import org.apache.jackrabbit.guava.common.util.concurrent.ListeningExecutorService;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.TypedDataStore;
 import org.apache.jackrabbit.oak.spi.blob.AbstractDataRecord;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
@@ -56,16 +61,8 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.base.Function;
-import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.io.Closeables;
-import org.apache.jackrabbit.guava.common.util.concurrent.ListeningExecutorService;
-
 /**
- * Cache files locally and stage files locally for async uploads.
- * Configuration:
+ * Cache files locally and stage files locally for async uploads. Configuration:
  *
  * <pre>
  * &lt;DataStore class="org.apache.jackrabbit.oak.plugins.blob.AbstractCachingDataStore"&gt;
@@ -80,6 +77,7 @@ import org.apache.jackrabbit.guava.common.util.concurrent.ListeningExecutorServi
  */
 public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
     implements MultiDataStoreAware, SharedDataStore, TypedDataStore {
+
     /**
      * Logger instance.
      */
@@ -166,18 +164,22 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
             new CompositeDataStoreCache(path, new File(home), cacheSize, stagingSplitPercentage,
                 uploadThreads,
                 new CacheLoader<String, InputStream>() {
-                    @Override public InputStream load(String key) throws Exception {
+                    @Override
+                    public InputStream load(String key) throws Exception {
                         return backend.read(new DataIdentifier(key));
                     }
                 }, new StagingUploader() {
-                    @Override public void write(String id, File file) throws DataStoreException {
-                        backend.write(new DataIdentifier(id), file);
-                    }
+                @Override
+                public void write(String id, File file) throws DataStoreException {
+                    backend.write(new DataIdentifier(id), file);
+                }
 
-                @Override public void adopt(File f, File moved) throws IOException {
+                @Override
+                public void adopt(File f, File moved) throws IOException {
                     FileUtils.moveFile(f, moved);
                 }
-            }, statisticsProvider, listeningExecutor, schedulerExecutor, executor, stagingPurgeInterval,
+            }, statisticsProvider, listeningExecutor, schedulerExecutor, executor,
+                stagingPurgeInterval,
                 stagingRetryInterval);
     }
 
@@ -268,8 +270,8 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
     }
 
     /**
-     * In rare cases may include some duplicates in cases where async staged uploads complete
-     * during iteration.
+     * In rare cases may include some duplicates in cases where async staged uploads complete during
+     * iteration.
      *
      * @return Iterator over all ids available
      * @throws DataStoreException
@@ -278,7 +280,9 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
     public Iterator<DataIdentifier> getAllIdentifiers() throws DataStoreException {
         return Iterators.concat(Iterators.transform(cache.getStagingCache().getAllIdentifiers(),
             new Function<String, DataIdentifier>() {
-                @Nullable @Override public DataIdentifier apply(@Nullable String id) {
+                @Nullable
+                @Override
+                public DataIdentifier apply(@Nullable String id) {
                     return new DataIdentifier(id);
                 }
             }), backend.getAllIdentifiers());
@@ -300,12 +304,14 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
      * DataRecord implementation fetching the stream from the cache.
      */
     static class FileCacheDataRecord extends AbstractDataRecord {
+
         private final long length;
         private final long lastModified;
         private final AbstractSharedCachingDataStore store;
         private final File temp;
 
-        public FileCacheDataRecord(AbstractSharedCachingDataStore store, AbstractSharedBackend backend,
+        public FileCacheDataRecord(AbstractSharedCachingDataStore store,
+            AbstractSharedBackend backend,
             DataIdentifier identifier, long length, File temp,
             long lastModified) {
             super(backend, identifier);
@@ -359,8 +365,8 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
     }
 
     /**
-     * Look in the backend for a record matching the given identifier.  Returns true
-     * if such a record exists.
+     * Look in the backend for a record matching the given identifier.  Returns true if such a
+     * record exists.
      *
      * @param identifier - An identifier for the record.
      * @return true if a record for the provided identifier can be found.
@@ -370,8 +376,7 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
             if (identifier != null) {
                 return backend.exists(identifier);
             }
-        }
-        catch (DataStoreException e) {
+        } catch (DataStoreException e) {
             LOG.warn(String.format("Data Store Exception caught checking for %s in pending uploads",
                 identifier), e);
         }
@@ -386,7 +391,9 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
         return cache;
     }
 
-    /**------------------------- setters ----------------------------------------------**/
+    /**
+     * ------------------------- setters ----------------------------------------------
+     **/
 
     public void setPath(String path) {
         this.path = path;
@@ -416,7 +423,9 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
         this.statisticsProvider = statisticsProvider;
     }
 
-    /**------------------------ SharedDataStore methods -----------------------------------------**/
+    /**
+     * ------------------------ SharedDataStore methods -----------------------------------------
+     **/
 
     @Override
     public void addMetadataRecord(InputStream stream, String name) throws DataStoreException {
@@ -473,7 +482,9 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
         return backend.getOrCreateReferenceKey();
     }
 
-    /**------------------------ unimplemented methods -------------------------------------------**/
+    /**
+     * ------------------------ unimplemented methods -------------------------------------------
+     **/
 
     @Override
     public void clearInUse() {

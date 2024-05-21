@@ -19,21 +19,23 @@
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
 import com.mongodb.client.model.Filters;
+import java.util.ArrayList;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.bson.conversions.Bson;
 
-import java.util.ArrayList;
-
 public final class DownloadRange {
+
     private final long lastModifiedFrom;
     private final long lastModifiedToInclusive;
     private final String startAfterDocumentID;
     private final boolean traversingInAscendingOrder;
 
-    public DownloadRange(long lastModifiedFrom, long lastModifiedToInclusive, String startAfterDocumentID, boolean traversingInAscendingOrder) {
+    public DownloadRange(long lastModifiedFrom, long lastModifiedToInclusive,
+        String startAfterDocumentID, boolean traversingInAscendingOrder) {
         this.traversingInAscendingOrder = traversingInAscendingOrder;
         if (!(lastModifiedFrom <= lastModifiedToInclusive)) {
-            throw new IllegalArgumentException("Invalid range (" + lastModifiedFrom + ", " + lastModifiedToInclusive + ")");
+            throw new IllegalArgumentException(
+                "Invalid range (" + lastModifiedFrom + ", " + lastModifiedToInclusive + ")");
         }
         this.lastModifiedFrom = lastModifiedFrom;
         this.lastModifiedToInclusive = lastModifiedToInclusive;
@@ -74,9 +76,9 @@ public final class DownloadRange {
     @Override
     public String toString() {
         return "DownloadRange{" +
-                "lastModifiedFrom=" + lastModifiedFrom +
-                ", lastModifiedToInclusive=" + lastModifiedToInclusive +
-                ", startAfterDocumentID='" + startAfterDocumentID + '\'' +
-                '}';
+            "lastModifiedFrom=" + lastModifiedFrom +
+            ", lastModifiedToInclusive=" + lastModifiedToInclusive +
+            ", startAfterDocumentID='" + startAfterDocumentID + '\'' +
+            '}';
     }
 }

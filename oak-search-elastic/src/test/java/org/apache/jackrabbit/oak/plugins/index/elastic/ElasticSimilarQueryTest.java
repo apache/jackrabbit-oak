@@ -16,20 +16,16 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
+import static org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils.toByteArray;
+import static org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils.toDoubles;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+
 import co.elastic.clients.elasticsearch._types.mapping.FieldMapping;
 import co.elastic.clients.elasticsearch._types.mapping.Property;
 import co.elastic.clients.elasticsearch.indices.GetFieldMappingResponse;
 import co.elastic.clients.elasticsearch.indices.get_field_mapping.TypeFieldMappings;
 import jakarta.json.JsonObject;
-import org.apache.commons.io.IOUtils;
-import org.apache.jackrabbit.oak.api.Blob;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
-import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
-import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
-import org.junit.Test;
-
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.net.URI;
@@ -46,11 +42,14 @@ import java.util.Random;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import static org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils.toByteArray;
-import static org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils.toDoubles;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
+import org.apache.commons.io.IOUtils;
+import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
+import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
+import org.junit.Test;
 
 public class ElasticSimilarQueryTest extends ElasticAbstractQueryTest {
 
@@ -59,14 +58,15 @@ public class ElasticSimilarQueryTest extends ElasticAbstractQueryTest {
         createIndex(true);
 
         String nativeQueryStringWithStopWords = "select [jcr:path] from [nt:base] where " +
-                "native('elastic-sim', 'mlt?stream.body=/test/a&mlt.fl=:path&mlt.mindf=0&mlt.mintf=0&mlt.stopwords=Hello,bye')";
+            "native('elastic-sim', 'mlt?stream.body=/test/a&mlt.fl=:path&mlt.mindf=0&mlt.mintf=0&mlt.stopwords=Hello,bye')";
 
         String nativeQueryStringWithoutStopWords = "select [jcr:path] from [nt:base] where " +
-                "native('elastic-sim', 'mlt?stream.body=/test/a&mlt.fl=:path&mlt.mindf=0&mlt.mintf=0&mlt.minshouldmatch=20%')";
+            "native('elastic-sim', 'mlt?stream.body=/test/a&mlt.fl=:path&mlt.mindf=0&mlt.mintf=0&mlt.minshouldmatch=20%')";
 
         Tree test = root.getTree("/").addChild("test");
         test.addChild("a").setProperty("text", "Hello World. Ok Bye Bye now. See you tomorrow.");
-        test.addChild("b").setProperty("text", "He said Hello and then the she said Hello as well.");
+        test.addChild("b")
+            .setProperty("text", "He said Hello and then the she said Hello as well.");
         test.addChild("c").setProperty("text", "He said Bye.");
         test.addChild("d").setProperty("text", "Bye Bye World.");
         test.addChild("e").setProperty("text", "See you Tomorrow");
@@ -75,34 +75,37 @@ public class ElasticSimilarQueryTest extends ElasticAbstractQueryTest {
         root.commit();
 
         // Matches due to terms Hello or bye should be ignored
-        assertEventually(() -> assertQuery(nativeQueryStringWithStopWords, List.of("/test/a", "/test/e", "/test/f")));
+        assertEventually(() -> assertQuery(nativeQueryStringWithStopWords,
+            List.of("/test/a", "/test/e", "/test/f")));
 
         assertEventually(() -> assertQuery(nativeQueryStringWithoutStopWords,
-                List.of("/test/a", "/test/b", "/test/c", "/test/d", "/test/e", "/test/f")));
+            List.of("/test/a", "/test/b", "/test/c", "/test/d", "/test/e", "/test/f")));
     }
 
     @Test
     public void repSimilarWithMinWordLength() throws Exception {
         createIndex(true);
         String nativeQueryStringWithMinWordLength = "select [jcr:path] from [nt:base] where " +
-                "native('elastic-sim', 'mlt?stream.body=/test/a&mlt.fl=:path&mlt.mindf=0&mlt.mintf=0&mlt.minwl=6')";
+            "native('elastic-sim', 'mlt?stream.body=/test/a&mlt.fl=:path&mlt.mindf=0&mlt.mintf=0&mlt.minwl=6')";
 
         String nativeQueryStringWithoutMinWordLength = "select [jcr:path] from [nt:base] where " +
-                "native('elastic-sim', 'mlt?stream.body=/test/a&mlt.fl=:path&mlt.mindf=0&mlt.mintf=0')";
+            "native('elastic-sim', 'mlt?stream.body=/test/a&mlt.fl=:path&mlt.mindf=0&mlt.mintf=0')";
 
         Tree test = root.getTree("/").addChild("test");
         test.addChild("a").setProperty("text", "Hello Worlds.");
-        test.addChild("b").setProperty("text", "He said Hello and then the world said Hello as well.");
+        test.addChild("b")
+            .setProperty("text", "He said Hello and then the world said Hello as well.");
         test.addChild("c").setProperty("text", "War of the worlds is a good movie");
         test.addChild("d").setProperty("text", "Hello. How are you? Worlds");
         root.commit();
 
         // Matches because of term Hello should be ignored since wl <6 (so /test/ should NOT be in the match list)
         // /test/d should be in match list (because of Worlds term)
-        assertEventually(() -> assertQuery(nativeQueryStringWithMinWordLength, List.of("/test/a", "/test/c", "/test/d")));
+        assertEventually(() -> assertQuery(nativeQueryStringWithMinWordLength,
+            List.of("/test/a", "/test/c", "/test/d")));
 
         assertEventually(() -> assertQuery(nativeQueryStringWithoutMinWordLength,
-                List.of("/test/a", "/test/b", "/test/c", "/test/d")));
+            List.of("/test/a", "/test/b", "/test/c", "/test/d")));
     }
 
     @Test
@@ -127,11 +130,12 @@ public class ElasticSimilarQueryTest extends ElasticAbstractQueryTest {
         String query = "select [jcr:path] from [nt:base] where similar(., '" + p + "')";
 
         assertEventually(() -> assertQuery(query,
-                List.of(p, "/test/b", "/test/c", "/test/d", "/test/f", "/test/g", "/test/h")));
+            List.of(p, "/test/b", "/test/c", "/test/d", "/test/f", "/test/g", "/test/h")));
     }
 
     /**
-     * This test checks <a href="https://github.com/elastic/elasticsearch/pull/94518">94518</a> issue.
+     * This test checks <a href="https://github.com/elastic/elasticsearch/pull/94518">94518</a>
+     * issue.
      */
     @Test
     public void repSimilarQueryWithIgnoredMetadataField() throws Exception {
@@ -164,7 +168,8 @@ public class ElasticSimilarQueryTest extends ElasticAbstractQueryTest {
         root.commit();
 
         assertEventually(() -> {
-            List<String> paths = executeQuery("select [jcr:path] from [nt:base] where similar(., '/test/a')", SQL2, true, true);
+            List<String> paths = executeQuery(
+                "select [jcr:path] from [nt:base] where similar(., '/test/a')", SQL2, true, true);
             assertEquals(paths.size(), 3);
             assertEquals(paths.get(2), "/test/b");
         });
@@ -176,8 +181,9 @@ public class ElasticSimilarQueryTest extends ElasticAbstractQueryTest {
         final String fieldName1 = "fv1";
         final String similarityFieldName1 = FieldNames.createSimilarityFieldName(fieldName1);
         IndexDefinitionBuilder builder = createIndex(fieldName1);
-        Tree tree = builder.indexRule("nt:base").property(fieldName1).useInSimilarity(true).nodeScopeIndex()
-                .similaritySearchDenseVectorSize(2048).getBuilderTree();
+        Tree tree = builder.indexRule("nt:base").property(fieldName1).useInSimilarity(true)
+                           .nodeScopeIndex()
+                           .similaritySearchDenseVectorSize(2048).getBuilderTree();
         tree.setProperty(ElasticPropertyDefinition.PROP_INDEX_SIMILARITY, "cosine");
         tree.setProperty(ElasticPropertyDefinition.PROP_NUMBER_OF_HASH_TABLES, 10);
         tree.setProperty(ElasticPropertyDefinition.PROP_NUMBER_OF_HASH_FUNCTIONS, 12);
@@ -185,18 +191,21 @@ public class ElasticSimilarQueryTest extends ElasticAbstractQueryTest {
         setIndex(indexName, builder);
         root.commit();
 
-        String alias = ElasticIndexNameHelper.getElasticSafeIndexName(esConnection.getIndexPrefix(), "/oak:index/" + indexName);
+        String alias = ElasticIndexNameHelper.getElasticSafeIndexName(esConnection.getIndexPrefix(),
+            "/oak:index/" + indexName);
         GetFieldMappingResponse mappingsResponse = esConnection.getClient()
-                .indices()
-                .getFieldMapping(b -> b
-                        .index(alias)
-                        .fields(similarityFieldName1)
-                );
+                                                               .indices()
+                                                               .getFieldMapping(b -> b
+                                                                   .index(alias)
+                                                                   .fields(similarityFieldName1)
+                                                               );
 
         Map<String, TypeFieldMappings> mappings = mappingsResponse.result();
         assertEquals("More than one index found", 1, mappings.size());
-        Map<String, FieldMapping> typeFieldMappings = mappings.entrySet().iterator().next().getValue().mappings();
-        Property v = typeFieldMappings.get(similarityFieldName1).mapping().get(similarityFieldName1);
+        Map<String, FieldMapping> typeFieldMappings = mappings.entrySet().iterator().next()
+                                                              .getValue().mappings();
+        Property v = typeFieldMappings.get(similarityFieldName1).mapping()
+                                      .get(similarityFieldName1);
         JsonObject map1 = v._custom().toJson().asJsonObject().get("elastiknn").asJsonObject();
         assertEquals("Dense vector size doesn't match", 2048, map1.getInt("dims"));
         assertEquals("Similarity doesn't match", "cosine", map1.getString("similarity"));
@@ -208,7 +217,7 @@ public class ElasticSimilarQueryTest extends ElasticAbstractQueryTest {
     public void vectorSimilarityWithWrongVectorSizes() throws Exception {
         IndexDefinitionBuilder builder = createIndex("fv");
         builder.indexRule("nt:base").property("fv").useInSimilarity(true).nodeScopeIndex()
-                .similaritySearchDenseVectorSize(100);// test FVs have size 1048
+               .similaritySearchDenseVectorSize(100);// test FVs have size 1048
         Tree index = setIndex("test1", builder);
         root.commit();
         Tree test = root.getTree("/").addChild("test");
@@ -216,9 +225,11 @@ public class ElasticSimilarQueryTest extends ElasticAbstractQueryTest {
         URI uri = getClass().getResource("/org/apache/jackrabbit/oak/query/fvs.csv").toURI();
         File file = new File(uri);
 
-        for (String line : IOUtils.readLines(Files.newInputStream(file.toPath()), Charset.defaultCharset())) {
+        for (String line : IOUtils.readLines(Files.newInputStream(file.toPath()),
+            Charset.defaultCharset())) {
             String[] split = line.split(",");
-            List<Double> values = Stream.of(split).skip(1).map(Double::parseDouble).collect(Collectors.toList());
+            List<Double> values = Stream.of(split).skip(1).map(Double::parseDouble)
+                                        .collect(Collectors.toList());
             byte[] bytes = toByteArray(values);
             List<Double> actual = toDoubles(bytes);
             assertEquals(values, actual);
@@ -246,9 +257,11 @@ public class ElasticSimilarQueryTest extends ElasticAbstractQueryTest {
         File file = new File(uri);
 
         List<String> children = new LinkedList<>();
-        for (String line : IOUtils.readLines(Files.newInputStream(file.toPath()), Charset.defaultCharset())) {
+        for (String line : IOUtils.readLines(Files.newInputStream(file.toPath()),
+            Charset.defaultCharset())) {
             String[] split = line.split(",");
-            List<Double> values = Stream.of(split).skip(1).map(Double::parseDouble).collect(Collectors.toList());
+            List<Double> values = Stream.of(split).skip(1).map(Double::parseDouble)
+                                        .collect(Collectors.toList());
             byte[] bytes = toByteArray(values);
             List<Double> actual = toDoubles(bytes);
             assertEquals(values, actual);
@@ -270,7 +283,8 @@ public class ElasticSimilarQueryTest extends ElasticAbstractQueryTest {
         // check that similarity changes across different feature vectors
         List<String> baseline = new LinkedList<>();
         for (String similarPath : children) {
-            String query = "select [jcr:path] from [nt:base] where similar(., '" + similarPath + "')";
+            String query =
+                "select [jcr:path] from [nt:base] where similar(., '" + similarPath + "')";
             List<String> current = new LinkedList<>();
             assertEventually(() -> {
                 Iterator<String> result = executeQuery(query, "JCR-SQL2", false, true).iterator();
@@ -286,12 +300,16 @@ public class ElasticSimilarQueryTest extends ElasticAbstractQueryTest {
         }
     }
 
-    private void verifyLSHResults(Map<String, List<String>> expectedResults, double expected, double delta) {
+    private void verifyLSHResults(Map<String, List<String>> expectedResults, double expected,
+        double delta) {
         for (String similarPath : expectedResults.keySet()) {
-            String query = "select [jcr:path] from [nt:base] where similar(., '" + "/test/" + similarPath + "')";
+            String query =
+                "select [jcr:path] from [nt:base] where similar(., '" + "/test/" + similarPath
+                    + "')";
             assertEventually(() -> {
                 Iterator<String> result = executeQuery(query, "JCR-SQL2", false, true).iterator();
-                List<String> expectedList = expectedResults.get(similarPath.substring(similarPath.lastIndexOf("/") + 1));
+                List<String> expectedList = expectedResults.get(
+                    similarPath.substring(similarPath.lastIndexOf("/") + 1));
                 List<String> found = new ArrayList<>();
                 int resultNum = 0;
                 // Verify that the expected results are present in the top 10 results
@@ -301,7 +319,8 @@ public class ElasticSimilarQueryTest extends ElasticAbstractQueryTest {
                     found.add(next);
                     resultNum++;
                 }
-                double per = (expectedList.stream().filter(found::contains).count() * 100.0) / expectedList.size();
+                double per = (expectedList.stream().filter(found::contains).count() * 100.0)
+                    / expectedList.size();
                 assertEquals("expected: " + expectedList + " got: " + found, expected, per, delta);
             });
         }
@@ -391,6 +410,7 @@ public class ElasticSimilarQueryTest extends ElasticAbstractQueryTest {
     }
 
     static class Image {
+
         double distance;
         String name;
     }

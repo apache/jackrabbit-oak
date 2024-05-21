@@ -16,12 +16,10 @@
  */
 package org.apache.jackrabbit.oak.segment.aws.journal;
 
-import java.util.Date;
-
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.amazonaws.services.dynamodbv2.local.embedded.DynamoDBEmbedded;
 import com.amazonaws.services.s3.AmazonS3;
-
+import java.util.Date;
 import org.apache.jackrabbit.oak.segment.aws.AwsContext;
 import org.apache.jackrabbit.oak.segment.aws.AwsPersistence;
 import org.apache.jackrabbit.oak.segment.aws.S3MockRule;
@@ -42,7 +40,8 @@ public class AwsTarRevisionsTest extends TarRevisionsTest {
         AmazonS3 s3 = s3Mock.createClient();
         AmazonDynamoDB ddb = DynamoDBEmbedded.create().amazonDynamoDB();
         long time = new Date().getTime();
-        awsContext = AwsContext.create(s3, "bucket-" + time, "oak", ddb, "journaltable-" + time, "locktable-" + time);
+        awsContext = AwsContext.create(s3, "bucket-" + time, "oak", ddb, "journaltable-" + time,
+            "locktable-" + time);
 
         super.setup();
     }

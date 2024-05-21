@@ -16,12 +16,22 @@
  */
 package org.apache.jackrabbit.oak.jcr.security.user;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Sets;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import javax.jcr.RepositoryException;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -35,17 +45,6 @@ import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
-
-import javax.jcr.RepositoryException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 /**
  * Testing {@link ImportBehavior#IGNORE} for group import
@@ -71,23 +70,28 @@ public class GroupImportWithActionsBestEffortTest extends AbstractImportTest {
         String failedUUID = uuid1;
 
         String xml =
-                "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
-                        "<sv:node sv:name=\"gFolder\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
-                        "   <sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\">" +
-                        "      <sv:value>rep:AuthorizableFolder</sv:value>" +
-                        "   </sv:property>" +
-                        "   <sv:node sv:name=\"g1\">" +
-                        "      <sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>rep:Group</sv:value></sv:property>" +
-                        "      <sv:property sv:name=\"jcr:uuid\" sv:type=\"String\"><sv:value>0120a4f9-196a-3f9e-b9f5-23f31f914da7</sv:value></sv:property>" +
-                        "      <sv:property sv:name=\"rep:principalName\" sv:type=\"String\"><sv:value>g1</sv:value></sv:property>" +
-                        "      <sv:property sv:name=\"rep:members\" sv:multiple=\"true\" sv:type=\"WeakReference\">" +
-                        "         <sv:value>" + uuid1 + "</sv:value>" +
-                        "         <sv:value>" + uuid2 + "</sv:value>" +
-                        "         <sv:value>" + nonExistingUUID + "</sv:value>" +
-                        "         <sv:value>" + failedUUID + "</sv:value>" +
-                        "      </sv:property>" +
-                        "   </sv:node>" +
-                        "</sv:node>";
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
+                "<sv:node sv:name=\"gFolder\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">"
+                +
+                "   <sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\">" +
+                "      <sv:value>rep:AuthorizableFolder</sv:value>" +
+                "   </sv:property>" +
+                "   <sv:node sv:name=\"g1\">" +
+                "      <sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>rep:Group</sv:value></sv:property>"
+                +
+                "      <sv:property sv:name=\"jcr:uuid\" sv:type=\"String\"><sv:value>0120a4f9-196a-3f9e-b9f5-23f31f914da7</sv:value></sv:property>"
+                +
+                "      <sv:property sv:name=\"rep:principalName\" sv:type=\"String\"><sv:value>g1</sv:value></sv:property>"
+                +
+                "      <sv:property sv:name=\"rep:members\" sv:multiple=\"true\" sv:type=\"WeakReference\">"
+                +
+                "         <sv:value>" + uuid1 + "</sv:value>" +
+                "         <sv:value>" + uuid2 + "</sv:value>" +
+                "         <sv:value>" + nonExistingUUID + "</sv:value>" +
+                "         <sv:value>" + failedUUID + "</sv:value>" +
+                "      </sv:property>" +
+                "   </sv:node>" +
+                "</sv:node>";
 
         doImport(getTargetPath(), xml);
 
@@ -97,7 +101,8 @@ public class GroupImportWithActionsBestEffortTest extends AbstractImportTest {
         assertEquals(g1.getID(), groupAction.group.getID());
         assertEquals(ImmutableSet.of(user1.getID(), user2.getID()), groupAction.memberIds);
         assertEquals(ImmutableSet.of(nonExistingUUID), groupAction.memberContentIds);
-        assertFalse(groupAction.failedIds.iterator().hasNext()); // duplicate uuids are swallowed by the set in userImporter: nonExisting#add
+        assertFalse(groupAction.failedIds.iterator()
+                                         .hasNext()); // duplicate uuids are swallowed by the set in userImporter: nonExisting#add
     }
 
     @Override
@@ -115,7 +120,8 @@ public class GroupImportWithActionsBestEffortTest extends AbstractImportTest {
         Map<String, Object> userParams = new HashMap<String, Object>();
         userParams.put(ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, getImportBehavior());
         userParams.put(UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER, actionProvider);
-        return ConfigurationParameters.of(UserConfiguration.NAME, ConfigurationParameters.of(userParams));
+        return ConfigurationParameters.of(UserConfiguration.NAME,
+            ConfigurationParameters.of(userParams));
     }
 
     private class TestGroupAction extends AbstractGroupAction {
@@ -130,14 +136,17 @@ public class GroupImportWithActionsBestEffortTest extends AbstractImportTest {
         Set<String> failedIds = Sets.newHashSet();
 
         @Override
-        public void onMemberAdded(@NotNull Group group, @NotNull Authorizable member, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException {
+        public void onMemberAdded(@NotNull Group group, @NotNull Authorizable member,
+            @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException {
             this.group = group;
             this.memberIds.add(member.getID());
             onMemberAddedCalled = true;
         }
 
         @Override
-        public void onMembersAdded(@NotNull Group group, @NotNull Iterable<String> memberIds, @NotNull Iterable<String> failedIds, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException {
+        public void onMembersAdded(@NotNull Group group, @NotNull Iterable<String> memberIds,
+            @NotNull Iterable<String> failedIds, @NotNull Root root,
+            @NotNull NamePathMapper namePathMapper) throws RepositoryException {
             this.group = group;
             this.memberIds.addAll(ImmutableSet.copyOf(memberIds));
             this.failedIds.addAll(ImmutableSet.copyOf(failedIds));
@@ -145,7 +154,9 @@ public class GroupImportWithActionsBestEffortTest extends AbstractImportTest {
         }
 
         @Override
-        public void onMembersAddedContentId(@NotNull Group group, @NotNull Iterable<String> memberContentIds, @NotNull Iterable<String> failedIds, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException {
+        public void onMembersAddedContentId(@NotNull Group group,
+            @NotNull Iterable<String> memberContentIds, @NotNull Iterable<String> failedIds,
+            @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException {
             this.group = group;
             this.memberContentIds.addAll(ImmutableSet.copyOf(memberContentIds));
             this.failedIds.addAll(ImmutableSet.copyOf(failedIds));
@@ -163,7 +174,8 @@ public class GroupImportWithActionsBestEffortTest extends AbstractImportTest {
 
         @NotNull
         @Override
-        public List<? extends AuthorizableAction> getAuthorizableActions(@NotNull SecurityProvider securityProvider) {
+        public List<? extends AuthorizableAction> getAuthorizableActions(
+            @NotNull SecurityProvider securityProvider) {
             return actions;
         }
     }

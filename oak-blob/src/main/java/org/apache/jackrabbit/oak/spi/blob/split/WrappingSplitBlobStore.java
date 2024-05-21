@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.spi.blob.split;
 
 import java.io.IOException;
 import java.io.InputStream;
-
 import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStoreWrapper;
@@ -64,7 +63,7 @@ public class WrappingSplitBlobStore implements BlobStoreWrapper, SplitBlobStore 
     /**
      * Ignores the options provided and delegates to {@link #writeBlob(InputStream)}.
      *
-     * @param in the input stream to write
+     * @param in      the input stream to write
      * @param options the options to use
      * @return
      * @throws IOException
@@ -75,7 +74,8 @@ public class WrappingSplitBlobStore implements BlobStoreWrapper, SplitBlobStore 
     }
 
     @Override
-    public int readBlob(String blobId, long pos, byte[] buff, int off, int length) throws IOException {
+    public int readBlob(String blobId, long pos, byte[] buff, int off, int length)
+        throws IOException {
         return getSplitBlobStore().readBlob(blobId, pos, buff, off, length);
     }
 

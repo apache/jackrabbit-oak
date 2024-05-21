@@ -16,14 +16,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.index;
 
+import static org.junit.Assert.assertEquals;
+
+import java.util.UUID;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticAbstractQueryTest;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.junit.Test;
-
-import java.util.UUID;
-
-import static org.junit.Assert.assertEquals;
 
 public class ElasticIndexTest extends ElasticAbstractQueryTest {
 
@@ -35,6 +34,6 @@ public class ElasticIndexTest extends ElasticAbstractQueryTest {
         root.commit();
 
         assertEventually(() -> assertEquals(ElasticIndexHelper.MAPPING_VERSION,
-                getElasticIndexDefinition(index).getMappingVersion()));
+            getElasticIndexDefinition(index).getMappingVersion()));
     }
 }

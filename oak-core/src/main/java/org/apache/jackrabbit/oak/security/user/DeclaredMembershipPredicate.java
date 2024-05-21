@@ -21,11 +21,10 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 import javax.jcr.RepositoryException;
-
+import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.base.Predicates;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.jetbrains.annotations.Nullable;

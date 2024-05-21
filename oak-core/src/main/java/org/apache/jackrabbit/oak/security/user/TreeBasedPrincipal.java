@@ -16,13 +16,12 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+import javax.jcr.RepositoryException;
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.jetbrains.annotations.NotNull;
-
-import javax.jcr.RepositoryException;
 
 /**
  * TreeBasedPrincipal...

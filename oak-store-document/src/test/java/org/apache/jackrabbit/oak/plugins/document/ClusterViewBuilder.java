@@ -20,8 +20,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * Test helper class that is capable to simply creating ClusterView and
- * ClusterViewDocument objs
+ * Test helper class that is capable to simply creating ClusterView and ClusterViewDocument objs
  **/
 class ClusterViewBuilder {
 
@@ -73,7 +72,7 @@ class ClusterViewBuilder {
         /*
          * "_id" : "clusterView", "seqNum" : NumberLong(1), "inactive" : null,
          * "clusterViewHistory" : {
-         * 
+         *
          * }, "deactivating" : null, "created" : "2015-06-30T08:21:29.393+0200",
          * "clusterViewId" : "882f8926-1112-493a-81a0-f946087b2986", "active" :
          * "1", "creator" : 1, "_modCount" : NumberLong(1)

@@ -19,7 +19,7 @@
 
 ## Schedule
 
-We *aim* at keeping this frequency for releases. However dates may slip 
+We *aim* at keeping this frequency for releases. However dates may slip
 according to needs
 
 - trunk: every 8 weeks (~6 / year)
@@ -27,7 +27,8 @@ according to needs
 
 ## Strategies
 
-For a full discussion around these topics see in [oak-dev archives](https://lists.apache.org/thread.html/9a7c0e2fdfab5deb051fbd99add6c2b7109d750805b6182138eece55@%3Coak-dev.jackrabbit.apache.org%3E).
+For a full discussion around these topics see
+in [oak-dev archives](https://lists.apache.org/thread.html/9a7c0e2fdfab5deb051fbd99add6c2b7109d750805b6182138eece55@%3Coak-dev.jackrabbit.apache.org%3E).
 
 - trunk will be considered stable
 - only releases from trunk other than existing branches
@@ -52,21 +53,20 @@ different way to implement something breaking.
 ## Version Numbers
 
 - Released versions will be in the format of `Major.Minor.Patch` where,
-as rule of thumb we will increase
+  as rule of thumb we will increase
 
-
-    MAJOR for incompatible API changes    
-    MINOR for new backwards-compatible functionality
-    PATCH for backwards-compatible bug fixes.
+  MAJOR for incompatible API changes    
+  MINOR for new backwards-compatible functionality
+  PATCH for backwards-compatible bug fixes.
 
 - We'll keep the even/odd schema
 - Any new official release will be always even: 1.12.0, 1.14.0, 1.16.0,
-..., 1.124.0
+  ..., 1.124.0
 - A release will always be with a patch number (the last part) of `.0`.
-This ease OSGi deployments.
+  This ease OSGi deployments.
 - Diagnostic builds will be cut with the odd version and `-Rxxx` such as
-`1.15-R12345`.
+  `1.15-R12345`.
 - In case of branching the increased part will always be the PATCH so:
-`1.16.0`, `1.16.1`, `1.16.2`, etc.
+  `1.16.0`, `1.16.1`, `1.16.2`, etc.
 - In case of branching the diagnostic build will follow the current
-pattern: `1.16.5-R12345`
+  pattern: `1.16.5-R12345`

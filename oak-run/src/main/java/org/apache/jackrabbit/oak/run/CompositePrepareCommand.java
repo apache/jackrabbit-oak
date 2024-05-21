@@ -23,7 +23,6 @@ import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreB
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
-
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
@@ -46,15 +45,16 @@ public class CompositePrepareCommand implements Command {
         OptionParser parser = new OptionParser();
 
         OptionSpec<?> help = parser
-                .acceptsAll(asList("h", "?", "help"), "show help")
-                .forHelp();
-        OptionSpec<String> paths = parser.accepts("paths", "a list of paths to transform from nt:resource to oak:Resource")
-                .withRequiredArg()
-                .ofType(String.class)
-                .withValuesSeparatedBy(',')
-                .defaultsTo("/apps", "/libs");
+            .acceptsAll(asList("h", "?", "help"), "show help")
+            .forHelp();
+        OptionSpec<String> paths = parser.accepts("paths",
+                                             "a list of paths to transform from nt:resource to oak:Resource")
+                                         .withRequiredArg()
+                                         .ofType(String.class)
+                                         .withValuesSeparatedBy(',')
+                                         .defaultsTo("/apps", "/libs");
         OptionSpec<File> storeO = parser.nonOptions("path to segment store (required)")
-                .ofType(File.class);
+                                        .ofType(File.class);
         OptionSet options = parser.parse(args);
 
         if (options.has(help)) {
@@ -101,12 +101,14 @@ public class CompositePrepareCommand implements Command {
             SegmentNodeBuilder superRootBuilder = headNodeState.builder();
             for (String cp : superRootBuilder.getChildNode("checkpoints").getChildNodeNames()) {
                 LOG.info("Transforming checkpoint {}", cp);
-                NodeBuilder cpRoot = superRootBuilder.getChildNode("checkpoints").getChildNode(cp).getChildNode("root");
+                NodeBuilder cpRoot = superRootBuilder.getChildNode("checkpoints").getChildNode(cp)
+                                                     .getChildNode("root");
                 transformRootBuilder(cpRoot);
             }
             LOG.info("Transforming root");
             transformRootBuilder(superRootBuilder.getChildNode("root"));
-            fileStore.getRevisions().setHead(headNodeState.getRecordId(), superRootBuilder.getNodeState().getRecordId());
+            fileStore.getRevisions().setHead(headNodeState.getRecordId(),
+                superRootBuilder.getNodeState().getRecordId());
             fileStore.flush();
         }
 
@@ -120,9 +122,9 @@ public class CompositePrepareCommand implements Command {
                     totalNodes = modifiedNodes = 0;
                     LOG.info("  path: {}", p);
                     NodeBuilder indexData = rootBuilder
-                            .child(IndexConstants.INDEX_DEFINITIONS_NAME)
-                            .child("uuid")
-                            .child(IndexConstants.INDEX_CONTENT_NODE_NAME);
+                        .child(IndexConstants.INDEX_DEFINITIONS_NAME)
+                        .child("uuid")
+                        .child(IndexConstants.INDEX_CONTENT_NODE_NAME);
                     transformBuilder(builder, indexData);
                     LOG.info("    all nodes: {}, updated nodes: {}", totalNodes, modifiedNodes);
                 }
@@ -135,7 +137,8 @@ public class CompositePrepareCommand implements Command {
                 String index = builder.getString(JCR_UUID);
                 uuidIndexData.getChildNode(index).remove();
 
-                builder.setProperty(NodeTypeConstants.JCR_PRIMARYTYPE, NodeTypeConstants.NT_OAK_RESOURCE, Type.NAME);
+                builder.setProperty(NodeTypeConstants.JCR_PRIMARYTYPE,
+                    NodeTypeConstants.NT_OAK_RESOURCE, Type.NAME);
                 builder.removeProperty(JCR_UUID);
 
                 modifiedNodes++;

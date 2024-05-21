@@ -16,10 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.check;
 
+import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
+
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
@@ -30,8 +31,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
-
 /**
  * Checks if {@code jcr:baseVersion} reference properties resolve to a node.
  */
@@ -40,17 +39,17 @@ public class ReferenceCheck extends AsyncNodeStateProcessor {
     private final String propertyName;
 
     ReferenceCheck(String propertyName,
-                   DocumentNodeStore ns,
-                   RevisionVector headRevision,
-                   ExecutorService executorService) {
+        DocumentNodeStore ns,
+        RevisionVector headRevision,
+        ExecutorService executorService) {
         super(ns, headRevision, executorService);
         this.propertyName = propertyName;
     }
 
     @Override
     protected void runTask(@NotNull Path path,
-                           @Nullable NodeState state,
-                           @NotNull Consumer<Result> resultConsumer) {
+        @Nullable NodeState state,
+        @NotNull Consumer<Result> resultConsumer) {
         if (state == null) {
             return;
         }
@@ -67,19 +66,20 @@ public class ReferenceCheck extends AsyncNodeStateProcessor {
     }
 
     private void checkReference(@NotNull Path path,
-                                @NotNull String ref,
-                                @NotNull Consumer<Result> resultConsumer) {
+        @NotNull String ref,
+        @NotNull Consumer<Result> resultConsumer) {
         AtomicReference<String> resolvedPath = new AtomicReference<>("");
         NodeState target = getNodeByUUID(ref, resolvedPath);
         if (target == null) {
             resultConsumer.accept(new BrokenReference(path, ref, resolvedPath.get()));
         } else if (!isReferenceable(target, ref)) {
-            resultConsumer.accept(new ReferenceTargetInvalid(path, ref, resolvedPath.get(), target.getString(JCR_UUID)));
+            resultConsumer.accept(new ReferenceTargetInvalid(path, ref, resolvedPath.get(),
+                target.getString(JCR_UUID)));
         }
     }
 
     private boolean isReferenceable(@NotNull NodeState node,
-                                    @NotNull String uuid) {
+        @NotNull String uuid) {
         return uuid.equals(node.getString(JCR_UUID));
     }
 
@@ -92,8 +92,8 @@ public class ReferenceCheck extends AsyncNodeStateProcessor {
         private final String resolvedPath;
 
         public BrokenReference(@NotNull Path path,
-                               @NotNull String reference,
-                               @NotNull String resolvedPath) {
+            @NotNull String reference,
+            @NotNull String resolvedPath) {
             this.path = path;
             this.reference = reference;
             this.resolvedPath = resolvedPath;
@@ -124,9 +124,9 @@ public class ReferenceCheck extends AsyncNodeStateProcessor {
         private final String targetUUID;
 
         public ReferenceTargetInvalid(@NotNull Path path,
-                                      @NotNull String reference,
-                                      @NotNull String resolvedPath,
-                                      @Nullable String targetUUID) {
+            @NotNull String reference,
+            @NotNull String resolvedPath,
+            @Nullable String targetUUID) {
             this.path = path;
             this.reference = reference;
             this.resolvedPath = resolvedPath;

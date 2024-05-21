@@ -16,10 +16,13 @@
  */
 package org.apache.jackrabbit.oak.http;
 
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.smile.SmileFactory;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.Map.Entry;
-
 import javax.jcr.Credentials;
 import javax.jcr.NoSuchWorkspaceException;
 import javax.jcr.SimpleCredentials;
@@ -28,11 +31,6 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-
-import com.fasterxml.jackson.core.JsonFactory;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.smile.SmileFactory;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -45,17 +43,17 @@ import org.apache.tika.mime.MediaType;
 public class OakServlet extends HttpServlet {
 
     private static final MediaType JSON =
-            MediaType.parse("application/json");
+        MediaType.parse("application/json");
 
     private static final MediaType SMILE =
-            MediaType.parse("application/x-jackson-smile");
+        MediaType.parse("application/x-jackson-smile");
 
     private static final Representation[] REPRESENTATIONS = {
         new HtmlRepresentation(),
         new TextRepresentation(),
         new JsonRepresentation(JSON, new JsonFactory()),
         new JsonRepresentation(SMILE, new SmileFactory()),
-        new PostRepresentation() };
+        new PostRepresentation()};
 
     private final ContentRepository repository;
 
@@ -65,15 +63,15 @@ public class OakServlet extends HttpServlet {
 
     @Override
     protected void service(
-            HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
+        HttpServletRequest request, HttpServletResponse response)
+        throws ServletException, IOException {
         try {
             Credentials credentials = null;
 
             String authorization = request.getHeader("Authorization");
             if (authorization != null && authorization.startsWith("Basic ")) {
                 String[] basic =
-                        Base64.decode(authorization.substring("Basic ".length())).split(":");
+                    Base64.decode(authorization.substring("Basic ".length())).split(":");
                 credentials = new SimpleCredentials(basic[0], basic[1].toCharArray());
             } else {
                 throw new LoginException();
@@ -117,8 +115,8 @@ public class OakServlet extends HttpServlet {
 
     @Override
     protected void doGet(
-            HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
+        HttpServletRequest request, HttpServletResponse response)
+        throws ServletException, IOException {
         AcceptHeader accept = new AcceptHeader(request.getHeader("Accept"));
         Representation representation = accept.resolve(REPRESENTATIONS);
 
@@ -135,8 +133,8 @@ public class OakServlet extends HttpServlet {
 
     @Override
     protected void doPost(
-            HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
+        HttpServletRequest request, HttpServletResponse response)
+        throws ServletException, IOException {
         try {
             Root root = (Root) request.getAttribute("root");
             Tree tree = (Tree) request.getAttribute("tree");
@@ -201,8 +199,8 @@ public class OakServlet extends HttpServlet {
 
     @Override
     protected void doDelete(
-            HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
+        HttpServletRequest request, HttpServletResponse response)
+        throws ServletException, IOException {
         try {
             Root root = (Root) request.getAttribute("root");
             Tree tree = (Tree) request.getAttribute("tree");

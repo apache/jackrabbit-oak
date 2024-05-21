@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.spi.security.user.action;
 
 import javax.jcr.RepositoryException;
-
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
@@ -29,8 +28,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * The {@code AuthorizableAction} interface provide an implementation
- * specific way to execute additional validation or write tasks upon
+ * The {@code AuthorizableAction} interface provide an implementation specific way to execute
+ * additional validation or write tasks upon
  *
  * <ul>
  * <li>{@link #onCreate User creation},</li>
@@ -58,80 +57,81 @@ public interface AuthorizableAction {
      * Initialize this action with the specified security provider and configuration.
      *
      * @param securityProvider The security provider present with the repository
-     * @param config The configuration parameters for this action.
+     * @param config           The configuration parameters for this action.
      */
     void init(@NotNull SecurityProvider securityProvider, @NotNull ConfigurationParameters config);
 
     /**
-     * Allows to add application specific modifications or validation associated
-     * with the creation of a new group. Note, that this method is called
+     * Allows to add application specific modifications or validation associated with the creation
+     * of a new group. Note, that this method is called
      * <strong>before</strong> any {@code Root#commit()} call.
      *
-     *
-     * @param group The new group that has not yet been persisted;
-     * e.g. the associated tree is still 'NEW'.
-     * @param root The root associated with the user manager.
+     * @param group          The new group that has not yet been persisted; e.g. the associated tree
+     *                       is still 'NEW'.
+     * @param root           The root associated with the user manager.
      * @param namePathMapper
      * @throws javax.jcr.RepositoryException If an error occurs.
      */
-    void onCreate(@NotNull Group group, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException;
+    void onCreate(@NotNull Group group, @NotNull Root root, @NotNull NamePathMapper namePathMapper)
+        throws RepositoryException;
 
     /**
-     * Allows to add application specific modifications or validation associated
-     * with the creation of a new user. Note, that this method is called
+     * Allows to add application specific modifications or validation associated with the creation
+     * of a new user. Note, that this method is called
      * <strong>before</strong> any {@code Root#commit()} call.
      *
-     *
-     * @param user The new user that has not yet been persisted;
-     * e.g. the associated tree is still 'NEW'.
-     * @param password The password that was specified upon user creation.
-     * @param root The root associated with the user manager.
+     * @param user           The new user that has not yet been persisted; e.g. the associated tree
+     *                       is still 'NEW'.
+     * @param password       The password that was specified upon user creation.
+     * @param root           The root associated with the user manager.
      * @param namePathMapper
      * @throws RepositoryException If an error occurs.
      */
-    void onCreate(@NotNull User user, @Nullable String password, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException;
+    void onCreate(@NotNull User user, @Nullable String password, @NotNull Root root,
+        @NotNull NamePathMapper namePathMapper) throws RepositoryException;
 
     /**
-     * Allows to add application specific modifications or validation associated
-     * with the creation of a new <strong>system</strong>system. Note, that this method is called
+     * Allows to add application specific modifications or validation associated with the creation
+     * of a new <strong>system</strong>system. Note, that this method is called
      * <strong>before</strong> any {@code Root#commit()} call.
      *
-     *
-     * @param systemUser The new system user that has not yet been persisted;
-     * e.g. the associated tree is still 'NEW'.
-     * @param root The root associated with the user manager.
+     * @param systemUser     The new system user that has not yet been persisted; e.g. the
+     *                       associated tree is still 'NEW'.
+     * @param root           The root associated with the user manager.
      * @param namePathMapper The {@code NamePathMapper} present with the editing session.
      * @throws RepositoryException If an error occurs.
      */
-    default void onCreate(@NotNull User systemUser, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException {
+    default void onCreate(@NotNull User systemUser, @NotNull Root root,
+        @NotNull NamePathMapper namePathMapper) throws RepositoryException {
         // nop
     }
 
     /**
-     * Allows to add application specific behavior associated with the removal
-     * of an authorizable. Note, that this method is called <strong>before</strong>
-     * {@link org.apache.jackrabbit.api.security.user.Authorizable#remove} is executed (and persisted); thus the
-     * target authorizable still exists.
+     * Allows to add application specific behavior associated with the removal of an authorizable.
+     * Note, that this method is called <strong>before</strong>
+     * {@link org.apache.jackrabbit.api.security.user.Authorizable#remove} is executed (and
+     * persisted); thus the target authorizable still exists.
      *
-     *
-     * @param authorizable The authorizable to be removed.
-     * @param root The root associated with the user manager.
+     * @param authorizable   The authorizable to be removed.
+     * @param root           The root associated with the user manager.
      * @param namePathMapper
      * @throws RepositoryException If an error occurs.
      */
-    void onRemove(@NotNull Authorizable authorizable, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException;
+    void onRemove(@NotNull Authorizable authorizable, @NotNull Root root,
+        @NotNull NamePathMapper namePathMapper) throws RepositoryException;
 
     /**
-     * Allows to add application specific action or validation associated with
-     * changing a user password. Note, that this method is called <strong>before</strong>
-     * the password property is being modified in the content.
+     * Allows to add application specific action or validation associated with changing a user
+     * password. Note, that this method is called <strong>before</strong> the password property is
+     * being modified in the content.
      *
-     *
-     * @param user The user that whose password is going to change.
-     * @param newPassword The new password as specified in {@link org.apache.jackrabbit.api.security.user.User#changePassword}
-     * @param root The root associated with the user manager.
+     * @param user           The user that whose password is going to change.
+     * @param newPassword    The new password as specified in
+     *                       {@link org.apache.jackrabbit.api.security.user.User#changePassword}
+     * @param root           The root associated with the user manager.
      * @param namePathMapper
      * @throws RepositoryException If an exception or error occurs.
      */
-    void onPasswordChange(@NotNull User user, @Nullable String newPassword, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException;
+    void onPasswordChange(@NotNull User user, @Nullable String newPassword, @NotNull Root root,
+        @NotNull NamePathMapper namePathMapper) throws RepositoryException;
 }

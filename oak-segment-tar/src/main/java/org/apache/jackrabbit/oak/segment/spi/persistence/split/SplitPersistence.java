@@ -16,7 +16,17 @@
  */
 package org.apache.jackrabbit.oak.segment.spi.persistence.split;
 
-import org.apache.jackrabbit.oak.segment.spi.monitor.*;
+import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import java.util.Properties;
+import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
+import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitorAdapter;
+import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
+import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
+import org.apache.jackrabbit.oak.segment.spi.monitor.RemoteStoreMonitor;
+import org.apache.jackrabbit.oak.segment.spi.monitor.RemoteStoreMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.persistence.GCJournalFile;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileReader;
@@ -24,12 +34,6 @@ import org.apache.jackrabbit.oak.segment.spi.persistence.ManifestFile;
 import org.apache.jackrabbit.oak.segment.spi.persistence.RepositoryLock;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
-
-import java.io.IOException;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-import java.util.Properties;
 
 public class SplitPersistence implements SegmentNodeStorePersistence {
 
@@ -41,7 +45,8 @@ public class SplitPersistence implements SegmentNodeStorePersistence {
 
     private final Optional<String> lastRoJournalEntry;
 
-    public SplitPersistence(SegmentNodeStorePersistence roPersistence, SegmentNodeStorePersistence rwPersistence) throws IOException {
+    public SplitPersistence(SegmentNodeStorePersistence roPersistence,
+        SegmentNodeStorePersistence rwPersistence) throws IOException {
         this.roPersistence = roPersistence;
         this.rwPersistence = rwPersistence;
 
@@ -51,13 +56,15 @@ public class SplitPersistence implements SegmentNodeStorePersistence {
         }
         Properties properties = manifest.load();
         lastRoArchive = Optional.ofNullable(properties.getProperty("split.lastRoArchive"));
-        lastRoJournalEntry = Optional.ofNullable(properties.getProperty("split.lastRoJournalEntry"));
+        lastRoJournalEntry = Optional.ofNullable(
+            properties.getProperty("split.lastRoJournalEntry"));
     }
 
     private void initialize() throws IOException {
         Properties properties = roPersistence.getManifestFile().load();
         properties.setProperty("split.initialized", "true");
-        try (JournalFileReader journalFileReader = roPersistence.getJournalFile().openJournalReader()) {
+        try (JournalFileReader journalFileReader = roPersistence.getJournalFile()
+                                                                .openJournalReader()) {
             String journalLine;
             if ((journalLine = journalFileReader.readLine()) != null) {
                 properties.setProperty("split.lastRoJournalEntry", journalLine);
@@ -74,7 +81,8 @@ public class SplitPersistence implements SegmentNodeStorePersistence {
     }
 
     private Optional<String> getLastArchive() throws IOException {
-        SegmentArchiveManager manager = roPersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
+        SegmentArchiveManager manager = roPersistence.createArchiveManager(false, false,
+            new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
         List<String> archives = manager.listArchives();
         if (archives.isEmpty()) {
             return Optional.empty();
@@ -85,14 +93,19 @@ public class SplitPersistence implements SegmentNodeStorePersistence {
     }
 
     @Override
-    public SegmentArchiveManager createArchiveManager(boolean memoryMapping, boolean offHeapAccess, IOMonitor ioMonitor, FileStoreMonitor fileStoreMonitor, RemoteStoreMonitor remoteStoreMonitor) throws IOException {
+    public SegmentArchiveManager createArchiveManager(boolean memoryMapping, boolean offHeapAccess,
+        IOMonitor ioMonitor, FileStoreMonitor fileStoreMonitor,
+        RemoteStoreMonitor remoteStoreMonitor) throws IOException {
         if (lastRoArchive.isPresent()) {
             return new SplitSegmentArchiveManager(
-                    roPersistence.createArchiveManager(memoryMapping, offHeapAccess, ioMonitor, fileStoreMonitor, remoteStoreMonitor),
-                    rwPersistence.createArchiveManager(memoryMapping, offHeapAccess, ioMonitor, fileStoreMonitor, new RemoteStoreMonitorAdapter()),
-                    lastRoArchive.get());
+                roPersistence.createArchiveManager(memoryMapping, offHeapAccess, ioMonitor,
+                    fileStoreMonitor, remoteStoreMonitor),
+                rwPersistence.createArchiveManager(memoryMapping, offHeapAccess, ioMonitor,
+                    fileStoreMonitor, new RemoteStoreMonitorAdapter()),
+                lastRoArchive.get());
         } else {
-            return rwPersistence.createArchiveManager(memoryMapping, offHeapAccess, ioMonitor, fileStoreMonitor, new RemoteStoreMonitorAdapter());
+            return rwPersistence.createArchiveManager(memoryMapping, offHeapAccess, ioMonitor,
+                fileStoreMonitor, new RemoteStoreMonitorAdapter());
         }
     }
 
@@ -103,7 +116,8 @@ public class SplitPersistence implements SegmentNodeStorePersistence {
 
     @Override
     public JournalFile getJournalFile() {
-        return new SplitJournalFile(roPersistence.getJournalFile(), rwPersistence.getJournalFile(), lastRoJournalEntry);
+        return new SplitJournalFile(roPersistence.getJournalFile(), rwPersistence.getJournalFile(),
+            lastRoJournalEntry);
     }
 
     @Override

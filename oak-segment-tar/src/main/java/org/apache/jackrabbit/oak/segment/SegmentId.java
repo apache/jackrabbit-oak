@@ -22,7 +22,6 @@ import static org.apache.jackrabbit.oak.segment.CacheWeights.OBJECT_HEADER_SIZE;
 import static org.apache.jackrabbit.oak.segment.SegmentStore.EMPTY_STORE;
 
 import java.util.UUID;
-
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.jetbrains.annotations.NotNull;
@@ -31,9 +30,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Segment identifier. There are two types of segments: data segments, and bulk
- * segments. Data segments have a header and may reference other segments; bulk
- * segments do not.
+ * Segment identifier. There are two types of segments: data segments, and bulk segments. Data
+ * segments have a header and may reference other segments; bulk segments do not.
  */
 public class SegmentId implements Comparable<SegmentId> {
 
@@ -42,7 +40,9 @@ public class SegmentId implements Comparable<SegmentId> {
      */
     public static final SegmentId NULL = new SegmentId(EMPTY_STORE, 0, 0);
 
-    /** Logger instance */
+    /**
+     * Logger instance
+     */
     private static final Logger log = LoggerFactory.getLogger(SegmentId.class);
 
     /**
@@ -63,7 +63,9 @@ public class SegmentId implements Comparable<SegmentId> {
 
     private final long creationTime;
 
-    /** Callback called whenever an underlying and locally memoised segment is accessed */
+    /**
+     * Callback called whenever an underlying and locally memoised segment is accessed
+     */
     private final Runnable onAccess;
 
     /**
@@ -79,17 +81,18 @@ public class SegmentId implements Comparable<SegmentId> {
     private String gcInfo;
 
     /**
-     * A reference to the segment object, if it is available in memory. It is
-     * used for fast lookup.
+     * A reference to the segment object, if it is available in memory. It is used for fast lookup.
      */
     private volatile Segment segment;
 
     /**
      * Create a new segment id with access tracking.
-     * @param store  store this is belongs to
-     * @param msb    most significant bits of this id
-     * @param lsb    least significant bits of this id
-     * @param onAccess  callback called whenever an underlying and locally memoised segment is accessed.
+     *
+     * @param store    store this is belongs to
+     * @param msb      most significant bits of this id
+     * @param lsb      least significant bits of this id
+     * @param onAccess callback called whenever an underlying and locally memoised segment is
+     *                 accessed.
      */
     public SegmentId(@NotNull SegmentStore store, long msb, long lsb, @NotNull Runnable onAccess) {
         this.store = store;
@@ -101,12 +104,14 @@ public class SegmentId implements Comparable<SegmentId> {
 
     /**
      * Create a new segment id without access tracking.
-     * @param store  store this is belongs to
-     * @param msb    most significant bits of this id
-     * @param lsb    least significant bits of this id
+     *
+     * @param store store this is belongs to
+     * @param msb   most significant bits of this id
+     * @param lsb   least significant bits of this id
      */
     public SegmentId(@NotNull SegmentStore store, long msb, long lsb) {
-        this(store, msb, lsb, () -> {});
+        this(store, msb, lsb, () -> {
+        });
     }
 
     /**
@@ -138,7 +143,8 @@ public class SegmentId implements Comparable<SegmentId> {
     /**
      * Get the segment identified by this instance. The segment is memoised in this instance's
      * {@link #segment} field.
-     * @return  the segment identified by this instance.
+     *
+     * @return the segment identified by this instance.
      * @see #loaded(Segment)
      * @see #unloaded()
      */
@@ -159,8 +165,8 @@ public class SegmentId implements Comparable<SegmentId> {
     }
 
     /**
-     * @return  garbage collection related information like the age of this segment
-     *          id, the generation of its segment and information about its gc status.
+     * @return garbage collection related information like the age of this segment id, the
+     * generation of its segment and information about its gc status.
      */
     @NotNull
     String gcInfo() {
@@ -182,11 +188,11 @@ public class SegmentId implements Comparable<SegmentId> {
     }
 
     /**
-     * Notify this id about the reclamation of its segment (e.g. by
-     * the garbage collector).
-     * @param gcInfo  details about the reclamation. This information
-     *                is logged along with the {@code SegmentNotFoundException}
-     *                when attempting to resolve the segment of this id.
+     * Notify this id about the reclamation of its segment (e.g. by the garbage collector).
+     *
+     * @param gcInfo details about the reclamation. This information is logged along with the
+     *               {@code SegmentNotFoundException} when attempting to resolve the segment of this
+     *               id.
      */
     public void reclaimed(@NotNull String gcInfo) {
         this.gcInfo = gcInfo;
@@ -195,7 +201,8 @@ public class SegmentId implements Comparable<SegmentId> {
     /**
      * This method should only be called from lower level caches to notify this instance that the
      * passed {@code segment} has been loaded and should be memoised.
-     * @param segment  segment with this id. If the id doesn't match the behaviour is undefined.
+     *
+     * @param segment segment with this id. If the id doesn't match the behaviour is undefined.
      * @see #getSegment()
      * @see #unloaded()
      */
@@ -207,6 +214,7 @@ public class SegmentId implements Comparable<SegmentId> {
     /**
      * This method should only be called from lower level caches to notify this instance that the
      * passed {@code segment} has been unloaded and should no longer be memoised.
+     *
      * @see #getSegment()
      * @see #loaded(Segment)
      */
@@ -216,8 +224,9 @@ public class SegmentId implements Comparable<SegmentId> {
 
     /**
      * Determine whether this instance belongs to the passed {@code store}
+     *
      * @param store
-     * @return  {@code true} iff this instance belongs to {@code store}
+     * @return {@code true} iff this instance belongs to {@code store}
      */
     public boolean sameStore(@NotNull SegmentStore store) {
         return this.store == store;
@@ -228,15 +237,16 @@ public class SegmentId implements Comparable<SegmentId> {
     }
 
     /**
-     * @return  this segment id as UUID
+     * @return this segment id as UUID
      */
     public UUID asUUID() {
         return new UUID(msb, lsb);
     }
 
     /**
-     * Get the underlying segment's gc generation. Might cause the segment to
-     * get loaded if the generation info is missing
+     * Get the underlying segment's gc generation. Might cause the segment to get loaded if the
+     * generation info is missing
+     *
      * @return the segment's gc generation
      */
     @NotNull

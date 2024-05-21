@@ -29,7 +29,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.RecordType;
 import org.apache.jackrabbit.oak.segment.SegmentId;
@@ -53,10 +52,12 @@ class FileStoreProcBackend implements Backend {
 
     private final SegmentArchiveManager archiveManager;
 
-    FileStoreProcBackend(AbstractFileStore fileStore, SegmentNodeStorePersistence persistence) throws IOException {
+    FileStoreProcBackend(AbstractFileStore fileStore, SegmentNodeStorePersistence persistence)
+        throws IOException {
         this.fileStore = fileStore;
         this.persistence = persistence;
-        this.archiveManager = persistence.createArchiveManager(true, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
+        this.archiveManager = persistence.createArchiveManager(true, false, new IOMonitorAdapter(),
+            new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
     }
 
     @Override
@@ -322,7 +323,8 @@ class FileStoreProcBackend implements Backend {
 
             @Override
             public Optional<NodeState> getRoot() {
-                RecordId id = RecordId.fromString(fileStore.getSegmentIdProvider(), entry.getRevision());
+                RecordId id = RecordId.fromString(fileStore.getSegmentIdProvider(),
+                    entry.getRevision());
                 return Optional.of(fileStore.getReader().readNode(id));
             }
 

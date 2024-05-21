@@ -18,6 +18,21 @@
  */
 package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
+import static java.lang.String.valueOf;
+import static java.util.UUID.randomUUID;
+import static org.apache.commons.io.IOUtils.closeQuietly;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.guava.common.collect.Sets.symmetricDifference;
+import static org.apache.jackrabbit.oak.commons.FileIOUtils.readStringsAsSet;
+import static org.apache.jackrabbit.oak.commons.FileIOUtils.writeStrings;
+import static org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils.getBlobStore;
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeNoException;
+import static org.junit.Assume.assumeThat;
+
 import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
@@ -26,7 +41,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
-
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.BlobIdTracker.BlobIdStore;
 import org.junit.After;
@@ -38,25 +52,11 @@ import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
-import static org.apache.jackrabbit.guava.common.collect.Sets.symmetricDifference;
-import static java.lang.String.valueOf;
-import static java.util.UUID.randomUUID;
-import static org.apache.commons.io.IOUtils.closeQuietly;
-import static org.apache.jackrabbit.oak.commons.FileIOUtils.readStringsAsSet;
-import static org.apache.jackrabbit.oak.commons.FileIOUtils.writeStrings;
-import static org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils.getBlobStore;
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeNoException;
-import static org.junit.Assume.assumeThat;
-
 /**
  * Test for BlobIdTracker.BlobIdStore to test addition, retrieval and removal of blob ids.
  */
 public class BlobIdTrackerStoreTest {
+
     private static final Logger log = LoggerFactory.getLogger(BlobIdTrackerStoreTest.class);
 
     File root;
@@ -88,7 +88,7 @@ public class BlobIdTrackerStoreTest {
 
     private BlobIdTracker initTracker() throws IOException {
         return BlobIdTracker.build(root.getAbsolutePath(),
-           repoId, 5 * 60, dataStore);
+            repoId, 5 * 60, dataStore);
     }
 
     @After
@@ -310,7 +310,8 @@ public class BlobIdTrackerStoreTest {
     }
 
     private static Thread addThread(
-        final BlobIdStore store, final boolean bulk, final CountDownLatch start, final CountDownLatch done) {
+        final BlobIdStore store, final boolean bulk, final CountDownLatch start,
+        final CountDownLatch done) {
         return new Thread("AddThread") {
             @Override
             public void run() {
@@ -399,13 +400,15 @@ public class BlobIdTrackerStoreTest {
     private static Set<String> retrieve(BlobIdStore store) throws IOException {
         Set<String> retrieved = newHashSet();
         Iterator<String> iter = store.getRecords();
-        while(iter.hasNext()) {
+        while (iter.hasNext()) {
             retrieved.add(iter.next());
         }
-        closeQuietly((Closeable)iter);
+        closeQuietly((Closeable) iter);
         return retrieved;
     }
-    private static Set<String> retrieveFile(BlobIdStore store, TemporaryFolder folder) throws IOException {
+
+    private static Set<String> retrieveFile(BlobIdStore store, TemporaryFolder folder)
+        throws IOException {
         File f = folder.newFile();
         Set<String> retrieved = readStringsAsSet(
             new FileInputStream(store.getRecords(f.getAbsolutePath())), false);
@@ -413,7 +416,7 @@ public class BlobIdTrackerStoreTest {
     }
 
     private static void remove(BlobIdStore store, File temp, Set<String> initAdd,
-            List<String> ints) throws IOException {
+        List<String> ints) throws IOException {
         writeStrings(ints.iterator(), temp, false);
         initAdd.removeAll(ints);
         store.removeRecords(temp);

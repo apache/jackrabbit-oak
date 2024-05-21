@@ -49,14 +49,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * The DocumentDiscoveryLiteService is taking care of providing a repository
- * descriptor that contains the current cluster-view details.
+ * The DocumentDiscoveryLiteService is taking care of providing a repository descriptor that
+ * contains the current cluster-view details.
  * <p>
- * The clusterView is provided via a repository descriptor (see
- * OAK_DISCOVERYLITE_CLUSTERVIEW)
+ * The clusterView is provided via a repository descriptor (see OAK_DISCOVERYLITE_CLUSTERVIEW)
  * <p>
- * The cluster-view lists all instances (ever) known in the cluster in one of
- * the following states:
+ * The cluster-view lists all instances (ever) known in the cluster in one of the following states:
  * <ul>
  * <li>active: the instance is currently running and has an up-to-date lease
  * </li>
@@ -132,33 +130,36 @@ import org.slf4j.LoggerFactory;
  * another gracePeriod until it might rejoin the cluster. In between, any commit
  * should fail with BannedFromClusterException</li>
  * </ul>
- * 
+ *
  * @see #OAK_DISCOVERYLITE_CLUSTERVIEW
  */
 @Component(
-        name = DocumentDiscoveryLiteService.COMPONENT_NAME,
-        immediate = true,
-        service = { DocumentDiscoveryLiteService.class, Observer.class })
+    name = DocumentDiscoveryLiteService.COMPONENT_NAME,
+    immediate = true,
+    service = {DocumentDiscoveryLiteService.class, Observer.class})
 public class DocumentDiscoveryLiteService implements ClusterStateChangeListener, Observer {
 
     static final String COMPONENT_NAME = "org.apache.jackrabbit.oak.plugins.document.DocumentDiscoveryLiteService";
 
     /**
-     * Name of the repository descriptor via which the clusterView is published
-     * - which is the raison d'etre of the DocumentDiscoveryLiteService
+     * Name of the repository descriptor via which the clusterView is published - which is the
+     * raison d'etre of the DocumentDiscoveryLiteService
      **/
     public static final String OAK_DISCOVERYLITE_CLUSTERVIEW = "oak.discoverylite.clusterview";
 
-    private static final Logger logger = LoggerFactory.getLogger(DocumentDiscoveryLiteService.class);
+    private static final Logger logger = LoggerFactory.getLogger(
+        DocumentDiscoveryLiteService.class);
 
-    /** describes the reason why the BackgroundWorker should be woken up **/
+    /**
+     * describes the reason why the BackgroundWorker should be woken up
+     **/
     private static enum WakeupReason {
         CLUSTER_STATE_CHANGED, BACKGROUND_READ_FINISHED
     }
 
     /**
-     * The BackgroundWorker is taking care of regularly invoking checkView -
-     * which in turn will detect if anything changed
+     * The BackgroundWorker is taking care of regularly invoking checkView - which in turn will
+     * detect if anything changed
      **/
     private class BackgroundWorker implements Runnable {
 
@@ -189,15 +190,19 @@ public class DocumentDiscoveryLiteService implements ClusterStateChangeListener,
                 try {
                     logger.trace("BackgroundWorker.doRun: going to call checkView");
                     boolean shortSleep = checkView();
-                    logger.trace("BackgroundWorker.doRun: checkView terminated with {} (=shortSleep)", shortSleep);
+                    logger.trace(
+                        "BackgroundWorker.doRun: checkView terminated with {} (=shortSleep)",
+                        shortSleep);
                     long sleepMillis = shortSleep ? (50 + random.nextInt(450)) : 5000;
                     logger.trace("BackgroundWorker.doRun: sleeping {}ms", sleepMillis);
                     synchronized (BackgroundWorker.this) {
-                        if (stopped)
+                        if (stopped) {
                             return;
+                        }
                         BackgroundWorker.this.wait(sleepMillis);
-                        if (stopped)
+                        if (stopped) {
                             return;
+                        }
                     }
                     logger.trace("BackgorundWorker.doRun: done sleeping, looping");
                 } catch (Exception e) {
@@ -205,7 +210,9 @@ public class DocumentDiscoveryLiteService implements ClusterStateChangeListener,
                     try {
                         Thread.sleep(5000);
                     } catch (Exception e2) {
-                        logger.error("doRun: got an exception while sleeping due to another exception: " + e2, e2);
+                        logger.error(
+                            "doRun: got an exception while sleeping due to another exception: "
+                                + e2, e2);
                     }
                 }
             }
@@ -213,14 +220,16 @@ public class DocumentDiscoveryLiteService implements ClusterStateChangeListener,
 
     }
 
-    /** This provides the 'clusterView' repository descriptors **/
+    /**
+     * This provides the 'clusterView' repository descriptors
+     **/
     private class DiscoveryLiteDescriptor implements Descriptors {
 
         final SimpleValueFactory factory = new SimpleValueFactory();
 
         @Override
         public String[] getKeys() {
-            return new String[] { OAK_DISCOVERYLITE_CLUSTERVIEW };
+            return new String[]{OAK_DISCOVERYLITE_CLUSTERVIEW};
         }
 
         @Override
@@ -252,12 +261,14 @@ public class DocumentDiscoveryLiteService implements ClusterStateChangeListener,
             if (!OAK_DISCOVERYLITE_CLUSTERVIEW.equals(key)) {
                 return null;
             }
-            return new Value[] { getValue(key) };
+            return new Value[]{getValue(key)};
         }
 
     }
 
-    /** DocumentNodeStore's (hence local) clusterId **/
+    /**
+     * DocumentNodeStore's (hence local) clusterId
+     **/
     private int clusterNodeId = -1;
 
     /**
@@ -270,7 +281,9 @@ public class DocumentDiscoveryLiteService implements ClusterStateChangeListener,
      **/
     private BackgroundWorker backgroundWorker;
 
-    /** the ClusterViewDocument which was used in the last checkView run **/
+    /**
+     * the ClusterViewDocument which was used in the last checkView run
+     **/
     private ClusterViewDocument previousClusterViewDocument;
 
     /**
@@ -279,27 +292,26 @@ public class DocumentDiscoveryLiteService implements ClusterStateChangeListener,
     private ClusterView previousClusterView;
 
     /**
-     * kept volatile as this is frequently read in contentChanged which is
-     * better kept unsynchronized as long as possible
+     * kept volatile as this is frequently read in contentChanged which is better kept
+     * unsynchronized as long as possible
      **/
     private volatile boolean hasInstancesWithBacklog;
 
     /**
-     * Require a static reference to the NodeStore. Note that this implies the
-     * service is only active for documentNS
+     * Require a static reference to the NodeStore. Note that this implies the service is only
+     * active for documentNS
      **/
     @Reference
     private DocumentNodeStore nodeStore;
 
     /**
-     * inactive nodes that have been so for a while, ie they have no backlog
-     * anymore, so no need to check for backlog every time
+     * inactive nodes that have been so for a while, ie they have no backlog anymore, so no need to
+     * check for backlog every time
      **/
     private Set<Integer> longTimeInactives = new HashSet<Integer>();
 
     /**
-     * returns the clusterView as a json value for it to be provided via the
-     * repository descriptor
+     * returns the clusterView as a json value for it to be provided via the repository descriptor
      **/
     private String getClusterViewAsDescriptorValue() {
         if (previousClusterView == null) {
@@ -310,8 +322,7 @@ public class DocumentDiscoveryLiteService implements ClusterStateChangeListener,
     }
 
     /**
-     * On activate the DocumentDiscoveryLiteService tries to start the
-     * background job
+     * On activate the DocumentDiscoveryLiteService tries to start the background job
      */
     @Activate
     public void activate(ComponentContext context) {
@@ -326,14 +337,16 @@ public class DocumentDiscoveryLiteService implements ClusterStateChangeListener,
 
         // start the background worker
         backgroundWorker = new BackgroundWorker();
-        Thread th = new Thread(backgroundWorker, "DocumentDiscoveryLiteService-BackgroundWorker-[" + clusterNodeId + "]");
+        Thread th = new Thread(backgroundWorker,
+            "DocumentDiscoveryLiteService-BackgroundWorker-[" + clusterNodeId + "]");
         th.setDaemon(true);
         th.start();
 
         // register the Descriptors - for Oak to pass it upwards
         if (context != null) {
             OsgiWhiteboard whiteboard = new OsgiWhiteboard(context.getBundleContext());
-            whiteboard.register(Descriptors.class, new DiscoveryLiteDescriptor(), Collections.emptyMap());
+            whiteboard.register(Descriptors.class, new DiscoveryLiteDescriptor(),
+                Collections.emptyMap());
         }
         logger.trace("activate: end");
     }
@@ -353,15 +366,15 @@ public class DocumentDiscoveryLiteService implements ClusterStateChangeListener,
     }
 
     /**
-     * Checks if anything changed in the current view and updates the service
-     * fields accordingly.
-     * 
-     * @return true if anything changed or is about to be changed (eg
-     *         recovery/backlog), false if the view is stable
+     * Checks if anything changed in the current view and updates the service fields accordingly.
+     *
+     * @return true if anything changed or is about to be changed (eg recovery/backlog), false if
+     * the view is stable
      */
     private boolean checkView() {
         logger.trace("checkView: start");
-        List<ClusterNodeInfoDocument> allClusterNodes = ClusterNodeInfoDocument.all(documentNodeStore.getDocumentStore());
+        List<ClusterNodeInfoDocument> allClusterNodes = ClusterNodeInfoDocument.all(
+            documentNodeStore.getDocumentStore());
 
         Map<Integer, ClusterNodeInfoDocument> allNodeIds = new HashMap<Integer, ClusterNodeInfoDocument>();
         Map<Integer, ClusterNodeInfoDocument> activeNotTimedOutNodes = new HashMap<Integer, ClusterNodeInfoDocument>();
@@ -370,7 +383,7 @@ public class DocumentDiscoveryLiteService implements ClusterStateChangeListener,
         Map<Integer, ClusterNodeInfoDocument> backlogNodes = new HashMap<Integer, ClusterNodeInfoDocument>();
         Map<Integer, ClusterNodeInfoDocument> inactiveNoBacklogNodes = new HashMap<Integer, ClusterNodeInfoDocument>();
 
-        for (Iterator<ClusterNodeInfoDocument> it = allClusterNodes.iterator(); it.hasNext();) {
+        for (Iterator<ClusterNodeInfoDocument> it = allClusterNodes.iterator(); it.hasNext(); ) {
             ClusterNodeInfoDocument clusterNode = it.next();
             if (!clusterNode.isInvisible()) {
                 allNodeIds.put(clusterNode.getClusterId(), clusterNode);
@@ -411,36 +424,43 @@ public class DocumentDiscoveryLiteService implements ClusterStateChangeListener,
         // the latest root changes.
 
         logger.debug(
-                "checkView: active nodes: {}, timed out nodes: {}, recovering nodes: {}, backlog nodes: {}, inactive nodes: {}, total: {}, hence view nodes: {}",
-                activeNotTimedOutNodes.size(), activeButTimedOutNodes.size(), recoveringNodes.size(), backlogNodes.size(),
-                inactiveNoBacklogNodes.size(), allNodeIds.size(), allActives.size());
+            "checkView: active nodes: {}, timed out nodes: {}, recovering nodes: {}, backlog nodes: {}, inactive nodes: {}, total: {}, hence view nodes: {}",
+            activeNotTimedOutNodes.size(), activeButTimedOutNodes.size(), recoveringNodes.size(),
+            backlogNodes.size(),
+            inactiveNoBacklogNodes.size(), allNodeIds.size(), allActives.size());
 
         ClusterViewDocument originalView = previousClusterViewDocument;
-        ClusterViewDocument newView = doCheckView(allActives.keySet(), recoveringNodes.keySet(), backlogNodes.keySet(),
-                inactiveNoBacklogNodes.keySet());
+        ClusterViewDocument newView = doCheckView(allActives.keySet(), recoveringNodes.keySet(),
+            backlogNodes.keySet(),
+            inactiveNoBacklogNodes.keySet());
         if (newView == null) {
             logger.trace("checkView: end. newView: null");
             return true;
         }
         boolean newHasInstancesWithBacklog = recoveringNodes.size() > 0 || backlogNodes.size() > 0;
-        boolean changed = originalView == null || (newView.getViewSeqNum() != originalView.getViewSeqNum())
+        boolean changed =
+            originalView == null || (newView.getViewSeqNum() != originalView.getViewSeqNum())
                 || (newHasInstancesWithBacklog != hasInstancesWithBacklog);
-        logger.debug("checkView: viewFine: {}, changed: {}, originalView: {}, newView: {}", newView != null, changed, originalView,
-                newView);
+        logger.debug("checkView: viewFine: {}, changed: {}, originalView: {}, newView: {}",
+            newView != null, changed, originalView,
+            newView);
 
         if (longTimeInactives.addAll(inactiveNoBacklogNodes.keySet())) {
-            logger.debug("checkView: updated longTimeInactives to {} (inactiveNoBacklogNodes: {})", longTimeInactives,
-                    inactiveNoBacklogNodes);
+            logger.debug("checkView: updated longTimeInactives to {} (inactiveNoBacklogNodes: {})",
+                longTimeInactives,
+                inactiveNoBacklogNodes);
         }
 
         if (changed) {
             String clusterId = ClusterRepositoryInfo.getOrCreateId(documentNodeStore);
-            ClusterView v = ClusterView.fromDocument(clusterNodeId, clusterId, newView, backlogNodes.keySet());
+            ClusterView v = ClusterView.fromDocument(clusterNodeId, clusterId, newView,
+                backlogNodes.keySet());
             ClusterView previousView = previousClusterView;
             previousClusterView = v;
             hasInstancesWithBacklog = newHasInstancesWithBacklog;
-            logger.info("checkView: view changed from: " + previousView + ", to: " + v + ", hasInstancesWithBacklog: "
-                    + hasInstancesWithBacklog);
+            logger.info("checkView: view changed from: " + previousView + ", to: " + v
+                + ", hasInstancesWithBacklog: "
+                + hasInstancesWithBacklog);
             return true;
         } else {
             logger.debug("checkView: no changes whatsoever, still at view: " + previousClusterView);
@@ -458,29 +478,37 @@ public class DocumentDiscoveryLiteService implements ClusterStateChangeListener,
                     Integer id = Integer.parseInt(split[0]);
                     if (id == clusterNodeId) {
                         final Revision lastKnownRev = Revision.fromString(split[1]);
-                        logger.trace("getLastKnownRevision: end. clusterNode: {}, lastKnownRevision: {}", clusterNodeId,
-                                lastKnownRev);
+                        logger.trace(
+                            "getLastKnownRevision: end. clusterNode: {}, lastKnownRevision: {}",
+                            clusterNodeId,
+                            lastKnownRev);
                         return lastKnownRev;
                     }
                 } catch (NumberFormatException nfe) {
-                    logger.warn("getLastKnownRevision: could not parse integer '" + split[0] + "': " + nfe, nfe);
+                    logger.warn(
+                        "getLastKnownRevision: could not parse integer '" + split[0] + "': " + nfe,
+                        nfe);
                 }
             } else {
-                logger.warn("getLastKnownRevision: cannot parse lastKnownRevision: " + aLastKnownRevisionStr);
+                logger.warn("getLastKnownRevision: cannot parse lastKnownRevision: "
+                    + aLastKnownRevisionStr);
             }
         }
         logger.warn("getLastKnownRevision: no lastKnownRevision found for " + clusterNodeId);
         return null;
     }
 
-    /** package access only for testing **/
+    /**
+     * package access only for testing
+     **/
     boolean hasBacklog(ClusterNodeInfoDocument clusterNode) {
         if (logger.isTraceEnabled()) {
             logger.trace("hasBacklog: start. clusterNodeId: {}", clusterNode.getClusterId());
         }
         Revision lastKnownRevision = getLastKnownRevision(clusterNode.getClusterId());
         if (lastKnownRevision == null) {
-            logger.warn("hasBacklog: no lastKnownRevision found, hence cannot determine backlog for node "
+            logger.warn(
+                "hasBacklog: no lastKnownRevision found, hence cannot determine backlog for node "
                     + clusterNode.getClusterId());
             return false;
         }
@@ -529,14 +557,17 @@ public class DocumentDiscoveryLiteService implements ClusterStateChangeListener,
         }
         Revision lastWrittenRootRev = Revision.fromString(lastWrittenRootRevStr);
         if (lastWrittenRootRev == null) {
-            logger.warn("hasBacklog: node has no lastWrittenRootRev: " + clusterNode.getClusterId());
+            logger.warn(
+                "hasBacklog: node has no lastWrittenRootRev: " + clusterNode.getClusterId());
             return false;
         }
 
-        boolean hasBacklog = Revision.getTimestampDifference(lastKnownRevision, lastWrittenRootRev) < 0;
+        boolean hasBacklog =
+            Revision.getTimestampDifference(lastKnownRevision, lastWrittenRootRev) < 0;
         if (logger.isDebugEnabled()) {
-            logger.debug("hasBacklog: clusterNodeId: {}, lastKnownRevision: {}, lastWrittenRootRev: {}, hasBacklog: {}",
-                    clusterNode.getClusterId(), lastKnownRevision, lastWrittenRootRev, hasBacklog);
+            logger.debug(
+                "hasBacklog: clusterNodeId: {}, lastKnownRevision: {}, lastWrittenRootRev: {}, hasBacklog: {}",
+                clusterNode.getClusterId(), lastKnownRevision, lastWrittenRootRev, hasBacklog);
         }
         return hasBacklog;
     }
@@ -549,13 +580,17 @@ public class DocumentDiscoveryLiteService implements ClusterStateChangeListener,
 
     private static String substSnapshotPrefix(String version) {
         String snapshot = "-SNAPSHOT";
-        return version.endsWith(snapshot) ? version.substring(0, version.length() - snapshot.length()) + ".999999" : version;
+        return version.endsWith(snapshot) ?
+            version.substring(0, version.length() - snapshot.length()) + ".999999" : version;
     }
 
-    private ClusterViewDocument doCheckView(final Set<Integer> activeNodes, final Set<Integer> recoveringNodes,
-            final Set<Integer> backlogNodes, final Set<Integer> inactiveNodes) {
-        logger.trace("doCheckView: start: activeNodes: {}, recoveringNodes: {}, backlogNodes: {}, inactiveNodes: {}", activeNodes,
-                recoveringNodes, backlogNodes, inactiveNodes);
+    private ClusterViewDocument doCheckView(final Set<Integer> activeNodes,
+        final Set<Integer> recoveringNodes,
+        final Set<Integer> backlogNodes, final Set<Integer> inactiveNodes) {
+        logger.trace(
+            "doCheckView: start: activeNodes: {}, recoveringNodes: {}, backlogNodes: {}, inactiveNodes: {}",
+            activeNodes,
+            recoveringNodes, backlogNodes, inactiveNodes);
 
         Set<Integer> allInactives = new HashSet<Integer>();
         allInactives.addAll(inactiveNodes);
@@ -565,13 +600,16 @@ public class DocumentDiscoveryLiteService implements ClusterStateChangeListener,
             // then we have zero active nodes - that's nothing expected as that
             // includes our own node not to be active
             // hence handle with care - ie wait until we get an active node
-            logger.warn("doCheckView: empty active ids. activeNodes:{}, recoveringNodes:{}, inactiveNodes:{}", activeNodes,
-                    recoveringNodes, inactiveNodes);
+            logger.warn(
+                "doCheckView: empty active ids. activeNodes:{}, recoveringNodes:{}, inactiveNodes:{}",
+                activeNodes,
+                recoveringNodes, inactiveNodes);
             return null;
         }
         ClusterViewDocument newViewOrNull;
         try {
-            newViewOrNull = ClusterViewDocument.readOrUpdate(documentNodeStore, activeNodes, recoveringNodes, allInactives);
+            newViewOrNull = ClusterViewDocument.readOrUpdate(documentNodeStore, activeNodes,
+                recoveringNodes, allInactives);
         } catch (RuntimeException re) {
             logger.error("doCheckView: RuntimeException: re: " + re, re);
             return null;
@@ -596,7 +634,8 @@ public class DocumentDiscoveryLiteService implements ClusterStateChangeListener,
                 previousClusterViewDocument = newViewOrNull;
                 logger.debug("doCheckView: end. first ever view: {}", newViewOrNull);
                 return newViewOrNull;
-            } else if (previousClusterViewDocument.getViewSeqNum() == newViewOrNull.getViewSeqNum()) {
+            } else if (previousClusterViewDocument.getViewSeqNum()
+                == newViewOrNull.getViewSeqNum()) {
                 // that's the normal case: the viewId matches, nothing has
                 // changed, we've already
                 // processed the previousClusterView, so:
@@ -604,8 +643,9 @@ public class DocumentDiscoveryLiteService implements ClusterStateChangeListener,
                 return newViewOrNull;
             } else {
                 // otherwise the view has changed
-                logger.info("doCheckView: view has changed from: {} to: {} - sending event...", previousClusterViewDocument,
-                        newViewOrNull);
+                logger.info("doCheckView: view has changed from: {} to: {} - sending event...",
+                    previousClusterViewDocument,
+                    newViewOrNull);
                 previousClusterViewDocument = newViewOrNull;
                 logger.debug("doCheckView: end. changed view: {}", newViewOrNull);
                 return newViewOrNull;
@@ -638,12 +678,13 @@ public class DocumentDiscoveryLiteService implements ClusterStateChangeListener,
                 // we dont need to wakeup the background thread
                 if (!hasInstancesWithBacklog) {
                     logger.trace(
-                            "wakeupBackgroundWorker: not waking up backgroundWorker, as we do not have any instances with backlog");
+                        "wakeupBackgroundWorker: not waking up backgroundWorker, as we do not have any instances with backlog");
                     return;
                 }
             }
-            logger.trace("wakeupBackgroundWorker: waking up backgroundWorker, reason: {} (hasInstancesWithBacklog: {})",
-                    wakeupReason, hasInstancesWithBacklog);
+            logger.trace(
+                "wakeupBackgroundWorker: waking up backgroundWorker, reason: {} (hasInstancesWithBacklog: {})",
+                wakeupReason, hasInstancesWithBacklog);
             synchronized (bw) {
                 bw.notifyAll();
             }
@@ -652,16 +693,15 @@ public class DocumentDiscoveryLiteService implements ClusterStateChangeListener,
 
     /**
      * <p>
-     * Additionally the DocumentDiscoveryLiteService must be notified when the
-     * background-read has finished - as it could be waiting for a crashed
-     * node's recovery to finish - which it can only do by checking the
-     * lastKnownRevision of the crashed instance - and that check is best done
-     * after the background read is just finished (it could optionally do that
-     * just purely time based as well, but going via a listener is more timely,
-     * that's why this approach has been chosen).
+     * Additionally the DocumentDiscoveryLiteService must be notified when the background-read has
+     * finished - as it could be waiting for a crashed node's recovery to finish - which it can only
+     * do by checking the lastKnownRevision of the crashed instance - and that check is best done
+     * after the background read is just finished (it could optionally do that just purely time
+     * based as well, but going via a listener is more timely, that's why this approach has been
+     * chosen).
      */
     @Override
-    public void contentChanged(@NotNull NodeState root,@NotNull CommitInfo info) {
+    public void contentChanged(@NotNull NodeState root, @NotNull CommitInfo info) {
         // contentChanged is only used to react as quickly as possible
         // when we have instances that have a 'backlog' - ie when instances
         // crashed
@@ -680,7 +720,8 @@ public class DocumentDiscoveryLiteService implements ClusterStateChangeListener,
             // probably still process it - but we have a 5sec fallback
             // in the BackgroundWorker to handle that case too,
             // so:
-            logger.trace("contentChanged: ignoring content change due to commit info belonging to external change");
+            logger.trace(
+                "contentChanged: ignoring content change due to commit info belonging to external change");
             return;
         }
         logger.trace("contentChanged: handling content changed by waking up worker if necessary");

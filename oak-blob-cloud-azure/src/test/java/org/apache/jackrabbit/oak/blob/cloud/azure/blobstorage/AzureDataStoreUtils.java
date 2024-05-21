@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
 import static org.apache.jackrabbit.guava.common.base.StandardSystemProperty.USER_HOME;
 import static org.junit.Assume.assumeTrue;
 
+import com.microsoft.azure.storage.blob.CloudBlobContainer;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -31,15 +32,12 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.Map;
 import java.util.Properties;
-
 import javax.net.ssl.HttpsURLConnection;
-
+import org.apache.commons.io.IOUtils;
+import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.Maps;
-import com.microsoft.azure.storage.blob.CloudBlobContainer;
-import org.apache.commons.io.IOUtils;
-import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.ConfigurableDataRecordAccessProvider;
@@ -53,6 +51,7 @@ import org.slf4j.LoggerFactory;
  * Extension to {@link DataStoreUtils} to enable Azure extensions for cleaning and initialization.
  */
 public class AzureDataStoreUtils extends DataStoreUtils {
+
     private static final Logger log = LoggerFactory.getLogger(AzureDataStoreUtils.class);
 
     private static final String DEFAULT_CONFIG_PATH = "./src/test/resources/azure.properties";
@@ -67,10 +66,12 @@ public class AzureDataStoreUtils extends DataStoreUtils {
     public static boolean isAzureConfigured() {
         Properties props = getAzureConfig();
         //need either access keys or sas
-        if (!props.containsKey(AzureConstants.AZURE_STORAGE_ACCOUNT_KEY) || !props.containsKey(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME)
+        if (!props.containsKey(AzureConstants.AZURE_STORAGE_ACCOUNT_KEY) || !props.containsKey(
+            AzureConstants.AZURE_STORAGE_ACCOUNT_NAME)
+            || !(props.containsKey(AzureConstants.AZURE_BLOB_CONTAINER_NAME))) {
+            if (!props.containsKey(AzureConstants.AZURE_SAS) || !props.containsKey(
+                AzureConstants.AZURE_BLOB_ENDPOINT)
                 || !(props.containsKey(AzureConstants.AZURE_BLOB_CONTAINER_NAME))) {
-            if (!props.containsKey(AzureConstants.AZURE_SAS) || !props.containsKey(AzureConstants.AZURE_BLOB_ENDPOINT)
-                    || !(props.containsKey(AzureConstants.AZURE_BLOB_CONTAINER_NAME))) {
                 return false;
             }
         }
@@ -78,8 +79,7 @@ public class AzureDataStoreUtils extends DataStoreUtils {
     }
 
     /**
-     * Read any config property configured.
-     * Also, read any props available as system properties.
+     * Read any config property configured. Also, read any props available as system properties.
      * System properties take precedence.
      *
      * @return Properties instance
@@ -108,11 +108,13 @@ public class AzureDataStoreUtils extends DataStoreUtils {
                 IOUtils.closeQuietly(is);
             }
             props.putAll(getConfig());
-            Map filtered = Maps.filterEntries(Maps.fromProperties(props), new Predicate<Map.Entry<? extends Object, ? extends Object>>() {
-                @Override public boolean apply(Map.Entry<? extends Object, ? extends Object> input) {
-                    return !Strings.isNullOrEmpty((String) input.getValue());
-                }
-            });
+            Map filtered = Maps.filterEntries(Maps.fromProperties(props),
+                new Predicate<Map.Entry<? extends Object, ? extends Object>>() {
+                    @Override
+                    public boolean apply(Map.Entry<? extends Object, ? extends Object> input) {
+                        return !Strings.isNullOrEmpty((String) input.getValue());
+                    }
+                });
             props = new Properties();
             props.putAll(filtered);
         }
@@ -129,25 +131,29 @@ public class AzureDataStoreUtils extends DataStoreUtils {
     }
 
     public static <T extends DataStore> T setupDirectAccessDataStore(
-            @NotNull final TemporaryFolder homeDir,
-            int directDownloadExpirySeconds,
-            int directUploadExpirySeconds)
-            throws Exception {
-        return setupDirectAccessDataStore(homeDir, directDownloadExpirySeconds, directUploadExpirySeconds, null);
+        @NotNull final TemporaryFolder homeDir,
+        int directDownloadExpirySeconds,
+        int directUploadExpirySeconds)
+        throws Exception {
+        return setupDirectAccessDataStore(homeDir, directDownloadExpirySeconds,
+            directUploadExpirySeconds, null);
     }
 
     @SuppressWarnings("unchecked")
     public static <T extends DataStore> T setupDirectAccessDataStore(
-            @NotNull final TemporaryFolder homeDir,
-            int directDownloadExpirySeconds,
-            int directUploadExpirySeconds,
-            @Nullable final Properties overrideProperties)
-            throws Exception {
+        @NotNull final TemporaryFolder homeDir,
+        int directDownloadExpirySeconds,
+        int directUploadExpirySeconds,
+        @Nullable final Properties overrideProperties)
+        throws Exception {
         assumeTrue(isAzureConfigured());
-        DataStore ds = (T) getAzureDataStore(getDirectAccessDataStoreProperties(overrideProperties), homeDir.newFolder().getAbsolutePath());
+        DataStore ds = (T) getAzureDataStore(getDirectAccessDataStoreProperties(overrideProperties),
+            homeDir.newFolder().getAbsolutePath());
         if (ds instanceof ConfigurableDataRecordAccessProvider) {
-            ((ConfigurableDataRecordAccessProvider) ds).setDirectDownloadURIExpirySeconds(directDownloadExpirySeconds);
-            ((ConfigurableDataRecordAccessProvider) ds).setDirectUploadURIExpirySeconds(directUploadExpirySeconds);
+            ((ConfigurableDataRecordAccessProvider) ds).setDirectDownloadURIExpirySeconds(
+                directDownloadExpirySeconds);
+            ((ConfigurableDataRecordAccessProvider) ds).setDirectUploadURIExpirySeconds(
+                directUploadExpirySeconds);
         }
         return (T) ds;
     }
@@ -156,7 +162,8 @@ public class AzureDataStoreUtils extends DataStoreUtils {
         return getDirectAccessDataStoreProperties(null);
     }
 
-    public static Properties getDirectAccessDataStoreProperties(@Nullable final Properties overrideProperties) {
+    public static Properties getDirectAccessDataStoreProperties(
+        @Nullable final Properties overrideProperties) {
         Properties mergedProperties = new Properties();
         mergedProperties.putAll(getAzureConfig());
         if (null != overrideProperties) {
@@ -172,24 +179,27 @@ public class AzureDataStoreUtils extends DataStoreUtils {
 
     public static void deleteContainer(String containerName) throws Exception {
         if (Strings.isNullOrEmpty(containerName)) {
-            log.warn("Cannot delete container with null or empty name. containerName={}", containerName);
+            log.warn("Cannot delete container with null or empty name. containerName={}",
+                containerName);
             return;
         }
         log.info("Starting to delete container. containerName={}", containerName);
         Properties props = getAzureConfig();
-        CloudBlobContainer container = Utils.getBlobContainer(Utils.getConnectionStringFromProperties(props), containerName);
+        CloudBlobContainer container = Utils.getBlobContainer(
+            Utils.getConnectionStringFromProperties(props), containerName);
         boolean result = container.deleteIfExists();
         log.info("Container deleted. containerName={} existed={}", containerName, result);
     }
 
-    protected static HttpsURLConnection getHttpsConnection(long length, URI uri) throws IOException {
+    protected static HttpsURLConnection getHttpsConnection(long length, URI uri)
+        throws IOException {
         HttpsURLConnection conn = (HttpsURLConnection) uri.toURL().openConnection();
         conn.setDoOutput(true);
         conn.setRequestMethod("PUT");
         conn.setRequestProperty("Content-Length", String.valueOf(length));
         conn.setRequestProperty("Date", DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssX")
-            .withZone(ZoneOffset.UTC)
-            .format(Instant.now()));
+                                                         .withZone(ZoneOffset.UTC)
+                                                         .format(Instant.now()));
         conn.setRequestProperty("x-ms-version", "2017-11-09");
 
         return conn;

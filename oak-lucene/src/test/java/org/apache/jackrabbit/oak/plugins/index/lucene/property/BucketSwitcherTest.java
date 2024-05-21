@@ -19,11 +19,6 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.property;
 
-import org.apache.jackrabbit.oak.spi.state.EqualsDiff;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.junit.Test;
-
 import static org.apache.jackrabbit.guava.common.collect.ImmutableList.copyOf;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.PROP_HEAD_BUCKET;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.PROP_PREVIOUS_BUCKET;
@@ -36,7 +31,13 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
+import org.apache.jackrabbit.oak.spi.state.EqualsDiff;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.junit.Test;
+
 public class BucketSwitcherTest {
+
     private NodeBuilder builder = EMPTY_NODE.builder();
     private BucketSwitcher bs = new BucketSwitcher(builder);
 
@@ -85,7 +86,7 @@ public class BucketSwitcherTest {
     }
 
     @Test
-    public void twoBuckets_2Switches() throws Exception{
+    public void twoBuckets_2Switches() throws Exception {
         builder.child("2").child("foo");
         builder.child("1");
         builder.setProperty(PROP_HEAD_BUCKET, "2");
@@ -100,13 +101,12 @@ public class BucketSwitcherTest {
     }
 
     /**
-     * Test the case where lastIndexedTo time does not change i.e. async indexer
-     * has not moved on between different run. In such a case the property index
-     * state should remain same and both head and previous bucket should not be
-     * changed
+     * Test the case where lastIndexedTo time does not change i.e. async indexer has not moved on
+     * between different run. In such a case the property index state should remain same and both
+     * head and previous bucket should not be changed
      */
     @Test
-    public void twoBuckets_NoChange() throws Exception{
+    public void twoBuckets_NoChange() throws Exception {
         builder.child("2").child("foo");
         builder.child("1");
         builder.setProperty(PROP_HEAD_BUCKET, "2");
@@ -143,12 +143,12 @@ public class BucketSwitcherTest {
     }
 
     /**
-     * Test the case where async indexer state changes i.e. lastIndexedTo changes
-     * however nothing new got indexed in property index. In such a case
-     * after the second run there should be no previous bucket
+     * Test the case where async indexer state changes i.e. lastIndexedTo changes however nothing
+     * new got indexed in property index. In such a case after the second run there should be no
+     * previous bucket
      */
     @Test
-    public void twoBucket_IndexedToTimeChange() throws Exception{
+    public void twoBucket_IndexedToTimeChange() throws Exception {
         builder.child("2").child("foo");
         builder.child("1");
         builder.setProperty(PROP_HEAD_BUCKET, "2");

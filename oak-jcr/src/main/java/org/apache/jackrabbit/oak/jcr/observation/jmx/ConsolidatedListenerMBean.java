@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.jcr.observation.jmx;
 import javax.management.openmbean.TabularData;
 
 public interface ConsolidatedListenerMBean {
+
     String TYPE = "ConsolidatedListenerStats";
 
     TabularData getListenerStats();

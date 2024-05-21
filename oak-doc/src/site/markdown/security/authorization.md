@@ -20,10 +20,10 @@ Authorization
 
 ### General Notes
 
-One of main goals for Oak security, was to clearly separates between access control 
+One of main goals for Oak security, was to clearly separates between access control
 management (such as defined by the JCR and Jackrabbit API) and the internal
 permission evaluation.
- 
+
 While access control management is defined to be an optional feature added in JCR 2.0,
 permission evaluation was mandated since the very first version of JCR even though
 it remained an implementation detail.
@@ -38,10 +38,11 @@ Despite the fact that there is a distinction between the public facing access
 control management and the internal permission evaluation, these two topics remain
 connected to one another, and a given authorization model is expected to define and
 handle both consistently. Therefore, the main entry point for
-authorization related operations is a single `AuthorizationConfiguration` (see 
+authorization related operations is a single `AuthorizationConfiguration` (see
 section [configuration](#configuration) below).
 
 <a name="api_extensions"></a>
+
 ### API Extensions
 
 The API extensions provided by Oak are covered in the following sections:
@@ -51,22 +52,27 @@ The API extensions provided by Oak are covered in the following sections:
 - [Restriction Management](authorization/restriction.html#api_extensions)
 
 <a name="configuration"></a>
+
 ### Configuration
 
-The configuration of the authorization related parts is handled by the [AuthorizationConfiguration]. 
+The configuration of the authorization related parts is handled by the [AuthorizationConfiguration].
 This class provides the following methods:
 
-- `getAccessControlManager`: get a new ac manager instance (see [Access Control Management](accesscontrol.html)).
-- `getPermissionProvider`: get a new permission provider instance (see [Permissions](permission.html)).
-- `getRestrictionProvider`: get a new instance of the restriction provider (see [Restriction Management](authorization/restriction.html).
+- `getAccessControlManager`: get a new ac manager instance (
+  see [Access Control Management](accesscontrol.html)).
+- `getPermissionProvider`: get a new permission provider instance (
+  see [Permissions](permission.html)).
+- `getRestrictionProvider`: get a new instance of the restriction provider (
+  see [Restriction Management](authorization/restriction.html).
 
 #### Configuration Parameters
 
-The supported configuration options of the default implementation are described 
-separately for [access control management](accesscontrol/default.html#configuration) 
+The supported configuration options of the default implementation are described
+separately for [access control management](accesscontrol/default.html#configuration)
 and [permission evaluation](permission/default.html#configuration) .
 
 <a name="pluggability"></a>
+
 ### Pluggability
 
 There are multiple options for plugging authorization related custom implementations:
@@ -75,7 +81,7 @@ There are multiple options for plugging authorization related custom implementat
 
 ##### Since Oak 1.4
 
-As of Oak 1.4 the built-in `SecurityProvider` implementations allow for the 
+As of Oak 1.4 the built-in `SecurityProvider` implementations allow for the
 aggregation of multiple `AuthorizationConfiguration`s.
 
 The behaviour of the `CompositeAuthorizationConfiguration` is described in
@@ -88,22 +94,26 @@ not supported and it was only possible to replace the existing `AuthorizationCon
 This would completely replace the default way of handling authorization in the repository.
 
 In OSGi-base setup this is achieved by making the configuration implementation a service
-such that it takes precedence over the default. 
+such that it takes precedence over the default.
 
-In a non-OSGi-base setup the custom configuration must be exposed by the `SecurityProvider` implementation.
+In a non-OSGi-base setup the custom configuration must be exposed by the `SecurityProvider`
+implementation.
 
 #### Extending the Restriction Provider
 
 In all versions of Oak it is possible to plug custom implementation(s) for the
 restriction management that allows to narrow the effect of permissions to
-items matching a given, defined behavior. Details can be found in section 
+items matching a given, defined behavior. Details can be found in section
 [RestrictionManagement](authorization/restriction.html#pluggability).
 
 <a name="best_practices"></a>
+
 ### Best Practices
+
 See section [Best Practices for Authorization](authorization/bestpractices.html).
 
 <a name="further_reading"></a>
+
 ### Further Reading
 
 - [Access Control Management](accesscontrol.html)
@@ -112,5 +122,7 @@ See section [Best Practices for Authorization](authorization/bestpractices.html)
 - [Combining Multiple Authorization Models](authorization/composite.html)
 
 <!-- hidden references -->
+
 [AuthorizationConfiguration]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authorization/AuthorizationConfiguration.html
+
 [OAK-1268]: https://issues.apache.org/jira/browse/OAK-1268

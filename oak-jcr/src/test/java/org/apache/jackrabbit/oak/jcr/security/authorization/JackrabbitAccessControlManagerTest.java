@@ -16,24 +16,23 @@
  */
 package org.apache.jackrabbit.oak.jcr.security.authorization;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
-import org.apache.jackrabbit.api.security.authorization.PrivilegeCollection;
-import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
-import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
-import org.apache.jackrabbit.test.NotExecutableException;
+import static org.junit.Assert.assertArrayEquals;
 
+import java.util.Collections;
+import java.util.Set;
 import javax.jcr.AccessDeniedException;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
-import java.util.Collections;
-import java.util.Set;
-
-import static org.junit.Assert.assertArrayEquals;
+import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
+import org.apache.jackrabbit.api.security.authorization.PrivilegeCollection;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
+import org.apache.jackrabbit.test.NotExecutableException;
 
 public class JackrabbitAccessControlManagerTest extends AbstractEvaluationTest {
-    
+
     private JackrabbitAccessControlManager jrAcMgr;
 
     @Override
@@ -44,14 +43,14 @@ public class JackrabbitAccessControlManagerTest extends AbstractEvaluationTest {
         }
         jrAcMgr = (JackrabbitAccessControlManager) acMgr;
     }
-    
+
     public void testGetPrivilegeCollection() throws Exception {
         PrivilegeCollection pc = jrAcMgr.getPrivilegeCollection(path);
         assertTrue(pc.includes(Privilege.JCR_ALL));
         assertTrue(pc.includes(Privilege.JCR_READ, PrivilegeConstants.REP_READ_PROPERTIES));
         assertArrayEquals(privilegesFromName(Privilege.JCR_ALL), pc.getPrivileges());
     }
-    
+
     public void testGetPrivilegeCollectionInvalidPath() throws Exception {
         try {
             jrAcMgr.getPrivilegeCollection("/invalid");
@@ -69,14 +68,16 @@ public class JackrabbitAccessControlManagerTest extends AbstractEvaluationTest {
     }
 
     public void testGetPrivilegeCollectionPrincipalSet() throws Exception {
-        PrivilegeCollection pc = jrAcMgr.getPrivilegeCollection(path, Collections.singleton(EveryonePrincipal.getInstance()));
+        PrivilegeCollection pc = jrAcMgr.getPrivilegeCollection(path,
+            Collections.singleton(EveryonePrincipal.getInstance()));
         assertFalse(pc.includes(Privilege.JCR_ALL));
         assertTrue(pc.includes(Privilege.JCR_READ, PrivilegeConstants.REP_READ_PROPERTIES));
         assertArrayEquals(privilegesFromName(Privilege.JCR_READ), pc.getPrivileges());
     }
-    
+
     public void testGetPrivilegeCollectionTestSession() throws Exception {
-        PrivilegeCollection pc = ((JackrabbitAccessControlManager) testAcMgr).getPrivilegeCollection(path);
+        PrivilegeCollection pc = ((JackrabbitAccessControlManager) testAcMgr).getPrivilegeCollection(
+            path);
         assertFalse(pc.includes(Privilege.JCR_ALL));
         assertTrue(pc.includes(Privilege.JCR_READ, PrivilegeConstants.REP_READ_PROPERTIES));
         assertArrayEquals(privilegesFromName(Privilege.JCR_READ), pc.getPrivileges());
@@ -84,18 +85,21 @@ public class JackrabbitAccessControlManagerTest extends AbstractEvaluationTest {
 
     public void testGetPrivilegeCollectionTestSessionPrincipalSet() throws Exception {
         try {
-            ((JackrabbitAccessControlManager) testAcMgr).getPrivilegeCollection(path, Collections.singleton(EveryonePrincipal.getInstance()));
+            ((JackrabbitAccessControlManager) testAcMgr).getPrivilegeCollection(path,
+                Collections.singleton(EveryonePrincipal.getInstance()));
             fail("AccessDeniedException expected");
         } catch (AccessDeniedException e) {
             // success
         }
     }
-    
+
     public void testPrivilegeCollectionFromNames() throws Exception {
-        PrivilegeCollection pc = jrAcMgr.privilegeCollectionFromNames(Privilege.JCR_READ, Privilege.JCR_WRITE);
-        
+        PrivilegeCollection pc = jrAcMgr.privilegeCollectionFromNames(Privilege.JCR_READ,
+            Privilege.JCR_WRITE);
+
         assertFalse(pc instanceof PrivilegeCollection.Default);
-        Set<Privilege> expected = ImmutableSet.copyOf(privilegesFromNames(new String[] {Privilege.JCR_READ, Privilege.JCR_WRITE}));
+        Set<Privilege> expected = ImmutableSet.copyOf(
+            privilegesFromNames(new String[]{Privilege.JCR_READ, Privilege.JCR_WRITE}));
         assertEquals(expected, ImmutableSet.copyOf(pc.getPrivileges()));
     }
 

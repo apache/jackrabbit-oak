@@ -22,7 +22,6 @@ package org.apache.jackrabbit.oak.segment.file.proc;
 import java.util.Collections;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
-
 import org.apache.jackrabbit.oak.segment.file.proc.Proc.Backend;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.jetbrains.annotations.NotNull;
@@ -42,14 +41,14 @@ class ReferencesNode extends AbstractNode {
     @Override
     public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
         return backend.getSegmentReferences(segmentId)
-            .map(this::getChildNodeEntries)
-            .orElse(Collections.emptyList());
+                      .map(this::getChildNodeEntries)
+                      .orElse(Collections.emptyList());
     }
 
     private Iterable<ChildNodeEntry> getChildNodeEntries(Iterable<String> references) {
         return StreamSupport.stream(references.spliterator(), false)
-            .map(this::newSegmentNodeEntry)
-            .collect(Collectors.toList());
+                            .map(this::newSegmentNodeEntry)
+                            .collect(Collectors.toList());
     }
 
     private ChildNodeEntry newSegmentNodeEntry(String segmentId) {

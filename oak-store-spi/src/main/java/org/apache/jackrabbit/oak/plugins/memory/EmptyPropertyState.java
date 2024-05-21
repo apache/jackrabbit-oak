@@ -18,19 +18,17 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
-import java.util.Collections;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
+import java.util.Collections;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.jetbrains.annotations.NotNull;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-
 /**
- * Abstract base class for {@link PropertyState} implementations
- * providing default implementation which correspond to a property
- * without any value.
+ * Abstract base class for {@link PropertyState} implementations providing default implementation
+ * which correspond to a property without any value.
  */
 public abstract class EmptyPropertyState extends AbstractPropertyState {
 
@@ -38,7 +36,8 @@ public abstract class EmptyPropertyState extends AbstractPropertyState {
 
     /**
      * Create a new property state with the given {@code name}
-     * @param name  The name of the property state.
+     *
+     * @param name The name of the property state.
      */
     protected EmptyPropertyState(@NotNull String name) {
         this.name = checkNotNull(name);
@@ -46,9 +45,10 @@ public abstract class EmptyPropertyState extends AbstractPropertyState {
 
     /**
      * Create an empty {@code PropertyState}
-     * @param name  The name of the property state
-     * @param type  The type of the property state
-     * @return  The new property state
+     *
+     * @param name The name of the property state
+     * @param type The type of the property state
+     * @return The new property state
      * @throws IllegalArgumentException if @code type.isArray()} is {@code false}.
      */
     public static PropertyState emptyProperty(String name, final Type<?> type) {

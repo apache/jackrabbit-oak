@@ -18,17 +18,15 @@ package org.apache.jackrabbit.oak.segment.azure;
 
 import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.readBufferFully;
 
+import com.microsoft.azure.storage.StorageException;
+import com.microsoft.azure.storage.blob.CloudBlob;
+import com.microsoft.azure.storage.blob.CloudBlobDirectory;
+import com.microsoft.azure.storage.blob.CloudBlockBlob;
 import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.Map;
 import java.util.UUID;
-
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.blob.CloudBlob;
-import com.microsoft.azure.storage.blob.CloudBlobDirectory;
-import com.microsoft.azure.storage.blob.CloudBlockBlob;
-
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.remote.AbstractRemoteSegmentArchiveReader;
 import org.apache.jackrabbit.oak.segment.remote.RemoteSegmentArchiveEntry;
@@ -40,7 +38,8 @@ public class AzureSegmentArchiveReader extends AbstractRemoteSegmentArchiveReade
 
     private final long length;
 
-    AzureSegmentArchiveReader(CloudBlobDirectory archiveDirectory, IOMonitor ioMonitor) throws IOException {
+    AzureSegmentArchiveReader(CloudBlobDirectory archiveDirectory, IOMonitor ioMonitor)
+        throws IOException {
         super(ioMonitor);
         this.archiveDirectory = archiveDirectory;
         this.length = computeArchiveIndexAndLength();
@@ -62,7 +61,8 @@ public class AzureSegmentArchiveReader extends AbstractRemoteSegmentArchiveReade
         for (CloudBlob blob : AzureUtilities.getBlobs(archiveDirectory)) {
             Map<String, String> metadata = blob.getMetadata();
             if (AzureBlobMetadata.isSegment(metadata)) {
-                RemoteSegmentArchiveEntry indexEntry = AzureBlobMetadata.toIndexEntry(metadata, (int) blob.getProperties().getLength());
+                RemoteSegmentArchiveEntry indexEntry = AzureBlobMetadata.toIndexEntry(metadata,
+                    (int) blob.getProperties().getLength());
                 index.put(new UUID(indexEntry.getMsb(), indexEntry.getLsb()), indexEntry);
             }
             length += blob.getProperties().getLength();

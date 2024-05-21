@@ -16,12 +16,11 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 
+import java.util.Set;
 import org.apache.jackrabbit.guava.common.base.Objects;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.jetbrains.annotations.NotNull;
-
-import java.util.Set;
 
 public class ValidationEntry {
 

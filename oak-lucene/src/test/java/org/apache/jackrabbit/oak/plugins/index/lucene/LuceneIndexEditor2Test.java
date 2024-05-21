@@ -19,12 +19,21 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
+
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -50,16 +59,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.fail;
-import static org.mockito.Mockito.mock;
-
 public class LuceneIndexEditor2Test {
 
     private NodeState root = INITIAL_CONTENT;
@@ -73,7 +72,7 @@ public class LuceneIndexEditor2Test {
     private String indexPath = "/oak:index/fooIndex";
 
     @Test
-    public void basics() throws Exception{
+    public void basics() throws Exception {
         LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
         defnb.indexRule("nt:base").property("foo").propertyIndex();
 
@@ -92,7 +91,7 @@ public class LuceneIndexEditor2Test {
     }
 
     @Test
-    public void simplePropertyUpdateCallback() throws Exception{
+    public void simplePropertyUpdateCallback() throws Exception {
         LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
         defnb.indexRule("nt:base").property("foo").propertyIndex();
 
@@ -140,7 +139,7 @@ public class LuceneIndexEditor2Test {
     }
 
     @Test
-    public void relativeProperties() throws Exception{
+    public void relativeProperties() throws Exception {
         LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
         defnb.indexRule("nt:base").property("jcr:content/metadata/foo").propertyIndex();
         defnb.aggregateRule("nt:base").include("*");
@@ -198,7 +197,7 @@ public class LuceneIndexEditor2Test {
             @Nullable
             @Override
             public Editor getIndexEditor(@NotNull String type, @NotNull NodeBuilder definition,
-                                         @NotNull NodeState root, @NotNull IndexUpdateCallback callback) {
+                @NotNull NodeState root, @NotNull IndexUpdateCallback callback) {
                 if (TYPE_LUCENE.equals(type)) {
                     return new LuceneIndexEditor(context);
                 }
@@ -211,20 +210,23 @@ public class LuceneIndexEditor2Test {
         return new EditorHook(updateProvider);
     }
 
-    private LuceneIndexEditorContext newContext(NodeBuilder defnBuilder, IndexDefinition defn, boolean asyncIndex) {
+    private LuceneIndexEditorContext newContext(NodeBuilder defnBuilder, IndexDefinition defn,
+        boolean asyncIndex) {
         return new LuceneIndexEditorContext(root, defnBuilder, defn, updateCallback, writerFactory,
-                extractedTextCache, null, indexingContext, asyncIndex);
+            extractedTextCache, null, indexingContext, asyncIndex);
     }
 
 
     private static class TestPropertyUpdateCallback implements PropertyUpdateCallback {
+
         int invocationCount;
         CallbackState state;
         int doneInvocationCount;
 
         @Override
-        public void propertyUpdated(String nodePath, String propertyRelativePath, PropertyDefinition pd,
-                                    PropertyState before, PropertyState after) {
+        public void propertyUpdated(String nodePath, String propertyRelativePath,
+            PropertyDefinition pd,
+            PropertyState before, PropertyState after) {
             assertNotNull(nodePath);
             assertNotNull(propertyRelativePath);
             assertNotNull(pd);
@@ -242,7 +244,7 @@ public class LuceneIndexEditor2Test {
             doneInvocationCount++;
         }
 
-        void reset(){
+        void reset() {
             state = null;
             invocationCount = 0;
             doneInvocationCount = 0;
@@ -252,6 +254,7 @@ public class LuceneIndexEditor2Test {
     enum UpdateState {ADDED, UPDATED, DELETED}
 
     private static class CallbackState {
+
         final String nodePath;
         final String propertyPath;
         final PropertyDefinition pd;
@@ -260,7 +263,7 @@ public class LuceneIndexEditor2Test {
 
 
         public CallbackState(String nodePath, String propertyPath, PropertyDefinition pd,
-                             PropertyState before, PropertyState after) {
+            PropertyState before, PropertyState after) {
             this.nodePath = nodePath;
             this.propertyPath = propertyPath;
             this.pd = pd;
@@ -273,29 +276,43 @@ public class LuceneIndexEditor2Test {
             assertEquals(expectedName, propertyPath);
 
             switch (us) {
-                case ADDED: assertNotNull(after); assertNull(before); break;
-                case UPDATED: assertNotNull(after); assertNotNull(before); break;
-                case DELETED: assertNull(after); assertNotNull(before); break;
+                case ADDED:
+                    assertNotNull(after);
+                    assertNull(before);
+                    break;
+                case UPDATED:
+                    assertNotNull(after);
+                    assertNotNull(before);
+                    break;
+                case DELETED:
+                    assertNull(after);
+                    assertNotNull(before);
+                    break;
             }
         }
     }
 
 
-    private class TestWriterFactory implements FulltextIndexWriterFactory<Iterable<? extends IndexableField>> {
+    private class TestWriterFactory implements
+        FulltextIndexWriterFactory<Iterable<? extends IndexableField>> {
+
         @Override
-        public LuceneIndexWriter newInstance(IndexDefinition definition, NodeBuilder definitionBuilder,
-                                             CommitInfo commitInfo, boolean reindex) {
+        public LuceneIndexWriter newInstance(IndexDefinition definition,
+            NodeBuilder definitionBuilder,
+            CommitInfo commitInfo, boolean reindex) {
             return writer;
         }
     }
 
     private static class TestWriter implements LuceneIndexWriter {
+
         Set<String> deletedPaths = new HashSet<>();
         Map<String, Iterable<? extends IndexableField>> docs = new HashMap<>();
         boolean closed;
 
         @Override
-        public void updateDocument(String path, Iterable<? extends IndexableField> doc) throws IOException {
+        public void updateDocument(String path, Iterable<? extends IndexableField> doc)
+            throws IOException {
             docs.put(path, doc);
         }
 
@@ -312,6 +329,7 @@ public class LuceneIndexEditor2Test {
     }
 
     private class TestIndexingContext implements IndexingContext {
+
         CommitInfo info = CommitInfo.EMPTY;
         boolean reindexing;
         boolean async;

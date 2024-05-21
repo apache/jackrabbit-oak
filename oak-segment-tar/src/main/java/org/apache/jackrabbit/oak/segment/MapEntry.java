@@ -23,7 +23,6 @@ import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.segment.MapRecord.HASH_MASK;
 
 import java.util.Map;
-
 import org.apache.jackrabbit.guava.common.collect.ComparisonChain;
 import org.apache.jackrabbit.guava.common.collect.Ordering;
 import org.apache.jackrabbit.oak.spi.state.AbstractChildNodeEntry;
@@ -34,7 +33,7 @@ import org.jetbrains.annotations.Nullable;
  * Representation of a single key-value entry in a map.
  */
 class MapEntry extends AbstractChildNodeEntry
-        implements Map.Entry<RecordId, RecordId>, Comparable<MapEntry> {
+    implements Map.Entry<RecordId, RecordId>, Comparable<MapEntry> {
 
     @NotNull
     private final SegmentReader reader;
@@ -49,10 +48,10 @@ class MapEntry extends AbstractChildNodeEntry
     private final RecordId value;
 
     private MapEntry(
-            @NotNull SegmentReader reader,
-            @NotNull String name,
-            @NotNull RecordId key,
-            @Nullable RecordId value) {
+        @NotNull SegmentReader reader,
+        @NotNull String name,
+        @NotNull RecordId key,
+        @Nullable RecordId value) {
         this.reader = checkNotNull(reader);
         this.name = checkNotNull(name);
         this.key = checkNotNull(key);
@@ -61,17 +60,17 @@ class MapEntry extends AbstractChildNodeEntry
 
     /**
      * Create a new instance of a {@code MapEntry} as it has been read from a segment.
-
+     *
      * @param reader segment reader for reading the node state this map entry's value points to.
      * @param name   name of the key
      * @param key    record id of the key
      * @param value  record id of the value
      */
     static MapEntry newMapEntry(
-            @NotNull SegmentReader reader,
-            @NotNull String name,
-            @NotNull RecordId key,
-            @NotNull RecordId value) {
+        @NotNull SegmentReader reader,
+        @NotNull String name,
+        @NotNull RecordId key,
+        @NotNull RecordId value) {
         return new MapEntry(reader, name, key, checkNotNull(value));
     }
 
@@ -79,21 +78,21 @@ class MapEntry extends AbstractChildNodeEntry
      * Create a new instance of a {@code MapEntry} to be written to a segment. Here the passed
      * {@code value} might be {@code null} to indicate an existing mapping for the this {@code key}
      * should be deleted. In this case calls to {@link #getValue()} should be guarded with a prior
-     * call to {@link #isDeleted()} to prevent the former throwing an {@code IllegalStateException}.
+     * call to {@link #isDeleted()} to prevent the former throwing an
+     * {@code IllegalStateException}.
      *
      * @param reader segment reader for reading the node state this map entry's value points to.
      * @param name   name of the key
      * @param key    record id of the key
      * @param value  record id of the value or {@code null}.
-     *
      * @see #isDeleted()
      * @see #getValue()
      */
     static MapEntry newModifiedMapEntry(
-            @NotNull SegmentReader reader,
-            @NotNull String name,
-            @NotNull RecordId key,
-            @Nullable RecordId value) {
+        @NotNull SegmentReader reader,
+        @NotNull String name,
+        @NotNull RecordId key,
+        @Nullable RecordId value) {
         return new MapEntry(reader, name, key, value);
     }
 
@@ -102,7 +101,7 @@ class MapEntry extends AbstractChildNodeEntry
     }
 
     /**
-     * @return  {@code true} to indicate that this value is to be deleted.
+     * @return {@code true} to indicate that this value is to be deleted.
      */
     boolean isDeleted() {
         return value == null;
@@ -110,12 +109,14 @@ class MapEntry extends AbstractChildNodeEntry
 
     //----------------------------------------------------< ChildNodeEntry >--
 
-    @Override @NotNull
+    @Override
+    @NotNull
     public String getName() {
         return name;
     }
 
-    @Override @NotNull
+    @Override
+    @NotNull
     public SegmentNodeState getNodeState() {
         checkState(value != null);
         return reader.readNode(value);
@@ -130,7 +131,7 @@ class MapEntry extends AbstractChildNodeEntry
     }
 
     /**
-     * @return  the value of this mapping.
+     * @return the value of this mapping.
      * @throws IllegalStateException if {@link #isDeleted()} is {@code true}.
      */
     @NotNull
@@ -150,10 +151,10 @@ class MapEntry extends AbstractChildNodeEntry
     @Override
     public int compareTo(@NotNull MapEntry that) {
         return ComparisonChain.start()
-                .compare(getHash() & HASH_MASK, that.getHash() & HASH_MASK)
-                .compare(name, that.name)
-                .compare(value, that.value, Ordering.natural().nullsLast())
-                .result();
+                              .compare(getHash() & HASH_MASK, that.getHash() & HASH_MASK)
+                              .compare(name, that.name)
+                              .compare(value, that.value, Ordering.natural().nullsLast())
+                              .result();
     }
 
 }

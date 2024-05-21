@@ -16,11 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
-import java.util.Arrays;
-import java.util.Set;
-import java.util.stream.Collectors;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import com.mongodb.BasicDBObject;
 import com.mongodb.MongoCommandException;
 import com.mongodb.MongoException;
@@ -33,16 +30,14 @@ import com.mongodb.client.ClientSession;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.IndexOptions;
-import com.mongodb.connection.ServerVersion;
 import com.mongodb.internal.connection.MongoWriteConcernWithResponseException;
-
+import java.util.Set;
+import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException.Type;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.bson.Document;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 
 /**
  * Provides static utility methods for MongoDB.
@@ -53,43 +48,40 @@ class MongoUtils {
      * Forces creation of an index on a field, if one does not already exist.
      *
      * @param collection the collection.
-     * @param field the name of the field.
-     * @param ascending {@code true} for an ascending, {@code false} for a
-     *                              descending index.
-     * @param unique whether values are unique.
-     * @param sparse whether the index should be sparse.
+     * @param field      the name of the field.
+     * @param ascending  {@code true} for an ascending, {@code false} for a descending index.
+     * @param unique     whether values are unique.
+     * @param sparse     whether the index should be sparse.
      * @throws MongoException if the operation fails.
      */
     static void createIndex(MongoCollection<?> collection,
-                            String field,
-                            boolean ascending,
-                            boolean unique,
-                            boolean sparse)
-            throws MongoException {
+        String field,
+        boolean ascending,
+        boolean unique,
+        boolean sparse)
+        throws MongoException {
         createIndex(collection, new String[]{field},
-                new boolean[]{ascending}, unique, sparse);
+            new boolean[]{ascending}, unique, sparse);
     }
 
     /**
-     * Forces creation of an index on a set of fields, if one does not already
-     * exist.
+     * Forces creation of an index on a set of fields, if one does not already exist.
      *
      * @param collection the collection.
-     * @param fields the name of the fields.
-     * @param ascending {@code true} for an ascending, {@code false} for a
-     *                              descending index.
-     * @param unique whether values are unique.
-     * @param sparse whether the index should be sparse.
-     * @throws IllegalArgumentException if {@code fields} and {@code ascending}
-     *          arrays have different lengths.
-     * @throws MongoException if the operation fails.
+     * @param fields     the name of the fields.
+     * @param ascending  {@code true} for an ascending, {@code false} for a descending index.
+     * @param unique     whether values are unique.
+     * @param sparse     whether the index should be sparse.
+     * @throws IllegalArgumentException if {@code fields} and {@code ascending} arrays have
+     *                                  different lengths.
+     * @throws MongoException           if the operation fails.
      */
     static void createIndex(MongoCollection<?> collection,
-                            String[] fields,
-                            boolean[] ascending,
-                            boolean unique,
-                            boolean sparse)
-            throws MongoException {
+        String[] fields,
+        boolean[] ascending,
+        boolean unique,
+        boolean sparse)
+        throws MongoException {
         checkArgument(fields.length == ascending.length);
         BasicDBObject index = new BasicDBObject();
         for (int i = 0; i < fields.length; i++) {
@@ -100,44 +92,42 @@ class MongoUtils {
     }
 
     /**
-     * Forces creation of a partial index on a set of fields, if one does not
-     * already exist.
+     * Forces creation of a partial index on a set of fields, if one does not already exist.
      *
      * @param collection the collection.
-     * @param fields the name of the fields.
-     * @param ascending {@code true} for an ascending, {@code false} for a
-     *                              descending index.
-     * @param filter the filter expression for the partial index.
+     * @param fields     the name of the fields.
+     * @param ascending  {@code true} for an ascending, {@code false} for a descending index.
+     * @param filter     the filter expression for the partial index.
      * @throws MongoException if the operation fails.
      */
     static void createPartialIndex(MongoCollection<?> collection,
-                                   String[] fields,
-                                   boolean[] ascending,
-                                   String filter) throws MongoException {
+        String[] fields,
+        boolean[] ascending,
+        String filter) throws MongoException {
         checkArgument(fields.length == ascending.length);
         BasicDBObject index = new BasicDBObject();
         for (int i = 0; i < fields.length; i++) {
             index.put(fields[i], ascending[i] ? 1 : -1);
         }
-        IndexOptions options = new IndexOptions().partialFilterExpression(BasicDBObject.parse(filter));
+        IndexOptions options = new IndexOptions().partialFilterExpression(
+            BasicDBObject.parse(filter));
         collection.createIndex(index, options);
     }
 
     /**
-     * Returns {@code true} if there is an index on the given fields,
-     * {@code false} otherwise. If multiple fields are passed, this method
-     * check if there a compound index on those field. This method does not
-     * check the sequence of fields for a compound index. That is, this method
-     * will return {@code true} as soon as it finds an index that covers the
-     * given fields, no matter their sequence in the compound index.
+     * Returns {@code true} if there is an index on the given fields, {@code false} otherwise. If
+     * multiple fields are passed, this method check if there a compound index on those field. This
+     * method does not check the sequence of fields for a compound index. That is, this method will
+     * return {@code true} as soon as it finds an index that covers the given fields, no matter
+     * their sequence in the compound index.
      *
      * @param collection the collection.
-     * @param fields the fields of an index.
+     * @param fields     the fields of an index.
      * @return {@code true} if the index exists, {@code false} otherwise.
      * @throws MongoException if the operation fails.
      */
     static boolean hasIndex(MongoCollection<?> collection, String... fields)
-            throws MongoException {
+        throws MongoException {
         Set<String> uniqueFields = Sets.newHashSet(fields);
         for (Document info : collection.listIndexes()) {
             Document key = (Document) info.get("key");
@@ -150,15 +140,15 @@ class MongoUtils {
     }
 
     /**
-     * Returns {@code true} if the given collection is empty, {@code false}
-     * otherwise. The check always happens on the MongoDB primary.
+     * Returns {@code true} if the given collection is empty, {@code false} otherwise. The check
+     * always happens on the MongoDB primary.
      *
      * @param collection the collection to check.
-     * @param session an optional client session.
+     * @param session    an optional client session.
      * @return {@code true} if empty, {@code false} otherwise.
      */
     static boolean isCollectionEmpty(@NotNull MongoCollection<?> collection,
-                                     @Nullable ClientSession session) {
+        @Nullable ClientSession session) {
         MongoCollection<?> c = collection.withReadPreference(ReadPreference.primary());
         FindIterable<BasicDBObject> result;
         if (session != null) {
@@ -170,8 +160,7 @@ class MongoUtils {
     }
 
     /**
-     * Returns the {@code DocumentStoreException} {@link Type} for the given
-     * throwable.
+     * Returns the {@code DocumentStoreException} {@link Type} for the given throwable.
      *
      * @param t the throwable.
      * @return the type.
@@ -179,16 +168,16 @@ class MongoUtils {
     static Type getDocumentStoreExceptionTypeFor(Throwable t) {
         Type type = Type.GENERIC;
         if (t instanceof MongoSocketException
-                || t instanceof MongoWriteConcernException
-                || t instanceof MongoNotPrimaryException) {
+            || t instanceof MongoWriteConcernException
+            || t instanceof MongoNotPrimaryException) {
             type = Type.TRANSIENT;
         } else if (t instanceof MongoCommandException
-                || t instanceof WriteConcernException
-                || t instanceof MongoWriteConcernWithResponseException) {
+            || t instanceof WriteConcernException
+            || t instanceof MongoWriteConcernWithResponseException) {
             int code = ((MongoException) t).getCode();
             if (code == 11600               // InterruptedAtShutdown
-                    || code == 11601        // Interrupted
-                    || code == 11602) {     // InterruptedDueToReplStateChange
+                || code == 11601        // Interrupted
+                || code == 11602) {     // InterruptedDueToReplStateChange
                 type = Type.TRANSIENT;
             }
         }
@@ -196,8 +185,7 @@ class MongoUtils {
     }
 
     /**
-     * Util method to get node size limit for MongoDB server version from the
-     * MongoDB status.
+     * Util method to get node size limit for MongoDB server version from the MongoDB status.
      *
      * @param status the MongoDB status
      * @return size limit based on MongoDB version.

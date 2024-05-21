@@ -16,20 +16,19 @@
  */
 package org.apache.jackrabbit.oak.jcr.repository;
 
-import javax.jcr.Value;
-import javax.jcr.ValueFactory;
-
-import org.apache.jackrabbit.oak.api.Descriptors;
-import org.apache.jackrabbit.oak.jcr.lock.LockDeprecation;
-import org.apache.jackrabbit.oak.spi.descriptors.GenericDescriptors;
-
 import static javax.jcr.Repository.OPTION_LOCKING_SUPPORTED;
 import static javax.jcr.Repository.OPTION_XML_EXPORT_SUPPORTED;
 import static javax.jcr.Repository.OPTION_XML_IMPORT_SUPPORTED;
 
+import javax.jcr.Value;
+import javax.jcr.ValueFactory;
+import org.apache.jackrabbit.oak.api.Descriptors;
+import org.apache.jackrabbit.oak.jcr.lock.LockDeprecation;
+import org.apache.jackrabbit.oak.spi.descriptors.GenericDescriptors;
+
 /**
- * The {@code JcrDescriptorsImpl} extend the {@link GenericDescriptors} by automatically marking some of the JCR
- * features as supported.
+ * The {@code JcrDescriptorsImpl} extend the {@link GenericDescriptors} by automatically marking
+ * some of the JCR features as supported.
  */
 public class JcrDescriptorsImpl extends GenericDescriptors {
 
@@ -38,8 +37,9 @@ public class JcrDescriptorsImpl extends GenericDescriptors {
 
         // add the descriptors of the features that are provided by the JCR layer
         final Value trueValue = valueFactory.createValue(true);
-        put(OPTION_LOCKING_SUPPORTED, valueFactory.createValue(LockDeprecation.isLockingSupported()), true, true);
+        put(OPTION_LOCKING_SUPPORTED,
+            valueFactory.createValue(LockDeprecation.isLockingSupported()), true, true);
         put(OPTION_XML_EXPORT_SUPPORTED, trueValue, true, true);
         put(OPTION_XML_IMPORT_SUPPORTED, trueValue, true, true);
-   }
+    }
 }

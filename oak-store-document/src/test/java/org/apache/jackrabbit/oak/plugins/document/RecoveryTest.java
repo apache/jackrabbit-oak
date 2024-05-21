@@ -163,7 +163,8 @@ public class RecoveryTest extends AbstractTwoNodeTest {
 
         TrackingDiff diff = new TrackingDiff();
         root2.compareAgainstBaseState(root1, diff);
-        assertThat(diff.modified, containsInAnyOrder("/parent", "/parent/other", "/parent/test", "/node"));
+        assertThat(diff.modified,
+            containsInAnyOrder("/parent", "/parent/other", "/parent/test", "/node"));
         assertThat(diff.added, containsInAnyOrder("/parent/test/c3", "/parent/other/c3"));
         assertThat(diff.deleted, containsInAnyOrder("/parent/test/c1"));
     }
@@ -219,8 +220,8 @@ public class RecoveryTest extends AbstractTwoNodeTest {
         Random rand = new Random();
         for (int i = 0; i < 100; i++) {
             NodeState node = ds2.getRoot()
-                    .getChildNode(nodePrefix + rand.nextInt(100))
-                    .getChildNode(nodePrefix + rand.nextInt(350));
+                                .getChildNode(nodePrefix + rand.nextInt(100))
+                                .getChildNode(nodePrefix + rand.nextInt(350));
             assertTrue(node.exists());
         }
 
@@ -235,6 +236,7 @@ public class RecoveryTest extends AbstractTwoNodeTest {
     }
 
     private static void listChildren(NodeStore ns, String path) {
-        NodeStateTestUtils.getNodeState(ns.getRoot(), path).getChildNodeEntries().forEach(ChildNodeEntry::getNodeState);
+        NodeStateTestUtils.getNodeState(ns.getRoot(), path).getChildNodeEntries()
+                          .forEach(ChildNodeEntry::getNodeState);
     }
 }

@@ -19,6 +19,8 @@
 
 package org.apache.jackrabbit.oak.plugins.blob.serializer;
 
+import static org.junit.Assert.assertTrue;
+
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.plugins.memory.AbstractBlob;
@@ -27,15 +29,14 @@ import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.junit.Test;
 
-import static org.junit.Assert.*;
-
 public class BlobIdSerializerTest {
+
     private BlobStore blobStore = new MemoryBlobStore();
 
     private BlobIdSerializer serializer = new BlobIdSerializer(blobStore);
 
     @Test
-    public void inMemoryBlob() throws Exception{
+    public void inMemoryBlob() throws Exception {
         Blob b = new ArrayBasedBlob("hello world".getBytes());
 
         String value = serializer.serialize(b);
@@ -45,7 +46,7 @@ public class BlobIdSerializerTest {
     }
 
     @Test
-    public void blobStoreBlob() throws Exception{
+    public void blobStoreBlob() throws Exception {
         Blob b = new ArrayBasedBlob("hello world".getBytes());
 
         String value = blobStore.writeBlob(b.getNewStream());

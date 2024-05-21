@@ -23,10 +23,10 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * A composite of registrations that unregisters all its constituents
- * upon {@link #unregister()}.
+ * A composite of registrations that unregisters all its constituents upon {@link #unregister()}.
  */
 public class CompositeRegistration implements Registration {
+
     private final List<Registration> registrations;
 
     public CompositeRegistration(Registration... registrations) {

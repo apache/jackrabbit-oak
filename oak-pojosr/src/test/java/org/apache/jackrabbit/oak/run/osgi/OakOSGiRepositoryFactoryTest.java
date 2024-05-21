@@ -19,6 +19,11 @@
 
 package org.apache.jackrabbit.oak.run.osgi;
 
+import static org.apache.commons.io.FilenameUtils.concat;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
@@ -26,16 +31,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-
 import javax.jcr.Node;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.RepositoryFactory;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
-
-import org.apache.felix.connect.launch.PojoServiceRegistry;
 import org.apache.commons.io.FileUtils;
+import org.apache.felix.connect.launch.PojoServiceRegistry;
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.User;
@@ -54,11 +57,6 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
-
-import static org.apache.commons.io.FilenameUtils.concat;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
 public class OakOSGiRepositoryFactoryTest {
 
@@ -110,7 +108,7 @@ public class OakOSGiRepositoryFactoryTest {
 
     private void testCallback(Repository repository) throws RepositoryException {
         JackrabbitSession session = (JackrabbitSession)
-                repository.login(new SimpleCredentials("admin", "admin".toCharArray()));
+            repository.login(new SimpleCredentials("admin", "admin".toCharArray()));
 
         String testUserId = "footest";
 
@@ -147,7 +145,7 @@ public class OakOSGiRepositoryFactoryTest {
 
     private void copyConfig(String type) throws IOException {
         FileUtils.copyDirectory(new File(concat(getBaseDir(), "src/test/resources/config-" + type)),
-                new File(concat(repositoryHome, "config")));
+            new File(concat(repositoryHome, "config")));
     }
 
     private static String getBaseDir() {
@@ -158,13 +156,15 @@ public class OakOSGiRepositoryFactoryTest {
 
         @Override
         protected void postProcessRegistry(PojoServiceRegistry registry) {
-            registry.registerService(AuthorizableActionProvider.class.getName(), new AuthorizableActionProvider() {
-                @NotNull
-                @Override
-                public List<? extends AuthorizableAction> getAuthorizableActions(@NotNull SecurityProvider securityProvider) {
-                    return Collections.singletonList(new TestAction());
-                }
-            }, null);
+            registry.registerService(AuthorizableActionProvider.class.getName(),
+                new AuthorizableActionProvider() {
+                    @NotNull
+                    @Override
+                    public List<? extends AuthorizableAction> getAuthorizableActions(
+                        @NotNull SecurityProvider securityProvider) {
+                        return Collections.singletonList(new TestAction());
+                    }
+                }, null);
         }
     }
 
@@ -185,7 +185,7 @@ public class OakOSGiRepositoryFactoryTest {
 
         @Override
         public void onPasswordChange(@NotNull User user, @Nullable String newPassword,
-                                     @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException {
+            @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException {
             OakOSGiRepositoryFactoryTest.this.newPassword = newPassword;
         }
     }

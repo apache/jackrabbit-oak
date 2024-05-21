@@ -25,7 +25,8 @@ public class CompositeNodeStoreStatsTest {
 
     @Test
     public void testNodeCountsMaxSizeLimit() {
-        CompositeNodeStoreStats stats = new CompositeNodeStoreStats(StatisticsProvider.NOOP, "NODE", true, 6, 20);
+        CompositeNodeStoreStats stats = new CompositeNodeStoreStats(StatisticsProvider.NOOP, "NODE",
+            true, 6, 20);
         for (int i = 0; i < 5; i++) {
             for (int j = 0; j < i + 5; j++) {
                 stats.onCreateNodeObject("/xyz" + i);
@@ -40,7 +41,8 @@ public class CompositeNodeStoreStatsTest {
         assertEquals(8, stats.getMaxNodePathCount());
         assertEquals(5, stats.getNodePathCountsMap().size());
         for (int i = 0; i < 5; i++) {
-            assertEquals("Invalid count for /xyz" + i, (long) i + 4, (long) stats.getNodePathCountsMap().get("/xyz" + i));
+            assertEquals("Invalid count for /xyz" + i, (long) i + 4,
+                (long) stats.getNodePathCountsMap().get("/xyz" + i));
         }
 
         for (int i = 0; i < 3; i++) {
@@ -58,7 +60,8 @@ public class CompositeNodeStoreStatsTest {
 
     @Test
     public void testNodeCountsMaxValueLimit() {
-        CompositeNodeStoreStats stats = new CompositeNodeStoreStats(StatisticsProvider.NOOP, "NODE", true, 5, 20);
+        CompositeNodeStoreStats stats = new CompositeNodeStoreStats(StatisticsProvider.NOOP, "NODE",
+            true, 5, 20);
         for (int i = 0; i < 19; i++) {
             stats.onCreateNodeObject("/xyz");
         }

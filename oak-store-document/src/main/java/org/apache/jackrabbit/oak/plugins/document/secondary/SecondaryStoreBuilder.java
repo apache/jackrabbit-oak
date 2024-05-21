@@ -19,20 +19,21 @@
 
 package org.apache.jackrabbit.oak.plugins.document.secondary;
 
+import static java.util.Collections.singletonList;
+
 import java.util.Collections;
 import java.util.List;
-
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.plugins.document.NodeStateDiffer;
 import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
-import static java.util.Collections.singletonList;
-
 public class SecondaryStoreBuilder {
+
     private final NodeStore store;
-    private PathFilter pathFilter = new PathFilter(singletonList("/"), Collections.<String>emptyList());
+    private PathFilter pathFilter = new PathFilter(singletonList("/"),
+        Collections.<String>emptyList());
     private NodeStateDiffer differ = NodeStateDiffer.DEFAULT_DIFFER;
     private StatisticsProvider statsProvider = StatisticsProvider.NOOP;
     private List<String> metaPropNames = Collections.emptyList();
@@ -65,11 +66,13 @@ public class SecondaryStoreBuilder {
         return new SecondaryStoreCache(store, differ, pathFilter, statsProvider);
     }
 
-    public SecondaryStoreObserver buildObserver(){
+    public SecondaryStoreObserver buildObserver() {
         return buildObserver(SecondaryStoreRootObserver.NOOP);
     }
 
-    public SecondaryStoreObserver buildObserver(SecondaryStoreRootObserver secondaryStoreRootObserver) {
-        return new SecondaryStoreObserver(store, metaPropNames, differ, pathFilter, statsProvider, secondaryStoreRootObserver);
+    public SecondaryStoreObserver buildObserver(
+        SecondaryStoreRootObserver secondaryStoreRootObserver) {
+        return new SecondaryStoreObserver(store, metaPropNames, differ, pathFilter, statsProvider,
+            secondaryStoreRootObserver);
     }
 }

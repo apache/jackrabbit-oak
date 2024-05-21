@@ -16,21 +16,22 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
+import static org.apache.jackrabbit.oak.commons.PathUtils.ROOT_PATH;
+import static org.junit.Assert.assertTrue;
+
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.oak.commons.PathUtils.ROOT_PATH;
-import static org.junit.Assert.assertTrue;
-
 public class NestedCugHookRootSupportedTest extends NestedCugHookTest {
 
     @Override
     protected ConfigurationParameters getSecurityConfigParameters() {
-        return ConfigurationParameters.of(AuthorizationConfiguration.NAME, ConfigurationParameters.of(
-                CugConstants.PARAM_CUG_SUPPORTED_PATHS, new String[] {PathUtils.ROOT_PATH},
+        return ConfigurationParameters.of(AuthorizationConfiguration.NAME,
+            ConfigurationParameters.of(
+                CugConstants.PARAM_CUG_SUPPORTED_PATHS, new String[]{PathUtils.ROOT_PATH},
                 CugConstants.PARAM_CUG_ENABLED, true));
     }
 

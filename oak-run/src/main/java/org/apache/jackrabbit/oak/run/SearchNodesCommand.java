@@ -22,7 +22,6 @@ package org.apache.jackrabbit.oak.run;
 import static java.util.Arrays.asList;
 
 import java.io.File;
-
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
@@ -36,23 +35,27 @@ class SearchNodesCommand implements Command {
     @Override
     public void execute(String... args) throws Exception {
         OptionParser options = new OptionParser();
-        OptionSpec<String> property = options.acceptsAll(asList("p", "property"), "Matches a property name")
-            .withRequiredArg()
-            .describedAs("name");
-        OptionSpec<String> childName = options.acceptsAll(asList("c", "child"), "Matches a child node name")
-            .withRequiredArg()
-            .describedAs("name");
-        OptionSpec<String> value = options.acceptsAll(asList("v", "value"), "Matches a property value")
-            .withRequiredArg()
-            .describedAs("name=value");
-        OptionSpec<String> output = options.acceptsAll(asList("o", "output"), "Specifies the output format")
-            .withRequiredArg()
-            .ofType(String.class)
-            .describedAs("text|output");
+        OptionSpec<String> property = options.acceptsAll(asList("p", "property"),
+                                                 "Matches a property name")
+                                             .withRequiredArg()
+                                             .describedAs("name");
+        OptionSpec<String> childName = options.acceptsAll(asList("c", "child"),
+                                                  "Matches a child node name")
+                                              .withRequiredArg()
+                                              .describedAs("name");
+        OptionSpec<String> value = options.acceptsAll(asList("v", "value"),
+                                              "Matches a property value")
+                                          .withRequiredArg()
+                                          .describedAs("name=value");
+        OptionSpec<String> output = options.acceptsAll(asList("o", "output"),
+                                               "Specifies the output format")
+                                           .withRequiredArg()
+                                           .ofType(String.class)
+                                           .describedAs("text|output");
         OptionSpec<?> help = options.acceptsAll(asList("h", "help"), "Prints help and exits");
         OptionSpec<File> dir = options.nonOptions()
-            .describedAs("path")
-            .ofType(File.class);
+                                      .describedAs("path")
+                                      .ofType(File.class);
         OptionSet parsed = options.parse(args);
 
         if (parsed.has(help)) {
@@ -71,9 +74,9 @@ class SearchNodesCommand implements Command {
         }
 
         Builder builder = SearchNodes.builder()
-            .withPath(parsed.valueOf(dir))
-            .withOut(System.out)
-            .withErr(System.err);
+                                     .withPath(parsed.valueOf(dir))
+                                     .withOut(System.out)
+                                     .withErr(System.err);
 
         if (parsed.has(output)) {
             String v = parsed.valueOf(output);

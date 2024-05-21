@@ -23,7 +23,6 @@ import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.security.Privilege;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -73,7 +72,8 @@ public class ReadWithGlobRestrictionTest extends AbstractEvaluationTest {
         try {
             Privilege[] readPrivs = privilegesFromName(Privilege.JCR_READ);
 
-            modify(path, getTestGroup().getPrincipal(), readPrivs, true, createGlobRestriction("/*"));
+            modify(path, getTestGroup().getPrincipal(), readPrivs, true,
+                createGlobRestriction("/*"));
             allow(path, group2.getPrincipal(), readPrivs);
             deny(path, group3.getPrincipal(), readPrivs);
 
@@ -82,8 +82,11 @@ public class ReadWithGlobRestrictionTest extends AbstractEvaluationTest {
             principals.add(group2.getPrincipal());
             principals.add(group3.getPrincipal());
 
-            assertFalse(((JackrabbitAccessControlManager) acMgr).hasPrivileges(path, principals, readPrivs));
-            assertFalse(((JackrabbitAccessControlManager) acMgr).hasPrivileges(childNPath, principals, readPrivs));
+            assertFalse(((JackrabbitAccessControlManager) acMgr).hasPrivileges(path, principals,
+                readPrivs));
+            assertFalse(
+                ((JackrabbitAccessControlManager) acMgr).hasPrivileges(childNPath, principals,
+                    readPrivs));
         } finally {
             group2.remove();
             group3.remove();
@@ -102,15 +105,19 @@ public class ReadWithGlobRestrictionTest extends AbstractEvaluationTest {
 
             allow(path, group2.getPrincipal(), readPrivs);
             deny(path, group3.getPrincipal(), readPrivs);
-            modify(path, getTestGroup().getPrincipal(), readPrivs, true, createGlobRestriction("/*"));
+            modify(path, getTestGroup().getPrincipal(), readPrivs, true,
+                createGlobRestriction("/*"));
 
             Set<Principal> principals = new HashSet<Principal>();
             principals.add(getTestGroup().getPrincipal());
             principals.add(group2.getPrincipal());
             principals.add(group3.getPrincipal());
 
-            assertFalse(((JackrabbitAccessControlManager) acMgr).hasPrivileges(path, principals, readPrivs));
-            assertTrue(((JackrabbitAccessControlManager) acMgr).hasPrivileges(childNPath, principals, readPrivs));
+            assertFalse(((JackrabbitAccessControlManager) acMgr).hasPrivileges(path, principals,
+                readPrivs));
+            assertTrue(
+                ((JackrabbitAccessControlManager) acMgr).hasPrivileges(childNPath, principals,
+                    readPrivs));
         } finally {
             group2.remove();
             group3.remove();
@@ -119,7 +126,7 @@ public class ReadWithGlobRestrictionTest extends AbstractEvaluationTest {
     }
 
     @Test
-    public void testGlobRestriction4()throws Exception{
+    public void testGlobRestriction4() throws Exception {
         Node a = superuser.getNode(path).addNode("a");
         allow(path, readPrivileges);
         deny(path, readPrivileges, createGlobRestriction("*/anotherpath"));
@@ -135,7 +142,7 @@ public class ReadWithGlobRestrictionTest extends AbstractEvaluationTest {
     }
 
     @Test
-    public void testGlobRestriction5()throws Exception{
+    public void testGlobRestriction5() throws Exception {
         Node a = superuser.getNode(path).addNode("a");
         allow(path, readPrivileges);
         deny(path, readPrivileges, createGlobRestriction("*/anotherpath"));
@@ -192,7 +199,7 @@ public class ReadWithGlobRestrictionTest extends AbstractEvaluationTest {
      * @see <a href="https://issues.apache.org/jira/browse/OAK-2412">OAK-2412</a>
      */
     @Test
-    public void testEmptyGlobRestriction2() throws Exception{
+    public void testEmptyGlobRestriction2() throws Exception {
         // first deny access to 'path' (read-access is granted in the test setup)
         deny(path, readPrivileges);
         assertFalse(canReadNode(testSession, path));
@@ -228,10 +235,12 @@ public class ReadWithGlobRestrictionTest extends AbstractEvaluationTest {
             modify(path, group1.getPrincipal(), readPrivileges, true, createGlobRestriction(""));
 
             deny(childNPath, group2.getPrincipal(), readPrivileges);
-            modify(childNPath, group2.getPrincipal(), readPrivileges, true, createGlobRestriction(""));
+            modify(childNPath, group2.getPrincipal(), readPrivileges, true,
+                createGlobRestriction(""));
 
             deny(childNPath2, group3.getPrincipal(), readPrivileges);
-            modify(childNPath2, group3.getPrincipal(), readPrivileges, true, createGlobRestriction(""));
+            modify(childNPath2, group3.getPrincipal(), readPrivileges, true,
+                createGlobRestriction(""));
 
             // need to recreate testUser session to force subject being populated
             // with membership that has been added _after_ the testSession creation.
@@ -281,7 +290,8 @@ public class ReadWithGlobRestrictionTest extends AbstractEvaluationTest {
     public void testGlobTrailingSlash() throws Exception {
         // first deny access to 'path' (read-access is granted in the test setup)
         deny(path, readPrivileges);
-        allow(path, readPrivileges, createGlobRestriction("/"+PathUtils.getName(childNPath) + "/"));
+        allow(path, readPrivileges,
+            createGlobRestriction("/" + PathUtils.getName(childNPath) + "/"));
         assertGlobTrailingSlashEffect();
     }
 
@@ -292,13 +302,14 @@ public class ReadWithGlobRestrictionTest extends AbstractEvaluationTest {
     public void testGlobTrailingSlashWildcard() throws Exception {
         // first deny access to 'path' (read-access is granted in the test setup)
         deny(path, readPrivileges);
-        allow(path, readPrivileges, createGlobRestriction("/"+PathUtils.getName(childNPath) + "/*"));
+        allow(path, readPrivileges,
+            createGlobRestriction("/" + PathUtils.getName(childNPath) + "/*"));
         assertGlobTrailingSlashEffect();
     }
 
     private void assertGlobTrailingSlashEffect() throws RepositoryException {
         assertFalse(canReadNode(testSession, path));
-        assertFalse(canReadNode(testSession, path+"/"));
+        assertFalse(canReadNode(testSession, path + "/"));
         assertFalse(canReadNode(testSession, childNPath));
         assertTrue(canReadNode(testSession, ccPath));
         assertTrue(testSession.propertyExists(childchildPPath));

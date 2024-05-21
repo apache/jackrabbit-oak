@@ -27,11 +27,12 @@ public class DataConversionUtil {
 
     /**
      * Date values are saved with sec resolution
+     *
      * @param date jcr data string
      * @return date value in seconds
      */
-    public static Long dateToLong(String date){
-        if( date == null){
+    public static Long dateToLong(String date) {
+        if (date == null) {
             return null;
         }
         //TODO OAK-2204 - Should we change the precision to lower resolution

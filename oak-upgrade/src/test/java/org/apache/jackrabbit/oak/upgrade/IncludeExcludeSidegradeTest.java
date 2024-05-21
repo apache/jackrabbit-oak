@@ -16,11 +16,14 @@
  */
 package org.apache.jackrabbit.oak.upgrade;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
+import java.util.Arrays;
 import javax.jcr.Credentials;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.UserManager;
@@ -35,14 +38,10 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Arrays;
-
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-
 public class IncludeExcludeSidegradeTest {
 
-    public static final Credentials CREDENTIALS = new SimpleCredentials("admin", "admin".toCharArray());
+    public static final Credentials CREDENTIALS = new SimpleCredentials("admin",
+        "admin".toCharArray());
 
     private NodeStore sourceNodeStore;
 
@@ -78,55 +77,57 @@ public class IncludeExcludeSidegradeTest {
     @Test
     public void shouldHaveIncludedPaths() throws RepositoryException {
         assertExists(
-                "/content/foo/en",
-                "/content/assets/foo/2015/02",
-                "/content/assets/foo/2015/01",
-                "/content/assets/foo/2014"
+            "/content/foo/en",
+            "/content/assets/foo/2015/02",
+            "/content/assets/foo/2015/01",
+            "/content/assets/foo/2014"
         );
     }
 
     @Test
     public void shouldLackPathsThatWereNotIncluded() throws RepositoryException {
         assertMissing(
-                "/content/foo/de",
-                "/content/foo/fr",
-                "/content/foo/it"
+            "/content/foo/de",
+            "/content/foo/fr",
+            "/content/foo/it"
         );
     }
 
     @Test
     public void shouldLackExcludedPaths() throws RepositoryException {
         assertMissing(
-                "/content/assets/foo/2013",
-                "/content/assets/foo/2012",
-                "/content/assets/foo/2011",
-                "/content/assets/foo/2010"
+            "/content/assets/foo/2013",
+            "/content/assets/foo/2012",
+            "/content/assets/foo/2011",
+            "/content/assets/foo/2010"
         );
     }
 
     @Test
     public void testPermissions() throws RepositoryException {
-        Session aliceSession = targetRepository.login(new SimpleCredentials("alice", "bar".toCharArray()));
-        Session bobSession = targetRepository.login(new SimpleCredentials("bob", "bar".toCharArray()));
+        Session aliceSession = targetRepository.login(
+            new SimpleCredentials("alice", "bar".toCharArray()));
+        Session bobSession = targetRepository.login(
+            new SimpleCredentials("bob", "bar".toCharArray()));
 
         assertExists(aliceSession,
-                "/content/assets/foo/2015/02",
-                "/content/assets/foo/2015/01",
-                "/content/assets/foo/2014"
+            "/content/assets/foo/2015/02",
+            "/content/assets/foo/2015/01",
+            "/content/assets/foo/2014"
         );
 
         assertMissing(aliceSession,
-                "/content/foo/en"
+            "/content/foo/en"
         );
 
         assertExists(bobSession,
-                "/content/foo/en"
+            "/content/foo/en"
         );
 
         assertMissing(bobSession,
-                "/content/assets/foo/2015/02",
-                "/content/assets/foo/2015/01",
-                "/content/assets/foo/2014"
+            "/content/assets/foo/2015/02",
+            "/content/assets/foo/2015/01",
+            "/content/assets/foo/2014"
         );
     }
 
@@ -139,50 +140,53 @@ public class IncludeExcludeSidegradeTest {
 
     private void createSourceContent(JackrabbitSession session) throws RepositoryException {
         for (String p : Arrays.asList(
-                "/content/foo/de",
-                "/content/foo/en",
-                "/content/foo/fr",
-                "/content/foo/it",
-                "/content/assets/foo",
-                "/content/assets/foo/2015",
-                "/content/assets/foo/2015/02",
-                "/content/assets/foo/2015/01",
-                "/content/assets/foo/2014",
-                "/content/assets/foo/2013",
-                "/content/assets/foo/2012",
-                "/content/assets/foo/2011",
-                "/content/assets/foo/2010/12")) {
-            JcrUtils.getOrCreateByPath(p, JcrConstants.NT_FOLDER, JcrConstants.NT_FOLDER, session, false);
+            "/content/foo/de",
+            "/content/foo/en",
+            "/content/foo/fr",
+            "/content/foo/it",
+            "/content/assets/foo",
+            "/content/assets/foo/2015",
+            "/content/assets/foo/2015/02",
+            "/content/assets/foo/2015/01",
+            "/content/assets/foo/2014",
+            "/content/assets/foo/2013",
+            "/content/assets/foo/2012",
+            "/content/assets/foo/2011",
+            "/content/assets/foo/2010/12")) {
+            JcrUtils.getOrCreateByPath(p, JcrConstants.NT_FOLDER, JcrConstants.NT_FOLDER, session,
+                false);
         }
 
         AccessControlUtils.denyAllToEveryone(session, "/content/foo/en");
         AccessControlUtils.allow(session.getNode("/content/foo/en"), "bob", "jcr:read");
 
-        AccessControlUtils.denyAllToEveryone(session,"/content/assets/foo");
+        AccessControlUtils.denyAllToEveryone(session, "/content/assets/foo");
         AccessControlUtils.allow(session.getNode("/content/assets/foo"), "alice", "jcr:read");
     }
 
     private void performSidegrade() throws RepositoryException {
         RepositorySidegrade sidegrade = new RepositorySidegrade(sourceNodeStore, targetNodeStore);
         sidegrade.setIncludes(
-                "/content/foo/en",
-                "/content/assets/foo",
-                "/content/other"
+            "/content/foo/en",
+            "/content/assets/foo",
+            "/content/other"
         );
         sidegrade.setExcludes(
-                "/content/assets/foo/2013",
-                "/content/assets/foo/2012",
-                "/content/assets/foo/2011",
-                "/content/assets/foo/2010"
+            "/content/assets/foo/2013",
+            "/content/assets/foo/2012",
+            "/content/assets/foo/2011",
+            "/content/assets/foo/2010"
         );
         sidegrade.copy();
     }
 
     private static RepositoryImpl getRepository(NodeStore nodeStore) {
-        return (RepositoryImpl) new Jcr(new Oak(nodeStore).with(SecurityProviderBuilder.newBuilder().build())).createRepository();
+        return (RepositoryImpl) new Jcr(new Oak(nodeStore).with(
+            SecurityProviderBuilder.newBuilder().build())).createRepository();
     }
 
-    private static void withSession(NodeStore nodeStore, SessionConsumer sessionConsumer) throws RepositoryException {
+    private static void withSession(NodeStore nodeStore, SessionConsumer sessionConsumer)
+        throws RepositoryException {
         RepositoryImpl repository = getRepository(nodeStore);
         Session session = repository.login(CREDENTIALS);
         try {
@@ -216,6 +220,7 @@ public class IncludeExcludeSidegradeTest {
     }
 
     private interface SessionConsumer {
+
         void accept(JackrabbitSession session) throws RepositoryException;
     }
 

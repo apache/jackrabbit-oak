@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.benchmark;
 import java.util.ArrayList;
 import java.util.List;
 import javax.jcr.Session;
-
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
@@ -28,14 +27,14 @@ import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Test the performance of removing members from groups. The
- * following parameters can be used to run the benchmark:
- *
- * - numberOfMembers : numberOfMembers : the number of members that should be
- *   added in the test setup to each group and later on removed during the test-run.
- *
- * Note the members to be removed are picked randomly and may or may not/no longer
- * be member of the target group.
+ * Test the performance of removing members from groups. The following parameters can be used to run
+ * the benchmark:
+ * <p>
+ * - numberOfMembers : numberOfMembers : the number of members that should be added in the test
+ * setup to each group and later on removed during the test-run.
+ * <p>
+ * Note the members to be removed are picked randomly and may or may not/no longer be member of the
+ * target group.
  */
 public class RemoveMemberTest extends RemoveMembersTest {
 
@@ -54,10 +53,12 @@ public class RemoveMemberTest extends RemoveMembersTest {
         }
     }
 
-    protected void removeMembers(@NotNull UserManager userManger, @NotNull Group group, @NotNull Session s) throws Exception {
+    protected void removeMembers(@NotNull UserManager userManger, @NotNull Group group,
+        @NotNull Session s) throws Exception {
         int j = 1;
         for (int i = 0; i <= numberOfMembers; i++) {
-            Authorizable member = userManger.getAuthorizable(USER + random.nextInt(numberOfMembers));
+            Authorizable member = userManger.getAuthorizable(
+                USER + random.nextInt(numberOfMembers));
             if (group.removeMember(member)) {
                 if (j == batchSize) {
                     s.save();

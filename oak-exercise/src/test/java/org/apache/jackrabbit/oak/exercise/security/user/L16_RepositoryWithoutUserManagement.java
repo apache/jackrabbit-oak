@@ -16,12 +16,15 @@
  */
 package org.apache.jackrabbit.oak.exercise.security.user;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotSame;
+
 import javax.jcr.Credentials;
 import javax.jcr.NoSuchWorkspaceException;
 import javax.jcr.RepositoryException;
 import javax.security.auth.login.Configuration;
 import javax.security.auth.login.LoginException;
-
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.InitialContent;
@@ -32,10 +35,6 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotSame;
 
 /**
  * <pre>
@@ -116,11 +115,12 @@ public class L16_RepositoryWithoutUserManagement extends AbstractSecurityTest {
     @Test
     public void testUserManagementDescriptor() throws RepositoryException {
         Oak oak = new Oak()
-                .with(new InitialContent())
-                .with(getSecurityProvider());
+            .with(new InitialContent())
+            .with(getSecurityProvider());
         ContentRepository contentRepository = oak.createContentRepository();
 
-        assertFalse(contentRepository.getDescriptors().getValue(JackrabbitRepository.OPTION_USER_MANAGEMENT_SUPPORTED).getBoolean());
+        assertFalse(contentRepository.getDescriptors().getValue(
+            JackrabbitRepository.OPTION_USER_MANAGEMENT_SUPPORTED).getBoolean());
 
     }
 

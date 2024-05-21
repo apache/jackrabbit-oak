@@ -20,7 +20,6 @@ import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
-
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
@@ -40,8 +39,8 @@ public class OrphanedNodeCheck extends AsyncDocumentProcessor {
     private final RevisionVector headRevision;
 
     public OrphanedNodeCheck(DocumentNodeStore ns,
-                             RevisionVector headRevision,
-                             ExecutorService executorService) {
+        RevisionVector headRevision,
+        ExecutorService executorService) {
         super(executorService);
         this.ns = ns;
         this.headRevision = headRevision;
@@ -49,7 +48,7 @@ public class OrphanedNodeCheck extends AsyncDocumentProcessor {
 
     @Override
     protected Optional<Callable<Void>> createTask(@NotNull NodeDocument document,
-                                                  @NotNull BlockingQueue<Result> results) {
+        @NotNull BlockingQueue<Result> results) {
         if (document.isSplitDocument()) {
             return Optional.empty();
         } else {
@@ -68,9 +67,9 @@ public class OrphanedNodeCheck extends AsyncDocumentProcessor {
         private final BlockingQueue<Result> results;
 
         CheckDocument(DocumentNodeStore ns,
-                      RevisionVector headRevision,
-                      NodeDocument doc,
-                      BlockingQueue<Result> results) {
+            RevisionVector headRevision,
+            NodeDocument doc,
+            BlockingQueue<Result> results) {
             this.ns = ns;
             this.headRevision = headRevision;
             this.doc = doc;

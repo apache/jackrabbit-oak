@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.plugins.nodetype.constraint;
 
 import java.math.BigDecimal;
-
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 

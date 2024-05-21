@@ -19,11 +19,14 @@
 
 package org.apache.jackrabbit.oak.plugins.blob;
 
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
+import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
+
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-
 import javax.management.openmbean.CompositeDataSupport;
 import javax.management.openmbean.CompositeType;
 import javax.management.openmbean.OpenDataException;
@@ -32,13 +35,12 @@ import javax.management.openmbean.SimpleType;
 import javax.management.openmbean.TabularData;
 import javax.management.openmbean.TabularDataSupport;
 import javax.management.openmbean.TabularType;
-
-import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.jackrabbit.core.data.DataIdentifier;
+import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -54,10 +56,6 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.osgi.framework.BundleContext;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
-import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
-
 /**
  * Stats for caching data store.
  */
@@ -68,18 +66,20 @@ public class ConsolidatedDataStoreCacheStats implements ConsolidatedDataStoreCac
 
     private final List<DataStoreCacheStatsMBean> cacheStats = newArrayList();
 
-    @Reference public AbstractSharedCachingDataStore cachingDataStore;
+    @Reference
+    public AbstractSharedCachingDataStore cachingDataStore;
 
-    @Reference public NodeStore nodeStore;
+    @Reference
+    public NodeStore nodeStore;
 
     @Override
     public TabularData getCacheStats() {
         TabularDataSupport tds;
         try {
             TabularType tt = new TabularType(CacheStatsData.class.getName(),
-                    "Consolidated DataStore Cache Stats", CacheStatsData.TYPE, new String[]{"name"});
+                "Consolidated DataStore Cache Stats", CacheStatsData.TYPE, new String[]{"name"});
             tds = new TabularDataSupport(tt);
-            for(DataStoreCacheStatsMBean stats : cacheStats){
+            for (DataStoreCacheStatsMBean stats : cacheStats) {
                 tds.put(new CacheStatsData(stats).toCompositeData());
             }
         } catch (OpenDataException e) {
@@ -89,7 +89,7 @@ public class ConsolidatedDataStoreCacheStats implements ConsolidatedDataStoreCac
     }
 
     @Activate
-    private void activate(BundleContext context){
+    private void activate(BundleContext context) {
         Whiteboard wb = new OsgiWhiteboard(context);
         List<DataStoreCacheStatsMBean> allStats = cachingDataStore.getStats();
         for (DataStoreCacheStatsMBean stat : allStats) {
@@ -105,7 +105,7 @@ public class ConsolidatedDataStoreCacheStats implements ConsolidatedDataStoreCac
     }
 
     @Deactivate
-    private void deactivate(){
+    private void deactivate() {
         for (Registration r : registrations) {
             r.unregister();
         }
@@ -113,22 +113,18 @@ public class ConsolidatedDataStoreCacheStats implements ConsolidatedDataStoreCac
     }
 
     /**
-     * Determines whether a file-like entity with the given name
-     * has been "synced" (completely copied) to S3.
-     *
-     * Determination of "synced":
-     * - A nodeName of null or "" is always "not synced".
-     * - A nodeName that does not map to a valid node is always "not synced".
-     * - If the node for this nodeName does not have a binary property,
-     * this node is always "not synced" since such a node would never be
-     * copied to S3.
-     * - If the node for this nodeName is not in the nodeStore, this node is
-     * always "not synced".
-     * - Otherwise, the state is "synced" if the corresponding blob is
+     * Determines whether a file-like entity with the given name has been "synced" (completely
+     * copied) to S3.
+     * <p>
+     * Determination of "synced": - A nodeName of null or "" is always "not synced". - A nodeName
+     * that does not map to a valid node is always "not synced". - If the node for this nodeName
+     * does not have a binary property, this node is always "not synced" since such a node would
+     * never be copied to S3. - If the node for this nodeName is not in the nodeStore, this node is
+     * always "not synced". - Otherwise, the state is "synced" if the corresponding blob is
      * completely stored in S3.
      *
-     * @param nodePathName - Path to the entity to check.  This is
-     *                       a node path, not an external file path.
+     * @param nodePathName - Path to the entity to check.  This is a node path, not an external file
+     *                     path.
      * @return true if the file is synced to S3.
      */
     @Override
@@ -148,7 +144,8 @@ public class ConsolidatedDataStoreCacheStats implements ConsolidatedDataStoreCac
 
         boolean nodeHasBinaryProperties = false;
         for (final PropertyState propertyState : leafNode.getProperties()) {
-            nodeHasBinaryProperties |= (propertyState.getType() == Type.BINARY || propertyState.getType() == Type.BINARIES);
+            nodeHasBinaryProperties |= (propertyState.getType() == Type.BINARY
+                || propertyState.getType() == Type.BINARIES);
             try {
                 if (propertyState.getType() == Type.BINARY) {
                     final Blob blob = (Blob) propertyState.getValue(propertyState.getType());
@@ -156,7 +153,8 @@ public class ConsolidatedDataStoreCacheStats implements ConsolidatedDataStoreCac
                         return false;
                     }
                 } else if (propertyState.getType() == Type.BINARIES) {
-                    final List<Blob> blobs = (List<Blob>) propertyState.getValue(propertyState.getType());
+                    final List<Blob> blobs = (List<Blob>) propertyState.getValue(
+                        propertyState.getType());
                     if (null == blobs) {
                         return false;
                     }
@@ -166,8 +164,7 @@ public class ConsolidatedDataStoreCacheStats implements ConsolidatedDataStoreCac
                         }
                     }
                 }
-            }
-            catch (ClassCastException e) {
+            } catch (ClassCastException e) {
                 return false;
             }
         }
@@ -180,7 +177,8 @@ public class ConsolidatedDataStoreCacheStats implements ConsolidatedDataStoreCac
     }
 
     private NodeState findLeafNode(final String nodePathName) {
-        final Iterable<String> pathNodes = PathUtils.elements(PathUtils.getParentPath(nodePathName));
+        final Iterable<String> pathNodes = PathUtils.elements(
+            PathUtils.getParentPath(nodePathName));
         final String leafNodeName = PathUtils.getName(nodePathName);
 
         NodeState currentNode = nodeStore.getRoot();
@@ -207,45 +205,46 @@ public class ConsolidatedDataStoreCacheStats implements ConsolidatedDataStoreCac
     }
 
     private static class CacheStatsData {
+
         static final String[] FIELD_NAMES = new String[]{
-                "name",
-                "requestCount",
-                "hitCount",
-                "hitRate",
-                "missCount",
-                "missRate",
-                "loadCount",
-                "loadSuccessCount",
-                "loadExceptionCount",
-                "totalLoadTime",
-                "averageLoadPenalty",
-                "evictionCount",
-                "elementCount",
-                "totalWeight",
-                "totalMemWeight",
-                "maxWeight",
+            "name",
+            "requestCount",
+            "hitCount",
+            "hitRate",
+            "missCount",
+            "missRate",
+            "loadCount",
+            "loadSuccessCount",
+            "loadExceptionCount",
+            "totalLoadTime",
+            "averageLoadPenalty",
+            "evictionCount",
+            "elementCount",
+            "totalWeight",
+            "totalMemWeight",
+            "maxWeight",
         };
 
         static final String[] FIELD_DESCRIPTIONS = FIELD_NAMES;
 
         @SuppressWarnings("rawtypes")
         static final OpenType[] FIELD_TYPES = new OpenType[]{
-                SimpleType.STRING,
-                SimpleType.LONG,
-                SimpleType.LONG,
-                SimpleType.BIGDECIMAL,
-                SimpleType.LONG,
-                SimpleType.BIGDECIMAL,
-                SimpleType.LONG,
-                SimpleType.LONG,
-                SimpleType.LONG,
-                SimpleType.STRING,
-                SimpleType.STRING,
-                SimpleType.LONG,
-                SimpleType.LONG,
-                SimpleType.STRING,
-                SimpleType.STRING,
-                SimpleType.STRING,
+            SimpleType.STRING,
+            SimpleType.LONG,
+            SimpleType.LONG,
+            SimpleType.BIGDECIMAL,
+            SimpleType.LONG,
+            SimpleType.BIGDECIMAL,
+            SimpleType.LONG,
+            SimpleType.LONG,
+            SimpleType.LONG,
+            SimpleType.STRING,
+            SimpleType.STRING,
+            SimpleType.LONG,
+            SimpleType.LONG,
+            SimpleType.STRING,
+            SimpleType.STRING,
+            SimpleType.STRING,
         };
 
         static final CompositeType TYPE = createCompositeType();
@@ -253,11 +252,11 @@ public class ConsolidatedDataStoreCacheStats implements ConsolidatedDataStoreCac
         static CompositeType createCompositeType() {
             try {
                 return new CompositeType(
-                        CacheStatsData.class.getName(),
-                        "Composite data type for Cache statistics",
-                        CacheStatsData.FIELD_NAMES,
-                        CacheStatsData.FIELD_DESCRIPTIONS,
-                        CacheStatsData.FIELD_TYPES);
+                    CacheStatsData.class.getName(),
+                    "Composite data type for Cache statistics",
+                    CacheStatsData.FIELD_NAMES,
+                    CacheStatsData.FIELD_DESCRIPTIONS,
+                    CacheStatsData.FIELD_TYPES);
             } catch (OpenDataException e) {
                 throw new IllegalStateException(e);
             }
@@ -265,28 +264,28 @@ public class ConsolidatedDataStoreCacheStats implements ConsolidatedDataStoreCac
 
         private final DataStoreCacheStatsMBean stats;
 
-        public CacheStatsData(DataStoreCacheStatsMBean stats){
+        public CacheStatsData(DataStoreCacheStatsMBean stats) {
             this.stats = stats;
         }
 
         CompositeDataSupport toCompositeData() {
             Object[] values = new Object[]{
-                    stats.getName(),
-                    stats.getRequestCount(),
-                    stats.getHitCount(),
-                    new BigDecimal(stats.getHitRate(),new MathContext(2)),
-                    stats.getMissCount(),
-                    new BigDecimal(stats.getMissRate(), new MathContext(2)),
-                    stats.getLoadCount(),
-                    stats.getLoadSuccessCount(),
-                    stats.getLoadExceptionCount(),
-                    timeInWords(stats.getTotalLoadTime()),
-                    TimeUnit.NANOSECONDS.toMillis((long) stats.getAverageLoadPenalty()) + "ms",
-                    stats.getEvictionCount(),
-                    stats.getElementCount(),
-                    humanReadableByteCount(stats.estimateCurrentWeight()),
-                    humanReadableByteCount(stats.estimateCurrentMemoryWeight()),
-                    humanReadableByteCount(stats.getMaxTotalWeight()),
+                stats.getName(),
+                stats.getRequestCount(),
+                stats.getHitCount(),
+                new BigDecimal(stats.getHitRate(), new MathContext(2)),
+                stats.getMissCount(),
+                new BigDecimal(stats.getMissRate(), new MathContext(2)),
+                stats.getLoadCount(),
+                stats.getLoadSuccessCount(),
+                stats.getLoadExceptionCount(),
+                timeInWords(stats.getTotalLoadTime()),
+                TimeUnit.NANOSECONDS.toMillis((long) stats.getAverageLoadPenalty()) + "ms",
+                stats.getEvictionCount(),
+                stats.getElementCount(),
+                humanReadableByteCount(stats.estimateCurrentWeight()),
+                humanReadableByteCount(stats.estimateCurrentMemoryWeight()),
+                humanReadableByteCount(stats.getMaxTotalWeight()),
             };
             try {
                 return new CompositeDataSupport(TYPE, FIELD_NAMES, values);

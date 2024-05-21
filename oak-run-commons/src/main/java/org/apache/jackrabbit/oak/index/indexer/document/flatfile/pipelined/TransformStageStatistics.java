@@ -18,17 +18,17 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
+import java.util.concurrent.atomic.LongAdder;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.jackrabbit.oak.plugins.index.MetricsFormatter;
 import org.apache.jackrabbit.oak.plugins.index.IndexingReporter;
+import org.apache.jackrabbit.oak.plugins.index.MetricsFormatter;
 import org.apache.jackrabbit.oak.plugins.index.MetricsUtils;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.atomic.LongAdder;
-
 public class TransformStageStatistics {
+
     public static final Logger LOG = LoggerFactory.getLogger(TransformStageStatistics.class);
     private static final int MAX_HISTOGRAM_SIZE = 1000;
     private final LongAdder mongoDocumentsTraversed = new LongAdder();
@@ -39,10 +39,14 @@ public class TransformStageStatistics {
     private final LongAdder entriesRejectedHiddenPaths = new LongAdder();
     private final LongAdder entriesRejectedPathFiltered = new LongAdder();
     private final LongAdder entriesAcceptedTotalSize = new LongAdder();
-    private final BoundedHistogram hiddenPathsRejectedHistogram = new BoundedHistogram("Hidden paths", MAX_HISTOGRAM_SIZE);
-    private final BoundedHistogram filteredPathsRejectedHistogram = new BoundedHistogram("Filtered paths", MAX_HISTOGRAM_SIZE);
-    private final BoundedHistogram splitDocumentsHistogram = new BoundedHistogram("Split documents", MAX_HISTOGRAM_SIZE);
-    private final BoundedHistogram emptyNodeStateHistogram = new BoundedHistogram("Empty node state", MAX_HISTOGRAM_SIZE);
+    private final BoundedHistogram hiddenPathsRejectedHistogram = new BoundedHistogram(
+        "Hidden paths", MAX_HISTOGRAM_SIZE);
+    private final BoundedHistogram filteredPathsRejectedHistogram = new BoundedHistogram(
+        "Filtered paths", MAX_HISTOGRAM_SIZE);
+    private final BoundedHistogram splitDocumentsHistogram = new BoundedHistogram("Split documents",
+        MAX_HISTOGRAM_SIZE);
+    private final BoundedHistogram emptyNodeStateHistogram = new BoundedHistogram(
+        "Empty node state", MAX_HISTOGRAM_SIZE);
 
     public long getMongoDocumentsTraversed() {
         return mongoDocumentsTraversed.sum();
@@ -123,45 +127,72 @@ public class TransformStageStatistics {
     @Override
     public String toString() {
         return "TransformStageStatistics{" +
-                "mongoDocumentsProcessed=" + mongoDocumentsTraversed +
-                ", splitDocumentsRejected=" + documentsRejectedSplit +
-                ", emptyNodeStateDocuments=" + documentsRejectedEmptyNodeState +
-                ", entriesAccepted=" + entriesAccepted +
-                ", entriesRejected=" + entriesRejected +
-                ", entriesRejectedHiddenPaths=" + entriesRejectedHiddenPaths +
-                ", entriesRejectedPathFiltered=" + entriesRejectedPathFiltered +
-                ", extractedEntriesTotalSize=" + entriesAcceptedTotalSize +
-                '}';
+            "mongoDocumentsProcessed=" + mongoDocumentsTraversed +
+            ", splitDocumentsRejected=" + documentsRejectedSplit +
+            ", emptyNodeStateDocuments=" + documentsRejectedEmptyNodeState +
+            ", entriesAccepted=" + entriesAccepted +
+            ", entriesRejected=" + entriesRejected +
+            ", entriesRejectedHiddenPaths=" + entriesRejectedHiddenPaths +
+            ", entriesRejectedPathFiltered=" + entriesRejectedPathFiltered +
+            ", extractedEntriesTotalSize=" + entriesAcceptedTotalSize +
+            '}';
     }
 
-    public void publishStatistics(StatisticsProvider statisticsProvider, IndexingReporter reporter) {
+    public void publishStatistics(StatisticsProvider statisticsProvider,
+        IndexingReporter reporter) {
         LOG.info("Publishing transform stage statistics");
 
         long mongoDocumentsTraversedSum = mongoDocumentsTraversed.sum();
         long documentsRejectedSplitSum = documentsRejectedSplit.sum();
         long documentsRejectedEmptyNodeStateSum = documentsRejectedEmptyNodeState.sum();
-        long documentsRejectedTotal = documentsRejectedSplitSum + documentsRejectedEmptyNodeStateSum;
+        long documentsRejectedTotal =
+            documentsRejectedSplitSum + documentsRejectedEmptyNodeStateSum;
         long documentsAcceptedTotal = mongoDocumentsTraversedSum - documentsRejectedTotal;
         long entriesAcceptedSum = entriesAccepted.sum();
         long entriesAcceptedTotalSizeSum = entriesAcceptedTotalSize.sum();
         long entriesRejectedSum = entriesRejected.sum();
         long entriesTraversed = entriesAcceptedSum + entriesRejectedSum;
-        int documentsAcceptedPercentage = PipelinedUtils.toPercentageAsInt(documentsAcceptedTotal, mongoDocumentsTraversedSum);
-        int entriesAcceptedPercentage = PipelinedUtils.toPercentageAsInt(entriesAcceptedSum, entriesAcceptedSum + entriesRejectedSum);
+        int documentsAcceptedPercentage = PipelinedUtils.toPercentageAsInt(documentsAcceptedTotal,
+            mongoDocumentsTraversedSum);
+        int entriesAcceptedPercentage = PipelinedUtils.toPercentageAsInt(entriesAcceptedSum,
+            entriesAcceptedSum + entriesRejectedSum);
 
-        MetricsUtils.addMetric(statisticsProvider, reporter, PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_TRAVERSED_TOTAL, mongoDocumentsTraversedSum);
-        MetricsUtils.addMetric(statisticsProvider, reporter, PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_REJECTED_SPLIT_TOTAL, documentsRejectedSplitSum);
-        MetricsUtils.addMetric(statisticsProvider, reporter, PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_REJECTED_EMPTY_NODE_STATE_TOTAL, documentsRejectedEmptyNodeStateSum);
-        MetricsUtils.addMetric(statisticsProvider, reporter, PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_ACCEPTED_TOTAL, documentsAcceptedTotal);
-        MetricsUtils.addMetric(statisticsProvider, reporter, PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_REJECTED_TOTAL, documentsRejectedTotal);
-        MetricsUtils.addMetric(statisticsProvider, reporter, PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_ACCEPTED_PERCENTAGE, documentsAcceptedPercentage);
-        MetricsUtils.addMetric(statisticsProvider, reporter, PipelinedMetrics.OAK_INDEXER_PIPELINED_ENTRIES_TRAVERSED_TOTAL, entriesTraversed);
-        MetricsUtils.addMetric(statisticsProvider, reporter, PipelinedMetrics.OAK_INDEXER_PIPELINED_ENTRIES_ACCEPTED_TOTAL, entriesAcceptedSum);
-        MetricsUtils.addMetric(statisticsProvider, reporter, PipelinedMetrics.OAK_INDEXER_PIPELINED_ENTRIES_ACCEPTED_PERCENTAGE, entriesAcceptedPercentage);
-        MetricsUtils.addMetric(statisticsProvider, reporter, PipelinedMetrics.OAK_INDEXER_PIPELINED_ENTRIES_REJECTED_TOTAL, entriesRejectedSum);
-        MetricsUtils.addMetric(statisticsProvider, reporter, PipelinedMetrics.OAK_INDEXER_PIPELINED_ENTRIES_REJECTED_HIDDEN_PATHS_TOTAL, entriesRejectedHiddenPaths.sum());
-        MetricsUtils.addMetric(statisticsProvider, reporter, PipelinedMetrics.OAK_INDEXER_PIPELINED_ENTRIES_REJECTED_PATH_FILTERED_TOTAL, entriesRejectedPathFiltered.sum());
-        MetricsUtils.addMetricByteSize(statisticsProvider, reporter, PipelinedMetrics.OAK_INDEXER_PIPELINED_EXTRACTED_ENTRIES_TOTAL_BYTES, entriesAcceptedTotalSizeSum);
+        MetricsUtils.addMetric(statisticsProvider, reporter,
+            PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_TRAVERSED_TOTAL,
+            mongoDocumentsTraversedSum);
+        MetricsUtils.addMetric(statisticsProvider, reporter,
+            PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_REJECTED_SPLIT_TOTAL,
+            documentsRejectedSplitSum);
+        MetricsUtils.addMetric(statisticsProvider, reporter,
+            PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_REJECTED_EMPTY_NODE_STATE_TOTAL,
+            documentsRejectedEmptyNodeStateSum);
+        MetricsUtils.addMetric(statisticsProvider, reporter,
+            PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_ACCEPTED_TOTAL,
+            documentsAcceptedTotal);
+        MetricsUtils.addMetric(statisticsProvider, reporter,
+            PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_REJECTED_TOTAL,
+            documentsRejectedTotal);
+        MetricsUtils.addMetric(statisticsProvider, reporter,
+            PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_ACCEPTED_PERCENTAGE,
+            documentsAcceptedPercentage);
+        MetricsUtils.addMetric(statisticsProvider, reporter,
+            PipelinedMetrics.OAK_INDEXER_PIPELINED_ENTRIES_TRAVERSED_TOTAL, entriesTraversed);
+        MetricsUtils.addMetric(statisticsProvider, reporter,
+            PipelinedMetrics.OAK_INDEXER_PIPELINED_ENTRIES_ACCEPTED_TOTAL, entriesAcceptedSum);
+        MetricsUtils.addMetric(statisticsProvider, reporter,
+            PipelinedMetrics.OAK_INDEXER_PIPELINED_ENTRIES_ACCEPTED_PERCENTAGE,
+            entriesAcceptedPercentage);
+        MetricsUtils.addMetric(statisticsProvider, reporter,
+            PipelinedMetrics.OAK_INDEXER_PIPELINED_ENTRIES_REJECTED_TOTAL, entriesRejectedSum);
+        MetricsUtils.addMetric(statisticsProvider, reporter,
+            PipelinedMetrics.OAK_INDEXER_PIPELINED_ENTRIES_REJECTED_HIDDEN_PATHS_TOTAL,
+            entriesRejectedHiddenPaths.sum());
+        MetricsUtils.addMetric(statisticsProvider, reporter,
+            PipelinedMetrics.OAK_INDEXER_PIPELINED_ENTRIES_REJECTED_PATH_FILTERED_TOTAL,
+            entriesRejectedPathFiltered.sum());
+        MetricsUtils.addMetricByteSize(statisticsProvider, reporter,
+            PipelinedMetrics.OAK_INDEXER_PIPELINED_EXTRACTED_ENTRIES_TOTAL_BYTES,
+            entriesAcceptedTotalSizeSum);
     }
 
     public String formatStats() {
@@ -171,29 +202,34 @@ public class TransformStageStatistics {
         long entriesRejectedSum = entriesRejected.sum();
         long documentsRejectedSplitSum = documentsRejectedSplit.sum();
         long documentsRejectedEmptyNodeStateSum = documentsRejectedEmptyNodeState.sum();
-        long documentsRejectedTotal = documentsRejectedSplitSum + documentsRejectedEmptyNodeStateSum;
+        long documentsRejectedTotal =
+            documentsRejectedSplitSum + documentsRejectedEmptyNodeStateSum;
         long documentsAcceptedTotal = mongoDocumentsTraversedSum - documentsRejectedTotal;
         long totalEntries = entriesAcceptedSum + entriesRejectedSum;
-        String documentsAcceptedPercentage = PipelinedUtils.formatAsPercentage(documentsAcceptedTotal, mongoDocumentsTraversedSum);
-        String entriesAcceptedPercentage = PipelinedUtils.formatAsPercentage(entriesAcceptedSum, totalEntries);
+        String documentsAcceptedPercentage = PipelinedUtils.formatAsPercentage(
+            documentsAcceptedTotal, mongoDocumentsTraversedSum);
+        String entriesAcceptedPercentage = PipelinedUtils.formatAsPercentage(entriesAcceptedSum,
+            totalEntries);
         long avgEntrySize = entriesAcceptedSum == 0 ? -1 :
-                extractedEntriesTotalSizeSum / entriesAcceptedSum;
+            extractedEntriesTotalSizeSum / entriesAcceptedSum;
         return MetricsFormatter.newBuilder()
-                .add("documentsTraversed", mongoDocumentsTraversedSum)
-                .add("documentsAccepted", documentsAcceptedTotal)
-                .add("documentsRejected", documentsRejectedTotal)
-                .add("documentsAcceptedPercentage", documentsAcceptedPercentage)
-                .add("documentsRejectedSplit", documentsRejectedSplitSum)
-                .add("documentsRejectedEmptyNodeState", documentsRejectedEmptyNodeStateSum)
-                .add("entriesTraversed", totalEntries)
-                .add("entriesAccepted", entriesAcceptedSum)
-                .add("entriesRejected", entriesRejectedSum)
-                .add("entriesAcceptedPercentage", entriesAcceptedPercentage)
-                .add("entriesRejectedHiddenPaths", entriesRejectedHiddenPaths.sum())
-                .add("entriesRejectedPathFiltered", entriesRejectedPathFiltered.sum())
-                .add("extractedEntriesTotalSize", extractedEntriesTotalSizeSum)
-                .add("avgEntrySize", avgEntrySize)
-                .build();
+                               .add("documentsTraversed", mongoDocumentsTraversedSum)
+                               .add("documentsAccepted", documentsAcceptedTotal)
+                               .add("documentsRejected", documentsRejectedTotal)
+                               .add("documentsAcceptedPercentage", documentsAcceptedPercentage)
+                               .add("documentsRejectedSplit", documentsRejectedSplitSum)
+                               .add("documentsRejectedEmptyNodeState",
+                                   documentsRejectedEmptyNodeStateSum)
+                               .add("entriesTraversed", totalEntries)
+                               .add("entriesAccepted", entriesAcceptedSum)
+                               .add("entriesRejected", entriesRejectedSum)
+                               .add("entriesAcceptedPercentage", entriesAcceptedPercentage)
+                               .add("entriesRejectedHiddenPaths", entriesRejectedHiddenPaths.sum())
+                               .add("entriesRejectedPathFiltered",
+                                   entriesRejectedPathFiltered.sum())
+                               .add("extractedEntriesTotalSize", extractedEntriesTotalSizeSum)
+                               .add("avgEntrySize", avgEntrySize)
+                               .build();
     }
 
     private static String getPathPrefix(String path, int depth) {

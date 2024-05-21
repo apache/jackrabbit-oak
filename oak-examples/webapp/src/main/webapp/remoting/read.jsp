@@ -18,20 +18,21 @@
   limitations under the License.
 --%><%
 
-URI uri = new URI(request.getRequestURL().toString());
-String href =
-    uri.getScheme() + "://" + uri.getHost() + ":" + uri.getPort()
-    + request.getContextPath()
-    + JcrRemotingServlet.getPathPrefix(pageContext.getServletContext());
-href = Text.encodeIllegalXMLCharacters(href);
-href += "/default/jcr:root";
-    
-%><jsp:include page="header.jsp"/>
+    URI uri = new URI(request.getRequestURL().toString());
+    String href =
+            uri.getScheme() + "://" + uri.getHost() + ":" + uri.getPort()
+                    + request.getContextPath()
+                    + JcrRemotingServlet.getPathPrefix(pageContext.getServletContext());
+    href = Text.encodeIllegalXMLCharacters(href);
+    href += "/default/jcr:root";
+
+%>
+<jsp:include page="header.jsp"/>
 <div id="content">
     <h2>Read</h2>
     <h3><a name="default_read">Default Reading</a></h3>
     <p>Reading remotely from the repository generally follows the rules described in
-    <a href="http://jackrabbit.apache.org/JCR_Webdav_Protocol.doc">JCR_Webdav_Protocol.zip</a>.
+        <a href="http://jackrabbit.apache.org/JCR_Webdav_Protocol.doc">JCR_Webdav_Protocol.zip</a>.
     </p>
     <h3><a name="batch_read">Batch Read</a></h3>
     <p>Batch read is triggered by adding a <b>'.json'</b> extension to the resource
@@ -41,21 +42,24 @@ href += "/default/jcr:root";
         remoting rules.
     </p>
     <p>The response to a batch read request contains a plain text representing
-       a JSON object. Its member either represent nodes or properties.
+        a JSON object. Its member either represent nodes or properties.
     <ul>
-    <li>The name element of the Item path is added as key</li>
-    <li>The value of a Node entry is a JSON object.</li>
-    <li>The value of a Property entry is either a JSON array or a simple JSON value.</li>
+        <li>The name element of the Item path is added as key</li>
+        <li>The value of a Node entry is a JSON object.</li>
+        <li>The value of a Property entry is either a JSON array or a simple JSON value.</li>
     </ul>
     </p>
     <p>In order to cope with property types that cannot be expressed with JSON
-    a couple of special rules are defined:
+        a couple of special rules are defined:
     <ul>
-    <li>Binary properties: The key gets a leading ":", the value represents the
-        length of the property. In order to retrieve the binary value, the
-        client must follow the default rules (see above).</li>
-    <li>Date, Name, Path and Reference properties: The type information is passed with a separate JSON pair.</li>
-    <li>The value of a Property entry is either a JSON array or a simple JSON value.</li>
+        <li>Binary properties: The key gets a leading ":", the value represents the
+            length of the property. In order to retrieve the binary value, the
+            client must follow the default rules (see above).
+        </li>
+        <li>Date, Name, Path and Reference properties: The type information is passed with a
+            separate JSON pair.
+        </li>
+        <li>The value of a Property entry is either a JSON array or a simple JSON value.</li>
     </ul>
     </p>
     See <a href="read_batch.jsp">Example: Batch Write</a> for a demostration of

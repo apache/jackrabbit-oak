@@ -21,16 +21,15 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
-
 import org.apache.jackrabbit.oak.commons.FixturesHelper;
+import org.apache.jackrabbit.oak.composite.CompositeMemoryStoreFixture;
+import org.apache.jackrabbit.oak.composite.CompositeSegmentStoreFixture;
 import org.apache.jackrabbit.oak.cow.COWStoreFixture;
 import org.apache.jackrabbit.oak.fixture.DocumentMemoryFixture;
 import org.apache.jackrabbit.oak.fixture.DocumentMongoFixture;
 import org.apache.jackrabbit.oak.fixture.DocumentRdbFixture;
 import org.apache.jackrabbit.oak.fixture.MemoryFixture;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
-import org.apache.jackrabbit.oak.composite.CompositeMemoryStoreFixture;
-import org.apache.jackrabbit.oak.composite.CompositeSegmentStoreFixture;
 import org.apache.jackrabbit.oak.segment.aws.fixture.SegmentAwsFixture;
 import org.apache.jackrabbit.oak.segment.azure.fixture.SegmentAzureFixture;
 import org.apache.jackrabbit.oak.segment.fixture.SegmentTarFixture;

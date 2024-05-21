@@ -23,7 +23,6 @@ import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProp
 
 import java.util.Arrays;
 import java.util.Collections;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
@@ -55,9 +54,9 @@ class RecordNode extends AbstractNode {
     @Override
     public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
         return record.getRoot()
-            .map(root -> new MemoryChildNodeEntry("root", root))
-            .map(Collections::singletonList)
-            .orElseGet(Collections::emptyList);
+                     .map(root -> new MemoryChildNodeEntry("root", root))
+                     .map(Collections::singletonList)
+                     .orElseGet(Collections::emptyList);
     }
 
 }

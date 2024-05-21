@@ -16,24 +16,23 @@
  */
 package org.apache.jackrabbit.oak.upgrade.cli.blob;
 
-import java.io.IOException;
+import static org.junit.Assert.assertEquals;
 
 import ch.qos.logback.classic.Level;
+import java.io.IOException;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.blob.UploadStagingCache;
 import org.apache.jackrabbit.oak.upgrade.cli.AbstractOak2OakTest;
 import org.apache.jackrabbit.oak.upgrade.cli.container.AzureDataStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.container.BlobStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.container.NodeStoreContainer;
-import org.apache.jackrabbit.oak.upgrade.cli.container.S3DataStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.container.SegmentTarNodeStoreContainer;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
-
 public class AzureToInlinedTest extends AbstractOak2OakTest {
+
     private static final String AZURE_PROPERTIES = System.getProperty("azure.properties");
 
     private final NodeStoreContainer source;
@@ -63,8 +62,9 @@ public class AzureToInlinedTest extends AbstractOak2OakTest {
 
     @Override
     protected String[] getArgs() {
-        return new String[] { "--copy-binaries", "--src-azuredatastore", sourceBlob.getDescription(), "--src-azureconfig",
-            AZURE_PROPERTIES, source.getDescription(), destination.getDescription() };
+        return new String[]{"--copy-binaries", "--src-azuredatastore", sourceBlob.getDescription(),
+            "--src-azureconfig",
+            AZURE_PROPERTIES, source.getDescription(), destination.getDescription()};
     }
 
     @Override

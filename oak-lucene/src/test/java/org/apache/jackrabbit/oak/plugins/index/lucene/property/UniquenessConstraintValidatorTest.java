@@ -19,15 +19,6 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.property;
 
-import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexDefinitionBuilder;
-import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
-import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
-import org.apache.jackrabbit.oak.plugins.index.search.PropertyUpdateCallback;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.junit.Test;
-
 import static java.util.Collections.singletonList;
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
@@ -39,14 +30,24 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
+import org.apache.jackrabbit.oak.plugins.index.search.PropertyUpdateCallback;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.junit.Test;
+
 public class UniquenessConstraintValidatorTest {
+
     private NodeState root = INITIAL_CONTENT;
     private NodeBuilder builder = EMPTY_NODE.builder();
     private LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
-    private String indexPath  = "/oak:index/foo";
+    private String indexPath = "/oak:index/foo";
 
     @Test
-    public void singleUniqueProperty() throws Exception{
+    public void singleUniqueProperty() throws Exception {
         defnb.indexRule("nt:base").property("foo").unique();
 
         updateRootState("/a", "foo", "bar");
@@ -55,9 +56,9 @@ public class UniquenessConstraintValidatorTest {
         PropertyUpdateCallback callback = newCallback();
 
         callback.propertyUpdated("/a", "foo", pd("foo"),
-                null, createProperty("foo", "bar"));
+            null, createProperty("foo", "bar"));
         callback.propertyUpdated("/b", "foo", pd("foo"),
-                null, createProperty("foo", "bar"));
+            null, createProperty("foo", "bar"));
         try {
             callback.done();
             fail();
@@ -73,7 +74,7 @@ public class UniquenessConstraintValidatorTest {
     }
 
     @Test
-    public void multipleUniqueProperties() throws Exception{
+    public void multipleUniqueProperties() throws Exception {
         defnb.indexRule("nt:base").property("foo").unique();
         defnb.indexRule("nt:base").property("foo2").unique();
 
@@ -87,7 +88,7 @@ public class UniquenessConstraintValidatorTest {
     }
 
     @Test(expected = CommitFailedException.class)
-    public void firstStore_PreExist() throws Exception{
+    public void firstStore_PreExist() throws Exception {
         defnb.indexRule("nt:base").property("foo").unique();
 
         updateRootState("/a", "foo", "bar");
@@ -105,7 +106,7 @@ public class UniquenessConstraintValidatorTest {
 
 
     @Test
-    public void secondStore_SamePath() throws Exception{
+    public void secondStore_SamePath() throws Exception {
         defnb.indexRule("nt:base").property("foo").unique();
 
         PropertyIndexUpdateCallback callback = newCallback();
@@ -119,7 +120,7 @@ public class UniquenessConstraintValidatorTest {
     }
 
     @Test(expected = CommitFailedException.class)
-    public void secondStore_DiffPath() throws Exception{
+    public void secondStore_DiffPath() throws Exception {
         defnb.indexRule("nt:base").property("foo").unique();
 
         updateRootState("/b", "foo", "bar");
@@ -135,7 +136,7 @@ public class UniquenessConstraintValidatorTest {
     }
 
     @Test
-    public void secondStore_NodeNotExist() throws Exception{
+    public void secondStore_NodeNotExist() throws Exception {
         defnb.indexRule("nt:base").property("foo").unique();
 
         PropertyIndexUpdateCallback callback = newCallback();
@@ -148,7 +149,7 @@ public class UniquenessConstraintValidatorTest {
     }
 
     @Test
-    public void secondStore_NodeExist_PropertyNotExist() throws Exception{
+    public void secondStore_NodeExist_PropertyNotExist() throws Exception {
         defnb.indexRule("nt:base").property("foo").unique();
 
         NodeBuilder rootBuilder = root.builder();
@@ -165,7 +166,7 @@ public class UniquenessConstraintValidatorTest {
     }
 
     @Test
-    public void secondStore_NodeExist_PropertyExist_DifferentValue() throws Exception{
+    public void secondStore_NodeExist_PropertyExist_DifferentValue() throws Exception {
         defnb.indexRule("nt:base").property("foo").unique();
 
         NodeBuilder rootBuilder = root.builder();
@@ -182,7 +183,7 @@ public class UniquenessConstraintValidatorTest {
     }
 
     @Test(expected = CommitFailedException.class)
-    public void secondStore_RelativeProperty() throws Exception{
+    public void secondStore_RelativeProperty() throws Exception {
         defnb.indexRule("nt:base").property("jcr:content/foo").unique();
 
         updateRootState("/b/jcr:content", "foo", "bar");
@@ -197,12 +198,13 @@ public class UniquenessConstraintValidatorTest {
         callback.done();
     }
 
-    private void propertyUpdated(PropertyUpdateCallback callback, String nodePath, String propertyName, String value){
+    private void propertyUpdated(PropertyUpdateCallback callback, String nodePath,
+        String propertyName, String value) {
         callback.propertyUpdated(nodePath, propertyName, pd(propertyName),
-                null, createProperty(propertyName, value));
+            null, createProperty(propertyName, value));
     }
 
-    private PropertyIndexUpdateCallback newCallback(){
+    private PropertyIndexUpdateCallback newCallback() {
         return new PropertyIndexUpdateCallback(indexPath, builder, root);
     }
 
@@ -216,7 +218,7 @@ public class UniquenessConstraintValidatorTest {
         builder = builder.getNodeState().builder();
     }
 
-    private PropertyDefinition pd(String propName){
+    private PropertyDefinition pd(String propName) {
         IndexDefinition defn = new IndexDefinition(root, defnb.build(), indexPath);
         return defn.getApplicableIndexingRule("nt:base").getConfig(propName);
     }

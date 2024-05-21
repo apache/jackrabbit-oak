@@ -57,44 +57,41 @@ public enum RecordType {
     BRANCH,
 
     /**
-     * A bucket (a list of references). It always includes at least 2 elements,
-     * up to 255 entries (because each entry could in theory point to a
-     * different segment, in which case this couldn't be stored in a segment).
-     * This contains just the record ids. The size of the list is not stored, as
-     * it is stored along with the reference to this record.
+     * A bucket (a list of references). It always includes at least 2 elements, up to 255 entries
+     * (because each entry could in theory point to a different segment, in which case this couldn't
+     * be stored in a segment). This contains just the record ids. The size of the list is not
+     * stored, as it is stored along with the reference to this record.
      */
     BUCKET,
 
     /**
-     * A list including the size (an int). This could be 0, in which case there
-     * is no reference. If the size is 1, then reference points to the value of
-     * the list. If the size is larger, then a record id follows, which points
-     * to a bucket with the actual record ids. If there are more than 255
-     * entries in the list, then the list is partitioned into sub-lists of 255
-     * entries each, which are stored kind of recursively.
+     * A list including the size (an int). This could be 0, in which case there is no reference. If
+     * the size is 1, then reference points to the value of the list. If the size is larger, then a
+     * record id follows, which points to a bucket with the actual record ids. If there are more
+     * than 255 entries in the list, then the list is partitioned into sub-lists of 255 entries
+     * each, which are stored kind of recursively.
      */
     LIST,
 
     /**
-     * A value (for example a string, or a long, or a blob). The format is:
-     * length (variable length encoding, one byte if shorter than 128, else more
-     * bytes), then the data as a byte array, or, for large values, a record id
-     * of the top level bucket that contains the list of block record ids of the
-     * actual binary data.
+     * A value (for example a string, or a long, or a blob). The format is: length (variable length
+     * encoding, one byte if shorter than 128, else more bytes), then the data as a byte array, or,
+     * for large values, a record id of the top level bucket that contains the list of block record
+     * ids of the actual binary data.
      * <p>
      * Therefore, a value can reference other records.
      */
     VALUE,
 
     /**
-     * A block of bytes (a binary value, or a part of a binary value, or part of
-     * large strings). It only contains the raw data.
+     * A block of bytes (a binary value, or a part of a binary value, or part of large strings). It
+     * only contains the raw data.
      */
     BLOCK,
 
     /**
-     * A template (the "hidden class" of a node; inspired by the Chrome V8
-     * Javascript engine). This includes a list of property templates. Format:
+     * A template (the "hidden class" of a node; inspired by the Chrome V8 Javascript engine). This
+     * includes a list of property templates. Format:
      * <ul>
      * <li>head (int), which is: 1 bit (most significant one) whether the node
      * has a single valued jcr:primaryType property. 1 bit whether it has

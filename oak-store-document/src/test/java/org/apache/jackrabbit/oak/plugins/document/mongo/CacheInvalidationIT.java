@@ -68,14 +68,14 @@ public class CacheInvalidationIT extends AbstractMongoConnectionTest {
         //    / | \     h
         //   e  f  g
         String[] paths = {
-                "/a",
-                "/a/c",
-                "/a/b",
-                "/a/b/e",
-                "/a/b/f",
-                "/a/b/g",
-                "/a/d",
-                "/a/d/h",
+            "/a",
+            "/a/c",
+            "/a/b",
+            "/a/b/e",
+            "/a/b/f",
+            "/a/b/g",
+            "/a/d",
+            "/a/d/h",
         };
         NodeBuilder root = getRoot(c1).builder();
         createTree(root, paths);
@@ -104,12 +104,13 @@ public class CacheInvalidationIT extends AbstractMongoConnectionTest {
         //Only 2 entries /a and /a/d would be invalidated
         // '/' would have been added to cache in start of backgroundRead
         //itself
-        assertEquals(initialCacheSizeC1 + totalPaths - 2, size(ds(c1).getNodeDocumentCache().keys()));
+        assertEquals(initialCacheSizeC1 + totalPaths - 2,
+            size(ds(c1).getNodeDocumentCache().keys()));
     }
 
     @Test
     public void testCacheInvalidationHierarchicalNotExist()
-            throws CommitFailedException {
+        throws CommitFailedException {
 
         NodeBuilder b2 = getRoot(c2).builder();
         // we create x/other, so that x is known to have a child node
@@ -134,7 +135,7 @@ public class CacheInvalidationIT extends AbstractMongoConnectionTest {
         c2.merge(b2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         b2.child("y").child("futureY").setProperty("z", "2");
         c2.merge(b2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        
+
         c2.runBackgroundOperations();
         c1.runBackgroundOperations();
 
@@ -144,7 +145,7 @@ public class CacheInvalidationIT extends AbstractMongoConnectionTest {
 
     }
 
-    private int getCurrentCacheSize(DocumentNodeStore ds){
+    private int getCurrentCacheSize(DocumentNodeStore ds) {
         return size(ds(ds).getNodeDocumentCache().keys());
     }
 
@@ -199,13 +200,13 @@ public class CacheInvalidationIT extends AbstractMongoConnectionTest {
     private DocumentNodeStore createNS(int clusterId) throws Exception {
         MongoConnection mc = connectionFactory.getConnection();
         DocumentNodeStore ns = new DocumentMK.Builder()
-                          .setMongoDB(mc.getMongoClient(), mc.getDBName())
-                          .setClusterId(clusterId)
-                          //Set delay to 0 so that effect of changes are immediately reflected
-                          .setAsyncDelay(0)
-                          .setBundlingDisabled(true)
-                          .setLeaseCheckMode(LeaseCheckMode.DISABLED)
-                          .getNodeStore();
+            .setMongoDB(mc.getMongoClient(), mc.getDBName())
+            .setClusterId(clusterId)
+            //Set delay to 0 so that effect of changes are immediately reflected
+            .setAsyncDelay(0)
+            .setBundlingDisabled(true)
+            .setLeaseCheckMode(LeaseCheckMode.DISABLED)
+            .getNodeStore();
         // enforce primary read preference, otherwise test fails on a replica
         // set with a read preference configured to secondary.
         MongoTestUtils.setReadPreference(ns, ReadPreference.primary());

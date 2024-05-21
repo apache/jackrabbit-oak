@@ -193,8 +193,8 @@ public class DocumentMKRebaseTest extends BaseDocumentMKTest {
         assertTrue(mk.nodeExists("/x/a/b", branch));
         String conflict = mk.getNodes("/x/:conflict", branch, 100, 0, -1, null);
         assertEquals(
-                "{\":childNodeCount\":1,\"addExistingNode\":{\":childNodeCount\":1,\"a\":{\":childNodeCount\":0}}}",
-                conflict);
+            "{\":childNodeCount\":1,\"addExistingNode\":{\":childNodeCount\":1,\"a\":{\":childNodeCount\":0}}}",
+            conflict);
     }
 
     @Test
@@ -211,8 +211,8 @@ public class DocumentMKRebaseTest extends BaseDocumentMKTest {
         assertTrue(branchNode.contains("\"p\":99"));
         String conflict = mk.getNodes("/x/y/:conflict", branch, 100, 0, -1, null);
         assertEquals(
-                "{\":childNodeCount\":1,\"addExistingProperty\":{\"q\":42,\"p\":42,\":childNodeCount\":0}}",
-                conflict);
+            "{\":childNodeCount\":1,\"addExistingProperty\":{\"q\":42,\"p\":42,\":childNodeCount\":0}}",
+            conflict);
     }
 
     @Test
@@ -229,8 +229,8 @@ public class DocumentMKRebaseTest extends BaseDocumentMKTest {
         assertFalse(branchNode.contains("\"p\":99"));
         String conflict = mk.getNodes("/x/y/:conflict", branch, 100, 0, -1, null);
         assertEquals(
-                "{\":childNodeCount\":1,\"changeDeletedProperty\":{\"p\":99,\":childNodeCount\":0}}",
-                conflict);
+            "{\":childNodeCount\":1,\"changeDeletedProperty\":{\"p\":99,\":childNodeCount\":0}}",
+            conflict);
     }
 
     @Test
@@ -247,8 +247,8 @@ public class DocumentMKRebaseTest extends BaseDocumentMKTest {
         assertTrue(branchNode.contains("\"p\":99"));
         String conflict = mk.getNodes("/x/y/:conflict", branch, 100, 0, -1, null);
         assertEquals(
-                "{\":childNodeCount\":1,\"deleteChangedProperty\":{\"p\":42,\":childNodeCount\":0}}",
-                conflict);
+            "{\":childNodeCount\":1,\"deleteChangedProperty\":{\"p\":42,\":childNodeCount\":0}}",
+            conflict);
     }
 
     @Test
@@ -265,8 +265,8 @@ public class DocumentMKRebaseTest extends BaseDocumentMKTest {
         assertTrue(branchNode.contains("\"p\":99"));
         String conflict = mk.getNodes("/x/y/:conflict", branch, 100, 0, -1, null);
         assertEquals(
-                "{\":childNodeCount\":1,\"changeChangedProperty\":{\"p\":41,\":childNodeCount\":0}}",
-                conflict);
+            "{\":childNodeCount\":1,\"changeChangedProperty\":{\"p\":41,\":childNodeCount\":0}}",
+            conflict);
     }
 
     @Test
@@ -283,8 +283,8 @@ public class DocumentMKRebaseTest extends BaseDocumentMKTest {
         assertTrue(branchNode.contains("\"p\":42"));
         String conflict = mk.getNodes("/x/:conflict", branch, 100, 0, -1, null);
         assertEquals(
-                "{\":childNodeCount\":1,\"deleteChangedNode\":{\":childNodeCount\":1,\"y\":{\":childNodeCount\":0}}}",
-                conflict);
+            "{\":childNodeCount\":1,\"deleteChangedNode\":{\":childNodeCount\":1,\"y\":{\":childNodeCount\":0}}}",
+            conflict);
     }
 
     @Test
@@ -300,9 +300,10 @@ public class DocumentMKRebaseTest extends BaseDocumentMKTest {
         assertFalse(mk.nodeExists("/x", branch));
         String conflict = mk.getNodes("/:conflict", branch, 100, 0, -1, null);
         assertEquals(
-                "{\":childNodeCount\":1,\"changeDeletedNode\":{\":childNodeCount\":1,\"x\":{\"p\":42,\"" +
-                        ":childNodeCount\":1,\"y\":{\":childNodeCount\":0}}}}",
-                conflict);
+            "{\":childNodeCount\":1,\"changeDeletedNode\":{\":childNodeCount\":1,\"x\":{\"p\":42,\""
+                +
+                ":childNodeCount\":1,\"y\":{\":childNodeCount\":0}}}}",
+            conflict);
     }
 
     @Test
@@ -319,8 +320,8 @@ public class DocumentMKRebaseTest extends BaseDocumentMKTest {
         assertFalse(branchNode.contains("\"p\":42"));
         String conflict = mk.getNodes("/x/y/:conflict", branch, 100, 0, -1, null);
         assertEquals(
-                "{\":childNodeCount\":1,\"deleteDeletedProperty\":{\"p\":42,\":childNodeCount\":0}}",
-                conflict);
+            "{\":childNodeCount\":1,\"deleteDeletedProperty\":{\"p\":42,\":childNodeCount\":0}}",
+            conflict);
     }
 
     @Test
@@ -336,8 +337,8 @@ public class DocumentMKRebaseTest extends BaseDocumentMKTest {
         assertFalse(mk.nodeExists("/x/y", branch));
         String conflict = mk.getNodes("/x/:conflict", branch, 100, 0, -1, null);
         assertEquals(
-                "{\":childNodeCount\":1,\"deleteDeletedNode\":{\":childNodeCount\":1,\"y\":{\":childNodeCount\":0}}}",
-                conflict);
+            "{\":childNodeCount\":1,\"deleteDeletedNode\":{\":childNodeCount\":1,\"y\":{\":childNodeCount\":0}}}",
+            conflict);
     }
 
     @Test
@@ -365,7 +366,7 @@ public class DocumentMKRebaseTest extends BaseDocumentMKTest {
         String head = mk.commit("/", "+\"y\":{}", null, null);
         branch = mk.rebase(branch, head);
         assertEquals("repeated rebase with same head must not create new branch revision",
-                branch, mk.rebase(branch, head));
+            branch, mk.rebase(branch, head));
     }
 
 }

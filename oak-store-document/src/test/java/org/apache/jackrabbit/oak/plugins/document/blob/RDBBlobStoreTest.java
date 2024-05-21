@@ -61,16 +61,18 @@ public class RDBBlobStoreTest extends AbstractBlobStoreTest {
         return true;
     }
 
-    @Parameterized.Parameters(name="{0}")
+    @Parameterized.Parameters(name = "{0}")
     public static Collection<Object[]> fixtures() {
         Collection<Object[]> result = new ArrayList<Object[]>();
-        RDBBlobStoreFixture candidates[] = new RDBBlobStoreFixture[] { RDBBlobStoreFixture.RDB_DB2, RDBBlobStoreFixture.RDB_H2,
-                RDBBlobStoreFixture.RDB_DERBY, RDBBlobStoreFixture.RDB_MSSQL, RDBBlobStoreFixture.RDB_MYSQL,
-                RDBBlobStoreFixture.RDB_ORACLE, RDBBlobStoreFixture.RDB_PG };
+        RDBBlobStoreFixture candidates[] = new RDBBlobStoreFixture[]{RDBBlobStoreFixture.RDB_DB2,
+            RDBBlobStoreFixture.RDB_H2,
+            RDBBlobStoreFixture.RDB_DERBY, RDBBlobStoreFixture.RDB_MSSQL,
+            RDBBlobStoreFixture.RDB_MYSQL,
+            RDBBlobStoreFixture.RDB_ORACLE, RDBBlobStoreFixture.RDB_PG};
 
         for (RDBBlobStoreFixture bsf : candidates) {
             if (bsf.isAvailable()) {
-                result.add(new Object[] { bsf });
+                result.add(new Object[]{bsf});
             }
         }
 
@@ -153,7 +155,9 @@ public class RDBBlobStoreTest extends AbstractBlobStoreTest {
         LOG.info("max blob length for " + blobStoreName + " was " + test);
 
         int expected = Math.max(blobStore.getBlockSize(), 2 * 1024 * 1024);
-        assertTrue(blobStoreName + ": expected supported block size is " + expected + ", but measured: " + test, test >= expected);
+        assertTrue(
+            blobStoreName + ": expected supported block size is " + expected + ", but measured: "
+                + test, test >= expected);
     }
 
     @Test
@@ -199,7 +203,7 @@ public class RDBBlobStoreTest extends AbstractBlobStoreTest {
         RDBBlobStoreFriend.storeBlock(blobStore, digest, 0, data);
         // Metadata row should not have been touched
         Assert.assertFalse("entry was cleaned although it shouldn't have",
-                blobStore.deleteChunks(ImmutableList.of(id), beforeUpdateTs));
+            blobStore.deleteChunks(ImmutableList.of(id), beforeUpdateTs));
         // Actual data row should still be present
         Assert.assertNotNull(RDBBlobStoreFriend.readBlockFromBackend(blobStore, digest));
     }
@@ -228,8 +232,10 @@ public class RDBBlobStoreTest extends AbstractBlobStoreTest {
         byte[] digest2 = getDigest(data2);
         RDBBlobStoreFriend.storeBlock(blobStore, digest2, 0, data2);
 
-        Assert.assertEquals("meta entry was not removed", 1, blobStore.countDeleteChunks(ImmutableList.of(id1), now));
-        Assert.assertFalse("data entry was not removed", RDBBlobStoreFriend.isDataEntryPresent(blobStore, digest1));
+        Assert.assertEquals("meta entry was not removed", 1,
+            blobStore.countDeleteChunks(ImmutableList.of(id1), now));
+        Assert.assertFalse("data entry was not removed",
+            RDBBlobStoreFriend.isDataEntryPresent(blobStore, digest1));
     }
 
     @Test
@@ -286,8 +292,9 @@ public class RDBBlobStoreTest extends AbstractBlobStoreTest {
 
     @Test
     public void testRDBJDBCPerfLog() throws Exception {
-        LogCustomizer logCustomizerRead = LogCustomizer.forLogger(RDBBlobStore.class.getName() + ".perf").enable(Level.TRACE)
-                .matchesRegex("read: .*").create();
+        LogCustomizer logCustomizerRead = LogCustomizer.forLogger(
+                                                           RDBBlobStore.class.getName() + ".perf").enable(Level.TRACE)
+                                                       .matchesRegex("read: .*").create();
         logCustomizerRead.starting();
         try {
             byte[] data = new byte[256];
@@ -332,7 +339,9 @@ public class RDBBlobStoreTest extends AbstractBlobStoreTest {
             }
         }
 
-        LOG.info("inserted " + cnt + " blocks of size " + size + " into " + blobStoreName + " (" + errors + " errors) in "
+        LOG.info(
+            "inserted " + cnt + " blocks of size " + size + " into " + blobStoreName + " (" + errors
+                + " errors) in "
                 + duration + "ms (" + (cnt * 1000) / duration + " blocks/s)");
     }
 }

@@ -28,10 +28,10 @@ import org.junit.BeforeClass;
 import static org.junit.Assert.assertNotNull;
 
 /**
- * Tests for {@code DocumentMK#write(java.io.InputStream)} with
- * {@link CloudBlobStore}
+ * Tests for {@code DocumentMK#write(java.io.InputStream)} with {@link CloudBlobStore}
  */
 public class DocumentMKCloudWriteTest extends DocumentMKWriteTest {
+
     @BeforeClass
     public static void setUpBeforeClass() {
         try {
@@ -48,8 +48,8 @@ public class DocumentMKCloudWriteTest extends DocumentMKWriteTest {
         assertNotNull(mongoConnection);
         MongoUtils.dropCollections(mongoConnection.getDBName());
         mk = new DocumentMK.Builder()
-                .setMongoDB(mongoConnection.getMongoClient(), mongoConnection.getDBName())
-                .setBlobStore(CloudStoreUtils.getBlobStore()).open();
+            .setMongoDB(mongoConnection.getMongoClient(), mongoConnection.getDBName())
+            .setBlobStore(CloudStoreUtils.getBlobStore()).open();
     }
 
     @Override

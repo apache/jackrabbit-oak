@@ -19,23 +19,22 @@
 
 package org.apache.jackrabbit.oak.api.jmx;
 
-import javax.management.openmbean.CompositeData;
-import javax.management.openmbean.TabularData;
-
-import org.osgi.annotation.versioning.ProviderType;
-
 import java.util.Date;
+import javax.management.openmbean.TabularData;
+import org.osgi.annotation.versioning.ProviderType;
 
 /**
  * MBean for managing {@code org.apache.jackrabbit.oak.spi.state.NodeStore#checkpoint checkpoints}.
  */
 @ProviderType
 public interface CheckpointMBean {
+
     String TYPE = "CheckpointManager";
 
     /**
-     * List the checkpoints that are currently present along with
-     * its id, creation time and expiry time.
+     * List the checkpoints that are currently present along with its id, creation time and expiry
+     * time.
+     *
      * @return
      */
     TabularData listCheckpoints();
@@ -51,18 +50,20 @@ public interface CheckpointMBean {
     Date getOldestCheckpointCreationDate();
 
     /**
-     * Create a new checkpoint with the given {@code lifetime}.
-     * See {@code org.apache.jackrabbit.oak.spi.state.NodeStore#checkpoint}
+     * Create a new checkpoint with the given {@code lifetime}. See
+     * {@code org.apache.jackrabbit.oak.spi.state.NodeStore#checkpoint}
+     *
      * @param lifetime
      * @return the id of the newly created checkpoint
      */
     String createCheckpoint(long lifetime);
 
     /**
-     * Release the checkpoint with the given {@code id}.
-     * See {@code org.apache.jackrabbit.oak.spi.state.NodeStore#checkpoint}
+     * Release the checkpoint with the given {@code id}. See
+     * {@code org.apache.jackrabbit.oak.spi.state.NodeStore#checkpoint}
+     *
      * @param id
-     * @return  {@code true} on success, {@code false} otherwise.
+     * @return {@code true} on success, {@code false} otherwise.
      */
     boolean releaseCheckpoint(String id);
 }

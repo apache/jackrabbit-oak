@@ -19,8 +19,9 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 
-import java.util.concurrent.Executor;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
+import java.util.concurrent.Executor;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexTracker;
 import org.apache.jackrabbit.oak.plugins.observation.Filter;
 import org.apache.jackrabbit.oak.spi.commit.BackgroundObserver;
@@ -32,9 +33,8 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-
 public class ExternalObserverBuilder {
+
     private static final Logger log = LoggerFactory.getLogger(ExternalIndexObserver.class);
     private final IndexingQueue indexingQueue;
     private final IndexTracker indexTracker;
@@ -45,8 +45,8 @@ public class ExternalObserverBuilder {
     private FilteringObserver filteringObserver;
 
     public ExternalObserverBuilder(IndexingQueue indexingQueue, IndexTracker indexTracker,
-                                   StatisticsProvider statisticsProvider,
-                                   Executor executor, int queueSize) {
+        StatisticsProvider statisticsProvider,
+        Executor executor, int queueSize) {
         this.indexingQueue = checkNotNull(indexingQueue);
         this.indexTracker = checkNotNull(indexTracker);
         this.statisticsProvider = checkNotNull(statisticsProvider);
@@ -58,7 +58,8 @@ public class ExternalObserverBuilder {
         if (filteringObserver != null) {
             return filteringObserver;
         }
-        ExternalIndexObserver externalObserver = new ExternalIndexObserver(indexingQueue, indexTracker, statisticsProvider);
+        ExternalIndexObserver externalObserver = new ExternalIndexObserver(indexingQueue,
+            indexTracker, statisticsProvider);
         backgroundObserver = new WarningObserver(externalObserver, executor, queueSize);
         filteringObserver = new FilteringObserver(backgroundObserver, externalObserver);
         return filteringObserver;
@@ -69,9 +70,11 @@ public class ExternalObserverBuilder {
     }
 
     private static class WarningObserver extends BackgroundObserver {
+
         private final int queueLength;
 
-        public WarningObserver(@NotNull Observer observer, @NotNull Executor executor, int queueLength) {
+        public WarningObserver(@NotNull Observer observer, @NotNull Executor executor,
+            int queueLength) {
             super(observer, executor, queueLength);
             this.queueLength = queueLength;
         }
@@ -87,6 +90,7 @@ public class ExternalObserverBuilder {
     }
 
     private static class FilteringObserver implements Observer {
+
         private final Observer delegate;
         private final Filter filter;
 

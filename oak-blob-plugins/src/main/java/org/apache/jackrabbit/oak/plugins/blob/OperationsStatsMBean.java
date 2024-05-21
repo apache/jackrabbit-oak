@@ -23,6 +23,7 @@ package org.apache.jackrabbit.oak.plugins.blob;
  * Interface to give useful statistics for maintenance operations.
  */
 public interface OperationsStatsMBean {
+
     String TYPE = "OperationStats";
 
     String getName();
@@ -44,36 +45,42 @@ public interface OperationsStatsMBean {
 
     /**
      * Returns the duration of the operation
+     *
      * @return
      */
     long duration();
 
     /**
      * Returns the duration of the mark operation
+     *
      * @return
      */
     long markDuration();
 
     /**
      * Returns the number deleted.
+     *
      * @return
      */
     long numDeleted();
 
     /**
      * Returns the size deleted.
+     *
      * @return
      */
     long sizeDeleted();
 
     /**
      * Returns the number of blob references
+     *
      * @return
      */
     long getNumBlobReferences();
 
     /**
      * Returns the cumulative size of the blob references
+     *
      * @return
      */
     long getBlobReferencesSize();

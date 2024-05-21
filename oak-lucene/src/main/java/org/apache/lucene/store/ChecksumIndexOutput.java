@@ -29,63 +29,67 @@ import java.io.IOException;
 import java.util.zip.CRC32;
 import java.util.zip.Checksum;
 
-/** Writes bytes through to a primary IndexOutput, computing
- *  checksum.  Note that you cannot use seek().
+/**
+ * Writes bytes through to a primary IndexOutput, computing checksum.  Note that you cannot use
+ * seek().
  *
  * @lucene.internal
  */
 public class ChecksumIndexOutput extends IndexOutput {
-  IndexOutput main;
-  Checksum digest;
 
-  public ChecksumIndexOutput(IndexOutput main) {
-    this.main = main;
-    digest = new CRC32();
-  }
+    IndexOutput main;
+    Checksum digest;
 
-  @Override
-  public void writeByte(byte b) throws IOException {
-    digest.update(b);
-    main.writeByte(b);
-  }
+    public ChecksumIndexOutput(IndexOutput main) {
+        this.main = main;
+        digest = new CRC32();
+    }
 
-  @Override
-  public void writeBytes(byte[] b, int offset, int length) throws IOException {
-    digest.update(b, offset, length);
-    main.writeBytes(b, offset, length);
-  }
+    @Override
+    public void writeByte(byte b) throws IOException {
+        digest.update(b);
+        main.writeByte(b);
+    }
 
-  public long getChecksum() {
-    return digest.getValue();
-  }
+    @Override
+    public void writeBytes(byte[] b, int offset, int length) throws IOException {
+        digest.update(b, offset, length);
+        main.writeBytes(b, offset, length);
+    }
 
-  @Override
-  public void flush() throws IOException {
-    main.flush();
-  }
+    public long getChecksum() {
+        return digest.getValue();
+    }
 
-  @Override
-  public void close() throws IOException {
-    main.close();
-  }
+    @Override
+    public void flush() throws IOException {
+        main.flush();
+    }
 
-  @Override
-  public long getFilePointer() {
-    return main.getFilePointer();
-  }
+    @Override
+    public void close() throws IOException {
+        main.close();
+    }
 
-  @Override
-  public void seek(long pos) {
-    throw new UnsupportedOperationException();    
-  }
+    @Override
+    public long getFilePointer() {
+        return main.getFilePointer();
+    }
 
-  /** writes the checksum */
-  public void finishCommit() throws IOException {
-    main.writeLong(getChecksum());
-  }
+    @Override
+    public void seek(long pos) {
+        throw new UnsupportedOperationException();
+    }
 
-  @Override
-  public long length() throws IOException {
-    return main.length();
-  }
+    /**
+     * writes the checksum
+     */
+    public void finishCommit() throws IOException {
+        main.writeLong(getChecksum());
+    }
+
+    @Override
+    public long length() throws IOException {
+        return main.length();
+    }
 }

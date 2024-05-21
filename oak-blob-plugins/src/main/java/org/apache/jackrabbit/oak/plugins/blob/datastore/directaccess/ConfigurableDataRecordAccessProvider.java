@@ -19,38 +19,35 @@
 package org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess;
 
 public interface ConfigurableDataRecordAccessProvider extends DataRecordAccessProvider {
+
     /**
-     * Specifies the number of seconds before a signed download URI will expire.
-     * Setting this to 0 is equivalent to turning off the ability to use
-     * direct download.
+     * Specifies the number of seconds before a signed download URI will expire. Setting this to 0
+     * is equivalent to turning off the ability to use direct download.
      *
      * @param expirySeconds Number of seconds before a download URI expires.
      */
     void setDirectDownloadURIExpirySeconds(int expirySeconds);
 
     /**
-     * Specifies the maximum number of read URIs to be cached in an in-memory
-     * cache.  Setting this to 0 is equivalent to disabling the cache.
+     * Specifies the maximum number of read URIs to be cached in an in-memory cache.  Setting this
+     * to 0 is equivalent to disabling the cache.
      *
      * @param maxSize Number of read URIs to cache.
      */
     void setDirectDownloadURICacheSize(int maxSize);
 
     /**
-     * Specifies the number of seconds before a signed upload URI will expire.
-     * Setting this to 0 is equivalent to turning off the ability to use
-     * direct upload.
+     * Specifies the number of seconds before a signed upload URI will expire. Setting this to 0 is
+     * equivalent to turning off the ability to use direct upload.
      *
      * @param expirySeconds Number of seconds before an upload URI expires.
      */
     void setDirectUploadURIExpirySeconds(int expirySeconds);
 
     /**
-     * Enables or disables binary transfer acceleration, if supported by the
-     * service provider.
+     * Enables or disables binary transfer acceleration, if supported by the service provider.
      *
-     * @param enabled True to enable binary transfer acceleration (if
-     *        supported); False otherwise.
+     * @param enabled True to enable binary transfer acceleration (if supported); False otherwise.
      */
     void setBinaryTransferAccelerationEnabled(boolean enabled);
 }

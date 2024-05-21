@@ -27,7 +27,6 @@ import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-
 import javax.jcr.Node;
 import javax.jcr.PropertyType;
 import javax.jcr.Session;
@@ -38,7 +37,6 @@ import javax.jcr.nodetype.NodeTypeDefinition;
 import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.nodetype.NodeTypeTemplate;
 import javax.jcr.nodetype.PropertyDefinitionTemplate;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.cnd.CndImporter;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
@@ -55,8 +53,7 @@ public class NodeTypeTest extends AbstractRepositoryTest {
     }
 
     /**
-     * Add a node to a node type that does not accept child nodes
-     * See OAK-479
+     * Add a node to a node type that does not accept child nodes See OAK-479
      */
     @Test(expected = ConstraintViolationException.class)
     public void illegalAddNode() throws Exception {
@@ -89,7 +86,8 @@ public class NodeTypeTest extends AbstractRepositoryTest {
         Node root = session.getRootNode();
         NodeTypeManager manager = session.getWorkspace().getNodeTypeManager();
 
-        NodeTypeTemplate ntt = manager.createNodeTypeTemplate(manager.getNodeType(JcrConstants.NT_QUERY));
+        NodeTypeTemplate ntt = manager.createNodeTypeTemplate(
+            manager.getNodeType(JcrConstants.NT_QUERY));
         ntt.setName("rep:test");
 
         NodeDefinitionTemplate ndt = manager.createNodeDefinitionTemplate();
@@ -97,7 +95,7 @@ public class NodeTypeTest extends AbstractRepositoryTest {
         ndt.setAutoCreated(true);
         ndt.setMandatory(true);
         ndt.setDefaultPrimaryTypeName(JcrConstants.NT_UNSTRUCTURED);
-        ndt.setRequiredPrimaryTypeNames(new String[] {JcrConstants.NT_UNSTRUCTURED});
+        ndt.setRequiredPrimaryTypeNames(new String[]{JcrConstants.NT_UNSTRUCTURED});
 
         ntt.getNodeDefinitionTemplates().add(ndt);
 
@@ -165,7 +163,7 @@ public class NodeTypeTest extends AbstractRepositoryTest {
         // LogCustomizer
 
         LogCustomizer logCustomizer;
-        String[] types = new String[] { "trivial1", "trivial2" };
+        String[] types = new String[]{"trivial1", "trivial2"};
         ArrayList<NodeTypeTemplate> ntt = new ArrayList<NodeTypeTemplate>();
 
         // adding node types
@@ -200,13 +198,17 @@ public class NodeTypeTest extends AbstractRepositoryTest {
             ntt.add(nt);
         }
 
-        logCustomizer = LogCustomizer.forLogger(TypeEditorProvider.class.getName()).enable(Level.INFO)
-                .contains("appear to be trivial, repository will not be scanned").create();
+        logCustomizer = LogCustomizer.forLogger(TypeEditorProvider.class.getName())
+                                     .enable(Level.INFO)
+                                     .contains(
+                                         "appear to be trivial, repository will not be scanned")
+                                     .create();
         try {
             logCustomizer.starting();
             manager.registerNodeTypes(ntt.toArray(new NodeTypeTemplate[0]), true);
-            assertEquals("captured INFO log should contain exactly one entry, but is: " + logCustomizer.getLogs(), 1,
-                    logCustomizer.getLogs().size());
+            assertEquals("captured INFO log should contain exactly one entry, but is: "
+                    + logCustomizer.getLogs(), 1,
+                logCustomizer.getLogs().size());
         } finally {
             logCustomizer.finished();
         }
@@ -234,13 +236,16 @@ public class NodeTypeTest extends AbstractRepositoryTest {
         }
         // but update both node types
 
-        logCustomizer = LogCustomizer.forLogger(TypeEditorProvider.class.getName()).enable(Level.INFO)
-                .contains("appear not to be trivial, starting repository scan").create();
+        logCustomizer = LogCustomizer.forLogger(TypeEditorProvider.class.getName())
+                                     .enable(Level.INFO)
+                                     .contains("appear not to be trivial, starting repository scan")
+                                     .create();
         try {
             logCustomizer.starting();
             manager.registerNodeTypes(ntt.toArray(new NodeTypeTemplate[0]), true);
-            assertEquals("captured INFO log should contain exactly one entry, but is: " + logCustomizer.getLogs(), 1,
-                    logCustomizer.getLogs().size());
+            assertEquals("captured INFO log should contain exactly one entry, but is: "
+                    + logCustomizer.getLogs(), 1,
+                logCustomizer.getLogs().size());
         } finally {
             logCustomizer.finished();
         }
@@ -287,13 +292,16 @@ public class NodeTypeTest extends AbstractRepositoryTest {
         try {
             Node b = session.getNode("/").addNode("b" + System.currentTimeMillis());
             b.addMixin(JcrConstants.MIX_REFERENCEABLE);
-            b.setProperty("jcr:uuid", UUID.randomUUID().toString());  // fails as jcr:uuid is protected
+            b.setProperty("jcr:uuid",
+                UUID.randomUUID().toString());  // fails as jcr:uuid is protected
             session.save();
             fail();
-        } catch (ConstraintViolationException expected) { }
+        } catch (ConstraintViolationException expected) {
+        }
 
         Node c = session.getNode("/").addNode("c" + System.currentTimeMillis());
-        c.setProperty("jcr:uuid", UUID.randomUUID().toString());      // Doesn't fail as jcr:uuid is not protected yet
+        c.setProperty("jcr:uuid",
+            UUID.randomUUID().toString());      // Doesn't fail as jcr:uuid is not protected yet
         c.addMixin(JcrConstants.MIX_REFERENCEABLE);
         session.save();
     }
@@ -305,8 +313,8 @@ public class NodeTypeTest extends AbstractRepositoryTest {
         NodeTypeManager manager = session.getWorkspace().getNodeTypeManager();
 
         String cnd = "<'test'='http://www.apache.org/jackrabbit/test'>\n" +
-                "[test:MyType] > nt:unstructured\n" +
-                " - test:mandatory (string) mandatory";
+            "[test:MyType] > nt:unstructured\n" +
+            " - test:mandatory (string) mandatory";
 
         CndImporter.registerNodeTypes(new StringReader(cnd), session);
 
@@ -325,7 +333,7 @@ public class NodeTypeTest extends AbstractRepositoryTest {
 
         // remove the mandatory property
         cnd = "<'test'='http://www.apache.org/jackrabbit/test'>\n" +
-                "[test:MyType] > nt:unstructured";
+            "[test:MyType] > nt:unstructured";
         CndImporter.registerNodeTypes(new StringReader(cnd), session, true);
 
         // check node type
@@ -344,8 +352,8 @@ public class NodeTypeTest extends AbstractRepositoryTest {
         NodeTypeManager manager = session.getWorkspace().getNodeTypeManager();
 
         String cnd = "<'test'='http://www.apache.org/jackrabbit/test'>\n" +
-                "[test:MyType] > nt:unstructured\n" +
-                " - test:mandatory (string) mandatory";
+            "[test:MyType] > nt:unstructured\n" +
+            " - test:mandatory (string) mandatory";
 
         CndImporter.registerNodeTypes(new StringReader(cnd), session);
 
@@ -364,8 +372,8 @@ public class NodeTypeTest extends AbstractRepositoryTest {
 
         // remove the mandatory property flag
         cnd = "<'test'='http://www.apache.org/jackrabbit/test'>\n" +
-                "[test:MyType] > nt:unstructured\n" +
-                " - test:mandatory (string)";
+            "[test:MyType] > nt:unstructured\n" +
+            " - test:mandatory (string)";
         CndImporter.registerNodeTypes(new StringReader(cnd), session, true);
 
         // check node type

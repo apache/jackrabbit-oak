@@ -16,12 +16,18 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
+import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.oak.spi.cluster.ClusterRepositoryInfo.getOrCreateId;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.Oak;
@@ -32,10 +38,9 @@ import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.OakFileDataStore;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
-import org.apache.jackrabbit.oak.plugins.index.lucene.directory.ActiveDeletedBlobCollectorFactory
-    .ActiveDeletedBlobCollectorImpl;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProvider;
+import org.apache.jackrabbit.oak.plugins.index.lucene.directory.ActiveDeletedBlobCollectorFactory.ActiveDeletedBlobCollectorImpl;
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
@@ -49,14 +54,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
-import static org.apache.jackrabbit.oak.spi.cluster.ClusterRepositoryInfo.getOrCreateId;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
 public class ActiveDeletedBlobSyncTrackerTest extends AbstractActiveDeletedBlobTest {
+
     @Rule
     public TemporaryFolder blobTrackerRoot = new TemporaryFolder(new File("target"));
 
@@ -65,13 +64,15 @@ public class ActiveDeletedBlobSyncTrackerTest extends AbstractActiveDeletedBlobT
         try {
             File blobCollectorDeleted = new File(blobCollectionRoot.getRoot(), "deleted-blobs");
             blobCollectorDeleted.mkdirs();
-            adbc = new ActiveDeletedBlobCollectorImpl(clock, new File(blobCollectionRoot.getRoot(), "deleted-blobs"),
+            adbc = new ActiveDeletedBlobCollectorImpl(clock,
+                new File(blobCollectionRoot.getRoot(), "deleted-blobs"),
                 executorService);
 
             IndexCopier copier = createIndexCopier();
             editorProvider =
-                new LuceneIndexEditorProvider(copier, null, new ExtractedTextCache(10 * FileUtils.ONE_MB,
-                    100), null,
+                new LuceneIndexEditorProvider(copier, null,
+                    new ExtractedTextCache(10 * FileUtils.ONE_MB,
+                        100), null,
                     Mounts.defaultMountInfoProvider(), adbc, null, null);
             provider = new LuceneIndexProvider(copier);
 
@@ -81,20 +82,23 @@ public class ActiveDeletedBlobSyncTrackerTest extends AbstractActiveDeletedBlobT
             DataStoreBlobStore dsbs = new DataStoreBlobStore(ds);
             this.blobStore = new AbstractActiveDeletedBlobTest.CountingBlobStore(dsbs);
 
-            FileStore store = FileStoreBuilder.fileStoreBuilder(temporaryFolder.getRoot()).withMemoryMapping(false)
-                .withBlobStore(blobStore).build();
+            FileStore store = FileStoreBuilder.fileStoreBuilder(temporaryFolder.getRoot())
+                                              .withMemoryMapping(false)
+                                              .withBlobStore(blobStore).build();
             nodeStore = SegmentNodeStoreBuilders.builder(store).build();
             BlobTrackingStore trackingStore = (BlobTrackingStore) blobStore;
             trackingStore.addTracker(
-                BlobIdTracker.build(blobTrackerRoot.getRoot().getAbsolutePath(), getOrCreateId(nodeStore), 600,
+                BlobIdTracker.build(blobTrackerRoot.getRoot().getAbsolutePath(),
+                    getOrCreateId(nodeStore), 600,
                     dsbs));
             // set the blob store to skip writing blobs through the node store
             editorProvider.setBlobStore(blobStore);
 
             asyncIndexUpdate = new AsyncIndexUpdate("async", nodeStore, editorProvider);
             return new Oak(nodeStore).with(new InitialContent()).with(new OpenSecurityProvider())
-                .with((QueryIndexProvider) provider).with((Observer) provider).with(editorProvider)
-                .createContentRepository();
+                                     .with((QueryIndexProvider) provider).with((Observer) provider)
+                                     .with(editorProvider)
+                                     .createContentRepository();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -117,7 +121,7 @@ public class ActiveDeletedBlobSyncTrackerTest extends AbstractActiveDeletedBlobT
         long time = clock.getTimeIncreasing();
         long hackPurgeNumChunks = blobStore.numChunks;
         assertEquals("Hack purge must not purge any blob (first commit)",
-                firstCommitNumChunks, hackPurgeNumChunks);
+            firstCommitNumChunks, hackPurgeNumChunks);
 
         root.getTree("/").addChild("test").setProperty("propa", "foo1");
         root.commit();
@@ -133,7 +137,8 @@ public class ActiveDeletedBlobSyncTrackerTest extends AbstractActiveDeletedBlobT
         long firstGCNumChunks = blobStore.numChunks;
 
         assertTrue("First commit must create some chunks", firstCommitNumChunks > initialNumChunks);
-        assertTrue("First commit must create some chunks", secondCommitNumChunks > firstCommitNumChunks);
+        assertTrue("First commit must create some chunks",
+            secondCommitNumChunks > firstCommitNumChunks);
         assertTrue("First GC should delete some chunks", firstGCNumChunks < secondCommitNumChunks);
 
         assertTrackedDeleted(blobStore.getAllChunkIds(-1), blobStore);
@@ -144,7 +149,8 @@ public class ActiveDeletedBlobSyncTrackerTest extends AbstractActiveDeletedBlobT
 
         List<String> afterDeletionIds = newArrayList(afterDeletions);
         // get the currently tracked ones
-        ArrayList<String> trackedIds = newArrayList(((BlobTrackingStore) blobStore).getTracker().get());
+        ArrayList<String> trackedIds = newArrayList(
+            ((BlobTrackingStore) blobStore).getTracker().get());
         assertEquals("Tracked ids length different from current blob list",
             trackedIds.size(), afterDeletionIds.size());
         assertTrue("Tracked ids different from current blob list",

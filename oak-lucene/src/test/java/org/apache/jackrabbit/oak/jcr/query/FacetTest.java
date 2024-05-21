@@ -18,6 +18,13 @@
  */
 package org.apache.jackrabbit.oak.jcr.query;
 
+import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
 import javax.jcr.RepositoryException;
@@ -27,11 +34,6 @@ import javax.jcr.query.QueryManager;
 import javax.jcr.query.QueryResult;
 import javax.jcr.query.RowIterator;
 import javax.jcr.security.Privilege;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.core.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
@@ -39,9 +41,6 @@ import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.query.facet.FacetResult;
 import org.junit.After;
 import org.junit.Before;
-
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 
 /**
  * Test for faceting capabilities via JCR API
@@ -93,7 +92,8 @@ public class FacetTest extends AbstractQueryTest {
             superuser.refresh(true);
         }
 
-        if (superuser.nodeExists("/oak:index/luceneGlobal/indexRules/nt:base/properties/relative")) {
+        if (superuser.nodeExists(
+            "/oak:index/luceneGlobal/indexRules/nt:base/properties/relative")) {
             superuser.removeItem("/oak:index/luceneGlobal/indexRules/nt:base/properties/relative");
             superuser.save();
             superuser.refresh(true);
@@ -120,7 +120,7 @@ public class FacetTest extends AbstractQueryTest {
 
         QueryManager qm = session.getWorkspace().getQueryManager();
         String sql2 = "select [jcr:path], [rep:facet(text)] from [nt:base] " +
-                "where contains([text], 'hello OR hallo') order by [jcr:path]";
+            "where contains([text], 'hello OR hallo') order by [jcr:path]";
         Query q = qm.createQuery(sql2, Query.JCR_SQL2);
         QueryResult result = q.execute();
         FacetResult facetResult = new FacetResult(result);
@@ -197,7 +197,7 @@ public class FacetTest extends AbstractQueryTest {
 
         QueryManager qm = session.getWorkspace().getQueryManager();
         String sql2 = "select [jcr:path], [rep:facet(jc/text)] from [nt:base] " +
-                "where contains([jc/text], 'hello OR hallo') order by [jcr:path]";
+            "where contains([jc/text], 'hello OR hallo') order by [jcr:path]";
         Query q = qm.createQuery(sql2, Query.JCR_SQL2);
         QueryResult result = q.execute();
         FacetResult facetResult = new FacetResult(result);
@@ -280,7 +280,7 @@ public class FacetTest extends AbstractQueryTest {
 
         QueryManager qm = session.getWorkspace().getQueryManager();
         String sql2 = "select [jcr:path], [rep:facet(tags)] from [nt:base] " +
-                "where contains([jcr:title], 'oak') order by [jcr:path]";
+            "where contains([jcr:title], 'oak') order by [jcr:path]";
         Query q = qm.createQuery(sql2, Query.JCR_SQL2);
         QueryResult result = q.execute();
         FacetResult facetResult = new FacetResult(result);
@@ -302,7 +302,6 @@ public class FacetTest extends AbstractQueryTest {
         assertEquals(1, facets.get(4).getCount(), 0);
         assertEquals("furniture", facets.get(5).getLabel());
         assertEquals(1, facets.get(5).getCount(), 0);
-
 
         NodeIterator nodes = result.getNodes();
         assertTrue(nodes.hasNext());
@@ -331,7 +330,7 @@ public class FacetTest extends AbstractQueryTest {
 
         QueryManager qm = session.getWorkspace().getQueryManager();
         String sql2 = "select [jcr:path], [rep:facet(text)] from [nt:base] " +
-                "where contains([text], 'hello OR hallo') order by [jcr:path]";
+            "where contains([text], 'hello OR hallo') order by [jcr:path]";
         Query q = qm.createQuery(sql2, Query.JCR_SQL2);
         QueryResult result = q.execute();
         FacetResult facetResult = new FacetResult(result);
@@ -371,7 +370,7 @@ public class FacetTest extends AbstractQueryTest {
 
         QueryManager qm = session.getWorkspace().getQueryManager();
         String sql2 = "select [jcr:path], [rep:facet(" + pn + ")] from [nt:base] " +
-                "where contains([" + pn + "], 'hallo') order by [jcr:path]";
+            "where contains([" + pn + "], 'hallo') order by [jcr:path]";
         Query q = qm.createQuery(sql2, Query.JCR_SQL2);
         QueryResult result = q.execute();
         FacetResult facetResult = new FacetResult(result);
@@ -410,7 +409,8 @@ public class FacetTest extends AbstractQueryTest {
         session.save();
 
         QueryManager qm = session.getWorkspace().getQueryManager();
-        String sql2 = "select [jcr:path], [rep:facet(" + pn + ")], [rep:facet(" + pn2 + ")] from [nt:base] " +
+        String sql2 =
+            "select [jcr:path], [rep:facet(" + pn + ")], [rep:facet(" + pn2 + ")] from [nt:base] " +
                 "where contains([" + pn + "], 'hallo') order by [jcr:path]";
         Query q = qm.createQuery(sql2, Query.JCR_SQL2);
         QueryResult result = q.execute();
@@ -485,7 +485,8 @@ public class FacetTest extends AbstractQueryTest {
         assertEquals(10, facets.size());
     }
 
-    public void testFacetRetrievalNumberOfFacetsConfiguredHigherThanDefault() throws RepositoryException {
+    public void testFacetRetrievalNumberOfFacetsConfiguredHigherThanDefault()
+        throws RepositoryException {
 
         Node facetsConfig = superuser.getNode(FACET_CONFING_NODE_PATH);
         facetsConfig.setProperty(FulltextIndexConstants.PROP_FACETS_TOP_CHILDREN, 11);
@@ -536,7 +537,8 @@ public class FacetTest extends AbstractQueryTest {
         assertEquals(11, facets.size());
     }
 
-    public void testFacetRetrievalNumberOfFacetsConfiguredLowerThanDefault() throws RepositoryException {
+    public void testFacetRetrievalNumberOfFacetsConfiguredLowerThanDefault()
+        throws RepositoryException {
 
         Node facetsConfig = superuser.getNode(FACET_CONFING_NODE_PATH);
         facetsConfig.setProperty(FulltextIndexConstants.PROP_FACETS_TOP_CHILDREN, 7);
@@ -680,7 +682,8 @@ public class FacetTest extends AbstractQueryTest {
         FacetResult facetResult = new FacetResult(result);
 
         assertNotNull("facetResult is null", facetResult);
-        assertEquals("Unexpected number of dimension", 1, facetResult.getFacets("jcr:title").size());
+        assertEquals("Unexpected number of dimension", 1,
+            facetResult.getFacets("jcr:title").size());
         FacetResult.Facet facet = facetResult.getFacets("jcr:title").get(0);
         assertEquals("Unexpected facet label", "test3", facet.getLabel());
         assertEquals("Unexpected facet count", 1, facet.getCount());
@@ -702,9 +705,10 @@ public class FacetTest extends AbstractQueryTest {
         assertNotNull("facetResult is null", facetResult);
         assertEquals("Unexpected number of labels", 2, facetResult.getFacets("jcr:title").size());
         Map<String, Integer> facets = facetResult.getFacets("jcr:title")
-                .stream().collect(Collectors.toMap(FacetResult.Facet::getLabel, FacetResult.Facet::getCount));
-        assertEquals("Unexpected facet count for jcr:title", 1, (int)facets.get("test"));
-        assertEquals("Unexpected facet count for jcr:title", 1, (int)facets.get("another-test"));
+                                                 .stream().collect(
+                Collectors.toMap(FacetResult.Facet::getLabel, FacetResult.Facet::getCount));
+        assertEquals("Unexpected facet count for jcr:title", 1, (int) facets.get("test"));
+        assertEquals("Unexpected facet count for jcr:title", 1, (int) facets.get("another-test"));
     }
 
     public void testAllowedSubNodeFacet() throws Exception {
@@ -733,7 +737,8 @@ public class FacetTest extends AbstractQueryTest {
         try {
             new FacetResult(result);
 
-            fail("Facet evaluation must fail if the index doesn't support the required faceted properties");
+            fail(
+                "Facet evaluation must fail if the index doesn't support the required faceted properties");
         } catch (RuntimeException iae) {
             if (iae.getCause() instanceof IllegalArgumentException) {
                 // expected and hence ignored
@@ -742,13 +747,16 @@ public class FacetTest extends AbstractQueryTest {
             }
         }
 
-        q = qm.createQuery("//*[@jcr:title]/(rep:facet(non-indexed1/jcr:title) | rep:facet(non-indexed2/jcr:title))", Query.XPATH);
+        q = qm.createQuery(
+            "//*[@jcr:title]/(rep:facet(non-indexed1/jcr:title) | rep:facet(non-indexed2/jcr:title))",
+            Query.XPATH);
         result = q.execute();
 
         try {
             new FacetResult(result);
 
-            fail("Facet evaluation must fail if the index doesn't support any of the required faceted properties");
+            fail(
+                "Facet evaluation must fail if the index doesn't support any of the required faceted properties");
         } catch (RuntimeException iae) {
             if (iae.getCause() instanceof IllegalArgumentException) {
                 // expected and hence ignored
@@ -759,13 +767,16 @@ public class FacetTest extends AbstractQueryTest {
     }
 
     public void testSomeNonIndexedFacetedQuery() throws Exception {
-        Query q = qm.createQuery("//*[@jcr:title]/(rep:facet(non-indexed/jcr:title) | rep:facet(jcr:title))", Query.XPATH);
+        Query q = qm.createQuery(
+            "//*[@jcr:title]/(rep:facet(non-indexed/jcr:title) | rep:facet(jcr:title))",
+            Query.XPATH);
         QueryResult result = q.execute();
 
         try {
             new FacetResult(result);
 
-            fail("Facet evaluation must fail if the index doesn't support some of the required faceted properties");
+            fail(
+                "Facet evaluation must fail if the index doesn't support some of the required faceted properties");
         } catch (RuntimeException iae) {
             if (iae.getCause() instanceof IllegalArgumentException) {
                 // expected and hence ignored
@@ -783,7 +794,8 @@ public class FacetTest extends AbstractQueryTest {
 
         Session anonUser = getHelper().getReadOnlySession();
         QueryManager queryManager = anonUser.getWorkspace().getQueryManager();
-        Query q = queryManager.createQuery("//*[jcr:contains(jc/@text, 'test')]/(rep:facet(jc/text))", Query.XPATH);
+        Query q = queryManager.createQuery(
+            "//*[jcr:contains(jc/@text, 'test')]/(rep:facet(jc/text))", Query.XPATH);
         QueryResult result = q.execute();
         FacetResult facetResult = new FacetResult(result);
 
@@ -798,18 +810,18 @@ public class FacetTest extends AbstractQueryTest {
     public void testDistinctUnionWithDifferentFacetsOnSubQueries() throws Exception {
         Node n1 = testRootNode.addNode("node1");
         n1.setProperty("text", "t1");
-        n1.setProperty("name","Node1");
+        n1.setProperty("name", "Node1");
         // make sure that facet values from both ends of OR clause are different
         // the test is essentially that facet columns don't define uniqueness of a row
         Node n3 = testRootNode.addNode("node3");
         n3.setProperty("text", "t1");
-        n3.setProperty("name","Node3");
+        n3.setProperty("name", "Node3");
         superuser.save();
 
         String xpath = "//*[@text = 't1' or @name = 'Node1']/(rep:facet(text))";
         Query q = qm.createQuery(xpath, Query.XPATH);
         QueryResult result = q.execute();
-        RowIterator rows=result.getRows();
+        RowIterator rows = result.getRows();
 
         assertEquals(2, rows.getSize());
     }
@@ -818,17 +830,17 @@ public class FacetTest extends AbstractQueryTest {
         Node n1 = testRootNode.addNode("node1");
         n1.setProperty("text", "t1");
         n1.setProperty("x", "x1");
-        n1.setProperty("name","Node1");
+        n1.setProperty("name", "Node1");
 
         Node n2 = testRootNode.addNode("node2");
         n2.setProperty("text", "t2");
         n2.setProperty("x", "x2");
-        n2.setProperty("name","Node2");
+        n2.setProperty("name", "Node2");
 
         Node n3 = testRootNode.addNode("node3");
         n3.setProperty("text", "t3");
         n3.setProperty("x", "x3");
-        n3.setProperty("name","Node3");
+        n3.setProperty("name", "Node3");
         superuser.save();
 
         String xpath = "//*[@name = 'Node1' or @text = 't2' or @x = 'x3']/(rep:facet(text))";
@@ -852,8 +864,9 @@ public class FacetTest extends AbstractQueryTest {
     }
 
     /**
-     * Tests the scenario where we have a facet query and the traversal cost is less than the index cost that
-     * serves the facet query. TraversingIndex should not be used for facets.
+     * Tests the scenario where we have a facet query and the traversal cost is less than the index
+     * cost that serves the facet query. TraversingIndex should not be used for facets.
+     *
      * @throws Exception in case of errors.
      */
     public void testTraversalNotAllowed() throws Exception {
@@ -864,12 +877,13 @@ public class FacetTest extends AbstractQueryTest {
         luceneGlobal.getProperty("testMode").remove();
         Node n1 = testRootNode.addNode("node1");
         n1.setProperty("text", "t1");
-        n1.setProperty("name","Node1");
+        n1.setProperty("name", "Node1");
         markIndexForReindex();
         superuser.save();
         QueryManager qm = superuser.getWorkspace().getQueryManager();
         // use issamenode() so that traversal cost comes low
-        String xpath = "select [rep:facet(text)] from [nt:base] where issamenode('" + n1.getPath() +  "') and [text]='t1'";
+        String xpath = "select [rep:facet(text)] from [nt:base] where issamenode('" + n1.getPath()
+            + "') and [text]='t1'";
         Query q = qm.createQuery(xpath, Query.JCR_SQL2);
         QueryResult result = q.execute();
         assertEquals(result.getRows().getSize(), 1);
@@ -882,27 +896,27 @@ public class FacetTest extends AbstractQueryTest {
         // first set of nodes matching first condition (x1 = v1)
         Node n11 = testRootNode.addNode("node11");
         n11.setProperty("text", "t1");
-        n11.setProperty("x1","v1");
+        n11.setProperty("x1", "v1");
         Node n12 = testRootNode.addNode("node12");
         n12.setProperty("text", "t1");
-        n12.setProperty("x1","v1");
+        n12.setProperty("x1", "v1");
         Node n13 = testRootNode.addNode("node13");
         n13.setProperty("text", "t2");
-        n13.setProperty("x1","v1");
+        n13.setProperty("x1", "v1");
 
         // second set of nodes matching second condition (x2 = v2)
         Node n21 = testRootNode.addNode("node21");
         n21.setProperty("text", "t2");
-        n21.setProperty("x2","v2");
+        n21.setProperty("x2", "v2");
         Node n22 = testRootNode.addNode("node22");
         n22.setProperty("text", "t1");
-        n22.setProperty("x2","v2");
+        n22.setProperty("x2", "v2");
         Node n23 = testRootNode.addNode("node23");
         n23.setProperty("text", "t1");
-        n23.setProperty("x2","v2");
+        n23.setProperty("x2", "v2");
         Node n24 = testRootNode.addNode("node24");
         n24.setProperty("text", "t1");
-        n24.setProperty("x2","v2");
+        n24.setProperty("x2", "v2");
 
         superuser.save();
 

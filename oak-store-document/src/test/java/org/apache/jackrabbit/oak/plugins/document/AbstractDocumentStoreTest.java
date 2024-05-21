@@ -52,33 +52,39 @@ public abstract class AbstractDocumentStoreTest {
     public DocumentMK.Builder getBuilder() {
         return new DocumentMK.Builder();
     }
-    
+
     @After
     public void cleanUp() throws Exception {
         removeTestNodes(org.apache.jackrabbit.oak.plugins.document.Collection.NODES, removeMe);
-        removeTestNodes(org.apache.jackrabbit.oak.plugins.document.Collection.SETTINGS, removeMeSettings);
-        removeTestNodes(org.apache.jackrabbit.oak.plugins.document.Collection.JOURNAL, removeMeJournal);
-        removeTestNodes(org.apache.jackrabbit.oak.plugins.document.Collection.CLUSTER_NODES, removeMeClusterNodes);
+        removeTestNodes(org.apache.jackrabbit.oak.plugins.document.Collection.SETTINGS,
+            removeMeSettings);
+        removeTestNodes(org.apache.jackrabbit.oak.plugins.document.Collection.JOURNAL,
+            removeMeJournal);
+        removeTestNodes(org.apache.jackrabbit.oak.plugins.document.Collection.CLUSTER_NODES,
+            removeMeClusterNodes);
         ds.dispose();
         dsf.dispose();
     }
 
-    @Parameterized.Parameters(name="{0}")
+    @Parameterized.Parameters(name = "{0}")
     public static Collection<Object[]> fixtures() {
         return fixtures(false);
     }
 
     protected static Collection<Object[]> fixtures(boolean multi) {
         Collection<Object[]> result = new ArrayList<Object[]>();
-        DocumentStoreFixture candidates[] = new DocumentStoreFixture[] { DocumentStoreFixture.MEMORY, DocumentStoreFixture.MONGO,
-                DocumentStoreFixture.RDB_H2, DocumentStoreFixture.RDB_DERBY, DocumentStoreFixture.RDB_PG,
-                DocumentStoreFixture.RDB_DB2, DocumentStoreFixture.RDB_MYSQL, DocumentStoreFixture.RDB_ORACLE,
-                DocumentStoreFixture.RDB_MSSQL };
+        DocumentStoreFixture candidates[] = new DocumentStoreFixture[]{DocumentStoreFixture.MEMORY,
+            DocumentStoreFixture.MONGO,
+            DocumentStoreFixture.RDB_H2, DocumentStoreFixture.RDB_DERBY,
+            DocumentStoreFixture.RDB_PG,
+            DocumentStoreFixture.RDB_DB2, DocumentStoreFixture.RDB_MYSQL,
+            DocumentStoreFixture.RDB_ORACLE,
+            DocumentStoreFixture.RDB_MSSQL};
 
         for (DocumentStoreFixture dsf : candidates) {
             if (dsf.isAvailable()) {
                 if (!multi || dsf.hasSinglePersistence()) {
-                    result.add(new Object[] { dsf });
+                    result.add(new Object[]{dsf});
                 }
             }
         }
@@ -107,13 +113,14 @@ public abstract class AbstractDocumentStoreTest {
     public static String generateConstantString(int length) {
         char[] s = new char[length];
         for (int i = 0; i < length; i++) {
-            s[i] = (char)('0' + (i % 10));
+            s[i] = (char) ('0' + (i % 10));
         }
         return new String(s);
     }
 
-    private <T extends Document> void removeTestNodes(org.apache.jackrabbit.oak.plugins.document.Collection<T> col,
-            List<String> ids) {
+    private <T extends Document> void removeTestNodes(
+        org.apache.jackrabbit.oak.plugins.document.Collection<T> col,
+        List<String> ids) {
         if (!ids.isEmpty()) {
             long start = System.nanoTime();
             try {

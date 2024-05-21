@@ -19,19 +19,19 @@ package org.apache.jackrabbit.oak.plugins.document.rdb;
 import java.util.Arrays;
 
 /**
- * Convenience class that dumps the table creation statements for various
- * database types.
+ * Convenience class that dumps the table creation statements for various database types.
  * <p>
  * Run with:
- * 
+ *
  * <pre>
  * java -cp oak-run-<i>version</i>.jar org.apache.jackrabbit.oak.plugins.document.rdb.RDBHelper
  * </pre>
  */
 public class RDBHelper {
 
-    private static String[] DATABASES = { "Apache Derby", "DB2", "H2", "Microsoft SQL Server", "MySQL", "Oracle", "PostgreSQL",
-            "default" };
+    private static String[] DATABASES = {"Apache Derby", "DB2", "H2", "Microsoft SQL Server",
+        "MySQL", "Oracle", "PostgreSQL",
+        "default"};
 
     public static void main(String[] args) {
 
@@ -39,9 +39,11 @@ public class RDBHelper {
         int initial = defaultOpts.getInitialSchema();
         int upgradeTo = defaultOpts.getUpgradeToSchema();
         System.out.println("Table Creation Statements for RDBBlobStore and RDBDocumentStore");
-        System.out.println("RDBDocumentStore initial version: " + initial + ", with modifications up to version: " + upgradeTo);
         System.out.println(
-                "(use system properties org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions.INITIALSCHEMA and org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions.UPGRADETOSCHEMA to specify initial DB schema, and schema to upgrade to)");
+            "RDBDocumentStore initial version: " + initial + ", with modifications up to version: "
+                + upgradeTo);
+        System.out.println(
+            "(use system properties org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions.INITIALSCHEMA and org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions.UPGRADETOSCHEMA to specify initial DB schema, and schema to upgrade to)");
         System.out.println();
 
         for (String database : DATABASES) {
@@ -58,10 +60,10 @@ public class RDBHelper {
 
         if (database == null) {
             internalDump(initial == null ? defaultOpts.getInitialSchema() : initial,
-                    upgrade == null ? defaultOpts.getUpgradeToSchema() : upgrade);
+                upgrade == null ? defaultOpts.getUpgradeToSchema() : upgrade);
         } else {
             internalDump(database, initial == null ? defaultOpts.getInitialSchema() : initial,
-                    upgrade == null ? defaultOpts.getUpgradeToSchema() : upgrade);
+                upgrade == null ? defaultOpts.getUpgradeToSchema() : upgrade);
         }
     }
 

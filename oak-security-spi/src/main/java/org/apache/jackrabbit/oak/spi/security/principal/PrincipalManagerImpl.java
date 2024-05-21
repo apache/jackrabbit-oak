@@ -54,7 +54,8 @@ public class PrincipalManagerImpl implements PrincipalQueryManager, PrincipalMan
     @Override
     @NotNull
     public PrincipalIterator findPrincipals(@Nullable String simpleFilter, int searchType) {
-        return new PrincipalIteratorAdapter(principalProvider.findPrincipals(simpleFilter, searchType));
+        return new PrincipalIteratorAdapter(
+            principalProvider.findPrincipals(simpleFilter, searchType));
     }
 
     @Override
@@ -81,7 +82,9 @@ public class PrincipalManagerImpl implements PrincipalQueryManager, PrincipalMan
 
     @NotNull
     @Override
-    public PrincipalIterator findPrincipals(@Nullable String simpleFilter, boolean fullText, int searchType, long offset, long limit) {
-        return new PrincipalIteratorAdapter(principalProvider.findPrincipals(simpleFilter, fullText, searchType, offset, limit));
+    public PrincipalIterator findPrincipals(@Nullable String simpleFilter, boolean fullText,
+        int searchType, long offset, long limit) {
+        return new PrincipalIteratorAdapter(
+            principalProvider.findPrincipals(simpleFilter, fullText, searchType, offset, limit));
     }
 }

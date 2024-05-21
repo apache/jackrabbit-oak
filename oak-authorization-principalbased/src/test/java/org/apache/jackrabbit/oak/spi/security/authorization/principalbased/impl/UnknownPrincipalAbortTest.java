@@ -45,8 +45,8 @@ public class UnknownPrincipalAbortTest extends AbstractPrincipalBasedTest {
     @Override
     protected ConfigurationParameters getSecurityConfigParameters() {
         return ConfigurationParameters.of(AuthorizationConfiguration.NAME,
-                ConfigurationParameters.of(
-                        ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, ImportBehavior.NAME_ABORT)
+            ConfigurationParameters.of(
+                ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, ImportBehavior.NAME_ABORT)
         );
     }
 
@@ -62,7 +62,8 @@ public class UnknownPrincipalAbortTest extends AbstractPrincipalBasedTest {
 
     @Test(expected = AccessControlException.class)
     public void testGetEffectivePolicies() throws Exception {
-        AccessControlPolicy[] policies = acMgr.getEffectivePolicies(ImmutableSet.of(getTestSystemUser().getPrincipal(), new PrincipalImpl("unknown")));
+        AccessControlPolicy[] policies = acMgr.getEffectivePolicies(
+            ImmutableSet.of(getTestSystemUser().getPrincipal(), new PrincipalImpl("unknown")));
         assertEquals(0, policies.length);
     }
 }

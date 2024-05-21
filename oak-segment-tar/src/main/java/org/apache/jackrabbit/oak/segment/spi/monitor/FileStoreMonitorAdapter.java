@@ -18,8 +18,8 @@
 package org.apache.jackrabbit.oak.segment.spi.monitor;
 
 /**
- * A void implementation of the {@link FileStoreMonitor}. Can be used for the
- * testing purposes or for the extension.
+ * A void implementation of the {@link FileStoreMonitor}. Can be used for the testing purposes or
+ * for the extension.
  */
 public class FileStoreMonitorAdapter implements FileStoreMonitor {
 

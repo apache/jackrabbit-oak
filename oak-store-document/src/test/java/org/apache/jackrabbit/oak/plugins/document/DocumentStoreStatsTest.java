@@ -52,19 +52,20 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentStoreStats.NODE
 import static org.junit.Assert.assertEquals;
 
 public class DocumentStoreStatsTest {
+
     private ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
     private MetricStatisticsProvider statsProvider =
-            new MetricStatisticsProvider(ManagementFactory.getPlatformMBeanServer(),executor);
+        new MetricStatisticsProvider(ManagementFactory.getPlatformMBeanServer(), executor);
     private DocumentStoreStats stats = new DocumentStoreStats(statsProvider);
 
     @After
-    public void shutDown(){
+    public void shutDown() {
         statsProvider.close();
         new ExecutorCloser(executor).close();
     }
 
     @Test
-    public void doneFindCached() throws Exception{
+    public void doneFindCached() throws Exception {
         stats.doneFindCached(Collection.NODES, "foo");
         assertEquals(1, getMeter(DocumentStoreStats.NODES_FIND_CACHED).getCount());
 
@@ -73,7 +74,7 @@ public class DocumentStoreStatsTest {
     }
 
     @Test
-    public void doneFindUncached() throws Exception{
+    public void doneFindUncached() throws Exception {
         stats.doneFindUncached(100, Collection.NODES, "0:/", true, false);
         assertEquals(1, getMeter(DocumentStoreStats.NODES_FIND_PRIMARY).getCount());
         assertEquals(100, getTimer(DocumentStoreStats.NODES_FIND_TIMER).getSnapshot().getMax());
@@ -93,7 +94,7 @@ public class DocumentStoreStatsTest {
     }
 
     @Test
-    public void doneQuery_Nodes() throws Exception{
+    public void doneQuery_Nodes() throws Exception {
         stats.doneQuery(100, Collection.NODES, "foo", "bar", false, 5, -1, false);
         assertEquals(5, getMeter(DocumentStoreStats.NODES_QUERY_FIND_READ_COUNT).getCount());
         assertEquals(1, getMeter(DocumentStoreStats.NODES_QUERY_PRIMARY).getCount());
@@ -108,14 +109,14 @@ public class DocumentStoreStatsTest {
     }
 
     @Test
-    public void doneQuery_Journal() throws Exception{
+    public void doneQuery_Journal() throws Exception {
         stats.doneQuery(100, Collection.JOURNAL, "foo", "bar", false, 5, -1, false);
         assertEquals(5, getMeter(DocumentStoreStats.JOURNAL_QUERY).getCount());
         assertEquals(1, getTimer(DocumentStoreStats.JOURNAL_QUERY_TIMER).getCount());
     }
 
     @Test
-    public void doneCreate_Journal() throws Exception{
+    public void doneCreate_Journal() throws Exception {
         stats.doneCreate(100, Collection.JOURNAL, of("a", "b"), true);
         assertEquals(2, getMeter(DocumentStoreStats.JOURNAL_CREATE).getCount());
         assertEquals(100, getTimer(DocumentStoreStats.JOURNAL_CREATE_TIMER).getSnapshot().getMax());
@@ -171,7 +172,8 @@ public class DocumentStoreStatsTest {
         assertEquals(50, getTimer(NODES_CREATE_UPSERT_TIMER).getSnapshot().getMax());
 
         // adding an Id with previous Doc
-        stats.doneCreateOrUpdate(200, NODES, of("15:p/a/b/c/d/e/f/g/h/i/j/k/l/m/r182f83543dd-0-0/3"));
+        stats.doneCreateOrUpdate(200, NODES,
+            of("15:p/a/b/c/d/e/f/g/h/i/j/k/l/m/r182f83543dd-0-0/3"));
         assertEquals(3, getMeter(NODES_CREATE_UPSERT).getCount());
         assertEquals(1, getMeter(NODES_CREATE_SPLIT).getCount());
         assertEquals(200, getTimer(NODES_CREATE_UPSERT_TIMER).getSnapshot().getMax());
@@ -185,10 +187,11 @@ public class DocumentStoreStatsTest {
     }
 
     @Test
-    public void doneFindAndModify() throws Exception{
+    public void doneFindAndModify() throws Exception {
         stats.doneFindAndModify(100, Collection.NODES, "foo", true, true, 0);
         assertEquals(1, getMeter(DocumentStoreStats.NODES_CREATE_UPSERT).getCount());
-        assertEquals(100, getTimer(DocumentStoreStats.NODES_CREATE_UPSERT_TIMER).getSnapshot().getMax());
+        assertEquals(100,
+            getTimer(DocumentStoreStats.NODES_CREATE_UPSERT_TIMER).getSnapshot().getMax());
 
         stats.doneFindAndModify(100, Collection.NODES, "foo", false, true, 0);
         assertEquals(1, getMeter(NODES_UPDATE).getCount());
@@ -233,7 +236,7 @@ public class DocumentStoreStatsTest {
     }
 
     @Test
-    public void doneFindAndModifyRetryAndFailure() throws Exception{
+    public void doneFindAndModifyRetryAndFailure() throws Exception {
         stats.doneFindAndModify(100, Collection.NODES, "foo", true, false, 3);
         assertEquals(1, getMeter(DocumentStoreStats.NODES_UPDATE_FAILURE).getCount());
         assertEquals(3, getMeter(NODES_UPDATE_RETRY_COUNT).getCount());
@@ -252,11 +255,11 @@ public class DocumentStoreStatsTest {
     }
 
     @Test
-    public void perfLog() throws Exception{
+    public void perfLog() throws Exception {
         String logName = DocumentStoreStats.class.getName() + ".perf";
         LogCustomizer customLogs = LogCustomizer.forLogger(logName)
-                .filter(Level.TRACE)
-                .create();
+                                                .filter(Level.TRACE)
+                                                .create();
 
         enableLevel(logName, Level.INFO);
         customLogs.starting();
@@ -265,7 +268,8 @@ public class DocumentStoreStatsTest {
         stats.doneFindAndModify(100, Collection.NODES, "foo", true, true, 0);
         assertEquals(0, customLogs.getLogs().size());
 
-        stats.doneFindAndModify(TimeUnit.SECONDS.toNanos(10), Collection.NODES, "foo", true, true, 0);
+        stats.doneFindAndModify(TimeUnit.SECONDS.toNanos(10), Collection.NODES, "foo", true, true,
+            0);
         assertEquals(0, customLogs.getLogs().size());
 
         //Change level to DEBUG - Now threshold rule applies
@@ -274,7 +278,8 @@ public class DocumentStoreStatsTest {
         stats.doneFindAndModify(100, Collection.NODES, "foo", true, true, 0);
         assertEquals(0, customLogs.getLogs().size());
 
-        stats.doneFindAndModify(TimeUnit.SECONDS.toNanos(10), Collection.NODES, "foo", true, true, 0);
+        stats.doneFindAndModify(TimeUnit.SECONDS.toNanos(10), Collection.NODES, "foo", true, true,
+            0);
         assertEquals(1, customLogs.getLogs().size());
 
         //With trace level everything is logged
@@ -294,8 +299,8 @@ public class DocumentStoreStatsTest {
         return statsProvider.getRegistry().getTimers().get(name);
     }
 
-    private static void enableLevel(String logName, Level level){
-        ((LoggerContext)LoggerFactory.getILoggerFactory())
-                .getLogger(logName).setLevel(level);
+    private static void enableLevel(String logName, Level level) {
+        ((LoggerContext) LoggerFactory.getILoggerFactory())
+            .getLogger(logName).setLevel(level);
     }
 }

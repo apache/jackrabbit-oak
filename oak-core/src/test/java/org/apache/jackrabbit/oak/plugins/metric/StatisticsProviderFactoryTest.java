@@ -19,12 +19,14 @@
 
 package org.apache.jackrabbit.oak.plugins.metric;
 
-import java.lang.management.ManagementFactory;
-import java.util.Collections;
-
-import javax.management.MBeanServer;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import com.codahale.metrics.MetricRegistry;
+import java.lang.management.ManagementFactory;
+import java.util.Collections;
+import javax.management.MBeanServer;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
@@ -33,10 +35,6 @@ import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
-
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 
 public class StatisticsProviderFactoryTest {
 

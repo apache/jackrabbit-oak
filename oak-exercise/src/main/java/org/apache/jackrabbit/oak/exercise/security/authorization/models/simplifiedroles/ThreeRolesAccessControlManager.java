@@ -26,9 +26,8 @@ import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.AccessControlPolicyIterator;
 import javax.jcr.security.Privilege;
 import javax.jcr.version.VersionException;
-
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.commons.iterator.AccessControlPolicyIteratorAdapter;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.PolicyOwner;
@@ -39,31 +38,36 @@ class ThreeRolesAccessControlManager implements PolicyOwner, AccessControlManage
 
     private final String supportedPath;
 
-    ThreeRolesAccessControlManager(@NotNull Root root, @NotNull String supportedPath, @NotNull SecurityProvider securityProvider) {
+    ThreeRolesAccessControlManager(@NotNull Root root, @NotNull String supportedPath,
+        @NotNull SecurityProvider securityProvider) {
         this.supportedPath = supportedPath;
         // EXERCISE
     }
 
     @Override
-    public Privilege[] getSupportedPrivileges(String absPath) throws PathNotFoundException, RepositoryException {
+    public Privilege[] getSupportedPrivileges(String absPath)
+        throws PathNotFoundException, RepositoryException {
         // EXERCISE
         return new Privilege[0];
     }
 
     @Override
-    public Privilege privilegeFromName(String privilegeName) throws AccessControlException, RepositoryException {
+    public Privilege privilegeFromName(String privilegeName)
+        throws AccessControlException, RepositoryException {
         // EXERCISE
         return null;
     }
 
     @Override
-    public boolean hasPrivileges(String absPath, Privilege[] privileges) throws PathNotFoundException, RepositoryException {
+    public boolean hasPrivileges(String absPath, Privilege[] privileges)
+        throws PathNotFoundException, RepositoryException {
         // EXERCISE
         return false;
     }
 
     @Override
-    public Privilege[] getPrivileges(String absPath) throws PathNotFoundException, RepositoryException {
+    public Privilege[] getPrivileges(String absPath)
+        throws PathNotFoundException, RepositoryException {
         // EXERCISE
         return new Privilege[0];
     }
@@ -72,37 +76,43 @@ class ThreeRolesAccessControlManager implements PolicyOwner, AccessControlManage
      * See {@code L5_CustomAccessControlManagementTest.testGetPolicies}
      */
     @Override
-    public AccessControlPolicy[] getPolicies(String absPath) throws PathNotFoundException, AccessDeniedException, RepositoryException {
+    public AccessControlPolicy[] getPolicies(String absPath)
+        throws PathNotFoundException, AccessDeniedException, RepositoryException {
         // EXERCISE
         return new AccessControlPolicy[0];
     }
 
     @Override
-    public AccessControlPolicy[] getEffectivePolicies(String absPath) throws PathNotFoundException, AccessDeniedException, RepositoryException {
+    public AccessControlPolicy[] getEffectivePolicies(String absPath)
+        throws PathNotFoundException, AccessDeniedException, RepositoryException {
         // EXERCISE
         return new AccessControlPolicy[0];
     }
 
     @Override
-    public AccessControlPolicyIterator getApplicablePolicies(String absPath) throws PathNotFoundException, AccessDeniedException, RepositoryException {
+    public AccessControlPolicyIterator getApplicablePolicies(String absPath)
+        throws PathNotFoundException, AccessDeniedException, RepositoryException {
         // EXERCISE
         return new AccessControlPolicyIteratorAdapter(ImmutableList.of());
     }
 
     @Override
-    public void setPolicy(String absPath, AccessControlPolicy policy) throws PathNotFoundException, AccessControlException, AccessDeniedException, LockException, VersionException, RepositoryException {
+    public void setPolicy(String absPath, AccessControlPolicy policy)
+        throws PathNotFoundException, AccessControlException, AccessDeniedException, LockException, VersionException, RepositoryException {
         // EXERCISE
 
     }
 
     @Override
-    public void removePolicy(String absPath, AccessControlPolicy policy) throws PathNotFoundException, AccessControlException, AccessDeniedException, LockException, VersionException, RepositoryException {
+    public void removePolicy(String absPath, AccessControlPolicy policy)
+        throws PathNotFoundException, AccessControlException, AccessDeniedException, LockException, VersionException, RepositoryException {
         // EXERCISE
 
     }
 
     @Override
-    public boolean defines(@Nullable String absPath, @NotNull AccessControlPolicy accessControlPolicy) {
+    public boolean defines(@Nullable String absPath,
+        @NotNull AccessControlPolicy accessControlPolicy) {
         if (Utils.isSupportedPath(supportedPath, absPath)) {
             // EXERCISE
         }

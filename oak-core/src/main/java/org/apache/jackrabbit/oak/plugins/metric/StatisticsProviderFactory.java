@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.metric;
 
+import com.codahale.metrics.MetricRegistry;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.Dictionary;
@@ -26,9 +27,7 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-
 import javax.management.MBeanServer;
-
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
@@ -46,8 +45,6 @@ import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 import org.osgi.service.metatype.annotations.Option;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.codahale.metrics.MetricRegistry;
 
 /**
  * Factory to create StatisticsProvider depending on setup. It detects if the

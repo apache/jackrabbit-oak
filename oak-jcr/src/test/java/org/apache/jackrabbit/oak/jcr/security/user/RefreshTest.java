@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.jcr.security.user;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
-
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.User;
@@ -29,8 +28,7 @@ import org.apache.jackrabbit.test.RepositoryStub;
 import org.junit.Test;
 
 /**
- * Tests asserting that auto-refresh on session is properly propagated to the
- * user management API.
+ * Tests asserting that auto-refresh on session is properly propagated to the user management API.
  */
 public class RefreshTest extends AbstractUserTest {
 
@@ -41,8 +39,10 @@ public class RefreshTest extends AbstractUserTest {
     protected void setUp() throws Exception {
         super.setUp();
 
-        String adminId = getHelper().getProperty(RepositoryStub.PROP_PREFIX + '.' + RepositoryStub.PROP_SUPERUSER_NAME);
-        String adminPw = getHelper().getProperty(RepositoryStub.PROP_PREFIX + '.' + RepositoryStub.PROP_SUPERUSER_PWD);
+        String adminId = getHelper().getProperty(
+            RepositoryStub.PROP_PREFIX + '.' + RepositoryStub.PROP_SUPERUSER_NAME);
+        String adminPw = getHelper().getProperty(
+            RepositoryStub.PROP_PREFIX + '.' + RepositoryStub.PROP_SUPERUSER_PWD);
         SimpleCredentials credentials = new SimpleCredentials(adminId, adminPw.toCharArray());
         credentials.setAttribute(RepositoryImpl.REFRESH_INTERVAL, 0);
         adminSession = getHelper().getRepository().login(credentials);

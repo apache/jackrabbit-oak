@@ -29,7 +29,8 @@ public class ComparisonImpl extends ConstraintImpl implements Comparison {
     private final Operator operator;
     private final StaticOperandImpl operand2;
 
-    public ComparisonImpl(DynamicOperandImpl operand1, Operator operator, StaticOperandImpl operand2) {
+    public ComparisonImpl(DynamicOperandImpl operand1, Operator operator,
+        StaticOperandImpl operand2) {
         this.operand1 = operand1;
         this.operator = operator;
         this.operand2 = operand2;

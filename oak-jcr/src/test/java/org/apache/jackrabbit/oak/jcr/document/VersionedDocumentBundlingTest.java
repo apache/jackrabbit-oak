@@ -19,9 +19,13 @@
 
 package org.apache.jackrabbit.oak.jcr.document;
 
+import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
+import static org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest.dispose;
+import static org.apache.jackrabbit.oak.plugins.document.bundlor.DocumentBundlor.PROP_PATTERN;
+import static org.junit.Assert.assertNull;
+
 import java.io.IOException;
 import java.io.StringReader;
-
 import javax.jcr.Node;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
@@ -29,18 +33,15 @@ import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 import javax.jcr.version.Version;
 import javax.jcr.version.VersionManager;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.commons.cnd.CndImporter;
 import org.apache.jackrabbit.commons.cnd.ParseException;
 import org.apache.jackrabbit.oak.NodeStoreFixtures;
 import org.apache.jackrabbit.oak.Oak;
-import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
-import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
@@ -50,19 +51,14 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
-import static org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest.dispose;
-import static org.apache.jackrabbit.oak.plugins.document.bundlor.DocumentBundlor.PROP_PATTERN;
-import static org.junit.Assert.assertNull;
-
 public class VersionedDocumentBundlingTest {
+
     public static final String TEST_NODE_TYPE = "[oak:Asset]\n" +
-            " - * (UNDEFINED) multiple\n" +
-            " - * (UNDEFINED)\n" +
-            " + * (nt:base) = oak:TestNode VERSION";
+        " - * (UNDEFINED) multiple\n" +
+        " - * (UNDEFINED)\n" +
+        " + * (nt:base) = oak:TestNode VERSION";
 
     private NodeStoreFixture fixture;
     private NodeStore ns;
@@ -76,31 +72,32 @@ public class VersionedDocumentBundlingTest {
         fixture = NodeStoreFixtures.DOCUMENT_MEM;
 
         ns = fixture.createNodeStore();
-        if (ns == null){
+        if (ns == null) {
             return;
         }
-        ds = ((DocumentNodeStore)ns).getDocumentStore();
+        ds = ((DocumentNodeStore) ns).getDocumentStore();
         Oak oak = new Oak(ns);
-        repository  = new Jcr(oak).createRepository();
+        repository = new Jcr(oak).createRepository();
         s = repository.login(new SimpleCredentials("admin", "admin".toCharArray()));
         configureBundling();
     }
 
     @After
-    public void tearDown(){
-        if (s != null){
+    public void tearDown() {
+        if (s != null) {
             s.logout();
         }
 
         dispose(repository);
-        if (ns != null){
+        if (ns != null) {
             fixture.dispose(ns);
         }
     }
 
     @Test
-    public void createVersionedNode() throws Exception{
-        Node asset = JcrUtils.getOrCreateByPath("/bundlingtest/foo.png", "oak:Unstructured", "oak:Asset", s, false);
+    public void createVersionedNode() throws Exception {
+        Node asset = JcrUtils.getOrCreateByPath("/bundlingtest/foo.png", "oak:Unstructured",
+            "oak:Asset", s, false);
         asset.addMixin(JcrConstants.MIX_VERSIONABLE);
         Node content = asset.addNode("jcr:content", "oak:Unstructured");
         content.addNode("metadata", "oak:Unstructured");
@@ -118,9 +115,10 @@ public class VersionedDocumentBundlingTest {
     }
 
     @Test
-    public void restoreVersionedNode() throws Exception{
+    public void restoreVersionedNode() throws Exception {
         String assetParentPath = "/bundlingtest/par";
-        Node asset = JcrUtils.getOrCreateByPath(assetParentPath + "/foo.png", "oak:Unstructured", "oak:Asset", s, false);
+        Node asset = JcrUtils.getOrCreateByPath(assetParentPath + "/foo.png", "oak:Unstructured",
+            "oak:Asset", s, false);
         Node assetParent = s.getNode(assetParentPath);
         assetParent.addMixin(JcrConstants.MIX_VERSIONABLE);
         asset.addNode("jcr:content", "oak:Unstructured");
@@ -138,12 +136,13 @@ public class VersionedDocumentBundlingTest {
 
     private void configureBundling() throws ParseException, RepositoryException, IOException {
         CndImporter.registerNodeTypes(new StringReader(TEST_NODE_TYPE), s);
-        Node bundlor = JcrUtils.getOrCreateByPath(BundlingConfigHandler.CONFIG_PATH, "oak:Unstructured", s);
+        Node bundlor = JcrUtils.getOrCreateByPath(BundlingConfigHandler.CONFIG_PATH,
+            "oak:Unstructured", s);
         Node asset = bundlor.addNode("oak:Asset");
         asset.setProperty(PROP_PATTERN, new String[]{
-                "jcr:content",
-                "jcr:content/metadata",
-                "jcr:content/renditions"
+            "jcr:content",
+            "jcr:content/metadata",
+            "jcr:content/renditions"
         });
 
         s.save();

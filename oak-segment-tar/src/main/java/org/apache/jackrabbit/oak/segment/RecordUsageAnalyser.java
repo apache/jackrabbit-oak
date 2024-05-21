@@ -19,23 +19,21 @@
 
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.commons.io.FileUtils.byteCountToDisplaySize;
+import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 
 import java.util.Formatter;
 import java.util.Set;
-
 import org.jetbrains.annotations.NotNull;
 
 /**
- * This utility breaks down space usage per record type.
- * It accounts for value sharing. That is, an instance
- * of this class will remember which records it has seen
- * already and not count those again. Only the effective
- * space taken by the records is taken into account. Slack
- * space from aligning records is not accounted for.
+ * This utility breaks down space usage per record type. It accounts for value sharing. That is, an
+ * instance of this class will remember which records it has seen already and not count those again.
+ * Only the effective space taken by the records is taken into account. Slack space from aligning
+ * records is not accounted for.
  */
 public class RecordUsageAnalyser extends SegmentParser {
+
     private final RecordIdSet seenIds = new RecordIdSet();
     private final Set<String> deadLinks = newHashSet();
 
@@ -122,7 +120,6 @@ public class RecordUsageAnalyser extends SegmentParser {
 
     /**
      * @return number of {@link Segment#SMALL_LIMIT small} blobs.
-     *
      */
     public long getSmallBlobCount() {
         return smallBlobCount;
@@ -130,7 +127,6 @@ public class RecordUsageAnalyser extends SegmentParser {
 
     /**
      * @return number of {@link Segment#MEDIUM_LIMIT medium} blobs.
-     *
      */
     public long getMediumBlobCount() {
         return mediumBlobCount;
@@ -138,7 +134,6 @@ public class RecordUsageAnalyser extends SegmentParser {
 
     /**
      * @return number of long blobs.
-     *
      */
     public long getLongBlobCount() {
         return longBlobCount;
@@ -146,7 +141,6 @@ public class RecordUsageAnalyser extends SegmentParser {
 
     /**
      * @return number of external blobs.
-     *
      */
     public long getExternalBlobCount() {
         return externalBlobCount;
@@ -154,7 +148,6 @@ public class RecordUsageAnalyser extends SegmentParser {
 
     /**
      * @return number of {@link Segment#SMALL_LIMIT small} strings.
-     *
      */
     public long getSmallStringCount() {
         return smallStringCount;
@@ -162,7 +155,6 @@ public class RecordUsageAnalyser extends SegmentParser {
 
     /**
      * @return number of {@link Segment#MEDIUM_LIMIT medium} strings.
-     *
      */
     public long getMediumStringCount() {
         return mediumStringCount;
@@ -170,7 +162,6 @@ public class RecordUsageAnalyser extends SegmentParser {
 
     /**
      * @return number of long strings.
-     *
      */
     public long getLongStringCount() {
         return longStringCount;
@@ -200,23 +191,23 @@ public class RecordUsageAnalyser extends SegmentParser {
         @SuppressWarnings("resource")
         Formatter formatter = new Formatter(sb);
         formatter.format(
-                "%s in maps (%s leaf and branch records)%n",
-                byteCountToDisplaySize(mapSize), mapCount);
+            "%s in maps (%s leaf and branch records)%n",
+            byteCountToDisplaySize(mapSize), mapCount);
         formatter.format(
-                "%s in lists (%s list and bucket records)%n",
-                byteCountToDisplaySize(listSize), listCount);
+            "%s in lists (%s list and bucket records)%n",
+            byteCountToDisplaySize(listSize), listCount);
         formatter.format(
-                "%s in values (value and block records of %s properties, " +
+            "%s in values (value and block records of %s properties, " +
                 "%s/%s/%s/%s small/medium/long/external blobs, %s/%s/%s small/medium/long strings)%n",
-                byteCountToDisplaySize(valueSize), propertyCount,
-                smallBlobCount, mediumBlobCount, longBlobCount, externalBlobCount,
-                smallStringCount, mediumStringCount, longStringCount);
+            byteCountToDisplaySize(valueSize), propertyCount,
+            smallBlobCount, mediumBlobCount, longBlobCount, externalBlobCount,
+            smallStringCount, mediumStringCount, longStringCount);
         formatter.format(
-                "%s in templates (%s template records)%n",
-                byteCountToDisplaySize(templateSize), templateCount);
+            "%s in templates (%s template records)%n",
+            byteCountToDisplaySize(templateSize), templateCount);
         formatter.format(
-                "%s in nodes (%s node records)%n",
-                byteCountToDisplaySize(nodeSize), nodeCount);
+            "%s in nodes (%s node records)%n",
+            byteCountToDisplaySize(nodeSize), nodeCount);
         formatter.format("links to non existing segments: %s", deadLinks);
         return sb.toString();
     }

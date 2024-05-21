@@ -30,65 +30,66 @@ import org.apache.lucene.util.ByteBlockPool;
 
 
 /**
- * Class to write byte streams into slices of shared
- * byte[].  This is used by DocumentsWriter to hold the
- * posting list for many terms in RAM.
+ * Class to write byte streams into slices of shared byte[].  This is used by DocumentsWriter to
+ * hold the posting list for many terms in RAM.
  */
 
 final class ByteSliceWriter extends DataOutput {
 
-  private byte[] slice;
-  private int upto;
-  private final ByteBlockPool pool;
+    private byte[] slice;
+    private int upto;
+    private final ByteBlockPool pool;
 
-  int offset0;
+    int offset0;
 
-  public ByteSliceWriter(ByteBlockPool pool) {
-    this.pool = pool;
-  }
-
-  /**
-   * Set up the writer to write at address.
-   */
-  public void init(int address) {
-    slice = pool.buffers[address >> ByteBlockPool.BYTE_BLOCK_SHIFT];
-    assert slice != null;
-    upto = address & ByteBlockPool.BYTE_BLOCK_MASK;
-    offset0 = address;
-    assert upto < slice.length;
-  }
-
-  /** Write byte into byte slice stream */
-  @Override
-  public void writeByte(byte b) {
-    assert slice != null;
-    if (slice[upto] != 0) {
-      upto = pool.allocSlice(slice, upto);
-      slice = pool.buffer;
-      offset0 = pool.byteOffset;
-      assert slice != null;
+    public ByteSliceWriter(ByteBlockPool pool) {
+        this.pool = pool;
     }
-    slice[upto++] = b;
-    assert upto != slice.length;
-  }
 
-  @Override
-  public void writeBytes(final byte[] b, int offset, final int len) {
-    final int offsetEnd = offset + len;
-    while(offset < offsetEnd) {
-      if (slice[upto] != 0) {
-        // End marker
-        upto = pool.allocSlice(slice, upto);
-        slice = pool.buffer;
-        offset0 = pool.byteOffset;
-      }
-
-      slice[upto++] = b[offset++];
-      assert upto != slice.length;
+    /**
+     * Set up the writer to write at address.
+     */
+    public void init(int address) {
+        slice = pool.buffers[address >> ByteBlockPool.BYTE_BLOCK_SHIFT];
+        assert slice != null;
+        upto = address & ByteBlockPool.BYTE_BLOCK_MASK;
+        offset0 = address;
+        assert upto < slice.length;
     }
-  }
 
-  public int getAddress() {
-    return upto + (offset0 & DocumentsWriterPerThread.BYTE_BLOCK_NOT_MASK);
-  }
+    /**
+     * Write byte into byte slice stream
+     */
+    @Override
+    public void writeByte(byte b) {
+        assert slice != null;
+        if (slice[upto] != 0) {
+            upto = pool.allocSlice(slice, upto);
+            slice = pool.buffer;
+            offset0 = pool.byteOffset;
+            assert slice != null;
+        }
+        slice[upto++] = b;
+        assert upto != slice.length;
+    }
+
+    @Override
+    public void writeBytes(final byte[] b, int offset, final int len) {
+        final int offsetEnd = offset + len;
+        while (offset < offsetEnd) {
+            if (slice[upto] != 0) {
+                // End marker
+                upto = pool.allocSlice(slice, upto);
+                slice = pool.buffer;
+                offset0 = pool.byteOffset;
+            }
+
+            slice[upto++] = b[offset++];
+            assert upto != slice.length;
+        }
+    }
+
+    public int getAddress() {
+        return upto + (offset0 & DocumentsWriterPerThread.BYTE_BLOCK_NOT_MASK);
+    }
 }

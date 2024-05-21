@@ -16,6 +16,12 @@
  */
 package org.apache.jackrabbit.oak.upgrade.cli.blob;
 
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+
+import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStore;
@@ -27,16 +33,9 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.BufferedInputStream;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-
 /**
- * This implementation of the DataStoreBlobStore won't throw an exception if
- * it can't find blob with given id. The WARN message will be emitted instead
- * and the empty InputStream will be returned.
+ * This implementation of the DataStoreBlobStore won't throw an exception if it can't find blob with
+ * given id. The WARN message will be emitted instead and the empty InputStream will be returned.
  */
 public class SafeDataStoreBlobStore extends DataStoreBlobStore {
 
@@ -66,7 +65,7 @@ public class SafeDataStoreBlobStore extends DataStoreBlobStore {
         } catch (DataStoreException e) {
             log.warn("Unable to access the blobId for  [{}]", blobId, e);
         }
-        return  null;
+        return null;
     }
 
 
@@ -79,7 +78,7 @@ public class SafeDataStoreBlobStore extends DataStoreBlobStore {
                 return new ByteArrayInputStream(new byte[0]);
             }
             InputStream in = getDataRecord(blobId).getStream();
-            if (!(in instanceof BufferedInputStream)){
+            if (!(in instanceof BufferedInputStream)) {
                 in = new BufferedInputStream(in);
             }
             return StatsCollectingStreams.wrap(stats, blobId, in);

@@ -25,13 +25,11 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-
 import javax.jcr.Credentials;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.api.JackrabbitRepository;
@@ -50,7 +48,8 @@ import org.junit.BeforeClass;
 
 public abstract class AbstractRepositoryUpgradeTest {
 
-    public static final Credentials CREDENTIALS = new SimpleCredentials("admin", "admin".toCharArray());
+    public static final Credentials CREDENTIALS = new SimpleCredentials("admin",
+        "admin".toCharArray());
 
     protected static NodeStore targetNodeStore;
 
@@ -119,13 +118,15 @@ public abstract class AbstractRepositoryUpgradeTest {
         return testDirectory;
     }
 
-    protected RepositoryImpl createSourceRepository(File repositoryHome) throws IOException, RepositoryException {
+    protected RepositoryImpl createSourceRepository(File repositoryHome)
+        throws IOException, RepositoryException {
         InputStream repoConfig = getRepositoryConfig();
         RepositoryConfig config;
         if (repoConfig == null) {
             config = RepositoryConfig.install(repositoryHome);
         } else {
-            OutputStream out = FileUtils.openOutputStream(new File(repositoryHome, "repository.xml"));
+            OutputStream out = FileUtils.openOutputStream(
+                new File(repositoryHome, "repository.xml"));
             IOUtils.copy(repoConfig, out);
             out.close();
             repoConfig.close();
@@ -135,24 +136,25 @@ public abstract class AbstractRepositoryUpgradeTest {
     }
 
 
-    protected void doUpgradeRepository(File source, NodeStore target)throws RepositoryException, IOException{
+    protected void doUpgradeRepository(File source, NodeStore target)
+        throws RepositoryException, IOException {
         RepositoryUpgrade.copy(source, target);
     }
 
-    public InputStream getRepositoryConfig(){
+    public InputStream getRepositoryConfig() {
         return null;
     }
 
     public Repository getTargetRepository() {
         if (targetRepository == null) {
             targetRepository = (JackrabbitRepository) new Jcr(new Oak(
-                    targetNodeStore)).createRepository();
+                targetNodeStore)).createRepository();
         }
         return targetRepository;
     }
 
-    public JackrabbitSession createAdminSession()throws RepositoryException{
-        return(JackrabbitSession)getTargetRepository().login(CREDENTIALS);
+    public JackrabbitSession createAdminSession() throws RepositoryException {
+        return (JackrabbitSession) getTargetRepository().login(CREDENTIALS);
     }
 
     protected abstract void createSourceContent(Session session) throws Exception;
@@ -166,7 +168,8 @@ public abstract class AbstractRepositoryUpgradeTest {
         }
     }
 
-    protected void assertExisting(final Session session, final String... paths) throws RepositoryException {
+    protected void assertExisting(final Session session, final String... paths)
+        throws RepositoryException {
         for (final String path : paths) {
             assertTrue("node " + path + " should exist", session.nodeExists(path));
         }
@@ -181,7 +184,8 @@ public abstract class AbstractRepositoryUpgradeTest {
         }
     }
 
-    protected void assertMissing(final Session session, final String... paths) throws RepositoryException {
+    protected void assertMissing(final Session session, final String... paths)
+        throws RepositoryException {
         for (final String path : paths) {
             assertFalse("node " + path + " should not exist", session.nodeExists(path));
         }

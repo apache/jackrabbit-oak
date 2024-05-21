@@ -19,9 +19,7 @@ package org.apache.jackrabbit.oak.spi.security.authentication;
 import java.security.Principal;
 import java.util.Collections;
 import java.util.Set;
-
 import javax.security.auth.Subject;
-
 import org.apache.jackrabbit.oak.spi.security.principal.SystemPrincipal;
 
 /**
@@ -34,10 +32,12 @@ public final class SystemSubject {
     /**
      * Private constructor
      */
-    private SystemSubject() {}
+    private SystemSubject() {
+    }
 
     private static Subject createSystemSubject() {
         Set<? extends Principal> principals = Collections.singleton(SystemPrincipal.INSTANCE);
-        return new Subject(true, principals, Collections.<Object>emptySet(), Collections.<Object>emptySet());
+        return new Subject(true, principals, Collections.<Object>emptySet(),
+            Collections.<Object>emptySet());
     }
 }

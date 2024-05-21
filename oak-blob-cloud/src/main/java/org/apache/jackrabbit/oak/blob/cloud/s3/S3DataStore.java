@@ -18,15 +18,14 @@ package org.apache.jackrabbit.oak.blob.cloud.s3;
 
 import java.net.URI;
 import java.util.Properties;
-
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.plugins.blob.AbstractSharedCachingDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.ConfigurableDataRecordAccessProvider;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadException;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDownloadOptions;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUpload;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadException;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadOptions;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
 import org.apache.jackrabbit.oak.spi.blob.SharedBackend;
@@ -37,7 +36,8 @@ import org.jetbrains.annotations.Nullable;
 /**
  * Amazon S3 data store extending from {@link AbstractSharedCachingDataStore}.
  */
-public class S3DataStore extends AbstractSharedCachingDataStore implements ConfigurableDataRecordAccessProvider {
+public class S3DataStore extends AbstractSharedCachingDataStore implements
+    ConfigurableDataRecordAccessProvider {
 
     protected Properties properties;
 
@@ -51,7 +51,7 @@ public class S3DataStore extends AbstractSharedCachingDataStore implements Confi
     @Override
     protected AbstractSharedBackend createBackend() {
         s3Backend = new S3Backend();
-        if(properties != null){
+        if (properties != null) {
             s3Backend.setProperties(properties);
         }
         return s3Backend;
@@ -99,13 +99,15 @@ public class S3DataStore extends AbstractSharedCachingDataStore implements Confi
     @Nullable
     @Override
     public DataRecordUpload initiateDataRecordUpload(long maxUploadSizeInBytes, int maxNumberOfURIs)
-            throws IllegalArgumentException, DataRecordUploadException {
-        return initiateDataRecordUpload(maxUploadSizeInBytes, maxNumberOfURIs, DataRecordUploadOptions.DEFAULT);
+        throws IllegalArgumentException, DataRecordUploadException {
+        return initiateDataRecordUpload(maxUploadSizeInBytes, maxNumberOfURIs,
+            DataRecordUploadOptions.DEFAULT);
     }
 
     @Nullable
     @Override
-    public DataRecordUpload initiateDataRecordUpload(long maxUploadSizeInBytes, int maxNumberOfURIs, @NotNull final DataRecordUploadOptions options)
+    public DataRecordUpload initiateDataRecordUpload(long maxUploadSizeInBytes, int maxNumberOfURIs,
+        @NotNull final DataRecordUploadOptions options)
         throws IllegalArgumentException, DataRecordUploadException {
         if (null == s3Backend) {
             throw new DataRecordUploadException("Backend not initialized");
@@ -116,7 +118,7 @@ public class S3DataStore extends AbstractSharedCachingDataStore implements Confi
     @NotNull
     @Override
     public DataRecord completeDataRecordUpload(@NotNull String uploadToken)
-            throws IllegalArgumentException, DataRecordUploadException, DataStoreException {
+        throws IllegalArgumentException, DataRecordUploadException, DataStoreException {
         if (null == s3Backend) {
             throw new DataRecordUploadException("Backend not initialized");
         }
@@ -140,7 +142,7 @@ public class S3DataStore extends AbstractSharedCachingDataStore implements Confi
     @Nullable
     @Override
     public URI getDownloadURI(@NotNull DataIdentifier identifier,
-                              @NotNull DataRecordDownloadOptions downloadOptions) {
+        @NotNull DataRecordDownloadOptions downloadOptions) {
         if (s3Backend == null) {
             return null;
         }

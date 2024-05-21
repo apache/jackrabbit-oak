@@ -25,20 +25,18 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.List;
 import java.util.Map;
-
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.servlet.ServletContext;
-
-import org.apache.jackrabbit.guava.common.base.Joiner;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.felix.connect.launch.PojoServiceRegistry;
 import org.apache.jackrabbit.api.JackrabbitRepository;
+import org.apache.jackrabbit.guava.common.base.Joiner;
+import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.run.osgi.OakOSGiRepositoryFactory;
 import org.apache.jackrabbit.oak.run.osgi.ServiceRegistryProvider;
 import org.osgi.framework.BundleActivator;
@@ -55,6 +53,7 @@ import org.springframework.core.io.Resource;
 
 @Configuration
 public class RepositoryInitializer {
+
     public static final String ARG_MONGO = "mongo";
     private final Logger log = LoggerFactory.getLogger(getClass());
 
@@ -92,13 +91,13 @@ public class RepositoryInitializer {
         }
     }
 
-    @Bean(name="repository")
-    public Repository getRepository(){
+    @Bean(name = "repository")
+    public Repository getRepository() {
         return repository;
     }
 
     @Bean
-    public PojoServiceRegistry getServiceRegistry(){
+    public PojoServiceRegistry getServiceRegistry() {
         return ((ServiceRegistryProvider) repository).getServiceRegistry();
     }
 
@@ -111,8 +110,9 @@ public class RepositoryInitializer {
         repository = createRepository(configFilePaths, repoHomeDir);
     }
 
-    private Repository createRepository(List<String> repoConfigs, File repoHomeDir) throws RepositoryException {
-        Map<String,Object> config = Maps.newHashMap();
+    private Repository createRepository(List<String> repoConfigs, File repoHomeDir)
+        throws RepositoryException {
+        Map<String, Object> config = Maps.newHashMap();
         config.put(OakOSGiRepositoryFactory.REPOSITORY_HOME, repoHomeDir.getAbsolutePath());
         config.put(OakOSGiRepositoryFactory.REPOSITORY_CONFIG_FILE, commaSepFilePaths(repoConfigs));
         config.put(OakOSGiRepositoryFactory.REPOSITORY_SHUTDOWN_ON_TIMEOUT, false);
@@ -134,7 +134,7 @@ public class RepositoryInitializer {
 
     private String getMongoURI() {
         List<String> mongoOpts = args.getOptionValues(ARG_MONGO);
-        if (mongoOpts != null && !mongoOpts.isEmpty()){
+        if (mongoOpts != null && !mongoOpts.isEmpty()) {
             return mongoOpts.get(0);
         }
         return mongouri;
@@ -145,7 +145,7 @@ public class RepositoryInitializer {
     }
 
     private List<String> copyConfigs(File repoHomeDir, List<String> configFileNames)
-            throws IOException, RepositoryException {
+        throws IOException, RepositoryException {
         List<String> filePaths = Lists.newArrayList();
         for (String configName : configFileNames) {
             File dest = new File(repoHomeDir, configName);
@@ -173,12 +173,13 @@ public class RepositoryInitializer {
 
 
     private void copyDefaultConfig(File repoConfig, Resource defaultRepoConfig)
-            throws IOException, RepositoryException {
-        if (!repoConfig.exists()){
+        throws IOException, RepositoryException {
+        if (!repoConfig.exists()) {
             log.info("Copying default repository config to {}", repoConfig.getAbsolutePath());
             InputStream in = defaultRepoConfig.getInputStream();
-            if (in == null){
-                throw new RepositoryException("No config file found in classpath " + defaultRepoConfig);
+            if (in == null) {
+                throw new RepositoryException(
+                    "No config file found in classpath " + defaultRepoConfig);
             }
             OutputStream os = null;
             try {

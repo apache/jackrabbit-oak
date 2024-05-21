@@ -17,15 +17,13 @@
 package org.apache.jackrabbit.api.security.principal;
 
 import javax.jcr.RepositoryException;
-
 import org.jetbrains.annotations.NotNull;
 import org.osgi.annotation.versioning.ProviderType;
 
 /**
  * <code>ItemBasedPrincipal</code> is a <code>Principal</code> having a
- * corresponding item within the JCR repository. In addition to the methods
- * inherited from the {@link java.security.Principal} interface it therefore
- * provides a {@link #getPath()} method.
+ * corresponding item within the JCR repository. In addition to the methods inherited from the
+ * {@link java.security.Principal} interface it therefore provides a {@link #getPath()} method.
  */
 @ProviderType
 public interface ItemBasedPrincipal extends JackrabbitPrincipal {
@@ -33,11 +31,11 @@ public interface ItemBasedPrincipal extends JackrabbitPrincipal {
     /**
      * Returns the JCR path of the item that corresponds to this
      * <code>Principal</code>.
-     * 
+     *
      * @return the path of the {@link javax.jcr.Item} that corresponds to this
      * <code>Principal</code>.
      * @throws RepositoryException If an error occurs while retrieving the
-     * <code>Item</code> path.
+     *                             <code>Item</code> path.
      */
     @NotNull
     String getPath() throws RepositoryException;

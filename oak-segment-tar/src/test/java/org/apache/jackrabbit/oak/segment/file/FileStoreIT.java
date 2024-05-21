@@ -18,9 +18,9 @@
  */
 package org.apache.jackrabbit.oak.segment.file;
 
-import static org.apache.jackrabbit.guava.common.collect.Maps.newLinkedHashMap;
 import static java.util.concurrent.Executors.newSingleThreadExecutor;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.jackrabbit.guava.common.collect.Maps.newLinkedHashMap;
 import static org.apache.jackrabbit.oak.segment.DefaultSegmentWriterBuilder.defaultSegmentWriterBuilder;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.junit.Assert.assertEquals;
@@ -42,7 +42,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
-
 import org.apache.jackrabbit.guava.common.util.concurrent.Monitor;
 import org.apache.jackrabbit.guava.common.util.concurrent.Monitor.Guard;
 import org.apache.jackrabbit.oak.api.Blob;
@@ -82,10 +81,13 @@ public class FileStoreIT {
     }
 
     public void testRestartAndGC(boolean memoryMapping) throws Exception {
-        FileStore store = fileStoreBuilder(getFileStoreFolder()).withMaxFileSize(1).withMemoryMapping(memoryMapping).build();
+        FileStore store = fileStoreBuilder(getFileStoreFolder()).withMaxFileSize(1)
+                                                                .withMemoryMapping(memoryMapping)
+                                                                .build();
         store.close();
 
-        store = fileStoreBuilder(getFileStoreFolder()).withMaxFileSize(1).withMemoryMapping(memoryMapping).build();
+        store = fileStoreBuilder(getFileStoreFolder()).withMaxFileSize(1)
+                                                      .withMemoryMapping(memoryMapping).build();
         SegmentNodeState base = store.getHead();
         SegmentNodeBuilder builder = base.builder();
         byte[] data = new byte[10 * 1024 * 1024];
@@ -97,21 +99,25 @@ public class FileStoreIT {
         store.getRevisions().setHead(store.getRevisions().getHead(), base.getRecordId());
         store.close();
 
-        store = fileStoreBuilder(getFileStoreFolder()).withMaxFileSize(1).withMemoryMapping(memoryMapping).build();
+        store = fileStoreBuilder(getFileStoreFolder()).withMaxFileSize(1)
+                                                      .withMemoryMapping(memoryMapping).build();
         store.fullGC();
         store.flush();
         store.close();
 
-        store = fileStoreBuilder(getFileStoreFolder()).withMaxFileSize(1).withMemoryMapping(memoryMapping).build();
+        store = fileStoreBuilder(getFileStoreFolder()).withMaxFileSize(1)
+                                                      .withMemoryMapping(memoryMapping).build();
         store.close();
     }
 
     @Test
     public void testRecovery() throws Exception {
-        FileStore store = fileStoreBuilder(getFileStoreFolder()).withMaxFileSize(1).withMemoryMapping(false).build();
+        FileStore store = fileStoreBuilder(getFileStoreFolder()).withMaxFileSize(1)
+                                                                .withMemoryMapping(false).build();
         store.flush();
 
-        RandomAccessFile data0 = new RandomAccessFile(new File(getFileStoreFolder(), "data00000a.tar"), "r");
+        RandomAccessFile data0 = new RandomAccessFile(
+            new File(getFileStoreFolder(), "data00000a.tar"), "r");
         long pos0 = data0.length();
 
         SegmentNodeState base = store.getHead();
@@ -130,32 +136,36 @@ public class FileStoreIT {
         store.getRevisions().setHead(base.getRecordId(), builder.getNodeState().getRecordId());
         store.close();
 
-        store = fileStoreBuilder(getFileStoreFolder()).withMaxFileSize(1).withMemoryMapping(false).build();
+        store = fileStoreBuilder(getFileStoreFolder()).withMaxFileSize(1).withMemoryMapping(false)
+                                                      .build();
         assertEquals("b", store.getHead().getString("step"));
         store.close();
 
         RandomAccessFile file = new RandomAccessFile(
-                new File(getFileStoreFolder(), "data00000a.tar"), "rw");
+            new File(getFileStoreFolder(), "data00000a.tar"), "rw");
         file.setLength(pos1);
         file.close();
 
-        store = fileStoreBuilder(getFileStoreFolder()).withMaxFileSize(1).withMemoryMapping(false).build();
+        store = fileStoreBuilder(getFileStoreFolder()).withMaxFileSize(1).withMemoryMapping(false)
+                                                      .build();
         assertEquals("a", store.getHead().getString("step"));
         store.close();
 
         file = new RandomAccessFile(
-                new File(getFileStoreFolder(), "data00000a.tar"), "rw");
+            new File(getFileStoreFolder(), "data00000a.tar"), "rw");
         file.setLength(pos0);
         file.close();
 
-        store = fileStoreBuilder(getFileStoreFolder()).withMaxFileSize(1).withMemoryMapping(false).build();
+        store = fileStoreBuilder(getFileStoreFolder()).withMaxFileSize(1).withMemoryMapping(false)
+                                                      .build();
         assertFalse(store.getHead().hasProperty("step"));
         store.close();
     }
 
     @Test
     public void nonBlockingROStore() throws Exception {
-        FileStore store = fileStoreBuilder(getFileStoreFolder()).withMaxFileSize(1).withMemoryMapping(false).build();
+        FileStore store = fileStoreBuilder(getFileStoreFolder()).withMaxFileSize(1)
+                                                                .withMemoryMapping(false).build();
         store.flush(); // first 1kB
         SegmentNodeState base = store.getHead();
         SegmentNodeBuilder builder = base.builder();
@@ -186,7 +196,8 @@ public class FileStoreIT {
             RecordId id2 = store.getRevisions().getHead();
             store.flush();
 
-            try (ReadOnlyFileStore roStore = fileStoreBuilder(getFileStoreFolder()).buildReadOnly()) {
+            try (ReadOnlyFileStore roStore = fileStoreBuilder(
+                getFileStoreFolder()).buildReadOnly()) {
                 assertEquals(id2, roStore.getRevisions().getHead());
 
                 roStore.setRevision(id1.toString());
@@ -200,7 +211,7 @@ public class FileStoreIT {
 
     @Test
     public void snfeAfterOnRC()
-    throws IOException, InvalidFileStoreVersionException, InterruptedException {
+        throws IOException, InvalidFileStoreVersionException, InterruptedException {
         Map<String, String> roots = newLinkedHashMap();
         try (FileStore rwStore = fileStoreBuilder(getFileStoreFolder()).build()) {
 
@@ -217,8 +228,8 @@ public class FileStoreIT {
             SegmentNodeState base = rwStore.getHead();
             GCGeneration gcGeneration = base.getRecordId().getSegmentId().getGcGeneration();
             DefaultSegmentWriter nextGenerationWriter = defaultSegmentWriterBuilder("c")
-                    .withGeneration(gcGeneration.nextFull())
-                    .build(rwStore);
+                .withGeneration(gcGeneration.nextFull())
+                .build(rwStore);
             RecordId headId = nextGenerationWriter.writeNode(EmptyNodeState.EMPTY_NODE);
             rwStore.getRevisions().setHead(base.getRecordId(), headId);
 
@@ -256,6 +267,7 @@ public class FileStoreIT {
 
         /* A blob that blocks on read until unblocked */
         class BlockingBlob extends AbstractBlob {
+
             private final AtomicBoolean blocking = new AtomicBoolean(true);
             private final Monitor readMonitor = new Monitor();
             private boolean reading = false;
@@ -329,7 +341,8 @@ public class FileStoreIT {
                 SegmentNodeState root = store.getHead();
                 SegmentNodeBuilder builder = root.builder();
                 builder.setProperty("blockingBlob", blockingBlob);
-                store.getRevisions().setHead(root.getRecordId(), builder.getNodeState().getRecordId());
+                store.getRevisions()
+                     .setHead(root.getRecordId(), builder.getNodeState().getRecordId());
             });
 
             // Wait for reading on the blob to block

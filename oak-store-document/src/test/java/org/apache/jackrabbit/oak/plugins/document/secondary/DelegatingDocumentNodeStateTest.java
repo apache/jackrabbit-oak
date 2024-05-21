@@ -40,15 +40,17 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 public class DelegatingDocumentNodeStateTest {
+
     private NodeBuilder builder = EMPTY_NODE.builder();
 
     @Test
-    public void basicWorking() throws Exception{
-        RevisionVector rv1 = new RevisionVector(new Revision(1,0,1));
-        RevisionVector rv2 = new RevisionVector(new Revision(1,0,3));
+    public void basicWorking() throws Exception {
+        RevisionVector rv1 = new RevisionVector(new Revision(1, 0, 1));
+        RevisionVector rv2 = new RevisionVector(new Revision(1, 0, 3));
         builder.setProperty(asPropertyState(PROP_REVISION, rv1));
         builder.setProperty(asPropertyState(PROP_LAST_REV, rv2));
-        AbstractDocumentNodeState state = DelegatingDocumentNodeState.wrap(builder.getNodeState(), NodeStateDiffer.DEFAULT_DIFFER);
+        AbstractDocumentNodeState state = DelegatingDocumentNodeState.wrap(builder.getNodeState(),
+            NodeStateDiffer.DEFAULT_DIFFER);
 
         assertEquals(rv1, state.getRootRevision());
         assertEquals(rv2, state.getLastRevision());
@@ -56,24 +58,26 @@ public class DelegatingDocumentNodeStateTest {
         assertTrue(state.exists());
         assertFalse(state.isFromExternalChange());
     }
-    
+
     @Test
-    public void metaPropertiesFilteredOut() throws Exception{
+    public void metaPropertiesFilteredOut() throws Exception {
         setMetaProps(builder);
         builder.setProperty("foo", "bar");
 
-        AbstractDocumentNodeState state = DelegatingDocumentNodeState.wrap(builder.getNodeState(), NodeStateDiffer.DEFAULT_DIFFER);
+        AbstractDocumentNodeState state = DelegatingDocumentNodeState.wrap(builder.getNodeState(),
+            NodeStateDiffer.DEFAULT_DIFFER);
         assertEquals(1, Iterables.size(state.getProperties()));
         assertEquals(1, state.getPropertyCount());
     }
 
     @Test
-    public void childNodeDecorated() throws Exception{
+    public void childNodeDecorated() throws Exception {
         setMetaProps(builder);
         setMetaProps(builder.child("a"));
         setMetaProps(builder.child("b"));
 
-        AbstractDocumentNodeState state = DelegatingDocumentNodeState.wrap(builder.getNodeState(), NodeStateDiffer.DEFAULT_DIFFER);
+        AbstractDocumentNodeState state = DelegatingDocumentNodeState.wrap(builder.getNodeState(),
+            NodeStateDiffer.DEFAULT_DIFFER);
         assertTrue(state.getChildNode("a") instanceof AbstractDocumentNodeState);
         assertTrue(state.getChildNode("b") instanceof AbstractDocumentNodeState);
         assertFalse(state.hasChildNode("c"));
@@ -81,7 +85,7 @@ public class DelegatingDocumentNodeStateTest {
 
         assertFalse(state.hasNoChildren());
 
-        for(ChildNodeEntry cne : state.getChildNodeEntries()){
+        for (ChildNodeEntry cne : state.getChildNodeEntries()) {
             assertTrue(cne.getNodeState() instanceof AbstractDocumentNodeState);
         }
 
@@ -89,49 +93,54 @@ public class DelegatingDocumentNodeStateTest {
     }
 
     @Test
-    public void withRootRevision() throws Exception{
-        RevisionVector rv1 = new RevisionVector(new Revision(1,0,1));
-        RevisionVector rv2 = new RevisionVector(new Revision(1,0,3));
+    public void withRootRevision() throws Exception {
+        RevisionVector rv1 = new RevisionVector(new Revision(1, 0, 1));
+        RevisionVector rv2 = new RevisionVector(new Revision(1, 0, 3));
         builder.setProperty(asPropertyState(PROP_REVISION, rv1));
         builder.setProperty(asPropertyState(PROP_LAST_REV, rv2));
-        AbstractDocumentNodeState state = DelegatingDocumentNodeState.wrap(builder.getNodeState(), NodeStateDiffer.DEFAULT_DIFFER);
+        AbstractDocumentNodeState state = DelegatingDocumentNodeState.wrap(builder.getNodeState(),
+            NodeStateDiffer.DEFAULT_DIFFER);
 
         AbstractDocumentNodeState state2 = state.withRootRevision(rv1, false);
         assertSame(state, state2);
 
-        RevisionVector rv4 = new RevisionVector(new Revision(1,0,4));
+        RevisionVector rv4 = new RevisionVector(new Revision(1, 0, 4));
         AbstractDocumentNodeState state3 = state.withRootRevision(rv4, true);
         assertEquals(rv4, state3.getRootRevision());
         assertTrue(state3.isFromExternalChange());
     }
 
     @Test
-    public void wrapIfPossible() throws Exception{
-        assertFalse(DelegatingDocumentNodeState.wrapIfPossible(EMPTY_NODE, NodeStateDiffer.DEFAULT_DIFFER)
+    public void wrapIfPossible() throws Exception {
+        assertFalse(
+            DelegatingDocumentNodeState.wrapIfPossible(EMPTY_NODE, NodeStateDiffer.DEFAULT_DIFFER)
                 instanceof AbstractDocumentNodeState);
 
         setMetaProps(builder);
-        assertTrue(DelegatingDocumentNodeState.wrapIfPossible(builder.getNodeState(), NodeStateDiffer.DEFAULT_DIFFER) instanceof
-                AbstractDocumentNodeState);
+        assertTrue(DelegatingDocumentNodeState.wrapIfPossible(builder.getNodeState(),
+            NodeStateDiffer.DEFAULT_DIFFER) instanceof
+            AbstractDocumentNodeState);
     }
 
     @Test
-    public void equals1() throws Exception{
+    public void equals1() throws Exception {
         setMetaProps(builder);
         builder.setProperty("foo", "bar");
 
         NodeBuilder b2 = EMPTY_NODE.builder();
         b2.setProperty("foo", "bar");
 
-        assertTrue(EqualsDiff.equals(DelegatingDocumentNodeState.wrap(builder.getNodeState(), NodeStateDiffer.DEFAULT_DIFFER),
-                b2.getNodeState()));
+        assertTrue(EqualsDiff.equals(DelegatingDocumentNodeState.wrap(builder.getNodeState(),
+                NodeStateDiffer.DEFAULT_DIFFER),
+            b2.getNodeState()));
         assertTrue(EqualsDiff.equals(b2.getNodeState(),
-                DelegatingDocumentNodeState.wrap(builder.getNodeState(), NodeStateDiffer.DEFAULT_DIFFER)));
+            DelegatingDocumentNodeState.wrap(builder.getNodeState(),
+                NodeStateDiffer.DEFAULT_DIFFER)));
     }
 
-    private static void setMetaProps(NodeBuilder nb){
-        nb.setProperty(asPropertyState(PROP_REVISION, new RevisionVector(new Revision(1,0,1))));
-        nb.setProperty(asPropertyState(PROP_LAST_REV, new RevisionVector(new Revision(1,0,1))));
+    private static void setMetaProps(NodeBuilder nb) {
+        nb.setProperty(asPropertyState(PROP_REVISION, new RevisionVector(new Revision(1, 0, 1))));
+        nb.setProperty(asPropertyState(PROP_LAST_REV, new RevisionVector(new Revision(1, 0, 1))));
     }
 
     private static PropertyState asPropertyState(String name, RevisionVector revision) {

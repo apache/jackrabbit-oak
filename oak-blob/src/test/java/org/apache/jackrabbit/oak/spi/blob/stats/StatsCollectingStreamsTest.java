@@ -23,7 +23,6 @@ import static org.junit.Assert.assertEquals;
 
 import java.io.InputStream;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.input.NullInputStream;
 import org.apache.commons.io.output.CountingOutputStream;
@@ -54,6 +53,7 @@ public class StatsCollectingStreamsTest {
     }
 
     private static class TestCollector implements BlobStatsCollector {
+
         long size = -1;
         int callbackCount;
         int downloadCompletedCount;
@@ -69,7 +69,8 @@ public class StatsCollectingStreamsTest {
         }
 
         @Override
-        public void uploadFailed() { }
+        public void uploadFailed() {
+        }
 
         @Override
         public void downloaded(String blobId, long timeTaken, TimeUnit unit, long size) {
@@ -83,69 +84,91 @@ public class StatsCollectingStreamsTest {
         }
 
         @Override
-        public void downloadFailed(String blobId) { }
+        public void downloadFailed(String blobId) {
+        }
 
         @Override
-        public void deleted(String blobId, long timeTaken, TimeUnit unit) { }
+        public void deleted(String blobId, long timeTaken, TimeUnit unit) {
+        }
 
         @Override
-        public void deleteCompleted(String blobId) { }
+        public void deleteCompleted(String blobId) {
+        }
 
         @Override
-        public void deleteFailed() { }
+        public void deleteFailed() {
+        }
 
         @Override
-        public void deletedAllOlderThan(long timeTaken, TimeUnit unit, long min) { }
+        public void deletedAllOlderThan(long timeTaken, TimeUnit unit, long min) {
+        }
 
         @Override
-        public void deleteAllOlderThanCompleted(int deletedCount) { }
+        public void deleteAllOlderThanCompleted(int deletedCount) {
+        }
 
         @Override
-        public void deleteAllOlderThanFailed(long min) { }
+        public void deleteAllOlderThanFailed(long min) {
+        }
 
         @Override
-        public void recordAdded(long timeTaken, TimeUnit unit, long size ) { }
+        public void recordAdded(long timeTaken, TimeUnit unit, long size) {
+        }
 
         @Override
-        public void addRecordCompleted(String blobId) { }
+        public void addRecordCompleted(String blobId) {
+        }
 
         @Override
-        public void addRecordFailed() { }
+        public void addRecordFailed() {
+        }
 
         @Override
-        public void getRecordCalled(long timeTaken, TimeUnit unit, long size) { }
+        public void getRecordCalled(long timeTaken, TimeUnit unit, long size) {
+        }
 
         @Override
-        public void getRecordCompleted(String blobId) { }
+        public void getRecordCompleted(String blobId) {
+        }
 
         @Override
-        public void getRecordFailed(String blobId) { }
+        public void getRecordFailed(String blobId) {
+        }
 
         @Override
-        public void getRecordIfStoredCalled(long timeTaken, TimeUnit unit, long size) { }
+        public void getRecordIfStoredCalled(long timeTaken, TimeUnit unit, long size) {
+        }
 
         @Override
-        public void getRecordIfStoredCompleted(String blobId) { }
+        public void getRecordIfStoredCompleted(String blobId) {
+        }
 
         @Override
-        public void getRecordIfStoredFailed(String blobId) { }
+        public void getRecordIfStoredFailed(String blobId) {
+        }
 
         @Override
-        public void getRecordFromReferenceCalled(long timeTaken, TimeUnit unit, long size) { }
+        public void getRecordFromReferenceCalled(long timeTaken, TimeUnit unit, long size) {
+        }
 
         @Override
-        public void getRecordFromReferenceCompleted(String reference) { }
+        public void getRecordFromReferenceCompleted(String reference) {
+        }
 
         @Override
-        public void getRecordFromReferenceFailed(String reference) { }
+        public void getRecordFromReferenceFailed(String reference) {
+        }
 
         @Override
-        public void getAllIdentifiersCalled(long timeTaken, TimeUnit unit) { }
+        public void getAllIdentifiersCalled(long timeTaken, TimeUnit unit) {
+        }
 
         @Override
-        public void getAllIdentifiersCompleted() { }
+        public void getAllIdentifiersCompleted() {
+        }
 
         @Override
-        public void getAllIdentifiersFailed() { }
+        public void getAllIdentifiersFailed() {
+        }
     }
 }

@@ -56,7 +56,7 @@ public class SetPropertyTransientTest extends AbstractTest<Node> {
 
     @Override
     protected void disposeThreadExecutionContext(Node context)
-            throws Exception {
+        throws Exception {
         context.getSession().logout();
     }
 

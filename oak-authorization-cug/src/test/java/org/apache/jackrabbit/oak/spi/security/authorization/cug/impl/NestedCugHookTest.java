@@ -16,6 +16,20 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
+import static org.apache.jackrabbit.oak.commons.PathUtils.ROOT_PATH;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.util.Collections;
+import javax.jcr.security.AccessControlManager;
+import javax.jcr.security.AccessControlPolicy;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -32,21 +46,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
-
-import javax.jcr.security.AccessControlManager;
-import javax.jcr.security.AccessControlPolicy;
-import java.util.Collections;
-
-import static org.apache.jackrabbit.oak.commons.PathUtils.ROOT_PATH;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 public class NestedCugHookTest extends AbstractCugTest {
 
@@ -87,7 +86,8 @@ public class NestedCugHookTest extends AbstractCugTest {
         // - /content2      : allow everyone,  deny testGroup (isolated)
         setupCugsAndAcls();
 
-        assertNestedCugs(root, getRootProvider(), ROOT_PATH, false, "/content/a", "/content/aa/bb", "/content2");
+        assertNestedCugs(root, getRootProvider(), ROOT_PATH, false, "/content/a", "/content/aa/bb",
+            "/content2");
         assertNestedCugs(root, getRootProvider(), "/content/a", true, "/content/a/b/c");
 
         // add CUG at /content after having created CUGs in the subtree
@@ -102,7 +102,8 @@ public class NestedCugHookTest extends AbstractCugTest {
     public void testAddNodeWithCug() throws Exception {
         createCug(SUPPORTED_PATH2, EveryonePrincipal.getInstance());
 
-        Tree newTree = TreeUtil.addChild(root.getTree(SUPPORTED_PATH2), "child", NT_OAK_UNSTRUCTURED);
+        Tree newTree = TreeUtil.addChild(root.getTree(SUPPORTED_PATH2), "child",
+            NT_OAK_UNSTRUCTURED);
         String path = newTree.getPath();
         createCug(path, getTestGroupPrincipal());
         root.commit();
@@ -115,7 +116,8 @@ public class NestedCugHookTest extends AbstractCugTest {
     public void testAddNodeWithCugManually() throws Exception {
         createCug(root, SUPPORTED_PATH3, EveryonePrincipal.NAME);
 
-        Tree newTree = TreeUtil.addChild(root.getTree(SUPPORTED_PATH3), "child", NT_OAK_UNSTRUCTURED);
+        Tree newTree = TreeUtil.addChild(root.getTree(SUPPORTED_PATH3), "child",
+            NT_OAK_UNSTRUCTURED);
         String path = newTree.getPath();
         createCug(root, path, getTestGroupPrincipal().getName());
         root.commit();
@@ -171,7 +173,8 @@ public class NestedCugHookTest extends AbstractCugTest {
         // remove CUG at /content/a/b/c
         assertTrue(removeCug("/content/a/b/c", true));
 
-        assertNestedCugs(root, getRootProvider(), ROOT_PATH, false, "/content/a", "/content/aa/bb", "/content2");
+        assertNestedCugs(root, getRootProvider(), ROOT_PATH, false, "/content/a", "/content/aa/bb",
+            "/content2");
         assertNestedCugs(root, getRootProvider(), "/content/a", true);
     }
 
@@ -187,7 +190,8 @@ public class NestedCugHookTest extends AbstractCugTest {
         // remove CUG at /content/a
         assertTrue(removeCug("/content/a", true));
 
-        assertNestedCugs(root, getRootProvider(), ROOT_PATH, false, "/content/aa/bb", "/content2", "/content/a/b/c");
+        assertNestedCugs(root, getRootProvider(), ROOT_PATH, false, "/content/aa/bb", "/content2",
+            "/content/a/b/c");
         assertFalse(root.getTree("/content/a").hasChild(REP_CUG_POLICY));
     }
 
@@ -277,7 +281,8 @@ public class NestedCugHookTest extends AbstractCugTest {
     public void testRemoveAndReadd() throws Exception {
         createCug(root, SUPPORTED_PATH3, EveryonePrincipal.NAME);
 
-        Tree newTree = TreeUtil.addChild(root.getTree(SUPPORTED_PATH3), "child", NT_OAK_UNSTRUCTURED);
+        Tree newTree = TreeUtil.addChild(root.getTree(SUPPORTED_PATH3), "child",
+            NT_OAK_UNSTRUCTURED);
         String path = newTree.getPath();
         createCug(path, getTestGroupPrincipal());
         root.commit();
@@ -296,7 +301,8 @@ public class NestedCugHookTest extends AbstractCugTest {
     public void testMoveToUnsupportedPath() throws Exception {
         createCug(root, SUPPORTED_PATH3, EveryonePrincipal.NAME);
 
-        Tree newTree = TreeUtil.addChild(root.getTree(SUPPORTED_PATH3), "child", NT_OAK_UNSTRUCTURED);
+        Tree newTree = TreeUtil.addChild(root.getTree(SUPPORTED_PATH3), "child",
+            NT_OAK_UNSTRUCTURED);
         String path = newTree.getPath();
         createCug(path, getTestGroupPrincipal());
         root.commit();
@@ -313,7 +319,8 @@ public class NestedCugHookTest extends AbstractCugTest {
     public void testMoveToSupportedPath() throws Exception {
         createCug(root, SUPPORTED_PATH3, EveryonePrincipal.NAME);
 
-        Tree newTree = TreeUtil.addChild(root.getTree(SUPPORTED_PATH3), "child", NT_OAK_UNSTRUCTURED);
+        Tree newTree = TreeUtil.addChild(root.getTree(SUPPORTED_PATH3), "child",
+            NT_OAK_UNSTRUCTURED);
         String path = newTree.getPath();
         createCug(path, getTestGroupPrincipal());
         root.commit();
@@ -331,7 +338,8 @@ public class NestedCugHookTest extends AbstractCugTest {
         createCug(root, SUPPORTED_PATH2, EveryonePrincipal.NAME);
         createCug(root, SUPPORTED_PATH3, EveryonePrincipal.NAME);
 
-        Tree newTree = TreeUtil.addChild(root.getTree(SUPPORTED_PATH3), "child", NT_OAK_UNSTRUCTURED);
+        Tree newTree = TreeUtil.addChild(root.getTree(SUPPORTED_PATH3), "child",
+            NT_OAK_UNSTRUCTURED);
         String path = newTree.getPath();
         createCug(path, getTestGroupPrincipal());
         root.commit();
@@ -340,7 +348,8 @@ public class NestedCugHookTest extends AbstractCugTest {
         root.move(path, destPath);
         root.commit();
 
-        assertNestedCugs(root, getRootProvider(), ROOT_PATH, false, SUPPORTED_PATH3, SUPPORTED_PATH2);
+        assertNestedCugs(root, getRootProvider(), ROOT_PATH, false, SUPPORTED_PATH3,
+            SUPPORTED_PATH2);
         assertNestedCugs(root, getRootProvider(), SUPPORTED_PATH3, true);
         assertNestedCugs(root, getRootProvider(), SUPPORTED_PATH2, true, destPath);
     }
@@ -419,9 +428,11 @@ public class NestedCugHookTest extends AbstractCugTest {
 
         // before cug-policy at /content state contains an invalid entry in the HIDDEN_NESTED_CUGS property that
         // cannot be relativized during the reconnect-preparation
-        NodeBuilder before = new MemoryNodeBuilder(getTreeProvider().asNodeState(adminSession.getLatestRoot().getTree(PathUtils.ROOT_PATH)));
+        NodeBuilder before = new MemoryNodeBuilder(getTreeProvider().asNodeState(
+            adminSession.getLatestRoot().getTree(PathUtils.ROOT_PATH)));
         NodeBuilder cugNode = before.getChildNode("content").getChildNode("rep:cugPolicy");
-        cugNode.setProperty(HIDDEN_NESTED_CUGS, ImmutableList.of("/nested/out/of/hierarchy", "/content/subtree"), Type.STRINGS);
+        cugNode.setProperty(HIDDEN_NESTED_CUGS,
+            ImmutableList.of("/nested/out/of/hierarchy", "/content/subtree"), Type.STRINGS);
 
         NestedCugHook nch = new NestedCugHook();
         nch.processCommit(before.getNodeState(), after, new CommitInfo("sid", null));
@@ -440,11 +451,13 @@ public class NestedCugHookTest extends AbstractCugTest {
         // NestedCugHook must not fail if the Diff doesn't manage to find a hidden-nested-cug property listing
         // the nested /content/subtree in the after-state (and thus cannot clean-up the hidden structure, which is already 'cleaned'
         // for that very cug)
-        NodeBuilder after = new MemoryNodeBuilder(getTreeProvider().asNodeState(root.getTree(PathUtils.ROOT_PATH)));
+        NodeBuilder after = new MemoryNodeBuilder(
+            getTreeProvider().asNodeState(root.getTree(PathUtils.ROOT_PATH)));
         NodeBuilder cugNode = after.getChildNode("content").getChildNode("rep:cugPolicy");
         cugNode.setProperty(HIDDEN_NESTED_CUGS, ImmutableList.of(), Type.STRINGS);
 
-        NodeState before = getTreeProvider().asNodeState(adminSession.getLatestRoot().getTree(PathUtils.ROOT_PATH));
+        NodeState before = getTreeProvider().asNodeState(
+            adminSession.getLatestRoot().getTree(PathUtils.ROOT_PATH));
 
         NestedCugHook nch = new NestedCugHook();
         nch.processCommit(before, after.getNodeState(), new CommitInfo("sid", null));
@@ -465,7 +478,8 @@ public class NestedCugHookTest extends AbstractCugTest {
 
         // NestedCugHook must not fail if the Diff doesn't manage to find a hidden-nested-cug property listing
         // the nested cug of the before-state (and thus cannot clean-up the hidden structure)
-        NodeBuilder before = new MemoryNodeBuilder(getTreeProvider().asNodeState(adminSession.getLatestRoot().getTree(PathUtils.ROOT_PATH)));
+        NodeBuilder before = new MemoryNodeBuilder(getTreeProvider().asNodeState(
+            adminSession.getLatestRoot().getTree(PathUtils.ROOT_PATH)));
         NodeBuilder cugNode = before.getChildNode("content").getChildNode("rep:cugPolicy");
         cugNode.setProperty(HIDDEN_NESTED_CUGS, ImmutableList.of(), Type.STRINGS);
 
@@ -488,7 +502,8 @@ public class NestedCugHookTest extends AbstractCugTest {
 
         // NestedCugHook must not fail if the Diff doesn't manage to find a hidden-nested-cug property listing
         // the nested cug of the before-state (and thus cannot clean-up the hidden structure)
-        NodeBuilder before = new MemoryNodeBuilder(getTreeProvider().asNodeState(adminSession.getLatestRoot().getTree(PathUtils.ROOT_PATH)));
+        NodeBuilder before = new MemoryNodeBuilder(getTreeProvider().asNodeState(
+            adminSession.getLatestRoot().getTree(PathUtils.ROOT_PATH)));
         NodeBuilder cugNode = before.getChildNode("content").getChildNode("rep:cugPolicy");
         cugNode.removeProperty(HIDDEN_NESTED_CUGS);
 
@@ -509,10 +524,12 @@ public class NestedCugHookTest extends AbstractCugTest {
         // NestedCugHook must not fail if the Diff doesn't manage to find a hidden-nested-cug property listing
         // the nested /content with the root node (and thus cannot clean-up the hidden structure,
         // which is already 'cleaned' for that very cug)
-        NodeBuilder after = new MemoryNodeBuilder(getTreeProvider().asNodeState(root.getTree(PathUtils.ROOT_PATH)));
+        NodeBuilder after = new MemoryNodeBuilder(
+            getTreeProvider().asNodeState(root.getTree(PathUtils.ROOT_PATH)));
         after.setProperty(HIDDEN_NESTED_CUGS, ImmutableList.of(), Type.STRINGS);
         after.setProperty(HIDDEN_TOP_CUG_CNT, 0);
-        NodeState before = getTreeProvider().asNodeState(adminSession.getLatestRoot().getTree(PathUtils.ROOT_PATH));
+        NodeState before = getTreeProvider().asNodeState(
+            adminSession.getLatestRoot().getTree(PathUtils.ROOT_PATH));
 
         NestedCugHook nch = new NestedCugHook();
         nch.processCommit(before, after.getNodeState(), new CommitInfo("sid", null));
@@ -538,7 +555,8 @@ public class NestedCugHookTest extends AbstractCugTest {
         NodeState after = spy(rootState);
         when(after.getChildNode("content")).thenReturn(afterContent);
 
-        NodeState before = getTreeProvider().asNodeState(adminSession.getLatestRoot().getTree(PathUtils.ROOT_PATH));
+        NodeState before = getTreeProvider().asNodeState(
+            adminSession.getLatestRoot().getTree(PathUtils.ROOT_PATH));
 
         NestedCugHook nch = new NestedCugHook();
         nch.processCommit(before, after, new CommitInfo("sid", null));

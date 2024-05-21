@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.upgrade.cli.node;
 
 import java.io.Closeable;
 import java.io.IOException;
-
 import org.apache.jackrabbit.oak.segment.RecordType;
 import org.apache.jackrabbit.oak.segment.Segment;
 import org.apache.jackrabbit.oak.segment.SegmentId;
@@ -28,6 +27,7 @@ import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.apache.jackrabbit.oak.spi.state.ProxyNodeStore;
 
 public class FileStoreUtils {
+
     private FileStoreUtils() {
 
     }
@@ -76,6 +76,7 @@ public class FileStoreUtils {
     }
 
     private static class ExternalBlobFound extends RuntimeException {
+
         private static final long serialVersionUID = 1L;
     }
 

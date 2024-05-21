@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.exercise.security.authentication;
 
 import java.util.Map;
 import javax.jcr.Credentials;
-
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 
 class CustomCredentials implements Credentials {
@@ -27,7 +26,7 @@ class CustomCredentials implements Credentials {
     private final String password;
     private final Map<String, String> attributes;
 
-    CustomCredentials(String loginID, String password, Map<String,String> attributes) {
+    CustomCredentials(String loginID, String password, Map<String, String> attributes) {
         this.loginID = loginID;
         this.password = password;
         this.attributes = ImmutableMap.copyOf(attributes);

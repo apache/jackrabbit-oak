@@ -16,14 +16,14 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
+import static org.mockito.Mockito.mock;
+
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionPattern;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
-
-import static org.mockito.Mockito.mock;
 
 public abstract class AbstractCacheTest {
 

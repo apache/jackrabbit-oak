@@ -16,17 +16,15 @@
  */
 package org.apache.jackrabbit.oak.jcr.session;
 
+import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.List;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.stats.CounterStats;
 import org.apache.jackrabbit.test.AbstractJCRTest;
-
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-
-import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.List;
 
 public class SessionStatsTest extends AbstractJCRTest {
 
@@ -41,7 +39,7 @@ public class SessionStatsTest extends AbstractJCRTest {
      * Tests if the init stack trace is recorded after opening a lot of sessions.
      */
     public void testInitStackTraceEnabledAfterOpeningManySessions()
-            throws IllegalAccessException, RepositoryException {
+        throws IllegalAccessException, RepositoryException {
         final int sessionCount = SessionStats.INIT_STACK_TRACE_THRESHOLD + 1;
         final List<Session> sessions = new ArrayList<Session>(sessionCount);
         for (int i = 0; i < sessionCount; i++) {
@@ -72,7 +70,7 @@ public class SessionStatsTest extends AbstractJCRTest {
     }
 
     private void internalTestSessionCounter(CounterStats sessionCounter)
-            throws Exception {
+        throws Exception {
         Session s = createSession();
         long numSessions = sessionCounter.getCount();
         List<Thread> threads = new ArrayList<>();
@@ -89,7 +87,7 @@ public class SessionStatsTest extends AbstractJCRTest {
     }
 
     private static CounterStats getSessionCounter(Session session)
-            throws Exception {
+        throws Exception {
         if (session instanceof SessionImpl) {
             Field f = SessionImpl.class.getDeclaredField("sessionCounter");
             f.setAccessible(true);
@@ -104,7 +102,8 @@ public class SessionStatsTest extends AbstractJCRTest {
     }
 
     private String getInitStackTrace(Session session) throws IllegalAccessException {
-        SessionDelegate sessionDelegate = (SessionDelegate) FieldUtils.readDeclaredField(session, "sd", true);
+        SessionDelegate sessionDelegate = (SessionDelegate) FieldUtils.readDeclaredField(session,
+            "sd", true);
         SessionStats sessionStats = sessionDelegate.getSessionStats();
         return sessionStats.getInitStackTrace();
     }

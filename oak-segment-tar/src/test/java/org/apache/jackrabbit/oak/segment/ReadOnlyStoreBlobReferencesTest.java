@@ -19,12 +19,16 @@
 
 package org.apache.jackrabbit.oak.segment;
 
+import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.defaultGCOptions;
+import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
+import static org.junit.Assert.assertEquals;
+
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.util.Random;
 import java.util.Set;
-
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -41,11 +45,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
-import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.defaultGCOptions;
-import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
-import static org.junit.Assert.assertEquals;
 
 /**
  * Tests for ReadOnlyFileStore#collectReferences
@@ -73,9 +72,12 @@ public class ReadOnlyStoreBlobReferencesTest {
         File dataStoreDir = new File(getFileStoreFolder(), "blobstore");
         String blobId = createLoad(fileStoreDir, dataStoreDir).getContentIdentity();
 
-
-        try (FileStore fileStore = fileStoreBuilder(fileStoreDir).withBlobStore(newBlobStore(dataStoreDir))
-            .withGCOptions(defaultGCOptions().setGcSizeDeltaEstimation(1).setRetainedGenerations(1)).build()) {
+        try (FileStore fileStore = fileStoreBuilder(fileStoreDir).withBlobStore(
+                                                                     newBlobStore(dataStoreDir))
+                                                                 .withGCOptions(
+                                                                     defaultGCOptions().setGcSizeDeltaEstimation(
+                                                                         1).setRetainedGenerations(
+                                                                         1)).build()) {
 
             SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
             NodeBuilder builder = nodeStore.getRoot().builder();
@@ -117,8 +119,11 @@ public class ReadOnlyStoreBlobReferencesTest {
 
     private Blob createLoad(File fileStoreDir, File dataStoreDir)
         throws IOException, CommitFailedException, InvalidFileStoreVersionException {
-        try (FileStore fileStore = fileStoreBuilder(fileStoreDir).withBlobStore(newBlobStore(dataStoreDir))
-            .withGCOptions(defaultGCOptions().setGcSizeDeltaEstimation(0)).build()) {
+        try (FileStore fileStore = fileStoreBuilder(fileStoreDir).withBlobStore(
+                                                                     newBlobStore(dataStoreDir))
+                                                                 .withGCOptions(
+                                                                     defaultGCOptions().setGcSizeDeltaEstimation(
+                                                                         0)).build()) {
             SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
 
             NodeBuilder builder = nodeStore.getRoot().builder();
@@ -132,12 +137,14 @@ public class ReadOnlyStoreBlobReferencesTest {
 
     private void assertReferences(File fileStoreDir, File dataStoreDir, int count, String blobId)
         throws IOException, InvalidFileStoreVersionException {
-        try (ReadOnlyFileStore fileStore = fileStoreBuilder(fileStoreDir).withBlobStore(newBlobStore(dataStoreDir))
-            .buildReadOnly()) {
+        try (ReadOnlyFileStore fileStore = fileStoreBuilder(fileStoreDir).withBlobStore(
+                                                                             newBlobStore(dataStoreDir))
+                                                                         .buildReadOnly()) {
 
             Set<String> actualReferences = newHashSet();
             fileStore.collectBlobReferences(actualReferences::add);
-            assertEquals("Read only store visible references different", count, actualReferences.size());
+            assertEquals("Read only store visible references different", count,
+                actualReferences.size());
             if (!Strings.isNullOrEmpty(blobId)) {
                 assertEquals("Binary reference returned should be same", blobId,
                     actualReferences.toArray(new String[0])[0]);

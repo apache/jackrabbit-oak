@@ -31,17 +31,16 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-
 import javax.jcr.Node;
 import javax.jcr.Property;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 import javax.jcr.Value;
-
-import org.apache.jackrabbit.guava.common.base.Function;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.jackrabbit.guava.common.base.Function;
+import org.apache.jackrabbit.guava.common.base.Joiner;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.IOUtils;
@@ -68,8 +67,6 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import org.apache.jackrabbit.guava.common.base.Joiner;
 
 public abstract class AbstractOak2OakTest {
 
@@ -115,7 +112,9 @@ public abstract class AbstractOak2OakTest {
 
     protected void createSession() throws RepositoryException, IOException {
         destination = getDestinationContainer().open();
-        repository = (RepositoryImpl) new Jcr(destination).with("oak.sling").with(new ReferenceIndexProvider()).createRepository();
+        repository = (RepositoryImpl) new Jcr(destination).with("oak.sling")
+                                                          .with(new ReferenceIndexProvider())
+                                                          .createRepository();
         session = repository.login(new SimpleCredentials("admin", "admin".toCharArray()));
     }
 
@@ -135,7 +134,8 @@ public abstract class AbstractOak2OakTest {
         }
     }
 
-    protected void initContent(NodeStore target) throws IOException, RepositoryException, CommitFailedException {
+    protected void initContent(NodeStore target)
+        throws IOException, RepositoryException, CommitFailedException {
         NodeStore initialContent = testContent.open();
         try {
             RepositorySidegrade sidegrade = new RepositorySidegrade(initialContent, target);
@@ -189,17 +189,19 @@ public abstract class AbstractOak2OakTest {
         Node nodeType = session.getNode("/jcr:system/jcr:nodeTypes/sling:OrderedFolder");
         assertEquals("rep:NodeType", nodeType.getProperty("jcr:primaryType").getString());
 
-        List<String> values = Lists.transform(Arrays.asList(nodeType.getProperty("rep:protectedProperties").getValues()), new Function<Value, String>() {
-            @Nullable
-            @Override
-            public String apply(@Nullable Value input) {
-                try {
-                    return input.getString();
-                } catch (RepositoryException e) {
-                    return null;
+        List<String> values = Lists.transform(
+            Arrays.asList(nodeType.getProperty("rep:protectedProperties").getValues()),
+            new Function<Value, String>() {
+                @Nullable
+                @Override
+                public String apply(@Nullable Value input) {
+                    try {
+                        return input.getString();
+                    } catch (RepositoryException e) {
+                        return null;
+                    }
                 }
-            }
-        });
+            });
         assertTrue(values.contains("jcr:mixinTypes"));
         assertTrue(values.contains("jcr:primaryType"));
         assertEquals("false", nodeType.getProperty("jcr:isAbstract").getString());
@@ -238,8 +240,9 @@ public abstract class AbstractOak2OakTest {
 
         assertEquals("123", destination.getRoot().getChildNode(":async").getString("test"));
 
-        for (String name : new String[] {"var", "etc", "sling.css", "apps", "libs", "sightly"}) {
-            assertSameRecord(destination.getRoot().getChildNode(name), checkpoint.getChildNode(name));
+        for (String name : new String[]{"var", "etc", "sling.css", "apps", "libs", "sightly"}) {
+            assertSameRecord(destination.getRoot().getChildNode(name),
+                checkpoint.getChildNode(name));
         }
     }
 
@@ -266,7 +269,8 @@ public abstract class AbstractOak2OakTest {
         if (node instanceof SegmentNodeState) {
             return ((SegmentNodeState) node).getRecordId().toString();
         } else if (node instanceof org.apache.jackrabbit.oak.segment.SegmentNodeState) {
-            return ((org.apache.jackrabbit.oak.segment.SegmentNodeState) node).getRecordId().toString();
+            return ((org.apache.jackrabbit.oak.segment.SegmentNodeState) node).getRecordId()
+                                                                              .toString();
         } else if (node instanceof DocumentNodeState) {
             return ((DocumentNodeState) node).getLastRevision().toString();
         } else {

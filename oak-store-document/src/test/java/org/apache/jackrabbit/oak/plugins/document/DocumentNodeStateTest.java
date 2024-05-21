@@ -43,7 +43,7 @@ public class DocumentNodeStateTest {
     }
 
     @Test
-    public void propertyCount() throws Exception{
+    public void propertyCount() throws Exception {
         DocumentNodeStore store = builderProvider.newBuilder().getNodeStore();
         NodeBuilder builder = store.getRoot().builder();
         builder.child("a").setProperty("x", 1);
@@ -104,8 +104,8 @@ public class DocumentNodeStateTest {
     }
 
     private void compareAgainstModified(DocumentNodeState root,
-                                        Modification modification,
-                                        String jsopDiff) {
+        Modification modification,
+        String jsopDiff) {
         NodeBuilder builder = new MemoryNodeBuilder(root);
         modification.apply(builder);
         NodeState modified = builder.getNodeState();

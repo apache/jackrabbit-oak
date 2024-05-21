@@ -30,7 +30,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.zip.GZIPInputStream;
-
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
@@ -75,8 +74,7 @@ public class RDBDocumentSerializer {
     }
 
     /**
-     * Serializes all non-column properties of the {@link Document} into a JSON
-     * string.
+     * Serializes all non-column properties of the {@link Document} into a JSON string.
      */
     public String asString(@NotNull Document doc, Set<String> columnProperties) {
         StringBuilder sb = new StringBuilder(32768);
@@ -97,8 +95,8 @@ public class RDBDocumentSerializer {
     }
 
     /**
-     * Serializes the changes in the {@link UpdateOp} into a JSON array; each
-     * entry is another JSON array holding operation, key, revision, and value.
+     * Serializes the changes in the {@link UpdateOp} into a JSON array; each entry is another JSON
+     * array holding operation, key, revision, and value.
      */
     public String asString(UpdateOp update, Set<String> columnProperties) {
         StringBuilder sb = new StringBuilder("[");
@@ -108,8 +106,9 @@ public class RDBDocumentSerializer {
             Key key = change.getKey();
 
             // exclude properties that are serialized into special columns
-            if (columnProperties.contains(key.getName()) && null == key.getRevision())
+            if (columnProperties.contains(key.getName()) && null == key.getRevision()) {
                 continue;
+            }
 
             if (needComma) {
                 sb.append(",");
@@ -117,14 +116,17 @@ public class RDBDocumentSerializer {
             sb.append("[");
             if (op.type == UpdateOp.Operation.Type.INCREMENT) {
                 sb.append("\"+\",");
-            } else if (op.type == UpdateOp.Operation.Type.SET || op.type == UpdateOp.Operation.Type.SET_MAP_ENTRY) {
+            } else if (op.type == UpdateOp.Operation.Type.SET
+                || op.type == UpdateOp.Operation.Type.SET_MAP_ENTRY) {
                 sb.append("\"=\",");
             } else if (op.type == UpdateOp.Operation.Type.MAX) {
                 sb.append("\"M\",");
-            } else if (op.type == UpdateOp.Operation.Type.REMOVE || op.type == UpdateOp.Operation.Type.REMOVE_MAP_ENTRY) {
+            } else if (op.type == UpdateOp.Operation.Type.REMOVE
+                || op.type == UpdateOp.Operation.Type.REMOVE_MAP_ENTRY) {
                 sb.append("\"*\",");
             } else {
-                throw new DocumentStoreException("Can't serialize " + update.toString() + " for JSON append");
+                throw new DocumentStoreException(
+                    "Can't serialize " + update.toString() + " for JSON append");
             }
             appendJsonString(sb, key.getName());
             sb.append(",");
@@ -144,10 +146,12 @@ public class RDBDocumentSerializer {
      * Reconstructs a {@link Document} based on the persisted {@link RDBRow}.
      */
     @NotNull
-    public <T extends Document> T fromRow(@NotNull Collection<T> collection, @NotNull RDBRow row) throws DocumentStoreException {
+    public <T extends Document> T fromRow(@NotNull Collection<T> collection, @NotNull RDBRow row)
+        throws DocumentStoreException {
 
         final String charData = row.getData();
-        checkNotNull(charData, "RDBRow.getData() is null for collection " + collection + ", id: " + row.getId());
+        checkNotNull(charData,
+            "RDBRow.getData() is null for collection " + collection + ", id: " + row.getId());
 
         T doc = collection.newDocument(store);
         doc.put(ID, row.getId());
@@ -202,18 +206,21 @@ public class RDBDocumentSerializer {
 
             if (next == '{') {
                 if (blobInUse) {
-                    throw new DocumentStoreException("expected literal \"blob\" but found: " + row.getData());
+                    throw new DocumentStoreException(
+                        "expected literal \"blob\" but found: " + row.getData());
                 }
                 readDocumentFromJson(json, doc);
             } else if (next == JsopReader.STRING) {
                 if (!blobInUse) {
-                    throw new DocumentStoreException("did not expect \"blob\" here: " + row.getData());
+                    throw new DocumentStoreException(
+                        "did not expect \"blob\" here: " + row.getData());
                 }
                 if (!"blob".equals(json.getToken())) {
                     throw new DocumentStoreException("expected string literal \"blob\"");
                 }
             } else {
-                throw new DocumentStoreException("unexpected token " + next + " in " + row.getData());
+                throw new DocumentStoreException(
+                    "unexpected token " + next + " in " + row.getData());
             }
 
             next = json.read();
@@ -237,7 +244,8 @@ public class RDBDocumentSerializer {
 
             return doc;
         } catch (Exception ex) {
-            String message = String.format("Error processing persisted data for document '%s'", row.getId());
+            String message = String.format("Error processing persisted data for document '%s'",
+                row.getId());
             if (charData.length() > 0) {
                 int last = charData.charAt(charData.length() - 1);
                 if (last != '}' && last != '"' && last != ']') {
@@ -293,7 +301,8 @@ public class RDBDocumentSerializer {
                 }
                 doc.put(key, ((Long) old) + x);
             } else {
-                throw new DocumentStoreException("unexpected operation " + op + " in: " + updateString);
+                throw new DocumentStoreException(
+                    "unexpected operation " + op + " in: " + updateString);
             }
         } else if ("M".equals(opcode)) {
             if (rev == null) {
@@ -302,7 +311,8 @@ public class RDBDocumentSerializer {
                     doc.put(key, value);
                 }
             } else {
-                throw new DocumentStoreException("unexpected operation " + op + " in: " + updateString);
+                throw new DocumentStoreException(
+                    "unexpected operation " + op + " in: " + updateString);
             }
         } else {
             throw new DocumentStoreException("unexpected operation " + op + " in: " + updateString);
@@ -312,7 +322,8 @@ public class RDBDocumentSerializer {
     /**
      * Reads from an opened JSON stream ("{" already consumed) into a document.
      */
-    private static <T extends Document> void readDocumentFromJson(@NotNull JsopTokenizer json, @NotNull T doc) {
+    private static <T extends Document> void readDocumentFromJson(@NotNull JsopTokenizer json,
+        @NotNull T doc) {
         if (!json.matches('}')) {
             do {
                 String key = json.readString();
@@ -337,13 +348,14 @@ public class RDBDocumentSerializer {
 
     // low level operations
 
-    private static byte[] GZIPSIG = { 31, -117 };
+    private static byte[] GZIPSIG = {31, -117};
 
     private static String fromBlobData(byte[] bdata) {
         try {
             if (bdata.length >= 2 && bdata[0] == GZIPSIG[0] && bdata[1] == GZIPSIG[1]) {
                 // GZIP
-                try (GZIPInputStream gis = new GZIPInputStream(new ByteArrayInputStream(bdata), 65536)) {
+                try (GZIPInputStream gis = new GZIPInputStream(new ByteArrayInputStream(bdata),
+                    65536)) {
                     return IOUtils.toString(gis, "UTF-8");
                 }
             } else {

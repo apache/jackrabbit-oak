@@ -20,14 +20,14 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_PROPE
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.createIndexDefinition;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.assertFalse;
 
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.OakBaseTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -43,8 +43,6 @@ import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 
 public class AsyncIndexUpdateLeaseTest extends OakBaseTest {
 
@@ -62,8 +60,8 @@ public class AsyncIndexUpdateLeaseTest extends OakBaseTest {
         provider = new PropertyIndexEditorProvider();
         NodeBuilder builder = store.getRoot().builder();
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "rootIndex", true, false, ImmutableSet.of("foo"), null)
-                .setProperty(ASYNC_PROPERTY_NAME, name);
+            "rootIndex", true, false, ImmutableSet.of("foo"), null)
+            .setProperty(ASYNC_PROPERTY_NAME, name);
         builder.child("testRoot").setProperty("foo", "abc");
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         executed.set(false);
@@ -75,8 +73,8 @@ public class AsyncIndexUpdateLeaseTest extends OakBaseTest {
         String referenced = getReferenceCp(store, name);
         assertNotNull("Reference checkpoint doesn't exist", referenced);
         assertNotNull(
-                "Failed indexer must not clean successful indexer's checkpoint",
-                store.retrieve(referenced));
+            "Failed indexer must not clean successful indexer's checkpoint",
+            store.retrieve(referenced));
     }
 
     @Test
@@ -183,7 +181,7 @@ public class AsyncIndexUpdateLeaseTest extends OakBaseTest {
             }
         };
         assertRunKo(new SpecialAsyncIndexUpdate(name, store, provider, l1)
-                .setLeaseTimeOut(lease));
+            .setLeaseTimeOut(lease));
     }
 
     @Test
@@ -209,7 +207,7 @@ public class AsyncIndexUpdateLeaseTest extends OakBaseTest {
             }
         };
         assertRunKo(new SpecialAsyncIndexUpdate(name, store, provider, l1)
-                .setLeaseTimeOut(lease));
+            .setLeaseTimeOut(lease));
     }
 
     @Test
@@ -235,7 +233,7 @@ public class AsyncIndexUpdateLeaseTest extends OakBaseTest {
             }
         };
         assertRunKo(new SpecialAsyncIndexUpdate(name, store, provider, l1)
-                .setLeaseTimeOut(lease));
+            .setLeaseTimeOut(lease));
     }
 
     @Test
@@ -310,7 +308,7 @@ public class AsyncIndexUpdateLeaseTest extends OakBaseTest {
             }
         };
         assertRunKo(new SpecialAsyncIndexUpdate(name, store, provider, l1)
-                .setLeaseTimeOut(lease));
+            .setLeaseTimeOut(lease));
     }
 
     @Test
@@ -330,7 +328,7 @@ public class AsyncIndexUpdateLeaseTest extends OakBaseTest {
             }
         };
         assertRunKo(new SpecialAsyncIndexUpdate(name, store, provider, l1)
-                .setLeaseTimeOut(lease));
+            .setLeaseTimeOut(lease));
     }
 
     @Test
@@ -350,7 +348,7 @@ public class AsyncIndexUpdateLeaseTest extends OakBaseTest {
             }
         };
         assertRunKo(new SpecialAsyncIndexUpdate(name, store, provider, l1)
-                .setLeaseTimeOut(lease));
+            .setLeaseTimeOut(lease));
     }
 
 
@@ -380,8 +378,8 @@ public class AsyncIndexUpdateLeaseTest extends OakBaseTest {
         // make it look like lease got stuck due to force shutdown
         NodeBuilder builder = store.getRoot().builder();
         builder.getChildNode(AsyncIndexUpdate.ASYNC).setProperty(
-                AsyncIndexUpdate.leasify(name),
-                System.currentTimeMillis() + 500000);
+            AsyncIndexUpdate.leasify(name),
+            System.currentTimeMillis() + 500000);
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         final IndexStatusListener l1 = new IndexStatusListener() {
@@ -392,11 +390,11 @@ public class AsyncIndexUpdateLeaseTest extends OakBaseTest {
             }
         };
         assertRunOk(new SpecialAsyncIndexUpdate(name, store, provider, l1)
-                .setLeaseTimeOut(0));
+            .setLeaseTimeOut(0));
 
         assertFalse("Stale lease info must be cleaned",
-                store.getRoot().getChildNode(AsyncIndexUpdate.ASYNC)
-                        .hasProperty(AsyncIndexUpdate.leasify(name)));
+            store.getRoot().getChildNode(AsyncIndexUpdate.ASYNC)
+                 .hasProperty(AsyncIndexUpdate.leasify(name)));
     }
 
     @Test
@@ -417,7 +415,7 @@ public class AsyncIndexUpdateLeaseTest extends OakBaseTest {
             protected void postTraverseNode() {
                 collectLeaseTimes();
                 if (!executed.get()) {
-                   clock.waitUntil(clock.getTime() + lease * 3);
+                    clock.waitUntil(clock.getTime() + lease * 3);
                 }
                 executed.set(true);
             }
@@ -427,7 +425,7 @@ public class AsyncIndexUpdateLeaseTest extends OakBaseTest {
             }
         };
         assertRunOk(new SpecialAsyncIndexUpdate(name, store, provider, l1, clock)
-                .setLeaseTimeOut(lease));
+            .setLeaseTimeOut(lease));
 
         assertEquals(1, leaseTimes.size());
 
@@ -437,19 +435,19 @@ public class AsyncIndexUpdateLeaseTest extends OakBaseTest {
         //Run with changes more than threshold and then lease should change more than once
         testContent(store, AsyncUpdateCallback.LEASE_CHECK_INTERVAL * 2);
         assertRunOk(new SpecialAsyncIndexUpdate(name, store, provider, l1, clock)
-                .setLeaseTimeOut(lease));
+            .setLeaseTimeOut(lease));
         assertTrue(leaseTimes.size() > 1);
     }
 
     // -------------------------------------------------------------------
 
     private long getLeaseValue() {
-        return store.getRoot().getChildNode(":async").getLong( AsyncIndexUpdate.leasify(name));
+        return store.getRoot().getChildNode(":async").getLong(AsyncIndexUpdate.leasify(name));
     }
 
     private static String getReferenceCp(NodeStore store, String name) {
         return store.getRoot().getChildNode(AsyncIndexUpdate.ASYNC)
-                .getString(name);
+                    .getString(name);
     }
 
     private void assertRunOk(AsyncIndexUpdate a) {
@@ -468,21 +466,21 @@ public class AsyncIndexUpdateLeaseTest extends OakBaseTest {
 
     private void assertConcurrentUpdate(AsyncIndexStats stats) {
         assertTrue("Error must be of type 'Concurrent update'", stats
-                .getLatestError().contains("Concurrent update detected"));
+            .getLatestError().contains("Concurrent update detected"));
     }
 
     private static void testContent(NodeStore store) throws Exception {
         NodeBuilder builder = store.getRoot().builder();
         builder.child("testRoot").setProperty("foo",
-                "abc " + System.currentTimeMillis());
+            "abc " + System.currentTimeMillis());
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 
     private static void testContent(NodeStore store, int numOfNodes) throws Exception {
         NodeBuilder builder = store.getRoot().builder();
         for (int i = 0; i < numOfNodes; i++) {
-            builder.child("testRoot"+i).setProperty("foo",
-                    "abc " + System.currentTimeMillis());
+            builder.child("testRoot" + i).setProperty("foo",
+                "abc " + System.currentTimeMillis());
         }
 
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
@@ -494,12 +492,12 @@ public class AsyncIndexUpdateLeaseTest extends OakBaseTest {
         private final Clock clock;
 
         public SpecialAsyncIndexUpdate(String name, NodeStore store,
-                                       IndexEditorProvider provider, IndexStatusListener listener) {
+            IndexEditorProvider provider, IndexStatusListener listener) {
             this(name, store, provider, listener, Clock.SIMPLE);
         }
 
         public SpecialAsyncIndexUpdate(String name, NodeStore store,
-                                       IndexEditorProvider provider, IndexStatusListener listener, Clock clock) {
+            IndexEditorProvider provider, IndexStatusListener listener, Clock clock) {
             super(name, store, provider);
             this.listener = listener;
             this.clock = clock;
@@ -512,11 +510,11 @@ public class AsyncIndexUpdateLeaseTest extends OakBaseTest {
 
         @Override
         protected AsyncUpdateCallback newAsyncUpdateCallback(NodeStore store,
-                                                             String name, long leaseTimeOut, String checkpoint,
-                                                             AsyncIndexStats indexStats,
-                                                             AtomicBoolean stopFlag) {
+            String name, long leaseTimeOut, String checkpoint,
+            AsyncIndexStats indexStats,
+            AtomicBoolean stopFlag) {
             return new SpecialAsyncUpdateCallback(store, name, leaseTimeOut,
-                    checkpoint, indexStats, stopFlag, listener, clock);
+                checkpoint, indexStats, stopFlag, listener, clock);
         }
     }
 
@@ -526,8 +524,9 @@ public class AsyncIndexUpdateLeaseTest extends OakBaseTest {
         private final Clock clock;
 
         public SpecialAsyncUpdateCallback(NodeStore store, String name,
-                                          long leaseTimeOut, String checkpoint,
-                                          AsyncIndexStats indexStats, AtomicBoolean stopFlag, IndexStatusListener listener, Clock clock) {
+            long leaseTimeOut, String checkpoint,
+            AsyncIndexStats indexStats, AtomicBoolean stopFlag, IndexStatusListener listener,
+            Clock clock) {
             super(store, name, leaseTimeOut, checkpoint, indexStats, stopFlag);
             this.listener = listener;
             this.clock = clock;

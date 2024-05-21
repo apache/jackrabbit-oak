@@ -20,7 +20,6 @@ import static org.apache.jackrabbit.oak.api.Type.STRING;
 
 import javax.jcr.NamespaceException;
 import javax.jcr.RepositoryException;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;

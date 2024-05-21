@@ -60,9 +60,11 @@ import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants.REP_NODE_PATH;
 
 /**
- * Implementation of the {@link ProtectedNodeImporter} and {@link ProtectedPropertyImporter}for principal policies.
+ * Implementation of the {@link ProtectedNodeImporter} and {@link ProtectedPropertyImporter}for
+ * principal policies.
  */
-class PrincipalPolicyImporter implements ProtectedNodeImporter, ProtectedPropertyImporter, Constants {
+class PrincipalPolicyImporter implements ProtectedNodeImporter, ProtectedPropertyImporter,
+    Constants {
 
     private static final Logger log = LoggerFactory.getLogger(PrincipalPolicyImporter.class);
 
@@ -80,14 +82,18 @@ class PrincipalPolicyImporter implements ProtectedNodeImporter, ProtectedPropert
     private PrincipalPolicyImpl policy;
     private Entry entry;
 
-    PrincipalPolicyImporter(@NotNull FilterProvider filterProvider, @NotNull MgrProvider mgrProvider) {
+    PrincipalPolicyImporter(@NotNull FilterProvider filterProvider,
+        @NotNull MgrProvider mgrProvider) {
         this.filterProvider = filterProvider;
         this.mgrProvider = mgrProvider;
     }
 
     //----------------------------------------------< ProtectedItemImporter >---
     @Override
-    public boolean init(@NotNull Session session, @NotNull Root root, @NotNull NamePathMapper namePathMapper, boolean isWorkspaceImport, int uuidBehavior, @NotNull ReferenceChangeTracker referenceTracker, @NotNull SecurityProvider securityProvider) {
+    public boolean init(@NotNull Session session, @NotNull Root root,
+        @NotNull NamePathMapper namePathMapper, boolean isWorkspaceImport, int uuidBehavior,
+        @NotNull ReferenceChangeTracker referenceTracker,
+        @NotNull SecurityProvider securityProvider) {
         if (initialized) {
             throw new IllegalStateException("Already initialized");
         }
@@ -95,8 +101,12 @@ class PrincipalPolicyImporter implements ProtectedNodeImporter, ProtectedPropert
         mgrProvider.reset(root, namePathMapper);
         filter = filterProvider.getFilter(mgrProvider.getSecurityProvider(), root, namePathMapper);
 
-        authorizationConfiguration = securityProvider.getConfiguration(AuthorizationConfiguration.class);
-        importBehavior = ImportBehavior.valueFromString(authorizationConfiguration.getParameters().getConfigValue(ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, ImportBehavior.NAME_ABORT));
+        authorizationConfiguration = securityProvider.getConfiguration(
+            AuthorizationConfiguration.class);
+        importBehavior = ImportBehavior.valueFromString(authorizationConfiguration.getParameters()
+                                                                                  .getConfigValue(
+                                                                                      ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR,
+                                                                                      ImportBehavior.NAME_ABORT));
 
         initialized = true;
         return initialized;
@@ -109,25 +119,31 @@ class PrincipalPolicyImporter implements ProtectedNodeImporter, ProtectedPropert
 
     //------------------------------------------< ProtectedPropertyImporter >---
     @Override
-    public boolean handlePropInfo(@NotNull Tree parent, @NotNull PropInfo protectedPropInfo, @NotNull PropertyDefinition def) throws RepositoryException {
+    public boolean handlePropInfo(@NotNull Tree parent, @NotNull PropInfo protectedPropInfo,
+        @NotNull PropertyDefinition def) throws RepositoryException {
         checkState(initialized);
 
-        if (!Utils.isPrincipalPolicyTree(parent) || !isValidPrincipalProperty(protectedPropInfo, def)) {
+        if (!Utils.isPrincipalPolicyTree(parent) || !isValidPrincipalProperty(protectedPropInfo,
+            def)) {
             return false;
         }
         String accessControlledPath = PathUtils.getParentPath(parent.getPath());
         if (!filterProvider.handlesPath(accessControlledPath)) {
-            log.debug("Unable to import principal policy. Access controlled path '{}' outside of path supported by FilterProvider.", accessControlledPath);
+            log.debug(
+                "Unable to import principal policy. Access controlled path '{}' outside of path supported by FilterProvider.",
+                accessControlledPath);
             return false;
         }
 
         String principalName = protectedPropInfo.getTextValue().getString();
         Principal principal = filter.getValidPrincipal(accessControlledPath);
         if (principal == null) {
-            log.debug("Unable to lookup principal by path = {}. Creating by name {}.", accessControlledPath, principalName);
+            log.debug("Unable to lookup principal by path = {}. Creating by name {}.",
+                accessControlledPath, principalName);
             principal = new PrincipalImpl(principalName);
         } else if (!principalName.equals(principal.getName())) {
-            log.error("Principal name mismatch expected '{}' but was '{}'.", principalName, principal.getName());
+            log.error("Principal name mismatch expected '{}' but was '{}'.", principalName,
+                principal.getName());
             throw new ConstraintViolationException("Principal name mismatch.");
         }
         if (!Utils.canHandle(principal, filter, importBehavior)) {
@@ -135,7 +151,8 @@ class PrincipalPolicyImporter implements ProtectedNodeImporter, ProtectedPropert
             return false;
         }
         // make sure editing session has ability to read access control
-        session.checkPermission(accessControlledPath, Permissions.getString(Permissions.READ_ACCESS_CONTROL));
+        session.checkPermission(accessControlledPath,
+            Permissions.getString(Permissions.READ_ACCESS_CONTROL));
         policy = new PrincipalPolicyImpl(principal, accessControlledPath, mgrProvider);
         return true;
     }
@@ -149,7 +166,9 @@ class PrincipalPolicyImporter implements ProtectedNodeImporter, ProtectedPropert
             if (isValidProtectedParent(protectedParent, policy)) {
                 getAccessControlManager().setPolicy(policy.getPath(), policy);
             } else {
-                log.warn("Protected parent {} does not match path of PrincipalAccessControlList {}.", protectedParent.getPath(), policy.getOakPath());
+                log.warn(
+                    "Protected parent {} does not match path of PrincipalAccessControlList {}.",
+                    protectedParent.getPath(), policy.getOakPath());
                 getAccessControlManager().removePolicy(policy.getPath(), policy);
             }
         }
@@ -172,28 +191,33 @@ class PrincipalPolicyImporter implements ProtectedNodeImporter, ProtectedPropert
         if (isValidProtectedParent(protectedParent, policy)) {
             getAccessControlManager().setPolicy(policy.getPath(), policy);
         } else {
-            log.warn("Protected parent {} does not match path of PrincipalAccessControlList {}.", protectedParent.getPath(), policy.getOakPath());
+            log.warn("Protected parent {} does not match path of PrincipalAccessControlList {}.",
+                protectedParent.getPath(), policy.getOakPath());
             getAccessControlManager().removePolicy(policy.getPath(), policy);
         }
         policy = null;
     }
 
     @Override
-    public void startChildInfo(@NotNull NodeInfo childInfo, @NotNull List<PropInfo> propInfos) throws RepositoryException {
+    public void startChildInfo(@NotNull NodeInfo childInfo, @NotNull List<PropInfo> propInfos)
+        throws RepositoryException {
         checkState(policy != null);
         String ntName = getOakName(childInfo.getPrimaryTypeName());
         if (NT_REP_PRINCIPAL_ENTRY.equals(ntName)) {
             if (entry != null) {
-                throw new ConstraintViolationException("Invalid child node sequence: Entries must not be nested.");
+                throw new ConstraintViolationException(
+                    "Invalid child node sequence: Entries must not be nested.");
             }
             entry = new Entry(propInfos);
         } else if (NT_REP_RESTRICTIONS.equals(ntName)) {
             if (entry == null) {
-                throw new ConstraintViolationException("Invalid child node sequence: Restriction must be associated with an Entry");
+                throw new ConstraintViolationException(
+                    "Invalid child node sequence: Restriction must be associated with an Entry");
             }
             entry.addRestrictions(propInfos);
         } else {
-            throw new ConstraintViolationException("Invalid child node '"+childInfo.getName()+"' with type " + ntName);
+            throw new ConstraintViolationException(
+                "Invalid child node '" + childInfo.getName() + "' with type " + ntName);
         }
     }
 
@@ -209,13 +233,15 @@ class PrincipalPolicyImporter implements ProtectedNodeImporter, ProtectedPropert
 
     //------------------------------------------------------------< private >---
 
-    private boolean isValidPrincipalProperty(@NotNull PropInfo propertyInfo, @NotNull PropertyDefinition def) {
+    private boolean isValidPrincipalProperty(@NotNull PropInfo propertyInfo,
+        @NotNull PropertyDefinition def) {
         return REP_PRINCIPAL_NAME.equals(getOakName(propertyInfo.getName())) &&
-                !def.isMultiple() &&
-                NT_REP_PRINCIPAL_POLICY.equals(getOakName(def.getDeclaringNodeType().getName()));
+            !def.isMultiple() &&
+            NT_REP_PRINCIPAL_POLICY.equals(getOakName(def.getDeclaringNodeType().getName()));
     }
 
-    private static boolean isValidProtectedParent(@NotNull Tree protectedParent, @NotNull PrincipalPolicyImpl policy) {
+    private static boolean isValidProtectedParent(@NotNull Tree protectedParent,
+        @NotNull PrincipalPolicyImpl policy) {
         String accessControlledPath = PathUtils.getParentPath(protectedParent.getPath());
         return accessControlledPath.equals(policy.getOakPath());
     }
@@ -226,7 +252,8 @@ class PrincipalPolicyImporter implements ProtectedNodeImporter, ProtectedPropert
     }
 
     private AccessControlManager getAccessControlManager() {
-        return authorizationConfiguration.getAccessControlManager(mgrProvider.getRoot(), mgrProvider.getNamePathMapper());
+        return authorizationConfiguration.getAccessControlManager(mgrProvider.getRoot(),
+            mgrProvider.getNamePathMapper());
     }
 
     private NamePathMapper getNamePathMapper() {
@@ -249,18 +276,23 @@ class PrincipalPolicyImporter implements ProtectedNodeImporter, ProtectedPropert
                 if (REP_EFFECTIVE_PATH.equals(oakName) && PropertyType.PATH == prop.getType()) {
                     effectivePath = extractEffectivePath(prop);
                 } else if (REP_PRIVILEGES.equals(oakName) && PropertyType.NAME == prop.getType()) {
-                    privs = getPrivileges(Iterables.transform(prop.getTextValues(), TextValue::getString));
+                    privs = getPrivileges(
+                        Iterables.transform(prop.getTextValues(), TextValue::getString));
                 } else {
-                    throw new ConstraintViolationException("Unsupported property '"+oakName+"' with type "+prop.getType()+" within policy entry of type rep:PrincipalEntry");
+                    throw new ConstraintViolationException(
+                        "Unsupported property '" + oakName + "' with type " + prop.getType()
+                            + " within policy entry of type rep:PrincipalEntry");
                 }
             }
             if (privs == null) {
-                throw new ConstraintViolationException("Entries for PrincipalAccessControlList must specify the privileges to be granted.");
+                throw new ConstraintViolationException(
+                    "Entries for PrincipalAccessControlList must specify the privileges to be granted.");
             }
             privileges = privs;
         }
 
-        private List<Privilege> getPrivileges(@NotNull Iterable<String> jcrPrivNames) throws RepositoryException {
+        private List<Privilege> getPrivileges(@NotNull Iterable<String> jcrPrivNames)
+            throws RepositoryException {
             List<Privilege> privs = new ArrayList<>();
             PrivilegeManager privilegeManager = mgrProvider.getPrivilegeManager();
             for (String privName : jcrPrivNames) {
@@ -270,11 +302,13 @@ class PrincipalPolicyImporter implements ProtectedNodeImporter, ProtectedPropert
         }
 
         private void addRestrictions(@NotNull List<PropInfo> propInfos) throws RepositoryException {
-            checkState(restrictions.isEmpty() && mvRestrictions.isEmpty(), "Multiple restriction nodes.");
+            checkState(restrictions.isEmpty() && mvRestrictions.isEmpty(),
+                "Multiple restriction nodes.");
             for (PropInfo prop : propInfos) {
                 String restrictionName = prop.getName();
                 if (REP_NODE_PATH.equals(getOakName(restrictionName))) {
-                    checkState(effectivePath == null, "Attempt to overwrite rep:effectivePath property with rep:nodePath restriction.");
+                    checkState(effectivePath == null,
+                        "Attempt to overwrite rep:effectivePath property with rep:nodePath restriction.");
                     log.debug("Extracting rep:effectivePath from rep:nodePath restriction.");
                     effectivePath = extractEffectivePath(prop);
                 } else {
@@ -290,12 +324,14 @@ class PrincipalPolicyImporter implements ProtectedNodeImporter, ProtectedPropert
         }
 
         /**
-         * Work around the fact that {@link org.apache.jackrabbit.oak.namepath.impl.NamePathMapperImpl#getJcrName(String)}
-         * transforms an empty path value to the current element ("."), which is not a valid path for {@code rep:effectivePath},
-         * which expects an absolute path or null.
+         * Work around the fact that
+         * {@link org.apache.jackrabbit.oak.namepath.impl.NamePathMapperImpl#getJcrName(String)}
+         * transforms an empty path value to the current element ("."), which is not a valid path
+         * for {@code rep:effectivePath}, which expects an absolute path or null.
          *
          * @param prop The prop info containing the effective path.
-         * @return An empty string if the text value of the given property info is "." or the text value otherwise.
+         * @return An empty string if the text value of the given property info is "." or the text
+         * value otherwise.
          * @throws RepositoryException
          */
         private String extractEffectivePath(@NotNull PropInfo prop) throws RepositoryException {
@@ -305,10 +341,13 @@ class PrincipalPolicyImporter implements ProtectedNodeImporter, ProtectedPropert
 
         private void applyTo(@NotNull PrincipalPolicyImpl policy) throws RepositoryException {
             if (effectivePath == null) {
-                log.error("Missing rep:effectivePath for entry {} of policy at {}", this, policy.getOakPath());
-                throw new ConstraintViolationException("Entries for PrincipalAccessControlList must specify an effective path.");
+                log.error("Missing rep:effectivePath for entry {} of policy at {}", this,
+                    policy.getOakPath());
+                throw new ConstraintViolationException(
+                    "Entries for PrincipalAccessControlList must specify an effective path.");
             }
-            policy.addEntry(Strings.emptyToNull(effectivePath), Iterables.toArray(privileges, Privilege.class), restrictions, mvRestrictions);
+            policy.addEntry(Strings.emptyToNull(effectivePath),
+                Iterables.toArray(privileges, Privilege.class), restrictions, mvRestrictions);
         }
     }
 }

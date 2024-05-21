@@ -26,7 +26,6 @@ import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.NodeDefinition;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.PropertyDefinition;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.test.AbstractJCRTest;
 import org.junit.Before;
@@ -46,14 +45,14 @@ public class NodeDefinitionTest extends AbstractJCRTest {
         superuser.save();
 
         paths = Arrays.asList(
-                "/",
-                "/jcr:system",
-                "/jcr:system/jcr:versionStorage",
-                "/jcr:system/jcr:nodeTypes",
-                "/jcr:system/rep:namespaces",
-                testRoot + "/a",
-                testRoot + "/b",
-                "/oak:index");
+            "/",
+            "/jcr:system",
+            "/jcr:system/jcr:versionStorage",
+            "/jcr:system/jcr:nodeTypes",
+            "/jcr:system/rep:namespaces",
+            testRoot + "/a",
+            testRoot + "/b",
+            "/oak:index");
     }
 
     @Test
@@ -76,7 +75,8 @@ public class NodeDefinitionTest extends AbstractJCRTest {
     }
 
 
-    private static NodeDefinition[] getAggregatedNodeDefinitions(Node node) throws RepositoryException {
+    private static NodeDefinition[] getAggregatedNodeDefinitions(Node node)
+        throws RepositoryException {
         Set<NodeDefinition> cDefs = newHashSet();
         NodeDefinition[] nd = node.getPrimaryNodeType().getChildNodeDefinitions();
         cDefs.addAll(Arrays.asList(nd));
@@ -88,7 +88,8 @@ public class NodeDefinitionTest extends AbstractJCRTest {
         return cDefs.toArray(new NodeDefinition[cDefs.size()]);
     }
 
-    public static PropertyDefinition[] getAggregatedPropertyDefinitionss(Node node) throws RepositoryException {
+    public static PropertyDefinition[] getAggregatedPropertyDefinitionss(Node node)
+        throws RepositoryException {
         Set<PropertyDefinition> pDefs = newHashSet();
         PropertyDefinition pd[] = node.getPrimaryNodeType().getPropertyDefinitions();
         pDefs.addAll(Arrays.asList(pd));
@@ -103,7 +104,7 @@ public class NodeDefinitionTest extends AbstractJCRTest {
     @Test
     public void testRootType() throws RepositoryException {
         assertEquals(testNodeTypeTestRoot, testRootNode.getDefinition()
-                .getDeclaringNodeType().getName());
+                                                       .getDeclaringNodeType().getName());
     }
 
 }

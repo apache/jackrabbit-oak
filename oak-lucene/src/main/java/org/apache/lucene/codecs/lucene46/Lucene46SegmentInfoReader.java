@@ -28,7 +28,6 @@ package org.apache.lucene.codecs.lucene46;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
-
 import org.apache.lucene.codecs.CodecUtil;
 import org.apache.lucene.codecs.SegmentInfoReader;
 import org.apache.lucene.index.CorruptIndexException;
@@ -41,51 +40,59 @@ import org.apache.lucene.util.IOUtils;
 
 /**
  * Lucene 4.6 implementation of {@link SegmentInfoReader}.
- * 
- * @see Lucene46SegmentInfoFormat
+ *
  * @lucene.experimental
+ * @see Lucene46SegmentInfoFormat
  */
 public class Lucene46SegmentInfoReader extends SegmentInfoReader {
 
-  /** Sole constructor. */
-  public Lucene46SegmentInfoReader() {
-  }
-
-  @Override
-  public SegmentInfo read(Directory dir, String segment, IOContext context) throws IOException {
-    final String fileName = IndexFileNames.segmentFileName(segment, "", Lucene46SegmentInfoFormat.SI_EXTENSION);
-    final IndexInput input = dir.openInput(fileName, context);
-    boolean success = false;
-    try {
-      CodecUtil.checkHeader(input, Lucene46SegmentInfoFormat.CODEC_NAME,
-                                   Lucene46SegmentInfoFormat.VERSION_START,
-                                   Lucene46SegmentInfoFormat.VERSION_CURRENT);
-      final String version = input.readString();
-      final int docCount = input.readInt();
-      if (docCount < 0) {
-        throw new CorruptIndexException("invalid docCount: " + docCount + " (resource=" + input + ")");
-      }
-      final boolean isCompoundFile = input.readByte() == SegmentInfo.YES;
-      final Map<String,String> diagnostics = input.readStringStringMap();
-      final Set<String> files = input.readStringSet();
-      
-      if (input.getFilePointer() != input.length()) {
-        throw new CorruptIndexException("did not read all bytes from file \"" + fileName + "\": read " + input.getFilePointer() + " vs size " + input.length() + " (resource: " + input + ")");
-      }
-
-      final SegmentInfo si = new SegmentInfo(dir, version, segment, docCount, isCompoundFile, null, diagnostics);
-      si.setFiles(files);
-
-      success = true;
-
-      return si;
-
-    } finally {
-      if (!success) {
-        IOUtils.closeWhileHandlingException(input);
-      } else {
-        input.close();
-      }
+    /**
+     * Sole constructor.
+     */
+    public Lucene46SegmentInfoReader() {
     }
-  }
+
+    @Override
+    public SegmentInfo read(Directory dir, String segment, IOContext context) throws IOException {
+        final String fileName = IndexFileNames.segmentFileName(segment, "",
+            Lucene46SegmentInfoFormat.SI_EXTENSION);
+        final IndexInput input = dir.openInput(fileName, context);
+        boolean success = false;
+        try {
+            CodecUtil.checkHeader(input, Lucene46SegmentInfoFormat.CODEC_NAME,
+                Lucene46SegmentInfoFormat.VERSION_START,
+                Lucene46SegmentInfoFormat.VERSION_CURRENT);
+            final String version = input.readString();
+            final int docCount = input.readInt();
+            if (docCount < 0) {
+                throw new CorruptIndexException(
+                    "invalid docCount: " + docCount + " (resource=" + input + ")");
+            }
+            final boolean isCompoundFile = input.readByte() == SegmentInfo.YES;
+            final Map<String, String> diagnostics = input.readStringStringMap();
+            final Set<String> files = input.readStringSet();
+
+            if (input.getFilePointer() != input.length()) {
+                throw new CorruptIndexException(
+                    "did not read all bytes from file \"" + fileName + "\": read "
+                        + input.getFilePointer() + " vs size " + input.length() + " (resource: "
+                        + input + ")");
+            }
+
+            final SegmentInfo si = new SegmentInfo(dir, version, segment, docCount, isCompoundFile,
+                null, diagnostics);
+            si.setFiles(files);
+
+            success = true;
+
+            return si;
+
+        } finally {
+            if (!success) {
+                IOUtils.closeWhileHandlingException(input);
+            } else {
+                input.close();
+            }
+        }
+    }
 }

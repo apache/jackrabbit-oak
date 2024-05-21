@@ -20,7 +20,6 @@
 package org.apache.jackrabbit.oak.segment.file.proc;
 
 import java.io.InputStream;
-
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.segment.file.proc.Proc.Backend;
 import org.apache.jackrabbit.oak.segment.file.proc.Proc.Backend.Segment;
@@ -45,7 +44,7 @@ class SegmentBlob implements Blob {
     @Override
     public InputStream getNewStream() {
         return backend.getSegmentData(segmentId)
-            .orElseThrow(() -> new IllegalStateException("segment not found"));
+                      .orElseThrow(() -> new IllegalStateException("segment not found"));
     }
 
     @Override

@@ -16,6 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -27,16 +32,14 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
-
 import javax.jcr.RepositoryException;
-
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.MultiDataStoreAware;
 import org.apache.jackrabbit.core.data.RandomInputStream;
+import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -46,14 +49,9 @@ import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
 /**
- * Test base class for {@link DataStore} which covers all scenarios.
- * Copied from {@link org.apache.jackrabbit.core.data.TestCaseBase}.
+ * Test base class for {@link DataStore} which covers all scenarios. Copied from
+ * {@link org.apache.jackrabbit.core.data.TestCaseBase}.
  */
 public abstract class AbstractDataStoreTest {
 
@@ -157,21 +155,20 @@ public abstract class AbstractDataStoreTest {
     }
 
     /**
-     * Testcase to validate {@link DataStore#getRecord(DataIdentifier)} API in
-     * case where supplied data identifier is not a valid blob ID.
+     * Testcase to validate {@link DataStore#getRecord(DataIdentifier)} API in case where supplied
+     * data identifier is not a valid blob ID.
      */
     @Test
     public void testGetRecordInvalidDataIdentifier() {
         try {
             long start = System.currentTimeMillis();
             LOG.info("Testcase: " + this.getClass().getName()
-                    + "#testGetRecordInvalidDataIdentifier, testDir=" + dataStoreDir);
+                + "#testGetRecordInvalidDataIdentifier, testDir=" + dataStoreDir);
             doGetRecordInvalidDataIdentifierTest();
             LOG.info("Testcase: " + this.getClass().getName()
-                    + "#testGetRecordInvalidDataIdentifier finished, time taken = ["
-                    + (System.currentTimeMillis() - start) + "]ms");
-        }
-        catch (Exception e) {
+                + "#testGetRecordInvalidDataIdentifier finished, time taken = ["
+                + (System.currentTimeMillis() - start) + "]ms");
+        } catch (Exception e) {
             LOG.error("error:", e);
         }
     }
@@ -196,8 +193,7 @@ public abstract class AbstractDataStoreTest {
     }
 
     /**
-     * Testcase to validate {@link DataStore#updateModifiedDateOnAccess(long)}
-     * API.
+     * Testcase to validate {@link DataStore#updateModifiedDateOnAccess(long)} API.
      */
     @Test
     public void testUpdateLastModifiedOnAccess() {
@@ -216,8 +212,7 @@ public abstract class AbstractDataStoreTest {
     }
 
     /**
-     * Testcase to validate
-     * {@link MultiDataStoreAware#deleteRecord(DataIdentifier)}.API.
+     * Testcase to validate {@link MultiDataStoreAware#deleteRecord(DataIdentifier)}.API.
      */
     @Test
     public void testDeleteRecord() {
@@ -293,8 +288,8 @@ public abstract class AbstractDataStoreTest {
     }
 
     /**
-     * Testcase to validate mixed scenario use of {@link DataStore} in
-     * multi-threaded concurrent environment.
+     * Testcase to validate mixed scenario use of {@link DataStore} in multi-threaded concurrent
+     * environment.
      */
     @Test
     public void testMultiThreaded() {
@@ -313,11 +308,10 @@ public abstract class AbstractDataStoreTest {
 
     }
 
-    protected abstract DataStore createDataStore() throws RepositoryException ;
+    protected abstract DataStore createDataStore() throws RepositoryException;
 
     /**
-     * Test {@link DataStore#addRecord(InputStream)} and assert length of added
-     * record.
+     * Test {@link DataStore#addRecord(InputStream)} and assert length of added record.
      */
     protected void doAddRecordTest() throws Exception {
         byte[] data = new byte[dataLength];
@@ -342,12 +336,12 @@ public abstract class AbstractDataStoreTest {
         Assert.assertEquals(data.length, rec2.getLength());
         assertRecord(data, rec2);
 
-        assertTrue("Copied record last modified not greater", rec.getLastModified() <= rec2.getLastModified());
+        assertTrue("Copied record last modified not greater",
+            rec.getLastModified() <= rec2.getLastModified());
     }
 
     /**
-     * Test {@link DataStore#getRecord(DataIdentifier)} and assert length and
-     * inputstream.
+     * Test {@link DataStore#getRecord(DataIdentifier)} and assert length and inputstream.
      */
     protected void doGetRecordTest() throws Exception {
         byte[] data = new byte[dataLength];
@@ -365,8 +359,7 @@ public abstract class AbstractDataStoreTest {
         try {
             ds.getRecord(new DataIdentifier("invalid"));
             fail();
-        }
-        catch (DataStoreException e) {
+        } catch (DataStoreException e) {
             // Expected
         }
     }
@@ -388,7 +381,7 @@ public abstract class AbstractDataStoreTest {
         random.nextBytes(data3);
         DataRecord rec3 = ds.addRecord(new ByteArrayInputStream(data3));
 
-        ((MultiDataStoreAware)ds).deleteRecord(rec1.getIdentifier());
+        ((MultiDataStoreAware) ds).deleteRecord(rec1.getIdentifier());
 
         assertNull("rec1 should be null",
             ds.getRecordIfStored(rec1.getIdentifier()));
@@ -399,8 +392,7 @@ public abstract class AbstractDataStoreTest {
     }
 
     /**
-     * Test {@link DataStore#getAllIdentifiers()} and asserts all identifiers
-     * are returned.
+     * Test {@link DataStore#getAllIdentifiers()} and asserts all identifiers are returned.
      */
     protected void doGetAllIdentifiersTest() throws Exception {
         List<DataIdentifier> list = new ArrayList<DataIdentifier>();
@@ -469,8 +461,8 @@ public abstract class AbstractDataStoreTest {
     }
 
     /**
-     * Asserts that {@link DataStore#deleteAllOlderThan(long)} only deleted
-     * records older than argument passed.
+     * Asserts that {@link DataStore#deleteAllOlderThan(long)} only deleted records older than
+     * argument passed.
      */
     protected void doDeleteAllOlderThan() throws Exception {
         Random random = randomGen;
@@ -486,7 +478,7 @@ public abstract class AbstractDataStoreTest {
         sleep(10000);
         long updateTime = System.currentTimeMillis();
         ds.updateModifiedDateOnAccess(updateTime);
-        
+
         // sleep to workaround System.currentTimeMillis granularity.
         sleep(3000);
         data = new byte[dataLength];
@@ -520,8 +512,7 @@ public abstract class AbstractDataStoreTest {
     }
 
     /**
-     * Test if record can be accessed via
-     * {@link DataStore#getRecordFromReference(String)}
+     * Test if record can be accessed via {@link DataStore#getRecordFromReference(String)}
      */
     protected void doReferenceTest() throws Exception {
         byte[] data = new byte[dataLength];
@@ -540,8 +531,8 @@ public abstract class AbstractDataStoreTest {
     }
 
     /**
-     * Method to validate mixed scenario use of {@link DataStore} in
-     * multi-threaded concurrent environment.
+     * Method to validate mixed scenario use of {@link DataStore} in multi-threaded concurrent
+     * environment.
      */
     protected void doTestMultiThreaded() throws Exception {
         doTestMultiThreaded(ds, 4);
@@ -551,7 +542,7 @@ public abstract class AbstractDataStoreTest {
      * Method to assert record with byte array.
      */
     protected void assertRecord(byte[] expected, DataRecord record)
-            throws DataStoreException, IOException {
+        throws DataStoreException, IOException {
         InputStream stream = record.getStream();
         try {
             for (int i = 0; i < expected.length; i++) {
@@ -564,11 +555,11 @@ public abstract class AbstractDataStoreTest {
     }
 
     /**
-     * Method to run {@link AbstractDataStoreTest#doTest(DataStore, int)} in multiple
-     * concurrent threads.
+     * Method to run {@link AbstractDataStoreTest#doTest(DataStore, int)} in multiple concurrent
+     * threads.
      */
     protected void doTestMultiThreaded(final DataStore ds, int threadCount)
-            throws Exception {
+        throws Exception {
         final Exception[] exception = new Exception[1];
         Thread[] threads = new Thread[threadCount];
         for (int i = 0; i < threadCount; i++) {
@@ -630,7 +621,7 @@ public abstract class AbstractDataStoreTest {
     }
 
     InputStream readInputStreamRandomly(InputStream in, Random random)
-            throws IOException {
+        throws IOException {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         byte[] buffer = new byte[8000];
         while (true) {
@@ -666,7 +657,7 @@ public abstract class AbstractDataStoreTest {
      * Assert two inputstream
      */
     protected void assertEquals(InputStream a, InputStream b)
-            throws IOException {
+        throws IOException {
         try {
             assertTrue("binary not equal",
                 org.apache.commons.io.IOUtils.contentEquals(a, b));
@@ -686,7 +677,7 @@ public abstract class AbstractDataStoreTest {
      * Assert inputstream read from reference.
      */
     protected void assertReference(byte[] expected, String reference,
-            DataStore store) throws Exception {
+        DataStore store) throws Exception {
         DataRecord record = store.getRecordFromReference(reference);
         assertNotNull(record);
         Assert.assertEquals(expected.length, record.getLength());
@@ -703,9 +694,8 @@ public abstract class AbstractDataStoreTest {
 
     /**
      * Utility method to stop execution for duration time.
-     * 
-     * @param duration
-     *            time in milli seconds
+     *
+     * @param duration time in milli seconds
      */
     protected void sleep(long duration) {
         long expected = System.currentTimeMillis() + duration;

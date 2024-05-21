@@ -18,19 +18,24 @@
  */
 package org.apache.jackrabbit.oak.run;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils.SharedStoreRecordType.MARKED_START_MARKER;
+import static org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils.SharedStoreRecordType.REFERENCES;
+import static org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils.SharedStoreRecordType.REPOSITORY;
+import static org.junit.Assume.assumeFalse;
+
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-
+import org.apache.jackrabbit.core.data.DataRecord;
+import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Sets;
-import org.apache.jackrabbit.core.data.DataRecord;
-import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
 import org.apache.jackrabbit.oak.plugins.blob.MemoryBlobStoreNodeStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
@@ -50,22 +55,18 @@ import org.junit.runners.Parameterized;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils.SharedStoreRecordType.MARKED_START_MARKER;
-import static org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils.SharedStoreRecordType.REFERENCES;
-import static org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils.SharedStoreRecordType.REPOSITORY;
-import static org.junit.Assume.assumeFalse;
-
 /**
  * Tests for {@link DataStoreCommand} metadata command
  */
 @RunWith(Parameterized.class)
 public class DataStoreCommandMetadataTest {
+
     private static Logger log = LoggerFactory.getLogger(DataStoreCommandMetadataTest.class);
 
     @Rule
     public final TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target")) {
-        @Override public void delete() {
+        @Override
+        public void delete() {
 
         }
     };
@@ -85,7 +86,7 @@ public class DataStoreCommandMetadataTest {
         this.blobFixture = blobFixture;
     }
 
-    @Parameterized.Parameters(name="{index}: ({0} : {1})")
+    @Parameterized.Parameters(name = "{index}: ({0} : {1})")
     public static List<Object[]> fixtures() {
         return DataStoreCommandTest.FixtureHelper.get();
     }
@@ -93,8 +94,9 @@ public class DataStoreCommandMetadataTest {
     @Before
     public void setup() throws Exception {
         if (storeFixture instanceof StoreFixture.AzureSegmentStoreFixture) {
-            assumeFalse("Environment variable \"AZURE_SECRET_KEY\" must be set to run Azure Segment fixture",
-                    Strings.isNullOrEmpty(System.getenv("AZURE_SECRET_KEY")));
+            assumeFalse(
+                "Environment variable \"AZURE_SECRET_KEY\" must be set to run Azure Segment fixture",
+                Strings.isNullOrEmpty(System.getenv("AZURE_SECRET_KEY")));
         }
 
         setupDataStore = blobFixture.init(temporaryFolder);
@@ -165,11 +167,14 @@ public class DataStoreCommandMetadataTest {
             REFERENCES.getNameFromIdPrefix(rep2Id, sessionId));
 
         List<String> expectations = Lists.newArrayList();
-        expectations.add(Joiner.on("|").join(rep2Id, MILLISECONDS.toSeconds(expectAuxMarkerMetadataRecord.getLastModified()),
+        expectations.add(Joiner.on("|").join(rep2Id,
+            MILLISECONDS.toSeconds(expectAuxMarkerMetadataRecord.getLastModified()),
             MILLISECONDS.toSeconds(expectAuxMetadataRecord.getLastModified()), "-"));
-        expectations.add(Joiner.on("|").join(repoId, MILLISECONDS.toSeconds(expectMainMarkerMetadataRecord.getLastModified()),
+        expectations.add(Joiner.on("|").join(repoId,
+            MILLISECONDS.toSeconds(expectMainMarkerMetadataRecord.getLastModified()),
             MILLISECONDS.toSeconds(expectMainMetadataRecord.getLastModified()), "*"));
-        expectations.add(Joiner.on("|").join(rep3Id, MILLISECONDS.toSeconds(expectAux2MarkerMetadataRecord.getLastModified()),
+        expectations.add(Joiner.on("|").join(rep3Id,
+            MILLISECONDS.toSeconds(expectAux2MarkerMetadataRecord.getLastModified()),
             MILLISECONDS.toSeconds(expectAux2MetadataRecord.getLastModified()), "-"));
 
         storeFixture.close();
@@ -183,8 +188,10 @@ public class DataStoreCommandMetadataTest {
         File dump = temporaryFolder.newFolder();
 
         List<String> argsList = Lists
-            .newArrayList("--get-metadata", "--" + getOption(blobFixture.getType()), blobFixture.getConfigPath(),
-                storeFixture.getConnectionString(), "--out-dir", dump.getAbsolutePath(), "--work-dir",
+            .newArrayList("--get-metadata", "--" + getOption(blobFixture.getType()),
+                blobFixture.getConfigPath(),
+                storeFixture.getConnectionString(), "--out-dir", dump.getAbsolutePath(),
+                "--work-dir",
                 temporaryFolder.newFolder().getAbsolutePath());
 
         DataStoreCommand cmd = new DataStoreCommand();

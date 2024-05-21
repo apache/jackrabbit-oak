@@ -29,6 +29,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
@@ -45,12 +46,14 @@ import javax.jcr.Node;
 import javax.jcr.NodeIterator;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-
 import org.apache.jackrabbit.api.JackrabbitValueFactory;
 import org.apache.jackrabbit.api.binary.BinaryDownload;
 import org.apache.jackrabbit.api.binary.BinaryDownloadOptions;
 import org.apache.jackrabbit.api.binary.BinaryUpload;
 import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Maps;
+import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.binary.fixtures.datastore.AzureDataStoreFixture;
 import org.apache.jackrabbit.oak.jcr.binary.fixtures.datastore.S3DataStoreFixture;
@@ -71,18 +74,15 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runners.Parameterized;
-
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class BinaryAccessDSGCIT extends AbstractBinaryAccessIT {
+
     private static Logger LOG = LoggerFactory.getLogger(BinaryAccessDSGCIT.class);
 
     private static final String TEST_ROOT = "testroot";
-    private static final long BINARY_SIZE = 1024*1024;
+    private static final long BINARY_SIZE = 1024 * 1024;
 
     private static final String TRADITIONAL_UPLOAD_1 = "tu1";
     private static final String TRADITIONAL_UPLOAD_2 = "tu2";
@@ -126,8 +126,8 @@ public class BinaryAccessDSGCIT extends AbstractBinaryAccessIT {
         }
         session.getNode("/").addNode(TEST_ROOT);
 
-        getConfigurableHttpDataRecordProvider().setDirectUploadURIExpirySeconds(60*5);
-        getConfigurableHttpDataRecordProvider().setDirectDownloadURIExpirySeconds(60*5);
+        getConfigurableHttpDataRecordProvider().setDirectUploadURIExpirySeconds(60 * 5);
+        getConfigurableHttpDataRecordProvider().setDirectDownloadURIExpirySeconds(60 * 5);
     }
 
     // For debugging.
@@ -137,14 +137,14 @@ public class BinaryAccessDSGCIT extends AbstractBinaryAccessIT {
 
     // For debugging.
     private void printTree(Node root, int level) throws RepositoryException {
-        for (int i=0; i<level; i++) {
+        for (int i = 0; i < level; i++) {
             System.out.print(" ");
         }
         System.out.println(root.getName());
 
         NodeIterator iter = root.getNodes();
         while (iter.hasNext()) {
-            printTree(iter.nextNode(), level+1);
+            printTree(iter.nextNode(), level + 1);
         }
     }
 
@@ -152,8 +152,10 @@ public class BinaryAccessDSGCIT extends AbstractBinaryAccessIT {
         return "/" + TEST_ROOT + "/" + leaf;
     }
 
-    private Binary createDirectBinary(String path, Content content) throws RepositoryException, IOException {
-        BinaryUpload upload = directUploader.initiateBinaryUpload(content.size(), 1); // multi-part not needed for this
+    private Binary createDirectBinary(String path, Content content)
+        throws RepositoryException, IOException {
+        BinaryUpload upload = directUploader.initiateBinaryUpload(content.size(),
+            1); // multi-part not needed for this
         assertNotNull(upload);
 
         int code = content.httpPUT(upload.getUploadURIs().iterator().next());
@@ -166,9 +168,9 @@ public class BinaryAccessDSGCIT extends AbstractBinaryAccessIT {
     }
 
     private void verifyBinariesExistViaSession(Session session,
-                                               Map<String, Binary> binaries,
-                                               Map<String, Content> binaryContent)
-            throws RepositoryException, IOException {
+        Map<String, Binary> binaries,
+        Map<String, Content> binaryContent)
+        throws RepositoryException, IOException {
         for (Map.Entry<String, Binary> entry : binaries.entrySet()) {
             Binary b = getBinary(session, toAbsolutePath(entry.getKey()));
             assertEquals(b, entry.getValue());
@@ -176,8 +178,9 @@ public class BinaryAccessDSGCIT extends AbstractBinaryAccessIT {
         }
     }
 
-    private void verifyBinariesExistDirectly(Map<String, Binary> binaries, Map<String, Content> binaryContent)
-            throws RepositoryException, IOException {
+    private void verifyBinariesExistDirectly(Map<String, Binary> binaries,
+        Map<String, Content> binaryContent)
+        throws RepositoryException, IOException {
         for (Map.Entry<String, Binary> entry : binaries.entrySet()) {
             assertTrue(entry.getValue() instanceof BinaryDownload);
             URI uri = ((BinaryDownload) entry.getValue()).getURI(BinaryDownloadOptions.DEFAULT);
@@ -185,7 +188,8 @@ public class BinaryAccessDSGCIT extends AbstractBinaryAccessIT {
         }
     }
 
-    private void verifyBinariesDoNotExistDirectly(Map<String, Binary> deletedBinaries) throws RepositoryException {
+    private void verifyBinariesDoNotExistDirectly(Map<String, Binary> deletedBinaries)
+        throws RepositoryException {
         for (Map.Entry<String, Binary> entry : deletedBinaries.entrySet()) {
             assertTrue(entry.getValue() instanceof BinaryDownload);
             URI uri = ((BinaryDownload) entry.getValue()).getURI(BinaryDownloadOptions.DEFAULT);
@@ -195,37 +199,39 @@ public class BinaryAccessDSGCIT extends AbstractBinaryAccessIT {
 
     private void compactFileStore() {
         FileStore fileStore = getNodeStoreComponent(FileStore.class);
-        for (int i=0; i<SegmentGCOptions.defaultGCOptions().getRetainedGenerations(); i++) {
+        for (int i = 0; i < SegmentGCOptions.defaultGCOptions().getRetainedGenerations(); i++) {
             fileStore.compactFull();
         }
     }
 
     private MarkSweepGarbageCollector getGarbageCollector()
-            throws DataStoreException, IOException {
+        throws DataStoreException, IOException {
         DataStoreBlobStore blobStore = (DataStoreBlobStore) getNodeStoreComponent(BlobStore.class);
-        
+
         if (null == garbageCollector) {
             String repoId = ClusterRepositoryInfo.getOrCreateId(getNodeStore());
             blobStore.setRepositoryId(repoId);
             if (null == executor) {
                 executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
             }
-            BlobReferenceRetriever referenceRetriever = ((BinaryAccessDSGCFixture) fixture).getBlobReferenceRetriever(getNodeStore());
+            BlobReferenceRetriever referenceRetriever = ((BinaryAccessDSGCFixture) fixture).getBlobReferenceRetriever(
+                getNodeStore());
             garbageCollector = new MarkSweepGarbageCollector(
-                    referenceRetriever,
-                    blobStore,
-                    executor,
-                    folder.newFolder().getAbsolutePath(),
-                    2048,
-                    0,
-                    repoId
+                referenceRetriever,
+                blobStore,
+                executor,
+                folder.newFolder().getAbsolutePath(),
+                2048,
+                0,
+                repoId
             );
         }
         return garbageCollector;
     }
 
     private int getBlobCount() throws Exception {
-        GarbageCollectableBlobStore ds = (GarbageCollectableBlobStore) getNodeStoreComponent(BlobStore.class);
+        GarbageCollectableBlobStore ds = (GarbageCollectableBlobStore) getNodeStoreComponent(
+            BlobStore.class);
         Set<String> chunks = Sets.newHashSet();
         Iterator<String> chunkIds = ds.getAllChunkIds(0);
         while (chunkIds.hasNext()) {
@@ -276,7 +282,6 @@ public class BinaryAccessDSGCIT extends AbstractBinaryAccessIT {
 
         // Verify that all four binaries are still in data store
         assertEquals(4, getBlobCount());
-
 
         // Run DSGC
         ((BinaryAccessDSGCFixture) fixture).compactStore(getNodeStore());

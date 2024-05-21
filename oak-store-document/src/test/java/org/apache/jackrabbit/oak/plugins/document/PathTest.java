@@ -271,7 +271,8 @@ public class PathTest {
         for (int i = 0; i < 20; i++) {
             Collections.shuffle(paths);
             Collections.sort(paths);
-            assertThat(paths, contains(root, baz, foo, fooBar, fooBarQuux, fooBaz, relFoo, relFooBar, relFooBaz));
+            assertThat(paths,
+                contains(root, baz, foo, fooBar, fooBarQuux, fooBaz, relFoo, relFooBar, relFooBaz));
         }
     }
 }

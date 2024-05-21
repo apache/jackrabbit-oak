@@ -17,9 +17,17 @@
 
 # Developing with Git
 
-The Oak code base is backed by Git. It has its remote repository both at [ASF Gitbox](https://gitbox.apache.org/repos/asf/jackrabbit-oak.git) and [GitHub](https://github.com/apache/jackrabbit-oak).
+The Oak code base is backed by Git. It has its remote repository both
+at [ASF Gitbox](https://gitbox.apache.org/repos/asf/jackrabbit-oak.git)
+and [GitHub](https://github.com/apache/jackrabbit-oak).
 
-For *committers* [write access to GitBox](https://infra.apache.org/git-primer.html) requires the Apache LDAP credentials via HTTPS Basic Authentication. For write access to GitHub you need to link your accounts once via the [GitBox Account Linking Utility](https://gitbox.apache.org/setup/).
-For GitHub it is recommended to work with [SSH](https://docs.github.com/en/github/authenticating-to-github/connecting-to-github-with-ssh) instead of HTTPS authentication.
+For *committers* [write access to GitBox](https://infra.apache.org/git-primer.html) requires the
+Apache LDAP credentials via HTTPS Basic Authentication. For write access to GitHub you need to link
+your accounts once via the [GitBox Account Linking Utility](https://gitbox.apache.org/setup/).
+For GitHub it is recommended to work
+with [SSH](https://docs.github.com/en/github/authenticating-to-github/connecting-to-github-with-ssh)
+instead of HTTPS authentication.
 
-For *non-committers* it is recommended to use in your own forked GitHub repository and create PR from branches there. Further details in <https://docs.github.com/en/github/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request-from-a-fork>
+For *non-committers* it is recommended to use in your own forked GitHub repository and create PR
+from branches there. Further details
+in <https://docs.github.com/en/github/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request-from-a-fork>

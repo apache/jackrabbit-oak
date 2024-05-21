@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
+import javax.jcr.Repository;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.index.IndexDescendantSpellcheckCommonTest;
@@ -23,13 +24,12 @@ import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import javax.jcr.Repository;
-
-public class ElasticIndexDescendantSpellcheckCommonTest extends IndexDescendantSpellcheckCommonTest {
+public class ElasticIndexDescendantSpellcheckCommonTest extends
+    IndexDescendantSpellcheckCommonTest {
 
     @ClassRule
     public static final ElasticConnectionRule elasticRule =
-            new ElasticConnectionRule(ElasticTestUtils.ELASTIC_CONNECTION_STRING);
+        new ElasticConnectionRule(ElasticTestUtils.ELASTIC_CONNECTION_STRING);
 
     @Override
     protected Repository createJcrRepository() {

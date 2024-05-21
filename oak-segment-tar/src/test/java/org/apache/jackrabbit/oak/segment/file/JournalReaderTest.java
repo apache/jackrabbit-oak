@@ -26,7 +26,6 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
-
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.oak.segment.file.tar.LocalJournalFile;
 import org.junit.Rule;
@@ -113,7 +112,8 @@ public class JournalReaderTest {
 
     @Test
     public void testIgnoreInvalid() throws IOException {
-        try (JournalReader journalReader = createJournalReader("one 1\ntwo 2\ninvalid\nthree 3 123")) {
+        try (JournalReader journalReader = createJournalReader(
+            "one 1\ntwo 2\ninvalid\nthree 3 123")) {
             assertTrue(journalReader.hasNext());
 
             JournalEntry entry = journalReader.next();
@@ -135,7 +135,8 @@ public class JournalReaderTest {
 
     @Test
     public void testIterable() throws IOException {
-        try (JournalReader journalReader = createJournalReader("one 1\ntwo 2\ninvalid\nthree 3 123")) {
+        try (JournalReader journalReader = createJournalReader(
+            "one 1\ntwo 2\ninvalid\nthree 3 123")) {
             assertTrue(Iterators.contains(journalReader, new JournalEntry("three", 123L)));
             assertTrue(Iterators.contains(journalReader, new JournalEntry("two", -1L)));
             assertTrue(Iterators.contains(journalReader, new JournalEntry("one", -1L)));

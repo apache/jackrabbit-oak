@@ -18,17 +18,17 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import org.apache.jackrabbit.oak.upgrade.checkpoint.CheckpointRetriever;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import org.apache.jackrabbit.oak.upgrade.checkpoint.CheckpointRetriever;
 
 public class DocumentCheckpointRetriever {
 
     public static List<CheckpointRetriever.Checkpoint> getCheckpoints(DocumentNodeStore nodeStore) {
         List<CheckpointRetriever.Checkpoint> result = new ArrayList<>();
-        for (Map.Entry<Revision, Checkpoints.Info> e : nodeStore.getCheckpoints().getCheckpoints().entrySet()) {
+        for (Map.Entry<Revision, Checkpoints.Info> e : nodeStore.getCheckpoints().getCheckpoints()
+                                                                .entrySet()) {
             long created = e.getKey().getTimestamp();
             long expiryTime = e.getValue().getExpiryTime();
             String name = e.getKey().toString();

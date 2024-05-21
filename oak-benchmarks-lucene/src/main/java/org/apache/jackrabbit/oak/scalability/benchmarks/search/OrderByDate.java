@@ -19,25 +19,27 @@ package org.apache.jackrabbit.oak.scalability.benchmarks.search;
 import javax.jcr.RepositoryException;
 import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
-import org.apache.jackrabbit.oak.scalability.suites.ScalabilityBlobSearchSuite;
 import org.apache.jackrabbit.oak.scalability.suites.ScalabilityAbstractSuite.ExecutionContext;
+import org.apache.jackrabbit.oak.scalability.suites.ScalabilityBlobSearchSuite;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class OrderByDate extends SearchScalabilityBenchmark {
+
     private static final Logger LOG = LoggerFactory.getLogger(OrderByDate.class);
-    
+
     @Override
-    protected Query getQuery(final QueryManager qm, final ExecutionContext context) throws RepositoryException {
+    protected Query getQuery(final QueryManager qm, final ExecutionContext context)
+        throws RepositoryException {
         final String path = (String) context.getMap().get(
             ScalabilityBlobSearchSuite.CTX_ROOT_NODE_NAME_PROP);
         final String statement = String.format(
             "SELECT * FROM [%s] WHERE ISDESCENDANTNODE('/%s') ORDER BY [jcr:content/jcr:lastModified]",
             context.getMap().get(ScalabilityBlobSearchSuite.CTX_FILE_NODE_TYPE_PROP),
             path);
-        
+
         LOG.debug("statement: {}", statement);
-        
+
         return qm.createQuery(statement, Query.JCR_SQL2);
     }
 }

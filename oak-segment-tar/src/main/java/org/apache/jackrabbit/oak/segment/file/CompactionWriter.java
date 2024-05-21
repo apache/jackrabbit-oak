@@ -19,6 +19,10 @@
 
 package org.apache.jackrabbit.oak.segment.file;
 
+import static org.apache.jackrabbit.oak.segment.file.CompactedNodeState.FullyCompactedNodeState;
+import static org.apache.jackrabbit.oak.segment.file.CompactedNodeState.PartiallyCompactedNodeState;
+
+import java.io.IOException;
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
@@ -31,15 +35,12 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.IOException;
-
-import static org.apache.jackrabbit.oak.segment.file.CompactedNodeState.PartiallyCompactedNodeState;
-import static org.apache.jackrabbit.oak.segment.file.CompactedNodeState.FullyCompactedNodeState;
-
 /**
- * The CompactionWriter delegates compaction calls to the correct {@code SegmentWriter} based on GCGeneration.
+ * The CompactionWriter delegates compaction calls to the correct {@code SegmentWriter} based on
+ * GCGeneration.
  */
 public class CompactionWriter {
+
     private final @NotNull SegmentReader reader;
     private final @Nullable BlobStore blobStore;
     private final @NotNull GCIncrement gcIncrement;
@@ -47,10 +48,10 @@ public class CompactionWriter {
     private final @NotNull SegmentWriter targetWriter;
 
     public CompactionWriter(
-            @NotNull SegmentReader reader,
-            @Nullable BlobStore blobStore,
-            @NotNull GCGeneration generation,
-            @NotNull SegmentWriter segmentWriter) {
+        @NotNull SegmentReader reader,
+        @Nullable BlobStore blobStore,
+        @NotNull GCGeneration generation,
+        @NotNull SegmentWriter segmentWriter) {
         this.reader = reader;
         this.blobStore = blobStore;
         this.gcIncrement = new GCIncrement(generation, generation, generation);
@@ -59,10 +60,10 @@ public class CompactionWriter {
     }
 
     public CompactionWriter(
-            @NotNull SegmentReader reader,
-            @Nullable BlobStore blobStore,
-            @NotNull GCIncrement gcIncrement,
-            @NotNull SegmentWriterFactory segmentWriterFactory) {
+        @NotNull SegmentReader reader,
+        @Nullable BlobStore blobStore,
+        @NotNull GCIncrement gcIncrement,
+        @NotNull SegmentWriterFactory segmentWriterFactory) {
         this.reader = reader;
         this.blobStore = blobStore;
         this.gcIncrement = gcIncrement;
@@ -71,16 +72,16 @@ public class CompactionWriter {
     }
 
     public @NotNull FullyCompactedNodeState writeFullyCompactedNode(
-            @NotNull NodeState nodeState,
-            @Nullable Buffer stableId
+        @NotNull NodeState nodeState,
+        @Nullable Buffer stableId
     ) throws IOException {
         RecordId nodeId = targetWriter.writeNode(nodeState, stableId);
         return new FullyCompactedNodeState(reader, targetWriter, blobStore, nodeId);
     }
 
     public @Nullable PartiallyCompactedNodeState writePartiallyCompactedNode(
-            @NotNull NodeState nodeState,
-            @Nullable Buffer stableId
+        @NotNull NodeState nodeState,
+        @Nullable Buffer stableId
     ) throws IOException {
         RecordId nodeId = partialWriter.writeNode(nodeState, stableId);
         return new PartiallyCompactedNodeState(reader, partialWriter, blobStore, nodeId);

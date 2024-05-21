@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.exercise.security.authorization.accesscontrol;
 
+import static org.junit.Assert.assertArrayEquals;
+
 import java.security.Principal;
 import java.util.Collections;
 import java.util.List;
@@ -26,8 +28,6 @@ import javax.jcr.security.AccessControlEntry;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.Privilege;
-
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.JackrabbitWorkspace;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
@@ -35,6 +35,7 @@ import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeCollection;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.exercise.ExerciseUtility;
 import org.apache.jackrabbit.oak.security.authorization.accesscontrol.InvalidTestPrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
@@ -42,8 +43,6 @@ import org.apache.jackrabbit.test.AbstractJCRTest;
 import org.apache.jackrabbit.test.NotExecutableException;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import static org.junit.Assert.assertArrayEquals;
 
 /**
  * <pre>
@@ -124,7 +123,8 @@ public class L5_AccessControlListImplTest extends AbstractJCRTest {
 
         acMgr = superuser.getAccessControlManager();
 
-        testPrincipal = ExerciseUtility.createTestGroup(((JackrabbitSession) superuser).getUserManager()).getPrincipal();
+        testPrincipal = ExerciseUtility.createTestGroup(
+            ((JackrabbitSession) superuser).getUserManager()).getPrincipal();
         superuser.save();
 
         acl = AccessControlUtils.getAccessControlList(superuser, testRoot);
@@ -132,13 +132,15 @@ public class L5_AccessControlListImplTest extends AbstractJCRTest {
             throw new NotExecutableException();
         }
 
-        testPrivileges = AccessControlUtils.privilegesFromNames(acMgr, Privilege.JCR_READ, Privilege.JCR_WRITE);
+        testPrivileges = AccessControlUtils.privilegesFromNames(acMgr, Privilege.JCR_READ,
+            Privilege.JCR_WRITE);
     }
 
     @Override
     protected void tearDown() throws Exception {
         try {
-            Authorizable testGroup = ((JackrabbitSession) superuser).getUserManager().getAuthorizable(testPrincipal);
+            Authorizable testGroup = ((JackrabbitSession) superuser).getUserManager()
+                                                                    .getAuthorizable(testPrincipal);
             if (testGroup != null) {
                 testGroup.remove();
                 superuser.save();
@@ -152,7 +154,8 @@ public class L5_AccessControlListImplTest extends AbstractJCRTest {
         acl.addEntry(testPrincipal, testPrivileges, true, Collections.<String, Value>emptyMap());
 
         boolean expectedResult = false; // EXERCISE
-        assertEquals(expectedResult, acl.addEntry(testPrincipal, testPrivileges, true, Collections.<String, Value>emptyMap()));
+        assertEquals(expectedResult, acl.addEntry(testPrincipal, testPrivileges, true,
+            Collections.<String, Value>emptyMap()));
 
         // EXERCISE : verify the size of the ACL.
     }
@@ -160,7 +163,8 @@ public class L5_AccessControlListImplTest extends AbstractJCRTest {
     public void testUpdateAndComplementary() throws Exception {
         Privilege[] readPriv = AccessControlUtils.privilegesFromNames(acMgr, Privilege.JCR_READ);
         Privilege[] writePriv = AccessControlUtils.privilegesFromNames(acMgr, Privilege.JCR_WRITE);
-        Privilege[] acReadPriv = AccessControlUtils.privilegesFromNames(acMgr, Privilege.JCR_READ_ACCESS_CONTROL);
+        Privilege[] acReadPriv = AccessControlUtils.privilegesFromNames(acMgr,
+            Privilege.JCR_READ_ACCESS_CONTROL);
 
         assertTrue(acl.addEntry(testPrincipal, readPriv, true));
         assertTrue(acl.addEntry(testPrincipal, writePriv, true));
@@ -174,7 +178,6 @@ public class L5_AccessControlListImplTest extends AbstractJCRTest {
         expectedSize = -1; // EXERCISE
         assertEquals(expectedSize, acl.size());
 
-
         AccessControlEntry[] entries = acl.getAccessControlEntries();
 
         Privilege[] expectedPrivileges = null; // EXERCISE
@@ -187,14 +190,14 @@ public class L5_AccessControlListImplTest extends AbstractJCRTest {
     public void testAddEntryWithInvalidPrincipals() throws Exception {
         // EXERCISE: explain for each principal in the list why using it for an ACE fails
         List<Principal> invalidPrincipals = ImmutableList.of(
-                new InvalidTestPrincipal("unknown"),
-                null,
-                new PrincipalImpl(""), new Principal() {
-            @Override
-            public String getName() {
-                return "unknown";
-            }
-        });
+            new InvalidTestPrincipal("unknown"),
+            null,
+            new PrincipalImpl(""), new Principal() {
+                @Override
+                public String getName() {
+                    return "unknown";
+                }
+            });
 
         for (Principal principal : invalidPrincipals) {
             try {
@@ -206,7 +209,7 @@ public class L5_AccessControlListImplTest extends AbstractJCRTest {
         }
     }
 
-    public void testAddEntriesWithCustomKnownPrincipal()  throws Exception {
+    public void testAddEntriesWithCustomKnownPrincipal() throws Exception {
         Principal oakPrincipal = new PrincipalImpl(testPrincipal.getName());
         Principal principal = new Principal() {
             @Override
@@ -215,8 +218,10 @@ public class L5_AccessControlListImplTest extends AbstractJCRTest {
             }
         };
 
-        assertTrue(acl.addAccessControlEntry(oakPrincipal, AccessControlUtils.privilegesFromNames(acMgr, Privilege.JCR_READ)));
-        assertTrue(acl.addAccessControlEntry(principal, AccessControlUtils.privilegesFromNames(acMgr, Privilege.JCR_READ_ACCESS_CONTROL)));
+        assertTrue(acl.addAccessControlEntry(oakPrincipal,
+            AccessControlUtils.privilegesFromNames(acMgr, Privilege.JCR_READ)));
+        assertTrue(acl.addAccessControlEntry(principal,
+            AccessControlUtils.privilegesFromNames(acMgr, Privilege.JCR_READ_ACCESS_CONTROL)));
 
         int expectedLength = -1; // EXERCISE
         assertEquals(expectedLength, acl.getAccessControlEntries().length);
@@ -224,13 +229,17 @@ public class L5_AccessControlListImplTest extends AbstractJCRTest {
 
     public void testAddEntryWithInvalidPrivilege() throws Exception {
         String privilegeName = "AccessControlListImplTestPrivilege";
-        Privilege customPriv = ((JackrabbitWorkspace) superuser.getWorkspace()).getPrivilegeManager().registerPrivilege(privilegeName, true, new String[0]);
+        Privilege customPriv = ((JackrabbitWorkspace) superuser.getWorkspace()).getPrivilegeManager()
+                                                                               .registerPrivilege(
+                                                                                   privilegeName,
+                                                                                   true,
+                                                                                   new String[0]);
 
         // EXERCISE : walks through this test and explain why adding those ACEs fails.
         List<Privilege[]> invalidPrivileges = ImmutableList.of(
-                new Privilege[0],
-                null,
-                new Privilege[] {customPriv}
+            new Privilege[0],
+            null,
+            new Privilege[]{customPriv}
         );
 
         for (Privilege[] privs : invalidPrivileges) {
@@ -244,7 +253,8 @@ public class L5_AccessControlListImplTest extends AbstractJCRTest {
     }
 
     public void testRemoveInvalidEntry() throws RepositoryException {
-        assertTrue(AccessControlUtils.addAccessControlEntry(superuser, testRoot, testPrincipal, testPrivileges, true));
+        assertTrue(AccessControlUtils.addAccessControlEntry(superuser, testRoot, testPrincipal,
+            testPrivileges, true));
 
         // EXERCISE : walk through the removal and explain the expected behaviour.
         try {
@@ -269,7 +279,8 @@ public class L5_AccessControlListImplTest extends AbstractJCRTest {
                 }
 
                 @Override
-                public @NotNull PrivilegeCollection getPrivilegeCollection() throws RepositoryException {
+                public @NotNull PrivilegeCollection getPrivilegeCollection()
+                    throws RepositoryException {
                     throw new UnsupportedRepositoryOperationException();
                 }
 

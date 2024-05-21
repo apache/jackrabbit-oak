@@ -19,13 +19,12 @@ package org.apache.jackrabbit.oak.benchmark;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-
 import javax.jcr.Node;
 import javax.jcr.Session;
 
 /**
- * Performs a move and then measures how long it takes to access {@code Node}
- * objects with pending move operations.
+ * Performs a move and then measures how long it takes to access {@code Node} objects with pending
+ * move operations.
  */
 public class AccessAfterMoveTest extends AbstractTest<Object> {
 
@@ -41,7 +40,7 @@ public class AccessAfterMoveTest extends AbstractTest<Object> {
     protected void beforeSuite() throws Exception {
         session = getRepository().login(getCredentials());
         root = session.getRootNode().addNode(
-                getClass().getSimpleName() + TEST_ID, "nt:unstructured");
+            getClass().getSimpleName() + TEST_ID, "nt:unstructured");
         testNode = root.addNode(UUID.randomUUID().toString());
         session.save();
         for (int i = 0; i < 10_000; i++) {

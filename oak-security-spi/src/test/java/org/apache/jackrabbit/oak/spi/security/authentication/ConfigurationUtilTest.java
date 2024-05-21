@@ -16,38 +16,43 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication;
 
-import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
 
 import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.Configuration;
-
-import static org.junit.Assert.assertEquals;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.junit.Test;
 
 public class ConfigurationUtilTest {
 
     @Test
     public void testGetDefaultConfiguration() {
         Configuration c = ConfigurationUtil.getDefaultConfiguration(ConfigurationParameters.EMPTY);
-        AppConfigurationEntry[]  entries = c.getAppConfigurationEntry("any");
+        AppConfigurationEntry[] entries = c.getAppConfigurationEntry("any");
         assertEquals(1, entries.length);
         AppConfigurationEntry entry = entries[0];
-        assertEquals("org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl", entry.getLoginModuleName());
+        assertEquals("org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl",
+            entry.getLoginModuleName());
         assertEquals(AppConfigurationEntry.LoginModuleControlFlag.REQUIRED, entry.getControlFlag());
     }
 
     @Test
     public void testGetJr2Configuration() {
-        Configuration c = ConfigurationUtil.getJackrabbit2Configuration(ConfigurationParameters.EMPTY);
-        AppConfigurationEntry[]  entries = c.getAppConfigurationEntry("any");
+        Configuration c = ConfigurationUtil.getJackrabbit2Configuration(
+            ConfigurationParameters.EMPTY);
+        AppConfigurationEntry[] entries = c.getAppConfigurationEntry("any");
         assertEquals(3, entries.length);
 
         assertEquals(GuestLoginModule.class.getName(), entries[0].getLoginModuleName());
-        assertEquals(AppConfigurationEntry.LoginModuleControlFlag.OPTIONAL, entries[0].getControlFlag());
+        assertEquals(AppConfigurationEntry.LoginModuleControlFlag.OPTIONAL,
+            entries[0].getControlFlag());
 
-        assertEquals("org.apache.jackrabbit.oak.security.authentication.token.TokenLoginModule", entries[1].getLoginModuleName());
-        assertEquals(AppConfigurationEntry.LoginModuleControlFlag.SUFFICIENT, entries[1].getControlFlag());
+        assertEquals("org.apache.jackrabbit.oak.security.authentication.token.TokenLoginModule",
+            entries[1].getLoginModuleName());
+        assertEquals(AppConfigurationEntry.LoginModuleControlFlag.SUFFICIENT,
+            entries[1].getControlFlag());
 
-        assertEquals("org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl", entries[2].getLoginModuleName());
+        assertEquals("org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl",
+            entries[2].getLoginModuleName());
     }
 }

@@ -23,7 +23,6 @@ import java.util.Set;
 import javax.security.auth.Subject;
 import javax.security.auth.callback.CallbackHandler;
 import javax.security.auth.spi.LoginModule;
-
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.spi.security.authentication.AuthInfoImpl;
 
@@ -35,7 +34,8 @@ public class UserIDTestLoginModule implements LoginModule {
     private Subject subject;
 
     @Override
-    public void initialize(Subject subject, CallbackHandler callbackHandler, Map<String, ?> stringMap, Map<String, ?> stringMap2) {
+    public void initialize(Subject subject, CallbackHandler callbackHandler,
+        Map<String, ?> stringMap, Map<String, ?> stringMap2) {
         this.subject = subject;
     }
 
@@ -54,7 +54,9 @@ public class UserIDTestLoginModule implements LoginModule {
             }
             // and finally add the one that produces the desired result:
             String userID = null;
-            subject.getPublicCredentials().add(new AuthInfoImpl(userID, Collections.<String, Object>emptyMap(), Collections.<Principal>emptySet()));
+            subject.getPublicCredentials().add(
+                new AuthInfoImpl(userID, Collections.<String, Object>emptyMap(),
+                    Collections.<Principal>emptySet()));
             return true;
         } else {
             return false;

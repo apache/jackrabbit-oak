@@ -19,28 +19,28 @@
 
 package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import java.io.File;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
-
-import org.apache.jackrabbit.guava.common.base.Function;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.FileDataStore;
+import org.apache.jackrabbit.guava.common.base.Function;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
+import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
 public class OakFileDataStoreTest {
+
     @Rule
     public TemporaryFolder folder = new TemporaryFolder(new File("target"));
 
@@ -77,22 +77,23 @@ public class OakFileDataStoreTest {
         fds.init(null);
 
         Iterator<DataIdentifier> dis = fds.getAllIdentifiers();
-        Set<String> fileNames = Sets.newHashSet(Iterators.transform(dis, new Function<DataIdentifier, String>() {
-            @Override
-            public String apply(@Nullable DataIdentifier input) {
-                return input.toString();
-            }
-        }));
+        Set<String> fileNames = Sets.newHashSet(
+            Iterators.transform(dis, new Function<DataIdentifier, String>() {
+                @Override
+                public String apply(@Nullable DataIdentifier input) {
+                    return input.toString();
+                }
+            }));
 
-        Set<String> expectedNames = Sets.newHashSet("abcdef","bcdefg","cdefgh");
+        Set<String> expectedNames = Sets.newHashSet("abcdef", "bcdefg", "cdefgh");
         assertEquals(expectedNames, fileNames);
         FileUtils.cleanDirectory(testDir);
     }
 
     @Test
-    public void testNoOpMap() throws Exception{
+    public void testNoOpMap() throws Exception {
         Map<String, String> noop = new OakFileDataStore.NoOpMap<String, String>();
-        noop.put("a","b");
+        noop.put("a", "b");
         noop.remove("foo");
         assertTrue(noop.isEmpty());
     }

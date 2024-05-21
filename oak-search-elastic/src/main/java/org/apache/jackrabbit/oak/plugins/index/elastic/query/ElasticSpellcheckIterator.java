@@ -31,17 +31,16 @@ import com.fasterxml.jackson.core.JsonFactoryBuilder;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexNode;
-import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex.FulltextResultRow;
-import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.stream.Stream;
+import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexNode;
+import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex.FulltextResultRow;
+import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This class is in charge to extract spell checked suggestions for a given query.
@@ -77,19 +76,20 @@ class ElasticSpellcheckIterator implements ElasticQueryIterator {
     private boolean loaded = false;
 
     ElasticSpellcheckIterator(@NotNull ElasticIndexNode indexNode,
-                              @NotNull ElasticRequestHandler requestHandler,
-                              @NotNull ElasticResponseHandler responseHandler) {
+        @NotNull ElasticRequestHandler requestHandler,
+        @NotNull ElasticResponseHandler responseHandler) {
         this.indexNode = indexNode;
         this.requestHandler = requestHandler;
         this.responseHandler = responseHandler;
 
-        String spellCheckQuery = requestHandler.getPropertyRestrictionQuery().replace(SPELLCHECK_PREFIX, "");
+        String spellCheckQuery = requestHandler.getPropertyRestrictionQuery()
+                                               .replace(SPELLCHECK_PREFIX, "");
         this.searchRequest = SearchRequest.of(sr -> sr
-                .index(indexNode.getDefinition().getIndexAlias())
-                .suggest(sb -> sb
-                        .text(spellCheckQuery)
-                        .suggesters(SUGGESTER_KEY, fs -> fs.phrase(requestHandler.suggestQuery()))
-                )
+            .index(indexNode.getDefinition().getIndexAlias())
+            .suggest(sb -> sb
+                .text(spellCheckQuery)
+                .suggesters(SUGGESTER_KEY, fs -> fs.phrase(requestHandler.suggestQuery()))
+            )
         );
     }
 
@@ -113,21 +113,29 @@ class ElasticSpellcheckIterator implements ElasticQueryIterator {
             final ArrayDeque<String> suggestionTexts = new ArrayDeque<>();
             // 1. loads the possible top 10 corrections for the input text
             MsearchRequest.Builder multiSearch = suggestions().map(s -> {
-                        suggestionTexts.offer(s);
-                        return requestHandler.suggestMatchQuery(s);
-                    })
-                    .map(query -> RequestItem.of(rib ->
-                            rib.header(hb -> hb.index(indexNode.getDefinition().getIndexAlias()))
-                                    .body(bb -> bb.query(qb -> qb.bool(query)).size(100))))
-                    .reduce(
-                            new MsearchRequest.Builder().index(indexNode.getDefinition().getIndexAlias()),
-                            MsearchRequest.Builder::searches, (ms, ms2) -> ms);
+                                                                  suggestionTexts.offer(s);
+                                                                  return requestHandler.suggestMatchQuery(s);
+                                                              })
+                                                              .map(query -> RequestItem.of(rib ->
+                                                                  rib.header(hb -> hb.index(
+                                                                         indexNode.getDefinition()
+                                                                                  .getIndexAlias()))
+                                                                     .body(bb -> bb.query(
+                                                                                       qb -> qb.bool(query))
+                                                                                   .size(100))))
+                                                              .reduce(
+                                                                  new MsearchRequest.Builder().index(
+                                                                      indexNode.getDefinition()
+                                                                               .getIndexAlias()),
+                                                                  MsearchRequest.Builder::searches,
+                                                                  (ms, ms2) -> ms);
 
             // 2. executes a multi search query with the results of the previous query. For each sub query, we then check
             // there is at least 1 accessible result. In that case the correction is returned, otherwise it's filtered out
             if (!suggestionTexts.isEmpty()) {
                 MsearchResponse<ObjectNode> mSearchResponse = indexNode.getConnection().getClient()
-                        .msearch(multiSearch.build(), ObjectNode.class);
+                                                                       .msearch(multiSearch.build(),
+                                                                           ObjectNode.class);
                 ArrayList<FulltextResultRow> results = new ArrayList<>();
                 for (MultiSearchResponseItem<ObjectNode> r : mSearchResponse.responses()) {
                     for (Hit<ObjectNode> hit : r.result().hits().hits()) {
@@ -150,11 +158,11 @@ class ElasticSpellcheckIterator implements ElasticQueryIterator {
         SearchResponse<ObjectNode> searchRes = esClient.search(searchRequest, ObjectNode.class);
 
         return searchRes
-                .suggest()
-                .get(SUGGESTER_KEY)
-                .stream()
-                .flatMap(node -> node.phrase().options().stream())
-                .map(PhraseSuggestOption::text);
+            .suggest()
+            .get(SUGGESTER_KEY)
+            .stream()
+            .flatMap(node -> node.phrase().options().stream())
+            .map(PhraseSuggestOption::text);
     }
 
     @Override

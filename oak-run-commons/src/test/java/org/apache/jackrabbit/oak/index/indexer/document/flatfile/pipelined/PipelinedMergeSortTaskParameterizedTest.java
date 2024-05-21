@@ -18,12 +18,10 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
-import org.apache.jackrabbit.oak.commons.Compression;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.LZ4Compression;
-import org.junit.Ignore;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedStrategy.FLATFILESTORE_CHARSET;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -32,11 +30,12 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedStrategy.FLATFILESTORE_CHARSET;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import org.apache.jackrabbit.oak.commons.Compression;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.LZ4Compression;
+import org.junit.Ignore;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class PipelinedMergeSortTaskParameterizedTest extends PipelinedMergeSortTaskTestBase {
@@ -45,26 +44,33 @@ public class PipelinedMergeSortTaskParameterizedTest extends PipelinedMergeSortT
     public static Collection<Object[]> data() {
         // numberOfIntermediateFiles, eagerMergeTriggerThreshold
         return Arrays.asList(new Object[][]{
-                {256, 50},
-                {256, 300}
+            {256, 50},
+            {256, 300}
         });
     }
 
     private final int numberOfIntermediateFiles;
     private final int eagerMergeTriggerThreshold;
 
-    public PipelinedMergeSortTaskParameterizedTest(int numberOfIntermediateFiles, int eagerMergeTriggerThreshold) {
+    public PipelinedMergeSortTaskParameterizedTest(int numberOfIntermediateFiles,
+        int eagerMergeTriggerThreshold) {
         this.numberOfIntermediateFiles = numberOfIntermediateFiles;
         this.eagerMergeTriggerThreshold = eagerMergeTriggerThreshold;
     }
 
     @Test
     public void manyFilesToMerge() throws Exception {
-        log.info("Running with intermediateFiles: {}, eagerMergeTriggerThreshold: {}", numberOfIntermediateFiles, eagerMergeTriggerThreshold);
-        System.setProperty(PipelinedMergeSortTask.OAK_INDEXER_PIPELINED_EAGER_MERGE_TRIGGER_THRESHOLD, Integer.toString(eagerMergeTriggerThreshold));
-        System.setProperty(PipelinedMergeSortTask.OAK_INDEXER_PIPELINED_EAGER_MERGE_MAX_FILES_TO_MERGE, "32");
-        System.setProperty(PipelinedMergeSortTask.OAK_INDEXER_PIPELINED_EAGER_MERGE_MAX_SIZE_TO_MERGE_MB, "512");
-        System.setProperty(PipelinedMergeSortTask.OAK_INDEXER_PIPELINED_EAGER_MERGE_MIN_FILES_TO_MERGE, "8");
+        log.info("Running with intermediateFiles: {}, eagerMergeTriggerThreshold: {}",
+            numberOfIntermediateFiles, eagerMergeTriggerThreshold);
+        System.setProperty(
+            PipelinedMergeSortTask.OAK_INDEXER_PIPELINED_EAGER_MERGE_TRIGGER_THRESHOLD,
+            Integer.toString(eagerMergeTriggerThreshold));
+        System.setProperty(
+            PipelinedMergeSortTask.OAK_INDEXER_PIPELINED_EAGER_MERGE_MAX_FILES_TO_MERGE, "32");
+        System.setProperty(
+            PipelinedMergeSortTask.OAK_INDEXER_PIPELINED_EAGER_MERGE_MAX_SIZE_TO_MERGE_MB, "512");
+        System.setProperty(
+            PipelinedMergeSortTask.OAK_INDEXER_PIPELINED_EAGER_MERGE_MIN_FILES_TO_MERGE, "8");
 
         // Generate FFS
         List<String> ffs = generateFFS(LINES_IN_FFS);
@@ -74,13 +80,15 @@ public class PipelinedMergeSortTaskParameterizedTest extends PipelinedMergeSortT
         // Generate the expected results by sorting using the node state entries comparator,
         List<NodeStateHolder> nodesOrdered = sortAsNodeStateEntries(ffs);
         // Convert back to a list of Strings
-        String[] expectedFFS = nodesOrdered.stream().map(f -> new String(f.getLine())).toArray(String[]::new);
+        String[] expectedFFS = nodesOrdered.stream().map(f -> new String(f.getLine()))
+                                           .toArray(String[]::new);
 
         // Write intermediate files
         List<Path> intermediateFiles = createIntermediateFiles(ffs, this.numberOfIntermediateFiles);
 
         // Run test
-        PipelinedMergeSortTask.Result result = runTestLargeFiles(Compression.NONE, intermediateFiles.toArray(new Path[0]));
+        PipelinedMergeSortTask.Result result = runTestLargeFiles(Compression.NONE,
+            intermediateFiles.toArray(new Path[0]));
         Path resultFile = result.getFlatFileStoreFile();
 
         assertEquals(this.numberOfIntermediateFiles, result.getIntermediateFilesCount());
@@ -101,14 +109,18 @@ public class PipelinedMergeSortTaskParameterizedTest extends PipelinedMergeSortT
      */
     @Ignore
     public void manyFilesToMergeManual() throws Exception {
-        System.setProperty(PipelinedMergeSortTask.OAK_INDEXER_PIPELINED_EAGER_MERGE_TRIGGER_THRESHOLD, "50");
-        System.setProperty(PipelinedMergeSortTask.OAK_INDEXER_PIPELINED_EAGER_MERGE_MAX_FILES_TO_MERGE, "32");
-        System.setProperty(PipelinedMergeSortTask.OAK_INDEXER_PIPELINED_EAGER_MERGE_MAX_SIZE_TO_MERGE_MB, "512");
-        System.setProperty(PipelinedMergeSortTask.OAK_INDEXER_PIPELINED_EAGER_MERGE_MIN_FILES_TO_MERGE, "8");
+        System.setProperty(
+            PipelinedMergeSortTask.OAK_INDEXER_PIPELINED_EAGER_MERGE_TRIGGER_THRESHOLD, "50");
+        System.setProperty(
+            PipelinedMergeSortTask.OAK_INDEXER_PIPELINED_EAGER_MERGE_MAX_FILES_TO_MERGE, "32");
+        System.setProperty(
+            PipelinedMergeSortTask.OAK_INDEXER_PIPELINED_EAGER_MERGE_MAX_SIZE_TO_MERGE_MB, "512");
+        System.setProperty(
+            PipelinedMergeSortTask.OAK_INDEXER_PIPELINED_EAGER_MERGE_MIN_FILES_TO_MERGE, "8");
         Path dirWithFilesToMerge = Paths.get("/path/to/ffs/intermediate/files");
         Path[] files = Files.list(dirWithFilesToMerge)
-                .filter(Files::isRegularFile)
-                .toArray(Path[]::new);
+                            .filter(Files::isRegularFile)
+                            .toArray(Path[]::new);
 
         PipelinedMergeSortTask.Result result = runTestLargeFiles(new LZ4Compression(), files);
         Path resultFile = result.getFlatFileStoreFile();

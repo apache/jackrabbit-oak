@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.segment.standby;
 
 import java.io.File;
-
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.test.TemporaryBlobStore;
 import org.apache.jackrabbit.oak.segment.test.TemporaryFileStore;
@@ -33,15 +32,17 @@ public class ExternalSharedStoreIT extends DataStoreTestBase {
 
     private TemporaryBlobStore commonBlobStore = new TemporaryBlobStore(folder);
 
-    private TemporaryFileStore serverFileStore = new TemporaryFileStore(folder, commonBlobStore, false);
+    private TemporaryFileStore serverFileStore = new TemporaryFileStore(folder, commonBlobStore,
+        false);
 
-    private TemporaryFileStore clientFileStore = new TemporaryFileStore(folder, commonBlobStore, true);
+    private TemporaryFileStore clientFileStore = new TemporaryFileStore(folder, commonBlobStore,
+        true);
 
     @Rule
     public RuleChain chain = RuleChain.outerRule(folder)
-            .around(commonBlobStore)
-            .around(serverFileStore)
-            .around(clientFileStore);
+                                      .around(commonBlobStore)
+                                      .around(serverFileStore)
+                                      .around(clientFileStore);
 
     @Override
     FileStore getPrimary() {

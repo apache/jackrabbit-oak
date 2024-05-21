@@ -16,6 +16,13 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+import javax.jcr.RepositoryException;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.commons.iterator.AbstractLazyIterator;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
@@ -24,19 +31,11 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.jcr.RepositoryException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
-
 
 class InheritedMembershipIterator extends AbstractLazyIterator<Group> {
 
     private static final Logger log = LoggerFactory.getLogger(InheritedMembershipIterator.class);
-    
+
     private final Iterator<Group> groupIterator;
     private final List<Iterator<Group>> inherited = new ArrayList<>();
     private final Set<String> processed = new HashSet<>();
@@ -74,10 +73,11 @@ class InheritedMembershipIterator extends AbstractLazyIterator<Group> {
         // all inherited groups have been processed
         return null;
     }
-    
+
     private boolean notProcessedBefore(@NotNull Group group) {
         try {
-            return processed.add(group.getID()) && !EveryonePrincipal.NAME.equals(group.getPrincipal().getName());
+            return processed.add(group.getID()) && !EveryonePrincipal.NAME.equals(
+                group.getPrincipal().getName());
         } catch (RepositoryException repositoryException) {
             return true;
         }
@@ -91,7 +91,7 @@ class InheritedMembershipIterator extends AbstractLazyIterator<Group> {
         if (inheritedIterator.hasNext()) {
             return true;
         } else {
-            // no more elements in the current 'inheritedIterator'. move on to the next inherited iterator 
+            // no more elements in the current 'inheritedIterator'. move on to the next inherited iterator
             // (or an empty one if there are no more iterators left to process)
             inheritedIterator = getNextInheritedIterator();
             return inheritedIterator.hasNext();

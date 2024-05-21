@@ -16,17 +16,16 @@
  */
 package org.apache.jackrabbit.oak.security.user.autosave;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.api.security.user.Authorizable;
-import org.junit.Test;
-
-import java.util.Iterator;
-
 import static org.junit.Assert.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+
+import java.util.Iterator;
+import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.junit.Test;
 
 public class AuthorizableWrapperTest extends AbstractAutoSaveTest {
 

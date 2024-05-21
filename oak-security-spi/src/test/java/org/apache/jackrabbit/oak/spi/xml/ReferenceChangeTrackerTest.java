@@ -16,14 +16,14 @@
  */
 package org.apache.jackrabbit.oak.spi.xml;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 
 public class ReferenceChangeTrackerTest {
 
@@ -50,11 +50,13 @@ public class ReferenceChangeTrackerTest {
         rct.processedReference("ref");
         rct.processedReference("ref2");
 
-        assertTrue(Iterators.elementsEqual(Lists.newArrayList("ref", "ref2").iterator(), rct.getProcessedReferences()));
+        assertTrue(Iterators.elementsEqual(Lists.newArrayList("ref", "ref2").iterator(),
+            rct.getProcessedReferences()));
 
         rct.removeReferences(ImmutableList.of("ref"));
 
-        assertTrue(Iterators.elementsEqual(Lists.newArrayList("ref2").iterator(), rct.getProcessedReferences()));
+        assertTrue(Iterators.elementsEqual(Lists.newArrayList("ref2").iterator(),
+            rct.getProcessedReferences()));
     }
 
 }

@@ -23,7 +23,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveReader;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveWriter;
@@ -38,7 +37,8 @@ public class SplitSegmentArchiveManager implements SegmentArchiveManager {
 
     private final List<String> roArchiveList;
 
-    public SplitSegmentArchiveManager(SegmentArchiveManager roArchiveManager, SegmentArchiveManager rwArchiveManager, String lastRoArchive) throws IOException {
+    public SplitSegmentArchiveManager(SegmentArchiveManager roArchiveManager,
+        SegmentArchiveManager rwArchiveManager, String lastRoArchive) throws IOException {
         this.roArchiveManager = roArchiveManager;
         this.rwArchiveManager = rwArchiveManager;
         this.roArchiveList = getRoArchives(lastRoArchive);
@@ -49,7 +49,8 @@ public class SplitSegmentArchiveManager implements SegmentArchiveManager {
         Collections.sort(archives);
         int index = archives.indexOf(lastRoArchive);
         if (index == -1) {
-            throw new IllegalStateException("Can't find archive " + lastRoArchive + " in the read-only persistence");
+            throw new IllegalStateException(
+                "Can't find archive " + lastRoArchive + " in the read-only persistence");
         }
         return new ArrayList<>(archives.subList(0, index + 1));
     }
@@ -117,7 +118,8 @@ public class SplitSegmentArchiveManager implements SegmentArchiveManager {
         if (roArchiveList.contains(to)) {
             throw new IOException("Can't overwrite the read-only " + to);
         } else if (roArchiveList.contains(from)) {
-            throw new IOException("Can't copy the archive between persistence " + from + " -> " + to);
+            throw new IOException(
+                "Can't copy the archive between persistence " + from + " -> " + to);
         } else {
             rwArchiveManager.copyFile(from, to);
         }
@@ -129,7 +131,8 @@ public class SplitSegmentArchiveManager implements SegmentArchiveManager {
     }
 
     @Override
-    public void recoverEntries(@NotNull String archiveName, @NotNull LinkedHashMap<UUID, byte[]> entries) throws IOException {
+    public void recoverEntries(@NotNull String archiveName,
+        @NotNull LinkedHashMap<UUID, byte[]> entries) throws IOException {
         if (roArchiveList.contains(archiveName)) {
             roArchiveManager.recoverEntries(archiveName, entries);
         } else {
@@ -138,7 +141,8 @@ public class SplitSegmentArchiveManager implements SegmentArchiveManager {
     }
 
     @Override
-    public void backup(@NotNull String archiveName, @NotNull String backupArchiveName, @NotNull Set<UUID> recoveredEntries) throws IOException {
+    public void backup(@NotNull String archiveName, @NotNull String backupArchiveName,
+        @NotNull Set<UUID> recoveredEntries) throws IOException {
         if (roArchiveList.contains(archiveName)) {
             // archive is in read only part
             return;

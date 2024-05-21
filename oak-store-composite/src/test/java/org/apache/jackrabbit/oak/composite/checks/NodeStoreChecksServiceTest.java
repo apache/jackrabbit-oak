@@ -46,46 +46,48 @@ public class NodeStoreChecksServiceTest {
     @Before
     public void createFixture() throws CommitFailedException {
         globalStore = new MemoryNodeStore();
-        mountedStore = new MemoryNodeStore();        
+        mountedStore = new MemoryNodeStore();
 
         NodeBuilder rootBuilder = mountedStore.getRoot().builder();
         rootBuilder.setChildNode("first").setChildNode("second").setChildNode("third");
         rootBuilder.setChildNode("not-covered");
         mountedStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        
+
         mip = Mounts.newBuilder()
-                .readOnlyMount("first", "/first")
-                .build();
-        
+                    .readOnlyMount("first", "/first")
+                    .build();
+
         mount = mip.getMountByName("first");
     }
-    
+
     @Test
     public void noCheckers() throws CommitFailedException {
 
         NodeStoreChecksService checks = new NodeStoreChecksService();
-        
+
         checks.check(globalStore, new MountedNodeStore(mount, mountedStore));
     }
-    
+
     @Test(expected = IllegalRepositoryStateException.class)
     public void failOnNodeCoveredByMount() {
 
-        NodeStoreChecksService checks = new NodeStoreChecksService(defaultMountInfoProvider(), Arrays.asList(new FailOnTreeNameChecker("third")));
-        
+        NodeStoreChecksService checks = new NodeStoreChecksService(defaultMountInfoProvider(),
+            Arrays.asList(new FailOnTreeNameChecker("third")));
+
         checks.check(globalStore, new MountedNodeStore(mount, mountedStore));
     }
 
     @Test
     public void doNotFailOnNodeNotCoveredByMount() {
-        
-        NodeStoreChecksService checks = new NodeStoreChecksService(defaultMountInfoProvider(), Arrays.asList(new FailOnTreeNameChecker("not-covered")));
-        
+
+        NodeStoreChecksService checks = new NodeStoreChecksService(defaultMountInfoProvider(),
+            Arrays.asList(new FailOnTreeNameChecker("not-covered")));
+
         checks.check(globalStore, new MountedNodeStore(mount, mountedStore));
     }
-    
+
     static class FailOnTreeNameChecker implements MountedNodeStoreChecker<Void> {
-        
+
         private final String name;
 
         private FailOnTreeNameChecker(String name) {
@@ -98,12 +100,14 @@ public class NodeStoreChecksServiceTest {
         }
 
         @Override
-        public boolean check(MountedNodeStore mountedStore, Tree tree, ErrorHolder errorHolder, Void context) {
-            if ( name.equals(tree.getName()))
+        public boolean check(MountedNodeStore mountedStore, Tree tree, ErrorHolder errorHolder,
+            Void context) {
+            if (name.equals(tree.getName())) {
                 errorHolder.report(mountedStore, tree.getPath(), "test failure", this);
-            
+            }
+
             return true;
         }
-        
+
     }
 }

@@ -24,13 +24,13 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE
 import org.apache.jackrabbit.oak.api.PropertyState;
 
 /**
- * {@code AbstractRebaseDiff} serves as base for rebase implementations.
- * It implements a {@link NodeStateDiff}, which performs the conflict
- * handling as defined in {@link org.apache.jackrabbit.oak.spi.state.NodeStore#rebase(NodeBuilder)}
- * on the Oak SPI state level.
+ * {@code AbstractRebaseDiff} serves as base for rebase implementations. It implements a
+ * {@link NodeStateDiff}, which performs the conflict handling as defined in
+ * {@link org.apache.jackrabbit.oak.spi.state.NodeStore#rebase(NodeBuilder)} on the Oak SPI state
+ * level.
  * <p>
- * Intended use of this class is to re-base a branched version of the node state
- * tree. Given below situation:
+ * Intended use of this class is to re-base a branched version of the node state tree. Given below
+ * situation:
  * <pre>
  *     + head (master)
  *     |
@@ -39,9 +39,8 @@ import org.apache.jackrabbit.oak.api.PropertyState;
  *     + base
  *     |
  * </pre>
- * The current state on the master branch is {@code head} and a branch
- * was created at {@code base}. The current state on the branch is
- * {@code branch}. Re-basing {@code branch} to the current
+ * The current state on the master branch is {@code head} and a branch was created at {@code base}.
+ * The current state on the branch is {@code branch}. Re-basing {@code branch} to the current
  * {@code head} works as follows:
  * <pre>
  *     NodeState head = ...
@@ -59,11 +58,12 @@ import org.apache.jackrabbit.oak.api.PropertyState;
  *     |
  * </pre>
  * <p>
- * Conflicts during rebase cause calls to the various abstracts conflict resolution
- * methods of this class. Concrete subclasses of this class need to implement these
- * methods for handling such conflicts.
+ * Conflicts during rebase cause calls to the various abstracts conflict resolution methods of this
+ * class. Concrete subclasses of this class need to implement these methods for handling such
+ * conflicts.
  */
 public abstract class AbstractRebaseDiff implements NodeStateDiff {
+
     private final NodeBuilder builder;
 
     protected AbstractRebaseDiff(NodeBuilder builder) {
@@ -71,99 +71,104 @@ public abstract class AbstractRebaseDiff implements NodeStateDiff {
     }
 
     /**
-     * Factory method for creating a rebase handler for the named child of the passed
-     * parent builder.
+     * Factory method for creating a rebase handler for the named child of the passed parent
+     * builder.
      *
-     * @param builder  parent builder
-     * @param name  name of the child for which to return a rebase handler
-     * @return  rebase handler for child {@code name} in {@code builder}
+     * @param builder parent builder
+     * @param name    name of the child for which to return a rebase handler
+     * @return rebase handler for child {@code name} in {@code builder}
      */
     protected abstract AbstractRebaseDiff createDiff(NodeBuilder builder, String name);
 
     /**
-     * Called when the property {@code after} was added on the branch but the property
-     * exists already in the trunk.
+     * Called when the property {@code after} was added on the branch but the property exists
+     * already in the trunk.
      *
-     * @param builder  parent builder
-     * @param before existing property
-     * @param after  added property
+     * @param builder parent builder
+     * @param before  existing property
+     * @param after   added property
      */
-    protected abstract void addExistingProperty(NodeBuilder builder, PropertyState before, PropertyState after);
+    protected abstract void addExistingProperty(NodeBuilder builder, PropertyState before,
+        PropertyState after);
 
     /**
-     * Called when the property {@code after} was changed on the branch but was
-     * deleted already in the trunk.
+     * Called when the property {@code after} was changed on the branch but was deleted already in
+     * the trunk.
      *
-     * @param builder  parent builder
-     * @param after  changed property
-     * @param base  base property
+     * @param builder parent builder
+     * @param after   changed property
+     * @param base    base property
      */
-    protected abstract void changeDeletedProperty(NodeBuilder builder, PropertyState after, PropertyState base);
+    protected abstract void changeDeletedProperty(NodeBuilder builder, PropertyState after,
+        PropertyState base);
 
     /**
-     * Called when the property {@code after} was changed on the branch but was
-     * already changed to {@code before} in the trunk.
+     * Called when the property {@code after} was changed on the branch but was already changed to
+     * {@code before} in the trunk.
      *
-     * @param builder  parent property
+     * @param builder parent property
      * @param before  changed property in branch
-     * @param after  changed property in trunk
+     * @param after   changed property in trunk
      */
-    protected abstract void changeChangedProperty(NodeBuilder builder, PropertyState before, PropertyState after);
+    protected abstract void changeChangedProperty(NodeBuilder builder, PropertyState before,
+        PropertyState after);
 
     /**
-     * Called when the property {@code before} was deleted in the branch but was
-     * already deleted in the trunk.
+     * Called when the property {@code before} was deleted in the branch but was already deleted in
+     * the trunk.
      *
-     * @param builder  parent builder
+     * @param builder parent builder
      * @param before  deleted property
      */
     protected abstract void deleteDeletedProperty(NodeBuilder builder, PropertyState before);
 
     /**
-     * Called when the property {@code before} was deleted in the branch but was
-     * already changed in the trunk.
+     * Called when the property {@code before} was deleted in the branch but was already changed in
+     * the trunk.
      *
-     * @param builder  parent builder
+     * @param builder parent builder
      * @param before  deleted property
      */
     protected abstract void deleteChangedProperty(NodeBuilder builder, PropertyState before);
 
     /**
-     * Called when the node {@code after} was added on the branch but the node
-     * exists already in the trunk.
+     * Called when the node {@code after} was added on the branch but the node exists already in the
+     * trunk.
      *
-     * @param builder  parent builder
-     * @param name  name of the added node
-     * @param before existing node
-     * @param after  added added
+     * @param builder parent builder
+     * @param name    name of the added node
+     * @param before  existing node
+     * @param after   added added
      */
-    protected abstract void addExistingNode(NodeBuilder builder, String name, NodeState before, NodeState after);
+    protected abstract void addExistingNode(NodeBuilder builder, String name, NodeState before,
+        NodeState after);
 
     /**
-     * Called when the node {@code after} was changed on the branch but was
-     * deleted already in the trunk.
+     * Called when the node {@code after} was changed on the branch but was deleted already in the
+     * trunk.
      *
-     * @param builder  parent builder
-     * @param name  name of the changed node
-     * @param after  changed node
-     * @param base  base node
+     * @param builder parent builder
+     * @param name    name of the changed node
+     * @param after   changed node
+     * @param base    base node
      */
-    protected abstract void changeDeletedNode(NodeBuilder builder, String name, NodeState after, NodeState base);
+    protected abstract void changeDeletedNode(NodeBuilder builder, String name, NodeState after,
+        NodeState base);
 
     /**
-     * Called when the node {@code before} was deleted in the branch but was
-     * already deleted in the trunk.
+     * Called when the node {@code before} was deleted in the branch but was already deleted in the
+     * trunk.
      *
-     * @param builder  parent builder
+     * @param builder parent builder
      * @param before  deleted node
      */
     protected abstract void deleteDeletedNode(NodeBuilder builder, String name, NodeState before);
 
     /**
-     * Called when the node {@code before} was deleted in the branch but was
-     * already changed in the trunk.
+     * Called when the node {@code before} was deleted in the branch but was already changed in the
+     * trunk.
      *
-     * @param builder  parent builder
+     * @param builder parent builder
      * @param before  deleted node
      */
     protected abstract void deleteChangedNode(NodeBuilder builder, String name, NodeState before);

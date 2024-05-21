@@ -18,13 +18,11 @@
  */
 package org.apache.jackrabbit.oak.segment.aws.tool;
 
-import java.io.IOException;
-import java.util.Date;
-
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.amazonaws.services.dynamodbv2.local.embedded.DynamoDBEmbedded;
 import com.amazonaws.services.s3.AmazonS3;
-
+import java.io.IOException;
+import java.util.Date;
 import org.apache.jackrabbit.oak.segment.aws.AwsContext;
 import org.apache.jackrabbit.oak.segment.aws.S3MockRule;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
@@ -41,8 +39,9 @@ public class SegmentCopyTarToAwsTest extends SegmentCopyTestBase {
         AmazonS3 s3 = s3Mock.createClient();
         AmazonDynamoDB ddb = DynamoDBEmbedded.create().amazonDynamoDB();
         long time = new Date().getTime();
-        awsContext = AwsContext.create(s3, bucketName = "bucket-" + time, rootDirectory = "repository", ddb,
-                journalTable = "journaltable-" + time, lockTable = "locktable-" + time);
+        awsContext = AwsContext.create(s3, bucketName = "bucket-" + time,
+            rootDirectory = "repository", ddb,
+            journalTable = "journaltable-" + time, lockTable = "locktable-" + time);
     }
 
     @Override

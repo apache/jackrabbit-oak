@@ -19,14 +19,26 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.property;
 
+import static java.util.Arrays.asList;
+import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.child;
+import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
+import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.getNode;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.empty;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
+
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfo;
@@ -52,20 +64,8 @@ import org.json.simple.parser.ParseException;
 import org.junit.Before;
 import org.junit.Test;
 
-import static java.util.Arrays.asList;
-import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.child;
-import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
-import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.getNode;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.empty;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
-
 public class PropertyIndexCleanerTest {
+
     private NodeStore nodeStore = new MemoryNodeStore();
     private SimpleAsyncInfoService asyncService = new SimpleAsyncInfoService();
     private Clock clock = new Clock.Virtual();
@@ -78,14 +78,15 @@ public class PropertyIndexCleanerTest {
     }
 
     @Test
-    public void syncIndexPaths() throws Exception{
+    public void syncIndexPaths() throws Exception {
         LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
         defnb.indexRule("nt:base").property("foo").propertyIndex().sync();
         String indexPath = "/oak:index/foo";
         addIndex(indexPath, defnb);
 
         PropertyIndexCleaner cleaner =
-                new PropertyIndexCleaner(nodeStore, () -> asList("/oak:index/uuid", indexPath), asyncService, StatisticsProvider.NOOP);
+            new PropertyIndexCleaner(nodeStore, () -> asList("/oak:index/uuid", indexPath),
+                asyncService, StatisticsProvider.NOOP);
 
         //As index is yet not update it would not show up in sync index paths
         assertThat(cleaner.getSyncIndexPaths(), empty());
@@ -100,14 +101,15 @@ public class PropertyIndexCleanerTest {
     }
 
     @Test
-    public void simplePropertyIndexCleaning() throws Exception{
+    public void simplePropertyIndexCleaning() throws Exception {
         LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
         defnb.indexRule("nt:base").property("foo").propertyIndex().sync();
         String indexPath = "/oak:index/foo";
         addIndex(indexPath, defnb);
 
         PropertyIndexCleaner cleaner =
-                new PropertyIndexCleaner(nodeStore, () -> asList("/oak:index/uuid", indexPath), asyncService, StatisticsProvider.NOOP);
+            new PropertyIndexCleaner(nodeStore, () -> asList("/oak:index/uuid", indexPath),
+                asyncService, StatisticsProvider.NOOP);
 
         NodeBuilder builder = nodeStore.getRoot().builder();
         PropertyIndexUpdateCallback cb = newCallback(builder, indexPath);
@@ -145,14 +147,15 @@ public class PropertyIndexCleanerTest {
     }
 
     @Test
-    public void uniqueIndexCleaning() throws Exception{
+    public void uniqueIndexCleaning() throws Exception {
         LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
         defnb.indexRule("nt:base").property("foo").propertyIndex().unique();
         String indexPath = "/oak:index/foo";
         addIndex(indexPath, defnb);
 
         PropertyIndexCleaner cleaner =
-                new PropertyIndexCleaner(nodeStore, () -> asList("/oak:index/uuid", indexPath), asyncService, StatisticsProvider.NOOP);
+            new PropertyIndexCleaner(nodeStore, () -> asList("/oak:index/uuid", indexPath),
+                asyncService, StatisticsProvider.NOOP);
         cleaner.setCreatedTimeThreshold(TimeUnit.MILLISECONDS, 100);
 
         clock.waitUntil(1000);
@@ -180,11 +183,11 @@ public class PropertyIndexCleanerTest {
         asyncService.addInfo("async", 1200);
         assertCleanUpPerformed(cleaner.performCleanup(false), true);
         assertJsonInfo(indexPath, "{\n" +
-                "  \"foo\": {\n" +
-                "    \"entryCount\": 1,\n" +
-                "    \"unique\": true\n" +
-                "  }\n" +
-                "}");
+            "  \"foo\": {\n" +
+            "    \"entryCount\": 1,\n" +
+            "    \"unique\": true\n" +
+            "  }\n" +
+            "}");
 
         // /a would be purged, /b would be retained as its created time 1150 is not older than 100 wrt
         // indexer time of 1200
@@ -196,11 +199,11 @@ public class PropertyIndexCleanerTest {
         cb = newCallback(builder, indexPath);
         propertyUpdated(cb, indexPath, "/c", "foo", "bar2");
 
-        try{
+        try {
             cb.done();
             fail();
-        } catch (CommitFailedException e){
-            assertEquals(CONSTRAINT,e.getType());
+        } catch (CommitFailedException e) {
+            assertEquals(CONSTRAINT, e.getType());
         }
 
         //------------------------ Run 2
@@ -213,14 +216,15 @@ public class PropertyIndexCleanerTest {
     }
 
     @Test
-    public void noRunPerformedIfNoChangeInAsync() throws Exception{
+    public void noRunPerformedIfNoChangeInAsync() throws Exception {
         LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
         defnb.indexRule("nt:base").property("foo").propertyIndex().sync();
         String indexPath = "/oak:index/foo";
         addIndex(indexPath, defnb);
 
         PropertyIndexCleaner cleaner =
-                new PropertyIndexCleaner(nodeStore, () -> asList("/oak:index/uuid", indexPath), asyncService, StatisticsProvider.NOOP);
+            new PropertyIndexCleaner(nodeStore, () -> asList("/oak:index/uuid", indexPath),
+                asyncService, StatisticsProvider.NOOP);
 
         NodeBuilder builder = nodeStore.getRoot().builder();
         PropertyIndexUpdateCallback cb = newCallback(builder, indexPath);
@@ -233,35 +237,36 @@ public class PropertyIndexCleanerTest {
         asyncService.addInfo("async", 1000);
         assertCleanUpPerformed(cleaner.performCleanup(false), true);
         assertJsonInfo(indexPath, "{\n" +
-                "  \"foo\": {\n" +
-                "    \"1\": {\n" +
-                "      \"type\": \"previous\",\n" +
-                "      \"keyCount\": 1,\n" +
-                "      \"entryCount\": 1,\n" +
-                "      \"totalCount\": 3\n" +
-                "    },\n" +
-                "    \"2\": {\n" +
-                "      \"type\": \"head\",\n" +
-                "      \"keyCount\": 0,\n" +
-                "      \"entryCount\": 0,\n" +
-                "      \"totalCount\": 1\n" +
-                "    }\n" +
-                "  }\n" +
-                "}");
+            "  \"foo\": {\n" +
+            "    \"1\": {\n" +
+            "      \"type\": \"previous\",\n" +
+            "      \"keyCount\": 1,\n" +
+            "      \"entryCount\": 1,\n" +
+            "      \"totalCount\": 3\n" +
+            "    },\n" +
+            "    \"2\": {\n" +
+            "      \"type\": \"head\",\n" +
+            "      \"keyCount\": 0,\n" +
+            "      \"entryCount\": 0,\n" +
+            "      \"totalCount\": 1\n" +
+            "    }\n" +
+            "  }\n" +
+            "}");
 
         //Second run should not run
         assertCleanUpPerformed(cleaner.performCleanup(false), false);
     }
 
     @Test
-    public void recursiveDelete() throws Exception{
+    public void recursiveDelete() throws Exception {
         LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
         defnb.indexRule("nt:base").property("foo").propertyIndex().sync();
         String indexPath = "/oak:index/foo";
         addIndex(indexPath, defnb);
 
         PropertyIndexCleaner cleaner =
-                new PropertyIndexCleaner(nodeStore, () -> asList("/oak:index/uuid", indexPath), asyncService, StatisticsProvider.NOOP);
+            new PropertyIndexCleaner(nodeStore, () -> asList("/oak:index/uuid", indexPath),
+                asyncService, StatisticsProvider.NOOP);
         cleaner.setRecursiveDelete(true);
 
         NodeBuilder builder = nodeStore.getRoot().builder();
@@ -296,28 +301,31 @@ public class PropertyIndexCleanerTest {
         JsonObject j1 = (JsonObject) new JsonParser().parse(json);
         JsonObject j2 = (JsonObject) new JsonParser().parse(expectedJson);
 
-        if (!j1.equals(j2)){
+        if (!j1.equals(j2)) {
             assertEquals(j1, j2);
         }
     }
 
-    private void addIndex(String indexPath, LuceneIndexDefinitionBuilder defnb) throws CommitFailedException {
+    private void addIndex(String indexPath, LuceneIndexDefinitionBuilder defnb)
+        throws CommitFailedException {
         NodeBuilder nb = nodeStore.getRoot().builder();
         child(nb, getParentPath(indexPath)).setChildNode(getName(indexPath), defnb.build());
         merge(nb);
     }
 
-    private void propertyUpdated(PropertyUpdateCallback callback, String indexPath, String nodePath, String propertyName,
-                                 String value){
+    private void propertyUpdated(PropertyUpdateCallback callback, String indexPath, String nodePath,
+        String propertyName,
+        String value) {
         callback.propertyUpdated(nodePath, propertyName, pd(indexPath, propertyName),
-                null, createProperty(propertyName, value));
+            null, createProperty(propertyName, value));
     }
 
     private PropertyIndexUpdateCallback newCallback(NodeBuilder builder, String indexPath) {
-        return new PropertyIndexUpdateCallback(indexPath, child(builder, indexPath), builder.getNodeState(), clock);
+        return new PropertyIndexUpdateCallback(indexPath, child(builder, indexPath),
+            builder.getNodeState(), clock);
     }
 
-    private PropertyDefinition pd(String indexPath, String propName){
+    private PropertyDefinition pd(String indexPath, String propName) {
         NodeState root = nodeStore.getRoot();
         IndexDefinition defn = new IndexDefinition(root, getNode(root, indexPath), indexPath);
         return defn.getApplicableIndexingRule("nt:base").getConfig(propName);
@@ -329,13 +337,16 @@ public class PropertyIndexCleanerTest {
 
     private List<String> query(String indexPath, String propertyName, String value) {
         NodeState root = nodeStore.getRoot();
-        HybridPropertyIndexLookup lookup = new HybridPropertyIndexLookup(indexPath, getNode(root, indexPath));
+        HybridPropertyIndexLookup lookup = new HybridPropertyIndexLookup(indexPath,
+            getNode(root, indexPath));
         FilterImpl filter = FilterImpl.newTestInstance();
-        Iterable<String> paths = lookup.query(filter, propertyName,   PropertyValues.newString(value));
+        Iterable<String> paths = lookup.query(filter, propertyName,
+            PropertyValues.newString(value));
         return ImmutableList.copyOf(paths);
     }
 
     private static class SimpleAsyncInfoService implements AsyncIndexInfoService {
+
         final Map<String, AsyncIndexInfo> infos = new HashMap<>();
 
         @Override

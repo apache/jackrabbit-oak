@@ -16,13 +16,20 @@
  */
 package org.apache.jackrabbit.oak.exercise.security.authorization.principalbased;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
+import java.security.Principal;
+import java.security.PrivilegedExceptionAction;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import javax.security.auth.Subject;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
 import org.apache.jackrabbit.api.security.authorization.PrincipalAccessControlList;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -42,14 +49,6 @@ import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Rule;
-
-import javax.security.auth.Subject;
-import java.security.Principal;
-import java.security.PrivilegedExceptionAction;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
 
 abstract class AbstractPrincipalBasedTest extends AbstractSecurityTest {
 
@@ -81,16 +80,21 @@ abstract class AbstractPrincipalBasedTest extends AbstractSecurityTest {
         // principal-based authorization is designed for osgi-setup.
         // injecting the configuration into the security provider needs a some workarounds....
         FilterProvider filterProvider = getFilterProvider();
-        context.registerInjectActivateService(filterProvider, Collections.singletonMap("path", getSupportedPath()));
+        context.registerInjectActivateService(filterProvider,
+            Collections.singletonMap("path", getSupportedPath()));
         context.registerInjectActivateService(new MountInfoProviderService());
-        ConfigurationParameters params = ConfigurationParameters.of(CompositeConfiguration.PARAM_RANKING, 500, "enableAggregationFilter", enableAggregationFilter());
+        ConfigurationParameters params = ConfigurationParameters.of(
+            CompositeConfiguration.PARAM_RANKING, 500, "enableAggregationFilter",
+            enableAggregationFilter());
         context.registerInjectActivateService(principalBasedAuthorizationConfiguration, params);
 
         SecurityProvider sp = super.initSecurityProvider();
-        SecurityProviderHelper.updateConfig(sp, principalBasedAuthorizationConfiguration, AuthorizationConfiguration.class);
+        SecurityProviderHelper.updateConfig(sp, principalBasedAuthorizationConfiguration,
+            AuthorizationConfiguration.class);
         if (enableAggregationFilter()) {
             AggregationFilter aggregationFilter = context.getService(AggregationFilter.class);
-            ((CompositeAuthorizationConfiguration) sp.getConfiguration(AuthorizationConfiguration.class)).withAggregationFilter(aggregationFilter);
+            ((CompositeAuthorizationConfiguration) sp.getConfiguration(
+                AuthorizationConfiguration.class)).withAggregationFilter(aggregationFilter);
         }
         return sp;
     }
@@ -98,7 +102,8 @@ abstract class AbstractPrincipalBasedTest extends AbstractSecurityTest {
     @NotNull
     @Override
     protected ConfigurationParameters getSecurityConfigParameters() {
-        return ConfigurationParameters.of("authorizationCompositionType", getCompositionType().toString());
+        return ConfigurationParameters.of("authorizationCompositionType",
+            getCompositionType().toString());
     }
 
     @NotNull
@@ -122,7 +127,8 @@ abstract class AbstractPrincipalBasedTest extends AbstractSecurityTest {
 
     @NotNull
     String getSupportedIntermediatePath() {
-        return PathUtils.concatRelativePaths(UserConstants.DEFAULT_SYSTEM_RELATIVE_PATH, "supported");
+        return PathUtils.concatRelativePaths(UserConstants.DEFAULT_SYSTEM_RELATIVE_PATH,
+            "supported");
     }
 
     @NotNull
@@ -140,7 +146,8 @@ abstract class AbstractPrincipalBasedTest extends AbstractSecurityTest {
     }
 
     @NotNull
-    Principal getSystemUserPrincipal(@NotNull String name, @Nullable String intermediatePath) throws Exception {
+    Principal getSystemUserPrincipal(@NotNull String name, @Nullable String intermediatePath)
+        throws Exception {
         User su;
         if (systemUsers.containsKey(name)) {
             su = systemUsers.get(name);
@@ -158,15 +165,22 @@ abstract class AbstractPrincipalBasedTest extends AbstractSecurityTest {
     }
 
     @Nullable
-    static PrincipalAccessControlList getApplicablePrincipalAccessControlList(@NotNull JackrabbitAccessControlManager acMgr, @NotNull Principal principal) throws Exception {
-        Set<JackrabbitAccessControlPolicy> applicable = ImmutableSet.copyOf(acMgr.getApplicablePolicies(principal));
-        PrincipalAccessControlList acl = (PrincipalAccessControlList) Iterables.find(applicable, accessControlPolicy -> accessControlPolicy instanceof PrincipalAccessControlList, null);
+    static PrincipalAccessControlList getApplicablePrincipalAccessControlList(
+        @NotNull JackrabbitAccessControlManager acMgr, @NotNull Principal principal)
+        throws Exception {
+        Set<JackrabbitAccessControlPolicy> applicable = ImmutableSet.copyOf(
+            acMgr.getApplicablePolicies(principal));
+        PrincipalAccessControlList acl = (PrincipalAccessControlList) Iterables.find(applicable,
+            accessControlPolicy -> accessControlPolicy instanceof PrincipalAccessControlList, null);
         return acl;
     }
 
     @NotNull
     ContentSession getTestSession(@NotNull Principal... principals) throws Exception {
-        Subject subject = new Subject(true, ImmutableSet.copyOf(principals), ImmutableSet.of(), ImmutableSet.of());
-        return Subject.doAsPrivileged(subject, (PrivilegedExceptionAction<ContentSession>) () -> getContentRepository().login(null, null), null);
+        Subject subject = new Subject(true, ImmutableSet.copyOf(principals), ImmutableSet.of(),
+            ImmutableSet.of());
+        return Subject.doAsPrivileged(subject,
+            (PrivilegedExceptionAction<ContentSession>) () -> getContentRepository().login(null,
+                null), null);
     }
 }

@@ -16,8 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.tree;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
+import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
+
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -27,9 +30,6 @@ import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.junit.Before;
 import org.mockito.Mockito;
-
-import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.withSettings;
 
 public abstract class AbstractTreeTest {
 
@@ -52,7 +52,8 @@ public abstract class AbstractTreeTest {
         when(rootTree.hasProperty("p")).thenReturn(true);
         when(rootTree.getProperty("p")).thenReturn(PropertyStates.createProperty("p", LONG_VALUE));
 
-        nonExisting = mockTree(NON_EXISTING_PATH, rootTree, false, NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        nonExisting = mockTree(NON_EXISTING_PATH, rootTree, false,
+            NodeTypeConstants.NT_OAK_UNSTRUCTURED);
 
         Tree x = mockTree("/x", rootTree, true);
         z = mockTree("/z", rootTree, true, NodeTypeConstants.NT_OAK_UNSTRUCTURED);
@@ -60,11 +61,14 @@ public abstract class AbstractTreeTest {
         when(child.hasProperty("p")).thenReturn(true);
         when(child.getProperty("p")).thenReturn(PropertyStates.createProperty("p", STRING_VALUE));
         when(child.hasProperty("pp")).thenReturn(true);
-        PropertyState pp = PropertyStates.createProperty("pp", Lists.newArrayList("v1", "v2"), Type.STRINGS);
+        PropertyState pp = PropertyStates.createProperty("pp", Lists.newArrayList("v1", "v2"),
+            Type.STRINGS);
         when(child.getProperty("pp")).thenReturn(pp);
         when(child.hasProperty(JcrConstants.JCR_PRIMARYTYPE)).thenReturn(true);
         when(child.hasProperty(JcrConstants.JCR_MIXINTYPES)).thenReturn(true);
-        PropertyState mixinNames = PropertyStates.createProperty(JcrConstants.JCR_MIXINTYPES, Lists.newArrayList(JcrConstants.MIX_LOCKABLE, JcrConstants.MIX_VERSIONABLE), Type.NAMES);
+        PropertyState mixinNames = PropertyStates.createProperty(JcrConstants.JCR_MIXINTYPES,
+            Lists.newArrayList(JcrConstants.MIX_LOCKABLE, JcrConstants.MIX_VERSIONABLE),
+            Type.NAMES);
         when(child.getProperty(JcrConstants.JCR_MIXINTYPES)).thenReturn(mixinNames);
 
         when(z.getChild("child")).thenReturn(child);
@@ -78,7 +82,8 @@ public abstract class AbstractTreeTest {
     }
 
     public Tree mockTree(String path, boolean exists) {
-        Tree parent = PathUtils.denotesRoot(path) ? null : mockTree(PathUtils.getAncestorPath(path, 1), true);
+        Tree parent =
+            PathUtils.denotesRoot(path) ? null : mockTree(PathUtils.getAncestorPath(path, 1), true);
         return mockTree(path, parent, exists);
     }
 
@@ -88,7 +93,8 @@ public abstract class AbstractTreeTest {
 
     public Tree mockTree(String path, Tree parent, boolean exists, String primaryType) {
         Tree t = mockTree(path, parent, exists, new Class[0]);
-        when(t.getProperty(JcrConstants.JCR_PRIMARYTYPE)).thenReturn(PropertyStates.createProperty(JcrConstants.JCR_PRIMARYTYPE, primaryType, Type.NAME));
+        when(t.getProperty(JcrConstants.JCR_PRIMARYTYPE)).thenReturn(
+            PropertyStates.createProperty(JcrConstants.JCR_PRIMARYTYPE, primaryType, Type.NAME));
         return t;
     }
 

@@ -20,19 +20,16 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.HashSet;
 import java.util.Set;
-
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 
 /**
- * A ClusterView represents the state of a cluster at a particular moment in
- * time.
+ * A ClusterView represents the state of a cluster at a particular moment in time.
  * <p>
- * This is a combination of what is stored in the ClusterViewDocument and the
- * list of instances that currently have a backlog.
+ * This is a combination of what is stored in the ClusterViewDocument and the list of instances that
+ * currently have a backlog.
  * <p>
- * In order to be able to differentiate and clearly identify the different
- * states an instance is in, the ClusterView uses a slightly different
- * terminology of states that it reports:
+ * In order to be able to differentiate and clearly identify the different states an instance is in,
+ * the ClusterView uses a slightly different terminology of states that it reports:
  * <ul>
  * <li>Active: (same as in the ClusterViewDocument) an instance that is alive
  * and has no recoveryLock set. Whether or not the lease has timed out is
@@ -91,15 +88,15 @@ import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 class ClusterView {
 
     /**
-     * the json containing the complete information of the state of this
-     * ClusterView. Created at constructor time for performance reasons (json
-     * will be polled via JMX very frequently, thus must be provided fast)
+     * the json containing the complete information of the state of this ClusterView. Created at
+     * constructor time for performance reasons (json will be polled via JMX very frequently, thus
+     * must be provided fast)
      */
     private final String json;
 
     /**
-     * Factory method that creates a ClusterView given a ClusterViewDocument and
-     * a list of instances that currently have a backlog.
+     * Factory method that creates a ClusterView given a ClusterViewDocument and a list of instances
+     * that currently have a backlog.
      * <p>
      * The ClusterViewDocument contains instances in the following states:
      * <ul>
@@ -116,18 +113,16 @@ class ClusterView {
      * <li>inactive: this is the inactive ones from the ClusterViewDocument
      * <b>minus</li> the backlogIds passed</li>
      * </ul>
-     * 
-     * @param localInstanceId
-     *            the id of the local instance (me)
-     * @param clusterViewDoc
-     *            the ClusterViewDocument which contains the currently persisted
-     *            cluster view
-     * @param backlogIds
-     *            the ids that the local instances still has not finished a
-     *            background read for and thus still have a backlog
+     *
+     * @param localInstanceId the id of the local instance (me)
+     * @param clusterViewDoc  the ClusterViewDocument which contains the currently persisted cluster
+     *                        view
+     * @param backlogIds      the ids that the local instances still has not finished a background
+     *                        read for and thus still have a backlog
      * @return the ClusterView representing the provided info
      */
-    static ClusterView fromDocument(int localInstanceId, String clusterId, ClusterViewDocument clusterViewDoc, Set<Integer> backlogIds) {
+    static ClusterView fromDocument(int localInstanceId, String clusterId,
+        ClusterViewDocument clusterViewDoc, Set<Integer> backlogIds) {
         Set<Integer> activeIds = clusterViewDoc.getActiveIds();
         Set<Integer> deactivatingIds = new HashSet<Integer>();
         deactivatingIds.addAll(clusterViewDoc.getRecoveringIds());
@@ -139,18 +134,21 @@ class ClusterView {
             // contrary to the expectation
             // in which case we indeed do a paranoia exception here:
             throw new IllegalStateException(
-                    "not all backlogIds (" + backlogIds + ") are part of inactiveIds (" + clusterViewDoc.getInactiveIds() + ")");
+                "not all backlogIds (" + backlogIds + ") are part of inactiveIds ("
+                    + clusterViewDoc.getInactiveIds() + ")");
         }
-        // clusterViewDoc.getClusterViewId() used to provide the 'clusterViewId' 
+        // clusterViewDoc.getClusterViewId() used to provide the 'clusterViewId'
         // as defined within the settings collection of the DocumentStore.
         // with OAK-4006 however we're changing this to use one clusterId
         // within oak - provided and controlled by ClusterRepositoryInfo.
         return new ClusterView(clusterViewDoc.getViewSeqNum(), backlogIds.size() == 0, clusterId,
-                localInstanceId, activeIds, deactivatingIds, inactiveIds);
+            localInstanceId, activeIds, deactivatingIds, inactiveIds);
     }
 
-    ClusterView(final long viewSeqNum, final boolean viewFinal, final String clusterId, final int localId,
-            final Set<Integer> activeIds, final Set<Integer> deactivatingIds, final Set<Integer> inactiveIds) {
+    ClusterView(final long viewSeqNum, final boolean viewFinal, final String clusterId,
+        final int localId,
+        final Set<Integer> activeIds, final Set<Integer> deactivatingIds,
+        final Set<Integer> inactiveIds) {
         if (viewSeqNum < 0) {
             throw new IllegalStateException("viewSeqNum must be zero or higher: " + viewSeqNum);
         }
@@ -170,15 +168,17 @@ class ClusterView {
             throw new IllegalStateException("inactiveIds must not be null");
         }
 
-        json = asJson(viewSeqNum, viewFinal, clusterId, localId, activeIds, deactivatingIds, inactiveIds);
+        json = asJson(viewSeqNum, viewFinal, clusterId, localId, activeIds, deactivatingIds,
+            inactiveIds);
     }
 
     /**
-     * Converts the provided parameters into the clusterview json that will be
-     * provided via JMX
+     * Converts the provided parameters into the clusterview json that will be provided via JMX
      **/
-    private String asJson(final long viewSeqNum, final boolean viewFinal, final String clusterId, final int localId,
-            final Set<Integer> activeIds, final Set<Integer> deactivatingIds, final Set<Integer> inactiveIds) {
+    private String asJson(final long viewSeqNum, final boolean viewFinal, final String clusterId,
+        final int localId,
+        final Set<Integer> activeIds, final Set<Integer> deactivatingIds,
+        final Set<Integer> inactiveIds) {
         JsopBuilder builder = new JsopBuilder();
         builder.object();
         builder.key("seq").value(viewSeqNum);
@@ -198,13 +198,17 @@ class ClusterView {
         return builder.toString();
     }
 
-    /** Debugging toString() **/
+    /**
+     * Debugging toString()
+     **/
     @Override
     public String toString() {
         return "a ClusterView[" + json + "]";
     }
 
-    /** This is the main getter that will be polled via JMX **/
+    /**
+     * This is the main getter that will be polled via JMX
+     **/
     String asDescriptorValue() {
         return json;
     }

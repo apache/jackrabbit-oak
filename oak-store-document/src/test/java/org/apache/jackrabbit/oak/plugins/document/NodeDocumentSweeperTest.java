@@ -199,7 +199,7 @@ public class NodeDocumentSweeperTest {
         return sweeper.sweep(docs, new NodeDocumentSweepListener() {
             @Override
             public void sweepUpdate(Map<Path, UpdateOp> updates)
-                    throws DocumentStoreException {
+                throws DocumentStoreException {
                 ops.addAll(updates.values());
             }
         });

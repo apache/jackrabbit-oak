@@ -17,14 +17,13 @@
 package org.apache.jackrabbit.oak.benchmark;
 
 import java.util.List;
-
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 
 public abstract class Benchmark {
 
     /**
-     * Runs this benchmark against all the given repository fixtures.
-     * The benchmark report is written to standard output.
+     * Runs this benchmark against all the given repository fixtures. The benchmark report is
+     * written to standard output.
      *
      * @param fixtures repository fixtures
      */

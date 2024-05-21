@@ -16,15 +16,14 @@
  */
 package org.apache.jackrabbit.oak.exercise.security.privilege;
 
+import javax.jcr.RepositoryException;
+import javax.jcr.security.AccessControlManager;
+import javax.jcr.security.Privilege;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.JackrabbitWorkspace;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.test.AbstractJCRTest;
 import org.apache.jackrabbit.test.NotExecutableException;
-
-import javax.jcr.RepositoryException;
-import javax.jcr.security.AccessControlManager;
-import javax.jcr.security.Privilege;
 
 /**
  * <pre>

@@ -39,7 +39,8 @@ class ThreeRolesTreePermission implements TreePermission, ThreeRolesConstants {
 
     @NotNull
     @Override
-    public TreePermission getChildPermission(@NotNull String childName, @NotNull NodeState childState) {
+    public TreePermission getChildPermission(@NotNull String childName,
+        @NotNull NodeState childState) {
         if (isAcContent) {
             return this;
         } else {

@@ -19,6 +19,20 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.writer;
 
+import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.INDEX_DATA_CHILD_NAME;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.guava.common.io.Closer;
@@ -39,7 +53,12 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.CopyOnWriteDirectory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
-import org.apache.jackrabbit.oak.spi.commit.*;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.DefaultEditor;
+import org.apache.jackrabbit.oak.spi.commit.DefaultValidator;
+import org.apache.jackrabbit.oak.spi.commit.Editor;
+import org.apache.jackrabbit.oak.spi.commit.Validator;
+import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -53,20 +72,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.Executor;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-
-import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.INDEX_DATA_CHILD_NAME;
-import static org.junit.Assert.*;
-
 public class FailedIndexUpdateTest {
+
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
 
@@ -91,18 +98,19 @@ public class FailedIndexUpdateTest {
         copier = new LocalDirectoryTrackingIndexCopier(executorService, temporaryFolder.getRoot());
         FailIfDefinedEditorProvider luceneEditorProvider = new FailIfDefinedEditorProvider(copier);
 
-        IndexEditorProvider editorProvider = new CompositeIndexEditorProvider(new NodeCounterEditorProvider(), luceneEditorProvider);
+        IndexEditorProvider editorProvider = new CompositeIndexEditorProvider(
+            new NodeCounterEditorProvider(), luceneEditorProvider);
 
         NodeStore store = new MemoryNodeStore(INITIAL_CONTENT);
 
         Oak oak = new Oak(store)
-                .with(new OpenSecurityProvider())
-                ;
+            .with(new OpenSecurityProvider());
         root = oak.createRoot();
 
         failOnDemandValidatorProvider = new FailOnDemandValidatorProvider();
         asyncIndexUpdate = new AsyncIndexUpdate("async", store, editorProvider);
-        asyncIndexUpdate.setValidatorProviders(Collections.singletonList(failOnDemandValidatorProvider));
+        asyncIndexUpdate.setValidatorProviders(
+            Collections.singletonList(failOnDemandValidatorProvider));
     }
 
     @After
@@ -120,7 +128,7 @@ public class FailedIndexUpdateTest {
         createIndex("reindexing", "foo", false);
 
         root.getTree("/").addChild("test")
-                .addChild("a").setProperty("foo", "bar");
+            .addChild("a").setProperty("foo", "bar");
         root.commit();
 
         asyncIndexUpdate.run();
@@ -130,9 +138,11 @@ public class FailedIndexUpdateTest {
         assertEquals(1, reindexingDirPaths.size());
 
         File reindexingDir = reindexingDirPaths.iterator().next();
-        assertFalse("Reindexing directories must get cleaned up on failure", reindexingDir.exists());
+        assertFalse("Reindexing directories must get cleaned up on failure",
+            reindexingDir.exists());
 
-        copier.getDirs().forEach((key, value) -> assertTrue("Writer for " + key + " must be closed", value.isClosed()));
+        copier.getDirs().forEach(
+            (key, value) -> assertTrue("Writer for " + key + " must be closed", value.isClosed()));
     }
 
     @Test
@@ -142,7 +152,7 @@ public class FailedIndexUpdateTest {
         createIndex("reindexing", "foo", false);
 
         root.getTree("/").addChild("test")
-                .addChild("a").setProperty("foo", "bar");
+            .addChild("a").setProperty("foo", "bar");
         root.commit();
 
         asyncIndexUpdate.run();
@@ -152,9 +162,11 @@ public class FailedIndexUpdateTest {
         assertEquals(1, reindexingDirPaths.size());
 
         File reindexingDir = reindexingDirPaths.iterator().next();
-        assertFalse("Reindexing directories must get cleaned up on failure", reindexingDir.exists());
+        assertFalse("Reindexing directories must get cleaned up on failure",
+            reindexingDir.exists());
 
-        copier.getDirs().forEach((key, value) -> assertTrue("Writer for " + key + " must be closed", value.isClosed()));
+        copier.getDirs().forEach(
+            (key, value) -> assertTrue("Writer for " + key + " must be closed", value.isClosed()));
     }
 
     @Test
@@ -168,7 +180,7 @@ public class FailedIndexUpdateTest {
         copier.clearStats();
 
         root.getTree("/").addChild("test")
-                .addChild("a").setProperty("foo", "bar");
+            .addChild("a").setProperty("foo", "bar");
         root.commit();
 
         asyncIndexUpdate.run();
@@ -177,11 +189,15 @@ public class FailedIndexUpdateTest {
         Set<File> reindexingDirPaths = copier.getReindexingDirPaths();
         assertEquals("No directories are reindexing", 0, reindexingDirPaths.size());
 
-        assertEquals("Number of open directories aren't as expected", 2, copier.getDirPaths().size());
+        assertEquals("Number of open directories aren't as expected", 2,
+            copier.getDirPaths().size());
 
-        copier.getDirPaths().forEach((key, value) -> assertTrue(key + " must not get cleaned up on failure", value.exists()));
+        copier.getDirPaths().forEach(
+            (key, value) -> assertTrue(key + " must not get cleaned up on failure",
+                value.exists()));
 
-        copier.getDirs().forEach((key, value) -> assertTrue("Writer for " + key + " must be closed", value.isClosed()));
+        copier.getDirs().forEach(
+            (key, value) -> assertTrue("Writer for " + key + " must be closed", value.isClosed()));
     }
 
     @Test
@@ -194,30 +210,34 @@ public class FailedIndexUpdateTest {
         failOnDemandValidatorProvider.shouldFail = true;
 
         root.getTree("/").addChild("test")
-                .addChild("a").setProperty("foo", "bar");
+            .addChild("a").setProperty("foo", "bar");
         root.commit();
 
         asyncIndexUpdate.run();
         assertTrue("Indexing must fail", asyncIndexUpdate.isFailing());
 
-
         Set<File> reindexingDirPaths = copier.getReindexingDirPaths();
         assertEquals("No directories are reindexing.", 0, reindexingDirPaths.size());
 
-        assertEquals("Number of open directories aren't as expected", 1, copier.getDirPaths().size());
+        assertEquals("Number of open directories aren't as expected", 1,
+            copier.getDirPaths().size());
 
-        copier.getDirPaths().forEach((key, value) -> assertTrue(key + " must not get cleaned up on failure", value.exists()));
+        copier.getDirPaths().forEach(
+            (key, value) -> assertTrue(key + " must not get cleaned up on failure",
+                value.exists()));
 
-        copier.getDirs().forEach((key, value) -> assertTrue("Writer for " + key + " must be closed", value.isClosed()));
+        copier.getDirs().forEach(
+            (key, value) -> assertTrue("Writer for " + key + " must be closed", value.isClosed()));
     }
 
-    private void createIndex(String idxName, String propName, boolean shouldFail) throws CommitFailedException {
+    private void createIndex(String idxName, String propName, boolean shouldFail)
+        throws CommitFailedException {
         LuceneIndexDefinitionBuilder idxBuilder = new LuceneIndexDefinitionBuilder();
 
         idxBuilder
-                .includedPaths(TEST_CONTENT_PATH)
-                .indexRule("nt:base")
-                .property(propName).propertyIndex();
+            .includedPaths(TEST_CONTENT_PATH)
+            .indexRule("nt:base")
+            .property(propName).propertyIndex();
         Tree idx = idxBuilder.build(root.getTree("/oak:index").addChild(idxName));
         idx.setProperty("shouldFail", shouldFail);
 
@@ -236,11 +256,11 @@ public class FailedIndexUpdateTest {
 
         @Override
         public Directory wrapForWrite(LuceneIndexDefinition definition,
-                                                        Directory remote,
-                                                        boolean reindexMode, String dirName,
-                                                        COWDirectoryTracker cowDirectoryTracker) throws IOException {
+            Directory remote,
+            boolean reindexMode, String dirName,
+            COWDirectoryTracker cowDirectoryTracker) throws IOException {
             CopyOnWriteDirectory dir = (CopyOnWriteDirectory)
-                    super.wrapForWrite(definition, remote, reindexMode, dirName, cowDirectoryTracker);
+                super.wrapForWrite(definition, remote, reindexMode, dirName, cowDirectoryTracker);
 
             String indexPath = definition.getIndexPath();
             dirs.put(indexPath, dir);
@@ -273,14 +293,15 @@ public class FailedIndexUpdateTest {
     }
 
     private static class FailIfDefinedEditorProvider extends LuceneIndexEditorProvider {
+
         FailIfDefinedEditorProvider(IndexCopier copier) {
             super(copier);
         }
 
         @Override
         public Editor getIndexEditor(@NotNull String type, @NotNull NodeBuilder definition,
-                                     @NotNull NodeState root,
-                                     @NotNull IndexUpdateCallback callback) throws CommitFailedException {
+            @NotNull NodeState root,
+            @NotNull IndexUpdateCallback callback) throws CommitFailedException {
             Editor editor = super.getIndexEditor(type, definition, root, callback);
             if (definition.getBoolean("shouldFail")) {
                 editor = new FailOnLeavePathEditor(editor, TEST_CONTENT_PATH);
@@ -290,6 +311,7 @@ public class FailedIndexUpdateTest {
     }
 
     private static class FailOnLeavePathEditor implements Editor {
+
         private final Editor delegate;
         private final String failingPath;
         final String currPath;
@@ -298,7 +320,8 @@ public class FailedIndexUpdateTest {
             this(delegate, failingPath, "", "");
         }
 
-        private FailOnLeavePathEditor(Editor delegate, String failingPath, String parentPath, String name) {
+        private FailOnLeavePathEditor(Editor delegate, String failingPath, String parentPath,
+            String name) {
             this.delegate = delegate != null ? delegate : new DefaultEditor();
             this.failingPath = failingPath;
             this.currPath = ("/".equals(parentPath) ? parentPath : parentPath + "/") + name;
@@ -324,7 +347,8 @@ public class FailedIndexUpdateTest {
         }
 
         @Override
-        public void propertyChanged(PropertyState before, PropertyState after) throws CommitFailedException {
+        public void propertyChanged(PropertyState before, PropertyState after)
+            throws CommitFailedException {
             delegate.propertyChanged(before, after);
         }
 
@@ -336,19 +360,23 @@ public class FailedIndexUpdateTest {
         @Override
         @Nullable
         public Editor childNodeAdded(String name, NodeState after) throws CommitFailedException {
-            return new FailOnLeavePathEditor(delegate.childNodeAdded(name, after), failingPath, currPath, name);
+            return new FailOnLeavePathEditor(delegate.childNodeAdded(name, after), failingPath,
+                currPath, name);
         }
 
         @Override
         @Nullable
-        public Editor childNodeChanged(String name, NodeState before, NodeState after) throws CommitFailedException {
-            return new FailOnLeavePathEditor(delegate.childNodeChanged(name, before, after), failingPath, currPath, name);
+        public Editor childNodeChanged(String name, NodeState before, NodeState after)
+            throws CommitFailedException {
+            return new FailOnLeavePathEditor(delegate.childNodeChanged(name, before, after),
+                failingPath, currPath, name);
         }
 
         @Override
         @Nullable
         public Editor childNodeDeleted(String name, NodeState before) throws CommitFailedException {
-            return new FailOnLeavePathEditor(delegate.childNodeDeleted(name, before), failingPath, currPath, name);
+            return new FailOnLeavePathEditor(delegate.childNodeDeleted(name, before), failingPath,
+                currPath, name);
         }
     }
 
@@ -358,11 +386,13 @@ public class FailedIndexUpdateTest {
         static final String FAILING_PATH_FRAGMENT = INDEX_DATA_CHILD_NAME;
 
         @Override
-        protected @Nullable Validator getRootValidator(NodeState before, NodeState after, CommitInfo info) {
+        protected @Nullable Validator getRootValidator(NodeState before, NodeState after,
+            CommitInfo info) {
             return new FailOnDemandValidator(new DefaultValidator());
         }
 
         class FailOnDemandValidator extends FailOnLeavePathEditor implements Validator {
+
             final Validator delegate;
 
             FailOnDemandValidator(Validator delegate) {
@@ -386,20 +416,26 @@ public class FailedIndexUpdateTest {
 
             @Override
             @Nullable
-            public Validator childNodeAdded(String name, NodeState after) throws CommitFailedException {
-                return new FailOnDemandValidator(delegate.childNodeAdded(name, after), currPath, name);
+            public Validator childNodeAdded(String name, NodeState after)
+                throws CommitFailedException {
+                return new FailOnDemandValidator(delegate.childNodeAdded(name, after), currPath,
+                    name);
             }
 
             @Override
             @Nullable
-            public Validator childNodeChanged(String name, NodeState before, NodeState after) throws CommitFailedException {
-                return new FailOnDemandValidator(delegate.childNodeChanged(name, before, after), currPath, name);
+            public Validator childNodeChanged(String name, NodeState before, NodeState after)
+                throws CommitFailedException {
+                return new FailOnDemandValidator(delegate.childNodeChanged(name, before, after),
+                    currPath, name);
             }
 
             @Override
             @Nullable
-            public Validator childNodeDeleted(String name, NodeState before) throws CommitFailedException {
-                return new FailOnDemandValidator(delegate.childNodeDeleted(name, before), currPath, name);
+            public Validator childNodeDeleted(String name, NodeState before)
+                throws CommitFailedException {
+                return new FailOnDemandValidator(delegate.childNodeDeleted(name, before), currPath,
+                    name);
             }
         }
     }

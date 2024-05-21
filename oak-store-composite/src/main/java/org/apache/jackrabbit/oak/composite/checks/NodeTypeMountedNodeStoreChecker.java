@@ -39,81 +39,90 @@ import org.slf4j.LoggerFactory;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 
-@Component(configurationFactory=true, 
+@Component(configurationFactory = true,
     policy = ConfigurationPolicy.REQUIRE)
 @Service(MountedNodeStoreChecker.class)
-public class NodeTypeMountedNodeStoreChecker implements 
-        MountedNodeStoreChecker<NodeTypeMountedNodeStoreChecker.Context>  {
-    
+public class NodeTypeMountedNodeStoreChecker implements
+    MountedNodeStoreChecker<NodeTypeMountedNodeStoreChecker.Context> {
+
     private final Logger log = LoggerFactory.getLogger(getClass());
-    
+
     @Property(label = "The name of a node type that is invalid and will be rejected when found")
     private static final String INVALID_NODE_TYPE = "invalidNodeType";
     @Property(label = "The error label to use when rejecting an invalid node type")
     private static final String ERROR_LABEL = "errorLabel";
-    
-    @Property(label="Node types that will cause the check to succeeed, even in the invalid node type is also found.",
-            cardinality = Integer.MAX_VALUE)
+
+    @Property(label = "Node types that will cause the check to succeeed, even in the invalid node type is also found.",
+        cardinality = Integer.MAX_VALUE)
     private static final String EXCLUDED_NODE_TYPES = "excludedNodeTypes";
 
     private String invalidNodeType;
     private String errorLabel;
     private Set<String> excludedNodeTypes;
-    
+
     // used by SCR
     public NodeTypeMountedNodeStoreChecker() {
 
     }
-    
+
     // visible for testing
-    public NodeTypeMountedNodeStoreChecker(String invalidNodeType, String errorLabel, String... excludedNodeTypes) {
+    public NodeTypeMountedNodeStoreChecker(String invalidNodeType, String errorLabel,
+        String... excludedNodeTypes) {
         this.invalidNodeType = invalidNodeType;
         this.errorLabel = errorLabel;
         this.excludedNodeTypes = ImmutableSet.copyOf(excludedNodeTypes);
     }
 
     protected void activate(ComponentContext ctx) {
-        invalidNodeType = checkNotNull(PropertiesUtil.toString(ctx.getProperties().get(INVALID_NODE_TYPE), null), INVALID_NODE_TYPE);
-        errorLabel = checkNotNull(PropertiesUtil.toString(ctx.getProperties().get(ERROR_LABEL), null), ERROR_LABEL);
-        excludedNodeTypes = ImmutableSet.copyOf(PropertiesUtil.toStringArray(ctx.getProperties().get(EXCLUDED_NODE_TYPES), new String[0]));
+        invalidNodeType = checkNotNull(
+            PropertiesUtil.toString(ctx.getProperties().get(INVALID_NODE_TYPE), null),
+            INVALID_NODE_TYPE);
+        errorLabel = checkNotNull(
+            PropertiesUtil.toString(ctx.getProperties().get(ERROR_LABEL), null), ERROR_LABEL);
+        excludedNodeTypes = ImmutableSet.copyOf(
+            PropertiesUtil.toStringArray(ctx.getProperties().get(EXCLUDED_NODE_TYPES),
+                new String[0]));
     }
 
     @Override
     public Context createContext(NodeStore globalStore, MountInfoProvider mip) {
-        
+
         Root globalRoot = RootFactory.createReadOnlyRoot(globalStore.getRoot());
-        ReadOnlyNodeTypeManager typeManager = ReadOnlyNodeTypeManager.getInstance(globalRoot, NamePathMapper.DEFAULT);
-    
+        ReadOnlyNodeTypeManager typeManager = ReadOnlyNodeTypeManager.getInstance(globalRoot,
+            NamePathMapper.DEFAULT);
+
         return new Context(typeManager);
     }
 
     @Override
-    public boolean check(MountedNodeStore mountedStore, Tree tree, ErrorHolder errorHolder, Context context) {
-        
-        if ( context.getTypeManager().isNodeType(tree, invalidNodeType) &&
-                !isExcluded(mountedStore, tree, context) ) {
+    public boolean check(MountedNodeStore mountedStore, Tree tree, ErrorHolder errorHolder,
+        Context context) {
+
+        if (context.getTypeManager().isNodeType(tree, invalidNodeType) &&
+            !isExcluded(mountedStore, tree, context)) {
             errorHolder.report(mountedStore, tree.getPath(), errorLabel, this);
         }
-        
+
         return true;
     }
 
     private boolean isExcluded(MountedNodeStore mountedStore, Tree tree, Context context) {
 
-        for ( String excludedNodeType : excludedNodeTypes ) {
-            if ( context.getTypeManager().isNodeType(tree, excludedNodeType ) ) {
-                log.warn("Not failing check for tree at path {}, mount {} due to matching excluded node type {}", 
-                        tree.getPath(), mountedStore.getMount().getName(), excludedNodeType);
+        for (String excludedNodeType : excludedNodeTypes) {
+            if (context.getTypeManager().isNodeType(tree, excludedNodeType)) {
+                log.warn(
+                    "Not failing check for tree at path {}, mount {} due to matching excluded node type {}",
+                    tree.getPath(), mountedStore.getMount().getName(), excludedNodeType);
                 return true;
             }
         }
         return false;
     }
-    
+
     @Override
     public String toString() {
-        return getClass().getName()+ ": [ invalidNodeType: " + invalidNodeType + 
-                ", excludedNodeTypes: " + excludedNodeTypes + " ]";
+        return getClass().getName() + ": [ invalidNodeType: " + invalidNodeType +
+            ", excludedNodeTypes: " + excludedNodeTypes + " ]";
     }
 
     protected static class Context {

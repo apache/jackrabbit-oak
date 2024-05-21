@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.spi.blob;
 
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -39,27 +42,22 @@ import java.util.NoSuchElementException;
 import java.util.WeakHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
-
+import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.guava.common.base.Charsets;
 import org.apache.jackrabbit.guava.common.io.BaseEncoding;
-import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.oak.commons.cache.Cache;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.StringUtils;
+import org.apache.jackrabbit.oak.commons.cache.Cache;
 import org.apache.jackrabbit.oak.spi.blob.stats.BlobStatsCollector;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-
 /**
- * An abstract data store that splits the binaries in relatively small blocks,
- * so that each block fits in memory.
+ * An abstract data store that splits the binaries in relatively small blocks, so that each block
+ * fits in memory.
  * <p>
  * Each data store id is a list of zero or more entries. Each entry is either
  * <ul>
@@ -85,7 +83,7 @@ import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull
  * size int), hash code.
  */
 public abstract class AbstractBlobStore implements GarbageCollectableBlobStore,
-        Cache.Backend<AbstractBlobStore.BlockId, AbstractBlobStore.Data> {
+    Cache.Backend<AbstractBlobStore.BlockId, AbstractBlobStore.Data> {
 
     protected static final String HASH_ALGORITHM = "SHA-256";
 
@@ -93,35 +91,34 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore,
     protected static final int TYPE_HASH = 1;
 
     /**
-     * The minimum block size. Blocks must be larger than that so that the
-     * content hash is always shorter than the data itself.
+     * The minimum block size. Blocks must be larger than that so that the content hash is always
+     * shorter than the data itself.
      */
     protected static final int BLOCK_SIZE_LIMIT = 48;
 
     /**
-     * The blob ids that are still floating around in memory. The blob store
-     * assumes such binaries must not be deleted, because those binaries are not
-     * referenced yet in a way the garbage collection algorithm can detect (not
-     * referenced at all, or only referenced in memory).
+     * The blob ids that are still floating around in memory. The blob store assumes such binaries
+     * must not be deleted, because those binaries are not referenced yet in a way the garbage
+     * collection algorithm can detect (not referenced at all, or only referenced in memory).
      */
     protected Map<String, WeakReference<String>> inUse =
         Collections.synchronizedMap(new WeakHashMap<String, WeakReference<String>>());
 
     /**
-     * The minimum size of a block. Smaller blocks are inlined (the data store id
-     * is the data itself).
+     * The minimum size of a block. Smaller blocks are inlined (the data store id is the data
+     * itself).
      */
     private int blockSizeMin = 4096;
 
     /**
-     * The size of a block. 128 KB has been found to be as fast as larger
-     * values, and faster than smaller values. 2 MB results in less files.
+     * The size of a block. 128 KB has been found to be as fast as larger values, and faster than
+     * smaller values. 2 MB results in less files.
      */
     private int blockSize = 2 * 1024 * 1024;
 
     /**
-     * The byte array is re-used if possible, to avoid having to create a new,
-     * large byte array each time a (potentially very small) binary is stored.
+     * The byte array is re-used if possible, to avoid having to create a new, large byte array each
+     * time a (potentially very small) binary is stored.
      */
     private AtomicReference<byte[]> blockBuffer = new AtomicReference<byte[]>();
 
@@ -166,7 +163,7 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore,
     private static void validateBlockSize(int x) {
         if (x < BLOCK_SIZE_LIMIT) {
             throw new IllegalArgumentException(
-                    "The minimum size must be bigger " + 
+                "The minimum size must be bigger " +
                     "than a content hash itself; limit = " + BLOCK_SIZE_LIMIT);
         }
     }
@@ -212,14 +209,14 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore,
      * Default implementation ignores options and delegates to the {@link #writeBlob(InputStream)}
      * method.
      *
-     * @param in the input stream to write
+     * @param in      the input stream to write
      * @param options the options to use
      * @return
      * @throws IOException
      */
     @Override
     public String writeBlob(InputStream in, BlobOptions options) throws IOException {
-       return writeBlob(in);
+        return writeBlob(in);
     }
 
     @Override
@@ -262,30 +259,29 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore,
     }
 
     /**
-     * Returns the reference key of this blob store. If one does not already
-     * exist, it is automatically created in an implementation-specific way.
-     * The default implementation simply creates a temporary random key that's
-     * valid only until the data store gets restarted. Subclasses can override
-     * and/or decorate this method to support a more persistent reference key.
+     * Returns the reference key of this blob store. If one does not already exist, it is
+     * automatically created in an implementation-specific way. The default implementation simply
+     * creates a temporary random key that's valid only until the data store gets restarted.
+     * Subclasses can override and/or decorate this method to support a more persistent reference
+     * key.
      * <p>
-     * This method is called only once during the lifetime of a data store
-     * instance and the return value is cached in memory, so it's no problem
-     * if the implementation is slow.
+     * This method is called only once during the lifetime of a data store instance and the return
+     * value is cached in memory, so it's no problem if the implementation is slow.
      *
      * @return reference key
      */
     protected byte[] getOrCreateReferenceKey() {
         byte[] referenceKeyValue = new byte[256];
         new SecureRandom().nextBytes(referenceKeyValue);
-        log.info("Reference key is not specified for the BlobStore in use. " + 
-                "Generating a random key. For stable " +
-                "reference ensure that reference key is specified");
+        log.info("Reference key is not specified for the BlobStore in use. " +
+            "Generating a random key. For stable " +
+            "reference ensure that reference key is specified");
         return referenceKeyValue;
     }
 
     /**
-     * Returns the reference key of this data store. Synchronized to
-     * control concurrent access to the cached {@link #referenceKey} value.
+     * Returns the reference key of this data store. Synchronized to control concurrent access to
+     * the cached {@link #referenceKey} value.
      *
      * @return reference key
      */
@@ -298,12 +294,13 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore,
 
     public void setReferenceKey(byte[] referenceKey) {
         checkArgument(referenceKey != null, "Reference key already initialized by default means. " +
-                "To explicitly set it, setReferenceKey must be invoked before its first use");
+            "To explicitly set it, setReferenceKey must be invoked before its first use");
         this.referenceKey = referenceKey;
     }
 
     /**
      * Set the referenceKey from Base64 encoded byte array
+     *
      * @param encodedKey base64 encoded key
      */
     public void setReferenceKeyEncoded(String encodedKey) {
@@ -311,18 +308,18 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore,
     }
 
     /**
-     * Set the referenceKey from plain text. Key content would be UTF-8 encoding
-     * of the string.
-     * 
+     * Set the referenceKey from plain text. Key content would be UTF-8 encoding of the string.
+     *
      * <p>
-     * This is useful when setting key via generic bean property manipulation
-     * from string properties. User can specify the key in plain text and that
-     * would be passed on this object via
-     * {@link org.apache.jackrabbit.oak.commons.PropertiesUtil#populate(Object, java.util.Map, boolean)}
-     * 
+     * This is useful when setting key via generic bean property manipulation from string
+     * properties. User can specify the key in plain text and that would be passed on this object
+     * via
+     * {@link org.apache.jackrabbit.oak.commons.PropertiesUtil#populate(Object, java.util.Map,
+     * boolean)}
+     *
      * @param textKey base64 encoded key
-     * @see org.apache.jackrabbit.oak.commons.PropertiesUtil#populate(Object,
-     *      java.util.Map, boolean)
+     * @see org.apache.jackrabbit.oak.commons.PropertiesUtil#populate(Object, java.util.Map,
+     * boolean)
      */
     public void setReferenceKeyPlainText(String textKey) {
         setReferenceKey(textKey.getBytes(Charsets.UTF_8));
@@ -338,8 +335,8 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore,
     }
 
     private void convertBlobToId(InputStream in,
-            ByteArrayOutputStream idStream, int level, long totalLength)
-            throws IOException {
+        ByteArrayOutputStream idStream, int level, long totalLength)
+        throws IOException {
         int count = 0;
         // try to re-use the block (but not concurrently)
         byte[] block = blockBuffer.getAndSet(null);
@@ -371,12 +368,12 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore,
                 IOUtils.writeVarInt(idStream, level);
                 if (level > 0) {
                     // level > 0: total size (size of all sub-blocks)
-                    // (see class level javadoc for details)                    
+                    // (see class level javadoc for details)
                     IOUtils.writeVarLong(idStream, totalLength);
                 }
                 // level = 0: size (size of this block)
                 // level > 0: size of the indirection block
-                // (see class level javadoc for details)                
+                // (see class level javadoc for details)
                 IOUtils.writeVarLong(idStream, blockLen);
                 totalLength += blockLen;
                 IOUtils.writeVarInt(idStream, digest.length);
@@ -391,7 +388,8 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore,
                 // one block (otherwise the indirection no longer works)
                 byte[] idBlock = idStream.toByteArray();
                 idStream.reset();
-                convertBlobToId(new ByteArrayInputStream(idBlock), idStream, level + 1, totalLength);
+                convertBlobToId(new ByteArrayInputStream(idBlock), idStream, level + 1,
+                    totalLength);
                 count = 1;
             }
         }
@@ -410,14 +408,13 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore,
 
     /**
      * Store a block of data.
-     * 
+     *
      * @param digest the content hash (32 bytes)
-     * @param level the indirection level (0 is for user data, 1 is a list of
-     *            digests that point to user data, 2 is a list of digests that
-     *            point to digests, and so on). This parameter is for
-     *            informational use only, and it is not required to store it
-     *            unless that's easy to achieve
-     * @param data the data to be stored (the number of bytes is at most the block size)
+     * @param level  the indirection level (0 is for user data, 1 is a list of digests that point to
+     *               user data, 2 is a list of digests that point to digests, and so on). This
+     *               parameter is for informational use only, and it is not required to store it
+     *               unless that's easy to achieve
+     * @param data   the data to be stored (the number of bytes is at most the block size)
      */
     protected abstract void storeBlock(byte[] digest, int level, byte[] data) throws IOException;
 
@@ -439,7 +436,7 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore,
 
     @Override
     public int readBlob(String blobId, long pos, byte[] buff, int off,
-            int length) throws IOException {
+        int length) throws IOException {
         if (isMarkEnabled()) {
             mark(blobId);
         }
@@ -515,9 +512,8 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore,
     }
 
     /**
-     * Load the block from the storage backend. Returns null if the block was
-     * not found.
-     * 
+     * Load the block from the storage backend. Returns null if the block was not found.
+     *
      * @param id the block id
      * @return the block data, or null
      */
@@ -544,7 +540,7 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore,
                 int level = IOUtils.readVarInt(idStream);
                 // level = 0: size (size of this block)
                 // level > 0: total size (size of all sub-blocks)
-                // (see class level javadoc for details)                
+                // (see class level javadoc for details)
                 totalLength += IOUtils.readVarLong(idStream);
                 if (level > 0) {
                     // block length (ignored)
@@ -617,8 +613,7 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore,
     }
 
     /**
-     * A block id. Blocks are small enough to fit in memory, so they can be
-     * cached.
+     * A block id. Blocks are small enough to fit in memory, so they can be cached.
      */
     public static class BlockId {
 
@@ -644,13 +639,13 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore,
             }
             BlockId o = (BlockId) other;
             return Arrays.equals(digest, o.digest) &&
-                    pos == o.pos;
+                pos == o.pos;
         }
 
         @Override
         public int hashCode() {
             return Arrays.hashCode(digest) ^
-                    (int) (pos >> 32) ^ (int) pos;
+                (int) (pos >> 32) ^ (int) pos;
         }
 
         @Override
@@ -693,7 +688,7 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore,
     }
 
     class ChunkIterator implements Iterator<String> {
-        
+
         private final static int BATCH = 2048;
         private final ArrayDeque<String> queue;
         private final ArrayDeque<ByteArrayInputStream> streamsStack;
@@ -713,7 +708,7 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore,
             }
             try {
                 while ((queue.size() < BATCH)
-                        && (streamsStack.peekFirst() != null)) {
+                    && (streamsStack.peekFirst() != null)) {
                     ByteArrayInputStream idStream = streamsStack.peekFirst();
 
                     int type = idStream.read();
@@ -761,7 +756,7 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore,
         public String next() {
             if (!hasNext()) {
                 throw new NoSuchElementException("No data");
-            } 
+            }
             return queue.remove();
         }
 

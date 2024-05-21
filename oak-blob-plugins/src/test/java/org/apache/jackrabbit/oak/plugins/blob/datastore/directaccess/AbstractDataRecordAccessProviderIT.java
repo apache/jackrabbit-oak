@@ -18,69 +18,114 @@
  */
 package org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URI;
-import java.util.Arrays;
-
-import javax.net.ssl.HttpsURLConnection;
-
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.commons.io.IOUtils;
-import org.apache.jackrabbit.core.data.DataIdentifier;
-import org.apache.jackrabbit.core.data.DataRecord;
-import org.apache.jackrabbit.core.data.DataStore;
-import org.apache.jackrabbit.core.data.DataStoreException;
-import org.junit.Test;
-
 import static org.apache.jackrabbit.guava.common.io.ByteStreams.toByteArray;
 import static org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils.randomStream;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URI;
+import java.util.Arrays;
+import javax.net.ssl.HttpsURLConnection;
+import org.apache.commons.io.IOUtils;
+import org.apache.jackrabbit.core.data.DataIdentifier;
+import org.apache.jackrabbit.core.data.DataRecord;
+import org.apache.jackrabbit.core.data.DataStore;
+import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.junit.Test;
+
 public abstract class AbstractDataRecordAccessProviderIT {
 
     protected abstract ConfigurableDataRecordAccessProvider getDataStore();
-    protected abstract DataRecord doGetRecord(DataStore ds, DataIdentifier identifier) throws DataStoreException;
-    protected abstract void doDeleteRecord(DataStore ds, DataIdentifier identifier) throws DataStoreException;
+
+    protected abstract DataRecord doGetRecord(DataStore ds, DataIdentifier identifier)
+        throws DataStoreException;
+
+    protected abstract void doDeleteRecord(DataStore ds, DataIdentifier identifier)
+        throws DataStoreException;
+
     protected abstract long getProviderMaxPartSize();
-    protected abstract HttpsURLConnection getHttpsConnection(long length, URI url) throws IOException;
+
+    protected abstract HttpsURLConnection getHttpsConnection(long length, URI url)
+        throws IOException;
 
     protected static long ONE_KB = 1024;
     protected static long ONE_MB = ONE_KB * ONE_KB;
-    protected static int expirySeconds = 60*15;
+    protected static int expirySeconds = 60 * 15;
 
     protected static long TEN_MB = ONE_MB * 10;
     protected static long TWENTY_MB = ONE_MB * 20;
     protected static long ONE_HUNDRED_MB = ONE_MB * 100;
 
     @Test
-    public void testMultiPartDirectUploadIT() throws DataRecordUploadException, DataStoreException, IOException {
+    public void testMultiPartDirectUploadIT()
+        throws DataRecordUploadException, DataStoreException, IOException {
         // Disabled by default - this test uses a lot of memory.
         // Execute this test from the command line like this:
         //   mvn test -Dtest=<child-class-name> -Dtest.opts.memory=-Xmx2G
         DataRecordAccessProvider ds = getDataStore();
         for (AbstractDataRecordAccessProviderTest.InitUploadResult res : Lists.newArrayList(
             new AbstractDataRecordAccessProviderTest.InitUploadResult() {
-                @Override public long getUploadSize() { return TWENTY_MB; }
-                @Override public int getMaxNumURIs() { return 10; }
-                @Override public int getExpectedNumURIs() { return 2; }
-                @Override public long getExpectedMinPartSize() { return TEN_MB; }
-                @Override public long getExpectedMaxPartSize() { return getProviderMaxPartSize(); }
+                @Override
+                public long getUploadSize() {
+                    return TWENTY_MB;
+                }
+
+                @Override
+                public int getMaxNumURIs() {
+                    return 10;
+                }
+
+                @Override
+                public int getExpectedNumURIs() {
+                    return 2;
+                }
+
+                @Override
+                public long getExpectedMinPartSize() {
+                    return TEN_MB;
+                }
+
+                @Override
+                public long getExpectedMaxPartSize() {
+                    return getProviderMaxPartSize();
+                }
             },
             new AbstractDataRecordAccessProviderTest.InitUploadResult() {
-                @Override public long getUploadSize() { return ONE_HUNDRED_MB; }
-                @Override public int getMaxNumURIs() { return 10; }
-                @Override public int getExpectedNumURIs() { return 10; }
-                @Override public long getExpectedMinPartSize() { return TEN_MB; }
-                @Override public long getExpectedMaxPartSize() { return getProviderMaxPartSize(); }
+                @Override
+                public long getUploadSize() {
+                    return ONE_HUNDRED_MB;
+                }
+
+                @Override
+                public int getMaxNumURIs() {
+                    return 10;
+                }
+
+                @Override
+                public int getExpectedNumURIs() {
+                    return 10;
+                }
+
+                @Override
+                public long getExpectedMinPartSize() {
+                    return TEN_MB;
+                }
+
+                @Override
+                public long getExpectedMaxPartSize() {
+                    return getProviderMaxPartSize();
+                }
             }
         )) {
             DataRecord uploadedRecord = null;
             try {
-                DataRecordUpload uploadContext = ds.initiateDataRecordUpload(res.getUploadSize(), res.getMaxNumURIs());
+                DataRecordUpload uploadContext = ds.initiateDataRecordUpload(res.getUploadSize(),
+                    res.getMaxNumURIs());
                 assertEquals(res.getExpectedNumURIs(), uploadContext.getUploadURIs().size());
 
                 InputStream in = randomStream(0, res.getUploadSize());
@@ -93,7 +138,9 @@ public abstract class AbstractDataRecordAccessProviderIT {
                 assertTrue(uploadPartSize >= uploadContext.getMinPartSize());
 
                 for (URI uri : uploadContext.getUploadURIs()) {
-                    if (0 >= uploadSize) break;
+                    if (0 >= uploadSize) {
+                        break;
+                    }
 
                     long partSize = Math.min(uploadSize, uploadPartSize);
                     uploadSize -= partSize;
@@ -107,13 +154,14 @@ public abstract class AbstractDataRecordAccessProviderIT {
                 uploadedRecord = ds.completeDataRecordUpload(uploadContext.getUploadToken());
                 assertNotNull(uploadedRecord);
 
-                DataRecord retrievedRecord = doGetRecord((DataStore) ds, uploadedRecord.getIdentifier());
+                DataRecord retrievedRecord = doGetRecord((DataStore) ds,
+                    uploadedRecord.getIdentifier());
                 assertNotNull(retrievedRecord);
 
                 in.reset();
-                assertTrue(Arrays.equals(toByteArray(in), toByteArray(retrievedRecord.getStream())));
-            }
-            finally {
+                assertTrue(
+                    Arrays.equals(toByteArray(in), toByteArray(retrievedRecord.getStream())));
+            } finally {
                 if (null != uploadedRecord) {
                     doDeleteRecord((DataStore) ds, uploadedRecord.getIdentifier());
                 }

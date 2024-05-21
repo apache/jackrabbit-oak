@@ -40,6 +40,7 @@ public class ServerTimeDifferenceTest {
     }
 
     private static final class TestStore extends MemoryDocumentStore {
+
         @Override
         public long determineServerTimeDifferenceMillis() {
             return DocumentNodeStore.DEFAULT_MAX_SERVER_TIME_DIFFERENCE * 2;

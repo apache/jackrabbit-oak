@@ -19,22 +19,20 @@
 package org.apache.jackrabbit.oak.scalability.benchmarks.search;
 
 import java.util.Calendar;
-
 import javax.jcr.RepositoryException;
 import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
-
 import org.apache.jackrabbit.oak.benchmark.util.Date;
+import org.apache.jackrabbit.oak.scalability.suites.ScalabilityAbstractSuite.ExecutionContext;
 import org.apache.jackrabbit.oak.scalability.suites.ScalabilityBlobSearchSuite;
 import org.apache.jackrabbit.oak.scalability.suites.ScalabilityNodeSuite;
-import org.apache.jackrabbit.oak.scalability.suites.ScalabilityAbstractSuite.ExecutionContext;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Searches on node with a filter property and orders the results by 2 properties 
- *
+ * Searches on node with a filter property and orders the results by 2 properties
  */
 public class MultiFilterOrderBySearcher extends PaginationEnabledSearcher {
+
     @SuppressWarnings("deprecation")
     @Override
     protected Query getQuery(@NotNull QueryManager qm, ExecutionContext context)
@@ -44,17 +42,18 @@ public class MultiFilterOrderBySearcher extends PaginationEnabledSearcher {
         StringBuilder statement = new StringBuilder("/jcr:root/");
 
         statement.append(
-            ((String) context.getMap().get(ScalabilityBlobSearchSuite.CTX_ROOT_NODE_NAME_PROP)))
-            .append("//element(*, ")
-            .append(context.getMap().get(ScalabilityNodeSuite.CTX_ACT_NODE_TYPE_PROP)).append(")");
+                     ((String) context.getMap().get(ScalabilityBlobSearchSuite.CTX_ROOT_NODE_NAME_PROP)))
+                 .append("//element(*, ")
+                 .append(context.getMap().get(ScalabilityNodeSuite.CTX_ACT_NODE_TYPE_PROP))
+                 .append(")");
         statement.append("[((").append("@").append(ScalabilityNodeSuite.FILTER_PROP)
-            .append(" = 'true'").append(" or").append(" not(@")
-            .append(ScalabilityNodeSuite.FILTER_PROP).append("))");
+                 .append(" = 'true'").append(" or").append(" not(@")
+                 .append(ScalabilityNodeSuite.FILTER_PROP).append("))");
         if (context.getMap().containsKey(KEYSET_VAL_PROP)) {
             statement.append(" and @").append(ScalabilityNodeSuite.CTX_PAGINATION_KEY_PROP)
-                .append(" < xs:dateTime('").append(
-                Date.convertToISO_8601_2000((Calendar) context.getMap().get(KEYSET_VAL_PROP)))
-                .append("')");
+                     .append(" < xs:dateTime('").append(
+                         Date.convertToISO_8601_2000((Calendar) context.getMap().get(KEYSET_VAL_PROP)))
+                     .append("')");
         }
         statement.append(")]").append(getOrderByClause());
 

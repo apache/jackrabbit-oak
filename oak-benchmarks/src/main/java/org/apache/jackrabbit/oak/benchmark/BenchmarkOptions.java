@@ -20,18 +20,17 @@
 package org.apache.jackrabbit.oak.benchmark;
 
 
+import static java.util.Arrays.asList;
+import static org.apache.jackrabbit.oak.benchmark.ReadDeepTreeTest.DEFAULT_ITEMS_TD_READ;
+import static org.apache.jackrabbit.oak.benchmark.ReadDeepTreeTest.DEFAULT_REPEATED_READ;
+
+import java.io.File;
 import joptsimple.OptionParser;
 import joptsimple.OptionSpec;
 import org.apache.jackrabbit.oak.benchmark.authorization.AceCreationTest;
 import org.apache.jackrabbit.oak.security.authorization.composite.CompositeAuthorizationConfiguration;
 import org.apache.jackrabbit.oak.segment.Segment;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
-
-import static java.util.Arrays.asList;
-import static org.apache.jackrabbit.oak.benchmark.ReadDeepTreeTest.DEFAULT_ITEMS_TD_READ;
-import static org.apache.jackrabbit.oak.benchmark.ReadDeepTreeTest.DEFAULT_REPEATED_READ;
-
-import java.io.File;
 
 public class BenchmarkOptions {
 
@@ -367,8 +366,10 @@ public class BenchmarkOptions {
     public OptionSpec<Boolean> getUseAggregationFilter() {
         return useAggregationFilter;
     }
-    
-    public OptionSpec<String> getEvalutionType() { return evalType; }
+
+    public OptionSpec<String> getEvalutionType() {
+        return evalType;
+    }
 
     public OptionSpec<Boolean> isThrottlingEnabled() {
         return throttlingEnabled;
@@ -377,170 +378,205 @@ public class BenchmarkOptions {
 
     public BenchmarkOptions(OptionParser parser) {
         base = parser.accepts("base", "Base directory")
-                .withRequiredArg().ofType(File.class)
-                .defaultsTo(new File("target"));
+                     .withRequiredArg().ofType(File.class)
+                     .defaultsTo(new File("target"));
         host = parser.accepts("host", "MongoDB host")
-                .withRequiredArg().defaultsTo("localhost");
+                     .withRequiredArg().defaultsTo("localhost");
         port = parser.accepts("port", "MongoDB port")
-                .withRequiredArg().ofType(Integer.class).defaultsTo(27017);
+                     .withRequiredArg().ofType(Integer.class).defaultsTo(27017);
         dbName = parser.accepts("db", "MongoDB database")
-                .withRequiredArg();
+                       .withRequiredArg();
         mongouri = parser.accepts("mongouri", "MongoDB URI")
-                .withRequiredArg();
-        dropDBAfterTest = parser.accepts("dropDBAfterTest", "Whether to drop the MongoDB database after the test")
-                .withOptionalArg().ofType(Boolean.class).defaultsTo(true);
+                         .withRequiredArg();
+        dropDBAfterTest = parser.accepts("dropDBAfterTest",
+                                    "Whether to drop the MongoDB database after the test")
+                                .withOptionalArg().ofType(Boolean.class).defaultsTo(true);
         rdbjdbcuri = parser.accepts("rdbjdbcuri", "RDB JDBC URI")
-                .withOptionalArg().defaultsTo("jdbc:h2:target/benchmark");
+                           .withOptionalArg().defaultsTo("jdbc:h2:target/benchmark");
         rdbjdbcuser = parser.accepts("rdbjdbcuser", "RDB JDBC user")
-                .withOptionalArg().defaultsTo("");
+                            .withOptionalArg().defaultsTo("");
         rdbjdbcpasswd = parser.accepts("rdbjdbcpasswd", "RDB JDBC password")
-                .withOptionalArg().defaultsTo("");
+                              .withOptionalArg().defaultsTo("");
         rdbjdbctableprefix = parser.accepts("rdbjdbctableprefix", "RDB JDBC table prefix")
-                .withOptionalArg().defaultsTo("");
+                                   .withOptionalArg().defaultsTo("");
 
         azureConnectionString = parser.accepts("azure", "Azure Connection String")
-                .withOptionalArg().defaultsTo("DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1;");
+                                      .withOptionalArg().defaultsTo(
+                "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1;");
         azureContainerName = parser.accepts("azureContainerName", "Azure container name")
-                .withOptionalArg().defaultsTo("oak");
+                                   .withOptionalArg().defaultsTo("oak");
         azureRootPath = parser.accepts("azureRootPath", "Azure root path")
-                .withOptionalArg().defaultsTo("/oak");
+                              .withOptionalArg().defaultsTo("/oak");
 
         mmap = parser.accepts("mmap", "TarMK memory mapping")
-                .withOptionalArg().ofType(Boolean.class)
-                .defaultsTo("64".equals(System.getProperty("sun.arch.data.model")));
+                     .withOptionalArg().ofType(Boolean.class)
+                     .defaultsTo("64".equals(System.getProperty("sun.arch.data.model")));
 
-        binariesInlineThreshold = parser.accepts("binariesInlineThreshold", "TarMK binaries inline threshold")
-            .withOptionalArg().ofType(Integer.class)
-            .defaultsTo(Segment.MEDIUM_LIMIT);
-        
+        binariesInlineThreshold = parser.accepts("binariesInlineThreshold",
+                                            "TarMK binaries inline threshold")
+                                        .withOptionalArg().ofType(Integer.class)
+                                        .defaultsTo(Segment.MEDIUM_LIMIT);
+
         cache = parser.accepts("cache", "cache size (MB)")
-                .withRequiredArg().ofType(Integer.class).defaultsTo(100);
+                      .withRequiredArg().ofType(Integer.class).defaultsTo(100);
         fdsCache = parser.accepts("blobCache", "cache size (MB)")
-                .withRequiredArg().ofType(Integer.class).defaultsTo(32);
+                         .withRequiredArg().ofType(Integer.class).defaultsTo(32);
         wikipedia = parser
-                .accepts("wikipedia", "Wikipedia dump").withRequiredArg()
-                .ofType(File.class);
+            .accepts("wikipedia", "Wikipedia dump").withRequiredArg()
+            .ofType(File.class);
         luceneIndexOnFS = parser
-                .accepts("luceneIndexOnFS", "Store Lucene index on file system")
-                .withOptionalArg()
-                .ofType(Boolean.class).defaultsTo(false);
+            .accepts("luceneIndexOnFS", "Store Lucene index on file system")
+            .withOptionalArg()
+            .ofType(Boolean.class).defaultsTo(false);
         metrics = parser
-                .accepts("metrics", "Enable Metrics collection")
-                .withOptionalArg()
-                .ofType(Boolean.class).defaultsTo(false);
+            .accepts("metrics", "Enable Metrics collection")
+            .withOptionalArg()
+            .ofType(Boolean.class).defaultsTo(false);
         withStorage = parser
-                .accepts("storage", "Index storage enabled").withOptionalArg()
-                .ofType(Boolean.class);
+            .accepts("storage", "Index storage enabled").withOptionalArg()
+            .ofType(Boolean.class);
         withServer = parser
-                .accepts("server", "Solr server host").withOptionalArg()
-                .ofType(String.class);
+            .accepts("server", "Solr server host").withOptionalArg()
+            .ofType(String.class);
         runAsAdmin = parser.accepts("runAsAdmin", "Run test using admin session")
-                .withRequiredArg().ofType(Boolean.class).defaultsTo(Boolean.FALSE);
+                           .withRequiredArg().ofType(Boolean.class).defaultsTo(Boolean.FALSE);
         runAsUser = parser.accepts("runAsUser", "Run test using admin, anonymous or a test user")
-                .withOptionalArg().ofType(String.class).defaultsTo("admin");
-        runWithToken = parser.accepts("runWithToken", "Run test using a login token vs. simplecredentials")
-                .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.FALSE);
-        noIterations = parser.accepts("noIterations", "Change default 'passwordHashIterations' parameter.")
-                .withOptionalArg().ofType(Integer.class).defaultsTo(AbstractLoginTest.DEFAULT_ITERATIONS);
+                          .withOptionalArg().ofType(String.class).defaultsTo("admin");
+        runWithToken = parser.accepts("runWithToken",
+                                 "Run test using a login token vs. simplecredentials")
+                             .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.FALSE);
+        noIterations = parser.accepts("noIterations",
+                                 "Change default 'passwordHashIterations' parameter.")
+                             .withOptionalArg().ofType(Integer.class)
+                             .defaultsTo(AbstractLoginTest.DEFAULT_ITERATIONS);
         expiration = parser.accepts("expiration", "Expiration time (e.g. principal cache.")
-                .withOptionalArg().ofType(Long.class).defaultsTo(AbstractLoginTest.NO_CACHE);
+                           .withOptionalArg().ofType(Long.class)
+                           .defaultsTo(AbstractLoginTest.NO_CACHE);
         numberOfGroups = parser.accepts("numberOfGroups", "Number of groups to create.")
-                .withOptionalArg().ofType(Integer.class).defaultsTo(LoginWithMembershipTest.NUMBER_OF_GROUPS_DEFAULT);
+                               .withOptionalArg().ofType(Integer.class)
+                               .defaultsTo(LoginWithMembershipTest.NUMBER_OF_GROUPS_DEFAULT);
         queryMaxCount = parser.accepts("queryMaxCount", "Max number of query results.")
-                .withOptionalArg().ofType(Integer.class).defaultsTo(Integer.MAX_VALUE);
-        declaredMembership = parser.accepts("declaredMembership", "Only look for declared membership.")
-                .withOptionalArg().ofType(Boolean.class).defaultsTo(true);
-        numberOfInitialAce = parser.accepts("numberOfInitialAce", "Number of ACE to create before running the test.")
-                .withOptionalArg().ofType(Integer.class).defaultsTo(AceCreationTest.NUMBER_OF_INITIAL_ACE_DEFAULT);
+                              .withOptionalArg().ofType(Integer.class)
+                              .defaultsTo(Integer.MAX_VALUE);
+        declaredMembership = parser.accepts("declaredMembership",
+                                       "Only look for declared membership.")
+                                   .withOptionalArg().ofType(Boolean.class).defaultsTo(true);
+        numberOfInitialAce = parser.accepts("numberOfInitialAce",
+                                       "Number of ACE to create before running the test.")
+                                   .withOptionalArg().ofType(Integer.class)
+                                   .defaultsTo(AceCreationTest.NUMBER_OF_INITIAL_ACE_DEFAULT);
         nestedGroups = parser.accepts("nestedGroups", "Use nested groups.")
-                .withOptionalArg().ofType(Boolean.class).defaultsTo(false);
-        entriesForEachPrincipal = parser.accepts("entriesForEachPrincipal", "Create ACEs for each principal (vs rotating).")
-                .withOptionalArg().ofType(Boolean.class).defaultsTo(false);
-        compositionType = parser.accepts("compositionType", "Defines composition type for benchmarks with multiple authorization models.")
-                .withOptionalArg().ofType(String.class)
-                .defaultsTo(CompositeAuthorizationConfiguration.CompositionType.AND.name());
-        useAggregationFilter = parser.accepts("useAggregationFilter", "Run principal-based tests with 'AggregationFilter'")
-                .withOptionalArg().ofType(Boolean.class)
-                .defaultsTo(Boolean.FALSE);
-        evalType = parser.accepts("evalType", "Allows to switch between different evaluation types within a single benchmark")
-                .withOptionalArg().ofType(String.class);
+                             .withOptionalArg().ofType(Boolean.class).defaultsTo(false);
+        entriesForEachPrincipal = parser.accepts("entriesForEachPrincipal",
+                                            "Create ACEs for each principal (vs rotating).")
+                                        .withOptionalArg().ofType(Boolean.class).defaultsTo(false);
+        compositionType = parser.accepts("compositionType",
+                                    "Defines composition type for benchmarks with multiple authorization models.")
+                                .withOptionalArg().ofType(String.class)
+                                .defaultsTo(
+                                    CompositeAuthorizationConfiguration.CompositionType.AND.name());
+        useAggregationFilter = parser.accepts("useAggregationFilter",
+                                         "Run principal-based tests with 'AggregationFilter'")
+                                     .withOptionalArg().ofType(Boolean.class)
+                                     .defaultsTo(Boolean.FALSE);
+        evalType = parser.accepts("evalType",
+                             "Allows to switch between different evaluation types within a single benchmark")
+                         .withOptionalArg().ofType(String.class);
         batchSize = parser.accepts("batchSize", "Batch size before persisting operations.")
-                .withOptionalArg().ofType(Integer.class).defaultsTo(AddMembersTest.DEFAULT_BATCH_SIZE);
+                          .withOptionalArg().ofType(Integer.class)
+                          .defaultsTo(AddMembersTest.DEFAULT_BATCH_SIZE);
         importBehavior = parser.accepts("importBehavior", "Protected Item Import Behavior")
-                .withOptionalArg().ofType(String.class).defaultsTo(ImportBehavior.NAME_BESTEFFORT);
+                               .withOptionalArg().ofType(String.class)
+                               .defaultsTo(ImportBehavior.NAME_BESTEFFORT);
         itemsToRead = parser.accepts("itemsToRead", "Number of items to read")
-                .withRequiredArg().ofType(Integer.class).defaultsTo(DEFAULT_ITEMS_TD_READ);
+                            .withRequiredArg().ofType(Integer.class)
+                            .defaultsTo(DEFAULT_ITEMS_TD_READ);
         repeatedRead = parser.accepts("repeatedRead", "Number of repetitions")
-                .withRequiredArg().ofType(Integer.class).defaultsTo(DEFAULT_REPEATED_READ);
+                             .withRequiredArg().ofType(Integer.class)
+                             .defaultsTo(DEFAULT_REPEATED_READ);
         concurrency = parser.accepts("concurrency", "Number of test threads.")
-                .withRequiredArg().ofType(Integer.class).withValuesSeparatedBy(',');
+                            .withRequiredArg().ofType(Integer.class).withValuesSeparatedBy(',');
         report = parser.accepts("report", "Whether to output intermediate results")
-                .withOptionalArg().ofType(Boolean.class)
-                .defaultsTo(Boolean.FALSE);
+                       .withOptionalArg().ofType(Boolean.class)
+                       .defaultsTo(Boolean.FALSE);
         randomUser = parser.accepts("randomUser", "Whether to use a random user to read.")
-                .withOptionalArg().ofType(Boolean.class)
-                .defaultsTo(Boolean.FALSE);
+                           .withOptionalArg().ofType(Boolean.class)
+                           .defaultsTo(Boolean.FALSE);
         csvFile = parser.accepts("csvFile", "File to write a CSV version of the benchmark data.")
-                .withOptionalArg().ofType(File.class);
-        flatStructure = parser.accepts("flatStructure", "Whether the test should use a flat structure or not.")
-                .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.FALSE);
+                        .withOptionalArg().ofType(File.class);
+        flatStructure = parser.accepts("flatStructure",
+                                  "Whether the test should use a flat structure or not.")
+                              .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.FALSE);
         numberOfUsers = parser.accepts("numberOfUsers")
-                .withOptionalArg().ofType(Integer.class).defaultsTo(10000);
+                              .withOptionalArg().ofType(Integer.class).defaultsTo(10000);
         setScope = parser.accepts("setScope", "Whether to use include setScope in the user query.")
-                .withOptionalArg().ofType(Boolean.class)
-                .defaultsTo(Boolean.FALSE);
-        reverseOrder = parser.accepts("reverseOrder", "Invert order of configurations in composite setup.")
-                .withOptionalArg().ofType(Boolean.class)
-                .defaultsTo(Boolean.FALSE);
+                         .withOptionalArg().ofType(Boolean.class)
+                         .defaultsTo(Boolean.FALSE);
+        reverseOrder = parser.accepts("reverseOrder",
+                                 "Invert order of configurations in composite setup.")
+                             .withOptionalArg().ofType(Boolean.class)
+                             .defaultsTo(Boolean.FALSE);
         supportedPaths = parser.accepts("supportedPaths", "Supported paths in composite setup.")
-                .withOptionalArg().ofType(String.class).withValuesSeparatedBy(',');
-        dynamicMembership = parser.accepts("dynamicMembership", "Enable dynamic membership handling during synchronisation of external users.")
-                .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.FALSE);
-        autoMembership = parser.accepts("autoMembership", "Ids of those groups a given external identity automatically become member of.")
-                .withOptionalArg().ofType(String.class).withValuesSeparatedBy(',');
-        roundtripDelay = parser.accepts("roundtripDelay", "Use simplified principal name lookup from ExtIdRef by specifying roundtrip delay of value < 0.")
-                .withOptionalArg().ofType(Integer.class).defaultsTo(0);
+                               .withOptionalArg().ofType(String.class).withValuesSeparatedBy(',');
+        dynamicMembership = parser.accepts("dynamicMembership",
+                                      "Enable dynamic membership handling during synchronisation of external users.")
+                                  .withOptionalArg().ofType(Boolean.class)
+                                  .defaultsTo(Boolean.FALSE);
+        autoMembership = parser.accepts("autoMembership",
+                                   "Ids of those groups a given external identity automatically become member of.")
+                               .withOptionalArg().ofType(String.class).withValuesSeparatedBy(',');
+        roundtripDelay = parser.accepts("roundtripDelay",
+                                   "Use simplified principal name lookup from ExtIdRef by specifying roundtrip delay of value < 0.")
+                               .withOptionalArg().ofType(Integer.class).defaultsTo(0);
         transientWrites = parser.accepts("transient", "Do not save data.")
-                .withOptionalArg().ofType(Boolean.class)
-                .defaultsTo(Boolean.FALSE);
-        vgcMaxAge = parser.accepts("vgcMaxAge", "Continuous DocumentNodeStore VersionGC max age in sec (RDB only)")
-                .withRequiredArg().ofType(Integer.class).defaultsTo(-1);
-        coldSyncInterval = parser.accepts("coldSyncInterval", "interval between sync cycles in sec (Segment-Tar-Cold only)")
-                .withRequiredArg().ofType(Integer.class).defaultsTo(5);
+                                .withOptionalArg().ofType(Boolean.class)
+                                .defaultsTo(Boolean.FALSE);
+        vgcMaxAge = parser.accepts("vgcMaxAge",
+                              "Continuous DocumentNodeStore VersionGC max age in sec (RDB only)")
+                          .withRequiredArg().ofType(Integer.class).defaultsTo(-1);
+        coldSyncInterval = parser.accepts("coldSyncInterval",
+                                     "interval between sync cycles in sec (Segment-Tar-Cold only)")
+                                 .withRequiredArg().ofType(Integer.class).defaultsTo(5);
         coldUseDataStore = parser
-                .accepts("useDataStore", "Whether to use a datastore in the cold standby topology (Segment-Tar-Cold only)")
-                .withOptionalArg().ofType(Boolean.class)
-                .defaultsTo(Boolean.TRUE);
+            .accepts("useDataStore",
+                "Whether to use a datastore in the cold standby topology (Segment-Tar-Cold only)")
+            .withOptionalArg().ofType(Boolean.class)
+            .defaultsTo(Boolean.TRUE);
         coldShareDataStore = parser
-                .accepts("shareDataStore", "Whether to share the datastore for primary and standby in the cold standby topology (Segment-Tar-Cold only)")
-                .withOptionalArg().ofType(Boolean.class)
-                .defaultsTo(Boolean.FALSE);
+            .accepts("shareDataStore",
+                "Whether to share the datastore for primary and standby in the cold standby topology (Segment-Tar-Cold only)")
+            .withOptionalArg().ofType(Boolean.class)
+            .defaultsTo(Boolean.FALSE);
         coldOneShotRun = parser
-                .accepts("oneShotRun", "Whether to do a continuous sync between client and server or sync only once (Segment-Tar-Cold only)")
-                .withOptionalArg().ofType(Boolean.class)
-                .defaultsTo(Boolean.FALSE);
+            .accepts("oneShotRun",
+                "Whether to do a continuous sync between client and server or sync only once (Segment-Tar-Cold only)")
+            .withOptionalArg().ofType(Boolean.class)
+            .defaultsTo(Boolean.FALSE);
         coldSecure = parser
-                .accepts("secure", "Whether to enable secure communication between primary and standby in the cold standby topology (Segment-Tar-Cold only)")
-                .withOptionalArg().ofType(Boolean.class)
-                .defaultsTo(Boolean.FALSE);
+            .accepts("secure",
+                "Whether to enable secure communication between primary and standby in the cold standby topology (Segment-Tar-Cold only)")
+            .withOptionalArg().ofType(Boolean.class)
+            .defaultsTo(Boolean.FALSE);
 
         verbose = parser.accepts("verbose", "Enable verbose output");
         nonOption = parser.nonOptions();
         help = parser.acceptsAll(asList("h", "?", "help"), "show help").forHelp();
         elasticHost = parser.accepts("elasticHost", "Elastic server host").withOptionalArg()
-                .ofType(String.class);
+                            .ofType(String.class);
         elasticScheme = parser.accepts("elasticScheme", "Elastic scheme").withOptionalArg()
-                .ofType(String.class);
+                              .ofType(String.class);
         elasticPort = parser.accepts("elasticPort", "Elastic scheme").withOptionalArg()
-                .ofType(Integer.class);
-        elasticApiKeyId = parser.accepts("elasticApiKeyId", "Elastic unique id of the API key").withOptionalArg()
-                .ofType(String.class);
-        elasticApiKeySecret = parser.accepts("elasticApiKeySecret", "Elastic generated API secret").withOptionalArg()
-                .ofType(String.class);
+                            .ofType(Integer.class);
+        elasticApiKeyId = parser.accepts("elasticApiKeyId", "Elastic unique id of the API key")
+                                .withOptionalArg()
+                                .ofType(String.class);
+        elasticApiKeySecret = parser.accepts("elasticApiKeySecret", "Elastic generated API secret")
+                                    .withOptionalArg()
+                                    .ofType(String.class);
         throttlingEnabled = parser
-                .accepts("throttlingEnabled", "Whether throttling for Document Store is enabled or not")
-                .withOptionalArg().ofType(Boolean.class)
-                .defaultsTo(Boolean.FALSE); // throttling is disabled by default
+            .accepts("throttlingEnabled", "Whether throttling for Document Store is enabled or not")
+            .withOptionalArg().ofType(Boolean.class)
+            .defaultsTo(Boolean.FALSE); // throttling is disabled by default
     }
 
 }

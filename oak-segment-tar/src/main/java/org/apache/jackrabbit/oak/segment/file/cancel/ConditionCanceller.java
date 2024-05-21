@@ -19,7 +19,6 @@
 
 package org.apache.jackrabbit.oak.segment.file.cancel;
 
-import java.util.concurrent.TimeUnit;
 import java.util.function.BooleanSupplier;
 
 class ConditionCanceller extends Canceller {

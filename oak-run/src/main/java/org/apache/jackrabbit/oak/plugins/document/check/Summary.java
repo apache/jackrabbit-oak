@@ -17,9 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.document.check;
 
 import java.util.concurrent.BlockingQueue;
-
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
-
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.jetbrains.annotations.NotNull;
@@ -41,15 +39,15 @@ public class Summary implements DocumentProcessor {
 
     @Override
     public void processDocument(@NotNull NodeDocument document,
-                                @NotNull BlockingQueue<Result> results) {
+        @NotNull BlockingQueue<Result> results) {
         numDocuments++;
     }
 
     @Override
     public void end(@NotNull BlockingQueue<Result> results)
-            throws InterruptedException {
+        throws InterruptedException {
         String summary = "Checked " + numDocuments + " documents in " + sw +
-                ". Number of threads used: " + numThreads;
+            ". Number of threads used: " + numThreads;
         JsopBuilder json = new JsopBuilder();
         json.object();
         json.key("summary").value(summary);

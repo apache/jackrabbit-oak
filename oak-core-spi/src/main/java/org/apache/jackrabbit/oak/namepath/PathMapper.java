@@ -21,20 +21,19 @@ import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ProviderType;
 
 /**
- * {@code PathMapper} instances provide methods for mapping paths from their JCR
- * string representation to their Oak representation and vice versa.
- *
- * The Oak representation of a path consists of a forward slash followed by the
- * names of the respective items in the {@link org.apache.jackrabbit.oak.api.Tree}
- * separated by forward slashes.
+ * {@code PathMapper} instances provide methods for mapping paths from their JCR string
+ * representation to their Oak representation and vice versa.
+ * <p>
+ * The Oak representation of a path consists of a forward slash followed by the names of the
+ * respective items in the {@link org.apache.jackrabbit.oak.api.Tree} separated by forward slashes.
  */
 @ProviderType
 public interface PathMapper {
 
     /**
-     * Returns the Oak path for the given JCR path, or {@code null} if no
-     * such mapping exists because the given JCR path contains a name element
-     * with an unknown namespace URI or prefix, or is otherwise invalid.
+     * Returns the Oak path for the given JCR path, or {@code null} if no such mapping exists
+     * because the given JCR path contains a name element with an unknown namespace URI or prefix,
+     * or is otherwise invalid.
      *
      * @param jcrPath JCR path
      * @return Oak path, or {@code null}
@@ -43,12 +42,10 @@ public interface PathMapper {
     String getOakPath(String jcrPath);
 
     /**
-     * Returns the JCR path for the given Oak path. The given path is
-     * expected to have come from a valid Oak repository that contains
-     * only valid paths whose name elements only use proper namespace
-     * mappings. If that's not the case, either a programming error or
-     * a repository corruption has occurred and an appropriate unchecked
-     * exception gets thrown.
+     * Returns the JCR path for the given Oak path. The given path is expected to have come from a
+     * valid Oak repository that contains only valid paths whose name elements only use proper
+     * namespace mappings. If that's not the case, either a programming error or a repository
+     * corruption has occurred and an appropriate unchecked exception gets thrown.
      *
      * @param oakPath Oak path
      * @return JCR path

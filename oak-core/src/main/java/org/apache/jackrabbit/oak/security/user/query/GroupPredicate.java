@@ -16,20 +16,19 @@
  */
 package org.apache.jackrabbit.oak.security.user.query;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
-import org.apache.jackrabbit.api.security.user.Authorizable;
-import org.apache.jackrabbit.api.security.user.Group;
-import org.apache.jackrabbit.api.security.user.UserManager;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import static org.apache.jackrabbit.oak.security.user.query.QueryUtil.getID;
 
-import javax.jcr.RepositoryException;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
-
-import static org.apache.jackrabbit.oak.security.user.query.QueryUtil.getID;
+import javax.jcr.RepositoryException;
+import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.jackrabbit.api.security.user.Group;
+import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.guava.common.base.Predicate;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Predicate used to filter authorizables based on their group membership.

@@ -119,7 +119,7 @@ public class HierarchyConflictTest {
             }
 
             fail("Must fail with CommitFailedException. Cannot add child node" +
-                    " to a removed parent");
+                " to a removed parent");
         } catch (CommitFailedException e) {
             // expected
             LOG.info("expected: {}", e.toString());
@@ -177,7 +177,7 @@ public class HierarchyConflictTest {
             }
 
             fail("Must fail with CommitFailedException. Cannot remove tree" +
-                    " when child is added concurrently");
+                " when child is added concurrently");
         } catch (CommitFailedException e) {
             // expected
             LOG.info("expected: {}", e.toString());
@@ -185,31 +185,32 @@ public class HierarchyConflictTest {
     }
 
     private static void merge(NodeStore store,
-                              NodeBuilder root,
-                              final EditorCallback callback)
-            throws CommitFailedException {
+        NodeBuilder root,
+        final EditorCallback callback)
+        throws CommitFailedException {
         CompositeHook hooks = new CompositeHook(
-                new EditorHook(new EditorProvider() {
-                    private int numEdits = 0;
-                    @Override
-                    public Editor getRootEditor(NodeState before,
-                                                NodeState after,
-                                                NodeBuilder builder,
-                                                CommitInfo info)
-                            throws CommitFailedException {
-                        if (callback != null) {
-                            if (++numEdits > 1) {
-                                // this is a retry, fail the commit
-                                throw new CommitFailedException(OAK, 0,
-                                        "do not retry merge in this test");
-                            }
-                            callback.edit(builder);
+            new EditorHook(new EditorProvider() {
+                private int numEdits = 0;
+
+                @Override
+                public Editor getRootEditor(NodeState before,
+                    NodeState after,
+                    NodeBuilder builder,
+                    CommitInfo info)
+                    throws CommitFailedException {
+                    if (callback != null) {
+                        if (++numEdits > 1) {
+                            // this is a retry, fail the commit
+                            throw new CommitFailedException(OAK, 0,
+                                "do not retry merge in this test");
                         }
-                        return null;
+                        callback.edit(builder);
                     }
-                }),
-                ConflictHook.of(new AnnotatingConflictHandler()),
-                new EditorHook(new ConflictValidatorProvider()));
+                    return null;
+                }
+            }),
+            ConflictHook.of(new AnnotatingConflictHandler()),
+            new EditorHook(new ConflictValidatorProvider()));
         store.merge(root, hooks, CommitInfo.EMPTY);
     }
 

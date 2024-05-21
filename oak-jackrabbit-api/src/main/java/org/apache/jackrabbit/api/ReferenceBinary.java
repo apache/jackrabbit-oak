@@ -21,19 +21,17 @@ import javax.jcr.Binary;
 import org.osgi.annotation.versioning.ProviderType;
 
 /**
- * Referenceable binary. In addition to the normal JCR {@link Binary}
- * functionality, implementations of this class contain a <em>secure
- * reference</em> to the storage location of the binary stream. This
- * reference can be used to efficiently copy binaries across servers as
- * long as both the source and target servers use the same underlying
- * storage for binaries.
+ * Referenceable binary. In addition to the normal JCR {@link Binary} functionality, implementations
+ * of this class contain a <em>secure reference</em> to the storage location of the binary stream.
+ * This reference can be used to efficiently copy binaries across servers as long as both the source
+ * and target servers use the same underlying storage for binaries.
  */
 @ProviderType
 public interface ReferenceBinary extends Binary {
 
     /**
-     * Returns a secure reference to this binary, or {@code null} if such
-     * a reference is not available.
+     * Returns a secure reference to this binary, or {@code null} if such a reference is not
+     * available.
      *
      * @return binary reference, or {@code null}
      */

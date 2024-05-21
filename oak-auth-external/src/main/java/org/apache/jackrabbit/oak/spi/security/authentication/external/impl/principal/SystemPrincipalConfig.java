@@ -16,30 +16,30 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
+import java.security.Principal;
+import java.util.Set;
 import org.apache.jackrabbit.oak.spi.security.principal.SystemPrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.SystemUserPrincipal;
 import org.jetbrains.annotations.NotNull;
 
-import java.security.Principal;
-import java.util.Set;
-
 final class SystemPrincipalConfig {
-    
+
     private final Set<String> principalNames;
-    
+
     SystemPrincipalConfig(@NotNull Set<String> principalNames) {
         this.principalNames = principalNames;
     }
-    
+
     boolean containsSystemPrincipal(@NotNull Set<Principal> principals) {
         if (principals.contains(SystemPrincipal.INSTANCE)) {
             return true;
         }
         for (Principal principal : principals) {
-            if (principal instanceof SystemUserPrincipal && principalNames.contains(principal.getName())) {
+            if (principal instanceof SystemUserPrincipal && principalNames.contains(
+                principal.getName())) {
                 return true;
             }
         }
         return false;
-    }    
+    }
 }

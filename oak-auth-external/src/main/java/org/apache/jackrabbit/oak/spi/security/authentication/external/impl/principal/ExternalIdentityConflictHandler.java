@@ -22,7 +22,6 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.prin
 import static org.apache.jackrabbit.util.ISO8601.parse;
 
 import java.util.Calendar;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.commit.ThreeWayConflictHandler;
@@ -33,14 +32,15 @@ import org.jetbrains.annotations.NotNull;
 
 /**
  * Conflict handler that merges concurrent updates to external entities on the
- * {@code ExternalIdentityConstants.REP_LAST_SYNCED} property by picking the
- * older of the 2 conflicting dates.
+ * {@code ExternalIdentityConstants.REP_LAST_SYNCED} property by picking the older of the 2
+ * conflicting dates.
  */
 class ExternalIdentityConflictHandler implements ThreeWayConflictHandler {
 
     @NotNull
     @Override
-    public Resolution addExistingProperty(@NotNull NodeBuilder parent, @NotNull PropertyState ours, @NotNull PropertyState theirs) {
+    public Resolution addExistingProperty(@NotNull NodeBuilder parent, @NotNull PropertyState ours,
+        @NotNull PropertyState theirs) {
         if (ExternalIdentityConstants.REP_LAST_SYNCED.equals(ours.getName())) {
             return merge(parent, ours, theirs);
         }
@@ -49,15 +49,17 @@ class ExternalIdentityConflictHandler implements ThreeWayConflictHandler {
 
     @NotNull
     @Override
-    public Resolution changeChangedProperty(@NotNull NodeBuilder parent, @NotNull PropertyState ours, @NotNull PropertyState theirs,
-                                            @NotNull PropertyState base) {
+    public Resolution changeChangedProperty(@NotNull NodeBuilder parent,
+        @NotNull PropertyState ours, @NotNull PropertyState theirs,
+        @NotNull PropertyState base) {
         if (ExternalIdentityConstants.REP_LAST_SYNCED.equals(ours.getName())) {
             return merge(parent, ours, theirs);
         }
         return Resolution.IGNORED;
     }
 
-    private static Resolution merge(@NotNull NodeBuilder parent, @NotNull PropertyState ours, @NotNull PropertyState theirs) {
+    private static Resolution merge(@NotNull NodeBuilder parent, @NotNull PropertyState ours,
+        @NotNull PropertyState theirs) {
         Calendar o = parse(ours.getValue(Type.DATE));
         Calendar t = parse(theirs.getValue(Type.DATE));
         if (o != null) {
@@ -74,47 +76,54 @@ class ExternalIdentityConflictHandler implements ThreeWayConflictHandler {
 
     @Override
     @NotNull
-    public Resolution changeDeletedProperty(@NotNull NodeBuilder parent, @NotNull PropertyState ours, @NotNull PropertyState base) {
+    public Resolution changeDeletedProperty(@NotNull NodeBuilder parent,
+        @NotNull PropertyState ours, @NotNull PropertyState base) {
         return Resolution.IGNORED;
     }
 
     @Override
     @NotNull
-    public Resolution deleteDeletedProperty(@NotNull NodeBuilder parent, @NotNull PropertyState base) {
+    public Resolution deleteDeletedProperty(@NotNull NodeBuilder parent,
+        @NotNull PropertyState base) {
         return Resolution.IGNORED;
     }
 
     @Override
     @NotNull
-    public Resolution deleteChangedProperty(@NotNull NodeBuilder parent, @NotNull PropertyState theirs,
-            @NotNull PropertyState base) {
+    public Resolution deleteChangedProperty(@NotNull NodeBuilder parent,
+        @NotNull PropertyState theirs,
+        @NotNull PropertyState base) {
         return Resolution.IGNORED;
     }
 
     @Override
     @NotNull
-    public Resolution addExistingNode(@NotNull NodeBuilder parent, @NotNull String name, @NotNull NodeState ours,
-            @NotNull NodeState theirs) {
+    public Resolution addExistingNode(@NotNull NodeBuilder parent, @NotNull String name,
+        @NotNull NodeState ours,
+        @NotNull NodeState theirs) {
         return Resolution.IGNORED;
     }
 
     @Override
     @NotNull
-    public Resolution changeDeletedNode(@NotNull NodeBuilder parent, @NotNull String name, @NotNull NodeState ours,
-            @NotNull NodeState base) {
+    public Resolution changeDeletedNode(@NotNull NodeBuilder parent, @NotNull String name,
+        @NotNull NodeState ours,
+        @NotNull NodeState base) {
         return Resolution.IGNORED;
     }
 
     @Override
     @NotNull
-    public Resolution deleteChangedNode(@NotNull NodeBuilder parent, @NotNull String name, @NotNull NodeState theirs,
-            @NotNull NodeState base) {
+    public Resolution deleteChangedNode(@NotNull NodeBuilder parent, @NotNull String name,
+        @NotNull NodeState theirs,
+        @NotNull NodeState base) {
         return Resolution.IGNORED;
     }
 
     @Override
     @NotNull
-    public Resolution deleteDeletedNode(@NotNull NodeBuilder parent, @NotNull String name, @NotNull NodeState base) {
+    public Resolution deleteDeletedNode(@NotNull NodeBuilder parent, @NotNull String name,
+        @NotNull NodeState base) {
         return Resolution.IGNORED;
     }
 }

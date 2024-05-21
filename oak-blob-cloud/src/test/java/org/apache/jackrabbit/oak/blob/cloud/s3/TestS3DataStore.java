@@ -39,18 +39,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Random;
-
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import javax.jcr.RepositoryException;
-
-import org.apache.jackrabbit.guava.common.base.Strings;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.time.DateUtils;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStore;
+import org.apache.jackrabbit.guava.common.base.Strings;
+import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -67,6 +65,7 @@ import org.slf4j.LoggerFactory;
  */
 @RunWith(Parameterized.class)
 public class TestS3DataStore {
+
     protected static final Logger LOG = LoggerFactory.getLogger(TestS3DataStore.class);
 
     @Rule
@@ -105,7 +104,8 @@ public class TestS3DataStore {
     @Test
     public void testAccessParamLeakOnError() throws Exception {
         expectedEx.expect(RepositoryException.class);
-        expectedEx.expectMessage("Could not initialize S3 from {s3Region=us-standard, intValueKey=25}");
+        expectedEx.expectMessage(
+            "Could not initialize S3 from {s3Region=us-standard, intValueKey=25}");
 
         props.put(S3Constants.ACCESS_KEY, "abcd");
         props.put(S3Constants.SECRET_KEY, "123456");
@@ -124,12 +124,12 @@ public class TestS3DataStore {
         assertNotNull("Reference data record null", refRec);
         byte[] refDirectFromBackend = IOUtils.toByteArray(refRec.getStream());
         LOG.warn("Ref direct from backend {}", refDirectFromBackend);
-        
+
         // reference.key initialized in backend#init() - OAK-9807, so expected reference.key already created
         byte[] refKey = ((S3Backend) s3.getBackend()).getOrCreateReferenceKey();
         assertTrue("refKey in memory not equal to the metadata record",
             Arrays.equals(refKey, refDirectFromBackend));
-        
+
         Random randomGen = new Random();
         byte[] data = new byte[4096];
         randomGen.nextBytes(data);
@@ -139,7 +139,7 @@ public class TestS3DataStore {
         assertNotNull(ref);
 
         String id = rec.getIdentifier().toString();
-        
+
         Mac mac = Mac.getInstance("HmacSHA1");
         mac.init(new SecretKeySpec(refKey, "HmacSHA1"));
         byte[] hash = mac.doFinal(id.getBytes("UTF-8"));
@@ -167,7 +167,6 @@ public class TestS3DataStore {
         assertEquals(data.length, rec.getLength());
     }
 
-
     // AddMetadataRecord (Backend)
 
     @Test
@@ -185,9 +184,9 @@ public class TestS3DataStore {
                     records.put(recordName, data);
 
                     if (fromInputStream) {
-                        s3ds.addMetadataRecord(new ByteArrayInputStream(data.getBytes()), recordName);
-                    }
-                    else {
+                        s3ds.addMetadataRecord(new ByteArrayInputStream(data.getBytes()),
+                            recordName);
+                    } else {
                         File testFile = folder.newFile();
                         copyInputStreamToFile(new ByteArrayInputStream(data.getBytes()), testFile);
                         s3ds.addMetadataRecord(testFile, recordName);
@@ -210,14 +209,15 @@ public class TestS3DataStore {
     }
 
     @Test
-    public void testBackendAddMetadataRecordNullInputStreamThrowsNullPointerException() throws Exception {
+    public void testBackendAddMetadataRecordNullInputStreamThrowsNullPointerException()
+        throws Exception {
         assumeTrue(isS3Configured());
 
         expectedEx.expect(IllegalArgumentException.class);
         expectedEx.expectMessage("input should not be null");
 
         S3DataStore s3ds = getDataStore();
-        s3ds.addMetadataRecord((InputStream)null, "name");
+        s3ds.addMetadataRecord((InputStream) null, "name");
     }
 
     @Test
@@ -228,11 +228,12 @@ public class TestS3DataStore {
         expectedEx.expectMessage("input should not be null");
 
         S3DataStore s3ds = getDataStore();
-        s3ds.addMetadataRecord((File)null, "name");
+        s3ds.addMetadataRecord((File) null, "name");
     }
 
     @Test
-    public void testBackendAddMetadataRecordNullEmptyNameThrowsIllegalArgumentException() throws Exception {
+    public void testBackendAddMetadataRecordNullEmptyNameThrowsIllegalArgumentException()
+        throws Exception {
         assumeTrue(isS3Configured());
 
         S3DataStore s3ds = getDataStore();
@@ -267,7 +268,8 @@ public class TestS3DataStore {
             try {
                 s3ds.getMetadataRecord(name);
                 fail("Expect to throw");
-            } catch(Exception e) {}
+            } catch (Exception e) {
+            }
         }
         s3ds.deleteMetadataRecord("testRecord");
     }
@@ -306,7 +308,8 @@ public class TestS3DataStore {
 
 
     @Test
-    public void testBackendGetAllMetadataRecordsNullPrefixThrowsNullPointerException() throws Exception {
+    public void testBackendGetAllMetadataRecordsNullPrefixThrowsNullPointerException()
+        throws Exception {
         assumeTrue(isS3Configured());
 
         expectedEx.expect(IllegalArgumentException.class);
@@ -327,10 +330,9 @@ public class TestS3DataStore {
             if (Strings.isNullOrEmpty(name)) {
                 try {
                     s3ds.metadataRecordExists(name);
+                } catch (IllegalArgumentException e) {
                 }
-                catch (IllegalArgumentException e) { }
-            }
-            else {
+            } else {
                 assertFalse(s3ds.metadataRecordExists(name));
             }
         }
@@ -349,10 +351,9 @@ public class TestS3DataStore {
             if (Strings.isNullOrEmpty(name)) {
                 try {
                     s3ds.deleteMetadataRecord(name);
+                } catch (IllegalArgumentException e) {
                 }
-                catch (IllegalArgumentException e) { }
-            }
-            else {
+            } else {
                 s3ds.deleteMetadataRecord(name);
                 fail();
             }
@@ -380,8 +381,10 @@ public class TestS3DataStore {
 
         for (Map.Entry<String, Integer> entry : prefixCounts.entrySet()) {
             s3ds.addMetadataRecord(randomStream(1, 10), String.format("%s.testRecord1", prefixAll));
-            s3ds.addMetadataRecord(randomStream(2, 10), String.format("%s.testRecord2", prefixSome));
-            s3ds.addMetadataRecord(randomStream(3, 10), String.format("%s.testRecord3", prefixSome));
+            s3ds.addMetadataRecord(randomStream(2, 10),
+                String.format("%s.testRecord2", prefixSome));
+            s3ds.addMetadataRecord(randomStream(3, 10),
+                String.format("%s.testRecord3", prefixSome));
             s3ds.addMetadataRecord(randomStream(4, 10), String.format("%s.testRecord4", prefixOne));
 
             int preCount = s3ds.getAllMetadataRecords("").size();

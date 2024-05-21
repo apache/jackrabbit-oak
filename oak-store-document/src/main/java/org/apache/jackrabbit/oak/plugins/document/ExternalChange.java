@@ -40,8 +40,7 @@ import static org.apache.jackrabbit.oak.plugins.document.JournalEntry.newSorter;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.alignWithExternalRevisions;
 
 /**
- * Utility class to pull in external changes in the DocumentNodeStore and
- * process journal entries.
+ * Utility class to pull in external changes in the DocumentNodeStore and process journal entries.
  */
 abstract class ExternalChange {
 
@@ -62,8 +61,7 @@ abstract class ExternalChange {
     }
 
     /**
-     * Called when when cache entries related to nodes with the given paths
-     * must be invalidated.
+     * Called when when cache entries related to nodes with the given paths must be invalidated.
      *
      * @param paths the paths of affected nodes.
      */
@@ -75,18 +73,16 @@ abstract class ExternalChange {
     abstract void invalidateCache();
 
     /**
-     * Called when the current head should be updated with revisions of external
-     * changes.
+     * Called when the current head should be updated with revisions of external changes.
      *
-     * @param externalChanges the head revision of other cluster nodes that
-     *                        changed and should now be considered visible.
-     * @param sweepRevisions the current sweep revisions.
-     * @param changedPaths paths of nodes that are affected by those external
-     *                     changes.
+     * @param externalChanges the head revision of other cluster nodes that changed and should now
+     *                        be considered visible.
+     * @param sweepRevisions  the current sweep revisions.
+     * @param changedPaths    paths of nodes that are affected by those external changes.
      */
     abstract void updateHead(@NotNull Set<Revision> externalChanges,
-                             @NotNull RevisionVector sweepRevisions,
-                             @Nullable Iterable<String> changedPaths);
+        @NotNull RevisionVector sweepRevisions,
+        @Nullable Iterable<String> changedPaths);
 
     /**
      * Processes external changes if there are any.
@@ -114,13 +110,13 @@ abstract class ExternalChange {
         Consumer<JournalEntry> journalEntryConsumer = journalEntry -> {
             // track timestamp of oldest journal entry
             oldestTimestamp.set(Math.min(oldestTimestamp.get(),
-                    journalEntry.getRevisionTimestamp()));
+                journalEntry.getRevisionTimestamp()));
         };
 
         Map<Integer, Revision> lastRevMap = doc.getLastRev();
         try {
             changeSetBuilder = new ChangeSetBuilder(
-                    store.getChangeSetMaxItems(), store.getChangeSetMaxDepth());
+                store.getChangeSetMaxItems(), store.getChangeSetMaxDepth());
             RevisionVector headRevision = store.getHeadRevision();
             Set<Revision> externalChanges = newHashSet();
             for (Map.Entry<Integer, Revision> e : lastRevMap.entrySet()) {
@@ -145,11 +141,13 @@ abstract class ExternalChange {
                         // add changes for this particular clusterId to the externalSort
                         try {
                             fillExternalChanges(externalSort, invalidate,
-                                    Path.ROOT, last, r,
-                                    store.getDocumentStore(), journalEntryConsumer,
-                                    changeSetBuilder, journalPropertyHandler);
+                                Path.ROOT, last, r,
+                                store.getDocumentStore(), journalEntryConsumer,
+                                changeSetBuilder, journalPropertyHandler);
                         } catch (Exception e1) {
-                            LOG.error("backgroundRead: Exception while reading external changes from journal: " + e1, e1);
+                            LOG.error(
+                                "backgroundRead: Exception while reading external changes from journal: "
+                                    + e1, e1);
                             closeQuietly(externalSort);
                             closeQuietly(invalidate);
                             externalSort = null;
@@ -174,7 +172,9 @@ abstract class ExternalChange {
                         sortAndInvalidate(externalSort);
                         sortAndInvalidate(invalidate);
                     } catch (Exception ioe) {
-                        LOG.error("backgroundRead: got IOException during external sorting/cache invalidation (as a result, invalidating entire cache): "+ioe, ioe);
+                        LOG.error(
+                            "backgroundRead: got IOException during external sorting/cache invalidation (as a result, invalidating entire cache): "
+                                + ioe, ioe);
                         invalidateCache();
                     }
                 }
@@ -207,9 +207,9 @@ abstract class ExternalChange {
     //-------------------------< internal >-------------------------------------
 
     private boolean cacheInvalidationNeeded(StringSort externalSort,
-                                            StringSort invalidate) {
+        StringSort invalidate) {
         return externalSort == null || invalidate == null
-                || !externalSort.isEmpty() || !invalidate.isEmpty();
+            || !externalSort.isEmpty() || !invalidate.isEmpty();
     }
 
     private void sortAndInvalidate(StringSort paths) throws IOException {

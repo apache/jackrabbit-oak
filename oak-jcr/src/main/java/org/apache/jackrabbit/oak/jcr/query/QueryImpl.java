@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.jcr.query;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
-
 import javax.jcr.ItemNotFoundException;
 import javax.jcr.Node;
 import javax.jcr.PathNotFoundException;
@@ -32,7 +31,6 @@ import javax.jcr.query.InvalidQueryException;
 import javax.jcr.query.Query;
 import javax.jcr.query.QueryResult;
 import javax.jcr.version.VersionException;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
@@ -56,7 +54,8 @@ public class QueryImpl implements Query {
     private boolean parsed;
     private String storedQueryPath;
 
-    QueryImpl(QueryManagerImpl manager, String statement, String language, SessionContext sessionContext) {
+    QueryImpl(QueryManagerImpl manager, String statement, String language,
+        SessionContext sessionContext) {
         this.sessionContext = sessionContext;
         this.manager = manager;
         this.statement = statement;
@@ -71,7 +70,8 @@ public class QueryImpl implements Query {
     public void bindValue(String varName, Value value) throws RepositoryException {
         parse();
         if (!bindVariableMap.containsKey(varName)) {
-            throw new IllegalArgumentException("Variable name " + varName + " is not a valid variable in this query");
+            throw new IllegalArgumentException(
+                "Variable name " + varName + " is not a valid variable in this query");
         }
         bindVariableMap.put(varName, value);
     }
@@ -81,14 +81,14 @@ public class QueryImpl implements Query {
             return;
         }
         List<String> names = sessionContext.getSessionDelegate().perform(
-                new SessionOperation<List<String>>("parse") {
-                    @NotNull
-                    @Override
-                    public List<String> perform() throws RepositoryException {
-                        return manager.parse(statement, language);
-                    }
-                });
-        
+            new SessionOperation<List<String>>("parse") {
+                @NotNull
+                @Override
+                public List<String> perform() throws RepositoryException {
+                    return manager.parse(statement, language);
+                }
+            });
+
         for (String n : names) {
             bindVariableMap.put(n, null);
         }
@@ -98,14 +98,14 @@ public class QueryImpl implements Query {
     @Override
     public QueryResult execute() throws RepositoryException {
         return sessionContext.getSessionDelegate().perform(
-                new SessionOperation<QueryResult>("execute") {
-                    @NotNull
-                    @Override
-                    public QueryResult perform() throws RepositoryException {
-                        return manager.executeQuery(statement, language, limit,
-                                offset, bindVariableMap);
-                    }
-                });
+            new SessionOperation<QueryResult>("execute") {
+                @NotNull
+                @Override
+                public QueryResult perform() throws RepositoryException {
+                    return manager.executeQuery(statement, language, limit,
+                        offset, bindVariableMap);
+                }
+            });
     }
 
     @Override
@@ -162,7 +162,7 @@ public class QueryImpl implements Query {
         NodeImpl parentNode = NodeImpl.createNode(parentDelegate, sessionContext);
         if (!parentNode.internalIsCheckedOut()) {
             throw new VersionException("Cannot store query. Node at " +
-                    absPath + " is checked in.");
+                absPath + " is checked in.");
         }
         String nodeName = PathUtils.getName(oakPath);
         ValueFactory vf = sessionContext.getValueFactory();

@@ -18,8 +18,8 @@
  */
 package org.apache.jackrabbit.oak.console.commands
 
-import org.apache.jackrabbit.guava.common.collect.Sets
 import groovy.transform.CompileStatic
+import org.apache.jackrabbit.guava.common.collect.Sets
 import org.apache.jackrabbit.oak.console.ConsoleSession
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument
@@ -32,7 +32,7 @@ import org.json.simple.JSONValue
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES
 
 @CompileStatic
-class PrintDocumentCommand extends CommandSupport{
+class PrintDocumentCommand extends CommandSupport {
     public static final String COMMAND_NAME = 'print-document'
 
     public PrintDocumentCommand(Groovysh shell) {
@@ -53,12 +53,12 @@ class PrintDocumentCommand extends CommandSupport{
         return null
     }
 
-    ConsoleSession getSession(){
-        return (ConsoleSession)variables.session
+    ConsoleSession getSession() {
+        return (ConsoleSession) variables.session
     }
 
-    DocumentNodeStore getStore(){
-        return (DocumentNodeStore)session.getStore();
+    DocumentNodeStore getStore() {
+        return (DocumentNodeStore) session.getStore();
     }
 
     private void println(NodeDocument doc, PrintWriter writer)
@@ -124,6 +124,6 @@ class PrintDocumentCommand extends CommandSupport{
     }
 
     private static void printIndent(int level, Writer writer) throws IOException {
-        writer.write(' '* (level *4))
+        writer.write(' ' * (level * 4))
     }
 }

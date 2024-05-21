@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.backup;
 
 import java.io.File;
 import java.io.IOException;
-
 import org.apache.jackrabbit.oak.segment.Revisions;
 import org.apache.jackrabbit.oak.segment.SegmentReader;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
@@ -28,7 +27,8 @@ import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 
 public interface FileStoreBackup {
 
-    void backup(SegmentReader reader, Revisions revisions, File destination) throws IOException, InvalidFileStoreVersionException;
+    void backup(SegmentReader reader, Revisions revisions, File destination)
+        throws IOException, InvalidFileStoreVersionException;
 
     boolean cleanup(FileStore f) throws IOException;
 

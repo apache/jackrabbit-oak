@@ -20,7 +20,6 @@ import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull
 
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
-
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -29,6 +28,7 @@ import org.apache.jackrabbit.oak.plugins.value.Conversions.Converter;
 import org.jetbrains.annotations.NotNull;
 
 public class BinaryPropertyState extends SinglePropertyState<Blob> {
+
     private final Blob value;
 
     public BinaryPropertyState(@NotNull String name, @NotNull Blob value) {
@@ -38,47 +38,51 @@ public class BinaryPropertyState extends SinglePropertyState<Blob> {
 
     /**
      * Create a {@code PropertyState} from an array of bytes.
+     *
      * @param name  The name of the property state
-     * @param value  The value of the property state
-     * @return  The new property state of type {@link Type#BINARY}
+     * @param value The value of the property state
+     * @return The new property state of type {@link Type#BINARY}
      */
     public static PropertyState binaryProperty(
-            @NotNull String name, @NotNull byte[] value) {
+        @NotNull String name, @NotNull byte[] value) {
         return new BinaryPropertyState(
-                name, new ArrayBasedBlob(checkNotNull(value)));
+            name, new ArrayBasedBlob(checkNotNull(value)));
     }
 
     /**
      * Create a {@code PropertyState} from an array of bytes.
+     *
      * @param name  The name of the property state
-     * @param value  The value of the property state
-     * @return  The new property state of type {@link Type#BINARY}
+     * @param value The value of the property state
+     * @return The new property state of type {@link Type#BINARY}
      */
     public static PropertyState binaryProperty(
-            @NotNull String name, @NotNull String value) {
+        @NotNull String name, @NotNull String value) {
         return new BinaryPropertyState(
-                name, new StringBasedBlob(checkNotNull(value)));
+            name, new StringBasedBlob(checkNotNull(value)));
     }
 
     /**
      * Create a {@code PropertyState} from a {@link Blob}.
+     *
      * @param name  The name of the property state
-     * @param value  The value of the property state
-     * @return  The new property state of type {@link Type#BINARY}
+     * @param value The value of the property state
+     * @return The new property state of type {@link Type#BINARY}
      */
     public static PropertyState binaryProperty(
-            @NotNull String name, @NotNull Blob value) {
+        @NotNull String name, @NotNull Blob value) {
         return new BinaryPropertyState(name, value);
     }
 
     /**
      * Create a {@code PropertyState} from a {@link javax.jcr.Value}.
+     *
      * @param name  The name of the property state
-     * @param value  The value of the property state
-     * @return  The new property state of type {@link Type#BINARY}
+     * @param value The value of the property state
+     * @return The new property state of type {@link Type#BINARY}
      */
     public static PropertyState binaryProperty(
-            @NotNull String name, @NotNull Value value) throws RepositoryException {
+        @NotNull String name, @NotNull Value value) throws RepositoryException {
         return new BinaryPropertyState(name, getBlob(value));
     }
 

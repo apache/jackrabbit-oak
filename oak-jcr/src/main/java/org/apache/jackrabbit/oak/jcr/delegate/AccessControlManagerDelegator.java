@@ -24,21 +24,22 @@ import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.AccessControlPolicyIterator;
 import javax.jcr.security.Privilege;
-
 import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * This implementation of {@code AccessControlManager} delegates back to a
- * delegatee wrapping each call into a {@link SessionOperation} closure.
- * 
+ * This implementation of {@code AccessControlManager} delegates back to a delegatee wrapping each
+ * call into a {@link SessionOperation} closure.
+ *
  * @see SessionDelegate#perform(SessionOperation)
  */
 public class AccessControlManagerDelegator implements AccessControlManager {
+
     private final SessionDelegate delegate;
     private final AccessControlManager acManager;
 
-    public AccessControlManagerDelegator(@NotNull SessionDelegate delegate, @NotNull AccessControlManager acManager) {
+    public AccessControlManagerDelegator(@NotNull SessionDelegate delegate,
+        @NotNull AccessControlManager acManager) {
         this.acManager = acManager;
         this.delegate = delegate;
     }
@@ -66,7 +67,8 @@ public class AccessControlManagerDelegator implements AccessControlManager {
     }
 
     @Override
-    public boolean hasPrivileges(final String absPath, final Privilege[] privileges) throws RepositoryException {
+    public boolean hasPrivileges(final String absPath, final Privilege[] privileges)
+        throws RepositoryException {
         return delegate.perform(new SessionOperation<Boolean>("hasPrivileges") {
             @NotNull
             @Override
@@ -97,28 +99,33 @@ public class AccessControlManagerDelegator implements AccessControlManager {
     }
 
     @Override
-    public AccessControlPolicy[] getEffectivePolicies(final String absPath) throws RepositoryException {
-        return delegate.perform(new SessionOperation<AccessControlPolicy[]>("getEffectivePolicies") {
-            @Override
-            public AccessControlPolicy @NotNull [] perform() throws RepositoryException {
-                return acManager.getEffectivePolicies(absPath);
-            }
-        });
+    public AccessControlPolicy[] getEffectivePolicies(final String absPath)
+        throws RepositoryException {
+        return delegate.perform(
+            new SessionOperation<AccessControlPolicy[]>("getEffectivePolicies") {
+                @Override
+                public AccessControlPolicy @NotNull [] perform() throws RepositoryException {
+                    return acManager.getEffectivePolicies(absPath);
+                }
+            });
     }
 
     @Override
-    public AccessControlPolicyIterator getApplicablePolicies(final String absPath) throws RepositoryException {
-        return delegate.perform(new SessionOperation<AccessControlPolicyIterator>("getApplicablePolicies") {
-            @NotNull
-            @Override
-            public AccessControlPolicyIterator perform() throws RepositoryException {
-                return acManager.getApplicablePolicies(absPath);
-            }
-        });
+    public AccessControlPolicyIterator getApplicablePolicies(final String absPath)
+        throws RepositoryException {
+        return delegate.perform(
+            new SessionOperation<AccessControlPolicyIterator>("getApplicablePolicies") {
+                @NotNull
+                @Override
+                public AccessControlPolicyIterator perform() throws RepositoryException {
+                    return acManager.getApplicablePolicies(absPath);
+                }
+            });
     }
 
     @Override
-    public void setPolicy(final String absPath, final AccessControlPolicy policy) throws RepositoryException {
+    public void setPolicy(final String absPath, final AccessControlPolicy policy)
+        throws RepositoryException {
         delegate.performVoid(new SessionOperation<Void>("setPolicy", true) {
             @Override
             public void performVoid() throws RepositoryException {
@@ -128,7 +135,8 @@ public class AccessControlManagerDelegator implements AccessControlManager {
     }
 
     @Override
-    public void removePolicy(final String absPath, final AccessControlPolicy policy) throws RepositoryException {
+    public void removePolicy(final String absPath, final AccessControlPolicy policy)
+        throws RepositoryException {
         delegate.performVoid(new SessionOperation<Void>("removePolicy", true) {
             @Override
             public void performVoid() throws RepositoryException {

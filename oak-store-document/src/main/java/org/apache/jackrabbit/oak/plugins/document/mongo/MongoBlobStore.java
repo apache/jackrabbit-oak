@@ -16,15 +16,27 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
+import static com.mongodb.ReadPreference.primary;
+import static java.util.stream.StreamSupport.stream;
+import static org.bson.codecs.configuration.CodecRegistries.fromCodecs;
+import static org.bson.codecs.configuration.CodecRegistries.fromRegistries;
+
+import com.mongodb.BasicDBObject;
+import com.mongodb.MongoClient;
+import com.mongodb.MongoException;
+import com.mongodb.ReadPreference;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoCursor;
+import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.UpdateOptions;
+import com.mongodb.client.result.UpdateResult;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-
-import com.mongodb.ReadPreference;
-import com.mongodb.client.model.UpdateOptions;
-import com.mongodb.client.result.UpdateResult;
+import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.plugins.blob.CachingBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
@@ -36,25 +48,11 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
-import com.mongodb.BasicDBObject;
-import com.mongodb.MongoClient;
-import com.mongodb.MongoException;
-import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoCursor;
-import com.mongodb.client.MongoDatabase;
-import com.mongodb.client.model.Filters;
-
-import static com.mongodb.ReadPreference.primary;
-import static java.util.stream.StreamSupport.stream;
-import static org.bson.codecs.configuration.CodecRegistries.fromCodecs;
-import static org.bson.codecs.configuration.CodecRegistries.fromRegistries;
-
 /**
- * Implementation of blob store for the MongoDB extending from
- * {@link CachingBlobStore}. It saves blobs into a separate collection in
- * MongoDB (not using GridFS) and it supports basic garbage collection.
- *
+ * Implementation of blob store for the MongoDB extending from {@link CachingBlobStore}. It saves
+ * blobs into a separate collection in MongoDB (not using GridFS) and it supports basic garbage
+ * collection.
+ * <p>
  * FIXME: -Do we need to create commands for retry etc.? -Not sure if this is
  * going to work for multiple MKs talking to same MongoDB?
  */
@@ -67,8 +65,8 @@ public class MongoBlobStore extends CachingBlobStore {
     private static final int DUPLICATE_KEY_ERROR_CODE = 11000;
 
     private static final CodecRegistry CODEC_REGISTRY = fromRegistries(
-            fromCodecs(new MongoBlobCodec()),
-            MongoClient.getDefaultCodecRegistry()
+        fromCodecs(new MongoBlobCodec()),
+        MongoClient.getDefaultCodecRegistry()
     );
 
     private final ReadPreference defaultReadPreference;
@@ -88,7 +86,7 @@ public class MongoBlobStore extends CachingBlobStore {
     /**
      * Constructs a new {@code MongoBlobStore}
      *
-     * @param db the database
+     * @param db        the database
      * @param cacheSize the cache size
      */
     public MongoBlobStore(MongoDatabase db, long cacheSize) {
@@ -98,11 +96,12 @@ public class MongoBlobStore extends CachingBlobStore {
     /**
      * Constructs a new {@code MongoBlobStore}
      *
-     * @param db the database
+     * @param db        the database
      * @param cacheSize the cache size
-     * @param builder {@link DocumentNodeStoreBuilder}, supplying further options
+     * @param builder   {@link DocumentNodeStoreBuilder}, supplying further options
      */
-    public MongoBlobStore(@NotNull MongoDatabase db, long cacheSize, @Nullable DocumentNodeStoreBuilder<?> builder) {
+    public MongoBlobStore(@NotNull MongoDatabase db, long cacheSize,
+        @Nullable DocumentNodeStoreBuilder<?> builder) {
         super(cacheSize);
         readOnly = builder == null ? false : builder.getReadOnlyMode();
         // use a block size of 2 MB - 1 KB, because MongoDB rounds up the
@@ -124,11 +123,12 @@ public class MongoBlobStore extends CachingBlobStore {
         mongoBlob.append(MongoBlob.KEY_LEVEL, level);
 
         // If update only the lastMod needs to be modified
-        BasicDBObject updateBlob =new BasicDBObject(MongoBlob.KEY_LAST_MOD, System.currentTimeMillis());
+        BasicDBObject updateBlob = new BasicDBObject(MongoBlob.KEY_LAST_MOD,
+            System.currentTimeMillis());
 
         BasicDBObject upsert = new BasicDBObject();
         upsert.append("$setOnInsert", mongoBlob)
-            .append("$set", updateBlob);
+              .append("$set", updateBlob);
 
         try {
             Bson query = getBlobQuery(id, -1);
@@ -157,7 +157,8 @@ public class MongoBlobStore extends CachingBlobStore {
                 throw new IOException(message);
             }
             data = blobMongo.getData();
-            getStatsCollector().downloaded(id, System.nanoTime() - start, TimeUnit.NANOSECONDS, data.length);
+            getStatsCollector().downloaded(id, System.nanoTime() - start, TimeUnit.NANOSECONDS,
+                data.length);
             cache.put(id, data);
         }
         if (blockId.getPos() == 0) {
@@ -191,7 +192,7 @@ public class MongoBlobStore extends CachingBlobStore {
         String id = StringUtils.convertBytesToHex(blockId.getDigest());
         Bson query = getBlobQuery(id, minLastModified);
         Bson update = new BasicDBObject("$set",
-                new BasicDBObject(MongoBlob.KEY_LAST_MOD, System.currentTimeMillis()));
+            new BasicDBObject(MongoBlob.KEY_LAST_MOD, System.currentTimeMillis()));
         getBlobCollection().updateOne(query, update);
     }
 
@@ -205,10 +206,11 @@ public class MongoBlobStore extends CachingBlobStore {
 
     private MongoCollection<MongoBlob> initBlobCollection(MongoDatabase db, boolean readOnly) {
         if (stream(db.listCollectionNames().spliterator(), false)
-                .noneMatch(COLLECTION_BLOBS::equals)) {
+            .noneMatch(COLLECTION_BLOBS::equals)) {
             if (readOnly) {
                 throw new RuntimeException(
-                        "MongoBlobStore instantiated read-only, but collection " + COLLECTION_BLOBS + " not present");
+                    "MongoBlobStore instantiated read-only, but collection " + COLLECTION_BLOBS
+                        + " not present");
             }
             db.createCollection(COLLECTION_BLOBS);
         }
@@ -216,8 +218,8 @@ public class MongoBlobStore extends CachingBlobStore {
         // and use the primary as default. Reading a blob will still
         // try a secondary first and then fallback to the primary.
         return db.getCollection(COLLECTION_BLOBS, MongoBlob.class)
-                .withCodecRegistry(CODEC_REGISTRY)
-                .withReadPreference(primary());
+                 .withCodecRegistry(CODEC_REGISTRY)
+                 .withReadPreference(primary());
     }
 
     private MongoCollection<MongoBlob> getBlobCollection() {
@@ -231,11 +233,11 @@ public class MongoBlobStore extends CachingBlobStore {
         // try with default read preference first, may be from secondary
         List<MongoBlob> result = new ArrayList<>(1);
         getBlobCollection().withReadPreference(defaultReadPreference).find(query)
-                .projection(fields).into(result);
+                           .projection(fields).into(result);
         if (result.isEmpty()) {
             // not found in the secondary: try the primary
             getBlobCollection().withReadPreference(primary()).find(query)
-                    .projection(fields).into(result);
+                               .projection(fields).into(result);
         }
         return result.isEmpty() ? null : result.get(0);
     }
@@ -257,14 +259,15 @@ public class MongoBlobStore extends CachingBlobStore {
     }
 
     @Override
-    public long countDeleteChunks(List<String> chunkIds, long maxLastModifiedTime) throws Exception {
+    public long countDeleteChunks(List<String> chunkIds, long maxLastModifiedTime)
+        throws Exception {
         Bson query = new Document();
         if (chunkIds != null) {
             query = Filters.in(MongoBlob.KEY_ID, chunkIds);
             if (maxLastModifiedTime > 0) {
                 query = Filters.and(
-                        query,
-                        Filters.lt(MongoBlob.KEY_LAST_MOD, maxLastModifiedTime)
+                    query,
+                    Filters.lt(MongoBlob.KEY_LAST_MOD, maxLastModifiedTime)
                 );
             }
         }
@@ -282,7 +285,8 @@ public class MongoBlobStore extends CachingBlobStore {
         }
 
         final MongoCursor<MongoBlob> cur = getBlobCollection().find(query)
-                .projection(fields).hint(fields).iterator();
+                                                              .projection(fields).hint(fields)
+                                                              .iterator();
 
         //TODO The cursor needs to be closed
         return new AbstractIterator<String>() {

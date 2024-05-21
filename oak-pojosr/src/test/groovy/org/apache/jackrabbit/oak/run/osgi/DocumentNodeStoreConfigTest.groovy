@@ -137,8 +137,8 @@ class DocumentNodeStoreConfigTest extends AbstractRepositoryFactoryTest {
         // occasional test failures on Jenkins (see OAK-5612). If 5s
         // are not sufficient, we should investigate some more.
         awaitServiceEvent({
-                    srds.unregister();
-                },
+            srds.unregister();
+        },
                 classNameFilter(NodeStore.class.name),
                 ServiceEvent.UNREGISTERING,
                 5, TimeUnit.SECONDS
@@ -227,9 +227,9 @@ class DocumentNodeStoreConfigTest extends AbstractRepositoryFactoryTest {
         // (supply blobDataSource which should be ignored because customBlob takes precedence)
         createConfig([
                 'org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService': [
-                        documentStoreType: 'RDB',
+                        documentStoreType      : 'RDB',
                         'blobDataSource.target': '(datasource.name=oak-blob)',
-                        customBlobStore  : true,
+                        customBlobStore        : true,
                 ]
         ])
 
@@ -278,7 +278,7 @@ class DocumentNodeStoreConfigTest extends AbstractRepositoryFactoryTest {
         Collection<String> colNames = getCollectionNames()
         assert colNames.containsAll(['NODES'])
         assert !colNames.contains(['BLOBS'])
-        assert registry.getServiceReference(BlobStoreStatsMBean.class.name) == null : "BlobStoreStatsMBean should " +
+        assert registry.getServiceReference(BlobStoreStatsMBean.class.name) == null: "BlobStoreStatsMBean should " +
                 "*NOT* be registered by DocumentNodeStoreService in case custom blobStore used"
     }
 
@@ -289,9 +289,9 @@ class DocumentNodeStoreConfigTest extends AbstractRepositoryFactoryTest {
         registry = repositoryFactory.initializeServiceRegistry(config)
         createConfig([
                 'org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService': [
-                        mongouri: MongoUtils.URL,
-                        db      : MongoUtils.DB,
-                        blobCacheSize      : 1,
+                        mongouri     : MongoUtils.URL,
+                        db           : MongoUtils.DB,
+                        blobCacheSize: 1,
                 ]
         ])
 
@@ -300,11 +300,11 @@ class DocumentNodeStoreConfigTest extends AbstractRepositoryFactoryTest {
         Collection<String> colNames = getCollectionNames()
         assert colNames.containsAll(['NODES', "BLOBS"])
 
-        assert 1*1024*1024 == ((MongoBlobStore)ns.blobStore).blobCacheSize
-        assert getService(BlobStoreStatsMBean.class) : "BlobStoreStatsMBean should " +
+        assert 1 * 1024 * 1024 == ((MongoBlobStore) ns.blobStore).blobCacheSize
+        assert getService(BlobStoreStatsMBean.class): "BlobStoreStatsMBean should " +
                 "be registered by DocumentNodeStoreService in default blobStore used"
 
-        assert getService(BlobStore.class) : "BlobStore service should be exposed for default setup"
+        assert getService(BlobStore.class): "BlobStore service should be exposed for default setup"
         testBlobStoreStats(ns)
         testDocumentStoreStats(ns)
     }
@@ -360,7 +360,7 @@ class DocumentNodeStoreConfigTest extends AbstractRepositoryFactoryTest {
 
     }
 
-    private void testBlobStoreStats(DocumentNodeStore nodeStore) throws Exception{
+    private void testBlobStoreStats(DocumentNodeStore nodeStore) throws Exception {
         int size = 1024 * 1024 * 5
         Blob blob = nodeStore.createBlob(testStream(size));
         BlobStoreStatsMBean stats = getService(BlobStoreStatsMBean.class)
@@ -430,7 +430,7 @@ class DocumentNodeStoreConfigTest extends AbstractRepositoryFactoryTest {
         }
         return entries
     }
-    
+
     private DataSource createDS(String url) {
         DataSource ds = new JdbcDataSource()
         ds.url = url
@@ -444,8 +444,8 @@ class DocumentNodeStoreConfigTest extends AbstractRepositoryFactoryTest {
         return new ByteArrayInputStream(data);
     }
 
-    private void assertCacheStatsMBean(String name){
-        ServiceReference[] refs = registry.getServiceReferences(CacheStatsMBean.class.name,null);
+    private void assertCacheStatsMBean(String name) {
+        ServiceReference[] refs = registry.getServiceReferences(CacheStatsMBean.class.name, null);
         def names = []
         def cacheStatsRef = refs.find { ServiceReference ref ->
             CacheStatsMBean mbean = registry.getService(ref);
@@ -453,6 +453,6 @@ class DocumentNodeStoreConfigTest extends AbstractRepositoryFactoryTest {
             return mbean.name == name
         }
 
-        assert  cacheStatsRef : "No CacheStat found for [$name]. Registered cache stats $names"
+        assert cacheStatsRef: "No CacheStat found for [$name]. Registered cache stats $names"
     }
 }

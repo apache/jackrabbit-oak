@@ -74,13 +74,14 @@ public class MongoDockerRule extends ExternalResource {
             return;
         }
         mongoContainer = new GenericContainer<>(DOCKER_IMAGE_NAME)
-                .withExposedPorts(DEFAULT_MONGO_PORT)
-                .withStartupTimeout(Duration.ofMinutes(1));
+            .withExposedPorts(DEFAULT_MONGO_PORT)
+            .withStartupTimeout(Duration.ofMinutes(1));
 
         try {
             long startTime = Instant.now().toEpochMilli();
             mongoContainer.start();
-            LOG.info("mongo container started in: " + (Instant.now().toEpochMilli() - startTime) + " ms");
+            LOG.info("mongo container started in: " + (Instant.now().toEpochMilli() - startTime)
+                + " ms");
         } catch (Exception e) {
             LOG.error("error while starting mongoDb container, error: ", e);
             STARTUP_EXCEPTION.set(e);
@@ -133,5 +134,7 @@ public class MongoDockerRule extends ExternalResource {
         return DOCKER_AVAILABLE;
     }
 
-    public static DockerImageName getDockerImageName() { return DOCKER_IMAGE_NAME; }
+    public static DockerImageName getDockerImageName() {
+        return DOCKER_IMAGE_NAME;
+    }
 }

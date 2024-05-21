@@ -19,10 +19,17 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.reader;
 
+import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.newDoc;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
 import java.io.File;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
-
 import org.apache.jackrabbit.oak.plugins.blob.datastore.CachingFileDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils;
@@ -45,31 +52,28 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.newDoc;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
-import static org.junit.Assert.*;
-
 public class DefaultIndexReaderFactoryTest {
+
     @Rule
     public TemporaryFolder folder = new TemporaryFolder(new File("target"));
 
     private NodeState root = INITIAL_CONTENT;
     private NodeBuilder builder = EMPTY_NODE.builder();
-    private LuceneIndexDefinition defn = new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
+    private LuceneIndexDefinition defn = new LuceneIndexDefinition(root, builder.getNodeState(),
+        "/foo");
     private MountInfoProvider mip = Mounts.newBuilder()
-            .mount("foo", "/libs", "/apps").build();
+                                          .mount("foo", "/libs", "/apps").build();
     private LuceneIndexWriterConfig writerConfig = new LuceneIndexWriterConfig();
 
     @Test
-    public void emptyDir() throws Exception{
+    public void emptyDir() throws Exception {
         LuceneIndexReaderFactory factory = new DefaultIndexReaderFactory(mip, null);
-        List<LuceneIndexReader> readers = factory.createReaders(defn, EMPTY_NODE,"/foo");
+        List<LuceneIndexReader> readers = factory.createReaders(defn, EMPTY_NODE, "/foo");
         assertTrue(readers.isEmpty());
     }
 
     @Test
-    public void indexDir() throws Exception{
+    public void indexDir() throws Exception {
         LuceneIndexWriterFactory factory = newDirectoryFactory();
         LuceneIndexWriter writer = factory.newInstance(defn, builder, null, true);
 
@@ -77,7 +81,8 @@ public class DefaultIndexReaderFactoryTest {
         writer.close(0);
 
         LuceneIndexReaderFactory readerFactory = new DefaultIndexReaderFactory(mip, null);
-        List<LuceneIndexReader> readers = readerFactory.createReaders(defn, builder.getNodeState(),"/foo");
+        List<LuceneIndexReader> readers = readerFactory.createReaders(defn, builder.getNodeState(),
+            "/foo");
         assertEquals(1, readers.size());
 
         LuceneIndexReader reader = readers.get(0);
@@ -99,18 +104,21 @@ public class DefaultIndexReaderFactoryTest {
     public void indexDirWithBlobStore() throws Exception {
         /* Register a blob store */
         CachingFileDataStore ds = DataStoreUtils
-                .createCachingFDS(folder.newFolder().getAbsolutePath(),
-                        folder.newFolder().getAbsolutePath());
+            .createCachingFDS(folder.newFolder().getAbsolutePath(),
+                folder.newFolder().getAbsolutePath());
 
-        DirectoryFactory directoryFactory = new DefaultDirectoryFactory(null, new DataStoreBlobStore(ds));
-        LuceneIndexWriterFactory factory = new DefaultIndexWriterFactory(mip, directoryFactory, writerConfig);
+        DirectoryFactory directoryFactory = new DefaultDirectoryFactory(null,
+            new DataStoreBlobStore(ds));
+        LuceneIndexWriterFactory factory = new DefaultIndexWriterFactory(mip, directoryFactory,
+            writerConfig);
         LuceneIndexWriter writer = factory.newInstance(defn, builder, null, true);
 
         writer.updateDocument("/content/en", newDoc("/content/en"));
         writer.close(0);
 
         LuceneIndexReaderFactory readerFactory = new DefaultIndexReaderFactory(mip, null);
-        List<LuceneIndexReader> readers = readerFactory.createReaders(defn, builder.getNodeState(),"/foo");
+        List<LuceneIndexReader> readers = readerFactory.createReaders(defn, builder.getNodeState(),
+            "/foo");
         assertEquals(1, readers.size());
 
         LuceneIndexReader reader = readers.get(0);
@@ -129,7 +137,7 @@ public class DefaultIndexReaderFactoryTest {
     }
 
     @Test
-    public void suggesterDir() throws Exception{
+    public void suggesterDir() throws Exception {
         LuceneIndexWriterFactory factory = newDirectoryFactory();
         enabledSuggestorForSomeProp();
         defn = new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
@@ -141,7 +149,8 @@ public class DefaultIndexReaderFactoryTest {
         writer.close(0);
 
         LuceneIndexReaderFactory readerFactory = new DefaultIndexReaderFactory(mip, null);
-        List<LuceneIndexReader> readers = readerFactory.createReaders(defn, builder.getNodeState(),"/foo");
+        List<LuceneIndexReader> readers = readerFactory.createReaders(defn, builder.getNodeState(),
+            "/foo");
         LuceneIndexReader reader = readers.get(0);
         assertNotNull(reader.getReader());
         assertNotNull(reader.getSuggestDirectory());
@@ -149,7 +158,7 @@ public class DefaultIndexReaderFactoryTest {
     }
 
     @Test
-    public void multipleReaders() throws Exception{
+    public void multipleReaders() throws Exception {
         LuceneIndexWriterFactory factory = newDirectoryFactory();
         LuceneIndexWriter writer = factory.newInstance(defn, builder, null, true);
 
@@ -158,12 +167,13 @@ public class DefaultIndexReaderFactoryTest {
         writer.close(0);
 
         LuceneIndexReaderFactory readerFactory = new DefaultIndexReaderFactory(mip, null);
-        List<LuceneIndexReader> readers = readerFactory.createReaders(defn, builder.getNodeState(),"/foo");
+        List<LuceneIndexReader> readers = readerFactory.createReaders(defn, builder.getNodeState(),
+            "/foo");
         assertEquals(2, readers.size());
     }
 
     @Test
-    public void multipleReaders_SingleSuggester() throws Exception{
+    public void multipleReaders_SingleSuggester() throws Exception {
         LuceneIndexWriterFactory factory = newDirectoryFactory();
         enabledSuggestorForSomeProp();
         defn = new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
@@ -178,23 +188,25 @@ public class DefaultIndexReaderFactoryTest {
         writer.close(0);
 
         LuceneIndexReaderFactory readerFactory = new DefaultIndexReaderFactory(mip, null);
-        List<LuceneIndexReader> readers = readerFactory.createReaders(defn, builder.getNodeState(),"/foo");
+        List<LuceneIndexReader> readers = readerFactory.createReaders(defn, builder.getNodeState(),
+            "/foo");
 
         //Suggester should be present for all though it may be empty
-        for (LuceneIndexReader reader : readers){
+        for (LuceneIndexReader reader : readers) {
             assertNotNull(reader.getReader());
             assertNotNull(reader.getSuggestDirectory());
             assertNotNull(reader.getLookup());
         }
     }
 
-    private void enabledSuggestorForSomeProp(){
-        NodeBuilder prop = builder.child("indexRules").child("nt:base").child("properties").child("prop1");
+    private void enabledSuggestorForSomeProp() {
+        NodeBuilder prop = builder.child("indexRules").child("nt:base").child("properties")
+                                  .child("prop1");
         prop.setProperty("name", "foo");
         prop.setProperty(LuceneIndexConstants.PROP_USE_IN_SUGGEST, true);
     }
 
-    private LuceneIndexWriterFactory newDirectoryFactory(){
+    private LuceneIndexWriterFactory newDirectoryFactory() {
         DirectoryFactory directoryFactory = new DefaultDirectoryFactory(null, null);
         return new DefaultIndexWriterFactory(mip, directoryFactory, writerConfig);
     }

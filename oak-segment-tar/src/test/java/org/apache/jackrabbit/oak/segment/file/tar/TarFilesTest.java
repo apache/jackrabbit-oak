@@ -17,14 +17,19 @@
 
 package org.apache.jackrabbit.oak.segment.file.tar;
 
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptySet;
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static java.util.UUID.randomUUID;
+import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.oak.segment.file.tar.GCGeneration.newGCGeneration;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
@@ -35,7 +40,6 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
-
 import org.apache.jackrabbit.oak.api.IllegalRepositoryStateException;
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.file.tar.TarFiles.CleanupResult;
@@ -68,15 +72,15 @@ public class TarFilesTest {
     @Before
     public void setUp() throws Exception {
         tarFiles = TarFiles.builder()
-            .withDirectory(folder.getRoot())
-            .withTarRecovery((id, data, recovery) -> {
-                // Intentionally left blank
-            })
-            .withIOMonitor(new IOMonitorAdapter())
-            .withFileStoreMonitor(new FileStoreMonitorAdapter())
-            .withMaxFileSize(MAX_FILE_SIZE)
-            .withRemoteStoreMonitor(new RemoteStoreMonitorAdapter())
-            .build();
+                           .withDirectory(folder.getRoot())
+                           .withTarRecovery((id, data, recovery) -> {
+                               // Intentionally left blank
+                           })
+                           .withIOMonitor(new IOMonitorAdapter())
+                           .withFileStoreMonitor(new FileStoreMonitorAdapter())
+                           .withMaxFileSize(MAX_FILE_SIZE)
+                           .withRemoteStoreMonitor(new RemoteStoreMonitorAdapter())
+                           .build();
     }
 
     @After
@@ -95,24 +99,31 @@ public class TarFilesTest {
         writeSegmentWithReferences(id, randomData(), references);
     }
 
-    private void writeSegmentWithReferences(UUID id, byte[] buffer, UUID... references) throws IOException {
-        tarFiles.writeSegment(id, buffer, 0, buffer.length, newGCGeneration(1, 1, false), new HashSet<>(asList(references)), emptySet());
+    private void writeSegmentWithReferences(UUID id, byte[] buffer, UUID... references)
+        throws IOException {
+        tarFiles.writeSegment(id, buffer, 0, buffer.length, newGCGeneration(1, 1, false),
+            new HashSet<>(asList(references)), emptySet());
     }
 
-    private void writeSegmentWithBinaryReferences(UUID id, String... references) throws IOException {
+    private void writeSegmentWithBinaryReferences(UUID id, String... references)
+        throws IOException {
         writeSegmentWithBinaryReferences(id, newGCGeneration(1, 1, false), references);
     }
 
-    private void writeSegmentWithBinaryReferences(UUID id, GCGeneration generation, String... references) throws IOException {
+    private void writeSegmentWithBinaryReferences(UUID id, GCGeneration generation,
+        String... references) throws IOException {
         writeSegmentWithBinaryReferences(id, randomData(), generation, references);
     }
 
-    private void writeSegmentWithBinaryReferences(UUID id, byte[] buffer, GCGeneration generation, String... binaryReferences) throws IOException {
-        tarFiles.writeSegment(id, buffer, 0, buffer.length, generation, emptySet(), new HashSet<>(asList(binaryReferences)));
+    private void writeSegmentWithBinaryReferences(UUID id, byte[] buffer, GCGeneration generation,
+        String... binaryReferences) throws IOException {
+        tarFiles.writeSegment(id, buffer, 0, buffer.length, generation, emptySet(),
+            new HashSet<>(asList(binaryReferences)));
     }
 
     private void writeSegment(UUID id, byte[] buffer) throws IOException {
-        tarFiles.writeSegment(id, buffer, 0, buffer.length, newGCGeneration(1, 1, false), emptySet(), emptySet());
+        tarFiles.writeSegment(id, buffer, 0, buffer.length, newGCGeneration(1, 1, false),
+            emptySet(), emptySet());
     }
 
     private boolean containsSegment(UUID id) {
@@ -120,7 +131,8 @@ public class TarFilesTest {
     }
 
     private byte[] readSegment(UUID id) {
-        Buffer buffer = tarFiles.readSegment(id.getMostSignificantBits(), id.getLeastSignificantBits());
+        Buffer buffer = tarFiles.readSegment(id.getMostSignificantBits(),
+            id.getLeastSignificantBits());
         if (buffer == null) {
             return null;
         }
@@ -274,8 +286,10 @@ public class TarFilesTest {
 
         Set<String> references = new HashSet<>();
         tarFiles.collectBlobReferences(references::add, gen -> false);
-        assertEquals("unexpected results for collectBlobReferences, UUIDs were " + u1 + ", " + u2 + " and " + u3,
-                new HashSet<>(asList("a", "b", "c")), references);
+        assertEquals(
+            "unexpected results for collectBlobReferences, UUIDs were " + u1 + ", " + u2 + " and "
+                + u3,
+            new HashSet<>(asList("a", "b", "c")), references);
     }
 
     @Test
@@ -290,7 +304,9 @@ public class TarFilesTest {
 
         Set<String> references = new HashSet<>();
         tarFiles.collectBlobReferences(references::add, ko::equals);
-        assertEquals("unexpected results for collectBlobReferences, UUIDs were " + u1 + " and " + u2, singleton("ok"), references);
+        assertEquals(
+            "unexpected results for collectBlobReferences, UUIDs were " + u1 + " and " + u2,
+            singleton("ok"), references);
     }
 
     @Test
@@ -398,16 +414,16 @@ public class TarFilesTest {
     @Test
     public void testUninitialisedTarFiles() throws IOException {
         tarFiles = TarFiles.builder()
-                .withDirectory(folder.getRoot())
-                .withTarRecovery((id, data, recovery) -> {
-                    // Intentionally left blank
-                })
-                .withIOMonitor(new IOMonitorAdapter())
-                .withFileStoreMonitor(new FileStoreMonitorAdapter())
-                .withMaxFileSize(MAX_FILE_SIZE)
-                .withRemoteStoreMonitor(new RemoteStoreMonitorAdapter())
-                .withInitialisedReadersAndWriters(false)
-                .build();
+                           .withDirectory(folder.getRoot())
+                           .withTarRecovery((id, data, recovery) -> {
+                               // Intentionally left blank
+                           })
+                           .withIOMonitor(new IOMonitorAdapter())
+                           .withFileStoreMonitor(new FileStoreMonitorAdapter())
+                           .withMaxFileSize(MAX_FILE_SIZE)
+                           .withRemoteStoreMonitor(new RemoteStoreMonitorAdapter())
+                           .withInitialisedReadersAndWriters(false)
+                           .build();
 
         assertEquals(0, tarFiles.readerCount());
         assertEquals(0, tarFiles.segmentCount());
@@ -418,24 +434,27 @@ public class TarFilesTest {
         tarFiles.toString();
         assertThrows(IllegalRepositoryStateException.class, () -> tarFiles.flush());
         assertThrows(IllegalRepositoryStateException.class, () -> writeSegment(randomUUID()));
-        assertThrows(IllegalRepositoryStateException.class, () -> tarFiles.cleanup(new CleanupContext() {
-            @Override
-            public Collection<UUID> initialReferences() {
-                return emptySet();
-            }
+        assertThrows(IllegalRepositoryStateException.class,
+            () -> tarFiles.cleanup(new CleanupContext() {
+                @Override
+                public Collection<UUID> initialReferences() {
+                    return emptySet();
+                }
 
-            @Override
-            public boolean shouldReclaim(UUID id, GCGeneration generation, boolean referenced) {
-                return false;
-            }
+                @Override
+                public boolean shouldReclaim(UUID id, GCGeneration generation, boolean referenced) {
+                    return false;
+                }
 
-            @Override
-            public boolean shouldFollow(UUID from, UUID to) {
-                return false;
-            }
-        }));
+                @Override
+                public boolean shouldFollow(UUID from, UUID to) {
+                    return false;
+                }
+            }));
 
-        assertThrows(IllegalRepositoryStateException.class, () -> tarFiles.collectBlobReferences(r -> {}, g -> false));
+        assertThrows(IllegalRepositoryStateException.class,
+            () -> tarFiles.collectBlobReferences(r -> {
+            }, g -> false));
         assertFalse(tarFiles.getSegmentIds().iterator().hasNext());
         assertTrue(tarFiles.getIndices().isEmpty());
         assertTrue(tarFiles.getGraph("").isEmpty());

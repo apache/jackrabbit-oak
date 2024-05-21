@@ -36,7 +36,8 @@ import static org.junit.Assert.assertTrue;
 
 public class RandomDocumentNodeStoreSweepTest {
 
-    private static final Logger LOG = LoggerFactory.getLogger(RandomDocumentNodeStoreSweepTest.class);
+    private static final Logger LOG = LoggerFactory.getLogger(
+        RandomDocumentNodeStoreSweepTest.class);
 
     private Random random = new Random(42);
 
@@ -165,9 +166,8 @@ public class RandomDocumentNodeStoreSweepTest {
     }
 
 
-
     private void maybeFail(Operation op, String message)
-            throws CommitFailedException {
+        throws CommitFailedException {
         if (failOperation()) {
             guardedFail(op, message);
         } else {
@@ -195,8 +195,10 @@ public class RandomDocumentNodeStoreSweepTest {
 
     private DocumentNodeStore createDocumentNodeStore() {
         DocumentNodeStore ns = new DocumentMK.Builder().setDocumentStore(store)
-                .clock(clock).setClusterId(1).setAsyncDelay(0)
-                .setLeaseCheckMode(LeaseCheckMode.DISABLED).getNodeStore();
+                                                       .clock(clock).setClusterId(1)
+                                                       .setAsyncDelay(0)
+                                                       .setLeaseCheckMode(LeaseCheckMode.DISABLED)
+                                                       .getNodeStore();
         // do not retry commits
         ns.setMaxBackOffMillis(0);
         return ns;
@@ -206,13 +208,15 @@ public class RandomDocumentNodeStoreSweepTest {
         for (NodeDocument doc : getAllDocuments(store)) {
             for (Revision c : doc.getAllChanges()) {
                 String commitValue = ns.getCommitValue(c, doc);
-                assertTrue("Revision " + c + " on " + doc.getId() + " is not committed: " + commitValue,
-                        Utils.isCommitted(commitValue));
+                assertTrue(
+                    "Revision " + c + " on " + doc.getId() + " is not committed: " + commitValue,
+                    Utils.isCommitted(commitValue));
             }
         }
     }
 
     interface Operation {
+
         void call() throws CommitFailedException;
     }
 }

@@ -24,6 +24,7 @@ import java.util.List;
  * Represents a node in a stream.
  */
 public class NodeData {
+
     private final List<String> pathElements;
     private final List<NodeProperty> properties;
     private NodeData parent;
@@ -54,7 +55,7 @@ public class NodeData {
     }
 
     public NodeProperty getProperty(String name) {
-        for(NodeProperty p : properties) {
+        for (NodeProperty p : properties) {
             if (p.getName().equals(name)) {
                 return p;
             }

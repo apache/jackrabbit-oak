@@ -26,7 +26,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collection;
-
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.commons.json.JsonObject;
 import org.junit.Test;
@@ -46,23 +45,25 @@ public class IndexDefMergerScenariosTest extends ParameterizedMergingTestBase {
 
     @Parameters(name = "{0}")
     public static Collection<Object[]> data() {
-        return Arrays.asList(new Object[][] {
-                testCase("should merge custom into new base index", "basic.json"),
-                testCase("should use the latest base version for the base in merges", "merges-base.json"),
-                testCase(
-                        "should use the latest base version for the base in merges when updating multiple version numbers",
-                        "merges-multi-version.json"),
-                testCase("should not remove child nodes from product index missing from custom index",
-                        "missing-child.json"),
-                testCase("should support removing adding changing properties from product index in custom index",
-                        "removed-property.json")
+        return Arrays.asList(new Object[][]{
+            testCase("should merge custom into new base index", "basic.json"),
+            testCase("should use the latest base version for the base in merges",
+                "merges-base.json"),
+            testCase(
+                "should use the latest base version for the base in merges when updating multiple version numbers",
+                "merges-multi-version.json"),
+            testCase("should not remove child nodes from product index missing from custom index",
+                "missing-child.json"),
+            testCase(
+                "should support removing adding changing properties from product index in custom index",
+                "removed-property.json")
         });
     }
 
     private final JsonObject expectedIndexes;
 
     public IndexDefMergerScenariosTest(String name, String testCaseFile)
-            throws IOException {
+        throws IOException {
         super(name, testCaseFile);
         this.expectedIndexes = super.getTestCaseChild("expected");
     }
@@ -71,17 +72,18 @@ public class IndexDefMergerScenariosTest extends ParameterizedMergingTestBase {
     public void verifyExpectedMergeResult() {
         IndexDefMergerUtils.merge(buildIndexes, runIndexes);
         File output = new File("target" + File.separator + "surefire-output" + File.separator
-                + getClass().getCanonicalName().replace(".", "-") + File.separator + testCaseFile);
+            + getClass().getCanonicalName().replace(".", "-") + File.separator + testCaseFile);
         try {
             if (!output.getParentFile().exists()) {
                 output.getParentFile().mkdirs();
             }
             IOUtils.write(buildIndexes.toString(), new FileOutputStream(output),
-                    StandardCharsets.UTF_8);
+                StandardCharsets.UTF_8);
         } catch (IOException e) {
             log.warn("Failed to write merged index definition to: {}", output, e);
         }
-        assertEquals("Failed to execute test: " + testCaseName, expectedIndexes.toString(), buildIndexes.toString());
+        assertEquals("Failed to execute test: " + testCaseName, expectedIndexes.toString(),
+            buildIndexes.toString());
     }
 
 }

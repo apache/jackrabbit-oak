@@ -20,17 +20,14 @@ import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 
 import java.util.List;
 import java.util.Random;
-
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-
 import org.apache.commons.io.output.NullOutputStream;
 import org.apache.jackrabbit.commons.JcrUtils;
 
 /**
- * Test case that writes blobs concurrently and concurrently reads
- * the blobs back when available.
+ * Test case that writes blobs concurrently and concurrently reads the blobs back when available.
  */
 public class ConcurrentFileWriteTest extends AbstractTest {
 
@@ -41,7 +38,7 @@ public class ConcurrentFileWriteTest extends AbstractTest {
     private static final int READERS = Integer.getInteger("fileReaders", 50);
 
     protected static final String ROOT_NODE_NAME =
-            "concurrentFileWriteTest" + TEST_ID;
+        "concurrentFileWriteTest" + TEST_ID;
 
     private final Random random = new Random();
 
@@ -89,7 +86,7 @@ public class ConcurrentFileWriteTest extends AbstractTest {
                 String path = getRandomPath();
                 session.refresh(false);
                 JcrUtils.readFile(
-                        session.getNode(path), new NullOutputStream());
+                    session.getNode(path), new NullOutputStream());
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -105,9 +102,9 @@ public class ConcurrentFileWriteTest extends AbstractTest {
 
         Writer(int id) throws RepositoryException {
             this.parent = loginWriter()
-                    .getRootNode()
-                    .getNode(ROOT_NODE_NAME)
-                    .addNode("writer-" + id);
+                .getRootNode()
+                .getNode(ROOT_NODE_NAME)
+                .addNode("writer-" + id);
             parent.getSession().save();
         }
 
@@ -116,9 +113,9 @@ public class ConcurrentFileWriteTest extends AbstractTest {
             try {
                 parent.getSession().refresh(false);
                 Node file = JcrUtils.putFile(
-                        parent, "file-" + counter++,
-                        "application/octet-stream",
-                        new TestInputStream(FILE_SIZE * 1024));
+                    parent, "file-" + counter++,
+                    "application/octet-stream",
+                    new TestInputStream(FILE_SIZE * 1024));
                 parent.getSession().save();
                 addPath(file.getPath());
             } catch (Exception e) {

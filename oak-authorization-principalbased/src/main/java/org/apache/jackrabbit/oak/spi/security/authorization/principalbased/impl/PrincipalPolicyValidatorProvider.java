@@ -64,7 +64,8 @@ class PrincipalPolicyValidatorProvider extends ValidatorProvider implements Cons
     private PermissionProvider permissionProvider;
     private TypePredicate isMixPrincipalBased;
 
-    PrincipalPolicyValidatorProvider(@NotNull MgrProvider mgrProvider, @NotNull Set<Principal> principals, @NotNull String workspaceName) {
+    PrincipalPolicyValidatorProvider(@NotNull MgrProvider mgrProvider,
+        @NotNull Set<Principal> principals, @NotNull String workspaceName) {
         this.mgrProvider = mgrProvider;
         this.principals = principals;
         this.workspaceName = workspaceName;
@@ -73,7 +74,10 @@ class PrincipalPolicyValidatorProvider extends ValidatorProvider implements Cons
     @Override
     protected PolicyValidator getRootValidator(NodeState before, NodeState after, CommitInfo info) {
         Root rootBefore = mgrProvider.getRootProvider().createReadOnlyRoot(before);
-        permissionProvider = mgrProvider.getSecurityProvider().getConfiguration(AuthorizationConfiguration.class).getPermissionProvider(rootBefore, workspaceName, principals);
+        permissionProvider = mgrProvider.getSecurityProvider()
+                                        .getConfiguration(AuthorizationConfiguration.class)
+                                        .getPermissionProvider(rootBefore, workspaceName,
+                                            principals);
         isMixPrincipalBased = new TypePredicate(after, MIX_REP_PRINCIPAL_BASED_MIXIN);
         return new PolicyValidator(before, after);
     }
@@ -85,35 +89,43 @@ class PrincipalPolicyValidatorProvider extends ValidatorProvider implements Cons
         private final boolean isNodetypeTree;
 
         private PolicyValidator(@NotNull NodeState rootStateBefore, @NotNull NodeState rootState) {
-            mgrProvider.reset(mgrProvider.getRootProvider().createReadOnlyRoot(rootState), NamePathMapper.DEFAULT);
+            mgrProvider.reset(mgrProvider.getRootProvider().createReadOnlyRoot(rootState),
+                NamePathMapper.DEFAULT);
             this.parentBefore = mgrProvider.getTreeProvider().createReadOnlyTree(rootStateBefore);
             this.parentAfter = mgrProvider.getTreeProvider().createReadOnlyTree(rootState);
             this.isNodetypeTree = false;
         }
 
-        private PolicyValidator(@NotNull PolicyValidator parentValidator, @NotNull Tree before, @NotNull Tree after) {
+        private PolicyValidator(@NotNull PolicyValidator parentValidator, @NotNull Tree before,
+            @NotNull Tree after) {
             this.parentBefore = before;
             this.parentAfter = after;
             if (parentValidator.isNodetypeTree) {
                 this.isNodetypeTree = true;
             } else {
-                this.isNodetypeTree = NodeTypeConstants.JCR_NODE_TYPES.equals(after.getName()) && JCR_SYSTEM.equals(parentValidator.getName());
+                this.isNodetypeTree =
+                    NodeTypeConstants.JCR_NODE_TYPES.equals(after.getName()) && JCR_SYSTEM.equals(
+                        parentValidator.getName());
             }
         }
 
-        private PolicyValidator(@NotNull PolicyValidator parentValidator, @NotNull Tree tree, boolean isAfter) {
+        private PolicyValidator(@NotNull PolicyValidator parentValidator, @NotNull Tree tree,
+            boolean isAfter) {
             this.parentBefore = (isAfter) ? null : tree;
             this.parentAfter = (isAfter) ? tree : null;
             if (parentValidator.isNodetypeTree) {
                 this.isNodetypeTree = true;
             } else {
-                this.isNodetypeTree = NodeTypeConstants.JCR_NODE_TYPES.equals(tree.getName()) && JCR_SYSTEM.equals(parentValidator.getName());
+                this.isNodetypeTree =
+                    NodeTypeConstants.JCR_NODE_TYPES.equals(tree.getName()) && JCR_SYSTEM.equals(
+                        parentValidator.getName());
             }
         }
 
         @NotNull
         private String getName() {
-            return (parentBefore == null) ? verifyNotNull(parentAfter).getName() : parentBefore.getName();
+            return (parentBefore == null) ? verifyNotNull(parentAfter).getName()
+                : parentBefore.getName();
         }
 
         //------------------------------------------------------< Validator >---
@@ -121,18 +133,24 @@ class PrincipalPolicyValidatorProvider extends ValidatorProvider implements Cons
         public void propertyAdded(PropertyState after) throws CommitFailedException {
             String propertyName = after.getName();
             if (JcrConstants.JCR_PRIMARYTYPE.equals(propertyName)) {
-                if (NT_REP_PRINCIPAL_POLICY.equals(after.getValue(Type.NAME)) && !REP_PRINCIPAL_POLICY.equals(verifyNotNull(parentAfter).getName())) {
-                    throw accessControlViolation(30, "Attempt create policy node with different name than '"+REP_PRINCIPAL_POLICY+"'.");
+                if (NT_REP_PRINCIPAL_POLICY.equals(after.getValue(Type.NAME))
+                    && !REP_PRINCIPAL_POLICY.equals(verifyNotNull(parentAfter).getName())) {
+                    throw accessControlViolation(30,
+                        "Attempt create policy node with different name than '"
+                            + REP_PRINCIPAL_POLICY + "'.");
                 }
             }
         }
 
         @Override
-        public void propertyChanged(PropertyState before, PropertyState after) throws CommitFailedException {
+        public void propertyChanged(PropertyState before, PropertyState after)
+            throws CommitFailedException {
             String name = after.getName();
             if (JcrConstants.JCR_PRIMARYTYPE.equals(name)) {
-                if (NT_REP_PRINCIPAL_POLICY.equals(before.getValue(Type.STRING)) || NT_REP_PRINCIPAL_POLICY.equals(after.getValue(Type.STRING))) {
-                    throw accessControlViolation(31, "Attempt to change primary type from/to rep:PrincipalPolicy.");
+                if (NT_REP_PRINCIPAL_POLICY.equals(before.getValue(Type.STRING))
+                    || NT_REP_PRINCIPAL_POLICY.equals(after.getValue(Type.STRING))) {
+                    throw accessControlViolation(31,
+                        "Attempt to change primary type from/to rep:PrincipalPolicy.");
                 }
             }
         }
@@ -144,7 +162,8 @@ class PrincipalPolicyValidatorProvider extends ValidatorProvider implements Cons
                     validatePolicyNode(verifyNotNull(parentAfter), after);
                 } else if (REP_RESTRICTIONS.equals(name)) {
                     validateRestrictions(after);
-                } else if (NT_REP_PRINCIPAL_ENTRY.equals(NodeStateUtils.getPrimaryTypeName(after))) {
+                } else if (NT_REP_PRINCIPAL_ENTRY.equals(
+                    NodeStateUtils.getPrimaryTypeName(after))) {
                     validateEntry(name, after);
                 }
             }
@@ -152,14 +171,18 @@ class PrincipalPolicyValidatorProvider extends ValidatorProvider implements Cons
         }
 
         @Override
-        public Validator childNodeChanged(String name, NodeState before, NodeState after) throws CommitFailedException {
+        public Validator childNodeChanged(String name, NodeState before, NodeState after)
+            throws CommitFailedException {
             if (!isNodetypeTree) {
                 if (after.hasChildNode(REP_PRINCIPAL_POLICY)) {
-                    Tree parent = mgrProvider.getTreeProvider().createReadOnlyTree(verifyNotNull(parentAfter), name, after);
+                    Tree parent = mgrProvider.getTreeProvider()
+                                             .createReadOnlyTree(verifyNotNull(parentAfter), name,
+                                                 after);
                     validatePolicyNode(parent, after.getChildNode(REP_PRINCIPAL_POLICY));
                 } else if (REP_RESTRICTIONS.equals(name)) {
                     validateRestrictions(after);
-                } else if (NT_REP_PRINCIPAL_ENTRY.equals(NodeStateUtils.getPrimaryTypeName(after))) {
+                } else if (NT_REP_PRINCIPAL_ENTRY.equals(
+                    NodeStateUtils.getPrimaryTypeName(after))) {
                     validateEntry(name, after);
                 }
             }
@@ -167,39 +190,48 @@ class PrincipalPolicyValidatorProvider extends ValidatorProvider implements Cons
         }
 
         @Override
-        public Validator childNodeDeleted(String name, NodeState before) throws CommitFailedException {
+        public Validator childNodeDeleted(String name, NodeState before)
+            throws CommitFailedException {
             if (!isNodetypeTree) {
                 PropertyState effectivePath = null;
                 if (REP_RESTRICTIONS.equals(name)) {
                     effectivePath = verifyNotNull(parentBefore).getProperty(REP_EFFECTIVE_PATH);
-                } else if (NT_REP_PRINCIPAL_ENTRY.equals(NodeStateUtils.getPrimaryTypeName(before))) {
+                } else if (NT_REP_PRINCIPAL_ENTRY.equals(
+                    NodeStateUtils.getPrimaryTypeName(before))) {
                     effectivePath = before.getProperty(REP_EFFECTIVE_PATH);
                 }
-                if (effectivePath != null && !Utils.hasModAcPermission(permissionProvider, effectivePath.getValue(Type.PATH))) {
+                if (effectivePath != null && !Utils.hasModAcPermission(permissionProvider,
+                    effectivePath.getValue(Type.PATH))) {
                     throw new CommitFailedException(ACCESS, 3, "Access denied");
                 }
             }
-            return new VisibleValidator(nextValidator(name, before, false), true, true);        
+            return new VisibleValidator(nextValidator(name, before, false), true, true);
         }
 
         //----------------------------------------------------------------------
-        private void validatePolicyNode(@NotNull Tree parent, @NotNull NodeState nodeState) throws CommitFailedException {
+        private void validatePolicyNode(@NotNull Tree parent, @NotNull NodeState nodeState)
+            throws CommitFailedException {
             if (!NT_REP_PRINCIPAL_POLICY.equals(NodeStateUtils.getPrimaryTypeName(nodeState))) {
-                throw accessControlViolation(32, "Reserved node name 'rep:principalPolicy' must only be used for nodes of type 'rep:PrincipalPolicy'.");
+                throw accessControlViolation(32,
+                    "Reserved node name 'rep:principalPolicy' must only be used for nodes of type 'rep:PrincipalPolicy'.");
             }
             if (!isMixPrincipalBased.test(parent)) {
-                throw accessControlViolation(33, "Parent node not of mixin type 'rep:PrincipalBasedMixin'.");
+                throw accessControlViolation(33,
+                    "Parent node not of mixin type 'rep:PrincipalBasedMixin'.");
             }
         }
 
-        private void validateRestrictions(@NotNull NodeState nodeState) throws CommitFailedException {
+        private void validateRestrictions(@NotNull NodeState nodeState)
+            throws CommitFailedException {
             if (!NT_REP_RESTRICTIONS.equals(NodeStateUtils.getPrimaryTypeName(nodeState))) {
-                throw accessControlViolation(34, "Reserved node name 'rep:restrictions' must only be used for nodes of type 'rep:Restrictions'.");
+                throw accessControlViolation(34,
+                    "Reserved node name 'rep:restrictions' must only be used for nodes of type 'rep:Restrictions'.");
             }
             Tree parent = verifyNotNull(parentAfter);
             if (NT_REP_PRINCIPAL_ENTRY.equals(TreeUtil.getPrimaryTypeName(parent))) {
                 try {
-                    String oakPath = Strings.emptyToNull(TreeUtil.getString(parent, REP_EFFECTIVE_PATH));
+                    String oakPath = Strings.emptyToNull(
+                        TreeUtil.getString(parent, REP_EFFECTIVE_PATH));
                     mgrProvider.getRestrictionProvider().validateRestrictions(oakPath, parent);
                 } catch (AccessControlException e) {
                     throw new CommitFailedException(ACCESS_CONTROL, 35, "Invalid restrictions", e);
@@ -209,16 +241,19 @@ class PrincipalPolicyValidatorProvider extends ValidatorProvider implements Cons
             } else {
                 // assert the restrictions node resides within access control content
                 if (!mgrProvider.getContext().definesTree(parent)) {
-                    throw new CommitFailedException(ACCESS_CONTROL, 2, "Expected access control entry parent (isolated restriction).");
+                    throw new CommitFailedException(ACCESS_CONTROL, 2,
+                        "Expected access control entry parent (isolated restriction).");
                 }
             }
         }
 
-        private void validateEntry(@NotNull String name, @NotNull NodeState nodeState) throws CommitFailedException {
+        private void validateEntry(@NotNull String name, @NotNull NodeState nodeState)
+            throws CommitFailedException {
             Tree parent = verifyNotNull(parentAfter);
             String entryPath = PathUtils.concat(parent.getPath(), name);
             if (!REP_PRINCIPAL_POLICY.equals(parent.getName())) {
-                throw accessControlViolation(36, "Isolated entry of principal policy at " + entryPath);
+                throw accessControlViolation(36,
+                    "Isolated entry of principal policy at " + entryPath);
             }
             Iterable<String> privilegeNames = nodeState.getNames(REP_PRIVILEGES);
             if (Iterables.isEmpty(privilegeNames)) {
@@ -229,10 +264,12 @@ class PrincipalPolicyValidatorProvider extends ValidatorProvider implements Cons
                 try {
                     Privilege privilege = privilegeManager.getPrivilege(privilegeName);
                     if (privilege.isAbstract()) {
-                        throw accessControlViolation(38, "Abstract privilege " + privilegeName + " at " + entryPath);
+                        throw accessControlViolation(38,
+                            "Abstract privilege " + privilegeName + " at " + entryPath);
                     }
                 } catch (AccessControlException e) {
-                    throw accessControlViolation(39, "Invalid privilege " + privilegeName + " at " + entryPath);
+                    throw accessControlViolation(39,
+                        "Invalid privilege " + privilegeName + " at " + entryPath);
                 } catch (RepositoryException e) {
                     throw new CommitFailedException(OAK, 13, "Internal error", e);
                 }
@@ -240,7 +277,8 @@ class PrincipalPolicyValidatorProvider extends ValidatorProvider implements Cons
             // check mod-access-control permission on the effective path
             PropertyState effectivePath = nodeState.getProperty(REP_EFFECTIVE_PATH);
             if (effectivePath == null) {
-                throw new CommitFailedException(CONSTRAINT, 21, "Missing mandatory rep:effectivePath property at " + entryPath);
+                throw new CommitFailedException(CONSTRAINT, 21,
+                    "Missing mandatory rep:effectivePath property at " + entryPath);
             }
             if (!Utils.hasModAcPermission(permissionProvider, effectivePath.getValue(Type.PATH))) {
                 throw new CommitFailedException(ACCESS, 3, "Access denied");
@@ -251,15 +289,22 @@ class PrincipalPolicyValidatorProvider extends ValidatorProvider implements Cons
             return new CommitFailedException(ACCESS_CONTROL, code, message);
         }
 
-        private PolicyValidator nextValidator(@NotNull String name, @NotNull NodeState beforeState, @NotNull NodeState afterState) {
-            Tree before = mgrProvider.getTreeProvider().createReadOnlyTree(verifyNotNull(parentBefore), name, beforeState);
-            Tree after = mgrProvider.getTreeProvider().createReadOnlyTree(verifyNotNull(parentAfter), name, afterState);
+        private PolicyValidator nextValidator(@NotNull String name, @NotNull NodeState beforeState,
+            @NotNull NodeState afterState) {
+            Tree before = mgrProvider.getTreeProvider()
+                                     .createReadOnlyTree(verifyNotNull(parentBefore), name,
+                                         beforeState);
+            Tree after = mgrProvider.getTreeProvider()
+                                    .createReadOnlyTree(verifyNotNull(parentAfter), name,
+                                        afterState);
             return new PolicyValidator(this, before, after);
         }
 
-        private PolicyValidator nextValidator(@NotNull String name, @NotNull NodeState nodeState, boolean isAfter) {
+        private PolicyValidator nextValidator(@NotNull String name, @NotNull NodeState nodeState,
+            boolean isAfter) {
             Tree parent = (isAfter) ? parentAfter : parentBefore;
-            Tree tree = mgrProvider.getTreeProvider().createReadOnlyTree(verifyNotNull(parent), name, nodeState);
+            Tree tree = mgrProvider.getTreeProvider()
+                                   .createReadOnlyTree(verifyNotNull(parent), name, nodeState);
             return new PolicyValidator(this, tree, isAfter);
         }
 

@@ -26,12 +26,15 @@ import org.jetbrains.annotations.NotNull;
 
 public final class TestSecurityProvider {
 
-    private TestSecurityProvider() {}
+    private TestSecurityProvider() {
+    }
 
-    public static SecurityProvider newTestSecurityProvider(@NotNull ConfigurationParameters configuration,
-            @NotNull ExternalPrincipalConfiguration externalPrincipalConfiguration) {
+    public static SecurityProvider newTestSecurityProvider(
+        @NotNull ConfigurationParameters configuration,
+        @NotNull ExternalPrincipalConfiguration externalPrincipalConfiguration) {
         SecurityProvider sp = SecurityProviderBuilder.newBuilder().with(configuration).build();
-        SecurityProviderHelper.updateConfig(sp, externalPrincipalConfiguration, PrincipalConfiguration.class);
+        SecurityProviderHelper.updateConfig(sp, externalPrincipalConfiguration,
+            PrincipalConfiguration.class);
         return sp;
     }
 }

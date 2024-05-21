@@ -92,12 +92,12 @@ public class MongoRevisionGCTest extends AbstractMongoConnectionTest {
         clock.waitUntil(clock.getTime() + TimeUnit.HOURS.toMillis(2));
 
         MongoCollection<?> nodes = mongoConnection.getDatabase()
-                .getCollection(NODES.toString());
+                                                  .getCollection(NODES.toString());
         assertTrue(hasIndex(nodes, SD_TYPE, SD_MAX_REV_TIME_IN_SECS));
 
         // delete compound index
         BasicDBObject keys = new BasicDBObject();
-        keys.put(SD_TYPE,1);
+        keys.put(SD_TYPE, 1);
         keys.put(SD_MAX_REV_TIME_IN_SECS, 1);
         nodes.dropIndex(keys);
         assertFalse(hasIndex(nodes, SD_TYPE, SD_MAX_REV_TIME_IN_SECS));
@@ -111,9 +111,9 @@ public class MongoRevisionGCTest extends AbstractMongoConnectionTest {
 
         // get a garbage collector from a fresh document node store
         VersionGarbageCollector gc = builderProvider.newBuilder().setMongoDB(
-                mongoConnection.getMongoClient(), mongoConnection.getDBName())
-                .clock(clock).setClusterId(2)
-                .getNodeStore().getVersionGarbageCollector();
+                                                        mongoConnection.getMongoClient(), mongoConnection.getDBName())
+                                                    .clock(clock).setClusterId(2)
+                                                    .getNodeStore().getVersionGarbageCollector();
 
         // clean up garbage older than one hour
         VersionGCStats stats = gc.gc(1, TimeUnit.HOURS);
@@ -126,7 +126,7 @@ public class MongoRevisionGCTest extends AbstractMongoConnectionTest {
         DocumentNodeStore ns = mk.getNodeStore();
         NodeDocument prev = null;
         NodeBuilder b;
-        for (;;) {
+        for (; ; ) {
             b = ns.getRoot().builder();
             b.child("child");
             merge(ns, b);

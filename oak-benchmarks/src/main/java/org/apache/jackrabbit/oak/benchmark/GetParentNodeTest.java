@@ -18,22 +18,21 @@
  */
 package org.apache.jackrabbit.oak.benchmark;
 
-import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
+import static javax.jcr.security.Privilege.JCR_READ;
+import static org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils.addAccessControlEntry;
 
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-
-import static javax.jcr.security.Privilege.JCR_READ;
-import static org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils.addAccessControlEntry;
+import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 
 /**
- * {@code GetParentNodeTest} implements a performance test, that reads
- * node from the repository, and after that reads parent node using one of the two methods:
- * 1) node.getParentNode()
- * 2) session.getNode("parent_abs_path").
+ * {@code GetParentNodeTest} implements a performance test, that reads node from the repository, and
+ * after that reads parent node using one of the two methods: 1) node.getParentNode() 2)
+ * session.getNode("parent_abs_path").
  */
 public abstract class GetParentNodeTest extends AbstractTest {
+
     private final String name;
 
     private static final String ROOT_NODE_PATH = GetParentNodeTest.class.getSimpleName() + TEST_ID;
@@ -124,21 +123,22 @@ public abstract class GetParentNodeTest extends AbstractTest {
     protected void beforeSuite() throws Exception {
         Session session = loginWriter();
         Node testRoot = session.getRootNode().addNode(
-                ROOT_NODE_PATH, "nt:unstructured");
-        Node parent = testRoot.addNode("a").addNode("b").addNode("c").addNode("d").addNode("e").addNode("f");
+            ROOT_NODE_PATH, "nt:unstructured");
+        Node parent = testRoot.addNode("a").addNode("b").addNode("c").addNode("d").addNode("e")
+                              .addNode("f");
         Node child = parent.addNode("g");
 
         parentNodePath = parent.getPath();
         childNodePath = child.getPath();
 
         addAccessControlEntry(session, testRoot.getPath(), EveryonePrincipal.getInstance(),
-                new String[] {JCR_READ}, true);
+            new String[]{JCR_READ}, true);
 
         if (!isParentNodeVisible()) {
             addAccessControlEntry(session, parentNodePath, EveryonePrincipal.getInstance(),
-                    new String[]{JCR_READ}, false);
+                new String[]{JCR_READ}, false);
             addAccessControlEntry(session, childNodePath, EveryonePrincipal.getInstance(),
-                    new String[]{JCR_READ}, true);
+                new String[]{JCR_READ}, true);
         }
         session.save();
 
@@ -152,7 +152,7 @@ public abstract class GetParentNodeTest extends AbstractTest {
         for (int i = 0; i < 10000; i++) {
             try {
                 getParentNode(child);
-            } catch (RepositoryException e){
+            } catch (RepositoryException e) {
                 //If parent node is not visible
             }
 

@@ -16,6 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.query;
 
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition.TYPE_ELASTICSEARCH;
+
+import java.util.List;
+import java.util.function.BiFunction;
+import java.util.function.Predicate;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexNode;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexTracker;
@@ -29,16 +35,10 @@ import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.List;
-import java.util.function.BiFunction;
-import java.util.function.Predicate;
-
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition.TYPE_ELASTICSEARCH;
-
 class ElasticIndex extends FulltextIndex {
+
     private static final Predicate<NodeState> ELASTICSEARCH_INDEX_DEFINITION_PREDICATE =
-            state -> TYPE_ELASTICSEARCH.equals(state.getString(TYPE_PROPERTY_NAME));
+        state -> TYPE_ELASTICSEARCH.equals(state.getString(TYPE_PROPERTY_NAME));
 
     // no concept of rewound in ES (even if it might be doing it internally, we can't do much about it
     private static final IteratorRewoundStateProvider REWOUND_STATE_PROVIDER_NOOP = () -> 0;
@@ -55,7 +55,8 @@ class ElasticIndex extends FulltextIndex {
     }
 
     @Override
-    protected FulltextIndexPlanner getPlanner(IndexNode indexNode, String path, Filter filter, List<OrderEntry> sortOrder) {
+    protected FulltextIndexPlanner getPlanner(IndexNode indexNode, String path, Filter filter,
+        List<OrderEntry> sortOrder) {
         return new ElasticIndexPlanner(indexNode, path, filter, sortOrder);
     }
 
@@ -64,7 +65,8 @@ class ElasticIndex extends FulltextIndex {
         return () -> {
             ElasticIndexNode indexNode = acquireIndexNode(plan);
             try {
-                return indexNode.getIndexStatistics().getDocCountFor(new ElasticRequestHandler(plan, getPlanResult(plan), null).baseQuery());
+                return indexNode.getIndexStatistics().getDocCountFor(
+                    new ElasticRequestHandler(plan, getPlanResult(plan), null).baseQuery());
             } finally {
                 indexNode.release();
             }
@@ -92,7 +94,8 @@ class ElasticIndex extends FulltextIndex {
     }
 
     @Override
-    protected String getFulltextRequestString(IndexPlan plan, IndexNode indexNode, NodeState rootState) {
+    protected String getFulltextRequestString(IndexPlan plan, IndexNode indexNode,
+        NodeState rootState) {
         try (ElasticQueryIterator eqi = queryIterator(plan, rootState)) {
             return eqi.explain();
         }
@@ -101,14 +104,15 @@ class ElasticIndex extends FulltextIndex {
     @Override
     public Cursor query(IndexPlan plan, NodeState rootState) {
         return new FulltextPathCursor(queryIterator(plan, rootState), REWOUND_STATE_PROVIDER_NOOP,
-                plan, plan.getFilter().getQueryLimits(), getSizeEstimator(plan));
+            plan, plan.getFilter().getQueryLimits(), getSizeEstimator(plan));
     }
 
     private @NotNull ElasticQueryIterator queryIterator(IndexPlan plan, NodeState rootState) {
         Filter filter = plan.getFilter();
         FulltextIndexPlanner.PlanResult planResult = getPlanResult(plan);
 
-        ElasticRequestHandler requestHandler = new ElasticRequestHandler(plan, planResult, rootState);
+        ElasticRequestHandler requestHandler = new ElasticRequestHandler(plan, planResult,
+            rootState);
         ElasticResponseHandler responseHandler = new ElasticResponseHandler(planResult, filter);
 
         ElasticQueryIterator itr;
@@ -123,15 +127,16 @@ class ElasticIndex extends FulltextIndex {
                 // row we evaluate getPathRestriction(plan) & plan.getFilter().getPathRestriction(). Providing a partial
                 // function (https://en.wikipedia.org/wiki/Partial_function) we can evaluate them once and still use a predicate as before
                 BiFunction<String, Filter.PathRestriction, Predicate<String>> partialShouldInclude = (path, pathRestriction) -> docPath ->
-                        shouldInclude(path, pathRestriction, docPath);
+                    shouldInclude(path, pathRestriction, docPath);
 
                 itr = new ElasticResultRowAsyncIterator(
-                        indexNode,
-                        requestHandler,
-                        responseHandler,
-                        plan,
-                        partialShouldInclude.apply(getPathRestriction(plan), filter.getPathRestriction()),
-                        elasticIndexTracker.getElasticMetricHandler()
+                    indexNode,
+                    requestHandler,
+                    responseHandler,
+                    plan,
+                    partialShouldInclude.apply(getPathRestriction(plan),
+                        filter.getPathRestriction()),
+                    elasticIndexTracker.getElasticMetricHandler()
                 );
             }
         } finally {
@@ -140,7 +145,8 @@ class ElasticIndex extends FulltextIndex {
         return itr;
     }
 
-    private static boolean shouldInclude(String path, Filter.PathRestriction pathRestriction, String docPath) {
+    private static boolean shouldInclude(String path, Filter.PathRestriction pathRestriction,
+        String docPath) {
         boolean include = true;
         switch (pathRestriction) {
             case EXACT:

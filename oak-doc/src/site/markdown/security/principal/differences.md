@@ -14,6 +14,7 @@
    See the License for the specific language governing permissions and
    limitations under the License.
   -->
+
 ### Principal Management : Differences wrt Jackrabbit 2.x
 
 #### Replacement for Jackrabbit Internals
@@ -21,10 +22,14 @@
 As of Oak 1.0 the following interfaces and class that were internal to Jackrabbit
 have been made part of public API exposed by Oak:
 
-- [org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider]: corresponds to o.a.j.core.security.principal.PrincipalProvider
-- [org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal]: corresponds to o.a.j.core.security.principal.AdminPrincipal
-- [org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal]: corresponds to o.a.j.core.security.principal.EveryonePrincipal
-- [org.apache.jackrabbit.oak.spi.security.principal.SystemPrincipal]: corresponds to o.a.j.core.security.SystemPrincipal
+- [org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider]: corresponds to
+  o.a.j.core.security.principal.PrincipalProvider
+- [org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal]: corresponds to
+  o.a.j.core.security.principal.AdminPrincipal
+- [org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal]: corresponds to
+  o.a.j.core.security.principal.EveryonePrincipal
+- [org.apache.jackrabbit.oak.spi.security.principal.SystemPrincipal]: corresponds to
+  o.a.j.core.security.SystemPrincipal
 
 #### Combining Principals from Different Sources
 
@@ -38,7 +43,11 @@ See section [Pluggability](../principal.html#pluggability) for an example.
 <!-- references -->
 
 [org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/principal/PrincipalProvider.html
+
 [CompositePrincipalProvider]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/principal/CompositePrincipalProvider.html
+
 [org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/principal/AdminPrincipal.html
+
 [org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/principal/EveryonePrincipal.html
+
 [org.apache.jackrabbit.oak.spi.security.principal.SystemPrincipal]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/principal/SystemPrincipal.html

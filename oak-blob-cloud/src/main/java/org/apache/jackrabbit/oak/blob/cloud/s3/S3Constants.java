@@ -31,22 +31,22 @@ public final class S3Constants {
      * Amazon aws secret key.
      */
     public static final String SECRET_KEY = "secretKey";
-    
+
     /**
      * Amazon S3 Http connection timeout.
      */
     public static final String S3_CONN_TIMEOUT = "connectionTimeout";
-    
+
     /**
      * Amazon S3  socket timeout.
      */
     public static final String S3_SOCK_TIMEOUT = "socketTimeout";
-    
+
     /**
      * Amazon S3  maximum connections to be used.
      */
     public static final String S3_MAX_CONNS = "maxConnections";
-    
+
     /**
      * Amazon S3  maximum retries.
      */
@@ -66,12 +66,12 @@ public final class S3Constants {
      * Amazon aws S3 region.
      */
     public static final String S3_REGION = "s3Region";
-    
+
     /**
      * Amazon aws S3 region.
      */
     public static final String S3_END_POINT = "s3EndPoint";
-    
+
     /**
      * Constant for S3 Connector Protocol
      */
@@ -86,7 +86,7 @@ public final class S3Constants {
      * Constant to rename keys
      */
     public static final String S3_WRITE_THREADS = "writeThreads";
-    
+
     /**
      * Constant to enable encryption in S3.
      */
@@ -98,39 +98,39 @@ public final class S3Constants {
     public static final String S3_ENCRYPTION_NONE = "NONE";
 
     /**
-     *  Constant to set SSE_S3 encryption.
+     * Constant to set SSE_S3 encryption.
      */
     public static final String S3_ENCRYPTION_SSE_S3 = "SSE_S3";
 
     /**
-     *  Constant to set SSE_KMS encryption.
+     * Constant to set SSE_KMS encryption.
      */
     public static final String S3_ENCRYPTION_SSE_KMS = "SSE_KMS";
 
     /**
-     *  Constant to set SSE_C encryption.
+     * Constant to set SSE_C encryption.
      */
     public static final String S3_ENCRYPTION_SSE_C = "SSE_C";
 
     /**
-     *  Constant to set keyID for SSE_KMS encryption.
+     * Constant to set keyID for SSE_KMS encryption.
      */
     public static final String S3_SSE_KMS_KEYID = "kmsKeyId";
 
     /**
-     *  Constant to set base64 encoded key for SSE_C encryption.
+     * Constant to set base64 encoded key for SSE_C encryption.
      */
     // please use  'openssl rand -base64 -out ssec.key 32' command to
     // generate base64 encoded 32 bytes string customer key for SSE_C
     public static final String S3_SSE_C_KEY = "sseCustomerKey";
 
     /**
-     *  Constant to set S3 signature for SSE_KMS encryption.
+     * Constant to set S3 signature for SSE_KMS encryption.
      */
     public static final String S3_SIG_V4 = "AWSS3V4SignerType";
 
     /**
-     *  Constant to set proxy host.
+     * Constant to set proxy host.
      */
     public static final String PROXY_HOST = "proxyHost";
 
@@ -140,7 +140,7 @@ public final class S3Constants {
     public static final String MAX_KEYS = "maxKeys";
 
     /**
-     *  Constant to set proxy port.
+     * Constant to set proxy port.
      */
     public static final String PROXY_PORT = "proxyPort";
 
@@ -153,14 +153,13 @@ public final class S3Constants {
     public static final String PRESIGNED_URI_ENABLE_ACCELERATION = "presignedURIEnableTransferAcceleration";
 
     /**
-     * Boolean flag to allow disabling of verification check on download URI
-     * generation.  Default is true (the existence check is performed).
-     *
-     * Some installations may prefer to disable async uploads, in which case it
-     * is possible to disable the existence check and thus greatly speed up the
-     * generation of presigned download URIs.  See OAK-7998 which describes why
-     * the existence check was added to understand how async uploading relates
-     * to this feature.
+     * Boolean flag to allow disabling of verification check on download URI generation.  Default is
+     * true (the existence check is performed).
+     * <p>
+     * Some installations may prefer to disable async uploads, in which case it is possible to
+     * disable the existence check and thus greatly speed up the generation of presigned download
+     * URIs.  See OAK-7998 which describes why the existence check was added to understand how async
+     * uploading relates to this feature.
      */
     public static final String PRESIGNED_HTTP_DOWNLOAD_URI_VERIFY_EXISTS = "presignedHttpDownloadURIVerifyExists";
 

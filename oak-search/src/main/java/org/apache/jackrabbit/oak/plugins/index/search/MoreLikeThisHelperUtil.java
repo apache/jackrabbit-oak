@@ -117,7 +117,8 @@ public class MoreLikeThisHelperUtil {
         try {
             for (String param : mltQueryString.split("&")) {
                 String[] keyValuePair = param.split("=");
-                if (keyValuePair.length != 2 || keyValuePair[0] == null || keyValuePair[1] == null) {
+                if (keyValuePair.length != 2 || keyValuePair[0] == null
+                    || keyValuePair[1] == null) {
                     throw new RuntimeException("Unparsable native MLT query: " + mltQueryString);
                 } else {
                     paramMap.put(keyValuePair[0], keyValuePair[1]);
@@ -128,7 +129,8 @@ public class MoreLikeThisHelperUtil {
         }
 
         if (paramMap.size() == 0) {
-            throw new RuntimeException("No params found while parsing the MLT query : " + mltQueryString);
+            throw new RuntimeException(
+                "No params found while parsing the MLT query : " + mltQueryString);
         }
 
         return paramMap;

@@ -46,12 +46,12 @@ class RecoveryLock {
     private final int clusterId;
 
     /**
-     * Prepare a recovery lock on the document store for an entry with the given
-     * {@code clusterId}. Constructing the lock does not check whether an entry
-     * actually exists for the {@code clusterId} and is indeed valid.
+     * Prepare a recovery lock on the document store for an entry with the given {@code clusterId}.
+     * Constructing the lock does not check whether an entry actually exists for the
+     * {@code clusterId} and is indeed valid.
      *
-     * @param store the store where the cluster node entries are stored.
-     * @param clock the clock used to check whether an entry's lease expired.
+     * @param store     the store where the cluster node entries are stored.
+     * @param clock     the clock used to check whether an entry's lease expired.
      * @param clusterId the {@code clusterId} this lock is created for.
      */
     RecoveryLock(DocumentStore store, Clock clock, int clusterId) {
@@ -61,10 +61,9 @@ class RecoveryLock {
     }
 
     /**
-     * Acquire a recovery lock for the cluster node info entry with the
-     * {@code clusterId} specified in the constructor of this recovery lock.
-     * This method may break a lock when it determines the cluster node holding
-     * the recovery lock is no more active or its lease expired.
+     * Acquire a recovery lock for the cluster node info entry with the {@code clusterId} specified
+     * in the constructor of this recovery lock. This method may break a lock when it determines the
+     * cluster node holding the recovery lock is no more active or its lease expired.
      *
      * @param recoveredBy id of cluster doing the recovery
      * @return whether the lock has been acquired
@@ -83,16 +82,15 @@ class RecoveryLock {
         }
         // either we already own the lock or were able to break the lock
         return doc.isBeingRecoveredBy(recoveredBy)
-                || tryBreakRecoveryLock(doc, recoveredBy);
+            || tryBreakRecoveryLock(doc, recoveredBy);
     }
 
     /**
-     * Releases the recovery lock on the given {@code clusterId}. If
-     * {@code success} is {@code true}, the state of the cluster node entry
-     * is reset, otherwise it is left as is. That is, for a cluster node which
-     * requires recovery and the recovery process failed, the state will still
-     * be active, when this release method is called with {@code success} set
-     * to {@code false}.
+     * Releases the recovery lock on the given {@code clusterId}. If {@code success} is
+     * {@code true}, the state of the cluster node entry is reset, otherwise it is left as is. That
+     * is, for a cluster node which requires recovery and the recovery process failed, the state
+     * will still be active, when this release method is called with {@code success} set to
+     * {@code false}.
      *
      * @param success whether recovery was successful.
      */
@@ -112,10 +110,11 @@ class RecoveryLock {
             }
             ClusterNodeInfoDocument old = store.findAndUpdate(CLUSTER_NODES, update);
             if (old == null) {
-                throw new DocumentStoreException("ClusterNodeInfo document for " + clusterId + " does not exist.");
+                throw new DocumentStoreException(
+                    "ClusterNodeInfo document for " + clusterId + " does not exist.");
             }
             LOG.info("Released recovery lock for cluster id {} (recovery successful: {})",
-                    clusterId, success);
+                clusterId, success);
         } catch (RuntimeException ex) {
             LOG.error("Failed to release the recovery lock for clusterNodeId " + clusterId, ex);
             throw (ex);
@@ -127,14 +126,12 @@ class RecoveryLock {
     /**
      * Acquire a recovery lock for the given cluster node info document
      *
-     * @param info
-     *            info document of the cluster that is going to be recovered
-     * @param recoveredBy
-     *            id of cluster doing the recovery ({@code 0} when unknown)
+     * @param info        info document of the cluster that is going to be recovered
+     * @param recoveredBy id of cluster doing the recovery ({@code 0} when unknown)
      * @return whether the lock has been acquired
      */
     private boolean tryAcquireRecoveryLock(ClusterNodeInfoDocument info,
-                                           int recoveredBy) {
+        int recoveredBy) {
         int clusterId = info.getClusterId();
         try {
             UpdateOp update = new UpdateOp(Integer.toString(clusterId), false);
@@ -161,16 +158,15 @@ class RecoveryLock {
     }
 
     /**
-     * Checks if the recovering cluster node is inactive and then tries to
-     * break the recovery lock.
+     * Checks if the recovering cluster node is inactive and then tries to break the recovery lock.
      *
-     * @param doc the cluster node info document of the cluster node to acquire
-     *            the recovery lock for.
+     * @param doc         the cluster node info document of the cluster node to acquire the recovery
+     *                    lock for.
      * @param recoveredBy id of cluster doing the recovery.
      * @return whether the lock has been acquired.
      */
     private boolean tryBreakRecoveryLock(ClusterNodeInfoDocument doc,
-                                         int recoveredBy) {
+        int recoveredBy) {
         Long recoveryBy = doc.getRecoveryBy();
         if (recoveryBy == null) {
             // cannot determine current lock owner
@@ -204,12 +200,12 @@ class RecoveryLock {
             ClusterNodeInfoDocument old = store.findAndUpdate(CLUSTER_NODES, update);
             if (old != null) {
                 LOG.info("Acquired (broke) recovery lock for cluster id {}. " +
-                        "Previous lock owner: {}", doc.getClusterId(), recoveryBy);
+                    "Previous lock owner: {}", doc.getClusterId(), recoveryBy);
             }
             return old != null;
         } catch (RuntimeException ex) {
             LOG.error("Failed to break the recovery lock for clusterNodeId " +
-                    doc.getClusterId(), ex);
+                doc.getClusterId(), ex);
             throw (ex);
         }
     }

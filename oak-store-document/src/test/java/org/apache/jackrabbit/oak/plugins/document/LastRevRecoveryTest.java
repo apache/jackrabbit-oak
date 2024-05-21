@@ -53,6 +53,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 public class LastRevRecoveryTest {
+
     @Rule
     public DocumentMKBuilderProvider builderProvider = new DocumentMKBuilderProvider();
 
@@ -73,21 +74,21 @@ public class LastRevRecoveryTest {
         final LeaseCheckMode leaseCheck = LeaseCheckMode.DISABLED;
         sharedStore = new MemoryDocumentStore();
         ds1 = builderProvider.newBuilder()
-                .clock(clock)
-                .setLeaseCheckMode(leaseCheck)
-                .setAsyncDelay(0)
-                .setDocumentStore(sharedStore)
-                .setClusterId(1)
-                .getNodeStore();
+                             .clock(clock)
+                             .setLeaseCheckMode(leaseCheck)
+                             .setAsyncDelay(0)
+                             .setDocumentStore(sharedStore)
+                             .setClusterId(1)
+                             .getNodeStore();
         c1Id = ds1.getClusterId();
 
         ds2 = builderProvider.newBuilder()
-                .clock(clock)
-                .setLeaseCheckMode(leaseCheck)
-                .setAsyncDelay(0)
-                .setDocumentStore(sharedStore)
-                .setClusterId(2)
-                .getNodeStore();
+                             .clock(clock)
+                             .setLeaseCheckMode(leaseCheck)
+                             .setAsyncDelay(0)
+                             .setDocumentStore(sharedStore)
+                             .setClusterId(2)
+                             .getNodeStore();
         c2Id = ds2.getClusterId();
     }
 
@@ -114,7 +115,7 @@ public class LastRevRecoveryTest {
         //1.2 Get last rev populated for root node for ds2
         ds2.runBackgroundOperations();
         NodeBuilder b2 = ds2.getRoot().builder();
-        b2.child("x").setProperty("f1","b1");
+        b2.child("x").setProperty("f1", "b1");
         ds2.merge(b2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         ds2.runBackgroundOperations();
 
@@ -172,7 +173,7 @@ public class LastRevRecoveryTest {
         Iterable<Integer> clusterIds = agent.getRecoveryCandidateNodes();
         assertTrue(Iterables.contains(clusterIds, c1Id));
         assertEquals("must not recover any documents",
-                0, agent.recover(c1Id));
+            0, agent.recover(c1Id));
     }
 
     // OAK-3488
@@ -235,10 +236,10 @@ public class LastRevRecoveryTest {
         // attempt to restart ds1 while lock is acquired
         try {
             ds1 = new DocumentMK.Builder()
-                    .clock(clock)
-                    .setDocumentStore(sharedStore)
-                    .setClusterId(c1Id)
-                    .getNodeStore();
+                .clock(clock)
+                .setDocumentStore(sharedStore)
+                .setClusterId(c1Id)
+                .getNodeStore();
             fail("DocumentStoreException expected");
         } catch (DocumentStoreException e) {
             // expected
@@ -288,12 +289,12 @@ public class LastRevRecoveryTest {
 
         // restart ds1
         ds1 = builderProvider.newBuilder()
-                .clock(clock)
-                .setLeaseCheckMode(LeaseCheckMode.DISABLED)
-                .setAsyncDelay(0)
-                .setDocumentStore(sharedStore)
-                .setClusterId(1)
-                .getNodeStore();
+                             .clock(clock)
+                             .setLeaseCheckMode(LeaseCheckMode.DISABLED)
+                             .setAsyncDelay(0)
+                             .setDocumentStore(sharedStore)
+                             .setClusterId(1)
+                             .getNodeStore();
         info1 = sharedStore.find(CLUSTER_NODES, clusterId);
         assertNotNull(info1);
         assertFalse(info1.isRecoveryNeeded(clock.getTime()));
@@ -332,7 +333,7 @@ public class LastRevRecoveryTest {
         assertTrue(Iterables.contains(clusterIds, c1Id));
         // nothing to recover
         assertEquals("must not recover any documents",
-                0, agent.recover(c1Id));
+            0, agent.recover(c1Id));
         // must not set sweep revision
         doc = getRootDocument(sharedStore);
         assertNull(doc.getSweepRevisions().getRevision(c1Id));
@@ -366,7 +367,8 @@ public class LastRevRecoveryTest {
                 assertTrue(super.acquireRecoveryLock(clusterId, recoveredBy));
                 if (delay.get()) {
                     try {
-                        clock.waitUntil(clock.getTime() + ClusterNodeInfo.DEFAULT_LEASE_DURATION_MILLIS + 1);
+                        clock.waitUntil(
+                            clock.getTime() + ClusterNodeInfo.DEFAULT_LEASE_DURATION_MILLIS + 1);
                     } catch (InterruptedException e) {
                         fail();
                     }
@@ -375,12 +377,12 @@ public class LastRevRecoveryTest {
             }
         };
         RecoveryHandler recoveryHandler = new RecoveryHandlerImpl(
-                sharedStore, clock, seeker);
+            sharedStore, clock, seeker);
         try {
             // Explicitly acquiring the clusterId must fail
             // when it takes too long to recover
             ClusterNodeInfo.getInstance(sharedStore, recoveryHandler,
-                    null, null, c1Id);
+                null, null, c1Id);
             fail("must fail with DocumentStoreException");
         } catch (DocumentStoreException e) {
             assertThat(e.getMessage(), containsString("needs recovery"));
@@ -388,7 +390,7 @@ public class LastRevRecoveryTest {
         // But must succeed with auto-assignment of clusterId
         // even if machineId and instanceId match
         ClusterNodeInfo cni = ClusterNodeInfo.getInstance(sharedStore,
-                recoveryHandler,null, null, 0);
+            recoveryHandler, null, null, 0);
         // though clusterId must not be the one that took too long to recover
         assertNotEquals(c1Id, cni.getId());
         // hence recovery is still needed for c1Id
@@ -398,7 +400,7 @@ public class LastRevRecoveryTest {
         delay.set(false);
         // must succeed now
         cni = ClusterNodeInfo.getInstance(sharedStore, recoveryHandler,
-                null, null, c1Id);
+            null, null, c1Id);
         assertEquals(c1Id, cni.getId());
         cni.dispose();
     }
@@ -408,7 +410,7 @@ public class LastRevRecoveryTest {
     }
 
     private static void merge(NodeStore store, NodeBuilder builder)
-            throws CommitFailedException {
+        throws CommitFailedException {
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 

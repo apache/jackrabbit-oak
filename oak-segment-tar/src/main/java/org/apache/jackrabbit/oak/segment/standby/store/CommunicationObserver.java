@@ -27,12 +27,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
-
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 import javax.management.StandardMBean;
-
-import io.netty.handler.codec.marshalling.DefaultMarshallerProvider;
 import org.apache.jackrabbit.oak.segment.standby.jmx.ObservablePartnerMBean;
 import org.apache.jackrabbit.oak.segment.standby.jmx.StandbyStatusMBean;
 import org.slf4j.Logger;
@@ -44,8 +41,10 @@ public class CommunicationObserver {
 
     private static final Logger log = LoggerFactory.getLogger(CommunicationObserver.class);
 
-    private static ObjectName getMBeanName(CommunicationPartnerMBean bean) throws MalformedObjectNameException {
-        return new ObjectName(StandbyStatusMBean.JMX_NAME + ",id=\"Client " + bean.getName() + "\"");
+    private static ObjectName getMBeanName(CommunicationPartnerMBean bean)
+        throws MalformedObjectNameException {
+        return new ObjectName(
+            StandbyStatusMBean.JMX_NAME + ",id=\"Client " + bean.getName() + "\"");
     }
 
     private static String oldest(Map<String, CommunicationPartnerMBean> beans) {
@@ -80,7 +79,9 @@ public class CommunicationObserver {
     }
 
     void registerCommunicationPartner(CommunicationPartnerMBean m) throws Exception {
-        ManagementFactory.getPlatformMBeanServer().registerMBean(new StandardMBean(m, ObservablePartnerMBean.class), getMBeanName(m));
+        ManagementFactory.getPlatformMBeanServer()
+                         .registerMBean(new StandardMBean(m, ObservablePartnerMBean.class),
+                             getMBeanName(m));
     }
 
     private void safeRegisterCommunicationPartner(CommunicationPartnerMBean m) {
@@ -116,9 +117,11 @@ public class CommunicationObserver {
         }
     }
 
-    public void gotMessageFrom(String client, String request, String address, int port) throws MalformedObjectNameException {
+    public void gotMessageFrom(String client, String request, String address, int port)
+        throws MalformedObjectNameException {
         log.debug("Message '{}' received from client {}", request, client);
-        createOrUpdateClientMBean(client, address, port, m -> m.onMessageReceived(new Date(), request));
+        createOrUpdateClientMBean(client, address, port,
+            m -> m.onMessageReceived(new Date(), request));
     }
 
     public void didSendSegmentBytes(String client, int size) {
@@ -135,7 +138,8 @@ public class CommunicationObserver {
         return id;
     }
 
-    private void createOrUpdateClientMBean(String clientName, String remoteAddress, int remotePort, Consumer<CommunicationPartnerMBean> update) throws MalformedObjectNameException {
+    private void createOrUpdateClientMBean(String clientName, String remoteAddress, int remotePort,
+        Consumer<CommunicationPartnerMBean> update) throws MalformedObjectNameException {
         List<CommunicationPartnerMBean> unregister = null;
         boolean register = false;
         CommunicationPartnerMBean bean;

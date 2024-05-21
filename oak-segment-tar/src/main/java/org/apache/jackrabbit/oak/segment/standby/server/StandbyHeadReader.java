@@ -25,8 +25,7 @@ interface StandbyHeadReader {
     /**
      * Read the head record ID.
      *
-     * @return the head record ID or {@code null} if the head record ID can't be
-     * found.
+     * @return the head record ID or {@code null} if the head record ID can't be found.
      */
     String readHeadRecordId();
 

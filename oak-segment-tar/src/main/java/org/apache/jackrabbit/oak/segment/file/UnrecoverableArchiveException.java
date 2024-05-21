@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.segment.file;
 import java.io.IOException;
 
 public class UnrecoverableArchiveException extends IOException {
+
     public UnrecoverableArchiveException(String message, IOException cause) {
         super(message, cause);
     }

@@ -19,11 +19,12 @@
 package org.apache.jackrabbit.oak.jcr.binary.util;
 
 import java.io.IOException;
-
 import org.apache.jackrabbit.oak.plugins.blob.BlobReferenceRetriever;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
-/** Marker Interface for DSGC Fixture */
+/**
+ * Marker Interface for DSGC Fixture
+ */
 public interface BinaryAccessDSGCFixture {
 
     void compactStore(NodeStore nodeStore) throws IOException, InterruptedException;

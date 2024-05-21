@@ -20,7 +20,6 @@
 package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
 import java.util.Map;
-
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.ConfigurationPolicy;
 import org.apache.felix.scr.annotations.Reference;
@@ -31,7 +30,8 @@ import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.osgi.service.component.ComponentContext;
 
 @Component(policy = ConfigurationPolicy.REQUIRE, name = DbDataStoreService.NAME)
-public class DbDataStoreService extends AbstractDataStoreService{
+public class DbDataStoreService extends AbstractDataStoreService {
+
     public static final String NAME = "org.apache.jackrabbit.oak.plugins.blob.datastore.DbDataStore";
 
     @Reference
@@ -40,7 +40,7 @@ public class DbDataStoreService extends AbstractDataStoreService{
     @Reference
     private StatisticsProvider statisticsProvider;
 
-    protected StatisticsProvider getStatisticsProvider(){
+    protected StatisticsProvider getStatisticsProvider() {
         return statisticsProvider;
     }
 

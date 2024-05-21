@@ -26,207 +26,215 @@ package org.apache.lucene.search;
  */
 
 import java.io.IOException;
-
 import org.apache.lucene.util.PriorityQueue;
 
 /**
- * Expert: A hit queue for sorting by hits by terms in more than one field.
- * Uses <code>FieldCache.DEFAULT</code> for maintaining
- * internal term lookup tables.
- * 
+ * Expert: A hit queue for sorting by hits by terms in more than one field. Uses
+ * <code>FieldCache.DEFAULT</code> for maintaining internal term lookup tables.
+ *
  * @lucene.experimental
- * @since 2.9
- * @see IndexSearcher#search(Query,Filter,int,Sort)
+ * @see IndexSearcher#search(Query, Filter, int, Sort)
  * @see FieldCache
+ * @since 2.9
  */
-public abstract class FieldValueHitQueue<T extends FieldValueHitQueue.Entry> extends PriorityQueue<T> {
+public abstract class FieldValueHitQueue<T extends FieldValueHitQueue.Entry> extends
+    PriorityQueue<T> {
 
-  /**
-   * Extension of ScoreDoc to also store the 
-   * {@link FieldComparator} slot.
-   */
-  public static class Entry extends ScoreDoc {
-    public int slot;
+    /**
+     * Extension of ScoreDoc to also store the {@link FieldComparator} slot.
+     */
+    public static class Entry extends ScoreDoc {
 
-    public Entry(int slot, int doc, float score) {
-      super(doc, score);
-      this.slot = slot;
-    }
-    
-    @Override
-    public String toString() {
-      return "slot:" + slot + " " + super.toString();
-    }
-  }
+        public int slot;
 
-  /**
-   * An implementation of {@link FieldValueHitQueue} which is optimized in case
-   * there is just one comparator.
-   */
-  private static final class OneComparatorFieldValueHitQueue<T extends FieldValueHitQueue.Entry> extends FieldValueHitQueue<T> {
-    private final int oneReverseMul;
-    
-    public OneComparatorFieldValueHitQueue(SortField[] fields, int size)
-        throws IOException {
-      super(fields, size);
+        public Entry(int slot, int doc, float score) {
+            super(doc, score);
+            this.slot = slot;
+        }
 
-      SortField field = fields[0];
-      setComparator(0,field.getComparator(size, 0));
-      oneReverseMul = field.reverse ? -1 : 1;
-
-      reverseMul[0] = oneReverseMul;
+        @Override
+        public String toString() {
+            return "slot:" + slot + " " + super.toString();
+        }
     }
 
     /**
-     * Returns whether <code>hitA</code> is less relevant than <code>hitB</code>.
-     * @param hitA Entry
-     * @param hitB Entry
-     * @return <code>true</code> if document <code>hitA</code> should be sorted after document <code>hitB</code>.
+     * An implementation of {@link FieldValueHitQueue} which is optimized in case there is just one
+     * comparator.
      */
-    @Override
-    protected boolean lessThan(final Entry hitA, final Entry hitB) {
+    private static final class OneComparatorFieldValueHitQueue<T extends FieldValueHitQueue.Entry> extends
+        FieldValueHitQueue<T> {
 
-      assert hitA != hitB;
-      assert hitA.slot != hitB.slot;
+        private final int oneReverseMul;
 
-      final int c = oneReverseMul * firstComparator.compare(hitA.slot, hitB.slot);
-      if (c != 0) {
-        return c > 0;
-      }
+        public OneComparatorFieldValueHitQueue(SortField[] fields, int size)
+            throws IOException {
+            super(fields, size);
 
-      // avoid random sort order that could lead to duplicates (bug #31241):
-      return hitA.doc > hitB.doc;
-    }
+            SortField field = fields[0];
+            setComparator(0, field.getComparator(size, 0));
+            oneReverseMul = field.reverse ? -1 : 1;
 
-  }
-  
-  /**
-   * An implementation of {@link FieldValueHitQueue} which is optimized in case
-   * there is more than one comparator.
-   */
-  private static final class MultiComparatorsFieldValueHitQueue<T extends FieldValueHitQueue.Entry> extends FieldValueHitQueue<T> {
-
-    public MultiComparatorsFieldValueHitQueue(SortField[] fields, int size)
-        throws IOException {
-      super(fields, size);
-
-      int numComparators = comparators.length;
-      for (int i = 0; i < numComparators; ++i) {
-        SortField field = fields[i];
-
-        reverseMul[i] = field.reverse ? -1 : 1;
-        setComparator(i, field.getComparator(size, i));
-      }
-    }
-  
-    @Override
-    protected boolean lessThan(final Entry hitA, final Entry hitB) {
-
-      assert hitA != hitB;
-      assert hitA.slot != hitB.slot;
-
-      int numComparators = comparators.length;
-      for (int i = 0; i < numComparators; ++i) {
-        final int c = reverseMul[i] * comparators[i].compare(hitA.slot, hitB.slot);
-        if (c != 0) {
-          // Short circuit
-          return c > 0;
+            reverseMul[0] = oneReverseMul;
         }
-      }
 
-      // avoid random sort order that could lead to duplicates (bug #31241):
-      return hitA.doc > hitB.doc;
-    }
-    
-  }
-  
-  // prevent instantiation and extension.
-  @SuppressWarnings({"rawtypes","unchecked"})
-  private FieldValueHitQueue(SortField[] fields, int size) {
-    super(size);
-    // When we get here, fields.length is guaranteed to be > 0, therefore no
-    // need to check it again.
-    
-    // All these are required by this class's API - need to return arrays.
-    // Therefore even in the case of a single comparator, create an array
-    // anyway.
-    this.fields = fields;
-    int numComparators = fields.length;
-    comparators = new FieldComparator[numComparators];
-    reverseMul = new int[numComparators];
-  }
+        /**
+         * Returns whether <code>hitA</code> is less relevant than <code>hitB</code>.
+         *
+         * @param hitA Entry
+         * @param hitB Entry
+         * @return <code>true</code> if document <code>hitA</code> should be sorted after document
+         * <code>hitB</code>.
+         */
+        @Override
+        protected boolean lessThan(final Entry hitA, final Entry hitB) {
 
-  /**
-   * Creates a hit queue sorted by the given list of fields.
-   * 
-   * <p><b>NOTE</b>: The instances returned by this method
-   * pre-allocate a full array of length <code>numHits</code>.
-   * 
-   * @param fields
-   *          SortField array we are sorting by in priority order (highest
-   *          priority first); cannot be <code>null</code> or empty
-   * @param size
-   *          The number of hits to retain. Must be greater than zero.
-   * @throws IOException if there is a low-level IO error
-   */
-  public static <T extends FieldValueHitQueue.Entry> FieldValueHitQueue<T> create(SortField[] fields, int size) throws IOException {
+            assert hitA != hitB;
+            assert hitA.slot != hitB.slot;
 
-    if (fields.length == 0) {
-      throw new IllegalArgumentException("Sort must contain at least one field");
+            final int c = oneReverseMul * firstComparator.compare(hitA.slot, hitB.slot);
+            if (c != 0) {
+                return c > 0;
+            }
+
+            // avoid random sort order that could lead to duplicates (bug #31241):
+            return hitA.doc > hitB.doc;
+        }
+
     }
 
-    if (fields.length == 1) {
-      return new OneComparatorFieldValueHitQueue<T>(fields, size);
-    } else {
-      return new MultiComparatorsFieldValueHitQueue<T>(fields, size);
+    /**
+     * An implementation of {@link FieldValueHitQueue} which is optimized in case there is more than
+     * one comparator.
+     */
+    private static final class MultiComparatorsFieldValueHitQueue<T extends FieldValueHitQueue.Entry> extends
+        FieldValueHitQueue<T> {
+
+        public MultiComparatorsFieldValueHitQueue(SortField[] fields, int size)
+            throws IOException {
+            super(fields, size);
+
+            int numComparators = comparators.length;
+            for (int i = 0; i < numComparators; ++i) {
+                SortField field = fields[i];
+
+                reverseMul[i] = field.reverse ? -1 : 1;
+                setComparator(i, field.getComparator(size, i));
+            }
+        }
+
+        @Override
+        protected boolean lessThan(final Entry hitA, final Entry hitB) {
+
+            assert hitA != hitB;
+            assert hitA.slot != hitB.slot;
+
+            int numComparators = comparators.length;
+            for (int i = 0; i < numComparators; ++i) {
+                final int c = reverseMul[i] * comparators[i].compare(hitA.slot, hitB.slot);
+                if (c != 0) {
+                    // Short circuit
+                    return c > 0;
+                }
+            }
+
+            // avoid random sort order that could lead to duplicates (bug #31241):
+            return hitA.doc > hitB.doc;
+        }
+
     }
-  }
-  
-  public FieldComparator<?>[] getComparators() {
-    return comparators;
-  }
 
-  public int[] getReverseMul() {
-    return reverseMul;
-  }
+    // prevent instantiation and extension.
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    private FieldValueHitQueue(SortField[] fields, int size) {
+        super(size);
+        // When we get here, fields.length is guaranteed to be > 0, therefore no
+        // need to check it again.
 
-  public void setComparator(int pos, FieldComparator<?> comparator) {
-    if (pos==0) firstComparator = comparator;
-    comparators[pos] = comparator;
-  }
-
-  /** Stores the sort criteria being used. */
-  protected final SortField[] fields;
-  protected final FieldComparator<?>[] comparators;  // use setComparator to change this array
-  protected FieldComparator<?> firstComparator;      // this must always be equal to comparators[0]
-  protected final int[] reverseMul;
-
-  @Override
-  protected abstract boolean lessThan (final Entry a, final Entry b);
-
-  /**
-   * Given a queue Entry, creates a corresponding FieldDoc
-   * that contains the values used to sort the given document.
-   * These values are not the raw values out of the index, but the internal
-   * representation of them. This is so the given search hit can be collated by
-   * a MultiSearcher with other search hits.
-   * 
-   * @param entry The Entry used to create a FieldDoc
-   * @return The newly created FieldDoc
-   * @see IndexSearcher#search(Query,Filter,int,Sort)
-   */
-  FieldDoc fillFields(final Entry entry) {
-    final int n = comparators.length;
-    final Object[] fields = new Object[n];
-    for (int i = 0; i < n; ++i) {
-      fields[i] = comparators[i].value(entry.slot);
+        // All these are required by this class's API - need to return arrays.
+        // Therefore even in the case of a single comparator, create an array
+        // anyway.
+        this.fields = fields;
+        int numComparators = fields.length;
+        comparators = new FieldComparator[numComparators];
+        reverseMul = new int[numComparators];
     }
-    //if (maxscore > 1.0f) doc.score /= maxscore;   // normalize scores
-    return new FieldDoc(entry.doc, entry.score, fields);
-  }
 
-  /** Returns the SortFields being used by this hit queue. */
-  SortField[] getFields() {
-    return fields;
-  }
+    /**
+     * Creates a hit queue sorted by the given list of fields.
+     *
+     * <p><b>NOTE</b>: The instances returned by this method
+     * pre-allocate a full array of length <code>numHits</code>.
+     *
+     * @param fields SortField array we are sorting by in priority order (highest priority first);
+     *               cannot be <code>null</code> or empty
+     * @param size   The number of hits to retain. Must be greater than zero.
+     * @throws IOException if there is a low-level IO error
+     */
+    public static <T extends FieldValueHitQueue.Entry> FieldValueHitQueue<T> create(
+        SortField[] fields, int size) throws IOException {
+
+        if (fields.length == 0) {
+            throw new IllegalArgumentException("Sort must contain at least one field");
+        }
+
+        if (fields.length == 1) {
+            return new OneComparatorFieldValueHitQueue<T>(fields, size);
+        } else {
+            return new MultiComparatorsFieldValueHitQueue<T>(fields, size);
+        }
+    }
+
+    public FieldComparator<?>[] getComparators() {
+        return comparators;
+    }
+
+    public int[] getReverseMul() {
+        return reverseMul;
+    }
+
+    public void setComparator(int pos, FieldComparator<?> comparator) {
+        if (pos == 0) {
+            firstComparator = comparator;
+        }
+        comparators[pos] = comparator;
+    }
+
+    /**
+     * Stores the sort criteria being used.
+     */
+    protected final SortField[] fields;
+    protected final FieldComparator<?>[] comparators;  // use setComparator to change this array
+    protected FieldComparator<?> firstComparator;      // this must always be equal to comparators[0]
+    protected final int[] reverseMul;
+
+    @Override
+    protected abstract boolean lessThan(final Entry a, final Entry b);
+
+    /**
+     * Given a queue Entry, creates a corresponding FieldDoc that contains the values used to sort
+     * the given document. These values are not the raw values out of the index, but the internal
+     * representation of them. This is so the given search hit can be collated by a MultiSearcher
+     * with other search hits.
+     *
+     * @param entry The Entry used to create a FieldDoc
+     * @return The newly created FieldDoc
+     * @see IndexSearcher#search(Query, Filter, int, Sort)
+     */
+    FieldDoc fillFields(final Entry entry) {
+        final int n = comparators.length;
+        final Object[] fields = new Object[n];
+        for (int i = 0; i < n; ++i) {
+            fields[i] = comparators[i].value(entry.slot);
+        }
+        //if (maxscore > 1.0f) doc.score /= maxscore;   // normalize scores
+        return new FieldDoc(entry.doc, entry.score, fields);
+    }
+
+    /**
+     * Returns the SortFields being used by this hit queue.
+     */
+    SortField[] getFields() {
+        return fields;
+    }
 }

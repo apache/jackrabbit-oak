@@ -18,11 +18,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static java.util.Collections.singleton;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 
 import javax.jcr.PropertyType;
-
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.value.Conversions.Converter;
 import org.jetbrains.annotations.NotNull;
@@ -34,14 +33,15 @@ abstract class SinglePropertyState<T> extends EmptyPropertyState {
 
     /**
      * Create a new property state with the given {@code name}
-     * @param name  The name of the property state.
+     *
+     * @param name The name of the property state.
      */
     protected SinglePropertyState(@NotNull String name) {
         super(name);
     }
 
     /**
-     * @return  {@code false}
+     * @return {@code false}
      */
     @Override
     public boolean isArray() {
@@ -50,38 +50,53 @@ abstract class SinglePropertyState<T> extends EmptyPropertyState {
 
     /**
      * Create a converter for converting the value of this property to other types.
-     * @return  A converter for the value of this property
+     *
+     * @return A converter for the value of this property
      */
     public abstract Converter getConverter();
 
     @SuppressWarnings("unchecked")
-    private <S> S  convertTo(Type<S> type) {
+    private <S> S convertTo(Type<S> type) {
         switch (type.tag()) {
-            case PropertyType.STRING: return (S) getConverter().toString();
-            case PropertyType.BINARY: return (S) getConverter().toBinary();
-            case PropertyType.LONG: return (S) (Long) getConverter().toLong();
-            case PropertyType.DOUBLE: return (S) (Double) getConverter().toDouble();
-            case PropertyType.DATE: return (S) getConverter().toDate();
-            case PropertyType.BOOLEAN: return (S) (Boolean) getConverter().toBoolean();
-            case PropertyType.NAME: return (S) getConverter().toString();
-            case PropertyType.PATH: return (S) getConverter().toString();
-            case PropertyType.REFERENCE: return (S) getConverter().toString();
-            case PropertyType.WEAKREFERENCE: return (S) getConverter().toString();
-            case PropertyType.URI: return (S) getConverter().toString();
-            case PropertyType.DECIMAL: return (S) getConverter().toDecimal();
-            default: throw new IllegalArgumentException("Unknown type:" + type);
+            case PropertyType.STRING:
+                return (S) getConverter().toString();
+            case PropertyType.BINARY:
+                return (S) getConverter().toBinary();
+            case PropertyType.LONG:
+                return (S) (Long) getConverter().toLong();
+            case PropertyType.DOUBLE:
+                return (S) (Double) getConverter().toDouble();
+            case PropertyType.DATE:
+                return (S) getConverter().toDate();
+            case PropertyType.BOOLEAN:
+                return (S) (Boolean) getConverter().toBoolean();
+            case PropertyType.NAME:
+                return (S) getConverter().toString();
+            case PropertyType.PATH:
+                return (S) getConverter().toString();
+            case PropertyType.REFERENCE:
+                return (S) getConverter().toString();
+            case PropertyType.WEAKREFERENCE:
+                return (S) getConverter().toString();
+            case PropertyType.URI:
+                return (S) getConverter().toString();
+            case PropertyType.DECIMAL:
+                return (S) getConverter().toDecimal();
+            default:
+                throw new IllegalArgumentException("Unknown type:" + type);
         }
     }
 
     /**
      * The value of this property
-     * @return  Value of this property
+     *
+     * @return Value of this property
      */
     public abstract T getValue();
 
     /**
-     * @throws IllegalArgumentException if {@code type} is not one of the
-     * values defined in {@link Type}.
+     * @throws IllegalArgumentException if {@code type} is not one of the values defined in
+     *                                  {@link Type}.
      */
     @SuppressWarnings("unchecked")
     @NotNull
@@ -104,7 +119,7 @@ abstract class SinglePropertyState<T> extends EmptyPropertyState {
 
     /**
      * @throws IllegalArgumentException  if {@code type.isArray} is {@code true}
-     * @throws IndexOutOfBoundsException  if {@code index != 0}
+     * @throws IndexOutOfBoundsException if {@code index != 0}
      */
     @NotNull
     @Override
@@ -117,7 +132,7 @@ abstract class SinglePropertyState<T> extends EmptyPropertyState {
     }
 
     /**
-     * @return  {@code getString().length()}
+     * @return {@code getString().length()}
      */
     @Override
     public long size() {
@@ -125,8 +140,8 @@ abstract class SinglePropertyState<T> extends EmptyPropertyState {
     }
 
     /**
-     * @return  {@code size}
-     * @throws IndexOutOfBoundsException  if {@code index != 0}
+     * @return {@code size}
+     * @throws IndexOutOfBoundsException if {@code index != 0}
      */
     @Override
     public long size(int index) {

@@ -17,17 +17,16 @@
  */
 package org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache;
 
-import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
-import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveReader;
-import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveWriter;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
 import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveReader;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveWriter;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class CachingArchiveManager implements SegmentArchiveManager {
 
@@ -93,13 +92,14 @@ public class CachingArchiveManager implements SegmentArchiveManager {
     }
 
     @Override
-    public void recoverEntries(@NotNull String archiveName, @NotNull LinkedHashMap<UUID, byte[]> entries) throws IOException {
+    public void recoverEntries(@NotNull String archiveName,
+        @NotNull LinkedHashMap<UUID, byte[]> entries) throws IOException {
         delegate.recoverEntries(archiveName, entries);
     }
 
     @Override
     public void backup(@NotNull String archiveName, @NotNull String backupArchiveName,
-            @NotNull Set<UUID> recoveredEntries) throws IOException {
+        @NotNull Set<UUID> recoveredEntries) throws IOException {
         delegate.backup(archiveName, backupArchiveName, recoveredEntries);
     }
 }

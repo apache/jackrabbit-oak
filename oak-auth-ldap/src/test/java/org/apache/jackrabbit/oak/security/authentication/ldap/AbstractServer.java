@@ -6,16 +6,16 @@
  *  to you under the Apache License, Version 2.0 (the
  *  "License"); you may not use this file except in compliance
  *  with the License.  You may obtain a copy of the License at
- *  
+ *
  *    http://www.apache.org/licenses/LICENSE-2.0
- *  
+ *
  *  Unless required by applicable law or agreed to in writing,
  *  software distributed under the License is distributed on an
  *  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
  *  KIND, either express or implied.  See the License for the
  *  specific language governing permissions and limitations
- *  under the License. 
- *  
+ *  under the License.
+ *
  */
 package org.apache.jackrabbit.oak.security.authentication.ldap;
 
@@ -35,10 +35,8 @@ import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
-
 import javax.naming.Context;
 import javax.naming.NamingException;
-
 import org.apache.directory.api.ldap.model.constants.SupportedSaslMechanisms;
 import org.apache.directory.api.ldap.model.entry.DefaultEntry;
 import org.apache.directory.api.ldap.model.entry.Entry;
@@ -80,10 +78,11 @@ import org.slf4j.LoggerFactory;
  */
 public abstract class AbstractServer {
 
-    public static final String  EXAMPLE_DN = "dc=example,dc=com";
+    public static final String EXAMPLE_DN = "dc=example,dc=com";
 
     private static final Logger LOG = LoggerFactory.getLogger(AbstractServer.class);
-    private static final List<LdifEntry> EMPTY_LIST = Collections.unmodifiableList(new ArrayList<LdifEntry>(0));
+    private static final List<LdifEntry> EMPTY_LIST = Collections.unmodifiableList(
+        new ArrayList<LdifEntry>(0));
 
     /**
      * the context root for the rootDSE
@@ -102,19 +101,18 @@ public abstract class AbstractServer {
     protected DirectoryService directoryService;
 
     protected LdapServer ldapServer;
-    
+
     protected boolean enableSSL = false;
 
     public AbstractServer(boolean enableSSL) {
         this.enableSSL = enableSSL;
     }
-    
+
     /**
-     * Loads an LDIF from an input stream and adds the entries it contains to
-     * the server.  It appears as though the administrator added these entries
-     * to the server.
+     * Loads an LDIF from an input stream and adds the entries it contains to the server.  It
+     * appears as though the administrator added these entries to the server.
      *
-     * @param in            the input stream containing the LDIF entries to load
+     * @param in the input stream containing the LDIF entries to load
      * @return a list of entries added to the server in the order they were added
      * @throws NamingException of the load fails
      */
@@ -141,8 +139,7 @@ public abstract class AbstractServer {
     }
 
     /**
-     * Inject an ldif String into the server. DN must be relative to the
-     * root.
+     * Inject an ldif String into the server. DN must be relative to the root.
      *
      * @param ldif the entries to inject
      * @throws NamingException if the entries cannot be added
@@ -158,8 +155,7 @@ public abstract class AbstractServer {
     }
 
     /**
-     * Get's the initial context factory for the provider's ou=system context
-     * root.
+     * Get's the initial context factory for the provider's ou=system context root.
      */
     protected void setUp() throws Exception {
         File cwd = new File("target", "apacheds");
@@ -175,22 +171,26 @@ public abstract class AbstractServer {
 
         SchemaManager schemaManager = new DefaultSchemaManager();
         directoryService.setSchemaManager(schemaManager);
-        directoryService.setDnFactory(new DefaultDnFactory(directoryService.getSchemaManager(), cacheService.getCache("dnCache")));
+        directoryService.setDnFactory(new DefaultDnFactory(directoryService.getSchemaManager(),
+            cacheService.getCache("dnCache")));
 
-        AvlPartition schLdifPart = new AvlPartition(directoryService.getSchemaManager(), directoryService.getDnFactory());
+        AvlPartition schLdifPart = new AvlPartition(directoryService.getSchemaManager(),
+            directoryService.getDnFactory());
         schLdifPart.setId("schema");
-        schLdifPart.setSuffixDn(directoryService.getDnFactory().create(ServerDNConstants.CN_SCHEMA_DN));
+        schLdifPart.setSuffixDn(
+            directoryService.getDnFactory().create(ServerDNConstants.CN_SCHEMA_DN));
         SchemaPartition schPart = new SchemaPartition(directoryService.getSchemaManager());
         schPart.setWrappedPartition(schLdifPart);
         directoryService.setSchemaPartition(schPart);
 
-
-        AvlPartition sysPart = new AvlPartition(directoryService.getSchemaManager(), directoryService.getDnFactory());
+        AvlPartition sysPart = new AvlPartition(directoryService.getSchemaManager(),
+            directoryService.getDnFactory());
         sysPart.setId(SystemSchemaConstants.SCHEMA_NAME);
         sysPart.setSuffixDn(directoryService.getDnFactory().create(ServerDNConstants.SYSTEM_DN));
         directoryService.setSystemPartition(sysPart);
 
-        AvlPartition examplePart = new AvlPartition(directoryService.getSchemaManager(), directoryService.getDnFactory());
+        AvlPartition examplePart = new AvlPartition(directoryService.getSchemaManager(),
+            directoryService.getDnFactory());
         examplePart.setId("example");
         examplePart.setSuffixDn(directoryService.getDnFactory().create(EXAMPLE_DN));
         examplePart.setCacheService(cacheService);
@@ -209,11 +209,11 @@ public abstract class AbstractServer {
     }
 
     /**
-     * Start the LDAP server assuming we can bind to the previously reserved port.
-     * Given that there is a small race between when the port was reserved and when the
-     * socket is actually bound this can still fail. For now we are ignoring this rare
-     * case and skip the test. See OAK-5542.
+     * Start the LDAP server assuming we can bind to the previously reserved port. Given that there
+     * is a small race between when the port was reserved and when the socket is actually bound this
+     * can still fail. For now we are ignoring this rare case and skip the test. See OAK-5542.
      * TODO: OAK-5832: Make the LDAP server used in testing resilient against ports already in use
+     *
      * @throws Exception
      */
     private void startLdapServer() throws Exception {
@@ -221,8 +221,9 @@ public abstract class AbstractServer {
             ldapServer.start();
         } catch (LdapConfigurationException e) {
             Throwable cause = e.getCause();
-            assumeFalse("Ignoring this test as the server port is already in use (OAK-5542): " + cause,
-                    cause instanceof BindException);
+            assumeFalse(
+                "Ignoring this test as the server port is already in use (OAK-5542): " + cause,
+                cause instanceof BindException);
             throw e;
         }
     }
@@ -230,7 +231,7 @@ public abstract class AbstractServer {
     protected void setupLdapServer() throws Exception {
         TcpTransport transport = new TcpTransport((port));
         transport.enableSSL(enableSSL);
-        
+
         ldapServer.setTransports(transport);
         ldapServer.setDirectoryService(directoryService);
         ldapServer.addExtendedOperationHandler(new StartTlsHandler());
@@ -254,22 +255,22 @@ public abstract class AbstractServer {
             entry.add("cn", "enableSearchForAllUsers");
             entry.add("subtreeSpecification", "{}");
             entry.add("prescriptiveACI",
-                    "{ \n" +
-                            "  identificationTag \"enableSearchForAllUsers\",\n" +
-                            "  precedence 14,\n" +
-                            "  authenticationLevel simple,\n" +
-                            "  itemOrUserFirst userFirst: \n" +
-                            "  { \n" +
-                            "    userClasses { allUsers }, \n" +
-                            "    userPermissions \n" +
-                            "    { \n" +
-                            "      {\n" +
-                            "        protectedItems {entry, allUserAttributeTypesAndValues}, \n" +
-                            "        grantsAndDenials { grantRead, grantReturnDN, grantBrowse } \n" +
-                            "      }\n" +
-                            "    } \n" +
-                            "  } \n" +
-                            "}");
+                "{ \n" +
+                    "  identificationTag \"enableSearchForAllUsers\",\n" +
+                    "  precedence 14,\n" +
+                    "  authenticationLevel simple,\n" +
+                    "  itemOrUserFirst userFirst: \n" +
+                    "  { \n" +
+                    "    userClasses { allUsers }, \n" +
+                    "    userPermissions \n" +
+                    "    { \n" +
+                    "      {\n" +
+                    "        protectedItems {entry, allUserAttributeTypesAndValues}, \n" +
+                    "        grantsAndDenials { grantRead, grantReturnDN, grantBrowse } \n" +
+                    "      }\n" +
+                    "    } \n" +
+                    "  } \n" +
+                    "}");
             directoryService.getAdminSession().add(entry);
             directoryService.sync();
         }
@@ -352,7 +353,7 @@ public abstract class AbstractServer {
         File[] var3 = files;
         int var4 = files.length;
 
-        for(int var5 = 0; var5 < var4; ++var5) {
+        for (int var5 = 0; var5 < var4; ++var5) {
             File file = var3[var5];
 
             try {
@@ -402,10 +403,10 @@ public abstract class AbstractServer {
     }
 
 //-----------------------------------------------------------------------------
+
     /**
-     * Sets the contexts for this base class.  Values of user and password used to
-     * set the respective JNDI properties.  These values can be overriden by the
-     * overrides properties.
+     * Sets the contexts for this base class.  Values of user and password used to set the
+     * respective JNDI properties.  These values can be overriden by the overrides properties.
      *
      * @param user   the username for authenticating as this user
      * @param passwd the password of the user
@@ -422,8 +423,7 @@ public abstract class AbstractServer {
     }
 
     /**
-     * Sets the contexts of this class taking into account the extras and overrides
-     * properties.
+     * Sets the contexts of this class taking into account the extras and overrides properties.
      *
      * @param env an environment to use while setting up the system root.
      * @throws NamingException if there is a failure of any kind

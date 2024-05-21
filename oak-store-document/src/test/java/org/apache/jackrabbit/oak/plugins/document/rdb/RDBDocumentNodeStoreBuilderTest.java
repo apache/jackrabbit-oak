@@ -31,8 +31,11 @@ public class RDBDocumentNodeStoreBuilderTest {
     public void testReadOnlyDS() throws Exception {
         // see OAK-8214
 
-        DataSource dataSource = RDBDataSourceFactory.forJdbcUrl("jdbc:h2:mem:" + UUID.randomUUID(), "", "");
-        RDBDocumentNodeStoreBuilder b = RDBDocumentNodeStoreBuilder.newRDBDocumentNodeStoreBuilder().setRDBConnection(dataSource).setReadOnlyMode();
+        DataSource dataSource = RDBDataSourceFactory.forJdbcUrl("jdbc:h2:mem:" + UUID.randomUUID(),
+            "", "");
+        RDBDocumentNodeStoreBuilder b = RDBDocumentNodeStoreBuilder.newRDBDocumentNodeStoreBuilder()
+                                                                   .setRDBConnection(dataSource)
+                                                                   .setReadOnlyMode();
 
         try {
             b.getDocumentStore();
@@ -45,8 +48,11 @@ public class RDBDocumentNodeStoreBuilderTest {
     public void testReadOnlyBS() throws Exception {
         // see OAK-8251
 
-        DataSource dataSource = RDBDataSourceFactory.forJdbcUrl("jdbc:h2:mem:" + UUID.randomUUID(), "", "");
-        RDBDocumentNodeStoreBuilder b = RDBDocumentNodeStoreBuilder.newRDBDocumentNodeStoreBuilder().setRDBConnection(dataSource).setReadOnlyMode();
+        DataSource dataSource = RDBDataSourceFactory.forJdbcUrl("jdbc:h2:mem:" + UUID.randomUUID(),
+            "", "");
+        RDBDocumentNodeStoreBuilder b = RDBDocumentNodeStoreBuilder.newRDBDocumentNodeStoreBuilder()
+                                                                   .setRDBConnection(dataSource)
+                                                                   .setReadOnlyMode();
 
         try {
             b.getBlobStore();

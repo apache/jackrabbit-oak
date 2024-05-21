@@ -16,6 +16,14 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
+import static org.apache.jackrabbit.oak.api.Type.NAME;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
+import java.util.Calendar;
+import java.util.List;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
@@ -24,15 +32,6 @@ import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.junit.Test;
-
-import java.util.Calendar;
-import java.util.List;
-
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
-import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
-import static org.apache.jackrabbit.oak.api.Type.NAME;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 public abstract class IndexQuerySQL2OptimisationCommonTest extends AbstractQueryTest {
 
@@ -152,16 +151,16 @@ public abstract class IndexQuerySQL2OptimisationCommonTest extends AbstractQuery
         }
 
         final String statement =
-                "SELECT * " +
-                        "FROM [" + NT_UNSTRUCTURED + "] AS c " +
-                        "WHERE " +
-                        "( " +
-                        "c.[" + name + "] = '" + yes + "' " +
-                        "OR CONTAINS(c.[" + surname + "], '" + yes + "') " +
-                        "OR CONTAINS(c.[" + description + "], '" + yes + "') " +
-                        ") " +
-                        "AND ISDESCENDANTNODE(c, '" + content.getPath() + "') " +
-                        "ORDER BY " + added + " DESC ";
+            "SELECT * " +
+                "FROM [" + NT_UNSTRUCTURED + "] AS c " +
+                "WHERE " +
+                "( " +
+                "c.[" + name + "] = '" + yes + "' " +
+                "OR CONTAINS(c.[" + surname + "], '" + yes + "') " +
+                "OR CONTAINS(c.[" + description + "], '" + yes + "') " +
+                ") " +
+                "AND ISDESCENDANTNODE(c, '" + content.getPath() + "') " +
+                "ORDER BY " + added + " DESC ";
 
         TestUtil.assertEventually(() -> assertQuery(statement, SQL2, expected), 3000 * 5);
     }

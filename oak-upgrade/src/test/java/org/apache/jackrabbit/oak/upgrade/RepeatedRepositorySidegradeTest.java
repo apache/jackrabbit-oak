@@ -22,10 +22,8 @@ import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreB
 
 import java.io.File;
 import java.io.IOException;
-
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.jcr.Jcr;
@@ -51,7 +49,8 @@ public class RepeatedRepositorySidegradeTest extends RepeatedRepositoryUpgradeTe
 
             FileStore fileStore = fileStoreBuilder(sourceDir).build();
             SegmentNodeStore segmentNodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
-            RepositoryImpl repository = (RepositoryImpl) new Jcr(new Oak(segmentNodeStore)).createRepository();
+            RepositoryImpl repository = (RepositoryImpl) new Jcr(
+                new Oak(segmentNodeStore)).createRepository();
             Session session = repository.login(CREDENTIALS);
             try {
                 createSourceContent(session);
@@ -85,7 +84,8 @@ public class RepeatedRepositorySidegradeTest extends RepeatedRepositoryUpgradeTe
     }
 
     @Override
-    protected void doUpgradeRepository(File source, NodeStore target, boolean skipInit) throws RepositoryException, IOException {
+    protected void doUpgradeRepository(File source, NodeStore target, boolean skipInit)
+        throws RepositoryException, IOException {
         FileStore fileStore;
         try {
             fileStore = fileStoreBuilder(source).build();
@@ -94,7 +94,8 @@ public class RepeatedRepositorySidegradeTest extends RepeatedRepositoryUpgradeTe
         }
         SegmentNodeStore segmentNodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
         try {
-            final RepositorySidegrade repositoryUpgrade = new RepositorySidegrade(segmentNodeStore, target);
+            final RepositorySidegrade repositoryUpgrade = new RepositorySidegrade(segmentNodeStore,
+                target);
 
             NodeBuilder builder = target.getRoot().builder();
             builder.child("foo").child("bar");

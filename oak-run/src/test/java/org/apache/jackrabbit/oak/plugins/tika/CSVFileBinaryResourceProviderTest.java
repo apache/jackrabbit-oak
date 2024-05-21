@@ -19,18 +19,17 @@
 
 package org.apache.jackrabbit.oak.plugins.tika;
 
+import static org.junit.Assert.assertEquals;
+
 import java.io.File;
 import java.util.Map;
-
+import org.apache.commons.csv.CSVPrinter;
 import org.apache.jackrabbit.guava.common.base.Charsets;
 import org.apache.jackrabbit.guava.common.io.Files;
-import org.apache.commons.csv.CSVPrinter;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-
-import static org.junit.Assert.assertEquals;
 
 public class CSVFileBinaryResourceProviderTest {
 
@@ -50,9 +49,11 @@ public class CSVFileBinaryResourceProviderTest {
         File dataFile = temporaryFolder.newFile();
         Files.write(sb, dataFile, Charsets.UTF_8);
 
-        CSVFileBinaryResourceProvider provider = new CSVFileBinaryResourceProvider(dataFile, new MemoryBlobStore());
+        CSVFileBinaryResourceProvider provider = new CSVFileBinaryResourceProvider(dataFile,
+            new MemoryBlobStore());
 
-        Map<String, BinaryResource> binaries = provider.getBinaries("/").uniqueIndex(BinarySourceMapper.BY_BLOBID);
+        Map<String, BinaryResource> binaries = provider.getBinaries("/")
+                                                       .uniqueIndex(BinarySourceMapper.BY_BLOBID);
         assertEquals(3, binaries.size());
         assertEquals("a", binaries.get("a").getBlobId());
         assertEquals("/a", binaries.get("a").getPath());

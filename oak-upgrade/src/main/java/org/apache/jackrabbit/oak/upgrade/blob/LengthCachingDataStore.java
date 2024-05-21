@@ -19,6 +19,10 @@
 
 package org.apache.jackrabbit.oak.upgrade.blob;
 
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
+
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -31,12 +35,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
-
 import javax.jcr.RepositoryException;
-
-import org.apache.jackrabbit.guava.common.base.Charsets;
-import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.LineIterator;
@@ -46,22 +45,20 @@ import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.guava.common.base.Charsets;
+import org.apache.jackrabbit.guava.common.collect.Maps;
+import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-
 /**
- * A DelegatingDataStore can avoid performing expensive file system access by making
- * use of pre computed data related to files in DataStore.
+ * A DelegatingDataStore can avoid performing expensive file system access by making use of pre
+ * computed data related to files in DataStore.
  * <p>
- * During repository migration actual blob content is not accessed and instead
- * only the blob length and blob references are accessed. DelegatingDataStore can be
- * configured with a mapping file which would be used to determine the length of given
- * blob reference.
+ * During repository migration actual blob content is not accessed and instead only the blob length
+ * and blob references are accessed. DelegatingDataStore can be configured with a mapping file which
+ * would be used to determine the length of given blob reference.
  * <p>
  * Mapping file format
  * <pre>{@code
@@ -79,6 +76,7 @@ import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
  * }</pre>
  */
 public class LengthCachingDataStore extends AbstractDataStore {
+
     private static final Logger log = LoggerFactory.getLogger(LengthCachingDataStore.class);
     /**
      * Separator used while writing length and identifier to the mapping file
@@ -200,11 +198,12 @@ public class LengthCachingDataStore extends AbstractDataStore {
     //~---------------------------------< DelegateDataRecord >
 
     private class DelegateDataRecord extends AbstractDataRecord {
+
         private final Map<String, Long> mapping;
         private DataRecord delegateRecord;
 
         public DelegateDataRecord(AbstractDataStore store, DataIdentifier identifier,
-                                  Map<String, Long> recordSizeMapping) {
+            Map<String, Long> recordSizeMapping) {
             super(store, identifier);
             this.mapping = recordSizeMapping;
         }
@@ -272,9 +271,11 @@ public class LengthCachingDataStore extends AbstractDataStore {
     }
 
     private void initializeDelegate(String homeDir) throws RepositoryException {
-        checkNotNull(delegateClass, "No delegate DataStore class defined via 'delegateClass' property");
+        checkNotNull(delegateClass,
+            "No delegate DataStore class defined via 'delegateClass' property");
         try {
-            delegate = (DataStore) getClass().getClassLoader().loadClass(delegateClass).newInstance();
+            delegate = (DataStore) getClass().getClassLoader().loadClass(delegateClass)
+                                             .newInstance();
         } catch (InstantiationException e) {
             throw new RepositoryException("Cannot load delegate class " + delegateClass, e);
         } catch (IllegalAccessException e) {
@@ -286,7 +287,8 @@ public class LengthCachingDataStore extends AbstractDataStore {
         log.info("Using {} as the delegating DataStore", delegateClass);
         if (delegateConfigFilePath != null) {
             File configFile = new File(delegateConfigFilePath);
-            checkArgument(configFile.exists(), "Delegate DataStore config file %s does not exist", configFile.getAbsolutePath());
+            checkArgument(configFile.exists(), "Delegate DataStore config file %s does not exist",
+                configFile.getAbsolutePath());
 
             InputStream is = null;
             try {
@@ -294,9 +296,11 @@ public class LengthCachingDataStore extends AbstractDataStore {
                 is = Files.asByteSource(configFile).openStream();
                 props.load(is);
                 PropertiesUtil.populate(delegate, propsToMap(props), false);
-                log.info("Configured the delegating DataStore via {}", configFile.getAbsolutePath());
+                log.info("Configured the delegating DataStore via {}",
+                    configFile.getAbsolutePath());
             } catch (IOException e) {
-                throw new RepositoryException("Error reading from config file " + configFile.getAbsolutePath(), e);
+                throw new RepositoryException(
+                    "Error reading from config file " + configFile.getAbsolutePath(), e);
             } finally {
                 IOUtils.closeQuietly(is);
             }
@@ -310,14 +314,16 @@ public class LengthCachingDataStore extends AbstractDataStore {
             BufferedWriter w = null;
             try {
                 w = new BufferedWriter(
-                        new OutputStreamWriter(new FileOutputStream(mappingFile, true), Charsets.UTF_8));
+                    new OutputStreamWriter(new FileOutputStream(mappingFile, true),
+                        Charsets.UTF_8));
                 for (Map.Entry<String, Long> e : newMappings.entrySet()) {
                     w.write(String.valueOf(e.getValue()));
                     w.write(SEPARATOR);
                     w.write(e.getKey());
                     w.newLine();
                 }
-                log.info("Added {} new entries to the mapping file {}", newMappings.size(), mappingFile);
+                log.info("Added {} new entries to the mapping file {}", newMappings.size(),
+                    mappingFile);
                 newMappings.clear();
             } catch (IOException e) {
                 log.warn("Error occurred while writing mapping data to {}", mappingFile, e);
@@ -327,7 +333,8 @@ public class LengthCachingDataStore extends AbstractDataStore {
         }
     }
 
-    private static Map<String, Long> loadMappingData(File mappingFile) throws FileNotFoundException {
+    private static Map<String, Long> loadMappingData(File mappingFile)
+        throws FileNotFoundException {
         Map<String, Long> mapping = new HashMap<String, Long>();
         log.info("Reading mapping data from {}", mappingFile.getAbsolutePath());
         LineIterator itr = new LineIterator(Files.newReader(mappingFile, Charsets.UTF_8));

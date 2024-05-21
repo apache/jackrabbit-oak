@@ -32,66 +32,83 @@ import org.apache.lucene.index.SegmentInfo;
 
 /**
  * Lucene3x ReadOnly SegmentInfoFormat implementation
- * @deprecated (4.0) This is only used to read indexes created
- * before 4.0.
+ *
  * @lucene.experimental
+ * @deprecated (4.0) This is only used to read indexes created before 4.0.
  */
 @Deprecated
 public class Lucene3xSegmentInfoFormat extends SegmentInfoFormat {
-  private final SegmentInfoReader reader = new Lucene3xSegmentInfoReader();
 
-  /** This format adds optional per-segment String
-   *  diagnostics storage, and switches userData to Map */
-  public static final int FORMAT_DIAGNOSTICS = -9;
+    private final SegmentInfoReader reader = new Lucene3xSegmentInfoReader();
 
-  /** Each segment records whether it has term vectors */
-  public static final int FORMAT_HAS_VECTORS = -10;
+    /**
+     * This format adds optional per-segment String diagnostics storage, and switches userData to
+     * Map
+     */
+    public static final int FORMAT_DIAGNOSTICS = -9;
 
-  /** Each segment records the Lucene version that created it. */
-  public static final int FORMAT_3_1 = -11;
+    /**
+     * Each segment records whether it has term vectors
+     */
+    public static final int FORMAT_HAS_VECTORS = -10;
 
-  /** Extension used for saving each SegmentInfo, once a 3.x
-   *  index is first committed to with 4.0. */
-  public static final String UPGRADED_SI_EXTENSION = "si";
-  public static final String UPGRADED_SI_CODEC_NAME = "Lucene3xSegmentInfo";
-  public static final int UPGRADED_SI_VERSION_START = 0;
-  public static final int UPGRADED_SI_VERSION_CURRENT = UPGRADED_SI_VERSION_START;
-  
-  @Override
-  public SegmentInfoReader getSegmentInfoReader() {
-    return reader;
-  }
+    /**
+     * Each segment records the Lucene version that created it.
+     */
+    public static final int FORMAT_3_1 = -11;
 
-  @Override
-  public SegmentInfoWriter getSegmentInfoWriter() {
-    throw new UnsupportedOperationException("this codec can only be used for reading");
-  }
-  
-  // only for backwards compat
-  public static final String DS_OFFSET_KEY = Lucene3xSegmentInfoFormat.class.getSimpleName() + ".dsoffset";
-  public static final String DS_NAME_KEY = Lucene3xSegmentInfoFormat.class.getSimpleName() + ".dsname";
-  public static final String DS_COMPOUND_KEY = Lucene3xSegmentInfoFormat.class.getSimpleName() + ".dscompound";
-  public static final String NORMGEN_KEY = Lucene3xSegmentInfoFormat.class.getSimpleName() + ".normgen";
-  public static final String NORMGEN_PREFIX = Lucene3xSegmentInfoFormat.class.getSimpleName() + ".normfield";
+    /**
+     * Extension used for saving each SegmentInfo, once a 3.x index is first committed to with 4.0.
+     */
+    public static final String UPGRADED_SI_EXTENSION = "si";
+    public static final String UPGRADED_SI_CODEC_NAME = "Lucene3xSegmentInfo";
+    public static final int UPGRADED_SI_VERSION_START = 0;
+    public static final int UPGRADED_SI_VERSION_CURRENT = UPGRADED_SI_VERSION_START;
 
-  /** 
-   * @return if this segment shares stored fields & vectors, this
-   *         offset is where in that file this segment's docs begin 
-   */
-  public static int getDocStoreOffset(SegmentInfo si) {
-    String v = si.getAttribute(DS_OFFSET_KEY);
-    return v == null ? -1 : Integer.parseInt(v);
-  }
-  
-  /** @return name used to derive fields/vectors file we share with other segments */
-  public static String getDocStoreSegment(SegmentInfo si) {
-    String v = si.getAttribute(DS_NAME_KEY);
-    return v == null ? si.name : v;
-  }
-  
-  /** @return whether doc store files are stored in compound file (*.cfx) */
-  public static boolean getDocStoreIsCompoundFile(SegmentInfo si) {
-    String v = si.getAttribute(DS_COMPOUND_KEY);
-    return v == null ? false : Boolean.parseBoolean(v);
-  }
+    @Override
+    public SegmentInfoReader getSegmentInfoReader() {
+        return reader;
+    }
+
+    @Override
+    public SegmentInfoWriter getSegmentInfoWriter() {
+        throw new UnsupportedOperationException("this codec can only be used for reading");
+    }
+
+    // only for backwards compat
+    public static final String DS_OFFSET_KEY =
+        Lucene3xSegmentInfoFormat.class.getSimpleName() + ".dsoffset";
+    public static final String DS_NAME_KEY =
+        Lucene3xSegmentInfoFormat.class.getSimpleName() + ".dsname";
+    public static final String DS_COMPOUND_KEY =
+        Lucene3xSegmentInfoFormat.class.getSimpleName() + ".dscompound";
+    public static final String NORMGEN_KEY =
+        Lucene3xSegmentInfoFormat.class.getSimpleName() + ".normgen";
+    public static final String NORMGEN_PREFIX =
+        Lucene3xSegmentInfoFormat.class.getSimpleName() + ".normfield";
+
+    /**
+     * @return if this segment shares stored fields & vectors, this offset is where in that file
+     * this segment's docs begin
+     */
+    public static int getDocStoreOffset(SegmentInfo si) {
+        String v = si.getAttribute(DS_OFFSET_KEY);
+        return v == null ? -1 : Integer.parseInt(v);
+    }
+
+    /**
+     * @return name used to derive fields/vectors file we share with other segments
+     */
+    public static String getDocStoreSegment(SegmentInfo si) {
+        String v = si.getAttribute(DS_NAME_KEY);
+        return v == null ? si.name : v;
+    }
+
+    /**
+     * @return whether doc store files are stored in compound file (*.cfx)
+     */
+    public static boolean getDocStoreIsCompoundFile(SegmentInfo si) {
+        String v = si.getAttribute(DS_COMPOUND_KEY);
+        return v == null ? false : Boolean.parseBoolean(v);
+    }
 }

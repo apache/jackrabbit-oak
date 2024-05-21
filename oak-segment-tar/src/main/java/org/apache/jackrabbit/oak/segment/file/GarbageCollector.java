@@ -28,8 +28,6 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
-
-import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.base.Supplier;
 import org.apache.jackrabbit.oak.segment.Revisions;
 import org.apache.jackrabbit.oak.segment.SegmentCache;
@@ -53,10 +51,9 @@ class GarbageCollector {
     private static final AtomicInteger GC_COUNT = new AtomicInteger(0);
 
     /**
-     * Minimal interval in milli seconds between subsequent garbage collection
-     * cycles. Garbage collection invoked via full compaction will be skipped
-     * unless at least the specified time has passed since its last successful
-     * invocation.
+     * Minimal interval in milli seconds between subsequent garbage collection cycles. Garbage
+     * collection invoked via full compaction will be skipped unless at least the specified time has
+     * passed since its last successful invocation.
      */
     private static final long GC_BACKOFF = getInteger("oak.gc.backoff", 10 * 3600 * 1000);
 
@@ -101,16 +98,14 @@ class GarbageCollector {
     private final GCNodeWriteMonitor compactionMonitor;
 
     /**
-     * Timestamp of the last time full or tail compaction was successfully
-     * invoked. 0 if never.
+     * Timestamp of the last time full or tail compaction was successfully invoked. 0 if never.
      */
     private long lastSuccessfullGC;
 
     /**
-     * Last compaction type used to determine which predicate to use during
-     * cleanup. Defaults to {@link SegmentGCOptions.GCType#FULL FULL}, which is
-     * conservative and safe in case it does not match the real type (e.g.
-     * because of a system restart).
+     * Last compaction type used to determine which predicate to use during cleanup. Defaults to
+     * {@link SegmentGCOptions.GCType#FULL FULL}, which is conservative and safe in case it does not
+     * match the real type (e.g. because of a system restart).
      */
     private SegmentGCOptions.GCType lastCompactionType = FULL;
 
@@ -292,12 +287,14 @@ class GarbageCollector {
         strategy.collectTailGarbage(newGarbageCollectionContext(GC_COUNT.incrementAndGet()));
     }
 
-    synchronized CompactionResult compactFull(GarbageCollectionStrategy strategy) throws IOException {
+    synchronized CompactionResult compactFull(GarbageCollectionStrategy strategy)
+        throws IOException {
         cancelRequested = false;
         return strategy.compactFull(newGarbageCollectionContext(GC_COUNT.get()));
     }
 
-    synchronized CompactionResult compactTail(GarbageCollectionStrategy strategy) throws IOException {
+    synchronized CompactionResult compactTail(GarbageCollectionStrategy strategy)
+        throws IOException {
         cancelRequested = false;
         return strategy.compactTail(newGarbageCollectionContext(GC_COUNT.get()));
     }
@@ -308,22 +305,21 @@ class GarbageCollector {
     }
 
     /**
-     * Finds all external blob references that are currently accessible in this
-     * repository and adds them to the given collector. Useful for collecting
-     * garbage in an external data store.
+     * Finds all external blob references that are currently accessible in this repository and adds
+     * them to the given collector. Useful for collecting garbage in an external data store.
      * <p>
-     * Note that this method only collects blob references that are already
-     * stored in the repository (at the time when this method is called), so the
-     * garbage collector will need some other mechanism for tracking in-memory
-     * references and references stored while this method is running.
+     * Note that this method only collects blob references that are already stored in the repository
+     * (at the time when this method is called), so the garbage collector will need some other
+     * mechanism for tracking in-memory references and references stored while this method is
+     * running.
      *
-     * @param collector reference collector called back for each blob reference
-     *                  found
+     * @param collector reference collector called back for each blob reference found
      */
     synchronized void collectBlobReferences(Consumer<String> collector) throws IOException {
         segmentWriter.flush();
         tarFiles.collectBlobReferences(collector,
-            newOldReclaimer(lastCompactionType, getGcGeneration(), gcOptions.getRetainedGenerations()));
+            newOldReclaimer(lastCompactionType, getGcGeneration(),
+                gcOptions.getRetainedGenerations()));
     }
 
     void cancel() {

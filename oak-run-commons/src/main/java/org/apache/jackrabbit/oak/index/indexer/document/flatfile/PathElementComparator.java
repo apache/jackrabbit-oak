@@ -23,10 +23,10 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.Set;
-
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 
 public class PathElementComparator implements Comparator<Iterable<String>> {
+
     private final Set<String> preferred;
 
     public PathElementComparator() {

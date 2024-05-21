@@ -36,7 +36,8 @@ import static org.junit.Assert.fail;
 
 public class AddNodesInBranchCommitWithRecoveryTest {
 
-    private static final Logger LOG = LoggerFactory.getLogger(AddNodesInBranchCommitWithRecoveryTest.class);
+    private static final Logger LOG = LoggerFactory.getLogger(
+        AddNodesInBranchCommitWithRecoveryTest.class);
 
     @Rule
     public DocumentMKBuilderProvider builderProvider = new DocumentMKBuilderProvider();
@@ -101,9 +102,9 @@ public class AddNodesInBranchCommitWithRecoveryTest {
         int numTestNodes = 100;
         FailingDocumentStore store = new FailingDocumentStore(new MemoryDocumentStore());
         DocumentNodeStore ns = builderProvider.newBuilder()
-                .setDocumentStore(store).setAsyncDelay(0).clock(clock)
-                .setLeaseCheckMode(LeaseCheckMode.DISABLED)
-                .setUpdateLimit(20).build();
+                                              .setDocumentStore(store).setAsyncDelay(0).clock(clock)
+                                              .setLeaseCheckMode(LeaseCheckMode.DISABLED)
+                                              .setUpdateLimit(20).build();
 
         NodeBuilder builder = ns.getRoot().builder();
         NodeBuilder t = builder.child("test").child("tree");
@@ -140,8 +141,8 @@ public class AddNodesInBranchCommitWithRecoveryTest {
         clock.waitUntil(clock.getTime() + TimeUnit.MINUTES.toMillis(2));
 
         ns = builderProvider.newBuilder()
-                .setDocumentStore(store).setAsyncDelay(0).clock(clock)
-                .setUpdateLimit(20).build();
+                            .setDocumentStore(store).setAsyncDelay(0).clock(clock)
+                            .setUpdateLimit(20).build();
         NodeState tree = ns.getRoot().getChildNode("test").getChildNode("tree");
         for (int i = 0; i < numTestNodes; i++) {
             NodeState c = tree.getChildNode("n-" + i).getChildNode("child");
@@ -152,6 +153,7 @@ public class AddNodesInBranchCommitWithRecoveryTest {
     }
 
     interface Callback {
+
         void call(DocumentNodeStore ns) throws Exception;
     }
 

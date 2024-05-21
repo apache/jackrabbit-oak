@@ -16,6 +16,14 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import static org.apache.jackrabbit.JcrConstants.JCR_CONTENT;
+import static org.apache.jackrabbit.JcrConstants.NT_FILE;
+import static org.apache.jackrabbit.JcrConstants.NT_FOLDER;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+
+import java.io.File;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import org.apache.jackrabbit.oak.InitialContentHelper;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
@@ -30,15 +38,6 @@ import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
 
-import java.io.File;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.JcrConstants.JCR_CONTENT;
-import static org.apache.jackrabbit.JcrConstants.NT_FILE;
-import static org.apache.jackrabbit.JcrConstants.NT_FOLDER;
-
 public class LuceneIndexAggregationTest extends IndexAggregationCommonTest {
 
     private final ExecutorService executorService = Executors.newFixedThreadPool(2);
@@ -48,14 +47,15 @@ public class LuceneIndexAggregationTest extends IndexAggregationCommonTest {
     @Override
     protected ContentRepository createRepository() {
         indexOptions = new LuceneIndexOptions();
-        repositoryOptionsUtil = new LuceneTestRepositoryBuilder(executorService, temporaryFolder).build();
+        repositoryOptionsUtil = new LuceneTestRepositoryBuilder(executorService,
+            temporaryFolder).build();
         LowCostLuceneIndexProvider provider = new LowCostLuceneIndexProvider();
         return new Oak(new MemoryNodeStore(InitialContentHelper.INITIAL_CONTENT))
-                .with(new OpenSecurityProvider())
-                .with((QueryIndexProvider) provider.with(getNodeAggregator()))
-                .with((Observer) provider)
-                .with(new LuceneIndexEditorProvider())
-                .createContentRepository();
+            .with(new OpenSecurityProvider())
+            .with((QueryIndexProvider) provider.with(getNodeAggregator()))
+            .with((Observer) provider)
+            .with(new LuceneIndexEditorProvider())
+            .createContentRepository();
     }
 
     /**
@@ -69,8 +69,8 @@ public class LuceneIndexAggregationTest extends IndexAggregationCommonTest {
      */
     private static QueryIndex.NodeAggregator getNodeAggregator() {
         return new SimpleNodeAggregator()
-                .newRuleWithName(NT_FILE, newArrayList(JCR_CONTENT, JCR_CONTENT + "/*"))
-                .newRuleWithName(NT_FOLDER, newArrayList("myFile", "subfolder/subsubfolder/file"));
+            .newRuleWithName(NT_FILE, newArrayList(JCR_CONTENT, JCR_CONTENT + "/*"))
+            .newRuleWithName(NT_FOLDER, newArrayList("myFile", "subfolder/subsubfolder/file"));
     }
 
 }

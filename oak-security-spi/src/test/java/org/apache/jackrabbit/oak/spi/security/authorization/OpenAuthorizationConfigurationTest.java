@@ -16,16 +16,15 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization;
 
-import java.security.Principal;
+import static org.junit.Assert.assertSame;
 
+import java.security.Principal;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.OpenPermissionProvider;
 import org.junit.Test;
 import org.mockito.Mockito;
-
-import static org.junit.Assert.assertSame;
 
 public class OpenAuthorizationConfigurationTest {
 
@@ -43,6 +42,8 @@ public class OpenAuthorizationConfigurationTest {
 
     @Test
     public void testGetPermissionProvider() {
-        assertSame(OpenPermissionProvider.getInstance(), config.getPermissionProvider(Mockito.mock(Root.class), "default", ImmutableSet.<Principal>of()));
+        assertSame(OpenPermissionProvider.getInstance(),
+            config.getPermissionProvider(Mockito.mock(Root.class), "default",
+                ImmutableSet.<Principal>of()));
     }
 }

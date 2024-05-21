@@ -24,17 +24,19 @@ import org.osgi.annotation.versioning.ProviderType;
 
 /**
  * Specifies the options to be used when requesting direct upload URIs via
- * {@link org.apache.jackrabbit.api.JackrabbitValueFactory#initiateBinaryUpload(long, int, BinaryUploadOptions)}.
+ * {@link org.apache.jackrabbit.api.JackrabbitValueFactory#initiateBinaryUpload(long, int,
+ * BinaryUploadOptions)}.
  * <p>
- * To specify upload options, obtain a {@link BinaryUploadOptionsBuilder}
- * via the {@link #builder()} method, then specify the options desired and
- * get the object via {@link BinaryUploadOptionsBuilder#build()}.
+ * To specify upload options, obtain a {@link BinaryUploadOptionsBuilder} via the {@link #builder()}
+ * method, then specify the options desired and get the object via
+ * {@link BinaryUploadOptionsBuilder#build()}.
  * <p>
- * If no options are needed, use {@link BinaryUploadOptions#DEFAULT} which
- * instructs the implementation to use the service provider default behavior.
+ * If no options are needed, use {@link BinaryUploadOptions#DEFAULT} which instructs the
+ * implementation to use the service provider default behavior.
  */
 @ProviderType
 public final class BinaryUploadOptions {
+
     private final boolean domainOverrideIgnore;
 
     private BinaryUploadOptions(boolean domainOverrideIgnore) {
@@ -42,27 +44,26 @@ public final class BinaryUploadOptions {
     }
 
     /**
-     * Provides a default instance of this class.  This instance enforces the
-     * proper default behaviors for the options.
+     * Provides a default instance of this class.  This instance enforces the proper default
+     * behaviors for the options.
      */
     public static final BinaryUploadOptions DEFAULT =
-            BinaryUploadOptions.builder().build();
+        BinaryUploadOptions.builder().build();
 
     /**
-     * Indicates whether the option to ignore any configured domain override
-     * setting has been specified.
+     * Indicates whether the option to ignore any configured domain override setting has been
+     * specified.
      *
-     * @return true if the domain override should be ignored; false otherwise.
-     * The default behavior is {@code false}, meaning that any configured domain
-     * override setting should be honored.
+     * @return true if the domain override should be ignored; false otherwise. The default behavior
+     * is {@code false}, meaning that any configured domain override setting should be honored.
      */
     public boolean isDomainOverrideIgnored() {
         return domainOverrideIgnore;
     }
 
     /**
-     * Returns a {@link BinaryUploadOptionsBuilder} instance to be used for
-     * creating an instance of this class.
+     * Returns a {@link BinaryUploadOptionsBuilder} instance to be used for creating an instance of
+     * this class.
      *
      * @return A builder instance.
      */
@@ -72,25 +73,26 @@ public final class BinaryUploadOptions {
     }
 
     /**
-     * Used to build an instance of {@link BinaryUploadOptions} with the options
-     * set as desired by the caller.
+     * Used to build an instance of {@link BinaryUploadOptions} with the options set as desired by
+     * the caller.
      */
     public static final class BinaryUploadOptionsBuilder {
+
         private boolean domainOverrideIgnore = false;
 
-        private BinaryUploadOptionsBuilder() { }
+        private BinaryUploadOptionsBuilder() {
+        }
 
         /**
          * Sets the option to ignore any configured domain override setting.
+         * <p>
+         * The default value of this option is false, meaning that any configured domain override
+         * setting should be honored when generating signed upload URIs.  Setting this value to true
+         * will indicate that the signed upload URIs being generated should not honor any configured
+         * domain override setting.
          *
-         * The default value of this option is false, meaning that any
-         * configured domain override setting should be honored when generating
-         * signed upload URIs.  Setting this value to true will indicate that
-         * the signed upload URIs being generated should not honor any
-         * configured domain override setting.
-         *
-         * @param domainOverrideIgnore true to ignore any configured domain
-         *                             override setting, false otherwise.
+         * @param domainOverrideIgnore true to ignore any configured domain override setting, false
+         *                             otherwise.
          * @return the calling instance.
          */
         public BinaryUploadOptionsBuilder withDomainOverrideIgnore(boolean domainOverrideIgnore) {
@@ -99,11 +101,11 @@ public final class BinaryUploadOptions {
         }
 
         /**
-         * Construct a {@link BinaryUploadOptions} instance with the
-         * properties specified to the builder.
+         * Construct a {@link BinaryUploadOptions} instance with the properties specified to the
+         * builder.
          *
-         * @return A new {@link BinaryUploadOptions} instance built with the
-         *         properties specified to the builder.
+         * @return A new {@link BinaryUploadOptions} instance built with the properties specified to
+         * the builder.
          */
         public BinaryUploadOptions build() {
             return new BinaryUploadOptions(domainOverrideIgnore);

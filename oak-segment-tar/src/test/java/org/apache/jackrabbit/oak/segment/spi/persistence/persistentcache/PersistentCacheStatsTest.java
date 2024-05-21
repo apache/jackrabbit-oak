@@ -17,9 +17,6 @@
  */
 package org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache;
 
-import org.apache.jackrabbit.oak.commons.Buffer;
-import org.junit.Test;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -28,6 +25,8 @@ import static org.junit.Assert.assertTrue;
 import java.util.HashMap;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
+import org.apache.jackrabbit.oak.commons.Buffer;
+import org.junit.Test;
 
 public class PersistentCacheStatsTest {
 
@@ -44,7 +43,6 @@ public class PersistentCacheStatsTest {
         assertEquals(1, cache.getCacheStats().getHitCount());
         long loadTime = cache.getCacheStats().getTotalLoadTime();
         assertEquals(0, loadTime);
-
 
         //segment not in cache but loaded from remote store
         segment = cache.readSegment(0, 0, () -> Buffer.wrap(new byte[]{0}));
@@ -74,7 +72,7 @@ public class PersistentCacheStatsTest {
         cache1.linkWith(cache2);
 
         //segment not in either cache
-        Buffer segment = cache1.readSegment(0 ,0, () -> null);
+        Buffer segment = cache1.readSegment(0, 0, () -> null);
 
         assertNull(segment);
         assertEquals(1, cache1.getCacheStats().getMissCount());
@@ -88,7 +86,7 @@ public class PersistentCacheStatsTest {
 
         //segment in first cache
         cache1.writeSegment(1, 1, Buffer.wrap(new byte[]{1}));
-        segment = cache1.readSegment(1 ,1, () -> null);
+        segment = cache1.readSegment(1, 1, () -> null);
 
         assertNotNull(segment);
         assertEquals(1, cache1.getCacheStats().getMissCount());
@@ -102,7 +100,7 @@ public class PersistentCacheStatsTest {
 
         //segment in second cache
         cache2.writeSegment(2, 2, Buffer.wrap(new byte[]{2}));
-        segment = cache1.readSegment(2 ,2, () -> null);
+        segment = cache1.readSegment(2, 2, () -> null);
 
         assertNotNull(segment);
         assertEquals(2, cache1.getCacheStats().getMissCount());
@@ -115,7 +113,7 @@ public class PersistentCacheStatsTest {
         assertEquals(0, cache2.segmentCacheStats.getLoadExceptionCount());
 
         //segment loaded from the remote storage
-        segment = cache1.readSegment(3 ,3, () -> Buffer.wrap(new byte[]{3}));
+        segment = cache1.readSegment(3, 3, () -> Buffer.wrap(new byte[]{3}));
 
         assertNotNull(segment);
         assertEquals(3, cache1.getCacheStats().getMissCount());
@@ -128,7 +126,7 @@ public class PersistentCacheStatsTest {
         assertEquals(0, cache2.segmentCacheStats.getLoadExceptionCount());
 
         //exception while loading segment from the remote storage
-        segment = cache1.readSegment(4 ,4, () -> {
+        segment = cache1.readSegment(4, 4, () -> {
             throw new Exception();
         });
 
@@ -143,14 +141,14 @@ public class PersistentCacheStatsTest {
         assertEquals(1, cache2.segmentCacheStats.getLoadExceptionCount());
 
         //linked cache throws exception
-        cache2 = new PersistentCacheImpl(){
+        cache2 = new PersistentCacheImpl() {
             @Override
             protected Buffer readSegmentInternal(long msb, long lsb) {
                 throw new RuntimeException();
             }
         };
         cache1.linkWith(cache2);
-        segment = cache1.readSegment(5 ,5, () -> Buffer.wrap(new byte[]{5}));
+        segment = cache1.readSegment(5, 5, () -> Buffer.wrap(new byte[]{5}));
 
         assertNull(segment);
         assertEquals(5, cache1.getCacheStats().getMissCount());
@@ -167,10 +165,12 @@ public class PersistentCacheStatsTest {
     }
 
     class PersistentCacheImpl extends AbstractPersistentCache {
+
         HashMap<UUID, Buffer> segments = new HashMap<>();
 
         public PersistentCacheImpl() {
-            segmentCacheStats = new SegmentCacheStats("stats", () -> maximumWeight, () -> elementCount.get(), () -> currentWeight.get(), () -> evictionCount.get());
+            segmentCacheStats = new SegmentCacheStats("stats", () -> maximumWeight,
+                () -> elementCount.get(), () -> currentWeight.get(), () -> evictionCount.get());
         }
 
         long maximumWeight = Long.MAX_VALUE;
@@ -179,7 +179,8 @@ public class PersistentCacheStatsTest {
         AtomicLong evictionCount = new AtomicLong();
 
         void AbstractPersistentCache() {
-            segmentCacheStats = new SegmentCacheStats("stats", () -> maximumWeight, () -> elementCount.get(), () -> currentWeight.get(), () -> evictionCount.get());
+            segmentCacheStats = new SegmentCacheStats("stats", () -> maximumWeight,
+                () -> elementCount.get(), () -> currentWeight.get(), () -> evictionCount.get());
         }
 
         @Override

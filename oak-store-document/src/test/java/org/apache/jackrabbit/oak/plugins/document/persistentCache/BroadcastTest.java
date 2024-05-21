@@ -49,19 +49,20 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.ConsoleAppender;
 
 public class BroadcastTest {
-    
+
     public static void main(String... args) throws Exception {
         listen();
         benchmark();
     }
-    
+
     private static void benchmark() throws IOException {
         FileUtils.deleteDirectory(new File("target/broadcastTest"));
-        new File("target/broadcastTest").mkdirs();     
+        new File("target/broadcastTest").mkdirs();
         String type = "tcp:key 1;ports 9700 9800";
         ArrayList<PersistentCache> nodeList = new ArrayList<PersistentCache>();
         for (int nodes = 1; nodes < 20; nodes++) {
-            PersistentCache pc = new PersistentCache("target/broadcastTest/p" + nodes + ",broadcast=" + type);
+            PersistentCache pc = new PersistentCache(
+                "target/broadcastTest/p" + nodes + ",broadcast=" + type);
             Cache<Key, StringValue> cache = openCache(pc);
             Path key = Path.fromString("/test" + Math.random());
             RevisionVector from = RevisionVector.fromString("r1-0-1");
@@ -81,11 +82,10 @@ public class BroadcastTest {
             c.close();
         }
     }
-    
+
     private static void listen() throws InterruptedException {
         String config = "key 123";
 
-        
         ConsoleAppender<ILoggingEvent> ca = new ConsoleAppender<ILoggingEvent>();
         LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
         ca.setContext(lc);
@@ -95,11 +95,12 @@ public class BroadcastTest {
         pl.start();
         ca.setLayout(pl);
         ca.start();
-        
-        ch.qos.logback.classic.Logger logger = (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(TCPBroadcaster.class);
+
+        ch.qos.logback.classic.Logger logger = (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(
+            TCPBroadcaster.class);
         logger.addAppender(ca);
         logger.setLevel(Level.DEBUG);
-        
+
         TCPBroadcaster receiver = new TCPBroadcaster(config);
         receiver.addListener(new Broadcaster.Listener() {
 
@@ -117,11 +118,12 @@ public class BroadcastTest {
                         sb.append('.');
                     }
                 }
-                String dateTime = new Timestamp(System.currentTimeMillis()).toString().substring(0, 19);
+                String dateTime = new Timestamp(System.currentTimeMillis()).toString()
+                                                                           .substring(0, 19);
                 System.out.println(dateTime + " Received " + sb);
                 buff.position(end);
             }
-            
+
         });
         Random r = new Random();
         int x = r.nextInt();
@@ -141,7 +143,7 @@ public class BroadcastTest {
         }
         Thread.sleep(Integer.MAX_VALUE);
     }
-    
+
     @Test
     @Ignore("OAK-5782")
     public void broadcastTCP() throws Exception {
@@ -152,7 +154,7 @@ public class BroadcastTest {
     public void broadcastInMemory() throws Exception {
         broadcast("inMemory", 100);
     }
-    
+
     @Test
     @Ignore("OAK-2843")
     public void broadcastUDP() throws Exception {
@@ -161,13 +163,13 @@ public class BroadcastTest {
         } catch (AssertionError e) {
             // IPv6 didn't work, so try with IPv4
             try {
-                broadcast("udp:group 228.6.7.9", 50);                
+                broadcast("udp:group 228.6.7.9", 50);
             } catch (AssertionError e2) {
                 throwBoth(e, e2);
-            }                
+            }
         }
     }
-    
+
     @Test
     @Ignore("OAK-2843")
     public void broadcastEncryptedUDP() throws Exception {
@@ -175,13 +177,13 @@ public class BroadcastTest {
             broadcast("udp:group FF78:230::1234;key test;port 9876;sendTo localhost;aes", 50);
         } catch (AssertionError e) {
             try {
-                broadcast("udp:group 228.6.7.9;key test;port 9876;aes", 50);                
+                broadcast("udp:group 228.6.7.9;key test;port 9876;aes", 50);
             } catch (AssertionError e2) {
                 throwBoth(e, e2);
-            }                
+            }
         }
     }
-    
+
     private static void throwBoth(AssertionError e, AssertionError e2) throws AssertionError {
         Throwable ex = e;
         while (ex.getCause() != null) {
@@ -192,7 +194,7 @@ public class BroadcastTest {
     }
 
     private static void broadcast(String type, int minPercentCorrect)
-            throws Exception {
+        throws Exception {
         for (int i = 0; i < 20; i++) {
             if (broadcastTry(type, minPercentCorrect, true)) {
                 return;
@@ -200,10 +202,11 @@ public class BroadcastTest {
         }
         broadcastTry(type, minPercentCorrect, false);
     }
-    
-    private static boolean broadcastTry(String type, int minPercentCorrect, boolean tryOnly) throws Exception {
+
+    private static boolean broadcastTry(String type, int minPercentCorrect, boolean tryOnly)
+        throws Exception {
         FileUtils.deleteDirectory(new File("target/broadcastTest"));
-        new File("target/broadcastTest").mkdirs();        
+        new File("target/broadcastTest").mkdirs();
         PersistentCache p1 = new PersistentCache("target/broadcastTest/p1,broadcast=" + type);
         PersistentCache p2 = new PersistentCache("target/broadcastTest/p2,broadcast=" + type);
         Cache<Key, StringValue> c1 = openCache(p1);
@@ -239,7 +242,7 @@ public class BroadcastTest {
         Assert.fail("min: " + minPercentCorrect + " got: " + correct);
         return false;
     }
-    
+
     private static boolean waitFor(Callable<Boolean> call, int timeoutInMilliseconds) {
         long start = System.currentTimeMillis();
         while (true) {
@@ -261,21 +264,23 @@ public class BroadcastTest {
             }
         }
     }
-    
-    private static <K, V> boolean waitFor(final Cache<K, V> map, final K key, final V value, int timeoutInMilliseconds) {
+
+    private static <K, V> boolean waitFor(final Cache<K, V> map, final K key, final V value,
+        int timeoutInMilliseconds) {
         return waitFor(new Callable<Boolean>() {
             @Override
             public Boolean call() {
                 V v = map.getIfPresent(key);
                 if (value == null) {
-                    return  v == null;
-                } 
+                    return v == null;
+                }
                 return value.equals(v);
             }
         }, timeoutInMilliseconds);
     }
-    
-    private static <K, V> boolean waitFor(final Cache<K, V> map, final K key, int timeoutInMilliseconds) {
+
+    private static <K, V> boolean waitFor(final Cache<K, V> map, final K key,
+        int timeoutInMilliseconds) {
         return waitFor(new Callable<Boolean>() {
             @Override
             public Boolean call() throws Exception {
@@ -283,11 +288,11 @@ public class BroadcastTest {
             }
         }, timeoutInMilliseconds);
     }
-    
+
     private static Cache<Key, StringValue> openCache(PersistentCache p) {
         CacheLIRS<Key, StringValue> cache = new CacheLIRS.Builder<Key, StringValue>().
-                maximumSize(1).build();
-        return p.wrap(null,  null,  cache, CacheType.DIFF);        
+            maximumSize(1).build();
+        return p.wrap(null, null, cache, CacheType.DIFF);
     }
 
 }

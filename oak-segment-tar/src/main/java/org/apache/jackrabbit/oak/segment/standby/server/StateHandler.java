@@ -21,8 +21,7 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 
 /**
- * Tracks the state of the communication pipeline and communicates it to an
- * external consumer.
+ * Tracks the state of the communication pipeline and communicates it to an external consumer.
  */
 class StateHandler extends ChannelInboundHandlerAdapter {
 

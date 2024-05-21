@@ -19,15 +19,14 @@ package org.apache.jackrabbit.oak.plugins.document.persistentCache;
 import static org.apache.jackrabbit.oak.plugins.document.persistentCache.DataTypeUtil.cast;
 
 import java.nio.ByteBuffer;
-
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.h2.mvstore.WriteBuffer;
 import org.h2.mvstore.type.DataType;
 
 public class KeyDataType implements DataType<Object> {
-    
+
     private final CacheType type;
-    
+
     public KeyDataType(CacheType type) {
         this.type = type;
     }

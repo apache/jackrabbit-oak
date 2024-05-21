@@ -16,8 +16,8 @@
  */
 
 /**
- * This package contains classes and interfaces which define different refresh policies for indices.
+ * This package contains classes and interfaces which define different refresh policies for
+ * indices.
  */
 package org.apache.jackrabbit.oak.plugins.index.search.update;
 
-import org.osgi.annotation.versioning.Version;

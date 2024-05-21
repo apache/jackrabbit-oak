@@ -29,7 +29,8 @@ import javax.jcr.Session;
  */
 public class ConcurrentReadRandomNodeAndItsPropertiesTest extends ReadDeepTreeTest {
 
-    public ConcurrentReadRandomNodeAndItsPropertiesTest(boolean runAsAdmin, int itemsToRead, boolean doReport) {
+    public ConcurrentReadRandomNodeAndItsPropertiesTest(boolean runAsAdmin, int itemsToRead,
+        boolean doReport) {
         super(runAsAdmin, itemsToRead, doReport);
     }
 
@@ -37,7 +38,8 @@ public class ConcurrentReadRandomNodeAndItsPropertiesTest extends ReadDeepTreeTe
         // don't remember property paths
     }
 
-    protected void randomRead(Session testSession, List<String> allPaths, int cnt) throws RepositoryException {
+    protected void randomRead(Session testSession, List<String> allPaths, int cnt)
+        throws RepositoryException {
         boolean logout = false;
         if (testSession == null) {
             testSession = getTestSession();
@@ -67,7 +69,10 @@ public class ConcurrentReadRandomNodeAndItsPropertiesTest extends ReadDeepTreeTe
             }
             long end = System.currentTimeMillis();
             if (doReport) {
-                System.out.println("Session " + testSession.getUserID() + " reading " + (cnt-noAccess) + " (Nodes: "+ nodeCnt +"; Properties: "+propertyCnt+") completed in " + (end - start));
+                System.out.println(
+                    "Session " + testSession.getUserID() + " reading " + (cnt - noAccess)
+                        + " (Nodes: " + nodeCnt + "; Properties: " + propertyCnt + ") completed in "
+                        + (end - start));
             }
         } finally {
             if (logout) {

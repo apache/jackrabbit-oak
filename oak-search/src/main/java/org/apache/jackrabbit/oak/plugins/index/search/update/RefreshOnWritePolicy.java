@@ -23,10 +23,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Policy which performs immediate refresh upon completion of writes.
- *
+ * <p>
  * This is the default policy for synchronous indexes.
  */
 public class RefreshOnWritePolicy implements ReaderRefreshPolicy, IndexUpdateListener {
+
     private final AtomicBoolean dirty = new AtomicBoolean();
 
     @Override

@@ -19,8 +19,9 @@
 
 package org.apache.jackrabbit.oak.plugins.index.property;
 
-import java.io.IOException;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 
+import java.io.IOException;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexInfo;
 import org.apache.jackrabbit.oak.plugins.index.IndexInfoProvider;
@@ -31,8 +32,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 
 @Component
 public class PropertyIndexInfoProvider implements IndexInfoProvider {

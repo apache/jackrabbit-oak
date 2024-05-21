@@ -31,11 +31,10 @@ import java.util.logging.Logger;
 import javax.sql.DataSource;
 
 /**
- * A wrapper for {@link DataSource} that offers logging of various
- * operations.
+ * A wrapper for {@link DataSource} that offers logging of various operations.
  * <p>
- * Note that the implementations currently focus on method invocations done
- * by {@link RDBDocumentStore} and thus may not be applicable for other use cases.
+ * Note that the implementations currently focus on method invocations done by
+ * {@link RDBDocumentStore} and thus may not be applicable for other use cases.
  */
 public class RDBDataSourceWrapper implements DataSource, Closeable {
 
@@ -54,7 +53,7 @@ public class RDBDataSourceWrapper implements DataSource, Closeable {
 
     private final DataSource ds;
     private boolean batchResultPrecise = true;
-    private boolean failAlterTableAddColumnStatements = false; 
+    private boolean failAlterTableAddColumnStatements = false;
     private String temporaryCommitException = null;
     private String temporaryUpdateException = null;
 
@@ -89,7 +88,8 @@ public class RDBDataSourceWrapper implements DataSource, Closeable {
     }
 
     /**
-     * Set to {@code false} to simulate drivers/DBs that do not return the number of affected rows in {@link Statement#executeBatch()}.
+     * Set to {@code false} to simulate drivers/DBs that do not return the number of affected rows
+     * in {@link Statement#executeBatch()}.
      */
     public void setBatchResultPrecise(boolean precise) {
         this.batchResultPrecise = precise;

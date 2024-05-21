@@ -19,15 +19,15 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
-import java.util.List;
-
-import org.apache.jackrabbit.oak.commons.StringUtils;
-
 import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
 import static org.apache.jackrabbit.guava.common.collect.ImmutableList.copyOf;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 
+import java.util.List;
+import org.apache.jackrabbit.oak.commons.StringUtils;
+
 class StateInBytesHolder implements NodeStateHolder {
+
     private final List<String> pathElements;
     private final byte[] content;
 

@@ -32,7 +32,6 @@ import javax.jcr.version.Version;
 import javax.jcr.version.VersionException;
 import javax.jcr.version.VersionHistory;
 import javax.jcr.version.VersionIterator;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.spi.version.VersionConstants;
@@ -100,7 +99,8 @@ public class CopyTest extends AbstractRepositoryTest {
     public void testCopyReferenceableChildNode() throws Exception {
         Session session = getAdminSession();
 
-        session.getNode(TEST_PATH + "/source/node").addNode("child").addMixin(JcrConstants.MIX_REFERENCEABLE);
+        session.getNode(TEST_PATH + "/source/node").addNode("child")
+               .addMixin(JcrConstants.MIX_REFERENCEABLE);
         session.save();
 
         session.getWorkspace().copy(TEST_PATH + "/source/node", TEST_PATH + "/target/copied");
@@ -195,14 +195,16 @@ public class CopyTest extends AbstractRepositoryTest {
     @Test
     public void testCopyLockedNode() throws Exception {
 
-        assumeTrue(getRepository().getDescriptorValue(Repository.OPTION_LOCKING_SUPPORTED).getBoolean());
+        assumeTrue(
+            getRepository().getDescriptorValue(Repository.OPTION_LOCKING_SUPPORTED).getBoolean());
 
         Session session = getAdminSession();
         Node toCopy = session.getNode(TEST_PATH + "/source/node");
         toCopy.addMixin(JcrConstants.MIX_LOCKABLE);
         session.save();
 
-        session.getWorkspace().getLockManager().lock(toCopy.getPath(), true, true, Long.MAX_VALUE, "my");
+        session.getWorkspace().getLockManager()
+               .lock(toCopy.getPath(), true, true, Long.MAX_VALUE, "my");
         assertTrue(toCopy.isLocked());
         assertTrue(toCopy.hasProperty(JcrConstants.JCR_LOCKISDEEP));
         assertTrue(toCopy.hasProperty(JcrConstants.JCR_LOCKOWNER));

@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.scalability.benchmarks.search;
 
 import java.util.Calendar;
 import java.util.TimeZone;
-
 import javax.jcr.Node;
 import javax.jcr.Property;
 import javax.jcr.RepositoryException;
@@ -28,16 +27,16 @@ import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
 import javax.jcr.query.QueryResult;
 import javax.jcr.query.RowIterator;
-import org.apache.jackrabbit.oak.scalability.suites.ScalabilityNodeSuite;
 import org.apache.jackrabbit.oak.scalability.suites.ScalabilityAbstractSuite.ExecutionContext;
+import org.apache.jackrabbit.oak.scalability.suites.ScalabilityNodeSuite;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Abstract class which defines utility methods for processing results like 
- * pagination and no pagination. 
- *
+ * Abstract class which defines utility methods for processing results like pagination and no
+ * pagination.
  */
 public abstract class PaginationEnabledSearcher extends SearchScalabilityBenchmark {
+
     /**
      * Pagination limit for one page
      */
@@ -51,7 +50,7 @@ public abstract class PaginationEnabledSearcher extends SearchScalabilityBenchma
     protected static final String KEYSET_VAL_PROP = "keysetval";
 
     protected void processResultsOffsetPagination(@NotNull final QueryManager qm,
-            ExecutionContext context) throws RepositoryException {
+        ExecutionContext context) throws RepositoryException {
         for (int page = 0; page < PAGES; page++) {
             Query query = getQuery(qm, context);
             query.setLimit(LIMIT);
@@ -74,7 +73,7 @@ public abstract class PaginationEnabledSearcher extends SearchScalabilityBenchma
     }
 
     protected void processResultsKeysetPagination(@NotNull final QueryManager qm,
-            ExecutionContext context) throws RepositoryException {
+        ExecutionContext context) throws RepositoryException {
         Calendar now = Calendar.getInstance();
         now.setTimeZone(TimeZone.getTimeZone("GMT"));
         context.getMap().put(KEYSET_VAL_PROP, now);
@@ -86,7 +85,7 @@ public abstract class PaginationEnabledSearcher extends SearchScalabilityBenchma
             Node lastNode = iterate(query);
             if (lastNode != null) {
                 Property prop =
-                        lastNode.getProperty(ScalabilityNodeSuite.CTX_PAGINATION_KEY_PROP);
+                    lastNode.getProperty(ScalabilityNodeSuite.CTX_PAGINATION_KEY_PROP);
                 context.getMap().put(KEYSET_VAL_PROP, prop.getDate());
             }
         }

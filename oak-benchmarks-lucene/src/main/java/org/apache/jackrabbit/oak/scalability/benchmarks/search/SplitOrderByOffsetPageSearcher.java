@@ -18,15 +18,16 @@
  */
 package org.apache.jackrabbit.oak.scalability.benchmarks.search;
 
-import org.apache.jackrabbit.oak.scalability.suites.ScalabilityAbstractSuite.ExecutionContext;
-
 import javax.jcr.RepositoryException;
 import javax.jcr.query.QueryManager;
+import org.apache.jackrabbit.oak.scalability.suites.ScalabilityAbstractSuite.ExecutionContext;
 
 /**
- * Simulates offset pagination over the search {@link org.apache.jackrabbit.oak.scalability.benchmarks.search.SplitOrderBySearcher}
+ * Simulates offset pagination over the search
+ * {@link org.apache.jackrabbit.oak.scalability.benchmarks.search.SplitOrderBySearcher}
  */
 public class SplitOrderByOffsetPageSearcher extends SplitOrderBySearcher {
+
     @Override
     protected void search(QueryManager qm, ExecutionContext context) throws RepositoryException {
         searchCommon(qm, context);

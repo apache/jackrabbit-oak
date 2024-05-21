@@ -19,10 +19,10 @@
 
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
+import static java.util.Collections.emptyList;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.concat;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
-import static java.util.Collections.emptyList;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.Document.ID;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.DELETED_ONCE;
@@ -30,17 +30,26 @@ import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_I
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.PATH;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SD_MAX_REV_TIME_IN_SECS;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SD_TYPE;
-import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.getModifiedInSecs;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType.DEFAULT_NO_BRANCH;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.getModifiedInSecs;
 import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoUtils.hasIndex;
 
+import com.mongodb.BasicDBObject;
+import com.mongodb.Block;
+import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.model.Filters;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
-
+import org.apache.jackrabbit.guava.common.base.Function;
+import org.apache.jackrabbit.guava.common.base.Joiner;
+import org.apache.jackrabbit.guava.common.base.Predicate;
+import org.apache.jackrabbit.guava.common.base.StandardSystemProperty;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType;
@@ -58,20 +67,9 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.base.Function;
-import org.apache.jackrabbit.guava.common.base.Joiner;
-import org.apache.jackrabbit.guava.common.base.Predicate;
-import org.apache.jackrabbit.guava.common.base.StandardSystemProperty;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import com.mongodb.BasicDBObject;
-import com.mongodb.Block;
-import com.mongodb.client.FindIterable;
-import com.mongodb.client.MongoCollection;
-import com.mongodb.client.model.Filters;
-
 /**
- * Mongo specific version of VersionGCSupport which uses mongo queries
- * to fetch required NodeDocuments
+ * Mongo specific version of VersionGCSupport which uses mongo queries to fetch required
+ * NodeDocuments
  *
  * <p>Version collection involves looking into old record and mostly unmodified
  * documents. In such case read from secondaries are preferred</p>
@@ -84,21 +82,23 @@ public class MongoVersionGCSupport extends VersionGCSupport {
 
     private final BasicDBObject hint;
 
-    /** keeps track of the sweepRev of the last (successful) deletion */
+    /**
+     * keeps track of the sweepRev of the last (successful) deletion
+     */
     private RevisionVector lastDefaultNoBranchDeletionRevs;
 
     /**
      * The batch size for the query of possibly deleted docs.
      */
     private final int batchSize = Integer.getInteger(
-            "oak.mongo.queryDeletedDocsBatchSize", 1000);
+        "oak.mongo.queryDeletedDocsBatchSize", 1000);
 
     public MongoVersionGCSupport(MongoDocumentStore store) {
         super(store);
         this.store = store;
-        if(hasIndex(getNodeCollection(), SD_TYPE, SD_MAX_REV_TIME_IN_SECS)) {
+        if (hasIndex(getNodeCollection(), SD_TYPE, SD_MAX_REV_TIME_IN_SECS)) {
             hint = new BasicDBObject();
-            hint.put(SD_TYPE,1);
+            hint.put(SD_TYPE, 1);
             hint.put(SD_MAX_REV_TIME_IN_SECS, 1);
         } else {
             hint = null;
@@ -106,18 +106,19 @@ public class MongoVersionGCSupport extends VersionGCSupport {
     }
 
     @Override
-    public CloseableIterable<NodeDocument> getPossiblyDeletedDocs(final long fromModified, final long toModified) {
+    public CloseableIterable<NodeDocument> getPossiblyDeletedDocs(final long fromModified,
+        final long toModified) {
         //_deletedOnce == true && _modified >= fromModified && _modified < toModified
         Bson query = Filters.and(
-                Filters.eq(DELETED_ONCE, true),
-                Filters.gte(MODIFIED_IN_SECS, getModifiedInSecs(fromModified)),
-                Filters.lt(MODIFIED_IN_SECS, getModifiedInSecs(toModified))
+            Filters.eq(DELETED_ONCE, true),
+            Filters.gte(MODIFIED_IN_SECS, getModifiedInSecs(fromModified)),
+            Filters.lt(MODIFIED_IN_SECS, getModifiedInSecs(toModified))
         );
         FindIterable<BasicDBObject> cursor = getNodeCollection()
-                .find(query).batchSize(batchSize);
+            .find(query).batchSize(batchSize);
 
         return CloseableIterable.wrap(transform(cursor,
-                input -> store.convertFromDBObject(NODES, input)));
+            input -> store.convertFromDBObject(NODES, input)));
     }
 
     @Override
@@ -128,16 +129,16 @@ public class MongoVersionGCSupport extends VersionGCSupport {
 
     @Override
     protected SplitDocumentCleanUp createCleanUp(Set<SplitDocType> gcTypes,
-                                                 RevisionVector sweepRevs,
-                                                 long oldestRevTimeStamp,
-                                                 VersionGCStats stats) {
+        RevisionVector sweepRevs,
+        long oldestRevTimeStamp,
+        VersionGCStats stats) {
         return new MongoSplitDocCleanUp(gcTypes, sweepRevs, oldestRevTimeStamp, stats);
     }
 
     @Override
     protected Iterable<NodeDocument> identifyGarbage(final Set<SplitDocType> gcTypes,
-                                                     final RevisionVector sweepRevs,
-                                                     final long oldestRevTimeStamp) {
+        final RevisionVector sweepRevs,
+        final long oldestRevTimeStamp) {
         // With OAK-8351 this switched from 1 to 2 queries (see createQueries)
         // hence we iterate over the queries returned by createQueries
         List<Bson> queries = createQueries(gcTypes, sweepRevs, oldestRevTimeStamp);
@@ -147,17 +148,19 @@ public class MongoVersionGCSupport extends VersionGCSupport {
             // this query uses a timeout of 15min. hitting the timeout will
             // result in an exception which should show up in the log file.
             // while this doesn't resolve the situation (the restructuring
-            // of the query as part of OAK-8351 does), it nevertheless 
+            // of the query as part of OAK-8351 does), it nevertheless
             // makes any future similar problem more visible than long running
             // queries alone (15min is still long).
             Iterable<NodeDocument> iterable = filter(transform(getNodeCollection().find(query)
-                    .maxTime(15, TimeUnit.MINUTES).hint(hint),
-                    new Function<BasicDBObject, NodeDocument>() {
-                @Override
-                public NodeDocument apply(BasicDBObject input) {
-                    return store.convertFromDBObject(NODES, input);
-                }
-            }), new Predicate<NodeDocument>() {
+                                                                                  .maxTime(15,
+                                                                                      TimeUnit.MINUTES)
+                                                                                  .hint(hint),
+                new Function<BasicDBObject, NodeDocument>() {
+                    @Override
+                    public NodeDocument apply(BasicDBObject input) {
+                        return store.convertFromDBObject(NODES, input);
+                    }
+                }), new Predicate<NodeDocument>() {
                 @Override
                 public boolean apply(NodeDocument input) {
                     return !isDefaultNoBranchSplitNewerThan(input, sweepRevs);
@@ -175,17 +178,18 @@ public class MongoVersionGCSupport extends VersionGCSupport {
         Bson sort = Filters.eq(MODIFIED_IN_SECS, 1);
         List<Long> result = new ArrayList<>(1);
         getNodeCollection().find(query).sort(sort).limit(1).forEach(
-                new Block<BasicDBObject>() {
-            @Override
-            public void apply(BasicDBObject document) {
-                NodeDocument doc = store.convertFromDBObject(NODES, document);
-                long modifiedMs = doc.getModified() * TimeUnit.SECONDS.toMillis(1);
-                if (LOG.isDebugEnabled()) {
-                    LOG.debug("getOldestDeletedOnceTimestamp() -> {}", Utils.timestampToString(modifiedMs));
+            new Block<BasicDBObject>() {
+                @Override
+                public void apply(BasicDBObject document) {
+                    NodeDocument doc = store.convertFromDBObject(NODES, document);
+                    long modifiedMs = doc.getModified() * TimeUnit.SECONDS.toMillis(1);
+                    if (LOG.isDebugEnabled()) {
+                        LOG.debug("getOldestDeletedOnceTimestamp() -> {}",
+                            Utils.timestampToString(modifiedMs));
+                    }
+                    result.add(modifiedMs);
                 }
-                result.add(modifiedMs);
-            }
-        });
+            });
         if (result.isEmpty()) {
             LOG.debug("getOldestDeletedOnceTimestamp() -> none found, return current time");
             result.add(clock.getTime());
@@ -194,23 +198,24 @@ public class MongoVersionGCSupport extends VersionGCSupport {
     }
 
     private List<Bson> createQueries(Set<SplitDocType> gcTypes,
-                                 RevisionVector sweepRevs,
-                                 long oldestRevTimeStamp) {
+        RevisionVector sweepRevs,
+        long oldestRevTimeStamp) {
         List<Bson> result = Lists.newArrayList();
         List<Bson> orClauses = Lists.newArrayList();
-        for(SplitDocType type : gcTypes) {
+        for (SplitDocType type : gcTypes) {
             if (DEFAULT_NO_BRANCH != type) {
                 orClauses.add(Filters.eq(SD_TYPE, type.typeCode()));
             } else {
-                result.addAll(queriesForDefaultNoBranch(sweepRevs, getModifiedInSecs(oldestRevTimeStamp)));
+                result.addAll(
+                    queriesForDefaultNoBranch(sweepRevs, getModifiedInSecs(oldestRevTimeStamp)));
             }
         }
         // OAK-8351: this (last) query only contains SD_TYPE and SD_MAX_REV_TIME_IN_SECS
         // so mongodb should really use that _sdType_1__sdMaxRevTime_1 index
         result.add(Filters.and(
-                Filters.or(orClauses),
-                Filters.lt(SD_MAX_REV_TIME_IN_SECS, getModifiedInSecs(oldestRevTimeStamp))
-                ));
+            Filters.or(orClauses),
+            Filters.lt(SD_MAX_REV_TIME_IN_SECS, getModifiedInSecs(oldestRevTimeStamp))
+        ));
 
         return result;
     }
@@ -238,20 +243,21 @@ public class MongoVersionGCSupport extends VersionGCSupport {
 
             // id/path constraint for previous documents
             Bson idPathClause = Filters.or(
-                    Filters.regex(ID, Pattern.compile(".*" + idSuffix)),
-                    // previous documents with long paths do not have a '-' in the id
-                    Filters.and(
-                            Filters.regex(ID, Pattern.compile("[^-]*")),
-                            Filters.regex(PATH, Pattern.compile(".*" + idSuffix))
-                    )
+                Filters.regex(ID, Pattern.compile(".*" + idSuffix)),
+                // previous documents with long paths do not have a '-' in the id
+                Filters.and(
+                    Filters.regex(ID, Pattern.compile("[^-]*")),
+                    Filters.regex(PATH, Pattern.compile(".*" + idSuffix))
+                )
             );
 
-            long minMaxRevTimeInSecs = Math.min(maxRevTimeInSecs, getModifiedInSecs(r.getTimestamp()));
+            long minMaxRevTimeInSecs = Math.min(maxRevTimeInSecs,
+                getModifiedInSecs(r.getTimestamp()));
             result.add(Filters.and(
-                    Filters.eq(SD_TYPE, DEFAULT_NO_BRANCH.typeCode()),
-                    Filters.lt(SD_MAX_REV_TIME_IN_SECS, minMaxRevTimeInSecs),
-                    idPathClause
-                    ));
+                Filters.eq(SD_TYPE, DEFAULT_NO_BRANCH.typeCode()),
+                Filters.lt(SD_MAX_REV_TIME_IN_SECS, minMaxRevTimeInSecs),
+                idPathClause
+            ));
         }
         return result;
     }
@@ -261,11 +267,12 @@ public class MongoVersionGCSupport extends VersionGCSupport {
         final BasicDBObject keys = new BasicDBObject(Document.ID, 1);
         List<String> ids = new ArrayList<>();
         getNodeCollection()
-                .withReadPreference(store.getConfiguredReadPreference(NODES))
-                .find(query).projection(keys)
-                .forEach((Block<BasicDBObject>) doc -> ids.add(getID(doc)));
+            .withReadPreference(store.getConfiguredReadPreference(NODES))
+            .find(query).projection(keys)
+            .forEach((Block<BasicDBObject>) doc -> ids.add(getID(doc)));
 
-        StringBuilder sb = new StringBuilder("Split documents with following ids were deleted as part of GC \n");
+        StringBuilder sb = new StringBuilder(
+            "Split documents with following ids were deleted as part of GC \n");
         Joiner.on(StandardSystemProperty.LINE_SEPARATOR.value()).appendTo(sb, ids);
         LOG.debug(sb.toString());
     }
@@ -274,7 +281,7 @@ public class MongoVersionGCSupport extends VersionGCSupport {
         return String.valueOf(document.get(Document.ID));
     }
 
-    private MongoCollection<BasicDBObject> getNodeCollection(){
+    private MongoCollection<BasicDBObject> getNodeCollection() {
         return store.getDBCollection(NODES);
     }
 
@@ -285,11 +292,11 @@ public class MongoVersionGCSupport extends VersionGCSupport {
         final long oldestRevTimeStamp;
 
         MongoSplitDocCleanUp(Set<SplitDocType> gcTypes,
-                                       RevisionVector sweepRevs,
-                                       long oldestRevTimeStamp,
-                                       VersionGCStats stats) {
+            RevisionVector sweepRevs,
+            long oldestRevTimeStamp,
+            VersionGCStats stats) {
             super(MongoVersionGCSupport.this.store, stats,
-                    identifyGarbage(gcTypes, sweepRevs, oldestRevTimeStamp));
+                identifyGarbage(gcTypes, sweepRevs, oldestRevTimeStamp));
             this.gcTypes = gcTypes;
             this.sweepRevs = sweepRevs;
             this.oldestRevTimeStamp = oldestRevTimeStamp;
@@ -304,7 +311,7 @@ public class MongoVersionGCSupport extends VersionGCSupport {
         protected int deleteSplitDocuments() {
             List<Bson> queries = createQueries(gcTypes, sweepRevs, oldestRevTimeStamp);
 
-            if(LOG.isDebugEnabled()){
+            if (LOG.isDebugEnabled()) {
                 //if debug level logging is on then determine the id of documents to be deleted
                 //and log them
                 for (Bson query : queries) {
@@ -327,7 +334,8 @@ public class MongoVersionGCSupport extends VersionGCSupport {
                     deletionRevs.add(new Revision(oldestRevTimeStamp, 0, r.getClusterId()));
                 }
             }
-            MongoVersionGCSupport.this.lastDefaultNoBranchDeletionRevs = new RevisionVector(deletionRevs);
+            MongoVersionGCSupport.this.lastDefaultNoBranchDeletionRevs = new RevisionVector(
+                deletionRevs);
             return cnt;
         }
     }

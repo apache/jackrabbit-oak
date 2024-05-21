@@ -32,11 +32,12 @@ public class UnboundLookupConnectionValidator implements LdapConnectionValidator
     /**
      * default logger
      */
-    private static final Logger log = LoggerFactory.getLogger(UnboundLookupConnectionValidator.class);
+    private static final Logger log = LoggerFactory.getLogger(
+        UnboundLookupConnectionValidator.class);
 
     /**
-     * Returns true if {@code connection} is connected, authenticated, and
-     * a lookup on the rootDSE returns a non-null response.
+     * Returns true if {@code connection} is connected, authenticated, and a lookup on the rootDSE
+     * returns a non-null response.
      *
      * @param connection The connection to validate
      * @return True, if the connection is still valid
@@ -44,7 +45,7 @@ public class UnboundLookupConnectionValidator implements LdapConnectionValidator
     public boolean validate(LdapConnection connection) {
         try {
             return connection.isConnected()
-                    && (connection.lookup(Dn.ROOT_DSE, SchemaConstants.NO_ATTRIBUTE) != null);
+                && (connection.lookup(Dn.ROOT_DSE, SchemaConstants.NO_ATTRIBUTE) != null);
         } catch (LdapException e) {
             log.info("validating failed: {}", e);
             return false;

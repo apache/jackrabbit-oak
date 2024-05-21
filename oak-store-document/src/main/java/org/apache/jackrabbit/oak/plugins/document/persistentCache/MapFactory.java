@@ -17,21 +17,19 @@
 package org.apache.jackrabbit.oak.plugins.document.persistentCache;
 
 import java.util.Map;
-
 import org.h2.mvstore.MVMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public abstract class MapFactory {
-    
+
     static final Logger LOG = LoggerFactory.getLogger(MapFactory.class);
 
     private int openCount = 1;
 
     /**
-     * Ensure the store is open, re-opening it if needed. The store is first
-     * closed if the old open count if the old open count matches the current
-     * open count.
+     * Ensure the store is open, re-opening it if needed. The store is first closed if the old open
+     * count if the old open count matches the current open count.
      *
      * @param oldOpenCount the old open count
      * @return the new open count
@@ -44,35 +42,35 @@ public abstract class MapFactory {
         }
         return openCount;
     }
-    
+
     public int getOpenCount() {
         return openCount;
     }
-    
+
     /**
      * Open the store.
      */
     abstract void openStore();
-    
+
     /**
      * Close the store.
      */
     abstract void closeStore();
-    
+
     /**
      * Open or get the given map.
-     * 
-     * @param <K> the key type
-     * @param <V> the value type
-     * @param name the map name
+     *
+     * @param <K>     the key type
+     * @param <V>     the value type
+     * @param name    the map name
      * @param builder the map builder
      * @return
      */
     abstract <K, V> Map<K, V> openMap(String name, MVMap.Builder<K, V> builder);
-    
+
     /**
      * Get the file size in bytes.
-     * 
+     *
      * @return the file size
      */
     abstract long getFileSize();

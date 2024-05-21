@@ -77,7 +77,7 @@ public class ConcurrentQueryAndUpdateIT extends AbstractDocumentStoreTest {
                 NodeDocument doc = ds.find(NODES, Utils.getIdFromPath("/node-" + j));
                 assertNotNull(doc);
                 assertEquals("Unexpected revision timestamp for " + doc.getId(),
-                        counter, doc.getLastRev().get(1).getTimestamp());
+                    counter, doc.getLastRev().get(1).getTimestamp());
             }
         }
     }

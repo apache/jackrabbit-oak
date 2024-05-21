@@ -47,14 +47,14 @@ public class HyperLogLog {
         this.m = m;
         double am;
         switch (m) {
-        case 32:
-            am = 0.697;
-            break;
-        case 64:
-            am = 0.709;
-            break;
-        default:
-            am = 0.7213 / (1.0 + 1.079 / m);
+            case 32:
+                am = 0.697;
+                break;
+            case 64:
+                am = 0.709;
+                break;
+            default:
+                am = 0.7213 / (1.0 + 1.079 / m);
         }
         amm2 = am * m * m;
         this.counters = new byte[m];
@@ -77,7 +77,7 @@ public class HyperLogLog {
         }
         double sum = 0;
         int countZero = 0;
-        for(int c : counters) {
+        for (int c : counters) {
             countZero += c == 0 ? 1 : 0;
             sum += 1. / (1L << (c & 0xff));
         }

@@ -20,14 +20,16 @@ User and Group Synchronization
 
 ### General
 
-The synchronization of users and groups is triggered by the [ExternalLoginModule](externalloginmodule.html),
+The synchronization of users and groups is triggered by
+the [ExternalLoginModule](externalloginmodule.html),
 after a user is successfully authenticated against the IDP or if it's no longer
 present on the IDP.
 
 ### Synchronization API
 
 - [SyncManager]: factory for all configured `SyncHandler` implementations.
-- [SyncHandler]: responsible for synchronizing users/groups from an `ExternalIdentityProvider` into the repository.
+- [SyncHandler]: responsible for synchronizing users/groups from an `ExternalIdentityProvider` into
+  the repository.
 - [SyncContext]: executes the synchronization
 - [SyncedIdentity]: represents a synchronized identity
 - [SyncResult]: the result of a sync operation
@@ -49,9 +51,10 @@ for the following tasks:
 ### Default Implementation
 
 Oak 1.0 provides a default implementation of the user synchronization API that allow
-to plug additional `SyncHandler` implementations. 
+to plug additional `SyncHandler` implementations.
 
-Default implementation is described in section [User and Group Synchronization : The Default Implementation](external/defaultusersync.html) 
+Default implementation is described in
+section [User and Group Synchronization : The Default Implementation](external/defaultusersync.html)
 and [User and Group Synchronization : Dynamic Membership](external/dynamic.html).
 
 ### Pluggability
@@ -67,13 +70,19 @@ or plug a new implementation of the `SyncHandler`:
 - write your custom implementation of the interface
 - make the manager/handler available to the authentication setup or sync manager
     - OSGi setup: making the implementation an OSGi service
-    - non-OSGi setup: configure the manager/handler during manual [Repository Construction](../../construct.html).
-
+    - non-OSGi setup: configure the manager/handler during
+      manual [Repository Construction](../../construct.html).
 
 <!-- references -->
+
 [SyncManager]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/SyncManager.html
+
 [SyncHandler]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/SyncHandler.html
+
 [SyncContext]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/SyncContext.html
+
 [SyncedIdentity]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/SyncedIdentity.html
+
 [SyncResult]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/SyncResult.html
+
 [SyncException]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/SyncException.html

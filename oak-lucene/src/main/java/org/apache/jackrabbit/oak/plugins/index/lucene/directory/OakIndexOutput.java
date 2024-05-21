@@ -16,20 +16,20 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
-import java.io.IOException;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.OakIndexFile.getOakIndexFile;
 
+import java.io.IOException;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.lucene.store.DataInput;
 import org.apache.lucene.store.IndexOutput;
 
-import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.OakIndexFile.getOakIndexFile;
-
 final class OakIndexOutput extends IndexOutput {
+
     private final String dirDetails;
     final OakIndexFile file;
 
     public OakIndexOutput(String name, NodeBuilder file, String dirDetails,
-                          BlobFactory blobFactory, boolean streamingWriteEnabled) throws IOException {
+        BlobFactory blobFactory, boolean streamingWriteEnabled) throws IOException {
         this.dirDetails = dirDetails;
         this.file = getOakIndexFile(name, file, dirDetails, blobFactory, streamingWriteEnabled);
     }
@@ -51,7 +51,7 @@ final class OakIndexOutput extends IndexOutput {
 
     @Override
     public void writeBytes(byte[] b, int offset, int length)
-            throws IOException {
+        throws IOException {
         try {
             file.writeBytes(b, offset, length);
         } catch (IOException e) {
@@ -61,7 +61,7 @@ final class OakIndexOutput extends IndexOutput {
 
     @Override
     public void writeByte(byte b) throws IOException {
-        writeBytes(new byte[] { b }, 0, 1);
+        writeBytes(new byte[]{b}, 0, 1);
     }
 
     @Override
@@ -90,7 +90,8 @@ final class OakIndexOutput extends IndexOutput {
     }
 
     private IOException wrapWithDetails(IOException e) {
-        String msg = String.format("Error occurred while writing to blob [%s][%s]", dirDetails, file.getName());
+        String msg = String.format("Error occurred while writing to blob [%s][%s]", dirDetails,
+            file.getName());
         return new IOException(msg, e);
     }
 

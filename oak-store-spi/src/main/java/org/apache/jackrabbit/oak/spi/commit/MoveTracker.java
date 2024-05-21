@@ -28,8 +28,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Utility to keep track of the move operations that are performed between two
- * calls to {@link org.apache.jackrabbit.oak.api.Root#commit}.
+ * Utility to keep track of the move operations that are performed between two calls to
+ * {@link org.apache.jackrabbit.oak.api.Root#commit}.
  */
 public class MoveTracker {
 
@@ -109,7 +109,7 @@ public class MoveTracker {
         private String destPath;
 
         private MoveEntry(@NotNull String sourcePath,
-                          @NotNull String destPath) {
+            @NotNull String destPath) {
             this.sourcePath = sourcePath;
             this.destPath = destPath;
 

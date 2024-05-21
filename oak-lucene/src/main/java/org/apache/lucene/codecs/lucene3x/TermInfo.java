@@ -25,47 +25,52 @@ package org.apache.lucene.codecs.lucene3x;
  * limitations under the License.
  */
 
-/** A TermInfo is the record of information stored for a
- * term
- * @deprecated (4.0) This class is no longer used in flexible
- * indexing. */
+/**
+ * A TermInfo is the record of information stored for a term
+ *
+ * @deprecated (4.0) This class is no longer used in flexible indexing.
+ */
 
 @Deprecated
 class TermInfo {
-  /** The number of documents which contain the term. */
-  public int docFreq = 0;
 
-  public long freqPointer = 0;
-  public long proxPointer = 0;
-  public int skipOffset;
+    /**
+     * The number of documents which contain the term.
+     */
+    public int docFreq = 0;
 
-  public TermInfo() {}
+    public long freqPointer = 0;
+    public long proxPointer = 0;
+    public int skipOffset;
 
-  public TermInfo(int df, long fp, long pp) {
-    docFreq = df;
-    freqPointer = fp;
-    proxPointer = pp;
-  }
+    public TermInfo() {
+    }
 
-  public TermInfo(TermInfo ti) {
-    docFreq = ti.docFreq;
-    freqPointer = ti.freqPointer;
-    proxPointer = ti.proxPointer;
-    skipOffset = ti.skipOffset;
-  }
+    public TermInfo(int df, long fp, long pp) {
+        docFreq = df;
+        freqPointer = fp;
+        proxPointer = pp;
+    }
 
-  public final void set(int docFreq,
-                 long freqPointer, long proxPointer, int skipOffset) {
-    this.docFreq = docFreq;
-    this.freqPointer = freqPointer;
-    this.proxPointer = proxPointer;
-    this.skipOffset = skipOffset;
-  }
+    public TermInfo(TermInfo ti) {
+        docFreq = ti.docFreq;
+        freqPointer = ti.freqPointer;
+        proxPointer = ti.proxPointer;
+        skipOffset = ti.skipOffset;
+    }
 
-  public final void set(TermInfo ti) {
-    docFreq = ti.docFreq;
-    freqPointer = ti.freqPointer;
-    proxPointer = ti.proxPointer;
-    skipOffset = ti.skipOffset;
-  }
+    public final void set(int docFreq,
+        long freqPointer, long proxPointer, int skipOffset) {
+        this.docFreq = docFreq;
+        this.freqPointer = freqPointer;
+        this.proxPointer = proxPointer;
+        this.skipOffset = skipOffset;
+    }
+
+    public final void set(TermInfo ti) {
+        docFreq = ti.docFreq;
+        freqPointer = ti.freqPointer;
+        proxPointer = ti.proxPointer;
+        skipOffset = ti.skipOffset;
+    }
 }

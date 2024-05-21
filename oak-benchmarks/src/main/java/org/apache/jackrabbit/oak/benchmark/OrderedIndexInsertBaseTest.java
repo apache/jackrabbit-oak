@@ -20,26 +20,27 @@ package org.apache.jackrabbit.oak.benchmark;
  * intermediate class for the testing of Inserts of nodes.
  */
 public abstract class OrderedIndexInsertBaseTest extends OrderedIndexBaseTest {
+
     @Override
     protected void beforeTest() throws Exception {
-       session = loginWriter();
+        session = loginWriter();
 
-       //initiate the place for writing child nodes
-       dump = session.getRootNode().addNode(DUMP_NODE,NODE_TYPE);
-       session.save();
-       
-       defineIndex();
-       
-       //pre-adding nodes
-       insertRandomNodes(PRE_ADDED_NODES);
+        //initiate the place for writing child nodes
+        dump = session.getRootNode().addNode(DUMP_NODE, NODE_TYPE);
+        session.save();
+
+        defineIndex();
+
+        //pre-adding nodes
+        insertRandomNodes(PRE_ADDED_NODES);
     }
 
     @Override
     protected void afterTest() throws Exception {
-       //clean-up our mess
-       dump.remove();
-       session.save();
-       session.logout();
+        //clean-up our mess
+        dump.remove();
+        session.save();
+        session.logout();
     }
 
     /* (non-Javadoc)
@@ -47,6 +48,6 @@ public abstract class OrderedIndexInsertBaseTest extends OrderedIndexBaseTest {
      */
     @Override
     protected void runTest() throws Exception {
-       insertRandomNodes(NODES_PER_ITERATION);
+        insertRandomNodes(NODES_PER_ITERATION);
     }
 }

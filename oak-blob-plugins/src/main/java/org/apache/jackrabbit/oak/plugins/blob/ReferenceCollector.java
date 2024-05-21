@@ -21,15 +21,14 @@ package org.apache.jackrabbit.oak.plugins.blob;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Callback interface for collecting all blob references that are
- * potentially accessible. Useful for marking referenced blobs as
- * in use when collecting garbage in an external data store.
+ * Callback interface for collecting all blob references that are potentially accessible. Useful for
+ * marking referenced blobs as in use when collecting garbage in an external data store.
  */
 public interface ReferenceCollector {
-    
+
     /**
      * Adds the reference detected with the node Id.
-     * 
+     *
      * @param reference
      * @param nodeId
      */

@@ -27,9 +27,7 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.util.logging.Logger;
-
 import javax.sql.DataSource;
-
 import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.slf4j.LoggerFactory;
@@ -41,7 +39,8 @@ public class RDBDataSourceFactory {
 
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(RDBDataSourceFactory.class);
 
-    public static DataSource forJdbcUrl(String url, String username, String passwd, String driverName) {
+    public static DataSource forJdbcUrl(String url, String username, String passwd,
+        String driverName) {
 
         // load driver class when specified
         if (driverName != null && !driverName.isEmpty()) {
@@ -74,14 +73,16 @@ public class RDBDataSourceFactory {
             try {
                 Class<?> dsclazz = Class.forName(classname);
                 DataSource ds = (DataSource) dsclazz.newInstance();
-                dsclazz.getMethod("setDriverClassName", String.class).invoke(ds, d.getClass().getName());
+                dsclazz.getMethod("setDriverClassName", String.class)
+                       .invoke(ds, d.getClass().getName());
                 dsclazz.getMethod("setUsername", String.class).invoke(ds, username);
                 dsclazz.getMethod("setPassword", String.class).invoke(ds, passwd);
                 dsclazz.getMethod("setUrl", String.class).invoke(ds, url);
                 String interceptors = SystemPropertySupplier
-                        .create("org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory.jdbcInterceptors",
-                                "SlowQueryReport(threshold=10000);ConnectionState;StatementCache")
-                        .loggingTo(LOG).get();
+                    .create(
+                        "org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory.jdbcInterceptors",
+                        "SlowQueryReport(threshold=10000);ConnectionState;StatementCache")
+                    .loggingTo(LOG).get();
                 if (!interceptors.isEmpty()) {
                     dsclazz.getMethod("setJdbcInterceptors", String.class).invoke(ds, interceptors);
                 }
@@ -103,8 +104,7 @@ public class RDBDataSourceFactory {
     }
 
     /**
-     * A {@link Closeable} {@link DataSource} based on a generic {@link Source}
-     * .
+     * A {@link Closeable} {@link DataSource} based on a generic {@link Source} .
      */
     private static class CloseableDataSource implements DataSource, Closeable {
 
@@ -141,7 +141,8 @@ public class RDBDataSourceFactory {
 
         @Override
         public <T> T unwrap(Class<T> c) throws SQLException {
-            return c.isInstance(this) ? (T) this : c.isInstance(this.ds) ? (T) this.ds : this.ds.unwrap(c);
+            return c.isInstance(this) ? (T) this
+                : c.isInstance(this.ds) ? (T) this.ds : this.ds.unwrap(c);
         }
 
         @Override

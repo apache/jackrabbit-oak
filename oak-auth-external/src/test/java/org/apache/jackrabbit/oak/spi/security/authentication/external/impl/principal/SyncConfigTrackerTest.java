@@ -16,6 +16,23 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
+import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncConfigImpl.PARAM_GROUP_AUTO_MEMBERSHIP;
+import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncConfigImpl.PARAM_NAME;
+import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncConfigImpl.PARAM_USER_AUTO_MEMBERSHIP;
+import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP;
+import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.SyncHandlerMapping.PARAM_IDP_NAME;
+import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.SyncHandlerMapping.PARAM_SYNC_HANDLER_NAME;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
+
+import java.util.Collections;
+import java.util.Map;
+import java.util.Set;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.ObjectArrays;
@@ -33,35 +50,17 @@ import org.junit.Test;
 import org.osgi.framework.ServiceReference;
 import org.osgi.framework.ServiceRegistration;
 
-import java.util.Collections;
-import java.util.Map;
-import java.util.Set;
-
-import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncConfigImpl.PARAM_GROUP_AUTO_MEMBERSHIP;
-import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncConfigImpl.PARAM_NAME;
-import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncConfigImpl.PARAM_USER_AUTO_MEMBERSHIP;
-import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP;
-import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.SyncHandlerMapping.PARAM_IDP_NAME;
-import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.SyncHandlerMapping.PARAM_SYNC_HANDLER_NAME;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.withSettings;
-
 public class SyncConfigTrackerTest {
 
     @Rule
     public final OsgiContext context = new OsgiContext();
-    
+
     private final SyncHandler service = mock(SyncHandler.class);
     private final SyncHandlerMapping mapping = mock(SyncHandlerMapping.class);
 
-    private final String[] gam = new String[] {"g1", "g2"};
-    private final String[] uam = new String[] {"g3", "g4"};
-    
+    private final String[] gam = new String[]{"g1", "g2"};
+    private final String[] uam = new String[]{"g3", "g4"};
+
     private SyncHandlerMappingTracker mappingTracker;
     private SyncConfigTracker tracker;
 
@@ -69,28 +68,32 @@ public class SyncConfigTrackerTest {
     public void before() {
         mappingTracker = new SyncHandlerMappingTracker(context.bundleContext());
         mappingTracker.open();
-        
+
         tracker = new SyncConfigTracker(context.bundleContext(), mappingTracker);
         tracker.open();
         assertFalse(tracker.isEnabled());
     }
-    
+
     @After
     public void after() {
         mappingTracker.close();
         tracker.close();
     }
 
-    private void registerSyncHandlerMapping(@NotNull String idpName, @NotNull String syncHandlerName) {
-        context.registerService(SyncHandlerMapping.class, mapping, ImmutableMap.of(PARAM_IDP_NAME, idpName, PARAM_SYNC_HANDLER_NAME, syncHandlerName));
+    private void registerSyncHandlerMapping(@NotNull String idpName,
+        @NotNull String syncHandlerName) {
+        context.registerService(SyncHandlerMapping.class, mapping,
+            ImmutableMap.of(PARAM_IDP_NAME, idpName, PARAM_SYNC_HANDLER_NAME, syncHandlerName));
     }
 
-    private void registerSyncHandlerWithAutoMembership(@NotNull String syncHandlerName, boolean dynamicMembership, @NotNull String[] userAutoMembership, @NotNull String[] groupAutoMembership) {
+    private void registerSyncHandlerWithAutoMembership(@NotNull String syncHandlerName,
+        boolean dynamicMembership, @NotNull String[] userAutoMembership,
+        @NotNull String[] groupAutoMembership) {
         context.registerService(SyncHandler.class, service, ImmutableMap.of(
-                PARAM_NAME, syncHandlerName,
-                PARAM_USER_DYNAMIC_MEMBERSHIP, dynamicMembership,
-                PARAM_GROUP_AUTO_MEMBERSHIP, userAutoMembership,
-                PARAM_USER_AUTO_MEMBERSHIP, groupAutoMembership));
+            PARAM_NAME, syncHandlerName,
+            PARAM_USER_DYNAMIC_MEMBERSHIP, dynamicMembership,
+            PARAM_GROUP_AUTO_MEMBERSHIP, userAutoMembership,
+            PARAM_USER_AUTO_MEMBERSHIP, groupAutoMembership));
     }
 
     @Test
@@ -101,33 +104,43 @@ public class SyncConfigTrackerTest {
 
     @Test
     public void testAddingServiceWithProperties() {
-        context.registerService(SyncHandler.class, service, Collections.singletonMap(PARAM_USER_DYNAMIC_MEMBERSHIP, false));
+        context.registerService(SyncHandler.class, service,
+            Collections.singletonMap(PARAM_USER_DYNAMIC_MEMBERSHIP, false));
         assertFalse(tracker.isEnabled());
 
-        context.registerService(SyncHandler.class, service, Collections.singletonMap(PARAM_USER_DYNAMIC_MEMBERSHIP, true));
+        context.registerService(SyncHandler.class, service,
+            Collections.singletonMap(PARAM_USER_DYNAMIC_MEMBERSHIP, true));
         assertTrue(tracker.isEnabled());
     }
 
     @Test
     public void testAddingMultipleServices() {
-        context.registerService(SyncHandler.class, service, Collections.singletonMap(PARAM_USER_DYNAMIC_MEMBERSHIP, true));
+        context.registerService(SyncHandler.class, service,
+            Collections.singletonMap(PARAM_USER_DYNAMIC_MEMBERSHIP, true));
         assertTrue(tracker.isEnabled());
 
-        context.registerService(SyncHandler.class, mock(SyncHandler.class), Collections.singletonMap(PARAM_USER_DYNAMIC_MEMBERSHIP, false));
+        context.registerService(SyncHandler.class, mock(SyncHandler.class),
+            Collections.singletonMap(PARAM_USER_DYNAMIC_MEMBERSHIP, false));
         assertTrue(tracker.isEnabled());
     }
 
     @Test
     public void testModifiedServiceWithoutProps() {
         context.registerService(SyncHandler.class, service, Collections.emptyMap());
-        ServiceReference ref = context.bundleContext().getServiceReference(SyncHandler.class.getName());
+        ServiceReference ref = context.bundleContext()
+                                      .getServiceReference(SyncHandler.class.getName());
         tracker.modifiedService(ref, service);
         assertFalse(tracker.isEnabled());
     }
 
     @Test
     public void testRemovedService() {
-        ServiceRegistration registration = context.bundleContext().registerService(SyncHandler.class.getName(), service, MapUtil.toDictionary(Collections.singletonMap(PARAM_USER_DYNAMIC_MEMBERSHIP, true)));
+        ServiceRegistration registration = context.bundleContext()
+                                                  .registerService(SyncHandler.class.getName(),
+                                                      service, MapUtil.toDictionary(
+                                                          Collections.singletonMap(
+                                                              PARAM_USER_DYNAMIC_MEMBERSHIP,
+                                                              true)));
         assertTrue(tracker.isEnabled());
 
         registration.unregister();
@@ -141,7 +154,7 @@ public class SyncConfigTrackerTest {
         registerSyncHandlerMapping("idp", "sh");
         registerSyncHandlerWithAutoMembership("sh", true, uam, gam);
 
-        Map<String,String[]> automembership = tracker.getAutoMembership();
+        Map<String, String[]> automembership = tracker.getAutoMembership();
         assertEquals(1, automembership.size());
         Set<String> expected = ImmutableSet.copyOf(ObjectArrays.concat(uam, gam, String.class));
         assertEquals(expected, ImmutableSet.copyOf(automembership.get("idp")));
@@ -179,13 +192,13 @@ public class SyncConfigTrackerTest {
     @Test
     public void testGetAutoMembershipWithMultipleIDPs() {
         assertTrue(tracker.getAutoMembership().isEmpty());
-        
+
         registerSyncHandlerWithAutoMembership("sh", true, uam, new String[0]);
 
         registerSyncHandlerMapping("idp", "sh");
         registerSyncHandlerMapping("idp2", "sh");
 
-        Map<String,String[]> automembership = tracker.getAutoMembership();
+        Map<String, String[]> automembership = tracker.getAutoMembership();
         assertEquals(2, automembership.size());
         assertArrayEquals(uam, automembership.get("idp"));
         assertArrayEquals(uam, automembership.get("idp2"));
@@ -195,13 +208,13 @@ public class SyncConfigTrackerTest {
     public void testGetAutoMembershipMultipleHandlersAndIdps() {
         assertTrue(tracker.getAutoMembership().isEmpty());
 
-        registerSyncHandlerWithAutoMembership("sh",true, uam, gam);
-        registerSyncHandlerWithAutoMembership("sh2",true, uam, new String[0]);
+        registerSyncHandlerWithAutoMembership("sh", true, uam, gam);
+        registerSyncHandlerWithAutoMembership("sh2", true, uam, new String[0]);
 
         registerSyncHandlerMapping("idp", "sh");
         registerSyncHandlerMapping("idp2", "sh2");
-        
-        Map<String,String[]> automembership = tracker.getAutoMembership();
+
+        Map<String, String[]> automembership = tracker.getAutoMembership();
         assertEquals(2, automembership.size());
         Set<String> expected = ImmutableSet.copyOf(ObjectArrays.concat(uam, gam, String.class));
         assertEquals(expected, ImmutableSet.copyOf(automembership.get("idp")));
@@ -217,7 +230,7 @@ public class SyncConfigTrackerTest {
 
         registerSyncHandlerMapping("idp", "sh");
 
-        Map<String,String[]> automembership = tracker.getAutoMembership();
+        Map<String, String[]> automembership = tracker.getAutoMembership();
         assertEquals(1, automembership.size());
     }
 
@@ -229,20 +242,22 @@ public class SyncConfigTrackerTest {
         registerSyncHandlerWithAutoMembership("sh", true, new String[0], gam);
 
         registerSyncHandlerMapping("idp", "sh");
-        
-        Map<String,String[]> automembership = tracker.getAutoMembership();
+
+        Map<String, String[]> automembership = tracker.getAutoMembership();
         assertEquals(1, automembership.size());
         assertArrayEquals(gam, automembership.get("idp"));
     }
-    
+
     @Test
     public void testNotAutoMembershipAware() {
         assertTrue(tracker.getAutoMembershipConfig().isEmpty());
-        
-        context.registerService(SyncHandlerMapping.class, mapping, ImmutableMap.of(PARAM_IDP_NAME, "idp", PARAM_SYNC_HANDLER_NAME, "sh"));
+
+        context.registerService(SyncHandlerMapping.class, mapping,
+            ImmutableMap.of(PARAM_IDP_NAME, "idp", PARAM_SYNC_HANDLER_NAME, "sh"));
         // sync-handler mock is not AutoMembershipAware
-        context.registerService(SyncHandler.class, service, ImmutableMap.of(PARAM_NAME, "sh", PARAM_USER_DYNAMIC_MEMBERSHIP, true));
-        
+        context.registerService(SyncHandler.class, service,
+            ImmutableMap.of(PARAM_NAME, "sh", PARAM_USER_DYNAMIC_MEMBERSHIP, true));
+
         assertTrue(tracker.isEnabled());
         assertTrue(tracker.getAutoMembershipConfig().isEmpty());
     }
@@ -250,14 +265,17 @@ public class SyncConfigTrackerTest {
     @Test
     public void testAutomembershipAware() {
         assertTrue(tracker.getAutoMembershipConfig().isEmpty());
-        
-        context.registerService(SyncHandlerMapping.class, mapping, ImmutableMap.of(PARAM_IDP_NAME, "idp", PARAM_SYNC_HANDLER_NAME, "sh"));
+
+        context.registerService(SyncHandlerMapping.class, mapping,
+            ImmutableMap.of(PARAM_IDP_NAME, "idp", PARAM_SYNC_HANDLER_NAME, "sh"));
         // sync-handler mock is AutoMembershipAware
-        SyncHandler syncHandler = mock(SyncHandler.class, withSettings().extraInterfaces(AutoMembershipAware.class));
+        SyncHandler syncHandler = mock(SyncHandler.class,
+            withSettings().extraInterfaces(AutoMembershipAware.class));
         AutoMembershipConfig amc = mock(AutoMembershipConfig.class);
         when(((AutoMembershipAware) syncHandler).getAutoMembershipConfig()).thenReturn(amc);
-        context.registerService(SyncHandler.class, syncHandler, ImmutableMap.of(PARAM_NAME, "sh", PARAM_USER_DYNAMIC_MEMBERSHIP, true));
-        
+        context.registerService(SyncHandler.class, syncHandler,
+            ImmutableMap.of(PARAM_NAME, "sh", PARAM_USER_DYNAMIC_MEMBERSHIP, true));
+
         assertTrue(tracker.isEnabled());
         Map<String, AutoMembershipConfig> m = tracker.getAutoMembershipConfig();
         assertEquals(1, m.size());
@@ -269,15 +287,19 @@ public class SyncConfigTrackerTest {
     public void testAutomembershipAwareWithDuplication() {
         assertTrue(tracker.getAutoMembershipConfig().isEmpty());
 
-        context.registerService(SyncHandlerMapping.class, mapping, ImmutableMap.of(PARAM_IDP_NAME, "idp", PARAM_SYNC_HANDLER_NAME, "sh"));
+        context.registerService(SyncHandlerMapping.class, mapping,
+            ImmutableMap.of(PARAM_IDP_NAME, "idp", PARAM_SYNC_HANDLER_NAME, "sh"));
         // sync-handler mock is AutoMembershipAware
-        SyncHandler syncHandler = mock(SyncHandler.class, withSettings().extraInterfaces(AutoMembershipAware.class));
+        SyncHandler syncHandler = mock(SyncHandler.class,
+            withSettings().extraInterfaces(AutoMembershipAware.class));
         AutoMembershipConfig amc = mock(AutoMembershipConfig.class);
         when(((AutoMembershipAware) syncHandler).getAutoMembershipConfig()).thenReturn(amc);
-        context.registerService(SyncHandler.class, syncHandler, ImmutableMap.of(PARAM_NAME, "sh", PARAM_USER_DYNAMIC_MEMBERSHIP, true));
+        context.registerService(SyncHandler.class, syncHandler,
+            ImmutableMap.of(PARAM_NAME, "sh", PARAM_USER_DYNAMIC_MEMBERSHIP, true));
 
         // duplicate registration
-        context.registerService(SyncHandler.class, syncHandler, ImmutableMap.of(PARAM_NAME, "sh", PARAM_USER_DYNAMIC_MEMBERSHIP, true));
+        context.registerService(SyncHandler.class, syncHandler,
+            ImmutableMap.of(PARAM_NAME, "sh", PARAM_USER_DYNAMIC_MEMBERSHIP, true));
 
         assertTrue(tracker.isEnabled());
         Map<String, AutoMembershipConfig> m = tracker.getAutoMembershipConfig();
@@ -289,24 +311,29 @@ public class SyncConfigTrackerTest {
     @Test
     public void testAutomembershipAwareWithCollision() {
         assertTrue(tracker.getAutoMembershipConfig().isEmpty());
-        
-        context.registerService(SyncHandlerMapping.class, mapping, ImmutableMap.of(PARAM_IDP_NAME, "idp", PARAM_SYNC_HANDLER_NAME, "sh"));
+
+        context.registerService(SyncHandlerMapping.class, mapping,
+            ImmutableMap.of(PARAM_IDP_NAME, "idp", PARAM_SYNC_HANDLER_NAME, "sh"));
         // sync-handler mock is AutoMembershipAware
-        SyncHandler syncHandler = mock(SyncHandler.class, withSettings().extraInterfaces(AutoMembershipAware.class));
+        SyncHandler syncHandler = mock(SyncHandler.class,
+            withSettings().extraInterfaces(AutoMembershipAware.class));
         AutoMembershipConfig amc = mock(AutoMembershipConfig.class);
         when(((AutoMembershipAware) syncHandler).getAutoMembershipConfig()).thenReturn(amc);
-        context.registerService(SyncHandler.class, syncHandler, ImmutableMap.of(PARAM_NAME, "sh", PARAM_USER_DYNAMIC_MEMBERSHIP, true));
+        context.registerService(SyncHandler.class, syncHandler,
+            ImmutableMap.of(PARAM_NAME, "sh", PARAM_USER_DYNAMIC_MEMBERSHIP, true));
 
         assertTrue(tracker.isEnabled());
         Map<String, AutoMembershipConfig> m = tracker.getAutoMembershipConfig();
         assertEquals(1, m.size());
         assertTrue(m.containsKey("idp"));
-        
+
         // colliding registration
-        SyncHandler syncHandler2 = mock(SyncHandler.class, withSettings().extraInterfaces(AutoMembershipAware.class));
+        SyncHandler syncHandler2 = mock(SyncHandler.class,
+            withSettings().extraInterfaces(AutoMembershipAware.class));
         AutoMembershipConfig amc2 = mock(AutoMembershipConfig.class);
         when(((AutoMembershipAware) syncHandler2).getAutoMembershipConfig()).thenReturn(amc2);
-        context.registerService(SyncHandler.class, syncHandler2, ImmutableMap.of(PARAM_NAME, "sh", PARAM_USER_DYNAMIC_MEMBERSHIP, true));
+        context.registerService(SyncHandler.class, syncHandler2,
+            ImmutableMap.of(PARAM_NAME, "sh", PARAM_USER_DYNAMIC_MEMBERSHIP, true));
 
         assertTrue(tracker.isEnabled());
         m = tracker.getAutoMembershipConfig();

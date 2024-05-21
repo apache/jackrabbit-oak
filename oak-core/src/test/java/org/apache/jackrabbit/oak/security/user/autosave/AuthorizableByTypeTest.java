@@ -16,16 +16,15 @@
  */
 package org.apache.jackrabbit.oak.security.user.autosave;
 
-import java.util.UUID;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
+import java.util.UUID;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.AuthorizableTypeException;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.junit.Test;
-
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 public class AuthorizableByTypeTest extends AbstractAutoSaveTest {
 

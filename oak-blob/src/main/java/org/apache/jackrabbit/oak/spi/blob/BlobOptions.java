@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.spi.blob;
  * Options while writing blobs to the blob store / data store.
  */
 public class BlobOptions {
+
     private UploadType uploadType = UploadType.DEFAULT;
 
     public UploadType getUpload() {

@@ -18,8 +18,12 @@
  */
 package org.apache.jackrabbit.oak.jcr.version;
 
-import java.io.Closeable;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.JcrConstants.NT_FROZENNODE;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.spi.toggle.Feature.newFeature;
 
+import java.io.Closeable;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
@@ -30,20 +34,13 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
-import static org.apache.jackrabbit.JcrConstants.NT_FROZENNODE;
-import static org.apache.jackrabbit.oak.spi.toggle.Feature.newFeature;
-
 /**
- * Logger facility for frozen node lookups by identifier. Calls to
- * {@link #lookupById(Tree)} first check the feature toggle
- * {@code oak.logFrozenNodeLookup} and then whether the given {@code Tree} is of
- * type {@code nt:frozenNode} in which case the path of the tree is logged at
- * INFO. Log messages are rate limited to one per second. If multiple frozen
- * nodes are looked up by identifier with the period of one second, then only
- * the first lookup is logged; the other lookups are not logged.
- * Enabling DEBUG level for this class reveals the stack of the calling thread.
+ * Logger facility for frozen node lookups by identifier. Calls to {@link #lookupById(Tree)} first
+ * check the feature toggle {@code oak.logFrozenNodeLookup} and then whether the given {@code Tree}
+ * is of type {@code nt:frozenNode} in which case the path of the tree is logged at INFO. Log
+ * messages are rate limited to one per second. If multiple frozen nodes are looked up by identifier
+ * with the period of one second, then only the first lookup is logged; the other lookups are not
+ * logged. Enabling DEBUG level for this class reveals the stack of the calling thread.
  */
 public class FrozenNodeLogger implements Closeable {
 
@@ -58,7 +55,7 @@ public class FrozenNodeLogger implements Closeable {
     private final Feature feature;
 
     public FrozenNodeLogger(@NotNull Clock clock,
-                            @NotNull Whiteboard whiteboard) {
+        @NotNull Whiteboard whiteboard) {
         this.clock = checkNotNull(clock);
         this.feature = newFeature("OAK-9139_log_frozen_node_lookup", whiteboard);
     }
@@ -69,8 +66,8 @@ public class FrozenNodeLogger implements Closeable {
         }
         PropertyState primaryType = tree.getProperty(JCR_PRIMARYTYPE);
         if (primaryType != null
-                && !primaryType.isArray()
-                && primaryType.getValue(Type.STRING).equals(NT_FROZENNODE)) {
+            && !primaryType.isArray()
+            && primaryType.getValue(Type.STRING).equals(NT_FROZENNODE)) {
             long now = clock.getTime();
             synchronized (FrozenNodeLogger.class) {
                 if (now >= NO_MESSAGE_UNTIL) {

@@ -21,23 +21,24 @@ package org.apache.jackrabbit.oak.scalability.benchmarks.search;
 import javax.jcr.RepositoryException;
 import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
-import org.apache.jackrabbit.oak.scalability.suites.ScalabilityBlobSearchSuite;
 import org.apache.jackrabbit.oak.scalability.suites.ScalabilityAbstractSuite.ExecutionContext;
+import org.apache.jackrabbit.oak.scalability.suites.ScalabilityBlobSearchSuite;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Searches on the NodeType 
- *
+ * Searches on the NodeType
  */
 public class NodeTypeSearcher extends SearchScalabilityBenchmark {
-    
+
     @SuppressWarnings("deprecation")
     @Override
-    protected Query getQuery(@NotNull final QueryManager qm, ExecutionContext context) throws RepositoryException {
+    protected Query getQuery(@NotNull final QueryManager qm, ExecutionContext context)
+        throws RepositoryException {
         return qm.createQuery(
-                "/jcr:root/" + ((String) context.getMap().get(ScalabilityBlobSearchSuite.CTX_ROOT_NODE_NAME_PROP)) + "//element(*, "
-                        + context.getMap().get(ScalabilityBlobSearchSuite.CTX_FILE_NODE_TYPE_PROP) + ")",
-                Query.XPATH);
+            "/jcr:root/" + ((String) context.getMap().get(
+                ScalabilityBlobSearchSuite.CTX_ROOT_NODE_NAME_PROP)) + "//element(*, "
+                + context.getMap().get(ScalabilityBlobSearchSuite.CTX_FILE_NODE_TYPE_PROP) + ")",
+            Query.XPATH);
     }
 }
 

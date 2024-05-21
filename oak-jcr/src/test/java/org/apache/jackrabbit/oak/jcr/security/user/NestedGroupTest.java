@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.jcr.security.user;
 import java.security.Principal;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
-
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
@@ -116,8 +115,12 @@ public class NestedGroupTest extends AbstractUserTest {
             if (gr2 != null && gr2.isMember(gr1)) {
                 removeMember(gr2, gr1);
             }
-            if (gr1 != null) removeGroup(gr1);
-            if (gr2 != null) removeGroup(gr2);
+            if (gr1 != null) {
+                removeGroup(gr1);
+            }
+            if (gr2 != null) {
+                removeGroup(gr2);
+            }
         }
     }
 
@@ -152,7 +155,9 @@ public class NestedGroupTest extends AbstractUserTest {
                 removeMember(gr3, gr1);
                 removeGroup(gr3);
             }
-            if (gr1 != null) removeGroup(gr1);
+            if (gr1 != null) {
+                removeGroup(gr1);
+            }
 
         }
     }
@@ -190,7 +195,7 @@ public class NestedGroupTest extends AbstractUserTest {
             boolean isMember = false;
             PrincipalManager pmgr = ((JackrabbitSession) superuser).getPrincipalManager();
             for (PrincipalIterator it = pmgr.getGroupMembership(gr3.getPrincipal());
-                 it.hasNext() && !isMember;) {
+                it.hasNext() && !isMember; ) {
                 isMember = it.nextPrincipal().equals(gr1.getPrincipal());
             }
             assertTrue(isMember);
@@ -202,9 +207,15 @@ public class NestedGroupTest extends AbstractUserTest {
             if (gr2 != null && gr2.isMember(gr3)) {
                 removeMember(gr2, gr3);
             }
-            if (gr1 != null) removeGroup(gr1);
-            if (gr2 != null) removeGroup(gr2);
-            if (gr3 != null) removeGroup(gr3);
+            if (gr1 != null) {
+                removeGroup(gr1);
+            }
+            if (gr2 != null) {
+                removeGroup(gr2);
+            }
+            if (gr3 != null) {
+                removeGroup(gr3);
+            }
         }
     }
 }

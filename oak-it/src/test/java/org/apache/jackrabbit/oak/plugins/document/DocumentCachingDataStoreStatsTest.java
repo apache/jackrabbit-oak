@@ -18,10 +18,15 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
+import static org.apache.sling.testing.mock.osgi.MockOsgi.deactivate;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.mockito.Mockito.mock;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.Map;
-
 import org.apache.jackrabbit.oak.api.jmx.ConsolidatedDataStoreCacheStatsMBean;
 import org.apache.jackrabbit.oak.plugins.blob.AbstractSharedCachingDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.ConsolidatedDataStoreCacheStats;
@@ -40,12 +45,6 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 import org.osgi.framework.ServiceRegistration;
-
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
-import static org.apache.sling.testing.mock.osgi.MockOsgi.deactivate;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.mockito.Mockito.mock;
 
 /**
  * Tests the registration of the {@link ConsolidatedDataStoreCacheStatsMBean}.
@@ -130,7 +129,7 @@ public class DocumentCachingDataStoreStatsTest {
         properties.put("repository.home", repoHome);
         properties.put(DocumentNodeStoreService.CUSTOM_BLOB_STORE, customBlobStore);
         MockOsgi.setConfigForPid(context.bundleContext(),
-                DocumentNodeStoreService.class.getName(), properties);
+            DocumentNodeStoreService.class.getName(), properties);
         context.registerInjectActivateService(new DocumentNodeStoreService.Preset());
         documentNodeStoreService =
             context.registerInjectActivateService(new DocumentNodeStoreService(), properties);
@@ -144,7 +143,7 @@ public class DocumentCachingDataStoreStatsTest {
 
     private void registerBlobStore() {
         blobStore = context.bundleContext()
-            .registerService(BlobStore.class.getName(), mock(BlobStore.class), null);
+                           .registerService(BlobStore.class.getName(), mock(BlobStore.class), null);
     }
 
     private void unregisterBlobStore() {

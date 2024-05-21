@@ -62,7 +62,8 @@ public class CacheActionDispatcherTest {
         for (int i = 0; i < threads; i++) {
             final List<DummyCacheWriteAction> threadActions = new ArrayList<DummyCacheWriteAction>();
             for (int j = 0; j < actionsPerThread; j++) {
-                DummyCacheWriteAction action = new DummyCacheWriteAction(String.format("%d_%d", i, j));
+                DummyCacheWriteAction action = new DummyCacheWriteAction(
+                    String.format("%d_%d", i, j));
                 threadActions.add(action);
                 allActions.add(action);
             }

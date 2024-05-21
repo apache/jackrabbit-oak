@@ -24,34 +24,31 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
 import javax.jcr.PropertyIterator;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.util.concurrent.Futures;
 import org.apache.jackrabbit.guava.common.util.concurrent.ListenableFuture;
 import org.apache.jackrabbit.guava.common.util.concurrent.ListeningExecutorService;
 import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
-
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.junit.Test;
 
 /**
- * Test cases asserting concurrent session access does not
- * corrupt Oak internal data structures.
+ * Test cases asserting concurrent session access does not corrupt Oak internal data structures.
  */
 public class ConcurrentReadIT extends AbstractRepositoryTest {
+
     public ConcurrentReadIT(NodeStoreFixture fixture) {
         super(fixture);
     }
 
     @Test
     public void concurrentNodeIteration()
-            throws RepositoryException, InterruptedException, ExecutionException {
+        throws RepositoryException, InterruptedException, ExecutionException {
         final Session session = createAdminSession();
         try {
             final Node testRoot = session.getRootNode().addNode("test-root");
@@ -61,10 +58,10 @@ public class ConcurrentReadIT extends AbstractRepositoryTest {
             session.save();
 
             ListeningExecutorService executorService = MoreExecutors.listeningDecorator(
-                    Executors.newCachedThreadPool());
+                Executors.newCachedThreadPool());
 
             List<ListenableFuture<?>> futures = Lists.newArrayList();
-            for (int k = 0; k < 20; k ++) {
+            for (int k = 0; k < 20; k++) {
                 futures.add(executorService.submit(new Callable<Void>() {
                     @Override
                     public Void call() throws Exception {
@@ -89,7 +86,7 @@ public class ConcurrentReadIT extends AbstractRepositoryTest {
 
     @Test
     public void concurrentPropertyIteration()
-            throws RepositoryException, InterruptedException, ExecutionException {
+        throws RepositoryException, InterruptedException, ExecutionException {
         final Session session = createAdminSession();
         try {
             final Node testRoot = session.getRootNode().addNode("test-root");
@@ -99,10 +96,10 @@ public class ConcurrentReadIT extends AbstractRepositoryTest {
             session.save();
 
             ListeningExecutorService executorService = MoreExecutors.listeningDecorator(
-                    Executors.newCachedThreadPool());
+                Executors.newCachedThreadPool());
 
             List<ListenableFuture<?>> futures = Lists.newArrayList();
-            for (int k = 0; k < 20; k ++) {
+            for (int k = 0; k < 20; k++) {
                 futures.add(executorService.submit(new Callable<Void>() {
                     @Override
                     public Void call() throws Exception {

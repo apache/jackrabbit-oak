@@ -19,25 +19,20 @@
 
 package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
+import static org.apache.commons.io.FilenameUtils.normalizeNoEndSeparator;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.ref.WeakReference;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-
-import org.apache.jackrabbit.guava.common.base.Charsets;
-import org.apache.jackrabbit.guava.common.base.Strings;
-import org.apache.jackrabbit.guava.common.io.BaseEncoding;
-import org.apache.jackrabbit.guava.common.io.Closeables;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.filefilter.FileFilterUtils;
@@ -46,19 +41,21 @@ import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.FileDataRecord;
 import org.apache.jackrabbit.core.data.FileDataStore;
+import org.apache.jackrabbit.guava.common.base.Charsets;
+import org.apache.jackrabbit.guava.common.base.Strings;
+import org.apache.jackrabbit.guava.common.io.BaseEncoding;
+import org.apache.jackrabbit.guava.common.io.Closeables;
 import org.apache.jackrabbit.oak.commons.io.FileTreeTraverser;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.commons.io.FilenameUtils.normalizeNoEndSeparator;
-
 /**
- *  Oak specific extension of JR2 FileDataStore which enables
- *  provisioning the signing key via OSGi config
+ * Oak specific extension of JR2 FileDataStore which enables provisioning the signing key via OSGi
+ * config
  */
 public class OakFileDataStore extends FileDataStore implements SharedDataStore {
+
     public static final Logger LOG = LoggerFactory.getLogger(OakFileDataStore.class);
     private static final int DEFAULT_MIN_RECORD_LENGTH = 4096;
 
@@ -78,9 +75,9 @@ public class OakFileDataStore extends FileDataStore implements SharedDataStore {
         final String path = normalizeNoEndSeparator(new File(getPath()).getAbsolutePath());
 
         return FileTreeTraverser.depthFirstPostOrder(new File(path))
-                .filter(file -> file.isFile() && !file.getParent().equals(path))
-                .map(file -> new DataIdentifier(file.getName()))
-                .iterator();
+                                .filter(file -> file.isFile() && !file.getParent().equals(path))
+                                .map(file -> new DataIdentifier(file.getName()))
+                                .iterator();
     }
 
     @Override
@@ -99,16 +96,17 @@ public class OakFileDataStore extends FileDataStore implements SharedDataStore {
     }
 
     /**
-     * Set the referenceKey from plain text. Key content would be
-     * UTF-8 encoding of the string.
+     * Set the referenceKey from plain text. Key content would be UTF-8 encoding of the string.
      *
      * <p>This is useful when setting key via generic
-     *  bean property manipulation from string properties. User can specify the
-     *  key in plain text and that would be passed on this object via
-     *  {@link org.apache.jackrabbit.oak.commons.PropertiesUtil#populate(Object, java.util.Map, boolean)}
+     * bean property manipulation from string properties. User can specify the key in plain text and
+     * that would be passed on this object via
+     * {@link org.apache.jackrabbit.oak.commons.PropertiesUtil#populate(Object, java.util.Map,
+     * boolean)}
      *
      * @param textKey base64 encoded key
-     * @see org.apache.jackrabbit.oak.commons.PropertiesUtil#populate(Object, java.util.Map, boolean)
+     * @see org.apache.jackrabbit.oak.commons.PropertiesUtil#populate(Object, java.util.Map,
+     * boolean)
      */
     public void setReferenceKeyPlainText(String textKey) {
         this.referenceKey = textKey.getBytes(Charsets.UTF_8);
@@ -137,7 +135,7 @@ public class OakFileDataStore extends FileDataStore implements SharedDataStore {
 
     @Override
     public void addMetadataRecord(InputStream input, String name)
-            throws DataStoreException {
+        throws DataStoreException {
         checkArgument(input != null, "input should not be null");
         checkArgument(!Strings.isNullOrEmpty(name), "name should not be empty");
 
@@ -152,7 +150,7 @@ public class OakFileDataStore extends FileDataStore implements SharedDataStore {
             }
         } catch (IOException e) {
             LOG.error("Exception while adding metadata record with name {}, {}",
-                    new Object[] {name, e});
+                new Object[]{name, e});
             throw new DataStoreException("Could not add root record", e);
         }
     }
@@ -167,7 +165,7 @@ public class OakFileDataStore extends FileDataStore implements SharedDataStore {
             FileUtils.copyFile(input, file);
         } catch (IOException e) {
             LOG.error("Exception while adding metadata record file {} with name {}, {}",
-                new Object[] {input, name, e});
+                new Object[]{input, name, e});
             throw new DataStoreException("Could not add root record", e);
         }
     }
@@ -177,7 +175,8 @@ public class OakFileDataStore extends FileDataStore implements SharedDataStore {
         checkArgument(!Strings.isNullOrEmpty(name), "name should not be empty");
 
         File root = new File(getPath());
-        for (File file : FileFilterUtils.filter(FileFilterUtils.nameFileFilter(name), root.listFiles())) {
+        for (File file : FileFilterUtils.filter(FileFilterUtils.nameFileFilter(name),
+            root.listFiles())) {
             if (!file.isDirectory()) {
                 return new FileDataRecord(this, new DataIdentifier(file.getName()), file);
             }
@@ -197,7 +196,7 @@ public class OakFileDataStore extends FileDataStore implements SharedDataStore {
             if (!file.isDirectory()) { // skip directories which are actual data store files
                 if (!file.exists()) {
                     LOG.debug("File does not exist {} ",
-                        new Object[] {file.getAbsolutePath()});
+                        new Object[]{file.getAbsolutePath()});
                 } else {
                     return true;
                 }
@@ -213,11 +212,11 @@ public class OakFileDataStore extends FileDataStore implements SharedDataStore {
         File root = new File(getPath());
         List<DataRecord> rootRecords = new ArrayList<DataRecord>();
         for (File file : FileFilterUtils.filterList(
-                FileFilterUtils.prefixFileFilter(prefix),
-                root.listFiles())) {
+            FileFilterUtils.prefixFileFilter(prefix),
+            root.listFiles())) {
             if (!file.isDirectory()) { // skip directories which are actual data store files
                 rootRecords.add(
-                        new FileDataRecord(this, new DataIdentifier(file.getName()), file));
+                    new FileDataRecord(this, new DataIdentifier(file.getName()), file));
             }
         }
         return rootRecords;
@@ -230,12 +229,12 @@ public class OakFileDataStore extends FileDataStore implements SharedDataStore {
         File root = new File(getPath());
 
         for (File file : FileFilterUtils.filterList(
-                FileFilterUtils.nameFileFilter(name),
-                root.listFiles())) {
+            FileFilterUtils.nameFileFilter(name),
+            root.listFiles())) {
             if (!file.isDirectory()) { // skip directories which are actual data store files
                 if (!file.delete()) {
-                    LOG.warn("Failed to delete root record {} ", new Object[] {file
-                            .getAbsolutePath()});
+                    LOG.warn("Failed to delete root record {} ", new Object[]{file
+                        .getAbsolutePath()});
                 } else {
                     return true;
                 }
@@ -251,12 +250,12 @@ public class OakFileDataStore extends FileDataStore implements SharedDataStore {
         File root = new File(getPath());
 
         for (File file : FileFilterUtils.filterList(
-                FileFilterUtils.prefixFileFilter(prefix),
-                root.listFiles())) {
+            FileFilterUtils.prefixFileFilter(prefix),
+            root.listFiles())) {
             if (!file.isDirectory()) { // skip directories which are actual data store files
                 if (!file.delete()) {
-                    LOG.warn("Failed to delete root record {} ", new Object[] {file
-                            .getAbsolutePath()});
+                    LOG.warn("Failed to delete root record {} ", new Object[]{file
+                        .getAbsolutePath()});
                 }
             }
         }
@@ -268,9 +267,10 @@ public class OakFileDataStore extends FileDataStore implements SharedDataStore {
         final OakFileDataStore store = this;
 
         return FileTreeTraverser.depthFirstPostOrder(new File(path))
-                .filter(file -> file.isFile() && !file.getParent().equals(path))
-                .map(file -> (DataRecord) new FileDataRecord(store, new DataIdentifier(file.getName()), file))
-                .iterator();
+                                .filter(file -> file.isFile() && !file.getParent().equals(path))
+                                .map(file -> (DataRecord) new FileDataRecord(store,
+                                    new DataIdentifier(file.getName()), file))
+                                .iterator();
     }
 
     @Override

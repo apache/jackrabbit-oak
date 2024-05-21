@@ -29,9 +29,9 @@ public class Hash {
 
     /**
      * Calculate a 64-bit hash value from a value, using a seed.
-     *
-     * The current algorithm used the finalizer of the MurmurHash3 hash function,
-     * but callers shouldn't rely on that.
+     * <p>
+     * The current algorithm used the finalizer of the MurmurHash3 hash function, but callers
+     * shouldn't rely on that.
      *
      * @param x    the value
      * @param seed the seed
@@ -46,9 +46,9 @@ public class Hash {
     }
 
     /**
-     * Calculate a 64-bit hash value from a value. The input is a 64-bit value and
-     * the output is a 64-bit values. Two different inputs are never mapped to the
-     * same output. The operation is reversible.
+     * Calculate a 64-bit hash value from a value. The input is a 64-bit value and the output is a
+     * 64-bit values. Two different inputs are never mapped to the same output. The operation is
+     * reversible.
      *
      * @param x the value
      * @return the hash value
@@ -58,11 +58,11 @@ public class Hash {
     }
 
     /**
-     * Shrink the hash to a value 0..n. Kind of like modulo, but using
-     * multiplication and shift, which are faster to compute.
+     * Shrink the hash to a value 0..n. Kind of like modulo, but using multiplication and shift,
+     * which are faster to compute.
      *
      * @param hash the hash
-     * @param n the maximum of the result
+     * @param n    the maximum of the result
      * @return the reduced value
      */
     public static int reduce(int hash, int n) {

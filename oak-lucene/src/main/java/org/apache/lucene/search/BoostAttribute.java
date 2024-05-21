@@ -25,23 +25,31 @@ package org.apache.lucene.search;
  * limitations under the License.
  */
 
+import org.apache.lucene.index.Terms;
+import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.util.Attribute;
-import org.apache.lucene.util.AttributeSource; // javadocs only
-import org.apache.lucene.index.TermsEnum; // javadocs only
-import org.apache.lucene.index.Terms; // javadocs only
+import org.apache.lucene.util.AttributeSource;
 
-/** Add this {@link Attribute} to a {@link TermsEnum} returned by {@link MultiTermQuery#getTermsEnum(Terms,AttributeSource)}
- * and update the boost on each returned term. This enables to control the boost factor
- * for each matching term in {@link MultiTermQuery#SCORING_BOOLEAN_QUERY_REWRITE} or
- * {@link TopTermsRewrite} mode.
+/**
+ * Add this {@link Attribute} to a {@link TermsEnum} returned by
+ * {@link MultiTermQuery#getTermsEnum(Terms, AttributeSource)} and update the boost on each returned
+ * term. This enables to control the boost factor for each matching term in
+ * {@link MultiTermQuery#SCORING_BOOLEAN_QUERY_REWRITE} or {@link TopTermsRewrite} mode.
  * {@link FuzzyQuery} is using this to take the edit distance into account.
  * <p><b>Please note:</b> This attribute is intended to be added only by the TermsEnum
  * to itself in its constructor and consumed by the {@link MultiTermQuery.RewriteMethod}.
+ *
  * @lucene.internal
  */
 public interface BoostAttribute extends Attribute {
-  /** Sets the boost in this attribute */
-  public void setBoost(float boost);
-  /** Retrieves the boost, default is {@code 1.0f}. */
-  public float getBoost();
+
+    /**
+     * Sets the boost in this attribute
+     */
+    public void setBoost(float boost);
+
+    /**
+     * Retrieves the boost, default is {@code 1.0f}.
+     */
+    public float getBoost();
 }

@@ -25,15 +25,14 @@ import org.junit.Test;
 
 /**
  * FIXME - Look into these tests and see if we want to fix them somehow.
- *
+ * <p>
  * Tests for MongoMicroKernel limits.
  */
 public class DocumentMKLimitsTest extends AbstractMongoConnectionTest {
 
     /**
-     * This test currently fails due to 1000 char limit in property sizes in
-     * MongoDB which affects path property. It also slows down as the test
-     * progresses.
+     * This test currently fails due to 1000 char limit in property sizes in MongoDB which affects
+     * path property. It also slows down as the test progresses.
      */
     @Test
     @Ignore
@@ -56,8 +55,7 @@ public class DocumentMKLimitsTest extends AbstractMongoConnectionTest {
     }
 
     /**
-     * This currently fails due to 16MB DBObject size limitation from Mongo
-     * database.
+     * This currently fails due to 16MB DBObject size limitation from Mongo database.
      */
     @Test
     @Ignore
@@ -74,7 +72,7 @@ public class DocumentMKLimitsTest extends AbstractMongoConnectionTest {
         // create 16+ MB diff
         for (int i = 0; i < 16; i++) {
             jsonDiff.append("+\"" + baseNodeName + i + "\" : {\"key\":\""
-                    + content + "\"}\n");
+                + content + "\"}\n");
         }
         String diff = jsonDiff.toString();
         message = "Commit diff size " + diff.getBytes().length;

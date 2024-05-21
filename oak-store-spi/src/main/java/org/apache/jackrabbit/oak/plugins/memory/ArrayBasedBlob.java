@@ -20,13 +20,13 @@ package org.apache.jackrabbit.oak.plugins.memory;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-
 import org.jetbrains.annotations.NotNull;
 
 /**
  * This {@code Blob} implementations is based on an array of bytes.
  */
 public class ArrayBasedBlob extends AbstractBlob {
+
     private final byte[] value;
 
     public ArrayBasedBlob(byte[] value) {

@@ -58,26 +58,33 @@ public class ReadablePathsPermissionTest extends AbstractPrincipalBasedTest {
     public void before() throws Exception {
         super.before();
 
-        Set<String> paths = getConfig(AuthorizationConfiguration.class).getParameters().getConfigValue(PermissionConstants.PARAM_READ_PATHS, PermissionConstants.DEFAULT_READ_PATHS);
+        Set<String> paths = getConfig(AuthorizationConfiguration.class).getParameters()
+                                                                       .getConfigValue(
+                                                                           PermissionConstants.PARAM_READ_PATHS,
+                                                                           PermissionConstants.DEFAULT_READ_PATHS);
         assertFalse(paths.isEmpty());
 
         readablePaths = Iterators.cycle(paths);
         Set<String> childPaths = Sets.newHashSet();
         for (String path : paths) {
-            Iterables.addAll(childPaths, Iterables.transform(root.getTree(path).getChildren(), Tree::getPath));
+            Iterables.addAll(childPaths,
+                Iterables.transform(root.getTree(path).getChildren(), Tree::getPath));
         }
         readableChildPaths = Iterators.cycle(childPaths);
 
-        permissionProvider = new PrincipalBasedPermissionProvider(root, root.getContentSession().getWorkspaceName(), Collections.singleton(getTestSystemUser().getPath()), getPrincipalBasedAuthorizationConfiguration());
+        permissionProvider = new PrincipalBasedPermissionProvider(root,
+            root.getContentSession().getWorkspaceName(),
+            Collections.singleton(getTestSystemUser().getPath()),
+            getPrincipalBasedAuthorizationConfiguration());
     }
 
     @Override
     protected ConfigurationParameters getSecurityConfigParameters() {
         return ConfigurationParameters.of(AuthorizationConfiguration.NAME,
-                ConfigurationParameters.of(PermissionConstants.PARAM_READ_PATHS, new String[]{
-                        NamespaceConstants.NAMESPACES_PATH,
-                        PrivilegeConstants.PRIVILEGES_PATH
-                }));
+            ConfigurationParameters.of(PermissionConstants.PARAM_READ_PATHS, new String[]{
+                NamespaceConstants.NAMESPACES_PATH,
+                PrivilegeConstants.PRIVILEGES_PATH
+            }));
     }
 
     @NotNull
@@ -88,17 +95,26 @@ public class ReadablePathsPermissionTest extends AbstractPrincipalBasedTest {
     @Test
     public void testHasPrivileges() {
         assertTrue(permissionProvider.hasPrivileges(getTree(readablePaths.next()), JCR_READ));
-        assertTrue(permissionProvider.hasPrivileges(getTree(readablePaths.next()), REP_READ_PROPERTIES));
-        assertTrue(permissionProvider.hasPrivileges(getTree(readableChildPaths.next()), REP_READ_NODES));
-        assertTrue(permissionProvider.hasPrivileges(getTree(readableChildPaths.next()), REP_READ_NODES, REP_READ_PROPERTIES));
+        assertTrue(
+            permissionProvider.hasPrivileges(getTree(readablePaths.next()), REP_READ_PROPERTIES));
+        assertTrue(
+            permissionProvider.hasPrivileges(getTree(readableChildPaths.next()), REP_READ_NODES));
+        assertTrue(
+            permissionProvider.hasPrivileges(getTree(readableChildPaths.next()), REP_READ_NODES,
+                REP_READ_PROPERTIES));
     }
 
     @Test
     public void testNotHasPrivileges() {
-        assertFalse(permissionProvider.hasPrivileges(getTree(readablePaths.next()), JCR_READ, PrivilegeConstants.JCR_READ_ACCESS_CONTROL));
-        assertFalse(permissionProvider.hasPrivileges(getTree(readablePaths.next()), PrivilegeConstants.JCR_WRITE));
-        assertFalse(permissionProvider.hasPrivileges(getTree(readableChildPaths.next()), PrivilegeConstants.JCR_MODIFY_ACCESS_CONTROL, REP_READ_PROPERTIES));
-        assertFalse(permissionProvider.hasPrivileges(getTree(readableChildPaths.next()), REP_READ_NODES, PrivilegeConstants.JCR_REMOVE_NODE));
+        assertFalse(permissionProvider.hasPrivileges(getTree(readablePaths.next()), JCR_READ,
+            PrivilegeConstants.JCR_READ_ACCESS_CONTROL));
+        assertFalse(permissionProvider.hasPrivileges(getTree(readablePaths.next()),
+            PrivilegeConstants.JCR_WRITE));
+        assertFalse(permissionProvider.hasPrivileges(getTree(readableChildPaths.next()),
+            PrivilegeConstants.JCR_MODIFY_ACCESS_CONTROL, REP_READ_PROPERTIES));
+        assertFalse(
+            permissionProvider.hasPrivileges(getTree(readableChildPaths.next()), REP_READ_NODES,
+                PrivilegeConstants.JCR_REMOVE_NODE));
 
         assertFalse(permissionProvider.hasPrivileges(getTree(ROOT_PATH), JCR_READ));
         String systemPath = PathUtils.concat(ROOT_PATH, JCR_SYSTEM);
@@ -110,7 +126,8 @@ public class ReadablePathsPermissionTest extends AbstractPrincipalBasedTest {
         Set<String> expected = Collections.singleton(JCR_READ);
 
         assertEquals(expected, permissionProvider.getPrivileges(getTree(readablePaths.next())));
-        assertEquals(expected, permissionProvider.getPrivileges(getTree(readableChildPaths.next())));
+        assertEquals(expected,
+            permissionProvider.getPrivileges(getTree(readableChildPaths.next())));
 
         assertTrue(permissionProvider.getPrivileges(getTree(ROOT_PATH)).isEmpty());
         String systemPath = PathUtils.concat(ROOT_PATH, JCR_SYSTEM);
@@ -119,67 +136,103 @@ public class ReadablePathsPermissionTest extends AbstractPrincipalBasedTest {
 
     @Test
     public void testIsGrantedPath() {
-        assertTrue(permissionProvider.isGranted(readablePaths.next(), Permissions.getString(Permissions.READ)));
-        assertTrue(permissionProvider.isGranted(readablePaths.next(), Permissions.getString(Permissions.READ_NODE|Permissions.READ_PROPERTY)));
-        assertTrue(permissionProvider.isGranted(readableChildPaths.next(), Permissions.getString(Permissions.READ_NODE)));
-        assertTrue(permissionProvider.isGranted(PathUtils.concat(readableChildPaths.next(), JCR_PRIMARYTYPE), Permissions.getString(Permissions.READ_PROPERTY)));
-        assertTrue(permissionProvider.isGranted(PathUtils.concat(readableChildPaths.next(), "nonExisting"), Permissions.getString(Permissions.READ)));
+        assertTrue(permissionProvider.isGranted(readablePaths.next(),
+            Permissions.getString(Permissions.READ)));
+        assertTrue(permissionProvider.isGranted(readablePaths.next(),
+            Permissions.getString(Permissions.READ_NODE | Permissions.READ_PROPERTY)));
+        assertTrue(permissionProvider.isGranted(readableChildPaths.next(),
+            Permissions.getString(Permissions.READ_NODE)));
+        assertTrue(permissionProvider.isGranted(
+            PathUtils.concat(readableChildPaths.next(), JCR_PRIMARYTYPE),
+            Permissions.getString(Permissions.READ_PROPERTY)));
+        assertTrue(
+            permissionProvider.isGranted(PathUtils.concat(readableChildPaths.next(), "nonExisting"),
+                Permissions.getString(Permissions.READ)));
     }
 
     @Test
     public void testNotIsGrantedPath() {
-        assertFalse(permissionProvider.isGranted(readablePaths.next(), Permissions.getString(Permissions.READ|Permissions.VERSION_MANAGEMENT)));
-        assertFalse(permissionProvider.isGranted(readablePaths.next(), Permissions.getString(Permissions.READ_ACCESS_CONTROL|Permissions.READ_NODE)));
-        assertFalse(permissionProvider.isGranted(readableChildPaths.next(), Permissions.getString(Permissions.READ_PROPERTY|Permissions.ALL)));
+        assertFalse(permissionProvider.isGranted(readablePaths.next(),
+            Permissions.getString(Permissions.READ | Permissions.VERSION_MANAGEMENT)));
+        assertFalse(permissionProvider.isGranted(readablePaths.next(),
+            Permissions.getString(Permissions.READ_ACCESS_CONTROL | Permissions.READ_NODE)));
+        assertFalse(permissionProvider.isGranted(readableChildPaths.next(),
+            Permissions.getString(Permissions.READ_PROPERTY | Permissions.ALL)));
 
-        assertFalse(permissionProvider.isGranted(ROOT_PATH, Permissions.getString(Permissions.READ)));
-        assertFalse(permissionProvider.isGranted(PathUtils.concat(ROOT_PATH, JCR_SYSTEM), Permissions.getString(Permissions.READ_NODE)));
-        assertFalse(permissionProvider.isGranted("/nonExistingContent", Permissions.getString(Permissions.READ_PROPERTY)));
+        assertFalse(
+            permissionProvider.isGranted(ROOT_PATH, Permissions.getString(Permissions.READ)));
+        assertFalse(permissionProvider.isGranted(PathUtils.concat(ROOT_PATH, JCR_SYSTEM),
+            Permissions.getString(Permissions.READ_NODE)));
+        assertFalse(permissionProvider.isGranted("/nonExistingContent",
+            Permissions.getString(Permissions.READ_PROPERTY)));
     }
 
     @Test
     public void testIsGrantedTree() {
-        assertTrue(permissionProvider.isGranted(getTree(readablePaths.next()), null, Permissions.READ));
-        assertTrue(permissionProvider.isGranted(getTree(readablePaths.next()), null, Permissions.READ_NODE));
+        assertTrue(
+            permissionProvider.isGranted(getTree(readablePaths.next()), null, Permissions.READ));
+        assertTrue(permissionProvider.isGranted(getTree(readablePaths.next()), null,
+            Permissions.READ_NODE));
         Tree t = getTree(readablePaths.next());
-        assertTrue(permissionProvider.isGranted(t, t.getProperty(JCR_PRIMARYTYPE), Permissions.READ_PROPERTY));
+        assertTrue(permissionProvider.isGranted(t, t.getProperty(JCR_PRIMARYTYPE),
+            Permissions.READ_PROPERTY));
 
-        assertTrue(permissionProvider.isGranted(getTree(readableChildPaths.next()), null, Permissions.READ));
-        assertTrue(permissionProvider.isGranted(getTree(readableChildPaths.next()), null, Permissions.READ_NODE));
+        assertTrue(permissionProvider.isGranted(getTree(readableChildPaths.next()), null,
+            Permissions.READ));
+        assertTrue(permissionProvider.isGranted(getTree(readableChildPaths.next()), null,
+            Permissions.READ_NODE));
         t = getTree(readableChildPaths.next());
-        assertTrue(permissionProvider.isGranted(t, t.getProperty(JCR_PRIMARYTYPE), Permissions.READ_PROPERTY));
+        assertTrue(permissionProvider.isGranted(t, t.getProperty(JCR_PRIMARYTYPE),
+            Permissions.READ_PROPERTY));
     }
 
     @Test
     public void testNotIsGrantedTree() {
-        assertFalse(permissionProvider.isGranted(getTree(readablePaths.next()), null, Permissions.READ_ACCESS_CONTROL|Permissions.READ));
-        assertFalse(permissionProvider.isGranted(getTree(readablePaths.next()), null, Permissions.ADD_NODE));
+        assertFalse(permissionProvider.isGranted(getTree(readablePaths.next()), null,
+            Permissions.READ_ACCESS_CONTROL | Permissions.READ));
+        assertFalse(permissionProvider.isGranted(getTree(readablePaths.next()), null,
+            Permissions.ADD_NODE));
         Tree t = getTree(readableChildPaths.next());
-        assertFalse(permissionProvider.isGranted(t, t.getProperty(JCR_PRIMARYTYPE), Permissions.MODIFY_PROPERTY|Permissions.READ_PROPERTY));
+        assertFalse(permissionProvider.isGranted(t, t.getProperty(JCR_PRIMARYTYPE),
+            Permissions.MODIFY_PROPERTY | Permissions.READ_PROPERTY));
 
         t = getTree(PathUtils.ROOT_PATH);
         assertFalse(permissionProvider.isGranted(t, null, Permissions.READ));
-        assertFalse(permissionProvider.isGranted(t, t.getProperty(JCR_PRIMARYTYPE), Permissions.READ_PROPERTY));
-        assertFalse(permissionProvider.isGranted(t.getChildren().iterator().next(), null, Permissions.READ_NODE));
+        assertFalse(permissionProvider.isGranted(t, t.getProperty(JCR_PRIMARYTYPE),
+            Permissions.READ_PROPERTY));
+        assertFalse(permissionProvider.isGranted(t.getChildren().iterator().next(), null,
+            Permissions.READ_NODE));
     }
 
     @Test
     public void testIsGrantedLocation() {
-        assertTrue(permissionProvider.isGranted(TreeLocation.create(root, readablePaths.next()), Permissions.READ));
-        assertTrue(permissionProvider.isGranted(TreeLocation.create(root, readableChildPaths.next()), Permissions.READ_NODE));
-        assertTrue(permissionProvider.isGranted(TreeLocation.create(root, readableChildPaths.next()).getChild(JCR_PRIMARYTYPE), Permissions.READ_PROPERTY));
+        assertTrue(permissionProvider.isGranted(TreeLocation.create(root, readablePaths.next()),
+            Permissions.READ));
+        assertTrue(
+            permissionProvider.isGranted(TreeLocation.create(root, readableChildPaths.next()),
+                Permissions.READ_NODE));
+        assertTrue(permissionProvider.isGranted(
+            TreeLocation.create(root, readableChildPaths.next()).getChild(JCR_PRIMARYTYPE),
+            Permissions.READ_PROPERTY));
     }
 
     @Test
     public void testNotIsGrantedLocation() {
-        assertFalse(permissionProvider.isGranted(TreeLocation.create(root, readablePaths.next()), Permissions.READ|Permissions.WRITE));
-        assertFalse(permissionProvider.isGranted(TreeLocation.create(root, readableChildPaths.next()), Permissions.ALL));
-        assertFalse(permissionProvider.isGranted(TreeLocation.create(root, readableChildPaths.next()).getChild(JCR_PRIMARYTYPE), Permissions.READ_PROPERTY|Permissions.MODIFY_PROPERTY));
+        assertFalse(permissionProvider.isGranted(TreeLocation.create(root, readablePaths.next()),
+            Permissions.READ | Permissions.WRITE));
+        assertFalse(
+            permissionProvider.isGranted(TreeLocation.create(root, readableChildPaths.next()),
+                Permissions.ALL));
+        assertFalse(permissionProvider.isGranted(
+            TreeLocation.create(root, readableChildPaths.next()).getChild(JCR_PRIMARYTYPE),
+            Permissions.READ_PROPERTY | Permissions.MODIFY_PROPERTY));
 
         TreeLocation location = TreeLocation.create(root);
         assertFalse(permissionProvider.isGranted(location, Permissions.READ));
-        assertFalse(permissionProvider.isGranted(location.getChild(JCR_SYSTEM), Permissions.READ_NODE));
-        assertFalse(permissionProvider.isGranted(location.getChild(JCR_PRIMARYTYPE), Permissions.READ_PROPERTY));
+        assertFalse(
+            permissionProvider.isGranted(location.getChild(JCR_SYSTEM), Permissions.READ_NODE));
+        assertFalse(permissionProvider.isGranted(location.getChild(JCR_PRIMARYTYPE),
+            Permissions.READ_PROPERTY));
     }
 
     @Test
@@ -209,7 +262,8 @@ public class ReadablePathsPermissionTest extends AbstractPrincipalBasedTest {
         tp = permissionProvider.getTreePermission(t, tp);
         assertTrue(tp.isGranted(Permissions.READ_NODE));
         assertTrue(tp.isGranted(Permissions.READ_PROPERTY, t.getProperty(JCR_PRIMARYTYPE)));
-        assertFalse(tp.isGranted(Permissions.READ_PROPERTY|Permissions.MODIFY_PROPERTY, t.getProperty(JCR_PRIMARYTYPE)));
+        assertFalse(tp.isGranted(Permissions.READ_PROPERTY | Permissions.MODIFY_PROPERTY,
+            t.getProperty(JCR_PRIMARYTYPE)));
         assertTrue(tp.canRead());
         assertFalse(tp.canReadAll());
     }

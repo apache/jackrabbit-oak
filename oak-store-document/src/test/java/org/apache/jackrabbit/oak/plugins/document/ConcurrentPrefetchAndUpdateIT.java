@@ -60,7 +60,7 @@ public class ConcurrentPrefetchAndUpdateIT extends AbstractMongoConnectionTest {
         MongoDatabase db = mongoConnection.getDatabase();
         MongoUtils.dropCollections(db);
         DocumentMK.Builder builder = new DocumentMK.Builder()
-                .clock(getTestClock()).setAsyncDelay(0);
+            .clock(getTestClock()).setAsyncDelay(0);
         store = new TestStore(mongoConnection.getMongoClient(), db, builder);
         mk = builder.setDocumentStore(store).open();
     }
@@ -97,7 +97,7 @@ public class ConcurrentPrefetchAndUpdateIT extends AbstractMongoConnectionTest {
                 NodeDocument doc = store.find(NODES, id);
                 assertNotNull(doc);
                 assertEquals("Unexpected revision timestamp for " + doc.getId(),
-                        counter.get(), doc.getLastRev().get(1).getTimestamp());
+                    counter.get(), doc.getLastRev().get(1).getTimestamp());
             }
         }
     }
@@ -148,7 +148,7 @@ public class ConcurrentPrefetchAndUpdateIT extends AbstractMongoConnectionTest {
 
         @Override
         protected <T extends Document> T convertFromDBObject(
-                @NotNull Collection<T> collection, @Nullable DBObject n) {
+            @NotNull Collection<T> collection, @Nullable DBObject n) {
             randomWait();
             return super.convertFromDBObject(collection, n);
         }

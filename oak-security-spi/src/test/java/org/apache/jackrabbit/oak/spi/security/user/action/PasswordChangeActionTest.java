@@ -16,6 +16,14 @@
  */
 package org.apache.jackrabbit.oak.spi.security.user.action;
 
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
+
+import javax.jcr.nodetype.ConstraintViolationException;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -29,17 +37,6 @@ import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 import org.junit.Test;
-
-import javax.jcr.nodetype.ConstraintViolationException;
-
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.withSettings;
 
 public class PasswordChangeActionTest {
 
@@ -64,7 +61,8 @@ public class PasswordChangeActionTest {
         Tree userTree = mock(Tree.class);
         if (pw != null) {
             String pwHash = PasswordUtil.buildPasswordHash(pw);
-            when(userTree.getProperty(UserConstants.REP_PASSWORD)).thenReturn(PropertyStates.createProperty(UserConstants.REP_PASSWORD, pwHash));
+            when(userTree.getProperty(UserConstants.REP_PASSWORD)).thenReturn(
+                PropertyStates.createProperty(UserConstants.REP_PASSWORD, pwHash));
         }
         Root root = mock(Root.class);
         when(root.getTree(USER_PATH)).thenReturn(userTree);
@@ -94,17 +92,17 @@ public class PasswordChangeActionTest {
         verify(user).getPath();
         verifyNoMoreInteractions(user);
     }
-    
+
     @Test
     public void testUserIsTreeAware() throws Exception {
         Root r = createRoot("pw");
         Tree t = r.getTree(USER_PATH);
-        
+
         User u = mock(User.class, withSettings().extraInterfaces(TreeAware.class));
         when(((TreeAware) u).getTree()).thenReturn(t);
 
         pwChangeAction.onPasswordChange(u, "changedPassword", r, namePathMapper);
-        
+
         verify(u, never()).getPath();
         verify(((TreeAware) u)).getTree();
         verify(r).getTree(USER_PATH);

@@ -60,11 +60,15 @@ class CompositionContext {
 
     private final CompositeNodeStoreMonitor nodeBuilderMonitor;
 
-    CompositionContext(MountInfoProvider mip, NodeStore globalStore, List<MountedNodeStore> nonDefaultStores, CompositeNodeStoreMonitor nodeStateMonitor, CompositeNodeStoreMonitor nodeBuilderMonitor) {
+    CompositionContext(MountInfoProvider mip, NodeStore globalStore,
+        List<MountedNodeStore> nonDefaultStores, CompositeNodeStoreMonitor nodeStateMonitor,
+        CompositeNodeStoreMonitor nodeBuilderMonitor) {
         this.pathCache = new StringCache().withMonitor(nodeStateMonitor);
         this.mip = mip;
         this.globalStore = new MountedNodeStore(mip.getDefaultMount(), globalStore);
-        this.prefetchNodeStore = globalStore instanceof PrefetchNodeStore ? (PrefetchNodeStore) globalStore : PrefetchNodeStore.NOOP;
+        this.prefetchNodeStore =
+            globalStore instanceof PrefetchNodeStore ? (PrefetchNodeStore) globalStore
+                : PrefetchNodeStore.NOOP;
         this.nonDefaultStores = nonDefaultStores;
 
         ImmutableSet.Builder<MountedNodeStore> b = ImmutableSet.builder();
@@ -72,7 +76,8 @@ class CompositionContext {
         b.addAll(this.nonDefaultStores);
         allStores = b.build();
 
-        this.nodeStoresByMount = allStores.stream().collect(Collectors.toMap(MountedNodeStore::getMount, Function.identity()));
+        this.nodeStoresByMount = allStores.stream().collect(
+            Collectors.toMap(MountedNodeStore::getMount, Function.identity()));
         this.nodeStateMonitor = nodeStateMonitor;
         this.nodeBuilderMonitor = nodeBuilderMonitor;
     }
@@ -94,11 +99,13 @@ class CompositionContext {
         }
     }
 
-    List<MountedNodeStore> getContributingStoresForNodes(String path, final NodeMap<NodeState> nodeStates) {
+    List<MountedNodeStore> getContributingStoresForNodes(String path,
+        final NodeMap<NodeState> nodeStates) {
         return getContributingStores(path, mns -> nodeStates.get(mns).getChildNodeNames());
     }
 
-    List<MountedNodeStore> getContributingStoresForBuilders(String path, final NodeMap<NodeBuilder> nodeBuilders) {
+    List<MountedNodeStore> getContributingStoresForBuilders(String path,
+        final NodeMap<NodeBuilder> nodeBuilders) {
         return getContributingStores(path, mns -> nodeBuilders.get(mns).getChildNodeNames());
     }
 
@@ -112,7 +119,8 @@ class CompositionContext {
         return supportMounts && mip.getMountByPath(path).isDefault();
     }
 
-    private List<MountedNodeStore> getContributingStores(String path, Function<MountedNodeStore, Iterable<String>> childrenProvider) {
+    private List<MountedNodeStore> getContributingStores(String path,
+        Function<MountedNodeStore, Iterable<String>> childrenProvider) {
         Mount owningMount = mip.getMountByPath(path);
         if (!owningMount.isDefault() && nodeStoresByMount.containsKey(owningMount)) {
             MountedNodeStore nodeStore = nodeStoresByMount.get(owningMount);
@@ -133,7 +141,8 @@ class CompositionContext {
             final Mount mount = mountedNodeStore.getMount();
             if (mounts.contains(mount)) {
                 mountedStores.add(mountedNodeStore);
-            } else if (hasChildrenContainingPathFragmentName(mountedNodeStore, path, childrenProvider)) {
+            } else if (hasChildrenContainingPathFragmentName(mountedNodeStore, path,
+                childrenProvider)) {
                 mountedStores.add(mountedNodeStore);
             }
         }
@@ -141,14 +150,15 @@ class CompositionContext {
         return mountedStores;
     }
 
-    private boolean hasChildrenContainingPathFragmentName(MountedNodeStore mns, String parentPath, Function<MountedNodeStore, Iterable<String>> childrenProvider) {
+    private boolean hasChildrenContainingPathFragmentName(MountedNodeStore mns, String parentPath,
+        Function<MountedNodeStore, Iterable<String>> childrenProvider) {
         final Mount mount = mns.getMount();
         if (!mount.isSupportFragment(parentPath)) {
             return false;
         }
 
         return StreamSupport.stream(childrenProvider.apply(mns).spliterator(), false)
-                .anyMatch(i -> i.contains(mount.getPathFragmentName()));
+                            .anyMatch(i -> i.contains(mount.getPathFragmentName()));
     }
 
     Set<MountedNodeStore> getAllMountedNodeStores() {
@@ -159,7 +169,8 @@ class CompositionContext {
         return globalStore.getNodeStore().createBlob(inputStream);
     }
 
-    boolean belongsToStore(final MountedNodeStore mountedNodeStore, final String parentPath, final String childName) {
+    boolean belongsToStore(final MountedNodeStore mountedNodeStore, final String parentPath,
+        final String childName) {
         return getOwningStore(PathUtils.concat(parentPath, childName)) == mountedNodeStore;
     }
 
@@ -177,15 +188,18 @@ class CompositionContext {
             MountedNodeStore mns = e.getKey();
             NodeState nodeState = e.getValue();
             if (nodeState instanceof CompositeNodeState) {
-                throw new IllegalArgumentException("Nesting composite node states is not supported");
+                throw new IllegalArgumentException(
+                    "Nesting composite node states is not supported");
             }
             if (nodeState == null) {
-                throw new NullPointerException("Passed null as a nodestate for " + mns.getMount().getName());
+                throw new NullPointerException(
+                    "Passed null as a nodestate for " + mns.getMount().getName());
             }
         }
         for (MountedNodeStore mns : nonDefaultStores) {
             if (!rootStates.containsKey(mns)) {
-                throw new IllegalArgumentException("Can't find node state for " + mns.getMount().getName());
+                throw new IllegalArgumentException(
+                    "Can't find node state for " + mns.getMount().getName());
             }
         }
         if (!rootStates.containsKey(globalStore)) {

@@ -31,9 +31,9 @@ public class SimpleNodeScenario {
 
     public String create() throws Exception {
         return mk.commit("/",
-                "+\"a\" : { \"int\" : 1 , \"b\" : { \"string\" : \"foo\" } , \"c\" : { \"bool\" : true } }",
-                null,
-                "Simple node scenario with nodes /, /a, /a/b, /a/c");
+            "+\"a\" : { \"int\" : 1 , \"b\" : { \"string\" : \"foo\" } , \"c\" : { \"bool\" : true } }",
+            null,
+            "Simple node scenario with nodes /, /a, /a/b, /a/c");
     }
 
     public String addChildrenToA(int count) throws Exception {

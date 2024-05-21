@@ -24,7 +24,6 @@ import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
-
 import org.apache.jackrabbit.oak.NodeStoreFixtures;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.Jcr;
@@ -45,20 +44,20 @@ public class ManyChildrenTest {
     Repository repository;
     Session session;
     NodeStore nodeStore;
-    
+
     @Before
     public void init() throws RepositoryException {
-        
+
         // to test in a cluster, use:
         // nodeStore = fixture.createNodeStore(1);
         nodeStore = fixture.createNodeStore();
-        
+
         if (nodeStore != null) {
             repository = new Jcr(nodeStore).createRepository();
             session = repository.login(new SimpleCredentials("admin", "admin".toCharArray()));
         }
     }
-    
+
     @After
     public void logout() {
         if (session != null) {
@@ -67,7 +66,7 @@ public class ManyChildrenTest {
             fixture.dispose(nodeStore);
         }
     }
-    
+
     @Test
     public void manyChildrenWithoutIndex() throws Exception {
         if (session == null) {
@@ -79,11 +78,11 @@ public class ManyChildrenTest {
             session.save();
         }
         long start = System.currentTimeMillis(), last = start;
-        
+
         // to test with more nodes, use:
         // int count = 1000000;
         int count = 10;
-        
+
         Profiler prof = null;
         String nodeType = NodeTypeConstants.NT_OAK_UNSTRUCTURED;
         if (session.getRootNode().hasNode("many")) {
@@ -111,7 +110,7 @@ public class ManyChildrenTest {
                 }
             }
         }
-        
+
         start = System.currentTimeMillis();
         last = start;
 

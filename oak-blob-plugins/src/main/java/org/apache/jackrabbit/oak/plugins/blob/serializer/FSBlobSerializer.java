@@ -19,11 +19,12 @@
 
 package org.apache.jackrabbit.oak.plugins.blob.serializer;
 
+import static org.apache.commons.io.FileUtils.ONE_KB;
+
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.FileDataStore;
 import org.apache.jackrabbit.oak.api.Blob;
@@ -37,12 +38,11 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.commons.io.FileUtils.ONE_KB;
-
 /**
  * Serializer which stores blobs in a FileDataStore format
  */
 public class FSBlobSerializer extends BlobSerializer implements BlobDeserializer, Closeable {
+
     private final Logger log = LoggerFactory.getLogger(getClass());
     private static final String ERROR_MARKER = "*ERROR*-";
     private final File dir;
@@ -64,7 +64,8 @@ public class FSBlobSerializer extends BlobSerializer implements BlobDeserializer
         try (InputStream is = blob.getNewStream()) {
             return dataStore.writeBlob(is);
         } catch (Exception e) {
-            log.warn("Error occurred while serializing Blob with id {}", blob.getContentIdentity(), e);
+            log.warn("Error occurred while serializing Blob with id {}", blob.getContentIdentity(),
+                e);
             return String.format("%s%s", ERROR_MARKER, blob.getContentIdentity());
         }
     }
@@ -79,7 +80,7 @@ public class FSBlobSerializer extends BlobSerializer implements BlobDeserializer
 
     @Override
     public Blob deserialize(String value) {
-        if (errorBlob(value)){
+        if (errorBlob(value)) {
             return new ErrorBlob(value);
         }
         return new BlobStoreBlob(dataStore, value);
@@ -101,6 +102,7 @@ public class FSBlobSerializer extends BlobSerializer implements BlobDeserializer
     }
 
     private static final class ErrorBlob extends AbstractBlob {
+
         private final String id;
 
         public ErrorBlob(String id) {
@@ -124,7 +126,7 @@ public class FSBlobSerializer extends BlobSerializer implements BlobDeserializer
         }
 
         private RuntimeException createError() {
-            return new RuntimeException("Blob with id ["+id+"] threw error while serializing");
+            return new RuntimeException("Blob with id [" + id + "] threw error while serializing");
         }
     }
 }

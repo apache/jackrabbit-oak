@@ -32,7 +32,8 @@ public class DocumentMemoryFixture extends NodeStoreFixture {
         DocumentMK.Builder builder = new DocumentMK.Builder();
         //do not reuse the whiteboard
         setWhiteboard(new DefaultWhiteboard());
-        builder.setNoChildOrderCleanupFeature(Feature.newFeature("FT_NOCOCLEANUP_OAK-10660", getWhiteboard()));
+        builder.setNoChildOrderCleanupFeature(
+            Feature.newFeature("FT_NOCOCLEANUP_OAK-10660", getWhiteboard()));
         return builder.getNodeStore();
     }
 

@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.jcr.query;
 import junit.framework.Test;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
-
 import org.apache.jackrabbit.core.query.ChildAxisQueryTest;
 import org.apache.jackrabbit.core.query.DerefTest;
 import org.apache.jackrabbit.core.query.FnNameQueryTest;
@@ -39,7 +38,7 @@ public class QueryJcrTest2IT extends TestCase {
 
     public static Test suite() {
         TestSuite suite = new ConcurrentTestSuite(
-                "Jackrabbit query tests using a Lucene based index");
+            "Jackrabbit query tests using a Lucene based index");
         suite.addTestSuite(ParentNodeTest.class);
         suite.addTestSuite(SimilarQueryTest.class);
         suite.addTestSuite(DerefTest.class);

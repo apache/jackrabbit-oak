@@ -30,12 +30,10 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentSkipListMap;
-
 import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Sets;
-
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -60,30 +58,29 @@ class Branch {
     private final BranchReference ref;
 
     /**
-     * Create a new branch instance with an initial set of commits and a given
-     * base revision. The life time of this branch can be controlled with
-     * the {@code guard} parameter. Once the {@code guard} object becomes weakly
-     * reachable, the {@link BranchReference} for this branch is appended to
-     * the passed {@code queue}. No {@link BranchReference} is appended if the
-     * passed {@code guard} is {@code null}.
+     * Create a new branch instance with an initial set of commits and a given base revision. The
+     * life time of this branch can be controlled with the {@code guard} parameter. Once the
+     * {@code guard} object becomes weakly reachable, the {@link BranchReference} for this branch is
+     * appended to the passed {@code queue}. No {@link BranchReference} is appended if the passed
+     * {@code guard} is {@code null}.
      *
      * @param commits the initial branch commits.
-     * @param base the base commit.
-     * @param queue a {@link BranchReference} to this branch will be appended to
-     *              this queue when {@code guard} becomes weakly reachable.
-     * @param guard controls the life time of this branch.
+     * @param base    the base commit.
+     * @param queue   a {@link BranchReference} to this branch will be appended to this queue when
+     *                {@code guard} becomes weakly reachable.
+     * @param guard   controls the life time of this branch.
      * @throws IllegalArgumentException if base is a branch revision.
      */
     Branch(@NotNull SortedSet<Revision> commits,
-           @NotNull RevisionVector base,
-           @NotNull ReferenceQueue<Object> queue,
-           @Nullable Object guard) {
+        @NotNull RevisionVector base,
+        @NotNull ReferenceQueue<Object> queue,
+        @Nullable Object guard) {
         checkArgument(!checkNotNull(base).isBranch(), "base is not a trunk revision: %s", base);
         this.base = base;
         this.commits = new ConcurrentSkipListMap<Revision, BranchCommit>(commits.comparator());
         for (Revision r : commits) {
             this.commits.put(r.asBranchRevision(),
-                    new BranchCommitImpl(base, r.asBranchRevision()));
+                new BranchCommitImpl(base, r.asBranchRevision()));
         }
         if (guard != null) {
             this.ref = new BranchReference(queue, this, guard);
@@ -105,15 +102,14 @@ class Branch {
      *
      * @param r revision of a commit in this branch.
      * @return the base revision for <code>r</code>.
-     * @throws IllegalArgumentException if <code>r</code> is not a commit of
-     *                                  this branch.
+     * @throws IllegalArgumentException if <code>r</code> is not a commit of this branch.
      */
     @NotNull
     RevisionVector getBase(@NotNull Revision r) {
         BranchCommit c = commits.get(checkNotNull(r).asBranchRevision());
         if (c == null) {
             throw new IllegalArgumentException(
-                    "Revision " + r + " is not a commit in this branch");
+                "Revision " + r + " is not a commit in this branch");
         }
         return c.getBase();
     }
@@ -123,8 +119,7 @@ class Branch {
      *
      * @param head the new head of the branch.
      * @param base rebase to this revision.
-     * @throws IllegalArgumentException if head is a trunk revision or base is a
-     *                                  branch revision.
+     * @throws IllegalArgumentException if head is a trunk revision or base is a branch revision.
      */
     void rebase(@NotNull Revision head, @NotNull RevisionVector base) {
         checkArgument(checkNotNull(head).isBranch(), "Not a branch revision: %s", head);
@@ -156,7 +151,7 @@ class Branch {
 
     /**
      * @return <code>true</code> if this branch contains any commits;
-     *         <code>false</code> otherwise.
+     * <code>false</code> otherwise.
      */
     boolean hasCommits() {
         return !commits.isEmpty();
@@ -167,15 +162,14 @@ class Branch {
      *
      * @param r the revision of a commit.
      * @return <code>true</code> if this branch contains a commit with the given
-     *         revision; <code>false</code> otherwise.
+     * revision; <code>false</code> otherwise.
      */
     boolean containsCommit(@NotNull Revision r) {
         return commits.containsKey(checkNotNull(r).asBranchRevision());
     }
 
     /**
-     * Returns the branch commit with the given or {@code null} if it does not
-     * exist.
+     * Returns the branch commit with the given or {@code null} if it does not exist.
      *
      * @param r the revision of a commit.
      * @return the branch commit or {@code null} if it doesn't exist.
@@ -186,8 +180,8 @@ class Branch {
     }
 
     /**
-     * @return the branch reference or {@code null} if no guard object was
-     *         passed to the constructor of this branch. 
+     * @return the branch reference or {@code null} if no guard object was passed to the constructor
+     * of this branch.
      */
     @Nullable
     BranchReference getRef() {
@@ -195,8 +189,8 @@ class Branch {
     }
 
     /**
-     * Removes the commit with the given revision <code>r</code>. Does nothing
-     * if there is no such commit.
+     * Removes the commit with the given revision <code>r</code>. Does nothing if there is no such
+     * commit.
      *
      * @param r the revision of the commit to remove.
      * @throws IllegalArgumentException if r is not a branch revision.
@@ -207,14 +201,14 @@ class Branch {
     }
 
     /**
-     * Applies all unsaved modification of this branch to the given collection
-     * of unsaved trunk modifications with the given merge commit revision.
+     * Applies all unsaved modification of this branch to the given collection of unsaved trunk
+     * modifications with the given merge commit revision.
      *
-     * @param trunk the unsaved trunk modifications.
+     * @param trunk       the unsaved trunk modifications.
      * @param mergeCommit the revision of the merge commit.
      */
     public void applyTo(@NotNull UnsavedModifications trunk,
-                        @NotNull Revision mergeCommit) {
+        @NotNull Revision mergeCommit) {
         checkNotNull(trunk);
         for (BranchCommit c : commits.values()) {
             c.applyTo(trunk, mergeCommit);
@@ -222,18 +216,18 @@ class Branch {
     }
 
     /**
-     * Gets the most recent unsaved last revision at <code>readRevision</code>
-     * or earlier in this branch for the given <code>path</code>. Documents with
-     * explicit updates are not tracked and this method may return {@code null}.
+     * Gets the most recent unsaved last revision at <code>readRevision</code> or earlier in this
+     * branch for the given <code>path</code>. Documents with explicit updates are not tracked and
+     * this method may return {@code null}.
      *
      * @param path         the path of a node.
      * @param readRevision the read revision.
-     * @return the most recent unsaved last revision or <code>null</code> if
-     *         there is none in this branch.
+     * @return the most recent unsaved last revision or <code>null</code> if there is none in this
+     * branch.
      */
     @Nullable
     public Revision getUnsavedLastRevision(Path path,
-                                           Revision readRevision) {
+        Revision readRevision) {
         readRevision = readRevision.asBranchRevision();
         for (Revision r : commits.descendingKeySet()) {
             if (readRevision.compareRevisionTime(r) < 0) {
@@ -249,18 +243,18 @@ class Branch {
 
     /**
      * @param rev the revision to check.
-     * @return {@code true} if the given revision is the head of this branch,
-     *          {@code false} otherwise.
+     * @return {@code true} if the given revision is the head of this branch, {@code false}
+     * otherwise.
      */
     public boolean isHead(@NotNull Revision rev) {
         checkArgument(checkNotNull(rev).isBranch(),
-                "Not a branch revision: %s", rev);
+            "Not a branch revision: %s", rev);
         return checkNotNull(rev).equals(commits.lastKey());
     }
 
     /**
-     * Returns the modified paths since the base revision of this branch until
-     * the given branch revision {@code r} (inclusive).
+     * Returns the modified paths since the base revision of this branch until the given branch
+     * revision {@code r} (inclusive).
      *
      * @param r a commit on this branch.
      * @return modified paths until {@code r}.
@@ -268,18 +262,18 @@ class Branch {
      */
     Iterable<Path> getModifiedPathsUntil(@NotNull final Revision r) {
         checkArgument(checkNotNull(r).isBranch(),
-                "Not a branch revision: %s", r);
+            "Not a branch revision: %s", r);
         if (!commits.containsKey(r)) {
             return Collections.emptyList();
         }
         Iterable<Iterable<Path>> paths = transform(filter(commits.entrySet(),
-                new Predicate<Map.Entry<Revision, BranchCommit>>() {
-            @Override
-            public boolean apply(Map.Entry<Revision, BranchCommit> input) {
-                return !input.getValue().isRebase()
+            new Predicate<Map.Entry<Revision, BranchCommit>>() {
+                @Override
+                public boolean apply(Map.Entry<Revision, BranchCommit> input) {
+                    return !input.getValue().isRebase()
                         && input.getKey().compareRevisionTime(r) <= 0;
-            }
-        }), new Function<Map.Entry<Revision, BranchCommit>, Iterable<Path>>() {
+                }
+            }), new Function<Map.Entry<Revision, BranchCommit>, Iterable<Path>>() {
             @Override
             public Iterable<Path> apply(Map.Entry<Revision, BranchCommit> input) {
                 return input.getValue().getModifiedPaths();
@@ -382,7 +376,7 @@ class Branch {
         private final NavigableMap<Revision, BranchCommit> previous;
 
         RebaseCommit(RevisionVector base, Revision commit,
-                     NavigableMap<Revision, BranchCommit> previous) {
+            NavigableMap<Revision, BranchCommit> previous) {
             super(base, commit);
             this.previous = squash(previous);
         }
@@ -412,12 +406,12 @@ class Branch {
         @Override
         Iterable<Path> getModifiedPaths() {
             Iterable<Iterable<Path>> paths = transform(previous.values(),
-                    new Function<BranchCommit, Iterable<Path>>() {
-                @Override
-                public Iterable<Path> apply(BranchCommit branchCommit) {
-                    return branchCommit.getModifiedPaths();
-                }
-            });
+                new Function<BranchCommit, Iterable<Path>>() {
+                    @Override
+                    public Iterable<Path> apply(BranchCommit branchCommit) {
+                        return branchCommit.getModifiedPaths();
+                    }
+                });
             return Iterables.concat(paths);
         }
 
@@ -427,10 +421,12 @@ class Branch {
          * @param previous branch commit history
          * @return filtered branch history only containing non rebase commits
          */
-        private static NavigableMap<Revision, BranchCommit> squash(NavigableMap<Revision, BranchCommit> previous) {
-            NavigableMap<Revision, BranchCommit> result = new TreeMap<Revision, BranchCommit>(previous.comparator());
-            for (Map.Entry<Revision, BranchCommit> e : previous.entrySet()){
-                if (!e.getValue().isRebase()){
+        private static NavigableMap<Revision, BranchCommit> squash(
+            NavigableMap<Revision, BranchCommit> previous) {
+            NavigableMap<Revision, BranchCommit> result = new TreeMap<Revision, BranchCommit>(
+                previous.comparator());
+            for (Map.Entry<Revision, BranchCommit> e : previous.entrySet()) {
+                if (!e.getValue().isRebase()) {
                     result.put(e.getKey(), e.getValue());
                 }
             }
@@ -455,8 +451,8 @@ class Branch {
         private final Branch branch;
 
         private BranchReference(@NotNull ReferenceQueue<Object> queue,
-                                @NotNull Branch branch,
-                                @NotNull Object referent) {
+            @NotNull Branch branch,
+            @NotNull Object referent) {
             super(checkNotNull(referent), queue);
             this.branch = checkNotNull(branch);
         }

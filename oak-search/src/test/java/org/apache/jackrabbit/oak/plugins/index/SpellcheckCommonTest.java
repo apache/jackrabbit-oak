@@ -16,14 +16,15 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
-import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
-import org.apache.jackrabbit.oak.query.AbstractJcrTest;
-import org.junit.Before;
-import org.junit.Test;
+import static org.apache.jackrabbit.commons.JcrUtils.getOrCreateByPath;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_ANALYZED;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_USE_IN_SPELLCHECK;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.query.Query;
@@ -32,15 +33,13 @@ import javax.jcr.query.QueryResult;
 import javax.jcr.query.Row;
 import javax.jcr.query.RowIterator;
 import javax.jcr.security.Privilege;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
-
-import static org.apache.jackrabbit.commons.JcrUtils.getOrCreateByPath;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_ANALYZED;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_USE_IN_SPELLCHECK;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.query.AbstractJcrTest;
+import org.junit.Before;
+import org.junit.Test;
 
 public abstract class SpellcheckCommonTest extends AbstractJcrTest {
 
@@ -51,13 +50,15 @@ public abstract class SpellcheckCommonTest extends AbstractJcrTest {
     @Before
     public void createIndex() throws RepositoryException {
         String indexName = UUID.randomUUID().toString();
-        IndexDefinitionBuilder builder = indexOptions.createIndex(indexOptions.createIndexDefinitionBuilder(), false);
+        IndexDefinitionBuilder builder = indexOptions.createIndex(
+            indexOptions.createIndexDefinitionBuilder(), false);
         builder.noAsync().evaluatePathRestrictions();
         IndexDefinitionBuilder.IndexRule indexRule = builder.indexRule(JcrConstants.NT_BASE);
 
         indexRule.property("cons").propertyIndex();
         indexRule.property("foo").propertyIndex();
-        indexRule.property("foo").getBuilderTree().setProperty(PROP_USE_IN_SPELLCHECK, true, Type.BOOLEAN);
+        indexRule.property("foo").getBuilderTree()
+                 .setProperty(PROP_USE_IN_SPELLCHECK, true, Type.BOOLEAN);
         indexRule.property("foo").getBuilderTree().setProperty(PROP_ANALYZED, true, Type.BOOLEAN);
 
         indexOptions.setIndex(adminSession, indexName, builder);
@@ -97,7 +98,8 @@ public abstract class SpellcheckCommonTest extends AbstractJcrTest {
         Query q = qm.createQuery(sql, Query.SQL);
         assertEventually(() -> {
             try {
-                assertEquals("[decent, descent]", getResult(q.execute(), "rep:spellcheck()").toString());
+                assertEquals("[decent, descent]",
+                    getResult(q.execute(), "rep:spellcheck()").toString());
             } catch (RepositoryException e) {
                 throw new RuntimeException(e);
             }
@@ -137,7 +139,8 @@ public abstract class SpellcheckCommonTest extends AbstractJcrTest {
         Node n3 = par.addNode("node3");
         n3.setProperty("foo", "I flew to ontario for voting for the major polls");
         Node n4 = par.addNode("node4");
-        n4.setProperty("foo", "I will go voting in ontario, I always voted since I've been allowed to");
+        n4.setProperty("foo",
+            "I will go voting in ontario, I always voted since I've been allowed to");
         adminSession.save();
 
         String sql = "SELECT [rep:spellcheck()] FROM nt:base WHERE SPELLCHECK('votin in ontari')";
@@ -145,7 +148,8 @@ public abstract class SpellcheckCommonTest extends AbstractJcrTest {
 
         assertEventually(() -> {
             try {
-                assertEquals("[voting in ontario]", getResult(q.execute(), "rep:spellcheck()").toString());
+                assertEquals("[voting in ontario]",
+                    getResult(q.execute(), "rep:spellcheck()").toString());
             } catch (RepositoryException e) {
                 throw new RuntimeException(e);
             }
@@ -157,7 +161,8 @@ public abstract class SpellcheckCommonTest extends AbstractJcrTest {
         return node;
     }
 
-    static List<String> getResult(QueryResult result, String propertyName) throws RepositoryException {
+    static List<String> getResult(QueryResult result, String propertyName)
+        throws RepositoryException {
         List<String> results = new ArrayList<>();
         RowIterator it;
 

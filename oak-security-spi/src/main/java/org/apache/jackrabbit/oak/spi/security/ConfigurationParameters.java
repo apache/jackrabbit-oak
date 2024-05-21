@@ -35,8 +35,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * ConfigurationParameters is a convenience class that allows typed access to configuration properties. It implements
- * the {@link Map} interface but is immutable.
+ * ConfigurationParameters is a convenience class that allows typed access to configuration
+ * properties. It implements the {@link Map} interface but is immutable.
  */
 public final class ConfigurationParameters implements Map<String, Object> {
 
@@ -56,16 +56,17 @@ public final class ConfigurationParameters implements Map<String, Object> {
     private final Map<String, Object> options;
 
     /**
-     * creates an empty config parameters instance.
-     * Note: the constructor is private to avoid creation of empty maps.
+     * creates an empty config parameters instance. Note: the constructor is private to avoid
+     * creation of empty maps.
      */
     private ConfigurationParameters() {
         this.options = Collections.emptyMap();
     }
 
     /**
-     * Creates an config parameter instance.
-     * Note: the constructor is private to avoid creation of empty maps.
+     * Creates an config parameter instance. Note: the constructor is private to avoid creation of
+     * empty maps.
+     *
      * @param options the source options.
      */
     private ConfigurationParameters(@NotNull Map<String, ?> options) {
@@ -92,6 +93,7 @@ public final class ConfigurationParameters implements Map<String, Object> {
 
     /**
      * Creates new a configuration parameters instance by copying the given properties.
+     *
      * @param properties source properties
      * @return configuration parameters or {@link #EMPTY} if the source properties were empty.
      */
@@ -110,6 +112,7 @@ public final class ConfigurationParameters implements Map<String, Object> {
 
     /**
      * Creates new a configuration parameters instance by copying the given properties.
+     *
      * @param properties source properties
      * @return configuration parameters or {@link #EMPTY} if the source properties were empty.
      */
@@ -119,7 +122,7 @@ public final class ConfigurationParameters implements Map<String, Object> {
             return EMPTY;
         }
         Map<String, Object> options = new HashMap<>(properties.size());
-        for (Enumeration<String> keys = properties.keys(); keys.hasMoreElements();) {
+        for (Enumeration<String> keys = properties.keys(); keys.hasMoreElements(); ) {
             String key = keys.nextElement();
             options.put(key, properties.get(key));
         }
@@ -128,6 +131,7 @@ public final class ConfigurationParameters implements Map<String, Object> {
 
     /**
      * Creates new a configuration parameters instance by copying the given map.
+     *
      * @param map source map
      * @return configuration parameters or {@link #EMPTY} if the source map was empty.
      */
@@ -145,10 +149,9 @@ public final class ConfigurationParameters implements Map<String, Object> {
     }
 
     /**
-     * Creates new a single valued configuration parameters instance from the
-     * given key and value.
+     * Creates new a single valued configuration parameters instance from the given key and value.
      *
-     * @param key The key
+     * @param key   The key
      * @param value The value
      * @return a new instance of configuration parameters.
      */
@@ -158,36 +161,35 @@ public final class ConfigurationParameters implements Map<String, Object> {
     }
 
     /**
-     * Creates new a configuration parameters instance from the
-     * given key and value pairs.
+     * Creates new a configuration parameters instance from the given key and value pairs.
      *
-     * @param key1 The key of the first pair.
+     * @param key1   The key of the first pair.
      * @param value1 The value of the first pair
-     * @param key2 The key of the second pair.
+     * @param key2   The key of the second pair.
      * @param value2 The value of the second pair.
      * @return a new instance of configuration parameters.
      */
     @NotNull
     public static ConfigurationParameters of(@NotNull String key1, @NotNull Object value1,
-                                             @NotNull String key2, @NotNull Object value2) {
+        @NotNull String key2, @NotNull Object value2) {
         return new ConfigurationParameters(ImmutableMap.of(key1, value1, key2, value2));
     }
 
     /**
-     * Returns {@code true} if this instance contains a configuration entry with
-     * the specified key irrespective of the defined value; {@code false} otherwise.
+     * Returns {@code true} if this instance contains a configuration entry with the specified key
+     * irrespective of the defined value; {@code false} otherwise.
      *
      * @param key The key to be tested.
-     * @return {@code true} if this instance contains a configuration entry with
-     * the specified key irrespective of the defined value; {@code false} otherwise.
+     * @return {@code true} if this instance contains a configuration entry with the specified key
+     * irrespective of the defined value; {@code false} otherwise.
      */
     public boolean contains(@NotNull String key) {
         return options.containsKey(key);
     }
 
     /**
-     * Returns the value of the configuration entry with the given {@code key}
-     * applying the following rules:
+     * Returns the value of the configuration entry with the given {@code key} applying the
+     * following rules:
      *
      * <ul>
      *     <li>If this instance doesn't contain a configuration entry with that
@@ -201,26 +203,27 @@ public final class ConfigurationParameters implements Map<String, Object> {
      *     match the type of the default value.</li>
      * </ul>
      *
-     * @param key The name of the configuration option.
-     * @param defaultValue The default value to return if no such entry exists
-     * or to use for conversion.
-     * @param targetClass The target class
+     * @param key          The name of the configuration option.
+     * @param defaultValue The default value to return if no such entry exists or to use for
+     *                     conversion.
+     * @param targetClass  The target class
      * @return The original or converted configuration value or {@code null}.
      */
     @Nullable
     public <T> T getConfigValue(@NotNull String key, @Nullable T defaultValue,
-                                @Nullable Class<T> targetClass) {
+        @Nullable Class<T> targetClass) {
         if (options.containsKey(key)) {
             Object property = options.get(key);
-            return (property == null) ? null : convert(property, getTargetClass(property, defaultValue, targetClass));
+            return (property == null) ? null
+                : convert(property, getTargetClass(property, defaultValue, targetClass));
         } else {
             return defaultValue;
         }
     }
 
     /**
-     * Returns the value of the configuration entry with the given {@code key}
-     * applying the following rules:
+     * Returns the value of the configuration entry with the given {@code key} applying the
+     * following rules:
      *
      * <ul>
      *     <li>If this instance doesn't contain a configuration entry with that
@@ -229,10 +232,11 @@ public final class ConfigurationParameters implements Map<String, Object> {
      *     match the type of the default value.</li>
      * </ul>
      *
-     * @param key The name of the configuration option.
-     * @param defaultValue The default value to return if no such entry exists
-     * or to use for conversion.
-     * @return The original or converted configuration value or {@code defaultValue} if no entry for the given key exists.
+     * @param key          The name of the configuration option.
+     * @param defaultValue The default value to return if no such entry exists or to use for
+     *                     conversion.
+     * @return The original or converted configuration value or {@code defaultValue} if no entry for
+     * the given key exists.
      */
     @NotNull
     public <T> T getConfigValue(@NotNull String key, @NotNull T defaultValue) {
@@ -247,12 +251,13 @@ public final class ConfigurationParameters implements Map<String, Object> {
 
     //--------------------------------------------------------< private >---
     @NotNull
-    private static Class<?>  getTargetClass(@NotNull Object configProperty, @Nullable Object defaultValue, @Nullable Class<?> targetClass) {
+    private static Class<?> getTargetClass(@NotNull Object configProperty,
+        @Nullable Object defaultValue, @Nullable Class<?> targetClass) {
         Class<?> clazz = targetClass;
         if (clazz == null) {
             clazz = (defaultValue == null)
-                    ? configProperty.getClass()
-                    : defaultValue.getClass();
+                ? configProperty.getClass()
+                : defaultValue.getClass();
         }
         return clazz;
     }
@@ -270,7 +275,7 @@ public final class ConfigurationParameters implements Map<String, Object> {
             return ret == null ? null : (T) ret;
         } else if (clazz == Boolean.class || clazz == boolean.class) {
             return (T) Boolean.valueOf(str);
-        } else if (clazz == String[].class){
+        } else if (clazz == String[].class) {
             return (T) PropertiesUtil.toStringArray(configProperty);
         } else if (clazz == Set.class || Set.class.isAssignableFrom(clazz)) {
             return (T) convertToSet(configProperty, clazz);
@@ -278,7 +283,7 @@ public final class ConfigurationParameters implements Map<String, Object> {
             return (T) convertToNumber(str, clazz);
         }
     }
-    
+
     @NotNull
     private static Object convertToNumber(@NotNull String str, @NotNull Class<?> clazz) {
         try {
@@ -300,7 +305,7 @@ public final class ConfigurationParameters implements Map<String, Object> {
             throw conversionFailedException(str, clazz.getName(), e);
         }
     }
-    
+
     @NotNull
     private static Set<?> convertToSet(@NotNull Object configProperty, @NotNull Class<?> clazz) {
         if (configProperty instanceof Set) {
@@ -320,13 +325,16 @@ public final class ConfigurationParameters implements Map<String, Object> {
             }
         }
     }
-    
+
     @NotNull
-    private static IllegalArgumentException conversionFailedException(@NotNull String str, @NotNull String className, @Nullable Exception e) {
-        return new IllegalArgumentException("Cannot convert config entry " + str + " to " + className, e);
+    private static IllegalArgumentException conversionFailedException(@NotNull String str,
+        @NotNull String className, @Nullable Exception e) {
+        return new IllegalArgumentException(
+            "Cannot convert config entry " + str + " to " + className, e);
     }
 
     //-------------------------------------------< Map interface delegation >---
+
     /**
      * {@inheritDoc}
      */
@@ -422,13 +430,13 @@ public final class ConfigurationParameters implements Map<String, Object> {
      */
     @NotNull
     @Override
-    public Set<Entry<String,Object>> entrySet() {
+    public Set<Entry<String, Object>> entrySet() {
         return options.entrySet();
     }
 
     /**
-     * Helper class for configuration parameters that denote a "duration", such
-     * as a timeout or expiration time.
+     * Helper class for configuration parameters that denote a "duration", such as a timeout or
+     * expiration time.
      */
     public static final class Milliseconds {
 
@@ -465,19 +473,15 @@ public final class ConfigurationParameters implements Map<String, Object> {
         }
 
         /**
-         * Parses a value string into a duration. the String has the following format:
-         * {@code
+         * Parses a value string into a duration. the String has the following format: {@code
          * <xmp>
-         *     format:= (value [ unit ])+;
-         *     value:= float value;
-         *     unit: "ms" | "s" | "m" | "h" | "d";
+         * format:= (value [ unit ])+; value:= float value; unit: "ms" | "s" | "m" | "h" | "d";
          * </xmp>
-         *
+         * <p>
          * Example:
          * <xmp>
-         *     "100", "100ms" : 100 milliseconds
-         *     "1s 50ms": 1050 milliseconds
-         *     "1.5d":  1 1/2 days == 36 hours.
+         * "100", "100ms" : 100 milliseconds "1s 50ms": 1050 milliseconds "1.5d":  1 1/2 days == 36
+         * hours.
          * </xmp>
          * }
          *
@@ -524,7 +528,8 @@ public final class ConfigurationParameters implements Map<String, Object> {
 
         @Override
         public boolean equals(Object o) {
-            return this == o || !(o == null || getClass() != o.getClass()) && value == ((Milliseconds) o).value;
+            return this == o
+                || !(o == null || getClass() != o.getClass()) && value == ((Milliseconds) o).value;
         }
 
         @Override

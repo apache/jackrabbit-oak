@@ -22,7 +22,6 @@ import static org.junit.Assert.assertTrue;
 
 import javax.jcr.Node;
 import javax.jcr.Session;
-
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 
 /**
@@ -46,7 +45,8 @@ public class IsNodeTypeTest extends AbstractTest<Node> {
     public void beforeSuite() throws Exception {
         Session session = getRepository().login(getCredentials());
         session.getRootNode().addNode(testNodeName, NT_FOLDER);
-        addAccessControlEntry(session, "/", EveryonePrincipal.getInstance(), new String[] { JCR_READ }, true);
+        addAccessControlEntry(session, "/", EveryonePrincipal.getInstance(), new String[]{JCR_READ},
+            true);
         session.save();
         session.logout();
         testNode = prepareThreadExecutionContext();
@@ -76,7 +76,7 @@ public class IsNodeTypeTest extends AbstractTest<Node> {
 
     @Override
     protected void disposeThreadExecutionContext(Node context)
-            throws Exception {
+        throws Exception {
         context.getSession().logout();
     }
 

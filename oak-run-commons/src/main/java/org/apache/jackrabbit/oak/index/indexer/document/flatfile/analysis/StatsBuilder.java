@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis;
 
 import java.io.IOException;
-
 import org.apache.jackrabbit.oak.commons.Profiler;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.BinarySize;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.BinarySizeHistogram;
@@ -55,7 +54,7 @@ public class StatsBuilder {
         String nodeNameFilter = null;
         boolean stream = false;
         boolean compressedStream = false;
-        for(int i = 0; i<args.length; i++) {
+        for (int i = 0; i < args.length; i++) {
             String a = args[i];
             if (a.equals("--fileName")) {
                 fileName = args[++i];
@@ -69,10 +68,13 @@ public class StatsBuilder {
         }
         if (fileName == null) {
             System.out.println("Command line arguments:");
-            System.out.println("  --fileName <file name>     (flat file store file name; mandatory)");
-            System.out.println("  --nodeNameFilter <filter>  (node name filter for binaries; optional)");
+            System.out.println(
+                "  --fileName <file name>     (flat file store file name; mandatory)");
+            System.out.println(
+                "  --nodeNameFilter <filter>  (node name filter for binaries; optional)");
             System.out.println("  --stream                   (use a stream file; optional)");
-            System.out.println("  --compressedStream         (use a compressed stream file; optional)");
+            System.out.println(
+                "  --compressedStream         (use a compressed stream file; optional)");
             return;
         }
         System.out.println("Processing " + fileName);
@@ -113,7 +115,8 @@ public class StatsBuilder {
         System.out.println("Done");
     }
 
-    private static void collect(NodeDataReader reader, StatsCollector collector) throws IOException {
+    private static void collect(NodeDataReader reader, StatsCollector collector)
+        throws IOException {
         long start = System.nanoTime();
         NodeData last = null;
         long lineCount = 0;
@@ -130,11 +133,13 @@ public class StatsBuilder {
                 continue;
             }
             if (last != null) {
-                while (last != null && last.getPathElements().size() >= node.getPathElements().size()) {
+                while (last != null && last.getPathElements().size() >= node.getPathElements()
+                                                                            .size()) {
                     // go up the chain of parent to find a possible common parent
                     last = last.getParent();
                 }
-                if (last != null && last.getPathElements().size() == node.getPathElements().size() - 1) {
+                if (last != null
+                    && last.getPathElements().size() == node.getPathElements().size() - 1) {
                     // now it's possible the parent - we assume that's the case
                     node.setParent(last);
                     for (int i = 0; i < last.getPathElements().size(); i++) {

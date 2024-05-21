@@ -19,14 +19,14 @@
 
 package org.apache.jackrabbit.oak.console.commands
 
+import groovy.cli.picocli.CliBuilder
 import org.apache.jackrabbit.oak.commons.PathUtils
 import org.apache.jackrabbit.oak.console.ConsoleSession
 import org.apache.jackrabbit.oak.exporter.NodeStateSerializer
 import org.codehaus.groovy.tools.shell.CommandSupport
 import org.codehaus.groovy.tools.shell.Groovysh
-import groovy.cli.picocli.CliBuilder
 
-class ExportCommand extends CommandSupport{
+class ExportCommand extends CommandSupport {
     public static final String COMMAND_NAME = 'export-nodes'
 
     private NodeStateSerializer serializer
@@ -98,7 +98,7 @@ class ExportCommand extends CommandSupport{
         return true
     }
 
-    private def createCli(boolean forHelp){
+    private def createCli(boolean forHelp) {
         def cli
         if (forHelp) {
             cli = new CliBuilder(header: getDescription())
@@ -109,8 +109,8 @@ class ExportCommand extends CommandSupport{
         cli.h(longOpt: 'help', 'Print usage')
         cli.c(longOpt: 'console', 'Output to console')
         cli.b(longOpt: 'blobs', 'Serialize blob contents also')
-        cli.n(longOpt: 'max-child-nodes', args:1, 'maximum number of child nodes to include')
-        cli.f(longOpt: 'filter', args:1, "Filter for nodes and properties to include in json format. Default $filter")
+        cli.n(longOpt: 'max-child-nodes', args: 1, 'maximum number of child nodes to include')
+        cli.f(longOpt: 'filter', args: 1, "Filter for nodes and properties to include in json format. Default $filter")
         cli.d(longOpt: 'depth', args: 1, 'Maximum tree depth to write out. Default to all')
         cli.o(longOpt: 'out', args: 1, argName: 'out',
                 'Directory name to store json and blobs (default: ' + out + ')')
@@ -118,7 +118,7 @@ class ExportCommand extends CommandSupport{
         return cli
     }
 
-    private ConsoleSession getSession(){
-        return (ConsoleSession)variables.session
+    private ConsoleSession getSession() {
+        return (ConsoleSession) variables.session
     }
 }

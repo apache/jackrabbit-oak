@@ -20,17 +20,16 @@
 package org.apache.jackrabbit.oak.api.jmx;
 
 import javax.management.openmbean.CompositeData;
-
 import org.osgi.annotation.versioning.ProviderType;
 
 /**
- * MBean for providing repository wide statistics.
- * This MBean exposes the time series provided by
- * {@code org.apache.jackrabbit.api.stats.RepositoryStatistics RepositoryStatistics}
- * through JMX as {@code CompositeData} of arrays.
+ * MBean for providing repository wide statistics. This MBean exposes the time series provided by
+ * {@code org.apache.jackrabbit.api.stats.RepositoryStatistics RepositoryStatistics} through JMX as
+ * {@code CompositeData} of arrays.
  */
 @ProviderType
 public interface RepositoryStatsMBean {
+
     String TYPE = "RepositoryStats";
 
     /**
@@ -89,17 +88,20 @@ public interface RepositoryStatsMBean {
     CompositeData getQueryAverage();
 
     /**
-     * See {@code org.apache.jackrabbit.api.stats.RepositoryStatistics.Type#OBSERVATION_EVENT_COUNTER}
+     * See
+     * {@code org.apache.jackrabbit.api.stats.RepositoryStatistics.Type#OBSERVATION_EVENT_COUNTER}
      */
     CompositeData getObservationEventCount();
 
     /**
-     * See {@code org.apache.jackrabbit.api.stats.RepositoryStatistics.Type#OBSERVATION_EVENT_DURATION}
+     * See
+     * {@code org.apache.jackrabbit.api.stats.RepositoryStatistics.Type#OBSERVATION_EVENT_DURATION}
      */
     CompositeData getObservationEventDuration();
 
     /**
-     * See {@code org.apache.jackrabbit.api.stats.RepositoryStatistics.Type#OBSERVATION_EVENT_AVERAGE}
+     * See
+     * {@code org.apache.jackrabbit.api.stats.RepositoryStatistics.Type#OBSERVATION_EVENT_AVERAGE}
      */
     CompositeData getObservationEventAverage();
 

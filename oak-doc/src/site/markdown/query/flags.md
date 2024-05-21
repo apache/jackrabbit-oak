@@ -20,7 +20,8 @@
 List of available flags to enable/disable options in the query engine
 
 #### oak.queryFullTextComparisonWithoutIndex
-`@since 1.2.0` 
+
+`@since 1.2.0`
 
 Default is `false`. If provided on the command line like
 `-Doak.queryFullTextComparisonWithoutIndex=true` it will allow the
@@ -28,6 +29,7 @@ query engine to parse full text conditions even if no full-text
 indexes are defined.
 
 #### oak.query.sql2optimisation
+
 `@since 1.3.9, 1.3.11`
 
 It will perform another round of optimisation to the provided

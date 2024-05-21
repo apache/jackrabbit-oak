@@ -25,8 +25,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 /**
- * This class caches the path strings used in the CompositeNodeState to avoid
- * keeping too many strings in the memory.
+ * This class caches the path strings used in the CompositeNodeState to avoid keeping too many
+ * strings in the memory.
  */
 public class StringCache {
 

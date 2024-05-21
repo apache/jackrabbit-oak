@@ -18,6 +18,16 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedStrategy.SENTINEL_MONGO_DOCUMENT;
+
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Locale;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Predicate;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.commons.IOUtils;
@@ -36,23 +46,15 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Locale;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.Callable;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Predicate;
-
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedStrategy.SENTINEL_MONGO_DOCUMENT;
-
 /**
- * Receives batches of Mongo documents, converts them to node state entries, batches them in a {@link NodeStateEntryBatch}
- * buffer and when the buffer is full, passes the buffer to the sort-and-save task.
+ * Receives batches of Mongo documents, converts them to node state entries, batches them in a
+ * {@link NodeStateEntryBatch} buffer and when the buffer is full, passes the buffer to the
+ * sort-and-save task.
  */
 class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> {
+
     public static class Result {
+
         private final int transformThreadId;
         private final long entryCount;
 
@@ -91,14 +93,14 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
     private long totalEmptyBatchQueueWaitTimeMillis = 0;
 
     public PipelinedTransformTask(MongoDocumentStore mongoStore,
-                                  DocumentNodeStore documentNodeStore,
-                                  RevisionVector rootRevision,
-                                  Predicate<String> pathPredicate,
-                                  NodeStateEntryWriter entryWriter,
-                                  ArrayBlockingQueue<NodeDocument[]> mongoDocQueue,
-                                  ArrayBlockingQueue<NodeStateEntryBatch> emptyBatchesQueue,
-                                  ArrayBlockingQueue<NodeStateEntryBatch> nonEmptyBatchesQueue,
-                                  TransformStageStatistics statsCollector) {
+        DocumentNodeStore documentNodeStore,
+        RevisionVector rootRevision,
+        Predicate<String> pathPredicate,
+        NodeStateEntryWriter entryWriter,
+        ArrayBlockingQueue<NodeDocument[]> mongoDocQueue,
+        ArrayBlockingQueue<NodeStateEntryBatch> emptyBatchesQueue,
+        ArrayBlockingQueue<NodeStateEntryBatch> nonEmptyBatchesQueue,
+        TransformStageStatistics statsCollector) {
         this.mongoStore = mongoStore;
         this.documentNodeStore = documentNodeStore;
         this.rootRevision = rootRevision;
@@ -116,7 +118,8 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
         String threadName = THREAD_NAME_PREFIX + threadId;
         Thread.currentThread().setName(threadName);
         try {
-            LOG.info("[TASK:{}:START] Starting transform task", threadName.toUpperCase(Locale.ROOT));
+            LOG.info("[TASK:{}:START] Starting transform task",
+                threadName.toUpperCase(Locale.ROOT));
             NodeDocumentCache nodeCache = MongoDocumentStoreHelper.getNodeDocumentCache(mongoStore);
             Stopwatch taskStartWatch = Stopwatch.createStarted();
             long totalDocumentQueueWaitTimeMillis = 0;
@@ -124,31 +127,47 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
             long mongoObjectsProcessed = 0;
             LOG.debug("Waiting for an empty buffer");
             NodeStateEntryBatch nseBatch = emptyBatchesQueue.take();
-            LOG.debug("Obtained an empty buffer. Starting to convert Mongo documents to node state entries");
+            LOG.debug(
+                "Obtained an empty buffer. Starting to convert Mongo documents to node state entries");
 
             ArrayList<DocumentNodeState> nodeStateEntries = new ArrayList<>();
             Stopwatch docQueueWaitStopwatch = Stopwatch.createUnstarted();
             while (true) {
                 docQueueWaitStopwatch.reset().start();
                 NodeDocument[] nodeDocumentBatch = mongoDocQueue.take();
-                totalDocumentQueueWaitTimeMillis += docQueueWaitStopwatch.elapsed(TimeUnit.MILLISECONDS);
+                totalDocumentQueueWaitTimeMillis += docQueueWaitStopwatch.elapsed(
+                    TimeUnit.MILLISECONDS);
                 if (nodeDocumentBatch == SENTINEL_MONGO_DOCUMENT) {
                     long totalDurationMillis = taskStartWatch.elapsed(TimeUnit.MILLISECONDS);
-                    String totalDocumentQueueWaitPercentage = PipelinedUtils.formatAsPercentage(totalDocumentQueueWaitTimeMillis, totalDurationMillis);
-                    String totalEnqueueDelayPercentage = PipelinedUtils.formatAsPercentage(totalEnqueueDelayMillis, totalDurationMillis);
-                    String totalEmptyBatchQueueWaitPercentage = PipelinedUtils.formatAsPercentage(totalEmptyBatchQueueWaitTimeMillis, totalDurationMillis);
+                    String totalDocumentQueueWaitPercentage = PipelinedUtils.formatAsPercentage(
+                        totalDocumentQueueWaitTimeMillis, totalDurationMillis);
+                    String totalEnqueueDelayPercentage = PipelinedUtils.formatAsPercentage(
+                        totalEnqueueDelayMillis, totalDurationMillis);
+                    String totalEmptyBatchQueueWaitPercentage = PipelinedUtils.formatAsPercentage(
+                        totalEmptyBatchQueueWaitTimeMillis, totalDurationMillis);
                     String metrics = MetricsFormatter.newBuilder()
-                            .add("duration", FormattingUtils.formatToSeconds(taskStartWatch))
-                            .add("durationSeconds", totalDurationMillis / 1000)
-                            .add("nodeStateEntriesGenerated", totalEntryCount)
-                            .add("enqueueDelayMillis", totalEnqueueDelayMillis)
-                            .add("enqueueDelayPercentage", totalEnqueueDelayPercentage)
-                            .add("documentQueueWaitMillis", totalDocumentQueueWaitTimeMillis)
-                            .add("documentQueueWaitPercentage", totalDocumentQueueWaitPercentage)
-                            .add("totalEmptyBatchQueueWaitTimeMillis", totalEmptyBatchQueueWaitTimeMillis)
-                            .add("totalEmptyBatchQueueWaitPercentage", totalEmptyBatchQueueWaitPercentage)
-                            .build();
-                    LOG.info("[TASK:{}:END] Metrics: {}", threadName.toUpperCase(Locale.ROOT), metrics);
+                                                     .add("duration",
+                                                         FormattingUtils.formatToSeconds(
+                                                             taskStartWatch))
+                                                     .add("durationSeconds",
+                                                         totalDurationMillis / 1000)
+                                                     .add("nodeStateEntriesGenerated",
+                                                         totalEntryCount)
+                                                     .add("enqueueDelayMillis",
+                                                         totalEnqueueDelayMillis)
+                                                     .add("enqueueDelayPercentage",
+                                                         totalEnqueueDelayPercentage)
+                                                     .add("documentQueueWaitMillis",
+                                                         totalDocumentQueueWaitTimeMillis)
+                                                     .add("documentQueueWaitPercentage",
+                                                         totalDocumentQueueWaitPercentage)
+                                                     .add("totalEmptyBatchQueueWaitTimeMillis",
+                                                         totalEmptyBatchQueueWaitTimeMillis)
+                                                     .add("totalEmptyBatchQueueWaitPercentage",
+                                                         totalEmptyBatchQueueWaitPercentage)
+                                                     .build();
+                    LOG.info("[TASK:{}:END] Metrics: {}", threadName.toUpperCase(Locale.ROOT),
+                        metrics);
                     //Save the last batch
                     nseBatch.getBuffer().flip();
                     tryEnqueue(nseBatch);
@@ -158,10 +177,11 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
                         statistics.incrementMongoDocumentsTraversed();
                         mongoObjectsProcessed++;
                         if (mongoObjectsProcessed % 50000 == 0) {
-                            LOG.info("Mongo objects: {}, total entries: {}, current batch: {}, Size: {}/{} MB",
-                                    mongoObjectsProcessed, totalEntryCount, nseBatch.numberOfEntries(),
-                                    nseBatch.sizeOfEntriesBytes() / FileUtils.ONE_MB,
-                                    nseBatch.capacity() / FileUtils.ONE_MB
+                            LOG.info(
+                                "Mongo objects: {}, total entries: {}, current batch: {}, Size: {}/{} MB",
+                                mongoObjectsProcessed, totalEntryCount, nseBatch.numberOfEntries(),
+                                nseBatch.sizeOfEntriesBytes() / FileUtils.ONE_MB,
+                                nseBatch.capacity() / FileUtils.ONE_MB
                             );
                         }
                         //TODO Review the cache update approach where tracker has to track *all* docs
@@ -177,23 +197,29 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
                             } else {
                                 for (DocumentNodeState nse : nodeStateEntries) {
                                     String path = nse.getPath().toString();
-                                    if (!NodeStateUtils.isHiddenPath(path) && pathPredicate.test(path)) {
+                                    if (!NodeStateUtils.isHiddenPath(path) && pathPredicate.test(
+                                        path)) {
                                         statistics.incrementEntriesAccepted();
                                         totalEntryCount++;
                                         // Serialize entry
-                                        byte[] jsonBytes = entryWriter.asJson(nse).getBytes(StandardCharsets.UTF_8);
+                                        byte[] jsonBytes = entryWriter.asJson(nse).getBytes(
+                                            StandardCharsets.UTF_8);
                                         int entrySize;
                                         try {
                                             entrySize = nseBatch.addEntry(path, jsonBytes);
                                         } catch (NodeStateEntryBatch.BufferFullException e) {
-                                            LOG.info("Buffer full, passing buffer to sort task. Total entries: {}, entries in buffer {}, buffer size: {}",
-                                                    totalEntryCount, nseBatch.numberOfEntries(), IOUtils.humanReadableByteCountBin(nseBatch.sizeOfEntriesBytes()));
+                                            LOG.info(
+                                                "Buffer full, passing buffer to sort task. Total entries: {}, entries in buffer {}, buffer size: {}",
+                                                totalEntryCount, nseBatch.numberOfEntries(),
+                                                IOUtils.humanReadableByteCountBin(
+                                                    nseBatch.sizeOfEntriesBytes()));
                                             nseBatch.flip();
                                             tryEnqueue(nseBatch);
                                             // Get an empty buffer
                                             Stopwatch emptyBatchesQueueStopwatch = Stopwatch.createStarted();
                                             nseBatch = emptyBatchesQueue.take();
-                                            totalEmptyBatchQueueWaitTimeMillis += emptyBatchesQueueStopwatch.elapsed(TimeUnit.MILLISECONDS);
+                                            totalEmptyBatchQueueWaitTimeMillis += emptyBatchesQueueStopwatch.elapsed(
+                                                TimeUnit.MILLISECONDS);
 
                                             // Now it must fit, otherwise it means that the buffer is smaller than a single
                                             // entry, which is an error.
@@ -232,12 +258,14 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
         long enqueueDelay = enqueueDelayStopwatch.elapsed(TimeUnit.MILLISECONDS);
         totalEnqueueDelayMillis += enqueueDelay;
         if (enqueueDelay > 1) {
-            LOG.info("Enqueuing of node state entries batch was delayed, took {} ms. nonEmptyBatchesQueue size {}. ",
-                    enqueueDelay, nonEmptyBatchesQueue.size());
+            LOG.info(
+                "Enqueuing of node state entries batch was delayed, took {} ms. nonEmptyBatchesQueue size {}. ",
+                enqueueDelay, nonEmptyBatchesQueue.size());
         }
     }
 
-    private void extractNodeStateEntries(NodeDocument doc, ArrayList<DocumentNodeState> nodeStateEntries) {
+    private void extractNodeStateEntries(NodeDocument doc,
+        ArrayList<DocumentNodeState> nodeStateEntries) {
         Path path = doc.getPath();
         DocumentNodeState nodeState = documentNodeStore.getNode(path, rootRevision);
         //At DocumentNodeState api level the nodeState can be null

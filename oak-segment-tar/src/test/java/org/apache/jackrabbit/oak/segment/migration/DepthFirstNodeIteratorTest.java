@@ -26,7 +26,6 @@ import static org.junit.Assert.assertTrue;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.blob.migration.DepthFirstNodeIterator;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
@@ -58,9 +57,9 @@ public class DepthFirstNodeIteratorTest {
     @Test
     public void testIterate() {
         Map<String, String[]> subtrees = new HashMap<String, String[]>();
-        subtrees.put("uk", new String[] { "cities", "london", "districts", "frognal" });
-        subtrees.put("germany", new String[] {});
-        subtrees.put("france", new String[] { "cities", "paris" });
+        subtrees.put("uk", new String[]{"cities", "london", "districts", "frognal"});
+        subtrees.put("germany", new String[]{});
+        subtrees.put("france", new String[]{"cities", "paris"});
 
         DepthFirstNodeIterator iterator = new DepthFirstNodeIterator(store.getRoot());
         assertTrue(iterator.hasNext());
@@ -100,9 +99,9 @@ public class DepthFirstNodeIteratorTest {
     @Test
     public void testSwitchRoot() {
         Map<String, String[]> subtrees = new HashMap<String, String[]>();
-        subtrees.put("uk", new String[] { "cities", "london", "districts", "frognal" });
-        subtrees.put("germany", new String[] {});
-        subtrees.put("france", new String[] { "cities", "paris" });
+        subtrees.put("uk", new String[]{"cities", "london", "districts", "frognal"});
+        subtrees.put("germany", new String[]{});
+        subtrees.put("france", new String[]{"cities", "paris"});
 
         DepthFirstNodeIterator iterator = new DepthFirstNodeIterator(store.getRoot());
         assertTrue(iterator.hasNext());

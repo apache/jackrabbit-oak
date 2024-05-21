@@ -17,7 +17,9 @@
    limitations under the License.
   -->
 
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd ">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd ">
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
@@ -55,15 +57,23 @@
         <artifactId>apache-rat-plugin</artifactId>
         <configuration>
           <excludes>
-            <exclude>**/org.apache.felix.jaas.Configuration.factory-GuestLoginModule.config</exclude>
+            <exclude>**/org.apache.felix.jaas.Configuration.factory-GuestLoginModule.config
+            </exclude>
             <exclude>**/org.apache.felix.jaas.Configuration.factory-LoginModuleImpl.config</exclude>
-            <exclude>**/org.apache.felix.jaas.Configuration.factory-TokenLoginModule.config</exclude>
+            <exclude>**/org.apache.felix.jaas.Configuration.factory-TokenLoginModule.config
+            </exclude>
             <exclude>**/org.apache.felix.jaas.ConfigurationSpi.config</exclude>
             <exclude>**/org.apache.jackrabbit.oak.jcr.osgi.RepositoryManager.config</exclude>
-            <exclude>**/org.apache.jackrabbit.oak.security.authorization.AuthorizationConfigurationImpl.config</exclude>
-            <exclude>**/org.apache.jackrabbit.oak.security.user.UserConfigurationImpl.config</exclude>
-            <exclude>**/org.apache.jackrabbit.oak.spi.security.user.action.DefaultAuthorizableActionProvider.config</exclude>
-            <exclude>**/org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.config</exclude>
+            <exclude>
+              **/org.apache.jackrabbit.oak.security.authorization.AuthorizationConfigurationImpl.config
+            </exclude>
+            <exclude>**/org.apache.jackrabbit.oak.security.user.UserConfigurationImpl.config
+            </exclude>
+            <exclude>
+              **/org.apache.jackrabbit.oak.spi.security.user.action.DefaultAuthorizableActionProvider.config
+            </exclude>
+            <exclude>**/org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.config
+            </exclude>
             <exclude>**/org.apache.jackrabbit.oak.segment.SegmentNodeStoreService.config</exclude>
             <exclude>**/oak-base-config.json</exclude>
             <exclude>**/oak-tar-config.json</exclude>
@@ -84,7 +94,7 @@
       <artifactId>osgi.cmpn</artifactId>
       <version>6.0.0</version>
     </dependency>
-  
+
     <!-- Pojo SR -->
     <!-- Added first to ensure that in an IDE the transitive dependencies of the oak modules
          don't bring in an older version of the OSGi jars -->
@@ -103,7 +113,7 @@
         </exclusion>
       </exclusions>
     </dependency>
-    
+
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-shaded-guava</artifactId>

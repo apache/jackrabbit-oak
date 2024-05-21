@@ -19,13 +19,12 @@ package org.apache.jackrabbit.oak.spi.security.authentication.credentials;
 import java.util.Map;
 import java.util.Set;
 import javax.jcr.Credentials;
-
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Simple helper interface that allows to easily plug support for additional or
- * custom {@link Credentials} implementations during authentication.
+ * Simple helper interface that allows to easily plug support for additional or custom
+ * {@link Credentials} implementations during authentication.
  *
  * @see org.apache.jackrabbit.oak.spi.security.authentication.AbstractLoginModule#getSupportedCredentials()
  * @see SimpleCredentialsSupport
@@ -33,8 +32,7 @@ import org.jetbrains.annotations.Nullable;
 public interface CredentialsSupport {
 
     /**
-     * Returns all {@link Credentials credentials} classes supported by this
-     * implementation.
+     * Returns all {@link Credentials credentials} classes supported by this implementation.
      *
      * @return the supported {@link Credentials credentials} classes.
      */
@@ -42,9 +40,9 @@ public interface CredentialsSupport {
     Set<Class> getCredentialClasses();
 
     /**
-     * Retrieves the user identifier from the specified {@code Credentials}.
-     * If the specified credentials are not supported or don't contain any
-     * user id information this method will return {@code null}.
+     * Retrieves the user identifier from the specified {@code Credentials}. If the specified
+     * credentials are not supported or don't contain any user id information this method will
+     * return {@code null}.
      *
      * @param credentials The credentials as passed to the repository login.
      * @return The user id present in the given {@code Credentials} or {@code null}.
@@ -53,9 +51,9 @@ public interface CredentialsSupport {
     String getUserId(@NotNull Credentials credentials);
 
     /**
-     * Obtains the attributes as present with the specified {@code Credentials}.
-     * If the specified credentials are not supported or don't contain any
-     * attributes this method will return an empty {@code Map}.
+     * Obtains the attributes as present with the specified {@code Credentials}. If the specified
+     * credentials are not supported or don't contain any attributes this method will return an
+     * empty {@code Map}.
      *
      * @param credentials The credentials as passed to the repository login.
      * @return The credential attributes or an empty {@code Map}.
@@ -64,12 +62,11 @@ public interface CredentialsSupport {
     Map<String, ?> getAttributes(@NotNull Credentials credentials);
 
     /**
-     * Writes the attributes to the specified {@code Credentials}.
-     * If the specified credentials are not supported or doesn't allow to write
-     * attributes this method will return {@code false}.
+     * Writes the attributes to the specified {@code Credentials}. If the specified credentials are
+     * not supported or doesn't allow to write attributes this method will return {@code false}.
      *
      * @param credentials The credentials as passed to the repository login.
-     * @param attributes The attributes to be written to the given credentials.
+     * @param attributes  The attributes to be written to the given credentials.
      * @return {@code true}, if the attributes were set; {@code false} otherwise.
      */
     boolean setAttributes(@NotNull Credentials credentials, @NotNull Map<String, ?> attributes);

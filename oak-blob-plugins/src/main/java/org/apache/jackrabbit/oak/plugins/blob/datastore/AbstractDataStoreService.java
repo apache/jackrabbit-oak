@@ -26,13 +26,11 @@ import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.Map;
 import java.util.Objects;
-
 import javax.jcr.RepositoryException;
-
-import org.apache.jackrabbit.guava.common.base.Strings;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.guava.common.base.Strings;
+import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.blob.BlobAccessProvider;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
@@ -54,6 +52,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public abstract class AbstractDataStoreService {
+
     private static final String PROP_HOME = "repository.home";
     private static final String PATH = "path";
     public static final String PROP_ENCODE_LENGTH = "encodeLengthInId";
@@ -68,25 +67,26 @@ public abstract class AbstractDataStoreService {
 
     private DataStoreBlobStore dataStore;
 
-    protected void activate(ComponentContext context, Map<String, Object> config) throws RepositoryException {
+    protected void activate(ComponentContext context, Map<String, Object> config)
+        throws RepositoryException {
         // change to mutable map. may be modified in createDS call
         config = Maps.newHashMap(config);
         DataStore ds = createDataStore(context, config);
         boolean encodeLengthInId = PropertiesUtil.toBoolean(config.get(PROP_ENCODE_LENGTH), true);
-        int cacheSizeInMB = PropertiesUtil.toInteger(config.get(PROP_CACHE_SIZE), DataStoreBlobStore.DEFAULT_CACHE_SIZE);
+        int cacheSizeInMB = PropertiesUtil.toInteger(config.get(PROP_CACHE_SIZE),
+            DataStoreBlobStore.DEFAULT_CACHE_SIZE);
 
         String homeDir = lookup(context, PROP_HOME);
         if (config.containsKey(PATH) && !Strings.isNullOrEmpty((String) config.get(PATH))) {
             log.info("Initializing the DataStore with path [{}]", config.get(PATH));
-        }
-        else if (homeDir != null) {
+        } else if (homeDir != null) {
             log.info("Initializing the DataStore with homeDir [{}]", homeDir);
         }
         PropertiesUtil.populate(ds, config, false);
         ds.init(homeDir);
 
         BlobStoreStats stats = new BlobStoreStats(
-                Objects.requireNonNull(getStatisticsProvider(), "statisticsProvider must be non-null"));
+            Objects.requireNonNull(getStatisticsProvider(), "statisticsProvider must be non-null"));
         this.dataStore = new DataStoreBlobStore(ds, encodeLengthInId, cacheSizeInMB);
         this.dataStore.setBlobStatsCollector(stats);
         PropertiesUtil.populate(dataStore, config, false);
@@ -99,10 +99,10 @@ public abstract class AbstractDataStoreService {
         }
 
         reg = context.getBundleContext().registerService(new String[]{
-                BlobStore.class.getName(),
-                GarbageCollectableBlobStore.class.getName(),
-                BlobAccessProvider.class.getName(),
-        }, dataStore , props);
+            BlobStore.class.getName(),
+            GarbageCollectableBlobStore.class.getName(),
+            BlobAccessProvider.class.getName(),
+        }, dataStore, props);
 
         mbeanReg = registerMBeans(context.getBundleContext(), dataStore, stats);
     }
@@ -112,21 +112,23 @@ public abstract class AbstractDataStoreService {
             reg.unregister();
         }
 
-        if (mbeanReg != null){
+        if (mbeanReg != null) {
             mbeanReg.unregister();
         }
 
         dataStore.close();
     }
 
-    protected abstract DataStore createDataStore(ComponentContext context, Map<String, Object> config);
+    protected abstract DataStore createDataStore(ComponentContext context,
+        Map<String, Object> config);
 
-    @NotNull protected abstract StatisticsProvider getStatisticsProvider();
+    @NotNull
+    protected abstract StatisticsProvider getStatisticsProvider();
 
     protected abstract void setStatisticsProvider(StatisticsProvider statisticsProvider);
 
-    protected String[] getDescription(){
-        return new String[] {"type=unknown"};
+    protected String[] getDescription() {
+        return new String[]{"type=unknown"};
     }
 
     protected static String lookup(ComponentContext context, String property) {
@@ -141,19 +143,20 @@ public abstract class AbstractDataStoreService {
         return null;
     }
 
-    private static Registration registerMBeans(BundleContext context, DataStoreBlobStore ds, BlobStoreStats stats){
+    private static Registration registerMBeans(BundleContext context, DataStoreBlobStore ds,
+        BlobStoreStats stats) {
         Whiteboard wb = new OsgiWhiteboard(context);
         return new CompositeRegistration(
-                registerMBean(wb,
-                        BlobStoreStatsMBean.class,
-                        stats,
-                        BlobStoreStatsMBean.TYPE,
-                        ds.getClass().getSimpleName()),
-                registerMBean(wb,
-                        CacheStatsMBean.class,
-                        ds.getCacheStats(),
-                        CacheStatsMBean.TYPE,
-                        ds.getCacheStats().getName())
+            registerMBean(wb,
+                BlobStoreStatsMBean.class,
+                stats,
+                BlobStoreStatsMBean.TYPE,
+                ds.getClass().getSimpleName()),
+            registerMBean(wb,
+                CacheStatsMBean.class,
+                ds.getCacheStats(),
+                CacheStatsMBean.TYPE,
+                ds.getCacheStats().getName())
         );
     }
 }

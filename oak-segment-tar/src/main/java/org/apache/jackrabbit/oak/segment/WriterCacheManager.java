@@ -19,16 +19,18 @@
 
 package org.apache.jackrabbit.oak.segment;
 
+import static java.lang.Integer.getInteger;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.guava.common.base.Suppliers.memoize;
 import static org.apache.jackrabbit.guava.common.collect.Iterators.transform;
 import static org.apache.jackrabbit.guava.common.collect.Maps.newConcurrentMap;
-import static java.lang.Integer.getInteger;
 import static org.apache.jackrabbit.oak.segment.RecordCache.newRecordCache;
 
 import java.util.Iterator;
 import java.util.concurrent.ConcurrentMap;
-
+import org.apache.jackrabbit.guava.common.base.Function;
+import org.apache.jackrabbit.guava.common.base.Predicate;
+import org.apache.jackrabbit.guava.common.base.Supplier;
 import org.apache.jackrabbit.guava.common.cache.CacheStats;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.segment.file.PriorityCache;
@@ -36,15 +38,10 @@ import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import org.apache.jackrabbit.guava.common.base.Function;
-import org.apache.jackrabbit.guava.common.base.Predicate;
-import org.apache.jackrabbit.guava.common.base.Supplier;
-
 /**
- * Instances of this class manage the deduplication caches used by the {@link
- * SegmentWriter} to avoid writing multiple copies of the same record. The
- * caches are striped into generations with one generation per gc cycle. This
- * avoids records old generations being reused.
+ * Instances of this class manage the deduplication caches used by the {@link SegmentWriter} to
+ * avoid writing multiple copies of the same record. The caches are striped into generations with
+ * one generation per gc cycle. This avoids records old generations being reused.
  */
 public abstract class WriterCacheManager {
 
@@ -55,10 +52,11 @@ public abstract class WriterCacheManager {
 
     /**
      * Default size of the string cache.
+     *
      * @see #getStringCache(int)
      */
     public static final int DEFAULT_STRING_CACHE_SIZE = getInteger(
-            "oak.tar.stringsCacheSize", DEFAULT_STRING_CACHE_SIZE_OSGi);
+        "oak.tar.stringsCacheSize", DEFAULT_STRING_CACHE_SIZE_OSGi);
 
     /**
      * Default size of the template cache, used as default for OSGi config.
@@ -67,60 +65,62 @@ public abstract class WriterCacheManager {
 
     /**
      * Default size of the template cache.
+     *
      * @see #getTemplateCache(int)
      */
     public static final int DEFAULT_TEMPLATE_CACHE_SIZE = getInteger(
-            "oak.tar.templatesCacheSize", DEFAULT_TEMPLATE_CACHE_SIZE_OSGi);
+        "oak.tar.templatesCacheSize", DEFAULT_TEMPLATE_CACHE_SIZE_OSGi);
 
     /**
-     * Default size of the node deduplication cache, used as default for OSGi
-     * config.
+     * Default size of the node deduplication cache, used as default for OSGi config.
      */
     static final int DEFAULT_NODE_CACHE_SIZE_OSGi = 1048576;
 
     /**
      * Default size of the node deduplication cache.
+     *
      * @see #getNodeCache(int)
      */
     public static final int DEFAULT_NODE_CACHE_SIZE = getInteger(
-            "oak.tar.nodeCacheSize", DEFAULT_NODE_CACHE_SIZE_OSGi);
+        "oak.tar.nodeCacheSize", DEFAULT_NODE_CACHE_SIZE_OSGi);
 
     /**
-     * @return  cache for string records of the given {@code generation} and {@code operation}.
+     * @return cache for string records of the given {@code generation} and {@code operation}.
      */
     @NotNull
     public abstract Cache<String, RecordId> getStringCache(int generation);
 
     /**
      * @param generation
-     * @return  cache for template records of the given {@code generation} and {@code operation}.
+     * @return cache for template records of the given {@code generation} and {@code operation}.
      */
     @NotNull
     public abstract Cache<Template, RecordId> getTemplateCache(int generation);
 
     /**
-     * @return  cache for node records of the given {@code generation} and {@code operation}.
+     * @return cache for node records of the given {@code generation} and {@code operation}.
      */
     @NotNull
     public abstract Cache<String, RecordId> getNodeCache(int generation);
 
     /**
-     * Enable access statistics for this cache. The instance returned by from
-     * this method delegates back to this instance and adds access statistics
-     * via the passed {@code statisticsProvider}.
+     * Enable access statistics for this cache. The instance returned by from this method delegates
+     * back to this instance and adds access statistics via the passed {@code statisticsProvider}.
+     *
      * @param name
      * @param statisticsProvider
-     * @return  an instance of this cache with access statistics enabled.
+     * @return an instance of this cache with access statistics enabled.
      */
     @NotNull
     public WriterCacheManager withAccessTracking(
-            @NotNull String name,
-            @NotNull StatisticsProvider statisticsProvider) {
-        return new AccessTrackingCacheManager(checkNotNull(name), checkNotNull(statisticsProvider), this);
+        @NotNull String name,
+        @NotNull StatisticsProvider statisticsProvider) {
+        return new AccessTrackingCacheManager(checkNotNull(name), checkNotNull(statisticsProvider),
+            this);
     }
 
     /**
-     * @return  statistics for the string cache or {@code null} if not available.
+     * @return statistics for the string cache or {@code null} if not available.
      */
     @Nullable
     public CacheStatsMBean getStringCacheStats() {
@@ -128,7 +128,7 @@ public abstract class WriterCacheManager {
     }
 
     /**
-     * @return  statistics for the template cache or {@code null} if not available.
+     * @return statistics for the template cache or {@code null} if not available.
      */
     @Nullable
     public CacheStatsMBean getTemplateCacheStats() {
@@ -136,7 +136,7 @@ public abstract class WriterCacheManager {
     }
 
     /**
-     * @return  statistics for the node cache or {@code null} if not available.
+     * @return statistics for the node cache or {@code null} if not available.
      */
     @Nullable
     public CacheStatsMBean getNodeCacheStats() {
@@ -144,16 +144,19 @@ public abstract class WriterCacheManager {
     }
 
     /**
-     * Get occupancy information for the node deduplication cache indicating occupancy and
-     * evictions per priority.
-     * @return  occupancy information for the node deduplication cache.
+     * Get occupancy information for the node deduplication cache indicating occupancy and evictions
+     * per priority.
+     *
+     * @return occupancy information for the node deduplication cache.
      */
     @Nullable
-    public String getNodeCacheOccupancyInfo() { return null; }
+    public String getNodeCacheOccupancyInfo() {
+        return null;
+    }
 
     /**
-     * This implementation of {@link WriterCacheManager} returns empty caches
-     * of size 0.
+     * This implementation of {@link WriterCacheManager} returns empty caches of size 0.
+     *
      * @see #INSTANCE
      */
     public static class Empty extends WriterCacheManager {
@@ -166,10 +169,11 @@ public abstract class WriterCacheManager {
         private final RecordCache<String> stringCache = newRecordCache(0);
         private final RecordCache<Template> templateCache = newRecordCache(0);
 
-        private Empty() {}
+        private Empty() {
+        }
 
         /**
-         * @return  empty cache of size 0
+         * @return empty cache of size 0
          */
         @NotNull
         @Override
@@ -178,7 +182,7 @@ public abstract class WriterCacheManager {
         }
 
         /**
-         * @return  empty cache of size 0
+         * @return empty cache of size 0
          */
         @NotNull
         @Override
@@ -187,14 +191,15 @@ public abstract class WriterCacheManager {
         }
 
         /**
-         * @return  a {@code Cache} cache that is always empty
+         * @return a {@code Cache} cache that is always empty
          */
         @NotNull
         @Override
         public Cache<String, RecordId> getNodeCache(int generation) {
             return new Cache<String, RecordId>() {
                 @Override
-                public void put(@NotNull String stableId, @NotNull RecordId recordId, byte cost) { }
+                public void put(@NotNull String stableId, @NotNull RecordId recordId, byte cost) {
+                }
 
                 @Override
                 public void put(@NotNull String key, @NotNull RecordId value) {
@@ -203,26 +208,28 @@ public abstract class WriterCacheManager {
 
                 @Nullable
                 @Override
-                public RecordId get(@NotNull String stableId) { return null; }
+                public RecordId get(@NotNull String stableId) {
+                    return null;
+                }
             };
         }
     }
 
     /**
-     * This implementation of {@link WriterCacheManager} returns
-     * {@link RecordCache} instances for the string and template cache
-     * and {@link Cache} instance for the node cache.
+     * This implementation of {@link WriterCacheManager} returns {@link RecordCache} instances for
+     * the string and template cache and {@link Cache} instance for the node cache.
      */
     public static class Default extends WriterCacheManager {
+
         /**
-         * Cache of recently stored string records, used to avoid storing duplicates
-         * of frequently occurring data.
+         * Cache of recently stored string records, used to avoid storing duplicates of frequently
+         * occurring data.
          */
         private final Generations<RecordCache<String>> stringCaches;
 
         /**
-         * Cache of recently stored template records, used to avoid storing
-         * duplicates of frequently occurring data.
+         * Cache of recently stored template records, used to avoid storing duplicates of frequently
+         * occurring data.
          */
         private final Generations<RecordCache<Template>> templateCaches;
 
@@ -233,36 +240,36 @@ public abstract class WriterCacheManager {
         private final Supplier<PriorityCache<String, RecordId>> nodeCache;
 
         /**
-         * New instance using the passed factories for creating cache instances.
-         * The factories will be invoked exactly once when a generation of a
-         * cache is requested that has not been requested before.
+         * New instance using the passed factories for creating cache instances. The factories will
+         * be invoked exactly once when a generation of a cache is requested that has not been
+         * requested before.
          *
-         * @param stringCacheFactory       factory for the string cache
-         * @param templateCacheFactory     factory for the template cache
-         * @param nodeCacheFactory         factory for the node cache
+         * @param stringCacheFactory   factory for the string cache
+         * @param templateCacheFactory factory for the template cache
+         * @param nodeCacheFactory     factory for the node cache
          */
         public Default(
-                @NotNull Supplier<RecordCache<String>> stringCacheFactory,
-                @NotNull Supplier<RecordCache<Template>> templateCacheFactory,
-                @NotNull Supplier<PriorityCache<String, RecordId>> nodeCacheFactory) {
+            @NotNull Supplier<RecordCache<String>> stringCacheFactory,
+            @NotNull Supplier<RecordCache<Template>> templateCacheFactory,
+            @NotNull Supplier<PriorityCache<String, RecordId>> nodeCacheFactory) {
             this.stringCaches = new Generations<>(stringCacheFactory);
             this.templateCaches = new Generations<>(templateCacheFactory);
             this.nodeCache = memoize(nodeCacheFactory);
         }
 
         /**
-         * New instance using the default factories {@link RecordCache#factory(int)}
-         * and {@link PriorityCache#factory(int)} with the sizes
-         * {@link #DEFAULT_STRING_CACHE_SIZE}, {@link #DEFAULT_TEMPLATE_CACHE_SIZE}
-         * and {@link #DEFAULT_NODE_CACHE_SIZE}.
+         * New instance using the default factories {@link RecordCache#factory(int)} and
+         * {@link PriorityCache#factory(int)} with the sizes {@link #DEFAULT_STRING_CACHE_SIZE},
+         * {@link #DEFAULT_TEMPLATE_CACHE_SIZE} and {@link #DEFAULT_NODE_CACHE_SIZE}.
          */
         public Default() {
             this(RecordCache.<String>factory(DEFAULT_STRING_CACHE_SIZE),
-                 RecordCache.<Template>factory(DEFAULT_TEMPLATE_CACHE_SIZE),
-                 PriorityCache.<String, RecordId>factory(DEFAULT_NODE_CACHE_SIZE));
+                RecordCache.<Template>factory(DEFAULT_TEMPLATE_CACHE_SIZE),
+                PriorityCache.<String, RecordId>factory(DEFAULT_NODE_CACHE_SIZE));
         }
 
         private static class Generations<T> implements Iterable<T> {
+
             private final ConcurrentMap<Integer, Supplier<T>> generations = newConcurrentMap();
             private final Supplier<T> cacheFactory;
 
@@ -282,7 +289,8 @@ public abstract class WriterCacheManager {
             @Override
             public Iterator<T> iterator() {
                 return transform(generations.values().iterator(), new Function<Supplier<T>, T>() {
-                    @Nullable @Override
+                    @Nullable
+                    @Override
                     public T apply(Supplier<T> cacheFactory) {
                         return cacheFactory.get();
                     }
@@ -341,23 +349,23 @@ public abstract class WriterCacheManager {
         @Override
         public CacheStatsMBean getStringCacheStats() {
             return new RecordCacheStats("String deduplication cache stats",
-                    accumulateRecordCacheStats(stringCaches),
-                    accumulateRecordCacheSizes(stringCaches),
-                    accumulateRecordCacheWeights(stringCaches));
+                accumulateRecordCacheStats(stringCaches),
+                accumulateRecordCacheSizes(stringCaches),
+                accumulateRecordCacheWeights(stringCaches));
         }
 
         @Nullable
         @Override
         public CacheStatsMBean getTemplateCacheStats() {
             return new RecordCacheStats("Template deduplication cache stats",
-                    accumulateRecordCacheStats(templateCaches),
-                    accumulateRecordCacheSizes(templateCaches),
-                    accumulateRecordCacheWeights(templateCaches));
+                accumulateRecordCacheStats(templateCaches),
+                accumulateRecordCacheSizes(templateCaches),
+                accumulateRecordCacheWeights(templateCaches));
         }
 
         @NotNull
         private static <T> Supplier<CacheStats> accumulateRecordCacheStats(
-                final Iterable<RecordCache<T>> caches) {
+            final Iterable<RecordCache<T>> caches) {
             return new Supplier<CacheStats>() {
                 @Override
                 public CacheStats get() {
@@ -372,7 +380,7 @@ public abstract class WriterCacheManager {
 
         @NotNull
         public static <T> Supplier<Long> accumulateRecordCacheSizes(
-                final Iterable<RecordCache<T>> caches) {
+            final Iterable<RecordCache<T>> caches) {
             return new Supplier<Long>() {
                 @Override
                 public Long get() {
@@ -387,7 +395,7 @@ public abstract class WriterCacheManager {
 
         @NotNull
         public static <T> Supplier<Long> accumulateRecordCacheWeights(
-                final Iterable<RecordCache<T>> caches) {
+            final Iterable<RecordCache<T>> caches) {
             return new Supplier<Long>() {
                 @Override
                 public Long get() {
@@ -404,28 +412,29 @@ public abstract class WriterCacheManager {
         @Override
         public CacheStatsMBean getNodeCacheStats() {
             return new RecordCacheStats("Node deduplication cache stats",
-                    new Supplier<CacheStats>() {
-                        @Override
-                        public CacheStats get() {
-                            return nodeCache().getStats();
-                        }
-                    },
-                    new Supplier<Long>() {
-                        @Override
-                        public Long get() {
-                            return nodeCache().size();
-                        }
-                    },
-                    new Supplier<Long>() {
-                        @Override
-                        public Long get() {
-                            return nodeCache().estimateCurrentWeight();
-                        }
-                    });
+                new Supplier<CacheStats>() {
+                    @Override
+                    public CacheStats get() {
+                        return nodeCache().getStats();
+                    }
+                },
+                new Supplier<Long>() {
+                    @Override
+                    public Long get() {
+                        return nodeCache().size();
+                    }
+                },
+                new Supplier<Long>() {
+                    @Override
+                    public Long get() {
+                        return nodeCache().estimateCurrentWeight();
+                    }
+                });
         }
 
         /**
          * Remove all cache generations matching the passed {@code generations} predicate.
+         *
          * @param generations
          */
         protected final void evictCaches(Predicate<Integer> generations) {
@@ -437,10 +446,11 @@ public abstract class WriterCacheManager {
     }
 
     /**
-     * Wrapper wrapping all caches returned by a {@link WriterCacheManager}
-     * into a {@link CacheAccessTracker}.
+     * Wrapper wrapping all caches returned by a {@link WriterCacheManager} into a
+     * {@link CacheAccessTracker}.
      */
     private static class AccessTrackingCacheManager extends WriterCacheManager {
+
         @NotNull
         private final String name;
 
@@ -451,64 +461,61 @@ public abstract class WriterCacheManager {
         private final WriterCacheManager delegate;
 
         /**
-         * Create a new instance. The {@code name} passed is used to prepend to the
-         * names used to expose the access statistics.
-         * @param name                 name under which to expose the access statistics
-         * @param statisticsProvider   statistics provider where the access statistics is recorded to
-         * @param delegate             the underlying, wrapped cache manager
+         * Create a new instance. The {@code name} passed is used to prepend to the names used to
+         * expose the access statistics.
          *
+         * @param name               name under which to expose the access statistics
+         * @param statisticsProvider statistics provider where the access statistics is recorded to
+         * @param delegate           the underlying, wrapped cache manager
          * @see #getStringCache(int)
          * @see #getTemplateCache(int)
          * @see #getNodeCache(int)
          */
         public AccessTrackingCacheManager(
-                @NotNull String name,
-                @NotNull StatisticsProvider statisticsProvider,
-                @NotNull WriterCacheManager delegate) {
+            @NotNull String name,
+            @NotNull StatisticsProvider statisticsProvider,
+            @NotNull WriterCacheManager delegate) {
             this.name = name;
             this.statisticsProvider = statisticsProvider;
             this.delegate = delegate;
         }
 
         /**
-         * @return the wrapped cache returned by the delegate's method of
-         * the same name exposing access statistics under
-         * {@code "oak.segment.string-deduplication-cache-" + name}
+         * @return the wrapped cache returned by the delegate's method of the same name exposing
+         * access statistics under {@code "oak.segment.string-deduplication-cache-" + name}
          */
         @NotNull
         @Override
         public Cache<String, RecordId> getStringCache(int generation) {
             return new CacheAccessTracker<>(
-                    "oak.segment.string-deduplication-cache-" + name,
-                    statisticsProvider, delegate.getStringCache(generation)
+                "oak.segment.string-deduplication-cache-" + name,
+                statisticsProvider, delegate.getStringCache(generation)
             );
         }
 
         /**
-         * @return the wrapped cache returned by the delegate's method of
-         * the same name exposing access statistics under
-         * {@code "oak.segment.template-deduplication-cache-" + name}
+         * @return the wrapped cache returned by the delegate's method of the same name exposing
+         * access statistics under {@code "oak.segment.template-deduplication-cache-" + name}
          */
         @NotNull
         @Override
         public Cache<Template, RecordId> getTemplateCache(int generation) {
             return new CacheAccessTracker<>(
-                    "oak.segment.template-deduplication-cache-" + name,
-                    statisticsProvider, delegate.getTemplateCache(generation)
+                "oak.segment.template-deduplication-cache-" + name,
+                statisticsProvider, delegate.getTemplateCache(generation)
             );
         }
 
         /**
-         * @return the wrapped cache returned by the delegate's method of
-         * the same name exposing access statistics under
-         * {@code "oak.segment.node-deduplication-cache-" + name}
+         * @return the wrapped cache returned by the delegate's method of the same name exposing
+         * access statistics under {@code "oak.segment.node-deduplication-cache-" + name}
          */
         @NotNull
         @Override
         public Cache<String, RecordId> getNodeCache(int generation) {
             return new CacheAccessTracker<>(
-                    "oak.segment.node-deduplication-cache-" + name,
-                    statisticsProvider, delegate.getNodeCache(generation)
+                "oak.segment.node-deduplication-cache-" + name,
+                statisticsProvider, delegate.getNodeCache(generation)
             );
         }
     }

@@ -25,11 +25,9 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.List;
 import java.util.Set;
-
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Sets;
-
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.OakBaseTest;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
@@ -61,19 +59,19 @@ public class TreeTest extends OakBaseTest {
         repository = new Oak(store)
             .with(new OpenSecurityProvider())
             .with(new CompositeConflictHandler(ImmutableList.of(
-                    ConflictHandlers.wrap(new ChildOrderConflictHandler() {
-                        /**
-                         * Allow deleting changed node.
-                         * See {@link TreeTest#removeWithConcurrentOrderBefore()}
-                         */
-                        @Override
-                        public Resolution deleteChangedNode(NodeBuilder parent,
-                                String name,
-                                NodeState theirs) {
-                            return Resolution.OURS;
-                        }
-                    }),
-                    new AnnotatingConflictHandler()
+                ConflictHandlers.wrap(new ChildOrderConflictHandler() {
+                    /**
+                     * Allow deleting changed node.
+                     * See {@link TreeTest#removeWithConcurrentOrderBefore()}
+                     */
+                    @Override
+                    public Resolution deleteChangedNode(NodeBuilder parent,
+                        String name,
+                        NodeState theirs) {
+                        return Resolution.OURS;
+                    }
+                }),
+                new AnnotatingConflictHandler()
             )))
             .with(new ConflictValidatorProvider())
             .createContentRepository();
@@ -409,7 +407,7 @@ public class TreeTest extends OakBaseTest {
 
                 t1 = s1.getLatestRoot().getTree("/");
                 assertSequence(
-                        t1.getChildren(), "node1", "node2", "node3", "node4");
+                    t1.getChildren(), "node1", "node2", "node3", "node4");
             } finally {
                 s2.close();
             }
@@ -452,7 +450,7 @@ public class TreeTest extends OakBaseTest {
 
                 t1 = s1.getLatestRoot().getTree("/");
                 assertSequence(
-                        t1.getChildren(), names.toArray(new String[names.size()]));
+                    t1.getChildren(), names.toArray(new String[names.size()]));
             } finally {
                 s2.close();
             }

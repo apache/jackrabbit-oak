@@ -16,14 +16,16 @@
  */
 package org.apache.jackrabbit.oak.segment.scheduler;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static java.lang.Thread.currentThread;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.api.Type.LONG;
 
+import com.codahale.metrics.Histogram;
+import com.codahale.metrics.UniformReservoir;
 import java.io.Closeable;
 import java.text.MessageFormat;
 import java.util.Map;
@@ -34,9 +36,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-
-import com.codahale.metrics.Histogram;
-import com.codahale.metrics.UniformReservoir;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.segment.Revisions;
@@ -60,19 +59,21 @@ import org.slf4j.LoggerFactory;
 public class LockBasedScheduler implements Scheduler {
 
     public static class LockBasedSchedulerBuilder {
+
         @NotNull
         private final SegmentReader reader;
 
         @NotNull
         private final Revisions revisions;
-        
+
         @NotNull
         private final SegmentNodeStoreStats stats;
 
         private boolean dispatchChanges = true;
 
-        private LockBasedSchedulerBuilder(@NotNull Revisions revisions, @NotNull SegmentReader reader,
-                @NotNull SegmentNodeStoreStats stats) {
+        private LockBasedSchedulerBuilder(@NotNull Revisions revisions,
+            @NotNull SegmentReader reader,
+            @NotNull SegmentNodeStoreStats stats) {
             this.revisions = revisions;
             this.reader = reader;
             this.stats = stats;
@@ -95,9 +96,11 @@ public class LockBasedScheduler implements Scheduler {
 
     }
 
-    public static LockBasedSchedulerBuilder builder(@NotNull Revisions revisions, @NotNull SegmentReader reader,
-            @NotNull SegmentNodeStoreStats stats) {
-        return new LockBasedSchedulerBuilder(checkNotNull(revisions), checkNotNull(reader), checkNotNull(stats));
+    public static LockBasedSchedulerBuilder builder(@NotNull Revisions revisions,
+        @NotNull SegmentReader reader,
+        @NotNull SegmentNodeStoreStats stats) {
+        return new LockBasedSchedulerBuilder(checkNotNull(revisions), checkNotNull(reader),
+            checkNotNull(stats));
     }
 
     private static final Logger log = LoggerFactory.getLogger(LockBasedScheduler.class);
@@ -106,40 +109,39 @@ public class LockBasedScheduler implements Scheduler {
      * Flag controlling the commit lock fairness
      */
     private static final boolean COMMIT_FAIR_LOCK = Boolean
-            .parseBoolean(System.getProperty("oak.segmentNodeStore.commitFairLock", "true"));
+        .parseBoolean(System.getProperty("oak.segmentNodeStore.commitFairLock", "true"));
 
     /**
-     * Flag controlling the commit time quantile to wait for the lock in order
-     * to increase chances of returning an up to date state.
+     * Flag controlling the commit time quantile to wait for the lock in order to increase chances
+     * of returning an up to date state.
      */
     private static final double SCHEDULER_FETCH_COMMIT_DELAY_QUANTILE = Double
-            .parseDouble(System.getProperty("oak.scheduler.fetch.commitDelayQuantile", "0.5"));
+        .parseDouble(System.getProperty("oak.scheduler.fetch.commitDelayQuantile", "0.5"));
 
     /**
-     * Flag controlling the number of milliseconds after which warnings are logged
-     * when threads ready to commit have to wait for a commit in progress.
+     * Flag controlling the number of milliseconds after which warnings are logged when threads
+     * ready to commit have to wait for a commit in progress.
      */
     private static final int COMMIT_WAIT_WARN_MILLIS = Integer
-            .getInteger("oak.segmentNodeStore.commitWaitWarnMillis", 60000);
-    
+        .getInteger("oak.segmentNodeStore.commitWaitWarnMillis", 60000);
+
     /**
-     * Maximum number of milliseconds to wait before re-attempting to update the current
-     * head state after a successful commit, provided a concurrent head state update happens.
+     * Maximum number of milliseconds to wait before re-attempting to update the current head state
+     * after a successful commit, provided a concurrent head state update happens.
      */
     private static final long MAXIMUM_BACKOFF = MILLISECONDS.convert(10, SECONDS);
-    
+
     /**
-     * Sets the number of seconds to wait for the attempt to grab the lock to
-     * create a checkpoint
+     * Sets the number of seconds to wait for the attempt to grab the lock to create a checkpoint
      */
-    private final int checkpointsLockWaitTime = Integer.getInteger("oak.checkpoints.lockWaitTime", 10);
-    
+    private final int checkpointsLockWaitTime = Integer.getInteger("oak.checkpoints.lockWaitTime",
+        10);
+
     static final String ROOT = "root";
 
     /**
-     * Semaphore that controls access to the {@link #head} variable. Only a
-     * single local commit is allowed at a time. When such a commit is in
-     * progress, no external updates will be seen.
+     * Semaphore that controls access to the {@link #head} variable. Only a single local commit is
+     * allowed at a time. When such a commit is in progress, no external updates will be seen.
      */
     private final Semaphore commitSemaphore = new Semaphore(1, COMMIT_FAIR_LOCK);
 
@@ -152,9 +154,9 @@ public class LockBasedScheduler implements Scheduler {
     protected final AtomicReference<SegmentNodeState> head;
 
     private final SegmentNodeStoreStats stats;
-    
+
     private final Histogram commitTimeHistogram = new Histogram(new UniformReservoir());
-    
+
     private final Random random = new Random();
 
     private final CommitSemaphoreLogging commitSemaphoreLogging = new CommitSemaphoreLogging();
@@ -188,7 +190,7 @@ public class LockBasedScheduler implements Scheduler {
             long dt = System.currentTimeMillis() - timeStamp;
             boolean isBlocking = currentCommit != null && dt > COMMIT_WAIT_WARN_MILLIS;
             boolean isOldGeneration = commitGeneration != null
-                    && headGeneration.getFullGeneration() > commitGeneration.getFullGeneration();
+                && headGeneration.getFullGeneration() > commitGeneration.getFullGeneration();
 
             if (isBlocking) {
                 log.warn("This commit is blocked by a commit that is in progress since {} ms", dt);
@@ -196,7 +198,7 @@ public class LockBasedScheduler implements Scheduler {
 
             if (isOldGeneration) {
                 log.warn("The commit in progress is from an old GC generation {}. Head is at {}",
-                         commitGeneration, headGeneration);
+                    commitGeneration, headGeneration);
             }
         }
     }
@@ -214,7 +216,8 @@ public class LockBasedScheduler implements Scheduler {
 
     @Override
     public NodeState getHeadNodeState() {
-        long delay = (long) commitTimeHistogram.getSnapshot().getValue(SCHEDULER_FETCH_COMMIT_DELAY_QUANTILE);
+        long delay = (long) commitTimeHistogram.getSnapshot()
+                                               .getValue(SCHEDULER_FETCH_COMMIT_DELAY_QUANTILE);
         try {
             if (commitSemaphore.tryAcquire(delay, NANOSECONDS)) {
                 try {
@@ -222,7 +225,7 @@ public class LockBasedScheduler implements Scheduler {
                 } finally {
                     commitSemaphore.release();
                 }
-            } 
+            }
         } catch (InterruptedException e) {
             currentThread().interrupt();
         }
@@ -230,11 +233,10 @@ public class LockBasedScheduler implements Scheduler {
     }
 
     /**
-     * Refreshes the head state. Should only be called while holding a permit
-     * from the {@link #commitSemaphore}.
-     * 
-     * @param dispatchChanges
-     *            if set to true the changes would also be dispatched
+     * Refreshes the head state. Should only be called while holding a permit from the
+     * {@link #commitSemaphore}.
+     *
+     * @param dispatchChanges if set to true the changes would also be dispatched
      */
     private void refreshHead(boolean dispatchChanges) {
         SegmentNodeState state = reader.readHeadState(revisions);
@@ -252,7 +254,7 @@ public class LockBasedScheduler implements Scheduler {
 
     @Override
     public NodeState schedule(@NotNull Commit commit, SchedulerOption... schedulingOptions)
-            throws CommitFailedException {
+        throws CommitFailedException {
         try {
             commitSemaphoreLogging.warnOnBlockingCommit();
 
@@ -291,34 +293,35 @@ public class LockBasedScheduler implements Scheduler {
         // only do the merge if there are some changes to commit
         if (commit.hasChanges()) {
             long start = System.nanoTime();
-            
+
             int count = 0;
             for (long backoff = 1; backoff < MAXIMUM_BACKOFF; backoff *= 2) {
                 refreshHead(true);
                 SegmentNodeState before = head.get();
                 SegmentNodeState after = commit.apply(before);
-                
+
                 if (revisions.setHead(before.getRecordId(), after.getRecordId())) {
                     head.set(after);
                     contentChanged(after.getChildNode(ROOT), commit.info());
-                    
+
                     return head.get().getChildNode(ROOT);
-                } 
-                
+                }
+
                 count++;
                 int randNs = random.nextInt(1_000_000);
-                log.info("Scheduler detected concurrent commits. Retrying after {} ms and {} ns", backoff, randNs);
+                log.info("Scheduler detected concurrent commits. Retrying after {} ms and {} ns",
+                    backoff, randNs);
                 Thread.sleep(backoff, randNs);
             }
-            
+
             long finish = System.nanoTime();
-            
+
             String message = MessageFormat.format(
-                    "The commit could not be executed after {} attempts. Total wait time: {} ms",
-                    count, NANOSECONDS.toMillis(finish - start));
+                "The commit could not be executed after {} attempts. Total wait time: {} ms",
+                count, NANOSECONDS.toMillis(finish - start));
             throw new CommitFailedException("Segment", 3, message);
         }
-        
+
         return head.get().getChildNode(ROOT);
     }
 
@@ -341,7 +344,8 @@ public class LockBasedScheduler implements Scheduler {
                     commitSemaphore.release();
                 }
             }
-            log.warn("Failed to create checkpoint {} in {} seconds.", name, checkpointsLockWaitTime);
+            log.warn("Failed to create checkpoint {} in {} seconds.", name,
+                checkpointsLockWaitTime);
         } catch (InterruptedException e) {
             currentThread().interrupt();
             log.error("Failed to create checkpoint {}.", name, e);
@@ -381,9 +385,11 @@ public class LockBasedScheduler implements Scheduler {
         return false;
     }
 
-    private static class ObservableLockBasedScheduler extends LockBasedScheduler implements Observable {
+    private static class ObservableLockBasedScheduler extends LockBasedScheduler implements
+        Observable {
+
         private final ChangeDispatcher changeDispatcher;
-        
+
         public ObservableLockBasedScheduler(LockBasedSchedulerBuilder builder) {
             super(builder);
             this.changeDispatcher = new ChangeDispatcher(head.get().getChildNode(ROOT));
@@ -393,7 +399,7 @@ public class LockBasedScheduler implements Scheduler {
         protected void contentChanged(NodeState root, CommitInfo info) {
             changeDispatcher.contentChanged(root, info);
         }
-        
+
         @Override
         public Closeable addObserver(Observer observer) {
             return changeDispatcher.addObserver(observer);

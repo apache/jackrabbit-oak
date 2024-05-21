@@ -19,18 +19,14 @@
 
 package org.apache.jackrabbit.oak.run.osgi
 
-import org.apache.jackrabbit.oak.api.jmx.RepositoryManagementMBean;
+import org.apache.jackrabbit.oak.api.jmx.RepositoryManagementMBean
 import org.junit.Before
 import org.junit.Test
 
-import javax.management.MBeanServer
-import javax.management.ObjectInstance
-import javax.management.ObjectName
-import javax.management.Query
-import javax.management.QueryExp
-import java.lang.management.ManagementFactory;
+import javax.management.*
+import java.lang.management.ManagementFactory
 
-import static org.apache.jackrabbit.oak.run.osgi.OakOSGiRepositoryFactory.REPOSITORY_CONFIG_FILE;
+import static org.apache.jackrabbit.oak.run.osgi.OakOSGiRepositoryFactory.REPOSITORY_CONFIG_FILE
 
 public class MBeanIntegrationTest extends AbstractRepositoryFactoryTest {
     @Before
@@ -39,7 +35,7 @@ public class MBeanIntegrationTest extends AbstractRepositoryFactoryTest {
     }
 
     @Test
-    public void jmxIntegration() throws Exception{
+    public void jmxIntegration() throws Exception {
         repository = repositoryFactory.getRepository(config)
         MBeanServer server = ManagementFactory.getPlatformMBeanServer();
         QueryExp q = Query.isInstanceOf(Query.value(RepositoryManagementMBean.class.name))

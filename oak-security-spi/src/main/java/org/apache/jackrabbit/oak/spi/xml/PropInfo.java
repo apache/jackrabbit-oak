@@ -18,12 +18,10 @@ package org.apache.jackrabbit.oak.spi.xml;
 
 import java.util.Collections;
 import java.util.List;
-
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.nodetype.PropertyDefinition;
-
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -32,14 +30,12 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Information about a property being imported. This class is used
- * by the XML import handlers to pass the parsed property information
- * to the import process.
+ * Information about a property being imported. This class is used by the XML import handlers to
+ * pass the parsed property information to the import process.
  * <p>
- * In addition to carrying the actual property data, instances of this
- * class also know how to apply that data when imported either to a
- * {@link javax.jcr.Node} instance through a session or directly to a
- * {@link org.apache.jackrabbit.oak.api.Tree} instance on the oak level.
+ * In addition to carrying the actual property data, instances of this class also know how to apply
+ * that data when imported either to a {@link javax.jcr.Node} instance through a session or directly
+ * to a {@link org.apache.jackrabbit.oak.api.Tree} instance on the oak level.
  */
 public class PropInfo {
 
@@ -61,15 +57,15 @@ public class PropInfo {
     /**
      * Hint indicating whether the property is multi- or single-value
      */
-    public enum MultipleStatus { UNKNOWN, MULTIPLE }
-    
+    public enum MultipleStatus {UNKNOWN, MULTIPLE}
+
     private final MultipleStatus multipleStatus;
 
     /**
      * Creates a property information instance.
      *
-     * @param name name of the property being imported
-     * @param type type of the property being imported
+     * @param name  name of the property being imported
+     * @param type  type of the property being imported
      * @param value value of the property being imported
      */
     public PropInfo(@Nullable String name, int type, @NotNull TextValue value) {
@@ -79,25 +75,26 @@ public class PropInfo {
     /**
      * Creates a property information instance.
      *
-     * @param name name of the property being imported
-     * @param type type of the property being imported
+     * @param name   name of the property being imported
+     * @param type   type of the property being imported
      * @param values value(s) of the property being imported
      */
     public PropInfo(@Nullable String name, int type, @NotNull List<? extends TextValue> values) {
-        this(name, type, values, ((values.size() == 1) ? MultipleStatus.UNKNOWN : MultipleStatus.MULTIPLE));
+        this(name, type, values,
+            ((values.size() == 1) ? MultipleStatus.UNKNOWN : MultipleStatus.MULTIPLE));
     }
 
     /**
      * Creates a property information instance.
      *
-     * @param name name of the property being imported
-     * @param type type of the property being imported
-     * @param values value(s) of the property being imported
+     * @param name           name of the property being imported
+     * @param type           type of the property being imported
+     * @param values         value(s) of the property being imported
      * @param multipleStatus Hint indicating whether the property is
      */
     public PropInfo(@Nullable String name, int type,
-                    @NotNull List<? extends TextValue> values,
-                    @NotNull MultipleStatus multipleStatus) {
+        @NotNull List<? extends TextValue> values,
+        @NotNull MultipleStatus multipleStatus) {
         this.name = name;
         this.type = type;
         this.values = ImmutableList.copyOf(values);
@@ -140,7 +137,8 @@ public class PropInfo {
     @NotNull
     public TextValue getTextValue() throws RepositoryException {
         if (multipleStatus == MultipleStatus.MULTIPLE) {
-            throw new RepositoryException("Multiple import values with single-valued property definition");
+            throw new RepositoryException(
+                "Multiple import values with single-valued property definition");
         }
         return values.get(0);
     }
@@ -153,7 +151,8 @@ public class PropInfo {
     @NotNull
     public Value getValue(int targetType) throws RepositoryException {
         if (multipleStatus == MultipleStatus.MULTIPLE) {
-            throw new RepositoryException("Multiple import values with single-valued property definition");
+            throw new RepositoryException(
+                "Multiple import values with single-valued property definition");
         }
         return values.get(0).getValue(targetType);
     }
@@ -171,7 +170,8 @@ public class PropInfo {
         }
     }
 
-    public PropertyState asPropertyState(@NotNull PropertyDefinition propertyDefinition) throws RepositoryException {
+    public PropertyState asPropertyState(@NotNull PropertyDefinition propertyDefinition)
+        throws RepositoryException {
         List<Value> vs = getValues(getTargetType(propertyDefinition));
         PropertyState propertyState;
         if (vs.size() == 1 && !propertyDefinition.isMultiple()) {

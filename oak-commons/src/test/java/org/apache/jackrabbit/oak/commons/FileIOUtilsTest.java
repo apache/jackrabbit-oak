@@ -58,7 +58,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Random;
 import java.util.Set;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Splitter;
@@ -97,11 +96,15 @@ public class FileIOUtilsTest {
         Set<String> actual = newHashSet("a", "z", "e", "b");
 
         File f = folder.newFile();
-        int count = writeStrings(added.iterator(), f, false, new java.util.function.Function<String, String>() {
-            @Nullable @Override public String apply(@Nullable String input) {
-                return Splitter.on("-").trimResults().omitEmptyStrings().splitToList(input).get(0);
-            }
-        }, null, null);
+        int count = writeStrings(added.iterator(), f, false,
+            new java.util.function.Function<String, String>() {
+                @Nullable
+                @Override
+                public String apply(@Nullable String input) {
+                    return Splitter.on("-").trimResults().omitEmptyStrings().splitToList(input)
+                                   .get(0);
+                }
+            }, null, null);
         assertEquals(added.size(), count);
 
         Set<String> retrieved = readStringsAsSet(new FileInputStream(f), false);
@@ -181,7 +184,7 @@ public class FileIOUtilsTest {
         Collections.sort(list);
         assertArrayEquals(Arrays.toString(list.toArray()), list.toArray(), retrieved.toArray());
     }
-    
+
     @Test
     public void sortLargeFileWithCustomComparatorTest() throws IOException {
         final int numEntries = 100000;      // must be large enough to trigger split/merge functionality of the sort
@@ -192,15 +195,19 @@ public class FileIOUtilsTest {
         }
 
         Iterator<Long> boxedEntries = Longs.asList(entries).iterator();
-        Iterator<String> hexEntries = Iterators.transform(boxedEntries, new Function<Long, String>() {
-                    @Nullable @Override public String apply(@Nullable Long input) {
-                        return Long.toHexString(input);
-                    }
-                });
+        Iterator<String> hexEntries = Iterators.transform(boxedEntries,
+            new Function<Long, String>() {
+                @Nullable
+                @Override
+                public String apply(@Nullable Long input) {
+                    return Long.toHexString(input);
+                }
+            });
         File f = assertWrite(hexEntries, false, numEntries);
 
         Comparator<String> prefixComparator = new Comparator<String>() {
-            @Override public int compare(String s1, String s2) {
+            @Override
+            public int compare(String s1, String s2) {
                 return s1.substring(0, 3).compareTo(s2.substring(0, 3));
             }
         };
@@ -215,7 +222,8 @@ public class FileIOUtilsTest {
                 break;
             }
             current = current.substring(0, 3);
-            assertFalse("Distinct sort didn't filter out duplicates properly.", previous.equals(current));
+            assertFalse("Distinct sort didn't filter out duplicates properly.",
+                previous.equals(current));
             assertTrue("Sort didn't create increasing order", previous.compareTo(current) < 0);
             previous = current;
         }
@@ -223,7 +231,7 @@ public class FileIOUtilsTest {
     }
 
     @Test
-    public void testCopy() throws IOException{
+    public void testCopy() throws IOException {
         File f = copy(randomStream(0, 256));
         assertTrue("File does not exist", f.exists());
         Assert.assertEquals("File length not equal to byte array from which copied",
@@ -326,7 +334,8 @@ public class FileIOUtilsTest {
 
         try {
             merge(newArrayList(f2, f3), null);
-        } catch(Exception e) {}
+        } catch (Exception e) {
+        }
 
         assertTrue(!f2.exists());
         assertTrue(!f3.exists());
@@ -338,7 +347,8 @@ public class FileIOUtilsTest {
         File f = assertWrite(added.iterator(), false, added.size());
 
         org.apache.jackrabbit.oak.commons.io.BurnOnCloseFileIterator<String> iterator =
-                org.apache.jackrabbit.oak.commons.io.BurnOnCloseFileIterator.wrap(FileUtils.lineIterator(f, UTF_8.toString()));
+            org.apache.jackrabbit.oak.commons.io.BurnOnCloseFileIterator.wrap(
+                FileUtils.lineIterator(f, UTF_8.toString()));
 
         assertEquals(added, Sets.newHashSet(iterator));
         assertTrue(f.exists());
@@ -350,7 +360,8 @@ public class FileIOUtilsTest {
         File f = assertWrite(added.iterator(), false, added.size());
 
         org.apache.jackrabbit.oak.commons.io.BurnOnCloseFileIterator<String> iterator =
-                org.apache.jackrabbit.oak.commons.io.BurnOnCloseFileIterator.wrap(FileUtils.lineIterator(f, UTF_8.toString()), f);
+            org.apache.jackrabbit.oak.commons.io.BurnOnCloseFileIterator.wrap(
+                FileUtils.lineIterator(f, UTF_8.toString()), f);
 
         assertEquals(added, Sets.newHashSet(iterator));
         assertTrue(!f.exists());
@@ -362,7 +373,7 @@ public class FileIOUtilsTest {
         File f = assertWrite(added.iterator(), true, added.size());
 
         org.apache.jackrabbit.oak.commons.io.BurnOnCloseFileIterator<String> iterator = new org.apache.jackrabbit.oak.commons.io.BurnOnCloseFileIterator<String>(
-                FileUtils.lineIterator(f, UTF_8.toString()), f, (input) -> unescapeLineBreaks(input));
+            FileUtils.lineIterator(f, UTF_8.toString()), f, (input) -> unescapeLineBreaks(input));
 
         assertEquals(added, Sets.newHashSet(iterator));
         assertTrue(!f.exists());
@@ -377,7 +388,7 @@ public class FileIOUtilsTest {
         File f = assertWrite(added.iterator(), true, added.size());
 
         org.apache.jackrabbit.oak.commons.io.BurnOnCloseFileIterator<String> iterator = new org.apache.jackrabbit.oak.commons.io.BurnOnCloseFileIterator<String>(
-                FileUtils.lineIterator(f, UTF_8.toString()), f, (input) -> unescapeLineBreaks(input));
+            FileUtils.lineIterator(f, UTF_8.toString()), f, (input) -> unescapeLineBreaks(input));
 
         assertEquals(added, Sets.newHashSet(iterator));
         assertTrue(!f.exists());
@@ -403,7 +414,8 @@ public class FileIOUtilsTest {
         try {
             FileIOUtils.copyInputStreamToFile(new ErrorInputStream(f, 4096), f2);
             Assert.fail("Should have failed with IOException");
-        } catch (Exception e) {}
+        } catch (Exception e) {
+        }
 
         assertTrue(f.exists());
         assertTrue(!f2.exists());
@@ -418,7 +430,8 @@ public class FileIOUtilsTest {
             }
         };
         java.util.function.Function<String, String> fun = x -> x.toLowerCase(Locale.ENGLISH);
-        FileIOUtils.TransformingComparator comp = new FileIOUtils.TransformingComparator(delegate, fun);
+        FileIOUtils.TransformingComparator comp = new FileIOUtils.TransformingComparator(delegate,
+            fun);
 
         assertTrue(0 > delegate.compare("A", "a"));
         assertTrue(0 < delegate.compare("a", "A"));
@@ -457,7 +470,7 @@ public class FileIOUtilsTest {
     private static String getRandomTestString() throws Exception {
         boolean valid = false;
         StringBuilder buffer = new StringBuilder();
-        while(!valid) {
+        while (!valid) {
             int length = RANDOM.nextInt(40);
             for (int i = 0; i < length; i++) {
                 buffer.append((char) (RANDOM.nextInt(Character.MAX_VALUE)));
@@ -485,6 +498,7 @@ public class FileIOUtilsTest {
      * Throws error after reading partially defined by max
      */
     private static class ErrorInputStream extends FileInputStream {
+
         private long bytesread;
         private long max;
 

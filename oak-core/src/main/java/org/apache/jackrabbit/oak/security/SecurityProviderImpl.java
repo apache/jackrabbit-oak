@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.security;
 
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -56,8 +58,6 @@ import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardAware;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.osgi.framework.BundleContext;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
 /**
  * @deprecated Replaced by

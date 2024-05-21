@@ -34,15 +34,15 @@ public class JsopStream implements JsopReader, JsopWriter {
         for (int i = s.pos; i < s.len; i++) {
             int token = s.tokens[i];
             switch (token & 255) {
-            case STRING:
-            case NUMBER:
-            case IDENTIFIER:
-            case COMMENT:
-                Object o = s.values[token >> 8];
-                addToken((token & 255) + addValue(o));
-                break;
-            default:
-                addToken(token);
+                case STRING:
+                case NUMBER:
+                case IDENTIFIER:
+                case COMMENT:
+                    Object o = s.values[token >> 8];
+                    addToken((token & 255) + addValue(o));
+                    break;
+                default:
+                    addToken(token);
             }
         }
         return this;
@@ -162,7 +162,7 @@ public class JsopStream implements JsopReader, JsopWriter {
         needComma = true;
         return this;
     }
-    
+
     @Override
     public void resetReader() {
         pos = 0;
@@ -191,17 +191,17 @@ public class JsopStream implements JsopReader, JsopWriter {
     public String getToken() {
         int x = tokens[lastPos];
         switch (x & 255) {
-        case STRING:
-        case NUMBER:
-        case IDENTIFIER:
-        case COMMENT:
-            return values[x >> 8].toString();
-        case TRUE:
-            return "true";
-        case FALSE:
-            return "false";
-        case NULL:
-            return "null";
+            case STRING:
+            case NUMBER:
+            case IDENTIFIER:
+            case COMMENT:
+                return values[x >> 8].toString();
+            case TRUE:
+                return "true";
+            case FALSE:
+                return "false";
+            case NULL:
+                return "null";
         }
         return Character.toString((char) (x & 255));
     }
@@ -257,29 +257,29 @@ public class JsopStream implements JsopReader, JsopWriter {
         int x = tokens[pos];
         lastPos = pos++;
         switch (x & 255) {
-        case COMMENT:
-        case NUMBER:
-        case IDENTIFIER:
-            return values[x >> 8].toString();
-        case STRING:
-            return JsopBuilder.encode(values[x >> 8].toString());
-        case TRUE:
-            return "true";
-        case FALSE:
-            return "false";
-        case NULL:
-            return "null";
-        case '[':
-            StringBuilder buff = new StringBuilder();
-            buff.append('[');
-            while (true) {
-                String s = readRawValue();
-                buff.append(s);
-                if ("]".equals(s)) {
-                    break;
+            case COMMENT:
+            case NUMBER:
+            case IDENTIFIER:
+                return values[x >> 8].toString();
+            case STRING:
+                return JsopBuilder.encode(values[x >> 8].toString());
+            case TRUE:
+                return "true";
+            case FALSE:
+                return "false";
+            case NULL:
+                return "null";
+            case '[':
+                StringBuilder buff = new StringBuilder();
+                buff.append('[');
+                while (true) {
+                    String s = readRawValue();
+                    buff.append(s);
+                    if ("]".equals(s)) {
+                        break;
+                    }
                 }
-            }
-            return buff.toString();
+                return buff.toString();
         }
         return Character.toString((char) (x & 255));
     }
@@ -295,37 +295,37 @@ public class JsopStream implements JsopReader, JsopWriter {
         for (int i = 0; i < len; i++) {
             int x = tokens[i];
             switch (x & 255) {
-            case '{':
-                buff.object();
-                break;
-            case '}':
-                buff.endObject();
-                break;
-            case '[':
-                buff.array();
-                break;
-            case ']':
-                buff.endArray();
-                break;
-            case STRING:
-                buff.value(values[x >> 8].toString());
-                break;
-            case TRUE:
-                buff.value(true);
-                break;
-            case FALSE:
-                buff.value(false);
-                break;
-            case NULL:
-                buff.value(null);
-                break;
-            case IDENTIFIER:
-            case NUMBER:
-            case COMMENT:
-                buff.encodedValue(values[x >> 8].toString());
-                break;
-            default:
-                buff.tag((char) (x & 255));
+                case '{':
+                    buff.object();
+                    break;
+                case '}':
+                    buff.endObject();
+                    break;
+                case '[':
+                    buff.array();
+                    break;
+                case ']':
+                    buff.endArray();
+                    break;
+                case STRING:
+                    buff.value(values[x >> 8].toString());
+                    break;
+                case TRUE:
+                    buff.value(true);
+                    break;
+                case FALSE:
+                    buff.value(false);
+                    break;
+                case NULL:
+                    buff.value(null);
+                    break;
+                case IDENTIFIER:
+                case NUMBER:
+                case COMMENT:
+                    buff.encodedValue(values[x >> 8].toString());
+                    break;
+                default:
+                    buff.tag((char) (x & 255));
             }
         }
         return buff.toString();

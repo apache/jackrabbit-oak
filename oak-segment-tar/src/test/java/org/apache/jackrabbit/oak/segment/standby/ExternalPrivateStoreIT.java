@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.segment.standby;
 
 import java.io.File;
-
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.test.TemporaryBlobStore;
 import org.apache.jackrabbit.oak.segment.test.TemporaryFileStore;
@@ -31,20 +30,24 @@ public class ExternalPrivateStoreIT extends DataStoreTestBase {
 
     private TemporaryFolder folder = new TemporaryFolder(new File("target"));
 
-    private TemporaryBlobStore serverBlobStore = new TemporaryBlobStore(folder, "server-blob-store");
+    private TemporaryBlobStore serverBlobStore = new TemporaryBlobStore(folder,
+        "server-blob-store");
 
-    private TemporaryFileStore serverFileStore = new TemporaryFileStore(folder, serverBlobStore, false, "server-file-store");
+    private TemporaryFileStore serverFileStore = new TemporaryFileStore(folder, serverBlobStore,
+        false, "server-file-store");
 
-    private TemporaryBlobStore clientBlobStore = new TemporaryBlobStore(folder, "client-blob-store");
+    private TemporaryBlobStore clientBlobStore = new TemporaryBlobStore(folder,
+        "client-blob-store");
 
-    private TemporaryFileStore clientFileStore = new TemporaryFileStore(folder, clientBlobStore, true, "client-file-store");
+    private TemporaryFileStore clientFileStore = new TemporaryFileStore(folder, clientBlobStore,
+        true, "client-file-store");
 
     @Rule
     public RuleChain chain = RuleChain.outerRule(folder)
-            .around(serverBlobStore)
-            .around(serverFileStore)
-            .around(clientBlobStore)
-            .around(clientFileStore);
+                                      .around(serverBlobStore)
+                                      .around(serverFileStore)
+                                      .around(clientBlobStore)
+                                      .around(clientFileStore);
 
     @Override
     FileStore getPrimary() {

@@ -16,6 +16,15 @@
  */
 package org.apache.jackrabbit.oak.spi.security;
 
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -26,7 +35,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
@@ -35,29 +43,22 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
 public class ConfigurationParametersTest {
 
     @Before
-    public void setup() {}
+    public void setup() {
+    }
 
     @After
-    public void tearDown() {}
+    public void tearDown() {
+    }
 
     @Test
     public void testCreation() {
         ConfigurationParameters params = ConfigurationParameters.of(
-                ConfigurationParameters.EMPTY,
-                null,
-                ConfigurationParameters.of("a", "a"));
+            ConfigurationParameters.EMPTY,
+            null,
+            ConfigurationParameters.of("a", "a"));
         assertFalse(params.isEmpty());
         assertEquals(1, params.size());
         assertTrue(params.contains("a"));
@@ -66,7 +67,8 @@ public class ConfigurationParametersTest {
     @Test
     public void testCreationFromNull() {
         ConfigurationParameters cp = null;
-        ConfigurationParameters params = ConfigurationParameters.of(new ConfigurationParameters[] {cp});
+        ConfigurationParameters params = ConfigurationParameters.of(
+            new ConfigurationParameters[]{cp});
         assertSame(ConfigurationParameters.EMPTY, params);
     }
 
@@ -111,8 +113,10 @@ public class ConfigurationParametersTest {
         dict.put("a", "b");
 
         ConfigurationParameters cp = ConfigurationParameters.of(dict);
-        assertEquals(ImmutableSet.copyOf(Iterators.forEnumeration(dict.keys())), ImmutableSet.copyOf(cp.keySet()));
-        assertEquals(ImmutableSet.copyOf(Iterators.forEnumeration(dict.elements())), ImmutableSet.copyOf(cp.values()));
+        assertEquals(ImmutableSet.copyOf(Iterators.forEnumeration(dict.keys())),
+            ImmutableSet.copyOf(cp.keySet()));
+        assertEquals(ImmutableSet.copyOf(Iterators.forEnumeration(dict.elements())),
+            ImmutableSet.copyOf(cp.values()));
 
     }
 
@@ -181,38 +185,48 @@ public class ConfigurationParametersTest {
 
     @Test
     public void testArrayDefaultValue() {
-        TestObject[] testArray = new TestObject[] {new TestObject("t")};
+        TestObject[] testArray = new TestObject[]{new TestObject("t")};
 
-        TestObject[] result = ConfigurationParameters.EMPTY.getConfigValue("test", new TestObject[0]);
+        TestObject[] result = ConfigurationParameters.EMPTY.getConfigValue("test",
+            new TestObject[0]);
         assertNotNull(result);
         assertEquals(0, result.length);
-        assertArrayEquals(testArray, ConfigurationParameters.EMPTY.getConfigValue("test", testArray));
+        assertArrayEquals(testArray,
+            ConfigurationParameters.EMPTY.getConfigValue("test", testArray));
 
         ConfigurationParameters options = ConfigurationParameters.of("test", testArray);
-        assertArrayEquals(testArray, options.getConfigValue("test", new TestObject[] {new TestObject("s")}));
+        assertArrayEquals(testArray,
+            options.getConfigValue("test", new TestObject[]{new TestObject("s")}));
     }
 
     @Test
     public void testArrayDefaultValue2() {
-        TestObject[] testArray = new TestObject[] {new TestObject("t")};
+        TestObject[] testArray = new TestObject[]{new TestObject("t")};
 
-        TestObject[] result = ConfigurationParameters.EMPTY.getConfigValue("test", new TestObject[0], null);
+        TestObject[] result = ConfigurationParameters.EMPTY.getConfigValue("test",
+            new TestObject[0], null);
         assertNotNull(result);
         assertEquals(0, result.length);
-        assertArrayEquals(testArray, ConfigurationParameters.EMPTY.getConfigValue("test", testArray, null));
-        assertArrayEquals(testArray, ConfigurationParameters.EMPTY.getConfigValue("test", testArray, TestObject[].class));
+        assertArrayEquals(testArray,
+            ConfigurationParameters.EMPTY.getConfigValue("test", testArray, null));
+        assertArrayEquals(testArray,
+            ConfigurationParameters.EMPTY.getConfigValue("test", testArray, TestObject[].class));
 
         ConfigurationParameters options = ConfigurationParameters.of("test", testArray);
         assertArrayEquals(testArray, (TestObject[]) options.getConfigValue("test", null, null));
         assertArrayEquals(testArray, options.getConfigValue("test", null, TestObject[].class));
-        assertArrayEquals(testArray, options.getConfigValue("test", new TestObject[]{new TestObject("s")}, null));
-        assertArrayEquals(testArray, options.getConfigValue("test", new TestObject[]{new TestObject("s")}, TestObject[].class));
+        assertArrayEquals(testArray,
+            options.getConfigValue("test", new TestObject[]{new TestObject("s")}, null));
+        assertArrayEquals(testArray,
+            options.getConfigValue("test", new TestObject[]{new TestObject("s")},
+                TestObject[].class));
     }
 
     @Test
     public void testCollectionAsArray() {
         String[] testArray = {"t"};
-        ConfigurationParameters options = ConfigurationParameters.of("test", Arrays.asList(testArray));
+        ConfigurationParameters options = ConfigurationParameters.of("test",
+            Arrays.asList(testArray));
         assertArrayEquals(testArray, options.getConfigValue("test", null, String[].class));
     }
 
@@ -221,7 +235,7 @@ public class ConfigurationParametersTest {
         TestObject testObject = new TestObject("t");
         Integer int1000 = 1000;
 
-        Map<String,Object> m = new HashMap<>();
+        Map<String, Object> m = new HashMap<>();
         m.put("TEST", testObject);
         m.put("String", "1000");
         m.put("Int2", 1000);
@@ -245,8 +259,10 @@ public class ConfigurationParametersTest {
         assertEquals(int1000, options.getConfigValue("Int3", 10));
         assertEquals("1000", options.getConfigValue("Int3", "1000"));
 
-        assertEquals(ConfigurationParameters.Milliseconds.of(1000), options.getConfigValue("time0", ConfigurationParameters.Milliseconds.NULL));
-        assertEquals(ConfigurationParameters.Milliseconds.of(1000), options.getConfigValue("time1", ConfigurationParameters.Milliseconds.NULL));
+        assertEquals(ConfigurationParameters.Milliseconds.of(1000),
+            options.getConfigValue("time0", ConfigurationParameters.Milliseconds.NULL));
+        assertEquals(ConfigurationParameters.Milliseconds.of(1000),
+            options.getConfigValue("time1", ConfigurationParameters.Milliseconds.NULL));
     }
 
     @Test
@@ -254,7 +270,7 @@ public class ConfigurationParametersTest {
         TestObject testObject = new TestObject("t");
         Integer int1000 = 1000;
 
-        Map<String,Object> m = new HashMap<>();
+        Map<String, Object> m = new HashMap<>();
         m.put("TEST", testObject);
         m.put("String", "1000");
         m.put("Int2", 1000);
@@ -322,10 +338,10 @@ public class ConfigurationParametersTest {
 
     @Test
     public void testConversionToSet() {
-        String[] stringArray = new String[] {"a", "b"};
+        String[] stringArray = new String[]{"a", "b"};
         Set<String> stringSet = ImmutableSet.copyOf(stringArray);
 
-        TestObject[] testObjectArray = new TestObject[] {new TestObject("a"), new TestObject("b")};
+        TestObject[] testObjectArray = new TestObject[]{new TestObject("a"), new TestObject("b")};
         Set<TestObject> testObjectSet = ImmutableSet.copyOf(testObjectArray);
 
         // map of config value (key) and expected result set.
@@ -342,7 +358,8 @@ public class ConfigurationParametersTest {
         configValues.put(ConfigurationParameters.EMPTY, Collections.<String>emptySet());
 
         Set<String> defaultStrings = ImmutableSet.of("abc", "def", "ghi");
-        Set<TestObject> defaultObjects = ImmutableSet.of(new TestObject("abc"), new TestObject("def"));
+        Set<TestObject> defaultObjects = ImmutableSet.of(new TestObject("abc"),
+            new TestObject("def"));
 
         configValues.forEach((value, expected) -> {
             ConfigurationParameters config;
@@ -357,13 +374,16 @@ public class ConfigurationParametersTest {
             assertEquals(expected, config.getConfigValue("key", ImmutableSet.of()));
 
             assertEquals(expected, config.getConfigValue("key", Collections.emptySet(), Set.class));
-            assertEquals(expected, config.getConfigValue("key", Collections.<String>emptySet(), Set.class));
+            assertEquals(expected,
+                config.getConfigValue("key", Collections.<String>emptySet(), Set.class));
             assertEquals(expected, config.getConfigValue("key", ImmutableSet.of(), Set.class));
 
             // test with default values
             if (!config.containsKey("key")) {
-                assertEquals(defaultStrings, config.getConfigValue("key", defaultStrings, Set.class));
-                assertEquals(defaultObjects, config.getConfigValue("key", defaultObjects, Set.class));
+                assertEquals(defaultStrings,
+                    config.getConfigValue("key", defaultStrings, Set.class));
+                assertEquals(defaultObjects,
+                    config.getConfigValue("key", defaultObjects, Set.class));
                 assertNull(config.getConfigValue("key", null, Set.class));
                 assertEquals(defaultStrings, config.getConfigValue("key", defaultStrings));
                 assertEquals(defaultObjects, config.getConfigValue("key", defaultObjects));
@@ -377,9 +397,11 @@ public class ConfigurationParametersTest {
 
             // non existing kez with default values
             assertEquals(defaultStrings, config.getConfigValue("nonexisting", defaultStrings));
-            assertEquals(defaultStrings, config.getConfigValue("nonexisting", defaultStrings, Set.class));
+            assertEquals(defaultStrings,
+                config.getConfigValue("nonexisting", defaultStrings, Set.class));
             assertEquals(defaultObjects, config.getConfigValue("nonexisting", defaultObjects));
-            assertEquals(defaultObjects, config.getConfigValue("nonexisting", defaultObjects, Set.class));
+            assertEquals(defaultObjects,
+                config.getConfigValue("nonexisting", defaultObjects, Set.class));
         });
     }
 
@@ -398,7 +420,8 @@ public class ConfigurationParametersTest {
     @Test
     public void testInvalidConversionToMillisecondsWithDefault() {
         ConfigurationParameters options = ConfigurationParameters.of("str", "abc");
-        assertSame(ConfigurationParameters.Milliseconds.FOREVER, options.getConfigValue("str", ConfigurationParameters.Milliseconds.FOREVER));
+        assertSame(ConfigurationParameters.Milliseconds.FOREVER,
+            options.getConfigValue("str", ConfigurationParameters.Milliseconds.FOREVER));
     }
 
     @Test
@@ -448,7 +471,8 @@ public class ConfigurationParametersTest {
 
     @Test
     public void testConversionToBoolean() {
-        ConfigurationParameters params = ConfigurationParameters.of("b1", true, "b2", Boolean.FALSE);
+        ConfigurationParameters params = ConfigurationParameters.of("b1", true, "b2",
+            Boolean.FALSE);
         assertTrue(params.getConfigValue("b1", null, Boolean.class));
         assertTrue(params.getConfigValue("b1", null, boolean.class));
 
@@ -464,17 +488,17 @@ public class ConfigurationParametersTest {
 
     @Test
     public void testConversionToStringArray() {
-        String[] stringArray = new String[] {"a", "b"};
+        String[] stringArray = new String[]{"a", "b"};
         Set<String> stringSet = ImmutableSet.copyOf(stringArray);
 
-        TestObject[] testObjectArray = new TestObject[] {new TestObject("a"), new TestObject("b")};
+        TestObject[] testObjectArray = new TestObject[]{new TestObject("a"), new TestObject("b")};
         Set<TestObject> testObjectSet = ImmutableSet.copyOf(testObjectArray);
 
         String[] defaultStrings = new String[]{"abc", "def", "ghi"};
 
         // map of config value (key) and expected result set.
         Map<Object, Object[]> configValues = new HashMap<>();
-        configValues.put("a", new String[] {"a"});
+        configValues.put("a", new String[]{"a"});
         configValues.put(stringArray, stringArray);
         configValues.put(stringSet, stringArray);
         configValues.put(testObjectArray, stringArray);
@@ -494,28 +518,33 @@ public class ConfigurationParametersTest {
             }
 
             assertArrayEquals(expected, config.getConfigValue("key", new String[0]));
-            assertArrayEquals(expected, config.getConfigValue("key", new String[0], String[].class));
+            assertArrayEquals(expected,
+                config.getConfigValue("key", new String[0], String[].class));
 
             // test with default values
             if (!config.containsKey("key")) {
-                assertArrayEquals(defaultStrings, config.getConfigValue("key", defaultStrings, String[].class));
+                assertArrayEquals(defaultStrings,
+                    config.getConfigValue("key", defaultStrings, String[].class));
                 assertArrayEquals(null, config.getConfigValue("key", null, String[].class));
                 assertArrayEquals(defaultStrings, config.getConfigValue("key", defaultStrings));
             } else {
-                assertArrayEquals(expected, config.getConfigValue("key", defaultStrings, String[].class));
+                assertArrayEquals(expected,
+                    config.getConfigValue("key", defaultStrings, String[].class));
                 assertArrayEquals(expected, config.getConfigValue("key", null, String[].class));
                 assertArrayEquals(expected, config.getConfigValue("key", defaultStrings));
             }
 
             // non existing kez with default values
             assertArrayEquals(defaultStrings, config.getConfigValue("nonexisting", defaultStrings));
-            assertArrayEquals(defaultStrings, config.getConfigValue("nonexisting", defaultStrings, String[].class));
+            assertArrayEquals(defaultStrings,
+                config.getConfigValue("nonexisting", defaultStrings, String[].class));
         });
     }
 
     @Test
     public void testNullValue() {
-        ConfigurationParameters options = ConfigurationParameters.of(Collections.singletonMap("test", null));
+        ConfigurationParameters options = ConfigurationParameters.of(
+            Collections.singletonMap("test", null));
 
         assertEquals("value", options.getConfigValue("test", "value"));
         TestObject to = new TestObject("t");
@@ -525,7 +554,8 @@ public class ConfigurationParametersTest {
 
     @Test
     public void testNullValue2() {
-        ConfigurationParameters options = ConfigurationParameters.of(Collections.singletonMap("test", null));
+        ConfigurationParameters options = ConfigurationParameters.of(
+            Collections.singletonMap("test", null));
 
         assertNull(options.getConfigValue("test", null, null));
         assertNull(options.getConfigValue("test", null, TestObject.class));
@@ -552,7 +582,8 @@ public class ConfigurationParametersTest {
 
     @Test
     public void testGetNullValue() {
-        ConfigurationParameters options = ConfigurationParameters.of(Collections.singletonMap("test", null));
+        ConfigurationParameters options = ConfigurationParameters.of(
+            Collections.singletonMap("test", null));
         assertNull(options.get("test"));
     }
 
@@ -600,7 +631,8 @@ public class ConfigurationParametersTest {
 
     @Test(expected = UnsupportedOperationException.class)
     public void testClear() {
-        ConfigurationParameters options = ConfigurationParameters.of(Collections.singletonMap("test", "val"));
+        ConfigurationParameters options = ConfigurationParameters.of(
+            Collections.singletonMap("test", "val"));
         options.clear();
     }
 
@@ -621,7 +653,8 @@ public class ConfigurationParametersTest {
         }
 
         public boolean equals(Object object) {
-            return object == this || object instanceof TestObject && name.equals(((TestObject) object).name);
+            return object == this || object instanceof TestObject && name.equals(
+                ((TestObject) object).name);
         }
     }
 }

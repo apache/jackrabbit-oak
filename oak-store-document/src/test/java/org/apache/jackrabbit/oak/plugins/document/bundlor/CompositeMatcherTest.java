@@ -29,21 +29,21 @@ import static org.junit.Assert.*;
 public class CompositeMatcherTest {
 
     @Test
-    public void empty() throws Exception{
+    public void empty() throws Exception {
         Matcher m = CompositeMatcher.compose(Collections.<Matcher>emptyList());
         assertFalse(m.isMatch());
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void multiWithFailing() throws Exception{
+    public void multiWithFailing() throws Exception {
         CompositeMatcher.compose(asList(new Include("x").createMatcher(), Matcher.NON_MATCHING));
     }
 
     @Test
-    public void multi() throws Exception{
+    public void multi() throws Exception {
         Matcher m = CompositeMatcher.compose(asList(
-                new Include("x/z").createMatcher(),
-                new Include("x/y").createMatcher())
+            new Include("x/z").createMatcher(),
+            new Include("x/y").createMatcher())
         );
 
         Matcher m2 = m.next("x");
@@ -63,11 +63,11 @@ public class CompositeMatcherTest {
     }
 
     @Test
-    public void matchChildren() throws Exception{
+    public void matchChildren() throws Exception {
         //Hypothetical case. First pattern is redundant
         Matcher m = CompositeMatcher.compose(asList(
-                new Include("x/z").createMatcher(),
-                new Include("x/*").createMatcher())
+            new Include("x/z").createMatcher(),
+            new Include("x/*").createMatcher())
         );
 
         assertFalse(m.matchesAllChildren());

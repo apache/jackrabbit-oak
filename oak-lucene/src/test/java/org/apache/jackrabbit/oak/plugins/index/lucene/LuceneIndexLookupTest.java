@@ -19,6 +19,13 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import static javax.jcr.PropertyType.TYPENAME_STRING;
+import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
+import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.newLuceneIndexDefinition;
+import static org.junit.Assert.assertEquals;
+
 import org.apache.jackrabbit.oak.plugins.index.search.IndexLookup;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.query.Filter;
@@ -26,20 +33,14 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
-import static javax.jcr.PropertyType.TYPENAME_STRING;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.newLuceneIndexDefinition;
-import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
-import static org.junit.Assert.assertEquals;
-
 public class LuceneIndexLookupTest {
+
     private NodeState root = INITIAL_CONTENT;
 
     private NodeBuilder builder = root.builder();
 
     @Test
-    public void collectPathOnRootNode() throws Exception{
+    public void collectPathOnRootNode() throws Exception {
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
         newLuceneIndexDefinition(index, "l1", of(TYPENAME_STRING));
         newLuceneIndexDefinition(index, "l2", of(TYPENAME_STRING));
@@ -52,7 +53,7 @@ public class LuceneIndexLookupTest {
     }
 
     @Test
-    public void collectPathOnSubNode() throws Exception{
+    public void collectPathOnSubNode() throws Exception {
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
         newLuceneIndexDefinition(index, "l1", of(TYPENAME_STRING));
 

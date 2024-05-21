@@ -23,7 +23,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
-
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -109,7 +108,8 @@ public class BlobMigrator {
         try {
             NodeState newRoot = nodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
             totalMigratedNodes += migratedNodes;
-            log.info("{} nodes merged succesfully. Nodes migrated in this session: {}", migratedNodes, totalMigratedNodes);
+            log.info("{} nodes merged succesfully. Nodes migrated in this session: {}",
+                migratedNodes, totalMigratedNodes);
             lastCommit = System.currentTimeMillis();
             migratedNodes = 0;
 
@@ -130,7 +130,8 @@ public class BlobMigrator {
             log.info("Migrated nodes count: {}. Merging changes.", migratedNodes);
             return true;
         } else if (migratedNodes > 0 && changesMerged >= MERGE_TIMEOUT) {
-            log.info("Changes have been merged {}s ago. Merging {} nodes.", changesMerged, migratedNodes);
+            log.info("Changes have been merged {}s ago. Merging {} nodes.", changesMerged,
+                migratedNodes);
             return true;
         }
         return false;
@@ -156,7 +157,8 @@ public class BlobMigrator {
         migratedNodes = 0;
     }
 
-    private void migrateNode(NodeBuilder rootBuilder, DepthFirstNodeIterator iterator) throws IOException {
+    private void migrateNode(NodeBuilder rootBuilder, DepthFirstNodeIterator iterator)
+        throws IOException {
         ChildNodeEntry node = iterator.next();
         NodeState state = node.getNodeState();
         for (PropertyState property : state.getProperties()) {

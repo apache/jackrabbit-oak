@@ -19,46 +19,46 @@
 
 package org.apache.jackrabbit.oak.plugins.tika;
 
+import static org.apache.jackrabbit.JcrConstants.JCR_ENCODING;
+import static org.apache.jackrabbit.JcrConstants.JCR_MIMETYPE;
+import static org.apache.jackrabbit.JcrConstants.JCR_PATH;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.guava.common.base.Predicates.notNull;
+
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
-
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVParser;
+import org.apache.commons.csv.CSVRecord;
 import org.apache.jackrabbit.guava.common.base.Charsets;
 import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.collect.FluentIterable;
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.guava.common.primitives.Longs;
-import org.apache.commons.csv.CSVFormat;
-import org.apache.commons.csv.CSVParser;
-import org.apache.commons.csv.CSVRecord;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Predicates.notNull;
-import static org.apache.jackrabbit.JcrConstants.JCR_ENCODING;
-import static org.apache.jackrabbit.JcrConstants.JCR_MIMETYPE;
-import static org.apache.jackrabbit.JcrConstants.JCR_PATH;
-
 class CSVFileBinaryResourceProvider implements BinaryResourceProvider, Closeable {
+
     private static final String BLOB_ID = "blobId";
     private static final String LENGTH = "length";
     static final CSVFormat FORMAT = CSVFormat.DEFAULT
-            .withCommentMarker('#')
-            .withHeader(
-                    BLOB_ID,
-                    LENGTH,
-                    JCR_MIMETYPE,
-                    JCR_ENCODING,
-                    JCR_PATH
-            )
-            .withNullString("") //Empty string are considered as null
-            .withIgnoreSurroundingSpaces()
-            .withSkipHeaderRecord();
+        .withCommentMarker('#')
+        .withHeader(
+            BLOB_ID,
+            LENGTH,
+            JCR_MIMETYPE,
+            JCR_ENCODING,
+            JCR_PATH
+        )
+        .withNullString("") //Empty string are considered as null
+        .withIgnoreSurroundingSpaces()
+        .withSkipHeaderRecord();
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final File dataFile;
     private final BlobStore blobStore;
@@ -75,14 +75,14 @@ class CSVFileBinaryResourceProvider implements BinaryResourceProvider, Closeable
         CSVParser parser = CSVParser.parse(dataFile, Charsets.UTF_8, FORMAT);
         closer.register(parser);
         return FluentIterable.from(parser)
-                .transform(new RecordTransformer())
-                .filter(notNull())
-                .filter(new Predicate<BinaryResource>() {
-                    @Override
-                    public boolean apply(BinaryResource input) {
-                        return PathUtils.isAncestor(path, input.getPath());
-                    }
-                });
+                             .transform(new RecordTransformer())
+                             .filter(notNull())
+                             .filter(new Predicate<BinaryResource>() {
+                                 @Override
+                                 public boolean apply(BinaryResource input) {
+                                     return PathUtils.isAncestor(path, input.getPath());
+                                 }
+                             });
     }
 
     @Override
@@ -102,12 +102,13 @@ class CSVFileBinaryResourceProvider implements BinaryResourceProvider, Closeable
             String length = input.get(LENGTH);
             Long len = length != null ? Longs.tryParse(length) : null;
             if (path == null || blobId == null || mimeType == null) {
-                log.warn("Ignoring invalid record {}. Either of mimeType, blobId or path is null", input);
+                log.warn("Ignoring invalid record {}. Either of mimeType, blobId or path is null",
+                    input);
                 return null;
             }
 
             return new BinaryResource(new BlobStoreByteSource(blobStore, blobId, len),
-                    mimeType, encoding, path, blobId);
+                mimeType, encoding, path, blobId);
         }
     }
 

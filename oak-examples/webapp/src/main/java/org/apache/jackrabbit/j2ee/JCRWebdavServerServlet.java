@@ -19,15 +19,13 @@ package org.apache.jackrabbit.j2ee;
 import javax.jcr.Repository;
 
 /**
- * JCRWebdavServerServlet provides request/response handling for the
- * JCRWebdavServer.
+ * JCRWebdavServerServlet provides request/response handling for the JCRWebdavServer.
  */
 public class JCRWebdavServerServlet extends
-        org.apache.jackrabbit.webdav.jcr.JCRWebdavServerServlet {
+    org.apache.jackrabbit.webdav.jcr.JCRWebdavServerServlet {
 
     /**
-     * Returns the repository available from the servlet context of this
-     * servlet.
+     * Returns the repository available from the servlet context of this servlet.
      */
     protected Repository getRepository() {
         return RepositoryAccessServlet.getRepository(getServletContext());

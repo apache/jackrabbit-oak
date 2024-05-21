@@ -16,18 +16,16 @@
  */
 package org.apache.jackrabbit.oak.http;
 
+import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+
 import java.io.IOException;
 import java.io.PrintWriter;
-
 import javax.servlet.http.HttpServletResponse;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.tika.mime.MediaType;
-
-import static org.apache.jackrabbit.oak.api.Type.STRING;
-import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 
 class TextRepresentation implements Representation {
 
@@ -37,7 +35,7 @@ class TextRepresentation implements Representation {
     }
 
     public void render(Tree tree, HttpServletResponse response)
-            throws IOException {
+        throws IOException {
         PrintWriter writer = startResponse(response);
 
         for (PropertyState property : tree.getProperties()) {
@@ -62,7 +60,7 @@ class TextRepresentation implements Representation {
     }
 
     public void render(PropertyState property, HttpServletResponse response)
-            throws IOException {
+        throws IOException {
         PrintWriter writer = startResponse(response);
         if (property.isArray()) {
             for (String value : property.getValue(Type.STRINGS)) {
@@ -75,7 +73,7 @@ class TextRepresentation implements Representation {
     }
 
     private PrintWriter startResponse(HttpServletResponse response)
-            throws IOException {
+        throws IOException {
         response.setContentType(MediaType.TEXT_PLAIN.toString());
         response.setCharacterEncoding("UTF-8");
         return response.getWriter();

@@ -17,10 +17,8 @@
 package org.apache.jackrabbit.oak.jcr.security.authorization;
 
 import javax.jcr.Node;
-import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.NodeType;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
@@ -64,8 +62,8 @@ public class ReadNodeTypeTest extends AbstractEvaluationTest {
     }
 
     /**
-     * Verify that transient changes to jcr:mixinTypes are reflected in the
-     * API call {@link javax.jcr.Node#getMixinNodeTypes()}.
+     * Verify that transient changes to jcr:mixinTypes are reflected in the API call
+     * {@link javax.jcr.Node#getMixinNodeTypes()}.
      */
     public void testNodeGetMixinTypesWithTransientModifications() throws Exception {
         int noMixins = superuser.getNode(path).getMixinNodeTypes().length;
@@ -74,7 +72,7 @@ public class ReadNodeTypeTest extends AbstractEvaluationTest {
         node.addMixin(NodeType.MIX_CREATED);
 
         NodeType[] mixins = node.getMixinNodeTypes();
-        assertEquals(noMixins+1, mixins.length);
+        assertEquals(noMixins + 1, mixins.length);
     }
 
     /**
@@ -88,11 +86,13 @@ public class ReadNodeTypeTest extends AbstractEvaluationTest {
 
         if (newNode.hasProperty(JcrConstants.JCR_PRIMARYTYPE)) {
             NodeType primaryType = newNode.getPrimaryNodeType();
-            assertEquals(newNode.getProperty(JcrConstants.JCR_PRIMARYTYPE).getString(), primaryType.getName());
+            assertEquals(newNode.getProperty(JcrConstants.JCR_PRIMARYTYPE).getString(),
+                primaryType.getName());
         } else {
             try {
                 newNode.getPrimaryNodeType();
-                fail("Cannot read primary type from transient new node if access to property is not readable.");
+                fail(
+                    "Cannot read primary type from transient new node if access to property is not readable.");
             } catch (RepositoryException e) {
                 assertTrue(e.getMessage().startsWith("Unable to retrieve primary type for Node"));
             }
@@ -155,14 +155,15 @@ public class ReadNodeTypeTest extends AbstractEvaluationTest {
         allow(path, privilegesFromName(PrivilegeConstants.JCR_NODE_TYPE_MANAGEMENT));
         deny(path, privilegesFromName(PrivilegeConstants.REP_READ_PROPERTIES));
 
-        Node newNode = testSession.getNode(path).addNode("child", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        Node newNode = testSession.getNode(path)
+                                  .addNode("child", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
         assertTrue(newNode.isNodeType(NodeTypeConstants.NT_OAK_UNSTRUCTURED));
     }
 
     /**
      * @see <a href="https://issues.apache.org/jira/browse/OAK-3775">OAK-3775</a>
      */
-    public void testIsReferenceable()  throws Exception {
+    public void testIsReferenceable() throws Exception {
         superuser.getNode(path).addMixin(JcrConstants.MIX_REFERENCEABLE);
         superuser.save();
         deny(path, privilegesFromName(PrivilegeConstants.REP_READ_PROPERTIES));
@@ -174,7 +175,7 @@ public class ReadNodeTypeTest extends AbstractEvaluationTest {
     /**
      * @see <a href="https://issues.apache.org/jira/browse/OAK-3775">OAK-3775</a>
      */
-    public void testIsVersionable()  throws Exception {
+    public void testIsVersionable() throws Exception {
         superuser.getNode(path).addMixin(JcrConstants.MIX_VERSIONABLE);
         superuser.save();
         deny(path, privilegesFromName(PrivilegeConstants.REP_READ_PROPERTIES));

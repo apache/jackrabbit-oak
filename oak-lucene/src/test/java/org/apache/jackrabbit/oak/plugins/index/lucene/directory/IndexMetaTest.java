@@ -19,15 +19,15 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
-import java.io.File;
+import static org.junit.Assert.assertEquals;
 
+import java.io.File;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import static org.junit.Assert.*;
-
 public class IndexMetaTest {
+
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
 
@@ -43,7 +43,7 @@ public class IndexMetaTest {
     }
 
     @Test
-    public void mapping() throws Exception{
+    public void mapping() throws Exception {
         IndexMeta m = new IndexMeta("/a/b", 100);
         File f = temporaryFolder.newFile();
         m.addDirectoryMapping(":hidden-data", "hiddendata");

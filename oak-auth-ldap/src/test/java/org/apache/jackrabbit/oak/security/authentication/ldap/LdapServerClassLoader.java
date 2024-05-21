@@ -17,13 +17,8 @@
 
 package org.apache.jackrabbit.oak.security.authentication.ldap;
 
-import org.apache.jackrabbit.guava.common.io.ByteStreams;
-
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.core.Appender;
-
-import org.apache.directory.server.ldap.LdapServer;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Constructor;
@@ -34,45 +29,52 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.security.ProtectionDomain;
 import java.util.Collection;
+import org.apache.directory.server.ldap.LdapServer;
+import org.apache.jackrabbit.guava.common.io.ByteStreams;
 
 /**
  * The LDAP server we use for testing relies on an old, incompatible version of the library
- * <code>org.apache.directory.api.api-all</code>. Therefore we have to run it in it's own classloader, because the two
- * incompatible versions of the library must not live on the same classpath.
+ * <code>org.apache.directory.api.api-all</code>. Therefore we have to run it in it's own
+ * classloader, because the two incompatible versions of the library must not live on the same
+ * classpath.
  */
 public class LdapServerClassLoader extends URLClassLoader {
 
     private final byte[] serverClassResource;
     private final byte[] serverBaseClassResource;
 
-    private LdapServerClassLoader(URL[] urls, Class serverClass, Class serverBaseClass) throws IOException {
+    private LdapServerClassLoader(URL[] urls, Class serverClass, Class serverBaseClass)
+        throws IOException {
         super(urls, ClassLoader.getSystemClassLoader().getParent());
         this.serverClassResource = ByteStreams.toByteArray(
-                serverClass.getResourceAsStream("/".concat(serverClass.getCanonicalName()).replace('.', '/').concat(".class")));
+            serverClass.getResourceAsStream(
+                "/".concat(serverClass.getCanonicalName()).replace('.', '/').concat(".class")));
         this.serverBaseClassResource = ByteStreams.toByteArray(
-                serverBaseClass.getResourceAsStream("/".concat(serverBaseClass.getCanonicalName()).replace('.', '/').concat(".class")));
+            serverBaseClass.getResourceAsStream(
+                "/".concat(serverBaseClass.getCanonicalName()).replace('.', '/').concat(".class")));
     }
 
-    public static LdapServerClassLoader createServerClassLoader() throws URISyntaxException, ClassNotFoundException, IOException {
+    public static LdapServerClassLoader createServerClassLoader()
+        throws URISyntaxException, ClassNotFoundException, IOException {
         ClassLoader appClassLoader = LdapServerClassLoader.class.getClassLoader();
         String apacheDsUrl = appClassLoader.getResource(
-                LdapServer.class.getCanonicalName().replace(".", "/").concat(".class"))
-                .toURI()
-                .getRawSchemeSpecificPart();
+                                               LdapServer.class.getCanonicalName().replace(".", "/").concat(".class"))
+                                           .toURI()
+                                           .getRawSchemeSpecificPart();
         apacheDsUrl = apacheDsUrl.substring(0, apacheDsUrl.lastIndexOf('!'));
 
         // also add URL classloader for Logback Classic (SLF4J Impl) ...
         String logbackClassicUrl = appClassLoader.getResource(
-                Logger.class.getCanonicalName().replace(".", "/").concat(".class"))
-                .toURI()
-                .getRawSchemeSpecificPart();
+                                                     Logger.class.getCanonicalName().replace(".", "/").concat(".class"))
+                                                 .toURI()
+                                                 .getRawSchemeSpecificPart();
         logbackClassicUrl = logbackClassicUrl.substring(0, logbackClassicUrl.lastIndexOf('!'));
 
         // ... its transitive dependency Logback Classic ...
         String logbackCoreUrl = appClassLoader.getResource(
-                Appender.class.getCanonicalName().replace(".", "/").concat(".class"))
-                .toURI()
-                .getRawSchemeSpecificPart();
+                                                  Appender.class.getCanonicalName().replace(".", "/").concat(".class"))
+                                              .toURI()
+                                              .getRawSchemeSpecificPart();
         logbackCoreUrl = logbackCoreUrl.substring(0, logbackCoreUrl.lastIndexOf('!'));
 
         // ... and the configuration folder containing the logback-test.xml
@@ -81,29 +83,31 @@ public class LdapServerClassLoader extends URLClassLoader {
 
         Class<?> sc = appClassLoader.loadClass(InternalLdapServer.class.getCanonicalName());
         Class<?> sbc = appClassLoader.loadClass(AbstractServer.class.getCanonicalName());
-        return new LdapServerClassLoader(new URL[] { 
-                new URI(apacheDsUrl).toURL(),  
-                new URI(logbackClassicUrl).toURL(), 
-                new URI(logbackCoreUrl).toURL(),
-                new URI(configFolderUrl).toURL() }, 
-                sc, sbc);
+        return new LdapServerClassLoader(new URL[]{
+            new URI(apacheDsUrl).toURL(),
+            new URI(logbackClassicUrl).toURL(),
+            new URI(logbackCoreUrl).toURL(),
+            new URI(configFolderUrl).toURL()},
+            sc, sbc);
     }
 
     public Proxy createAndSetupServer() throws Exception {
         return createAndSetupServer(false);
     }
-    
+
     public Proxy createAndSetupServer(boolean useSSL) throws Exception {
         final Proxy proxy = new Proxy();
-        final Exception[] ex = new Exception[] { null };
+        final Exception[] ex = new Exception[]{null};
         Runnable r = () -> {
             try {
                 proxy.serverClass = loadClass(InternalLdapServer.class.getCanonicalName());
                 Constructor<?> constructor = proxy.serverClass.getConstructor(Boolean.TYPE);
                 proxy.server = constructor.newInstance(useSSL);
                 proxy.serverClass.getMethod("setUp", new Class[0]).invoke(proxy.server);
-                proxy.port = (int) proxy.serverClass.getMethod("getPort", new Class[0]).invoke(proxy.server);
-            } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+                proxy.port = (int) proxy.serverClass.getMethod("getPort", new Class[0])
+                                                    .invoke(proxy.server);
+            } catch (ClassNotFoundException | InstantiationException | IllegalAccessException |
+                     InvocationTargetException | NoSuchMethodException e) {
                 ex[0] = e;
             }
         };
@@ -120,10 +124,12 @@ public class LdapServerClassLoader extends URLClassLoader {
     @Override
     protected Class<?> findClass(String name) throws ClassNotFoundException {
         if (InternalLdapServer.class.getCanonicalName().equals(name)) {
-            return defineClass(name, serverClassResource, 0, serverClassResource.length, (ProtectionDomain) null);
+            return defineClass(name, serverClassResource, 0, serverClassResource.length,
+                (ProtectionDomain) null);
         }
         if (AbstractServer.class.getCanonicalName().equals(name)) {
-            return defineClass(name, serverBaseClassResource, 0, serverBaseClassResource.length, (ProtectionDomain) null);
+            return defineClass(name, serverBaseClassResource, 0, serverBaseClassResource.length,
+                (ProtectionDomain) null);
         }
         return super.findClass(name);
     }
@@ -139,20 +145,24 @@ public class LdapServerClassLoader extends URLClassLoader {
         public int port;
         public String host = "127.0.0.1";
 
-        public void tearDown() throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+        public void tearDown()
+            throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
             serverClass.getMethod("tearDown", new Class[0]).invoke(server);
         }
 
-        public void setMaxSizeLimit(long limit) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
-            serverClass.getMethod("setMaxSizeLimit", new Class[] { Long.TYPE }).invoke(server, limit);
+        public void setMaxSizeLimit(long limit)
+            throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+            serverClass.getMethod("setMaxSizeLimit", new Class[]{Long.TYPE}).invoke(server, limit);
         }
 
         public void loadLdif(InputStream in) throws Exception {
-            final Exception[] ex = new Exception[] { null };
+            final Exception[] ex = new Exception[]{null};
             Runnable r = () -> {
                 try {
-                    serverClass.getMethod("loadLdif", new Class[] {InputStream.class}).invoke(server, in);
-                } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+                    serverClass.getMethod("loadLdif", new Class[]{InputStream.class})
+                               .invoke(server, in);
+                } catch (IllegalAccessException | InvocationTargetException |
+                         NoSuchMethodException e) {
                     ex[0] = e;
                 }
 
@@ -166,24 +176,33 @@ public class LdapServerClassLoader extends URLClassLoader {
             }
         }
 
-        public String addUser(String firstName, String lastName, String userId, String password) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
-            return (String) serverClass.getMethod("addUser", new Class[] {String.class, String.class, String.class, String.class}).invoke(server, firstName, lastName, userId, password);
+        public String addUser(String firstName, String lastName, String userId, String password)
+            throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+            return (String) serverClass.getMethod("addUser",
+                                           new Class[]{String.class, String.class, String.class, String.class})
+                                       .invoke(server, firstName, lastName, userId, password);
         }
 
-        public String addGroup(String name, String member) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
-            return (String) serverClass.getMethod("addGroup", new Class[] {String.class, String.class}).invoke(server, name, member);
+        public String addGroup(String name, String member)
+            throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+            return (String) serverClass.getMethod("addGroup",
+                new Class[]{String.class, String.class}).invoke(server, name, member);
         }
 
-        public void addMember(String groupDN, String memberDN) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
-            serverClass.getMethod("addMember", new Class[] {String.class, String.class}).invoke(server, groupDN, memberDN);
+        public void addMember(String groupDN, String memberDN)
+            throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+            serverClass.getMethod("addMember", new Class[]{String.class, String.class})
+                       .invoke(server, groupDN, memberDN);
         }
 
         public void addMembers(String name, Collection<String> members) throws Exception {
-            final Exception[] ex = new Exception[] { null };
+            final Exception[] ex = new Exception[]{null};
             Runnable r = () -> {
                 try {
-                    serverClass.getMethod("addMembers", new Class[] {String.class, Collection.class}).invoke(server, name, members);
-                } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+                    serverClass.getMethod("addMembers", new Class[]{String.class, Collection.class})
+                               .invoke(server, name, members);
+                } catch (IllegalAccessException | InvocationTargetException |
+                         NoSuchMethodException e) {
                     ex[0] = e;
                 }
 

@@ -50,7 +50,7 @@ public class StringData {
     }
 
     public RecordIdData getRecordId() {
-         return recordId;
+        return recordId;
     }
 
     public int getLength() {

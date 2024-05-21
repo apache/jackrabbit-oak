@@ -17,17 +17,15 @@
 
 package org.apache.jackrabbit.oak.segment.standby.server;
 
-import java.net.SocketAddress;
-
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
+import java.net.SocketAddress;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * A handler that filters out incoming connections based on the address of the
- * client. This handler immediately closes the incoming connection if an
- * unwanted client is detected.
+ * A handler that filters out incoming connections based on the address of the client. This handler
+ * immediately closes the incoming connection if an unwanted client is detected.
  */
 class ClientFilterHandler extends ChannelInboundHandlerAdapter {
 
@@ -38,8 +36,8 @@ class ClientFilterHandler extends ChannelInboundHandlerAdapter {
     /**
      * Create a new handler based on the provided filtering strategy.
      *
-     * @param filter an instance of {@link ClientFilter} representing the
-     *               filtering strategy for this handler.
+     * @param filter an instance of {@link ClientFilter} representing the filtering strategy for
+     *               this handler.
      */
     ClientFilterHandler(ClientFilter filter) {
         this.filter = filter;

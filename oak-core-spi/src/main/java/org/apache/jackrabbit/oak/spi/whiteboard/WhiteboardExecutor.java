@@ -22,13 +22,13 @@ import java.util.concurrent.Executor;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Dynamic {@link Executor} based on the available whiteboard services.
- * The {@link #execute(Runnable)} method passes the given command to the
- * first available executor service. Alternatively the command is run
- * in the calling thread if no executor services are available.
+ * Dynamic {@link Executor} based on the available whiteboard services. The
+ * {@link #execute(Runnable)} method passes the given command to the first available executor
+ * service. Alternatively the command is run in the calling thread if no executor services are
+ * available.
  */
 public class WhiteboardExecutor extends AbstractServiceTracker<Executor>
-        implements Executor {
+    implements Executor {
 
     public WhiteboardExecutor() {
         super(Executor.class);

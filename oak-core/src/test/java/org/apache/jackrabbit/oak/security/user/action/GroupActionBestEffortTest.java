@@ -16,15 +16,14 @@
  */
 package org.apache.jackrabbit.oak.security.user.action;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
-import org.junit.Test;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 import java.util.Collections;
 import java.util.Set;
-
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
+import org.junit.Test;
 
 public class GroupActionBestEffortTest extends GroupActionTest {
 

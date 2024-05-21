@@ -48,17 +48,17 @@ public class CrossMountReferenceValidatorTest {
     @Before
     public void initializeHook() {
         MountInfoProvider mip = Mounts.newBuilder()
-                .mount("foo", "/a")
-                .build();
+                                      .mount("foo", "/a")
+                                      .build();
         hook = new EditorHook(new CompositeEditorProvider(
-                new IndexUpdateProvider(new CompositeIndexEditorProvider(
-                        new PropertyIndexEditorProvider().with(mip),
-                        new ReferenceEditorProvider().with(mip))),
-                        new CrossMountReferenceValidatorProvider().with(mip).withFailOnDetection(true)));
+            new IndexUpdateProvider(new CompositeIndexEditorProvider(
+                new PropertyIndexEditorProvider().with(mip),
+                new ReferenceEditorProvider().with(mip))),
+            new CrossMountReferenceValidatorProvider().with(mip).withFailOnDetection(true)));
     }
 
     @Test
-    public void globalToPrivateReference() throws Exception{
+    public void globalToPrivateReference() throws Exception {
         NodeState root = EMPTY_NODE;
 
         NodeBuilder builder = root.builder();
@@ -70,12 +70,13 @@ public class CrossMountReferenceValidatorTest {
         NodeState after = builder.getNodeState();
 
         thrown.expect(CommitFailedException.class);
-        thrown.expectMessage("OakIntegrity0001: Unable to reference the node [/a] from node [/b]. Referencing across the mounts is not allowed.");
+        thrown.expectMessage(
+            "OakIntegrity0001: Unable to reference the node [/a] from node [/b]. Referencing across the mounts is not allowed.");
         hook.processCommit(before, after, CommitInfo.EMPTY);
     }
 
     @Test
-    public void privateToGlobalReference() throws Exception{
+    public void privateToGlobalReference() throws Exception {
         NodeState root = EMPTY_NODE;
 
         NodeBuilder builder = root.builder();
@@ -87,7 +88,8 @@ public class CrossMountReferenceValidatorTest {
         NodeState after = builder.getNodeState();
 
         thrown.expect(CommitFailedException.class);
-        thrown.expectMessage("OakIntegrity0001: Unable to reference the node [/b] from node [/a]. Referencing across the mounts is not allowed.");
+        thrown.expectMessage(
+            "OakIntegrity0001: Unable to reference the node [/b] from node [/a]. Referencing across the mounts is not allowed.");
         hook.processCommit(before, after, CommitInfo.EMPTY);
     }
 }

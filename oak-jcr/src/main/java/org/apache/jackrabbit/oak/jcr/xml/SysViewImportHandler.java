@@ -20,12 +20,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
-
 import javax.jcr.InvalidSerializedDataException;
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
-
 import org.apache.jackrabbit.oak.jcr.session.SessionContext;
 import org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants;
 import org.apache.jackrabbit.oak.spi.xml.Importer;
@@ -41,10 +39,9 @@ import org.xml.sax.SAXException;
 class SysViewImportHandler extends TargetImportHandler {
 
     /**
-     * stack of ImportState instances; an instance is pushed onto the stack
-     * in the startElement method every time a sv:node element is encountered;
-     * the same instance is popped from the stack in the endElement method
-     * when the corresponding sv:node element is encountered.
+     * stack of ImportState instances; an instance is pushed onto the stack in the startElement
+     * method every time a sv:node element is encountered; the same instance is popped from the
+     * stack in the endElement method when the corresponding sv:node element is encountered.
      */
     private final Stack<ImportState> stack = new Stack<ImportState>();
     private final ArrayList<BufferedStringValue> currentPropValues = new ArrayList<BufferedStringValue>();
@@ -61,7 +58,7 @@ class SysViewImportHandler extends TargetImportHandler {
     /**
      * Constructs a new {@code SysViewImportHandler}.
      *
-     * @param importer     the underlying importer
+     * @param importer       the underlying importer
      * @param sessionContext the session context
      */
     SysViewImportHandler(Importer importer, SessionContext sessionContext) {
@@ -69,7 +66,7 @@ class SysViewImportHandler extends TargetImportHandler {
     }
 
     private void processNode(ImportState state, boolean start, boolean end)
-            throws SAXException {
+        throws SAXException {
         if (!start && !end) {
             return;
         }
@@ -97,8 +94,8 @@ class SysViewImportHandler extends TargetImportHandler {
 
     @Override
     public void startElement(String namespaceURI, String localName,
-                             String qName, Attributes atts)
-            throws SAXException {
+        String qName, Attributes atts)
+        throws SAXException {
         // check element name
         if (namespaceURI.equals(NamespaceConstants.NAMESPACE_SV) && "node".equals(localName)) {
             // sv:node element
@@ -107,7 +104,7 @@ class SysViewImportHandler extends TargetImportHandler {
             String svName = getAttribute(atts, NamespaceConstants.NAMESPACE_SV, "name");
             if (svName == null) {
                 throw new SAXException(new InvalidSerializedDataException(
-                        "missing mandatory sv:name attribute of element sv:node"));
+                    "missing mandatory sv:name attribute of element sv:node"));
             }
 
             if (!stack.isEmpty()) {
@@ -125,10 +122,12 @@ class SysViewImportHandler extends TargetImportHandler {
             try {
                 state.nodeName = new NameInfo(svName).getRepoQualifiedName();
             } catch (RepositoryException e) {
-                throw new SAXException(new InvalidSerializedDataException("illegal node name: " + svName, e));
+                throw new SAXException(
+                    new InvalidSerializedDataException("illegal node name: " + svName, e));
             }
             stack.push(state);
-        } else if (namespaceURI.equals(NamespaceConstants.NAMESPACE_SV) && "property".equals(localName)) {
+        } else if (namespaceURI.equals(NamespaceConstants.NAMESPACE_SV) && "property".equals(
+            localName)) {
             // sv:property element
 
             // reset temp fields
@@ -138,24 +137,25 @@ class SysViewImportHandler extends TargetImportHandler {
             String svName = getAttribute(atts, NamespaceConstants.NAMESPACE_SV, "name");
             if (svName == null) {
                 throw new SAXException(new InvalidSerializedDataException(
-                        "missing mandatory sv:name attribute of element sv:property"));
+                    "missing mandatory sv:name attribute of element sv:property"));
             }
             try {
                 currentPropName = new NameInfo(svName);
             } catch (RepositoryException e) {
-                throw new SAXException(new InvalidSerializedDataException("illegal property name: " + svName, e));
+                throw new SAXException(
+                    new InvalidSerializedDataException("illegal property name: " + svName, e));
             }
             // property type (sv:type attribute)
             String type = getAttribute(atts, NamespaceConstants.NAMESPACE_SV, "type");
             if (type == null) {
                 throw new SAXException(new InvalidSerializedDataException(
-                        "missing mandatory sv:type attribute of element sv:property"));
+                    "missing mandatory sv:type attribute of element sv:property"));
             }
             try {
                 currentPropType = PropertyType.valueFromName(type);
             } catch (IllegalArgumentException e) {
                 throw new SAXException(new InvalidSerializedDataException(
-                        "Unknown property type: " + type, e));
+                    "Unknown property type: " + type, e));
             }
             // 'multi-value' hint (sv:multiple attribute)
             String multiple = getAttribute(atts, NamespaceConstants.NAMESPACE_SV, "multiple");
@@ -164,37 +164,39 @@ class SysViewImportHandler extends TargetImportHandler {
             } else {
                 currentPropMultipleStatus = PropInfo.MultipleStatus.UNKNOWN;
             }
-        } else if (namespaceURI.equals(NamespaceConstants.NAMESPACE_SV) && "value".equals(localName)) {
+        } else if (namespaceURI.equals(NamespaceConstants.NAMESPACE_SV) && "value".equals(
+            localName)) {
             // sv:value element
             boolean base64 =
-                    currentPropType == PropertyType.BINARY
+                currentPropType == PropertyType.BINARY
                     || "xs:base64Binary".equals(atts.getValue("xsi:type"));
             currentPropValue = new BufferedStringValue(
-                    sessionContext.getValueFactory(), currentNamePathMapper(),
-                    base64);
+                sessionContext.getValueFactory(), currentNamePathMapper(),
+                base64);
         } else {
             throw new SAXException(new InvalidSerializedDataException(
-                    "Unexpected element in system view xml document: {" + namespaceURI + '}' + localName));
+                "Unexpected element in system view xml document: {" + namespaceURI + '}'
+                    + localName));
         }
     }
 
     @Override
     public void characters(char[] ch, int start, int length)
-            throws SAXException {
+        throws SAXException {
         if (currentPropValue != null) {
             // property value (character data of sv:value element)
             try {
                 currentPropValue.append(ch, start, length);
             } catch (IOException ioe) {
                 throw new SAXException("error while processing property value",
-                        ioe);
+                    ioe);
             }
         }
     }
 
     @Override
     public void ignorableWhitespace(char[] ch, int start, int length)
-            throws SAXException {
+        throws SAXException {
         if (currentPropValue != null) {
             // property value
 
@@ -204,14 +206,14 @@ class SysViewImportHandler extends TargetImportHandler {
                 currentPropValue.append(ch, start, length);
             } catch (IOException ioe) {
                 throw new SAXException("error while processing property value",
-                        ioe);
+                    ioe);
             }
         }
     }
 
     @Override
     public void endElement(String namespaceURI, String localName, String qName)
-            throws SAXException {
+        throws SAXException {
         // check element name
         ImportState state = stack.peek();
         if (namespaceURI.equals(NamespaceConstants.NAMESPACE_SV) && "node".equals(localName)) {
@@ -226,7 +228,8 @@ class SysViewImportHandler extends TargetImportHandler {
             }
             // pop current state from stack
             stack.pop();
-        } else if (namespaceURI.equals(NamespaceConstants.NAMESPACE_SV) && "property".equals(localName)) {
+        } else if (namespaceURI.equals(NamespaceConstants.NAMESPACE_SV) && "property".equals(
+            localName)) {
             // sv:property element
 
             // check if all system properties (jcr:primaryType, jcr:uuid etc.)
@@ -238,9 +241,11 @@ class SysViewImportHandler extends TargetImportHandler {
                     s = val.retrieve();
                     state.nodeTypeName = new NameInfo(s).getRepoQualifiedName();
                 } catch (IOException e) {
-                    throw new SAXException(new InvalidSerializedDataException("illegal node type name: " + s, e));
+                    throw new SAXException(
+                        new InvalidSerializedDataException("illegal node type name: " + s, e));
                 } catch (RepositoryException e) {
-                    throw new SAXException(new InvalidSerializedDataException("illegal node type name: " + s, e));
+                    throw new SAXException(
+                        new InvalidSerializedDataException("illegal node type name: " + s, e));
                 }
             } else if (isSystemProperty("mixinTypes")) {
                 if (state.mixinNames == null) {
@@ -254,7 +259,8 @@ class SysViewImportHandler extends TargetImportHandler {
                     } catch (IOException ioe) {
                         throw new SAXException("error while retrieving value", ioe);
                     } catch (RepositoryException e) {
-                        throw new SAXException(new InvalidSerializedDataException("illegal mixin type name: " + s, e));
+                        throw new SAXException(
+                            new InvalidSerializedDataException("illegal mixin type name: " + s, e));
                     }
                 }
             } else if (isSystemProperty("uuid")) {
@@ -266,32 +272,34 @@ class SysViewImportHandler extends TargetImportHandler {
                 }
             } else {
                 if (currentPropMultipleStatus == PropInfo.MultipleStatus.UNKNOWN
-                        && currentPropValues.size() != 1) {
+                    && currentPropValues.size() != 1) {
                     currentPropMultipleStatus = PropInfo.MultipleStatus.MULTIPLE;
                 }
                 PropInfo prop = new PropInfo(
-                        currentPropName == null ? null : currentPropName.getRepoQualifiedName(),
-                        currentPropType,
-                        currentPropValues,
-                        currentPropMultipleStatus);
+                    currentPropName == null ? null : currentPropName.getRepoQualifiedName(),
+                    currentPropType,
+                    currentPropValues,
+                    currentPropMultipleStatus);
                 state.props.add(prop);
             }
             // reset temp fields
             currentPropValues.clear();
-        } else if (namespaceURI.equals(NamespaceConstants.NAMESPACE_SV) && "value".equals(localName)) {
+        } else if (namespaceURI.equals(NamespaceConstants.NAMESPACE_SV) && "value".equals(
+            localName)) {
             // sv:value element
             currentPropValues.add(currentPropValue);
             // reset temp fields
             currentPropValue = null;
         } else {
-            throw new SAXException(new InvalidSerializedDataException("invalid element in system view xml document: " + localName));
+            throw new SAXException(new InvalidSerializedDataException(
+                "invalid element in system view xml document: " + localName));
         }
     }
 
     private boolean isSystemProperty(@NotNull String localName) {
         return currentPropName != null
-                && currentPropName.getNamespaceUri().equals(NamespaceRegistry.NAMESPACE_JCR)
-                && currentPropName.getLocalName().equals(localName);
+            && currentPropName.getNamespaceUri().equals(NamespaceRegistry.NAMESPACE_JCR)
+            && currentPropName.getLocalName().equals(localName);
     }
 
     //--------------------------------------------------------< inner classes >
@@ -300,6 +308,7 @@ class SysViewImportHandler extends TargetImportHandler {
      * The state of parsing the XML stream.
      */
     static class ImportState {
+
         /**
          * name of current node
          */
@@ -333,13 +342,13 @@ class SysViewImportHandler extends TargetImportHandler {
     /**
      * Returns the value of the named XML attribute.
      *
-     * @param attributes set of XML attributes
+     * @param attributes   set of XML attributes
      * @param namespaceUri attribute namespace
-     * @param localName attribute local name
-     * @return attribute value,
-     *         or {@code null} if the named attribute is not found
+     * @param localName    attribute local name
+     * @return attribute value, or {@code null} if the named attribute is not found
      */
-    private static String getAttribute(Attributes attributes, String namespaceUri, String localName) {
+    private static String getAttribute(Attributes attributes, String namespaceUri,
+        String localName) {
         return attributes.getValue(namespaceUri, localName);
     }
 

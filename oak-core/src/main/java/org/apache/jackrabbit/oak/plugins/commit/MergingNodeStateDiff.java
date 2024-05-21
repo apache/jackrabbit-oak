@@ -32,7 +32,6 @@ import static org.apache.jackrabbit.oak.spi.state.ConflictType.DELETE_DELETED_PR
 
 import java.util.Map;
 import java.util.Set;
-
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyState;

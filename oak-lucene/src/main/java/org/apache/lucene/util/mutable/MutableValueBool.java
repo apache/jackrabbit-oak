@@ -25,48 +25,53 @@
 package org.apache.lucene.util.mutable;
 
 /**
- * {@link MutableValue} implementation of type 
+ * {@link MutableValue} implementation of type
  * <code>boolean</code>.
  */
 public class MutableValueBool extends MutableValue {
-  public boolean value;
 
-  @Override
-  public Object toObject() {
-    return exists ? value : null;
-  }
+    public boolean value;
 
-  @Override
-  public void copy(MutableValue source) {
-    MutableValueBool s = (MutableValueBool) source;
-    value = s.value;
-    exists = s.exists;
-  }
+    @Override
+    public Object toObject() {
+        return exists ? value : null;
+    }
 
-  @Override
-  public MutableValue duplicate() {
-    MutableValueBool v = new MutableValueBool();
-    v.value = this.value;
-    v.exists = this.exists;
-    return v;
-  }
+    @Override
+    public void copy(MutableValue source) {
+        MutableValueBool s = (MutableValueBool) source;
+        value = s.value;
+        exists = s.exists;
+    }
 
-  @Override
-  public boolean equalsSameType(Object other) {
-    MutableValueBool b = (MutableValueBool)other;
-    return value == b.value && exists == b.exists;
-  }
+    @Override
+    public MutableValue duplicate() {
+        MutableValueBool v = new MutableValueBool();
+        v.value = this.value;
+        v.exists = this.exists;
+        return v;
+    }
 
-  @Override
-  public int compareSameType(Object other) {
-    MutableValueBool b = (MutableValueBool)other;
-    if (value != b.value) return value ? 1 : 0;
-    if (exists == b.exists) return 0;
-    return exists ? 1 : -1;
-  }
+    @Override
+    public boolean equalsSameType(Object other) {
+        MutableValueBool b = (MutableValueBool) other;
+        return value == b.value && exists == b.exists;
+    }
 
-  @Override
-  public int hashCode() {
-    return value ? 2 : (exists ? 1 : 0);
-  }
+    @Override
+    public int compareSameType(Object other) {
+        MutableValueBool b = (MutableValueBool) other;
+        if (value != b.value) {
+            return value ? 1 : 0;
+        }
+        if (exists == b.exists) {
+            return 0;
+        }
+        return exists ? 1 : -1;
+    }
+
+    @Override
+    public int hashCode() {
+        return value ? 2 : (exists ? 1 : 0);
+    }
 }

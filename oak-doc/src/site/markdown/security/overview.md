@@ -20,79 +20,79 @@ The Oak Security Layer
 
 ### General
 
- * [Introduction to Oak Security](introduction.html)
- * [Security Reports](reports.html)
+* [Introduction to Oak Security](introduction.html)
+* [Security Reports](reports.html)
 
 ### Authentication
 
- * [Overview](authentication.html)
- * [Differences wrt Jackrabbit 2.x](authentication/differences.html)
- * [Authentication : Implementation Details](authentication/default.html)
- * [Pre-Authentication](authentication/preauthentication.html)
- 
+* [Overview](authentication.html)
+* [Differences wrt Jackrabbit 2.x](authentication/differences.html)
+* [Authentication : Implementation Details](authentication/default.html)
+* [Pre-Authentication](authentication/preauthentication.html)
+
 #### Extensions
- 
- * [Token Authentication and Token Management](authentication/tokenmanagement.html)
- * [External Authentication](authentication/externalloginmodule.html)
-     * [User and Group Synchronization](authentication/usersync.html)
-     * [Identity Management](authentication/identitymanagement.html)
-     * [LDAP Integration](authentication/ldap.html)
-     * [Best Practices](authentication/external/bestpractices.html)
+
+* [Token Authentication and Token Management](authentication/tokenmanagement.html)
+* [External Authentication](authentication/externalloginmodule.html)
+    * [User and Group Synchronization](authentication/usersync.html)
+    * [Identity Management](authentication/identitymanagement.html)
+    * [LDAP Integration](authentication/ldap.html)
+    * [Best Practices](authentication/external/bestpractices.html)
 
 ### Authorization
 
- * [Overview](authorization.html)
-     * [Access Control Management](accesscontrol.html)
-     * [Permission Evaluation](permission.html)
-     * [Combining Multiple Authorization Models](authorization/composite.html)
-     * [Best Practices](authorization/bestpractices.html)
-  
+* [Overview](authorization.html)
+    * [Access Control Management](accesscontrol.html)
+    * [Permission Evaluation](permission.html)
+    * [Combining Multiple Authorization Models](authorization/composite.html)
+    * [Best Practices](authorization/bestpractices.html)
+
 #### Access Control Management
 
- * [Overview](accesscontrol.html)
- * [Differences wrt Jackrabbit 2.x](accesscontrol/differences.html)
- * [Access Control Management : The Default Implementation](accesscontrol/default.html)
- * [Using the API](accesscontrol/editing.html)
+* [Overview](accesscontrol.html)
+* [Differences wrt Jackrabbit 2.x](accesscontrol/differences.html)
+* [Access Control Management : The Default Implementation](accesscontrol/default.html)
+* [Using the API](accesscontrol/editing.html)
 
 #### Permissions
 
- * [Overview](permission.html)
+* [Overview](permission.html)
     * [Permissions vs Privileges](permission/permissionsandprivileges.html)
- * [Differences wrt Jackrabbit 2.x](permission/differences.html)
- * [Permissions : The Default Implementation](permission/default.html)
+* [Differences wrt Jackrabbit 2.x](permission/differences.html)
+* [Permissions : The Default Implementation](permission/default.html)
     * [Permission Evaluation in Detail](permission/evaluation.html)
-    
+
 #### Privilege Management
 
- * [Overview](privilege.html)
- * [Differences wrt Jackrabbit 2.x](privilege/differences.html)
- * [Privilege Management : The Default Implementation](privilege/default.html)
- * Mapping Privileges to Items and API Calls
+* [Overview](privilege.html)
+* [Differences wrt Jackrabbit 2.x](privilege/differences.html)
+* [Privilege Management : The Default Implementation](privilege/default.html)
+* Mapping Privileges to Items and API Calls
     * [Mapping Privileges to Items](privilege/mappingtoitems.html)
     * [Mapping API Calls to Privileges](privilege/mappingtoprivileges.html)
 
 #### Extensions
 
- * [Restriction Management](authorization/restriction.html)
- * [Managing Access with Closed User Groups (CUG)](authorization/cug.html)
- * [Managing Access by Principal](authorization/principalbased.html)
+* [Restriction Management](authorization/restriction.html)
+* [Managing Access with Closed User Groups (CUG)](authorization/cug.html)
+* [Managing Access by Principal](authorization/principalbased.html)
 
 ### Principal Management
 
- * [Overview](principal.html)
- * [Differences wrt Jackrabbit 2.x](principal/differences.html)
- * [Principal Management : The Default Implementation](principal.html#default_implementation)
+* [Overview](principal.html)
+* [Differences wrt Jackrabbit 2.x](principal/differences.html)
+* [Principal Management : The Default Implementation](principal.html#default_implementation)
 
 ### User Management
 
- * [Overview](user.html)
- * [Differences wrt Jackrabbit 2.x](user/differences.html)
- * [User Management : The Default Implementation](user/default.html)
+* [Overview](user.html)
+* [Differences wrt Jackrabbit 2.x](user/differences.html)
+* [User Management : The Default Implementation](user/default.html)
     * [Group Membership](user/membership.html)
     * [Authorizable Actions](user/authorizableaction.html)
     * [Group Actions](user/groupaction.html)
     * [User Actions](user/useraction.html)
     * [Authorizable Node Name Generation](user/authorizablenodename.html)
     * [Password Expiry and Force Initial Password Change](user/expiry.html)
-    * [Password History](user/history.html) 
- * [Searching Users and Groups](user/query.html)
+    * [Password History](user/history.html)
+* [Searching Users and Groups](user/query.html)

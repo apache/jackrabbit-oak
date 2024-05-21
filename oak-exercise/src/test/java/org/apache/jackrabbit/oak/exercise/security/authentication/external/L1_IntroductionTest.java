@@ -32,7 +32,6 @@ import org.apache.jackrabbit.oak.AbstractSecurityTest;
  * Exercises:
  *
  * - {@link #TODO}
- *
  */
 public class L1_IntroductionTest extends AbstractSecurityTest {
 

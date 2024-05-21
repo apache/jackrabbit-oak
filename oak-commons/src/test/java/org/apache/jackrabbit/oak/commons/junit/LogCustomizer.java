@@ -20,47 +20,44 @@ package org.apache.jackrabbit.oak.commons.junit;
 
 import static org.slf4j.Logger.ROOT_LOGGER_NAME;
 
-import java.util.List;
-
-import org.slf4j.LoggerFactory;
-
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.Appender;
 import ch.qos.logback.core.AppenderBase;
-
+import java.util.List;
 import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.slf4j.LoggerFactory;
 
 /**
- * The LogCustomizer allows to enable log level for a specific logger and/or
- * filter the received logs this logger on a dedicated log level
- * 
+ * The LogCustomizer allows to enable log level for a specific logger and/or filter the received
+ * logs this logger on a dedicated log level
+ *
  * <pre>
  * public class ConflictResolutionTest {
- * 
+ *
  *     private final LogCustomizer customLogs = LogCustomizer
  *             .forLogger(
  *                     &quot;org.apache.jackrabbit.oak.plugins.commit.MergingNodeStateDiff&quot;)
  *             .enable(Level.DEBUG).create();
- * 
+ *
  *     &#064;Before
  *     public void setup() throws RepositoryException {
  *         customLogs.starting();
  *     }
- * 
+ *
  *     &#064;After
  *     public void after() {
  *         customLogs.finished();
  *     }
- * 
+ *
  *     &#064;Test
  *     public void test() {
  *         List&lt;String&gt; myLogs = customLogs.getLogs();
  *         assertTrue(myLogs.size() == 1);
  *     }
- * 
+ *
  * }
  * </pre>
  */
@@ -128,7 +125,8 @@ public class LogCustomizer {
         }
 
         public LogCustomizer create() {
-            return new LogCustomizer(name, enableLevel, filterLevel, matchExactMessage, matchContainsMessage, matchRegexMessage);
+            return new LogCustomizer(name, enableLevel, filterLevel, matchExactMessage,
+                matchContainsMessage, matchRegexMessage);
         }
 
         private static Level fromSlf4jLevel(org.slf4j.event.Level level) {
@@ -158,8 +156,9 @@ public class LogCustomizer {
     private final Appender<ILoggingEvent> customLogger;
 
     private LogCustomizer(String name, Level enableLevel,
-                          final Level filterLevel,
-                          final String matchExactMessage, final String matchContainsMessage, final String matchRegexMessage) {
+        final Level filterLevel,
+        final String matchExactMessage, final String matchContainsMessage,
+        final String matchRegexMessage) {
         this.logger = getLogger(name);
         if (enableLevel != null) {
             this.enableLevel = enableLevel;
@@ -179,19 +178,22 @@ public class LogCustomizer {
                     logLevelOk = true;
                 }
 
-                if(logLevelOk) {
+                if (logLevelOk) {
                     boolean messageMatchOk = true;
                     String message = e.getFormattedMessage();
 
-                    if (messageMatchOk && matchExactMessage != null && !matchExactMessage.equals(message)) {
+                    if (messageMatchOk && matchExactMessage != null && !matchExactMessage.equals(
+                        message)) {
                         messageMatchOk = false;
                     }
 
-                    if (messageMatchOk && matchContainsMessage != null && !message.contains(matchContainsMessage)) {
+                    if (messageMatchOk && matchContainsMessage != null && !message.contains(
+                        matchContainsMessage)) {
                         messageMatchOk = false;
                     }
 
-                    if (messageMatchOk && matchRegexMessage != null && !message.matches(matchRegexMessage)) {
+                    if (messageMatchOk && matchRegexMessage != null && !message.matches(
+                        matchRegexMessage)) {
                         messageMatchOk = false;
                     }
 
@@ -205,7 +207,7 @@ public class LogCustomizer {
 
     private static Logger getLogger(String name) {
         return ((LoggerContext) LoggerFactory.getILoggerFactory())
-                .getLogger(name);
+            .getLogger(name);
     }
 
     public List<String> getLogs() {

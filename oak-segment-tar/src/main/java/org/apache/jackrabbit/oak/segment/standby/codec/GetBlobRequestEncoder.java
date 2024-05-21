@@ -17,10 +17,9 @@
 
 package org.apache.jackrabbit.oak.segment.standby.codec;
 
-import java.util.List;
-
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToMessageEncoder;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,7 +28,8 @@ public class GetBlobRequestEncoder extends MessageToMessageEncoder<GetBlobReques
     private final Logger log = LoggerFactory.getLogger(GetBlobRequestEncoder.class);
 
     @Override
-    protected void encode(ChannelHandlerContext ctx, GetBlobRequest msg, List<Object> out) throws Exception {
+    protected void encode(ChannelHandlerContext ctx, GetBlobRequest msg, List<Object> out)
+        throws Exception {
         log.debug("Sending request from client {} for blob {}", msg.getClientId(), msg.getBlobId());
         out.add(Messages.newGetBlobRequest(msg.getClientId(), msg.getBlobId()));
     }

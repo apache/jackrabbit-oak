@@ -29,7 +29,6 @@ import java.io.File;
 import java.io.PrintWriter;
 import java.util.Iterator;
 import java.util.List;
-
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.SegmentIdProvider;
 import org.apache.jackrabbit.oak.segment.SegmentNotFoundException;
@@ -83,14 +82,16 @@ public class Diff {
         }
 
         /**
-         * The two node records to diff specified as a record ID interval. This
-         * parameter is required.
+         * The two node records to diff specified as a record ID interval. This parameter is
+         * required.
          * <p>
-         * The interval is specified as two record IDs separated by two full
-         * stops ({@code ..}). In example, {@code 333dc24d-438f-4cca-8b21-3ebf67c05856:12345..46116fda-7a72-4dbc-af88-a09322a7753a:67890}.
-         * Instead of using a full record ID, it is possible to use the special
-         * placeholder {@code head}. This placeholder is translated to the
-         * record ID of the most recent head state.
+         * The interval is specified as two record IDs separated by two full stops ({@code ..}). In
+         * example,
+         * {@code
+         * 333dc24d-438f-4cca-8b21-3ebf67c05856:12345..46116fda-7a72-4dbc-af88-a09322a7753a:67890}.
+         * Instead of using a full record ID, it is possible to use the special placeholder
+         * {@code head}. This placeholder is translated to the record ID of the most recent head
+         * state.
          *
          * @param interval an interval between two node record IDs.
          * @return this builder.
@@ -101,13 +102,11 @@ public class Diff {
         }
 
         /**
-         * Set whether or not to perform an incremental diff of the specified
-         * interval. An incremental diff shows every change between the two
-         * records at every revision available to the segment store. This
-         * parameter is not mandatory and defaults to {@code false}.
+         * Set whether or not to perform an incremental diff of the specified interval. An
+         * incremental diff shows every change between the two records at every revision available
+         * to the segment store. This parameter is not mandatory and defaults to {@code false}.
          *
-         * @param incremental {@code true} to perform an incremental diff,
-         *                    {@code false} otherwise.
+         * @param incremental {@code true} to perform an incremental diff, {@code false} otherwise.
          * @return this builder.
          */
         public Builder withIncremental(boolean incremental) {
@@ -116,8 +115,7 @@ public class Diff {
         }
 
         /**
-         * The file where the output of this command is stored. this parameter
-         * is mandatory.
+         * The file where the output of this command is stored. this parameter is mandatory.
          *
          * @param file the output file.
          * @return this builder.
@@ -128,9 +126,8 @@ public class Diff {
         }
 
         /**
-         * The path to a subtree. If specified, this parameter allows to
-         * restrict the diff to the specified subtree. This parameter is not
-         * mandatory and defaults to the entire tree.
+         * The path to a subtree. If specified, this parameter allows to restrict the diff to the
+         * specified subtree. This parameter is not mandatory and defaults to the entire tree.
          *
          * @param filter a path used as as filter for the resulting diff.
          * @return this builder.
@@ -141,13 +138,11 @@ public class Diff {
         }
 
         /**
-         * Whether to ignore exceptions caused by missing segments in the
-         * segment store. This parameter is not mandatory and defaults to {@code
-         * false}.
+         * Whether to ignore exceptions caused by missing segments in the segment store. This
+         * parameter is not mandatory and defaults to {@code false}.
          *
-         * @param ignoreMissingSegments {@code true} to ignore exceptions caused
-         *                              by missing segments, {@code false}
-         *                              otherwise.
+         * @param ignoreMissingSegments {@code true} to ignore exceptions caused by missing
+         *                              segments, {@code false} otherwise.
          * @return this builder.
          */
         public Builder withIgnoreMissingSegments(boolean ignoreMissingSegments) {
@@ -212,7 +207,8 @@ public class Diff {
             return;
         }
 
-        try (ReadOnlyFileStore store = fileStoreBuilder(path).withBlobStore(newBasicReadOnlyBlobStore()).buildReadOnly()) {
+        try (ReadOnlyFileStore store = fileStoreBuilder(path).withBlobStore(
+            newBasicReadOnlyBlobStore()).buildReadOnly()) {
             SegmentIdProvider idProvider = store.getSegmentIdProvider();
             RecordId idL;
 
@@ -245,7 +241,9 @@ public class Diff {
             try (PrintWriter pw = new PrintWriter(out)) {
                 if (incremental) {
                     List<String> revs = readRevisions(path);
-                    System.out.println("Generating diff between " + idL + " and " + idR + " incrementally. Found " + revs.size() + " revisions.");
+                    System.out.println(
+                        "Generating diff between " + idL + " and " + idR + " incrementally. Found "
+                            + revs.size() + " revisions.");
 
                     int s = revs.indexOf(idL.toString10());
                     int e = revs.indexOf(idR.toString10());

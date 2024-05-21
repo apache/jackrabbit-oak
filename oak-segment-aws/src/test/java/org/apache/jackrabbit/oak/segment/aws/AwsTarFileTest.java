@@ -16,11 +16,9 @@
  */
 package org.apache.jackrabbit.oak.segment.aws;
 
+import com.amazonaws.services.s3.AmazonS3;
 import java.io.IOException;
 import java.util.Date;
-
-import com.amazonaws.services.s3.AmazonS3;
-
 import org.apache.jackrabbit.oak.segment.file.tar.TarFileTest;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
@@ -41,7 +39,8 @@ public class AwsTarFileTest extends TarFileTest {
         long time = new Date().getTime();
         S3Directory directory = new S3Directory(s3, "bucket-" + time, "oak");
         directory.ensureBucket();
-        archiveManager = new AwsArchiveManager(directory, new IOMonitorAdapter(), new FileStoreMonitorAdapter());
+        archiveManager = new AwsArchiveManager(directory, new IOMonitorAdapter(),
+            new FileStoreMonitorAdapter());
     }
 
     @Override

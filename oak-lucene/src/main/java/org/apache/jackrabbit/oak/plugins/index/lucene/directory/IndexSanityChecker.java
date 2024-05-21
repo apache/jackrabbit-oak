@@ -21,18 +21,17 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
-
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.lucene.store.Directory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Checks that all files in local which are present in remote have same file length.
- * If there is a size mismatch in any one of the file then whole of local index content
- * would be purged
+ * Checks that all files in local which are present in remote have same file length. If there is a
+ * size mismatch in any one of the file then whole of local index content would be purged
  */
 public class IndexSanityChecker {
+
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final Directory local;
     private final Directory remote;
@@ -52,7 +51,7 @@ public class IndexSanityChecker {
         boolean allFine = true;
         long start = System.currentTimeMillis();
         //TODO Add support for checksum based checks
-        if (isThereASizeMismatch()){
+        if (isThereASizeMismatch()) {
             //In case of any mismatch just purge all local files
             deleteAllFiles(local);
             allFine = false;
@@ -69,13 +68,17 @@ public class IndexSanityChecker {
 
         if (allFine) {
             log.info("Local index directory content found to be valid for index [{}]. " +
-                    "Stats Local: {} files ({}), Remote: {} files ({}), accumulated statistics on checking index sanity: {}", indexPath,
-                    localFileCount, IOUtils.humanReadableByteCount(localDirSize),
-                    remoteFileCount, IOUtils.humanReadableByteCount(remoteDirSize),
-                    stats.toString());
+                    "Stats Local: {} files ({}), Remote: {} files ({}), accumulated statistics on checking index sanity: {}",
+                indexPath,
+                localFileCount, IOUtils.humanReadableByteCount(localDirSize),
+                remoteFileCount, IOUtils.humanReadableByteCount(remoteDirSize),
+                stats.toString());
         } else {
-            log.warn("Local index directory content were not found to be in sync with remote for index [{}]. " +
-                    "Local directory content has been purged and would be synced again from remote.", indexPath);
+            log.warn(
+                "Local index directory content were not found to be in sync with remote for index [{}]. "
+                    +
+                    "Local directory content has been purged and would be synced again from remote.",
+                indexPath);
         }
         return allFine;
     }
@@ -101,8 +104,9 @@ public class IndexSanityChecker {
 
             //This is a weak check based on length.
             if (localLength > 0 && localLength != remoteLength) {
-                log.warn("[{}] Found local copy for {} in {} but size of local {} differs from remote {}. ",
-                        indexPath, fileName, local, localLength, remoteLength);
+                log.warn(
+                    "[{}] Found local copy for {} in {} but size of local {} differs from remote {}. ",
+                    indexPath, fileName, local, localLength, remoteLength);
                 return true;
             }
 
@@ -118,58 +122,61 @@ public class IndexSanityChecker {
     }
 
     private static void deleteAllFiles(Directory dir) throws IOException {
-        for (String fileName : dir.listAll()){
+        for (String fileName : dir.listAll()) {
             dir.deleteFile(fileName);
         }
     }
-    
-    
+
+
     /**
      * Accumulated statistics across multiple invocations of the IndexSanityChecker
-     *
      */
     public static class IndexSanityStatistics {
-        
+
         long totalDurationInMs;
         long totalIndexSize;
-        
+
         /**
          * Record the time spend to check the sanity of indexes
+         *
          * @param milis the time in miliseconds
          */
         public void addDuration(long milis) {
             totalDurationInMs += milis;
         }
-        
+
         /**
          * Return the accumulated time for checking the sanity of indexes
+         *
          * @return the total duration in miliseconds
          */
         public long getAccumulatedDuration() {
             return totalDurationInMs;
         }
-        
+
         /**
          * Record the size of an index considered
+         *
          * @param bytes
          */
-        public void addIndexSize (long bytes) {
+        public void addIndexSize(long bytes) {
             totalIndexSize += bytes;
         }
-        
+
         /**
-         * Return the accumulated index size 
+         * Return the accumulated index size
+         *
          * @return index size in bytes
          */
         public long getAccumulatedIndexSize() {
             return totalIndexSize;
         }
-        
+
         @Override
         public String toString() {
             return String.format("[duration: %d ms, "
                     + "checked index size: %d bytes (%s)]", totalDurationInMs,
-                    totalIndexSize, IOUtils.humanReadableByteCount(totalIndexSize));
+                totalIndexSize, IOUtils.humanReadableByteCount(totalIndexSize));
         }
     }
 }

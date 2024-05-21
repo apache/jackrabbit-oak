@@ -18,11 +18,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
-import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.oak.OakVersion;
-import org.apache.jackrabbit.oak.commons.IOUtils;
-import org.jetbrains.annotations.NotNull;
-
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashMap;
@@ -30,6 +25,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
+import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.oak.OakVersion;
+import org.apache.jackrabbit.oak.commons.IOUtils;
+import org.jetbrains.annotations.NotNull;
 
 public class ConsoleIndexingReporter implements IndexingReporter {
 

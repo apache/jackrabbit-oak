@@ -19,12 +19,11 @@
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules;
 
 import java.util.Objects;
-
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.utils.Hash;
 
 /**
  * A binary id.
- *
+ * <p>
  * Internally, this class uses 3 longs (64-bit) values.
  */
 public class BinaryId {
@@ -53,7 +52,8 @@ public class BinaryId {
         // (the hash64 is a reversible mapping, so there is no risk of conflicts)
         this.v0 = Hash.hash64(Long.parseUnsignedLong(buff.substring(0, 16), 16));
         this.v1 = Hash.hash64(Long.parseUnsignedLong(buff.substring(16, 32), 16));
-        this.v2 = Hash.hash64(Long.parseUnsignedLong(buff.substring(32, Math.min(48, buff.length())), 16));
+        this.v2 = Hash.hash64(
+            Long.parseUnsignedLong(buff.substring(32, Math.min(48, buff.length())), 16));
     }
 
     @Override
@@ -63,19 +63,22 @@ public class BinaryId {
 
     @Override
     public boolean equals(Object obj) {
-        if (this == obj)
+        if (this == obj) {
             return true;
-        if (obj == null)
+        }
+        if (obj == null) {
             return false;
-        if (getClass() != obj.getClass())
+        }
+        if (getClass() != obj.getClass()) {
             return false;
+        }
         BinaryId other = (BinaryId) obj;
         return length == other.length && v0 == other.v0 && v1 == other.v1 && v2 == other.v2;
     }
 
     /**
-     * Get a 64-bit hash value. The probability of collisions is about: 50% for a
-     * set of 5 billion entries, 1% for 600 million, 0.0001% for 6 million entries.
+     * Get a 64-bit hash value. The probability of collisions is about: 50% for a set of 5 billion
+     * entries, 1% for 600 million, 0.0001% for 6 million entries.
      *
      * @return a 64-bit hash value
      */

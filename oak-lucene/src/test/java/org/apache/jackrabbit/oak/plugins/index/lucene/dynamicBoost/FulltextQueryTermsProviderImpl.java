@@ -23,7 +23,6 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.spi.FulltextQueryTermsProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -48,7 +47,8 @@ public class FulltextQueryTermsProviderImpl implements FulltextQueryTermsProvide
 
     private static final String METADATA_FOLDER = "metadata";
     private static final String PREDICTED_TAGS = "predictedTags";
-    private static final String PREDICTED_TAGS_REL_PATH = JcrConstants.JCR_CONTENT + "/" + METADATA_FOLDER + "/" + PREDICTED_TAGS + "/";
+    private static final String PREDICTED_TAGS_REL_PATH =
+        JcrConstants.JCR_CONTENT + "/" + METADATA_FOLDER + "/" + PREDICTED_TAGS + "/";
 
     @Override
     public Set<String> getSupportedTypes() {
@@ -58,7 +58,8 @@ public class FulltextQueryTermsProviderImpl implements FulltextQueryTermsProvide
     }
 
     @Override
-    public org.apache.lucene.search.Query getQueryTerm(String text, Analyzer analyzer, NodeState indexDefinition) {
+    public org.apache.lucene.search.Query getQueryTerm(String text, Analyzer analyzer,
+        NodeState indexDefinition) {
         if (analyzer == null || text == null) {
             return null;
         }
@@ -68,19 +69,20 @@ public class FulltextQueryTermsProviderImpl implements FulltextQueryTermsProvide
 
         Set<String> charTerms = new HashSet<String>(splitForSearch(text));
         LOG.debug("getQueryTerm charTerms: {}", charTerms);
-        if(charTerms.size() > MAX_QUERY_SIZE) {
-            LOG.debug("Not adding query terms for smart tags as number of terms in the query {} exceeds " +
+        if (charTerms.size() > MAX_QUERY_SIZE) {
+            LOG.debug(
+                "Not adding query terms for smart tags as number of terms in the query {} exceeds "
+                    +
                     "maximum permissible value of {}", charTerms.size(), MAX_QUERY_SIZE);
             return null;
         }
         List<String> fragments = prepareFragments(charTerms);
 
-        for(String fragment : fragments) {
+        for (String fragment : fragments) {
             Term term = new Term(PREDICTED_TAGS_REL_PATH + fragment.toLowerCase(), "1");
             query.add(new TermQuery(term), BooleanClause.Occur.SHOULD);
             LOG.debug("Added query term: {}", fragment.toLowerCase());
         }
-
 
         Term term = new Term(PREDICTED_TAGS_REL_PATH + text.toLowerCase(), "1");
         query.add(new TermQuery(term), BooleanClause.Occur.SHOULD);
@@ -97,18 +99,18 @@ public class FulltextQueryTermsProviderImpl implements FulltextQueryTermsProvide
         List<String> fragments = new ArrayList<String>();
         Set<Set<String>> powerSet = powerSet(charTerms);
 
-        for(Set<String> set : powerSet) {
+        for (Set<String> set : powerSet) {
             StringBuilder sb = null;
-            for(String s : set) {
-                if(sb == null) {
+            for (String s : set) {
+                if (sb == null) {
                     sb = new StringBuilder();
                 }
                 sb.append(s);
-                if(sb.length() > 0) {
+                if (sb.length() > 0) {
                     sb.append(' ');
                 }
             }
-            if(sb != null) {
+            if (sb != null) {
                 fragments.add(sb.toString().trim());
             }
         }
@@ -129,10 +131,10 @@ public class FulltextQueryTermsProviderImpl implements FulltextQueryTermsProvide
             Set<T> subsetIncludingHead = new HashSet<T>();
             subsetIncludingHead.add(head);
             subsetIncludingHead.addAll(subsetExcludingHead);
-            if(subsetIncludingHead.size() <= MAX_FRAGMENT_SIZE) {
+            if (subsetIncludingHead.size() <= MAX_FRAGMENT_SIZE) {
                 powerSet.add(subsetIncludingHead);
             }
-            if(subsetExcludingHead.size() <= MAX_FRAGMENT_SIZE) {
+            if (subsetExcludingHead.size() <= MAX_FRAGMENT_SIZE) {
                 powerSet.add(subsetExcludingHead);
             }
         }

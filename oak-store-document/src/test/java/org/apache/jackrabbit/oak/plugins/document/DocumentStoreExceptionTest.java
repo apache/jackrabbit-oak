@@ -146,7 +146,8 @@ public class DocumentStoreExceptionTest {
         Exception cause = new IOException();
         Type type = TRANSIENT;
         List<String> ids = Lists.newArrayList("one", "two", "three");
-        DocumentStoreException dse = DocumentStoreException.asDocumentStoreException(msg, cause, type, ids);
+        DocumentStoreException dse = DocumentStoreException.asDocumentStoreException(msg, cause,
+            type, ids);
         assertTrue(dse.getMessage().contains(msg));
         for (String id : ids) {
             assertTrue(dse.getMessage().contains(id));

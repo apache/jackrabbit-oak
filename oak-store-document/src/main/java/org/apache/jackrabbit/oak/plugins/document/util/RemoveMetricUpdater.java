@@ -18,6 +18,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.util;
 
+import static java.util.Objects.requireNonNull;
+
+import java.util.function.BiPredicate;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
@@ -25,14 +28,13 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentStoreStatsCollector;
 import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.TimerStats;
 
-import java.util.function.BiPredicate;
-
-import static java.util.Objects.requireNonNull;
-
 /**
- * Base class to update the metrics for {@link DocumentStoreStatsCollector#doneRemove(long, Collection, int)} for underlying {@link DocumentStore}
+ * Base class to update the metrics for
+ * {@link DocumentStoreStatsCollector#doneRemove(long, Collection, int)} for underlying
+ * {@link DocumentStore}
  *
- * <p>Users provide instances of {@link MeterStats}, {@link TimerStats} based on whether throttling is ongoing or not
+ * <p>Users provide instances of {@link MeterStats}, {@link TimerStats} based on whether throttling
+ * is ongoing or not
  */
 public final class RemoveMetricUpdater {
 
@@ -40,14 +42,15 @@ public final class RemoveMetricUpdater {
     private final TimerStats removeNodesTimer;
 
     public RemoveMetricUpdater(final MeterStats removeNodes,
-                               final TimerStats removeNodesTimer) {
+        final TimerStats removeNodesTimer) {
         this.removeNodes = removeNodes;
         this.removeNodesTimer = removeNodesTimer;
     }
 
-    public void update(final Collection<? extends Document> collection, final int removeCount, final long timeTakenNanos,
-                       final BiPredicate<Collection<? extends Document>, Integer> isNodesCollectionUpdated,
-                       final BiStatsConsumer removeBiStatsConsumer) {
+    public void update(final Collection<? extends Document> collection, final int removeCount,
+        final long timeTakenNanos,
+        final BiPredicate<Collection<? extends Document>, Integer> isNodesCollectionUpdated,
+        final BiStatsConsumer removeBiStatsConsumer) {
 
         requireNonNull(isNodesCollectionUpdated);
         requireNonNull(removeBiStatsConsumer);

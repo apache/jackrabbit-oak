@@ -16,24 +16,23 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.index;
 
+import static org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils.toDoubles;
+
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.binary.BlobByteSource;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.HashMap;
-import java.util.Set;
-import java.util.LinkedHashSet;
-
-import static org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils.toDoubles;
 
 @JsonInclude(JsonInclude.Include.NON_EMPTY)
 public class ElasticDocument {
@@ -72,28 +71,30 @@ public class ElasticDocument {
     }
 
     void addFulltextRelative(String path, String value) {
-        dynamicProperties.stream().filter(map -> map.get(ElasticIndexHelper.DYNAMIC_PROPERTY_NAME).equals(path))
-                .findFirst()
-                .ifPresentOrElse(
-                        map -> {
-                            Object existingValue = map.get(ElasticIndexHelper.DYNAMIC_PROPERTY_VALUE);
-                            if (existingValue instanceof Set) {
-                                Set<Object> existingSet = (Set<Object>) existingValue;
-                                existingSet.add(value);
-                            } else {
-                                Set<Object> set = new LinkedHashSet<>();
-                                set.add(existingValue);
-                                set.add(value);
-                                map.put(ElasticIndexHelper.DYNAMIC_PROPERTY_VALUE, set);
-                            }
-                        },
-                        () -> {
-                            Map<String, Object> newMap = new HashMap<>();
-                            newMap.put(ElasticIndexHelper.DYNAMIC_PROPERTY_NAME, path);
-                            newMap.put(ElasticIndexHelper.DYNAMIC_PROPERTY_VALUE, value);
-                            dynamicProperties.add(newMap);
-                        }
-                );
+        dynamicProperties.stream().filter(
+                             map -> map.get(ElasticIndexHelper.DYNAMIC_PROPERTY_NAME).equals(path))
+                         .findFirst()
+                         .ifPresentOrElse(
+                             map -> {
+                                 Object existingValue = map.get(
+                                     ElasticIndexHelper.DYNAMIC_PROPERTY_VALUE);
+                                 if (existingValue instanceof Set) {
+                                     Set<Object> existingSet = (Set<Object>) existingValue;
+                                     existingSet.add(value);
+                                 } else {
+                                     Set<Object> set = new LinkedHashSet<>();
+                                     set.add(existingValue);
+                                     set.add(value);
+                                     map.put(ElasticIndexHelper.DYNAMIC_PROPERTY_VALUE, set);
+                                 }
+                             },
+                             () -> {
+                                 Map<String, Object> newMap = new HashMap<>();
+                                 newMap.put(ElasticIndexHelper.DYNAMIC_PROPERTY_NAME, path);
+                                 newMap.put(ElasticIndexHelper.DYNAMIC_PROPERTY_VALUE, value);
+                                 dynamicProperties.add(newMap);
+                             }
+                         );
     }
 
     void addSuggest(String value) {
@@ -143,10 +144,10 @@ public class ElasticDocument {
 
     void addDynamicBoostField(String propName, String value, double boost) {
         addProperty(propName,
-                Map.of(
-                        ElasticIndexHelper.DYNAMIC_BOOST_NESTED_VALUE, value,
-                        ElasticIndexHelper.DYNAMIC_BOOST_NESTED_BOOST, boost
-                )
+            Map.of(
+                ElasticIndexHelper.DYNAMIC_BOOST_NESTED_VALUE, value,
+                ElasticIndexHelper.DYNAMIC_BOOST_NESTED_BOOST, boost
+            )
         );
 
         // add value into the dynamic boost specific fulltext field. We cannot add this in the standard

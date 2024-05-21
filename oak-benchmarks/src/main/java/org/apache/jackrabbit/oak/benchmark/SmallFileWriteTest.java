@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.benchmark;
 
 import java.util.Calendar;
-
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -45,11 +44,12 @@ public class SmallFileWriteTest extends AbstractTest {
     @Override
     public void beforeTest() throws RepositoryException {
         root = session.getRootNode().addNode(
-                "SmallFileWrite" + TEST_ID + iteration++, "nt:folder");
+            "SmallFileWrite" + TEST_ID + iteration++, "nt:folder");
         session.save();
     }
 
-    @Override @SuppressWarnings("deprecation")
+    @Override
+    @SuppressWarnings("deprecation")
     public void runTest() throws Exception {
         for (int i = 0; i < FILE_COUNT; i++) {
             Node file = root.addNode("file" + i, "nt:file");
@@ -57,7 +57,7 @@ public class SmallFileWriteTest extends AbstractTest {
             content.setProperty("jcr:mimeType", "application/octet-stream");
             content.setProperty("jcr:lastModified", Calendar.getInstance());
             content.setProperty(
-                    "jcr:data", new TestInputStream(FILE_SIZE * 1024));
+                "jcr:data", new TestInputStream(FILE_SIZE * 1024));
         }
         session.save();
     }

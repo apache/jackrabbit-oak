@@ -16,13 +16,12 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication;
 
+import javax.jcr.Credentials;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 
-import javax.jcr.Credentials;
-
 /**
- * Implementation of the JCR {@code Credentials} interface used to distinguish
- * a regular login request from {@link javax.jcr.Session#impersonate(javax.jcr.Credentials)}.
+ * Implementation of the JCR {@code Credentials} interface used to distinguish a regular login
+ * request from {@link javax.jcr.Session#impersonate(javax.jcr.Credentials)}.
  */
 public class ImpersonationCredentials implements Credentials {
 
@@ -46,11 +45,9 @@ public class ImpersonationCredentials implements Credentials {
     }
 
     /**
-     * Returns the {@code AuthInfo} present with the editing session that want
-     * to impersonate.
+     * Returns the {@code AuthInfo} present with the editing session that want to impersonate.
      *
-     * @return {@code AuthInfo} present with the editing session that want
-     * to impersonate.
+     * @return {@code AuthInfo} present with the editing session that want to impersonate.
      * @see org.apache.jackrabbit.oak.api.ContentSession#getAuthInfo()
      */
     public AuthInfo getImpersonatorInfo() {

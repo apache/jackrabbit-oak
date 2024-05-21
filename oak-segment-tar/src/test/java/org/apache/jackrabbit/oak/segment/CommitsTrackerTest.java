@@ -19,8 +19,8 @@
 
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static java.lang.Math.min;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.oak.segment.file.tar.GCGeneration.newGCGeneration;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -29,7 +29,6 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.List;
 import java.util.Map;
-
 import org.apache.jackrabbit.oak.segment.CommitsTracker.Commit;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.junit.Test;
@@ -37,6 +36,7 @@ import org.junit.Test;
 public class CommitsTrackerTest {
 
     private static class CommitTask {
+
         private final CommitsTracker commitsTracker;
         private final Thread thread;
         private final GCGeneration gcGeneration;
@@ -77,7 +77,7 @@ public class CommitsTrackerTest {
     @Test
     public void testCommitsCountOthers() throws InterruptedException {
         final int OTHER_WRITERS_LIMIT = 10;
-        CommitsTracker commitsTracker = new CommitsTracker(new String[] {}, OTHER_WRITERS_LIMIT);
+        CommitsTracker commitsTracker = new CommitsTracker(new String[]{}, OTHER_WRITERS_LIMIT);
 
         List<CommitTask> queued = newArrayList();
         for (int k = 0; k < 20; k++) {
@@ -98,26 +98,28 @@ public class CommitsTrackerTest {
             Commit currentWriter = commitsTracker.getCurrentWriter();
             assertNotNull(currentWriter);
             assertEquals(commitTask.getGcGeneration(), currentWriter.getGCGeneration());
-            assertEquals(commitTask.getThreadName(), commitsTracker.getCurrentWriter().getThreadName());
+            assertEquals(commitTask.getThreadName(),
+                commitsTracker.getCurrentWriter().getThreadName());
 
             commitTask.executed();
             assertNull(commitsTracker.getCurrentWriter());
             assertEquals(queued.size(), commitsTracker.getQueuedWritersMap().size());
-            assertEquals(min(OTHER_WRITERS_LIMIT, executed.size()), commitsTracker.getCommitsCountOthers().size());
+            assertEquals(min(OTHER_WRITERS_LIMIT, executed.size()),
+                commitsTracker.getCommitsCountOthers().size());
             assertTrue(commitsTracker.getCommitsCountPerGroupLastMinute().isEmpty());
         }
     }
 
     @Test
     public void testCommitsCountPerGroup() throws InterruptedException {
-        String[] groups = new String[] { "Thread-1.*", "Thread-2.*", "Thread-3.*" };
+        String[] groups = new String[]{"Thread-1.*", "Thread-2.*", "Thread-3.*"};
         CommitsTracker commitsTracker = new CommitsTracker(groups, 10);
 
         for (int k = 0; k < 40; k++) {
             CommitTask commitTask = new CommitTask(
-                    commitsTracker,
-                    "Thread-" + (10 + k),
-                    GCGeneration.NULL);
+                commitsTracker,
+                "Thread-" + (10 + k),
+                GCGeneration.NULL);
             commitTask.queued();
             commitTask.dequeue();
             commitTask.executed();

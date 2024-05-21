@@ -31,10 +31,10 @@ import org.junit.BeforeClass;
 import static org.junit.Assert.assertNotNull;
 
 /**
- * Tests for {@code DocumentMK#write(java.io.InputStream)} using
- * {@link DataStore}
+ * Tests for {@code DocumentMK#write(java.io.InputStream)} using {@link DataStore}
  */
 public class DocumentMKDataStoreWriteTest extends DocumentMKWriteTest {
+
     @BeforeClass
     public static void setUpBeforeClass() {
         try {
@@ -51,8 +51,8 @@ public class DocumentMKDataStoreWriteTest extends DocumentMKWriteTest {
         assertNotNull(mongoConnection);
         MongoUtils.dropCollections(mongoConnection.getDBName());
         mk = new DocumentMK.Builder()
-                .setMongoDB(mongoConnection.getMongoClient(), mongoConnection.getDBName())
-                .setBlobStore(DataStoreUtils.getBlobStore()).open();
+            .setMongoDB(mongoConnection.getMongoClient(), mongoConnection.getDBName())
+            .setBlobStore(DataStoreUtils.getBlobStore()).open();
     }
 
     @Override

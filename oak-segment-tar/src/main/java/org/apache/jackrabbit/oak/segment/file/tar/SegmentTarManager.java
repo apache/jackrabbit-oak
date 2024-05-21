@@ -34,7 +34,6 @@ import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.CRC32;
-
 import org.apache.commons.io.filefilter.SuffixFileFilter;
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.file.tar.index.Index;
@@ -50,12 +49,12 @@ import org.slf4j.LoggerFactory;
 public class SegmentTarManager implements SegmentArchiveManager {
 
     /**
-     * Pattern of the segment entry names. Note the trailing (\\..*)? group
-     * that's included for compatibility with possible future extensions.
+     * Pattern of the segment entry names. Note the trailing (\\..*)? group that's included for
+     * compatibility with possible future extensions.
      */
     private static final Pattern NAME_PATTERN = Pattern.compile(
-            "([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})"
-                    + "(\\.([0-9a-f]{8}))?(\\..*)?");
+        "([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})"
+            + "(\\.([0-9a-f]{8}))?(\\..*)?");
 
     private static final Logger log = LoggerFactory.getLogger(SegmentTarManager.class);
 
@@ -69,8 +68,9 @@ public class SegmentTarManager implements SegmentArchiveManager {
 
     private final boolean offHeapAccess;
 
-    public SegmentTarManager(File segmentstoreDir, FileStoreMonitor fileStoreMonitor, IOMonitor ioMonitor, boolean memoryMapping,
-            boolean offHeapAccess) {
+    public SegmentTarManager(File segmentstoreDir, FileStoreMonitor fileStoreMonitor,
+        IOMonitor ioMonitor, boolean memoryMapping,
+        boolean offHeapAccess) {
         this.segmentstoreDir = segmentstoreDir;
         this.fileStoreMonitor = fileStoreMonitor;
         this.ioMonitor = ioMonitor;
@@ -99,12 +99,12 @@ public class SegmentTarManager implements SegmentArchiveManager {
                         return new SegmentTarReader(file, mapped, index, ioMonitor);
                     } catch (IOException e) {
                         log.warn("Failed to mmap tar file {}. Falling back to normal file " +
-                                        "IO, which will negatively impact repository performance. " +
-                                        "This problem may have been caused by restrictions on the " +
-                                        "amount of virtual memory available to the JVM. Please make " +
-                                        "sure that a 64-bit JVM is being used and that the process " +
-                                        "has access to unlimited virtual memory (ulimit option -v).",
-                                name, e);
+                                "IO, which will negatively impact repository performance. " +
+                                "This problem may have been caused by restrictions on the " +
+                                "amount of virtual memory available to the JVM. Please make " +
+                                "sure that a 64-bit JVM is being used and that the process " +
+                                "has access to unlimited virtual memory (ulimit option -v).",
+                            name, e);
                     }
                 }
 
@@ -134,7 +134,8 @@ public class SegmentTarManager implements SegmentArchiveManager {
 
     @Override
     public SegmentArchiveWriter create(String archiveName) {
-        return new SegmentTarWriter(new File(segmentstoreDir, archiveName), fileStoreMonitor, ioMonitor);
+        return new SegmentTarWriter(new File(segmentstoreDir, archiveName), fileStoreMonitor,
+            ioMonitor);
     }
 
     @Override
@@ -150,7 +151,8 @@ public class SegmentTarManager implements SegmentArchiveManager {
     @Override
     public boolean renameTo(String from, String to) {
         try {
-            Files.move(new File(segmentstoreDir, from).toPath(), new File(segmentstoreDir, to).toPath());
+            Files.move(new File(segmentstoreDir, from).toPath(),
+                new File(segmentstoreDir, to).toPath());
             return true;
         } catch (IOException e) {
             log.error("Can't move archive {} to {}", from, to, e);
@@ -160,7 +162,8 @@ public class SegmentTarManager implements SegmentArchiveManager {
 
     @Override
     public void copyFile(String from, String to) throws IOException {
-        Files.copy(new File(segmentstoreDir, from).toPath(), new File(segmentstoreDir, to).toPath());
+        Files.copy(new File(segmentstoreDir, from).toPath(),
+            new File(segmentstoreDir, to).toPath());
     }
 
     @Override
@@ -169,7 +172,8 @@ public class SegmentTarManager implements SegmentArchiveManager {
     }
 
     @Override
-    public void recoverEntries(String archiveName, LinkedHashMap<UUID, byte[]> entries) throws IOException {
+    public void recoverEntries(String archiveName, LinkedHashMap<UUID, byte[]> entries)
+        throws IOException {
         File file = new File(segmentstoreDir, archiveName);
         RandomAccessFile access = new RandomAccessFile(file, "r");
         try {
@@ -180,14 +184,15 @@ public class SegmentTarManager implements SegmentArchiveManager {
     }
 
     @Override
-    public void backup(@NotNull String archiveName, @NotNull String backupArchiveName, @NotNull Set<UUID> recoveredEntries) throws IOException {
+    public void backup(@NotNull String archiveName, @NotNull String backupArchiveName,
+        @NotNull Set<UUID> recoveredEntries) throws IOException {
 
         if (!renameTo(archiveName, backupArchiveName)) {
             log.warn("Renaming failed, so using copy to backup {}", archiveName);
             copyFile(archiveName, backupArchiveName);
             if (!delete(archiveName)) {
                 throw new IOException(
-                        "Could not remove broken tar file " + archiveName);
+                    "Could not remove broken tar file " + archiveName);
             }
         }
     }
@@ -197,11 +202,11 @@ public class SegmentTarManager implements SegmentArchiveManager {
      *
      * @param file    The path of the TAR file.
      * @param access  The contents of the TAR file.
-     * @param entries The map that will contain the recovered entries. The
-     *                entries are inserted in the {@link LinkedHashMap} in the
-     *                order they appear in the TAR file.
+     * @param entries The map that will contain the recovered entries. The entries are inserted in
+     *                the {@link LinkedHashMap} in the order they appear in the TAR file.
      */
-    private static void recoverEntries(File file, RandomAccessFile access, LinkedHashMap<UUID, byte[]> entries) throws IOException {
+    private static void recoverEntries(File file, RandomAccessFile access,
+        LinkedHashMap<UUID, byte[]> entries) throws IOException {
         byte[] header = new byte[BLOCK_SIZE];
         while (access.getFilePointer() + BLOCK_SIZE <= access.length()) {
             // read the tar header block
@@ -212,7 +217,6 @@ public class SegmentTarManager implements SegmentArchiveManager {
             for (int i = 0; i < BLOCK_SIZE; i++) {
                 sum += header[i] & 0xff;
             }
-
 
             // identify possible zero block
             if (sum == 0 && access.getFilePointer() + 2 * BLOCK_SIZE == access.length()) {
@@ -229,7 +233,7 @@ public class SegmentTarManager implements SegmentArchiveManager {
             for (int i = 0; i < checkbytes.length; i++) {
                 if (checkbytes[i] != header[148 + i]) {
                     log.warn("Invalid entry checksum at offset {} in tar file {}, skipping...",
-                            access.getFilePointer() - BLOCK_SIZE, file);
+                        access.getFilePointer() - BLOCK_SIZE, file);
                 }
             }
 
@@ -265,7 +269,7 @@ public class SegmentTarManager implements SegmentArchiveManager {
                         crc.update(data, 0, data.length);
                         if (crc.getValue() != Long.parseLong(checksum, 16)) {
                             log.warn("Checksum mismatch in entry {} of tar file {}, skipping...",
-                                    name, file);
+                                name, file);
                             continue;
                         }
                     }
@@ -274,7 +278,7 @@ public class SegmentTarManager implements SegmentArchiveManager {
                 }
             } else if (!name.equals(file.getName() + ".idx")) {
                 log.warn("Unexpected entry {} in tar file {}, skipping...",
-                        name, file);
+                    name, file);
                 long position = access.getFilePointer() + size;
                 long remainder = position % BLOCK_SIZE;
                 if (remainder != 0) {

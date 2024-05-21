@@ -22,15 +22,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
-
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeData;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeProperty;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeProperty.ValueType;
 
 /**
- * Collects the histogram of binary sizes (embedded binaries and references to
- * the datastore). Collection is done for a certain number of path levels, in
- * addition to the root.
+ * Collects the histogram of binary sizes (embedded binaries and references to the datastore).
+ * Collection is done for a certain number of path levels, in addition to the root.
  */
 public class BinarySizeHistogram implements StatsCollector {
 
@@ -38,9 +36,10 @@ public class BinarySizeHistogram implements StatsCollector {
     private final Storage storage = new Storage();
 
     public static final String[] SIZES = new String[64];
+
     static {
         SIZES[0] = " 0";
-        String[] mag = new String[] { "B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB" };
+        String[] mag = new String[]{"B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB"};
         String old = "1B";
         for (long x = 1; x > 0; x += x) {
             int n = 64 - Long.numberOfLeadingZeros(x);
@@ -57,7 +56,7 @@ public class BinarySizeHistogram implements StatsCollector {
     public void add(NodeData node) {
         ArrayList<Long> embedded = new ArrayList<>();
         ArrayList<Long> references = new ArrayList<>();
-        for(NodeProperty p : node.getProperties()) {
+        for (NodeProperty p : node.getProperties()) {
             if (p.getType() == ValueType.BINARY) {
                 for (String v : p.getValues()) {
                     if (!v.startsWith(":blobId:")) {
@@ -96,7 +95,7 @@ public class BinarySizeHistogram implements StatsCollector {
     }
 
     void add(String key, ArrayList<Long> embedded, ArrayList<Long> references) {
-        for(long x : embedded) {
+        for (long x : embedded) {
             int bits = 65 - Long.numberOfLeadingZeros(x);
             storage.add("embedded " + key + " " + SIZES[bits], 1L);
             if ("/".equals(key)) {
@@ -104,7 +103,7 @@ public class BinarySizeHistogram implements StatsCollector {
                 storage.add("embedded total size", x);
             }
         }
-        for(long x : references) {
+        for (long x : references) {
             int bits = 65 - Long.numberOfLeadingZeros(x);
             storage.add("refs " + key + " " + SIZES[bits], 1L);
             if ("/".equals(key)) {
@@ -116,7 +115,7 @@ public class BinarySizeHistogram implements StatsCollector {
 
     public static List<String> getRecordsWithSizeAndCount(Storage storage) {
         List<String> result = new ArrayList<>();
-        for(Entry<String, Long> e : storage.entrySet()) {
+        for (Entry<String, Long> e : storage.entrySet()) {
             if (e.getValue() > 0) {
                 String k = e.getKey();
                 long v = e.getValue();

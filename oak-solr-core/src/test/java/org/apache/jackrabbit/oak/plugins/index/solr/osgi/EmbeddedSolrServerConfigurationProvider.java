@@ -31,13 +31,16 @@ import org.jetbrains.annotations.NotNull;
 import org.osgi.service.component.ComponentContext;
 
 /**
- * An OSGi service {@link org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfigurationProvider}
+ * An OSGi service
+ * {@link
+ * org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfigurationProvider}
  */
 @Component(metatype = true, immediate = true,
-        label = "Apache Jackrabbit Oak Solr embedded server configuration")
+    label = "Apache Jackrabbit Oak Solr embedded server configuration")
 @Service(value = SolrServerConfigurationProvider.class)
 @Property(name = "name", value = "embedded", propertyPrivate = true)
-public class EmbeddedSolrServerConfigurationProvider implements SolrServerConfigurationProvider<EmbeddedSolrServerProvider> {
+public class EmbeddedSolrServerConfigurationProvider implements
+    SolrServerConfigurationProvider<EmbeddedSolrServerProvider> {
 
     @Property(value = SolrServerConfigurationDefaults.SOLR_HOME_PATH, label = "Solr home directory")
     private static final String SOLR_HOME_PATH = "solr.home.path";

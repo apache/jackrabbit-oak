@@ -43,9 +43,9 @@ public class DisableCacheTest {
         builder.setPersistentCache(cacheFolder.getAbsolutePath());
 
         builder.memoryCacheDistribution(0,
-                DEFAULT_PREV_DOC_CACHE_PERCENTAGE,
-                DEFAULT_CHILDREN_CACHE_PERCENTAGE,
-                DEFAULT_DIFF_CACHE_PERCENTAGE);
+            DEFAULT_PREV_DOC_CACHE_PERCENTAGE,
+            DEFAULT_CHILDREN_CACHE_PERCENTAGE,
+            DEFAULT_DIFF_CACHE_PERCENTAGE);
         DocumentNodeStore nodeStore = builder.getNodeStore();
         Cache<PathRev, DocumentNodeState> cache = nodeStore.getNodeCache();
         assertEquals(0, cache.size());

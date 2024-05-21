@@ -21,33 +21,29 @@ import org.apache.jackrabbit.oak.jcr.observation.OakEventFilterImpl;
 import org.apache.jackrabbit.oak.jcr.observation.ObservationManagerImpl;
 
 /**
- * Static factory that allows wrapping a JackrabbitEventFilter into an
- * OakEventFilter that contains some oak specific extensions.
+ * Static factory that allows wrapping a JackrabbitEventFilter into an OakEventFilter that contains
+ * some oak specific extensions.
  * <p>
- * The resulting filter can subsequently be used in
- * ObservationManagerImpl.addEventListener as usual.
- * 
+ * The resulting filter can subsequently be used in ObservationManagerImpl.addEventListener as
+ * usual.
+ *
  * @see ObservationManagerImpl#addEventListener(javax.jcr.observation.EventListener,
- *      JackrabbitEventFilter)
+ * JackrabbitEventFilter)
  */
 public class FilterFactory {
 
     /**
-     * Wrap a JackrabbitEventFilter into its corresponding oak extension,
-     * OakEventFilter, on which some Oak specific observation filter extensions
-     * can then be used.
-     * 
-     * @param baseFilter
-     *            the base filter which contains other properties. Changes to
-     *            the resulting oak filter "write-through" to the underlying
-     *            baseFilter (for the features covered by the underlying) and
-     *            similarly changes to the baseFilter are seen by the resulting
-     *            oak filter. Note that this "write-through" behavior does no 
-     *            longer apply after a listener was registered, ie changing
-     *            a filter after registration doesn't alter it for that listener.
-     * @return an OakEventFilter upon which Oak specific observation filtering
-     *         extensions can be activated and then used when adding an
-     *         EventListener with the ObservationManagerImpl.
+     * Wrap a JackrabbitEventFilter into its corresponding oak extension, OakEventFilter, on which
+     * some Oak specific observation filter extensions can then be used.
+     *
+     * @param baseFilter the base filter which contains other properties. Changes to the resulting
+     *                   oak filter "write-through" to the underlying baseFilter (for the features
+     *                   covered by the underlying) and similarly changes to the baseFilter are seen
+     *                   by the resulting oak filter. Note that this "write-through" behavior does
+     *                   no longer apply after a listener was registered, ie changing a filter after
+     *                   registration doesn't alter it for that listener.
+     * @return an OakEventFilter upon which Oak specific observation filtering extensions can be
+     * activated and then used when adding an EventListener with the ObservationManagerImpl.
      */
     public static OakEventFilter wrap(JackrabbitEventFilter baseFilter) {
         return new OakEventFilterImpl(baseFilter);

@@ -28,66 +28,74 @@ package org.apache.lucene.store;
 import java.io.Closeable;
 import java.io.IOException;
 
-/** Abstract base class for input from a file in a {@link Directory}.  A
- * random-access input stream.  Used for all Lucene index input operations.
+/**
+ * Abstract base class for input from a file in a {@link Directory}.  A random-access input stream.
+ * Used for all Lucene index input operations.
  *
  * <p>{@code IndexInput} may only be used from one thread, because it is not
- * thread safe (it keeps internal state like file position). To allow
- * multithreaded use, every {@code IndexInput} instance must be cloned before
- * used in another thread. Subclasses must therefore implement {@link #clone()},
- * returning a new {@code IndexInput} which operates on the same underlying
- * resource, but positioned independently. Lucene never closes cloned
- * {@code IndexInput}s, it will only do this on the original one.
- * The original instance must take care that cloned instances throw
- * {@link AlreadyClosedException} when the original one is closed.
- 
+ * thread safe (it keeps internal state like file position). To allow multithreaded use, every
+ * {@code IndexInput} instance must be cloned before used in another thread. Subclasses must
+ * therefore implement {@link #clone()}, returning a new {@code IndexInput} which operates on the
+ * same underlying resource, but positioned independently. Lucene never closes cloned
+ * {@code IndexInput}s, it will only do this on the original one. The original instance must take
+ * care that cloned instances throw {@link AlreadyClosedException} when the original one is closed.
+ *
  * @see Directory
  */
-public abstract class IndexInput extends DataInput implements Cloneable,Closeable {
+public abstract class IndexInput extends DataInput implements Cloneable, Closeable {
 
-  private final String resourceDescription;
+    private final String resourceDescription;
 
-  /** resourceDescription should be a non-null, opaque string
-   *  describing this resource; it's returned from
-   *  {@link #toString}. */
-  protected IndexInput(String resourceDescription) {
-    if (resourceDescription == null) {
-      throw new IllegalArgumentException("resourceDescription must not be null");
+    /**
+     * resourceDescription should be a non-null, opaque string describing this resource; it's
+     * returned from {@link #toString}.
+     */
+    protected IndexInput(String resourceDescription) {
+        if (resourceDescription == null) {
+            throw new IllegalArgumentException("resourceDescription must not be null");
+        }
+        this.resourceDescription = resourceDescription;
     }
-    this.resourceDescription = resourceDescription;
-  }
 
-  /** Closes the stream to further operations. */
-  @Override
-  public abstract void close() throws IOException;
+    /**
+     * Closes the stream to further operations.
+     */
+    @Override
+    public abstract void close() throws IOException;
 
-  /** Returns the current position in this file, where the next read will
-   * occur.
-   * @see #seek(long)
-   */
-  public abstract long getFilePointer();
+    /**
+     * Returns the current position in this file, where the next read will occur.
+     *
+     * @see #seek(long)
+     */
+    public abstract long getFilePointer();
 
-  /** Sets current position in this file, where the next read will occur.
-   * @see #getFilePointer()
-   */
-  public abstract void seek(long pos) throws IOException;
+    /**
+     * Sets current position in this file, where the next read will occur.
+     *
+     * @see #getFilePointer()
+     */
+    public abstract void seek(long pos) throws IOException;
 
-  /** The number of bytes in the file. */
-  public abstract long length();
+    /**
+     * The number of bytes in the file.
+     */
+    public abstract long length();
 
-  @Override
-  public String toString() {
-    return resourceDescription;
-  }
-  
-  /** {@inheritDoc}
-   * <p><b>Warning:</b> Lucene never closes cloned
-   * {@code IndexInput}s, it will only do this on the original one.
-   * The original instance must take care that cloned instances throw
-   * {@link AlreadyClosedException} when the original one is closed.
-   */
-  @Override
-  public IndexInput clone() {
-    return (IndexInput) super.clone();
-  }
+    @Override
+    public String toString() {
+        return resourceDescription;
+    }
+
+    /**
+     * {@inheritDoc}
+     * <p><b>Warning:</b> Lucene never closes cloned
+     * {@code IndexInput}s, it will only do this on the original one. The original instance must
+     * take care that cloned instances throw {@link AlreadyClosedException} when the original one is
+     * closed.
+     */
+    @Override
+    public IndexInput clone() {
+        return (IndexInput) super.clone();
+    }
 }

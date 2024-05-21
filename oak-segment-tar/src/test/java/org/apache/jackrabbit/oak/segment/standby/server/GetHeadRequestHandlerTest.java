@@ -53,7 +53,8 @@ public class GetHeadRequestHandlerTest {
 
     @Test
     public void unrecognizedMessagesShouldBeIgnored() throws Exception {
-        EmbeddedChannel channel = new EmbeddedChannel(new GetHeadRequestHandler(mock(StandbyHeadReader.class)));
+        EmbeddedChannel channel = new EmbeddedChannel(
+            new GetHeadRequestHandler(mock(StandbyHeadReader.class)));
         channel.writeInbound("unrecognized");
         assertEquals("unrecognized", channel.readInbound());
     }

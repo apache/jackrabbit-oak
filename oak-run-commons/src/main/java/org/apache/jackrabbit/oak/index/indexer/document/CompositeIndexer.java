@@ -19,15 +19,14 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document;
 
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
 public class CompositeIndexer implements NodeStateIndexer {
 

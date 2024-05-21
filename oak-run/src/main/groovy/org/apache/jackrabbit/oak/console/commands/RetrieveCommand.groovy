@@ -24,7 +24,7 @@ import org.codehaus.groovy.tools.shell.CommandSupport
 import org.codehaus.groovy.tools.shell.Groovysh
 
 @CompileStatic
-class RetrieveCommand extends CommandSupport{
+class RetrieveCommand extends CommandSupport {
     public static final String COMMAND_NAME = 'retrieve'
 
     public RetrieveCommand(Groovysh shell) {
@@ -41,7 +41,7 @@ class RetrieveCommand extends CommandSupport{
         return null
     }
 
-    ConsoleSession getSession(){
-        return (ConsoleSession)variables.session
+    ConsoleSession getSession() {
+        return (ConsoleSession) variables.session
     }
 }

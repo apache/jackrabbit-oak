@@ -25,9 +25,10 @@ import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.jetbrains.annotations.NotNull;
 
 /**
-* {@link TokenConfiguration} that combines different token provider implementations.
-*/
-public class CompositeTokenConfiguration extends CompositeConfiguration<TokenConfiguration> implements TokenConfiguration {
+ * {@link TokenConfiguration} that combines different token provider implementations.
+ */
+public class CompositeTokenConfiguration extends
+    CompositeConfiguration<TokenConfiguration> implements TokenConfiguration {
 
     public CompositeTokenConfiguration() {
         super(TokenConfiguration.NAME);
@@ -40,12 +41,13 @@ public class CompositeTokenConfiguration extends CompositeConfiguration<TokenCon
     @NotNull
     @Override
     public TokenProvider getTokenProvider(@NotNull final Root root) {
-        List<TokenProvider> providers = Lists.transform(getConfigurations(), new Function<TokenConfiguration, TokenProvider>() {
-            @Override
-            public TokenProvider apply(TokenConfiguration tokenConfiguration) {
-                return tokenConfiguration.getTokenProvider(root);
-            }
-        });
+        List<TokenProvider> providers = Lists.transform(getConfigurations(),
+            new Function<TokenConfiguration, TokenProvider>() {
+                @Override
+                public TokenProvider apply(TokenConfiguration tokenConfiguration) {
+                    return tokenConfiguration.getTokenProvider(root);
+                }
+            });
         return CompositeTokenProvider.newInstance(providers);
     }
 }

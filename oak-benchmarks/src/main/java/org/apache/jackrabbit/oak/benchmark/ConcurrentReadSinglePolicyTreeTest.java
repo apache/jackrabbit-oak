@@ -21,19 +21,18 @@ import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.Privilege;
-
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 
 /**
- * Concurrently reads random items from the deep tree where only the root node is
- * access controlled.
+ * Concurrently reads random items from the deep tree where only the root node is access
+ * controlled.
  */
 public class ConcurrentReadSinglePolicyTreeTest extends ConcurrentReadDeepTreeTest {
 
     public ConcurrentReadSinglePolicyTreeTest(
-            boolean runAsAdmin, int itemsToRead, boolean doReport) {
+        boolean runAsAdmin, int itemsToRead, boolean doReport) {
         super(runAsAdmin, itemsToRead, doReport);
     }
 
@@ -43,9 +42,11 @@ public class ConcurrentReadSinglePolicyTreeTest extends ConcurrentReadDeepTreeTe
         String path = node.getPath();
         AccessControlManager acMgr = node.getSession().getAccessControlManager();
         if (testRoot.getPath().equals(path)) {
-            JackrabbitAccessControlList policy = AccessControlUtils.getAccessControlList(acMgr, path);
+            JackrabbitAccessControlList policy = AccessControlUtils.getAccessControlList(acMgr,
+                path);
             if (policy != null) {
-                policy.addEntry(EveryonePrincipal.getInstance(), AccessControlUtils.privilegesFromNames(acMgr, Privilege.JCR_READ), true);
+                policy.addEntry(EveryonePrincipal.getInstance(),
+                    AccessControlUtils.privilegesFromNames(acMgr, Privilege.JCR_READ), true);
             }
             acMgr.setPolicy(path, policy);
         } else if (!path.contains("rep:policy")) {

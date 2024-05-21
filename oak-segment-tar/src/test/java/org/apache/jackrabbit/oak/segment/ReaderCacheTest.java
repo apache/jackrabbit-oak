@@ -26,12 +26,10 @@ import static org.junit.Assert.assertTrue;
 import java.util.ArrayList;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
-
+import org.apache.jackrabbit.guava.common.base.Function;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
-
-import org.apache.jackrabbit.guava.common.base.Function;
 
 public class ReaderCacheTest {
 
@@ -39,7 +37,8 @@ public class ReaderCacheTest {
     public void empty() {
         final AtomicInteger counter = new AtomicInteger();
         Function<Integer, String> loader = new Function<Integer, String>() {
-            @Override @NotNull
+            @Override
+            @NotNull
             public String apply(@Nullable Integer input) {
                 counter.incrementAndGet();
                 return valueOf(input);
@@ -62,7 +61,8 @@ public class ReaderCacheTest {
         final AtomicInteger counter = new AtomicInteger();
         final String large = new String(new char[1024]);
         Function<Integer, String> loader = new Function<Integer, String>() {
-            @Override @Nullable
+            @Override
+            @Nullable
             public String apply(@Nullable Integer input) {
                 counter.incrementAndGet();
                 return large + input;
@@ -85,7 +85,8 @@ public class ReaderCacheTest {
     public void clear() {
         final AtomicInteger counter = new AtomicInteger();
         Function<Integer, String> uniqueLoader = new Function<Integer, String>() {
-            @Override @Nullable
+            @Override
+            @Nullable
             public String apply(@Nullable Integer input) {
                 return valueOf(counter.incrementAndGet());
             }
@@ -108,7 +109,8 @@ public class ReaderCacheTest {
         for (int i = 0; i < segmentCount; i++) {
             final int x = i;
             Function<Integer, String> loader = new Function<Integer, String>() {
-                @Override @Nullable
+                @Override
+                @Nullable
                 public String apply(@Nullable Integer input) {
                     return "loader #" + x + " offset " + input;
                 }

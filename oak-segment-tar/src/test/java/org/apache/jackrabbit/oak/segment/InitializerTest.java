@@ -20,10 +20,9 @@
 package org.apache.jackrabbit.oak.segment;
 
 import java.io.IOException;
-
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.InitialContent;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexProvider;
 import org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder;
@@ -48,21 +47,23 @@ public class InitializerTest {
         new InitialContent().initialize(builder);
 
         SecurityProvider provider = SecurityProviderBuilder.newBuilder().with(
-                ConfigurationParameters.of(ImmutableMap.of(UserConfiguration.NAME,
-                        ConfigurationParameters.of(ImmutableMap.of("anonymousId", "anonymous",
-                                "adminId", "admin",
-                                "usersPath", "/home/users",
-                                "groupsPath", "/home/groups",
-                                "defaultDepth", "1"))))).build();
-        WorkspaceInitializer workspaceInitializer = provider.getConfiguration(UserConfiguration.class).getWorkspaceInitializer();
+            ConfigurationParameters.of(ImmutableMap.of(UserConfiguration.NAME,
+                ConfigurationParameters.of(ImmutableMap.of("anonymousId", "anonymous",
+                    "adminId", "admin",
+                    "usersPath", "/home/users",
+                    "groupsPath", "/home/groups",
+                    "defaultDepth", "1"))))).build();
+        WorkspaceInitializer workspaceInitializer = provider.getConfiguration(
+            UserConfiguration.class).getWorkspaceInitializer();
 
         if (workspaceInitializer instanceof QueryIndexProviderAware) {
             ((QueryIndexProviderAware) workspaceInitializer).setQueryIndexProvider(
-                    new CompositeQueryIndexProvider(new PropertyIndexProvider(), new NodeTypeIndexProvider()));
+                new CompositeQueryIndexProvider(new PropertyIndexProvider(),
+                    new NodeTypeIndexProvider()));
         }
 
         workspaceInitializer.initialize(
-                builder, "default");
+            builder, "default");
         builder.getNodeState();
     }
 

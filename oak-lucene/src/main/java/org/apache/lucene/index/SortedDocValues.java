@@ -30,105 +30,111 @@ import org.apache.lucene.util.BytesRef;
 /**
  * A per-document byte[] with presorted values.
  * <p>
- * Per-Document values in a SortedDocValues are deduplicated, dereferenced,
- * and sorted into a dictionary of unique values. A pointer to the
- * dictionary value (ordinal) can be retrieved for each document. Ordinals
- * are dense and in increasing sorted order.
+ * Per-Document values in a SortedDocValues are deduplicated, dereferenced, and sorted into a
+ * dictionary of unique values. A pointer to the dictionary value (ordinal) can be retrieved for
+ * each document. Ordinals are dense and in increasing sorted order.
  */
 public abstract class SortedDocValues extends BinaryDocValues {
-  
-  /** Sole constructor. (For invocation by subclass 
-   * constructors, typically implicit.) */
-  protected SortedDocValues() {}
 
-  /**
-   * Returns the ordinal for the specified docID.
-   * @param  docID document ID to lookup
-   * @return ordinal for the document: this is dense, starts at 0, then
-   *         increments by 1 for the next value in sorted order. Note that
-   *         missing values are indicated by -1.
-   */
-  public abstract int getOrd(int docID);
-
-  /** Retrieves the value for the specified ordinal.
-   * @param ord ordinal to lookup (must be &gt;= 0 and &lt {@link #getValueCount()})
-   * @param result will be populated with the ordinal's value
-   * @see #getOrd(int) 
-   */
-  public abstract void lookupOrd(int ord, BytesRef result);
-
-  /**
-   * Returns the number of unique values.
-   * @return number of unique values in this SortedDocValues. This is
-   *         also equivalent to one plus the maximum ordinal.
-   */
-  public abstract int getValueCount();
-
-  @Override
-  public void get(int docID, BytesRef result) {
-    int ord = getOrd(docID);
-    if (ord == -1) {
-      result.bytes = BytesRef.EMPTY_BYTES;
-      result.length = 0;
-      result.offset = 0;
-    } else {
-      lookupOrd(ord, result);
+    /**
+     * Sole constructor. (For invocation by subclass constructors, typically implicit.)
+     */
+    protected SortedDocValues() {
     }
-  }
 
-  /** An empty SortedDocValues which returns {@link BytesRef#EMPTY_BYTES} for every document */
-  public static final SortedDocValues EMPTY = new SortedDocValues() {
-    @Override
-    public int getOrd(int docID) {
-      return -1;
-    }
+    /**
+     * Returns the ordinal for the specified docID.
+     *
+     * @param docID document ID to lookup
+     * @return ordinal for the document: this is dense, starts at 0, then increments by 1 for the
+     * next value in sorted order. Note that missing values are indicated by -1.
+     */
+    public abstract int getOrd(int docID);
+
+    /**
+     * Retrieves the value for the specified ordinal.
+     *
+     * @param ord    ordinal to lookup (must be &gt;= 0 and &lt {@link #getValueCount()})
+     * @param result will be populated with the ordinal's value
+     * @see #getOrd(int)
+     */
+    public abstract void lookupOrd(int ord, BytesRef result);
+
+    /**
+     * Returns the number of unique values.
+     *
+     * @return number of unique values in this SortedDocValues. This is also equivalent to one plus
+     * the maximum ordinal.
+     */
+    public abstract int getValueCount();
 
     @Override
-    public void lookupOrd(int ord, BytesRef result) {
-      result.bytes = BytesRef.EMPTY_BYTES;
-      result.offset = 0;
-      result.length = 0;
+    public void get(int docID, BytesRef result) {
+        int ord = getOrd(docID);
+        if (ord == -1) {
+            result.bytes = BytesRef.EMPTY_BYTES;
+            result.length = 0;
+            result.offset = 0;
+        } else {
+            lookupOrd(ord, result);
+        }
     }
 
-    @Override
-    public int getValueCount() {
-      return 0;
+    /**
+     * An empty SortedDocValues which returns {@link BytesRef#EMPTY_BYTES} for every document
+     */
+    public static final SortedDocValues EMPTY = new SortedDocValues() {
+        @Override
+        public int getOrd(int docID) {
+            return -1;
+        }
+
+        @Override
+        public void lookupOrd(int ord, BytesRef result) {
+            result.bytes = BytesRef.EMPTY_BYTES;
+            result.offset = 0;
+            result.length = 0;
+        }
+
+        @Override
+        public int getValueCount() {
+            return 0;
+        }
+    };
+
+    /**
+     * If {@code key} exists, returns its ordinal, else returns {@code -insertionPoint-1}, like
+     * {@code Arrays.binarySearch}.
+     *
+     * @param key Key to look up
+     **/
+    public int lookupTerm(BytesRef key) {
+        BytesRef spare = new BytesRef();
+        int low = 0;
+        int high = getValueCount() - 1;
+
+        while (low <= high) {
+            int mid = (low + high) >>> 1;
+            lookupOrd(mid, spare);
+            int cmp = spare.compareTo(key);
+
+            if (cmp < 0) {
+                low = mid + 1;
+            } else if (cmp > 0) {
+                high = mid - 1;
+            } else {
+                return mid; // key found
+            }
+        }
+
+        return -(low + 1);  // key not found.
     }
-  };
 
-  /** If {@code key} exists, returns its ordinal, else
-   *  returns {@code -insertionPoint-1}, like {@code
-   *  Arrays.binarySearch}.
-   *
-   *  @param key Key to look up
-   **/
-  public int lookupTerm(BytesRef key) {
-    BytesRef spare = new BytesRef();
-    int low = 0;
-    int high = getValueCount()-1;
-
-    while (low <= high) {
-      int mid = (low + high) >>> 1;
-      lookupOrd(mid, spare);
-      int cmp = spare.compareTo(key);
-
-      if (cmp < 0) {
-        low = mid + 1;
-      } else if (cmp > 0) {
-        high = mid - 1;
-      } else {
-        return mid; // key found
-      }
+    /**
+     * Returns a {@link TermsEnum} over the values. The enum supports {@link TermsEnum#ord()} and
+     * {@link TermsEnum#seekExact(long)}.
+     */
+    public TermsEnum termsEnum() {
+        return new SortedDocValuesTermsEnum(this);
     }
-
-    return -(low + 1);  // key not found.
-  }
-  
-  /** 
-   * Returns a {@link TermsEnum} over the values.
-   * The enum supports {@link TermsEnum#ord()} and {@link TermsEnum#seekExact(long)}.
-   */
-  public TermsEnum termsEnum() {
-    return new SortedDocValuesTermsEnum(this);
-  }
 }

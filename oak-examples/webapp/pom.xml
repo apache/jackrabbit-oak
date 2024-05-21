@@ -17,12 +17,14 @@
    limitations under the License.
   -->
 
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-<!-- ====================================================================== -->
-<!-- P R O J E C T  D E S C R I P T I O N                                   -->
-<!-- ====================================================================== -->
+  <!-- ====================================================================== -->
+  <!-- P R O J E C T  D E S C R I P T I O N                                   -->
+  <!-- ====================================================================== -->
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
@@ -32,7 +34,8 @@
   <artifactId>oak-webapp</artifactId>
   <packaging>war</packaging>
   <name>Oak Web Application Example</name>
-  <description>Web application that hosts and serves a Jackrabbit Oak content repository</description>
+  <description>Web application that hosts and serves a Jackrabbit Oak content repository
+  </description>
 
   <properties>
     <tomcat.version>9.0.89</tomcat.version>
@@ -213,22 +216,22 @@
   <build>
     <plugins>
       <plugin>
-         <groupId>org.eclipse.jetty</groupId>
-         <artifactId>jetty-maven-plugin</artifactId>
-         <version>11.0.21</version>
-         <configuration>
-           <scan>-1</scan>
-           <httpConnector>
-             <port>8080</port>
-             <idleTimeout>60000</idleTimeout>
-           </httpConnector>
-           <webApp>
-             <!-- no need to scan anything as we're using servlet 2.5 and moreover, we're not using ServletContainerInitializer(s) -->
-             <!-- for more relevant information regarding scanning of classes refer to https://java.net/jira/browse/SERVLET_SPEC-36 -->
-             <webInfIncludeJarPattern>^$</webInfIncludeJarPattern>
-             <containerIncludeJarPattern>^$</containerIncludeJarPattern>
-           </webApp>
-         </configuration>
+        <groupId>org.eclipse.jetty</groupId>
+        <artifactId>jetty-maven-plugin</artifactId>
+        <version>11.0.21</version>
+        <configuration>
+          <scan>-1</scan>
+          <httpConnector>
+            <port>8080</port>
+            <idleTimeout>60000</idleTimeout>
+          </httpConnector>
+          <webApp>
+            <!-- no need to scan anything as we're using servlet 2.5 and moreover, we're not using ServletContainerInitializer(s) -->
+            <!-- for more relevant information regarding scanning of classes refer to https://java.net/jira/browse/SERVLET_SPEC-36 -->
+            <webInfIncludeJarPattern>^$</webInfIncludeJarPattern>
+            <containerIncludeJarPattern>^$</containerIncludeJarPattern>
+          </webApp>
+        </configuration>
       </plugin>
       <plugin>
         <!-- create a jar in addition to our war, to make our servlets reusable -->
@@ -238,7 +241,8 @@
             <phase>package</phase>
             <configuration>
               <target>
-                <jar basedir="${project.build.outputDirectory}" destfile="${project.build.directory}/oak-webapp-${project.version}.jar" />
+                <jar basedir="${project.build.outputDirectory}"
+                  destfile="${project.build.directory}/oak-webapp-${project.version}.jar"/>
               </target>
             </configuration>
             <goals>
@@ -260,12 +264,12 @@
               <goal>attach-artifact</goal>
             </goals>
             <configuration>
-                <artifacts>
-                  <artifact>
-                    <file>${project.build.directory}/oak-webapp-${project.version}.jar</file>
-                    <type>jar</type>
-                  </artifact>
-                </artifacts>
+              <artifacts>
+                <artifact>
+                  <file>${project.build.directory}/oak-webapp-${project.version}.jar</file>
+                  <type>jar</type>
+                </artifact>
+              </artifacts>
             </configuration>
           </execution>
           <execution>

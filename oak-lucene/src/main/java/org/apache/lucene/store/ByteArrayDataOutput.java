@@ -31,50 +31,52 @@ import org.apache.lucene.util.BytesRef;
  * DataOutput backed by a byte array.
  * <b>WARNING:</b> This class omits most low-level checks,
  * so be sure to test heavily with assertions enabled.
+ *
  * @lucene.experimental
  */
 public class ByteArrayDataOutput extends DataOutput {
-  private byte[] bytes;
 
-  private int pos;
-  private int limit;
+    private byte[] bytes;
 
-  public ByteArrayDataOutput(byte[] bytes) {
-    reset(bytes);
-  }
+    private int pos;
+    private int limit;
 
-  public ByteArrayDataOutput(byte[] bytes, int offset, int len) {
-    reset(bytes, offset, len);
-  }
+    public ByteArrayDataOutput(byte[] bytes) {
+        reset(bytes);
+    }
 
-  public ByteArrayDataOutput() {
-    reset(BytesRef.EMPTY_BYTES);
-  }
+    public ByteArrayDataOutput(byte[] bytes, int offset, int len) {
+        reset(bytes, offset, len);
+    }
 
-  public void reset(byte[] bytes) {
-    reset(bytes, 0, bytes.length);
-  }
-  
-  public void reset(byte[] bytes, int offset, int len) {
-    this.bytes = bytes;
-    pos = offset;
-    limit = offset + len;
-  }
-  
-  public int getPosition() {
-    return pos;
-  }
+    public ByteArrayDataOutput() {
+        reset(BytesRef.EMPTY_BYTES);
+    }
 
-  @Override
-  public void writeByte(byte b) {
-    assert pos < limit;
-    bytes[pos++] = b;
-  }
+    public void reset(byte[] bytes) {
+        reset(bytes, 0, bytes.length);
+    }
 
-  @Override
-  public void writeBytes(byte[] b, int offset, int length) {
-    assert pos + length <= limit;
-    System.arraycopy(b, offset, bytes, pos, length);
-    pos += length;
-  }
+    public void reset(byte[] bytes, int offset, int len) {
+        this.bytes = bytes;
+        pos = offset;
+        limit = offset + len;
+    }
+
+    public int getPosition() {
+        return pos;
+    }
+
+    @Override
+    public void writeByte(byte b) {
+        assert pos < limit;
+        bytes[pos++] = b;
+    }
+
+    @Override
+    public void writeBytes(byte[] b, int offset, int length) {
+        assert pos + length <= limit;
+        System.arraycopy(b, offset, bytes, pos, length);
+        pos += length;
+    }
 }

@@ -18,7 +18,6 @@
 package org.apache.jackrabbit.oak.run.cli;
 
 import java.io.Closeable;
-
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;

@@ -58,10 +58,10 @@ public class HeavyWriteIT {
     @Test
     public void heavyWrite() throws Exception {
         final FileStore store = fileStoreBuilder(getFileStoreFolder())
-                .withMaxFileSize(128)
-                .withMemoryMapping(false)
-                .withGCOptions(defaultGCOptions().setRetainedGenerations(42))
-                .build();
+            .withMaxFileSize(128)
+            .withMemoryMapping(false)
+            .withGCOptions(defaultGCOptions().setRetainedGenerations(42))
+            .build();
         final SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(store).build();
 
         int writes = 100;
@@ -85,7 +85,7 @@ public class HeavyWriteIT {
         thread.start();
 
         try {
-            for (int k = 1; k<=writes; k++) {
+            for (int k = 1; k <= writes; k++) {
                 NodeBuilder root = nodeStore.getRoot().builder();
                 NodeBuilder test = root.setChildNode("test");
                 createNodes(nodeStore, test, 10, 2);
@@ -103,7 +103,8 @@ public class HeavyWriteIT {
         }
     }
 
-    private static void createNodes(NodeStore nodeStore, NodeBuilder builder, int count, int depth) throws IOException {
+    private static void createNodes(NodeStore nodeStore, NodeBuilder builder, int count, int depth)
+        throws IOException {
         if (depth > 0) {
             for (int k = 0; k < count; k++) {
                 NodeBuilder child = builder.setChildNode("node" + k);
@@ -113,7 +114,8 @@ public class HeavyWriteIT {
         }
     }
 
-    private static void createProperties(NodeStore nodeStore, NodeBuilder builder, int count) throws IOException {
+    private static void createProperties(NodeStore nodeStore, NodeBuilder builder, int count)
+        throws IOException {
         for (int k = 0; k < count; k++) {
             builder.setProperty("property-" + k, createBlob(nodeStore, 100000));
         }

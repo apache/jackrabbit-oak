@@ -22,7 +22,7 @@ import javax.jcr.Session;
 public class SequentialCreateNodesTest extends AbstractTest {
 
     protected static final String ROOT_NODE_NAME = "test" + TEST_ID;
-	private static final int NODE_COUNT = 25;
+    private static final int NODE_COUNT = 25;
 
     @Override
     public void beforeTest() throws Exception {
@@ -35,11 +35,11 @@ public class SequentialCreateNodesTest extends AbstractTest {
     }
 
     @Override
-	protected void runTest() throws Exception {
-        
-    	final Session session = loginWriter(); // TODO: anonymous is slow
-        
-    	Node root = session.getRootNode().getNode(ROOT_NODE_NAME);
+    protected void runTest() throws Exception {
+
+        final Session session = loginWriter(); // TODO: anonymous is slow
+
+        Node root = session.getRootNode().getNode(ROOT_NODE_NAME);
         for (int i = 0; i < NODE_COUNT; i++) {
             Node node = root.getNode("node" + i);
             for (int j = 0; j < NODE_COUNT; j++) {
@@ -47,8 +47,8 @@ public class SequentialCreateNodesTest extends AbstractTest {
                 session.save();
             }
         }
-	}
-    
+    }
+
     @Override
     public void afterTest() throws Exception {
         Session session = loginWriter();

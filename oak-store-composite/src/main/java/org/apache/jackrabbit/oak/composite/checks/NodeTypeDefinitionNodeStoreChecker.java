@@ -50,30 +50,35 @@ import org.apache.jackrabbit.oak.spi.state.ReadOnlyBuilder;
  */
 @Component
 @Service(MountedNodeStoreChecker.class)
-public class NodeTypeDefinitionNodeStoreChecker implements MountedNodeStoreChecker<NodeTypeDefinitionNodeStoreChecker.Context> {
-    
+public class NodeTypeDefinitionNodeStoreChecker implements
+    MountedNodeStoreChecker<NodeTypeDefinitionNodeStoreChecker.Context> {
+
     @Override
     public Context createContext(NodeStore globalStore, MountInfoProvider mip) {
-        
-        NodeState nodeTypes = globalStore.getRoot().getChildNode(JCR_SYSTEM).getChildNode(JCR_NODE_TYPES);
-        
+
+        NodeState nodeTypes = globalStore.getRoot().getChildNode(JCR_SYSTEM)
+                                         .getChildNode(JCR_NODE_TYPES);
+
         return new Context(nodeTypes);
     }
 
     @Override
-    public boolean check(MountedNodeStore mountedStore, Tree tree, ErrorHolder errorHolder, Context context) {
-        
+    public boolean check(MountedNodeStore mountedStore, Tree tree, ErrorHolder errorHolder,
+        Context context) {
+
         ConstraintViolationCallback callback = new ConstraintViolationCallback() {
             @Override
-            public void onConstraintViolation(String path, List<String> typeNames, int code, String message)
-                    throws CommitFailedException {
-                errorHolder.report(mountedStore, path, message, NodeTypeDefinitionNodeStoreChecker.this);
+            public void onConstraintViolation(String path, List<String> typeNames, int code,
+                String message)
+                throws CommitFailedException {
+                errorHolder.report(mountedStore, path, message,
+                    NodeTypeDefinitionNodeStoreChecker.this);
             }
         };
-        
+
         NodeState root = mountedStore.getNodeStore().getRoot();
         NodeBuilder rootBuilder = new ReadOnlyBuilder(root); // prevent accidental changes
-        
+
         String primary = root.getName(JCR_PRIMARYTYPE);
         // workaround until https://issues.apache.org/jira/browse/OAK-9863 is fixed
         if (primary == null) {
@@ -87,40 +92,39 @@ public class NodeTypeDefinitionNodeStoreChecker implements MountedNodeStoreCheck
             // the editor still tries to process them, so avoid that
             checkNodeTypeNames.remove(IndexConstants.INDEX_DEFINITIONS_NODE_TYPE);
             Editor editor = new VisibleEditor(TypeEditor.create(
-                    callback, checkNodeTypeNames, context.nodeTypes,
-                    primary, mixins, rootBuilder));
-        
-            // errors already propagated via the ConstraintViolationCallback so 
+                callback, checkNodeTypeNames, context.nodeTypes,
+                primary, mixins, rootBuilder));
+
+            // errors already propagated via the ConstraintViolationCallback so
             // no need to look at the CommitException
             EditorDiff.process(editor, MISSING_NODE, root);
-            
+
         } catch (CommitFailedException e) {
             errorHolder.report(mountedStore, "/", "Unexpected error : " + e.getMessage(), this);
         }
 
-        
         // the VisibleEditor does its own traversal so we only run one check
         return false;
     }
 
     static class Context {
-        
+
         private final NodeState nodeTypes;
 
         private Context(NodeState nodeTypes) {
             this.nodeTypes = nodeTypes;
         }
-        
+
         private Set<String> getAllNodeTypeNames() {
-            
+
             Set<String> modifiedTypes = new HashSet<>();
-            for ( ChildNodeEntry child : nodeTypes.getChildNodeEntries() ) {
+            for (ChildNodeEntry child : nodeTypes.getChildNodeEntries()) {
                 modifiedTypes.add(child.getNodeState().getName(JcrConstants.JCR_NODETYPENAME));
             }
-            
+
             return modifiedTypes;
         }
-        
+
     }
 
 }

@@ -16,6 +16,12 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.PARAM_IMPERSONATOR_PRINCIPAL_NAMES;
+
+import java.security.Principal;
+import java.util.Set;
+import javax.jcr.AccessDeniedException;
+import javax.jcr.RepositoryException;
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -34,13 +40,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.jcr.AccessDeniedException;
-import javax.jcr.RepositoryException;
-import java.security.Principal;
-import java.util.Set;
-
-import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.PARAM_IMPERSONATOR_PRINCIPAL_NAMES;
 
 public final class Utils {
 

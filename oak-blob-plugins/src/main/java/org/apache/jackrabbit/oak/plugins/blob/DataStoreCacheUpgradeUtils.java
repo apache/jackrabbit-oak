@@ -16,33 +16,30 @@
  */
 package org.apache.jackrabbit.oak.plugins.blob;
 
+import static org.apache.jackrabbit.oak.plugins.blob.DataStoreCacheUtils.recursiveDelete;
+
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.serialization.ValidatingObjectInputStream;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.commons.io.FileTreeTraverser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.apache.jackrabbit.oak.plugins.blob.DataStoreCacheUtils.recursiveDelete;
 
 /**
  * Utility methods to upgrade Old DataStore cache
  * {@link org.apache.jackrabbit.core.data.CachingDataStore}.
  */
 public class DataStoreCacheUpgradeUtils {
+
     private static final Logger LOG = LoggerFactory.getLogger(DataStoreCacheUpgradeUtils.class);
 
     static final String UPLOAD_MAP = "async-pending-uploads.ser";
@@ -50,7 +47,8 @@ public class DataStoreCacheUpgradeUtils {
     static final String DOWNLOAD_DIR = FileCache.DOWNLOAD_DIR;
 
     /**
-     * De-serialize the pending uploads map from {@link org.apache.jackrabbit.core.data.AsyncUploadCache}.
+     * De-serialize the pending uploads map from
+     * {@link org.apache.jackrabbit.core.data.AsyncUploadCache}.
      *
      * @param homeDir the directory where the serialized file is maintained
      * @return the de-serialized map
@@ -69,7 +67,8 @@ public class DataStoreCacheUpgradeUtils {
                 input.accept(HashMap.class, Map.class, Number.class, Long.class, String.class);
                 asyncUploadMap = (Map<String, Long>) input.readObject();
             } catch (Exception e) {
-                LOG.error("Error in reading pending uploads map [{}] from location [{}]", UPLOAD_MAP,
+                LOG.error("Error in reading pending uploads map [{}] from location [{}]",
+                    UPLOAD_MAP,
                     homeDir, e);
             } finally {
                 IOUtils.closeQuietly(fis);
@@ -103,6 +102,7 @@ public class DataStoreCacheUpgradeUtils {
     /**
      * Move the DataStore downloaded cache files to the appropriate folder used by the new cache
      * {@link FileCache}
+     *
      * @param path the root of the datastore
      */
     public static void moveDownloadCache(final File path) {
@@ -110,33 +110,38 @@ public class DataStoreCacheUpgradeUtils {
         File newDownloadDir = new File(path, DOWNLOAD_DIR);
 
         FileTreeTraverser.depthFirstPostOrder(path)
-                .filter(file -> file.isFile()
-                        && !file.getParentFile().equals(path)
-                        && !notInExceptions(file, exceptions))
-                .forEach(download -> {
-                    LOG.trace("Download cache file absolute pre-upgrade path {}", download);
+                         .filter(file -> file.isFile()
+                             && !file.getParentFile().equals(path)
+                             && !notInExceptions(file, exceptions))
+                         .forEach(download -> {
+                             LOG.trace("Download cache file absolute pre-upgrade path {}",
+                                 download);
 
-                    File newDownload = new File(newDownloadDir,
-                            download.getAbsolutePath().substring(path.getAbsolutePath().length()));
-                    newDownload.getParentFile().mkdirs();
-                    LOG.trace("Downloaded cache file absolute post-upgrade path {}", newDownload);
+                             File newDownload = new File(newDownloadDir,
+                                 download.getAbsolutePath()
+                                         .substring(path.getAbsolutePath().length()));
+                             newDownload.getParentFile().mkdirs();
+                             LOG.trace("Downloaded cache file absolute post-upgrade path {}",
+                                 newDownload);
 
-                    try {
-                        FileUtils.moveFile(download, newDownload);
-                        LOG.info("Download cache file [{}] moved to [{}]", download, newDownload);
-                        recursiveDelete(download, path);
-                    } catch (Exception e) {
-                        LOG.warn("Unable to move download cache file [{}] to [{}]", download, newDownload);
-                    }
-                });
+                             try {
+                                 FileUtils.moveFile(download, newDownload);
+                                 LOG.info("Download cache file [{}] moved to [{}]", download,
+                                     newDownload);
+                                 recursiveDelete(download, path);
+                             } catch (Exception e) {
+                                 LOG.warn("Unable to move download cache file [{}] to [{}]",
+                                     download, newDownload);
+                             }
+                         });
     }
 
     /**
-     * Move the pending uploads read from the de-serialized map to the appropriate directory
-     * used by the {@link UploadStagingCache}.
+     * Move the pending uploads read from the de-serialized map to the appropriate directory used by
+     * the {@link UploadStagingCache}.
      *
-     * @param homeDir the repository home directory
-     * @param path the root of the datastore
+     * @param homeDir   the repository home directory
+     * @param path      the root of the datastore
      * @param deleteMap flag indicating whether to delete the pending upload map after upgrade
      */
     public static void movePendingUploadsToStaging(File homeDir, File path, boolean deleteMap) {
@@ -179,8 +184,8 @@ public class DataStoreCacheUpgradeUtils {
     /**
      * Upgrades the {@link org.apache.jackrabbit.core.data.CachingDataStore}.
      *
-     * @param homeDir the repository home directory
-     * @param path the root of the datastore
+     * @param homeDir   the repository home directory
+     * @param path      the root of the datastore
      * @param moveCache flag whether to move the downloaded cache files
      * @param deleteMap flag indicating whether to delete the pending upload map after upgrade
      */

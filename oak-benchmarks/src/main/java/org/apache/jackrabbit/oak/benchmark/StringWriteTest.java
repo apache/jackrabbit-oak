@@ -17,14 +17,14 @@
 package org.apache.jackrabbit.oak.benchmark;
 
 import java.util.UUID;
-
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
 public class StringWriteTest extends AbstractTest<Object> {
 
-    private static final int PROPERTY_COUNT = Integer.getInteger("StringWriteTest.propertyCount", 100);
+    private static final int PROPERTY_COUNT = Integer.getInteger("StringWriteTest.propertyCount",
+        100);
 
     private static String randomString() {
         return UUID.randomUUID().toString();

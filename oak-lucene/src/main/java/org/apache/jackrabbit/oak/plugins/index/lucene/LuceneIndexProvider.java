@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.io.Closeable;
 import java.util.List;
-
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.AggregateIndex;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -30,7 +29,7 @@ import org.jetbrains.annotations.NotNull;
 
 /**
  * A provider for Lucene indexes.
- * 
+ *
  * @see LuceneIndex
  */
 public class LuceneIndexProvider implements QueryIndexProvider, Observer, Closeable {
@@ -71,7 +70,8 @@ public class LuceneIndexProvider implements QueryIndexProvider, Observer, Closea
 
     //------------------------------------------------< QueryIndexProvider >--
 
-    @Override @NotNull
+    @Override
+    @NotNull
     public List<QueryIndex> getQueryIndexes(NodeState nodeState) {
         return ImmutableList.of(new AggregateIndex(newLuceneIndex()), newLucenePropertyIndex());
     }

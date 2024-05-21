@@ -33,12 +33,14 @@ import static org.junit.Assert.fail;
  */
 public class UpsertMetricUpdaterTest extends BaseUpdaterTest {
 
-    private final UpsertMetricUpdater uMUWithoutThrottling = new UpsertMetricUpdater(provider.getMeter(NODES_CREATE_UPSERT, DEFAULT),
-            provider.getMeter(NODES_CREATE_SPLIT, DEFAULT),
-            provider.getTimer(NODES_CREATE_UPSERT_TIMER, METRICS_ONLY));
-    private final UpsertMetricUpdater uMUWithThrottling = new UpsertMetricUpdater(provider.getMeter(NODES_CREATE_UPSERT_THROTTLING, DEFAULT),
-            provider.getMeter(NODES_CREATE_SPLIT_THROTTLING, DEFAULT),
-            provider.getTimer(NODES_CREATE_UPSERT_THROTTLING_TIMER, METRICS_ONLY));
+    private final UpsertMetricUpdater uMUWithoutThrottling = new UpsertMetricUpdater(
+        provider.getMeter(NODES_CREATE_UPSERT, DEFAULT),
+        provider.getMeter(NODES_CREATE_SPLIT, DEFAULT),
+        provider.getTimer(NODES_CREATE_UPSERT_TIMER, METRICS_ONLY));
+    private final UpsertMetricUpdater uMUWithThrottling = new UpsertMetricUpdater(
+        provider.getMeter(NODES_CREATE_UPSERT_THROTTLING, DEFAULT),
+        provider.getMeter(NODES_CREATE_SPLIT_THROTTLING, DEFAULT),
+        provider.getTimer(NODES_CREATE_UPSERT_THROTTLING_TIMER, METRICS_ONLY));
 
     @Test(expected = NullPointerException.class)
     public void updateWithNullPredicate() {
@@ -54,42 +56,53 @@ public class UpsertMetricUpdaterTest extends BaseUpdaterTest {
 
     @Test
     public void updateNodesEmptyList() {
-        uMUWithoutThrottling.update(NODES, 100, of(), isNodesCollectionUpdated(), getCreateStatsConsumer());
+        uMUWithoutThrottling.update(NODES, 100, of(), isNodesCollectionUpdated(),
+            getCreateStatsConsumer());
         assertWithoutThrottling(0, 0, 0);
     }
 
     @Test
     public void updateNonNodesCollection() {
-        uMUWithThrottling.update(JOURNAL, 100, of(), isNodesCollectionUpdated(), getCreateStatsConsumer());
+        uMUWithThrottling.update(JOURNAL, 100, of(), isNodesCollectionUpdated(),
+            getCreateStatsConsumer());
         assertWithThrottling(0, 0, 0);
     }
 
     @Test
     public void updateNodes() {
-        uMUWithThrottling.update(NODES, 100, of("a", "b"), isNodesCollectionUpdated(), getCreateStatsConsumer());
+        uMUWithThrottling.update(NODES, 100, of("a", "b"), isNodesCollectionUpdated(),
+            getCreateStatsConsumer());
         assertWithThrottling(2, 0, 50);
 
-        uMUWithoutThrottling.update(NODES, 100, of("a", "b"), isNodesCollectionUpdated(), getCreateStatsConsumer());
+        uMUWithoutThrottling.update(NODES, 100, of("a", "b"), isNodesCollectionUpdated(),
+            getCreateStatsConsumer());
         assertWithoutThrottling(2, 0, 50);
     }
 
     @Test
     public void updateNodesWithPreviousDocId() {
-        uMUWithThrottling.update(NODES, 100, of("15:p/a/b/c/d/e/f/g/h/i/j/k/l/m/r182f83543dd-0-0/3"), isNodesCollectionUpdated(), getCreateStatsConsumer());
+        uMUWithThrottling.update(NODES, 100,
+            of("15:p/a/b/c/d/e/f/g/h/i/j/k/l/m/r182f83543dd-0-0/3"), isNodesCollectionUpdated(),
+            getCreateStatsConsumer());
         assertWithThrottling(1, 1, 100);
 
-        uMUWithoutThrottling.update(NODES, 100, of("15:p/a/b/c/d/e/f/g/h/i/j/k/l/m/r182f83543dd-0-0/3"), isNodesCollectionUpdated(), getCreateStatsConsumer());
+        uMUWithoutThrottling.update(NODES, 100,
+            of("15:p/a/b/c/d/e/f/g/h/i/j/k/l/m/r182f83543dd-0-0/3"), isNodesCollectionUpdated(),
+            getCreateStatsConsumer());
         assertWithoutThrottling(1, 1, 100);
     }
 
     // helper methods
-    private void assertWithThrottling(final long nodesCreate, final long nodesCreateSplit, final long nodesCreateTimer) {
+    private void assertWithThrottling(final long nodesCreate, final long nodesCreateSplit,
+        final long nodesCreateTimer) {
         assertEquals(nodesCreate, getMeter(NODES_CREATE_UPSERT_THROTTLING).getCount());
         assertEquals(nodesCreateSplit, getMeter(NODES_CREATE_SPLIT_THROTTLING).getCount());
-        assertEquals(nodesCreateTimer, getTimer(NODES_CREATE_UPSERT_THROTTLING_TIMER).getSnapshot().getMax());
+        assertEquals(nodesCreateTimer,
+            getTimer(NODES_CREATE_UPSERT_THROTTLING_TIMER).getSnapshot().getMax());
     }
 
-    private void assertWithoutThrottling(final long nodesCreate, final long nodesCreateSplit, final long nodesCreateTimer) {
+    private void assertWithoutThrottling(final long nodesCreate, final long nodesCreateSplit,
+        final long nodesCreateTimer) {
         assertEquals(nodesCreate, getMeter(NODES_CREATE_UPSERT).getCount());
         assertEquals(nodesCreateSplit, getMeter(NODES_CREATE_SPLIT).getCount());
         assertEquals(nodesCreateTimer, getTimer(NODES_CREATE_UPSERT_TIMER).getSnapshot().getMax());

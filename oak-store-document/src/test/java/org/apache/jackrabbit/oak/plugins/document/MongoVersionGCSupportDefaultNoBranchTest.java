@@ -69,8 +69,10 @@ import com.mongodb.ReadPreference;
 public class MongoVersionGCSupportDefaultNoBranchTest {
 
     private static class Stats {
+
         private final VersionGCStats versionGCStats;
         private final int nodesDeleteMany;
+
         Stats(VersionGCStats stats, int nodesDeleteMany) {
             if (stats == null) {
                 throw new IllegalArgumentException("stats must not be null");
@@ -99,7 +101,7 @@ public class MongoVersionGCSupportDefaultNoBranchTest {
     }
 
     private static final Set<NodeDocument.SplitDocType> GC_TYPES = EnumSet.of(
-            DEFAULT_LEAF, COMMIT_ROOT_ONLY, DEFAULT_NO_BRANCH);
+        DEFAULT_LEAF, COMMIT_ROOT_ONLY, DEFAULT_NO_BRANCH);
 
     class MongoVersionGCSupportAccessor extends MongoVersionGCSupport {
 
@@ -108,10 +110,11 @@ public class MongoVersionGCSupportDefaultNoBranchTest {
         }
 
         protected Iterable<NodeDocument> identifyGarbage(Set<SplitDocType> gcTypes,
-                RevisionVector sweepRevs, long oldestRevTimeStamp) {
+            RevisionVector sweepRevs, long oldestRevTimeStamp) {
             return super.identifyGarbage(gcTypes, sweepRevs, oldestRevTimeStamp);
         }
     }
+
     // using AbstractTwoNodeTest as a helper rather than subclassing to simplify things
     private AbstractTwoNodeTest helper;
     private DocumentStoreFixture fixture;
@@ -126,7 +129,7 @@ public class MongoVersionGCSupportDefaultNoBranchTest {
     private Clock clock;
     private AtomicInteger offset = new AtomicInteger(0);
 
-    @Parameterized.Parameters(name="{0}")
+    @Parameterized.Parameters(name = "{0}")
     public static java.util.Collection<DocumentStoreFixture> fixtures() {
         List<DocumentStoreFixture> fixtures = Lists.newArrayList();
         if (MONGO.isAvailable()) {
@@ -135,8 +138,9 @@ public class MongoVersionGCSupportDefaultNoBranchTest {
                 public DocumentStore createDocumentStore(Builder builder) {
                     try {
                         MongoConnection connection = MongoUtils.getConnection();
-                        CountingMongoDatabase db = new CountingMongoDatabase(connection.getDatabase());
-                        return new MongoDocumentStore(connection.getMongoClient(),db, builder);
+                        CountingMongoDatabase db = new CountingMongoDatabase(
+                            connection.getDatabase());
+                        return new MongoDocumentStore(connection.getMongoClient(), db, builder);
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     }
@@ -146,7 +150,8 @@ public class MongoVersionGCSupportDefaultNoBranchTest {
         return fixtures;
     }
 
-    public MongoVersionGCSupportDefaultNoBranchTest(final DocumentStoreFixture fixture) throws InterruptedException {
+    public MongoVersionGCSupportDefaultNoBranchTest(final DocumentStoreFixture fixture)
+        throws InterruptedException {
         this.fixture = fixture;
         helper = new AbstractTwoNodeTest(fixture);
         helper.setUp();
@@ -198,10 +203,13 @@ public class MongoVersionGCSupportDefaultNoBranchTest {
         fixture.dispose();
     }
 
-    public Stats deleteSplitDocuments(VersionGCSupport gcSupport, RevisionVector sweepRevs, long oldestRevTimeStamp) {
+    public Stats deleteSplitDocuments(VersionGCSupport gcSupport, RevisionVector sweepRevs,
+        long oldestRevTimeStamp) {
         int a = getNodesDeleteMany();
         VersionGCStats stats = new VersionGCStats();
-        ((VersionGCSupport)gcSupport).deleteSplitDocuments(GC_TYPES, sweepRevs, oldestRevTimeStamp, stats);;
+        ((VersionGCSupport) gcSupport).deleteSplitDocuments(GC_TYPES, sweepRevs, oldestRevTimeStamp,
+            stats);
+        ;
         int b = getNodesDeleteMany() - a;
         return new Stats(stats, b);
     }
@@ -254,10 +262,10 @@ public class MongoVersionGCSupportDefaultNoBranchTest {
         ds1.runBackgroundOperations();
         ds2.runBackgroundOperations();
 
-        for(int i = 0; i < numSplit1; i++) {
+        for (int i = 0; i < numSplit1; i++) {
             splitPathNoBranch(ds1, "/foo", ds2);
         }
-        for(int i = 0; i < numSplit2; i++) {
+        for (int i = 0; i < numSplit2; i++) {
             splitPathNoBranch(ds2, "/foo", ds1);
         }
 
@@ -283,11 +291,14 @@ public class MongoVersionGCSupportDefaultNoBranchTest {
         assertNumSplitDocs(store2, "/foo", totalSplits);
 
         RevisionVector sweepRevs = ds1.getSweepRevisions();
-        Iterable<NodeDocument> garbage = gcSupport1.identifyGarbage(GC_TYPES, sweepRevs, oldestRevTimeStamp);
+        Iterable<NodeDocument> garbage = gcSupport1.identifyGarbage(GC_TYPES, sweepRevs,
+            oldestRevTimeStamp);
         assertNotNull(garbage);
         assertEquals(totalSplits, Iterables.size(garbage));
-        assertEquals(numSplit1, Iterables.size(Iterables.filter(garbage, splitDocsWithClusterId(1))));
-        assertEquals(numSplit2, Iterables.size(Iterables.filter(garbage, splitDocsWithClusterId(2))));
+        assertEquals(numSplit1,
+            Iterables.size(Iterables.filter(garbage, splitDocsWithClusterId(1))));
+        assertEquals(numSplit2,
+            Iterables.size(Iterables.filter(garbage, splitDocsWithClusterId(2))));
 
         Stats stats = deleteSplitDocuments(gcSupport1, sweepRevs, oldestRevTimeStamp);
         assertNotNull(stats);
@@ -310,7 +321,8 @@ public class MongoVersionGCSupportDefaultNoBranchTest {
         assertEquals(1, stats.nodesDeleteMany);
     }
 
-    public void modify(DocumentNodeStore ds, Function<NodeBuilder,NodeBuilder> builderFunction) throws CommitFailedException {
+    public void modify(DocumentNodeStore ds, Function<NodeBuilder, NodeBuilder> builderFunction)
+        throws CommitFailedException {
         NodeBuilder builder = ds.getRoot().builder();
         builderFunction.apply(builder);
         TestUtils.merge(ds, builder);
@@ -319,16 +331,16 @@ public class MongoVersionGCSupportDefaultNoBranchTest {
     @Test
     public void testLastDefaultNoBranchDeletionRevs() throws Exception {
         final int NUM_BOTH_SPLITS = 10;
-        for(int i = 0; i < NUM_BOTH_SPLITS; i++) {
-            doTestBothInstancesSplit(1,2);
+        for (int i = 0; i < NUM_BOTH_SPLITS; i++) {
+            doTestBothInstancesSplit(1, 2);
         }
         ds1.runBackgroundOperations();
         ds2.runBackgroundOperations();
         int removesCount = resetNodesDeleteMany();
         // there should be 4 deleteMany calls : first call results in 3, second in 1 => 4
         assertEquals(4 * NUM_BOTH_SPLITS, removesCount);
-        for(int i = 0; i < 10; i++) {
-            doTestBothInstancesSplit(1,0);
+        for (int i = 0; i < 10; i++) {
+            doTestBothInstancesSplit(1, 0);
         }
         ds1.runBackgroundOperations();
         ds2.runBackgroundOperations();
@@ -338,7 +350,7 @@ public class MongoVersionGCSupportDefaultNoBranchTest {
         // so the condition is strict >3 and <4
         assertTrue(3 * NUM_BOTH_SPLITS < removesCount);
         assertTrue(4 * NUM_BOTH_SPLITS > removesCount);
-        for(int i = 0; i < 10; i++) {
+        for (int i = 0; i < 10; i++) {
             doTestBothInstancesSplit(0, 1);
         }
         ds1.runBackgroundOperations();
@@ -364,21 +376,24 @@ public class MongoVersionGCSupportDefaultNoBranchTest {
     }
 
     private void waitALittle() throws InterruptedException {
-        clock.waitUntil(clock.getTime() + TimeUnit.SECONDS.toMillis(NodeDocument.MODIFIED_IN_SECS_RESOLUTION * 2));
+        clock.waitUntil(clock.getTime() + TimeUnit.SECONDS.toMillis(
+            NodeDocument.MODIFIED_IN_SECS_RESOLUTION * 2));
     }
 
     private void assertNumSplitDocs(DocumentStore ds, String path, int expected) throws Exception {
         assertEquals(expected, getNumSplitDocuments(ds, path));
     }
 
-    private void splitPathNoBranch(DocumentNodeStore ns, String path, DocumentNodeStore... otherStores)
-            throws Exception {
+    private void splitPathNoBranch(DocumentNodeStore ns, String path,
+        DocumentNodeStore... otherStores)
+        throws Exception {
         NodeBuilder builder = ns.getRoot().builder();
         NodeBuilder nb = builder;
         for (String name : PathUtils.elements(path)) {
             nb = nb.child(name);
         }
-        nb.child("noBranchChild"); // DEFAULT_NO_BRANCH requires a child, otherwise it could be DEFAULT_LEAF
+        nb.child(
+            "noBranchChild"); // DEFAULT_NO_BRANCH requires a child, otherwise it could be DEFAULT_LEAF
         nb.setProperty("o", offset.getAndIncrement());
         TestUtils.merge(ns, builder);
         nb.setProperty("o", offset.getAndIncrement());
@@ -389,7 +404,7 @@ public class MongoVersionGCSupportDefaultNoBranchTest {
         DocumentStore store = ns.getDocumentStore();
         NodeDocument doc = store.find(NODES, getIdFromPath(path));
         List<UpdateOp> ops = forDocument(doc, ns, ns.getHeadRevision(),
-                TestUtils.NO_BINARY, 2);
+            TestUtils.NO_BINARY, 2);
         assertFalse(ops.isEmpty());
         store.createOrUpdate(NODES, ops);
 
@@ -400,7 +415,7 @@ public class MongoVersionGCSupportDefaultNoBranchTest {
     }
 
     private static int getNumSplitDocuments(DocumentStore store, String path)
-            throws Exception {
+        throws Exception {
         NodeDocument doc = store.find(NODES, getIdFromPath(path), -1);
         assertNotNull(doc);
         return Iterators.size(doc.getAllPreviousDocs());

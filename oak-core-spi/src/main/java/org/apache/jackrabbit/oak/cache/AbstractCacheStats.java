@@ -23,7 +23,6 @@ import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.jackrabbit.guava.common.base.MoreObjects;
 import org.apache.jackrabbit.guava.common.cache.CacheStats;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
@@ -39,10 +38,11 @@ public abstract class AbstractCacheStats extends AnnotatedStandardMBean implemen
     private final String name;
 
     private CacheStats lastSnapshot =
-            new CacheStats(0, 0, 0, 0, 0, 0);
+        new CacheStats(0, 0, 0, 0, 0, 0);
 
     /**
      * Create a new {@code CacheStatsMBean} for a cache with the given {@code name}.
+     *
      * @param name
      */
     protected AbstractCacheStats(@NotNull String name) {
@@ -51,8 +51,8 @@ public abstract class AbstractCacheStats extends AnnotatedStandardMBean implemen
     }
 
     /**
-     * Call back invoked to retrieve the most recent {@code CacheStats} instance of the
-     * underlying cache.
+     * Call back invoked to retrieve the most recent {@code CacheStats} instance of the underlying
+     * cache.
      */
     protected abstract CacheStats getCurrentStats();
 
@@ -136,29 +136,29 @@ public abstract class AbstractCacheStats extends AnnotatedStandardMBean implemen
     @Override
     public String cacheInfoAsString() {
         return MoreObjects.toStringHelper("CacheStats")
-                .add("hitCount", getHitCount())
-                .add("hitRate", format("%1.2f", getHitRate()))
-                .add("missCount", getMissCount())
-                .add("missRate", format("%1.2f", getMissRate()))
-                .add("requestCount", getRequestCount())
-                .add("loadCount", getLoadCount())
-                .add("loadSuccessCount", getLoadSuccessCount())
-                .add("loadExceptionCount", getLoadExceptionCount())
-                .add("totalLoadTime", timeInWords(getTotalLoadTime()))
-                .add("averageLoadPenalty", format("%1.2f ns", getAverageLoadPenalty()))
-                .add("evictionCount", getEvictionCount())
-                .add("elementCount", getElementCount())
-                .add("totalWeight", humanReadableByteCount(estimateCurrentWeight()))
-                .add("maxWeight", humanReadableByteCount(getMaxTotalWeight()))
-                .toString();
+                          .add("hitCount", getHitCount())
+                          .add("hitRate", format("%1.2f", getHitRate()))
+                          .add("missCount", getMissCount())
+                          .add("missRate", format("%1.2f", getMissRate()))
+                          .add("requestCount", getRequestCount())
+                          .add("loadCount", getLoadCount())
+                          .add("loadSuccessCount", getLoadSuccessCount())
+                          .add("loadExceptionCount", getLoadExceptionCount())
+                          .add("totalLoadTime", timeInWords(getTotalLoadTime()))
+                          .add("averageLoadPenalty", format("%1.2f ns", getAverageLoadPenalty()))
+                          .add("evictionCount", getEvictionCount())
+                          .add("elementCount", getElementCount())
+                          .add("totalWeight", humanReadableByteCount(estimateCurrentWeight()))
+                          .add("maxWeight", humanReadableByteCount(getMaxTotalWeight()))
+                          .toString();
     }
 
     public static String timeInWords(long nanos) {
         long millis = TimeUnit.NANOSECONDS.toMillis(nanos);
         return String.format("%d min, %d sec",
-                TimeUnit.MILLISECONDS.toMinutes(millis),
-                TimeUnit.MILLISECONDS.toSeconds(millis) -
-                        TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(millis))
+            TimeUnit.MILLISECONDS.toMinutes(millis),
+            TimeUnit.MILLISECONDS.toSeconds(millis) -
+                TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(millis))
         );
     }
 

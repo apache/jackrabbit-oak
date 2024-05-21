@@ -20,7 +20,6 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 
 import java.io.IOException;
-
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriter;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexWriterFactory;
@@ -28,7 +27,9 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.lucene.index.IndexableField;
 
-public class LocalIndexWriterFactory implements FulltextIndexWriterFactory<Iterable<? extends IndexableField>> {
+public class LocalIndexWriterFactory implements
+    FulltextIndexWriterFactory<Iterable<? extends IndexableField>> {
+
     private final LuceneDocumentHolder documentHolder;
     private final String indexPath;
 
@@ -39,11 +40,12 @@ public class LocalIndexWriterFactory implements FulltextIndexWriterFactory<Itera
 
     @Override
     public LuceneIndexWriter newInstance(IndexDefinition definition, NodeBuilder definitionBuilder,
-                                         CommitInfo commitInfo, boolean reindex) {
+        CommitInfo commitInfo, boolean reindex) {
         return new LocalIndexWriter(definition);
     }
 
     private class LocalIndexWriter implements LuceneIndexWriter {
+
         private final IndexDefinition definition;
 
         public LocalIndexWriter(IndexDefinition definition) {
@@ -51,7 +53,8 @@ public class LocalIndexWriterFactory implements FulltextIndexWriterFactory<Itera
         }
 
         @Override
-        public void updateDocument(String path, Iterable<? extends IndexableField> doc) throws IOException {
+        public void updateDocument(String path, Iterable<? extends IndexableField> doc)
+            throws IOException {
             addLuceneDoc(LuceneDoc.forUpdate(definition.getIndexPath(), path, doc));
         }
 

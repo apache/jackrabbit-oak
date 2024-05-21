@@ -26,7 +26,6 @@ import static org.junit.Assert.fail;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.TimeZone;
-
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.Node;
 import javax.jcr.PathNotFoundException;
@@ -35,7 +34,6 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.NodeType;
-
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.junit.Test;
 
@@ -75,8 +73,8 @@ public class CRUDTest extends AbstractRepositoryTest {
         String nodeName = "mixintest";
         String nodeType = "nt:folder";
         Node mixinTest = session.getRootNode()
-                .addNode(parentName, nodeType)
-                .addNode(nodeName, nodeType);
+                                .addNode(parentName, nodeType)
+                                .addNode(nodeName, nodeType);
         NodeType[] types;
         types = mixinTest.getMixinNodeTypes();
         assertEquals(Arrays.toString(types), 0, types.length);
@@ -86,8 +84,8 @@ public class CRUDTest extends AbstractRepositoryTest {
         session.save();
         session.getRootNode().getNode(parentName).remove();
         mixinTest = session.getRootNode()
-                .addNode(parentName, nodeType)
-                .addNode(nodeName, nodeType);
+                           .addNode(parentName, nodeType)
+                           .addNode(nodeName, nodeType);
         types = mixinTest.getMixinNodeTypes();
         assertEquals(Arrays.toString(types), 0, types.length);
     }
@@ -97,20 +95,20 @@ public class CRUDTest extends AbstractRepositoryTest {
         Session session = getAdminSession();
         // Create
         Node hello = session.getRootNode().addNode("hello");
-        hello.setProperty("world",  "hello world");
+        hello.setProperty("world", "hello world");
         session.save();
 
         // Read
         assertEquals(
-                "hello world",
-                session.getProperty("/hello/world").getString());
+            "hello world",
+            session.getProperty("/hello/world").getString());
 
         // Update
         session.getNode("/hello").setProperty("world", "Hello, World!");
         session.save();
         assertEquals(
-                "Hello, World!",
-                session.getProperty("/hello/world").getString());
+            "Hello, World!",
+            session.getProperty("/hello/world").getString());
 
         // Delete
         session.getNode("/hello").remove();
@@ -135,7 +133,7 @@ public class CRUDTest extends AbstractRepositoryTest {
         Session session = getAdminSession();
         Node root = session.getRootNode();
         try {
-            root.setProperty("test", new String[] {"abc", "def"});
+            root.setProperty("test", new String[]{"abc", "def"});
             assertNotNull(root.setProperty("test", (String[]) null));
         } catch (PathNotFoundException e) {
             // success
@@ -175,12 +173,12 @@ public class CRUDTest extends AbstractRepositoryTest {
         Property property = getAdminSession().getRootNode().getProperty("jcr:primaryType");
         assertEquals("/jcr:primaryType", property.getPath());
     }
-    
+
     @Test(expected = ConstraintViolationException.class)
     public void nodeType() throws RepositoryException {
-            Session s = getAdminSession();
-            s.getRootNode().addNode("a", "nt:folder").addNode("b");
-            s.save();        
+        Session s = getAdminSession();
+        s.getRootNode().addNode("a", "nt:folder").addNode("b");
+        s.save();
     }
 
     @Test

@@ -16,6 +16,16 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.EVALUATE_PATH_RESTRICTION;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NT_OAK_UNSTRUCTURED;
+
+import java.io.File;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import javax.jcr.Node;
+import javax.jcr.Repository;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.index.IndexDescendantSuggestionCommonTest;
@@ -25,18 +35,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import javax.jcr.Node;
-import javax.jcr.Repository;
-import java.io.File;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.EVALUATE_PATH_RESTRICTION;
-import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NT_OAK_UNSTRUCTURED;
-
 public class LuceneIndexDescendantSuggestionCommonTest extends IndexDescendantSuggestionCommonTest {
+
     private ExecutorService executorService = Executors.newFixedThreadPool(2);
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
@@ -44,7 +44,8 @@ public class LuceneIndexDescendantSuggestionCommonTest extends IndexDescendantSu
     @Override
     protected Repository createJcrRepository() {
         indexOptions = new LuceneIndexOptions();
-        repositoryOptionsUtil = new LuceneTestRepositoryBuilder(executorService, temporaryFolder).build();
+        repositoryOptionsUtil = new LuceneTestRepositoryBuilder(executorService,
+            temporaryFolder).build();
         Oak oak = repositoryOptionsUtil.getOak();
         Jcr jcr = new Jcr(oak);
         return jcr.createRepository();
@@ -66,8 +67,8 @@ public class LuceneIndexDescendantSuggestionCommonTest extends IndexDescendantSu
 
         //Without path restriction indexing, descendant clause shouldn't be respected
         validateSuggestions(
-                createSuggestQuery(NT_OAK_UNSTRUCTURED, "te", "/content1"),
-                newHashSet("test1", "test2", "test3", "test4", "test5", "test6"));
+            createSuggestQuery(NT_OAK_UNSTRUCTURED, "te", "/content1"),
+            newHashSet("test1", "test2", "test3", "test4", "test5", "test6"));
     }
 
 }

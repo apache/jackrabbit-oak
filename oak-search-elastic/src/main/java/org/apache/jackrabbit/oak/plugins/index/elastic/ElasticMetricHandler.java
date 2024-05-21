@@ -18,16 +18,15 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
+import java.util.Collections;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
 import org.apache.jackrabbit.oak.plugins.metric.util.StatsProviderUtil;
 import org.apache.jackrabbit.oak.stats.HistogramStats;
 import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.jackrabbit.oak.stats.TimerStats;
-
-import java.util.Collections;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-import java.util.function.BiFunction;
 
 /**
  * Provides high level functions to track and measure activities against Elastic.
@@ -66,7 +65,7 @@ public class ElasticMetricHandler {
      *     <li>{@code QUERY_INTERNAL_RATE}</li>
      * </ul>
      *
-     * @param index the index passed as metric label
+     * @param index       the index passed as metric label
      * @param isRootQuery if {@code false} only {@code QUERY_INTERNAL_RATE} gets incremented
      */
     public void markQuery(String index, boolean isRootQuery) {
@@ -80,14 +79,15 @@ public class ElasticMetricHandler {
     /**
      * Measures a single query execution
      *
-     * @param index the index passed as metric label
-     * @param hits the number of hits in the result set
+     * @param index        the index passed as metric label
+     * @param hits         the number of hits in the result set
      * @param serverTimeMs the Elastic server time in milliseconds
-     * @param totalTimeMs the complete query execution time
-     * @param timedOut Elastic could time out while returning partial results. When {@code true} these
-     *                 occurrences get tracked
+     * @param totalTimeMs  the complete query execution time
+     * @param timedOut     Elastic could time out while returning partial results. When {@code true}
+     *                     these occurrences get tracked
      */
-    public void measureQuery(String index, int hits, long serverTimeMs, long totalTimeMs, boolean timedOut) {
+    public void measureQuery(String index, int hits, long serverTimeMs, long totalTimeMs,
+        boolean timedOut) {
         Map<String, String> labels = Collections.singletonMap("index", index);
         histogram.apply(QUERY_HITS, labels).update(hits);
         timer.apply(QUERY_SERVER_TIME, labels).update(serverTimeMs, TimeUnit.MILLISECONDS);
@@ -100,7 +100,7 @@ public class ElasticMetricHandler {
     /**
      * Measures a failed query execution
      *
-     * @param index the index passed as metric label
+     * @param index       the index passed as metric label
      * @param totalTimeMs the total execution time
      */
     public void measureFailedQuery(String index, long totalTimeMs) {
@@ -112,7 +112,7 @@ public class ElasticMetricHandler {
     /**
      * Tracks the number of document in an index
      *
-     * @param index the index passed as metric label
+     * @param index   the index passed as metric label
      * @param numDocs the current number of documents. Only top level documents are tracked
      */
     public void markDocuments(String index, long numDocs) {
@@ -123,9 +123,9 @@ public class ElasticMetricHandler {
     /**
      * Tracks the size of an index
      *
-     * @param index         the index passed as metric label
-     * @param primarySize   the primary shards size
-     * @param storeSize     the total size in bytes. The value includes potential replicas
+     * @param index       the index passed as metric label
+     * @param primarySize the primary shards size
+     * @param storeSize   the total size in bytes. The value includes potential replicas
      */
     public void markSize(String index, long primarySize, long storeSize) {
         Map<String, String> labels = Collections.singletonMap("index", index);

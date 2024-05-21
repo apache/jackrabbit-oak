@@ -19,15 +19,15 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
-import java.io.File;
-import java.io.IOException;
-
-import org.apache.commons.io.FileUtils;
-
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.IndexRootDirectory.INDEX_METADATA_FILE_NAME;
 
+import java.io.File;
+import java.io.IOException;
+import org.apache.commons.io.FileUtils;
+
 public final class LocalIndexDir implements Comparable<LocalIndexDir> {
+
     final File dir;
     final IndexMeta indexMeta;
 
@@ -35,7 +35,7 @@ public final class LocalIndexDir implements Comparable<LocalIndexDir> {
         this.dir = dir.getCanonicalFile();
         File indexDetails = new File(dir, IndexRootDirectory.INDEX_METADATA_FILE_NAME);
         checkState(isIndexDir(dir), "No file [%s] found in dir [%s]",
-                INDEX_METADATA_FILE_NAME, dir.getAbsolutePath());
+            INDEX_METADATA_FILE_NAME, dir.getAbsolutePath());
         this.indexMeta = new IndexMeta(indexDetails);
     }
 
@@ -75,7 +75,7 @@ public final class LocalIndexDir implements Comparable<LocalIndexDir> {
         return String.format("%s (%s)", dir.getAbsolutePath(), indexMeta);
     }
 
-    static boolean isIndexDir(File file){
+    static boolean isIndexDir(File file) {
         File indexDetails = new File(file, IndexRootDirectory.INDEX_METADATA_FILE_NAME);
         return indexDetails.exists();
     }

@@ -22,15 +22,15 @@ import org.jetbrains.annotations.NotNull;
 import org.osgi.annotation.versioning.ProviderType;
 
 /**
- * Interface to mark properties or nodes located underneath a synchronized external identity as being protected (i.e.
- * prevent modification through regular JCR/Jackrabbit API outside of the regular synchronization during login (or through 
- * JMX).
+ * Interface to mark properties or nodes located underneath a synchronized external identity as
+ * being protected (i.e. prevent modification through regular JCR/Jackrabbit API outside of the
+ * regular synchronization during login (or through JMX).
  */
 @ProviderType
 public interface ProtectionConfig {
-    
+
     boolean isProtectedProperty(@NotNull Tree parent, @NotNull PropertyState property);
-    
+
     boolean isProtectedTree(@NotNull Tree tree);
 
     /**

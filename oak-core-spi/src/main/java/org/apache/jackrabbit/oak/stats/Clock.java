@@ -34,30 +34,28 @@ import java.util.concurrent.atomic.AtomicLong;
 public abstract class Clock extends java.time.Clock {
 
     /**
-     * Maximum amount (in ms) of random noise to include in the time
-     * signal reported by the {@link #SIMPLE} clock. Configurable by the
-     * "simple.clock.noise" system property to make it easier to test
-     * the effect of an inaccurate system clock.
+     * Maximum amount (in ms) of random noise to include in the time signal reported by the
+     * {@link #SIMPLE} clock. Configurable by the "simple.clock.noise" system property to make it
+     * easier to test the effect of an inaccurate system clock.
      */
     private static final int SIMPLE_CLOCK_NOISE =
-            Integer.getInteger("simple.clock.noise", 0);
+        Integer.getInteger("simple.clock.noise", 0);
 
     /**
-     * Millisecond granularity of the {@link #ACCURATE} clock.
-     * Configurable by the "accurate.clock.granularity" system property
-     * to make it easier to test the effect of a slow-moving clock on
-     * code that relies on millisecond timestamps.
+     * Millisecond granularity of the {@link #ACCURATE} clock. Configurable by the
+     * "accurate.clock.granularity" system property to make it easier to test the effect of a
+     * slow-moving clock on code that relies on millisecond timestamps.
      */
     private static final long ACCURATE_CLOCK_GRANULARITY =
-            Long.getLong("accurate.clock.granularity", 1);
+        Long.getLong("accurate.clock.granularity", 1);
 
     /**
-     * Millisecond update interval of the {@link Fast} clock. Configurable
-     * by the "fast.clock.interval" system property to to make it easier
-     * to test the effect of different update frequencies.
+     * Millisecond update interval of the {@link Fast} clock. Configurable by the
+     * "fast.clock.interval" system property to to make it easier to test the effect of different
+     * update frequencies.
      */
     static final long FAST_CLOCK_INTERVAL =
-            Long.getLong("fast.clock.interval", 10);
+        Long.getLong("fast.clock.interval", 10);
 
     private long monotonic = 0;
 
@@ -66,19 +64,18 @@ public abstract class Clock extends java.time.Clock {
     /**
      * Returns the current time in milliseconds since the epoch.
      *
+     * @return current time in milliseconds since the epoch
      * @see System#currentTimeMillis()
      * @see java.time.Clock#millis()
-     * @return current time in milliseconds since the epoch
      */
     public abstract long getTime();
 
     /**
-     * Returns a monotonically increasing timestamp based on the current time.
-     * A call to this method will always return a value that is greater than
-     * or equal to a value returned by any previous call. This contract holds
-     * even across multiple threads and in cases when the system time is
-     * adjusted backwards. In the latter case the returned value will remain
-     * constant until the previously reported timestamp is again reached.
+     * Returns a monotonically increasing timestamp based on the current time. A call to this method
+     * will always return a value that is greater than or equal to a value returned by any previous
+     * call. This contract holds even across multiple threads and in cases when the system time is
+     * adjusted backwards. In the latter case the returned value will remain constant until the
+     * previously reported timestamp is again reached.
      *
      * @return monotonically increasing timestamp
      */
@@ -93,14 +90,12 @@ public abstract class Clock extends java.time.Clock {
     }
 
     /**
-     * Returns a strictly increasing timestamp based on the current time.
-     * This method is like {@link #getTimeMonotonic()}, with the exception
-     * that two calls of this method will never return the same timestamp.
-     * Instead this method will explicitly wait until the current time
-     * increases beyond any previously returned value. Note that the wait
-     * may last long if this method is called frequently from many concurrent
-     * thread or if the system time is adjusted backwards. The caller should
-     * be prepared to deal with an explicit interrupt in such cases.
+     * Returns a strictly increasing timestamp based on the current time. This method is like
+     * {@link #getTimeMonotonic()}, with the exception that two calls of this method will never
+     * return the same timestamp. Instead this method will explicitly wait until the current time
+     * increases beyond any previously returned value. Note that the wait may last long if this
+     * method is called frequently from many concurrent thread or if the system time is adjusted
+     * backwards. The caller should be prepared to deal with an explicit interrupt in such cases.
      *
      * @return strictly increasing timestamp
      * @throws InterruptedException if the wait was interrupted
@@ -116,8 +111,7 @@ public abstract class Clock extends java.time.Clock {
     }
 
     /**
-     * Convenience method that returns the {@link #getTime()} value
-     * as a {@link Date} instance.
+     * Convenience method that returns the {@link #getTime()} value as a {@link Date} instance.
      *
      * @return current time
      */
@@ -126,8 +120,8 @@ public abstract class Clock extends java.time.Clock {
     }
 
     /**
-     * Convenience method that returns the {@link #getTimeMonotonic()} value
-     * as a {@link Date} instance.
+     * Convenience method that returns the {@link #getTimeMonotonic()} value as a {@link Date}
+     * instance.
      *
      * @return monotonically increasing time
      */
@@ -136,8 +130,8 @@ public abstract class Clock extends java.time.Clock {
     }
 
     /**
-     * Convenience method that returns the {@link #getTimeIncreasing()} value
-     * as a {@link Date} instance.
+     * Convenience method that returns the {@link #getTimeIncreasing()} value as a {@link Date}
+     * instance.
      *
      * @return strictly increasing time
      */
@@ -146,9 +140,9 @@ public abstract class Clock extends java.time.Clock {
     }
 
     /**
-     * Waits until the given point in time is reached. The current thread
-     * is suspended until the {@link #getTimeIncreasing()} method returns
-     * a time that's equal or greater than the given point in time.
+     * Waits until the given point in time is reached. The current thread is suspended until the
+     * {@link #getTimeIncreasing()} method returns a time that's equal or greater than the given
+     * point in time.
      *
      * @param timestamp time in milliseconds since epoch
      * @throws InterruptedException if the wait was interrupted
@@ -174,14 +168,15 @@ public abstract class Clock extends java.time.Clock {
     @Override
     public java.time.Clock withZone(ZoneId zone) {
         if (!zone.equals(ZoneId.of("Z"))) {
-            throw new UnsupportedOperationException("ZoneIds other than 'Z' are not supported by this clock");
+            throw new UnsupportedOperationException(
+                "ZoneIds other than 'Z' are not supported by this clock");
         }
         return this;
     }
 
     /**
-     * Simple clock implementation based on {@link System#currentTimeMillis()},
-     * which is known to be rather slow on some platforms.
+     * Simple clock implementation based on {@link System#currentTimeMillis()}, which is known to be
+     * rather slow on some platforms.
      */
     public static Clock SIMPLE = createSimpleClock();
 
@@ -190,10 +185,12 @@ public abstract class Clock extends java.time.Clock {
         if (noise > 0) {
             return new Clock() {
                 private final Random random = new Random();
+
                 @Override
                 public synchronized long getTime() {
                     return System.currentTimeMillis() + random.nextInt(noise);
                 }
+
                 @Override
                 public String toString() {
                     return "Clock.SIMPLE (with noise)";
@@ -205,6 +202,7 @@ public abstract class Clock extends java.time.Clock {
                 public long getTime() {
                     return System.currentTimeMillis();
                 }
+
                 @Override
                 public String toString() {
                     return "Clock.SIMPLE";
@@ -214,21 +212,21 @@ public abstract class Clock extends java.time.Clock {
     }
 
     /**
-     * Accurate clock implementation that uses interval timings from the
-     * {@link System#nanoTime()} method to calculate an as accurate as possible
-     * time based on occasional calls to {@link System#currentTimeMillis()}
-     * to prevent clock drift.
+     * Accurate clock implementation that uses interval timings from the {@link System#nanoTime()}
+     * method to calculate an as accurate as possible time based on occasional calls to
+     * {@link System#currentTimeMillis()} to prevent clock drift.
      */
     public static Clock ACCURATE = new Clock() {
         private static final long NS_IN_MS = 1000000;
         private long ms = SIMPLE.getTime();
         private long ns = System.nanoTime();
+
         @Override
         public synchronized long getTime() {
             long nowns = System.nanoTime();
             long nsIncrease = Math.max(nowns - ns, 0); // >= 0
 
-            long msIncrease = (nsIncrease + NS_IN_MS/2) / NS_IN_MS; // round up
+            long msIncrease = (nsIncrease + NS_IN_MS / 2) / NS_IN_MS; // round up
             if (ACCURATE_CLOCK_GRANULARITY > 1) {
                 msIncrease -= msIncrease % ACCURATE_CLOCK_GRANULARITY;
             }
@@ -296,9 +294,8 @@ public abstract class Clock extends java.time.Clock {
     };
 
     /**
-     * Fast clock implementation whose {@link #getTime()} method returns
-     * instantaneously thanks to a background task that takes care of the
-     * actual time-keeping work.
+     * Fast clock implementation whose {@link #getTime()} method returns instantaneously thanks to a
+     * background task that takes care of the actual time-keeping work.
      */
     public static class Fast extends Clock implements Closeable {
 
@@ -331,10 +328,9 @@ public abstract class Clock extends java.time.Clock {
     }
 
     /**
-     * A virtual clock that has no connection to the actual system time.
-     * Instead the clock maintains an internal counter that's incremented
-     * atomically whenever the current time is requested. This guarantees
-     * that the reported time signal is always strictly increasing.
+     * A virtual clock that has no connection to the actual system time. Instead the clock maintains
+     * an internal counter that's incremented atomically whenever the current time is requested.
+     * This guarantees that the reported time signal is always strictly increasing.
      */
     public static class Virtual extends Clock {
 
@@ -357,5 +353,7 @@ public abstract class Clock extends java.time.Clock {
         public String toString() {
             return "Clock.Virtual";
         }
-    };
+    }
+
+    ;
 }

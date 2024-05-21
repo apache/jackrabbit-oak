@@ -18,6 +18,18 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.search.spi.query;
 
+import static org.apache.jackrabbit.JcrConstants.JCR_SCORE;
+import static org.apache.jackrabbit.JcrConstants.NT_BASE;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
+import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getAncestorPath;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getDepth;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
+import static org.apache.jackrabbit.oak.spi.query.QueryIndex.IndexPlan;
+import static org.apache.jackrabbit.oak.spi.query.QueryIndex.OrderEntry;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -28,11 +40,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Pattern;
-
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.guava.common.collect.ArrayListMultimap;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Multimap;
-import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.StrictPathRestriction;
 import org.apache.jackrabbit.oak.api.Type;
@@ -59,24 +70,14 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
-import static org.apache.jackrabbit.JcrConstants.JCR_SCORE;
-import static org.apache.jackrabbit.JcrConstants.NT_BASE;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getAncestorPath;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getDepth;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
-import static org.apache.jackrabbit.oak.spi.query.QueryIndex.IndexPlan;
-import static org.apache.jackrabbit.oak.spi.query.QueryIndex.OrderEntry;
-
 public class FulltextIndexPlanner {
 
-    public static final int DEFAULT_PROPERTY_WEIGHT = Integer.getInteger("oak.fulltext.defaultPropertyWeight", 5);
+    public static final int DEFAULT_PROPERTY_WEIGHT = Integer.getInteger(
+        "oak.fulltext.defaultPropertyWeight", 5);
 
     /**
-     * IndexPlan Attribute name which refers to the name of the fields that should be used for facets.
+     * IndexPlan Attribute name which refers to the name of the fields that should be used for
+     * facets.
      */
     public static final String ATTR_FACET_FIELDS = "oak.facet.fields";
 
@@ -93,14 +94,16 @@ public class FulltextIndexPlanner {
     static {
         useActualEntryCount = Boolean.parseBoolean(System.getProperty(FLAG_ENTRY_COUNT, "true"));
         if (!useActualEntryCount) {
-            log.info("System property {} found to be false. IndexPlanner would use a default entryCount of 1000 instead" +
+            log.info(
+                "System property {} found to be false. IndexPlanner would use a default entryCount of 1000 instead"
+                    +
                     " of using the actual entry count", FLAG_ENTRY_COUNT);
         }
     }
 
     public FulltextIndexPlanner(IndexNode indexNode,
-                                String indexPath,
-                                Filter filter, List<OrderEntry> sortOrder) {
+        String indexPath,
+        Filter filter, List<OrderEntry> sortOrder) {
         this.indexNode = indexNode;
         this.indexPath = indexPath;
         this.definition = indexNode.getDefinition();
@@ -116,18 +119,19 @@ public class FulltextIndexPlanner {
 
         IndexPlan.Builder builder = getPlanBuilder();
 
-        if (definition.isTestMode()){
+        if (definition.isTestMode()) {
             if (builder == null) {
                 if (notSupportedFeature()) {
                     return null;
                 }
                 String msg = String.format("No plan found for filter [%s] " +
-                        "while using definition [%s] and testMode is found to be enabled", filter, definition);
+                        "while using definition [%s] and testMode is found to be enabled", filter,
+                    definition);
                 throw new IllegalStateException(msg);
             } else {
                 builder.setEstimatedEntryCount(1)
-                        .setCostPerExecution(1e-3)
-                        .setCostPerEntry(1e-3);
+                       .setCostPerExecution(1e-3)
+                       .setCostPerEntry(1e-3);
             }
         }
 
@@ -137,10 +141,10 @@ public class FulltextIndexPlanner {
     @Override
     public String toString() {
         return "IndexPlanner{" +
-                "indexPath='" + indexPath + '\'' +
-                ", filter=" + filter +
-                ", sortOrder=" + sortOrder +
-                '}';
+            "indexPath='" + indexPath + '\'' +
+            ", filter=" + filter +
+            ", sortOrder=" + sortOrder +
+            '}';
     }
 
     //For tests and since the property is anyway controllable by JVM param, so
@@ -156,11 +160,12 @@ public class FulltextIndexPlanner {
         if (wrongIndex()) {
             return null;
         }
-        if (filter.getQueryLimits().getStrictPathRestriction().equals(StrictPathRestriction.ENABLE.name()) && !isPlanWithValidPathFilter()) {
+        if (filter.getQueryLimits().getStrictPathRestriction()
+                  .equals(StrictPathRestriction.ENABLE.name()) && !isPlanWithValidPathFilter()) {
             return null;
         }
 
-        if (!definition.getVersion().isAtLeast(IndexFormatVersion.V2)){
+        if (!definition.getVersion().isAtLeast(IndexFormatVersion.V2)) {
             log.trace("Index is old format. Not supported");
             return null;
         }
@@ -172,29 +177,30 @@ public class FulltextIndexPlanner {
         }
 
         IndexDefinition.IndexingRule indexingRule = getApplicableRule();
-        if (indexingRule == null){
+        if (indexingRule == null) {
             return null;
         }
 
         //Query Fulltext and indexing rule does not support fulltext
-        if (ft != null && !indexingRule.isFulltextEnabled()){
+        if (ft != null && !indexingRule.isFulltextEnabled()) {
             return null;
         }
 
         if (!checkForQueryPaths()) {
             log.trace("Opting out due mismatch between path restriction {} and query paths {}",
-                    filter.getPath(), definition.getQueryPaths());
+                filter.getPath(), definition.getQueryPaths());
             return null;
         }
 
         result = new PlanResult(indexPath, definition, indexingRule);
 
         if (definition.hasFunctionDefined()
-                && filter.getPropertyRestriction(definition.getFunctionName()) != null) {
+            && filter.getPropertyRestriction(definition.getFunctionName()) != null) {
             return getNativeFunctionPlanBuilder(indexingRule.getBaseNodeType());
         }
 
-        List<String> indexedProps = newArrayListWithCapacity(filter.getPropertyRestrictions().size());
+        List<String> indexedProps = newArrayListWithCapacity(
+            filter.getPropertyRestrictions().size());
 
         for (PropertyDefinition functionIndex : indexingRule.getFunctionRestrictions()) {
             for (PropertyRestriction pr : filter.getPropertyRestrictions()) {
@@ -246,7 +252,7 @@ public class FulltextIndexPlanner {
                 }
 
                 if (pd != null && pd.propertyIndexEnabled()) {
-                    if (pr.isNullRestriction() && !pd.nullCheckEnabled){
+                    if (pr.isNullRestriction() && !pd.nullCheckEnabled) {
                         continue;
                     }
 
@@ -274,7 +280,7 @@ public class FulltextIndexPlanner {
         boolean canEvalAlFullText = canEvalAllFullText(indexingRule, ft);
         boolean canEvalNodeNameRestriction = canEvalNodeNameRestriction(indexingRule);
 
-        if (ft != null && !canEvalAlFullText){
+        if (ft != null && !canEvalAlFullText) {
             return null;
         }
 
@@ -287,7 +293,7 @@ public class FulltextIndexPlanner {
         List<OrderEntry> sortOrder = createSortOrder(indexingRule);
         boolean canSort = canSortByProperty(sortOrder);
         if (!indexedProps.isEmpty() || canSort || ft != null
-                || evalPathRestrictions || evalNodeTypeRestrictions || canEvalNodeNameRestriction) {
+            || evalPathRestrictions || evalNodeTypeRestrictions || canEvalNodeNameRestriction) {
             int costPerEntryFactor = 1;
             costPerEntryFactor += sortOrder.size();
 
@@ -297,27 +303,33 @@ public class FulltextIndexPlanner {
                 return null;
             }
 
-            if (filter.getQueryLimits().getStrictPathRestriction().equals(StrictPathRestriction.WARN.name()) && !isPlanWithValidPathFilter()) {
+            if (filter.getQueryLimits().getStrictPathRestriction()
+                      .equals(StrictPathRestriction.WARN.name()) && !isPlanWithValidPathFilter()) {
                 plan.setLogWarningForPathFilterMismatch(true);
             }
 
-            Pattern queryFilterPattern = definition.getQueryFilterRegex() != null ? definition.getQueryFilterRegex() :
+            Pattern queryFilterPattern =
+                definition.getQueryFilterRegex() != null ? definition.getQueryFilterRegex() :
                     definition.getPropertyRegex();
 
             if (queryFilterPattern != null) {
                 if (ft != null && !queryFilterPattern.matcher(ft.toString()).find()) {
-                    plan.addAdditionalMessage("WARN", "Potentially improper use of index " + definition.getIndexPath() + " with queryFilterRegex "
+                    plan.addAdditionalMessage("WARN",
+                        "Potentially improper use of index " + definition.getIndexPath()
+                            + " with queryFilterRegex "
                             + queryFilterPattern + " to search for value '" + ft + "'");
                 }
-                 for (PropertyRestriction pr : filter.getPropertyRestrictions()) {
-                	// Ignore properties beginning with ";" like :indexTag / :indexName etx
-                    if (!pr.propertyName.startsWith(":") && !queryFilterPattern.matcher(pr.toString()).find()) {
-                        plan.addAdditionalMessage("WARN", "Potentially improper use of index " + definition.getIndexPath() + " with queryFilterRegex "
+                for (PropertyRestriction pr : filter.getPropertyRestrictions()) {
+                    // Ignore properties beginning with ";" like :indexTag / :indexName etx
+                    if (!pr.propertyName.startsWith(":") && !queryFilterPattern.matcher(
+                        pr.toString()).find()) {
+                        plan.addAdditionalMessage("WARN",
+                            "Potentially improper use of index " + definition.getIndexPath()
+                                + " with queryFilterRegex "
                                 + queryFilterPattern + " to search for value '" + pr + "'");
                     }
                 }
             }
-
 
             if (!sortOrder.isEmpty()) {
                 plan.setSortOrder(sortOrder);
@@ -327,15 +339,15 @@ public class FulltextIndexPlanner {
                 plan.setAttribute(ATTR_FACET_FIELDS, facetFields);
             }
 
-            if (ft == null){
+            if (ft == null) {
                 result.enableNonFullTextConstraints();
             }
 
-            if (evalNodeTypeRestrictions){
+            if (evalNodeTypeRestrictions) {
                 result.enableNodeTypeEvaluation();
             }
 
-            if (canEvalNodeNameRestriction){
+            if (canEvalNodeNameRestriction) {
                 result.enableNodeNameRestriction();
             }
 
@@ -370,7 +382,7 @@ public class FulltextIndexPlanner {
     }
 
     private boolean matchesValuePattern(PropertyRestriction pr, PropertyDefinition pd) {
-        if (!pd.valuePattern.matchesAll()){
+        if (!pd.valuePattern.matchesAll()) {
             //So we have a valuePattern defined. So determine if
             //this index can return a plan based on values
             Set<String> values = ValuePatternUtil.getAllValues(pr);
@@ -396,7 +408,8 @@ public class FulltextIndexPlanner {
             return true;
         }
 
-        PropertyRestriction indexName = filter.getPropertyRestriction(IndexConstants.INDEX_NAME_OPTION);
+        PropertyRestriction indexName = filter.getPropertyRestriction(
+            IndexConstants.INDEX_NAME_OPTION);
         boolean wrong = false;
         if (indexName != null && indexName.first != null) {
             String name = indexName.first.getValue(Type.STRING);
@@ -410,7 +423,8 @@ public class FulltextIndexPlanner {
             }
             wrong = true;
         }
-        PropertyRestriction indexTag = filter.getPropertyRestriction(IndexConstants.INDEX_TAG_OPTION);
+        PropertyRestriction indexTag = filter.getPropertyRestriction(
+            IndexConstants.INDEX_TAG_OPTION);
         if (indexTag != null && indexTag.first != null) {
             // index tag specified
             String[] tags = definition.getIndexTags();
@@ -419,7 +433,7 @@ public class FulltextIndexPlanner {
                 return true;
             }
             String tag = indexTag.first.getValue(Type.STRING);
-            for(String t : tags) {
+            for (String t : tags) {
                 if (t.equals(tag)) {
                     // tag matches
                     return false;
@@ -476,14 +490,15 @@ public class FulltextIndexPlanner {
      */
     private boolean checkForQueryPaths() {
         String[] queryPaths = definition.getQueryPaths();
-        if (queryPaths == null){
+        if (queryPaths == null) {
             //No explicit value specified. Assume '/' which results in true
             return true;
         }
 
         String pathRestriction = filter.getPath();
-        for (String queryPath : queryPaths){
-            if (queryPath.equals(pathRestriction) || PathUtils.isAncestor(queryPath, pathRestriction)){
+        for (String queryPath : queryPaths) {
+            if (queryPath.equals(pathRestriction) || PathUtils.isAncestor(queryPath,
+                pathRestriction)) {
                 return true;
             }
         }
@@ -492,8 +507,9 @@ public class FulltextIndexPlanner {
     }
 
     private boolean canEvalNodeNameRestriction(IndexingRule indexingRule) {
-        PropertyRestriction pr = filter.getPropertyRestriction(QueryConstants.RESTRICTION_LOCAL_NAME);
-        if (pr == null){
+        PropertyRestriction pr = filter.getPropertyRestriction(
+            QueryConstants.RESTRICTION_LOCAL_NAME);
+        if (pr == null) {
             return false;
         }
         return indexingRule.isNodeNameIndexed();
@@ -506,11 +522,11 @@ public class FulltextIndexPlanner {
 
         // If jcr:score is the only sort order then opt out
         return sortOrder.size() != 1 ||
-                !JCR_SCORE.equals(sortOrder.get(0).getPropertyName());
+            !JCR_SCORE.equals(sortOrder.get(0).getPropertyName());
     }
 
     private boolean canEvalAllFullText(final IndexingRule indexingRule, FullTextExpression ft) {
-        if (ft == null){
+        if (ft == null) {
             return false;
         }
 
@@ -542,7 +558,7 @@ public class FulltextIndexPlanner {
                     relativeParentsFound.set(true);
                 } else if (getDepth(p) > 1) {
                     String parent = getParentPath(p);
-                    if (FulltextIndex.isNodePath(p)){
+                    if (FulltextIndex.isNodePath(p)) {
                         nodePath = parent;
                     } else {
                         propertyPath = p;
@@ -554,30 +570,30 @@ public class FulltextIndexPlanner {
                 }
 
                 if (nodePath != null
-                        && !indexingRule.isAggregated(nodePath)){
+                    && !indexingRule.isAggregated(nodePath)) {
                     nonIndexedPaths.add(p);
                 } else if (propertyPath != null) {
                     PropertyDefinition pd = indexingRule.getConfig(propertyPath);
                     //If given prop is not analyzed then its
                     //not indexed
-                    if (pd == null){
+                    if (pd == null) {
                         nonIndexedPaths.add(p);
-                    } else if (!pd.analyzed){
+                    } else if (!pd.analyzed) {
                         nonIndexedPaths.add(p);
                     }
                 }
 
-                if (nodeScopedTerm(propertyName)){
+                if (nodeScopedTerm(propertyName)) {
                     nodeScopedCondition.set(true);
                 }
             }
         });
 
-        if (nodeScopedCondition.get() && !indexingRule.isNodeFullTextIndexed()){
+        if (nodeScopedCondition.get() && !indexingRule.isNodeFullTextIndexed()) {
             return false;
         }
 
-        if (relativeParentsFound.get()){
+        if (relativeParentsFound.get()) {
             log.debug("Relative parents found {} which are not supported", relPaths);
             return false;
         }
@@ -586,8 +602,8 @@ public class FulltextIndexPlanner {
         //above query can be evaluated by index which indexes foo and bar with restriction that both belong to same node
         //by displacing the query path to evaluate on contains('bar', ...) and filter out those parents which do not
         //have jcr:content as parent. So ensure that relPaths size is 1 or 0
-        if (!nonIndexedPaths.isEmpty()){
-            if (relPaths.size() > 1){
+        if (!nonIndexedPaths.isEmpty()) {
+            if (relPaths.size() > 1) {
                 log.debug("Following relative property paths are not index: {}", relPaths);
                 return false;
             }
@@ -596,14 +612,14 @@ public class FulltextIndexPlanner {
             //Such non indexed path can possibly be evaluated via any rule on nt:base
             //which can possibly index everything
             IndexingRule rule = definition.getApplicableIndexingRule(NT_BASE);
-            if (rule == null){
+            if (rule == null) {
                 return false;
             }
 
-            for (String p : nonIndexedPaths){
+            for (String p : nonIndexedPaths) {
                 //Index can only evaluate a node search jcr:content/*
                 //if it indexes node scope indexing is enabled
-                if (FulltextIndex.isNodePath(p)){
+                if (FulltextIndex.isNodePath(p)) {
                     if (!rule.isNodeFullTextIndexed()) {
                         return false;
                     }
@@ -612,10 +628,10 @@ public class FulltextIndexPlanner {
                     //if it indexes 'type' and that too analyzed
                     String propertyName = PathUtils.getName(p);
                     PropertyDefinition pd = rule.getConfig(propertyName);
-                    if (pd == null){
+                    if (pd == null) {
                         return false;
                     }
-                    if (!pd.analyzed){
+                    if (!pd.analyzed) {
                         return false;
                     }
                 }
@@ -636,7 +652,8 @@ public class FulltextIndexPlanner {
      *                          while property definition would be for 'keyword'
      * @return list of properties which are included in query issued to Lucene
      */
-    private List<String> planForRelativeProperties(Map<String, PropertyDefinition> relativePropDefns) {
+    private List<String> planForRelativeProperties(
+        Map<String, PropertyDefinition> relativePropDefns) {
         Multimap<String, Map.Entry<String, PropertyDefinition>> relpaths = ArrayListMultimap.create();
         int maxSize = 0;
         String maxCountedParent = null;
@@ -664,7 +681,8 @@ public class FulltextIndexPlanner {
         for (Map.Entry<String, PropertyDefinition> e : relpaths.get(maxCountedParent)) {
             String relativePropertyPath = e.getKey();
             result.propDefns.put(relativePropertyPath, e.getValue());
-            result.relPropMapping.put(relativePropertyPath, PathUtils.getName(relativePropertyPath));
+            result.relPropMapping.put(relativePropertyPath,
+                PathUtils.getName(relativePropertyPath));
             if (e.getValue().weight != 0) {
                 indexedProps.add(relativePropertyPath);
             }
@@ -674,9 +692,10 @@ public class FulltextIndexPlanner {
     }
 
     @Nullable
-    private static PropertyDefinition getSimpleProperty(IndexingRule indexingRule, String relativePropertyName) {
+    private static PropertyDefinition getSimpleProperty(IndexingRule indexingRule,
+        String relativePropertyName) {
         String name = PathUtils.getName(relativePropertyName);
-        if (name.equals(relativePropertyName)){
+        if (name.equals(relativePropertyName)) {
             //Not a relative property
             return null;
         }
@@ -741,9 +760,9 @@ public class FulltextIndexPlanner {
         //Opt out if one is looking for all children for '/' as its equivalent to
         //NO_RESTRICTION
         if (filter.getPathRestriction() == Filter.PathRestriction.NO_RESTRICTION
-                || (filter.getPathRestriction() == Filter.PathRestriction.ALL_CHILDREN
-                && PathUtils.denotesRoot(filter.getPath()))
-        ){
+            || (filter.getPathRestriction() == Filter.PathRestriction.ALL_CHILDREN
+            && PathUtils.denotesRoot(filter.getPath()))
+        ) {
             return false;
         }
         //If no other restrictions is provided and query is pure
@@ -755,7 +774,7 @@ public class FulltextIndexPlanner {
 
     private boolean canEvalNodeTypeRestrictions(IndexingRule rule) {
         //No need to handle nt:base
-        if (filter.matchesAllTypes()){
+        if (filter.matchesAllTypes()) {
             return false;
         }
 
@@ -775,18 +794,18 @@ public class FulltextIndexPlanner {
         }
 
         return new IndexPlan.Builder()
-                .setCostPerExecution(definition.getCostPerExecution())
-                .setCostPerEntry(definition.getCostPerEntry())
-                .setFulltextIndex(definition.isFullTextEnabled())
-                .setIncludesNodeData(false) // we should not include node data
-                .setFilter(filter)
-                .setPathPrefix(getPathPrefix())
-                .setSupportsPathRestriction(definition.evaluatePathRestrictions())
-                .setDelayed(true) //Lucene is always async
-                .setDeprecated(definition.isDeprecated())
-                .setAttribute(FulltextIndex.ATTR_PLAN_RESULT, result)
-                .setEstimatedEntryCount(estimatedEntryCount())
-                .setPlanName(indexPath);
+            .setCostPerExecution(definition.getCostPerExecution())
+            .setCostPerEntry(definition.getCostPerEntry())
+            .setFulltextIndex(definition.isFullTextEnabled())
+            .setIncludesNodeData(false) // we should not include node data
+            .setFilter(filter)
+            .setPathPrefix(getPathPrefix())
+            .setSupportsPathRestriction(definition.evaluatePathRestrictions())
+            .setDelayed(true) //Lucene is always async
+            .setDeprecated(definition.isDeprecated())
+            .setAttribute(FulltextIndex.ATTR_PLAN_RESULT, result)
+            .setEstimatedEntryCount(estimatedEntryCount())
+            .setPlanName(indexPath);
     }
 
     private long estimatedEntryCount() {
@@ -794,7 +813,7 @@ public class FulltextIndexPlanner {
             if (definition.isEntryCountDefined()) {
                 return definition.getEntryCount();
             }
-            return  getNumDocs();
+            return getNumDocs();
         } else {
             return estimatedEntryCount_Compat(getNumDocs());
         }
@@ -805,7 +824,7 @@ public class FulltextIndexPlanner {
         //index return true count so as to allow multiple property indexes
         //to be compared fairly
         FullTextExpression ft = filter.getFullTextConstraint();
-        if (ft != null && definition.isFullTextEnabled()){
+        if (ft != null && definition.isFullTextEnabled()) {
             return definition.getFulltextEntryCount(numOfDocs);
         }
         return Math.min(definition.getEntryCount(), numOfDocs);
@@ -820,7 +839,8 @@ public class FulltextIndexPlanner {
     private int getNumDocs() {
         IndexStatistics indexStatistics = indexNode.getIndexStatistics();
         if (indexStatistics == null) {
-            log.warn("Statistics not available - possibly index is corrupt? Returning high doc count");
+            log.warn(
+                "Statistics not available - possibly index is corrupt? Returning high doc count");
             return Integer.MAX_VALUE;
         }
         return indexStatistics.numDocs();
@@ -829,7 +849,8 @@ public class FulltextIndexPlanner {
     private int getMaxPossibleNumDocs(Map<String, PropertyDefinition> propDefns, Filter filter) {
         IndexStatistics indexStatistics = indexNode.getIndexStatistics();
         if (indexStatistics == null) {
-            log.warn("Statistics not available - possibly index is corrupt? Returning high doc count");
+            log.warn(
+                "Statistics not available - possibly index is corrupt? Returning high doc count");
             return Integer.MAX_VALUE;
         }
         int minNumDocs = indexStatistics.numDocs();
@@ -873,7 +894,7 @@ public class FulltextIndexPlanner {
                 }
                 // since, we've already taken care that scaled cost is lower than minCost,
                 // we can safely cast without risking overflow
-                minNumDocs = (int)scaledDocCnt;
+                minNumDocs = (int) scaledDocCnt;
             } else if (docCntForField < minNumDocs) {
                 minNumDocs = docCntForField;
             }
@@ -889,7 +910,8 @@ public class FulltextIndexPlanner {
         // (see below).
         if (definition.evaluatePathRestrictions()) {
             PathRestriction pathRestriction = filter.getPathRestriction();
-            if (pathRestriction == PathRestriction.EXACT || pathRestriction == PathRestriction.PARENT) {
+            if (pathRestriction == PathRestriction.EXACT
+                || pathRestriction == PathRestriction.PARENT) {
                 // We have an exact path restriction and we have an index that indexes the path:
                 // then the result size is at most 1.
                 minNumDocs = 1;
@@ -924,12 +946,13 @@ public class FulltextIndexPlanner {
         for (OrderEntry o : sortOrder) {
             PropertyDefinition pd = rule.getConfig(o.getPropertyName());
             if (pd != null
-                    && pd.ordered
-                    && o.getPropertyType() != null
-                    && !o.getPropertyType().isArray()) {
+                && pd.ordered
+                && o.getPropertyType() != null
+                && !o.getPropertyType().isArray()) {
                 orderEntries.add(o); // can manage any order desc/asc
                 result.sortedProperties.add(pd);
-            } else if (o.getPropertyName().equals(IndexDefinition.NATIVE_SORT_ORDER.getPropertyName())) {
+            } else if (o.getPropertyName()
+                        .equals(IndexDefinition.NATIVE_SORT_ORDER.getPropertyName())) {
                 // Supports jcr:score descending natively
                 orderEntries.add(IndexDefinition.NATIVE_SORT_ORDER);
             }
@@ -948,18 +971,20 @@ public class FulltextIndexPlanner {
 
     @Nullable
     private IndexDefinition.IndexingRule getApplicableRule() {
-        if (filter.matchesAllTypes()){
+        if (filter.matchesAllTypes()) {
             return definition.getApplicableIndexingRule(JcrConstants.NT_BASE);
         } else {
             //TODO May be better if filter.getSuperTypes returned a list which maintains
             //inheritance order and then we iterate over that
-            for (IndexDefinition.IndexingRule rule : definition.getDefinedRules()){
-                if (filter.getSupertypes().contains(rule.getNodeTypeName())){
+            for (IndexDefinition.IndexingRule rule : definition.getDefinedRules()) {
+                if (filter.getSupertypes().contains(rule.getNodeTypeName())) {
                     //Theoretically there may be multiple rules for same nodeType with
                     //some condition defined. So again find a rule which applies
-                    IndexDefinition.IndexingRule matchingRule = definition.getApplicableIndexingRule(rule.getNodeTypeName());
+                    IndexDefinition.IndexingRule matchingRule = definition.getApplicableIndexingRule(
+                        rule.getNodeTypeName());
 
-                    if (matchingRule == null && rule.getNodeTypeName().equals(filter.getNodeType())){
+                    if (matchingRule == null && rule.getNodeTypeName()
+                                                    .equals(filter.getNodeType())) {
                         //In case nodetype registry in IndexDefinition is stale then it would not populate
                         //rules for new nodetype even though at indexing time it was able to index (due to
                         //use of latest nodetype reg nodestate)
@@ -971,7 +996,7 @@ public class FulltextIndexPlanner {
                         //IndexNode is reopened
                         matchingRule = rule;
                     }
-                    if (matchingRule != null){
+                    if (matchingRule != null) {
                         log.trace("Applicable IndexingRule found {}", matchingRule);
                         return rule;
                     }
@@ -979,20 +1004,20 @@ public class FulltextIndexPlanner {
                 //nt:base is applicable for all. This specific condition is
                 //required to support mixin case as filter.getSupertypes() for mixin based
                 //query only includes the mixin type and not nt:base
-                if (rule.getNodeTypeName().equals(JcrConstants.NT_BASE)){
+                if (rule.getNodeTypeName().equals(JcrConstants.NT_BASE)) {
                     return rule;
                 }
             }
             log.trace("No applicable IndexingRule found for any of the superTypes {}",
-                    filter.getSupertypes());
+                filter.getSupertypes());
         }
         return null;
     }
 
     private boolean notSupportedFeature() {
-        if(filter.getPathRestriction() == Filter.PathRestriction.NO_RESTRICTION
-                && filter.matchesAllTypes()
-                && filter.getPropertyRestrictions().isEmpty()) {
+        if (filter.getPathRestriction() == Filter.PathRestriction.NO_RESTRICTION
+            && filter.matchesAllTypes()
+            && filter.getPropertyRestrictions().isEmpty()) {
             //This mode includes name(), localname() queries
             //OrImpl [a/name] = 'Hello' or [b/name] = 'World'
             //Relative parent properties where [../foo1] is not null
@@ -1026,6 +1051,7 @@ public class FulltextIndexPlanner {
     //~--------------------------------------------------------< PlanResult >
 
     public static class PlanResult {
+
         public final String indexPath;
         public final IndexDefinition indexDefinition;
         public final IndexDefinition.IndexingRule indexingRule;
@@ -1048,33 +1074,34 @@ public class FulltextIndexPlanner {
         private PropertyIndexResult propertyIndexResult;
         private boolean syncNodeTypeRestrictions;
 
-        public PlanResult(String indexPath, IndexDefinition defn, IndexDefinition.IndexingRule indexingRule) {
+        public PlanResult(String indexPath, IndexDefinition defn,
+            IndexDefinition.IndexingRule indexingRule) {
             this.indexPath = indexPath;
             this.indexDefinition = defn;
             this.indexingRule = indexingRule;
         }
 
-        public PropertyDefinition getPropDefn(PropertyRestriction pr){
+        public PropertyDefinition getPropDefn(PropertyRestriction pr) {
             return propDefns.get(pr.propertyName);
         }
 
         /**
-         * Returns the property name to be used for query for given PropertyRestriction
-         * The name can be same as one for property restriction or it can be a mapped one
+         * Returns the property name to be used for query for given PropertyRestriction The name can
+         * be same as one for property restriction or it can be a mapped one
          */
         public String getPropertyName(PropertyRestriction pr) {
             return relPropMapping.getOrDefault(pr.propertyName, pr.propertyName);
         }
 
-        public boolean hasProperty(String propName){
+        public boolean hasProperty(String propName) {
             return propDefns.containsKey(propName);
         }
 
-        public PropertyDefinition getOrderedProperty(int index){
+        public PropertyDefinition getOrderedProperty(int index) {
             return sortedProperties.get(index);
         }
 
-        public boolean isPathTransformed(){
+        public boolean isPathTransformed() {
             return relativize;
         }
 
@@ -1091,23 +1118,23 @@ public class FulltextIndexPlanner {
         }
 
         /**
-         * Transforms the given path if the query involved relative properties and index
-         * is not making use of aggregated properties. If the path
+         * Transforms the given path if the query involved relative properties and index is not
+         * making use of aggregated properties. If the path
          *
          * @param path path to transform
-         * @return transformed path. Returns null if the path does not confirm to relative
-         * path requirements
+         * @return transformed path. Returns null if the path does not confirm to relative path
+         * requirements
          */
         @Nullable
-        public String transformPath(String path){
-            if (isPathTransformed()){
+        public String transformPath(String path) {
+            if (isPathTransformed()) {
                 // get the base path ensure the path ends with the given relative path
                 // for fulltext constraint.
                 // For non-fulltext constraint where query engine can evaluate the relative path
                 // condition, we shall take leeway and allow other features of query engine
                 // (like wildcard as a path element) get supported
-                if ( (!nonFullTextConstraints && !path.endsWith(parentPathSegment))
-                        || (nonFullTextConstraints && getDepth(path) < parentDepth) ) {
+                if ((!nonFullTextConstraints && !path.endsWith(parentPathSegment))
+                    || (nonFullTextConstraints && getDepth(path) < parentDepth)) {
                     return null;
                 }
                 return getAncestorPath(path, parentDepth);
@@ -1115,7 +1142,7 @@ public class FulltextIndexPlanner {
             return path;
         }
 
-        public boolean evaluateNonFullTextConstraints(){
+        public boolean evaluateNonFullTextConstraints() {
             return nonFullTextConstraints;
         }
 
@@ -1127,20 +1154,22 @@ public class FulltextIndexPlanner {
             return syncNodeTypeRestrictions;
         }
 
-        public boolean evaluateNodeNameRestriction() {return nodeNameRestriction;}
+        public boolean evaluateNodeNameRestriction() {
+            return nodeNameRestriction;
+        }
 
         @Nullable
         public PropertyIndexResult getPropertyIndexResult() {
             return propertyIndexResult;
         }
 
-        public boolean hasPropertyIndexResult(){
+        public boolean hasPropertyIndexResult() {
             return propertyIndexResult != null;
         }
 
-        private void setParentPath(String relativePath){
+        private void setParentPath(String relativePath) {
             parentPathSegment = "/" + relativePath;
-            if (relativePath.isEmpty()){
+            if (relativePath.isEmpty()) {
                 // we only restrict non-full-text conditions if there is
                 // no relative property in the full-text constraint
                 enableNonFullTextConstraints();
@@ -1150,7 +1179,7 @@ public class FulltextIndexPlanner {
             }
         }
 
-        private void enableNonFullTextConstraints(){
+        private void enableNonFullTextConstraints() {
             nonFullTextConstraints = true;
         }
 
@@ -1158,16 +1187,17 @@ public class FulltextIndexPlanner {
             nodeTypeRestrictions = true;
         }
 
-        private void enableNodeNameRestriction(){
+        private void enableNodeNameRestriction() {
             nodeNameRestriction = true;
         }
 
-        public void disableUniquePaths(){
+        public void disableUniquePaths() {
             uniquePathsRequired = false;
         }
     }
 
     public static class PropertyIndexResult {
+
         public final String propertyName;
         public final PropertyRestriction pr;
 

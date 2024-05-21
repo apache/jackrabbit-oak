@@ -48,8 +48,10 @@ public class CheckedInNodeTest extends AbstractPrincipalBasedTest {
         setupContentTrees(TEST_OAK_PATH);
 
         Tree userTree = root.getTree(getNamePathMapper().getOakPath(u.getPath()));
-        TreeUtil.addMixin(userTree, MIX_REP_PRINCIPAL_BASED_MIXIN, root.getTree(NodeTypeConstants.NODE_TYPES_PATH), null);
-        TreeUtil.addMixin(userTree, MIX_VERSIONABLE, root.getTree(NodeTypeConstants.NODE_TYPES_PATH), null);
+        TreeUtil.addMixin(userTree, MIX_REP_PRINCIPAL_BASED_MIXIN,
+            root.getTree(NodeTypeConstants.NODE_TYPES_PATH), null);
+        TreeUtil.addMixin(userTree, MIX_VERSIONABLE,
+            root.getTree(NodeTypeConstants.NODE_TYPES_PATH), null);
         root.commit();
 
         userTree.setProperty(JCR_ISCHECKEDOUT, false);
@@ -59,7 +61,8 @@ public class CheckedInNodeTest extends AbstractPrincipalBasedTest {
     @Override
     public void after() throws Exception {
         try {
-            Tree userTree = root.getTree(getNamePathMapper().getOakPath(getTestSystemUser().getPath()));
+            Tree userTree = root.getTree(
+                getNamePathMapper().getOakPath(getTestSystemUser().getPath()));
             userTree.setProperty(JCR_ISCHECKEDOUT, true);
             root.commit();
         } finally {
@@ -77,7 +80,8 @@ public class CheckedInNodeTest extends AbstractPrincipalBasedTest {
 
     @Test
     public void testAddEntry() throws Exception {
-        PrincipalPolicyImpl policy = setupPrincipalBasedAccessControl(testPrincipal, getNamePathMapper().getJcrPath(TEST_OAK_PATH), JCR_READ);
+        PrincipalPolicyImpl policy = setupPrincipalBasedAccessControl(testPrincipal,
+            getNamePathMapper().getJcrPath(TEST_OAK_PATH), JCR_READ);
         root.commit();
     }
 
@@ -85,8 +89,10 @@ public class CheckedInNodeTest extends AbstractPrincipalBasedTest {
     public void testAddEntryWithRestrictions() throws Exception {
         JackrabbitAccessControlManager acMgr = getAccessControlManager(root);
         PrincipalPolicyImpl policy = getPrincipalPolicyImpl(testPrincipal, acMgr);
-        Map<String, Value> restrictions = Collections.singletonMap(getNamePathMapper().getJcrName(REP_GLOB), getValueFactory(root).createValue("/*"));
-        policy.addEntry(getNamePathMapper().getJcrPath(TEST_OAK_PATH), privilegesFromNames(JCR_READ), restrictions, Collections.emptyMap());
+        Map<String, Value> restrictions = Collections.singletonMap(
+            getNamePathMapper().getJcrName(REP_GLOB), getValueFactory(root).createValue("/*"));
+        policy.addEntry(getNamePathMapper().getJcrPath(TEST_OAK_PATH),
+            privilegesFromNames(JCR_READ), restrictions, Collections.emptyMap());
         acMgr.setPolicy(policy.getPath(), policy);
         root.commit();
     }

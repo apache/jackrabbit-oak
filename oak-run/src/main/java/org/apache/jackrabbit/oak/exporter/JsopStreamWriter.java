@@ -19,16 +19,16 @@
 
 package org.apache.jackrabbit.oak.exporter;
 
+import com.google.gson.stream.JsonWriter;
 import java.io.Closeable;
 import java.io.IOException;
-
-import com.google.gson.stream.JsonWriter;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
 
 /**
  * A streaming JsopWriter which uses gson JsonWriter
  */
 class JsopStreamWriter implements JsopWriter, Closeable {
+
     private final JsonWriter w;
 
     public JsopStreamWriter(JsonWriter w) {

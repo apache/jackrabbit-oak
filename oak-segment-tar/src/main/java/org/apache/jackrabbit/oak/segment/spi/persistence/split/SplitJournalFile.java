@@ -16,12 +16,11 @@
  */
 package org.apache.jackrabbit.oak.segment.spi.persistence.split;
 
+import java.io.IOException;
+import java.util.Optional;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileReader;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileWriter;
-
-import java.io.IOException;
-import java.util.Optional;
 
 public class SplitJournalFile implements JournalFile {
 
@@ -31,7 +30,8 @@ public class SplitJournalFile implements JournalFile {
 
     private final Optional<String> lastRoJournalEntry;
 
-    public SplitJournalFile(JournalFile roJournalFile, JournalFile rwJournalFile, Optional<String> lastRoJournalEntry) {
+    public SplitJournalFile(JournalFile roJournalFile, JournalFile rwJournalFile,
+        Optional<String> lastRoJournalEntry) {
         this.roJournalFile = roJournalFile;
         this.rwJournalFile = rwJournalFile;
         this.lastRoJournalEntry = lastRoJournalEntry;
@@ -39,7 +39,8 @@ public class SplitJournalFile implements JournalFile {
 
     @Override
     public JournalFileReader openJournalReader() throws IOException {
-        return new SplitJournalFileReader(roJournalFile.openJournalReader(), rwJournalFile.openJournalReader(), lastRoJournalEntry);
+        return new SplitJournalFileReader(roJournalFile.openJournalReader(),
+            rwJournalFile.openJournalReader(), lastRoJournalEntry);
     }
 
     @Override

@@ -16,6 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.writer.IndexWriterUtils.getIndexWriterConfig;
+import static org.junit.Assert.assertEquals;
+
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.index.IndexWriterConfig;
@@ -24,28 +28,25 @@ import org.junit.Test;
 import org.junit.contrib.java.lang.system.ProvideSystemProperty;
 import org.junit.contrib.java.lang.system.RestoreSystemProperties;
 
-import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.writer.IndexWriterUtils.getIndexWriterConfig;
-import static org.junit.Assert.assertEquals;
-
 public class LuceneIndexConfigTest {
 
     private NodeState root;
 
     @Rule
     public final ProvideSystemProperty updateSystemProperties
-            = new ProvideSystemProperty("oak.index.lucene.maxBufferedDeleteTerms", "1000")
-            .and("oak.index.lucene.ramPerThreadHardLimitMB", "100");
+        = new ProvideSystemProperty("oak.index.lucene.maxBufferedDeleteTerms", "1000")
+        .and("oak.index.lucene.ramPerThreadHardLimitMB", "100");
 
     @Rule
     public final RestoreSystemProperties restoreSystemProperties
-            = new RestoreSystemProperties();
+        = new RestoreSystemProperties();
 
     @Test
     public void testIndexWriterConfig() {
         root = INITIAL_CONTENT;
         NodeBuilder idx = root.builder();
-        LuceneIndexDefinition definition = new LuceneIndexDefinition(root, idx.getNodeState(), "/foo");
+        LuceneIndexDefinition definition = new LuceneIndexDefinition(root, idx.getNodeState(),
+            "/foo");
         IndexWriterConfig config = getIndexWriterConfig(definition, true);
         assertEquals(config.getRAMBufferSizeMB(), 16.0, .01);
         assertEquals(100, config.getRAMPerThreadHardLimitMB());

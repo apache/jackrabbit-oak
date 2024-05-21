@@ -19,6 +19,8 @@
 
 package org.apache.jackrabbit.oak.plugins.tika;
 
+import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -27,15 +29,13 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.ComparisonChain;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.codehaus.groovy.runtime.StringGroovyMethods;
 
-import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
-
 class BinaryStats {
+
     private final TikaHelper tika;
     private final List<MimeTypeStats> stats;
     private long totalSize;
@@ -114,21 +114,21 @@ class BinaryStats {
         pw.println();
 
         String header = center("Type", maxWidth) + " " +
-                center("Indexed", 10) + " " +
-                center("Supported", 10) + " " +
-                center("Count", 10) + " " +
-                center("Size", 10);
+            center("Indexed", 10) + " " +
+            center("Supported", 10) + " " +
+            center("Count", 10) + " " +
+            center("Size", 10);
 
         pw.println(header);
         pw.println(Strings.repeat("_", header.length() + 5));
 
         for (MimeTypeStats s : stats) {
             pw.printf("%-" + maxWidth + "s|%10s|%10s|  %-8d|%10s%n",
-                    s.getName(),
-                    s.isIndexed(),
-                    s.isSupported(),
-                    s.getCount(),
-                    humanReadableByteCount(s.getTotalSize()));
+                s.getName(),
+                s.isIndexed(),
+                s.isSupported(),
+                s.getCount(),
+                humanReadableByteCount(s.getTotalSize()));
         }
         return sw.toString();
     }
@@ -145,6 +145,7 @@ class BinaryStats {
     }
 
     private static class MimeTypeStats implements Comparable<MimeTypeStats> {
+
         private final String mimeType;
         private int count;
         private long totalSize;
@@ -191,9 +192,9 @@ class BinaryStats {
         @Override
         public int compareTo(MimeTypeStats o) {
             return ComparisonChain.start()
-                    .compareFalseFirst(indexed, o.indexed)
-                    .compare(totalSize, o.totalSize)
-                    .result();
+                                  .compareFalseFirst(indexed, o.indexed)
+                                  .compare(totalSize, o.totalSize)
+                                  .result();
         }
     }
 }

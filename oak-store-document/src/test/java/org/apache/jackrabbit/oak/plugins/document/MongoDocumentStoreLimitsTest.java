@@ -35,7 +35,7 @@ public class MongoDocumentStoreLimitsTest extends AbstractMongoConnectionTest {
 
     @Ignore
     @Test
-    public void longName() throws Exception{
+    public void longName() throws Exception {
         DocumentNodeStore ns = mk.getNodeStore();
         NodeBuilder builder = ns.getRoot().builder();
 

@@ -22,12 +22,11 @@ package org.apache.jackrabbit.oak.scalability.benchmarks.segment.standby;
 import java.lang.management.ManagementFactory;
 import java.util.Map;
 import java.util.Set;
-
-import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import javax.jcr.Credentials;
 import javax.jcr.Repository;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
+import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.scalability.benchmarks.ScalabilityBenchmark;
 import org.apache.jackrabbit.oak.scalability.suites.ScalabilityAbstractSuite;
 import org.apache.jackrabbit.oak.scalability.suites.ScalabilityAbstractSuite.ExecutionContext;
@@ -39,15 +38,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Bulk transfers <code>nodeCount</code> nodes from primary to standby and
- * outputs statistics related to duration, number of segments transferred and
- * number of segment bytes transferred.
+ * Bulk transfers <code>nodeCount</code> nodes from primary to standby and outputs statistics
+ * related to duration, number of segments transferred and number of segment bytes transferred.
  */
 public class StandbyBulkTransferBenchmark extends ScalabilityBenchmark {
+
     protected static final Logger LOG = LoggerFactory.getLogger(ScalabilityAbstractSuite.class);
 
     @Override
-    public void execute(Repository repository, Credentials credentials, ExecutionContext context) throws Exception {
+    public void execute(Repository repository, Credentials credentials, ExecutionContext context)
+        throws Exception {
         Map<Object, Object> contextMap = context.getMap();
         StandbyClientSync[] clientSyncs = (StandbyClientSync[]) contextMap.get("clientSyncs");
         StandbyServerSync[] serverSyncs = (StandbyServerSync[]) contextMap.get("serverSyncs");
@@ -77,7 +77,8 @@ public class StandbyBulkTransferBenchmark extends ScalabilityBenchmark {
         long segments = (Long) jmxServer.getAttribute(connectionStatus, "TransferredSegments");
         long bytes = (Long) jmxServer.getAttribute(connectionStatus, "TransferredSegmentBytes");
 
-        LOG.info("Bulk transfer for {} nodes finished! Segments = {}, segments size = {} bytes, time = {}",
-                Integer.getInteger("nodeCount", 100_000), segments, bytes, stopwatch);
+        LOG.info(
+            "Bulk transfer for {} nodes finished! Segments = {}, segments size = {} bytes, time = {}",
+            Integer.getInteger("nodeCount", 100_000), segments, bytes, stopwatch);
     }
 }

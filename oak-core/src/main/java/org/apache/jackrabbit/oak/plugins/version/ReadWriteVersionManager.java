@@ -18,6 +18,28 @@
  */
 package org.apache.jackrabbit.oak.plugins.version;
 
+import static org.apache.jackrabbit.JcrConstants.JCR_BASEVERSION;
+import static org.apache.jackrabbit.JcrConstants.JCR_CREATED;
+import static org.apache.jackrabbit.JcrConstants.JCR_ISCHECKEDOUT;
+import static org.apache.jackrabbit.JcrConstants.JCR_PREDECESSORS;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.JcrConstants.JCR_ROOTVERSION;
+import static org.apache.jackrabbit.JcrConstants.JCR_SUCCESSORS;
+import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
+import static org.apache.jackrabbit.JcrConstants.JCR_VERSIONABLEUUID;
+import static org.apache.jackrabbit.JcrConstants.JCR_VERSIONHISTORY;
+import static org.apache.jackrabbit.JcrConstants.JCR_VERSIONLABELS;
+import static org.apache.jackrabbit.JcrConstants.NT_VERSION;
+import static org.apache.jackrabbit.JcrConstants.NT_VERSIONHISTORY;
+import static org.apache.jackrabbit.JcrConstants.NT_VERSIONLABELS;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.oak.plugins.version.Utils.uuidFromNode;
+import static org.apache.jackrabbit.oak.spi.version.VersionConstants.JCR_COPIED_FROM;
+import static org.apache.jackrabbit.oak.spi.version.VersionConstants.REP_VERSIONSTORAGE;
+import static org.apache.jackrabbit.oak.spi.version.VersionConstants.VERSION_STORE_PATH;
+
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
@@ -26,7 +48,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import javax.jcr.RepositoryException;
-
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -51,28 +72,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-import static org.apache.jackrabbit.JcrConstants.JCR_BASEVERSION;
-import static org.apache.jackrabbit.JcrConstants.JCR_CREATED;
-import static org.apache.jackrabbit.JcrConstants.JCR_ISCHECKEDOUT;
-import static org.apache.jackrabbit.JcrConstants.JCR_PREDECESSORS;
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
-import static org.apache.jackrabbit.JcrConstants.JCR_ROOTVERSION;
-import static org.apache.jackrabbit.JcrConstants.JCR_SUCCESSORS;
-import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
-import static org.apache.jackrabbit.JcrConstants.JCR_VERSIONABLEUUID;
-import static org.apache.jackrabbit.JcrConstants.JCR_VERSIONHISTORY;
-import static org.apache.jackrabbit.JcrConstants.JCR_VERSIONLABELS;
-import static org.apache.jackrabbit.JcrConstants.NT_VERSION;
-import static org.apache.jackrabbit.JcrConstants.NT_VERSIONHISTORY;
-import static org.apache.jackrabbit.JcrConstants.NT_VERSIONLABELS;
-import static org.apache.jackrabbit.oak.plugins.version.Utils.uuidFromNode;
-import static org.apache.jackrabbit.oak.spi.version.VersionConstants.JCR_COPIED_FROM;
-import static org.apache.jackrabbit.oak.spi.version.VersionConstants.REP_VERSIONSTORAGE;
-import static org.apache.jackrabbit.oak.spi.version.VersionConstants.VERSION_STORE_PATH;
 
 /**
  * Extends the {@link ReadOnlyVersionManager} with methods to modify the version store.

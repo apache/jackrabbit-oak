@@ -22,17 +22,16 @@ import static org.apache.jackrabbit.commons.JcrUtils.getOrCreateByPath;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertThat;
 
+import ch.qos.logback.classic.Level;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
@@ -54,13 +53,13 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Assert;
 import org.junit.Test;
 
-import ch.qos.logback.classic.Level;
-
 public class LucenePurgeOldIndexVersionTest extends LuceneAbstractIndexCommandTest {
+
     private final static String FOO1_INDEX_PATH = "/oak:index/fooIndex1";
 
-    private void createCustomIndex(String path, int ootbVersion, int customVersion, boolean asyncIndex) throws IOException,
-            RepositoryException {
+    private void createCustomIndex(String path, int ootbVersion, int customVersion,
+        boolean asyncIndex) throws IOException,
+        RepositoryException {
         LuceneIndexDefinitionBuilder idxBuilder = new LuceneIndexDefinitionBuilder();
         if (!asyncIndex) {
             idxBuilder.noAsync();
@@ -68,7 +67,9 @@ public class LucenePurgeOldIndexVersionTest extends LuceneAbstractIndexCommandTe
         idxBuilder.indexRule("nt:base").property("foo").propertyIndex();
 
         Session session = fixture.getAdminSession();
-        String indexName = customVersion != 0 ? path + "-" + ootbVersion + "-custom-" + customVersion : path + "-" + ootbVersion;
+        String indexName =
+            customVersion != 0 ? path + "-" + ootbVersion + "-custom-" + customVersion
+                : path + "-" + ootbVersion;
         Node fooIndex = getOrCreateByPath(indexName, "oak:QueryIndexDefinition", session);
 
         idxBuilder.build(fooIndex);
@@ -93,28 +94,39 @@ public class LucenePurgeOldIndexVersionTest extends LuceneAbstractIndexCommandTe
 
         NodeState indexRootNode = fixture.getNodeStore().getRoot().getChildNode("oak:index");
 
-        Assert.assertFalse("Index:" + "fooIndex-2" + " deleted", indexRootNode.getChildNode("fooIndex-2").exists());
-        Assert.assertFalse("Index:" + "fooIndex-2-custom-1" + " deleted", indexRootNode.getChildNode("fooIndex-2-custom-1").exists());
-        Assert.assertFalse("Index:" + "fooIndex-3" + " deleted", indexRootNode.getChildNode("fooIndex-3").exists());
-        Assert.assertFalse("Index:" + "fooIndex-3-custom-1" + " deleted", indexRootNode.getChildNode("fooIndex-3-custom-1").exists());
-        Assert.assertFalse("Index:" + "fooIndex-3-custom-2" + " deleted", indexRootNode.getChildNode("fooIndex-3-custom-2").exists());
-        Assert.assertFalse("Index:" + "fooIndex" + " deleted", indexRootNode.getChildNode("fooIndex").exists());
-        Assert.assertEquals("disabled", indexRootNode.getChildNode("fooIndex-4").getProperty("type").getValue(Type.STRING));
+        Assert.assertFalse("Index:" + "fooIndex-2" + " deleted",
+            indexRootNode.getChildNode("fooIndex-2").exists());
+        Assert.assertFalse("Index:" + "fooIndex-2-custom-1" + " deleted",
+            indexRootNode.getChildNode("fooIndex-2-custom-1").exists());
+        Assert.assertFalse("Index:" + "fooIndex-3" + " deleted",
+            indexRootNode.getChildNode("fooIndex-3").exists());
+        Assert.assertFalse("Index:" + "fooIndex-3-custom-1" + " deleted",
+            indexRootNode.getChildNode("fooIndex-3-custom-1").exists());
+        Assert.assertFalse("Index:" + "fooIndex-3-custom-2" + " deleted",
+            indexRootNode.getChildNode("fooIndex-3-custom-2").exists());
+        Assert.assertFalse("Index:" + "fooIndex" + " deleted",
+            indexRootNode.getChildNode("fooIndex").exists());
+        Assert.assertEquals("disabled",
+            indexRootNode.getChildNode("fooIndex-4").getProperty("type").getValue(Type.STRING));
         Assert.assertFalse(isHiddenChildNodePresent(indexRootNode.getChildNode("fooIndex-4")));
-        Assert.assertFalse("Index:" + "fooIndex-4-custom-1" + " deleted", indexRootNode.getChildNode("fooIndex-4-custom-1").exists());
-        Assert.assertTrue("Index:" + "fooIndex-4-custom-2" + " deleted", indexRootNode.getChildNode("fooIndex-4-custom-2").exists());
+        Assert.assertFalse("Index:" + "fooIndex-4-custom-1" + " deleted",
+            indexRootNode.getChildNode("fooIndex-4-custom-1").exists());
+        Assert.assertTrue("Index:" + "fooIndex-4-custom-2" + " deleted",
+            indexRootNode.getChildNode("fooIndex-4-custom-2").exists());
 
         // check if disabled index deleted in subsequent runs if hidden oak mount not present
         runIndexPurgeCommand(true, 1, "");
         indexRootNode = fixture.getNodeStore().getRoot().getChildNode("oak:index");
-        Assert.assertFalse("Index:" + "fooIndex-4" + " deleted", indexRootNode.getChildNode("fooIndex").exists());
+        Assert.assertFalse("Index:" + "fooIndex-4" + " deleted",
+            indexRootNode.getChildNode("fooIndex").exists());
     }
 
     @Test
     public void noDeleteIfActiveIndexTimeThresholdNotMeet() throws Exception {
-        LogCustomizer custom = LogCustomizer.forLogger("org.apache.jackrabbit.oak.indexversion.IndexVersionOperation")
-                .enable(Level.INFO)
-                .create();
+        LogCustomizer custom = LogCustomizer.forLogger(
+                                                "org.apache.jackrabbit.oak.indexversion.IndexVersionOperation")
+                                            .enable(Level.INFO)
+                                            .create();
         try {
             custom.starting();
             createTestData(false);
@@ -131,7 +143,8 @@ public class LucenePurgeOldIndexVersionTest extends LuceneAbstractIndexCommandTe
 
             List<String> logs = custom.getLogs();
             assertThat(logs.toString(),
-                    containsString("The active index '/oak:index/fooIndex-4-custom-2' indexing time isn't old enough"));
+                containsString(
+                    "The active index '/oak:index/fooIndex-4-custom-2' indexing time isn't old enough"));
 
             NodeState indexRootNode = fixture.getNodeStore().getRoot().getChildNode("oak:index");
             Assert.assertTrue(indexRootNode.getChildNode("fooIndex-2-custom-1").exists());
@@ -144,11 +157,13 @@ public class LucenePurgeOldIndexVersionTest extends LuceneAbstractIndexCommandTe
             custom.finished();
         }
     }
+
     @Test
     public void noDeleteIfNoActiveIndex() throws Exception {
-        LogCustomizer custom = LogCustomizer.forLogger("org.apache.jackrabbit.oak.indexversion.IndexVersionOperation")
-                .enable(Level.INFO)
-                .create();
+        LogCustomizer custom = LogCustomizer.forLogger(
+                                                "org.apache.jackrabbit.oak.indexversion.IndexVersionOperation")
+                                            .enable(Level.INFO)
+                                            .create();
         try {
             custom.starting();
             createTestData(false);
@@ -162,7 +177,8 @@ public class LucenePurgeOldIndexVersionTest extends LuceneAbstractIndexCommandTe
             runIndexPurgeCommand(true, TimeUnit.DAYS.toMillis(1), "");
 
             List<String> logs = custom.getLogs();
-            assertThat(logs.toString(), containsString("Cannot find any active index from the list: [/oak:index/fooIndex-4-custom-2"));
+            assertThat(logs.toString(), containsString(
+                "Cannot find any active index from the list: [/oak:index/fooIndex-4-custom-2"));
 
             NodeState indexRootNode = fixture.getNodeStore().getRoot().getChildNode("oak:index");
             Assert.assertTrue(indexRootNode.getChildNode("fooIndex-2-custom-1").exists());
@@ -180,9 +196,10 @@ public class LucenePurgeOldIndexVersionTest extends LuceneAbstractIndexCommandTe
     // Verify that the lower versioned index that is being used for queries should not get purged.
     @Test
     public void noDeleteIfLatestOOBIndexIsDisabled() throws Exception {
-        LogCustomizer custom = LogCustomizer.forLogger("org.apache.jackrabbit.oak.indexversion.IndexVersionOperation")
-                .enable(Level.INFO)
-                .create();
+        LogCustomizer custom = LogCustomizer.forLogger(
+                                                "org.apache.jackrabbit.oak.indexversion.IndexVersionOperation")
+                                            .enable(Level.INFO)
+                                            .create();
         try {
             custom.starting();
             createTestData(false);
@@ -196,15 +213,16 @@ public class LucenePurgeOldIndexVersionTest extends LuceneAbstractIndexCommandTe
             NodeStore store = fixture.getNodeStore();
             NodeBuilder rootBuilder = store.getRoot().builder();
             rootBuilder.getChildNode("oak:index")
-                    .getChildNode("fooIndex-4")
-                    .setProperty("type", "disabled");
+                       .getChildNode("fooIndex-4")
+                       .setProperty("type", "disabled");
             rootBuilder.getChildNode("oak:index")
-                    .getChildNode("fooIndex-3-custom-3")
-                    .setProperty("type", "disabled")
-                    .setProperty(":originalType", "lucene");
+                       .getChildNode("fooIndex-3-custom-3")
+                       .setProperty("type", "disabled")
+                       .setProperty(":originalType", "lucene");
             store.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-            addMockHiddenOakMount(fixture.getNodeStore(), Arrays.asList("fooIndex-3-custom-1", "fooIndex-3-custom-2"));
+            addMockHiddenOakMount(fixture.getNodeStore(),
+                Arrays.asList("fooIndex-3-custom-1", "fooIndex-3-custom-2"));
 
             // At this point of time - we have /oak:index/fooIndex-4 and /oak:index/fooIndex-3-custom-3 which are disabled
             // /oak:index/fooIndex-3-custom-2 and /oak:index/fooIndex-3-custom-1 which are active (hidden mount exists)
@@ -215,20 +233,26 @@ public class LucenePurgeOldIndexVersionTest extends LuceneAbstractIndexCommandTe
             List<String> logs = custom.getLogs();
             // This log verification shows that /oak:index/fooIndex-4 gets filtered at the very first stage (before the list is sent to IndexVersionOperation)
             // This is because it is disabled and does not have :originalType property - so it was disabled manually and not by auto purge command - hence it's simply ignored.
-            assertThat(logs.toString(), containsString("Reverse Sorted list [/oak:index/fooIndex-3-custom-3"));
+            assertThat(logs.toString(),
+                containsString("Reverse Sorted list [/oak:index/fooIndex-3-custom-3"));
 
             // This log verifies that /oak:index/fooIndex-3-custom-3 (which is disabled and has :originalType property) is moved to disabled list to be handled accordingly
-            assertThat(logs.toString(), containsString("Disabled index list [/oak:index/fooIndex-3-custom-3"));
+            assertThat(logs.toString(),
+                containsString("Disabled index list [/oak:index/fooIndex-3-custom-3"));
 
             // This verifies that the index that is considered for isActive check and further verifications is /oak:index/fooIndex-3-custom-2
-            assertThat(logs.toString(), containsString("new reverse sorted list after removing disabled indexes[/oak:index/fooIndex-3-custom-2"));
+            assertThat(logs.toString(), containsString(
+                "new reverse sorted list after removing disabled indexes[/oak:index/fooIndex-3-custom-2"));
 
             NodeState indexRootNode = fixture.getNodeStore().getRoot().getChildNode("oak:index");
             Assert.assertFalse(indexRootNode.getChildNode("fooIndex-2-custom-1").exists());
             Assert.assertTrue(indexRootNode.getChildNode("fooIndex-3").exists());
-            Assert.assertEquals("disabled", indexRootNode.getChildNode("fooIndex-3").getProperty("type").getValue(Type.STRING));
+            Assert.assertEquals("disabled",
+                indexRootNode.getChildNode("fooIndex-3").getProperty("type").getValue(Type.STRING));
             Assert.assertTrue(indexRootNode.getChildNode("fooIndex-3-custom-1").exists());
-            Assert.assertEquals("disabled", indexRootNode.getChildNode("fooIndex-3-custom-1").getProperty("type").getValue(Type.STRING));
+            Assert.assertEquals("disabled",
+                indexRootNode.getChildNode("fooIndex-3-custom-1").getProperty("type")
+                             .getValue(Type.STRING));
             Assert.assertTrue(indexRootNode.getChildNode("fooIndex-3-custom-2").exists());
             Assert.assertFalse(indexRootNode.getChildNode("fooIndex-3-custom-3").exists());
             Assert.assertTrue(indexRootNode.getChildNode("fooIndex-4").exists());
@@ -241,9 +265,10 @@ public class LucenePurgeOldIndexVersionTest extends LuceneAbstractIndexCommandTe
     // but before which is fixed, the purging will not do deletion in that case
     @Test
     public void noDeleteIfActiveIndexTimeMissing() throws Exception {
-        LogCustomizer custom = LogCustomizer.forLogger("org.apache.jackrabbit.oak.indexversion.IndexVersionOperation")
-                .enable(Level.INFO)
-                .create();
+        LogCustomizer custom = LogCustomizer.forLogger(
+                                                "org.apache.jackrabbit.oak.indexversion.IndexVersionOperation")
+                                            .enable(Level.INFO)
+                                            .create();
         try {
             custom.starting();
             createTestData(false);
@@ -257,9 +282,9 @@ public class LucenePurgeOldIndexVersionTest extends LuceneAbstractIndexCommandTe
             NodeStore store = fixture.getNodeStore();
             NodeBuilder rootBuilder = store.getRoot().builder();
             rootBuilder.getChildNode("oak:index")
-                    .getChildNode("fooIndex-4-custom-2")
-                    .getChildNode(IndexDefinition.STATUS_NODE)
-                    .removeProperty(IndexDefinition.REINDEX_COMPLETION_TIMESTAMP);
+                       .getChildNode("fooIndex-4-custom-2")
+                       .getChildNode(IndexDefinition.STATUS_NODE)
+                       .removeProperty(IndexDefinition.REINDEX_COMPLETION_TIMESTAMP);
             store.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
             addMockHiddenOakMount(fixture.getNodeStore(), Arrays.asList("fooIndex-4-custom-2"));
@@ -268,7 +293,8 @@ public class LucenePurgeOldIndexVersionTest extends LuceneAbstractIndexCommandTe
 
             List<String> logs = custom.getLogs();
             assertThat(logs.toString(),
-                    containsString("reindexCompletionTimestamp property is not set for index /oak:index/fooIndex-4-custom-2"));
+                containsString(
+                    "reindexCompletionTimestamp property is not set for index /oak:index/fooIndex-4-custom-2"));
 
             NodeState indexRootNode = fixture.getNodeStore().getRoot().getChildNode("oak:index");
             Assert.assertTrue(indexRootNode.getChildNode("fooIndex-2-custom-1").exists());
@@ -285,9 +311,10 @@ public class LucenePurgeOldIndexVersionTest extends LuceneAbstractIndexCommandTe
 
     @Test
     public void noDeleteIfInvalidIndexOperationVersion() throws Exception {
-        LogCustomizer custom = LogCustomizer.forLogger("org.apache.jackrabbit.oak.indexversion.IndexVersionOperation")
-                .enable(Level.INFO)
-                .create();
+        LogCustomizer custom = LogCustomizer.forLogger(
+                                                "org.apache.jackrabbit.oak.indexversion.IndexVersionOperation")
+                                            .enable(Level.INFO)
+                                            .create();
         try {
             custom.starting();
             createTestData(false);
@@ -304,7 +331,7 @@ public class LucenePurgeOldIndexVersionTest extends LuceneAbstractIndexCommandTe
 
             List<String> logs = custom.getLogs();
             assertThat("custom fooIndex don't have product version ", logs.toString(),
-                    containsString("Repository don't have base index:"));
+                containsString("Repository don't have base index:"));
         } finally {
             custom.finished();
         }
@@ -324,26 +351,40 @@ public class LucenePurgeOldIndexVersionTest extends LuceneAbstractIndexCommandTe
         NodeStore store = fixture.getNodeStore();
         NodeBuilder rootBuilder = store.getRoot().builder();
         // for disabled indexes, it will still be deleted if no oak mount, but will be kept if oak mount exists
-        rootBuilder.getChildNode("oak:index").getChildNode("fooIndex-3-custom-1").setProperty("type", "disabled");
-        rootBuilder.getChildNode("oak:index").getChildNode("fooIndex-3-custom-1").setProperty(":originalType", "lucene");
-        rootBuilder.getChildNode("oak:index").getChildNode("fooIndex-4-custom-1").setProperty("type", "disabled");
-        rootBuilder.getChildNode("oak:index").getChildNode("fooIndex-4-custom-1").setProperty(":originalType", "lucene");
+        rootBuilder.getChildNode("oak:index").getChildNode("fooIndex-3-custom-1")
+                   .setProperty("type", "disabled");
+        rootBuilder.getChildNode("oak:index").getChildNode("fooIndex-3-custom-1")
+                   .setProperty(":originalType", "lucene");
+        rootBuilder.getChildNode("oak:index").getChildNode("fooIndex-4-custom-1")
+                   .setProperty("type", "disabled");
+        rootBuilder.getChildNode("oak:index").getChildNode("fooIndex-4-custom-1")
+                   .setProperty(":originalType", "lucene");
         store.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        addMockHiddenOakMount(fixture.getNodeStore(), Arrays.asList("fooIndex-4-custom-1", "fooIndex-4-custom-2"));
+        addMockHiddenOakMount(fixture.getNodeStore(),
+            Arrays.asList("fooIndex-4-custom-1", "fooIndex-4-custom-2"));
 
         runIndexPurgeCommand(true, 1, "/oak:index/fooIndex,/oak:index");
         NodeState indexRootNode = fixture.getNodeStore().getRoot().getChildNode("oak:index");
-        Assert.assertFalse("Index:" + "fooIndex-2" + " deleted", indexRootNode.getChildNode("fooIndex-2").exists());
-        Assert.assertFalse("Index:" + "fooIndex-2-custom-1" + " deleted", indexRootNode.getChildNode("fooIndex-2-custom-1").exists());
-        Assert.assertFalse("Index:" + "fooIndex-3" + " deleted", indexRootNode.getChildNode("fooIndex-3").exists());
-        Assert.assertFalse("Index:" + "fooIndex-3-custom-1" + " deleted", indexRootNode.getChildNode("fooIndex-3-custom-1").exists());
-        Assert.assertFalse("Index:" + "fooIndex-3-custom-2" + " deleted", indexRootNode.getChildNode("fooIndex-3-custom-2").exists());
-        Assert.assertFalse("Index:" + "fooIndex" + " deleted", indexRootNode.getChildNode("fooIndex").exists());
-        Assert.assertEquals("disabled", indexRootNode.getChildNode("fooIndex-4").getProperty("type").getValue(Type.STRING));
+        Assert.assertFalse("Index:" + "fooIndex-2" + " deleted",
+            indexRootNode.getChildNode("fooIndex-2").exists());
+        Assert.assertFalse("Index:" + "fooIndex-2-custom-1" + " deleted",
+            indexRootNode.getChildNode("fooIndex-2-custom-1").exists());
+        Assert.assertFalse("Index:" + "fooIndex-3" + " deleted",
+            indexRootNode.getChildNode("fooIndex-3").exists());
+        Assert.assertFalse("Index:" + "fooIndex-3-custom-1" + " deleted",
+            indexRootNode.getChildNode("fooIndex-3-custom-1").exists());
+        Assert.assertFalse("Index:" + "fooIndex-3-custom-2" + " deleted",
+            indexRootNode.getChildNode("fooIndex-3-custom-2").exists());
+        Assert.assertFalse("Index:" + "fooIndex" + " deleted",
+            indexRootNode.getChildNode("fooIndex").exists());
+        Assert.assertEquals("disabled",
+            indexRootNode.getChildNode("fooIndex-4").getProperty("type").getValue(Type.STRING));
         Assert.assertFalse(isHiddenChildNodePresent(indexRootNode.getChildNode("fooIndex-4")));
-        Assert.assertTrue("Index:" + "fooIndex-4-custom-1" + " deleted", indexRootNode.getChildNode("fooIndex-4-custom-1").exists());
-        Assert.assertTrue("Index:" + "fooIndex-4-custom-2" + " deleted", indexRootNode.getChildNode("fooIndex-4-custom-2").exists());
+        Assert.assertTrue("Index:" + "fooIndex-4-custom-1" + " deleted",
+            indexRootNode.getChildNode("fooIndex-4-custom-1").exists());
+        Assert.assertTrue("Index:" + "fooIndex-4-custom-2" + " deleted",
+            indexRootNode.getChildNode("fooIndex-4-custom-2").exists());
     }
 
     @Test
@@ -360,25 +401,37 @@ public class LucenePurgeOldIndexVersionTest extends LuceneAbstractIndexCommandTe
         NodeStore store = fixture.getNodeStore();
         NodeBuilder rootBuilder = store.getRoot().builder();
         // for disabled indexes, if :originalType property is not set, it will be skipped from IndexPurgeOperation generation list and will be ignored (assuming it was manually marked as disabled)
-        rootBuilder.getChildNode("oak:index").getChildNode("fooIndex-3-custom-1").setProperty("type", "disabled");
-        rootBuilder.getChildNode("oak:index").getChildNode("fooIndex-4-custom-1").setProperty("type", "disabled");
+        rootBuilder.getChildNode("oak:index").getChildNode("fooIndex-3-custom-1")
+                   .setProperty("type", "disabled");
+        rootBuilder.getChildNode("oak:index").getChildNode("fooIndex-4-custom-1")
+                   .setProperty("type", "disabled");
         store.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        addMockHiddenOakMount(fixture.getNodeStore(), Arrays.asList("fooIndex-4-custom-1", "fooIndex-4-custom-2"));
+        addMockHiddenOakMount(fixture.getNodeStore(),
+            Arrays.asList("fooIndex-4-custom-1", "fooIndex-4-custom-2"));
 
         runIndexPurgeCommand(true, 1, "/oak:index/fooIndex,/oak:index");
         NodeState indexRootNode = fixture.getNodeStore().getRoot().getChildNode("oak:index");
-        Assert.assertFalse("Index:" + "fooIndex-2" + " deleted", indexRootNode.getChildNode("fooIndex-2").exists());
-        Assert.assertFalse("Index:" + "fooIndex-2-custom-1" + " deleted", indexRootNode.getChildNode("fooIndex-2-custom-1").exists());
-        Assert.assertFalse("Index:" + "fooIndex-3" + " deleted", indexRootNode.getChildNode("fooIndex-3").exists());
-        Assert.assertFalse("Index:" + "fooIndex-3-custom-2" + " deleted", indexRootNode.getChildNode("fooIndex-3-custom-2").exists());
-        Assert.assertFalse("Index:" + "fooIndex" + " deleted", indexRootNode.getChildNode("fooIndex").exists());
-        Assert.assertEquals("disabled", indexRootNode.getChildNode("fooIndex-4").getProperty("type").getValue(Type.STRING));
+        Assert.assertFalse("Index:" + "fooIndex-2" + " deleted",
+            indexRootNode.getChildNode("fooIndex-2").exists());
+        Assert.assertFalse("Index:" + "fooIndex-2-custom-1" + " deleted",
+            indexRootNode.getChildNode("fooIndex-2-custom-1").exists());
+        Assert.assertFalse("Index:" + "fooIndex-3" + " deleted",
+            indexRootNode.getChildNode("fooIndex-3").exists());
+        Assert.assertFalse("Index:" + "fooIndex-3-custom-2" + " deleted",
+            indexRootNode.getChildNode("fooIndex-3-custom-2").exists());
+        Assert.assertFalse("Index:" + "fooIndex" + " deleted",
+            indexRootNode.getChildNode("fooIndex").exists());
+        Assert.assertEquals("disabled",
+            indexRootNode.getChildNode("fooIndex-4").getProperty("type").getValue(Type.STRING));
         Assert.assertFalse(isHiddenChildNodePresent(indexRootNode.getChildNode("fooIndex-4")));
         //fooIndex-3-custom-1 should exist even if it doesn't have hidden oak mount - because it got ignored from purge operation generation list because of no :originalType set
-        Assert.assertTrue("Index:" + "fooIndex-3-custom-1" + " deleted", indexRootNode.getChildNode("fooIndex-3-custom-1").exists());
-        Assert.assertTrue("Index:" + "fooIndex-4-custom-1" + " deleted", indexRootNode.getChildNode("fooIndex-4-custom-1").exists());
-        Assert.assertTrue("Index:" + "fooIndex-4-custom-2" + " deleted", indexRootNode.getChildNode("fooIndex-4-custom-2").exists());
+        Assert.assertTrue("Index:" + "fooIndex-3-custom-1" + " deleted",
+            indexRootNode.getChildNode("fooIndex-3-custom-1").exists());
+        Assert.assertTrue("Index:" + "fooIndex-4-custom-1" + " deleted",
+            indexRootNode.getChildNode("fooIndex-4-custom-1").exists());
+        Assert.assertTrue("Index:" + "fooIndex-4-custom-2" + " deleted",
+            indexRootNode.getChildNode("fooIndex-4-custom-2").exists());
     }
 
     @Test
@@ -403,26 +456,39 @@ public class LucenePurgeOldIndexVersionTest extends LuceneAbstractIndexCommandTe
 
         NodeState indexRootNode = fixture.getNodeStore().getRoot().getChildNode("oak:index");
 
-        Assert.assertFalse("Index:" + "fooIndex-2" + " deleted", indexRootNode.getChildNode("fooIndex-2").exists());
-        Assert.assertFalse("Index:" + "fooIndex-2-custom-1" + " deleted", indexRootNode.getChildNode("fooIndex-2-custom-1").exists());
-        Assert.assertFalse("Index:" + "fooIndex-3" + " deleted", indexRootNode.getChildNode("fooIndex-3").exists());
-        Assert.assertFalse("Index:" + "fooIndex-3-custom-1" + " deleted", indexRootNode.getChildNode("fooIndex-3-custom-1").exists());
-        Assert.assertFalse("Index:" + "fooIndex-3-custom-2" + " deleted", indexRootNode.getChildNode("fooIndex-3-custom-2").exists());
-        Assert.assertFalse("Index:" + "fooIndex" + " deleted", indexRootNode.getChildNode("fooIndex").exists());
-        Assert.assertEquals("disabled", indexRootNode.getChildNode("fooIndex-4").getProperty("type").getValue(Type.STRING));
-        Assert.assertEquals("lucene", indexRootNode.getChildNode("fooIndex-4").getProperty(":originalType").getValue(Type.STRING));
+        Assert.assertFalse("Index:" + "fooIndex-2" + " deleted",
+            indexRootNode.getChildNode("fooIndex-2").exists());
+        Assert.assertFalse("Index:" + "fooIndex-2-custom-1" + " deleted",
+            indexRootNode.getChildNode("fooIndex-2-custom-1").exists());
+        Assert.assertFalse("Index:" + "fooIndex-3" + " deleted",
+            indexRootNode.getChildNode("fooIndex-3").exists());
+        Assert.assertFalse("Index:" + "fooIndex-3-custom-1" + " deleted",
+            indexRootNode.getChildNode("fooIndex-3-custom-1").exists());
+        Assert.assertFalse("Index:" + "fooIndex-3-custom-2" + " deleted",
+            indexRootNode.getChildNode("fooIndex-3-custom-2").exists());
+        Assert.assertFalse("Index:" + "fooIndex" + " deleted",
+            indexRootNode.getChildNode("fooIndex").exists());
+        Assert.assertEquals("disabled",
+            indexRootNode.getChildNode("fooIndex-4").getProperty("type").getValue(Type.STRING));
+        Assert.assertEquals("lucene",
+            indexRootNode.getChildNode("fooIndex-4").getProperty(":originalType")
+                         .getValue(Type.STRING));
         Assert.assertFalse(isHiddenChildNodePresent(indexRootNode.getChildNode("fooIndex-4")));
-        Assert.assertFalse("Index:" + "fooIndex-4-custom-1" + " deleted", indexRootNode.getChildNode("fooIndex-4-custom-1").exists());
-        Assert.assertTrue("Index:" + "fooIndex-4-custom-2" + " deleted", indexRootNode.getChildNode("fooIndex-4-custom-2").exists());
+        Assert.assertFalse("Index:" + "fooIndex-4-custom-1" + " deleted",
+            indexRootNode.getChildNode("fooIndex-4-custom-1").exists());
+        Assert.assertTrue("Index:" + "fooIndex-4-custom-2" + " deleted",
+            indexRootNode.getChildNode("fooIndex-4-custom-2").exists());
 
-        Assert.assertTrue("Index:" + "fooIndex1-3-custom-1" + " deleted", indexRootNode.getChildNode("fooIndex1-3-custom-1").exists());
+        Assert.assertTrue("Index:" + "fooIndex1-3-custom-1" + " deleted",
+            indexRootNode.getChildNode("fooIndex1-3-custom-1").exists());
     }
 
     @Test
     public void noDeleteIfNonReadWriteMode() throws Exception {
-        LogCustomizer custom = LogCustomizer.forLogger("org.apache.jackrabbit.oak.run.PurgeOldIndexVersionCommand")
-                .enable(Level.INFO)
-                .create();
+        LogCustomizer custom = LogCustomizer.forLogger(
+                                                "org.apache.jackrabbit.oak.run.PurgeOldIndexVersionCommand")
+                                            .enable(Level.INFO)
+                                            .create();
         try {
             custom.starting();
             createTestData(false);
@@ -440,7 +506,7 @@ public class LucenePurgeOldIndexVersionTest extends LuceneAbstractIndexCommandTe
 
             List<String> logs = custom.getLogs();
             assertThat("repository is opened in read only mode ", logs.toString(),
-                    containsString("Repository connected in read-only mode."));
+                containsString("Repository connected in read-only mode."));
         } finally {
             custom.finished();
         }
@@ -457,7 +523,8 @@ public class LucenePurgeOldIndexVersionTest extends LuceneAbstractIndexCommandTe
         createCustomIndex(TEST_INDEX_PATH, 4, 1, false);
         createCustomIndex(TEST_INDEX_PATH, 4, 2, false);
 
-        addMockHiddenOakMount(fixture.getNodeStore(), Arrays.asList("fooIndex-3", "fooIndex-3-custom-1", "fooIndex-4-custom-2"));
+        addMockHiddenOakMount(fixture.getNodeStore(),
+            Arrays.asList("fooIndex-3", "fooIndex-3-custom-1", "fooIndex-4-custom-2"));
 
         runIndexPurgeCommand(true, 1, "");
 
@@ -470,16 +537,27 @@ public class LucenePurgeOldIndexVersionTest extends LuceneAbstractIndexCommandTe
         Assert.assertFalse(indexRootNode.getChildNode("fooIndex-4-custom-1").exists());
         Assert.assertTrue(indexRootNode.getChildNode("fooIndex-4-custom-2").exists());
 
-        Assert.assertEquals("disabled", indexRootNode.getChildNode("fooIndex-3").getProperty("type").getValue(Type.STRING));
-        Assert.assertEquals("disabled", indexRootNode.getChildNode("fooIndex-3-custom-1").getProperty("type").getValue(Type.STRING));
-        Assert.assertEquals("disabled", indexRootNode.getChildNode("fooIndex-4").getProperty("type").getValue(Type.STRING));
-        Assert.assertEquals("lucene", indexRootNode.getChildNode("fooIndex-3").getProperty(":originalType").getValue(Type.STRING));
-        Assert.assertEquals("lucene", indexRootNode.getChildNode("fooIndex-3-custom-1").getProperty(":originalType").getValue(Type.STRING));
-        Assert.assertEquals("lucene", indexRootNode.getChildNode("fooIndex-4").getProperty(":originalType").getValue(Type.STRING));
+        Assert.assertEquals("disabled",
+            indexRootNode.getChildNode("fooIndex-3").getProperty("type").getValue(Type.STRING));
+        Assert.assertEquals("disabled",
+            indexRootNode.getChildNode("fooIndex-3-custom-1").getProperty("type")
+                         .getValue(Type.STRING));
+        Assert.assertEquals("disabled",
+            indexRootNode.getChildNode("fooIndex-4").getProperty("type").getValue(Type.STRING));
+        Assert.assertEquals("lucene",
+            indexRootNode.getChildNode("fooIndex-3").getProperty(":originalType")
+                         .getValue(Type.STRING));
+        Assert.assertEquals("lucene",
+            indexRootNode.getChildNode("fooIndex-3-custom-1").getProperty(":originalType")
+                         .getValue(Type.STRING));
+        Assert.assertEquals("lucene",
+            indexRootNode.getChildNode("fooIndex-4").getProperty(":originalType")
+                         .getValue(Type.STRING));
         Assert.assertFalse(isHiddenChildNodePresent(indexRootNode.getChildNode("fooIndex-4")));
     }
 
-    private void runIndexPurgeCommand(boolean readWrite, long threshold, String indexPaths) throws Exception {
+    private void runIndexPurgeCommand(boolean readWrite, long threshold, String indexPaths)
+        throws Exception {
         fixture.getAdminSession();
         fixture.getAsyncIndexUpdate("async").run();
         fixture.close();
@@ -499,16 +577,18 @@ public class LucenePurgeOldIndexVersionTest extends LuceneAbstractIndexCommandTe
         fixture.close();
     }
 
-    private void addMockHiddenOakMount(NodeStore nodeStore, List<String> indexes) throws CommitFailedException {
+    private void addMockHiddenOakMount(NodeStore nodeStore, List<String> indexes)
+        throws CommitFailedException {
         NodeBuilder rootNodeBuilder = nodeStore.getRoot().builder();
         for (String item : indexes) {
             if (rootNodeBuilder.getChildNode("oak:index").getChildNode(item).exists()) {
                 rootNodeBuilder.getChildNode("oak:index")
-                        .getChildNode(item)
-                        .setChildNode(":oak:mount-mock-node", EmptyNodeState.EMPTY_NODE);
+                               .getChildNode(item)
+                               .setChildNode(":oak:mount-mock-node", EmptyNodeState.EMPTY_NODE);
             }
         }
-        EditorHook hook = new EditorHook(new IndexUpdateProvider(new PropertyIndexEditorProvider()));
+        EditorHook hook = new EditorHook(
+            new IndexUpdateProvider(new PropertyIndexEditorProvider()));
         nodeStore.merge(rootNodeBuilder, hook, CommitInfo.EMPTY);
     }
 

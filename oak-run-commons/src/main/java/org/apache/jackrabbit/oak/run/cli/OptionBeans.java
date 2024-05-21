@@ -25,25 +25,25 @@ public enum OptionBeans implements OptionsBeanFactory {
 
     RDB_STORE {
         @Override
-        public OptionsBean newInstance(OptionParser parser){
+        public OptionsBean newInstance(OptionParser parser) {
             return new RDBStoreOptions(parser);
         }
     },
     DOCUMENT_NODE_STORE {
         @Override
-        public OptionsBean newInstance(OptionParser parser){
+        public OptionsBean newInstance(OptionParser parser) {
             return new DocumentNodeStoreOptions(parser);
         }
     },
     COMMON {
         @Override
-        public OptionsBean newInstance(OptionParser parser){
+        public OptionsBean newInstance(OptionParser parser) {
             return new CommonOptions(parser);
         }
     },
     BLOB_STORE {
         @Override
-        public OptionsBean newInstance(OptionParser parser){
+        public OptionsBean newInstance(OptionParser parser) {
             return new BlobStoreOptions(parser);
         }
     }

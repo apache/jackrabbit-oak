@@ -16,6 +16,12 @@
  */
 package org.apache.jackrabbit.oak.fixture;
 
+import static java.util.Collections.emptyList;
+import static org.apache.jackrabbit.oak.fixture.CompositeStoreFixture.newCompositeMemoryFixture;
+import static org.apache.jackrabbit.oak.fixture.CompositeStoreFixture.newCompositeMongoFixture;
+import static org.apache.jackrabbit.oak.fixture.CompositeStoreFixture.newCompositeSegmentFixture;
+import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentNodeStoreBuilder.newRDBDocumentNodeStoreBuilder;
+
 import java.io.File;
 import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
@@ -24,9 +30,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-
 import javax.sql.DataSource;
-
 import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.base.Splitter;
 import org.apache.jackrabbit.guava.common.base.Strings;
@@ -52,12 +56,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static java.util.Collections.emptyList;
-import static org.apache.jackrabbit.oak.fixture.CompositeStoreFixture.newCompositeMemoryFixture;
-import static org.apache.jackrabbit.oak.fixture.CompositeStoreFixture.newCompositeMongoFixture;
-import static org.apache.jackrabbit.oak.fixture.CompositeStoreFixture.newCompositeSegmentFixture;
-import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentNodeStoreBuilder.newRDBDocumentNodeStoreBuilder;
 
 public abstract class OakFixture {
 
@@ -141,52 +139,61 @@ public abstract class OakFixture {
         };
     }
 
-    public static OakFixture getMongo(String uri, boolean dropDBAfterTest, long cacheSize, boolean throttlingEnabled) {
-        return getMongo(OAK_MONGO, uri, dropDBAfterTest, cacheSize, false, null, 0, throttlingEnabled);
+    public static OakFixture getMongo(String uri, boolean dropDBAfterTest, long cacheSize,
+        boolean throttlingEnabled) {
+        return getMongo(OAK_MONGO, uri, dropDBAfterTest, cacheSize, false, null, 0,
+            throttlingEnabled);
     }
 
     public static OakFixture getMongo(String host, int port, String database,
-                                      boolean dropDBAfterTest, long cacheSize, boolean throttlingEnabled) {
+        boolean dropDBAfterTest, long cacheSize, boolean throttlingEnabled) {
         return getMongo(OAK_MONGO, host, port, database,
-                dropDBAfterTest, cacheSize, false, null, 0, throttlingEnabled);
+            dropDBAfterTest, cacheSize, false, null, 0, throttlingEnabled);
     }
 
     public static OakFixture getMongoNS(String uri,
-                                      boolean dropDBAfterTest, long cacheSize, boolean throttlingEnabled) {
+        boolean dropDBAfterTest, long cacheSize, boolean throttlingEnabled) {
         return getMongo(OAK_MONGO_NS, uri,
-                dropDBAfterTest, cacheSize, false, null, 0, throttlingEnabled);
+            dropDBAfterTest, cacheSize, false, null, 0, throttlingEnabled);
     }
 
     public static OakFixture getMongoNS(String host, int port, String database,
-                                        boolean dropDBAfterTest, long cacheSize, boolean throttlingEnabled) {
+        boolean dropDBAfterTest, long cacheSize, boolean throttlingEnabled) {
         return getMongo(OAK_MONGO_NS, host, port, database,
-                dropDBAfterTest, cacheSize, false, null, 0, throttlingEnabled);
+            dropDBAfterTest, cacheSize, false, null, 0, throttlingEnabled);
     }
 
-    public static OakFixture getMongo(String name, final String host, final int port, String database,
-                                      final boolean dropDBAfterTest, final long cacheSize, final boolean useFileDataStore,
-                                      final File base, final int fdsCacheInMB, final boolean throttlingEnabled) {
+    public static OakFixture getMongo(String name, final String host, final int port,
+        String database,
+        final boolean dropDBAfterTest, final long cacheSize, final boolean useFileDataStore,
+        final File base, final int fdsCacheInMB, final boolean throttlingEnabled) {
         if (database == null) {
             database = getUniqueDatabaseName(name);
         }
         String uri = "mongodb://" + host + ":" + port + "/" + database;
-        return getMongo(name, uri, dropDBAfterTest, cacheSize, useFileDataStore, base, fdsCacheInMB, throttlingEnabled);
+        return getMongo(name, uri, dropDBAfterTest, cacheSize, useFileDataStore, base, fdsCacheInMB,
+            throttlingEnabled);
     }
 
     public static OakFixture getMongo(final String name, final String uri,
-                                      final boolean dropDBAfterTest, final long cacheSize, final boolean useDataStore,
-                                      final File base, final int dsCacheInMB, final boolean throttlingEnabled) {
-        return new MongoFixture(name, uri, dropDBAfterTest, cacheSize, useDataStore, base, dsCacheInMB, throttlingEnabled);
+        final boolean dropDBAfterTest, final long cacheSize, final boolean useDataStore,
+        final File base, final int dsCacheInMB, final boolean throttlingEnabled) {
+        return new MongoFixture(name, uri, dropDBAfterTest, cacheSize, useDataStore, base,
+            dsCacheInMB, throttlingEnabled);
     }
 
-    public static OakFixture getRDB(final String name, final String jdbcuri, final String jdbcuser, final String jdbcpasswd,
-        final String tablePrefix, final boolean dropDBAfterTest, final long cacheSize, final int vgcMaxAge) {
-        return getRDB(name, jdbcuri, jdbcuser, jdbcpasswd, tablePrefix, dropDBAfterTest, cacheSize, false, null, 0, vgcMaxAge);
+    public static OakFixture getRDB(final String name, final String jdbcuri, final String jdbcuser,
+        final String jdbcpasswd,
+        final String tablePrefix, final boolean dropDBAfterTest, final long cacheSize,
+        final int vgcMaxAge) {
+        return getRDB(name, jdbcuri, jdbcuser, jdbcpasswd, tablePrefix, dropDBAfterTest, cacheSize,
+            false, null, 0, vgcMaxAge);
     }
 
-    public static OakFixture getRDB(final String name, final String jdbcuri, final String jdbcuser, final String jdbcpasswd,
-                                    final String tablePrefix, final boolean dropDBAfterTest, final long cacheSize,
-                                    final boolean useDataStore, final File base, final int dsCacheInMB, final int vgcMaxAge) {
+    public static OakFixture getRDB(final String name, final String jdbcuri, final String jdbcuser,
+        final String jdbcpasswd,
+        final String tablePrefix, final boolean dropDBAfterTest, final long cacheSize,
+        final boolean useDataStore, final File base, final int dsCacheInMB, final int vgcMaxAge) {
         return new OakFixture(name) {
             private DocumentNodeStore[] nodeStores;
             private VersionGarbageCollectionJob versionGarbageCollectionJob = null;
@@ -202,7 +209,8 @@ public abstract class OakFixture {
                         initializeBlobStoreFixture(statsProvider);
                         return blobStoreFixture.setUp();
                     } else {
-                        DataSource ds = RDBDataSourceFactory.forJdbcUrl(jdbcuri, jdbcuser, jdbcpasswd);
+                        DataSource ds = RDBDataSourceFactory.forJdbcUrl(jdbcuri, jdbcuser,
+                            jdbcpasswd);
                         return new RDBBlobStore(ds, getOptions(dropDBAfterTest, tablePrefix));
                     }
                 } catch (Exception e) {
@@ -214,8 +222,9 @@ public abstract class OakFixture {
             public Oak getOak(int clusterId) throws Exception {
                 DataSource ds = RDBDataSourceFactory.forJdbcUrl(jdbcuri, jdbcuser, jdbcpasswd);
                 DocumentNodeStoreBuilder<?> builder = newRDBDocumentNodeStoreBuilder()
-                        .setRDBConnection(ds, getOptions(dropDBAfterTest, tablePrefix)).memoryCacheSize(cacheSize)
-                        .setClusterId(clusterId).setLogging(false);
+                    .setRDBConnection(ds, getOptions(dropDBAfterTest, tablePrefix))
+                    .memoryCacheSize(cacheSize)
+                    .setClusterId(clusterId).setLogging(false);
                 BlobStore blobStore = getBlobStore(StatisticsProvider.NOOP);
                 if (blobStore != null) {
                     builder.setBlobStore(blobStore);
@@ -223,7 +232,8 @@ public abstract class OakFixture {
                 Oak oak = newOak(builder.build());
                 if (blobStore instanceof BlobAccessProvider) {
                     oak.getWhiteboard()
-                        .register(BlobAccessProvider.class, (BlobAccessProvider) blobStore, Collections.EMPTY_MAP);
+                       .register(BlobAccessProvider.class, (BlobAccessProvider) blobStore,
+                           Collections.EMPTY_MAP);
                 }
                 return oak;
             }
@@ -236,11 +246,12 @@ public abstract class OakFixture {
                     BlobStore blobStore = getBlobStore(statsProvider);
                     DataSource ds = RDBDataSourceFactory.forJdbcUrl(jdbcuri, jdbcuser, jdbcpasswd);
                     DocumentNodeStoreBuilder<?> builder = newRDBDocumentNodeStoreBuilder()
-                            .setRDBConnection(ds, getOptions(dropDBAfterTest, tablePrefix)).memoryCacheSize(cacheSize)
-                            .setStatisticsProvider(statsProvider)
-                            // FIXME: OAK-3389
-                            .setLeaseCheckMode(LeaseCheckMode.DISABLED)
-                            .setClusterId(i + 1).setLogging(false);
+                        .setRDBConnection(ds, getOptions(dropDBAfterTest, tablePrefix))
+                        .memoryCacheSize(cacheSize)
+                        .setStatisticsProvider(statsProvider)
+                        // FIXME: OAK-3389
+                        .setLeaseCheckMode(LeaseCheckMode.DISABLED)
+                        .setClusterId(i + 1).setLogging(false);
                     if (blobStore != null) {
                         builder.setBlobStore(blobStore);
                     }
@@ -248,11 +259,13 @@ public abstract class OakFixture {
                     cluster[i] = newOak(nodeStores[i]);
                     if (blobStore instanceof BlobAccessProvider) {
                         cluster[i].getWhiteboard()
-                            .register(BlobAccessProvider.class, (BlobAccessProvider) blobStore, Collections.EMPTY_MAP);
+                                  .register(BlobAccessProvider.class,
+                                      (BlobAccessProvider) blobStore, Collections.EMPTY_MAP);
                     }
                 }
                 if (vgcMaxAge > 0 && nodeStores.length >= 1) {
-                    versionGarbageCollectionJob = new VersionGarbageCollectionJob(nodeStores[0], vgcMaxAge);
+                    versionGarbageCollectionJob = new VersionGarbageCollectionJob(nodeStores[0],
+                        vgcMaxAge);
                     Thread t = new Thread(versionGarbageCollectionJob);
                     t.setDaemon(true);
                     t.start();
@@ -269,7 +282,7 @@ public abstract class OakFixture {
                 for (DocumentNodeStore ns : nodeStores) {
                     ns.dispose();
                     if (ns.getDocumentStore() instanceof RDBDocumentStore) {
-                        dropped += ((RDBDocumentStore)ns.getDocumentStore()).getDroppedTables();
+                        dropped += ((RDBDocumentStore) ns.getDocumentStore()).getDroppedTables();
                     }
                 }
                 if (dropDBAfterTest) {
@@ -278,14 +291,16 @@ public abstract class OakFixture {
                     }
 
                     if (dropped.isEmpty()) {
-                        throw new RuntimeException("dropdb was set, but tables have not been dropped");
+                        throw new RuntimeException(
+                            "dropdb was set, but tables have not been dropped");
                     }
                 }
             }
 
             private void initializeBlobStoreFixture(StatisticsProvider statsProvider) {
                 if (useDataStore && blobStoreFixture == null) {
-                    blobStoreFixture = BlobStoreFixture.create(base, true, dsCacheInMB, statsProvider);
+                    blobStoreFixture = BlobStoreFixture.create(base, true, dsCacheInMB,
+                        statsProvider);
                 }
             }
         };
@@ -305,14 +320,13 @@ public abstract class OakFixture {
 
         @Override
         public void run() {
-            while(!stopped) {
+            while (!stopped) {
                 try {
                     VersionGCStats stats = this.vgc.gc(maxAge, TimeUnit.SECONDS);
                     LOG.debug("vgc: " + stats);
                     // org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS_RESOLUTION
                     Thread.sleep(5 * 1000);
-                }
-                catch (Throwable ex) {
+                } catch (Throwable ex) {
                     LOG.warn("While running GC", ex);
                 }
             }
@@ -324,82 +338,105 @@ public abstract class OakFixture {
         }
     }
 
-    public static OakFixture getSegmentTar(final String name, final File base, final int maxFileSizeMB,
-            final int cacheSizeMB, final boolean memoryMapping, final int binariesInlineThreshold, final boolean useBlobStore, 
-            final int dsCacheInMB, final boolean withColdStandby, final int syncInterval, final boolean shareBlobStore, 
-            final boolean secure, final boolean oneShotRun) {
+    public static OakFixture getSegmentTar(final String name, final File base,
+        final int maxFileSizeMB,
+        final int cacheSizeMB, final boolean memoryMapping, final int binariesInlineThreshold,
+        final boolean useBlobStore,
+        final int dsCacheInMB, final boolean withColdStandby, final int syncInterval,
+        final boolean shareBlobStore,
+        final boolean secure, final boolean oneShotRun) {
 
-        SegmentTarFixtureBuilder builder = SegmentTarFixtureBuilder.segmentTarFixtureBuilder(name, base);
-        builder.withMaxFileSize(maxFileSizeMB).withSegmentCacheSize(cacheSizeMB).withMemoryMapping(memoryMapping)
-                .withBinariesInlineThreshold(binariesInlineThreshold)
-                .withBlobStore(useBlobStore).withDSCacheSize(dsCacheInMB);
+        SegmentTarFixtureBuilder builder = SegmentTarFixtureBuilder.segmentTarFixtureBuilder(name,
+            base);
+        builder.withMaxFileSize(maxFileSizeMB).withSegmentCacheSize(cacheSizeMB)
+               .withMemoryMapping(memoryMapping)
+               .withBinariesInlineThreshold(binariesInlineThreshold)
+               .withBlobStore(useBlobStore).withDSCacheSize(dsCacheInMB);
 
-        return new SegmentTarFixture(builder, withColdStandby, syncInterval, shareBlobStore, secure, oneShotRun);
+        return new SegmentTarFixture(builder, withColdStandby, syncInterval, shareBlobStore, secure,
+            oneShotRun);
     }
 
     public static OakFixture getVanillaSegmentTar(final File base, final int maxFileSizeMB,
-            final int cacheSizeMB, final boolean memoryMapping, final int binariesInlineThreshold) {
+        final int cacheSizeMB, final boolean memoryMapping, final int binariesInlineThreshold) {
 
-        return getSegmentTar(OakFixture.OAK_SEGMENT_TAR, base, maxFileSizeMB, cacheSizeMB, memoryMapping, binariesInlineThreshold, false, 0,
-                false, -1, false, false, false);
+        return getSegmentTar(OakFixture.OAK_SEGMENT_TAR, base, maxFileSizeMB, cacheSizeMB,
+            memoryMapping, binariesInlineThreshold, false, 0,
+            false, -1, false, false, false);
     }
 
     public static OakFixture getVanillaSegmentTar(final File base, final int maxFileSizeMB,
         final int cacheSizeMB, final boolean memoryMapping) {
 
-        return getVanillaSegmentTar(base, maxFileSizeMB, cacheSizeMB, memoryMapping, Segment.MEDIUM_LIMIT);
+        return getVanillaSegmentTar(base, maxFileSizeMB, cacheSizeMB, memoryMapping,
+            Segment.MEDIUM_LIMIT);
     }
 
     public static OakFixture getSegmentTarWithDataStore(final File base,
-        final int maxFileSizeMB, final int cacheSizeMB, final boolean memoryMapping, final int binariesInlineThreshold, 
+        final int maxFileSizeMB, final int cacheSizeMB, final boolean memoryMapping,
+        final int binariesInlineThreshold,
         final int dsCacheInMB) {
-        
-        return getSegmentTar(OakFixture.OAK_SEGMENT_TAR_DS, base, maxFileSizeMB, cacheSizeMB, memoryMapping, binariesInlineThreshold, true, 
-                dsCacheInMB, false, -1, false, false, false);
+
+        return getSegmentTar(OakFixture.OAK_SEGMENT_TAR_DS, base, maxFileSizeMB, cacheSizeMB,
+            memoryMapping, binariesInlineThreshold, true,
+            dsCacheInMB, false, -1, false, false, false);
     }
-    
+
     public static OakFixture getSegmentTarWithColdStandby(final File base, final int maxFileSizeMB,
-            final int cacheSizeMB, final boolean memoryMapping, final int binariesInlineThreshold, final boolean useBlobStore, 
-            final int dsCacheInMB, final int syncInterval, final boolean shareBlobStore, final boolean secure, final boolean oneShotRun) {
-        
-        return getSegmentTar(OakFixture.OAK_SEGMENT_TAR_COLD, base, maxFileSizeMB, cacheSizeMB, memoryMapping, binariesInlineThreshold, 
-                useBlobStore, dsCacheInMB, true, syncInterval, shareBlobStore, secure, oneShotRun);
+        final int cacheSizeMB, final boolean memoryMapping, final int binariesInlineThreshold,
+        final boolean useBlobStore,
+        final int dsCacheInMB, final int syncInterval, final boolean shareBlobStore,
+        final boolean secure, final boolean oneShotRun) {
+
+        return getSegmentTar(OakFixture.OAK_SEGMENT_TAR_COLD, base, maxFileSizeMB, cacheSizeMB,
+            memoryMapping, binariesInlineThreshold,
+            useBlobStore, dsCacheInMB, true, syncInterval, shareBlobStore, secure, oneShotRun);
     }
 
-    public static OakFixture getSegmentTarWithAwsSegmentStore(final File base, final String awsBucketName,
-            final String awsRootPath, final String awsJournalTableName, final String awsLockTableName,
-            final int maxFileSizeMB, final int cacheSizeMB, int binariesInlineThreshold, final boolean useBlobStore, final int dsCacheInMB) {
+    public static OakFixture getSegmentTarWithAwsSegmentStore(final File base,
+        final String awsBucketName,
+        final String awsRootPath, final String awsJournalTableName, final String awsLockTableName,
+        final int maxFileSizeMB, final int cacheSizeMB, int binariesInlineThreshold,
+        final boolean useBlobStore, final int dsCacheInMB) {
         return SegmentTarFixtureBuilder.segmentTarFixtureBuilder(OakFixture.OAK_SEGMENT_AWS, base)
-                .withAws(awsBucketName, awsRootPath, awsJournalTableName, awsLockTableName)
-                .withMaxFileSize(maxFileSizeMB).withSegmentCacheSize(cacheSizeMB)
-                .withBinariesInlineThreshold(binariesInlineThreshold).withBlobStore(useBlobStore)
-                .withDSCacheSize(dsCacheInMB).build();
+                                       .withAws(awsBucketName, awsRootPath, awsJournalTableName,
+                                           awsLockTableName)
+                                       .withMaxFileSize(maxFileSizeMB)
+                                       .withSegmentCacheSize(cacheSizeMB)
+                                       .withBinariesInlineThreshold(binariesInlineThreshold)
+                                       .withBlobStore(useBlobStore)
+                                       .withDSCacheSize(dsCacheInMB).build();
     }
 
-    public static OakFixture getSegmentTarWithAzureSegmentStore(final File base, final String azureConnectionString, final String azureContainerName, final String azureRootPath,
-                                                                final int maxFileSizeMB, final int cacheSizeMB, int binariesInlineThreshold, final boolean useBlobStore, final int dsCacheInMB) {
+    public static OakFixture getSegmentTarWithAzureSegmentStore(final File base,
+        final String azureConnectionString, final String azureContainerName,
+        final String azureRootPath,
+        final int maxFileSizeMB, final int cacheSizeMB, int binariesInlineThreshold,
+        final boolean useBlobStore, final int dsCacheInMB) {
         return SegmentTarFixtureBuilder
-                .segmentTarFixtureBuilder(OakFixture.OAK_SEGMENT_AZURE, base)
-                .withAzure(azureConnectionString, azureContainerName, azureRootPath)
-                .withMaxFileSize(maxFileSizeMB)
-                .withSegmentCacheSize(cacheSizeMB)
-                .withBinariesInlineThreshold(binariesInlineThreshold)
-                .withBlobStore(useBlobStore)
-                .withDSCacheSize(dsCacheInMB).build();
+            .segmentTarFixtureBuilder(OakFixture.OAK_SEGMENT_AZURE, base)
+            .withAzure(azureConnectionString, azureContainerName, azureRootPath)
+            .withMaxFileSize(maxFileSizeMB)
+            .withSegmentCacheSize(cacheSizeMB)
+            .withBinariesInlineThreshold(binariesInlineThreshold)
+            .withBlobStore(useBlobStore)
+            .withDSCacheSize(dsCacheInMB).build();
     }
 
     public static OakFixture getCompositeStore(final String name, final File base,
-                                               final int maxFileSizeMB, final int cacheSizeMB, final boolean memoryMapping, 
-                                               int binariesInlineThreshold) {
-        return newCompositeSegmentFixture(name, base, maxFileSizeMB, cacheSizeMB, memoryMapping, binariesInlineThreshold);
+        final int maxFileSizeMB, final int cacheSizeMB, final boolean memoryMapping,
+        int binariesInlineThreshold) {
+        return newCompositeSegmentFixture(name, base, maxFileSizeMB, cacheSizeMB, memoryMapping,
+            binariesInlineThreshold);
     }
 
     public static OakFixture getCompositeMemoryStore(final String name) {
         return newCompositeMemoryFixture(name);
     }
 
-    public static OakFixture getCompositeMongoStore(String name, String uri, long cacheSize, boolean dropDBAfterTest,
-                                                    boolean throttlingEnabled) {
+    public static OakFixture getCompositeMongoStore(String name, String uri, long cacheSize,
+        boolean dropDBAfterTest,
+        boolean throttlingEnabled) {
         return newCompositeMongoFixture(name, uri, dropDBAfterTest, cacheSize, throttlingEnabled);
     }
 
@@ -407,8 +444,8 @@ public abstract class OakFixture {
     public static class MongoFixture extends OakFixture {
 
         private static final String PERSISTENT_CACHE = System.getProperty(
-                "oak.documentstore.persistentCache",
-                "target/persistentCache,time"
+            "oak.documentstore.persistentCache",
+            "target/persistentCache,time"
         );
 
         private final String uri;
@@ -429,8 +466,8 @@ public abstract class OakFixture {
         private BlobStore blobStore;
 
         public MongoFixture(final String name, final String uri,
-                            final boolean dropDBAfterTest, final long cacheSize, final boolean useDataStore,
-                            final File base, final int dsCacheInMB, final boolean throttlingEnabled) {
+            final boolean dropDBAfterTest, final long cacheSize, final boolean useDataStore,
+            final File base, final int dsCacheInMB, final boolean throttlingEnabled) {
             super(name);
             this.uri = uri;
             this.dropDBAfterTest = dropDBAfterTest;
@@ -451,10 +488,10 @@ public abstract class OakFixture {
                     return ns;
                 }
             }.setMongoDB(mongo.getMongoClient(), mongo.getDBName()).
-                    memoryCacheSize(cacheSize).
-                    setClusterId(clusterId).
-                    setLogging(false)
-            .setThrottlingEnabled(throttlingEnabled);
+             memoryCacheSize(cacheSize).
+             setClusterId(clusterId).
+             setLogging(false)
+             .setThrottlingEnabled(throttlingEnabled);
 
             configurePersistentCache(builder);
             setupBlobStore(builder, StatisticsProvider.NOOP);
@@ -466,18 +503,21 @@ public abstract class OakFixture {
             Oak oak = newOak(getBuilder(clusterId).build());
             if (this.blobStore instanceof BlobAccessProvider) {
                 oak.getWhiteboard()
-                    .register(BlobAccessProvider.class, (BlobAccessProvider) this.blobStore, Collections.EMPTY_MAP);
+                   .register(BlobAccessProvider.class, (BlobAccessProvider) this.blobStore,
+                       Collections.EMPTY_MAP);
             }
             return oak;
         }
 
-        public Oak[] setUpCluster(DocumentNodeStoreBuilder<?>[] builders, StatisticsProvider statsProvider) throws Exception {
+        public Oak[] setUpCluster(DocumentNodeStoreBuilder<?>[] builders,
+            StatisticsProvider statsProvider) throws Exception {
             Oak[] cluster = new Oak[builders.length];
             for (int i = 0; i < cluster.length; i++) {
                 cluster[i] = newOak(builders[i].build());
                 if (this.blobStore instanceof BlobAccessProvider) {
                     cluster[i].getWhiteboard()
-                        .register(BlobAccessProvider.class, (BlobAccessProvider) this.blobStore, Collections.EMPTY_MAP);
+                              .register(BlobAccessProvider.class,
+                                  (BlobAccessProvider) this.blobStore, Collections.EMPTY_MAP);
                 }
             }
             return cluster;
@@ -501,10 +541,10 @@ public abstract class OakFixture {
             if (dropDBAfterTest) {
                 try {
                     MongoConnection mongo =
-                            new MongoConnection(uri);
+                        new MongoConnection(uri);
                     mongo.getDatabase().drop();
                     mongo.close();
-                    if(blobStoreFixture != null){
+                    if (blobStoreFixture != null) {
                         blobStoreFixture.tearDown();
                     }
                 } catch (Exception e) {
@@ -513,7 +553,8 @@ public abstract class OakFixture {
             }
         }
 
-        private void setupBlobStore(DocumentNodeStoreBuilder<?> builder, StatisticsProvider statsProvider) {
+        private void setupBlobStore(DocumentNodeStoreBuilder<?> builder,
+            StatisticsProvider statsProvider) {
             initializeBlobStoreFixture(statsProvider);
             if (blobStoreFixture != null) {
                 this.blobStore = blobStoreFixture.setUp();
@@ -522,13 +563,13 @@ public abstract class OakFixture {
         }
 
         private void initializeBlobStoreFixture(StatisticsProvider statsProvider) {
-            if (blobStoreFixture != null){
+            if (blobStoreFixture != null) {
                 return;
             }
 
             if (useDataStore) {
                 blobStoreFixture =
-                        BlobStoreFixture.create(base, true, dsCacheInMB, statsProvider);
+                    BlobStoreFixture.create(base, true, dsCacheInMB, statsProvider);
             }
         }
 
@@ -550,8 +591,10 @@ public abstract class OakFixture {
                 }
 
                 PathFilter pf = new PathFilter(paths, emptyList());
-                System.out.println("Configuring persistent cache to only cache nodes under paths " + paths);
-                Predicate<String> cachePredicate = path -> path != null && pf.filter(path) == PathFilter.Result.INCLUDE;
+                System.out.println(
+                    "Configuring persistent cache to only cache nodes under paths " + paths);
+                Predicate<String> cachePredicate = path -> path != null
+                    && pf.filter(path) == PathFilter.Result.INCLUDE;
                 builder.setNodeCachePredicate(cachePredicate);
             }
         }

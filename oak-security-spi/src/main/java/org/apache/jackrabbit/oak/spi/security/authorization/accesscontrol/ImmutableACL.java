@@ -23,18 +23,17 @@ import javax.jcr.Value;
 import javax.jcr.security.AccessControlEntry;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
-
+import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.guava.common.base.Objects;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * An implementation of the {@code JackrabbitAccessControlList} interface that only
- * allows for reading. The write methods throw an {@code AccessControlException}.
+ * An implementation of the {@code JackrabbitAccessControlList} interface that only allows for
+ * reading. The write methods throw an {@code AccessControlException}.
  */
 public class ImmutableACL extends AbstractAccessControlList {
 
@@ -52,9 +51,9 @@ public class ImmutableACL extends AbstractAccessControlList {
      * @param namePathMapper      The {@link NamePathMapper} used for conversion.
      */
     public ImmutableACL(@Nullable String oakPath,
-                        @NotNull List<? extends JackrabbitAccessControlEntry> entries,
-                        @NotNull RestrictionProvider restrictionProvider,
-                        @NotNull NamePathMapper namePathMapper) {
+        @NotNull List<? extends JackrabbitAccessControlEntry> entries,
+        @NotNull RestrictionProvider restrictionProvider,
+        @NotNull NamePathMapper namePathMapper) {
         super(oakPath, namePathMapper);
         this.entries = ImmutableList.copyOf(entries);
         this.restrictionProvider = restrictionProvider;
@@ -66,32 +65,40 @@ public class ImmutableACL extends AbstractAccessControlList {
      * @param accessControlList The base list
      */
     public ImmutableACL(@NotNull AbstractAccessControlList accessControlList) {
-        this(accessControlList.getOakPath(), accessControlList.getEntries(), accessControlList.getRestrictionProvider(), accessControlList.getNamePathMapper());
+        this(accessControlList.getOakPath(), accessControlList.getEntries(),
+            accessControlList.getRestrictionProvider(), accessControlList.getNamePathMapper());
     }
 
     //--------------------------------------------------< AccessControlList >---
 
     @Override
     public void removeAccessControlEntry(AccessControlEntry ace) throws AccessControlException {
-        throw new AccessControlException("Immutable ACL. Use AccessControlManager#getApplicablePolicies in order to obtain an modifiable ACL.");
+        throw new AccessControlException(
+            "Immutable ACL. Use AccessControlManager#getApplicablePolicies in order to obtain an modifiable ACL.");
     }
 
     //----------------------------------------< JackrabbitAccessControlList >---
 
     @Override
     public boolean addEntry(@NotNull Principal principal, @NotNull Privilege[] privileges,
-                            boolean isAllow, @Nullable Map<String, Value> restrictions) throws AccessControlException {
-        throw new AccessControlException("Immutable ACL. Use AccessControlManager#getPolicy or #getApplicablePolicies in order to obtain an modifiable ACL.");
+        boolean isAllow, @Nullable Map<String, Value> restrictions) throws AccessControlException {
+        throw new AccessControlException(
+            "Immutable ACL. Use AccessControlManager#getPolicy or #getApplicablePolicies in order to obtain an modifiable ACL.");
     }
 
     @Override
-    public boolean addEntry(@NotNull Principal principal, @NotNull Privilege[] privileges, boolean isAllow, @Nullable Map<String, Value> restrictions, @Nullable Map<String, Value[]> mvRestrictions) throws AccessControlException {
-        throw new AccessControlException("Immutable ACL. Use AccessControlManager#getPolicy or #getApplicablePolicies in order to obtain an modifiable ACL.");
+    public boolean addEntry(@NotNull Principal principal, @NotNull Privilege[] privileges,
+        boolean isAllow, @Nullable Map<String, Value> restrictions,
+        @Nullable Map<String, Value[]> mvRestrictions) throws AccessControlException {
+        throw new AccessControlException(
+            "Immutable ACL. Use AccessControlManager#getPolicy or #getApplicablePolicies in order to obtain an modifiable ACL.");
     }
 
     @Override
-    public void orderBefore(@NotNull AccessControlEntry srcEntry, @Nullable AccessControlEntry destEntry) throws AccessControlException {
-        throw new AccessControlException("Immutable ACL. Use AccessControlManager#getPolicy or #getApplicablePolicy in order to obtain a modifiable ACL.");
+    public void orderBefore(@NotNull AccessControlEntry srcEntry,
+        @Nullable AccessControlEntry destEntry) throws AccessControlException {
+        throw new AccessControlException(
+            "Immutable ACL. Use AccessControlManager#getPolicy or #getApplicablePolicy in order to obtain a modifiable ACL.");
     }
 
     //------------------------------------------< AbstractAccessControlList >---
@@ -124,7 +131,7 @@ public class ImmutableACL extends AbstractAccessControlList {
         if (obj instanceof ImmutableACL) {
             ImmutableACL other = (ImmutableACL) obj;
             return Objects.equal(getOakPath(), other.getOakPath())
-                    && entries.equals(other.entries);
+                && entries.equals(other.entries);
         }
         return false;
     }

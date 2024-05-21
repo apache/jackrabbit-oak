@@ -51,9 +51,11 @@ public class InitialContentMigrator {
 
     private static final int LOG_NODE_COPY = Integer.getInteger("oak.upgrade.logNodeCopy", 10000);
 
-    private static final String CLUSTER_ID = System.getProperty("oak.composite.seed.clusterId", "1");
+    private static final String CLUSTER_ID = System.getProperty("oak.composite.seed.clusterId",
+        "1");
 
-    private static final Set<String> DEFAULT_IGNORED_PATHS = ImmutableSet.of("/" + CLUSTER_CONFIG_NODE);
+    private static final Set<String> DEFAULT_IGNORED_PATHS = ImmutableSet.of(
+        "/" + CLUSTER_CONFIG_NODE);
 
     private static final Logger LOG = LoggerFactory.getLogger(InitialContentMigrator.class);
 
@@ -73,9 +75,11 @@ public class InitialContentMigrator {
 
     private final Set<String> excludeFragments;
 
-    public InitialContentMigrator(NodeStore targetNodeStore, NodeStore seedNodeStore, Mount seedMount) {
+    public InitialContentMigrator(NodeStore targetNodeStore, NodeStore seedNodeStore,
+        Mount seedMount) {
         this.targetNodeStore = targetNodeStore;
-        this.targetHasReferenceableFrozenNode = Utils.isFrozenNodeReferenceable(targetNodeStore.getRoot());
+        this.targetHasReferenceableFrozenNode = Utils.isFrozenNodeReferenceable(
+            targetNodeStore.getRoot());
         this.seedNodeStore = seedNodeStore;
         this.seedMount = seedMount;
 
@@ -83,7 +87,8 @@ public class InitialContentMigrator {
         this.excludeFragments = ImmutableSet.of(seedMount.getPathFragmentName());
 
         if (seedMount instanceof MountInfo) {
-            this.excludePaths = Sets.union(((MountInfo) seedMount).getIncludedPaths(), DEFAULT_IGNORED_PATHS);
+            this.excludePaths = Sets.union(((MountInfo) seedMount).getIncludedPaths(),
+                DEFAULT_IGNORED_PATHS);
             this.fragmentPaths = new HashSet<>();
             for (String p : ((MountInfo) seedMount).getPathsSupportingFragments()) {
                 fragmentPaths.add(stripPatternCharacters(p));
@@ -116,7 +121,8 @@ public class InitialContentMigrator {
             String clusterId = dns.getInstanceId();
             LOG.info("The target isn't initialized and the cluster id = {}.", clusterId);
             if (CLUSTER_ID.equals(clusterId)) {
-                LOG.info("This cluster id {} is configured to initialized the repository.", CLUSTER_ID);
+                LOG.info("This cluster id {} is configured to initialized the repository.",
+                    CLUSTER_ID);
                 doMigrate();
             } else {
                 LOG.info("Waiting until the repository is initialized by instance {}.", CLUSTER_ID);
@@ -201,7 +207,8 @@ public class InitialContentMigrator {
         targetNodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 
-    private NodeState copyDiffToTarget(NodeState before, NodeState after, NodeState targetRoot) throws CommitFailedException {
+    private NodeState copyDiffToTarget(NodeState before, NodeState after, NodeState targetRoot)
+        throws CommitFailedException {
         NodeBuilder targetBuilder = targetRoot.builder();
         NodeState currentRoot = wrapNodeState(after, true);
         NodeState baseRoot = wrapNodeState(before, false);
@@ -212,9 +219,11 @@ public class InitialContentMigrator {
 
     private NodeState wrapNodeState(NodeState nodeState, boolean logPaths) {
         NodeState wrapped = nodeState;
-        wrapped = FilteringNodeState.wrap("/", wrapped, includePaths, excludePaths, fragmentPaths, excludeFragments, targetHasReferenceableFrozenNode);
+        wrapped = FilteringNodeState.wrap("/", wrapped, includePaths, excludePaths, fragmentPaths,
+            excludeFragments, targetHasReferenceableFrozenNode);
         if (logPaths) {
-            wrapped = ReportingNodeState.wrap(wrapped, new LoggingReporter(LOG, "Copying", LOG_NODE_COPY, -1));
+            wrapped = ReportingNodeState.wrap(wrapped,
+                new LoggingReporter(LOG, "Copying", LOG_NODE_COPY, -1));
         }
         return wrapped;
     }

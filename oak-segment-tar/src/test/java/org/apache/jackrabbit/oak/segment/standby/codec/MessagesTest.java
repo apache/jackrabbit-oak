@@ -38,12 +38,12 @@ public class MessagesTest {
 
     @Test
     public void extractMessageFromPayloadWithClient() throws Exception {
-        assertEquals("message",  extractMessageFrom("Standby-CMD@client:message"));
+        assertEquals("message", extractMessageFrom("Standby-CMD@client:message"));
     }
 
     @Test
     public void extractMessageFromPayloadWithoutClient() throws Exception {
-        assertEquals("message",  extractMessageFrom("Standby-CMD@:message"));
+        assertEquals("message", extractMessageFrom("Standby-CMD@:message"));
     }
 
     @Test
@@ -58,7 +58,7 @@ public class MessagesTest {
 
     @Test
     public void extractClientFromPayloadWithClient() throws Exception {
-        assertEquals("client",  extractClientFrom("Standby-CMD@client:message"));
+        assertEquals("client", extractClientFrom("Standby-CMD@client:message"));
     }
 
     @Test

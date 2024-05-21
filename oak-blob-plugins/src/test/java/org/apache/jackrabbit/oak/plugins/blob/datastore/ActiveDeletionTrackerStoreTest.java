@@ -18,6 +18,17 @@
  */
 package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
+import static java.lang.String.valueOf;
+import static java.util.UUID.randomUUID;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.oak.commons.FileIOUtils.readStringsAsSet;
+import static org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils.getBlobStore;
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeNoException;
+import static org.junit.Assume.assumeThat;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -26,7 +37,6 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Sets;
@@ -42,21 +52,11 @@ import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static java.lang.String.valueOf;
-import static java.util.UUID.randomUUID;
-import static org.apache.jackrabbit.oak.commons.FileIOUtils.readStringsAsSet;
-import static org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils.getBlobStore;
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeNoException;
-import static org.junit.Assume.assumeThat;
-
 /**
  * Test for BlobIdTracker.ActiveDeletionTracker to test tracking removed blob ids.
  */
 public class ActiveDeletionTrackerStoreTest {
+
     private static final Logger log = LoggerFactory.getLogger(ActiveDeletionTrackerStoreTest.class);
 
     File root;
@@ -108,7 +108,8 @@ public class ActiveDeletionTrackerStoreTest {
         File toFilter = create(range(7, 10), folder);
         Iterator<String> filtered = tracker.filter(toFilter);
 
-        assertEquals("incorrect elements after filtering", Sets.newHashSet(range(7, 10)), Sets.newHashSet(filtered));
+        assertEquals("incorrect elements after filtering", Sets.newHashSet(range(7, 10)),
+            Sets.newHashSet(filtered));
     }
 
     @Test
@@ -127,7 +128,8 @@ public class ActiveDeletionTrackerStoreTest {
         File toFilterFile = create(toFilter, folder);
         Iterator<String> filtered = tracker.filter(toFilterFile);
 
-        assertEquals("Incorrect elements after filtering", range(0, 4), Lists.newArrayList(filtered));
+        assertEquals("Incorrect elements after filtering", range(0, 4),
+            Lists.newArrayList(filtered));
     }
 
     @Test
@@ -151,7 +153,8 @@ public class ActiveDeletionTrackerStoreTest {
         tracker.reconcile(toFilter);
         Set<String> retrieved = retrieve(tracker, folder);
 
-        assertEquals("Incorrect elements after reconciliation", Sets.newHashSet(toReconcile), retrieved);
+        assertEquals("Incorrect elements after reconciliation", Sets.newHashSet(toReconcile),
+            retrieved);
     }
 
     @Test
@@ -164,7 +167,8 @@ public class ActiveDeletionTrackerStoreTest {
         tracker.reconcile(toFilter);
         Set<String> retrieved = retrieve(tracker, folder);
 
-        assertEquals("Incorrect elements after reconciliation", Sets.newHashSet(toReconcile), retrieved);
+        assertEquals("Incorrect elements after reconciliation", Sets.newHashSet(toReconcile),
+            retrieved);
     }
 
     @Test
@@ -177,7 +181,8 @@ public class ActiveDeletionTrackerStoreTest {
         tracker.reconcile(toFilter);
         Set<String> retrieved = retrieve(tracker, folder);
 
-        assertEquals("Incorrect elements after reconciliation", Sets.newHashSet(toReconcile), retrieved);
+        assertEquals("Incorrect elements after reconciliation", Sets.newHashSet(toReconcile),
+            retrieved);
     }
 
     @Test
@@ -190,7 +195,8 @@ public class ActiveDeletionTrackerStoreTest {
         tracker.reconcile(toFilter);
         Set<String> retrieved = retrieve(tracker, folder);
 
-        assertEquals("Incorrect elements after reconciliation", Sets.newHashSet(toReconcile), retrieved);
+        assertEquals("Incorrect elements after reconciliation", Sets.newHashSet(toReconcile),
+            retrieved);
     }
 
     @Test
@@ -201,7 +207,8 @@ public class ActiveDeletionTrackerStoreTest {
         assertEquals("Incorrect elements after safe restart", initAdd, retrieved);
     }
 
-    private static Set<String> add(ActiveDeletionTracker store, List<String> ints, TemporaryFolder folder) throws IOException {
+    private static Set<String> add(ActiveDeletionTracker store, List<String> ints,
+        TemporaryFolder folder) throws IOException {
         File f = folder.newFile();
         FileIOUtils.writeStrings(ints.iterator(), f, false);
         store.track(f);
@@ -214,7 +221,8 @@ public class ActiveDeletionTrackerStoreTest {
         return f;
     }
 
-    private static Set<String> retrieve(ActiveDeletionTracker store, TemporaryFolder folder) throws IOException {
+    private static Set<String> retrieve(ActiveDeletionTracker store, TemporaryFolder folder)
+        throws IOException {
         File f = folder.newFile();
         Set<String> retrieved = readStringsAsSet(
             new FileInputStream(store.retrieve(f.getAbsolutePath())), false);
@@ -232,7 +240,8 @@ public class ActiveDeletionTrackerStoreTest {
     private static List<String> combine(List<String> first, List<String> second) {
         first.addAll(second);
         Collections.sort(first, new Comparator<String>() {
-            @Override public int compare(String s1, String s2) {
+            @Override
+            public int compare(String s1, String s2) {
                 return Integer.valueOf(s1).compareTo(Integer.valueOf(s2));
             }
         });

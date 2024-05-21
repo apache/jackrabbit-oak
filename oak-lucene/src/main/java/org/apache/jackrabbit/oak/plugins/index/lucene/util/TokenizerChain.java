@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.util;
 
 import java.io.Reader;
 import java.util.Arrays;
-
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.Tokenizer;
@@ -30,10 +29,11 @@ import org.apache.lucene.analysis.util.TokenFilterFactory;
 import org.apache.lucene.analysis.util.TokenizerFactory;
 
 /**
- * An analyzer that uses a tokenizer and a list of token filters to
- * create a TokenStream. Taken from org.apache.solr.analysis.TokenizerChain
+ * An analyzer that uses a tokenizer and a list of token filters to create a TokenStream. Taken from
+ * org.apache.solr.analysis.TokenizerChain
  */
 public final class TokenizerChain extends Analyzer {
+
     private final CharFilterFactory[] charFilters;
     private final TokenizerFactory tokenizer;
     private final TokenFilterFactory[] filters;
@@ -46,7 +46,8 @@ public final class TokenizerChain extends Analyzer {
         this(null, tokenizer, filters);
     }
 
-    public TokenizerChain(CharFilterFactory[] charFilters, TokenizerFactory tokenizer, TokenFilterFactory[] filters) {
+    public TokenizerChain(CharFilterFactory[] charFilters, TokenizerFactory tokenizer,
+        TokenFilterFactory[] filters) {
         this.charFilters = charFilters;
         this.tokenizer = tokenizer;
         this.filters = filters == null ? new TokenFilterFactory[0] : filters;

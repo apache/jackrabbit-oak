@@ -25,7 +25,6 @@ import static org.junit.Assert.assertTrue;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.List;
-
 import javax.jcr.Credentials;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
@@ -34,7 +33,6 @@ import javax.jcr.SimpleCredentials;
 import javax.jcr.version.VersionHistory;
 import javax.jcr.version.VersionIterator;
 import javax.jcr.version.VersionManager;
-
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.commons.cnd.CndImporter;
 import org.apache.jackrabbit.oak.Oak;
@@ -54,7 +52,8 @@ import org.junit.Test;
 
 public class BrokenVersionableTest {
 
-    private static final Credentials CREDENTIALS = new SimpleCredentials("admin", "admin".toCharArray());
+    private static final Credentials CREDENTIALS = new SimpleCredentials("admin",
+        "admin".toCharArray());
 
     private NodeStore targetNodeStore;
 
@@ -83,7 +82,8 @@ public class BrokenVersionableTest {
         Session session = repository.login(CREDENTIALS);
         List<String> versionHistoryPaths = new ArrayList<String>();
         try {
-            CndImporter.registerNodeTypes(new StringReader("<test = 'http://jackrabbit.apache.org/ns/test'>\n"
+            CndImporter.registerNodeTypes(
+                new StringReader("<test = 'http://jackrabbit.apache.org/ns/test'>\n"
                     + "[test:Versionable] > nt:unstructured, mix:versionable"), session);
 
             Node root = session.getRootNode();

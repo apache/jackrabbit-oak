@@ -19,8 +19,8 @@
 
 package org.apache.jackrabbit.oak.backup.impl;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static java.lang.System.nanoTime;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.Status.formatTime;
 import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.done;
 import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.newManagementOperation;
@@ -28,9 +28,7 @@ import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.newManag
 import java.io.File;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
-
 import javax.management.openmbean.CompositeData;
-
 import org.apache.jackrabbit.oak.api.jmx.FileStoreBackupRestoreMBean;
 import org.apache.jackrabbit.oak.backup.FileStoreBackup;
 import org.apache.jackrabbit.oak.backup.FileStoreRestore;
@@ -41,8 +39,7 @@ import org.apache.jackrabbit.oak.segment.SegmentReader;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Default implementation of {@link FileStoreBackupRestoreMBean} based on a
- * file.
+ * Default implementation of {@link FileStoreBackupRestoreMBean} based on a file.
  */
 public class FileStoreBackupRestoreImpl implements FileStoreBackupRestoreMBean {
 
@@ -74,11 +71,11 @@ public class FileStoreBackupRestoreImpl implements FileStoreBackupRestoreMBean {
      * @param executor executor for running the back up or restore operation
      */
     public FileStoreBackupRestoreImpl(
-            @NotNull SegmentNodeStore store,
-            @NotNull Revisions revisions,
-            @NotNull SegmentReader reader,
-            @NotNull File file,
-            @NotNull Executor executor
+        @NotNull SegmentNodeStore store,
+        @NotNull Revisions revisions,
+        @NotNull SegmentReader reader,
+        @NotNull File file,
+        @NotNull Executor executor
     ) {
         this.store = checkNotNull(store);
         this.revisions = checkNotNull(revisions);

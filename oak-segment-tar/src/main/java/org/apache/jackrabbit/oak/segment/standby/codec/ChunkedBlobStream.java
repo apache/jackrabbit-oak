@@ -19,19 +19,19 @@ package org.apache.jackrabbit.oak.segment.standby.codec;
 
 import static org.apache.jackrabbit.oak.segment.standby.server.FileStoreUtil.roundDiv;
 
-import java.io.InputStream;
-import java.io.PushbackInputStream;
-
-import org.apache.jackrabbit.guava.common.hash.Hasher;
-import org.apache.jackrabbit.guava.common.hash.Hashing;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.stream.ChunkedInput;
+import java.io.InputStream;
+import java.io.PushbackInputStream;
+import org.apache.jackrabbit.guava.common.hash.Hasher;
+import org.apache.jackrabbit.guava.common.hash.Hashing;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ChunkedBlobStream implements ChunkedInput<ByteBuf> {
+
     private static final Logger log = LoggerFactory.getLogger(ChunkedBlobStream.class);
 
     private final String clientId;
@@ -44,19 +44,15 @@ public class ChunkedBlobStream implements ChunkedInput<ByteBuf> {
     private boolean closed;
 
     /**
-     * @param clientId
-     *            identifier for client requesting the blob
-     * @param blobId
-     *            blob identifier
-     * @param length
-     *            blob length
-     * @param in
-     *            blob stream
-     * @param chunkSize
-     *            the number of bytes to fetch on each
-     *            {@link #readChunk(ChannelHandlerContext)} call
+     * @param clientId  identifier for client requesting the blob
+     * @param blobId    blob identifier
+     * @param length    blob length
+     * @param in        blob stream
+     * @param chunkSize the number of bytes to fetch on each
+     *                  {@link #readChunk(ChannelHandlerContext)} call
      */
-    public ChunkedBlobStream(String clientId, String blobId, long length, InputStream in, int chunkSize) {
+    public ChunkedBlobStream(String clientId, String blobId, long length, InputStream in,
+        int chunkSize) {
         this.clientId = clientId;
         this.blobId = blobId;
         this.length = length;
@@ -65,7 +61,8 @@ public class ChunkedBlobStream implements ChunkedInput<ByteBuf> {
             throw new NullPointerException("in");
         }
         if (chunkSize <= 0) {
-            throw new IllegalArgumentException("chunkSize: " + chunkSize + " (expected: a positive integer)");
+            throw new IllegalArgumentException(
+                "chunkSize: " + chunkSize + " (expected: a positive integer)");
         }
 
         if (in instanceof PushbackInputStream) {
@@ -125,8 +122,9 @@ public class ChunkedBlobStream implements ChunkedInput<ByteBuf> {
             decorated = decorateRawBuffer(allocator, buffer);
 
             offset += written;
-            log.debug("Sending chunk {}/{} of size {} from blob {} to client {}", roundDiv(offset, chunkSize),
-                    roundDiv(length, chunkSize), written, blobId, clientId);
+            log.debug("Sending chunk {}/{} of size {} from blob {} to client {}",
+                roundDiv(offset, chunkSize),
+                roundDiv(length, chunkSize), written, blobId, clientId);
 
             release = false;
             return decorated;

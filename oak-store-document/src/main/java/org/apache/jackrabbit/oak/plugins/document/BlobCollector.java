@@ -31,6 +31,7 @@ import org.apache.jackrabbit.oak.plugins.blob.ReferencedBlob;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 
 public class BlobCollector {
+
     private final DocumentNodeStore nodeStore;
 
     public BlobCollector(DocumentNodeStore nodeStore) {

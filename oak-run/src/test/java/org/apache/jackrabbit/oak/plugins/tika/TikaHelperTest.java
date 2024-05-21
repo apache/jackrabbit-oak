@@ -19,18 +19,18 @@
 
 package org.apache.jackrabbit.oak.plugins.tika;
 
-import java.io.File;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
+import java.io.File;
 import org.apache.jackrabbit.guava.common.base.Charsets;
 import org.apache.jackrabbit.guava.common.io.Files;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-
 public class TikaHelperTest {
+
     @Rule
     public final TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
 
@@ -44,17 +44,17 @@ public class TikaHelperTest {
     public void indexedTypes() throws Exception {
         File config = temporaryFolder.newFile();
         String configText = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
-                "<properties>\n" +
-                "  <detectors>\n" +
-                "    <detector class=\"org.apache.tika.detect.DefaultDetector\"/>\n" +
-                "  </detectors>\n" +
-                "  <parsers>\n" +
-                "    <parser class=\"org.apache.tika.parser.DefaultParser\"/>\n" +
-                "    <parser class=\"org.apache.tika.parser.EmptyParser\">\n" +
-                "      <mime>application/xml</mime>\n" +
-                "    </parser>\n" +
-                "  </parsers>\n" +
-                "</properties>";
+            "<properties>\n" +
+            "  <detectors>\n" +
+            "    <detector class=\"org.apache.tika.detect.DefaultDetector\"/>\n" +
+            "  </detectors>\n" +
+            "  <parsers>\n" +
+            "    <parser class=\"org.apache.tika.parser.DefaultParser\"/>\n" +
+            "    <parser class=\"org.apache.tika.parser.EmptyParser\">\n" +
+            "      <mime>application/xml</mime>\n" +
+            "    </parser>\n" +
+            "  </parsers>\n" +
+            "</properties>";
         Files.write(configText, config, Charsets.UTF_8);
         TikaHelper tika = new TikaHelper(config);
         assertFalse(tika.isIndexed("application/xml"));

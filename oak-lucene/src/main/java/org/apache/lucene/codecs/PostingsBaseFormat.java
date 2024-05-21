@@ -26,38 +26,44 @@ package org.apache.lucene.codecs;
  */
 
 import java.io.IOException;
-
-import org.apache.lucene.index.SegmentWriteState;
 import org.apache.lucene.index.SegmentReadState;
+import org.apache.lucene.index.SegmentWriteState;
 
-/** 
- * Provides a {@link PostingsReaderBase} and {@link
- * PostingsWriterBase}.
+/**
+ * Provides a {@link PostingsReaderBase} and {@link PostingsWriterBase}.
  *
- * @lucene.experimental */
+ * @lucene.experimental
+ */
 
 // TODO: find a better name; this defines the API that the
 // terms dict impls use to talk to a postings impl.
 // TermsDict + PostingsReader/WriterBase == PostingsConsumer/Producer
 
-// can we clean this up and do this some other way? 
+// can we clean this up and do this some other way?
 // refactor some of these classes and use covariant return?
 public abstract class PostingsBaseFormat {
 
-  /** Unique name that's used to retrieve this codec when
-   *  reading the index */
-  public final String name;
-  
-  /** Sole constructor. */
-  protected PostingsBaseFormat(String name) {
-    this.name = name;
-  }
+    /**
+     * Unique name that's used to retrieve this codec when reading the index
+     */
+    public final String name;
 
-  /** Creates the {@link PostingsReaderBase} for this
-   *  format. */
-  public abstract PostingsReaderBase postingsReaderBase(SegmentReadState state) throws IOException;
+    /**
+     * Sole constructor.
+     */
+    protected PostingsBaseFormat(String name) {
+        this.name = name;
+    }
 
-  /** Creates the {@link PostingsWriterBase} for this
-   *  format. */
-  public abstract PostingsWriterBase postingsWriterBase(SegmentWriteState state) throws IOException;
+    /**
+     * Creates the {@link PostingsReaderBase} for this format.
+     */
+    public abstract PostingsReaderBase postingsReaderBase(SegmentReadState state)
+        throws IOException;
+
+    /**
+     * Creates the {@link PostingsWriterBase} for this format.
+     */
+    public abstract PostingsWriterBase postingsWriterBase(SegmentWriteState state)
+        throws IOException;
 }

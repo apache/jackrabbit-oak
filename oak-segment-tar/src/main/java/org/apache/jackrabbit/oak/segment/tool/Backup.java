@@ -23,7 +23,6 @@ import static org.apache.jackrabbit.oak.segment.tool.Utils.openReadOnlyFileStore
 
 import java.io.File;
 import java.io.IOException;
-
 import org.apache.jackrabbit.oak.backup.FileStoreBackup;
 import org.apache.jackrabbit.oak.backup.impl.FileStoreBackupImpl;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
@@ -61,8 +60,8 @@ public class Backup {
         }
 
         /**
-         * The source folder of the backup. This parameter is required. The path
-         * should point to a valid segment store.
+         * The source folder of the backup. This parameter is required. The path should point to a
+         * valid segment store.
          *
          * @param source the path of the source folder of the backup.
          * @return this builder.
@@ -73,9 +72,9 @@ public class Backup {
         }
 
         /**
-         * The target folder of the backup. This parameter is required. The path
-         * should point to an existing segment store or to an empty folder. If
-         * the folder doesn't exist, it will be created.
+         * The target folder of the backup. This parameter is required. The path should point to an
+         * existing segment store or to an empty folder. If the folder doesn't exist, it will be
+         * created.
          *
          * @param target the path of the target folder of the backup.
          * @return this builder.
@@ -86,11 +85,11 @@ public class Backup {
         }
 
         /**
-         * Simulate the existence of a file-based blob store. This parameter is
-         * not required and defaults to {@code false}.
+         * Simulate the existence of a file-based blob store. This parameter is not required and
+         * defaults to {@code false}.
          *
-         * @param fakeBlobStore {@code true} if a file-based blob store should
-         *                      be simulated, {@code false} otherwise.
+         * @param fakeBlobStore {@code true} if a file-based blob store should be simulated,
+         *                      {@code false} otherwise.
          * @return this builder.
          */
         public Builder withFakeBlobStore(boolean fakeBlobStore) {

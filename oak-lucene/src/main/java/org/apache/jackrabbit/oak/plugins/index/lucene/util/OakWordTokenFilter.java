@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene.util;
 
 import java.util.Arrays;
-
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.standard.StandardTokenizer;
 import org.apache.lucene.analysis.tokenattributes.TypeAttribute;
@@ -27,7 +26,7 @@ public class OakWordTokenFilter extends CompoundWordTokenFilterBase {
 
     private static final String ALPHANUM_TYPE = StandardTokenizer.TOKEN_TYPES[StandardTokenizer.ALPHANUM];
 
-    private static final char[] SEPARATORS = new char[] { '_', '.' };
+    private static final char[] SEPARATORS = new char[]{'_', '.'};
 
     private final char[] separators;
     private final TypeAttribute typeAtt = addAttribute(TypeAttribute.class);
@@ -54,7 +53,7 @@ public class OakWordTokenFilter extends CompoundWordTokenFilterBase {
                     foundOne = true;
                     if (tokenLen > 0) {
                         CompoundToken ct = new CompoundToken(i - tokenLen,
-                                tokenLen);
+                            tokenLen);
                         tokens.add(ct);
                     }
                     tokenLen = 0;

@@ -23,6 +23,7 @@ import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 
 public interface JcrCreator {
+
     JcrCreator DEFAULT = new JcrCreator() {
         @Override
         public Jcr customize(Oak oak) {

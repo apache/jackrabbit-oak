@@ -16,17 +16,16 @@
  */
 package org.apache.jackrabbit.oak.spi.security.user.action;
 
+import javax.jcr.RepositoryException;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.jetbrains.annotations.NotNull;
 
-import javax.jcr.RepositoryException;
-
 /**
- * The {@code GroupAction} interface allows for implementations to be informed about and react to the following
- * changes to a {@link Group}'s members:
+ * The {@code GroupAction} interface allows for implementations to be informed about and react to
+ * the following changes to a {@link Group}'s members:
  *
  * <ul>
  * <li>{@link #onMemberAdded(Group, Authorizable, Root, NamePathMapper)}</li>
@@ -44,13 +43,14 @@ import javax.jcr.RepositoryException;
  * <p>
  * For convenience, an {@link AbstractGroupAction} is provided.
  * </p>
+ *
  * @since OAK 1.6
  */
 public interface GroupAction extends AuthorizableAction {
 
     /**
-     * A specific {@link Authorizable} was added as a member of the {@link Group}.
-     * Implementations may perform specific modifications or validations.
+     * A specific {@link Authorizable} was added as a member of the {@link Group}. Implementations
+     * may perform specific modifications or validations.
      *
      * @param group          The {@link Group} to which the {@link Authorizable} was added.
      * @param member         The {@link Authorizable} added.
@@ -58,12 +58,13 @@ public interface GroupAction extends AuthorizableAction {
      * @param namePathMapper
      * @throws RepositoryException If an error occurs.
      */
-    void onMemberAdded(@NotNull Group group, @NotNull Authorizable member, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException;
+    void onMemberAdded(@NotNull Group group, @NotNull Authorizable member, @NotNull Root root,
+        @NotNull NamePathMapper namePathMapper) throws RepositoryException;
 
     /**
-     * Multiple members were added to the {@link Group}. The members are provided as an iterable
-     * of their string-based IDs, as some members may no longer or not yet exist.
-     * Implementations may perform specific modifications or validations.
+     * Multiple members were added to the {@link Group}. The members are provided as an iterable of
+     * their string-based IDs, as some members may no longer or not yet exist. Implementations may
+     * perform specific modifications or validations.
      *
      * @param group          The {@link Group} to which the members were added.
      * @param memberIds      An {@link Iterable} of the member IDs.
@@ -71,13 +72,15 @@ public interface GroupAction extends AuthorizableAction {
      * @param namePathMapper
      * @throws RepositoryException If an error occurs.
      */
-    void onMembersAdded(@NotNull Group group, @NotNull Iterable<String> memberIds, @NotNull Iterable<String> failedIds, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException;
+    void onMembersAdded(@NotNull Group group, @NotNull Iterable<String> memberIds,
+        @NotNull Iterable<String> failedIds, @NotNull Root root,
+        @NotNull NamePathMapper namePathMapper) throws RepositoryException;
 
     /**
-     * Multiple members were added to the {@link Group} during XML group import.
-     * The members are provided as an iterable of their string-based content IDs (UUIDs), as these
-     * members do not exist yet (group imported before users). Implementations may track such content ids
-     * for later processing once the user identified by the content id is added.
+     * Multiple members were added to the {@link Group} during XML group import. The members are
+     * provided as an iterable of their string-based content IDs (UUIDs), as these members do not
+     * exist yet (group imported before users). Implementations may track such content ids for later
+     * processing once the user identified by the content id is added.
      * <p>
      * Implementations may perform specific modifications or validations.
      *
@@ -87,11 +90,13 @@ public interface GroupAction extends AuthorizableAction {
      * @param namePathMapper
      * @throws RepositoryException If an error occurs.
      */
-    void onMembersAddedContentId(@NotNull Group group, @NotNull Iterable<String> memberContentIds, @NotNull Iterable<String> failedIds, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException;
+    void onMembersAddedContentId(@NotNull Group group, @NotNull Iterable<String> memberContentIds,
+        @NotNull Iterable<String> failedIds, @NotNull Root root,
+        @NotNull NamePathMapper namePathMapper) throws RepositoryException;
 
     /**
-     * A specific {@link Authorizable} was removed from the {@link Group}.
-     * Implementations may perform specific modifications or validations.
+     * A specific {@link Authorizable} was removed from the {@link Group}. Implementations may
+     * perform specific modifications or validations.
      *
      * @param group          The {@link Group} from which the {@link Authorizable} was removed.
      * @param member         The {@link Authorizable} removed.
@@ -99,12 +104,13 @@ public interface GroupAction extends AuthorizableAction {
      * @param namePathMapper
      * @throws RepositoryException If an error occurs.
      */
-    void onMemberRemoved(@NotNull Group group, @NotNull Authorizable member, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException;
+    void onMemberRemoved(@NotNull Group group, @NotNull Authorizable member, @NotNull Root root,
+        @NotNull NamePathMapper namePathMapper) throws RepositoryException;
 
     /**
      * Multiple members were removed from the {@link Group}. The members are provided as an iterable
-     * of their string-based IDs, as some members may no longer or not yet exist.
-     * Implementations may perform specific modifications or validations.
+     * of their string-based IDs, as some members may no longer or not yet exist. Implementations
+     * may perform specific modifications or validations.
      *
      * @param group          The {@link Group} from which the members were removed.
      * @param memberIds      An {@link Iterable} of the member IDs.
@@ -112,5 +118,7 @@ public interface GroupAction extends AuthorizableAction {
      * @param namePathMapper
      * @throws RepositoryException If an error occurs.
      */
-    void onMembersRemoved(@NotNull Group group, @NotNull Iterable<String> memberIds, @NotNull Iterable<String> failedIds, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException;
+    void onMembersRemoved(@NotNull Group group, @NotNull Iterable<String> memberIds,
+        @NotNull Iterable<String> failedIds, @NotNull Root root,
+        @NotNull NamePathMapper namePathMapper) throws RepositoryException;
 }

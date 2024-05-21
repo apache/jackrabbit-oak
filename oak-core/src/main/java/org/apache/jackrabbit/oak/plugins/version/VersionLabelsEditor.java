@@ -16,6 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.version;
 
+import static org.apache.jackrabbit.JcrConstants.JCR_ROOTVERSION;
+import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
+import static org.apache.jackrabbit.oak.plugins.version.Utils.throwProtected;
+
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -24,10 +28,6 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.commit.DefaultEditor;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-
-import static org.apache.jackrabbit.JcrConstants.JCR_ROOTVERSION;
-import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
-import static org.apache.jackrabbit.oak.plugins.version.Utils.throwProtected;
 
 /**
  * Validates changes on jcr:versionLabels nodes in the version storage.

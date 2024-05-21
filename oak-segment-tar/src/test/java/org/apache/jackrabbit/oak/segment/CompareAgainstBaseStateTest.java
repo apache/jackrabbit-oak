@@ -25,7 +25,6 @@ import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 
 import java.io.IOException;
-
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -39,14 +38,15 @@ import org.junit.Test;
 public class CompareAgainstBaseStateTest {
 
     private final NodeStateDiff diff =
-            createControl().createMock("diff", NodeStateDiff.class);
+        createControl().createMock("diff", NodeStateDiff.class);
 
     private NodeBuilder builder;
 
     public CompareAgainstBaseStateTest() throws IOException {
         MemoryStore store = new MemoryStore();
         RecordId id = store.getWriter().writeNode(EMPTY_NODE);
-        SegmentNodeState node = new SegmentNodeState(store.getReader(), store.getWriter(), store.getBlobStore(), id);
+        SegmentNodeState node = new SegmentNodeState(store.getReader(), store.getWriter(),
+            store.getBlobStore(), id);
         builder = node.builder();
     }
 
@@ -100,7 +100,7 @@ public class CompareAgainstBaseStateTest {
         NodeState after = builder.getNodeState();
 
         expect(diff.propertyChanged(
-                before.getProperty("foo"), after.getProperty("foo"))).andReturn(true);
+            before.getProperty("foo"), after.getProperty("foo"))).andReturn(true);
         replay(diff);
 
         after.compareAgainstBaseState(before, diff);
@@ -142,7 +142,7 @@ public class CompareAgainstBaseStateTest {
         NodeState after = builder.getNodeState();
 
         expect(diff.childNodeChanged(
-                "baz", before.getChildNode("baz"), after.getChildNode("baz"))).andReturn(true);
+            "baz", before.getChildNode("baz"), after.getChildNode("baz"))).andReturn(true);
         replay(diff);
 
         after.compareAgainstBaseState(before, diff);
@@ -161,7 +161,7 @@ public class CompareAgainstBaseStateTest {
         after.compareAgainstBaseState(before, diff);
         verify(diff);
     }
-    
+
     @Test
     public void testChildNodeDeletedAndMultipleAdded() {
         NodeState before = builder.getNodeState();

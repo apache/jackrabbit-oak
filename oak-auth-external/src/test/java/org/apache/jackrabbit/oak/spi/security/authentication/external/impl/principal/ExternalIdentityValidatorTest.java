@@ -16,14 +16,22 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
-import javax.jcr.SimpleCredentials;
+import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
+import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants.REP_EXTERNAL_ID;
+import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
+import javax.jcr.SimpleCredentials;
+import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.api.security.user.Authorizable;
-import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
@@ -37,15 +45,6 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.Exter
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
-
-import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
-import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants.REP_EXTERNAL_ID;
-import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class ExternalIdentityValidatorTest extends ExternalLoginTestBase {
 
@@ -64,7 +63,8 @@ public class ExternalIdentityValidatorTest extends ExternalLoginTestBase {
 
         Authorizable a = getUserManager(root).getAuthorizable(USER_ID);
         assertNotNull(a);
-        assertEquals(isDynamic(), a.hasProperty(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES));
+        assertEquals(isDynamic(),
+            a.hasProperty(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES));
         externalUserPath = a.getPath();
     }
 
@@ -84,7 +84,8 @@ public class ExternalIdentityValidatorTest extends ExternalLoginTestBase {
     public void testAddExternalPrincipalNames() throws Exception {
         Tree userTree = root.getTree(testUserPath);
         try {
-            userTree.setProperty(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES, ImmutableList.of("principalName"), Type.STRINGS);
+            userTree.setProperty(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES,
+                ImmutableList.of("principalName"), Type.STRINGS);
             root.commit();
             fail("Creating rep:externalPrincipalNames must be detected.");
         } catch (CommitFailedException e) {
@@ -100,7 +101,8 @@ public class ExternalIdentityValidatorTest extends ExternalLoginTestBase {
         Root systemRoot = getSystemRoot();
         try {
             Tree userTree = systemRoot.getTree(testUserPath);
-            userTree.setProperty(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES, ImmutableList.of("principalName"), Type.STRINGS);
+            userTree.setProperty(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES,
+                ImmutableList.of("principalName"), Type.STRINGS);
             systemRoot.commit();
             fail("Creating rep:externalPrincipalNames without rep:externalId must be detected.");
         } catch (CommitFailedException e) {
@@ -116,7 +118,8 @@ public class ExternalIdentityValidatorTest extends ExternalLoginTestBase {
         Root systemRoot = getSystemRoot();
         Tree userTree = systemRoot.getTree(testUserPath);
         userTree.setProperty(REP_EXTERNAL_ID, "externalId");
-        userTree.setProperty(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES, ImmutableList.of("principalName"), Type.STRINGS);
+        userTree.setProperty(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES,
+            ImmutableList.of("principalName"), Type.STRINGS);
         systemRoot.commit();
     }
 
@@ -149,7 +152,8 @@ public class ExternalIdentityValidatorTest extends ExternalLoginTestBase {
     public void testModifyExternalPrincipalNames() throws Exception {
         Tree userTree = root.getTree(externalUserPath);
         try {
-            userTree.setProperty(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES, Lists.newArrayList("principalNames"), Type.STRINGS);
+            userTree.setProperty(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES,
+                Lists.newArrayList("principalNames"), Type.STRINGS);
             root.commit();
             fail("Changing rep:externalPrincipalNames must be detected.");
         } catch (CommitFailedException e) {
@@ -166,7 +170,8 @@ public class ExternalIdentityValidatorTest extends ExternalLoginTestBase {
         Tree userTree = systemRoot.getTree(externalUserPath);
 
         // changing with system root must succeed
-        userTree.setProperty(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES, ImmutableList.of("principalNames"), Type.STRINGS);
+        userTree.setProperty(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES,
+            ImmutableList.of("principalNames"), Type.STRINGS);
         systemRoot.commit();
     }
 
@@ -176,16 +181,17 @@ public class ExternalIdentityValidatorTest extends ExternalLoginTestBase {
         Tree userTree = systemRoot.getTree(testUserPath);
 
         java.util.Map<Type, Object> valMap = ImmutableMap.of(
-                Type.BOOLEANS, ImmutableSet.of(Boolean.TRUE),
-                Type.LONGS, ImmutableSet.of(1234L),
-                Type.NAMES, ImmutableSet.of("id", "id2")
+            Type.BOOLEANS, ImmutableSet.of(Boolean.TRUE),
+            Type.LONGS, ImmutableSet.of(1234L),
+            Type.NAMES, ImmutableSet.of("id", "id2")
         );
         for (Type t : valMap.keySet()) {
             Object val = valMap.get(t);
             try {
-                userTree.setProperty(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES, val, t);
+                userTree.setProperty(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES, val,
+                    t);
                 systemRoot.commit();
-                fail("Creating rep:externalPrincipalNames with type "+t+" must be detected.");
+                fail("Creating rep:externalPrincipalNames with type " + t + " must be detected.");
             } catch (CommitFailedException e) {
                 // success
                 assertException(e, CONSTRAINT, 71);
@@ -214,13 +220,15 @@ public class ExternalIdentityValidatorTest extends ExternalLoginTestBase {
     @Test(expected = CommitFailedException.class)
     public void testExternalPrincipalNamesArrayMismatch() throws Exception {
         NodeState ns = mock(NodeState.class);
-        PropertyState ps = when(mock(PropertyState.class).getName()).thenReturn(REP_EXTERNAL_PRINCIPAL_NAMES).getMock();
+        PropertyState ps = when(mock(PropertyState.class).getName()).thenReturn(
+            REP_EXTERNAL_PRINCIPAL_NAMES).getMock();
         Type type = Type.STRINGS;
         when(ps.getType()).thenReturn(type);
         when(ps.isArray()).thenReturn(false);
 
         try {
-            Validator v = new ExternalIdentityValidatorProvider(true, true).getRootValidator(ns, ns, null);
+            Validator v = new ExternalIdentityValidatorProvider(true, true).getRootValidator(ns, ns,
+                null);
             v.propertyAdded(ps);
         } catch (CommitFailedException e) {
             assertException(e, CONSTRAINT, 71);
@@ -249,16 +257,16 @@ public class ExternalIdentityValidatorTest extends ExternalLoginTestBase {
         Tree userTree = systemRoot.getTree(testUserPath);
 
         java.util.Map<Type, Object> valMap = ImmutableMap.of(
-                Type.BOOLEAN, Boolean.TRUE,
-                Type.LONG, 1234L,
-                Type.NAME, "id"
+            Type.BOOLEAN, Boolean.TRUE,
+            Type.LONG, 1234L,
+            Type.NAME, "id"
         );
         for (Type t : valMap.keySet()) {
             Object val = valMap.get(t);
             try {
                 userTree.setProperty(REP_EXTERNAL_ID, val, t);
                 systemRoot.commit();
-                fail("Creating rep:externalId with type "+t+" must be detected.");
+                fail("Creating rep:externalId with type " + t + " must be detected.");
             } catch (CommitFailedException e) {
                 // success
                 assertException(e, CONSTRAINT, 75);
@@ -271,13 +279,15 @@ public class ExternalIdentityValidatorTest extends ExternalLoginTestBase {
     @Test(expected = CommitFailedException.class)
     public void testRepExternalIdTypeArrayMismatch() throws Exception {
         NodeState ns = mock(NodeState.class);
-        PropertyState ps = when(mock(PropertyState.class).getName()).thenReturn(REP_EXTERNAL_ID).getMock();
+        PropertyState ps = when(mock(PropertyState.class).getName()).thenReturn(REP_EXTERNAL_ID)
+                                                                    .getMock();
         Type type = Type.STRING;
         when(ps.getType()).thenReturn(type);
         when(ps.isArray()).thenReturn(true);
 
         try {
-            Validator v = new ExternalIdentityValidatorProvider(true, true).getRootValidator(ns, ns, null);
+            Validator v = new ExternalIdentityValidatorProvider(true, true).getRootValidator(ns, ns,
+                null);
             v.propertyAdded(ps);
         } catch (CommitFailedException e) {
             assertException(e, CONSTRAINT, 75);
@@ -295,7 +305,8 @@ public class ExternalIdentityValidatorTest extends ExternalLoginTestBase {
     public void testCreateUserWithRepExternalIdAsSystem() throws Exception {
         Root systemRoot = getSystemRoot();
         User u = getUserManager(systemRoot).createUser(TestIdentityProvider.ID_SECOND_USER, null);
-        systemRoot.getTree(u.getPath()).setProperty(REP_EXTERNAL_ID, TestIdentityProvider.ID_SECOND_USER);
+        systemRoot.getTree(u.getPath())
+                  .setProperty(REP_EXTERNAL_ID, TestIdentityProvider.ID_SECOND_USER);
         systemRoot.commit();
     }
 
@@ -360,7 +371,8 @@ public class ExternalIdentityValidatorTest extends ExternalLoginTestBase {
             Tree userTree = systemRoot.getTree(externalUserPath);
             userTree.removeProperty(REP_EXTERNAL_ID);
             systemRoot.commit();
-            fail("Removing rep:externalId is not allowed if rep:externalPrincipalNames is present.");
+            fail(
+                "Removing rep:externalId is not allowed if rep:externalPrincipalNames is present.");
         } catch (CommitFailedException e) {
             // success
             assertException(e, CONSTRAINT, 73);

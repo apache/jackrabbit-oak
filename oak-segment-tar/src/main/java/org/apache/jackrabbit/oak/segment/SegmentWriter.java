@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.segment;
 
 import java.io.IOException;
 import java.io.InputStream;
-
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -44,22 +43,21 @@ public interface SegmentWriter {
     RecordId writeBlob(@NotNull Blob blob) throws IOException;
 
     /**
-     * Writes a stream value record. The given stream is consumed <em>and
-     * closed</em> by this method.
+     * Writes a stream value record. The given stream is consumed <em>and closed</em> by this
+     * method.
      *
      * @param stream stream to be written
      * @return the record id of the stream written
-     * @throws IOException if the input stream could not be read or the output
-     *                     could not be written
+     * @throws IOException if the input stream could not be read or the output could not be written
      */
     @NotNull
     RecordId writeStream(@NotNull InputStream stream) throws IOException;
 
     /**
-     * Write a node state. If non null, the passed {@code stableId} will be assigned to
-     * the persisted node. Otherwise the stable id will be inferred from {@code state}.
+     * Write a node state. If non null, the passed {@code stableId} will be assigned to the
+     * persisted node. Otherwise the stable id will be inferred from {@code state}.
      *
-     * @param state node state to write
+     * @param state         node state to write
      * @param stableIdBytes the stableId that should be assigned to the node or {@code null}.
      * @return the record id of the segment node state written
      * @throws IOException

@@ -30,6 +30,7 @@ import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
 import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 
 public class TestNodeObserver extends NodeObserver {
+
     public final Map<String, Set<String>> added = newHashMap();
     public final Map<String, Set<String>> deleted = newHashMap();
     public final Map<String, Set<String>> changed = newHashMap();
@@ -41,12 +42,12 @@ public class TestNodeObserver extends NodeObserver {
 
     @Override
     protected void added(
-            @NotNull String path,
-            @NotNull Set<String> added,
-            @NotNull Set<String> deleted,
-            @NotNull Set<String> changed,
-            @NotNull Map<String, String> properties,
-            @NotNull CommitInfo commitInfo) {
+        @NotNull String path,
+        @NotNull Set<String> added,
+        @NotNull Set<String> deleted,
+        @NotNull Set<String> changed,
+        @NotNull Map<String, String> properties,
+        @NotNull CommitInfo commitInfo) {
         this.added.put(path, newHashSet(added));
         if (!properties.isEmpty()) {
             this.properties.put(path, newHashMap(properties));
@@ -55,12 +56,12 @@ public class TestNodeObserver extends NodeObserver {
 
     @Override
     protected void deleted(
-            @NotNull String path,
-            @NotNull Set<String> added,
-            @NotNull Set<String> deleted,
-            @NotNull Set<String> changed,
-            @NotNull Map<String, String> properties,
-            @NotNull CommitInfo commitInfo) {
+        @NotNull String path,
+        @NotNull Set<String> added,
+        @NotNull Set<String> deleted,
+        @NotNull Set<String> changed,
+        @NotNull Map<String, String> properties,
+        @NotNull CommitInfo commitInfo) {
         this.deleted.put(path, newHashSet(deleted));
         if (!properties.isEmpty()) {
             this.properties.put(path, newHashMap(properties));
@@ -69,19 +70,19 @@ public class TestNodeObserver extends NodeObserver {
 
     @Override
     protected void changed(
-            @NotNull String path,
-            @NotNull Set<String> added,
-            @NotNull Set<String> deleted,
-            @NotNull Set<String> changed,
-            @NotNull Map<String, String> properties,
-            @NotNull CommitInfo commitInfo) {
+        @NotNull String path,
+        @NotNull Set<String> added,
+        @NotNull Set<String> deleted,
+        @NotNull Set<String> changed,
+        @NotNull Map<String, String> properties,
+        @NotNull CommitInfo commitInfo) {
         this.changed.put(path, newHashSet(changed));
         if (!properties.isEmpty()) {
             this.properties.put(path, newHashMap(properties));
         }
     }
 
-    public void reset(){
+    public void reset() {
         added.clear();
         deleted.clear();
         changed.clear();

@@ -20,11 +20,8 @@
 package org.apache.jackrabbit.oak.segment.osgi;
 
 import java.io.InputStream;
-
-import javax.print.attribute.HashPrintServiceAttributeSet;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
-
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
@@ -272,7 +269,8 @@ class ComponentDescriptor {
                     if (policy != null && !hasValidPolicy(reference)) {
                         return false;
                     }
-                    if (policyOption != null && !hasAttribute(reference, "policy-option", policyOption)) {
+                    if (policyOption != null && !hasAttribute(reference, "policy-option",
+                        policyOption)) {
                         return false;
                     }
                     if (target != null && !hasAttribute(reference, "target", target)) {

@@ -78,9 +78,9 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
     public MongoConnectionFactory connectionFactory = new MongoConnectionFactory();
 
     /**
-     * container for what should represent an instance, but is not a complete
-     * one, hence 'simplified'. it contains most importantly the
-     * DocuemntNodeStore and the discoveryLite service
+     * container for what should represent an instance, but is not a complete one, hence
+     * 'simplified'. it contains most importantly the DocuemntNodeStore and the discoveryLite
+     * service
      */
     class SimplifiedInstance {
 
@@ -95,8 +95,9 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
         private Thread writeSimulationThread;
         public String workingDir;
 
-        SimplifiedInstance(DocumentDiscoveryLiteService service, DocumentNodeStore ns, Descriptors descriptors,
-                Map<Object, Object> registeredServices, long lastRevInterval, String workingDir) {
+        SimplifiedInstance(DocumentDiscoveryLiteService service, DocumentNodeStore ns,
+            Descriptors descriptors,
+            Map<Object, Object> registeredServices, long lastRevInterval, String workingDir) {
             this.service = service;
             this.ns = ns;
             this.workingDir = workingDir;
@@ -120,7 +121,8 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
                 @Override
                 public void run() {
                     while (!lastRevStopped) {
-                        SimplifiedInstance.this.ns.getLastRevRecoveryAgent().performRecoveryIfNeeded();
+                        SimplifiedInstance.this.ns.getLastRevRecoveryAgent()
+                                                  .performRecoveryIfNeeded();
                         try {
                             Thread.sleep(SimplifiedInstance.this.lastRevInterval);
                         } catch (InterruptedException e) {
@@ -167,11 +169,14 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
             return hasIds(clusterViewStr, "inactive", expected);
         }
 
-        private boolean hasIds(final String clusterViewStr, final String key, int... expectedIds) throws Exception {
+        private boolean hasIds(final String clusterViewStr, final String key, int... expectedIds)
+            throws Exception {
             final JsonObject clusterViewObj = asJsonObject(clusterViewStr);
-            String actualIdsStr = clusterViewObj == null ? null : clusterViewObj.getProperties().get(key);
+            String actualIdsStr =
+                clusterViewObj == null ? null : clusterViewObj.getProperties().get(key);
 
-            boolean actualEmpty = actualIdsStr == null || actualIdsStr.length() == 0 || actualIdsStr.equals("[]");
+            boolean actualEmpty =
+                actualIdsStr == null || actualIdsStr.length() == 0 || actualIdsStr.equals("[]");
             boolean expectedEmpty = expectedIds == null || expectedIds.length == 0;
 
             if (actualEmpty && expectedEmpty) {
@@ -182,7 +187,8 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
             }
 
             final List<Integer> actualList = Arrays
-                    .asList(ClusterViewDocument.csvToIntegerArray(actualIdsStr.substring(1, actualIdsStr.length() - 1)));
+                .asList(ClusterViewDocument.csvToIntegerArray(
+                    actualIdsStr.substring(1, actualIdsStr.length() - 1)));
             if (expectedIds.length != actualList.size()) {
                 return false;
             }
@@ -260,7 +266,7 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
 
         /**
          * shutdown simulates the normal, graceful, shutdown
-         * 
+         *
          * @throws InterruptedException
          */
         public void shutdown() throws InterruptedException {
@@ -272,7 +278,7 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
 
         /**
          * crash simulates a kill -9, sort of
-         * 
+         *
          * @throws Throwable
          */
         public void crash() throws Throwable {
@@ -302,15 +308,16 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
         }
 
         /**
-         * very hacky way of doing the following: make sure this instance's
-         * clusterNodes entry is marked with a very short (1 sec off) lease end
-         * time so that the crash detection doesn't take a minute (as it would
-         * by default)
+         * very hacky way of doing the following: make sure this instance's clusterNodes entry is
+         * marked with a very short (1 sec off) lease end time so that the crash detection doesn't
+         * take a minute (as it would by default)
          */
-        private boolean setLeaseTime(final int leaseTime, final int leaseUpdateInterval) throws NoSuchFieldException {
+        private boolean setLeaseTime(final int leaseTime, final int leaseUpdateInterval)
+            throws NoSuchFieldException {
             ns.getClusterInfo().setLeaseTime(leaseTime);
             ns.getClusterInfo().setLeaseUpdateInterval(leaseUpdateInterval);
-            long newLeaseTime = System.currentTimeMillis() + (leaseTime / 3) - 10 /* 10ms safety margin */;
+            long newLeaseTime =
+                System.currentTimeMillis() + (leaseTime / 3) - 10 /* 10ms safety margin */;
             PrivateAccessor.setField(ns.getClusterInfo(), "leaseEndTime", newLeaseTime);
 
             // OAK-9564: Apply the update low level to the nodeStore, as the max operation wouldn't let to apply the
@@ -329,15 +336,18 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
         }
 
         private AtomicBoolean getStopLeaseUpdateThread() throws NoSuchFieldException {
-            AtomicBoolean stopLeaseUpdateThread = (AtomicBoolean) PrivateAccessor.getField(ns, "stopLeaseUpdateThread");
+            AtomicBoolean stopLeaseUpdateThread = (AtomicBoolean) PrivateAccessor.getField(ns,
+                "stopLeaseUpdateThread");
             return stopLeaseUpdateThread;
         }
 
         private void stopAllBackgroundThreads() throws NoSuchFieldException {
             // get all those background threads...
-            Thread backgroundReadThread = (Thread) PrivateAccessor.getField(ns, "backgroundReadThread");
+            Thread backgroundReadThread = (Thread) PrivateAccessor.getField(ns,
+                "backgroundReadThread");
             assertNotNull(backgroundReadThread);
-            Thread backgroundUpdateThread = (Thread) PrivateAccessor.getField(ns, "backgroundUpdateThread");
+            Thread backgroundUpdateThread = (Thread) PrivateAccessor.getField(ns,
+                "backgroundUpdateThread");
             assertNotNull(backgroundUpdateThread);
             Thread leaseUpdateThread = (Thread) PrivateAccessor.getField(ns, "leaseUpdateThread");
             assertNotNull(leaseUpdateThread);
@@ -380,9 +390,11 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
         }
 
         public void stopBgReadThread() throws NoSuchFieldException {
-            final Thread backgroundReadThread = (Thread) PrivateAccessor.getField(ns, "backgroundReadThread");
+            final Thread backgroundReadThread = (Thread) PrivateAccessor.getField(ns,
+                "backgroundReadThread");
             assertNotNull(backgroundReadThread);
-            final Runnable bgReadRunnable = (Runnable) PrivateAccessor.getField(backgroundReadThread, "target");
+            final Runnable bgReadRunnable = (Runnable) PrivateAccessor.getField(
+                backgroundReadThread, "target");
             assertNotNull(bgReadRunnable);
             final AtomicBoolean bgReadIsDisposed = new AtomicBoolean(false);
             PrivateAccessor.setField(bgReadRunnable, "isDisposed", bgReadIsDisposed);
@@ -408,7 +420,8 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
             ns.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         }
 
-        public void setProperty(String path, String key, String value) throws CommitFailedException {
+        public void setProperty(String path, String key, String value)
+            throws CommitFailedException {
             NodeBuilder root = ns.getRoot().builder();
             NodeBuilder child = root;
             String[] split = path.split("/");
@@ -416,15 +429,19 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
                 child = child.child(split[i]);
             }
             child.setProperty(key, value);
-            logger.info("setProperty: " + ns.getClusterId() + " is merging path/property " + path + ", key=" + key + ", value="
+            logger.info(
+                "setProperty: " + ns.getClusterId() + " is merging path/property " + path + ", key="
+                    + key + ", value="
                     + value);
             ns.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         }
 
-        public void setLeastTimeout(long timeoutInMs, long updateIntervalInMs) throws NoSuchFieldException {
+        public void setLeastTimeout(long timeoutInMs, long updateIntervalInMs)
+            throws NoSuchFieldException {
             ns.getClusterInfo().setLeaseTime(timeoutInMs);
             ns.getClusterInfo().setLeaseUpdateInterval(updateIntervalInMs);
-            PrivateAccessor.setField(ns.getClusterInfo(), "leaseEndTime", System.currentTimeMillis() - 1000);
+            PrivateAccessor.setField(ns.getClusterInfo(), "leaseEndTime",
+                System.currentTimeMillis() - 1000);
         }
 
         void startSimulatingWrites(final long writeInterval) {
@@ -446,7 +463,9 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
                 }
 
                 private void writeSomething() throws CommitFailedException {
-                    final String path = "/" + ns.getClusterId() + "/" + random.nextInt(100) + "/" + random.nextInt(100) + "/"
+                    final String path =
+                        "/" + ns.getClusterId() + "/" + random.nextInt(100) + "/" + random.nextInt(
+                            100) + "/"
                             + random.nextInt(100);
                     logger.info("Writing [" + ns.getClusterId() + "]" + path);
                     addNode(path);
@@ -466,9 +485,10 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
     }
 
     interface Expectation {
+
         /**
-         * check if the expectation is fulfilled, return true if it is, return a
-         * descriptive error msg if not
+         * check if the expectation is fulfilled, return true if it is, return a descriptive error
+         * msg if not
          **/
         String fulfilled() throws Exception;
     }
@@ -521,24 +541,29 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
                     return "no clusterView, but expected activeIds: " + beautify(activeIds);
                 }
                 if (deactivatingIds.length != 0) {
-                    return "no clusterView, but expected deactivatingIds: " + beautify(deactivatingIds);
+                    return "no clusterView, but expected deactivatingIds: " + beautify(
+                        deactivatingIds);
                 }
                 if (inactiveIds.length != 0) {
                     return "no clusterView, but expected inactiveIds: " + beautify(inactiveIds);
                 }
             }
             if (!discoveryLiteCombo.hasActiveIds(clusterViewStr, activeIds)) {
-                return "activeIds dont match, expected: " + beautify(activeIds) + ", got clusterView: " + clusterViewStr;
+                return "activeIds dont match, expected: " + beautify(activeIds)
+                    + ", got clusterView: " + clusterViewStr;
             }
             if (!discoveryLiteCombo.hasDeactivatingIds(clusterViewStr, deactivatingIds)) {
-                return "deactivatingIds dont match, expected: " + beautify(deactivatingIds) + ", got clusterView: "
-                        + clusterViewStr;
+                return "deactivatingIds dont match, expected: " + beautify(deactivatingIds)
+                    + ", got clusterView: "
+                    + clusterViewStr;
             }
             if (!discoveryLiteCombo.hasInactiveIds(clusterViewStr, inactiveIds)) {
-                return "inactiveIds dont match, expected: " + beautify(inactiveIds) + ", got clusterView: " + clusterViewStr;
+                return "inactiveIds dont match, expected: " + beautify(inactiveIds)
+                    + ", got clusterView: " + clusterViewStr;
             }
             if (!discoveryLiteCombo.isInvisible() && discoveryLiteCombo.isFinal() != isFinal) {
-                return "final flag does not match. expected: " + isFinal + ", but is: " + discoveryLiteCombo.isFinal();
+                return "final flag does not match. expected: " + isFinal + ", but is: "
+                    + discoveryLiteCombo.isFinal();
             }
             return null;
         }
@@ -563,11 +588,12 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
 
     }
 
-//    private static final boolean MONGO_DB = true;
-     private static final boolean MONGO_DB = false;
+    //    private static final boolean MONGO_DB = true;
+    private static final boolean MONGO_DB = false;
 
-    static final int SEED = Integer.getInteger(BaseDocumentDiscoveryLiteServiceTest.class.getSimpleName() + "-seed",
-            new Random().nextInt());
+    static final int SEED = Integer.getInteger(
+        BaseDocumentDiscoveryLiteServiceTest.class.getSimpleName() + "-seed",
+        new Random().nextInt());
 
     private List<DocumentMK> mks = Lists.newArrayList();
     private MemoryDocumentStore ds;
@@ -582,10 +608,10 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
 
     @Rule
     public TestRule logLevelModifier = new LogLevelModifier()
-                                            .newConsoleAppender("console")
-                                            .addAppenderFilter("console", "info")
-                                            .addAppenderFilter("file", "info")
-                                            .setLoggerLevel("org.apache.jackrabbit.oak", "debug");
+        .newConsoleAppender("console")
+        .addAppenderFilter("console", "info")
+        .addAppenderFilter("file", "info")
+        .setLoggerLevel("org.apache.jackrabbit.oak", "debug");
 
     // subsequent tests should get a DocumentDiscoveryLiteService setup from the
     // start
@@ -595,7 +621,8 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
 
     // subsequent tests should get a DocumentDiscoveryLiteService setup from the
     // start
-    DocumentNodeStore createNodeStore(String workingDir, boolean invisible) throws SecurityException, Exception {
+    DocumentNodeStore createNodeStore(String workingDir, boolean invisible)
+        throws SecurityException, Exception {
         String prevWorkingDir = ClusterNodeInfo.WORKING_DIR;
         try {
             // ensure that we always get a fresh cluster[node]id
@@ -603,15 +630,15 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
 
             // then create the DocumentNodeStore
             DocumentMK mk1 = createMK(
-                    0 /* to make sure the clusterNodes collection is used **/,
-                    500, /* asyncDelay: background interval */
-                    invisible /* cluster node invisibility */);
+                0 /* to make sure the clusterNodes collection is used **/,
+                500, /* asyncDelay: background interval */
+                invisible /* cluster node invisibility */);
 
-            logger.info("createNodeStore: created DocumentNodeStore with cid=" + mk1.nodeStore.getClusterId() + ", workingDir="
-                    + workingDir);
+            logger.info("createNodeStore: created DocumentNodeStore with cid="
+                + mk1.nodeStore.getClusterId() + ", workingDir="
+                + workingDir);
             return mk1.nodeStore;
-        }
-        finally {
+        } finally {
             ClusterNodeInfo.WORKING_DIR = prevWorkingDir;
         }
     }
@@ -629,25 +656,29 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
         return createInstance(workingDir, false);
     }
 
-    SimplifiedInstance createInstance(String workingDir, boolean invisible) throws SecurityException, Exception {
+    SimplifiedInstance createInstance(String workingDir, boolean invisible)
+        throws SecurityException, Exception {
         DocumentNodeStore ns = createNodeStore(workingDir, invisible);
         return createInstance(ns, workingDir);
     }
 
-    SimplifiedInstance createInstance(DocumentNodeStore ns, String workingDir) throws NoSuchFieldException {
+    SimplifiedInstance createInstance(DocumentNodeStore ns, String workingDir)
+        throws NoSuchFieldException {
         DocumentDiscoveryLiteService discoveryLite = new DocumentDiscoveryLiteService();
         PrivateAccessor.setField(discoveryLite, "nodeStore", ns);
         BundleContext bc = mock(BundleContext.class);
         ComponentContext c = mock(ComponentContext.class);
         when(c.getBundleContext()).thenReturn(bc);
         final Map<Object, Object> registeredServices = new HashMap();
-        when(bc.registerService(any(Class.class), any(Object.class), any())).then((Answer<ServiceRegistration>) invocation -> {
-            registeredServices.put(invocation.getArguments()[0], invocation.getArguments()[1]);
-            return null;
-        });
+        when(bc.registerService(any(Class.class), any(Object.class), any())).then(
+            (Answer<ServiceRegistration>) invocation -> {
+                registeredServices.put(invocation.getArguments()[0], invocation.getArguments()[1]);
+                return null;
+            });
         discoveryLite.activate(c);
         Descriptors d = (Descriptors) registeredServices.get(Descriptors.class);
-        final SimplifiedInstance result = new SimplifiedInstance(discoveryLite, ns, d, registeredServices, 500, workingDir);
+        final SimplifiedInstance result = new SimplifiedInstance(discoveryLite, ns, d,
+            registeredServices, 500, workingDir);
         allInstances.add(result);
         logger.info("Created " + result);
         return result;
@@ -662,7 +693,8 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
                 return;
             }
             if (System.currentTimeMillis() > tooLate) {
-                fail("expectation not fulfilled within " + timeout + "ms: " + msg + ", fulfillment result: " + fulfillmentResult);
+                fail("expectation not fulfilled within " + timeout + "ms: " + msg
+                    + ", fulfillment result: " + fulfillmentResult);
             }
             Thread.sleep(100);
         }
@@ -677,24 +709,29 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
         }
     }
 
-    void checkFiestaState(final List<SimplifiedInstance> instances, Set<Integer> inactiveIds) throws Exception {
+    void checkFiestaState(final List<SimplifiedInstance> instances, Set<Integer> inactiveIds)
+        throws Exception {
         final List<Integer> activeIds = new LinkedList<Integer>();
-        for (Iterator<SimplifiedInstance> it = instances.iterator(); it.hasNext();) {
+        for (Iterator<SimplifiedInstance> it = instances.iterator(); it.hasNext(); ) {
             SimplifiedInstance anInstance = it.next();
             if (!anInstance.isInvisible()) {
                 activeIds.add(anInstance.ns.getClusterId());
             }
         }
-        logger.info("checkFiestaState: checking state. expected active: "+activeIds+", inactive: "+inactiveIds);
-        for (Iterator<SimplifiedInstance> it = instances.iterator(); it.hasNext();) {
+        logger.info(
+            "checkFiestaState: checking state. expected active: " + activeIds + ", inactive: "
+                + inactiveIds);
+        for (Iterator<SimplifiedInstance> it = instances.iterator(); it.hasNext(); ) {
             SimplifiedInstance anInstance = it.next();
             if (!anInstance.isInvisible()) {
                 final ViewExpectation e = new ViewExpectation(anInstance);
                 e.setActiveIds(activeIds.toArray(new Integer[activeIds.size()]));
                 e.setInactiveIds(inactiveIds.toArray(new Integer[inactiveIds.size()]));
-                waitFor(e, 60000, "checkFiestaState failed for " + anInstance + ", with instances: " + instances + ","
-                    + " and inactiveIds: "
-                    + inactiveIds);
+                waitFor(e, 60000,
+                    "checkFiestaState failed for " + anInstance + ", with instances: " + instances
+                        + ","
+                        + " and inactiveIds: "
+                        + inactiveIds);
             }
         }
     }
@@ -702,7 +739,7 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
     @Before
     @After
     public void clear() {
-        logger.info("clear: seed="+SEED);
+        logger.info("clear: seed=" + SEED);
         for (SimplifiedInstance i : allInstances) {
             i.dispose();
         }
@@ -730,9 +767,9 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
         if (MONGO_DB) {
             MongoConnection connection = connectionFactory.getConnection();
             return register(new DocumentMK.Builder()
-                    .setMongoDB(connection.getMongoClient(), connection.getDBName())
-                    .setLeaseCheckMode(LeaseCheckMode.DISABLED).setClusterId(clusterId)
-                    .setAsyncDelay(asyncDelay).open());
+                .setMongoDB(connection.getMongoClient(), connection.getDBName())
+                .setLeaseCheckMode(LeaseCheckMode.DISABLED).setClusterId(clusterId)
+                .setAsyncDelay(asyncDelay).open());
         } else {
             if (ds == null) {
                 ds = new MemoryDocumentStore();
@@ -744,10 +781,13 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
         }
     }
 
-    DocumentMK createMK(int clusterId, int asyncDelay, DocumentStore ds, BlobStore bs, boolean invisible) {
-        return register(new DocumentMK.Builder().setDocumentStore(ds).setBlobStore(bs).setClusterId(clusterId).setClusterInvisible(invisible)
-            .setLeaseCheckMode(LeaseCheckMode.DISABLED)
-            .setAsyncDelay(asyncDelay).open());
+    DocumentMK createMK(int clusterId, int asyncDelay, DocumentStore ds, BlobStore bs,
+        boolean invisible) {
+        return register(
+            new DocumentMK.Builder().setDocumentStore(ds).setBlobStore(bs).setClusterId(clusterId)
+                                    .setClusterInvisible(invisible)
+                                    .setLeaseCheckMode(LeaseCheckMode.DISABLED)
+                                    .setAsyncDelay(asyncDelay).open());
     }
 
     DocumentMK register(DocumentMK mk) {
@@ -757,6 +797,7 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
 
     /**
      * Probability of invisible instance at 20%
+     *
      * @param random
      * @return
      */
@@ -770,12 +811,11 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
     }
 
     /**
-     * This test creates a large number of documentnodestores which it starts,
-     * runs, stops in a random fashion, always testing to make sure the
-     * clusterView is correct
+     * This test creates a large number of documentnodestores which it starts, runs, stops in a
+     * random fashion, always testing to make sure the clusterView is correct
      */
     void doStartStopFiesta(int loopCnt) throws Throwable {
-        logger.info("testLargeStartStopFiesta: start, seed="+SEED);
+        logger.info("testLargeStartStopFiesta: start, seed=" + SEED);
         final List<SimplifiedInstance> instances = new LinkedList<SimplifiedInstance>();
         final Map<Integer, String> inactiveIds = new HashMap<Integer, String>();
         final Random random = new Random(SEED);
@@ -799,21 +839,24 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
                         final Integer cid = new LinkedList<Integer>(inactiveIds.keySet()).get(n);
                         final String reactivatedWorkingDir = inactiveIds.remove(cid);
                         if (reactivatedWorkingDir == null) {
-                            fail("reactivatedWorkingDir null for n=" + n + ", cid=" + cid + ", other inactives: " + inactiveIds);
+                            fail("reactivatedWorkingDir null for n=" + n + ", cid=" + cid
+                                + ", other inactives: " + inactiveIds);
                         }
                         assertNotNull(reactivatedWorkingDir);
-                        logger.info("Case 0 - reactivated instance " + cid + ", workingDir=" + reactivatedWorkingDir);
+                        logger.info("Case 0 - reactivated instance " + cid + ", workingDir="
+                            + reactivatedWorkingDir);
                         workingDir = reactivatedWorkingDir;
                         logger.info("Case 0: creating instance");
 
-                        final SimplifiedInstance newInstance = createInstance(workingDir, isInvisibleInstance(random));
+                        final SimplifiedInstance newInstance = createInstance(workingDir,
+                            isInvisibleInstance(random));
                         newInstance.setLeastTimeout(5000, 1000);
                         newInstance.startSimulatingWrites(500);
                         logger.info("Case 0: created instance: " + newInstance.ns.getClusterId());
                         if (newInstance.ns.getClusterId() != cid) {
                             logger.info(
-                                    "Case 0: reactivated instance did not take over cid - probably a testing artifact. expected cid: {}, actual cid: {}",
-                                    cid, newInstance.ns.getClusterId());
+                                "Case 0: reactivated instance did not take over cid - probably a testing artifact. expected cid: {}, actual cid: {}",
+                                cid, newInstance.ns.getClusterId());
                             inactiveIds.put(cid, reactivatedWorkingDir);
                             // remove the newly reactivated from the inactives -
                             // although it shouldn't be there, it might!
@@ -827,7 +870,8 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
                     // creates a new instance
                     if (instances.size() < MAX_NUM_INSTANCES) {
                         logger.info("Case 1: creating instance");
-                        final SimplifiedInstance newInstance = createInstance(workingDir, isInvisibleInstance(random));
+                        final SimplifiedInstance newInstance = createInstance(workingDir,
+                            isInvisibleInstance(random));
                         newInstance.setLeastTimeout(5000, 1000);
                         newInstance.startSimulatingWrites(500);
                         logger.info("Case 1: created instance: " + newInstance.ns.getClusterId());
@@ -848,7 +892,8 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
                         // before shutting down: make sure we have a stable view
                         // (we could otherwise not correctly startup too)
                         checkFiestaState(instances, inactiveIds.keySet());
-                        final SimplifiedInstance instance = instances.remove(random.nextInt(instances.size()));
+                        final SimplifiedInstance instance = instances.remove(
+                            random.nextInt(instances.size()));
                         assertNotNull(instance.workingDir);
                         logger.info("Case 3: Shutdown instance: " + instance.ns.getClusterId());
                         inactiveIds.put(instance.ns.getClusterId(), instance.workingDir);
@@ -862,13 +907,15 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
                         // before crashing make sure we have a stable view (we
                         // could otherwise not correctly startup too)
                         checkFiestaState(instances, inactiveIds.keySet());
-                        final SimplifiedInstance instance = instances.remove(random.nextInt(instances.size()));
+                        final SimplifiedInstance instance = instances.remove(
+                            random.nextInt(instances.size()));
                         assertNotNull(instance.workingDir);
                         logger.info("Case 4: Crashing instance: " + instance.ns.getClusterId());
                         if (!instance.isInvisible()) {
                             inactiveIds.put(instance.ns.getClusterId(), instance.workingDir);
                         }
-                        instance.addNode("/" + instance.ns.getClusterId() + "/stuffForRecovery/" + random.nextInt(10000));
+                        instance.addNode("/" + instance.ns.getClusterId() + "/stuffForRecovery/"
+                            + random.nextInt(10000));
                         instance.crash();
                     }
                     break;

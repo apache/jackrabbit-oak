@@ -18,11 +18,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.search;
 
+import java.io.IOException;
+import javax.management.openmbean.TabularData;
 import org.apache.jackrabbit.oak.api.jmx.Description;
 import org.apache.jackrabbit.oak.api.jmx.Name;
-
-import javax.management.openmbean.TabularData;
-import java.io.IOException;
 
 public interface IndexMBean {
 

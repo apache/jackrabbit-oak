@@ -22,25 +22,22 @@ package org.apache.jackrabbit.oak.plugins.document.mongo;
 import static org.apache.jackrabbit.guava.common.collect.Iterators.transform;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 
+import com.mongodb.BasicDBObject;
+import com.mongodb.client.MongoCursor;
+import com.mongodb.client.model.Filters;
 import java.util.Iterator;
-
 import org.apache.jackrabbit.oak.plugins.document.BlobReferenceIterator;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.util.CloseableIterator;
 import org.bson.conversions.Bson;
 
-import com.mongodb.BasicDBObject;
-import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoCursor;
-import com.mongodb.client.model.Filters;
-
 public class MongoBlobReferenceIterator extends BlobReferenceIterator {
 
     private final MongoDocumentStore documentStore;
 
     public MongoBlobReferenceIterator(DocumentNodeStore nodeStore,
-                                      MongoDocumentStore documentStore) {
+        MongoDocumentStore documentStore) {
         super(nodeStore);
         this.documentStore = documentStore;
     }
@@ -50,10 +47,10 @@ public class MongoBlobReferenceIterator extends BlobReferenceIterator {
         Bson query = Filters.eq(NodeDocument.HAS_BINARY_FLAG, NodeDocument.HAS_BINARY_VAL);
         // TODO It currently uses the configured read preference. Would that be Ok?
         MongoCursor<BasicDBObject> cursor = documentStore.getDBCollection(NODES)
-                .find(query).iterator();
+                                                         .find(query).iterator();
 
         return CloseableIterator.wrap(transform(cursor,
                 input -> documentStore.convertFromDBObject(NODES, input)),
-                cursor);
+            cursor);
     }
 }

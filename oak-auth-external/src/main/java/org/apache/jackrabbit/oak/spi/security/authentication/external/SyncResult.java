@@ -26,6 +26,7 @@ public interface SyncResult {
 
     /**
      * The synchronized identity
+     *
      * @return the identity
      */
     @Nullable
@@ -33,6 +34,7 @@ public interface SyncResult {
 
     /**
      * The status of the sync operation
+     *
      * @return the status
      */
     @NotNull

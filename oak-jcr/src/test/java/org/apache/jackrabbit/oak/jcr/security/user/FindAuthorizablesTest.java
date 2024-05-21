@@ -23,8 +23,6 @@ import java.util.List;
 import java.util.Set;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
-
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
@@ -32,6 +30,7 @@ import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.test.NotExecutableException;
 import org.apache.jackrabbit.util.Text;
@@ -61,7 +60,8 @@ public class FindAuthorizablesTest extends AbstractUserTest {
             if (auth != null) {
                 if (!auth.isGroup() && auth.hasProperty(UserConstants.REP_PRINCIPAL_NAME)) {
                     String val = auth.getProperty(UserConstants.REP_PRINCIPAL_NAME)[0].getString();
-                    Iterator<Authorizable> users = userMgr.findAuthorizables(UserConstants.REP_PRINCIPAL_NAME, val);
+                    Iterator<Authorizable> users = userMgr.findAuthorizables(
+                        UserConstants.REP_PRINCIPAL_NAME, val);
 
                     // the result must contain 1 authorizable
                     assertTrue(users.hasNext());
@@ -77,13 +77,15 @@ public class FindAuthorizablesTest extends AbstractUserTest {
     }
 
     @Test
-    public void testFindAuthorizableByAddedProperty() throws RepositoryException, NotExecutableException {
+    public void testFindAuthorizableByAddedProperty()
+        throws RepositoryException, NotExecutableException {
         Principal p = getTestPrincipal();
         Authorizable auth = null;
 
         try {
             auth = userMgr.createGroup(p);
-            auth.setProperty("E-Mail", new Value[]{superuser.getValueFactory().createValue("anyVal")});
+            auth.setProperty("E-Mail",
+                new Value[]{superuser.getValueFactory().createValue("anyVal")});
             superuser.save();
 
             boolean found = false;
@@ -115,7 +117,8 @@ public class FindAuthorizablesTest extends AbstractUserTest {
             superuser.save();
 
             boolean found = false;
-            Iterator<Authorizable> it = userMgr.findAuthorizables("./" + UserConstants.REP_PRINCIPAL_NAME, null, UserManager.SEARCH_TYPE_USER);
+            Iterator<Authorizable> it = userMgr.findAuthorizables(
+                "./" + UserConstants.REP_PRINCIPAL_NAME, null, UserManager.SEARCH_TYPE_USER);
             while (it.hasNext() && !found) {
                 User nu = (User) it.next();
                 found = nu.getID().equals(uid);
@@ -139,7 +142,8 @@ public class FindAuthorizablesTest extends AbstractUserTest {
             superuser.save();
 
             boolean found = false;
-            Iterator<Authorizable> it = userMgr.findAuthorizables(UserConstants.REP_PRINCIPAL_NAME, null, UserManager.SEARCH_TYPE_USER);
+            Iterator<Authorizable> it = userMgr.findAuthorizables(UserConstants.REP_PRINCIPAL_NAME,
+                null, UserManager.SEARCH_TYPE_USER);
             while (it.hasNext() && !found) {
                 User nu = (User) it.next();
                 found = nu.getID().equals(uid);
@@ -162,7 +166,8 @@ public class FindAuthorizablesTest extends AbstractUserTest {
             u = userMgr.createUser(uid, "pw", p, null);
             superuser.save();
 
-            Iterator<Authorizable> it = userMgr.findAuthorizables(UserConstants.REP_PRINCIPAL_NAME, null, UserManager.SEARCH_TYPE_GROUP);
+            Iterator<Authorizable> it = userMgr.findAuthorizables(UserConstants.REP_PRINCIPAL_NAME,
+                null, UserManager.SEARCH_TYPE_GROUP);
             while (it.hasNext()) {
                 if (it.next().getPrincipal().getName().equals(p.getName())) {
                     fail("Searching for Groups should never find a user");
@@ -188,7 +193,8 @@ public class FindAuthorizablesTest extends AbstractUserTest {
 
             boolean found = false;
 
-            Iterator<Authorizable> it = userMgr.findAuthorizables(UserConstants.REP_PRINCIPAL_NAME, p.getName(), UserManager.SEARCH_TYPE_USER);
+            Iterator<Authorizable> it = userMgr.findAuthorizables(UserConstants.REP_PRINCIPAL_NAME,
+                p.getName(), UserManager.SEARCH_TYPE_USER);
             while (it.hasNext() && !found) {
                 User nu = (User) it.next();
                 found = nu.getPrincipal().getName().equals(p.getName());
@@ -196,7 +202,8 @@ public class FindAuthorizablesTest extends AbstractUserTest {
             assertTrue("Searching for principal-name must find the created user.", found);
 
             // but search groups should not find anything
-            it = userMgr.findAuthorizables(UserConstants.REP_PRINCIPAL_NAME, p.getName(), UserManager.SEARCH_TYPE_GROUP);
+            it = userMgr.findAuthorizables(UserConstants.REP_PRINCIPAL_NAME, p.getName(),
+                UserManager.SEARCH_TYPE_GROUP);
             assertFalse(it.hasNext());
 
         } finally {
@@ -218,7 +225,8 @@ public class FindAuthorizablesTest extends AbstractUserTest {
             superuser.save();
 
             // but search groups should not find anything
-            Iterator<Authorizable> it = userMgr.findAuthorizables(UserConstants.REP_PRINCIPAL_NAME, p.getName(), UserManager.SEARCH_TYPE_GROUP);
+            Iterator<Authorizable> it = userMgr.findAuthorizables(UserConstants.REP_PRINCIPAL_NAME,
+                p.getName(), UserManager.SEARCH_TYPE_GROUP);
             assertFalse("Searching for Groups should not find the user", it.hasNext());
 
         } finally {
@@ -238,7 +246,8 @@ public class FindAuthorizablesTest extends AbstractUserTest {
             superuser.save();
 
             boolean found = false;
-            Iterator<Authorizable> it = userMgr.findAuthorizables(UserConstants.REP_PRINCIPAL_NAME, null, UserManager.SEARCH_TYPE_GROUP);
+            Iterator<Authorizable> it = userMgr.findAuthorizables(UserConstants.REP_PRINCIPAL_NAME,
+                null, UserManager.SEARCH_TYPE_GROUP);
             while (it.hasNext() && !found) {
                 Group ng = (Group) it.next();
                 found = ng.getPrincipal().getName().equals(p.getName());
@@ -261,11 +270,14 @@ public class FindAuthorizablesTest extends AbstractUserTest {
             superuser.save();
 
             boolean found = false;
-            Iterator<Authorizable> it = userMgr.findAuthorizables(UserConstants.REP_PRINCIPAL_NAME, p.getName(), UserManager.SEARCH_TYPE_GROUP);
+            Iterator<Authorizable> it = userMgr.findAuthorizables(UserConstants.REP_PRINCIPAL_NAME,
+                p.getName(), UserManager.SEARCH_TYPE_GROUP);
             assertTrue(it.hasNext());
             Group ng = (Group) it.next();
-            assertEquals("Searching for principal-name must find the created group.", p.getName(), ng.getPrincipal().getName());
-            assertFalse("Only a single group must be found for a given principal name.", it.hasNext());
+            assertEquals("Searching for principal-name must find the created group.", p.getName(),
+                ng.getPrincipal().getName());
+            assertFalse("Only a single group must be found for a given principal name.",
+                it.hasNext());
         } finally {
             if (gr != null) {
                 gr.remove();
@@ -282,7 +294,8 @@ public class FindAuthorizablesTest extends AbstractUserTest {
             gr = userMgr.createGroup(p);
             superuser.save();
 
-            Iterator<Authorizable> it = userMgr.findAuthorizables(UserConstants.REP_PRINCIPAL_NAME, p.getName(), UserManager.SEARCH_TYPE_USER);
+            Iterator<Authorizable> it = userMgr.findAuthorizables(UserConstants.REP_PRINCIPAL_NAME,
+                p.getName(), UserManager.SEARCH_TYPE_USER);
             assertFalse(it.hasNext());
         } finally {
             if (gr != null) {
@@ -301,7 +314,8 @@ public class FindAuthorizablesTest extends AbstractUserTest {
             superuser.save();
 
             boolean found = false;
-            Iterator<Authorizable> it = userMgr.findAuthorizables(UserConstants.REP_PRINCIPAL_NAME, null, UserManager.SEARCH_TYPE_USER);
+            Iterator<Authorizable> it = userMgr.findAuthorizables(UserConstants.REP_PRINCIPAL_NAME,
+                null, UserManager.SEARCH_TYPE_USER);
             while (it.hasNext()) {
                 if (it.next().getPrincipal().getName().equals(p.getName())) {
                     fail("Searching for Users should never find a group");
@@ -317,7 +331,8 @@ public class FindAuthorizablesTest extends AbstractUserTest {
 
     @Test
     public void testFindAllUsersDoesNotContainGroup() throws RepositoryException {
-        Iterator<Authorizable> it = userMgr.findAuthorizables(UserConstants.REP_PRINCIPAL_NAME, null, UserManager.SEARCH_TYPE_USER);
+        Iterator<Authorizable> it = userMgr.findAuthorizables(UserConstants.REP_PRINCIPAL_NAME,
+            null, UserManager.SEARCH_TYPE_USER);
         while (it.hasNext()) {
             assertFalse(it.next().isGroup());
         }
@@ -325,7 +340,8 @@ public class FindAuthorizablesTest extends AbstractUserTest {
 
     @Test
     public void testFindAllGroupsDoesNotContainUser() throws RepositoryException {
-        Iterator<Authorizable> it = userMgr.findAuthorizables(UserConstants.REP_PRINCIPAL_NAME, null, UserManager.SEARCH_TYPE_GROUP);
+        Iterator<Authorizable> it = userMgr.findAuthorizables(UserConstants.REP_PRINCIPAL_NAME,
+            null, UserManager.SEARCH_TYPE_GROUP);
         while (it.hasNext()) {
             assertTrue(it.next().isGroup());
         }
@@ -333,7 +349,8 @@ public class FindAuthorizablesTest extends AbstractUserTest {
 
     @Test
     public void testFindUserWithSpecialCharIdByPrincipalName() throws RepositoryException {
-        List<String> ids = Lists.newArrayList("'", "]", "']", Text.escapeIllegalJcrChars("']"), Text.escape("']"));
+        List<String> ids = Lists.newArrayList("'", "]", "']", Text.escapeIllegalJcrChars("']"),
+            Text.escape("']"));
         for (String id : ids) {
             User user = null;
             try {
@@ -341,7 +358,8 @@ public class FindAuthorizablesTest extends AbstractUserTest {
                 superuser.save();
 
                 boolean found = false;
-                Iterator<Authorizable> it = userMgr.findAuthorizables(UserConstants.REP_PRINCIPAL_NAME, id, UserManager.SEARCH_TYPE_USER);
+                Iterator<Authorizable> it = userMgr.findAuthorizables(
+                    UserConstants.REP_PRINCIPAL_NAME, id, UserManager.SEARCH_TYPE_USER);
                 while (it.hasNext() && !found) {
                     Authorizable a = it.next();
                     found = id.equals(a.getID());

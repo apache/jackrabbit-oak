@@ -16,8 +16,16 @@
  */
 package org.apache.jackrabbit.oak.exercise.security.authorization.principalbased;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
+import java.security.Principal;
+import java.util.List;
+import java.util.Set;
+import javax.jcr.security.AccessControlManager;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.security.authorization.AuthorizationConfigurationImpl;
 import org.apache.jackrabbit.oak.spi.security.CompositeConfiguration;
@@ -29,15 +37,6 @@ import org.apache.jackrabbit.oak.spi.security.authorization.principalbased.Filte
 import org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl.PrincipalBasedAuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.junit.Test;
-
-import javax.jcr.security.AccessControlManager;
-import java.security.Principal;
-import java.util.List;
-import java.util.Set;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 /**
  * <pre>
@@ -146,8 +145,10 @@ public class L1_IntroductionTest extends AbstractPrincipalBasedTest {
         Principal groupPrincipal = getGroupPrincipal();
         Principal systemUser1 = getSystemUserPrincipal("su1", null);
         Principal systemUser2 = getSystemUserPrincipal("su2", getSupportedIntermediatePath());
-        Principal systemUser3 = getSystemUserPrincipal("su3", PathUtils.concatRelativePaths(UserConstants.DEFAULT_SYSTEM_RELATIVE_PATH, "testpath"));
-        Principal systemUser4 = getSystemUserPrincipal("su4", getSupportedIntermediatePath() + "/testpath");
+        Principal systemUser3 = getSystemUserPrincipal("su3",
+            PathUtils.concatRelativePaths(UserConstants.DEFAULT_SYSTEM_RELATIVE_PATH, "testpath"));
+        Principal systemUser4 = getSystemUserPrincipal("su4",
+            getSupportedIntermediatePath() + "/testpath");
 
         Set<Principal> unsupported = ImmutableSet.of(/* EXERCISE*/);
         Set<Principal> supported = ImmutableSet.of(/* EXERCISE*/);
@@ -158,11 +159,13 @@ public class L1_IntroductionTest extends AbstractPrincipalBasedTest {
 
     @Test
     public void testAccessControlManager() throws Exception {
-        AccessControlManager acMgr = getPrincipalBasedAuthorizationConfiguration().getAccessControlManager(root, getNamePathMapper());
+        AccessControlManager acMgr = getPrincipalBasedAuthorizationConfiguration().getAccessControlManager(
+            root, getNamePathMapper());
         assertTrue(acMgr instanceof JackrabbitAccessControlManager);
         assertEquals("EXERCISE", acMgr.getClass().getName());
 
-        AccessControlManager compositeAcMgr = getConfig(AuthorizationConfiguration.class).getAccessControlManager(root, getNamePathMapper());
+        AccessControlManager compositeAcMgr = getConfig(
+            AuthorizationConfiguration.class).getAccessControlManager(root, getNamePathMapper());
         assertTrue(compositeAcMgr instanceof JackrabbitAccessControlManager);
 
         // EXERCISE: inspect the 'compositeAcMgr'
@@ -172,11 +175,14 @@ public class L1_IntroductionTest extends AbstractPrincipalBasedTest {
     public void testPermissionProviderSupportedPrincipals() throws Exception {
         Set<Principal> principals = ImmutableSet.of(/* EXERCISE: fill set with supported principal(s) */);
 
-        PermissionProvider pp = getPrincipalBasedAuthorizationConfiguration().getPermissionProvider(root, adminSession.getWorkspaceName(), principals);
+        PermissionProvider pp = getPrincipalBasedAuthorizationConfiguration().getPermissionProvider(
+            root, adminSession.getWorkspaceName(), principals);
         assertFalse(pp instanceof EmptyPermissionProvider);
 
         // EXERCISE: inspect the return value and explain it. add an assertion.
-        PermissionProvider compositePP = getConfig(AuthorizationConfiguration.class).getPermissionProvider(root, root.getContentSession().getWorkspaceName(), principals);
+        PermissionProvider compositePP = getConfig(
+            AuthorizationConfiguration.class).getPermissionProvider(root,
+            root.getContentSession().getWorkspaceName(), principals);
         assertEquals("EXERCISE", compositePP.getClass().getName());
     }
 
@@ -184,11 +190,14 @@ public class L1_IntroductionTest extends AbstractPrincipalBasedTest {
     public void testPermissionProviderUnsupportedPrincipals() throws Exception {
         Set<Principal> principals = ImmutableSet.of(/* EXERCISE: fill set with unsupported principal(s) */);
 
-        PermissionProvider pp = getPrincipalBasedAuthorizationConfiguration().getPermissionProvider(root, root.getContentSession().getWorkspaceName(), principals);
+        PermissionProvider pp = getPrincipalBasedAuthorizationConfiguration().getPermissionProvider(
+            root, root.getContentSession().getWorkspaceName(), principals);
         assertTrue(pp instanceof EmptyPermissionProvider);
 
         // EXERCISE: inspect the return value and explain it. add an assertion.
-        PermissionProvider compositePP = getConfig(AuthorizationConfiguration.class).getPermissionProvider(root, root.getContentSession().getWorkspaceName(), principals);
+        PermissionProvider compositePP = getConfig(
+            AuthorizationConfiguration.class).getPermissionProvider(root,
+            root.getContentSession().getWorkspaceName(), principals);
         assertEquals("EXERCISE", compositePP.getClass().getName());
     }
 }

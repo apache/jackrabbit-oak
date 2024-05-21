@@ -18,13 +18,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import static org.apache.jackrabbit.oak.plugins.document.Checkpoints.Info;
+
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
-
 import org.apache.jackrabbit.guava.common.collect.Maps;
-
-import static org.apache.jackrabbit.oak.plugins.document.Checkpoints.Info;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 
 /**
@@ -33,7 +32,7 @@ import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 public abstract class CheckpointsHelper {
 
     public static SortedMap<Revision, Long> getCheckpoints(
-            DocumentNodeStore store) {
+        DocumentNodeStore store) {
         SortedMap<Revision, Info> checkpoints = store.getCheckpoints().getCheckpoints();
         SortedMap<Revision, Long> map = Maps.newTreeMap(checkpoints.comparator());
         for (Map.Entry<Revision, Info> entry : checkpoints.entrySet()) {
@@ -82,7 +81,8 @@ public abstract class CheckpointsHelper {
         return r;
     }
 
-    public static int setInfoProperty(DocumentNodeStore store, String rev, String key, String value) {
+    public static int setInfoProperty(DocumentNodeStore store, String rev, String key,
+        String value) {
         try {
             store.getCheckpoints().setInfoProperty(rev, key, value);
         } catch (IllegalArgumentException e) {

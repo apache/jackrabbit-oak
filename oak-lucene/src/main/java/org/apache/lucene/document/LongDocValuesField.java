@@ -29,29 +29,30 @@ import org.apache.lucene.index.NumericDocValues;
 
 /**
  * <p>
- * Field that stores a per-document <code>long</code> value for scoring, 
- * sorting or value retrieval. Here's an example usage:
- * 
+ * Field that stores a per-document <code>long</code> value for scoring, sorting or value retrieval.
+ * Here's an example usage:
+ *
  * <pre class="prettyprint">
  *   document.add(new LongDocValuesField(name, 22L));
  * </pre>
- * 
+ *
  * <p>
- * If you also need to store the value, you should add a
- * separate {@link StoredField} instance.
+ * If you also need to store the value, you should add a separate {@link StoredField} instance.
+ *
  * @see NumericDocValues
  * @deprecated use {@link NumericDocValuesField} instead.
- * */
+ */
 @Deprecated
 public class LongDocValuesField extends NumericDocValuesField {
 
-  /** 
-   * Creates a new DocValues field with the specified 64-bit long value 
-   * @param name field name
-   * @param value 64-bit long value
-   * @throws IllegalArgumentException if the field name is null
-   */
-  public LongDocValuesField(String name, long value) {
-    super(name, value);
-  }
+    /**
+     * Creates a new DocValues field with the specified 64-bit long value
+     *
+     * @param name  field name
+     * @param value 64-bit long value
+     * @throws IllegalArgumentException if the field name is null
+     */
+    public LongDocValuesField(String name, long value) {
+        super(name, value);
+    }
 }

@@ -26,10 +26,6 @@ import javax.jcr.Session;
 import javax.jcr.Value;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.Privilege;
-
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -37,10 +33,14 @@ import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.collect.Maps;
+import org.apache.jackrabbit.oak.exercise.ExerciseUtility;
 import org.apache.jackrabbit.oak.exercise.security.privilege.L5_PrivilegeContentTest;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
-import org.apache.jackrabbit.oak.exercise.ExerciseUtility;
-import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.test.AbstractJCRTest;
 import org.apache.jackrabbit.test.api.util.Text;
 
@@ -217,7 +217,8 @@ public class L4_PrivilegesAndPermissionsTest extends AbstractJCRTest {
         grandChildPath = grandChild.getPath();
 
         testUser = ExerciseUtility.createTestUser(((JackrabbitSession) superuser).getUserManager());
-        Group testGroup = ExerciseUtility.createTestGroup(((JackrabbitSession) superuser).getUserManager());
+        Group testGroup = ExerciseUtility.createTestGroup(
+            ((JackrabbitSession) superuser).getUserManager());
         testGroup.addMember(testUser);
         superuser.save();
 
@@ -247,14 +248,16 @@ public class L4_PrivilegesAndPermissionsTest extends AbstractJCRTest {
 
     private Session createTestSession() throws RepositoryException {
         if (testSession == null) {
-            testSession = superuser.getRepository().login(ExerciseUtility.getTestCredentials(testUser.getID()));
+            testSession = superuser.getRepository()
+                                   .login(ExerciseUtility.getTestCredentials(testUser.getID()));
         }
         return testSession;
     }
 
     public void testAddNodes() throws Exception {
         // grant the test principal jcr:addChildNode privilege at 'childPath'
-        AccessControlUtils.addAccessControlEntry(superuser, childPath, testPrincipal, new String[] {Privilege.JCR_ADD_CHILD_NODES}, true);
+        AccessControlUtils.addAccessControlEntry(superuser, childPath, testPrincipal,
+            new String[]{Privilege.JCR_ADD_CHILD_NODES}, true);
         superuser.save();
 
         Session userSession = createTestSession();
@@ -262,30 +265,32 @@ public class L4_PrivilegesAndPermissionsTest extends AbstractJCRTest {
         // EXERCISE: fill in the expected return values for Session.hasPermission as performed below
         // EXERCISE: verify that the test passes and explain the individual results
         Map<String, Boolean> pathHasPermissionMap = ImmutableMap.of(
-                testRootNode.getPath(), null,
-                childPath, null,
-                childPath + "/toCreate", null,
-                grandChildPath + "/nextGeneration", null,
-                propertyPath, null
+            testRootNode.getPath(), null,
+            childPath, null,
+            childPath + "/toCreate", null,
+            grandChildPath + "/nextGeneration", null,
+            propertyPath, null
         );
 
         for (String path : pathHasPermissionMap.keySet()) {
             boolean expectedHasPermission = pathHasPermissionMap.get(path);
-            assertEquals(expectedHasPermission, userSession.hasPermission(path, Session.ACTION_ADD_NODE));
+            assertEquals(expectedHasPermission,
+                userSession.hasPermission(path, Session.ACTION_ADD_NODE));
         }
 
         // EXERCISE: fill in the expected return values for AccessControlManager#getPrivileges as performed below
         // EXERCISE: verify that the test passes and compare the results with your findings from the permission-discovery
         Map<String, Privilege[]> pathPrivilegesMap = ImmutableMap.of(
-                testRootNode.getPath(), null,
-                childPath, null,
-                childPath + "/toCreate", null,
-                grandChildPath + "/nextGeneration", null
+            testRootNode.getPath(), null,
+            childPath, null,
+            childPath + "/toCreate", null,
+            grandChildPath + "/nextGeneration", null
         );
 
         for (String path : pathPrivilegesMap.keySet()) {
             Privilege[] expectedPrivileges = pathPrivilegesMap.get(path);
-            assertEquals(ImmutableSet.of(expectedPrivileges), ImmutableSet.of(userSession.getAccessControlManager().getPrivileges(path)));
+            assertEquals(ImmutableSet.of(expectedPrivileges),
+                ImmutableSet.of(userSession.getAccessControlManager().getPrivileges(path)));
         }
 
         // EXERCISE: optionally add nodes at the expected allowed path(s)
@@ -296,16 +301,17 @@ public class L4_PrivilegesAndPermissionsTest extends AbstractJCRTest {
     public void testAddProperties() throws Exception {
         // grant the test principal rep:addProperties privilege at 'childPath'
         // EXERCISE: explain the difference between rep:addProperites and jcr:modifyProperties privilege!
-        AccessControlUtils.addAccessControlEntry(superuser, childPath, testPrincipal, new String[] {PrivilegeConstants.REP_ADD_PROPERTIES}, true);
+        AccessControlUtils.addAccessControlEntry(superuser, childPath, testPrincipal,
+            new String[]{PrivilegeConstants.REP_ADD_PROPERTIES}, true);
         superuser.save();
 
         // EXERCISE: fill in the expected return values for Session.hasPermission as performed below
         // EXERCISE: verify that the test passes and explain the individual results
         Map<String, Boolean[]> pathHasPermissionMap = ImmutableMap.of(
-                propertyPath, new Boolean[]{null, null},
-                childPath + "/newProp", new Boolean[]{null, null},
-                childPropertyPath, new Boolean[]{null, null},
-                grandChildPath + "/" + JcrConstants.JCR_PRIMARYTYPE, new Boolean[]{null, null}
+            propertyPath, new Boolean[]{null, null},
+            childPath + "/newProp", new Boolean[]{null, null},
+            childPropertyPath, new Boolean[]{null, null},
+            grandChildPath + "/" + JcrConstants.JCR_PRIMARYTYPE, new Boolean[]{null, null}
         );
 
         Session userSession = createTestSession();
@@ -313,8 +319,10 @@ public class L4_PrivilegesAndPermissionsTest extends AbstractJCRTest {
             Boolean[] result = pathHasPermissionMap.get(path);
             boolean setPropertyAction = result[0];
             boolean addPropertiesPermission = result[1];
-            assertEquals(setPropertyAction, userSession.hasPermission(path, Session.ACTION_SET_PROPERTY));
-            assertEquals(addPropertiesPermission, userSession.hasPermission(path, Permissions.getString(Permissions.ADD_PROPERTY)));
+            assertEquals(setPropertyAction,
+                userSession.hasPermission(path, Session.ACTION_SET_PROPERTY));
+            assertEquals(addPropertiesPermission,
+                userSession.hasPermission(path, Permissions.getString(Permissions.ADD_PROPERTY)));
         }
     }
 
@@ -323,19 +331,21 @@ public class L4_PrivilegesAndPermissionsTest extends AbstractJCRTest {
         superuser.save();
 
         Map<String, Boolean> pathHasPermissionMap = ImmutableMap.of(
-                testRootNode.getPath(), false,
-                childPath, false,
-                grandChildPath, true
+            testRootNode.getPath(), false,
+            childPath, false,
+            grandChildPath, true
         );
 
         Session userSession = createTestSession();
         for (String path : pathHasPermissionMap.keySet()) {
             boolean expectedHasPermission = pathHasPermissionMap.get(path);
-            assertEquals(expectedHasPermission, userSession.hasPermission(path, Session.ACTION_REMOVE));
+            assertEquals(expectedHasPermission,
+                userSession.hasPermission(path, Session.ACTION_REMOVE));
         }
 
         AccessControlManager acMgr = userSession.getAccessControlManager();
-        assertFalse(acMgr.hasPrivileges(childPath, new Privilege[]{acMgr.privilegeFromName(Privilege.JCR_REMOVE_NODE)}));
+        assertFalse(acMgr.hasPrivileges(childPath,
+            new Privilege[]{acMgr.privilegeFromName(Privilege.JCR_REMOVE_NODE)}));
 
         userSession.getNode(grandChildPath).remove();
         userSession.save();
@@ -345,14 +355,15 @@ public class L4_PrivilegesAndPermissionsTest extends AbstractJCRTest {
         // EXERCISE: fix the test case without changing the result-map :-)
 
         // grant the test principal rep:removeProperties privilege at 'childPath'
-        AccessControlUtils.addAccessControlEntry(superuser, childPath, testPrincipal, new String[] {PrivilegeConstants.REP_REMOVE_PROPERTIES}, true);
+        AccessControlUtils.addAccessControlEntry(superuser, childPath, testPrincipal,
+            new String[]{PrivilegeConstants.REP_REMOVE_PROPERTIES}, true);
         superuser.save();
 
         Map<String, Boolean> pathCanRemoveMap = ImmutableMap.of(
-                propertyPath, false,
-                childPropertyPath, true,
-                grandChildPath + "/" + JcrConstants.JCR_PRIMARYTYPE, false,
-                grandChildPath + "/" + propertyName2, false
+            propertyPath, false,
+            childPropertyPath, true,
+            grandChildPath + "/" + JcrConstants.JCR_PRIMARYTYPE, false,
+            grandChildPath + "/" + propertyName2, false
         );
 
         Session userSession = createTestSession();
@@ -375,23 +386,24 @@ public class L4_PrivilegesAndPermissionsTest extends AbstractJCRTest {
     }
 
     public void testRemoveNonExistingItems() throws Exception {
-        AccessControlUtils.addAccessControlEntry(superuser, childPath, testPrincipal, new String[] {
-                Privilege.JCR_REMOVE_NODE,
-                Privilege.JCR_REMOVE_CHILD_NODES,
-                PrivilegeConstants.REP_REMOVE_PROPERTIES}, true);
+        AccessControlUtils.addAccessControlEntry(superuser, childPath, testPrincipal, new String[]{
+            Privilege.JCR_REMOVE_NODE,
+            Privilege.JCR_REMOVE_CHILD_NODES,
+            PrivilegeConstants.REP_REMOVE_PROPERTIES}, true);
         superuser.save();
 
         // EXERCISE: fill in the expected values for Session.hasPermission(path, Session.ACTION_REMOVE) and explain
         Map<String, Boolean> pathHasPermission = ImmutableMap.of(
-                childPath + "_non_existing_sibling", null,
-                childPath + "/_non_existing_childitem", null,
-                grandChildPath + "/_non_existing_child_item", null
+            childPath + "_non_existing_sibling", null,
+            childPath + "/_non_existing_childitem", null,
+            grandChildPath + "/_non_existing_child_item", null
         );
 
         Session userSession = createTestSession();
         for (String nonExistingItemPath : pathHasPermission.keySet()) {
             boolean hasPermission = pathHasPermission.get(nonExistingItemPath);
-            assertEquals(hasPermission, userSession.hasPermission(nonExistingItemPath, Session.ACTION_REMOVE));
+            assertEquals(hasPermission,
+                userSession.hasPermission(nonExistingItemPath, Session.ACTION_REMOVE));
         }
 
         // Additional exercise:
@@ -400,15 +412,16 @@ public class L4_PrivilegesAndPermissionsTest extends AbstractJCRTest {
 
     public void testModifyProperties() throws Exception {
         // grant the test principal rep:alterProperties privilege at 'childPath'
-        AccessControlUtils.addAccessControlEntry(superuser, childPath, testPrincipal, new String[] {PrivilegeConstants.REP_ALTER_PROPERTIES}, true);
+        AccessControlUtils.addAccessControlEntry(superuser, childPath, testPrincipal,
+            new String[]{PrivilegeConstants.REP_ALTER_PROPERTIES}, true);
         superuser.save();
 
         // EXERCISE: Fill if setting the property at the path(s) is expected to pass or not
         Map<String, Boolean> pathCanModify = ImmutableMap.of(
-                propertyPath, null,
-                childPropertyPath, null,
-                grandChildPath + "/" + JcrConstants.JCR_PRIMARYTYPE, null,
-                grandChildPath + "/" + propertyName2, null
+            propertyPath, null,
+            childPropertyPath, null,
+            grandChildPath + "/" + JcrConstants.JCR_PRIMARYTYPE, null,
+            grandChildPath + "/" + propertyName2, null
         );
 
         Session userSession = createTestSession();
@@ -432,7 +445,8 @@ public class L4_PrivilegesAndPermissionsTest extends AbstractJCRTest {
 
     public void testSetProperty() throws RepositoryException {
         // grant the test principal rep:removeProperties privilege at 'childPath'
-        AccessControlUtils.addAccessControlEntry(superuser, childPath, testPrincipal, new String[] {PrivilegeConstants.REP_ALTER_PROPERTIES}, true);
+        AccessControlUtils.addAccessControlEntry(superuser, childPath, testPrincipal,
+            new String[]{PrivilegeConstants.REP_ALTER_PROPERTIES}, true);
         superuser.save();
 
         // EXERCISE: Fill if new properties values such that the test-cases succeeds
@@ -461,7 +475,8 @@ public class L4_PrivilegesAndPermissionsTest extends AbstractJCRTest {
         // 1 - grant privilege to change node type information
         // EXERCISE: fill in the required privilege name such that the test passes
         String privilegeName = null;
-        AccessControlUtils.addAccessControlEntry(superuser, childPath, testPrincipal, new String[] {privilegeName}, true);
+        AccessControlUtils.addAccessControlEntry(superuser, childPath, testPrincipal,
+            new String[]{privilegeName}, true);
         superuser.save();
 
         Session userSession = createTestSession();
@@ -473,7 +488,8 @@ public class L4_PrivilegesAndPermissionsTest extends AbstractJCRTest {
         // 2 - additionally grant privilege to add a child node
         // EXERCISE: extend the set of privileges such that the adding a child node succeeds as well
         privilegeName = null;
-        AccessControlUtils.addAccessControlEntry(superuser, childPath, testPrincipal, new String[] {privilegeName}, true);
+        AccessControlUtils.addAccessControlEntry(superuser, childPath, testPrincipal,
+            new String[]{privilegeName}, true);
         superuser.save();
 
         userSession.refresh(false);
@@ -499,8 +515,8 @@ public class L4_PrivilegesAndPermissionsTest extends AbstractJCRTest {
             userSession.refresh(false);
         }
 
-
-        AccessControlUtils.addAccessControlEntry(superuser, childPath, testPrincipal, new String[] {privilegeName}, true);
+        AccessControlUtils.addAccessControlEntry(superuser, childPath, testPrincipal,
+            new String[]{privilegeName}, true);
 
     }
 }

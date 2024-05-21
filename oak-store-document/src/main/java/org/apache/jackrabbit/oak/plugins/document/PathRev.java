@@ -18,16 +18,15 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-
 /**
- * A cache key implementation, which is a combination of a path and a revision
- * vector.
+ * A cache key implementation, which is a combination of a path and a revision vector.
  */
 public final class PathRev implements CacheValue, Comparable<PathRev> {
 
@@ -54,9 +53,9 @@ public final class PathRev implements CacheValue, Comparable<PathRev> {
 
     @Override
     public int getMemory() {
-        long size =  24L                          // shallow size
-                       + path.getMemory()         // path
-                       + revision.getMemory();    // revision
+        long size = 24L                          // shallow size
+            + path.getMemory()         // path
+            + revision.getMemory();    // revision
         if (size > Integer.MAX_VALUE) {
             LOG.debug("Estimated memory footprint larger than Integer.MAX_VALUE: {}.", size);
             size = Integer.MAX_VALUE;
@@ -105,7 +104,8 @@ public final class PathRev implements CacheValue, Comparable<PathRev> {
     @Override
     public String toString() {
         int dim = revision.getDimensions();
-        StringBuilder sb = new StringBuilder(path.length() + (Revision.REV_STRING_APPROX_SIZE + 1) * dim);
+        StringBuilder sb = new StringBuilder(
+            path.length() + (Revision.REV_STRING_APPROX_SIZE + 1) * dim);
         sb.append(path);
         sb.append("@");
         revision.toStringBuilder(sb);

@@ -24,7 +24,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
-
 import org.apache.jackrabbit.oak.segment.file.EstimationStrategy.Context;
 import org.apache.jackrabbit.oak.segment.file.tar.TarPersistence;
 import org.junit.Before;

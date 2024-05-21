@@ -26,10 +26,12 @@ import org.bson.codecs.configuration.CodecProvider;
 import org.bson.codecs.configuration.CodecRegistry;
 
 public class NodeDocumentCodecProvider implements CodecProvider {
+
     private final MongoDocumentStore store;
     private final Collection<NodeDocument> collection;
 
-    public NodeDocumentCodecProvider(MongoDocumentStore store, Collection<NodeDocument> collection) {
+    public NodeDocumentCodecProvider(MongoDocumentStore store,
+        Collection<NodeDocument> collection) {
         this.store = store;
         this.collection = collection;
     }
@@ -37,7 +39,8 @@ public class NodeDocumentCodecProvider implements CodecProvider {
     @Override
     public <T> Codec<T> get(Class<T> clazz, CodecRegistry registry) {
         if (clazz == NodeDocument.class) {
-            NodeDocumentCodec nodeDocumentCodec = new NodeDocumentCodec(store, collection, registry);
+            NodeDocumentCodec nodeDocumentCodec = new NodeDocumentCodec(store, collection,
+                registry);
             return (Codec<T>) nodeDocumentCodec;
         }
         return null;

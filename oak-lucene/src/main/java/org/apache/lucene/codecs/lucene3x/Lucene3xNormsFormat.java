@@ -26,7 +26,6 @@ package org.apache.lucene.codecs.lucene3x;
  */
 
 import java.io.IOException;
-
 import org.apache.lucene.codecs.DocValuesConsumer;
 import org.apache.lucene.codecs.DocValuesProducer;
 import org.apache.lucene.codecs.NormsFormat;
@@ -35,20 +34,21 @@ import org.apache.lucene.index.SegmentWriteState;
 
 /**
  * Lucene3x ReadOnly NormsFormat implementation
- * @deprecated (4.0) This is only used to read indexes created
- * before 4.0.
+ *
  * @lucene.experimental
+ * @deprecated (4.0) This is only used to read indexes created before 4.0.
  */
 @Deprecated
 class Lucene3xNormsFormat extends NormsFormat {
 
-  @Override
-  public DocValuesConsumer normsConsumer(SegmentWriteState state) throws IOException {
-    throw new UnsupportedOperationException("this codec can only be used for reading");
-  }
+    @Override
+    public DocValuesConsumer normsConsumer(SegmentWriteState state) throws IOException {
+        throw new UnsupportedOperationException("this codec can only be used for reading");
+    }
 
-  @Override
-  public DocValuesProducer normsProducer(SegmentReadState state) throws IOException {
-    return new Lucene3xNormsProducer(state.directory, state.segmentInfo, state.fieldInfos, state.context);
-  }
+    @Override
+    public DocValuesProducer normsProducer(SegmentReadState state) throws IOException {
+        return new Lucene3xNormsProducer(state.directory, state.segmentInfo, state.fieldInfos,
+            state.context);
+    }
 }

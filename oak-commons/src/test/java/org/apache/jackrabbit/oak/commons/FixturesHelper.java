@@ -24,29 +24,32 @@ import java.util.Set;
 /**
  * helper class that return the list of available fixtures based on the {@code nsfixtures} system
  * property ({@code -Dnsfixtures=SEGMENT_TAR}).
- * 
+ * <p>
  * See {@link FixturesHelper.Fixture} for a list of available fixtures
  */
 public final class FixturesHelper {
+
     /**
      * splitter for specifying multiple fixtures
      */
-    private static final String SPLIT_ON = ","; 
+    private static final String SPLIT_ON = ",";
     /**
      * System property to be used.
      */
     public static final String NS_FIXTURES = "nsfixtures";
 
-    private FixturesHelper() { }
+    private FixturesHelper() {
+    }
 
     /**
      * default fixtures when no {@code nsfixtures} is provided
      */
     public enum Fixture {
-       DOCUMENT_NS, @Deprecated SEGMENT_MK, DOCUMENT_RDB, MEMORY_NS, DOCUMENT_MEM, SEGMENT_TAR, SEGMENT_AWS, SEGMENT_AZURE, COMPOSITE_SEGMENT, COMPOSITE_MEM, COW_DOCUMENT
+        DOCUMENT_NS, @Deprecated SEGMENT_MK, DOCUMENT_RDB, MEMORY_NS, DOCUMENT_MEM, SEGMENT_TAR, SEGMENT_AWS, SEGMENT_AZURE, COMPOSITE_SEGMENT, COMPOSITE_MEM, COW_DOCUMENT
     }
 
     private static final Set<Fixture> FIXTURES;
+
     static {
         String raw = System.getProperty(NS_FIXTURES, "");
         if (raw.trim().isEmpty()) {
@@ -59,10 +62,10 @@ public final class FixturesHelper {
                 try {
                     Fixture fx = Fixture.valueOf(x);
                     tmp.add(fx);
-                } catch (IllegalArgumentException e){
+                } catch (IllegalArgumentException e) {
                     //This fixture is not present in branches
                     //so would need to be ignored
-                    if (!"SEGMENT_TAR".equals(x)){
+                    if (!"SEGMENT_TAR".equals(x)) {
                         throw e;
                     } else {
                         unknownFixture = true;
@@ -72,16 +75,16 @@ public final class FixturesHelper {
 
             //If SEGMENT_TAR is missing (true for branches) then
             //ensure that tmp maps to MEMORY_NS to avoid running all fixture
-            if (tmp.isEmpty() && unknownFixture){
+            if (tmp.isEmpty() && unknownFixture) {
                 tmp.add(Fixture.MEMORY_NS);
             }
-            
+
             if (tmp.isEmpty()) {
                 FIXTURES = unmodifiableSet(EnumSet.allOf(Fixture.class));
             } else {
                 FIXTURES = unmodifiableSet(tmp);
             }
-            
+
         }
     }
 

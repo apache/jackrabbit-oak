@@ -26,14 +26,12 @@ import static org.ops4j.pax.exam.CoreOptions.vmOption;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URI;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URISyntaxException;
-
 import javax.inject.Inject;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
-
 import org.apache.jackrabbit.oak.plugins.document.spi.lease.LeaseFailureHandler;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Test;
@@ -59,28 +57,31 @@ public class OSGiIT {
     @Configuration
     public Option[] configuration() throws IOException, URISyntaxException {
         return CoreOptions.options(
-                junitBundles(),
-                // require at least DS 1.4 supported by SCR 2.1.0+
-                mavenBundle("org.apache.felix", "org.apache.felix.scr", "2.1.28"),
-                // transitive deps of Felix SCR 2.1.x
-                mavenBundle("org.osgi", "org.osgi.util.promise", "1.1.1"),
-                mavenBundle("org.osgi", "org.osgi.util.function", "1.1.0"),
-                mavenBundle("org.apache.felix", "org.apache.felix.jaas", "1.0.2"),
-                mavenBundle("org.osgi", "org.osgi.dto", "1.0.0"),
-                // require at least ConfigAdmin 1.6 supported by felix.configadmin 1.9.0+
-                mavenBundle( "org.apache.felix", "org.apache.felix.configadmin", "1.9.20" ),
-                mavenBundle( "org.apache.felix", "org.apache.felix.fileinstall", "3.2.6" ),
-                mavenBundle( "org.ops4j.pax.logging", "pax-logging-api", "1.7.2" ),
-                frameworkProperty("repository.home").value("target"),
-                systemProperties(new SystemPropertyOption("felix.fileinstall.dir").value(getConfigDir())),
-                jarBundles(),
-                jpmsOptions());
+            junitBundles(),
+            // require at least DS 1.4 supported by SCR 2.1.0+
+            mavenBundle("org.apache.felix", "org.apache.felix.scr", "2.1.28"),
+            // transitive deps of Felix SCR 2.1.x
+            mavenBundle("org.osgi", "org.osgi.util.promise", "1.1.1"),
+            mavenBundle("org.osgi", "org.osgi.util.function", "1.1.0"),
+            mavenBundle("org.apache.felix", "org.apache.felix.jaas", "1.0.2"),
+            mavenBundle("org.osgi", "org.osgi.dto", "1.0.0"),
+            // require at least ConfigAdmin 1.6 supported by felix.configadmin 1.9.0+
+            mavenBundle("org.apache.felix", "org.apache.felix.configadmin", "1.9.20"),
+            mavenBundle("org.apache.felix", "org.apache.felix.fileinstall", "3.2.6"),
+            mavenBundle("org.ops4j.pax.logging", "pax-logging-api", "1.7.2"),
+            frameworkProperty("repository.home").value("target"),
+            systemProperties(
+                new SystemPropertyOption("felix.fileinstall.dir").value(getConfigDir())),
+            jarBundles(),
+            jpmsOptions());
     }
 
-    private Option jpmsOptions(){
+    private Option jpmsOptions() {
         DefaultCompositeOption composite = new DefaultCompositeOption();
-        if (Version.parseVersion(System.getProperty("java.specification.version")).getMajor() > 1){
-            if (java.nio.file.Files.exists(java.nio.file.FileSystems.getFileSystem(URI.create("jrt:/")).getPath("modules", "java.se.ee"))){
+        if (Version.parseVersion(System.getProperty("java.specification.version")).getMajor() > 1) {
+            if (java.nio.file.Files.exists(
+                java.nio.file.FileSystems.getFileSystem(URI.create("jrt:/"))
+                                         .getPath("modules", "java.se.ee"))) {
                 composite.add(vmOption("--add-modules=java.se.ee"));
             }
             composite.add(vmOption("--add-opens=java.base/jdk.internal.loader=ALL-UNNAMED"));
@@ -98,7 +99,7 @@ public class OSGiIT {
         return composite;
     }
 
-    private String getConfigDir(){
+    private String getConfigDir() {
         return new File(new File("src", "test"), "config").getAbsolutePath();
     }
 
@@ -119,7 +120,7 @@ public class OSGiIT {
     public void bundleStates() {
         for (Bundle bundle : context.getBundles()) {
             assertEquals(
-                String.format("Bundle %s not active. have a look at the logs", bundle.toString()), 
+                String.format("Bundle %s not active. have a look at the logs", bundle.toString()),
                 Bundle.ACTIVE, bundle.getState());
         }
     }
@@ -134,7 +135,7 @@ public class OSGiIT {
     @Test
     public void listServices() throws InvalidSyntaxException {
         for (ServiceReference reference
-                : context.getAllServiceReferences(null, null)) {
+            : context.getAllServiceReferences(null, null)) {
             System.out.println(reference);
         }
     }
@@ -165,7 +166,8 @@ public class OSGiIT {
                 // this empty block is okay
             }
         };
-        context.registerService("org.apache.jackrabbit.oak.plugins.document.spi.lease.LeaseFailureHandler",
-                handler, null);
+        context.registerService(
+            "org.apache.jackrabbit.oak.plugins.document.spi.lease.LeaseFailureHandler",
+            handler, null);
     }
 }

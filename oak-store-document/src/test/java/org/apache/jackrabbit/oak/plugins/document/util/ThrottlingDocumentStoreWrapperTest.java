@@ -64,7 +64,8 @@ public class ThrottlingDocumentStoreWrapperTest {
 
     @Test
     public void testDefaultThrottler() {
-        DocumentStore store = new ThrottlingDocumentStoreWrapper(new MemoryDocumentStore(), statsCollector);
+        DocumentStore store = new ThrottlingDocumentStoreWrapper(new MemoryDocumentStore(),
+            statsCollector);
         Throttler throttler = store.throttler();
         assertEquals(0, throttler.throttlingTime());
     }

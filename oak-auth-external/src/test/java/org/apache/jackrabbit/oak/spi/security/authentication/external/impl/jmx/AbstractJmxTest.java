@@ -16,12 +16,16 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.jmx;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
 import java.util.Map;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.AbstractExternalAuthTest;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProvider;
@@ -34,10 +38,6 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.Defa
 import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-
 public abstract class AbstractJmxTest extends AbstractExternalAuthTest {
 
     ExternalIdentityProvider foreignIDP;
@@ -49,11 +49,13 @@ public abstract class AbstractJmxTest extends AbstractExternalAuthTest {
         foreignIDP = new TestIdentityProvider("anotherIDP");
     }
 
-    static void assertResultMessages(@NotNull String[] resultMessages, String uid, @NotNull String expectedOperation) {
+    static void assertResultMessages(@NotNull String[] resultMessages, String uid,
+        @NotNull String expectedOperation) {
         assertResultMessages(resultMessages, ImmutableMap.of(uid, expectedOperation));
     }
 
-    static void assertResultMessages(@NotNull String[] resultMessages, @NotNull Map<String, String> expected) {
+    static void assertResultMessages(@NotNull String[] resultMessages,
+        @NotNull Map<String, String> expected) {
         assertEquals(expected.size(), resultMessages.length);
         for (String rm : resultMessages) {
             String op = rm.substring(rm.indexOf(":") + 2, rm.indexOf("\","));
@@ -66,7 +68,8 @@ public abstract class AbstractJmxTest extends AbstractExternalAuthTest {
         }
     }
 
-    static void assertSync(@NotNull ExternalIdentity ei, @NotNull UserManager userManager) throws Exception {
+    static void assertSync(@NotNull ExternalIdentity ei, @NotNull UserManager userManager)
+        throws Exception {
         Authorizable authorizable;
         if (ei instanceof ExternalUser) {
             authorizable = userManager.getAuthorizable(ei.getId(), User.class);
@@ -75,15 +78,19 @@ public abstract class AbstractJmxTest extends AbstractExternalAuthTest {
         }
         assertNotNull(ei.getId(), authorizable);
         assertEquals(ei.getId(), authorizable.getID());
-        assertEquals(ei.getExternalId(), ExternalIdentityRef.fromString(authorizable.getProperty(DefaultSyncContext.REP_EXTERNAL_ID)[0].getString()));
+        assertEquals(ei.getExternalId(), ExternalIdentityRef.fromString(
+            authorizable.getProperty(DefaultSyncContext.REP_EXTERNAL_ID)[0].getString()));
     }
 
-    SyncResult sync(@NotNull ExternalIdentityProvider idp, @NotNull String id, boolean isGroup) throws Exception {
+    SyncResult sync(@NotNull ExternalIdentityProvider idp, @NotNull String id, boolean isGroup)
+        throws Exception {
         return sync((isGroup) ? idp.getGroup(id) : idp.getUser(id), idp);
     }
 
-    SyncResult sync(@NotNull ExternalIdentity externalIdentity, @NotNull ExternalIdentityProvider idp) throws Exception {
-        SyncContext ctx = new DefaultSyncContext(syncConfig, idp, getUserManager(root), getValueFactory(root));
+    SyncResult sync(@NotNull ExternalIdentity externalIdentity,
+        @NotNull ExternalIdentityProvider idp) throws Exception {
+        SyncContext ctx = new DefaultSyncContext(syncConfig, idp, getUserManager(root),
+            getValueFactory(root));
         SyncResult res = ctx.sync(externalIdentity);
         root.commit();
         return res;

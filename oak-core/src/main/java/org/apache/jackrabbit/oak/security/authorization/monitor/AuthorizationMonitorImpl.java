@@ -16,16 +16,15 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.monitor;
 
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
+
+import java.util.Collections;
+import java.util.Map;
 import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatsOptions;
 import org.apache.jackrabbit.oak.stats.TimerStats;
 import org.jetbrains.annotations.NotNull;
-
-import java.util.Collections;
-import java.util.Map;
-
-import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
 public class AuthorizationMonitorImpl implements AuthorizationMonitor {
 

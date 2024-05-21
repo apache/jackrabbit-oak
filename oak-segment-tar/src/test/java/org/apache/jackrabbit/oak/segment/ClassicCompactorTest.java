@@ -34,13 +34,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Random;
-
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.Buffer;
+import org.apache.jackrabbit.oak.segment.file.CompactionWriter;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.GCNodeWriteMonitor;
-import org.apache.jackrabbit.oak.segment.file.CompactionWriter;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.file.cancel.Canceller;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
@@ -58,6 +57,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 public class ClassicCompactorTest {
+
     @Rule
     public TemporaryFolder folder = new TemporaryFolder(new File("target"));
 
@@ -86,7 +86,8 @@ public class ClassicCompactorTest {
         assertNotNull(compacted);
         assertFalse(uncompacted == compacted);
         assertEquals(uncompacted, compacted);
-        assertEquals(uncompacted.getSegment().getGcGeneration().nextFull(), compacted.getSegment().getGcGeneration());
+        assertEquals(uncompacted.getSegment().getGcGeneration().nextFull(),
+            compacted.getSegment().getGcGeneration());
 
         modifyTestContent(nodeStore);
         NodeState modified = nodeStore.getRoot();
@@ -94,7 +95,8 @@ public class ClassicCompactorTest {
         assertNotNull(compacted);
         assertFalse(modified == compacted);
         assertEquals(modified, compacted);
-        assertEquals(uncompacted.getSegment().getGcGeneration().nextFull(), compacted.getSegment().getGcGeneration());
+        assertEquals(uncompacted.getSegment().getGcGeneration().nextFull(),
+            compacted.getSegment().getGcGeneration());
     }
 
     @Test
@@ -107,7 +109,8 @@ public class ClassicCompactorTest {
         assertNotNull(compacted);
         assertFalse(uncompacted == compacted);
         assertEquals(uncompacted, compacted);
-        assertEquals(uncompacted.getSegment().getGcGeneration().nextFull(), compacted.getSegment().getGcGeneration());
+        assertEquals(uncompacted.getSegment().getGcGeneration().nextFull(),
+            compacted.getSegment().getGcGeneration());
     }
 
     @Test
@@ -118,7 +121,8 @@ public class ClassicCompactorTest {
         builder.setChildNode("cancel").setProperty("cancel", "cancel");
         nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        assertNull(compactor.compactUp(nodeStore.getRoot(), Canceller.newCanceller().withCondition("reason", () -> true)));
+        assertNull(compactor.compactUp(nodeStore.getRoot(),
+            Canceller.newCanceller().withCondition("reason", () -> true)));
     }
 
     @Test(expected = IOException.class)
@@ -132,17 +136,18 @@ public class ClassicCompactorTest {
     private static ClassicCompactor createCompactor(FileStore fileStore, String failOnName) {
         GCGeneration generation = newGCGeneration(1, 1, true);
         SegmentWriter writer = defaultSegmentWriterBuilder("c")
-                .withGeneration(generation)
-                .build(fileStore);
+            .withGeneration(generation)
+            .build(fileStore);
         if (failOnName != null) {
             writer = new FailingSegmentWriter(writer, failOnName);
         }
-        CompactionWriter compactionWriter = new CompactionWriter(fileStore.getReader(), fileStore.getBlobStore(), generation, writer);
+        CompactionWriter compactionWriter = new CompactionWriter(fileStore.getReader(),
+            fileStore.getBlobStore(), generation, writer);
         return new ClassicCompactor(compactionWriter, GCNodeWriteMonitor.EMPTY);
     }
 
     private static void addNodes(SegmentNodeStore nodeStore, int count)
-    throws CommitFailedException {
+        throws CommitFailedException {
         NodeBuilder builder = nodeStore.getRoot().builder();
         for (int k = 0; k < count; k++) {
             builder.setChildNode("n-" + k);
@@ -150,12 +155,14 @@ public class ClassicCompactorTest {
         nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 
-    private static void addTestContent(NodeStore nodeStore) throws CommitFailedException, IOException {
+    private static void addTestContent(NodeStore nodeStore)
+        throws CommitFailedException, IOException {
         NodeBuilder builder = nodeStore.getRoot().builder();
         builder.setChildNode("a").setChildNode("aa").setProperty("p", 42);
         builder.getChildNode("a").setChildNode("error").setChildNode("IOException");
         builder.setChildNode("b").setProperty("bin", createBlob(nodeStore, 42));
-        builder.setChildNode("c").setProperty(binaryPropertyFromBlob("bins", createBlobs(nodeStore, 42, 43, 44)));
+        builder.setChildNode("c")
+               .setProperty(binaryPropertyFromBlob("bins", createBlobs(nodeStore, 42, 43, 44)));
         nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 
@@ -213,7 +220,8 @@ public class ClassicCompactorTest {
 
         @NotNull
         @Override
-        public RecordId writeNode(@NotNull NodeState state, @Nullable Buffer stableIdBytes) throws IOException {
+        public RecordId writeNode(@NotNull NodeState state, @Nullable Buffer stableIdBytes)
+            throws IOException {
             if (state.hasChildNode(failOnName)) {
                 throw new IOException("Encountered node with name " + failOnName);
             }

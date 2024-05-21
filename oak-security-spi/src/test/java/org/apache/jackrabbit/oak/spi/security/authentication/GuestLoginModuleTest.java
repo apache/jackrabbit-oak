@@ -16,6 +16,10 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -28,14 +32,9 @@ import javax.security.auth.callback.CallbackHandler;
 import javax.security.auth.callback.UnsupportedCallbackException;
 import javax.security.auth.login.LoginException;
 import javax.security.auth.spi.LoginModule;
-
 import org.apache.jackrabbit.oak.spi.security.authentication.callback.CredentialsCallback;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.junit.Test;
-
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
 /**
  * GuestLoginModuleTest...
@@ -66,7 +65,8 @@ public class GuestLoginModuleTest {
     @Test
     public void testNullLoginReadOnlySubject() throws LoginException {
         CallbackHandler cbh = new TestCallbackHandler(null);
-        Subject readOnly = new Subject(true, Collections.emptySet(), Collections.emptySet(), Collections.emptySet());
+        Subject readOnly = new Subject(true, Collections.emptySet(), Collections.emptySet(),
+            Collections.emptySet());
         guestLoginModule.initialize(readOnly, cbh, sharedState, Collections.emptyMap());
 
         assertTrue(guestLoginModule.login());
@@ -180,6 +180,7 @@ public class GuestLoginModuleTest {
         private TestCallbackHandler(Credentials creds) {
             this.creds = creds;
         }
+
         @Override
         public void handle(Callback[] callbacks) throws UnsupportedCallbackException {
             for (Callback callback : callbacks) {

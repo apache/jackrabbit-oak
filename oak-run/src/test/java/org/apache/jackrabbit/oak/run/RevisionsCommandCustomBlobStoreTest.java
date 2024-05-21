@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.run;
 
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assume.assumeTrue;
+
 import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.MongoConnectionFactory;
@@ -26,9 +29,6 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
-
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assume.assumeTrue;
 
 public class RevisionsCommandCustomBlobStoreTest {
 
@@ -54,8 +54,8 @@ public class RevisionsCommandCustomBlobStoreTest {
     public void info() throws Exception {
         RevisionsCommand cmd = new RevisionsCommand();
         cmd.execute(
-                MongoUtils.URL,
-                "info"
+            MongoUtils.URL,
+            "info"
         );
     }
 
@@ -63,8 +63,8 @@ public class RevisionsCommandCustomBlobStoreTest {
     public void collect() throws Exception {
         RevisionsCommand cmd = new RevisionsCommand();
         cmd.execute(
-                MongoUtils.URL,
-                "collect"
+            MongoUtils.URL,
+            "collect"
         );
     }
 
@@ -72,8 +72,8 @@ public class RevisionsCommandCustomBlobStoreTest {
     public void reset() throws Exception {
         RevisionsCommand cmd = new RevisionsCommand();
         cmd.execute(
-                MongoUtils.URL,
-                "reset"
+            MongoUtils.URL,
+            "reset"
         );
     }
 
@@ -83,10 +83,10 @@ public class RevisionsCommandCustomBlobStoreTest {
         ns.dispose();
         RevisionsCommand cmd = new RevisionsCommand();
         cmd.execute(
-                "--clusterId",
-                String.valueOf(clusterId),
-                MongoUtils.URL,
-                "sweep"
+            "--clusterId",
+            String.valueOf(clusterId),
+            MongoUtils.URL,
+            "sweep"
         );
     }
 
@@ -95,6 +95,6 @@ public class RevisionsCommandCustomBlobStoreTest {
         assertNotNull(c);
         MongoUtils.dropCollections(c.getDatabase());
         return builderProvider.newBuilder().setBlobStore(new MemoryBlobStore())
-                .setMongoDB(c.getMongoClient(), c.getDBName()).getNodeStore();
+                              .setMongoDB(c.getMongoClient(), c.getDBName()).getNodeStore();
     }
 }

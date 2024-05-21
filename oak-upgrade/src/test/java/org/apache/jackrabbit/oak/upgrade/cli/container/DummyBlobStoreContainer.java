@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.upgrade.cli.container;
 
 import java.io.IOException;
-
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 
 public class DummyBlobStoreContainer implements BlobStoreContainer {

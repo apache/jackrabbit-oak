@@ -24,7 +24,6 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.security.auth.Subject;
-
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -75,7 +74,8 @@ public abstract class AbstractUserTest extends AbstractJCRTest {
         }
     }
 
-    protected static UserManager getUserManager(Session session) throws RepositoryException, NotExecutableException {
+    protected static UserManager getUserManager(Session session)
+        throws RepositoryException, NotExecutableException {
         if (!(session instanceof JackrabbitSession)) {
             throw new NotExecutableException();
         }
@@ -89,15 +89,18 @@ public abstract class AbstractUserTest extends AbstractJCRTest {
     }
 
     protected static Subject buildSubject(Principal p) {
-        return new Subject(true, Collections.singleton(p), Collections.emptySet(), Collections.emptySet());
+        return new Subject(true, Collections.singleton(p), Collections.emptySet(),
+            Collections.emptySet());
     }
 
-    protected static Node getNode(Authorizable authorizable, Session session) throws NotExecutableException, RepositoryException {
+    protected static Node getNode(Authorizable authorizable, Session session)
+        throws NotExecutableException, RepositoryException {
         String path = authorizable.getPath();
         if (session.nodeExists(path)) {
             return session.getNode(path);
         } else {
-            throw new NotExecutableException("Cannot access node for authorizable " + authorizable.getID());
+            throw new NotExecutableException(
+                "Cannot access node for authorizable " + authorizable.getID());
         }
     }
 

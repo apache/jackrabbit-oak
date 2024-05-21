@@ -19,9 +19,11 @@
 
 package org.apache.jackrabbit.oak.index;
 
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
+
 import java.io.File;
 import java.io.IOException;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.exporter.NodeStateSerializer;
@@ -30,10 +32,8 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.directory.LuceneIndexDumpe
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
-
 public class IndexDumper {
+
     public static final String INDEX_DUMPS_DIR = "index-dumps";
     private final IndexHelper indexHelper;
     private final File outDir;
@@ -59,9 +59,12 @@ public class IndexDumper {
             LuceneIndexDumper dumper = new LuceneIndexDumper(root, indexPath, indexDumpDir);
             try {
                 dumper.dump();
-                System.out.printf("    - %s (%s)%n", indexPath, IOUtils.humanReadableByteCount(dumper.getSize()));
-            } catch (Exception e){
-                System.out.printf("Error occurred while performing consistency check for index [%s]%n", indexPath);
+                System.out.printf("    - %s (%s)%n", indexPath,
+                    IOUtils.humanReadableByteCount(dumper.getSize()));
+            } catch (Exception e) {
+                System.out.printf(
+                    "Error occurred while performing consistency check for index [%s]%n",
+                    indexPath);
                 e.printStackTrace(System.out);
                 try {
                     File indexDir = DirectoryUtils.createIndexDir(indexDumpDir, indexPath);
@@ -69,10 +72,13 @@ public class IndexDumper {
                     serializer.setPath(indexPath);
                     serializer.setSerializeBlobContent(true);
                     serializer.serialize(indexDir);
-                    System.out.printf("    - Dumping raw node content%n", indexPath, FileUtils.sizeOf(indexDir));
+                    System.out.printf("    - Dumping raw node content%n", indexPath,
+                        FileUtils.sizeOf(indexDir));
                     System.out.printf("    - %s (%s)%n", indexPath, FileUtils.sizeOf(indexDir));
-                } catch (Exception e2){
-                    System.out.printf("Error occurred while performing consistency check for index [%s]%n", indexPath);
+                } catch (Exception e2) {
+                    System.out.printf(
+                        "Error occurred while performing consistency check for index [%s]%n",
+                        indexPath);
                     e2.printStackTrace(System.out);
                 }
             }
@@ -82,6 +88,6 @@ public class IndexDumper {
         }
 
         System.out.printf("Dumped index data of %d indexes (%s) to %s%n", indexCount,
-                IOUtils.humanReadableByteCount(totalSize), IndexCommand.getPath(indexDumpDir));
+            IOUtils.humanReadableByteCount(totalSize), IndexCommand.getPath(indexDumpDir));
     }
 }

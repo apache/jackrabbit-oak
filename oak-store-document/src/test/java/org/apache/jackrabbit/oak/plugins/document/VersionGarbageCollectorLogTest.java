@@ -57,7 +57,7 @@ public class VersionGarbageCollectorLogTest {
     public DocumentMKBuilderProvider builderProvider = new DocumentMKBuilderProvider();
 
     private LogCustomizer logCustomizer = LogCustomizer.forLogger(
-            VersionGarbageCollector.class.getName()).enable(Level.INFO).create();
+        VersionGarbageCollector.class.getName()).enable(Level.INFO).create();
 
     private Clock clock;
 

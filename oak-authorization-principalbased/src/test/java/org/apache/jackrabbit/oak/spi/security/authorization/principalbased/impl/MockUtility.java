@@ -45,32 +45,39 @@ import static org.mockito.Mockito.withSettings;
 
 final class MockUtility {
 
-    private MockUtility() {}
+    private MockUtility() {
+    }
 
-    static Tree mockTree(@NotNull String name, @Nullable String ntName, boolean exists, @NotNull String... propertyNames) {
+    static Tree mockTree(@NotNull String name, @Nullable String ntName, boolean exists,
+        @NotNull String... propertyNames) {
         Tree t = mock(Tree.class);
         when(t.exists()).thenReturn(exists);
         when(t.getName()).thenReturn(name);
         if (ntName != null) {
-            when(t.getProperty(JcrConstants.JCR_PRIMARYTYPE)).thenReturn(createPrimaryTypeProperty(ntName));
+            when(t.getProperty(JcrConstants.JCR_PRIMARYTYPE)).thenReturn(
+                createPrimaryTypeProperty(ntName));
         }
         for (String propertyName : propertyNames) {
             when(t.hasProperty(propertyName)).thenReturn(true);
-            when(t.getProperty(propertyName)).thenReturn(PropertyStates.createProperty(propertyName, "anyValue"));
+            when(t.getProperty(propertyName)).thenReturn(
+                PropertyStates.createProperty(propertyName, "anyValue"));
         }
         return t;
     }
 
-    static Tree mockTree(@NotNull String name, @NotNull String ntName, @NotNull  String path, @NotNull String... propertyNames) {
+    static Tree mockTree(@NotNull String name, @NotNull String ntName, @NotNull String path,
+        @NotNull String... propertyNames) {
         Tree t = mock(Tree.class);
         when(t.exists()).thenReturn(true);
         when(t.getName()).thenReturn(name);
-        when(t.getProperty(JcrConstants.JCR_PRIMARYTYPE)).thenReturn(createPrimaryTypeProperty(ntName));
+        when(t.getProperty(JcrConstants.JCR_PRIMARYTYPE)).thenReturn(
+            createPrimaryTypeProperty(ntName));
         when(t.getPath()).thenReturn(path);
         when(t.isRoot()).thenReturn(PathUtils.denotesRoot(path));
         for (String propertyName : propertyNames) {
             when(t.hasProperty(propertyName)).thenReturn(true);
-            when(t.getProperty(propertyName)).thenReturn(PropertyStates.createProperty(propertyName, "anyValue"));
+            when(t.getProperty(propertyName)).thenReturn(
+                PropertyStates.createProperty(propertyName, "anyValue"));
         }
         return t;
     }
@@ -84,13 +91,15 @@ final class MockUtility {
     }
 
     static Tree mockReadOnlyTree(@NotNull TreeType type) {
-        Tree readOnly = mock(Tree.class, withSettings().extraInterfaces(ReadOnly.class, TreeTypeAware.class));
+        Tree readOnly = mock(Tree.class,
+            withSettings().extraInterfaces(ReadOnly.class, TreeTypeAware.class));
         when(((TreeTypeAware) readOnly).getType()).thenReturn(type);
         return readOnly;
     }
 
     static NodeState mockNodeState(@NotNull String primaryType) {
-        return when(mock(NodeState.class).getProperty(JcrConstants.JCR_PRIMARYTYPE)).thenReturn(createPrimaryTypeProperty(primaryType)).getMock();
+        return when(mock(NodeState.class).getProperty(JcrConstants.JCR_PRIMARYTYPE)).thenReturn(
+            createPrimaryTypeProperty(primaryType)).getMock();
     }
 
     static PropertyState createPrimaryTypeProperty(@NotNull String ntName) {
@@ -98,14 +107,16 @@ final class MockUtility {
     }
 
     static PropertyState createMixinTypesProperty(@NotNull String... mixinTypes) {
-        return PropertyStates.createProperty(JcrConstants.JCR_MIXINTYPES, ImmutableList.copyOf(mixinTypes), Type.NAMES);
+        return PropertyStates.createProperty(JcrConstants.JCR_MIXINTYPES,
+            ImmutableList.copyOf(mixinTypes), Type.NAMES);
     }
 
     static FilterProvider mockFilterProvider(boolean canHandle) {
         Filter filter = mock(Filter.class);
         when(filter.canHandle(any(Set.class))).thenReturn(canHandle);
         FilterProvider fp = mock(FilterProvider.class);
-        when(fp.getFilter(any(SecurityProvider.class), any(Root.class), any(NamePathMapper.class))).thenReturn(filter);
+        when(fp.getFilter(any(SecurityProvider.class), any(Root.class),
+            any(NamePathMapper.class))).thenReturn(filter);
         return fp;
     }
 }

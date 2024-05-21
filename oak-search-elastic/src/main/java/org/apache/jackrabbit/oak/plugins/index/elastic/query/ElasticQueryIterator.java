@@ -16,15 +16,15 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.query;
 
+import java.util.Iterator;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex.FulltextResultRow;
 
-import java.util.Iterator;
-
 /**
- * Iterator over the results of an elastic query. It is also possible to get an explanation of the query that would
- * return the full payload of the query including options (eg: size, sort).
+ * Iterator over the results of an elastic query. It is also possible to get an explanation of the
+ * query that would return the full payload of the query including options (eg: size, sort).
  */
 public interface ElasticQueryIterator extends Iterator<FulltextResultRow>, AutoCloseable {
+
     String explain();
 
     default void close() { /* do nothing by default */ }

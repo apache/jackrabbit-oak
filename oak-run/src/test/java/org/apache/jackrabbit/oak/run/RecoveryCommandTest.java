@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.run;
 
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assume.assumeTrue;
+
 import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.MongoConnectionFactory;
@@ -26,9 +29,6 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
-
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assume.assumeTrue;
 
 public class RecoveryCommandTest {
 
@@ -54,10 +54,10 @@ public class RecoveryCommandTest {
     public void recovery() throws Exception {
         RecoveryCommand cmd = new RecoveryCommand();
         cmd.execute(
-                "--clusterId",
-                String.valueOf(ns.getClusterId()),
-                MongoUtils.URL,
-                "dryRun"
+            "--clusterId",
+            String.valueOf(ns.getClusterId()),
+            MongoUtils.URL,
+            "dryRun"
         );
     }
 
@@ -66,6 +66,6 @@ public class RecoveryCommandTest {
         assertNotNull(c);
         MongoUtils.dropCollections(c.getDatabase());
         return builderProvider.newBuilder().setBlobStore(new MemoryBlobStore())
-                .setMongoDB(c.getMongoClient(), c.getDBName()).getNodeStore();
+                              .setMongoDB(c.getMongoClient(), c.getDBName()).getNodeStore();
     }
 }

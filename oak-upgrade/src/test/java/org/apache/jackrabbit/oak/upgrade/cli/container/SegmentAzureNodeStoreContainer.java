@@ -16,11 +16,13 @@
  */
 package org.apache.jackrabbit.oak.upgrade.cli.container;
 
+import com.microsoft.azure.storage.StorageException;
+import com.microsoft.azure.storage.blob.CloudBlobContainer;
 import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.security.InvalidKeyException;
-
+import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzuriteDockerRule;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
@@ -30,11 +32,8 @@ import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
-import org.apache.jackrabbit.guava.common.io.Files;
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.blob.CloudBlobContainer;
-
 public class SegmentAzureNodeStoreContainer implements NodeStoreContainer {
+
     private static final String AZURE_ACCOUNT_NAME = "devstoreaccount1";
     private static final String AZURE_ACCOUNT_KEY = "Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==";
 
@@ -54,16 +53,19 @@ public class SegmentAzureNodeStoreContainer implements NodeStoreContainer {
         this(azurite, null, null);
     }
 
-    public SegmentAzureNodeStoreContainer(AzuriteDockerRule azurite, String dir) throws IOException {
+    public SegmentAzureNodeStoreContainer(AzuriteDockerRule azurite, String dir)
+        throws IOException {
         this(azurite, null, dir);
     }
 
-    public SegmentAzureNodeStoreContainer(AzuriteDockerRule azurite, BlobStoreContainer blob) throws IOException {
+    public SegmentAzureNodeStoreContainer(AzuriteDockerRule azurite, BlobStoreContainer blob)
+        throws IOException {
         this(azurite, blob, null);
     }
 
-    private SegmentAzureNodeStoreContainer(AzuriteDockerRule azurite, BlobStoreContainer blob, String dir)
-            throws IOException {
+    private SegmentAzureNodeStoreContainer(AzuriteDockerRule azurite, BlobStoreContainer blob,
+        String dir)
+        throws IOException {
         this.blob = blob;
         this.dir = dir == null ? "repository" : dir;
         try {
@@ -85,7 +87,8 @@ public class SegmentAzureNodeStoreContainer implements NodeStoreContainer {
 
         tmpDir = Files.createTempDir();
         FileStoreBuilder builder = FileStoreBuilder.fileStoreBuilder(tmpDir)
-                .withCustomPersistence(azPersistence).withMemoryMapping(false);
+                                                   .withCustomPersistence(azPersistence)
+                                                   .withMemoryMapping(false);
 
         if (blob != null) {
             builder.withBlobStore(blob.open());
@@ -125,7 +128,8 @@ public class SegmentAzureNodeStoreContainer implements NodeStoreContainer {
         description.append("DefaultEndpointsProtocol=https;");
         description.append("AccountName=").append(AZURE_ACCOUNT_NAME).append(';');
         description.append("AccountKey=").append(AZURE_ACCOUNT_KEY).append(';');
-        description.append("BlobEndpoint=http://127.0.0.1:").append(mappedPort).append("/devstoreaccount1;");
+        description.append("BlobEndpoint=http://127.0.0.1:").append(mappedPort)
+                   .append("/devstoreaccount1;");
         description.append("ContainerName=").append(container.getName()).append(";");
         description.append("Directory=").append(dir);
 

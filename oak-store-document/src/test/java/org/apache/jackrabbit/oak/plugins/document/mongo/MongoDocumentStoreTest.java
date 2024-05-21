@@ -52,22 +52,29 @@ public class MongoDocumentStoreTest extends AbstractMongoConnectionTest {
         DocumentMK.Builder builder = new DocumentMK.Builder();
         store = new TestStore(mongoConnection, builder);
         builder.setDocumentStore(store);
-        mk = builder.setMongoDB(mongoConnection.getMongoClient(), mongoConnection.getDBName()).open();
+        mk = builder.setMongoDB(mongoConnection.getMongoClient(), mongoConnection.getDBName())
+                    .open();
     }
 
     @Test
     public void defaultIndexes() {
         assertTrue(hasIndex(store.getDBCollection(Collection.NODES), Document.ID));
         assertFalse(hasIndex(store.getDBCollection(Collection.NODES), NodeDocument.SD_TYPE));
-        assertTrue(hasIndex(store.getDBCollection(Collection.NODES), NodeDocument.SD_TYPE, NodeDocument.SD_MAX_REV_TIME_IN_SECS));
-        if (new MongoStatus(mongoConnection.getMongoClient(), mongoConnection.getDBName()).isVersion(3, 2)) {
-            assertTrue(hasIndex(store.getDBCollection(Collection.NODES), NodeDocument.DELETED_ONCE, NodeDocument.MODIFIED_IN_SECS));
+        assertTrue(hasIndex(store.getDBCollection(Collection.NODES), NodeDocument.SD_TYPE,
+            NodeDocument.SD_MAX_REV_TIME_IN_SECS));
+        if (new MongoStatus(mongoConnection.getMongoClient(),
+            mongoConnection.getDBName()).isVersion(3, 2)) {
+            assertTrue(hasIndex(store.getDBCollection(Collection.NODES), NodeDocument.DELETED_ONCE,
+                NodeDocument.MODIFIED_IN_SECS));
         } else {
-            assertTrue(hasIndex(store.getDBCollection(Collection.NODES), NodeDocument.DELETED_ONCE));
+            assertTrue(
+                hasIndex(store.getDBCollection(Collection.NODES), NodeDocument.DELETED_ONCE));
         }
         assertTrue(hasIndex(store.getDBCollection(Collection.NODES), NodeDocument.HAS_BINARY_FLAG));
-        assertTrue(hasIndex(store.getDBCollection(Collection.NODES), NodeDocument.MODIFIED_IN_SECS, Document.ID));
-        assertFalse(hasIndex(store.getDBCollection(Collection.NODES), NodeDocument.MODIFIED_IN_SECS));
+        assertTrue(hasIndex(store.getDBCollection(Collection.NODES), NodeDocument.MODIFIED_IN_SECS,
+            Document.ID));
+        assertFalse(
+            hasIndex(store.getDBCollection(Collection.NODES), NodeDocument.MODIFIED_IN_SECS));
         assertTrue(hasIndex(store.getDBCollection(Collection.JOURNAL), JournalEntry.MODIFIED));
     }
 
@@ -77,10 +84,12 @@ public class MongoDocumentStoreTest extends AbstractMongoConnectionTest {
         assertNotNull(c);
         DocumentMK.Builder builder = new DocumentMK.Builder();
         TestStore s = new TestStore(c, builder);
-        if (new MongoStatus(mongoConnection.getMongoClient(), mongoConnection.getDBName()).isVersion(3, 2)) {
+        if (new MongoStatus(mongoConnection.getMongoClient(),
+            mongoConnection.getDBName()).isVersion(3, 2)) {
             assertFalse(hasIndex(s.getDBCollection(Collection.NODES), NodeDocument.DELETED_ONCE));
         } else {
-            assertFalse(hasIndex(s.getDBCollection(Collection.NODES), NodeDocument.DELETED_ONCE, NodeDocument.MODIFIED_IN_SECS));
+            assertFalse(hasIndex(s.getDBCollection(Collection.NODES), NodeDocument.DELETED_ONCE,
+                NodeDocument.MODIFIED_IN_SECS));
         }
     }
 
@@ -97,7 +106,7 @@ public class MongoDocumentStoreTest extends AbstractMongoConnectionTest {
     public void readOnly() throws Exception {
         // setup must have created nodes collection with index on _bin
         MongoCollection<?> mc = mongoConnection.getDatabase()
-                .getCollection(NODES.toString());
+                                               .getCollection(NODES.toString());
         assertTrue(hasIndex(mc, NodeDocument.HAS_BINARY_FLAG));
         mk.dispose();
         // remove the indexes
@@ -110,12 +119,13 @@ public class MongoDocumentStoreTest extends AbstractMongoConnectionTest {
 
         // start a new read-only DocumentNodeStore
         mk = newBuilder(mongoConnection.getMongoClient(),
-                mongoConnection.getDBName()).setReadOnlyMode().open();
+            mongoConnection.getDBName()).setReadOnlyMode().open();
         // must still not exist when started in read-only mode
         assertFalse(hasIndex(mc, NodeDocument.HAS_BINARY_FLAG));
     }
 
     static final class TestStore extends MongoDocumentStore {
+
         TestStore(MongoConnection c, DocumentMK.Builder builder) {
             super(c.getMongoClient(), c.getDatabase(), builder);
         }

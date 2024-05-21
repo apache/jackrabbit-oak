@@ -16,36 +16,35 @@
  */
 package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
+import static org.apache.commons.io.FilenameUtils.concat;
+import static org.junit.Assert.assertEquals;
+
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.InputStream;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Random;
-
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.FileDataStore;
-
+import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.commons.io.FilenameUtils.concat;
-import static org.junit.Assert.assertEquals;
-
 /**
  * Helper for retrieving the {@link DataStoreBlobStore} instantiated via system properties
- *
+ * <p>
  * User must specify the class of DataStore to use via 'dataStore' system property
- *
- * Further to configure properties of DataStore instance one can specify extra system property
- * where the key has a prefix 'ds.' or 'bs.'. So to set 'minRecordLength' of FileDataStore specify
- * the system property as 'ds.minRecordLength'
+ * <p>
+ * Further to configure properties of DataStore instance one can specify extra system property where
+ * the key has a prefix 'ds.' or 'bs.'. So to set 'minRecordLength' of FileDataStore specify the
+ * system property as 'ds.minRecordLength'
  */
 public class DataStoreUtils {
+
     private static final Logger log = LoggerFactory.getLogger(DataStoreUtils.class);
 
     public static final String DS_CLASS_NAME = "dataStore";

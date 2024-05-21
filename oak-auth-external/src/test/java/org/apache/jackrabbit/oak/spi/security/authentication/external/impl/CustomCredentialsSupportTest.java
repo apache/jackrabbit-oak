@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
+
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -25,31 +28,27 @@ import javax.jcr.Credentials;
 import javax.jcr.GuestCredentials;
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.login.LoginException;
-
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.spi.security.authentication.credentials.CredentialsSupport;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalGroup;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalLoginTestBase;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
-import org.apache.jackrabbit.oak.spi.security.authentication.credentials.CredentialsSupport;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
-
 /**
- * Test login against the {@link ExternalLoginModule} with a setup that includes
- * a custom implementation of {@link CredentialsSupport} and an {@link ExternalIdentityProvider}
- * that deals with these supported credentials.
+ * Test login against the {@link ExternalLoginModule} with a setup that includes a custom
+ * implementation of {@link CredentialsSupport} and an {@link ExternalIdentityProvider} that deals
+ * with these supported credentials.
  */
 public class CustomCredentialsSupportTest extends ExternalLoginTestBase {
 
@@ -74,8 +73,8 @@ public class CustomCredentialsSupportTest extends ExternalLoginTestBase {
     @Test
     public void testLoginWithUnsupportedCredentials() throws Exception {
         List<Credentials> creds = ImmutableList.of(
-                new SimpleCredentials("testUser", new char[0]),
-                new GuestCredentials());
+            new SimpleCredentials("testUser", new char[0]),
+            new GuestCredentials());
 
         for (Credentials c : creds) {
             try {
@@ -224,7 +223,8 @@ public class CustomCredentialsSupportTest extends ExternalLoginTestBase {
         }
 
         @Override
-        public boolean setAttributes(@NotNull Credentials credentials, @NotNull Map<String, ?> attributes) {
+        public boolean setAttributes(@NotNull Credentials credentials,
+            @NotNull Map<String, ?> attributes) {
             if (credentials instanceof TestCredentials) {
                 this.attributes.putAll(attributes);
                 return true;

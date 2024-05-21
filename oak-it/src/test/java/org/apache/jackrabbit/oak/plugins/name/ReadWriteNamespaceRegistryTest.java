@@ -1,19 +1,19 @@
 /*
-* Licensed to the Apache Software Foundation (ASF) under one or more
-* contributor license agreements.  See the NOTICE file distributed with
-* this work for additional information regarding copyright ownership.
-* The ASF licenses this file to You under the Apache License, Version 2.0
-* (the "License"); you may not use this file except in compliance with
-* the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.jackrabbit.oak.plugins.name;
 
 import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
@@ -22,10 +22,8 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.List;
-
 import javax.jcr.NamespaceException;
 import javax.jcr.NamespaceRegistry;
-
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.OakBaseTest;
@@ -46,8 +44,8 @@ public class ReadWriteNamespaceRegistryTest extends OakBaseTest {
     @Override
     protected ContentSession createContentSession() {
         return new Oak(store).with(new OpenSecurityProvider())
-                .with(new InitialContent())
-                .with(new NamespaceEditorProvider()).createContentSession();
+                             .with(new InitialContent())
+                             .with(new NamespaceEditorProvider()).createContentSession();
     }
 
     @Test
@@ -92,16 +90,18 @@ public class ReadWriteNamespaceRegistryTest extends OakBaseTest {
         final Root root = session.getLatestRoot();
         NamespaceRegistry r = getNamespaceRegistry(session, root);
 
-        LogCustomizer customLogs = LogCustomizer.forLogger("org.apache.jackrabbit.oak.plugins.name.ReadWriteNamespaceRegistry").enable(Level.ERROR).create();
+        LogCustomizer customLogs = LogCustomizer.forLogger(
+                                                    "org.apache.jackrabbit.oak.plugins.name.ReadWriteNamespaceRegistry").enable(Level.ERROR)
+                                                .create();
         try {
             customLogs.starting();
             r.registerNamespace("foo", "example.com");
             r.unregisterNamespace("foo");
             List<String> myLogs = customLogs.getLogs();
             assertEquals(1, myLogs.size());
-            assertTrue(myLogs.get(0).contains("Registering invalid namespace name 'example.com' for prefix 'foo', please see"));
-        }
-        finally {
+            assertTrue(myLogs.get(0).contains(
+                "Registering invalid namespace name 'example.com' for prefix 'foo', please see"));
+        } finally {
             customLogs.finished();
         }
     }
@@ -112,6 +112,7 @@ public class ReadWriteNamespaceRegistryTest extends OakBaseTest {
             protected Root getWriteRoot() {
                 return session.getLatestRoot();
             }
+
             @Override
             protected void refresh() {
                 root.refresh();

@@ -16,14 +16,13 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
-
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
 import javax.jcr.RepositoryException;
@@ -32,7 +31,6 @@ import javax.jcr.observation.Event;
 import javax.jcr.observation.EventIterator;
 import javax.jcr.observation.EventListener;
 import javax.jcr.observation.ObservationManager;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitNode;
 import org.apache.jackrabbit.commons.cnd.CndImporter;
@@ -40,13 +38,13 @@ import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.test.AbstractJCRTest;
 
 /**
- * JackrabbitNodeTest: Copied and slightly adjusted from org.apache.jackrabbit.api.JackrabbitNodeTest,
- * which used to create SNS for this test.
+ * JackrabbitNodeTest: Copied and slightly adjusted from
+ * org.apache.jackrabbit.api.JackrabbitNodeTest, which used to create SNS for this test.
  */
 public class JackrabbitNodeTest extends AbstractJCRTest {
 
     static final String SEQ_BEFORE = "abcdefghij";
-    static final String SEQ_AFTER =  "abcdefGhij";
+    static final String SEQ_AFTER = "abcdefGhij";
     static final int RELPOS = 6;
 
     static final String TEST_NODETYPES = "org/apache/jackrabbit/oak/jcr/test_mixin_nodetypes.cnd";
@@ -60,11 +58,12 @@ public class JackrabbitNodeTest extends AbstractJCRTest {
         }
         superuser.save();
 
-        Reader cnd = new InputStreamReader(getClass().getClassLoader().getResourceAsStream(TEST_NODETYPES));
+        Reader cnd = new InputStreamReader(
+            getClass().getClassLoader().getResourceAsStream(TEST_NODETYPES));
         CndImporter.registerNodeTypes(cnd, superuser);
         cnd.close();
     }
-    
+
     //Ignore("OAK-3658")
     public void _testRename() throws RepositoryException {
         Node renamedNode = null;
@@ -94,7 +93,7 @@ public class JackrabbitNodeTest extends AbstractJCRTest {
             pos++;
         }
     }
-    
+
     //Ignore("OAK-3658")
     public void _testRenameEventHandling() throws RepositoryException, InterruptedException {
         Session s = getHelper().getSuperuserSession();
@@ -105,18 +104,20 @@ public class JackrabbitNodeTest extends AbstractJCRTest {
 
         try {
             mgr.addEventListener(new EventListener() {
-                CountDownLatch latch = latch1;
-                @Override
-                public void onEvent(EventIterator eventIterator) {
-                    synchronized (events) {
-                        while (eventIterator.hasNext()) {
-                            events.add(eventIterator.nextEvent());
-                        }
-                        latch.countDown();
-                        latch = latch2;
-                    }
-                }
-            }, Event.PERSIST|Event.NODE_ADDED|Event.NODE_MOVED|Event.NODE_REMOVED, testRootNode.getPath(), true, null, null, false);
+                                     CountDownLatch latch = latch1;
+
+                                     @Override
+                                     public void onEvent(EventIterator eventIterator) {
+                                         synchronized (events) {
+                                             while (eventIterator.hasNext()) {
+                                                 events.add(eventIterator.nextEvent());
+                                             }
+                                             latch.countDown();
+                                             latch = latch2;
+                                         }
+                                     }
+                                 }, Event.PERSIST | Event.NODE_ADDED | Event.NODE_MOVED | Event.NODE_REMOVED,
+                testRootNode.getPath(), true, null, null, false);
 
             NodeIterator it = testRootNode.getNodes();
 
@@ -138,7 +139,8 @@ public class JackrabbitNodeTest extends AbstractJCRTest {
                     if (diags.length() != 0) {
                         diags.append(", ");
                     }
-                    diags.append("type " + event.getType() + " " + event.getDate() + "ms " + event.getPath());
+                    diags.append("type " + event.getType() + " " + event.getDate() + "ms "
+                        + event.getPath());
                     if (Event.NODE_MOVED == event.getType()) {
                         foundMove = true;
                         break;
@@ -164,12 +166,14 @@ public class JackrabbitNodeTest extends AbstractJCRTest {
                         if (addDiags.length() != 0) {
                             addDiags.append(", ");
                         }
-                        addDiags.append("type " + event.getType() + " " + event.getDate() + "ms " + event.getPath());
+                        addDiags.append("type " + event.getType() + " " + event.getDate() + "ms "
+                            + event.getPath());
                     }
                 }
 
                 if (addDiags.length() > 0) {
-                    diags.append("; next event after additional addNode/save operation: " + addDiags);
+                    diags.append(
+                        "; next event after additional addNode/save operation: " + addDiags);
                 }
             }
 
@@ -254,7 +258,8 @@ public class JackrabbitNodeTest extends AbstractJCRTest {
         assertTrue(n.isNodeType("test:AA"));
         assertTrue(n.isNodeType("test:A"));
 
-        ((JackrabbitNode) n).setMixins(new String[]{"test:A", "test:AA", JcrConstants.MIX_REFERENCEABLE});
+        ((JackrabbitNode) n).setMixins(
+            new String[]{"test:A", "test:AA", JcrConstants.MIX_REFERENCEABLE});
         superuser.save();
 
         assertTrue(n.isNodeType("test:AA"));
@@ -309,21 +314,21 @@ public class JackrabbitNodeTest extends AbstractJCRTest {
         n.remove();
         superuser.save();
     }
-    
+
     public void testGetNodeOrNull() throws Exception {
-        JackrabbitNode jn = (JackrabbitNode) testRootNode; 
+        JackrabbitNode jn = (JackrabbitNode) testRootNode;
         Node aa = jn.addNode("a/aa", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
         aa.setProperty("p", true);
-        
+
         assertNull(jn.getNodeOrNull("notExisting"));
         assertNull(jn.getNodeOrNull("notExisting/rel/path"));
         assertNull(jn.getNodeOrNull(JcrConstants.JCR_PRIMARYTYPE));
         assertNull(jn.getNodeOrNull("a/aa/p"));
-        
+
         assertNotNull(jn.getNodeOrNull("a"));
         assertNotNull(jn.getNodeOrNull("a/aa"));
     }
-    
+
     public void testGetPropertyOrNull() throws Exception {
         JackrabbitNode jn = (JackrabbitNode) testRootNode;
         Node aa = jn.addNode("a/aa", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
@@ -332,7 +337,7 @@ public class JackrabbitNodeTest extends AbstractJCRTest {
         assertNull(jn.getPropertyOrNull("notExisting"));
         assertNull(jn.getPropertyOrNull("notExisting/rel/path"));
         assertNull(jn.getPropertyOrNull("a/aa"));
-        
+
         assertNotNull(jn.getPropertyOrNull(JcrConstants.JCR_PRIMARYTYPE));
         assertNotNull(jn.getPropertyOrNull("a/aa/p"));
     }

@@ -21,13 +21,11 @@ import java.util.Comparator;
 
 /**
  * <code>StableRevisionComparator</code> implements a revision comparator, which
- * is only based on stable information available in the two revisions presented
- * to this comparator. This class is used in sorted collections where
- * revision keys must have a stable ordering independent from the time when
- * a revision was seen.
+ * is only based on stable information available in the two revisions presented to this comparator.
+ * This class is used in sorted collections where revision keys must have a stable ordering
+ * independent from the time when a revision was seen.
  * <p>
- * Revisions are first ordered by timestamp, then counter and finally cluster
- * node id.
+ * Revisions are first ordered by timestamp, then counter and finally cluster node id.
  */
 public class StableRevisionComparator implements Comparator<Revision> {
 

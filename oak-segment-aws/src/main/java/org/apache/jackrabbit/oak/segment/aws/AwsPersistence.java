@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.segment.aws;
 
 import java.io.IOException;
-
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.RemoteStoreMonitor;
@@ -41,8 +40,9 @@ public class AwsPersistence implements SegmentNodeStorePersistence {
     }
 
     @Override
-    public SegmentArchiveManager createArchiveManager(boolean mmap, boolean offHeapAccess, IOMonitor ioMonitor,
-            FileStoreMonitor fileStoreMonitor, RemoteStoreMonitor remoteStoreMonitor) {
+    public SegmentArchiveManager createArchiveManager(boolean mmap, boolean offHeapAccess,
+        IOMonitor ioMonitor,
+        FileStoreMonitor fileStoreMonitor, RemoteStoreMonitor remoteStoreMonitor) {
         awsContext.setRemoteStoreMonitor(remoteStoreMonitor);
         return new AwsArchiveManager(awsContext.directory, ioMonitor, fileStoreMonitor);
     }
@@ -80,6 +80,7 @@ public class AwsPersistence implements SegmentNodeStorePersistence {
 
     @Override
     public RepositoryLock lockRepository() throws IOException {
-        return new AwsRepositoryLock(awsContext.dynamoDBClient, awsContext.getPath("repo.lock")).lock();
+        return new AwsRepositoryLock(awsContext.dynamoDBClient,
+            awsContext.getPath("repo.lock")).lock();
     }
 }

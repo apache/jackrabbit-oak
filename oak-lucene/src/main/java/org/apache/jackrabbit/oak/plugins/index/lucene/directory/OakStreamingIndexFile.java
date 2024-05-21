@@ -16,13 +16,18 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
+import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
+import static org.apache.jackrabbit.JcrConstants.JCR_LASTMODIFIED;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkPositionIndexes;
+import static org.apache.jackrabbit.oak.api.Type.BINARY;
+
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.SequenceInputStream;
-
-import org.apache.jackrabbit.guava.common.io.ByteStreams;
 import org.apache.commons.io.IOUtils;
+import org.apache.jackrabbit.guava.common.io.ByteStreams;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.StringUtils;
@@ -32,17 +37,13 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkPositionIndexes;
-import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
-import static org.apache.jackrabbit.JcrConstants.JCR_LASTMODIFIED;
-import static org.apache.jackrabbit.oak.api.Type.BINARY;
-
 /**
  * A file which streams blob directly off of storage.
  */
 class OakStreamingIndexFile implements OakIndexFile, AutoCloseable {
-    private static final Logger LOG = LoggerFactory.getLogger(OakStreamingIndexFile.class.getName());
+
+    private static final Logger LOG = LoggerFactory.getLogger(
+        OakStreamingIndexFile.class.getName());
 
     /**
      * The file name.
@@ -65,14 +66,14 @@ class OakStreamingIndexFile implements OakIndexFile, AutoCloseable {
     private long length;
 
     /**
-     * The blob which has been read for reading case.
-     * For writing case, it contains the blob that's pushed to repository
+     * The blob which has been read for reading case. For writing case, it contains the blob that's
+     * pushed to repository
      */
     private Blob blob;
 
     /**
-     * Whether the blob was modified since it was last flushed. If yes, on a
-     * flush the metadata and the blob to the store.
+     * Whether the blob was modified since it was last flushed. If yes, on a flush the metadata and
+     * the blob to the store.
      */
     private boolean blobModified = false;
 
@@ -82,8 +83,8 @@ class OakStreamingIndexFile implements OakIndexFile, AutoCloseable {
     private InputStream blobInputStream;
 
     /**
-     * The unique key that is used to make the content unique (to allow removing binaries from the blob store without
-     * risking to remove binaries that are still needed).
+     * The unique key that is used to make the content unique (to allow removing binaries from the
+     * blob store without risking to remove binaries that are still needed).
      */
     private final byte[] uniqueKey;
 
@@ -92,7 +93,7 @@ class OakStreamingIndexFile implements OakIndexFile, AutoCloseable {
     private final BlobFactory blobFactory;
 
     OakStreamingIndexFile(String name, NodeBuilder file, String dirDetails,
-                          @NotNull BlobFactory blobFactory) {
+        @NotNull BlobFactory blobFactory) {
         this.name = name;
         this.file = file;
         this.dirDetails = dirDetails;
@@ -104,7 +105,8 @@ class OakStreamingIndexFile implements OakIndexFile, AutoCloseable {
             if (property.getType() == BINARY) {
                 this.blob = property.getValue(BINARY);
             } else {
-                throw new IllegalArgumentException("Can't load blob for streaming for " + name + " under " + file);
+                throw new IllegalArgumentException(
+                    "Can't load blob for streaming for " + name + " under " + file);
             }
         } else {
             this.blob = null;
@@ -188,16 +190,18 @@ class OakStreamingIndexFile implements OakIndexFile, AutoCloseable {
         // see https://issues.apache.org/jira/browse/LUCENE-1196
         if (pos < 0 || pos > length) {
             String msg = String.format("Invalid seek request for [%s][%s], " +
-                    "position: %d, file length: %d", dirDetails, name, pos, length);
+                "position: %d, file length: %d", dirDetails, name, pos, length);
             releaseInputStream();
             throw new IOException(msg);
         } else {
             if (blobInputStream == null) {
                 position = pos;
             } else if (pos < position) {
-                LOG.warn("Seeking back on streaming index file {}. Current position {}, requested position {}. " +
-                                "Please make sure that CopyOnRead and prefetch of index files are enabled.",
-                                dirDetails + "/" + getName(), position(), pos);
+                LOG.warn(
+                    "Seeking back on streaming index file {}. Current position {}, requested position {}. "
+                        +
+                        "Please make sure that CopyOnRead and prefetch of index files are enabled.",
+                    dirDetails + "/" + getName(), position(), pos);
 
                 // seeking back on input stream. Close current one
                 IOUtils.closeQuietly(blobInputStream);
@@ -209,7 +213,7 @@ class OakStreamingIndexFile implements OakIndexFile, AutoCloseable {
                     if (skipCnt <= 0) {
                         String msg = String.format("Seek request for [%s][%s], " +
                                 "position: %d, file length: %d failed. InputStream.skip returned %d",
-                                dirDetails, name, pos, length, skipCnt);
+                            dirDetails, name, pos, length, skipCnt);
                         releaseInputStream();
                         throw new IOException(msg);
                     }
@@ -221,12 +225,12 @@ class OakStreamingIndexFile implements OakIndexFile, AutoCloseable {
 
     @Override
     public void readBytes(byte[] b, int offset, int len)
-            throws IOException {
+        throws IOException {
         checkPositionIndexes(offset, offset + len, checkNotNull(b).length);
 
         if (len < 0 || position + len > length) {
             String msg = String.format("Invalid byte range request for [%s][%s], " +
-                    "position: %d, file length: %d, len: %d", dirDetails, name, position, length, len);
+                "position: %d, file length: %d, len: %d", dirDetails, name, position, length, len);
             releaseInputStream();
             throw new IOException(msg);
         }
@@ -236,7 +240,7 @@ class OakStreamingIndexFile implements OakIndexFile, AutoCloseable {
         if (readCnt < len) {
             String msg = String.format("Couldn't read byte range request for [%s][%s], " +
                     "position: %d, file length: %d, len: %d. Actual read bytes %d",
-                    dirDetails, name, position, length, len, readCnt);
+                dirDetails, name, position, length, len, readCnt);
             releaseInputStream();
             throw new IOException(msg);
         }
@@ -246,7 +250,7 @@ class OakStreamingIndexFile implements OakIndexFile, AutoCloseable {
 
     @Override
     public void writeBytes(final byte[] b, final int offset, final int len)
-            throws IOException {
+        throws IOException {
         if (blobModified) {
             throw new IllegalArgumentException("Can't do piece wise upload with streaming access");
         }
@@ -265,7 +269,7 @@ class OakStreamingIndexFile implements OakIndexFile, AutoCloseable {
                     return -1;
                 } else {
                     int ret = b[position++];
-                    return ret < 0 ? 256 + ret: ret;
+                    return ret < 0 ? 256 + ret : ret;
                 }
             }
 
@@ -275,7 +279,7 @@ class OakStreamingIndexFile implements OakIndexFile, AutoCloseable {
                     return -1;
                 }
 
-                int read = (int)Math.min((long)len, available());
+                int read = (int) Math.min((long) len, available());
                 System.arraycopy(b, position, target, off, read);
 
                 position += read;
@@ -304,7 +308,7 @@ class OakStreamingIndexFile implements OakIndexFile, AutoCloseable {
                 } else {
                     bytesLeftToRead--;
                     int ret = input.readByte();
-                    return ret < 0 ? 256 + ret: ret;
+                    return ret < 0 ? 256 + ret : ret;
                 }
             }
 
@@ -314,7 +318,7 @@ class OakStreamingIndexFile implements OakIndexFile, AutoCloseable {
                     return -1;
                 }
 
-                int read = (int)Math.min((long)len, bytesLeftToRead);
+                int read = (int) Math.min((long) len, bytesLeftToRead);
                 input.readBytes(b, off, read);
 
                 bytesLeftToRead -= read;
@@ -329,7 +333,7 @@ class OakStreamingIndexFile implements OakIndexFile, AutoCloseable {
     private void pushData(InputStream in) throws IOException {
         if (uniqueKey != null) {
             in = new SequenceInputStream(in,
-                    new ByteArrayInputStream(uniqueKey));
+                new ByteArrayInputStream(uniqueKey));
         }
 
         blob = blobFactory.createBlob(in);

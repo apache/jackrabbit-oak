@@ -16,21 +16,20 @@
  */
 package org.apache.jackrabbit.oak.spi.commit;
 
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-
 /**
- * This commit hook implementation processes changes to be committed
- * using the {@link Editor} instance provided by the {@link EditorProvider}
- * passed to the constructor.
+ * This commit hook implementation processes changes to be committed using the {@link Editor}
+ * instance provided by the {@link EditorProvider} passed to the constructor.
  *
+ * @see <a href="http://jackrabbit.apache.org/oak/docs/nodestate.html#Commit_editors" >Commit
+ * editors</a>
  * @since Oak 0.7
- * @see <a href="http://jackrabbit.apache.org/oak/docs/nodestate.html#Commit_editors"
- *         >Commit editors</a>
  */
 public class EditorHook implements CommitHook {
 
@@ -40,10 +39,11 @@ public class EditorHook implements CommitHook {
         this.provider = checkNotNull(provider);
     }
 
-    @Override @NotNull
+    @Override
+    @NotNull
     public NodeState processCommit(
-            @NotNull NodeState before, @NotNull NodeState after,
-            @NotNull CommitInfo info) throws CommitFailedException {
+        @NotNull NodeState before, @NotNull NodeState after,
+        @NotNull CommitInfo info) throws CommitFailedException {
         checkNotNull(before);
         checkNotNull(after);
         checkNotNull(info);
@@ -51,7 +51,7 @@ public class EditorHook implements CommitHook {
         NodeBuilder builder = after.builder();
         Editor editor = provider.getRootEditor(before, after, builder, info);
         CommitFailedException exception =
-                EditorDiff.process(editor, before, after);
+            EditorDiff.process(editor, before, after);
         if (exception == null) {
             return builder.getNodeState();
         } else {

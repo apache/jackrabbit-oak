@@ -18,16 +18,16 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.indexstore;
 
-import org.apache.jackrabbit.oak.commons.Compression;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.File;
 import java.io.IOException;
 import java.util.Set;
 import java.util.function.Predicate;
+import org.apache.jackrabbit.oak.commons.Compression;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class IndexStoreSortStrategyBase implements IndexStoreSortStrategy {
+
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     /**
@@ -40,8 +40,9 @@ public abstract class IndexStoreSortStrategyBase implements IndexStoreSortStrate
     private final String checkpoint;
     private static final String DEFAULT_INDEX_STORE_TYPE = "FlatFileStore";
 
-    public IndexStoreSortStrategyBase(File storeDir, Compression algorithm, Predicate<String> pathPredicate,
-                                      Set<String> preferredPaths, String checkpoint) {
+    public IndexStoreSortStrategyBase(File storeDir, Compression algorithm,
+        Predicate<String> pathPredicate,
+        Set<String> preferredPaths, String checkpoint) {
         this.storeDir = storeDir;
         this.algorithm = algorithm;
         this.pathPredicate = pathPredicate;
@@ -86,9 +87,12 @@ public abstract class IndexStoreSortStrategyBase implements IndexStoreSortStrate
 
     @Override
     public File createMetadataFile() throws IOException {
-        IndexStoreMetadata indexStoreMetadata = new IndexStoreMetadata(checkpoint, getStoreType(), getStrategyName(), preferredPaths);
-        File metadataFile = new IndexStoreMetadataOperatorImpl<IndexStoreMetadata>().createMetadataFile(indexStoreMetadata, storeDir, algorithm);
-        log.info("Created metadataFile:{} with strategy:{} ", metadataFile.getPath(), this.getStoreType());
+        IndexStoreMetadata indexStoreMetadata = new IndexStoreMetadata(checkpoint, getStoreType(),
+            getStrategyName(), preferredPaths);
+        File metadataFile = new IndexStoreMetadataOperatorImpl<IndexStoreMetadata>().createMetadataFile(
+            indexStoreMetadata, storeDir, algorithm);
+        log.info("Created metadataFile:{} with strategy:{} ", metadataFile.getPath(),
+            this.getStoreType());
         return metadataFile;
     }
 }

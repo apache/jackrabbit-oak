@@ -21,11 +21,11 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
 /**
- * Test for measuring the performance of adding one extra child node to 
- * node with {@value #CHILD_COUNT} existing child nodes.
+ * Test for measuring the performance of adding one extra child node to node with
+ * {@value #CHILD_COUNT} existing child nodes.
  */
 public class UpdateManyChildNodesTest extends AbstractTest {
-    
+
     protected static final String ROOT_NODE_NAME = "update" + TEST_ID;
 
     protected static final int CHILD_COUNT = 10 * 1000;

@@ -28,45 +28,58 @@ package org.apache.lucene.index;
 import java.util.List;
 
 /**
- * A struct like class that represents a hierarchical relationship between
- * {@link IndexReader} instances. 
+ * A struct like class that represents a hierarchical relationship between {@link IndexReader}
+ * instances.
  */
 public abstract class IndexReaderContext {
-  /** The reader context for this reader's immediate parent, or null if none */
-  public final CompositeReaderContext parent;
-  /** <code>true</code> if this context struct represents the top level reader within the hierarchical context */
-  public final boolean isTopLevel;
-  /** the doc base for this reader in the parent, <tt>0</tt> if parent is null */
-  public final int docBaseInParent;
-  /** the ord for this reader in the parent, <tt>0</tt> if parent is null */
-  public final int ordInParent;
-  
-  IndexReaderContext(CompositeReaderContext parent, int ordInParent, int docBaseInParent) {
-    if (!(this instanceof CompositeReaderContext || this instanceof AtomicReaderContext))
-      throw new Error("This class should never be extended by custom code!");
-    this.parent = parent;
-    this.docBaseInParent = docBaseInParent;
-    this.ordInParent = ordInParent;
-    this.isTopLevel = parent==null;
-  }
-  
-  /** Returns the {@link IndexReader}, this context represents. */
-  public abstract IndexReader reader();
-  
-  /**
-   * Returns the context's leaves if this context is a top-level context.
-   * For convenience, if this is an {@link AtomicReaderContext} this
-   * returns itself as the only leaf.
-   * <p>Note: this is convenience method since leaves can always be obtained by
-   * walking the context tree using {@link #children()}.
-   * @throws UnsupportedOperationException if this is not a top-level context.
-   * @see #children()
-   */
-  public abstract List<AtomicReaderContext> leaves() throws UnsupportedOperationException;
-  
-  /**
-   * Returns the context's children iff this context is a composite context
-   * otherwise <code>null</code>.
-   */
-  public abstract List<IndexReaderContext> children();
+
+    /**
+     * The reader context for this reader's immediate parent, or null if none
+     */
+    public final CompositeReaderContext parent;
+    /**
+     * <code>true</code> if this context struct represents the top level reader within the
+     * hierarchical context
+     */
+    public final boolean isTopLevel;
+    /**
+     * the doc base for this reader in the parent, <tt>0</tt> if parent is null
+     */
+    public final int docBaseInParent;
+    /**
+     * the ord for this reader in the parent, <tt>0</tt> if parent is null
+     */
+    public final int ordInParent;
+
+    IndexReaderContext(CompositeReaderContext parent, int ordInParent, int docBaseInParent) {
+        if (!(this instanceof CompositeReaderContext || this instanceof AtomicReaderContext)) {
+            throw new Error("This class should never be extended by custom code!");
+        }
+        this.parent = parent;
+        this.docBaseInParent = docBaseInParent;
+        this.ordInParent = ordInParent;
+        this.isTopLevel = parent == null;
+    }
+
+    /**
+     * Returns the {@link IndexReader}, this context represents.
+     */
+    public abstract IndexReader reader();
+
+    /**
+     * Returns the context's leaves if this context is a top-level context. For convenience, if this
+     * is an {@link AtomicReaderContext} this returns itself as the only leaf.
+     * <p>Note: this is convenience method since leaves can always be obtained by
+     * walking the context tree using {@link #children()}.
+     *
+     * @throws UnsupportedOperationException if this is not a top-level context.
+     * @see #children()
+     */
+    public abstract List<AtomicReaderContext> leaves() throws UnsupportedOperationException;
+
+    /**
+     * Returns the context's children iff this context is a composite context otherwise
+     * <code>null</code>.
+     */
+    public abstract List<IndexReaderContext> children();
 }

@@ -32,7 +32,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-
 import org.junit.Test;
 
 /**
@@ -44,8 +43,8 @@ public class ConcurrentTest {
     public void testLoaderBlock() throws Exception {
         // access to the same segment should not be blocked while loading an entry
         // only access to this entry is blocked
-        final CacheLIRS<Integer, Integer> cache = 
-                new CacheLIRS.Builder<Integer, Integer>().
+        final CacheLIRS<Integer, Integer> cache =
+            new CacheLIRS.Builder<Integer, Integer>().
                 maximumWeight(100).averageWeight(10).build();
         final Exception[] ex = new Exception[1];
         int threadCount = 10;
@@ -101,16 +100,16 @@ public class ConcurrentTest {
         }
         if (ex[0] != null) {
             throw ex[0];
-        }        
+        }
         long add = additionalWait.get();
         assertTrue("Had to wait unexpectedly long for other threads: " + add, add < 30000);
     }
-    
+
     @Test
     public void testCacheAccessInLoaderDeadlock() throws Exception {
         final Random r = new Random(1);
-        final CacheLIRS<Integer, Integer> cache = 
-                new CacheLIRS.Builder<Integer, Integer>().
+        final CacheLIRS<Integer, Integer> cache =
+            new CacheLIRS.Builder<Integer, Integer>().
                 maximumWeight(100).averageWeight(10).build();
         final Exception[] ex = new Exception[1];
         final int entryCount = 10;
@@ -166,8 +165,8 @@ public class ConcurrentTest {
     @Test
     public void testRandomOperations() throws Exception {
         Random r = new Random(1);
-        final CacheLIRS<Integer, Integer> cache = 
-                new CacheLIRS.Builder<Integer, Integer>().
+        final CacheLIRS<Integer, Integer> cache =
+            new CacheLIRS.Builder<Integer, Integer>().
                 maximumWeight(100).averageWeight(10).build();
         final Exception[] ex = new Exception[1];
         int size = 3;
@@ -255,11 +254,11 @@ public class ConcurrentTest {
 
     private void runLoadCountTest() throws Exception {
         CacheLIRS<Integer, Integer> cache =
-                new CacheLIRS.Builder<Integer, Integer>().
-                        segmentCount(1). // put everything in one segment
-                        maximumWeight(100).
-                        averageWeight(10).
-                        build();
+            new CacheLIRS.Builder<Integer, Integer>().
+                segmentCount(1). // put everything in one segment
+                                     maximumWeight(100).
+                                 averageWeight(10).
+                                 build();
 
         int numThreads = 8;
         CountDownLatch latch = new CountDownLatch(1);
@@ -277,8 +276,8 @@ public class ConcurrentTest {
     }
 
     private void loadValue(CacheLIRS<Integer, Integer> cache,
-                           CountDownLatch latch,
-                           int value) {
+        CountDownLatch latch,
+        int value) {
         try {
             latch.await();
             cache.get(value, () -> value);
@@ -286,5 +285,5 @@ public class ConcurrentTest {
             throw new RuntimeException(e);
         }
     }
-    
+
 }

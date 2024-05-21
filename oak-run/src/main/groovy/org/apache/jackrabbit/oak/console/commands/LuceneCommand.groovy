@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder as OakNodeBuilder
 import org.apache.jackrabbit.oak.spi.state.NodeState
 import org.apache.jackrabbit.oak.spi.state.NodeStore
 import org.apache.jackrabbit.oak.spi.state.ReadOnlyBuilder
@@ -37,8 +38,6 @@ import org.apache.lucene.store.FSDirectory
 import org.apache.lucene.store.IOContext
 import org.codehaus.groovy.tools.shell.ComplexCommandSupport
 import org.codehaus.groovy.tools.shell.Groovysh
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder as OakNodeBuilder
-
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull
 
@@ -63,7 +62,7 @@ class LuceneCommand extends ComplexCommandSupport {
             try {
                 io.out.println("Number of documents : ${reader.numDocs()}")
                 io.out.println("Number of deleted documents : ${reader.numDeletedDocs()}")
-            }finally{
+            } finally {
                 reader.close()
             }
         } finally {
@@ -95,7 +94,7 @@ class LuceneCommand extends ComplexCommandSupport {
         }
     }
 
-    def do_rmdata = {args ->
+    def do_rmdata = { args ->
         if (!args || args.size() != 1) {
             io.out.println("Please provide a single argument (index-path). Current arg list: ${args}")
             return
@@ -108,7 +107,7 @@ class LuceneCommand extends ComplexCommandSupport {
         String dataPath = idxPath + "/:data"
         NodeBuilder data = getNode(nb, dataPath)
 
-        if (!data.exists()){
+        if (!data.exists()) {
             io.out.println("Index at [$idxPath] is empty. Nothing to remove")
             return
         }
@@ -139,7 +138,7 @@ class LuceneCommand extends ComplexCommandSupport {
     }
 
     private static def humanReadableByteCount(long bytes) {
-        if(bytes == 0){
+        if (bytes == 0) {
             return ""
         }
         int exp = (int) (Math.log(bytes) / Math.log(1024));
@@ -151,8 +150,8 @@ class LuceneCommand extends ComplexCommandSupport {
         }
     }
 
-    private ConsoleSession getSession(){
-        return (ConsoleSession)variables.session
+    private ConsoleSession getSession() {
+        return (ConsoleSession) variables.session
     }
 
     private static NodeBuilder getNode(NodeBuilder node, String path) {

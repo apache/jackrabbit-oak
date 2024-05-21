@@ -32,7 +32,6 @@ import java.security.KeyStore;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateFactory;
 import java.util.Random;
-
 import org.apache.jackrabbit.guava.common.io.ByteStreams;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -67,8 +66,8 @@ public class StandbyTestIT extends TestBase {
 
     @Rule
     public RuleChain chain = RuleChain.outerRule(folder)
-            .around(serverFileStore)
-            .around(clientFileStore);
+                                      .around(serverFileStore)
+                                      .around(clientFileStore);
 
     /**
      * This test syncs a few segments over an unencrypted connection.
@@ -82,19 +81,19 @@ public class StandbyTestIT extends TestBase {
         NodeStore store = SegmentNodeStoreBuilders.builder(primary).build();
         try (
             StandbyServerSync serverSync = StandbyServerSync.builder()
-                .withPort(serverPort.getPort())
-                .withFileStore(primary)
-                .withBlobChunkSize(MB)
-                .build();
+                                                            .withPort(serverPort.getPort())
+                                                            .withFileStore(primary)
+                                                            .withBlobChunkSize(MB)
+                                                            .build();
             StandbyClientSync clientSync = StandbyClientSync.builder()
-                .withHost(getServerHost())
-                .withPort(serverPort.getPort())
-                .withFileStore(secondary)
-                .withSecureConnection(false)
-                .withReadTimeoutMs(getClientTimeout())
-                .withAutoClean(false)
-                .withSpoolFolder(folder.newFolder())
-                .build()
+                                                            .withHost(getServerHost())
+                                                            .withPort(serverPort.getPort())
+                                                            .withFileStore(secondary)
+                                                            .withSecureConnection(false)
+                                                            .withReadTimeoutMs(getClientTimeout())
+                                                            .withAutoClean(false)
+                                                            .withSpoolFolder(folder.newFolder())
+                                                            .build()
         ) {
             serverSync.start();
             byte[] data = addTestContent(store, "server", blobSize, 150);
@@ -108,7 +107,7 @@ public class StandbyTestIT extends TestBase {
             assertTrue(secondary.getStats().getApproximateSize() > blobSize);
 
             PropertyState ps = secondary.getHead().getChildNode("root")
-                .getChildNode("server").getProperty("testBlob");
+                                        .getChildNode("server").getProperty("testBlob");
             assertNotNull(ps);
             assertEquals(Type.BINARY.tag(), ps.getType().tag());
             Blob b = ps.getValue(Type.BINARY);
@@ -121,8 +120,8 @@ public class StandbyTestIT extends TestBase {
     }
 
     /**
-     * This test syncs a few segments over an encrypted connection.
-     * Both server and client certificates are generated on-the-fly.
+     * This test syncs a few segments over an encrypted connection. Both server and client
+     * certificates are generated on-the-fly.
      */
     @Test
     @Ignore("This test takes ~4s and is therefore disabled by default")
@@ -134,20 +133,20 @@ public class StandbyTestIT extends TestBase {
         NodeStore store = SegmentNodeStoreBuilders.builder(primary).build();
         try (
             StandbyServerSync serverSync = StandbyServerSync.builder()
-                .withPort(serverPort.getPort())
-                .withFileStore(primary)
-                .withBlobChunkSize(MB)
-                .withSecureConnection(true)
-                .build();
+                                                            .withPort(serverPort.getPort())
+                                                            .withFileStore(primary)
+                                                            .withBlobChunkSize(MB)
+                                                            .withSecureConnection(true)
+                                                            .build();
             StandbyClientSync clientSync = StandbyClientSync.builder()
-                .withHost(getServerHost())
-                .withPort(serverPort.getPort())
-                .withFileStore(secondary)
-                .withSecureConnection(true)
-                .withReadTimeoutMs(getClientTimeout())
-                .withAutoClean(false)
-                .withSpoolFolder(folder.newFolder())
-                .build()
+                                                            .withHost(getServerHost())
+                                                            .withPort(serverPort.getPort())
+                                                            .withFileStore(secondary)
+                                                            .withSecureConnection(true)
+                                                            .withReadTimeoutMs(getClientTimeout())
+                                                            .withAutoClean(false)
+                                                            .withSpoolFolder(folder.newFolder())
+                                                            .build()
         ) {
             serverSync.start();
             byte[] data = addTestContent(store, "server", blobSize, 150);
@@ -161,7 +160,7 @@ public class StandbyTestIT extends TestBase {
             assertTrue(secondary.getStats().getApproximateSize() > blobSize);
 
             PropertyState ps = secondary.getHead().getChildNode("root")
-                    .getChildNode("server").getProperty("testBlob");
+                                        .getChildNode("server").getProperty("testBlob");
             assertNotNull(ps);
             assertEquals(Type.BINARY.tag(), ps.getType().tag());
             Blob b = ps.getValue(Type.BINARY);
@@ -174,10 +173,9 @@ public class StandbyTestIT extends TestBase {
     }
 
     /**
-     * This test syncs a few segments over an encrypted connection.
-     * The server has a configured certificate which can be validated with the truststore.
-     * The server does not validate the client certificate.
-     * The client creates its certificate on-the-fly.
+     * This test syncs a few segments over an encrypted connection. The server has a configured
+     * certificate which can be validated with the truststore. The server does not validate the
+     * client certificate. The client creates its certificate on-the-fly.
      */
     @Test
     @Ignore("This test takes ~2s and is therefore disabled by default")
@@ -201,7 +199,8 @@ public class StandbyTestIT extends TestBase {
         File keyStoreFile = folder.newFile();
         KeyStore keyStore = KeyStore.getInstance("JKS");
         keyStore.load(null, "changeit".toCharArray());
-        Certificate c = CertificateFactory.getInstance("X.509").generateCertificate(new ByteArrayInputStream(caCert.getBytes()));
+        Certificate c = CertificateFactory.getInstance("X.509").generateCertificate(
+            new ByteArrayInputStream(caCert.getBytes()));
         keyStore.setCertificateEntry("the-ca-cert", c);
         keyStore.store(new FileOutputStream(keyStoreFile), "changeit".toCharArray());
         System.setProperty("javax.net.ssl.trustStore", keyStoreFile.getAbsolutePath());
@@ -209,23 +208,25 @@ public class StandbyTestIT extends TestBase {
         NodeStore store = SegmentNodeStoreBuilders.builder(primary).build();
         try (
             StandbyServerSync serverSync = StandbyServerSync.builder()
-                .withPort(serverPort.getPort())
-                .withFileStore(primary)
-                .withBlobChunkSize(MB)
-                .withSecureConnection(true)
-                .withSSLKeyFile(serverKeyFile.getAbsolutePath())
-                .withSSLChainFile(serverCertFile.getAbsolutePath())
-                .withSSLClientValidation(false)
-                .build();
+                                                            .withPort(serverPort.getPort())
+                                                            .withFileStore(primary)
+                                                            .withBlobChunkSize(MB)
+                                                            .withSecureConnection(true)
+                                                            .withSSLKeyFile(
+                                                                serverKeyFile.getAbsolutePath())
+                                                            .withSSLChainFile(
+                                                                serverCertFile.getAbsolutePath())
+                                                            .withSSLClientValidation(false)
+                                                            .build();
             StandbyClientSync clientSync = StandbyClientSync.builder()
-                .withHost(getServerHost())
-                .withPort(serverPort.getPort())
-                .withFileStore(secondary)
-                .withSecureConnection(true)
-                .withReadTimeoutMs(getClientTimeout())
-                .withAutoClean(false)
-                .withSpoolFolder(folder.newFolder())
-                .build()
+                                                            .withHost(getServerHost())
+                                                            .withPort(serverPort.getPort())
+                                                            .withFileStore(secondary)
+                                                            .withSecureConnection(true)
+                                                            .withReadTimeoutMs(getClientTimeout())
+                                                            .withAutoClean(false)
+                                                            .withSpoolFolder(folder.newFolder())
+                                                            .build()
         ) {
             serverSync.start();
             byte[] data = addTestContent(store, "server", blobSize, 1);
@@ -239,7 +240,7 @@ public class StandbyTestIT extends TestBase {
             assertTrue(secondary.getStats().getApproximateSize() > blobSize);
 
             PropertyState ps = secondary.getHead().getChildNode("root")
-                .getChildNode("server").getProperty("testBlob");
+                                        .getChildNode("server").getProperty("testBlob");
             assertNotNull(ps);
             assertEquals(Type.BINARY.tag(), ps.getType().tag());
             Blob b = ps.getValue(Type.BINARY);
@@ -252,10 +253,10 @@ public class StandbyTestIT extends TestBase {
     }
 
     /**
-     * This test syncs a few segments over an encrypted connection.
-     * The server has a configured certificate which can be validated with the truststore.
-     * The server validates the client certificate.
-     * The client has a configured certificate which can be validated with the truststore.
+     * This test syncs a few segments over an encrypted connection. The server has a configured
+     * certificate which can be validated with the truststore. The server validates the client
+     * certificate. The client has a configured certificate which can be validated with the
+     * truststore.
      */
     @Test
     @Ignore("This test takes ~2s and is therefore disabled by default")
@@ -289,7 +290,8 @@ public class StandbyTestIT extends TestBase {
         File keyStoreFile = folder.newFile();
         KeyStore keyStore = KeyStore.getInstance("JKS");
         keyStore.load(null, "changeit".toCharArray());
-        Certificate c = CertificateFactory.getInstance("X.509").generateCertificate(new ByteArrayInputStream(caCert.getBytes()));
+        Certificate c = CertificateFactory.getInstance("X.509").generateCertificate(
+            new ByteArrayInputStream(caCert.getBytes()));
         keyStore.setCertificateEntry("the-ca-cert", c);
         keyStore.store(new FileOutputStream(keyStoreFile), "changeit".toCharArray());
         System.setProperty("javax.net.ssl.trustStore", keyStoreFile.getAbsolutePath());
@@ -297,25 +299,29 @@ public class StandbyTestIT extends TestBase {
         NodeStore store = SegmentNodeStoreBuilders.builder(primary).build();
         try (
             StandbyServerSync serverSync = StandbyServerSync.builder()
-                .withPort(serverPort.getPort())
-                .withFileStore(primary)
-                .withBlobChunkSize(MB)
-                .withSecureConnection(true)
-                .withSSLKeyFile(serverKeyFile.getAbsolutePath())
-                .withSSLChainFile(serverCertFile.getAbsolutePath())
-                .withSSLClientValidation(true)
-                .build();
+                                                            .withPort(serverPort.getPort())
+                                                            .withFileStore(primary)
+                                                            .withBlobChunkSize(MB)
+                                                            .withSecureConnection(true)
+                                                            .withSSLKeyFile(
+                                                                serverKeyFile.getAbsolutePath())
+                                                            .withSSLChainFile(
+                                                                serverCertFile.getAbsolutePath())
+                                                            .withSSLClientValidation(true)
+                                                            .build();
             StandbyClientSync clientSync = StandbyClientSync.builder()
-                .withHost(getServerHost())
-                .withPort(serverPort.getPort())
-                .withFileStore(secondary)
-                .withSecureConnection(true)
-                .withReadTimeoutMs(getClientTimeout())
-                .withAutoClean(false)
-                .withSpoolFolder(folder.newFolder())
-                .withSSLKeyFile(clientKeyFile.getAbsolutePath())
-                .withSSLChainFile(clientCertFile.getAbsolutePath())
-                .build()
+                                                            .withHost(getServerHost())
+                                                            .withPort(serverPort.getPort())
+                                                            .withFileStore(secondary)
+                                                            .withSecureConnection(true)
+                                                            .withReadTimeoutMs(getClientTimeout())
+                                                            .withAutoClean(false)
+                                                            .withSpoolFolder(folder.newFolder())
+                                                            .withSSLKeyFile(
+                                                                clientKeyFile.getAbsolutePath())
+                                                            .withSSLChainFile(
+                                                                clientCertFile.getAbsolutePath())
+                                                            .build()
         ) {
             serverSync.start();
             byte[] data = addTestContent(store, "server", blobSize, 1);
@@ -329,7 +335,7 @@ public class StandbyTestIT extends TestBase {
             assertTrue(secondary.getStats().getApproximateSize() > blobSize);
 
             PropertyState ps = secondary.getHead().getChildNode("root")
-                .getChildNode("server").getProperty("testBlob");
+                                        .getChildNode("server").getProperty("testBlob");
             assertNotNull(ps);
             assertEquals(Type.BINARY.tag(), ps.getType().tag());
             Blob b = ps.getValue(Type.BINARY);
@@ -342,11 +348,10 @@ public class StandbyTestIT extends TestBase {
     }
 
     /**
-     * This test syncs a few segments over an encrypted connection.
-     * The server has a configured certificate which can be validated with the truststore.
-     * The server validates the client certificate.
-     * The client has a configured certificate which can be validated with the truststore.
-     * All the keys are encrypted.
+     * This test syncs a few segments over an encrypted connection. The server has a configured
+     * certificate which can be validated with the truststore. The server validates the client
+     * certificate. The client has a configured certificate which can be validated with the
+     * truststore. All the keys are encrypted.
      */
     @Test
     @Ignore("This test takes ~2s and is therefore disabled by default")
@@ -380,7 +385,8 @@ public class StandbyTestIT extends TestBase {
         File keyStoreFile = folder.newFile();
         KeyStore keyStore = KeyStore.getInstance("JKS");
         keyStore.load(null, "changeit".toCharArray());
-        Certificate c = CertificateFactory.getInstance("X.509").generateCertificate(new ByteArrayInputStream(caCert.getBytes()));
+        Certificate c = CertificateFactory.getInstance("X.509").generateCertificate(
+            new ByteArrayInputStream(caCert.getBytes()));
         keyStore.setCertificateEntry("the-ca-cert", c);
         keyStore.store(new FileOutputStream(keyStoreFile), "changeit".toCharArray());
         System.setProperty("javax.net.ssl.trustStore", keyStoreFile.getAbsolutePath());
@@ -388,27 +394,31 @@ public class StandbyTestIT extends TestBase {
         NodeStore store = SegmentNodeStoreBuilders.builder(primary).build();
         try (
             StandbyServerSync serverSync = StandbyServerSync.builder()
-                .withPort(serverPort.getPort())
-                .withFileStore(primary)
-                .withBlobChunkSize(MB)
-                .withSecureConnection(true)
-                .withSSLKeyFile(serverKeyFile.getAbsolutePath())
-                .withSSLKeyPassword(secretPassword)
-                .withSSLChainFile(serverCertFile.getAbsolutePath())
-                .withSSLClientValidation(true)
-                .build();
+                                                            .withPort(serverPort.getPort())
+                                                            .withFileStore(primary)
+                                                            .withBlobChunkSize(MB)
+                                                            .withSecureConnection(true)
+                                                            .withSSLKeyFile(
+                                                                serverKeyFile.getAbsolutePath())
+                                                            .withSSLKeyPassword(secretPassword)
+                                                            .withSSLChainFile(
+                                                                serverCertFile.getAbsolutePath())
+                                                            .withSSLClientValidation(true)
+                                                            .build();
             StandbyClientSync clientSync = StandbyClientSync.builder()
-                .withHost(getServerHost())
-                .withPort(serverPort.getPort())
-                .withFileStore(secondary)
-                .withSecureConnection(true)
-                .withReadTimeoutMs(getClientTimeout())
-                .withAutoClean(false)
-                .withSpoolFolder(folder.newFolder())
-                .withSSLKeyFile(clientKeyFile.getAbsolutePath())
-                .withSSLKeyPassword(secretPassword)
-                .withSSLChainFile(clientCertFile.getAbsolutePath())
-                .build()
+                                                            .withHost(getServerHost())
+                                                            .withPort(serverPort.getPort())
+                                                            .withFileStore(secondary)
+                                                            .withSecureConnection(true)
+                                                            .withReadTimeoutMs(getClientTimeout())
+                                                            .withAutoClean(false)
+                                                            .withSpoolFolder(folder.newFolder())
+                                                            .withSSLKeyFile(
+                                                                clientKeyFile.getAbsolutePath())
+                                                            .withSSLKeyPassword(secretPassword)
+                                                            .withSSLChainFile(
+                                                                clientCertFile.getAbsolutePath())
+                                                            .build()
         ) {
             serverSync.start();
             byte[] data = addTestContent(store, "server", blobSize, 1);
@@ -422,7 +432,7 @@ public class StandbyTestIT extends TestBase {
             assertTrue(secondary.getStats().getApproximateSize() > blobSize);
 
             PropertyState ps = secondary.getHead().getChildNode("root")
-                .getChildNode("server").getProperty("testBlob");
+                                        .getChildNode("server").getProperty("testBlob");
             assertNotNull(ps);
             assertEquals(Type.BINARY.tag(), ps.getType().tag());
             Blob b = ps.getValue(Type.BINARY);
@@ -435,11 +445,10 @@ public class StandbyTestIT extends TestBase {
     }
 
     /**
-     * This test syncs a few segments over an encrypted connection.
-     * The server has a configured certificate which can be validated with the truststore.
-     * The server validates the client certificate.
-     * The client has a configured certificate which cannot be validated with the truststore.
-     * The SSL connection is expected to fail.
+     * This test syncs a few segments over an encrypted connection. The server has a configured
+     * certificate which can be validated with the truststore. The server validates the client
+     * certificate. The client has a configured certificate which cannot be validated with the
+     * truststore. The SSL connection is expected to fail.
      */
     @Test
     @Ignore("This test takes ~7s and is therefore disabled by default")
@@ -473,7 +482,8 @@ public class StandbyTestIT extends TestBase {
         File keyStoreFile = folder.newFile();
         KeyStore keyStore = KeyStore.getInstance("JKS");
         keyStore.load(null, "changeit".toCharArray());
-        Certificate c = CertificateFactory.getInstance("X.509").generateCertificate(new ByteArrayInputStream(caCert.getBytes()));
+        Certificate c = CertificateFactory.getInstance("X.509").generateCertificate(
+            new ByteArrayInputStream(caCert.getBytes()));
         keyStore.setCertificateEntry("the-ca-cert", c);
         keyStore.store(new FileOutputStream(keyStoreFile), "changeit".toCharArray());
         System.setProperty("javax.net.ssl.trustStore", keyStoreFile.getAbsolutePath());
@@ -481,25 +491,29 @@ public class StandbyTestIT extends TestBase {
         NodeStore store = SegmentNodeStoreBuilders.builder(primary).build();
         try (
             StandbyServerSync serverSync = StandbyServerSync.builder()
-                .withPort(serverPort.getPort())
-                .withFileStore(primary)
-                .withBlobChunkSize(MB)
-                .withSecureConnection(true)
-                .withSSLKeyFile(serverKeyFile.getAbsolutePath())
-                .withSSLChainFile(serverCertFile.getAbsolutePath())
-                .withSSLClientValidation(true)
-                .build();
+                                                            .withPort(serverPort.getPort())
+                                                            .withFileStore(primary)
+                                                            .withBlobChunkSize(MB)
+                                                            .withSecureConnection(true)
+                                                            .withSSLKeyFile(
+                                                                serverKeyFile.getAbsolutePath())
+                                                            .withSSLChainFile(
+                                                                serverCertFile.getAbsolutePath())
+                                                            .withSSLClientValidation(true)
+                                                            .build();
             StandbyClientSync clientSync = StandbyClientSync.builder()
-                .withHost(getServerHost())
-                .withPort(serverPort.getPort())
-                .withFileStore(secondary)
-                .withSecureConnection(true)
-                .withReadTimeoutMs(getClientTimeout())
-                .withAutoClean(false)
-                .withSpoolFolder(folder.newFolder())
-                .withSSLKeyFile(clientKeyFile.getAbsolutePath())
-                .withSSLChainFile(clientCertFile.getAbsolutePath())
-                .build()
+                                                            .withHost(getServerHost())
+                                                            .withPort(serverPort.getPort())
+                                                            .withFileStore(secondary)
+                                                            .withSecureConnection(true)
+                                                            .withReadTimeoutMs(getClientTimeout())
+                                                            .withAutoClean(false)
+                                                            .withSpoolFolder(folder.newFolder())
+                                                            .withSSLKeyFile(
+                                                                clientKeyFile.getAbsolutePath())
+                                                            .withSSLChainFile(
+                                                                clientCertFile.getAbsolutePath())
+                                                            .build()
         ) {
             serverSync.start();
             addTestContent(store, "server", blobSize, 1);
@@ -512,11 +526,10 @@ public class StandbyTestIT extends TestBase {
     }
 
     /**
-     * This test syncs a few segments over an encrypted connection.
-     * The server has a configured certificate which cannot be validated with the truststore.
-     * The server validates the client certificate.
-     * The client has a configured certificate which can be validated with the truststore.
-     * The SSL connection is expected to fail.
+     * This test syncs a few segments over an encrypted connection. The server has a configured
+     * certificate which cannot be validated with the truststore. The server validates the client
+     * certificate. The client has a configured certificate which can be validated with the
+     * truststore. The SSL connection is expected to fail.
      */
     @Test
     @Ignore("This test takes ~7s and is therefore disabled by default")
@@ -550,7 +563,8 @@ public class StandbyTestIT extends TestBase {
         File keyStoreFile = folder.newFile();
         KeyStore keyStore = KeyStore.getInstance("JKS");
         keyStore.load(null, "changeit".toCharArray());
-        Certificate c = CertificateFactory.getInstance("X.509").generateCertificate(new ByteArrayInputStream(caCert.getBytes()));
+        Certificate c = CertificateFactory.getInstance("X.509").generateCertificate(
+            new ByteArrayInputStream(caCert.getBytes()));
         keyStore.setCertificateEntry("the-ca-cert", c);
         keyStore.store(new FileOutputStream(keyStoreFile), "changeit".toCharArray());
         System.setProperty("javax.net.ssl.trustStore", keyStoreFile.getAbsolutePath());
@@ -558,25 +572,29 @@ public class StandbyTestIT extends TestBase {
         NodeStore store = SegmentNodeStoreBuilders.builder(primary).build();
         try (
             StandbyServerSync serverSync = StandbyServerSync.builder()
-                .withPort(serverPort.getPort())
-                .withFileStore(primary)
-                .withBlobChunkSize(MB)
-                .withSecureConnection(true)
-                .withSSLKeyFile(serverKeyFile.getAbsolutePath())
-                .withSSLChainFile(serverCertFile.getAbsolutePath())
-                .withSSLClientValidation(true)
-                .build();
+                                                            .withPort(serverPort.getPort())
+                                                            .withFileStore(primary)
+                                                            .withBlobChunkSize(MB)
+                                                            .withSecureConnection(true)
+                                                            .withSSLKeyFile(
+                                                                serverKeyFile.getAbsolutePath())
+                                                            .withSSLChainFile(
+                                                                serverCertFile.getAbsolutePath())
+                                                            .withSSLClientValidation(true)
+                                                            .build();
             StandbyClientSync clientSync = StandbyClientSync.builder()
-                .withHost(getServerHost())
-                .withPort(serverPort.getPort())
-                .withFileStore(secondary)
-                .withSecureConnection(true)
-                .withReadTimeoutMs(getClientTimeout())
-                .withAutoClean(false)
-                .withSpoolFolder(folder.newFolder())
-                .withSSLKeyFile(clientKeyFile.getAbsolutePath())
-                .withSSLChainFile(clientCertFile.getAbsolutePath())
-                .build()
+                                                            .withHost(getServerHost())
+                                                            .withPort(serverPort.getPort())
+                                                            .withFileStore(secondary)
+                                                            .withSecureConnection(true)
+                                                            .withReadTimeoutMs(getClientTimeout())
+                                                            .withAutoClean(false)
+                                                            .withSpoolFolder(folder.newFolder())
+                                                            .withSSLKeyFile(
+                                                                clientKeyFile.getAbsolutePath())
+                                                            .withSSLChainFile(
+                                                                clientCertFile.getAbsolutePath())
+                                                            .build()
         ) {
             serverSync.start();
             addTestContent(store, "server", blobSize, 1);
@@ -589,12 +607,11 @@ public class StandbyTestIT extends TestBase {
     }
 
     /**
-     * This test syncs a few segments over an encrypted connection.
-     * The server has a configured certificate which can be validated with the truststore.
-     * The server validates the client certificate.
-     * The client has a configured certificate which can be validated with the truststore,
-     * but cannot be validated against the required subject pattern.
-     * The SSL connection is expected to fail.
+     * This test syncs a few segments over an encrypted connection. The server has a configured
+     * certificate which can be validated with the truststore. The server validates the client
+     * certificate. The client has a configured certificate which can be validated with the
+     * truststore, but cannot be validated against the required subject pattern. The SSL connection
+     * is expected to fail.
      */
     @Test
     @Ignore("This test takes ~7s and is therefore disabled by default")
@@ -628,7 +645,8 @@ public class StandbyTestIT extends TestBase {
         File keyStoreFile = folder.newFile();
         KeyStore keyStore = KeyStore.getInstance("JKS");
         keyStore.load(null, "changeit".toCharArray());
-        Certificate c = CertificateFactory.getInstance("X.509").generateCertificate(new ByteArrayInputStream(caCert.getBytes()));
+        Certificate c = CertificateFactory.getInstance("X.509").generateCertificate(
+            new ByteArrayInputStream(caCert.getBytes()));
         keyStore.setCertificateEntry("the-ca-cert", c);
         keyStore.store(new FileOutputStream(keyStoreFile), "changeit".toCharArray());
         System.setProperty("javax.net.ssl.trustStore", keyStoreFile.getAbsolutePath());
@@ -636,26 +654,30 @@ public class StandbyTestIT extends TestBase {
         NodeStore store = SegmentNodeStoreBuilders.builder(primary).build();
         try (
             StandbyServerSync serverSync = StandbyServerSync.builder()
-                .withPort(serverPort.getPort())
-                .withFileStore(primary)
-                .withBlobChunkSize(MB)
-                .withSecureConnection(true)
-                .withSSLKeyFile(serverKeyFile.getAbsolutePath())
-                .withSSLChainFile(serverCertFile.getAbsolutePath())
-                .withSSLClientValidation(true)
-                .withSSLSubjectPattern("foobar")
-                .build();
+                                                            .withPort(serverPort.getPort())
+                                                            .withFileStore(primary)
+                                                            .withBlobChunkSize(MB)
+                                                            .withSecureConnection(true)
+                                                            .withSSLKeyFile(
+                                                                serverKeyFile.getAbsolutePath())
+                                                            .withSSLChainFile(
+                                                                serverCertFile.getAbsolutePath())
+                                                            .withSSLClientValidation(true)
+                                                            .withSSLSubjectPattern("foobar")
+                                                            .build();
             StandbyClientSync clientSync = StandbyClientSync.builder()
-                .withHost(getServerHost())
-                .withPort(serverPort.getPort())
-                .withFileStore(secondary)
-                .withSecureConnection(true)
-                .withReadTimeoutMs(getClientTimeout())
-                .withAutoClean(false)
-                .withSpoolFolder(folder.newFolder())
-                .withSSLKeyFile(clientKeyFile.getAbsolutePath())
-                .withSSLChainFile(clientCertFile.getAbsolutePath())
-                .build()
+                                                            .withHost(getServerHost())
+                                                            .withPort(serverPort.getPort())
+                                                            .withFileStore(secondary)
+                                                            .withSecureConnection(true)
+                                                            .withReadTimeoutMs(getClientTimeout())
+                                                            .withAutoClean(false)
+                                                            .withSpoolFolder(folder.newFolder())
+                                                            .withSSLKeyFile(
+                                                                clientKeyFile.getAbsolutePath())
+                                                            .withSSLChainFile(
+                                                                clientCertFile.getAbsolutePath())
+                                                            .build()
         ) {
             serverSync.start();
             addTestContent(store, "server", blobSize, 1);
@@ -668,11 +690,10 @@ public class StandbyTestIT extends TestBase {
     }
 
     /**
-     * This test syncs a few segments over an encrypted connection.
-     * The server has a configured certificate which can be validated with the truststore.
-     * The server validates the client certificate.
-     * The client has a configured certificate which can be validated with the truststore,
-     * and can also be validated against the required subject pattern.
+     * This test syncs a few segments over an encrypted connection. The server has a configured
+     * certificate which can be validated with the truststore. The server validates the client
+     * certificate. The client has a configured certificate which can be validated with the
+     * truststore, and can also be validated against the required subject pattern.
      */
     @Test
     @Ignore("This test takes ~7s and is therefore disabled by default")
@@ -706,7 +727,8 @@ public class StandbyTestIT extends TestBase {
         File keyStoreFile = folder.newFile();
         KeyStore keyStore = KeyStore.getInstance("JKS");
         keyStore.load(null, "changeit".toCharArray());
-        Certificate c = CertificateFactory.getInstance("X.509").generateCertificate(new ByteArrayInputStream(caCert.getBytes()));
+        Certificate c = CertificateFactory.getInstance("X.509").generateCertificate(
+            new ByteArrayInputStream(caCert.getBytes()));
         keyStore.setCertificateEntry("the-ca-cert", c);
         keyStore.store(new FileOutputStream(keyStoreFile), "changeit".toCharArray());
         System.setProperty("javax.net.ssl.trustStore", keyStoreFile.getAbsolutePath());
@@ -714,26 +736,30 @@ public class StandbyTestIT extends TestBase {
         NodeStore store = SegmentNodeStoreBuilders.builder(primary).build();
         try (
             StandbyServerSync serverSync = StandbyServerSync.builder()
-                .withPort(serverPort.getPort())
-                .withFileStore(primary)
-                .withBlobChunkSize(MB)
-                .withSecureConnection(true)
-                .withSSLKeyFile(serverKeyFile.getAbsolutePath())
-                .withSSLChainFile(serverCertFile.getAbsolutePath())
-                .withSSLClientValidation(true)
-                .withSSLSubjectPattern(".*.esting.*")
-                .build();
+                                                            .withPort(serverPort.getPort())
+                                                            .withFileStore(primary)
+                                                            .withBlobChunkSize(MB)
+                                                            .withSecureConnection(true)
+                                                            .withSSLKeyFile(
+                                                                serverKeyFile.getAbsolutePath())
+                                                            .withSSLChainFile(
+                                                                serverCertFile.getAbsolutePath())
+                                                            .withSSLClientValidation(true)
+                                                            .withSSLSubjectPattern(".*.esting.*")
+                                                            .build();
             StandbyClientSync clientSync = StandbyClientSync.builder()
-                .withHost(getServerHost())
-                .withPort(serverPort.getPort())
-                .withFileStore(secondary)
-                .withSecureConnection(true)
-                .withReadTimeoutMs(getClientTimeout())
-                .withAutoClean(false)
-                .withSpoolFolder(folder.newFolder())
-                .withSSLKeyFile(clientKeyFile.getAbsolutePath())
-                .withSSLChainFile(clientCertFile.getAbsolutePath())
-                .build()
+                                                            .withHost(getServerHost())
+                                                            .withPort(serverPort.getPort())
+                                                            .withFileStore(secondary)
+                                                            .withSecureConnection(true)
+                                                            .withReadTimeoutMs(getClientTimeout())
+                                                            .withAutoClean(false)
+                                                            .withSpoolFolder(folder.newFolder())
+                                                            .withSSLKeyFile(
+                                                                clientKeyFile.getAbsolutePath())
+                                                            .withSSLChainFile(
+                                                                clientCertFile.getAbsolutePath())
+                                                            .build()
         ) {
             serverSync.start();
             addTestContent(store, "server", blobSize, 1);
@@ -746,12 +772,11 @@ public class StandbyTestIT extends TestBase {
     }
 
     /**
-     * This test syncs a few segments over an encrypted connection.
-     * The server has a configured certificate which can be validated with the truststore,
-     * but cannot be validated against the required subject pattern.
-     * The server validates the client certificate.
-     * The client has a configured certificate which can be validated with the truststore.
-     * The SSL connection is expected to fail.
+     * This test syncs a few segments over an encrypted connection. The server has a configured
+     * certificate which can be validated with the truststore, but cannot be validated against the
+     * required subject pattern. The server validates the client certificate. The client has a
+     * configured certificate which can be validated with the truststore. The SSL connection is
+     * expected to fail.
      */
     @Test
     @Ignore("This test takes ~7s and is therefore disabled by default")
@@ -785,7 +810,8 @@ public class StandbyTestIT extends TestBase {
         File keyStoreFile = folder.newFile();
         KeyStore keyStore = KeyStore.getInstance("JKS");
         keyStore.load(null, "changeit".toCharArray());
-        Certificate c = CertificateFactory.getInstance("X.509").generateCertificate(new ByteArrayInputStream(caCert.getBytes()));
+        Certificate c = CertificateFactory.getInstance("X.509").generateCertificate(
+            new ByteArrayInputStream(caCert.getBytes()));
         keyStore.setCertificateEntry("the-ca-cert", c);
         keyStore.store(new FileOutputStream(keyStoreFile), "changeit".toCharArray());
         System.setProperty("javax.net.ssl.trustStore", keyStoreFile.getAbsolutePath());
@@ -793,26 +819,30 @@ public class StandbyTestIT extends TestBase {
         NodeStore store = SegmentNodeStoreBuilders.builder(primary).build();
         try (
             StandbyServerSync serverSync = StandbyServerSync.builder()
-                .withPort(serverPort.getPort())
-                .withFileStore(primary)
-                .withBlobChunkSize(MB)
-                .withSecureConnection(true)
-                .withSSLKeyFile(serverKeyFile.getAbsolutePath())
-                .withSSLChainFile(serverCertFile.getAbsolutePath())
-                .withSSLClientValidation(true)
-                .build();
+                                                            .withPort(serverPort.getPort())
+                                                            .withFileStore(primary)
+                                                            .withBlobChunkSize(MB)
+                                                            .withSecureConnection(true)
+                                                            .withSSLKeyFile(
+                                                                serverKeyFile.getAbsolutePath())
+                                                            .withSSLChainFile(
+                                                                serverCertFile.getAbsolutePath())
+                                                            .withSSLClientValidation(true)
+                                                            .build();
             StandbyClientSync clientSync = StandbyClientSync.builder()
-                .withHost(getServerHost())
-                .withPort(serverPort.getPort())
-                .withFileStore(secondary)
-                .withSecureConnection(true)
-                .withReadTimeoutMs(getClientTimeout())
-                .withAutoClean(false)
-                .withSpoolFolder(folder.newFolder())
-                .withSSLKeyFile(clientKeyFile.getAbsolutePath())
-                .withSSLChainFile(clientCertFile.getAbsolutePath())
-                .withSSLSubjectPattern("foobar")
-                .build()
+                                                            .withHost(getServerHost())
+                                                            .withPort(serverPort.getPort())
+                                                            .withFileStore(secondary)
+                                                            .withSecureConnection(true)
+                                                            .withReadTimeoutMs(getClientTimeout())
+                                                            .withAutoClean(false)
+                                                            .withSpoolFolder(folder.newFolder())
+                                                            .withSSLKeyFile(
+                                                                clientKeyFile.getAbsolutePath())
+                                                            .withSSLChainFile(
+                                                                clientCertFile.getAbsolutePath())
+                                                            .withSSLSubjectPattern("foobar")
+                                                            .build()
         ) {
             serverSync.start();
             addTestContent(store, "server", blobSize, 1);
@@ -825,11 +855,10 @@ public class StandbyTestIT extends TestBase {
     }
 
     /**
-     * This test syncs a few segments over an encrypted connection.
-     * The server has a configured certificate which can be validated with the truststore,
-     * and can also be validated against the required subject pattern.
-     * The server validates the client certificate.
-     * The client has a configured certificate which can be validated with the truststore.
+     * This test syncs a few segments over an encrypted connection. The server has a configured
+     * certificate which can be validated with the truststore, and can also be validated against the
+     * required subject pattern. The server validates the client certificate. The client has a
+     * configured certificate which can be validated with the truststore.
      */
     @Test
     @Ignore("This test takes ~7s and is therefore disabled by default")
@@ -863,7 +892,8 @@ public class StandbyTestIT extends TestBase {
         File keyStoreFile = folder.newFile();
         KeyStore keyStore = KeyStore.getInstance("JKS");
         keyStore.load(null, "changeit".toCharArray());
-        Certificate c = CertificateFactory.getInstance("X.509").generateCertificate(new ByteArrayInputStream(caCert.getBytes()));
+        Certificate c = CertificateFactory.getInstance("X.509").generateCertificate(
+            new ByteArrayInputStream(caCert.getBytes()));
         keyStore.setCertificateEntry("the-ca-cert", c);
         keyStore.store(new FileOutputStream(keyStoreFile), "changeit".toCharArray());
         System.setProperty("javax.net.ssl.trustStore", keyStoreFile.getAbsolutePath());
@@ -871,26 +901,30 @@ public class StandbyTestIT extends TestBase {
         NodeStore store = SegmentNodeStoreBuilders.builder(primary).build();
         try (
             StandbyServerSync serverSync = StandbyServerSync.builder()
-                .withPort(serverPort.getPort())
-                .withFileStore(primary)
-                .withBlobChunkSize(MB)
-                .withSecureConnection(true)
-                .withSSLKeyFile(serverKeyFile.getAbsolutePath())
-                .withSSLChainFile(serverCertFile.getAbsolutePath())
-                .withSSLClientValidation(true)
-                .build();
+                                                            .withPort(serverPort.getPort())
+                                                            .withFileStore(primary)
+                                                            .withBlobChunkSize(MB)
+                                                            .withSecureConnection(true)
+                                                            .withSSLKeyFile(
+                                                                serverKeyFile.getAbsolutePath())
+                                                            .withSSLChainFile(
+                                                                serverCertFile.getAbsolutePath())
+                                                            .withSSLClientValidation(true)
+                                                            .build();
             StandbyClientSync clientSync = StandbyClientSync.builder()
-                .withHost(getServerHost())
-                .withPort(serverPort.getPort())
-                .withFileStore(secondary)
-                .withSecureConnection(true)
-                .withReadTimeoutMs(getClientTimeout())
-                .withAutoClean(false)
-                .withSpoolFolder(folder.newFolder())
-                .withSSLKeyFile(clientKeyFile.getAbsolutePath())
-                .withSSLChainFile(clientCertFile.getAbsolutePath())
-                .withSSLSubjectPattern(".*.esting.*")
-                .build()
+                                                            .withHost(getServerHost())
+                                                            .withPort(serverPort.getPort())
+                                                            .withFileStore(secondary)
+                                                            .withSecureConnection(true)
+                                                            .withReadTimeoutMs(getClientTimeout())
+                                                            .withAutoClean(false)
+                                                            .withSpoolFolder(folder.newFolder())
+                                                            .withSSLKeyFile(
+                                                                clientKeyFile.getAbsolutePath())
+                                                            .withSSLChainFile(
+                                                                clientCertFile.getAbsolutePath())
+                                                            .withSSLSubjectPattern(".*.esting.*")
+                                                            .build()
         ) {
             serverSync.start();
             addTestContent(store, "server", blobSize, 1);
@@ -916,19 +950,19 @@ public class StandbyTestIT extends TestBase {
         NodeStore store = SegmentNodeStoreBuilders.builder(primary).build();
         try (
             StandbyServerSync serverSync = StandbyServerSync.builder()
-                .withPort(serverPort.getPort())
-                .withFileStore(primary)
-                .withBlobChunkSize(MB)
-                .build();
+                                                            .withPort(serverPort.getPort())
+                                                            .withFileStore(primary)
+                                                            .withBlobChunkSize(MB)
+                                                            .build();
             StandbyClientSync clientSync = StandbyClientSync.builder()
-                .withHost(getServerHost())
-                .withPort(serverPort.getPort())
-                .withFileStore(secondary)
-                .withSecureConnection(false)
-                .withReadTimeoutMs(getClientTimeout())
-                .withAutoClean(false)
-                .withSpoolFolder(folder.newFolder())
-                .build()
+                                                            .withHost(getServerHost())
+                                                            .withPort(serverPort.getPort())
+                                                            .withFileStore(secondary)
+                                                            .withSecureConnection(false)
+                                                            .withReadTimeoutMs(getClientTimeout())
+                                                            .withAutoClean(false)
+                                                            .withSpoolFolder(folder.newFolder())
+                                                            .build()
         ) {
             serverSync.start();
             byte[] data = addTestContent(store, "server", blobSize, dataNodes);
@@ -948,7 +982,7 @@ public class StandbyTestIT extends TestBase {
             assertTrue(secondary.getStats().getApproximateSize() > blobSize);
 
             PropertyState ps = secondary.getHead().getChildNode("root")
-                    .getChildNode("server").getProperty("testBlob");
+                                        .getChildNode("server").getProperty("testBlob");
             assertNotNull(ps);
             assertEquals(Type.BINARY.tag(), ps.getType().tag());
             Blob b = ps.getValue(Type.BINARY);
@@ -960,7 +994,8 @@ public class StandbyTestIT extends TestBase {
         }
     }
 
-    private static byte[] addTestContent(NodeStore store, String child, int size, int dataNodes) throws Exception {
+    private static byte[] addTestContent(NodeStore store, String child, int size, int dataNodes)
+        throws Exception {
         NodeBuilder builder = store.getRoot().builder();
         NodeBuilder content = builder.child(child);
         content.setProperty("ts", System.currentTimeMillis());

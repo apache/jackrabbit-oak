@@ -18,21 +18,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
-import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.jetbrains.annotations.Nullable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 
 import co.elastic.clients.elasticsearch._types.ExpandWildcard;
 import co.elastic.clients.elasticsearch.cat.IndicesResponse;
 import co.elastic.clients.elasticsearch.cat.indices.IndicesRecord;
 import co.elastic.clients.elasticsearch.indices.DeleteIndexResponse;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -44,13 +35,21 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
-
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
- * Deletes those remote elastic indexes for which no index definitions exist in repository. The remote indexes are not deleted
- * the first time they are discovered. A dangling remote index is deleted in subsequent runs of this cleaner only after a
- * given threshold of time has passed since the dangling index was first discovered.
+ * Deletes those remote elastic indexes for which no index definitions exist in repository. The
+ * remote indexes are not deleted the first time they are discovered. A dangling remote index is
+ * deleted in subsequent runs of this cleaner only after a given threshold of time has passed since
+ * the dangling index was first discovered.
  */
 public class ElasticIndexCleaner implements Runnable {
 
@@ -64,11 +63,14 @@ public class ElasticIndexCleaner implements Runnable {
 
     /**
      * Constructs a new instance of index cleaner with the given parameters.
-     * @param elasticConnection elastic connection to use
-     * @param nodeStore node store where index definitions exist
-     * @param thresholdInSeconds time in seconds before which a dangling remote index won't be deleted.
+     *
+     * @param elasticConnection  elastic connection to use
+     * @param nodeStore          node store where index definitions exist
+     * @param thresholdInSeconds time in seconds before which a dangling remote index won't be
+     *                           deleted.
      */
-    public ElasticIndexCleaner(ElasticConnection elasticConnection, NodeStore nodeStore, int thresholdInSeconds) {
+    public ElasticIndexCleaner(ElasticConnection elasticConnection, NodeStore nodeStore,
+        int thresholdInSeconds) {
         this.elasticConnection = elasticConnection;
         this.nodeStore = nodeStore;
         this.indexPrefix = elasticConnection.getIndexPrefix();
@@ -81,34 +83,48 @@ public class ElasticIndexCleaner implements Runnable {
             NodeState root = nodeStore.getRoot();
 
             IndicesResponse indicesRes = elasticConnection.getClient()
-                    .cat().indices(r -> r
-                            .index(elasticConnection.getIndexPrefix() + "*")
-                            .expandWildcards(ExpandWildcard.Open));
+                                                          .cat().indices(r -> r
+                    .index(elasticConnection.getIndexPrefix() + "*")
+                    .expandWildcards(ExpandWildcard.Open));
             String[] remoteIndices = indicesRes.valueBody()
-                    .stream().map(IndicesRecord::index).toArray(String[]::new);
+                                               .stream().map(IndicesRecord::index)
+                                               .toArray(String[]::new);
             if (remoteIndices.length == 0) {
                 LOG.debug("No remote index found with prefix {}", indexPrefix);
                 return;
             }
             // remove entry of remote index names which don't exist now
             List<String> externallyDeletedIndices = danglingRemoteIndicesMap.keySet().stream().
-                    filter(index -> Arrays.stream(remoteIndices).noneMatch(remoteIndex -> remoteIndex.equals(index))).collect(Collectors.toList());
+                                                                            filter(
+                                                                                index -> Arrays.stream(
+                                                                                                   remoteIndices)
+                                                                                               .noneMatch(
+                                                                                                   remoteIndex -> remoteIndex.equals(
+                                                                                                       index)))
+                                                                            .collect(
+                                                                                Collectors.toList());
             externallyDeletedIndices.forEach(danglingRemoteIndicesMap::remove);
             Set<String> existingIndices = new HashSet<>();
             AtomicBoolean shouldReturnSilently = new AtomicBoolean(false);
-            root.getChildNode(INDEX_DEFINITIONS_NAME).getChildNodeEntries().forEach(childNodeEntry -> {
-                PropertyState typeProperty = childNodeEntry.getNodeState().getProperty(IndexConstants.TYPE_PROPERTY_NAME);
-                String typeValue = typeProperty != null ? typeProperty.getValue(Type.STRING) : "";
+            root.getChildNode(INDEX_DEFINITIONS_NAME).getChildNodeEntries()
+                .forEach(childNodeEntry -> {
+                    PropertyState typeProperty = childNodeEntry.getNodeState().getProperty(
+                        IndexConstants.TYPE_PROPERTY_NAME);
+                    String typeValue =
+                        typeProperty != null ? typeProperty.getValue(Type.STRING) : "";
                 /*
                 If index type is "elasticsearch" or "disabled", we try to find remote index name. In case of disabled lucene or
                 property indices, the remote index name would be null. So only elasticsearch indices are affected here.
                  */
-                if (ElasticIndexDefinition.TYPE_ELASTICSEARCH.equals(typeValue) || "disabled".equals(typeValue)) {
-                    String indexPath = "/" + INDEX_DEFINITIONS_NAME + "/" + childNodeEntry.getName();
-                    String remoteIndexName = getRemoteIndexName(indexPrefix, childNodeEntry.getNodeState(), indexPath);
-                    if (remoteIndexName != null) {
-                        existingIndices.add(remoteIndexName);
-                    } else if (ElasticIndexDefinition.TYPE_ELASTICSEARCH.equals(typeValue)){
+                    if (ElasticIndexDefinition.TYPE_ELASTICSEARCH.equals(typeValue)
+                        || "disabled".equals(typeValue)) {
+                        String indexPath =
+                            "/" + INDEX_DEFINITIONS_NAME + "/" + childNodeEntry.getName();
+                        String remoteIndexName = getRemoteIndexName(indexPrefix,
+                            childNodeEntry.getNodeState(), indexPath);
+                        if (remoteIndexName != null) {
+                            existingIndices.add(remoteIndexName);
+                        } else if (ElasticIndexDefinition.TYPE_ELASTICSEARCH.equals(typeValue)) {
                         /*
                             Didn't check for disabled indexes in this "else if" condition because an index could be disabled at three stages
                             and the following should hold -
@@ -120,11 +136,13 @@ public class ElasticIndexCleaner implements Runnable {
                             case of some error in indexing and after interrupting and pausing indexing lane. So in this case it should be safe to
                             delete the partially created remote index as it should be recreated by reindexing.
                          */
-                        LOG.info("Could not obtain remote index name for {}. Won't delete any index.", childNodeEntry.getName());
-                        shouldReturnSilently.set(true);
+                            LOG.info(
+                                "Could not obtain remote index name for {}. Won't delete any index.",
+                                childNodeEntry.getName());
+                            shouldReturnSilently.set(true);
+                        }
                     }
-                }
-            });
+                });
             if (shouldReturnSilently.get()) {
                 return;
             }
@@ -133,7 +151,8 @@ public class ElasticIndexCleaner implements Runnable {
                 if (!existingIndices.contains(remoteIndexName)) {
                     Long curTime = System.currentTimeMillis();
                     Long oldTime = danglingRemoteIndicesMap.putIfAbsent(remoteIndexName, curTime);
-                    if (threshold == 0 || (oldTime != null && curTime - oldTime >= TimeUnit.SECONDS.toMillis(threshold))) {
+                    if (threshold == 0 || (oldTime != null
+                        && curTime - oldTime >= TimeUnit.SECONDS.toMillis(threshold))) {
                         indicesToDelete.add(remoteIndexName);
                         danglingRemoteIndicesMap.remove(remoteIndexName);
                     }
@@ -141,8 +160,9 @@ public class ElasticIndexCleaner implements Runnable {
                     danglingRemoteIndicesMap.remove(remoteIndexName);
                 }
             }
-            if(!indicesToDelete.isEmpty()) {
-                DeleteIndexResponse response = elasticConnection.getClient().indices().delete(i -> i.index(indicesToDelete));
+            if (!indicesToDelete.isEmpty()) {
+                DeleteIndexResponse response = elasticConnection.getClient().indices().delete(
+                    i -> i.index(indicesToDelete));
                 LOG.info("Deleting remote indices {}", indicesToDelete);
                 if (!response.acknowledged()) {
                     LOG.error("Could not delete remote indices " + indicesToDelete);
@@ -153,18 +173,22 @@ public class ElasticIndexCleaner implements Runnable {
         }
     }
 
-    protected static @Nullable String getRemoteIndexName(String indexPrefix, NodeState indexNode, String indexPath) {
+    protected static @Nullable String getRemoteIndexName(String indexPrefix, NodeState indexNode,
+        String indexPath) {
         PropertyState nodeTypeProp = indexNode.getProperty(JcrConstants.JCR_PRIMARYTYPE);
-        if (nodeTypeProp == null || !IndexConstants.INDEX_DEFINITIONS_NODE_TYPE.equals(nodeTypeProp.getValue(Type.STRING))) {
+        if (nodeTypeProp == null || !IndexConstants.INDEX_DEFINITIONS_NODE_TYPE.equals(
+            nodeTypeProp.getValue(Type.STRING))) {
             throw new IllegalArgumentException("Not an index definition node state");
         }
         PropertyState type = indexNode.getProperty(IndexConstants.TYPE_PROPERTY_NAME);
         String typeValue = type != null ? type.getValue(Type.STRING) : "";
-        if (!ElasticIndexDefinition.TYPE_ELASTICSEARCH.equals(typeValue) && !"disabled".equals(typeValue)) {
+        if (!ElasticIndexDefinition.TYPE_ELASTICSEARCH.equals(typeValue) && !"disabled".equals(
+            typeValue)) {
             throw new IllegalArgumentException("Not an elastic index node");
         }
         try {
-            return ElasticIndexNameHelper.getRemoteIndexName(indexPrefix, indexPath, indexNode.builder());
+            return ElasticIndexNameHelper.getRemoteIndexName(indexPrefix, indexPath,
+                indexNode.builder());
         } catch (IllegalStateException ise) { // this happens when there is no seed for the index
             return null;
         }

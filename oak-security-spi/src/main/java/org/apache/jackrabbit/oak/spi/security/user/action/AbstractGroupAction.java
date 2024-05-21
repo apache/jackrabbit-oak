@@ -16,20 +16,20 @@
  */
 package org.apache.jackrabbit.oak.spi.security.user.action;
 
+import javax.jcr.RepositoryException;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.jetbrains.annotations.NotNull;
 
-import javax.jcr.RepositoryException;
-
 /**
- * Abstract implementation of the {@code GroupAction} interface that
- * doesn't perform any action. This is a convenience implementation allowing
- * subclasses to only implement methods that need extra attention.
+ * Abstract implementation of the {@code GroupAction} interface that doesn't perform any action.
+ * This is a convenience implementation allowing subclasses to only implement methods that need
+ * extra attention.
  */
-public abstract class AbstractGroupAction extends AbstractAuthorizableAction implements GroupAction {
+public abstract class AbstractGroupAction extends AbstractAuthorizableAction implements
+    GroupAction {
 
     //-------------------------------------------------< GroupAction >---
 
@@ -37,7 +37,8 @@ public abstract class AbstractGroupAction extends AbstractAuthorizableAction imp
      * Doesn't perform any action.
      */
     @Override
-    public void onMemberAdded(@NotNull Group group, @NotNull Authorizable member, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException {
+    public void onMemberAdded(@NotNull Group group, @NotNull Authorizable member,
+        @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException {
         // nothing to do
     }
 
@@ -45,7 +46,9 @@ public abstract class AbstractGroupAction extends AbstractAuthorizableAction imp
      * Doesn't perform any action.
      */
     @Override
-    public void onMembersAdded(@NotNull Group group, @NotNull Iterable<String> memberIds, @NotNull Iterable<String> failedIds, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException {
+    public void onMembersAdded(@NotNull Group group, @NotNull Iterable<String> memberIds,
+        @NotNull Iterable<String> failedIds, @NotNull Root root,
+        @NotNull NamePathMapper namePathMapper) throws RepositoryException {
         // nothing to do
     }
 
@@ -53,7 +56,9 @@ public abstract class AbstractGroupAction extends AbstractAuthorizableAction imp
      * Doesn't perform any action.
      */
     @Override
-    public void onMembersAddedContentId(@NotNull Group group, @NotNull Iterable<String> memberContentIds, @NotNull Iterable<String> failedIds, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException {
+    public void onMembersAddedContentId(@NotNull Group group,
+        @NotNull Iterable<String> memberContentIds, @NotNull Iterable<String> failedIds,
+        @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException {
         // nothing to do
     }
 
@@ -61,7 +66,8 @@ public abstract class AbstractGroupAction extends AbstractAuthorizableAction imp
      * Doesn't perform any action.
      */
     @Override
-    public void onMemberRemoved(@NotNull Group group, @NotNull Authorizable member, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException {
+    public void onMemberRemoved(@NotNull Group group, @NotNull Authorizable member,
+        @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException {
         // nothing to do
     }
 
@@ -69,7 +75,9 @@ public abstract class AbstractGroupAction extends AbstractAuthorizableAction imp
      * Doesn't perform any action.
      */
     @Override
-    public void onMembersRemoved(@NotNull Group group, @NotNull Iterable<String> memberIds, @NotNull Iterable<String> failedIds, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException {
+    public void onMembersRemoved(@NotNull Group group, @NotNull Iterable<String> memberIds,
+        @NotNull Iterable<String> failedIds, @NotNull Root root,
+        @NotNull NamePathMapper namePathMapper) throws RepositoryException {
         // nothing to do
     }
 }

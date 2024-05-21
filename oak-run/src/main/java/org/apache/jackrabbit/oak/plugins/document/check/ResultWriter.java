@@ -16,11 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.check;
 
+import static org.apache.jackrabbit.oak.plugins.document.check.Result.END;
+
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.function.Consumer;
-
-import static org.apache.jackrabbit.oak.plugins.document.check.Result.END;
 
 /**
  * <code>ResultWriter</code>...
@@ -32,7 +32,7 @@ public final class ResultWriter implements Callable<Void> {
     private final Consumer<String> resultConsumer;
 
     public ResultWriter(BlockingQueue<Result> results,
-                        Consumer<String> resultConsumer) {
+        Consumer<String> resultConsumer) {
         this.results = results;
         this.resultConsumer = resultConsumer;
     }

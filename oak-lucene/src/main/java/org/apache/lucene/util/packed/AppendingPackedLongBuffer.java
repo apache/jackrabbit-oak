@@ -27,78 +27,80 @@ package org.apache.lucene.util.packed;
 
 
 /**
- * Utility class to buffer a list of signed longs in memory. This class only
- * supports appending and is optimized for non-negative numbers with a uniform distribution over a fixed (limited) range
+ * Utility class to buffer a list of signed longs in memory. This class only supports appending and
+ * is optimized for non-negative numbers with a uniform distribution over a fixed (limited) range
  *
  * @lucene.internal
  */
 public final class AppendingPackedLongBuffer extends AbstractAppendingLongBuffer {
 
-  /**{@link AppendingPackedLongBuffer}
-   * @param initialPageCount        the initial number of pages
-   * @param pageSize                the size of a single page
-   * @param acceptableOverheadRatio an acceptable overhead ratio per value
-   */
-  public AppendingPackedLongBuffer(int initialPageCount, int pageSize, float acceptableOverheadRatio) {
-    super(initialPageCount, pageSize, acceptableOverheadRatio);
-  }
-
-  /**
-   * Create an {@link AppendingPackedLongBuffer} with initialPageCount=16,
-   * pageSize=1024 and acceptableOverheadRatio={@link PackedInts#DEFAULT}
-   */
-  public AppendingPackedLongBuffer() {
-    this(16, 1024, PackedInts.DEFAULT);
-  }
-
-  /**
-   * Create an {@link AppendingPackedLongBuffer} with initialPageCount=16,
-   * pageSize=1024
-   */
-  public AppendingPackedLongBuffer(float acceptableOverheadRatio) {
-    this(16, 1024, acceptableOverheadRatio);
-  }
-
-  @Override
-  long get(int block, int element) {
-    if (block == valuesOff) {
-      return pending[element];
-    } else {
-      return values[block].get(element);
-    }
-  }
-
-  @Override
-  int get(int block, int element, long[] arr, int off, int len) {
-    if (block == valuesOff) {
-      int sysCopyToRead = Math.min(len, pendingOff - element);
-      System.arraycopy(pending, element, arr, off, sysCopyToRead);
-      return sysCopyToRead;
-    } else {
-      /* packed block */
-      return values[block].get(element, arr, off, len);
-    }
-  }
-
-  @Override
-  void packPendingValues() {
-    // compute max delta
-    long minValue = pending[0];
-    long maxValue = pending[0];
-    for (int i = 1; i < pendingOff; ++i) {
-      minValue = Math.min(minValue, pending[i]);
-      maxValue = Math.max(maxValue, pending[i]);
+    /**
+     * {@link AppendingPackedLongBuffer}
+     *
+     * @param initialPageCount        the initial number of pages
+     * @param pageSize                the size of a single page
+     * @param acceptableOverheadRatio an acceptable overhead ratio per value
+     */
+    public AppendingPackedLongBuffer(int initialPageCount, int pageSize,
+        float acceptableOverheadRatio) {
+        super(initialPageCount, pageSize, acceptableOverheadRatio);
     }
 
-
-    // build a new packed reader
-    final int bitsRequired = minValue < 0 ? 64 : PackedInts.bitsRequired(maxValue);
-    final PackedInts.Mutable mutable = PackedInts.getMutable(pendingOff, bitsRequired, acceptableOverheadRatio);
-    for (int i = 0; i < pendingOff; ) {
-      i += mutable.set(i, pending, i, pendingOff - i);
+    /**
+     * Create an {@link AppendingPackedLongBuffer} with initialPageCount=16, pageSize=1024 and
+     * acceptableOverheadRatio={@link PackedInts#DEFAULT}
+     */
+    public AppendingPackedLongBuffer() {
+        this(16, 1024, PackedInts.DEFAULT);
     }
-    values[valuesOff] = mutable;
 
-  }
+    /**
+     * Create an {@link AppendingPackedLongBuffer} with initialPageCount=16, pageSize=1024
+     */
+    public AppendingPackedLongBuffer(float acceptableOverheadRatio) {
+        this(16, 1024, acceptableOverheadRatio);
+    }
+
+    @Override
+    long get(int block, int element) {
+        if (block == valuesOff) {
+            return pending[element];
+        } else {
+            return values[block].get(element);
+        }
+    }
+
+    @Override
+    int get(int block, int element, long[] arr, int off, int len) {
+        if (block == valuesOff) {
+            int sysCopyToRead = Math.min(len, pendingOff - element);
+            System.arraycopy(pending, element, arr, off, sysCopyToRead);
+            return sysCopyToRead;
+        } else {
+            /* packed block */
+            return values[block].get(element, arr, off, len);
+        }
+    }
+
+    @Override
+    void packPendingValues() {
+        // compute max delta
+        long minValue = pending[0];
+        long maxValue = pending[0];
+        for (int i = 1; i < pendingOff; ++i) {
+            minValue = Math.min(minValue, pending[i]);
+            maxValue = Math.max(maxValue, pending[i]);
+        }
+
+        // build a new packed reader
+        final int bitsRequired = minValue < 0 ? 64 : PackedInts.bitsRequired(maxValue);
+        final PackedInts.Mutable mutable = PackedInts.getMutable(pendingOff, bitsRequired,
+            acceptableOverheadRatio);
+        for (int i = 0; i < pendingOff; ) {
+            i += mutable.set(i, pending, i, pendingOff - i);
+        }
+        values[valuesOff] = mutable;
+
+    }
 
 }

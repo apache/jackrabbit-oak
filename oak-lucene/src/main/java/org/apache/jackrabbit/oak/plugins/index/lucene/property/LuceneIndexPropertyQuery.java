@@ -22,7 +22,6 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.property;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexTracker;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexNode;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.PathStoredFieldVisitor;
@@ -38,6 +37,7 @@ import org.slf4j.LoggerFactory;
  * Performs simple property=value query against a Lucene index
  */
 public class LuceneIndexPropertyQuery implements PropertyQuery {
+
     private static final Logger log = LoggerFactory.getLogger(LuceneIndexPropertyQuery.class);
     private final IndexTracker tracker;
     private final String indexPath;
@@ -66,7 +66,7 @@ public class LuceneIndexPropertyQuery implements PropertyQuery {
                 }
             } catch (IOException e) {
                 log.warn("Error occurred while checking index {} for unique value " +
-                        "[{}] for [{}]", indexPath,value, propertyRelativePath, e);
+                    "[{}] for [{}]", indexPath, value, propertyRelativePath, e);
             } finally {
                 indexNode.release();
             }

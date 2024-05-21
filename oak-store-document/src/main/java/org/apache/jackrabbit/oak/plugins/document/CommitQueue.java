@@ -30,9 +30,7 @@ import java.util.TreeSet;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.jackrabbit.guava.common.collect.Maps;
-
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -51,7 +49,8 @@ final class CommitQueue {
      */
     static final long DEFAULT_SUSPEND_TIMEOUT = 60_000;
 
-    private final SortedMap<Revision, Entry> commits = new TreeMap<Revision, Entry>(StableRevisionComparator.INSTANCE);
+    private final SortedMap<Revision, Entry> commits = new TreeMap<Revision, Entry>(
+        StableRevisionComparator.INSTANCE);
 
     /**
      * Map of currently suspended commits until a given Revision is visible.
@@ -64,7 +63,7 @@ final class CommitQueue {
      * The default stats collector is a noop.
      */
     private DocumentNodeStoreStatsCollector statsCollector
-            = new DocumentNodeStoreStats(StatisticsProvider.NOOP);
+        = new DocumentNodeStoreStats(StatisticsProvider.NOOP);
 
     private long suspendTimeout = getSuspendTimeout(DEFAULT_SUSPEND_TIMEOUT);
 
@@ -129,9 +128,9 @@ final class CommitQueue {
             suspendUntilAll(revisions, suspendTimeout);
         } catch (InterruptedException e) {
             LOG.debug("The suspended thread has been interrupted", e);
-        }        
+        }
     }
-    
+
     /**
      * Suspends until for each of given revisions one of the following happens:
      * <ul>
@@ -141,14 +140,14 @@ final class CommitQueue {
      *     <li>the thread is interrupted</li>
      * </ul>
      *
-     * @param revisions the revisions to become visible.
+     * @param revisions            the revisions to become visible.
      * @param suspendTimeoutMillis how long to suspend at max
-     * @throws InterruptedException thrown when this thread has its interrupted
-     * status set or was interrupted while waiting. The current thread's
-     * interrupted status is cleared when this exception is thrown.
+     * @throws InterruptedException thrown when this thread has its interrupted status set or was
+     *                              interrupted while waiting. The current thread's interrupted
+     *                              status is cleared when this exception is thrown.
      */
-    void suspendUntilAll(@NotNull Set<Revision> revisions, long suspendTimeoutMillis) 
-            throws InterruptedException {
+    void suspendUntilAll(@NotNull Set<Revision> revisions, long suspendTimeoutMillis)
+        throws InterruptedException {
         Semaphore s;
         int addedRevisions;
         synchronized (suspendedCommits) {
@@ -174,8 +173,8 @@ final class CommitQueue {
     }
 
     /**
-     * Called when the head revision accessible via the {@link RevisionContext}
-     * passed to constructor changed.
+     * Called when the head revision accessible via the {@link RevisionContext} passed to
+     * constructor changed.
      */
     void headRevisionChanged() {
         notifySuspendedCommits();
@@ -191,8 +190,7 @@ final class CommitQueue {
     }
 
     /**
-     * Sets the suspend timeout in milliseconds.
-     * See also {@link #suspendUntilAll(Set)}.
+     * Sets the suspend timeout in milliseconds. See also {@link #suspendUntilAll(Set)}.
      *
      * @param timeout the timeout to set.
      */
@@ -215,8 +213,8 @@ final class CommitQueue {
     //------------------------< internal >--------------------------------------
 
     /**
-     * Returns the suspend timeout that should be used. The passed suspend
-     * timeout is used / returned, unless overridden by a system property.
+     * Returns the suspend timeout that should be used. The passed suspend timeout is used /
+     * returned, unless overridden by a system property.
      *
      * @param suspendTimeout timeout, unless overridden by system property.
      * @return the effective suspend timeout.
@@ -234,7 +232,8 @@ final class CommitQueue {
             Iterator<SuspendedCommit> it = suspendedCommits.values().iterator();
             while (it.hasNext()) {
                 SuspendedCommit suspended = it.next();
-                if (suspended.removeRevisionsVisibleFrom(headRevision) && suspended.revisions.isEmpty()) {
+                if (suspended.removeRevisionsVisibleFrom(headRevision)
+                    && suspended.revisions.isEmpty()) {
                     it.remove();
                 }
             }
@@ -270,7 +269,7 @@ final class CommitQueue {
     }
 
     private void waitUntilHeadOfQueue(@NotNull Revision rev,
-                                      @NotNull Callback c) {
+        @NotNull Callback c) {
         assert !commits.isEmpty();
 
         boolean isHead;
@@ -291,7 +290,8 @@ final class CommitQueue {
             synchronized (this) {
                 commits.remove(rev);
                 try {
-                    LOG.debug("removed {}, head is now {}", rev, commits.isEmpty() ? null : commits.firstKey());
+                    LOG.debug("removed {}, head is now {}", rev,
+                        commits.isEmpty() ? null : commits.firstKey());
                 } finally {
                     // notify next if there is any
                     notifyHead();
@@ -318,8 +318,8 @@ final class CommitQueue {
         private final Revision revision;
 
         /**
-         * The latch. Initially set to 1, so that release() needs to be called
-         * once for await() to continue.
+         * The latch. Initially set to 1, so that release() needs to be called once for await() to
+         * continue.
          */
         private final CountDownLatch latch = new CountDownLatch(1);
 
@@ -341,7 +341,7 @@ final class CommitQueue {
          */
         long await() {
             long start = System.nanoTime();
-            for (;;) {
+            for (; ; ) {
                 try {
                     LOG.debug("awaiting {}", revision);
                     latch.await();

@@ -30,52 +30,52 @@ import org.apache.lucene.util.BytesRef;
 
 /**
  * <p>
- * Field that stores
- * a per-document {@link BytesRef} value.  If values may be shared it's 
- * better to use {@link SortedDocValuesField}.  Here's an example usage:
- * 
+ * Field that stores a per-document {@link BytesRef} value.  If values may be shared it's better to
+ * use {@link SortedDocValuesField}.  Here's an example usage:
+ *
  * <pre class="prettyprint">
  *   document.add(new StraightBytesDocValuesField(name, new BytesRef("hello")));
  * </pre>
- * 
+ *
  * <p>
- * If you also need to store the value, you should add a
- * separate {@link StoredField} instance.
- * 
+ * If you also need to store the value, you should add a separate {@link StoredField} instance.
+ *
  * @see BinaryDocValues
  * @deprecated Use {@link BinaryDocValuesField} instead.
- * */
+ */
 @Deprecated
 public class StraightBytesDocValuesField extends BinaryDocValuesField {
 
-  /**
-   * Type for direct bytes DocValues: all with the same length
-   */
-  public static final FieldType TYPE_FIXED_LEN = BinaryDocValuesField.TYPE;
+    /**
+     * Type for direct bytes DocValues: all with the same length
+     */
+    public static final FieldType TYPE_FIXED_LEN = BinaryDocValuesField.TYPE;
 
-  /**
-   * Type for direct bytes DocValues: can have variable lengths
-   */
-  public static final FieldType TYPE_VAR_LEN = BinaryDocValuesField.TYPE;
+    /**
+     * Type for direct bytes DocValues: can have variable lengths
+     */
+    public static final FieldType TYPE_VAR_LEN = BinaryDocValuesField.TYPE;
 
-  /**
-   * Create a new fixed or variable length DocValues field.
-   * @param name field name
-   * @param bytes binary content
-   * @throws IllegalArgumentException if the field name is null
-   */
-  public StraightBytesDocValuesField(String name, BytesRef bytes) {
-    super(name, bytes);
-  }
+    /**
+     * Create a new fixed or variable length DocValues field.
+     *
+     * @param name  field name
+     * @param bytes binary content
+     * @throws IllegalArgumentException if the field name is null
+     */
+    public StraightBytesDocValuesField(String name, BytesRef bytes) {
+        super(name, bytes);
+    }
 
-  /**
-   * Create a new fixed or variable length direct DocValues field.
-   * @param name field name
-   * @param bytes binary content
-   * @param isFixedLength (ignored)
-   * @throws IllegalArgumentException if the field name is null
-   */
-  public StraightBytesDocValuesField(String name, BytesRef bytes, boolean isFixedLength) {
-    super(name, bytes);
-  }
+    /**
+     * Create a new fixed or variable length direct DocValues field.
+     *
+     * @param name          field name
+     * @param bytes         binary content
+     * @param isFixedLength (ignored)
+     * @throws IllegalArgumentException if the field name is null
+     */
+    public StraightBytesDocValuesField(String name, BytesRef bytes, boolean isFixedLength) {
+        super(name, bytes);
+    }
 }

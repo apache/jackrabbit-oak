@@ -19,6 +19,12 @@
 
 package org.apache.jackrabbit.oak.segment.file;
 
+import static org.apache.jackrabbit.oak.segment.SegmentId.isDataSegmentId;
+
+import java.util.Set;
+import java.util.UUID;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.SegmentTracker;
@@ -27,24 +33,19 @@ import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Set;
-import java.util.UUID;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
-
-import static org.apache.jackrabbit.oak.segment.SegmentId.isDataSegmentId;
-
 class DefaultCleanupContext implements CleanupContext {
+
     private final @NotNull SegmentTracker segmentTracker;
     private final @NotNull Predicate<GCGeneration> old;
     private final @Nullable UUID rootSegmentUUID;
     private boolean aheadOfRoot;
 
-    DefaultCleanupContext(@NotNull SegmentTracker tracker, @NotNull Predicate<GCGeneration> old, @NotNull String compactedRoot) {
+    DefaultCleanupContext(@NotNull SegmentTracker tracker, @NotNull Predicate<GCGeneration> old,
+        @NotNull String compactedRoot) {
         this.segmentTracker = tracker;
         this.old = old;
 
-        RecordId rootId =  RecordId.fromString(tracker, compactedRoot);
+        RecordId rootId = RecordId.fromString(tracker, compactedRoot);
         if (rootId.equals(RecordId.NULL)) {
             rootSegmentUUID = null;
             aheadOfRoot = false;
@@ -69,34 +70,36 @@ class DefaultCleanupContext implements CleanupContext {
     }
 
     /**
-     * Special reclamation for unused future segments. Aborting compaction will lead to persisted, but unused
-     * TAR entries with higher generation than the root and set compacted flag. Due to incremental compaction,
-     * a purely generational approach for this cleanup is no longer feasible as segments of higher generation
-     * than the root may be part of a valid repository tree. Observation: compacted segments are unused iff
-     * they are persisted after the last compacted root. This context relies on the cleanup algorithm to mark
-     * TAR entries in reverse order and will consider each compacted segment to be reclaimable until the root
-     * has been encountered, i.e. as long as {@code aheadOfRoot} is true.
+     * Special reclamation for unused future segments. Aborting compaction will lead to persisted,
+     * but unused TAR entries with higher generation than the root and set compacted flag. Due to
+     * incremental compaction, a purely generational approach for this cleanup is no longer feasible
+     * as segments of higher generation than the root may be part of a valid repository tree.
+     * Observation: compacted segments are unused iff they are persisted after the last compacted
+     * root. This context relies on the cleanup algorithm to mark TAR entries in reverse order and
+     * will consider each compacted segment to be reclaimable until the root has been encountered,
+     * i.e. as long as {@code aheadOfRoot} is true.
      */
     private boolean isDanglingFutureSegment(UUID id, GCGeneration generation) {
         return (aheadOfRoot &= !id.equals(rootSegmentUUID)) && generation.isCompacted();
     }
 
     /**
-     * Returns IDs of directly referenced segments. Since reference-based reclamation
-     * is only used for bulk segments, data segment IDs are filtered out.
+     * Returns IDs of directly referenced segments. Since reference-based reclamation is only used
+     * for bulk segments, data segment IDs are filtered out.
      */
     @Override
     public Set<UUID> initialReferences() {
         return segmentTracker.getReferencedSegmentIds().stream()
-                .filter(SegmentId::isBulkSegmentId)
-                .map(SegmentId::asUUID)
-                .collect(Collectors.toSet());
+                             .filter(SegmentId::isBulkSegmentId)
+                             .map(SegmentId::asUUID)
+                             .collect(Collectors.toSet());
     }
 
     @Override
     public boolean shouldReclaim(UUID id, GCGeneration generation, boolean referenced) {
-        return isDanglingFutureSegment(id, generation) || isUnreferencedBulkSegment(id, referenced) ||
-                isOldDataSegment(id, generation);
+        return isDanglingFutureSegment(id, generation) || isUnreferencedBulkSegment(id, referenced)
+            ||
+            isOldDataSegment(id, generation);
     }
 
     @Override

@@ -23,9 +23,8 @@ import javax.management.MBeanOperationInfo;
 
 public enum ImpactOption {
     /**
-     * Indicates that the operation is a write-like,
-     * and would modify the MBean in some way, typically by writing some value
-     * or changing a configuration.
+     * Indicates that the operation is a write-like, and would modify the MBean in some way,
+     * typically by writing some value or changing a configuration.
      */
     ACTION(MBeanOperationInfo.ACTION),
     /**
@@ -33,8 +32,7 @@ public enum ImpactOption {
      */
     ACTION_INFO(MBeanOperationInfo.ACTION_INFO),
     /**
-     * Indicates that the operation is read-like,
-     * it basically returns information.
+     * Indicates that the operation is read-like, it basically returns information.
      */
     INFO(MBeanOperationInfo.INFO),
     /**
@@ -42,7 +40,7 @@ public enum ImpactOption {
      */
     UNKNOWN(MBeanOperationInfo.UNKNOWN);
 
-    public int value(){
+    public int value() {
         return value;
     }
 

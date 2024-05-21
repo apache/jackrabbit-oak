@@ -16,25 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.privilege;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.primitives.Longs;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
-import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
-import org.junit.Test;
-import org.mockito.Mockito;
-
-import javax.jcr.security.Privilege;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits.BUILT_IN;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -47,12 +28,31 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import javax.jcr.security.Privilege;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.primitives.Longs;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
+import org.junit.Test;
+import org.mockito.Mockito;
+
 public class PrivilegeBitsTest implements PrivilegeConstants {
 
     private static final long NO_PRIVILEGE = 0;
     private static final PrivilegeBits READ_NODES_PRIVILEGE_BITS = BUILT_IN.get(REP_READ_NODES);
 
-    private static final long[] LONGS = new long[]{1, 2, 13, 199, 512, Long.MAX_VALUE / 2, Long.MAX_VALUE - 1, Long.MAX_VALUE};
+    private static final long[] LONGS = new long[]{1, 2, 13, 199, 512, Long.MAX_VALUE / 2,
+        Long.MAX_VALUE - 1, Long.MAX_VALUE};
 
     private static long getLongValue(PrivilegeBits bits) {
         String s = bits.toString();
@@ -237,7 +237,7 @@ public class PrivilegeBitsTest implements PrivilegeConstants {
         PrivilegeBits bits = PrivilegeBits.NEXT_AFTER_BUILT_INS;
         PrivilegeBits toTest = PrivilegeBits.getInstance(BUILT_IN.get(PrivilegeConstants.JCR_READ));
 
-        for (int i = 0; i<100; i++) {
+        for (int i = 0; i < 100; i++) {
             bits = bits.nextBits();
             assertFalse(toTest.add(bits).isBuiltin());
         }
@@ -339,7 +339,8 @@ public class PrivilegeBitsTest implements PrivilegeConstants {
 
     @Test(expected = UnsupportedOperationException.class)
     public void testAddModifiableToUnmodifiable() {
-        PrivilegeBits pb = PrivilegeBits.getInstance(PropertyStates.createProperty("any", Longs.asList(1, 16, 512), Type.LONGS));
+        PrivilegeBits pb = PrivilegeBits.getInstance(
+            PropertyStates.createProperty("any", Longs.asList(1, 16, 512), Type.LONGS));
         pb.unmodifiable().add(READ_NODES_PRIVILEGE_BITS.modifiable());
     }
 
@@ -576,8 +577,8 @@ public class PrivilegeBitsTest implements PrivilegeConstants {
 
             mod = PrivilegeBits.getInstance(nxt);
             PrivilegeBits other = PrivilegeBits.getInstance();
-            for (int j = 0; j < pbs.size()/2; j++) {
-                other.add(pbs.get(random.nextInt(pbs.size()-1)));
+            for (int j = 0; j < pbs.size() / 2; j++) {
+                other.add(pbs.get(random.nextInt(pbs.size() - 1)));
             }
             mod.add(other);
             mod.retain(other);
@@ -668,8 +669,8 @@ public class PrivilegeBitsTest implements PrivilegeConstants {
         pb.add(BUILT_IN.get(PrivilegeConstants.JCR_NODE_TYPE_MANAGEMENT));
 
         PrivilegeBits pb2 = PrivilegeBits.getInstance(READ_NODES_PRIVILEGE_BITS,
-                BUILT_IN.get(PrivilegeConstants.JCR_READ_ACCESS_CONTROL),
-                BUILT_IN.get(PrivilegeConstants.JCR_NODE_TYPE_MANAGEMENT));
+            BUILT_IN.get(PrivilegeConstants.JCR_READ_ACCESS_CONTROL),
+            BUILT_IN.get(PrivilegeConstants.JCR_NODE_TYPE_MANAGEMENT));
 
         assertEquivalent(pb, pb2);
     }
@@ -709,7 +710,8 @@ public class PrivilegeBitsTest implements PrivilegeConstants {
 
     @Test
     public void testGetInstanceFromMvPropertyState() {
-        PropertyState property = PropertyStates.createProperty("name", ImmutableSet.of(Long.MAX_VALUE, Long.MIN_VALUE / 2), Type.LONGS);
+        PropertyState property = PropertyStates.createProperty("name",
+            ImmutableSet.of(Long.MAX_VALUE, Long.MIN_VALUE / 2), Type.LONGS);
 
         PrivilegeBits pb = PrivilegeBits.getInstance(property);
 
@@ -747,7 +749,9 @@ public class PrivilegeBitsTest implements PrivilegeConstants {
 
     @Test(expected = IllegalArgumentException.class)
     public void testGetInstanceFromNegativeLong() {
-        PrivilegeBits.getInstance(PropertyStates.createProperty("name", Collections.singleton(NO_PRIVILEGE-1), Type.LONGS));
+        PrivilegeBits.getInstance(
+            PropertyStates.createProperty("name", Collections.singleton(NO_PRIVILEGE - 1),
+                Type.LONGS));
     }
 
     @Test
@@ -789,8 +793,10 @@ public class PrivilegeBitsTest implements PrivilegeConstants {
         simple.put(PrivilegeBits.EMPTY, Permissions.NO_PERMISSION);
         simple.put(PrivilegeBits.BUILT_IN.get(JCR_READ), Permissions.READ);
         simple.put(PrivilegeBits.BUILT_IN.get(JCR_LOCK_MANAGEMENT), Permissions.LOCK_MANAGEMENT);
-        simple.put(PrivilegeBits.BUILT_IN.get(JCR_VERSION_MANAGEMENT), Permissions.VERSION_MANAGEMENT);
-        simple.put(PrivilegeBits.BUILT_IN.get(JCR_READ_ACCESS_CONTROL), Permissions.READ_ACCESS_CONTROL);
+        simple.put(PrivilegeBits.BUILT_IN.get(JCR_VERSION_MANAGEMENT),
+            Permissions.VERSION_MANAGEMENT);
+        simple.put(PrivilegeBits.BUILT_IN.get(JCR_READ_ACCESS_CONTROL),
+            Permissions.READ_ACCESS_CONTROL);
         simple.put(provider.getBits(JCR_MODIFY_ACCESS_CONTROL), Permissions.MODIFY_ACCESS_CONTROL);
         simple.put(provider.getBits(REP_READ_NODES), Permissions.READ_NODE);
         simple.put(provider.getBits(REP_READ_PROPERTIES), Permissions.READ_PROPERTY);
@@ -799,8 +805,10 @@ public class PrivilegeBitsTest implements PrivilegeConstants {
         simple.put(provider.getBits(REP_ADD_PROPERTIES), Permissions.ADD_PROPERTY);
         simple.put(provider.getBits(REP_ALTER_PROPERTIES), Permissions.MODIFY_PROPERTY);
         simple.put(provider.getBits(REP_REMOVE_PROPERTIES), Permissions.REMOVE_PROPERTY);
-        simple.put(provider.getBits(REP_INDEX_DEFINITION_MANAGEMENT), Permissions.INDEX_DEFINITION_MANAGEMENT);
-        simple.put(provider.getBits(JCR_NODE_TYPE_DEFINITION_MANAGEMENT), Permissions.NODE_TYPE_DEFINITION_MANAGEMENT);
+        simple.put(provider.getBits(REP_INDEX_DEFINITION_MANAGEMENT),
+            Permissions.INDEX_DEFINITION_MANAGEMENT);
+        simple.put(provider.getBits(JCR_NODE_TYPE_DEFINITION_MANAGEMENT),
+            Permissions.NODE_TYPE_DEFINITION_MANAGEMENT);
         simple.put(provider.getBits(JCR_NAMESPACE_MANAGEMENT), Permissions.NAMESPACE_MANAGEMENT);
         simple.put(provider.getBits(REP_PRIVILEGE_MANAGEMENT), Permissions.PRIVILEGE_MANAGEMENT);
         simple.put(provider.getBits(JCR_RETENTION_MANAGEMENT), Permissions.RETENTION_MANAGEMENT);
@@ -811,11 +819,14 @@ public class PrivilegeBitsTest implements PrivilegeConstants {
         for (Map.Entry<PrivilegeBits, Long> entry : simple.entrySet()) {
             long expected = entry.getValue();
             PrivilegeBits pb = entry.getKey();
-            assertEquals(expected, PrivilegeBits.calculatePermissions(pb, PrivilegeBits.EMPTY, true));
+            assertEquals(expected,
+                PrivilegeBits.calculatePermissions(pb, PrivilegeBits.EMPTY, true));
             assertEquals(expected, PrivilegeBits.calculatePermissions(pb, pb, false));
             if (previous != null) {
-                assertEquals(expected, PrivilegeBits.calculatePermissions(pb, previous.getKey(), false));
-                assertEquals(expected|previous.getValue(), PrivilegeBits.calculatePermissions(PrivilegeBits.getInstance(pb, previous.getKey()), PrivilegeBits.EMPTY, true));
+                assertEquals(expected,
+                    PrivilegeBits.calculatePermissions(pb, previous.getKey(), false));
+                assertEquals(expected | previous.getValue(), PrivilegeBits.calculatePermissions(
+                    PrivilegeBits.getInstance(pb, previous.getKey()), PrivilegeBits.EMPTY, true));
             }
             previous = entry;
         }
@@ -828,17 +839,20 @@ public class PrivilegeBitsTest implements PrivilegeConstants {
         // jcr:modifyProperty aggregate
         PrivilegeBits add_change = provider.getBits(REP_ADD_PROPERTIES, REP_ALTER_PROPERTIES);
         long permissions = (Permissions.ADD_PROPERTY | Permissions.MODIFY_PROPERTY);
-        assertEquals(permissions, PrivilegeBits.calculatePermissions(add_change, PrivilegeBits.EMPTY, true));
+        assertEquals(permissions,
+            PrivilegeBits.calculatePermissions(add_change, PrivilegeBits.EMPTY, true));
         assertEquals(permissions, PrivilegeBits.calculatePermissions(add_change, add_change, true));
 
         PrivilegeBits add_rm = provider.getBits(REP_ADD_PROPERTIES, REP_REMOVE_PROPERTIES);
         permissions = (Permissions.ADD_PROPERTY | Permissions.REMOVE_PROPERTY);
-        assertEquals(permissions, PrivilegeBits.calculatePermissions(add_rm, PrivilegeBits.EMPTY, true));
+        assertEquals(permissions,
+            PrivilegeBits.calculatePermissions(add_rm, PrivilegeBits.EMPTY, true));
         assertEquals(permissions, PrivilegeBits.calculatePermissions(add_rm, add_rm, true));
 
         PrivilegeBits ch_rm = provider.getBits(REP_ALTER_PROPERTIES, REP_REMOVE_PROPERTIES);
         permissions = (Permissions.MODIFY_PROPERTY | Permissions.REMOVE_PROPERTY);
-        assertEquals(permissions, PrivilegeBits.calculatePermissions(ch_rm, PrivilegeBits.EMPTY, true));
+        assertEquals(permissions,
+            PrivilegeBits.calculatePermissions(ch_rm, PrivilegeBits.EMPTY, true));
         assertEquals(permissions, PrivilegeBits.calculatePermissions(ch_rm, add_rm, true));
     }
 
@@ -849,22 +863,31 @@ public class PrivilegeBitsTest implements PrivilegeConstants {
         // parent aware permissions
         // a) jcr:addChildNodes
         PrivilegeBits addChild = provider.getBits(JCR_ADD_CHILD_NODES);
-        assertNotEquals(Permissions.ADD_NODE, PrivilegeBits.calculatePermissions(addChild, PrivilegeBits.EMPTY, true));
-        assertEquals(Permissions.ADD_NODE, PrivilegeBits.calculatePermissions(PrivilegeBits.EMPTY, addChild, true));
+        assertNotEquals(Permissions.ADD_NODE,
+            PrivilegeBits.calculatePermissions(addChild, PrivilegeBits.EMPTY, true));
+        assertEquals(Permissions.ADD_NODE,
+            PrivilegeBits.calculatePermissions(PrivilegeBits.EMPTY, addChild, true));
 
         // b) jcr:removeChildNodes and jcr:removeNode
         PrivilegeBits removeChild = provider.getBits(JCR_REMOVE_CHILD_NODES);
-        assertNotEquals(Permissions.REMOVE_NODE, PrivilegeBits.calculatePermissions(removeChild, PrivilegeBits.EMPTY, true));
-        assertNotEquals(Permissions.REMOVE_NODE, PrivilegeBits.calculatePermissions(PrivilegeBits.EMPTY, removeChild, true));
+        assertNotEquals(Permissions.REMOVE_NODE,
+            PrivilegeBits.calculatePermissions(removeChild, PrivilegeBits.EMPTY, true));
+        assertNotEquals(Permissions.REMOVE_NODE,
+            PrivilegeBits.calculatePermissions(PrivilegeBits.EMPTY, removeChild, true));
 
         PrivilegeBits removeNode = provider.getBits(JCR_REMOVE_NODE);
-        assertNotEquals(Permissions.REMOVE_NODE, PrivilegeBits.calculatePermissions(removeNode, PrivilegeBits.EMPTY, true));
-        assertNotEquals(Permissions.REMOVE_NODE, PrivilegeBits.calculatePermissions(PrivilegeBits.EMPTY, removeNode, true));
+        assertNotEquals(Permissions.REMOVE_NODE,
+            PrivilegeBits.calculatePermissions(removeNode, PrivilegeBits.EMPTY, true));
+        assertNotEquals(Permissions.REMOVE_NODE,
+            PrivilegeBits.calculatePermissions(PrivilegeBits.EMPTY, removeNode, true));
 
         PrivilegeBits remove = provider.getBits(JCR_REMOVE_CHILD_NODES, JCR_REMOVE_NODE);
-        assertNotEquals(Permissions.REMOVE_NODE, PrivilegeBits.calculatePermissions(remove, PrivilegeBits.EMPTY, true));
-        assertNotEquals(Permissions.REMOVE_NODE, PrivilegeBits.calculatePermissions(PrivilegeBits.EMPTY, remove, true));
-        assertEquals(Permissions.REMOVE_NODE, PrivilegeBits.calculatePermissions(remove, remove, true));
+        assertNotEquals(Permissions.REMOVE_NODE,
+            PrivilegeBits.calculatePermissions(remove, PrivilegeBits.EMPTY, true));
+        assertNotEquals(Permissions.REMOVE_NODE,
+            PrivilegeBits.calculatePermissions(PrivilegeBits.EMPTY, remove, true));
+        assertEquals(Permissions.REMOVE_NODE,
+            PrivilegeBits.calculatePermissions(remove, remove, true));
     }
 
     @Test
@@ -874,39 +897,55 @@ public class PrivilegeBitsTest implements PrivilegeConstants {
         // parent aware permissions
         // a) jcr:addChildNodes
         PrivilegeBits addChild = provider.getBits(JCR_ADD_CHILD_NODES);
-        assertNotEquals(Permissions.ADD_NODE, PrivilegeBits.calculatePermissions(addChild, PrivilegeBits.EMPTY, false));
-        assertEquals(Permissions.ADD_NODE, PrivilegeBits.calculatePermissions(PrivilegeBits.EMPTY, addChild, false));
+        assertNotEquals(Permissions.ADD_NODE,
+            PrivilegeBits.calculatePermissions(addChild, PrivilegeBits.EMPTY, false));
+        assertEquals(Permissions.ADD_NODE,
+            PrivilegeBits.calculatePermissions(PrivilegeBits.EMPTY, addChild, false));
 
         // b) jcr:removeChildNodes and jcr:removeNode
         PrivilegeBits removeChild = provider.getBits(JCR_REMOVE_CHILD_NODES);
-        assertEquals(Permissions.NO_PERMISSION, PrivilegeBits.calculatePermissions(removeChild, PrivilegeBits.EMPTY, false));
-        assertEquals(Permissions.REMOVE_NODE, PrivilegeBits.calculatePermissions(PrivilegeBits.EMPTY, removeChild, false));
+        assertEquals(Permissions.NO_PERMISSION,
+            PrivilegeBits.calculatePermissions(removeChild, PrivilegeBits.EMPTY, false));
+        assertEquals(Permissions.REMOVE_NODE,
+            PrivilegeBits.calculatePermissions(PrivilegeBits.EMPTY, removeChild, false));
 
         PrivilegeBits removeNode = provider.getBits(JCR_REMOVE_NODE);
-        assertEquals(Permissions.REMOVE_NODE, PrivilegeBits.calculatePermissions(removeNode, PrivilegeBits.EMPTY, false));
-        assertNotEquals(Permissions.REMOVE_NODE, PrivilegeBits.calculatePermissions(PrivilegeBits.EMPTY, removeNode, false));
+        assertEquals(Permissions.REMOVE_NODE,
+            PrivilegeBits.calculatePermissions(removeNode, PrivilegeBits.EMPTY, false));
+        assertNotEquals(Permissions.REMOVE_NODE,
+            PrivilegeBits.calculatePermissions(PrivilegeBits.EMPTY, removeNode, false));
 
         PrivilegeBits remove = provider.getBits(JCR_REMOVE_CHILD_NODES, JCR_REMOVE_NODE);
-        assertEquals(Permissions.REMOVE_NODE, PrivilegeBits.calculatePermissions(remove, PrivilegeBits.EMPTY, false));
-        assertEquals(Permissions.REMOVE_NODE, PrivilegeBits.calculatePermissions(PrivilegeBits.EMPTY, remove, false));
-        assertEquals(Permissions.REMOVE_NODE, PrivilegeBits.calculatePermissions(remove, remove, false));
+        assertEquals(Permissions.REMOVE_NODE,
+            PrivilegeBits.calculatePermissions(remove, PrivilegeBits.EMPTY, false));
+        assertEquals(Permissions.REMOVE_NODE,
+            PrivilegeBits.calculatePermissions(PrivilegeBits.EMPTY, remove, false));
+        assertEquals(Permissions.REMOVE_NODE,
+            PrivilegeBits.calculatePermissions(remove, remove, false));
     }
 
     @Test
     public void testCalculatePermissionsAddAndRemoveChild() {
-        PrivilegeBits addRemoveChild = PrivilegeBits.getInstance(BUILT_IN.get(JCR_ADD_CHILD_NODES), BUILT_IN.get(JCR_REMOVE_CHILD_NODES));
-        assertEquals(Permissions.MODIFY_CHILD_NODE_COLLECTION, PrivilegeBits.calculatePermissions(addRemoveChild, PrivilegeBits.EMPTY, true));
-        assertEquals(Permissions.MODIFY_CHILD_NODE_COLLECTION, PrivilegeBits.calculatePermissions(addRemoveChild, PrivilegeBits.EMPTY, false));
+        PrivilegeBits addRemoveChild = PrivilegeBits.getInstance(BUILT_IN.get(JCR_ADD_CHILD_NODES),
+            BUILT_IN.get(JCR_REMOVE_CHILD_NODES));
+        assertEquals(Permissions.MODIFY_CHILD_NODE_COLLECTION,
+            PrivilegeBits.calculatePermissions(addRemoveChild, PrivilegeBits.EMPTY, true));
+        assertEquals(Permissions.MODIFY_CHILD_NODE_COLLECTION,
+            PrivilegeBits.calculatePermissions(addRemoveChild, PrivilegeBits.EMPTY, false));
     }
 
     @Test
     public void testEquals() {
         assertEquals(READ_NODES_PRIVILEGE_BITS, READ_NODES_PRIVILEGE_BITS);
-        assertEquals(READ_NODES_PRIVILEGE_BITS, PrivilegeBits.getInstance(READ_NODES_PRIVILEGE_BITS).unmodifiable());
+        assertEquals(READ_NODES_PRIVILEGE_BITS,
+            PrivilegeBits.getInstance(READ_NODES_PRIVILEGE_BITS).unmodifiable());
 
-        assertNotEquals(READ_NODES_PRIVILEGE_BITS, PrivilegeBits.getInstance(READ_NODES_PRIVILEGE_BITS));
-        assertNotEquals(PrivilegeBits.getInstance(READ_NODES_PRIVILEGE_BITS), READ_NODES_PRIVILEGE_BITS);
-        assertNotEquals(READ_NODES_PRIVILEGE_BITS, when(mock(Privilege.class).getName()).thenReturn(REP_READ_NODES).getMock());
+        assertNotEquals(READ_NODES_PRIVILEGE_BITS,
+            PrivilegeBits.getInstance(READ_NODES_PRIVILEGE_BITS));
+        assertNotEquals(PrivilegeBits.getInstance(READ_NODES_PRIVILEGE_BITS),
+            READ_NODES_PRIVILEGE_BITS);
+        assertNotEquals(READ_NODES_PRIVILEGE_BITS,
+            when(mock(Privilege.class).getName()).thenReturn(REP_READ_NODES).getMock());
         assertNotEquals(READ_NODES_PRIVILEGE_BITS, null);
     }
 

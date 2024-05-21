@@ -30,7 +30,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.function.Supplier;
-
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -107,13 +106,12 @@ public class LazyInputStreamTest {
     }
 
     private static Supplier<InputStream> asInputStreamSupplier(final File file) {
-        return new Supplier<InputStream> () {
+        return new Supplier<InputStream>() {
             @Override
             public InputStream get() {
                 try {
                     return new FileInputStream(file);
-                }
-                catch (FileNotFoundException ex) {
+                } catch (FileNotFoundException ex) {
                     throw new IllegalStateException(ex);
                 }
             }

@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.benchmark;
 
 import javax.jcr.Session;
-
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.UserManager;

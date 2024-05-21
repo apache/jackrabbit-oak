@@ -17,6 +17,10 @@
 
 package org.apache.jackrabbit.oak.security.authentication.ldap.impl;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+
+import java.util.Collection;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
 import org.jetbrains.annotations.NotNull;
@@ -25,35 +29,34 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import java.util.Collection;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-
 /**
- * 2 test cases copied from {@link LdapIdentityProviderTest} to be executed with different combinations of 
- * {@link LdapProviderConfig#useSSL()} and {@link LdapProviderConfig#useTLS()}.
+ * 2 test cases copied from {@link LdapIdentityProviderTest} to be executed with different
+ * combinations of {@link LdapProviderConfig#useSSL()} and {@link LdapProviderConfig#useTLS()}.
  */
 @RunWith(Parameterized.class)
 public class LdapIdentityProviderUseSSLTest extends AbstractLdapIdentityProviderTest {
-    
+
     private static final String PROTOCOL = "TLSv1.2";
-    
+
     @Parameterized.Parameters(name = "LdapConfiguration with {2}")
     public static Collection<Object[]> parameters() {
         return Lists.newArrayList(
-                new Object[] {false, false, null, "useSSL=false, useTLS=false, enabled_protocols=NA"},
-                new Object[] {true, false, null, "useSSL=true, useTLS=false, enabled_protocols=NA"},
-                new Object[] {true, false, new String[] {PROTOCOL}, "useSSL=true, useTLS=false, enabled_protocols=["+PROTOCOL+"]"},
-                new Object[] {false, true, null, "useSSL=false, useTLS=true, enabled_protocols=NA"},
-                new Object[] {false, true, new String[] {PROTOCOL}, "useSSL=false, useTLS=true, enabled_protocols=["+PROTOCOL+"]"},
-                new Object[] {true, true, new String[0], "useSSL=true, useTLS=true, enabled_protocols=[]"}
+            new Object[]{false, false, null, "useSSL=false, useTLS=false, enabled_protocols=NA"},
+            new Object[]{true, false, null, "useSSL=true, useTLS=false, enabled_protocols=NA"},
+            new Object[]{true, false, new String[]{PROTOCOL},
+                "useSSL=true, useTLS=false, enabled_protocols=[" + PROTOCOL + "]"},
+            new Object[]{false, true, null, "useSSL=false, useTLS=true, enabled_protocols=NA"},
+            new Object[]{false, true, new String[]{PROTOCOL},
+                "useSSL=false, useTLS=true, enabled_protocols=[" + PROTOCOL + "]"},
+            new Object[]{true, true, new String[0],
+                "useSSL=true, useTLS=true, enabled_protocols=[]"}
         );
     }
-    
+
     private final String[] enabledProtocols;
 
-    public LdapIdentityProviderUseSSLTest(boolean useSSL, boolean useTLS, @Nullable String[] enabledProtocols, @NotNull String name) {
+    public LdapIdentityProviderUseSSLTest(boolean useSSL, boolean useTLS,
+        @Nullable String[] enabledProtocols, @NotNull String name) {
         super();
         this.useSSL = useSSL;
         this.useTLS = useTLS;
@@ -82,6 +85,6 @@ public class LdapIdentityProviderUseSSLTest extends AbstractLdapIdentityProvider
     public void testGetUserByUserId() throws Exception {
         ExternalUser user = idp.getUser(TEST_USER1_UID);
         assertNotNull("User 1 must exist", user);
-        assertEquals("User Ref", TEST_USER1_DN, ((LdapUser)user).getEntry().getDn().getName());
+        assertEquals("User Ref", TEST_USER1_DN, ((LdapUser) user).getEntry().getDn().getName());
     }
 }

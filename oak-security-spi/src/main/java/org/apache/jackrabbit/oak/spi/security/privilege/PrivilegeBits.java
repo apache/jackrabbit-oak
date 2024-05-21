@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.spi.security.privilege;
 
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -28,8 +30,6 @@ import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 
 /**
  * Internal representation of JCR privileges.
@@ -60,8 +60,10 @@ public final class PrivilegeBits implements PrivilegeConstants {
     private static final long INDEX_DEFINITION_MNGMT = USER_MNGMT << 1;
 
     private static final long READ = READ_NODES | READ_PROPERTIES;
-    private static final long MODIFY_PROPERTIES = ADD_PROPERTIES | ALTER_PROPERTIES | REMOVE_PROPERTIES;
-    private static final long WRITE = MODIFY_PROPERTIES | ADD_CHILD_NODES | REMOVE_CHILD_NODES | REMOVE_NODE;
+    private static final long MODIFY_PROPERTIES =
+        ADD_PROPERTIES | ALTER_PROPERTIES | REMOVE_PROPERTIES;
+    private static final long WRITE =
+        MODIFY_PROPERTIES | ADD_CHILD_NODES | REMOVE_CHILD_NODES | REMOVE_NODE;
     private static final long WRITE2 = WRITE | NODE_TYPE_MNGMT;
 
     public static final PrivilegeBits EMPTY = new PrivilegeBits(UnmodifiableData.EMPTY);
@@ -131,7 +133,8 @@ public final class PrivilegeBits implements PrivilegeConstants {
         BUILT_IN_BITS = Collections.unmodifiableMap(bits);
     }
 
-    public static final PrivilegeBits NEXT_AFTER_BUILT_INS = getInstance(INDEX_DEFINITION_MNGMT).nextBits();
+    public static final PrivilegeBits NEXT_AFTER_BUILT_INS = getInstance(
+        INDEX_DEFINITION_MNGMT).nextBits();
 
     private final Data d;
 
@@ -169,8 +172,7 @@ public final class PrivilegeBits implements PrivilegeConstants {
     }
 
     /**
-     * Get or create an instance of privilege bits for a specific property that
-     * stores privileges.
+     * Get or create an instance of privilege bits for a specific property that stores privileges.
      *
      * @param property The property state storing privilege bits information.
      * @return an instance of {@code PrivilegeBits}
@@ -215,8 +217,7 @@ public final class PrivilegeBits implements PrivilegeConstants {
     }
 
     /**
-     * Internal method to get or create an instance of privilege bits for the
-     * specified long value.
+     * Internal method to get or create an instance of privilege bits for the specified long value.
      *
      * @param bits A long value.
      * @return an instance of {@code PrivilegeBits}
@@ -249,21 +250,19 @@ public final class PrivilegeBits implements PrivilegeConstants {
     }
 
     /**
-     * Calculate the granted permissions by evaluating the given privileges. Note,
-     * that only built-in privileges can be mapped to permissions. Any other
-     * privileges will be ignored.
+     * Calculate the granted permissions by evaluating the given privileges. Note, that only
+     * built-in privileges can be mapped to permissions. Any other privileges will be ignored.
      *
-     * @param bits The set of privileges present at given tree.
-     * @param parentBits The privileges present on the parent tree. These are
-     * required in order to determine permissions that include a modification
-     * of the parent tree (add_child_nodes, remove_child_nodes).
-     * @param isAllow {@code true} if the privileges are granted; {@code false}
-     * otherwise.
+     * @param bits       The set of privileges present at given tree.
+     * @param parentBits The privileges present on the parent tree. These are required in order to
+     *                   determine permissions that include a modification of the parent tree
+     *                   (add_child_nodes, remove_child_nodes).
+     * @param isAllow    {@code true} if the privileges are granted; {@code false} otherwise.
      * @return the resulting permissions.
      */
     public static long calculatePermissions(@NotNull PrivilegeBits bits,
-                                            @NotNull PrivilegeBits parentBits,
-                                            boolean isAllow) {
+        @NotNull PrivilegeBits parentBits,
+        boolean isAllow) {
         long privs = bits.d.longValue();
         long perm = Permissions.NO_PERMISSION;
         if ((privs & READ) == READ) {
@@ -294,10 +293,10 @@ public final class PrivilegeBits implements PrivilegeConstants {
         perm |= calculateOtherPermissions(privs);
         return perm;
     }
-    
+
     private static long calculateWritePermissions(long privs, long parentPrivs, boolean isAllow) {
         long perm = Permissions.NO_PERMISSION;
-        
+
         // add_node permission is granted through privilege on the parent.
         if ((parentPrivs & ADD_CHILD_NODES) == ADD_CHILD_NODES) {
             perm |= Permissions.ADD_NODE;
@@ -312,24 +311,24 @@ public final class PrivilegeBits implements PrivilegeConstants {
         */
         if (isAllow) {
             if ((parentPrivs & REMOVE_CHILD_NODES) == REMOVE_CHILD_NODES &&
-                    (privs & REMOVE_NODE) == REMOVE_NODE) {
+                (privs & REMOVE_NODE) == REMOVE_NODE) {
                 perm |= Permissions.REMOVE_NODE;
             }
         } else {
             if ((parentPrivs & REMOVE_CHILD_NODES) == REMOVE_CHILD_NODES ||
-                    (privs & REMOVE_NODE) == REMOVE_NODE) {
+                (privs & REMOVE_NODE) == REMOVE_NODE) {
                 perm |= Permissions.REMOVE_NODE;
             }
         }
 
         // modify_child_node_collection permission
         if ((privs & ADD_CHILD_NODES) == ADD_CHILD_NODES &&
-                (privs & REMOVE_CHILD_NODES) == REMOVE_CHILD_NODES) {
+            (privs & REMOVE_CHILD_NODES) == REMOVE_CHILD_NODES) {
             perm |= Permissions.MODIFY_CHILD_NODE_COLLECTION;
         }
         return perm;
     }
-    
+
     private static long calculateOtherPermissions(long privs) {
         long perm = Permissions.NO_PERMISSION;
         if ((privs & READ_AC) == READ_AC) {
@@ -375,11 +374,10 @@ public final class PrivilegeBits implements PrivilegeConstants {
     }
 
     /**
-     * Returns {@code true} if this privilege bits includes no privileges
-     * at all.
+     * Returns {@code true} if this privilege bits includes no privileges at all.
      *
-     * @return {@code true} if this privilege bits includes no privileges
-     *         at all; {@code false} otherwise.
+     * @return {@code true} if this privilege bits includes no privileges at all; {@code false}
+     * otherwise.
      * @see org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions#NO_PERMISSION
      */
     public boolean isEmpty() {
@@ -417,13 +415,12 @@ public final class PrivilegeBits implements PrivilegeConstants {
     }
 
     /**
-     * Returns {@code true} if all privileges defined by the specified
-     * {@code otherBits} are present in this instance.
+     * Returns {@code true} if all privileges defined by the specified {@code otherBits} are present
+     * in this instance.
      *
      * @param otherBits
-     * @return {@code true} if all privileges defined by the specified
-     *         {@code otherBits} are included in this instance; {@code false}
-     *         otherwise.
+     * @return {@code true} if all privileges defined by the specified {@code otherBits} are
+     * included in this instance; {@code false} otherwise.
      */
     public boolean includes(@NotNull PrivilegeBits otherBits) {
         return d.includes(otherBits.d);
@@ -455,10 +452,9 @@ public final class PrivilegeBits implements PrivilegeConstants {
     }
 
     /**
-     * Subtracts the other PrivilegeBits from the this.<br>
-     * If the specified bits do not intersect with this, it isn't modified.<br>
-     * If {@code this} is included in {@code other} {@link #EMPTY empty}
-     * privilege bits is returned.
+     * Subtracts the other PrivilegeBits from the this.<br> If the specified bits do not intersect
+     * with this, it isn't modified.<br> If {@code this} is included in {@code other}
+     * {@link #EMPTY empty} privilege bits is returned.
      *
      * @param other The other privilege bits to be subtracted from this instance.
      * @return The updated instance.
@@ -475,8 +471,7 @@ public final class PrivilegeBits implements PrivilegeConstants {
     }
 
     /**
-     * Subtracts the {@code b} from {@code a} and adds the result (diff)
-     * to this instance.
+     * Subtracts the {@code b} from {@code a} and adds the result (diff) to this instance.
      *
      * @param a An instance of privilege bits.
      * @param b An instance of privilege bits.
@@ -494,19 +489,19 @@ public final class PrivilegeBits implements PrivilegeConstants {
     }
 
     /**
-     * Retains the elements in this {@code PrivilegeBits} that are contained in
-     * the specified other {@code PrivilegeBits}.
+     * Retains the elements in this {@code PrivilegeBits} that are contained in the specified other
+     * {@code PrivilegeBits}.
      *
      * @param other Other privilege bits.
-     * @return This modifiable instance of privilege bits modified such it contains
-     * only privileges that were also contained in the {@code other} instance.
+     * @return This modifiable instance of privilege bits modified such it contains only privileges
+     * that were also contained in the {@code other} instance.
      */
     @NotNull
     public PrivilegeBits retain(@NotNull PrivilegeBits other) {
         if (d instanceof ModifiableData) {
             ((ModifiableData) d).retain(other.d);
             return this;
-        }  else {
+        } else {
             throw unsupported();
         }
     }
@@ -600,7 +595,8 @@ public final class PrivilegeBits implements PrivilegeConstants {
          * |  0  | 1 | 0 |
          * |  1 |  1 | 1 |
          * </pre>
-         * @param bits the super set of bits
+         *
+         * @param bits      the super set of bits
          * @param otherBits the bits to check against
          * @return {@code true} if all other bits are included in bits.
          */
@@ -617,7 +613,8 @@ public final class PrivilegeBits implements PrivilegeConstants {
          * |  0  | 1 | 0 |
          * |  1 |  1 | 1 |
          * </pre>
-         * @param bits the super set of bits
+         *
+         * @param bits      the super set of bits
          * @param otherBits the bits to check against
          * @return {@code true} if all other bits are included in bits.
          */
@@ -677,7 +674,7 @@ public final class PrivilegeBits implements PrivilegeConstants {
         @Override
         long[] longValues() {
             if (isSimple) {
-                return new long[] { bits };
+                return new long[]{bits};
             }
             return bitsArr;
         }
@@ -855,13 +852,14 @@ public final class PrivilegeBits implements PrivilegeConstants {
                 long[] lvs = longValues();
                 long[] bLvs = other.longValues();
 
-                long[] res = (lvs.length <= bLvs.length) ? new long[lvs.length] : new long[bLvs.length];
+                long[] res =
+                    (lvs.length <= bLvs.length) ? new long[lvs.length] : new long[bLvs.length];
                 int compactSize = -1;
                 for (int i = 0; i < res.length; i++) {
                     res[i] = (lvs[i] & bLvs[i]);
                     if (res[i] == 0) {
                         if (compactSize == -1) {
-                            compactSize = i+1;
+                            compactSize = i + 1;
                         }
                     } else {
                         compactSize = -1;

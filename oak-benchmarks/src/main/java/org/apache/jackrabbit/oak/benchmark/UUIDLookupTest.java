@@ -20,7 +20,6 @@
 package org.apache.jackrabbit.oak.benchmark;
 
 import java.util.UUID;
-
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
@@ -28,10 +27,10 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
-
 import org.apache.jackrabbit.oak.benchmark.util.OakIndexUtils;
 
 public class UUIDLookupTest extends AbstractTest {
+
     private static final int NODE_COUNT = 100;
 
     private int noOfIndex = Integer.getInteger("noOfIndex", 60);
@@ -42,8 +41,9 @@ public class UUIDLookupTest extends AbstractTest {
     private Node root;
 
     protected Query createQuery(QueryManager manager, int i)
-            throws RepositoryException {
-        return manager.createQuery("SELECT * FROM [nt:base] WHERE [jcr:uuid] = " + i, Query.JCR_SQL2);
+        throws RepositoryException {
+        return manager.createQuery("SELECT * FROM [nt:base] WHERE [jcr:uuid] = " + i,
+            Query.JCR_SQL2);
     }
 
     @Override
@@ -67,7 +67,8 @@ public class UUIDLookupTest extends AbstractTest {
             session.save();
         }
         String lookupMode = lookupByQuery ? "query" : "Session#getNodeByIdentifier";
-        System.out.printf("No of indexes (%s) %d, Lookup by (%s)[%s] %n",noOfIndex, noOfIndex, "lookupByQuery", lookupMode);
+        System.out.printf("No of indexes (%s) %d, Lookup by (%s)[%s] %n", noOfIndex, noOfIndex,
+            "lookupByQuery", lookupMode);
     }
 
     @Override
@@ -106,12 +107,12 @@ public class UUIDLookupTest extends AbstractTest {
     private void ensurePropertyIndexes() throws RepositoryException {
         for (int i = 0; i < noOfIndex; i++) {
             new OakIndexUtils.PropertyIndex().
-                    property("testcount"+i).
-                    create(session);
+                property("testcount" + i).
+                create(session);
         }
     }
 
-    private static String createUUID(int i){
-        return new UUID(0,i).toString();
+    private static String createUUID(int i) {
+        return new UUID(0, i).toString();
     }
 }

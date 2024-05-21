@@ -18,10 +18,10 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
 import static java.util.Arrays.sort;
 import static java.util.Collections.singleton;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
 import static org.apache.jackrabbit.oak.segment.MapRecord.SIZE_BITS;
 import static org.apache.jackrabbit.oak.segment.RecordType.BLOB_ID;
 import static org.apache.jackrabbit.oak.segment.RecordType.BLOCK;
@@ -41,18 +41,21 @@ import java.util.Collections;
 import java.util.List;
 
 final class RecordWriters {
-    private RecordWriters() {}
+
+    private RecordWriters() {
+    }
 
     /**
      * Base class for all record writers
      */
     public abstract static class RecordWriter {
+
         private final RecordType type;
         protected final int size;
         protected final Collection<RecordId> ids;
 
         protected RecordWriter(RecordType type, int size,
-                Collection<RecordId> ids) {
+            Collection<RecordId> ids) {
             this.type = type;
             this.size = size;
             this.ids = ids;
@@ -63,16 +66,17 @@ final class RecordWriters {
         }
 
         protected RecordWriter(RecordType type, int size) {
-            this(type, size, Collections.<RecordId> emptyList());
+            this(type, size, Collections.<RecordId>emptyList());
         }
 
-        public final RecordId write(SegmentBufferWriter writer, SegmentStore store) throws IOException {
+        public final RecordId write(SegmentBufferWriter writer, SegmentStore store)
+            throws IOException {
             RecordId id = writer.prepare(type, size, ids, store);
             return writeRecordContent(id, writer);
         }
 
         protected abstract RecordId writeRecordContent(RecordId id,
-                SegmentBufferWriter writer);
+            SegmentBufferWriter writer);
     }
 
     public static RecordWriter newMapLeafWriter(int level, Collection<MapEntry> entries) {
@@ -83,7 +87,8 @@ final class RecordWriters {
         return new MapLeafWriter();
     }
 
-    public static RecordWriter newMapBranchWriter(int level, int entryCount, int bitmap, List<RecordId> ids) {
+    public static RecordWriter newMapBranchWriter(int level, int entryCount, int bitmap,
+        List<RecordId> ids) {
         return new MapBranchWriter(level, entryCount, bitmap, ids);
     }
 
@@ -116,25 +121,24 @@ final class RecordWriters {
     }
 
     /**
-     * Write a large blob ID. A blob ID is considered large if the length of its
-     * binary representation is equal to or greater than {@code
-     * Segment.BLOB_ID_SMALL_LIMIT}.
+     * Write a large blob ID. A blob ID is considered large if the length of its binary
+     * representation is equal to or greater than {@code Segment.BLOB_ID_SMALL_LIMIT}.
      */
     public static RecordWriter newBlobIdWriter(RecordId rid) {
         return new LargeBlobIdWriter(rid);
     }
 
     /**
-     * Write a small blob ID. A blob ID is considered small if the length of its
-     * binary representation is less than {@code Segment.BLOB_ID_SMALL_LIMIT}.
+     * Write a small blob ID. A blob ID is considered small if the length of its binary
+     * representation is less than {@code Segment.BLOB_ID_SMALL_LIMIT}.
      */
     public static RecordWriter newBlobIdWriter(byte[] blobId) {
         return new SmallBlobIdWriter(blobId);
     }
 
     public static RecordWriter newTemplateWriter(Collection<RecordId> ids,
-            RecordId[] propertyNames, byte[] propertyTypes, int head, RecordId primaryId,
-            List<RecordId> mixinIds, RecordId childNameId, RecordId propNamesId) {
+        RecordId[] propertyNames, byte[] propertyTypes, int head, RecordId primaryId,
+        List<RecordId> mixinIds, RecordId childNameId, RecordId propNamesId) {
         return new TemplateWriter(ids, propertyNames, propertyTypes, head, primaryId, mixinIds,
             childNameId, propNamesId);
     }
@@ -145,9 +149,11 @@ final class RecordWriters {
 
     /**
      * Map Leaf record writer.
+     *
      * @see RecordType#LEAF
      */
     private static class MapLeafWriter extends RecordWriter {
+
         private final int level;
         private final Collection<MapEntry> entries;
 
@@ -174,7 +180,7 @@ final class RecordWriters {
 
         @Override
         protected RecordId writeRecordContent(RecordId id,
-                SegmentBufferWriter writer) {
+            SegmentBufferWriter writer) {
             if (entries != null) {
                 int size = entries.size();
                 writer.writeInt((level << SIZE_BITS) | size);
@@ -200,9 +206,11 @@ final class RecordWriters {
 
     /**
      * Map Branch record writer.
+     *
      * @see RecordType#BRANCH
      */
     private static class MapBranchWriter extends RecordWriter {
+
         private final int level;
         private final int entryCount;
         private final int bitmap;
@@ -239,9 +247,11 @@ final class RecordWriters {
 
     /**
      * List record writer.
+     *
      * @see RecordType#LIST
      */
-    private static class ListWriter extends RecordWriter  {
+    private static class ListWriter extends RecordWriter {
+
         private final int count;
         private final RecordId lid;
 
@@ -259,7 +269,7 @@ final class RecordWriters {
 
         @Override
         protected RecordId writeRecordContent(RecordId id,
-                SegmentBufferWriter writer) {
+            SegmentBufferWriter writer) {
             writer.writeInt(count);
             if (lid != null) {
                 writer.writeRecordId(lid);
@@ -281,7 +291,7 @@ final class RecordWriters {
 
         @Override
         protected RecordId writeRecordContent(RecordId id,
-                SegmentBufferWriter writer) {
+            SegmentBufferWriter writer) {
             for (RecordId bucketId : ids) {
                 writer.writeRecordId(bucketId);
             }
@@ -291,9 +301,11 @@ final class RecordWriters {
 
     /**
      * Block record writer.
+     *
      * @see RecordType#BLOCK
      */
     private static class BlockWriter extends RecordWriter {
+
         private final byte[] bytes;
         private final int offset;
 
@@ -305,7 +317,7 @@ final class RecordWriters {
 
         @Override
         protected RecordId writeRecordContent(RecordId id,
-                SegmentBufferWriter writer) {
+            SegmentBufferWriter writer) {
             writer.writeBytes(bytes, offset, size);
             return id;
         }
@@ -313,9 +325,11 @@ final class RecordWriters {
 
     /**
      * Single RecordId record writer.
+     *
      * @see RecordType#VALUE
      */
     private static class SingleValueWriter extends RecordWriter {
+
         private final RecordId rid;
         private final long len;
 
@@ -327,7 +341,7 @@ final class RecordWriters {
 
         @Override
         protected RecordId writeRecordContent(RecordId id,
-                SegmentBufferWriter writer) {
+            SegmentBufferWriter writer) {
             writer.writeLong(len);
             writer.writeRecordId(rid);
             return id;
@@ -335,13 +349,14 @@ final class RecordWriters {
     }
 
     /**
-     * Bye array record writer. Used as a special case for short binaries (up to
-     * about {@code Segment#MEDIUM_LIMIT}): store them directly as small or
-     * medium-sized value records.
+     * Bye array record writer. Used as a special case for short binaries (up to about
+     * {@code Segment#MEDIUM_LIMIT}): store them directly as small or medium-sized value records.
+     *
      * @see Segment#MEDIUM_LIMIT
      * @see RecordType#VALUE
      */
     private static class ArrayValueWriter extends RecordWriter {
+
         private final int length;
         private final byte[] data;
 
@@ -376,14 +391,14 @@ final class RecordWriters {
     }
 
     /**
-     * Large Blob record writer. A blob ID is considered large if the length of
-     * its binary representation is equal to or greater than
-     * {@code Segment#BLOB_ID_SMALL_LIMIT}.
+     * Large Blob record writer. A blob ID is considered large if the length of its binary
+     * representation is equal to or greater than {@code Segment#BLOB_ID_SMALL_LIMIT}.
      *
      * @see Segment#BLOB_ID_SMALL_LIMIT
      * @see RecordType#BLOB_ID
      */
     private static class LargeBlobIdWriter extends RecordWriter {
+
         private final RecordId stringRecord;
 
         private LargeBlobIdWriter(RecordId stringRecord) {
@@ -393,7 +408,7 @@ final class RecordWriters {
 
         @Override
         protected RecordId writeRecordContent(RecordId id,
-                SegmentBufferWriter writer) {
+            SegmentBufferWriter writer) {
             // The length uses a fake "length" field that is always equal to
             // 0xF0.
             // This allows the code to take apart small from a large blob IDs.
@@ -404,13 +419,14 @@ final class RecordWriters {
     }
 
     /**
-     * Small Blob record writer. A blob ID is considered small if the length of
-     * its binary representation is less than {@code Segment#BLOB_ID_SMALL_LIMIT}.
-
+     * Small Blob record writer. A blob ID is considered small if the length of its binary
+     * representation is less than {@code Segment#BLOB_ID_SMALL_LIMIT}.
+     *
      * @see Segment#BLOB_ID_SMALL_LIMIT
      * @see RecordType#BLOB_ID
      */
     private static class SmallBlobIdWriter extends RecordWriter {
+
         private final byte[] blobId;
 
         private SmallBlobIdWriter(byte[] blobId) {
@@ -421,7 +437,7 @@ final class RecordWriters {
 
         @Override
         protected RecordId writeRecordContent(RecordId id,
-                SegmentBufferWriter writer) {
+            SegmentBufferWriter writer) {
             int length = blobId.length;
             writer.writeShort((short) (length | 0xE000));
             writer.writeBytes(blobId, 0, length);
@@ -431,9 +447,11 @@ final class RecordWriters {
 
     /**
      * Template record writer.
+     *
      * @see RecordType#TEMPLATE
      */
     private static class TemplateWriter extends RecordWriter {
+
         private final RecordId[] propertyNames;
         private final byte[] propertyTypes;
         private final int head;
@@ -443,8 +461,8 @@ final class RecordWriters {
         private final RecordId propNamesId;
 
         private TemplateWriter(Collection<RecordId> ids, RecordId[] propertyNames,
-                byte[] propertyTypes, int head, RecordId primaryId, List<RecordId> mixinIds,
-                RecordId childNameId, RecordId propNamesId) {
+            byte[] propertyTypes, int head, RecordId primaryId, List<RecordId> mixinIds,
+            RecordId childNameId, RecordId propNamesId) {
             super(TEMPLATE, 4 + propertyTypes.length, ids);
             this.propertyNames = propertyNames;
             this.propertyTypes = propertyTypes;
@@ -457,7 +475,7 @@ final class RecordWriters {
 
         @Override
         protected RecordId writeRecordContent(RecordId id,
-                SegmentBufferWriter writer) {
+            SegmentBufferWriter writer) {
             writer.writeInt(head);
             if (primaryId != null) {
                 writer.writeRecordId(primaryId);
@@ -482,9 +500,11 @@ final class RecordWriters {
 
     /**
      * Node State record writer.
+     *
      * @see RecordType#NODE
      */
     private static class NodeStateWriter extends RecordWriter {
+
         private final RecordId stableId;
 
         private NodeStateWriter(RecordId stableId, List<RecordId> ids) {

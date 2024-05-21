@@ -16,16 +16,16 @@
  */
 package org.apache.jackrabbit.oak.benchmark.authorization;
 
-import org.jetbrains.annotations.NotNull;
-
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.Privilege;
+import org.jetbrains.annotations.NotNull;
 
 public class HasPrivilegesHasItemGetItemTest extends AbstractHasItemGetItemTest {
 
-    public HasPrivilegesHasItemGetItemTest(int itemsToRead, int numberOfACEs, int numberOfGroups, boolean doReport) {
+    public HasPrivilegesHasItemGetItemTest(int itemsToRead, int numberOfACEs, int numberOfGroups,
+        boolean doReport) {
         super(itemsToRead, numberOfACEs, numberOfGroups, doReport);
     }
 
@@ -36,9 +36,11 @@ public class HasPrivilegesHasItemGetItemTest extends AbstractHasItemGetItemTest 
     }
 
     @Override
-    void additionalOperations(@NotNull String path, @NotNull Session s, @NotNull AccessControlManager acMgr) {
+    void additionalOperations(@NotNull String path, @NotNull Session s,
+        @NotNull AccessControlManager acMgr) {
         try {
-            acMgr.hasPrivileges(getAccessControlledPath(path), (Privilege[]) Utils.getRandom(allPrivileges, 3).toArray(new Privilege[0]));
+            acMgr.hasPrivileges(getAccessControlledPath(path),
+                (Privilege[]) Utils.getRandom(allPrivileges, 3).toArray(new Privilege[0]));
         } catch (RepositoryException e) {
             if (doReport) {
                 e.printStackTrace(System.out);

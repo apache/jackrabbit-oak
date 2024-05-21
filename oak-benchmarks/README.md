@@ -96,23 +96,22 @@ that we used to produce earlier.
 
 Finally the benchmark runner supports the following repository fixtures:
 
-| Fixture                      | Description                                                    |
-|------------------------------|----------------------------------------------------------------|
-| Jackrabbit                   | Jackrabbit with the default embedded Derby  bundle PM          |
-| Oak-Memory                   | Oak with default in-memory storage                             |
-| Oak-MemoryNS                 | Oak with default in-memory NodeStore                           |
-| Oak-Mongo                    | Oak with the default Mongo backend                             |
-| Oak-Mongo-DS                 | Oak with the default Mongo backend and DataStore               |
-| Oak-MongoNS                  | Oak with the Mongo NodeStore                                   |
-| Oak-Segment-Tar              | Oak with the Segment Tar backend                               |
-| Oak-Segment-Tar-DS           | Oak with the Segment Tar backend and DataStore                 |
-| Oak-Segment-Azure            | Oak with the Azure Segment backend                             |
-| Oak-RDB                      | Oak with the DocumentMK/RDB persistence                        |
-| Oak-RDB-DS                   | Oak with the DocumentMK/RDB persistence and DataStore          |
-| Oak-Composite-Store          | Oak with the Composite Node store with Segment Tar backend     |
-| Oak-Composite-Memory-Store   | Oak with the Composite Node store with in-memory NodeStore     |
-| Oak-Composite-Mongo-Store    | Oak with the Composite Node store with Mongo backend           |
-
+| Fixture                    | Description                                                |
+|----------------------------|------------------------------------------------------------|
+| Jackrabbit                 | Jackrabbit with the default embedded Derby  bundle PM      |
+| Oak-Memory                 | Oak with default in-memory storage                         |
+| Oak-MemoryNS               | Oak with default in-memory NodeStore                       |
+| Oak-Mongo                  | Oak with the default Mongo backend                         |
+| Oak-Mongo-DS               | Oak with the default Mongo backend and DataStore           |
+| Oak-MongoNS                | Oak with the Mongo NodeStore                               |
+| Oak-Segment-Tar            | Oak with the Segment Tar backend                           |
+| Oak-Segment-Tar-DS         | Oak with the Segment Tar backend and DataStore             |
+| Oak-Segment-Azure          | Oak with the Azure Segment backend                         |
+| Oak-RDB                    | Oak with the DocumentMK/RDB persistence                    |
+| Oak-RDB-DS                 | Oak with the DocumentMK/RDB persistence and DataStore      |
+| Oak-Composite-Store        | Oak with the Composite Node store with Segment Tar backend |
+| Oak-Composite-Memory-Store | Oak with the Composite Node store with in-memory NodeStore |
+| Oak-Composite-Mongo-Store  | Oak with the Composite Node store with Mongo backend       |
 
 (Note that for Oak-RDB, the required JDBC drivers either need to be embedded
 into oak-run, or be specified separately in the class path. Furthermore,
@@ -128,15 +127,15 @@ and the number of milliseconds used by each execution
 is recorded. Once done, the following statistics are computed and
 reported:
 
-| Column      | Description                                           |
-|-------------|-------------------------------------------------------|
-| C           | concurrency level                                     |
-| min         | minimum time (in ms) taken by a test run              |
-| 10%         | time (in ms) in which the fastest 10% of test runs    |
-| 50%         | time (in ms) taken by the median test run             |
-| 90%         | time (in ms) in which the fastest 90% of test runs    |
-| max         | maximum time (in ms) taken by a test run              |
-| N           | total number of test runs in one minute (or more)     |
+| Column | Description                                        |
+|--------|----------------------------------------------------|
+| C      | concurrency level                                  |
+| min    | minimum time (in ms) taken by a test run           |
+| 10%    | time (in ms) in which the fastest 10% of test runs |
+| 50%    | time (in ms) taken by the median test run          |
+| 90%    | time (in ms) in which the fastest 90% of test runs |
+| max    | maximum time (in ms) taken by a test run           |
+| N      | total number of test runs in one minute (or more)  |
 
 The most useful of these numbers is probably the 90% figure, as it
 shows the time under which the majority of test runs completed and
@@ -278,17 +277,17 @@ suites in the scalability command line, and oak-run will execute each suite in s
 
 Finally the scalability runner supports the following repository fixtures:
 
-| Fixture               | Description                                                    |
-|-----------------------|----------------------------------------------------------------|
-| Oak-Memory            | Oak with default in-memory storage                             |
-| Oak-MemoryNS          | Oak with default in-memory NodeStore                           |
-| Oak-Mongo             | Oak with the default Mongo backend                             |
-| Oak-Mongo-DS          | Oak with the default Mongo backend and DataStore               |
-| Oak-MongoNS           | Oak with the Mongo NodeStore                                   |
-| Oak-Segment-Tar       | Oak with the Tar backend (aka Segment NodeStore)               |
-| Oak-Segment-Tar-DS    | Oak with the Tar backend (aka Segment NodeStore) and DataStore |
-| Oak-RDB               | Oak with the DocumentMK/RDB persistence                        |
-| Oak-RDB-DS            | Oak with the DocumentMK/RDB persistence and DataStore          |
+| Fixture            | Description                                                    |
+|--------------------|----------------------------------------------------------------|
+| Oak-Memory         | Oak with default in-memory storage                             |
+| Oak-MemoryNS       | Oak with default in-memory NodeStore                           |
+| Oak-Mongo          | Oak with the default Mongo backend                             |
+| Oak-Mongo-DS       | Oak with the default Mongo backend and DataStore               |
+| Oak-MongoNS        | Oak with the Mongo NodeStore                                   |
+| Oak-Segment-Tar    | Oak with the Tar backend (aka Segment NodeStore)               |
+| Oak-Segment-Tar-DS | Oak with the Tar backend (aka Segment NodeStore) and DataStore |
+| Oak-RDB            | Oak with the DocumentMK/RDB persistence                        |
+| Oak-RDB-DS         | Oak with the DocumentMK/RDB persistence and DataStore          |
 
 (Note that for Oak-RDB, the required JDBC drivers either need to be embedded
 into oak-run, or be specified separately in the class path.)
@@ -300,20 +299,20 @@ are started. Then each configured test within the suite are run and the number o
 milliseconds used by each execution is recorded. Once done, the following statistics are
 computed and reported:
 
-| Column      | Description                                           |
-|-------------|-------------------------------------------------------|
-| min         | minimum time (in ms) taken by a test run              |
-| 10%         | time (in ms) in which the fastest 10% of test runs    |
-| 50%         | time (in ms) taken by the median test run             |
-| 90%         | time (in ms) in which the fastest 90% of test runs    |
-| max         | maximum time (in ms) taken by a test run              |
-| N           | total number of test runs in one minute (or more)     |
+| Column | Description                                        |
+|--------|----------------------------------------------------|
+| min    | minimum time (in ms) taken by a test run           |
+| 10%    | time (in ms) in which the fastest 10% of test runs |
+| 50%    | time (in ms) taken by the median test run          |
+| 90%    | time (in ms) in which the fastest 90% of test runs |
+| max    | maximum time (in ms) taken by a test run           |
+| N      | total number of test runs in one minute (or more)  |
 
 Also, for each test, the execution times are reported for each iteration/load configured.
 
-| Column      | Description                                           |
-|-------------|-------------------------------------------------------|
-| Load        | time (in ms) taken by a test run              |
+| Column | Description                      |
+|--------|----------------------------------|
+| Load   | time (in ms) taken by a test run |
 
 The latter is more useful of these numbers as it shows how the individual execution
 times are scaling for each load.
@@ -421,11 +420,11 @@ License
 Collective work: Copyright 2012 The Apache Software Foundation.
 
 Licensed to the Apache Software Foundation (ASF) under one or more
-contributor license agreements.  See the NOTICE file distributed with
+contributor license agreements. See the NOTICE file distributed with
 this work for additional information regarding copyright ownership.
 The ASF licenses this file to You under the Apache License, Version 2.0
 (the "License"); you may not use this file except in compliance with
-the License.  You may obtain a copy of the License at
+the License. You may obtain a copy of the License at
 
      http://www.apache.org/licenses/LICENSE-2.0
 

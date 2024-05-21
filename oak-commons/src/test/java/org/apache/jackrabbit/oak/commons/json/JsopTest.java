@@ -42,13 +42,13 @@ public class JsopTest extends TestCase {
 
     public void testDataType() {
         String dateString = new JsopBuilder().
-                key("string").value("/Date(0)/").
-                key("date").encodedValue("\"\\/Date(0)\\/\"").
-                toString();
+            key("string").value("/Date(0)/").
+            key("date").encodedValue("\"\\/Date(0)\\/\"").
+            toString();
         assertEquals(
-                "\"string\":\"/Date(0)/\"," +
-                        "\"date\":\"\\/Date(0)\\/\"",
-                dateString);
+            "\"string\":\"/Date(0)/\"," +
+                "\"date\":\"\\/Date(0)\\/\"",
+            dateString);
         JsopTokenizer t = new JsopTokenizer(dateString);
         assertEquals("string", t.readString());
         t.read(':');
@@ -230,7 +230,8 @@ public class JsopTest extends TestCase {
         test("\"\u1234\"", "\"\\u1234\"");
         test("\"-\\\\-\\\"-\\b-\\f-\\n-\\r-\\t\"", "\"-\\\\-\\\"-\\b-\\f-\\n-\\r-\\t\"");
         test("\"-\\b-\\f-\\n-\\r-\\t\"", "\"-\b-\f-\n-\r-\t\"");
-        test("[0, 12, -1, 0.1, -0.1, -2.3e1, 1e+1, 1.e-20]", "[0,12,-1,0.1,-0.1,-2.3e1,1e+1,1.e-20]");
+        test("[0, 12, -1, 0.1, -0.1, -2.3e1, 1e+1, 1.e-20]",
+            "[0,12,-1,0.1,-0.1,-2.3e1,1e+1,1.e-20]");
         test("\"Hello\"", "\"Hello\"");
         test("[]", "[]");
         test(" {\n\n}\n", "{}");
@@ -260,15 +261,15 @@ public class JsopTest extends TestCase {
     }
 
     public void testSurrogates() {
-        String[][] tests = { { "surrogate-ok: \uD834\uDD1E", "surrogate-ok: \uD834\uDD1E" },
-                { "surrogate-broken: \ud800 ", "surrogate-broken: \\ud800 " },
-                { "surrogate-truncated: \ud800", "surrogate-truncated: \\ud800" } };
+        String[][] tests = {{"surrogate-ok: \uD834\uDD1E", "surrogate-ok: \uD834\uDD1E"},
+            {"surrogate-broken: \ud800 ", "surrogate-broken: \\ud800 "},
+            {"surrogate-truncated: \ud800", "surrogate-truncated: \\ud800"}};
 
         for (String[] test : tests) {
             StringBuilder buff = new StringBuilder();
             JsopBuilder.escape(test[0], buff);
             assertEquals(test[1], buff.toString());
-            
+
             String s2 = JsopBuilder.encode(test[0]);
             assertEquals("\"" + test[1] + "\"", s2);
             String s3 = JsopTokenizer.decodeQuoted(s2);
@@ -370,35 +371,35 @@ public class JsopTest extends TestCase {
 
         JsopBuilder buff = new JsopBuilder();
         buff.tag('+').object().
-                key("foo").value("bar").
-                key("int").value(3).
-                key("decimal").encodedValue("3.0").
-                key("obj").object().
-                key("boolean").value(true).
-                key("null").value(null).
-                key("arr").array().
-                array().
-                value(1).
-                value("\u001f ~ \u007f \u0080").
-                value("42").
-                endArray().
-                array().
-                endArray().
-                endArray().
-                endObject().
-                key("some").value("more").
-                endObject();
+            key("foo").value("bar").
+            key("int").value(3).
+            key("decimal").encodedValue("3.0").
+            key("obj").object().
+            key("boolean").value(true).
+            key("null").value(null).
+            key("arr").array().
+            array().
+            value(1).
+            value("\u001f ~ \u007f \u0080").
+            value("42").
+            endArray().
+            array().
+            endArray().
+            endArray().
+            endObject().
+            key("some").value("more").
+            endObject();
 
         String json = buff.toString();
         assertEquals("+{\"foo\":\"bar\",\"int\":3,\"decimal\":3.0," +
-                "\"obj\":{\"boolean\":true,\"null\":null," +
-                "\"arr\":[[1,\"\\u001f ~ \u007f \u0080\",\"42\"],[]]},\"some\":\"more\"}", json);
+            "\"obj\":{\"boolean\":true,\"null\":null," +
+            "\"arr\":[[1,\"\\u001f ~ \u007f \u0080\",\"42\"],[]]},\"some\":\"more\"}", json);
 
         buff.resetWriter();
         buff.array().
-                object().key("x").value("1").endObject().newline().
-                object().key("y").value("2").endObject().newline().
-                endArray();
+            object().key("x").value("1").endObject().newline().
+            object().key("y").value("2").endObject().newline().
+            endArray();
         json = buff.toString();
         assertEquals("[{\"x\":\"1\"}\n,{\"y\":\"2\"}\n]", json);
 
@@ -413,22 +414,23 @@ public class JsopTest extends TestCase {
     public void testEscape() {
         assertEquals("null", JsopBuilder.encode(null));
         JsopBuilder buff = new JsopBuilder().
-                key("back\\slash").value("\\").
-                key("back\\\\slash").value("\\\\");
-        assertEquals("\"back\\\\slash\":\"\\\\\",\"back\\\\\\\\slash\":\"\\\\\\\\\"", buff.toString());
+            key("back\\slash").value("\\").
+            key("back\\\\slash").value("\\\\");
+        assertEquals("\"back\\\\slash\":\"\\\\\",\"back\\\\\\\\slash\":\"\\\\\\\\\"",
+            buff.toString());
     }
 
     public void testPrettyPrint() {
         assertEquals("{}", JsopBuilder.prettyPrint("{}"));
         assertEquals("{\n  \"a\": 1,\n  \"b\": \"Hello\"\n}",
-                JsopBuilder.prettyPrint("{\"a\":1,\"b\":\"Hello\"}"));
+            JsopBuilder.prettyPrint("{\"a\":1,\"b\":\"Hello\"}"));
         assertEquals("{\n  \"a\": [1, 2]\n}",
-                JsopBuilder.prettyPrint("{\"a\":[1, 2]}"));
+            JsopBuilder.prettyPrint("{\"a\":[1, 2]}"));
     }
 
     public static String format(String json) {
         return prettyPrint(new StringBuilder(),
-                new JsopTokenizer(json), "    ");
+            new JsopTokenizer(json), "    ");
     }
 
 }

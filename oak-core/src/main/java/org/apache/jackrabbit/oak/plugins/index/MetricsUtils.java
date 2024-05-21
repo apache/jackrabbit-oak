@@ -29,9 +29,8 @@ public class MetricsUtils {
     private final static Logger LOG = LoggerFactory.getLogger(MetricsUtils.class);
 
     /**
-     * <p>Set a counter metric to the given value. The previous value of the metric is discarded and
-     * replaced by the
-     * given value.</p>
+     * <p>Set a counter metric to the given value. The previous value of the metric is discarded
+     * and replaced by the given value.</p>
      * <p>
      * Note that this method is to support a non-standard use case of the counter metrics. Normally
      * counters are incremented periodically to keep track of how many times an event occurred. This

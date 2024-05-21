@@ -16,11 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
+import static org.apache.jackrabbit.oak.plugins.index.search.util.ConfigUtil.getOptionalValue;
+
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-
-import static org.apache.jackrabbit.oak.plugins.index.search.util.ConfigUtil.getOptionalValue;
 
 public class ElasticPropertyDefinition extends PropertyDefinition {
 
@@ -45,24 +45,26 @@ public class ElasticPropertyDefinition extends PropertyDefinition {
     private static final int DEFAULT_QUERY_PROBES = 3;
 
 
-    public ElasticPropertyDefinition(IndexDefinition.IndexingRule idxDefn, String nodeName, NodeState defn) {
+    public ElasticPropertyDefinition(IndexDefinition.IndexingRule idxDefn, String nodeName,
+        NodeState defn) {
         super(idxDefn, nodeName, defn);
         if (this.useInSimilarity) {
             similaritySearchParameters = new SimilaritySearchParameters(
-                    getOptionalValue(defn, PROP_NUMBER_OF_HASH_TABLES, DEFAULT_NUMBER_OF_HASH_TABLES),
-                    getOptionalValue(defn, PROP_NUMBER_OF_HASH_FUNCTIONS, DEFAULT_NO_OF_HASH_FUNCTIONS),
-                    getOptionalValue(defn, PROP_NUMBER_OF_BUCKETS, DEFAULT_BUCKET_WIDTH),
-                    getOptionalValue(defn, PROP_QUERY_MODEL, DEFAULT_SIMILARITY_QUERY_MODEL),
-                    getOptionalValue(defn, PROP_INDEX_SIMILARITY, DEFAULT_SIMILARITY_INDEX_FUNCTION),
-                    getOptionalValue(defn, PROP_QUERY_SIMILARITY, DEFAULT_SIMILARITY_QUERY_FUNCTION),
-                    getOptionalValue(defn, PROP_CANDIDATES, DEFAULT_QUERY_CANDIDATES),
-                    getOptionalValue(defn, PROP_PROBES, DEFAULT_QUERY_PROBES));
+                getOptionalValue(defn, PROP_NUMBER_OF_HASH_TABLES, DEFAULT_NUMBER_OF_HASH_TABLES),
+                getOptionalValue(defn, PROP_NUMBER_OF_HASH_FUNCTIONS, DEFAULT_NO_OF_HASH_FUNCTIONS),
+                getOptionalValue(defn, PROP_NUMBER_OF_BUCKETS, DEFAULT_BUCKET_WIDTH),
+                getOptionalValue(defn, PROP_QUERY_MODEL, DEFAULT_SIMILARITY_QUERY_MODEL),
+                getOptionalValue(defn, PROP_INDEX_SIMILARITY, DEFAULT_SIMILARITY_INDEX_FUNCTION),
+                getOptionalValue(defn, PROP_QUERY_SIMILARITY, DEFAULT_SIMILARITY_QUERY_FUNCTION),
+                getOptionalValue(defn, PROP_CANDIDATES, DEFAULT_QUERY_CANDIDATES),
+                getOptionalValue(defn, PROP_PROBES, DEFAULT_QUERY_PROBES));
         }
     }
 
     /**
-     * Class for defining parameters for similarity search based on https://elastiknn.com/api.
-     * For all possible models and query combinations, see https://elastiknn.com/api/#model-and-query-compatibility
+     * Class for defining parameters for similarity search based on https://elastiknn.com/api. For
+     * all possible models and query combinations, see
+     * https://elastiknn.com/api/#model-and-query-compatibility
      */
     public static class SimilaritySearchParameters {
 
@@ -71,7 +73,8 @@ public class ElasticPropertyDefinition extends PropertyDefinition {
          */
         private final int L;
         /**
-         * Number of hash functions combined to form a single hash value. Generally, increasing this value increases precision.
+         * Number of hash functions combined to form a single hash value. Generally, increasing this
+         * value increases precision.
          */
         private final int k;
         /**
@@ -83,30 +86,38 @@ public class ElasticPropertyDefinition extends PropertyDefinition {
          */
         private final String queryModel;
         /**
-         * Possible values l2 (with lsh or exact model), l1 (with exact model), A (angular distance - with exact model)
+         * Possible values l2 (with lsh or exact model), l1 (with exact model), A (angular distance
+         * - with exact model)
          */
         private final String queryTimeSimilarityFunction;
         /**
-         * Possible values l2 (with lsh or exact model), l1 (with exact model), A (angular distance - with exact model)
+         * Possible values l2 (with lsh or exact model), l1 (with exact model), A (angular distance
+         * - with exact model)
          */
         private final String indexTimeSimilarityFunction;
         /**
-         * Take the top vectors with the most matching hashes and compute their exact similarity to the query vector. The candidates parameter
-         * controls the number of exact similarity computations. Specifically, we compute exact similarity for the top candidates candidate vectors
-         * in each segment. As a reminder, each Elasticsearch index has >= 1 shards, and each shard has >= 1 segments. That means if you set
-         * "candidates": 200 for an index with 2 shards, each with 3 segments, then you’ll compute the exact similarity for 2 * 3 * 200 = 1200 vectors.
-         * candidates must be set to a number greater or equal to the number of Elasticsearch results you want to get. Higher values generally mean
-         * higher recall and higher latency.
+         * Take the top vectors with the most matching hashes and compute their exact similarity to
+         * the query vector. The candidates parameter controls the number of exact similarity
+         * computations. Specifically, we compute exact similarity for the top candidates candidate
+         * vectors in each segment. As a reminder, each Elasticsearch index has >= 1 shards, and
+         * each shard has >= 1 segments. That means if you set "candidates": 200 for an index with 2
+         * shards, each with 3 segments, then you’ll compute the exact similarity for 2 * 3 * 200 =
+         * 1200 vectors. candidates must be set to a number greater or equal to the number of
+         * Elasticsearch results you want to get. Higher values generally mean higher recall and
+         * higher latency.
          */
         private final int candidates;
         /**
-         * Number of probes for using the multiprobe search technique. Default value is zero. Max value is 3^k. Generally, increasing probes will
-         * increase recall, will allow you to use a smaller value for L with comparable recall, but introduces some additional computation at query time.
+         * Number of probes for using the multiprobe search technique. Default value is zero. Max
+         * value is 3^k. Generally, increasing probes will increase recall, will allow you to use a
+         * smaller value for L with comparable recall, but introduces some additional computation at
+         * query time.
          */
         private final int probes;
 
-        public SimilaritySearchParameters(int l, int k, int w, String queryModel, String indexTimeSimilarityFunction,
-                                          String queryTimeSimilarityFunction, int candidates, int probes) {
+        public SimilaritySearchParameters(int l, int k, int w, String queryModel,
+            String indexTimeSimilarityFunction,
+            String queryTimeSimilarityFunction, int candidates, int probes) {
             L = l;
             this.k = k;
             this.w = w;

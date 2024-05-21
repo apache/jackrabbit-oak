@@ -16,14 +16,14 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
-import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
-import org.junit.Test;
-
 import static org.apache.jackrabbit.oak.security.authorization.permission.CacheStrategyImpl.EAGER_CACHE_MAXPATHS_PARAM;
 import static org.apache.jackrabbit.oak.security.authorization.permission.CacheStrategyImpl.EAGER_CACHE_SIZE_PARAM;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.junit.Test;
 
 public class CacheStrategyImplTest {
 

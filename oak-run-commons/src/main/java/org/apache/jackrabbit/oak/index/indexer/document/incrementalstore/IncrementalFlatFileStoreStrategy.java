@@ -18,7 +18,18 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.incrementalstore;
 
+import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_MAX_SORT_MEMORY_IN_GB;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_MAX_SORT_MEMORY_IN_GB_DEFAULT;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.getSortedStoreFileName;
+
 import com.google.common.base.Stopwatch;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.IOException;
+import java.util.Objects;
+import java.util.Set;
+import java.util.function.Predicate;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils;
@@ -33,18 +44,6 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.IOException;
-import java.util.Objects;
-import java.util.Set;
-import java.util.function.Predicate;
-
-import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_MAX_SORT_MEMORY_IN_GB;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_MAX_SORT_MEMORY_IN_GB_DEFAULT;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.getSortedStoreFileName;
-
 public class IncrementalFlatFileStoreStrategy implements IncrementalIndexStoreSortStrategy {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
@@ -58,15 +57,18 @@ public class IncrementalFlatFileStoreStrategy implements IncrementalIndexStoreSo
     private final NodeStore nodeStore;
     private final Compression algorithm;
     private final Predicate<String> pathPredicate;
-    private final boolean deleteOriginal = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_DELETE_ORIGINAL, "true"));
-    private final int maxMemory = Integer.getInteger(OAK_INDEXER_MAX_SORT_MEMORY_IN_GB, OAK_INDEXER_MAX_SORT_MEMORY_IN_GB_DEFAULT);
+    private final boolean deleteOriginal = Boolean.parseBoolean(
+        System.getProperty(OAK_INDEXER_DELETE_ORIGINAL, "true"));
+    private final int maxMemory = Integer.getInteger(OAK_INDEXER_MAX_SORT_MEMORY_IN_GB,
+        OAK_INDEXER_MAX_SORT_MEMORY_IN_GB_DEFAULT);
     private long textSize = 0;
     private long entryCount = 0;
     private final Set<String> preferredPathElements;
 
-    public IncrementalFlatFileStoreStrategy(NodeStore nodeStore, @NotNull String beforeCheckpoint, @NotNull String afterCheckpoint, File storeDir,
-                                            Set<String> preferredPathElements, @NotNull Compression algorithm,
-                                            Predicate<String> pathPredicate, IncrementalFlatFileStoreNodeStateEntryWriter entryWriter) {
+    public IncrementalFlatFileStoreStrategy(NodeStore nodeStore, @NotNull String beforeCheckpoint,
+        @NotNull String afterCheckpoint, File storeDir,
+        Set<String> preferredPathElements, @NotNull Compression algorithm,
+        Predicate<String> pathPredicate, IncrementalFlatFileStoreNodeStateEntryWriter entryWriter) {
         this.nodeStore = nodeStore;
         this.beforeCheckpoint = beforeCheckpoint;
         this.afterCheckpoint = afterCheckpoint;
@@ -85,23 +87,32 @@ public class IncrementalFlatFileStoreStrategy implements IncrementalIndexStoreSo
         try (BufferedWriter w = FlatFileStoreUtils.createWriter(file, algorithm)) {
             NodeState before = Objects.requireNonNull(nodeStore.retrieve(beforeCheckpoint));
             NodeState after = Objects.requireNonNull(nodeStore.retrieve(afterCheckpoint));
-            Exception e = EditorDiff.process(VisibleEditor.wrap(new IncrementalFlatFileStoreEditor(w, entryWriter, pathPredicate, this)), before, after);
+            Exception e = EditorDiff.process(VisibleEditor.wrap(
+                    new IncrementalFlatFileStoreEditor(w, entryWriter, pathPredicate, this)), before,
+                after);
             if (e != null) {
-                log.error("Exception while building incremental store for checkpoint before {}, after {}", beforeCheckpoint, afterCheckpoint, e);
+                log.error(
+                    "Exception while building incremental store for checkpoint before {}, after {}",
+                    beforeCheckpoint, afterCheckpoint, e);
                 throw new RuntimeException(e);
             }
         }
-        String sizeStr = algorithm.equals(Compression.NONE) ? "" : String.format("compressed/%s actual size", humanReadableByteCount(textSize));
-        log.info("Dumped {} nodestates in json format in {} ({} {})", entryCount, sw, humanReadableByteCount(file.length()), sizeStr);
+        String sizeStr = algorithm.equals(Compression.NONE) ? ""
+            : String.format("compressed/%s actual size", humanReadableByteCount(textSize));
+        log.info("Dumped {} nodestates in json format in {} ({} {})", entryCount, sw,
+            humanReadableByteCount(file.length()), sizeStr);
         return sortStoreFile(file);
     }
 
     @Override
     public File createMetadataFile() throws IOException {
-        IncrementalIndexStoreMetadata indexStoreMetadata = new IncrementalIndexStoreMetadata(beforeCheckpoint, afterCheckpoint,
-                getStoreType(), getStrategyName(), getPreferredPaths());
-        File metadataFile = new IndexStoreMetadataOperatorImpl<IncrementalIndexStoreMetadata>().createMetadataFile(indexStoreMetadata, storeDir, algorithm);
-        log.info("Created metadataFile:{} with strategy:{} ", metadataFile.getPath(), indexStoreMetadata.getStoreType());
+        IncrementalIndexStoreMetadata indexStoreMetadata = new IncrementalIndexStoreMetadata(
+            beforeCheckpoint, afterCheckpoint,
+            getStoreType(), getStrategyName(), getPreferredPaths());
+        File metadataFile = new IndexStoreMetadataOperatorImpl<IncrementalIndexStoreMetadata>().createMetadataFile(
+            indexStoreMetadata, storeDir, algorithm);
+        log.info("Created metadataFile:{} with strategy:{} ", metadataFile.getPath(),
+            indexStoreMetadata.getStoreType());
         return metadataFile;
     }
 
@@ -157,7 +168,7 @@ public class IncrementalFlatFileStoreStrategy implements IncrementalIndexStoreSo
         FileUtils.forceMkdir(sortWorkDir);
         File sortedFile = new File(storeFile.getParentFile(), getSortedStoreFileName(algorithm));
         NodeStateEntrySorter sorter =
-                new NodeStateEntrySorter(comparator, storeFile, sortWorkDir, sortedFile);
+            new NodeStateEntrySorter(comparator, storeFile, sortWorkDir, sortedFile);
         logFlags();
         sorter.setCompressionAlgorithm(algorithm);
         sorter.setMaxMemoryInGB(maxMemory);
@@ -168,7 +179,9 @@ public class IncrementalFlatFileStoreStrategy implements IncrementalIndexStoreSo
     }
 
     private void logFlags() {
-        log.info("Delete original dump from traversal : {} ({})", deleteOriginal, OAK_INDEXER_DELETE_ORIGINAL);
-        log.info("Max heap memory (GB) to be used for merge sort : {} ({})", maxMemory, OAK_INDEXER_MAX_SORT_MEMORY_IN_GB);
+        log.info("Delete original dump from traversal : {} ({})", deleteOriginal,
+            OAK_INDEXER_DELETE_ORIGINAL);
+        log.info("Max heap memory (GB) to be used for merge sort : {} ({})", maxMemory,
+            OAK_INDEXER_MAX_SORT_MEMORY_IN_GB);
     }
 }

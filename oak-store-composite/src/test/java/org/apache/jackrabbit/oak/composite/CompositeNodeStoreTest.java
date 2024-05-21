@@ -42,7 +42,7 @@ public class CompositeNodeStoreTest {
 
         MountInfoProvider mip = Mounts.newBuilder().readOnlyMount("libs", "/libs", "/apps").build();
         CompositeNodeStore cns = new CompositeNodeStore.Builder(mip, global)
-                .addMount("libs", mount).build();
+            .addMount("libs", mount).build();
 
         assertTrue(cns instanceof Clusterable);
     }

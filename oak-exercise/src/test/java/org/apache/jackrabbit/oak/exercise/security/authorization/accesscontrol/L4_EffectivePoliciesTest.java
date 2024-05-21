@@ -26,15 +26,14 @@ import javax.jcr.Session;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.Privilege;
-
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
-import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.exercise.ExerciseUtility;
+import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.test.AbstractJCRTest;
 import org.apache.jackrabbit.test.NotExecutableException;
@@ -149,7 +148,8 @@ public class L4_EffectivePoliciesTest extends AbstractJCRTest {
             throw new NotExecutableException();
         }
 
-        testPrivileges = AccessControlUtils.privilegesFromNames(acMgr, Privilege.JCR_READ, Privilege.JCR_WRITE);
+        testPrivileges = AccessControlUtils.privilegesFromNames(acMgr, Privilege.JCR_READ,
+            Privilege.JCR_WRITE);
     }
 
     @Override
@@ -167,7 +167,8 @@ public class L4_EffectivePoliciesTest extends AbstractJCRTest {
         }
     }
 
-    private JackrabbitAccessControlList setupPolicy(String path, Privilege[] privileges, Principal principal) throws RepositoryException, NotExecutableException {
+    private JackrabbitAccessControlList setupPolicy(String path, Privilege[] privileges,
+        Principal principal) throws RepositoryException, NotExecutableException {
         JackrabbitAccessControlList policy = AccessControlUtils.getAccessControlList(acMgr, path);
         if (policy != null) {
             policy.addEntry(principal, privileges, true);
@@ -179,7 +180,8 @@ public class L4_EffectivePoliciesTest extends AbstractJCRTest {
     }
 
     private Session getTestSession() throws RepositoryException {
-        return superuser.getRepository().login(ExerciseUtility.getTestCredentials(testUser.getID()));
+        return superuser.getRepository()
+                        .login(ExerciseUtility.getTestCredentials(testUser.getID()));
     }
 
     public void testGetEffectivePolicies() throws Exception {
@@ -207,7 +209,8 @@ public class L4_EffectivePoliciesTest extends AbstractJCRTest {
     }
 
     public void testGetEffectivePoliciesAtNodeTypeRoot() throws Exception {
-        AccessControlPolicy[] policies = acMgr.getEffectivePolicies(NodeTypeConstants.NODE_TYPES_PATH);
+        AccessControlPolicy[] policies = acMgr.getEffectivePolicies(
+            NodeTypeConstants.NODE_TYPES_PATH);
 
         int expectedLength = -1; // EXERCISE
         assertEquals(expectedLength, policies.length);
@@ -250,7 +253,8 @@ public class L4_EffectivePoliciesTest extends AbstractJCRTest {
         setupPolicy(testRoot, testPrivileges, testPrincipal);
 
         // grant 'testUser' READ + READ_AC privileges at child path
-        Privilege[] privileges = AccessControlUtils.privilegesFromNames(acMgr, Privilege.JCR_READ, Privilege.JCR_READ_ACCESS_CONTROL);
+        Privilege[] privileges = AccessControlUtils.privilegesFromNames(acMgr, Privilege.JCR_READ,
+            Privilege.JCR_READ_ACCESS_CONTROL);
         setupPolicy(childPath, privileges, testPrincipal);
         superuser.save();
 
@@ -278,7 +282,8 @@ public class L4_EffectivePoliciesTest extends AbstractJCRTest {
     }
 
     public void testSessionGetEffectivePoliciesByPrincipal() throws Exception {
-        Privilege[] privileges = AccessControlUtils.privilegesFromNames(acMgr, Privilege.JCR_READ, Privilege.JCR_READ_ACCESS_CONTROL);
+        Privilege[] privileges = AccessControlUtils.privilegesFromNames(acMgr, Privilege.JCR_READ,
+            Privilege.JCR_READ_ACCESS_CONTROL);
         setupPolicy(testRoot, privileges, testPrincipal);
         setupPolicy(childPath, testPrivileges, EveryonePrincipal.getInstance());
         superuser.save();
@@ -286,7 +291,8 @@ public class L4_EffectivePoliciesTest extends AbstractJCRTest {
         testSession = getTestSession();
         JackrabbitAccessControlManager testAcMgr = (JackrabbitAccessControlManager) testSession.getAccessControlManager();
 
-        AccessControlPolicy[] effective = testAcMgr.getEffectivePolicies(Collections.singleton(testPrincipal));
+        AccessControlPolicy[] effective = testAcMgr.getEffectivePolicies(
+            Collections.singleton(testPrincipal));
         int expectedLength = -1; // EXERCISE
         assertEquals(expectedLength, effective.length);
 
@@ -301,7 +307,8 @@ public class L4_EffectivePoliciesTest extends AbstractJCRTest {
         testSession = getTestSession();
         JackrabbitAccessControlManager testAcMgr = (JackrabbitAccessControlManager) testSession.getAccessControlManager();
 
-        AccessControlPolicy[] effective = testAcMgr.getEffectivePolicies(Collections.singleton(testPrincipal));
+        AccessControlPolicy[] effective = testAcMgr.getEffectivePolicies(
+            Collections.singleton(testPrincipal));
         int expectedLength = -1; // EXERCISE
         assertEquals(expectedLength, effective.length);
 

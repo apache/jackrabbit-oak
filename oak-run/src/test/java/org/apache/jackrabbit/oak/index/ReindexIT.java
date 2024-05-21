@@ -19,10 +19,36 @@
 
 package org.apache.jackrabbit.oak.index;
 
+import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
+import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.getNode;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.hasItem;
+import static org.hamcrest.CoreMatchers.not;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import javax.jcr.Node;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import javax.jcr.query.Query;
+import javax.jcr.query.QueryManager;
+import javax.jcr.query.QueryResult;
+import javax.jcr.query.Row;
+import javax.jcr.query.RowIterator;
+import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.io.Files;
-import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.json.JsopDiff;
@@ -41,34 +67,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import javax.jcr.Node;
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-import javax.jcr.query.Query;
-import javax.jcr.query.QueryManager;
-import javax.jcr.query.QueryResult;
-import javax.jcr.query.Row;
-import javax.jcr.query.RowIterator;
-import java.io.File;
-import java.io.IOException;
-import java.io.PrintStream;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
-import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.getNode;
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.CoreMatchers.hasItem;
-import static org.hamcrest.CoreMatchers.not;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-
 public class ReindexIT extends LuceneAbstractIndexCommandTest {
+
     private final ByteArrayOutputStream errContent = new ByteArrayOutputStream();
     private final PrintStream originalErr = System.err;
 
@@ -85,7 +85,7 @@ public class ReindexIT extends LuceneAbstractIndexCommandTest {
 
 
     @Test
-    public void reindexOutOfBand() throws Exception{
+    public void reindexOutOfBand() throws Exception {
         createTestData(true);
         fixture.getAsyncIndexUpdate("async").run();
 
@@ -99,20 +99,21 @@ public class ReindexIT extends LuceneAbstractIndexCommandTest {
         File outDir = temporaryFolder.newFolder();
         File storeDir = fixture.getDir();
         String[] args = {
-                "--index-temp-dir=" + temporaryFolder.newFolder().getAbsolutePath(),
-                "--index-out-dir="  + outDir.getAbsolutePath(),
-                "--index-paths=/oak:index/fooIndex",
-                "--checkpoint="+checkpoint,
-                "--reindex",
-                "--", // -- indicates that options have ended and rest needs to be treated as non option
-                storeDir.getAbsolutePath()
+            "--index-temp-dir=" + temporaryFolder.newFolder().getAbsolutePath(),
+            "--index-out-dir=" + outDir.getAbsolutePath(),
+            "--index-paths=/oak:index/fooIndex",
+            "--checkpoint=" + checkpoint,
+            "--reindex",
+            "--", // -- indicates that options have ended and rest needs to be treated as non option
+            storeDir.getAbsolutePath()
         };
 
         command.execute(args);
 
         IndexRepositoryFixture fixture2 = new LuceneRepositoryFixture(storeDir);
         NodeStore store2 = fixture2.getNodeStore();
-        PropertyState reindexCount = getNode(store2.getRoot(), "/oak:index/fooIndex").getProperty(IndexConstants.REINDEX_COUNT);
+        PropertyState reindexCount = getNode(store2.getRoot(), "/oak:index/fooIndex").getProperty(
+            IndexConstants.REINDEX_COUNT);
         assertEquals(1, reindexCount.getValue(Type.LONG).longValue());
 
         File indexes = new File(outDir, OutOfBandIndexer.LOCAL_INDEX_ROOT_DIR);
@@ -125,7 +126,7 @@ public class ReindexIT extends LuceneAbstractIndexCommandTest {
     }
 
     @Test
-    public void reindexIgnoreMissingTikaDepThrow() throws Exception{
+    public void reindexIgnoreMissingTikaDepThrow() throws Exception {
         final AtomicInteger exitCode = new AtomicInteger(-1);
         IndexCommand command = new IndexCommand() {
             @Override
@@ -140,13 +141,15 @@ public class ReindexIT extends LuceneAbstractIndexCommandTest {
             }
         };
         String[] args = {
-                "--reindex",
-                "--", // -- indicates that options have ended and rest needs to be treated as non option
-                "test"
+            "--reindex",
+            "--", // -- indicates that options have ended and rest needs to be treated as non option
+            "test"
         };
         command.execute(args);
         assertEquals("Epxpect to exit with status 1", 1, exitCode.get());
-        assertEquals("Missing tika parser dependencies, use --ignore-missing-tika-dep to force continue", errContent.toString("UTF-8").trim());
+        assertEquals(
+            "Missing tika parser dependencies, use --ignore-missing-tika-dep to force continue",
+            errContent.toString("UTF-8").trim());
     }
 
     @Test
@@ -172,13 +175,13 @@ public class ReindexIT extends LuceneAbstractIndexCommandTest {
         File outDir = temporaryFolder.newFolder();
         File storeDir = fixture.getDir();
         String[] args = {
-                "--index-temp-dir=" + temporaryFolder.newFolder().getAbsolutePath(),
-                "--index-out-dir="  + outDir.getAbsolutePath(),
-                "--index-paths=/oak:index/fooIndex",
-                "--checkpoint="+checkpoint,
-                "--reindex",
-                "--", // -- indicates that options have ended and rest needs to be treated as non option
-                storeDir.getAbsolutePath()
+            "--index-temp-dir=" + temporaryFolder.newFolder().getAbsolutePath(),
+            "--index-out-dir=" + outDir.getAbsolutePath(),
+            "--index-paths=/oak:index/fooIndex",
+            "--checkpoint=" + checkpoint,
+            "--reindex",
+            "--", // -- indicates that options have ended and rest needs to be treated as non option
+            storeDir.getAbsolutePath()
         };
 
         command.execute(args);
@@ -210,13 +213,13 @@ public class ReindexIT extends LuceneAbstractIndexCommandTest {
         File outDir3 = temporaryFolder.newFolder();
         File indexDir = new File(outDir, OutOfBandIndexer.LOCAL_INDEX_ROOT_DIR);
         String[] args3 = {
-                "--index-temp-dir=" + temporaryFolder.newFolder().getAbsolutePath(),
-                "--index-out-dir="  + temporaryFolder.newFolder().getAbsolutePath(),
-                "--index-import-dir="  + indexDir.getAbsolutePath(),
-                "--index-import",
-                "--read-write",
-                "--", // -- indicates that options have ended and rest needs to be treated as non option
-                storeDir.getAbsolutePath()
+            "--index-temp-dir=" + temporaryFolder.newFolder().getAbsolutePath(),
+            "--index-out-dir=" + temporaryFolder.newFolder().getAbsolutePath(),
+            "--index-import-dir=" + indexDir.getAbsolutePath(),
+            "--index-import",
+            "--read-write",
+            "--", // -- indicates that options have ended and rest needs to be treated as non option
+            storeDir.getAbsolutePath()
         };
 
         command3.execute(args3);
@@ -247,7 +250,8 @@ public class ReindexIT extends LuceneAbstractIndexCommandTest {
         fixture4.getAsyncIndexUpdate("async").run();
 
         // check if the stored index def has the correct async property set
-        NodeState index = fixture4.getNodeStore().getRoot().getChildNode("oak:index").getChildNode("fooIndex");
+        NodeState index = fixture4.getNodeStore().getRoot().getChildNode("oak:index")
+                                  .getChildNode("fooIndex");
         NodeState storedDef = index.getChildNode(":index-definition");
 
         // This assertion checks that the diff b/w index def and stored index def should not have async property in it.
@@ -259,7 +263,7 @@ public class ReindexIT extends LuceneAbstractIndexCommandTest {
     }
 
     @Test
-    public void reindexInReadWriteMode() throws Exception{
+    public void reindexInReadWriteMode() throws Exception {
         createTestData(true);
         fixture.getAsyncIndexUpdate("async").run();
         addTestContent(fixture, "/testNode/c", "bar", 100);
@@ -279,13 +283,13 @@ public class ReindexIT extends LuceneAbstractIndexCommandTest {
         File outDir = temporaryFolder.newFolder();
         File storeDir = fixture.getDir();
         String[] args = {
-                "--index-temp-dir=" + temporaryFolder.newFolder().getAbsolutePath(),
-                "--index-out-dir="  + outDir.getAbsolutePath(),
-                "--index-paths=/oak:index/fooIndex",
-                "--reindex",
-                "--read-write",
-                "--", // -- indicates that options have ended and rest needs to be treated as non option
-                storeDir.getAbsolutePath()
+            "--index-temp-dir=" + temporaryFolder.newFolder().getAbsolutePath(),
+            "--index-out-dir=" + outDir.getAbsolutePath(),
+            "--index-paths=/oak:index/fooIndex",
+            "--reindex",
+            "--read-write",
+            "--", // -- indicates that options have ended and rest needs to be treated as non option
+            storeDir.getAbsolutePath()
         };
 
         command.execute(args);
@@ -303,7 +307,7 @@ public class ReindexIT extends LuceneAbstractIndexCommandTest {
     }
 
     @Test
-    public void newIndexDefinition() throws Exception{
+    public void newIndexDefinition() throws Exception {
         createTestData(true);
         addTestContent(fixture, "/testNode/c", "bar", 100);
         fixture.getAsyncIndexUpdate("async").run();
@@ -316,27 +320,27 @@ public class ReindexIT extends LuceneAbstractIndexCommandTest {
         IndexCommand command = new IndexCommand();
 
         String json = "{\n" +
-                "  \"/oak:index/barIndex\": {\n" +
-                "    \"compatVersion\": 2,\n" +
-                "    \"type\": \"lucene\",\n" +
-                "    \"async\": \"async\",\n" +
-                "    \"jcr:primaryType\": \"oak:QueryIndexDefinition\",\n" +
-                "    \"indexRules\": {\n" +
-                "      \"jcr:primaryType\": \"nt:unstructured\",\n" +
-                "      \"nt:base\": {\n" +
-                "        \"jcr:primaryType\": \"nt:unstructured\",\n" +
-                "        \"properties\": {\n" +
-                "          \"jcr:primaryType\": \"nt:unstructured\",\n" +
-                "          \"bar\": {\n" +
-                "            \"name\": \"bar\",\n" +
-                "            \"propertyIndex\": true,\n" +
-                "            \"jcr:primaryType\": \"nt:unstructured\"\n" +
-                "          }\n" +
-                "        }\n" +
-                "      }\n" +
-                "    }\n" +
-                "  }\n" +
-                "}";
+            "  \"/oak:index/barIndex\": {\n" +
+            "    \"compatVersion\": 2,\n" +
+            "    \"type\": \"lucene\",\n" +
+            "    \"async\": \"async\",\n" +
+            "    \"jcr:primaryType\": \"oak:QueryIndexDefinition\",\n" +
+            "    \"indexRules\": {\n" +
+            "      \"jcr:primaryType\": \"nt:unstructured\",\n" +
+            "      \"nt:base\": {\n" +
+            "        \"jcr:primaryType\": \"nt:unstructured\",\n" +
+            "        \"properties\": {\n" +
+            "          \"jcr:primaryType\": \"nt:unstructured\",\n" +
+            "          \"bar\": {\n" +
+            "            \"name\": \"bar\",\n" +
+            "            \"propertyIndex\": true,\n" +
+            "            \"jcr:primaryType\": \"nt:unstructured\"\n" +
+            "          }\n" +
+            "        }\n" +
+            "      }\n" +
+            "    }\n" +
+            "  }\n" +
+            "}";
 
         File jsonFile = temporaryFolder.newFile();
         Files.write(json, jsonFile, UTF_8);
@@ -344,13 +348,13 @@ public class ReindexIT extends LuceneAbstractIndexCommandTest {
         File outDir = temporaryFolder.newFolder();
         File storeDir = fixture.getDir();
         String[] args = {
-                "--index-temp-dir=" + temporaryFolder.newFolder().getAbsolutePath(),
-                "--index-out-dir="  + outDir.getAbsolutePath(),
-                "--index-definitions-file=" + jsonFile.getAbsolutePath(),
-                "--reindex",
-                "--read-write",
-                "--", // -- indicates that options have ended and rest needs to be treated as non option
-                storeDir.getAbsolutePath()
+            "--index-temp-dir=" + temporaryFolder.newFolder().getAbsolutePath(),
+            "--index-out-dir=" + outDir.getAbsolutePath(),
+            "--index-definitions-file=" + jsonFile.getAbsolutePath(),
+            "--reindex",
+            "--read-write",
+            "--", // -- indicates that options have ended and rest needs to be treated as non option
+            storeDir.getAbsolutePath()
         };
 
         command.execute(args);
@@ -367,11 +371,13 @@ public class ReindexIT extends LuceneAbstractIndexCommandTest {
         assertThat(indexPaths, hasItem("/oak:index/barIndex"));
     }
 
-    private void indexBarPropertyAlso(IndexRepositoryFixture fixture2) throws IOException, RepositoryException {
+    private void indexBarPropertyAlso(IndexRepositoryFixture fixture2)
+        throws IOException, RepositoryException {
         Session session = fixture2.getAdminSession();
-        NodeState idxState = NodeStateUtils.getNode(fixture2.getNodeStore().getRoot(), TEST_INDEX_PATH);
+        NodeState idxState = NodeStateUtils.getNode(fixture2.getNodeStore().getRoot(),
+            TEST_INDEX_PATH);
         LuceneIndexDefinitionBuilder idxb = new LuceneIndexDefinitionBuilder(
-                new MemoryNodeBuilder(idxState), false);
+            new MemoryNodeBuilder(idxState), false);
         idxb.indexRule("nt:base").property("bar").propertyIndex();
 
         Node idxNode = session.getNode(TEST_INDEX_PATH);
@@ -380,10 +386,12 @@ public class ReindexIT extends LuceneAbstractIndexCommandTest {
         session.logout();
     }
 
-    private int getFooCount(IndexRepositoryFixture fixture, String propName) throws IOException, RepositoryException {
+    private int getFooCount(IndexRepositoryFixture fixture, String propName)
+        throws IOException, RepositoryException {
         Session session = fixture.getAdminSession();
         QueryManager qm = session.getWorkspace().getQueryManager();
-        String explanation = getQueryPlan(fixture, "select * from [nt:base] where ["+propName+"] is not null");
+        String explanation = getQueryPlan(fixture,
+            "select * from [nt:base] where [" + propName + "] is not null");
         assertThat(explanation, containsString("/oak:index/fooIndex"));
 
         Query q = qm.createQuery("select * from [nt:base] where [foo] is not null", Query.JCR_SQL2);
@@ -393,10 +401,11 @@ public class ReindexIT extends LuceneAbstractIndexCommandTest {
         return size;
     }
 
-    private static String getQueryPlan(IndexRepositoryFixture fixture, String query) throws RepositoryException, IOException {
+    private static String getQueryPlan(IndexRepositoryFixture fixture, String query)
+        throws RepositoryException, IOException {
         Session session = fixture.getAdminSession();
         QueryManager qm = session.getWorkspace().getQueryManager();
-        Query explain = qm.createQuery("explain "+query, Query.JCR_SQL2);
+        Query explain = qm.createQuery("explain " + query, Query.JCR_SQL2);
         QueryResult explainResult = explain.execute();
         Row explainRow = explainResult.getRows().nextRow();
         String explanation = explainRow.getValue("plan").getString();
@@ -418,7 +427,8 @@ public class ReindexIT extends LuceneAbstractIndexCommandTest {
         return result;
     }
 
-    private List<String> getResult(QueryResult result, String propertyName) throws RepositoryException {
+    private List<String> getResult(QueryResult result, String propertyName)
+        throws RepositoryException {
         List<String> results = Lists.newArrayList();
         RowIterator it = result.getRows();
         while (it.hasNext()) {

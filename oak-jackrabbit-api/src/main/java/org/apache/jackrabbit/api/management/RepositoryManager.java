@@ -17,29 +17,25 @@
 package org.apache.jackrabbit.api.management;
 
 import javax.jcr.RepositoryException;
-
 import org.osgi.annotation.versioning.ProviderType;
 
 /**
- * The repository manager provides life-cycle management features for
- * repositories.
- *
- * Not all implementations are required to implement all features,
- * for example some implementations may not support starting a repository after
- * is has been stopped.
+ * The repository manager provides life-cycle management features for repositories.
+ * <p>
+ * Not all implementations are required to implement all features, for example some implementations
+ * may not support starting a repository after is has been stopped.
  */
 @ProviderType
 public interface RepositoryManager {
 
     /**
-     * Shuts down the repository. A Jackrabbit repository instance contains
-     * a acquired resources and cached data that needs to be released and
-     * persisted when the repository is no longer used. This method handles
-     * all these shutdown tasks and <em>should</em> therefore be called by the
+     * Shuts down the repository. A Jackrabbit repository instance contains a acquired resources and
+     * cached data that needs to be released and persisted when the repository is no longer used.
+     * This method handles all these shutdown tasks and <em>should</em> therefore be called by the
      * client application once the repository instance is no longer used.
      * <p>
-     * Possible errors are logged rather than thrown as exceptions as there
-     * is little that a client application could do in such a case.
+     * Possible errors are logged rather than thrown as exceptions as there is little that a client
+     * application could do in such a case.
      */
     void stop();
 

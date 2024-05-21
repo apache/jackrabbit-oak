@@ -23,9 +23,7 @@ import static org.apache.jackrabbit.oak.plugins.observation.filter.ConstantFilte
 import static org.apache.jackrabbit.oak.plugins.observation.filter.ConstantFilter.INCLUDE_ALL;
 
 import java.util.List;
-
 import org.apache.jackrabbit.guava.common.collect.Lists;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;

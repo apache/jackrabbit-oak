@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.security.authentication;
 
+import java.util.Collections;
+import java.util.Map;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.security.authentication.monitor.LoginModuleMonitorImpl;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
@@ -37,9 +39,6 @@ import org.osgi.service.metatype.annotations.Designate;
 import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.Collections;
-import java.util.Map;
 
 /**
  * Default implementation of the {@code AuthenticationConfiguration} with the following

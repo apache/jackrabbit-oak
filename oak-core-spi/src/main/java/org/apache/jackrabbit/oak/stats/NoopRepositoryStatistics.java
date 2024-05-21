@@ -22,10 +22,11 @@ package org.apache.jackrabbit.oak.stats;
 import org.apache.jackrabbit.api.stats.RepositoryStatistics;
 import org.apache.jackrabbit.api.stats.TimeSeries;
 
-final class NoopRepositoryStatistics implements RepositoryStatistics{
+final class NoopRepositoryStatistics implements RepositoryStatistics {
+
     public static final RepositoryStatistics INSTANCE = new NoopRepositoryStatistics();
 
-    private NoopRepositoryStatistics(){
+    private NoopRepositoryStatistics() {
 
     }
 
@@ -40,6 +41,7 @@ final class NoopRepositoryStatistics implements RepositoryStatistics{
     }
 
     private static final class NoopTimeSeries implements TimeSeries {
+
         private static final long[] EMPTY_ARR = new long[0];
 
         static final TimeSeries INSTANCE = new NoopTimeSeries();

@@ -24,7 +24,6 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.Collection;
-
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -58,8 +57,8 @@ public class MemoryNodeBuilderTest {
         builder.child("z");
         NodeState base = builder.getNodeState();
         return ImmutableList.of(
-            new Object[] { base },
-            new Object[] { ModifiedNodeState.squeeze(base) }
+            new Object[]{base},
+            new Object[]{ModifiedNodeState.squeeze(base)}
         );
     }
 
@@ -120,7 +119,7 @@ public class MemoryNodeBuilderTest {
 
     @Test
     public void testWriteOnRemoveNode() {
-        for (String name : new String[] {"x", "new"}) {
+        for (String name : new String[]{"x", "new"}) {
             NodeBuilder root = base.builder();
             NodeBuilder child = root.child(name);
 
@@ -284,7 +283,8 @@ public class MemoryNodeBuilderTest {
         try {
             any.setChildNode("any");
             fail();
-        } catch (IllegalStateException expected) {}
+        } catch (IllegalStateException expected) {
+        }
     }
 
     @Test

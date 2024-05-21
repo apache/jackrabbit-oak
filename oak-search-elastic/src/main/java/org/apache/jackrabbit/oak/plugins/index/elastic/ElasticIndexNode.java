@@ -28,10 +28,11 @@ public class ElasticIndexNode implements IndexNode {
     private final ElasticIndexStatistics indexStatistics;
 
     public ElasticIndexNode(@NotNull NodeState root, @NotNull String indexPath,
-                            @NotNull ElasticConnection elasticConnection) {
+        @NotNull ElasticConnection elasticConnection) {
         final NodeState indexNS = NodeStateUtils.getNode(root, indexPath);
         this.elasticConnection = elasticConnection;
-        this.indexDefinition = new ElasticIndexDefinition(root, indexNS, indexPath, elasticConnection.getIndexPrefix());
+        this.indexDefinition = new ElasticIndexDefinition(root, indexNS, indexPath,
+            elasticConnection.getIndexPrefix());
         this.indexStatistics = new ElasticIndexStatistics(elasticConnection, indexDefinition);
     }
 

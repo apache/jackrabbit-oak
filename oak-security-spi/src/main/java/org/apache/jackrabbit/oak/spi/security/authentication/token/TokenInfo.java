@@ -21,9 +21,8 @@ import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * The {@code TokenInfo} provides data associated with a login token and
- * basic methods to verify the validity of token credentials at given
- * point in time.
+ * The {@code TokenInfo} provides data associated with a login token and basic methods to verify the
+ * validity of token credentials at given point in time.
  */
 public interface TokenInfo {
 
@@ -52,11 +51,10 @@ public interface TokenInfo {
     boolean isExpired(long loginTime);
 
     /**
-     * Resets the expiration time of the login token associated with the given
-     * {@code TokenInfo}. Whether and when the expiration time of a given login
-     * token is being reset is an implementation detail. Implementations that
-     * don't allow for resetting the token's expiration time at all will always
-     * return {@code false}.
+     * Resets the expiration time of the login token associated with the given {@code TokenInfo}.
+     * Whether and when the expiration time of a given login token is being reset is an
+     * implementation detail. Implementations that don't allow for resetting the token's expiration
+     * time at all will always return {@code false}.
      *
      * @param loginTime The current login time.
      * @return {@code true} if the expiration time has been reset, false otherwise.
@@ -64,21 +62,20 @@ public interface TokenInfo {
     boolean resetExpiration(long loginTime);
 
     /**
-     * Tries to remove the login token and all related information. This method
-     * returns {@code true} if the removal was successful.
+     * Tries to remove the login token and all related information. This method returns {@code true}
+     * if the removal was successful.
      *
      * @return {@code true} if the removal was successful, {@code false} otherwise.
      */
     boolean remove();
 
     /**
-     * Returns {@code true} if the specified credentials can be successfully
-     * validated against the information stored in this instance.
+     * Returns {@code true} if the specified credentials can be successfully validated against the
+     * information stored in this instance.
      *
      * @param tokenCredentials The credentials to validate.
-     * @return {@code true} if the specified credentials can be successfully
-     * validated against the information stored in this instance; {@code false}
-     * otherwise.
+     * @return {@code true} if the specified credentials can be successfully validated against the
+     * information stored in this instance; {@code false} otherwise.
      */
     boolean matches(@NotNull TokenCredentials tokenCredentials);
 

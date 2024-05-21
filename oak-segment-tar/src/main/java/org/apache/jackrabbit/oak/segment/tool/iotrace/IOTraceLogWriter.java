@@ -24,8 +24,8 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 
 /**
- * This {@link IOTraceWriter} implementation implements persistence
- * through a {@code Logger} instance.
+ * This {@link IOTraceWriter} implementation implements persistence through a {@code Logger}
+ * instance.
  */
 public class IOTraceLogWriter implements IOTraceWriter {
 
@@ -34,6 +34,7 @@ public class IOTraceLogWriter implements IOTraceWriter {
 
     /**
      * Create a new instance persisting to {@code log}.
+     *
      * @param log
      */
     public IOTraceLogWriter(@NotNull Logger log) {
@@ -51,5 +52,6 @@ public class IOTraceLogWriter implements IOTraceWriter {
     }
 
     @Override
-    public void flush() {}
+    public void flush() {
+    }
 }

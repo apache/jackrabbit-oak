@@ -32,8 +32,9 @@ public class IncrementalIndexStoreMetadata {
     public IncrementalIndexStoreMetadata() {
     }
 
-    public IncrementalIndexStoreMetadata(String beforeCheckpoint, String afterCheckpoint, String storeType,
-                                         String strategy, Set<String> preferredPaths) {
+    public IncrementalIndexStoreMetadata(String beforeCheckpoint, String afterCheckpoint,
+        String storeType,
+        String strategy, Set<String> preferredPaths) {
         this.beforeCheckpoint = beforeCheckpoint;
         this.afterCheckpoint = afterCheckpoint;
         this.storeType = storeType;

@@ -24,10 +24,11 @@ import java.util.Comparator;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 
 /**
- * Implements a comparator, which sorts NodeDocumentId string according to 1) their
- * depth (highest first) and 2) the id string itself.
+ * Implements a comparator, which sorts NodeDocumentId string according to 1) their depth (highest
+ * first) and 2) the id string itself.
  */
 public class NodeDocumentIdComparator implements Comparator<String> {
+
     public static final Comparator<String> INSTANCE = new NodeDocumentIdComparator();
 
     private NodeDocumentIdComparator() {

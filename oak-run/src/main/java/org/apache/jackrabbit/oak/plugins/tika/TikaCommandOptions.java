@@ -21,15 +21,15 @@ package org.apache.jackrabbit.oak.plugins.tika;
 
 import java.io.File;
 import java.util.Set;
-
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.run.cli.OptionsBean;
 import org.apache.jackrabbit.oak.run.cli.OptionsBeanFactory;
 
 public class TikaCommandOptions implements OptionsBean {
+
     public static final String NAME = "tika";
 
     public static final OptionsBeanFactory FACTORY = TikaCommandOptions::new;
@@ -52,42 +52,47 @@ public class TikaCommandOptions implements OptionsBean {
 
     public TikaCommandOptions(OptionParser parser) {
         pathOpt = parser
-                .accepts("path", "Path in repository under which the binaries would be searched")
-                .withRequiredArg()
-                .ofType(String.class)
-                .defaultsTo("/");
+            .accepts("path", "Path in repository under which the binaries would be searched")
+            .withRequiredArg()
+            .ofType(String.class)
+            .defaultsTo("/");
 
         dataFileSpecOpt = parser
-                .accepts("data-file", "Data file in csv format containing the binary metadata")
-                .withRequiredArg()
-                .ofType(File.class)
-                .defaultsTo(new File("oak-binary-stats.csv"));
+            .accepts("data-file", "Data file in csv format containing the binary metadata")
+            .withRequiredArg()
+            .ofType(File.class)
+            .defaultsTo(new File("oak-binary-stats.csv"));
 
         tikaConfigSpecOpt = parser
-                .accepts("tika-config", "Tika config file path")
-                .withRequiredArg()
-                .ofType(File.class);
+            .accepts("tika-config", "Tika config file path")
+            .withRequiredArg()
+            .ofType(File.class);
 
         storeDirSpecOpt = parser
-                .accepts("store-path", "Path of directory used to store extracted text content")
-                .withRequiredArg()
-                .ofType(File.class);
+            .accepts("store-path", "Path of directory used to store extracted text content")
+            .withRequiredArg()
+            .ofType(File.class);
 
         indexDirSpecOpt = parser
-                .accepts("index-dir", "Path of directory which stores lucene index containing extracted data")
-                .withRequiredArg()
-                .ofType(File.class);
+            .accepts("index-dir",
+                "Path of directory which stores lucene index containing extracted data")
+            .withRequiredArg()
+            .ofType(File.class);
 
         poolSizeOpt = parser
-                .accepts("pool-size", "Size of the thread pool used to perform text extraction. Defaults " +
-                        "to number of cores on the system")
-                .withRequiredArg()
-                .ofType(Integer.class);
+            .accepts("pool-size",
+                "Size of the thread pool used to perform text extraction. Defaults " +
+                    "to number of cores on the system")
+            .withRequiredArg()
+            .ofType(Integer.class);
 
         reportAction = parser.accepts("report", "Generates a summary report based on the csv file");
-        generateAction = parser.accepts("generate", "Generates the CSV file required for 'extract' and 'report' actions");
-        populateAction = parser.accepts("populate", "Populates extraction store based on supplied indexed data and csv file");
-        extractAction = parser.accepts("extract", "Performs the text extraction based on the csv file");
+        generateAction = parser.accepts("generate",
+            "Generates the CSV file required for 'extract' and 'report' actions");
+        populateAction = parser.accepts("populate",
+            "Populates extraction store based on supplied indexed data and csv file");
+        extractAction = parser.accepts("extract",
+            "Performs the text extraction based on the csv file");
 
         operationNames = ImmutableSet.of("report", "generate", "populate", "extract");
     }
@@ -104,7 +109,9 @@ public class TikaCommandOptions implements OptionsBean {
 
     @Override
     public String description() {
-        return "The tika command supports following operations. All operations connect to repository in read only mode. \n" +
+        return
+            "The tika command supports following operations. All operations connect to repository in read only mode. \n"
+                +
                 "Use of one of the supported actions like --report, --generate, --populate, --extract etc. ";
     }
 

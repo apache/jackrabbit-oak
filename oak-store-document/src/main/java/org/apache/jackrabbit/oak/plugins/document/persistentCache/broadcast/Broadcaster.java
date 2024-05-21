@@ -22,35 +22,35 @@ import java.nio.ByteBuffer;
  * A broadcast mechanism that is able to send and receive commands.
  */
 public interface Broadcaster {
-    
+
     /**
      * Change the dynamic broadcasting configuration.
-     * 
+     *
      * @param broadcastConfig the new configuration
      */
     void setBroadcastConfig(DynamicBroadcastConfig broadcastConfig);
-    
+
     /**
      * Send a message.
-     * 
+     *
      * @param buff the buffer
      */
     void send(ByteBuffer buff);
-    
+
     /**
      * Add a listener for new messages.
-     * 
+     *
      * @param listener the listener
      */
     void addListener(Listener listener);
-    
+
     /**
      * Remove a listener.
-     * 
+     *
      * @param listener the listener
      */
     void removeListener(Listener listener);
-    
+
     /**
      * Close the broadcaster.
      */
@@ -60,14 +60,14 @@ public interface Broadcaster {
      * A listener for new messages.
      */
     public interface Listener {
-        
+
         /**
          * Receive a message.
-         * 
+         *
          * @param buff the buffer
          */
         void receive(ByteBuffer buff);
-        
+
     }
-    
+
 }

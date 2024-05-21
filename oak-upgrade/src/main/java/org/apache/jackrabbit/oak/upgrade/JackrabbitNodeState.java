@@ -16,15 +16,6 @@
  */
 package org.apache.jackrabbit.oak.upgrade;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.addAll;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newLinkedHashMap;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newLinkedHashSet;
 import static org.apache.jackrabbit.JcrConstants.JCR_FROZENMIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_FROZENPRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_FROZENUUID;
@@ -40,6 +31,15 @@ import static org.apache.jackrabbit.JcrConstants.NT_VERSIONHISTORY;
 import static org.apache.jackrabbit.core.RepositoryImpl.ACTIVITIES_NODE_ID;
 import static org.apache.jackrabbit.core.RepositoryImpl.ROOT_NODE_ID;
 import static org.apache.jackrabbit.core.RepositoryImpl.VERSION_STORAGE_NODE_ID;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.addAll;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
+import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
+import static org.apache.jackrabbit.guava.common.collect.Maps.newLinkedHashMap;
+import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.guava.common.collect.Sets.newLinkedHashSet;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
@@ -53,13 +53,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import javax.jcr.Binary;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
-
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.api.ReferenceBinary;
 import org.apache.jackrabbit.core.RepositoryContext;
 import org.apache.jackrabbit.core.id.NodeId;
@@ -69,6 +65,8 @@ import org.apache.jackrabbit.core.persistence.util.NodePropBundle.ChildNodeEntry
 import org.apache.jackrabbit.core.persistence.util.NodePropBundle.PropertyEntry;
 import org.apache.jackrabbit.core.state.ItemStateException;
 import org.apache.jackrabbit.core.value.InternalValue;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -92,7 +90,7 @@ import org.slf4j.LoggerFactory;
 class JackrabbitNodeState extends AbstractNodeState {
 
     private static final Logger log =
-            LoggerFactory.getLogger(JackrabbitNodeState.class);
+        LoggerFactory.getLogger(JackrabbitNodeState.class);
 
     private JackrabbitNodeState parent;
 
@@ -106,8 +104,8 @@ class JackrabbitNodeState extends AbstractNodeState {
     private final BundleLoader loader;
 
     /**
-     * Workspace name used for versionable paths. This is null
-     * for the jcr:versionStorage and jcr:activities nodes.
+     * Workspace name used for versionable paths. This is null for the jcr:versionStorage and
+     * jcr:activities nodes.
      */
     private final String workspaceName;
 
@@ -141,47 +139,47 @@ class JackrabbitNodeState extends AbstractNodeState {
     private final List<String> ignoredPaths = ImmutableList.of("/jcr:system/jcr:nodeTypes");
 
     public static JackrabbitNodeState createRootNodeState(
-            RepositoryContext context,
-            String workspaceName,
-            NodeState root,
-            Map<String, String> uriToPrefix,
-            boolean copyBinariesByReference,
-            boolean skipOnError
+        RepositoryContext context,
+        String workspaceName,
+        NodeState root,
+        Map<String, String> uriToPrefix,
+        boolean copyBinariesByReference,
+        boolean skipOnError
     ) throws RepositoryException {
 
         final Map<NodeId, JackrabbitNodeState> emptyMountPoints = ImmutableMap.of();
-        final PersistenceManager versionPM = context.getInternalVersionManager().getPersistenceManager();
+        final PersistenceManager versionPM = context.getInternalVersionManager()
+                                                    .getPersistenceManager();
         final JackrabbitNodeState versionStorage = new JackrabbitNodeState(
-                versionPM, root, uriToPrefix,
-                VERSION_STORAGE_NODE_ID, "/jcr:system/jcr:versionStorage",
-                null,
-                emptyMountPoints,
-                copyBinariesByReference,
-                skipOnError
+            versionPM, root, uriToPrefix,
+            VERSION_STORAGE_NODE_ID, "/jcr:system/jcr:versionStorage",
+            null,
+            emptyMountPoints,
+            copyBinariesByReference,
+            skipOnError
         );
 
         final JackrabbitNodeState activities = new JackrabbitNodeState(
-                versionPM, root, uriToPrefix,
-                ACTIVITIES_NODE_ID, "/jcr:system/jcr:activities",
-                null,
-                emptyMountPoints,
-                copyBinariesByReference,
-                skipOnError
+            versionPM, root, uriToPrefix,
+            ACTIVITIES_NODE_ID, "/jcr:system/jcr:activities",
+            null,
+            emptyMountPoints,
+            copyBinariesByReference,
+            skipOnError
         );
-
 
         PersistenceManager pm = context.getWorkspaceInfo(workspaceName).getPersistenceManager();
         final Map<NodeId, JackrabbitNodeState> mountPoints = ImmutableMap.of(
-                VERSION_STORAGE_NODE_ID, versionStorage,
-                ACTIVITIES_NODE_ID, activities
+            VERSION_STORAGE_NODE_ID, versionStorage,
+            ACTIVITIES_NODE_ID, activities
         );
         return new JackrabbitNodeState(
-                pm, root, uriToPrefix, ROOT_NODE_ID, "/",
-                workspaceName, mountPoints, copyBinariesByReference, skipOnError);
+            pm, root, uriToPrefix, ROOT_NODE_ID, "/",
+            workspaceName, mountPoints, copyBinariesByReference, skipOnError);
     }
 
     private JackrabbitNodeState(
-            JackrabbitNodeState parent, String name, NodePropBundle bundle) {
+        JackrabbitNodeState parent, String name, NodePropBundle bundle) {
         this.parent = parent;
         this.name = name;
         this.path = null;
@@ -204,11 +202,11 @@ class JackrabbitNodeState extends AbstractNodeState {
     }
 
     JackrabbitNodeState(
-            PersistenceManager source, NodeState root,
-            Map<String, String> uriToPrefix, NodeId id, String path,
-            String workspaceName,
-            Map<NodeId, JackrabbitNodeState> mountPoints,
-            boolean useBinaryReferences, boolean skipOnError) {
+        PersistenceManager source, NodeState root,
+        Map<String, String> uriToPrefix, NodeId id, String path,
+        String workspaceName,
+        Map<NodeId, JackrabbitNodeState> mountPoints,
+        boolean useBinaryReferences, boolean skipOnError) {
         this.parent = null;
         this.name = PathUtils.getName(path);
         this.path = path;
@@ -222,7 +220,8 @@ class JackrabbitNodeState extends AbstractNodeState {
         this.uriToPrefix = uriToPrefix;
         this.mountPoints = mountPoints;
         final int cacheSize = 50; // cache size 50 results in > 25% cache hits during version copy
-        this.nodeStateCache = new LinkedHashMap<NodeId, JackrabbitNodeState>(cacheSize, 0.75f, true) {
+        this.nodeStateCache = new LinkedHashMap<NodeId, JackrabbitNodeState>(cacheSize, 0.75f,
+            true) {
             @Override
             protected boolean removeEldestEntry(Map.Entry<NodeId, JackrabbitNodeState> eldest) {
                 return size() >= cacheSize;
@@ -327,8 +326,8 @@ class JackrabbitNodeState extends AbstractNodeState {
         if (mountPoints.containsKey(id)) {
             final JackrabbitNodeState nodeState = mountPoints.get(id);
             checkState(name.equals(nodeState.name),
-                    "Expected mounted node " + id + " to be called " + nodeState.name +
-                            " instead of " + name);
+                "Expected mounted node " + id + " to be called " + nodeState.name +
+                    " instead of " + name);
             nodeState.parent = this;
             return nodeState;
         }
@@ -349,17 +348,19 @@ class JackrabbitNodeState extends AbstractNodeState {
 
     private void handleBundleLoadingException(final @NotNull String name, final Exception e) {
         if (!skipOnError) {
-            throw new IllegalStateException("Unable to access child node " + name + " of " + getPath(), e);
+            throw new IllegalStateException(
+                "Unable to access child node " + name + " of " + getPath(), e);
         }
-        warn("Skipping broken child node entry " + name + " and changing the primary type to nt:unstructured", e);
+        warn("Skipping broken child node entry " + name
+            + " and changing the primary type to nt:unstructured", e);
         properties.put(JCR_PRIMARYTYPE, PropertyStates.createProperty(
-                JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME));
+            JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME));
     }
 
     private void setChildOrder() {
         if (isOrderable.test(this)) {
             properties.put(OAK_CHILD_ORDER, PropertyStates.createProperty(
-                    OAK_CHILD_ORDER, nodes.keySet(), Type.NAMES));
+                OAK_CHILD_ORDER, nodes.keySet(), Type.NAMES));
         }
     }
 
@@ -390,7 +391,7 @@ class JackrabbitNodeState extends AbstractNodeState {
             primary = NT_UNSTRUCTURED;
         }
         properties.put(JCR_PRIMARYTYPE, PropertyStates.createProperty(
-                JCR_PRIMARYTYPE, primary, Type.NAME));
+            JCR_PRIMARYTYPE, primary, Type.NAME));
 
         for (PropertyEntry property : bundle.getPropertyEntries()) {
             String name = createName(property.getName());
@@ -398,10 +399,10 @@ class JackrabbitNodeState extends AbstractNodeState {
                 int type = property.getType();
                 if (property.isMultiValued()) {
                     properties.put(name, createProperty(
-                            name, type, property.getValues()));
+                        name, type, property.getValues()));
                 } else {
                     properties.put(name, createProperty(
-                            name, type, property.getValues()[0]));
+                        name, type, property.getValues()[0]));
                 }
             } catch (Exception e) {
                 warn("Skipping broken property entry " + name, e);
@@ -421,13 +422,13 @@ class JackrabbitNodeState extends AbstractNodeState {
 
         if (!mixins.isEmpty()) {
             properties.put(JCR_MIXINTYPES, PropertyStates.createProperty(
-                    JCR_MIXINTYPES, mixins, Type.NAMES));
+                JCR_MIXINTYPES, mixins, Type.NAMES));
         }
 
         if (bundle.isReferenceable()
-                || isReferenceable.test(primary, mixins)) {
+            || isReferenceable.test(primary, mixins)) {
             properties.put(JCR_UUID, PropertyStates.createProperty(
-                    JCR_UUID, bundle.getId().toString()));
+                JCR_UUID, bundle.getId().toString()));
         }
 
         return properties;
@@ -438,8 +439,8 @@ class JackrabbitNodeState extends AbstractNodeState {
         // frozen node from UUID to a path identifier
         PropertyState frozenUuid = properties.get(JCR_FROZENUUID);
         if (frozenUuid != null
-                && frozenUuid.getType() == STRING
-                && isFrozenNode.test(this)) {
+            && frozenUuid.getType() == STRING
+            && isFrozenNode.test(this)) {
             String frozenPrimary = NT_BASE;
             Set<String> frozenMixins = newHashSet();
 
@@ -456,7 +457,7 @@ class JackrabbitNodeState extends AbstractNodeState {
                 String parentFrozenUuid = parent.getString(JCR_FROZENUUID);
                 if (parentFrozenUuid != null) {
                     frozenUuid = PropertyStates.createProperty(
-                            JCR_FROZENUUID, parentFrozenUuid + "/" + name);
+                        JCR_FROZENUUID, parentFrozenUuid + "/" + name);
                     properties.put(JCR_FROZENUUID, frozenUuid);
                 }
             }
@@ -464,128 +465,128 @@ class JackrabbitNodeState extends AbstractNodeState {
     }
 
     private org.apache.jackrabbit.oak.api.PropertyState createProperty(
-            String name, int type, InternalValue value)
-            throws RepositoryException, IOException {
+        String name, int type, InternalValue value)
+        throws RepositoryException, IOException {
         switch (type) {
-        case PropertyType.BINARY:
-            return PropertyStates.createProperty(
+            case PropertyType.BINARY:
+                return PropertyStates.createProperty(
                     name, createBlob(value), Type.BINARY);
-        case PropertyType.BOOLEAN:
-            return PropertyStates.createProperty(
+            case PropertyType.BOOLEAN:
+                return PropertyStates.createProperty(
                     name, value.getBoolean(), Type.BOOLEAN);
-        case PropertyType.DATE:
-            return PropertyStates.createProperty(
+            case PropertyType.DATE:
+                return PropertyStates.createProperty(
                     name, value.getString(), Type.DATE);
-        case PropertyType.DECIMAL:
-            return PropertyStates.createProperty(
+            case PropertyType.DECIMAL:
+                return PropertyStates.createProperty(
                     name, value.getDecimal(), Type.DECIMAL);
-        case PropertyType.DOUBLE:
-            return PropertyStates.createProperty(
+            case PropertyType.DOUBLE:
+                return PropertyStates.createProperty(
                     name, value.getDouble(), Type.DOUBLE);
-        case PropertyType.LONG:
-            return PropertyStates.createProperty(
+            case PropertyType.LONG:
+                return PropertyStates.createProperty(
                     name, value.getLong(), Type.LONG);
-        case PropertyType.NAME:
-            return PropertyStates.createProperty(
+            case PropertyType.NAME:
+                return PropertyStates.createProperty(
                     name, createName(value.getName()), Type.NAME);
-        case PropertyType.PATH:
-            return PropertyStates.createProperty(
+            case PropertyType.PATH:
+                return PropertyStates.createProperty(
                     name, createPath(value.getPath()), Type.PATH);
-        case PropertyType.REFERENCE:
-            return PropertyStates.createProperty(
+            case PropertyType.REFERENCE:
+                return PropertyStates.createProperty(
                     name, value.getNodeId().toString(), Type.REFERENCE);
-        case PropertyType.STRING:
-            return PropertyStates.createProperty(
+            case PropertyType.STRING:
+                return PropertyStates.createProperty(
                     name, value.getString(), Type.STRING);
-        case PropertyType.URI:
-            return PropertyStates.createProperty(
+            case PropertyType.URI:
+                return PropertyStates.createProperty(
                     name, value.getURI().toString(), Type.URI);
-        case PropertyType.WEAKREFERENCE:
-            return PropertyStates.createProperty(
+            case PropertyType.WEAKREFERENCE:
+                return PropertyStates.createProperty(
                     name, value.getNodeId().toString(), Type.WEAKREFERENCE);
-        default:
-            throw new RepositoryException("Unknown value type: " + type);
+            default:
+                throw new RepositoryException("Unknown value type: " + type);
         }
     }
 
     private org.apache.jackrabbit.oak.api.PropertyState createProperty(
-            String name, int type, InternalValue[] values)
-            throws RepositoryException, IOException {
+        String name, int type, InternalValue[] values)
+        throws RepositoryException, IOException {
         switch (type) {
-        case PropertyType.BINARY:
-            List<Blob> binaries = newArrayListWithCapacity(values.length);
-            for (InternalValue value : values) {
-                binaries.add(createBlob(value));
-            }
-            return PropertyStates.createProperty(name, binaries, Type.BINARIES);
-        case PropertyType.BOOLEAN:
-            List<Boolean> booleans = newArrayListWithCapacity(values.length);
-            for (InternalValue value : values) {
-                booleans.add(value.getBoolean());
-            }
-            return PropertyStates.createProperty(name, booleans, Type.BOOLEANS);
-        case PropertyType.DATE:
-            List<String> dates = newArrayListWithCapacity(values.length);
-            for (InternalValue value : values) {
-                dates.add(value.getString());
-            }
-            return PropertyStates.createProperty(name, dates, Type.DATES);
-        case PropertyType.DECIMAL:
-            List<BigDecimal> decimals = newArrayListWithCapacity(values.length);
-            for (InternalValue value : values) {
-                decimals.add(value.getDecimal());
-            }
-            return PropertyStates.createProperty(name, decimals, Type.DECIMALS);
-        case PropertyType.DOUBLE:
-            List<Double> doubles = newArrayListWithCapacity(values.length);
-            for (InternalValue value : values) {
-                doubles.add(value.getDouble());
-            }
-            return PropertyStates.createProperty(name, doubles, Type.DOUBLES);
-        case PropertyType.LONG:
-            List<Long> longs = newArrayListWithCapacity(values.length);
-            for (InternalValue value : values) {
-                longs.add(value.getLong());
-            }
-            return PropertyStates.createProperty(name, longs, Type.LONGS);
-        case PropertyType.NAME:
-            List<String> names = newArrayListWithCapacity(values.length);
-            for (InternalValue value : values) {
-                names.add(createName(value.getName()));
-            }
-            return PropertyStates.createProperty(name, names, Type.NAMES);
-        case PropertyType.PATH:
-            List<String> paths = newArrayListWithCapacity(values.length);
-            for (InternalValue value : values) {
-                paths.add(createPath(value.getPath()));
-            }
-            return PropertyStates.createProperty(name, paths, Type.PATHS);
-        case PropertyType.REFERENCE:
-            List<String> references = newArrayListWithCapacity(values.length);
-            for (InternalValue value : values) {
-                references.add(value.getNodeId().toString());
-            }
-            return PropertyStates.createProperty(name, references, Type.REFERENCES);
-        case PropertyType.STRING:
-            List<String> strings = newArrayListWithCapacity(values.length);
-            for (InternalValue value : values) {
-                strings.add(value.getString());
-            }
-            return PropertyStates.createProperty(name, strings, Type.STRINGS);
-        case PropertyType.URI:
-            List<String> uris = newArrayListWithCapacity(values.length);
-            for (InternalValue value : values) {
-                uris.add(value.getURI().toString());
-            }
-            return PropertyStates.createProperty(name, uris, Type.URIS);
-        case PropertyType.WEAKREFERENCE:
-            List<String> weakreferences = newArrayListWithCapacity(values.length);
-            for (InternalValue value : values) {
-                weakreferences.add(value.getNodeId().toString());
-            }
-            return PropertyStates.createProperty(name, weakreferences, Type.WEAKREFERENCES);
-        default:
-            throw new RepositoryException("Unknown value type: " + type);
+            case PropertyType.BINARY:
+                List<Blob> binaries = newArrayListWithCapacity(values.length);
+                for (InternalValue value : values) {
+                    binaries.add(createBlob(value));
+                }
+                return PropertyStates.createProperty(name, binaries, Type.BINARIES);
+            case PropertyType.BOOLEAN:
+                List<Boolean> booleans = newArrayListWithCapacity(values.length);
+                for (InternalValue value : values) {
+                    booleans.add(value.getBoolean());
+                }
+                return PropertyStates.createProperty(name, booleans, Type.BOOLEANS);
+            case PropertyType.DATE:
+                List<String> dates = newArrayListWithCapacity(values.length);
+                for (InternalValue value : values) {
+                    dates.add(value.getString());
+                }
+                return PropertyStates.createProperty(name, dates, Type.DATES);
+            case PropertyType.DECIMAL:
+                List<BigDecimal> decimals = newArrayListWithCapacity(values.length);
+                for (InternalValue value : values) {
+                    decimals.add(value.getDecimal());
+                }
+                return PropertyStates.createProperty(name, decimals, Type.DECIMALS);
+            case PropertyType.DOUBLE:
+                List<Double> doubles = newArrayListWithCapacity(values.length);
+                for (InternalValue value : values) {
+                    doubles.add(value.getDouble());
+                }
+                return PropertyStates.createProperty(name, doubles, Type.DOUBLES);
+            case PropertyType.LONG:
+                List<Long> longs = newArrayListWithCapacity(values.length);
+                for (InternalValue value : values) {
+                    longs.add(value.getLong());
+                }
+                return PropertyStates.createProperty(name, longs, Type.LONGS);
+            case PropertyType.NAME:
+                List<String> names = newArrayListWithCapacity(values.length);
+                for (InternalValue value : values) {
+                    names.add(createName(value.getName()));
+                }
+                return PropertyStates.createProperty(name, names, Type.NAMES);
+            case PropertyType.PATH:
+                List<String> paths = newArrayListWithCapacity(values.length);
+                for (InternalValue value : values) {
+                    paths.add(createPath(value.getPath()));
+                }
+                return PropertyStates.createProperty(name, paths, Type.PATHS);
+            case PropertyType.REFERENCE:
+                List<String> references = newArrayListWithCapacity(values.length);
+                for (InternalValue value : values) {
+                    references.add(value.getNodeId().toString());
+                }
+                return PropertyStates.createProperty(name, references, Type.REFERENCES);
+            case PropertyType.STRING:
+                List<String> strings = newArrayListWithCapacity(values.length);
+                for (InternalValue value : values) {
+                    strings.add(value.getString());
+                }
+                return PropertyStates.createProperty(name, strings, Type.STRINGS);
+            case PropertyType.URI:
+                List<String> uris = newArrayListWithCapacity(values.length);
+                for (InternalValue value : values) {
+                    uris.add(value.getURI().toString());
+                }
+                return PropertyStates.createProperty(name, uris, Type.URIS);
+            case PropertyType.WEAKREFERENCE:
+                List<String> weakreferences = newArrayListWithCapacity(values.length);
+                for (InternalValue value : values) {
+                    weakreferences.add(value.getNodeId().toString());
+                }
+                return PropertyStates.createProperty(name, weakreferences, Type.WEAKREFERENCES);
+            default:
+                throw new RepositoryException("Unknown value type: " + type);
         }
     }
 
@@ -673,7 +674,7 @@ class JackrabbitNodeState extends AbstractNodeState {
         StringBuilder builder = new StringBuilder();
         for (Path.Element element : path.getElements()) {
             if (builder.length() > 1
-                    || (builder.length() == 1 && !"/".equals(builder.toString()))) {
+                || (builder.length() == 1 && !"/".equals(builder.toString()))) {
                 builder.append('/');
             }
             if (element.denotesRoot()) {

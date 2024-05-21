@@ -35,14 +35,13 @@ class BlockRecord extends Record {
     }
 
     /**
-     * Reads bytes from this block. Up to the given number of bytes are
-     * read starting from the given position within this block. The number
-     * of bytes read is returned.
+     * Reads bytes from this block. Up to the given number of bytes are read starting from the given
+     * position within this block. The number of bytes read is returned.
      *
      * @param position position within this block
-     * @param buffer target buffer
-     * @param offset offset within the target buffer
-     * @param length maximum number of bytes to read
+     * @param buffer   target buffer
+     * @param offset   offset within the target buffer
+     * @param length   maximum number of bytes to read
      * @return number of bytes that could be read
      */
     public int read(int position, byte[] buffer, int offset, int length) {

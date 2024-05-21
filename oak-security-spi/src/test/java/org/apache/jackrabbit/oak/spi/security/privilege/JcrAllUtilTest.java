@@ -16,6 +16,13 @@
  */
 package org.apache.jackrabbit.oak.spi.security.privilege;
 
+import static org.apache.jackrabbit.oak.spi.security.privilege.JcrAllUtil.DYNAMIC_JCR_ALL_VALUE;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.when;
+
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.primitives.Longs;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -27,21 +34,16 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import static org.apache.jackrabbit.oak.spi.security.privilege.JcrAllUtil.DYNAMIC_JCR_ALL_VALUE;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.when;
-
 public class JcrAllUtilTest implements PrivilegeConstants {
 
     private static final Long ALL = Long.MAX_VALUE;
 
-    private static final PropertyState ALL_PROPERTY = PropertyStates.createProperty(REP_BITS, Longs.asList(Long.MAX_VALUE), Type.LONGS);
+    private static final PropertyState ALL_PROPERTY = PropertyStates.createProperty(REP_BITS,
+        Longs.asList(Long.MAX_VALUE), Type.LONGS);
     private final PrivilegeBits ALL_BITS = PrivilegeBits.getInstance(ALL_PROPERTY);
 
-    private static final PropertyState DYNAMIC_ALL_PROPERTY = PropertyStates.createProperty("anyName", Longs.asList(DYNAMIC_JCR_ALL_VALUE), Type.LONGS);
+    private static final PropertyState DYNAMIC_ALL_PROPERTY = PropertyStates.createProperty(
+        "anyName", Longs.asList(DYNAMIC_JCR_ALL_VALUE), Type.LONGS);
 
     private Tree privTree;
     private Tree jcrAllDefTree;
@@ -109,7 +111,8 @@ public class JcrAllUtilTest implements PrivilegeConstants {
 
     @Test
     public void testAsPropertyStateDynamicAll() {
-        assertEquals(DYNAMIC_ALL_PROPERTY, JcrAllUtil.asPropertyState("anyName", ALL_BITS, bitsProvider));
+        assertEquals(DYNAMIC_ALL_PROPERTY,
+            JcrAllUtil.asPropertyState("anyName", ALL_BITS, bitsProvider));
     }
 
     @Test
@@ -119,23 +122,30 @@ public class JcrAllUtilTest implements PrivilegeConstants {
 
     @Test
     public void testDenotesDynamicAllNotLongsPropertyState() {
-        assertFalse(JcrAllUtil.denotesDynamicJcrAll(PropertyStates.createProperty("any", "String")));
-        assertFalse(JcrAllUtil.denotesDynamicJcrAll(PropertyStates.createProperty("any",  Lists.newArrayList("mv", "strings"), Type.STRINGS)));
+        assertFalse(
+            JcrAllUtil.denotesDynamicJcrAll(PropertyStates.createProperty("any", "String")));
+        assertFalse(JcrAllUtil.denotesDynamicJcrAll(
+            PropertyStates.createProperty("any", Lists.newArrayList("mv", "strings"),
+                Type.STRINGS)));
         assertFalse(JcrAllUtil.denotesDynamicJcrAll(PropertyStates.createProperty("any", "-1")));
     }
 
     @Test
     public void testDenotesDynamicAllMVLongPropertyState() {
-        assertFalse(JcrAllUtil.denotesDynamicJcrAll(PropertyStates.createProperty("any", Lists.newArrayList(-1, 2, 3), Type.LONGS)));
+        assertFalse(JcrAllUtil.denotesDynamicJcrAll(
+            PropertyStates.createProperty("any", Lists.newArrayList(-1, 2, 3), Type.LONGS)));
     }
 
     @Test
     public void testDenotesDynamicAllSingleLongPropertyState() {
-        assertFalse(JcrAllUtil.denotesDynamicJcrAll(PropertyStates.createProperty("any", DYNAMIC_JCR_ALL_VALUE)));
+        assertFalse(JcrAllUtil.denotesDynamicJcrAll(
+            PropertyStates.createProperty("any", DYNAMIC_JCR_ALL_VALUE)));
     }
 
     @Test
     public void testDenotesDynamicAll() {
-        assertTrue(JcrAllUtil.denotesDynamicJcrAll(PropertyStates.createProperty("any", Lists.newArrayList(DYNAMIC_JCR_ALL_VALUE), Type.LONGS)));
+        assertTrue(JcrAllUtil.denotesDynamicJcrAll(
+            PropertyStates.createProperty("any", Lists.newArrayList(DYNAMIC_JCR_ALL_VALUE),
+                Type.LONGS)));
     }
 }

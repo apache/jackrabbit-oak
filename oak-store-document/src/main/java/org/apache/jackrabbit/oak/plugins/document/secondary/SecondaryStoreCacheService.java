@@ -26,7 +26,6 @@ import java.util.Collections;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.concurrent.Executor;
-
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.plugins.document.AbstractDocumentNodeState;
@@ -64,33 +63,34 @@ import org.slf4j.LoggerFactory;
 public class SecondaryStoreCacheService {
 
     @ObjectClassDefinition(
-            name = "Apache Jackrabbit Oak DocumentNodeStateCache Provider",
-            description = "Configures a DocumentNodeStateCache based on a secondary NodeStore"
+        name = "Apache Jackrabbit Oak DocumentNodeStateCache Provider",
+        description = "Configures a DocumentNodeStateCache based on a secondary NodeStore"
     )
     @interface Configuration {
 
         @AttributeDefinition(
-                name = "Included Paths",
-                description = "List of paths which are to be included in the secondary store"
+            name = "Included Paths",
+            description = "List of paths which are to be included in the secondary store"
         )
         String[] includedPaths() default {"/"};
 
         @AttributeDefinition(
-                name = "Async Observation",
-                description = "Enable async observation processing"
+            name = "Async Observation",
+            description = "Enable async observation processing"
         )
         boolean enableAsyncObserver() default true;
 
         @AttributeDefinition(
-                name = "Observer queue size",
-                description = "Observer queue size. Used if 'enableAsyncObserver' is set to true"
+            name = "Observer queue size",
+            description = "Observer queue size. Used if 'enableAsyncObserver' is set to true"
         )
         int observerQueueSize() default BackgroundObserver.DEFAULT_QUEUE_SIZE;
     }
 
     private final Logger log = LoggerFactory.getLogger(getClass());
     /**
-     * Having a reference to BlobStore ensures that DocumentNodeStoreService does register a BlobStore
+     * Having a reference to BlobStore ensures that DocumentNodeStoreService does register a
+     * BlobStore
      */
     @Reference
     private BlobStore blobStore;
@@ -109,7 +109,7 @@ public class SecondaryStoreCacheService {
      * on it and DocumentNodeStore can make use of this service even after it has unregistered
      */
     @Reference(cardinality = ReferenceCardinality.OPTIONAL,
-            policy = ReferencePolicy.DYNAMIC)
+        policy = ReferencePolicy.DYNAMIC)
     private volatile DocumentNodeStore documentNodeStore;
 
     private final List<Registration> oakRegs = Lists.newArrayList();
@@ -125,7 +125,7 @@ public class SecondaryStoreCacheService {
     private final MultiplexingNodeStateDiffer differ = new MultiplexingNodeStateDiffer();
 
     @Activate
-    private void activate(BundleContext context, Configuration config){
+    private void activate(BundleContext context, Configuration config) {
         bundleContext = context;
         whiteboard = new OsgiWhiteboard(context);
         String[] includedPaths = config.includedPaths();
@@ -135,16 +135,18 @@ public class SecondaryStoreCacheService {
         //check for each child access and route to primary
         pathFilter = new PathFilter(asList(includedPaths), Collections.<String>emptyList());
 
-        SecondaryStoreBuilder builder = new SecondaryStoreBuilder(secondaryStoreProvider.getNodeStore())
-                .differ(differ)
-                .metaPropNames(DocumentNodeStore.META_PROP_NAMES)
-                .statisticsProvider(statisticsProvider)
-                .pathFilter(pathFilter);
+        SecondaryStoreBuilder builder = new SecondaryStoreBuilder(
+            secondaryStoreProvider.getNodeStore())
+            .differ(differ)
+            .metaPropNames(DocumentNodeStore.META_PROP_NAMES)
+            .statisticsProvider(statisticsProvider)
+            .pathFilter(pathFilter);
         SecondaryStoreCache cache = builder.buildCache();
         SecondaryStoreObserver observer = builder.buildObserver(cache);
         registerObserver(observer, config);
 
-        regs.add(bundleContext.registerService(DocumentNodeStateCache.class.getName(), cache, null));
+        regs.add(
+            bundleContext.registerService(DocumentNodeStateCache.class.getName(), cache, null));
 
         //TODO Need to see OSGi dynamics. Its possible that DocumentNodeStore works after the cache
         //gets deregistered but the SegmentNodeState instances might still be in use and that would cause
@@ -152,11 +154,11 @@ public class SecondaryStoreCacheService {
     }
 
     @Deactivate
-    private void deactivate(){
-        for (Registration r : oakRegs){
+    private void deactivate() {
+        for (Registration r : oakRegs) {
             r.unregister();
         }
-        for (ServiceRegistration r : regs){
+        for (ServiceRegistration r : regs) {
             r.unregister();
         }
     }
@@ -165,12 +167,12 @@ public class SecondaryStoreCacheService {
         return pathFilter;
     }
 
-    protected void bindDocumentNodeStore(DocumentNodeStore documentNodeStore){
+    protected void bindDocumentNodeStore(DocumentNodeStore documentNodeStore) {
         log.info("Registering DocumentNodeStore as the differ");
         differ.setDelegate(documentNodeStore);
     }
 
-    protected void unbindDocumentNodeStore(DocumentNodeStore documentNodeStore){
+    protected void unbindDocumentNodeStore(DocumentNodeStore documentNodeStore) {
         differ.setDelegate(NodeStateDiffer.DEFAULT_DIFFER);
     }
 
@@ -178,17 +180,17 @@ public class SecondaryStoreCacheService {
 
     private void registerObserver(Observer observer, Configuration config) {
         boolean enableAsyncObserver = config.enableAsyncObserver();
-        int  queueSize = config.observerQueueSize();
-        if (enableAsyncObserver){
+        int queueSize = config.observerQueueSize();
+        if (enableAsyncObserver) {
             BackgroundObserver bgObserver = new BackgroundObserver(observer, executor, queueSize);
             oakRegs.add(registerMBean(whiteboard,
-                    BackgroundObserverMBean.class,
-                    bgObserver.getMBean(),
-                    BackgroundObserverMBean.TYPE,
-                    "Secondary NodeStore observer stats"));
+                BackgroundObserverMBean.class,
+                bgObserver.getMBean(),
+                BackgroundObserverMBean.TYPE,
+                "Secondary NodeStore observer stats"));
             observer = bgObserver;
             log.info("Configuring the observer for secondary NodeStore as " +
-                    "Background Observer with queue size {}", queueSize);
+                "Background Observer with queue size {}", queueSize);
         }
 
         //Ensure that our observer comes first in processing
@@ -198,10 +200,12 @@ public class SecondaryStoreCacheService {
     }
 
     private static class MultiplexingNodeStateDiffer implements NodeStateDiffer {
+
         private volatile NodeStateDiffer delegate = NodeStateDiffer.DEFAULT_DIFFER;
+
         @Override
         public boolean compare(@NotNull AbstractDocumentNodeState node,
-                               @NotNull AbstractDocumentNodeState base, @NotNull NodeStateDiff diff) {
+            @NotNull AbstractDocumentNodeState base, @NotNull NodeStateDiff diff) {
             return delegate.compare(node, base, diff);
         }
 

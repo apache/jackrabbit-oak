@@ -19,16 +19,15 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.linkedList;
 
+import java.util.Iterator;
 import org.apache.jackrabbit.guava.common.base.Preconditions;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.Iterator;
-
 /**
- * Linked list implementation which supports multiple iterators. The iterator's state
- * is backed by an actual node in the list. So, modification in the list show up in
- * iterator (assuming thread safely/volatility) getting handled outside of the class.
+ * Linked list implementation which supports multiple iterators. The iterator's state is backed by
+ * an actual node in the list. So, modification in the list show up in iterator (assuming thread
+ * safely/volatility) getting handled outside of the class.
  */
 public class FlatFileBufferLinkedList implements NodeStateEntryList {
 
@@ -52,9 +51,11 @@ public class FlatFileBufferLinkedList implements NodeStateEntryList {
         long incomingSize = item.estimatedMemUsage();
         long memUsage = estimatedMemoryUsage();
         Preconditions.checkState(memUsage + incomingSize <= memLimit,
-                String.format(
-                "Adding item (%s) estimated with %s bytes would increase mem usage beyond upper limit (%s)." +
-                        " Current estimated mem usage is %s bytes", item.getPath(), incomingSize, memLimit, memUsage));
+            String.format(
+                "Adding item (%s) estimated with %s bytes would increase mem usage beyond upper limit (%s)."
+                    +
+                    " Current estimated mem usage is %s bytes", item.getPath(), incomingSize,
+                memLimit, memUsage));
         tail.next = new ListNode(item);
         tail = tail.next;
         size++;
@@ -103,6 +104,7 @@ public class FlatFileBufferLinkedList implements NodeStateEntryList {
      * Represents an item in the list.
      */
     static class ListNode {
+
         private ListNode next;
         private final NodeStateEntry data;
         private boolean isValid = true;
@@ -120,6 +122,7 @@ public class FlatFileBufferLinkedList implements NodeStateEntryList {
     }
 
     static class NodeIterator implements Iterator<NodeStateEntry> {
+
         private ListNode current;
 
         static NodeIterator iteratorFor(@NotNull ListNode node) {

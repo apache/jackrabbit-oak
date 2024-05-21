@@ -21,7 +21,8 @@ import org.jetbrains.annotations.NotNull;
 
 public final class QueryUtils {
 
-    private QueryUtils() {}
+    private QueryUtils() {
+    }
 
     /**
      * Escape {@code string} for matching in jcr escaped node names

@@ -17,8 +17,7 @@
 package org.apache.jackrabbit.oak.jcr.security.authorization;
 
 /**
- * Implementation of {@code AbstractAutoCreatedPropertyTest} for mix:created
- * nodes.
+ * Implementation of {@code AbstractAutoCreatedPropertyTest} for mix:created nodes.
  */
 public class MixCreatedTest extends AbstractAutoCreatedPropertyTest {
 

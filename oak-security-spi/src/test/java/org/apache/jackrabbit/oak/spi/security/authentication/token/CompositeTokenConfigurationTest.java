@@ -16,6 +16,11 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.token;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
 import java.util.List;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.security.AbstractCompositeConfigurationTest;
@@ -26,12 +31,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-
-public class CompositeTokenConfigurationTest extends AbstractCompositeConfigurationTest<TokenConfiguration> {
+public class CompositeTokenConfigurationTest extends
+    AbstractCompositeConfigurationTest<TokenConfiguration> {
 
     @Before
     public void before() {
@@ -141,7 +142,8 @@ public class CompositeTokenConfigurationTest extends AbstractCompositeConfigurat
         assertTrue(tp instanceof CompositeTokenProvider);
     }
 
-    private static final class TestTokenConfig extends ConfigurationBase implements TokenConfiguration {
+    private static final class TestTokenConfig extends ConfigurationBase implements
+        TokenConfiguration {
 
         @NotNull
         @Override

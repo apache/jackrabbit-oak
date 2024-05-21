@@ -17,7 +17,9 @@
    limitations under the License.
   -->
 
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd ">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd ">
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
@@ -64,7 +66,8 @@
         </executions>
         <configuration>
           <content>target/site</content>
-          <checkinComment>OAK-936: Site checkin for project ${project.name}-${project.version}</checkinComment>
+          <checkinComment>OAK-936: Site checkin for project ${project.name}-${project.version}
+          </checkinComment>
           <ignorePathsToDelete>
             <ignorePathToDelete>apidocs</ignorePathToDelete>
           </ignorePathsToDelete>
@@ -106,7 +109,7 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-project-info-reports-plugin</artifactId>
         <reportSets>
-          <reportSet />
+          <reportSet/>
         </reportSets>
       </plugin>
     </plugins>

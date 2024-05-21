@@ -28,7 +28,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
-
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeData;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeProperty;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.utils.Hash;
@@ -94,7 +93,7 @@ public class PropertyStats implements StatsCollector {
         }
         skipRemaining = skip;
         List<NodeProperty> properties = node.getProperties();
-        for(NodeProperty p : properties) {
+        for (NodeProperty p : properties) {
             String name = p.getName();
             if (indexedPropertiesOnly) {
                 if (indexedProperties != null && !indexedProperties.contains(name)) {
@@ -105,7 +104,7 @@ public class PropertyStats implements StatsCollector {
                 if (indexexPropertyMap != null) {
                     ArrayList<IndexedProperty> list = indexexPropertyMap.get(name);
                     if (list != null) {
-                        for(IndexedProperty ip : list) {
+                        for (IndexedProperty ip : list) {
                             if (ip.matches(name, node)) {
                                 add(name + " " + ip.toString(), p);
                             }
@@ -165,7 +164,7 @@ public class PropertyStats implements StatsCollector {
 
     public List<String> getRecords() {
         List<String> result = new ArrayList<>();
-        for(Stats stats : statsMap.values()) {
+        for (Stats stats : statsMap.values()) {
             StringBuilder buff = new StringBuilder();
             if (stats.count < MIN_PROPERTY_COUNT) {
                 continue;
@@ -215,9 +214,11 @@ public class PropertyStats implements StatsCollector {
     }
 
     static class Stats {
+
         public Stats(String name) {
             this.name = name;
         }
+
         String name;
         long count;
         long values;

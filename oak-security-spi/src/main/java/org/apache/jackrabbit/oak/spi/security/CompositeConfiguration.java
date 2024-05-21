@@ -18,6 +18,12 @@
  */
 package org.apache.jackrabbit.oak.spi.security;
 
+import java.security.Principal;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
@@ -45,30 +51,23 @@ import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ProviderType;
 import org.osgi.framework.Constants;
 
-import java.security.Principal;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
-
 /**
- * Abstract base implementation for {@link SecurityConfiguration}s that can
- * combine different implementations.
+ * Abstract base implementation for {@link SecurityConfiguration}s that can combine different
+ * implementations.
  */
 @ProviderType
-public abstract class CompositeConfiguration<T extends SecurityConfiguration> implements SecurityConfiguration {
+public abstract class CompositeConfiguration<T extends SecurityConfiguration> implements
+    SecurityConfiguration {
 
     /**
-     * Parameter used to define the ranking of a given configuration compared to
-     * other registered configuration in this aggregate. If the ranking parameter
-     * is missing a new configuration will be added at the end of the list.
+     * Parameter used to define the ranking of a given configuration compared to other registered
+     * configuration in this aggregate. If the ranking parameter is missing a new configuration will
+     * be added at the end of the list.
      */
     public static final String PARAM_RANKING = "configurationRanking";
 
     /**
-     * Default ranking value used to insert a new configuration at the end of
-     * the list.
+     * Default ranking value used to insert a new configuration at the end of the list.
      */
     private static final int NO_RANKING = Integer.MIN_VALUE;
 
@@ -91,7 +90,8 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
         this.name = name;
     }
 
-    public CompositeConfiguration(@NotNull String name, @NotNull SecurityProvider securityProvider) {
+    public CompositeConfiguration(@NotNull String name,
+        @NotNull SecurityProvider securityProvider) {
         this.name = name;
         this.securityProvider = securityProvider;
     }
@@ -110,7 +110,8 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
         addConfiguration(configuration, ConfigurationParameters.EMPTY);
     }
 
-    public void addConfiguration(@NotNull T configuration, @NotNull ConfigurationParameters params) {
+    public void addConfiguration(@NotNull T configuration,
+        @NotNull ConfigurationParameters params) {
         int ranking = configuration.getParameters().getConfigValue(PARAM_RANKING, NO_RANKING);
         if (ranking == NO_RANKING) {
             ranking = params.getConfigValue(Constants.SERVICE_RANKING, NO_RANKING);
@@ -155,7 +156,8 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
     @NotNull
     protected SecurityProvider getSecurityProvider() {
         if (securityProvider == null) {
-            throw new IllegalStateException("SecurityProvider missing => CompositeConfiguration is not ready.");
+            throw new IllegalStateException(
+                "SecurityProvider missing => CompositeConfiguration is not ready.");
         }
         return securityProvider;
     }
@@ -205,59 +207,67 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
     @NotNull
     @Override
     public WorkspaceInitializer getWorkspaceInitializer() {
-        return new CompositeWorkspaceInitializer(Lists.transform(getConfigurations(), new Function<T, WorkspaceInitializer>() {
-            @Override
-            public WorkspaceInitializer apply(T securityConfiguration) {
-                return securityConfiguration.getWorkspaceInitializer();
-            }
-        }));
+        return new CompositeWorkspaceInitializer(
+            Lists.transform(getConfigurations(), new Function<T, WorkspaceInitializer>() {
+                @Override
+                public WorkspaceInitializer apply(T securityConfiguration) {
+                    return securityConfiguration.getWorkspaceInitializer();
+                }
+            }));
     }
 
     @NotNull
     @Override
     public RepositoryInitializer getRepositoryInitializer() {
-        return new CompositeInitializer(Lists.transform(getConfigurations(), new Function<T, RepositoryInitializer>() {
-            @Override
-            public RepositoryInitializer apply(T securityConfiguration) {
-                return securityConfiguration.getRepositoryInitializer();
-            }
-        }));
+        return new CompositeInitializer(
+            Lists.transform(getConfigurations(), new Function<T, RepositoryInitializer>() {
+                @Override
+                public RepositoryInitializer apply(T securityConfiguration) {
+                    return securityConfiguration.getRepositoryInitializer();
+                }
+            }));
     }
 
     @NotNull
     @Override
     public List<? extends CommitHook> getCommitHooks(@NotNull final String workspaceName) {
-        Iterable<CommitHook> t = Iterables.concat(Lists.transform(getConfigurations(), new Function<T, List<? extends CommitHook>>() {
-            @Override
-            public List<? extends CommitHook> apply(T securityConfiguration) {
-                return securityConfiguration.getCommitHooks(workspaceName);
-            }
-        }));
+        Iterable<CommitHook> t = Iterables.concat(
+            Lists.transform(getConfigurations(), new Function<T, List<? extends CommitHook>>() {
+                @Override
+                public List<? extends CommitHook> apply(T securityConfiguration) {
+                    return securityConfiguration.getCommitHooks(workspaceName);
+                }
+            }));
         return ImmutableList.copyOf(t);
     }
 
     @NotNull
     @Override
-    public List<? extends ValidatorProvider> getValidators(@NotNull final String workspaceName, @NotNull final Set<Principal> principals, @NotNull final MoveTracker moveTracker) {
-        Iterable<ValidatorProvider> t = Iterables.concat(Lists.transform(getConfigurations(), securityConfiguration -> securityConfiguration.getValidators(workspaceName, principals, moveTracker)));
+    public List<? extends ValidatorProvider> getValidators(@NotNull final String workspaceName,
+        @NotNull final Set<Principal> principals, @NotNull final MoveTracker moveTracker) {
+        Iterable<ValidatorProvider> t = Iterables.concat(Lists.transform(getConfigurations(),
+            securityConfiguration -> securityConfiguration.getValidators(workspaceName, principals,
+                moveTracker)));
         return ImmutableList.copyOf(t);
     }
 
     @NotNull
     @Override
     public List<ThreeWayConflictHandler> getConflictHandlers() {
-        return ImmutableList.copyOf(Iterables.concat(Lists.transform(getConfigurations(), securityConfiguration -> securityConfiguration.getConflictHandlers())));
+        return ImmutableList.copyOf(Iterables.concat(Lists.transform(getConfigurations(),
+            securityConfiguration -> securityConfiguration.getConflictHandlers())));
     }
 
     @NotNull
     @Override
     public List<ProtectedItemImporter> getProtectedItemImporters() {
-        Iterable<ProtectedItemImporter> t = Iterables.concat(Lists.transform(getConfigurations(), new Function<T, List<? extends ProtectedItemImporter>>() {
-            @Override
-            public List<? extends ProtectedItemImporter> apply(T securityConfiguration) {
-                return securityConfiguration.getProtectedItemImporters();
-            }
-        }));
+        Iterable<ProtectedItemImporter> t = Iterables.concat(Lists.transform(getConfigurations(),
+            new Function<T, List<? extends ProtectedItemImporter>>() {
+                @Override
+                public List<? extends ProtectedItemImporter> apply(T securityConfiguration) {
+                    return securityConfiguration.getProtectedItemImporters();
+                }
+            }));
         return ImmutableList.copyOf(t);
     }
 
@@ -271,7 +281,8 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
     @Override
     public Iterable<Monitor<?>> getMonitors(@NotNull StatisticsProvider statisticsProvider) {
         return Iterables.concat(
-                Iterables.transform(getConfigurations(), securityConfiguration -> securityConfiguration.getMonitors(statisticsProvider)));
+            Iterables.transform(getConfigurations(),
+                securityConfiguration -> securityConfiguration.getMonitors(statisticsProvider)));
     }
 
     private static final class Ranking {
@@ -319,7 +330,7 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
             Context c = configuration.getContext();
             if (DEFAULT != c) {
                 if (delegatees == null) {
-                    delegatees = new Context[] {c};
+                    delegatees = new Context[]{c};
                 } else {
                     for (Context ctx : delegatees) {
                         if (ctx.equals(c)) {
@@ -401,7 +412,8 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
 
         private static final ContextFunction INSTANCE = new ContextFunction();
 
-        private ContextFunction() {}
+        private ContextFunction() {
+        }
 
         @Override
         public Context apply(SecurityConfiguration input) {

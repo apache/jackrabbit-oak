@@ -41,16 +41,16 @@ import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithC
 import static java.util.Arrays.sort;
 
 /**
- * A vector of revisions. Instances of this class are immutable and methods
- * like {@link #update(Revision)} create a new instance as needed.
- *
- * This class implements {@link Comparable}. While
- * {@link #compareTo(RevisionVector)} provides a total order of revision
- * vector instances, this order is unrelated to when changes are visible in
- * a DocumentNodeStore cluster. Do not use this method to determine whether
- * a given revision vector happened before or after another!
+ * A vector of revisions. Instances of this class are immutable and methods like
+ * {@link #update(Revision)} create a new instance as needed.
+ * <p>
+ * This class implements {@link Comparable}. While {@link #compareTo(RevisionVector)} provides a
+ * total order of revision vector instances, this order is unrelated to when changes are visible in
+ * a DocumentNodeStore cluster. Do not use this method to determine whether a given revision vector
+ * happened before or after another!
  */
-public final class RevisionVector implements Iterable<Revision>, Comparable<RevisionVector>, CacheValue {
+public final class RevisionVector implements Iterable<Revision>, Comparable<RevisionVector>,
+    CacheValue {
 
     private static final Logger log = LoggerFactory.getLogger(RevisionVector.class);
 
@@ -62,8 +62,8 @@ public final class RevisionVector implements Iterable<Revision>, Comparable<Revi
     private int hash;
 
     private RevisionVector(@NotNull Revision[] revisions,
-                           boolean checkUniqueClusterIds,
-                           boolean sort) {
+        boolean checkUniqueClusterIds,
+        boolean sort) {
         checkNotNull(revisions);
         if (checkUniqueClusterIds) {
             checkUniqueClusterIds(revisions);
@@ -87,10 +87,9 @@ public final class RevisionVector implements Iterable<Revision>, Comparable<Revi
     }
 
     /**
-     * Creates a new revision vector with based on this vector and the given
-     * {@code revision}. If this vector contains a revision with the same
-     * clusterId as {@code revision}, the returned vector will have the
-     * revision updated with the given one. Otherwise the returned vector will
+     * Creates a new revision vector with based on this vector and the given {@code revision}. If
+     * this vector contains a revision with the same clusterId as {@code revision}, the returned
+     * vector will have the revision updated with the given one. Otherwise the returned vector will
      * have all elements of this vector plus the given {@code revision}.
      *
      * @param revision the revision set to use for the new vector.
@@ -127,8 +126,7 @@ public final class RevisionVector implements Iterable<Revision>, Comparable<Revi
     }
 
     /**
-     * Returns a RevisionVector without the revision element with the given
-     * {@code clusterId}.
+     * Returns a RevisionVector without the revision element with the given {@code clusterId}.
      *
      * @param clusterId the clusterId of the revision to remove.
      * @return RevisionVector without the revision element.
@@ -227,9 +225,8 @@ public final class RevisionVector implements Iterable<Revision>, Comparable<Revi
     }
 
     /**
-     * Returns the difference of this and the other vector. The returned vector
-     * contains all revisions of this vector that are not contained in the
-     * other vector.
+     * Returns the difference of this and the other vector. The returned vector contains all
+     * revisions of this vector that are not contained in the other vector.
      *
      * @param vector the other vector.
      * @return the difference of the two vectors.
@@ -247,10 +244,9 @@ public final class RevisionVector implements Iterable<Revision>, Comparable<Revi
     }
 
     /**
-     * Returns {@code true} if the given revision is newer than the revision
-     * element with the same clusterId in the vector. The given revision is
-     * also considered newer if there is no revision element with the same
-     * clusterId in this vector.
+     * Returns {@code true} if the given revision is newer than the revision element with the same
+     * clusterId in the vector. The given revision is also considered newer if there is no revision
+     * element with the same clusterId in this vector.
      *
      * @param revision the revision to check.
      * @return {@code true} if considered newer, {@code false} otherwise.
@@ -269,8 +265,8 @@ public final class RevisionVector implements Iterable<Revision>, Comparable<Revi
     }
 
     /**
-     * @return {@code true} if any of the revisions in this vector is a branch
-     *          revision, {@code false} otherwise.
+     * @return {@code true} if any of the revisions in this vector is a branch revision,
+     * {@code false} otherwise.
      */
     public boolean isBranch() {
         for (Revision r : revisions) {
@@ -283,8 +279,7 @@ public final class RevisionVector implements Iterable<Revision>, Comparable<Revi
 
     /**
      * @return the first branch revision in this vector.
-     * @throws IllegalStateException if this vector does not contain a branch
-     *          revision.
+     * @throws IllegalStateException if this vector does not contain a branch revision.
      */
     @NotNull
     public Revision getBranchRevision() {
@@ -294,16 +289,15 @@ public final class RevisionVector implements Iterable<Revision>, Comparable<Revi
             }
         }
         throw new IllegalStateException(
-                "This vector does not contain a branch revision: " + this);
+            "This vector does not contain a branch revision: " + this);
     }
 
     /**
-     * Returns the revision element with the given clusterId or {@code null}
-     * if there is no such revision in this vector.
+     * Returns the revision element with the given clusterId or {@code null} if there is no such
+     * revision in this vector.
      *
      * @param clusterId a clusterId.
-     * @return the revision element with the given clusterId or {@code null}
-     *      if none exists.
+     * @return the revision element with the given clusterId or {@code null} if none exists.
      */
     public Revision getRevision(int clusterId) {
         for (Revision r : revisions) {
@@ -318,8 +312,8 @@ public final class RevisionVector implements Iterable<Revision>, Comparable<Revi
     }
 
     /**
-     * Returns a string representation of this revision vector, which can be
-     * parsed again by {@link #fromString(String)}.
+     * Returns a string representation of this revision vector, which can be parsed again by
+     * {@link #fromString(String)}.
      *
      * @return a string representation of this revision vector.
      */
@@ -334,8 +328,8 @@ public final class RevisionVector implements Iterable<Revision>, Comparable<Revi
 
     /**
      * Appends the string representation of this revision vector to the passed
-     * {@code StringBuilder}. The string representation is the same as returned
-     * by {@link #asString()}.
+     * {@code StringBuilder}. The string representation is the same as returned by
+     * {@link #asString()}.
      *
      * @param sb the {@code StringBuilder} this revision vector is appended to.
      * @return the passed {@code StringBuilder} object.
@@ -351,8 +345,7 @@ public final class RevisionVector implements Iterable<Revision>, Comparable<Revi
     }
 
     /**
-     * Creates a revision vector from a string representation as returned by
-     * {@link #asString()}.
+     * Creates a revision vector from a string representation as returned by {@link #asString()}.
      *
      * @param s the string representation of a revision vector.
      * @return the revision vector.
@@ -371,8 +364,7 @@ public final class RevisionVector implements Iterable<Revision>, Comparable<Revi
     }
 
     /**
-     * Returns a revision vector where all revision elements are turned into
-     * trunk revisions.
+     * Returns a revision vector where all revision elements are turned into trunk revisions.
      *
      * @return a trunk representation of this revision vector.
      */
@@ -388,14 +380,12 @@ public final class RevisionVector implements Iterable<Revision>, Comparable<Revi
     }
 
     /**
-     * A clone of this revision vector with the revision for the given
-     * clusterId set to a branch revision.
+     * A clone of this revision vector with the revision for the given clusterId set to a branch
+     * revision.
      *
-     * @param clusterId the clusterId of the revision to be turned into a branch
-     *                  revision.
+     * @param clusterId the clusterId of the revision to be turned into a branch revision.
      * @return the revision vector with the branch revision.
-     * @throws IllegalArgumentException if there is no revision element with the
-     *      given clusterId.
+     * @throws IllegalArgumentException if there is no revision element with the given clusterId.
      */
     public RevisionVector asBranchRevision(int clusterId) {
         boolean found = false;
@@ -410,14 +400,14 @@ public final class RevisionVector implements Iterable<Revision>, Comparable<Revi
         }
         if (!found) {
             throw new IllegalArgumentException("RevisionVector [" + asString() +
-                    "] does not have a revision for clusterId " + clusterId);
+                "] does not have a revision for clusterId " + clusterId);
         }
         return new RevisionVector(revs, false, false);
     }
 
     /**
-     * Returns the dimensions of this revision vector. That is, the number of
-     * revision elements in this vector.
+     * Returns the dimensions of this revision vector. That is, the number of revision elements in
+     * this vector.
      *
      * @return the number of revision elements in this vector.
      */
@@ -430,8 +420,8 @@ public final class RevisionVector implements Iterable<Revision>, Comparable<Revi
     @Override
     public int getMemory() {
         long size = 24 // shallow size
-                + revisionArrayMemory()
-                + revisions.length * Revision.SHALLOW_MEMORY_USAGE;
+            + revisionArrayMemory()
+            + revisions.length * Revision.SHALLOW_MEMORY_USAGE;
         if (size > Integer.MAX_VALUE) {
             log.debug("Estimated memory footprint larger than Integer.MAX_VALUE: {}.", size);
             size = Integer.MAX_VALUE;
@@ -467,6 +457,7 @@ public final class RevisionVector implements Iterable<Revision>, Comparable<Revi
     public Iterator<Revision> iterator() {
         return new AbstractIterator<Revision>() {
             int i = 0;
+
             @Override
             protected Revision computeNext() {
                 if (i >= revisions.length) {
@@ -500,7 +491,7 @@ public final class RevisionVector implements Iterable<Revision>, Comparable<Revi
 
     @Override
     public int hashCode() {
-        if (hash == 0){
+        if (hash == 0) {
             hash = Arrays.hashCode(revisions);
         }
         return hash;
@@ -510,7 +501,7 @@ public final class RevisionVector implements Iterable<Revision>, Comparable<Revi
 
     @Nullable
     private Revision peekRevision(PeekingIterator<Revision> it,
-                                  int minClusterId) {
+        int minClusterId) {
         while (it.hasNext() && it.peek().getClusterId() < minClusterId) {
             it.next();
         }
@@ -522,7 +513,7 @@ public final class RevisionVector implements Iterable<Revision>, Comparable<Revi
     }
 
     private static void checkUniqueClusterIds(Revision[] revisions)
-            throws IllegalArgumentException {
+        throws IllegalArgumentException {
         if (revisions.length < 2) {
             return;
         }
@@ -530,7 +521,7 @@ public final class RevisionVector implements Iterable<Revision>, Comparable<Revi
         for (Revision revision : revisions) {
             if (!known.add(revision.getClusterId())) {
                 throw new IllegalArgumentException(
-                        "Multiple revisions with clusterId " + revision.getClusterId());
+                    "Multiple revisions with clusterId " + revision.getClusterId());
             }
         }
     }

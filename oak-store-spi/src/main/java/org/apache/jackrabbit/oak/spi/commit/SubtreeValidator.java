@@ -21,12 +21,11 @@ import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull
 
 import java.util.Arrays;
 import java.util.List;
-
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
- * Validator that detects changes to a specified subtree and delegates the
- * validation of such changes to another given validator.
+ * Validator that detects changes to a specified subtree and delegates the validation of such
+ * changes to another given validator.
  *
  * @see SubtreeExcludingValidator
  * @since Oak 0.3
@@ -58,7 +57,7 @@ public class SubtreeValidator extends DefaultValidator {
 
     @Override
     public Validator childNodeChanged(
-            String name, NodeState before, NodeState after) {
+        String name, NodeState before, NodeState after) {
         return descend(name);
     }
 

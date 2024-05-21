@@ -16,24 +16,23 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
-import org.jetbrains.annotations.NotNull;
-
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.guava.common.collect.Lists.partition;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import org.jetbrains.annotations.NotNull;
+
 /**
- * Performs a rollback of a commit based on a list of changes. Changes are
- * rolled back by applying the reverse operation to the document store.
+ * Performs a rollback of a commit based on a list of changes. Changes are rolled back by applying
+ * the reverse operation to the document store.
  */
 class Rollback {
 
     static final Rollback FAILED = new Rollback(Revision.newRevision(0),
-            Collections.emptyList(), "", 1) {
+        Collections.emptyList(), "", 1) {
 
         @Override
         void perform(@NotNull DocumentStore store) throws DocumentStoreException {
@@ -42,7 +41,7 @@ class Rollback {
     };
 
     static final Rollback NONE = new Rollback(Revision.newRevision(0),
-            Collections.emptyList(), "", 1) {
+        Collections.emptyList(), "", 1) {
 
         @Override
         void perform(@NotNull DocumentStore store) throws DocumentStoreException {
@@ -60,15 +59,15 @@ class Rollback {
     /**
      * Creates a new rollback for the given commit revision.
      *
-     * @param revision the commit revision.
-     * @param changed the changes to revert.
+     * @param revision     the commit revision.
+     * @param changed      the changes to revert.
      * @param commitRootId the id of the commit root document.
-     * @param batchSize the batch size for the rollback operations.
+     * @param batchSize    the batch size for the rollback operations.
      */
     Rollback(@NotNull Revision revision,
-             @NotNull List<UpdateOp> changed,
-             @NotNull String commitRootId,
-             int batchSize) {
+        @NotNull List<UpdateOp> changed,
+        @NotNull String commitRootId,
+        int batchSize) {
         this.revision = revision;
         this.changed = checkNotNull(changed);
         this.commitRootId = checkNotNull(commitRootId);
@@ -76,9 +75,8 @@ class Rollback {
     }
 
     /**
-     * Performs the rollback. If this operation fails with a
-     * {@link DocumentStoreException}, then only some of the rollback may have
-     * been performed.
+     * Performs the rollback. If this operation fails with a {@link DocumentStoreException}, then
+     * only some of the rollback may have been performed.
      *
      * @param store the store where to apply the rollback.
      * @throws DocumentStoreException if any of the operations fails.

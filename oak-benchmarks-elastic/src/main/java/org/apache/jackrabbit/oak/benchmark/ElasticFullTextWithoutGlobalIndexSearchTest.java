@@ -18,6 +18,10 @@
  */
 package org.apache.jackrabbit.oak.benchmark;
 
+import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
+
+import java.io.File;
+import javax.jcr.Repository;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.benchmark.util.TestHelper;
 import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
@@ -34,17 +38,13 @@ import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvi
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
-import javax.jcr.Repository;
-import java.io.File;
-
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
-
 public class ElasticFullTextWithoutGlobalIndexSearchTest extends SearchTest {
 
     private final ElasticConnection connection;
     private String indexName;
 
-    ElasticFullTextWithoutGlobalIndexSearchTest(File dump, boolean flat, boolean doReport, Boolean storageEnabled, ElasticConnection connection) {
+    ElasticFullTextWithoutGlobalIndexSearchTest(File dump, boolean flat, boolean doReport,
+        Boolean storageEnabled, ElasticConnection connection) {
         super(dump, flat, doReport, storageEnabled);
         this.connection = connection;
     }
@@ -55,17 +55,18 @@ public class ElasticFullTextWithoutGlobalIndexSearchTest extends SearchTest {
         if (fixture instanceof OakRepositoryFixture) {
             return ((OakRepositoryFixture) fixture).setUpCluster(1, oak -> {
                 ElasticIndexTracker indexTracker = new ElasticIndexTracker(connection,
-                        new ElasticMetricHandler(StatisticsProvider.NOOP));
-                ElasticIndexEditorProvider editorProvider = new ElasticIndexEditorProvider(indexTracker, connection,
-                        new ExtractedTextCache(10 * FileUtils.ONE_MB, 100));
+                    new ElasticMetricHandler(StatisticsProvider.NOOP));
+                ElasticIndexEditorProvider editorProvider = new ElasticIndexEditorProvider(
+                    indexTracker, connection,
+                    new ExtractedTextCache(10 * FileUtils.ONE_MB, 100));
                 ElasticIndexProvider indexProvider = new ElasticIndexProvider(indexTracker);
                 oak.with(editorProvider)
-                        .with(indexTracker)
-                        .with(indexProvider)
-                        .with(new PropertyIndexEditorProvider())
-                        .with(new NodeTypeIndexProvider())
-                        .with(new PropertyFullTextTest.FullTextPropertyInitialiser(indexName, of("text"),
-                                ElasticIndexDefinition.TYPE_ELASTICSEARCH).nodeScope().analyzed());
+                   .with(indexTracker)
+                   .with(indexProvider)
+                   .with(new PropertyIndexEditorProvider())
+                   .with(new NodeTypeIndexProvider())
+                   .with(new PropertyFullTextTest.FullTextPropertyInitialiser(indexName, of("text"),
+                       ElasticIndexDefinition.TYPE_ELASTICSEARCH).nodeScope().analyzed());
                 return new Jcr(oak);
             });
         }

@@ -66,28 +66,33 @@ public class UtilsTest implements Constants {
 
     private static PrivilegeManager mockPrivilegeManager() throws RepositoryException {
         PrivilegeManager privilegeManager = mock(PrivilegeManager.class);
-        when(privilegeManager.getPrivilege(any(String.class))).then((Answer<Privilege>) invocationOnMock -> {
-            Privilege p = mock(Privilege.class);
-            when(p.getName()).thenReturn(invocationOnMock.getArgument(0));
-            return p;
-        });
-        when(privilegeManager.getPrivilege(INVALID_PRIVILEGE_NAME)).thenThrow(new AccessControlException());
+        when(privilegeManager.getPrivilege(any(String.class))).then(
+            (Answer<Privilege>) invocationOnMock -> {
+                Privilege p = mock(Privilege.class);
+                when(p.getName()).thenReturn(invocationOnMock.getArgument(0));
+                return p;
+            });
+        when(privilegeManager.getPrivilege(INVALID_PRIVILEGE_NAME)).thenThrow(
+            new AccessControlException());
         return privilegeManager;
     }
 
     @Test
     public void testIsPrincipalPolicyTreeNotExists() {
-       assertFalse(Utils.isPrincipalPolicyTree(mockTree(false, NT_REP_PRINCIPAL_POLICY, REP_PRINCIPAL_POLICY)));
+        assertFalse(Utils.isPrincipalPolicyTree(
+            mockTree(false, NT_REP_PRINCIPAL_POLICY, REP_PRINCIPAL_POLICY)));
     }
 
     @Test
     public void testIsPrincipalPolicyTreeWrongName() {
-        assertFalse(Utils.isPrincipalPolicyTree(mockTree(true, REP_RESTRICTIONS, NT_REP_PRINCIPAL_POLICY)));
+        assertFalse(
+            Utils.isPrincipalPolicyTree(mockTree(true, REP_RESTRICTIONS, NT_REP_PRINCIPAL_POLICY)));
     }
 
     @Test
     public void testIsPrincipalPolicyTreeWrongType() {
-        assertFalse(Utils.isPrincipalPolicyTree(mockTree(true, REP_PRINCIPAL_POLICY, NT_REP_RESTRICTIONS)));
+        assertFalse(
+            Utils.isPrincipalPolicyTree(mockTree(true, REP_PRINCIPAL_POLICY, NT_REP_RESTRICTIONS)));
     }
 
     @Test
@@ -97,12 +102,15 @@ public class UtilsTest implements Constants {
 
     @Test
     public void testIsPrincipalPolicyTreeWrongNameType() {
-        assertFalse(Utils.isPrincipalPolicyTree(mockTree(true, REP_RESTRICTIONS, NT_REP_RESTRICTIONS)));
+        assertFalse(
+            Utils.isPrincipalPolicyTree(mockTree(true, REP_RESTRICTIONS, NT_REP_RESTRICTIONS)));
     }
 
     @Test
     public void testIsPrincipalPolicyTree() {
-        assertTrue(Utils.isPrincipalPolicyTree(mockTree(true, REP_PRINCIPAL_POLICY, NT_REP_PRINCIPAL_POLICY))); }
+        assertTrue(Utils.isPrincipalPolicyTree(
+            mockTree(true, REP_PRINCIPAL_POLICY, NT_REP_PRINCIPAL_POLICY)));
+    }
 
     @Test(expected = AccessControlException.class)
     public void testCanHandleNullName() throws Exception {
@@ -136,19 +144,24 @@ public class UtilsTest implements Constants {
 
     @Test
     public void testCanHandle() throws Exception {
-        for (int behavior : new int[] {ImportBehavior.ABORT, ImportBehavior.BESTEFFORT, ImportBehavior.IGNORE}) {
+        for (int behavior : new int[]{ImportBehavior.ABORT, ImportBehavior.BESTEFFORT,
+            ImportBehavior.IGNORE}) {
             assertTrue(Utils.canHandle(PRINCIPAL, mockFilter(true), behavior));
         }
     }
 
     @Test
     public void testPrivilegesFromNamesEmptyNames() {
-        assertArrayEquals(new Privilege[0], Utils.privilegesFromOakNames(Collections.emptySet(), mock(PrivilegeManager.class), NamePathMapper.DEFAULT));
+        assertArrayEquals(new Privilege[0],
+            Utils.privilegesFromOakNames(Collections.emptySet(), mock(PrivilegeManager.class),
+                NamePathMapper.DEFAULT));
     }
 
     @Test
     public void testPrivilegesFromNamesInvalidName() throws Exception {
-        assertArrayEquals(new Privilege[0], Utils.privilegesFromOakNames(Collections.singleton(INVALID_PRIVILEGE_NAME), mockPrivilegeManager(), NamePathMapper.DEFAULT));
+        assertArrayEquals(new Privilege[0],
+            Utils.privilegesFromOakNames(Collections.singleton(INVALID_PRIVILEGE_NAME),
+                mockPrivilegeManager(), NamePathMapper.DEFAULT));
     }
 
     @Test
@@ -156,13 +169,14 @@ public class UtilsTest implements Constants {
         NamePathMapper mapper = mock(NamePathMapper.class);
         when(mapper.getJcrName(any())).thenReturn("c");
 
-        Privilege[] privs = Utils.privilegesFromOakNames(Sets.newHashSet("a", "b"), mockPrivilegeManager(), mapper);
+        Privilege[] privs = Utils.privilegesFromOakNames(Sets.newHashSet("a", "b"),
+            mockPrivilegeManager(), mapper);
         assertEquals(2, privs.length);
         for (Privilege p : privs) {
             assertEquals("c", p.getName());
         }
     }
-    
+
     @Test
     public void testReadRestrictionsNoRestrictionTree() {
         Tree entryTree = mock(Tree.class);

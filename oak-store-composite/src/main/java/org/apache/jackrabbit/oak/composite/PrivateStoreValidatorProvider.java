@@ -33,11 +33,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Map;
+
 /**
  * {@link Validator} which detects change commits to the read only mounts.
  */
 @Component(label = "Apache Jackrabbit Oak PrivateStoreValidatorProvider")
 public class PrivateStoreValidatorProvider extends ValidatorProvider {
+
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private static final String ROOT_PATH = "/";
 
@@ -64,8 +66,10 @@ public class PrivateStoreValidatorProvider extends ValidatorProvider {
         failOnDetection = PropertiesUtil.toBoolean(config.get(PROP_FAIL_ON_DETECTION), true);
 
         if (mountInfoProvider.hasNonDefaultMounts()) {
-            serviceRegistration = bundleContext.registerService(EditorProvider.class.getName(), this, null);
-            logger.info("Enabling PrivateStoreValidatorProvider with failOnDetection {}", failOnDetection);
+            serviceRegistration = bundleContext.registerService(EditorProvider.class.getName(),
+                this, null);
+            logger.info("Enabling PrivateStoreValidatorProvider with failOnDetection {}",
+                failOnDetection);
         }
     }
 
@@ -92,6 +96,7 @@ public class PrivateStoreValidatorProvider extends ValidatorProvider {
     }
 
     private class PrivateStoreValidator extends DefaultValidator {
+
         private final String path;
 
         public PrivateStoreValidator(String path) {
@@ -102,11 +107,13 @@ public class PrivateStoreValidatorProvider extends ValidatorProvider {
             return checkPrivateStoreCommit(getCommitPath(name));
         }
 
-        public Validator childNodeChanged(String name, NodeState before, NodeState after) throws CommitFailedException {
+        public Validator childNodeChanged(String name, NodeState before, NodeState after)
+            throws CommitFailedException {
             return checkPrivateStoreCommit(getCommitPath(name));
         }
 
-        public Validator childNodeDeleted(String name, NodeState before) throws CommitFailedException {
+        public Validator childNodeDeleted(String name, NodeState before)
+            throws CommitFailedException {
             return checkPrivateStoreCommit(getCommitPath(name));
         }
 
@@ -118,7 +125,7 @@ public class PrivateStoreValidatorProvider extends ValidatorProvider {
 
                 if (failOnDetection) {
                     throw new CommitFailedException(CommitFailedException.UNSUPPORTED, 0,
-                            "Unsupported commit to a read-only store!", throwable);
+                        "Unsupported commit to a read-only store!", throwable);
                 }
             }
 

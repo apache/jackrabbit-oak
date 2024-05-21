@@ -24,7 +24,7 @@ public class ElasticPropertyIndexCommonTest extends PropertyIndexCommonTest {
 
     @ClassRule
     public static final ElasticConnectionRule elasticRule =
-            new ElasticConnectionRule(ElasticTestUtils.ELASTIC_CONNECTION_STRING);
+        new ElasticConnectionRule(ElasticTestUtils.ELASTIC_CONNECTION_STRING);
 
     public ElasticPropertyIndexCommonTest() {
         indexOptions = new ElasticIndexOptions();

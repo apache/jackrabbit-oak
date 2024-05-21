@@ -20,7 +20,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import javax.jcr.Session;
-
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.User;
@@ -49,7 +48,7 @@ public class GetAuthorizableByIdTest extends AbstractTest {
             ids.add(id);
         }
         s.save();
-        System.out.println("Setup "+numberOfUsers+" users");
+        System.out.println("Setup " + numberOfUsers + " users");
     }
 
     @Override

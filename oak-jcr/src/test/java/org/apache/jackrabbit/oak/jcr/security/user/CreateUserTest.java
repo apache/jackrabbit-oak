@@ -21,7 +21,6 @@ import java.util.ArrayList;
 import java.util.List;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
-
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.AuthorizableExistsException;
 import org.apache.jackrabbit.api.security.user.User;
@@ -64,7 +63,8 @@ public class CreateUserTest extends AbstractUserTest {
         return u;
     }
 
-    private User createUser(String uid, String pw, Principal p, String iPath) throws RepositoryException {
+    private User createUser(String uid, String pw, Principal p, String iPath)
+        throws RepositoryException {
         User u = userMgr.createUser(uid, pw, p, iPath);
         superuser.save();
         return u;
@@ -82,11 +82,12 @@ public class CreateUserTest extends AbstractUserTest {
     }
 
     /**
-     * @since OAK 1.0 In contrast to Jackrabbit core the intermediate path may
-     * not be an absolute path in OAK.
+     * @since OAK 1.0 In contrast to Jackrabbit core the intermediate path may not be an absolute
+     * path in OAK.
      */
     @Test
-    public void testCreateUserWithAbsolutePath() throws RepositoryException, NotExecutableException {
+    public void testCreateUserWithAbsolutePath()
+        throws RepositoryException, NotExecutableException {
         Principal p = getTestPrincipal();
         String uid = p.getName();
 
@@ -100,7 +101,8 @@ public class CreateUserTest extends AbstractUserTest {
     }
 
     @Test
-    public void testCreateUserWithAbsolutePath2() throws RepositoryException, NotExecutableException {
+    public void testCreateUserWithAbsolutePath2()
+        throws RepositoryException, NotExecutableException {
         Principal p = getTestPrincipal();
         String uid = p.getName();
 
@@ -113,7 +115,8 @@ public class CreateUserTest extends AbstractUserTest {
     }
 
     @Test
-    public void testCreateUserWithRelativePath() throws RepositoryException, NotExecutableException {
+    public void testCreateUserWithRelativePath()
+        throws RepositoryException, NotExecutableException {
         Principal p = getTestPrincipal();
         String uid = p.getName();
         User user = createUser(uid, "pw", p, "any/path");
@@ -124,7 +127,8 @@ public class CreateUserTest extends AbstractUserTest {
     }
 
     @Test
-    public void testCreateUserWithDifferentPrincipalName() throws RepositoryException, NotExecutableException {
+    public void testCreateUserWithDifferentPrincipalName()
+        throws RepositoryException, NotExecutableException {
         Principal p = getTestPrincipal();
         String uid = getTestPrincipal().getName();
         User user = createUser(uid, "pw", p, "any/path");
@@ -188,7 +192,8 @@ public class CreateUserTest extends AbstractUserTest {
     }
 
     @Test
-    public void testCreateUserWithEmptyPassword() throws RepositoryException, NotExecutableException {
+    public void testCreateUserWithEmptyPassword()
+        throws RepositoryException, NotExecutableException {
         Principal p = getTestPrincipal();
         User user = createUser(p.getName(), "");
         createdUsers.add(user);
@@ -249,7 +254,8 @@ public class CreateUserTest extends AbstractUserTest {
     /**
      * @since OAK 1.0 : RepositoryException is thrown instead of AuthorizableExistsException
      */
-    public void testCreateTwiceWithSamePrincipal() throws RepositoryException, NotExecutableException {
+    public void testCreateTwiceWithSamePrincipal()
+        throws RepositoryException, NotExecutableException {
         Principal p = getTestPrincipal();
         String uid = p.getName();
         User user = createUser(uid, "pw", p, "a/b/c");
@@ -260,7 +266,8 @@ public class CreateUserTest extends AbstractUserTest {
             User user2 = createUser(uid, "pw", p, null);
             createdUsers.add(user2);
 
-            fail("Creating 2 users with the same Principal should throw AuthorizableExistsException.");
+            fail(
+                "Creating 2 users with the same Principal should throw AuthorizableExistsException.");
         } catch (RepositoryException e) {
             // success.
         }

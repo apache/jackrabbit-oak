@@ -24,7 +24,6 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
-
 import org.apache.jackrabbit.core.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexFormatVersion;
@@ -34,7 +33,7 @@ public class ResultSizeTest extends AbstractQueryTest {
     public void testResultSize() throws Exception {
         doTestResultSize(false);
     }
-    
+
     public void testResultSizeLuceneV1() throws Exception {
         Session session = superuser;
         Node index = session.getRootNode().getNode("oak:index");
@@ -42,7 +41,8 @@ public class ResultSizeTest extends AbstractQueryTest {
         luceneGlobal.setProperty("type", "disabled");
         Node luceneV1 = index.addNode("luceneV1", "oak:QueryIndexDefinition");
         luceneV1.setProperty("type", "lucene");
-        luceneV1.setProperty(FulltextIndexConstants.COMPAT_MODE, IndexFormatVersion.V1.getVersion());
+        luceneV1.setProperty(FulltextIndexConstants.COMPAT_MODE,
+            IndexFormatVersion.V1.getVersion());
         session.save();
 
         try {
@@ -54,7 +54,7 @@ public class ResultSizeTest extends AbstractQueryTest {
             session.save();
         }
     }
-    
+
     private void doTestResultSize(boolean aggregateAtQueryTime) throws RepositoryException {
         createData();
         int expectedForUnion = 400;
@@ -62,7 +62,7 @@ public class ResultSizeTest extends AbstractQueryTest {
         doTestResultSize(false, expectedForTwoConditions);
         doTestResultSize(true, expectedForUnion);
     }
-    
+
     private void createData() throws RepositoryException {
         Session session = superuser;
         for (int i = 0; i < 200; i++) {
@@ -71,7 +71,7 @@ public class ResultSizeTest extends AbstractQueryTest {
         }
         session.save();
     }
-    
+
     private void doTestResultSize(boolean union, int expected) throws RepositoryException {
         Session session = superuser;
         QueryManager qm = session.getWorkspace().getQueryManager();
@@ -82,20 +82,20 @@ public class ResultSizeTest extends AbstractQueryTest {
         } else {
             xpath = "/jcr:root//*[jcr:contains(@text, 'Hello World')]";
         }
-        
+
         Query q;
         long result;
         NodeIterator it;
         StringBuilder buff;
-        
+
         // fast (insecure) case
-        // enabled by default now, in LuceneOakRepositoryStub 
+        // enabled by default now, in LuceneOakRepositoryStub
         System.clearProperty("oak.fastQuerySize");
         q = qm.createQuery(xpath, "xpath");
         it = q.execute().getNodes();
         result = it.getSize();
-        assertTrue("size: " + result + " expected around " + expected, 
-                result > expected - 50 && 
+        assertTrue("size: " + result + " expected around " + expected,
+            result > expected - 50 &&
                 result < expected + 50);
         buff = new StringBuilder();
         while (it.hasNext()) {
@@ -107,8 +107,7 @@ public class ResultSizeTest extends AbstractQueryTest {
         q.setLimit(90);
         it = q.execute().getNodes();
         assertEquals(90, it.getSize());
-        
-        
+
         // default (secure) case
         // manually disabled
         System.setProperty("oak.fastQuerySize", "false");
@@ -124,7 +123,7 @@ public class ResultSizeTest extends AbstractQueryTest {
         String regularResult = buff.toString();
         assertEquals(regularResult, fastSizeResult);
         System.clearProperty("oak.fastQuerySize");
-        
+
     }
-    
+
 }

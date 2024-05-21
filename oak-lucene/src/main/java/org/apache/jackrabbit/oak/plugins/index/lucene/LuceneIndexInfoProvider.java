@@ -19,10 +19,13 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.INDEX_DEFINITION_NODE;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.Set;
-
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -49,11 +52,8 @@ import org.apache.lucene.store.Directory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.INDEX_DEFINITION_NODE;
-
 public class LuceneIndexInfoProvider implements IndexInfoProvider {
+
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     private final NodeStore nodeStore;
@@ -62,7 +62,8 @@ public class LuceneIndexInfoProvider implements IndexInfoProvider {
 
     private final File workDir;
 
-    public LuceneIndexInfoProvider(NodeStore nodeStore, AsyncIndexInfoService asyncInfoService, File workDir) {
+    public LuceneIndexInfoProvider(NodeStore nodeStore, AsyncIndexInfoService asyncInfoService,
+        File workDir) {
         this.nodeStore = checkNotNull(nodeStore);
         this.asyncInfoService = checkNotNull(asyncInfoService);
         this.workDir = checkNotNull(workDir);
@@ -77,8 +78,9 @@ public class LuceneIndexInfoProvider implements IndexInfoProvider {
     public IndexInfo getInfo(String indexPath) throws IOException {
         NodeState idxState = NodeStateUtils.getNode(nodeStore.getRoot(), indexPath);
 
-        checkArgument(LuceneIndexConstants.TYPE_LUCENE.equals(idxState.getString(IndexConstants.TYPE_PROPERTY_NAME)),
-                "Index definition at [%s] is not of type 'lucene'", indexPath);
+        checkArgument(LuceneIndexConstants.TYPE_LUCENE.equals(
+                idxState.getString(IndexConstants.TYPE_PROPERTY_NAME)),
+            "Index definition at [%s] is not of type 'lucene'", indexPath);
 
         LuceneIndexInfo info = new LuceneIndexInfo(indexPath);
         computeSize(idxState, info);
@@ -92,10 +94,11 @@ public class LuceneIndexInfoProvider implements IndexInfoProvider {
 
     @Override
     public boolean isValid(String indexPath) throws IOException {
-        IndexConsistencyChecker checker = new IndexConsistencyChecker(nodeStore.getRoot(), indexPath, workDir);
+        IndexConsistencyChecker checker = new IndexConsistencyChecker(nodeStore.getRoot(),
+            indexPath, workDir);
 
         boolean result = false;
-        try{
+        try {
             result = checker.check(IndexConsistencyChecker.Level.BLOBS_ONLY).clean;
         } catch (Exception e) {
             log.warn("Error occurred while performing consistency check for {}", indexPath, e);
@@ -106,30 +109,34 @@ public class LuceneIndexInfoProvider implements IndexInfoProvider {
     private void computeAsyncIndexInfo(NodeState idxState, String indexPath, LuceneIndexInfo info) {
         String asyncName = IndexUtils.getAsyncLaneName(idxState, indexPath);
         if (asyncName == null) {
-            log.warn("No 'async' value for index definition at [{}]. Definition {}", indexPath, idxState);
+            log.warn("No 'async' value for index definition at [{}]. Definition {}", indexPath,
+                idxState);
             return;
         }
 
         AsyncIndexInfo asyncInfo = asyncInfoService.getInfo(asyncName);
         checkNotNull(asyncInfo, "No async info found for name [%s] " +
-                "for index at [%s]", asyncName, indexPath);
+            "for index at [%s]", asyncName, indexPath);
 
         info.indexedUptoTime = asyncInfo.getLastIndexedTo();
         info.asyncName = asyncName;
     }
 
     private void computeSize(NodeState idxState, LuceneIndexInfo info) throws IOException {
-        LuceneIndexDefinition defn = LuceneIndexDefinition.newBuilder(nodeStore.getRoot(), idxState, info.indexPath).build();
+        LuceneIndexDefinition defn = LuceneIndexDefinition.newBuilder(nodeStore.getRoot(), idxState,
+            info.indexPath).build();
         for (String dirName : idxState.getChildNodeNames()) {
             if (NodeStateUtils.isHidden(dirName)) {
                 // This is true for both read-write index data dir (:data) and the read-only mount (:oak-libs-mount-index-data)
                 if (MultiplexersLucene.isIndexDirName(dirName)) {
-                    try (Directory dir = new OakDirectory(new ReadOnlyBuilder(idxState), dirName, defn, true)) {
+                    try (Directory dir = new OakDirectory(new ReadOnlyBuilder(idxState), dirName,
+                        defn, true)) {
                         info.numEntries += DirectoryUtils.getNumDocs(dir);
                         info.size += DirectoryUtils.dirSize(dir);
                     }
                 } else if (MultiplexersLucene.isSuggestIndexDirName(dirName)) {
-                    try (Directory dir = new OakDirectory(new ReadOnlyBuilder(idxState), dirName, defn, true)) {
+                    try (Directory dir = new OakDirectory(new ReadOnlyBuilder(idxState), dirName,
+                        defn, true)) {
                         info.suggestSize += DirectoryUtils.dirSize(dir);
                     }
                 }
@@ -142,12 +149,15 @@ public class LuceneIndexInfoProvider implements IndexInfoProvider {
         if (status.exists()) {
             PropertyState updatedTime = status.getProperty(IndexDefinition.STATUS_LAST_UPDATED);
             if (updatedTime != null) {
-                info.lastUpdatedTime = ISO8601.parse(updatedTime.getValue(Type.DATE)).getTimeInMillis();
+                info.lastUpdatedTime = ISO8601.parse(updatedTime.getValue(Type.DATE))
+                                              .getTimeInMillis();
             }
 
-            PropertyState reindexCompletionTime = status.getProperty(IndexDefinition.REINDEX_COMPLETION_TIMESTAMP);
+            PropertyState reindexCompletionTime = status.getProperty(
+                IndexDefinition.REINDEX_COMPLETION_TIMESTAMP);
             if (reindexCompletionTime != null) {
-                info.reindexCompletionTimestamp = ISO8601.parse(reindexCompletionTime.getValue(Type.DATE)).getTimeInMillis();
+                info.reindexCompletionTimestamp = ISO8601.parse(
+                    reindexCompletionTime.getValue(Type.DATE)).getTimeInMillis();
             }
         }
     }
@@ -157,7 +167,8 @@ public class LuceneIndexInfoProvider implements IndexInfoProvider {
         if (indexDef.exists()) {
             PropertyState creationTime = indexDef.getProperty(IndexDefinition.CREATION_TIMESTAMP);
             if (creationTime != null) {
-                info.creationTimestamp = ISO8601.parse(creationTime.getValue(Type.DATE)).getTimeInMillis();
+                info.creationTimestamp = ISO8601.parse(creationTime.getValue(Type.DATE))
+                                                .getTimeInMillis();
             }
         }
     }
@@ -168,7 +179,7 @@ public class LuceneIndexInfoProvider implements IndexInfoProvider {
         info.hasHiddenOakLibsMount = false;
         info.hasPropertyIndexNode = false;
 
-        for(String c : idxState.getChildNodeNames()) {
+        for (String c : idxState.getChildNodeNames()) {
             if (c.startsWith(IndexDefinition.HIDDEN_OAK_MOUNT_PREFIX)) {
                 info.hasHiddenOakLibsMount = true;
             } else if (c.equals(IndexDefinition.PROPERTY_INDEX)) {
@@ -181,7 +192,7 @@ public class LuceneIndexInfoProvider implements IndexInfoProvider {
         NodeState storedDefn = idxState.getChildNode(INDEX_DEFINITION_NODE);
         if (storedDefn.exists()) {
             NodeState currentDefn = NodeStateCloner.cloneVisibleState(idxState);
-            if (!FilteringEqualsDiff.equals(storedDefn, currentDefn)){
+            if (!FilteringEqualsDiff.equals(storedDefn, currentDefn)) {
                 info.indexDefinitionChanged = true;
                 info.indexDiff = JsopDiff.diffToJsop(storedDefn, currentDefn);
             }
@@ -189,6 +200,7 @@ public class LuceneIndexInfoProvider implements IndexInfoProvider {
     }
 
     private static class LuceneIndexInfo implements IndexInfo {
+
         String indexPath;
         String asyncName;
         long numEntries;
@@ -290,13 +302,15 @@ public class LuceneIndexInfoProvider implements IndexInfoProvider {
     }
 
     static class FilteringEqualsDiff extends EqualsDiff {
+
         private static final Set<String> IGNORED_PROP_NAMES = ImmutableSet.of(
-                IndexConstants.REINDEX_COUNT,
-                IndexConstants.REINDEX_PROPERTY_NAME
+            IndexConstants.REINDEX_COUNT,
+            IndexConstants.REINDEX_PROPERTY_NAME
         );
+
         public static boolean equals(NodeState before, NodeState after) {
             return before.exists() == after.exists()
-                    && after.compareAgainstBaseState(before, new FilteringEqualsDiff());
+                && after.compareAgainstBaseState(before, new FilteringEqualsDiff());
         }
 
         @Override
@@ -306,7 +320,7 @@ public class LuceneIndexInfoProvider implements IndexInfoProvider {
 
         @Override
         public boolean propertyAdded(PropertyState after) {
-            if (ignoredProp(after.getName())){
+            if (ignoredProp(after.getName())) {
                 return true;
             }
             return super.propertyAdded(after);
@@ -314,7 +328,7 @@ public class LuceneIndexInfoProvider implements IndexInfoProvider {
 
         @Override
         public boolean propertyDeleted(PropertyState before) {
-            if (ignoredProp(before.getName())){
+            if (ignoredProp(before.getName())) {
                 return true;
             }
             return super.propertyDeleted(before);

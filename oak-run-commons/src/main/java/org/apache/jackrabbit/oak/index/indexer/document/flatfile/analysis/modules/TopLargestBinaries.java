@@ -24,7 +24,6 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.stream.Collectors;
-
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeData;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeProperty;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeProperty.ValueType;
@@ -47,7 +46,7 @@ public class TopLargestBinaries implements StatsCollector {
         List<NodeProperty> properties = node.getProperties();
         List<String> pathElements = node.getPathElements();
         ArrayList<Long> references = new ArrayList<>();
-        for(NodeProperty p : properties) {
+        for (NodeProperty p : properties) {
             if (p.getType() == ValueType.BINARY) {
                 for (String v : p.getValues()) {
                     if (!v.startsWith(":blobId:")) {
@@ -66,7 +65,7 @@ public class TopLargestBinaries implements StatsCollector {
                 }
             }
         }
-        for(long x : references) {
+        for (long x : references) {
             if (top.size() >= k && x < top.get(0).size) {
                 continue;
             }
@@ -85,8 +84,9 @@ public class TopLargestBinaries implements StatsCollector {
     @Override
     public void end() {
         int i = 0;
-        for(TopEntry e: top) {
-            String path = "#" + String.format("%3d", k - i) + ": /" + String.join("/", e.pathElements);
+        for (TopEntry e : top) {
+            String path =
+                "#" + String.format("%3d", k - i) + ": /" + String.join("/", e.pathElements);
             storage.add(path, e.size);
             i++;
         }
@@ -94,7 +94,7 @@ public class TopLargestBinaries implements StatsCollector {
 
     public List<String> getRecords() {
         List<String> result = new ArrayList<>();
-        for(Entry<String, Long> e : storage.entrySet()) {
+        for (Entry<String, Long> e : storage.entrySet()) {
             result.add(e.getKey() + ": " + e.getValue());
         }
         return result;
@@ -109,6 +109,7 @@ public class TopLargestBinaries implements StatsCollector {
     }
 
     static class TopEntry implements Comparable<TopEntry> {
+
         private final long size;
         private final List<String> pathElements;
 
@@ -129,12 +130,15 @@ public class TopLargestBinaries implements StatsCollector {
 
         @Override
         public boolean equals(Object obj) {
-            if (this == obj)
+            if (this == obj) {
                 return true;
-            if (obj == null)
+            }
+            if (obj == null) {
                 return false;
-            if (getClass() != obj.getClass())
+            }
+            if (getClass() != obj.getClass()) {
                 return false;
+            }
             TopEntry other = (TopEntry) obj;
             return Objects.equals(pathElements, other.pathElements) && size == other.size;
         }

@@ -28,9 +28,7 @@ import java.io.RandomAccessFile;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
-
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.file.tar.binaries.BinaryReferencesIndexLoader;
 import org.apache.jackrabbit.oak.segment.file.tar.binaries.InvalidBinaryReferencesIndexException;
@@ -101,7 +99,8 @@ public class SegmentTarReader implements SegmentArchiveReader {
         return Arrays.asList(entries);
     }
 
-    public static Index loadAndValidateIndex(RandomAccessFile file, String name) throws IOException {
+    public static Index loadAndValidateIndex(RandomAccessFile file, String name)
+        throws IOException {
         long length = file.length();
         if (length % BLOCK_SIZE != 0) {
             log.warn("Unable to load index of file {}: Invalid alignment", name);
@@ -142,7 +141,8 @@ public class SegmentTarReader implements SegmentArchiveReader {
         if (hasGraph == null) {
             try {
                 getGraph();
-            } catch (IOException ignore) { }
+            } catch (IOException ignore) {
+            }
         }
         return hasGraph;
     }
@@ -151,7 +151,8 @@ public class SegmentTarReader implements SegmentArchiveReader {
     public Buffer getBinaryReferences() throws IOException {
         try {
             int end = access.length() - 2 * BLOCK_SIZE - getIndexEntrySize() - getGraphEntrySize();
-            return BinaryReferencesIndexLoader.loadBinaryReferencesIndex((whence, amount) -> access.read(end - whence, amount));
+            return BinaryReferencesIndexLoader.loadBinaryReferencesIndex(
+                (whence, amount) -> access.read(end - whence, amount));
         } catch (InvalidBinaryReferencesIndexException e) {
             throw new IOException(e);
         }

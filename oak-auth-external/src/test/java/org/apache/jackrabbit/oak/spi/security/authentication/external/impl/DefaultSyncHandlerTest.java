@@ -16,13 +16,31 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Sets;
+import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants.REP_EXTERNAL_ID;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.util.Calendar;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
+import javax.jcr.RepositoryException;
+import javax.jcr.SimpleCredentials;
+import javax.jcr.Value;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
+import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
@@ -39,25 +57,6 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import javax.jcr.RepositoryException;
-import javax.jcr.SimpleCredentials;
-import javax.jcr.Value;
-import java.util.Calendar;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
-
-import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants.REP_EXTERNAL_ID;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 /**
  * DefaultSyncHandlerTest
@@ -135,8 +134,10 @@ public class DefaultSyncHandlerTest extends ExternalLoginTestBase {
         assertNotNull("known authorizable should exist", id);
         ExternalIdentityRef ref = id.getExternalIdRef();
         assertNotNull(ref);
-        assertEquals("external user should have correct external ref.idp", idp.getName(), ref.getProviderName());
-        assertEquals("external user should have correct external ref.id", USER_ID, id.getExternalIdRef().getId());
+        assertEquals("external user should have correct external ref.idp", idp.getName(),
+            ref.getProviderName());
+        assertEquals("external user should have correct external ref.id", USER_ID,
+            id.getExternalIdRef().getId());
     }
 
     @Test
@@ -159,7 +160,8 @@ public class DefaultSyncHandlerTest extends ExternalLoginTestBase {
         // NOTE: use system-root to remove the protected rep:externalId property (since Oak 1.5.8)
         Authorizable authorizable = userManager.getAuthorizable(USER_ID);
         Root systemRoot = getSystemRoot();
-        systemRoot.getTree(authorizable.getPath()).removeProperty(DefaultSyncContext.REP_EXTERNAL_ID);
+        systemRoot.getTree(authorizable.getPath())
+                  .removeProperty(DefaultSyncContext.REP_EXTERNAL_ID);
         systemRoot.commit();
         root.refresh();
 
@@ -213,12 +215,15 @@ public class DefaultSyncHandlerTest extends ExternalLoginTestBase {
 
     @Test
     public void testRequiresSyncMissingExternalIDRef() {
-        assertTrue(syncHandler.requiresSync(new DefaultSyncedIdentity(USER_ID, null, false, Long.MAX_VALUE)));
+        assertTrue(syncHandler.requiresSync(
+            new DefaultSyncedIdentity(USER_ID, null, false, Long.MAX_VALUE)));
     }
 
     @Test
     public void testRequiresSyncNotYetSynced() throws Exception {
-        assertTrue(syncHandler.requiresSync(new DefaultSyncedIdentity(USER_ID, idp.getUser(USER_ID).getExternalId(), false, Long.MIN_VALUE)));
+        assertTrue(syncHandler.requiresSync(
+            new DefaultSyncedIdentity(USER_ID, idp.getUser(USER_ID).getExternalId(), false,
+                Long.MIN_VALUE)));
     }
 
     @Test
@@ -297,10 +302,11 @@ public class DefaultSyncHandlerTest extends ExternalLoginTestBase {
         Iterator<SyncedIdentity> identities = syncHandler.listIdentities(um);
         assertFalse(identities.hasNext());
     }
-    
+
     @Test
     public void testListIdentitiesWithRepositoryException() throws Exception {
-        Authorizable a = when(mock(Authorizable.class).getProperty(REP_EXTERNAL_ID)).thenThrow(new RepositoryException()).getMock();
+        Authorizable a = when(mock(Authorizable.class).getProperty(REP_EXTERNAL_ID)).thenThrow(
+            new RepositoryException()).getMock();
         Iterator<Authorizable> it = Iterators.singletonIterator(a);
 
         UserManager um = mock(UserManager.class);
@@ -341,9 +347,10 @@ public class DefaultSyncHandlerTest extends ExternalLoginTestBase {
         group.setProperty(REP_EXTERNAL_ID, getValueFactory().createValue("thirdgroup;test"));
         assertTrue(group.addMember(user));
         root.commit();
-        ((TestIdentityProvider) idp).addGroup(new TestIdentityProvider.TestGroup("THIRDGROUP", "test"));
+        ((TestIdentityProvider) idp).addGroup(
+            new TestIdentityProvider.TestGroup("THIRDGROUP", "test"));
         ((TestIdentityProvider) idp).addUser(
-                new TestIdentityProvider.TestUser("THIRDUSER", "test").withGroups("THIRDGROUP"));
+            new TestIdentityProvider.TestUser("THIRDUSER", "test").withGroups("THIRDGROUP"));
 
         syncHandler.createContext(idp, userManager, getValueFactory()).sync(user.getID());
         assertTrue(group.isMember(user));
@@ -352,7 +359,7 @@ public class DefaultSyncHandlerTest extends ExternalLoginTestBase {
     @Test
     public void testActivate() {
         DefaultSyncHandler handler = new DefaultSyncHandler();
-        Map<String,Object> props = ImmutableMap.of(DefaultSyncConfigImpl.PARAM_NAME, "testName");
+        Map<String, Object> props = ImmutableMap.of(DefaultSyncConfigImpl.PARAM_NAME, "testName");
         context.registerInjectActivateService(handler, props);
 
         assertEquals("testName", handler.getName());

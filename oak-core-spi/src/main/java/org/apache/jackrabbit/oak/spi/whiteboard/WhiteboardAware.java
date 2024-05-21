@@ -26,12 +26,14 @@ public interface WhiteboardAware {
 
     /**
      * Sets the whiteboard.
+     *
      * @param whiteboard the whiteboard
      */
     void setWhiteboard(@NotNull Whiteboard whiteboard);
 
     /**
      * Returns the whiteboard
+     *
      * @return the whiteboard
      */
     @Nullable

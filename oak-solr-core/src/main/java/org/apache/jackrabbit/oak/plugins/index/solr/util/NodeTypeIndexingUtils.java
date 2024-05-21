@@ -25,15 +25,18 @@ import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.NodeTypeIterator;
 
 /**
- * Utility class for generating a Solr synonyms file for expanding {@link javax.jcr.nodetype.NodeType}s
+ * Utility class for generating a Solr synonyms file for expanding
+ * {@link javax.jcr.nodetype.NodeType}s
  */
 public class NodeTypeIndexingUtils {
 
-    public static File createPrimaryTypeSynonymsFile(String path, Session session) throws Exception {
+    public static File createPrimaryTypeSynonymsFile(String path, Session session)
+        throws Exception {
         File file = new File(path);
 
         StringWriter stringWriter = new StringWriter();
-        NodeTypeIterator allNodeTypes = session.getWorkspace().getNodeTypeManager().getAllNodeTypes();
+        NodeTypeIterator allNodeTypes = session.getWorkspace().getNodeTypeManager()
+                                               .getAllNodeTypes();
         while (allNodeTypes.hasNext()) {
             NodeType nodeType = allNodeTypes.nextNodeType();
             NodeType[] superTypes = nodeType.getSupertypes();

@@ -18,8 +18,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.blob;
 
-import org.apache.jackrabbit.guava.common.util.concurrent.AbstractListeningExecutorService;
-
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.RejectedExecutionException;
@@ -27,21 +25,25 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import org.apache.jackrabbit.guava.common.util.concurrent.AbstractListeningExecutorService;
 
 /**
- * Class copied from the Guava 15, to make the AzureDataStore compatible with
- * the Guava 26 (where the SameThreadExecutorService is not present).
- *
+ * Class copied from the Guava 15, to make the AzureDataStore compatible with the Guava 26 (where
+ * the SameThreadExecutorService is not present).
+ * <p>
  * TODO: Remove this class once the whole Oak is migrated to use Guava 26.
  */
 class SameThreadExecutorService extends AbstractListeningExecutorService {
+
     /**
-     * Lock used whenever accessing the state variables
-     * (runningTasks, shutdown, terminationCondition) of the executor
+     * Lock used whenever accessing the state variables (runningTasks, shutdown,
+     * terminationCondition) of the executor
      */
     private final Lock lock = new ReentrantLock();
 
-    /** Signaled after the executor is shutdown and running tasks are done */
+    /**
+     * Signaled after the executor is shutdown and running tasks are done
+     */
     private final Condition termination = lock.newCondition();
 
     /*
@@ -103,11 +105,11 @@ class SameThreadExecutorService extends AbstractListeningExecutorService {
 
     @Override
     public boolean awaitTermination(long timeout, TimeUnit unit)
-            throws InterruptedException {
+        throws InterruptedException {
         long nanos = unit.toNanos(timeout);
         lock.lock();
         try {
-            for (;;) {
+            for (; ; ) {
                 if (isTerminated()) {
                     return true;
                 } else if (nanos <= 0) {
@@ -122,11 +124,9 @@ class SameThreadExecutorService extends AbstractListeningExecutorService {
     }
 
     /**
-     * Checks if the executor has been shut down and increments the running
-     * task count.
+     * Checks if the executor has been shut down and increments the running task count.
      *
-     * @throws RejectedExecutionException if the executor has been previously
-     *         shutdown
+     * @throws RejectedExecutionException if the executor has been previously shutdown
      */
     private void startTask() {
         lock.lock();

@@ -26,14 +26,12 @@ import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.security.MessageDigest;
 import java.util.ArrayList;
-
 import javax.crypto.Cipher;
 import javax.crypto.CipherInputStream;
 import javax.crypto.CipherOutputStream;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,7 +53,7 @@ public class UDPBroadcaster implements Broadcaster, Runnable {
     private final Cipher encryptCipher;
     private final Cipher decryptCipher;
     private volatile boolean stop;
-    
+
     public UDPBroadcaster(String config) {
         LOG.info("init " + config);
         MessageDigest messageDigest;
@@ -78,13 +76,13 @@ public class UDPBroadcaster implements Broadcaster, Runnable {
                 } else if (p.startsWith("sendTo ")) {
                     sendTo = p.split(" ")[1];
                 }
-            }                    
+            }
             messageDigest = MessageDigest.getInstance("SHA-256");
             this.key = messageDigest.digest(key.getBytes());
             if (aes) {
                 KeyGenerator kgen = KeyGenerator.getInstance("AES");
                 kgen.init(128);
-                SecretKey aesKey = kgen.generateKey();  
+                SecretKey aesKey = kgen.generateKey();
                 encryptCipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
                 encryptCipher.init(Cipher.ENCRYPT_MODE, aesKey);
                 decryptCipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
@@ -105,10 +103,10 @@ public class UDPBroadcaster implements Broadcaster, Runnable {
         thread.setDaemon(true);
         thread.start();
     }
-    
+
     @Override
     public void run() {
-        byte[] receiveData = new byte[messageLength];             
+        byte[] receiveData = new byte[messageLength];
         try {
             socket.joinGroup(group);
         } catch (IOException e) {
@@ -117,11 +115,11 @@ public class UDPBroadcaster implements Broadcaster, Runnable {
             }
             stop = true;
             return;
-        }              
+        }
         while (!stop) {
             try {
                 DatagramPacket receivePacket = new DatagramPacket(
-                        receiveData, receiveData.length);                   
+                    receiveData, receiveData.length);
                 socket.receive(receivePacket);
                 int len = receivePacket.getLength();
                 if (len < key.length) {
@@ -133,10 +131,10 @@ public class UDPBroadcaster implements Broadcaster, Runnable {
                     continue;
                 }
                 ByteBuffer buff = ByteBuffer.wrap(receiveData);
-                ((Buffer)buff).limit(len);
+                ((Buffer) buff).limit(len);
                 int start = key.length;
                 for (Listener l : listeners) {
-                    ((Buffer)buff).position(start);
+                    ((Buffer) buff).position(start);
                     l.receive(buff);
                 }
             } catch (IOException e) {
@@ -144,9 +142,9 @@ public class UDPBroadcaster implements Broadcaster, Runnable {
                     LOG.warn("receive failed", e);
                 }
                 // ignore
-            }                   
+            }
         }
-        try {        
+        try {
             socket.leaveGroup(group);
             socket.close();
         } catch (IOException e) {
@@ -155,7 +153,7 @@ public class UDPBroadcaster implements Broadcaster, Runnable {
             }
         }
     }
-    
+
     private boolean checkKey(byte[] data) {
         for (int i = 0; i < key.length; i++) {
             if (key[i] != data[i]) {
@@ -164,7 +162,7 @@ public class UDPBroadcaster implements Broadcaster, Runnable {
         }
         return true;
     }
-    
+
     @Override
     public void send(ByteBuffer buff) {
         int len = key.length + buff.limit();
@@ -196,14 +194,15 @@ public class UDPBroadcaster implements Broadcaster, Runnable {
     public void removeListener(Listener listener) {
         listeners.remove(listener);
     }
-    
+
     byte[] encrypt(byte[] data) {
         if (encryptCipher == null) {
             return data;
         }
         try {
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-            CipherOutputStream cipherOutputStream = new CipherOutputStream(outputStream, encryptCipher);
+            CipherOutputStream cipherOutputStream = new CipherOutputStream(outputStream,
+                encryptCipher);
             cipherOutputStream.write(data);
             cipherOutputStream.flush();
             cipherOutputStream.close();
@@ -219,7 +218,7 @@ public class UDPBroadcaster implements Broadcaster, Runnable {
         if (decryptCipher == null) {
             return data;
         }
-        try {        
+        try {
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
             ByteArrayInputStream inStream = new ByteArrayInputStream(data);
             CipherInputStream cipherInputStream = new CipherInputStream(inStream, decryptCipher);

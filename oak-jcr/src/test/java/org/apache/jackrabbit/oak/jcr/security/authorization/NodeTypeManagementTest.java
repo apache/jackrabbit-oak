@@ -23,7 +23,6 @@ import javax.jcr.ImportUUIDBehavior;
 import javax.jcr.Node;
 import javax.jcr.Workspace;
 import javax.jcr.security.Privilege;
-
 import org.apache.jackrabbit.test.NotExecutableException;
 import org.junit.Before;
 import org.junit.Test;
@@ -144,9 +143,8 @@ public class NodeTypeManagementTest extends AbstractEvaluationTest {
     }
 
     /**
-     * Test difference between common jcr:write privilege an rep:write privilege
-     * that includes the ability to set the primary node type upon child node
-     * creation.
+     * Test difference between common jcr:write privilege an rep:write privilege that includes the
+     * ability to set the primary node type upon child node creation.
      */
     @Test
     public void testAddNode() throws Exception {
@@ -171,7 +169,8 @@ public class NodeTypeManagementTest extends AbstractEvaluationTest {
     private void addChildNode(boolean specifyNodeType) throws Exception {
         Node n = null;
         try {
-            n = (specifyNodeType) ? childNode.addNode(nodeName3, testNodeType) : childNode.addNode(nodeName3);
+            n = (specifyNodeType) ? childNode.addNode(nodeName3, testNodeType)
+                : childNode.addNode(nodeName3);
         } finally {
             if (n != null) {
                 n.remove();
@@ -270,7 +269,8 @@ public class NodeTypeManagementTest extends AbstractEvaluationTest {
     public void testSessionImportXML() throws Exception {
         String parentPath = childNode.getPath();
         try {
-            testSession.importXML(parentPath, getXmlForImport(), ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW);
+            testSession.importXML(parentPath, getXmlForImport(),
+                ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW);
             testSession.save();
             fail("Missing write privilege.");
         } catch (AccessDeniedException e) {
@@ -282,7 +282,8 @@ public class NodeTypeManagementTest extends AbstractEvaluationTest {
         // with simple write privilege moving a node is not allowed.
         modify(parentPath, Privilege.JCR_WRITE, true);
         try {
-            testSession.importXML(parentPath, getXmlForImport(), ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW);
+            testSession.importXML(parentPath, getXmlForImport(),
+                ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW);
             testSession.save();
             fail("Missing privilege jcr:nodeTypeManagement.");
         } catch (AccessDeniedException e) {
@@ -293,7 +294,8 @@ public class NodeTypeManagementTest extends AbstractEvaluationTest {
 
         // adding jcr:nodeTypeManagement privilege will grant permission to move.
         modify(parentPath, REP_WRITE, true);
-        testSession.importXML(parentPath, getXmlForImport(), ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW);
+        testSession.importXML(parentPath, getXmlForImport(),
+            ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW);
         testSession.save();
     }
 
@@ -328,14 +330,14 @@ public class NodeTypeManagementTest extends AbstractEvaluationTest {
      */
     private InputStream getXmlForImport() {
         String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
-                "<sv:node xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\"" +
-                "         xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\"" +
-                "         xmlns:jcr=\"http://www.jcp.org/jcr/1.0\"" +
-                "         sv:name=\"" + nodeName3 + "\">" +
-                "    <sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\">" +
-                "        <sv:value>" + testNodeType + "</sv:value>" +
-                "    </sv:property>" +
-                "</sv:node>";
+            "<sv:node xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\"" +
+            "         xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\"" +
+            "         xmlns:jcr=\"http://www.jcp.org/jcr/1.0\"" +
+            "         sv:name=\"" + nodeName3 + "\">" +
+            "    <sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\">" +
+            "        <sv:value>" + testNodeType + "</sv:value>" +
+            "    </sv:property>" +
+            "</sv:node>";
         return new ByteArrayInputStream(xml.getBytes());
     }
 }

@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
-import org.apache.jackrabbit.oak.api.*;
+import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.plugins.index.ExcerptTest;
 import org.junit.ClassRule;
 import org.junit.Ignore;
@@ -29,7 +29,7 @@ public class ElasticExcerptTest extends ExcerptTest {
 
     @ClassRule
     public static final ElasticConnectionRule elasticRule = new ElasticConnectionRule(
-            ElasticTestUtils.ELASTIC_CONNECTION_STRING);
+        ElasticTestUtils.ELASTIC_CONNECTION_STRING);
 
     public ElasticExcerptTest() {
         indexOptions = new ElasticIndexOptions();

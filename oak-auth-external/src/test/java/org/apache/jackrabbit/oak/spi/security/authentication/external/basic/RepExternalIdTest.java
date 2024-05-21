@@ -16,6 +16,14 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.basic;
 
+import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -30,14 +38,6 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncedIden
 import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
-
-import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 public class RepExternalIdTest extends AbstractExternalAuthTest {
 
@@ -68,7 +68,6 @@ public class RepExternalIdTest extends AbstractExternalAuthTest {
         SyncedIdentity si = result.getIdentity();
         assertNotNull(si);
 
-
         Authorizable authorizable = userManager.getAuthorizable(si.getId());
         assertNotNull(authorizable);
 
@@ -79,7 +78,8 @@ public class RepExternalIdTest extends AbstractExternalAuthTest {
         assertNotNull(ps);
         assertFalse(ps.isArray());
         assertSame(Type.STRING, ps.getType());
-        assertEquals(si.getExternalIdRef(), ExternalIdentityRef.fromString(ps.getValue(Type.STRING)));
+        assertEquals(si.getExternalIdRef(),
+            ExternalIdentityRef.fromString(ps.getValue(Type.STRING)));
     }
 
     @Test
@@ -102,7 +102,8 @@ public class RepExternalIdTest extends AbstractExternalAuthTest {
 
         try {
             Tree t = r.getTree(getTestUser().getPath());
-            t.setProperty(DefaultSyncContext.REP_EXTERNAL_ID, res.getIdentity().getExternalIdRef().getString());
+            t.setProperty(DefaultSyncContext.REP_EXTERNAL_ID,
+                res.getIdentity().getExternalIdRef().getString());
             r.commit();
             fail("Duplicate value for rep:externalId must be detected in the default setup.");
         } catch (CommitFailedException e) {
@@ -120,7 +121,8 @@ public class RepExternalIdTest extends AbstractExternalAuthTest {
 
         try {
             Tree t = r.getTree(getTestUser().getPath());
-            t.setProperty(DefaultSyncContext.REP_EXTERNAL_ID, res.getIdentity().getExternalIdRef().getString());
+            t.setProperty(DefaultSyncContext.REP_EXTERNAL_ID,
+                res.getIdentity().getExternalIdRef().getString());
             r.commit();
             fail("Duplicate value for rep:externalId must be detected in the default setup.");
         } catch (CommitFailedException e) {
@@ -136,7 +138,8 @@ public class RepExternalIdTest extends AbstractExternalAuthTest {
         try {
             SyncResult res = syncCtx.sync(idp.getUser(USER_ID));
             Tree nonUserTree = r.getTree("/");
-            nonUserTree.setProperty(DefaultSyncContext.REP_EXTERNAL_ID, res.getIdentity().getExternalIdRef().getString());
+            nonUserTree.setProperty(DefaultSyncContext.REP_EXTERNAL_ID,
+                res.getIdentity().getExternalIdRef().getString());
             r.commit();
 
             fail("Duplicate value for rep:externalId must be detected in the default setup.");

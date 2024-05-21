@@ -16,13 +16,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.index;
 
+import static org.junit.Assert.assertTrue;
+
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.plugins.index.solr.SolrBaseTest;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.response.QueryResponse;
 import org.junit.Test;
-
-import static org.junit.Assert.assertTrue;
 
 /**
  * Integration test for {@link SolrIndexEditor}
@@ -33,13 +33,13 @@ public class SolrIndexEditorIT extends SolrBaseTest {
     public void testAddSomeNodes() throws Exception {
         Root r = createRoot();
         r.getTree("/").addChild("a").addChild("b").addChild("doc1").
-                setProperty("text", "hit that hot hat tattoo");
+         setProperty("text", "hit that hot hat tattoo");
         r.getTree("/").getChild("a").addChild("c").addChild("doc2").
-                setProperty("text", "it hits hot hats");
+         setProperty("text", "it hits hot hats");
         r.getTree("/").getChild("a").getChild("b").addChild("doc3").
-                setProperty("text", "tattoos hate hot hits");
+         setProperty("text", "tattoos hate hot hits");
         r.getTree("/").getChild("a").getChild("b").addChild("doc4").
-                setProperty("text", "hats tattoos hit hot");
+         setProperty("text", "hats tattoos hit hot");
         r.commit();
 
         SolrQuery query = new SolrQuery();
@@ -60,7 +60,7 @@ public class SolrIndexEditorIT extends SolrBaseTest {
         SolrQuery query = new SolrQuery();
         query.setQuery("path_exact:\\/testRemoveNode");
         assertTrue("item with id:testRemoveNode was not found in the index",
-                server.query(query).getResults().size() > 0);
+            server.query(query).getResults().size() > 0);
 
         // remove the node in oak
         r.getTree("/").getChild("testRemoveNode").remove();
@@ -68,6 +68,6 @@ public class SolrIndexEditorIT extends SolrBaseTest {
 
         // check the node is not in Solr anymore
         assertTrue("item with id:testRemoveNode was found in the index",
-                server.query(query).getResults().size() == 0);
+            server.query(query).getResults().size() == 0);
     }
 }

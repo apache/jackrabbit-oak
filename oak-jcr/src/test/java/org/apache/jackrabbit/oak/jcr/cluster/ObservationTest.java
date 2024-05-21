@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.jcr.cluster;
 
+import static java.util.Collections.synchronizedSet;
+import static org.junit.Assert.assertTrue;
+
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
@@ -26,7 +29,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
-
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -34,24 +36,19 @@ import javax.jcr.observation.Event;
 import javax.jcr.observation.EventIterator;
 import javax.jcr.observation.EventListener;
 import javax.jcr.observation.ObservationManager;
-
 import org.apache.jackrabbit.api.observation.JackrabbitEvent;
+import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Sets;
-
-import static java.util.Collections.synchronizedSet;
-import static org.junit.Assert.assertTrue;
-
 /**
  * Test for external events from another cluster node.
  */
 @Ignore("This is a rather long running test and therefore disabled. See " +
-        "DocumentNodeStoreTest.diffExternalChanges() in oak-core for a unit test")
+    "DocumentNodeStoreTest.diffExternalChanges() in oak-core for a unit test")
 public class ObservationTest extends AbstractClusterTest {
 
     private ScheduledExecutorService executor;
@@ -92,11 +89,11 @@ public class ObservationTest extends AbstractClusterTest {
                         String external = "";
                         AtomicLong counter = localEvents;
                         if (event instanceof JackrabbitEvent) {
-                           if (((JackrabbitEvent) event).isExternal()) {
-                               external = " (external)";
-                               counter = externalEvents;
-                               paths.add(event.getPath());
-                           }
+                            if (((JackrabbitEvent) event).isExternal()) {
+                                external = " (external)";
+                                counter = externalEvents;
+                                paths.add(event.getPath());
+                            }
                         }
                         System.out.println(event.getPath() + external);
                         counter.incrementAndGet();
@@ -113,7 +110,7 @@ public class ObservationTest extends AbstractClusterTest {
             }
         };
         obsMgr.addEventListener(listener, Event.NODE_ADDED, "/",
-                true, null, null, false);
+            true, null, null, false);
 
         Future f1 = executor.submit(new Worker(s1, exceptions, new HashSet<String>()));
         Future f2 = executor.submit(new Worker(s2, exceptions, externallyAdded));

@@ -56,8 +56,8 @@ public class MongoDocumentStoreMetricsTest extends AbstractMongoConnectionTest {
         MongoConnection connection = connectionFactory.getConnection();
         assumeNotNull(connection);
         MongoDocumentStore store = new MongoDocumentStore(
-                connection.getMongoClient(), connection.getDatabase(),
-                newMongoDocumentNodeStoreBuilder());
+            connection.getMongoClient(), connection.getDatabase(),
+            newMongoDocumentNodeStoreBuilder());
         try {
             MongoDocumentStoreMetrics metrics = new MongoDocumentStoreMetrics(store, statsProvider);
             assertEquals(0, getCount("MongoDB.fsUsedSize"));

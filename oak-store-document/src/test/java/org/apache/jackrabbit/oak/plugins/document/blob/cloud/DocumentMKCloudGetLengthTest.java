@@ -31,6 +31,7 @@ import static org.junit.Assert.assertNotNull;
  * Tests for {@code DocumentMK#getLength(String)} with {@link CloudBlobStore}
  */
 public class DocumentMKCloudGetLengthTest extends DocumentMKGetLengthTest {
+
     @BeforeClass
     public static void setUpBeforeClass() {
         try {
@@ -47,8 +48,8 @@ public class DocumentMKCloudGetLengthTest extends DocumentMKGetLengthTest {
         assertNotNull(mongoConnection);
         MongoUtils.dropCollections(mongoConnection.getDBName());
         mk = new DocumentMK.Builder()
-                .setMongoDB(mongoConnection.getMongoClient(), mongoConnection.getDBName())
-                .setBlobStore(CloudStoreUtils.getBlobStore()).open();
+            .setMongoDB(mongoConnection.getMongoClient(), mongoConnection.getDBName())
+            .setBlobStore(CloudStoreUtils.getBlobStore()).open();
     }
 
     @Override

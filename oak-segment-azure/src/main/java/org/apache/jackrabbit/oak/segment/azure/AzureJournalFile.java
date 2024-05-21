@@ -16,23 +16,15 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import static org.apache.jackrabbit.guava.common.collect.Lists.partition;
+
 import com.microsoft.azure.storage.StorageException;
+import com.microsoft.azure.storage.blob.BlobRequestOptions;
 import com.microsoft.azure.storage.blob.CloudAppendBlob;
 import com.microsoft.azure.storage.blob.CloudBlob;
 import com.microsoft.azure.storage.blob.CloudBlobDirectory;
-import com.microsoft.azure.storage.blob.ListBlobItem;
 import com.microsoft.azure.storage.blob.DeleteSnapshotsOption;
-import com.microsoft.azure.storage.blob.BlobRequestOptions;
-import org.apache.jackrabbit.oak.segment.azure.util.AzureRequestOptions;
-import org.apache.jackrabbit.oak.segment.azure.util.CaseInsensitiveKeysMapAccess;
-import org.apache.jackrabbit.oak.segment.remote.WriteAccessController;
-import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
-import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileReader;
-import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileWriter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import com.microsoft.azure.storage.blob.ListBlobItem;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -42,14 +34,22 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import static org.apache.jackrabbit.guava.common.collect.Lists.partition;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.oak.segment.azure.util.AzureRequestOptions;
+import org.apache.jackrabbit.oak.segment.azure.util.CaseInsensitiveKeysMapAccess;
+import org.apache.jackrabbit.oak.segment.remote.WriteAccessController;
+import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
+import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileReader;
+import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileWriter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class AzureJournalFile implements JournalFile {
 
     private static final Logger log = LoggerFactory.getLogger(AzureJournalFile.class);
 
-    private static final int JOURNAL_LINE_LIMIT = Integer.getInteger("org.apache.jackrabbit.oak.segment.azure.journal.lines", 40_000);
+    private static final int JOURNAL_LINE_LIMIT = Integer.getInteger(
+        "org.apache.jackrabbit.oak.segment.azure.journal.lines", 40_000);
 
     private final CloudBlobDirectory directory;
 
@@ -59,14 +59,16 @@ public class AzureJournalFile implements JournalFile {
 
     private final WriteAccessController writeAccessController;
 
-    AzureJournalFile(CloudBlobDirectory directory, String journalNamePrefix, WriteAccessController writeAccessController, int lineLimit) {
+    AzureJournalFile(CloudBlobDirectory directory, String journalNamePrefix,
+        WriteAccessController writeAccessController, int lineLimit) {
         this.directory = directory;
         this.journalNamePrefix = journalNamePrefix;
         this.lineLimit = lineLimit;
         this.writeAccessController = writeAccessController;
     }
 
-    public AzureJournalFile(CloudBlobDirectory directory, String journalNamePrefix, WriteAccessController writeAccessController) {
+    public AzureJournalFile(CloudBlobDirectory directory, String journalNamePrefix,
+        WriteAccessController writeAccessController) {
         this(directory, journalNamePrefix, writeAccessController, JOURNAL_LINE_LIMIT);
     }
 
@@ -109,7 +111,8 @@ public class AzureJournalFile implements JournalFile {
                     log.warn("Invalid blob type: {} {}", b.getUri(), b.getClass());
                 }
             }
-            result.sort(Comparator.<CloudAppendBlob, String>comparing(AzureUtilities::getName).reversed());
+            result.sort(
+                Comparator.<CloudAppendBlob, String>comparing(AzureUtilities::getName).reversed());
             return result;
         } catch (URISyntaxException | StorageException e) {
             throw new IOException(e);
@@ -137,7 +140,8 @@ public class AzureJournalFile implements JournalFile {
                     if (!metadataFetched) {
                         blob.downloadAttributes();
                         metadataFetched = true;
-                        Map<String, String> metadata = CaseInsensitiveKeysMapAccess.convert(blob.getMetadata());
+                        Map<String, String> metadata = CaseInsensitiveKeysMapAccess.convert(
+                            blob.getMetadata());
                         if (metadata.containsKey("lastEntry")) {
                             firstLineReturned = true;
                             return metadata.get("lastEntry");
@@ -145,7 +149,8 @@ public class AzureJournalFile implements JournalFile {
                     }
                     reader = new ReverseFileReader(blob);
                     if (firstLineReturned) {
-                        while("".equals(reader.readLine())); // the first line was already returned, let's fast-forward it
+                        while ("".equals(reader.readLine()))
+                            ; // the first line was already returned, let's fast-forward it
                     }
                 } catch (StorageException e) {
                     throw new IOException(e);
@@ -168,7 +173,8 @@ public class AzureJournalFile implements JournalFile {
         private final BlobRequestOptions writeOptimisedBlobRequestOptions;
 
         public AzureJournalWriter() throws IOException {
-            writeOptimisedBlobRequestOptions = AzureRequestOptions.optimiseForWriteOperations(directory.getServiceClient().getDefaultRequestOptions());
+            writeOptimisedBlobRequestOptions = AzureRequestOptions.optimiseForWriteOperations(
+                directory.getServiceClient().getDefaultRequestOptions());
 
             List<CloudAppendBlob> blobs = getJournalBlobs();
             if (blobs.isEmpty()) {
@@ -197,7 +203,8 @@ public class AzureJournalFile implements JournalFile {
                 writeAccessController.checkWritingAllowed();
 
                 for (CloudAppendBlob cloudAppendBlob : getJournalBlobs()) {
-                    cloudAppendBlob.delete(DeleteSnapshotsOption.NONE, null, writeOptimisedBlobRequestOptions, null);
+                    cloudAppendBlob.delete(DeleteSnapshotsOption.NONE, null,
+                        writeOptimisedBlobRequestOptions, null);
                 }
 
                 createNextFile(0);
@@ -220,11 +227,14 @@ public class AzureJournalFile implements JournalFile {
             }
             int firstBlockSize = Math.min(lineLimit - lineCount, lines.size());
             List<String> firstBlock = lines.subList(0, firstBlockSize);
-            List<List<String>> remainingBlocks = partition(lines.subList(firstBlockSize, lines.size()), lineLimit);
+            List<List<String>> remainingBlocks = partition(
+                lines.subList(firstBlockSize, lines.size()), lineLimit);
             List<List<String>> allBlocks = ImmutableList.<List<String>>builder()
-                .addAll(firstBlock.isEmpty() ? ImmutableList.of() : ImmutableList.of(firstBlock))
-                .addAll(remainingBlocks)
-                .build();
+                                                        .addAll(firstBlock.isEmpty()
+                                                            ? ImmutableList.of()
+                                                            : ImmutableList.of(firstBlock))
+                                                        .addAll(remainingBlocks)
+                                                        .build();
 
             for (List<String> entries : allBlocks) {
                 if (lineCount >= lineLimit) {
@@ -236,7 +246,8 @@ public class AzureJournalFile implements JournalFile {
                     text.append(line).append("\n");
                 }
                 try {
-                    currentBlob.appendText(text.toString(), null, null, writeOptimisedBlobRequestOptions, null);
+                    currentBlob.appendText(text.toString(), null, null,
+                        writeOptimisedBlobRequestOptions, null);
                     currentBlob.getMetadata().put("lastEntry", entries.get(entries.size() - 1));
                     lineCount += entries.size();
                     currentBlob.getMetadata().put("lineCount", Integer.toString(lineCount));
@@ -259,7 +270,7 @@ public class AzureJournalFile implements JournalFile {
 
         private int parseCurrentSuffix() {
             String name = AzureUtilities.getName(currentBlob);
-            Pattern pattern = Pattern.compile(Pattern.quote(journalNamePrefix) + "\\.(\\d+)" );
+            Pattern pattern = Pattern.compile(Pattern.quote(journalNamePrefix) + "\\.(\\d+)");
             Matcher matcher = pattern.matcher(name);
             int parsedSuffix;
             if (matcher.find()) {

@@ -110,9 +110,8 @@ public interface JsopReader {
     String readRawValue();
 
     /**
-     * Get the last token value if the the token type was STRING or NUMBER. For
-     * STRING, the text is decoded; for NUMBER, it is returned as parsed. In all
-     * other cases the result is undefined.
+     * Get the last token value if the the token type was STRING or NUMBER. For STRING, the text is
+     * decoded; for NUMBER, it is returned as parsed. In all other cases the result is undefined.
      *
      * @return the token
      */
@@ -120,9 +119,9 @@ public interface JsopReader {
     String getToken();
 
     /**
-     * Get the token type of the last token. The token type is one of the known
-     * types (END, STRING, NUMBER,...), or, for Jsop tags such as "+", "-",
-     * it is the Unicode character code of the tag.
+     * Get the token type of the last token. The token type is one of the known types (END, STRING,
+     * NUMBER,...), or, for Jsop tags such as "+", "-", it is the Unicode character code of the
+     * tag.
      *
      * @return the token type
      */

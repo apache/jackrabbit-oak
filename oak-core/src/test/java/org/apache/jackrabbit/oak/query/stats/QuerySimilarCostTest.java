@@ -19,8 +19,8 @@ package org.apache.jackrabbit.oak.query.stats;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
@@ -46,8 +46,6 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.Assert;
 import org.junit.Test;
 import org.slf4j.event.Level;
-
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 
 /**
  * Tests for cases where two or more indices return a similar cost estimation for the same query

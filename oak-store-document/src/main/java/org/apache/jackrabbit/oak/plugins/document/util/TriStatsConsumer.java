@@ -18,10 +18,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.util;
 
+import java.util.List;
 import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.TimerStats;
-
-import java.util.List;
 
 /**
  * {@link FunctionalInterface} to consume Metric Stats for create/upsert operation
@@ -33,10 +32,11 @@ public interface TriStatsConsumer {
      *
      * @param meterStats1 Instance of {@link MeterStats}, to collect occurrence of operation
      * @param meterStats2 Instance of {@link MeterStats}, to collect occurrence of operation
-     * @param timerStats Instance of {@link TimerStats}, to record operation duration
-     * @param ids Ids of nodes updated/created during operation
-     * @param tTN time taken to perform the operation (in nanos)
+     * @param timerStats  Instance of {@link TimerStats}, to record operation duration
+     * @param ids         Ids of nodes updated/created during operation
+     * @param tTN         time taken to perform the operation (in nanos)
      */
-    void accept(final MeterStats meterStats1, final MeterStats meterStats2, final TimerStats timerStats,
-                final List<String> ids, final long tTN);
+    void accept(final MeterStats meterStats1, final MeterStats meterStats2,
+        final TimerStats timerStats,
+        final List<String> ids, final long tTN);
 }

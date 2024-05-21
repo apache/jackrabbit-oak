@@ -20,7 +20,6 @@
 package org.apache.jackrabbit.oak.segment;
 
 import java.util.function.Supplier;
-
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 
 /**
@@ -38,32 +37,34 @@ public interface SegmentNodeStoreMonitor {
         public void onCommitQueued(Thread t, Supplier<GCGeneration> gcGeneration) {
 
         }
-        
+
         @Override
         public void onCommitDequeued(Thread t, long time) {
-            
+
         }
     };
 
     /**
      * Notifies the monitor when a new commit was persisted.
-     * @param t the thread which initiated the write
+     *
+     * @param t    the thread which initiated the write
      * @param time the time spent for persisting the commit
      */
     void onCommit(Thread t, long time);
 
     /**
-     * Notifies the monitor when a new commit couldn't be persisted, but was
-     * queued for later retry.
-     * 
-     * @param t the thread which initiated the write
+     * Notifies the monitor when a new commit couldn't be persisted, but was queued for later
+     * retry.
+     *
+     * @param t            the thread which initiated the write
      * @param gcGeneration the commit's gc generation
      */
     void onCommitQueued(Thread t, Supplier<GCGeneration> gcGeneration);
-    
+
     /**
      * Notifies the monitor when a queued commit was dequeued for processing.
-     * @param t the thread which initiated the write
+     *
+     * @param t    the thread which initiated the write
      * @param time the time spent in the queue
      */
     void onCommitDequeued(Thread t, long time);

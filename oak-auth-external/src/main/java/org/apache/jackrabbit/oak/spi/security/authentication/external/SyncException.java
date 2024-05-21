@@ -17,8 +17,8 @@
 package org.apache.jackrabbit.oak.spi.security.authentication.external;
 
 /**
- * Exception thrown by methods defined on the {@code SyncHandler}
- * interface indicating that user or group synchronization failed.
+ * Exception thrown by methods defined on the {@code SyncHandler} interface indicating that user or
+ * group synchronization failed.
  */
 public class SyncException extends Exception {
 

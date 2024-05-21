@@ -14,6 +14,7 @@
    See the License for the specific language governing permissions and
    limitations under the License.
   -->
+
 ### Permissions : Differences wrt Jackrabbit 2.x
 
 #### General Notes
@@ -35,9 +36,10 @@ The following permissions are now an aggregation of new permissions:
 
 The following permissions have been introduced with Oak 1.0:
 
-- `USER_MANAGEMENT`: permission to execute user management related tasks such as e.g. creating or removing user/group, changing user password and editing group membership.
-- `INDEX_DEFINITION_MANAGEMENT`: permission to create, modify and remove the oak:index node and it's subtree which is expected to contain the index definitions.
-
+- `USER_MANAGEMENT`: permission to execute user management related tasks such as e.g. creating or
+  removing user/group, changing user password and editing group membership.
+- `INDEX_DEFINITION_MANAGEMENT`: permission to create, modify and remove the oak:index node and it's
+  subtree which is expected to contain the index definitions.
 
 #### Evaluation
 
@@ -50,6 +52,7 @@ Jackrabbit 2.x doesn't apply any special rule. These changes are covered by [OAK
 and address the concerns summarized in [JCR-2963].
 
 ##### Node Removal
+
 As of Oak `Node#remove()` only requires sufficient permissions to remove the target
 node. In contrast to Jackrabbit 2.x the validation will not traverse the tree and
 verify remove permission on all child nodes/properties.
@@ -59,6 +62,7 @@ permission evaluation can be configured to traverse down the hierarchy upon remo
 This config flag is a best effort approach but doesn't guarantee an identical behavior.
 
 ##### Rename
+
 Due to the nature of the diff mechanism in Oak it is not possible to distinguish
 between `JackrabbitNode#rename` and a move with subsequent reordering. Consequently
 the permission evaluation will no longer apply the special handling for the renaming
@@ -66,6 +70,7 @@ as it was present in Jackrabbit 2.x (renaming just required the ability to modif
 the child collection of the parent node).
 
 ##### Move
+
 Due to the nature of the diff mechanism in Oak it is no longer possible to treat
 move operations the same way as it was implemented in Jackrabbit 2.x.
 
@@ -79,6 +84,7 @@ requires `REMOVE_NODE` permission on the source, `ADD_NODE` and `NODE_TYPE_MANAG
 permissions at the destination.
 
 ##### User Management
+
 By default user management operations require the specific user mgt related
 permission to be granted for the editing subject. This permission (including a
 corresponding privilege) has been introduced with Oak 1.0.
@@ -86,6 +92,7 @@ For backwards compatibility with Jackrabbit 2.x this behavior can be turned off
 by setting the corresponding configuration flag.
 
 ##### Version Management
+
 Reading items in the version store depends on access rights present on the
 corresponding versionable node. In case the version information does no longer
 have a versionable node in this workspace that original path is used to evaluate
@@ -93,20 +100,26 @@ the effective permissions that would apply to that node if the version was resto
 This changes is covered by [OAK-444] and addresses concerns summarized in [JCR-2963].
 
 ##### Repository Level Operations
+
 Repository level operations such as namespace, nodetype, privilege and workspace
-management require permissions to be defined at the repository level such as 
+management require permissions to be defined at the repository level such as
 outlined by JSR 283. This implies that access control policies need to be set at
 the `null` path. In contrast to Jackrabbit 2.x permissions defined at any regular
 path such as e.g. the root path with be ignored.
 
 #### Configuration
 
-The `omit-default-permission` configuration option present with the Jackrabbit's AccessControlProvider 
-implementations is no longer supported with Oak. Since there are no permissions 
+The `omit-default-permission` configuration option present with the Jackrabbit's
+AccessControlProvider
+implementations is no longer supported with Oak. Since there are no permissions
 installed by default this flag has become superfluous.
 
 <!-- hidden references -->
+
 [Permissions]: https://github.com/apache/jackrabbit-oak/tree/trunk/oak-core/src/main/java/org/apache/jackrabbit/oak/spi/security/authorization/permission/Permissions.java
+
 [PermissionHook]: https://github.com/apache/jackrabbit-oak/tree/trunk/oak-core/src/main/java/org/apache/jackrabbit/oak/security/authorization/permission/PermissionHook.java
+
 [OAK-444]: https://issues.apache.org/jira/browse/OAK-444
+
 [JCR-2963]: https://issues.apache.org/jira/browse/JCR-2963

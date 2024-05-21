@@ -32,46 +32,51 @@ import java.util.List;
  * {@link IndexReaderContext} for {@link AtomicReader} instances.
  */
 public final class AtomicReaderContext extends IndexReaderContext {
-  /** The readers ord in the top-level's leaves array */
-  public final int ord;
-  /** The readers absolute doc base */
-  public final int docBase;
-  
-  private final AtomicReader reader;
-  private final List<AtomicReaderContext> leaves;
-  
-  /**
-   * Creates a new {@link AtomicReaderContext} 
-   */    
-  AtomicReaderContext(CompositeReaderContext parent, AtomicReader reader,
-      int ord, int docBase, int leafOrd, int leafDocBase) {
-    super(parent, ord, docBase);
-    this.ord = leafOrd;
-    this.docBase = leafDocBase;
-    this.reader = reader;
-    this.leaves = isTopLevel ? Collections.singletonList(this) : null;
-  }
-  
-  AtomicReaderContext(AtomicReader atomicReader) {
-    this(null, atomicReader, 0, 0, 0, 0);
-  }
-  
-  @Override
-  public List<AtomicReaderContext> leaves() {
-    if (!isTopLevel) {
-      throw new UnsupportedOperationException("This is not a top-level context.");
+
+    /**
+     * The readers ord in the top-level's leaves array
+     */
+    public final int ord;
+    /**
+     * The readers absolute doc base
+     */
+    public final int docBase;
+
+    private final AtomicReader reader;
+    private final List<AtomicReaderContext> leaves;
+
+    /**
+     * Creates a new {@link AtomicReaderContext}
+     */
+    AtomicReaderContext(CompositeReaderContext parent, AtomicReader reader,
+        int ord, int docBase, int leafOrd, int leafDocBase) {
+        super(parent, ord, docBase);
+        this.ord = leafOrd;
+        this.docBase = leafDocBase;
+        this.reader = reader;
+        this.leaves = isTopLevel ? Collections.singletonList(this) : null;
     }
-    assert leaves != null;
-    return leaves;
-  }
-  
-  @Override
-  public List<IndexReaderContext> children() {
-    return null;
-  }
-  
-  @Override
-  public AtomicReader reader() {
-    return reader;
-  }
+
+    AtomicReaderContext(AtomicReader atomicReader) {
+        this(null, atomicReader, 0, 0, 0, 0);
+    }
+
+    @Override
+    public List<AtomicReaderContext> leaves() {
+        if (!isTopLevel) {
+            throw new UnsupportedOperationException("This is not a top-level context.");
+        }
+        assert leaves != null;
+        return leaves;
+    }
+
+    @Override
+    public List<IndexReaderContext> children() {
+        return null;
+    }
+
+    @Override
+    public AtomicReader reader() {
+        return reader;
+    }
 }

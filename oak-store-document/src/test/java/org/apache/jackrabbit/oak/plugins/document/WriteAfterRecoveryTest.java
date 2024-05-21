@@ -57,8 +57,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 /**
- * Tests that write after with a clusterId after the leased timed out and
- * recovery was performed.
+ * Tests that write after with a clusterId after the leased timed out and recovery was performed.
  */
 public class WriteAfterRecoveryTest {
 
@@ -220,7 +219,8 @@ public class WriteAfterRecoveryTest {
             assertThat(e.getMessage(), containsString("older than base"));
         }
 
-        Set<Revision> inconsistent = checkConsistency(ns2, "/a/b", "/a/b/c", "/a/b/c/d", "/a/b/c/d/e", "/a/b/c/d/e/f");
+        Set<Revision> inconsistent = checkConsistency(ns2, "/a/b", "/a/b/c", "/a/b/c/d",
+            "/a/b/c/d/e", "/a/b/c/d/e/f");
         assertEquals(lateWriteRevisions, inconsistent);
     }
 
@@ -383,15 +383,16 @@ public class WriteAfterRecoveryTest {
             assertThat(e.getMessage(), containsString("already deleted"));
         }
 
-        Set<Revision> inconsistent = checkConsistency(ns2, "/a/b", "/a/b/c", "/a/b/c/d", "/a/b/c/d/e", "/a/b/c/d/e/f", "/a/b/c/d/e/f/g");
+        Set<Revision> inconsistent = checkConsistency(ns2, "/a/b", "/a/b/c", "/a/b/c/d",
+            "/a/b/c/d/e", "/a/b/c/d/e/f", "/a/b/c/d/e/f/g");
         assertEquals(lateWriteRevisions, inconsistent);
     }
 
     @Test
     public void propertyChanged() throws Exception {
         merge(ns1, compose(
-                createChild("/a/b"),
-                setProperty("/a/b", "p", "u")
+            createChild("/a/b"),
+            setProperty("/a/b", "p", "u")
         ), true);
 
         List<UpdateOp> failed = new ArrayList<>();
@@ -399,8 +400,8 @@ public class WriteAfterRecoveryTest {
         store.fail().after(0).eternally();
         try {
             merge(ns1, compose(
-                    setProperty("/a/b", "p", "v"),
-                    createChild("/a/b/c")
+                setProperty("/a/b", "p", "v"),
+                createChild("/a/b/c")
             ), false);
             fail("merge must fail");
         } catch (CommitFailedException e) {
@@ -438,7 +439,8 @@ public class WriteAfterRecoveryTest {
         assertEquals(lateWriteRevisions, inconsistent);
 
         String checkpoint = ns2.checkpoint(Integer.MAX_VALUE);
-        assertEquals(stringProperty("p", "u"), getNode(ns1.retrieve(checkpoint), "/a/b").getProperty("p"));
+        assertEquals(stringProperty("p", "u"),
+            getNode(ns1.retrieve(checkpoint), "/a/b").getProperty("p"));
 
         // by making another change on a property with an inconsistency,
         // that inconsistency then becomes unnoticeable going forward
@@ -453,14 +455,15 @@ public class WriteAfterRecoveryTest {
         // invalidation is required here as otherwise it reads a cached node
         // state that still returns p=u
         ns1.getNodeCache().invalidateAll();
-        assertEquals(stringProperty("p", "v"), getNode(ns1.retrieve(checkpoint), "/a/b").getProperty("p"));
+        assertEquals(stringProperty("p", "v"),
+            getNode(ns1.retrieve(checkpoint), "/a/b").getProperty("p"));
     }
 
     @Test
     public void propertyRemoved() throws Exception {
         merge(ns1, compose(
-                createChild("/a/b"),
-                setProperty("/a/b", "p", "u")
+            createChild("/a/b"),
+            setProperty("/a/b", "p", "u")
         ), true);
 
         List<UpdateOp> failed = new ArrayList<>();
@@ -468,8 +471,8 @@ public class WriteAfterRecoveryTest {
         store.fail().after(0).eternally();
         try {
             merge(ns1, compose(
-                    removeProperty("/a/b", "p"),
-                    createChild("/a/b/c")
+                removeProperty("/a/b", "p"),
+                createChild("/a/b/c")
             ), false);
             fail("merge must fail");
         } catch (CommitFailedException e) {
@@ -526,8 +529,8 @@ public class WriteAfterRecoveryTest {
         store.fail().after(0).eternally();
         try {
             merge(ns1, compose(
-                    setProperty("/a/b", "p", "u"),
-                    createChild("/a/b/c")
+                setProperty("/a/b", "p", "u"),
+                createChild("/a/b/c")
             ), false);
             fail("merge must fail");
         } catch (CommitFailedException e) {
@@ -566,8 +569,8 @@ public class WriteAfterRecoveryTest {
     }
 
     private static Change setProperty(String path,
-                                      String name,
-                                      String value) {
+        String name,
+        String value) {
         return root -> {
             childBuilder(root, path).setProperty(name, value);
             return root;
@@ -602,9 +605,9 @@ public class WriteAfterRecoveryTest {
     }
 
     private static NodeState merge(DocumentNodeStore store,
-                                   NodeBuilder builder,
-                                   boolean runBackgroundOps)
-            throws CommitFailedException {
+        NodeBuilder builder,
+        boolean runBackgroundOps)
+        throws CommitFailedException {
         NodeState root = TestUtils.merge(store, builder);
         if (runBackgroundOps) {
             store.runBackgroundOperations();
@@ -625,9 +628,9 @@ public class WriteAfterRecoveryTest {
     }
 
     public static NodeState merge(DocumentNodeStore store,
-                                  Change change,
-                                  boolean runBackgroundOps)
-            throws CommitFailedException {
+        Change change,
+        boolean runBackgroundOps)
+        throws CommitFailedException {
         return merge(store, change.apply(store.getRoot().builder()), runBackgroundOps);
     }
 
@@ -636,7 +639,7 @@ public class WriteAfterRecoveryTest {
     }
 
     private static FailedUpdateOpListener filter(List<UpdateOp> ops,
-                                                 Predicate<UpdateOp> predicate) {
+        Predicate<UpdateOp> predicate) {
         return op -> {
             if (predicate.test(op)) {
                 ops.add(op);
@@ -647,7 +650,7 @@ public class WriteAfterRecoveryTest {
     private static final Predicate<UpdateOp> ADD_NODE_OPS = updateOp -> {
         for (UpdateOp.Key key : updateOp.getChanges().keySet()) {
             if (isDeletedEntry(key.getName())
-                    && updateOp.getChanges().get(key).value.equals("false")) {
+                && updateOp.getChanges().get(key).value.equals("false")) {
                 return true;
             }
         }
@@ -657,7 +660,7 @@ public class WriteAfterRecoveryTest {
     private static final Predicate<UpdateOp> REMOVE_NODE_OPS = updateOp -> {
         for (UpdateOp.Key key : updateOp.getChanges().keySet()) {
             if (isDeletedEntry(key.getName())
-                    && updateOp.getChanges().get(key).value.equals("true")) {
+                && updateOp.getChanges().get(key).value.equals("true")) {
                 return true;
             }
         }
@@ -668,7 +671,7 @@ public class WriteAfterRecoveryTest {
         return updateOp -> {
             for (UpdateOp.Key key : updateOp.getChanges().keySet()) {
                 if (propertyName.equals(key.getName())
-                        && updateOp.getChanges().get(key).type == SET_MAP_ENTRY) {
+                    && updateOp.getChanges().get(key).type == SET_MAP_ENTRY) {
                     return true;
                 }
             }
@@ -678,22 +681,23 @@ public class WriteAfterRecoveryTest {
 
     private DocumentNodeStore createNodeStore(int clusterId) {
         return builderProvider.newBuilder()
-                .setDocumentStore(store)
-                .clock(clock)
-                .setClusterId(clusterId)
-                .setAsyncDelay(0)
-                .build();
+                              .setDocumentStore(store)
+                              .clock(clock)
+                              .setClusterId(clusterId)
+                              .setAsyncDelay(0)
+                              .build();
     }
 
     private static Set<Revision> getRevisions(List<UpdateOp> failed) {
         return failed.stream()
-                .flatMap(updateOp -> updateOp.getChanges().keySet().stream().map(UpdateOp.Key::getRevision))
-                .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
+                     .flatMap(updateOp -> updateOp.getChanges().keySet().stream()
+                                                  .map(UpdateOp.Key::getRevision))
+                     .filter(Objects::nonNull)
+                     .collect(Collectors.toSet());
     }
 
     private Set<Revision> checkConsistency(DocumentNodeStore ns,
-                                           String... paths) {
+        String... paths) {
         Set<Revision> revisions = new HashSet<>();
         DocumentNodeState root = ns.getRoot();
         for (String path : paths) {

@@ -85,12 +85,15 @@ public class BloomFilterTest {
             }
             double realFpp = (double) falsePositives / size;
             // expected to be within 10%
-            assertTrue("expected fpp: " + fpp + " got: " + realFpp, realFpp >= fpp * 0.9 && realFpp <= fpp * 1.1);
+            assertTrue("expected fpp: " + fpp + " got: " + realFpp,
+                realFpp >= fpp * 0.9 && realFpp <= fpp * 1.1);
             long est = f.getEstimatedEntryCount();
-            assertTrue("expected n: " + size + " got: " + est, size >= est * 0.9 && size <= est * 1.1);
+            assertTrue("expected n: " + size + " got: " + est,
+                size >= est * 0.9 && size <= est * 1.1);
 
             double fpp2 = BloomFilter.calculateFpp(size, f.getBitCount(), f.getK());
-            assertTrue("expected fpp: " + fpp + " got: " + fpp2, fpp2 >= fpp * 0.9 && fpp2 <= fpp * 1.1);
+            assertTrue("expected fpp: " + fpp + " got: " + fpp2,
+                fpp2 >= fpp * 0.9 && fpp2 <= fpp * 1.1);
         }
     }
 
@@ -104,7 +107,7 @@ public class BloomFilterTest {
         // and a HyperLogLog of 1 KB:
         HyperLogLog hll = new HyperLogLog(1024, 0);
         // now we calculate estimations with both the Bloom filter and HyperLogLog
-        for(int i = 0; i < 20_000; i++) {
+        for (int i = 0; i < 20_000; i++) {
             long x = Hash.hash64(i);
             bloom.add(x);
             hll.add(x);

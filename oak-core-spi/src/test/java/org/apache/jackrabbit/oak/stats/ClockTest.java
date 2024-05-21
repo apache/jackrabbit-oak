@@ -22,13 +22,13 @@ import static org.junit.Assert.assertTrue;
 import java.time.ZoneId;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-
 import org.apache.jackrabbit.oak.stats.Clock.Fast;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
 public class ClockTest {
+
     private static long SYSTEM_CLOCK_GRANULARITY;
     private static Long FAST_CLOCK_GRANULARITY;
 
@@ -37,7 +37,7 @@ public class ClockTest {
      */
     public static void main(String[] args) {
         System.out.println(
-                "average clock granularity: " + getAverageClockGranularity());
+            "average clock granularity: " + getAverageClockGranularity());
     }
 
     @BeforeClass
@@ -89,8 +89,9 @@ public class ClockTest {
         // plus 3ms for Thread.sleep() inaccuracy in the fast clock
         long granularity = getGranularity(clock);
         long limit = (2 * granularity) / 1000 + 3;
-        assertTrue(clock + " unexpected drift: " + drift + "ms (estimated limit was " + limit + "ms, measured granularity was "
-                + (granularity / 1000f) + "ms)", Math.abs(drift) <= limit);
+        assertTrue(clock + " unexpected drift: " + drift + "ms (estimated limit was " + limit
+            + "ms, measured granularity was "
+            + (granularity / 1000f) + "ms)", Math.abs(drift) <= limit);
 
         long waittime = 100;
         Thread.sleep(waittime);
@@ -101,8 +102,10 @@ public class ClockTest {
         // plus 3ms for Thread.sleep() inaccuracy in the fast clock
         granularity = getGranularity(clock);
         limit = (2 * granularity) / 1000 + 3;
-        assertTrue(clock + " unexpected drift after " + waittime + "ms: " + drift + "ms (estimated limit was " + limit
-                + "ms, measured granularity was " + (granularity / 1000f) + "ms)", Math.abs(drift) <= limit);
+        assertTrue(clock + " unexpected drift after " + waittime + "ms: " + drift
+                + "ms (estimated limit was " + limit
+                + "ms, measured granularity was " + (granularity / 1000f) + "ms)",
+            Math.abs(drift) <= limit);
     }
 
     private static long getGranularity(Clock clock) {
@@ -141,10 +144,12 @@ public class ClockTest {
     }
 
     /**
-     * On some systems (for instance Windows), the granularity of {@code System.currentTimeMillis} depends
-     * on system-wide settings that can change depending on what applications are running
-     * (see, for instance <a href="http://www.lifehacker.com.au/2009/05/hidden-windows-7-tool-troubleshoots-sleep-mode-problems/">http://www.lifehacker.com.au/2009/05/hidden-windows-7-tool-troubleshoots-sleep-mode-problems/</a>).
+     * On some systems (for instance Windows), the granularity of {@code System.currentTimeMillis}
+     * depends on system-wide settings that can change depending on what applications are running
+     * (see, for instance <a
+     * href="http://www.lifehacker.com.au/2009/05/hidden-windows-7-tool-troubleshoots-sleep-mode-problems/">http://www.lifehacker.com.au/2009/05/hidden-windows-7-tool-troubleshoots-sleep-mode-problems/</a>).
      * This method tries to measure the granularity.
+     *
      * @return average granularity of {@code System.currentTimeMillis} in 1/1000 of milliseconds
      */
     private static long getAverageClockGranularity() {

@@ -19,10 +19,12 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
+import static org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors.newDirectExecutorService;
+import static org.junit.Assert.assertEquals;
+
 import java.io.File;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.RAMDirectory;
@@ -30,19 +32,22 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import static org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors.newDirectExecutorService;
-import static org.junit.Assert.assertEquals;
-
 public class CopyOnReadDirectoryTest {
+
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
 
     @Test
-    public void multipleCloseCalls() throws Exception{
+    public void multipleCloseCalls() throws Exception {
         AtomicInteger executionCount = new AtomicInteger();
-        Executor e = r -> {executionCount.incrementAndGet(); r.run();};
-        IndexCopier c = new IndexCopier(newDirectExecutorService(), temporaryFolder.newFolder(), true);
-        Directory dir = new CopyOnReadDirectory(c, new RAMDirectory(), new RAMDirectory(), false, "foo", e);
+        Executor e = r -> {
+            executionCount.incrementAndGet();
+            r.run();
+        };
+        IndexCopier c = new IndexCopier(newDirectExecutorService(), temporaryFolder.newFolder(),
+            true);
+        Directory dir = new CopyOnReadDirectory(c, new RAMDirectory(), new RAMDirectory(), false,
+            "foo", e);
 
         dir.close();
         dir.close();

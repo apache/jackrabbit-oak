@@ -24,16 +24,15 @@ package org.apache.lucene.index;
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import java.util.Iterator;
 
+import java.util.Iterator;
 import org.apache.lucene.index.DocumentsWriterPerThreadPool.ThreadState;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.util.InfoStream;
-import org.apache.lucene.util.SetOnce;
 
 /**
- * {@link FlushPolicy} controls when segments are flushed from a RAM resident
- * internal data-structure to the {@link IndexWriter}s {@link Directory}.
+ * {@link FlushPolicy} controls when segments are flushed from a RAM resident internal
+ * data-structure to the {@link IndexWriter}s {@link Directory}.
  * <p>
  * Segments are traditionally flushed by:
  * <ul>
@@ -54,105 +53,103 @@ import org.apache.lucene.util.SetOnce;
  * {@link DocumentsWriterPerThread} needs flushing and mark it as flush-pending
  * via {@link DocumentsWriterFlushControl#setFlushPending}, or if deletes need
  * to be applied.
- * 
+ *
  * @see ThreadState
  * @see DocumentsWriterFlushControl
  * @see DocumentsWriterPerThread
  * @see IndexWriterConfig#setFlushPolicy(FlushPolicy)
  */
 abstract class FlushPolicy implements Cloneable {
-  protected LiveIndexWriterConfig indexWriterConfig;
-  protected InfoStream infoStream;
 
-  /**
-   * Called for each delete term. If this is a delete triggered due to an update
-   * the given {@link ThreadState} is non-null.
-   * <p>
-   * Note: This method is called synchronized on the given
-   * {@link DocumentsWriterFlushControl} and it is guaranteed that the calling
-   * thread holds the lock on the given {@link ThreadState}
-   */
-  public abstract void onDelete(DocumentsWriterFlushControl control,
-      ThreadState state);
+    protected LiveIndexWriterConfig indexWriterConfig;
+    protected InfoStream infoStream;
 
-  /**
-   * Called for each document update on the given {@link ThreadState}'s
-   * {@link DocumentsWriterPerThread}.
-   * <p>
-   * Note: This method is called  synchronized on the given
-   * {@link DocumentsWriterFlushControl} and it is guaranteed that the calling
-   * thread holds the lock on the given {@link ThreadState}
-   */
-  public void onUpdate(DocumentsWriterFlushControl control, ThreadState state) {
-    onInsert(control, state);
-    onDelete(control, state);
-  }
+    /**
+     * Called for each delete term. If this is a delete triggered due to an update the given
+     * {@link ThreadState} is non-null.
+     * <p>
+     * Note: This method is called synchronized on the given {@link DocumentsWriterFlushControl} and
+     * it is guaranteed that the calling thread holds the lock on the given {@link ThreadState}
+     */
+    public abstract void onDelete(DocumentsWriterFlushControl control,
+        ThreadState state);
 
-  /**
-   * Called for each document addition on the given {@link ThreadState}s
-   * {@link DocumentsWriterPerThread}.
-   * <p>
-   * Note: This method is synchronized by the given
-   * {@link DocumentsWriterFlushControl} and it is guaranteed that the calling
-   * thread holds the lock on the given {@link ThreadState}
-   */
-  public abstract void onInsert(DocumentsWriterFlushControl control,
-      ThreadState state);
+    /**
+     * Called for each document update on the given {@link ThreadState}'s
+     * {@link DocumentsWriterPerThread}.
+     * <p>
+     * Note: This method is called  synchronized on the given {@link DocumentsWriterFlushControl}
+     * and it is guaranteed that the calling thread holds the lock on the given {@link ThreadState}
+     */
+    public void onUpdate(DocumentsWriterFlushControl control, ThreadState state) {
+        onInsert(control, state);
+        onDelete(control, state);
+    }
 
-  /**
-   * Called by DocumentsWriter to initialize the FlushPolicy
-   */
-  protected synchronized void init(LiveIndexWriterConfig indexWriterConfig) {
-    this.indexWriterConfig = indexWriterConfig;
-    infoStream = indexWriterConfig.getInfoStream();
-  }
+    /**
+     * Called for each document addition on the given {@link ThreadState}s
+     * {@link DocumentsWriterPerThread}.
+     * <p>
+     * Note: This method is synchronized by the given {@link DocumentsWriterFlushControl} and it is
+     * guaranteed that the calling thread holds the lock on the given {@link ThreadState}
+     */
+    public abstract void onInsert(DocumentsWriterFlushControl control,
+        ThreadState state);
 
-  /**
-   * Returns the current most RAM consuming non-pending {@link ThreadState} with
-   * at least one indexed document.
-   * <p>
-   * This method will never return <code>null</code>
-   */
-  protected ThreadState findLargestNonPendingWriter(
-      DocumentsWriterFlushControl control, ThreadState perThreadState) {
-    assert perThreadState.dwpt.getNumDocsInRAM() > 0;
-    long maxRamSoFar = perThreadState.bytesUsed;
-    // the dwpt which needs to be flushed eventually
-    ThreadState maxRamUsingThreadState = perThreadState;
-    assert !perThreadState.flushPending : "DWPT should have flushed";
-    Iterator<ThreadState> activePerThreadsIterator = control.allActiveThreadStates();
-    while (activePerThreadsIterator.hasNext()) {
-      ThreadState next = activePerThreadsIterator.next();
-      if (!next.flushPending) {
-        final long nextRam = next.bytesUsed;
-        if (nextRam > maxRamSoFar && next.dwpt.getNumDocsInRAM() > 0) {
-          maxRamSoFar = nextRam;
-          maxRamUsingThreadState = next;
+    /**
+     * Called by DocumentsWriter to initialize the FlushPolicy
+     */
+    protected synchronized void init(LiveIndexWriterConfig indexWriterConfig) {
+        this.indexWriterConfig = indexWriterConfig;
+        infoStream = indexWriterConfig.getInfoStream();
+    }
+
+    /**
+     * Returns the current most RAM consuming non-pending {@link ThreadState} with at least one
+     * indexed document.
+     * <p>
+     * This method will never return <code>null</code>
+     */
+    protected ThreadState findLargestNonPendingWriter(
+        DocumentsWriterFlushControl control, ThreadState perThreadState) {
+        assert perThreadState.dwpt.getNumDocsInRAM() > 0;
+        long maxRamSoFar = perThreadState.bytesUsed;
+        // the dwpt which needs to be flushed eventually
+        ThreadState maxRamUsingThreadState = perThreadState;
+        assert !perThreadState.flushPending : "DWPT should have flushed";
+        Iterator<ThreadState> activePerThreadsIterator = control.allActiveThreadStates();
+        while (activePerThreadsIterator.hasNext()) {
+            ThreadState next = activePerThreadsIterator.next();
+            if (!next.flushPending) {
+                final long nextRam = next.bytesUsed;
+                if (nextRam > maxRamSoFar && next.dwpt.getNumDocsInRAM() > 0) {
+                    maxRamSoFar = nextRam;
+                    maxRamUsingThreadState = next;
+                }
+            }
         }
-      }
+        assert assertMessage("set largest ram consuming thread pending on lower watermark");
+        return maxRamUsingThreadState;
     }
-    assert assertMessage("set largest ram consuming thread pending on lower watermark");
-    return maxRamUsingThreadState;
-  }
-  
-  private boolean assertMessage(String s) {
-    if (infoStream.isEnabled("FP")) {
-      infoStream.message("FP", s);
-    }
-    return true;
-  }
 
-  @Override
-  public FlushPolicy clone() {
-    FlushPolicy clone;
-    try {
-      clone = (FlushPolicy) super.clone();
-    } catch (CloneNotSupportedException e) {
-      // should not happen
-      throw new RuntimeException(e);
+    private boolean assertMessage(String s) {
+        if (infoStream.isEnabled("FP")) {
+            infoStream.message("FP", s);
+        }
+        return true;
     }
-    clone.indexWriterConfig = null;
-    clone.infoStream = null; 
-    return clone;
-  }
+
+    @Override
+    public FlushPolicy clone() {
+        FlushPolicy clone;
+        try {
+            clone = (FlushPolicy) super.clone();
+        } catch (CloneNotSupportedException e) {
+            // should not happen
+            throw new RuntimeException(e);
+        }
+        clone.indexWriterConfig = null;
+        clone.infoStream = null;
+        return clone;
+    }
 }

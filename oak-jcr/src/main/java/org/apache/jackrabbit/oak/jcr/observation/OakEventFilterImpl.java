@@ -18,9 +18,9 @@
  */
 package org.apache.jackrabbit.oak.jcr.observation;
 
+import static javax.jcr.observation.Event.NODE_REMOVED;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static javax.jcr.observation.Event.NODE_REMOVED;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -31,7 +31,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
-
 import org.apache.jackrabbit.api.observation.JackrabbitEventFilter;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -51,14 +50,14 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Implements OakEventFilter which is an extension to the JackrabbitEventFilter
- * with features only supported by Oak.
+ * Implements OakEventFilter which is an extension to the JackrabbitEventFilter with features only
+ * supported by Oak.
  */
 public class OakEventFilterImpl extends OakEventFilter {
 
     static class NodeTypeAggregationFilter implements EventFilter, Condition {
 
-        private final Map<String,Pattern> patternMap = new HashMap<String,Pattern>();
+        private final Map<String, Pattern> patternMap = new HashMap<String, Pattern>();
         private final String[] nodeTypes;
         private final String[] relativeGlobPaths;
         private final boolean includeThis;
@@ -69,8 +68,9 @@ public class OakEventFilterImpl extends OakEventFilter {
             this.relativeGlobPaths = relativeGlobPaths;
             boolean includeThis = false;
             for (String aRelativeGlobPath : relativeGlobPaths) {
-                if (aRelativeGlobPath.equals("") || aRelativeGlobPath.equals(".") || aRelativeGlobPath.equals("*")
-                        || aRelativeGlobPath.equals("**")) {
+                if (aRelativeGlobPath.equals("") || aRelativeGlobPath.equals(".")
+                    || aRelativeGlobPath.equals("*")
+                    || aRelativeGlobPath.equals("**")) {
                     includeThis = true;
                 }
             }
@@ -159,6 +159,7 @@ public class OakEventFilterImpl extends OakEventFilter {
     }
 
     private static final class NodeTypeAggregator implements EventAggregator {
+
         private final String[] nodeTypes;
         private final Pattern[] relativePathPatterns;
 
@@ -168,7 +169,8 @@ public class OakEventFilterImpl extends OakEventFilter {
         }
 
         @Override
-        public int aggregate(NodeState root, List<ChildNodeEntry> parents, ChildNodeEntry childNodeState) {
+        public int aggregate(NodeState root, List<ChildNodeEntry> parents,
+            ChildNodeEntry childNodeState) {
             final TypePredicate nodeTypePredicate = new TypePredicate(root, nodeTypes);
             final int depth = parents.size();
             for (int i = 0; i < depth; i++) {
@@ -190,7 +192,8 @@ public class OakEventFilterImpl extends OakEventFilter {
         }
 
         @Override
-        public int aggregate(NodeState root, List<ChildNodeEntry> parents, PropertyState propertyState) {
+        public int aggregate(NodeState root, List<ChildNodeEntry> parents,
+            PropertyState propertyState) {
             final TypePredicate nodeTypePredicate = new TypePredicate(root, nodeTypes);
             final int depth = parents.size();
             for (int i = 0; i < depth; i++) {
@@ -227,14 +230,20 @@ public class OakEventFilterImpl extends OakEventFilter {
     }
 
     private final JackrabbitEventFilter delegate;
-    
-    /** whether or not applyNodeTypeOnSelf feature is enabled */
+
+    /**
+     * whether or not applyNodeTypeOnSelf feature is enabled
+     */
     private boolean applyNodeTypeOnSelf;
 
-    /** whether or not includeAncestorsRemove feature is enabled */
+    /**
+     * whether or not includeAncestorsRemove feature is enabled
+     */
     private boolean includeAncestorRemove;
 
-    /** whether or not includeSubTreeOnRemove feature is enabled */
+    /**
+     * whether or not includeSubTreeOnRemove feature is enabled
+     */
     private boolean includeSubtreeOnRemove;
 
     private String[] globPaths;
@@ -256,13 +265,13 @@ public class OakEventFilterImpl extends OakEventFilter {
     public String getAbsPath() {
         return delegate.getAbsPath();
     }
-    
+
     @Override
     public JackrabbitEventFilter setAbsPath(String absPath) {
         delegate.setAbsPath(absPath);
         return this;
     }
-    
+
     @Override
     public String[] getAdditionalPaths() {
         return delegate.getAdditionalPaths();
@@ -278,7 +287,7 @@ public class OakEventFilterImpl extends OakEventFilter {
     public int getEventTypes() {
         return delegate.getEventTypes();
     }
-    
+
     @Override
     public JackrabbitEventFilter setEventTypes(int eventTypes) {
         delegate.setEventTypes(eventTypes);
@@ -289,13 +298,13 @@ public class OakEventFilterImpl extends OakEventFilter {
     public String[] getExcludedPaths() {
         return delegate.getExcludedPaths();
     }
-    
+
     @Override
     public JackrabbitEventFilter setExcludedPaths(String... excludedPaths) {
         delegate.setExcludedPaths(excludedPaths);
         return this;
     }
-    
+
     @Override
     public String[] getIdentifiers() {
         return delegate.getIdentifiers();
@@ -311,13 +320,13 @@ public class OakEventFilterImpl extends OakEventFilter {
     public boolean getIsDeep() {
         return delegate.getIsDeep();
     }
-    
+
     @Override
     public JackrabbitEventFilter setIsDeep(boolean isDeep) {
         delegate.setIsDeep(isDeep);
         return this;
     }
-    
+
     @Override
     public String[] getNodeTypes() {
         return delegate.getNodeTypes();
@@ -328,7 +337,7 @@ public class OakEventFilterImpl extends OakEventFilter {
         delegate.setNodeTypes(nodeTypeNames);
         return this;
     }
-    
+
     @Override
     public boolean getNoExternal() {
         return delegate.getNoExternal();
@@ -344,7 +353,7 @@ public class OakEventFilterImpl extends OakEventFilter {
     public boolean getNoInternal() {
         return delegate.getNoInternal();
     }
-    
+
     @Override
     public JackrabbitEventFilter setNoInternal(boolean noInternal) {
         delegate.setNoInternal(noInternal);
@@ -355,7 +364,7 @@ public class OakEventFilterImpl extends OakEventFilter {
     public boolean getNoLocal() {
         return delegate.getNoLocal();
     }
-    
+
     @Override
     public JackrabbitEventFilter setNoLocal(boolean noLocal) {
         delegate.setNoLocal(noLocal);
@@ -367,7 +376,7 @@ public class OakEventFilterImpl extends OakEventFilter {
         this.applyNodeTypeOnSelf = true;
         return this;
     }
-    
+
     boolean getApplyNodeTypeOnSelf() {
         return applyNodeTypeOnSelf;
     }
@@ -383,21 +392,20 @@ public class OakEventFilterImpl extends OakEventFilter {
     }
 
     /**
-     * This helper method goes through the provided globPath and adds
-     * each parent (ancestor)'s path to the ancestorPaths set.
+     * This helper method goes through the provided globPath and adds each parent (ancestor)'s path
+     * to the ancestorPaths set.
      * <p>
-     * OAK-5619 : this used to add "${parent}/*" type ancestor paths, however
-     * that was wrong: we must only take the actual "${parent}"s to which we want
-     * to listen to. Also, the glob case looks slightly different than originally
-     * implemented:
+     * OAK-5619 : this used to add "${parent}/*" type ancestor paths, however that was wrong: we
+     * must only take the actual "${parent}"s to which we want to listen to. Also, the glob case
+     * looks slightly different than originally implemented:
      * <ul>
      *  <li>* : we treat this as a normal name, ie as a normal parent and continue normally</li>
      *  <li>**: when a ** is hit, the loop through the elements can be stopped,
      *  as ** includes all children already, so no further paths are needed.</li>
      * </ul>
-     * @param ancestorPaths the set to which the ancestors of globPath will
-     * be added to
-     * @param globPath the input path that may contain globs
+     *
+     * @param ancestorPaths the set to which the ancestors of globPath will be added to
+     * @param globPath      the input path that may contain globs
      */
     static void addAncestorPaths(Set<String> ancestorPaths, String globPath) {
         if (globPath == null || !globPath.contains("/")) {
@@ -414,7 +422,7 @@ public class OakEventFilterImpl extends OakEventFilter {
 
         Iterator<String> it = PathUtils.elements(globPath).iterator();
         StringBuffer sb = new StringBuffer();
-        while(it.hasNext()) {
+        while (it.hasNext()) {
             String element = it.next();
             sb.append("/");
             sb.append(element);
@@ -426,7 +434,8 @@ public class OakEventFilterImpl extends OakEventFilter {
         }
     }
 
-    public Condition wrapMainCondition(Condition mainCondition, FilterBuilder filterBuilder, PermissionProviderFactory permissionProviderFactory) {
+    public Condition wrapMainCondition(Condition mainCondition, FilterBuilder filterBuilder,
+        PermissionProviderFactory permissionProviderFactory) {
         if (!includeAncestorRemove || (getEventTypes() & NODE_REMOVED) != NODE_REMOVED) {
             return mainCondition;
         }
@@ -448,9 +457,9 @@ public class OakEventFilterImpl extends OakEventFilter {
         List<Condition> ancestorsIncludeConditions = new LinkedList<Condition>();
         for (String aParentPath : parentPaths) {
             ancestorsIncludeConditions.add(
-                    filterBuilder.all(
-                            filterBuilder.path(aParentPath),
-                            filterBuilder.deleteSubtree()));
+                filterBuilder.all(
+                    filterBuilder.path(aParentPath),
+                    filterBuilder.deleteSubtree()));
         }
         if (globPaths != null) {
             for (String globPath : globPaths) {
@@ -462,13 +471,13 @@ public class OakEventFilterImpl extends OakEventFilter {
             }
         }
         return filterBuilder.any(
-                        mainCondition,
-                        filterBuilder.all(
-                                filterBuilder.eventType(NODE_REMOVED),
-                                filterBuilder.any(ancestorsIncludeConditions),
-                                filterBuilder.accessControl(permissionProviderFactory)
-                                )
-                        );
+            mainCondition,
+            filterBuilder.all(
+                filterBuilder.eventType(NODE_REMOVED),
+                filterBuilder.any(ancestorsIncludeConditions),
+                filterBuilder.accessControl(permissionProviderFactory)
+            )
+        );
     }
 
     @Override
@@ -476,7 +485,7 @@ public class OakEventFilterImpl extends OakEventFilter {
         this.includeSubtreeOnRemove = true;
         return this;
     }
-    
+
     boolean getIncludeSubtreeOnRemove() {
         return includeSubtreeOnRemove;
     }
@@ -519,7 +528,8 @@ public class OakEventFilterImpl extends OakEventFilter {
         // for nodeTypeAggregation in OR mode we must append
         // the relativeGlobPaths to all includePaths
         for (String includePath : includePaths) {
-            if (includePath.equals("**") || includePath.endsWith("/*") || includePath.endsWith("/**")) {
+            if (includePath.equals("**") || includePath.endsWith("/*") || includePath.endsWith(
+                "/**")) {
                 // this will include anything, so nothing to append in this case
             } else {
                 // otherwise append all the relativeGlobPaths, except ""
@@ -558,10 +568,11 @@ public class OakEventFilterImpl extends OakEventFilter {
             this.relativeGlobPaths = new HashSet<String>();
         }
         this.relativeGlobPaths.addAll(Arrays.asList(relativeGlobPaths));
-        
+
         final Pattern[] relativePathPatterns = new Pattern[relativeGlobPaths.length];
         for (int i = 0; i < relativePathPatterns.length; i++) {
-            relativePathPatterns[i] = Pattern.compile(GlobbingPathHelper.globPathAsRegex(relativeGlobPaths[i]));
+            relativePathPatterns[i] = Pattern.compile(
+                GlobbingPathHelper.globPathAsRegex(relativeGlobPaths[i]));
         }
         aggregator(new NodeTypeAggregator(nodeTypes, relativePathPatterns));
 
@@ -572,13 +583,13 @@ public class OakEventFilterImpl extends OakEventFilter {
     }
 
     /**
-     * A hook called by the ObservationManagerImpl before creating the ChangeSetFilterImpl
-     * which allows this filter to adjust the includePaths according to its
-     * enabled flags.
+     * A hook called by the ObservationManagerImpl before creating the ChangeSetFilterImpl which
+     * allows this filter to adjust the includePaths according to its enabled flags.
      * <p>
-     * This is used to set the includePath to be '/' in case includeAncestorRemove
-     * is set. The reason for this is that we must catch parent removals and can thus
-     * not apply the normally applied prefilter paths.
+     * This is used to set the includePath to be '/' in case includeAncestorRemove is set. The
+     * reason for this is that we must catch parent removals and can thus not apply the normally
+     * applied prefilter paths.
+     *
      * @param includePaths the set to adjust depending on filter flags
      */
     Set<String> calcPrefilterIncludePaths(Set<String> includePaths) {

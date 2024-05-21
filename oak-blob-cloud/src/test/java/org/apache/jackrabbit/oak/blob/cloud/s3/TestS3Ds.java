@@ -16,49 +16,6 @@
  */
 package org.apache.jackrabbit.oak.blob.cloud.s3;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URI;
-import java.util.Date;
-import java.util.List;
-import java.util.Objects;
-import java.util.Properties;
-
-import javax.jcr.RepositoryException;
-
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.commons.lang3.time.DateUtils;
-import org.apache.http.HttpEntity;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpPut;
-import org.apache.http.entity.InputStreamEntity;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.message.BasicHeader;
-import org.apache.jackrabbit.core.data.DataRecord;
-import org.apache.jackrabbit.core.data.DataStore;
-import org.apache.jackrabbit.core.data.DataStoreException;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.AbstractDataStoreTest;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.ConfigurableDataRecordAccessProvider;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordAccessProvider;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDownloadOptions;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUpload;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadException;
-import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
-import org.jetbrains.annotations.Nullable;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import static com.amazonaws.services.s3.Headers.SERVER_SIDE_ENCRYPTION;
 import static com.amazonaws.services.s3.Headers.SERVER_SIDE_ENCRYPTION_AWS_KMS_KEYID;
 import static com.amazonaws.services.s3.Headers.SERVER_SIDE_ENCRYPTION_CUSTOMER_ALGORITHM;
@@ -81,12 +38,52 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URI;
+import java.util.Date;
+import java.util.List;
+import java.util.Objects;
+import java.util.Properties;
+import javax.jcr.RepositoryException;
+import org.apache.commons.lang3.time.DateUtils;
+import org.apache.http.HttpEntity;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPut;
+import org.apache.http.entity.InputStreamEntity;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.message.BasicHeader;
+import org.apache.jackrabbit.core.data.DataRecord;
+import org.apache.jackrabbit.core.data.DataStore;
+import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.AbstractDataStoreTest;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.ConfigurableDataRecordAccessProvider;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordAccessProvider;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDownloadOptions;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUpload;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadException;
+import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
+import org.jetbrains.annotations.Nullable;
+import org.junit.After;
+import org.junit.AfterClass;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
- * Test {@link S3DataStore} with S3Backend and local cache on.
- * It requires to pass aws config file via system property or system properties by prefixing with 'ds.'.
- * See details @ {@link S3DataStoreUtils}.
- * For e.g. -Dconfig=/opt/cq/aws.properties. Sample aws properties located at
- * src/test/resources/aws.properties
+ * Test {@link S3DataStore} with S3Backend and local cache on. It requires to pass aws config file
+ * via system property or system properties by prefixing with 'ds.'. See details @
+ * {@link S3DataStoreUtils}. For e.g. -Dconfig=/opt/cq/aws.properties. Sample aws properties located
+ * at src/test/resources/aws.properties
  */
 @RunWith(Parameterized.class)
 public class TestS3Ds extends AbstractDataStoreTest {
@@ -130,11 +127,11 @@ public class TestS3Ds extends AbstractDataStoreTest {
         props = getS3Config();
         thisTestStartTime = getBackdatedDate();
         bucket = randomGen.nextInt(9999) + "-" +
-                randomGen.nextInt(9999) + "-s3ds-unittest-autogenerated";
+            randomGen.nextInt(9999) + "-s3ds-unittest-autogenerated";
         createdBucketNames.add(bucket);
         props.setProperty(S3Constants.S3_BUCKET, bucket);
         props.setProperty("secret", "123456");
-        props.setProperty(S3Constants.PRESIGNED_HTTP_DOWNLOAD_URI_EXPIRY_SECONDS,"60");
+        props.setProperty(S3Constants.PRESIGNED_HTTP_DOWNLOAD_URI_EXPIRY_SECONDS, "60");
         props.setProperty(S3Constants.PRESIGNED_HTTP_UPLOAD_URI_EXPIRY_SECONDS, "60");
         props.setProperty(S3Constants.PRESIGNED_URI_ENABLE_ACCELERATION, "60");
         props.setProperty(S3Constants.PRESIGNED_HTTP_DOWNLOAD_URI_CACHE_MAX_SIZE, "60");
@@ -144,9 +141,9 @@ public class TestS3Ds extends AbstractDataStoreTest {
 
     @Test
     public void testInitiateDirectUploadUnlimitedURIs() throws DataRecordUploadException,
-            RepositoryException {
+        RepositoryException {
         ConfigurableDataRecordAccessProvider ds
-                  = (ConfigurableDataRecordAccessProvider) createDataStore();
+            = (ConfigurableDataRecordAccessProvider) createDataStore();
         long uploadSize = ONE_GB * 50;
         int expectedNumURIs = 5000;
         DataRecordUpload upload = ds.initiateDataRecordUpload(uploadSize, -1);
@@ -171,7 +168,7 @@ public class TestS3Ds extends AbstractDataStoreTest {
 
         DataRecord record = doSynchronousAddRecord(ds, new ByteArrayInputStream(data));
         URI uri = ((DataRecordAccessProvider) ds).getDownloadURI(record.getIdentifier(),
-                                 DataRecordDownloadOptions.DEFAULT);
+            DataRecordDownloadOptions.DEFAULT);
         Assert.assertNotNull("uri is null", uri);
 
         // Download content from the URI directly and check
@@ -227,12 +224,13 @@ public class TestS3Ds extends AbstractDataStoreTest {
     }
 
     @Test
-    public void testInitiateCompleteUpload() throws IOException, RepositoryException, IllegalArgumentException, DataRecordUploadException {
+    public void testInitiateCompleteUpload()
+        throws IOException, RepositoryException, IllegalArgumentException, DataRecordUploadException {
 
         S3DataStore ds = (S3DataStore) createDataStore();
-        ds.setDirectUploadURIExpirySeconds(60*5);
-        ds.setDirectDownloadURIExpirySeconds(60*5);
-        ds.setDirectDownloadURICacheSize(60*5);
+        ds.setDirectUploadURIExpirySeconds(60 * 5);
+        ds.setDirectDownloadURIExpirySeconds(60 * 5);
+        ds.setDirectDownloadURICacheSize(60 * 5);
 
         DataRecordUpload uploadContext = ds.initiateDataRecordUpload(ONE_GB, 1);
         assertNotNull(uploadContext);
@@ -243,7 +241,8 @@ public class TestS3Ds extends AbstractDataStoreTest {
         randomGen.nextBytes(data);
 
         // Upload directly using the URI and check
-        CloseableHttpResponse response =  httpPut(uploadContext, new ByteArrayInputStream(data), data.length);
+        CloseableHttpResponse response = httpPut(uploadContext, new ByteArrayInputStream(data),
+            data.length);
         Assert.assertEquals(200, response.getStatusLine().getStatusCode());
         DataRecord uploadedRecord = ds.completeDataRecordUpload(uploadToken);
         assertNotNull(uploadedRecord);
@@ -257,7 +256,8 @@ public class TestS3Ds extends AbstractDataStoreTest {
         assertRecord(data, getrec);
     }
 
-    public CloseableHttpResponse httpPut(@Nullable DataRecordUpload uploadContext, InputStream inputstream, long length) throws IOException  {
+    public CloseableHttpResponse httpPut(@Nullable DataRecordUpload uploadContext,
+        InputStream inputstream, long length) throws IOException {
         // this weird combination of @Nullable and assertNotNull() is for IDEs not warning in test methods
         assertNotNull(uploadContext);
 
@@ -277,17 +277,19 @@ public class TestS3Ds extends AbstractDataStoreTest {
                 break;
             case S3_ENCRYPTION_SSE_C:
                 keyId = props.getProperty(S3_SSE_C_KEY);
-                putreq.addHeader(new BasicHeader(SERVER_SIDE_ENCRYPTION_CUSTOMER_ALGORITHM, AES256.getAlgorithm()));
+                putreq.addHeader(new BasicHeader(SERVER_SIDE_ENCRYPTION_CUSTOMER_ALGORITHM,
+                    AES256.getAlgorithm()));
                 putreq.addHeader(new BasicHeader(SERVER_SIDE_ENCRYPTION_CUSTOMER_KEY, keyId));
-                putreq.addHeader(new BasicHeader(SERVER_SIDE_ENCRYPTION_CUSTOMER_KEY_MD5, md5AsBase64(decode(keyId))));
+                putreq.addHeader(new BasicHeader(SERVER_SIDE_ENCRYPTION_CUSTOMER_KEY_MD5,
+                    md5AsBase64(decode(keyId))));
                 break;
             default:
                 break;
         }
 
-        putreq.setEntity(new InputStreamEntity(inputstream , length));
+        putreq.setEntity(new InputStreamEntity(inputstream, length));
         CloseableHttpClient httpclient = HttpClients.createDefault();
-        CloseableHttpResponse response  = httpclient.execute(putreq);
+        CloseableHttpResponse response = httpclient.execute(putreq);
         return response;
     }
 
@@ -299,9 +301,11 @@ public class TestS3Ds extends AbstractDataStoreTest {
 
         if (Objects.equals(S3_ENCRYPTION_SSE_C, encryptionType)) {
             String keyId = props.getProperty(S3_SSE_C_KEY);
-            getreq.addHeader(new BasicHeader(SERVER_SIDE_ENCRYPTION_CUSTOMER_ALGORITHM, AES256.getAlgorithm()));
+            getreq.addHeader(
+                new BasicHeader(SERVER_SIDE_ENCRYPTION_CUSTOMER_ALGORITHM, AES256.getAlgorithm()));
             getreq.addHeader(new BasicHeader(SERVER_SIDE_ENCRYPTION_CUSTOMER_KEY, keyId));
-            getreq.addHeader(new BasicHeader(SERVER_SIDE_ENCRYPTION_CUSTOMER_KEY_MD5, md5AsBase64(decode(keyId))));
+            getreq.addHeader(new BasicHeader(SERVER_SIDE_ENCRYPTION_CUSTOMER_KEY_MD5,
+                md5AsBase64(decode(keyId))));
         }
 
         CloseableHttpClient httpclient = HttpClients.createDefault();
@@ -310,8 +314,10 @@ public class TestS3Ds extends AbstractDataStoreTest {
         return res.getEntity();
     }
 
-    protected DataRecord doSynchronousAddRecord(DataStore ds, InputStream in) throws DataStoreException {
-        return ((S3DataStore)ds).addRecord(in, new BlobOptions().setUpload(BlobOptions.UploadType.SYNCHRONOUS));
+    protected DataRecord doSynchronousAddRecord(DataStore ds, InputStream in)
+        throws DataStoreException {
+        return ((S3DataStore) ds).addRecord(in,
+            new BlobOptions().setUpload(BlobOptions.UploadType.SYNCHRONOUS));
     }
 
     private static void assertStream(InputStream expected, InputStream actual) throws IOException {
@@ -330,13 +336,13 @@ public class TestS3Ds extends AbstractDataStoreTest {
     public void tearDown() {
         try {
             super.tearDown();
+        } catch (Exception ignore) {
         }
-        catch (Exception ignore) { }
 
         try {
             S3DataStoreUtils.deleteBucket(bucket, thisTestStartTime);
+        } catch (Exception ignore) {
         }
-        catch (Exception ignore) { }
     }
 
     @AfterClass
@@ -344,8 +350,8 @@ public class TestS3Ds extends AbstractDataStoreTest {
         for (String bucket : createdBucketNames) {
             try {
                 S3DataStoreUtils.deleteBucket(bucket, overallStartTime);
+            } catch (Exception ignore) {
             }
-            catch (Exception ignore) { }
         }
     }
 
@@ -360,7 +366,9 @@ public class TestS3Ds extends AbstractDataStoreTest {
         return s3ds;
     }
 
-    /**----------Not supported-----------**/
+    /**
+     * ----------Not supported-----------
+     **/
     @Override
     public void testUpdateLastModifiedOnAccess() {
     }

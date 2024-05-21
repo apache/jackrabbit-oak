@@ -21,7 +21,6 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
-
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,7 +56,8 @@ public class SystemPropertySupplier<T> implements Supplier<T> {
         return String.format("System property %s found to be '%s'", a, b);
     };
 
-    private SystemPropertySupplier(@NotNull String propName, @NotNull T defaultValue) throws IllegalArgumentException {
+    private SystemPropertySupplier(@NotNull String propName, @NotNull T defaultValue)
+        throws IllegalArgumentException {
         this.propName = Objects.requireNonNull(propName, "propertyName must be non-null");
         this.defaultValue = Objects.requireNonNull(defaultValue, "defaultValue must be non-null");
         this.parser = getValueParser(defaultValue);
@@ -66,8 +66,9 @@ public class SystemPropertySupplier<T> implements Supplier<T> {
     /**
      * Create it for a given property name and default value.
      */
-    public static <U> SystemPropertySupplier<U> create(@NotNull String propName, @NotNull U defaultValue)
-            throws IllegalArgumentException {
+    public static <U> SystemPropertySupplier<U> create(@NotNull String propName,
+        @NotNull U defaultValue)
+        throws IllegalArgumentException {
         return new SystemPropertySupplier<U>(propName, defaultValue);
     }
 
@@ -88,16 +89,18 @@ public class SystemPropertySupplier<T> implements Supplier<T> {
     }
 
     /**
-     * Specify a formatter for the "success" log message to be used when the
-     * returned property value differs from the default.
+     * Specify a formatter for the "success" log message to be used when the returned property value
+     * differs from the default.
      */
-    public SystemPropertySupplier<T> formatSetMessage(@NotNull BiFunction<String, T, String> setMessageFormatter) {
+    public SystemPropertySupplier<T> formatSetMessage(
+        @NotNull BiFunction<String, T, String> setMessageFormatter) {
         this.setMessageFormatter = Objects.requireNonNull(setMessageFormatter);
         return this;
     }
 
     /**
      * Specify {@link Level} to use for "success" message.
+     *
      * @deprecated use {@link #logSuccessAs(String) instead
      */
     @Deprecated(forRemoval = true)
@@ -139,15 +142,15 @@ public class SystemPropertySupplier<T> implements Supplier<T> {
      * <em>For unit testing</em>: specify a function to read system properties
      * (overriding default of {@code System.getProperty(String}).
      */
-    protected SystemPropertySupplier<T> usingSystemPropertyReader(@NotNull Function<String, String> sysPropReader) {
+    protected SystemPropertySupplier<T> usingSystemPropertyReader(
+        @NotNull Function<String, String> sysPropReader) {
         this.sysPropReader = Objects.requireNonNull(sysPropReader);
         return this;
     }
 
     /**
-     * Obtains the value of a system property, optionally generating
-     * diagnostics.
-     * 
+     * Obtains the value of a system property, optionally generating diagnostics.
+     *
      * @return value of system property
      */
     public T get() {
@@ -162,7 +165,8 @@ public class SystemPropertySupplier<T> implements Supplier<T> {
             try {
                 T v = parser.apply(value);
                 if (!validator.test(v)) {
-                    log.error("Ignoring invalid value '{}' for system property {}", value, propName);
+                    log.error("Ignoring invalid value '{}' for system property {}", value,
+                        propName);
                 } else {
                     ret = v;
                 }
@@ -209,7 +213,9 @@ public class SystemPropertySupplier<T> implements Supplier<T> {
             return v -> (T) v;
         } else {
             throw new IllegalArgumentException(
-                    String.format("expects a defaultValue of Boolean, Integer, Long, or String, but got: %s", defaultValue.getClass()));
+                String.format(
+                    "expects a defaultValue of Boolean, Integer, Long, or String, but got: %s",
+                    defaultValue.getClass()));
         }
     }
 }

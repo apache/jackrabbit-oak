@@ -27,21 +27,18 @@ import java.util.Map;
 import java.util.Random;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
-
 import javax.jcr.Node;
 import javax.jcr.PropertyType;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-
+import org.apache.commons.math3.stat.descriptive.SynchronizedDescriptiveStatistics;
+import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.guava.common.base.Splitter;
 import org.apache.jackrabbit.guava.common.base.StandardSystemProperty;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.Maps;
-
-import org.apache.commons.math3.stat.descriptive.SynchronizedDescriptiveStatistics;
-import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean;
 import org.apache.jackrabbit.oak.benchmark.util.OakIndexUtils;
@@ -57,10 +54,10 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneInitializerHelp
 import org.apache.jackrabbit.oak.plugins.index.property.OrderedIndex;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.scalability.ScalabilitySuite;
-import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.scalability.benchmarks.ScalabilityBenchmark;
 import org.apache.jackrabbit.oak.scalability.util.NodeTypeUtils;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
+import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
@@ -69,9 +66,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * The suite test will incrementally increase the load and execute searches.
- * Each test run thus adds nodes and executes different benchmarks. This way we measure time taken for
- * benchmark execution.
+ * The suite test will incrementally increase the load and execute searches. Each test run thus adds
+ * nodes and executes different benchmarks. This way we measure time taken for benchmark execution.
  *
  * <p>
  * The following system JVM properties can be defined to configure the suite.
@@ -107,9 +103,9 @@ import org.slf4j.LoggerFactory;
  *     <code>customType</code> - Controls if nodes created in the load have a custom node type. Defaults to false.
  * </li>
  * </ul>
- *
  */
 public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
+
     protected static final Logger LOG = LoggerFactory.getLogger(ScalabilityNodeSuite.class);
 
     /**
@@ -121,7 +117,8 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
      * Controls the number of nodes at each level
      */
     protected static final List<String> NODE_LEVELS = Splitter.on(",").trimResults()
-            .omitEmptyStrings().splitToList(System.getProperty("nodeLevels", "10,5,2"));
+                                                              .omitEmptyStrings().splitToList(
+            System.getProperty("nodeLevels", "10,5,2"));
 
     /**
      * Controls the number of concurrent tester threads
@@ -129,8 +126,8 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
     protected static final int TESTERS = Integer.getInteger("testers", 1);
 
     /**
-     * Controls the percentage of root nodes which will have sub nodes created.
-     * Value ranges from [0, 100]
+     * Controls the percentage of root nodes which will have sub nodes created. Value ranges from
+     * [0, 100]
      */
     protected static final int DENSITY_LEVEL = Integer.getInteger("densityLevel", 100);
 
@@ -182,13 +179,15 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
     public static final String TITLE_PROP = "title";
 
     public static final String ROOT_NODE_NAME =
-            "LongevitySearchAssets" + TEST_ID;
+        "LongevitySearchAssets" + TEST_ID;
 
     public enum Index {
         PROPERTY, ORDERED, LUCENE, LUCENE_DOC, LUCENE_FILE, LUCENE_FILE_DOC
     }
 
-    /** Type of index to be created */
+    /**
+     * Type of index to be created
+     */
     public final Index INDEX_TYPE =
         Index.valueOf(System.getProperty("indexType", Index.PROPERTY.toString()));
 
@@ -226,15 +225,15 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
 
         if (CUSTOM_TYPE) {
             NodeTypeUtils.createNodeType(session, CUSTOM_DESC_NODE_TYPE,
-                    new String[] {DATE_PROP, SORT_PROP, FILTER_PROP, TITLE_PROP},
-                    new int[] {PropertyType.DATE, PropertyType.BOOLEAN, PropertyType.STRING,
-                            PropertyType.STRING},
-                    new String[0], new String[] {CUSTOM_DESC_NODE_TYPE}, null, false);
+                new String[]{DATE_PROP, SORT_PROP, FILTER_PROP, TITLE_PROP},
+                new int[]{PropertyType.DATE, PropertyType.BOOLEAN, PropertyType.STRING,
+                    PropertyType.STRING},
+                new String[0], new String[]{CUSTOM_DESC_NODE_TYPE}, null, false);
             NodeTypeUtils.createNodeType(session, CUSTOM_ROOT_NODE_TYPE,
-                    new String[] {DATE_PROP, SORT_PROP, FILTER_PROP, TITLE_PROP},
-                    new int[] {PropertyType.DATE, PropertyType.BOOLEAN, PropertyType.STRING,
-                            PropertyType.STRING},
-                    new String[0], new String[] {CUSTOM_DESC_NODE_TYPE}, null, false);
+                new String[]{DATE_PROP, SORT_PROP, FILTER_PROP, TITLE_PROP},
+                new int[]{PropertyType.DATE, PropertyType.BOOLEAN, PropertyType.STRING,
+                    PropertyType.STRING},
+                new String[0], new String[]{CUSTOM_DESC_NODE_TYPE}, null, false);
             nodeTypes.add(CUSTOM_ROOT_NODE_TYPE);
             nodeTypes.add(CUSTOM_DESC_NODE_TYPE);
         }
@@ -252,13 +251,13 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
             case ORDERED:
                 // define ordered indexes on properties
                 OakIndexUtils.orderedIndexDefinition(session, "customIndexParent", ASYNC_INDEX,
-                    new String[] {DATE_PROP}, false,
-                    (nodeTypes.isEmpty() ? new String[0] : new String[] {nodeTypes.get(0)}),
+                    new String[]{DATE_PROP}, false,
+                    (nodeTypes.isEmpty() ? new String[0] : new String[]{nodeTypes.get(0)}),
                     OrderedIndex.OrderDirection.DESC.getDirection());
                 OakIndexUtils.orderedIndexDefinition(session, "customIndexDescendant", ASYNC_INDEX,
-                        new String[]{DATE_PROP}, false,
-                        (nodeTypes.isEmpty() ? new String[0]: new String[] {nodeTypes.get(1)}),
-                        OrderedIndex.OrderDirection.DESC.getDirection());
+                    new String[]{DATE_PROP}, false,
+                    (nodeTypes.isEmpty() ? new String[0] : new String[]{nodeTypes.get(1)}),
+                    OrderedIndex.OrderDirection.DESC.getDirection());
                 break;
             // define lucene index on properties
             case LUCENE_FILE:
@@ -266,9 +265,9 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
                     "target" + StandardSystemProperty.FILE_SEPARATOR.value() + "lucene" + String
                         .valueOf(System.currentTimeMillis());
                 OakLuceneIndexUtils.luceneIndexDefinition(session, "customIndex", ASYNC_INDEX,
-                        new String[]{FILTER_PROP, DATE_PROP},
-                        new String[]{PropertyType.TYPENAME_STRING, PropertyType.TYPENAME_DATE},
-                        null, persistencePath);
+                    new String[]{FILTER_PROP, DATE_PROP},
+                    new String[]{PropertyType.TYPENAME_STRING, PropertyType.TYPENAME_DATE},
+                    null, persistencePath);
                 break;
             case LUCENE_FILE_DOC:
                 persistencePath =
@@ -280,8 +279,8 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
                 orderedMap.put(DATE_PROP, propMap);
             case LUCENE:
                 OakLuceneIndexUtils.luceneIndexDefinition(session, "customIndex", ASYNC_INDEX,
-                    new String[] {FILTER_PROP, DATE_PROP},
-                    new String[] {PropertyType.TYPENAME_STRING, PropertyType.TYPENAME_DATE},
+                    new String[]{FILTER_PROP, DATE_PROP},
+                    new String[]{PropertyType.TYPENAME_STRING, PropertyType.TYPENAME_DATE},
                     orderedMap, persistencePath);
                 break;
             case PROPERTY:
@@ -324,7 +323,8 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
     }
 
     protected void waitBeforeIterationFinish(long loadFinish) {
-        IndexStatsMBean indexStatsMBean = WhiteboardUtils.getService(whiteboard, IndexStatsMBean.class);
+        IndexStatsMBean indexStatsMBean = WhiteboardUtils.getService(whiteboard,
+            IndexStatsMBean.class);
 
         if (indexStatsMBean != null) {
             String lastIndexedTime = indexStatsMBean.getLastIndexedTime();
@@ -343,7 +343,8 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
 
             LOG.info("Execution Count {}", indexStatsMBean.getExecutionCount());
             LOG.info("Execution Time {}", indexStatsMBean.getExecutionTime());
-            LOG.info("Consolidated Execution Stats {}", indexStatsMBean.getConsolidatedExecutionStats());
+            LOG.info("Consolidated Execution Stats {}",
+                indexStatsMBean.getConsolidatedExecutionStats());
         }
     }
 
@@ -362,8 +363,8 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
         for (int idx = 0; idx < LOADERS; idx++) {
             /* Each loader will write to a directory of the form load-idx */
             Thread t =
-                    new Thread(getWriter(context, writeStats, idx),
-                            "LoadThread-" + idx);
+                new Thread(getWriter(context, writeStats, idx),
+                    "LoadThread-" + idx);
             loadThreads.add(t);
             t.start();
         }
@@ -376,7 +377,7 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
                 LOG.error("Exception waiting for join ", e);
             }
         }
-        
+
         LOG.info("Write stats");
         LOG.info(String.format(
             "# min     10%%     50%%     90%%     max       N%n"));
@@ -391,16 +392,16 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
     }
 
     protected Writer getWriter(ExecutionContext context,
-            SynchronizedDescriptiveStatistics writeStats, int idx) throws RepositoryException {
+        SynchronizedDescriptiveStatistics writeStats, int idx) throws RepositoryException {
         return new Writer((context.getIncrement() + "-" + idx),
-                (context.getIncrement() * Integer.parseInt(NODE_LEVELS.get(0)))
-                        / LOADERS,
-                writeStats);
+            (context.getIncrement() * Integer.parseInt(NODE_LEVELS.get(0)))
+                / LOADERS,
+            writeStats);
     }
 
     @Override
     protected void executeBenchmark(final ScalabilityBenchmark benchmark,
-            final ExecutionContext context) throws Exception {
+        final ExecutionContext context) throws Exception {
 
         LOG.info("Started pre benchmark hook : {}", benchmark);
         benchmark.beforeExecute(getRepository(), CREDENTIALS, context);
@@ -409,7 +410,7 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
         if (PROFILE) {
             context.startProfiler();
         }
-        //Execute the benchmark with the number threads configured 
+        //Execute the benchmark with the number threads configured
         List<Thread> threads = newArrayListWithCapacity(TESTERS);
         for (int idx = 0; idx < TESTERS; idx++) {
             Thread t = new Thread("Tester-" + idx) {
@@ -447,8 +448,8 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
                 public Jcr customize(Oak oak) {
                     LuceneIndexProvider provider = new LuceneIndexProvider();
                     oak.with((QueryIndexProvider) provider)
-                            .with((Observer) provider)
-                            .with(new LuceneIndexEditorProvider());
+                       .with((Observer) provider)
+                       .with(new LuceneIndexEditorProvider());
 
                     if (!Strings.isNullOrEmpty(ASYNC_INDEX) && ASYNC_INDEX
                         .equals(IndexConstants.ASYNC_PROPERTY_NAME)) {
@@ -527,19 +528,21 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
 
         Timer timer;
 
-        /** The maximum number of assets to be written by this thread. */
+        /**
+         * The maximum number of assets to be written by this thread.
+         */
         final int maxAssets;
 
         Writer(String id, int maxAssets, SynchronizedDescriptiveStatistics writeStats)
-                throws RepositoryException {
+            throws RepositoryException {
             this.id = id;
             this.maxAssets = maxAssets;
             this.stats = writeStats;
             this.session = loginWriter();
             this.parent = session
-                    .getRootNode()
-                    .getNode(ROOT_NODE_NAME)
-                    .addNode("writer-" + id);
+                .getRootNode()
+                .getNode(ROOT_NODE_NAME)
+                .addNode("writer-" + id);
             start = Calendar.getInstance();
             start.add(Calendar.YEAR, -2);
             start.setTimeZone(TimeZone.getTimeZone("GMT"));
@@ -568,8 +571,8 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
 
                     // skip creation of child nodes based on the defined DENSITY_LEVEL
                     Node node =
-                            createParent(parent, (random.nextInt(100) <= DENSITY_LEVEL), "Node"
-                                    + count);
+                        createParent(parent, (random.nextInt(100) <= DENSITY_LEVEL), "Node"
+                            + count);
 
                     // record for searching and reading
                     addRootSearchPath(node.getPath());
@@ -585,7 +588,8 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
             LOG.info("Max Assets created by " + id + " - " + counter);
         }
 
-        private Node createParent(Node parent, boolean createChildren, String name) throws Exception {
+        private Node createParent(Node parent, boolean createChildren, String name)
+            throws Exception {
             Node node = createNode(parent, 0, name);
 
             if (createChildren) {
@@ -603,7 +607,7 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
             // Recursively create sub nodes
             for (int idx = 0; idx < Integer.parseInt(NODE_LEVELS.get(levelIdx)); idx++) {
                 Node subNode =
-                        createNode(parent, levelIdx, "SubNode-" + levelIdx + "-" + idx);
+                    createNode(parent, levelIdx, "SubNode-" + levelIdx + "-" + idx);
                 addDescSearchPath(subNode.getPath());
 
                 createChildren(subNode, (levelIdx + 1));
@@ -613,18 +617,18 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
         /**
          * Creates the node.
          *
-         * @param parent the parent
+         * @param parent   the parent
          * @param levelIdx the level idx
-         * @param name the name
+         * @param name     the name
          * @return the node
          * @throws Exception the exception
          */
         private Node createNode(Node parent, int levelIdx, String name)
-                throws Exception {
+            throws Exception {
 
             timer.start();
             Node node =
-                    JcrUtils.getOrAddNode(parent, name, getType(levelIdx));
+                JcrUtils.getOrAddNode(parent, name, getType(levelIdx));
             // Add relevant properties
             node.setProperty(DATE_PROP, generateDate());
             node.setProperty(SORT_PROP, toss());
@@ -657,7 +661,7 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
             if (context.getMap().containsKey(typeOfNode)) {
                 type = (String) context.getMap().get(typeOfNode);
             } else if (parent.getSession().getWorkspace().getNodeTypeManager().hasNodeType(
-                    NodeTypeConstants.NT_OAK_UNSTRUCTURED)) {
+                NodeTypeConstants.NT_OAK_UNSTRUCTURED)) {
                 type = NodeTypeConstants.NT_OAK_UNSTRUCTURED;
                 context.getMap().put(typeOfNode, type);
             }
@@ -671,6 +675,7 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
     }
 
     static class Timer {
+
         private final Stopwatch watch;
         private final SynchronizedDescriptiveStatistics stats;
 

@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
+import java.util.Collections;
+import java.util.Map;
+import java.util.Set;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -29,39 +32,38 @@ import org.osgi.service.metatype.annotations.AttributeDefinition;
 import org.osgi.service.metatype.annotations.Designate;
 import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 
-import java.util.Collections;
-import java.util.Map;
-import java.util.Set;
-
 @Component(service = ProtectionConfig.class, immediate = true, configurationPolicy = ConfigurationPolicy.REQUIRE)
 @Designate(ocd = ProtectionConfigImpl.Configuration.class)
 public class ProtectionConfigImpl implements ProtectionConfig {
 
     @ObjectClassDefinition(name = "Apache Jackrabbit Oak External Identity Protection Exclusion List",
-            description = "Implementation of ProtectionConfig that marks all properties and trees as protected except for those specified matching the names in the 2 allow lists.")
+        description = "Implementation of ProtectionConfig that marks all properties and trees as protected except for those specified matching the names in the 2 allow lists.")
     @interface Configuration {
+
         @AttributeDefinition(
-                name = "Property Allow List",
-                description = "Names of properties that are excluded from the protection status.",
-                cardinality = Integer.MAX_VALUE)
+            name = "Property Allow List",
+            description = "Names of properties that are excluded from the protection status.",
+            cardinality = Integer.MAX_VALUE)
         String[] propertyNames() default {};
 
         @AttributeDefinition(
-                name = "Node Allow List",
-                description = "Names of nodes that are excluded from the protection status. Note that the exception is applied to the whole subtree.",
-                cardinality = Integer.MAX_VALUE)
+            name = "Node Allow List",
+            description = "Names of nodes that are excluded from the protection status. Note that the exception is applied to the whole subtree.",
+            cardinality = Integer.MAX_VALUE)
         String[] nodeNames() default {};
     }
-    
+
     private Set<String> propertyNames = Collections.emptySet();
     private Set<String> nodeNames = Collections.emptySet();
 
     @Activate
     protected void activate(Map<String, Object> properties) {
-        propertyNames = ImmutableSet.copyOf(PropertiesUtil.toStringArray(properties.get("propertyNames"), new String[0]));
-        nodeNames = ImmutableSet.copyOf(PropertiesUtil.toStringArray(properties.get("nodeNames"), new String[0]));
+        propertyNames = ImmutableSet.copyOf(
+            PropertiesUtil.toStringArray(properties.get("propertyNames"), new String[0]));
+        nodeNames = ImmutableSet.copyOf(
+            PropertiesUtil.toStringArray(properties.get("nodeNames"), new String[0]));
     }
-    
+
     @Override
     public boolean isProtectedProperty(@NotNull Tree parent, @NotNull PropertyState property) {
         return !propertyNames.contains(property.getName());

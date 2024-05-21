@@ -19,6 +19,9 @@
 
 package org.apache.jackrabbit.oak.index;
 
+import static java.util.Arrays.asList;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+
 import java.io.File;
 import java.io.IOException;
 import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
@@ -27,17 +30,16 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.FSDirectoryFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static java.util.Arrays.asList;
-
 public class OutOfBandIndexer extends OutOfBandIndexerBase {
+
     private final ExtendedIndexHelper extendedIndexHelper;
 
     //TODO Support for providing custom index definition i.e. where definition is not
     //present in target repository
 
-    public OutOfBandIndexer(ExtendedIndexHelper extendedIndexHelper, IndexerSupport indexerSupport) {
-        super(extendedIndexHelper,indexerSupport);
+    public OutOfBandIndexer(ExtendedIndexHelper extendedIndexHelper,
+        IndexerSupport indexerSupport) {
+        super(extendedIndexHelper, indexerSupport);
         this.extendedIndexHelper = checkNotNull(extendedIndexHelper);
     }
 
@@ -50,7 +52,8 @@ public class OutOfBandIndexer extends OutOfBandIndexerBase {
 
     private IndexEditorProvider createPropertyEditorProvider() throws IOException {
         SegmentPropertyIndexEditorProvider provider =
-                new SegmentPropertyIndexEditorProvider(new File(getLocalIndexDir(), "propertyIndexStore"));
+            new SegmentPropertyIndexEditorProvider(
+                new File(getLocalIndexDir(), "propertyIndexStore"));
         provider.with(extendedIndexHelper.getMountInfoProvider());
         closer.register(provider);
         return provider;

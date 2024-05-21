@@ -23,13 +23,12 @@ import static org.junit.Assert.assertTrue;
 import javax.jcr.Node;
 import javax.jcr.Session;
 import javax.jcr.Value;
-
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.junit.Test;
 
 /**
- * {@code AutoCreatedItemsTest} checks if auto-created nodes and properties
- * are added correctly as defined in the node type definition.
+ * {@code AutoCreatedItemsTest} checks if auto-created nodes and properties are added correctly as
+ * defined in the node type definition.
  */
 public class AutoCreatedItemsTest extends AbstractRepositoryTest {
 
@@ -47,7 +46,7 @@ public class AutoCreatedItemsTest extends AbstractRepositoryTest {
         assertTrue(test.hasProperty("test:propertyMulti"));
         assertArrayEquals(new Value[]{s.getValueFactory().createValue("value1"),
                 s.getValueFactory().createValue("value2")},
-                test.getProperty("test:propertyMulti").getValues());
+            test.getProperty("test:propertyMulti").getValues());
 
         assertTrue(test.hasNode("test:folder"));
         Node folder = test.getNode("test:folder");

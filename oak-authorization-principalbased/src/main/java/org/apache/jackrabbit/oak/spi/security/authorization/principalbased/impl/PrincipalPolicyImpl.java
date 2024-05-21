@@ -66,7 +66,8 @@ class PrincipalPolicyImpl extends AbstractAccessControlList implements Principal
     private final PrivilegeManager privilegeManager;
     private final PrivilegeBitsProvider privilegeBitsProvider;
 
-    PrincipalPolicyImpl(@NotNull Principal principal, @NotNull String oakPath, @NotNull MgrProvider mgrProvider) {
+    PrincipalPolicyImpl(@NotNull Principal principal, @NotNull String oakPath,
+        @NotNull MgrProvider mgrProvider) {
         super(oakPath, mgrProvider.getNamePathMapper());
         this.principal = principal;
         this.restrictionProvider = mgrProvider.getRestrictionProvider();
@@ -74,29 +75,35 @@ class PrincipalPolicyImpl extends AbstractAccessControlList implements Principal
         this.privilegeBitsProvider = mgrProvider.getPrivilegeBitsProvider();
     }
 
-    boolean addEntry(@NotNull Tree entryTree, @NotNull Collection<String> oakPathToFilter) throws AccessControlException {
+    boolean addEntry(@NotNull Tree entryTree, @NotNull Collection<String> oakPathToFilter)
+        throws AccessControlException {
         String oakPath = Strings.emptyToNull(TreeUtil.getString(entryTree, REP_EFFECTIVE_PATH));
         if (Utils.hasValidRestrictions(oakPath, entryTree, restrictionProvider)) {
-            PrivilegeBits bits = privilegeBitsProvider.getBits(entryTree.getProperty(Constants.REP_PRIVILEGES).getValue(Type.NAMES));
-            Set<Restriction> restrictions = Utils.readRestrictions(restrictionProvider, oakPath, entryTree);
+            PrivilegeBits bits = privilegeBitsProvider.getBits(
+                entryTree.getProperty(Constants.REP_PRIVILEGES).getValue(Type.NAMES));
+            Set<Restriction> restrictions = Utils.readRestrictions(restrictionProvider, oakPath,
+                entryTree);
             if (matchingEntry(oakPath, restrictions, oakPathToFilter)) {
                 return addEntry(new EntryImpl(oakPath, bits, restrictions));
             }
         }
         return false;
     }
-    
-    private boolean matchingEntry(@Nullable String accessControlledPath, @NotNull Set<Restriction> restrictions, @NotNull Collection<String> oakPathsToFilter) {
+
+    private boolean matchingEntry(@Nullable String accessControlledPath,
+        @NotNull Set<Restriction> restrictions, @NotNull Collection<String> oakPathsToFilter) {
         if (oakPathsToFilter.isEmpty()) {
             // no filter specified -> add entry without further checks
             return true;
         }
-        RestrictionPattern pattern = restrictionProvider.getPattern(accessControlledPath, restrictions);
+        RestrictionPattern pattern = restrictionProvider.getPattern(accessControlledPath,
+            restrictions);
         return oakPathsToFilter.stream().anyMatch(filterPath -> {
             if (filterPath == null) {
                 return accessControlledPath == null;
             } else {
-                return accessControlledPath != null && Text.isDescendantOrEqual(accessControlledPath, filterPath) && pattern.matches(filterPath);
+                return accessControlledPath != null && Text.isDescendantOrEqual(
+                    accessControlledPath, filterPath) && pattern.matches(filterPath);
             }
         });
     }
@@ -124,15 +131,20 @@ class PrincipalPolicyImpl extends AbstractAccessControlList implements Principal
     }
 
     @Override
-    public boolean addEntry(@Nullable String effectivePath, @NotNull Privilege[] privileges) throws RepositoryException {
+    public boolean addEntry(@Nullable String effectivePath, @NotNull Privilege[] privileges)
+        throws RepositoryException {
         return addEntry(effectivePath, privileges, Collections.emptyMap(), Collections.emptyMap());
     }
 
     @Override
-    public boolean addEntry(@Nullable String effectivePath, @NotNull Privilege[] privileges, @NotNull Map<String, Value> restrictions, @NotNull Map<String, Value[]> mvRestrictions) throws RepositoryException {
-        String oakPath = (effectivePath == null) ? null : getNamePathMapper().getOakPath(effectivePath);
+    public boolean addEntry(@Nullable String effectivePath, @NotNull Privilege[] privileges,
+        @NotNull Map<String, Value> restrictions, @NotNull Map<String, Value[]> mvRestrictions)
+        throws RepositoryException {
+        String oakPath =
+            (effectivePath == null) ? null : getNamePathMapper().getOakPath(effectivePath);
         if (oakPath != null && !PathUtils.isAbsolute(oakPath)) {
-            throw new AccessControlException("Absolute path expected. Instead was " + effectivePath);
+            throw new AccessControlException(
+                "Absolute path expected. Instead was " + effectivePath);
         }
         Set<Restriction> rs = validateRestrictions(oakPath, restrictions, mvRestrictions);
         PrivilegeBits privilegeBits = validatePrivileges(privileges);
@@ -143,23 +155,31 @@ class PrincipalPolicyImpl extends AbstractAccessControlList implements Principal
 
     //----------------------------------------< JackrabbitAccessControlList >---
     @Override
-    public boolean addEntry(@NotNull Principal principal, @NotNull Privilege[] privileges, boolean isAllow, @Nullable Map<String, Value> restrictions, @Nullable Map<String, Value[]> mvRestrictions) throws RepositoryException {
+    public boolean addEntry(@NotNull Principal principal, @NotNull Privilege[] privileges,
+        boolean isAllow, @Nullable Map<String, Value> restrictions,
+        @Nullable Map<String, Value[]> mvRestrictions) throws RepositoryException {
         if (!this.principal.equals(principal)) {
-            throw new AccessControlException("Principal must be the one associated with the principal based policy.");
+            throw new AccessControlException(
+                "Principal must be the one associated with the principal based policy.");
         }
         if (!isAllow) {
-            throw new AccessControlException("Principal based access control does not support DENY access control entries.");
+            throw new AccessControlException(
+                "Principal based access control does not support DENY access control entries.");
         }
 
-        String jcrNodePathName = getNamePathMapper().getJcrName(AccessControlConstants.REP_NODE_PATH);
+        String jcrNodePathName = getNamePathMapper().getJcrName(
+            AccessControlConstants.REP_NODE_PATH);
         String path = extractPathFromRestrictions(restrictions, jcrNodePathName);
-        Map<String, Value> filteredRestrictions = Maps.filterEntries(restrictions, entry -> !jcrNodePathName.equals(entry.getKey()));
+        Map<String, Value> filteredRestrictions = Maps.filterEntries(restrictions,
+            entry -> !jcrNodePathName.equals(entry.getKey()));
 
-        return addEntry(path, privileges, filteredRestrictions, (mvRestrictions == null) ? Collections.emptyMap() : mvRestrictions);
+        return addEntry(path, privileges, filteredRestrictions,
+            (mvRestrictions == null) ? Collections.emptyMap() : mvRestrictions);
     }
 
     @Override
-    public void orderBefore(@NotNull AccessControlEntry srcEntry, @Nullable AccessControlEntry destEntry) throws RepositoryException {
+    public void orderBefore(@NotNull AccessControlEntry srcEntry,
+        @Nullable AccessControlEntry destEntry) throws RepositoryException {
         EntryImpl src = validateEntry(srcEntry);
         EntryImpl dest = (destEntry == null) ? null : validateEntry(destEntry);
 
@@ -172,7 +192,8 @@ class PrincipalPolicyImpl extends AbstractAccessControlList implements Principal
         if (dest != null) {
             index = entries.indexOf(dest);
             if (index < 0) {
-                throw new AccessControlException("Destination entry not contained in this AccessControlList.");
+                throw new AccessControlException(
+                    "Destination entry not contained in this AccessControlList.");
             }
         }
 
@@ -183,7 +204,8 @@ class PrincipalPolicyImpl extends AbstractAccessControlList implements Principal
                 entries.add(src);
             }
         } else {
-            throw new AccessControlException("Source entry not contained in this AccessControlList");
+            throw new AccessControlException(
+                "Source entry not contained in this AccessControlList");
         }
     }
 
@@ -194,7 +216,8 @@ class PrincipalPolicyImpl extends AbstractAccessControlList implements Principal
         validateEntry(ace);
 
         if (!entries.remove(ace)) {
-            throw new AccessControlException("AccessControlEntry " +ace+ " not contained in AccessControlList");
+            throw new AccessControlException(
+                "AccessControlEntry " + ace + " not contained in AccessControlList");
         }
     }
 
@@ -206,15 +229,19 @@ class PrincipalPolicyImpl extends AbstractAccessControlList implements Principal
     }
 
     @NotNull
-    private Set<Restriction> validateRestrictions(@Nullable String effectiveOakPath, @NotNull Map<String, Value> restrictions, @NotNull  Map<String, Value[]> mvRestrictions) throws RepositoryException {
-        for (RestrictionDefinition def : getRestrictionProvider().getSupportedRestrictions(getOakPath())) {
+    private Set<Restriction> validateRestrictions(@Nullable String effectiveOakPath,
+        @NotNull Map<String, Value> restrictions, @NotNull Map<String, Value[]> mvRestrictions)
+        throws RepositoryException {
+        for (RestrictionDefinition def : getRestrictionProvider().getSupportedRestrictions(
+            getOakPath())) {
             String jcrName = getNamePathMapper().getJcrName(def.getName());
             if (def.isMandatory()) {
                 boolean containsMandatory = (def.getRequiredType().isArray()) ?
-                        mvRestrictions.containsKey(jcrName) :
-                        restrictions.containsKey(jcrName);
+                    mvRestrictions.containsKey(jcrName) :
+                    restrictions.containsKey(jcrName);
                 if (!containsMandatory) {
-                    throw new AccessControlException("Mandatory restriction " + jcrName + " is missing.");
+                    throw new AccessControlException(
+                        "Mandatory restriction " + jcrName + " is missing.");
                 }
             }
         }
@@ -222,7 +249,9 @@ class PrincipalPolicyImpl extends AbstractAccessControlList implements Principal
     }
 
     @NotNull
-    private Set<Restriction> computeRestrictions(@Nullable String effectiveOakPath, @NotNull Map<String, Value> restrictions, @NotNull Map<String, Value[]> mvRestrictions) throws RepositoryException {
+    private Set<Restriction> computeRestrictions(@Nullable String effectiveOakPath,
+        @NotNull Map<String, Value> restrictions, @NotNull Map<String, Value[]> mvRestrictions)
+        throws RepositoryException {
         Set<Restriction> rs;
         if (restrictions.isEmpty() && mvRestrictions.isEmpty()) {
             rs = Collections.emptySet();
@@ -230,19 +259,23 @@ class PrincipalPolicyImpl extends AbstractAccessControlList implements Principal
             RestrictionProvider rp = getRestrictionProvider();
             rs = new HashSet<>();
             for (Map.Entry<String, Value> entry : restrictions.entrySet()) {
-                rs.add(rp.createRestriction(effectiveOakPath, getOakName(entry.getKey()), entry.getValue()));
+                rs.add(rp.createRestriction(effectiveOakPath, getOakName(entry.getKey()),
+                    entry.getValue()));
             }
             for (Map.Entry<String, Value[]> entry : mvRestrictions.entrySet()) {
-                rs.add(rp.createRestriction(effectiveOakPath, getOakName(entry.getKey()), entry.getValue()));
+                rs.add(rp.createRestriction(effectiveOakPath, getOakName(entry.getKey()),
+                    entry.getValue()));
             }
         }
         return rs;
     }
 
     @Nullable
-    private static String extractPathFromRestrictions(@Nullable Map<String, Value> restrictions, @NotNull String jcrName) throws RepositoryException {
+    private static String extractPathFromRestrictions(@Nullable Map<String, Value> restrictions,
+        @NotNull String jcrName) throws RepositoryException {
         if (restrictions == null || !restrictions.containsKey(jcrName)) {
-            throw new AccessControlException("Entries in principal based access control need to have a path specified. Add rep:nodePath restriction or use PrincipalAccessControlList.addEntry(String, Privilege[], Map, Map) instead.");
+            throw new AccessControlException(
+                "Entries in principal based access control need to have a path specified. Add rep:nodePath restriction or use PrincipalAccessControlList.addEntry(String, Privilege[], Map, Map) instead.");
         }
 
         // retrieve path from restrictions and filter that restriction entry for further processing
@@ -250,7 +283,8 @@ class PrincipalPolicyImpl extends AbstractAccessControlList implements Principal
     }
 
     @NotNull
-    private PrivilegeBits validatePrivileges(@NotNull Privilege[] privileges) throws RepositoryException {
+    private PrivilegeBits validatePrivileges(@NotNull Privilege[] privileges)
+        throws RepositoryException {
         if (privileges.length == 0) {
             throw new AccessControlException("Privileges may not be an empty array");
         }
@@ -264,7 +298,8 @@ class PrincipalPolicyImpl extends AbstractAccessControlList implements Principal
     }
 
     @NotNull
-    private static EntryImpl validateEntry(@Nullable AccessControlEntry entry) throws AccessControlException {
+    private static EntryImpl validateEntry(@Nullable AccessControlEntry entry)
+        throws AccessControlException {
         if (entry instanceof EntryImpl) {
             return (EntryImpl) entry;
         } else {
@@ -284,18 +319,21 @@ class PrincipalPolicyImpl extends AbstractAccessControlList implements Principal
 
     final class EntryImpl extends AbstractEntry {
 
-        private EntryImpl(@Nullable String oakPath, @NotNull PrivilegeBits privilegeBits, @NotNull  Set<Restriction> restrictions) throws AccessControlException {
-            super(oakPath, principal, privilegeBits, restrictions, PrincipalPolicyImpl.this.getNamePathMapper());
+        private EntryImpl(@Nullable String oakPath, @NotNull PrivilegeBits privilegeBits,
+            @NotNull Set<Restriction> restrictions) throws AccessControlException {
+            super(oakPath, principal, privilegeBits, restrictions,
+                PrincipalPolicyImpl.this.getNamePathMapper());
         }
 
         @Override
         public Privilege[] getPrivileges() {
-            Set<String> names =  privilegeBitsProvider.getPrivilegeNames(getPrivilegeBits());
+            Set<String> names = privilegeBitsProvider.getPrivilegeNames(getPrivilegeBits());
             return Utils.privilegesFromOakNames(names, privilegeManager, getNamePathMapper());
         }
 
         @Override
-        @NotNull NamePathMapper getNamePathMapper() {
+        @NotNull
+        NamePathMapper getNamePathMapper() {
             return PrincipalPolicyImpl.this.getNamePathMapper();
         }
 

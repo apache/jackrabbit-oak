@@ -18,6 +18,10 @@
  */
 package org.apache.jackrabbit.oak.index;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexInfoServiceImpl;
 import org.apache.jackrabbit.oak.plugins.index.datastore.DataStoreTextWriter;
@@ -28,22 +32,17 @@ import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-
 public class ExtendedIndexHelper extends IndexHelper {
 
     private LuceneIndexHelper luceneIndexHelper;
     private ExtractedTextCache extractedTextCache;
 
     public ExtendedIndexHelper(NodeStore store, BlobStore blobStore, Whiteboard whiteboard,
-                               File outputDir, File workDir, List<String> indexPaths) {
+        File outputDir, File workDir, List<String> indexPaths) {
         super(store, blobStore, whiteboard, outputDir, workDir, indexPaths);
     }
 
-    public LuceneIndexHelper getLuceneIndexHelper(){
+    public LuceneIndexHelper getLuceneIndexHelper() {
         if (luceneIndexHelper == null) {
             luceneIndexHelper = new LuceneIndexHelper(this);
             closer.register(luceneIndexHelper);
@@ -53,13 +52,15 @@ public class ExtendedIndexHelper extends IndexHelper {
 
     @Override
     protected void bindIndexInfoProviders(IndexInfoServiceImpl indexInfoService) {
-        indexInfoService.bindInfoProviders(new LuceneIndexInfoProvider(store, getAsyncIndexInfoService(), workDir));
+        indexInfoService.bindInfoProviders(
+            new LuceneIndexInfoProvider(store, getAsyncIndexInfoService(), workDir));
         indexInfoService.bindInfoProviders(new PropertyIndexInfoProvider(store));
     }
 
     public ExtractedTextCache getExtractedTextCache() {
         if (extractedTextCache == null) {
-            extractedTextCache = new ExtractedTextCache(FileUtils.ONE_MB * 5, TimeUnit.HOURS.toSeconds(5));
+            extractedTextCache = new ExtractedTextCache(FileUtils.ONE_MB * 5,
+                TimeUnit.HOURS.toSeconds(5));
         }
         return extractedTextCache;
     }

@@ -16,14 +16,13 @@
  */
 package org.apache.jackrabbit.oak.upgrade.cli.blob;
 
+import java.io.IOException;
 import org.apache.jackrabbit.oak.upgrade.cli.AbstractOak2OakTest;
 import org.apache.jackrabbit.oak.upgrade.cli.container.BlobStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.container.FileBlobStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.container.FileDataStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.container.NodeStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.container.SegmentTarNodeStoreContainer;
-
-import java.io.IOException;
 
 public class FbsToFdsTest extends AbstractOak2OakTest {
 
@@ -54,8 +53,10 @@ public class FbsToFdsTest extends AbstractOak2OakTest {
 
     @Override
     protected String[] getArgs() {
-        return new String[] { "--copy-binaries", "--src-fileblobstore", sourceBlob.getDescription(), "--datastore",
-                destinationBlob.getDescription(), source.getDescription(), destination.getDescription() };
+        return new String[]{"--copy-binaries", "--src-fileblobstore", sourceBlob.getDescription(),
+            "--datastore",
+            destinationBlob.getDescription(), source.getDescription(),
+            destination.getDescription()};
     }
 
     @Override

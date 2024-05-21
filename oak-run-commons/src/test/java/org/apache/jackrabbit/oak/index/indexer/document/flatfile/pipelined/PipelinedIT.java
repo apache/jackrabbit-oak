@@ -18,6 +18,33 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
+import static java.lang.management.ManagementFactory.getPlatformMBeanServer;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelineITUtil.assertMetrics;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelineITUtil.contentDamPathFilter;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDED_PATHS;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDE_ENTRIES_REGEX;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_MONGO_PARALLEL_DUMP;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_RETRY_ON_CONNECTION_ERRORS;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -49,35 +76,8 @@ import org.junit.Test;
 import org.junit.contrib.java.lang.system.RestoreSystemProperties;
 import org.junit.rules.TemporaryFolder;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.function.Consumer;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
-
-import static java.lang.management.ManagementFactory.getPlatformMBeanServer;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelineITUtil.assertMetrics;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelineITUtil.contentDamPathFilter;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDED_PATHS;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDE_ENTRIES_REGEX;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_MONGO_PARALLEL_DUMP;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_RETRY_ON_CONNECTION_ERRORS;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
-
 public class PipelinedIT {
+
     private static ScheduledExecutorService executorService;
     @Rule
     public final MongoConnectionFactory connectionFactory = new MongoConnectionFactory();
@@ -132,15 +132,16 @@ public class PipelinedIT {
         System.setProperty(OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING, "true");
 
         Predicate<String> pathPredicate = s -> true;
-        List<PathFilter> pathFilters = List.of(new PathFilter(List.of("/content/dam/2023"), List.of("/content/dam/2023/02")));
+        List<PathFilter> pathFilters = List.of(
+            new PathFilter(List.of("/content/dam/2023"), List.of("/content/dam/2023/02")));
 
         testSuccessfulDownload(pathPredicate, pathFilters, List.of(
-                "/|{}",
-                "/content|{}",
-                "/content/dam|{}",
-                "/content/dam/2023|{\"p2\":\"v2023\"}",
-                "/content/dam/2023/01|{\"p1\":\"v202301\"}",
-                "/content/dam/2023/02|{}"
+            "/|{}",
+            "/content|{}",
+            "/content/dam|{}",
+            "/content/dam/2023|{\"p2\":\"v2023\"}",
+            "/content/dam/2023/01|{\"p1\":\"v202301\"}",
+            "/content/dam/2023/02|{}"
         ), true);
     }
 
@@ -155,20 +156,22 @@ public class PipelinedIT {
         // be downloaded. This is an intentional limitation of the logic to compute the Mongo filter which was done
         // to avoid the extra complexity of also filtering the root of the excluded tree. The transform stage would anyway
         // filter out these additional documents.
-        List<PathFilter> pathFilters = List.of(new PathFilter(List.of("/content/dam/1000", "/content/dam/2022"), List.of("/content/dam/2022/02", "/content/dam/2022/04")));
+        List<PathFilter> pathFilters = List.of(
+            new PathFilter(List.of("/content/dam/1000", "/content/dam/2022"),
+                List.of("/content/dam/2022/02", "/content/dam/2022/04")));
 
         testSuccessfulDownload(pathPredicate, pathFilters, List.of(
-                "/|{}",
-                "/content|{}",
-                "/content/dam|{}",
-                "/content/dam/1000|{}",
-                "/content/dam/1000/12|{\"p1\":\"v100012\"}",
-                "/content/dam/2022|{}",
-                "/content/dam/2022/01|{\"p1\":\"v202201\"}",
-                "/content/dam/2022/01/01|{\"p1\":\"v20220101\"}",
-                "/content/dam/2022/02|{\"p1\":\"v202202\"}",
-                "/content/dam/2022/03|{\"p1\":\"v202203\"}",
-                "/content/dam/2022/04|{\"p1\":\"v202204\"}"
+            "/|{}",
+            "/content|{}",
+            "/content/dam|{}",
+            "/content/dam/1000|{}",
+            "/content/dam/1000/12|{\"p1\":\"v100012\"}",
+            "/content/dam/2022|{}",
+            "/content/dam/2022/01|{\"p1\":\"v202201\"}",
+            "/content/dam/2022/01/01|{\"p1\":\"v20220101\"}",
+            "/content/dam/2022/02|{\"p1\":\"v202202\"}",
+            "/content/dam/2022/03|{\"p1\":\"v202203\"}",
+            "/content/dam/2022/04|{\"p1\":\"v202204\"}"
         ), true);
     }
 
@@ -180,34 +183,37 @@ public class PipelinedIT {
 
         Predicate<String> pathPredicate = s -> true;
 
-        List<PathFilter> pathFilters = List.of(new PathFilter(List.of("/"), List.of("/content/dam", "/etc", "/home", "/jcr:system")));
+        List<PathFilter> pathFilters = List.of(
+            new PathFilter(List.of("/"), List.of("/content/dam", "/etc", "/home", "/jcr:system")));
 
         testSuccessfulDownload(pathPredicate, pathFilters, List.of(
-                "/|{}",
-                "/content|{}",
-                "/content/dam|{}",
-                "/etc|{}",
-                "/home|{}",
-                "/jcr:system|{}"
+            "/|{}",
+            "/content|{}",
+            "/content/dam|{}",
+            "/etc|{}",
+            "/home|{}",
+            "/jcr:system|{}"
         ), true);
     }
 
     @Test
-    public void createFFS_mongoFiltering_include_excludes_retryOnConnectionErrors() throws Exception {
+    public void createFFS_mongoFiltering_include_excludes_retryOnConnectionErrors()
+        throws Exception {
         System.setProperty(OAK_INDEXER_PIPELINED_RETRY_ON_CONNECTION_ERRORS, "true");
         System.setProperty(OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING, "true");
 
         Predicate<String> pathPredicate = s -> true;
 
-        List<PathFilter> pathFilters = List.of(new PathFilter(List.of("/"), List.of("/content/dam", "/etc", "/home", "/jcr:system")));
+        List<PathFilter> pathFilters = List.of(
+            new PathFilter(List.of("/"), List.of("/content/dam", "/etc", "/home", "/jcr:system")));
 
         testSuccessfulDownload(pathPredicate, pathFilters, List.of(
-                "/|{}",
-                "/content|{}",
-                "/content/dam|{}",
-                "/etc|{}",
-                "/home|{}",
-                "/jcr:system|{}"
+            "/|{}",
+            "/content|{}",
+            "/content/dam|{}",
+            "/etc|{}",
+            "/home|{}",
+            "/jcr:system|{}"
         ), true);
     }
 
@@ -219,25 +225,25 @@ public class PipelinedIT {
         Predicate<String> pathPredicate = s -> true;
 
         List<PathFilter> pathFilters = List.of(
-                new PathFilter(List.of("/content/dam/1000"), List.of()),
-                new PathFilter(List.of("/content/dam/2022"), List.of("/content/dam/2022/01"))
+            new PathFilter(List.of("/content/dam/1000"), List.of()),
+            new PathFilter(List.of("/content/dam/2022"), List.of("/content/dam/2022/01"))
         );
 
         testSuccessfulDownload(pathPredicate, pathFilters, List.of(
-                "/|{}",
-                "/content|{}",
-                "/content/dam|{}",
-                "/content/dam/1000|{}",
-                "/content/dam/1000/12|{\"p1\":\"v100012\"}",
-                "/content/dam/2022|{}",
-                "/content/dam/2022/01|{\"p1\":\"v202201\"}",
-                "/content/dam/2022/02|{\"p1\":\"v202202\"}",
-                "/content/dam/2022/02/01|{\"p1\":\"v20220201\"}",
-                "/content/dam/2022/02/02|{\"p1\":\"v20220202\"}",
-                "/content/dam/2022/02/03|{\"p1\":\"v20220203\"}",
-                "/content/dam/2022/02/04|{\"p1\":\"v20220204\"}",
-                "/content/dam/2022/03|{\"p1\":\"v202203\"}",
-                "/content/dam/2022/04|{\"p1\":\"v202204\"}"
+            "/|{}",
+            "/content|{}",
+            "/content/dam|{}",
+            "/content/dam/1000|{}",
+            "/content/dam/1000/12|{\"p1\":\"v100012\"}",
+            "/content/dam/2022|{}",
+            "/content/dam/2022/01|{\"p1\":\"v202201\"}",
+            "/content/dam/2022/02|{\"p1\":\"v202202\"}",
+            "/content/dam/2022/02/01|{\"p1\":\"v20220201\"}",
+            "/content/dam/2022/02/02|{\"p1\":\"v20220202\"}",
+            "/content/dam/2022/02/03|{\"p1\":\"v20220203\"}",
+            "/content/dam/2022/02/04|{\"p1\":\"v20220204\"}",
+            "/content/dam/2022/03|{\"p1\":\"v202203\"}",
+            "/content/dam/2022/04|{\"p1\":\"v202204\"}"
         ), true);
     }
 
@@ -246,19 +252,20 @@ public class PipelinedIT {
         System.setProperty(OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING, "true");
 
         Predicate<String> pathPredicate = s -> true;
-        PathFilter pathFilter = new PathFilter(List.of("/content/dam/1000", "/content/dam/2023", "/content/dam/2023/01"), List.of());
+        PathFilter pathFilter = new PathFilter(
+            List.of("/content/dam/1000", "/content/dam/2023", "/content/dam/2023/01"), List.of());
         List<PathFilter> pathFilters = List.of(pathFilter);
 
         testSuccessfulDownload(pathPredicate, pathFilters, List.of(
-                "/|{}",
-                "/content|{}",
-                "/content/dam|{}",
-                "/content/dam/1000|{}",
-                "/content/dam/1000/12|{\"p1\":\"v100012\"}",
-                "/content/dam/2023|{\"p2\":\"v2023\"}",
-                "/content/dam/2023/01|{\"p1\":\"v202301\"}",
-                "/content/dam/2023/02|{}",
-                "/content/dam/2023/02/28|{\"p1\":\"v20230228\"}"
+            "/|{}",
+            "/content|{}",
+            "/content/dam|{}",
+            "/content/dam/1000|{}",
+            "/content/dam/1000/12|{\"p1\":\"v100012\"}",
+            "/content/dam/2023|{\"p2\":\"v2023\"}",
+            "/content/dam/2023/01|{\"p1\":\"v202301\"}",
+            "/content/dam/2023/02|{}",
+            "/content/dam/2023/02/28|{\"p1\":\"v20230228\"}"
         ), true);
     }
 
@@ -268,7 +275,8 @@ public class PipelinedIT {
         System.setProperty(OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING, "true");
 
         // Create a filter on the node with the longest path
-        String longestLine = PipelineITUtil.EXPECTED_FFS.stream().max(Comparator.comparingInt(String::length)).get();
+        String longestLine = PipelineITUtil.EXPECTED_FFS.stream().max(
+            Comparator.comparingInt(String::length)).get();
         String longestPath = longestLine.substring(0, longestLine.lastIndexOf("|"));
         String parent = PathUtils.getParentPath(longestPath);
         Predicate<String> pathPredicate = s -> true;
@@ -293,62 +301,68 @@ public class PipelinedIT {
 
     @Test
     public void createFFSCustomExcludePathsRegexRetryOnConnectionErrors() throws Exception {
-        Predicate<String> pathPredicate = s -> contentDamPathFilter.filter(s) != PathFilter.Result.EXCLUDE;
+        Predicate<String> pathPredicate = s -> contentDamPathFilter.filter(s)
+            != PathFilter.Result.EXCLUDE;
         testPipelinedStrategy(Map.of(
-                        // Filter all nodes ending in /metadata.xml or having a path section with ".*.jpg"
-                        OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDE_ENTRIES_REGEX, "/metadata.xml$|/.*.jpg/.*",
-                        OAK_INDEXER_PIPELINED_RETRY_ON_CONNECTION_ERRORS, "true",
-                        OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING, "false"
-                ),
-                this::buildNodeStoreForExcludedRegexTest,
-                pathPredicate,
-                null,
-                excludedPathsRegexTestExpected);
+                // Filter all nodes ending in /metadata.xml or having a path section with ".*.jpg"
+                OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDE_ENTRIES_REGEX, "/metadata.xml$|/.*.jpg/.*",
+                OAK_INDEXER_PIPELINED_RETRY_ON_CONNECTION_ERRORS, "true",
+                OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING, "false"
+            ),
+            this::buildNodeStoreForExcludedRegexTest,
+            pathPredicate,
+            null,
+            excludedPathsRegexTestExpected);
     }
 
     @Test
     public void createFFSCustomExcludePathsRegexNoRetryOnConnectionError() throws Exception {
-        Predicate<String> pathPredicate = s -> contentDamPathFilter.filter(s) != PathFilter.Result.EXCLUDE;
+        Predicate<String> pathPredicate = s -> contentDamPathFilter.filter(s)
+            != PathFilter.Result.EXCLUDE;
         testPipelinedStrategy(Map.of(
-                        // Filter all nodes ending in /metadata.xml or having a path section with ".*.jpg"
-                        OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDE_ENTRIES_REGEX, "/metadata.xml$|/.*.jpg/.*",
-                        OAK_INDEXER_PIPELINED_RETRY_ON_CONNECTION_ERRORS, "false",
-                        OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING, "false"
-                ),
-                this::buildNodeStoreForExcludedRegexTest,
-                pathPredicate,
-                null,
-                excludedPathsRegexTestExpected);
+                // Filter all nodes ending in /metadata.xml or having a path section with ".*.jpg"
+                OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDE_ENTRIES_REGEX, "/metadata.xml$|/.*.jpg/.*",
+                OAK_INDEXER_PIPELINED_RETRY_ON_CONNECTION_ERRORS, "false",
+                OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING, "false"
+            ),
+            this::buildNodeStoreForExcludedRegexTest,
+            pathPredicate,
+            null,
+            excludedPathsRegexTestExpected);
     }
 
     @Test
-    public void createFFSCustomExcludePathsRegexRetryOnConnectionErrorsRegexFiltering() throws Exception {
-        Predicate<String> pathPredicate = s -> contentDamPathFilter.filter(s) != PathFilter.Result.EXCLUDE;
+    public void createFFSCustomExcludePathsRegexRetryOnConnectionErrorsRegexFiltering()
+        throws Exception {
+        Predicate<String> pathPredicate = s -> contentDamPathFilter.filter(s)
+            != PathFilter.Result.EXCLUDE;
         testPipelinedStrategy(Map.of(
-                        // Filter all nodes ending in /metadata.xml or having a path section with ".*.jpg"
-                        OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDE_ENTRIES_REGEX, "/metadata.xml$|/.*.jpg/.*",
-                        OAK_INDEXER_PIPELINED_RETRY_ON_CONNECTION_ERRORS, "true",
-                        OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING, "true"
-                ),
-                this::buildNodeStoreForExcludedRegexTest,
-                pathPredicate,
-                List.of(contentDamPathFilter),
-                excludedPathsRegexTestExpected);
+                // Filter all nodes ending in /metadata.xml or having a path section with ".*.jpg"
+                OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDE_ENTRIES_REGEX, "/metadata.xml$|/.*.jpg/.*",
+                OAK_INDEXER_PIPELINED_RETRY_ON_CONNECTION_ERRORS, "true",
+                OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING, "true"
+            ),
+            this::buildNodeStoreForExcludedRegexTest,
+            pathPredicate,
+            List.of(contentDamPathFilter),
+            excludedPathsRegexTestExpected);
     }
 
     @Test
-    public void createFFSCustomExcludePathsRegexNoRetryOnConnectionErrorRegexFiltering() throws Exception {
-        Predicate<String> pathPredicate = s -> contentDamPathFilter.filter(s) != PathFilter.Result.EXCLUDE;
+    public void createFFSCustomExcludePathsRegexNoRetryOnConnectionErrorRegexFiltering()
+        throws Exception {
+        Predicate<String> pathPredicate = s -> contentDamPathFilter.filter(s)
+            != PathFilter.Result.EXCLUDE;
         testPipelinedStrategy(Map.of(
-                        // Filter all nodes ending in /metadata.xml or having a path section with ".*.jpg"
-                        OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDE_ENTRIES_REGEX, "/metadata.xml$|/.*.jpg/.*",
-                        OAK_INDEXER_PIPELINED_RETRY_ON_CONNECTION_ERRORS, "false",
-                        OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING, "true"
-                ),
-                this::buildNodeStoreForExcludedRegexTest,
-                pathPredicate,
-                List.of(contentDamPathFilter),
-                excludedPathsRegexTestExpected);
+                // Filter all nodes ending in /metadata.xml or having a path section with ".*.jpg"
+                OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDE_ENTRIES_REGEX, "/metadata.xml$|/.*.jpg/.*",
+                OAK_INDEXER_PIPELINED_RETRY_ON_CONNECTION_ERRORS, "false",
+                OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING, "true"
+            ),
+            this::buildNodeStoreForExcludedRegexTest,
+            pathPredicate,
+            List.of(contentDamPathFilter),
+            excludedPathsRegexTestExpected);
     }
 
     private void buildNodeStoreForExcludedRegexTest(DocumentNodeStore rwNodeStore) {
@@ -366,20 +380,20 @@ public class PipelinedIT {
     }
 
     private final List<String> excludedPathsRegexTestExpected = List.of(
-            "/|{}",
-            "/content|{}",
-            "/content/dam|{}",
-            "/content/dam/a.jpg|{}",
-            "/content/dam/image_a.png|{}",
-            "/content/dam/image_a.png/jcr:content|{}",
-            "/content/dam/image_a.png/jcr:content/metadata.text|{}"
+        "/|{}",
+        "/content|{}",
+        "/content/dam|{}",
+        "/content/dam/a.jpg|{}",
+        "/content/dam/image_a.png|{}",
+        "/content/dam/image_a.png/jcr:content|{}",
+        "/content/dam/image_a.png/jcr:content/metadata.text|{}"
     );
 
     private void testPipelinedStrategy(Map<String, String> settings,
-                                       Consumer<DocumentNodeStore> contentBuilder,
-                                       Predicate<String> pathPredicate,
-                                       List<PathFilter> pathFilters,
-                                       List<String> expected) throws IOException {
+        Consumer<DocumentNodeStore> contentBuilder,
+        Predicate<String> pathPredicate,
+        List<PathFilter> pathFilters,
+        List<String> expected) throws IOException {
         settings.forEach(System::setProperty);
 
         try (MongoTestBackend rwStore = createNodeStore(false)) {
@@ -387,7 +401,8 @@ public class PipelinedIT {
             contentBuilder.accept(rwNodeStore);
             MongoTestBackend roStore = createNodeStore(true);
 
-            PipelinedStrategy pipelinedStrategy = createStrategy(roStore, pathPredicate, pathFilters);
+            PipelinedStrategy pipelinedStrategy = createStrategy(roStore, pathPredicate,
+                pathFilters);
             File file = pipelinedStrategy.createSortedStoreFile();
 
             assertTrue(file.exists());
@@ -396,19 +411,22 @@ public class PipelinedIT {
         }
     }
 
-    private void testSuccessfulDownload(Predicate<String> pathPredicate, List<PathFilter> pathFilters)
-            throws CommitFailedException, IOException {
+    private void testSuccessfulDownload(Predicate<String> pathPredicate,
+        List<PathFilter> pathFilters)
+        throws CommitFailedException, IOException {
         testSuccessfulDownload(pathPredicate, pathFilters, PipelineITUtil.EXPECTED_FFS, false);
     }
 
-    private void testSuccessfulDownload(Predicate<String> pathPredicate, List<PathFilter> mongoRegexPathFilter, List<String> expected, boolean ignoreLongPaths)
-            throws CommitFailedException, IOException {
+    private void testSuccessfulDownload(Predicate<String> pathPredicate,
+        List<PathFilter> mongoRegexPathFilter, List<String> expected, boolean ignoreLongPaths)
+        throws CommitFailedException, IOException {
         try (MongoTestBackend rwStore = createNodeStore(false)) {
             PipelineITUtil.createContent(rwStore.documentNodeStore);
         }
 
         try (MongoTestBackend roStore = createNodeStore(true)) {
-            PipelinedStrategy pipelinedStrategy = createStrategy(roStore, pathPredicate, mongoRegexPathFilter);
+            PipelinedStrategy pipelinedStrategy = createStrategy(roStore, pathPredicate,
+                mongoRegexPathFilter);
             File file = pipelinedStrategy.createSortedStoreFile();
             assertTrue(file.exists());
             List<String> result = Files.readAllLines(file.toPath());
@@ -416,11 +434,11 @@ public class PipelinedIT {
                 // Remove the long paths from the result. The filter on Mongo is best-effort, it will download long path
                 // documents, even if they do not match the includedPaths.
                 result = result.stream()
-                        .filter(s -> {
-                            String name = s.split("\\|")[0];
-                            return name.length() < Utils.PATH_LONG;
-                        })
-                        .collect(Collectors.toList());
+                               .filter(s -> {
+                                   String name = s.split("\\|")[0];
+                                   return name.length() < Utils.PATH_LONG;
+                               })
+                               .collect(Collectors.toList());
 
             }
             assertEquals(expected, result);
@@ -454,9 +472,10 @@ public class PipelinedIT {
         }
 
         try (MongoTestBackend roStore = createNodeStore(true)) {
-            assertThrows("Invalid value for property " + PipelinedStrategy.OAK_INDEXER_PIPELINED_TRANSFORM_THREADS + ": 0. Must be > 0",
-                    IllegalArgumentException.class,
-                    () -> createStrategy(roStore)
+            assertThrows("Invalid value for property "
+                    + PipelinedStrategy.OAK_INDEXER_PIPELINED_TRANSFORM_THREADS + ": 0. Must be > 0",
+                IllegalArgumentException.class,
+                () -> createStrategy(roStore)
             );
         }
     }
@@ -470,18 +489,21 @@ public class PipelinedIT {
         }
 
         try (MongoTestBackend roStore = createNodeStore(true)) {
-            assertThrows("Invalid value for property " + PipelinedStrategy.OAK_INDEXER_PIPELINED_WORKING_MEMORY_MB + ": -1. Must be >= 0",
-                    IllegalArgumentException.class,
-                    () -> createStrategy(roStore)
+            assertThrows("Invalid value for property "
+                    + PipelinedStrategy.OAK_INDEXER_PIPELINED_WORKING_MEMORY_MB + ": -1. Must be >= 0",
+                IllegalArgumentException.class,
+                () -> createStrategy(roStore)
             );
         }
     }
 
     @Test
     public void createFFS_smallNumberOfDocsPerBatch() throws Exception {
-        System.setProperty(PipelinedStrategy.OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_MAX_NUMBER_OF_DOCUMENTS, "2");
+        System.setProperty(
+            PipelinedStrategy.OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_MAX_NUMBER_OF_DOCUMENTS, "2");
 
-        Predicate<String> pathPredicate = s -> contentDamPathFilter.filter(s) != PathFilter.Result.EXCLUDE;
+        Predicate<String> pathPredicate = s -> contentDamPathFilter.filter(s)
+            != PathFilter.Result.EXCLUDE;
         List<PathFilter> pathFilters = null;
 
         testSuccessfulDownload(pathPredicate, pathFilters);
@@ -489,10 +511,13 @@ public class PipelinedIT {
 
     @Test
     public void createFFS_largeMongoDocuments() throws Exception {
-        System.setProperty(PipelinedStrategy.OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_MAX_SIZE_MB, "1");
-        System.setProperty(PipelinedStrategy.OAK_INDEXER_PIPELINED_MONGO_DOC_QUEUE_RESERVED_MEMORY_MB, "32");
+        System.setProperty(PipelinedStrategy.OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_MAX_SIZE_MB,
+            "1");
+        System.setProperty(
+            PipelinedStrategy.OAK_INDEXER_PIPELINED_MONGO_DOC_QUEUE_RESERVED_MEMORY_MB, "32");
 
-        Predicate<String> pathPredicate = s -> contentDamPathFilter.filter(s) != PathFilter.Result.EXCLUDE;
+        Predicate<String> pathPredicate = s -> contentDamPathFilter.filter(s)
+            != PathFilter.Result.EXCLUDE;
         List<PathFilter> pathFilters = null;
 
         MongoTestBackend rwStore = createNodeStore(false);
@@ -506,15 +531,15 @@ public class PipelinedIT {
         rwStore.documentNodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         List<String> expected = List.of(
-                "/|{}",
-                "/content|{}",
-                "/content/dam|{}",
-                "/content/dam/2021|{}",
-                "/content/dam/2021/01|{\"p1\":\"v202101\"}",
-                "/content/dam/2022|{}",
-                "/content/dam/2022/01|{\"p1\":\"" + longString + "\"}",
-                "/content/dam/2023|{}",
-                "/content/dam/2023/01|{\"p1\":\"v202301\"}"
+            "/|{}",
+            "/content|{}",
+            "/content/dam|{}",
+            "/content/dam/2021|{}",
+            "/content/dam/2021/01|{\"p1\":\"v202101\"}",
+            "/content/dam/2022|{}",
+            "/content/dam/2022/01|{\"p1\":\"" + longString + "\"}",
+            "/content/dam/2023|{}",
+            "/content/dam/2023/01|{\"p1\":\"v202301\"}"
         );
 
         MongoTestBackend roStore = createNodeStore(true);
@@ -522,7 +547,8 @@ public class PipelinedIT {
 
         File file = pipelinedStrategy.createSortedStoreFile();
         assertTrue(file.exists());
-        assertArrayEquals(expected.toArray(new String[0]), Files.readAllLines(file.toPath()).toArray(new String[0]));
+        assertArrayEquals(expected.toArray(new String[0]),
+            Files.readAllLines(file.toPath()).toArray(new String[0]));
         assertMetrics(statsProvider);
     }
 
@@ -533,15 +559,16 @@ public class PipelinedIT {
         System.setProperty(OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDED_PATHS, "/etc,/home");
 
         Predicate<String> pathPredicate = s -> true;
-        List<PathFilter> pathFilters = List.of(new PathFilter(List.of("/"), List.of("/content/dam", "/etc", "/home", "/jcr:system")));
+        List<PathFilter> pathFilters = List.of(
+            new PathFilter(List.of("/"), List.of("/content/dam", "/etc", "/home", "/jcr:system")));
 
         testSuccessfulDownload(pathPredicate, pathFilters, List.of(
-                "/|{}",
-                "/content|{}",
-                "/content/dam|{}",
-                "/etc|{}",
-                "/home|{}",
-                "/jcr:system|{}"
+            "/|{}",
+            "/content|{}",
+            "/content/dam|{}",
+            "/etc|{}",
+            "/home|{}",
+            "/jcr:system|{}"
         ), true);
     }
 
@@ -551,33 +578,35 @@ public class PipelinedIT {
         System.setProperty(OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDED_PATHS, "/etc,/home");
 
         Predicate<String> pathPredicate = s -> true;
-        List<PathFilter> pathFilters = List.of(new PathFilter(List.of("/"), List.of("/content/dam", "/jcr:system")));
+        List<PathFilter> pathFilters = List.of(
+            new PathFilter(List.of("/"), List.of("/content/dam", "/jcr:system")));
 
         testSuccessfulDownload(pathPredicate, pathFilters, List.of(
-                "/|{}",
-                "/content|{}",
-                "/content/dam|{}",
-                "/etc|{}",
-                "/home|{}",
-                "/jcr:system|{}"
+            "/|{}",
+            "/content|{}",
+            "/content/dam|{}",
+            "/etc|{}",
+            "/home|{}",
+            "/jcr:system|{}"
         ), true);
     }
 
     @Test
     public void createFFS_mongoFiltering_custom_excluded_paths_3() throws Exception {
         System.setProperty(OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING, "true");
-        System.setProperty(OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDED_PATHS, "/etc,/home,/content/dam,/jcr:system");
+        System.setProperty(OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDED_PATHS,
+            "/etc,/home,/content/dam,/jcr:system");
 
         Predicate<String> pathPredicate = s -> true;
         List<PathFilter> pathFilters = List.of(new PathFilter(List.of("/"), List.of()));
 
         testSuccessfulDownload(pathPredicate, pathFilters, List.of(
-                "/|{}",
-                "/content|{}",
-                "/content/dam|{}",
-                "/etc|{}",
-                "/home|{}",
-                "/jcr:system|{}"
+            "/|{}",
+            "/content|{}",
+            "/content/dam|{}",
+            "/etc|{}",
+            "/home|{}",
+            "/jcr:system|{}"
         ), true);
     }
 
@@ -585,10 +614,12 @@ public class PipelinedIT {
     public void createFFSNoMatches() throws Exception {
         System.setProperty(OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING, "true");
         System.setProperty(OAK_INDEXER_PIPELINED_MONGO_PARALLEL_DUMP, "true");
-        System.setProperty(OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDED_PATHS, "/etc,/home,/content/dam,/jcr:system");
+        System.setProperty(OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDED_PATHS,
+            "/etc,/home,/content/dam,/jcr:system");
 
         Predicate<String> pathPredicate = t -> true;
-        List<PathFilter> mongoRegexPathFilters = List.of(new PathFilter(List.of("/doesnotexist"), List.of()));
+        List<PathFilter> mongoRegexPathFilters = List.of(
+            new PathFilter(List.of("/doesnotexist"), List.of()));
 
         // For an included path of /foo, the / should not be included. But the mongo regex filter is only best effort,
         // and it will download the parents of all the included paths, even if they are empty. This is not a problem,
@@ -598,19 +629,20 @@ public class PipelinedIT {
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void createFFS_mongoFiltering_custom_excluded_paths_cannot_exclude_root() throws Exception {
+    public void createFFS_mongoFiltering_custom_excluded_paths_cannot_exclude_root()
+        throws Exception {
         System.setProperty(OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING, "true");
         System.setProperty(OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDED_PATHS, "/etc,/");
         Predicate<String> pathPredicate = s -> true;
         List<PathFilter> pathFilters = List.of(new PathFilter(List.of("/"), List.of()));
 
         testSuccessfulDownload(pathPredicate, pathFilters, List.of(
-                "/|{}",
-                "/content|{}",
-                "/content/dam|{}",
-                "/etc|{}",
-                "/home|{}",
-                "/jcr:system|{}"
+            "/|{}",
+            "/content|{}",
+            "/content/dam|{}",
+            "/etc|{}",
+            "/home|{}",
+            "/jcr:system|{}"
         ), true);
     }
 
@@ -639,23 +671,24 @@ public class PipelinedIT {
         return createStrategy(roStore, s -> true, null);
     }
 
-    private PipelinedStrategy createStrategy(MongoTestBackend backend, Predicate<String> pathPredicate, List<PathFilter> mongoRegexPathFilter) {
+    private PipelinedStrategy createStrategy(MongoTestBackend backend,
+        Predicate<String> pathPredicate, List<PathFilter> mongoRegexPathFilter) {
         Set<String> preferredPathElements = Set.of();
         RevisionVector rootRevision = backend.documentNodeStore.getRoot().getRootRevision();
         indexingReporter.setIndexNames(List.of("testIndex"));
         return new PipelinedStrategy(
-                backend.mongoClientURI,
-                backend.mongoDocumentStore,
-                backend.documentNodeStore,
-                rootRevision,
-                preferredPathElements,
-                new MemoryBlobStore(),
-                sortFolder.getRoot(),
-                Compression.NONE,
-                pathPredicate,
-                mongoRegexPathFilter,
-                null,
-                statsProvider,
-                indexingReporter);
+            backend.mongoClientURI,
+            backend.mongoDocumentStore,
+            backend.documentNodeStore,
+            rootRevision,
+            preferredPathElements,
+            new MemoryBlobStore(),
+            sortFolder.getRoot(),
+            Compression.NONE,
+            pathPredicate,
+            mongoRegexPathFilter,
+            null,
+            statsProvider,
+            indexingReporter);
     }
 }

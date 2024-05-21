@@ -30,7 +30,8 @@ import org.jetbrains.annotations.NotNull;
 public class FacetSearcher extends SearchScalabilityBenchmark {
 
     @Override
-    protected Query getQuery(@NotNull QueryManager qm, ScalabilityAbstractSuite.ExecutionContext context) throws RepositoryException {
+    protected Query getQuery(@NotNull QueryManager qm,
+        ScalabilityAbstractSuite.ExecutionContext context) throws RepositoryException {
 
         final String statement = "select [jcr:path], [facet(jcr:primaryType)] from [nt:base] where native('lucene','*:*')";
 

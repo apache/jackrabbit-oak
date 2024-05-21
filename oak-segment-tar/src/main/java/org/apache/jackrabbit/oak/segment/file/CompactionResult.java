@@ -28,8 +28,8 @@ import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Instances of this class represent the result from a compaction. Either
- * succeeded, aborted or skipped.
+ * Instances of this class represent the result from a compaction. Either succeeded, aborted or
+ * skipped.
  */
 abstract class CompactionResult {
 
@@ -89,9 +89,9 @@ abstract class CompactionResult {
      * @param compactedRootId the record id of the root created by compaction
      */
     static CompactionResult partiallySucceeded(
-            @NotNull GCGeneration newGeneration,
-            @NotNull final RecordId compactedRootId,
-            int gcCount
+        @NotNull GCGeneration newGeneration,
+        @NotNull final RecordId compactedRootId,
+        int gcCount
     ) {
         return new CompactionResult(newGeneration, gcCount) {
 
@@ -138,8 +138,8 @@ abstract class CompactionResult {
     /**
      * Result serving as a placeholder for a compaction that was skipped.
      *
-     * @param lastGCType        type of the most recent gc operation. {@link
-     *                          SegmentGCOptions.GCType#FULL} if none.
+     * @param lastGCType        type of the most recent gc operation.
+     *                          {@link SegmentGCOptions.GCType#FULL} if none.
      * @param currentGeneration the current generation of the store
      * @param gcOptions         the current GC options used by compaction
      */
@@ -154,7 +154,8 @@ abstract class CompactionResult {
 
             @Override
             Predicate<GCGeneration> reclaimer() {
-                return Reclaimers.newOldReclaimer(lastGCType, currentGeneration, gcOptions.getRetainedGenerations());
+                return Reclaimers.newOldReclaimer(lastGCType, currentGeneration,
+                    gcOptions.getRetainedGenerations());
             }
 
             @Override
@@ -191,8 +192,7 @@ abstract class CompactionResult {
     }
 
     /**
-     * @return a predicate determining which segments to {clean up} for the
-     * given compaction result.
+     * @return a predicate determining which segments to {clean up} for the given compaction result.
      */
     abstract Predicate<GCGeneration> reclaimer();
 
@@ -202,8 +202,8 @@ abstract class CompactionResult {
     abstract boolean isSuccess();
 
     /**
-     * @return the record id of the compacted root on {@link #isSuccess()
-     * success}, {@link RecordId#NULL} otherwise.
+     * @return the record id of the compacted root on {@link #isSuccess() success},
+     * {@link RecordId#NULL} otherwise.
      */
     RecordId getCompactedRootId() {
         return RecordId.NULL;

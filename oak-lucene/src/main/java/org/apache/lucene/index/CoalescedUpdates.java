@@ -26,80 +26,82 @@ package org.apache.lucene.index;
  */
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-
-import org.apache.lucene.search.Query;
 import org.apache.lucene.index.BufferedUpdatesStream.QueryAndLimit;
+import org.apache.lucene.search.Query;
 import org.apache.lucene.util.MergedIterator;
 
 class CoalescedUpdates {
-  final Map<Query,Integer> queries = new HashMap<Query,Integer>();
-  final List<Iterable<Term>> iterables = new ArrayList<Iterable<Term>>();
-  final List<NumericUpdate> numericDVUpdates = new ArrayList<NumericUpdate>();
-  
-  @Override
-  public String toString() {
-    // note: we could add/collect more debugging information
-    return "CoalescedUpdates(termSets=" + iterables.size() + ",queries=" + queries.size() + ",numericUpdates=" + numericDVUpdates.size() + ")";
-  }
 
-  void update(FrozenBufferedUpdates in) {
-    iterables.add(in.termsIterable());
+    final Map<Query, Integer> queries = new HashMap<Query, Integer>();
+    final List<Iterable<Term>> iterables = new ArrayList<Iterable<Term>>();
+    final List<NumericUpdate> numericDVUpdates = new ArrayList<NumericUpdate>();
 
-    for (int queryIdx = 0; queryIdx < in.queries.length; queryIdx++) {
-      final Query query = in.queries[queryIdx];
-      queries.put(query, BufferedUpdates.MAX_INT);
+    @Override
+    public String toString() {
+        // note: we could add/collect more debugging information
+        return "CoalescedUpdates(termSets=" + iterables.size() + ",queries=" + queries.size()
+            + ",numericUpdates=" + numericDVUpdates.size() + ")";
     }
-    
-    for (NumericUpdate nu : in.updates) {
-      NumericUpdate clone = new NumericUpdate(nu.term, nu.field, nu.value);
-      clone.docIDUpto = Integer.MAX_VALUE;
-      numericDVUpdates.add(clone);
+
+    void update(FrozenBufferedUpdates in) {
+        iterables.add(in.termsIterable());
+
+        for (int queryIdx = 0; queryIdx < in.queries.length; queryIdx++) {
+            final Query query = in.queries[queryIdx];
+            queries.put(query, BufferedUpdates.MAX_INT);
+        }
+
+        for (NumericUpdate nu : in.updates) {
+            NumericUpdate clone = new NumericUpdate(nu.term, nu.field, nu.value);
+            clone.docIDUpto = Integer.MAX_VALUE;
+            numericDVUpdates.add(clone);
+        }
     }
-  }
 
- public Iterable<Term> termsIterable() {
-   return new Iterable<Term>() {
-     @SuppressWarnings({"unchecked","rawtypes"})
-     @Override
-     public Iterator<Term> iterator() {
-       Iterator<Term> subs[] = new Iterator[iterables.size()];
-       for (int i = 0; i < iterables.size(); i++) {
-         subs[i] = iterables.get(i).iterator();
-       }
-       return new MergedIterator<Term>(subs);
-     }
-   };
-  }
-
-  public Iterable<QueryAndLimit> queriesIterable() {
-    return new Iterable<QueryAndLimit>() {
-      
-      @Override
-      public Iterator<QueryAndLimit> iterator() {
-        return new Iterator<QueryAndLimit>() {
-          private final Iterator<Map.Entry<Query,Integer>> iter = queries.entrySet().iterator();
-
-          @Override
-          public boolean hasNext() {
-            return iter.hasNext();
-          }
-
-          @Override
-          public QueryAndLimit next() {
-            final Map.Entry<Query,Integer> ent = iter.next();
-            return new QueryAndLimit(ent.getKey(), ent.getValue());
-          }
-
-          @Override
-          public void remove() {
-            throw new UnsupportedOperationException();
-          }
+    public Iterable<Term> termsIterable() {
+        return new Iterable<Term>() {
+            @SuppressWarnings({"unchecked", "rawtypes"})
+            @Override
+            public Iterator<Term> iterator() {
+                Iterator<Term> subs[] = new Iterator[iterables.size()];
+                for (int i = 0; i < iterables.size(); i++) {
+                    subs[i] = iterables.get(i).iterator();
+                }
+                return new MergedIterator<Term>(subs);
+            }
         };
-      }
-    };
-  }
+    }
+
+    public Iterable<QueryAndLimit> queriesIterable() {
+        return new Iterable<QueryAndLimit>() {
+
+            @Override
+            public Iterator<QueryAndLimit> iterator() {
+                return new Iterator<QueryAndLimit>() {
+                    private final Iterator<Map.Entry<Query, Integer>> iter = queries.entrySet()
+                                                                                    .iterator();
+
+                    @Override
+                    public boolean hasNext() {
+                        return iter.hasNext();
+                    }
+
+                    @Override
+                    public QueryAndLimit next() {
+                        final Map.Entry<Query, Integer> ent = iter.next();
+                        return new QueryAndLimit(ent.getKey(), ent.getValue());
+                    }
+
+                    @Override
+                    public void remove() {
+                        throw new UnsupportedOperationException();
+                    }
+                };
+            }
+        };
+    }
 }

@@ -40,7 +40,7 @@ public class CommitTest {
     public DocumentMKBuilderProvider builderProvider = new DocumentMKBuilderProvider();
 
     @Test
-    public void testModifiedTime(){
+    public void testModifiedTime() {
         assertEquals(10, NodeDocument.getModifiedInSecs(10000));
         assertEquals(10, NodeDocument.getModifiedInSecs(10003));
         assertEquals(10, NodeDocument.getModifiedInSecs(12000));
@@ -107,7 +107,7 @@ public class CommitTest {
         } catch (ConflictException e) {
             // expected
             assertTrue("Unexpected exception message: " + e.getMessage(),
-                    e.getMessage().contains("older than base"));
+                e.getMessage().contains("older than base"));
         } finally {
             ns.canceled(c);
         }
@@ -130,7 +130,7 @@ public class CommitTest {
             } catch (ConflictException e) {
                 // expected
                 assertTrue("Unexpected exception message: " + e.getMessage(),
-                        e.getMessage().contains("does not exist"));
+                    e.getMessage().contains("does not exist"));
             }
         } finally {
             ns.canceled(c);

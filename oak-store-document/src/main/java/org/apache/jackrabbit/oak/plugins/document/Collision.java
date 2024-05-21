@@ -16,8 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import java.util.Map;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isCommitted;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isPropertyName;
 
+import java.util.Map;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -25,14 +28,9 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isCommitted;
-import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isPropertyName;
-
 /**
- * A <code>Collision</code> happens when a commit modifies a node, which was
- * also modified in another branch not visible to the current session. This
- * includes the following situations:
+ * A <code>Collision</code> happens when a commit modifies a node, which was also modified in
+ * another branch not visible to the current session. This includes the following situations:
  * <ul>
  * <li>Our commit goes to trunk and another session committed to a branch
  * not yet merged back.</li>
@@ -55,11 +53,11 @@ class Collision {
     private final RevisionVector startRevisions;
 
     Collision(@NotNull NodeDocument document,
-              @NotNull Revision theirRev,
-              @NotNull UpdateOp ourOp,
-              @NotNull Revision ourRev,
-              @NotNull RevisionContext context,
-              @NotNull RevisionVector startRevisions) {
+        @NotNull Revision theirRev,
+        @NotNull UpdateOp ourOp,
+        @NotNull Revision ourRev,
+        @NotNull RevisionContext context,
+        @NotNull RevisionVector startRevisions) {
         this.document = checkNotNull(document);
         this.theirRev = checkNotNull(theirRev);
         this.ourOp = checkNotNull(ourOp);
@@ -69,15 +67,15 @@ class Collision {
     }
 
     /**
-     * Marks the collision in the document store. Either our or their
-     * revision is annotated with a collision marker. Their revision is
-     * marked if it is not yet committed, otherwise our revision is marked.
+     * Marks the collision in the document store. Either our or their revision is annotated with a
+     * collision marker. Their revision is marked if it is not yet committed, otherwise our revision
+     * is marked.
      *
      * @param store the document store.
      * @return the revision that was marked. Either our or their.
      * @throws DocumentStoreException if the mark operation fails.
-     * @throws IllegalStateException if neither their nor our revision can be
-     *              marked because both are already committed.
+     * @throws IllegalStateException  if neither their nor our revision can be marked because both
+     *                                are already committed.
      */
     @NotNull
     Revision mark(DocumentStore store) throws DocumentStoreException {
@@ -91,28 +89,25 @@ class Collision {
         UpdateUtils.applyChanges(newDoc, ourOp);
         if (!markCommitRoot(newDoc, ourRev, theirRev, store, context)) {
             throw new IllegalStateException("Unable to annotate our revision "
-                    + "with collision marker. Our revision: " + ourRev
-                    + ", their revision: " + theirRev + ", document:\n"
-                    + newDoc.format());
+                + "with collision marker. Our revision: " + ourRev
+                + ", their revision: " + theirRev + ", document:\n"
+                + newDoc.format());
         }
         return ourRev;
     }
 
     /**
-     * Returns {@code true} if this is a conflicting collision, {@code false}
-     * otherwise.
+     * Returns {@code true} if this is a conflicting collision, {@code false} otherwise.
      *
-     * @return {@code true} if this is a conflicting collision, {@code false}
-     *              otherwise.
-     * @throws DocumentStoreException if an operation on the document store
-     *          fails.
+     * @return {@code true} if this is a conflicting collision, {@code false} otherwise.
+     * @throws DocumentStoreException if an operation on the document store fails.
      */
     boolean isConflicting() throws DocumentStoreException {
         // their revision is not conflicting when it is identified as branch
         // commit that cannot be merged (orphaned branch commit, theirRev is
         // garbage).
         if (document.getLocalBranchCommits().contains(theirRev)
-                && !startRevisions.isRevisionNewer(theirRev)) {
+            && !startRevisions.isRevisionNewer(theirRev)) {
             return false;
         }
 
@@ -144,19 +139,18 @@ class Collision {
      * <code>revision</code>.
      *
      * @param document the document.
-     * @param revision the revision of the commit to annotated with a collision
-     *            marker.
-     * @param other the revision which detected the collision.
-     * @param store the document store.
-     * @param context the revision context.
+     * @param revision the revision of the commit to annotated with a collision marker.
+     * @param other    the revision which detected the collision.
+     * @param store    the document store.
+     * @param context  the revision context.
      * @return <code>true</code> if the commit for the given revision was marked
-     *         successfully; <code>false</code> otherwise.
+     * successfully; <code>false</code> otherwise.
      */
     private static boolean markCommitRoot(@NotNull NodeDocument document,
-                                          @NotNull Revision revision,
-                                          @NotNull Revision other,
-                                          @NotNull DocumentStore store,
-                                          @NotNull RevisionContext context) {
+        @NotNull Revision revision,
+        @NotNull Revision other,
+        @NotNull DocumentStore store,
+        @NotNull RevisionContext context) {
         Path p = document.getPath();
         Path commitRootPath;
         // first check if we can mark the commit with the given revision
@@ -218,14 +212,14 @@ class Collision {
         }
         // otherwise collision marker was set successfully
         LOG.debug("Marked collision on: {} for {} ({})",
-                commitRootPath, p, revision);
+            commitRootPath, p, revision);
         return true;
     }
 
     private static void throwNoCommitRootException(@NotNull Revision revision,
-                                                   @NotNull Document document)
-                                                           throws DocumentStoreException {
+        @NotNull Document document)
+        throws DocumentStoreException {
         throw new DocumentStoreException("No commit root for revision: "
-                + revision + ", document: " + document.format());
+            + revision + ", document: " + document.format());
     }
 }

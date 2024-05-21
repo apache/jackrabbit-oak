@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.index.cursor;
 
 import java.util.Collection;
 import java.util.TreeSet;
-
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.PrefetchNodeStore;
 

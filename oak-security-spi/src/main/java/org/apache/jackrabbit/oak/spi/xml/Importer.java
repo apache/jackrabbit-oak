@@ -16,16 +16,14 @@
  */
 package org.apache.jackrabbit.oak.spi.xml;
 
-import org.jetbrains.annotations.NotNull;
-
 import java.util.List;
 import javax.jcr.RepositoryException;
+import org.jetbrains.annotations.NotNull;
 
 /**
- * Content importer. The XML import handlers use this interface to submit
- * the parsed content to the repository. The implementation of this class
- * decides how the content is actually persisted; either through the
- * transient space of a session, or directly into the workspace.
+ * Content importer. The XML import handlers use this interface to submit the parsed content to the
+ * repository. The implementation of this class decides how the content is actually persisted;
+ * either through the transient space of a session, or directly into the workspace.
  */
 public interface Importer {
 
@@ -37,27 +35,25 @@ public interface Importer {
     void start() throws RepositoryException;
 
     /**
-     * Called to start the import of a node. Information about the
-     * imported node and all it's properties are passed as arguments.
-     * Possible child nodes are imported recursively using this same
-     * method until a {@link #endNode(NodeInfo)} call is made with the
-     * same node information.
+     * Called to start the import of a node. Information about the imported node and all it's
+     * properties are passed as arguments. Possible child nodes are imported recursively using this
+     * same method until a {@link #endNode(NodeInfo)} call is made with the same node information.
      *
      * @param nodeInfo  information about the node being imported
-     * @param propInfos information about the properties being imported
-     *                  (list of {@link PropInfo} instances)
+     * @param propInfos information about the properties being imported (list of {@link PropInfo}
+     *                  instances)
      * @throws RepositoryException on a repository error
      */
-    void startNode(@NotNull NodeInfo nodeInfo, @NotNull List<PropInfo> propInfos) throws RepositoryException;
+    void startNode(@NotNull NodeInfo nodeInfo, @NotNull List<PropInfo> propInfos)
+        throws RepositoryException;
 
     /**
-     * Called to end the import of a node. This method is called after
-     * a {@link #startNode(NodeInfo, List)} call with the same node
-     * information and after all the possible child nodes have been
-     * imported with respective startNode/endNode calls.
+     * Called to end the import of a node. This method is called after a
+     * {@link #startNode(NodeInfo, List)} call with the same node information and after all the
+     * possible child nodes have been imported with respective startNode/endNode calls.
      * <p>
-     * Just like XML elements, the startNode/endNode calls are guaranteed
-     * to be properly nested and complete.
+     * Just like XML elements, the startNode/endNode calls are guaranteed to be properly nested and
+     * complete.
      *
      * @param nodeInfo information about the node being imported
      * @throws RepositoryException on a repository error

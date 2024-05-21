@@ -23,7 +23,6 @@ import static org.mockito.Mockito.mock;
 import java.security.Principal;
 import java.util.Iterator;
 import java.util.Set;
-
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -43,7 +42,8 @@ public class PrincipalProviderTest {
         }
 
         @Override
-        public @NotNull Iterator<? extends Principal> findPrincipals(@Nullable String nameHint, int searchType) {
+        public @NotNull Iterator<? extends Principal> findPrincipals(@Nullable String nameHint,
+            int searchType) {
             throw new RuntimeException();
         }
 

@@ -16,9 +16,14 @@
  */
 package org.apache.jackrabbit.oak.jcr.session;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
+import javax.jcr.Node;
+import javax.jcr.Session;
 import org.apache.jackrabbit.oak.commons.junit.TemporarySystemProperty;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest;
@@ -30,15 +35,9 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.slf4j.LoggerFactory;
 
-import javax.jcr.Node;
-import javax.jcr.Session;
-
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-
 /**
- * {@code WarnLogStringPropertySizeTest} checks if Warn log is bein added on adding
- * large string properties
+ * {@code WarnLogStringPropertySizeTest} checks if Warn log is bein added on adding large string
+ * properties
  */
 @RunWith(Parameterized.class)
 public class WarnLogStringPropertySizeTest extends AbstractRepositoryTest {

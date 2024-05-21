@@ -19,9 +19,9 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Interface to obtain the name of the {@link java.security.Principal} from a
- * given {@link ExternalIdentityRef}. The aim of this interface is to prevent
- * potentially unnecessary round trips associated with the following sequence:
+ * Interface to obtain the name of the {@link java.security.Principal} from a given
+ * {@link ExternalIdentityRef}. The aim of this interface is to prevent potentially unnecessary
+ * round trips associated with the following sequence:
  *
  * <pre>
  *     String principalName = null;
@@ -30,9 +30,9 @@ import org.jetbrains.annotations.NotNull;
  *         principalName = extid.getPrincipalName();
  *     }
  * </pre>
- *
- * This interface is expected to be implemented by {@link ExternalIdentityProvider}s,
- * that can deduce the principal name from the reference without the extra round trip.
+ * <p>
+ * This interface is expected to be implemented by {@link ExternalIdentityProvider}s, that can
+ * deduce the principal name from the reference without the extra round trip.
  */
 public interface PrincipalNameResolver {
 
@@ -40,10 +40,13 @@ public interface PrincipalNameResolver {
      * Deduce the name of the {@link java.security.Principal} associated with the
      * {@link ExternalIdentity} represented by the given {@link ExternalIdentityRef}.
      *
-     * @param externalIdentityRef A valid {@link ExternalIdentityRef} to an existing {@link ExternalIdentity}
-     * @return The name of the {@link java.security.Principal} associated with the external identity referenced by the given {@code externalIdentityRef}.
+     * @param externalIdentityRef A valid {@link ExternalIdentityRef} to an existing
+     *                            {@link ExternalIdentity}
+     * @return The name of the {@link java.security.Principal} associated with the external identity
+     * referenced by the given {@code externalIdentityRef}.
      * @throws ExternalIdentityException If the reference is not valid or another error occurs.
      */
     @NotNull
-    String fromExternalIdentityRef(@NotNull ExternalIdentityRef externalIdentityRef) throws ExternalIdentityException;
+    String fromExternalIdentityRef(@NotNull ExternalIdentityRef externalIdentityRef)
+        throws ExternalIdentityException;
 }

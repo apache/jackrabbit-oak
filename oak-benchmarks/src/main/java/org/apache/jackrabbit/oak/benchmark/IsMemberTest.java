@@ -23,7 +23,6 @@ import javax.jcr.Node;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -44,17 +43,14 @@ import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.apache.jackrabbit.util.Text;
 
 /**
- * Benchmark for {@link Group#isMember(Authorizable)} with the following setup:
- * - 10 groups
- * - boolean flag defining if the 10 groups will be nested or not.
- * - configurable number of users that will be added as members.
- *
- * The test setup adds the configured number of users as members to the 10 groups,
- * where the target group is picked randomly. But note that each user is only
- * member of one single group!
- *
- * The test run picks random users and tests for being member of a randomly
- * selected group.
+ * Benchmark for {@link Group#isMember(Authorizable)} with the following setup: - 10 groups -
+ * boolean flag defining if the 10 groups will be nested or not. - configurable number of users that
+ * will be added as members.
+ * <p>
+ * The test setup adds the configured number of users as members to the 10 groups, where the target
+ * group is picked randomly. But note that each user is only member of one single group!
+ * <p>
+ * The test run picks random users and tests for being member of a randomly selected group.
  */
 public class IsMemberTest extends AbstractTest {
 
@@ -97,7 +93,8 @@ public class IsMemberTest extends AbstractTest {
 
             int cnt = 0;
             for (int i = 0; i <= numberOfUsers; i++) {
-                User u = userManager.createUser(USER + i, null, new PrincipalImpl(USER + i), REL_TEST_PATH);
+                User u = userManager.createUser(USER + i, null, new PrincipalImpl(USER + i),
+                    REL_TEST_PATH);
                 uPaths.add(u.getPath());
 
                 getRandomGroup(userManager).addMember(u);
@@ -117,7 +114,8 @@ public class IsMemberTest extends AbstractTest {
     public void afterSuite() throws Exception {
         Session s = loginAdministrative();
         try {
-            Authorizable authorizable = ((JackrabbitSession) s).getUserManager().getAuthorizable(GROUP + "0");
+            Authorizable authorizable = ((JackrabbitSession) s).getUserManager()
+                                                               .getAuthorizable(GROUP + "0");
             if (authorizable != null) {
                 Node n = s.getNode(Text.getRelativeParent(authorizable.getPath(), 1));
                 n.remove();
@@ -139,9 +137,10 @@ public class IsMemberTest extends AbstractTest {
             return ((OakRepositoryFixture) fixture).setUpCluster(1, new JcrCreator() {
                 @Override
                 public Jcr customize(Oak oak) {
-                    ConfigurationParameters conf = ConfigurationParameters.of(UserConfiguration.NAME,
-                            ConfigurationParameters.of(ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR,
-                                    ImportBehavior.NAME_BESTEFFORT));
+                    ConfigurationParameters conf = ConfigurationParameters.of(
+                        UserConfiguration.NAME,
+                        ConfigurationParameters.of(ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR,
+                            ImportBehavior.NAME_BESTEFFORT));
                     SecurityProvider sp = SecurityProviderBuilder.newBuilder().with(conf).build();
                     return new Jcr(oak).with(sp);
                 }

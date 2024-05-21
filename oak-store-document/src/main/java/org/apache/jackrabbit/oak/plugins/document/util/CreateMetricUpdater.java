@@ -18,6 +18,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.util;
 
+import static java.util.Objects.requireNonNull;
+
+import java.util.List;
+import java.util.function.BiPredicate;
+import java.util.function.Predicate;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
@@ -25,16 +30,13 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentStoreStatsCollector;
 import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.TimerStats;
 
-import java.util.List;
-import java.util.function.BiPredicate;
-import java.util.function.Predicate;
-
-import static java.util.Objects.requireNonNull;
-
 /**
- * Base class to update the metrics for {@link DocumentStoreStatsCollector#doneCreate(long, Collection, List, boolean)} for underlying {@link DocumentStore}
+ * Base class to update the metrics for
+ * {@link DocumentStoreStatsCollector#doneCreate(long, Collection, List, boolean)} for underlying
+ * {@link DocumentStore}
  *
- * <p>Users provide instances of {@link MeterStats}, {@link TimerStats} based on whether throttling is ongoing or not
+ * <p>Users provide instances of {@link MeterStats}, {@link TimerStats} based on whether throttling
+ * is ongoing or not
  */
 public final class CreateMetricUpdater {
 
@@ -45,10 +47,10 @@ public final class CreateMetricUpdater {
     private final TimerStats createJournalTimer;
 
     public CreateMetricUpdater(final MeterStats createNodeMeter,
-                               final MeterStats createSplitNodeMeter,
-                               final TimerStats createNodeTimer,
-                               final MeterStats createJournal,
-                               final TimerStats createJournalTimer) {
+        final MeterStats createSplitNodeMeter,
+        final TimerStats createNodeTimer,
+        final MeterStats createJournal,
+        final TimerStats createJournalTimer) {
         this.createNodeMeter = createNodeMeter;
         this.createSplitNodeMeter = createSplitNodeMeter;
         this.createNodeTimer = createNodeTimer;
@@ -57,11 +59,11 @@ public final class CreateMetricUpdater {
     }
 
     public void update(final Collection<? extends Document> collection, final long timeTakenNanos,
-                       final List<String> ids, final boolean insertSuccess,
-                       final BiPredicate<Collection<? extends Document>, Integer> isNodesCollectionUpdated,
-                       final TriStatsConsumer triStatsConsumer,
-                       final Predicate<Collection<? extends Document>> isJournalCollection,
-                       final BiStatsConsumer journalBiStatsConsumer) {
+        final List<String> ids, final boolean insertSuccess,
+        final BiPredicate<Collection<? extends Document>, Integer> isNodesCollectionUpdated,
+        final TriStatsConsumer triStatsConsumer,
+        final Predicate<Collection<? extends Document>> isJournalCollection,
+        final BiStatsConsumer journalBiStatsConsumer) {
 
         requireNonNull(isNodesCollectionUpdated);
         requireNonNull(isJournalCollection);
@@ -69,9 +71,11 @@ public final class CreateMetricUpdater {
         requireNonNull(journalBiStatsConsumer);
 
         if (isNodesCollectionUpdated.test(collection, ids.size()) && insertSuccess) {
-            triStatsConsumer.accept(createNodeMeter, createSplitNodeMeter, createNodeTimer, ids, timeTakenNanos);
+            triStatsConsumer.accept(createNodeMeter, createSplitNodeMeter, createNodeTimer, ids,
+                timeTakenNanos);
         } else if (isJournalCollection.test(collection)) {
-            journalBiStatsConsumer.accept(createJournal, createJournalTimer, ids.size(), timeTakenNanos);
+            journalBiStatsConsumer.accept(createJournal, createJournalTimer, ids.size(),
+                timeTakenNanos);
         }
     }
 }

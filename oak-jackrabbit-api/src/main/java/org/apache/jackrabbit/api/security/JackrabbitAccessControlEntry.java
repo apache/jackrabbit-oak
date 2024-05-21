@@ -16,27 +16,25 @@
  */
 package org.apache.jackrabbit.api.security;
 
+import javax.jcr.RepositoryException;
+import javax.jcr.Value;
+import javax.jcr.ValueFormatException;
+import javax.jcr.security.AccessControlEntry;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeCollection;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ProviderType;
 
-import javax.jcr.RepositoryException;
-import javax.jcr.Value;
-import javax.jcr.ValueFormatException;
-import javax.jcr.security.AccessControlEntry;
-
 /**
  * <code>JackrabbitAccessControlEntry</code> is a Jackrabbit specific extension
- * of the <code>AccessControlEntry</code> interface. It represents an single
- * entry of a {@link JackrabbitAccessControlList}.
+ * of the <code>AccessControlEntry</code> interface. It represents an single entry of a
+ * {@link JackrabbitAccessControlList}.
  */
 @ProviderType
 public interface JackrabbitAccessControlEntry extends AccessControlEntry {
 
     /**
-     * @return true if this entry adds <code>Privilege</code>s for the principal;
-     * false otherwise.
+     * @return true if this entry adds <code>Privilege</code>s for the principal; false otherwise.
      */
     boolean isAllow();
 
@@ -56,28 +54,28 @@ public interface JackrabbitAccessControlEntry extends AccessControlEntry {
      * {@code ValueFormatException}.
      *
      * @param restrictionName The of the restriction as obtained through
-     * {@link #getRestrictionNames()}.
+     *                        {@link #getRestrictionNames()}.
      * @return value of the restriction with the specified name or
      * <code>null</code> if no such restriction exists.
-     * @throws ValueFormatException If the restriction with the specified name
-     * contains multiple values.
-     * @throws RepositoryException if an error occurs.
+     * @throws ValueFormatException If the restriction with the specified name contains multiple
+     *                              values.
+     * @throws RepositoryException  if an error occurs.
      * @see #getRestrictions(String)
      */
     @Nullable
-    Value getRestriction(@NotNull String restrictionName) throws ValueFormatException, RepositoryException;
+    Value getRestriction(@NotNull String restrictionName)
+        throws ValueFormatException, RepositoryException;
 
     /**
      * Return the values of the restriction with the specified name or
      * <code>null</code> if no such restriction exists. For restrictions that
-     * contain just a single value this method is expected to return an array
-     * with a single element even if the underlying implementation stored the
-     * restriction in single-value JCR property.
+     * contain just a single value this method is expected to return an array with a single element
+     * even if the underlying implementation stored the restriction in single-value JCR property.
      *
      * @param restrictionName The of the restriction as obtained through
-     * {@link #getRestrictionNames()}.
-     * @return the values of the restriction with the specified name as an array
-     * or <code>null</code> if no such restriction exists. The array may contain
+     *                        {@link #getRestrictionNames()}.
+     * @return the values of the restriction with the specified name as an array or
+     * <code>null</code> if no such restriction exists. The array may contain
      * zero, one or multiple values.
      * @throws RepositoryException if an error occurs.
      * @see #getRestriction(String)
@@ -86,12 +84,14 @@ public interface JackrabbitAccessControlEntry extends AccessControlEntry {
     Value[] getRestrictions(@NotNull String restrictionName) throws RepositoryException;
 
     /**
-     * Returns a {@link PrivilegeCollection} representing the privileges associated with this entry.
+     * Returns a {@link PrivilegeCollection} representing the privileges associated with this
+     * entry.
      *
-     * @return A {@link PrivilegeCollection} wrapping around the privileges defined for this instance of {@code JackrabbitAccessControlEntry}.
+     * @return A {@link PrivilegeCollection} wrapping around the privileges defined for this
+     * instance of {@code JackrabbitAccessControlEntry}.
      * @throws RepositoryException If an error occurs.
+     * @see #getPrivileges()
      * @since Oak 1.42.0
-     * @see #getPrivileges() 
      */
     @NotNull
     PrivilegeCollection getPrivilegeCollection() throws RepositoryException;

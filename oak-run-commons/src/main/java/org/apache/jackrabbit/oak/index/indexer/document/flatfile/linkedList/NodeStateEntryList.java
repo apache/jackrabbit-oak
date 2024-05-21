@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.linkedList;
 
 import java.util.Iterator;
-
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.jetbrains.annotations.NotNull;
 

@@ -18,64 +18,66 @@
   limitations under the License.
 --%><%
 
-URI uri = new URI(request.getRequestURL().toString());
-String href =
-    uri.getScheme() + "://" + uri.getHost() + ":" + uri.getPort()
-    + request.getContextPath()
-    + JcrRemotingServlet.getPathPrefix(pageContext.getServletContext());
-href = Text.encodeIllegalXMLCharacters(href);
-href += "/default/jcr:root";
+    URI uri = new URI(request.getRequestURL().toString());
+    String href =
+            uri.getScheme() + "://" + uri.getHost() + ":" + uri.getPort()
+                    + request.getContextPath()
+                    + JcrRemotingServlet.getPathPrefix(pageContext.getServletContext());
+    href = Text.encodeIllegalXMLCharacters(href);
+    href += "/default/jcr:root";
 
-%><jsp:include page="header.jsp"/>
+%>
+<jsp:include page="header.jsp"/>
 <script src="json.js"></script>
 <script language="javascript">
-    function batchRead() {
+  function batchRead() {
 
-        var path = document.getElementById("path").value;
-        var depth = document.getElementById("depth").value;
-        var resultType = document.getElementById("resultType");
+    var path = document.getElementById("path").value;
+    var depth = document.getElementById("depth").value;
+    var resultType = document.getElementById("resultType");
 
-        // TODO retrieve url from servlet context
-        var action = "<%= href %>";
-        if (path.length && path != "/") {
-            action += path;
-        }
-        if (depth) {
-            action += "." + depth;
-        }
-
-        var req = getXMLHttpRequest(action + ".json");
-        var result = document.getElementById("result");
-
-        if (req && req.status == 200) {
-            if (resultType[4].selected) {
-                // tree
-                var obj = eval("(" + req.responseText + ")");
-                var thref = "<%= href %>" + ((path.length && path != "/") ? path : "");
-                result.innerHTML = JsonFormatter.tree(obj, thref);
-            } else if (resultType[3].selected) {
-                // cleaned from special props
-                var obj = eval("(" + req.responseText + ")");
-                result.innerHTML = JsonFormatter.format(obj, true);
-            } else if (resultType[2].selected) {
-                // indention (pretty printing)
-                var obj = eval("(" + req.responseText + ")");
-                result.innerHTML = JsonFormatter.format(obj, false);
-            } else {
-                // raw (default)
-                result.innerHTML = req.responseText;
-            }
-        } else {
-            var error = "ERROR: " + ((req) ? (req.status + " : "+ req.responseText) : "Failed to create XMLHttpRequest.");
-            result.innerHTML = error;
-        }
-        return true;
+    // TODO retrieve url from servlet context
+    var action = "<%= href %>";
+    if (path.length && path != "/") {
+      action += path;
     }
-</script> 
+    if (depth) {
+      action += "." + depth;
+    }
+
+    var req = getXMLHttpRequest(action + ".json");
+    var result = document.getElementById("result");
+
+    if (req && req.status == 200) {
+      if (resultType[4].selected) {
+        // tree
+        var obj = eval("(" + req.responseText + ")");
+        var thref = "<%= href %>" + ((path.length && path != "/") ? path : "");
+        result.innerHTML = JsonFormatter.tree(obj, thref);
+      } else if (resultType[3].selected) {
+        // cleaned from special props
+        var obj = eval("(" + req.responseText + ")");
+        result.innerHTML = JsonFormatter.format(obj, true);
+      } else if (resultType[2].selected) {
+        // indention (pretty printing)
+        var obj = eval("(" + req.responseText + ")");
+        result.innerHTML = JsonFormatter.format(obj, false);
+      } else {
+        // raw (default)
+        result.innerHTML = req.responseText;
+      }
+    } else {
+      var error = "ERROR: " + ((req) ? (req.status + " : " + req.responseText)
+          : "Failed to create XMLHttpRequest.");
+      result.innerHTML = error;
+    }
+    return true;
+  }
+</script>
 <div id="content">
     <h2>Examples: Batch Read</h2>
     <p>
-    Enter the path of an existing node and the desired depth.
+        Enter the path of an existing node and the desired depth.
     </p>
     <table>
         <tr>
@@ -96,9 +98,11 @@ href += "/default/jcr:root";
                 <option value="tree">tree</option>
             </select></td>
         </tr>
-        <tr><td><input type="button" value="Submit" onclick="batchRead()"></td></tr>
+        <tr>
+            <td><input type="button" value="Submit" onclick="batchRead()"></td>
+        </tr>
     </table>
     <p>
-    <pre id ="result" class="code"></pre>
+    <pre id="result" class="code"></pre>
 </div>
 <jsp:include page="footer.jsp"/>

@@ -22,10 +22,11 @@ package org.apache.jackrabbit.oak.plugins.index.search.update;
 import org.junit.Test;
 
 public class RefreshOnWritePolicyTest {
+
     private final RecordingRunnable refreshCallback = new RecordingRunnable();
 
     @Test
-    public void noRefreshOnRead() throws Exception{
+    public void noRefreshOnRead() throws Exception {
         RefreshOnWritePolicy policy = new RefreshOnWritePolicy();
         policy.refreshOnReadIfRequired(refreshCallback);
         refreshCallback.assertNotInvokedAndReset();
@@ -37,7 +38,7 @@ public class RefreshOnWritePolicyTest {
     }
 
     @Test
-    public void refreshOnWrite() throws Exception{
+    public void refreshOnWrite() throws Exception {
         RefreshOnWritePolicy policy = new RefreshOnWritePolicy();
 
         policy.updated();

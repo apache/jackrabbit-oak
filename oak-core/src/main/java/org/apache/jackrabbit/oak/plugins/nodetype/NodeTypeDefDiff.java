@@ -16,12 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype;
 
-import javax.jcr.PropertyType;
-import javax.jcr.nodetype.ItemDefinition;
-import javax.jcr.nodetype.NodeDefinition;
-import javax.jcr.nodetype.NodeTypeDefinition;
-import javax.jcr.nodetype.PropertyDefinition;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -34,7 +28,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
-
+import javax.jcr.PropertyType;
+import javax.jcr.nodetype.ItemDefinition;
+import javax.jcr.nodetype.NodeDefinition;
+import javax.jcr.nodetype.NodeTypeDefinition;
+import javax.jcr.nodetype.PropertyDefinition;
 import org.apache.jackrabbit.JcrConstants;
 
 /**

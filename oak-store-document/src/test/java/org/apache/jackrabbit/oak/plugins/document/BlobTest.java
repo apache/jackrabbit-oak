@@ -45,7 +45,7 @@ public class BlobTest {
 
     @Rule
     public MongoConnectionFactory connectionFactory = new MongoConnectionFactory();
-    
+
     private static final Logger LOG = LoggerFactory.getLogger(RandomizedClusterTest.class);
 
 //     private static final boolean MONGO_DB = true;
@@ -88,7 +88,7 @@ public class BlobTest {
     }
 
     @Test
-    public void testBlobSerialization() throws Exception{
+    public void testBlobSerialization() throws Exception {
         TestBlobStore blobStore = new TestBlobStore();
         DocumentMK mk = builderProvider.newBuilder().setBlobStore(blobStore).open();
         BlobSerializer blobSerializer = mk.getNodeStore().getBlobSerializer();
@@ -119,6 +119,7 @@ public class BlobTest {
 
 
     private static class TestBlobStore extends MemoryBlobStore {
+
         int writeCount;
 
         @Override
@@ -129,6 +130,7 @@ public class BlobTest {
     }
 
     private static class ReferencedBlob extends ArrayBasedBlob {
+
         private final String reference;
 
         public ReferencedBlob(byte[] value, String reference) {

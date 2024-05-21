@@ -16,6 +16,11 @@
  */
 package org.apache.jackrabbit.oak.security.authentication.ldap.impl;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.when;
+
 import org.apache.directory.api.ldap.model.constants.SchemaConstants;
 import org.apache.directory.api.ldap.model.entry.Entry;
 import org.apache.directory.api.ldap.model.exception.LdapException;
@@ -24,11 +29,6 @@ import org.apache.directory.ldap.client.api.LdapConnection;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.when;
-
 public class UnboundLookupConnectionValidatorTest {
 
     private final UnboundLookupConnectionValidator validator = new UnboundLookupConnectionValidator();
@@ -36,7 +36,8 @@ public class UnboundLookupConnectionValidatorTest {
     @Test
     public void testValidateThrowsException() throws Exception {
         LdapConnection connection = Mockito.mock(LdapConnection.class);
-        doThrow(LdapException.class).when(connection).lookup(Dn.ROOT_DSE, SchemaConstants.NO_ATTRIBUTE);
+        doThrow(LdapException.class).when(connection)
+                                    .lookup(Dn.ROOT_DSE, SchemaConstants.NO_ATTRIBUTE);
 
         assertFalse(validator.validate(connection));
     }
@@ -71,7 +72,8 @@ public class UnboundLookupConnectionValidatorTest {
     public void testValidate() throws Exception {
         LdapConnection connection = Mockito.mock(LdapConnection.class);
         when(connection.isConnected()).thenReturn(true);
-        when(connection.lookup(Dn.ROOT_DSE, SchemaConstants.NO_ATTRIBUTE)).thenReturn(Mockito.mock(Entry.class));
+        when(connection.lookup(Dn.ROOT_DSE, SchemaConstants.NO_ATTRIBUTE)).thenReturn(
+            Mockito.mock(Entry.class));
 
         assertTrue(validator.validate(connection));
     }

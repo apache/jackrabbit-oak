@@ -27,9 +27,8 @@ import static org.mockito.Mockito.when;
 
 import java.io.InputStream;
 import java.util.Optional;
-
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.commons.io.input.NullInputStream;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.segment.file.proc.Proc.Backend;
@@ -54,7 +53,8 @@ public class DataSegmentNodeTest {
         Segment segment = mockSegment();
         when(segment.getGeneration()).thenReturn(1);
 
-        PropertyState property = new DataSegmentNode(mockBackend(), "s", segment).getProperty("generation");
+        PropertyState property = new DataSegmentNode(mockBackend(), "s", segment).getProperty(
+            "generation");
 
         assertEquals(Type.LONG, property.getType());
         assertEquals(1, property.getValue(Type.LONG).intValue());
@@ -65,7 +65,8 @@ public class DataSegmentNodeTest {
         Segment segment = mockSegment();
         when(segment.getFullGeneration()).thenReturn(1);
 
-        PropertyState property = new DataSegmentNode(mockBackend(), "s", segment).getProperty("fullGeneration");
+        PropertyState property = new DataSegmentNode(mockBackend(), "s", segment).getProperty(
+            "fullGeneration");
 
         assertEquals(Type.LONG, property.getType());
         assertEquals(1, property.getValue(Type.LONG).intValue());
@@ -76,7 +77,8 @@ public class DataSegmentNodeTest {
         Segment segment = mockSegment();
         when(segment.isCompacted()).thenReturn(true);
 
-        PropertyState property = new DataSegmentNode(mockBackend(), "s", segment).getProperty("compacted");
+        PropertyState property = new DataSegmentNode(mockBackend(), "s", segment).getProperty(
+            "compacted");
 
         assertEquals(Type.BOOLEAN, property.getType());
         assertTrue(property.getValue(Type.BOOLEAN));
@@ -87,7 +89,8 @@ public class DataSegmentNodeTest {
         Segment segment = mockSegment();
         when(segment.getLength()).thenReturn(1);
 
-        PropertyState property = new DataSegmentNode(mockBackend(), "s", segment).getProperty("length");
+        PropertyState property = new DataSegmentNode(mockBackend(), "s", segment).getProperty(
+            "length");
 
         assertEquals(Type.LONG, property.getType());
         assertEquals(1, property.getValue(Type.LONG).intValue());
@@ -112,7 +115,8 @@ public class DataSegmentNodeTest {
 
     @Test
     public void shouldHaveIdProperty() {
-        PropertyState property = new DataSegmentNode(mockBackend(), "s", mockSegment()).getProperty("id");
+        PropertyState property = new DataSegmentNode(mockBackend(), "s", mockSegment()).getProperty(
+            "id");
 
         assertEquals(Type.STRING, property.getType());
         assertEquals("s", property.getValue(Type.STRING));
@@ -123,7 +127,8 @@ public class DataSegmentNodeTest {
         Segment segment = mockSegment();
         when(segment.getVersion()).thenReturn(1);
 
-        PropertyState property = new DataSegmentNode(mockBackend(), "s", segment).getProperty("version");
+        PropertyState property = new DataSegmentNode(mockBackend(), "s", segment).getProperty(
+            "version");
 
         assertEquals(Type.LONG, property.getType());
         assertEquals(1, property.getValue(Type.LONG).longValue());
@@ -131,7 +136,8 @@ public class DataSegmentNodeTest {
 
     @Test
     public void shouldHaveIsDataSegmentProperty() {
-        PropertyState property = new DataSegmentNode(mockBackend(), "s", mockSegment()).getProperty("isDataSegment");
+        PropertyState property = new DataSegmentNode(mockBackend(), "s", mockSegment()).getProperty(
+            "isDataSegment");
 
         assertEquals(Type.BOOLEAN, property.getType());
         assertTrue(property.getValue(Type.BOOLEAN));
@@ -142,7 +148,8 @@ public class DataSegmentNodeTest {
         Segment segment = mockSegment();
         when(segment.getInfo()).thenReturn(Optional.of("info"));
 
-        PropertyState property = new DataSegmentNode(mockBackend(), "s", segment).getProperty("info");
+        PropertyState property = new DataSegmentNode(mockBackend(), "s", segment).getProperty(
+            "info");
 
         assertEquals(Type.STRING, property.getType());
         assertEquals("info", property.getValue(Type.STRING));
@@ -150,7 +157,8 @@ public class DataSegmentNodeTest {
 
     @Test
     public void shouldHaveExistsProperty() {
-        PropertyState property = new DataSegmentNode(mockBackend(), "s", mockSegment()).getProperty("exists");
+        PropertyState property = new DataSegmentNode(mockBackend(), "s", mockSegment()).getProperty(
+            "exists");
 
         assertEquals(Type.BOOLEAN, property.getType());
         assertEquals(true, property.getValue(Type.BOOLEAN));

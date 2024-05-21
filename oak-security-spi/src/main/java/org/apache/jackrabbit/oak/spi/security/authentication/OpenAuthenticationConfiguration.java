@@ -18,25 +18,27 @@ package org.apache.jackrabbit.oak.spi.security.authentication;
 
 import javax.jcr.Credentials;
 import javax.security.auth.Subject;
-
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * This implementation of the authentication configuration provides login
- * contexts that accept any credentials and doesn't validate specified
- * workspace name. Retrieving a {@code TokenProvider} is not supported.
+ * This implementation of the authentication configuration provides login contexts that accept any
+ * credentials and doesn't validate specified workspace name. Retrieving a {@code TokenProvider} is
+ * not supported.
  */
-public class OpenAuthenticationConfiguration extends SecurityConfiguration.Default implements AuthenticationConfiguration {
+public class OpenAuthenticationConfiguration extends SecurityConfiguration.Default implements
+    AuthenticationConfiguration {
 
     @NotNull
     @Override
-    public LoginContextProvider getLoginContextProvider(@NotNull ContentRepository contentRepository) {
+    public LoginContextProvider getLoginContextProvider(
+        @NotNull ContentRepository contentRepository) {
         return new LoginContextProvider() {
             @NotNull
             @Override
-            public LoginContext getLoginContext(final Credentials credentials, String workspaceName) {
+            public LoginContext getLoginContext(final Credentials credentials,
+                String workspaceName) {
                 return new LoginContext() {
                     @Override
                     public Subject getSubject() {
@@ -47,10 +49,12 @@ public class OpenAuthenticationConfiguration extends SecurityConfiguration.Defau
                         subject.setReadOnly();
                         return subject;
                     }
+
                     @Override
                     public void login() {
                         // do nothing
                     }
+
                     @Override
                     public void logout() {
                         // do nothing

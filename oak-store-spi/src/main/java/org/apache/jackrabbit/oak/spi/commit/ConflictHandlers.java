@@ -36,23 +36,25 @@ public class ConflictHandlers {
 
     @SuppressWarnings("deprecation")
     @NotNull
-    private static Resolution wrap(@Nullable org.apache.jackrabbit.oak.spi.commit.PartialConflictHandler.Resolution r) {
+    private static Resolution wrap(
+        @Nullable org.apache.jackrabbit.oak.spi.commit.PartialConflictHandler.Resolution r) {
         if (r == null) {
             return Resolution.IGNORED;
         }
         switch (r) {
-        case OURS:
-            return Resolution.OURS;
-        case THEIRS:
-            return Resolution.THEIRS;
-        case MERGED:
-            return Resolution.MERGED;
+            case OURS:
+                return Resolution.OURS;
+            case THEIRS:
+                return Resolution.THEIRS;
+            case MERGED:
+                return Resolution.MERGED;
         }
         return Resolution.IGNORED;
     }
 
     @SuppressWarnings("deprecation")
     private static class ThreeWayConflictHandlerWrapper implements ThreeWayConflictHandler {
+
         private final PartialConflictHandler handler;
 
         public ThreeWayConflictHandlerWrapper(@NotNull PartialConflictHandler handler) {
@@ -61,56 +63,65 @@ public class ConflictHandlers {
 
         @NotNull
         @Override
-        public Resolution addExistingProperty(@NotNull NodeBuilder parent, @NotNull PropertyState ours, @NotNull PropertyState theirs) {
+        public Resolution addExistingProperty(@NotNull NodeBuilder parent,
+            @NotNull PropertyState ours, @NotNull PropertyState theirs) {
             return wrap(handler.addExistingProperty(parent, ours, theirs));
         }
 
         @NotNull
         @Override
-        public Resolution changeDeletedProperty(@NotNull NodeBuilder parent, @NotNull PropertyState ours, @NotNull PropertyState base) {
+        public Resolution changeDeletedProperty(@NotNull NodeBuilder parent,
+            @NotNull PropertyState ours, @NotNull PropertyState base) {
             return wrap(handler.changeDeletedProperty(parent, ours));
         }
 
         @NotNull
         @Override
-        public Resolution changeChangedProperty(@NotNull NodeBuilder parent, @NotNull PropertyState ours, @NotNull PropertyState theirs,
-                                                @NotNull PropertyState base) {
+        public Resolution changeChangedProperty(@NotNull NodeBuilder parent,
+            @NotNull PropertyState ours, @NotNull PropertyState theirs,
+            @NotNull PropertyState base) {
             return wrap(handler.changeChangedProperty(parent, ours, theirs));
         }
 
         @NotNull
         @Override
-        public Resolution deleteDeletedProperty(@NotNull NodeBuilder parent, @NotNull PropertyState base) {
+        public Resolution deleteDeletedProperty(@NotNull NodeBuilder parent,
+            @NotNull PropertyState base) {
             return wrap(handler.deleteDeletedProperty(parent, base));
         }
 
         @NotNull
         @Override
-        public Resolution deleteChangedProperty(@NotNull NodeBuilder parent, @NotNull PropertyState theirs, @NotNull PropertyState base) {
+        public Resolution deleteChangedProperty(@NotNull NodeBuilder parent,
+            @NotNull PropertyState theirs, @NotNull PropertyState base) {
             return wrap(handler.deleteChangedProperty(parent, theirs));
         }
 
         @NotNull
         @Override
-        public Resolution addExistingNode(@NotNull NodeBuilder parent, @NotNull String name, @NotNull NodeState ours, @NotNull NodeState theirs) {
+        public Resolution addExistingNode(@NotNull NodeBuilder parent, @NotNull String name,
+            @NotNull NodeState ours, @NotNull NodeState theirs) {
             return wrap(handler.addExistingNode(parent, name, ours, theirs));
         }
 
         @NotNull
         @Override
-        public Resolution changeDeletedNode(@NotNull NodeBuilder parent, @NotNull String name, @NotNull NodeState ours, @NotNull NodeState base) {
+        public Resolution changeDeletedNode(@NotNull NodeBuilder parent, @NotNull String name,
+            @NotNull NodeState ours, @NotNull NodeState base) {
             return wrap(handler.changeDeletedNode(parent, name, ours));
         }
 
         @NotNull
         @Override
-        public Resolution deleteChangedNode(@NotNull NodeBuilder parent, @NotNull String name, @NotNull NodeState theirs, @NotNull NodeState base) {
+        public Resolution deleteChangedNode(@NotNull NodeBuilder parent, @NotNull String name,
+            @NotNull NodeState theirs, @NotNull NodeState base) {
             return wrap(handler.deleteChangedNode(parent, name, theirs));
         }
 
         @NotNull
         @Override
-        public Resolution deleteDeletedNode(@NotNull NodeBuilder parent, @NotNull String name, @NotNull NodeState base) {
+        public Resolution deleteDeletedNode(@NotNull NodeBuilder parent, @NotNull String name,
+            @NotNull NodeState base) {
             return wrap(handler.deleteDeletedNode(parent, name));
         }
     }

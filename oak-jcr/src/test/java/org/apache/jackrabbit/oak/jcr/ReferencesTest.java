@@ -22,7 +22,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-
 import javax.jcr.ImportUUIDBehavior;
 import javax.jcr.ItemNotFoundException;
 import javax.jcr.Node;
@@ -35,7 +34,6 @@ import javax.jcr.Value;
 import javax.jcr.version.Version;
 import javax.jcr.version.VersionHistory;
 import javax.jcr.version.VersionManager;
-
 import org.apache.jackrabbit.test.AbstractJCRTest;
 import org.apache.jackrabbit.test.api.util.Text;
 
@@ -87,7 +85,8 @@ public class ReferencesTest extends AbstractJCRTest {
         n.setProperty("ref4", new Value[]{hard, hard});
         superuser.save();
 
-        checkReferences("refs", ref.getWeakReferences(), n.getPath() + "/ref1", n.getPath() + "/ref2");
+        checkReferences("refs", ref.getWeakReferences(), n.getPath() + "/ref1",
+            n.getPath() + "/ref2");
         checkReferences("refs", ref.getReferences(), n.getPath() + "/ref3", n.getPath() + "/ref4");
     }
 
@@ -117,9 +116,9 @@ public class ReferencesTest extends AbstractJCRTest {
 
         // recreate node by importing it
         superuser.importXML(
-                Text.getRelativeParent(path, 1),
-                new ByteArrayInputStream(out.toByteArray()),
-                ImportUUIDBehavior.IMPORT_UUID_COLLISION_THROW);
+            Text.getRelativeParent(path, 1),
+            new ByteArrayInputStream(out.toByteArray()),
+            ImportUUIDBehavior.IMPORT_UUID_COLLISION_THROW);
         superuser.save();
 
         // test succeeds if reference property is re-written, too
@@ -146,7 +145,8 @@ public class ReferencesTest extends AbstractJCRTest {
         assertEquals("ref", ref.getPath(), n.getProperty("myref0").getNode().getPath());
         assertEquals("ref", ref.getPath(), n.getProperty("myref1").getNode().getPath());
 
-        checkReferences("refs", ref.getReferences(), n.getPath() + "/myref0", n.getPath() + "/myref1");
+        checkReferences("refs", ref.getReferences(), n.getPath() + "/myref0",
+            n.getPath() + "/myref1");
     }
 
     public void testMultipleReferencesOnSameNode1() throws RepositoryException {
@@ -177,7 +177,8 @@ public class ReferencesTest extends AbstractJCRTest {
         n1.setProperty("myref", ref);
         superuser.save();
 
-        checkReferences("refs", ref.getReferences(), n0.getPath() + "/myref", n1.getPath() + "/myref");
+        checkReferences("refs", ref.getReferences(), n0.getPath() + "/myref",
+            n1.getPath() + "/myref");
     }
 
     public void testMultipleReferences1() throws RepositoryException {
@@ -231,13 +232,17 @@ public class ReferencesTest extends AbstractJCRTest {
 
         Node n0 = testRootNode.addNode(nodeName1, testNodeType);
         n0.setProperty("strong_reference", ref);
-        n0.setProperty("mv_strong_reference", new Value[]{superuser.getValueFactory().createValue(ref, false)});
+        n0.setProperty("mv_strong_reference",
+            new Value[]{superuser.getValueFactory().createValue(ref, false)});
         n0.setProperty("weak_reference", superuser.getValueFactory().createValue(ref, true));
-        n0.setProperty("mv_weak_reference", new Value[]{superuser.getValueFactory().createValue(ref, true)});
+        n0.setProperty("mv_weak_reference",
+            new Value[]{superuser.getValueFactory().createValue(ref, true)});
         superuser.save();
 
-        checkReferences("refs", ref.getReferences(), n0.getPath() + "/strong_reference", n0.getPath() + "/mv_strong_reference");
-        checkReferences("refs", ref.getWeakReferences(), n0.getPath() + "/weak_reference", n0.getPath() + "/mv_weak_reference");
+        checkReferences("refs", ref.getReferences(), n0.getPath() + "/strong_reference",
+            n0.getPath() + "/mv_strong_reference");
+        checkReferences("refs", ref.getWeakReferences(), n0.getPath() + "/weak_reference",
+            n0.getPath() + "/mv_weak_reference");
     }
 
     // OAK-1195 Unable to move referenced mode
@@ -267,14 +272,16 @@ public class ReferencesTest extends AbstractJCRTest {
 
         Node n = testRootNode.addNode(nodeName1, testNodeType);
         Value[] vs = new Value[]{
-                superuser.getValueFactory().createValue(ref0),
-                superuser.getValueFactory().createValue(ref1)
+            superuser.getValueFactory().createValue(ref0),
+            superuser.getValueFactory().createValue(ref1)
         };
         n.setProperty("myref", vs);
         superuser.save();
 
-        assertEquals("ref0", ref0.getIdentifier(), n.getProperty("myref").getValues()[0].getString());
-        assertEquals("ref1", ref1.getIdentifier(), n.getProperty("myref").getValues()[1].getString());
+        assertEquals("ref0", ref0.getIdentifier(),
+            n.getProperty("myref").getValues()[0].getString());
+        assertEquals("ref1", ref1.getIdentifier(),
+            n.getProperty("myref").getValues()[1].getString());
         checkReferences("refs", ref0.getReferences(), n.getPath() + "/myref");
         checkReferences("refs", ref1.getReferences(), n.getPath() + "/myref");
     }
@@ -291,28 +298,33 @@ public class ReferencesTest extends AbstractJCRTest {
 
         Node n = testRootNode.addNode(nodeName1, testNodeType);
         Value[] vs = new Value[]{
-                superuser.getValueFactory().createValue(ref0),
-                superuser.getValueFactory().createValue(ref1)
+            superuser.getValueFactory().createValue(ref0),
+            superuser.getValueFactory().createValue(ref1)
         };
         n.setProperty("myref", vs);
         superuser.save();
 
-        assertEquals("ref0", ref0.getIdentifier(), n.getProperty("myref").getValues()[0].getString());
-        assertEquals("ref1", ref1.getIdentifier(), n.getProperty("myref").getValues()[1].getString());
+        assertEquals("ref0", ref0.getIdentifier(),
+            n.getProperty("myref").getValues()[0].getString());
+        assertEquals("ref1", ref1.getIdentifier(),
+            n.getProperty("myref").getValues()[1].getString());
         checkReferences("refs", ref0.getReferences(), n.getPath() + "/myref");
         checkReferences("refs", ref1.getReferences(), n.getPath() + "/myref");
 
         vs = new Value[]{
-                superuser.getValueFactory().createValue(ref0),
-                superuser.getValueFactory().createValue(ref1),
-                superuser.getValueFactory().createValue(ref2)
+            superuser.getValueFactory().createValue(ref0),
+            superuser.getValueFactory().createValue(ref1),
+            superuser.getValueFactory().createValue(ref2)
         };
         n.setProperty("myref", vs);
         superuser.save();
 
-        assertEquals("ref0", ref0.getIdentifier(), n.getProperty("myref").getValues()[0].getString());
-        assertEquals("ref1", ref1.getIdentifier(), n.getProperty("myref").getValues()[1].getString());
-        assertEquals("ref2", ref2.getIdentifier(), n.getProperty("myref").getValues()[2].getString());
+        assertEquals("ref0", ref0.getIdentifier(),
+            n.getProperty("myref").getValues()[0].getString());
+        assertEquals("ref1", ref1.getIdentifier(),
+            n.getProperty("myref").getValues()[1].getString());
+        assertEquals("ref2", ref2.getIdentifier(),
+            n.getProperty("myref").getValues()[2].getString());
         checkReferences("refs", ref0.getReferences(), n.getPath() + "/myref");
         checkReferences("refs", ref1.getReferences(), n.getPath() + "/myref");
         checkReferences("refs", ref2.getReferences(), n.getPath() + "/myref");
@@ -330,29 +342,34 @@ public class ReferencesTest extends AbstractJCRTest {
 
         Node n = testRootNode.addNode(nodeName1, testNodeType);
         Value[] vs = new Value[]{
-                superuser.getValueFactory().createValue(ref0),
-                superuser.getValueFactory().createValue(ref1),
-                superuser.getValueFactory().createValue(ref2)
+            superuser.getValueFactory().createValue(ref0),
+            superuser.getValueFactory().createValue(ref1),
+            superuser.getValueFactory().createValue(ref2)
         };
         n.setProperty("myref", vs);
         superuser.save();
 
-        assertEquals("ref0", ref0.getIdentifier(), n.getProperty("myref").getValues()[0].getString());
-        assertEquals("ref1", ref1.getIdentifier(), n.getProperty("myref").getValues()[1].getString());
-        assertEquals("ref2", ref2.getIdentifier(), n.getProperty("myref").getValues()[2].getString());
+        assertEquals("ref0", ref0.getIdentifier(),
+            n.getProperty("myref").getValues()[0].getString());
+        assertEquals("ref1", ref1.getIdentifier(),
+            n.getProperty("myref").getValues()[1].getString());
+        assertEquals("ref2", ref2.getIdentifier(),
+            n.getProperty("myref").getValues()[2].getString());
         checkReferences("refs", ref0.getReferences(), n.getPath() + "/myref");
         checkReferences("refs", ref1.getReferences(), n.getPath() + "/myref");
         checkReferences("refs", ref2.getReferences(), n.getPath() + "/myref");
 
         vs = new Value[]{
-                superuser.getValueFactory().createValue(ref1),
-                superuser.getValueFactory().createValue(ref2)
+            superuser.getValueFactory().createValue(ref1),
+            superuser.getValueFactory().createValue(ref2)
         };
         n.setProperty("myref", vs);
         superuser.save();
 
-        assertEquals("ref1", ref1.getIdentifier(), n.getProperty("myref").getValues()[0].getString());
-        assertEquals("ref2", ref2.getIdentifier(), n.getProperty("myref").getValues()[1].getString());
+        assertEquals("ref1", ref1.getIdentifier(),
+            n.getProperty("myref").getValues()[0].getString());
+        assertEquals("ref2", ref2.getIdentifier(),
+            n.getProperty("myref").getValues()[1].getString());
         checkReferences("refs", ref0.getReferences());
         checkReferences("refs", ref1.getReferences(), n.getPath() + "/myref");
         checkReferences("refs", ref2.getReferences(), n.getPath() + "/myref");
@@ -368,7 +385,8 @@ public class ReferencesTest extends AbstractJCRTest {
         VersionHistory vh = vMgr.getVersionHistory(p);
 
         // check if versionable node has references to root version
-        assertEquals("Version History", vh.getIdentifier(), n.getProperty(Property.JCR_VERSION_HISTORY).getString());
+        assertEquals("Version History", vh.getIdentifier(),
+            n.getProperty(Property.JCR_VERSION_HISTORY).getString());
 
         checkReferences("Version History", vh.getReferences(), p + "/jcr:versionHistory");
     }
@@ -383,12 +401,14 @@ public class ReferencesTest extends AbstractJCRTest {
         Version v0 = vMgr.getVersionHistory(p).getRootVersion();
 
         // check if versionable node has references to root version
-        assertEquals("Root Version", v0.getIdentifier(), n.getProperty(Property.JCR_BASE_VERSION).getString());
-        assertEquals("Root Version", v0.getIdentifier(), n.getProperty(Property.JCR_PREDECESSORS).getValues()[0].getString());
+        assertEquals("Root Version", v0.getIdentifier(),
+            n.getProperty(Property.JCR_BASE_VERSION).getString());
+        assertEquals("Root Version", v0.getIdentifier(),
+            n.getProperty(Property.JCR_PREDECESSORS).getValues()[0].getString());
 
         checkReferences("Root Version", v0.getReferences(),
-                p + "/jcr:baseVersion",
-                p + "/jcr:predecessors"
+            p + "/jcr:baseVersion",
+            p + "/jcr:predecessors"
         );
     }
 
@@ -402,12 +422,14 @@ public class ReferencesTest extends AbstractJCRTest {
         Version v1 = vMgr.checkpoint(p);
 
         // check if versionable node has references to v1.0
-        assertEquals("v1.0", v1.getIdentifier(), n.getProperty(Property.JCR_BASE_VERSION).getString());
-        assertEquals("v1.0", v1.getIdentifier(), n.getProperty(Property.JCR_PREDECESSORS).getValues()[0].getString());
+        assertEquals("v1.0", v1.getIdentifier(),
+            n.getProperty(Property.JCR_BASE_VERSION).getString());
+        assertEquals("v1.0", v1.getIdentifier(),
+            n.getProperty(Property.JCR_PREDECESSORS).getValues()[0].getString());
 
         checkReferences("v1.0", v1.getReferences(),
-                p + "/jcr:baseVersion",
-                p + "/jcr:predecessors"
+            p + "/jcr:baseVersion",
+            p + "/jcr:predecessors"
         );
     }
 
@@ -574,7 +596,8 @@ public class ReferencesTest extends AbstractJCRTest {
         }
     }
 
-    private static void checkReferences(String msg, PropertyIterator refs, String ... expected) throws RepositoryException {
+    private static void checkReferences(String msg, PropertyIterator refs, String... expected)
+        throws RepositoryException {
         List<String> paths = new LinkedList<String>();
         while (refs.hasNext()) {
             paths.add(refs.nextProperty().getPath());
@@ -582,7 +605,7 @@ public class ReferencesTest extends AbstractJCRTest {
         checkEquals(msg, paths, expected);
     }
 
-    private static void checkEquals(String msg, List<String> result, String ... expected) {
+    private static void checkEquals(String msg, List<String> result, String... expected) {
         List<String> exp = Arrays.asList(expected);
         Collections.sort(result);
         Collections.sort(exp);

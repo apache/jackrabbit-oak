@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.spi.security.authentication.callback;
 
 import javax.security.auth.callback.Callback;
-
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.jetbrains.annotations.Nullable;
 

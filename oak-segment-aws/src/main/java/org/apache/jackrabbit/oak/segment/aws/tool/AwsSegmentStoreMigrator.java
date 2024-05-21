@@ -32,7 +32,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.aws.AwsContext;
 import org.apache.jackrabbit.oak.segment.aws.AwsPersistence;
@@ -53,7 +52,7 @@ import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersist
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class AwsSegmentStoreMigrator implements Closeable  {
+public class AwsSegmentStoreMigrator implements Closeable {
 
     private static final Logger log = LoggerFactory.getLogger(AwsSegmentStoreMigrator.class);
 
@@ -148,10 +147,12 @@ public class AwsSegmentStoreMigrator implements Closeable  {
             log.info("No segment archives at {}; skipping.", sourceName);
             return;
         }
-        SegmentArchiveManager sourceManager = source.createArchiveManager(false, false, new IOMonitorAdapter(),
-                new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
-        SegmentArchiveManager targetManager = target.createArchiveManager(false, false, new IOMonitorAdapter(),
-                new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
+        SegmentArchiveManager sourceManager = source.createArchiveManager(false, false,
+            new IOMonitorAdapter(),
+            new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
+        SegmentArchiveManager targetManager = target.createArchiveManager(false, false,
+            new IOMonitorAdapter(),
+            new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
         List<String> targetArchives = targetManager.listArchives();
 
         if (appendMode && !targetArchives.isEmpty()) {
@@ -182,7 +183,8 @@ public class AwsSegmentStoreMigrator implements Closeable  {
         }
     }
 
-    private void migrateSegments(SegmentArchiveReader reader, SegmentArchiveWriter writer) throws ExecutionException, InterruptedException, IOException {
+    private void migrateSegments(SegmentArchiveReader reader, SegmentArchiveWriter writer)
+        throws ExecutionException, InterruptedException, IOException {
         List<Future<Segment>> futures = new ArrayList<>();
         for (SegmentArchiveEntry entry : reader.listSegments()) {
             futures.add(executor.submit(() -> runWithRetry(() -> {
@@ -198,7 +200,8 @@ public class AwsSegmentStoreMigrator implements Closeable  {
         }
     }
 
-    private void migrateBinaryRef(SegmentArchiveReader reader, SegmentArchiveWriter writer) throws IOException {
+    private void migrateBinaryRef(SegmentArchiveReader reader, SegmentArchiveWriter writer)
+        throws IOException {
         Buffer binaryReferences = reader.getBinaryReferences();
         if (binaryReferences != null) {
             byte[] array = fetchByteArray(binaryReferences);
@@ -206,7 +209,8 @@ public class AwsSegmentStoreMigrator implements Closeable  {
         }
     }
 
-    private void migrateGraph(SegmentArchiveReader reader, SegmentArchiveWriter writer) throws IOException {
+    private void migrateGraph(SegmentArchiveReader reader, SegmentArchiveWriter writer)
+        throws IOException {
         if (reader.hasGraph()) {
             Buffer graph = reader.getGraph();
             byte[] array = fetchByteArray(graph);
@@ -214,7 +218,8 @@ public class AwsSegmentStoreMigrator implements Closeable  {
         }
     }
 
-    private static <T> T runWithRetry(Producer<T> producer, int maxAttempts, int intervalSec) throws IOException {
+    private static <T> T runWithRetry(Producer<T> producer, int maxAttempts, int intervalSec)
+        throws IOException {
         IOException ioException = null;
         RepositoryNotReachableException repoNotReachableException = null;
         for (int i = 0; i < maxAttempts; i++) {
@@ -246,7 +251,8 @@ public class AwsSegmentStoreMigrator implements Closeable  {
     public void close() throws IOException {
         executor.shutdown();
         try {
-            while (!executor.awaitTermination(100, TimeUnit.MILLISECONDS));
+            while (!executor.awaitTermination(100, TimeUnit.MILLISECONDS))
+                ;
         } catch (InterruptedException e) {
             throw new IOException(e);
         }
@@ -254,6 +260,7 @@ public class AwsSegmentStoreMigrator implements Closeable  {
 
     @FunctionalInterface
     private interface Producer<T> {
+
         T produce() throws IOException;
     }
 
@@ -274,8 +281,9 @@ public class AwsSegmentStoreMigrator implements Closeable  {
         private void write(SegmentArchiveWriter writer) throws IOException {
             final byte[] array = data.array();
             final int offset = 0;
-            writer.writeSegment(entry.getMsb(), entry.getLsb(), array, offset, entry.getLength(), entry.getGeneration(),
-                    entry.getFullGeneration(), entry.isCompacted());
+            writer.writeSegment(entry.getMsb(), entry.getLsb(), array, offset, entry.getLength(),
+                entry.getGeneration(),
+                entry.getFullGeneration(), entry.isCompacted());
         }
 
         @Override
@@ -310,17 +318,19 @@ public class AwsSegmentStoreMigrator implements Closeable  {
             return this;
         }
 
-       public Builder withSourcePersistence(SegmentNodeStorePersistence source, String sourceName) {
-           this.source = source;
-           this.sourceName = sourceName;
-           return this;
-       }
+        public Builder withSourcePersistence(SegmentNodeStorePersistence source,
+            String sourceName) {
+            this.source = source;
+            this.sourceName = sourceName;
+            return this;
+        }
 
-       public Builder withTargetPersistence(SegmentNodeStorePersistence target, String targetName) {
-           this.target = target;
-           this.targetName = targetName;
-           return this;
-       }
+        public Builder withTargetPersistence(SegmentNodeStorePersistence target,
+            String targetName) {
+            this.target = target;
+            this.targetName = targetName;
+            return this;
+        }
 
         public Builder withTarget(File dir) {
             this.target = new TarPersistence(dir);

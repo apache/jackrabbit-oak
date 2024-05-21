@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.utils
 import static org.junit.Assert.assertEquals;
 
 import java.util.Random;
-
 import org.junit.Test;
 
 public class TopKValuesTest {
@@ -30,14 +29,16 @@ public class TopKValuesTest {
     public void test() {
         TopKValues v = new TopKValues(3);
         Random r = new Random(1);
-        for(int i=0; i<1000000; i++) {
-            if(r.nextBoolean()) {
+        for (int i = 0; i < 1000000; i++) {
+            if (r.nextBoolean()) {
                 v.add("common" + r.nextInt(2));
             } else {
                 v.add("rare" + r.nextInt(100));
             }
         }
-        assertEquals("{\"notSkewed\":5,\"skipped\":908191,\"counted\":91809,\"common1\":24849,\"common0\":24652,\"rare13\":2374}", v.toString());
+        assertEquals(
+            "{\"notSkewed\":5,\"skipped\":908191,\"counted\":91809,\"common1\":24849,\"common0\":24652,\"rare13\":2374}",
+            v.toString());
         assertEquals(91809, v.getCount());
         assertEquals(24849, v.getTopCount());
         assertEquals(24652, v.getSecondCount());

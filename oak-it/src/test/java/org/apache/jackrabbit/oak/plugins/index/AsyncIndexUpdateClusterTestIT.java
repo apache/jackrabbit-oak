@@ -31,7 +31,9 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
-
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
@@ -52,10 +54,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.io.Closer;
-
 public class AsyncIndexUpdateClusterTestIT {
 
     private DocumentNodeStore ns1;
@@ -66,7 +64,7 @@ public class AsyncIndexUpdateClusterTestIT {
 
     private Random random = new Random();
     private final List<String> values = ImmutableList.of("a", "b", "c", "d",
-            "e");
+        "e");
 
     private Closer closer = Closer.create();
     private final AtomicBoolean illegalReindex = new AtomicBoolean(false);
@@ -117,17 +115,17 @@ public class AsyncIndexUpdateClusterTestIT {
         l.initDone();
 
         ScheduledExecutorService executorService = Executors
-                .newScheduledThreadPool(5);
+            .newScheduledThreadPool(5);
         closer.register(new ExecutorCloser(executorService));
 
         executorService.scheduleWithFixedDelay(async1, 1, 3, TimeUnit.SECONDS);
         executorService.scheduleWithFixedDelay(async2, 1, 2, TimeUnit.SECONDS);
         executorService.scheduleWithFixedDelay(
-                new PropertyMutator(ns1, "node1"), 500, 500,
-                TimeUnit.MILLISECONDS);
+            new PropertyMutator(ns1, "node1"), 500, 500,
+            TimeUnit.MILLISECONDS);
         executorService.scheduleWithFixedDelay(
-                new PropertyMutator(ns2, "node2"), 500, 500,
-                TimeUnit.MILLISECONDS);
+            new PropertyMutator(ns2, "node2"), 500, 500,
+            TimeUnit.MILLISECONDS);
 
         for (int i = 0; i < 4 && !illegalReindex.get(); i++) {
             TimeUnit.SECONDS.sleep(5);
@@ -136,19 +134,20 @@ public class AsyncIndexUpdateClusterTestIT {
     }
 
     private static AsyncIndexUpdate createAsync(DocumentNodeStore ns,
-            final IndexStatusListener l) {
+        final IndexStatusListener l) {
         IndexEditorProvider p = new TestEditorProvider(
-                new PropertyIndexEditorProvider(), l);
+            new PropertyIndexEditorProvider(), l);
         AsyncIndexUpdate aiu = new AsyncIndexUpdate("async", ns, p) {
             protected boolean updateIndex(NodeState before,
-                    String beforeCheckpoint, NodeState after,
-                    String afterCheckpoint, String afterTime,
-                    AsyncUpdateCallback callback, AtomicReference<String> checkpointToReleaseRef) throws CommitFailedException {
+                String beforeCheckpoint, NodeState after,
+                String afterCheckpoint, String afterTime,
+                AsyncUpdateCallback callback, AtomicReference<String> checkpointToReleaseRef)
+                throws CommitFailedException {
                 if (MISSING_NODE == before) {
                     l.reindexing();
                 }
                 return super.updateIndex(before, beforeCheckpoint, after,
-                        afterCheckpoint, afterTime, callback, checkpointToReleaseRef);
+                    afterCheckpoint, afterTime, callback, checkpointToReleaseRef);
             }
         };
         aiu.setCloseTimeOut(1);
@@ -157,8 +156,8 @@ public class AsyncIndexUpdateClusterTestIT {
 
     private static void createIndexDefinition(NodeBuilder builder) {
         IndexUtils.createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "rootIndex", true, false, ImmutableSet.of("foo"), null)
-                .setProperty(ASYNC_PROPERTY_NAME, "async");
+                      "rootIndex", true, false, ImmutableSet.of("foo"), null)
+                  .setProperty(ASYNC_PROPERTY_NAME, "async");
     }
 
     private DocumentNodeStore create(int clusterId) {
@@ -172,11 +171,13 @@ public class AsyncIndexUpdateClusterTestIT {
         builder.setDocumentStore(ds).setBlobStore(bs);
 
         DocumentNodeStore store = builder.setClusterId(++clusterId)
-                .setLeaseCheckMode(LeaseCheckMode.DISABLED).open().getNodeStore();
+                                         .setLeaseCheckMode(LeaseCheckMode.DISABLED).open()
+                                         .getNodeStore();
         return store;
     }
 
     private class PropertyMutator implements Runnable {
+
         private final NodeStore nodeStore;
         private final String nodeName;
 
@@ -189,7 +190,7 @@ public class AsyncIndexUpdateClusterTestIT {
         public void run() {
             NodeBuilder b = nodeStore.getRoot().builder();
             b.child(nodeName).setProperty("foo",
-                    values.get(random.nextInt(values.size())));
+                values.get(random.nextInt(values.size())));
             try {
                 nodeStore.merge(b, EmptyHook.INSTANCE, CommitInfo.EMPTY);
             } catch (CommitFailedException e) {
@@ -223,22 +224,23 @@ public class AsyncIndexUpdateClusterTestIT {
     }
 
     private static class TestEditorProvider implements IndexEditorProvider {
+
         private final IndexEditorProvider delegate;
         private final IndexStatusListener listener;
 
         private TestEditorProvider(IndexEditorProvider delegate,
-                IndexStatusListener listener) {
+            IndexStatusListener listener) {
             this.delegate = delegate;
             this.listener = listener;
         }
 
         @Override
         public Editor getIndexEditor(@NotNull String type,
-                @NotNull NodeBuilder definition, @NotNull NodeState root,
-                @NotNull IndexUpdateCallback callback)
-                throws CommitFailedException {
+            @NotNull NodeBuilder definition, @NotNull NodeState root,
+            @NotNull IndexUpdateCallback callback)
+            throws CommitFailedException {
             Editor e = delegate
-                    .getIndexEditor(type, definition, root, callback);
+                .getIndexEditor(type, definition, root, callback);
             if (e != null) {
                 e = new TestEditor(e, listener);
             }
@@ -247,6 +249,7 @@ public class AsyncIndexUpdateClusterTestIT {
     }
 
     private static class TestEditor implements Editor {
+
         private final Editor editor;
         private final TestEditor parent;
         private final IndexStatusListener listener;
@@ -256,7 +259,7 @@ public class AsyncIndexUpdateClusterTestIT {
         }
 
         TestEditor(Editor editor, IndexStatusListener listener,
-                TestEditor parent) {
+            TestEditor parent) {
             this.editor = editor;
             this.listener = listener;
             this.parent = parent;
@@ -264,7 +267,7 @@ public class AsyncIndexUpdateClusterTestIT {
 
         @Override
         public void enter(NodeState before, NodeState after)
-                throws CommitFailedException {
+            throws CommitFailedException {
             if (MISSING_NODE == before && parent == null) {
                 listener.reindexing();
             }
@@ -273,47 +276,47 @@ public class AsyncIndexUpdateClusterTestIT {
 
         @Override
         public void leave(NodeState before, NodeState after)
-                throws CommitFailedException {
+            throws CommitFailedException {
             listener.waitRandomly();
             editor.leave(before, after);
         }
 
         @Override
         public void propertyAdded(PropertyState after)
-                throws CommitFailedException {
+            throws CommitFailedException {
             editor.propertyAdded(after);
         }
 
         @Override
         public void propertyChanged(PropertyState before, PropertyState after)
-                throws CommitFailedException {
+            throws CommitFailedException {
             editor.propertyChanged(before, after);
         }
 
         @Override
         public void propertyDeleted(PropertyState before)
-                throws CommitFailedException {
+            throws CommitFailedException {
             editor.propertyDeleted(before);
         }
 
         @Override
         public Editor childNodeAdded(String name, NodeState after)
-                throws CommitFailedException {
+            throws CommitFailedException {
             return createChildEditor(editor.childNodeAdded(name, after), name);
         }
 
         @Override
         public Editor childNodeChanged(String name, NodeState before,
-                NodeState after) throws CommitFailedException {
+            NodeState after) throws CommitFailedException {
             return createChildEditor(
-                    editor.childNodeChanged(name, before, after), name);
+                editor.childNodeChanged(name, before, after), name);
         }
 
         @Override
         public Editor childNodeDeleted(String name, NodeState before)
-                throws CommitFailedException {
+            throws CommitFailedException {
             return createChildEditor(editor.childNodeDeleted(name, before),
-                    name);
+                name);
         }
 
         private TestEditor createChildEditor(Editor editor, String name) {

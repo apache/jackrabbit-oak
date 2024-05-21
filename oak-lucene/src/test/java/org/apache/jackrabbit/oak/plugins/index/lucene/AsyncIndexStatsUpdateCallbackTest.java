@@ -19,7 +19,15 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider.compose;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+
 import ch.qos.logback.classic.Level;
+import java.io.IOException;
+import java.util.List;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
@@ -40,37 +48,26 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import java.io.IOException;
-import java.util.List;
-
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider.compose;
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-
 /**
  * Tests AsyncIndexStatsUpdateCallback works as scheduled callback
  */
 public class AsyncIndexStatsUpdateCallbackTest {
+
     private int SCHEDULED_CALLBACK_TIME_IN_MILLIS = 1000; //1 second
     protected Root root;
     private AsyncIndexUpdate asyncIndexUpdate;
     private LuceneIndexEditorProvider luceneIndexEditorProvider;
     private LogCustomizer customLogger;
     private AsyncIndexesSizeStatsUpdateImpl asyncIndexesSizeStatsUpdate =
-            new AsyncIndexesSizeStatsUpdateImpl(SCHEDULED_CALLBACK_TIME_IN_MILLIS);
+        new AsyncIndexesSizeStatsUpdateImpl(SCHEDULED_CALLBACK_TIME_IN_MILLIS);
     private LuceneIndexMBeanImpl mBean = Mockito.mock(LuceneIndexMBeanImpl.class);
 
     @Before
     public void before() throws Exception {
         customLogger = LogCustomizer
-                .forLogger(
-                        "org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexStatsUpdateCallback")
-                .enable(Level.DEBUG).create();
+            .forLogger(
+                "org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexStatsUpdateCallback")
+            .enable(Level.DEBUG).create();
         ContentSession session = createRepository().login(null, null);
         Mockito.when(mBean.getDocCount("/oak:index/lucenePropertyIndex")).thenReturn("100");
         Mockito.when(mBean.getSize("/oak:index/lucenePropertyIndex")).thenReturn("100");
@@ -85,18 +82,18 @@ public class AsyncIndexStatsUpdateCallbackTest {
     protected ContentRepository createRepository() throws IOException {
         NodeStore nodeStore = new MemoryNodeStore();
         luceneIndexEditorProvider = new LuceneIndexEditorProvider(null, null,
-                null,
-                null, Mounts.defaultMountInfoProvider(),
-                ActiveDeletedBlobCollectorFactory.NOOP, mBean, StatisticsProvider.NOOP);
+            null,
+            null, Mounts.defaultMountInfoProvider(),
+            ActiveDeletedBlobCollectorFactory.NOOP, mBean, StatisticsProvider.NOOP);
 
         asyncIndexUpdate = new AsyncIndexUpdate("async", nodeStore, compose(newArrayList(
-                luceneIndexEditorProvider,
-                new NodeCounterEditorProvider()
+            luceneIndexEditorProvider,
+            new NodeCounterEditorProvider()
         )), StatisticsProvider.NOOP, false);
         return new Oak(nodeStore)
-                .with(new InitialContent())
-                .with(new OpenSecurityProvider())
-                .createContentRepository();
+            .with(new InitialContent())
+            .with(new OpenSecurityProvider())
+            .createContentRepository();
     }
 
     @Test
@@ -104,7 +101,7 @@ public class AsyncIndexStatsUpdateCallbackTest {
         luceneIndexEditorProvider.withAsyncIndexesSizeStatsUpdate(asyncIndexesSizeStatsUpdate);
         LuceneIndexDefinitionBuilder idxb = new LuceneIndexDefinitionBuilder();
         idxb.indexRule("nt:base")
-                .property("foo").analyzed().nodeScopeIndex().ordered().useInExcerpt().propertyIndex();
+            .property("foo").analyzed().nodeScopeIndex().ordered().useInExcerpt().propertyIndex();
         idxb.build(root.getTree("/oak:index").addChild("lucenePropertyIndex"));
 
         // Add content and index it successfully
@@ -131,7 +128,7 @@ public class AsyncIndexStatsUpdateCallbackTest {
         luceneIndexEditorProvider.withAsyncIndexesSizeStatsUpdate(AsyncIndexesSizeStatsUpdate.NOOP);
         LuceneIndexDefinitionBuilder idxb = new LuceneIndexDefinitionBuilder();
         idxb.indexRule("nt:base")
-                .property("foo").analyzed().nodeScopeIndex().ordered().useInExcerpt().propertyIndex();
+            .property("foo").analyzed().nodeScopeIndex().ordered().useInExcerpt().propertyIndex();
         idxb.build(root.getTree("/oak:index").addChild("lucenePropertyIndex"));
 
         // Add content and index it successfully
@@ -157,7 +154,8 @@ public class AsyncIndexStatsUpdateCallbackTest {
     private void validateLogs(List<String> logs) {
         for (String log : logs) {
             assertThat("logs were recorded by custom logger", log,
-                    containsString("/oak:index/lucenePropertyIndex stats updated; docCount 100, size 100, timeToUpdate"));
+                containsString(
+                    "/oak:index/lucenePropertyIndex stats updated; docCount 100, size 100, timeToUpdate"));
         }
     }
 }

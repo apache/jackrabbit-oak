@@ -34,7 +34,7 @@ public class LastRevTest {
     @Test
     public void lastRev() throws Exception {
         DocumentNodeStore store = new DocumentMK.Builder()
-                .setAsyncDelay(0).getNodeStore();
+            .setAsyncDelay(0).getNodeStore();
         DocumentStore docStore = store.getDocumentStore();
 
         NodeBuilder root = store.getRoot().builder();
@@ -60,7 +60,7 @@ public class LastRevTest {
     }
 
     private static void assertLastRevSize(DocumentStore store,
-                                          String path, int size) {
+        String path, int size) {
         NodeDocument doc = store.find(NODES, getIdFromPath(path));
         assertNotNull(doc);
         assertEquals("_lastRev: " + doc.getLastRev(), size, doc.getLastRev().size());

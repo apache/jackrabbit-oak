@@ -16,30 +16,33 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.util;
 
-import org.apache.jackrabbit.guava.common.collect.Sets;
-import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
-import org.jetbrains.annotations.NotNull;
-
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.Arrays;
 import java.util.Set;
+import org.apache.jackrabbit.guava.common.collect.Sets;
+import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
+import org.jetbrains.annotations.NotNull;
+
 public class ReadOnlyDocumentStoreWrapperFactory {
+
     private static final Set<String> unsupportedMethods = Sets.newHashSet(
-            "remove", "create", "update", "createOrUpdate", "findAndUpdate");
+        "remove", "create", "update", "createOrUpdate", "findAndUpdate");
+
     public static DocumentStore getInstance(@NotNull final DocumentStore delegate) {
-        return (DocumentStore)Proxy.newProxyInstance(DocumentStore.class.getClassLoader(),
-                new Class[]{DocumentStore.class},
-                new InvocationHandler() {
-                    @Override
-                    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-                        if (unsupportedMethods.contains(method.getName())) {
-                            throw new UnsupportedOperationException(String.format("Method - %s. Params: %s",
-                                    method.getName(), Arrays.toString(args)));
-                        }
-                        return method.invoke(delegate, args);
+        return (DocumentStore) Proxy.newProxyInstance(DocumentStore.class.getClassLoader(),
+            new Class[]{DocumentStore.class},
+            new InvocationHandler() {
+                @Override
+                public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+                    if (unsupportedMethods.contains(method.getName())) {
+                        throw new UnsupportedOperationException(
+                            String.format("Method - %s. Params: %s",
+                                method.getName(), Arrays.toString(args)));
                     }
-                });
+                    return method.invoke(delegate, args);
+                }
+            });
     }
 }

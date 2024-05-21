@@ -16,21 +16,21 @@
  */
 package org.apache.jackrabbit.oak.jcr.security.authorization;
 
+import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_NODE_TYPE_DEFINITION_MANAGEMENT;
+
 import javax.jcr.AccessDeniedException;
 import javax.jcr.Workspace;
 import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.nodetype.NodeTypeTemplate;
 import javax.jcr.security.AccessControlPolicy;
-
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_NODE_TYPE_DEFINITION_MANAGEMENT;
-
 /**
  * Permission evaluation tests related to
- * {@link org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants#JCR_NODE_TYPE_DEFINITION_MANAGEMENT}
+ * {@link
+ * org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants#JCR_NODE_TYPE_DEFINITION_MANAGEMENT}
  * privilege.
  */
 public class NodeTypeDefinitionManagementTest extends AbstractEvaluationTest {
@@ -81,7 +81,7 @@ public class NodeTypeDefinitionManagementTest extends AbstractEvaluationTest {
         ntds[0] = ntd;
         ntds[1] = ntm.createNodeTypeTemplate();
         ntds[1].setName("anotherRegisterNodeType");
-        ntds[1].setDeclaredSuperTypeNames(new String[] {"nt:file"});
+        ntds[1].setDeclaredSuperTypeNames(new String[]{"nt:file"});
         try {
             ntm.registerNodeTypes(ntds, true);
             fail("Node type registration should be denied.");
@@ -121,7 +121,7 @@ public class NodeTypeDefinitionManagementTest extends AbstractEvaluationTest {
             ntds[0] = ntd;
             ntds[1] = ntm.createNodeTypeTemplate();
             ntds[1].setName("anotherRegisterNodeTypeWithPrivilege");
-            ntds[1].setDeclaredSuperTypeNames(new String[] {"nt:file"});
+            ntds[1].setDeclaredSuperTypeNames(new String[]{"nt:file"});
             ntm.registerNodeTypes(ntds, true);
         } finally {
             modify(null, JCR_NODE_TYPE_DEFINITION_MANAGEMENT.toString(), false);
@@ -147,7 +147,7 @@ public class NodeTypeDefinitionManagementTest extends AbstractEvaluationTest {
             }
             try {
                 NodeTypeManager testNtm = testWsp.getNodeTypeManager();
-                testNtm.unregisterNodeTypes(new String[] {ntd.getName()});
+                testNtm.unregisterNodeTypes(new String[]{ntd.getName()});
                 fail("Node type unregistration should be denied.");
             } catch (AccessDeniedException e) {
                 // success

@@ -19,9 +19,8 @@
 
 package org.apache.jackrabbit.oak.commons.junit;
 
-import org.junit.rules.ExternalResource;
-
 import java.util.Properties;
+import org.junit.rules.ExternalResource;
 
 public class TemporarySystemProperty extends ExternalResource {
 

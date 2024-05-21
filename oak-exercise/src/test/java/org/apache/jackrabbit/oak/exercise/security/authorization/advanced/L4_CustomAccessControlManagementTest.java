@@ -16,6 +16,10 @@
  */
 package org.apache.jackrabbit.oak.exercise.security.authorization.advanced;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.security.Principal;
@@ -30,10 +34,9 @@ import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.AccessControlPolicyIterator;
 import javax.jcr.security.NamedAccessControlPolicy;
-
+import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -63,10 +66,6 @@ import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedNodeImporter;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 /**
  * <pre>
@@ -221,13 +220,16 @@ public class L4_CustomAccessControlManagementTest extends AbstractSecurityTest {
     @Override
     protected SecurityProvider initSecurityProvider() {
         ThreeRolesAuthorizationConfiguration threeRolesAuthorizationConfiguration = new ThreeRolesAuthorizationConfiguration();
-        threeRolesAuthorizationConfiguration.setParameters(ConfigurationParameters.of("supportedPath", "/test"));
+        threeRolesAuthorizationConfiguration.setParameters(
+            ConfigurationParameters.of("supportedPath", "/test"));
 
         CustomPrincipalConfiguration pc = new CustomPrincipalConfiguration();
-        pc.setParameters(ConfigurationParameters.of("knownPrincipals", new String[] {"principalR", "principalE", "principalO"}));
+        pc.setParameters(ConfigurationParameters.of("knownPrincipals",
+            new String[]{"principalR", "principalE", "principalO"}));
 
         SecurityProvider sp = super.initSecurityProvider();
-        SecurityProviderHelper.updateConfig(sp, threeRolesAuthorizationConfiguration, AuthorizationConfiguration.class);
+        SecurityProviderHelper.updateConfig(sp, threeRolesAuthorizationConfiguration,
+            AuthorizationConfiguration.class);
         SecurityProviderHelper.updateConfig(sp, pc, PrincipalConfiguration.class);
 
         return sp;
@@ -235,29 +237,36 @@ public class L4_CustomAccessControlManagementTest extends AbstractSecurityTest {
 
     @Override
     protected ConfigurationParameters getSecurityConfigParameters() {
-        return ConfigurationParameters.of("authorizationCompositionType", CompositeAuthorizationConfiguration.CompositionType.OR.toString());
+        return ConfigurationParameters.of("authorizationCompositionType",
+            CompositeAuthorizationConfiguration.CompositionType.OR.toString());
     }
 
     @Override
     public void before() throws Exception {
         super.before();
 
-        Tree testTree = TreeUtil.addChild(root.getTree("/"), "test", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        Tree testTree = TreeUtil.addChild(root.getTree("/"), "test",
+            NodeTypeConstants.NT_OAK_UNSTRUCTURED);
         Tree aTree = TreeUtil.addChild(testTree, "a", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
         aTree.setProperty("aProp", "value");
 
         Tree abTree = TreeUtil.addChild(aTree, "b", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
         abTree.setProperty("abProp", "value");
 
-
-        TreeUtil.addMixin(aTree, ThreeRolesConstants.MIX_REP_THREE_ROLES_POLICY, root.getTree(NodeTypeConstants.NODE_TYPES_PATH), null);
-        Tree rolePolicy = TreeUtil.addChild(aTree, ThreeRolesConstants.REP_3_ROLES_POLICY, ThreeRolesConstants.NT_REP_THREE_ROLES_POLICY);
-        rolePolicy.setProperty(ThreeRolesConstants.REP_READERS, ImmutableSet.of("principalR", EveryonePrincipal.NAME), Type.STRINGS);
-        rolePolicy.setProperty(ThreeRolesConstants.REP_EDITORS, ImmutableSet.of("principalE",getTestUser().getPrincipal().getName()), Type.STRINGS);
-        rolePolicy.setProperty(ThreeRolesConstants.REP_OWNERS,  ImmutableSet.of("principalO"), Type.STRINGS);
+        TreeUtil.addMixin(aTree, ThreeRolesConstants.MIX_REP_THREE_ROLES_POLICY,
+            root.getTree(NodeTypeConstants.NODE_TYPES_PATH), null);
+        Tree rolePolicy = TreeUtil.addChild(aTree, ThreeRolesConstants.REP_3_ROLES_POLICY,
+            ThreeRolesConstants.NT_REP_THREE_ROLES_POLICY);
+        rolePolicy.setProperty(ThreeRolesConstants.REP_READERS,
+            ImmutableSet.of("principalR", EveryonePrincipal.NAME), Type.STRINGS);
+        rolePolicy.setProperty(ThreeRolesConstants.REP_EDITORS,
+            ImmutableSet.of("principalE", getTestUser().getPrincipal().getName()), Type.STRINGS);
+        rolePolicy.setProperty(ThreeRolesConstants.REP_OWNERS, ImmutableSet.of("principalO"),
+            Type.STRINGS);
 
         // add one node outside the scope of the supported path
-        Tree outside = TreeUtil.addChild(root.getTree("/"), "outside", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        Tree outside = TreeUtil.addChild(root.getTree("/"), "outside",
+            NodeTypeConstants.NT_OAK_UNSTRUCTURED);
 
         root.commit();
 
@@ -272,25 +281,26 @@ public class L4_CustomAccessControlManagementTest extends AbstractSecurityTest {
     }
 
     private AccessControlManager getAcManager(@NotNull Root root) {
-        return getConfig(AuthorizationConfiguration.class).getAccessControlManager(root, NamePathMapper.DEFAULT);
+        return getConfig(AuthorizationConfiguration.class).getAccessControlManager(root,
+            NamePathMapper.DEFAULT);
     }
 
     private Repository buildJcrRepository() {
         return new RepositoryImpl(
-                getContentRepository(),
-                new DefaultWhiteboard(),
-                getSecurityProvider(),
-                Jcr.DEFAULT_OBSERVATION_QUEUE_LENGTH,
-                null,
-                false,
-                true);
+            getContentRepository(),
+            new DefaultWhiteboard(),
+            getSecurityProvider(),
+            Jcr.DEFAULT_OBSERVATION_QUEUE_LENGTH,
+            null,
+            false,
+            true);
     }
 
 
     /**
-     * EXERCISE: complete {@link AccessControlManager#getPolicies(String)} such that
-     * the policy that has been 'manually' created in the setup is properly exposed
-     * by the access control management API.
+     * EXERCISE: complete {@link AccessControlManager#getPolicies(String)} such that the policy that
+     * has been 'manually' created in the setup is properly exposed by the access control management
+     * API.
      */
     @Test
     public void testGetPolicies() throws Exception {
@@ -301,24 +311,28 @@ public class L4_CustomAccessControlManagementTest extends AbstractSecurityTest {
 
         // EXERCISE: additionally assert that the policies is of the type you defined
         for (int i = 0; i < len; i++) {
-            assertTrue(policies[i] instanceof AccessControlPolicy); // EXERCISE: replace by type chosen!
+            assertTrue(
+                policies[i] instanceof AccessControlPolicy); // EXERCISE: replace by type chosen!
         }
     }
 
     @Test
     public void testGetEffectivePolicies() throws Exception {
         // EXERCISE: set expected number of effective policies for all paths in the map.
-        Map<String,Integer> m = ImmutableMap.of("/", -1, "/test", -1, "/test/a/b", -1, "/outside", -1);
+        Map<String, Integer> m = ImmutableMap.of("/", -1, "/test", -1, "/test/a/b", -1, "/outside",
+            -1);
 
         for (String path : m.keySet()) {
             AccessControlPolicy[] policies = getAcManager(root).getEffectivePolicies(path);
 
-            int len = m.get(path); // EXERCISE: set expected length. 1 is the minimum but there might be more.
+            int len = m.get(
+                path); // EXERCISE: set expected length. 1 is the minimum but there might be more.
             assertEquals(len, policies.length);
 
             // EXERCISE: additionally assert that the policies is of the type you defined
             for (int i = 0; i < len; i++) {
-                assertTrue(policies[i] instanceof AccessControlPolicy); // EXERCISE: replace by type chosen!
+                assertTrue(
+                    policies[i] instanceof AccessControlPolicy); // EXERCISE: replace by type chosen!
             }
         }
     }
@@ -326,7 +340,7 @@ public class L4_CustomAccessControlManagementTest extends AbstractSecurityTest {
     @Test
     public void testGetApplicablePolicies() throws Exception {
         // EXERCISE: set expected number of applicable policies for all paths in the map.
-        Map<String,Integer> m = ImmutableMap.of("/test/a", -1, "/test/a/b", -1, "/outside", -1);
+        Map<String, Integer> m = ImmutableMap.of("/test/a", -1, "/test/a/b", -1, "/outside", -1);
 
         for (String path : m.keySet()) {
             AccessControlPolicyIterator it = getAcManager(root).getApplicablePolicies(path);
@@ -334,14 +348,16 @@ public class L4_CustomAccessControlManagementTest extends AbstractSecurityTest {
 
             // EXERCISE: additionally assert that the policies is of the type you defined
             while (it.hasNext()) {
-                assertTrue(it.nextAccessControlPolicy() instanceof AccessControlPolicy); // EXERCISE: replace by type chosen!
+                assertTrue(
+                    it.nextAccessControlPolicy() instanceof AccessControlPolicy); // EXERCISE: replace by type chosen!
             }
         }
     }
 
     @Test
     public void testSetPolicy() throws Exception {
-        Tree t = TreeUtil.addChild(root.getTree("/test"), "another", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        Tree t = TreeUtil.addChild(root.getTree("/test"), "another",
+            NodeTypeConstants.NT_OAK_UNSTRUCTURED);
         AccessControlManager acMgr = getAcManager(root);
         AccessControlPolicy[] policies = acMgr.getPolicies(t.getPath());
 
@@ -352,15 +368,17 @@ public class L4_CustomAccessControlManagementTest extends AbstractSecurityTest {
         root.commit();
 
         PrincipalManager pm = getPrincipalManager(root);
-        Map<Principal,Long> m = ImmutableMap.of(
-                getTestUser().getPrincipal(), Permissions.NO_PERMISSION,
-                pm.getEveryone(), Permissions.NO_PERMISSION,
-                pm.getPrincipal("principalR"), Permissions.READ,
-                pm.getPrincipal("principalE"), Permissions.NO_PERMISSION,
-                pm.getPrincipal("principalO"), ThreeRolesConstants.SUPPORTED_PERMISSIONS
+        Map<Principal, Long> m = ImmutableMap.of(
+            getTestUser().getPrincipal(), Permissions.NO_PERMISSION,
+            pm.getEveryone(), Permissions.NO_PERMISSION,
+            pm.getPrincipal("principalR"), Permissions.READ,
+            pm.getPrincipal("principalE"), Permissions.NO_PERMISSION,
+            pm.getPrincipal("principalO"), ThreeRolesConstants.SUPPORTED_PERMISSIONS
         );
         for (Principal principal : m.keySet()) {
-            PermissionProvider pp = getConfig(AuthorizationConfiguration.class).getPermissionProvider(root, adminSession.getWorkspaceName(), ImmutableSet.of(principal));
+            PermissionProvider pp = getConfig(
+                AuthorizationConfiguration.class).getPermissionProvider(root,
+                adminSession.getWorkspaceName(), ImmutableSet.of(principal));
             assertTrue(pp.isGranted(t, null, m.get(principal)));
         }
     }
@@ -380,8 +398,11 @@ public class L4_CustomAccessControlManagementTest extends AbstractSecurityTest {
 
         try (ContentSession cs = createTestSession()) {
             Root r = createTestSession().getLatestRoot();
-            PermissionProvider pp = getConfig(AuthorizationConfiguration.class).getPermissionProvider(r, cs.getWorkspaceName(), cs.getAuthInfo().getPrincipals());
-            assertTrue(pp.isGranted("/test/a", Permissions.getString(ThreeRolesConstants.SUPPORTED_PERMISSIONS)));
+            PermissionProvider pp = getConfig(
+                AuthorizationConfiguration.class).getPermissionProvider(r, cs.getWorkspaceName(),
+                cs.getAuthInfo().getPrincipals());
+            assertTrue(pp.isGranted("/test/a",
+                Permissions.getString(ThreeRolesConstants.SUPPORTED_PERMISSIONS)));
         }
     }
 
@@ -401,7 +422,8 @@ public class L4_CustomAccessControlManagementTest extends AbstractSecurityTest {
         Tree test = root.getTree("/test");
 
         try {
-            Tree missingMixin = TreeUtil.addChild(test, ThreeRolesConstants.REP_3_ROLES_POLICY, ThreeRolesConstants.NT_REP_THREE_ROLES_POLICY);
+            Tree missingMixin = TreeUtil.addChild(test, ThreeRolesConstants.REP_3_ROLES_POLICY,
+                ThreeRolesConstants.NT_REP_THREE_ROLES_POLICY);
             root.commit();
             fail("Adding policy without mixin must fail.");
         } catch (CommitFailedException e) {
@@ -411,29 +433,36 @@ public class L4_CustomAccessControlManagementTest extends AbstractSecurityTest {
         try {
             test.setProperty(ThreeRolesConstants.REP_OWNERS, 437);
             root.commit();
-            fail("Using name of protected policy property outside of the context of a policy must fail.");
+            fail(
+                "Using name of protected policy property outside of the context of a policy must fail.");
         } catch (CommitFailedException e) {
             // success
         }
 
         try {
             Tree b = root.getTree("/test/a/b");
-            TreeUtil.addMixin(b, ThreeRolesConstants.MIX_REP_THREE_ROLES_POLICY, root.getTree(NodeTypeConstants.NODE_TYPES_PATH), null);
-            Tree nestedPolicy = TreeUtil.addChild(b, ThreeRolesConstants.REP_3_ROLES_POLICY, ThreeRolesConstants.NT_REP_THREE_ROLES_POLICY);
+            TreeUtil.addMixin(b, ThreeRolesConstants.MIX_REP_THREE_ROLES_POLICY,
+                root.getTree(NodeTypeConstants.NODE_TYPES_PATH), null);
+            Tree nestedPolicy = TreeUtil.addChild(b, ThreeRolesConstants.REP_3_ROLES_POLICY,
+                ThreeRolesConstants.NT_REP_THREE_ROLES_POLICY);
             root.commit();
 
-            fail("Creation of nested three-roles-policy must fail (NOTE: this is an arbitrary limitation for the sake of simplifying permission evaluation).");
+            fail(
+                "Creation of nested three-roles-policy must fail (NOTE: this is an arbitrary limitation for the sake of simplifying permission evaluation).");
         } catch (CommitFailedException e) {
             // success
         }
 
         try {
             Tree outside = root.getTree("/outside");
-            TreeUtil.addMixin(outside, ThreeRolesConstants.MIX_REP_THREE_ROLES_POLICY, root.getTree(NodeTypeConstants.NODE_TYPES_PATH), null);
-            Tree nestedPolicy = TreeUtil.addChild(outside, ThreeRolesConstants.REP_3_ROLES_POLICY, ThreeRolesConstants.NT_REP_THREE_ROLES_POLICY);
+            TreeUtil.addMixin(outside, ThreeRolesConstants.MIX_REP_THREE_ROLES_POLICY,
+                root.getTree(NodeTypeConstants.NODE_TYPES_PATH), null);
+            Tree nestedPolicy = TreeUtil.addChild(outside, ThreeRolesConstants.REP_3_ROLES_POLICY,
+                ThreeRolesConstants.NT_REP_THREE_ROLES_POLICY);
             root.commit();
 
-            fail("Creation of nested three-roles-policy outside of the configured supported path must fail.");
+            fail(
+                "Creation of nested three-roles-policy outside of the configured supported path must fail.");
         } catch (CommitFailedException e) {
             // success
         }
@@ -442,7 +471,8 @@ public class L4_CustomAccessControlManagementTest extends AbstractSecurityTest {
 
     @Test
     public void testAccessControlItemsAreProtectedByNodeTypeDefinition() throws Exception {
-        ReadOnlyNodeTypeManager ntMgr = ReadOnlyNodeTypeManager.getInstance(root, NamePathMapper.DEFAULT);
+        ReadOnlyNodeTypeManager ntMgr = ReadOnlyNodeTypeManager.getInstance(root,
+            NamePathMapper.DEFAULT);
 
         Tree aTree = root.getTree("/test/a");
         Tree policyTree = aTree.getChild(ThreeRolesConstants.REP_3_ROLES_POLICY);
@@ -450,8 +480,10 @@ public class L4_CustomAccessControlManagementTest extends AbstractSecurityTest {
         NodeDefinition policyDef = ntMgr.getDefinition(aTree, policyTree);
         assertTrue(policyDef.isProtected());
 
-        for (String propName : new String[] {ThreeRolesConstants.REP_READERS, ThreeRolesConstants.REP_EDITORS, ThreeRolesConstants.REP_OWNERS}) {
-            PropertyDefinition propDef = ntMgr.getDefinition(policyTree, policyTree.getProperty(propName), true);
+        for (String propName : new String[]{ThreeRolesConstants.REP_READERS,
+            ThreeRolesConstants.REP_EDITORS, ThreeRolesConstants.REP_OWNERS}) {
+            PropertyDefinition propDef = ntMgr.getDefinition(policyTree,
+                policyTree.getProperty(propName), true);
             assertTrue(propDef.isProtected());
         }
 
@@ -465,30 +497,37 @@ public class L4_CustomAccessControlManagementTest extends AbstractSecurityTest {
     @Test
     public void testImportNodeWithPolicy() throws Exception {
         Repository jcrRepository = new RepositoryImpl(
-                getContentRepository(),
-                new DefaultWhiteboard(),
-                getSecurityProvider(),
-                Jcr.DEFAULT_OBSERVATION_QUEUE_LENGTH,
-                null,
-                false,
-                false);
+            getContentRepository(),
+            new DefaultWhiteboard(),
+            getSecurityProvider(),
+            Jcr.DEFAULT_OBSERVATION_QUEUE_LENGTH,
+            null,
+            false,
+            false);
 
         Session adminSession = jcrRepository.login(getAdminCredentials(), null);
         try {
             String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
-                    "<sv:node sv:name=\"another2\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
-                        "<sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>oak:Unstructured</sv:value></sv:property>" +
-                        "<sv:property sv:name=\"jcr:mixinTypes\" sv:type=\"Name\"><sv:value>rep:ThreeRolesMixin</sv:value></sv:property>" +
-                        "<sv:node sv:name=\"rep:threeRolesPolicy\" " +
-                            "<sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>rep:ThreeRolesPolicy</sv:value></sv:property>" +
-                            "<sv:property sv:name=\"rep:readers\" sv:type=\"String\"><sv:value>principalR</sv:value></sv:property>" +
-                        "</sv:node>" +
-                    "</sv:node>";
+                "<sv:node sv:name=\"another2\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">"
+                +
+                "<sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>oak:Unstructured</sv:value></sv:property>"
+                +
+                "<sv:property sv:name=\"jcr:mixinTypes\" sv:type=\"Name\"><sv:value>rep:ThreeRolesMixin</sv:value></sv:property>"
+                +
+                "<sv:node sv:name=\"rep:threeRolesPolicy\" " +
+                "<sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>rep:ThreeRolesPolicy</sv:value></sv:property>"
+                +
+                "<sv:property sv:name=\"rep:readers\" sv:type=\"String\"><sv:value>principalR</sv:value></sv:property>"
+                +
+                "</sv:node>" +
+                "</sv:node>";
 
-            adminSession.importXML("/test", new ByteArrayInputStream(xml.getBytes()), ImportUUIDBehavior.IMPORT_UUID_COLLISION_THROW);
+            adminSession.importXML("/test", new ByteArrayInputStream(xml.getBytes()),
+                ImportUUIDBehavior.IMPORT_UUID_COLLISION_THROW);
 
             Node n = adminSession.getNode("/test/another");
-            AccessControlPolicy[] policies = adminSession.getAccessControlManager().getPolicies("/test/another");
+            AccessControlPolicy[] policies = adminSession.getAccessControlManager()
+                                                         .getPolicies("/test/another");
             assertTrue(policies.length > 0);
 
         } finally {
@@ -504,19 +543,26 @@ public class L4_CustomAccessControlManagementTest extends AbstractSecurityTest {
         Session adminSession = jcrRepository.login(getAdminCredentials(), null);
         try {
             String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
-                    "<sv:node sv:name=\"another2\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
-                        "<sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>oak:Unstructured</sv:value></sv:property>" +
-                        "<sv:property sv:name=\"jcr:mixinTypes\" sv:type=\"Name\"><sv:value>rep:ThreeRolesMixin</sv:value></sv:property>" +
-                        "<sv:node sv:name=\"rep:threeRolesPolicy\" " +
-                            "<sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>rep:ThreeRolesPolicy</sv:value></sv:property>" +
-                            "<sv:property sv:name=\"rep:readers\" sv:type=\"String\"><sv:value>unknownPrincipal</sv:value></sv:property>" +
-                        "</sv:node>" +
-                    "</sv:node>";
+                "<sv:node sv:name=\"another2\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">"
+                +
+                "<sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>oak:Unstructured</sv:value></sv:property>"
+                +
+                "<sv:property sv:name=\"jcr:mixinTypes\" sv:type=\"Name\"><sv:value>rep:ThreeRolesMixin</sv:value></sv:property>"
+                +
+                "<sv:node sv:name=\"rep:threeRolesPolicy\" " +
+                "<sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>rep:ThreeRolesPolicy</sv:value></sv:property>"
+                +
+                "<sv:property sv:name=\"rep:readers\" sv:type=\"String\"><sv:value>unknownPrincipal</sv:value></sv:property>"
+                +
+                "</sv:node>" +
+                "</sv:node>";
 
-            adminSession.importXML("/test", new ByteArrayInputStream(xml.getBytes()), ImportUUIDBehavior.IMPORT_UUID_COLLISION_THROW);
+            adminSession.importXML("/test", new ByteArrayInputStream(xml.getBytes()),
+                ImportUUIDBehavior.IMPORT_UUID_COLLISION_THROW);
 
             Node n = adminSession.getNode("/test/another");
-            AccessControlPolicy[] policies = adminSession.getAccessControlManager().getPolicies("/test/another");
+            AccessControlPolicy[] policies = adminSession.getAccessControlManager()
+                                                         .getPolicies("/test/another");
             assertTrue(policies.length > 0);
 
         } finally {

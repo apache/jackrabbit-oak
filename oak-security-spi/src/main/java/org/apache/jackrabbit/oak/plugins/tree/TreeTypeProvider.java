@@ -110,7 +110,8 @@ public final class TreeTypeProvider {
         if (NodeStateUtils.isHidden(name)) {
             type = TreeType.HIDDEN;
         } else if (VersionConstants.VERSION_STORE_ROOT_NAMES.contains(name)) {
-            type = (JcrConstants.JCR_SYSTEM.equals(tree.getParent().getName())) ?  TreeType.VERSION : TreeType.DEFAULT;
+            type = (JcrConstants.JCR_SYSTEM.equals(tree.getParent().getName())) ? TreeType.VERSION
+                : TreeType.DEFAULT;
         } else if (ctx.definesInternal(tree)) {
             type = TreeType.INTERNAL;
         } else if (ctx.definesContextRoot(tree)) {

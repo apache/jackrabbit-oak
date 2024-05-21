@@ -19,8 +19,8 @@
 
 Following a quick reminder on how to do branching for a stable release.
 
-It's based on the 1.8 branching, fix the commands where needed. For 
-details about each option please refer to the 
+It's based on the 1.8 branching, fix the commands where needed. For
+details about each option please refer to the
 [official documentation](http://maven.apache.org/maven-release/maven-release-plugin/branch-mojo.html).
 
 ## 1. Test the command locally
@@ -37,14 +37,14 @@ Check that the following files contains the right versions
     pom.xml.branch        # should be 1.8.0-SNAPSHOT
     pom.xml.next          # should be 1.10-SNAPSHOT
     pom.xml.releaseBackup # should be 1.8-SNAPSHOT
-    
+
 ## 2. Revert the local changes
 
 You'll have a bunch of files locally that are not committed to Git.
 Just to have a clean situation clean up everything
 
     $ git clean -f
-    
+
 ## 3. Actual branching
 
 Re-execute the first command **without** the `-DdryRun=true`
@@ -57,8 +57,8 @@ Now you can checkout the branch and proceed with the release as normal.
 
 ## 4. Final Checks and leftovers
 
-`release:branch` will leave behind the `oak-doc`'s pom. You'll have to 
-manually update the version referring to the new `oak-parent`. 
+`release:branch` will leave behind the `oak-doc`'s pom. You'll have to
+manually update the version referring to the new `oak-parent`.
 See [r1820738](http://svn.apache.org/r1820738) for an example.
 
 ## References

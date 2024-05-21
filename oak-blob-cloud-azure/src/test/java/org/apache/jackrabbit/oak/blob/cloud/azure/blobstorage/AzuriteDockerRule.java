@@ -20,6 +20,13 @@ import com.microsoft.azure.storage.CloudStorageAccount;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlobClient;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
+import java.net.URISyntaxException;
+import java.security.InvalidKeyException;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.Assume;
 import org.junit.rules.ExternalResource;
 import org.junit.runner.Description;
@@ -28,17 +35,10 @@ import org.junit.runners.model.Statement;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.utility.DockerImageName;
 
-import java.net.URISyntaxException;
-import java.security.InvalidKeyException;
-import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicReference;
-
 public class AzuriteDockerRule extends ExternalResource {
 
-    private static final DockerImageName DOCKER_IMAGE_NAME = DockerImageName.parse("mcr.microsoft.com/azure-storage/azurite:3.29.0");
+    private static final DockerImageName DOCKER_IMAGE_NAME = DockerImageName.parse(
+        "mcr.microsoft.com/azure-storage/azurite:3.29.0");
     public static final String ACCOUNT_KEY = "Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==";
     public static final String ACCOUNT_NAME = "devstoreaccount1";
     private static final AtomicReference<Exception> STARTUP_EXCEPTION = new AtomicReference<>();
@@ -48,9 +48,9 @@ public class AzuriteDockerRule extends ExternalResource {
     @Override
     protected void before() throws Throwable {
         azuriteContainer = new GenericContainer<>(DOCKER_IMAGE_NAME)
-                .withExposedPorts(10000)
-                .withEnv(Map.of("executable", "blob"))
-                .withStartupTimeout(Duration.ofSeconds(30));
+            .withExposedPorts(10000)
+            .withEnv(Map.of("executable", "blob"))
+            .withStartupTimeout(Duration.ofSeconds(30));
 
         try {
             azuriteContainer.start();
@@ -100,7 +100,8 @@ public class AzuriteDockerRule extends ExternalResource {
         return "http://127.0.0.1:" + getMappedPort() + "/devstoreaccount1";
     }
 
-    public CloudBlobContainer getContainer(String name) throws URISyntaxException, StorageException, InvalidKeyException {
+    public CloudBlobContainer getContainer(String name)
+        throws URISyntaxException, StorageException, InvalidKeyException {
         CloudStorageAccount cloud = getCloudStorageAccount();
         CloudBlobClient cloudBlobClient = cloud.createCloudBlobClient();
         CloudBlobContainer container = cloudBlobClient.getContainerReference(name);
@@ -109,11 +110,14 @@ public class AzuriteDockerRule extends ExternalResource {
         return container;
     }
 
-    public CloudStorageAccount getCloudStorageAccount() throws URISyntaxException, InvalidKeyException {
+    public CloudStorageAccount getCloudStorageAccount()
+        throws URISyntaxException, InvalidKeyException {
         String blobEndpoint = "BlobEndpoint=" + getBlobEndpoint();
         String accountName = "AccountName=" + ACCOUNT_NAME;
         String accountKey = "AccountKey=" + ACCOUNT_KEY;
-        return CloudStorageAccount.parse("DefaultEndpointsProtocol=http;" + ";" + accountName + ";" + accountKey + ";" + blobEndpoint);
+        return CloudStorageAccount.parse(
+            "DefaultEndpointsProtocol=http;" + ";" + accountName + ";" + accountKey + ";"
+                + blobEndpoint);
     }
 
     public int getMappedPort() {

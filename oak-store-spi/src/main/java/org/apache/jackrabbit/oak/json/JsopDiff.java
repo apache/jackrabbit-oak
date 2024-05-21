@@ -16,9 +16,9 @@
  */
 package org.apache.jackrabbit.oak.json;
 
-import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 
@@ -36,7 +36,7 @@ public class JsopDiff implements NodeStateDiff {
     private final int depth;
 
     private JsopDiff(
-            JsopBuilder jsop, BlobSerializer blobs, String path, int depth) {
+        JsopBuilder jsop, BlobSerializer blobs, String path, int depth) {
         this.jsop = jsop;
         this.blobs = blobs;
 
@@ -70,16 +70,15 @@ public class JsopDiff implements NodeStateDiff {
     }
 
     /**
-     * Create the JSOP diff between {@code before} and {@code after} for
-     * debugging purposes.
+     * Create the JSOP diff between {@code before} and {@code after} for debugging purposes.
      * <p>
-     * This method does not store binaries but returns them inlined
-     * in the format <code>Blob{...}</code>, where the <code>...</code>
-     * is implementation-dependent - typically the SHA256 hash of the binary.
+     * This method does not store binaries but returns them inlined in the format
+     * <code>Blob{...}</code>, where the <code>...</code> is implementation-dependent - typically
+     * the SHA256 hash of the binary.
      *
-     * @param before  before node state
+     * @param before before node state
      * @param after  after node state
-     * @return  jsop diff between {@code before} and {@code after}
+     * @return jsop diff between {@code before} and {@code after}
      */
     public static String diffToJsop(NodeState before, NodeState after) {
         JsopDiff diff = new JsopDiff();
@@ -126,7 +125,7 @@ public class JsopDiff implements NodeStateDiff {
     public boolean childNodeChanged(String name, NodeState before, NodeState after) {
         if (depth > 0) {
             after.compareAgainstBaseState(before, new JsopDiff(
-                    jsop, blobs, buildPath(name), depth - 1));
+                jsop, blobs, buildPath(name), depth - 1));
         } else {
             jsop.tag('^');
             jsop.key(buildPath(name));

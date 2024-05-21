@@ -27,7 +27,8 @@ import org.jetbrains.annotations.Nullable;
 
 final class EntryPredicate {
 
-    private EntryPredicate() {}
+    private EntryPredicate() {
+    }
 
     @NotNull
     static Predicate<PermissionEntry> create() {
@@ -38,7 +39,7 @@ final class EntryPredicate {
     static Predicate<PermissionEntry> create(@NotNull String oakPath) {
         return permissionEntry -> permissionEntry.matches(oakPath);
     }
-    
+
     @NotNull
     static Predicate<PermissionEntry> create(@NotNull String oakPath, boolean isProperty) {
         return permissionEntry -> permissionEntry.matches(oakPath, isProperty);
@@ -49,7 +50,8 @@ final class EntryPredicate {
         if (!tree.exists()) {
             // target node does not exist (anymore) in this workspace
             // use best effort calculation based on the item path.
-            String predicatePath = (property == null) ? tree.getPath() : PathUtils.concat(tree.getPath(), property.getName());
+            String predicatePath = (property == null) ? tree.getPath()
+                : PathUtils.concat(tree.getPath(), property.getName());
             return create(predicatePath, property != null);
         } else {
             return permissionEntry -> permissionEntry.matches(tree, property);
@@ -57,17 +59,20 @@ final class EntryPredicate {
     }
 
     @NotNull
-    static Predicate<PermissionEntry> createParent(@NotNull String treePath, @Nullable Tree parentTree, long permissions) {
+    static Predicate<PermissionEntry> createParent(@NotNull String treePath,
+        @Nullable Tree parentTree, long permissions) {
         if (!Permissions.respectParentPermissions(permissions)) {
             return Predicates.alwaysFalse();
         }
         if (treePath.isEmpty() || PathUtils.denotesRoot(treePath)) {
             return Predicates.alwaysFalse();
         } else if (parentTree != null && parentTree.exists()) {
-            return permissionEntry -> permissionEntry.appliesTo(parentTree.getPath()) && permissionEntry.matches(parentTree, null);
+            return permissionEntry -> permissionEntry.appliesTo(parentTree.getPath())
+                && permissionEntry.matches(parentTree, null);
         } else {
             String parentPath = PathUtils.getParentPath(treePath);
-            return permissionEntry -> permissionEntry.appliesTo(parentPath) && permissionEntry.matches(parentPath, false);
+            return permissionEntry -> permissionEntry.appliesTo(parentPath)
+                && permissionEntry.matches(parentPath, false);
         }
     }
 
@@ -81,7 +86,8 @@ final class EntryPredicate {
         } else {
             if (!tree.isRoot()) {
                 Tree parentTree = tree.getParent();
-                return permissionEntry -> permissionEntry.appliesTo(parentTree.getPath()) && permissionEntry.matches(parentTree, null);
+                return permissionEntry -> permissionEntry.appliesTo(parentTree.getPath())
+                    && permissionEntry.matches(parentTree, null);
             } else {
                 return Predicates.alwaysFalse();
             }

@@ -1,9 +1,9 @@
 /*
  * dk.brics.automaton
- * 
+ *
  * Copyright (c) 2001-2009 Anders Moeller
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -14,7 +14,7 @@
  *    documentation and/or other materials provided with the distribution.
  * 3. The name of the author may not be used to endorse or promote products
  *    derived from this software without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
  * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
  * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
@@ -40,19 +40,18 @@ package org.apache.lucene.util.automaton;
 import java.io.IOException;
 
 /**
- * Automaton provider for <code>RegExp.</code>
- * {@link RegExp#toAutomaton(AutomatonProvider)}
- * 
+ * Automaton provider for <code>RegExp.</code> {@link RegExp#toAutomaton(AutomatonProvider)}
+ *
  * @lucene.experimental
  */
 public interface AutomatonProvider {
-  
-  /**
-   * Returns automaton of the given name.
-   * 
-   * @param name automaton name
-   * @return automaton
-   * @throws IOException if errors occur
-   */
-  public Automaton getAutomaton(String name) throws IOException;
+
+    /**
+     * Returns automaton of the given name.
+     *
+     * @param name automaton name
+     * @return automaton
+     * @throws IOException if errors occur
+     */
+    public Automaton getAutomaton(String name) throws IOException;
 }

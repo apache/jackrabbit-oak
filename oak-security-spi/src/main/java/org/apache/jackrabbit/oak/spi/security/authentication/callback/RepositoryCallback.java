@@ -17,17 +17,15 @@
 package org.apache.jackrabbit.oak.spi.security.authentication.callback;
 
 import javax.security.auth.callback.Callback;
-
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginModuleMonitor;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Callback implementation used to access the repository. It allows to set and
- * get the {@code ContentRepository} and the name of the workspace for which
- * the login applies. In addition it provides access to a {@link SecurityProvider}
- * associated with the content repository.
+ * Callback implementation used to access the repository. It allows to set and get the
+ * {@code ContentRepository} and the name of the workspace for which the login applies. In addition
+ * it provides access to a {@link SecurityProvider} associated with the content repository.
  */
 public class RepositoryCallback implements Callback {
 

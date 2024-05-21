@@ -24,8 +24,8 @@ import java.util.Map;
 /**
  * Utility class to silence log output based on a specific key.
  * <p>
- * The key, together with the timeout, will be put into a small LRU cache
- * and later used to determine silencing or not.
+ * The key, together with the timeout, will be put into a small LRU cache and later used to
+ * determine silencing or not.
  */
 public class LogSilencer {
 
@@ -37,12 +37,12 @@ public class LogSilencer {
 
     @SuppressWarnings("serial")
     private final Map<String, Long> silences = Collections.synchronizedMap(
-            new LinkedHashMap<String, Long>() {
+        new LinkedHashMap<String, Long>() {
 
-        protected final boolean removeEldestEntry(Map.Entry<String, Long> eldest) {
-            return size() > cacheSize;
-        }
-    });
+            protected final boolean removeEldestEntry(Map.Entry<String, Long> eldest) {
+                return size() > cacheSize;
+            }
+        });
 
     public LogSilencer() {
         this(DEFAULT_SILENCE_MILLIS, DEFAULT_CACHE_SIZE);
@@ -50,12 +50,13 @@ public class LogSilencer {
 
     /**
      * Create a new LogSilencer
-     * @param silenceMillis milliseconds after which the silences herein should time out.
-     * If the value is &lt;0 it means no timeout, if it is ==0 it is silenced only
-     * for the very same millisecond, and &gt;0 the silence is active for that specified
-     * amount of time.
-     * @param cacheSize the size of the cache held by the LogSilencer. The cache is
-     * used to store the keys and timeout values for each of them.
+     *
+     * @param silenceMillis milliseconds after which the silences herein should time out. If the
+     *                      value is &lt;0 it means no timeout, if it is ==0 it is silenced only for
+     *                      the very same millisecond, and &gt;0 the silence is active for that
+     *                      specified amount of time.
+     * @param cacheSize     the size of the cache held by the LogSilencer. The cache is used to
+     *                      store the keys and timeout values for each of them.
      */
     public LogSilencer(long silenceMillis, int cacheSize) {
         if (cacheSize <= 0) {
@@ -68,12 +69,13 @@ public class LogSilencer {
     /**
      * Determine whether based on a provided key logging about that key should be silenced.
      * <p>
-     * The actual scope and context of the provided key is entirely up to the caller
-     * and not relevant for the LogSilencer. All the LogSilencer is trying to do
-     * is to provide a mechanism to "silence based on a key"
+     * The actual scope and context of the provided key is entirely up to the caller and not
+     * relevant for the LogSilencer. All the LogSilencer is trying to do is to provide a mechanism
+     * to "silence based on a key"
+     *
      * @param key a key within the caller's context which identified some log
-     * @return whether a silence for the provided key is in place or not.
-     * The silence times out after a certain, configurable amount of time.
+     * @return whether a silence for the provided key is in place or not. The silence times out
+     * after a certain, configurable amount of time.
      */
     public final boolean silence(String key) {
         // this is only "approximately now", since we only get the timestamp

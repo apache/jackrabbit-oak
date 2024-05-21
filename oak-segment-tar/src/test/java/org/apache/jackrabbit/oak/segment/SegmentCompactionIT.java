@@ -19,7 +19,6 @@
 
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static java.lang.Boolean.parseBoolean;
 import static java.lang.Integer.MAX_VALUE;
 import static java.lang.Integer.getInteger;
@@ -29,6 +28,7 @@ import static java.util.concurrent.TimeUnit.DAYS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.commons.lang3.RandomStringUtils.randomAlphabetic;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.oak.segment.SegmentCache.DEFAULT_SEGMENT_CACHE_MB;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.GCType.FULL;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.GCType.TAIL;
@@ -51,7 +51,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
-import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -67,13 +66,11 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
-
 import javax.management.InstanceAlreadyExistsException;
 import javax.management.MBeanRegistrationException;
 import javax.management.MBeanServer;
 import javax.management.NotCompliantMBeanException;
 import javax.management.ObjectName;
-
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -117,10 +114,12 @@ import org.slf4j.LoggerFactory;
 /**
  * <p>This is a longevity test for revision garbage collection.</p>
  *
- * <p>The test schedules a number of readers, writers, a compactor and holds some references for a certain time.
- * All of which can be interactively modified through the accompanying {@link SegmentCompactionITMBean} and the {@link SegmentRevisionGC}.
+ * <p>The test schedules a number of readers, writers, a compactor and holds some references for a
+ * certain time. All of which can be interactively modified through the accompanying
+ * {@link SegmentCompactionITMBean} and the {@link SegmentRevisionGC}.
  *
- *<p>The test is <b>disabled</b> by default, to run it you need to set the {@code SegmentCompactionIT} system property:<br>
+ * <p>The test is <b>disabled</b> by default, to run it you need to set the
+ * {@code SegmentCompactionIT} system property:<br>
  * {@code mvn test -Dtest=SegmentCompactionIT -Dtest.opts.memory=-Xmx4G}
  * </p>
  *
@@ -132,13 +131,16 @@ public class SegmentCompactionIT {
         System.setProperty("oak.gc.backoff", "1");
     }
 
-    /** Only run if explicitly asked to via -Dtest=SegmentCompactionIT */
+    /**
+     * Only run if explicitly asked to via -Dtest=SegmentCompactionIT
+     */
     private static final boolean ENABLED =
-            SegmentCompactionIT.class.getSimpleName().equals(getProperty("test"));
+        SegmentCompactionIT.class.getSimpleName().equals(getProperty("test"));
 
     private static final boolean MMAP = parseBoolean(getProperty("mmap", "true"));
 
-    private static final int SEGMENT_CACHE_SIZE = getInteger("segment-cache", DEFAULT_SEGMENT_CACHE_MB);
+    private static final int SEGMENT_CACHE_SIZE = getInteger("segment-cache",
+        DEFAULT_SEGMENT_CACHE_MB);
 
     private static final Logger LOG = LoggerFactory.getLogger(SegmentCompactionIT.class);
 
@@ -149,8 +151,8 @@ public class SegmentCompactionIT {
     private final FileStoreGCMonitor fileStoreGCMonitor = new FileStoreGCMonitor(Clock.SIMPLE);
     private final TestGCMonitor gcMonitor = new TestGCMonitor(fileStoreGCMonitor);
     private final SegmentGCOptions gcOptions = defaultGCOptions()
-                .setEstimationDisabled(true)
-                .setForceTimeout(3600);
+        .setEstimationDisabled(true)
+        .setForceTimeout(3600);
     private final Set<Future<?>> writers = ConcurrentHashMap.newKeySet();
     private final Set<Future<?>> readers = ConcurrentHashMap.newKeySet();
     private final Set<Future<?>> references = ConcurrentHashMap.newKeySet();
@@ -161,7 +163,8 @@ public class SegmentCompactionIT {
     private SegmentNodeStore nodeStore;
     private Registration mBeanRegistration;
 
-    private volatile CompletableFuture<?> compactor = CompletableFuture.failedFuture(new IllegalStateException("NotInitialised"));
+    private volatile CompletableFuture<?> compactor = CompletableFuture.failedFuture(
+        new IllegalStateException("NotInitialised"));
 
     private volatile ReadWriteLock compactionLock = null;
     private volatile int maxReaders = getInteger("SegmentCompactionIT.maxReaders", 10);
@@ -192,7 +195,7 @@ public class SegmentCompactionIT {
 
     @Rule
     public TestRule logLevelModifier = new LogLevelModifier()
-            .setLoggerLevel(SegmentTarReader.class.getName(), "debug");
+        .setLoggerLevel(SegmentTarReader.class.getName(), "debug");
 
 
     public synchronized void stop() {
@@ -234,8 +237,8 @@ public class SegmentCompactionIT {
     }
 
     private Registration registerMBean(Object mBean, final ObjectName objectName)
-            throws NotCompliantMBeanException, InstanceAlreadyExistsException,
-            MBeanRegistrationException {
+        throws NotCompliantMBeanException, InstanceAlreadyExistsException,
+        MBeanRegistrationException {
         mBeanServer.registerMBean(mBean, objectName);
         return () -> {
             try {
@@ -251,54 +254,57 @@ public class SegmentCompactionIT {
         assumeTrue(ENABLED);
 
         ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
-        MetricStatisticsProvider statisticsProvider = new MetricStatisticsProvider(mBeanServer, executor);
+        MetricStatisticsProvider statisticsProvider = new MetricStatisticsProvider(mBeanServer,
+            executor);
         FileStoreBuilder builder = fileStoreBuilder(folder.getRoot());
         fileStore = builder
-                .withMemoryMapping(MMAP)
-                .withSegmentCacheSize(SEGMENT_CACHE_SIZE)
-                .withGCMonitor(gcMonitor)
-                .withGCOptions(gcOptions)
-                .withIOMonitor(new MetricsIOMonitor(statisticsProvider))
-                .withIOLogging(LoggerFactory.getLogger(SegmentTarReader.class))
-                .withStatisticsProvider(statisticsProvider)
-                .build();
+            .withMemoryMapping(MMAP)
+            .withSegmentCacheSize(SEGMENT_CACHE_SIZE)
+            .withGCMonitor(gcMonitor)
+            .withGCOptions(gcOptions)
+            .withIOMonitor(new MetricsIOMonitor(statisticsProvider))
+            .withIOLogging(LoggerFactory.getLogger(SegmentTarReader.class))
+            .withStatisticsProvider(statisticsProvider)
+            .build();
         nodeStore = SegmentNodeStoreBuilders.builder(fileStore)
-                .withStatisticsProvider(statisticsProvider)
-                .build();
+                                            .withStatisticsProvider(statisticsProvider)
+                                            .build();
         WriterCacheManager cacheManager = builder.getCacheManager();
         Runnable cancelGC = () -> fileStore.cancelGC();
         Supplier<String> status = () -> fileStoreGCMonitor.getStatus();
 
         List<Registration> registrations = new ArrayList<>();
         registrations.add(registerMBean(segmentCompactionMBean,
-                new ObjectName("IT:TYPE=Segment Compaction")));
-        registrations.add(registerMBean(new SegmentRevisionGCMBean(fileStore, gcOptions, fileStoreGCMonitor),
+            new ObjectName("IT:TYPE=Segment Compaction")));
+        registrations.add(
+            registerMBean(new SegmentRevisionGCMBean(fileStore, gcOptions, fileStoreGCMonitor),
                 new ObjectName("IT:TYPE=Segment Revision GC")));
-        registrations.add(registerMBean(new RevisionGC(fileStore.getGCRunner(), cancelGC, status, executor),
+        registrations.add(
+            registerMBean(new RevisionGC(fileStore.getGCRunner(), cancelGC, status, executor),
                 new ObjectName("IT:TYPE=Revision GC")));
         CacheStatsMBean segmentCacheStats = fileStore.getSegmentCacheStats();
         registrations.add(registerMBean(segmentCacheStats,
-                new ObjectName("IT:TYPE=" + segmentCacheStats.getName())));
+            new ObjectName("IT:TYPE=" + segmentCacheStats.getName())));
         CacheStatsMBean stringCacheStats = fileStore.getStringCacheStats();
         registrations.add(registerMBean(stringCacheStats,
-                new ObjectName("IT:TYPE=" + stringCacheStats.getName())));
+            new ObjectName("IT:TYPE=" + stringCacheStats.getName())));
         CacheStatsMBean templateCacheStats = fileStore.getTemplateCacheStats();
         registrations.add(registerMBean(templateCacheStats,
-                new ObjectName("IT:TYPE=" + templateCacheStats.getName())));
+            new ObjectName("IT:TYPE=" + templateCacheStats.getName())));
         CacheStatsMBean stringDeduplicationCacheStats = cacheManager.getStringCacheStats();
         assertNotNull(stringDeduplicationCacheStats);
         registrations.add(registerMBean(stringDeduplicationCacheStats,
-                new ObjectName("IT:TYPE=" + stringDeduplicationCacheStats.getName())));
+            new ObjectName("IT:TYPE=" + stringDeduplicationCacheStats.getName())));
         CacheStatsMBean templateDeduplicationCacheStats = cacheManager.getTemplateCacheStats();
         assertNotNull(templateDeduplicationCacheStats);
         registrations.add(registerMBean(templateDeduplicationCacheStats,
-                new ObjectName("IT:TYPE=" + templateDeduplicationCacheStats.getName())));
+            new ObjectName("IT:TYPE=" + templateDeduplicationCacheStats.getName())));
         CacheStatsMBean nodeDeduplicationCacheStats = cacheManager.getNodeCacheStats();
         assertNotNull(nodeDeduplicationCacheStats);
         registrations.add(registerMBean(nodeDeduplicationCacheStats,
-                new ObjectName("IT:TYPE=" + nodeDeduplicationCacheStats.getName())));
+            new ObjectName("IT:TYPE=" + nodeDeduplicationCacheStats.getName())));
         registrations.add(registerMBean(nodeStore.getStats(),
-                new ObjectName("IT:TYPE=" + "SegmentNodeStore statistics")));
+            new ObjectName("IT:TYPE=" + "SegmentNodeStore statistics")));
         mBeanRegistration = new CompositeRegistration(registrations);
     }
 
@@ -333,30 +339,34 @@ public class SegmentCompactionIT {
     }
 
     private void scheduleSizeMonitor() {
-        scheduler.scheduleAtFixedRate(() -> fileStoreSize = fileStore.getStats().getApproximateSize(), 1, 1, MINUTES);
+        scheduler.scheduleAtFixedRate(
+            () -> fileStoreSize = fileStore.getStats().getApproximateSize(), 1, 1, MINUTES);
     }
 
     private synchronized void scheduleCompactor() {
         compactor.cancel(false);
         GCType gcType = compactionCount.get() % fullCompactionCycle == 0 ? FULL : TAIL;
         LOG.info("Scheduling {} compaction after {} minutes", gcType, compactionInterval);
-        compactor = CompletableFuture.runAsync(new Compactor(fileStore, gcMonitor, gcOptions, gcType),
-                        afterDelay(compactionInterval, MINUTES))
-                .whenComplete((__, throwable) -> {
-                    if (throwable == null) {
-                        compactionCount.incrementAndGet();
-                        scheduleCompactor();
-                    } else {
-                        segmentCompactionMBean.error("Compactor error", throwable);
-                    }
-                });
+        compactor = CompletableFuture.runAsync(
+                                         new Compactor(fileStore, gcMonitor, gcOptions, gcType),
+                                         afterDelay(compactionInterval, MINUTES))
+                                     .whenComplete((__, throwable) -> {
+                                         if (throwable == null) {
+                                             compactionCount.incrementAndGet();
+                                             scheduleCompactor();
+                                         } else {
+                                             segmentCompactionMBean.error("Compactor error",
+                                                 throwable);
+                                         }
+                                     });
     }
 
     private void scheduleWriter() {
         if (writers.size() < maxWriters) {
-            final RandomWriter writer = new RandomWriter(rnd, nodeStore, rnd.nextInt(maxWriteOps), "W" + rnd.nextInt(5));
+            final RandomWriter writer = new RandomWriter(rnd, nodeStore, rnd.nextInt(maxWriteOps),
+                "W" + rnd.nextInt(5));
             CompletableFuture<Void> futureWriter = CompletableFuture.runAsync(writer,
-                    afterDelay(rnd.nextInt(30), SECONDS));
+                afterDelay(rnd.nextInt(30), SECONDS));
             writers.add(futureWriter);
             futureWriter.whenComplete((__, throwable) -> {
                 if (throwable == null) {
@@ -379,7 +389,7 @@ public class SegmentCompactionIT {
                 ? new RandomNodeReader(rnd, nodeStore)
                 : new RandomPropertyReader(rnd, nodeStore);
             final CompletableFuture<?> futureReader = CompletableFuture.supplyAsync(reader,
-                    afterDelay(rnd.nextInt(30), SECONDS));
+                afterDelay(rnd.nextInt(30), SECONDS));
             readers.add(futureReader);
             futureReader.whenComplete((node, throwable) -> {
                 if (throwable == null) {
@@ -404,7 +414,7 @@ public class SegmentCompactionIT {
         if (references.size() < maxReferences) {
             final Reference reference = new Reference(object);
             final CompletableFuture<?> futureReference = CompletableFuture.runAsync(reference,
-                    afterDelay(rnd.nextInt(600), SECONDS));
+                afterDelay(rnd.nextInt(600), SECONDS));
             references.add(futureReference);
             futureReference.whenComplete((__, throwable) -> {
                 if (throwable == null) {
@@ -428,8 +438,11 @@ public class SegmentCompactionIT {
             Checkpoint checkpoint = new Checkpoint(nodeStore);
             Executor afterAquireDelay = afterDelay(checkpointInterval, SECONDS);
             Executor afterReleaseDelay = afterDelay(rnd.nextInt(checkpointInterval), SECONDS);
-            final CompletableFuture<?> futureCheckpoint = CompletableFuture.runAsync(checkpoint::acquire, afterAquireDelay)
-                    .thenRunAsync(checkpoint::release, afterReleaseDelay);
+            final CompletableFuture<?> futureCheckpoint = CompletableFuture.runAsync(
+                                                                               checkpoint::acquire, afterAquireDelay)
+                                                                           .thenRunAsync(
+                                                                               checkpoint::release,
+                                                                               afterReleaseDelay);
             checkpoints.add(futureCheckpoint);
             futureCheckpoint.whenComplete((__, throwable) -> {
                 if (throwable == null) {
@@ -452,6 +465,7 @@ public class SegmentCompactionIT {
     }
 
     private class RandomWriter implements Runnable {
+
         private final Random rnd;
         private final NodeStore nodeStore;
         private final int opCount;
@@ -494,8 +508,10 @@ public class SegmentCompactionIT {
                 if (!cancelled) {
                     try {
                         CommitHook commitHook = rnd.nextBoolean()
-                                ? new CompositeHook(ConflictHook.of(DefaultThreeWayConflictHandler.OURS))
-                                : new CompositeHook(ConflictHook.of(DefaultThreeWayConflictHandler.THEIRS));
+                            ? new CompositeHook(
+                            ConflictHook.of(DefaultThreeWayConflictHandler.OURS))
+                            : new CompositeHook(
+                                ConflictHook.of(DefaultThreeWayConflictHandler.THEIRS));
                         nodeStore.merge(root, commitHook, CommitInfo.EMPTY);
                         segmentCompactionMBean.committed();
                     } catch (CommitFailedException e) {
@@ -514,13 +530,13 @@ public class SegmentCompactionIT {
 
             boolean deleteOnly = fileStoreSize > maxStoreSize;
             double k = rnd.nextDouble();
-            if (k < p0/p) {
+            if (k < p0 / p) {
                 chooseRandomNode(nodeBuilder).remove();
-            } else if (k < p1/p) {
+            } else if (k < p1 / p) {
                 removeRandomProperty(chooseRandomNode(nodeBuilder));
-            } else if (k < p2/p && !deleteOnly)  {
+            } else if (k < p2 / p && !deleteOnly) {
                 addRandomNode(nodeBuilder);
-            } else if (k < p3/p && !deleteOnly) {
+            } else if (k < p3 / p && !deleteOnly) {
                 addRandomValue(nodeBuilder);
             } else if (!deleteOnly) {
                 addRandomBlob(nodeStore, nodeBuilder);
@@ -535,7 +551,8 @@ public class SegmentCompactionIT {
             return childBuilder;
         }
 
-        private NodeBuilder chooseRandomNode(NodeBuilder nodeBuilder, Predicate<NodeBuilder> predicate) {
+        private NodeBuilder chooseRandomNode(NodeBuilder nodeBuilder,
+            Predicate<NodeBuilder> predicate) {
             NodeBuilder childBuilder = chooseRandomNode(nodeBuilder);
             while (!predicate.test(childBuilder)) {
                 childBuilder = randomStep(nodeBuilder, nodeBuilder = childBuilder);
@@ -557,26 +574,28 @@ public class SegmentCompactionIT {
         private void removeRandomProperty(NodeBuilder nodeBuilder) {
             int count = (int) nodeBuilder.getPropertyCount();
             if (count > 0) {
-                PropertyState property = Iterables.get(nodeBuilder.getProperties(), rnd.nextInt(count));
+                PropertyState property = Iterables.get(nodeBuilder.getProperties(),
+                    rnd.nextInt(count));
                 nodeBuilder.removeProperty(property.getName());
             }
         }
 
         private void addRandomNode(NodeBuilder nodeBuilder) {
-            chooseRandomNode(nodeBuilder, builder -> builder.getChildNodeCount(maxNodeCount) < maxNodeCount)
-                    .setChildNode('N' + itemPrefix + rnd.nextInt(maxNodeCount));
+            chooseRandomNode(nodeBuilder,
+                builder -> builder.getChildNodeCount(maxNodeCount) < maxNodeCount)
+                .setChildNode('N' + itemPrefix + rnd.nextInt(maxNodeCount));
         }
 
         private void addRandomValue(NodeBuilder nodeBuilder) {
             chooseRandomNode(nodeBuilder, builder -> builder.getPropertyCount() < maxPropertyCount)
-                    .setProperty('P' + itemPrefix + rnd.nextInt(maxPropertyCount),
-                            randomAlphabetic(rnd.nextInt(maxStringSize)));
+                .setProperty('P' + itemPrefix + rnd.nextInt(maxPropertyCount),
+                    randomAlphabetic(rnd.nextInt(maxStringSize)));
         }
 
         private void addRandomBlob(NodeStore nodeStore, NodeBuilder nodeBuilder) {
             chooseRandomNode(nodeBuilder, builder -> builder.getPropertyCount() < maxPropertyCount)
-                    .setProperty('B' + itemPrefix + rnd.nextInt(maxPropertyCount),
-                            createBlob(nodeStore, rnd.nextInt(maxBlobSize)));
+                .setProperty('B' + itemPrefix + rnd.nextInt(maxPropertyCount),
+                    createBlob(nodeStore, rnd.nextInt(maxBlobSize)));
         }
 
         private Blob createBlob(NodeStore nodeStore, int size) {
@@ -591,6 +610,7 @@ public class SegmentCompactionIT {
     }
 
     private abstract static class RandomReader<T> implements Supplier<T> {
+
         protected final Random rnd;
         protected final NodeStore nodeStore;
 
@@ -635,6 +655,7 @@ public class SegmentCompactionIT {
     }
 
     private static class RandomNodeReader extends RandomReader<NodeState> {
+
         RandomNodeReader(Random rnd, NodeStore nodeStore) {
             super(rnd, nodeStore);
         }
@@ -646,6 +667,7 @@ public class SegmentCompactionIT {
     }
 
     private static class RandomPropertyReader extends RandomReader<PropertyState> {
+
         RandomPropertyReader(Random rnd, NodeStore nodeStore) {
             super(rnd, nodeStore);
         }
@@ -657,6 +679,7 @@ public class SegmentCompactionIT {
     }
 
     private static class Reference implements Runnable {
+
         private volatile Object referent;
 
         Reference(Object referent) {
@@ -670,12 +693,14 @@ public class SegmentCompactionIT {
     }
 
     private class Compactor implements Runnable {
+
         private final FileStore fileStore;
         private final TestGCMonitor gcMonitor;
         private final SegmentGCOptions gcOptions;
         private final GCType gcType;
 
-        Compactor(FileStore fileStore, TestGCMonitor gcMonitor, SegmentGCOptions gcOptions, GCType gcType) {
+        Compactor(FileStore fileStore, TestGCMonitor gcMonitor, SegmentGCOptions gcOptions,
+            GCType gcType) {
             this.fileStore = fileStore;
             this.gcMonitor = gcMonitor;
             this.gcOptions = gcOptions;
@@ -716,6 +741,7 @@ public class SegmentCompactionIT {
     }
 
     private static class Checkpoint {
+
         private final NodeStore nodeStore;
         private volatile String checkpoint;
         private volatile boolean cancelled;
@@ -729,7 +755,8 @@ public class SegmentCompactionIT {
         }
 
         public void release() {
-            while (!cancelled && !nodeStore.release(checkpoint)) {}
+            while (!cancelled && !nodeStore.release(checkpoint)) {
+            }
         }
 
         public void cancel() {
@@ -738,6 +765,7 @@ public class SegmentCompactionIT {
     }
 
     private static class TestGCMonitor implements GCMonitor {
+
         private final GCMonitor delegate;
         private volatile boolean cleaned = true;
         private volatile long lastCompacted;
@@ -801,7 +829,9 @@ public class SegmentCompactionIT {
         }
     }
 
-    private class SegmentCompactionITMBean extends AnnotatedStandardMBean implements SegmentCompactionMBean {
+    private class SegmentCompactionITMBean extends AnnotatedStandardMBean implements
+        SegmentCompactionMBean {
+
         private final AtomicLong commitCount = new AtomicLong();
 
         private String lastError;

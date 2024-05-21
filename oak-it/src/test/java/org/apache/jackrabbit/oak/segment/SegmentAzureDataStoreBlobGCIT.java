@@ -23,21 +23,20 @@ import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.SEGMENT_T
 import static org.apache.jackrabbit.oak.commons.FixturesHelper.getFixtures;
 import static org.junit.Assume.assumeTrue;
 
+import java.io.File;
+import java.util.Properties;
 import org.apache.jackrabbit.guava.common.base.Strings;
-
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants;
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureDataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.junit.After;
 import org.junit.BeforeClass;
 
-import java.io.File;
-import java.util.Properties;
-
 /**
  * Tests for SegmentNodeStore on AzureDataStore GC
  */
 public class SegmentAzureDataStoreBlobGCIT extends SegmentDataStoreBlobGCIT {
+
     protected String containerName;
 
     @BeforeClass
@@ -52,7 +51,8 @@ public class SegmentAzureDataStoreBlobGCIT extends SegmentDataStoreBlobGCIT {
         containerName = rootFolder.getName();
         props.setProperty(AzureConstants.AZURE_BLOB_CONTAINER_NAME, containerName);
         props.setProperty("cacheSize", "0");
-        return new DataStoreBlobStore(AzureDataStoreUtils.getAzureDataStore(props, rootFolder.getAbsolutePath()));
+        return new DataStoreBlobStore(
+            AzureDataStoreUtils.getAzureDataStore(props, rootFolder.getAbsolutePath()));
     }
 
     @After

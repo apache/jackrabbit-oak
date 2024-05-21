@@ -17,7 +17,8 @@
 package org.apache.jackrabbit.oak.spi.security.authentication.external;
 
 /**
- * {@code ExternalIdentityException} is used to notify about errors when dealing with external identities.
+ * {@code ExternalIdentityException} is used to notify about errors when dealing with external
+ * identities.
  */
 public class ExternalIdentityException extends Exception {
 

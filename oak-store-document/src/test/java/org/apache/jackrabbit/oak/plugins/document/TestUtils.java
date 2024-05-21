@@ -49,20 +49,20 @@ public class TestUtils {
         }
     };
 
-    public static final Function<String, Long> NO_BINARY = compose(constant(-1L), Functions.<String>identity());
+    public static final Function<String, Long> NO_BINARY = compose(constant(-1L),
+        Functions.<String>identity());
 
     /**
-     * Returns {@code true} if the given {@code update} performs a
-     * {@code _lastRev} update.
+     * Returns {@code true} if the given {@code update} performs a {@code _lastRev} update.
      *
      * @param update the update to check.
-     * @return {@code true} if the operation performs an update on
-     *          {@code _lastRev}, {@code false} otherwise.
+     * @return {@code true} if the operation performs an update on {@code _lastRev}, {@code false}
+     * otherwise.
      */
     public static boolean isLastRevUpdate(UpdateOp update) {
         for (Map.Entry<UpdateOp.Key, UpdateOp.Operation> change : update.getChanges().entrySet()) {
             if (!NodeDocument.isLastRevEntry(change.getKey().getName())
-                    && !NodeDocument.MODIFIED_IN_SECS.equals(change.getKey().getName())) {
+                && !NodeDocument.MODIFIED_IN_SECS.equals(change.getKey().getName())) {
                 return false;
             }
         }
@@ -70,28 +70,28 @@ public class TestUtils {
     }
 
     public static NodeState merge(NodeStore store, NodeBuilder builder)
-            throws CommitFailedException {
+        throws CommitFailedException {
         return store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 
-    public static NodeBuilder createChild(NodeBuilder root, String ... paths){
-        for (String path : paths){
+    public static NodeBuilder createChild(NodeBuilder root, String... paths) {
+        for (String path : paths) {
             childBuilder(root, path);
         }
         return root;
     }
 
-    public static NodeBuilder childBuilder(NodeBuilder root, String path){
+    public static NodeBuilder childBuilder(NodeBuilder root, String path) {
         NodeBuilder nb = root;
-        for (String nodeName : PathUtils.elements(path)){
+        for (String nodeName : PathUtils.elements(path)) {
             nb = nb.child(nodeName);
         }
         return nb;
     }
 
     @NotNull
-    public static DocumentNodeState asDocumentState(NodeState state){
-        if (state instanceof DocumentNodeState){
+    public static DocumentNodeState asDocumentState(NodeState state) {
+        if (state instanceof DocumentNodeState) {
             return (DocumentNodeState) state;
         }
         fail("Not of type DocumentNodeState " + state.getClass());
@@ -127,7 +127,7 @@ public class TestUtils {
         for (Map.Entry<UpdateOp.Key, UpdateOp.Operation> op : update.getChanges().entrySet()) {
             String name = op.getKey().getName();
             if (NodeDocument.isRevisionsEntry(name)
-                    || NodeDocument.MODIFIED_IN_SECS.equals(name)) {
+                || NodeDocument.MODIFIED_IN_SECS.equals(name)) {
                 continue;
             }
             finalUpdate = false;

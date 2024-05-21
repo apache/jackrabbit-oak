@@ -24,7 +24,6 @@ import static org.apache.jackrabbit.oak.spi.blob.osgi.SplitBlobStoreService.PROP
 import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.Map;
-
 import org.apache.commons.io.FilenameUtils;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
@@ -41,6 +40,7 @@ import org.slf4j.LoggerFactory;
 
 @Component(policy = ConfigurationPolicy.REQUIRE, name = FileBlobStoreService.NAME)
 public class FileBlobStoreService {
+
     public static final String NAME = "org.apache.jackrabbit.oak.spi.blob.FileBlobStore";
 
     private static final String PROP_HOME = "repository.home";
@@ -55,15 +55,15 @@ public class FileBlobStoreService {
         if (homeDir != null) {
             log.info("Initializing the FileBlobStore with homeDir [{}]", homeDir);
         }
-        BlobStore blobStore = new FileBlobStore(FilenameUtils.concat(homeDir,"datastore"));
+        BlobStore blobStore = new FileBlobStore(FilenameUtils.concat(homeDir, "datastore"));
         PropertiesUtil.populate(blobStore, config, false);
         Dictionary<String, Object> props = new Hashtable<String, Object>();
         if (context.getProperties().get(PROP_SPLIT_BLOBSTORE) != null) {
             props.put(PROP_SPLIT_BLOBSTORE, context.getProperties().get(PROP_SPLIT_BLOBSTORE));
         }
         reg = context.getBundleContext().registerService(new String[]{
-                BlobStore.class.getName(),
-                GarbageCollectableBlobStore.class.getName()
+            BlobStore.class.getName(),
+            GarbageCollectableBlobStore.class.getName()
         }, blobStore, props);
     }
 

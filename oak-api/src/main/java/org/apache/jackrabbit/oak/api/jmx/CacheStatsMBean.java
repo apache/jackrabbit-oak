@@ -20,32 +20,36 @@ import org.osgi.annotation.versioning.ProviderType;
 
 @ProviderType
 public interface CacheStatsMBean {
+
     String TYPE = "CacheStats";
 
     String getName();
 
     /**
-     * Returns the number of times {@code org.apache.jackrabbit.guava.common.cache.Cache} lookup methods have returned either a cached or
-     * uncached value. This is defined as {@code getHitCount + getMissCount}.
+     * Returns the number of times {@code org.apache.jackrabbit.guava.common.cache.Cache} lookup
+     * methods have returned either a cached or uncached value. This is defined as
+     * {@code getHitCount + getMissCount}.
      */
     long getRequestCount();
 
     /**
-     * Returns the number of times {@code org.apache.jackrabbit.guava.common.cache.Cache} lookup methods have returned a cached value.
+     * Returns the number of times {@code org.apache.jackrabbit.guava.common.cache.Cache} lookup
+     * methods have returned a cached value.
      */
     long getHitCount();
 
     /**
      * Returns the ratio of cache requests which were hits. This is defined as
-     * {@code getHitCount / getRequestCount}, or {@code 1.0} when {@code getRequestCount == 0}.
-     * Note that {@code getHitRate + getMissRate =~ 1.0}.
+     * {@code getHitCount / getRequestCount}, or {@code 1.0} when {@code getRequestCount == 0}. Note
+     * that {@code getHitRate + getMissRate =~ 1.0}.
      */
     double getHitRate();
+
     /**
-     * Returns the number of times {@code org.apache.jackrabbit.guava.common.cache.Cache} lookup methods have returned an uncached (newly
-     * loaded) value, or null. Multiple concurrent calls to {@code org.apache.jackrabbit.guava.common.cache.Cache} lookup methods on an absent
-     * value can result in multiple misses, all returning the results of a single cache load
-     * operation.
+     * Returns the number of times {@code org.apache.jackrabbit.guava.common.cache.Cache} lookup
+     * methods have returned an uncached (newly loaded) value, or null. Multiple concurrent calls to
+     * {@code org.apache.jackrabbit.guava.common.cache.Cache} lookup methods on an absent value can
+     * result in multiple misses, all returning the results of a single cache load operation.
      */
     long getMissCount();
 
@@ -61,34 +65,35 @@ public interface CacheStatsMBean {
     double getMissRate();
 
     /**
-     * Returns the total number of times that {@code org.apache.jackrabbit.guava.common.cache.Cache} lookup methods attempted to load new
-     * values. This includes both successful load operations, as well as those that threw
-     * exceptions. This is defined as {@code getLoadSuccessCount + getLoadExceptionCount}.
+     * Returns the total number of times that {@code org.apache.jackrabbit.guava.common.cache.Cache}
+     * lookup methods attempted to load new values. This includes both successful load operations,
+     * as well as those that threw exceptions. This is defined as
+     * {@code getLoadSuccessCount + getLoadExceptionCount}.
      */
     long getLoadCount();
 
     /**
-     * Returns the number of times {@code org.apache.jackrabbit.guava.common.cache.Cache} lookup methods have successfully loaded a new value.
-     * This is always incremented in conjunction with {@link #getMissCount}, though {@code getMissCount}
-     * is also incremented when an exception is encountered during cache loading (see
-     * {@link #getLoadExceptionCount}). Multiple concurrent misses for the same key will result in a
-     * single load operation.
+     * Returns the number of times {@code org.apache.jackrabbit.guava.common.cache.Cache} lookup
+     * methods have successfully loaded a new value. This is always incremented in conjunction with
+     * {@link #getMissCount}, though {@code getMissCount} is also incremented when an exception is
+     * encountered during cache loading (see {@link #getLoadExceptionCount}). Multiple concurrent
+     * misses for the same key will result in a single load operation.
      */
     long getLoadSuccessCount();
 
     /**
-     * Returns the number of times {@code org.apache.jackrabbit.guava.common.cache.Cache} lookup methods threw an exception while loading a
-     * new value. This is always incremented in conjunction with {@code getMissCount}, though
-     * {@code getMissCount} is also incremented when cache loading completes successfully (see
-     * {@link #getLoadSuccessCount}). Multiple concurrent misses for the same key will result in a
-     * single load operation.
+     * Returns the number of times {@code org.apache.jackrabbit.guava.common.cache.Cache} lookup
+     * methods threw an exception while loading a new value. This is always incremented in
+     * conjunction with {@code getMissCount}, though {@code getMissCount} is also incremented when
+     * cache loading completes successfully (see {@link #getLoadSuccessCount}). Multiple concurrent
+     * misses for the same key will result in a single load operation.
      */
     long getLoadExceptionCount();
 
     /**
      * Returns the ratio of cache loading attempts which threw exceptions. This is defined as
-     * {@code getLoadExceptionCount / (getLoadSuccessCount + getLoadExceptionCount)}, or
-     * {@code 0.0} when {@code getLoadSuccessCount + getLoadExceptionCount == 0}.
+     * {@code getLoadExceptionCount / (getLoadSuccessCount + getLoadExceptionCount)}, or {@code 0.0}
+     * when {@code getLoadSuccessCount + getLoadExceptionCount == 0}.
      */
     double getLoadExceptionRate();
 
@@ -113,19 +118,22 @@ public interface CacheStatsMBean {
 
     /**
      * Get the number of elements/objects in the cache.
+     *
      * @return the number of elements
      */
     long getElementCount();
 
     /**
      * The maximum weight of entries the cache may contain.
-     * @return  the maximum total weight of entries the cache may contain
+     *
+     * @return the maximum total weight of entries the cache may contain
      */
     long getMaxTotalWeight();
 
     /**
-     * Total weight of the complete cache. Depending on implementation it might be the amount
-     * of RAM taken by the cache
+     * Total weight of the complete cache. Depending on implementation it might be the amount of RAM
+     * taken by the cache
+     *
      * @return to weight of the cache
      */
     //Computing weight is costly hence its an operation

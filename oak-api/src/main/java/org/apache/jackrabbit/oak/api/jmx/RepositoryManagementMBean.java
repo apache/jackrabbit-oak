@@ -21,28 +21,25 @@ package org.apache.jackrabbit.oak.api.jmx;
 
 import javax.management.openmbean.CompositeData;
 import javax.management.openmbean.TabularData;
-
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ProviderType;
 
 /**
- * This interface exposes repository management operations and the status
- * of such operations. This interface only provides high level functionality
- * for starting certain management operations and monitoring their outcomes.
- * Parametrisation and configuration of the operations is beyond the scope
- * of this interface and must be achieved by other means. For example
- * through a dedicated MBean of the specific service providing the
- * respective functionality. Furthermore not all operations might be
- * available in all deployments or at all times. However the status should
- * give a clear indication for this case.
+ * This interface exposes repository management operations and the status of such operations. This
+ * interface only provides high level functionality for starting certain management operations and
+ * monitoring their outcomes. Parametrisation and configuration of the operations is beyond the
+ * scope of this interface and must be achieved by other means. For example through a dedicated
+ * MBean of the specific service providing the respective functionality. Furthermore not all
+ * operations might be available in all deployments or at all times. However the status should give
+ * a clear indication for this case.
  * <p>
- * The status of an operation is represented by a {@code CompositeData}
- * instance consisting at least of the items {@code code}, {@code id},
- * and {@code message}. Implementations are free to add further items.
+ * The status of an operation is represented by a {@code CompositeData} instance consisting at least
+ * of the items {@code code}, {@code id}, and {@code message}. Implementations are free to add
+ * further items.
  * <p>
- * The {@code code} item is an integer encoding the current status of
- * the respective operation. Valid values and its semantics are:
+ * The {@code code} item is an integer encoding the current status of the respective operation.
+ * Valid values and its semantics are:
  * <ul>
  *     <li>{@code 0}: <em>Operation not available</em>. For example
  *     because the system does not implement the operation or the
@@ -77,6 +74,7 @@ import org.osgi.annotation.versioning.ProviderType;
  */
 @ProviderType
 public interface RepositoryManagementMBean {
+
     String TYPE = "RepositoryManagement";
 
     /**
@@ -100,7 +98,7 @@ public interface RepositoryManagementMBean {
     /**
      * Initiate a backup operation.
      *
-     * @return  the status of the operation right after it was initiated
+     * @return the status of the operation right after it was initiated
      */
     @NotNull
     @Description("Creates a backup of the persistent state of the repository")
@@ -109,8 +107,8 @@ public interface RepositoryManagementMBean {
     /**
      * Backup status
      *
-     * @return  the status of the ongoing operation or if none the terminal
-     * status of the last operation or <em>Status not available</em> if none.
+     * @return the status of the ongoing operation or if none the terminal status of the last
+     * operation or <em>Status not available</em> if none.
      */
     @NotNull
     @Description("The status of the ongoing operation, or the terminal status of the last completed backup operation")
@@ -119,7 +117,7 @@ public interface RepositoryManagementMBean {
     /**
      * Initiate a restore operation.
      *
-     * @return  the status of the operation right after it was initiated
+     * @return the status of the operation right after it was initiated
      */
     @NotNull
     @Description("Restores the repository from a backup")
@@ -128,8 +126,8 @@ public interface RepositoryManagementMBean {
     /**
      * Restore status
      *
-     * @return  the status of the ongoing operation or if none the terminal
-     * status of the last operation or <em>Status not available</em> if none.
+     * @return the status of the ongoing operation or if none the terminal status of the last
+     * operation or <em>Status not available</em> if none.
      */
     @NotNull
     @Description("The status of the ongoing operation, or the terminal status of the last completed restore operation")
@@ -138,22 +136,24 @@ public interface RepositoryManagementMBean {
     /**
      * Initiate a data store garbage collection operation
      *
-     * @param markOnly whether to only mark references and not sweep in the mark and sweep operation.
-     * @return  the status of the operation right after it was initiated
+     * @param markOnly whether to only mark references and not sweep in the mark and sweep
+     *                 operation.
+     * @return the status of the operation right after it was initiated
      */
     @NotNull
     @Description("Initiates a data store garbage collection operation")
     CompositeData startDataStoreGC(@Name("markOnly")
-            @Description("Set to true to only mark references and not sweep in the mark and sweep operation. " +
-                    "This mode is to be used when the underlying BlobStore is shared between multiple " +
-                    "different repositories. For all other cases set it to false to perform full garbage collection")
-                                   boolean markOnly);
+    @Description(
+        "Set to true to only mark references and not sweep in the mark and sweep operation. " +
+            "This mode is to be used when the underlying BlobStore is shared between multiple " +
+            "different repositories. For all other cases set it to false to perform full garbage collection")
+    boolean markOnly);
 
     /**
      * Data store garbage collection status
      *
-     * @return  the status of the ongoing operation or if none the terminal
-     * status of the last operation or <em>Status not available</em> if none.
+     * @return the status of the ongoing operation or if none the terminal status of the last
+     * operation or <em>Status not available</em> if none.
      */
     @NotNull
     @Description("Data store garbage collection status")
@@ -162,7 +162,7 @@ public interface RepositoryManagementMBean {
     /**
      * Initiate a revision garbage collection operation
      *
-     * @return  the status of the operation right after it was initiated
+     * @return the status of the operation right after it was initiated
      */
     @NotNull
     @Description("Initiates a revision garbage collection operation")
@@ -171,27 +171,27 @@ public interface RepositoryManagementMBean {
     /**
      * Initiate a revision garbage collection operation
      *
-     * @return  the status of the operation right after it was initiated
+     * @return the status of the operation right after it was initiated
      */
     @NotNull
     @Description("Initiates a revision garbage collection operation for a given role")
     CompositeData startRevisionGCForRole(String role);
 
     /**
-     * Cancel a running revision garbage collection operation. Does nothing
-     * if revision garbage collection is not running.
+     * Cancel a running revision garbage collection operation. Does nothing if revision garbage
+     * collection is not running.
      *
-     * @return  the status of the operation right after it was initiated
+     * @return the status of the operation right after it was initiated
      */
     @NotNull
     @Description("Cancel a running revision garbage collection operation. Does nothing if revision garbage collection is not running.")
     CompositeData cancelRevisionGC();
 
     /**
-     * Cancel a running revision garbage collection operation for a given role.
-     * Does nothing if revision garbage collection is not running.
+     * Cancel a running revision garbage collection operation for a given role. Does nothing if
+     * revision garbage collection is not running.
      *
-     * @return  the status of the operation right after it was initiated
+     * @return the status of the operation right after it was initiated
      */
     @NotNull
     @Description("Cancel a running revision garbage collection operation. Does nothing if revision garbage collection is not running.")
@@ -200,8 +200,8 @@ public interface RepositoryManagementMBean {
     /**
      * Revision garbage collection status
      *
-     * @return  the status of the ongoing operation or if none the terminal
-     * status of the last operation or <em>Status not available</em> if none.
+     * @return the status of the ongoing operation or if none the terminal status of the last
+     * operation or <em>Status not available</em> if none.
      */
     @NotNull
     @Description("Revision garbage collection status")
@@ -210,24 +210,21 @@ public interface RepositoryManagementMBean {
     /**
      * Revision garbage collection status for a given role.
      *
-     * @return  the status of the ongoing operation or if none the terminal
-     * status of the last operation or <em>Status not available</em> if none.
+     * @return the status of the ongoing operation or if none the terminal status of the last
+     * operation or <em>Status not available</em> if none.
      */
     @NotNull
     @Description("Revision garbage collection status for a given role")
     CompositeData getRevisionGCStatusForRole(String role);
 
     /**
-     * Creates a new checkpoint of the latest root of the tree. The checkpoint
-     * remains valid for at least as long as requested and allows that state
-     * of the repository to be retrieved using the returned opaque string
-     * reference.
+     * Creates a new checkpoint of the latest root of the tree. The checkpoint remains valid for at
+     * least as long as requested and allows that state of the repository to be retrieved using the
+     * returned opaque string reference.
      *
-     * @param lifetime time (in milliseconds, &gt; 0) that the checkpoint
-     *                 should remain available
-     * @return string reference of this checkpoint or {@code null} if
-     * the checkpoint could not be set.
-     *
+     * @param lifetime time (in milliseconds, &gt; 0) that the checkpoint should remain available
+     * @return string reference of this checkpoint or {@code null} if the checkpoint could not be
+     * set.
      * @deprecated Use {@link CheckpointMBean} instead
      */
     @Deprecated
@@ -235,9 +232,8 @@ public interface RepositoryManagementMBean {
     String checkpoint(long lifetime);
 
     /**
-     * Initiate a reindex operation for the property indexes marked for
-     * reindexing
-     * 
+     * Initiate a reindex operation for the property indexes marked for reindexing
+     *
      * @return the status of the operation right after it was initiated
      */
     @NotNull
@@ -246,10 +242,9 @@ public interface RepositoryManagementMBean {
 
     /**
      * Asynchronous Property Index reindexing status
-     * 
-     * @return the status of the ongoing operation or if none the terminal
-     *         status of the last operation or <em>Status not available</em> if
-     *         none.
+     *
+     * @return the status of the ongoing operation or if none the terminal status of the last
+     * operation or <em>Status not available</em> if none.
      */
     @NotNull
     @Description("Asynchronous Property Index reindexing status")

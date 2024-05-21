@@ -19,9 +19,9 @@
 
 package org.apache.jackrabbit.oak.run.osgi
 
+import org.apache.felix.connect.launch.PojoServiceRegistry
 import org.apache.jackrabbit.guava.common.collect.Lists
 import org.apache.jackrabbit.guava.common.collect.Maps
-import org.apache.felix.connect.launch.PojoServiceRegistry
 import org.apache.jackrabbit.oak.spi.state.NodeState
 import org.apache.jackrabbit.oak.spi.state.NodeStore
 import org.junit.Test
@@ -51,7 +51,7 @@ class SegmentNodeStoreConfigTest extends AbstractRepositoryFactoryTest {
         //1. Get NodeStore created
         createConfig([
                 'org.apache.jackrabbit.oak.segment.SegmentNodeStoreService': [
-                        cache: 256,
+                        cache       : 256,
                         "tarmk.mode": 32
                 ]
         ])
@@ -66,7 +66,7 @@ class SegmentNodeStoreConfigTest extends AbstractRepositoryFactoryTest {
         //which first wait for nodeStoreLatch and then on NodeStoreTracker lock
         createConfig([
                 'org.apache.jackrabbit.oak.segment.SegmentNodeStoreService': [
-                        cache: 200,
+                        cache       : 200,
                         "tarmk.mode": 32
                 ]
         ])
@@ -77,12 +77,12 @@ class SegmentNodeStoreConfigTest extends AbstractRepositoryFactoryTest {
         assertNull("Deadlock detected", ManagementFactory.getThreadMXBean().findDeadlockedThreads())
         //5. Let NodeStore deactivate thread proceed and wait for "trackerLock"
         deactivateLatch.countDown()
-        println ("Letting the deactivate call proceed")
+        println("Letting the deactivate call proceed")
 
         //6. Let "GetRoots" thread proceed and make it fetch Root and thus wait for
         //lock in SegmentNodeStoreService
         trackerLatch.countDown()
-        println ("Letting the getRoots call proceed")
+        println("Letting the getRoots call proceed")
 
         assertNull("Deadlock detected", ManagementFactory.getThreadMXBean().findDeadlockedThreads())
         allWellLatch.await()

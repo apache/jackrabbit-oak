@@ -61,7 +61,7 @@ public class Cache<K, V extends Cache.Value> {
     /**
      * Get the element in the cache if one exists, or add it to the cache if not.
      *
-     * @param key the key
+     * @param key   the key
      * @param value the value
      * @return the cached element
      */
@@ -106,8 +106,8 @@ public class Cache<K, V extends Cache.Value> {
     public interface Value {
 
         /**
-         * Get the memory required in bytes. The method must always return the
-         * same value once the element is in the cache.
+         * Get the memory required in bytes. The method must always return the same value once the
+         * element is in the cache.
          *
          * @return the memory used in bytes
          */
@@ -124,8 +124,8 @@ public class Cache<K, V extends Cache.Value> {
     public interface Backend<K, V> {
 
         /**
-         * Load the object. The method does not need to be synchronized
-         * (it is synchronized in the cache)
+         * Load the object. The method does not need to be synchronized (it is synchronized in the
+         * cache)
          *
          * @param key the key
          * @return the value
@@ -134,7 +134,8 @@ public class Cache<K, V extends Cache.Value> {
 
     }
 
-    public static <K, V extends Cache.Value> Cache<K, V> newInstance(Backend<K, V> backend, int maxMemoryBytes) {
+    public static <K, V extends Cache.Value> Cache<K, V> newInstance(Backend<K, V> backend,
+        int maxMemoryBytes) {
         return new Cache<K, V>(backend, maxMemoryBytes);
     }
 

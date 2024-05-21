@@ -30,9 +30,9 @@ import org.junit.BeforeClass;
 
 /**
  * Test for MongoMK GC with {@link DataStoreBlobStore}
- * 
  */
 public class MongoDataStoreBlobGCTest extends MongoBlobGCTest {
+
     protected Date startDate;
     protected DataStoreBlobStore blobStore;
 

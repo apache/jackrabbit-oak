@@ -18,8 +18,8 @@
 package org.apache.jackrabbit.oak.segment.standby.server;
 
 /**
- * Implementors of this interface can consume the state of the communication
- * pipeline as tracked by {@link StateHandler}.
+ * Implementors of this interface can consume the state of the communication pipeline as tracked by
+ * {@link StateHandler}.
  */
 interface StateConsumer {
 

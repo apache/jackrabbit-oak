@@ -21,13 +21,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Test {@link org.apache.jackrabbit.core.data.CachingDataStore} with S3Backend
- * and local cache Off.
- * It requires to pass aws config file via system property or system properties by prefixing with 'ds.'.
- * See details @ {@link S3DataStoreUtils}.
- * For e.g. -Dconfig=/opt/cq/aws.properties. Sample aws properties located at
- * src/test/resources/aws.properties
-
+ * Test {@link org.apache.jackrabbit.core.data.CachingDataStore} with S3Backend and local cache Off.
+ * It requires to pass aws config file via system property or system properties by prefixing with
+ * 'ds.'. See details @ {@link S3DataStoreUtils}. For e.g. -Dconfig=/opt/cq/aws.properties. Sample
+ * aws properties located at src/test/resources/aws.properties
  */
 public class TestS3DsCacheOff extends TestS3Ds {
 

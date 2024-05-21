@@ -55,7 +55,7 @@ public class SplitOperationsTest extends BaseDocumentMKTest {
         NodeDocument doc = ds.find(NODES, ROOT_ID);
         assertNotNull(doc);
         for (UpdateOp updateOp : SplitOperations.forDocument(
-                doc, ns, ns.getHeadRevision(), NO_BINARY, 3)) {
+            doc, ns, ns.getHeadRevision(), NO_BINARY, 3)) {
             ds.createOrUpdate(NODES, updateOp);
         }
 

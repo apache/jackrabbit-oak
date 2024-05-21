@@ -16,10 +16,9 @@
  */
 package org.apache.jackrabbit.oak.upgrade.cli.blob;
 
+import java.io.IOException;
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
-
-import java.io.IOException;
 
 public class ConstantBlobStoreFactory implements BlobStoreFactory {
 

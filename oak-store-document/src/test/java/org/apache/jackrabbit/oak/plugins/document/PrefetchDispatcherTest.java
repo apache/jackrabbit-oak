@@ -43,9 +43,9 @@ public class PrefetchDispatcherTest {
             @NotNull
             @Override
             public <T extends Document> List<T> query(Collection<T> collection,
-                                                      String fromKey,
-                                                      String toKey,
-                                                      int limit) {
+                String fromKey,
+                String toKey,
+                int limit) {
                 if (collection == Collection.NODES) {
                     numQueries.incrementAndGet();
                 }
@@ -53,13 +53,13 @@ public class PrefetchDispatcherTest {
             }
         };
         DocumentNodeStore ns1 = builderProvider.newBuilder()
-                .setDocumentStore(store).setClusterId(1)
-                .setPrefetchExternalChanges(false)
-                .setAsyncDelay(0).getNodeStore();
+                                               .setDocumentStore(store).setClusterId(1)
+                                               .setPrefetchExternalChanges(false)
+                                               .setAsyncDelay(0).getNodeStore();
         DocumentNodeStore ns2 = builderProvider.newBuilder()
-                .setDocumentStore(store).setClusterId(2)
-                .setPrefetchExternalChanges(false)
-                .setAsyncDelay(0).getNodeStore();
+                                               .setDocumentStore(store).setClusterId(2)
+                                               .setPrefetchExternalChanges(false)
+                                               .setAsyncDelay(0).getNodeStore();
 
         NodeBuilder builder = ns1.getRoot().builder();
         builder.child("foo").child("bar").child("baz");
@@ -72,7 +72,7 @@ public class PrefetchDispatcherTest {
         DocumentNodeState after = ns2.getRoot().fromExternalChange();
 
         PrefetchDispatcher dispatcher = new PrefetchDispatcher(
-                before, MoreExecutors.newDirectExecutorService());
+            before, MoreExecutors.newDirectExecutorService());
         numQueries.set(0);
         dispatcher.contentChanged(after, CommitInfo.EMPTY_EXTERNAL);
         // expect two queries for children: below /foo and /foo/bar

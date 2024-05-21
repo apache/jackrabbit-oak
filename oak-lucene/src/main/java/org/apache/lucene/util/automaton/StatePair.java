@@ -1,9 +1,9 @@
 /*
  * dk.brics.automaton
- * 
+ *
  * Copyright (c) 2001-2009 Anders Moeller
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -14,7 +14,7 @@
  *    documentation and/or other materials provided with the distribution.
  * 3. The name of the author may not be used to endorse or promote products
  *    derived from this software without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
  * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
  * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
@@ -39,71 +39,73 @@ package org.apache.lucene.util.automaton;
 
 /**
  * Pair of states.
- * 
+ *
  * @lucene.experimental
  */
 public class StatePair {
-  State s;
-  State s1;
-  State s2;
-  
-  StatePair(State s, State s1, State s2) {
-    this.s = s;
-    this.s1 = s1;
-    this.s2 = s2;
-  }
-  
-  /**
-   * Constructs a new state pair.
-   * 
-   * @param s1 first state
-   * @param s2 second state
-   */
-  public StatePair(State s1, State s2) {
-    this.s1 = s1;
-    this.s2 = s2;
-  }
-  
-  /**
-   * Returns first component of this pair.
-   * 
-   * @return first state
-   */
-  public State getFirstState() {
-    return s1;
-  }
-  
-  /**
-   * Returns second component of this pair.
-   * 
-   * @return second state
-   */
-  public State getSecondState() {
-    return s2;
-  }
-  
-  /**
-   * Checks for equality.
-   * 
-   * @param obj object to compare with
-   * @return true if <tt>obj</tt> represents the same pair of states as this
-   *         pair
-   */
-  @Override
-  public boolean equals(Object obj) {
-    if (obj instanceof StatePair) {
-      StatePair p = (StatePair) obj;
-      return p.s1 == s1 && p.s2 == s2;
-    } else return false;
-  }
-  
-  /**
-   * Returns hash code.
-   * 
-   * @return hash code
-   */
-  @Override
-  public int hashCode() {
-    return s1.hashCode() + s2.hashCode();
-  }
+
+    State s;
+    State s1;
+    State s2;
+
+    StatePair(State s, State s1, State s2) {
+        this.s = s;
+        this.s1 = s1;
+        this.s2 = s2;
+    }
+
+    /**
+     * Constructs a new state pair.
+     *
+     * @param s1 first state
+     * @param s2 second state
+     */
+    public StatePair(State s1, State s2) {
+        this.s1 = s1;
+        this.s2 = s2;
+    }
+
+    /**
+     * Returns first component of this pair.
+     *
+     * @return first state
+     */
+    public State getFirstState() {
+        return s1;
+    }
+
+    /**
+     * Returns second component of this pair.
+     *
+     * @return second state
+     */
+    public State getSecondState() {
+        return s2;
+    }
+
+    /**
+     * Checks for equality.
+     *
+     * @param obj object to compare with
+     * @return true if <tt>obj</tt> represents the same pair of states as this pair
+     */
+    @Override
+    public boolean equals(Object obj) {
+        if (obj instanceof StatePair) {
+            StatePair p = (StatePair) obj;
+            return p.s1 == s1 && p.s2 == s2;
+        } else {
+            return false;
+        }
+    }
+
+    /**
+     * Returns hash code.
+     *
+     * @return hash code
+     */
+    @Override
+    public int hashCode() {
+        return s1.hashCode() + s2.hashCode();
+    }
 }

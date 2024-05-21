@@ -20,13 +20,12 @@ import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
-
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Base class for {@link DocumentProcessor} implementations that create tasks
- * executed by an executor service.
+ * Base class for {@link DocumentProcessor} implementations that create tasks executed by an
+ * executor service.
  */
 public abstract class AsyncDocumentProcessor implements DocumentProcessor {
 
@@ -38,10 +37,10 @@ public abstract class AsyncDocumentProcessor implements DocumentProcessor {
 
     @Override
     public final void processDocument(@NotNull NodeDocument document,
-                                      @NotNull BlockingQueue<Result> results) {
+        @NotNull BlockingQueue<Result> results) {
         createTask(document, results).ifPresent(executorService::submit);
     }
 
     protected abstract Optional<Callable<Void>> createTask(@NotNull NodeDocument document,
-                                                           @NotNull BlockingQueue<Result> results);
+        @NotNull BlockingQueue<Result> results);
 }

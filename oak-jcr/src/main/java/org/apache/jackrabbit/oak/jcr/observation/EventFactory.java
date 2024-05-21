@@ -18,23 +18,21 @@
  */
 package org.apache.jackrabbit.oak.jcr.observation;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterables.isEmpty;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.toArray;
 import static java.util.Collections.emptyMap;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.isEmpty;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.toArray;
 
 import java.util.List;
 import java.util.Map;
-
 import javax.jcr.Value;
 import javax.jcr.observation.Event;
-
+import org.apache.jackrabbit.api.observation.JackrabbitEvent;
 import org.apache.jackrabbit.guava.common.base.MoreObjects;
 import org.apache.jackrabbit.guava.common.base.Objects;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.api.observation.JackrabbitEvent;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.blob.BlobAccessProvider;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -44,15 +42,14 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Event factory for generating JCR event instances that are optimized
- * for minimum memory overhead. Each factory instance keeps track of the
- * event information (like the user identifier and the commit timestamp)
- * shared across all events from a single commit. The generated events
- * instances postpone things like path mappings and the construction of
- * the event info maps to as late as possible to avoid the memory overhead
- * of keeping track of pre-computed values.
+ * Event factory for generating JCR event instances that are optimized for minimum memory overhead.
+ * Each factory instance keeps track of the event information (like the user identifier and the
+ * commit timestamp) shared across all events from a single commit. The generated events instances
+ * postpone things like path mappings and the construction of the event info maps to as late as
+ * possible to avoid the memory overhead of keeping track of pre-computed values.
  */
 public class EventFactory {
+
     public static final String USER_DATA = "user-data";
 
     private final NamePathMapper mapper;
@@ -68,8 +65,8 @@ public class EventFactory {
     private final boolean external;
 
     EventFactory(@NotNull NamePathMapper mapper,
-                 @NotNull BlobAccessProvider blobAccessProvider,
-                 @NotNull CommitInfo commitInfo) {
+        @NotNull BlobAccessProvider blobAccessProvider,
+        @NotNull CommitInfo commitInfo) {
         this.mapper = mapper;
         this.valueFactory = new PartialValueFactory(mapper, blobAccessProvider);
         if (!commitInfo.isExternal()) {
@@ -87,57 +84,60 @@ public class EventFactory {
     }
 
     Event propertyAdded(
-            final PropertyState after, final String primaryType, final Iterable<String> mixinTypes,
-            String path, String name, String identifier) {
+        final PropertyState after, final String primaryType, final Iterable<String> mixinTypes,
+        String path, String name, String identifier) {
         return new EventImpl(path, name, identifier) {
             @Override
             public int getType() {
                 return PROPERTY_ADDED;
             }
+
             @Override
             public Map<?, ?> getInfo() {
                 return ImmutableMap.builder()
-                        .putAll(createInfoMap(primaryType, mixinTypes))
-                        .put("afterValue", createValue(after))
-                        .build();
+                                   .putAll(createInfoMap(primaryType, mixinTypes))
+                                   .put("afterValue", createValue(after))
+                                   .build();
             }
         };
     }
 
     Event propertyChanged(
-            final PropertyState before, final PropertyState after,
-            final String primaryType, final Iterable<String> mixinTypes,
-            String path, String name, String identifier) {
+        final PropertyState before, final PropertyState after,
+        final String primaryType, final Iterable<String> mixinTypes,
+        String path, String name, String identifier) {
         return new EventImpl(path, name, identifier) {
             @Override
             public int getType() {
                 return PROPERTY_CHANGED;
             }
+
             @Override
             public Map<?, ?> getInfo() {
                 return ImmutableMap.builder()
-                        .putAll(createInfoMap(primaryType, mixinTypes))
-                        .put("beforeValue", createValue(before))
-                        .put("afterValue", createValue(after))
-                        .build();
+                                   .putAll(createInfoMap(primaryType, mixinTypes))
+                                   .put("beforeValue", createValue(before))
+                                   .put("afterValue", createValue(after))
+                                   .build();
             }
         };
     }
 
     Event propertyDeleted(
-            final PropertyState before, final String primaryType, final Iterable<String> mixinTypes,
-            String path, String name, String identifier) {
+        final PropertyState before, final String primaryType, final Iterable<String> mixinTypes,
+        String path, String name, String identifier) {
         return new EventImpl(path, name, identifier) {
             @Override
             public int getType() {
                 return PROPERTY_REMOVED;
             }
+
             @Override
             public Map<?, ?> getInfo() {
                 return ImmutableMap.builder()
-                        .putAll(createInfoMap(primaryType, mixinTypes))
-                        .put("beforeValue", createValue(before))
-                        .build();
+                                   .putAll(createInfoMap(primaryType, mixinTypes))
+                                   .put("beforeValue", createValue(before))
+                                   .build();
             }
         };
     }
@@ -152,12 +152,13 @@ public class EventFactory {
     }
 
     Event nodeAdded(final String primaryType, final Iterable<String> mixinTypes,
-            String path, String name, String identifier) {
+        String path, String name, String identifier) {
         return new EventImpl(path, name, identifier) {
             @Override
             public int getType() {
                 return NODE_ADDED;
             }
+
             @Override
             public Map<?, ?> getInfo() {
                 return createInfoMap(primaryType, mixinTypes);
@@ -166,12 +167,13 @@ public class EventFactory {
     }
 
     Event nodeDeleted(final String primaryType, final Iterable<String> mixinTypes,
-            String path, String name, String identifier) {
+        String path, String name, String identifier) {
         return new EventImpl(path, name, identifier) {
             @Override
             public int getType() {
                 return NODE_REMOVED;
             }
+
             @Override
             public Map<?, ?> getInfo() {
                 return createInfoMap(primaryType, mixinTypes);
@@ -180,41 +182,43 @@ public class EventFactory {
     }
 
     Event nodeMoved(
-            final String primaryType, final Iterable<String> mixinTypes,
-            String parent, String name, String identifier,
-            final String sourcePath) {
+        final String primaryType, final Iterable<String> mixinTypes,
+        String parent, String name, String identifier,
+        final String sourcePath) {
         return new EventImpl(parent, name, identifier) {
             @Override
             public int getType() {
                 return NODE_MOVED;
             }
+
             @Override
             public Map<?, ?> getInfo() {
                 return ImmutableMap.builder()
-                    .put("srcAbsPath", mapper.getJcrPath(sourcePath))
-                    .put("destAbsPath", getPath())
-                    .putAll(createInfoMap(primaryType, mixinTypes))
-                    .build();
+                                   .put("srcAbsPath", mapper.getJcrPath(sourcePath))
+                                   .put("destAbsPath", getPath())
+                                   .putAll(createInfoMap(primaryType, mixinTypes))
+                                   .build();
             }
         };
     }
 
     Event nodeReordered(
-            final String primaryType, final Iterable<String> mixinTypes,
-            String parent, String name, String identifier,
-            final String destName) {
+        final String primaryType, final Iterable<String> mixinTypes,
+        String parent, String name, String identifier,
+        final String destName) {
         return new EventImpl(parent, name, identifier) {
             @Override
             public int getType() {
                 return NODE_MOVED;
             }
+
             @Override
             public Map<?, ?> getInfo() {
                 return ImmutableMap.builder()
-                    .put("srcChildRelPath", mapper.getJcrName(name))
-                    .put("destChildRelPath", mapper.getJcrName(destName))
-                    .putAll(createInfoMap(primaryType, mixinTypes))
-                    .build();
+                                   .put("srcChildRelPath", mapper.getJcrName(name))
+                                   .put("destChildRelPath", mapper.getJcrName(destName))
+                                   .putAll(createInfoMap(primaryType, mixinTypes))
+                                   .build();
             }
         };
     }
@@ -222,15 +226,15 @@ public class EventFactory {
     private Map<String, ?> createInfoMap(String primaryType, Iterable<String> mixinTypes) {
         if (isEmpty(mixinTypes)) {
             return ImmutableMap.of(
-                    JCR_PRIMARYTYPE, mapper.getJcrName(primaryType));
+                JCR_PRIMARYTYPE, mapper.getJcrName(primaryType));
         } else {
             List<String> jcrNames = Lists.newArrayList();
             for (String name : mixinTypes) {
                 jcrNames.add(mapper.getJcrName(name));
             }
             return ImmutableMap.of(
-                    JCR_PRIMARYTYPE, mapper.getJcrName(primaryType),
-                    JCR_MIXINTYPES, toArray(jcrNames, String.class));
+                JCR_PRIMARYTYPE, mapper.getJcrName(primaryType),
+                JCR_MIXINTYPES, toArray(jcrNames, String.class));
         }
     }
 
@@ -261,7 +265,7 @@ public class EventFactory {
         @Override
         public String getPath() {
             return PathUtils.concat(
-                    mapper.getJcrPath(parent), mapper.getJcrName(name));
+                mapper.getJcrPath(parent), mapper.getJcrName(name));
         }
 
         @Override
@@ -305,13 +309,13 @@ public class EventFactory {
             } else if (object instanceof EventImpl) {
                 EventImpl that = (EventImpl) object;
                 return getType() == that.getType()
-                        && getPath().equals(that.getPath())
-                        && getIdentifier().equals(that.getIdentifier())
-                        && getInfo().equals(that.getInfo())
-                        && Objects.equal(getUserID(), that.getUserID())
-                        && Objects.equal(getUserData(), that.getUserData())
-                        && getDate() == that.getDate()
-                        && isExternal() == that.isExternal();
+                    && getPath().equals(that.getPath())
+                    && getIdentifier().equals(that.getIdentifier())
+                    && getInfo().equals(that.getInfo())
+                    && Objects.equal(getUserID(), that.getUserID())
+                    && Objects.equal(getUserData(), that.getUserData())
+                    && getDate() == that.getDate()
+                    && isExternal() == that.isExternal();
             } else {
                 return false;
             }
@@ -320,22 +324,22 @@ public class EventFactory {
         @Override
         public int hashCode() {
             return Objects.hashCode(
-                    getType(), getPath(), getIdentifier(), getInfo(),
-                    getUserID(), getUserData(), getDate(), isExternal());
+                getType(), getPath(), getIdentifier(), getInfo(),
+                getUserID(), getUserData(), getDate(), isExternal());
         }
 
         @Override
         public String toString() {
             return MoreObjects.toStringHelper("Event")
-                    .add("type", getType())
-                    .add("path", getPath())
-                    .add("identifier", getIdentifier())
-                    .add("info", getInfo())
-                    .add("userID", getUserID())
-                    .add("userData", getUserData())
-                    .add("date", getDate())
-                    .add("external", isExternal())
-                    .toString();
+                              .add("type", getType())
+                              .add("path", getPath())
+                              .add("identifier", getIdentifier())
+                              .add("info", getInfo())
+                              .add("userID", getUserID())
+                              .add("userData", getUserData())
+                              .add("date", getDate())
+                              .add("external", isExternal())
+                              .toString();
         }
 
     }

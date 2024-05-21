@@ -16,14 +16,14 @@
  */
 package org.apache.jackrabbit.oak.run;
 
-import static org.apache.jackrabbit.guava.common.base.StandardSystemProperty.FILE_SEPARATOR;
-import static org.apache.jackrabbit.guava.common.base.StandardSystemProperty.JAVA_IO_TMPDIR;
-import static org.apache.jackrabbit.guava.common.base.Stopwatch.createStarted;
-import static org.apache.jackrabbit.guava.common.io.Closeables.close;
 import static java.io.File.createTempFile;
 import static java.util.Arrays.asList;
 import static org.apache.commons.io.FileUtils.forceDelete;
 import static org.apache.commons.io.FileUtils.listFiles;
+import static org.apache.jackrabbit.guava.common.base.StandardSystemProperty.FILE_SEPARATOR;
+import static org.apache.jackrabbit.guava.common.base.StandardSystemProperty.JAVA_IO_TMPDIR;
+import static org.apache.jackrabbit.guava.common.base.Stopwatch.createStarted;
+import static org.apache.jackrabbit.guava.common.io.Closeables.close;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.sort;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.writeAsLine;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.writeStrings;
@@ -31,6 +31,9 @@ import static org.apache.jackrabbit.oak.commons.sort.EscapeUtils.escapeLineBreak
 import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBuilder.newMongoDocumentNodeStoreBuilder;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 
+import com.mongodb.MongoClient;
+import com.mongodb.MongoClientURI;
+import com.mongodb.MongoURI;
 import java.io.BufferedWriter;
 import java.io.Closeable;
 import java.io.File;
@@ -43,19 +46,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import org.apache.jackrabbit.guava.common.base.Charsets;
-import org.apache.jackrabbit.guava.common.base.Function;
-import org.apache.jackrabbit.guava.common.base.Joiner;
-import org.apache.jackrabbit.guava.common.base.Splitter;
-import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.guava.common.io.Closeables;
-import org.apache.jackrabbit.guava.common.io.Closer;
-import org.apache.jackrabbit.guava.common.io.Files;
-import com.mongodb.MongoClient;
-import com.mongodb.MongoClientURI;
-import com.mongodb.MongoURI;
 import joptsimple.ArgumentAcceptingOptionSpec;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
@@ -65,12 +55,20 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.LineIterator;
 import org.apache.commons.io.filefilter.FileFilterUtils;
+import org.apache.jackrabbit.guava.common.base.Charsets;
+import org.apache.jackrabbit.guava.common.base.Joiner;
+import org.apache.jackrabbit.guava.common.base.Splitter;
+import org.apache.jackrabbit.guava.common.base.Stopwatch;
+import org.apache.jackrabbit.guava.common.collect.Maps;
+import org.apache.jackrabbit.guava.common.io.Closeables;
+import org.apache.jackrabbit.guava.common.io.Closer;
+import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
-import org.apache.jackrabbit.oak.commons.io.FileLineDifferenceIterator;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.io.FileLineDifferenceIterator;
 import org.apache.jackrabbit.oak.plugins.blob.BlobReferenceRetriever;
 import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
 import org.apache.jackrabbit.oak.plugins.document.DocumentBlobReferenceRetriever;
@@ -87,14 +85,15 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Command to check data store consistency and also optionally retrieve ids
- * and references.
- *
+ * Command to check data store consistency and also optionally retrieve ids and references.
+ * <p>
  * NOTE - OAK-7671 plans on deprecating this command to delegate internally to use
- * @see org.apache.jackrabbit.oak.run.DataStoreCommand instead. So
- * any new support around Datastore should be added to @see org.apache.jackrabbit.oak.run.DataStoreCommand
+ *
+ * @see org.apache.jackrabbit.oak.run.DataStoreCommand instead. So any new support around Datastore
+ * should be added to @see org.apache.jackrabbit.oak.run.DataStoreCommand
  */
 public class DataStoreCheckCommand implements Command {
+
     private static final String DELIM = ",";
     private static final String FDS = "--fds";
     private static final String S3DS = "--s3ds";
@@ -122,7 +121,7 @@ public class DataStoreCheckCommand implements Command {
             "datastorecheck [--id] [--ref] [--consistency] [--store <path>|<mongo_uri>] "
                 + "[--s3ds <s3ds_config>|--fds <fds_config>|--azureblobds <azureblobds_config>|--nods]"
                 + " [--dump <path>] [--repoHome <repo_home>] [--track] " +
-                    "[--verbose] [--verboseRootPath <verbose_root_path>]";
+                "[--verbose] [--verboseRootPath <verbose_root_path>]";
 
         try (Closer closer = Utils.createCloserWithShutdownHook()) {
             // Options for operations requested
@@ -132,25 +131,35 @@ public class DataStoreCheckCommand implements Command {
 
             // Node Store - needed for --ref, --consistency
             ArgumentAcceptingOptionSpec<String> store = parser.accepts("store", "Node Store")
-                .requiredIf(refOp, consistencyOp).withRequiredArg().ofType(String.class);
+                                                              .requiredIf(refOp, consistencyOp)
+                                                              .withRequiredArg()
+                                                              .ofType(String.class);
             // Optional argument to specify the dump path
             ArgumentAcceptingOptionSpec<String> dump = parser.accepts("dump", "Dump Path")
-                .withRequiredArg().ofType(String.class);
+                                                             .withRequiredArg()
+                                                             .ofType(String.class);
 
             // Optional argument to specify tracking
             OptionSpecBuilder trackOverride = parser.accepts("track", "Force override tracked ids");
 
             // Required argument for --consistency to specify tracking folder (otherwise can have inconsistencies)
-            ArgumentAcceptingOptionSpec<String> repoHome = parser.accepts("repoHome", "Local repository home folder")
-                .requiredIf(trackOverride, consistencyOp).withRequiredArg().ofType(String.class);
+            ArgumentAcceptingOptionSpec<String> repoHome = parser.accepts("repoHome",
+                                                                     "Local repository home folder")
+                                                                 .requiredIf(trackOverride,
+                                                                     consistencyOp)
+                                                                 .withRequiredArg()
+                                                                 .ofType(String.class);
 
             // Optional argument to specify tracking
-            OptionSpecBuilder verbose = parser.accepts("verbose", "Output backend formatted ids/paths");
+            OptionSpecBuilder verbose = parser.accepts("verbose",
+                "Output backend formatted ids/paths");
 
             // Optional argument to specify root path under which tracking if to be done. Defaults to "/" if not specified
             ArgumentAcceptingOptionSpec verboseRootPath = parser.accepts("verboseRootPath",
-                    "Root path to output backend formatted ids/paths")
-                    .withRequiredArg().withValuesSeparatedBy(DELIM).ofType(String.class);
+                                                                    "Root path to output backend formatted ids/paths")
+                                                                .withRequiredArg()
+                                                                .withValuesSeparatedBy(DELIM)
+                                                                .ofType(String.class);
 
             OptionSpec<?> help = parser.acceptsAll(asList("h", "?", "help"),
                 "show help").forHelp();
@@ -183,7 +192,7 @@ public class DataStoreCheckCommand implements Command {
                 dumpPath = options.valueOf(dump);
             }
 
-            GarbageCollectableBlobStore blobStore  = null;
+            GarbageCollectableBlobStore blobStore = null;
             BlobReferenceRetriever marker = null;
             NodeStore nodeStore = null;
             if (options.has(store)) {
@@ -192,13 +201,15 @@ public class DataStoreCheckCommand implements Command {
                     MongoClientURI uri = new MongoClientURI(source);
                     MongoClient client = new MongoClient(uri);
                     DocumentNodeStore docNodeStore =
-                        newMongoDocumentNodeStoreBuilder().setMongoDB(client, uri.getDatabase()).build();
+                        newMongoDocumentNodeStoreBuilder().setMongoDB(client, uri.getDatabase())
+                                                          .build();
                     closer.register(Utils.asCloseable(docNodeStore));
                     blobStore = (GarbageCollectableBlobStore) docNodeStore.getBlobStore();
                     marker = new DocumentBlobReferenceRetriever(docNodeStore);
                     nodeStore = docNodeStore;
                 } else {
-                    FileStore fileStore = fileStoreBuilder(new File(source)).withStrictVersionCheck(true).build();
+                    FileStore fileStore = fileStoreBuilder(new File(source)).withStrictVersionCheck(
+                        true).build();
                     marker = new SegmentBlobReferenceRetriever(fileStore);
                     closer.register(fileStore);
                     nodeStore =
@@ -208,7 +219,7 @@ public class DataStoreCheckCommand implements Command {
 
             // Initialize S3/FileDataStore if configured
             String dsType = "";
-            GarbageCollectableBlobStore dataStore  = Utils.bootstrapDataStore(args, closer);
+            GarbageCollectableBlobStore dataStore = Utils.bootstrapDataStore(args, closer);
             if (dataStore != null) {
                 dsType = getDSType(args);
                 blobStore = dataStore;
@@ -216,7 +227,8 @@ public class DataStoreCheckCommand implements Command {
 
             // blob store still not initialized means configuration not supported
             if (blobStore == null) {
-                System.err.println("Operation not defined for SegmentNodeStore without external datastore");
+                System.err.println(
+                    "Operation not defined for SegmentNodeStore without external datastore");
                 parser.printHelpOn(System.err);
                 return 1;
             }
@@ -227,7 +239,8 @@ public class DataStoreCheckCommand implements Command {
             if (options.has(idOp) || options.has(consistencyOp)) {
                 File idTemp = createTempFile("ids", null);
                 closer.register(new Closeable() {
-                    @Override public void close() throws IOException {
+                    @Override
+                    public void close() throws IOException {
                         forceDelete(idTemp);
                     }
                 });
@@ -258,12 +271,13 @@ public class DataStoreCheckCommand implements Command {
                 if ((options.has(verbose) &&
                     (nodeStore instanceof SegmentNodeStore ||
                         nodeStore instanceof org.apache.jackrabbit.oak.segment.SegmentNodeStore)) ||
-                        options.has(verboseRootPath)) {
+                    options.has(verboseRootPath)) {
                     NodeTraverser traverser = new NodeTraverser(nodeStore, dsType);
                     closer.register(traverser);
 
                     List<String> rootPathList = options.valuesOf(verboseRootPath);
-                    traverser.traverse((String[]) rootPathList.toArray(new String[rootPathList.size()]));
+                    traverser.traverse(
+                        (String[]) rootPathList.toArray(new String[rootPathList.size()]));
 
                     FileUtils.copyFile(traverser.references, register.createFile(refOp, dumpPath));
                 } else {
@@ -274,7 +288,8 @@ public class DataStoreCheckCommand implements Command {
 
             if (options.has(consistencyOp)) {
                 checkConsistency(register.get(idOp), register.get(refOp),
-                    register.createFile(consistencyOp, dumpPath), options.valueOf(repoHome), dsType);
+                    register.createFile(consistencyOp, dumpPath), options.valueOf(repoHome),
+                    dsType);
             }
 
             return 0;
@@ -284,20 +299,23 @@ public class DataStoreCheckCommand implements Command {
         }
     }
 
-    private static void verboseIds(Closer closer, final String dsType, File readFile, File writeFile) throws IOException {
+    private static void verboseIds(Closer closer, final String dsType, File readFile,
+        File writeFile) throws IOException {
         LineIterator idIterator = FileUtils.lineIterator(readFile, Charsets.UTF_8.name());
         try {
             // Create a temp file to write real ids and register with closer
             File longIdTemp = createTempFile("longids", null);
             closer.register(new Closeable() {
-                @Override public void close() throws IOException {
+                @Override
+                public void close() throws IOException {
                     forceDelete(longIdTemp);
                 }
             });
 
             // Read and write the converted ids
             FileIOUtils.writeStrings(idIterator, longIdTemp, false,
-                    (java.util.function.Function<String, String>) ((input) -> encodeId(input, dsType)), null, null);
+                (java.util.function.Function<String, String>) ((input) -> encodeId(input, dsType)),
+                null, null);
             FileUtils.copyFile(longIdTemp, writeFile);
         } finally {
             if (idIterator != null) {
@@ -319,11 +337,13 @@ public class DataStoreCheckCommand implements Command {
     }
 
     static String encodeId(String id, String dsType) {
-        List<String> idLengthSepList = Splitter.on(HASH).trimResults().omitEmptyStrings().splitToList(id);
+        List<String> idLengthSepList = Splitter.on(HASH).trimResults().omitEmptyStrings()
+                                               .splitToList(id);
         String blobId = idLengthSepList.get(0);
 
         if (dsType.equals(FDS)) {
-            return (blobId.substring(0, 2) + FILE_SEPARATOR.value() + blobId.substring(2, 4) + FILE_SEPARATOR.value() + blobId
+            return (blobId.substring(0, 2) + FILE_SEPARATOR.value() + blobId.substring(2, 4)
+                + FILE_SEPARATOR.value() + blobId
                 .substring(4, 6) + FILE_SEPARATOR.value() + blobId);
         } else if (dsType.equals(S3DS) || dsType.equals(AZUREDS)) {
             return (blobId.substring(0, 4) + DASH + blobId.substring(4));
@@ -332,12 +352,15 @@ public class DataStoreCheckCommand implements Command {
     }
 
     private static String decodeId(String id) {
-        List<String> list = Splitter.on(FILE_SEPARATOR.value()).trimResults().omitEmptyStrings().splitToList(id);
-        String pathStrippedId = list.get(list.size() -1);
-        return Joiner.on("").join(Splitter.on(DASH).omitEmptyStrings().trimResults().splitToList(pathStrippedId));
+        List<String> list = Splitter.on(FILE_SEPARATOR.value()).trimResults().omitEmptyStrings()
+                                    .splitToList(id);
+        String pathStrippedId = list.get(list.size() - 1);
+        return Joiner.on("").join(
+            Splitter.on(DASH).omitEmptyStrings().trimResults().splitToList(pathStrippedId));
     }
 
     static class FileRegister implements Closeable {
+
         Map<OptionSpec, File> opFiles = Maps.newHashMap();
         String suffix = String.valueOf(System.currentTimeMillis());
         OptionSet options;
@@ -373,21 +396,23 @@ public class DataStoreCheckCommand implements Command {
         }
     }
 
-    private static void checkConsistency(File ids, File refs, File missing, String trackRoot, String dsType)
+    private static void checkConsistency(File ids, File refs, File missing, String trackRoot,
+        String dsType)
         throws IOException {
         System.out.println("Starting consistency check");
         Stopwatch watch = createStarted();
 
-        FileLineDifferenceIterator iter = new FileLineDifferenceIterator(ids, refs, new java.util.function.Function<String, String>() {
-            @Nullable
-            @Override
-            public String apply(@Nullable String input) {
-                if (input != null) {
-                    return input.split(DELIM)[0];
+        FileLineDifferenceIterator iter = new FileLineDifferenceIterator(ids, refs,
+            new java.util.function.Function<String, String>() {
+                @Nullable
+                @Override
+                public String apply(@Nullable String input) {
+                    if (input != null) {
+                        return input.split(DELIM)[0];
+                    }
+                    return "";
                 }
-                return "";
-            }});
-
+            });
 
         // write the candidates identified to a temp file
         File candTemp = createTempFile("candTemp", null);
@@ -403,8 +428,11 @@ public class DataStoreCheckCommand implements Command {
                 // If a delete file is present filter the tracked deleted ids
                 if (!files.isEmpty()) {
                     File delFile = files.iterator().next();
-                    FileLineDifferenceIterator filteringIter = new FileLineDifferenceIterator(delFile, candTemp, new java.util.function.Function<String, String>() {
-                        @Nullable @Override public String apply(@Nullable String input) {
+                    FileLineDifferenceIterator filteringIter = new FileLineDifferenceIterator(
+                        delFile, candTemp, new java.util.function.Function<String, String>() {
+                        @Nullable
+                        @Override
+                        public String apply(@Nullable String input) {
                             if (input != null) {
                                 return encodeId(decodeId(input.split(DELIM)[0]), dsType);
                             }
@@ -414,7 +442,9 @@ public class DataStoreCheckCommand implements Command {
                     candidates = FileIOUtils.writeStrings(filteringIter, missing, false);
                 }
             } else {
-                System.out.println("Skipping active deleted tracked as parameter [repoHome] : [" + trackRoot + "] incorrect");
+                System.out.println(
+                    "Skipping active deleted tracked as parameter [repoHome] : [" + trackRoot
+                        + "] incorrect");
                 FileUtils.copyFile(candTemp, missing);
             }
         } finally {
@@ -428,7 +458,8 @@ public class DataStoreCheckCommand implements Command {
         System.out.println("Finished in " + watch.elapsed(TimeUnit.SECONDS) + " seconds");
     }
 
-    private static void retrieveBlobReferences(GarbageCollectableBlobStore blobStore, BlobReferenceRetriever marker,
+    private static void retrieveBlobReferences(GarbageCollectableBlobStore blobStore,
+        BlobReferenceRetriever marker,
         File marked, String dsType, boolean isVerbose) throws IOException {
         final BufferedWriter writer = Files.newWriter(marked, Charsets.UTF_8);
         final AtomicInteger count = new AtomicInteger();
@@ -488,6 +519,7 @@ public class DataStoreCheckCommand implements Command {
     }
 
     static class NodeTraverser implements Closeable {
+
         private final String dsType;
         private final File references;
         private final NodeStore nodeStore;
@@ -499,11 +531,12 @@ public class DataStoreCheckCommand implements Command {
             this.dsType = dsType;
         }
 
-        private void binaryProperties(NodeState state, String path, BufferedWriter writer, AtomicInteger count) {
+        private void binaryProperties(NodeState state, String path, BufferedWriter writer,
+            AtomicInteger count) {
             for (PropertyState p : state.getProperties()) {
                 String propPath = PathUtils.concat(path, p.getName());
                 try {
-                    String id ;
+                    String id;
                     if (p.getType() == Type.BINARY) {
                         id = p.getValue(Type.BINARY).getContentIdentity();
                         // Ignore inline encoded binaries in document mk and null references in segment mk
@@ -511,7 +544,7 @@ public class DataStoreCheckCommand implements Command {
                             continue;
                         }
                         writeAsLine(writer,
-                                getLine(id, propPath), false);
+                            getLine(id, propPath), false);
                         count.incrementAndGet();
 
                     } else if (p.getType() == Type.BINARIES && p.count() > 0) {
@@ -539,14 +572,16 @@ public class DataStoreCheckCommand implements Command {
             return delimJoiner.join(encodeId(id, dsType), escapeLineBreak(path));
         }
 
-        private void traverseChildren(NodeState state, String path, BufferedWriter writer, AtomicInteger count) {
+        private void traverseChildren(NodeState state, String path, BufferedWriter writer,
+            AtomicInteger count) {
             binaryProperties(state, path, writer, count);
             for (ChildNodeEntry c : state.getChildNodeEntries()) {
-                traverseChildren(c.getNodeState(), PathUtils.concat(path, c.getName()), writer, count);
+                traverseChildren(c.getNodeState(), PathUtils.concat(path, c.getName()), writer,
+                    count);
             }
         }
 
-        public void traverse(String ... paths) throws IOException {
+        public void traverse(String... paths) throws IOException {
             BufferedWriter writer = null;
             final AtomicInteger count = new AtomicInteger();
             boolean threw = true;
@@ -558,10 +593,10 @@ public class DataStoreCheckCommand implements Command {
                 if (paths.length == 0) {
                     traverseChildren(nodeStore.getRoot(), "/", writer, count);
                 } else {
-                    for (String path: paths ) {
+                    for (String path : paths) {
                         Iterable<String> nodeList = PathUtils.elements(path);
                         NodeState state = nodeStore.getRoot();
-                        for (String node: nodeList) {
+                        for (String node : nodeList) {
                             state = state.getChildNode(node);
                         }
                         traverseChildren(state, path, writer, count);

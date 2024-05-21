@@ -26,10 +26,9 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.security.AccessControlEntry;
 import javax.jcr.security.Privilege;
-
-import org.apache.jackrabbit.guava.common.collect.Collections2;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
+import org.apache.jackrabbit.guava.common.collect.Collections2;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionDefinition;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
@@ -37,8 +36,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Abstract base implementation of the {@code JackrabbitAccessControlList}
- * interface.
+ * Abstract base implementation of the {@code JackrabbitAccessControlList} interface.
  */
 public abstract class AbstractAccessControlList implements JackrabbitAccessControlList {
 
@@ -46,7 +44,7 @@ public abstract class AbstractAccessControlList implements JackrabbitAccessContr
     private final NamePathMapper namePathMapper;
 
     public AbstractAccessControlList(@Nullable String oakPath,
-                                     @NotNull NamePathMapper namePathMapper) {
+        @NotNull NamePathMapper namePathMapper) {
         this.oakPath = oakPath;
         this.namePathMapper = namePathMapper;
     }
@@ -84,7 +82,8 @@ public abstract class AbstractAccessControlList implements JackrabbitAccessContr
     }
 
     @Override
-    public boolean addAccessControlEntry(Principal principal, Privilege[] privileges) throws RepositoryException {
+    public boolean addAccessControlEntry(Principal principal, Privilege[] privileges)
+        throws RepositoryException {
         return addEntry(principal, privileges, true, Collections.<String, Value>emptyMap());
     }
 
@@ -103,14 +102,18 @@ public abstract class AbstractAccessControlList implements JackrabbitAccessContr
     @NotNull
     @Override
     public String[] getRestrictionNames() {
-        Collection<RestrictionDefinition> supported = getRestrictionProvider().getSupportedRestrictions(getOakPath());
-        return Collections2.transform(supported, definition -> namePathMapper.getJcrName(definition.getName())).toArray(new String[supported.size()]);
+        Collection<RestrictionDefinition> supported = getRestrictionProvider().getSupportedRestrictions(
+            getOakPath());
+        return Collections2.transform(supported,
+                               definition -> namePathMapper.getJcrName(definition.getName()))
+                           .toArray(new String[supported.size()]);
 
     }
 
     @Override
     public int getRestrictionType(@NotNull String restrictionName) {
-        for (RestrictionDefinition definition : getRestrictionProvider().getSupportedRestrictions(getOakPath())) {
+        for (RestrictionDefinition definition : getRestrictionProvider().getSupportedRestrictions(
+            getOakPath())) {
             String jcrName = namePathMapper.getJcrName(definition.getName());
             if (jcrName.equals(restrictionName)) {
                 return definition.getRequiredType().tag();
@@ -123,7 +126,8 @@ public abstract class AbstractAccessControlList implements JackrabbitAccessContr
 
     @Override
     public boolean isMultiValueRestriction(@NotNull String restrictionName) {
-        for (RestrictionDefinition definition : getRestrictionProvider().getSupportedRestrictions(getOakPath())) {
+        for (RestrictionDefinition definition : getRestrictionProvider().getSupportedRestrictions(
+            getOakPath())) {
             String jcrName = namePathMapper.getJcrName(definition.getName());
             if (jcrName.equals(restrictionName)) {
                 return definition.getRequiredType().isArray();
@@ -132,14 +136,16 @@ public abstract class AbstractAccessControlList implements JackrabbitAccessContr
         // not a supported restriction => return false.
         return false;
     }
-    
+
     @Override
-    public boolean addEntry(@NotNull Principal principal, @NotNull Privilege[] privileges, boolean isAllow) throws RepositoryException {
+    public boolean addEntry(@NotNull Principal principal, @NotNull Privilege[] privileges,
+        boolean isAllow) throws RepositoryException {
         return addEntry(principal, privileges, isAllow, Collections.<String, Value>emptyMap());
     }
-    
+
     @Override
-    public boolean addEntry(@NotNull Principal principal, @NotNull Privilege[] privileges, boolean isAllow, @Nullable Map<String, Value> restrictions) throws RepositoryException {
+    public boolean addEntry(@NotNull Principal principal, @NotNull Privilege[] privileges,
+        boolean isAllow, @Nullable Map<String, Value> restrictions) throws RepositoryException {
         return addEntry(principal, privileges, isAllow, restrictions, null);
     }
 }

@@ -19,8 +19,8 @@ package org.apache.jackrabbit.oak.spi.lifecycle;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 
 /**
- * Initializer of a workspace and it's initial content. A module that needs
- * to add content to a workspace can implement this interface.
+ * Initializer of a workspace and it's initial content. A module that needs to add content to a
+ * workspace can implement this interface.
  * <p>
  * TODO: define if/how runtime configuration changes may affect the workspace content.
  * TODO: review params of initialize()
@@ -34,8 +34,8 @@ public interface WorkspaceInitializer {
     };
 
     /**
-     * Initialize the content of a new workspace. This method is called before
-     * the workspace becomes available.
+     * Initialize the content of a new workspace. This method is called before the workspace becomes
+     * available.
      *
      * @param builder       builder for accessing and modifying the workspace
      * @param workspaceName The name of the workspace that is being initialized.

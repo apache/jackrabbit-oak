@@ -16,14 +16,13 @@
  */
 package org.apache.jackrabbit.oak.benchmark.wikipedia;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static java.lang.Math.min;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
 import javax.jcr.Repository;
@@ -34,7 +33,6 @@ import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamConstants;
 import javax.xml.stream.XMLStreamReader;
 import javax.xml.transform.stream.StreamSource;
-
 import org.apache.commons.compress.compressors.CompressorStreamFactory;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.oak.benchmark.Benchmark;
@@ -54,7 +52,7 @@ public class WikipediaImport extends Benchmark {
     private static final int BATCH_COUNT = 1000;
 
     private static final Logger LOG = LoggerFactory.getLogger(WikipediaImport.class);
-    
+
     /**
      * Used in {@link #importWikipedia(Session)}. If set to true it will stop the loop for the
      * import. Use {@link #issueHaltImport()} to issue an halt request.
@@ -74,13 +72,15 @@ public class WikipediaImport extends Benchmark {
             return;
         }
         if (!dump.isFile()) {
-            System.out.format("The Wikipedia dump at %s is not a file, skipping import benchmark.%n", dump.getPath());
+            System.out.format(
+                "The Wikipedia dump at %s is not a file, skipping import benchmark.%n",
+                dump.getPath());
             return;
         }
         for (RepositoryFixture fixture : fixtures) {
             if (fixture.isAvailable(1)) {
                 System.out.format(
-                        "%s: Wikipedia import benchmark%n", fixture);
+                    "%s: Wikipedia import benchmark%n", fixture);
                 try {
                     Repository[] cluster = setupCluster(fixture);
                     try {
@@ -97,7 +97,7 @@ public class WikipediaImport extends Benchmark {
         }
     }
 
-    protected void tearDown(RepositoryFixture fixture) throws IOException{
+    protected void tearDown(RepositoryFixture fixture) throws IOException {
         fixture.tearDownCluster();
     }
 
@@ -107,7 +107,7 @@ public class WikipediaImport extends Benchmark {
 
     private void run(Repository repository) throws Exception {
         Session session = repository.login(
-                new SimpleCredentials("admin", "admin".toCharArray()));
+            new SimpleCredentials("admin", "admin".toCharArray()));
         try {
             int before = importWikipedia(session);
             int after = new Traversal().traverse(session);
@@ -124,13 +124,13 @@ public class WikipediaImport extends Benchmark {
     public void issueHaltImport() {
         haltImport = true;
     }
-    
+
     public int importWikipedia(Session session) throws Exception {
         long start = System.currentTimeMillis();
         int count = 0;
         int code = 0;
 
-        if(doReport) {
+        if (doReport) {
             System.out.format("Importing %s...%n", dump);
         }
 
@@ -158,51 +158,51 @@ public class WikipediaImport extends Benchmark {
         } else {
             CompressorStreamFactory csf = new CompressorStreamFactory();
             source = new StreamSource(csf.createCompressorInputStream(
-                    new BufferedInputStream(new FileInputStream(dump))));
+                new BufferedInputStream(new FileInputStream(dump))));
         }
         haltImport = false;
         XMLStreamReader reader = factory.createXMLStreamReader(source);
         while (reader.hasNext() && !haltImport) {
             switch (reader.next()) {
-            case XMLStreamConstants.START_ELEMENT:
-                if ("title".equals(reader.getLocalName())) {
-                    title = reader.getElementText();
-                } else if ("text".equals(reader.getLocalName())) {
-                    text = reader.getElementText();
-                }
-                break;
-            case XMLStreamConstants.END_ELEMENT:
-                if ("page".equals(reader.getLocalName())) {
-                    String name = Text.escapeIllegalJcrChars(title);
-                    Node parent = wikipedia;
-                    if (levels > 0) {
-                        int n = name.length();
-                        for (int i = 0; i < levels; i++) {
-                            int hash = name.substring(min(i, n)).hashCode();
-                            parent = JcrUtils.getOrAddNode(
+                case XMLStreamConstants.START_ELEMENT:
+                    if ("title".equals(reader.getLocalName())) {
+                        title = reader.getElementText();
+                    } else if ("text".equals(reader.getLocalName())) {
+                        text = reader.getElementText();
+                    }
+                    break;
+                case XMLStreamConstants.END_ELEMENT:
+                    if ("page".equals(reader.getLocalName())) {
+                        String name = Text.escapeIllegalJcrChars(title);
+                        Node parent = wikipedia;
+                        if (levels > 0) {
+                            int n = name.length();
+                            for (int i = 0; i < levels; i++) {
+                                int hash = name.substring(min(i, n)).hashCode();
+                                parent = JcrUtils.getOrAddNode(
                                     parent, String.format("%02x", hash & 0xff));
+                            }
                         }
-                    }
-                    Node page = parent.addNode(name);
-                    page.setProperty("title", title);
-                    // Some wikipedia stub dumps have blank text tags
-                    // So simply set the text value to title here
-                    // Useful for local runs where people might
-                    // want to run just with wiki dump stubs
-                    if ("".equals(text) || text == null) {
-                        text = "Text for " + title;
-                    }
-                    page.setProperty("text", text);
-                    code += title.hashCode();
-                    code += text.hashCode();
-                    count++;
-                    if (count % getBatchCount() == 0) {
-                        batchDone(session, start, count);
-                    }
+                        Node page = parent.addNode(name);
+                        page.setProperty("title", title);
+                        // Some wikipedia stub dumps have blank text tags
+                        // So simply set the text value to title here
+                        // Useful for local runs where people might
+                        // want to run just with wiki dump stubs
+                        if ("".equals(text) || text == null) {
+                            text = "Text for " + title;
+                        }
+                        page.setProperty("text", text);
+                        code += title.hashCode();
+                        code += text.hashCode();
+                        count++;
+                        if (count % getBatchCount() == 0) {
+                            batchDone(session, start, count);
+                        }
 
-                    pageAdded(title, text);
-                }
-                break;
+                        pageAdded(title, text);
+                    }
+                    break;
             }
         }
 
@@ -211,8 +211,8 @@ public class WikipediaImport extends Benchmark {
         if (doReport) {
             long millis = System.currentTimeMillis() - start;
             System.out.format(
-                    "Imported %d pages in %d seconds (%.2fms/page)%n",
-                    count, millis / 1000, (double) millis / count);
+                "Imported %d pages in %d seconds (%.2fms/page)%n",
+                count, millis / 1000, (double) millis / count);
         }
 
         return code;
@@ -225,10 +225,10 @@ public class WikipediaImport extends Benchmark {
         if (doReport) {
             long millis = System.currentTimeMillis() - start;
             System.out.format(
-                    "Added %d pages in %d seconds (%.2fms/page)%n",
-                    count, millis / 1000, (double) millis / count);
+                "Added %d pages in %d seconds (%.2fms/page)%n",
+                count, millis / 1000, (double) millis / count);
             LOG.trace("Saved session and Added {} pages in {} seconds ({}ms/page)",
-                    count, millis / 1000, (double) millis / count);
+                count, millis / 1000, (double) millis / count);
         }
     }
 
@@ -254,8 +254,8 @@ public class WikipediaImport extends Benchmark {
             if (doReport) {
                 long millis = System.currentTimeMillis() - start;
                 System.out.format(
-                        "Traversed %d pages in %d seconds (%.2fms/page)%n",
-                        count, millis / 1000, (double) millis / count);
+                    "Traversed %d pages in %d seconds (%.2fms/page)%n",
+                    count, millis / 1000, (double) millis / count);
             }
 
             return code;
@@ -273,8 +273,8 @@ public class WikipediaImport extends Benchmark {
                 if (count % 1000 == 0 && doReport) {
                     long millis = System.currentTimeMillis() - start;
                     System.out.format(
-                            "Read %d pages in %d seconds (%.2fms/page)%n",
-                            count, millis / 1000, (double) millis / count);
+                        "Read %d pages in %d seconds (%.2fms/page)%n",
+                        count, millis / 1000, (double) millis / count);
                 }
 
                 traverse(page);

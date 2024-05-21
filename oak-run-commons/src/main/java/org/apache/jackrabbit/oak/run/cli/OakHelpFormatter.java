@@ -19,6 +19,8 @@
 
 package org.apache.jackrabbit.oak.run.cli;
 
+import static org.apache.jackrabbit.guava.common.base.StandardSystemProperty.LINE_SEPARATOR;
+
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -28,21 +30,18 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.guava.common.primitives.Ints;
 import joptsimple.BuiltinHelpFormatter;
 import joptsimple.HelpFormatter;
 import joptsimple.OptionDescriptor;
 import joptsimple.OptionSpec;
 import joptsimple.internal.Strings;
-
-import static org.apache.jackrabbit.guava.common.base.StandardSystemProperty.LINE_SEPARATOR;
-
+import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Maps;
+import org.apache.jackrabbit.guava.common.primitives.Ints;
 import org.jetbrains.annotations.Nullable;
 
 public class OakHelpFormatter implements HelpFormatter {
+
     private static final int COL_WIDTH = 120;
     private final List<OptionsBean> optionBeans;
     private final String commandName;
@@ -50,7 +49,7 @@ public class OakHelpFormatter implements HelpFormatter {
     private final String summary;
 
     public OakHelpFormatter(Iterable<OptionsBean> optionBeans, @Nullable String commandName,
-                            @Nullable String summary,@Nullable String connectionString) {
+        @Nullable String summary, @Nullable String connectionString) {
         this.optionBeans = Lists.newArrayList(optionBeans);
         this.commandName = commandName;
         this.summary = summary;
@@ -66,7 +65,7 @@ public class OakHelpFormatter implements HelpFormatter {
         StringBuilder builder = new StringBuilder();
         builder.append(new MainSectionFormatter().format(options)).append(LINE_SEPARATOR.value());
 
-        for (OptionCategory c : optionCategories){
+        for (OptionCategory c : optionCategories) {
             builder.append(c.format()).append(LINE_SEPARATOR.value());
         }
 
@@ -82,7 +81,7 @@ public class OakHelpFormatter implements HelpFormatter {
             for (String name : getOptionNames(bean)) {
                 OptionDescriptor desc = options.remove(name);
                 if (desc != null) {
-                    if (bean.operationNames().contains(name)){
+                    if (bean.operationNames().contains(name)) {
                         operationsForThisBean.put(name, desc);
                     } else {
                         optsForThisBean.put(name, desc);
@@ -117,12 +116,13 @@ public class OakHelpFormatter implements HelpFormatter {
 
 
     private static class OptionCategory implements Comparable<OptionCategory> {
+
         final OptionsBean bean;
         final Map<String, ? extends OptionDescriptor> options;
         final Map<String, ? extends OptionDescriptor> operations;
 
         public OptionCategory(OptionsBean bean, Map<String, ? extends OptionDescriptor> options,
-                              Map<String, OptionDescriptor> operations) {
+            Map<String, OptionDescriptor> operations) {
             this.bean = bean;
             this.options = options;
             this.operations = operations;
@@ -145,6 +145,7 @@ public class OakHelpFormatter implements HelpFormatter {
     }
 
     private static class CategoryFormatter extends BuiltinHelpFormatter {
+
         final OptionsBean bean;
 
         public CategoryFormatter(OptionsBean bean) {
@@ -189,8 +190,8 @@ public class OakHelpFormatter implements HelpFormatter {
 
         @Override
         protected void addHeaders(Collection<? extends OptionDescriptor> options) {
-            addOptionRow(OPERATIONS, message( "description.header" ) );
-            addOptionRow( Strings.repeat('-', OPERATIONS.length()), message( "description.divider" ) );
+            addOptionRow(OPERATIONS, message("description.header"));
+            addOptionRow(Strings.repeat('-', OPERATIONS.length()), message("description.divider"));
         }
 
         @Override
@@ -200,12 +201,12 @@ public class OakHelpFormatter implements HelpFormatter {
     }
 
     /**
-     * Formatter for the first section of the help. It dumps the connection string, command
-     * and summary only. No options are handled by this formatter
+     * Formatter for the first section of the help. It dumps the connection string, command and
+     * summary only. No options are handled by this formatter
      */
     private class MainSectionFormatter extends BuiltinHelpFormatter {
 
-        public MainSectionFormatter(){
+        public MainSectionFormatter() {
             super(getColWidth(), 2);
         }
 

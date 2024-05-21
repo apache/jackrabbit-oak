@@ -45,10 +45,10 @@ public class BranchCommitGCTest {
         clock.waitUntil(System.currentTimeMillis());
         Revision.setClock(clock);
         store = builderProvider.newBuilder()
-                .clock(clock)
-                .setLeaseCheckMode(LeaseCheckMode.DISABLED)
-                .setAsyncDelay(0)
-                .getNodeStore();
+                               .clock(clock)
+                               .setLeaseCheckMode(LeaseCheckMode.DISABLED)
+                               .setAsyncDelay(0)
+                               .getNodeStore();
         gc = store.getVersionGarbageCollector();
     }
 
@@ -78,7 +78,7 @@ public class BranchCommitGCTest {
         // wait two hours
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
         // clean everything older than one hours
-        VersionGarbageCollector.VersionGCStats stats= gc.gc(1, HOURS);
+        VersionGarbageCollector.VersionGCStats stats = gc.gc(1, HOURS);
 
         //This will fail as of now but will pass once BranchCommit GC code is merged.
         assertEquals(1, stats.deletedDocGCCount);
@@ -108,14 +108,14 @@ public class BranchCommitGCTest {
         // wait two hours
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
         // clean everything older than one hours
-        VersionGarbageCollector.VersionGCStats stats= gc.gc(1, HOURS);
+        VersionGarbageCollector.VersionGCStats stats = gc.gc(1, HOURS);
 
         //This will fail as of now but will pass once BranchCommit GC code is merged.
         assertEquals(1, stats.deletedDocGCCount);
     }
 
     private void merge(NodeBuilder builder)
-            throws Exception {
+        throws Exception {
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 

@@ -49,7 +49,7 @@ public enum AuthorizableType {
             case UserManager.SEARCH_TYPE_USER:
                 return USER;
             default:
-                throw new IllegalArgumentException("Invalid authorizable type "+jcrUserType);
+                throw new IllegalArgumentException("Invalid authorizable type " + jcrUserType);
         }
     }
 

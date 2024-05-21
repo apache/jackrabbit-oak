@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.io.Reader;
-
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.core.LowerCaseFilter;
@@ -37,21 +36,20 @@ public class OakAnalyzer extends Analyzer {
     /**
      * Creates a new {@link OakAnalyzer}
      *
-     * @param matchVersion
-     *            Lucene version to match See
-     *            {@link #matchVersion above}
+     * @param matchVersion Lucene version to match See {@link #matchVersion above}
      */
     public OakAnalyzer(Version matchVersion) {
         this(matchVersion, false);
     }
 
     /**
-     * Create a new {@link OakAnalyzer} with configurable flag to preserve
-     * original term being analyzed too.
-     * @param matchVersion Lucene version to match See {@link #matchVersion above}
+     * Create a new {@link OakAnalyzer} with configurable flag to preserve original term being
+     * analyzed too.
+     *
+     * @param matchVersion      Lucene version to match See {@link #matchVersion above}
      * @param indexOriginalTerm flag to setup analyzer such that
-     *                              {@link WordDelimiterFilter#PRESERVE_ORIGINAL}
-     *                              is set to configure word delimiter
+     *                          {@link WordDelimiterFilter#PRESERVE_ORIGINAL} is set to configure
+     *                          word delimiter
      */
     public OakAnalyzer(Version matchVersion, boolean indexOriginalTerm) {
         this.matchVersion = matchVersion;
@@ -60,14 +58,14 @@ public class OakAnalyzer extends Analyzer {
 
     @Override
     protected TokenStreamComponents createComponents(final String fieldName,
-            final Reader reader) {
+        final Reader reader) {
         StandardTokenizer src = new StandardTokenizer(matchVersion, reader);
         TokenStream tok = new LowerCaseFilter(matchVersion, src);
         tok = new WordDelimiterFilter(tok,
-                WordDelimiterFilter.GENERATE_WORD_PARTS
-                        | WordDelimiterFilter.STEM_ENGLISH_POSSESSIVE
-                        | preserveOriginal
-                        | WordDelimiterFilter.GENERATE_NUMBER_PARTS, null);
+            WordDelimiterFilter.GENERATE_WORD_PARTS
+                | WordDelimiterFilter.STEM_ENGLISH_POSSESSIVE
+                | preserveOriginal
+                | WordDelimiterFilter.GENERATE_NUMBER_PARTS, null);
         return new TokenStreamComponents(src, tok);
     }
 }

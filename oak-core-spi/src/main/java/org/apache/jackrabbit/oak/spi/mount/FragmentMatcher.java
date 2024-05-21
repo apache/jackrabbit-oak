@@ -23,8 +23,8 @@ import static org.apache.jackrabbit.oak.spi.mount.FragmentMatcher.Result.MISMATC
 import static org.apache.jackrabbit.oak.spi.mount.FragmentMatcher.Result.PARTIAL_MATCH;
 
 /**
- * This utility class allows to match strings against a simple pattern language.
- * There are two special characters:
+ * This utility class allows to match strings against a simple pattern language. There are two
+ * special characters:
  * <ul>
  *     <li><code>*</code> - matches zero or more any characters different than slash</li>
  *     <li><code>$</code> - matches the end of the subject</li>
@@ -40,15 +40,13 @@ public final class FragmentMatcher {
     }
 
     /**
-     * Check if the subject starts with the pattern. See the class docs for the
-     * pattern syntax.
+     * Check if the subject starts with the pattern. See the class docs for the pattern syntax.
      *
      * @param pattern pattern to be matched
      * @param subject subject
      * @return {@link Result#FULL_MATCH} if the subject starts with the pattern,
-     * {@link Result#PARTIAL_MATCH} if the subject is shorter than the pattern,
-     * but matches it so far and {@link Result#MISMATCH} if it doesn't start with
-     * the pattern.
+     * {@link Result#PARTIAL_MATCH} if the subject is shorter than the pattern, but matches it so
+     * far and {@link Result#MISMATCH} if it doesn't start with the pattern.
      */
     public static Result startsWith(String pattern, String subject) {
         int i = 0, j = 0;

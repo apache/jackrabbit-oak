@@ -24,7 +24,6 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import org.apache.jackrabbit.guava.common.base.Charsets;
 import org.apache.jackrabbit.guava.common.base.Splitter;
 import org.apache.jackrabbit.guava.common.collect.Maps;
@@ -40,8 +39,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Installs config obtained from JSON Config file or passed as part of
- * startup
+ * Installs config obtained from JSON Config file or passed as part of startup
  */
 class ConfigTracker extends ServiceTracker<ConfigurationAdmin, ConfigurationAdmin> {
 
@@ -79,12 +77,13 @@ class ConfigTracker extends ServiceTracker<ConfigurationAdmin, ConfigurationAdmi
         Map<String, Map<String, Object>> configs = Maps.newHashMap();
 
         Map<String, Map<String, Object>> configFromFile =
-                parseJSONConfig((String) config.get(OakOSGiRepositoryFactory.REPOSITORY_CONFIG_FILE));
+            parseJSONConfig((String) config.get(OakOSGiRepositoryFactory.REPOSITORY_CONFIG_FILE));
         configs.putAll(configFromFile);
 
         @SuppressWarnings("unchecked")
         Map<String, Map<String, Object>> runtimeConfig =
-                (Map<String, Map<String, Object>>) config.get(OakOSGiRepositoryFactory.REPOSITORY_CONFIG);
+            (Map<String, Map<String, Object>>) config.get(
+                OakOSGiRepositoryFactory.REPOSITORY_CONFIG);
         if (runtimeConfig != null) {
             configs.putAll(runtimeConfig);
         }
@@ -99,17 +98,20 @@ class ConfigTracker extends ServiceTracker<ConfigurationAdmin, ConfigurationAdmi
     }
 
     @SuppressWarnings("unchecked")
-    private Map<String, Map<String, Object>> parseJSONConfig(String jsonFilePath) throws IOException {
+    private Map<String, Map<String, Object>> parseJSONConfig(String jsonFilePath)
+        throws IOException {
         Map<String, Map<String, Object>> configs = Maps.newHashMap();
         if (jsonFilePath == null) {
             return configs;
         }
 
-        List<String> files = Splitter.on(',').trimResults().omitEmptyStrings().splitToList(jsonFilePath);
+        List<String> files = Splitter.on(',').trimResults().omitEmptyStrings()
+                                     .splitToList(jsonFilePath);
         for (String filePath : files) {
             File jsonFile = new File(filePath);
             if (!jsonFile.exists()) {
-                log.warn("No file found at path {}. Ignoring the file entry", jsonFile.getAbsolutePath());
+                log.warn("No file found at path {}. Ignoring the file entry",
+                    jsonFile.getAbsolutePath());
                 continue;
             }
 

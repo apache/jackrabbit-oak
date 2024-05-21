@@ -18,8 +18,18 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.search;
 
-import javax.jcr.PropertyType;
+import static org.apache.jackrabbit.guava.common.collect.ImmutableList.copyOf;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.toArray;
+import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
+import static org.apache.jackrabbit.oak.commons.PathUtils.isAbsolute;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.FIELD_BOOST;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_IS_REGEX;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_SIMILARITY_SEARCH_DENSE_VECTOR_SIZE;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_WEIGHT;
+import static org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner.DEFAULT_PROPERTY_WEIGHT;
+import static org.apache.jackrabbit.oak.plugins.index.search.util.ConfigUtil.getOptionalValue;
 
+import javax.jcr.PropertyType;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -32,18 +42,8 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableList.copyOf;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.toArray;
-import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
-import static org.apache.jackrabbit.oak.commons.PathUtils.isAbsolute;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.FIELD_BOOST;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_IS_REGEX;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_WEIGHT;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_SIMILARITY_SEARCH_DENSE_VECTOR_SIZE;
-import static org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner.DEFAULT_PROPERTY_WEIGHT;
-import static org.apache.jackrabbit.oak.plugins.index.search.util.ConfigUtil.getOptionalValue;
-
 public class PropertyDefinition {
+
     private static final Logger log = LoggerFactory.getLogger(PropertyDefinition.class);
 
     private static final String[] EMPTY_ANCESTORS = new String[0];
@@ -56,10 +56,9 @@ public class PropertyDefinition {
     static final int SIMILARITY_SEARCH_DENSE_VECTOR_SIZE_DEFAULT = 1024;
 
     /**
-     * Property name. By default derived from the NodeState name which has the
-     * property definition. However in case property name is a pattern, relative
-     * property etc then it should be defined via 'name' property in NodeState.
-     * In such case NodeState name can be set to anything
+     * Property name. By default derived from the NodeState name which has the property definition.
+     * However in case property name is a pattern, relative property etc then it should be defined
+     * via 'name' property in NodeState. In such case NodeState name can be set to anything
      */
     public final String name;
 
@@ -109,8 +108,8 @@ public class PropertyDefinition {
     public final boolean dynamicBoost;
 
     /**
-     * Property name excluding the relativePath. For regular expression based definition
-     * its set to null
+     * Property name excluding the relativePath. For regular expression based definition its set to
+     * null
      */
     @Nullable
     public final String nonRelativeName;
@@ -144,60 +143,76 @@ public class PropertyDefinition {
         this.relative = isRelativeProperty(name);
         this.boost = getOptionalValue(defn, FIELD_BOOST, DEFAULT_BOOST);
         this.weight = getOptionalValue(defn, PROP_WEIGHT, DEFAULT_PROPERTY_WEIGHT);
-        this.dynamicBoost = getOptionalValue(defn, FulltextIndexConstants.PROP_DYNAMIC_BOOST, false);
+        this.dynamicBoost = getOptionalValue(defn, FulltextIndexConstants.PROP_DYNAMIC_BOOST,
+            false);
 
         //By default if a property is defined it is indexed
         this.index = getOptionalValue(defn, FulltextIndexConstants.PROP_INDEX, true);
-        this.stored = getOptionalValueIfIndexed(defn, FulltextIndexConstants.PROP_USE_IN_EXCERPT, false);
-        this.nodeScopeIndex = getOptionalValueIfIndexed(defn, FulltextIndexConstants.PROP_NODE_SCOPE_INDEX, false);
+        this.stored = getOptionalValueIfIndexed(defn, FulltextIndexConstants.PROP_USE_IN_EXCERPT,
+            false);
+        this.nodeScopeIndex = getOptionalValueIfIndexed(defn,
+            FulltextIndexConstants.PROP_NODE_SCOPE_INDEX, false);
 
         //If boost is specified then that field MUST be analyzed
         if (defn.hasProperty(FIELD_BOOST)) {
             this.analyzed = true;
         } else {
-            this.analyzed = getOptionalValueIfIndexed(defn, FulltextIndexConstants.PROP_ANALYZED, false);
+            this.analyzed = getOptionalValueIfIndexed(defn, FulltextIndexConstants.PROP_ANALYZED,
+                false);
         }
 
         this.ordered = getOptionalValueIfIndexed(defn, FulltextIndexConstants.PROP_ORDERED, false);
-        this.includedPropertyTypes = IndexDefinition.getSupportedTypes(defn, FulltextIndexConstants.PROP_INCLUDED_TYPE,
-                IndexDefinition.TYPES_ALLOW_ALL);
+        this.includedPropertyTypes = IndexDefinition.getSupportedTypes(defn,
+            FulltextIndexConstants.PROP_INCLUDED_TYPE,
+            IndexDefinition.TYPES_ALLOW_ALL);
 
         //TODO Add test case for above cases
 
         this.propertyType = getPropertyType(idxDefn, nodeName, defn);
-        this.useInSuggest = getOptionalValueIfIndexed(defn, FulltextIndexConstants.PROP_USE_IN_SUGGEST, false);
-        this.useInSpellcheck = getOptionalValueIfIndexed(defn, FulltextIndexConstants.PROP_USE_IN_SPELLCHECK, false);
-        this.useInSimilarity = getOptionalValueIfIndexed(defn, FulltextIndexConstants.PROP_USE_IN_SIMILARITY, false);
-        this.similarityRerank = getOptionalValueIfIndexed(defn, FulltextIndexConstants.PROP_SIMILARITY_RERANK, true);
-        this.similarityTags = getOptionalValueIfIndexed(defn, FulltextIndexConstants.PROP_SIMILARITY_TAGS, false);
-        this.nullCheckEnabled = getOptionalValueIfIndexed(defn, FulltextIndexConstants.PROP_NULL_CHECK_ENABLED, false);
-        this.notNullCheckEnabled = getOptionalValueIfIndexed(defn, FulltextIndexConstants.PROP_NOT_NULL_CHECK_ENABLED, false);
-        this.excludeFromAggregate = getOptionalValueIfIndexed(defn, FulltextIndexConstants.PROP_EXCLUDE_FROM_AGGREGATE, false);
+        this.useInSuggest = getOptionalValueIfIndexed(defn,
+            FulltextIndexConstants.PROP_USE_IN_SUGGEST, false);
+        this.useInSpellcheck = getOptionalValueIfIndexed(defn,
+            FulltextIndexConstants.PROP_USE_IN_SPELLCHECK, false);
+        this.useInSimilarity = getOptionalValueIfIndexed(defn,
+            FulltextIndexConstants.PROP_USE_IN_SIMILARITY, false);
+        this.similarityRerank = getOptionalValueIfIndexed(defn,
+            FulltextIndexConstants.PROP_SIMILARITY_RERANK, true);
+        this.similarityTags = getOptionalValueIfIndexed(defn,
+            FulltextIndexConstants.PROP_SIMILARITY_TAGS, false);
+        this.nullCheckEnabled = getOptionalValueIfIndexed(defn,
+            FulltextIndexConstants.PROP_NULL_CHECK_ENABLED, false);
+        this.notNullCheckEnabled = getOptionalValueIfIndexed(defn,
+            FulltextIndexConstants.PROP_NOT_NULL_CHECK_ENABLED, false);
+        this.excludeFromAggregate = getOptionalValueIfIndexed(defn,
+            FulltextIndexConstants.PROP_EXCLUDE_FROM_AGGREGATE, false);
         this.similaritySearchDVS = getOptionalValue(defn, PROP_SIMILARITY_SEARCH_DENSE_VECTOR_SIZE,
-                SIMILARITY_SEARCH_DENSE_VECTOR_SIZE_DEFAULT);
+            SIMILARITY_SEARCH_DENSE_VECTOR_SIZE_DEFAULT);
         this.nonRelativeName = determineNonRelativeName();
         this.ancestors = computeAncestors(name);
         this.facet = getOptionalValueIfIndexed(defn, FulltextIndexConstants.PROP_FACETS, false);
         this.function = FunctionIndexProcessor.convertToPolishNotation(
-                getOptionalValue(defn, FulltextIndexConstants.PROP_FUNCTION, null));
+            getOptionalValue(defn, FulltextIndexConstants.PROP_FUNCTION, null));
         this.functionCode = FunctionIndexProcessor.getFunctionCode(this.function);
         this.valuePattern = new ValuePattern(defn);
         this.unique = getOptionalValueIfIndexed(defn, FulltextIndexConstants.PROP_UNIQUE, false);
-        this.sync = unique || getOptionalValueIfIndexed(defn, FulltextIndexConstants.PROP_SYNC, false);
+        this.sync =
+            unique || getOptionalValueIfIndexed(defn, FulltextIndexConstants.PROP_SYNC, false);
 
         //If some property is set to sync then propertyIndex mode is always enabled
-        this.propertyIndex = sync || getOptionalValueIfIndexed(defn, FulltextIndexConstants.PROP_PROPERTY_INDEX, false);
+        this.propertyIndex =
+            sync || getOptionalValueIfIndexed(defn, FulltextIndexConstants.PROP_PROPERTY_INDEX,
+                false);
         validate();
     }
 
 
     /**
-     * If 'analyzed' is enabled then property value would be used to evaluate the
-     * contains clause related to those properties. In such mode also some properties
-     * would be skipped from analysis
+     * If 'analyzed' is enabled then property value would be used to evaluate the contains clause
+     * related to those properties. In such mode also some properties would be skipped from
+     * analysis
      *
-     * @param propertyName name of the property to check. As property definition might
-     *                     be regEx based this is required to be passed explicitly
+     * @param propertyName name of the property to check. As property definition might be regEx
+     *                     based this is required to be passed explicitly
      * @return true if the property value should be tokenized/analyzed
      */
     public boolean skipTokenization(String propertyName) {
@@ -231,8 +246,8 @@ public class PropertyDefinition {
 
 
     /**
-     * Returns the property type. If no explicit type is defined the default is assumed
-     * to be {@link PropertyType#STRING}
+     * Returns the property type. If no explicit type is defined the default is assumed to be
+     * {@link PropertyType#STRING}
      *
      * @return propertyType as per javax.jcr.PropertyType
      */
@@ -248,33 +263,34 @@ public class PropertyDefinition {
     @Override
     public String toString() {
         return "PropertyDefinition{" +
-                "name='" + name + '\'' +
-                ", propertyType=" + propertyType +
-                ", boost=" + boost +
-                ", isRegexp=" + isRegexp +
-                ", index=" + index +
-                ", stored=" + stored +
-                ", nodeScopeIndex=" + nodeScopeIndex +
-                ", propertyIndex=" + propertyIndex +
-                ", analyzed=" + analyzed +
-                ", ordered=" + ordered +
-                ", useInSuggest=" + useInSuggest +
-                ", useInSimilarity=" + useInSimilarity +
-                ", nullCheckEnabled=" + nullCheckEnabled +
-                ", notNullCheckEnabled=" + notNullCheckEnabled +
-                ", function=" + function +
-                '}';
+            "name='" + name + '\'' +
+            ", propertyType=" + propertyType +
+            ", boost=" + boost +
+            ", isRegexp=" + isRegexp +
+            ", index=" + index +
+            ", stored=" + stored +
+            ", nodeScopeIndex=" + nodeScopeIndex +
+            ", propertyIndex=" + propertyIndex +
+            ", analyzed=" + analyzed +
+            ", ordered=" + ordered +
+            ", useInSuggest=" + useInSuggest +
+            ", useInSimilarity=" + useInSimilarity +
+            ", nullCheckEnabled=" + nullCheckEnabled +
+            ", notNullCheckEnabled=" + notNullCheckEnabled +
+            ", function=" + function +
+            '}';
     }
 
     static boolean isRelativeProperty(String propertyName) {
         return !isAbsolute(propertyName)
-                && !FulltextIndexConstants.REGEX_ALL_PROPS.equals(propertyName)
-                && PathUtils.getNextSlash(propertyName, 0) > 0;
+            && !FulltextIndexConstants.REGEX_ALL_PROPS.equals(propertyName)
+            && PathUtils.getNextSlash(propertyName, 0) > 0;
     }
 
     //~---------------------------------------------< internal >
 
-    private boolean getOptionalValueIfIndexed(NodeState definition, String propName, boolean defaultVal) {
+    private boolean getOptionalValueIfIndexed(NodeState definition, String propName,
+        boolean defaultVal) {
         //If property is not to be indexed then all other config would be
         //set to false ignoring whatever is defined in config for them
         if (!index) {
@@ -285,7 +301,8 @@ public class PropertyDefinition {
 
     private void validate() {
         if (nullCheckEnabled && isRegexp) {
-            throw new IllegalStateException(String.format("%s can be set to true for property definition using " +
+            throw new IllegalStateException(
+                String.format("%s can be set to true for property definition using " +
                     "regular expression", FulltextIndexConstants.PROP_NULL_CHECK_ENABLED));
         }
     }
@@ -323,7 +340,8 @@ public class PropertyDefinition {
             try {
                 type = PropertyType.valueFromName(typeName);
             } catch (IllegalArgumentException e) {
-                log.warn("Invalid property type {} for property {} in Index {}", typeName, name, idxDefn);
+                log.warn("Invalid property type {} for property {} in Index {}", typeName, name,
+                    idxDefn);
             }
         }
         return type;

@@ -23,11 +23,10 @@ import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.ChannelPipeline;
 import io.netty.handler.ssl.SslHandler;
 import io.netty.handler.ssl.SslHandshakeCompletionEvent;
-
-import javax.net.ssl.SSLSession;
-import javax.security.cert.X509Certificate;
 import java.security.Principal;
 import java.util.regex.Pattern;
+import javax.net.ssl.SSLSession;
+import javax.security.cert.X509Certificate;
 
 public class SSLSubjectMatcher extends ChannelInboundHandlerAdapter {
 
@@ -38,7 +37,8 @@ public class SSLSubjectMatcher extends ChannelInboundHandlerAdapter {
     }
 
     @Override
-    public void userEventTriggered(ChannelHandlerContext channelHandlerContext, Object ev) throws Exception {
+    public void userEventTriggered(ChannelHandlerContext channelHandlerContext, Object ev)
+        throws Exception {
         if (ev instanceof SslHandshakeCompletionEvent) {
             final Channel channel = channelHandlerContext.channel();
             final ChannelPipeline pipeline = channel.pipeline();
@@ -50,9 +50,11 @@ public class SSLSubjectMatcher extends ChannelInboundHandlerAdapter {
             if (!pattern.matcher(subject).matches()) {
                 throw new Exception(
                     "Pattern match /" + pattern.toString() + "/ failed on: " + subject + "\n" +
-                    "Note: the Java implementation of regex always implicitly matches from beginning to\n" +
-                    "end, as in ^YOUR_PATTERN$, so if you want to match /acme/ anywhere in the subject\n" +
-                    "you'd use .*acme.*");
+                        "Note: the Java implementation of regex always implicitly matches from beginning to\n"
+                        +
+                        "end, as in ^YOUR_PATTERN$, so if you want to match /acme/ anywhere in the subject\n"
+                        +
+                        "you'd use .*acme.*");
             }
         }
     }

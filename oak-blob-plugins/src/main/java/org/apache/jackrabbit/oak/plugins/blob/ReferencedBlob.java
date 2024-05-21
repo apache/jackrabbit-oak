@@ -24,40 +24,41 @@ import org.apache.jackrabbit.oak.api.Blob;
  * Exposes the blob along with the Node id from which referenced
  */
 public class ReferencedBlob {
+
     private Blob blob;
-    
+
     private String id;
-    
+
     public ReferencedBlob(Blob blob, String id) {
         this.setBlob(blob);
         this.setId(id);
     }
-    
+
     public Blob getBlob() {
         return blob;
     }
-    
+
     public void setBlob(Blob blob) {
         this.blob = blob;
     }
-    
+
     public String getId() {
         return id;
     }
-    
+
     public void setId(String id) {
         this.id = id;
     }
-    
-    @Override 
+
+    @Override
     public String toString() {
         return "ReferencedBlob{" +
-                   "blob=" + blob +
-                   ", id='" + id + '\'' +
-                   '}';
+            "blob=" + blob +
+            ", id='" + id + '\'' +
+            '}';
     }
-    
-    @Override 
+
+    @Override
     public boolean equals(Object o) {
         if (this == o) {
             return true;
@@ -65,20 +66,20 @@ public class ReferencedBlob {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        
+
         ReferencedBlob that = (ReferencedBlob) o;
-        
+
         if (!getBlob().equals(that.getBlob())) {
             return false;
         }
         return !(getId() != null ? !getId().equals(that.getId()) : that.getId() != null);
-        
+
     }
-    
-    @Override 
+
+    @Override
     public int hashCode() {
         int result = getBlob().hashCode();
         result = 31 * result + (getId() != null ? getId().hashCode() : 0);
         return result;
-    }    
+    }
 }

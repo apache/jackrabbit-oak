@@ -19,8 +19,17 @@
 
 package org.apache.jackrabbit.oak.plugins.index.search.util;
 
-import java.util.Iterator;
+import static java.util.Arrays.asList;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.AGGREGATES;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
+import java.util.Iterator;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -37,75 +46,69 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.junit.After;
 import org.junit.Test;
 
-import static java.util.Arrays.asList;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.AGGREGATES;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-
 public class IndexDefinitionBuilderTest {
+
     private IndexDefinitionBuilder builder = new IndexDefinitionBuilder();
     private NodeBuilder nodeBuilder = EMPTY_NODE.builder();
 
     @After
-    public void dumpState(){
+    public void dumpState() {
         System.out.println(NodeStateUtils.toString(builder.build()));
     }
 
     @Test
-    public void defaultvSetup() throws Exception{
+    public void defaultvSetup() throws Exception {
         NodeState state = builder.build();
         assertEquals("async", state.getString("async"));
         assertEquals("fulltext", state.getString("type"));
     }
 
     @Test
-    public void indexRule() throws Exception{
+    public void indexRule() throws Exception {
         builder.includedPaths("/a", "/b");
         builder.queryPaths("/c", "/d");
         builder.supersedes("/e", "/f");
         builder.indexRule("nt:base")
-                    .property("foo")
-                        .ordered()
-                .enclosingRule()
-                    .property("bar")
-                        .analyzed()
-                        .propertyIndex()
-                .enclosingRule()
-                    .property("baz")
-                    .propertyIndex();
+               .property("foo")
+               .ordered()
+               .enclosingRule()
+               .property("bar")
+               .analyzed()
+               .propertyIndex()
+               .enclosingRule()
+               .property("baz")
+               .propertyIndex();
 
         NodeState state = builder.build();
         assertTrue(state.getChildNode("indexRules").exists());
         assertTrue(state.getChildNode("indexRules").getChildNode("nt:base").exists());
-        assertEquals(asList("/a", "/b"), state.getProperty(PathFilter.PROP_INCLUDED_PATHS).getValue(Type.STRINGS));
-        assertEquals(asList("/c", "/d"), state.getProperty(IndexConstants.QUERY_PATHS).getValue(Type.STRINGS));
-        assertEquals(asList("/e", "/f"), state.getProperty(IndexConstants.SUPERSEDED_INDEX_PATHS).getValue(Type.STRINGS));
+        assertEquals(asList("/a", "/b"),
+            state.getProperty(PathFilter.PROP_INCLUDED_PATHS).getValue(Type.STRINGS));
+        assertEquals(asList("/c", "/d"),
+            state.getProperty(IndexConstants.QUERY_PATHS).getValue(Type.STRINGS));
+        assertEquals(asList("/e", "/f"),
+            state.getProperty(IndexConstants.SUPERSEDED_INDEX_PATHS).getValue(Type.STRINGS));
     }
 
     @Test
     public void propertyDefIndexPropertySetIndexFalse() throws Exception {
         builder.indexRule("nt:base")
-                .property("foo")
-                .disable();
+               .property("foo")
+               .disable();
 
         PropertyState state = builder.build().
-                getChildNode("indexRules").
-                getChildNode("nt:base").
-                getChildNode("properties").
-                getChildNode("foo").
-                getProperty("index");
+                                     getChildNode("indexRules").
+                                     getChildNode("nt:base").
+                                     getChildNode("properties").
+                                     getChildNode("foo").
+                                     getProperty("index");
 
         assertNotNull("index property must exist", state);
         assertFalse("Incorrect default value of index property", state.getValue(Type.BOOLEAN));
     }
 
     @Test
-    public void aggregates() throws Exception{
+    public void aggregates() throws Exception {
         builder.aggregateRule("cq:Page").include("jcr:content").relativeNode();
         builder.aggregateRule("dam:Asset", "*", "*/*");
 
@@ -116,27 +119,27 @@ public class IndexDefinitionBuilderTest {
     }
 
     @Test
-    public void duplicatePropertyName() throws Exception{
+    public void duplicatePropertyName() throws Exception {
         builder.indexRule("nt:base")
-                    .property("foo")
-                        .ordered()
-                .enclosingRule()
-                    .property("jcr:content/foo")
-                        .analyzed()
-                        .propertyIndex()
-                .enclosingRule()
-                    .property("metadata/content/foo")
-                        .propertyIndex();
+               .property("foo")
+               .ordered()
+               .enclosingRule()
+               .property("jcr:content/foo")
+               .analyzed()
+               .propertyIndex()
+               .enclosingRule()
+               .property("metadata/content/foo")
+               .propertyIndex();
 
         NodeState state = builder.build();
         assertTrue(state.getChildNode("indexRules").exists());
         assertTrue(state.getChildNode("indexRules").getChildNode("nt:base").exists());
         assertEquals(3, state.getChildNode("indexRules").getChildNode("nt:base")
-                .getChildNode("properties").getChildNodeCount(10));
+                             .getChildNode("properties").getChildNodeCount(10));
     }
 
     @Test
-    public void ruleOrder() throws Exception{
+    public void ruleOrder() throws Exception {
         builder.indexRule("nt:unstructured");
         builder.indexRule("nt:base");
 
@@ -150,17 +153,17 @@ public class IndexDefinitionBuilderTest {
     }
 
     @Test
-    public void regexProperty() throws Exception{
+    public void regexProperty() throws Exception {
         builder.indexRule("nt:base")
-                .property(FulltextIndexConstants.REGEX_ALL_PROPS, true);
+               .property(FulltextIndexConstants.REGEX_ALL_PROPS, true);
 
         NodeState state = builder.build();
         assertTrue(NodeStateUtils.getNode(state, "indexRules/nt:base/properties/prop")
-                .getBoolean(FulltextIndexConstants.PROP_IS_REGEX));
+                                 .getBoolean(FulltextIndexConstants.PROP_IS_REGEX));
     }
 
     @Test
-    public void mergeExisting() throws Exception{
+    public void mergeExisting() throws Exception {
         nodeBuilder.setProperty("foo", "bar");
         builder = new IndexDefinitionBuilder(nodeBuilder);
 
@@ -170,7 +173,7 @@ public class IndexDefinitionBuilderTest {
     }
 
     @Test
-    public void mergeExisting_IndexRule() throws Exception{
+    public void mergeExisting_IndexRule() throws Exception {
         builder.indexRule("nt:unstructured").property("foo").propertyIndex();
 
         nodeBuilder = builder.build().builder();
@@ -187,7 +190,7 @@ public class IndexDefinitionBuilderTest {
     }
 
     @Test
-    public void mergeExisting_Aggregates() throws Exception{
+    public void mergeExisting_Aggregates() throws Exception {
         builder.aggregateRule("foo").include("/path1");
         builder.aggregateRule("foo").include("/path2");
 
@@ -203,11 +206,11 @@ public class IndexDefinitionBuilderTest {
     }
 
     @Test
-    public void noReindexIfNoChange() throws Exception{
+    public void noReindexIfNoChange() throws Exception {
         builder.includedPaths("/a", "/b");
         builder.indexRule("nt:base")
-                .property("foo")
-                .ordered();
+               .property("foo")
+               .ordered();
 
         nodeBuilder = builder.build().builder();
         nodeBuilder.setProperty(REINDEX_PROPERTY_NAME, false);
@@ -217,7 +220,6 @@ public class IndexDefinitionBuilderTest {
         assertFalse(builder.isReindexRequired());
         NodeState state = builder.build();
         assertFalse(state.getBoolean(REINDEX_PROPERTY_NAME));
-
 
         NodeState baseState = builder.build();
         nodeBuilder = baseState.builder();
@@ -237,7 +239,7 @@ public class IndexDefinitionBuilderTest {
     }
 
     @Test
-    public void reindexAndAsyncFlagChange() throws Exception{
+    public void reindexAndAsyncFlagChange() throws Exception {
         builder.async("async", IndexConstants.INDEXING_MODE_NRT);
 
         nodeBuilder = builder.build().builder();
@@ -255,7 +257,7 @@ public class IndexDefinitionBuilderTest {
     }
 
     @Test
-    public void propRuleCustomName() throws Exception{
+    public void propRuleCustomName() throws Exception {
         builder.indexRule("nt:base").property("foo").property("bar");
         builder.indexRule("nt:base").property("fooProp", "foo2");
         builder.indexRule("nt:base").property("fooProp", "foo2");
@@ -267,7 +269,7 @@ public class IndexDefinitionBuilderTest {
     }
 
     @Test
-    public void typeNotChangedIfSet() throws Exception{
+    public void typeNotChangedIfSet() throws Exception {
         NodeState state = builder.build();
         assertEquals("fulltext", state.getString("type"));
 
@@ -284,7 +286,7 @@ public class IndexDefinitionBuilderTest {
     }
 
     @Test
-    public void nodeTypeIndex() throws Exception{
+    public void nodeTypeIndex() throws Exception {
         builder.nodeTypeIndex();
         builder.indexRule("nt:file");
 
@@ -297,7 +299,7 @@ public class IndexDefinitionBuilderTest {
     }
 
     @Test
-    public void nodeTypeIndexSync() throws Exception{
+    public void nodeTypeIndexSync() throws Exception {
         builder.nodeTypeIndex();
         builder.indexRule("nt:file").sync();
 
@@ -310,7 +312,7 @@ public class IndexDefinitionBuilderTest {
     }
 
     @Test
-    public void noPropertiesNodeForEmptyRule() throws Exception{
+    public void noPropertiesNodeForEmptyRule() throws Exception {
         builder.nodeTypeIndex();
         builder.indexRule("nt:file").sync();
 
@@ -322,16 +324,19 @@ public class IndexDefinitionBuilderTest {
     public void selectionPolicy() {
         builder.selectionPolicy(IndexSelectionPolicy.TAG);
         NodeState state = builder.build();
-        assertEquals(IndexSelectionPolicy.TAG, state.getString(IndexConstants.INDEX_SELECTION_POLICY));
+        assertEquals(IndexSelectionPolicy.TAG,
+            state.getString(IndexConstants.INDEX_SELECTION_POLICY));
         // random policy value must not set policy to IndexSelectionPolicy.TAG
         builder.selectionPolicy("foo");
         state = builder.build();
-        assertNotEquals(IndexSelectionPolicy.TAG, state.getString(IndexConstants.INDEX_SELECTION_POLICY));
+        assertNotEquals(IndexSelectionPolicy.TAG,
+            state.getString(IndexConstants.INDEX_SELECTION_POLICY));
     }
 
     @Test
     public void noTagSelectionPolicyByDefault() {
         // ensure old flow - no IndexSelectionPolicy.TAG policy must be set
-        assertNotEquals(IndexSelectionPolicy.TAG, builder.build().getString(IndexConstants.INDEX_SELECTION_POLICY));
+        assertNotEquals(IndexSelectionPolicy.TAG,
+            builder.build().getString(IndexConstants.INDEX_SELECTION_POLICY));
     }
 }

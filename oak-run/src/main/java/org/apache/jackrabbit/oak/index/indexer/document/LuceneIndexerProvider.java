@@ -19,9 +19,11 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document;
 
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
+
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.index.ExtendedIndexHelper;
 import org.apache.jackrabbit.oak.index.IndexerSupport;
@@ -38,41 +40,44 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
-
 public class LuceneIndexerProvider implements NodeStateIndexerProvider {
+
     private final ExtractedTextCache textCache =
-            new ExtractedTextCache(FileUtils.ONE_MB * 5, TimeUnit.HOURS.toSeconds(5));
+        new ExtractedTextCache(FileUtils.ONE_MB * 5, TimeUnit.HOURS.toSeconds(5));
     private final ExtendedIndexHelper extendedIndexHelper;
     private final DirectoryFactory dirFactory;
     private final LuceneIndexWriterFactory indexWriterFactory;
 
-    public LuceneIndexerProvider(ExtendedIndexHelper extendedIndexHelper, IndexerSupport indexerSupport) throws IOException {
+    public LuceneIndexerProvider(ExtendedIndexHelper extendedIndexHelper,
+        IndexerSupport indexerSupport) throws IOException {
         this.extendedIndexHelper = extendedIndexHelper;
         this.dirFactory = new FSDirectoryFactory(indexerSupport.getLocalIndexDir());
-        this.indexWriterFactory = new DefaultIndexWriterFactory(extendedIndexHelper.getMountInfoProvider(),
-                dirFactory, extendedIndexHelper.getLuceneIndexHelper().getWriterConfigForReindex());
+        this.indexWriterFactory = new DefaultIndexWriterFactory(
+            extendedIndexHelper.getMountInfoProvider(),
+            dirFactory, extendedIndexHelper.getLuceneIndexHelper().getWriterConfigForReindex());
     }
 
     @Override
     public NodeStateIndexer getIndexer(@NotNull String type, @NotNull String indexPath,
-                                       @NotNull NodeBuilder definition, @NotNull NodeState root,
-                                       IndexingProgressReporter progressReporter) {
+        @NotNull NodeBuilder definition, @NotNull NodeState root,
+        IndexingProgressReporter progressReporter) {
         if (!TYPE_LUCENE.equals(definition.getString(TYPE_PROPERTY_NAME))) {
             return null;
         }
 
-        LuceneIndexDefinition idxDefinition = LuceneIndexDefinition.newBuilder(root, definition.getNodeState(), indexPath).reindex().build();
+        LuceneIndexDefinition idxDefinition = LuceneIndexDefinition.newBuilder(root,
+            definition.getNodeState(), indexPath).reindex().build();
 
-        LuceneIndexWriter indexWriter = indexWriterFactory.newInstance(idxDefinition, definition, null, true);
-        FulltextBinaryTextExtractor textExtractor = new FulltextBinaryTextExtractor(textCache, idxDefinition, true);
+        LuceneIndexWriter indexWriter = indexWriterFactory.newInstance(idxDefinition, definition,
+            null, true);
+        FulltextBinaryTextExtractor textExtractor = new FulltextBinaryTextExtractor(textCache,
+            idxDefinition, true);
         return new LuceneIndexer(
-                idxDefinition,
-                indexWriter,
-                definition,
-                textExtractor,
-                progressReporter
+            idxDefinition,
+            indexWriter,
+            definition,
+            textExtractor,
+            progressReporter
         );
     }
 

@@ -26,81 +26,87 @@ package org.apache.lucene.util;
  */
 
 /**
- * {@link Sorter} implementation based on a variant of the quicksort algorithm
- * called <a href="http://en.wikipedia.org/wiki/Introsort">introsort</a>: when
- * the recursion level exceeds the log of the length of the array to sort, it
- * falls back to heapsort. This prevents quicksort from running into its
- * worst-case quadratic runtime. Small arrays are sorted with
- * insertion sort.
+ * {@link Sorter} implementation based on a variant of the quicksort algorithm called <a
+ * href="http://en.wikipedia.org/wiki/Introsort">introsort</a>: when the recursion level exceeds the
+ * log of the length of the array to sort, it falls back to heapsort. This prevents quicksort from
+ * running into its worst-case quadratic runtime. Small arrays are sorted with insertion sort.
+ *
  * @lucene.internal
  */
 public abstract class IntroSorter extends Sorter {
 
-  static int ceilLog2(int n) {
-    return Integer.SIZE - Integer.numberOfLeadingZeros(n - 1);
-  }
-
-  /** Create a new {@link IntroSorter}. */
-  public IntroSorter() {}
-
-  @Override
-  public final void sort(int from, int to) {
-    checkRange(from, to);
-    quicksort(from, to, ceilLog2(to - from));
-  }
-
-  void quicksort(int from, int to, int maxDepth) {
-    if (to - from < THRESHOLD) {
-      insertionSort(from, to);
-      return;
-    } else if (--maxDepth < 0) {
-      heapSort(from, to);
-      return;
+    static int ceilLog2(int n) {
+        return Integer.SIZE - Integer.numberOfLeadingZeros(n - 1);
     }
 
-    final int mid = (from + to) >>> 1;
-
-    if (compare(from, mid) > 0) {
-      swap(from, mid);
+    /**
+     * Create a new {@link IntroSorter}.
+     */
+    public IntroSorter() {
     }
 
-    if (compare(mid, to - 1) > 0) {
-      swap(mid, to - 1);
-      if (compare(from, mid) > 0) {
-        swap(from, mid);
-      }
+    @Override
+    public final void sort(int from, int to) {
+        checkRange(from, to);
+        quicksort(from, to, ceilLog2(to - from));
     }
 
-    int left = from + 1;
-    int right = to - 2;
+    void quicksort(int from, int to, int maxDepth) {
+        if (to - from < THRESHOLD) {
+            insertionSort(from, to);
+            return;
+        } else if (--maxDepth < 0) {
+            heapSort(from, to);
+            return;
+        }
 
-    setPivot(mid);
-    for (;;) {
-      while (comparePivot(right) < 0) {
-        --right;
-      }
+        final int mid = (from + to) >>> 1;
 
-      while (left < right && comparePivot(left) >= 0) {
-        ++left;
-      }
+        if (compare(from, mid) > 0) {
+            swap(from, mid);
+        }
 
-      if (left < right) {
-        swap(left, right);
-        --right;
-      } else {
-        break;
-      }
+        if (compare(mid, to - 1) > 0) {
+            swap(mid, to - 1);
+            if (compare(from, mid) > 0) {
+                swap(from, mid);
+            }
+        }
+
+        int left = from + 1;
+        int right = to - 2;
+
+        setPivot(mid);
+        for (; ; ) {
+            while (comparePivot(right) < 0) {
+                --right;
+            }
+
+            while (left < right && comparePivot(left) >= 0) {
+                ++left;
+            }
+
+            if (left < right) {
+                swap(left, right);
+                --right;
+            } else {
+                break;
+            }
+        }
+
+        quicksort(from, left + 1, maxDepth);
+        quicksort(left + 1, to, maxDepth);
     }
 
-    quicksort(from, left + 1, maxDepth);
-    quicksort(left + 1, to, maxDepth);
-  }
+    /**
+     * Save the value at slot <code>i</code> so that it can later be used as a pivot, see
+     * {@link #comparePivot(int)}.
+     */
+    protected abstract void setPivot(int i);
 
-  /** Save the value at slot <code>i</code> so that it can later be used as a
-   * pivot, see {@link #comparePivot(int)}. */
-  protected abstract void setPivot(int i);
-
-  /** Compare the pivot with the slot at <code>j</code>, similarly to
-   *  {@link #compare(int, int) compare(i, j)}. */
-  protected abstract int comparePivot(int j);
+    /**
+     * Compare the pivot with the slot at <code>j</code>, similarly to
+     * {@link #compare(int, int) compare(i, j)}.
+     */
+    protected abstract int comparePivot(int j);
 }

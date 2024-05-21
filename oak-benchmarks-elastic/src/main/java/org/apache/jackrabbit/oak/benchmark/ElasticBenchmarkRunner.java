@@ -16,10 +16,9 @@
  */
 package org.apache.jackrabbit.oak.benchmark;
 
+import java.util.Arrays;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
-
-import java.util.Arrays;
 
 public class ElasticBenchmarkRunner extends BenchmarkRunner {
 
@@ -27,7 +26,8 @@ public class ElasticBenchmarkRunner extends BenchmarkRunner {
 
     public static void main(String[] args) throws Exception {
         initOptionSet(args);
-        statsProvider = options.has(benchmarkOptions.getMetrics()) ? getStatsProvider() : StatisticsProvider.NOOP;
+        statsProvider = options.has(benchmarkOptions.getMetrics()) ? getStatsProvider()
+            : StatisticsProvider.NOOP;
         // Create an Elastic Client Connection here and pass down to all the tests
         // And close the connection in this class itself
         // Can't rely on the tear down methods of the downstream Benchmark classes because they don't handle the case
@@ -35,50 +35,59 @@ public class ElasticBenchmarkRunner extends BenchmarkRunner {
         // we have orphaned HttpClient's I/O disp threads that don't let the process exit.
 
         try {
-            connection =  ElasticConnection.newBuilder()
-                    .withIndexPrefix("benchmark")
-                    .withConnectionParameters(
-                            benchmarkOptions.getElasticScheme().value(options),
-                            benchmarkOptions.getElasticHost().value(options),
-                            benchmarkOptions.getElasticPort().value(options)
-                    )
-                    .withApiKeys(
-                            benchmarkOptions.getElasticApiKeyId().value(options),
-                            benchmarkOptions.getElasticApiKeySecret().value(options)
-                    ).build();
+            connection = ElasticConnection.newBuilder()
+                                          .withIndexPrefix("benchmark")
+                                          .withConnectionParameters(
+                                              benchmarkOptions.getElasticScheme().value(options),
+                                              benchmarkOptions.getElasticHost().value(options),
+                                              benchmarkOptions.getElasticPort().value(options)
+                                          )
+                                          .withApiKeys(
+                                              benchmarkOptions.getElasticApiKeyId().value(options),
+                                              benchmarkOptions.getElasticApiKeySecret()
+                                                              .value(options)
+                                          ).build();
 
             BenchmarkRunner.addToBenchMarkList(
-                    Arrays.asList(
-                            new ElasticFullTextWithGlobalIndexSearchTest(benchmarkOptions.getWikipedia().value(options),
-                                    benchmarkOptions.getFlatStructure().value(options),
-                                    benchmarkOptions.getReport().value(options),
-                                    benchmarkOptions.getWithStorage().value(options),
-                                    connection),
-                            new ElasticPropertyFTIndexedContentAvailability(benchmarkOptions.getWikipedia().value(options),
-                                    benchmarkOptions.getFlatStructure().value(options),
-                                    benchmarkOptions.getReport().value(options),
-                                    benchmarkOptions.getWithStorage().value(options),
-                                    connection),
-                            new ElasticPropertyFTSeparatedIndexedContentAvailability(benchmarkOptions.getWikipedia().value(options),
-                                    benchmarkOptions.getFlatStructure().value(options),
-                                    benchmarkOptions.getReport().value(options),
-                                    benchmarkOptions.getWithStorage().value(options),
-                                    connection),
-                            new ElasticFullTextWithoutGlobalIndexSearchTest(benchmarkOptions.getWikipedia().value(options),
-                                    benchmarkOptions.getFlatStructure().value(options),
-                                    benchmarkOptions.getReport().value(options),
-                                    benchmarkOptions.getWithStorage().value(options),
-                                    connection),
-                            new ElasticPropertyTextSearchTest(benchmarkOptions.getWikipedia().value(options),
-                                    benchmarkOptions.getFlatStructure().value(options),
-                                    benchmarkOptions.getReport().value(options),
-                                    benchmarkOptions.getWithStorage().value(options),
-                                    connection),
-                            new ElasticFacetSearchTest(benchmarkOptions.getWithStorage().value(options), connection),
-                            new ElasticInsecureFacetSearchTest(benchmarkOptions.getWithStorage().value(options), connection),
-                            new ElasticStatisticalFacetSearchTest(benchmarkOptions.getWithStorage().value(options), connection)
+                Arrays.asList(
+                    new ElasticFullTextWithGlobalIndexSearchTest(
+                        benchmarkOptions.getWikipedia().value(options),
+                        benchmarkOptions.getFlatStructure().value(options),
+                        benchmarkOptions.getReport().value(options),
+                        benchmarkOptions.getWithStorage().value(options),
+                        connection),
+                    new ElasticPropertyFTIndexedContentAvailability(
+                        benchmarkOptions.getWikipedia().value(options),
+                        benchmarkOptions.getFlatStructure().value(options),
+                        benchmarkOptions.getReport().value(options),
+                        benchmarkOptions.getWithStorage().value(options),
+                        connection),
+                    new ElasticPropertyFTSeparatedIndexedContentAvailability(
+                        benchmarkOptions.getWikipedia().value(options),
+                        benchmarkOptions.getFlatStructure().value(options),
+                        benchmarkOptions.getReport().value(options),
+                        benchmarkOptions.getWithStorage().value(options),
+                        connection),
+                    new ElasticFullTextWithoutGlobalIndexSearchTest(
+                        benchmarkOptions.getWikipedia().value(options),
+                        benchmarkOptions.getFlatStructure().value(options),
+                        benchmarkOptions.getReport().value(options),
+                        benchmarkOptions.getWithStorage().value(options),
+                        connection),
+                    new ElasticPropertyTextSearchTest(
+                        benchmarkOptions.getWikipedia().value(options),
+                        benchmarkOptions.getFlatStructure().value(options),
+                        benchmarkOptions.getReport().value(options),
+                        benchmarkOptions.getWithStorage().value(options),
+                        connection),
+                    new ElasticFacetSearchTest(benchmarkOptions.getWithStorage().value(options),
+                        connection),
+                    new ElasticInsecureFacetSearchTest(
+                        benchmarkOptions.getWithStorage().value(options), connection),
+                    new ElasticStatisticalFacetSearchTest(
+                        benchmarkOptions.getWithStorage().value(options), connection)
 
-                    )
+                )
             );
             BenchmarkRunner.main(args);
         } finally {

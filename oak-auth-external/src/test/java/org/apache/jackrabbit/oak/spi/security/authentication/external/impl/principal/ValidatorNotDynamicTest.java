@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
+import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
+import static org.junit.Assert.fail;
+
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
@@ -23,9 +26,6 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants;
 import org.junit.Test;
-
-import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
-import static org.junit.Assert.fail;
 
 public class ValidatorNotDynamicTest extends ExternalIdentityValidatorTest {
 
@@ -39,9 +39,11 @@ public class ValidatorNotDynamicTest extends ExternalIdentityValidatorTest {
         return false;
     }
 
-    private void setExternalPrincipalNames() throws Exception  {
+    private void setExternalPrincipalNames() throws Exception {
         Root systemRoot = getSystemRoot();
-        systemRoot.getTree(externalUserPath).setProperty(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES, ImmutableList.of("principalName"), Type.STRINGS);
+        systemRoot.getTree(externalUserPath)
+                  .setProperty(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES,
+                      ImmutableList.of("principalName"), Type.STRINGS);
         systemRoot.commit();
 
         root.refresh();
@@ -84,7 +86,8 @@ public class ValidatorNotDynamicTest extends ExternalIdentityValidatorTest {
     @Test(expected = CommitFailedException.class)
     public void testRemoveRepExternalId() throws Exception {
         try {
-            root.getTree(externalUserPath).removeProperty(ExternalIdentityConstants.REP_EXTERNAL_ID);
+            root.getTree(externalUserPath)
+                .removeProperty(ExternalIdentityConstants.REP_EXTERNAL_ID);
             root.commit();
 
             fail("Removal of rep:externalId must be detected in the default setup.");

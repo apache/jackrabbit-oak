@@ -18,9 +18,9 @@
 package org.apache.jackrabbit.oak.segment.file;
 
 /**
- * This exception can be thrown during the startup of the {@link FileStore} to
- * indicate an incompatible version mismatch between the code that generated the
- * data in the store and the current version of the {@link FileStore}.
+ * This exception can be thrown during the startup of the {@link FileStore} to indicate an
+ * incompatible version mismatch between the code that generated the data in the store and the
+ * current version of the {@link FileStore}.
  */
 public class InvalidFileStoreVersionException extends Exception {
 

@@ -23,13 +23,12 @@ import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
-import static org.apache.jackrabbit.oak.segment.Segment.RECORD_ID_BYTES;
 import static org.apache.jackrabbit.oak.segment.CacheWeights.OBJECT_HEADER_SIZE;
+import static org.apache.jackrabbit.oak.segment.Segment.RECORD_ID_BYTES;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-
 import org.apache.jackrabbit.guava.common.base.Objects;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -42,8 +41,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * The in-memory representation of a "hidden class" of a node; inspired by the
- * Chrome V8 Javascript engine).
+ * The in-memory representation of a "hidden class" of a node; inspired by the Chrome V8 Javascript
+ * engine).
  * <p>
  * Templates are always read fully in-memory.
  */
@@ -63,39 +62,39 @@ public class Template {
     private final SegmentReader reader;
 
     /**
-     * The {@code jcr:primaryType} property, if present as a single-valued
-     * {@code NAME} property. Otherwise {@code null}.
+     * The {@code jcr:primaryType} property, if present as a single-valued {@code NAME} property.
+     * Otherwise {@code null}.
      */
     @Nullable
     private final PropertyState primaryType;
 
     /**
-     * The {@code jcr:mixinTypes} property, if present as a multi-valued
-     * {@code NAME} property. Otherwise {@code null}.
+     * The {@code jcr:mixinTypes} property, if present as a multi-valued {@code NAME} property.
+     * Otherwise {@code null}.
      */
     @Nullable
     private final PropertyState mixinTypes;
 
     /**
-     * Templates of all the properties of a node, excluding the
-     * above-mentioned {@code NAME}-valued type properties, if any.
+     * Templates of all the properties of a node, excluding the above-mentioned {@code NAME}-valued
+     * type properties, if any.
      */
     @NotNull
     private final PropertyTemplate[] properties;
 
     /**
-     * Name of the single child node, if the node contains just one child.
-     * Otherwise {@link #ZERO_CHILD_NODES} (i.e. {@code null}) if there are
-     * no children, or {@link #MANY_CHILD_NODES} if there are more than one.
+     * Name of the single child node, if the node contains just one child. Otherwise
+     * {@link #ZERO_CHILD_NODES} (i.e. {@code null}) if there are no children, or
+     * {@link #MANY_CHILD_NODES} if there are more than one.
      */
     @Nullable
     private final String childName;
 
     Template(@NotNull SegmentReader reader,
-             @Nullable PropertyState primaryType,
-             @Nullable PropertyState mixinTypes,
-             @Nullable  PropertyTemplate[] properties,
-             @Nullable String childName) {
+        @Nullable PropertyState primaryType,
+        @Nullable PropertyState mixinTypes,
+        @Nullable PropertyTemplate[] properties,
+        @Nullable String childName) {
         this.reader = checkNotNull(reader);
         this.primaryType = primaryType;
         this.mixinTypes = mixinTypes;
@@ -130,7 +129,7 @@ public class Template {
         this.primaryType = primary;
         this.mixinTypes = mixins;
         this.properties =
-                templates.toArray(new PropertyTemplate[templates.size()]);
+            templates.toArray(new PropertyTemplate[templates.size()]);
         Arrays.sort(properties);
 
         long count = state.getChildNodeCount(2);
@@ -159,10 +158,9 @@ public class Template {
     }
 
     /**
-     * Returns the template of the named property, or {@code null} if no such
-     * property exists. Use the {@link #getPrimaryType()} and
-     * {@link #getMixinTypes()} for accessing the JCR type properties, as
-     * they don't have templates.
+     * Returns the template of the named property, or {@code null} if no such property exists. Use
+     * the {@link #getPrimaryType()} and {@link #getMixinTypes()} for accessing the JCR type
+     * properties, as they don't have templates.
      *
      * @param name property name
      * @return property template, or {@code} null if not found
@@ -171,11 +169,11 @@ public class Template {
         int hash = name.hashCode();
         int index = 0;
         while (index < properties.length
-                && properties[index].getName().hashCode() < hash) {
+            && properties[index].getName().hashCode() < hash) {
             index++;
         }
         while (index < properties.length
-                && properties[index].getName().hashCode() == hash) {
+            && properties[index].getName().hashCode() == hash) {
             if (name.equals(properties[index].getName())) {
                 return properties[index];
             }
@@ -206,7 +204,8 @@ public class Template {
     MapRecord getChildNodeMap(RecordId recordId) {
         checkState(childName != ZERO_CHILD_NODES);
         Segment segment = recordId.getSegment();
-        RecordId childNodesId = segment.readRecordId(recordId.getRecordNumber(), 2 * RECORD_ID_BYTES);
+        RecordId childNodesId = segment.readRecordId(recordId.getRecordNumber(),
+            2 * RECORD_ID_BYTES);
         return reader.readMap(childNodesId);
     }
 
@@ -223,7 +222,8 @@ public class Template {
             }
         } else if (name.equals(childName)) {
             Segment segment = recordId.getSegment();
-            RecordId childNodeId = segment.readRecordId(recordId.getRecordNumber(), 2 * RECORD_ID_BYTES);
+            RecordId childNodeId = segment.readRecordId(recordId.getRecordNumber(),
+                2 * RECORD_ID_BYTES);
             return reader.readNode(childNodeId);
         } else {
             return MISSING_NODE;
@@ -238,9 +238,10 @@ public class Template {
             return map.getEntries();
         } else {
             Segment segment = recordId.getSegment();
-            RecordId childNodeId = segment.readRecordId(recordId.getRecordNumber(), 2 * RECORD_ID_BYTES);
+            RecordId childNodeId = segment.readRecordId(recordId.getRecordNumber(),
+                2 * RECORD_ID_BYTES);
             return Collections.singletonList(new MemoryChildNodeEntry(
-                    childName, reader.readNode(childNodeId)));
+                childName, reader.readNode(childNodeId)));
         }
     }
 
@@ -297,9 +298,9 @@ public class Template {
         } else if (object instanceof Template) {
             Template that = (Template) object;
             return Objects.equal(primaryType, that.primaryType)
-                    && Objects.equal(mixinTypes, that.mixinTypes)
-                    && Arrays.equals(properties, that.properties)
-                    && Objects.equal(childName, that.childName);
+                && Objects.equal(mixinTypes, that.mixinTypes)
+                && Arrays.equals(properties, that.properties)
+                && Objects.equal(childName, that.childName);
         } else {
             return false;
         }
@@ -308,7 +309,7 @@ public class Template {
     @Override
     public int hashCode() {
         return Objects.hashCode(primaryType, mixinTypes,
-                Arrays.asList(properties), getTemplateType(), childName);
+            Arrays.asList(properties), getTemplateType(), childName);
     }
 
     @Override

@@ -48,7 +48,8 @@ public class DocumentMKBranchMergeTest extends BaseDocumentMKTest {
         assertNodesNotExist(branchRev, "/trunk/child2");
 
         mk.merge(branchRev, "");
-        assertNodesExist(null, "/trunk", "/trunk/child1", "/trunk/child2", "/branch1", "/branch1/child1");
+        assertNodesExist(null, "/trunk", "/trunk/child1", "/trunk/child2", "/branch1",
+            "/branch1/child1");
     }
 
     @Test
@@ -92,7 +93,7 @@ public class DocumentMKBranchMergeTest extends BaseDocumentMKTest {
 
         mk.merge(branchRev, "");
         assertNodesExist(null, "/root", "/root/child1", "/root/child2",
-                "/root/child1/child3", "/root/child4");
+            "/root/child1/child3", "/root/child4");
     }
 
     @Test
@@ -174,23 +175,31 @@ public class DocumentMKBranchMergeTest extends BaseDocumentMKTest {
 
     @Test
     public void oneBranchAddedSubChildren() {
-        addNodes(null, "/trunk", "/trunk/child1", "/trunk/child1/child2", "/trunk/child1/child2/child3");
-        assertNodesExist(null, "/trunk", "/trunk/child1", "/trunk/child1/child2", "/trunk/child1/child2/child3");
+        addNodes(null, "/trunk", "/trunk/child1", "/trunk/child1/child2",
+            "/trunk/child1/child2/child3");
+        assertNodesExist(null, "/trunk", "/trunk/child1", "/trunk/child1/child2",
+            "/trunk/child1/child2/child3");
 
         String branchRev = mk.branch(null);
 
-        branchRev = addNodes(branchRev, "/branch1", "/branch1/child1", "/branch1/child1/child2", "/branch1/child1/child2/child3");
-        assertNodesExist(branchRev, "/trunk", "/trunk/child1", "/trunk/child1/child2", "/trunk/child1/child2/child3");
-        assertNodesExist(branchRev, "/branch1", "/branch1/child1", "/branch1/child1/child2", "/branch1/child1/child2/child3");
-        assertNodesNotExist(null, "/branch1", "/branch1/child1", "/branch1/child1/child2", "/branch1/child1/child2/child3");
+        branchRev = addNodes(branchRev, "/branch1", "/branch1/child1", "/branch1/child1/child2",
+            "/branch1/child1/child2/child3");
+        assertNodesExist(branchRev, "/trunk", "/trunk/child1", "/trunk/child1/child2",
+            "/trunk/child1/child2/child3");
+        assertNodesExist(branchRev, "/branch1", "/branch1/child1", "/branch1/child1/child2",
+            "/branch1/child1/child2/child3");
+        assertNodesNotExist(null, "/branch1", "/branch1/child1", "/branch1/child1/child2",
+            "/branch1/child1/child2/child3");
 
         addNodes(null, "/trunk/child1/child2/child3/child4", "/trunk/child5");
         assertNodesExist(null, "/trunk/child1/child2/child3/child4", "/trunk/child5");
         assertNodesNotExist(branchRev, "/trunk/child1/child2/child3/child4", "/trunk/child5");
 
         mk.merge(branchRev, "");
-        assertNodesExist(null, "/trunk", "/trunk/child1", "/trunk/child1/child2", "/trunk/child1/child2/child3", "/trunk/child1/child2/child3/child4");
-        assertNodesExist(null, "/branch1", "/branch1/child1", "/branch1/child1/child2", "/branch1/child1/child2/child3");
+        assertNodesExist(null, "/trunk", "/trunk/child1", "/trunk/child1/child2",
+            "/trunk/child1/child2/child3", "/trunk/child1/child2/child3/child4");
+        assertNodesExist(null, "/branch1", "/branch1/child1", "/branch1/child1/child2",
+            "/branch1/child1/child2/child3");
     }
 
     @Test
@@ -254,7 +263,8 @@ public class DocumentMKBranchMergeTest extends BaseDocumentMKTest {
         assertNodesNotExist(null, "/branch2", "/branch2/child2");
 
         mk.merge(branchRev2, "");
-        assertNodesExist(null, "/trunk", "/branch1", "/branch1/child1", "/branch2", "/branch2/child2");
+        assertNodesExist(null, "/trunk", "/branch1", "/branch1/child1", "/branch2",
+            "/branch2/child2");
     }
 
     @Test
@@ -336,7 +346,7 @@ public class DocumentMKBranchMergeTest extends BaseDocumentMKTest {
 
         // creates a conflict for both branches
         mk.commit("/", "^\"trunk/prop1\":\"value1-modified\"" +
-                "^\"trunk/prop2\":\"value1-modified\"", null, null);
+            "^\"trunk/prop2\":\"value1-modified\"", null, null);
         try {
             mk.merge(branchRev1, "");
             fail("Expected: Concurrent modification exception");
@@ -443,7 +453,7 @@ public class DocumentMKBranchMergeTest extends BaseDocumentMKTest {
     //--------------------------< internal >------------------------------------
 
     private String setProp(String rev, String prop, Object value) {
-        value = value == null? null : "\"" + value + "\"";
+        value = value == null ? null : "\"" + value + "\"";
         return mk.commit("", "^\"" + prop + "\" : " + value, rev, "");
     }
 }

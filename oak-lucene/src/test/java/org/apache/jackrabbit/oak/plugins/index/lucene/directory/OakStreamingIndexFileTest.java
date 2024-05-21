@@ -19,24 +19,6 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
-import ch.qos.logback.classic.Level;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.lucene.store.ByteArrayDataInput;
-import org.junit.Assume;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-import java.util.Random;
-
 import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.OakStreamingIndexFileTest.BlobFactoryMode.BATCH_READ;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.OakStreamingIndexFileTest.BlobFactoryMode.BYTE_WISE_READ;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.OakStreamingIndexFileTest.FileCreateMode.COPY_BYTES;
@@ -46,6 +28,23 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+
+import ch.qos.logback.classic.Level;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.Random;
+import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.lucene.store.ByteArrayDataInput;
+import org.junit.Assume;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class OakStreamingIndexFileTest {
@@ -72,7 +71,7 @@ public class OakStreamingIndexFileTest {
         COPY_BYTES
     }
 
-    @Parameterized.Parameters(name="{0}, {1}")
+    @Parameterized.Parameters(name = "{0}, {1}")
     public static Collection<Object[]> fixtures() throws Exception {
         List<Object[]> modes = Lists.newArrayList();
         modes.add(new Object[]{COPY_BYTES, BYTE_WISE_READ});
@@ -82,7 +81,8 @@ public class OakStreamingIndexFileTest {
         return modes;
     }
 
-    public OakStreamingIndexFileTest(FileCreateMode fileCreateMode, BlobFactoryMode blobFactoryMode) {
+    public OakStreamingIndexFileTest(FileCreateMode fileCreateMode,
+        BlobFactoryMode blobFactoryMode) {
         this.fileCreateMode = fileCreateMode;
         this.blobFactoryMode = blobFactoryMode;
         this.modeDependantBlobFactory = new ModeDependantBlobFactory(blobFactoryMode);
@@ -93,8 +93,9 @@ public class OakStreamingIndexFileTest {
         byte[] fileBytes = writeFile();
 
         NodeBuilder fooBuilder = builder.child("foo");
-        try (OakStreamingIndexFile readFile = new OakStreamingIndexFile("foo", fooBuilder, "dirDetails",
-                modeDependantBlobFactory.getNodeBuilderBlobFactory(fooBuilder))
+        try (OakStreamingIndexFile readFile = new OakStreamingIndexFile("foo", fooBuilder,
+            "dirDetails",
+            modeDependantBlobFactory.getNodeBuilderBlobFactory(fooBuilder))
         ) {
             byte[] readBytes = new byte[fileBytes.length];
             readFile.readBytes(readBytes, 0, fileBytes.length);
@@ -119,15 +120,17 @@ public class OakStreamingIndexFileTest {
         byte[] aFewBytes = Arrays.copyOfRange(fileBytes, 1, numFewBytes + 1);
 
         NodeBuilder fooBuilder = builder.child("foo");
-        try (OakStreamingIndexFile readFile = new OakStreamingIndexFile("foo", fooBuilder, "dirDetails",
-                modeDependantBlobFactory.getNodeBuilderBlobFactory(fooBuilder))
+        try (OakStreamingIndexFile readFile = new OakStreamingIndexFile("foo", fooBuilder,
+            "dirDetails",
+            modeDependantBlobFactory.getNodeBuilderBlobFactory(fooBuilder))
         ) {
             readFile.seek(1);
             assertEquals("Seeking should move position", 1, readFile.position());
 
             byte[] readBytes = new byte[numFewBytes];
             readFile.readBytes(readBytes, 0, numFewBytes);
-            assertTrue("Reading a few bytes should be accurate", Arrays.equals(readBytes, aFewBytes));
+            assertTrue("Reading a few bytes should be accurate",
+                Arrays.equals(readBytes, aFewBytes));
         }
     }
 
@@ -139,8 +142,9 @@ public class OakStreamingIndexFileTest {
         byte[] aFewBytes = Arrays.copyOfRange(fileBytes, 1, numFewBytes + 1);
 
         NodeBuilder fooBuilder = builder.child("foo");
-        try (OakStreamingIndexFile readFile = new OakStreamingIndexFile("foo", fooBuilder, "dirDetails",
-                modeDependantBlobFactory.getNodeBuilderBlobFactory(fooBuilder))
+        try (OakStreamingIndexFile readFile = new OakStreamingIndexFile("foo", fooBuilder,
+            "dirDetails",
+            modeDependantBlobFactory.getNodeBuilderBlobFactory(fooBuilder))
         ) {
             byte[] readBytes = new byte[numFewBytes];
 
@@ -150,7 +154,8 @@ public class OakStreamingIndexFileTest {
             assertEquals("Seeking should move position", 1, readFile.position());
 
             readFile.readBytes(readBytes, 0, numFewBytes);
-            assertTrue("Reading a few bytes should be accurate", Arrays.equals(readBytes, aFewBytes));
+            assertTrue("Reading a few bytes should be accurate",
+                Arrays.equals(readBytes, aFewBytes));
         }
     }
 
@@ -166,8 +171,9 @@ public class OakStreamingIndexFileTest {
         OakStreamingIndexFile readFileClone;
 
         NodeBuilder fooBuilder = builder.child("foo");
-        try (OakStreamingIndexFile readFile = new OakStreamingIndexFile("foo", fooBuilder, "dirDetails",
-                modeDependantBlobFactory.getNodeBuilderBlobFactory(fooBuilder))
+        try (OakStreamingIndexFile readFile = new OakStreamingIndexFile("foo", fooBuilder,
+            "dirDetails",
+            modeDependantBlobFactory.getNodeBuilderBlobFactory(fooBuilder))
         ) {
             readFile.seek(1);
             readFile.readBytes(readBytes, 0, 1);
@@ -182,7 +188,7 @@ public class OakStreamingIndexFileTest {
         try {
             readFileClone.readBytes(readBytes, 0, numFewBytes);
             assertTrue("Clone reader should start from same position as source",
-                    Arrays.equals(readBytes, aFewBytes));
+                Arrays.equals(readBytes, aFewBytes));
         } finally {
             readFileClone.close();
         }
@@ -190,10 +196,12 @@ public class OakStreamingIndexFileTest {
 
     @Test
     public void streamingWritesDontWorkPiecewise() throws Exception {
-        Assume.assumeTrue("Piece write makes sense for " + WRITE_FILE + " mode", fileCreateMode == WRITE_FILE);
+        Assume.assumeTrue("Piece write makes sense for " + WRITE_FILE + " mode",
+            fileCreateMode == WRITE_FILE);
         NodeBuilder fooBuilder = builder.child("foo");
-        try (OakStreamingIndexFile writeFile = new OakStreamingIndexFile("foo", fooBuilder, "dirDetails",
-                modeDependantBlobFactory.getNodeBuilderBlobFactory(fooBuilder))
+        try (OakStreamingIndexFile writeFile = new OakStreamingIndexFile("foo", fooBuilder,
+            "dirDetails",
+            modeDependantBlobFactory.getNodeBuilderBlobFactory(fooBuilder))
         ) {
             byte[] fileBytes = randomBytes(fileSize);
 
@@ -213,8 +221,9 @@ public class OakStreamingIndexFileTest {
         byte[] fileBytes = writeFile();
 
         NodeBuilder fooBuilder = builder.child("foo");
-        try (OakStreamingIndexFile readFile = new OakStreamingIndexFile("foo", fooBuilder, "dirDetails",
-                modeDependantBlobFactory.getNodeBuilderBlobFactory(fooBuilder))
+        try (OakStreamingIndexFile readFile = new OakStreamingIndexFile("foo", fooBuilder,
+            "dirDetails",
+            modeDependantBlobFactory.getNodeBuilderBlobFactory(fooBuilder))
         ) {
             byte[] aFewBytes = new byte[10];
             byte[] expectedFewBytes;
@@ -223,21 +232,19 @@ public class OakStreamingIndexFileTest {
             readFile.seek(10);
             readFile.readBytes(aFewBytes, 0, aFewBytes.length);
             assertTrue("Range read after seek should read accurately",
-                    Arrays.equals(expectedFewBytes, aFewBytes));
-
+                Arrays.equals(expectedFewBytes, aFewBytes));
 
             expectedFewBytes = Arrays.copyOfRange(fileBytes, 25, 25 + aFewBytes.length);
             readFile.seek(25);
             readFile.readBytes(aFewBytes, 0, aFewBytes.length);
             assertTrue("Range read after seek should read accurately",
-                    Arrays.equals(expectedFewBytes, aFewBytes));
-
+                Arrays.equals(expectedFewBytes, aFewBytes));
 
             expectedFewBytes = Arrays.copyOfRange(fileBytes, 2, 2 + aFewBytes.length);
             readFile.seek(2);
             readFile.readBytes(aFewBytes, 0, aFewBytes.length);
             assertTrue("Range read after backward seek should read accurately",
-                    Arrays.equals(expectedFewBytes, aFewBytes));
+                Arrays.equals(expectedFewBytes, aFewBytes));
 
         }
     }
@@ -247,12 +254,13 @@ public class OakStreamingIndexFileTest {
         byte[] fileBytes = writeFile();
 
         LogCustomizer logRecorder = LogCustomizer
-                .forLogger(OakStreamingIndexFile.class.getName()).enable(Level.WARN)
-                .contains("Seeking back on streaming index file").create();
+            .forLogger(OakStreamingIndexFile.class.getName()).enable(Level.WARN)
+            .contains("Seeking back on streaming index file").create();
 
         NodeBuilder fooBuilder = builder.child("foo");
-        try (OakStreamingIndexFile readFile = new OakStreamingIndexFile("foo", fooBuilder, "dirDetails",
-                modeDependantBlobFactory.getNodeBuilderBlobFactory(fooBuilder))
+        try (OakStreamingIndexFile readFile = new OakStreamingIndexFile("foo", fooBuilder,
+            "dirDetails",
+            modeDependantBlobFactory.getNodeBuilderBlobFactory(fooBuilder))
         ) {
             logRecorder.starting();
             byte[] readBytes = new byte[fileBytes.length];
@@ -299,8 +307,9 @@ public class OakStreamingIndexFileTest {
         byte[] fileBytes = randomBytes(fileSize);
 
         NodeBuilder fooBuilder = builder.child("foo");
-        try (OakStreamingIndexFile writeFile = new OakStreamingIndexFile("foo", fooBuilder, "dirDetails",
-                modeDependantBlobFactory.getNodeBuilderBlobFactory(fooBuilder))
+        try (OakStreamingIndexFile writeFile = new OakStreamingIndexFile("foo", fooBuilder,
+            "dirDetails",
+            modeDependantBlobFactory.getNodeBuilderBlobFactory(fooBuilder))
         ) {
             if (fileCreateMode == COPY_BYTES) {
                 writeFile.copyBytes(new ByteArrayDataInput(fileBytes), fileBytes.length);

@@ -22,7 +22,6 @@ import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull
 
 import java.io.Closeable;
 import java.util.concurrent.Executor;
-
 import org.apache.jackrabbit.oak.spi.commit.BackgroundObserver;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Observer;

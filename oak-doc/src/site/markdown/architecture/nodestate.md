@@ -73,11 +73,11 @@ The above design principles are reflected in the `NodeState` interface
 in the `org.apache.jackrabbit.oak.spi.state` package of `oak-core`. The
 interface consists of three sets of methods:
 
-  * Methods for accessing properties
-  * Methods for accessing child nodes
-  * The `exists` method for checking whether the node exists or is accessible
-  * The `builder` method for building modified states
-  * The `compareAgainstBaseState` method for comparing states
+* Methods for accessing properties
+* Methods for accessing child nodes
+* The `exists` method for checking whether the node exists or is accessible
+* The `builder` method for building modified states
+* The `compareAgainstBaseState` method for comparing states
 
 You can request a property or a child node by name, get the number of
 properties or child nodes, or iterate through all of them. Even though
@@ -153,14 +153,14 @@ In addition to property and child node access methods like the ones that
 are already present in the `NodeState` interface, the `NodeBuilder`
 interface contains the following key methods:
 
-  * The `setProperty` and `removeProperty` methods for modifying properties
-  * The `getChildNode` method for accessing or modifying an existing subtree
-  * The `setChildNode` and `removeChildNode` methods for adding, replacing
-    or removing a subtree
-  * The `exists` method for checking whether the node represented by
-    a builder exists or is accessible
-  * The `getNodeState` method for getting a frozen snapshot of the modified
-    content tree
+* The `setProperty` and `removeProperty` methods for modifying properties
+* The `getChildNode` method for accessing or modifying an existing subtree
+* The `setChildNode` and `removeChildNode` methods for adding, replacing
+  or removing a subtree
+* The `exists` method for checking whether the node represented by
+  a builder exists or is accessible
+* The `getNodeState` method for getting a frozen snapshot of the modified
+  content tree
 
 All the builders acquired from the same root builder instance are linked
 so that changes made through one instance automatically become visible in the
@@ -199,12 +199,12 @@ be able to tell what has changed between two states of the node. This
 functionality is available through the `compareAgainstBaseState` method.
 The method takes two arguments:
 
-  * A _base state_ for the comparison. The comparison will report all
-    changes necessary for moving from the given base state to the node
-    state on which the comparison method is invoked.
-  * A `NodeStateDiff` instance to which all detected changes are reported.
-    The diff interface contains callback methods for reporting added,
-    modified or removed properties or child nodes.
+* A _base state_ for the comparison. The comparison will report all
+  changes necessary for moving from the given base state to the node
+  state on which the comparison method is invoked.
+* A `NodeStateDiff` instance to which all detected changes are reported.
+  The diff interface contains callback methods for reporting added,
+  modified or removed properties or child nodes.
 
 The comparison method can actually be used to compare any two nodes, but the
 implementations of the method are typically heavily optimized for the case

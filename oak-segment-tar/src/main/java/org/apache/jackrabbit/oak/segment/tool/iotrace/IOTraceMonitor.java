@@ -18,8 +18,8 @@
 
 package org.apache.jackrabbit.oak.segment.tool.iotrace;
 
-import static org.apache.jackrabbit.guava.common.collect.Queues.newConcurrentLinkedQueue;
 import static java.lang.String.join;
+import static org.apache.jackrabbit.guava.common.collect.Queues.newConcurrentLinkedQueue;
 
 import java.io.File;
 import java.io.Flushable;
@@ -30,7 +30,6 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
@@ -38,13 +37,14 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * This implementation of a {@link IOMonitor} logs all io reads to an
- * underlying {@link IOTraceWriter}.
+ * This implementation of a {@link IOMonitor} logs all io reads to an underlying
+ * {@link IOTraceWriter}.
  */
 public class IOTraceMonitor extends IOMonitorAdapter implements Flushable {
+
     @NotNull
     private final AtomicReference<List<String>> context =
-            new AtomicReference<>(ImmutableList.of());
+        new AtomicReference<>(ImmutableList.of());
 
     @NotNull
     private final IOTraceWriter traceWriter;
@@ -57,8 +57,9 @@ public class IOTraceMonitor extends IOMonitorAdapter implements Flushable {
 
     /**
      * Create a new instance writing to {@code traceWriter} with additional context fields.
-     * @param traceWriter   the {@code IOTraceWriter}
-     * @param contextSpec   additional context fields. A comma separated string.
+     *
+     * @param traceWriter the {@code IOTraceWriter}
+     * @param contextSpec additional context fields. A comma separated string.
      */
     public IOTraceMonitor(@NotNull IOTraceWriter traceWriter, @Nullable String contextSpec) {
         this.traceWriter = traceWriter;
@@ -67,7 +68,8 @@ public class IOTraceMonitor extends IOMonitorAdapter implements Flushable {
 
     /**
      * Create a new instance writing to {@code traceWriter} additional context fields context.
-     * @param traceWriter   the {@code IOTraceWriter}
+     *
+     * @param traceWriter the {@code IOTraceWriter}
      */
     public IOTraceMonitor(@NotNull IOTraceWriter traceWriter) {
         this(traceWriter, null);
@@ -75,8 +77,9 @@ public class IOTraceMonitor extends IOMonitorAdapter implements Flushable {
 
     /**
      * Set the current context.
-     * @param context  a list of strings corresponding to the fields passed to the
-     *                 {@code contextSpec} argument in the constructor.
+     *
+     * @param context a list of strings corresponding to the fields passed to the
+     *                {@code contextSpec} argument in the constructor.
      */
     public void setContext(@NotNull List<String> context) {
         this.context.set(context);
@@ -84,9 +87,9 @@ public class IOTraceMonitor extends IOMonitorAdapter implements Flushable {
 
     @Override
     public void afterSegmentRead(@NotNull File file, long msb, long lsb, int length,
-                                 long elapsed) {
+        long elapsed) {
         ioEvents.add(new IOEvent(
-                file.getName(), msb, lsb, length, elapsed, context.get()));
+            file.getName(), msb, lsb, length, elapsed, context.get()));
         if (ioLock.tryLock()) {
             try {
                 flush();
@@ -110,6 +113,7 @@ public class IOTraceMonitor extends IOMonitorAdapter implements Flushable {
     }
 
     private static class IOEvent {
+
         private static final String FIELDS = "timestamp,file,segmentId,length,elapsed";
 
         @NotNull
@@ -122,12 +126,12 @@ public class IOTraceMonitor extends IOMonitorAdapter implements Flushable {
         private final List<String> context;
 
         private IOEvent(
-                @NotNull String fileName,
-                long msb,
-                long lsb,
-                int length,
-                long elapsed,
-                @NotNull List<String> context) {
+            @NotNull String fileName,
+            long msb,
+            long lsb,
+            int length,
+            long elapsed,
+            @NotNull List<String> context) {
             this.fileName = fileName;
             this.msb = msb;
             this.lsb = lsb;
@@ -147,8 +151,8 @@ public class IOTraceMonitor extends IOMonitorAdapter implements Flushable {
         @Override
         public String toString() {
             return System.currentTimeMillis() + "," + fileName + "," +
-                    new UUID(msb, lsb) + "," + length + "," + elapsed + "," +
-                    join(",", context);
+                new UUID(msb, lsb) + "," + length + "," + elapsed + "," +
+                join(",", context);
         }
     }
 }

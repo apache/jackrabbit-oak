@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.jcr.security.user;
 
+import static org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest.dispose;
+import static org.junit.Assert.assertNotEquals;
+
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.HashMap;
@@ -29,7 +32,6 @@ import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -49,9 +51,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
-
-import static org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest.dispose;
-import static org.junit.Assert.assertNotEquals;
 
 /**
  * Base class for user import related tests.
@@ -85,7 +84,8 @@ public abstract class AbstractImportTest {
         jcr.with(securityProvider);
         jcr.with(queryEngineSettings);
         repo = jcr.createRepository();
-        adminSession = repo.login(new SimpleCredentials(UserConstants.DEFAULT_ADMIN_ID, UserConstants.DEFAULT_ADMIN_ID.toCharArray()));
+        adminSession = repo.login(new SimpleCredentials(UserConstants.DEFAULT_ADMIN_ID,
+            UserConstants.DEFAULT_ADMIN_ID.toCharArray()));
 
         if (!(adminSession instanceof JackrabbitSession)) {
             throw new NotExecutableException();
@@ -104,7 +104,8 @@ public abstract class AbstractImportTest {
         if (userMgr.getAuthorizable(ADMINISTRATORS) == null) {
             userMgr.createGroup(new PrincipalImpl(ADMINISTRATORS));
         } else if (!administrators.isGroup()) {
-            throw new NotExecutableException("Expected " + administrators.getID() + " to be a group.");
+            throw new NotExecutableException(
+                "Expected " + administrators.getID() + " to be a group.");
         }
         adminSession.save();
     }
@@ -146,7 +147,8 @@ public abstract class AbstractImportTest {
         if (importBehavior != null) {
             Map<String, String> userParams = new HashMap<>();
             userParams.put(ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, importBehavior);
-            return ConfigurationParameters.of(UserConfiguration.NAME, ConfigurationParameters.of(userParams));
+            return ConfigurationParameters.of(UserConfiguration.NAME,
+                ConfigurationParameters.of(userParams));
         } else {
             return null;
         }
@@ -185,11 +187,13 @@ public abstract class AbstractImportTest {
         doImport(parentPath, xml, ImportUUIDBehavior.IMPORT_UUID_COLLISION_THROW);
     }
 
-    protected void doImport(@NotNull String parentPath, @NotNull String xml, int importUUIDBehavior) throws Exception {
+    protected void doImport(@NotNull String parentPath, @NotNull String xml, int importUUIDBehavior)
+        throws Exception {
         doImport(getImportSession(), parentPath, xml, importUUIDBehavior);
     }
 
-    protected void doImport(@NotNull Session importSession, @NotNull String parentPath, @NotNull String xml, int importUUIDBehavior) throws Exception {
+    protected void doImport(@NotNull Session importSession, @NotNull String parentPath,
+        @NotNull String xml, int importUUIDBehavior) throws Exception {
         InputStream in;
         if (xml.charAt(0) == '<') {
             in = new ByteArrayInputStream(xml.getBytes());
@@ -207,7 +211,8 @@ public abstract class AbstractImportTest {
         }
     }
 
-    protected static void assertNotDeclaredMember(@NotNull Group gr, @NotNull String potentialID, @NotNull Session session) throws RepositoryException {
+    protected static void assertNotDeclaredMember(@NotNull Group gr, @NotNull String potentialID,
+        @NotNull Session session) throws RepositoryException {
         // declared members must not list the invalid entry.
         Iterator<Authorizable> it = gr.getDeclaredMembers();
         while (it.hasNext()) {

@@ -68,11 +68,12 @@ public class ClusterConflictTest {
         // use high async delay and run background ops manually
         // asyncDelay set to zero prevents commits from suspending
         return builderProvider.newBuilder()
-                .setAsyncDelay(60000)
-                .setDocumentStore(store)
-                .setLeaseCheckMode(LeaseCheckMode.DISABLED) // disabled for debugging purposes
-                .setClusterId(clusterId)
-                .getNodeStore();
+                              .setAsyncDelay(60000)
+                              .setDocumentStore(store)
+                              .setLeaseCheckMode(
+                                  LeaseCheckMode.DISABLED) // disabled for debugging purposes
+                              .setClusterId(clusterId)
+                              .getNodeStore();
     }
 
     @Test
@@ -154,7 +155,7 @@ public class ClusterConflictTest {
 
         AtomicLong counter = new AtomicLong();
         final List<Exception> exceptions = Collections.synchronizedList(
-                new ArrayList<Exception>());
+            new ArrayList<Exception>());
         // the writers perform conflicting changes
         List<Thread> writers = Lists.newArrayList();
         writers.add(new Thread(new Writer(exceptions, ns1, counter)));
@@ -187,8 +188,8 @@ public class ClusterConflictTest {
         private final AtomicLong counter;
 
         public Writer(List<Exception> exceptions,
-                      NodeStore ns,
-                      AtomicLong counter) {
+            NodeStore ns,
+            AtomicLong counter) {
             this.exceptions = exceptions;
             this.ns = ns;
             this.counter = counter;
@@ -216,10 +217,10 @@ public class ClusterConflictTest {
                 @Nullable
                 @Override
                 public Editor getRootEditor(NodeState before,
-                                            NodeState after,
-                                            NodeBuilder builder,
-                                            CommitInfo info)
-                        throws CommitFailedException {
+                    NodeState after,
+                    NodeBuilder builder,
+                    CommitInfo info)
+                    throws CommitFailedException {
                     return new TestEditor(builder.child("counter"));
                 }
             });
@@ -236,14 +237,14 @@ public class ClusterConflictTest {
 
         @Override
         public Editor childNodeAdded(String name, NodeState after)
-                throws CommitFailedException {
+            throws CommitFailedException {
             counter.setProperty("value", counter.getProperty("value").getValue(Type.LONG) + 1);
             return super.childNodeAdded(name, after);
         }
     }
 
     private static NodeState merge(NodeStore store, NodeBuilder root)
-            throws CommitFailedException {
+        throws CommitFailedException {
         return store.merge(root, EmptyHook.INSTANCE, EMPTY);
     }
 }

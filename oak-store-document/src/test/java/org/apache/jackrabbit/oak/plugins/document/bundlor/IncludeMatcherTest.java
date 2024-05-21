@@ -26,7 +26,7 @@ import static org.junit.Assert.*;
 public class IncludeMatcherTest {
 
     @Test
-    public void singleLevel() throws Exception{
+    public void singleLevel() throws Exception {
         Matcher m = new Include("x").createMatcher();
         assertTrue(m.isMatch());
         assertTrue(m.next("x").isMatch());
@@ -40,7 +40,7 @@ public class IncludeMatcherTest {
     }
 
     @Test
-    public void includeAll() throws Exception{
+    public void includeAll() throws Exception {
         Matcher m = new Include("x/**").createMatcher();
 
         assertTrue(m.isMatch());

@@ -52,8 +52,8 @@ public class SplitDocumentCleanUp implements Closeable {
     protected int deleteCount;
 
     protected SplitDocumentCleanUp(DocumentStore store,
-                                   VersionGCStats stats,
-                                   Iterable<NodeDocument> splitDocGarbage) {
+        VersionGCStats stats,
+        Iterable<NodeDocument> splitDocGarbage) {
         this.store = store;
         this.stats = stats;
         this.splitDocGarbage = splitDocGarbage;
@@ -70,9 +70,8 @@ public class SplitDocumentCleanUp implements Closeable {
     /**
      * Collects document IDs for subsequent deletion.
      * <p>
-     * Implementations that override
-     * {@link SplitDocumentCleanUp#deleteSplitDocuments()} should override this
-     * method as well.
+     * Implementations that override {@link SplitDocumentCleanUp#deleteSplitDocuments()} should
+     * override this method as well.
      */
     protected void collectIdToBeDeleted(String id) {
         idsToBeDeleted.add(id);
@@ -113,7 +112,7 @@ public class SplitDocumentCleanUp implements Closeable {
         NodeDocument doc = store.find(NODES, mainId);
         if (doc == null) {
             LOG.warn("Main document {} already removed. Split document is {}",
-                    mainId, splitId);
+                mainId, splitId);
             return;
         }
 
@@ -123,7 +122,7 @@ public class SplitDocumentCleanUp implements Closeable {
         doc = doc.findPrevReferencingDoc(rev, height);
         if (doc == null) {
             LOG.warn("Split document {} for path {} not referenced anymore. Main document is {}",
-                    splitId, splitDocPath, mainId);
+                splitId, splitDocPath, mainId);
             return;
         }
         // remove reference
@@ -135,17 +134,17 @@ public class SplitDocumentCleanUp implements Closeable {
     }
 
     private void disconnectFromIntermediate(NodeDocument splitDoc,
-                                            Revision rev) {
+        Revision rev) {
         checkArgument(splitDoc.getSplitDocType() == INTERMEDIATE,
-                "Illegal type: %s", splitDoc.getSplitDocType());
+            "Illegal type: %s", splitDoc.getSplitDocType());
 
         String splitDocId = splitDoc.getId();
         UpdateOp update = new UpdateOp(splitDocId, false);
         NodeDocument.removePrevious(update, rev);
         NodeDocument old = store.findAndUpdate(NODES, update);
         if (old != null
-                && old.getPreviousRanges().size() == 1
-                && old.getPreviousRanges().containsKey(rev)) {
+            && old.getPreviousRanges().size() == 1
+            && old.getPreviousRanges().containsKey(rev)) {
             // this was the last reference on an intermediate split doc
             disconnect(old);
             removeFromDocumentStore(old.getId());
@@ -158,19 +157,19 @@ public class SplitDocumentCleanUp implements Closeable {
             // "Document with previous revisions not found"
             if (!LOG_SILENCER.silence(splitDocId)) {
                 LOG.warn("Split document reference could not be removed from intermediate {} -{}",
-                        splitDocId, LogSilencer.SILENCING_POSTFIX);
+                    splitDocId, LogSilencer.SILENCING_POSTFIX);
             } else {
                 LOG.debug("Split document reference could not be removed from intermediate {}",
-                        splitDocId);
+                    splitDocId);
             }
         }
     }
 
     final void markStaleOnMain(NodeDocument main,
-                               Revision rev,
-                               int height) {
+        Revision rev,
+        int height) {
         checkArgument(main.getSplitDocType() == NONE,
-                "Illegal type: %s", main.getSplitDocType());
+            "Illegal type: %s", main.getSplitDocType());
 
         UpdateOp update = new UpdateOp(main.getId(), false);
         NodeDocument.setStalePrevious(update, rev, height);

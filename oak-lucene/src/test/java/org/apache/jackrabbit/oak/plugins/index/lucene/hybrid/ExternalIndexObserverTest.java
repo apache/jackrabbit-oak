@@ -19,6 +19,14 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 
+import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
+import static org.apache.jackrabbit.oak.stats.StatisticsProvider.NOOP;
+import static org.junit.Assert.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
+
 import org.apache.jackrabbit.guava.common.collect.HashMultimap;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.Multimap;
@@ -38,14 +46,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
-
-import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
-import static org.apache.jackrabbit.oak.stats.StatisticsProvider.NOOP;
-import static org.junit.Assert.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.when;
 
 public class ExternalIndexObserverTest {
 
@@ -152,7 +152,7 @@ public class ExternalIndexObserverTest {
         assertIndexing(observer);
     }
 
-    private void assertIndexing(Observer observer){
+    private void assertIndexing(Observer observer) {
         Multimap<String, String> indexedPaths = HashMultimap.create();
         indexedPaths.put("/a", "/oak:index/foo");
 
@@ -173,24 +173,26 @@ public class ExternalIndexObserverTest {
     }
 
     @Test
-    public void builder() throws Exception{
+    public void builder() throws Exception {
         ExternalObserverBuilder builder =
-                new ExternalObserverBuilder(queue, tracker,NOOP, MoreExecutors.newDirectExecutorService(), 10);
+            new ExternalObserverBuilder(queue, tracker, NOOP,
+                MoreExecutors.newDirectExecutorService(), 10);
         Observer o = builder.build();
         o.contentChanged(INITIAL_CONTENT, CommitInfo.EMPTY_EXTERNAL);
         verifyNoInteractions(queue);
     }
 
     @Test
-    public void builder_NonFiltered() throws Exception{
+    public void builder_NonFiltered() throws Exception {
         ExternalObserverBuilder builder =
-                new ExternalObserverBuilder(queue, tracker,NOOP, MoreExecutors.newDirectExecutorService(), 10);
+            new ExternalObserverBuilder(queue, tracker, NOOP,
+                MoreExecutors.newDirectExecutorService(), 10);
         assertIndexing(builder.build());
     }
 
     private CommitInfo newCommitInfo() {
         return new CommitInfo(CommitInfo.OAK_UNKNOWN, CommitInfo.OAK_UNKNOWN,
-                ImmutableMap.<String, Object>of(CommitContext.NAME, commitContext), true);
+            ImmutableMap.<String, Object>of(CommitContext.NAME, commitContext), true);
     }
 
     private static LuceneIndexDefinition createNRTIndex(String ruleName) {

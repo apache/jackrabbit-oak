@@ -36,7 +36,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
-
 import javax.jcr.Credentials;
 import javax.jcr.GuestCredentials;
 import javax.jcr.InvalidItemStateException;
@@ -65,7 +64,6 @@ import javax.jcr.query.QueryResult;
 import javax.jcr.query.RowIterator;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.Privilege;
-
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
@@ -81,8 +79,9 @@ import org.junit.runners.Parameterized;
 
 /**
  * This class contains test cases which demonstrate changes in behaviour wrt. to Jackrabbit 2.
- * 
- * @see <a href="https://issues.apache.org/jira/browse/OAK-14">OAK-14: Identify and document changes in behaviour wrt. Jackrabbit 2</a>
+ *
+ * @see <a href="https://issues.apache.org/jira/browse/OAK-14">OAK-14: Identify and document changes
+ * in behaviour wrt. Jackrabbit 2</a>
  */
 @RunWith(Parameterized.class)
 public class CompatibilityIssuesTest extends AbstractRepositoryTest {
@@ -92,18 +91,19 @@ public class CompatibilityIssuesTest extends AbstractRepositoryTest {
     }
 
     /**
-     * Trans-session isolation differs from Jackrabbit 2. Snapshot isolation can
-     * result in write skew as this test demonstrates: the check method enforces
-     * an application logic constraint which says that the sum of the properties
-     * p1 and p2 must not be negative. While session1 and session2 each enforce
-     * this constraint before saving, the constraint might not hold globally as
-     * can be seen in session3.
+     * Trans-session isolation differs from Jackrabbit 2. Snapshot isolation can result in write
+     * skew as this test demonstrates: the check method enforces an application logic constraint
+     * which says that the sum of the properties p1 and p2 must not be negative. While session1 and
+     * session2 each enforce this constraint before saving, the constraint might not hold globally
+     * as can be seen in session3.
      *
-     * @see <a href="http://wiki.apache.org/jackrabbit/Transactional%20model%20of%20the%20Microkernel%20based%20Jackrabbit%20prototype">
-     *     Transactional model of the Microkernel based Jackrabbit prototype</a>
+     * @see <a
+     * href="http://wiki.apache.org/jackrabbit/Transactional%20model%20of%20the%20Microkernel%20based%20Jackrabbit%20prototype">
+     * Transactional model of the Microkernel based Jackrabbit prototype</a>
      */
     @Test
-    public void sessionIsolation() throws RepositoryException, ExecutionException, InterruptedException {
+    public void sessionIsolation()
+        throws RepositoryException, ExecutionException, InterruptedException {
         // Execute all operations in serial but on different threads to ensure
         // same thread session refreshing doesn't come into the way
         final Session session0 = createAdminSession();
@@ -161,7 +161,8 @@ public class CompatibilityIssuesTest extends AbstractRepositoryTest {
         }
     }
 
-    private static void run(Callable<Void> callable) throws InterruptedException, ExecutionException {
+    private static void run(Callable<Void> callable)
+        throws InterruptedException, ExecutionException {
         FutureTask<Void> task = new FutureTask<Void>(callable);
         new Thread(task).start();
         task.get();
@@ -169,7 +170,7 @@ public class CompatibilityIssuesTest extends AbstractRepositoryTest {
 
     private static void check(Session session) throws RepositoryException {
         if (session.getNode("/testNode").getProperty("p1").getLong() +
-                session.getNode("/testNode").getProperty("p2").getLong() < 0) {
+            session.getNode("/testNode").getProperty("p2").getLong() < 0) {
             fail("p1 + p2 < 0");
         }
     }
@@ -189,15 +190,14 @@ public class CompatibilityIssuesTest extends AbstractRepositoryTest {
         // assertEquals("/target/moved", sourceNode.getPath());  // passes on JR2, fails on Oak
         try {
             sourceNode.getPath();
-        }
-        catch (InvalidItemStateException expected) {
+        } catch (InvalidItemStateException expected) {
             // sourceNode is stale
         }
     }
 
     /**
-     * Type checks are deferred to the Session#save call instead of the
-     * Node#addNode method like in Jackrabbit2.
+     * Type checks are deferred to the Session#save call instead of the Node#addNode method like in
+     * Jackrabbit2.
      * <p>Stacktrace in JR2:</p>
      * <pre>
      * {@code
@@ -214,7 +214,7 @@ public class CompatibilityIssuesTest extends AbstractRepositoryTest {
      * <p>Stacktrace in Oak:</p>
      * <pre>
      * {@code
-     *javax.jcr.nodetype.ConstraintViolationException
+     * javax.jcr.nodetype.ConstraintViolationException
      *    at sun.reflect.NativeConstructorAccessorImpl.newInstance0(Native Method)
      *    at sun.reflect.NativeConstructorAccessorImpl.newInstance(NativeConstructorAccessorImpl.java:39)
      *    at sun.reflect.DelegatingConstructorAccessorImpl.newInstance(DelegatingConstructorAccessorImpl.java:27)
@@ -223,14 +223,14 @@ public class CompatibilityIssuesTest extends AbstractRepositoryTest {
      *    at org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate.save(SessionDelegate.java:258)
      *    at org.apache.jackrabbit.oak.jcr.session.SessionImpl.save(SessionImpl.java:277)
      *    ...
-     *Caused by: org.apache.jackrabbit.oak.api.CommitFailedException: Cannot add node 'f1362578685631' at /
+     * Caused by: org.apache.jackrabbit.oak.api.CommitFailedException: Cannot add node 'f1362578685631' at /
      *    at org.apache.jackrabbit.oak.plugins.nodetype.TypeValidator.childNodeAdded(TypeValidator.java:128)
      *    at org.apache.jackrabbit.oak.spi.commit.CompositeValidator.childNodeAdded(CompositeValidator.java:68)
      *    at org.apache.jackrabbit.oak.spi.commit.ValidatingHook$ValidatorDiff.childNodeAdded(ValidatingHook.java:159)
      *    at org.apache.jackrabbit.oak.core.RootImpl.commit(RootImpl.java:250)
      *    at org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate.save(SessionDelegate.java:255)
      *    ...
-     *Caused by: javax.jcr.nodetype.ConstraintViolationException: Node 'jcr:content' in 'nt:file' is mandatory
+     * Caused by: javax.jcr.nodetype.ConstraintViolationException: Node 'jcr:content' in 'nt:file' is mandatory
      *    at org.apache.jackrabbit.oak.plugins.nodetype.EffectiveNodeTypeImpl.checkMandatoryItems(EffectiveNodeTypeImpl.java:288)
      *    at org.apache.jackrabbit.oak.plugins.nodetype.TypeValidator.childNodeAdded(TypeValidator.java:125)
      *    ...
@@ -241,14 +241,15 @@ public class CompatibilityIssuesTest extends AbstractRepositoryTest {
     public void typeChecksOnSave() throws RepositoryException {
         Session session = getAdminSession();
         Node f = session.getNode("/").addNode("f" + System.currentTimeMillis(), "nt:file");
-        f.addNode("fail", "nt:unstructured"); // this is where JR2 throws ConstraintViolationException
+        f.addNode("fail",
+            "nt:unstructured"); // this is where JR2 throws ConstraintViolationException
         session.save(); // // this is where OAK throws ConstraintViolationException
     }
 
 
     /**
-     * OAK-939 - Change in behaviour from JR2. Following test case leads to
-     * CommitFailedException but it passes in JR2
+     * OAK-939 - Change in behaviour from JR2. Following test case leads to CommitFailedException
+     * but it passes in JR2
      */
     @Test
     public void removeNodeInDifferentSession() throws Throwable {
@@ -280,10 +281,10 @@ public class CompatibilityIssuesTest extends AbstractRepositoryTest {
 
     private Session newSession(boolean refreshIntervalZero) throws RepositoryException {
         Credentials creds = new SimpleCredentials("admin", "admin".toCharArray());
-        if (refreshIntervalZero){
+        if (refreshIntervalZero) {
             return ((JackrabbitRepository) getRepository())
-                    .login(creds, null, Collections.<String, Object>singletonMap(REFRESH_INTERVAL, 0));
-        } else{
+                .login(creds, null, Collections.<String, Object>singletonMap(REFRESH_INTERVAL, 0));
+        } else {
             return getRepository().login(creds);
         }
     }
@@ -304,41 +305,43 @@ public class CompatibilityIssuesTest extends AbstractRepositoryTest {
         session.save();
 
         Session observingSession = createAdminSession();
-        ObservationManager observationManager = observingSession.getWorkspace().getObservationManager();
+        ObservationManager observationManager = observingSession.getWorkspace()
+                                                                .getObservationManager();
 
-        try{
+        try {
             final List<Event> events = new ArrayList<Event>();
             final CountDownLatch latch = new CountDownLatch(1);
             EventListener listener = new EventListener() {
                 @Override
                 public void onEvent(EventIterator eventIt) {
-                    while(eventIt.hasNext()){
+                    while (eventIt.hasNext()) {
                         events.add(eventIt.nextEvent());
                     }
-                    if(!events.isEmpty()){
+                    if (!events.isEmpty()) {
                         latch.countDown();
                     }
                 }
             };
 
-            observationManager.addEventListener(listener, PROPERTY_CHANGED, testNodePath, true, null, null, false);
+            observationManager.addEventListener(listener, PROPERTY_CHANGED, testNodePath, true,
+                null, null, false);
 
             //Now touch foo and modify foo2
-            session.getNode(testNodePath).setProperty("foo","bar");
-            session.getNode(testNodePath).setProperty("foo2","bar2");
+            session.getNode(testNodePath).setProperty("foo", "bar");
+            session.getNode(testNodePath).setProperty("foo2", "bar2");
             session.save();
 
             latch.await(60, TimeUnit.SECONDS);
 
             //Only one event is recorded for foo2 modification
-            assertEquals(1,events.size());
-        }finally{
+            assertEquals(1, events.size());
+        } finally {
             observingSession.logout();
         }
     }
-    
+
     @Test
-    public void noSNSSupport() throws RepositoryException{
+    public void noSNSSupport() throws RepositoryException {
         Session session = getAdminSession();
         Node testNode = session.getRootNode().addNode("test", "nt:unstructured");
         session.save();
@@ -348,7 +351,7 @@ public class CompatibilityIssuesTest extends AbstractRepositoryTest {
             testNode.addNode("foo");
             // This would fail on JR2 since there SNSs are supported
             fail("Expected ItemExistsException");
-        } catch (ItemExistsException e){
+        } catch (ItemExistsException e) {
             //ItemExistsException is expected to be thrown
         }
         session.save();
@@ -356,7 +359,7 @@ public class CompatibilityIssuesTest extends AbstractRepositoryTest {
             testNode.addNode("foo");
             // This would fail on JR2 since there SNSs are supported
             fail("Expected ItemExistsException");
-        } catch (ItemExistsException e){
+        } catch (ItemExistsException e) {
             //ItemExistsException is expected to be thrown
         }
     }
@@ -373,7 +376,7 @@ public class CompatibilityIssuesTest extends AbstractRepositoryTest {
         NodeDefinitionTemplate child = ntm.createNodeDefinitionTemplate();
         child.setName("*");
         child.setDefaultPrimaryTypeName("nt:base");
-        child.setRequiredPrimaryTypeNames(new String[] {"nt:base"});
+        child.setRequiredPrimaryTypeNames(new String[]{"nt:base"});
         List<NodeDefinition> children = ntt.getNodeDefinitionTemplates();
         children.add(child);
         ntm.registerNodeType(ntt, true);
@@ -416,9 +419,11 @@ public class CompatibilityIssuesTest extends AbstractRepositoryTest {
 
         Node node = session.getRootNode().addNode("testNodeForBinary", ntName);
         ByteArrayOutputStream bos = serializeObject("testValue");
-        node.setProperty("javaObject",session.getValueFactory().createBinary(new ByteArrayInputStream(bos.toByteArray())));
+        node.setProperty("javaObject",
+            session.getValueFactory().createBinary(new ByteArrayInputStream(bos.toByteArray())));
 
-        Assert.assertTrue(IOUtils.contentEquals(new ByteArrayInputStream(bos.toByteArray()), node.getProperty("javaObject").getStream()));
+        Assert.assertTrue(IOUtils.contentEquals(new ByteArrayInputStream(bos.toByteArray()),
+            node.getProperty("javaObject").getStream()));
     }
 
     private ByteArrayOutputStream serializeObject(Object o) throws IOException {
@@ -437,17 +442,21 @@ public class CompatibilityIssuesTest extends AbstractRepositoryTest {
         testNode.setProperty("id", "aaron.mcdonald@mailinator.com");
 
         AccessControlManager acMgr = adminSession.getAccessControlManager();
-        JackrabbitAccessControlList tmpl = AccessControlUtils.getAccessControlList(acMgr, "/home/users/geometrixx-outdoors");
+        JackrabbitAccessControlList tmpl = AccessControlUtils.getAccessControlList(acMgr,
+            "/home/users/geometrixx-outdoors");
         ValueFactory vf = adminSession.getValueFactory();
         Map<String, Value> restrictions = new HashMap<String, Value>();
         restrictions.put("rep:glob", vf.createValue("*/social/relationships/following/*"));
-        tmpl.addEntry(EveryonePrincipal.getInstance(), new Privilege[]{acMgr.privilegeFromName(Privilege.JCR_READ)}, true, restrictions);
+        tmpl.addEntry(EveryonePrincipal.getInstance(),
+            new Privilege[]{acMgr.privilegeFromName(Privilege.JCR_READ)}, true, restrictions);
         acMgr.setPolicy(tmpl.getPath(), tmpl);
         adminSession.save();
 
         Session anonymousSession = getRepository().login(new GuestCredentials());
         QueryManager qm = anonymousSession.getWorkspace().getQueryManager();
-        Query q = qm.createQuery("/jcr:root/home//social/relationships/following//*[@id='aaron.mcdonald@mailinator.com']", Query.XPATH);
+        Query q = qm.createQuery(
+            "/jcr:root/home//social/relationships/following//*[@id='aaron.mcdonald@mailinator.com']",
+            Query.XPATH);
         QueryResult r = q.execute();
         RowIterator it = r.getRows();
         Assert.assertTrue(it.hasNext());

@@ -20,8 +20,7 @@
 package org.apache.jackrabbit.oak.segment.spi.monitor;
 
 /**
- * FileStoreMonitor are notified for any writes or deletes
- * performed by FileStore
+ * FileStoreMonitor are notified for any writes or deletes performed by FileStore
  */
 public interface FileStoreMonitor {
 
@@ -38,7 +37,7 @@ public interface FileStoreMonitor {
      * @param bytes number of bytes reclaimed
      */
     void reclaimed(long bytes);
-    
+
     /**
      * Notifies the monitor when journal data is flushed to disk.
      */

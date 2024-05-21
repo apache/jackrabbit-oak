@@ -18,17 +18,16 @@
  */
 package org.apache.jackrabbit.oak.segment.file.tar;
 
-import org.apache.commons.io.input.ReversedLinesFileReader;
-import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
-import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileReader;
-import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileWriter;
+import static java.nio.charset.Charset.defaultCharset;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.List;
-
-import static java.nio.charset.Charset.defaultCharset;
+import org.apache.commons.io.input.ReversedLinesFileReader;
+import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
+import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileReader;
+import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileWriter;
 
 public class LocalJournalFile implements JournalFile {
 

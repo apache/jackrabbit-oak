@@ -28,9 +28,7 @@ import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.newManag
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
 import java.util.function.Supplier;
-
 import javax.management.openmbean.CompositeData;
-
 import org.apache.jackrabbit.oak.commons.jmx.ManagementOperation;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -40,6 +38,7 @@ import org.slf4j.LoggerFactory;
  * Default implementation of {@link RevisionGCMBean} based on a {@code Runnable}.
  */
 public class RevisionGC implements RevisionGCMBean {
+
     private static final Logger log = LoggerFactory.getLogger(RevisionGC.class);
 
     public static final String OP_NAME = "Revision garbage collection";
@@ -60,17 +59,17 @@ public class RevisionGC implements RevisionGCMBean {
     private final Executor executor;
 
     /**
-     * @param runGC          Revision garbage collector
-     * @param cancelGC       Executor for cancelling the garbage collection task
-     * @param statusMessage  an informal status message describing the status of the background
-     *                       operation at the time of invocation.
-     * @param executor       Executor for initiating the garbage collection task
+     * @param runGC         Revision garbage collector
+     * @param cancelGC      Executor for cancelling the garbage collection task
+     * @param statusMessage an informal status message describing the status of the background
+     *                      operation at the time of invocation.
+     * @param executor      Executor for initiating the garbage collection task
      */
     public RevisionGC(
-            @NotNull Runnable runGC,
-            @NotNull Runnable cancelGC,
-            @NotNull Supplier<String> statusMessage,
-            @NotNull Executor executor) {
+        @NotNull Runnable runGC,
+        @NotNull Runnable cancelGC,
+        @NotNull Supplier<String> statusMessage,
+        @NotNull Executor executor) {
         this.runGC = checkNotNull(runGC);
         this.cancelGC = checkNotNull(cancelGC);
         this.statusMessage = checkNotNull(statusMessage);
@@ -78,14 +77,14 @@ public class RevisionGC implements RevisionGCMBean {
     }
 
     /**
-     * @param runGC        Revision garbage collector
-     * @param cancelGC     Executor for cancelling the garbage collection task
-     * @param executor     Executor for initiating the garbage collection task
+     * @param runGC    Revision garbage collector
+     * @param cancelGC Executor for cancelling the garbage collection task
+     * @param executor Executor for initiating the garbage collection task
      */
     public RevisionGC(
-            @NotNull Runnable runGC,
-            @NotNull Runnable cancelGC,
-            @NotNull Executor executor) {
+        @NotNull Runnable runGC,
+        @NotNull Runnable cancelGC,
+        @NotNull Executor executor) {
         this(runGC, cancelGC, () -> "", executor);
     }
 

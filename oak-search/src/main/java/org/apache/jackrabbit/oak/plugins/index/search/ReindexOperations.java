@@ -19,6 +19,11 @@
 
 package org.apache.jackrabbit.oak.plugins.index.search;
 
+import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.INDEX_DEFINITION_NODE;
+import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.REINDEX_COMPLETION_TIMESTAMP;
+import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.STATUS_NODE;
+import static org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexEditorContext.configureUniqueId;
+
 import org.apache.jackrabbit.oak.plugins.index.importer.IndexImporter;
 import org.apache.jackrabbit.oak.plugins.index.search.util.NodeStateCloner;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -26,15 +31,11 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.INDEX_DEFINITION_NODE;
-import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.REINDEX_COMPLETION_TIMESTAMP;
-import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.STATUS_NODE;
-import static org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexEditorContext.configureUniqueId;
-
 /**
  * Reindexing operations
  */
 public class ReindexOperations {
+
     private static final Logger LOG = LoggerFactory.getLogger(ReindexOperations.class);
     private final NodeState root;
     private final NodeBuilder definitionBuilder;
@@ -43,12 +44,13 @@ public class ReindexOperations {
     private final boolean storedIndexDefinitionEnabled;
 
     public ReindexOperations(NodeState root, NodeBuilder definitionBuilder, String indexPath,
-                             IndexDefinition.Builder indexDefBuilder) {
-        this(root, definitionBuilder, indexPath, indexDefBuilder, !IndexDefinition.isDisableStoredIndexDefinition());
+        IndexDefinition.Builder indexDefBuilder) {
+        this(root, definitionBuilder, indexPath, indexDefBuilder,
+            !IndexDefinition.isDisableStoredIndexDefinition());
     }
 
     public ReindexOperations(NodeState root, NodeBuilder definitionBuilder, String indexPath,
-                             IndexDefinition.Builder indexDefBuilder, boolean storedIndexDefinitionEnabled) {
+        IndexDefinition.Builder indexDefBuilder, boolean storedIndexDefinitionEnabled) {
         this.root = root;
         this.definitionBuilder = definitionBuilder;
         this.indexPath = indexPath;
@@ -58,35 +60,42 @@ public class ReindexOperations {
 
     /**
      * Update index definition based on base or latest builder state
+     *
      * @param useStateFromBuilder whether to use the latest builder state
      * @return the up to date index definition
      */
     public IndexDefinition apply(boolean useStateFromBuilder) {
-        IndexFormatVersion version = IndexDefinition.determineVersionForFreshIndex(definitionBuilder);
+        IndexFormatVersion version = IndexDefinition.determineVersionForFreshIndex(
+            definitionBuilder);
         definitionBuilder.setProperty(IndexDefinition.INDEX_VERSION, version.getVersion());
         definitionBuilder.removeProperty(IndexImporter.INDEX_IMPORT_STATE_KEY);
 
         //Avoid obtaining the latest NodeState from builder as that would force purge of current transient state
         //as index definition does not get modified as part of IndexUpdate run in most case we rely on base state
         //For case where index definition is rewritten there we get fresh state
-        NodeState defnState = useStateFromBuilder ? definitionBuilder.getNodeState() : definitionBuilder.getBaseState();
+        NodeState defnState = useStateFromBuilder ? definitionBuilder.getNodeState()
+            : definitionBuilder.getBaseState();
         if (storedIndexDefinitionEnabled) {
-            definitionBuilder.setChildNode(INDEX_DEFINITION_NODE, NodeStateCloner.cloneVisibleState(defnState));
-            definitionBuilder.setChildNode(INDEX_DEFINITION_NODE, NodeStateCloner.cloneVisibleState(defnState));
+            definitionBuilder.setChildNode(INDEX_DEFINITION_NODE,
+                NodeStateCloner.cloneVisibleState(defnState));
+            definitionBuilder.setChildNode(INDEX_DEFINITION_NODE,
+                NodeStateCloner.cloneVisibleState(defnState));
             if (definitionBuilder.getChildNode(STATUS_NODE).exists()) {
-                definitionBuilder.getChildNode(STATUS_NODE).removeProperty(REINDEX_COMPLETION_TIMESTAMP);
-                LOG.info("{} property removed for index at {}", REINDEX_COMPLETION_TIMESTAMP, this.indexPath);
+                definitionBuilder.getChildNode(STATUS_NODE)
+                                 .removeProperty(REINDEX_COMPLETION_TIMESTAMP);
+                LOG.info("{} property removed for index at {}", REINDEX_COMPLETION_TIMESTAMP,
+                    this.indexPath);
             }
         }
         String uid = configureUniqueId(definitionBuilder);
         //Refresh the index definition based on update builder state
         return indexDefBuilder
-                .root(root)
-                .defn(defnState)
-                .indexPath(indexPath)
-                .version(version)
-                .uid(uid)
-                .reindex()
-                .build();
+            .root(root)
+            .defn(defnState)
+            .indexPath(indexPath)
+            .version(version)
+            .uid(uid)
+            .reindex()
+            .build();
     }
 }

@@ -37,8 +37,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * The revision history for a given property. The history may span multiple
- * previous documents.
+ * The revision history for a given property. The history may span multiple previous documents.
  */
 class PropertyHistory implements Iterable<NodeDocument> {
 
@@ -50,7 +49,7 @@ class PropertyHistory implements Iterable<NodeDocument> {
     private final Path mainPath;
 
     public PropertyHistory(@NotNull NodeDocument doc,
-                           @NotNull String property) {
+        @NotNull String property) {
         this.doc = checkNotNull(doc);
         this.property = checkNotNull(property);
         this.mainPath = doc.getMainPath();
@@ -59,36 +58,37 @@ class PropertyHistory implements Iterable<NodeDocument> {
     @Override
     public Iterator<NodeDocument> iterator() {
         return ensureOrder(filter(transform(doc.getPreviousRanges().entrySet(),
-                new Function<Map.Entry<Revision, Range>, Map.Entry<Revision, NodeDocument>>() {
-            @Nullable
-            @Override
-            public Map.Entry<Revision, NodeDocument> apply(Map.Entry<Revision, Range> input) {
-                Revision r = input.getKey();
-                int h = input.getValue().height;
-                String prevId = Utils.getPreviousIdFor(mainPath, r, h);
-                NodeDocument prev = doc.getPreviousDocument(prevId);
-                if (prev == null) {
-                    LOG.debug("Document with previous revisions not found: " + prevId);
-                    return null;
+            new Function<Map.Entry<Revision, Range>, Map.Entry<Revision, NodeDocument>>() {
+                @Nullable
+                @Override
+                public Map.Entry<Revision, NodeDocument> apply(Map.Entry<Revision, Range> input) {
+                    Revision r = input.getKey();
+                    int h = input.getValue().height;
+                    String prevId = Utils.getPreviousIdFor(mainPath, r, h);
+                    NodeDocument prev = doc.getPreviousDocument(prevId);
+                    if (prev == null) {
+                        LOG.debug("Document with previous revisions not found: " + prevId);
+                        return null;
+                    }
+                    return new SimpleImmutableEntry<Revision, NodeDocument>(r, prev);
                 }
-                return new SimpleImmutableEntry<Revision, NodeDocument>(r, prev);
-            }
-        }), Predicates.notNull()));
+            }), Predicates.notNull()));
     }
 
     /**
-     * Ensures the order of docs is correct with respect to the highest revision
-     * for each ValueMap for the given property.
+     * Ensures the order of docs is correct with respect to the highest revision for each ValueMap
+     * for the given property.
      *
      * @param docs the docs to order.
      * @return the docs in the correct order.
      */
-    private Iterator<NodeDocument> ensureOrder(final Iterable<Map.Entry<Revision, NodeDocument>> docs) {
+    private Iterator<NodeDocument> ensureOrder(
+        final Iterable<Map.Entry<Revision, NodeDocument>> docs) {
         return new AbstractIterator<NodeDocument>() {
             PeekingIterator<Map.Entry<Revision, NodeDocument>> input
-                    = Iterators.peekingIterator(docs.iterator());
+                = Iterators.peekingIterator(docs.iterator());
             TreeMap<Revision, NodeDocument> queue =
-                    new TreeMap<Revision, NodeDocument>(StableRevisionComparator.INSTANCE);
+                new TreeMap<Revision, NodeDocument>(StableRevisionComparator.INSTANCE);
 
             @Override
             protected NodeDocument computeNext() {
@@ -105,7 +105,7 @@ class PropertyHistory implements Iterable<NodeDocument> {
              * than the peeked entry from the input iterator.
              */
             private void refillQueue() {
-                for (;;) {
+                for (; ; ) {
                     // the doc to enqueue
                     NodeDocument doc;
                     if (queue.isEmpty()) {
@@ -118,7 +118,8 @@ class PropertyHistory implements Iterable<NodeDocument> {
                     } else {
                         // peek first and compare with queue
                         if (input.hasNext()) {
-                            if (queue.comparator().compare(queue.lastKey(), input.peek().getKey()) < 0) {
+                            if (queue.comparator().compare(queue.lastKey(), input.peek().getKey())
+                                < 0) {
                                 doc = input.next().getValue();
                             } else {
                                 // top of queue rev is higher than input -> done

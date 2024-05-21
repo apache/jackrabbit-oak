@@ -47,34 +47,33 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Reports writes to non-default mounts
- * 
+ *
  * <p>This is a <em>diagnostic observer</em> and is expected to be used in scenarios where the
  * <code>CompositeNodeStore</code> is configured in a 'seed' mode, where the non-default
  * mounts are write-enabled.</p>
- * 
- * <p>In such scenarios it is useful to report writes to non-default mounts from components
- * that are unexpected. For instance, it can report all writes that do not originate
- * from the FileVault package installer.</p>
- * 
- * <p>Performance note: the overhead of this observer has not been measured, but as it is
- * designed to be used only for initial setups the performance impact should not
- * matter.</p>
  *
+ * <p>In such scenarios it is useful to report writes to non-default mounts from components
+ * that are unexpected. For instance, it can report all writes that do not originate from the
+ * FileVault package installer.</p>
+ *
+ * <p>Performance note: the overhead of this observer has not been measured, but as it is
+ * designed to be used only for initial setups the performance impact should not matter.</p>
  */
-@Component(service =  Observer.class, configurationPolicy =  ConfigurationPolicy.REQUIRE)
+@Component(service = Observer.class, configurationPolicy = ConfigurationPolicy.REQUIRE)
 @Designate(ocd = Config.class)
 public class NonDefaultMountWriteReportingObserver implements Observer {
 
     @ObjectClassDefinition
     public @interface Config {
+
         @AttributeDefinition(description = "Class name fragments that, when found in the stack trace, cause the writes to not be reported. Examples: org.apache.jackrabbit.vault.packaging.impl.JcrPackageImpl, org.apache.jackrabbit.vault.packaging.impl.JcrPackageImpl,org.apache.sling.jcr.repoinit")
         String[] ignoredClassNameFragments();
     }
-    
+
     @Reference
     private MountInfoProvider mountInfoProvider;
     private Config cfg;
-    
+
     private ChangeReporter reporter = new ChangeReporter();
     private NodeState oldState = null;
 
@@ -93,26 +92,31 @@ public class NonDefaultMountWriteReportingObserver implements Observer {
             diff.report();
         }
         oldState = root;
-    }    
-    
+    }
+
     class CountingDiff extends DefaultNodeStateDiff {
+
         private final String path;
         private final Map<String, String> changes;
-        
+
         private CountingDiff(String path, Map<String, String> changes) {
             this.path = path;
             this.changes = changes;
         }
-        
+
         public void report() {
-            if ( changes.isEmpty() )
+            if (changes.isEmpty()) {
                 return;
+            }
             StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
-            for ( StackTraceElement element : stackTrace )
-                for ( String acceptedClassName : cfg.ignoredClassNameFragments() )
-                    if ( element.getClassName().contains(acceptedClassName ))
+            for (StackTraceElement element : stackTrace) {
+                for (String acceptedClassName : cfg.ignoredClassNameFragments()) {
+                    if (element.getClassName().contains(acceptedClassName)) {
                         return;
-            
+                    }
+                }
+            }
+
             reporter.reportChanges(changes, Arrays.stream(stackTrace));
         }
 
@@ -120,60 +124,63 @@ public class NonDefaultMountWriteReportingObserver implements Observer {
         public boolean childNodeDeleted(String name, NodeState before) {
             return onChange(name, before, EmptyNodeState.MISSING_NODE, "Deleted");
         }
-        
-        private boolean onChange(String name, NodeState before, NodeState after, String changeType) {
+
+        private boolean onChange(String name, NodeState before, NodeState after,
+            String changeType) {
             String childPath = PathUtils.concat(path, name);
 
             boolean isCovered = mountInfoProvider.getNonDefaultMounts().stream()
-                    .anyMatch( m -> m.isMounted(childPath)) ;
-            
-            if ( isCovered )
+                                                 .anyMatch(m -> m.isMounted(childPath));
+
+            if (isCovered) {
                 changes.put(childPath, changeType);
-            
-            return after.compareAgainstBaseState(before, new CountingDiff(childPath, changes));            
+            }
+
+            return after.compareAgainstBaseState(before, new CountingDiff(childPath, changes));
         }
-        
+
         @Override
         public boolean childNodeChanged(String name, NodeState before, NodeState after) {
-            
+
             return onChange(name, before, after, "Changed");
         }
-        
+
         @Override
         public boolean childNodeAdded(String name, NodeState after) {
-            
+
             return onChange(name, EmptyNodeState.MISSING_NODE, after, "Added");
         }
     }
-    
+
     // visible for testing
     void setReporter(ChangeReporter reporter) {
         this.reporter = reporter;
     }
-    
+
     static class ChangeReporter {
-        
+
         private static final int LOG_OUTPUT_MAX_ITEMS = 50;
         private static final String STACK_TRACE_DELIMITER = "\tat ";
-        
+
         private final Logger logger = LoggerFactory.getLogger(getClass());
-        
+
         void reportChanges(Map<String, String> changes, Stream<StackTraceElement> stackTrace) {
-            
-            if ( !logger.isWarnEnabled() )
+
+            if (!logger.isWarnEnabled()) {
                 return;
-            
+            }
+
             StringWriter out = new StringWriter();
             PrintWriter writer = new PrintWriter(new StringWriter());
             writer.append("Unexpected changes (");
             writer.print(changes.size());
             writer.append(") performed on a non-default mount. Printing at most ");
             writer.println(LOG_OUTPUT_MAX_ITEMS);
-            
+
             changes.entrySet().stream()
-                .limit(LOG_OUTPUT_MAX_ITEMS)
-                .forEach( e -> writer.append(e.getKey()).append(" : ").println(e.getValue())
-            );
+                   .limit(LOG_OUTPUT_MAX_ITEMS)
+                   .forEach(e -> writer.append(e.getKey()).append(" : ").println(e.getValue())
+                   );
 
             writer.append("Changes triggered ");
             stackTrace.forEach(e -> writer.append(STACK_TRACE_DELIMITER).println(e));

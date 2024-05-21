@@ -39,7 +39,9 @@ Changes with respect to Jackrabbit-core are collected in [OAK-14]
       added changes to the observation queues. Those changes that potentially
       were still in the queue will have gone through both the old prefilter
       and the new (post-)filter. [OAK-5208]
-    
+
 [OAK-300]: https://issues.apache.org/jira/browse/OAK-300
+
 [OAK-2683]: https://issues.apache.org/jira/browse/OAK-2683
+
 [OAK-5208]: https://issues.apache.org/jira/browse/OAK-5208

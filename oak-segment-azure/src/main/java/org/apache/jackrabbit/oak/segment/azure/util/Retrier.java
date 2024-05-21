@@ -18,13 +18,13 @@
  */
 package org.apache.jackrabbit.oak.segment.azure.util;
 
+import java.io.IOException;
 import org.apache.jackrabbit.oak.segment.spi.RepositoryNotReachableException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-
 public class Retrier {
+
     private static final Logger log = LoggerFactory.getLogger(Retrier.class);
 
     private final int maxAttempts;
@@ -46,12 +46,16 @@ public class Retrier {
             } catch (Exception e) {
                 // if last attempt fails or if unexpected exception, exit by throwing the last exception
                 if (attempt == maxAttempts) {
-                    log.error("Can't execute the operation (attempt {}/{}). Reason: {}", attempt, maxAttempts, e.getMessage());
+                    log.error("Can't execute the operation (attempt {}/{}). Reason: {}", attempt,
+                        maxAttempts, e.getMessage());
                     throw e;
-                } else if (!(e instanceof IOException || e instanceof RepositoryNotReachableException)) {
-                    throw new RuntimeException("Unexpected exception while executing the operation", e);
+                } else if (!(e instanceof IOException
+                    || e instanceof RepositoryNotReachableException)) {
+                    throw new RuntimeException("Unexpected exception while executing the operation",
+                        e);
                 }
-                log.error("Can't execute the operation (attempt {}/{}). Retrying in {} ms...", attempt, maxAttempts, intervalMs, e);
+                log.error("Can't execute the operation (attempt {}/{}). Retrying in {} ms...",
+                    attempt, maxAttempts, intervalMs, e);
             }
             try {
                 Thread.sleep(intervalMs);
@@ -72,11 +76,13 @@ public class Retrier {
 
     @FunctionalInterface
     public interface ThrowingSupplier<T> {
+
         T get() throws IOException;
     }
 
     @FunctionalInterface
     public interface ThrowingRunnable {
+
         void run() throws IOException;
     }
 }

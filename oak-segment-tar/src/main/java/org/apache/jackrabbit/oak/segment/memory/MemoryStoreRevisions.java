@@ -23,7 +23,6 @@ import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 import java.io.IOException;
-
 import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.Revisions;
@@ -31,10 +30,11 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * This is a simple in memory {@code Revisions} implementation.
- * It is non blocking and does not support any {@link Option}s.
+ * This is a simple in memory {@code Revisions} implementation. It is non blocking and does not
+ * support any {@link Option}s.
  */
 public class MemoryStoreRevisions implements Revisions {
+
     private RecordId head;
 
     /**
@@ -65,11 +65,11 @@ public class MemoryStoreRevisions implements Revisions {
     public RecordId getPersistedHead() {
         return getHead();
     }
-    
+
     @Override
     public synchronized boolean setHead(
-            @NotNull RecordId expected, @NotNull RecordId head,
-            @NotNull Option... options) {
+        @NotNull RecordId expected, @NotNull RecordId head,
+        @NotNull Option... options) {
         checkBound();
         if (this.head.equals(expected)) {
             this.head = head;
@@ -81,12 +81,13 @@ public class MemoryStoreRevisions implements Revisions {
 
     /**
      * Not supported: throws {@code UnsupportedOperationException}
+     *
      * @throws UnsupportedOperationException always
      */
     @Override
     public RecordId setHead(
-            @NotNull Function<RecordId, RecordId> newHead,
-            @NotNull Option... options) throws InterruptedException {
+        @NotNull Function<RecordId, RecordId> newHead,
+        @NotNull Option... options) throws InterruptedException {
         throw new UnsupportedOperationException();
     }
 }

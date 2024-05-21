@@ -19,29 +19,27 @@
 
 package org.apache.jackrabbit.oak.index;
 
-import java.io.File;
-
-
-import org.apache.jackrabbit.guava.common.io.Files;
-import org.junit.Before;
-import org.junit.Test;
-
 import static java.nio.charset.Charset.defaultCharset;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
+import java.io.File;
+import org.apache.jackrabbit.guava.common.io.Files;
+import org.junit.Before;
+import org.junit.Test;
+
 public class LuceneIndexCommandIT extends LuceneAbstractIndexCommandTest {
+
     @Before
     public void setUp() {
         IndexCommand.setDisableExitOnError(true);
     }
 
     @Test
-    public void dumpStatsAndInfo() throws Exception{
+    public void dumpStatsAndInfo() throws Exception {
         createTestData(false);
         //Close the repository so as all changes are flushed
         fixture.close();
@@ -50,11 +48,11 @@ public class LuceneIndexCommandIT extends LuceneAbstractIndexCommandTest {
 
         File outDir = temporaryFolder.newFolder();
         String[] args = {
-                "-index-temp-dir=" + temporaryFolder.newFolder().getAbsolutePath(),
-                "-index-out-dir="  + outDir.getAbsolutePath(),
-                "-index-info",
-                "-index-definitions",
-                fixture.getDir().getAbsolutePath()
+            "-index-temp-dir=" + temporaryFolder.newFolder().getAbsolutePath(),
+            "-index-out-dir=" + outDir.getAbsolutePath(),
+            "-index-info",
+            "-index-definitions",
+            fixture.getDir().getAbsolutePath()
         };
 
         command.execute(args);
@@ -70,7 +68,7 @@ public class LuceneIndexCommandIT extends LuceneAbstractIndexCommandTest {
     }
 
     @Test
-    public void selectedIndexPaths() throws Exception{
+    public void selectedIndexPaths() throws Exception {
         createTestData(false);
         //Close the repository so as all changes are flushed
         fixture.close();
@@ -79,12 +77,12 @@ public class LuceneIndexCommandIT extends LuceneAbstractIndexCommandTest {
 
         File outDir = temporaryFolder.newFolder();
         String[] args = {
-                "-index-temp-dir=" + temporaryFolder.newFolder().getAbsolutePath(),
-                "-index-out-dir="  + outDir.getAbsolutePath(),
-                "-index-paths=/oak:index/fooIndex",
-                "-index-info",
-                "-index-definitions",
-                fixture.getDir().getAbsolutePath()
+            "-index-temp-dir=" + temporaryFolder.newFolder().getAbsolutePath(),
+            "-index-out-dir=" + outDir.getAbsolutePath(),
+            "-index-paths=/oak:index/fooIndex",
+            "-index-info",
+            "-index-definitions",
+            fixture.getDir().getAbsolutePath()
         };
 
         command.execute(args);
@@ -98,7 +96,7 @@ public class LuceneIndexCommandIT extends LuceneAbstractIndexCommandTest {
     }
 
     @Test
-    public void consistencyCheck() throws Exception{
+    public void consistencyCheck() throws Exception {
         createTestData(false);
         //Close the repository so as all changes are flushed
         fixture.close();
@@ -107,11 +105,11 @@ public class LuceneIndexCommandIT extends LuceneAbstractIndexCommandTest {
 
         File outDir = temporaryFolder.newFolder();
         String[] args = {
-                "--index-temp-dir=" + temporaryFolder.newFolder().getAbsolutePath(),
-                "--index-out-dir="  + outDir.getAbsolutePath(),
-                "--index-consistency-check",
-                "--", // -- indicates that options have ended and rest needs to be treated as non option
-                fixture.getDir().getAbsolutePath()
+            "--index-temp-dir=" + temporaryFolder.newFolder().getAbsolutePath(),
+            "--index-out-dir=" + outDir.getAbsolutePath(),
+            "--index-consistency-check",
+            "--", // -- indicates that options have ended and rest needs to be treated as non option
+            fixture.getDir().getAbsolutePath()
         };
 
         command.execute(args);
@@ -126,7 +124,7 @@ public class LuceneIndexCommandIT extends LuceneAbstractIndexCommandTest {
     }
 
     @Test
-    public void dumpIndex() throws Exception{
+    public void dumpIndex() throws Exception {
         createTestData(false);
         //Close the repository so as all changes are flushed
         fixture.close();
@@ -135,11 +133,11 @@ public class LuceneIndexCommandIT extends LuceneAbstractIndexCommandTest {
 
         File outDir = temporaryFolder.newFolder();
         String[] args = {
-                "--index-temp-dir=" + temporaryFolder.newFolder().getAbsolutePath(),
-                "--index-out-dir="  + outDir.getAbsolutePath(),
-                "--index-dump",
-                "--", // -- indicates that options have ended and rest needs to be treated as non option
-                fixture.getDir().getAbsolutePath()
+            "--index-temp-dir=" + temporaryFolder.newFolder().getAbsolutePath(),
+            "--index-out-dir=" + outDir.getAbsolutePath(),
+            "--index-dump",
+            "--", // -- indicates that options have ended and rest needs to be treated as non option
+            fixture.getDir().getAbsolutePath()
         };
 
         command.execute(args);

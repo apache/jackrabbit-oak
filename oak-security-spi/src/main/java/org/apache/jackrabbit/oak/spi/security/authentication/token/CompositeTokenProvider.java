@@ -20,15 +20,12 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import javax.jcr.Credentials;
-
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Aggregates a collection of {@link TokenProvider}s into a single
- * provider.
+ * Aggregates a collection of {@link TokenProvider}s into a single provider.
  */
 public final class CompositeTokenProvider implements TokenProvider {
 
@@ -46,9 +43,12 @@ public final class CompositeTokenProvider implements TokenProvider {
     @NotNull
     public static TokenProvider newInstance(@NotNull List<? extends TokenProvider> providers) {
         switch (providers.size()) {
-            case 0: return NULL_PROVIDER;
-            case 1: return providers.iterator().next();
-            default: return new CompositeTokenProvider(providers);
+            case 0:
+                return NULL_PROVIDER;
+            case 1:
+                return providers.iterator().next();
+            default:
+                return new CompositeTokenProvider(providers);
         }
     }
 

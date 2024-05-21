@@ -20,14 +20,13 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import static org.junit.Assume.assumeTrue;
 
+import java.io.File;
+import java.util.Properties;
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants;
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureDataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.junit.After;
 import org.junit.BeforeClass;
-
-import java.io.File;
-import java.util.Properties;
 
 /**
  * Shared BlobStoreGCTest for Azure.

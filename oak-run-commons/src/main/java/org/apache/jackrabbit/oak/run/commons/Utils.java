@@ -29,7 +29,7 @@ public class Utils {
     private Utils() {
     }
 
-    public static String getProductInfo(InputStream pom){
+    public static String getProductInfo(InputStream pom) {
         String version = getProductVersion(pom);
 
         if (version == null) {
@@ -56,7 +56,7 @@ public class Utils {
     }
 
     public static void printProductInfo(String[] args, InputStream pom) {
-        if(!Arrays.asList(args).contains("--quiet")) {
+        if (!Arrays.asList(args).contains("--quiet")) {
             System.out.println(Utils.getProductInfo(pom));
         }
     }

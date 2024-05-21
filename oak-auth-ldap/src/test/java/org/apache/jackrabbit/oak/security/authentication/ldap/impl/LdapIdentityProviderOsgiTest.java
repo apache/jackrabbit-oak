@@ -16,19 +16,18 @@
  */
 package org.apache.jackrabbit.oak.security.authentication.ldap.impl;
 
-import javax.jcr.GuestCredentials;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
+import javax.jcr.GuestCredentials;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityException;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 public class LdapIdentityProviderOsgiTest {
 
@@ -49,7 +48,8 @@ public class LdapIdentityProviderOsgiTest {
 
     @Test
     public void testFromExternalIdentityRef() throws Exception {
-        assertEquals("id", provider.fromExternalIdentityRef(new ExternalIdentityRef("id", provider.getName())));
+        assertEquals("id",
+            provider.fromExternalIdentityRef(new ExternalIdentityRef("id", provider.getName())));
     }
 
     @Test
@@ -71,13 +71,17 @@ public class LdapIdentityProviderOsgiTest {
     @Test
     public void testGetDeclaredGroupRefsForeignRef() throws Exception {
         ExternalIdentityRef ref = new ExternalIdentityRef("id", "anotherName");
-        assertTrue(provider.getDeclaredGroupRefs(ref, AbstractLdapIdentityProviderTest.TEST_USER1_DN).isEmpty());
+        assertTrue(
+            provider.getDeclaredGroupRefs(ref, AbstractLdapIdentityProviderTest.TEST_USER1_DN)
+                    .isEmpty());
     }
 
     @Test
     public void testGetDeclaredMemberRefsForeignRef() throws Exception {
         ExternalIdentityRef ref = new ExternalIdentityRef("id", "anotherName");
-        assertTrue(provider.getDeclaredMemberRefs(ref, AbstractLdapIdentityProviderTest.TEST_GROUP1_DN).isEmpty());
+        assertTrue(
+            provider.getDeclaredMemberRefs(ref, AbstractLdapIdentityProviderTest.TEST_GROUP1_DN)
+                    .isEmpty());
     }
 
     @Test(expected = ExternalIdentityException.class)

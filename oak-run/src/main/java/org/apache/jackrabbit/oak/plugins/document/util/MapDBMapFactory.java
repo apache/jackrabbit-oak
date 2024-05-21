@@ -23,7 +23,6 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.util.Comparator;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import org.apache.jackrabbit.oak.plugins.document.Path;
 import org.apache.jackrabbit.oak.plugins.document.PathComparator;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
@@ -43,19 +42,19 @@ public class MapDBMapFactory extends MapFactory implements Closeable {
 
     public MapDBMapFactory() {
         this.db = DBMaker.newTempFileDB()
-                .deleteFilesAfterClose()
-                .transactionDisable()
-                .asyncWriteEnable()
-                .make();
+                         .deleteFilesAfterClose()
+                         .transactionDisable()
+                         .asyncWriteEnable()
+                         .make();
     }
 
     @Override
     public BTreeMap<Path, Revision> create() {
         return db.createTreeMap(String.valueOf(counter.incrementAndGet()))
-                .keySerializer(new PathSerializer())
-                .valueSerializer(new RevisionSerializer())
-                .counterEnable()
-                .make();
+                 .keySerializer(new PathSerializer())
+                 .valueSerializer(new RevisionSerializer())
+                 .counterEnable()
+                 .make();
     }
 
 
@@ -65,12 +64,12 @@ public class MapDBMapFactory extends MapFactory implements Closeable {
     }
 
     private static class PathSerializer
-            extends BTreeKeySerializer<Path>
-            implements Serializable {
+        extends BTreeKeySerializer<Path>
+        implements Serializable {
 
         @Override
         public void serialize(DataOutput out, int start, int end, Object[] keys)
-                throws IOException {
+            throws IOException {
             for (int i = start; i < end; i++) {
                 String p = keys[i].toString();
                 out.writeUTF(p);
@@ -79,7 +78,7 @@ public class MapDBMapFactory extends MapFactory implements Closeable {
 
         @Override
         public Object[] deserialize(DataInput in, int start, int end, int size)
-                throws IOException {
+            throws IOException {
             Object[] keys = new Object[size];
             for (int i = start; i < end; i++) {
                 keys[i] = Path.fromString(in.readUTF());
@@ -94,9 +93,11 @@ public class MapDBMapFactory extends MapFactory implements Closeable {
     }
 
     private static class RevisionSerializer implements Serializer<Revision>,
-            Serializable {
+        Serializable {
+
         private static final long serialVersionUID = 8648365575103098316L;
         private int size = 8 + 4 + 4 + 1;
+
         public void serialize(DataOutput o, Revision r) throws IOException {
             o.writeLong(r.getTimestamp());
             o.writeInt(r.getCounter());
@@ -107,10 +108,10 @@ public class MapDBMapFactory extends MapFactory implements Closeable {
 
         public Revision deserialize(DataInput i, int available) throws IOException {
             return new Revision(
-                    i.readLong(), //timestamp
-                    i.readInt(),  //counter
-                    i.readInt(),  //clusterId
-                    i.readBoolean()); //branch
+                i.readLong(), //timestamp
+                i.readInt(),  //counter
+                i.readInt(),  //clusterId
+                i.readBoolean()); //branch
         }
 
         public int fixedSize() {

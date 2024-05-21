@@ -57,17 +57,17 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeThat;
 
 /**
- * A long running resilience IT. The test sets up a three node replica set and
- * adds nodes in batches between one and ten nodes. In the background a task
- * periodically stops the MongoDB primary for 30 seconds. A reader thread
- * verifies all nodes are present. This test is skipped by default and can be
- * enabled with a system property {@code -Dtest=ReplicaSetResilienceIT}.
+ * A long running resilience IT. The test sets up a three node replica set and adds nodes in batches
+ * between one and ten nodes. In the background a task periodically stops the MongoDB primary for 30
+ * seconds. A reader thread verifies all nodes are present. This test is skipped by default and can
+ * be enabled with a system property {@code -Dtest=ReplicaSetResilienceIT}.
  */
 public class ReplicaSetResilienceIT {
 
     private static final Logger LOG = LoggerFactory.getLogger(ReplicaSetResilienceIT.class);
 
-    private static final int NUM_NODES = Integer.getInteger(ReplicaSetResilienceIT.class.getSimpleName() + ".numNodes", 100 * 1000);
+    private static final int NUM_NODES = Integer.getInteger(
+        ReplicaSetResilienceIT.class.getSimpleName() + ".numNodes", 100 * 1000);
 
     @Rule
     public MongodProcessFactory mongodProcessFactory = new MongodProcessFactory();
@@ -95,7 +95,7 @@ public class ReplicaSetResilienceIT {
         executables.putAll(mongodProcessFactory.startReplicaSet("rs", 3));
         // crash and restart the primary once a minute
         executorService.scheduleWithFixedDelay(new PrimaryCrasher(),
-                30, 30, TimeUnit.SECONDS);
+            30, 30, TimeUnit.SECONDS);
         String uri = "mongodb://" + MongodProcessFactory.localhost(executables.keySet());
         ns = builderProvider.newBuilder().setMongoDB(uri, MongoUtils.DB, 0).build();
     }
@@ -216,7 +216,7 @@ public class ReplicaSetResilienceIT {
                 seeds.add(p.getAddress());
             }
             try (MongoClient c = new MongoClient(seeds,
-                    new MongoClientOptions.Builder().requiredReplicaSetName("rs").build())) {
+                new MongoClientOptions.Builder().requiredReplicaSetName("rs").build())) {
                 ServerAddress address = null;
                 for (int i = 0; i < 5; i++) {
                     address = c.getReplicaSetStatus().getMaster();

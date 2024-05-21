@@ -16,6 +16,14 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
@@ -24,23 +32,17 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-
 public abstract class IndexAndTraversalQueriesSimilarResultsCommonTest extends AbstractQueryTest {
-    private static final Logger LOG = LoggerFactory.getLogger(IndexAndTraversalQueriesSimilarResultsCommonTest.class);
+
+    private static final Logger LOG = LoggerFactory.getLogger(
+        IndexAndTraversalQueriesSimilarResultsCommonTest.class);
 
     protected IndexOptions indexOptions;
     protected TestRepository repositoryOptionsUtil;
 
     protected void assertEventually(Runnable r) {
-        TestUtil.assertEventually(r, ((repositoryOptionsUtil.isAsync() ? repositoryOptionsUtil.defaultAsyncIndexingTimeInSeconds : 0) + 3000) * 5);
+        TestUtil.assertEventually(r, ((repositoryOptionsUtil.isAsync()
+            ? repositoryOptionsUtil.defaultAsyncIndexingTimeInSeconds : 0) + 3000) * 5);
     }
 
     @Override
@@ -79,26 +81,26 @@ public abstract class IndexAndTraversalQueriesSimilarResultsCommonTest extends A
      * different results between Elastic and Lucene.
      */
     protected List<String> queriesWithSameResults = ImmutableList.of(
-            // Full-text queries
-            "/jcr:root//*[jcr:contains(@propa, '*')]",
-            "/jcr:root//*[jcr:contains(@propa, '123*')]",
-            "/jcr:root//*[jcr:contains(@propa, 'fal*')]"
+        // Full-text queries
+        "/jcr:root//*[jcr:contains(@propa, '*')]",
+        "/jcr:root//*[jcr:contains(@propa, '123*')]",
+        "/jcr:root//*[jcr:contains(@propa, 'fal*')]"
     );
 
     protected List<String> queriesWithDifferentResults = ImmutableList.of(
-            "/jcr:root//*[@propa]",
-            "/jcr:root//*[@propa > 0]",
-            "/jcr:root//*[@propa > '0']",
-            "/jcr:root//*[@propa = 1.11]",
-            "/jcr:root//*[@propa = '1.11']",
-            "/jcr:root//*[@propa > 1]",
-            "/jcr:root//*[@propa > '1']",
-            "/jcr:root//*[@propa > 1111]",
-            "/jcr:root//*[@propa > '1111']",
-            "/jcr:root//*[@propa = true]",
-            "/jcr:root//*[@propa = 'true']",
-            "/jcr:root//*[@propa = false]",
-            "/jcr:root//*[@propa = 'false']"
+        "/jcr:root//*[@propa]",
+        "/jcr:root//*[@propa > 0]",
+        "/jcr:root//*[@propa > '0']",
+        "/jcr:root//*[@propa = 1.11]",
+        "/jcr:root//*[@propa = '1.11']",
+        "/jcr:root//*[@propa > 1]",
+        "/jcr:root//*[@propa > '1']",
+        "/jcr:root//*[@propa > 1111]",
+        "/jcr:root//*[@propa > '1111']",
+        "/jcr:root//*[@propa = true]",
+        "/jcr:root//*[@propa = 'true']",
+        "/jcr:root//*[@propa = false]",
+        "/jcr:root//*[@propa = 'false']"
     );
 
     @Test
@@ -166,17 +168,21 @@ public abstract class IndexAndTraversalQueriesSimilarResultsCommonTest extends A
                 queriesWithSameResults.add(query);
             } else {
                 queriesWithDifferentResults.add(query);
-                sb.append(String.format("Query results differ.\n  Query:         %s\n  With index:    %s\n  Without index: %s\n",
-                        query, resultWithIndex, resultWithoutIndex));
+                sb.append(String.format(
+                    "Query results differ.\n  Query:         %s\n  With index:    %s\n  Without index: %s\n",
+                    query, resultWithIndex, resultWithoutIndex));
             }
         }
         if (shouldAllFail) {
-            LOG.info("The following queries produced different results with traversal and with index:\n{}", sb);
-            assertTrue("Expecting all queries to fail, but these have passed: " + queriesWithSameResults,
-                    queriesWithSameResults.isEmpty());
+            LOG.info(
+                "The following queries produced different results with traversal and with index:\n{}",
+                sb);
+            assertTrue(
+                "Expecting all queries to fail, but these have passed: " + queriesWithSameResults,
+                queriesWithSameResults.isEmpty());
         } else {
             assertTrue("Some queries results differ when run with and without index:\n" + sb,
-                    queriesWithDifferentResults.isEmpty());
+                queriesWithDifferentResults.isEmpty());
         }
     }
 }

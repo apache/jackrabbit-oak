@@ -19,9 +19,9 @@
 
 package org.apache.jackrabbit.oak.commons;
 
-import static org.apache.jackrabbit.guava.common.base.Objects.equal;
 import static java.lang.Boolean.parseBoolean;
 import static java.lang.System.getenv;
+import static org.apache.jackrabbit.guava.common.base.Objects.equal;
 
 import org.apache.jackrabbit.guava.common.base.StandardSystemProperty;
 
@@ -37,23 +37,21 @@ public final class CIHelper {
     /**
      * Check if this process is running on Jenkins.
      *
-     * @return {@code true} if this process is running on Jenkins, {@code false}
-     * otherwise.
+     * @return {@code true} if this process is running on Jenkins, {@code false} otherwise.
      */
     public static boolean jenkins() {
         return getenv("JENKINS_URL") != null;
     }
 
     /**
-     * @return  {@code true} iff running on
-     * https://travis-ci.org/
+     * @return {@code true} iff running on https://travis-ci.org/
      */
     public static boolean travis() {
         return parseBoolean(getenv("TRAVIS"));
     }
 
     /**
-     * @return  {@code true} iff running on with {@code PROFILE=pedantic}
+     * @return {@code true} iff running on with {@code PROFILE=pedantic}
      * @deprecated Travis builds do not use PROFILE anymore. Use {@link #travis()} instead.
      */
     public static boolean travisPedantic() {
@@ -61,7 +59,7 @@ public final class CIHelper {
     }
 
     /**
-     * @return  {@code true} iff running on with {@code PROFILE=unittesting}
+     * @return {@code true} iff running on with {@code PROFILE=unittesting}
      * @deprecated Travis builds do not use PROFILE anymore. Use {@link #travis()} instead.
      */
     public static boolean travisUnitTesting() {
@@ -69,7 +67,7 @@ public final class CIHelper {
     }
 
     /**
-     * @return  {@code true} iff running on with {@code PROFILE=integrationTesting}
+     * @return {@code true} iff running on with {@code PROFILE=integrationTesting}
      * @deprecated Travis builds do not use PROFILE anymore. Use {@link #travis()} instead.
      */
     public static boolean travisIntegrationTesting() {
@@ -81,7 +79,7 @@ public final class CIHelper {
         if (labels == null) {
             return false;
         }
-        for (String l: labels.trim().split("\\s+")) {
+        for (String l : labels.trim().split("\\s+")) {
             if (l.equals(label)) {
                 return true;
             }
@@ -90,7 +88,7 @@ public final class CIHelper {
     }
 
     /**
-     * @return  {@code true} iff running in a Windows environment
+     * @return {@code true} iff running in a Windows environment
      */
     public static boolean windows() {
         return StandardSystemProperty.OS_NAME.value().toLowerCase().contains("windows");

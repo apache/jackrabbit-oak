@@ -34,7 +34,6 @@ import static org.apache.jackrabbit.oak.spi.state.AbstractNodeState.checkValidNa
 
 import java.io.IOException;
 import java.io.InputStream;
-
 import org.apache.jackrabbit.guava.common.base.Objects;
 import org.apache.jackrabbit.guava.common.io.ByteStreams;
 import org.apache.jackrabbit.oak.api.Blob;
@@ -51,17 +50,14 @@ import org.jetbrains.annotations.Nullable;
 /**
  * In-memory node state builder.
  * <p>
- * A {@code MemoryNodeBuilder} instance tracks uncommitted changes without
- * relying on weak references or requiring hard references on the entire
- * accessed subtree. It does this by relying on {@code MutableNodeState}
- * instances for tracking <em>uncommitted changes</em> and on {@code Head}
- * instances for tracking the connectedness of the builder. A builder keeps
- * a reference to the parent builder and knows its own name, which is used
- * to check for relevant changes in its parent builder and update its state
- * accordingly.
+ * A {@code MemoryNodeBuilder} instance tracks uncommitted changes without relying on weak
+ * references or requiring hard references on the entire accessed subtree. It does this by relying
+ * on {@code MutableNodeState} instances for tracking <em>uncommitted changes</em> and on
+ * {@code Head} instances for tracking the connectedness of the builder. A builder keeps a reference
+ * to the parent builder and knows its own name, which is used to check for relevant changes in its
+ * parent builder and update its state accordingly.
  * <p>
- * A builder is in one of three possible states, which is tracked within
- * its {@code Head} instance:
+ * A builder is in one of three possible states, which is tracked within its {@code Head} instance:
  * <dl>
  *   <dt><em>unconnected</em></dt>
  *   <dd>
@@ -92,8 +88,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
     private final MemoryNodeBuilder parent;
 
     /**
-     * Name of this child node within the parent builder,
-     * or {@code null} for a root builder.
+     * Name of this child node within the parent builder, or {@code null} for a root builder.
      */
     private final String name;
 
@@ -103,18 +98,18 @@ public class MemoryNodeBuilder implements NodeBuilder {
     private final MemoryNodeBuilder rootBuilder;
 
     /**
-     * Internal revision counter for the base state of this builder. The counter
-     * is incremented in the root builder whenever its base state is reset.
-     * Each builder instance has its own copy of this revision counter for
-     * quickly checking whether its base state needs updating.
+     * Internal revision counter for the base state of this builder. The counter is incremented in
+     * the root builder whenever its base state is reset. Each builder instance has its own copy of
+     * this revision counter for quickly checking whether its base state needs updating.
+     *
      * @see #reset(org.apache.jackrabbit.oak.spi.state.NodeState)
      * @see #base()
      */
     private long baseRevision;
 
     /**
-     * The base state of this builder, possibly non-existent if this builder
-     * represents a new node that didn't yet exist in the base content tree.
+     * The base state of this builder, possibly non-existent if this builder represents a new node
+     * that didn't yet exist in the base content tree.
      */
     @NotNull
     private NodeState base;
@@ -125,15 +120,16 @@ public class MemoryNodeBuilder implements NodeBuilder {
     private final RootHead rootHead;
 
     /**
-     * Head of this builder. Always use {@link #head()} for accessing to
-     * ensure the connected state is correctly updated.
+     * Head of this builder. Always use {@link #head()} for accessing to ensure the connected state
+     * is correctly updated.
      */
     private Head head;
 
     /**
      * Creates a new in-memory child builder.
+     *
      * @param parent parent builder
-     * @param name name of this node
+     * @param name   name of this node
      */
     protected MemoryNodeBuilder(MemoryNodeBuilder parent, String name) {
         this.parent = parent;
@@ -146,8 +142,9 @@ public class MemoryNodeBuilder implements NodeBuilder {
     }
 
     /**
-     * Creates a new in-memory node state builder rooted at
-     * and based on the passed {@code base} state.
+     * Creates a new in-memory node state builder rooted at and based on the passed {@code base}
+     * state.
+     *
      * @param base base state of the new builder
      */
     public MemoryNodeBuilder(@NotNull NodeState base) {
@@ -164,23 +161,24 @@ public class MemoryNodeBuilder implements NodeBuilder {
 
     /**
      * Update the head of this builder to reflect the actual connected state.
-     * @return  head of this builder
+     *
+     * @return head of this builder
      */
     private Head head() {
         return head.update();
     }
 
     /**
-     * @return  {@code true} iff this is the root builder
+     * @return {@code true} iff this is the root builder
      */
     public final boolean isRoot() {
         return this == rootBuilder;
     }
 
     /**
-     * Update the base state of this builder by recursively retrieving it
-     * from its parent builder.
-     * @return  base state of this builder
+     * Update the base state of this builder by recursively retrieving it from its parent builder.
+     *
+     * @return base state of this builder
      */
     @NotNull
     private NodeState base() {
@@ -192,8 +190,9 @@ public class MemoryNodeBuilder implements NodeBuilder {
     }
 
     /**
-     * Factory method for creating new child state builders. Subclasses may
-     * override this method to control the behavior of child state builders.
+     * Factory method for creating new child state builders. Subclasses may override this method to
+     * control the behavior of child state builders.
+     *
      * @return new builder
      */
     protected MemoryNodeBuilder createChildBuilder(String name) {
@@ -201,12 +200,11 @@ public class MemoryNodeBuilder implements NodeBuilder {
     }
 
     /**
-     * Called whenever <em>this</em> node is modified, i.e. a property is
-     * added, changed or removed, or a child node is added or removed. Changes
-     * inside child nodes or the subtrees below are not reported. The default
-     * implementation triggers an {@link #updated()} call on the root builder
-     * (unless this is already the root builder), which subclasses can use
-     * to capture aggregate update information across the whole tree.
+     * Called whenever <em>this</em> node is modified, i.e. a property is added, changed or removed,
+     * or a child node is added or removed. Changes inside child nodes or the subtrees below are not
+     * reported. The default implementation triggers an {@link #updated()} call on the root builder
+     * (unless this is already the root builder), which subclasses can use to capture aggregate
+     * update information across the whole tree.
      */
     protected void updated() {
         if (this != rootBuilder) {
@@ -229,8 +227,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
     }
 
     /**
-     * Throws away all changes in this builder and resets the base to the
-     * given node state.
+     * Throws away all changes in this builder and resets the base to the given node state.
      *
      * @param newBase new base state
      */
@@ -241,8 +238,8 @@ public class MemoryNodeBuilder implements NodeBuilder {
     }
 
     /**
-     * Replaces the current state of this builder with the given node state.
-     * The base state remains unchanged.
+     * Replaces the current state of this builder with the given node state. The base state remains
+     * unchanged.
      *
      * @param newState new state
      */
@@ -257,12 +254,14 @@ public class MemoryNodeBuilder implements NodeBuilder {
 
     //--------------------------------------------------------< NodeBuilder >---
 
-    @Override @NotNull
+    @Override
+    @NotNull
     public NodeState getNodeState() {
         return head().getImmutableNodeState();
     }
 
-    @Override @NotNull
+    @Override
+    @NotNull
     public NodeState getBaseState() {
         return base();
     }
@@ -359,24 +358,23 @@ public class MemoryNodeBuilder implements NodeBuilder {
     }
 
     /**
-     * This implementation has the same semantics as adding this node
-     * with name {@code newName} as a new child of {@code newParent} followed
-     * by removing this node. As a consequence this implementation allows
-     * moving this node into the subtree rooted here, the result of which
-     * is the same as removing this node.
+     * This implementation has the same semantics as adding this node with name {@code newName} as a
+     * new child of {@code newParent} followed by removing this node. As a consequence this
+     * implementation allows moving this node into the subtree rooted here, the result of which is
+     * the same as removing this node.
      * <p>
-     * See also {@link NodeBuilder#moveTo(NodeBuilder, String) the general contract}
-     * for {@code MoveTo}.
+     * See also {@link NodeBuilder#moveTo(NodeBuilder, String) the general contract} for
+     * {@code MoveTo}.
      *
-     * @param newParent  builder for the new parent.
-     * @param newName  name of this child at the new parent
-     * @return  {@code true} on success, {@code false} otherwise
-     * @throws IllegalArgumentException if the given name string is empty
-     *                                  or contains the forward slash character
+     * @param newParent builder for the new parent.
+     * @param newName   name of this child at the new parent
+     * @return {@code true} on success, {@code false} otherwise
+     * @throws IllegalArgumentException if the given name string is empty or contains the forward
+     *                                  slash character
      */
     @Override
     public boolean moveTo(@NotNull NodeBuilder newParent, @NotNull String newName)
-            throws IllegalArgumentException {
+        throws IllegalArgumentException {
         checkNotNull(newParent);
         checkValidName(newName);
         if (isRoot() || !exists() || newParent.hasChildNode(newName)) {
@@ -395,18 +393,15 @@ public class MemoryNodeBuilder implements NodeBuilder {
     }
 
     /**
-     * Annotate this builder with its source path if this builder has not
-     * been transiently added. The source path is written to a property with
-     * the name {@link MoveDetector#SOURCE_PATH}.
+     * Annotate this builder with its source path if this builder has not been transiently added.
+     * The source path is written to a property with the name {@link MoveDetector#SOURCE_PATH}.
      * <p>
-     * The source path of a builder is its current path if its current
-     * source path annotation is empty and none of its parents has a source
-     * path annotation set. Otherwise it is the source path of the first parent
-     * (or self) that has its source path annotation set appended with the relative
-     * path from that parent to this builder.
+     * The source path of a builder is its current path if its current source path annotation is
+     * empty and none of its parents has a source path annotation set. Otherwise it is the source
+     * path of the first parent (or self) that has its source path annotation set appended with the
+     * relative path from that parent to this builder.
      * <p>
-     * This builder has been transiently added when there exists no
-     * base node at its source path.
+     * This builder has been transiently added when there exists no base node at its source path.
      */
     protected final void annotateSourcePath() {
         String sourcePath = getSourcePath();
@@ -434,7 +429,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
             // path annotation with the relative path from this builder up to that
             // parent appended.
             return PathUtils.concat(sourcePath,
-                    PathUtils.relativize(builder.getPath(), getPath()));
+                PathUtils.relativize(builder.getPath(), getPath()));
         }
     }
 
@@ -487,17 +482,20 @@ public class MemoryNodeBuilder implements NodeBuilder {
         return head().getCurrentNodeState().getBoolean(checkNotNull(name));
     }
 
-    @Override @Nullable
+    @Override
+    @Nullable
     public String getString(@NotNull String name) {
         return head().getCurrentNodeState().getString(checkNotNull(name));
     }
 
-    @Override @Nullable
+    @Override
+    @Nullable
     public String getName(@NotNull String name) {
         return head().getCurrentNodeState().getName(checkNotNull(name));
     }
 
-    @Override @NotNull
+    @Override
+    @NotNull
     public Iterable<String> getNames(@NotNull String name) {
         return head().getCurrentNodeState().getNames(checkNotNull(name));
     }
@@ -563,18 +561,16 @@ public class MemoryNodeBuilder implements NodeBuilder {
     //------------------------------------------------------------< Head >---
 
     /**
-     * Implementations of this interface represent the different states
-     * associated builders can have: <em>unconnected</em>, <em>connected</em>,
-     * and <em>root</em>. Its methods provide access to the node state being
-     * built by this builder.
+     * Implementations of this interface represent the different states associated builders can
+     * have: <em>unconnected</em>, <em>connected</em>, and <em>root</em>. Its methods provide access
+     * to the node state being built by this builder.
      */
     private interface Head {
 
         /**
-         * Returns the up-to-date head of the associated builder. In most
-         * cases the returned value will be the current head instance, but
-         * a different head can be returned if a state transition is needed.
-         * The returned value is then used as the new current head of the
+         * Returns the up-to-date head of the associated builder. In most cases the returned value
+         * will be the current head instance, but a different head can be returned if a state
+         * transition is needed. The returned value is then used as the new current head of the
          * builder.
          *
          * @return up-to-date head of the associated builder
@@ -582,40 +578,43 @@ public class MemoryNodeBuilder implements NodeBuilder {
         Head update();
 
         /**
-         * Returns the current node state associated with this head. This state
-         * is only stable across one method call and must not be passed outside
-         * the {@code NodeBuilder} API boundary.
-         * @return  current head state.
+         * Returns the current node state associated with this head. This state is only stable
+         * across one method call and must not be passed outside the {@code NodeBuilder} API
+         * boundary.
+         *
+         * @return current head state.
          */
         NodeState getCurrentNodeState();
 
         /**
-         * Connects the builder to which this head belongs and all its parents
-         * and return the mutable node state associated with this head. This state
-         * is only stable across one method call and must not be passed outside
-         * the {@code NodeBuilder} API boundary.
-         * @return  current head state.
+         * Connects the builder to which this head belongs and all its parents and return the
+         * mutable node state associated with this head. This state is only stable across one method
+         * call and must not be passed outside the {@code NodeBuilder} API boundary.
+         *
+         * @return current head state.
          */
         MutableNodeState getMutableNodeState();
 
         /**
          * Returns the current nodes state associated with this head.
-         * @return  current head state.
+         *
+         * @return current head state.
          */
         NodeState getImmutableNodeState();
 
         /**
-         * Check whether the associated builder represents a modified node, which has
-         * either modified properties or removed or added child nodes.
-         * @return  {@code true} for a modified node
+         * Check whether the associated builder represents a modified node, which has either
+         * modified properties or removed or added child nodes.
+         *
+         * @return {@code true} for a modified node
          */
         boolean isModified();
 
         /**
-         * Check whether the associated builder represents a node that
-         * used to exist but was replaced with other content.
+         * Check whether the associated builder represents a node that used to exist but was
+         * replaced with other content.
          *
-         * @return  {@code true} for a replaced node
+         * @return {@code true} for a replaced node
          */
         boolean isReplaced();
 
@@ -637,7 +636,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
         private NodeState state;
 
         UnconnectedHead(
-                MemoryNodeBuilder builder, NodeState state) {
+            MemoryNodeBuilder builder, NodeState state) {
             this.builder = builder;
             this.rootHead = builder.rootHead;
             this.revision = builder.baseRevision;
@@ -654,7 +653,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
                 if (newState instanceof MutableNodeState) {
                     // transition state to ConnectedHead
                     builder.head = new ConnectedHead(
-                            builder, (MutableNodeState) newState);
+                        builder, (MutableNodeState) newState);
                     return builder.head;
                 } else {
                     // update to match the latest revision
@@ -674,9 +673,9 @@ public class MemoryNodeBuilder implements NodeBuilder {
         public MutableNodeState getMutableNodeState() {
             // switch to connected state recursively up to the parent
             MutableNodeState parentState =
-                    builder.parent.head().getMutableNodeState();
+                builder.parent.head().getMutableNodeState();
             MutableNodeState state =
-                    parentState.getMutableChildNode(builder.name);
+                parentState.getMutableChildNode(builder.name);
             // triggers a head state transition at next access
             return new ConnectedHead(builder, state).getMutableNodeState();
         }

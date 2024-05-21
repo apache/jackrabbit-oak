@@ -29,34 +29,35 @@ import org.apache.lucene.index.NumericDocValues;
 
 /**
  * <p>
- * Field that stores a per-document <code>int</code> value for scoring, 
- * sorting or value retrieval. Here's an example usage:
- * 
+ * Field that stores a per-document <code>int</code> value for scoring, sorting or value retrieval.
+ * Here's an example usage:
+ *
  * <pre class="prettyprint">
  *   document.add(new IntDocValuesField(name, 22));
  * </pre>
- * 
+ *
  * <p>
- * If you also need to store the value, you should add a
- * separate {@link StoredField} instance.
+ * If you also need to store the value, you should add a separate {@link StoredField} instance.
+ *
  * @see NumericDocValues
  * @deprecated use {@link NumericDocValuesField} instead.
- * */
+ */
 @Deprecated
 public class IntDocValuesField extends NumericDocValuesField {
 
-  /** 
-   * Creates a new DocValues field with the specified 32-bit integer value 
-   * @param name field name
-   * @param value 32-bit integer value
-   * @throws IllegalArgumentException if the field name is null
-   */
-  public IntDocValuesField(String name, int value) {
-    super(name, value);
-  }
+    /**
+     * Creates a new DocValues field with the specified 32-bit integer value
+     *
+     * @param name  field name
+     * @param value 32-bit integer value
+     * @throws IllegalArgumentException if the field name is null
+     */
+    public IntDocValuesField(String name, int value) {
+        super(name, value);
+    }
 
-  @Override
-  public void setIntValue(int value) {
-    setLongValue(value);
-  }
+    @Override
+    public void setIntValue(int value) {
+        setLongValue(value);
+    }
 }

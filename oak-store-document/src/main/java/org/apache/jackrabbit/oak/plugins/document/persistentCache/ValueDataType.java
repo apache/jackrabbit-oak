@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.plugins.document.persistentCache;
 import static org.apache.jackrabbit.oak.plugins.document.persistentCache.DataTypeUtil.cast;
 
 import java.nio.ByteBuffer;
-
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
@@ -27,14 +26,14 @@ import org.h2.mvstore.WriteBuffer;
 import org.h2.mvstore.type.DataType;
 
 public class ValueDataType implements DataType<Object> {
-    
+
     private final DocumentNodeStore docNodeStore;
     private final DocumentStore docStore;
     private final CacheType type;
-    
+
     ValueDataType(DocumentNodeStore docNodeStore,
-                  DocumentStore docStore,
-                  CacheType type) {
+        DocumentStore docStore,
+        CacheType type) {
         this.docNodeStore = docNodeStore;
         this.docStore = docStore;
         this.type = type;
@@ -73,7 +72,7 @@ public class ValueDataType implements DataType<Object> {
             cast(storage)[i] = read(buff);
         }
     }
-    
+
     @Override
     public int binarySearch(Object key, Object storage, int size, int initialGuess) {
         return DataTypeUtil.binarySearch(this, key, storage, size, initialGuess);

@@ -37,8 +37,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Default implementation of {@link org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider} which uses an
- * {@link EmbeddedSolrServer} configured as per passed {@link org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfiguration}.
+ * Default implementation of
+ * {@link org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider} which uses an
+ * {@link EmbeddedSolrServer} configured as per passed
+ * {@link org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfiguration}.
  */
 public class EmbeddedSolrServerProvider implements SolrServerProvider {
 
@@ -65,7 +67,8 @@ public class EmbeddedSolrServerProvider implements SolrServerProvider {
                     log.info("starting embedded Solr server with http bindings");
                 }
                 ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-                Thread.currentThread().setContextClassLoader(JettySolrRunner.class.getClassLoader());
+                Thread.currentThread()
+                      .setContextClassLoader(JettySolrRunner.class.getClassLoader());
 
                 Integer httpPort = httpConfiguration.getHttpPort();
                 String context = httpConfiguration.getContext();
@@ -101,7 +104,9 @@ public class EmbeddedSolrServerProvider implements SolrServerProvider {
                 if (log.isInfoEnabled()) {
                     log.info("starting HTTP Solr server");
                 }
-                return new HttpWithJettySolrServer(SolrServerConfigurationDefaults.LOCAL_BASE_URL + ':' + httpPort + context + '/' + coreName, jettySolrRunner);
+                return new HttpWithJettySolrServer(
+                    SolrServerConfigurationDefaults.LOCAL_BASE_URL + ':' + httpPort + context + '/'
+                        + coreName, jettySolrRunner);
             } else {
                 ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
                 Thread.currentThread().setContextClassLoader(CoreContainer.class.getClassLoader());
@@ -153,13 +158,16 @@ public class EmbeddedSolrServerProvider implements SolrServerProvider {
 
             }
         } else if (!solrHomePathFile.isDirectory()) {
-            throw new IOException("a non directory file with the specified name already exists for the given solrHomePath '" + solrHomePath);
+            throw new IOException(
+                "a non directory file with the specified name already exists for the given solrHomePath '"
+                    + solrHomePath);
         }
 
         File solrCorePathFile = new File(solrHomePathFile, coreName);
         if (!solrCorePathFile.exists()) {
             if (!new File(solrCorePathFile, "conf").mkdirs()) {
-                throw new IOException("could not create nested core directory in solrHomePath/solrCoreName/conf");
+                throw new IOException(
+                    "could not create nested core directory in solrHomePath/solrCoreName/conf");
             }
             String solrCoreDir = solrCorePathFile.getAbsolutePath();
             File coreProperties = new File(new File(solrCoreDir), "core.properties");
@@ -173,7 +181,9 @@ public class EmbeddedSolrServerProvider implements SolrServerProvider {
             copy("/solr/oak/conf/schema.xml", coreConfDir);
             copy("/solr/oak/conf/solrconfig.xml", coreConfDir);
         } else if (!solrCorePathFile.isDirectory()) {
-            throw new IOException("a non directory file with the specified name already exists for the given Solr core path'" + solrCorePathFile.getAbsolutePath());
+            throw new IOException(
+                "a non directory file with the specified name already exists for the given Solr core path'"
+                    + solrCorePathFile.getAbsolutePath());
         }
         // clean data dir
         File solrDataPathFile = new File(solrHomePathFile + "/" + coreName + "/data/index");
@@ -196,7 +206,7 @@ public class EmbeddedSolrServerProvider implements SolrServerProvider {
             Arrays.sort(files);
             if (Arrays.binarySearch(files, coreName) < 0) {
                 throw new IOException("could not find a directory with the coreName '" + coreName
-                        + "' in the solrHomePath '" + solrHomePath + "'");
+                    + "' in the solrHomePath '" + solrHomePath + "'");
             }
         }
     }
@@ -250,6 +260,7 @@ public class EmbeddedSolrServerProvider implements SolrServerProvider {
     }
 
     private class HttpWithJettySolrServer extends HttpSolrClient {
+
         private final JettySolrRunner jettySolrRunner;
 
         public HttpWithJettySolrServer(String s, JettySolrRunner jettySolrRunner) {

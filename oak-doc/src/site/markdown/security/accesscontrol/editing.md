@@ -20,30 +20,39 @@
 <!-- MACRO{toc} -->
 
 <a name="read"></a>
+
 ## Reading
 
 ### Privilege Discovery
 
 #### Discover/test privileges for the editing session
-Note that these methods require the editing session to have `READ_ACCESS_CONTROL` permission for the specified path.
+
+Note that these methods require the editing session to have `READ_ACCESS_CONTROL` permission for the
+specified path.
 
 - `AccessControlManager`
     - `hasPrivileges(String, Privilege[])`
     - `getPrivileges(String)`
-    
+
 - `JackrabbitAccessControlManager`
-    - `getPrivilegeCollection(String absPath)` : improved, performant way to inspect privileges (since Oak 1.42.0, see [OAK-9494])     
+    - `getPrivilegeCollection(String absPath)` : improved, performant way to inspect privileges (
+      since Oak 1.42.0, see [OAK-9494])
 
 #### Discover/test privileges for a set of principal
-The following methods can be used to discover privileges for a set of principals different from those associated with the reading subject.
+
+The following methods can be used to discover privileges for a set of principals different from
+those associated with the reading subject.
 
 - `JackrabbitAccessControlManager`
     - `hasPrivileges(String, Set<Principal>, Privilege[])`
     - `getPrivileges(String, Set<Principal>, Privilege[])`
-    - `getPrivilegeCollection(String absPath, Set<Principal> principals)`: improved, performant way to inspect privileges (since Oak 1.42.0, see [OAK-9494])
-    
-#### PrivilegeCollection for improved discovery 
-The `PrivilegeCollection` interface wraps around a set of privileges. It allows for efficient and repeated privilege testing and avoids manual resolution of privilege aggregation. 
+    - `getPrivilegeCollection(String absPath, Set<Principal> principals)`: improved, performant way
+      to inspect privileges (since Oak 1.42.0, see [OAK-9494])
+
+#### PrivilegeCollection for improved discovery
+
+The `PrivilegeCollection` interface wraps around a set of privileges. It allows for efficient and
+repeated privilege testing and avoids manual resolution of privilege aggregation.
 Since Oak 1.42.0. For additional details see [OAK-9494].
 
 - `PrivilegeCollection`
@@ -52,11 +61,18 @@ Since Oak 1.42.0. For additional details see [OAK-9494].
 
 #### Note
 
-Usually it is not required for an application to check the privileges/permissions of a given session (or set of principals) as this evaluation can be left to the repository.
-For rare cases where the application needs to understand if a given set of principals is actually allowed to perform a given action, it is recommend to use `Session.hasPermission(String, String)` and either pass the actions strings defined by JCR or the names of the Oak permissions.
-If evaluation of multiple privileges is required (e.g. custom privileges), `JackrabbitAccessControlManager.getPrivilegeCollection` is an improved variant the avoids manually resolving aggregation and repeated expensive calls.
+Usually it is not required for an application to check the privileges/permissions of a given
+session (or set of principals) as this evaluation can be left to the repository.
+For rare cases where the application needs to understand if a given set of principals is actually
+allowed to perform a given action, it is recommend to use `Session.hasPermission(String, String)`
+and either pass the actions strings defined by JCR or the names of the Oak permissions.
+If evaluation of multiple privileges is required (e.g. custom
+privileges), `JackrabbitAccessControlManager.getPrivilegeCollection` is an improved variant the
+avoids manually resolving aggregation and repeated expensive calls.
 
-See section [Permissions vs Privileges](../permission/permissionsandprivileges.html) for a comprehensive overview on the differences between testing permissions on `Session` and privileges on `AccessControlManager`.
+See section [Permissions vs Privileges](../permission/permissionsandprivileges.html) for a
+comprehensive overview on the differences between testing permissions on `Session` and privileges
+on `AccessControlManager`.
 
 ### Reading Policies
 
@@ -79,19 +95,21 @@ See section [Permissions vs Privileges](../permission/permissionsandprivileges.h
 
     AccessControlManager acMgr = session.getAccessControlManager();
     AccessControlPolicyIterator it = acMgr.getApplicablePolicies("/content");
-    
+
 ##### Read policies bound to a principal
 
-Note: depending on the setup the array of policies may contain `PrincipalAccessControlList` (see below)
+Note: depending on the setup the array of policies may contain `PrincipalAccessControlList` (see
+below)
 
     JackrabbitAccessControlManager acMgr = ...
     PrincipalManager principalManager = jackrabbitSession.getPrincipalManager();
     Principal principal = principalManager.getPrincipal("principalName");
     AccessControlPolicy[] policies = acMgr.getPolicies(principal);
-    
+
 ##### Read policies that have not yet been bound to th principal
 
-Note: depending on the setup the array of policies may contain non-JCR types like `PrincipalAccessControlList` (see below)
+Note: depending on the setup the array of policies may contain non-JCR types
+like `PrincipalAccessControlList` (see below)
 
     JackrabbitAccessControlManager acMgr = ...
     PrincipalManager principalManager = jackrabbitSession.getPrincipalManager();
@@ -108,8 +126,9 @@ Note: depending on the setup the array of policies may contain non-JCR types lik
     - `getRestrictionType(String)`
     - `isEmpty()`
     - `size()`
-    
-- `PrincipalAccessControlList` : extension of `JackrabbitAccessControlList` for principal-based access control setup
+
+- `PrincipalAccessControlList` : extension of `JackrabbitAccessControlList` for principal-based
+  access control setup
     - `getPrincipal()` : the principal for which all entries in the list are being defined
 
 - `PrincipalSetPolicy`
@@ -117,22 +136,29 @@ Note: depending on the setup the array of policies may contain non-JCR types lik
 
 ### Reading Effective Policies
 
-Inspect which policies take effect in order to help understand why certain permissions are granted or denied.
+Inspect which policies take effect in order to help understand why certain permissions are granted
+or denied.
 
 - `AccessControlManager`
     - `getEffectivePolicies(String absPath)` : All policies that take effect at the specified path
 
 - `JackrabbitAccessControlManager`
-    - `getEffectivePolicies(Set<Principal> principals)` : All policies that take effect for the given set of principals (e.g. as they would be added to the `Subject` upon repository login) 
-    - `getEffectivePolicies(Set<Principal> principals, String... absPaths)` : All policies that take effect for the given set of principals filtered for the specified paths (since Oak 1.52.0, see [OAK-10130])
-    
+    - `getEffectivePolicies(Set<Principal> principals)` : All policies that take effect for the
+      given set of principals (e.g. as they would be added to the `Subject` upon repository login)
+    - `getEffectivePolicies(Set<Principal> principals, String... absPaths)` : All policies that take
+      effect for the given set of principals filtered for the specified paths (since Oak 1.52.0,
+      see [OAK-10130])
+
 #### Note
 
-- Retrieving effective policies is best-effort  
-- The list of effective policies will also include policies that are defined by a configuration or implementation and have not been explicit bound to a node/principal through access control write operations.
-- Therefore, make sure to not rely on effective policies to have a specific type   
+- Retrieving effective policies is best-effort
+- The list of effective policies will also include policies that are defined by a configuration or
+  implementation and have not been explicit bound to a node/principal through access control write
+  operations.
+- Therefore, make sure to not rely on effective policies to have a specific type
 
 <a name="write"></a>
+
 ## Writing
 
 ### Adding Policies
@@ -164,12 +190,13 @@ Inspect which policies take effect in order to help understand why certain permi
             session.save();
         }    
     }
-    
 
 ### Modifying Policies
 
-Modification of policies is specific to the policy type. JCR/Jackrabbit API defines the following mutable 
-types of policies. Depending on the configured access control setup (and the level of customization) there may be other 
+Modification of policies is specific to the policy type. JCR/Jackrabbit API defines the following
+mutable
+types of policies. Depending on the configured access control setup (and the level of customization)
+there may be other
 mutable policies.
 
 - `AccessControlList`
@@ -182,14 +209,17 @@ mutable policies.
     - `addAccessControlEntry(Principal, Privilege[], boolean, Map<String, Value>, Map<String, Value[]>)`
     - `orderBefore(AccessControlEntry, AccessControlEntry)`
 
-- `PrincipalAccessControlList` : extension of `JackrabbitAccessControlList` for principal-based access control setup
-    - `addEntry(String effectivePath, Privilege[] privileges)` : binds an entry to the path where it is expected to take effect.
-    - `addEntry(String effectivePath, Privilege[] privileges, Map<String, Value> restrictions, Map<String, Value[]> mvRestrictions)` : binds an entry with restrictions to the path where it is expected to take effect  
-  
+- `PrincipalAccessControlList` : extension of `JackrabbitAccessControlList` for principal-based
+  access control setup
+    - `addEntry(String effectivePath, Privilege[] privileges)` : binds an entry to the path where it
+      is expected to take effect.
+    - `addEntry(String effectivePath, Privilege[] privileges, Map<String, Value> restrictions, Map<String, Value[]> mvRestrictions)` :
+      binds an entry with restrictions to the path where it is expected to take effect
+
 - `PrincipalSetPolicy`
     - `addPrincipals(Principal...)`
     - `removePrincipals(Principal...)`
-    
+
 - `AccessControlUtils`
     - `getAccessControlList(Session, String)`
     - `getAccessControlList(AccessControlManager, String)`
@@ -200,29 +230,29 @@ mutable policies.
 
 #### Retrieve Principals
 
-The default and recommended ways to obtain `Principal`s for access control management 
+The default and recommended ways to obtain `Principal`s for access control management
 is through the principal management API:
 
 - `PrincipalManager` (see section [Principal Management](../principal.html))
-      - `getPrincipal(String)`
+    - `getPrincipal(String)`
 
 One way of representing principals in the repository is by the means of user management:
-If user management is supported in a given Oak repository (see [OPTION_USER_MANAGEMENT_SUPPORTED] 
+If user management is supported in a given Oak repository (see [OPTION_USER_MANAGEMENT_SUPPORTED]
 repository descriptor), principals associated with a given user/group can be obtained
 by calling:
 
 - `Authorizable` (see section [User Management](../user.html))
-      - `getPrincipal()`
-      
-Note however, that this will only work for principals backed by a user/group. 
-Principals provided by a different principal management implementation won't be 
+    - `getPrincipal()`
+
+Note however, that this will only work for principals backed by a user/group.
+Principals provided by a different principal management implementation won't be
 accessible through user management.
-      
+
 #### Retrieve Privileges
 
 - `PrivilegeManager` (see section [Privilege Management](../privilege.html))
-      - `getRegisteredPrivileges()`
-      - `getPrivilege(String)`
+    - `getRegisteredPrivileges()`
+    - `getPrivilege(String)`
 
 - `AccessControlManager`
     - `getSupportedPrivileges(String)`
@@ -255,7 +285,6 @@ accessible through user management.
         acMgr.setPolicy(acl.getPath(), acl);
         session.save();
     }
-
 
 ##### Create or Modify an AccessControlList
 
@@ -300,7 +329,7 @@ Alternatively, use `AccessControlUtils`:
         acMgr.setPolicy(acl.getPath(), acl);
         session.save();
     }
-    
+
 ##### Edit a principal-based AccessControlList
 
     JackrabbitAccessControlManager acMgr = ...
@@ -336,10 +365,13 @@ Alternatively, use `AccessControlUtils`:
     }
 
 <a name="repository_level"></a>
+
 ### Access Control on Repository Level
 
-A `null` path serves as placeholder to retrieve and edit policies that take effect at the repository as a whole instead 
-of being bound to or taking effect at a specific node path. For example being able to administer the namespace registry.
+A `null` path serves as placeholder to retrieve and edit policies that take effect at the repository
+as a whole instead
+of being bound to or taking effect at a specific node path. For example being able to administer the
+namespace registry.
 
 #### Examples
 
@@ -357,6 +389,9 @@ of being bound to or taking effect at a specific node path. For example being ab
     }
 
 <!-- hidden references -->
+
 [OPTION_USER_MANAGEMENT_SUPPORTED]: /oak/docs/apidocs/org/apache/jackrabbit/api/JackrabbitRepository.html
+
 [OAK-10130]: https://issues.apache.org/jira/browse/OAK-10130
+
 [OAK-9494]: https://issues.apache.org/jira/browse/OAK-9494

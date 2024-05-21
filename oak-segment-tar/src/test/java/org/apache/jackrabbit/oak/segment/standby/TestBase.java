@@ -72,7 +72,7 @@ public class TestBase {
             "OJNcpa2iOgrqd9Irjrs0kM5j0omN42be65FXUEoTVH5zOJr9sHaThTVM8PZ+A5Vm\n" +
             "uSxSBG00WgrVuuCixz1DDrXI+LR/ipVU/fTGWRywBQRunrQsY7V9ODtmSipczi+o\n" +
             "udwFdKx9QrsPEA==\n" +
-        "-----END CERTIFICATE-----\n";
+            "-----END CERTIFICATE-----\n";
 
     // A client certificate signed by the "Testing CA"
     static final String clientCert =
@@ -98,7 +98,7 @@ public class TestBase {
             "N0QBXdTHa70mhzOQP6PE5VUu98HFAA6oYlbIWwetXCBDdJ1sTeh+Uw5NAzfsUw5S\n" +
             "NGib2Ru0SeKvjrpIzOto5DO6ZQdlb3Yfbj2S4ea3HBUHe6dNYQNa+dnq4xvrA3Iv\n" +
             "CT7KNBGK8AQ=\n" +
-        "-----END CERTIFICATE-----\n";
+            "-----END CERTIFICATE-----\n";
 
     // A server certificate signed by the "Testing CA"
     static final String serverCert =
@@ -124,7 +124,7 @@ public class TestBase {
             "e5Vof1Zs6frxbi12nh/Iu7YUEgm0IZ6X5GSs5c+nj0hHdPPN86Pul3fc9tWJ8MJO\n" +
             "KYmsEX4YiIebo+dzrFEZywSQXOG5xkMhOprdc28stiIGkJCRSf/1lPy70i5YHMjr\n" +
             "VqwFqu16zZg=\n" +
-        "-----END CERTIFICATE-----\n";
+            "-----END CERTIFICATE-----\n";
 
     // An arbitrary self-signed certificate
     static final String arbitraryCert =
@@ -150,7 +150,7 @@ public class TestBase {
             "f9gKqRKzwDgWOApD27KosJJZd2zddHZm/Fj+T8kWPTHFCt0FnzgGAVxKp1bFmzxX\n" +
             "qGGFKW4IThE87fTFcgbRkUZdnrKTo6tCDDjIi2Rb2jJv7ip6BvI2cHip+UvQmvhe\n" +
             "qRQdDY0scDekIRZ0WQYg4h/kmfNp9Zw55Ce18aMTXEwGrQ==\n" +
-        "-----END CERTIFICATE-----\n";
+            "-----END CERTIFICATE-----\n";
 
     static final String clientKey =
         "-----BEGIN PRIVATE KEY-----\n" +
@@ -180,7 +180,7 @@ public class TestBase {
             "Kr3Wb2rwcG5Pf5ESCNktuvY6ipxnOGuvmbMnWMQe9KnEbFrjiEDgYTxcnHztPAt1\n" +
             "cK8KDB8cBrj2OHIMc83Yfon5mM8VybTTWx3Cd/AAfhyNB0vohbJNeHO80sQH+2Cn\n" +
             "6aAcVdLuUdYcYq6RrIPM8w==\n" +
-        "-----END PRIVATE KEY-----\n";
+            "-----END PRIVATE KEY-----\n";
 
     static final String serverKey =
         "-----BEGIN PRIVATE KEY-----\n" +
@@ -210,7 +210,7 @@ public class TestBase {
             "zhwrgrdrSk/B+AlhmT3y6AwQ4ZI0uABJeVMpzQE6sS7lMkg7intgGIsienW60vdH\n" +
             "oGxJxL7KGnzcY32N66a9SRReU3k6KWC0dMbWOZi6ebLLDXcjc4DIlUscUcHFEwfS\n" +
             "AkZ3d5ywA+rEzXzaAquoBg==\n" +
-        "-----END PRIVATE KEY-----\n";
+            "-----END PRIVATE KEY-----\n";
 
     static final String arbitraryKey =
         "-----BEGIN PRIVATE KEY-----\n" +
@@ -240,7 +240,7 @@ public class TestBase {
             "P8v0Cn8/30qHyQH8X8y9/BEk3Wz3aJ+AwgORaW4FZxVelWiOTJgHdZNy6Rg90q7I\n" +
             "pKHE9hkL/dxsEBXkVdaRHzrfxCBxsP3b3EmOJ4xdl1phGhedUk/+RUWGY8VSnyaq\n" +
             "uVMy1feUqV+AebfUSPzPVubV\n" +
-        "-----END PRIVATE KEY-----\n";
+            "-----END PRIVATE KEY-----\n";
 
     static final String encryptedClientKey =
         "-----BEGIN ENCRYPTED PRIVATE KEY-----\n" +
@@ -271,7 +271,7 @@ public class TestBase {
             "ddjGSudEjO2EBE25utg+5omiR8uCQwwInNNOr2otMikmWRgQ3AuIuqxYAF0qH1+f\n" +
             "n6ePw/b30oy4xIKWz8Kxrn8oPLYgs1Dl3lF6LjRwq1urC2leYb6ZPaX5QjdarMJp\n" +
             "sxOT5nOmsaG0vinlsQ==\n" +
-        "-----END ENCRYPTED PRIVATE KEY-----";
+            "-----END ENCRYPTED PRIVATE KEY-----";
 
     static final String encryptedServerKey =
         "-----BEGIN ENCRYPTED PRIVATE KEY-----\n" +
@@ -302,7 +302,7 @@ public class TestBase {
             "Wcibp27rE4/5eIsNyQnxkDRN7f3x0a9iwhlgrToXGabileLsonx3Jdf/YXgiqiQY\n" +
             "4lLGr4EIVjKg8YbJvpnrEZQNeTHwPr8/N5N51VZvoVePBq/ZnBi9EK/aCL+f+0Dx\n" +
             "yZio9eDGsuOXwR7iOg==\n" +
-        "-----END ENCRYPTED PRIVATE KEY-----";
+            "-----END ENCRYPTED PRIVATE KEY-----";
 
     static final String encryptedArbitraryKey =
         "-----BEGIN ENCRYPTED PRIVATE KEY-----\n" +
@@ -333,7 +333,7 @@ public class TestBase {
             "hTQXseAe+7lHWpmUGKuN0Y9EcV/3fiAP+PeMt/QXeGF5jcRVGWLs6nDVOaBQ/SB3\n" +
             "syFXwJR6WtajR5OC7dEGZPTxaNfiu4GFuE73i3cVEJH2MH7+c/yB/40RJQdJ4kd6\n" +
             "7KJYwr8P4TrNulM60Q==\n" +
-        "-----END ENCRYPTED PRIVATE KEY-----\n";
+            "-----END ENCRYPTED PRIVATE KEY-----\n";
 
     static final String secretPassword = "secret";
 }

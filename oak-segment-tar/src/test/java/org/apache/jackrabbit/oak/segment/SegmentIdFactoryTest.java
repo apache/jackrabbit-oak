@@ -23,11 +23,11 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.Set;
-
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 import org.junit.Test;
 
 public class SegmentIdFactoryTest {
+
     private final MemoryStore store;
     private final SegmentIdProvider idProvider;
 
@@ -68,9 +68,9 @@ public class SegmentIdFactoryTest {
     }
 
     /**
-     * This test can't be enabled in general, as gc() contract is too
-     * weak for this to work reliably. But it's a good manual check for
-     * the correct operation of the tracking of segment id references.
+     * This test can't be enabled in general, as gc() contract is too weak for this to work
+     * reliably. But it's a good manual check for the correct operation of the tracking of segment
+     * id references.
      */
     public void garbageCollection() {
         SegmentId a = idProvider.newDataSegmentId();
@@ -80,7 +80,7 @@ public class SegmentIdFactoryTest {
         // garbage collector to reclaim also the original instance
         for (int i = 0; i < 1000000; i++) {
             a = new SegmentId(
-                    null, a.getMostSignificantBits(), a.getLeastSignificantBits());
+                null, a.getMostSignificantBits(), a.getLeastSignificantBits());
         }
         System.gc();
 

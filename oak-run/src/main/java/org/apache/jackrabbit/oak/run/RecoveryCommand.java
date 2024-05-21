@@ -20,7 +20,7 @@ package org.apache.jackrabbit.oak.run;
 import java.io.Closeable;
 import java.util.Arrays;
 import java.util.List;
-
+import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfoDocument;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
@@ -36,8 +36,6 @@ import org.apache.jackrabbit.oak.plugins.document.util.MapDBMapFactory;
 import org.apache.jackrabbit.oak.plugins.document.util.MapFactory;
 import org.apache.jackrabbit.oak.run.commons.Command;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
-
-import org.apache.jackrabbit.guava.common.io.Closer;
 
 class RecoveryCommand implements Command {
 
@@ -55,7 +53,8 @@ class RecoveryCommand implements Command {
             DocumentNodeStoreBuilder<?> builder = Utils.createDocumentMKBuilder(args, closer, h);
 
             if (builder == null) {
-                System.err.println("Recovery only available for DocumentNodeStore backed by MongoDB or RDB persistence");
+                System.err.println(
+                    "Recovery only available for DocumentNodeStore backed by MongoDB or RDB persistence");
                 System.exit(1);
             }
 
@@ -94,7 +93,8 @@ class RecoveryCommand implements Command {
             }
 
             if (agent == null || seeker == null) {
-                System.err.println("Recovery only available for MongoDocumentStore and RDBDocumentStore (this: "
+                System.err.println(
+                    "Recovery only available for MongoDocumentStore and RDBDocumentStore (this: "
                         + ds.getClass().getName() + ")");
                 System.exit(1);
             }
@@ -107,11 +107,10 @@ class RecoveryCommand implements Command {
                     for (ClusterNodeInfoDocument c : all) {
                         String state = c.isActive() ? "ACTIVE" : "INACTIVE";
                         System.err.println(c.getClusterId() +
-                                " (" + state + "): " +
-                                c.toString().replace('\n', ' '));
+                            " (" + state + "): " +
+                            c.toString().replace('\n', ' '));
                     }
-                }
-                catch (Throwable e) {
+                } catch (Throwable e) {
                     e.printStackTrace(System.err);
                 }
                 System.exit(1);

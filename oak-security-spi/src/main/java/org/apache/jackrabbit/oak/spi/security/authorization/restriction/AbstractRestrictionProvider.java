@@ -28,7 +28,6 @@ import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.security.AccessControlException;
-
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
@@ -36,22 +35,24 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
-import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.util.Text;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public abstract class AbstractRestrictionProvider implements RestrictionProvider, AggregationAware, AccessControlConstants {
+public abstract class AbstractRestrictionProvider implements RestrictionProvider, AggregationAware,
+    AccessControlConstants {
 
     private static final Logger log = LoggerFactory.getLogger(AbstractRestrictionProvider.class);
 
     private final Map<String, RestrictionDefinition> supported;
     private CompositeRestrictionProvider composite = null;
 
-    public AbstractRestrictionProvider(@NotNull Map<String, ? extends RestrictionDefinition> definitions) {
+    public AbstractRestrictionProvider(
+        @NotNull Map<String, ? extends RestrictionDefinition> definitions) {
         this.supported = ImmutableMap.copyOf(definitions);
     }
 
@@ -74,12 +75,15 @@ public abstract class AbstractRestrictionProvider implements RestrictionProvider
 
     @NotNull
     @Override
-    public Restriction createRestriction(@Nullable String oakPath, @NotNull String oakName, @NotNull Value value) throws RepositoryException {
+    public Restriction createRestriction(@Nullable String oakPath, @NotNull String oakName,
+        @NotNull Value value) throws RepositoryException {
         RestrictionDefinition definition = getDefinition(oakPath, oakName);
         Type<?> requiredType = definition.getRequiredType();
         int tag = requiredType.tag();
         if (tag != PropertyType.UNDEFINED && tag != value.getType()) {
-            throw new AccessControlException("Unsupported restriction: Expected value of type " + requiredType + " for " + oakName);
+            throw new AccessControlException(
+                "Unsupported restriction: Expected value of type " + requiredType + " for "
+                    + oakName);
         }
         PropertyState propertyState;
         if (requiredType.isArray()) {
@@ -92,21 +96,26 @@ public abstract class AbstractRestrictionProvider implements RestrictionProvider
 
     @NotNull
     @Override
-    public Restriction createRestriction(@Nullable String oakPath, @NotNull String oakName, @NotNull Value... values) throws RepositoryException {
+    public Restriction createRestriction(@Nullable String oakPath, @NotNull String oakName,
+        @NotNull Value... values) throws RepositoryException {
         RestrictionDefinition definition = getDefinition(oakPath, oakName);
         Type<?> requiredType = definition.getRequiredType();
         for (Value v : values) {
             if (requiredType.tag() != PropertyType.UNDEFINED && requiredType.tag() != v.getType()) {
-                throw new AccessControlException("Unsupported restriction: Expected value of type " + requiredType + " for " + oakName);
+                throw new AccessControlException(
+                    "Unsupported restriction: Expected value of type " + requiredType + " for "
+                        + oakName);
             }
         }
 
         PropertyState propertyState;
         if (requiredType.isArray()) {
-            propertyState = PropertyStates.createProperty(oakName, Arrays.asList(values), requiredType.tag());
+            propertyState = PropertyStates.createProperty(oakName, Arrays.asList(values),
+                requiredType.tag());
         } else {
             if (values.length != 1) {
-                throw new AccessControlException("Unsupported restriction: Expected single value for " + oakName);
+                throw new AccessControlException(
+                    "Unsupported restriction: Expected single value for " + oakName);
             }
             propertyState = PropertyStates.createProperty(oakName, values[0]);
         }
@@ -129,13 +138,17 @@ public abstract class AbstractRestrictionProvider implements RestrictionProvider
                         if (def.getRequiredType() == propertyState.getType()) {
                             restrictions.add(createRestriction(propertyState, def));
                         } else {
-                            log.warn("Found restriction '{}' with type mismatch: expected '{}', found '{}'. It will be ignored.", propName, def.getRequiredType(), propertyState.getType());
+                            log.warn(
+                                "Found restriction '{}' with type mismatch: expected '{}', found '{}'. It will be ignored.",
+                                propName, def.getRequiredType(), propertyState.getType());
                         }
                     } else {
                         // not supported by this provider. to properly deal with aggregation of multiple providers
                         // only log a warning if it is not supported by any other provider
                         if (!isSupportedByAnotherProvider(oakPath, propName)) {
-                            log.warn("Unsupported restriction '{}' detected at {}. It will be ignored.", propName, oakPath);
+                            log.warn(
+                                "Unsupported restriction '{}' detected at {}. It will be ignored.",
+                                propName, oakPath);
                         }
                     }
                 }
@@ -145,7 +158,8 @@ public abstract class AbstractRestrictionProvider implements RestrictionProvider
     }
 
     @Override
-    public void writeRestrictions(@Nullable String oakPath, @NotNull Tree aceTree, @NotNull Set<Restriction> restrictions) throws RepositoryException {
+    public void writeRestrictions(@Nullable String oakPath, @NotNull Tree aceTree,
+        @NotNull Set<Restriction> restrictions) throws RepositoryException {
         // validation of the restrictions is delegated to the commit hook
         // see #validateRestrictions below
         if (!restrictions.isEmpty()) {
@@ -157,13 +171,17 @@ public abstract class AbstractRestrictionProvider implements RestrictionProvider
     }
 
     @Override
-    public void validateRestrictions(@Nullable String oakPath, @NotNull Tree aceTree) throws AccessControlException {
+    public void validateRestrictions(@Nullable String oakPath, @NotNull Tree aceTree)
+        throws AccessControlException {
         Map<String, PropertyState> restrictionProperties = getRestrictionProperties(aceTree);
         if (isUnsupportedPath(oakPath)) {
             // test if there are any restrictions present that are not supported by another provider when used in a composite
-            Set<String> unsupportedNames = restrictionProperties.keySet().stream().filter(name -> !isSupportedByAnotherProvider(oakPath, name)).collect(Collectors.toSet());
+            Set<String> unsupportedNames = restrictionProperties.keySet().stream().filter(
+                name -> !isSupportedByAnotherProvider(oakPath, name)).collect(Collectors.toSet());
             if (!unsupportedNames.isEmpty()) {
-                throw new AccessControlException("Restrictions '"+unsupportedNames+"' not supported with path '"+oakPath+"'.");
+                throw new AccessControlException(
+                    "Restrictions '" + unsupportedNames + "' not supported with path '" + oakPath
+                        + "'.");
             }
         } else {
             // supported path -> validate restrictions and test if mandatory
@@ -175,7 +193,9 @@ public abstract class AbstractRestrictionProvider implements RestrictionProvider
                     // supported by this provider => verify matching type
                     Type<?> type = entry.getValue().getType();
                     if (type != def.getRequiredType()) {
-                        throw new AccessControlException("Invalid restriction type '" + type + "' for " + restrName + ". Expected " + def.getRequiredType());
+                        throw new AccessControlException(
+                            "Invalid restriction type '" + type + "' for " + restrName
+                                + ". Expected " + def.getRequiredType());
                     }
                 } else {
                     // not supported by this provider. to properly deal with aggregation of multiple providers
@@ -187,28 +207,29 @@ public abstract class AbstractRestrictionProvider implements RestrictionProvider
             }
             for (RestrictionDefinition def : supported.values()) {
                 if (def.isMandatory() && !restrictionProperties.containsKey(def.getName())) {
-                    throw new AccessControlException("Mandatory restriction " + def.getName() + " is missing.");
+                    throw new AccessControlException(
+                        "Mandatory restriction " + def.getName() + " is missing.");
                 }
             }
         }
     }
 
     //----------------------------------------------------------< protected >---
+
     /**
-     * Returns {@code true} if the specified path is {@code null}. Subclasses may
-     * change the default behavior.
+     * Returns {@code true} if the specified path is {@code null}. Subclasses may change the default
+     * behavior.
      *
      * @param oakPath The path for which a restriction is being created.
-     * @return {@code true} if this implementation can create restrictions for
-     * the specified {@code oakPath}; {@code false} otherwise.
+     * @return {@code true} if this implementation can create restrictions for the specified
+     * {@code oakPath}; {@code false} otherwise.
      */
     protected boolean isUnsupportedPath(@Nullable String oakPath) {
         return oakPath == null;
     }
 
     /**
-     * Returns the tree that contains the restriction of the specified
-     * ACE tree.
+     * Returns the tree that contains the restriction of the specified ACE tree.
      *
      * @param aceTree The ACE tree for which the restrictions are being read.
      * @return The tree storing the restriction information.
@@ -225,7 +246,8 @@ public abstract class AbstractRestrictionProvider implements RestrictionProvider
 
     //------------------------------------------------------------< private >---
     @NotNull
-    private RestrictionDefinition getDefinition(@Nullable String oakPath, @NotNull String oakName) throws AccessControlException {
+    private RestrictionDefinition getDefinition(@Nullable String oakPath, @NotNull String oakName)
+        throws AccessControlException {
         if (isUnsupportedPath(oakPath)) {
             throw new AccessControlException("Unsupported restriction at " + oakPath);
         }
@@ -237,18 +259,21 @@ public abstract class AbstractRestrictionProvider implements RestrictionProvider
     }
 
     /**
-     * Evaluate if a restriction with the given name at the given path is supported by another restriction provider 
-     * in case this instance is used in a {@link CompositeRestrictionProvider}.
-     * 
+     * Evaluate if a restriction with the given name at the given path is supported by another
+     * restriction provider in case this instance is used in a
+     * {@link CompositeRestrictionProvider}.
+     *
      * @param oakPath The oak path
      * @param oakName The name of the restriction
-     * @return {@code true} if this provider is used inside a composite {@code RestrictionProvider} which 
-     * supports restrictions with the given name; {@code false} otherwise or if this provider instance is not aggregated 
-     * inside a composite.
+     * @return {@code true} if this provider is used inside a composite {@code RestrictionProvider}
+     * which supports restrictions with the given name; {@code false} otherwise or if this provider
+     * instance is not aggregated inside a composite.
      */
-    private boolean isSupportedByAnotherProvider(@Nullable String oakPath, @NotNull String oakName) {
+    private boolean isSupportedByAnotherProvider(@Nullable String oakPath,
+        @NotNull String oakName) {
         if (composite != null) {
-            return composite.getSupportedRestrictions(oakPath).stream().anyMatch(restrictionDefinition -> restrictionDefinition.getName().equals(oakName));
+            return composite.getSupportedRestrictions(oakPath).stream().anyMatch(
+                restrictionDefinition -> restrictionDefinition.getName().equals(oakName));
         } else {
             // not used inside a composite -> therefore it's not supported
             return false;
@@ -256,7 +281,8 @@ public abstract class AbstractRestrictionProvider implements RestrictionProvider
     }
 
     @NotNull
-    private static Restriction createRestriction(@NotNull PropertyState propertyState, @NotNull RestrictionDefinition definition) {
+    private static Restriction createRestriction(@NotNull PropertyState propertyState,
+        @NotNull RestrictionDefinition definition) {
         return new RestrictionImpl(propertyState, definition);
     }
 
@@ -275,6 +301,6 @@ public abstract class AbstractRestrictionProvider implements RestrictionProvider
 
     private static boolean isRestrictionProperty(@NotNull String propertyName) {
         return !AccessControlConstants.ACE_PROPERTY_NAMES.contains(propertyName) &&
-                !NamespaceRegistry.PREFIX_JCR.equals(Text.getNamespacePrefix(propertyName));
+            !NamespaceRegistry.PREFIX_JCR.equals(Text.getNamespacePrefix(propertyName));
     }
 }

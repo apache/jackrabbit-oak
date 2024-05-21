@@ -19,20 +19,20 @@
 package org.apache.jackrabbit.oak.scalability;
 
 import java.util.Map;
-
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 import org.apache.jackrabbit.oak.scalability.benchmarks.ScalabilityBenchmark;
 
 /**
  * Interface for scalability suite for load testing.
- * 
+ * <p>
  * {@link ScalabilitySuite} implementations would configure different {@link ScalabilityBenchmark}
- * implementations for executing performance tests and measuring the execution times on those tests.
- * 
+ * implementations for executing performance tests and measuring the execution times on those
+ * tests.
+ * <p>
  * The entry method for the starting the tests is {@link #run(Iterable)}.
- * 
  */
 public interface ScalabilitySuite {
+
     /**
      * Adds the benchmarks to run.
      *
@@ -42,7 +42,7 @@ public interface ScalabilitySuite {
     ScalabilitySuite addBenchmarks(ScalabilityBenchmark... benchmarks);
 
     boolean removeBenchmark(String benchmark);
-    
+
     void run(Iterable<RepositoryFixture> fixtures);
 
     Map<String, ScalabilityBenchmark> getBenchmarks();

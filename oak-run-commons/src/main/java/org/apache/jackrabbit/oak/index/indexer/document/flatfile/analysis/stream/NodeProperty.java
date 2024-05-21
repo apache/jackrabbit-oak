@@ -31,7 +31,7 @@ public class NodeProperty {
     private final String[] values;
 
     public NodeProperty(String key, ValueType type, String value) {
-        this(key, type, new String[] {value}, false);
+        this(key, type, new String[]{value}, false);
     }
 
     public NodeProperty(String key, ValueType type, String[] values, boolean multiple) {
@@ -59,12 +59,15 @@ public class NodeProperty {
         private static final ValueType[] LIST = ValueType.values();
 
         private final int ordinal;
+
         private ValueType(int ordinal) {
             this.ordinal = ordinal;
         }
+
         public int getOrdinal() {
             return ordinal;
         }
+
         public static ValueType byOrdinal(int ordinal) {
             return LIST[ordinal];
         }
@@ -87,6 +90,7 @@ public class NodeProperty {
     }
 
     public static class PropertyValue {
+
         final ValueType type;
         final String value;
 

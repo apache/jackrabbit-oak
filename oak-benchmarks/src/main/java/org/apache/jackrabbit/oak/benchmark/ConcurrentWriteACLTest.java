@@ -18,22 +18,20 @@
 package org.apache.jackrabbit.oak.benchmark;
 
 import java.util.Random;
-
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.Node;
 import javax.jcr.Session;
 import javax.jcr.security.AccessControlEntry;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.Privilege;
-
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 
 /**
- * Test case that traverses 10k unstructured nodes (100x100) while 50 concurrent
- * readers randomly access nodes from within this tree.
+ * Test case that traverses 10k unstructured nodes (100x100) while 50 concurrent readers randomly
+ * access nodes from within this tree.
  */
 public class ConcurrentWriteACLTest extends AbstractTest {
 
@@ -77,23 +75,24 @@ public class ConcurrentWriteACLTest extends AbstractTest {
         Session session = null;
         try {
             session = loginWriter();
-            for (int i=0; i<numItems; i++) {
+            for (int i = 0; i < numItems; i++) {
                 session.refresh(false);
                 int a = random.nextInt(NODE_COUNT);
                 int b = random.nextInt(NODE_COUNT);
                 String path = "/" + ROOT_NODE_NAME + "/node" + a + "/node" + b;
                 AccessControlManager acMgr = session.getAccessControlManager();
-                JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(session, path);
+                JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(session,
+                    path);
                 if (acl.isEmpty()) {
-                    Privilege[] privileges = new Privilege[] {
-                            acMgr.privilegeFromName(Privilege.JCR_READ),
-                            acMgr.privilegeFromName(Privilege.JCR_READ_ACCESS_CONTROL)
+                    Privilege[] privileges = new Privilege[]{
+                        acMgr.privilegeFromName(Privilege.JCR_READ),
+                        acMgr.privilegeFromName(Privilege.JCR_READ_ACCESS_CONTROL)
                     };
                     if (acl.addAccessControlEntry(EveryonePrincipal.getInstance(), privileges)) {
                         acMgr.setPolicy(path, acl);
                     }
                 } else {
-                    for (AccessControlEntry ace: acl.getAccessControlEntries()) {
+                    for (AccessControlEntry ace : acl.getAccessControlEntries()) {
                         acl.removeAccessControlEntry(ace);
                     }
                     acMgr.setPolicy(path, acl);

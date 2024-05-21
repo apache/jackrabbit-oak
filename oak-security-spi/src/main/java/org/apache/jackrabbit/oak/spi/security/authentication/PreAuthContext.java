@@ -19,8 +19,8 @@ package org.apache.jackrabbit.oak.spi.security.authentication;
 import javax.security.auth.Subject;
 
 /**
- * LoginContext for pre-authenticated subjects that don't require further
- * validation nor additional login/logout steps.
+ * LoginContext for pre-authenticated subjects that don't require further validation nor additional
+ * login/logout steps.
  */
 public final class PreAuthContext implements LoginContext {
 

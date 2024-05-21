@@ -18,7 +18,6 @@
 package org.apache.jackrabbit.oak.benchmark;
 
 import java.util.Random;
-
 import javax.jcr.ItemVisitor;
 import javax.jcr.Node;
 import javax.jcr.Property;
@@ -27,14 +26,14 @@ import javax.jcr.Session;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.Privilege;
 import javax.jcr.util.TraversingItemVisitor;
-
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 
 /**
- * Test case that randomly reads from 10k unstructured nodes that are all access controlled with an everyone ACL.
+ * Test case that randomly reads from 10k unstructured nodes that are all access controlled with an
+ * everyone ACL.
  */
 public class ConcurrentEveryoneACLTest extends AbstractTest {
 
@@ -57,23 +56,25 @@ public class ConcurrentEveryoneACLTest extends AbstractTest {
     public void beforeSuite() throws Exception {
         Session session = loginWriter();
         AccessControlManager acMgr = session.getAccessControlManager();
-        Privilege[] privileges = new Privilege[] {
-                acMgr.privilegeFromName(Privilege.JCR_READ),
-                acMgr.privilegeFromName(Privilege.JCR_READ_ACCESS_CONTROL)
+        Privilege[] privileges = new Privilege[]{
+            acMgr.privilegeFromName(Privilege.JCR_READ),
+            acMgr.privilegeFromName(Privilege.JCR_READ_ACCESS_CONTROL)
         };
         final Node root = session.getRootNode().addNode(ROOT_NODE_NAME, "nt:unstructured");
         for (int i = 0; i < NODE_COUNT; i++) {
             Node node = root.addNode("node" + i, "nt:unstructured");
             for (int j = 0; j < NODE_COUNT; j++) {
                 Node newNode = node.addNode("node" + j, "nt:unstructured");
-                JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(session, newNode.getPath());
+                JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(session,
+                    newNode.getPath());
                 acl.addEntry(EveryonePrincipal.getInstance(), privileges, true);
                 acMgr.setPolicy(newNode.getPath(), acl);
             }
             session.save();
         }
         // deny everyone on root node
-        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(session, root.getPath());
+        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(session,
+            root.getPath());
         acl.addEntry(EveryonePrincipal.getInstance(), privileges, false);
         acMgr.setPolicy(root.getPath(), acl);
         session.save();
@@ -87,6 +88,7 @@ public class ConcurrentEveryoneACLTest extends AbstractTest {
                 }
                 super.entering(node, i);
             }
+
             @Override
             protected void entering(Property prop, int i) throws RepositoryException {
                 super.entering(prop, i);
@@ -111,7 +113,7 @@ public class ConcurrentEveryoneACLTest extends AbstractTest {
         Session session = null;
         try {
             session = runAsAdmin ? loginWriter() : loginAnonymous();
-            for (int i=0; i<itemsToRead; i++) {
+            for (int i = 0; i < itemsToRead; i++) {
                 session.refresh(false);
                 int a = random.nextInt(NODE_COUNT);
                 int b = random.nextInt(NODE_COUNT);

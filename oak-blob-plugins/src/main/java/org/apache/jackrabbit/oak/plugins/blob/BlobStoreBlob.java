@@ -20,10 +20,9 @@ package org.apache.jackrabbit.oak.plugins.blob;
 
 import java.io.IOException;
 import java.io.InputStream;
-
+import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.InMemoryDataRecord;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
-import org.apache.jackrabbit.oak.api.Blob;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -33,6 +32,7 @@ import org.slf4j.LoggerFactory;
  * A blob implementation.
  */
 public class BlobStoreBlob implements Blob {
+
     private static final Logger LOG = LoggerFactory.getLogger(BlobStoreBlob.class);
 
     private final BlobStore blobStore;
@@ -50,7 +50,7 @@ public class BlobStoreBlob implements Blob {
             return blobStore.getInputStream(blobId);
         } catch (IOException e) {
             LOG.warn("Error occurred while obtaining " +
-                    "InputStream for blobId [" + blobId + "]", e);
+                "InputStream for blobId [" + blobId + "]", e);
             return new InputStream() {
                 @Override
                 public int read() throws IOException {
@@ -112,7 +112,7 @@ public class BlobStoreBlob implements Blob {
         }
         if (other instanceof BlobStoreBlob) {
             BlobStoreBlob b = (BlobStoreBlob) other;
-            // theoretically, the data could be the same  
+            // theoretically, the data could be the same
             // even if the id is different
             return b.blobId.equals(blobId);
         }

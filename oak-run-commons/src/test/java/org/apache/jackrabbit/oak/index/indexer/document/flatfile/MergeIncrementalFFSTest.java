@@ -18,6 +18,13 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.IOException;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
 import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.index.indexer.document.incrementalstore.MergeIncrementalFlatFileStore;
 import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils;
@@ -26,15 +33,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.IOException;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
-
 public class MergeIncrementalFFSTest {
+
     private static final String BUILD_TARGET_FOLDER = "target";
     private static final Compression algorithm = Compression.GZIP;
     @Rule
@@ -64,7 +64,7 @@ public class MergeIncrementalFFSTest {
         }
         try (BufferedWriter baseBW = IndexStoreUtils.createWriter(baseFFSMetadata, algorithm)) {
             baseBW.write("{\"checkpoint\":\"" + "r0" + "\",\"storeType\":\"FlatFileStore\"," +
-                    "\"strategy\":\"" + "BaseFFSCreationStrategy" + "\",\"preferredPaths\":[]}");
+                "\"strategy\":\"" + "BaseFFSCreationStrategy" + "\",\"preferredPaths\":[]}");
             baseBW.newLine();
         }
 
@@ -82,7 +82,8 @@ public class MergeIncrementalFFSTest {
             baseInc.write("/tmp/e|{prop3=\"bar\"}|r1|A");
         }
         try (BufferedWriter baseInc = IndexStoreUtils.createWriter(incFFSMetadata, algorithm)) {
-            baseInc.write("{\"beforeCheckpoint\":\"" + "r0" + "\",\"afterCheckpoint\":\"" + "r1" + "\"," +
+            baseInc.write(
+                "{\"beforeCheckpoint\":\"" + "r0" + "\",\"afterCheckpoint\":\"" + "r1" + "\"," +
                     "\"storeType\":\"" + "IncrementalFFSType" + "\"," +
                     "\"strategy\":\"" + "pipelineStrategy" + "\"," +
                     "\"preferredPaths\":[]}");
@@ -100,11 +101,12 @@ public class MergeIncrementalFFSTest {
         expectedMergedList.add("/tmp/d|{prop3=\"bar\"}");
         expectedMergedList.add("/tmp/e|{prop3=\"bar\"}");
 
-
-        MergeIncrementalFlatFileStore merge = new MergeIncrementalFlatFileStore(Collections.emptySet(), baseFFS, incFFS, mergedFFS, algorithm);
+        MergeIncrementalFlatFileStore merge = new MergeIncrementalFlatFileStore(
+            Collections.emptySet(), baseFFS, incFFS, mergedFFS, algorithm);
         merge.doMerge();
         List<String> expectedMergedMetadataList = new LinkedList<>();
-        expectedMergedMetadataList.add("{\"checkpoint\":\"" + "r1" + "\",\"storeType\":\"FlatFileStore\"," +
+        expectedMergedMetadataList.add(
+            "{\"checkpoint\":\"" + "r1" + "\",\"storeType\":\"FlatFileStore\"," +
                 "\"strategy\":\"" + merge.getStrategyName() + "\",\"preferredPaths\":[]}");
 
         try (BufferedReader br = IndexStoreUtils.createReader(mergedFFS, algorithm)) {
@@ -117,7 +119,8 @@ public class MergeIncrementalFFSTest {
             Assert.assertNull(br.readLine());
         }
 
-        try (BufferedReader br = IndexStoreUtils.createReader(IndexStoreUtils.getMetadataFile(mergedFFS, algorithm), algorithm)) {
+        try (BufferedReader br = IndexStoreUtils.createReader(
+            IndexStoreUtils.getMetadataFile(mergedFFS, algorithm), algorithm)) {
             for (String line : expectedMergedMetadataList) {
                 String actual = br.readLine();
                 System.out.println(actual);

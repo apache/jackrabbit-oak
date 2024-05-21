@@ -26,7 +26,7 @@ public class ElasticIndexExclusionQueryCommonTest extends IndexExclusionQueryCom
 
     @ClassRule
     public static final ElasticConnectionRule elasticRule = new ElasticConnectionRule(
-            ElasticTestUtils.ELASTIC_CONNECTION_STRING);
+        ElasticTestUtils.ELASTIC_CONNECTION_STRING);
 
     @Override
     protected ContentRepository createRepository() {

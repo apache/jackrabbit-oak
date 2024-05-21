@@ -19,10 +19,14 @@
 
 package org.apache.jackrabbit.oak.query;
 
+import static org.apache.jackrabbit.oak.spi.toggle.Feature.newFeature;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.jmx.QueryEngineSettingsMBean;
@@ -35,9 +39,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-
-import static org.apache.jackrabbit.oak.spi.toggle.Feature.newFeature;
-import static org.junit.Assert.*;
 
 public class QueryEngineSettingsServiceTest {
 

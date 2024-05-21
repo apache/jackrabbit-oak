@@ -26,9 +26,6 @@ import static org.apache.jackrabbit.oak.commons.IOUtils.closeQuietly;
 
 import java.io.Closeable;
 import java.util.Map;
-
-import org.apache.jackrabbit.oak.spi.commit.Observable;
-import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.jetbrains.annotations.NotNull;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceReference;
@@ -36,6 +33,7 @@ import org.osgi.util.tracker.ServiceTracker;
 import org.osgi.util.tracker.ServiceTrackerCustomizer;
 
 public class ObserverTracker implements ServiceTrackerCustomizer {
+
     private final Map<ServiceReference, Closeable> subscriptions = newHashMap();
     private final Observable observable;
 

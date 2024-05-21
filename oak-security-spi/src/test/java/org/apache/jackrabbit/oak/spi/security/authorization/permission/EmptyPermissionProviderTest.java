@@ -16,17 +16,16 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.permission;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+
+import javax.jcr.Session;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.junit.Test;
 import org.mockito.Mockito;
-
-import javax.jcr.Session;
-
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
 
 public class EmptyPermissionProviderTest {
 
@@ -51,13 +50,15 @@ public class EmptyPermissionProviderTest {
 
     @Test
     public void testGetTreePermission() {
-        assertSame(TreePermission.EMPTY, emptyProvider.getTreePermission(tree, TreePermission.EMPTY));
+        assertSame(TreePermission.EMPTY,
+            emptyProvider.getTreePermission(tree, TreePermission.EMPTY));
     }
 
     @Test
     public void testIsGranted() {
         assertFalse(emptyProvider.isGranted(tree, null, Permissions.READ));
-        assertFalse(emptyProvider.isGranted(tree, PropertyStates.createProperty("prop", "value"), Permissions.READ));
+        assertFalse(emptyProvider.isGranted(tree, PropertyStates.createProperty("prop", "value"),
+            Permissions.READ));
     }
 
     @Test

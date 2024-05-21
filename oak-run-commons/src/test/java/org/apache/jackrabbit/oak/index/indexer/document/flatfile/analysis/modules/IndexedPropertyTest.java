@@ -23,7 +23,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
-
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeData;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeProperty;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeProperty.ValueType;
@@ -38,31 +37,31 @@ public class IndexedPropertyTest {
         assertEquals("x", p.getPropertyName());
 
         // wrong path
-        NodeData n = new NodeData(Arrays.asList(), 
-                Arrays.asList(new NodeProperty("x", ValueType.STRING, "1")));
+        NodeData n = new NodeData(Arrays.asList(),
+            Arrays.asList(new NodeProperty("x", ValueType.STRING, "1")));
         assertFalse(p.matches("x", n));
 
         // wrong node name
-        n = new NodeData(Arrays.asList("a"), 
-                Arrays.asList(new NodeProperty("x", ValueType.STRING, "1")));
+        n = new NodeData(Arrays.asList("a"),
+            Arrays.asList(new NodeProperty("x", ValueType.STRING, "1")));
         assertFalse(p.matches("x", n));
-        
+
         // parent has wrong type
-        n = new NodeData(Arrays.asList("jcr:data"), 
-                Arrays.asList(new NodeProperty("x", ValueType.STRING, "1")));
-        NodeData parent = new NodeData(Arrays.asList(), 
-                Arrays.asList(new NodeProperty("jcr:primaryType", ValueType.NAME, "nt:folder")));
+        n = new NodeData(Arrays.asList("jcr:data"),
+            Arrays.asList(new NodeProperty("x", ValueType.STRING, "1")));
+        NodeData parent = new NodeData(Arrays.asList(),
+            Arrays.asList(new NodeProperty("jcr:primaryType", ValueType.NAME, "nt:folder")));
         n.setParent(parent);
         assertFalse(p.matches("x", n));
-        
+
         // all good
-        n = new NodeData(Arrays.asList("jcr:data"), 
-                Arrays.asList(new NodeProperty("x", ValueType.STRING, "1")));
-        parent = new NodeData(Arrays.asList(), 
-                Arrays.asList(new NodeProperty("jcr:primaryType", ValueType.NAME, "nt:file")));
+        n = new NodeData(Arrays.asList("jcr:data"),
+            Arrays.asList(new NodeProperty("x", ValueType.STRING, "1")));
+        parent = new NodeData(Arrays.asList(),
+            Arrays.asList(new NodeProperty("jcr:primaryType", ValueType.NAME, "nt:file")));
         n.setParent(parent);
         assertTrue(p.matches("x", n));
-        
+
         // wrong property name
         assertFalse(p.matches("y", n));
 

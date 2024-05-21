@@ -16,31 +16,33 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
+import java.util.Map;
 import org.apache.jackrabbit.oak.segment.azure.util.CaseInsensitiveKeysMapAccess;
 import org.apache.jackrabbit.oak.segment.remote.RemoteBlobMetadata;
 import org.apache.jackrabbit.oak.segment.remote.RemoteSegmentArchiveEntry;
 
-import java.util.Map;
-
 /**
  * Provides access to the blob metadata.
  * <p>
- * In azure blob metadata keys are case-insensitive. A bug in the tool azcopy v10 make each key to start with
- * an uppercase letter.  To avoid future bugs we should be tolerant in what we read.
+ * In azure blob metadata keys are case-insensitive. A bug in the tool azcopy v10 make each key to
+ * start with an uppercase letter.  To avoid future bugs we should be tolerant in what we read.
  * <p>
- * Azure Blobs metadata can not store multiple entries with the same key where only the case differs. Therefore it is
- * safe to use the same concept in java, see {@link CaseInsensitiveKeysMapAccess}
+ * Azure Blobs metadata can not store multiple entries with the same key where only the case
+ * differs. Therefore it is safe to use the same concept in java, see
+ * {@link CaseInsensitiveKeysMapAccess}
  */
 public final class AzureBlobMetadata extends RemoteBlobMetadata {
 
     public static RemoteSegmentArchiveEntry toIndexEntry(Map<String, String> metadata, int length) {
-        Map<String, String> caseInsensitiveMetadata = CaseInsensitiveKeysMapAccess.convert(metadata);
+        Map<String, String> caseInsensitiveMetadata = CaseInsensitiveKeysMapAccess.convert(
+            metadata);
 
         return RemoteBlobMetadata.toIndexEntry(caseInsensitiveMetadata, length);
     }
 
     public static boolean isSegment(Map<String, String> metadata) {
-        Map<String, String> caseInsensitiveMetadata = CaseInsensitiveKeysMapAccess.convert(metadata);
+        Map<String, String> caseInsensitiveMetadata = CaseInsensitiveKeysMapAccess.convert(
+            metadata);
 
         return RemoteBlobMetadata.isSegment(caseInsensitiveMetadata);
     }

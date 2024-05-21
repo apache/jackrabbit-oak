@@ -20,7 +20,7 @@ import org.apache.jackrabbit.guava.common.cache.RemovalCause;
 
 /**
  * A listener that gets notified of entries that were removed from the cache.
- * 
+ *
  * @param <K> the key type
  * @param <V> the value type
  */

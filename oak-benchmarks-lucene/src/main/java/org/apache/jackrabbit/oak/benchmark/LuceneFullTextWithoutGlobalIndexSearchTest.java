@@ -19,6 +19,11 @@
 package org.apache.jackrabbit.oak.benchmark;
 
 
+import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
+
+import java.io.File;
+import java.io.IOException;
+import javax.jcr.Repository;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.fixture.JcrCreator;
 import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
@@ -31,12 +36,6 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProvider;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 
-import javax.jcr.Repository;
-import java.io.File;
-import java.io.IOException;
-
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
-
 /*
 Similar to {@Link LuceneFullTextWithGlobalIndexSearchTest}. The only diff being this doesn't configure a global full text index
  */
@@ -44,7 +43,8 @@ public class LuceneFullTextWithoutGlobalIndexSearchTest extends SearchTest {
 
     private final boolean disableCopyOnRead = Boolean.getBoolean("disableCopyOnRead");
 
-    public LuceneFullTextWithoutGlobalIndexSearchTest(File dump, boolean flat, boolean doReport, Boolean storageEnabled) {
+    public LuceneFullTextWithoutGlobalIndexSearchTest(File dump, boolean flat, boolean doReport,
+        Boolean storageEnabled) {
         super(dump, flat, doReport, storageEnabled);
     }
 
@@ -56,10 +56,11 @@ public class LuceneFullTextWithoutGlobalIndexSearchTest extends SearchTest {
                 public Jcr customize(Oak oak) {
                     LuceneIndexProvider provider = createLuceneIndexProvider();
                     oak.with((QueryIndexProvider) provider)
-                            .with((Observer) provider)
-                            .with(new LuceneIndexEditorProvider())
-                            .with(new PropertyFullTextTest.FullTextPropertyInitialiser("luceneText", of("text"),
-                                    LuceneIndexConstants.TYPE_LUCENE).nodeScope().analyzed());
+                       .with((Observer) provider)
+                       .with(new LuceneIndexEditorProvider())
+                       .with(new PropertyFullTextTest.FullTextPropertyInitialiser("luceneText",
+                           of("text"),
+                           LuceneIndexConstants.TYPE_LUCENE).nodeScope().analyzed());
                     return new Jcr(oak);
                 }
             });

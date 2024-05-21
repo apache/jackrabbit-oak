@@ -28,28 +28,32 @@ import org.jetbrains.annotations.NotNull;
  * Utility class to keep track of generations for incremental compaction.
  */
 public class GCIncrement {
+
     private final @NotNull GCGeneration baseGeneration;
     private final @NotNull GCGeneration partialGeneration;
     private final @NotNull GCGeneration targetGeneration;
 
-    public GCIncrement(@NotNull GCGeneration base, @NotNull GCGeneration partial, @NotNull GCGeneration target) {
+    public GCIncrement(@NotNull GCGeneration base, @NotNull GCGeneration partial,
+        @NotNull GCGeneration target) {
         baseGeneration = base;
         partialGeneration = partial;
         targetGeneration = target;
     }
 
-    @NotNull SegmentWriter createPartialWriter(@NotNull SegmentWriterFactory factory) {
+    @NotNull
+    SegmentWriter createPartialWriter(@NotNull SegmentWriterFactory factory) {
         return factory.newSegmentWriter(partialGeneration);
     }
 
-    @NotNull SegmentWriter createTargetWriter(@NotNull SegmentWriterFactory factory) {
+    @NotNull
+    SegmentWriter createTargetWriter(@NotNull SegmentWriterFactory factory) {
         return factory.newSegmentWriter(targetGeneration);
     }
 
     /**
-     * Compaction may be used to copy a repository to the same generation as before.
-     * Therefore, we only consider a segment as fully compacted if it is distinct from the base generation,
-     * even if it already matches the target generation.
+     * Compaction may be used to copy a repository to the same generation as before. Therefore, we
+     * only consider a segment as fully compacted if it is distinct from the base generation, even
+     * if it already matches the target generation.
      */
     boolean isFullyCompacted(GCGeneration generation) {
         return (generation.compareWith(baseGeneration) > 0) && generation.equals(targetGeneration);
@@ -58,9 +62,9 @@ public class GCIncrement {
     @Override
     public String toString() {
         return "GCIncrement{\n" +
-                "  base:    " + baseGeneration    + "\n" +
-                "  partial: " + partialGeneration + "\n" +
-                "  target:  " + targetGeneration  + "\n" +
-                "}";
+            "  base:    " + baseGeneration + "\n" +
+            "  partial: " + partialGeneration + "\n" +
+            "  target:  " + targetGeneration + "\n" +
+            "}";
     }
 }

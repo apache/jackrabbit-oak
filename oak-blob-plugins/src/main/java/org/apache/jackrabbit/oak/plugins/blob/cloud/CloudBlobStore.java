@@ -16,13 +16,15 @@
  */
 package org.apache.jackrabbit.oak.plugins.blob.cloud;
 
+import static org.jclouds.blobstore.options.ListContainerOptions.Builder.maxResults;
+import static org.jclouds.blobstore.options.PutOptions.Builder.multipart;
+
 import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
-
 import org.apache.jackrabbit.guava.common.base.Preconditions;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.io.ByteStreams;
@@ -37,24 +39,28 @@ import org.jclouds.io.Payload;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.jclouds.blobstore.options.ListContainerOptions.Builder.maxResults;
-import static org.jclouds.blobstore.options.PutOptions.Builder.multipart;
-
 /**
- * Implementation of the {@link org.apache.jackrabbit.oak.spi.blob.BlobStore} to store blobs in a cloud blob store.
+ * Implementation of the {@link org.apache.jackrabbit.oak.spi.blob.BlobStore} to store blobs in a
+ * cloud blob store.
  * <p>
- * Extends {@link org.apache.jackrabbit.oak.spi.blob.AbstractBlobStore} and breaks the the binary to chunks for easier management.
+ * Extends {@link org.apache.jackrabbit.oak.spi.blob.AbstractBlobStore} and breaks the the binary to
+ * chunks for easier management.
  */
 public class CloudBlobStore extends CachingBlobStore {
+
     /**
      * Logger instance.
      */
     private static final Logger LOG = LoggerFactory.getLogger(CloudBlobStore.class);
 
-    /** Cloud Store context */
+    /**
+     * Cloud Store context
+     */
     private BlobStoreContext context;
 
-    /** The bucket. */
+    /**
+     * The bucket.
+     */
     private String cloudContainer;
 
     private String accessKey;
@@ -97,14 +103,15 @@ public class CloudBlobStore extends CachingBlobStore {
 
     /**
      * Instantiates a connection to the cloud blob store.
+     *
      * @throws Exception if an error occurs
      */
     public void init() throws Exception {
         try {
             this.context =
-                    ContextBuilder.newBuilder(cloudProvider)
-                            .credentials(accessKey, secretKey)
-                            .buildView(BlobStoreContext.class);
+                ContextBuilder.newBuilder(cloudProvider)
+                              .credentials(accessKey, secretKey)
+                              .buildView(BlobStoreContext.class);
             context.getBlobStore().createContainerInLocation(null, cloudContainer);
 
             LOG.info("Using container : " + cloudContainer);
@@ -123,7 +130,7 @@ public class CloudBlobStore extends CachingBlobStore {
 
         String id = StringUtils.convertBytesToHex(digest);
         cache.put(id, data);
-        
+
         org.jclouds.blobstore.BlobStore blobStore = context.getBlobStore();
 
         if (!blobStore.blobExists(cloudContainer, id)) {
@@ -131,9 +138,9 @@ public class CloudBlobStore extends CachingBlobStore {
             metadata.put("level", String.valueOf(level));
 
             Blob blob = blobStore.blobBuilder(id)
-                    .payload(data)
-                    .userMetadata(metadata)
-                    .build();
+                                 .payload(data)
+                                 .userMetadata(metadata)
+                                 .build();
             String etag = blobStore.putBlob(cloudContainer, blob, multipart());
             LOG.debug("Blob " + id + " created with cloud tag : " + etag);
         } else {
@@ -157,11 +164,11 @@ public class CloudBlobStore extends CachingBlobStore {
                 LOG.error(message);
                 throw new IOException(message);
             }
-    
+
             Payload payload = cloudBlob.getPayload();
             try {
                 data = ByteStreams.toByteArray(payload.getInput());
-                cache.put(id, data);        
+                cache.put(id, data);
             } finally {
                 payload.close();
             }
@@ -180,7 +187,6 @@ public class CloudBlobStore extends CachingBlobStore {
 
     /**
      * Delete the cloud container and all its contents.
-     * 
      */
     public void deleteBucket() {
         Preconditions.checkNotNull(context);
@@ -213,7 +219,7 @@ public class CloudBlobStore extends CachingBlobStore {
 
     @Override
     public Iterator<String> getAllChunkIds(
-            long maxLastModifiedTime) throws Exception {
+        long maxLastModifiedTime) throws Exception {
         Preconditions.checkNotNull(context);
 
         final org.jclouds.blobstore.BlobStore blobStore = context.getBlobStore();
@@ -221,14 +227,15 @@ public class CloudBlobStore extends CachingBlobStore {
     }
 
     @Override
-    public long countDeleteChunks(List<String> chunkIds, long maxLastModifiedTime) throws Exception {
+    public long countDeleteChunks(List<String> chunkIds, long maxLastModifiedTime)
+        throws Exception {
         Preconditions.checkNotNull(context);
         long count = 0;
         for (String chunkId : chunkIds) {
             final org.jclouds.blobstore.BlobStore blobStore = context.getBlobStore();
             StorageMetadata metadata = blobStore.blobMetadata(cloudContainer, chunkId);
-            if ((maxLastModifiedTime <= 0) 
-                    || (metadata.getLastModified().getTime() <= maxLastModifiedTime)) {
+            if ((maxLastModifiedTime <= 0)
+                || (metadata.getLastModified().getTime() <= maxLastModifiedTime)) {
                 blobStore.removeBlob(cloudContainer, chunkId);
                 count++;
             }
@@ -237,6 +244,7 @@ public class CloudBlobStore extends CachingBlobStore {
     }
 
     class CloudStoreIterator implements Iterator<String> {
+
         private static final int BATCH = 1000;
 
         private org.jclouds.blobstore.BlobStore store;
@@ -246,7 +254,7 @@ public class CloudBlobStore extends CachingBlobStore {
         private ArrayDeque<String> queue;
 
         public CloudStoreIterator(org.jclouds.blobstore.BlobStore store,
-                long maxLastModifiedTime) {
+            long maxLastModifiedTime) {
             this.store = store;
             this.maxLastModifiedTime = maxLastModifiedTime;
             this.queue = new ArrayDeque<String>(BATCH);
@@ -263,7 +271,7 @@ public class CloudBlobStore extends CachingBlobStore {
                 return true;
             } else if (set.getNextMarker() != null) {
                 set = store.list(cloudContainer,
-                        maxResults(BATCH).afterMarker(set.getNextMarker()));
+                    maxResults(BATCH).afterMarker(set.getNextMarker()));
                 loadElements(set);
 
                 if (!queue.isEmpty()) {
@@ -279,7 +287,7 @@ public class CloudBlobStore extends CachingBlobStore {
             while (iter.hasNext()) {
                 StorageMetadata metadata = iter.next();
                 if ((maxLastModifiedTime <= 0)
-                        || (metadata.getLastModified().getTime() <= maxLastModifiedTime)) {
+                    || (metadata.getLastModified().getTime() <= maxLastModifiedTime)) {
                     queue.add(metadata.getName());
                 } else {
                     queue.add(metadata.getName());

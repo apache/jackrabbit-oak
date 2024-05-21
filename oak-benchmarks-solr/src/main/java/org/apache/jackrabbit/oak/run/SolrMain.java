@@ -26,7 +26,7 @@ import static java.util.Arrays.copyOfRange;
 public class SolrMain {
 
     private static final Modes MODES = new Modes(ImmutableMap.<String, Command>of(
-            "benchmark", new BenchmarkSolrCommand()
+        "benchmark", new BenchmarkSolrCommand()
     ));
 
     private SolrMain() {
@@ -36,8 +36,9 @@ public class SolrMain {
     public static void main(String[] args) throws Exception {
 
         Utils.printProductInfo(
-                args,
-                Main.class.getResourceAsStream("/META-INF/maven/org.apache.jackrabbit/oak-benchmarks-solr/pom.properties")
+            args,
+            Main.class.getResourceAsStream(
+                "/META-INF/maven/org.apache.jackrabbit/oak-benchmarks-solr/pom.properties")
         );
 
         Command c = MODES.getCommand("benchmark");

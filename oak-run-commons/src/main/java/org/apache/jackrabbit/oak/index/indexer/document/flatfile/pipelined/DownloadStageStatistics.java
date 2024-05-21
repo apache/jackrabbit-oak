@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
+import java.util.concurrent.atomic.LongAdder;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.plugins.index.FormattingUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexingReporter;
@@ -27,12 +28,11 @@ import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.atomic.LongAdder;
-
 /**
  * Aggregates statistics when downloading from Mongo with two threads
  */
 public class DownloadStageStatistics {
+
     public static final Logger LOG = LoggerFactory.getLogger(DownloadStageStatistics.class);
 
     private final LongAdder totalEnqueueWaitTimeMillis = new LongAdder();
@@ -67,38 +67,45 @@ public class DownloadStageStatistics {
     @Override
     public String toString() {
         return MetricsFormatter.newBuilder()
-                .add("totalEnqueueWaitTimeMillis", getTotalEnqueueWaitTimeMillis())
-                .add("documentsDownloadedTotal", getDocumentsDownloadedTotal())
-                .add("documentsDownloadedTotalBytes", getDocumentsDownloadedTotalBytes())
-                .build();
+                               .add("totalEnqueueWaitTimeMillis", getTotalEnqueueWaitTimeMillis())
+                               .add("documentsDownloadedTotal", getDocumentsDownloadedTotal())
+                               .add("documentsDownloadedTotalBytes",
+                                   getDocumentsDownloadedTotalBytes())
+                               .build();
     }
 
-    public void publishStatistics(StatisticsProvider statisticsProvider, IndexingReporter reporter, long durationMillis) {
+    public void publishStatistics(StatisticsProvider statisticsProvider, IndexingReporter reporter,
+        long durationMillis) {
         LOG.info("Publishing download stage statistics");
         MetricsUtils.addMetric(statisticsProvider, reporter,
-                PipelinedMetrics.OAK_INDEXER_PIPELINED_MONGO_DOWNLOAD_DURATION_SECONDS, durationMillis / 1000);
+            PipelinedMetrics.OAK_INDEXER_PIPELINED_MONGO_DOWNLOAD_DURATION_SECONDS,
+            durationMillis / 1000);
         MetricsUtils.addMetric(statisticsProvider, reporter,
-                PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_DOWNLOADED_TOTAL, getDocumentsDownloadedTotal());
+            PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_DOWNLOADED_TOTAL,
+            getDocumentsDownloadedTotal());
         MetricsUtils.addMetric(statisticsProvider, reporter,
-                PipelinedMetrics.OAK_INDEXER_PIPELINED_MONGO_DOWNLOAD_ENQUEUE_DELAY_PERCENTAGE,
-                PipelinedUtils.toPercentage(getTotalEnqueueWaitTimeMillis(), durationMillis)
+            PipelinedMetrics.OAK_INDEXER_PIPELINED_MONGO_DOWNLOAD_ENQUEUE_DELAY_PERCENTAGE,
+            PipelinedUtils.toPercentage(getTotalEnqueueWaitTimeMillis(), durationMillis)
         );
         MetricsUtils.addMetricByteSize(statisticsProvider, reporter,
-                PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_DOWNLOADED_TOTAL_BYTES,
-                getDocumentsDownloadedTotalBytes());
+            PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_DOWNLOADED_TOTAL_BYTES,
+            getDocumentsDownloadedTotalBytes());
     }
 
     public String formatStats(long durationMillis) {
-        String enqueueingDelayPercentage = PipelinedUtils.formatAsPercentage(getTotalEnqueueWaitTimeMillis(), durationMillis);
+        String enqueueingDelayPercentage = PipelinedUtils.formatAsPercentage(
+            getTotalEnqueueWaitTimeMillis(), durationMillis);
         long durationSeconds = durationMillis / 1000;
         return MetricsFormatter.newBuilder()
-                .add("duration", FormattingUtils.formatToSeconds(durationSeconds))
-                .add("durationSeconds", durationSeconds)
-                .add("documentsDownloaded", getDocumentsDownloadedTotal())
-                .add("documentsDownloadedTotalBytes", getDocumentsDownloadedTotalBytes())
-                .add("dataDownloaded", IOUtils.humanReadableByteCountBin(getDocumentsDownloadedTotalBytes()))
-                .add("enqueueingDelayMillis", getTotalEnqueueWaitTimeMillis())
-                .add("enqueueingDelayPercentage", enqueueingDelayPercentage)
-                .build();
+                               .add("duration", FormattingUtils.formatToSeconds(durationSeconds))
+                               .add("durationSeconds", durationSeconds)
+                               .add("documentsDownloaded", getDocumentsDownloadedTotal())
+                               .add("documentsDownloadedTotalBytes",
+                                   getDocumentsDownloadedTotalBytes())
+                               .add("dataDownloaded", IOUtils.humanReadableByteCountBin(
+                                   getDocumentsDownloadedTotalBytes()))
+                               .add("enqueueingDelayMillis", getTotalEnqueueWaitTimeMillis())
+                               .add("enqueueingDelayPercentage", enqueueingDelayPercentage)
+                               .build();
     }
 }

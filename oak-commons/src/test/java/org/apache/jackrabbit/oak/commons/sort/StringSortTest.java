@@ -19,6 +19,10 @@
 
 package org.apache.jackrabbit.oak.commons.sort;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -28,25 +32,21 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
 import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.guava.common.collect.Collections2;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-
 public class StringSortTest {
+
     private Comparator<String> comparator = new PathComparator();
     private StringSort collector;
 
     @Test
-    public void inMemory() throws Exception{
+    public void inMemory() throws Exception {
         List<String> paths = createTestPaths(5, false);
-        collector = new StringSort(paths.size() + 1,comparator);
+        collector = new StringSort(paths.size() + 1, comparator);
         addPathsToCollector(paths);
 
         assertConstraints(paths);
@@ -55,7 +55,7 @@ public class StringSortTest {
     }
 
     @Test
-    public void overflowToDisk() throws Exception{
+    public void overflowToDisk() throws Exception {
         //Create ~50k paths
         List<String> paths = createTestPaths(10, true);
         collector = new StringSort(1000, comparator);
@@ -68,7 +68,7 @@ public class StringSortTest {
     }
 
     @Test
-    public void sortWithEntriesHavingLineBreaks() throws Exception{
+    public void sortWithEntriesHavingLineBreaks() throws Exception {
         List<String> paths = Lists.newArrayList("/a", "/a/b\nc", "/a/b\rd", "/a/b\r\ne", "/a/c");
 
         collector = new StringSort(0, comparator);
@@ -82,16 +82,17 @@ public class StringSortTest {
 
     /**
      * Test for the case where sorting order should not be affected by escaping
+     * <p>
+     * "aa", "aa\n1", "aa\r2", "aa\\" -> "aa", "aa\n1", "aa\r2", "aa\\" "aa", "aa\\n1", "aa\\r2",
+     * "aa\\\\" -> "aa", "aa\\", "aa\n1", "aa\r2",
+     * <p>
+     * In above case the sorting order for escaped string is different. So it needs to be ensured
+     * that sorting order remain un affected by escaping
      *
-     * "aa", "aa\n1", "aa\r2", "aa\\" -> "aa", "aa\n1", "aa\r2", "aa\\"
-     * "aa", "aa\\n1", "aa\\r2", "aa\\\\" -> "aa", "aa\\", "aa\n1", "aa\r2",
-     *
-     * In above case the sorting order for escaped string is different. So
-     * it needs to be ensured that sorting order remain un affected by escaping
      * @throws Exception
      */
     @Test
-    public void sortWithEntriesHavingLineBreaks2() throws Exception{
+    public void sortWithEntriesHavingLineBreaks2() throws Exception {
         List<String> paths = Lists.newArrayList("/a", "/a/a\nc", "/a/a\rd", "/a/a\r\ne", "/a/a\\");
 
         collector = new StringSort(0, comparator);
@@ -115,29 +116,28 @@ public class StringSortTest {
     }
 
     private void addPathsToCollector(Iterable<String> paths) throws IOException {
-        for (String path : paths){
+        for (String path : paths) {
             collector.add(path);
         }
     }
 
-    private static List<String> createTestPaths(int depth, boolean permutation){
+    private static List<String> createTestPaths(int depth, boolean permutation) {
         List<String> rootPaths = Arrays.asList("a", "b", "c", "d", "e", "f", "g");
         List<String> paths = new ArrayList<String>();
 
-
-        if (permutation){
+        if (permutation) {
             List<String> newRoots = new ArrayList<String>();
-            for (List<String> permuts : Collections2.orderedPermutations(rootPaths)){
+            for (List<String> permuts : Collections2.orderedPermutations(rootPaths)) {
                 newRoots.add(Joiner.on("").join(permuts));
             }
             rootPaths = newRoots;
         }
 
-        for (String root : rootPaths){
+        for (String root : rootPaths) {
             List<String> pathElements = new ArrayList<String>();
             pathElements.add(root);
             paths.add(createId(pathElements));
-            for (int i = 0; i < depth; i++){
+            for (int i = 0; i < depth; i++) {
                 pathElements.add(root + i);
                 paths.add(createId(pathElements));
             }
@@ -150,11 +150,12 @@ public class StringSortTest {
         return paths;
     }
 
-    private static String createId(Iterable<String> pathElements){
+    private static String createId(Iterable<String> pathElements) {
         return "/" + Joiner.on('/').join(pathElements);
     }
 
-    private static  class PathComparator implements Comparator<String>, Serializable {
+    private static class PathComparator implements Comparator<String>, Serializable {
+
         @Override
         public int compare(String o1, String o2) {
             int d1 = pathDepth(o1);

@@ -16,27 +16,27 @@
  */
 package org.apache.jackrabbit.oak.spi.security.user;
 
+import static org.junit.Assert.assertEquals;
+
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
 
 public class UserConstantsTest implements UserConstants {
 
     @Test
     public void testGroupPropertyNames() {
         assertEquals(ImmutableSet.of(REP_PRINCIPAL_NAME,
-                REP_AUTHORIZABLE_ID,
-                REP_MEMBERS), GROUP_PROPERTY_NAMES);
+            REP_AUTHORIZABLE_ID,
+            REP_MEMBERS), GROUP_PROPERTY_NAMES);
     }
 
     @Test
     public void testUserPropertyNames() {
         assertEquals(ImmutableSet.of(REP_PRINCIPAL_NAME,
-                    REP_AUTHORIZABLE_ID,
-                    REP_PASSWORD,
-                    REP_DISABLED,
-                    REP_IMPERSONATORS), UserConstants.USER_PROPERTY_NAMES);
+            REP_AUTHORIZABLE_ID,
+            REP_PASSWORD,
+            REP_DISABLED,
+            REP_IMPERSONATORS), UserConstants.USER_PROPERTY_NAMES);
     }
 
     @Test
@@ -47,6 +47,6 @@ public class UserConstantsTest implements UserConstants {
     @Test
     public void testNtNames() {
         assertEquals(ImmutableSet.of(NT_REP_USER, NT_REP_GROUP, NT_REP_PASSWORD,
-                    NT_REP_MEMBERS, NT_REP_MEMBER_REFERENCES, NT_REP_MEMBER_REFERENCES_LIST), NT_NAMES);
+            NT_REP_MEMBERS, NT_REP_MEMBER_REFERENCES, NT_REP_MEMBER_REFERENCES_LIST), NT_NAMES);
     }
 }

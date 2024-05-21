@@ -19,13 +19,11 @@ package org.apache.jackrabbit.oak.benchmark;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import javax.jcr.Node;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
-
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 
 /**
@@ -54,20 +52,20 @@ public class CreateNodesBenchmark extends Benchmark {
 
     private void run(Repository repository) throws RepositoryException {
         Session session = repository.login(
-                new SimpleCredentials("admin", "admin".toCharArray()));
+            new SimpleCredentials("admin", "admin".toCharArray()));
         AtomicInteger count = new AtomicInteger();
         long startTime = System.currentTimeMillis();
         Node testRoot = session.getRootNode().addNode("r" + AbstractTest.TEST_ID);
         createNodes(testRoot, 20, 6, count, startTime);
         long duration = System.currentTimeMillis() - startTime;
         System.out.format(
-                "Created %d nodes in %d seconds (%.2fms/node)%n",
-                count.get(), duration / 1000, (double) duration / count.get());
+            "Created %d nodes in %d seconds (%.2fms/node)%n",
+            count.get(), duration / 1000, (double) duration / count.get());
     }
 
     private void createNodes(Node n, int nodesPerLevel,
-                            int levels, AtomicInteger count, long startTime)
-            throws RepositoryException {
+        int levels, AtomicInteger count, long startTime)
+        throws RepositoryException {
         levels--;
         List<Node> nodes = new ArrayList<Node>();
         for (int i = 0; i < nodesPerLevel; i++) {
@@ -75,9 +73,9 @@ public class CreateNodesBenchmark extends Benchmark {
             if (count.incrementAndGet() % 1000 == 0) {
                 long duration = System.currentTimeMillis() - startTime;
                 System.out.format(
-                        "Created %d nodes in %d seconds (%.2fms/node)...%n",
-                        count.get(), duration / 1000,
-                        (double) duration / count.get());
+                    "Created %d nodes in %d seconds (%.2fms/node)...%n",
+                    count.get(), duration / 1000,
+                    (double) duration / count.get());
             }
         }
         n.getSession().save();

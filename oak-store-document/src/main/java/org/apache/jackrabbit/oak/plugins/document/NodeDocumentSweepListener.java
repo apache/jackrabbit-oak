@@ -19,17 +19,16 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.util.Map;
 
 /**
- * Receives callbacks from the {@link NodeDocumentSweeper} on what updates
- * are required for the sweep ({@link #sweepUpdate(Map)} and required
- * invalidation of documents.
+ * Receives callbacks from the {@link NodeDocumentSweeper} on what updates are required for the
+ * sweep ({@link #sweepUpdate(Map)} and required invalidation of documents.
  */
 interface NodeDocumentSweepListener {
 
     /**
      * Called for a batch of sweep updates that should be performed.
      *
-     * @param updates the update operations. The keys in the map are the paths
-     *                of the documents to update.
+     * @param updates the update operations. The keys in the map are the paths of the documents to
+     *                update.
      * @throws DocumentStoreException if the operation fails.
      */
     void sweepUpdate(Map<Path, UpdateOp> updates) throws DocumentStoreException;

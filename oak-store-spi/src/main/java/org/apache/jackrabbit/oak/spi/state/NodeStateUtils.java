@@ -35,8 +35,8 @@ public final class NodeStateUtils {
     }
 
     /**
-     * Check whether the node or property with the given name is hidden, that
-     * is, if the node name starts with a ":".
+     * Check whether the node or property with the given name is hidden, that is, if the node name
+     * starts with a ":".
      *
      * @param name the node or property name
      * @return true if the item is hidden
@@ -47,7 +47,7 @@ public final class NodeStateUtils {
 
     /**
      * Check whether the given path contains a hidden node.
-     * 
+     *
      * @param path the path
      * @return true if one of the nodes is hidden
      */
@@ -63,9 +63,10 @@ public final class NodeStateUtils {
 
     /**
      * Get a possibly non existing child node of a node.
-     * @param node  node whose child node to get
-     * @param path  path of the child node
-     * @return  child node of {@code node} at {@code path}.
+     *
+     * @param node node whose child node to get
+     * @param path path of the child node
+     * @return child node of {@code node} at {@code path}.
      */
     @NotNull
     public static NodeState getNode(@NotNull NodeState node, @NotNull String path) {
@@ -77,9 +78,8 @@ public final class NodeStateUtils {
 
     /**
      * Provides a string representation of the given node state
-     * 
-     * @param node
-     *            node state
+     *
+     * @param node node state
      * @return a string representation of {@code node}.
      */
     public static String toString(NodeState node) {
@@ -90,7 +90,7 @@ public final class NodeStateUtils {
     }
 
     private static String toString(NodeState ns, int level, String prepend,
-            String name) {
+        String name) {
         StringBuilder node = new StringBuilder();
         node.append(repeat(prepend, level)).append(name);
 
@@ -113,7 +113,7 @@ public final class NodeStateUtils {
         for (ChildNodeEntry c : ns.getChildNodeEntries()) {
             node.append(System.lineSeparator());
             node.append(toString(c.getNodeState(), level + 1, prepend,
-                    c.getName()));
+                c.getName()));
         }
         return node.toString();
     }

@@ -20,9 +20,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -43,8 +41,8 @@ final class LastRevs implements Iterable<Revision> {
     }
 
     LastRevs(Map<Integer, Revision> revs,
-             RevisionVector readRevision,
-             Branch branch) {
+        RevisionVector readRevision,
+        Branch branch) {
         this.revs = new HashMap<Integer, Revision>(revs);
         this.readRevision = readRevision;
         this.branch = branch;
@@ -66,7 +64,7 @@ final class LastRevs implements Iterable<Revision> {
         }
         rev = rev.asBranchRevision();
         if (branch != null && branch.containsCommit(rev)
-                && readRevision.getBranchRevision().compareRevisionTime(rev) >= 0) {
+            && readRevision.getBranchRevision().compareRevisionTime(rev) >= 0) {
             branchRev = Utils.max(branchRev, rev);
         }
     }

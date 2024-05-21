@@ -20,54 +20,55 @@ package org.apache.jackrabbit.oak.plugins.blob;
  * Garbage collection stats for the repository.
  */
 public class GarbageCollectionRepoStats {
+
     private String repositoryId;
 
     private boolean local;
-    
+
     private long startTime;
-    
+
     private long endTime;
-    
+
     private long length;
-    
+
     private int numLines;
-    
+
     public String getRepositoryId() {
         return repositoryId;
     }
-    
+
     public void setRepositoryId(String repositoryId) {
         this.repositoryId = repositoryId;
     }
-    
+
     public long getEndTime() {
         return endTime;
     }
-    
+
     public void setEndTime(long endTime) {
         this.endTime = endTime;
     }
-    
+
     public long getLength() {
         return length;
     }
-    
+
     public void setLength(long length) {
         this.length = length;
     }
-    
+
     public void setNumLines(int numLines) {
         this.numLines = numLines;
     }
-    
+
     public int getNumLines() {
         return numLines;
     }
-    
+
     public long getStartTime() {
         return startTime;
     }
-    
+
     public void setStartTime(long startTime) {
         this.startTime = startTime;
     }

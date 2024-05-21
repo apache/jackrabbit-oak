@@ -23,24 +23,24 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.Set;
-
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 
 class ReadOnlyBlobStoreWrapper {
 
-    public static BlobStore wrap(BlobStore delegate){
+    public static BlobStore wrap(BlobStore delegate) {
         Class[] interfaces = delegate.getClass().getInterfaces();
         return (BlobStore) Proxy.newProxyInstance(ReadOnlyBlobStoreWrapper.class.getClassLoader(),
-                interfaces,
-                new ReadOnlyHandler(delegate));
+            interfaces,
+            new ReadOnlyHandler(delegate));
     }
 
     private static class ReadOnlyHandler implements InvocationHandler {
+
         private final Set<String> writableMethods = ImmutableSet.of(
-                "writeBlob",        //BlobStore
-                "deleteChunks",     //GarbageCollectableBlobStore
-                "countDeleteChunks" //GarbageCollectableBlobStore
+            "writeBlob",        //BlobStore
+            "deleteChunks",     //GarbageCollectableBlobStore
+            "countDeleteChunks" //GarbageCollectableBlobStore
         );
         private final BlobStore delegate;
 
@@ -52,7 +52,8 @@ class ReadOnlyBlobStoreWrapper {
         public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
             String methodName = method.getName();
             if (writableMethods.contains(methodName)) {
-                throw new UnsupportedOperationException("Readonly BlobStore - Cannot invoked " + method);
+                throw new UnsupportedOperationException(
+                    "Readonly BlobStore - Cannot invoked " + method);
             }
             return method.invoke(delegate, args);
         }

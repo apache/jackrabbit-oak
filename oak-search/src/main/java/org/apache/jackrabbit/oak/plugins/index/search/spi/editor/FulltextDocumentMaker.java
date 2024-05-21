@@ -18,6 +18,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.search.spi.editor;
 
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
+import static org.apache.jackrabbit.oak.plugins.index.search.util.ConfigUtil.getPrimaryTypeName;
+
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
@@ -27,9 +31,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
-
 import javax.jcr.PropertyType;
-
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -47,10 +49,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
-import static org.apache.jackrabbit.oak.plugins.index.search.util.ConfigUtil.getPrimaryTypeName;
 
 /**
  * Abstract implementation of a {@link DocumentMaker}.
@@ -80,20 +78,21 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
     protected final IndexDefinition.IndexingRule indexingRule;
     protected final String path;
     private final int logWarnStringSizeThreshold;
-    protected static final int throttleWarnLogThreshold = Integer.getInteger(THROTTLE_WARN_LOGS_THRESHOLD_KEY,
-            DEFAULT_THROTTLE_WARN_LOGS_THRESHOLD_VALUE);
+    protected static final int throttleWarnLogThreshold = Integer.getInteger(
+        THROTTLE_WARN_LOGS_THRESHOLD_KEY,
+        DEFAULT_THROTTLE_WARN_LOGS_THRESHOLD_VALUE);
     protected static final boolean throttleWarnLogs = Boolean.getBoolean(THROTTLE_WARN_LOGS_KEY);
 
     public FulltextDocumentMaker(@Nullable FulltextBinaryTextExtractor textExtractor,
-                                 @NotNull IndexDefinition definition,
-                                 IndexDefinition.IndexingRule indexingRule,
-                                 @NotNull String path) {
+        @NotNull IndexDefinition definition,
+        IndexDefinition.IndexingRule indexingRule,
+        @NotNull String path) {
         this.textExtractor = textExtractor;
         this.definition = checkNotNull(definition);
         this.indexingRule = checkNotNull(indexingRule);
         this.path = checkNotNull(path);
         this.logWarnStringSizeThreshold = Integer.getInteger(WARN_LOG_STRING_SIZE_THRESHOLD_KEY,
-                DEFAULT_WARN_LOG_STRING_SIZE_THRESHOLD_VALUE);
+            DEFAULT_WARN_LOG_STRING_SIZE_THRESHOLD_VALUE);
     }
 
     protected abstract D initDoc();
@@ -102,13 +101,16 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
 
     protected abstract boolean isFacetingEnabled();
 
-    protected abstract boolean indexTypeOrderedFields(D doc, String pname, int tag, PropertyState property, PropertyDefinition pd);
+    protected abstract boolean indexTypeOrderedFields(D doc, String pname, int tag,
+        PropertyState property, PropertyDefinition pd);
 
     protected abstract boolean addBinary(D doc, String path, List<String> binaryValues);
 
-    protected abstract boolean indexFacetProperty(D doc, int tag, PropertyState property, String pname);
+    protected abstract boolean indexFacetProperty(D doc, int tag, PropertyState property,
+        String pname);
 
-    protected abstract void indexAnalyzedProperty(D doc, String pname, String value, PropertyDefinition pd);
+    protected abstract void indexAnalyzedProperty(D doc, String pname, String value,
+        PropertyDefinition pd);
 
     protected abstract void indexSuggestValue(D doc, String value);
 
@@ -116,7 +118,8 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
 
     protected abstract void indexFulltextValue(D doc, String value);
 
-    protected abstract void indexTypedProperty(D doc, PropertyState property, String pname, PropertyDefinition pd, int index);
+    protected abstract void indexTypedProperty(D doc, PropertyState property, String pname,
+        PropertyDefinition pd, int index);
 
     /**
      * Indexes a text value that will be used to re-score results with the given confidence
@@ -128,7 +131,8 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
      * @param confidence the confidence (or weight) used for re-scoring
      * @return {@code true} id the value has been added, otherwise {@code false}
      */
-    protected abstract boolean indexDynamicBoost(D doc, String parent, String nodeName, String value, double confidence);
+    protected abstract boolean indexDynamicBoost(D doc, String parent, String nodeName,
+        String value, double confidence);
 
     protected abstract void indexAncestors(D doc, String path);
 
@@ -136,14 +140,16 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
 
     protected abstract void indexNullProperty(D doc, PropertyDefinition pd);
 
-    protected abstract void indexAggregateValue(D doc, Aggregate.NodeIncludeResult result, String value, PropertyDefinition pd);
+    protected abstract void indexAggregateValue(D doc, Aggregate.NodeIncludeResult result,
+        String value, PropertyDefinition pd);
 
     protected abstract void indexNodeName(D doc, String value);
 
     protected void logLargeStringProperties(String propertyName, String value) {
         if (value.length() > logWarnStringSizeThreshold) {
-            log.warn("String length: {} for property: {} at Node: {} is greater than configured value {}",
-                    value.length(), propertyName, path, logWarnStringSizeThreshold);
+            log.warn(
+                "String length: {} for property: {} at Node: {} is greater than configured value {}",
+                value.length(), propertyName, path, logWarnStringSizeThreshold);
         }
     }
 
@@ -153,7 +159,8 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
     }
 
     @Nullable
-    public D makeDocument(NodeState state, boolean isUpdate, List<PropertyState> propertiesModified) throws IOException {
+    public D makeDocument(NodeState state, boolean isUpdate, List<PropertyState> propertiesModified)
+        throws IOException {
         boolean facet = false;
 
         D document = initDoc();
@@ -162,8 +169,9 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
         //We 'intentionally' are indexing node names only on root state as we don't support indexing relative or
         //regex for node name indexing
         PropertyState nodenamePS =
-                new StringPropertyState(FieldNames.NODE_NAME, getName(path));
-        for (PropertyState property : Iterables.concat(state.getProperties(), Collections.singleton(nodenamePS))) {
+            new StringPropertyState(FieldNames.NODE_NAME, getName(path));
+        for (PropertyState property : Iterables.concat(state.getProperties(),
+            Collections.singleton(nodenamePS))) {
             String pname = property.getName();
 
             if (!isVisible(pname) && !FieldNames.NODE_NAME.equals(pname)) {
@@ -231,27 +239,29 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
         return finalizeDoc(document, dirty, facet);
     }
 
-    private boolean indexFacets(D doc, PropertyState property, String pname, PropertyDefinition pd) {
+    private boolean indexFacets(D doc, PropertyState property, String pname,
+        PropertyDefinition pd) {
         int tag = property.getType().tag();
         int idxDefinedTag = pd.getType();
         // Try converting type to the defined type in the index definition
         if (tag != idxDefinedTag) {
-            log.debug("[{}] Facet property defined with type {} differs from property {} with type {} in "
-                            + "path {}",
-                    getIndexName(),
-                    Type.fromTag(idxDefinedTag, false), property,
-                    Type.fromTag(tag, false), path);
+            log.debug(
+                "[{}] Facet property defined with type {} differs from property {} with type {} in "
+                    + "path {}",
+                getIndexName(),
+                Type.fromTag(idxDefinedTag, false), property,
+                Type.fromTag(tag, false), path);
             tag = idxDefinedTag;
         }
         return indexFacetProperty(doc, tag, property, pname);
     }
 
     private boolean indexProperty(String path,
-                                  D doc,
-                                  NodeState state,
-                                  PropertyState property,
-                                  String pname,
-                                  PropertyDefinition pd) {
+        D doc,
+        NodeState state,
+        PropertyState property,
+        String pname,
+        PropertyDefinition pd) {
         boolean includeTypeForFullText = indexingRule.includePropertyType(property.getType().tag());
 
         boolean dirty = false;
@@ -268,7 +278,7 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
                     property.getName(), pd, path);
             }
         } else if (Type.BINARY.tag() == property.getType().tag()
-                && includeTypeForFullText) {
+            && includeTypeForFullText) {
             List<String> binaryValues = newBinary(property, state, path + "@" + pname);
             addBinary(doc, null, binaryValues);
             dirty = true;
@@ -280,14 +290,17 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
                 try {
                     dirty |= indexDynamicBoost(doc, pname, pd.nodeName, state);
                 } catch (Exception e) {
-                    log.error("Could not index dynamic boost for property {} and definition {}", property, pd, e);
+                    log.error("Could not index dynamic boost for property {} and definition {}",
+                        property, pd, e);
                 }
             }
 
             if (pd.fulltextEnabled() && includeTypeForFullText) {
                 for (String value : property.getValue(Type.STRINGS)) {
                     logLargeStringProperties(property.getName(), value);
-                    if (definition.getPropertyRegex() != null && !definition.getPropertyRegex().matcher(value).find()) {
+                    if (definition.getPropertyRegex() != null && !definition.getPropertyRegex()
+                                                                            .matcher(value)
+                                                                            .find()) {
                         continue;
                     }
                     if (!includePropertyValue(value, pd)) {
@@ -340,10 +353,11 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
     }
 
     /**
-     * In elastic we don't add analyzed data in :fulltext if index has both analyzed
-     * and nodescope property. Instead we fire a multiMatch with cross_fields.
+     * In elastic we don't add analyzed data in :fulltext if index has both analyzed and nodescope
+     * property. Instead we fire a multiMatch with cross_fields.
      * <p>
-     * Returns {@code true} if nodeScopeIndex full text values need to be indexed at node level (:fulltext)
+     * Returns {@code true} if nodeScopeIndex full text values need to be indexed at node level
+     * (:fulltext)
      */
     protected boolean isFulltextValuePersistedAtNode(PropertyDefinition pd) {
         // By default nodeScopeIndex full text values need to be indexed.
@@ -352,11 +366,14 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
 
     protected abstract boolean indexSimilarityTag(D doc, PropertyState property);
 
-    protected abstract void indexSimilarityBinaries(D doc, PropertyDefinition pd, Blob blob) throws IOException;
+    protected abstract void indexSimilarityBinaries(D doc, PropertyDefinition pd, Blob blob)
+        throws IOException;
 
-    protected abstract void indexSimilarityStrings(D doc, PropertyDefinition pd, String value) throws IOException;
+    protected abstract void indexSimilarityStrings(D doc, PropertyDefinition pd, String value)
+        throws IOException;
 
-    private boolean addTypedFields(D doc, PropertyState property, String pname, PropertyDefinition pd) {
+    private boolean addTypedFields(D doc, PropertyState property, String pname,
+        PropertyDefinition pd) {
         int tag = property.getType().tag();
         boolean fieldAdded = false;
 
@@ -376,9 +393,9 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
     }
 
     private boolean addTypedOrderedFields(D doc,
-                                          PropertyState property,
-                                          String pname,
-                                          PropertyDefinition pd) {
+        PropertyState property,
+        String pname,
+        PropertyDefinition pd) {
         // Ignore and warn if property multi-valued as not supported
         if (property.getType().isArray()) {
             // Log all the warnings if throttleWarnings is not enabled.
@@ -388,11 +405,12 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
             // But ideally a warning with the property in question should suffice.
             // Also there is no handling for different indexes having the same property since those are usually different versions of the same index.
             if (!throttleWarnLogs || MV_ORDERED_PROPERTY_SET.add(pname) ||
-                    WARN_LOG_COUNTER_MV_ORDERED_PROPERTY.incrementAndGet() % throttleWarnLogThreshold == 0) {
+                WARN_LOG_COUNTER_MV_ORDERED_PROPERTY.incrementAndGet() % throttleWarnLogThreshold
+                    == 0) {
                 log.warn(
-                        "[{}] Ignoring ordered property {} of type {} for path {} as multivalued ordered property not supported",
-                        getIndexName(), pname,
-                        Type.fromTag(property.getType().tag(), true), path);
+                    "[{}] Ignoring ordered property {} of type {} for path {} as multivalued ordered property not supported",
+                    getIndexName(), pname,
+                    Type.fromTag(property.getType().tag(), true), path);
             }
             return false;
         }
@@ -402,11 +420,11 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
         // Try converting type to the defined type in the index definition
         if (tag != idxDefinedTag) {
             log.debug(
-                    "[{}] Ordered property defined with type {} differs from property {} with type {} in "
-                            + "path {}",
-                    getIndexName(),
-                    Type.fromTag(idxDefinedTag, false), property,
-                    Type.fromTag(tag, false), path);
+                "[{}] Ordered property defined with type {} differs from property {} with type {} in "
+                    + "path {}",
+                getIndexName(),
+                Type.fromTag(idxDefinedTag, false), property,
+                Type.fromTag(tag, false), path);
             tag = idxDefinedTag;
         }
         return indexTypeOrderedFields(doc, pname, tag, property, pd);
@@ -433,7 +451,7 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
     }
 
     private List<String> newBinary(
-            PropertyState property, NodeState state, String path) {
+        PropertyState property, NodeState state, String path) {
         if (textExtractor == null) {
             //Skip text extraction for sync indexing
             return Collections.emptyList();
@@ -443,7 +461,8 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
     }
 
     // TODO : extract more generic SPI for augmentor factory
-    protected abstract boolean augmentCustomFields(final String path, final D doc, final NodeState document);// {
+    protected abstract boolean augmentCustomFields(final String path, final D doc,
+        final NodeState document);// {
 //        boolean dirty = false;
 //
 //        if (augmentorFactory != null) {
@@ -503,7 +522,7 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
             return FunctionIndexProcessor.tryCalculateValue(path, state, functionCode);
         } catch (RuntimeException e) {
             log.error("Failed to calculate function value for {} at {}",
-                    Arrays.toString(functionCode), path, e);
+                Arrays.toString(functionCode), path, e);
             throw e;
         }
     }
@@ -513,9 +532,9 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
         for (PropertyState ps : propertiesModified) {
             PropertyDefinition pd = indexingRule.getConfig(ps.getName());
             if (pd != null
-                    && pd.index
-                    && (pd.includePropertyType(ps.getType().tag())
-                    || indexingRule.includePropertyType(ps.getType().tag()))) {
+                && pd.index
+                && (pd.includePropertyType(ps.getType().tag())
+                || indexingRule.includePropertyType(ps.getType().tag()))) {
                 dirty = true;
                 break;
             }
@@ -567,7 +586,7 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
      * index aggregates on a certain path
      */
     private boolean[] indexAggregates(final String path, final D document,
-                                      final NodeState state) {
+        final NodeState state) {
         final AtomicBoolean dirtyFlag = new AtomicBoolean();
         final AtomicBoolean facetFlag = new AtomicBoolean();
         indexingRule.getAggregate().collectAggregates(state, new Aggregate.ResultCollector() {
@@ -584,10 +603,10 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
                 boolean dirty = false;
                 if (result.pd.ordered) {
                     dirty |= addTypedOrderedFields(document, result.propertyState,
-                            result.propertyPath, result.pd);
+                        result.propertyPath, result.pd);
                 }
                 dirty |= indexProperty(path, document, state, result.propertyState,
-                        result.propertyPath, result.pd);
+                    result.propertyPath, result.pd);
 
                 if (result.pd.facet) {
                     facetFlag.set(true);
@@ -609,7 +628,7 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
         //are not indexed on there own. In such cases we rely in current
         //rule for some checks
         IndexDefinition.IndexingRule ruleAggNode = definition
-                .getApplicableIndexingRule(getPrimaryTypeName(result.nodeState));
+            .getApplicableIndexingRule(getPrimaryTypeName(result.nodeState));
         boolean dirty = false;
 
         for (PropertyState property : result.nodeState.getProperties()) {
@@ -636,7 +655,8 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
             // 1. Its not to be indexed i.e. index=false
             // 2. Its explicitly excluded from aggregation i.e. excludeFromAggregation=true
             PropertyDefinition pdForRootNode = indexingRule.getConfig(propertyPath);
-            if (pdForRootNode != null && (!pdForRootNode.index || pdForRootNode.excludeFromAggregate)) {
+            if (pdForRootNode != null && (!pdForRootNode.index
+                || pdForRootNode.excludeFromAggregate)) {
                 continue;
             }
 
@@ -645,7 +665,8 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
                 //Here the fulltext is being created for aggregate root hence nodePath passed
                 //should be null
                 String nodePath = result.isRelativeNode() ? result.rootIncludePath : null;
-                List<String> binaryValues = newBinary(property, result.nodeState, aggreagtedNodePath + "@" + pname);
+                List<String> binaryValues = newBinary(property, result.nodeState,
+                    aggreagtedNodePath + "@" + pname);
                 addBinary(doc, nodePath, binaryValues);
                 dirty = true;
             } else {
@@ -667,7 +688,8 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
         return dirty;
     }
 
-    protected boolean indexDynamicBoost(D doc, String propertyName, String nodeName, NodeState nodeState) {
+    protected boolean indexDynamicBoost(D doc, String propertyName, String nodeName,
+        NodeState nodeState) {
         NodeState propertyNode = nodeState;
         String parentName = PathUtils.getParentPath(propertyName);
         for (String c : PathUtils.elements(parentName)) {

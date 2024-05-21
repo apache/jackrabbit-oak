@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.exercise.security.authorization;
 
 import javax.jcr.security.AccessControlManager;
-
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
@@ -71,4 +70,5 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissio
  * </pre>
  */
 public class IntroductionTest extends AbstractSecurityTest {
+
 }

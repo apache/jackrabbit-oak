@@ -22,13 +22,11 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-
 import org.apache.jackrabbit.oak.api.Blob;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * A blob as a file in the file system.
- * Used for testing.
+ * A blob as a file in the file system. Used for testing.
  */
 public class FileBlob implements Blob {
 

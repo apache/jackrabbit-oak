@@ -19,9 +19,23 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import static org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors.newDirectExecutorService;
+import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.CopyOnReadDirectory.DELETE_MARGIN_MILLIS_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.INDEX_DATA_CHILD_NAME;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.util.Random;
+import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
+import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.guava.common.io.Closer;
-import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.stats.Clock;
@@ -37,22 +51,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.charset.Charset;
-import java.util.Random;
-import java.util.concurrent.Executor;
-import java.util.concurrent.TimeUnit;
-
-import static org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors.newDirectExecutorService;
-import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.CopyOnReadDirectory.DELETE_MARGIN_MILLIS_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.INDEX_DATA_CHILD_NAME;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-
 public class IndexCopierCleanupTest {
+
     private Random rnd = new Random();
     private static final int maxFileSize = 7896;
 
@@ -62,6 +62,7 @@ public class IndexCopierCleanupTest {
     private NodeState root = INITIAL_CONTENT;
 
     private static final Clock CLOCK = new Clock.Virtual();
+
     static {
         try {
             CLOCK.waitUntil(Clock.SIMPLE.getTime());
@@ -97,7 +98,8 @@ public class IndexCopierCleanupTest {
 
         localFSDir = temporaryFolder.newFolder();
 
-        copier = new RAMIndexCopier(localFSDir, newDirectExecutorService(), temporaryFolder.getRoot(), true);
+        copier = new RAMIndexCopier(localFSDir, newDirectExecutorService(),
+            temporaryFolder.getRoot(), true);
 
         // convince copier that local FS dir is ok (avoid integrity check doing the cleanup)
         copier.getCoRDir().close();
@@ -201,10 +203,10 @@ public class IndexCopierCleanupTest {
         Directory cor1 = copier.getCoRDir(remoteSnapshowCow1);
         // local listing
         assertEquals(Sets.newHashSet("a", "b", "c", "d"),
-                Sets.newHashSet(new SimpleFSDirectory(localFSDir).listAll()));
+            Sets.newHashSet(new SimpleFSDirectory(localFSDir).listAll()));
         // reader listing
         assertEquals(Sets.newHashSet("a", "b"),
-                Sets.newHashSet(cor1.listAll()));
+            Sets.newHashSet(cor1.listAll()));
 
         // Step 4
         cow2.close();
@@ -222,17 +224,17 @@ public class IndexCopierCleanupTest {
         Directory cor2 = copier.getCoRDir(remoteSnapshotCow2);
         // local listing
         assertEquals(Sets.newHashSet("a", "b", "c", "d", "e", "f"),
-                Sets.newHashSet(new SimpleFSDirectory(localFSDir).listAll()));
+            Sets.newHashSet(new SimpleFSDirectory(localFSDir).listAll()));
         // reader listing
         assertEquals(Sets.newHashSet("c", "d"),
-                Sets.newHashSet(cor2.listAll()));
+            Sets.newHashSet(cor2.listAll()));
 
         // Step 7
         cor1.close();
 
         // nothing should get deleted as CoR1 sees "a", "b" and everything else is newer
         assertEquals(Sets.newHashSet("a", "b", "c", "d", "e", "f"),
-                Sets.newHashSet(new SimpleFSDirectory(localFSDir).listAll()));
+            Sets.newHashSet(new SimpleFSDirectory(localFSDir).listAll()));
     }
 
     @Test
@@ -338,18 +340,21 @@ public class IndexCopierCleanupTest {
     public void marginIsRespected() throws Exception {
         writeFile(remote, "a");
 
-        FileUtils.write(new File(localFSDir, "beyond-margin"), "beyond-margin-data", (Charset) null);
+        FileUtils.write(new File(localFSDir, "beyond-margin"), "beyond-margin-data",
+            (Charset) null);
         DelayCopyingSimpleFSDirectory.updateLastModified(localFSDir, "beyond-margin");
         // Delay 1 more second to avoid FS time granularity
-        CLOCK.waitUntil(CLOCK.getTime() + SAFE_MARGIN_FOR_DELETION + MARGIN_BUFFER_FOR_FS_GRANULARITY);
+        CLOCK.waitUntil(
+            CLOCK.getTime() + SAFE_MARGIN_FOR_DELETION + MARGIN_BUFFER_FOR_FS_GRANULARITY);
 
-        FileUtils.write(new File(localFSDir, "within-margin"), "within-margin-data", (Charset) null);
+        FileUtils.write(new File(localFSDir, "within-margin"), "within-margin-data",
+            (Charset) null);
         DelayCopyingSimpleFSDirectory.updateLastModified(localFSDir, "within-margin");
 
         copier.getCoRDir().close();
 
         assertEquals(Sets.newHashSet("within-margin", "a"),
-                Sets.newHashSet(new SimpleFSDirectory(localFSDir).listAll()));
+            Sets.newHashSet(new SimpleFSDirectory(localFSDir).listAll()));
     }
 
     @Test
@@ -460,23 +465,26 @@ public class IndexCopierCleanupTest {
     }
 
     private class RAMIndexCopier extends IndexCopier {
+
         final File baseFSDir;
 
         RAMIndexCopier(File baseFSDir, Executor executor, File indexRootDir,
-                       boolean prefetchEnabled) throws IOException {
+            boolean prefetchEnabled) throws IOException {
             super(executor, indexRootDir, prefetchEnabled);
             this.baseFSDir = baseFSDir;
         }
 
         @Override
-        protected Directory createLocalDirForIndexReader(String indexPath, LuceneIndexDefinition definition, String dirName) throws IOException {
+        protected Directory createLocalDirForIndexReader(String indexPath,
+            LuceneIndexDefinition definition, String dirName) throws IOException {
             return new DelayCopyingSimpleFSDirectory(baseFSDir);
         }
 
         @Override
-        protected Directory createLocalDirForIndexWriter(LuceneIndexDefinition definition, String dirName,
-                                                         boolean reindexMode,
-                                                         COWDirectoryTracker cowDirectoryTracker) throws IOException {
+        protected Directory createLocalDirForIndexWriter(LuceneIndexDefinition definition,
+            String dirName,
+            boolean reindexMode,
+            COWDirectoryTracker cowDirectoryTracker) throws IOException {
             return new DelayCopyingSimpleFSDirectory(baseFSDir);
         }
 
@@ -489,11 +497,13 @@ public class IndexCopierCleanupTest {
         }
 
         Directory getCoWDir() throws IOException {
-            return wrapForWrite(defn, remote, false, INDEX_DATA_CHILD_NAME, COWDirectoryTracker.NOOP);
+            return wrapForWrite(defn, remote, false, INDEX_DATA_CHILD_NAME,
+                COWDirectoryTracker.NOOP);
         }
     }
 
     private static class DelayCopyingSimpleFSDirectory extends SimpleFSDirectory {
+
         DelayCopyingSimpleFSDirectory(File dir) throws IOException {
             super(dir);
         }
@@ -501,11 +511,11 @@ public class IndexCopierCleanupTest {
         static void updateLastModified(Directory dir, String name) throws IOException {
             DelayCopyingSimpleFSDirectory d = null;
             if (dir instanceof DelayCopyingSimpleFSDirectory) {
-                d = (DelayCopyingSimpleFSDirectory)dir;
+                d = (DelayCopyingSimpleFSDirectory) dir;
             } else if (dir instanceof FilterDirectory) {
-                Directory delegate = ((FilterDirectory)dir).getDelegate();
+                Directory delegate = ((FilterDirectory) dir).getDelegate();
                 if (delegate instanceof DelayCopyingSimpleFSDirectory) {
-                    d = (DelayCopyingSimpleFSDirectory)delegate;
+                    d = (DelayCopyingSimpleFSDirectory) delegate;
                 }
             }
 
@@ -518,7 +528,8 @@ public class IndexCopierCleanupTest {
             try {
                 updateLastModified(directory, name);
 
-                CLOCK.waitUntil(CLOCK.getTime() + SAFE_MARGIN_FOR_DELETION + MARGIN_BUFFER_FOR_FS_GRANULARITY);
+                CLOCK.waitUntil(
+                    CLOCK.getTime() + SAFE_MARGIN_FOR_DELETION + MARGIN_BUFFER_FOR_FS_GRANULARITY);
             } catch (InterruptedException ie) {
                 // ignored
             }
@@ -534,6 +545,7 @@ public class IndexCopierCleanupTest {
     }
 
     private static class CloseSafeRemoteRAMDirectory extends RAMDirectory {
+
         private final Closer closer;
 
         CloseSafeRemoteRAMDirectory(Closer closer) {
@@ -553,11 +565,12 @@ public class IndexCopierCleanupTest {
         }
 
         @Override
-        public void copy(Directory to, String src, String dest, IOContext context) throws IOException {
+        public void copy(Directory to, String src, String dest, IOContext context)
+            throws IOException {
             super.copy(to, src, dest, context);
 
             if (to instanceof DelayCopyingSimpleFSDirectory) {
-                ((DelayCopyingSimpleFSDirectory)to).updateLastModified(dest);
+                ((DelayCopyingSimpleFSDirectory) to).updateLastModified(dest);
             }
         }
 

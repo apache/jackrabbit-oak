@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.index.cursor;
 
 import java.util.HashMap;
 import java.util.HashSet;
-
 import org.apache.jackrabbit.oak.api.Result.SizePrecision;
 import org.apache.jackrabbit.oak.query.FilterIterators;
 import org.apache.jackrabbit.oak.query.QueryImpl;

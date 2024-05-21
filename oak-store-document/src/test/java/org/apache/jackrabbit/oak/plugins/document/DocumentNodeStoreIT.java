@@ -82,9 +82,9 @@ public class DocumentNodeStoreIT extends AbstractDocumentStoreTest {
         // use a builder with a no-op diff cache to simulate a
         // cache miss when the diff is made later in the test
         DocumentNodeStore ns1 = new TestBuilder()
-                .setDocumentStore(docStore).setClusterId(1)
-                .setAsyncDelay(0).clock(clock)
-                .build();
+            .setDocumentStore(docStore).setClusterId(1)
+            .setAsyncDelay(0).clock(clock)
+            .build();
         removeMeClusterNodes.add("1");
         NodeBuilder builder1 = ns1.getRoot().builder();
         builder1.child("node");
@@ -98,8 +98,8 @@ public class DocumentNodeStoreIT extends AbstractDocumentStoreTest {
         ns1.runBackgroundOperations();
 
         DocumentNodeStore ns2 = new DocumentMK.Builder()
-                .setDocumentStore(docStore).setClusterId(2)
-                .setAsyncDelay(0).clock(clock).getNodeStore();
+            .setDocumentStore(docStore).setClusterId(2)
+            .setAsyncDelay(0).clock(clock).getNodeStore();
         removeMeClusterNodes.add("2");
 
         NodeBuilder builder2 = ns2.getRoot().builder();
@@ -111,7 +111,7 @@ public class DocumentNodeStoreIT extends AbstractDocumentStoreTest {
         // not be necessary. e.g. when the clock passes the resolution boundary
         // exactly at this time
         clock.waitUntil(System.currentTimeMillis() +
-                SECONDS.toMillis(MODIFIED_IN_SECS_RESOLUTION + 1));
+            SECONDS.toMillis(MODIFIED_IN_SECS_RESOLUTION + 1));
 
         builder1 = ns1.getRoot().builder();
         builder1.child("node").child("child-b");
@@ -145,7 +145,7 @@ public class DocumentNodeStoreIT extends AbstractDocumentStoreTest {
         ExecutorService commitExecutor = newSingleThreadExecutor();
         DocumentStore docStore = new NonDisposingDocumentStore(ds);
         DocumentNodeStore store = builderProvider.newBuilder()
-                .setDocumentStore(docStore).build();
+                                                 .setDocumentStore(docStore).build();
         removeMeClusterNodes.add("" + store.getClusterId());
         try {
 
@@ -189,9 +189,10 @@ public class DocumentNodeStoreIT extends AbstractDocumentStoreTest {
     }
 
     /**
-     *  A blob that blocks on read until unblocked
+     * A blob that blocks on read until unblocked
      */
     class BlockingBlob extends AbstractBlob {
+
         private final AtomicBoolean blocking = new AtomicBoolean(true);
         private final Monitor readMonitor = new Monitor();
         private boolean reading = false;
@@ -243,7 +244,7 @@ public class DocumentNodeStoreIT extends AbstractDocumentStoreTest {
     }
 
     private static class NonDisposingDocumentStore
-            extends TimingDocumentStoreWrapper {
+        extends TimingDocumentStoreWrapper {
 
         NonDisposingDocumentStore(DocumentStore base) {
             super(base);

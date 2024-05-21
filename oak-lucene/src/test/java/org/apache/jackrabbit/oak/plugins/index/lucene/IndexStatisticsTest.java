@@ -16,6 +16,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.VERSION;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexStatistics.SYNTHETICALLY_FALLIABLE_FIELD;
+import static org.junit.Assert.assertEquals;
+
+import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.lucene.document.Document;
@@ -31,15 +38,8 @@ import org.apache.lucene.store.RAMDirectory;
 import org.junit.After;
 import org.junit.Test;
 
-import java.io.IOException;
-import java.util.Collections;
-import java.util.List;
-
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexStatistics.SYNTHETICALLY_FALLIABLE_FIELD;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.VERSION;
-import static org.junit.Assert.assertEquals;
-
 public class IndexStatisticsTest {
+
     @After
     public void resetFailFlags() {
         LuceneIndexStatistics.failReadingFields = false;
@@ -107,8 +107,10 @@ public class IndexStatisticsTest {
         Document document = new Document();
         document.add(new StringField("foo", "manualBar", Field.Store.NO));
         document.add(new StringField(":someHiddenField", "manualBar", Field.Store.NO));
-        document.add(new StringField(FieldNames.ANALYZED_FIELD_PREFIX + "foo", "manualBar", Field.Store.NO));
-        document.add(new StringField(FieldNames.FULLTEXT_RELATIVE_NODE + "foo", "manualBar", Field.Store.NO));
+        document.add(
+            new StringField(FieldNames.ANALYZED_FIELD_PREFIX + "foo", "manualBar", Field.Store.NO));
+        document.add(new StringField(FieldNames.FULLTEXT_RELATIVE_NODE + "foo", "manualBar",
+            Field.Store.NO));
         document.add(new StringField("foo_facet", "manualBar", Field.Store.NO));
         Directory d = createSampleDirectory(document);
         LuceneIndexStatistics stats = getStats(d);
@@ -156,7 +158,8 @@ public class IndexStatisticsTest {
         return createSampleDirectory(2, Collections.singleton(moreDoc));
     }
 
-    private static Directory createSampleDirectory(long numOfDocs, Iterable<Document> moreDocs) throws IOException {
+    private static Directory createSampleDirectory(long numOfDocs, Iterable<Document> moreDocs)
+        throws IOException {
         List<Document> docs = Lists.newArrayList(moreDocs);
         for (int i = 0; i < numOfDocs; i++) {
             Document doc = new Document();

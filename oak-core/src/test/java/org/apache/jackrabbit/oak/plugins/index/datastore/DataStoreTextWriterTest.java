@@ -19,9 +19,13 @@
 
 package org.apache.jackrabbit.oak.plugins.index.datastore;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
 import java.io.ByteArrayInputStream;
 import java.io.File;
-
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.FileDataStore;
@@ -36,11 +40,6 @@ import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 
 public class DataStoreTextWriterTest {
 

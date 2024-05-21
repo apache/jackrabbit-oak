@@ -69,20 +69,23 @@ public class VersionTreePermissionTest extends AbstractPrincipalBasedTest {
         grandchildPath = PathUtils.getAncestorPath(TEST_OAK_PATH, 1);
 
         // setup permissions on childPath + TEST_OAK_PATH
-        PrincipalPolicyImpl policy = setupPrincipalBasedAccessControl(testPrincipal, getNamePathMapper().getJcrPath(childPath), JCR_READ);
-        addPrincipalBasedEntry(policy, getNamePathMapper().getJcrPath(TEST_OAK_PATH), PrivilegeConstants.JCR_VERSION_MANAGEMENT);
+        PrincipalPolicyImpl policy = setupPrincipalBasedAccessControl(testPrincipal,
+            getNamePathMapper().getJcrPath(childPath), JCR_READ);
+        addPrincipalBasedEntry(policy, getNamePathMapper().getJcrPath(TEST_OAK_PATH),
+            PrivilegeConstants.JCR_VERSION_MANAGEMENT);
 
         // versionabel nodes: contentPath + grandChildPath + TEST_OAK_PATH
         // -> TEST_OAK_PATH versionable node holds policy, grandchildPath get permissions inherited, and contentPath has no permissions granted
         Tree typeRoot = root.getTree(NodeTypeConstants.NODE_TYPES_PATH);
-        for (String path : new String[] {contentPath, grandchildPath, TEST_OAK_PATH}) {
+        for (String path : new String[]{contentPath, grandchildPath, TEST_OAK_PATH}) {
             Tree versionable = root.getTree(path);
-            TreeUtil.addMixin(root.getTree(path), NodeTypeConstants.MIX_VERSIONABLE, typeRoot, "uid");
+            TreeUtil.addMixin(root.getTree(path), NodeTypeConstants.MIX_VERSIONABLE, typeRoot,
+                "uid");
         }
         root.commit();
 
         // force creation of a new versions (except for TEST_OAK_PATH)
-        for (String path : new String[] {contentPath, grandchildPath}) {
+        for (String path : new String[]{contentPath, grandchildPath}) {
             root.getTree(path).setProperty(JCR_ISCHECKEDOUT, false);
             root.commit();
             root.getTree(path).setProperty(JCR_ISCHECKEDOUT, true);
@@ -142,7 +145,8 @@ public class VersionTreePermissionTest extends AbstractPrincipalBasedTest {
         String vhPath = getPathFromReference(contentPath, JCR_VERSIONHISTORY);
         AbstractTreePermission tp = getTreePermission(vhPath);
 
-        TreePermission rootversionTp = tp.getChildPermission(VersionConstants.JCR_ROOTVERSION, mockNodeState(VersionConstants.NT_VERSION));
+        TreePermission rootversionTp = tp.getChildPermission(VersionConstants.JCR_ROOTVERSION,
+            mockNodeState(VersionConstants.NT_VERSION));
         assertTrue(rootversionTp instanceof AbstractTreePermission);
 
         assertSame(tp.getTree(), ((AbstractTreePermission) rootversionTp).getTree());
@@ -153,7 +157,8 @@ public class VersionTreePermissionTest extends AbstractPrincipalBasedTest {
         String vhPath = getPathFromReference(TEST_OAK_PATH, JCR_VERSIONHISTORY);
         AbstractTreePermission tp = getTreePermission(vhPath);
 
-        TreePermission versionTp = tp.getChildPermission("1.0", mockNodeState(VersionConstants.NT_VERSION));
+        TreePermission versionTp = tp.getChildPermission("1.0",
+            mockNodeState(VersionConstants.NT_VERSION));
         assertTrue(versionTp instanceof AbstractTreePermission);
 
         assertSame(tp.getTree(), ((AbstractTreePermission) versionTp).getTree());
@@ -164,7 +169,8 @@ public class VersionTreePermissionTest extends AbstractPrincipalBasedTest {
         String vhPath = getPathFromReference(contentPath, JCR_VERSIONHISTORY);
         AbstractTreePermission tp = getTreePermission(vhPath);
 
-        TreePermission labelsTp = tp.getChildPermission(VersionConstants.JCR_VERSIONLABELS, mockNodeState(VersionConstants.NT_VERSIONLABELS));
+        TreePermission labelsTp = tp.getChildPermission(VersionConstants.JCR_VERSIONLABELS,
+            mockNodeState(VersionConstants.NT_VERSIONLABELS));
         assertTrue(labelsTp instanceof AbstractTreePermission);
 
         assertSame(tp.getTree(), ((AbstractTreePermission) labelsTp).getTree());
@@ -177,14 +183,16 @@ public class VersionTreePermissionTest extends AbstractPrincipalBasedTest {
         assertTrue(v1Tree.exists());
 
         AbstractTreePermission tp = getTreePermission(v1Path);
-        TreePermission frozenTp = tp.getChildPermission(VersionConstants.JCR_FROZENNODE, getTreeProvider().asNodeState(v1Tree.getChild(JCR_FROZENNODE)));
+        TreePermission frozenTp = tp.getChildPermission(VersionConstants.JCR_FROZENNODE,
+            getTreeProvider().asNodeState(v1Tree.getChild(JCR_FROZENNODE)));
 
         assertSame(tp.getTree(), ((AbstractTreePermission) frozenTp).getTree());
     }
 
     @Test
     public void testVersionedChildNode() {
-        String path = PathUtils.concat(getPathFromReference(contentPath, JCR_BASEVERSION), VersionConstants.JCR_FROZENNODE, PathUtils.getName(childPath));
+        String path = PathUtils.concat(getPathFromReference(contentPath, JCR_BASEVERSION),
+            VersionConstants.JCR_FROZENNODE, PathUtils.getName(childPath));
         AbstractTreePermission tp = getTreePermission(path);
 
         String versionedChildName = PathUtils.getName(grandchildPath);
@@ -192,14 +200,19 @@ public class VersionTreePermissionTest extends AbstractPrincipalBasedTest {
         Tree versionedChildTree = root.getTree(versionedChildPath);
         assertEquals(NT_VERSIONEDCHILD, TreeUtil.getPrimaryTypeName(versionedChildTree));
 
-        TreePermission versionedChildTp = tp.getChildPermission(versionedChildName, getTreeProvider().asNodeState(versionedChildTree));
+        TreePermission versionedChildTp = tp.getChildPermission(versionedChildName,
+            getTreeProvider().asNodeState(versionedChildTree));
         assertTrue(versionedChildTp instanceof AbstractTreePermission);
 
-        Tree childVersionHistory = root.getTree(getPathFromReference(versionedChildPath, VersionConstants.JCR_CHILD_VERSION_HISTORY));
+        Tree childVersionHistory = root.getTree(
+            getPathFromReference(versionedChildPath, VersionConstants.JCR_CHILD_VERSION_HISTORY));
         assertTrue(childVersionHistory.exists());
-        Tree versionable = ReadOnlyVersionManager.getInstance(root, getNamePathMapper()).getVersionable(childVersionHistory, root.getContentSession().getWorkspaceName());
+        Tree versionable = ReadOnlyVersionManager.getInstance(root, getNamePathMapper())
+                                                 .getVersionable(childVersionHistory,
+                                                     root.getContentSession().getWorkspaceName());
 
-        assertEquals(versionable.getPath(), ((AbstractTreePermission) versionedChildTp).getTree().getPath());
+        assertEquals(versionable.getPath(),
+            ((AbstractTreePermission) versionedChildTp).getTree().getPath());
     }
 
     @Test
@@ -208,7 +221,8 @@ public class VersionTreePermissionTest extends AbstractPrincipalBasedTest {
         root.commit();
         permissionProvider.refresh();
 
-        String path = PathUtils.concat(getPathFromReference(grandchildPath, JCR_BASEVERSION), JCR_FROZENNODE);
+        String path = PathUtils.concat(getPathFromReference(grandchildPath, JCR_BASEVERSION),
+            JCR_FROZENNODE);
         AbstractTreePermission tp = getTreePermission(path);
 
         String versionedChildName = PathUtils.getName(TEST_OAK_PATH);
@@ -216,10 +230,12 @@ public class VersionTreePermissionTest extends AbstractPrincipalBasedTest {
         Tree versionedChildTree = root.getTree(versionedChildPath);
         assertEquals(NT_VERSIONEDCHILD, TreeUtil.getPrimaryTypeName(versionedChildTree));
 
-        TreePermission versionedChildTp = tp.getChildPermission(versionedChildName, getTreeProvider().asNodeState(versionedChildTree));
+        TreePermission versionedChildTp = tp.getChildPermission(versionedChildName,
+            getTreeProvider().asNodeState(versionedChildTree));
         assertTrue(versionedChildTp instanceof AbstractTreePermission);
 
-        assertEquals(TEST_OAK_PATH, ((AbstractTreePermission) versionedChildTp).getTree().getPath());
+        assertEquals(TEST_OAK_PATH,
+            ((AbstractTreePermission) versionedChildTp).getTree().getPath());
         assertTrue(versionedChildTp.canRead());
         // version-mgt permission still granted because it is not stored on the removed node
         assertTrue(versionedChildTp.isGranted(Permissions.VERSION_MANAGEMENT));
@@ -228,13 +244,15 @@ public class VersionTreePermissionTest extends AbstractPrincipalBasedTest {
 
     @Test
     public void testGetChildPermissionCopiedChild() {
-        String frozenPath = PathUtils.concat(getPathFromReference(contentPath, JCR_BASEVERSION), JCR_FROZENNODE);
+        String frozenPath = PathUtils.concat(getPathFromReference(contentPath, JCR_BASEVERSION),
+            JCR_FROZENNODE);
         AbstractTreePermission tp = getTreePermission(frozenPath);
 
         String copiedChildName = PathUtils.getName(childPath);
         Tree copiedChildTree = root.getTree(PathUtils.concat(frozenPath, copiedChildName));
 
-        TreePermission copiedChildTp = tp.getChildPermission(copiedChildName, getTreeProvider().asNodeState(copiedChildTree));
+        TreePermission copiedChildTp = tp.getChildPermission(copiedChildName,
+            getTreeProvider().asNodeState(copiedChildTree));
         assertTrue(copiedChildTp instanceof AbstractTreePermission);
 
         assertEquals(childPath, ((AbstractTreePermission) copiedChildTp).getTree().getPath());
@@ -278,17 +296,20 @@ public class VersionTreePermissionTest extends AbstractPrincipalBasedTest {
 
     @Test
     public void testIsGrantedFrozenNode() {
-        String frozenPath = PathUtils.concat(getPathFromReference(contentPath, JCR_BASEVERSION), JCR_FROZENNODE);
+        String frozenPath = PathUtils.concat(getPathFromReference(contentPath, JCR_BASEVERSION),
+            JCR_FROZENNODE);
         AbstractTreePermission tp = getTreePermission(frozenPath);
         assertFalse(tp.canRead());
         assertFalse(tp.isGranted(Permissions.VERSION_MANAGEMENT));
 
-        frozenPath = PathUtils.concat(getPathFromReference(grandchildPath, JCR_BASEVERSION), JCR_FROZENNODE);
+        frozenPath = PathUtils.concat(getPathFromReference(grandchildPath, JCR_BASEVERSION),
+            JCR_FROZENNODE);
         tp = getTreePermission(frozenPath);
         assertTrue(tp.canRead());
         assertFalse(tp.isGranted(Permissions.VERSION_MANAGEMENT));
 
-        frozenPath = PathUtils.concat(getPathFromReference(TEST_OAK_PATH, JCR_BASEVERSION), JCR_FROZENNODE);
+        frozenPath = PathUtils.concat(getPathFromReference(TEST_OAK_PATH, JCR_BASEVERSION),
+            JCR_FROZENNODE);
         tp = getTreePermission(frozenPath);
         assertTrue(tp.canRead());
         assertTrue(tp.isGranted(Permissions.VERSION_MANAGEMENT));
@@ -296,7 +317,9 @@ public class VersionTreePermissionTest extends AbstractPrincipalBasedTest {
 
     @Test
     public void testIsGrantedCopiedChild() {
-        String copiedChildPath = PathUtils.concat(getPathFromReference(contentPath, JCR_BASEVERSION), JCR_FROZENNODE, PathUtils.getName(childPath));
+        String copiedChildPath = PathUtils.concat(
+            getPathFromReference(contentPath, JCR_BASEVERSION), JCR_FROZENNODE,
+            PathUtils.getName(childPath));
         assertTrue(root.getTree(copiedChildPath).exists());
 
         AbstractTreePermission tp = getTreePermission(copiedChildPath);
@@ -306,7 +329,9 @@ public class VersionTreePermissionTest extends AbstractPrincipalBasedTest {
 
     @Test
     public void testIsGrantedVersionedChild() {
-        String versionedChildPath = PathUtils.concat(getPathFromReference(grandchildPath, JCR_BASEVERSION), JCR_FROZENNODE, PathUtils.getName(TEST_OAK_PATH));
+        String versionedChildPath = PathUtils.concat(
+            getPathFromReference(grandchildPath, JCR_BASEVERSION), JCR_FROZENNODE,
+            PathUtils.getName(TEST_OAK_PATH));
         assertTrue(root.getTree(versionedChildPath).exists());
 
         AbstractTreePermission tp = getTreePermission(versionedChildPath);

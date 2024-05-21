@@ -19,8 +19,8 @@
 
 package org.apache.jackrabbit.oak.segment.scheduler;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static java.util.concurrent.Executors.newFixedThreadPool;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.junit.Assert.assertNotNull;
 
 import java.util.List;
@@ -29,7 +29,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.segment.RecordId;
@@ -52,19 +51,19 @@ public class LockBasedSchedulerTest {
 
     /**
      * OAK-7162
-     *
-     * This test guards against race conditions which may happen when the head
-     * state in {@link Revisions} is changed from outside the scheduler. If a
-     * race condition happens at that point, data from a single commit will be
-     * lost.
+     * <p>
+     * This test guards against race conditions which may happen when the head state in
+     * {@link Revisions} is changed from outside the scheduler. If a race condition happens at that
+     * point, data from a single commit will be lost.
      */
     @Test
     public void testSimulatedRaceOnRevisions() throws Exception {
         final MemoryStore ms = new MemoryStore();
         StatisticsProvider statsProvider = StatisticsProvider.NOOP;
         SegmentNodeStoreStats stats = new SegmentNodeStoreStats(statsProvider);
-        final LockBasedScheduler scheduler = LockBasedScheduler.builder(ms.getRevisions(), ms.getReader(), stats)
-                .build();
+        final LockBasedScheduler scheduler = LockBasedScheduler.builder(ms.getRevisions(),
+                                                                   ms.getReader(), stats)
+                                                               .build();
 
         final RecordId initialHead = ms.getRevisions().getHead();
         ExecutorService executorService = newFixedThreadPool(10);
@@ -100,8 +99,8 @@ public class LockBasedSchedulerTest {
 
             for (Future<?> result : results) {
                 assertNotNull(
-                        "PropertyState must not be null! The corresponding commit got lost because of a race condition.",
-                        result.get());
+                    "PropertyState must not be null! The corresponding commit got lost because of a race condition.",
+                    result.get());
             }
         } finally {
             new ExecutorCloser(executorService).close();

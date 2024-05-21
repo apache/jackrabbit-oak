@@ -19,10 +19,11 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene.util;
 
 /**
- * A parser for function-based indexes. It converts the human-readable function
- * definition (XPath) to the internal Polish notation.
+ * A parser for function-based indexes. It converts the human-readable function definition (XPath)
+ * to the internal Polish notation.
  */
-public class FunctionIndexProcessor extends org.apache.jackrabbit.oak.plugins.index.search.util.FunctionIndexProcessor {
+public class FunctionIndexProcessor extends
+    org.apache.jackrabbit.oak.plugins.index.search.util.FunctionIndexProcessor {
 
     private FunctionIndexProcessor(String function) {
         super(function);

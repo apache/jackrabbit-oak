@@ -16,8 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import java.util.concurrent.TimeUnit;
+import static org.junit.Assert.assertNotNull;
 
+import java.util.concurrent.TimeUnit;
 import org.apache.jackrabbit.oak.composite.CompositeNodeStore;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
@@ -26,8 +27,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import static org.junit.Assert.assertNotNull;
 
 public class CompositeCheckpointTest {
 
@@ -38,14 +37,14 @@ public class CompositeCheckpointTest {
     @Before
     public void init() {
         MountInfoProvider mip = Mounts.newBuilder()
-                .readOnlyMount("mnt", "/mnt")
-                .build();
+                                      .readOnlyMount("mnt", "/mnt")
+                                      .build();
 
         global = new DocumentNodeStoreBuilder<>().build();
 
         composite = new CompositeNodeStore.Builder(mip, global)
-                .addMount("mnt", new MemoryNodeStore())
-                .build();
+            .addMount("mnt", new MemoryNodeStore())
+            .build();
     }
 
     @After
@@ -58,7 +57,7 @@ public class CompositeCheckpointTest {
         Revision r = global.getHeadRevision().getRevision(global.getClusterId());
         assertNotNull(r);
         String result = global.getMBean().createCheckpoint(
-                r.toString(), TimeUnit.HOURS.toMillis(1), false);
+            r.toString(), TimeUnit.HOURS.toMillis(1), false);
         String checkpoint = result.substring(result.indexOf("[") + 1, result.indexOf("]"));
         assertNotNull(composite.retrieve(checkpoint));
     }

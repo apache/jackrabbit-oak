@@ -26,12 +26,11 @@ package org.apache.lucene.codecs.lucene40;
  */
 
 import java.io.IOException;
-
 import org.apache.lucene.codecs.CodecUtil;
 import org.apache.lucene.codecs.FieldInfosFormat;
 import org.apache.lucene.codecs.FieldInfosReader;
 import org.apache.lucene.codecs.FieldInfosWriter;
-import org.apache.lucene.store.DataOutput; // javadoc
+import org.apache.lucene.store.DataOutput;
 
 /**
  * Lucene 4.0 Field Infos format.
@@ -77,7 +76,7 @@ import org.apache.lucene.store.DataOutput; // javadoc
  *    </li>
  *    <li>DocValuesBits: a byte containing per-document value types. The type
  *        recorded as two four-bit integers, with the high-order bits representing
- *        <code>norms</code> options, and the low-order bits representing 
+ *        <code>norms</code> options, and the low-order bits representing
  *        {@code DocValues} options. Each four-bit integer can be decoded as such:
  *        <ul>
  *          <li>0: no DocValues for this field.</li>
@@ -104,34 +103,39 @@ import org.apache.lucene.store.DataOutput; // javadoc
  */
 @Deprecated
 public class Lucene40FieldInfosFormat extends FieldInfosFormat {
-  private final FieldInfosReader reader = new Lucene40FieldInfosReader();
-  
-  /** Sole constructor. */
-  public Lucene40FieldInfosFormat() {
-  }
 
-  @Override
-  public FieldInfosReader getFieldInfosReader() throws IOException {
-    return reader;
-  }
+    private final FieldInfosReader reader = new Lucene40FieldInfosReader();
 
-  @Override
-  public FieldInfosWriter getFieldInfosWriter() throws IOException {
-    throw new UnsupportedOperationException("this codec can only be used for reading");
-  }
-  
-  /** Extension of field infos */
-  static final String FIELD_INFOS_EXTENSION = "fnm";
-  
-  static final String CODEC_NAME = "Lucene40FieldInfos";
-  static final int FORMAT_START = 0;
-  static final int FORMAT_CURRENT = FORMAT_START;
-  
-  static final byte IS_INDEXED = 0x1;
-  static final byte STORE_TERMVECTOR = 0x2;
-  static final byte STORE_OFFSETS_IN_POSTINGS = 0x4;
-  static final byte OMIT_NORMS = 0x10;
-  static final byte STORE_PAYLOADS = 0x20;
-  static final byte OMIT_TERM_FREQ_AND_POSITIONS = 0x40;
-  static final byte OMIT_POSITIONS = -128;
+    /**
+     * Sole constructor.
+     */
+    public Lucene40FieldInfosFormat() {
+    }
+
+    @Override
+    public FieldInfosReader getFieldInfosReader() throws IOException {
+        return reader;
+    }
+
+    @Override
+    public FieldInfosWriter getFieldInfosWriter() throws IOException {
+        throw new UnsupportedOperationException("this codec can only be used for reading");
+    }
+
+    /**
+     * Extension of field infos
+     */
+    static final String FIELD_INFOS_EXTENSION = "fnm";
+
+    static final String CODEC_NAME = "Lucene40FieldInfos";
+    static final int FORMAT_START = 0;
+    static final int FORMAT_CURRENT = FORMAT_START;
+
+    static final byte IS_INDEXED = 0x1;
+    static final byte STORE_TERMVECTOR = 0x2;
+    static final byte STORE_OFFSETS_IN_POSTINGS = 0x4;
+    static final byte OMIT_NORMS = 0x10;
+    static final byte STORE_PAYLOADS = 0x20;
+    static final byte OMIT_TERM_FREQ_AND_POSITIONS = 0x40;
+    static final byte OMIT_POSITIONS = -128;
 }

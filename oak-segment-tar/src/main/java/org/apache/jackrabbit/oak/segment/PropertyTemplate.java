@@ -21,22 +21,20 @@ package org.apache.jackrabbit.oak.segment;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.segment.CacheWeights.OBJECT_HEADER_SIZE;
 
+import org.apache.jackrabbit.guava.common.collect.ComparisonChain;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.jetbrains.annotations.NotNull;
 
-import org.apache.jackrabbit.guava.common.collect.ComparisonChain;
-
 /**
- * A property definition within a template (the property name, the type, and the
- * index within the list of properties for the given node).
+ * A property definition within a template (the property name, the type, and the index within the
+ * list of properties for the given node).
  */
 public class PropertyTemplate implements Comparable<PropertyTemplate> {
 
     /**
-     * The index of this property within the list of properties in the node
-     * template.
+     * The index of this property within the list of properties in the node template.
      */
     private final int index;
 
@@ -75,10 +73,10 @@ public class PropertyTemplate implements Comparable<PropertyTemplate> {
     public int compareTo(@NotNull PropertyTemplate template) {
         checkNotNull(template);
         return ComparisonChain.start()
-                .compare(hashCode(), template.hashCode()) // important
-                .compare(name, template.name)
-                .compare(type, template.type)
-                .result();
+                              .compare(hashCode(), template.hashCode()) // important
+                              .compare(name, template.name)
+                              .compare(type, template.type)
+                              .result();
     }
 
     //------------------------------------------------------------< Object >--
@@ -89,7 +87,7 @@ public class PropertyTemplate implements Comparable<PropertyTemplate> {
             return true;
         } else if (object instanceof PropertyTemplate) {
             PropertyTemplate that = (PropertyTemplate) object;
-            return name.equals(that.name) && type.equals(that.type); 
+            return name.equals(that.name) && type.equals(that.type);
         } else {
             return false;
         }

@@ -18,10 +18,22 @@
  */
 package org.apache.jackrabbit.oak.indexversion;
 
+import static org.apache.jackrabbit.commons.JcrUtils.getOrCreateByPath;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.MatcherAssert.assertThat;
+
 import ch.qos.logback.classic.Level;
 import co.elastic.clients.elasticsearch._types.ExpandWildcard;
 import co.elastic.clients.elasticsearch.cat.IndicesResponse;
 import co.elastic.clients.elasticsearch.cat.indices.IndicesRecord;
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+import javax.jcr.Node;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
@@ -40,25 +52,13 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Assert;
 import org.junit.Test;
 
-import javax.jcr.Node;
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-
-import static org.apache.jackrabbit.commons.JcrUtils.getOrCreateByPath;
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.MatcherAssert.assertThat;
-
 public class ElasticPurgeOldIndexVersionTest extends ElasticAbstractIndexCommandTest {
 
     private final static String FOO1_INDEX_PATH = "/oak:index/fooIndex1";
 
-    private void createCustomIndex(String path, int ootbVersion, int customVersion, boolean asyncIndex) throws IOException,
-            RepositoryException {
+    private void createCustomIndex(String path, int ootbVersion, int customVersion,
+        boolean asyncIndex) throws IOException,
+        RepositoryException {
         ElasticIndexDefinitionBuilder idxBuilder = new ElasticIndexDefinitionBuilder();
         if (!asyncIndex) {
             idxBuilder.noAsync();
@@ -66,7 +66,9 @@ public class ElasticPurgeOldIndexVersionTest extends ElasticAbstractIndexCommand
         idxBuilder.indexRule("nt:base").property("foo").propertyIndex();
 
         Session session = fixture.getAdminSession();
-        String indexName = customVersion != 0 ? path + "-" + ootbVersion + "-custom-" + customVersion : path + "-" + ootbVersion;
+        String indexName =
+            customVersion != 0 ? path + "-" + ootbVersion + "-custom-" + customVersion
+                : path + "-" + ootbVersion;
         Node fooIndex = getOrCreateByPath(indexName, "oak:QueryIndexDefinition", session);
 
         idxBuilder.build(fooIndex);
@@ -107,24 +109,39 @@ public class ElasticPurgeOldIndexVersionTest extends ElasticAbstractIndexCommand
             Assert.assertTrue(expectedRemoteIndexNames.contains(i.index()));
         }
 
-        Assert.assertFalse("Index:" + "fooIndex-2" + " deleted", indexRootNode.getChildNode("fooIndex-2").exists());
-        Assert.assertFalse("Index:" + "fooIndex-2-custom-1" + " deleted", indexRootNode.getChildNode("fooIndex-2-custom-1").exists());
-        Assert.assertFalse("Index:" + "fooIndex-3" + " deleted", indexRootNode.getChildNode("fooIndex-3").exists());
-        Assert.assertFalse("Index:" + "fooIndex-3-custom-1" + " deleted", indexRootNode.getChildNode("fooIndex-3-custom-1").exists());
-        Assert.assertFalse("Index:" + "fooIndex-3-custom-2" + " deleted", indexRootNode.getChildNode("fooIndex-3-custom-2").exists());
-        Assert.assertFalse("Index:" + "fooIndex" + " deleted", indexRootNode.getChildNode("fooIndex").exists());
-        Assert.assertEquals("disabled", indexRootNode.getChildNode("fooIndex-4").getProperty("type").getValue(Type.STRING));
-        Assert.assertEquals("elasticsearch", indexRootNode.getChildNode("fooIndex-4").getProperty(":originalType").getValue(Type.STRING));
-        Assert.assertFalse("Index:" + "fooIndex-4-custom-1" + " deleted", indexRootNode.getChildNode("fooIndex-4-custom-1").exists());
-        Assert.assertTrue("Index:" + "fooIndex-4-custom-2" + " deleted", indexRootNode.getChildNode("fooIndex-4-custom-2").exists());
+        Assert.assertFalse("Index:" + "fooIndex-2" + " deleted",
+            indexRootNode.getChildNode("fooIndex-2").exists());
+        Assert.assertFalse("Index:" + "fooIndex-2-custom-1" + " deleted",
+            indexRootNode.getChildNode("fooIndex-2-custom-1").exists());
+        Assert.assertFalse("Index:" + "fooIndex-3" + " deleted",
+            indexRootNode.getChildNode("fooIndex-3").exists());
+        Assert.assertFalse("Index:" + "fooIndex-3-custom-1" + " deleted",
+            indexRootNode.getChildNode("fooIndex-3-custom-1").exists());
+        Assert.assertFalse("Index:" + "fooIndex-3-custom-2" + " deleted",
+            indexRootNode.getChildNode("fooIndex-3-custom-2").exists());
+        Assert.assertFalse("Index:" + "fooIndex" + " deleted",
+            indexRootNode.getChildNode("fooIndex").exists());
+        Assert.assertEquals("disabled",
+            indexRootNode.getChildNode("fooIndex-4").getProperty("type").getValue(Type.STRING));
+        Assert.assertEquals("elasticsearch",
+            indexRootNode.getChildNode("fooIndex-4").getProperty(":originalType")
+                         .getValue(Type.STRING));
+        Assert.assertFalse("Index:" + "fooIndex-4-custom-1" + " deleted",
+            indexRootNode.getChildNode("fooIndex-4-custom-1").exists());
+        Assert.assertTrue("Index:" + "fooIndex-4-custom-2" + " deleted",
+            indexRootNode.getChildNode("fooIndex-4-custom-2").exists());
 
         runIndexPurgeCommand(true, 1, "");
         indexRootNode = fixture.getNodeStore().getRoot().getChildNode("oak:index");
 
         // check that the disabled base index is not deleted in the subsequent runs.
-        Assert.assertTrue("Index:" + "fooIndex-4" + " deleted", indexRootNode.getChildNode("fooIndex-4").exists());
-        Assert.assertEquals("disabled", indexRootNode.getChildNode("fooIndex-4").getProperty("type").getValue(Type.STRING));
-        Assert.assertEquals("elasticsearch", indexRootNode.getChildNode("fooIndex-4").getProperty(":originalType").getValue(Type.STRING));
+        Assert.assertTrue("Index:" + "fooIndex-4" + " deleted",
+            indexRootNode.getChildNode("fooIndex-4").exists());
+        Assert.assertEquals("disabled",
+            indexRootNode.getChildNode("fooIndex-4").getProperty("type").getValue(Type.STRING));
+        Assert.assertEquals("elasticsearch",
+            indexRootNode.getChildNode("fooIndex-4").getProperty(":originalType")
+                         .getValue(Type.STRING));
     }
 
     @Test
@@ -141,29 +158,42 @@ public class ElasticPurgeOldIndexVersionTest extends ElasticAbstractIndexCommand
         NodeStore store = fixture.getNodeStore();
         NodeBuilder rootBuilder = store.getRoot().builder();
 
-        rootBuilder.getChildNode("oak:index").getChildNode("fooIndex-3-custom-1").setProperty("type", "disabled");
-        rootBuilder.getChildNode("oak:index").getChildNode("fooIndex-3-custom-1").setProperty(":originalType", "elasticsearch");
-        rootBuilder.getChildNode("oak:index").getChildNode("fooIndex-4-custom-1").setProperty("type", "disabled");
+        rootBuilder.getChildNode("oak:index").getChildNode("fooIndex-3-custom-1")
+                   .setProperty("type", "disabled");
+        rootBuilder.getChildNode("oak:index").getChildNode("fooIndex-3-custom-1")
+                   .setProperty(":originalType", "elasticsearch");
+        rootBuilder.getChildNode("oak:index").getChildNode("fooIndex-4-custom-1")
+                   .setProperty("type", "disabled");
         store.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         runIndexPurgeCommand(true, 1, "/oak:index/fooIndex,/oak:index");
         NodeState indexRootNode = fixture.getNodeStore().getRoot().getChildNode("oak:index");
-        Assert.assertFalse("Index:" + "fooIndex-2" + " deleted", indexRootNode.getChildNode("fooIndex-2").exists());
-        Assert.assertFalse("Index:" + "fooIndex-2-custom-1" + " deleted", indexRootNode.getChildNode("fooIndex-2-custom-1").exists());
-        Assert.assertFalse("Index:" + "fooIndex-3" + " deleted", indexRootNode.getChildNode("fooIndex-3").exists());
-        Assert.assertFalse("Index:" + "fooIndex-3-custom-2" + " deleted", indexRootNode.getChildNode("fooIndex-3-custom-2").exists());
-        Assert.assertFalse("Index:" + "fooIndex" + " deleted", indexRootNode.getChildNode("fooIndex").exists());
-        Assert.assertEquals("disabled", indexRootNode.getChildNode("fooIndex-4").getProperty("type").getValue(Type.STRING));
-        Assert.assertTrue("Index:" + "fooIndex-3-custom-1" + " deleted", indexRootNode.getChildNode("fooIndex-3-custom-1").exists());
-        Assert.assertTrue("Index:" + "fooIndex-4-custom-1" + " deleted", indexRootNode.getChildNode("fooIndex-4-custom-1").exists());
-        Assert.assertTrue("Index:" + "fooIndex-4-custom-2" + " deleted", indexRootNode.getChildNode("fooIndex-4-custom-2").exists());
+        Assert.assertFalse("Index:" + "fooIndex-2" + " deleted",
+            indexRootNode.getChildNode("fooIndex-2").exists());
+        Assert.assertFalse("Index:" + "fooIndex-2-custom-1" + " deleted",
+            indexRootNode.getChildNode("fooIndex-2-custom-1").exists());
+        Assert.assertFalse("Index:" + "fooIndex-3" + " deleted",
+            indexRootNode.getChildNode("fooIndex-3").exists());
+        Assert.assertFalse("Index:" + "fooIndex-3-custom-2" + " deleted",
+            indexRootNode.getChildNode("fooIndex-3-custom-2").exists());
+        Assert.assertFalse("Index:" + "fooIndex" + " deleted",
+            indexRootNode.getChildNode("fooIndex").exists());
+        Assert.assertEquals("disabled",
+            indexRootNode.getChildNode("fooIndex-4").getProperty("type").getValue(Type.STRING));
+        Assert.assertTrue("Index:" + "fooIndex-3-custom-1" + " deleted",
+            indexRootNode.getChildNode("fooIndex-3-custom-1").exists());
+        Assert.assertTrue("Index:" + "fooIndex-4-custom-1" + " deleted",
+            indexRootNode.getChildNode("fooIndex-4-custom-1").exists());
+        Assert.assertTrue("Index:" + "fooIndex-4-custom-2" + " deleted",
+            indexRootNode.getChildNode("fooIndex-4-custom-2").exists());
     }
 
     @Test
     public void noDeleteIfActiveIndexTimeThresholdNotMeet() throws Exception {
-        LogCustomizer custom = LogCustomizer.forLogger("org.apache.jackrabbit.oak.indexversion.IndexVersionOperation")
-                .enable(Level.INFO)
-                .create();
+        LogCustomizer custom = LogCustomizer.forLogger(
+                                                "org.apache.jackrabbit.oak.indexversion.IndexVersionOperation")
+                                            .enable(Level.INFO)
+                                            .create();
         try {
             custom.starting();
             createTestData(false);
@@ -184,7 +214,8 @@ public class ElasticPurgeOldIndexVersionTest extends ElasticAbstractIndexCommand
 
             List<String> logs = custom.getLogs();
             assertThat(logs.toString(),
-                    containsString("The active index '/oak:index/fooIndex-4-custom-2' indexing time isn't old enough"));
+                containsString(
+                    "The active index '/oak:index/fooIndex-4-custom-2' indexing time isn't old enough"));
 
             NodeState indexRootNode = fixture.getNodeStore().getRoot().getChildNode("oak:index");
             Assert.assertTrue(indexRootNode.getChildNode("fooIndex-2-custom-1").exists());
@@ -202,9 +233,10 @@ public class ElasticPurgeOldIndexVersionTest extends ElasticAbstractIndexCommand
     // but before which is fixed, the purging will not do deletion in that case
     @Test
     public void noDeleteIfActiveIndexTimeMissing() throws Exception {
-        LogCustomizer custom = LogCustomizer.forLogger("org.apache.jackrabbit.oak.indexversion.IndexVersionOperation")
-                .enable(Level.INFO)
-                .create();
+        LogCustomizer custom = LogCustomizer.forLogger(
+                                                "org.apache.jackrabbit.oak.indexversion.IndexVersionOperation")
+                                            .enable(Level.INFO)
+                                            .create();
         try {
             custom.starting();
             createTestData(false);
@@ -218,9 +250,9 @@ public class ElasticPurgeOldIndexVersionTest extends ElasticAbstractIndexCommand
             NodeStore store = fixture.getNodeStore();
             NodeBuilder rootBuilder = store.getRoot().builder();
             rootBuilder.getChildNode("oak:index")
-                    .getChildNode("fooIndex-4-custom-2")
-                    .getChildNode(IndexDefinition.STATUS_NODE)
-                    .removeProperty(IndexDefinition.REINDEX_COMPLETION_TIMESTAMP);
+                       .getChildNode("fooIndex-4-custom-2")
+                       .getChildNode(IndexDefinition.STATUS_NODE)
+                       .removeProperty(IndexDefinition.REINDEX_COMPLETION_TIMESTAMP);
             store.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
             IndicesResponse indicesRes = getListOfRemoteIndexes();
@@ -228,14 +260,14 @@ public class ElasticPurgeOldIndexVersionTest extends ElasticAbstractIndexCommand
             Assert.assertEquals(7, indicesRes.valueBody().size());
             runIndexPurgeCommand(true, 1, "");
 
-
             indicesRes = getListOfRemoteIndexes();
             // 7 indices in ES remote
             Assert.assertEquals(7, indicesRes.valueBody().size());
 
             List<String> logs = custom.getLogs();
             assertThat(logs.toString(),
-                    containsString("reindexCompletionTimestamp property is not set for index /oak:index/fooIndex-4-custom-2"));
+                containsString(
+                    "reindexCompletionTimestamp property is not set for index /oak:index/fooIndex-4-custom-2"));
 
             NodeState indexRootNode = fixture.getNodeStore().getRoot().getChildNode("oak:index");
             Assert.assertTrue(indexRootNode.getChildNode("fooIndex-2-custom-1").exists());
@@ -252,9 +284,10 @@ public class ElasticPurgeOldIndexVersionTest extends ElasticAbstractIndexCommand
 
     @Test
     public void noDeleteIfInvalidIndexOperationVersion() throws Exception {
-        LogCustomizer custom = LogCustomizer.forLogger("org.apache.jackrabbit.oak.indexversion.IndexVersionOperation")
-                .enable(Level.INFO)
-                .create();
+        LogCustomizer custom = LogCustomizer.forLogger(
+                                                "org.apache.jackrabbit.oak.indexversion.IndexVersionOperation")
+                                            .enable(Level.INFO)
+                                            .create();
         try {
             custom.starting();
             createTestData(false);
@@ -275,10 +308,9 @@ public class ElasticPurgeOldIndexVersionTest extends ElasticAbstractIndexCommand
             // 1 indices in ES remote
             Assert.assertEquals(1, indicesRes.valueBody().size());
 
-
             List<String> logs = custom.getLogs();
             assertThat("custom fooIndex don't have product version ", logs.toString(),
-                    containsString("Repository don't have base index:"));
+                containsString("Repository don't have base index:"));
         } finally {
             custom.finished();
         }
@@ -312,7 +344,6 @@ public class ElasticPurgeOldIndexVersionTest extends ElasticAbstractIndexCommand
 
         NodeState indexRootNode = fixture.getNodeStore().getRoot().getChildNode("oak:index");
 
-
         // Assert names of Remote ES indexes present
         List<String> expectedRemoteIndexNames = new ArrayList<>();
 
@@ -324,32 +355,44 @@ public class ElasticPurgeOldIndexVersionTest extends ElasticAbstractIndexCommand
         expectedRemoteIndexNames.add(getRemoteIndexName("fooIndex1-3-custom-1", indexRootNode));
         expectedRemoteIndexNames.add(getRemoteIndexName("fooIndex1-3-custom-2", indexRootNode));
 
-
         Assert.assertEquals(expectedRemoteIndexNames.size(), indicesRes.valueBody().size());
 
         for (IndicesRecord i : indicesRes.valueBody()) {
             Assert.assertTrue(expectedRemoteIndexNames.contains(i.index()));
         }
 
-        Assert.assertFalse("Index:" + "fooIndex-2" + " deleted", indexRootNode.getChildNode("fooIndex-2").exists());
-        Assert.assertFalse("Index:" + "fooIndex-2-custom-1" + " deleted", indexRootNode.getChildNode("fooIndex-2-custom-1").exists());
-        Assert.assertFalse("Index:" + "fooIndex-3" + " deleted", indexRootNode.getChildNode("fooIndex-3").exists());
-        Assert.assertFalse("Index:" + "fooIndex-3-custom-1" + " deleted", indexRootNode.getChildNode("fooIndex-3-custom-1").exists());
-        Assert.assertFalse("Index:" + "fooIndex-3-custom-2" + " deleted", indexRootNode.getChildNode("fooIndex-3-custom-2").exists());
-        Assert.assertFalse("Index:" + "fooIndex" + " deleted", indexRootNode.getChildNode("fooIndex").exists());
-        Assert.assertEquals("disabled", indexRootNode.getChildNode("fooIndex-4").getProperty("type").getValue(Type.STRING));
-        Assert.assertEquals("elasticsearch", indexRootNode.getChildNode("fooIndex-4").getProperty(":originalType").getValue(Type.STRING));
-        Assert.assertFalse("Index:" + "fooIndex-4-custom-1" + " deleted", indexRootNode.getChildNode("fooIndex-4-custom-1").exists());
-        Assert.assertTrue("Index:" + "fooIndex-4-custom-2" + " deleted", indexRootNode.getChildNode("fooIndex-4-custom-2").exists());
+        Assert.assertFalse("Index:" + "fooIndex-2" + " deleted",
+            indexRootNode.getChildNode("fooIndex-2").exists());
+        Assert.assertFalse("Index:" + "fooIndex-2-custom-1" + " deleted",
+            indexRootNode.getChildNode("fooIndex-2-custom-1").exists());
+        Assert.assertFalse("Index:" + "fooIndex-3" + " deleted",
+            indexRootNode.getChildNode("fooIndex-3").exists());
+        Assert.assertFalse("Index:" + "fooIndex-3-custom-1" + " deleted",
+            indexRootNode.getChildNode("fooIndex-3-custom-1").exists());
+        Assert.assertFalse("Index:" + "fooIndex-3-custom-2" + " deleted",
+            indexRootNode.getChildNode("fooIndex-3-custom-2").exists());
+        Assert.assertFalse("Index:" + "fooIndex" + " deleted",
+            indexRootNode.getChildNode("fooIndex").exists());
+        Assert.assertEquals("disabled",
+            indexRootNode.getChildNode("fooIndex-4").getProperty("type").getValue(Type.STRING));
+        Assert.assertEquals("elasticsearch",
+            indexRootNode.getChildNode("fooIndex-4").getProperty(":originalType")
+                         .getValue(Type.STRING));
+        Assert.assertFalse("Index:" + "fooIndex-4-custom-1" + " deleted",
+            indexRootNode.getChildNode("fooIndex-4-custom-1").exists());
+        Assert.assertTrue("Index:" + "fooIndex-4-custom-2" + " deleted",
+            indexRootNode.getChildNode("fooIndex-4-custom-2").exists());
 
-        Assert.assertTrue("Index:" + "fooIndex1-3-custom-1" + " deleted", indexRootNode.getChildNode("fooIndex1-3-custom-1").exists());
+        Assert.assertTrue("Index:" + "fooIndex1-3-custom-1" + " deleted",
+            indexRootNode.getChildNode("fooIndex1-3-custom-1").exists());
     }
 
     @Test
     public void noDeleteIfNonReadWriteMode() throws Exception {
-        LogCustomizer custom = LogCustomizer.forLogger("org.apache.jackrabbit.oak.run.PurgeOldIndexVersionCommand")
-                .enable(Level.INFO)
-                .create();
+        LogCustomizer custom = LogCustomizer.forLogger(
+                                                "org.apache.jackrabbit.oak.run.PurgeOldIndexVersionCommand")
+                                            .enable(Level.INFO)
+                                            .create();
         try {
             custom.starting();
             createTestData(false);
@@ -372,13 +415,14 @@ public class ElasticPurgeOldIndexVersionTest extends ElasticAbstractIndexCommand
 
             List<String> logs = custom.getLogs();
             assertThat("repository is opened in read only mode ", logs.toString(),
-                    containsString("Repository connected in read-only mode."));
+                containsString("Repository connected in read-only mode."));
         } finally {
             custom.finished();
         }
     }
 
-    private void runIndexPurgeCommand(boolean readWrite, long threshold, String indexPaths) throws Exception {
+    private void runIndexPurgeCommand(boolean readWrite, long threshold, String indexPaths)
+        throws Exception {
         fixture.getAdminSession();
         fixture.getAsyncIndexUpdate("async").run();
         fixture.close();
@@ -393,7 +437,8 @@ public class ElasticPurgeOldIndexVersionTest extends ElasticAbstractIndexCommand
         argsList.add("--host=" + elasticRule.getElasticConnectionModel().getElasticHost());
         argsList.add("--port=" + elasticRule.getElasticConnectionModel().getElasticPort());
         argsList.add("--apiKeyId=" + elasticRule.getElasticConnectionModel().getElasticApiKey());
-        argsList.add("--apiKeySecret=" + elasticRule.getElasticConnectionModel().getElasticApiSecret());
+        argsList.add(
+            "--apiKeySecret=" + elasticRule.getElasticConnectionModel().getElasticApiSecret());
         argsList.add("--indexPrefix=" + elasticRule.getElasticConnectionModel().getIndexPrefix());
         argsList.add("--threshold=" + threshold);
         if (StringUtils.isNotEmpty(indexPaths)) {
@@ -406,13 +451,16 @@ public class ElasticPurgeOldIndexVersionTest extends ElasticAbstractIndexCommand
 
     private IndicesResponse getListOfRemoteIndexes() throws IOException {
         return elasticRule.getElasticConnection().getClient()
-                .cat().indices(r -> r
-                        .index(esConnection.getIndexPrefix() + "*")
-                        .expandWildcards(ExpandWildcard.Open));
+                          .cat().indices(r -> r
+                .index(esConnection.getIndexPrefix() + "*")
+                .expandWildcards(ExpandWildcard.Open));
     }
 
     private String getRemoteIndexName(String indexName, NodeState indexRootNode) {
-        return ElasticIndexNameHelper.getRemoteIndexName(esConnection.getIndexPrefix(), "/oak:index/" + indexName,
-                indexRootNode.getChildNode(indexName).getProperty(ElasticIndexDefinition.PROP_INDEX_NAME_SEED).getValue(Type.LONG));
+        return ElasticIndexNameHelper.getRemoteIndexName(esConnection.getIndexPrefix(),
+            "/oak:index/" + indexName,
+            indexRootNode.getChildNode(indexName)
+                         .getProperty(ElasticIndexDefinition.PROP_INDEX_NAME_SEED)
+                         .getValue(Type.LONG));
     }
 }

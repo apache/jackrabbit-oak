@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.spi.security.user.util;
 
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+
 import java.io.UnsupportedEncodingException;
 import java.security.Key;
 import java.security.MessageDigest;
@@ -25,7 +27,6 @@ import java.security.spec.InvalidKeySpecException;
 import java.security.spec.KeySpec;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
-
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
@@ -34,8 +35,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
 /**
  * Utility to generate and compare password hashes.
@@ -53,7 +52,7 @@ public final class PasswordUtil {
      * @since OAK 1.0
      */
     static final String PBKDF2_PREFIX = "PBKDF2";
-    
+
     public static final String DEFAULT_ALGORITHM = "SHA-256";
     public static final int DEFAULT_SALT_SIZE = 8;
     public static final int DEFAULT_ITERATIONS = 1000;
@@ -61,39 +60,43 @@ public final class PasswordUtil {
     /**
      * Avoid instantiation
      */
-    private PasswordUtil() {}
-
-    /**
-     * Generates a hash of the specified password with the default values
-     * for algorithm, salt-size and number of iterations.
-     *
-     * @param password The password to be hashed.
-     * @return The password hash.
-     * @throws NoSuchAlgorithmException If {@link #DEFAULT_ALGORITHM} is not supported.
-     * @throws UnsupportedEncodingException If utf-8 is not supported.
-     */
-    public static String buildPasswordHash(@NotNull String password) throws NoSuchAlgorithmException, UnsupportedEncodingException {
-        return buildPasswordHash(password, DEFAULT_ALGORITHM, DEFAULT_SALT_SIZE, DEFAULT_ITERATIONS);
+    private PasswordUtil() {
     }
 
     /**
-     * Generates a hash of the specified password using the specified algorithm,
-     * salt size and number of iterations into account.
+     * Generates a hash of the specified password with the default values for algorithm, salt-size
+     * and number of iterations.
      *
      * @param password The password to be hashed.
-     * @param algorithm The desired hash algorithm. If the algorith is
-     * {@code null} the {@link #DEFAULT_ALGORITHM} will be used.
-     * @param saltSize The desired salt size. If the specified integer is lower
-     * that {@link #DEFAULT_SALT_SIZE} the default is used.
-     * @param iterations The desired number of iterations. If the specified
-     * integer is lower than 1 the {@link #DEFAULT_ITERATIONS default} value is used.
-     * @return  The password hash.
-     * @throws NoSuchAlgorithmException If the specified algorithm is not supported.
+     * @return The password hash.
+     * @throws NoSuchAlgorithmException     If {@link #DEFAULT_ALGORITHM} is not supported.
+     * @throws UnsupportedEncodingException If utf-8 is not supported.
+     */
+    public static String buildPasswordHash(@NotNull String password)
+        throws NoSuchAlgorithmException, UnsupportedEncodingException {
+        return buildPasswordHash(password, DEFAULT_ALGORITHM, DEFAULT_SALT_SIZE,
+            DEFAULT_ITERATIONS);
+    }
+
+    /**
+     * Generates a hash of the specified password using the specified algorithm, salt size and
+     * number of iterations into account.
+     *
+     * @param password   The password to be hashed.
+     * @param algorithm  The desired hash algorithm. If the algorith is {@code null} the
+     *                   {@link #DEFAULT_ALGORITHM} will be used.
+     * @param saltSize   The desired salt size. If the specified integer is lower that
+     *                   {@link #DEFAULT_SALT_SIZE} the default is used.
+     * @param iterations The desired number of iterations. If the specified integer is lower than 1
+     *                   the {@link #DEFAULT_ITERATIONS default} value is used.
+     * @return The password hash.
+     * @throws NoSuchAlgorithmException     If the specified algorithm is not supported.
      * @throws UnsupportedEncodingException If utf-8 is not supported.
      */
     public static String buildPasswordHash(@NotNull String password,
-                                           @Nullable String algorithm,
-                                           int saltSize, int iterations) throws NoSuchAlgorithmException, UnsupportedEncodingException {
+        @Nullable String algorithm,
+        int saltSize, int iterations)
+        throws NoSuchAlgorithmException, UnsupportedEncodingException {
         checkNotNull(password);
         if (iterations < NO_ITERATIONS) {
             iterations = DEFAULT_ITERATIONS;
@@ -107,58 +110,62 @@ public final class PasswordUtil {
     }
 
     /**
-     * Same as {@link #buildPasswordHash(String, String, int, int)} but retrieving
-     * the parameters for hash generation from the specified configuration.
+     * Same as {@link #buildPasswordHash(String, String, int, int)} but retrieving the parameters
+     * for hash generation from the specified configuration.
      *
      * @param password The password to be hashed.
-     * @param config The configuration defining the details of the hash generation.
+     * @param config   The configuration defining the details of the hash generation.
      * @return The password hash.
-     * @throws NoSuchAlgorithmException If the specified algorithm is not supported.
+     * @throws NoSuchAlgorithmException     If the specified algorithm is not supported.
      * @throws UnsupportedEncodingException If utf-8 is not supported.
      */
     public static String buildPasswordHash(@NotNull String password,
-                                           @NotNull ConfigurationParameters config) throws NoSuchAlgorithmException, UnsupportedEncodingException {
+        @NotNull ConfigurationParameters config)
+        throws NoSuchAlgorithmException, UnsupportedEncodingException {
         checkNotNull(config);
-        String algorithm = config.getConfigValue(UserConstants.PARAM_PASSWORD_HASH_ALGORITHM, DEFAULT_ALGORITHM);
-        int iterations = config.getConfigValue(UserConstants.PARAM_PASSWORD_HASH_ITERATIONS, DEFAULT_ITERATIONS);
-        int saltSize = config.getConfigValue(UserConstants.PARAM_PASSWORD_SALT_SIZE, DEFAULT_SALT_SIZE);
+        String algorithm = config.getConfigValue(UserConstants.PARAM_PASSWORD_HASH_ALGORITHM,
+            DEFAULT_ALGORITHM);
+        int iterations = config.getConfigValue(UserConstants.PARAM_PASSWORD_HASH_ITERATIONS,
+            DEFAULT_ITERATIONS);
+        int saltSize = config.getConfigValue(UserConstants.PARAM_PASSWORD_SALT_SIZE,
+            DEFAULT_SALT_SIZE);
 
         return buildPasswordHash(password, algorithm, saltSize, iterations);
     }
 
     /**
-     * Returns {@code true} if the specified string doesn't start with a
-     * valid algorithm name in curly brackets.
+     * Returns {@code true} if the specified string doesn't start with a valid algorithm name in
+     * curly brackets.
      *
      * @param password The string to be tested.
-     * @return {@code true} if the specified string doesn't start with a
-     * valid algorithm name in curly brackets.
+     * @return {@code true} if the specified string doesn't start with a valid algorithm name in
+     * curly brackets.
      */
     public static boolean isPlainTextPassword(@Nullable String password) {
         return extractAlgorithm(password) == null;
     }
 
     /**
-     * Returns {@code true} if hash of the specified {@code password} equals the
-     * given hashed password.
+     * Returns {@code true} if hash of the specified {@code password} equals the given hashed
+     * password.
      *
      * @param hashedPassword Password hash.
-     * @param password The password to compare.
-     * @return If the hash created from the specified {@code password} equals
-     * the given {@code hashedPassword} string.
+     * @param password       The password to compare.
+     * @return If the hash created from the specified {@code password} equals the given
+     * {@code hashedPassword} string.
      */
     public static boolean isSame(@Nullable String hashedPassword, @NotNull char[] password) {
         return isSame(hashedPassword, String.valueOf(password));
     }
 
     /**
-     * Returns {@code true} if hash of the specified {@code password} equals the
-     * given hashed password.
+     * Returns {@code true} if hash of the specified {@code password} equals the given hashed
+     * password.
      *
      * @param hashedPassword Password hash.
-     * @param password The password to compare.
-     * @return If the hash created from the specified {@code password} equals
-     * the given {@code hashedPassword} string.
+     * @param password       The password to compare.
+     * @return If the hash created from the specified {@code password} equals the given
+     * {@code hashedPassword} string.
      */
     public static boolean isSame(@Nullable String hashedPassword, @NotNull String password) {
         if (hashedPassword == null) {
@@ -167,11 +174,11 @@ public final class PasswordUtil {
         try {
             String algorithm = extractAlgorithm(hashedPassword);
             if (algorithm != null) {
-                int startPos = algorithm.length()+2;
+                int startPos = algorithm.length() + 2;
                 String salt = extractSalt(hashedPassword, startPos);
                 int iterations = NO_ITERATIONS;
                 if (salt != null) {
-                    startPos += salt.length()+1;
+                    startPos += salt.length() + 1;
                     iterations = extractIterations(hashedPassword, startPos);
                 }
 
@@ -183,12 +190,13 @@ public final class PasswordUtil {
         }
         return false;
     }
-    
+
     //------------------------------------------------------------< private >---
+
     /**
-     * Compare two strings. The comparison is constant time: it will always loop
-     * over all characters and doesn't use conditional operations in the loop to
-     * make sure an attacker can not use a timing attack.
+     * Compare two strings. The comparison is constant time: it will always loop over all characters
+     * and doesn't use conditional operations in the loop to make sure an attacker can not use a
+     * timing attack.
      *
      * @param a
      * @param b
@@ -213,7 +221,8 @@ public final class PasswordUtil {
 
     @NotNull
     private static String generateHash(@NotNull String pwd, @NotNull String algorithm,
-                                       @Nullable String salt, int iterations) throws NoSuchAlgorithmException, UnsupportedEncodingException {
+        @Nullable String salt, int iterations)
+        throws NoSuchAlgorithmException, UnsupportedEncodingException {
         StringBuilder passwordHash = new StringBuilder();
         passwordHash.append('{').append(algorithm).append('}');
         if (!Strings.isNullOrEmpty(salt)) {
@@ -245,7 +254,7 @@ public final class PasswordUtil {
         random.nextBytes(salt);
         return convertBytesToHex(salt);
     }
-    
+
     /**
      * Convert a byte array to a hex encoded string.
      *
@@ -261,7 +270,7 @@ public final class PasswordUtil {
         }
         return res.toString();
     }
-    
+
     /**
      * Convert a hex encoded string to a byte array.
      *
@@ -277,7 +286,7 @@ public final class PasswordUtil {
         byte[] bytes = new byte[len / 2];
         for (int i = 0; i < bytes.length; i++) {
             bytes[i] = (byte) (
-                    (Character.digit(s.charAt(i + i), 16) << 4) + 
+                (Character.digit(s.charAt(i + i), 16) << 4) +
                     Character.digit(s.charAt(i + i + 1), 16));
         }
         return bytes;
@@ -285,22 +294,24 @@ public final class PasswordUtil {
 
     @NotNull
     private static String generatePBKDF2(@NotNull String pwd, @NotNull String salt,
-                                         @NotNull String algorithm, int iterations) throws NoSuchAlgorithmException {
+        @NotNull String algorithm, int iterations) throws NoSuchAlgorithmException {
         // for example PBKDF2WithHmacSHA1
         SecretKeyFactory factory = SecretKeyFactory.getInstance(algorithm);
         byte[] saltBytes = convertHexToBytes(salt);
-        KeySpec keyspec = new PBEKeySpec(pwd.toCharArray(), saltBytes, iterations, PBKDF2_KEY_LENGTH);
+        KeySpec keyspec = new PBEKeySpec(pwd.toCharArray(), saltBytes, iterations,
+            PBKDF2_KEY_LENGTH);
         try {
             Key key = factory.generateSecret(keyspec);
             byte[] bytes = key.getEncoded();
             return convertBytesToHex(bytes);
         } catch (InvalidKeySpecException e) {
             throw new NoSuchAlgorithmException(algorithm, e);
-        }  
+        }
     }
 
     @NotNull
-    private static String generateDigest(@NotNull String data, @NotNull String algorithm, int iterations) throws UnsupportedEncodingException, NoSuchAlgorithmException {
+    private static String generateDigest(@NotNull String data, @NotNull String algorithm,
+        int iterations) throws UnsupportedEncodingException, NoSuchAlgorithmException {
         byte[] bytes = data.getBytes(ENCODING);
         MessageDigest md = MessageDigest.getInstance(algorithm);
 
@@ -313,21 +324,21 @@ public final class PasswordUtil {
     }
 
     /**
-     * Extract the algorithm from the given crypted password string. Returns the
-     * algorithm or {@code null} if the given string doesn't have a
-     * leading {@code algorithm} such as created by {@code buildPasswordHash}
-     * or if the extracted string doesn't represent an available algorithm.
+     * Extract the algorithm from the given crypted password string. Returns the algorithm or
+     * {@code null} if the given string doesn't have a leading {@code algorithm} such as created by
+     * {@code buildPasswordHash} or if the extracted string doesn't represent an available
+     * algorithm.
      *
      * @param hashedPwd The password hash.
-     * @return The algorithm or {@code null} if the given string doesn't have a
-     * leading {@code algorithm} such as created by {@code buildPasswordHash}
-     * or if the extracted string isn't a supported algorithm.
+     * @return The algorithm or {@code null} if the given string doesn't have a leading
+     * {@code algorithm} such as created by {@code buildPasswordHash} or if the extracted string
+     * isn't a supported algorithm.
      */
     @Nullable
     private static String extractAlgorithm(@Nullable String hashedPwd) {
         if (!Strings.isNullOrEmpty(hashedPwd)) {
             int end = hashedPwd.indexOf('}');
-            if (hashedPwd.charAt(0) == '{' && end > 0 && end < hashedPwd.length()-1) {
+            if (hashedPwd.charAt(0) == '{' && end > 0 && end < hashedPwd.length() - 1) {
                 String algorithm = hashedPwd.substring(1, end);
                 try {
                     if (algorithm.startsWith(PBKDF2_PREFIX)) {

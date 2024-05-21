@@ -16,19 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.AbstractExternalAuthTest;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncHandler;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncHandler;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.SyncHandlerMapping;
-import org.apache.jackrabbit.oak.spi.security.user.DynamicMembershipProvider;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.util.Collections;
-import java.util.Map;
-
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncConfigImpl.PARAM_GROUP_DYNAMIC_GROUPS;
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncConfigImpl.PARAM_NAME;
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP;
@@ -40,6 +27,18 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+
+import java.util.Collections;
+import java.util.Map;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.AbstractExternalAuthTest;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncHandler;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncHandler;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.SyncHandlerMapping;
+import org.apache.jackrabbit.oak.spi.security.user.DynamicMembershipProvider;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 public class DynamicGroupMembershipServiceTest extends AbstractExternalAuthTest {
 
@@ -71,47 +70,54 @@ public class DynamicGroupMembershipServiceTest extends AbstractExternalAuthTest 
             super.after();
         }
     }
-    
+
     private static Map<String, String> getMappingParams() {
         return ImmutableMap.of(PARAM_IDP_NAME, IDP_VALID_AM, PARAM_SYNC_HANDLER_NAME, "sh");
     }
 
     private static Map<String, Object> getSyncHandlerParams(boolean enableDynamicGroups) {
         return ImmutableMap.of(
-                PARAM_USER_DYNAMIC_MEMBERSHIP, true,
-                PARAM_NAME, "sh",
-                PARAM_GROUP_DYNAMIC_GROUPS, enableDynamicGroups);
+            PARAM_USER_DYNAMIC_MEMBERSHIP, true,
+            PARAM_NAME, "sh",
+            PARAM_GROUP_DYNAMIC_GROUPS, enableDynamicGroups);
     }
-    
+
     @Test
     public void testNotEnabled() {
-        assertSame(DynamicMembershipProvider.EMPTY, service.getDynamicMembershipProvider(root, getUserManager(root), getNamePathMapper()));
+        assertSame(DynamicMembershipProvider.EMPTY,
+            service.getDynamicMembershipProvider(root, getUserManager(root), getNamePathMapper()));
     }
 
     @Test
     public void testDynamicMembershipNoDynamicGroups() {
-        context.registerService(SyncHandler.class, new DefaultSyncHandler(), getSyncHandlerParams(false));
+        context.registerService(SyncHandler.class, new DefaultSyncHandler(),
+            getSyncHandlerParams(false));
         assertTrue(scTracker.isEnabled());
 
-        context.registerService(SyncHandlerMapping.class, new SyncHandlerMapping() {}, getMappingParams());
+        context.registerService(SyncHandlerMapping.class, new SyncHandlerMapping() {
+        }, getMappingParams());
 
         assertFalse(scTracker.hasDynamicGroupsEnabled());
         assertTrue(scTracker.getIdpNamesWithDynamicGroups().isEmpty());
-        
-        assertSame(DynamicMembershipProvider.EMPTY, service.getDynamicMembershipProvider(root, getUserManager(root), getNamePathMapper()));
+
+        assertSame(DynamicMembershipProvider.EMPTY,
+            service.getDynamicMembershipProvider(root, getUserManager(root), getNamePathMapper()));
     }
 
     @Test
     public void testDynamicMembershipAndDynamicGroups() {
-        context.registerService(SyncHandler.class, new DefaultSyncHandler(), getSyncHandlerParams(true));
+        context.registerService(SyncHandler.class, new DefaultSyncHandler(),
+            getSyncHandlerParams(true));
         assertTrue(scTracker.isEnabled());
 
-        context.registerService(SyncHandlerMapping.class, new SyncHandlerMapping() {}, getMappingParams());
+        context.registerService(SyncHandlerMapping.class, new SyncHandlerMapping() {
+        }, getMappingParams());
 
         assertTrue(scTracker.hasDynamicGroupsEnabled());
         assertEquals(Collections.singleton(IDP_VALID_AM), scTracker.getIdpNamesWithDynamicGroups());
-        
-        DynamicMembershipProvider dmp = service.getDynamicMembershipProvider(root, getUserManager(root), getNamePathMapper());
+
+        DynamicMembershipProvider dmp = service.getDynamicMembershipProvider(root,
+            getUserManager(root), getNamePathMapper());
         assertNotSame(DynamicMembershipProvider.EMPTY, dmp);
         assertTrue(dmp instanceof ExternalGroupPrincipalProvider);
     }

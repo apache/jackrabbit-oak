@@ -19,15 +19,13 @@
 
 package org.apache.jackrabbit.oak.spi.state;
 
-import java.util.concurrent.atomic.AtomicInteger;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-
 import org.apache.jackrabbit.oak.OakBaseTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
@@ -41,6 +39,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class CheckpointTest extends OakBaseTest {
+
     private NodeState root;
 
     public CheckpointTest(NodeStoreFixture fixture) {
@@ -83,15 +82,15 @@ public class CheckpointTest extends OakBaseTest {
     @Test
     public void checkpointInfo() throws CommitFailedException {
         ImmutableMap<String, String> props = ImmutableMap.of(
-                "one", "1", "two", "2", "three", "2");
+            "one", "1", "two", "2", "three", "2");
         String cp = store.checkpoint(Long.MAX_VALUE, props);
         assertEquals(props, store.checkpointInfo(cp));
     }
 
     @Test
-    public void noContentChangeForCheckpoints() throws Exception{
+    public void noContentChangeForCheckpoints() throws Exception {
         final AtomicInteger invocationCount = new AtomicInteger();
-        ((Observable)store).addObserver(new Observer() {
+        ((Observable) store).addObserver(new Observer() {
             @Override
             public void contentChanged(@NotNull NodeState root, @NotNull CommitInfo info) {
                 invocationCount.incrementAndGet();

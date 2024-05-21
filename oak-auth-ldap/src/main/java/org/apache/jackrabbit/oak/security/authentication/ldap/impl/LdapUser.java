@@ -22,7 +22,8 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUs
 
 public class LdapUser extends LdapIdentity implements ExternalUser {
 
-    public LdapUser(LdapIdentityProvider provider, ExternalIdentityRef ref, String id, String path, Entry entry) {
+    public LdapUser(LdapIdentityProvider provider, ExternalIdentityRef ref, String id, String path,
+        Entry entry) {
         super(provider, ref, id, path, entry);
     }
 

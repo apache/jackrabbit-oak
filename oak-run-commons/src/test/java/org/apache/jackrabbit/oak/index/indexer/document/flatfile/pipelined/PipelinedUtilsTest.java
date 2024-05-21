@@ -18,16 +18,16 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
-import org.junit.Test;
-
-import java.util.concurrent.TimeUnit;
-
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedUtils.formatAsPercentage;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedUtils.formatAsTransferSpeedMBs;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedUtils.toPercentage;
 import static org.junit.Assert.assertEquals;
 
+import java.util.concurrent.TimeUnit;
+import org.junit.Test;
+
 public class PipelinedUtilsTest {
+
     @Test
     public void testFormatAsPercentage() {
         assertEquals("0.00", formatAsPercentage(0, 100));
@@ -42,19 +42,22 @@ public class PipelinedUtilsTest {
 
     @Test
     public void testFormatAsTransferSpeedMBs() {
-        assertEquals("0.95 MB/s", formatAsTransferSpeedMBs(1_000_000, TimeUnit.SECONDS.toMillis(1)));
+        assertEquals("0.95 MB/s",
+            formatAsTransferSpeedMBs(1_000_000, TimeUnit.SECONDS.toMillis(1)));
         assertEquals("0.00 MB/s", formatAsTransferSpeedMBs(0, TimeUnit.SECONDS.toMillis(1)));
         assertEquals("0.00 MB/s", formatAsTransferSpeedMBs(1, TimeUnit.SECONDS.toMillis(1)));
         assertEquals("N/A", formatAsTransferSpeedMBs(1_000_000, TimeUnit.SECONDS.toMillis(0)));
-        assertEquals("8796093022208.00 MB/s", formatAsTransferSpeedMBs(Long.MAX_VALUE, TimeUnit.SECONDS.toMillis(1)));
-        assertEquals("-8796093022208.00 MB/s", formatAsTransferSpeedMBs(Long.MIN_VALUE, TimeUnit.SECONDS.toMillis(1)));
+        assertEquals("8796093022208.00 MB/s",
+            formatAsTransferSpeedMBs(Long.MAX_VALUE, TimeUnit.SECONDS.toMillis(1)));
+        assertEquals("-8796093022208.00 MB/s",
+            formatAsTransferSpeedMBs(Long.MIN_VALUE, TimeUnit.SECONDS.toMillis(1)));
         assertEquals("0.00 MB/s", formatAsTransferSpeedMBs(1_000_000, Long.MAX_VALUE));
         assertEquals("-0.00 MB/s", formatAsTransferSpeedMBs(1_000_000, Long.MIN_VALUE));
     }
 
     @Test
     public void testToPercentage() {
-        assertEquals(0, toPercentage (0, 100));
+        assertEquals(0, toPercentage(0, 100));
         assertEquals(1, toPercentage(1, 100));
         assertEquals(0, toPercentage(1, 1000));
         assertEquals(0, toPercentage(1, 10_000));

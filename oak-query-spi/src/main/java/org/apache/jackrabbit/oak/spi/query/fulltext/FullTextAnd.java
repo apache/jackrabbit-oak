@@ -26,9 +26,9 @@ import java.util.Set;
  * A fulltext "and" condition.
  */
 public class FullTextAnd extends FullTextExpression {
-    
+
     public final List<FullTextExpression> list;
-    
+
     public FullTextAnd(List<FullTextExpression> list) {
         this.list = list;
     }
@@ -50,7 +50,7 @@ public class FullTextAnd extends FullTextExpression {
             return set.iterator().next();
         }
         ArrayList<FullTextExpression> l = new ArrayList<FullTextExpression>(
-                set.size());
+            set.size());
         l.addAll(set);
         return new FullTextAnd(l);
     }
@@ -65,7 +65,7 @@ public class FullTextAnd extends FullTextExpression {
             }
             if (e.getPrecedence() < getPrecedence()) {
                 buff.append('(');
-            }                
+            }
             buff.append(e.toString());
             if (e.getPrecedence() < getPrecedence()) {
                 buff.append(')');
@@ -73,12 +73,12 @@ public class FullTextAnd extends FullTextExpression {
         }
         return buff.toString();
     }
-    
+
     @Override
     public int getPrecedence() {
         return PRECEDENCE_AND;
     }
-    
+
     @Override
     public boolean accept(FullTextVisitor v) {
         return v.visit(this);

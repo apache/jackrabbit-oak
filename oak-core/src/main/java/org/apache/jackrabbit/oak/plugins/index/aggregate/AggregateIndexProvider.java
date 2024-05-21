@@ -16,15 +16,14 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.aggregate;
 
+import static org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvanceFulltextQueryIndex;
+
 import java.util.ArrayList;
 import java.util.List;
-
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
-
-import static org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvanceFulltextQueryIndex;
 
 /**
  * A provider for aggregate indexes. It wraps all full-text query indexes.

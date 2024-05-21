@@ -16,6 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.index;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.MatcherAssert.assertThat;
+
 import co.elastic.clients.elasticsearch._types.analysis.TokenFilter;
 import co.elastic.clients.elasticsearch._types.analysis.TokenFilterDefinition;
 import co.elastic.clients.elasticsearch._types.analysis.WordDelimiterGraphTokenFilter;
@@ -26,6 +30,7 @@ import co.elastic.clients.elasticsearch.indices.CreateIndexRequest;
 import co.elastic.clients.elasticsearch.indices.IndexSettings;
 import co.elastic.clients.elasticsearch.indices.IndexSettingsAnalysis;
 import co.elastic.clients.json.JsonData;
+import java.util.Map;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexDefinitionBuilder;
@@ -34,12 +39,6 @@ import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilde
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
-
-import java.util.Map;
-
-import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
 
 public class ElasticIndexHelperTest {
 
@@ -53,9 +52,10 @@ public class ElasticIndexHelperTest {
         NodeState nodeState = builder.build();
 
         ElasticIndexDefinition definition =
-                new ElasticIndexDefinition(nodeState, nodeState, "path", "prefix");
+            new ElasticIndexDefinition(nodeState, nodeState, "path", "prefix");
 
-        CreateIndexRequest request = ElasticIndexHelper.createIndexRequest("prefix.path", definition);
+        CreateIndexRequest request = ElasticIndexHelper.createIndexRequest("prefix.path",
+            definition);
 
         TypeMapping fooPropertyMappings = request.mappings();
         assertThat(fooPropertyMappings, notNullValue());
@@ -78,7 +78,7 @@ public class ElasticIndexHelperTest {
         indexRuleB.property("foo").type("Boolean");
         NodeState nodeState = builder.build();
         ElasticIndexDefinition definition =
-                new ElasticIndexDefinition(nodeState, nodeState, "path", "prefix");
+            new ElasticIndexDefinition(nodeState, nodeState, "path", "prefix");
         ElasticIndexHelper.createIndexRequest("prefix.path", definition);
     }
 
@@ -95,27 +95,29 @@ public class ElasticIndexHelperTest {
 
         Tree analyzer = builder.getBuilderTree().addChild("analyzers");
         analyzer.setProperty(FulltextIndexConstants.INDEX_ORIGINAL_TERM, expectedIndexOriginalTerm);
-        analyzer.setProperty(ElasticIndexDefinition.SPLIT_ON_CASE_CHANGE, expectedSplitOnCaseChange);
+        analyzer.setProperty(ElasticIndexDefinition.SPLIT_ON_CASE_CHANGE,
+            expectedSplitOnCaseChange);
         analyzer.setProperty(ElasticIndexDefinition.SPLIT_ON_NUMERICS, expectedSplitOnNumerics);
 
         NodeState nodeState = builder.build();
 
         @NotNull NodeState defn = nodeState.builder()
-                .setProperty(ElasticIndexDefinition.NUMBER_OF_SHARDS, expectedNumberOfShards)
-                .getNodeState();
+                                           .setProperty(ElasticIndexDefinition.NUMBER_OF_SHARDS,
+                                               expectedNumberOfShards)
+                                           .getNodeState();
 
         ElasticIndexDefinition definition =
-                new ElasticIndexDefinition(nodeState, defn, "path", "prefix");
+            new ElasticIndexDefinition(nodeState, defn, "path", "prefix");
         CreateIndexRequest req = ElasticIndexHelper.createIndexRequest("prefix.path", definition);
 
         IndexSettings indexSettings = req.settings().index();
         assertThat(expectedNumberOfShards, is(indexSettings.numberOfShards()));
 
         WordDelimiterGraphTokenFilter wdgfDef = req.settings()
-                .analysis()
-                .filter().get("oak_word_delimiter_graph_filter")
-                .definition()
-                .wordDelimiterGraph();
+                                                   .analysis()
+                                                   .filter().get("oak_word_delimiter_graph_filter")
+                                                   .definition()
+                                                   .wordDelimiterGraph();
         assertThat(wdgfDef.preserveOriginal(), is(expectedIndexOriginalTerm));
         assertThat(wdgfDef.splitOnCaseChange(), is(expectedSplitOnCaseChange));
         assertThat(wdgfDef.splitOnNumerics(), is(expectedSplitOnNumerics));
@@ -134,9 +136,10 @@ public class ElasticIndexHelperTest {
         NodeState nodeState = builder.build();
 
         ElasticIndexDefinition definition =
-                new ElasticIndexDefinition(nodeState, nodeState, "path", "prefix");
+            new ElasticIndexDefinition(nodeState, nodeState, "path", "prefix");
 
-        CreateIndexRequest request = ElasticIndexHelper.createIndexRequest("prefix.path", definition);
+        CreateIndexRequest request = ElasticIndexHelper.createIndexRequest("prefix.path",
+            definition);
 
         checkAnalyzerPreservesOriginalTerm(request, false);
 
@@ -166,9 +169,10 @@ public class ElasticIndexHelperTest {
         NodeState nodeState = builder.build();
 
         ElasticIndexDefinition definition =
-                new ElasticIndexDefinition(nodeState, nodeState, "path", "prefix");
+            new ElasticIndexDefinition(nodeState, nodeState, "path", "prefix");
 
-        CreateIndexRequest request = ElasticIndexHelper.createIndexRequest("prefix.path", definition);
+        CreateIndexRequest request = ElasticIndexHelper.createIndexRequest("prefix.path",
+            definition);
         checkAnalyzerPreservesOriginalTerm(request, true);
     }
 
@@ -180,7 +184,8 @@ public class ElasticIndexHelperTest {
         TokenFilter filter = analysisSettings.filter().get("oak_word_delimiter_graph_filter");
         assertThat(filter, notNullValue());
         TokenFilterDefinition tokenFilterDefinition = filter.definition();
-        assertThat(tokenFilterDefinition._kind(), is(TokenFilterDefinition.Kind.WordDelimiterGraph));
+        assertThat(tokenFilterDefinition._kind(),
+            is(TokenFilterDefinition.Kind.WordDelimiterGraph));
         WordDelimiterGraphTokenFilter wdg = tokenFilterDefinition.wordDelimiterGraph();
         assertThat(wdg.preserveOriginal(), is(expected));
     }

@@ -25,21 +25,28 @@ package org.apache.lucene.index;
  * limitations under the License.
  */
 
-/** Implement this class to plug into the TermsHash
- *  processor, which inverts & stores Tokens into a hash
- *  table and provides an API for writing bytes into
- *  multiple streams for each unique Token. */
+/**
+ * Implement this class to plug into the TermsHash processor, which inverts & stores Tokens into a
+ * hash table and provides an API for writing bytes into multiple streams for each unique Token.
+ */
 
 import java.io.IOException;
 
 abstract class TermsHashConsumerPerField {
-  abstract boolean start(IndexableField[] fields, int count) throws IOException;
-  abstract void finish() throws IOException;
-  abstract void skippingLongTerm() throws IOException;
-  abstract void start(IndexableField field);
-  abstract void newTerm(int termID) throws IOException;
-  abstract void addTerm(int termID) throws IOException;
-  abstract int getStreamCount();
 
-  abstract ParallelPostingsArray createPostingsArray(int size);
+    abstract boolean start(IndexableField[] fields, int count) throws IOException;
+
+    abstract void finish() throws IOException;
+
+    abstract void skippingLongTerm() throws IOException;
+
+    abstract void start(IndexableField field);
+
+    abstract void newTerm(int termID) throws IOException;
+
+    abstract void addTerm(int termID) throws IOException;
+
+    abstract int getStreamCount();
+
+    abstract ParallelPostingsArray createPostingsArray(int size);
 }

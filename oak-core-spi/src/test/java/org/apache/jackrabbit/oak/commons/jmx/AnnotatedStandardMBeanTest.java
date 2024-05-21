@@ -18,15 +18,15 @@
  */
 package org.apache.jackrabbit.oak.commons.jmx;
 
-import java.lang.management.ManagementFactory;
+import static org.junit.Assert.assertEquals;
 
+import java.lang.management.ManagementFactory;
 import javax.management.MBeanAttributeInfo;
 import javax.management.MBeanInfo;
 import javax.management.MBeanOperationInfo;
 import javax.management.MBeanParameterInfo;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
-
 import org.apache.jackrabbit.oak.api.jmx.Description;
 import org.apache.jackrabbit.oak.api.jmx.Impact;
 import org.apache.jackrabbit.oak.api.jmx.ImpactOption;
@@ -35,10 +35,9 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
-
 @SuppressWarnings("ALL")
 public class AnnotatedStandardMBeanTest {
+
     protected static ObjectName objectName;
 
     protected static MBeanServer server;
@@ -85,7 +84,9 @@ public class AnnotatedStandardMBeanTest {
 
     private MBeanAttributeInfo findAttribute(MBeanInfo info, String name) {
         for (MBeanAttributeInfo a : info.getAttributes()) {
-            if (a.getName().equals(name)) return a;
+            if (a.getName().equals(name)) {
+                return a;
+            }
         }
 
         return null;
@@ -93,6 +94,7 @@ public class AnnotatedStandardMBeanTest {
 
     @Description("MBean desc.")
     public interface FooMBean {
+
         @Description("getter")
         String getGetter();
 

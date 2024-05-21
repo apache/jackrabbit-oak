@@ -19,9 +19,12 @@
 
 package org.apache.jackrabbit.oak.plugins.document.bundlor;
 
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
+
 import java.util.ArrayList;
 import java.util.List;
-
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -29,11 +32,8 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.oak.api.Type.STRINGS;
-import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
-
 public class DocumentBundlor {
+
     /**
      * Prefix used for various meta properties used for bundling
      */
@@ -45,9 +45,9 @@ public class DocumentBundlor {
     public static final String META_PROP_PATTERN = ":doc-pattern";
 
     /**
-     * Hidden property name used as suffix for relative node path
-     * to indicate presence of that node. So for a relative node 'jcr:content'
-     * the parent node must have a property 'jcr:content/:doc-self-path.
+     * Hidden property name used as suffix for relative node path to indicate presence of that node.
+     * So for a relative node 'jcr:content' the parent node must have a property
+     * 'jcr:content/:doc-self-path.
      *
      * <p>Its value is the depth of the bundled child node
      */
@@ -56,41 +56,42 @@ public class DocumentBundlor {
     public static final String HAS_CHILD_PROP_PREFIX = ":doc-has-child-";
 
     /**
-     * Hidden property name having boolean value indicating that
-     * current node has children which are bundled
+     * Hidden property name having boolean value indicating that current node has children which are
+     * bundled
      */
     public static final String META_PROP_BUNDLED_CHILD = HAS_CHILD_PROP_PREFIX + "bundled";
 
     /**
-     * Hidden property name having boolean value indicating that
-     * current node has children which are not bundled
+     * Hidden property name having boolean value indicating that current node has children which are
+     * not bundled
      */
     public static final String META_PROP_NON_BUNDLED_CHILD = HAS_CHILD_PROP_PREFIX + "non-bundled";
 
     /**
-     * Boolean property. If set to true then that bundlor config would be considered as disabled
-     * and would not be used
+     * Boolean property. If set to true then that bundlor config would be considered as disabled and
+     * would not be used
      */
     public static final String PROP_DISABLED = "disabled";
 
     public static final String PROP_PATTERN = "pattern";
     private final List<Include> includes;
 
-    public static DocumentBundlor from(NodeState nodeState){
-        checkArgument(nodeState.hasProperty(PROP_PATTERN), "NodeState [%s] does not have required " +
+    public static DocumentBundlor from(NodeState nodeState) {
+        checkArgument(nodeState.hasProperty(PROP_PATTERN),
+            "NodeState [%s] does not have required " +
                 "property [%s]", nodeState, PROP_PATTERN);
-       return DocumentBundlor.from(nodeState.getStrings(PROP_PATTERN));
+        return DocumentBundlor.from(nodeState.getStrings(PROP_PATTERN));
     }
 
-    public static DocumentBundlor from(Iterable<String> includeStrings){
+    public static DocumentBundlor from(Iterable<String> includeStrings) {
         List<Include> includes = Lists.newArrayList();
-        for (String i : includeStrings){
+        for (String i : includeStrings) {
             includes.add(new Include(i));
         }
         return new DocumentBundlor(includes);
     }
 
-    public static DocumentBundlor from(PropertyState prop){
+    public static DocumentBundlor from(PropertyState prop) {
         checkArgument(META_PROP_PATTERN.equals(prop.getName()));
         return from(prop.getValue(Type.STRINGS));
     }
@@ -102,23 +103,23 @@ public class DocumentBundlor {
 
     public boolean isBundled(String relativePath) {
         Matcher m = createMatcher();
-        for (String e : PathUtils.elements(relativePath)){
+        for (String e : PathUtils.elements(relativePath)) {
             m = m.next(e);
         }
         return m.isMatch();
     }
 
-    public PropertyState asPropertyState(){
+    public PropertyState asPropertyState() {
         List<String> includePatterns = new ArrayList<>(includes.size());
-        for (Include i : includes){
+        for (Include i : includes) {
             includePatterns.add(i.getPattern());
         }
         return createProperty(META_PROP_PATTERN, includePatterns, STRINGS);
     }
 
-    public Matcher createMatcher(){
+    public Matcher createMatcher() {
         List<Matcher> matchers = Lists.newArrayListWithCapacity(includes.size());
-        for(Include include : includes){
+        for (Include include : includes) {
             matchers.add(include.createMatcher());
         }
         return CompositeMatcher.compose(matchers);

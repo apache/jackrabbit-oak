@@ -31,19 +31,17 @@ import java.io.IOException;
  * Provides a {@link FieldComparator} for custom field sorting.
  *
  * @lucene.experimental
- *
  */
 public abstract class FieldComparatorSource {
 
-  /**
-   * Creates a comparator for the field in the given index.
-   * 
-   * @param fieldname
-   *          Name of the field to create comparator for.
-   * @return FieldComparator.
-   * @throws IOException
-   *           If an error occurs reading the index.
-   */
-  public abstract FieldComparator<?> newComparator(String fieldname, int numHits, int sortPos, boolean reversed)
-      throws IOException;
+    /**
+     * Creates a comparator for the field in the given index.
+     *
+     * @param fieldname Name of the field to create comparator for.
+     * @return FieldComparator.
+     * @throws IOException If an error occurs reading the index.
+     */
+    public abstract FieldComparator<?> newComparator(String fieldname, int numHits, int sortPos,
+        boolean reversed)
+        throws IOException;
 }

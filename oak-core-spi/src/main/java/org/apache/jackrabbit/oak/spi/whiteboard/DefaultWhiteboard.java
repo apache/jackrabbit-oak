@@ -16,17 +16,16 @@
  */
 package org.apache.jackrabbit.oak.spi.whiteboard;
 
+import static java.util.Collections.emptyList;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
 import static org.apache.jackrabbit.guava.common.collect.Sets.newIdentityHashSet;
-import static java.util.Collections.emptyList;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-
 import org.jetbrains.annotations.NotNull;
 
 public class DefaultWhiteboard implements Whiteboard {
@@ -54,9 +53,9 @@ public class DefaultWhiteboard implements Whiteboard {
         Set<Service> services = registry.get(type);
         if (services != null) {
             return (List<T>) services
-                    .stream()
-                    .map(Service::getService)
-                    .collect(Collectors.toList());
+                .stream()
+                .map(Service::getService)
+                .collect(Collectors.toList());
         } else {
             return emptyList();
         }
@@ -67,10 +66,10 @@ public class DefaultWhiteboard implements Whiteboard {
         Set<Service> services = registry.get(type);
         if (services != null) {
             return (List<T>) services
-                    .stream()
-                    .filter(s -> s.matches(filterProperties))
-                    .map(Service::getService)
-                    .collect(Collectors.toList());
+                .stream()
+                .filter(s -> s.matches(filterProperties))
+                .map(Service::getService)
+                .collect(Collectors.toList());
         } else {
             return emptyList();
         }
@@ -80,7 +79,7 @@ public class DefaultWhiteboard implements Whiteboard {
 
     @Override
     public <T> Registration register(
-            final Class<T> type, final T service, Map<?, ?> properties) {
+        final Class<T> type, final T service, Map<?, ?> properties) {
         checkNotNull(type);
         checkNotNull(service);
         checkArgument(type.isInstance(service));
@@ -104,6 +103,7 @@ public class DefaultWhiteboard implements Whiteboard {
             public List<T> getServices() {
                 return lookup(type);
             }
+
             @Override
             public void stop() {
             }
@@ -119,6 +119,7 @@ public class DefaultWhiteboard implements Whiteboard {
             public List<T> getServices() {
                 return lookup(type, filterProperties);
             }
+
             @Override
             public void stop() {
             }
@@ -143,10 +144,10 @@ public class DefaultWhiteboard implements Whiteboard {
 
         private boolean matches(Map<String, String> properties) {
             return properties.entrySet().stream()
-                    .allMatch(this::propertyMatches);
+                             .allMatch(this::propertyMatches);
         }
 
-        private  boolean propertyMatches(Map.Entry<String, String> filterEntry) {
+        private boolean propertyMatches(Map.Entry<String, String> filterEntry) {
             String key = filterEntry.getKey();
             String expectedValue = filterEntry.getValue();
             if (properties == null || !properties.containsKey(key)) {

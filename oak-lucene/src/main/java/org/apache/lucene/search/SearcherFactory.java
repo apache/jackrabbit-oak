@@ -26,24 +26,22 @@ package org.apache.lucene.search;
  */
 
 import java.io.IOException;
-import java.util.concurrent.ExecutorService; // javadocs
-
+import java.util.concurrent.ExecutorService;
 import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.index.IndexWriter; // javadocs
-import org.apache.lucene.index.IndexWriterConfig; // javadocs
-import org.apache.lucene.search.similarities.Similarity; // javadocs
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.search.similarities.Similarity;
 
 /**
- * Factory class used by {@link SearcherManager} to
- * create new IndexSearchers. The default implementation just creates 
- * an IndexSearcher with no custom behavior:
- * 
+ * Factory class used by {@link SearcherManager} to create new IndexSearchers. The default
+ * implementation just creates an IndexSearcher with no custom behavior:
+ *
  * <pre class="prettyprint">
  *   public IndexSearcher newSearcher(IndexReader r) throws IOException {
  *     return new IndexSearcher(r);
  *   }
  * </pre>
- * 
+ * <p>
  * You can pass your own factory instead if you want custom behavior, such as:
  * <ul>
  *   <li>Setting a custom scoring model: {@link IndexSearcher#setSimilarity(Similarity)}
@@ -53,13 +51,15 @@ import org.apache.lucene.search.similarities.Similarity; // javadocs
  *       you may want to also {@link IndexWriterConfig#setMergedSegmentWarmer(IndexWriter.IndexReaderWarmer)} to warm
  *       newly merged segments in the background, outside of the reopen path.
  * </ul>
+ *
  * @lucene.experimental
  */
 public class SearcherFactory {
-  /** 
-   * Returns a new IndexSearcher over the given reader. 
-   */
-  public IndexSearcher newSearcher(IndexReader reader) throws IOException {
-    return new IndexSearcher(reader);
-  }
+
+    /**
+     * Returns a new IndexSearcher over the given reader.
+     */
+    public IndexSearcher newSearcher(IndexReader reader) throws IOException {
+        return new IndexSearcher(reader);
+    }
 }

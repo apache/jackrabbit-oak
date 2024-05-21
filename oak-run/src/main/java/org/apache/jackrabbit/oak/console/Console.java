@@ -19,16 +19,13 @@ package org.apache.jackrabbit.oak.console;
 
 import java.util.Collections;
 import java.util.List;
-
-
+import joptsimple.OptionParser;
+import joptsimple.OptionSet;
+import joptsimple.OptionSpec;
 import org.apache.jackrabbit.oak.run.cli.NodeStoreFixture;
 import org.apache.jackrabbit.oak.run.cli.NodeStoreFixtureProvider;
 import org.apache.jackrabbit.oak.run.cli.Options;
 import org.codehaus.groovy.tools.shell.IO;
-
-import joptsimple.OptionParser;
-import joptsimple.OptionSet;
-import joptsimple.OptionSpec;
 import org.codehaus.groovy.tools.shell.util.Preferences;
 
 /**
@@ -49,7 +46,7 @@ public class Console {
         try (NodeStoreFixture fixture = NodeStoreFixtureProvider.create(opts)) {
             List<String> nonOptions = opts.getCommonOpts().getNonOptions();
             List<String> scriptArgs = nonOptions.size() > 1 ?
-                    nonOptions.subList(1, nonOptions.size()) : Collections.emptyList();
+                nonOptions.subList(1, nonOptions.size()) : Collections.emptyList();
             IO io = new IO();
 
             if (options.has(quiet)) {
@@ -57,11 +54,14 @@ public class Console {
             }
 
             if (!opts.getCommonOpts().isReadWrite()) {
-                io.out.println("Repository connected in read-only mode. Use '--read-write' for write operations");
+                io.out.println(
+                    "Repository connected in read-only mode. Use '--read-write' for write operations");
             }
 
             GroovyConsole console =
-                    new GroovyConsole(ConsoleSession.create(fixture.getStore(), fixture.getWhiteboard()), new IO(), fixture);
+                new GroovyConsole(
+                    ConsoleSession.create(fixture.getStore(), fixture.getWhiteboard()), new IO(),
+                    fixture);
 
             if (!scriptArgs.isEmpty()) {
                 if (!options.has(shell)) {

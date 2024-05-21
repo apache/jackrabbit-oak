@@ -30,9 +30,8 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 
 /**
- * Base class for test cases that need a {@link DataSource}
- * to a clean test database. Tests in subclasses are automatically
- * skipped if the configured database connection can not be created.
+ * Base class for test cases that need a {@link DataSource} to a clean test database. Tests in
+ * subclasses are automatically skipped if the configured database connection can not be created.
  */
 public class AbstractRDBConnectionTest extends DocumentMKTestBase {
 
@@ -40,7 +39,8 @@ public class AbstractRDBConnectionTest extends DocumentMKTestBase {
     protected DocumentMK mk;
 
     private static final String fname = (new File("target")).isDirectory() ? "target/" : "";
-    private static final String RAWURL = System.getProperty("rdb.jdbc-url", "jdbc:h2:file:./target/h2test");
+    private static final String RAWURL = System.getProperty("rdb.jdbc-url",
+        "jdbc:h2:file:./target/h2test");
     protected static final String USERNAME = System.getProperty("rdb.jdbc-user", "");
     protected static final String PASSWD = System.getProperty("rdb.jdbc-passwd", "");
     protected static final String URL = RAWURL.replace("{fname}", fname);
@@ -59,7 +59,8 @@ public class AbstractRDBConnectionTest extends DocumentMKTestBase {
     protected RDBDocumentNodeStoreBuilder newBuilder(DataSource db) throws Exception {
         String prefix = "T" + Long.toHexString(System.currentTimeMillis());
         RDBOptions opt = new RDBOptions().tablePrefix(prefix).dropTablesOnClose(true);
-        return new RDBDocumentNodeStoreBuilder().clock(getTestClock()).setRDBConnection(dataSource, opt);
+        return new RDBDocumentNodeStoreBuilder().clock(getTestClock())
+                                                .setRDBConnection(dataSource, opt);
     }
 
     protected Clock getTestClock() throws InterruptedException {
@@ -72,7 +73,7 @@ public class AbstractRDBConnectionTest extends DocumentMKTestBase {
             mk.dispose();
         }
         if (dataSource instanceof Closeable) {
-            ((Closeable)dataSource).close();
+            ((Closeable) dataSource).close();
         }
         Revision.resetClockToDefault();
     }

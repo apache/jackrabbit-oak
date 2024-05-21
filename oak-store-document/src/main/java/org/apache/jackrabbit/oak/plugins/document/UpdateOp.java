@@ -16,16 +16,14 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
-
 import org.apache.jackrabbit.guava.common.collect.Maps;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -43,10 +41,10 @@ public final class UpdateOp {
     private Map<Key, Condition> conditions;
 
     /**
-     * Create an update operation for the document with the given id. The commit
-     * root is assumed to be the path, unless this is changed later on.
+     * Create an update operation for the document with the given id. The commit root is assumed to
+     * be the path, unless this is changed later on.
      *
-     * @param id the primary key
+     * @param id    the primary key
      * @param isNew whether this is a new document
      */
     public UpdateOp(@NotNull String id, boolean isNew) {
@@ -54,10 +52,10 @@ public final class UpdateOp {
     }
 
     UpdateOp(@NotNull String id,
-             boolean isNew,
-             boolean isDelete,
-             @NotNull Map<Key, Operation> changes,
-             @Nullable Map<Key, Condition> conditions) {
+        boolean isNew,
+        boolean isDelete,
+        @NotNull Map<Key, Operation> changes,
+        @Nullable Map<Key, Condition> conditions) {
         this.id = checkNotNull(id, "id must not be null");
         this.isNew = isNew;
         this.isDelete = isDelete;
@@ -81,8 +79,8 @@ public final class UpdateOp {
     }
 
     /**
-     * Creates an update operation for the document with the given id. The
-     * changes are shared with the this update operation.
+     * Creates an update operation for the document with the given id. The changes are shared with
+     * the this update operation.
      *
      * @param id the primary key.
      */
@@ -91,8 +89,8 @@ public final class UpdateOp {
     }
 
     /**
-     * Creates a deep copy of this update operation. Changes to the returned
-     * {@code UpdateOp} do not affect this object.
+     * Creates a deep copy of this update operation. Changes to the returned {@code UpdateOp} do not
+     * affect this object.
      *
      * @return a copy of this operation.
      */
@@ -102,7 +100,7 @@ public final class UpdateOp {
             conditionMap = new HashMap<Key, Condition>(conditions);
         }
         return new UpdateOp(id, isNew, isDelete,
-                new HashMap<Key, Operation>(changes), conditionMap);
+            new HashMap<Key, Operation>(changes), conditionMap);
     }
 
     @NotNull
@@ -139,8 +137,7 @@ public final class UpdateOp {
     }
 
     /**
-     * Checks if the UpdateOp has any change operation is registered with
-     * current update operation
+     * Checks if the UpdateOp has any change operation is registered with current update operation
      *
      * @return true if any change operation is created
      */
@@ -149,12 +146,11 @@ public final class UpdateOp {
     }
 
     /**
-     * Add a new or update an existing map entry.
-     * The property is a map of revisions / values.
+     * Add a new or update an existing map entry. The property is a map of revisions / values.
      *
      * @param property the property
      * @param revision the revision
-     * @param value the value
+     * @param value    the value
      */
     void setMapEntry(@NotNull String property, @NotNull Revision revision, String value) {
         Operation op = new Operation(Operation.Type.SET_MAP_ENTRY, value);
@@ -175,8 +171,7 @@ public final class UpdateOp {
     }
 
     /**
-     * Remove a map entry.
-     * The property is a map of revisions / values.
+     * Remove a map entry. The property is a map of revisions / values.
      *
      * @param property the property
      * @param revision the revision
@@ -190,7 +185,7 @@ public final class UpdateOp {
      * Set the property to the given long value.
      *
      * @param property the property name
-     * @param value the value
+     * @param value    the value
      */
     public void set(String property, long value) {
         internalSet(property, value);
@@ -200,7 +195,7 @@ public final class UpdateOp {
      * Set the property to the given boolean value.
      *
      * @param property the property name
-     * @param value the value
+     * @param value    the value
      */
     public void set(String property, boolean value) {
         internalSet(property, value);
@@ -209,28 +204,25 @@ public final class UpdateOp {
     /**
      * Set the property to the given String value.
      * <p>
-     * Note that {@link Document#ID} must not be set using this method;
-     * it is sufficiently specified by the id parameter set in the constructor.
+     * Note that {@link Document#ID} must not be set using this method; it is sufficiently specified
+     * by the id parameter set in the constructor.
      *
      * @param property the property name
-     * @param value the value
-     * @throws IllegalArgumentException
-     *             if an attempt is made to set {@link Document#ID}.
+     * @param value    the value
+     * @throws IllegalArgumentException if an attempt is made to set {@link Document#ID}.
      */
     public void set(String property, String value) {
         internalSet(property, value);
     }
 
     /**
-     * Set the property to the given value if the new value is higher than the
-     * existing value. The property is also set to the given value if the
-     * property does not yet exist.
+     * Set the property to the given value if the new value is higher than the existing value. The
+     * property is also set to the given value if the property does not yet exist.
      * <p>
-     * The result of a max operation with different types of values is
-     * undefined.
+     * The result of a max operation with different types of values is undefined.
      *
      * @param property the name of the property to set.
-     * @param value the new value for the property.
+     * @param value    the new value for the property.
      */
     <T> void max(String property, Comparable<T> value) {
         Operation op = new Operation(Operation.Type.MAX, value);
@@ -238,8 +230,8 @@ public final class UpdateOp {
     }
 
     /**
-     * Do not set the property entry (after it has been set).
-     * The property is a map of revisions / values.
+     * Do not set the property entry (after it has been set). The property is a map of revisions /
+     * values.
      *
      * @param property the property name
      * @param revision the revision
@@ -249,15 +241,15 @@ public final class UpdateOp {
     }
 
     /**
-     * Checks if the named key exists or is absent in the document. This
-     * method can be used to make a conditional update.
+     * Checks if the named key exists or is absent in the document. This method can be used to make
+     * a conditional update.
      *
      * @param property the property name
      * @param revision the revision
      */
     void containsMapEntry(@NotNull String property,
-                          @NotNull Revision revision,
-                          boolean exists) {
+        @NotNull Revision revision,
+        boolean exists) {
         if (isNew) {
             throw new IllegalStateException("Cannot use containsMapEntry() on new document");
         }
@@ -266,8 +258,8 @@ public final class UpdateOp {
     }
 
     /**
-     * Checks if the named key exists or is absent in the document. This
-     * method can be used to make a conditional update.
+     * Checks if the named key exists or is absent in the document. This method can be used to make
+     * a conditional update.
      *
      * @param property the property name
      * @param revision the revision
@@ -284,7 +276,8 @@ public final class UpdateOp {
      * Checks if the property is equal to the given value.
      *
      * @param property the name of the property or map.
-     * @param value the value to compare to ({@code null} checks both for non-existence and the value being null)
+     * @param value    the value to compare to ({@code null} checks both for non-existence and the
+     *                 value being null)
      */
     void equals(@NotNull String property, @Nullable Object value) {
         equals(property, null, value);
@@ -294,25 +287,25 @@ public final class UpdateOp {
      * Checks if the property or map entry is equal to the given value.
      *
      * @param property the name of the property or map.
-     * @param revision the revision within the map or {@code null} if this check
-     *                 is for a property.
-     * @param value the value to compare to ({@code null} checks both for non-existence and the value being null)
+     * @param revision the revision within the map or {@code null} if this check is for a property.
+     * @param value    the value to compare to ({@code null} checks both for non-existence and the
+     *                 value being null)
      */
     void equals(@NotNull String property,
-                @Nullable Revision revision,
-                @Nullable Object value) {
+        @Nullable Revision revision,
+        @Nullable Object value) {
         if (isNew) {
             throw new IllegalStateException("Cannot perform equals check on new document");
         }
         getOrCreateConditions().put(new Key(property, revision),
-                Condition.newEqualsCondition(value));
+            Condition.newEqualsCondition(value));
     }
 
     /**
      * Checks if the property does not exist or is not equal to the given value.
      *
      * @param property the name of the property or map.
-     * @param value the value to compare to.
+     * @param value    the value to compare to.
      */
     void notEquals(@NotNull String property, @Nullable Object value) {
         notEquals(property, null, value);
@@ -322,25 +315,24 @@ public final class UpdateOp {
      * Checks if the property or map entry does not exist or is not equal to the given value.
      *
      * @param property the name of the property or map.
-     * @param revision the revision within the map or {@code null} if this check
-     *                 is for a property.
-     * @param value the value to compare to.
+     * @param revision the revision within the map or {@code null} if this check is for a property.
+     * @param value    the value to compare to.
      */
     void notEquals(@NotNull String property,
-                   @Nullable Revision revision,
-                   @Nullable Object value) {
+        @Nullable Revision revision,
+        @Nullable Object value) {
         if (isNew) {
             throw new IllegalStateException("Cannot perform notEquals check on new document");
         }
         getOrCreateConditions().put(new Key(property, revision),
-                Condition.newNotEqualsCondition(value));
+            Condition.newNotEqualsCondition(value));
     }
 
     /**
      * Increment the value.
      *
      * @param property the key
-     * @param value the increment
+     * @param value    the increment
      */
     public void increment(@NotNull String property, long value) {
         Operation op = new Operation(Operation.Type.INCREMENT, value);
@@ -377,7 +369,7 @@ public final class UpdateOp {
     private void internalSet(String property, Object value) {
         if (Document.ID.equals(property)) {
             throw new IllegalArgumentException(
-                    "updateOp.id (" + id + ") must not set " + Document.ID);
+                "updateOp.id (" + id + ") must not set " + Document.ID);
         }
         Operation op = new Operation(Operation.Type.SET, value);
         changes.put(new Key(property, null), op);
@@ -394,43 +386,36 @@ public final class UpdateOp {
         public enum Type {
 
             /**
-             * Set the value.
-             * The sub-key is not used.
+             * Set the value. The sub-key is not used.
              */
             SET,
 
             /**
-             * Set the value if the new value is higher than the existing value.
-             * The new value is also considered higher, when there is no
-             * existing value.
-             * The sub-key is not used.
+             * Set the value if the new value is higher than the existing value. The new value is
+             * also considered higher, when there is no existing value. The sub-key is not used.
              */
             MAX,
 
             /**
-             * Increment the Long value with the provided Long value.
-             * The sub-key is not used.
+             * Increment the Long value with the provided Long value. The sub-key is not used.
              */
             INCREMENT,
 
             /**
-             * Add the sub-key / value pair.
-             * The value in the stored node is a map.
+             * Add the sub-key / value pair. The value in the stored node is a map.
              */
             SET_MAP_ENTRY,
 
             /**
-             * Remove the sub-key / value pair.
-             * The value in the stored node is a map.
+             * Remove the sub-key / value pair. The value in the stored node is a map.
              */
             REMOVE_MAP_ENTRY,
 
             /**
-             * Remove the value.
-             * The sub-key is not used.
+             * Remove the value. The sub-key is not used.
              */
             REMOVE
-         }
+        }
 
 
         /**
@@ -458,7 +443,7 @@ public final class UpdateOp {
             if (obj instanceof Operation) {
                 Operation other = (Operation) obj;
                 return this.type.equals(other.type)
-                        && Objects.equals(this.value, other.value);
+                    && Objects.equals(this.value, other.value);
             }
             return false;
         }
@@ -564,9 +549,8 @@ public final class UpdateOp {
     }
 
     /**
-     * A key for an operation consists of a property name and an optional
-     * revision. The revision is only set if the value for the operation is
-     * set for a certain revision.
+     * A key for an operation consists of a property name and an optional revision. The revision is
+     * only set if the value for the operation is set for a certain revision.
      */
     public static final class Key {
 
@@ -611,7 +595,7 @@ public final class UpdateOp {
             if (obj instanceof Key) {
                 Key other = (Key) obj;
                 return name.equals(other.name) &&
-                        (revision != null ? revision.equals(other.revision) : other.revision == null);
+                    (revision != null ? revision.equals(other.revision) : other.revision == null);
             }
             return false;
         }

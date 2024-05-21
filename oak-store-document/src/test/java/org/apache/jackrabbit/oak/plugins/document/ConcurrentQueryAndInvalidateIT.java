@@ -112,7 +112,7 @@ public class ConcurrentQueryAndInvalidateIT extends AbstractMultiDocumentStoreTe
                 NodeDocument doc = ds1.find(NODES, Utils.getIdFromPath("/node-" + j));
                 assertNotNull(doc);
                 assertEquals("Unexpected revision timestamp for " + doc.getId(),
-                        counter, doc.getLastRev().get(1).getTimestamp());
+                    counter, doc.getLastRev().get(1).getTimestamp());
             }
         }
     }
@@ -140,6 +140,7 @@ public class ConcurrentQueryAndInvalidateIT extends AbstractMultiDocumentStoreTe
     }
 
     private interface Invalidate {
+
         void perform(DocumentStore store, Iterable<String> ids);
     }
 }

@@ -18,25 +18,27 @@
  */
 package org.apache.jackrabbit.oak.stats;
 
+import java.util.Map;
 import org.jetbrains.annotations.NotNull;
 import org.osgi.annotation.versioning.ProviderType;
 
-import java.util.Map;
-
 /**
- * Marker interface for monitors that are to be registered with a {@link org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard}.
+ * Marker interface for monitors that are to be registered with a
+ * {@link org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard}.
  */
 @ProviderType
 public interface Monitor<T> {
 
     /**
-     * @return The type to be passed to {@link org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard#register(Class, Object, Map)}
+     * @return The type to be passed to
+     * {@link org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard#register(Class, Object, Map)}
      */
     @NotNull
     Class<T> getMonitorClass();
 
     /**
-     * @return The properties to be passed to {@link org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard#register(Class, Object, Map)}
+     * @return The properties to be passed to
+     * {@link org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard#register(Class, Object, Map)}
      */
     @NotNull
     Map<Object, Object> getMonitorProperties();

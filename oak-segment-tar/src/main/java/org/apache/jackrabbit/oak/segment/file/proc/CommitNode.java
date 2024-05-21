@@ -24,12 +24,10 @@ import static java.util.Collections.singleton;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.segment.file.proc.Proc.Backend.Commit;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 
 class CommitNode extends AbstractNode {
@@ -60,9 +58,9 @@ class CommitNode extends AbstractNode {
     @Override
     public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
         return backend.getCommit(handle)
-            .flatMap(Proc.Backend.Commit::getRoot)
-            .map(r -> singleton(new MemoryChildNodeEntry("root", r)))
-            .orElse(emptySet());
+                      .flatMap(Proc.Backend.Commit::getRoot)
+                      .map(r -> singleton(new MemoryChildNodeEntry("root", r)))
+                      .orElse(emptySet());
     }
 
 }

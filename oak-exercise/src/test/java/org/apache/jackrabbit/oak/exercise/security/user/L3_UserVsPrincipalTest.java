@@ -16,20 +16,25 @@
  */
 package org.apache.jackrabbit.oak.exercise.security.user;
 
+import static org.apache.jackrabbit.oak.exercise.ExerciseUtility.TEST_GROUP_HINT;
+import static org.apache.jackrabbit.oak.exercise.ExerciseUtility.TEST_GROUP_PRINCIPAL_HINT;
+import static org.apache.jackrabbit.oak.exercise.ExerciseUtility.TEST_PRINCIPAL_HINT;
+import static org.apache.jackrabbit.oak.exercise.ExerciseUtility.TEST_USER_HINT;
+import static org.junit.Assert.assertEquals;
+
 import java.security.Principal;
 import java.util.Map;
 import java.util.UUID;
 import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlList;
 import javax.jcr.security.AccessControlManager;
-
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.exercise.ExerciseUtility;
@@ -37,12 +42,6 @@ import org.apache.jackrabbit.oak.exercise.security.authentication.L2_AuthInfoTes
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-import static org.apache.jackrabbit.oak.exercise.ExerciseUtility.TEST_USER_HINT;
-import static org.apache.jackrabbit.oak.exercise.ExerciseUtility.TEST_GROUP_HINT;
-import static org.apache.jackrabbit.oak.exercise.ExerciseUtility.TEST_PRINCIPAL_HINT;
-import static org.apache.jackrabbit.oak.exercise.ExerciseUtility.TEST_GROUP_PRINCIPAL_HINT;
 
 /**
  * <pre>
@@ -105,7 +104,8 @@ public class L3_UserVsPrincipalTest extends AbstractSecurityTest {
     private Principal testPrincipal = ExerciseUtility.getTestPrincipal(TEST_PRINCIPAL_HINT);
 
     private String testGroupId = ExerciseUtility.getTestId(TEST_GROUP_HINT);
-    private Principal testGroupPrincipal = ExerciseUtility.getTestPrincipal(TEST_GROUP_PRINCIPAL_HINT);
+    private Principal testGroupPrincipal = ExerciseUtility.getTestPrincipal(
+        TEST_GROUP_PRINCIPAL_HINT);
 
     private User testUser;
     private Group testGroup;
@@ -140,10 +140,10 @@ public class L3_UserVsPrincipalTest extends AbstractSecurityTest {
     @Test
     public void testLookup() throws RepositoryException {
         Map<String, Object[]> resultMap = ImmutableMap.of(
-                testId, new Object[]{null, null, null},
-                testPrincipal.getName(), new Object[]{null, null, null},
-                testGroupId, new Object[]{null, null},
-                testGroupPrincipal.getName(), new Object[]{null, null}
+            testId, new Object[]{null, null, null},
+            testPrincipal.getName(), new Object[]{null, null, null},
+            testGroupId, new Object[]{null, null},
+            testGroupPrincipal.getName(), new Object[]{null, null}
         );
 
         for (String key : resultMap.keySet()) {
@@ -170,11 +170,13 @@ public class L3_UserVsPrincipalTest extends AbstractSecurityTest {
     }
 
     @Test
-    public void testCreateUserWithGroupPrincipalName() throws RepositoryException, CommitFailedException {
+    public void testCreateUserWithGroupPrincipalName()
+        throws RepositoryException, CommitFailedException {
         // EXERCISE: fix the test-case with the correct assertions and exception catching! And explain why...
         User user2 = null;
         try {
-            user2 = getUserManager(root).createUser(UUID.randomUUID().toString(), ExerciseUtility.TEST_PW, testGroupPrincipal, null);
+            user2 = getUserManager(root).createUser(UUID.randomUUID().toString(),
+                ExerciseUtility.TEST_PW, testGroupPrincipal, null);
             root.commit();
         } finally {
             if (user2 != null) {
@@ -190,7 +192,8 @@ public class L3_UserVsPrincipalTest extends AbstractSecurityTest {
         // EXERCISE: if creating the user suceeds : verify if the testUser and user2 are equal. explain why!
         User user2 = null;
         try {
-            user2 = getUserManager(root).createUser(testPrincipal.getName(), ExerciseUtility.TEST_PW, new PrincipalImpl(testId), null);
+            user2 = getUserManager(root).createUser(testPrincipal.getName(),
+                ExerciseUtility.TEST_PW, new PrincipalImpl(testId), null);
             root.commit();
 
             Boolean expectedEquals = null; // EXERCISE
@@ -215,10 +218,11 @@ public class L3_UserVsPrincipalTest extends AbstractSecurityTest {
         AccessControlManager acMgr = getAccessControlManager(root);
 
         // EXERCISE fix the test case
-        String[] ids = new String[] {testId, testGroupId};
+        String[] ids = new String[]{testId, testGroupId};
         for (String id : ids) {
             AccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, "/");
-            acl.addAccessControlEntry(new PrincipalImpl(id), AccessControlUtils.privilegesFromNames(acMgr, PrivilegeConstants.JCR_READ));
+            acl.addAccessControlEntry(new PrincipalImpl(id),
+                AccessControlUtils.privilegesFromNames(acMgr, PrivilegeConstants.JCR_READ));
         }
     }
 }

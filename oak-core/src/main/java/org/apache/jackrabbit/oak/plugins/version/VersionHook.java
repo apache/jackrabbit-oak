@@ -18,6 +18,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.version;
 
+import static org.apache.jackrabbit.guava.common.collect.Collections2.transform;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.oak.spi.commit.CompositeHook.compose;
+
+import java.util.List;
+import java.util.Set;
 import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
@@ -28,14 +35,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.osgi.service.component.annotations.Component;
-
-import java.util.List;
-import java.util.Set;
-
-import static org.apache.jackrabbit.guava.common.collect.Collections2.transform;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
-import static org.apache.jackrabbit.oak.spi.commit.CompositeHook.compose;
 
 /**
  * This class gathers together editors related to handling version storage:

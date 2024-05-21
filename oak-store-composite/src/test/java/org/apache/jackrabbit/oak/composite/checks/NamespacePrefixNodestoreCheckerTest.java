@@ -35,89 +35,89 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 public class NamespacePrefixNodestoreCheckerTest {
-    
+
     @Rule
     public ExpectedException exception = ExpectedException.none();
-    
+
     private MemoryNodeStore mount;
     private NamespacePrefixNodestoreChecker checker;
     private Context context;
     private MountInfoProvider mip;
-    
+
     @Before
     public void prepareRepository() throws Exception {
         MemoryNodeStore root = new MemoryNodeStore();
         mount = new MemoryNodeStore();
-        
+
         NodeBuilder rootBuilder = root.getRoot().builder();
         new InitialContent().initialize(rootBuilder);
         root.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        
+
         mip = Mounts.newBuilder()
-                .readOnlyMount("first", "/first")
-                .build();
-        
+                    .readOnlyMount("first", "/first")
+                    .build();
+
         checker = new NamespacePrefixNodestoreChecker();
         context = checker.createContext(root, mip);
     }
 
     @Test
     public void invalidNamespacePrefix_node() throws Exception {
-        
+
         NodeBuilder builder = mount.getRoot().builder();
         builder.child("libs").child("foo:first");
-        
+
         mount.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        
+
         exception.expect(IllegalRepositoryStateException.class);
         exception.expectMessage("1 errors were found");
         exception.expectMessage("invalid namespace prefix foo");
-        
+
         check("/libs/foo:first");
     }
-    
+
     private void check(String path) {
-        
-        
+
         Tree tree = TreeUtil.getTree(TreeFactory.createReadOnlyTree(mount.getRoot()), path);
-        
+
         ErrorHolder errorHolder = new ErrorHolder();
-        checker.check(new MountedNodeStore(mip.getMountByName("first"), mount), tree, errorHolder, context);
+        checker.check(new MountedNodeStore(mip.getMountByName("first"), mount), tree, errorHolder,
+            context);
         errorHolder.end();
     }
-    
+
     @Test
     public void invalidNamespacePrefix_property() throws Exception {
-        
+
         NodeBuilder builder = mount.getRoot().builder();
         builder.child("libs").setProperty("foo:prop", "value");
         mount.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        
+
         exception.expect(IllegalRepositoryStateException.class);
         exception.expectMessage("1 errors were found");
         exception.expectMessage("invalid namespace prefix foo");
-        
+
         check("/libs");
     }
-    
+
     @Test
     public void validNamespacePrefix() throws Exception {
-        
+
         NodeBuilder builder = mount.getRoot().builder();
         builder.child("libs").setProperty("jcr:prop", "value");
         mount.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         check("/libs/jcr:prop");
     }
-    
+
     @Test
     public void noNamespacePrefix() throws Exception {
-        
+
         NodeBuilder builder = mount.getRoot().builder();
         builder.child("libs").setProperty("prop", "value");
         mount.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         check("/libs");
-        
+
     }
 }

@@ -16,19 +16,20 @@
  */
 package org.apache.jackrabbit.oak.spi.security.user.action;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import static org.mockito.Mockito.verifyNoInteractions;
+
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import static org.mockito.Mockito.verifyNoInteractions;
-
 public class AbstractGroupActionTest {
 
-    private final GroupAction groupAction = new AbstractGroupAction() {};
+    private final GroupAction groupAction = new AbstractGroupAction() {
+    };
 
     private final User user = Mockito.mock(User.class);
     private final Group group = Mockito.mock(Group.class);
@@ -50,19 +51,22 @@ public class AbstractGroupActionTest {
 
     @Test
     public void testMembersAdded() throws Exception {
-        groupAction.onMembersAdded(group, ImmutableSet.of("user1", "user2"), ImmutableSet.<String>of(), root, namePathMapper);
+        groupAction.onMembersAdded(group, ImmutableSet.of("user1", "user2"),
+            ImmutableSet.<String>of(), root, namePathMapper);
         verifyNoInteractions(group, user, root, namePathMapper);
     }
 
     @Test
     public void testMembersAddedContentId() throws Exception {
-        groupAction.onMembersAddedContentId(group, ImmutableSet.of("user1", "user2"), ImmutableSet.<String>of(), root, namePathMapper);
+        groupAction.onMembersAddedContentId(group, ImmutableSet.of("user1", "user2"),
+            ImmutableSet.<String>of(), root, namePathMapper);
         verifyNoInteractions(group, user, root, namePathMapper);
     }
 
     @Test
     public void testMembersRemoved() throws Exception {
-        groupAction.onMembersRemoved(group, ImmutableSet.of("user1", "user2"), ImmutableSet.<String>of(), root, namePathMapper);
+        groupAction.onMembersRemoved(group, ImmutableSet.of("user1", "user2"),
+            ImmutableSet.<String>of(), root, namePathMapper);
         verifyNoInteractions(group, user, root, namePathMapper);
     }
 }

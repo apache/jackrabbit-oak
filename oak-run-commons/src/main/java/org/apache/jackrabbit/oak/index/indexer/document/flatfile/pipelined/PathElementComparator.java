@@ -22,6 +22,7 @@ import java.util.Comparator;
 import java.util.Set;
 
 public class PathElementComparator implements Comparator<String[]> {
+
     private final Set<String> preferred;
 
     public PathElementComparator(Set<String> preferredPathElements) {
@@ -43,8 +44,10 @@ public class PathElementComparator implements Comparator<String[]> {
                 return 1;
             }
 
-            String pe1 = p1[i1]; i1++;
-            String pe2 = p2[i2]; i2++;
+            String pe1 = p1[i1];
+            i1++;
+            String pe2 = p2[i2];
+            i2++;
 
             boolean pe1Preferred = preferred.contains(pe1);
             boolean pe2Preferred = preferred.contains(pe2);

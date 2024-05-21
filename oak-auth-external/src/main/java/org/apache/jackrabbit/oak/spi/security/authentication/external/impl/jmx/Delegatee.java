@@ -16,10 +16,21 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.jmx;
 
-import org.apache.jackrabbit.guava.common.base.Predicates;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+
+import java.io.IOException;
+import java.security.PrivilegedActionException;
+import java.security.PrivilegedExceptionAction;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import javax.jcr.RepositoryException;
+import javax.security.auth.Subject;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.guava.common.base.Predicates;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -46,18 +57,6 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.jcr.RepositoryException;
-import javax.security.auth.Subject;
-import java.io.IOException;
-import java.security.PrivilegedActionException;
-import java.security.PrivilegedExceptionAction;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-
 final class Delegatee {
 
     private static final Logger log = LoggerFactory.getLogger(Delegatee.class);
@@ -80,7 +79,8 @@ final class Delegatee {
     private SyncContext context;
 
     private Delegatee(@NotNull SyncHandler handler, @NotNull ExternalIdentityProvider idp,
-                      @NotNull ContentSession systemSession, @NotNull SecurityProvider securityProvider, int batchSize) {
+        @NotNull ContentSession systemSession, @NotNull SecurityProvider securityProvider,
+        int batchSize) {
         this.handler = handler;
         this.idp = idp;
 
@@ -88,27 +88,32 @@ final class Delegatee {
         this.batchSize = batchSize;
 
         root = systemSession.getLatestRoot();
-        userMgr = securityProvider.getConfiguration(UserConfiguration.class).getUserManager(root, NamePathMapper.DEFAULT);
-        context = handler.createContext(idp, userMgr, new ValueFactoryImpl(root, NamePathMapper.DEFAULT));
+        userMgr = securityProvider.getConfiguration(UserConfiguration.class)
+                                  .getUserManager(root, NamePathMapper.DEFAULT);
+        context = handler.createContext(idp, userMgr,
+            new ValueFactoryImpl(root, NamePathMapper.DEFAULT));
 
-        log.info("Created delegatee for SyncMBean with session: {} {}", systemSession, systemSession.getAuthInfo().getUserID());
+        log.info("Created delegatee for SyncMBean with session: {} {}", systemSession,
+            systemSession.getAuthInfo().getUserID());
     }
 
     @NotNull
-    static Delegatee createInstance(@NotNull ContentRepository repository, @NotNull SecurityProvider securityProvider,
-                                    @NotNull SyncHandler handler, @NotNull ExternalIdentityProvider idp) {
+    static Delegatee createInstance(@NotNull ContentRepository repository,
+        @NotNull SecurityProvider securityProvider,
+        @NotNull SyncHandler handler, @NotNull ExternalIdentityProvider idp) {
         return createInstance(repository, securityProvider, handler, idp, DEFAULT_BATCH_SIZE);
     }
 
     @NotNull
     static Delegatee createInstance(@NotNull final ContentRepository repository,
-                                    @NotNull SecurityProvider securityProvider,
-                                    @NotNull SyncHandler handler,
-                                    @NotNull ExternalIdentityProvider idp,
-                                    int batchSize) {
+        @NotNull SecurityProvider securityProvider,
+        @NotNull SyncHandler handler,
+        @NotNull ExternalIdentityProvider idp,
+        int batchSize) {
         ContentSession systemSession;
         try {
-            systemSession = Subject.doAs(SystemSubject.INSTANCE, (PrivilegedExceptionAction<ContentSession>) () -> repository.login(null, null));
+            systemSession = Subject.doAs(SystemSubject.INSTANCE,
+                (PrivilegedExceptionAction<ContentSession>) () -> repository.login(null, null));
         } catch (PrivilegedActionException e) {
             throw new SyncRuntimeException(ERROR_CREATE_DELEGATEE, e);
         }
@@ -138,8 +143,8 @@ final class Delegatee {
     @NotNull
     String[] syncUsers(@NotNull String[] userIds, boolean purge) {
         context.setKeepMissing(!purge)
-                .setForceGroupSync(true)
-                .setForceUserSync(true);
+               .setForceGroupSync(true)
+               .setForceUserSync(true);
         ResultMessages messages = new ResultMessages();
 
         List<SyncResult> results = new ArrayList<>(batchSize);
@@ -158,8 +163,8 @@ final class Delegatee {
         try {
             ResultMessages messages = new ResultMessages();
             context.setKeepMissing(!purge)
-                    .setForceGroupSync(true)
-                    .setForceUserSync(true);
+                   .setForceGroupSync(true)
+                   .setForceUserSync(true);
             Iterator<SyncedIdentity> it = handler.listIdentities(userMgr);
 
             List<SyncResult> results = new ArrayList<>(batchSize);
@@ -188,7 +193,9 @@ final class Delegatee {
         for (String externalId : externalIds) {
             ExternalIdentityRef ref = ExternalIdentityRef.fromString(externalId);
             if (!idp.getName().equals(ref.getProviderName())) {
-                results.add(new DefaultSyncResultImpl(new DefaultSyncedIdentity(ref.getId(), ref, false, -1), SyncResult.Status.FOREIGN));
+                results.add(new DefaultSyncResultImpl(
+                    new DefaultSyncedIdentity(ref.getId(), ref, false, -1),
+                    SyncResult.Status.FOREIGN));
             } else {
                 try {
                     ExternalIdentity id = idp.getIdentity(ref);
@@ -196,8 +203,8 @@ final class Delegatee {
                         results = syncUser(id, results, messages);
                     } else {
                         results.add(new DefaultSyncResultImpl(
-                                new DefaultSyncedIdentity("", ref, false, -1),
-                                SyncResult.Status.NO_SUCH_IDENTITY
+                            new DefaultSyncedIdentity("", ref, false, -1),
+                            SyncResult.Status.NO_SUCH_IDENTITY
                         ));
                     }
                 } catch (ExternalIdentityException e) {
@@ -264,10 +271,11 @@ final class Delegatee {
     @NotNull
     String[] convertToDynamicMembership() {
         if (!(context instanceof DynamicSyncContext)) {
-            log.debug("SyncHandler doesn't have dynamic-membership configured. Ignore request to convert external users.");
+            log.debug(
+                "SyncHandler doesn't have dynamic-membership configured. Ignore request to convert external users.");
             return new String[0];
         }
-        
+
         try {
             ResultMessages messages = new ResultMessages();
             Iterator<SyncedIdentity> it = handler.listIdentities(userMgr);
@@ -284,7 +292,9 @@ final class Delegatee {
                     } else {
                         status = SyncResult.Status.NOP;
                     }
-                    results.add(new DefaultSyncResultImpl(new DefaultSyncedIdentity(id.getId(), id.getExternalIdRef(), id.isGroup(), id.lastSynced()), status));
+                    results.add(new DefaultSyncResultImpl(
+                        new DefaultSyncedIdentity(id.getId(), id.getExternalIdRef(), id.isGroup(),
+                            id.lastSynced()), status));
                 }
             }
             commit(messages, results, NO_BATCH_SIZE);
@@ -293,7 +303,7 @@ final class Delegatee {
             throw new IllegalStateException("Error during conversion to dynamic membership", e);
         }
     }
-    
+
     //------------------------------------------------------------< private >---
 
     private boolean isMyIDP(@NotNull SyncedIdentity id) {
@@ -303,13 +313,14 @@ final class Delegatee {
     }
 
     @NotNull
-    private List<SyncResult> syncUser(@NotNull ExternalIdentity id, @NotNull List<SyncResult> results, @NotNull ResultMessages messages) {
+    private List<SyncResult> syncUser(@NotNull ExternalIdentity id,
+        @NotNull List<SyncResult> results, @NotNull ResultMessages messages) {
         try {
             SyncResult r = context.sync(id);
             if (r.getIdentity() == null) {
                 r = new DefaultSyncResultImpl(
-                        new DefaultSyncedIdentity(id.getId(), id.getExternalId(), false, -1),
-                        SyncResult.Status.NO_SUCH_IDENTITY
+                    new DefaultSyncedIdentity(id.getId(), id.getExternalId(), false, -1),
+                    SyncResult.Status.NO_SUCH_IDENTITY
                 );
                 log.warn("sync failed. {}", r.getIdentity());
             } else {
@@ -325,7 +336,7 @@ final class Delegatee {
 
     @NotNull
     private List<SyncResult> syncUser(@NotNull String userId, boolean includeIdpName,
-                                      @NotNull List<SyncResult> results, @NotNull ResultMessages messages) {
+        @NotNull List<SyncResult> results, @NotNull ResultMessages messages) {
         try {
             results.add(context.sync(userId));
         } catch (SyncException e) {
@@ -336,7 +347,8 @@ final class Delegatee {
     }
 
     @NotNull
-    private List<SyncResult> commit(@NotNull ResultMessages messages, @NotNull List<SyncResult> resultList, int size) {
+    private List<SyncResult> commit(@NotNull ResultMessages messages,
+        @NotNull List<SyncResult> resultList, int size) {
         if (resultList.isEmpty() || resultList.size() < size) {
             return resultList;
         } else {
@@ -361,7 +373,8 @@ final class Delegatee {
                 if (syncedIdentity != null && isMyIDP(syncedIdentity)) {
                     try {
                         // nonNull-ExternalIdRef has already been asserted by 'isMyIDP'
-                        ExternalIdentity extId = idp.getIdentity(checkNotNull(syncedIdentity.getExternalIdRef()));
+                        ExternalIdentity extId = idp.getIdentity(
+                            checkNotNull(syncedIdentity.getExternalIdRef()));
                         if (extId == null) {
                             return syncedIdentity.getId();
                         }

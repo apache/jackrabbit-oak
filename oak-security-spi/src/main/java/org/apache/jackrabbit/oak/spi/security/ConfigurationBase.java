@@ -42,7 +42,8 @@ public abstract class ConfigurationBase extends SecurityConfiguration.Default {
     /**
      * non-osgi constructor
      */
-    public ConfigurationBase(@NotNull SecurityProvider securityProvider, @NotNull ConfigurationParameters config) {
+    public ConfigurationBase(@NotNull SecurityProvider securityProvider,
+        @NotNull ConfigurationParameters config) {
         this.securityProvider = securityProvider;
         this.config = config;
     }

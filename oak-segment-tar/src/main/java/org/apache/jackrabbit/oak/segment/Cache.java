@@ -23,30 +23,32 @@ import org.jetbrains.annotations.Nullable;
 
 /**
  * Partial mapping of keys of type {@code K} to values of type {@link V}. If supported by the
- * underlying implementation the mappings can further be associated with a cost, which is a
- * metric for the cost occurring when the given mapping is lost. Higher values represent higher
- * costs.
+ * underlying implementation the mappings can further be associated with a cost, which is a metric
+ * for the cost occurring when the given mapping is lost. Higher values represent higher costs.
  */
 public interface Cache<K, V> {
 
     /**
      * Add a mapping from {@code key} to {@code value}.
-     * @throws UnsupportedOperationException   if the underlying implementation doesn't
-     *         support values without an associated cost and {@link #put(Object, Object, byte)}
-     *         should be used instead.
+     *
+     * @throws UnsupportedOperationException if the underlying implementation doesn't support values
+     *                                       without an associated cost and
+     *                                       {@link #put(Object, Object, byte)} should be used
+     *                                       instead.
      */
     void put(@NotNull K key, @NotNull V value);
 
     /**
      * Add a mapping from {@code key} to {@code value} with a given {@code cost}.
-     * @throws UnsupportedOperationException   if the underlying implementation doesn't
-     *         support values with an associated cost and {@link #put(Object, Object)}
-     *         should be used instead.
+     *
+     * @throws UnsupportedOperationException if the underlying implementation doesn't support values
+     *                                       with an associated cost and
+     *                                       {@link #put(Object, Object)} should be used instead.
      */
     void put(@NotNull K key, @NotNull V value, byte cost);
 
     /**
-     * @return  The mapping for {@code key}, or {@code null} if none.
+     * @return The mapping for {@code key}, or {@code null} if none.
      */
     @Nullable
     V get(@NotNull K key);

@@ -19,11 +19,17 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
+import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
+import static org.hamcrest.Matchers.hasItems;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+
 import java.io.File;
 import java.io.FileFilter;
 import java.util.List;
 import java.util.stream.Collectors;
-
 import org.apache.commons.io.filefilter.DirectoryFileFilter;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexDefinitionBuilder;
@@ -35,11 +41,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
-import static org.hamcrest.Matchers.hasItems;
-import static org.junit.Assert.*;
-
 public class FSDirectoryFactoryTest {
+
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
 
@@ -47,8 +50,9 @@ public class FSDirectoryFactoryTest {
     private NodeBuilder idx = new LuceneIndexDefinitionBuilder().build().builder();
 
     @Test
-    public void singleIndex() throws Exception{
-        LuceneIndexDefinition defn = LuceneIndexDefinition.newBuilder(root, idx.getNodeState(), "/fooIndex").build();
+    public void singleIndex() throws Exception {
+        LuceneIndexDefinition defn = LuceneIndexDefinition.newBuilder(root, idx.getNodeState(),
+            "/fooIndex").build();
         FSDirectoryFactory factory = new FSDirectoryFactory(temporaryFolder.getRoot());
 
         Directory dir = factory.newInstance(defn, idx, ":data", false);
@@ -63,9 +67,11 @@ public class FSDirectoryFactoryTest {
 
 
     @Test
-    public void multiIndexWithSimilarPaths() throws Exception{
-        LuceneIndexDefinition defn1 = LuceneIndexDefinition.newBuilder(root, idx.getNodeState(), "/content/a/en_us/oak:index/fooIndex").build();
-        LuceneIndexDefinition defn2 = LuceneIndexDefinition.newBuilder(root, idx.getNodeState(), "/content/b/en_us/oak:index/fooIndex").build();
+    public void multiIndexWithSimilarPaths() throws Exception {
+        LuceneIndexDefinition defn1 = LuceneIndexDefinition.newBuilder(root, idx.getNodeState(),
+            "/content/a/en_us/oak:index/fooIndex").build();
+        LuceneIndexDefinition defn2 = LuceneIndexDefinition.newBuilder(root, idx.getNodeState(),
+            "/content/b/en_us/oak:index/fooIndex").build();
 
         FSDirectoryFactory factory = new FSDirectoryFactory(temporaryFolder.getRoot());
         factory.newInstance(defn1, idx, ":data", false).close();
@@ -75,21 +81,24 @@ public class FSDirectoryFactoryTest {
         List<LocalIndexDir> indexes = idxDir.getAllLocalIndexes();
 
         assertEquals(2, indexes.size());
-        List<String> idxPaths  = indexes.stream().map (LocalIndexDir::getJcrPath).collect(Collectors.toList());
-        assertThat(idxPaths, hasItems("/content/a/en_us/oak:index/fooIndex", "/content/b/en_us/oak:index/fooIndex"));
+        List<String> idxPaths = indexes.stream().map(LocalIndexDir::getJcrPath)
+                                       .collect(Collectors.toList());
+        assertThat(idxPaths,
+            hasItems("/content/a/en_us/oak:index/fooIndex", "/content/b/en_us/oak:index/fooIndex"));
     }
 
     @Test
-    public void reuseExistingDir() throws Exception{
-        LuceneIndexDefinition defn = LuceneIndexDefinition.newBuilder(root, idx.getNodeState(), "/fooIndex").build();
+    public void reuseExistingDir() throws Exception {
+        LuceneIndexDefinition defn = LuceneIndexDefinition.newBuilder(root, idx.getNodeState(),
+            "/fooIndex").build();
         FSDirectoryFactory factory = new FSDirectoryFactory(temporaryFolder.getRoot());
 
         Directory dir = factory.newInstance(defn, idx, ":data", false);
-        File fsDir1 = ((FSDirectory)dir).getDirectory();
+        File fsDir1 = ((FSDirectory) dir).getDirectory();
         dir.close();
 
         Directory dir2 = factory.newInstance(defn, idx, ":data", false);
-        File fsDir2 = ((FSDirectory)dir2).getDirectory();
+        File fsDir2 = ((FSDirectory) dir2).getDirectory();
         dir2.close();
 
         assertEquals(fsDir1, fsDir2);
@@ -97,8 +106,9 @@ public class FSDirectoryFactoryTest {
     }
 
     @Test
-    public void directoryMapping() throws Exception{
-        LuceneIndexDefinition defn = LuceneIndexDefinition.newBuilder(root, idx.getNodeState(), "/fooIndex").build();
+    public void directoryMapping() throws Exception {
+        LuceneIndexDefinition defn = LuceneIndexDefinition.newBuilder(root, idx.getNodeState(),
+            "/fooIndex").build();
         FSDirectoryFactory factory = new FSDirectoryFactory(temporaryFolder.getRoot());
 
         Directory dir1 = factory.newInstance(defn, idx, ":data", false);
@@ -109,7 +119,7 @@ public class FSDirectoryFactoryTest {
         IndexRootDirectory idxDir = new IndexRootDirectory(temporaryFolder.getRoot());
         LocalIndexDir indexDir = idxDir.getLocalIndexes("/fooIndex").get(0);
 
-        for (File dir : indexDir.dir.listFiles((FileFilter)DirectoryFileFilter.DIRECTORY)){
+        for (File dir : indexDir.dir.listFiles((FileFilter) DirectoryFileFilter.DIRECTORY)) {
             assertNotNull(indexDir.indexMeta.getJcrNameFromFSName(dir.getName()));
         }
     }

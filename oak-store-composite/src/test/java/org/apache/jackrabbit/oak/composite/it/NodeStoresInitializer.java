@@ -34,14 +34,15 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 
 /**
- * Initializes the NodeStores used by the Integration Tests. Executed by Maven in the pre-integration-test phase.
+ * Initializes the NodeStores used by the Integration Tests. Executed by Maven in the
+ * pre-integration-test phase.
  */
 public class NodeStoresInitializer {
 
     public static final String GLOBAL_STORE = "segmentstore-composite-global";
     public static final String LIBS_STORE = "segmentstore-composite-mount-libs";
     public static final String APPS_STORE = "segmentstore-composite-mount-apps";
-    
+
     private static boolean alreadyInitialized;
 
     public static void initTestStores() {
@@ -69,7 +70,8 @@ public class NodeStoresInitializer {
         }
     }
 
-    private static void initRepo(Path targetPath, String store, Consumer<NodeBuilder> consumer) throws IOException, CommitFailedException {
+    private static void initRepo(Path targetPath, String store, Consumer<NodeBuilder> consumer)
+        throws IOException, CommitFailedException {
         Path path = targetPath.resolve(store);
         FileUtils.deleteDirectory(path.toFile());
         FileStore filestore = getFileStore(path);

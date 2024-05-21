@@ -35,7 +35,7 @@ to build the site **without** Javadoc, and optionally
 
     mvn site -Pjavadoc -pl '!oak-shaded-guava,!oak-upgrade,!oak-benchmarks,!oak-search-elastic,!oak-benchmarks-lucene,!oak-benchmarks-solr,!oak-benchmarks-elastic,!oak-run-elastic'
 
-to add Javadoc. 
+to add Javadoc.
 
     mvn site -Pdoc,javadoc -pl '!oak-shaded-guava,!oak-upgrade,!oak-benchmarks,!oak-search-elastic,!oak-benchmarks-lucene,!oak-benchmarks-solr,!oak-benchmarks-elastic,!oak-run-elastic'
 

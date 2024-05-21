@@ -14,6 +14,7 @@
    See the License for the specific language governing permissions and
    limitations under the License.
   -->
+
 # RDB DocumentStore
 
 The `RDBDocumentStore` is one of the backend implementations for the
@@ -21,12 +22,13 @@ The `RDBDocumentStore` is one of the backend implementations for the
 persist nodes as documents, mainly emulating the native capabilities of
 [MongoDocumentStore](mongo-document-store.html).
 
-Note that the [API docs for RDBDocumentStore](/oak/docs/apidocs/org/apache/jackrabbit/oak/plugins/document/rdb/RDBDocumentStore.html)
+Note that
+the [API docs for RDBDocumentStore](/oak/docs/apidocs/org/apache/jackrabbit/oak/plugins/document/rdb/RDBDocumentStore.html)
 contain more implementation details.
 
 ## Supported Databases
 
-The code was written to be as database-agnostic as possible. That said, there 
+The code was written to be as database-agnostic as possible. That said, there
 are vendor-specific code paths. Adding support for a new database type
 however should be relatively straighforward. Most of the database-specific
 code resides in the `RDBDocumentStoreDB` class.
@@ -56,24 +58,25 @@ will attempt to start anyway):
 12:20:20.864 ERROR [main] RDBDocumentStore.java:1014        Unsupported Apache Derby version: 9.14, expected at least 10.11
 ~~~
 
-
 ## <a name="initialization"></a> Initialization
 
 The recommended method to initialize a `DocumentNodeStore` with an
 `RDBDocumentStore` is using an OSGi container and configure the
-`DocumentNodeStoreService`. See corresponding [Repository OSGi Configuration](../../osgi_config.html#document-node-store).
+`DocumentNodeStoreService`. See
+corresponding [Repository OSGi Configuration](../../osgi_config.html#document-node-store).
 
-This will also require deploying the [Sling DataSource provider](https://sling.apache.org/documentation/bundles/datasource-providers.html)
+This will also require deploying
+the [Sling DataSource provider](https://sling.apache.org/documentation/bundles/datasource-providers.html)
 and furthermore the associated JDBC driver as OSGi bundle. The details of the
 latter vary by database:
 
 1. If the JDBC driver already is an OSGI bundle, it can be deployed as is. This
    is the case for Apache Derby, H2DB, IBM DB2, Microsoft SQL Server, MySQL,
-   and PostgreSQL. Some of these drivers also implement the [OSGi Data Service Specification for JDBC](https://osgi.org/specification/osgi.cmpn/7.0.0/service.jdbc.html) ,
-   in which case `org.osgi.service.jdbc-1.0.0.jar` needs to be deployed as well (this is the case for IBM DB2, Microsoft SQL Server, and PostgreSQL).
+   and PostgreSQL. Some of these drivers also implement
+   the [OSGi Data Service Specification for JDBC](https://osgi.org/specification/osgi.cmpn/7.0.0/service.jdbc.html) ,
+   in which case `org.osgi.service.jdbc-1.0.0.jar` needs to be deployed as well (this is the case
+   for IBM DB2, Microsoft SQL Server, and PostgreSQL).
 2. Otherwise (e.g., Oracle), an OSGi wrapper needs to be built. See [below](#wrap-osgi).
-
-
 
 Alternatively an RDB based DocumentNodeStore can be created with the help of
 a `RDBDocumentNodeStoreBuilder`.
@@ -90,8 +93,10 @@ a `RDBDocumentNodeStoreBuilder`.
 ### <a name="wrap-osgi"></a> Example: Creating OSGi Bundle for Oracle JDBC driver
 
 1. Make sure to have a local copy of the JDBC driver, for instance `ojdbc8-12.2.0.1.jar`.
-2. Get BND command line tool from https://repo1.maven.org/maven2/biz/aQute/bnd/biz.aQute.bnd/4.3.1/biz.aQute.bnd-4.3.1.jar
+2. Get BND command line tool
+   from https://repo1.maven.org/maven2/biz/aQute/bnd/biz.aQute.bnd/4.3.1/biz.aQute.bnd-4.3.1.jar
 3. Create BND `ora.bnd` below:
+
 ~~~
  -classpath: ojdbc8-12.2.0.1.jar
  Bundle-SymbolicName: com.oracle.jdbc.ojdbc8
@@ -101,8 +106,9 @@ a `RDBDocumentNodeStoreBuilder`.
  Include-Resource: @ojdbc8-12.2.0.1.jar
  Import-Package: *;resolution:=optional
 ~~~
-Then run `java -jar biz.aQute.bnd-4.3.1.jar ora.bnd`; this should create the OSGi bundle `com.oracle.jdbc.ojdbc8-12.2.0.1.jar`.
 
+Then run `java -jar biz.aQute.bnd-4.3.1.jar ora.bnd`; this should create the OSGi
+bundle `com.oracle.jdbc.ojdbc8-12.2.0.1.jar`.
 
 ## <a name="database-creation"></a> Database Creation
 
@@ -122,10 +128,10 @@ the correct operation:
 The subsections below give examples that have been found to work during the
 development of `RDBDocumentStore`.
 
-
 ### <a name="database-creation-db2"></a> DB2
 
 Creating a database called `OAK`:
+
 ~~~
 create database oak USING CODESET UTF-8 TERRITORY DEFAULT COLLATE USING IDENTITY;
 ~~~
@@ -137,10 +143,10 @@ upon startup. For example:
 14:47:20.332 INFO  [main] RDBDocumentStore.java:1065        RDBDocumentStore (SNAPSHOT) instantiated for database DB2/NT64 SQL11014 (11.1), using driver: IBM Data Server Driver for JDBC and SQLJ 4.19.77 (4.19), connecting to: jdbc:db2://localhost:50276/OAK, properties: {DB2ADMIN.CODEPAGE=1208, DB2ADMIN.COLLATIONSCHEMA=SYSIBM, DB2ADMIN.COLLATIONNAME=IDENTITY}, transaction isolation level: TRANSACTION_READ_COMMITTED (2), DB2ADMIN.NODES: ID VARCHAR(512), MODIFIED BIGINT, HASBINARY SMALLINT, DELETEDONCE SMALLINT, MODCOUNT BIGINT, CMODCOUNT BIGINT, DSIZE BIGINT, VERSION SMALLINT, SDTYPE SMALLINT, SDMAXREVTIME BIGINT, DATA VARCHAR(16384), BDATA BLOB(1073741824) /* {BIGINT=-5, BLOB=2004, SMALLINT=5, VARCHAR=12} */ /* index DB2ADMIN.NODES_MOD on DB2ADMIN.NODES (MODIFIED ASC) other (#0, p0), unique index DB2ADMIN.NODES_PK on DB2ADMIN.NODES (ID ASC) clustered (#0, p0), index DB2ADMIN.NODES_SDM on DB2ADMIN.NODES (SDMAXREVTIME ASC) other (#0, p0), index DB2ADMIN.NODES_SDT on DB2ADMIN.NODES (SDTYPE ASC) other (#0, p0), index DB2ADMIN.NODES_VSN on DB2ADMIN.NODES (VERSION ASC) other (#0, p0) */
 ~~~
 
-
 ### <a name="database-creation-mysql"></a> MySQL
 
 Creating a database called `OAK`:
+
 ~~~
 create database oak DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ~~~
@@ -154,13 +160,14 @@ upon startup. For example:
 ~~~
 13:40:46.637 INFO  [main] RDBDocumentStore.java:1065        RDBDocumentStore (SNAPSHOT) instantiated for database MySQL 8.0.15 (8.0), using driver: MySQL Connector/J mysql-connector-java-8.0.15 (Revision: 79a4336f140499bd22dd07f02b708e163844e3d5) (8.0), connecting to: jdbc:mysql://localhost:3306/oak?serverTimezone=UTC, properties: {character_set_database=utf8mb4, character_set_client=utf8mb4, character_set_connection=utf8mb4, character_set_results=, max_allowed_packet=8388608, collation_database=utf8mb4_unicode_ci, character_set_system=utf8, collation_server=utf8mb4_0900_ai_ci, collation=utf8mb4_unicode_ci, character_set_filesystem=binary, character_set_server=utf8mb4, collation_connection=utf8mb4_0900_ai_ci}, transaction isolation level: TRANSACTION_REPEATABLE_READ (4), .nodes: ID VARBINARY(512), MODIFIED BIGINT(20), HASBINARY SMALLINT(6), DELETEDONCE SMALLINT(6), MODCOUNT BIGINT(20), CMODCOUNT BIGINT(20), DSIZE BIGINT(20), VERSION SMALLINT(6), SDTYPE SMALLINT(6), SDMAXREVTIME BIGINT(20), DATA VARCHAR(16000), BDATA LONGBLOB(2147483647) /* {BIGINT=-5, LONGBLOB=-4, SMALLINT=5, VARBINARY=-3, VARCHAR=12} */ /* unique index oak.PRIMARY on nodes (ID ASC) other (#0, p0), index oak.NODES_MOD on nodes (MODIFIED ASC) other (#0, p0), index oak.NODES_SDM on nodes (SDMAXREVTIME ASC) other (#0, p0), index oak.NODES_SDT on nodes (SDTYPE ASC) other (#0, p0), index oak.NODES_VSN on nodes (VERSION ASC) other (#0, p0) */
 ~~~
- 
 
 ### <a name="database-creation-oracle"></a> Oracle
 
 Creating a database called `OAK`:
 
-...is different compared to other databases. See https://docs.oracle.com/cd/B28359_01/server.111/b28310/create003.htm for more information. Defaults should work.
+...is different compared to other databases.
+See https://docs.oracle.com/cd/B28359_01/server.111/b28310/create003.htm for more information.
+Defaults should work.
 
 To verify, check the INFO level log message written by `RDBDocumentStore`
 upon startup. For example:
@@ -169,10 +176,10 @@ upon startup. For example:
 13:26:37.073 INFO  [main] RDBDocumentStore.java:1067        RDBDocumentStore (SNAPSHOT) instantiated for database Oracle Oracle Database 12c Enterprise Edition Release 12.2.0.1.0 - 64bit Production (12.2), using driver: Oracle JDBC driver 12.2.0.1.0 (12.2), connecting to: jdbc:oracle:thin:@localhost:1521:orcl, properties: {NLS_CHARACTERSET=AL32UTF8, NLS_COMP=BINARY}, transaction isolation level: TRANSACTION_READ_COMMITTED (2), .: ID VARCHAR2(512), MODIFIED NUMBER, HASBINARY NUMBER, DELETEDONCE NUMBER, MODCOUNT NUMBER, CMODCOUNT NUMBER, DSIZE NUMBER, VERSION NUMBER, SDTYPE NUMBER, SDMAXREVTIME NUMBER, DATA VARCHAR2(4000), BDATA BLOB(-1) /* {BLOB=2004, NUMBER=2, VARCHAR2=12} */ /* index NODES_MOD on SYSTEM.NODES (MODIFIED) clustered (#0, p0), index NODES_SDM on SYSTEM.NODES (SDMAXREVTIME) clustered (#0, p0), index NODES_SDT on SYSTEM.NODES (SDTYPE) clustered (#0, p0), index NODES_VSN on SYSTEM.NODES (VERSION) clustered (#0, p0), unique index SYS_C008093 on SYSTEM.NODES (ID) clustered (#0, p0) */
 ~~~
 
-
 ### <a name="database-creation-postgresql"></a> PostgreSQL
 
 Creating a database called `OAK`:
+
 ~~~
 CREATE DATABASE "oak" TEMPLATE = template0 ENCODING = 'UTF8' LC_COLLATE = 'C' LC_CTYPE = 'C';
 ~~~
@@ -183,11 +190,11 @@ upon startup. For example:
 ~~~
 16:26:28.172 INFO  [main] RDBDocumentStore.java:1065        RDBDocumentStore (SNAPSHOT) instantiated for database PostgreSQL 10.6 (10.6), using driver: PostgreSQL JDBC Driver 42.2.5 (42.2), connecting to: jdbc:postgresql:oak, properties: {datcollate=C, pg_encoding_to_char(encoding)=UTF8}, transaction isolation level: TRANSACTION_READ_COMMITTED (2), .nodes: id varchar(512), modified int8, hasbinary int2, deletedonce int2, modcount int8, cmodcount int8, dsize int8, version int2, sdtype int2, sdmaxrevtime int8, data varchar(16384), bdata bytea(2147483647) /* {bytea=-2, int2=5, int8=-5, varchar=12} */ /* index nodes_mod on public.nodes (modified ASC) other (#0, p1), unique index nodes_pkey on public.nodes (id ASC) other (#0, p1), index nodes_sdm on public.nodes (sdmaxrevtime ASC) other (#0, p1), index nodes_sdt on public.nodes (sdtype ASC) other (#0, p1), index nodes_vsn on public.nodes (version ASC) other (#0, p1) */
 ~~~
- 
- 
+
 ### <a name="database-creation-sqlserver"></a> SQL Server
 
 Creating a database called `OAK`:
+
 ~~~
 create database OAK;
 ~~~
@@ -198,7 +205,6 @@ upon startup. For example:
 ~~~
 16:59:12.726 INFO  [main] RDBDocumentStore.java:1067        RDBDocumentStore (SNAPSHOT) instantiated for database Microsoft SQL Server 13.00.5081 (13.0), using driver: Microsoft JDBC Driver 7.2 for SQL Server 7.2.1.0 (7.2), connecting to: jdbc:sqlserver://localhost:1433;useBulkCopyForBatchInsert=false;cancelQueryTimeout=-1;sslProtocol=TLS;jaasConfigurationName=SQLJDBCDriver;statementPoolingCacheSize=0;serverPreparedStatementDiscardThreshold=10;enablePrepareOnFirstPreparedStatementCall=false;fips=false;socketTimeout=0;authentication=NotSpecified;authenticationScheme=nativeAuthentication;xopenStates=false;sendTimeAsDatetime=true;trustStoreType=JKS;trustServerCertificate=false;TransparentNetworkIPResolution=true;serverNameAsACE=false;sendStringParametersAsUnicode=true;selectMethod=direct;responseBuffering=adaptive;queryTimeout=-1;packetSize=8000;multiSubnetFailover=false;loginTimeout=15;lockTimeout=-1;lastUpdateCount=true;encrypt=false;disableStatementPooling=true;databaseName=OAK;columnEncryptionSetting=Disabled;applicationName=Microsoft JDBC Driver for SQL Server;applicationIntent=readwrite;, properties: {collation_name=Latin1_General_CI_AS}, transaction isolation level: TRANSACTION_READ_COMMITTED (2), .: ID varbinary(512), MODIFIED bigint, HASBINARY smallint, DELETEDONCE smallint, MODCOUNT bigint, CMODCOUNT bigint, DSIZE bigint, VERSION smallint, SDTYPE smallint, SDMAXREVTIME bigint, DATA nvarchar(4000), BDATA varbinary(2147483647) /* {bigint=-5, nvarchar=-9, smallint=5, varbinary=-3} */ /* index NODES.NODES_MOD on dbo.NODES (MODIFIED ASC) other (#0, p0), unique index NODES.NODES_PK on dbo.NODES (ID ASC) clustered (#0, p0), index NODES.NODES_SDM on dbo.NODES (SDMAXREVTIME ASC) other (#0, p0), index NODES.NODES_SDT on dbo.NODES (SDTYPE ASC) other (#0, p0), index NODES.NODES_VSN on dbo.NODES (VERSION ASC) other (#0, p0) */
 ~~~
-
 
 ## <a name="table-creation"></a> Table Creation
 
@@ -215,13 +221,13 @@ If it does not, the system will not start up and provide
 diagnostics in the log file.
 
 Administrators who want to create tables upfront can do so. The DDL statements
-for the supported databases can be dumped using [RDBHelper](/oak/docs/apidocs/org/apache/jackrabbit/oak/plugins/document/rdb/RDBHelper.html)
+for the supported databases can be dumped
+using [RDBHelper](/oak/docs/apidocs/org/apache/jackrabbit/oak/plugins/document/rdb/RDBHelper.html)
 or, more recently, using `oak-run rdbddldump` (see [below](#rdbddldump)).
-
 
 ## <a name="upgrade"></a> Upgrade from earlier versions
 
-As of Oak 1.8, the database layout has been slightly extended (see 
+As of Oak 1.8, the database layout has been slightly extended (see
 [API docs for RDBDocumentStore](/oak/docs/apidocs/org/apache/jackrabbit/oak/plugins/document/rdb/RDBDocumentStore.html#apidocs.versioning)
 for details).
 
@@ -264,7 +270,7 @@ By default, it will print out the DDL statements for all supported databases,
 with a target of the latest schema version.
 
 The `--db` switch can be used to specify the database type (note that precise
-spelling is needed, otherwise the code will fall back to a generic database 
+spelling is needed, otherwise the code will fall back to a generic database
 type).
 
 The `--initial` switch selects the initial database schema (and defaults to
@@ -390,7 +396,6 @@ Note that in Oak versions prior to June 2019, `oak-run` also does not contain
 the artefacts `tomcat-jdbc` and `tomcat-juli`, which thus need to be added to
 the classpath as well (see OAK-8341 for details).
 
-
 ## <a name="reading-log-files"></a> Reading Log Files
 
 There are certain log messages to look out for when investigating problems,
@@ -431,7 +436,6 @@ java.lang.Exception: call stack
 The call stack is dumped to identify the piece of code that executed the query.
 It is important to understand that this is not an error, it is just logged
 for diagnostic purposes.
-
 
 ### <a name="tomcat-jdbc-pool-interceptor"></a> Tomcat JDBC Pool Interceptor Messages
 

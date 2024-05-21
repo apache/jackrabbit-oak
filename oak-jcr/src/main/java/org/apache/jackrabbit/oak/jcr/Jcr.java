@@ -24,9 +24,7 @@ import static org.apache.jackrabbit.oak.plugins.commit.JcrConflictHandler.create
 import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
-
 import javax.jcr.Repository;
-
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.Oak.OakDefaultComponents;
 import org.apache.jackrabbit.oak.api.ContentRepository;
@@ -53,19 +51,18 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Builder class which encapsulates the details of building a JCR
- * {@link Repository} backed by an Oak {@link ContentRepository} instance
+ * Builder class which encapsulates the details of building a JCR {@link Repository} backed by an
+ * Oak {@link ContentRepository} instance
  *
  * <p>The backing {@linkplain ContentRepository} instance will be constructed with
- * reasonable defaults and additional components can be registered by calling
- * the {@code with} methods. Note that it is not possible to remove components
- * once registered.</p>
+ * reasonable defaults and additional components can be registered by calling the {@code with}
+ * methods. Note that it is not possible to remove components once registered.</p>
  *
  * <p>The Jcr builder is a lazy initializer, to have a working repository make sure
- * you call {@link Jcr#createContentRepository()} or
- * {@link Jcr#createRepository()}.</p>
+ * you call {@link Jcr#createContentRepository()} or {@link Jcr#createRepository()}.</p>
  */
 public class Jcr {
+
     public static final int DEFAULT_OBSERVATION_QUEUE_LENGTH = BackgroundObserver.DEFAULT_QUEUE_SIZE;
 
     private final Oak oak;
@@ -153,7 +150,7 @@ public class Jcr {
 
     private void ensureRepositoryIsNotCreated() {
         checkState(repository == null && contentRepository == null,
-                "Repository was already created");
+            "Repository was already created");
     }
 
     @NotNull
@@ -296,8 +293,9 @@ public class Jcr {
     }
 
     /**
-     * Disables registration of {@link SessionMBean} for every open Session in the repository.
-     * This gets rid of some overhead for cases where MBeans are not leveraged.
+     * Disables registration of {@link SessionMBean} for every open Session in the repository. This
+     * gets rid of some overhead for cases where MBeans are not leveraged.
+     *
      * @return the Jcr object
      * @since 1.46
      */
@@ -395,13 +393,13 @@ public class Jcr {
     public Repository createRepository() {
         if (repository == null) {
             repository = new RepositoryImpl(
-                    createContentRepository(),
-                    oak.getWhiteboard(),
-                    securityProvider,
-                    observationQueueLength,
-                    commitRateLimiter,
-                    fastQueryResultSize,
-                    createSessionMBeans);
+                createContentRepository(),
+                oak.getWhiteboard(),
+                securityProvider,
+                observationQueueLength,
+                commitRateLimiter,
+                fastQueryResultSize,
+                createSessionMBeans);
         }
         return repository;
     }

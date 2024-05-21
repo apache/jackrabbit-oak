@@ -16,11 +16,11 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.callback;
 
+import static org.junit.Assert.assertSame;
+
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.junit.Test;
 import org.mockito.Mockito;
-
-import static org.junit.Assert.assertSame;
 
 public class UserManagerCallbackTest {
 

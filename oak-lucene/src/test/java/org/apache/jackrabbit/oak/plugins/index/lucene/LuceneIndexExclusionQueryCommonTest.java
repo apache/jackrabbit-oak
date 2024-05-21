@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import java.io.File;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import org.apache.jackrabbit.oak.InitialContentHelper;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.plugins.index.IndexExclusionQueryCommonTest;
@@ -23,10 +26,6 @@ import org.apache.jackrabbit.oak.plugins.index.LuceneIndexOptions;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
-
-import java.io.File;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 /**
  * Tests the {@link LuceneIndexProvider} exclusion settings
@@ -41,8 +40,10 @@ public class LuceneIndexExclusionQueryCommonTest extends IndexExclusionQueryComm
     @Override
     protected ContentRepository createRepository() {
         indexOptions = new LuceneIndexOptions();
-        LuceneTestRepositoryBuilder luceneTestRepositoryBuilder = new LuceneTestRepositoryBuilder(executorService, temporaryFolder);
-        luceneTestRepositoryBuilder.setNodeStore(new MemoryNodeStore(InitialContentHelper.INITIAL_CONTENT));
+        LuceneTestRepositoryBuilder luceneTestRepositoryBuilder = new LuceneTestRepositoryBuilder(
+            executorService, temporaryFolder);
+        luceneTestRepositoryBuilder.setNodeStore(
+            new MemoryNodeStore(InitialContentHelper.INITIAL_CONTENT));
         repositoryOptionsUtil = luceneTestRepositoryBuilder.build();
 
         return repositoryOptionsUtil.getOak().createContentRepository();

@@ -36,10 +36,11 @@ public class BackgroundWriteTest {
     @Test // OAK-1190
     public void limitMultiUpdate() {
         DocumentMK mk = new DocumentMK.Builder().setDocumentStore(
-                new TestStore()).setAsyncDelay(0).open();
+            new TestStore()).setAsyncDelay(0).open();
         List<String> paths = new ArrayList<String>();
         StringBuilder sb = new StringBuilder();
-        for (int i = 0; paths.size() < UnsavedModifications.BACKGROUND_MULTI_UPDATE_LIMIT * 2; i++) {
+        for (int i = 0; paths.size() < UnsavedModifications.BACKGROUND_MULTI_UPDATE_LIMIT * 2;
+            i++) {
             String child = "node-" + i;
             sb.append("+\"").append(child).append("\":{}");
             paths.add("/" + child);
@@ -65,7 +66,7 @@ public class BackgroundWriteTest {
 
         @Override
         public <T extends Document> List<T> createOrUpdate(Collection<T> collection,
-                                                           List<UpdateOp> updateOps) {
+            List<UpdateOp> updateOps) {
             if (all(updateOps, IS_LAST_REV_UPDATE)) {
                 assertTrue(updateOps.size() <= UnsavedModifications.BACKGROUND_MULTI_UPDATE_LIMIT);
             }

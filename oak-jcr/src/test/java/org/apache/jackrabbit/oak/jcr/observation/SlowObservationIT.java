@@ -24,7 +24,6 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicBoolean;
-
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -32,7 +31,6 @@ import javax.jcr.observation.Event;
 import javax.jcr.observation.EventIterator;
 import javax.jcr.observation.EventListener;
 import javax.jcr.observation.ObservationManager;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest;
@@ -52,30 +50,30 @@ import org.slf4j.LoggerFactory;
 @RunWith(Parameterized.class)
 // Don't run "Parallelized" as this causes tests to timeout in "weak" environments
 public class SlowObservationIT extends AbstractRepositoryTest {
-    
+
     static final Logger LOG = LoggerFactory.getLogger(SlowObservationIT.class);
-    
+
     private static final int OBSERVER_COUNT = 3;
-    
+
     private static final boolean NO_DELAY_JUST_BLOCK = false;
 
     private static final boolean PROFILE = Boolean.getBoolean("oak.profile");
-    
+
     private static final String TEST_NODE = "test_node";
     private static final String TEST_PATH = '/' + TEST_NODE;
     private static final String TEST2_NODE = "test_node2";
     private static final String TEST2_PATH = '/' + TEST2_NODE;
-    
+
     public SlowObservationIT(NodeStoreFixture fixture) {
         super(fixture);
     }
-    
+
     @Override
     protected Jcr initJcr(Jcr jcr) {
         CommitRateLimiter limiter = new CommitRateLimiter() {
-            
+
             long lastLog;
-            
+
             @Override
             public void setDelay(long delay) {
                 long now = System.currentTimeMillis();
@@ -85,7 +83,7 @@ public class SlowObservationIT extends AbstractRepositoryTest {
                 }
                 super.setDelay(delay);
             }
-            
+
             @Override
             protected void delay() throws CommitFailedException {
                 if (!NO_DELAY_JUST_BLOCK) {
@@ -94,19 +92,20 @@ public class SlowObservationIT extends AbstractRepositoryTest {
                     return;
                 }
                 if (getBlockCommits() && isThreadBlocking()) {
-                    synchronized (this) {           
+                    synchronized (this) {
                         try {
                             while (getBlockCommits()) {
                                 wait(1000);
                             }
                         } catch (InterruptedException e) {
                             throw new CommitFailedException(
-                                    CommitFailedException.OAK, 2, "Interrupted while waiting to commit", e);
+                                CommitFailedException.OAK, 2, "Interrupted while waiting to commit",
+                                e);
                         }
                     }
                 }
             }
-            
+
         };
         return super.initJcr(jcr).with(limiter);
     }
@@ -117,7 +116,7 @@ public class SlowObservationIT extends AbstractRepositoryTest {
             return;
         }
         Session session = getAdminSession();
-        
+
         Node nodetypeIndex = session.getRootNode().getNode("oak:index").getNode("nodetype");
         nodetypeIndex.remove();
 
@@ -152,7 +151,7 @@ public class SlowObservationIT extends AbstractRepositoryTest {
         log("Starting...");
         Profiler prof = null;
         long start = System.currentTimeMillis();
-        for (int i = 1;; i++) {
+        for (int i = 1; ; i++) {
             if (prof == null && PROFILE) {
                 // prof = new Profiler().startCollecting();
             }
@@ -214,12 +213,12 @@ public class SlowObservationIT extends AbstractRepositoryTest {
     private Node getNode(String path) throws RepositoryException {
         return getAdminSession().getNode(path);
     }
-    
+
     /**
      * A simple listener that writes in 10% of the cases.
      */
     private static class MyListener implements EventListener {
-        
+
         private final AtomicBoolean saveInObservation;
         private final int id;
         private final Session session;
@@ -227,16 +226,17 @@ public class SlowObservationIT extends AbstractRepositoryTest {
         private volatile boolean stopped;
         private volatile boolean done;
         private Exception exception;
-        
+
         MyListener(int id, Session session, AtomicBoolean saveInObservation) {
             this.id = id;
             this.session = session;
             this.saveInObservation = saveInObservation;
         }
-        
+
         public void open() throws RepositoryException {
             observationManager = session.getWorkspace().getObservationManager();
-            observationManager.addEventListener(this, NODE_ADDED, "/" + TEST_NODE, true, null, null, false);
+            observationManager.addEventListener(this, NODE_ADDED, "/" + TEST_NODE, true, null, null,
+                false);
         }
 
         public void close() throws RepositoryException {
@@ -246,7 +246,7 @@ public class SlowObservationIT extends AbstractRepositoryTest {
         public void stop() {
             stopped = true;
         }
-        
+
         public void waitUntilDone() throws Exception {
             while (!done) {
                 synchronized (this) {
@@ -278,7 +278,7 @@ public class SlowObservationIT extends AbstractRepositoryTest {
                     if (saveInObservation.get()) {
                         if (session.getRootNode().hasNode(path.substring(1))) {
                             Node n = session.getNode(path);
-                            // System.out.println("observer save "+ path);                            
+                            // System.out.println("observer save "+ path);
                             for (int i = 0; i < 5; i++) {
                                 n.setProperty("x", i);
                                 session.save();
@@ -297,29 +297,29 @@ public class SlowObservationIT extends AbstractRepositoryTest {
             }
         }
     }
-    
+
     static void log(String message) {
         if (PROFILE) {
             System.out.println(message);
         }
         LOG.info(message);
     }
-    
+
     public static void printFullThreadDump() {
         log(new Timestamp(System.currentTimeMillis()).toString()
-                .substring(0, 19));
+                                                     .substring(0, 19));
         log("Full thread dump " +
-                System.getProperty("java.vm.name") + 
-                " (" + System.getProperty("java.vm.version") + "):");
+            System.getProperty("java.vm.name") +
+            " (" + System.getProperty("java.vm.version") + "):");
         log("");
         for (Entry<Thread, StackTraceElement[]> e : Thread.getAllStackTraces()
-                .entrySet()) {
+                                                          .entrySet()) {
             Thread t = e.getKey();
-            log(String.format("\"%s\"%s prio=%d tid=0x%x", 
-                    t.getName(), 
-                    t.isDaemon() ? " daemon" : "",
-                    t.getPriority(),
-                    t.getId()));
+            log(String.format("\"%s\"%s prio=%d tid=0x%x",
+                t.getName(),
+                t.isDaemon() ? " daemon" : "",
+                t.getPriority(),
+                t.getId()));
             log("    java.lang.Thread.State: " + t.getState());
             for (StackTraceElement s : e.getValue()) {
                 log("\tat " + s);

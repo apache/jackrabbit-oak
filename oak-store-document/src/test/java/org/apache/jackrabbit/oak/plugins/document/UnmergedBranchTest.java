@@ -57,8 +57,10 @@ public class UnmergedBranchTest {
         Map<Revision, RevisionVector> revs2 = getUncommittedRevisions(mk2);
 
         //2. Assert that branch rev are uncommited
-        assertTrue(revs1.containsKey(RevisionVector.fromString(brev1).asTrunkRevision().getRevision(cId1)));
-        assertTrue(revs2.containsKey(RevisionVector.fromString(brev2).asTrunkRevision().getRevision(cId2)));
+        assertTrue(revs1.containsKey(
+            RevisionVector.fromString(brev1).asTrunkRevision().getRevision(cId1)));
+        assertTrue(revs2.containsKey(
+            RevisionVector.fromString(brev2).asTrunkRevision().getRevision(cId2)));
 
         //3. Restart cluster 1 so that purge happens but only for cluster 1
         mk1.dispose();
@@ -67,8 +69,10 @@ public class UnmergedBranchTest {
         revs2 = getUncommittedRevisions(mk2);
 
         //4. Assert that post restart unmerged branch rev for c1 are purged
-        assertFalse(revs1.containsKey(RevisionVector.fromString(brev1).asTrunkRevision().getRevision(cId1)));
-        assertTrue(revs2.containsKey(RevisionVector.fromString(brev2).asTrunkRevision().getRevision(cId2)));
+        assertFalse(revs1.containsKey(
+            RevisionVector.fromString(brev1).asTrunkRevision().getRevision(cId1)));
+        assertTrue(revs2.containsKey(
+            RevisionVector.fromString(brev2).asTrunkRevision().getRevision(cId2)));
 
     }
 
@@ -78,7 +82,7 @@ public class UnmergedBranchTest {
         NodeDocument doc = getRootDoc(mk);
         Map<Revision, String> valueMap = doc.getLocalMap(NodeDocument.REVISIONS);
         SortedMap<Revision, RevisionVector> revisions =
-                new TreeMap<Revision, RevisionVector>(StableRevisionComparator.INSTANCE);
+            new TreeMap<Revision, RevisionVector>(StableRevisionComparator.INSTANCE);
         for (Map.Entry<Revision, String> commit : valueMap.entrySet()) {
             if (!Utils.isCommitted(commit.getValue())) {
                 Revision r = commit.getKey();
@@ -91,12 +95,13 @@ public class UnmergedBranchTest {
         return revisions;
     }
 
-    private NodeDocument getRootDoc(DocumentMK mk){
-        return mk.getNodeStore().getDocumentStore().find(Collection.NODES, Utils.getIdFromPath("/"));
+    private NodeDocument getRootDoc(DocumentMK mk) {
+        return mk.getNodeStore().getDocumentStore()
+                 .find(Collection.NODES, Utils.getIdFromPath("/"));
     }
 
-    private DocumentMK create(DocumentStore ds, int clusterId){
+    private DocumentMK create(DocumentStore ds, int clusterId) {
         return builderProvider.newBuilder().setAsyncDelay(0)
-                .setDocumentStore(ds).setClusterId(clusterId).open();
+                              .setDocumentStore(ds).setClusterId(clusterId).open();
     }
 }

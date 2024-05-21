@@ -28,89 +28,95 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 
-/** A Scorer for queries with a required part and an optional part.
- * Delays skipTo() on the optional part until a score() is needed.
+/**
+ * A Scorer for queries with a required part and an optional part. Delays skipTo() on the optional
+ * part until a score() is needed.
  * <br>
  * This <code>Scorer</code> implements {@link Scorer#advance(int)}.
  */
 class ReqOptSumScorer extends Scorer {
-  /** The scorers passed from the constructor.
-   * These are set to null as soon as their next() or skipTo() returns false.
-   */
-  private Scorer reqScorer;
-  private Scorer optScorer;
 
-  /** Construct a <code>ReqOptScorer</code>.
-   * @param reqScorer The required scorer. This must match.
-   * @param optScorer The optional scorer. This is used for scoring only.
-   */
-  public ReqOptSumScorer(
-      Scorer reqScorer,
-      Scorer optScorer)
-  {
-    super(reqScorer.weight);
-    assert reqScorer != null;
-    assert optScorer != null;
-    this.reqScorer = reqScorer;
-    this.optScorer = optScorer;
-  }
+    /**
+     * The scorers passed from the constructor. These are set to null as soon as their next() or
+     * skipTo() returns false.
+     */
+    private Scorer reqScorer;
+    private Scorer optScorer;
 
-  @Override
-  public int nextDoc() throws IOException {
-    return reqScorer.nextDoc();
-  }
-  
-  @Override
-  public int advance(int target) throws IOException {
-    return reqScorer.advance(target);
-  }
-  
-  @Override
-  public int docID() {
-    return reqScorer.docID();
-  }
-  
-  /** Returns the score of the current document matching the query.
-   * Initially invalid, until {@link #nextDoc()} is called the first time.
-   * @return The score of the required scorer, eventually increased by the score
-   * of the optional scorer when it also matches the current document.
-   */
-  @Override
-  public float score() throws IOException {
-    // TODO: sum into a double and cast to float if we ever send required clauses to BS1
-    int curDoc = reqScorer.docID();
-    float reqScore = reqScorer.score();
-    if (optScorer == null) {
-      return reqScore;
+    /**
+     * Construct a <code>ReqOptScorer</code>.
+     *
+     * @param reqScorer The required scorer. This must match.
+     * @param optScorer The optional scorer. This is used for scoring only.
+     */
+    public ReqOptSumScorer(
+        Scorer reqScorer,
+        Scorer optScorer) {
+        super(reqScorer.weight);
+        assert reqScorer != null;
+        assert optScorer != null;
+        this.reqScorer = reqScorer;
+        this.optScorer = optScorer;
     }
-    
-    int optScorerDoc = optScorer.docID();
-    if (optScorerDoc < curDoc && (optScorerDoc = optScorer.advance(curDoc)) == NO_MORE_DOCS) {
-      optScorer = null;
-      return reqScore;
+
+    @Override
+    public int nextDoc() throws IOException {
+        return reqScorer.nextDoc();
     }
-    
-    return optScorerDoc == curDoc ? reqScore + optScorer.score() : reqScore;
-  }
 
-  @Override
-  public int freq() throws IOException {
-    // we might have deferred advance()
-    score();
-    return (optScorer != null && optScorer.docID() == reqScorer.docID()) ? 2 : 1;
-  }
+    @Override
+    public int advance(int target) throws IOException {
+        return reqScorer.advance(target);
+    }
 
-  @Override
-  public Collection<ChildScorer> getChildren() {
-    ArrayList<ChildScorer> children = new ArrayList<ChildScorer>(2);
-    children.add(new ChildScorer(reqScorer, "MUST"));
-    children.add(new ChildScorer(optScorer, "SHOULD"));
-    return children;
-  }
+    @Override
+    public int docID() {
+        return reqScorer.docID();
+    }
 
-  @Override
-  public long cost() {
-    return reqScorer.cost();
-  }
+    /**
+     * Returns the score of the current document matching the query. Initially invalid, until
+     * {@link #nextDoc()} is called the first time.
+     *
+     * @return The score of the required scorer, eventually increased by the score of the optional
+     * scorer when it also matches the current document.
+     */
+    @Override
+    public float score() throws IOException {
+        // TODO: sum into a double and cast to float if we ever send required clauses to BS1
+        int curDoc = reqScorer.docID();
+        float reqScore = reqScorer.score();
+        if (optScorer == null) {
+            return reqScore;
+        }
+
+        int optScorerDoc = optScorer.docID();
+        if (optScorerDoc < curDoc && (optScorerDoc = optScorer.advance(curDoc)) == NO_MORE_DOCS) {
+            optScorer = null;
+            return reqScore;
+        }
+
+        return optScorerDoc == curDoc ? reqScore + optScorer.score() : reqScore;
+    }
+
+    @Override
+    public int freq() throws IOException {
+        // we might have deferred advance()
+        score();
+        return (optScorer != null && optScorer.docID() == reqScorer.docID()) ? 2 : 1;
+    }
+
+    @Override
+    public Collection<ChildScorer> getChildren() {
+        ArrayList<ChildScorer> children = new ArrayList<ChildScorer>(2);
+        children.add(new ChildScorer(reqScorer, "MUST"));
+        children.add(new ChildScorer(optScorer, "SHOULD"));
+        return children;
+    }
+
+    @Override
+    public long cost() {
+        return reqScorer.cost();
+    }
 }
 

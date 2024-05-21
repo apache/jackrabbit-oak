@@ -90,22 +90,22 @@ public class CollisionMarkerTest extends AbstractMongoConnectionTest {
         String rootId = Utils.getIdFromPath("/");
         NodeDocument root = ns2.getDocumentStore().find(NODES, rootId);
         assertFalse("root document must not have a collision marker for a" +
-                " committed revision", root.getValueMap(COLLISIONS).containsKey(head));
+            " committed revision", root.getValueMap(COLLISIONS).containsKey(head));
     }
 
     private static DocumentMK newDocumentMK(MongoConnection c, int clusterId) {
         DocumentMK mk = new DocumentMK.Builder().setAsyncDelay(0)
-                .setLeaseCheckMode(LeaseCheckMode.DISABLED)
-                .setMongoDB(c.getMongoClient(), c.getDBName())
-                .setClusterId(clusterId)
-                .open();
+                                                .setLeaseCheckMode(LeaseCheckMode.DISABLED)
+                                                .setMongoDB(c.getMongoClient(), c.getDBName())
+                                                .setClusterId(clusterId)
+                                                .open();
         // do not retry on conflicts
         mk.getNodeStore().setMaxBackOffMillis(0);
         return mk;
     }
 
     private static void merge(NodeStore store, NodeBuilder builder)
-            throws CommitFailedException {
+        throws CommitFailedException {
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 }

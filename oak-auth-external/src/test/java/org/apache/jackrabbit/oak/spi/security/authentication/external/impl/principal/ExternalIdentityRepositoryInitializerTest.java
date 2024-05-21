@@ -16,16 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.AbstractExternalAuthTest;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants;
-import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.junit.Test;
-
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -38,6 +28,16 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+
+import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.AbstractExternalAuthTest;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.junit.Test;
 
 public class ExternalIdentityRepositoryInitializerTest extends AbstractExternalAuthTest {
 
@@ -56,16 +56,19 @@ public class ExternalIdentityRepositoryInitializerTest extends AbstractExternalA
         assertTrue(oakIndex.exists());
 
         Tree externalPrincipalNames = oakIndex.getChild("externalPrincipalNames");
-        assertIndexDefinition(externalPrincipalNames, ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES, false);
+        assertIndexDefinition(externalPrincipalNames,
+            ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES, false);
     }
 
     private static void assertIndexDefinition(Tree tree, String propName, boolean isUnique) {
         assertTrue(tree.exists());
         assertEquals(isUnique, TreeUtil.getBoolean(tree, IndexConstants.UNIQUE_PROPERTY_NAME));
         assertArrayEquals(
-                propName, new String[]{propName},
-                Iterables.toArray(TreeUtil.getStrings(tree, IndexConstants.PROPERTY_NAMES), String.class));
-        Iterable<String> declaringNtNames = TreeUtil.getStrings(tree, IndexConstants.DECLARING_NODE_TYPES);
+            propName, new String[]{propName},
+            Iterables.toArray(TreeUtil.getStrings(tree, IndexConstants.PROPERTY_NAMES),
+                String.class));
+        Iterable<String> declaringNtNames = TreeUtil.getStrings(tree,
+            IndexConstants.DECLARING_NODE_TYPES);
         assertNull(declaringNtNames);
     }
 
@@ -76,7 +79,8 @@ public class ExternalIdentityRepositoryInitializerTest extends AbstractExternalA
         when(builder.child(INDEX_DEFINITIONS_NAME)).thenReturn(builder);
         when(builder.hasChildNode("externalPrincipalNames")).thenReturn(true);
 
-        ExternalIdentityRepositoryInitializer initializer = new ExternalIdentityRepositoryInitializer(false);
+        ExternalIdentityRepositoryInitializer initializer = new ExternalIdentityRepositoryInitializer(
+            false);
         initializer.initialize(builder);
 
         verify(builder, never()).child("externalId");
@@ -85,9 +89,11 @@ public class ExternalIdentityRepositoryInitializerTest extends AbstractExternalA
 
     @Test
     public void testInitializeIndicesExist() {
-        NodeBuilder builder = spy(getTreeProvider().asNodeState(root.getTree(PathUtils.ROOT_PATH)).builder());
+        NodeBuilder builder = spy(
+            getTreeProvider().asNodeState(root.getTree(PathUtils.ROOT_PATH)).builder());
 
-        ExternalIdentityRepositoryInitializer initializer = new ExternalIdentityRepositoryInitializer(true);
+        ExternalIdentityRepositoryInitializer initializer = new ExternalIdentityRepositoryInitializer(
+            true);
         initializer.initialize(builder);
 
         verify(builder, never()).child("externalId");

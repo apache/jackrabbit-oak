@@ -27,7 +27,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
-
 import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.guava.common.cache.CacheBuilder;
 import org.apache.jackrabbit.guava.common.cache.CacheStats;
@@ -37,14 +36,13 @@ import org.apache.jackrabbit.oak.segment.CacheWeights.SegmentCacheWeigher;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * A cache for {@link SegmentId#isDataSegmentId() data} {@link Segment}
- * instances by their {@link SegmentId}. This cache ignores {@link
- * SegmentId#isBulkSegmentId() bulk} segments.
+ * A cache for {@link SegmentId#isDataSegmentId() data} {@link Segment} instances by their
+ * {@link SegmentId}. This cache ignores {@link SegmentId#isBulkSegmentId() bulk} segments.
  * <p>
- * Conceptually this cache serves as a 2nd level cache for segments. The 1st
- * level cache is implemented by memoising the segment in its id (see {@code
- * SegmentId#segment}. Every time an segment is evicted from this cache the
- * memoised segment is discarded (see {@code SegmentId#onAccess}.
+ * Conceptually this cache serves as a 2nd level cache for segments. The 1st level cache is
+ * implemented by memoising the segment in its id (see {@code SegmentId#segment}. Every time an
+ * segment is evicted from this cache the memoised segment is discarded (see
+ * {@code SegmentId#onAccess}.
  */
 public abstract class SegmentCache {
 
@@ -56,8 +54,8 @@ public abstract class SegmentCache {
     private static final String NAME = "Segment Cache";
 
     /**
-     * Create a new segment cache of the given size. Returns an always empty
-     * cache for {@code cacheSizeMB <= 0}.
+     * Create a new segment cache of the given size. Returns an always empty cache for
+     * {@code cacheSizeMB <= 0}.
      *
      * @param cacheSizeMB size of the cache in megabytes.
      */
@@ -71,8 +69,7 @@ public abstract class SegmentCache {
     }
 
     /**
-     * Retrieve an segment from the cache or load it and cache it if not yet in
-     * the cache.
+     * Retrieve an segment from the cache or load it and cache it if not yet in the cache.
      *
      * @param id     the id of the segment
      * @param loader the loader to load the segment if not yet in the cache
@@ -81,11 +78,11 @@ public abstract class SegmentCache {
      */
     @NotNull
     public abstract Segment getSegment(@NotNull SegmentId id, @NotNull Callable<Segment> loader)
-    throws ExecutionException;
+        throws ExecutionException;
 
     /**
-     * Put a segment into the cache. This method does nothing for {@link
-     * SegmentId#isBulkSegmentId() bulk} segments.
+     * Put a segment into the cache. This method does nothing for
+     * {@link SegmentId#isBulkSegmentId() bulk} segments.
      *
      * @param segment the segment to cache
      */
@@ -104,7 +101,7 @@ public abstract class SegmentCache {
 
     /**
      * Record a hit in this cache's underlying statistics.
-     *
+     * <p>
      * See {@code SegmentId#onAccess}
      */
     public abstract void recordHit();
@@ -118,8 +115,8 @@ public abstract class SegmentCache {
         private final Cache<SegmentId, Segment> cache;
 
         /**
-         * Statistics of this cache. Do to the special access patter (see class
-         * comment), we cannot rely on {@link Cache#stats()}.
+         * Statistics of this cache. Do to the special access patter (see class comment), we cannot
+         * rely on {@link Cache#stats()}.
          */
         @NotNull
         private final Stats stats;
@@ -132,11 +129,11 @@ public abstract class SegmentCache {
         private NonEmptyCache(long cacheSizeMB) {
             long maximumWeight = cacheSizeMB * 1024 * 1024;
             this.cache = CacheBuilder.newBuilder()
-                    .concurrencyLevel(16)
-                    .maximumWeight(maximumWeight)
-                    .weigher(new SegmentCacheWeigher())
-                    .removalListener(this::onRemove)
-                    .build();
+                                     .concurrencyLevel(16)
+                                     .maximumWeight(maximumWeight)
+                                     .weigher(new SegmentCacheWeigher())
+                                     .removalListener(this::onRemove)
+                                     .build();
             this.stats = new Stats(NAME, maximumWeight, cache::size);
         }
 
@@ -155,7 +152,8 @@ public abstract class SegmentCache {
 
         @Override
         @NotNull
-        public Segment getSegment(@NotNull SegmentId id, @NotNull Callable<Segment> loader) throws ExecutionException {
+        public Segment getSegment(@NotNull SegmentId id, @NotNull Callable<Segment> loader)
+            throws ExecutionException {
             if (id.isDataSegmentId()) {
                 return cache.get(id, () -> {
                     try {
@@ -215,14 +213,17 @@ public abstract class SegmentCache {
         }
     }
 
-    /** An always empty cache */
+    /**
+     * An always empty cache
+     */
     private static class EmptyCache extends SegmentCache {
+
         private final Stats stats = new Stats(NAME, 0, () -> 0L);
 
         @NotNull
         @Override
         public Segment getSegment(@NotNull SegmentId id, @NotNull Callable<Segment> loader)
-        throws ExecutionException {
+            throws ExecutionException {
             long t0 = System.nanoTime();
             try {
                 stats.missCount.incrementAndGet();
@@ -243,7 +244,8 @@ public abstract class SegmentCache {
         }
 
         @Override
-        public void clear() {}
+        public void clear() {
+        }
 
         @NotNull
         @Override
@@ -258,11 +260,11 @@ public abstract class SegmentCache {
     }
 
     /**
-     * We cannot rely on the statistics of the underlying Guava cache as all
-     * cache hits are taken by {@link SegmentId#getSegment()} and thus never
-     * seen by the cache.
+     * We cannot rely on the statistics of the underlying Guava cache as all cache hits are taken by
+     * {@link SegmentId#getSegment()} and thus never seen by the cache.
      */
     private static class Stats extends AbstractCacheStats {
+
         private final long maximumWeight;
 
         @NotNull
@@ -289,7 +291,8 @@ public abstract class SegmentCache {
         @NotNull
         final AtomicLong missCount = new AtomicLong();
 
-        protected Stats(@NotNull String name, long maximumWeight, @NotNull Supplier<Long> elementCount) {
+        protected Stats(@NotNull String name, long maximumWeight,
+            @NotNull Supplier<Long> elementCount) {
             super(name);
             this.maximumWeight = maximumWeight;
             this.elementCount = checkNotNull(elementCount);
@@ -298,12 +301,12 @@ public abstract class SegmentCache {
         @Override
         protected CacheStats getCurrentStats() {
             return new CacheStats(
-                    hitCount.get(),
-                    missCount.get(),
-                    loadSuccessCount.get(),
-                    loadExceptionCount.get(),
-                    loadTime.get(),
-                    evictionCount.get()
+                hitCount.get(),
+                missCount.get(),
+                loadSuccessCount.get(),
+                loadExceptionCount.get(),
+                loadTime.get(),
+                evictionCount.get()
             );
         }
 

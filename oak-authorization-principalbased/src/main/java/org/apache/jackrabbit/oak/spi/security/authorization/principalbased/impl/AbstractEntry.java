@@ -35,7 +35,9 @@ abstract class AbstractEntry extends ACE implements PrincipalAccessControlList.E
 
     private int hashCode;
 
-    AbstractEntry(@Nullable String oakPath, @NotNull Principal principal, @NotNull PrivilegeBits privilegeBits, @NotNull Set<Restriction> restrictions, @NotNull NamePathMapper namePathMapper) throws AccessControlException {
+    AbstractEntry(@Nullable String oakPath, @NotNull Principal principal,
+        @NotNull PrivilegeBits privilegeBits, @NotNull Set<Restriction> restrictions,
+        @NotNull NamePathMapper namePathMapper) throws AccessControlException {
         super(principal, privilegeBits, true, restrictions, namePathMapper);
         this.oakPath = oakPath;
     }
@@ -57,7 +59,8 @@ abstract class AbstractEntry extends ACE implements PrincipalAccessControlList.E
     @Override
     public int hashCode() {
         if (hashCode == 0) {
-            hashCode = Objects.hashCode(oakPath, getPrincipal().getName(), getPrivilegeBits(), Boolean.TRUE, getRestrictions());
+            hashCode = Objects.hashCode(oakPath, getPrincipal().getName(), getPrivilegeBits(),
+                Boolean.TRUE, getRestrictions());
         }
         return hashCode;
     }

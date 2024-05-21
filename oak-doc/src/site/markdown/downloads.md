@@ -17,7 +17,8 @@
 
 Downloads
 =========
-The latest Oak sources are available for cloning from [GitHub](https://github.com/apache/jackrabbit-oak).
+The latest Oak sources are available for cloning
+from [GitHub](https://github.com/apache/jackrabbit-oak).
 
 See the Jackrabbit [Downloads](http://jackrabbit.apache.org/downloads.html)
 page for stable releases.

@@ -24,68 +24,73 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * This MBean exposes the settings from {@link SegmentGCOptions} and
- * reflects the GC status as reported by the {@link GCMonitor}.
+ * This MBean exposes the settings from {@link SegmentGCOptions} and reflects the GC status as
+ * reported by the {@link GCMonitor}.
  */
 public interface SegmentRevisionGC {
+
     String TYPE = "SegmentRevisionGarbageCollection";
 
     /**
-     * @return  {@code true} iff revision gc is paused.
+     * @return {@code true} iff revision gc is paused.
      */
     boolean isPausedCompaction();
 
     /**
      * Set revision gc to paused.
+     *
      * @param paused
      */
     void setPausedCompaction(boolean paused);
 
     /**
-     * Get the number of tries to compact concurrent commits on top of already
-     * compacted commits
-     * @return  retry count
+     * Get the number of tries to compact concurrent commits on top of already compacted commits
+     *
+     * @return retry count
      */
     int getRetryCount();
 
     /**
-     * Set the number of tries to compact concurrent commits on top of already
-     * compacted commits
+     * Set the number of tries to compact concurrent commits on top of already compacted commits
+     *
      * @param retryCount
      */
     void setRetryCount(int retryCount);
 
     /**
-     * Get the number of seconds to attempt to force compact concurrent commits on top of
-     * already compacted commits after the maximum number of retries has been reached.
-     * Forced compaction acquires an exclusive write lock on the node store.
-     * @return  the number of seconds until forced compaction gives up and the exclusive
-     *          write lock on the node store is released.
+     * Get the number of seconds to attempt to force compact concurrent commits on top of already
+     * compacted commits after the maximum number of retries has been reached. Forced compaction
+     * acquires an exclusive write lock on the node store.
+     *
+     * @return the number of seconds until forced compaction gives up and the exclusive write lock
+     * on the node store is released.
      */
     int getForceTimeout();
 
     /**
-     * Set the number of seconds to attempt to force compact concurrent commits on top of
-     * already compacted commits after the maximum number of retries has been reached.
-     * Forced compaction acquires an exclusively write lock on the node store.
-     * @param timeout  the number of seconds until forced compaction gives up and the exclusive
-     *                 lock on the node store is released.
+     * Set the number of seconds to attempt to force compact concurrent commits on top of already
+     * compacted commits after the maximum number of retries has been reached. Forced compaction
+     * acquires an exclusively write lock on the node store.
+     *
+     * @param timeout the number of seconds until forced compaction gives up and the exclusive lock
+     *                on the node store is released.
      */
     void setForceTimeout(int timeout);
 
     /**
      * Number of segment generations to retain.
+     *
+     * @return number of gc generations.
      * @see #setRetainedGenerations(int)
-     * @return  number of gc generations.
      */
     int getRetainedGenerations();
 
     /**
-     * Set the number of segment generations to retain: each compaction run creates
-     * a new segment generation. {@code retainGenerations} determines how many of
-     * those generations are retained during cleanup.
+     * Set the number of segment generations to retain: each compaction run creates a new segment
+     * generation. {@code retainGenerations} determines how many of those generations are retained
+     * during cleanup.
      *
-     * @param retainedGenerations  number of generations to retain. Must be {@code >= 2}.
+     * @param retainedGenerations number of generations to retain. Must be {@code >= 2}.
      * @throws IllegalArgumentException if {@code retainGenerations < 2}
      */
     void setRetainedGenerations(int retainedGenerations);
@@ -98,6 +103,7 @@ public interface SegmentRevisionGC {
 
     /**
      * Disables the estimation phase, thus allowing GC to run every time.
+     *
      * @param disabled
      */
     void setEstimationDisabled(boolean disabled);
@@ -112,62 +118,62 @@ public interface SegmentRevisionGC {
     void startRevisionGC();
 
     /**
-     * Cancel a running revision garbage collection operation. Does nothing
-     * if revision garbage collection is not running.
+     * Cancel a running revision garbage collection operation. Does nothing if revision garbage
+     * collection is not running.
      */
     void cancelRevisionGC();
 
     /**
-     * @return  time of the last compaction in milliseconds.
+     * @return time of the last compaction in milliseconds.
      */
     long getLastCompaction();
 
     /**
-     * @return  time of the last cleanup in milliseconds.
+     * @return time of the last cleanup in milliseconds.
      */
     long getLastCleanup();
 
     /**
-     * @return  repository size after the last cleanup.
+     * @return repository size after the last cleanup.
      */
     long getLastRepositorySize();
 
     /**
-     * @return  reclaimed size during the last cleanup.
+     * @return reclaimed size during the last cleanup.
      */
     long getLastReclaimedSize();
 
     /**
-     * @return  last error or {@code null} if none.
+     * @return last error or {@code null} if none.
      */
     @Nullable
     String getLastError();
-    
+
     /**
-     * @return  last log message or {@code null} if none.
+     * @return last log message or {@code null} if none.
      */
     @NotNull
     String getLastLogMessage();
 
     /**
-     * @return  current status.
+     * @return current status.
      */
     @NotNull
     String getStatus();
 
     /**
-     * Get the available memory threshold beyond which revision gc will be
-     * canceled. Value represents a percentage so an value between 0 and 100
-     * will be returned.
+     * Get the available memory threshold beyond which revision gc will be canceled. Value
+     * represents a percentage so an value between 0 and 100 will be returned.
+     *
      * @return memory threshold
      */
     int getMemoryThreshold();
 
     /**
-     * Set the available memory threshold beyond which revision gc will be
-     * canceled. Value represents a percentage so an input between {@code 0} and
-     * {@code 100} is expected. Setting this to {@code 0} will disable the
-     * check.
+     * Set the available memory threshold beyond which revision gc will be canceled. Value
+     * represents a percentage so an input between {@code 0} and {@code 100} is expected. Setting
+     * this to {@code 0} will disable the check.
+     *
      * @param memoryThreshold
      */
     void setMemoryThreshold(int memoryThreshold);
@@ -183,14 +189,14 @@ public interface SegmentRevisionGC {
     long getCompactedNodes();
 
     /**
-     * @return number of estimated nodes to be compacted in the current cycle.
-     *         Can be {@code -1} if the estimation can't be performed
+     * @return number of estimated nodes to be compacted in the current cycle. Can be {@code -1} if
+     * the estimation can't be performed
      */
     long getEstimatedCompactableNodes();
 
     /**
-     * @return percentage of progress for the current compaction cycle. Can be
-     *         {@code -1} if the estimation can't be performed.
+     * @return percentage of progress for the current compaction cycle. Can be {@code -1} if the
+     * estimation can't be performed.
      */
     int getEstimatedRevisionGCCompletion();
 
@@ -201,8 +207,8 @@ public interface SegmentRevisionGC {
 
     /**
      * Set the size of the logging interval, {@code -1} means disabled
-     * @param gcProgressLog
-     *            number of nodes
+     *
+     * @param gcProgressLog number of nodes
      */
     void setRevisionGCProgressLog(long gcProgressLog);
 }

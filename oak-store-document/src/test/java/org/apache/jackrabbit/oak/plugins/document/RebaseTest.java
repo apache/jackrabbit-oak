@@ -39,10 +39,10 @@ public class RebaseTest {
     public void setup() {
         store = new CountingDocumentStore(new MemoryDocumentStore());
         ns = builderProvider.newBuilder()
-                .setDocumentStore(store)
-                .setLeaseCheckMode(LeaseCheckMode.DISABLED)
-                .setAsyncDelay(0)
-                .build();
+                            .setDocumentStore(store)
+                            .setLeaseCheckMode(LeaseCheckMode.DISABLED)
+                            .setAsyncDelay(0)
+                            .build();
     }
 
     @Test

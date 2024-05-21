@@ -19,7 +19,8 @@ package org.apache.jackrabbit.oak.plugins.index.solr.configuration;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * The default {@link org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfigurationProvider}
+ * The default
+ * {@link org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfigurationProvider}
  */
 public class DefaultSolrConfigurationProvider implements OakSolrConfigurationProvider {
 

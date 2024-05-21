@@ -16,9 +16,8 @@
  */
 package org.apache.jackrabbit.oak.security.user.query;
 
-import org.jetbrains.annotations.NotNull;
-
 import javax.jcr.RepositoryException;
+import org.jetbrains.annotations.NotNull;
 
 interface ConditionVisitor {
 

@@ -19,20 +19,17 @@
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.utils;
 
 /**
- * Cardinality estimation with the HyperLogLog algorithm, using the tail cut
- * mechanism. Tail cut is described in the paper "Better with Fewer Bits -
- * Improving the Performance of Cardinality Estimation of Large Data Streams"
- * from Qingjun Xiao, You Zhou, Shigang Chen, in
+ * Cardinality estimation with the HyperLogLog algorithm, using the tail cut mechanism. Tail cut is
+ * described in the paper "Better with Fewer Bits - Improving the Performance of Cardinality
+ * Estimation of Large Data Streams" from Qingjun Xiao, You Zhou, Shigang Chen, in
  * http://cse.seu.edu.cn/PersonalPage/csqjxiao/csqjxiao_files/papers/INFOCOM17.pdf
- *
- * It uses linear counting for 60 bits, until 36 bits are set, then switches to
- * HyperLogLog. There, it uses 20 counters of 3 bits each (re-using the linear
- * counting data), and 4 bits for a base counter, which is increased if all
- * counters are larger than zero.
- *
- * It is a little bit "order-dependent", that is, adding the same entry multiple
- * times can change the internal state. However, unlike in HyperBitBit, here the
- * effect is very small.
+ * <p>
+ * It uses linear counting for 60 bits, until 36 bits are set, then switches to HyperLogLog. There,
+ * it uses 20 counters of 3 bits each (re-using the linear counting data), and 4 bits for a base
+ * counter, which is increased if all counters are larger than zero.
+ * <p>
+ * It is a little bit "order-dependent", that is, adding the same entry multiple times can change
+ * the internal state. However, unlike in HyperBitBit, here the effect is very small.
  */
 public class HyperLogLog3Linear64 {
 
@@ -66,7 +63,7 @@ public class HyperLogLog3Linear64 {
             int i = (int) (((hash & 0xffffffffL) * 20) >>> 32);
             int shift = 4 + 3 * i;
             long old = (data >>> shift) & 0x7;
-            long m = Math.min(0x7, Math.max(z,  old));
+            long m = Math.min(0x7, Math.max(z, old));
             data = (data & ~(0x7L << shift)) | (m << shift);
             // base shift
             long s = data | (data >>> 1) | (data >>> 2);

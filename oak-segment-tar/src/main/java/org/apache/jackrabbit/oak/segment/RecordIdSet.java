@@ -19,25 +19,26 @@
 
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
 import static java.lang.System.arraycopy;
 import static java.util.Arrays.binarySearch;
+import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
 
 import java.util.Map;
 
 /**
  * A memory optimised set of {@link RecordId}s.
- *
- * The set doesn't keep references to the actual record ids
- * it contains.
+ * <p>
+ * The set doesn't keep references to the actual record ids it contains.
  */
 public class RecordIdSet {
+
     private final Map<String, IntSet> seenIds = newHashMap();
 
     /**
      * Add {@code id} to this set if not already present
-     * @param id  the record id to add
-     * @return  {@code true} if added, {@code false} if already present
+     *
+     * @param id the record id to add
+     * @return {@code true} if added, {@code false} if already present
      */
     public boolean addIfNotPresent(RecordId id) {
         String segmentId = id.getSegmentId().toString();
@@ -51,8 +52,9 @@ public class RecordIdSet {
 
     /**
      * Check whether {@code id} is present is this set.
-     * @param id  the record id to check for
-     * @return  {@code true} iff {@code id} is present.
+     *
+     * @param id the record id to check for
+     * @return {@code true} iff {@code id} is present.
      */
     public boolean contains(RecordId id) {
         String segmentId = id.getSegmentId().toString();
@@ -61,6 +63,7 @@ public class RecordIdSet {
     }
 
     static class IntSet {
+
         int[] elements;
 
         boolean add(int n) {

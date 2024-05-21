@@ -16,11 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.util;
 
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
-import org.apache.jackrabbit.guava.common.base.MoreObjects;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientOptions;
 import com.mongodb.MongoClientURI;
@@ -29,9 +26,10 @@ import com.mongodb.ReadConcern;
 import com.mongodb.ReadConcernLevel;
 import com.mongodb.WriteConcern;
 import com.mongodb.client.MongoDatabase;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import org.apache.jackrabbit.guava.common.base.MoreObjects;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -42,13 +40,14 @@ public class MongoConnection {
     private static final int DEFAULT_MAX_WAIT_TIME = (int) TimeUnit.MINUTES.toMillis(1);
     private static final int DEFAULT_HEARTBEAT_FREQUENCY_MS = (int) TimeUnit.SECONDS.toMillis(5);
     private static final WriteConcern WC_UNKNOWN = new WriteConcern("unknown");
-    private static final Set<ReadConcernLevel> REPLICA_RC = ImmutableSet.of(ReadConcernLevel.MAJORITY, ReadConcernLevel.LINEARIZABLE);
+    private static final Set<ReadConcernLevel> REPLICA_RC = ImmutableSet.of(
+        ReadConcernLevel.MAJORITY, ReadConcernLevel.LINEARIZABLE);
     private final MongoClientURI mongoURI;
     private final MongoClient mongo;
 
     /**
-     * Constructs a new connection using the specified MongoDB connection string.
-     * See also http://docs.mongodb.org/manual/reference/connection-string/
+     * Constructs a new connection using the specified MongoDB connection string. See also
+     * http://docs.mongodb.org/manual/reference/connection-string/
      *
      * @param uri the MongoDB URI
      * @throws MongoException if there are failures
@@ -58,15 +57,15 @@ public class MongoConnection {
     }
 
     /**
-     * Constructs a new connection using the specified MongoDB connection
-     * String. The default client options are taken from the provided builder.
+     * Constructs a new connection using the specified MongoDB connection String. The default client
+     * options are taken from the provided builder.
      *
-     * @param uri the connection URI.
+     * @param uri     the connection URI.
      * @param builder the client option defaults.
      * @throws MongoException if there are failures
      */
     public MongoConnection(String uri, MongoClientOptions.Builder builder)
-            throws MongoException {
+        throws MongoException {
         mongoURI = new MongoClientURI(uri, builder);
         mongo = new MongoClient(mongoURI);
     }
@@ -74,20 +73,20 @@ public class MongoConnection {
     /**
      * Constructs a new {@code MongoConnection}.
      *
-     * @param host The host address.
-     * @param port The port.
+     * @param host     The host address.
+     * @param port     The port.
      * @param database The database name.
      * @throws MongoException if there are failures
      */
     public MongoConnection(String host, int port, String database)
-            throws MongoException {
+        throws MongoException {
         this("mongodb://" + host + ":" + port + "/" + database);
     }
 
     /**
      * Constructs a new {@code MongoConnection}.
      *
-     * @param uri the connection URI.
+     * @param uri    the connection URI.
      * @param client the already connected client.
      */
     public MongoConnection(String uri, MongoClient client) {
@@ -96,7 +95,6 @@ public class MongoConnection {
     }
 
     /**
-     *
      * @return the {@link MongoClientURI} for this connection
      */
     public MongoClientURI getMongoURI() {
@@ -111,8 +109,7 @@ public class MongoConnection {
     }
 
     /**
-     * Returns the {@link MongoDatabase} as passed in the URI of the
-     * constructor.
+     * Returns the {@link MongoDatabase} as passed in the URI of the constructor.
      *
      * @return the {@link MongoDatabase}.
      */
@@ -152,50 +149,50 @@ public class MongoConnection {
      */
     public static MongoClientOptions.Builder getDefaultBuilder() {
         return new MongoClientOptions.Builder()
-                .description("MongoConnection for Oak DocumentMK")
-                .maxWaitTime(DEFAULT_MAX_WAIT_TIME)
-                .heartbeatFrequency(DEFAULT_HEARTBEAT_FREQUENCY_MS)
-                .threadsAllowedToBlockForConnectionMultiplier(100);
+            .description("MongoConnection for Oak DocumentMK")
+            .maxWaitTime(DEFAULT_MAX_WAIT_TIME)
+            .heartbeatFrequency(DEFAULT_HEARTBEAT_FREQUENCY_MS)
+            .threadsAllowedToBlockForConnectionMultiplier(100);
     }
 
     public static String toString(MongoClientOptions opts) {
         return MoreObjects.toStringHelper(opts)
-                .add("connectionsPerHost", opts.getConnectionsPerHost())
-                .add("connectTimeout", opts.getConnectTimeout())
-                .add("socketTimeout", opts.getSocketTimeout())
-                .add("socketKeepAlive", opts.isSocketKeepAlive())
-                .add("maxWaitTime", opts.getMaxWaitTime())
-                .add("heartbeatFrequency", opts.getHeartbeatFrequency())
-                .add("threadsAllowedToBlockForConnectionMultiplier",
-                        opts.getThreadsAllowedToBlockForConnectionMultiplier())
-                .add("readPreference", opts.getReadPreference().getName())
-                .add("writeConcern", opts.getWriteConcern())
-                .toString();
+                          .add("connectionsPerHost", opts.getConnectionsPerHost())
+                          .add("connectTimeout", opts.getConnectTimeout())
+                          .add("socketTimeout", opts.getSocketTimeout())
+                          .add("socketKeepAlive", opts.isSocketKeepAlive())
+                          .add("maxWaitTime", opts.getMaxWaitTime())
+                          .add("heartbeatFrequency", opts.getHeartbeatFrequency())
+                          .add("threadsAllowedToBlockForConnectionMultiplier",
+                              opts.getThreadsAllowedToBlockForConnectionMultiplier())
+                          .add("readPreference", opts.getReadPreference().getName())
+                          .add("writeConcern", opts.getWriteConcern())
+                          .toString();
     }
 
     /**
      * Returns {@code true} if the given {@code uri} has a write concern set.
+     *
      * @param uri the URI to check.
-     * @return {@code true} if the URI has a write concern set, {@code false}
-     *      otherwise.
+     * @return {@code true} if the URI has a write concern set, {@code false} otherwise.
      */
     public static boolean hasWriteConcern(@NotNull String uri) {
         MongoClientOptions.Builder builder = MongoClientOptions.builder();
         builder.writeConcern(WC_UNKNOWN);
         WriteConcern wc = new MongoClientURI(checkNotNull(uri), builder)
-                .getOptions().getWriteConcern();
+            .getOptions().getWriteConcern();
         return !WC_UNKNOWN.equals(wc);
     }
 
     /**
      * Returns {@code true} if the given {@code uri} has a read concern set.
+     *
      * @param uri the URI to check.
-     * @return {@code true} if the URI has a read concern set, {@code false}
-     *      otherwise.
+     * @return {@code true} if the URI has a read concern set, {@code false} otherwise.
      */
     public static boolean hasReadConcern(@NotNull String uri) {
         ReadConcern rc = new MongoClientURI(checkNotNull(uri))
-                .getOptions().getReadConcern();
+            .getOptions().getReadConcern();
         return readConcernLevel(rc) != null;
     }
 
@@ -230,7 +227,7 @@ public class MongoConnection {
      * @return the default write concern to use for Oak.
      */
     public static ReadConcern getDefaultReadConcern(@NotNull MongoClient client,
-                                                    @NotNull MongoDatabase db) {
+        @NotNull MongoDatabase db) {
         ReadConcern r;
         if (checkNotNull(client).getReplicaSetStatus() != null && isMajorityWriteConcern(db)) {
             r = ReadConcern.MAJORITY;
@@ -251,16 +248,15 @@ public class MongoConnection {
     }
 
     /**
-     * Returns {@code true} if the given write concern is sufficient for Oak. On
-     * a replica set Oak expects at least w=2. For a single MongoDB node
-     * deployment w=1 is sufficient.
+     * Returns {@code true} if the given write concern is sufficient for Oak. On a replica set Oak
+     * expects at least w=2. For a single MongoDB node deployment w=1 is sufficient.
      *
      * @param client the client.
-     * @param wc the write concern.
+     * @param wc     the write concern.
      * @return whether the write concern is sufficient.
      */
     public static boolean isSufficientWriteConcern(@NotNull MongoClient client,
-                                                   @NotNull WriteConcern wc) {
+        @NotNull WriteConcern wc) {
         Object wObj = checkNotNull(wc).getWObject();
         int w;
         if (wObj instanceof Number) {
@@ -273,7 +269,7 @@ public class MongoConnection {
             w = 2;
         } else {
             throw new IllegalArgumentException(
-                    "Unknown write concern: " + wc);
+                "Unknown write concern: " + wc);
         }
         if (client.getReplicaSetStatus() != null) {
             return w >= 2;
@@ -283,16 +279,15 @@ public class MongoConnection {
     }
 
     /**
-     * Returns {@code true} if the given read concern is sufficient for Oak. On
-     * a replica set Oak expects majority or linear. For a single MongoDB node
-     * deployment local is sufficient.
+     * Returns {@code true} if the given read concern is sufficient for Oak. On a replica set Oak
+     * expects majority or linear. For a single MongoDB node deployment local is sufficient.
      *
      * @param client the client.
-     * @param rc the read concern.
+     * @param rc     the read concern.
      * @return whether the read concern is sufficient.
      */
     public static boolean isSufficientReadConcern(@NotNull MongoClient client,
-                                                  @NotNull ReadConcern rc) {
+        @NotNull ReadConcern rc) {
         ReadConcernLevel r = readConcernLevel(checkNotNull(rc));
         if (client.getReplicaSetStatus() == null) {
             return true;
@@ -305,7 +300,8 @@ public class MongoConnection {
         if (readConcern.isServerDefault()) {
             return null;
         } else {
-            return ReadConcernLevel.fromString(readConcern.asDocument().getString("level").getValue());
+            return ReadConcernLevel.fromString(
+                readConcern.asDocument().getString("level").getValue());
         }
     }
 }

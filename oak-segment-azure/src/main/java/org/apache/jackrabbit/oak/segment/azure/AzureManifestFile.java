@@ -18,14 +18,13 @@ package org.apache.jackrabbit.oak.segment.azure;
 
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
-import org.apache.jackrabbit.oak.segment.spi.persistence.ManifestFile;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Properties;
+import org.apache.jackrabbit.oak.segment.spi.persistence.ManifestFile;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class AzureManifestFile implements ManifestFile {
 

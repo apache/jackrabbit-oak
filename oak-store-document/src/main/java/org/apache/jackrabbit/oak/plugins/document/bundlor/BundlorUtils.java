@@ -19,15 +19,15 @@
 
 package org.apache.jackrabbit.oak.plugins.document.bundlor;
 
+import static org.apache.jackrabbit.oak.plugins.document.bundlor.DocumentBundlor.META_PROP_BUNDLING_PATH;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -35,9 +35,8 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 
-import static org.apache.jackrabbit.oak.plugins.document.bundlor.DocumentBundlor.META_PROP_BUNDLING_PATH;
-
 public final class BundlorUtils {
+
     public static final Predicate<PropertyState> NOT_BUNDLOR_PROPS = new Predicate<PropertyState>() {
         @Override
         public boolean apply(PropertyState input) {
@@ -46,24 +45,25 @@ public final class BundlorUtils {
     };
 
 
-    public static Map<String, PropertyState> getMatchingProperties(Map<String, PropertyState> props, Matcher matcher){
-        if (!matcher.isMatch()){
+    public static Map<String, PropertyState> getMatchingProperties(Map<String, PropertyState> props,
+        Matcher matcher) {
+        if (!matcher.isMatch()) {
             return Collections.emptyMap();
         }
 
         Map<String, PropertyState> result = Maps.newHashMap();
-        for (Map.Entry<String, PropertyState> e : props.entrySet()){
+        for (Map.Entry<String, PropertyState> e : props.entrySet()) {
             String propertyPath = e.getKey();
 
             //PathUtils.depth include depth for property name. So
             //reduce 1 to get node depth
             int depth = PathUtils.getDepth(propertyPath) - 1;
 
-            if (!propertyPath.startsWith(matcher.getMatchedPath())){
+            if (!propertyPath.startsWith(matcher.getMatchedPath())) {
                 continue;
             }
 
-            if (depth != matcher.depth()){
+            if (depth != matcher.depth()) {
                 continue;
             }
 
@@ -71,8 +71,8 @@ public final class BundlorUtils {
             final String newKey = PathUtils.getName(propertyPath);
             PropertyState value = e.getValue();
 
-            if (depth > 0){
-                value = new PropertyStateWrapper(value){
+            if (depth > 0) {
+                value = new PropertyStateWrapper(value) {
                     @NotNull
                     @Override
                     public String getName() {
@@ -86,19 +86,19 @@ public final class BundlorUtils {
         return result;
     }
 
-    public static Set<String> getChildNodeNames(Collection<String> keys, Matcher matcher){
+    public static Set<String> getChildNodeNames(Collection<String> keys, Matcher matcher) {
         Set<String> childNodeNames = Sets.newHashSet();
 
         //Immediate child should have depth 1 more than matcher depth
         int expectedDepth = matcher.depth() + 1;
 
-        for (String key : keys){
+        for (String key : keys) {
             List<String> elements = ImmutableList.copyOf(PathUtils.elements(key));
             int depth = elements.size() - 1;
 
             if (depth == expectedDepth
-                    && key.startsWith(matcher.getMatchedPath())
-                    && elements.get(elements.size() - 1).equals(META_PROP_BUNDLING_PATH)){
+                && key.startsWith(matcher.getMatchedPath())
+                && elements.get(elements.size() - 1).equals(META_PROP_BUNDLING_PATH)) {
                 //Child node name is the second last element
                 //[jcr:content/:self -> [jcr:content, :self]
                 childNodeNames.add(elements.get(elements.size() - 2));
@@ -107,15 +107,15 @@ public final class BundlorUtils {
         return childNodeNames;
     }
 
-    static boolean isBundlingRoot(NodeState state){
+    static boolean isBundlingRoot(NodeState state) {
         return state.hasProperty(DocumentBundlor.META_PROP_PATTERN);
     }
 
-    static boolean isBundledChild(NodeState state){
+    static boolean isBundledChild(NodeState state) {
         return state.hasProperty(DocumentBundlor.META_PROP_BUNDLING_PATH);
     }
 
-    static boolean isBundledNode(NodeState state){
+    static boolean isBundledNode(NodeState state) {
         return isBundlingRoot(state) || isBundledChild(state);
     }
 }

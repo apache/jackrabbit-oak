@@ -22,10 +22,8 @@ package org.apache.jackrabbit.oak.plugins.index.search.spi.editor;
 import java.io.IOException;
 
 /**
- * A {@link FulltextIndexWriter} is responsible for writing / deleting documents of type D to the index
- * implementation underlying persistence layer.
- *
- *
+ * A {@link FulltextIndexWriter} is responsible for writing / deleting documents of type D to the
+ * index implementation underlying persistence layer.
  */
 public interface FulltextIndexWriter<D> {
 
@@ -33,7 +31,7 @@ public interface FulltextIndexWriter<D> {
      * Updates the document having given path
      *
      * @param path path of the NodeState which the Document represents
-     * @param doc updated document
+     * @param doc  updated document
      */
     void updateDocument(String path, D doc) throws IOException;
 

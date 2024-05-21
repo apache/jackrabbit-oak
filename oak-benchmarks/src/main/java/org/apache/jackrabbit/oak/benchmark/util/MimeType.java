@@ -22,7 +22,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
-
 import org.jetbrains.annotations.NotNull;
 
 public enum MimeType {
@@ -37,8 +36,10 @@ public enum MimeType {
     APPLICATION_OD_PRESENTATION("application/vnd.oasis.opendocument.presentation"),
     APPLICATION_OD_SPREADSHEET("application/vnd.oasis.opendocument.spreadsheet"),
     APPLICATION_OD_TEXT("application/vnd.oasis.opendocument.text"),
-    APPLICATION_OXML_DOCUMENT("application/vnd.openxmlformats-officedocument.wordprocessingml.document"),
-    APPLICATION_OXML_PRESENTATION("application/vnd.openxmlformats-officedocument.presentationml.presentation"),
+    APPLICATION_OXML_DOCUMENT(
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"),
+    APPLICATION_OXML_PRESENTATION(
+        "application/vnd.openxmlformats-officedocument.presentationml.presentation"),
     APPLICATION_OX_SPREADSHEET("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
     APPLICATION_PACKAGE("application/vnd.adobe.air-application-installer-package+zip"),
     APPLICATION_PDF("application/pdf"),
@@ -84,28 +85,30 @@ public enum MimeType {
     VIDEO_QUICKTIME("video/quicktime"),
     VIDEO_WMV("video/x-ms-wmv"),
     VIDEO_XFLV("video/x-flv");
-    
+
     private final String value;
-    
+
     MimeType(@NotNull final String value) {
         this.value = value;
     }
-    
+
     /**
      * retrieve the string representation of the current Mime-Type
+     *
      * @return
      */
     public String getValue() {
         return value;
     }
-    
+
     private static final List<MimeType> VALUES = Collections.unmodifiableList(Arrays
         .asList(values()));
     private static final int SIZE = VALUES.size();
     private static final Random RND = new Random();
-    
+
     /**
      * retrieve a random Mime-Type from the available collection
+     *
      * @return
      */
     public static MimeType randomMimeType() {

@@ -17,7 +17,16 @@
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
 import co.elastic.clients.elasticsearch.ElasticsearchAsyncClient;
+import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.json.jackson.JacksonJsonpMapper;
 import co.elastic.clients.transport.ElasticsearchTransport;
+import co.elastic.clients.transport.rest_client.RestClientTransport;
+import java.io.Closeable;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+import java.util.Objects;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.http.Header;
 import org.apache.http.HttpHost;
 import org.apache.http.message.BasicHeader;
@@ -27,25 +36,15 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import co.elastic.clients.elasticsearch.ElasticsearchClient;
-import co.elastic.clients.json.jackson.JacksonJsonpMapper;
-import co.elastic.clients.transport.rest_client.RestClientTransport;
-
-import java.io.Closeable;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
-import java.util.Objects;
-import java.util.concurrent.atomic.AtomicBoolean;
-
 /**
- * This class represents an Elasticsearch Connection with the related <code>RestHighLevelClient</code>.
- * As per Elasticsearch documentation: the client is thread-safe, there should be one instance per application and it
- * must be closed when it is not needed anymore.
+ * This class represents an Elasticsearch Connection with the related
+ * <code>RestHighLevelClient</code>. As per Elasticsearch documentation: the client is thread-safe,
+ * there should be one instance per application and it must be closed when it is not needed
+ * anymore.
  *
  * <p>
- * The getClient() initializes the rest client on the first call.
- * Once close() is invoked this instance cannot be used anymore.
+ * The getClient() initializes the rest client on the first call. Once close() is invoked this
+ * instance cannot be used anymore.
  */
 public class ElasticConnection implements Closeable {
 
@@ -72,19 +71,23 @@ public class ElasticConnection implements Closeable {
     private final AtomicBoolean isClosed = new AtomicBoolean(false);
 
     /**
-     * Creates an {@code ElasticsearchConnection} instance with the given scheme, host address and port that support API
-     * key-based authentication.
+     * Creates an {@code ElasticsearchConnection} instance with the given scheme, host address and
+     * port that support API key-based authentication.
      *
      * @param indexPrefix  the prefix to be used for index creation
      * @param scheme       the name {@code HttpHost.scheme} name
      * @param host         the hostname (IP or DNS name)
-     * @param port         the Elasticsearch port for incoming HTTP requests (transport client not supported)
+     * @param port         the Elasticsearch port for incoming HTTP requests (transport client not
+     *                     supported)
      * @param apiKeyId     the unique id of the API key
      * @param apiKeySecret the generated API secret
-     * @see <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/security-api.html#security-api-keys">Elasticsearch Security API Keys</a>
+     * @see <a
+     * href="https://www.elastic.co/guide/en/elasticsearch/reference/current/security-api.html#security-api-keys">Elasticsearch
+     * Security API Keys</a>
      */
-    private ElasticConnection(@NotNull String indexPrefix, @NotNull String scheme, @NotNull String host,
-                              @NotNull Integer port, String apiKeyId, String apiKeySecret) {
+    private ElasticConnection(@NotNull String indexPrefix, @NotNull String scheme,
+        @NotNull String host,
+        @NotNull Integer port, String apiKeyId, String apiKeySecret) {
         this.indexPrefix = indexPrefix;
         this.scheme = scheme;
         this.host = host;
@@ -94,10 +97,10 @@ public class ElasticConnection implements Closeable {
     }
 
     /**
-     * Instantiates both RHL client (old) and the Java client by sharing the REST High Level Client transport layer
-     * to follow the proposed migration strategy:
-     * <a href="https://www.elastic.co/guide/en/elasticsearch/client/java-api-client/7.16/migrate-hlrc.html">Migrate HLRC</a>
-     * It double-checks locking to get good performance and avoid double initialization
+     * Instantiates both RHL client (old) and the Java client by sharing the REST High Level Client
+     * transport layer to follow the proposed migration strategy: <a
+     * href="https://www.elastic.co/guide/en/elasticsearch/client/java-api-client/7.16/migrate-hlrc.html">Migrate
+     * HLRC</a> It double-checks locking to get good performance and avoid double initialization
      */
     private Clients getClients() {
         if (isClosed.get()) {
@@ -108,24 +111,28 @@ public class ElasticConnection implements Closeable {
         if (clients == null) {
             synchronized (this) {
                 if (clients == null) {
-                    RestClientBuilder builder = RestClient.builder(new HttpHost(host, port, scheme));
+                    RestClientBuilder builder = RestClient.builder(
+                        new HttpHost(host, port, scheme));
                     if (apiKeyId != null && !apiKeyId.isEmpty() &&
-                            apiKeySecret != null && !apiKeySecret.isEmpty()) {
+                        apiKeySecret != null && !apiKeySecret.isEmpty()) {
                         String apiKeyAuth = Base64.getEncoder().encodeToString(
-                                (apiKeyId + ":" + apiKeySecret).getBytes(StandardCharsets.UTF_8)
+                            (apiKeyId + ":" + apiKeySecret).getBytes(StandardCharsets.UTF_8)
                         );
-                        Header[] headers = new Header[]{new BasicHeader("Authorization", "ApiKey " + apiKeyAuth)};
+                        Header[] headers = new Header[]{
+                            new BasicHeader("Authorization", "ApiKey " + apiKeyAuth)};
                         builder.setDefaultHeaders(headers);
                     }
                     builder.setRequestConfigCallback(
-                            requestConfigBuilder -> requestConfigBuilder.setSocketTimeout(ES_SOCKET_TIMEOUT));
+                        requestConfigBuilder -> requestConfigBuilder.setSocketTimeout(
+                            ES_SOCKET_TIMEOUT));
 
                     RestClient httpClient = builder.build();
 
                     ElasticsearchTransport transport = new RestClientTransport(
-                            httpClient, new JacksonJsonpMapper());
+                        httpClient, new JacksonJsonpMapper());
                     ElasticsearchClient esClient = new ElasticsearchClient(transport);
-                    ElasticsearchAsyncClient esAsyncClient = new ElasticsearchAsyncClient(transport);
+                    ElasticsearchAsyncClient esAsyncClient = new ElasticsearchAsyncClient(
+                        transport);
                     clients = new Clients(esClient, esAsyncClient);
                 }
             }
@@ -135,6 +142,7 @@ public class ElasticConnection implements Closeable {
 
     /**
      * Gets the Elasticsearch Client
+     *
      * @return the Elasticsearch client
      */
     public ElasticsearchClient getClient() {
@@ -143,6 +151,7 @@ public class ElasticConnection implements Closeable {
 
     /**
      * Gets the Elasticsearch Asynchronous Client
+     *
      * @return the Elasticsearch client
      */
     public ElasticsearchAsyncClient getAsyncClient() {
@@ -155,6 +164,7 @@ public class ElasticConnection implements Closeable {
 
     /**
      * Checks if elastic server is available for connection.
+     *
      * @return true if available, false otherwise.
      */
     public boolean isAvailable() {
@@ -181,12 +191,16 @@ public class ElasticConnection implements Closeable {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         ElasticConnection that = (ElasticConnection) o;
         return port == that.port &&
-                Objects.equals(scheme, that.scheme) &&
-                Objects.equals(host, that.host);
+            Objects.equals(scheme, that.scheme) &&
+            Objects.equals(host, that.host);
     }
 
     @Override
@@ -200,6 +214,7 @@ public class ElasticConnection implements Closeable {
     }
 
     private static class Clients {
+
         public final ElasticsearchClient client;
         public final ElasticsearchAsyncClient asyncClient;
 
@@ -210,8 +225,8 @@ public class ElasticConnection implements Closeable {
     }
 
     /**
-     * Returns a new {@code Builder.IndexPrefixStep} instance to allow a step by step construction of a
-     * {@link ElasticConnection} object.
+     * Returns a new {@code Builder.IndexPrefixStep} instance to allow a step by step construction
+     * of a {@link ElasticConnection} object.
      */
     public static Builder.IndexPrefixStep newBuilder() {
         return new Builder.Steps();
@@ -225,20 +240,24 @@ public class ElasticConnection implements Closeable {
         }
 
         /**
-         * First Builder Step in charge of the mandatory indexPrefix. Next Step: {@link BasicConnectionStep}.
+         * First Builder Step in charge of the mandatory indexPrefix. Next Step:
+         * {@link BasicConnectionStep}.
          */
         public interface IndexPrefixStep {
+
             BasicConnectionStep withIndexPrefix(String indexPrefix);
         }
 
         /**
-         * Step in charge of handling connection parameters (with default option). Next step: {@link BuildStep}.
+         * Step in charge of handling connection parameters (with default option). Next step:
+         * {@link BuildStep}.
          */
         public interface BasicConnectionStep {
+
             BuildStep withConnectionParameters(
-                    @NotNull String scheme,
-                    @NotNull String host,
-                    @NotNull Integer port
+                @NotNull String scheme,
+                @NotNull String host,
+                @NotNull Integer port
             );
 
             BuildStep withDefaultConnectionParameters();
@@ -248,20 +267,23 @@ public class ElasticConnection implements Closeable {
          * Step in charge of optional steps. Next step: {@link BuildStep}.
          */
         public interface OptionalSteps {
+
             BuildStep withApiKeys(String id, String secret);
         }
 
         /**
-         * This is the final step in charge of building the {@link ElasticConnection}.
-         * Validation should be here.
+         * This is the final step in charge of building the {@link ElasticConnection}. Validation
+         * should be here.
          * <p>
          * It adds support for {@link OptionalSteps}.
          */
         public interface BuildStep extends OptionalSteps {
+
             ElasticConnection build();
         }
 
-        private static class Steps implements IndexPrefixStep, BasicConnectionStep, OptionalSteps, BuildStep {
+        private static class Steps implements IndexPrefixStep, BasicConnectionStep, OptionalSteps,
+            BuildStep {
 
             private String indexPrefix;
 
@@ -279,7 +301,8 @@ public class ElasticConnection implements Closeable {
             }
 
             @Override
-            public BuildStep withConnectionParameters(@NotNull String scheme, @NotNull String host, @NotNull Integer port) {
+            public BuildStep withConnectionParameters(@NotNull String scheme, @NotNull String host,
+                @NotNull Integer port) {
                 this.scheme = scheme;
                 this.host = host;
                 this.port = port;
@@ -288,7 +311,8 @@ public class ElasticConnection implements Closeable {
 
             @Override
             public BuildStep withDefaultConnectionParameters() {
-                return withConnectionParameters(ElasticConnection.DEFAULT_SCHEME, ElasticConnection.DEFAULT_HOST, ElasticConnection.DEFAULT_PORT);
+                return withConnectionParameters(ElasticConnection.DEFAULT_SCHEME,
+                    ElasticConnection.DEFAULT_HOST, ElasticConnection.DEFAULT_PORT);
             }
 
             @Override
@@ -301,14 +325,16 @@ public class ElasticConnection implements Closeable {
             @Override
             public ElasticConnection build() {
                 if (!ElasticIndexNameHelper.isValidPrefix(indexPrefix)) {
-                    throw new IllegalArgumentException("The indexPrefix does not follow the elasticsearch naming convention: " + indexPrefix);
+                    throw new IllegalArgumentException(
+                        "The indexPrefix does not follow the elasticsearch naming convention: "
+                            + indexPrefix);
                 }
                 return new ElasticConnection(
-                        Objects.requireNonNull(indexPrefix, "indexPrefix must be not null"),
-                        Objects.requireNonNull(scheme, "scheme must be not null"),
-                        Objects.requireNonNull(host, "host must be not null"),
-                        Objects.requireNonNull(port, "port must be not null"),
-                        apiKeyId, apiKeySecret);
+                    Objects.requireNonNull(indexPrefix, "indexPrefix must be not null"),
+                    Objects.requireNonNull(scheme, "scheme must be not null"),
+                    Objects.requireNonNull(host, "host must be not null"),
+                    Objects.requireNonNull(port, "port must be not null"),
+                    apiKeyId, apiKeySecret);
             }
         }
     }

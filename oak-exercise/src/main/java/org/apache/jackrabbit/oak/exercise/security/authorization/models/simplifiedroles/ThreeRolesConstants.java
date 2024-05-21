@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.exercise.security.authorization.models.simplifiedroles;
 
 import java.util.Set;
-
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 
@@ -35,11 +34,11 @@ public interface ThreeRolesConstants {
     Set<String> NAMES = ImmutableSet.of(REP_3_ROLES_POLICY, REP_READERS, REP_EDITORS, REP_OWNERS);
 
     long SUPPORTED_PERMISSIONS =
-                    Permissions.READ |
-                    Permissions.MODIFY_CHILD_NODE_COLLECTION |
-                    Permissions.WRITE |
-                    Permissions.NODE_TYPE_MANAGEMENT |
-                    Permissions.VERSION_MANAGEMENT |
-                    Permissions.READ_ACCESS_CONTROL |
-                    Permissions.MODIFY_ACCESS_CONTROL;
+        Permissions.READ |
+            Permissions.MODIFY_CHILD_NODE_COLLECTION |
+            Permissions.WRITE |
+            Permissions.NODE_TYPE_MANAGEMENT |
+            Permissions.VERSION_MANAGEMENT |
+            Permissions.READ_ACCESS_CONTROL |
+            Permissions.MODIFY_ACCESS_CONTROL;
 }

@@ -21,31 +21,29 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Utility class defining specific, configurable import behavior. A given
- * implementation of the {@link ProtectedItemImporter} may support this
- * as part of the overall import configuration.
+ * Utility class defining specific, configurable import behavior. A given implementation of the
+ * {@link ProtectedItemImporter} may support this as part of the overall import configuration.
  */
 public final class ImportBehavior {
 
     private static final Logger log = LoggerFactory.getLogger(ImportBehavior.class);
 
     /**
-     * If a value cannot be set due to constraints
-     * enforced by the API implementation, the failure is logged as
-     * warning and the value is ignored.
+     * If a value cannot be set due to constraints enforced by the API implementation, the failure
+     * is logged as warning and the value is ignored.
      */
     public static final int IGNORE = 1;
 
     /**
-     * Same as {@link #IGNORE} but in addition tries to circumvent the
-     * problem. This option should only be used with validated and trusted
-     * XML passed to the {@code Session} and {@code Workspace} import API.
+     * Same as {@link #IGNORE} but in addition tries to circumvent the problem. This option should
+     * only be used with validated and trusted XML passed to the {@code Session} and
+     * {@code Workspace} import API.
      */
     public static final int BESTEFFORT = 2;
 
     /**
-     * Aborts the import as soon as invalid values are detected throwing
-     * a {@code ConstraintViolationException}.
+     * Aborts the import as soon as invalid values are detected throwing a
+     * {@code ConstraintViolationException}.
      */
     public static final int ABORT = 3;
 
@@ -56,7 +54,8 @@ public final class ImportBehavior {
     /**
      * Private constructor to avoid instantiation.
      */
-    private ImportBehavior() {}
+    private ImportBehavior() {
+    }
 
     public static int valueFromString(@NotNull String behaviorString) {
         if (NAME_IGNORE.equalsIgnoreCase(behaviorString)) {

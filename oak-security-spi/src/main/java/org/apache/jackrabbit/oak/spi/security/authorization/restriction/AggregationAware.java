@@ -19,10 +19,10 @@ package org.apache.jackrabbit.oak.spi.security.authorization.restriction;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Marker interface intended to extend a {@link RestrictionProvider} to make it aware of it's aggregated 
- * nature in a composite when it comes to evaluate the validity of restrictions.
+ * Marker interface intended to extend a {@link RestrictionProvider} to make it aware of it's
+ * aggregated nature in a composite when it comes to evaluate the validity of restrictions.
  */
 public interface AggregationAware {
-    
+
     void setComposite(@NotNull CompositeRestrictionProvider composite);
 }

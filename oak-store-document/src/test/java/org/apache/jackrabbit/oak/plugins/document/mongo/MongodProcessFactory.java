@@ -53,7 +53,8 @@ public class MongodProcessFactory extends ExternalResource {
 
     private static final Logger LOG = LoggerFactory.getLogger(MongodProcessFactory.class);
 
-    private static final Directory DOWNLOAD_DIR = join(new FixedPath("target"), new FixedPath("mongo-download"));
+    private static final Directory DOWNLOAD_DIR = join(new FixedPath("target"),
+        new FixedPath("mongo-download"));
 
     private static final Directory TMP_DIR = join(new FixedPath("target"), new FixedPath("tmp"));
 
@@ -62,26 +63,34 @@ public class MongodProcessFactory extends ExternalResource {
     }
 
     private static final RuntimeConfig CONFIG = Defaults.runtimeConfigFor(Command.MongoD, LOG)
-            .artifactStore(Defaults.extractedArtifactStoreFor(Command.MongoD)
-                    .withDownloadConfig(Defaults.downloadConfigFor(Command.MongoD)
-                            .progressListener(new Slf4jProgressListener(LOG))
-                            .artifactStorePath(DOWNLOAD_DIR).build())
-            )
-            .isDaemonProcess(false)
-            .build();
+                                                        .artifactStore(
+                                                            Defaults.extractedArtifactStoreFor(
+                                                                        Command.MongoD)
+                                                                    .withDownloadConfig(
+                                                                        Defaults.downloadConfigFor(
+                                                                                    Command.MongoD)
+                                                                                .progressListener(
+                                                                                    new Slf4jProgressListener(
+                                                                                        LOG))
+                                                                                .artifactStorePath(
+                                                                                    DOWNLOAD_DIR)
+                                                                                .build())
+                                                        )
+                                                        .isDaemonProcess(false)
+                                                        .build();
 
     private static final MongodStarter STARTER = MongodStarter.getInstance(CONFIG);
 
     private final Map<Integer, MongodProcess> processes = new HashMap<>();
 
     public Map<Integer, MongodProcess> startReplicaSet(String replicaSetName, int size)
-            throws IOException {
+        throws IOException {
         int[] ports = Network.freeServerPorts(InetAddress.getLoopbackAddress(), size);
         return startReplicaSet(replicaSetName, ports);
     }
 
     public Map<Integer, MongodProcess> startReplicaSet(
-            String replicaSetName, int[] ports) throws IOException {
+        String replicaSetName, int[] ports) throws IOException {
         assertTrue(ports.length > 0);
         Map<Integer, MongodProcess> executables = new HashMap<>();
         for (int p : ports) {
@@ -147,7 +156,7 @@ public class MongodProcessFactory extends ExternalResource {
         config.append("members", members);
         try (MongoClient c = new MongoClient(localhost(), ports[0])) {
             c.getDatabase("admin").runCommand(
-                    new Document("replSetInitiate", config));
+                new Document("replSetInitiate", config));
         }
     }
 

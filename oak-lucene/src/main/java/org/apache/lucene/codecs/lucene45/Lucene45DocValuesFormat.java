@@ -26,14 +26,13 @@ package org.apache.lucene.codecs.lucene45;
  */
 
 import java.io.IOException;
-
 import org.apache.lucene.codecs.CodecUtil;
 import org.apache.lucene.codecs.DocValuesConsumer;
-import org.apache.lucene.codecs.DocValuesProducer;
 import org.apache.lucene.codecs.DocValuesFormat;
+import org.apache.lucene.codecs.DocValuesProducer;
+import org.apache.lucene.index.FieldInfo.DocValuesType;
 import org.apache.lucene.index.SegmentReadState;
 import org.apache.lucene.index.SegmentWriteState;
-import org.apache.lucene.index.FieldInfo.DocValuesType;
 import org.apache.lucene.store.DataOutput;
 import org.apache.lucene.util.SmallFloat;
 import org.apache.lucene.util.fst.FST;
@@ -44,18 +43,19 @@ import org.apache.lucene.util.packed.PackedInts;
 /**
  * Lucene 4.5 DocValues format.
  * <p>
- * Encodes the four per-document value types (Numeric,Binary,Sorted,SortedSet) with these strategies:
+ * Encodes the four per-document value types (Numeric,Binary,Sorted,SortedSet) with these
+ * strategies:
  * <p>
  * {@link DocValuesType#NUMERIC NUMERIC}:
  * <ul>
  *    <li>Delta-compressed: per-document integers written in blocks of 16k. For each block
- *        the minimum value in that block is encoded, and each entry is a delta from that 
- *        minimum value. Each block of deltas is compressed with bitpacking. For more 
+ *        the minimum value in that block is encoded, and each entry is a delta from that
+ *        minimum value. Each block of deltas is compressed with bitpacking. For more
  *        information, see {@link BlockPackedWriter}.
  *    <li>Table-compressed: when the number of unique values is very small (&lt; 256), and
- *        when there are unused "gaps" in the range of values used (such as {@link SmallFloat}), 
- *        a lookup table is written instead. Each per-document entry is instead the ordinal 
- *        to this table, and those ordinals are compressed with bitpacking ({@link PackedInts}). 
+ *        when there are unused "gaps" in the range of values used (such as {@link SmallFloat}),
+ *        a lookup table is written instead. Each per-document entry is instead the ordinal
+ *        to this table, and those ordinals are compressed with bitpacking ({@link PackedInts}).
  *    <li>GCD-compressed: when all numbers share a common divisor, such as dates, the greatest
  *        common denominator (GCD) is computed, and quotients are stored using Delta-compressed Numerics.
  * </ul>
@@ -63,28 +63,28 @@ import org.apache.lucene.util.packed.PackedInts;
  * {@link DocValuesType#BINARY BINARY}:
  * <ul>
  *    <li>Fixed-width Binary: one large concatenated byte[] is written, along with the fixed length.
- *        Each document's value can be addressed directly with multiplication ({@code docID * length}). 
- *    <li>Variable-width Binary: one large concatenated byte[] is written, along with end addresses 
+ *        Each document's value can be addressed directly with multiplication ({@code docID * length}).
+ *    <li>Variable-width Binary: one large concatenated byte[] is written, along with end addresses
  *        for each document. The addresses are written in blocks of 16k, with the current absolute
- *        start for the block, and the average (expected) delta per entry. For each document the 
+ *        start for the block, and the average (expected) delta per entry. For each document the
  *        deviation from the delta (actual - expected) is written.
  *    <li>Prefix-compressed Binary: values are written in chunks of 16, with the first value written
  *        completely and other values sharing prefixes. chunk addresses are written in blocks of 16k,
- *        with the current absolute start for the block, and the average (expected) delta per entry. 
+ *        with the current absolute start for the block, and the average (expected) delta per entry.
  *        For each chunk the deviation from the delta (actual - expected) is written.
  * </ul>
  * <p>
  * {@link DocValuesType#SORTED SORTED}:
  * <ul>
- *    <li>Sorted: a mapping of ordinals to deduplicated terms is written as Prefix-Compressed Binary, 
+ *    <li>Sorted: a mapping of ordinals to deduplicated terms is written as Prefix-Compressed Binary,
  *        along with the per-document ordinals written using one of the numeric strategies above.
  * </ul>
  * <p>
  * {@link DocValuesType#SORTED_SET SORTED_SET}:
  * <ul>
- *    <li>SortedSet: a mapping of ordinals to deduplicated terms is written as Prefix-Compressed Binary, 
- *        an ordinal list and per-document index into this list are written using the numeric strategies 
- *        above. 
+ *    <li>SortedSet: a mapping of ordinals to deduplicated terms is written as Prefix-Compressed Binary,
+ *        an ordinal list and per-document index into this list are written using the numeric strategies
+ *        above.
  * </ul>
  * <p>
  * Files:
@@ -95,7 +95,7 @@ import org.apache.lucene.util.packed.PackedInts;
  * <ol>
  *   <li><a name="dvm" id="dvm"></a>
  *   <p>The DocValues metadata or .dvm file.</p>
- *   <p>For DocValues field, this stores metadata, such as the offset into the 
+ *   <p>For DocValues field, this stores metadata, such as the offset into the
  *      DocValues data (.dvd)</p>
  *   <p>DocValues metadata (.dvm) --&gt; Header,&lt;Entry&gt;<sup>NumFields</sup></p>
  *   <ul>
@@ -128,7 +128,7 @@ import org.apache.lucene.util.packed.PackedInts;
  *   <p>NumericType indicates how Numeric values will be compressed:
  *      <ul>
  *         <li>0 --&gt; delta-compressed. For each block of 16k integers, every integer is delta-encoded
- *             from the minimum value within the block. 
+ *             from the minimum value within the block.
  *         <li>1 --&gt, gcd-compressed. When all integers share a common divisor, only quotients are stored
  *             using blocks of delta-encoded ints.
  *         <li>2 --&gt; table-compressed. When the number of unique numeric values is small and it would save space,
@@ -136,7 +136,7 @@ import org.apache.lucene.util.packed.PackedInts;
  *      </ul>
  *   <p>BinaryType indicates how Binary values will be stored:
  *      <ul>
- *         <li>0 --&gt; fixed-width. All values have the same length, addressing by multiplication. 
+ *         <li>0 --&gt; fixed-width. All values have the same length, addressing by multiplication.
  *         <li>1 --&gt, variable-width. An address for each value is stored.
  *         <li>2 --&gt; prefix-compressed. An address to the start of every interval'th value is stored.
  *      </ul>
@@ -162,34 +162,39 @@ import org.apache.lucene.util.packed.PackedInts;
  *   <p>SortedSet entries store the list of ordinals in their BinaryData as a
  *      sequences of increasing {@link DataOutput#writeVLong vLong}s, delta-encoded.</p>
  * </ol>
+ *
  * @lucene.experimental
  */
 public final class Lucene45DocValuesFormat extends DocValuesFormat {
 
-  /** Sole Constructor */
-  public Lucene45DocValuesFormat() {
-    super("Lucene45");
-  }
+    /**
+     * Sole Constructor
+     */
+    public Lucene45DocValuesFormat() {
+        super("Lucene45");
+    }
 
-  @Override
-  public DocValuesConsumer fieldsConsumer(SegmentWriteState state) throws IOException {
-    return new Lucene45DocValuesConsumer(state, DATA_CODEC, DATA_EXTENSION, META_CODEC, META_EXTENSION);
-  }
+    @Override
+    public DocValuesConsumer fieldsConsumer(SegmentWriteState state) throws IOException {
+        return new Lucene45DocValuesConsumer(state, DATA_CODEC, DATA_EXTENSION, META_CODEC,
+            META_EXTENSION);
+    }
 
-  @Override
-  public DocValuesProducer fieldsProducer(SegmentReadState state) throws IOException {
-    return new Lucene45DocValuesProducer(state, DATA_CODEC, DATA_EXTENSION, META_CODEC, META_EXTENSION);
-  }
-  
-  static final String DATA_CODEC = "Lucene45DocValuesData";
-  static final String DATA_EXTENSION = "dvd";
-  static final String META_CODEC = "Lucene45ValuesMetadata";
-  static final String META_EXTENSION = "dvm";
-  static final int VERSION_START = 0;
-  static final int VERSION_SORTED_SET_SINGLE_VALUE_OPTIMIZED = 1;
-  static final int VERSION_CURRENT = VERSION_SORTED_SET_SINGLE_VALUE_OPTIMIZED;
-  static final byte NUMERIC = 0;
-  static final byte BINARY = 1;
-  static final byte SORTED = 2;
-  static final byte SORTED_SET = 3;
+    @Override
+    public DocValuesProducer fieldsProducer(SegmentReadState state) throws IOException {
+        return new Lucene45DocValuesProducer(state, DATA_CODEC, DATA_EXTENSION, META_CODEC,
+            META_EXTENSION);
+    }
+
+    static final String DATA_CODEC = "Lucene45DocValuesData";
+    static final String DATA_EXTENSION = "dvd";
+    static final String META_CODEC = "Lucene45ValuesMetadata";
+    static final String META_EXTENSION = "dvm";
+    static final int VERSION_START = 0;
+    static final int VERSION_SORTED_SET_SINGLE_VALUE_OPTIMIZED = 1;
+    static final int VERSION_CURRENT = VERSION_SORTED_SET_SINGLE_VALUE_OPTIMIZED;
+    static final byte NUMERIC = 0;
+    static final byte BINARY = 1;
+    static final byte SORTED = 2;
+    static final byte SORTED_SET = 3;
 }

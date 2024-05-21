@@ -29,7 +29,7 @@
 <!-- MACRO{railroad|file=$xpath-grammar|topic=$topic} -->
 #end
 
-$h2 Oak XPath Query Grammar - ${project.name}
+    $h2 Oak XPath Query Grammar - ${project.name}
 
 * #railroad_link( 'Query' )
 * #railroad_link( 'Filter' )
@@ -49,18 +49,18 @@ $h2 Oak XPath Query Grammar - ${project.name}
 
 #render( 'Query' )
 
-The "/jcr:root" means the root node. 
+The "/jcr:root" means the root node.
 It is recommended that all XPath queries start with this term.
 
-All queries should have a path restriction 
+All queries should have a path restriction
 (even if it's just, for example, "/content"), as this allows to shrink indexes.
 
 "order by" may use an index.
-If there is no index for the given sort order, 
+If there is no index for the given sort order,
 then the result is fully read in memory and sorted before returning the first row.
 
 The column list is usually not needed, as all properties of the nodes are returned in any case.
-It is only needed if non-standard (computed) columns such as 
+It is only needed if non-standard (computed) columns such as
 "rep:excerpt" or "rep:spellcheck" are needed.
 
 Examples:
@@ -73,7 +73,8 @@ Get all index definition nodes of type 'lucene', sorted by reindex count, descen
 
     /jcr:root/oak:index/element(*, oak:QueryIndexDefinition)[@type='lucene'] order by @reindexCount descending
 
-Get all nodes below /etc that have the property type set to 'report'; fail the query if there is no index that can be used:
+Get all nodes below /etc that have the property type set to 'report'; fail the query if there is no
+index that can be used:
 
     /jcr:root/etc//*[@type='report'] option(traversal fail)
 
@@ -87,13 +88,13 @@ while two slashes means filtering on a descendant node.
 
 "*" means any node name, and any node type.
 
-"text()" is a shortcut for "jcr:xmltext". 
+"text()" is a shortcut for "jcr:xmltext".
 It is supported only for compatibility.
 
 Queries using the construct `(filter1 | filter2)' are converted to union,
 that is, one query is generated for each filter, and the result of both
 queries is combined.
-Note that for fulltext queries, it is problematic to use union, 
+Note that for fulltext queries, it is problematic to use union,
 because scoring is done for each subquery individually.
 The score is not useful to compare results of different subqueries,
 so that the union of multiple fulltext queries won't be ordered by score
@@ -128,7 +129,7 @@ All descendant nodes of /content that are of type oak:QueryIndexDefinition and a
 All nodes named "indexRules" that have a parent node with the property "type" set to "lucene":
 
     /jcr:root/oak:index/*[@type = 'lucene']/indexRules
-    
+
 The paths '/libs' and '/etc' should be searched:
 
     /jcr:root/(libs | etc)//*[@jcr:uuid and @jcr:mimeType = 'text/css']
@@ -186,7 +187,7 @@ or don't have the property set:
 
 A special case (not found in relational databases) is
 "and" conditions of the form "@x = 1 and @x = 2".
-They will match nodes with multi-valued properties, 
+They will match nodes with multi-valued properties,
 where the property value contains both 1 and 2.
 
 Examples:
@@ -204,14 +205,14 @@ In this case, and index can be used, but it is relatively expensive to index
 all nodes that don't have a certain property. It is recommended to only index
 this if there are relatively view nodes with this nodetype. See also
 <a href="lucene.html">nullCheckEnabled</a>.
-Nested conditions, for example "fn:not(@status = 'x' and @color = 'red')", 
+Nested conditions, for example "fn:not(@status = 'x' and @color = 'red')",
 can not typically use an index.
 
 "jcr:contains": see <a href="query-engine.html#Full-Text_Queries">Full-Text Queries</a>.
 
-"jcr:like": the wildcards characters are _ (any one character) 
+"jcr:like": the wildcards characters are _ (any one character)
 and % (any characters). An index is used,
-except if the operand starts with a wildcard. 
+except if the operand starts with a wildcard.
 To search for the characters % and _, the characters need to be escaped using \ (backslash).
 
 "rep:similar": see <a href="query-engine.html#Similarity_Queries">Similarity Queries</a>.
@@ -233,7 +234,8 @@ Examples:
 
 #render( 'Comparison' )
 
-Comparison using &lt;, &gt;, &gt;=, and &lt;= can use an index if the property in the index is ordered.
+Comparison using &lt;, &gt;, &gt;=, and &lt;= can use an index if the property in the index is
+ordered.
 
 Examples:
 
@@ -245,7 +247,7 @@ Examples:
 
 #render( 'Static Operand' )
 
-A string (text) literal starts and ends with a single quote. 
+A string (text) literal starts and ends with a single quote.
 Two single quotes can be used to create a single quote inside a string.
 
 Examples:
@@ -267,12 +269,12 @@ then the result is fully read in memory and sorted there.
 If an index for ordering is used, then only entries are listed where
 the given property (or function) is not null.
 
-As a special case, sorting by "jcr:score" in descending order is ignored 
+As a special case, sorting by "jcr:score" in descending order is ignored
 (removed from the list), as this is what the fulltext index does anyway
 (and if no fulltext index is used, then the score doesn't apply).
 If for some reason you want to enforce sorting by "jcr:score", then
 you can use the workaround to order by "fn:lowercase(@jcr:score) descending".
-Note that for fulltext queries, it is problematic to use union, 
+Note that for fulltext queries, it is problematic to use union,
 because scoring is done for each subquery individually.
 The score is not useful to compare results of different subqueries,
 so that the union of multiple fulltext queries won't be ordered by score
@@ -288,7 +290,7 @@ Examples:
 #render( 'Dynamic Operand' )
 
 The "*" stands for any property.
-Using it in a condition requires a relative path. 
+Using it in a condition requires a relative path.
 For example: `[./* = 'test']` means where any property matches the word 'test'.
 Relative path fragments can also contain `*` to represent 'any' node at
 that point. `//` is *not* supported as part of relative path. So, `a/*/@test`,
@@ -329,11 +331,13 @@ except if the configuration option `QueryEngineSettings.failTraversal` is change
 The traversal option can be used to change the behavior of the given query:
 "ok" to not log a warning,
 "warn" to log a warning,
-"fail" to fail the query, and 
+"fail" to fail the query, and
 "default" to use the default setting.
 
-"index tag": by default, queries will use the index with the lowest expected cost (as in relational databases).
-To only consider some of the indexes, add tags (a multi-valued String property) to the index(es) of choice,
+"index tag": by default, queries will use the index with the lowest expected cost (as in relational
+databases).
+To only consider some of the indexes, add tags (a multi-valued String property) to the index(es) of
+choice,
 and specify this tag in the query.
 See <a href="query-engine.html#Query_Option_Index_Tag">Query Option Index Tag</a>.
 
@@ -351,7 +355,8 @@ Examples:
 
 Does not run the query, but only computes and returns the query plan.
 With "explain measure", the expected cost is calculated as well.
-In both cases, the query result will only have one column called 'plan', and one row that contains the plan.
+In both cases, the query result will only have one column called 'plan', and one row that contains
+the plan.
 
 Examples:
 
@@ -359,9 +364,9 @@ Examples:
 
 Result:
 
-    plan = [nt:base] as [nt:base] 
-    /* property uuid = 1 where [nt:base].[jcr:uuid] = 1 */  
-    cost: { "nt:base": 2.0 } 
+    plan = [nt:base] as [nt:base]
+    /* property uuid = 1 where [nt:base].[jcr:uuid] = 1 */
+    cost: { "nt:base": 2.0 }
 
 This means the property index named "uuid" is used for this query.
 The expected cost (roughly the number of uncached I/O operations) is 2.
@@ -373,7 +378,7 @@ The expected cost (roughly the number of uncached I/O operations) is 2.
 Runs the query, but instead of returning the result, returns the number of rows traversed.
 The query result has two columns, one called 'selector' and one called 'scanCount'.
 The result has at least two rows, one that represents the total (selector set to 'query'),
-and one per selector used in the query. 
+and one per selector used in the query.
 
 Examples:
 

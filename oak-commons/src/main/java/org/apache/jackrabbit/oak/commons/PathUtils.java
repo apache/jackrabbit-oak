@@ -22,17 +22,15 @@ import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
  * Utility methods to parse a path.
  * <p>
- * Each method validates the input, except if the system property
- * {packageName}.SKIP_VALIDATION is set, in which case only minimal validation
- * takes place within this function, so when the parameter is an illegal path,
- * the the result of this method is undefined.
+ * Each method validates the input, except if the system property {packageName}.SKIP_VALIDATION is
+ * set, in which case only minimal validation takes place within this function, so when the
+ * parameter is an illegal path, the the result of this method is undefined.
  */
 public final class PathUtils {
 
@@ -40,7 +38,7 @@ public final class PathUtils {
     public static final String ROOT_NAME = "";
 
     private static final Pattern SNS_PATTERN =
-            Pattern.compile("(.+)\\[[1-9][0-9]*\\]$");
+        Pattern.compile("(.+)\\[[1-9][0-9]*\\]$");
 
     private PathUtils() {
         // utility class
@@ -53,7 +51,7 @@ public final class PathUtils {
      * @return whether this is the root
      */
     public static boolean denotesRoot(String path) {
-        assert isValid(path) : "Invalid path ["+path+"]";
+        assert isValid(path) : "Invalid path [" + path + "]";
 
         return denotesRootPath(path);
     }
@@ -85,7 +83,7 @@ public final class PathUtils {
      * @return true if it starts with a slash
      */
     public static boolean isAbsolute(String path) {
-        assert isValid(path) : "Invalid path ["+path+"]";
+        assert isValid(path) : "Invalid path [" + path + "]";
 
         return isAbsolutePath(path);
     }
@@ -95,8 +93,7 @@ public final class PathUtils {
     }
 
     /**
-     * Get the parent of a path. The parent of the root path ("/") is the root
-     * path.
+     * Get the parent of a path. The parent of the root path ("/") is the root path.
      *
      * @param path the path
      * @return the parent path
@@ -107,22 +104,21 @@ public final class PathUtils {
     }
 
     /**
-     * Get the nth ancestor of a path. The 1st ancestor is the parent path,
-     * 2nd ancestor the grandparent path, and so on...
+     * Get the nth ancestor of a path. The 1st ancestor is the parent path, 2nd ancestor the
+     * grandparent path, and so on...
      * <p>
      * If {@code nth <= 0}, the path argument is returned as is.
      *
      * @param path the path
-     * @param nth  indicates the ancestor level for which the path should be
-     *             calculated.
+     * @param nth  indicates the ancestor level for which the path should be calculated.
      * @return the ancestor path
      */
     @NotNull
     public static String getAncestorPath(String path, int nth) {
-        assert isValid(path) : "Invalid path ["+path+"]";
+        assert isValid(path) : "Invalid path [" + path + "]";
 
         if (path.isEmpty() || denotesRootPath(path)
-                || nth <= 0) {
+            || nth <= 0) {
             return path;
         }
 
@@ -143,15 +139,15 @@ public final class PathUtils {
     }
 
     /**
-     * Get the last element of the (absolute or relative) path. The name of the
-     * root node ("/") and the name of the empty path ("") is the empty path.
+     * Get the last element of the (absolute or relative) path. The name of the root node ("/") and
+     * the name of the empty path ("") is the empty path.
      *
      * @param path the complete path
      * @return the last element
      */
     @NotNull
     public static String getName(String path) {
-        assert isValid(path) : "Invalid path ["+path+"]";
+        assert isValid(path) : "Invalid path [" + path + "]";
 
         if (path.isEmpty() || denotesRootPath(path)) {
             return ROOT_NAME;
@@ -165,8 +161,8 @@ public final class PathUtils {
     }
 
     /**
-     * Returns the given name without the possible SNS index suffix. If the
-     * name does not contain an SNS index, then it is returned as-is.
+     * Returns the given name without the possible SNS index suffix. If the name does not contain an
+     * SNS index, then it is returned as-is.
      *
      * @param name name with a possible SNS index suffix
      * @return name without the SNS index suffix
@@ -184,14 +180,13 @@ public final class PathUtils {
     }
 
     /**
-     * Calculate the number of elements in the path. The root path has zero
-     * elements.
+     * Calculate the number of elements in the path. The root path has zero elements.
      *
      * @param path the path
      * @return the number of elements
      */
     public static int getDepth(String path) {
-        assert isValid(path) : "Invalid path ["+path+"]";
+        assert isValid(path) : "Invalid path [" + path + "]";
 
         if (path.isEmpty()) {
             return 0;
@@ -213,15 +208,15 @@ public final class PathUtils {
     }
 
     /**
-     * Returns an {@code Iterable} for the path elements. The root path ("/") and the
-     * empty path ("") have zero elements.
+     * Returns an {@code Iterable} for the path elements. The root path ("/") and the empty path
+     * ("") have zero elements.
      *
      * @param path the path
      * @return an Iterable for the path elements
      */
     @NotNull
     public static Iterable<String> elements(final String path) {
-        assert isValid(path) : "Invalid path ["+path+"]";
+        assert isValid(path) : "Invalid path [" + path + "]";
 
         return new Iterable<String>() {
             @Override
@@ -276,7 +271,7 @@ public final class PathUtils {
      */
     @NotNull
     public static String concat(String parentPath, String... relativePaths) {
-        assert isValid(parentPath) : "Invalid parent path ["+parentPath+"]";
+        assert isValid(parentPath) : "Invalid parent path [" + parentPath + "]";
         int parentLen = parentPath.length();
         int size = relativePaths.length;
         StringBuilder buff = new StringBuilder(parentLen + size * 5);
@@ -307,8 +302,8 @@ public final class PathUtils {
      */
     @NotNull
     public static String concat(String parentPath, String subPath) {
-        assert isValid(parentPath) : "Invalid parent path ["+parentPath+"]";
-        assert isValid(subPath) : "Invalid sub path ["+subPath+"]";
+        assert isValid(parentPath) : "Invalid parent path [" + parentPath + "]";
+        assert isValid(subPath) : "Invalid sub path [" + subPath + "]";
         // special cases
         if (parentPath.isEmpty()) {
             return subPath;
@@ -342,7 +337,7 @@ public final class PathUtils {
                 while (i0 < i1 && path.charAt(i0) == '/') {
                     i0++;
                 }
-                while (i1 > i0 && path.charAt(i1-1) == '/') {
+                while (i1 > i0 && path.charAt(i1 - 1) == '/') {
                     i1--;
                 }
                 if (i1 > i0) {
@@ -364,8 +359,8 @@ public final class PathUtils {
      * @return true if the path is an offspring of the ancestor
      */
     public static boolean isAncestor(String ancestor, String path) {
-        assert isValid(ancestor) : "Invalid parent path ["+ancestor+"]";
-        assert isValid(path) : "Invalid path ["+path+"]";
+        assert isValid(ancestor) : "Invalid parent path [" + ancestor + "]";
+        assert isValid(path) : "Invalid path [" + path + "]";
         if (ancestor.isEmpty() || path.isEmpty()) {
             return false;
         }
@@ -381,8 +376,7 @@ public final class PathUtils {
 
     /**
      * Relativize a path wrt. a parent path such that
-     * {@code relativize(parentPath, concat(parentPath, path)) == paths}
-     * holds.
+     * {@code relativize(parentPath, concat(parentPath, path)) == paths} holds.
      *
      * @param parentPath parent pth
      * @param path       path to relativize
@@ -390,16 +384,16 @@ public final class PathUtils {
      */
     @NotNull
     public static String relativize(String parentPath, String path) {
-        assert isValid(parentPath) : "Invalid parent path ["+parentPath+"]";
-        assert isValid(path) : "Invalid path ["+path+"]";
+        assert isValid(parentPath) : "Invalid parent path [" + parentPath + "]";
+        assert isValid(path) : "Invalid path [" + path + "]";
 
         if (parentPath.equals(path)) {
             return "";
         }
 
         String prefix = denotesRootPath(parentPath)
-                ? parentPath
-                : parentPath + '/';
+            ? parentPath
+            : parentPath + '/';
 
         if (path.startsWith(prefix)) {
             return path.substring(prefix.length());
@@ -412,21 +406,19 @@ public final class PathUtils {
      *
      * @param path  the path
      * @param index the starting index
-     * @return the index of the next slash (possibly the starting index), or -1
-     *         if not found
+     * @return the index of the next slash (possibly the starting index), or -1 if not found
      */
     public static int getNextSlash(String path, int index) {
-        assert isValid(path) : "Invalid path ["+path+"]";
+        assert isValid(path) : "Invalid path [" + path + "]";
 
         return path.indexOf('/', index);
     }
 
     /**
-     * Check if the path is valid, and throw an IllegalArgumentException if not.
-     * A valid path is absolute (starts with a '/') or relative (doesn't start
-     * with '/'), and contains none or more elements. A path may not end with
-     * '/', except for the root path. Elements itself must be at least one
-     * character long.
+     * Check if the path is valid, and throw an IllegalArgumentException if not. A valid path is
+     * absolute (starts with a '/') or relative (doesn't start with '/'), and contains none or more
+     * elements. A path may not end with '/', except for the root path. Elements itself must be at
+     * least one character long.
      *
      * @param path the path
      */
@@ -449,10 +441,9 @@ public final class PathUtils {
     }
 
     /**
-     * Check if the path is valid. A valid path is absolute (starts with a '/')
-     * or relative (doesn't start with '/'), and contains none or more elements.
-     * A path may not end with '/', except for the root path. Elements itself must
-     * be at least one character long.
+     * Check if the path is valid. A valid path is absolute (starts with a '/') or relative (doesn't
+     * start with '/'), and contains none or more elements. A path may not end with '/', except for
+     * the root path. Elements itself must be at least one character long.
      *
      * @param path the path
      * @return {@code true} iff the path is valid.
@@ -485,14 +476,14 @@ public final class PathUtils {
      * <li>A path in {@code excludePaths} is only retained if {@code includePaths} contains
      * an ancestor of that path.</li>
      * </ul>
-     *
+     * <p>
      * When a set of paths is <em>filtered wrt.</em> {@code includePaths} and {@code excludePaths}
      * by first excluding all paths that have an ancestor or are contained in {@code excludePaths}
      * and then including all paths that have an ancestor or are contained in {@code includePaths}
      * then the result is the same regardless whether the {@code includePaths} and
      * {@code excludePaths} sets have been run through this method or not.
      *
-     * @param includePaths set of paths to be included
+     * @param includePaths  set of paths to be included
      * @param excludedPaths set of paths to be excluded
      */
     public static void unifyInExcludes(Set<String> includePaths, Set<String> excludedPaths) {

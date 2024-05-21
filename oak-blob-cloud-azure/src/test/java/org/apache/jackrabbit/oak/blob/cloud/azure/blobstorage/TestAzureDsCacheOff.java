@@ -21,13 +21,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Test {@link org.apache.jackrabbit.core.data.CachingDataStore} with AzureBlobStoreBackend
- * and local cache Off.
- * It requires to pass azure config file via system property or system properties by prefixing with 'ds.'.
- * See details @ {@link AzureDataStoreUtils}.
- * For e.g. -Dconfig=/opt/cq/azure.properties. Sample azure properties located at
+ * Test {@link org.apache.jackrabbit.core.data.CachingDataStore} with AzureBlobStoreBackend and
+ * local cache Off. It requires to pass azure config file via system property or system properties
+ * by prefixing with 'ds.'. See details @ {@link AzureDataStoreUtils}. For e.g.
+ * -Dconfig=/opt/cq/azure.properties. Sample azure properties located at
  * src/test/resources/azure.properties
-
  */
 public class TestAzureDsCacheOff extends TestAzureDS {
 

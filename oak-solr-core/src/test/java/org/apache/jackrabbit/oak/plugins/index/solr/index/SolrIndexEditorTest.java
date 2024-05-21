@@ -16,27 +16,25 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.index;
 
+import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.solr.TestUtils;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.DefaultSolrConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.response.QueryResponse;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 /**
  * Testcase for {@link org.apache.jackrabbit.oak.plugins.index.solr.index.SolrIndexEditor}
@@ -49,10 +47,12 @@ public class SolrIndexEditorTest {
         try {
             OakSolrConfiguration configuration = TestUtils.getTestConfiguration();
             IndexUpdateCallback callback = mock(IndexUpdateCallback.class);
-            SolrIndexEditor solrIndexEditor = new SolrIndexEditor(solrServer, configuration, callback);
+            SolrIndexEditor solrIndexEditor = new SolrIndexEditor(solrServer, configuration,
+                callback);
             NodeState before = mock(NodeState.class);
             NodeState after = mock(NodeState.class);
-            Iterable properties = (Iterable<PropertyState>) () -> Collections.singletonList(PropertyStates.createProperty("foo1", "bar")).iterator();
+            Iterable properties = (Iterable<PropertyState>) () -> Collections.singletonList(
+                PropertyStates.createProperty("foo1", "bar")).iterator();
             when(after.getProperties()).thenReturn(properties);
             solrIndexEditor.leave(before, after);
             QueryResponse queryResponse = solrServer.query(new SolrQuery("foo1:*"));
@@ -80,13 +80,15 @@ public class SolrIndexEditorTest {
                 }
             };
             IndexUpdateCallback callback = mock(IndexUpdateCallback.class);
-            SolrIndexEditor solrIndexEditor = new SolrIndexEditor(solrServer, configuration, callback);
+            SolrIndexEditor solrIndexEditor = new SolrIndexEditor(solrServer, configuration,
+                callback);
             NodeState before = mock(NodeState.class);
             NodeState after = mock(NodeState.class);
             Iterable properties = new Iterable<PropertyState>() {
                 @Override
                 public Iterator<PropertyState> iterator() {
-                    return Collections.singletonList(PropertyStates.createProperty("foo2", "bar")).iterator();
+                    return Collections.singletonList(PropertyStates.createProperty("foo2", "bar"))
+                                      .iterator();
                 }
             };
             when(after.getProperties()).thenReturn(properties);

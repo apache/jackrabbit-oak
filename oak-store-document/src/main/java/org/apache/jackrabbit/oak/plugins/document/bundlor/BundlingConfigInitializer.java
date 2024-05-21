@@ -19,35 +19,36 @@
 
 package org.apache.jackrabbit.oak.plugins.document.bundlor;
 
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
-import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.jetbrains.annotations.NotNull;
-
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.oak.plugins.document.bundlor.BundlingConfigHandler.BUNDLOR;
 import static org.apache.jackrabbit.oak.plugins.document.bundlor.BundlingConfigHandler.DOCUMENT_NODE_STORE;
+
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
+import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
 public enum BundlingConfigInitializer implements RepositoryInitializer {
     INSTANCE;
 
     @Override
     public void initialize(@NotNull NodeBuilder builder) {
-        if (builder.hasChildNode(JCR_SYSTEM)){
+        if (builder.hasChildNode(JCR_SYSTEM)) {
             NodeBuilder system = builder.getChildNode(JCR_SYSTEM);
 
-            if (!system.hasChildNode(DOCUMENT_NODE_STORE)){
+            if (!system.hasChildNode(DOCUMENT_NODE_STORE)) {
                 NodeBuilder dns = system.child(DOCUMENT_NODE_STORE);
                 dns.setProperty(JCR_PRIMARYTYPE, NodeTypeConstants.NT_OAK_UNSTRUCTURED, Type.NAME);
 
                 NodeState registryState = BundledTypesRegistry.builder()
-                        .forType("nt:file", "jcr:content")
-                        .build();
+                                                              .forType("nt:file", "jcr:content")
+                                                              .build();
                 NodeBuilder bundlor = dns.setChildNode(BUNDLOR, registryState);
-                bundlor.setProperty(JCR_PRIMARYTYPE, NodeTypeConstants.NT_OAK_UNSTRUCTURED, Type.NAME);
+                bundlor.setProperty(JCR_PRIMARYTYPE, NodeTypeConstants.NT_OAK_UNSTRUCTURED,
+                    Type.NAME);
             }
         }
 

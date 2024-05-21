@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.spi.security.authentication.callback;
 
 import javax.security.auth.callback.Callback;
-
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
 
 /**
@@ -28,23 +27,20 @@ public class TokenProviderCallback implements Callback {
     private TokenProvider tokenProvider;
 
     /**
-     * Returns the token provider as set using
-     * {@link #setTokenProvider(TokenProvider)}
-     * or {@code null}.
+     * Returns the token provider as set using {@link #setTokenProvider(TokenProvider)} or
+     * {@code null}.
      *
-     * @return an instance of {@code TokenProvider} or {@code null} if no
-     * provider has been set before.
+     * @return an instance of {@code TokenProvider} or {@code null} if no provider has been set
+     * before.
      */
     public TokenProvider getTokenProvider() {
         return tokenProvider;
     }
 
     /**
-     * Sets the {@code TokenProvider} that is being used during the
-     * authentication process.
+     * Sets the {@code TokenProvider} that is being used during the authentication process.
      *
-     * @param tokenProvider The {@code TokenProvider} to use during the
-     * authentication process.
+     * @param tokenProvider The {@code TokenProvider} to use during the authentication process.
      */
     public void setTokenProvider(TokenProvider tokenProvider) {
         this.tokenProvider = tokenProvider;

@@ -31,7 +31,8 @@ Maintenance branches
 --------------------
 We currently support one maintenance branch:
 
-* [Oak 1.22](https://github.com/apache/jackrabbit-oak/tree/1.22/) ([download](https://jackrabbit.apache.org/jcr/downloads.html#oak1.22)) - from Java 8 up to Java 13
+* [Oak 1.22](https://github.com/apache/jackrabbit-oak/tree/1.22/) ([download](https://jackrabbit.apache.org/jcr/downloads.html#oak1.22)) -
+  from Java 8 up to Java 13
 
 End of life
 -----------
@@ -46,6 +47,7 @@ The following branches have reached "end of life":
 
 History
 -------
+
 ~~~
                 2014-12 +---------------------------------------------------------------\ 1.0
                 2015-12 +------------------------------------------------------\ 1.2    | 1.0.25

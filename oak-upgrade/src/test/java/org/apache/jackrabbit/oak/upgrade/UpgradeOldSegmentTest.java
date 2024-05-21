@@ -27,7 +27,6 @@ import static org.junit.Assert.fail;
 import java.io.File;
 import java.io.InputStream;
 import java.io.StringReader;
-
 import javax.jcr.Node;
 import javax.jcr.Repository;
 import javax.jcr.Session;
@@ -35,11 +34,10 @@ import javax.jcr.SimpleCredentials;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.nodetype.PropertyDefinition;
-
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.commons.cnd.CndImporter;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.upgrade.cli.OakUpgrade;
 import org.apache.jackrabbit.oak.upgrade.cli.Util;
@@ -54,7 +52,8 @@ public class UpgradeOldSegmentTest {
         FileUtils.deleteDirectory(testFolder);
         File oldRepo = new File(testFolder, "test-repo-1.0");
         oldRepo.mkdirs();
-        try (InputStream in = UpgradeOldSegmentTest.class.getResourceAsStream("/test-repo-1.0.zip")) {
+        try (InputStream in = UpgradeOldSegmentTest.class.getResourceAsStream(
+            "/test-repo-1.0.zip")) {
             Util.unzip(in, oldRepo);
         }
 
@@ -85,9 +84,9 @@ public class UpgradeOldSegmentTest {
 
         // flip mandatory flag for test:mandatory
         String cnd = "<'test'='http://www.apache.org/jackrabbit/test'>\n" +
-                "[test:MyType] > nt:unstructured\n" +
-                " - test:mandatory (string)\n" +
-                " - test:optional (string)";
+            "[test:MyType] > nt:unstructured\n" +
+            " - test:mandatory (string)\n" +
+            " - test:optional (string)";
 
         CndImporter.registerNodeTypes(new StringReader(cnd), s, true);
 

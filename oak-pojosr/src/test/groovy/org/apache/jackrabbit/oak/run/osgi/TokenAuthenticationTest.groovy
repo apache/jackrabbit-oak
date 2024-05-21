@@ -19,14 +19,13 @@
 
 package org.apache.jackrabbit.oak.run.osgi
 
-import org.apache.jackrabbit.guava.common.collect.Sets
 import groovy.util.logging.Slf4j
 import org.apache.felix.jaas.LoginModuleFactory
+import org.apache.jackrabbit.guava.common.collect.Sets
 import org.apache.jackrabbit.oak.spi.security.authentication.AbstractLoginModule
 import org.apache.jackrabbit.oak.spi.security.authentication.PreAuthenticatedLogin
 import org.jetbrains.annotations.NotNull
 import org.junit.Before
-import org.junit.Ignore
 import org.junit.Test
 
 import javax.jcr.Credentials
@@ -37,11 +36,10 @@ import javax.security.auth.spi.LoginModule
 
 import static org.apache.jackrabbit.oak.run.osgi.OakOSGiRepositoryFactory.REPOSITORY_CONFIG_FILE
 
-
 class TokenAuthenticationTest extends AbstractRepositoryFactoryTest {
 
     @Before
-    void setupRepo(){
+    void setupRepo() {
         config[REPOSITORY_CONFIG_FILE] = createConfigValue("oak-base-config.json", "oak-tar-config.json")
     }
 
@@ -49,9 +47,9 @@ class TokenAuthenticationTest extends AbstractRepositoryFactoryTest {
     public void tokenCreationWithPreAuth() throws Exception {
         repository = repositoryFactory.getRepository(config)
         registry.registerService(LoginModuleFactory.class.name, new PreAuthLoginModuleFactory(), [
-                'jaas.controlFlag' : 'sufficient',
-                'jaas.realmName' : 'jackrabbit.oak',
-                'jaas.ranking' : '150',
+                'jaas.controlFlag': 'sufficient',
+                'jaas.realmName'  : 'jackrabbit.oak',
+                'jaas.ranking'    : '150',
 
         ] as Hashtable)
 
@@ -87,7 +85,7 @@ class TokenAuthenticationTest extends AbstractRepositoryFactoryTest {
                     log.debug("Could not extract userId/credentials");
                 } else {
                     SimpleCredentials sc = new SimpleCredentials(userId, new char[0])
-                    sc.setAttribute(".token","")
+                    sc.setAttribute(".token", "")
 
                     // we just set the login name and rely on the following login modules to populate the subject
                     sharedState.put(SHARED_KEY_PRE_AUTH_LOGIN, new PreAuthenticatedLogin(userId));
@@ -102,8 +100,8 @@ class TokenAuthenticationTest extends AbstractRepositoryFactoryTest {
         @Override
         boolean commit() throws LoginException {
             Credentials sharedCreds = getSharedCredentials()
-            if(sharedCreds instanceof SimpleCredentials) {
-                credential.setAttribute(".token", ((SimpleCredentials)sharedCreds).getAttribute(".token"))
+            if (sharedCreds instanceof SimpleCredentials) {
+                credential.setAttribute(".token", ((SimpleCredentials) sharedCreds).getAttribute(".token"))
             }
             return false;
         }

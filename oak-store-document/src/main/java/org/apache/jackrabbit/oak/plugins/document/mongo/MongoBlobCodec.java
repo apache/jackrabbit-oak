@@ -63,8 +63,8 @@ class MongoBlobCodec implements CollectibleCodec<MongoBlob> {
 
     @Override
     public void encode(BsonWriter writer,
-                       MongoBlob value,
-                       EncoderContext encoderContext) {
+        MongoBlob value,
+        EncoderContext encoderContext) {
         Document doc = value.asDocument();
         documentCodec.encode(writer, doc, encoderContext);
     }

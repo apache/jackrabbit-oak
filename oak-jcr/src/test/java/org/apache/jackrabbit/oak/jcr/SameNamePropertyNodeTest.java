@@ -20,7 +20,6 @@ import javax.jcr.Item;
 import javax.jcr.Node;
 import javax.jcr.Property;
 import javax.jcr.Repository;
-
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.oak.NodeStoreFixtures;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -38,7 +37,8 @@ public class SameNamePropertyNodeTest extends AbstractJCRTest {
     protected void setUp() throws Exception {
         super.setUp();
 
-        if (!getHelper().getRepository().getDescriptorValue(Repository.OPTION_NODE_AND_PROPERTY_WITH_SAME_NAME_SUPPORTED).getBoolean()) {
+        if (!getHelper().getRepository().getDescriptorValue(
+            Repository.OPTION_NODE_AND_PROPERTY_WITH_SAME_NAME_SUPPORTED).getBoolean()) {
             throw new NotExecutableException("node and property with same name is not supported");
         }
 
@@ -118,9 +118,11 @@ public class SameNamePropertyNodeTest extends AbstractJCRTest {
     @Test
     public void testNodeStoreSupport() throws Exception {
         NodeStore nodeStore = NodeStoreFixtures.SEGMENT_TAR.createNodeStore();
-        JackrabbitRepository repository  = (JackrabbitRepository) new Jcr(nodeStore).createRepository();
+        JackrabbitRepository repository = (JackrabbitRepository) new Jcr(
+            nodeStore).createRepository();
         try {
-            assertTrue(repository.getDescriptorValue(Repository.OPTION_NODE_AND_PROPERTY_WITH_SAME_NAME_SUPPORTED).getBoolean());
+            assertTrue(repository.getDescriptorValue(
+                Repository.OPTION_NODE_AND_PROPERTY_WITH_SAME_NAME_SUPPORTED).getBoolean());
         } finally {
             repository.shutdown();
         }

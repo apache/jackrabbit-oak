@@ -18,6 +18,10 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
+
 import com.mongodb.ServerAddress;
 import com.mongodb.connection.ClusterConnectionMode;
 import com.mongodb.connection.ClusterDescription;
@@ -27,16 +31,6 @@ import com.mongodb.connection.ServerConnectionState;
 import com.mongodb.connection.ServerDescription;
 import com.mongodb.connection.ServerType;
 import com.mongodb.event.ClusterDescriptionChangedEvent;
-import org.apache.jackrabbit.guava.common.util.concurrent.ThreadFactoryBuilder;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-
-import static org.junit.Assert.*;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -44,6 +38,12 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import org.apache.jackrabbit.guava.common.util.concurrent.ThreadFactoryBuilder;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class PipelinedMongoServerSelectorTest {
 
@@ -53,18 +53,18 @@ public class PipelinedMongoServerSelectorTest {
     private final AtomicInteger serverId = new AtomicInteger(0);
 
     private final List<ServerDescription> allReplicas = List.of(
-            createServerDescription(ServerType.REPLICA_SET_PRIMARY, ServerConnectionState.CONNECTED),
-            createServerDescription(ServerType.REPLICA_SET_SECONDARY, ServerConnectionState.CONNECTED),
-            createServerDescription(ServerType.REPLICA_SET_SECONDARY, ServerConnectionState.CONNECTED)
+        createServerDescription(ServerType.REPLICA_SET_PRIMARY, ServerConnectionState.CONNECTED),
+        createServerDescription(ServerType.REPLICA_SET_SECONDARY, ServerConnectionState.CONNECTED),
+        createServerDescription(ServerType.REPLICA_SET_SECONDARY, ServerConnectionState.CONNECTED)
     );
 
     private final List<ServerDescription> oneSecondaryUp = List.of(
-            createServerDescription(ServerType.REPLICA_SET_PRIMARY, ServerConnectionState.CONNECTED),
-            createServerDescription(ServerType.REPLICA_SET_SECONDARY, ServerConnectionState.CONNECTED)
+        createServerDescription(ServerType.REPLICA_SET_PRIMARY, ServerConnectionState.CONNECTED),
+        createServerDescription(ServerType.REPLICA_SET_SECONDARY, ServerConnectionState.CONNECTED)
     );
 
     private final List<ServerDescription> noSecondaryUp = List.of(
-            createServerDescription(ServerType.REPLICA_SET_PRIMARY, ServerConnectionState.CONNECTED)
+        createServerDescription(ServerType.REPLICA_SET_PRIMARY, ServerConnectionState.CONNECTED)
     );
 
     private ExecutorService threadAscending;
@@ -73,9 +73,17 @@ public class PipelinedMongoServerSelectorTest {
 
     @Before
     public void setUp() {
-        threadAscending = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder().setNameFormat(PipelinedMongoDownloadTask.THREAD_NAME_PREFIX + "-ascending").setDaemon(true).build());
-        threadDescending = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder().setNameFormat(PipelinedMongoDownloadTask.THREAD_NAME_PREFIX + "-descending").setDaemon(true).build());
-        threadOther = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder().setNameFormat("mongo-server-selector-test-thread").setDaemon(true).build());
+        threadAscending = Executors.newSingleThreadExecutor(
+            new ThreadFactoryBuilder().setNameFormat(
+                                          PipelinedMongoDownloadTask.THREAD_NAME_PREFIX + "-ascending").setDaemon(true)
+                                      .build());
+        threadDescending = Executors.newSingleThreadExecutor(
+            new ThreadFactoryBuilder().setNameFormat(
+                                          PipelinedMongoDownloadTask.THREAD_NAME_PREFIX + "-descending").setDaemon(true)
+                                      .build());
+        threadOther = Executors.newSingleThreadExecutor(
+            new ThreadFactoryBuilder().setNameFormat("mongo-server-selector-test-thread")
+                                      .setDaemon(true).build());
     }
 
     @After
@@ -87,9 +95,10 @@ public class PipelinedMongoServerSelectorTest {
 
     @Test
     public void calledFromANonDownloaderThread() throws ExecutionException, InterruptedException {
-        // If the Mongo server selector is called from a thread that is not a downloader thread, it should return all 
+        // If the Mongo server selector is called from a thread that is not a downloader thread, it should return all
         // servers, that is, it is neutral.
-        var t = new PipelinedMongoServerSelector(PipelinedMongoDownloadTask.THREAD_NAME_PREFIX + "-");
+        var t = new PipelinedMongoServerSelector(
+            PipelinedMongoDownloadTask.THREAD_NAME_PREFIX + "-");
         threadOther.submit(() -> {
             assertEquals(3, t.select(ClusterType.REPLICA_SET, allReplicas).size());
             assertEquals(2, t.select(ClusterType.REPLICA_SET, oneSecondaryUp).size());
@@ -99,7 +108,8 @@ public class PipelinedMongoServerSelectorTest {
 
     @Test
     public void allMongoReplicasUp() throws ExecutionException, InterruptedException {
-        var mongoServerSelector = new PipelinedMongoServerSelector(PipelinedMongoDownloadTask.THREAD_NAME_PREFIX + "-");
+        var mongoServerSelector = new PipelinedMongoServerSelector(
+            PipelinedMongoDownloadTask.THREAD_NAME_PREFIX + "-");
 
         var firstThreadSelection = new AtomicReference<ServerDescription>();
 
@@ -133,19 +143,23 @@ public class PipelinedMongoServerSelectorTest {
 
     @Test
     public void primaryAndOneSecondaryUp() throws ExecutionException, InterruptedException {
-        var mongoServerSelector = new PipelinedMongoServerSelector(PipelinedMongoDownloadTask.THREAD_NAME_PREFIX + "-");
+        var mongoServerSelector = new PipelinedMongoServerSelector(
+            PipelinedMongoDownloadTask.THREAD_NAME_PREFIX + "-");
         mongoServerSelector.clusterDescriptionChanged(new ClusterDescriptionChangedEvent(
-                        TEST_CLUSTER_ID,
-                        new ClusterDescription(ClusterConnectionMode.SINGLE, ClusterType.REPLICA_SET, oneSecondaryUp),
-                        new ClusterDescription(ClusterConnectionMode.SINGLE, ClusterType.REPLICA_SET, oneSecondaryUp)
-                )
+                TEST_CLUSTER_ID,
+                new ClusterDescription(ClusterConnectionMode.SINGLE, ClusterType.REPLICA_SET,
+                    oneSecondaryUp),
+                new ClusterDescription(ClusterConnectionMode.SINGLE, ClusterType.REPLICA_SET,
+                    oneSecondaryUp)
+            )
         );
 
         var firstThreadSelection = new AtomicReference<ServerDescription>();
 
         threadAscending.submit(() -> {
             // Should select one of the secondaries
-            var firstSelection = mongoServerSelector.select(ClusterType.REPLICA_SET, oneSecondaryUp);
+            var firstSelection = mongoServerSelector.select(ClusterType.REPLICA_SET,
+                oneSecondaryUp);
             assertEquals(1, firstSelection.size());
             var firstSecondarySelected = firstSelection.get(0);
             assertEquals(ServerType.REPLICA_SET_SECONDARY, firstSecondarySelected.getType());
@@ -156,7 +170,8 @@ public class PipelinedMongoServerSelectorTest {
         // Another thread tries to select a replica. But the only secondary available is taken, so the selection algorithm
         // returns an empty list.
         threadDescending.submit(() -> {
-            var serverSelection = mongoServerSelector.select(ClusterType.REPLICA_SET, oneSecondaryUp);
+            var serverSelection = mongoServerSelector.select(ClusterType.REPLICA_SET,
+                oneSecondaryUp);
             assertTrue(serverSelection.isEmpty());
         }).get();
 
@@ -164,7 +179,8 @@ public class PipelinedMongoServerSelectorTest {
         threadAscending.submit(mongoServerSelector::threadFinished).get();
 
         threadDescending.submit(() -> {
-            var serverSelection = mongoServerSelector.select(ClusterType.REPLICA_SET, oneSecondaryUp);
+            var serverSelection = mongoServerSelector.select(ClusterType.REPLICA_SET,
+                oneSecondaryUp);
             assertEquals(1, serverSelection.size());
             assertEquals(firstThreadSelection.get(), serverSelection.get(0));
         }).get();
@@ -172,7 +188,8 @@ public class PipelinedMongoServerSelectorTest {
 
     @Test
     public void onlyPrimaryUp() throws ExecutionException, InterruptedException {
-        var mongoServerSelector = new PipelinedMongoServerSelector(PipelinedMongoDownloadTask.THREAD_NAME_PREFIX + "-");
+        var mongoServerSelector = new PipelinedMongoServerSelector(
+            PipelinedMongoDownloadTask.THREAD_NAME_PREFIX + "-");
         threadAscending.submit(() -> {
             // If there is only the primary, do not select it.
             var firstSelection = mongoServerSelector.select(ClusterType.REPLICA_SET, noSecondaryUp);
@@ -183,9 +200,12 @@ public class PipelinedMongoServerSelectorTest {
     @Test
     public void mongoScaling() throws ExecutionException, InterruptedException {
         ArrayList<ServerDescription> clusterState = new ArrayList<>();
-        clusterState.add(createServerDescription(ServerType.REPLICA_SET_PRIMARY, ServerConnectionState.CONNECTED));
-        clusterState.add(createServerDescription(ServerType.REPLICA_SET_SECONDARY, ServerConnectionState.CONNECTED));
-        clusterState.add(createServerDescription(ServerType.REPLICA_SET_SECONDARY, ServerConnectionState.CONNECTED));
+        clusterState.add(createServerDescription(ServerType.REPLICA_SET_PRIMARY,
+            ServerConnectionState.CONNECTED));
+        clusterState.add(createServerDescription(ServerType.REPLICA_SET_SECONDARY,
+            ServerConnectionState.CONNECTED));
+        clusterState.add(createServerDescription(ServerType.REPLICA_SET_SECONDARY,
+            ServerConnectionState.CONNECTED));
 
         /* A scaling of Mongo happens in the following way
          * 1. Initial state, three replicas available, one primary and two secondaries.
@@ -203,10 +223,13 @@ public class PipelinedMongoServerSelectorTest {
          *    connect to it.
          * 8. Scaling is complete.
          */
-        var allUpClusterDescription = new ClusterDescription(ClusterConnectionMode.SINGLE, ClusterType.REPLICA_SET, List.copyOf(clusterState));
-        var mongoServerSelector = new PipelinedMongoServerSelector(PipelinedMongoDownloadTask.THREAD_NAME_PREFIX + "-");
+        var allUpClusterDescription = new ClusterDescription(ClusterConnectionMode.SINGLE,
+            ClusterType.REPLICA_SET, List.copyOf(clusterState));
+        var mongoServerSelector = new PipelinedMongoServerSelector(
+            PipelinedMongoDownloadTask.THREAD_NAME_PREFIX + "-");
         mongoServerSelector.clusterDescriptionChanged(
-                new ClusterDescriptionChangedEvent(TEST_CLUSTER_ID, allUpClusterDescription, allUpClusterDescription)
+            new ClusterDescriptionChangedEvent(TEST_CLUSTER_ID, allUpClusterDescription,
+                allUpClusterDescription)
         );
 
         var ascendingThreadReplica = new AtomicReference<ServerDescription>();
@@ -224,16 +247,20 @@ public class PipelinedMongoServerSelectorTest {
 
         ServerDescription firstSecondaryDown = ascendingThreadReplica.get();
         ServerDescription secondSecondaryDown = descendingThreadReplica.get();
-        ServerDescription originalPrimary = clusterState.stream().filter(ServerDescription::isPrimary).findFirst().get();
+        ServerDescription originalPrimary = clusterState.stream()
+                                                        .filter(ServerDescription::isPrimary)
+                                                        .findFirst().get();
 
         // ****************************
         // One secondary goes down
         // ****************************
         // All threads have a secondary assigned. Take down the replica of the ascending thread.
         clusterState.remove(firstSecondaryDown);
-        var oneSecondaryDownClusterDescription = new ClusterDescription(ClusterConnectionMode.SINGLE, ClusterType.REPLICA_SET, List.copyOf(clusterState));
+        var oneSecondaryDownClusterDescription = new ClusterDescription(
+            ClusterConnectionMode.SINGLE, ClusterType.REPLICA_SET, List.copyOf(clusterState));
         mongoServerSelector.clusterDescriptionChanged(
-                new ClusterDescriptionChangedEvent(TEST_CLUSTER_ID, allUpClusterDescription, oneSecondaryDownClusterDescription)
+            new ClusterDescriptionChangedEvent(TEST_CLUSTER_ID, allUpClusterDescription,
+                oneSecondaryDownClusterDescription)
         );
 
         // The ascending thread should not be able to connect to any secondary
@@ -256,7 +283,8 @@ public class PipelinedMongoServerSelectorTest {
         clusterState.add(firstSecondaryDown);
         // The ascending thread should now be able to connect to the new secondary
         threadAscending.submit(() -> {
-            var selection = mongoServerSelector.select(ClusterType.REPLICA_SET, List.copyOf(clusterState));
+            var selection = mongoServerSelector.select(ClusterType.REPLICA_SET,
+                List.copyOf(clusterState));
             assertEquals(1, selection.size());
             ascendingThreadReplica.set(selection.get(0));
             assertNotEquals(descendingThreadReplica.get(), selection.get(0));
@@ -267,20 +295,24 @@ public class PipelinedMongoServerSelectorTest {
         // Test the replacement of the primary.
         // Demote the current primary to secondary and promote the new replica to primary.
         var demotedPrimary = updateServerType(originalPrimary, ServerType.REPLICA_SET_SECONDARY);
-        var promotedSecondary = updateServerType(firstSecondaryDown, ServerType.REPLICA_SET_PRIMARY);
+        var promotedSecondary = updateServerType(firstSecondaryDown,
+            ServerType.REPLICA_SET_PRIMARY);
         clusterState.set(clusterState.indexOf(originalPrimary), demotedPrimary);
         clusterState.set(clusterState.indexOf(firstSecondaryDown), promotedSecondary);
 
         // Update the cluster description
-        var descAfterPrimaryDemoted = new ClusterDescription(ClusterConnectionMode.SINGLE, ClusterType.REPLICA_SET, List.copyOf(clusterState));
+        var descAfterPrimaryDemoted = new ClusterDescription(ClusterConnectionMode.SINGLE,
+            ClusterType.REPLICA_SET, List.copyOf(clusterState));
         mongoServerSelector.clusterDescriptionChanged(
-                new ClusterDescriptionChangedEvent(TEST_CLUSTER_ID, descAfterPrimaryDemoted, oneSecondaryDownClusterDescription)
+            new ClusterDescriptionChangedEvent(TEST_CLUSTER_ID, descAfterPrimaryDemoted,
+                oneSecondaryDownClusterDescription)
         );
 
         // The ascending thread was connected to the secondary that is now promoted to primary.
         threadAscending.submit(() -> {
             // The thread should detect that it is connected to a primary and disconnect from it.
-            assertTrue("Failed to detect that it is connected to primary", mongoServerSelector.isConnectedToPrimary());
+            assertTrue("Failed to detect that it is connected to primary",
+                mongoServerSelector.isConnectedToPrimary());
             mongoServerSelector.threadFinished();
 
             // When it tries to connect again, it should receive a secondary
@@ -294,22 +326,23 @@ public class PipelinedMongoServerSelectorTest {
     public ServerDescription createServerDescription(ServerType type, ServerConnectionState state) {
         var id = serverId.incrementAndGet();
         return ServerDescription
-                .builder()
-                .ok(true)
-                .setName("mongo-server-" + id)
-                .address(new ServerAddress("localhost", 20000 + id))
-                .state(state)
-                .type(type)
-                .build();
+            .builder()
+            .ok(true)
+            .setName("mongo-server-" + id)
+            .address(new ServerAddress("localhost", 20000 + id))
+            .state(state)
+            .type(type)
+            .build();
     }
 
-    private ServerDescription updateServerType(ServerDescription serverDescription, ServerType newType) {
+    private ServerDescription updateServerType(ServerDescription serverDescription,
+        ServerType newType) {
         return ServerDescription.builder()
-                .ok(serverDescription.isOk())
-                .setName(serverDescription.getSetName())
-                .address(serverDescription.getAddress())
-                .state(serverDescription.getState())
-                .type(newType)
-                .build();
+                                .ok(serverDescription.isOk())
+                                .setName(serverDescription.getSetName())
+                                .address(serverDescription.getAddress())
+                                .state(serverDescription.getState())
+                                .type(newType)
+                                .build();
     }
 }

@@ -18,10 +18,10 @@
 
 package org.apache.jackrabbit.oak.segment.tool.iotrace;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newLinkedList;
 import static java.lang.String.valueOf;
 import static java.util.Collections.singleton;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newLinkedList;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 
 import java.io.Writer;
@@ -30,7 +30,6 @@ import java.util.Queue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Function;
-
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
@@ -38,14 +37,15 @@ import org.jetbrains.annotations.NotNull;
 /**
  * A breadth first traversal trace.
  * <p>
- * When {@link Trace#run(NodeState) run} this trace performs a breadth first traversal starting
- * from the passed node down to a certain depth. It logs the current depth and the number of
- * traversed nodes as additional {@link IOTracer#setContext(List) context}.
+ * When {@link Trace#run(NodeState) run} this trace performs a breadth first traversal starting from
+ * the passed node down to a certain depth. It logs the current depth and the number of traversed
+ * nodes as additional {@link IOTracer#setContext(List) context}.
  */
 public class BreadthFirstTrace implements Trace {
 
     /**
      * The context specification of this trace.
+     *
      * @see IOTracer#newIOTracer(Function, Writer, String)
      */
     @NotNull
@@ -64,11 +64,13 @@ public class BreadthFirstTrace implements Trace {
 
     /**
      * Create a new instance of a breadth first traversal trace.
-     * @param depth     maximal depth of the nodes to traverse
-     * @param path      path of the root node where to start traversing
-     * @param context   consumer to pass the additional context to
+     *
+     * @param depth   maximal depth of the nodes to traverse
+     * @param path    path of the root node where to start traversing
+     * @param context consumer to pass the additional context to
      */
-    public BreadthFirstTrace(int depth, @NotNull String path, @NotNull Consumer<List<String>> context) {
+    public BreadthFirstTrace(int depth, @NotNull String path,
+        @NotNull Consumer<List<String>> context) {
         checkArgument(depth >= 0);
 
         this.depth = depth;
@@ -113,7 +115,8 @@ public class BreadthFirstTrace implements Trace {
         }
     }
 
-    private static void updateContext(@NotNull Consumer<List<String>> context, int depth, int count) {
+    private static void updateContext(@NotNull Consumer<List<String>> context, int depth,
+        int count) {
         context.accept(ImmutableList.of(valueOf(depth), valueOf(count)));
     }
 

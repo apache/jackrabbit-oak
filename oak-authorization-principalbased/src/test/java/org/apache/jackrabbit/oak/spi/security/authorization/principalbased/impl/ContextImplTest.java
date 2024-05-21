@@ -37,7 +37,8 @@ public class ContextImplTest implements Constants {
 
     private static final Context CTX = ContextImpl.INSTANCE;
 
-    private static Tree mockTree(@NotNull String name, @NotNull String ntName, boolean exists, @NotNull String... propertyNames) {
+    private static Tree mockTree(@NotNull String name, @NotNull String ntName, boolean exists,
+        @NotNull String... propertyNames) {
         return MockUtility.mockTree(name, ntName, exists, propertyNames);
     }
 
@@ -50,7 +51,8 @@ public class ContextImplTest implements Constants {
 
     @Test
     public void testNotDefinesTree() {
-        assertFalse(CTX.definesTree(mockTree(REP_PRINCIPAL_POLICY, NT_REP_PRINCIPAL_POLICY, false)));
+        assertFalse(
+            CTX.definesTree(mockTree(REP_PRINCIPAL_POLICY, NT_REP_PRINCIPAL_POLICY, false)));
         assertFalse(CTX.definesTree(mockTree(REP_RESTRICTIONS, NT_REP_RESTRICTIONS, false)));
         assertFalse(CTX.definesTree(mockTree("anyEntry", NT_REP_PRINCIPAL_ENTRY, false)));
         assertFalse(CTX.definesTree(mockTree("anyName", "anyNt", false)));
@@ -61,51 +63,68 @@ public class ContextImplTest implements Constants {
     public void testDefinesProperty() {
         PropertyState anyProperty = mock(PropertyState.class);
 
-        assertTrue(CTX.definesProperty(mockTree(REP_PRINCIPAL_POLICY, NT_REP_PRINCIPAL_POLICY, true), anyProperty));
-        assertTrue(CTX.definesProperty(mockTree(REP_RESTRICTIONS, NT_REP_RESTRICTIONS, true), anyProperty));
-        assertTrue(CTX.definesProperty(mockTree("anyEntry", NT_REP_PRINCIPAL_ENTRY, true), anyProperty));
+        assertTrue(
+            CTX.definesProperty(mockTree(REP_PRINCIPAL_POLICY, NT_REP_PRINCIPAL_POLICY, true),
+                anyProperty));
+        assertTrue(CTX.definesProperty(mockTree(REP_RESTRICTIONS, NT_REP_RESTRICTIONS, true),
+            anyProperty));
+        assertTrue(
+            CTX.definesProperty(mockTree("anyEntry", NT_REP_PRINCIPAL_ENTRY, true), anyProperty));
     }
 
     @Test
     public void testDefinesCtxRoot() {
-        assertTrue(CTX.definesContextRoot(mockTree(REP_PRINCIPAL_POLICY, NT_REP_PRINCIPAL_POLICY, true)));
+        assertTrue(
+            CTX.definesContextRoot(mockTree(REP_PRINCIPAL_POLICY, NT_REP_PRINCIPAL_POLICY, true)));
     }
 
     @Test
     public void testNotDefinesCtxRoot() {
-        assertFalse(CTX.definesContextRoot(mockTree(REP_PRINCIPAL_POLICY, NT_REP_PRINCIPAL_POLICY, false)));
-        assertFalse(CTX.definesContextRoot(mockTree(AccessControlConstants.REP_POLICY, NT_REP_PRINCIPAL_POLICY, true)));
-        assertFalse(CTX.definesContextRoot(mockTree(REP_PRINCIPAL_POLICY, AccessControlConstants.NT_REP_POLICY, true)));
+        assertFalse(
+            CTX.definesContextRoot(mockTree(REP_PRINCIPAL_POLICY, NT_REP_PRINCIPAL_POLICY, false)));
+        assertFalse(CTX.definesContextRoot(
+            mockTree(AccessControlConstants.REP_POLICY, NT_REP_PRINCIPAL_POLICY, true)));
+        assertFalse(CTX.definesContextRoot(
+            mockTree(REP_PRINCIPAL_POLICY, AccessControlConstants.NT_REP_POLICY, true)));
         assertFalse(CTX.definesContextRoot(mockTree(REP_RESTRICTIONS, NT_REP_RESTRICTIONS, true)));
     }
 
     @Test
     public void testDefinesNodeLocation() {
-        assertTrue(CTX.definesLocation(TreeLocation.create(mockTree(REP_PRINCIPAL_POLICY, NT_REP_PRINCIPAL_POLICY, true))));
-        assertTrue(CTX.definesLocation(TreeLocation.create(mockTree(REP_RESTRICTIONS, NT_REP_RESTRICTIONS, true))));
-        assertTrue(CTX.definesLocation(TreeLocation.create(mockTree("anyEntry", NT_REP_PRINCIPAL_ENTRY, true))));
+        assertTrue(CTX.definesLocation(
+            TreeLocation.create(mockTree(REP_PRINCIPAL_POLICY, NT_REP_PRINCIPAL_POLICY, true))));
+        assertTrue(CTX.definesLocation(
+            TreeLocation.create(mockTree(REP_RESTRICTIONS, NT_REP_RESTRICTIONS, true))));
+        assertTrue(CTX.definesLocation(
+            TreeLocation.create(mockTree("anyEntry", NT_REP_PRINCIPAL_ENTRY, true))));
     }
 
     @Test
     public void testDefinesPropertyLocation() {
-        String[] propNames = new String[] {REP_PRINCIPAL_NAME, "prop1", "prop2"};
-        Tree policyTree = MockUtility.mockTree(REP_PRINCIPAL_POLICY, NT_REP_PRINCIPAL_POLICY, PathUtils.ROOT_PATH + REP_PRINCIPAL_POLICY, propNames);
+        String[] propNames = new String[]{REP_PRINCIPAL_NAME, "prop1", "prop2"};
+        Tree policyTree = MockUtility.mockTree(REP_PRINCIPAL_POLICY, NT_REP_PRINCIPAL_POLICY,
+            PathUtils.ROOT_PATH + REP_PRINCIPAL_POLICY, propNames);
 
-        Tree rootTree = MockUtility.mockTree(PathUtils.ROOT_NAME, NodeTypeConstants.NT_REP_ROOT, PathUtils.ROOT_PATH, propNames);
+        Tree rootTree = MockUtility.mockTree(PathUtils.ROOT_NAME, NodeTypeConstants.NT_REP_ROOT,
+            PathUtils.ROOT_PATH, propNames);
         when(rootTree.getChild(REP_PRINCIPAL_POLICY)).thenReturn(policyTree);
 
         Root r = when(mock(Root.class).getTree(PathUtils.ROOT_PATH)).thenReturn(rootTree).getMock();
 
         for (String propName : propNames) {
-            assertTrue(CTX.definesLocation(TreeLocation.create(r, PathUtils.concat(policyTree.getPath(), propName))));
-            assertFalse(CTX.definesLocation(TreeLocation.create(r, PathUtils.concat(rootTree.getPath(), propName))));
+            assertTrue(CTX.definesLocation(
+                TreeLocation.create(r, PathUtils.concat(policyTree.getPath(), propName))));
+            assertFalse(CTX.definesLocation(
+                TreeLocation.create(r, PathUtils.concat(rootTree.getPath(), propName))));
         }
     }
 
     @Test
     public void testDefinesNonExistingLocation() {
-        assertTrue(CTX.definesLocation(TreeLocation.create(mockTree(REP_PRINCIPAL_POLICY, NT_REP_PRINCIPAL_POLICY, false))));
-        assertTrue(CTX.definesLocation(TreeLocation.create(mockTree(REP_RESTRICTIONS, NT_REP_RESTRICTIONS, false))));
+        assertTrue(CTX.definesLocation(
+            TreeLocation.create(mockTree(REP_PRINCIPAL_POLICY, NT_REP_PRINCIPAL_POLICY, false))));
+        assertTrue(CTX.definesLocation(
+            TreeLocation.create(mockTree(REP_RESTRICTIONS, NT_REP_RESTRICTIONS, false))));
 
         Tree t = mockTree(REP_RESTRICTIONS, NT_REP_RESTRICTIONS, false, "anyResidualProperty");
         assertTrue(CTX.definesLocation(TreeLocation.create(t).getChild("anyResidualProperty")));
@@ -113,15 +132,16 @@ public class ContextImplTest implements Constants {
         t = mockTree(REP_PRINCIPAL_POLICY, NT_REP_PRINCIPAL_POLICY, false, "anyResidualAceName");
         assertTrue(CTX.definesLocation(TreeLocation.create(t).getChild("anyResidualAceName")));
 
-        String[] propNames = new String[] {REP_EFFECTIVE_PATH, REP_PRINCIPAL_NAME, REP_PRIVILEGES};
+        String[] propNames = new String[]{REP_EFFECTIVE_PATH, REP_PRINCIPAL_NAME, REP_PRIVILEGES};
         t = mockTree("anyEntry", "anyNt", false, propNames);
         for (String propName : propNames) {
             assertTrue(CTX.definesLocation(TreeLocation.create(t).getChild(propName)));
         }
 
-        String[] nodeNames = new String[] {REP_PRINCIPAL_POLICY, REP_RESTRICTIONS};
+        String[] nodeNames = new String[]{REP_PRINCIPAL_POLICY, REP_RESTRICTIONS};
         for (String nodeName : nodeNames) {
-            assertTrue(CTX.definesLocation(TreeLocation.create(mockTree(nodeName, "anyNt", false))));
+            assertTrue(
+                CTX.definesLocation(TreeLocation.create(mockTree(nodeName, "anyNt", false))));
         }
     }
 
@@ -137,6 +157,8 @@ public class ContextImplTest implements Constants {
     @Test
     public void testDefinesInternal() {
         assertFalse(CTX.definesInternal(mock(Tree.class)));
-        assertFalse(CTX.definesInternal(when(mock(Tree.class).getName()).thenReturn(PermissionConstants.REP_PERMISSION_STORE).getMock()));
+        assertFalse(CTX.definesInternal(
+            when(mock(Tree.class).getName()).thenReturn(PermissionConstants.REP_PERMISSION_STORE)
+                                            .getMock()));
     }
 }

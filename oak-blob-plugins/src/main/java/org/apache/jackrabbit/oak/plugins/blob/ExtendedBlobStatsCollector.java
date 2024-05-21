@@ -21,205 +21,264 @@ package org.apache.jackrabbit.oak.plugins.blob;
 
 import java.io.File;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.blob.BlobDownloadOptions;
 import org.apache.jackrabbit.oak.spi.blob.stats.BlobStatsCollector;
 
 /**
- * Interface that adds stats to {@link BlobStatsCollector} for additional
- * capabilities in blob stores that are added via
+ * Interface that adds stats to {@link BlobStatsCollector} for additional capabilities in blob
+ * stores that are added via
  * {@link org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore}.
  */
 public interface ExtendedBlobStatsCollector extends BlobStatsCollector {
+
     ExtendedBlobStatsCollector NOOP = new ExtendedBlobStatsCollector() {
         @Override
-        public void uploaded(long timeTaken, TimeUnit unit, long size) { }
+        public void uploaded(long timeTaken, TimeUnit unit, long size) {
+        }
 
         @Override
-        public void uploadCompleted(String blobId) { }
+        public void uploadCompleted(String blobId) {
+        }
 
         @Override
-        public void uploadFailed() { }
+        public void uploadFailed() {
+        }
 
         @Override
-        public void downloaded(String blobId, long timeTaken, TimeUnit unit, long size) { }
+        public void downloaded(String blobId, long timeTaken, TimeUnit unit, long size) {
+        }
 
         @Override
-        public void downloadCompleted(String blobId) { }
+        public void downloadCompleted(String blobId) {
+        }
 
         @Override
-        public void downloadFailed(String blobId) { }
+        public void downloadFailed(String blobId) {
+        }
 
         @Override
-        public void deleted(String blobId, long timeTaken, TimeUnit unit) { }
+        public void deleted(String blobId, long timeTaken, TimeUnit unit) {
+        }
 
         @Override
-        public void deleteCompleted(String blobId) { }
+        public void deleteCompleted(String blobId) {
+        }
 
         @Override
-        public void deleteFailed() { }
+        public void deleteFailed() {
+        }
 
         @Override
-        public void deletedAllOlderThan(long timeTaken, TimeUnit unit, long min) { }
+        public void deletedAllOlderThan(long timeTaken, TimeUnit unit, long min) {
+        }
 
         @Override
-        public void deleteAllOlderThanCompleted(int deletedCount) { }
+        public void deleteAllOlderThanCompleted(int deletedCount) {
+        }
 
         @Override
-        public void deleteAllOlderThanFailed(long min) { }
+        public void deleteAllOlderThanFailed(long min) {
+        }
 
         @Override
-        public void recordAdded(long timeTaken, TimeUnit unit, long size) { }
+        public void recordAdded(long timeTaken, TimeUnit unit, long size) {
+        }
 
         @Override
-        public void addRecordCompleted(String blobId) { }
+        public void addRecordCompleted(String blobId) {
+        }
 
         @Override
-        public void addRecordFailed() { }
+        public void addRecordFailed() {
+        }
 
         @Override
-        public void getRecordCalled(long timeTaken, TimeUnit unit, long size) { }
+        public void getRecordCalled(long timeTaken, TimeUnit unit, long size) {
+        }
 
         @Override
-        public void getRecordCompleted(String blobId) { }
+        public void getRecordCompleted(String blobId) {
+        }
 
         @Override
-        public void getRecordFailed(String blobId) { }
+        public void getRecordFailed(String blobId) {
+        }
 
         @Override
-        public void getRecordIfStoredCalled(long timeTaken, TimeUnit unit, long size) { }
+        public void getRecordIfStoredCalled(long timeTaken, TimeUnit unit, long size) {
+        }
 
         @Override
-        public void getRecordIfStoredCompleted(String blobId) { }
+        public void getRecordIfStoredCompleted(String blobId) {
+        }
 
         @Override
-        public void getRecordIfStoredFailed(String blobId) { }
+        public void getRecordIfStoredFailed(String blobId) {
+        }
 
         @Override
-        public void getRecordFromReferenceCalled(long timeTaken, TimeUnit unit, long size) { }
+        public void getRecordFromReferenceCalled(long timeTaken, TimeUnit unit, long size) {
+        }
 
         @Override
-        public void getRecordFromReferenceCompleted(String reference) { }
+        public void getRecordFromReferenceCompleted(String reference) {
+        }
 
         @Override
-        public void getRecordFromReferenceFailed(String reference) { }
+        public void getRecordFromReferenceFailed(String reference) {
+        }
 
         @Override
-        public void getRecordForIdCalled(long timeTaken, TimeUnit unit, long size) { }
+        public void getRecordForIdCalled(long timeTaken, TimeUnit unit, long size) {
+        }
 
         @Override
-        public void getRecordForIdCompleted(String blobId) { }
+        public void getRecordForIdCompleted(String blobId) {
+        }
 
         @Override
-        public void getRecordForIdFailed(String blobId) { }
+        public void getRecordForIdFailed(String blobId) {
+        }
 
         @Override
-        public void getAllRecordsCalled(long timeTaken, TimeUnit unit) { }
+        public void getAllRecordsCalled(long timeTaken, TimeUnit unit) {
+        }
 
         @Override
-        public void getAllRecordsCompleted() { }
+        public void getAllRecordsCompleted() {
+        }
 
         @Override
-        public void getAllIdentifiersCalled(long timeTaken, TimeUnit unit) { }
+        public void getAllIdentifiersCalled(long timeTaken, TimeUnit unit) {
+        }
 
         @Override
-        public void getAllIdentifiersCompleted() { }
+        public void getAllIdentifiersCompleted() {
+        }
 
         @Override
-        public void getAllIdentifiersFailed() { }
+        public void getAllIdentifiersFailed() {
+        }
 
         @Override
-        public void metadataRecordAdded(long timeTaken, TimeUnit unit) { }
+        public void metadataRecordAdded(long timeTaken, TimeUnit unit) {
+        }
 
         @Override
-        public void addMetadataRecordCompleted(String name) { }
+        public void addMetadataRecordCompleted(String name) {
+        }
 
         @Override
-        public void addMetadataRecordFailed(String name) { }
+        public void addMetadataRecordFailed(String name) {
+        }
 
         @Override
-        public void getMetadataRecordCalled(long timeTaken, TimeUnit unit) { }
+        public void getMetadataRecordCalled(long timeTaken, TimeUnit unit) {
+        }
 
         @Override
-        public void getMetadataRecordCompleted(String name) { }
+        public void getMetadataRecordCompleted(String name) {
+        }
 
         @Override
-        public void getMetadataRecordFailed(String name) { }
+        public void getMetadataRecordFailed(String name) {
+        }
 
         @Override
-        public void getAllMetadataRecordsCalled(long timeTaken, TimeUnit unit) { }
+        public void getAllMetadataRecordsCalled(long timeTaken, TimeUnit unit) {
+        }
 
         @Override
-        public void getAllMetadataRecordsCompleted(String prefix) { }
+        public void getAllMetadataRecordsCompleted(String prefix) {
+        }
 
         @Override
-        public void getAllMetadataRecordsFailed(String prefix) { }
+        public void getAllMetadataRecordsFailed(String prefix) {
+        }
 
         @Override
-        public void metadataRecordExistsCalled(long timeTaken, TimeUnit unit) { }
+        public void metadataRecordExistsCalled(long timeTaken, TimeUnit unit) {
+        }
 
         @Override
-        public void metadataRecordExistsCompleted(String name) { }
+        public void metadataRecordExistsCompleted(String name) {
+        }
 
         @Override
-        public void metadataRecordExistsFailed(String name) { }
+        public void metadataRecordExistsFailed(String name) {
+        }
 
         @Override
-        public void metadataRecordDeleted(long timeTaken, TimeUnit unit) { }
+        public void metadataRecordDeleted(long timeTaken, TimeUnit unit) {
+        }
 
         @Override
-        public void deleteMetadataRecordCompleted(String name) { }
+        public void deleteMetadataRecordCompleted(String name) {
+        }
 
         @Override
-        public void deleteMetadataRecordFailed(String name) { }
+        public void deleteMetadataRecordFailed(String name) {
+        }
 
         @Override
-        public void allMetadataRecordsDeleted(long timeTaken, TimeUnit unit) { }
+        public void allMetadataRecordsDeleted(long timeTaken, TimeUnit unit) {
+        }
 
         @Override
-        public void deleteAllMetadataRecordsCompleted(String prefix) { }
+        public void deleteAllMetadataRecordsCompleted(String prefix) {
+        }
 
         @Override
-        public void deleteAllMetadataRecordsFailed(String prefix) { }
+        public void deleteAllMetadataRecordsFailed(String prefix) {
+        }
 
         @Override
-        public void initiateBlobUpload(long timeTaken, TimeUnit unit, long maxSize, int maxUris) { }
+        public void initiateBlobUpload(long timeTaken, TimeUnit unit, long maxSize, int maxUris) {
+        }
 
         @Override
-        public void initiateBlobUploadCompleted() { }
+        public void initiateBlobUploadCompleted() {
+        }
 
         @Override
-        public void initiateBlobUploadFailed() { }
+        public void initiateBlobUploadFailed() {
+        }
 
         @Override
-        public void completeBlobUpload(long timeTaken, TimeUnit unit) { }
+        public void completeBlobUpload(long timeTaken, TimeUnit unit) {
+        }
 
         @Override
-        public void completeBlobUploadCompleted(String id) { }
+        public void completeBlobUploadCompleted(String id) {
+        }
 
         @Override
-        public void completeBlobUploadFailed() { }
+        public void completeBlobUploadFailed() {
+        }
 
         @Override
-        public void getDownloadURICalled(long timeTaken, TimeUnit unit, String id) { }
+        public void getDownloadURICalled(long timeTaken, TimeUnit unit, String id) {
+        }
 
         @Override
-        public void getDownloadURICompleted(String uri) { }
+        public void getDownloadURICompleted(String uri) {
+        }
 
         @Override
-        public void getDownloadURIFailed() { }
+        public void getDownloadURIFailed() {
+        }
     };
 
 
     /**
-     * Called when a {@link org.apache.jackrabbit.core.data.DataRecord} is retrieved via
-     * a call to {@link SharedDataStore#getRecordForId(DataIdentifier)}.
+     * Called when a {@link org.apache.jackrabbit.core.data.DataRecord} is retrieved via a call to
+     * {@link SharedDataStore#getRecordForId(DataIdentifier)}.
      *
      * @param timeTaken time taken to perform the operation
-     * @param unit unit of time taken
-     * @param size size of the binary
+     * @param unit      unit of time taken
+     * @param size      size of the binary
      */
     void getRecordForIdCalled(long timeTaken, TimeUnit unit, long size);
 
@@ -241,7 +300,7 @@ public interface ExtendedBlobStatsCollector extends BlobStatsCollector {
      * Called when a call to {@link SharedDataStore#getAllRecords()} is made
      *
      * @param timeTaken time taken to perform the operation
-     * @param unit unit of time taken
+     * @param unit      unit of time taken
      */
     void getAllRecordsCalled(long timeTaken, TimeUnit unit);
 
@@ -254,7 +313,7 @@ public interface ExtendedBlobStatsCollector extends BlobStatsCollector {
      * Called when a call to {@link SharedDataStore#addMetadataRecord(File, String)} is made
      *
      * @param timeTaken time taken to perform the operation
-     * @param unit unit of time taken
+     * @param unit      unit of time taken
      */
     void metadataRecordAdded(long timeTaken, TimeUnit unit);
 
@@ -276,7 +335,7 @@ public interface ExtendedBlobStatsCollector extends BlobStatsCollector {
      * Called when a call to {@link SharedDataStore#getMetadataRecord(String)} is made
      *
      * @param timeTaken time taken to perform the operation
-     * @param unit unit of time taken
+     * @param unit      unit of time taken
      */
     void getMetadataRecordCalled(long timeTaken, TimeUnit unit);
 
@@ -298,7 +357,7 @@ public interface ExtendedBlobStatsCollector extends BlobStatsCollector {
      * Called when a call to {@link SharedDataStore#getAllMetadataRecords(String)} is made
      *
      * @param timeTaken time taken to perform the operation
-     * @param unit unit of time taken
+     * @param unit      unit of time taken
      */
     void getAllMetadataRecordsCalled(long timeTaken, TimeUnit unit);
 
@@ -320,7 +379,7 @@ public interface ExtendedBlobStatsCollector extends BlobStatsCollector {
      * Called when a call to {@link SharedDataStore#metadataRecordExists(String)} is made
      *
      * @param timeTaken time taken to perform the operation
-     * @param unit unit of time taken
+     * @param unit      unit of time taken
      */
     void metadataRecordExistsCalled(long timeTaken, TimeUnit unit);
 
@@ -342,7 +401,7 @@ public interface ExtendedBlobStatsCollector extends BlobStatsCollector {
      * Called when a call to {@link SharedDataStore#deleteMetadataRecord(String)} is made
      *
      * @param timeTaken time taken to perform the operation
-     * @param unit unit of time taken
+     * @param unit      unit of time taken
      */
     void metadataRecordDeleted(long timeTaken, TimeUnit unit);
 
@@ -364,7 +423,7 @@ public interface ExtendedBlobStatsCollector extends BlobStatsCollector {
      * Called when a call to {@link SharedDataStore#deleteAllMetadataRecords(String)} is made
      *
      * @param timeTaken time taken to perform the operation
-     * @param unit unit of time taken
+     * @param unit      unit of time taken
      */
     void allMetadataRecordsDeleted(long timeTaken, TimeUnit unit);
 
@@ -383,39 +442,44 @@ public interface ExtendedBlobStatsCollector extends BlobStatsCollector {
     void deleteAllMetadataRecordsFailed(String prefix);
 
     /**
-     * Called when a call to {@link org.apache.jackrabbit.oak.api.blob.BlobAccessProvider#initiateBlobUpload(long, int)}
+     * Called when a call to
+     * {@link org.apache.jackrabbit.oak.api.blob.BlobAccessProvider#initiateBlobUpload(long, int)}
      * is made
      *
      * @param timeTaken time taken to perform the operation
-     * @param unit unit of time taken
-     * @param maxSize size of binary to be uploaded
-     * @param maxUris max number of uris requested
+     * @param unit      unit of time taken
+     * @param maxSize   size of binary to be uploaded
+     * @param maxUris   max number of uris requested
      */
     void initiateBlobUpload(long timeTaken, TimeUnit unit, long maxSize, int maxUris);
 
     /**
-     * Called when a call to {@link org.apache.jackrabbit.oak.api.blob.BlobAccessProvider#initiateBlobUpload(long, int)}
+     * Called when a call to
+     * {@link org.apache.jackrabbit.oak.api.blob.BlobAccessProvider#initiateBlobUpload(long, int)}
      * is completed
      */
     void initiateBlobUploadCompleted();
 
     /**
-     * Called when a call to {@link org.apache.jackrabbit.oak.api.blob.BlobAccessProvider#initiateBlobUpload(long, int)}
+     * Called when a call to
+     * {@link org.apache.jackrabbit.oak.api.blob.BlobAccessProvider#initiateBlobUpload(long, int)}
      * fails
      */
     void initiateBlobUploadFailed();
 
     /**
-     * Called when a call to {@link org.apache.jackrabbit.oak.api.blob.BlobAccessProvider#completeBlobUpload(String)} is
+     * Called when a call to
+     * {@link org.apache.jackrabbit.oak.api.blob.BlobAccessProvider#completeBlobUpload(String)} is
      * made
      *
      * @param timeTaken time taken to perform the operation
-     * @param unit unit of time taken
+     * @param unit      unit of time taken
      */
     void completeBlobUpload(long timeTaken, TimeUnit unit);
 
     /**
-     * Called when a call to {@link org.apache.jackrabbit.oak.api.blob.BlobAccessProvider#completeBlobUpload(String)} is
+     * Called when a call to
+     * {@link org.apache.jackrabbit.oak.api.blob.BlobAccessProvider#completeBlobUpload(String)} is
      * completed
      *
      * @param id identifier of uploaded blob
@@ -423,31 +487,36 @@ public interface ExtendedBlobStatsCollector extends BlobStatsCollector {
     void completeBlobUploadCompleted(String id);
 
     /**
-     * Called when a call to {@link org.apache.jackrabbit.oak.api.blob.BlobAccessProvider#completeBlobUpload(String)} fails
+     * Called when a call to
+     * {@link org.apache.jackrabbit.oak.api.blob.BlobAccessProvider#completeBlobUpload(String)}
+     * fails
      */
     void completeBlobUploadFailed();
 
     /**
-     * Called when a call to {@link org.apache.jackrabbit.oak.api.blob.BlobAccessProvider#getDownloadURI(Blob, BlobDownloadOptions)}
-     * is made
+     * Called when a call to
+     * {@link org.apache.jackrabbit.oak.api.blob.BlobAccessProvider#getDownloadURI(Blob,
+     * BlobDownloadOptions)} is made
      *
      * @param timeTaken time taken to perform the operation
-     * @param unit unit of time taken
-     * @param id identifier of blob to be downloaded
+     * @param unit      unit of time taken
+     * @param id        identifier of blob to be downloaded
      */
     void getDownloadURICalled(long timeTaken, TimeUnit unit, String id);
 
     /**
-     * Called when a call to {@link org.apache.jackrabbit.oak.api.blob.BlobAccessProvider#getDownloadURI(Blob, BlobDownloadOptions)}
-     * is completed
+     * Called when a call to
+     * {@link org.apache.jackrabbit.oak.api.blob.BlobAccessProvider#getDownloadURI(Blob,
+     * BlobDownloadOptions)} is completed
      *
      * @param uri the uri generated for downloading
      */
     void getDownloadURICompleted(String uri);
 
     /**
-     * Called when a call to {@link org.apache.jackrabbit.oak.api.blob.BlobAccessProvider#getDownloadURI(Blob, BlobDownloadOptions)}
-     * fails
+     * Called when a call to
+     * {@link org.apache.jackrabbit.oak.api.blob.BlobAccessProvider#getDownloadURI(Blob,
+     * BlobDownloadOptions)} fails
      */
     void getDownloadURIFailed();
 }

@@ -16,13 +16,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.persistentCache;
 
+import static java.util.Collections.singleton;
 import static org.apache.jackrabbit.guava.common.base.Predicates.in;
 import static org.apache.jackrabbit.guava.common.base.Predicates.not;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
-import static java.util.Collections.singleton;
 import static org.apache.jackrabbit.guava.common.cache.RemovalCause.COLLECTED;
 import static org.apache.jackrabbit.guava.common.cache.RemovalCause.EXPIRED;
 import static org.apache.jackrabbit.guava.common.cache.RemovalCause.SIZE;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 
 import java.nio.ByteBuffer;
 import java.util.Collections;
@@ -31,7 +31,7 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
-
+import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.guava.common.cache.CacheStats;
 import org.apache.jackrabbit.guava.common.cache.RemovalCause;
@@ -52,14 +52,13 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.base.Function;
-
-class NodeCache<K extends CacheValue, V extends  CacheValue>
-        implements Cache<K, V>, GenerationCache, EvictionListener<K, V> {
+class NodeCache<K extends CacheValue, V extends CacheValue>
+    implements Cache<K, V>, GenerationCache, EvictionListener<K, V> {
 
     static final Logger LOG = LoggerFactory.getLogger(NodeCache.class);
 
-    private static final Set<RemovalCause> EVICTION_CAUSES = ImmutableSet.of(COLLECTED, EXPIRED, SIZE);
+    private static final Set<RemovalCause> EVICTION_CAUSES = ImmutableSet.of(COLLECTED, EXPIRED,
+        SIZE);
 
     private final PersistentCache cache;
     private final PersistentCacheStats stats;
@@ -74,14 +73,14 @@ class NodeCache<K extends CacheValue, V extends  CacheValue>
     CacheWriteQueue<K, V> writeQueue;
 
     NodeCache(
-            PersistentCache cache,
-            Cache<K, V> memCache,
-            DocumentNodeStore docNodeStore, 
-            DocumentStore docStore,
-            CacheType type,
-            CacheActionDispatcher dispatcher,
-            StatisticsProvider statisticsProvider,
-            boolean async) {
+        PersistentCache cache,
+        Cache<K, V> memCache,
+        DocumentNodeStore docNodeStore,
+        DocumentStore docStore,
+        CacheType type,
+        CacheActionDispatcher dispatcher,
+        StatisticsProvider statisticsProvider,
+        boolean async) {
         this.cache = cache;
         this.memCache = memCache;
         this.type = type;
@@ -102,16 +101,16 @@ class NodeCache<K extends CacheValue, V extends  CacheValue>
         }
         this.stats = new PersistentCacheStats(type, statisticsProvider);
     }
-    
+
     @Override
     public CacheType getType() {
         return type;
     }
-    
+
     @Override
     public void addGeneration(int generation, boolean readOnly) {
         MVMap.Builder<K, V> b = new MVMap.Builder<K, V>().
-                keyType(keyType).valueType(valueType);
+            keyType(keyType).valueType(valueType);
         CacheMap<K, V> m = cache.openMap(generation, type.getMapName(), b);
         map.addReadMap(generation, m);
         if (!readOnly) {
@@ -119,13 +118,13 @@ class NodeCache<K extends CacheValue, V extends  CacheValue>
             stats.addWriteGeneration(generation);
         }
     }
-    
+
     @Override
     public void removeGeneration(int generation) {
         map.removeReadMap(generation);
         stats.removeReadGeneration(generation);
     }
-    
+
     private V readIfPresent(K key) {
         return async ? asyncReadIfPresent(key) : syncReadIfPresent(key);
     }
@@ -183,14 +182,14 @@ class NodeCache<K extends CacheValue, V extends  CacheValue>
         if (value == null) {
             map.remove(key);
         } else {
-            if (!type.shouldCache(nodeStore, key)){
+            if (!type.shouldCache(nodeStore, key)) {
                 return;
             }
             map.put(key, value);
 
             long memory = 0L;
-            memory += (key == null ? 0L: keyType.getMemory(key));
-            memory += (value == null ? 0L: valueType.getMemory(value));
+            memory += (key == null ? 0L : keyType.getMemory(key));
+            memory += (value == null ? 0L : valueType.getMemory(value));
             stats.markBytesWritten(memory);
             stats.markPut();
         }
@@ -227,15 +226,15 @@ class NodeCache<K extends CacheValue, V extends  CacheValue>
 
     @Override
     public V get(K key,
-            Callable<? extends V> valueLoader)
-            throws ExecutionException {
-            
+        Callable<? extends V> valueLoader)
+        throws ExecutionException {
+
         // Get stats covered in getIfPresent
         V value = getIfPresent(key);
         if (value != null) {
             return value;
         }
-        
+
         // Track entry load time
         TimerStats.Context ctx = stats.startLoaderTimer();
         try {
@@ -250,12 +249,12 @@ class NodeCache<K extends CacheValue, V extends  CacheValue>
         } catch (ExecutionException e) {
             stats.markException();
             throw e;
-         }        
+        }
     }
 
     @Override
     public ImmutableMap<K, V> getAllPresent(
-            Iterable<?> keys) {
+        Iterable<?> keys) {
         Iterable<K> typedKeys = (Iterable<K>) keys;
         memCacheMetadata.incrementAll(keys);
         ImmutableMap<K, V> result = memCache.getAllPresent(keys);
@@ -362,7 +361,7 @@ class NodeCache<K extends CacheValue, V extends  CacheValue>
             } else if (metadata != null && metadata.getAccessCount() < 1) {
                 qualifiesToPersist = false;
                 stats.markPutRejectedEntryNotUsed();
-            } else if (!type.shouldCache(nodeStore, key)){
+            } else if (!type.shouldCache(nodeStore, key)) {
                 qualifiesToPersist = false;
                 stats.markPutRejectedAsCachedInSecondary();
             }

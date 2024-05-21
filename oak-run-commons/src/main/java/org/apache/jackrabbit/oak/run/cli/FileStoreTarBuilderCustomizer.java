@@ -20,7 +20,6 @@
 package org.apache.jackrabbit.oak.run.cli;
 
 import java.io.IOException;
-
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 
 public interface FileStoreTarBuilderCustomizer {

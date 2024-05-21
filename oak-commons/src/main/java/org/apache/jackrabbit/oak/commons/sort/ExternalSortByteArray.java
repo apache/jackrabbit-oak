@@ -16,9 +16,6 @@
  */
 package org.apache.jackrabbit.oak.commons.sort;
 
-import org.apache.jackrabbit.guava.common.base.Preconditions;
-import org.apache.jackrabbit.oak.commons.Compression;
-
 import java.io.ByteArrayOutputStream;
 import java.io.EOFException;
 import java.io.IOException;
@@ -31,25 +28,32 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.PriorityQueue;
 import java.util.function.Function;
+import org.apache.jackrabbit.guava.common.base.Preconditions;
+import org.apache.jackrabbit.oak.commons.Compression;
 
 /**
- * Variation of ExternalSort that stores the lines read from intermediate files as byte arrays to avoid the conversion
- * from byte[] to String and then back.
+ * Variation of ExternalSort that stores the lines read from intermediate files as byte arrays to
+ * avoid the conversion from byte[] to String and then back.
  */
 public class ExternalSortByteArray {
+
     private final static int DEFAULT_BUFFER_SIZE = 16 * 1024;
 
-    public static <T> void mergeSortedFilesBinary(List<Path> files, OutputStream fbw, final Comparator<T> cmp,
-                                                  boolean distinct, Compression algorithm,
-                                                  Function<T, byte[]> typeToByteArray, Function<byte[], T> byteArrayToType)
-            throws IOException {
-        mergeSortedFilesBinary(files, fbw, cmp, distinct, algorithm, typeToByteArray, byteArrayToType, DEFAULT_BUFFER_SIZE);
+    public static <T> void mergeSortedFilesBinary(List<Path> files, OutputStream fbw,
+        final Comparator<T> cmp,
+        boolean distinct, Compression algorithm,
+        Function<T, byte[]> typeToByteArray, Function<byte[], T> byteArrayToType)
+        throws IOException {
+        mergeSortedFilesBinary(files, fbw, cmp, distinct, algorithm, typeToByteArray,
+            byteArrayToType, DEFAULT_BUFFER_SIZE);
     }
 
-    public static <T> void mergeSortedFilesBinary(List<Path> files, OutputStream fbw, final Comparator<T> cmp,
-                                                  boolean distinct, Compression algorithm,
-                                                  Function<T, byte[]> typeToByteArray, Function<byte[], T> byteArrayToType, int readBufferSize)
-            throws IOException {
+    public static <T> void mergeSortedFilesBinary(List<Path> files, OutputStream fbw,
+        final Comparator<T> cmp,
+        boolean distinct, Compression algorithm,
+        Function<T, byte[]> typeToByteArray, Function<byte[], T> byteArrayToType,
+        int readBufferSize)
+        throws IOException {
         ArrayList<BinaryFileBuffer<T>> bfbs = new ArrayList<>();
         try {
             for (Path f : files) {
@@ -71,11 +75,11 @@ public class ExternalSortByteArray {
     }
 
     private static <T> int mergeBinary(OutputStream fbw, final Comparator<T> cmp, boolean distinct,
-                                       List<BinaryFileBuffer<T>> buffers, Function<T, byte[]> typeToByteArray)
-            throws IOException {
+        List<BinaryFileBuffer<T>> buffers, Function<T, byte[]> typeToByteArray)
+        throws IOException {
         PriorityQueue<BinaryFileBuffer<T>> pq = new PriorityQueue<>(
-                11,
-                (i, j) -> cmp.compare(i.peek(), j.peek())
+            11,
+            (i, j) -> cmp.compare(i.peek(), j.peek())
         );
         for (BinaryFileBuffer<T> bfb : buffers) {
             if (!bfb.empty()) {
@@ -107,6 +111,7 @@ public class ExternalSortByteArray {
      * WARNING: Uses '\n' as a line separator, it will not work with other line separators.
      */
     private static class BinaryFileBuffer<T> {
+
         public final InputStream fbr;
         private final Function<byte[], T> byteArrayToType;
         private T cache;
@@ -119,8 +124,9 @@ public class ExternalSortByteArray {
         private int bufferLimit = 0;
 
         public BinaryFileBuffer(InputStream r, Function<byte[], T> byteArrayToType, int bufferSize)
-                throws IOException {
-            Preconditions.checkArgument(bufferSize > 1024, "Buffer size must be greater than 1024 bytes");
+            throws IOException {
+            Preconditions.checkArgument(bufferSize > 1024,
+                "Buffer size must be greater than 1024 bytes");
             this.fbr = r;
             this.byteArrayToType = byteArrayToType;
             this.buffer = new byte[bufferSize];

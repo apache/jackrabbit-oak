@@ -19,6 +19,9 @@
 
 package org.apache.jackrabbit.oak.plugins.document.secondary;
 
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
+
 import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
@@ -35,15 +38,13 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-
 /**
- * NodeState wrapper which wraps another NodeState (mostly SegmentNodeState)
- * so as to expose it as an {@link AbstractDocumentNodeState} by extracting
- * the meta properties which are stored as hidden properties
+ * NodeState wrapper which wraps another NodeState (mostly SegmentNodeState) so as to expose it as
+ * an {@link AbstractDocumentNodeState} by extracting the meta properties which are stored as hidden
+ * properties
  */
 public class DelegatingDocumentNodeState extends AbstractDocumentNodeState {
+
     //Hidden props holding DocumentNodeState meta properties
     public static final String PROP_REVISION = ":doc-rev";
     public static final String PROP_LAST_REV = ":doc-lastRev";
@@ -64,8 +65,8 @@ public class DelegatingDocumentNodeState extends AbstractDocumentNodeState {
 
 
     /**
-     * Wraps a given root NodeState as a {@link DelegatingDocumentNodeState} if
-     * it has required meta properties otherwise just returns the passed NodeState
+     * Wraps a given root NodeState as a {@link DelegatingDocumentNodeState} if it has required meta
+     * properties otherwise just returns the passed NodeState
      *
      * @param delegate nodeState to wrap
      * @return wrapped state or original state
@@ -73,7 +74,8 @@ public class DelegatingDocumentNodeState extends AbstractDocumentNodeState {
     public static NodeState wrapIfPossible(NodeState delegate, NodeStateDiffer differ) {
         if (hasMetaProps(delegate)) {
             String revVector = getRequiredProp(delegate, PROP_REVISION);
-            return new DelegatingDocumentNodeState(delegate, Path.ROOT, RevisionVector.fromString(revVector), false, differ);
+            return new DelegatingDocumentNodeState(delegate, Path.ROOT,
+                RevisionVector.fromString(revVector), false, differ);
         }
         return delegate;
     }
@@ -84,11 +86,12 @@ public class DelegatingDocumentNodeState extends AbstractDocumentNodeState {
 
     public static AbstractDocumentNodeState wrap(NodeState delegate, NodeStateDiffer differ) {
         String revVector = getRequiredProp(delegate, PROP_REVISION);
-        return new DelegatingDocumentNodeState(delegate, Path.ROOT, RevisionVector.fromString(revVector), false, differ);
+        return new DelegatingDocumentNodeState(delegate, Path.ROOT,
+            RevisionVector.fromString(revVector), false, differ);
     }
 
     private DelegatingDocumentNodeState(NodeState delegate, Path path, RevisionVector rootRevision,
-                                       boolean fromExternalChange, NodeStateDiffer differ) {
+        boolean fromExternalChange, NodeStateDiffer differ) {
         this.differ = differ;
         this.delegate = delegate;
         this.rootRevision = rootRevision;
@@ -97,7 +100,7 @@ public class DelegatingDocumentNodeState extends AbstractDocumentNodeState {
     }
 
     private DelegatingDocumentNodeState(DelegatingDocumentNodeState original,
-                                        RevisionVector rootRevision, boolean fromExternalChange) {
+        RevisionVector rootRevision, boolean fromExternalChange) {
         this.differ = original.differ;
         this.delegate = original.delegate;
         this.rootRevision = rootRevision;
@@ -115,7 +118,7 @@ public class DelegatingDocumentNodeState extends AbstractDocumentNodeState {
 
     @Override
     public RevisionVector getLastRevision() {
-        if (lastRevision == null){
+        if (lastRevision == null) {
             this.lastRevision = RevisionVector.fromString(getRequiredProp(PROP_LAST_REV));
         }
         return lastRevision;
@@ -132,7 +135,8 @@ public class DelegatingDocumentNodeState extends AbstractDocumentNodeState {
     }
 
     @Override
-    public AbstractDocumentNodeState withRootRevision(@NotNull RevisionVector root, boolean externalChange) {
+    public AbstractDocumentNodeState withRootRevision(@NotNull RevisionVector root,
+        boolean externalChange) {
         if (rootRevision.equals(root) && fromExternalChange == externalChange) {
             return this;
         } else {
@@ -178,20 +182,22 @@ public class DelegatingDocumentNodeState extends AbstractDocumentNodeState {
     @NotNull
     @Override
     public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
-        return Iterables.transform(delegate.getChildNodeEntries(), new Function<ChildNodeEntry, ChildNodeEntry>() {
-            @Nullable
-            @Override
-            public ChildNodeEntry apply(ChildNodeEntry input) {
-                return new MemoryChildNodeEntry(input.getName(), decorate(input.getName(), input.getNodeState()));
-            }
-        });
+        return Iterables.transform(delegate.getChildNodeEntries(),
+            new Function<ChildNodeEntry, ChildNodeEntry>() {
+                @Nullable
+                @Override
+                public ChildNodeEntry apply(ChildNodeEntry input) {
+                    return new MemoryChildNodeEntry(input.getName(),
+                        decorate(input.getName(), input.getNodeState()));
+                }
+            });
     }
 
     @NotNull
     @Override
     public NodeBuilder builder() {
         checkState(!getPath().isRoot(), "Builder cannot be opened for root " +
-                "path for state of type [%s]", delegate.getClass());
+            "path for state of type [%s]", delegate.getClass());
         return new MemoryNodeBuilder(this);
     }
 
@@ -259,17 +265,18 @@ public class DelegatingDocumentNodeState extends AbstractDocumentNodeState {
 
     private NodeState decorate(String nodeName, NodeState childNode) {
         if (childNode.exists()) {
-            return new DelegatingDocumentNodeState(childNode, new Path(path, nodeName), rootRevision,
-                    fromExternalChange, differ);
+            return new DelegatingDocumentNodeState(childNode, new Path(path, nodeName),
+                rootRevision,
+                fromExternalChange, differ);
         }
         return childNode;
     }
 
-    private String getRequiredProp(String name){
+    private String getRequiredProp(String name) {
         return getRequiredProp(delegate, name);
     }
 
-    private static String getRequiredProp(NodeState state, String name){
+    private static String getRequiredProp(NodeState state, String name) {
         return checkNotNull(state.getString(name), "No property [%s] found in [%s]", name, state);
     }
 }

@@ -16,10 +16,11 @@
  */
 package org.apache.jackrabbit.oak.security.user.query;
 
+import static org.apache.jackrabbit.api.security.user.QueryBuilder.Direction.ASCENDING;
+
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
-
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.QueryBuilder;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -34,8 +35,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.apache.jackrabbit.api.security.user.QueryBuilder.Direction.ASCENDING;
 
 /**
  * Common utilities used for user/group queries.

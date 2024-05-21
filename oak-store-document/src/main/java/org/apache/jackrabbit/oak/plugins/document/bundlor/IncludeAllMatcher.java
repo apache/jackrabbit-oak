@@ -26,6 +26,7 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
  * Matcher which matches all child nodes
  */
 class IncludeAllMatcher implements Matcher {
+
     private final String matchingPath;
     private final int depth;
 

@@ -18,12 +18,11 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules;
 
-import java.util.Map.Entry;
-import java.util.stream.Collectors;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Random;
-
+import java.util.stream.Collectors;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeData;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeProperty;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeProperty.ValueType;
@@ -55,7 +54,7 @@ public class BinarySize implements StatsCollector {
 
     public void add(NodeData node) {
         long size = 0;
-        for(NodeProperty p : node.getProperties()) {
+        for (NodeProperty p : node.getProperties()) {
             if (p.getType() == ValueType.BINARY) {
                 for (String v : p.getValues()) {
                     if (!v.startsWith(":blobId:")) {
@@ -111,7 +110,7 @@ public class BinarySize implements StatsCollector {
 
     public List<String> getRecords() {
         List<String> result = new ArrayList<>();
-        for(Entry<String, Long> e : storage.entrySet()) {
+        for (Entry<String, Long> e : storage.entrySet()) {
             long v = e.getValue();
             if (v > divideBy) {
                 result.add(e.getKey() + ": " + (v / divideBy));

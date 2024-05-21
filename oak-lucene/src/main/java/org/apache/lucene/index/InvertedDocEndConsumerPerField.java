@@ -28,6 +28,8 @@ import java.io.IOException;
  */
 
 abstract class InvertedDocEndConsumerPerField {
-  abstract void finish() throws IOException;
-  abstract void abort();
+
+    abstract void finish() throws IOException;
+
+    abstract void abort();
 }

@@ -19,9 +19,7 @@ package org.apache.jackrabbit.oak.run;
 
 import java.util.Collections;
 import java.util.Map;
-
 import javax.jcr.Repository;
-
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.http.OakServlet;
@@ -82,8 +80,10 @@ class HttpServer {
                 return jcrRepository;
             }
         });
-        webdav.setInitParameter(SimpleWebdavServlet.INIT_PARAM_RESOURCE_PATH_PREFIX, path + "/webdav");
-        webdav.setInitParameter(AbstractWebdavServlet.INIT_PARAM_AUTHENTICATE_HEADER, "Basic realm=\"Oak\"");
+        webdav.setInitParameter(SimpleWebdavServlet.INIT_PARAM_RESOURCE_PATH_PREFIX,
+            path + "/webdav");
+        webdav.setInitParameter(AbstractWebdavServlet.INIT_PARAM_AUTHENTICATE_HEADER,
+            "Basic realm=\"Oak\"");
         context.addServlet(webdav, path + "/webdav/*");
 
         // 3 - JCR Remoting Server
@@ -94,8 +94,10 @@ class HttpServer {
                 return jcrRepository;
             }
         });
-        jcrremote.setInitParameter(JCRWebdavServerServlet.INIT_PARAM_RESOURCE_PATH_PREFIX, path + "/jcrremote");
-        jcrremote.setInitParameter(AbstractWebdavServlet.INIT_PARAM_AUTHENTICATE_HEADER, "Basic realm=\"Oak\"");
+        jcrremote.setInitParameter(JCRWebdavServerServlet.INIT_PARAM_RESOURCE_PATH_PREFIX,
+            path + "/jcrremote");
+        jcrremote.setInitParameter(AbstractWebdavServlet.INIT_PARAM_AUTHENTICATE_HEADER,
+            "Basic realm=\"Oak\"");
         context.addServlet(jcrremote, path + "/jcrremote/*");
     }
 

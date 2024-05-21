@@ -25,13 +25,10 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -52,16 +49,17 @@ public class ConcurrentAddIT extends AbstractRepositoryTest {
         super(fixture);
     }
 
-    @Test @SuppressWarnings("unchecked")
+    @Test
+    @SuppressWarnings("unchecked")
     public void addNodes() throws Exception {
         List<Exception> exceptions = Collections.synchronizedList(
-                new ArrayList<Exception>());
+            new ArrayList<Exception>());
         Node test = getAdminSession().getRootNode().addNode("test");
         List<Thread> worker = new ArrayList<Thread>();
         for (int i = 0; i < NUM_WORKERS; i++) {
             String path = test.addNode("node" + i).getPath();
             worker.add(new Thread(new Worker(
-                    createAdminSession(), path, exceptions)));
+                createAdminSession(), path, exceptions)));
         }
         getAdminSession().save();
         for (Thread t : worker) {
@@ -79,16 +77,17 @@ public class ConcurrentAddIT extends AbstractRepositoryTest {
         }
     }
 
-    @Test @SuppressWarnings("unchecked")
+    @Test
+    @SuppressWarnings("unchecked")
     public void addNodesSameParent() throws Exception {
         List<Exception> exceptions = Collections.synchronizedList(
-                new ArrayList<Exception>());
+            new ArrayList<Exception>());
         // use nt:unstructured to force conflicts on :childOrder property
         Node test = getAdminSession().getRootNode().addNode("test", "nt:unstructured");
         List<Thread> worker = new ArrayList<Thread>();
         for (int i = 0; i < NUM_WORKERS; i++) {
             worker.add(new Thread(new Worker(
-                    createAdminSession(), test.getPath(), exceptions)));
+                createAdminSession(), test.getPath(), exceptions)));
         }
         getAdminSession().save();
         for (Thread t : worker) {

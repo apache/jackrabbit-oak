@@ -16,38 +16,39 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.query;
 
+import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
+import static org.apache.jackrabbit.oak.plugins.index.solr.util.SolrUtils.getSortingField;
+import static org.apache.jackrabbit.oak.plugins.index.solr.util.SolrUtils.partialEscape;
+
 import java.util.Collection;
 import java.util.List;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration;
+import org.apache.jackrabbit.oak.spi.query.Filter;
+import org.apache.jackrabbit.oak.spi.query.QueryConstants;
+import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextAnd;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextContains;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextExpression;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextOr;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextTerm;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextVisitor;
-import org.apache.jackrabbit.oak.spi.query.Filter;
-import org.apache.jackrabbit.oak.spi.query.QueryConstants;
-import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
-import static org.apache.jackrabbit.oak.plugins.index.solr.util.SolrUtils.getSortingField;
-import static org.apache.jackrabbit.oak.plugins.index.solr.util.SolrUtils.partialEscape;
-
 /**
- * the {@link FilterQueryParser} can parse {@link org.apache.jackrabbit.oak.spi.query.Filter}s
- * and transform them into {@link org.apache.solr.client.solrj.SolrQuery}s and / or Solr query {@code String}s.
+ * the {@link FilterQueryParser} can parse {@link org.apache.jackrabbit.oak.spi.query.Filter}s and
+ * transform them into {@link org.apache.solr.client.solrj.SolrQuery}s and / or Solr query
+ * {@code String}s.
  */
 class FilterQueryParser {
 
     private static final Logger log = LoggerFactory.getLogger(FilterQueryParser.class);
 
-    static SolrQuery getQuery(Filter filter, QueryIndex.IndexPlan plan, OakSolrConfiguration configuration) {
+    static SolrQuery getQuery(Filter filter, QueryIndex.IndexPlan plan,
+        OakSolrConfiguration configuration) {
 
         SolrQuery solrQuery = new SolrQuery();
         setDefaults(solrQuery, configuration);
@@ -81,10 +82,12 @@ class FilterQueryParser {
                     sortingField = "score";
                 } else {
                     if (orderEntry.getPropertyName().indexOf('/') >= 0) {
-                        log.warn("cannot sort on relative properties, ignoring {} clause", orderEntry);
+                        log.warn("cannot sort on relative properties, ignoring {} clause",
+                            orderEntry);
                         continue; // sorting by relative properties not supported until index time aggregation is supported
                     }
-                    sortingField = partialEscape(getSortingField(orderEntry.getPropertyType().tag(), orderEntry.getPropertyName())).toString();
+                    sortingField = partialEscape(getSortingField(orderEntry.getPropertyType().tag(),
+                        orderEntry.getPropertyName())).toString();
                 }
                 solrQuery.addOrUpdateSort(sortingField, order);
             }
@@ -102,22 +105,28 @@ class FilterQueryParser {
                     solrQuery.setFacetMinCount(1);
                     solrQuery.setFacet(true);
                     String value = pr.first.getValue(Type.STRING);
-                    solrQuery.addFacetField(value.substring(QueryConstants.REP_FACET.length() + 1, value.length() - 1) + "_facet");
+                    solrQuery.addFacetField(
+                        value.substring(QueryConstants.REP_FACET.length() + 1, value.length() - 1)
+                            + "_facet");
                 }
 
                 // native query support
-                if (SolrQueryIndex.NATIVE_SOLR_QUERY.equals(pr.propertyName) || SolrQueryIndex.NATIVE_LUCENE_QUERY.equals(pr.propertyName)) {
-                    String nativeQueryString = String.valueOf(pr.first.getValue(pr.first.getType()));
+                if (SolrQueryIndex.NATIVE_SOLR_QUERY.equals(pr.propertyName)
+                    || SolrQueryIndex.NATIVE_LUCENE_QUERY.equals(pr.propertyName)) {
+                    String nativeQueryString = String.valueOf(
+                        pr.first.getValue(pr.first.getType()));
                     if (isSupportedHttpRequest(nativeQueryString)) {
                         // pass through the native HTTP Solr request
-                        String requestHandlerString = nativeQueryString.substring(0, nativeQueryString.indexOf('?'));
+                        String requestHandlerString = nativeQueryString.substring(0,
+                            nativeQueryString.indexOf('?'));
                         if (!"select".equals(requestHandlerString)) {
                             if (requestHandlerString.charAt(0) != '/') {
                                 requestHandlerString = "/" + requestHandlerString;
                             }
                             solrQuery.setRequestHandler(requestHandlerString);
                         }
-                        String parameterString = nativeQueryString.substring(nativeQueryString.indexOf('?') + 1);
+                        String parameterString = nativeQueryString.substring(
+                            nativeQueryString.indexOf('?') + 1);
                         for (String param : parameterString.split("&")) {
                             String[] kv = param.split("=");
                             if (kv.length != 2) {
@@ -134,11 +143,13 @@ class FilterQueryParser {
                                             int endIndex = parameterString.indexOf('&', beginIndex);
                                             String fields;
                                             if (endIndex > beginIndex) {
-                                                fields = parameterString.substring(beginIndex, endIndex);
+                                                fields = parameterString.substring(beginIndex,
+                                                    endIndex);
                                             } else {
                                                 fields = parameterString.substring(beginIndex);
                                             }
-                                            kv[1] = "_query_:\"{!dismax qf=" + fields + " q.op=OR}" + kv[1] + "\"";
+                                            kv[1] = "_query_:\"{!dismax qf=" + fields + " q.op=OR}"
+                                                + kv[1] + "\"";
                                         }
                                     }
                                     if ("mlt.fl".equals(kv[0]) && ":path".equals(kv[1])) {
@@ -173,16 +184,18 @@ class FilterQueryParser {
 
                     String first = null;
                     if (pr.first != null) {
-                        first = partialEscape(String.valueOf(pr.first.getValue(pr.first.getType()))).toString();
+                        first = partialEscape(
+                            String.valueOf(pr.first.getValue(pr.first.getType()))).toString();
                     }
                     String last = null;
                     if (pr.last != null) {
-                        last = partialEscape(String.valueOf(pr.last.getValue(pr.last.getType()))).toString();
+                        last = partialEscape(
+                            String.valueOf(pr.last.getValue(pr.last.getType()))).toString();
                     }
 
                     String prField = configuration.getFieldForPropertyRestriction(pr);
                     CharSequence fieldName = partialEscape(prField != null ?
-                            prField : pr.propertyName);
+                        prField : pr.propertyName);
                     if ("jcr\\:path".equals(fieldName.toString())) {
                         queryBuilder.append(configuration.getPathField());
                         queryBuilder.append(':');
@@ -196,14 +209,18 @@ class FilterQueryParser {
                                 queryBuilder.append(fieldName).append(':');
                                 queryBuilder.append('*');
                             }
-                        } else if ((pr.first != null && pr.last == null) || (pr.last != null && pr.first == null) || (!pr.first.equals(pr.last))) {
+                        } else if ((pr.first != null && pr.last == null) || (pr.last != null
+                            && pr.first == null) || (!pr.first.equals(pr.last))) {
                             // TODO : need to check if this works for all field types (most likely not!)
                             queryBuilder.append(fieldName).append(':');
-                            queryBuilder.append(createRangeQuery(first, last, pr.firstIncluding, pr.lastIncluding));
+                            queryBuilder.append(
+                                createRangeQuery(first, last, pr.firstIncluding, pr.lastIncluding));
                         } else if (pr.isLike) {
                             // TODO : the current parameter substitution is not expected to work well
                             queryBuilder.append(fieldName).append(':');
-                            queryBuilder.append(partialEscape(String.valueOf(pr.first.getValue(pr.first.getType())).replace('%', '*').replace('_', '?')));
+                            queryBuilder.append(partialEscape(
+                                String.valueOf(pr.first.getValue(pr.first.getType()))
+                                      .replace('%', '*').replace('_', '?')));
                         } else {
                             throw new RuntimeException("[unexpected!] not handled case");
                         }
@@ -214,7 +231,8 @@ class FilterQueryParser {
         }
 
         if (configuration.useForPrimaryTypes()) {
-            String[] pts = filter.getPrimaryTypes().toArray(new String[filter.getPrimaryTypes().size()]);
+            String[] pts = filter.getPrimaryTypes()
+                                 .toArray(new String[filter.getPrimaryTypes().size()]);
             StringBuilder ptQueryBuilder = new StringBuilder();
             for (int i = 0; i < pts.length; i++) {
                 String pt = pts[i];
@@ -224,7 +242,8 @@ class FilterQueryParser {
                 if (i > 0 && i < pts.length) {
                     ptQueryBuilder.append("OR ");
                 }
-                ptQueryBuilder.append("jcr\\:primaryType").append(':').append(partialEscape(pt)).append(" ");
+                ptQueryBuilder.append("jcr\\:primaryType").append(':').append(partialEscape(pt))
+                              .append(" ");
                 if (i == pts.length - 1) {
                     ptQueryBuilder.append(")");
                     ptQueryBuilder.append(' ');
@@ -233,7 +252,8 @@ class FilterQueryParser {
             solrQuery.addFilterQuery(ptQueryBuilder.toString());
         }
 
-        if (filter.getQueryStatement() != null && filter.getQueryStatement().contains(QueryConstants.REP_EXCERPT)) {
+        if (filter.getQueryStatement() != null && filter.getQueryStatement()
+                                                        .contains(QueryConstants.REP_EXCERPT)) {
             if (!solrQuery.getHighlight()) {
                 // enable highlighting
                 solrQuery.setHighlight(true);
@@ -264,7 +284,8 @@ class FilterQueryParser {
         }
 
         if (configuration.collapseJcrContentNodes()) {
-            solrQuery.addFilterQuery("{!collapse field=" + configuration.getCollapsedPathField() + " min=" +
+            solrQuery.addFilterQuery(
+                "{!collapse field=" + configuration.getCollapsedPathField() + " min=" +
                     configuration.getPathDepthField() + " hint=top_fc nullPolicy=expand}");
         }
 
@@ -276,13 +297,14 @@ class FilterQueryParser {
 
         if (log.isDebugEnabled()) {
             log.debug("JCR query {} has been converted to Solr query {}",
-                    filter.getQueryStatement(), solrQuery.toString());
+                filter.getQueryStatement(), solrQuery.toString());
         }
 
         return solrQuery;
     }
 
-    private static String parseFullTextExpression(FullTextExpression ft, final OakSolrConfiguration configuration) {
+    private static String parseFullTextExpression(FullTextExpression ft,
+        final OakSolrConfiguration configuration) {
         final StringBuilder fullTextString = new StringBuilder();
         ft.accept(new FullTextVisitor() {
 
@@ -379,7 +401,8 @@ class FilterQueryParser {
         solrQuery.setParam("rows", String.valueOf(configuration.getRows()));
     }
 
-    private static String createRangeQuery(String first, String last, boolean firstIncluding, boolean lastIncluding) {
+    private static String createRangeQuery(String first, String last, boolean firstIncluding,
+        boolean lastIncluding) {
         // TODO : handle inclusion / exclusion of bounds
         return "[" + (first != null ? first : "*") + " TO " + (last != null ? last : "*") + "]";
     }

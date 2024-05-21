@@ -36,15 +36,21 @@ public class ImportBesteffortTest extends ImportBaseTest {
 
     @Test
     public void testTransientPrincipal() throws Exception {
-        User transientSystemUser = getUserManager().createSystemUser("transientSystemUser", INTERMEDIATE_PATH);
+        User transientSystemUser = getUserManager().createSystemUser("transientSystemUser",
+            INTERMEDIATE_PATH);
         String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
-                "<sv:node sv:name=\""+REP_PRINCIPAL_POLICY+"\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
-                "<sv:property sv:name=\""+JCR_PRIMARYTYPE+"\" sv:type=\"Name\"><sv:value>"+NT_REP_PRINCIPAL_POLICY+"</sv:value></sv:property>" +
-                "<sv:property sv:name=\""+REP_PRINCIPAL_NAME+"\" sv:type=\"String\"><sv:value>"+transientSystemUser.getPrincipal().getName()+"</sv:value></sv:property>" +
-                "</sv:node>";
+            "<sv:node sv:name=\"" + REP_PRINCIPAL_POLICY
+            + "\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">"
+            +
+            "<sv:property sv:name=\"" + JCR_PRIMARYTYPE + "\" sv:type=\"Name\"><sv:value>"
+            + NT_REP_PRINCIPAL_POLICY + "</sv:value></sv:property>" +
+            "<sv:property sv:name=\"" + REP_PRINCIPAL_NAME + "\" sv:type=\"String\"><sv:value>"
+            + transientSystemUser.getPrincipal().getName() + "</sv:value></sv:property>" +
+            "</sv:node>";
         doImport(transientSystemUser.getPath(), xml);
 
-        PrincipalPolicyImpl policy = getPrincipalPolicyImpl(transientSystemUser.getPrincipal(), getAccessControlManager());
+        PrincipalPolicyImpl policy = getPrincipalPolicyImpl(transientSystemUser.getPrincipal(),
+            getAccessControlManager());
         assertEquals(policy.getPrincipal().getName(), transientSystemUser.getPrincipal().getName());
         assertTrue(policy.isEmpty());
     }

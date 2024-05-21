@@ -55,7 +55,7 @@ public class RecoveryHandlerTest {
     @Test
     public void failWithException() throws Exception {
         DocumentNodeStore ns = builderProvider.newBuilder().clock(clock)
-                .setDocumentStore(store).build();
+                                              .setDocumentStore(store).build();
         int clusterId = ns.getClusterId();
 
         NodeBuilder builder = ns.getRoot().builder();

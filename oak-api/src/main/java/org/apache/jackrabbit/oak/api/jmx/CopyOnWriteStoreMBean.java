@@ -21,29 +21,31 @@ package org.apache.jackrabbit.oak.api.jmx;
 
 import org.osgi.annotation.versioning.ProviderType;
 
-import javax.management.openmbean.TabularData;
-
 /**
  * MBean for managing the copy-on-write node store
  */
 @ProviderType
 public interface CopyOnWriteStoreMBean {
+
     String TYPE = "CopyOnWriteStoreManager";
 
     /**
      * Enabled the temporary, copy-on-write store
+     *
      * @return the operation status
      */
     String enableCopyOnWrite();
 
     /**
      * Disables the temporary store and switched the repository back to the "normal" mode.
+     *
      * @return the operation status
      */
     String disableCopyOnWrite();
 
     /**
      * Returns the copy-on-write status
+     *
      * @return status of the copy-on-write mode
      */
     String getStatus();

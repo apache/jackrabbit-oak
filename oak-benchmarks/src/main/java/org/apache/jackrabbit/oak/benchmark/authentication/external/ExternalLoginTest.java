@@ -16,8 +16,25 @@
  */
 package org.apache.jackrabbit.oak.benchmark.authentication.external;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
+import static javax.security.auth.login.AppConfigurationEntry.LoginModuleControlFlag.OPTIONAL;
+import static javax.security.auth.login.AppConfigurationEntry.LoginModuleControlFlag.SUFFICIENT;
+import static org.junit.Assert.assertEquals;
+
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
+import javax.jcr.LoginException;
+import javax.jcr.Session;
+import javax.jcr.SimpleCredentials;
+import javax.security.auth.login.AppConfigurationEntry;
+import javax.security.auth.login.Configuration;
 import org.apache.commons.lang3.reflect.FieldUtils;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.security.authentication.token.TokenLoginModule;
 import org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl;
@@ -28,30 +45,11 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.Exter
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
 
-import javax.jcr.LoginException;
-import javax.jcr.Session;
-import javax.jcr.SimpleCredentials;
-import javax.security.auth.login.AppConfigurationEntry;
-import javax.security.auth.login.Configuration;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.TreeSet;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
-
-import static javax.security.auth.login.AppConfigurationEntry.LoginModuleControlFlag.OPTIONAL;
-import static javax.security.auth.login.AppConfigurationEntry.LoginModuleControlFlag.SUFFICIENT;
-import static org.junit.Assert.assertEquals;
-
 /**
- * Login against the {@link ExternalLoginModule} with a randomly selected user.
- * The first login of a given user will trigger the user-synchronization mechanism.
- * Subsequent login calls will only result in an extra sync-call if the configured
- * expiration time is reached.
- *
+ * Login against the {@link ExternalLoginModule} with a randomly selected user. The first login of a
+ * given user will trigger the user-synchronization mechanism. Subsequent login calls will only
+ * result in an extra sync-call if the configured expiration time is reached.
+ * <p>
  * Configuration options as defined in {@link AbstractExternalTest}.
  */
 public class ExternalLoginTest extends AbstractExternalTest {
@@ -65,8 +63,10 @@ public class ExternalLoginTest extends AbstractExternalTest {
     private Set<String> uniques;
     private AtomicLong err;
 
-    public ExternalLoginTest(int numberOfUsers, int numberOfGroups, long expTime, boolean dynamicMembership,
-            @NotNull List<String> autoMembership, boolean report, @NotNull StatisticsProvider statsProvider) {
+    public ExternalLoginTest(int numberOfUsers, int numberOfGroups, long expTime,
+        boolean dynamicMembership,
+        @NotNull List<String> autoMembership, boolean report,
+        @NotNull StatisticsProvider statsProvider) {
         super(numberOfUsers, numberOfGroups, expTime, dynamicMembership, autoMembership);
         this.numberOfUsers = numberOfUsers;
         this.numberOfGroups = numberOfGroups;
@@ -82,14 +82,15 @@ public class ExternalLoginTest extends AbstractExternalTest {
         uniques = Collections.synchronizedSet(new HashSet<>(numberOfUsers));
         err = new AtomicLong();
         AuthenticationConfiguration authenticationConfiguration = getSecurityProvider()
-                .getConfiguration(AuthenticationConfiguration.class);
+            .getConfiguration(AuthenticationConfiguration.class);
         authenticationConfiguration.getMonitors(statisticsProvider);
     }
 
     @Override
     protected void afterSuite() throws Exception {
         reporter.afterSuite();
-        System.out.println("Unique users " + uniques.size() + " out of total " + numberOfUsers + ". Groups "
+        System.out.println(
+            "Unique users " + uniques.size() + " out of total " + numberOfUsers + ". Groups "
                 + numberOfGroups + ". Err " + err.get() + ". Seed " + seed);
         super.afterSuite();
     }
@@ -113,8 +114,9 @@ public class ExternalLoginTest extends AbstractExternalTest {
         try {
             s = getRepository().login(new SimpleCredentials(id, new char[0]));
             Set<String> principals = extractGroupPrincipals(s, id);
-            Set<String> expected = new TreeSet<>(StreamSupport.stream(idp.getDeclaredGroupRefs(id).spliterator(), false)
-                    .map(ExternalIdentityRef::getId).collect(Collectors.toSet()));
+            Set<String> expected = new TreeSet<>(
+                StreamSupport.stream(idp.getDeclaredGroupRefs(id).spliterator(), false)
+                             .map(ExternalIdentityRef::getId).collect(Collectors.toSet()));
             expected.addAll(auto);
             assertEquals(expected, principals);
         } catch (LoginException ex) {
@@ -131,8 +133,9 @@ public class ExternalLoginTest extends AbstractExternalTest {
     private static Set<String> extractGroupPrincipals(Session s, String userId) throws Exception {
         SessionDelegate sd = (SessionDelegate) FieldUtils.readField(s, "sd", true);
         Set<String> principals = new TreeSet<>(sd.getAuthInfo().getPrincipals().stream()
-                .map((p) -> p.getName().startsWith("p_") ? p.getName().substring(2) : p.getName())
-                .collect(Collectors.toSet()));
+                                                 .map((p) -> p.getName().startsWith("p_")
+                                                     ? p.getName().substring(2) : p.getName())
+                                                 .collect(Collectors.toSet()));
         principals.remove("everyone");
         principals.remove(userId);
         return principals;
@@ -142,31 +145,32 @@ public class ExternalLoginTest extends AbstractExternalTest {
         return new Configuration() {
             @Override
             public AppConfigurationEntry[] getAppConfigurationEntry(String s) {
-                return new AppConfigurationEntry[] {
-                        new AppConfigurationEntry(
-                                GuestLoginModule.class.getName(),
-                                OPTIONAL,
-                                ImmutableMap.of()),
-                        new AppConfigurationEntry(
-                                TokenLoginModule.class.getName(),
-                                SUFFICIENT,
-                                ImmutableMap.of()),
-                        new AppConfigurationEntry(
-                                ExternalLoginModule.class.getName(),
-                                SUFFICIENT,
-                                ImmutableMap.of(
-                                        ExternalLoginModule.PARAM_SYNC_HANDLER_NAME, syncConfig.getName(),
-                                        ExternalLoginModule.PARAM_IDP_NAME, idp.getName())),
-                        new AppConfigurationEntry(
-                                LoginModuleImpl.class.getName(),
-                                SUFFICIENT,
-                                ImmutableMap.of())
+                return new AppConfigurationEntry[]{
+                    new AppConfigurationEntry(
+                        GuestLoginModule.class.getName(),
+                        OPTIONAL,
+                        ImmutableMap.of()),
+                    new AppConfigurationEntry(
+                        TokenLoginModule.class.getName(),
+                        SUFFICIENT,
+                        ImmutableMap.of()),
+                    new AppConfigurationEntry(
+                        ExternalLoginModule.class.getName(),
+                        SUFFICIENT,
+                        ImmutableMap.of(
+                            ExternalLoginModule.PARAM_SYNC_HANDLER_NAME, syncConfig.getName(),
+                            ExternalLoginModule.PARAM_IDP_NAME, idp.getName())),
+                    new AppConfigurationEntry(
+                        LoginModuleImpl.class.getName(),
+                        SUFFICIENT,
+                        ImmutableMap.of())
                 };
             }
         };
     }
 
     private static class Reporter {
+
         private final long LIMIT = Long.getLong("flushAt", 1000);
 
         private final boolean doReport;

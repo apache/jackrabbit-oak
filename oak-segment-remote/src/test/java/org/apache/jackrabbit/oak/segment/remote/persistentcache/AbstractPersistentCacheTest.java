@@ -17,19 +17,25 @@
  */
 package org.apache.jackrabbit.oak.segment.remote.persistentcache;
 
-import org.apache.jackrabbit.oak.commons.Buffer;
-import org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache.AbstractPersistentCache;
-import org.junit.Ignore;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.UUID;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
-
-import static org.junit.Assert.*;
+import org.apache.jackrabbit.oak.commons.Buffer;
+import org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache.AbstractPersistentCache;
+import org.junit.Ignore;
+import org.junit.Test;
 
 public abstract class AbstractPersistentCacheTest {
 
@@ -50,7 +56,8 @@ public abstract class AbstractPersistentCacheTest {
         for (int i = 0; i < THREADS; ++i) {
             int threadIdx = i;
             executor.execute(() -> {
-                for (int segmentIdx = threadIdx * SEGMENTS_PER_THREAD; segmentIdx < (threadIdx + 1) * SEGMENTS_PER_THREAD; ++segmentIdx) {
+                for (int segmentIdx = threadIdx * SEGMENTS_PER_THREAD;
+                    segmentIdx < (threadIdx + 1) * SEGMENTS_PER_THREAD; ++segmentIdx) {
                     threadAndSegmentConsumer.accept(threadIdx, segmentIdx);
                 }
             });
@@ -123,7 +130,8 @@ public abstract class AbstractPersistentCacheTest {
                 TestSegment testSegment = testSegments.get(j);
                 Map<String, Buffer> segmentsReadThisThread = segmentsRead.get(i);
                 long[] segmentReadId = testSegment.getSegmentId();
-                Buffer segmentRead = segmentsReadThisThread.get(new UUID(segmentReadId[0], segmentReadId[1]).toString());
+                Buffer segmentRead = segmentsReadThisThread.get(
+                    new UUID(segmentReadId[0], segmentReadId[1]).toString());
                 if (segmentRead == null) {
                     errors.incrementAndGet();
                     continue;
@@ -211,7 +219,8 @@ public abstract class AbstractPersistentCacheTest {
 
         runConcurrently((nThread, nSegment) -> {
             try {
-                persistentCache.writeSegment(segmentId[0], segmentId[1], testSegment.getSegmentBuffer());
+                persistentCache.writeSegment(segmentId[0], segmentId[1],
+                    testSegment.getSegmentBuffer());
             } catch (Throwable t) {
                 errors.incrementAndGet();
             } finally {
@@ -227,6 +236,7 @@ public abstract class AbstractPersistentCacheTest {
     }
 
     protected static class TestSegment {
+
         public static int UUID_LEN = 2 * Long.SIZE;
         public static int SEGMENT_LEN = 256 * 1024;
 

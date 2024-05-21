@@ -16,19 +16,20 @@
  */
 package org.apache.jackrabbit.oak.spi.security.privilege;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.junit.Test;
-import org.mockito.Mockito;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
 
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import org.junit.Test;
+import org.mockito.Mockito;
+
 public class ImmutablePrivilegeDefinitionTest {
 
-    private final ImmutablePrivilegeDefinition def = new ImmutablePrivilegeDefinition("name", true, ImmutableList.of("aggrName"));
+    private final ImmutablePrivilegeDefinition def = new ImmutablePrivilegeDefinition("name", true,
+        ImmutableList.of("aggrName"));
 
     @Test
     public void testGetName() {
@@ -47,19 +48,23 @@ public class ImmutablePrivilegeDefinitionTest {
 
     @Test
     public void testGetDeclaredAggregatedNames2() {
-        assertTrue(new ImmutablePrivilegeDefinition("name", false, null).getDeclaredAggregateNames().isEmpty());
+        assertTrue(new ImmutablePrivilegeDefinition("name", false, null).getDeclaredAggregateNames()
+                                                                        .isEmpty());
     }
 
     @Test
     public void testHashCode() {
         assertEquals(def.hashCode(), def.hashCode());
-        assertEquals(def.hashCode(), new ImmutablePrivilegeDefinition(def.getName(), def.isAbstract(), def.getDeclaredAggregateNames()).hashCode());
+        assertEquals(def.hashCode(),
+            new ImmutablePrivilegeDefinition(def.getName(), def.isAbstract(),
+                def.getDeclaredAggregateNames()).hashCode());
     }
 
     @Test
     public void testEquals() {
         assertEquals(def, def);
-        assertEquals(def, new ImmutablePrivilegeDefinition(def.getName(), def.isAbstract(), def.getDeclaredAggregateNames()));
+        assertEquals(def, new ImmutablePrivilegeDefinition(def.getName(), def.isAbstract(),
+            def.getDeclaredAggregateNames()));
     }
 
     @Test
@@ -71,17 +76,25 @@ public class ImmutablePrivilegeDefinitionTest {
 
         assertNotEquals(def, otherDef);
         assertNotEquals(def, null);
-        assertNotEquals(def, new ImmutablePrivilegeDefinition("othername", true, ImmutableList.of("aggrName")));
-        assertNotEquals(def, new ImmutablePrivilegeDefinition("name", false, ImmutableList.of("aggrName")));
-        assertNotEquals(def, new ImmutablePrivilegeDefinition("name", true, ImmutableList.of("anotherName")));
+        assertNotEquals(def,
+            new ImmutablePrivilegeDefinition("othername", true, ImmutableList.of("aggrName")));
+        assertNotEquals(def,
+            new ImmutablePrivilegeDefinition("name", false, ImmutableList.of("aggrName")));
+        assertNotEquals(def,
+            new ImmutablePrivilegeDefinition("name", true, ImmutableList.of("anotherName")));
         assertNotEquals(def, new ImmutablePrivilegeDefinition("name", true, ImmutableList.of()));
-        assertNotEquals(def, new ImmutablePrivilegeDefinition("otherName", false, ImmutableList.of("aggrName","aggrName2")));
+        assertNotEquals(def, new ImmutablePrivilegeDefinition("otherName", false,
+            ImmutableList.of("aggrName", "aggrName2")));
     }
 
     @Test
     public void testToString() {
         assertEquals(def.toString(), def.toString());
-        assertEquals(def.toString(), new ImmutablePrivilegeDefinition(def.getName(), def.isAbstract(), def.getDeclaredAggregateNames()).toString());
-        assertEquals(def.toString(), new ImmutablePrivilegeDefinition(def.getName(), def.isAbstract(), ImmutableList.of()).toString());
+        assertEquals(def.toString(),
+            new ImmutablePrivilegeDefinition(def.getName(), def.isAbstract(),
+                def.getDeclaredAggregateNames()).toString());
+        assertEquals(def.toString(),
+            new ImmutablePrivilegeDefinition(def.getName(), def.isAbstract(),
+                ImmutableList.of()).toString());
     }
 }

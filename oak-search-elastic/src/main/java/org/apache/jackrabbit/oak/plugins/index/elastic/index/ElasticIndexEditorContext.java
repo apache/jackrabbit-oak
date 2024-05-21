@@ -30,22 +30,25 @@ import org.jetbrains.annotations.Nullable;
 class ElasticIndexEditorContext extends FulltextIndexEditorContext<ElasticDocument> {
 
     ElasticIndexEditorContext(NodeState root,
-                              NodeBuilder definition, @Nullable ElasticIndexDefinition indexDefinition,
-                              IndexUpdateCallback updateCallback,
-                              ElasticIndexWriterFactory indexWriterFactory,
-                              ExtractedTextCache extractedTextCache,
-                              IndexingContext indexingContext,
-                              boolean asyncIndexing) {
-        super(root, definition, indexDefinition, updateCallback, indexWriterFactory, extractedTextCache, indexingContext, asyncIndexing);
+        NodeBuilder definition, @Nullable ElasticIndexDefinition indexDefinition,
+        IndexUpdateCallback updateCallback,
+        ElasticIndexWriterFactory indexWriterFactory,
+        ExtractedTextCache extractedTextCache,
+        IndexingContext indexingContext,
+        boolean asyncIndexing) {
+        super(root, definition, indexDefinition, updateCallback, indexWriterFactory,
+            extractedTextCache, indexingContext, asyncIndexing);
     }
 
     @Override
     public IndexDefinition.Builder newDefinitionBuilder() {
-        return new ElasticIndexDefinition.Builder(((ElasticIndexDefinition) definition).getIndexPrefix());
+        return new ElasticIndexDefinition.Builder(
+            ((ElasticIndexDefinition) definition).getIndexPrefix());
     }
 
     @Override
-    public DocumentMaker<ElasticDocument> newDocumentMaker(IndexDefinition.IndexingRule rule, String path) {
+    public DocumentMaker<ElasticDocument> newDocumentMaker(IndexDefinition.IndexingRule rule,
+        String path) {
         return new ElasticDocumentMaker(getTextExtractor(), getDefinition(), rule, path);
     }
 

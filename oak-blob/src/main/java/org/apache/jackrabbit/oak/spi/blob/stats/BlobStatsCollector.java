@@ -21,115 +21,141 @@ package org.apache.jackrabbit.oak.spi.blob.stats;
 
 import java.io.InputStream;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.osgi.annotation.versioning.ConsumerType;
 
 /**
- * BlobStoreStatsCollector receives callback when blobs are written and read
- * from BlobStore
+ * BlobStoreStatsCollector receives callback when blobs are written and read from BlobStore
  */
 @ConsumerType
 public interface BlobStatsCollector {
+
     BlobStatsCollector NOOP = new BlobStatsCollector() {
         @Override
-        public void uploaded(long timeTaken, TimeUnit unit, long size) { }
+        public void uploaded(long timeTaken, TimeUnit unit, long size) {
+        }
 
         @Override
-        public void uploadCompleted(String blobId) { }
+        public void uploadCompleted(String blobId) {
+        }
 
         @Override
-        public void uploadFailed() { }
+        public void uploadFailed() {
+        }
 
         @Override
-        public void downloaded(String blobId, long timeTaken, TimeUnit unit, long size) { }
+        public void downloaded(String blobId, long timeTaken, TimeUnit unit, long size) {
+        }
 
         @Override
-        public void downloadCompleted(String blobId) { }
+        public void downloadCompleted(String blobId) {
+        }
 
         @Override
-        public void downloadFailed(String blobId) { }
+        public void downloadFailed(String blobId) {
+        }
 
         @Override
-        public void deleted(String blobId, long timeTaken, TimeUnit unit) { }
+        public void deleted(String blobId, long timeTaken, TimeUnit unit) {
+        }
 
         @Override
-        public void deleteCompleted(String blobId) { }
+        public void deleteCompleted(String blobId) {
+        }
 
         @Override
-        public void deleteFailed() { }
+        public void deleteFailed() {
+        }
 
         @Override
-        public void deletedAllOlderThan(long timeTaken, TimeUnit unit, long min) { }
+        public void deletedAllOlderThan(long timeTaken, TimeUnit unit, long min) {
+        }
 
         @Override
-        public void deleteAllOlderThanCompleted(int deletedCount) { }
+        public void deleteAllOlderThanCompleted(int deletedCount) {
+        }
 
         @Override
-        public void deleteAllOlderThanFailed(long min) { }
+        public void deleteAllOlderThanFailed(long min) {
+        }
 
         @Override
-        public void recordAdded(long timeTaken, TimeUnit unit, long size) { }
+        public void recordAdded(long timeTaken, TimeUnit unit, long size) {
+        }
 
         @Override
-        public void addRecordCompleted(String blobId) { }
+        public void addRecordCompleted(String blobId) {
+        }
 
         @Override
-        public void addRecordFailed() { }
+        public void addRecordFailed() {
+        }
 
         @Override
-        public void getRecordCalled(long timeTaken, TimeUnit unit, long size) { }
+        public void getRecordCalled(long timeTaken, TimeUnit unit, long size) {
+        }
 
         @Override
-        public void getRecordCompleted(String blobId) { }
+        public void getRecordCompleted(String blobId) {
+        }
 
         @Override
-        public void getRecordFailed(String blobId) { }
+        public void getRecordFailed(String blobId) {
+        }
 
         @Override
-        public void getRecordIfStoredCalled(long timeTaken, TimeUnit unit, long size) { }
+        public void getRecordIfStoredCalled(long timeTaken, TimeUnit unit, long size) {
+        }
 
         @Override
-        public void getRecordIfStoredCompleted(String blobId) { }
+        public void getRecordIfStoredCompleted(String blobId) {
+        }
 
         @Override
-        public void getRecordIfStoredFailed(String blobId) { }
+        public void getRecordIfStoredFailed(String blobId) {
+        }
 
         @Override
-        public void getRecordFromReferenceCalled(long timeTaken, TimeUnit unit, long size) { }
+        public void getRecordFromReferenceCalled(long timeTaken, TimeUnit unit, long size) {
+        }
 
         @Override
-        public void getRecordFromReferenceCompleted(String reference) { }
+        public void getRecordFromReferenceCompleted(String reference) {
+        }
 
         @Override
-        public void getRecordFromReferenceFailed(String reference) { }
+        public void getRecordFromReferenceFailed(String reference) {
+        }
 
         @Override
-        public void getAllIdentifiersCalled(long timeTaken, TimeUnit unit) { }
+        public void getAllIdentifiersCalled(long timeTaken, TimeUnit unit) {
+        }
 
         @Override
-        public void getAllIdentifiersCompleted() { }
+        public void getAllIdentifiersCompleted() {
+        }
 
         @Override
-        public void getAllIdentifiersFailed() { }
+        public void getAllIdentifiersFailed() {
+        }
     };
 
     /**
      * Called when a binary content is written to BlobStore
      *
      * @param timeTaken time taken to perform the operation
-     * @param unit unit of time taken
-     * @param size size of binary content being written
+     * @param unit      unit of time taken
+     * @param size      size of binary content being written
      */
     void uploaded(long timeTaken, TimeUnit unit, long size);
 
     /**
-     * Invoked when upload for a binary file get completed. In case of chunked
-     * BlobStore this invoked when all the chunks have been uploaded
+     * Invoked when upload for a binary file get completed. In case of chunked BlobStore this
+     * invoked when all the chunks have been uploaded
      *
-     * @param blobId id of the blob which got uploaded. Even in case of chunked
-     *               blobStores its the id of main blob
+     * @param blobId id of the blob which got uploaded. Even in case of chunked blobStores its the
+     *               id of main blob
      */
     void uploadCompleted(String blobId);
 
@@ -141,20 +167,20 @@ public interface BlobStatsCollector {
     /**
      * Called when a binary content is read from BlobStore
      *
-     * @param blobId id of blob whose content are being read. For BlobStore
-     *               which break up file in chunks it would be chunkId
+     * @param blobId    id of blob whose content are being read. For BlobStore which break up file
+     *                  in chunks it would be chunkId
      * @param timeTaken time taken to perform the operation
-     * @param unit unit of time taken
-     * @param size size of binary content being read
+     * @param unit      unit of time taken
+     * @param size      size of binary content being read
      */
     void downloaded(String blobId, long timeTaken, TimeUnit unit, long size);
 
     /**
-     * Invoked when download for a binary file get completed. In case of chunked
-     * BlobStore this invoked when all the chunks have been downloaded
+     * Invoked when download for a binary file get completed. In case of chunked BlobStore this
+     * invoked when all the chunks have been downloaded
      *
-     * @param blobId id of the blob which got downloaded. Even in case of chunked
-     *               blobStores its the id of main blob
+     * @param blobId id of the blob which got downloaded. Even in case of chunked blobStores its the
+     *               id of main blob
      */
     void downloadCompleted(String blobId);
 
@@ -168,9 +194,9 @@ public interface BlobStatsCollector {
     /**
      * Called when a binary is deleted from the BlobStore
      *
-     * @param blobId id of blob being deleted
+     * @param blobId    id of blob being deleted
      * @param timeTaken time taken to perform the delete
-     * @param unit unit of time taken
+     * @param unit      unit of time taken
      */
     void deleted(String blobId, long timeTaken, TimeUnit unit);
 
@@ -191,43 +217,49 @@ public interface BlobStatsCollector {
      * {@link org.apache.jackrabbit.core.data.DataStore#deleteAllOlderThan(long)}.
      *
      * @param timeTaken time taken to perform the deletion
-     * @param unit unit of time taken
-     * @param min time used for determining what to delete - older than this time gets deleted
+     * @param unit      unit of time taken
+     * @param min       time used for determining what to delete - older than this time gets
+     *                  deleted
      */
     void deletedAllOlderThan(long timeTaken, TimeUnit unit, long min);
 
     /**
-     * Called when {@link org.apache.jackrabbit.core.data.DataStore#deleteAllOlderThan(long)} is completed.
+     * Called when {@link org.apache.jackrabbit.core.data.DataStore#deleteAllOlderThan(long)} is
+     * completed.
      *
      * @param deletedCount count of records deleted
      */
     void deleteAllOlderThanCompleted(int deletedCount);
 
     /**
-     * Called when {@link org.apache.jackrabbit.core.data.DataStore#deleteAllOlderThan(long)} fails.
+     * Called when {@link org.apache.jackrabbit.core.data.DataStore#deleteAllOlderThan(long)}
+     * fails.
      *
      * @param min time used for determining what to delete
      */
     void deleteAllOlderThanFailed(long min);
 
     /**
-     * Called when a binary is added via {@link org.apache.jackrabbit.core.data.DataStore#addRecord(InputStream)}.
+     * Called when a binary is added via
+     * {@link org.apache.jackrabbit.core.data.DataStore#addRecord(InputStream)}.
      *
      * @param timeTaken time taken to perform the operation
-     * @param unit unit of time taken
-     * @param size size of binary content being read
+     * @param unit      unit of time taken
+     * @param size      size of binary content being read
      */
     void recordAdded(long timeTaken, TimeUnit unit, long size);
 
     /**
-     * Called when a call to {@link org.apache.jackrabbit.core.data.DataStore#addRecord(InputStream)} is completed.
+     * Called when a call to
+     * {@link org.apache.jackrabbit.core.data.DataStore#addRecord(InputStream)} is completed.
      *
      * @param blobId id of the record which was added
      */
     void addRecordCompleted(String blobId);
 
     /**
-     * Called when a call to {@link org.apache.jackrabbit.core.data.DataStore#addRecord(InputStream)} fails.
+     * Called when a call to
+     * {@link org.apache.jackrabbit.core.data.DataStore#addRecord(InputStream)} fails.
      */
     void addRecordFailed();
 
@@ -236,20 +268,22 @@ public interface BlobStatsCollector {
      * {@link org.apache.jackrabbit.core.data.DataStore#getRecord(DataIdentifier)}.
      *
      * @param timeTaken time taken to perform the operation
-     * @param unit unit of time taken
-     * @param size size of the binary
+     * @param unit      unit of time taken
+     * @param size      size of the binary
      */
     void getRecordCalled(long timeTaken, TimeUnit unit, long size);
 
     /**
-     * Called when a call to {@link org.apache.jackrabbit.core.data.DataStore#getRecord(DataIdentifier)} is completed.
+     * Called when a call to
+     * {@link org.apache.jackrabbit.core.data.DataStore#getRecord(DataIdentifier)} is completed.
      *
      * @param blobId id of the record retrieved
      */
     void getRecordCompleted(String blobId);
 
     /**
-     * Called when a call to {@link org.apache.jackrabbit.core.data.DataStore#getRecord(DataIdentifier)} fails.
+     * Called when a call to
+     * {@link org.apache.jackrabbit.core.data.DataStore#getRecord(DataIdentifier)} fails.
      *
      * @param blobId id of the record
      */
@@ -260,20 +294,23 @@ public interface BlobStatsCollector {
      * {@link org.apache.jackrabbit.core.data.DataStore#getRecordIfStored(DataIdentifier)}.
      *
      * @param timeTaken time taken to perform the operation
-     * @param unit unit of time taken
-     * @param size size of the binary
+     * @param unit      unit of time taken
+     * @param size      size of the binary
      */
     void getRecordIfStoredCalled(long timeTaken, TimeUnit unit, long size);
 
     /**
-     * Called when a call to {@link org.apache.jackrabbit.core.data.DataStore#getRecordIfStored(DataIdentifier)} is completed.
+     * Called when a call to
+     * {@link org.apache.jackrabbit.core.data.DataStore#getRecordIfStored(DataIdentifier)} is
+     * completed.
      *
      * @param blobId id of the record retrieved
      */
     void getRecordIfStoredCompleted(String blobId);
 
     /**
-     * Called when a call to {@link org.apache.jackrabbit.core.data.DataStore#getRecordIfStored(DataIdentifier)} fails.
+     * Called when a call to
+     * {@link org.apache.jackrabbit.core.data.DataStore#getRecordIfStored(DataIdentifier)} fails.
      *
      * @param blobId id of the record
      */
@@ -284,20 +321,23 @@ public interface BlobStatsCollector {
      * {@link org.apache.jackrabbit.core.data.DataStore#getRecordFromReference(String)}.
      *
      * @param timeTaken time taken to perform the operation
-     * @param unit unit of time taken
-     * @param size size of the binary
+     * @param unit      unit of time taken
+     * @param size      size of the binary
      */
     void getRecordFromReferenceCalled(long timeTaken, TimeUnit unit, long size);
 
     /**
-     * Called when a call to {@link org.apache.jackrabbit.core.data.DataStore#getRecordFromReference(String)} is completed.
+     * Called when a call to
+     * {@link org.apache.jackrabbit.core.data.DataStore#getRecordFromReference(String)} is
+     * completed.
      *
      * @param reference reference of the record retrieved
      */
     void getRecordFromReferenceCompleted(String reference);
 
     /**
-     * Called when a call to {@link org.apache.jackrabbit.core.data.DataStore#getRecordFromReference(String)} fails.
+     * Called when a call to
+     * {@link org.apache.jackrabbit.core.data.DataStore#getRecordFromReference(String)} fails.
      *
      * @param reference reference of the record
      */
@@ -307,7 +347,7 @@ public interface BlobStatsCollector {
      * Called when {@link DataStore#getAllIdentifiers()} is called.
      *
      * @param timeTaken time taken to perform the operation
-     * @param unit unit of time taken
+     * @param unit      unit of time taken
      */
     void getAllIdentifiersCalled(long timeTaken, TimeUnit unit);
 

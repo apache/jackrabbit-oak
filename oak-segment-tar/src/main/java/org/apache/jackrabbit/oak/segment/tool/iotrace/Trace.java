@@ -22,13 +22,14 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * An instance of a {@code Trace} specifies a read pattern for tracing
- * IO reads of segments with an {@link IOTracer} instance.
+ * An instance of a {@code Trace} specifies a read pattern for tracing IO reads of segments with an
+ * {@link IOTracer} instance.
  */
 public interface Trace {
 
     /**
      * Run this trace on the passed {@code node}.
+     *
      * @param node
      */
     void run(@NotNull NodeState node);

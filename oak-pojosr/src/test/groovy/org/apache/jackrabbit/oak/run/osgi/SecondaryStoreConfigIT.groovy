@@ -20,7 +20,6 @@
 package org.apache.jackrabbit.oak.run.osgi
 
 import org.apache.jackrabbit.commons.JcrUtils
-import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore
 import org.apache.jackrabbit.oak.plugins.document.MongoUtils
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils
 import org.apache.jackrabbit.oak.spi.state.NodeStore
@@ -33,24 +32,23 @@ import static org.apache.jackrabbit.oak.run.osgi.OakOSGiRepositoryFactory.REPOSI
 import static org.apache.jackrabbit.oak.run.osgi.OakOSGiRepositoryFactory.REPOSITORY_CONFIG_FILE
 import static org.junit.Assume.assumeTrue
 
-
-class SecondaryStoreConfigIT extends AbstractRepositoryFactoryTest{
+class SecondaryStoreConfigIT extends AbstractRepositoryFactoryTest {
 
     @Test
-    void secondaryNodeStoreCache() throws Exception{
+    void secondaryNodeStoreCache() throws Exception {
         mongoCheck()
         MongoUtils.dropDatabase(MongoUtils.DB)
         config[REPOSITORY_CONFIG_FILE] = createConfigValue("oak-base-config.json")
         config[REPOSITORY_CONFIG] = [
-                'org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService': [
-                        mongouri       : MongoUtils.URL,
-                        db             : MongoUtils.DB
+                'org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService'            : [
+                        mongouri: MongoUtils.URL,
+                        db      : MongoUtils.DB
                 ],
-                'org.apache.jackrabbit.oak.segment.SegmentNodeStoreFactory-secondary.config' : [
-                        role       : "secondary"
+                'org.apache.jackrabbit.oak.segment.SegmentNodeStoreFactory-secondary.config'     : [
+                        role: "secondary"
                 ],
-                'org.apache.jackrabbit.oak.plugins.document.secondary.SecondaryStoreCacheService' : [
-                        includedPaths : ['/']
+                'org.apache.jackrabbit.oak.plugins.document.secondary.SecondaryStoreCacheService': [
+                        includedPaths: ['/']
                 ]
         ]
 

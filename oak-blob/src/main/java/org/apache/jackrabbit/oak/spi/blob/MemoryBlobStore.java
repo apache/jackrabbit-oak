@@ -20,10 +20,8 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 import org.apache.jackrabbit.guava.common.collect.Maps;
-
 import org.apache.jackrabbit.oak.commons.StringUtils;
 
 /**
@@ -47,7 +45,7 @@ public class MemoryBlobStore extends AbstractBlobStore {
 
     @Override
     protected synchronized void storeBlock(byte[] digest, int level, byte[] data) {
-        BlockId id =  new BlockId(digest, 0);
+        BlockId id = new BlockId(digest, 0);
         map.put(id, data);
         timestamps.put(id, System.currentTimeMillis());
     }
@@ -88,12 +86,14 @@ public class MemoryBlobStore extends AbstractBlobStore {
      * Ignores the maxlastModifiedTime
      */
     @Override
-    public long countDeleteChunks(List<String> chunkIds, long maxLastModifiedTime) throws Exception {
+    public long countDeleteChunks(List<String> chunkIds, long maxLastModifiedTime)
+        throws Exception {
         int count = 0;
         for (String chunkId : chunkIds) {
             BlockId id = new BlockId(StringUtils.convertHexToBytes(chunkId), 0);
             if (map.containsKey(id)) {
-                if (maxLastModifiedTime == 0 || (maxLastModifiedTime > 0 && maxLastModifiedTime > timestamps.get(id))) {
+                if (maxLastModifiedTime == 0 || (maxLastModifiedTime > 0
+                    && maxLastModifiedTime > timestamps.get(id))) {
                     map.remove(id);
                     timestamps.remove(id);
                     count++;
@@ -129,7 +129,7 @@ public class MemoryBlobStore extends AbstractBlobStore {
             }
         };
     }
-    
+
     @Override
     public void clearCache() {
         // no cache

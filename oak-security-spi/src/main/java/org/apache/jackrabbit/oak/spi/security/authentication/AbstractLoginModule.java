@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication;
 
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
+
 import java.io.IOException;
 import java.security.Principal;
 import java.security.PrivilegedActionException;
@@ -34,10 +36,9 @@ import javax.security.auth.callback.CallbackHandler;
 import javax.security.auth.callback.UnsupportedCallbackException;
 import javax.security.auth.login.LoginException;
 import javax.security.auth.spi.LoginModule;
-
+import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -56,21 +57,17 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.osgi.annotation.versioning.ProviderType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.osgi.annotation.versioning.ProviderType;
-
-import static java.util.concurrent.TimeUnit.NANOSECONDS;
-
 /**
- * Abstract implementation of the {@link LoginModule} interface that can act
- * as base class for login modules that aim to authenticate subjects against
- * information stored in the content repository.
+ * Abstract implementation of the {@link LoginModule} interface that can act as base class for login
+ * modules that aim to authenticate subjects against information stored in the content repository.
  * <p>
  * <h2>LoginModule Methods</h2>
- * This base class provides a simple implementation for the following methods
- * of the {@code LoginModule} interface:
+ * This base class provides a simple implementation for the following methods of the
+ * {@code LoginModule} interface:
  * <p>
  * <ul>
  * <li>{@link LoginModule#initialize(Subject, CallbackHandler, Map, Map) Initialize}:
@@ -147,20 +144,20 @@ public abstract class AbstractLoginModule implements LoginModule {
     private static final Logger log = LoggerFactory.getLogger(AbstractLoginModule.class);
 
     /**
-     * Key of the sharedState entry referring to validated Credentials that is
-     * shared between multiple login modules.
+     * Key of the sharedState entry referring to validated Credentials that is shared between
+     * multiple login modules.
      */
     public static final String SHARED_KEY_CREDENTIALS = "org.apache.jackrabbit.credentials";
 
     /**
-     * Key of the sharedState entry referring to a valid login ID that is shared
-     * between multiple login modules.
+     * Key of the sharedState entry referring to a valid login ID that is shared between multiple
+     * login modules.
      */
     public static final String SHARED_KEY_LOGIN_NAME = "javax.security.auth.login.name";
 
     /**
-     * Key of the sharedState entry referring to public attributes that are shared
-     * between multiple login modules.
+     * Key of the sharedState entry referring to public attributes that are shared between multiple
+     * login modules.
      */
     public static final String SHARED_KEY_ATTRIBUTES = "javax.security.auth.login.attributes";
 
@@ -184,36 +181,42 @@ public abstract class AbstractLoginModule implements LoginModule {
 
     //--------------------------------------------------------< LoginModule >---
     @Override
-    public void initialize(Subject subject, CallbackHandler callbackHandler, Map<String, ?> sharedState, Map<String, ?> options) {
+    public void initialize(Subject subject, CallbackHandler callbackHandler,
+        Map<String, ?> sharedState, Map<String, ?> options) {
         this.subject = subject;
         this.callbackHandler = callbackHandler;
         this.sharedState = sharedState;
-        this.options = (options == null) ? ConfigurationParameters.EMPTY : ConfigurationParameters.of(options);
+        this.options =
+            (options == null) ? ConfigurationParameters.EMPTY : ConfigurationParameters.of(options);
     }
 
     /**
-     * Besteffort default implementation of {@link LoginModule#logout()}, which removes all principals and all public
-     * credentials of type {@link Credentials} and {@link AuthInfo} from the subject.
-     * It will return {@code false}, if either principal set or credentials set is empty.
+     * Besteffort default implementation of {@link LoginModule#logout()}, which removes all
+     * principals and all public credentials of type {@link Credentials} and {@link AuthInfo} from
+     * the subject. It will return {@code false}, if either principal set or credentials set is
+     * empty.
+     * <p>
+     * Note, that this implementation is not able to only remove those principals/credentials that
+     * have been added by {@code this} very login module instance. Therefore subclasses should
+     * overwrite this method to provide a fully compliant solution of {@link #logout()}. They may
+     * however take advantage of {@link #logout(Set, Set)} in order to simplify the implementation
+     * of a logout that is compatible with the {@link LoginModule#logout()} contract incorporating
+     * the additional recommendations highlighted at <a
+     * href="https://docs.oracle.com/en/java/javase/13/security/java-authentication-and-authorization-service-jaas-loginmodule-developers-guide1.html#GUID-E9C5810B-ADB6-4454-869D-B269ECA8145F__LOGINMODULE.LOGOUTMETHOD-21144F6A">JAAS
+     * LoginModule Dev Guide</a>
      *
-     * Note, that this implementation is not able to only remove those principals/credentials that have been added
-     * by {@code this} very login module instance. Therefore subclasses should overwrite this method to provide a fully
-     * compliant solution of {@link #logout()}. They may however take advantage of {@link #logout(Set, Set)}
-     * in order to simplify the implementation of a logout that is compatible with the {@link LoginModule#logout()}
-     * contract incorporating the additional recommendations highlighted at
-     * <a href="https://docs.oracle.com/en/java/javase/13/security/java-authentication-and-authorization-service-jaas-loginmodule-developers-guide1.html#GUID-E9C5810B-ADB6-4454-869D-B269ECA8145F__LOGINMODULE.LOGOUTMETHOD-21144F6A">JAAS LoginModule Dev Guide</a>
-     *
-     * @return {@code true} if neither principals nor public credentials of type {@link Credentials} or {@link AuthInfo}
-     * stored in the {@link Subject} are empty; {@code false} otherwise
-     * @throws LoginException if the subject is readonly and destroying {@link Destroyable} credentials fails
-     * with {@link DestroyFailedException}.
+     * @return {@code true} if neither principals nor public credentials of type {@link Credentials}
+     * or {@link AuthInfo} stored in the {@link Subject} are empty; {@code false} otherwise
+     * @throws LoginException if the subject is readonly and destroying {@link Destroyable}
+     *                        credentials fails with {@link DestroyFailedException}.
      */
     @Override
     public boolean logout() throws LoginException {
         boolean success = false;
         Set<Object> creds = ImmutableSet.builder()
-                .addAll(subject.getPublicCredentials(Credentials.class))
-                .addAll(subject.getPublicCredentials(AuthInfo.class)).build();
+                                        .addAll(subject.getPublicCredentials(Credentials.class))
+                                        .addAll(subject.getPublicCredentials(AuthInfo.class))
+                                        .build();
         if (!subject.getPrincipals().isEmpty() && !creds.isEmpty()) {
             // clear subject if not readonly
             if (!subject.isReadOnly()) {
@@ -244,9 +247,10 @@ public abstract class AbstractLoginModule implements LoginModule {
     }
 
     /**
-     * Close the system session acquired upon {@link #getRoot()} and reset the associated root field.
-     * This method should be used instead of {@link #clearState()}, if {@link #login()} and {@link #commit()} were
-     * successfully completed but the system session is not needed for a successful {@link #logout()}
+     * Close the system session acquired upon {@link #getRoot()} and reset the associated root
+     * field. This method should be used instead of {@link #clearState()}, if {@link #login()} and
+     * {@link #commit()} were successfully completed but the system session is not needed for a
+     * successful {@link #logout()}
      */
     protected void closeSystemSession() {
         if (systemSession != null) {
@@ -262,17 +266,24 @@ public abstract class AbstractLoginModule implements LoginModule {
     }
 
     /**
-     * General logout-helper that will return {@code false} if both {@code credentials} and {@code principals} are {@code null}.
-     * Note, that this implementation will only throw {@code LoginException} if the {@code subject} is marked readonly
-     * and destroying {@link Destroyable} credentials fails.
+     * General logout-helper that will return {@code false} if both {@code credentials} and
+     * {@code principals} are {@code null}. Note, that this implementation will only throw
+     * {@code LoginException} if the {@code subject} is marked readonly and destroying
+     * {@link Destroyable} credentials fails.
      *
-     * @param credentials The set of credentials extracted by this instance during login/commit to be removed from {@link Subject#getPublicCredentials()}
-     * @param principals A set of principals extracted by this instance during login/commit to be removed from {@link Subject#getPrincipals()}
-     * @return {@code true} if either the credential set or the principal set is not {@code null}, {@code false} otherwise.
-     * @throws LoginException If the subject is readonly and an error occurs while destroying any of the given credentials.
-     * @see <a href="https://docs.oracle.com/en/java/javase/13/security/java-authentication-and-authorization-service-jaas-loginmodule-developers-guide1.html#GUID-E9C5810B-ADB6-4454-869D-B269ECA8145F__LOGINMODULE.LOGOUTMETHOD-21144F6A">JAASLMDevGuide</a>
+     * @param credentials The set of credentials extracted by this instance during login/commit to
+     *                    be removed from {@link Subject#getPublicCredentials()}
+     * @param principals  A set of principals extracted by this instance during login/commit to be
+     *                    removed from {@link Subject#getPrincipals()}
+     * @return {@code true} if either the credential set or the principal set is not {@code null},
+     * {@code false} otherwise.
+     * @throws LoginException If the subject is readonly and an error occurs while destroying any of
+     *                        the given credentials.
+     * @see <a
+     * href="https://docs.oracle.com/en/java/javase/13/security/java-authentication-and-authorization-service-jaas-loginmodule-developers-guide1.html#GUID-E9C5810B-ADB6-4454-869D-B269ECA8145F__LOGINMODULE.LOGOUTMETHOD-21144F6A">JAASLMDevGuide</a>
      */
-    protected boolean logout(@Nullable Set<Object> credentials, @Nullable Set<? extends Principal> principals) throws LoginException {
+    protected boolean logout(@Nullable Set<Object> credentials,
+        @Nullable Set<? extends Principal> principals) throws LoginException {
         if (credentials != null || principals != null) {
             if (!subject.isReadOnly()) {
                 if (credentials != null) {
@@ -292,7 +303,8 @@ public abstract class AbstractLoginModule implements LoginModule {
         }
     }
 
-    private static void destroyCredentials(@NotNull Iterable<Object> credentials) throws LoginException {
+    private static void destroyCredentials(@NotNull Iterable<Object> credentials)
+        throws LoginException {
         for (Object cred : credentials) {
             if (cred instanceof Destroyable) {
                 try {
@@ -301,7 +313,8 @@ public abstract class AbstractLoginModule implements LoginModule {
                     throw new LoginException(e.getMessage());
                 }
             } else {
-                log.debug("Unable to destroy credentials ({}) of read-only subject.", credentials.getClass().getName());
+                log.debug("Unable to destroy credentials ({}) of read-only subject.",
+                    credentials.getClass().getName());
             }
         }
     }
@@ -336,7 +349,8 @@ public abstract class AbstractLoginModule implements LoginModule {
                     log.debug("Login: Credentials '{}' obtained from callback", creds);
                     return creds;
                 } else {
-                    log.debug("Login: No supported credentials obtained from callback; trying shared state.");
+                    log.debug(
+                        "Login: No supported credentials obtained from callback; trying shared state.");
                 }
             } catch (UnsupportedCallbackException | IOException e) {
                 onError();
@@ -349,7 +363,8 @@ public abstract class AbstractLoginModule implements LoginModule {
             log.debug("Login: Credentials obtained from shared state.");
             return creds;
         } else {
-            log.debug("Login: No supported credentials found in shared state; looking for credentials in subject.");
+            log.debug(
+                "Login: No supported credentials found in shared state; looking for credentials in subject.");
             for (Class clz : getSupportedCredentials()) {
                 Set<Credentials> cds = subject.getPublicCredentials(clz);
                 if (!cds.isEmpty()) {
@@ -375,7 +390,8 @@ public abstract class AbstractLoginModule implements LoginModule {
             if (sc instanceof Credentials) {
                 shared = (Credentials) sc;
             } else {
-                log.debug("Login: Invalid value for share state entry {}. Credentials expected.", SHARED_KEY_CREDENTIALS);
+                log.debug("Login: Invalid value for share state entry {}. Credentials expected.",
+                    SHARED_KEY_CREDENTIALS);
             }
         }
 
@@ -410,13 +426,12 @@ public abstract class AbstractLoginModule implements LoginModule {
     }
 
     /**
-     * Tries to obtain the {@code SecurityProvider} object from the callback
-     * handler using a new SecurityProviderCallback and keeps the value as
-     * private field. If the callback handler isn't able to handle the
-     * SecurityProviderCallback this method returns {@code null}.
+     * Tries to obtain the {@code SecurityProvider} object from the callback handler using a new
+     * SecurityProviderCallback and keeps the value as private field. If the callback handler isn't
+     * able to handle the SecurityProviderCallback this method returns {@code null}.
      *
-     * @return The {@code SecurityProvider} associated with this
-     *         {@code LoginModule} or {@code null}.
+     * @return The {@code SecurityProvider} associated with this {@code LoginModule} or
+     * {@code null}.
      */
     @Nullable
     protected SecurityProvider getSecurityProvider() {
@@ -434,13 +449,11 @@ public abstract class AbstractLoginModule implements LoginModule {
     }
 
     /**
-     * Tries to obtain the {@code Whiteboard} object from the callback
-     * handler using a new WhiteboardCallback and keeps the value as
-     * private field. If the callback handler isn't able to handle the
-     * WhiteboardCallback this method returns {@code null}.
+     * Tries to obtain the {@code Whiteboard} object from the callback handler using a new
+     * WhiteboardCallback and keeps the value as private field. If the callback handler isn't able
+     * to handle the WhiteboardCallback this method returns {@code null}.
      *
-     * @return The {@code Whiteboard} associated with this
-     *         {@code LoginModule} or {@code null}.
+     * @return The {@code Whiteboard} associated with this {@code LoginModule} or {@code null}.
      */
     @Nullable
     protected Whiteboard getWhiteboard() {
@@ -458,13 +471,11 @@ public abstract class AbstractLoginModule implements LoginModule {
     }
 
     /**
-     * Tries to obtain a {@code Root} object from the callback handler using
-     * a new RepositoryCallback and keeps the value as private field.
-     * If the callback handler isn't able to handle the RepositoryCallback
-     * this method returns {@code null}.
+     * Tries to obtain a {@code Root} object from the callback handler using a new
+     * RepositoryCallback and keeps the value as private field. If the callback handler isn't able
+     * to handle the RepositoryCallback this method returns {@code null}.
      *
-     * @return The {@code Root} associated with this {@code LoginModule} or
-     *         {@code null}.
+     * @return The {@code Root} associated with this {@code LoginModule} or {@code null}.
      */
     @Nullable
     protected Root getRoot() {
@@ -475,15 +486,18 @@ public abstract class AbstractLoginModule implements LoginModule {
 
                 final ContentRepository repository = rcb.getContentRepository();
                 if (repository != null) {
-                    systemSession = Subject.doAs(SystemSubject.INSTANCE, new PrivilegedExceptionAction<ContentSession>() {
-                        @Override
-                        public ContentSession run() throws LoginException, NoSuchWorkspaceException {
-                            return repository.login(null, rcb.getWorkspaceName());
-                        }
-                    });
+                    systemSession = Subject.doAs(SystemSubject.INSTANCE,
+                        new PrivilegedExceptionAction<ContentSession>() {
+                            @Override
+                            public ContentSession run()
+                                throws LoginException, NoSuchWorkspaceException {
+                                return repository.login(null, rcb.getWorkspaceName());
+                            }
+                        });
                     root = systemSession.getLatestRoot();
                 } else {
-                    log.error("Unable to retrieve the Root via RepositoryCallback; ContentRepository not available.");
+                    log.error(
+                        "Unable to retrieve the Root via RepositoryCallback; ContentRepository not available.");
                 }
             } catch (IOException | UnsupportedCallbackException | PrivilegedActionException e) {
                 onError();
@@ -494,9 +508,8 @@ public abstract class AbstractLoginModule implements LoginModule {
     }
 
     /**
-     * Retrieves the {@link UserManager} that should be used to handle
-     * this authentication. If no user manager has been configure this
-     * method returns {@code null}.
+     * Retrieves the {@link UserManager} that should be used to handle this authentication. If no
+     * user manager has been configure this method returns {@code null}.
      *
      * @return A instance of {@code UserManager} or {@code null}.
      */
@@ -525,9 +538,8 @@ public abstract class AbstractLoginModule implements LoginModule {
     }
 
     /**
-     * Retrieves the {@link PrincipalProvider} that should be used to handle
-     * this authentication. If no principal provider has been configure this
-     * method returns {@code null}.
+     * Retrieves the {@link PrincipalProvider} that should be used to handle this authentication. If
+     * no principal provider has been configure this method returns {@code null}.
      *
      * @return A instance of {@code PrincipalProvider} or {@code null}.
      */
@@ -555,8 +567,8 @@ public abstract class AbstractLoginModule implements LoginModule {
     }
 
     /**
-     * Retrieves all principals associated with the specified {@code userId} for
-     * the configured principal provider.
+     * Retrieves all principals associated with the specified {@code userId} for the configured
+     * principal provider.
      *
      * @param userId The id of the user.
      * @return The set of principals associated with the given {@code userId}.
@@ -571,7 +583,8 @@ public abstract class AbstractLoginModule implements LoginModule {
         } else {
             Stopwatch watch = Stopwatch.createStarted();
             Set<? extends Principal> principals = principalProvider.getPrincipals(userId);
-            getLoginModuleMonitor().principalsCollected(watch.elapsed(NANOSECONDS), principals.size());
+            getLoginModuleMonitor().principalsCollected(watch.elapsed(NANOSECONDS),
+                principals.size());
             return principals;
         }
     }
@@ -587,7 +600,8 @@ public abstract class AbstractLoginModule implements LoginModule {
             Set<Principal> principals = new HashSet<>();
             principals.add(userPrincipal);
             principals.addAll(principalProvider.getMembershipPrincipals(userPrincipal));
-            getLoginModuleMonitor().principalsCollected(watch.elapsed(NANOSECONDS), principals.size());
+            getLoginModuleMonitor().principalsCollected(watch.elapsed(NANOSECONDS),
+                principals.size());
             return principals;
         }
     }
@@ -605,7 +619,7 @@ public abstract class AbstractLoginModule implements LoginModule {
         if (loginModuleMonitor == null && callbackHandler != null) {
             RepositoryCallback rcb = new RepositoryCallback();
             try {
-                callbackHandler.handle(new Callback[] { rcb });
+                callbackHandler.handle(new Callback[]{rcb});
                 loginModuleMonitor = rcb.getLoginModuleMonitor();
             } catch (IOException | UnsupportedCallbackException e) {
                 log.error(e.getMessage(), e);

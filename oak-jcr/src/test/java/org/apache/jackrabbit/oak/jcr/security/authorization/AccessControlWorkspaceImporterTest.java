@@ -26,8 +26,7 @@ public class AccessControlWorkspaceImporterTest extends AccessControlImporterTes
     }
 
     /**
-     * Make sure repo-level acl is not imported below any other node than the
-     * root node.
+     * Make sure repo-level acl is not imported below any other node than the root node.
      *
      * @throws Exception
      */

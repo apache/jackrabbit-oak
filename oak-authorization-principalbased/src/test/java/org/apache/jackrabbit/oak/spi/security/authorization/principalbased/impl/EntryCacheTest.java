@@ -59,13 +59,16 @@ public class EntryCacheTest extends AbstractPrincipalBasedTest {
     public void before() throws Exception {
         super.before();
 
-        restrictionProvider = spy(getConfig(AuthorizationConfiguration.class).getRestrictionProvider());
+        restrictionProvider = spy(
+            getConfig(AuthorizationConfiguration.class).getRestrictionProvider());
         accessControlledPath = getNamePathMapper().getOakPath(getTestSystemUser().getPath());
         Tree accessControlledTree = root.getTree(accessControlledPath);
-        TreeUtil.addMixin(accessControlledTree, MIX_REP_PRINCIPAL_BASED_MIXIN, root.getTree(NodeTypeConstants.NODE_TYPES_PATH), "uid");
-        policyTree = TreeUtil.addChild(accessControlledTree, REP_PRINCIPAL_POLICY, NT_REP_PRINCIPAL_POLICY);
+        TreeUtil.addMixin(accessControlledTree, MIX_REP_PRINCIPAL_BASED_MIXIN,
+            root.getTree(NodeTypeConstants.NODE_TYPES_PATH), "uid");
+        policyTree = TreeUtil.addChild(accessControlledTree, REP_PRINCIPAL_POLICY,
+            NT_REP_PRINCIPAL_POLICY);
     }
-    
+
     @After
     public void after() throws Exception {
         try {
@@ -77,14 +80,16 @@ public class EntryCacheTest extends AbstractPrincipalBasedTest {
 
     @Test
     public void testNoEntries() {
-        EntryCache cache = new EntryCache(root, ImmutableSet.of(accessControlledPath), restrictionProvider);
+        EntryCache cache = new EntryCache(root, ImmutableSet.of(accessControlledPath),
+            restrictionProvider);
         assertFalse(cache.getEntries(TEST_OAK_PATH).hasNext());
     }
 
     @Test
     public void testNonEntryChild() throws Exception {
         TreeUtil.addChild(policyTree, "invalidChild", NT_OAK_UNSTRUCTURED);
-        EntryCache cache = new EntryCache(root, ImmutableSet.of(accessControlledPath), restrictionProvider);
+        EntryCache cache = new EntryCache(root, ImmutableSet.of(accessControlledPath),
+            restrictionProvider);
         assertFalse(cache.getEntries(TEST_OAK_PATH).hasNext());
     }
 
@@ -94,7 +99,8 @@ public class EntryCacheTest extends AbstractPrincipalBasedTest {
         entry.setProperty(REP_EFFECTIVE_PATH, PathUtils.ROOT_PATH, Type.PATH);
         entry.setProperty(REP_PRIVILEGES, ImmutableSet.of(JCR_READ), Type.NAMES);
 
-        EntryCache cache = new EntryCache(root, ImmutableSet.of(accessControlledPath), restrictionProvider);
+        EntryCache cache = new EntryCache(root, ImmutableSet.of(accessControlledPath),
+            restrictionProvider);
         assertFalse(cache.getEntries(TEST_OAK_PATH).hasNext());
     }
 
@@ -104,7 +110,8 @@ public class EntryCacheTest extends AbstractPrincipalBasedTest {
         entry.setProperty(REP_EFFECTIVE_PATH, TEST_OAK_PATH, Type.PATH);
         entry.setProperty(REP_PRIVILEGES, ImmutableSet.of(JCR_READ), Type.NAMES);
 
-        EntryCache cache = new EntryCache(root, ImmutableSet.of(accessControlledPath), restrictionProvider);
+        EntryCache cache = new EntryCache(root, ImmutableSet.of(accessControlledPath),
+            restrictionProvider);
         assertTrue(cache.getEntries(TEST_OAK_PATH).hasNext());
         verifyNoInteractions(restrictionProvider);
     }
@@ -114,12 +121,14 @@ public class EntryCacheTest extends AbstractPrincipalBasedTest {
         Tree entry = TreeUtil.addChild(policyTree, "entry1", NT_REP_PRINCIPAL_ENTRY);
         entry.setProperty(REP_EFFECTIVE_PATH, TEST_OAK_PATH, Type.PATH);
         entry.setProperty(REP_PRIVILEGES, ImmutableSet.of(JCR_READ), Type.NAMES);
-        restrictionProvider.writeRestrictions(TEST_OAK_PATH, entry, 
-                Collections.singleton(restrictionProvider.createRestriction(TEST_OAK_PATH, REP_GLOB, getValueFactory(root).createValue("test"))));
+        restrictionProvider.writeRestrictions(TEST_OAK_PATH, entry,
+            Collections.singleton(restrictionProvider.createRestriction(TEST_OAK_PATH, REP_GLOB,
+                getValueFactory(root).createValue("test"))));
 
-        EntryCache cache = new EntryCache(root, ImmutableSet.of(accessControlledPath), restrictionProvider);
+        EntryCache cache = new EntryCache(root, ImmutableSet.of(accessControlledPath),
+            restrictionProvider);
         assertTrue(cache.getEntries(TEST_OAK_PATH).hasNext());
-        
+
         verify(restrictionProvider).readRestrictions(eq(TEST_OAK_PATH), any(Tree.class));
         verify(restrictionProvider).getPattern(eq(TEST_OAK_PATH), any(Set.class));
     }

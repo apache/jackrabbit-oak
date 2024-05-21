@@ -24,7 +24,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.Optional;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.segment.file.proc.Proc.Backend;
@@ -48,7 +47,8 @@ public class BulkSegmentNodeTest {
         Segment segment = mockSegment();
         when(segment.getLength()).thenReturn(1);
 
-        PropertyState property = new BulkSegmentNode(mockBackend(), "s", segment).getProperty("length");
+        PropertyState property = new BulkSegmentNode(mockBackend(), "s", segment).getProperty(
+            "length");
 
         assertEquals(Type.LONG, property.getType());
         assertEquals(1, property.getValue(Type.LONG).intValue());
@@ -56,13 +56,15 @@ public class BulkSegmentNodeTest {
 
     @Test
     public void shouldHaveDataProperty() {
-        PropertyState property = new BulkSegmentNode(mockBackend(), "s", mockSegment()).getProperty("data");
+        PropertyState property = new BulkSegmentNode(mockBackend(), "s", mockSegment()).getProperty(
+            "data");
         assertEquals(Type.BINARY, property.getType());
     }
 
     @Test
     public void shouldHaveIsDataSegmentProperty() {
-        PropertyState property = new BulkSegmentNode(mockBackend(), "s", mockSegment()).getProperty("isDataSegment");
+        PropertyState property = new BulkSegmentNode(mockBackend(), "s", mockSegment()).getProperty(
+            "isDataSegment");
 
         assertEquals(Type.BOOLEAN, property.getType());
         assertEquals(false, property.getValue(Type.BOOLEAN));
@@ -70,7 +72,8 @@ public class BulkSegmentNodeTest {
 
     @Test
     public void shouldHaveIdProperty() {
-        PropertyState property = new BulkSegmentNode(mockBackend(), "s", mockSegment()).getProperty("id");
+        PropertyState property = new BulkSegmentNode(mockBackend(), "s", mockSegment()).getProperty(
+            "id");
 
         assertEquals(Type.STRING, property.getType());
         assertEquals("s", property.getValue(Type.STRING));
@@ -78,7 +81,8 @@ public class BulkSegmentNodeTest {
 
     @Test
     public void shouldHveExistsProperty() {
-        PropertyState property = new BulkSegmentNode(mockBackend(), "s", mockSegment()).getProperty("exists");
+        PropertyState property = new BulkSegmentNode(mockBackend(), "s", mockSegment()).getProperty(
+            "exists");
 
         assertEquals(Type.BOOLEAN, property.getType());
         assertEquals(true, property.getValue(Type.BOOLEAN));

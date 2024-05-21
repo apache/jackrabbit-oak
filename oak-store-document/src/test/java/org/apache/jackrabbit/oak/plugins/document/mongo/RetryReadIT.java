@@ -54,7 +54,8 @@ public class RetryReadIT extends AbstractMongoConnectionTest {
         MongoUtils.dropCollections(mongoConnection.getDatabase());
         DocumentMK.Builder builder = new DocumentMK.Builder();
         builder.clock(getTestClock());
-        store = new TestStore(mongoConnection.getMongoClient(), mongoConnection.getDatabase(), builder);
+        store = new TestStore(mongoConnection.getMongoClient(), mongoConnection.getDatabase(),
+            builder);
         mk = builder.setDocumentStore(store).open();
     }
 
@@ -112,8 +113,8 @@ public class RetryReadIT extends AbstractMongoConnectionTest {
 
         @Override
         protected <T extends Document> T findUncached(Collection<T> collection,
-                                                      String key,
-                                                      DocumentReadPreference docReadPref) {
+            String key,
+            DocumentReadPreference docReadPref) {
             maybeFail();
             return super.findUncached(collection, key, docReadPref);
         }
@@ -121,16 +122,16 @@ public class RetryReadIT extends AbstractMongoConnectionTest {
         @NotNull
         @Override
         protected <T extends Document> List<T> queryInternal(Collection<T> collection,
-                                                             String fromKey,
-                                                             String toKey,
-                                                             String indexedProperty,
-                                                             long startValue,
-                                                             int limit,
-                                                             List<String> projection,
-                                                             long maxQueryTime) {
+            String fromKey,
+            String toKey,
+            String indexedProperty,
+            long startValue,
+            int limit,
+            List<String> projection,
+            long maxQueryTime) {
             maybeFail();
             return super.queryInternal(collection, fromKey, toKey,
-                    indexedProperty, startValue, limit, projection, maxQueryTime);
+                indexedProperty, startValue, limit, projection, maxQueryTime);
         }
 
         private void maybeFail() {

@@ -18,6 +18,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.metric.util;
 
+import java.util.Map;
+import java.util.function.BiFunction;
 import org.apache.jackrabbit.oak.stats.CounterStats;
 import org.apache.jackrabbit.oak.stats.HistogramStats;
 import org.apache.jackrabbit.oak.stats.MeterStats;
@@ -25,9 +27,6 @@ import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatsOptions;
 import org.apache.jackrabbit.oak.stats.TimerStats;
 import org.jetbrains.annotations.NotNull;
-
-import java.util.Map;
-import java.util.function.BiFunction;
 
 /**
  * Util class to generate a name for Stats implementations that can be used for creating labels in

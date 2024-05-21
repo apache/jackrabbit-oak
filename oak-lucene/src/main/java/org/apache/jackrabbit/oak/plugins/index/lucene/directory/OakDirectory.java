@@ -16,12 +16,20 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
+import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.api.Type.BINARIES;
+import static org.apache.jackrabbit.oak.api.Type.BINARY;
+import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
+import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
+
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.security.SecureRandom;
 import java.util.Collection;
 import java.util.Set;
-
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Sets;
@@ -49,21 +57,14 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
-import static org.apache.jackrabbit.oak.api.Type.BINARIES;
-import static org.apache.jackrabbit.oak.api.Type.BINARY;
-import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
-import static org.apache.jackrabbit.oak.api.Type.STRINGS;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
-
 /**
- * Implementation of the Lucene {@link Directory} (a flat list of files)
- * based on an Oak {@link NodeBuilder}.
+ * Implementation of the Lucene {@link Directory} (a flat list of files) based on an Oak
+ * {@link NodeBuilder}.
  */
 public class OakDirectory extends Directory {
-    static final PerfLogger PERF_LOGGER = new PerfLogger(LoggerFactory.getLogger(OakDirectory.class.getName() + ".perf"));
+
+    static final PerfLogger PERF_LOGGER = new PerfLogger(
+        LoggerFactory.getLogger(OakDirectory.class.getName() + ".perf"));
     static final Logger LOG = LoggerFactory.getLogger(OakDirectory.class.getName());
     public static final String PROP_DIR_LISTING = "dirListing";
     static final String PROP_BLOB_SIZE = "blobSize";
@@ -91,43 +92,47 @@ public class OakDirectory extends Directory {
         this(builder, FulltextIndexConstants.INDEX_DATA_CHILD_NAME, definition, readOnly);
     }
 
-    public OakDirectory(NodeBuilder builder, String dataNodeName, LuceneIndexDefinition definition, boolean readOnly) {
-        this(builder, dataNodeName, definition, readOnly, BlobFactory.getNodeBuilderBlobFactory(builder));
+    public OakDirectory(NodeBuilder builder, String dataNodeName, LuceneIndexDefinition definition,
+        boolean readOnly) {
+        this(builder, dataNodeName, definition, readOnly,
+            BlobFactory.getNodeBuilderBlobFactory(builder));
     }
 
     public OakDirectory(NodeBuilder builder, String dataNodeName, LuceneIndexDefinition definition,
-                        boolean readOnly, @Nullable GarbageCollectableBlobStore blobStore) {
+        boolean readOnly, @Nullable GarbageCollectableBlobStore blobStore) {
         this(builder, dataNodeName, definition, readOnly, blobStore, BlobDeletionCallback.NOOP);
     }
 
     public OakDirectory(NodeBuilder builder, String dataNodeName, LuceneIndexDefinition definition,
-                        boolean readOnly, @Nullable GarbageCollectableBlobStore blobStore,
-                        @NotNull ActiveDeletedBlobCollectorFactory.BlobDeletionCallback blobDeletionCallback) {
+        boolean readOnly, @Nullable GarbageCollectableBlobStore blobStore,
+        @NotNull ActiveDeletedBlobCollectorFactory.BlobDeletionCallback blobDeletionCallback) {
         this(builder, dataNodeName, definition, readOnly,
-                blobStore != null ? BlobFactory.getBlobStoreBlobFactory(blobStore) : BlobFactory.getNodeBuilderBlobFactory(builder),
-                blobDeletionCallback);
+            blobStore != null ? BlobFactory.getBlobStoreBlobFactory(blobStore)
+                : BlobFactory.getNodeBuilderBlobFactory(builder),
+            blobDeletionCallback);
     }
 
     public OakDirectory(NodeBuilder builder, String dataNodeName, LuceneIndexDefinition definition,
-                        boolean readOnly, BlobFactory blobFactory) {
+        boolean readOnly, BlobFactory blobFactory) {
         this(builder, dataNodeName, definition, readOnly, blobFactory, BlobDeletionCallback.NOOP);
     }
 
     public OakDirectory(NodeBuilder builder, String dataNodeName, LuceneIndexDefinition definition,
-                        boolean readOnly, BlobFactory blobFactory,
-                        @NotNull ActiveDeletedBlobCollectorFactory.BlobDeletionCallback blobDeletionCallback) {
+        boolean readOnly, BlobFactory blobFactory,
+        @NotNull ActiveDeletedBlobCollectorFactory.BlobDeletionCallback blobDeletionCallback) {
         this(builder, dataNodeName, definition, readOnly, blobFactory, blobDeletionCallback, false);
     }
 
     public OakDirectory(NodeBuilder builder, String dataNodeName, LuceneIndexDefinition definition,
-                        boolean readOnly, BlobFactory blobFactory,
-                        @NotNull ActiveDeletedBlobCollectorFactory.BlobDeletionCallback blobDeletionCallback,
-                        boolean streamingWriteEnabled) {
+        boolean readOnly, BlobFactory blobFactory,
+        @NotNull ActiveDeletedBlobCollectorFactory.BlobDeletionCallback blobDeletionCallback,
+        boolean streamingWriteEnabled) {
 
         this.lockFactory = NoLockFactory.getNoLockFactory();
         this.builder = builder;
         this.dataNodeName = dataNodeName;
-        this.directoryBuilder = readOnly ? builder.getChildNode(dataNodeName) : builder.child(dataNodeName);
+        this.directoryBuilder =
+            readOnly ? builder.getChildNode(dataNodeName) : builder.child(dataNodeName);
         this.definition = definition;
         this.readOnly = readOnly;
         this.fileNames.addAll(getListing());
@@ -155,7 +160,7 @@ public class OakDirectory extends Directory {
         NodeBuilder f = directoryBuilder.getChildNode(name);
 
         if (!f.hasProperty(PROP_UNSAFE_FOR_ACTIVE_DELETION)
-                || !f.getProperty(PROP_UNSAFE_FOR_ACTIVE_DELETION).getValue(BOOLEAN)) {
+            || !f.getProperty(PROP_UNSAFE_FOR_ACTIVE_DELETION).getValue(BOOLEAN)) {
             PropertyState property = f.getProperty(JCR_DATA);
             if (property != null) {
                 if (property.getType() == BINARIES || property.getType() == BINARY) {
@@ -167,7 +172,7 @@ public class OakDirectory extends Directory {
                         // OAK-7066: Also, make sure that we have at least some non-inlined chunks to delete
                         if (blobId != null && !InMemoryDataRecord.isInstance(blobId)) {
                             blobDeletionCallback.deleted(blobId,
-                                    Lists.newArrayList(definition.getIndexPath(), dataNodeName, name));
+                                Lists.newArrayList(definition.getIndexPath(), dataNodeName, name));
                         }
                     }
                 }
@@ -200,7 +205,7 @@ public class OakDirectory extends Directory {
 
     @Override
     public IndexOutput createOutput(String name, IOContext context)
-            throws IOException {
+        throws IOException {
         checkArgument(!readOnly, "Read only directory");
         NodeBuilder file;
 
@@ -229,7 +234,7 @@ public class OakDirectory extends Directory {
 
     @Override
     public IndexInput openInput(String name, IOContext context)
-            throws IOException {
+        throws IOException {
         NodeBuilder file = directoryBuilder.getChildNode(name);
         if (file.exists()) {
             return new OakIndexInput(name, file, indexName, blobFactory);
@@ -261,7 +266,8 @@ public class OakDirectory extends Directory {
                 if (directoryBuilder instanceof ReadOnlyBuilder) {
                     LOG.debug("Preserve files of read-only directory: " + fileNames);
                 } else {
-                    directoryBuilder.setProperty(createProperty(PROP_DIR_LISTING, fileNames, STRINGS));
+                    directoryBuilder.setProperty(
+                        createProperty(PROP_DIR_LISTING, fileNames, STRINGS));
                 }
             }
         }
@@ -283,24 +289,23 @@ public class OakDirectory extends Directory {
     }
 
     /**
-     * Copies the file with the given {@code name} to the {@code dest}
-     * directory. The file is copied 'by reference'. That is, the file in the
-     * destination directory will reference the same blob values as the source
-     * file.
+     * Copies the file with the given {@code name} to the {@code dest} directory. The file is copied
+     * 'by reference'. That is, the file in the destination directory will reference the same blob
+     * values as the source file.
      * <p>
      * This method is a no-op if the file does not exist in this directory.
      *
      * @param dest the destination directory.
      * @param name the name of the file to copy.
-     * @throws IOException if an error occurs while copying the file.
-     * @throws IllegalArgumentException if the destination directory does not
-     *          use the same {@link BlobFactory} as {@code this} directory.
+     * @throws IOException              if an error occurs while copying the file.
+     * @throws IllegalArgumentException if the destination directory does not use the same
+     *                                  {@link BlobFactory} as {@code this} directory.
      */
     public void copy(OakDirectory dest, String name)
-            throws IOException {
+        throws IOException {
         if (blobFactory != dest.blobFactory) {
             throw new IllegalArgumentException("Source and destination " +
-                    "directory must reference the same BlobFactory");
+                "directory must reference the same BlobFactory");
         }
         NodeBuilder file = directoryBuilder.getChildNode(name);
         if (file.exists()) {
@@ -326,7 +331,7 @@ public class OakDirectory extends Directory {
         dirty = true;
     }
 
-    private Set<String> getListing(){
+    private Set<String> getListing() {
         long start = PERF_LOGGER.start();
         Iterable<String> fileNames = null;
         if (definition.saveDirListing()) {
@@ -336,7 +341,7 @@ public class OakDirectory extends Directory {
             }
         }
 
-        if (fileNames == null){
+        if (fileNames == null) {
             fileNames = directoryBuilder.getChildNodeNames();
         }
         Set<String> result = ImmutableSet.copyOf(fileNames);

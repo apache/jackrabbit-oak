@@ -28,7 +28,8 @@ public interface TreeProvider {
     Tree createReadOnlyTree(@NotNull NodeState rootState);
 
     @NotNull
-    Tree createReadOnlyTree(@NotNull Tree readOnlyParent, @NotNull String childName, @NotNull NodeState childState);
+    Tree createReadOnlyTree(@NotNull Tree readOnlyParent, @NotNull String childName,
+        @NotNull NodeState childState);
 
     @NotNull
     NodeState asNodeState(@NotNull Tree readOnlyTree);

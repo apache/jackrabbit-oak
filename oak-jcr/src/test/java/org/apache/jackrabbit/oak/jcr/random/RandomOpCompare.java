@@ -24,13 +24,11 @@ import static org.junit.Assert.assertTrue;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.Random;
-
 import javax.jcr.Node;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
-
 import org.apache.jackrabbit.oak.NodeStoreFixtures;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.Jcr;
@@ -38,18 +36,15 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
-import com.mongodb.DB;
-
 /**
- * A randomized test that writes to two repositories (using different storage
- * backends), and compares the results. The test uses low cache sizes, and low
- * thresholds / limits so that as much of the code as possible is used (high
- * code coverage).
+ * A randomized test that writes to two repositories (using different storage backends), and
+ * compares the results. The test uses low cache sizes, and low thresholds / limits so that as much
+ * of the code as possible is used (high code coverage).
  */
 public class RandomOpCompare {
-    
+
     private static final int SESSION_COUNT = 3;
-    
+
     protected NodeStoreFixture f1;
     protected NodeStoreFixture f2;
     protected NodeStore ns1, ns2;
@@ -57,18 +52,18 @@ public class RandomOpCompare {
     protected Session session1, session2;
     protected Session[] sessionList1 = new Session[SESSION_COUNT];
     protected Session[] sessionList2 = new Session[SESSION_COUNT];
-    
+
     private Random random;
-    
+
     public static void main(String... args) throws Exception {
         RandomOpCompare app = new RandomOpCompare();
         app.login();
         app.test();
         app.logout();
     }
-    
+
     static {
-        
+
         // TODO changes to system properties are not picked up if other tests
         // are run first
 
@@ -86,13 +81,13 @@ public class RandomOpCompare {
     public void login() throws RepositoryException {
         f1 = NodeStoreFixtures.SEGMENT_TAR;
         f2 = getMongo();
-        
+
         ns1 = f1.createNodeStore();
-        r1  = new Jcr(ns1).createRepository();
+        r1 = new Jcr(ns1).createRepository();
         session1 = r1.login(new SimpleCredentials("admin", "admin".toCharArray()));
         for (int i = 0; i < SESSION_COUNT; i++) {
             sessionList1[i] = r1.login(new SimpleCredentials("admin", "admin"
-                    .toCharArray()));
+                .toCharArray()));
         }
 
         ns2 = f2.createNodeStore();
@@ -100,10 +95,10 @@ public class RandomOpCompare {
         session2 = r2.login(new SimpleCredentials("admin", "admin".toCharArray()));
         for (int i = 0; i < SESSION_COUNT; i++) {
             sessionList2[i] = r2.login(new SimpleCredentials("admin", "admin"
-                    .toCharArray()));
+                .toCharArray()));
         }
     }
-    
+
     // @After
     public void logout() {
         if (session1 != null) {
@@ -129,7 +124,7 @@ public class RandomOpCompare {
             f2.dispose(ns2);
         }
     }
-    
+
     private static NodeStoreFixture getMongo() {
         return new NodeStoreFixture() {
             @Override
@@ -141,17 +136,17 @@ public class RandomOpCompare {
                     throw new RuntimeException(e);
                 }
                 return new DocumentMK.Builder().
-                            memoryCacheSize(0).
-                            setMongoDB(connection.getMongoClient(), connection.getDBName()).
-                            setPersistentCache("target/persistentCache,time").
-                            getNodeStore();
+                    memoryCacheSize(0).
+                    setMongoDB(connection.getMongoClient(), connection.getDBName()).
+                    setPersistentCache("target/persistentCache,time").
+                    getNodeStore();
             }
-    
+
             @Override
             public NodeStore createNodeStore(int clusterNodeId) {
                 return null;
             }
-    
+
             @Override
             public void dispose(NodeStore nodeStore) {
                 if (nodeStore instanceof Closeable) {
@@ -170,10 +165,10 @@ public class RandomOpCompare {
         random = new Random(1);
         String longName = longNodeName(0);
         Node root1 = session1.getRootNode().addNode("testNodeRoot").
-                addNode(longName).addNode(longName).addNode(longName);
+                             addNode(longName).addNode(longName).addNode(longName);
         session1.save();
         Node root2 = session2.getRootNode().addNode("testNodeRoot").
-                addNode(longName).addNode(longName).addNode(longName);
+                             addNode(longName).addNode(longName).addNode(longName);
         session2.save();
         System.out.println("len: " + root1.getPath().length());
         long start = System.currentTimeMillis();
@@ -190,52 +185,52 @@ public class RandomOpCompare {
             Session s1 = sessionList1[sessionId];
             Session s2 = sessionList1[sessionId];
             switch (random.nextInt(3)) {
-            case 0:
-                if (root1.hasNode(nodeName)) {
-                    assertTrue(root2.hasNode(nodeName));
-                    root1.getNode(nodeName).remove();
-                    root2.getNode(nodeName).remove();
-                } else {
-                    assertFalse(root2.hasNode(nodeName));
-                    root1.addNode(nodeName);
-                    root2.addNode(nodeName);
-                }
-                break;
-            case 1:
-                if (root1.hasNode(nodeName)) {
-                    assertTrue(root2.hasNode(nodeName));
-                    Node n1 = root1.getNode(nodeName);
-                    Node n2 = root1.getNode(nodeName);
-                    if (n1.hasProperty(propertyName)) {
-                        assertTrue(n2.hasProperty(propertyName));
-                        assertEquals(
-                                n1.getProperty(propertyName).
-                                getValue().getString(),
-                                n2.getProperty(propertyName).
-                                getValue().getString());
+                case 0:
+                    if (root1.hasNode(nodeName)) {
+                        assertTrue(root2.hasNode(nodeName));
+                        root1.getNode(nodeName).remove();
+                        root2.getNode(nodeName).remove();
                     } else {
-                        assertFalse(n2.hasProperty(propertyName));
+                        assertFalse(root2.hasNode(nodeName));
+                        root1.addNode(nodeName);
+                        root2.addNode(nodeName);
                     }
-                    n1.setProperty(propertyName, value);
-                    n2.setProperty(propertyName, value);
-                }                
-                break;
-            case 2:
-                s1.save();
-                s2.save();
-                break;
+                    break;
+                case 1:
+                    if (root1.hasNode(nodeName)) {
+                        assertTrue(root2.hasNode(nodeName));
+                        Node n1 = root1.getNode(nodeName);
+                        Node n2 = root1.getNode(nodeName);
+                        if (n1.hasProperty(propertyName)) {
+                            assertTrue(n2.hasProperty(propertyName));
+                            assertEquals(
+                                n1.getProperty(propertyName).
+                                  getValue().getString(),
+                                n2.getProperty(propertyName).
+                                  getValue().getString());
+                        } else {
+                            assertFalse(n2.hasProperty(propertyName));
+                        }
+                        n1.setProperty(propertyName, value);
+                        n2.setProperty(propertyName, value);
+                    }
+                    break;
+                case 2:
+                    s1.save();
+                    s2.save();
+                    break;
             }
         }
     }
-    
+
     private String randomNodeName() {
         if (random.nextInt(50) == 0) {
             return longNodeName(random.nextInt(5));
         }
         return "n" + random.nextInt(50);
-        
+
     }
-    
+
     private static String longNodeName(int x) {
         StringBuilder buff = new StringBuilder("n");
         for (int i = 0; i < 140; i++) {
@@ -244,6 +239,6 @@ public class RandomOpCompare {
         buff.append(x);
         return buff.toString();
     }
-    
-    
+
+
 }

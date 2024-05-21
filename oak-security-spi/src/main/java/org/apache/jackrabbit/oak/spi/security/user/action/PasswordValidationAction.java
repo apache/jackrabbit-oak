@@ -20,7 +20,6 @@ import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
-
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -33,8 +32,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * {@code PasswordValidationAction} provides a simple password validation
- * mechanism with the following configurable option:
+ * {@code PasswordValidationAction} provides a simple password validation mechanism with the
+ * following configurable option:
  *
  * <ul>
  *     <li><strong>constraint</strong>: a regular expression that can be compiled
@@ -59,7 +58,8 @@ public class PasswordValidationAction extends AbstractAuthorizableAction {
 
     //-------------------------------------------------< AuthorizableAction >---
     @Override
-    public void init(@NotNull SecurityProvider securityProvider, @NotNull ConfigurationParameters config) {
+    public void init(@NotNull SecurityProvider securityProvider,
+        @NotNull ConfigurationParameters config) {
         String constraint = config.getConfigValue(CONSTRAINT, null, String.class);
         if (constraint != null) {
             setConstraint(constraint);
@@ -67,16 +67,19 @@ public class PasswordValidationAction extends AbstractAuthorizableAction {
     }
 
     @Override
-    public void onCreate(@NotNull User user, @Nullable String password, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException {
+    public void onCreate(@NotNull User user, @Nullable String password, @NotNull Root root,
+        @NotNull NamePathMapper namePathMapper) throws RepositoryException {
         validatePassword(password, false);
     }
 
     @Override
-    public void onPasswordChange(@NotNull User user, @Nullable String newPassword, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException {
+    public void onPasswordChange(@NotNull User user, @Nullable String newPassword,
+        @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException {
         validatePassword(newPassword, true);
     }
 
     //------------------------------------------------------------< private >---
+
     /**
      * Set the password constraint.
      *
@@ -93,16 +96,18 @@ public class PasswordValidationAction extends AbstractAuthorizableAction {
     /**
      * Validate the specified password.
      *
-     * @param password The password to be validated
-     * @param forceMatch If true the specified password is always validated;
-     * otherwise only if it is a plain text password.
-     * @throws RepositoryException If the specified password is too short or
-     * doesn't match the specified password pattern.
+     * @param password   The password to be validated
+     * @param forceMatch If true the specified password is always validated; otherwise only if it is
+     *                   a plain text password.
+     * @throws RepositoryException If the specified password is too short or doesn't match the
+     *                             specified password pattern.
      */
-    private void validatePassword(@Nullable String password, boolean forceMatch) throws RepositoryException {
+    private void validatePassword(@Nullable String password, boolean forceMatch)
+        throws RepositoryException {
         if (password != null && (forceMatch || PasswordUtil.isPlainTextPassword(password))) {
             if (pattern != null && !pattern.matcher(password).matches()) {
-                throw new ConstraintViolationException("Password violates password constraint (" + pattern.pattern() + ").");
+                throw new ConstraintViolationException(
+                    "Password violates password constraint (" + pattern.pattern() + ").");
             }
         }
     }

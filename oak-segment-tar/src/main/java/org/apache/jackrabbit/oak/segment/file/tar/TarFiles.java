@@ -17,13 +17,13 @@
 
 package org.apache.jackrabbit.oak.segment.file.tar;
 
+import static java.util.Collections.emptySet;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
 import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
-import static java.util.Collections.emptySet;
 
 import java.io.Closeable;
 import java.io.File;
@@ -45,10 +45,8 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-
 import org.apache.jackrabbit.oak.api.IllegalRepositoryStateException;
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.file.FileReaper;
@@ -255,13 +253,16 @@ public class TarFiles implements Closeable {
         }
 
         private SegmentArchiveManager buildArchiveManager() throws IOException {
-            return persistence.createArchiveManager(memoryMapping, offHeapAccess, ioMonitor, readOnly && fileStoreMonitor == null ? new FileStoreMonitorAdapter() : fileStoreMonitor, remoteStoreMonitor);
+            return persistence.createArchiveManager(memoryMapping, offHeapAccess, ioMonitor,
+                readOnly && fileStoreMonitor == null ? new FileStoreMonitorAdapter()
+                    : fileStoreMonitor, remoteStoreMonitor);
         }
     }
 
     private static final Logger log = LoggerFactory.getLogger(TarFiles.class);
 
-    private static final Pattern FILE_NAME_PATTERN = Pattern.compile("(data)((0|[1-9][0-9]*)[0-9]{4})([a-z])?.tar");
+    private static final Pattern FILE_NAME_PATTERN = Pattern.compile(
+        "(data)((0|[1-9][0-9]*)[0-9]{4})([a-z])?.tar");
 
     private static Node reverse(Node n) {
         Node r = null;
@@ -308,7 +309,8 @@ public class TarFiles implements Closeable {
         };
     }
 
-    private static Map<Integer, Map<Character, String>> collectFiles(SegmentArchiveManager archiveManager) throws IOException {
+    private static Map<Integer, Map<Character, String>> collectFiles(
+        SegmentArchiveManager archiveManager) throws IOException {
         Map<Integer, Map<Character, String>> dataFiles = newHashMap();
         for (String file : archiveManager.listArchives()) {
             Matcher matcher = FILE_NAME_PATTERN.matcher(file);
@@ -343,15 +345,14 @@ public class TarFiles implements Closeable {
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
 
     /**
-     * Points to the first node of the linked list of TAR readers. Every node in
-     * the linked list is immutable. Thus, you need to to hold {@link #lock}
-     * while reading the value of the reference, but you can release it before
-     * iterating through the list.
+     * Points to the first node of the linked list of TAR readers. Every node in the linked list is
+     * immutable. Thus, you need to to hold {@link #lock} while reading the value of the reference,
+     * but you can release it before iterating through the list.
      * <p>
-     * Please note that while the linked list is immutable, the pointer to it
-     * (namely this instance variable) is not itself immutable. This reference
-     * must be kept consistent with {@link #writer}, and this is the reason why
-     * it's necessary to hold a lock while accessing this variable.
+     * Please note that while the linked list is immutable, the pointer to it (namely this instance
+     * variable) is not itself immutable. This reference must be kept consistent with
+     * {@link #writer}, and this is the reason why it's necessary to hold a lock while accessing
+     * this variable.
      */
     private Node readers;
 
@@ -361,9 +362,9 @@ public class TarFiles implements Closeable {
     private TarWriter writer;
 
     /**
-     * If {@code true}, a user requested this instance to close. This flag is
-     * used in long running, background operations - like {@link
-     * #cleanup(CleanupContext)} - to be responsive to termination.
+     * If {@code true}, a user requested this instance to close. This flag is used in long running,
+     * background operations - like {@link #cleanup(CleanupContext)} - to be responsive to
+     * termination.
      */
     private volatile boolean shutdown;
 
@@ -624,17 +625,19 @@ public class TarFiles implements Closeable {
         return null;
     }
 
-    public void writeSegment(UUID id, byte[] buffer, int offset, int length, GCGeneration generation, Set<UUID> references, Set<String> binaryReferences) throws IOException {
+    public void writeSegment(UUID id, byte[] buffer, int offset, int length,
+        GCGeneration generation, Set<UUID> references, Set<String> binaryReferences)
+        throws IOException {
         checkInitialised();
         lock.writeLock().lock();
         try {
             long size = writer.writeEntry(
-                    id.getMostSignificantBits(),
-                    id.getLeastSignificantBits(),
-                    buffer,
-                    offset,
-                    length,
-                    generation
+                id.getMostSignificantBits(),
+                id.getLeastSignificantBits(),
+                buffer,
+                offset,
+                length,
+                generation
             );
             if (references != null) {
                 for (UUID reference : references) {
@@ -655,14 +658,13 @@ public class TarFiles implements Closeable {
     }
 
     /**
-     * Creates a new TAR writer with a higher index number, reopens the previous
-     * TAR writer as a TAR reader, and adds the TAR reader to the linked list.
+     * Creates a new TAR writer with a higher index number, reopens the previous TAR writer as a TAR
+     * reader, and adds the TAR reader to the linked list.
      * <p>
-     * This method must be invoked while holding {@link #lock} in write mode,
-     * because it modifies the references {@link #writer} and {@link #readers}.
+     * This method must be invoked while holding {@link #lock} in write mode, because it modifies
+     * the references {@link #writer} and {@link #readers}.
      *
-     * @throws IOException If an error occurs while operating on the TAR readers
-     *                     or the TAR writer.
+     * @throws IOException If an error occurs while operating on the TAR readers or the TAR writer.
      */
     private void internalNewWriter() throws IOException {
         TarWriter newWriter = writer.createNextGeneration();
@@ -838,7 +840,8 @@ public class TarFiles implements Closeable {
         return c;
     }
 
-    public void collectBlobReferences(Consumer<String> collector, Predicate<GCGeneration> reclaim) throws IOException {
+    public void collectBlobReferences(Consumer<String> collector, Predicate<GCGeneration> reclaim)
+        throws IOException {
         checkInitialised();
         Node head;
         lock.writeLock().lock();

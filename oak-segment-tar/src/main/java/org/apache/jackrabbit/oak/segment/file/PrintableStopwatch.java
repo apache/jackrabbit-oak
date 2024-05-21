@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.segment.file;
 
 import java.util.concurrent.TimeUnit;
-
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 
 /**

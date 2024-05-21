@@ -19,9 +19,21 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.newLucenePropertyIndexDefinition;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
@@ -41,21 +53,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.newLucenePropertyIndexDefinition;
-import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
 @SuppressWarnings("UnusedAssignment")
 public class IndexTrackerTest {
+
     private TrackingCorruptIndexHandler corruptIndexHandler = new TrackingCorruptIndexHandler();
     private EditorHook hook;
 
@@ -66,7 +66,7 @@ public class IndexTrackerTest {
     private IndexTracker tracker = new IndexTracker();
 
     @Before
-    public void setUp(){
+    public void setUp() {
         IndexUpdateProvider updateProvider = new IndexUpdateProvider(
             new LuceneIndexEditorProvider(), "async", false);
         updateProvider.setCorruptIndexHandler(corruptIndexHandler);
@@ -74,7 +74,7 @@ public class IndexTrackerTest {
     }
 
     @Test
-    public void update() throws Exception{
+    public void update() throws Exception {
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
         newLucenePropertyIndexDefinition(index, "lucene", ImmutableSet.of("foo"), "async");
 
@@ -100,7 +100,7 @@ public class IndexTrackerTest {
     }
 
     @Test
-    public void badIndexAccess() throws Exception{
+    public void badIndexAccess() throws Exception {
         createIndex("foo");
 
         //1. Create and populate index
@@ -127,8 +127,6 @@ public class IndexTrackerTest {
         assertNotNull(indexNode);
         assertFalse(tracker.getBadIndexTracker().getBadPersistedIndexPaths().isEmpty());
 
-
-
         //3. Recreate the tracker as we cannot push corrupt index in existing tracker
         //As diffAndUpdate would fail and existing LuceneIndexNode would not be changed
         tracker = new IndexTracker();
@@ -143,7 +141,8 @@ public class IndexTrackerTest {
         assertNull(indexNode);
         assertTrue(tracker.getBadIndexTracker().getIndexPaths().contains("/oak:index/foo"));
 
-        BadIndexTracker.BadIndexInfo badIdxInfo = tracker.getBadIndexTracker().getInfo("/oak:index/foo");
+        BadIndexTracker.BadIndexInfo badIdxInfo = tracker.getBadIndexTracker()
+                                                         .getInfo("/oak:index/foo");
         assertNotNull(badIdxInfo);
         assertEquals(0, badIdxInfo.getAccessCount());
 
@@ -157,7 +156,8 @@ public class IndexTrackerTest {
         assertEquals(0, badIdxInfo.getFailedAccessCount());
 
         //5. Move clock forward
-        ticker.addTime(tracker.getBadIndexTracker().getRecheckIntervalMillis() + 1, TimeUnit.MILLISECONDS);
+        ticker.addTime(tracker.getBadIndexTracker().getRecheckIntervalMillis() + 1,
+            TimeUnit.MILLISECONDS);
 
         //Now index access must be attempted again
         indexNode = tracker.acquireIndexNode("/oak:index/foo");
@@ -182,7 +182,7 @@ public class IndexTrackerTest {
     }
 
     @Test
-    public void notifyFailedIndexing() throws Exception{
+    public void notifyFailedIndexing() throws Exception {
         createIndex("foo");
 
         //1. Create and populate index
@@ -203,7 +203,7 @@ public class IndexTrackerTest {
         try {
             hook.processCommit(before, after, CommitInfo.EMPTY);
             fail("Indexing should have failed");
-        } catch (CommitFailedException ignore){
+        } catch (CommitFailedException ignore) {
 
         }
 
@@ -211,7 +211,7 @@ public class IndexTrackerTest {
     }
 
     @Test
-    public void avoidRedundantDiff() throws Exception{
+    public void avoidRedundantDiff() throws Exception {
         IndexTracker tracker2 = new IndexTracker();
 
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
@@ -236,7 +236,8 @@ public class IndexTrackerTest {
         after = builder.getNodeState();
 
         AsyncIndexInfoService service = mock(AsyncIndexInfoService.class);
-        when(service.hasIndexerUpdatedForAnyLane(any(NodeState.class), any(NodeState.class))).thenReturn(false);
+        when(service.hasIndexerUpdatedForAnyLane(any(NodeState.class),
+            any(NodeState.class))).thenReturn(false);
         tracker.setAsyncIndexInfoService(service);
 
         indexed = hook.processCommit(before, after, CommitInfo.EMPTY);
@@ -255,7 +256,7 @@ public class IndexTrackerTest {
     }
 
     @Test
-    public void avoidNonStatusChanges() throws Exception{
+    public void avoidNonStatusChanges() throws Exception {
 
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
         newLucenePropertyIndexDefinition(index, "lucene", ImmutableSet.of("foo"), "async");
@@ -290,24 +291,26 @@ public class IndexTrackerTest {
 
     private NodeState corruptIndex(String indexPath) {
         NodeBuilder dir = TestUtil.child(builder, PathUtils.concat(indexPath, ":data"));
-        for (String name : dir.getChildNodeNames()){
-            if (!"segments.gen".equals(name)){
-                dir.getChildNode(name).setProperty(PropertyStates.createProperty("jcr:data", Collections
-                    .singletonList(new ArrayBasedBlob("foo".getBytes())), Type.BINARIES));
+        for (String name : dir.getChildNodeNames()) {
+            if (!"segments.gen".equals(name)) {
+                dir.getChildNode(name)
+                   .setProperty(PropertyStates.createProperty("jcr:data", Collections
+                       .singletonList(new ArrayBasedBlob("foo".getBytes())), Type.BINARIES));
             }
         }
 
-        TestUtil.child(builder, PathUtils.concat(indexPath, IndexDefinition.STATUS_NODE)).setProperty("foo", "bar");
+        TestUtil.child(builder, PathUtils.concat(indexPath, IndexDefinition.STATUS_NODE))
+                .setProperty("foo", "bar");
         return builder.getNodeState();
     }
 
-    private NodeState reindex(String indexPath){
+    private NodeState reindex(String indexPath) {
         NodeBuilder dir = TestUtil.child(builder, indexPath);
         dir.setProperty("reindex", true);
         return builder.getNodeState();
     }
 
-    private void createIndex(String propName){
+    private void createIndex(String propName) {
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
         newLucenePropertyIndexDefinition(index, propName, ImmutableSet.of(propName), "async");
     }

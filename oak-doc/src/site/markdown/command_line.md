@@ -71,7 +71,8 @@ When performing operations on the SegmentNodeStore (eg. backup, checkpoints, com
 possible to tweak various system properties to get the optimal performance. These are:
 
 * `cache` - cache size for the SegmentNodeStore (default: `256`),
-* `compaction-progress-log` - how many entries should be compacted between log messages (default: `150000`),
+* `compaction-progress-log` - how many entries should be compacted between log messages (
+  default: `150000`),
 * `update.limit` - threshold for the flush of a temporary transaction to disk (default: `10000`),
 * `tar.memoryMapped` - allow to use memory mapped files to reduce memory usage (default: `false`),
 
@@ -81,10 +82,10 @@ Example:
 
 #### Analyzing Thread Dumps ####
 
-To analyze thread dumps, filter out idle threads, and get profiling data, use the following, there the directory contains thread dump files:
+To analyze thread dumps, filter out idle threads, and get profiling data, use the following, there
+the directory contains thread dump files:
 
     java -jar oak-run-*.jar threaddump --filter --profile <directory>
-
 
 ### MongoDB Shell with oak-mongo.js
 

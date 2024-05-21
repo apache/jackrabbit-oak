@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.security.privilege;
 
+import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
+
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -36,8 +38,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.util.Text;
 import org.jetbrains.annotations.NotNull;
-
-import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
 
 /**
  * Validator implementation that is responsible for validating any modifications made to privileges

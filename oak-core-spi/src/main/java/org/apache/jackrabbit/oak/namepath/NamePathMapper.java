@@ -18,15 +18,12 @@ package org.apache.jackrabbit.oak.namepath;
 
 import java.util.Collections;
 import java.util.Map;
-
 import javax.jcr.RepositoryException;
-
 import org.jetbrains.annotations.NotNull;
 import org.osgi.annotation.versioning.ProviderType;
 
 /**
- * The {@code NamePathMapper} interface combines {@code NameMapper} and
- * {@code PathMapper}.
+ * The {@code NamePathMapper} interface combines {@code NameMapper} and {@code PathMapper}.
  */
 @ProviderType
 public interface NamePathMapper extends NameMapper, PathMapper {
@@ -34,8 +31,8 @@ public interface NamePathMapper extends NameMapper, PathMapper {
     NamePathMapper DEFAULT = new Default();
 
     /**
-     * Default implementation that doesn't perform any conversions for cases
-     * where a mapper object only deals with oak internal names and paths.
+     * Default implementation that doesn't perform any conversions for cases where a mapper object
+     * only deals with oak internal names and paths.
      */
     class Default implements NamePathMapper {
 

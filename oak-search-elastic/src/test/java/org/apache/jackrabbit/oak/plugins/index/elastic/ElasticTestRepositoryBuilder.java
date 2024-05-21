@@ -18,6 +18,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
+import static org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider.compose;
+
+import java.util.List;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.InitialContentHelper;
 import org.apache.jackrabbit.oak.Oak;
@@ -34,10 +37,6 @@ import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
-import java.util.List;
-
-import static org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider.compose;
-
 public class ElasticTestRepositoryBuilder extends TestRepositoryBuilder {
 
     protected final ElasticConnection esConnection;
@@ -46,13 +45,14 @@ public class ElasticTestRepositoryBuilder extends TestRepositoryBuilder {
 
     public ElasticTestRepositoryBuilder(ElasticConnectionRule elasticRule) {
         this.esConnection = elasticRule.useDocker() ? elasticRule.getElasticConnectionForDocker() :
-                elasticRule.getElasticConnectionFromString();
-        this.indexTracker = new ElasticIndexTracker(esConnection, new ElasticMetricHandler(StatisticsProvider.NOOP));
+            elasticRule.getElasticConnectionFromString();
+        this.indexTracker = new ElasticIndexTracker(esConnection,
+            new ElasticMetricHandler(StatisticsProvider.NOOP));
         this.editorProvider = getIndexEditorProvider();
         this.indexProvider = new ElasticIndexProvider(indexTracker);
         this.asyncIndexUpdate = new AsyncIndexUpdate("async", nodeStore, compose(List.of(
-                editorProvider,
-                new NodeCounterEditorProvider()
+            editorProvider,
+            new NodeCounterEditorProvider()
         )));
         queryEngineSettings = new QueryEngineSettings();
         asyncIndexUpdate.setCorruptIndexHandler(trackingCorruptIndexHandler);
@@ -60,13 +60,13 @@ public class ElasticTestRepositoryBuilder extends TestRepositoryBuilder {
 
     public TestRepository build() {
         Oak oak = new Oak(nodeStore)
-                .with(securityProvider)
-                .with(editorProvider)
-                .with(indexTracker)
-                .with(indexProvider)
-                .with(indexEditorProvider)
-                .with(queryIndexProvider)
-                .with(queryEngineSettings);
+            .with(securityProvider)
+            .with(editorProvider)
+            .with(indexTracker)
+            .with(indexProvider)
+            .with(indexEditorProvider)
+            .with(queryIndexProvider)
+            .with(queryEngineSettings);
         if (isAsync) {
             oak.withAsyncIndexing("async", asyncIndexingTimeInSeconds);
         }
@@ -81,6 +81,6 @@ public class ElasticTestRepositoryBuilder extends TestRepositoryBuilder {
     @Override
     public IndexEditorProvider getIndexEditorProvider() {
         return new ElasticIndexEditorProvider(indexTracker, esConnection,
-                new ExtractedTextCache(10 * FileUtils.ONE_MB, 100));
+            new ExtractedTextCache(10 * FileUtils.ONE_MB, 100));
     }
 }

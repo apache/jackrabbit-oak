@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.commons;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
-
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -32,17 +31,17 @@ public final class OakVersion {
 
     /**
      * Returns the version of an Oak module.
-     * 
+     *
      * @param moduleName the name of the module
-     * @param clazz a class of the module
+     * @param clazz      a class of the module
      * @return the version (or "SNAPSHOT" when unknown)
      */
     @NotNull
     public static String getVersion(String moduleName, Class clazz) {
         String version = "SNAPSHOT"; // fallback
         InputStream stream = clazz.getResourceAsStream(
-                "/META-INF/maven/org.apache.jackrabbit/" +
-                        moduleName + "/pom.properties");
+            "/META-INF/maven/org.apache.jackrabbit/" +
+                moduleName + "/pom.properties");
         if (stream != null) {
             try {
                 try {

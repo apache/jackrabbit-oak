@@ -14,17 +14,21 @@
    See the License for the specific language governing permissions and
    limitations under the License.
   -->
-  
+
 # Observation
 
-Jackrabbit Oak as part of JCR implementation provides support for observing content changes via [EventListener][1].
-Event listeners are notified asynchronously, and see events after they occur and the transaction is committed.
-`EventListener` can provide a filtering criteria for the type of events they are interested. 
+Jackrabbit Oak as part of JCR implementation provides support for observing content changes
+via [EventListener][1].
+Event listeners are notified asynchronously, and see events after they occur and the transaction is
+committed.
+`EventListener` can provide a filtering criteria for the type of events they are interested.
 
-Event processing consume system resources hence its important that `EventListener` can tell Oak precisely which
-type of event changes they are interested in. The filtering criteria can be specified in following way
+Event processing consume system resources hence its important that `EventListener` can tell Oak
+precisely which
+type of event changes they are interested in. The filtering criteria can be specified in following
+way
 
-* Via [ObservationManager#addEventListener][2] registration call. 
+* Via [ObservationManager#addEventListener][2] registration call.
 * Via Jackrabbit extension [JackrabbitEventFilter][3]
 * Via Jackrabbit Oak extension [OakEventFilter][4] (new in Oak 1.6)
 
@@ -34,7 +38,8 @@ JCR event listeners might miss some events because:
 
 * Event listeners only see events that occurred after they are installed.
   Earlier events are missed (e.g., events via migration).
-* In case of power failure (or similar) right after an event was persisted, but before the event listener was able to process it.
+* In case of power failure (or similar) right after an event was persisted, but before the event
+  listener was able to process it.
 
 To process events reliably, efficiently, and with low latency, consider using a hybrid approach:
 
@@ -60,7 +65,6 @@ This way, one can be sure all events are processed.
 `@since Oak 1.6`
 
 To make use of new filtering capability use following approach
-
 
     import org.apache.jackrabbit.api.observation.JackrabbitEvent;
     import org.apache.jackrabbit.api.observation.JackrabbitEventFilter;
@@ -93,17 +97,26 @@ Refer to [OakEventFilter][4] javadocs for more details on what filtering criteri
 
 ### Benefits of Filter Approach
 
-In Jackrabbit Oak JCR `EventListener` are implemented as Oak [Observer][5] which are backed by an in memory
-queue. Upon any save call done at JCR layer NodeStore in Oak pushes repository root node in this queue which
-is later used to compute diff from older root and then generate the JCR Events. 
+In Jackrabbit Oak JCR `EventListener` are implemented as Oak [Observer][5] which are backed by an in
+memory
+queue. Upon any save call done at JCR layer NodeStore in Oak pushes repository root node in this
+queue which
+is later used to compute diff from older root and then generate the JCR Events.
 
-For events to work properly it needs to be ensure that this in memory queue does not get filled up. Having a precise
-filter helps Oak in _prefiltering_ changes before they are added to queue. For e.g. if filter stats that its only
-interested in changes under '/content' then Oak can check if changes under that path have happened for given change, 
+For events to work properly it needs to be ensure that this in memory queue does not get filled up.
+Having a precise
+filter helps Oak in _prefiltering_ changes before they are added to queue. For e.g. if filter stats
+that its only
+interested in changes under '/content' then Oak can check if changes under that path have happened
+for given change,
 if not then such a change is not queued.
 
 [1]: https://s.apache.org/jcr-2.0-javadoc/javax/jcr/observation/EventListener.html
+
 [2]: https://s.apache.org/jcr-2.0-javadoc/javax/jcr/observation/ObservationManager.html
+
 [3]: https://jackrabbit.apache.org/api/2.14/org/apache/jackrabbit/api/observation/JackrabbitEventFilter.html
+
 [4]: https://jackrabbit.apache.org/oak/docs/apidocs/org/apache/jackrabbit/oak/jcr/observation/filter/OakEventFilter.html
+
 [5]: https://jackrabbit.apache.org/oak/docs/apidocs/org/apache/jackrabbit/oak/spi/commit/Observer.html

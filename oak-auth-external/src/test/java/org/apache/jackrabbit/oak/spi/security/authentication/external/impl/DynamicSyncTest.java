@@ -16,9 +16,21 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
+
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+import javax.jcr.RepositoryException;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncResult;
@@ -30,24 +42,12 @@ import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
-import javax.jcr.RepositoryException;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.mockito.Mockito.mock;
-
 /**
- * Test combining dynamic sync, automembership and manual member relationship between external group and local group
+ * Test combining dynamic sync, automembership and manual member relationship between external group
+ * and local group
  */
 public class DynamicSyncTest extends AbstractDynamicTest {
-    
+
     private static final String BASE_ID = "base";
     private static final String BASE2_ID = "base2";
     private static final String BASE3_ID = "base3";
@@ -73,7 +73,7 @@ public class DynamicSyncTest extends AbstractDynamicTest {
         assertTrue(base.addMembers(AUTO_GROUPS, AUTO_USERS).isEmpty());
         // add external groups as members breaching IDP boundary (Not recommended!)
         assertTrue(base.addMembers("a", "b").isEmpty());
-        
+
         userManager.createGroup(EveryonePrincipal.getInstance());
 
         base2 = userManager.createGroup(BASE2_ID);
@@ -82,12 +82,13 @@ public class DynamicSyncTest extends AbstractDynamicTest {
         base3 = userManager.createGroup(BASE3_ID);
         Group base4 = userManager.createGroup(BASE4_ID);
         base4.addMembers(BASE3_ID);
-        
+
         r.commit();
     }
 
     @Override
-    @NotNull ExternalUser syncPriorToDynamicMembership() {
+    @NotNull
+    ExternalUser syncPriorToDynamicMembership() {
         // method not needed
         return mock(ExternalUser.class);
     }
@@ -95,8 +96,8 @@ public class DynamicSyncTest extends AbstractDynamicTest {
     @Override
     protected ConfigurationParameters getSecurityConfigParameters() {
         return ConfigurationParameters.of(UserConfiguration.NAME,
-                ConfigurationParameters.of(
-                        ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, ImportBehavior.NAME_BESTEFFORT)
+            ConfigurationParameters.of(
+                ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, ImportBehavior.NAME_BESTEFFORT)
         );
     }
 
@@ -104,12 +105,12 @@ public class DynamicSyncTest extends AbstractDynamicTest {
     protected @NotNull DefaultSyncConfig createSyncConfig() {
         DefaultSyncConfig config = super.createSyncConfig();
         config.group()
-                .setDynamicGroups(true)
-                .setAutoMembership(AUTO_GROUPS);
+              .setDynamicGroups(true)
+              .setAutoMembership(AUTO_GROUPS);
         config.user()
-                .setEnforceDynamicMembership(true)
-                .setMembershipNestingDepth(2)
-                .setAutoMembership(AUTO_USERS);
+              .setEnforceDynamicMembership(true)
+              .setMembershipNestingDepth(2)
+              .setAutoMembership(AUTO_USERS);
         return config;
     }
 
@@ -122,10 +123,12 @@ public class DynamicSyncTest extends AbstractDynamicTest {
         assertNotNull(user);
 
         // assert membership
-        Set<String> expDeclaredGroupIds = ImmutableSet.of("a", "b", "c", "aa", "aaa", AUTO_GROUPS, AUTO_USERS, EveryonePrincipal.NAME);
+        Set<String> expDeclaredGroupIds = ImmutableSet.of("a", "b", "c", "aa", "aaa", AUTO_GROUPS,
+            AUTO_USERS, EveryonePrincipal.NAME);
         assertExpectedIds(expDeclaredGroupIds, user.declaredMemberOf());
 
-        Set<String> expGroupIds = ImmutableSet.of(BASE_ID, BASE2_ID, "a", "b", "c", "aa", "aaa", AUTO_GROUPS, AUTO_USERS, EveryonePrincipal.NAME);
+        Set<String> expGroupIds = ImmutableSet.of(BASE_ID, BASE2_ID, "a", "b", "c", "aa", "aaa",
+            AUTO_GROUPS, AUTO_USERS, EveryonePrincipal.NAME);
         assertExpectedIds(expGroupIds, user.memberOf());
 
         // assert groups
@@ -133,7 +136,8 @@ public class DynamicSyncTest extends AbstractDynamicTest {
         user.memberOf().forEachRemaining(group -> assertIsMember(group, false, user));
 
         // assert principals
-        List<String> principalNames = getPrincipalNames(getPrincipalManager(r).getGroupMembership(user.getPrincipal()));
+        List<String> principalNames = getPrincipalNames(
+            getPrincipalManager(r).getGroupMembership(user.getPrincipal()));
         assertEquals(10, principalNames.size());
     }
 
@@ -152,10 +156,12 @@ public class DynamicSyncTest extends AbstractDynamicTest {
         assertNotNull(user);
 
         // assert membership
-        Set<String> expDeclaredGroupIds = ImmutableSet.of("a", "b", "c", "aa", "aaa", AUTO_GROUPS, AUTO_USERS, EveryonePrincipal.NAME);
+        Set<String> expDeclaredGroupIds = ImmutableSet.of("a", "b", "c", "aa", "aaa", AUTO_GROUPS,
+            AUTO_USERS, EveryonePrincipal.NAME);
         assertExpectedIds(expDeclaredGroupIds, user.declaredMemberOf());
 
-        Set<String> expGroupIds = ImmutableSet.of(BASE_ID, BASE2_ID, BASE3_ID, BASE4_ID, "a", "b", "c", "aa", "aaa", AUTO_GROUPS, AUTO_USERS, EveryonePrincipal.NAME);
+        Set<String> expGroupIds = ImmutableSet.of(BASE_ID, BASE2_ID, BASE3_ID, BASE4_ID, "a", "b",
+            "c", "aa", "aaa", AUTO_GROUPS, AUTO_USERS, EveryonePrincipal.NAME);
         assertExpectedIds(expGroupIds, user.memberOf());
 
         // assert groups
@@ -163,7 +169,8 @@ public class DynamicSyncTest extends AbstractDynamicTest {
         user.memberOf().forEachRemaining(group -> assertIsMember(group, false, user));
 
         // assert principals
-        List<String> principalNames = getPrincipalNames(getPrincipalManager(r).getGroupMembership(user.getPrincipal()));
+        List<String> principalNames = getPrincipalNames(
+            getPrincipalManager(r).getGroupMembership(user.getPrincipal()));
         assertEquals(12, principalNames.size());
     }
 
@@ -181,10 +188,12 @@ public class DynamicSyncTest extends AbstractDynamicTest {
         assertNotNull(user);
 
         // assert membership
-        Set<String> expDeclaredGroupIds = ImmutableSet.of("a", "b", "c", "aa", "aaa", AUTO_GROUPS, AUTO_USERS, EveryonePrincipal.NAME);
+        Set<String> expDeclaredGroupIds = ImmutableSet.of("a", "b", "c", "aa", "aaa", AUTO_GROUPS,
+            AUTO_USERS, EveryonePrincipal.NAME);
         assertExpectedIds(expDeclaredGroupIds, user.declaredMemberOf());
 
-        Set<String> expGroupIds = ImmutableSet.of(BASE_ID, BASE2_ID, BASE3_ID, BASE4_ID, "a", "b", "c", "aa", "aaa", AUTO_GROUPS, AUTO_USERS, EveryonePrincipal.NAME);
+        Set<String> expGroupIds = ImmutableSet.of(BASE_ID, BASE2_ID, BASE3_ID, BASE4_ID, "a", "b",
+            "c", "aa", "aaa", AUTO_GROUPS, AUTO_USERS, EveryonePrincipal.NAME);
         assertExpectedIds(expGroupIds, user.memberOf());
 
         // assert groups
@@ -192,7 +201,8 @@ public class DynamicSyncTest extends AbstractDynamicTest {
         user.memberOf().forEachRemaining(group -> assertIsMember(group, false, user));
 
         // assert principals
-        List<String> principalNames = getPrincipalNames(getPrincipalManager(r).getGroupMembership(user.getPrincipal()));
+        List<String> principalNames = getPrincipalNames(
+            getPrincipalManager(r).getGroupMembership(user.getPrincipal()));
         assertEquals(12, principalNames.size());
     }
 
@@ -204,9 +214,10 @@ public class DynamicSyncTest extends AbstractDynamicTest {
         // verify group 'a'
         Group aGroup = userManager.getAuthorizable("a", Group.class);
         assertNotNull(aGroup);
-        
-        assertExpectedIds(Collections.singleton(USER_ID), aGroup.getDeclaredMembers(), aGroup.getMembers());
-        
+
+        assertExpectedIds(Collections.singleton(USER_ID), aGroup.getDeclaredMembers(),
+            aGroup.getMembers());
+
         Set<String> expectedIds = ImmutableSet.of(AUTO_GROUPS, BASE_ID, EveryonePrincipal.NAME);
         assertExpectedIds(expectedIds, aGroup.declaredMemberOf(), aGroup.memberOf());
     }
@@ -221,7 +232,8 @@ public class DynamicSyncTest extends AbstractDynamicTest {
 
         // verify group 'autoForGroups'
         Set<String> expMemberIds = ImmutableSet.of("a", "b", "c", "aa", "aaa", USER_ID);
-        assertExpectedIds(expMemberIds, autoForGroups.getDeclaredMembers(), autoForGroups.getMembers());
+        assertExpectedIds(expMemberIds, autoForGroups.getDeclaredMembers(),
+            autoForGroups.getMembers());
         assertIsMember(autoForGroups, true, user, aGroup);
         assertIsMember(autoForGroups, false, user, aGroup);
         assertFalse(autoForGroups.isMember(base));
@@ -237,7 +249,8 @@ public class DynamicSyncTest extends AbstractDynamicTest {
 
         // verify group 'autoForUsers'
         Set<String> expMemberIds = ImmutableSet.of(USER_ID);
-        assertExpectedIds(expMemberIds, autoForUsers.getDeclaredMembers(), autoForUsers.getMembers());
+        assertExpectedIds(expMemberIds, autoForUsers.getDeclaredMembers(),
+            autoForUsers.getMembers());
         assertTrue(autoForUsers.isMember(user));
 
         assertFalse(autoForUsers.isMember(aGroup));
@@ -256,8 +269,9 @@ public class DynamicSyncTest extends AbstractDynamicTest {
         assertExpectedIds(expDeclaredMemberIds, base.getDeclaredMembers());
         assertFalse(base.isDeclaredMember(user));
 
-        Set<String> expMemberIds = ImmutableSet.of(USER_ID, AUTO_GROUPS, AUTO_USERS, "a", "b", "c", "aa", "aaa");
-       assertExpectedIds(expMemberIds, base.getMembers());
+        Set<String> expMemberIds = ImmutableSet.of(USER_ID, AUTO_GROUPS, AUTO_USERS, "a", "b", "c",
+            "aa", "aaa");
+        assertExpectedIds(expMemberIds, base.getMembers());
         assertTrue(base.isMember(user));
     }
 
@@ -267,8 +281,8 @@ public class DynamicSyncTest extends AbstractDynamicTest {
         sync(externalUser, SyncResult.Status.ADD);
 
         Authorizable user = userManager.getAuthorizable(USER_ID);
-        
-        // verify group 'base2'    
+
+        // verify group 'base2'
         Set<String> expDeclaredMemberIds = ImmutableSet.of(AUTO_USERS);
         assertExpectedIds(expDeclaredMemberIds, base2.getDeclaredMembers());
 
@@ -279,7 +293,8 @@ public class DynamicSyncTest extends AbstractDynamicTest {
         assertTrue(base2.isMember(user));
     }
 
-    private static void assertIsMember(@NotNull Group group, boolean declared, @NotNull Authorizable... members) {
+    private static void assertIsMember(@NotNull Group group, boolean declared,
+        @NotNull Authorizable... members) {
         try {
             for (Authorizable member : members) {
                 if (declared) {
@@ -292,12 +307,14 @@ public class DynamicSyncTest extends AbstractDynamicTest {
             fail(e.getMessage());
         }
     }
-    
-    private static void assertExpectedIds(@NotNull Set<String> expectedIds, @NotNull Iterator<? extends Authorizable>... iterators) {
+
+    private static void assertExpectedIds(@NotNull Set<String> expectedIds,
+        @NotNull Iterator<? extends Authorizable>... iterators) {
         for (Iterator<? extends Authorizable> it : iterators) {
             List<String> ids = getIds(it);
-            assertEquals("Expected "+expectedIds+" found "+ids, expectedIds.size(), ids.size());
-            assertTrue("Expected "+expectedIds+" found "+ids, ids.containsAll(expectedIds));
+            assertEquals("Expected " + expectedIds + " found " + ids, expectedIds.size(),
+                ids.size());
+            assertTrue("Expected " + expectedIds + " found " + ids, ids.containsAll(expectedIds));
         }
     }
 }

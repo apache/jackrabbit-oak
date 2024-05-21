@@ -21,7 +21,6 @@ import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull
 
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.RepositoryException;
-
 import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -34,8 +33,8 @@ public abstract class ItemDelegate {
     protected final SessionDelegate sessionDelegate;
 
     /**
-     * The session update count. Used to avoid the overhead of extra
-     * {@link #exists()} calls every time this item is accessed.
+     * The session update count. Used to avoid the overhead of extra {@link #exists()} calls every
+     * time this item is accessed.
      *
      * @see #checkAlive()
      */
@@ -43,16 +42,14 @@ public abstract class ItemDelegate {
 
     ItemDelegate(SessionDelegate sessionDelegate) {
         this.sessionDelegate = checkNotNull(sessionDelegate);
-        this.updateCount  = sessionDelegate.getUpdateCount();
+        this.updateCount = sessionDelegate.getUpdateCount();
     }
 
     /**
-     * Checks whether the session has changed since this delegate instance
-     * was last accessed, thus triggering an {@link #update() update} of the
-     * internal state of this delegate.
+     * Checks whether the session has changed since this delegate instance was last accessed, thus
+     * triggering an {@link #update() update} of the internal state of this delegate.
      *
-     * @return {@code true} if the session was recently updated,
-     *         {@code false} if not
+     * @return {@code true} if the session was recently updated, {@code false} if not
      */
     protected boolean checkUpdate() {
         long sessionCount = sessionDelegate.getUpdateCount();
@@ -66,8 +63,7 @@ public abstract class ItemDelegate {
     }
 
     /**
-     * Called by {@link #checkUpdate()} to update the internal state of this
-     * delegate.
+     * Called by {@link #checkUpdate()} to update the internal state of this delegate.
      */
     protected void update() {
     }
@@ -75,20 +71,20 @@ public abstract class ItemDelegate {
     /**
      * Performs a sanity check on this item and the associated session.
      *
-     * @throws RepositoryException if this item has been rendered invalid
-     *                             for some reason or the associated session
-     *                             has been logged out
+     * @throws RepositoryException if this item has been rendered invalid for some reason or the
+     *                             associated session has been logged out
      */
     public synchronized void checkAlive() throws RepositoryException {
         sessionDelegate.checkAlive();
         if (checkUpdate() && !exists()) {
             throw new InvalidItemStateException(
-                    "This item [" + getPath() + "] does not exist anymore");
+                "This item [" + getPath() + "] does not exist anymore");
         }
     }
 
     /**
      * Get the name of this item
+     *
      * @return oak name of this item
      */
     @NotNull
@@ -96,6 +92,7 @@ public abstract class ItemDelegate {
 
     /**
      * Get the path of this item
+     *
      * @return oak path of this item
      */
     @NotNull
@@ -103,15 +100,16 @@ public abstract class ItemDelegate {
 
     /**
      * Get the parent of this item or {@code null}.
-     * @return  parent of this item or {@code null} for root or if the parent
-     * is not accessible.
+     *
+     * @return parent of this item or {@code null} for root or if the parent is not accessible.
      */
     @Nullable
     public abstract NodeDelegate getParent();
 
     /**
      * Get the status of this item.
-     * @return  {@link Status} of this item or {@code null} if not available.
+     *
+     * @return {@link Status} of this item or {@code null} if not available.
      */
     @Nullable
     public abstract Status getStatus();
@@ -120,15 +118,16 @@ public abstract class ItemDelegate {
 
     /**
      * Determine whether the underlying item exists
-     * @return  {@code true} the underlying tree exists, {@code false} otherwise.
+     *
+     * @return {@code true} the underlying tree exists, {@code false} otherwise.
      */
     public abstract boolean exists();
 
     /**
      * Removes this item.
      *
-     * @return {@code true} if this item was removed;
-     *         or {@code false} if this is the root node that can't be removed
+     * @return {@code true} if this item was removed; or {@code false} if this is the root node that
+     * can't be removed
      */
     public abstract boolean remove() throws InvalidItemStateException;
 

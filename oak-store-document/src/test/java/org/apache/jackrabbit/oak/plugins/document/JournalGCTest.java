@@ -65,12 +65,12 @@ public class JournalGCTest {
         Revision.resetClockToDefault();
         shouldWait.remove();
     }
-    
+
     @After
     public void tearDown() {
         shouldWait.remove();
     }
-    
+
     @Rule
     public DocumentMKBuilderProvider builderProvider = new DocumentMKBuilderProvider();
 
@@ -79,8 +79,8 @@ public class JournalGCTest {
         Clock c = new Clock.Virtual();
         c.waitUntil(System.currentTimeMillis());
         DocumentNodeStore ns = builderProvider.newBuilder()
-                .setJournalGCMaxAge(TimeUnit.HOURS.toMillis(1))
-                .clock(c).setAsyncDelay(0).getNodeStore();
+                                              .setJournalGCMaxAge(TimeUnit.HOURS.toMillis(1))
+                                              .clock(c).setAsyncDelay(0).getNodeStore();
 
         // perform some change
         NodeBuilder builder = ns.getRoot().builder();
@@ -122,10 +122,10 @@ public class JournalGCTest {
         Revision.setClock(c);
         MemoryDocumentStore docStore = new MemoryDocumentStore();
         DocumentNodeStore ns = builderProvider.newBuilder()
-                .setDocumentStore(docStore).setUpdateLimit(100)
-                .setJournalGCMaxAge(TimeUnit.HOURS.toMillis(1))
-                .setLeaseCheckMode(LeaseCheckMode.LENIENT)
-                .clock(c).setAsyncDelay(0).getNodeStore();
+                                              .setDocumentStore(docStore).setUpdateLimit(100)
+                                              .setJournalGCMaxAge(TimeUnit.HOURS.toMillis(1))
+                                              .setLeaseCheckMode(LeaseCheckMode.LENIENT)
+                                              .clock(c).setAsyncDelay(0).getNodeStore();
 
         NodeBuilder builder = ns.getRoot().builder();
         NodeBuilder test = builder.child("test");
@@ -170,8 +170,8 @@ public class JournalGCTest {
         Clock c = new Clock.Virtual();
         c.waitUntil(System.currentTimeMillis());
         DocumentNodeStore ns = builderProvider.newBuilder()
-                .setJournalGCMaxAge(TimeUnit.HOURS.toMillis(1))
-                .clock(c).setAsyncDelay(0).getNodeStore();
+                                              .setJournalGCMaxAge(TimeUnit.HOURS.toMillis(1))
+                                              .clock(c).setAsyncDelay(0).getNodeStore();
 
         JournalGarbageCollector jgc = ns.getJournalGarbageCollector();
         assertEquals(new Revision(0, 0, ns.getClusterId()), jgc.getTailRevision());
@@ -239,25 +239,25 @@ public class JournalGCTest {
             }
         };
         final DocumentNodeStore writingNs = builderProvider.newBuilder()
-                .setDocumentStore(sharedDocStore)
-                .setClusterId(1)
-                .setAsyncDelay(0).getNodeStore();
+                                                           .setDocumentStore(sharedDocStore)
+                                                           .setClusterId(1)
+                                                           .setAsyncDelay(0).getNodeStore();
         DocumentNodeStore readingNs = builderProvider.newBuilder()
-                .setDocumentStore(sharedDocStore)
-                .setClusterId(2)
-                .setAsyncDelay(0).getNodeStore();
-        
+                                                     .setDocumentStore(sharedDocStore)
+                                                     .setClusterId(2)
+                                                     .setAsyncDelay(0).getNodeStore();
+
         // 'proper cluster sync': do it a bit too many times
         readingNs.runBackgroundOperations();
         writingNs.runBackgroundOperations();
         readingNs.runBackgroundOperations();
         writingNs.runBackgroundOperations();
-        
+
         // perform some change in writingNs - not yet seen by readingNs
         NodeBuilder builder = writingNs.getRoot().builder();
         NodeBuilder foo = builder.child("foo");
         // cause a branch commit
-        for(int i=0; i<DocumentMK.UPDATE_LIMIT + 1; i++) {
+        for (int i = 0; i < DocumentMK.UPDATE_LIMIT + 1; i++) {
             foo.setProperty(String.valueOf(i), "foobar");
         }
         writingNs.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
@@ -275,7 +275,7 @@ public class JournalGCTest {
         // clear up the semaphore
         enteringFind.drainPermits();
         continuingFind.drainPermits();
-        
+
         final StringBuffer errorMsg = new StringBuffer();
         Runnable r = new Runnable() {
             @Override
@@ -288,33 +288,34 @@ public class JournalGCTest {
                         return;
                     }
                 } catch (InterruptedException e) {
-                    errorMsg.append("Got interrupted: "+e);
+                    errorMsg.append("Got interrupted: " + e);
                     return;
                 }
                 LOG.info("find(JOURNAL,..) got called, running GC.");
-                
+
                 // avoid find to block in this thread - via a ThreadLocal
                 shouldWait.set(false);
-                
+
                 // instruct journal GC to remove entries older than one hour - readingNs hasn't seen it
                 new JournalGarbageCollector(writingNs, TimeUnit.SECONDS.toMillis(1)).gc();
 
                 // entry should be removed
-                JournalEntry entry = writingNs.getDocumentStore().find(JOURNAL, JournalEntry.asId(head));
+                JournalEntry entry = writingNs.getDocumentStore()
+                                              .find(JOURNAL, JournalEntry.asId(head));
                 assertNull(entry);
-                
+
                 // now release the waiting find(JOURNAL,..) thread
                 continuingFind.release(100);
             }
         };
         Thread th = new Thread(r);
         th.start();
-        
+
         // verify that readingNs doesn't have /foo yet
         assertFalse(readingNs.getRoot().hasChildNode("foo"));
-        
+
         // now run background ops on readingNs - it should be able to see 'foo'
-        for(int i=0; i<5; i++) {
+        for (int i = 0; i < 5; i++) {
             readingNs.runBackgroundOperations();
         }
         assertTrue(readingNs.getRoot().hasChildNode("foo"));

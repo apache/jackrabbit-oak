@@ -22,41 +22,40 @@ package org.apache.jackrabbit.oak.spi.commit;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * A CommitContext instance can be obtained from {@link CommitInfo#getInfo()}
- * if it has been set before the merge call. This can then be used by CommitHook
- * to record some metadata regarding the commit.
+ * A CommitContext instance can be obtained from {@link CommitInfo#getInfo()} if it has been set
+ * before the merge call. This can then be used by CommitHook to record some metadata regarding the
+ * commit.
  *
  * <p>CommitContext state would be reset in case commit is retried from within
  * NodeStore say when a merge exception occurs.
  */
 public interface CommitContext {
+
     /**
-     * Name of the entry of the mutable commit attributes map in the {@code info}
-     * map in {@link CommitInfo#getInfo()}
+     * Name of the entry of the mutable commit attributes map in the {@code info} map in
+     * {@link CommitInfo#getInfo()}
      */
     String NAME = "oak.commitAttributes";
 
     /**
-     * Stores an attribute related to this commit.
-     * Attributes are reset if the commit is retried.
+     * Stores an attribute related to this commit. Attributes are reset if the commit is retried.
      *
      * <p>If the object passed in is null, the effect is the same as
      * calling {@link #remove}.
      *
-     * @param name a <code>String</code> specifying the name of the attribute
+     * @param name  a <code>String</code> specifying the name of the attribute
      * @param value the <code>Object</code> to be stored
      */
     void set(String name, Object value);
 
     /**
-     * Returns the value of the named attribute as an <code>Object</code>,
-     * or <code>null</code> if no attribute of the given name exists.
+     * Returns the value of the named attribute as an <code>Object</code>, or <code>null</code> if
+     * no attribute of the given name exists.
      *
      * @param name <code>String</code> specifying the name of
-     * the attribute
-     *
-     * @return an <code>Object</code> containing the value
-     * of the attribute, or <code>null</code> if the attribute does not exist
+     *             the attribute
+     * @return an <code>Object</code> containing the value of the attribute, or <code>null</code> if
+     * the attribute does not exist
      */
     @Nullable
     Object get(String name);
@@ -64,8 +63,7 @@ public interface CommitContext {
     /**
      * Removes an attribute from this commit.
      *
-     * @param name a <code>String</code> specifying
-     * the name of the attribute to remove
+     * @param name a <code>String</code> specifying the name of the attribute to remove
      */
     void remove(String name);
 }

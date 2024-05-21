@@ -27,7 +27,6 @@ import static org.junit.Assume.assumeTrue;
 
 import java.io.File;
 import java.io.IOException;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
@@ -42,18 +41,21 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 /**
- * This test asserts that adding many ({@link ManyChildNodesIT#NODE_COUNT}) child nodes
- * consumes a constant amount of memory (See OAK-4949). It should be possible to add
- * 2M child nodes with a 512M heap.
+ * This test asserts that adding many ({@link ManyChildNodesIT#NODE_COUNT}) child nodes consumes a
+ * constant amount of memory (See OAK-4949). It should be possible to add 2M child nodes with a 512M
+ * heap.
  *
- *<p>The test is <b>disabled</b> by default, to run it set {@code -Dtest=ManyChildNodesIT} </p>
+ * <p>The test is <b>disabled</b> by default, to run it set {@code -Dtest=ManyChildNodesIT} </p>
  */
 public class ManyChildNodesIT {
+
     private static final int NODE_COUNT = getInteger("many-child-node-it.node-count", 2000000);
 
-    /** Only run if explicitly asked to via -Dtest=ManyChildNodesIT */
+    /**
+     * Only run if explicitly asked to via -Dtest=ManyChildNodesIT
+     */
     private static final boolean ENABLED =
-            ManyChildNodesIT.class.getSimpleName().equals(getProperty("test"));
+        ManyChildNodesIT.class.getSimpleName().equals(getProperty("test"));
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder(new File("target"));
@@ -66,18 +68,18 @@ public class ManyChildNodesIT {
     @NotNull
     private FileStore createFileStore() throws InvalidFileStoreVersionException, IOException {
         return fileStoreBuilder(folder.getRoot())
-                .withStringCacheSize(0)
-                .withTemplateCacheSize(0)
-                .withStringDeduplicationCacheSize(0)
-                .withTemplateDeduplicationCacheSize(0)
-                .withNodeDeduplicationCacheSize(1)
-                .withGCOptions(defaultGCOptions().setOffline())
-                .build();
+            .withStringCacheSize(0)
+            .withTemplateCacheSize(0)
+            .withStringDeduplicationCacheSize(0)
+            .withTemplateDeduplicationCacheSize(0)
+            .withNodeDeduplicationCacheSize(1)
+            .withGCOptions(defaultGCOptions().setOffline())
+            .build();
     }
 
     @Test
     public void manyChildNodesOnRoot()
-    throws IOException, InvalidFileStoreVersionException, CommitFailedException {
+        throws IOException, InvalidFileStoreVersionException, CommitFailedException {
         try (FileStore fileStore = createFileStore()) {
             SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
             NodeBuilder builder = nodeStore.getRoot().builder();
@@ -88,7 +90,7 @@ public class ManyChildNodesIT {
 
     @Test
     public void manyChildNodes()
-    throws IOException, InvalidFileStoreVersionException, CommitFailedException {
+        throws IOException, InvalidFileStoreVersionException, CommitFailedException {
         try (FileStore fileStore = createFileStore()) {
             SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
             NodeBuilder root = nodeStore.getRoot().builder();
@@ -119,7 +121,9 @@ public class ManyChildNodesIT {
 
     private static void addManyNodes(NodeBuilder builder) {
         for (int k = 0; k < NODE_COUNT; k++) {
-            if (k % 10000 == 0) System.out.println(k);
+            if (k % 10000 == 0) {
+                System.out.println(k);
+            }
             builder.setChildNode("c-" + k);
         }
     }

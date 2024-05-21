@@ -19,15 +19,14 @@
 
 package org.apache.jackrabbit.oak.stats;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-
 import org.apache.jackrabbit.api.stats.RepositoryStatistics;
 import org.apache.jackrabbit.api.stats.TimeSeries;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 
 public class SimpleStatsTest {
 
@@ -97,7 +96,7 @@ public class SimpleStatsTest {
     }
 
     @Test
-    public void noopRepoStatsTest() throws Exception{
+    public void noopRepoStatsTest() throws Exception {
         RepositoryStatistics stats = StatisticsProvider.NOOP.getStats();
 
         assertNotNull(stats);
@@ -113,7 +112,7 @@ public class SimpleStatsTest {
     }
 
     @Test
-    public void meterResetAndCount() throws Exception{
+    public void meterResetAndCount() throws Exception {
         AtomicLong counter = new AtomicLong();
         MeterStats stats = new SimpleStats(counter, SimpleStats.Type.METER);
 

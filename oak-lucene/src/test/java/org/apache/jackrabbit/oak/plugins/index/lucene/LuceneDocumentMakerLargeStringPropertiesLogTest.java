@@ -17,9 +17,19 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import static java.util.Arrays.asList;
+import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
+import java.io.IOException;
+import java.security.InvalidParameterException;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.junit.TemporarySystemProperty;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexDefinitionBuilder;
@@ -31,17 +41,6 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.security.InvalidParameterException;
-
-import static java.util.Arrays.asList;
-import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
 public class LuceneDocumentMakerLargeStringPropertiesLogTest {
 
@@ -72,18 +71,20 @@ public class LuceneDocumentMakerLargeStringPropertiesLogTest {
         System.setProperty(FulltextDocumentMaker.WARN_LOG_STRING_SIZE_THRESHOLD_KEY, threshold);
     }
 
-    private LuceneDocumentMaker addPropertyAccordingToType(NodeBuilder test, Type type, String... str) throws IOException {
+    private LuceneDocumentMaker addPropertyAccordingToType(NodeBuilder test, Type type,
+        String... str) throws IOException {
         NodeState root = INITIAL_CONTENT;
         LuceneIndexDefinitionBuilder builder = new LuceneIndexDefinitionBuilder();
         builder.indexRule("nt:base")
-                .property("foo")
-                .propertyIndex()
-                .analyzed()
-                .valueExcludedPrefixes("/jobs");
+               .property("foo")
+               .propertyIndex()
+               .analyzed()
+               .valueExcludedPrefixes("/jobs");
 
-        LuceneIndexDefinition defn = LuceneIndexDefinition.newBuilder(root, builder.build(), "/foo").build();
+        LuceneIndexDefinition defn = LuceneIndexDefinition.newBuilder(root, builder.build(), "/foo")
+                                                          .build();
         LuceneDocumentMaker docMaker = new LuceneDocumentMaker(defn,
-                defn.getApplicableIndexingRule("nt:base"), "/x");
+            defn.getApplicableIndexingRule("nt:base"), "/x");
 
         if (Type.STRINGS == type) {
             test.setProperty("foo", asList(str), Type.STRINGS);
@@ -98,7 +99,8 @@ public class LuceneDocumentMakerLargeStringPropertiesLogTest {
     @Test
     public void testDefaultThreshold() throws IOException {
         NodeBuilder test = EMPTY_NODE.builder();
-        LuceneDocumentMaker docMaker = addPropertyAccordingToType(test, Type.STRING, largeStringPropertyAsPerCustomThreshold);
+        LuceneDocumentMaker docMaker = addPropertyAccordingToType(test, Type.STRING,
+            largeStringPropertyAsPerCustomThreshold);
         assertNotNull(docMaker.makeDocument(test.getNodeState()));
         assertFalse(isWarnMessagePresent(listAppender));
     }
@@ -107,7 +109,8 @@ public class LuceneDocumentMakerLargeStringPropertiesLogTest {
     public void testNoLoggingOnAddingSmallStringWithCustomThreshold() throws IOException {
         setThresholdLimit(customStringPropertyThresholdLimit);
         NodeBuilder test = EMPTY_NODE.builder();
-        LuceneDocumentMaker docMaker = addPropertyAccordingToType(test, Type.STRING, smallStringProperty);
+        LuceneDocumentMaker docMaker = addPropertyAccordingToType(test, Type.STRING,
+            smallStringProperty);
         assertNotNull(docMaker.makeDocument(test.getNodeState()));
         assertFalse(isWarnMessagePresent(listAppender));
     }
@@ -116,7 +119,8 @@ public class LuceneDocumentMakerLargeStringPropertiesLogTest {
     public void testNoLoggingOnAddingSmallStringArrayWithCustomThreshold() throws IOException {
         setThresholdLimit(customStringPropertyThresholdLimit);
         NodeBuilder test = EMPTY_NODE.builder();
-        LuceneDocumentMaker docMaker = addPropertyAccordingToType(test, Type.STRINGS, smallStringProperty, smallStringProperty);
+        LuceneDocumentMaker docMaker = addPropertyAccordingToType(test, Type.STRINGS,
+            smallStringProperty, smallStringProperty);
         assertNotNull(docMaker.makeDocument(test.getNodeState()));
         assertFalse(isWarnMessagePresent(listAppender));
     }
@@ -124,7 +128,8 @@ public class LuceneDocumentMakerLargeStringPropertiesLogTest {
     @Test
     public void testNoLoggingOnAddingSmallStringArrayWithoutCustomThreshold() throws IOException {
         NodeBuilder test = EMPTY_NODE.builder();
-        LuceneDocumentMaker docMaker = addPropertyAccordingToType(test, Type.STRINGS, smallStringProperty, smallStringProperty);
+        LuceneDocumentMaker docMaker = addPropertyAccordingToType(test, Type.STRINGS,
+            smallStringProperty, smallStringProperty);
         assertNotNull(docMaker.makeDocument(test.getNodeState()));
         assertFalse(isWarnMessagePresent(listAppender));
     }
@@ -133,7 +138,8 @@ public class LuceneDocumentMakerLargeStringPropertiesLogTest {
     public void testLoggingOnAddingLargeStringWithCustomThreshold() throws IOException {
         setThresholdLimit(customStringPropertyThresholdLimit);
         NodeBuilder test = EMPTY_NODE.builder();
-        LuceneDocumentMaker docMaker = addPropertyAccordingToType(test, Type.STRING, largeStringPropertyAsPerCustomThreshold);
+        LuceneDocumentMaker docMaker = addPropertyAccordingToType(test, Type.STRING,
+            largeStringPropertyAsPerCustomThreshold);
         assertNotNull(docMaker.makeDocument(test.getNodeState()));
         assertTrue(isWarnMessagePresent(listAppender));
     }
@@ -142,34 +148,41 @@ public class LuceneDocumentMakerLargeStringPropertiesLogTest {
     public void testLoggingOnAddingLargeStringWithoutCustomThreshold() throws IOException {
         //  setThresholdLimit(null);
         NodeBuilder test = EMPTY_NODE.builder();
-        LuceneDocumentMaker docMaker = addPropertyAccordingToType(test, Type.STRING, smallStringProperty);
+        LuceneDocumentMaker docMaker = addPropertyAccordingToType(test, Type.STRING,
+            smallStringProperty);
         assertNotNull(docMaker.makeDocument(test.getNodeState()));
         assertFalse(isWarnMessagePresent(listAppender));
     }
 
     @Test
-    public void testLoggingOnAddingLargeStringArrayOneLargePropertyWithoutCustomThreshold() throws IOException {
+    public void testLoggingOnAddingLargeStringArrayOneLargePropertyWithoutCustomThreshold()
+        throws IOException {
         NodeBuilder test = EMPTY_NODE.builder();
-        LuceneDocumentMaker docMaker = addPropertyAccordingToType(test, Type.STRINGS, largeStringPropertyAsPerCustomThreshold, smallStringProperty);
+        LuceneDocumentMaker docMaker = addPropertyAccordingToType(test, Type.STRINGS,
+            largeStringPropertyAsPerCustomThreshold, smallStringProperty);
         assertNotNull(docMaker.makeDocument(test.getNodeState()));
         assertFalse(isWarnMessagePresent(listAppender));
     }
 
     @Test
-    public void testLoggingOnAddingLargeStringArrayOneLargePropertyWithCustomThreshold() throws IOException {
+    public void testLoggingOnAddingLargeStringArrayOneLargePropertyWithCustomThreshold()
+        throws IOException {
         setThresholdLimit(customStringPropertyThresholdLimit);
         NodeBuilder test = EMPTY_NODE.builder();
-        LuceneDocumentMaker docMaker = addPropertyAccordingToType(test, Type.STRINGS, largeStringPropertyAsPerCustomThreshold, smallStringProperty);
+        LuceneDocumentMaker docMaker = addPropertyAccordingToType(test, Type.STRINGS,
+            largeStringPropertyAsPerCustomThreshold, smallStringProperty);
         assertNotNull(docMaker.makeDocument(test.getNodeState()));
         assertTrue(isWarnMessagePresent(listAppender));
         assertEquals(2, listAppender.list.size());
     }
 
     @Test
-    public void testLoggingOnAddingLargeStringArrayTwoLargePropertiesWithCustomThreshold() throws IOException {
+    public void testLoggingOnAddingLargeStringArrayTwoLargePropertiesWithCustomThreshold()
+        throws IOException {
         setThresholdLimit(customStringPropertyThresholdLimit);
         NodeBuilder test = EMPTY_NODE.builder();
-        LuceneDocumentMaker docMaker = addPropertyAccordingToType(test, Type.STRINGS, largeStringPropertyAsPerCustomThreshold, largeStringPropertyAsPerCustomThreshold);
+        LuceneDocumentMaker docMaker = addPropertyAccordingToType(test, Type.STRINGS,
+            largeStringPropertyAsPerCustomThreshold, largeStringPropertyAsPerCustomThreshold);
         assertNotNull(docMaker.makeDocument(test.getNodeState()));
         assertTrue(isWarnMessagePresent(listAppender));
         // number of logs equal twice the number of large properties once for fulltext indexing

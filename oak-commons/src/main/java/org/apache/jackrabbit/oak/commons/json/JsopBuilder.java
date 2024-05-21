@@ -19,10 +19,9 @@ package org.apache.jackrabbit.oak.commons.json;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * A builder for Json and Jsop strings. It encodes string values, and knows when
- * a comma is needed. A comma is appended before '{', '[', a value, or a key;
- * but only if the last appended token was '}', ']', or a value. There is no
- * limit to the number of nesting levels.
+ * A builder for Json and Jsop strings. It encodes string values, and knows when a comma is needed.
+ * A comma is appended before '{', '[', a value, or a key; but only if the last appended token was
+ * '}', ']', or a value. There is no limit to the number of nesting levels.
  */
 public class JsopBuilder implements JsopWriter {
 
@@ -72,9 +71,8 @@ public class JsopBuilder implements JsopWriter {
     }
 
     /**
-     * Append an (already formatted) Jsop tag. This will allow to append
-     * non-Json data. This method resets the comma flag, so no comma is added
-     * before the next key or value.
+     * Append an (already formatted) Jsop tag. This will allow to append non-Json data. This method
+     * resets the comma flag, so no comma is added before the next key or value.
      *
      * @param string the string to append
      * @return this
@@ -151,8 +149,7 @@ public class JsopBuilder implements JsopWriter {
     }
 
     /**
-     * Append the key (in quotes) plus a colon. A comma is appended first if
-     * needed.
+     * Append the key (in quotes) plus a colon. A comma is appended first if needed.
      *
      * @param name the key
      * @return this
@@ -180,8 +177,7 @@ public class JsopBuilder implements JsopWriter {
     }
 
     /**
-     * Append the boolean value 'true' or 'false'. A comma is appended first if
-     * needed.
+     * Append the boolean value 'true' or 'false'. A comma is appended first if needed.
      *
      * @param value the value
      * @return this
@@ -246,11 +242,9 @@ public class JsopBuilder implements JsopWriter {
     }
 
     /**
-     * Convert a string to a quoted Json literal using the correct escape
-     * sequences. The literal is enclosed in double quotes. Characters outside
-     * the range 32..127 are encoded using
-     * {@link #escape(String, StringBuilder)}). Null is encoded as "null"
-     * (without quotes).
+     * Convert a string to a quoted Json literal using the correct escape sequences. The literal is
+     * enclosed in double quotes. Characters outside the range 32..127 are encoded using
+     * {@link #escape(String, StringBuilder)}). Null is encoded as "null" (without quotes).
      *
      * @param s the text to convert
      * @return the Json representation (including double quotes)
@@ -278,8 +272,8 @@ public class JsopBuilder implements JsopWriter {
     /**
      * Escape a string into the target buffer.
      *
-     * @param s      the string to escape
-     * @param buff   the target buffer
+     * @param s    the string to escape
+     * @param buff the target buffer
      */
     public static void escape(String s, StringBuilder buff) {
         escape(s, s.length(), buff);
@@ -288,9 +282,9 @@ public class JsopBuilder implements JsopWriter {
     /**
      * Escape a string for JSON into the target buffer.
      * <p>
-     * Characters are only escaped if required by RFC 7159 (thus, controls,
-     * backslash, and double quotes), or if they are part of a malformed
-     * surrogate pair (which wouldn't round-trip through UTF-8 otherwise).
+     * Characters are only escaped if required by RFC 7159 (thus, controls, backslash, and double
+     * quotes), or if they are part of a malformed surrogate pair (which wouldn't round-trip through
+     * UTF-8 otherwise).
      *
      * @param s      the string to escape
      * @param length the number of characters.
@@ -300,50 +294,50 @@ public class JsopBuilder implements JsopWriter {
         for (int i = 0; i < length; i++) {
             char c = s.charAt(i);
             switch (c) {
-            case '"':
-                // quotation mark
-                buff.append("\\\"");
-                break;
-            case '\\':
-                // backslash
-                buff.append("\\\\");
-                break;
-            case '\b':
-                // backspace
-                buff.append("\\b");
-                break;
-            case '\f':
-                // formfeed
-                buff.append("\\f");
-                break;
-            case '\n':
-                // newline
-                buff.append("\\n");
-                break;
-            case '\r':
-                // carriage return
-                buff.append("\\r");
-                break;
-            case '\t':
-                // horizontal tab
-                buff.append("\\t");
-                break;
-            default:
-                if (c < ' ') {
-                    buff.append(String.format("\\u%04x", (int) c));
-                } else if (Character.isSurrogate(c)) {
-                    if (i < length - 1 && Character.isSurrogatePair(c, s.charAt(i + 1))) {
-                        // ok surrogate
-                        buff.append(c);
-                        buff.append(s.charAt(i + 1));
-                        i += 1;
-                    } else {
-                        // broken surrogate -> escape
+                case '"':
+                    // quotation mark
+                    buff.append("\\\"");
+                    break;
+                case '\\':
+                    // backslash
+                    buff.append("\\\\");
+                    break;
+                case '\b':
+                    // backspace
+                    buff.append("\\b");
+                    break;
+                case '\f':
+                    // formfeed
+                    buff.append("\\f");
+                    break;
+                case '\n':
+                    // newline
+                    buff.append("\\n");
+                    break;
+                case '\r':
+                    // carriage return
+                    buff.append("\\r");
+                    break;
+                case '\t':
+                    // horizontal tab
+                    buff.append("\\t");
+                    break;
+                default:
+                    if (c < ' ') {
                         buff.append(String.format("\\u%04x", (int) c));
+                    } else if (Character.isSurrogate(c)) {
+                        if (i < length - 1 && Character.isSurrogatePair(c, s.charAt(i + 1))) {
+                            // ok surrogate
+                            buff.append(c);
+                            buff.append(s.charAt(i + 1));
+                            i += 1;
+                        } else {
+                            // broken surrogate -> escape
+                            buff.append(String.format("\\u%04x", (int) c));
+                        }
+                    } else {
+                        buff.append(c);
                     }
-                } else {
-                    buff.append(c);
-                }
             }
         }
     }

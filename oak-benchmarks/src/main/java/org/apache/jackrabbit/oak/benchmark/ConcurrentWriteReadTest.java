@@ -17,9 +17,8 @@
 package org.apache.jackrabbit.oak.benchmark;
 
 /**
- * A variant of {@link ConcurrentReadTest} with a that tests the performance
- * of a single writer thread that continuously updates the nodes being
- * accessed by the background readers.
+ * A variant of {@link ConcurrentReadTest} with a that tests the performance of a single writer
+ * thread that continuously updates the nodes being accessed by the background readers.
  */
 public class ConcurrentWriteReadTest extends ConcurrentReadTest {
 

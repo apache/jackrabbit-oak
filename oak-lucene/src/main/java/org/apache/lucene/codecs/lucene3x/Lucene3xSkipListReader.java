@@ -27,99 +27,104 @@ package org.apache.lucene.codecs.lucene3x;
 
 import java.io.IOException;
 import java.util.Arrays;
-
 import org.apache.lucene.codecs.MultiLevelSkipListReader;
 import org.apache.lucene.store.IndexInput;
 
 /**
- * @deprecated (4.0) This is only used to read indexes created
- * before 4.0.
+ * @deprecated (4.0) This is only used to read indexes created before 4.0.
  */
 @Deprecated
 final class Lucene3xSkipListReader extends MultiLevelSkipListReader {
-  private boolean currentFieldStoresPayloads;
-  private long freqPointer[];
-  private long proxPointer[];
-  private int payloadLength[];
-  
-  private long lastFreqPointer;
-  private long lastProxPointer;
-  private int lastPayloadLength;
-                           
-  public Lucene3xSkipListReader(IndexInput skipStream, int maxSkipLevels, int skipInterval) {
-    super(skipStream, maxSkipLevels, skipInterval);
-    freqPointer = new long[maxSkipLevels];
-    proxPointer = new long[maxSkipLevels];
-    payloadLength = new int[maxSkipLevels];
-  }
 
-  public void init(long skipPointer, long freqBasePointer, long proxBasePointer, int df, boolean storesPayloads) {
-    super.init(skipPointer, df);
-    this.currentFieldStoresPayloads = storesPayloads;
-    lastFreqPointer = freqBasePointer;
-    lastProxPointer = proxBasePointer;
+    private boolean currentFieldStoresPayloads;
+    private long freqPointer[];
+    private long proxPointer[];
+    private int payloadLength[];
 
-    Arrays.fill(freqPointer, freqBasePointer);
-    Arrays.fill(proxPointer, proxBasePointer);
-    Arrays.fill(payloadLength, 0);
-  }
+    private long lastFreqPointer;
+    private long lastProxPointer;
+    private int lastPayloadLength;
 
-  /** Returns the freq pointer of the doc to which the last call of 
-   * {@link MultiLevelSkipListReader#skipTo(int)} has skipped.  */
-  public long getFreqPointer() {
-    return lastFreqPointer;
-  }
-
-  /** Returns the prox pointer of the doc to which the last call of 
-   * {@link MultiLevelSkipListReader#skipTo(int)} has skipped.  */
-  public long getProxPointer() {
-    return lastProxPointer;
-  }
-  
-  /** Returns the payload length of the payload stored just before 
-   * the doc to which the last call of {@link MultiLevelSkipListReader#skipTo(int)} 
-   * has skipped.  */
-  public int getPayloadLength() {
-    return lastPayloadLength;
-  }
-  
-  @Override
-  protected void seekChild(int level) throws IOException {
-    super.seekChild(level);
-    freqPointer[level] = lastFreqPointer;
-    proxPointer[level] = lastProxPointer;
-    payloadLength[level] = lastPayloadLength;
-  }
-  
-  @Override
-  protected void setLastSkipData(int level) {
-    super.setLastSkipData(level);
-    lastFreqPointer = freqPointer[level];
-    lastProxPointer = proxPointer[level];
-    lastPayloadLength = payloadLength[level];
-  }
-
-  @Override
-  protected int readSkipData(int level, IndexInput skipStream) throws IOException {
-    int delta;
-    if (currentFieldStoresPayloads) {
-      // the current field stores payloads.
-      // if the doc delta is odd then we have
-      // to read the current payload length
-      // because it differs from the length of the
-      // previous payload
-      delta = skipStream.readVInt();
-      if ((delta & 1) != 0) {
-        payloadLength[level] = skipStream.readVInt();
-      }
-      delta >>>= 1;
-    } else {
-      delta = skipStream.readVInt();
+    public Lucene3xSkipListReader(IndexInput skipStream, int maxSkipLevels, int skipInterval) {
+        super(skipStream, maxSkipLevels, skipInterval);
+        freqPointer = new long[maxSkipLevels];
+        proxPointer = new long[maxSkipLevels];
+        payloadLength = new int[maxSkipLevels];
     }
 
-    freqPointer[level] += skipStream.readVInt();
-    proxPointer[level] += skipStream.readVInt();
-    
-    return delta;
-  }
+    public void init(long skipPointer, long freqBasePointer, long proxBasePointer, int df,
+        boolean storesPayloads) {
+        super.init(skipPointer, df);
+        this.currentFieldStoresPayloads = storesPayloads;
+        lastFreqPointer = freqBasePointer;
+        lastProxPointer = proxBasePointer;
+
+        Arrays.fill(freqPointer, freqBasePointer);
+        Arrays.fill(proxPointer, proxBasePointer);
+        Arrays.fill(payloadLength, 0);
+    }
+
+    /**
+     * Returns the freq pointer of the doc to which the last call of
+     * {@link MultiLevelSkipListReader#skipTo(int)} has skipped.
+     */
+    public long getFreqPointer() {
+        return lastFreqPointer;
+    }
+
+    /**
+     * Returns the prox pointer of the doc to which the last call of
+     * {@link MultiLevelSkipListReader#skipTo(int)} has skipped.
+     */
+    public long getProxPointer() {
+        return lastProxPointer;
+    }
+
+    /**
+     * Returns the payload length of the payload stored just before the doc to which the last call
+     * of {@link MultiLevelSkipListReader#skipTo(int)} has skipped.
+     */
+    public int getPayloadLength() {
+        return lastPayloadLength;
+    }
+
+    @Override
+    protected void seekChild(int level) throws IOException {
+        super.seekChild(level);
+        freqPointer[level] = lastFreqPointer;
+        proxPointer[level] = lastProxPointer;
+        payloadLength[level] = lastPayloadLength;
+    }
+
+    @Override
+    protected void setLastSkipData(int level) {
+        super.setLastSkipData(level);
+        lastFreqPointer = freqPointer[level];
+        lastProxPointer = proxPointer[level];
+        lastPayloadLength = payloadLength[level];
+    }
+
+    @Override
+    protected int readSkipData(int level, IndexInput skipStream) throws IOException {
+        int delta;
+        if (currentFieldStoresPayloads) {
+            // the current field stores payloads.
+            // if the doc delta is odd then we have
+            // to read the current payload length
+            // because it differs from the length of the
+            // previous payload
+            delta = skipStream.readVInt();
+            if ((delta & 1) != 0) {
+                payloadLength[level] = skipStream.readVInt();
+            }
+            delta >>>= 1;
+        } else {
+            delta = skipStream.readVInt();
+        }
+
+        freqPointer[level] += skipStream.readVInt();
+        proxPointer[level] += skipStream.readVInt();
+
+        return delta;
+    }
 }

@@ -20,10 +20,13 @@
 <!-- MACRO{toc} -->
 
 ## Before you get started
+
 ### Threat Model
 
-Before you start coding, creating content or setting up access control set aside some time to consider what is needed 
-when it comes to securing your application (and what could go wrong). In other words: write a threat model and 
+Before you start coding, creating content or setting up access control set aside some time to
+consider what is needed
+when it comes to securing your application (and what could go wrong). In other words: write a threat
+model and
 make sure you keep updating it as you continue developing.
 
 The following references provide a good overview as well as guidance on how to build a threat model:
@@ -34,15 +37,21 @@ The following references provide a good overview as well as guidance on how to b
 
 ### Content Modelling
 
-As suggested in [Jackrabbbit Wiki](https://jackrabbit.apache.org/archive/wiki/JCR/DavidsModel_115513389.html#DavidsModel-Rule#2:Drivethecontenthierarchy,don'tletithappen)
-the content hierarchy in your JCR repository should be designed and not just happen. Access control requirements tend to be a good driver.
+As suggested
+in [Jackrabbbit Wiki](https://jackrabbit.apache.org/archive/wiki/JCR/DavidsModel_115513389.html#DavidsModel-Rule#2:Drivethecontenthierarchy,don'tletithappen)
+the content hierarchy in your JCR repository should be designed and not just happen. Access control
+requirements tend to be a good driver.
 
-Make sure the content design allows for a readable and manageable access control setup later on to secure your data. 
-Excessive complexity is often a strong indicator for problems with your content model, making its security error prone 
+Make sure the content design allows for a readable and manageable access control setup later on to
+secure your data.
+Excessive complexity is often a strong indicator for problems with your content model, making its
+security error prone
 and difficult to reason about (and might ultimately might lead to issues with scaling).
 
-Here is an example of an access control setup (with [Sling RepoInit](https://sling.apache.org/documentation/bundles/repository-initialization.html)) 
-illustrating why content with different access requirements should be kept in separate trees and how complexity may yield undesired
+Here is an example of an access control setup (
+with [Sling RepoInit](https://sling.apache.org/documentation/bundles/repository-initialization.html))
+illustrating why content with different access requirements should be kept in separate trees and how
+complexity may yield undesired
 effects (see also section 'Remember inheritance' below):
 
       # Content design that results in complex in ac-setup and a vulnerability
@@ -83,50 +92,67 @@ effects (see also section 'Remember inheritance' below):
 
 ### Define Roles and Tasks
 
-Finally, write down basic characteristics and demands of your application without getting into access control details 
+Finally, write down basic characteristics and demands of your application without getting into
+access control details
 or making any assumptions on how your needs will reflected in the repository:
 
 - what roles are present
 - what kind of tasks are those roles designed to perform
-- define if you have services accessing the repository and what kind of tasks they need to complete 
+- define if you have services accessing the repository and what kind of tasks they need to complete
 
 Note, that this document should be human readable not go into implementation details:
-Instead of writing principal 'content-authors' needs jcr:write on /content, define that you have an asset 'content',
+Instead of writing principal 'content-authors' needs jcr:write on /content, define that you have an
+asset 'content',
 define what kind of data it contains and how sensitive the data is (similar to the threat model).
-Then identify what roles are going to interact with this data and how they interact: for example you may identify 
-a role that just reading data, a second role that is expected to read and write, and a third one that will only 
+Then identify what roles are going to interact with this data and how they interact: for example you
+may identify
+a role that just reading data, a second role that is expected to read and write, and a third one
+that will only
 approve new content and publish it).
 
 ## General Best Practices
 
 ### Know how to get what you need
 
-Familiarize yourself with JCR access control management and Oak authorization design and extensions before starting 
-to edit the permission setup of your Oak installation. This will help you avoid common pitfalls. If you find yourself 
-granting your _content-writers_ role full access to just make it work, you probably left your application vulnerable.
+Familiarize yourself with JCR access control management and Oak authorization design and extensions
+before starting
+to edit the permission setup of your Oak installation. This will help you avoid common pitfalls. If
+you find yourself
+granting your _content-writers_ role full access to just make it work, you probably left your
+application vulnerable.
 
-- JCR Specification sections [Access Control Management](https://s.apache.org/jcr-2.0-spec/16_Access_Control_Management.html) 
-and [Permissions and Capabilities](https://s.apache.org/jcr-2.0-spec/9_Permissions_and_Capabilities.html)
-- [Oak Authorization Documentation](../authorization.html) with separate sections for [Access Control Management](../accesscontrol.html) and [Permission Evaluation](../permission.html).
-- Exercises for authorization topics below https://github.com/apache/jackrabbit-oak/tree/trunk/oak-exercise/src/test/java/org/apache/jackrabbit/oak/exercise/security/authorization
+- JCR Specification
+  sections [Access Control Management](https://s.apache.org/jcr-2.0-spec/16_Access_Control_Management.html)
+  and [Permissions and Capabilities](https://s.apache.org/jcr-2.0-spec/9_Permissions_and_Capabilities.html)
+- [Oak Authorization Documentation](../authorization.html) with separate sections
+  for [Access Control Management](../accesscontrol.html)
+  and [Permission Evaluation](../permission.html).
+- Exercises for authorization topics
+  below https://github.com/apache/jackrabbit-oak/tree/trunk/oak-exercise/src/test/java/org/apache/jackrabbit/oak/exercise/security/authorization
 
 ### Principle of least privilege
 
-Keep in mind that not having any permissions granted is equivalent to denying everything (which is in 
-this case redundant). Start without any access and then keep granting permissions as needed, following the 
+Keep in mind that not having any permissions granted is equivalent to denying everything (which is
+in
+this case redundant). Start without any access and then keep granting permissions as needed,
+following the
 [principle of least privilege](https://en.wikipedia.org/wiki/Principle_of_least_privilege).
 In other words: only grant the minimal set of privileges required to perform a particular task.
 
 ### Verification
 
-Write tests upfront and verify that for each role and task the expected effective permissions (see definition of roles) are 
+Write tests upfront and verify that for each role and task the expected effective permissions (see
+definition of roles) are
 granted. Neither less nor more.
 
-Ideally, your tests will fail as soon as someone is attempting to make any change to the permission setup.
-Granting additional permissions may open up the door for a privilege escalation and revoking permissions will break
+Ideally, your tests will fail as soon as someone is attempting to make any change to the permission
+setup.
+Granting additional permissions may open up the door for a privilege escalation and revoking
+permissions will break
 your application (if it doesn't you did not follow the principle of least privilege).
 
-This may also include assertions that no permissions are granted at resources that are outside the scope of a given role/task.
+This may also include assertions that no permissions are granted at resources that are outside the
+scope of a given role/task.
 
 #### Example: Pseud-code for a permission validator
 
@@ -144,12 +170,16 @@ This may also include assertions that no permissions are granted at resources th
 
 ### Avoid deny
 
-All authorization models present with Apache Jackrabbbit Oak start without any access granted by default i.e. 
-implicit deny everywhere. It is therefore recommended to only grant access where needed and avoid adding explicit 
-deny access control entries. In particular in combination with subsequent ```allow```  rules  the overall effect will be hard to 
+All authorization models present with Apache Jackrabbbit Oak start without any access granted by
+default i.e.
+implicit deny everywhere. It is therefore recommended to only grant access where needed and avoid
+adding explicit
+deny access control entries. In particular in combination with subsequent ```allow```  rules the
+overall effect will be hard to
 understand as soon as multiple principals are contained in a given subject.
 
-Be wary if you find yourself adding combinations of denies and allows as it might highlight problematic patterns in 
+Be wary if you find yourself adding combinations of denies and allows as it might highlight
+problematic patterns in
 your content model that will be hard to understand and secure over time.
 
 ### Avoid redundancy
@@ -157,21 +187,26 @@ your content model that will be hard to understand and secure over time.
 Don't specify redundant access control setup just to be on the safe side:
 
 - If access is granted, avoid repeating the same setup down the hierarchy.
-- Avoid setup for principals with administrative access for which permission evaluation is omitted. It might even create a false sense of security.
+- Avoid setup for principals with administrative access for which permission evaluation is omitted.
+  It might even create a false sense of security.
 - Avoid redundant membership as it will impact performance of permission evaluation
 
 ### Principal by principle
 
-Oak authorization is designed to work with `java.security.Principal` which is an abstract representation of any kind of 
+Oak authorization is designed to work with `java.security.Principal` which is an abstract
+representation of any kind of
 entity like e.g. individual, a role, a corporation, a login id or even a service.
 
-While JCR specification does not define how the repository knows about principals, Jackrabbit API defines a
+While JCR specification does not define how the repository knows about principals, Jackrabbit API
+defines a
 [Principal Management](../principal.html) extension.
 
 #### Not every principal is a user/group
 
-Oak allows plugging custom sources of principals which are all reflected through the principal management API.
-Therefore, don't assume that every principal is backed by a user or a group. The repository's user management is just 
+Oak allows plugging custom sources of principals which are all reflected through the principal
+management API.
+Therefore, don't assume that every principal is backed by a user or a group. The repository's user
+management is just
 one potential source of principals.
 
 ##### Example : everyone
@@ -183,27 +218,37 @@ one potential source of principals.
 
 #### Membership is no guarantee
 
-Similarly, make sure you always evaluate permissions to verify if a subject has access granted instead of checking if 
-a user is member of a group. How access control defined for a particular group principal affects its members is an 
+Similarly, make sure you always evaluate permissions to verify if a subject has access granted
+instead of checking if
+a user is member of a group. How access control defined for a particular group principal affects its
+members is an
 implementation detail of the authorization setup.
 
 ##### Example : administrative access
 
-In the default authorization model full access to the repository can be configured for selected user or group principals.
-(see [Configuration Parameters](../permission/default.html#configuration) for the default permission evaluation).
-If you wish to determine if a given subject has full access, don't assume that there is a group 'administrators' and that 
+In the default authorization model full access to the repository can be configured for selected user
+or group principals.
+(see [Configuration Parameters](../permission/default.html#configuration) for the default permission
+evaluation).
+If you wish to determine if a given subject has full access, don't assume that there is a group '
+administrators' and that
 its members have full access.
 
 #### Stick with group principals
 
-It is preferable to set up access control for group principals instead of individual user principals and then make sure 
+It is preferable to set up access control for group principals instead of individual user principals
+and then make sure
 your `PrincipalProvider` resolves principal membership according to your needs.
 
-Further, note that the default authorization model will give precedence to user principals upon evaluation in other words 
-default access control entries for user principals will overwrite the effect of groups irrespective of the order in the list (see next section).
+Further, note that the default authorization model will give precedence to user principals upon
+evaluation in other words
+default access control entries for user principals will overwrite the effect of groups irrespective
+of the order in the list (see next section).
 
-The above rule is particularly important for the anonymous user marking access with `GuestCredentials`.
-If you setup access control for anonymous it will result in the guest account to have effective permissions that do 
+The above rule is particularly important for the anonymous user marking access
+with `GuestCredentials`.
+If you setup access control for anonymous it will result in the guest account to have effective
+permissions that do
 not apply for any authenticated session.
 
 What is usually intended instead is setting up permissions for the _everyone_ group. See also
@@ -214,32 +259,43 @@ What is usually intended instead is setting up permissions for the _everyone_ gr
 #### Remember inheritance
 
 When designing your access control setup keep in mind that effective permissions are inherited
-down the node hierarchy: allowing `jcr:read` for _content-readers_ role on /content will also grant _content-readers_ 
-access to all nodes and properties in the subtree (e.g. /content/project1 or /content/project1/jcr:title).
+down the node hierarchy: allowing `jcr:read` for _content-readers_ role on /content will also grant
+_content-readers_
+access to all nodes and properties in the subtree (e.g. /content/project1 or /content/project1/jcr:
+title).
 
-In addition, effective permissions get inherited through (nested) group principals according to the set of 
+In addition, effective permissions get inherited through (nested) group principals according to the
+set of
 principals resolved and added to the `javax.security.auth.Subject` upon repository login.
 
-See [Permission Evaluation in Detail](../permission/evaluation.html) for additional information as well as the 
-exercises at [L3_PrecedenceRulesTest](https://github.com/apache/jackrabbit-oak/blob/trunk/oak-exercise/src/test/java/org/apache/jackrabbit/oak/exercise/security/authorization/permission/L3_PrecedenceRulesTest.java)
+See [Permission Evaluation in Detail](../permission/evaluation.html) for additional information as
+well as the
+exercises
+at [L3_PrecedenceRulesTest](https://github.com/apache/jackrabbit-oak/blob/trunk/oak-exercise/src/test/java/org/apache/jackrabbit/oak/exercise/security/authorization/permission/L3_PrecedenceRulesTest.java)
 
 #### Built-in privileges
 
-JSR 382 defines a set of built-in privileges and how they apply to repository operations (see https://s.apache.org/jcr-2.0-javadoc/javax/jcr/security/Privilege.html).
-The default set has been extended by Oak to cover additional features outside of the scope defined by JCR (like e.g. index 
-or user management). The complete list can be found in [Privilege Management : The Default Implementation](../privilege/default.html). 
+JSR 382 defines a set of built-in privileges and how they apply to repository operations (
+see https://s.apache.org/jcr-2.0-javadoc/javax/jcr/security/Privilege.html).
+The default set has been extended by Oak to cover additional features outside of the scope defined
+by JCR (like e.g. index
+or user management). The complete list can be found
+in [Privilege Management : The Default Implementation](../privilege/default.html).
 
-The minimal set of privileges required for each operation are outlined in [Mapping API Calls to Privileges](../privilege/mappingtoprivileges.html) 
-and [Mapping Privileges to Items](../privilege/mappingtoitems.html). 
+The minimal set of privileges required for each operation are outlined
+in [Mapping API Calls to Privileges](../privilege/mappingtoprivileges.html)
+and [Mapping Privileges to Items](../privilege/mappingtoitems.html).
 
 ##### Privileges affecting the parent node
 
-Note in particular for add/removing a node `jcr:addChildNodes` and `jcr:removeChildNodes` are required on 
-the parent node respectively i.e. allowing for modification of the child-node collection. 
+Note in particular for add/removing a node `jcr:addChildNodes` and `jcr:removeChildNodes` are
+required on
+the parent node respectively i.e. allowing for modification of the child-node collection.
 In addition `jcr:removeNode` needs to be granted on the target node of the removal.
 
-Thus, the following subtle difference apply when evaluation effective permissions vs. privileges (see 
-also [Permissions vs Privileges](../permission/permissionsandprivileges.html)) and exercises at 
+Thus, the following subtle difference apply when evaluation effective permissions vs. privileges (
+see
+also [Permissions vs Privileges](../permission/permissionsandprivileges.html)) and exercises at
 [L4_PrivilegesAndPermissionsTest.java](https://github.com/apache/jackrabbit-oak/blob/trunk/oak-exercise/src/test/java/org/apache/jackrabbit/oak/exercise/security/authorization/permission/L4_PrivilegesAndPermissionsTest.java)):
 
         String parentPath = "/content/parent";
@@ -275,12 +331,15 @@ also [Permissions vs Privileges](../permission/permissionsandprivileges.html)) a
         
         // test if a non-existing node could be removed (not possible with privilege evaluation);
         boolean canRemoveNode = session.hasPermission(toAdd, JackrabbitSession.ACTION_REMOVE_NODE);
-  
+
 #### Leverage `PrivilegeCollection`
 
-Since Oak 1.42.0 the Jackrabbit API defines a new interface `PrivilegeCollection` the offers improved support for 
-testing effective privileges (see also [OAK-9494](https://issues.apache.org/jira/browse/OAK-9494)). It 
-allows avoiding repeated calls to `AccessControlManager.hasPrivileges` and manual resolution of aggregated privileges when 
+Since Oak 1.42.0 the Jackrabbit API defines a new interface `PrivilegeCollection` the offers
+improved support for
+testing effective privileges (see also [OAK-9494](https://issues.apache.org/jira/browse/OAK-9494)).
+It
+allows avoiding repeated calls to `AccessControlManager.hasPrivileges` and manual resolution of
+aggregated privileges when
 dealing with the privilege array returned by `AccessControlManager.getPrivileges`.
 
         // Using PrivilegeCollection
@@ -300,55 +359,74 @@ dealing with the privilege array returned by `AccessControlManager.getPrivileges
 
 #### Use restrictions to limit effect
 
-Apart from picking the minimal set of privileges you can further minimize the risk of privilege escalation by 
-narrowing the effect of a given access control setup on certain items in the subtree. This is achieved by creating 
+Apart from picking the minimal set of privileges you can further minimize the risk of privilege
+escalation by
+narrowing the effect of a given access control setup on certain items in the subtree. This is
+achieved by creating
 access control entries that come with an additional restriction.
 
-Note though, that restrictions can affect readability. So, you may want to find a balance between enhanced security 
+Note though, that restrictions can affect readability. So, you may want to find a balance between
+enhanced security
 and simplicity. Revisiting your content design early on will likely be the better choice.
 
-See section [Restriction Management](restriction.html) for additional details as well as lessons [L7_RestrictionsTest](https://github.com/apache/jackrabbit-oak/blob/trunk/oak-exercise/src/test/java/org/apache/jackrabbit/oak/exercise/security/authorization/accesscontrol/L7_RestrictionsTest.java)
-and [L8_GlobRestrictionTest](https://github.com/apache/jackrabbit-oak/blob/trunk/oak-exercise/src/test/java/org/apache/jackrabbit/oak/exercise/security/authorization/accesscontrol/L8_GlobRestrictionTest.java) 
+See section [Restriction Management](restriction.html) for additional details as well as
+lessons [L7_RestrictionsTest](https://github.com/apache/jackrabbit-oak/blob/trunk/oak-exercise/src/test/java/org/apache/jackrabbit/oak/exercise/security/authorization/accesscontrol/L7_RestrictionsTest.java)
+and [L8_GlobRestrictionTest](https://github.com/apache/jackrabbit-oak/blob/trunk/oak-exercise/src/test/java/org/apache/jackrabbit/oak/exercise/security/authorization/accesscontrol/L8_GlobRestrictionTest.java)
 in the Oak exercise module.
 
 #### Access control setup for system user
 
-If your Oak setup supports principal-based authorization (see [Managing Access by Principal](principalbased.html)) it is 
-recommended to leverage it for system sessions associated with OSGi service. It helps to keep application owned 
+If your Oak setup supports principal-based authorization (
+see [Managing Access by Principal](principalbased.html)) it is
+recommended to leverage it for system sessions associated with OSGi service. It helps to keep
+application owned
 access control setup apart from regular content.
 
-See also [Service Authentication](https://sling.apache.org/documentation/the-sling-engine/service-authentication.html) in 
+See
+also [Service Authentication](https://sling.apache.org/documentation/the-sling-engine/service-authentication.html)
+in
 Apache Sling.
 
 ### Leverage customizations
 
 Oak allows for customization and extensions of all parts of the authorization setup.
-If you find yourself struggling to reflect your needs with the built-in functionality, consider extending and customizing
+If you find yourself struggling to reflect your needs with the built-in functionality, consider
+extending and customizing
 the authorization configuration of the repository.
 
 #### Leverage custom privileges
 
-If you identify application specific operations that cannot be reflected using the built-in privileges, Oak allows  
-registering custom privileges (see section [Privilege Management](../privilege.html#jackrabbit_api)). 
+If you identify application specific operations that cannot be reflected using the built-in
+privileges, Oak allows  
+registering custom privileges (see
+section [Privilege Management](../privilege.html#jackrabbit_api)).
 
-However, note that the built-in permission evaluation will not enforce those 
-custom privileges. Instead, you have to enforce it in your application or write a custom authorization model 
+However, note that the built-in permission evaluation will not enforce those
+custom privileges. Instead, you have to enforce it in your application or write a custom
+authorization model
 (see section [Combining Multiple Authorization Models](composite.html))
 
-In the example above you might find that publishing content cannot easily be secured using built-in privileges and end 
+In the example above you might find that publishing content cannot easily be secured using built-in
+privileges and end
 up registering a custom _myapp:publish_ privilege.
 
 #### Leverage custom restrictions
 
-Default authorization in Oak allows to limit the effect of individual JCR access control entries by means of restrictions.
-See section [Restriction Management](restriction.html) for the built-in restrictions and instructions on how to plug 
-custom restrictions into the security setup. Be aware though of the potential performance impact of any additional evaluation.
+Default authorization in Oak allows to limit the effect of individual JCR access control entries by
+means of restrictions.
+See section [Restriction Management](restriction.html) for the built-in restrictions and
+instructions on how to plug
+custom restrictions into the security setup. Be aware though of the potential performance impact of
+any additional evaluation.
 
 #### Leverage a custom authorization model
 
-If you find that that built-in authorization model is not suited to reflect your needs and setting up access control 
-becomes cumbersome and overly complex, consider customizing authorization setup (see section [Combining Multiple Authorization Models](composite.html)).
+If you find that that built-in authorization model is not suited to reflect your needs and setting
+up access control
+becomes cumbersome and overly complex, consider customizing authorization setup (see
+section [Combining Multiple Authorization Models](composite.html)).
 
-The _oak-exercise_ module defines a couple of [examples](https://github.com/apache/jackrabbit-oak/tree/trunk/oak-exercise/src/main/java/org/apache/jackrabbit/oak/exercise/security/authorization/models)
-to illustrate alternative approaches. The corresponding training material is located in section 
+The _oak-exercise_ module defines a couple
+of [examples](https://github.com/apache/jackrabbit-oak/tree/trunk/oak-exercise/src/main/java/org/apache/jackrabbit/oak/exercise/security/authorization/models)
+to illustrate alternative approaches. The corresponding training material is located in section
 [Advanced Authorization Topics](https://github.com/apache/jackrabbit-oak/tree/trunk/oak-exercise/src/test/java/org/apache/jackrabbit/oak/exercise/security/authorization/advanced).

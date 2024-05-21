@@ -23,22 +23,18 @@ import java.util.HashSet;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-
 import javax.jcr.NamespaceException;
 import javax.jcr.Session;
-
+import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.impl.LocalNameMapper;
 import org.apache.jackrabbit.util.XMLChar;
 import org.jetbrains.annotations.NotNull;
 
-import org.apache.jackrabbit.guava.common.collect.Maps;
-
 /**
- * {@code SessionNamespaces} implements namespace handling on the JCR
- * Session level. That is, it maintains a map of session local namespace
- * re-mappings and takes a snapshot of the namespace registry when initialized
- * (see JCR 2.0 specification, section 3.5.1).
+ * {@code SessionNamespaces} implements namespace handling on the JCR Session level. That is, it
+ * maintains a map of session local namespace re-mappings and takes a snapshot of the namespace
+ * registry when initialized (see JCR 2.0 specification, section 3.5.1).
  */
 public class SessionNamespaces extends LocalNameMapper {
 
@@ -53,23 +49,23 @@ public class SessionNamespaces extends LocalNameMapper {
      * @see Session#setNamespacePrefix(String, String)
      */
     synchronized void setNamespacePrefix(String prefix, String uri)
-            throws NamespaceException {
+        throws NamespaceException {
         if (prefix == null) {
             throw new IllegalArgumentException("Prefix must not be null");
         } else if (uri == null) {
             throw new IllegalArgumentException("Namespace must not be null");
         } else if (prefix.isEmpty()) {
             throw new NamespaceException(
-                    "Empty prefix is reserved and can not be remapped");
+                "Empty prefix is reserved and can not be remapped");
         } else if (uri.isEmpty()) {
             throw new NamespaceException(
-                    "Default namespace is reserved and can not be remapped");
+                "Default namespace is reserved and can not be remapped");
         } else if (prefix.toLowerCase(Locale.ENGLISH).startsWith("xml")) {
             throw new NamespaceException(
-                    "XML prefixes are reserved: " + prefix);
+                "XML prefixes are reserved: " + prefix);
         } else if (!XMLChar.isValidNCName(prefix)) {
             throw new NamespaceException(
-                    "Prefix is not a valid XML NCName: " + prefix);
+                "Prefix is not a valid XML NCName: " + prefix);
         }
 
         String previouslyMappedUri = getOakURIOrNull(prefix);
@@ -129,7 +125,7 @@ public class SessionNamespaces extends LocalNameMapper {
      * @see Session#getNamespaceURI(String)
      */
     synchronized String getNamespaceURI(String prefix)
-            throws NamespaceException {
+        throws NamespaceException {
         // first check local remappings
         String uri = local.get(prefix);
         if (uri == null) {
@@ -139,7 +135,7 @@ public class SessionNamespaces extends LocalNameMapper {
                 // URI is either not registered or locally mapped to some
                 // other prefix, so there are no mappings for this prefix
                 throw new NamespaceException(
-                        "Unknown namespace prefix: " + prefix);
+                    "Unknown namespace prefix: " + prefix);
             }
         }
         return uri;
@@ -149,7 +145,7 @@ public class SessionNamespaces extends LocalNameMapper {
      * @see Session#getNamespacePrefix(String)
      */
     synchronized String getNamespacePrefix(String uri)
-            throws NamespaceException {
+        throws NamespaceException {
         // first check local remappings
         for (Map.Entry<String, String> entry : local.entrySet()) {
             if (entry.getValue().equals(uri)) {

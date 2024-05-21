@@ -17,12 +17,11 @@
 package org.apache.jackrabbit.oak.upgrade.cli.blob;
 
 import java.io.IOException;
-
 import org.apache.jackrabbit.oak.upgrade.cli.AbstractOak2OakTest;
+import org.apache.jackrabbit.oak.upgrade.cli.container.AzureDataStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.container.BlobStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.container.NodeStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.container.S3DataStoreContainer;
-import org.apache.jackrabbit.oak.upgrade.cli.container.AzureDataStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.container.SegmentTarNodeStoreContainer;
 import org.junit.Assume;
 
@@ -60,10 +59,12 @@ public class S3ToAzureTest extends AbstractOak2OakTest {
 
     @Override
     protected String[] getArgs() {
-        return new String[] { "--copy-binaries", "--src-s3datastore", sourceBlob.getDescription(), "--src-s3config",
-                S3_PROPERTIES, "--azuredatastore", destinationBlob.getDescription(), "--azureconfig", AZURE_PROPERTIES, 
-                source.getDescription(),
-                destination.getDescription() };
+        return new String[]{"--copy-binaries", "--src-s3datastore", sourceBlob.getDescription(),
+            "--src-s3config",
+            S3_PROPERTIES, "--azuredatastore", destinationBlob.getDescription(), "--azureconfig",
+            AZURE_PROPERTIES,
+            source.getDescription(),
+            destination.getDescription()};
     }
 
     @Override

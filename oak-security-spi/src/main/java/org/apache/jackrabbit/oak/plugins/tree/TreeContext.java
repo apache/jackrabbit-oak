@@ -21,60 +21,55 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * {@code TreeContext} represents item related information in relation to a
- * dedicated module.
- * This information allows to determine if a given {@code Tree} or {@link PropertyState}
- * is defined by or related to the model provided by a given setup.
+ * {@code TreeContext} represents item related information in relation to a dedicated module. This
+ * information allows to determine if a given {@code Tree} or {@link PropertyState} is defined by or
+ * related to the model provided by a given setup.
  */
 public interface TreeContext {
 
     /**
-     * Reveals if the specified {@code PropertyState} is defined by the
-     * module that exposes this instance.
+     * Reveals if the specified {@code PropertyState} is defined by the module that exposes this
+     * instance.
      *
-     * @param parent The parent tree of the property state.
+     * @param parent   The parent tree of the property state.
      * @param property The {@code PropertyState} to be tested.
-     * @return {@code true} if the specified property state is related to or
-     * defined by the security module.
+     * @return {@code true} if the specified property state is related to or defined by the security
+     * module.
      */
     boolean definesProperty(@NotNull Tree parent, @NotNull PropertyState property);
 
     /**
-     * Reveals if the specified {@code Tree} is the root of a subtree defined by
-     * the module that exposes this instance. Note,
-     * that in contrast to {@link #definesTree(Tree)}
-     * this method will return {@code false} for any tree located in the
-     * subtree.
+     * Reveals if the specified {@code Tree} is the root of a subtree defined by the module that
+     * exposes this instance. Note, that in contrast to {@link #definesTree(Tree)} this method will
+     * return {@code false} for any tree located in the subtree.
      *
      * @param tree The tree to be tested.
-     * @return {@code true} if the specified tree is the root of a subtree of items
-     * that are defined by the security module.
+     * @return {@code true} if the specified tree is the root of a subtree of items that are defined
+     * by the security module.
      */
     boolean definesContextRoot(@NotNull Tree tree);
 
     /**
-     * Reveals if the specified {@code Tree} is defined by the
-     * module that exposes this instance.
+     * Reveals if the specified {@code Tree} is defined by the module that exposes this instance.
      *
      * @param tree The tree to be tested.
-     * @return {@code true} if the specified tree is related to or defined by the
-     * security module.
+     * @return {@code true} if the specified tree is related to or defined by the security module.
      */
     boolean definesTree(@NotNull Tree tree);
 
     /**
-     * Reveals if the specified {@code TreeLocation} is defined by the
-     * module that exposes this instance.
+     * Reveals if the specified {@code TreeLocation} is defined by the module that exposes this
+     * instance.
      *
      * @param location The tree location to be tested.
-     * @return {@code true} if the specified tree location is related to or
-     * defined by the security module.
+     * @return {@code true} if the specified tree location is related to or defined by the security
+     * module.
      */
     boolean definesLocation(@NotNull TreeLocation location);
 
     /**
-     * Reveals if the specified {@code Tree} defines repository internal information,
-     * which is not hidden by default.
+     * Reveals if the specified {@code Tree} defines repository internal information, which is not
+     * hidden by default.
      *
      * @param tree The tree to be tested.
      * @return {@code true} if the specified tree defines repository internal information.

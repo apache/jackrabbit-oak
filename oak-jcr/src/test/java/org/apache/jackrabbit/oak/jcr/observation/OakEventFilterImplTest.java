@@ -19,10 +19,10 @@
 package org.apache.jackrabbit.oak.jcr.observation;
 
 import static org.junit.Assert.assertEquals;
+
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
-
 import org.junit.Test;
 
 public class OakEventFilterImplTest {
@@ -30,23 +30,23 @@ public class OakEventFilterImplTest {
     @Test
     public void testAddAncestorPaths() throws Exception {
         // parent of / doesnt exist, hence no ancestor path. "" will anyway resolve to "/" in FilterBuilder.getSubTrees()
-        assertMatches(new String[] {}, "/");
-        
-        assertMatches(new String[] {"/*"}, "/*");
-        assertMatches(new String[] {"/**"}, "/**");
-        assertMatches(new String[] {"/a"}, "/a");
-        assertMatches(new String[] {"/a", "/a/b"}, "/a/b");
-        assertMatches(new String[] {"/a", "/a/*"}, "/a/*");
-        assertMatches(new String[] {"/a", "/a/**"}, "/a/**");
-        assertMatches(new String[] {"/a", "/a/b", "/a/b/c"}, "/a/b/c");
-        assertMatches(new String[] {"/a", "/a/b", "/a/b/*"}, "/a/b/*");
-        assertMatches(new String[] {"/a", "/a/b", "/a/b/**"}, "/a/b/**");
-        assertMatches(new String[] {"/a", "/a/b", "/a/b/**"}, "/a/b/**/d");
-        assertMatches(new String[] {"/a", "/a/b", "/a/b/**"}, "/a/b/**/d/**");
-        assertMatches(new String[] {"/a", "/a/b", "/a/b/**"}, "/a/b/**/d/**/f");
-        assertMatches(new String[] {"/a", "/a/b", "/a/b/c", "/a/b/c/d"}, "/a/b/c/d");
-        assertMatches(new String[] {"/a", "/a/b", "/a/b/c", "/a/b/c/*"}, "/a/b/c/*");
-        assertMatches(new String[] {"/a", "/a/b", "/a/b/c", "/a/b/c/**"}, "/a/b/c/**");
+        assertMatches(new String[]{}, "/");
+
+        assertMatches(new String[]{"/*"}, "/*");
+        assertMatches(new String[]{"/**"}, "/**");
+        assertMatches(new String[]{"/a"}, "/a");
+        assertMatches(new String[]{"/a", "/a/b"}, "/a/b");
+        assertMatches(new String[]{"/a", "/a/*"}, "/a/*");
+        assertMatches(new String[]{"/a", "/a/**"}, "/a/**");
+        assertMatches(new String[]{"/a", "/a/b", "/a/b/c"}, "/a/b/c");
+        assertMatches(new String[]{"/a", "/a/b", "/a/b/*"}, "/a/b/*");
+        assertMatches(new String[]{"/a", "/a/b", "/a/b/**"}, "/a/b/**");
+        assertMatches(new String[]{"/a", "/a/b", "/a/b/**"}, "/a/b/**/d");
+        assertMatches(new String[]{"/a", "/a/b", "/a/b/**"}, "/a/b/**/d/**");
+        assertMatches(new String[]{"/a", "/a/b", "/a/b/**"}, "/a/b/**/d/**/f");
+        assertMatches(new String[]{"/a", "/a/b", "/a/b/c", "/a/b/c/d"}, "/a/b/c/d");
+        assertMatches(new String[]{"/a", "/a/b", "/a/b/c", "/a/b/c/*"}, "/a/b/c/*");
+        assertMatches(new String[]{"/a", "/a/b", "/a/b/c", "/a/b/c/**"}, "/a/b/c/**");
     }
 
     private void assertMatches(String[] expectedPaths, String globPath) {

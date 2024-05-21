@@ -23,7 +23,6 @@ import javax.jcr.nodetype.NodeTypeTemplate;
 import javax.jcr.version.OnParentVersionAction;
 import javax.jcr.version.VersionException;
 import javax.jcr.version.VersionManager;
-
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.version.VersionConstants;
 import org.apache.jackrabbit.test.AbstractJCRTest;
@@ -44,7 +43,7 @@ public class OpvAbortTest extends AbstractJCRTest implements VersionConstants {
         NodeDefinitionTemplate def = ntMgr.createNodeDefinitionTemplate();
         def.setOnParentVersion(OnParentVersionAction.ABORT);
         def.setName("child");
-        def.setRequiredPrimaryTypeNames(new String[] {NT_BASE});
+        def.setRequiredPrimaryTypeNames(new String[]{NT_BASE});
 
         NodeTypeTemplate tmpl = ntMgr.createNodeTypeTemplate();
         tmpl.setName("OpvAbortTest");

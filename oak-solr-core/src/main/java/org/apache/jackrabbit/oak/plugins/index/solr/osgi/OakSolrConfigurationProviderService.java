@@ -37,7 +37,8 @@ import org.jetbrains.annotations.Nullable;
 import org.osgi.service.component.ComponentContext;
 
 /**
- * OSGi service for {@link org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfigurationProvider}
+ * OSGi service for
+ * {@link org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfigurationProvider}
  */
 @Component(label = "Apache Jackrabbit Oak Solr indexing / search configuration", metatype = true, immediate = true)
 @Service(OakSolrConfigurationProvider.class)
@@ -65,16 +66,16 @@ public class OakSolrConfigurationProviderService implements OakSolrConfiguration
     private static final String PATH_DEPTH_FIELD = "path.depth.field";
 
     @Property(options = {
-            @PropertyOption(name = "HARD",
-                    value = "Hard commit"
-            ),
-            @PropertyOption(name = "SOFT",
-                    value = "Soft commit"
-            ),
-            @PropertyOption(name = "AUTO",
-                    value = "Auto commit"
-            )},
-            value = "SOFT"
+        @PropertyOption(name = "HARD",
+            value = "Hard commit"
+        ),
+        @PropertyOption(name = "SOFT",
+            value = "Soft commit"
+        ),
+        @PropertyOption(name = "AUTO",
+            value = "Auto commit"
+        )},
+        value = "SOFT"
     )
     private static final String COMMIT_POLICY = "commit.policy";
 
@@ -90,21 +91,22 @@ public class OakSolrConfigurationProviderService implements OakSolrConfiguration
     @Property(boolValue = OakSolrConfigurationDefaults.PRIMARY_TYPES, label = "primary types restrictions")
     private static final String PRIMARY_TYPES_RESTRICTIONS = "primarytypes.restrictions";
 
-    @Property(value = {"rep:members", "rep:authorizableId", "jcr:uuid", "rep:principalName", "rep:password"},
-            label = "ignored properties", unbounded = PropertyUnbounded.ARRAY)
+    @Property(value = {"rep:members", "rep:authorizableId", "jcr:uuid", "rep:principalName",
+        "rep:password"},
+        label = "ignored properties", unbounded = PropertyUnbounded.ARRAY)
     private static final String IGNORED_PROPERTIES = "ignored.properties";
 
     @Property(value = {}, label = "used properties", unbounded = PropertyUnbounded.ARRAY)
     private static final String USED_PROPERTIES = "used.properties";
 
     @Property(value = OakSolrConfigurationDefaults.TYPE_MAPPINGS, cardinality = 13, description =
-            "each item should be in the form TypeString=FieldName (e.g. STRING=text_general)", label =
-            "mappings from Oak Types to Solr fields")
+        "each item should be in the form TypeString=FieldName (e.g. STRING=text_general)", label =
+        "mappings from Oak Types to Solr fields")
     private static final String TYPE_MAPPINGS = "type.mappings";
 
     @Property(value = OakSolrConfigurationDefaults.PROPERTY_MAPPINGS, unbounded = PropertyUnbounded.ARRAY, description =
-            "each item should be in the form PropertyName=FieldName (e.g. jcr:title=text_en)", label =
-            "mappings from JCR property names to Solr fields")
+        "each item should be in the form PropertyName=FieldName (e.g. jcr:title=text_en)", label =
+        "mappings from JCR property names to Solr fields")
     private static final String PROPERTY_MAPPINGS = "property.mappings";
 
     @Property(boolValue = OakSolrConfigurationDefaults.COLLAPSE_JCR_CONTENT_NODES, label = "collapse jcr:content nodes")
@@ -136,24 +138,38 @@ public class OakSolrConfigurationProviderService implements OakSolrConfiguration
 
     @Activate
     protected void activate(ComponentContext componentContext) throws Exception {
-        pathChildrenFieldName = String.valueOf(componentContext.getProperties().get(PATH_CHILDREN_FIELD));
-        pathParentFieldName = String.valueOf(componentContext.getProperties().get(PATH_PARENT_FIELD));
+        pathChildrenFieldName = String.valueOf(
+            componentContext.getProperties().get(PATH_CHILDREN_FIELD));
+        pathParentFieldName = String.valueOf(
+            componentContext.getProperties().get(PATH_PARENT_FIELD));
         pathExactFieldName = String.valueOf(componentContext.getProperties().get(PATH_EXACT_FIELD));
-        collapsedPathField= String.valueOf(componentContext.getProperties().get(COLLAPSED_PATH_FIELD));
-        pathDescendantsFieldName = String.valueOf(componentContext.getProperties().get(PATH_DESCENDANTS_FIELD));
+        collapsedPathField = String.valueOf(
+            componentContext.getProperties().get(COLLAPSED_PATH_FIELD));
+        pathDescendantsFieldName = String.valueOf(
+            componentContext.getProperties().get(PATH_DESCENDANTS_FIELD));
         catchAllField = String.valueOf(componentContext.getProperties().get(CATCH_ALL_FIELD));
         depthField = String.valueOf(componentContext.getProperties().get(PATH_DEPTH_FIELD));
         rows = Integer.parseInt(String.valueOf(componentContext.getProperties().get(ROWS)));
-        commitPolicy = OakSolrConfiguration.CommitPolicy.valueOf(String.valueOf(componentContext.getProperties().get(COMMIT_POLICY)));
-        useForPathRestrictions = Boolean.valueOf(String.valueOf(componentContext.getProperties().get(PATH_RESTRICTIONS)));
-        useForPropertyRestrictions = Boolean.valueOf(String.valueOf(componentContext.getProperties().get(PROPERTY_RESTRICTIONS)));
-        useForPrimaryTypes = Boolean.valueOf(String.valueOf(componentContext.getProperties().get(PRIMARY_TYPES_RESTRICTIONS)));
-        typeMappings = PropertiesUtil.toStringArray(componentContext.getProperties().get(TYPE_MAPPINGS));
-        ignoredProperties = PropertiesUtil.toStringArray(componentContext.getProperties().get(IGNORED_PROPERTIES));
-        usedProperties = PropertiesUtil.toStringArray(componentContext.getProperties().get(USED_PROPERTIES));
-        propertyMappings = PropertiesUtil.toStringArray(componentContext.getProperties().get(PROPERTY_MAPPINGS));
-        collapseJcrContentNodes = Boolean.valueOf(String.valueOf(componentContext.getProperties().get(COLLAPSE_JCR_CONTENT_NODES)));
-        collapseJcrContentParents = Boolean.valueOf(String.valueOf(componentContext.getProperties().get(COLLAPSE_JCR_CONTENT_PARENTS)));
+        commitPolicy = OakSolrConfiguration.CommitPolicy.valueOf(
+            String.valueOf(componentContext.getProperties().get(COMMIT_POLICY)));
+        useForPathRestrictions = Boolean.valueOf(
+            String.valueOf(componentContext.getProperties().get(PATH_RESTRICTIONS)));
+        useForPropertyRestrictions = Boolean.valueOf(
+            String.valueOf(componentContext.getProperties().get(PROPERTY_RESTRICTIONS)));
+        useForPrimaryTypes = Boolean.valueOf(
+            String.valueOf(componentContext.getProperties().get(PRIMARY_TYPES_RESTRICTIONS)));
+        typeMappings = PropertiesUtil.toStringArray(
+            componentContext.getProperties().get(TYPE_MAPPINGS));
+        ignoredProperties = PropertiesUtil.toStringArray(
+            componentContext.getProperties().get(IGNORED_PROPERTIES));
+        usedProperties = PropertiesUtil.toStringArray(
+            componentContext.getProperties().get(USED_PROPERTIES));
+        propertyMappings = PropertiesUtil.toStringArray(
+            componentContext.getProperties().get(PROPERTY_MAPPINGS));
+        collapseJcrContentNodes = Boolean.valueOf(
+            String.valueOf(componentContext.getProperties().get(COLLAPSE_JCR_CONTENT_NODES)));
+        collapseJcrContentParents = Boolean.valueOf(
+            String.valueOf(componentContext.getProperties().get(COLLAPSE_JCR_CONTENT_PARENTS)));
     }
 
     @Deactivate
@@ -182,7 +198,8 @@ public class OakSolrConfigurationProviderService implements OakSolrConfiguration
                 }
 
                 @Override
-                public String getFieldForPropertyRestriction(Filter.PropertyRestriction propertyRestriction) {
+                public String getFieldForPropertyRestriction(
+                    Filter.PropertyRestriction propertyRestriction) {
                     for (String propertyMapping : propertyMappings) {
                         String[] mapping = propertyMapping.split("=");
                         if (mapping.length == 2 && mapping[0] != null && mapping[1] != null) {
@@ -264,7 +281,8 @@ public class OakSolrConfigurationProviderService implements OakSolrConfiguration
                 @NotNull
                 @Override
                 public Collection<String> getIgnoredProperties() {
-                    if (ignoredProperties != null && ignoredProperties.length > 0 && ignoredProperties[0].length() > 0) {
+                    if (ignoredProperties != null && ignoredProperties.length > 0
+                        && ignoredProperties[0].length() > 0) {
                         return Arrays.asList(ignoredProperties);
                     } else {
                         return Collections.emptyList();
@@ -274,7 +292,8 @@ public class OakSolrConfigurationProviderService implements OakSolrConfiguration
                 @NotNull
                 @Override
                 public Collection<String> getUsedProperties() {
-                    if (usedProperties != null && usedProperties.length > 0 && usedProperties[0].length() > 0) {
+                    if (usedProperties != null && usedProperties.length > 0
+                        && usedProperties[0].length() > 0) {
                         return Arrays.asList(usedProperties);
                     } else {
                         return Collections.emptyList();

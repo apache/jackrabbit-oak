@@ -16,15 +16,13 @@
  */
 package org.apache.jackrabbit.oak.segment.aws;
 
-import static org.apache.jackrabbit.oak.segment.remote.RemoteUtilities.getSegmentFileName;
 import static org.apache.jackrabbit.oak.segment.remote.RemoteUtilities.OFF_HEAP;
+import static org.apache.jackrabbit.oak.segment.remote.RemoteUtilities.getSegmentFileName;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
-
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.remote.AbstractRemoteSegmentArchiveWriter;
 import org.apache.jackrabbit.oak.segment.remote.RemoteSegmentArchiveEntry;
@@ -38,7 +36,7 @@ public class AwsSegmentArchiveWriter extends AbstractRemoteSegmentArchiveWriter 
     private final String archiveName;
 
     public AwsSegmentArchiveWriter(S3Directory directory, String archiveName, IOMonitor ioMonitor,
-            FileStoreMonitor monitor) {
+        FileStoreMonitor monitor) {
         super(ioMonitor, monitor);
         this.directory = directory;
         this.archiveName = archiveName;
@@ -50,7 +48,8 @@ public class AwsSegmentArchiveWriter extends AbstractRemoteSegmentArchiveWriter 
     }
 
     @Override
-    protected void doWriteArchiveEntry(RemoteSegmentArchiveEntry indexEntry, byte[] data, int offset, int size) throws IOException {
+    protected void doWriteArchiveEntry(RemoteSegmentArchiveEntry indexEntry, byte[] data,
+        int offset, int size) throws IOException {
         long msb = indexEntry.getMsb();
         long lsb = indexEntry.getLsb();
         String segmentName = getSegmentFileName(indexEntry);
@@ -58,7 +57,8 @@ public class AwsSegmentArchiveWriter extends AbstractRemoteSegmentArchiveWriter 
         ioMonitor.beforeSegmentWrite(new File(fullName), msb, lsb, size);
         Stopwatch stopwatch = Stopwatch.createStarted();
         directory.writeObject(segmentName, data);
-        ioMonitor.afterSegmentWrite(new File(fullName), msb, lsb, size, stopwatch.elapsed(TimeUnit.NANOSECONDS));
+        ioMonitor.afterSegmentWrite(new File(fullName), msb, lsb, size,
+            stopwatch.elapsed(TimeUnit.NANOSECONDS));
     }
 
     @Override

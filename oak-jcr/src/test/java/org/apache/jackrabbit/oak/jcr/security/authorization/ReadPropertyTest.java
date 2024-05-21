@@ -16,26 +16,24 @@
  */
 package org.apache.jackrabbit.oak.jcr.security.authorization;
 
+import static org.apache.jackrabbit.JcrConstants.MIX_REFERENCEABLE;
+import static org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants.MIX_REP_ACCESS_CONTROLLABLE;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-
 import javax.jcr.AccessDeniedException;
 import javax.jcr.Node;
 import javax.jcr.Property;
 import javax.jcr.PropertyIterator;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.junit.Test;
-
-import static org.apache.jackrabbit.JcrConstants.MIX_REFERENCEABLE;
-import static org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants.MIX_REP_ACCESS_CONTROLLABLE;
 
 /**
  * @since OAK 1.0 : jcr:read is an aggregation of read property and node privileges.
@@ -110,7 +108,8 @@ public class ReadPropertyTest extends AbstractEvaluationTest {
     @Test
     public void testDenySingleProperty() throws Exception {
         allow(path, privilegesFromName(PrivilegeConstants.JCR_READ));
-        deny(path, privilegesFromName(PrivilegeConstants.REP_READ_PROPERTIES), createGlobRestriction("*/" +propertyName1));
+        deny(path, privilegesFromName(PrivilegeConstants.REP_READ_PROPERTIES),
+            createGlobRestriction("*/" + propertyName1));
 
         assertTrue(testSession.nodeExists(path));
         assertTrue(testSession.itemExists(path));
@@ -214,7 +213,8 @@ public class ReadPropertyTest extends AbstractEvaluationTest {
         testSession.save();
 
         // we should be able to see all three mixin types
-        assertMixinTypes(superuser.getNode(path), MIX_REFERENCEABLE, MIX_REP_ACCESS_CONTROLLABLE, mixTitle);
+        assertMixinTypes(superuser.getNode(path), MIX_REFERENCEABLE, MIX_REP_ACCESS_CONTROLLABLE,
+            mixTitle);
     }
 
     @Test // (OAK-10425) ignored and marked as known issue in pom.xml
@@ -228,7 +228,8 @@ public class ReadPropertyTest extends AbstractEvaluationTest {
         allow(path, privilegesFromName(PrivilegeConstants.REP_READ_NODES));
         allow(path, privilegesFromName(PrivilegeConstants.REP_WRITE));
 
-        assertMixinTypes(superuser.getNode(path), mixTitle, MIX_REFERENCEABLE, MIX_REP_ACCESS_CONTROLLABLE);
+        assertMixinTypes(superuser.getNode(path), mixTitle, MIX_REFERENCEABLE,
+            MIX_REP_ACCESS_CONTROLLABLE);
 
         Node node = testSession.getNode(path);
         assertFalse(node.hasProperty(JcrConstants.JCR_MIXINTYPES));
@@ -243,7 +244,7 @@ public class ReadPropertyTest extends AbstractEvaluationTest {
     }
 
     private void assertMixinTypes(Node node, String... mixins)
-            throws RepositoryException {
+        throws RepositoryException {
         Set<String> expected = Arrays.stream(mixins).collect(Collectors.toSet());
         Set<String> actual = new HashSet<>();
         if (node.hasProperty(JcrConstants.JCR_MIXINTYPES)) {

@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.jcr;
 import java.util.Properties;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
-
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.test.RepositoryStubException;
@@ -38,7 +37,7 @@ public class OakDocumentMemRepositoryStub extends BaseRepositoryStub {
      * @throws javax.jcr.RepositoryException If an error occurs.
      */
     public OakDocumentMemRepositoryStub(Properties settings)
-            throws RepositoryException {
+        throws RepositoryException {
         super(settings);
         final DocumentNodeStore store;
         try {

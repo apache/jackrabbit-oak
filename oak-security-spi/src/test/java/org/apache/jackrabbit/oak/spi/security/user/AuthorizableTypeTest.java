@@ -16,6 +16,11 @@
  */
 package org.apache.jackrabbit.oak.spi.security.user;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
@@ -23,11 +28,6 @@ import org.apache.jackrabbit.api.security.user.UserManager;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
 
 public class AuthorizableTypeTest {
 
@@ -47,7 +47,8 @@ public class AuthorizableTypeTest {
     public void testGetType() {
         assertSame(AuthorizableType.USER, AuthorizableType.getType(UserManager.SEARCH_TYPE_USER));
         assertSame(AuthorizableType.GROUP, AuthorizableType.getType(UserManager.SEARCH_TYPE_GROUP));
-        assertSame(AuthorizableType.AUTHORIZABLE, AuthorizableType.getType(UserManager.SEARCH_TYPE_AUTHORIZABLE));
+        assertSame(AuthorizableType.AUTHORIZABLE,
+            AuthorizableType.getType(UserManager.SEARCH_TYPE_AUTHORIZABLE));
     }
 
     @Test(expected = IllegalArgumentException.class)

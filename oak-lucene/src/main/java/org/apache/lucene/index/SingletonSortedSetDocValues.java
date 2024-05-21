@@ -27,58 +27,63 @@ package org.apache.lucene.index;
 
 import org.apache.lucene.util.BytesRef;
 
-/** 
+/**
  * Exposes multi-valued view over a single-valued instance.
  * <p>
- * This can be used if you want to have one multi-valued implementation
- * against e.g. FieldCache.getDocTermOrds that also works for single-valued 
- * fields.
+ * This can be used if you want to have one multi-valued implementation against e.g.
+ * FieldCache.getDocTermOrds that also works for single-valued fields.
  */
 public class SingletonSortedSetDocValues extends SortedSetDocValues {
-  private final SortedDocValues in;
-  private int docID;
-  private boolean set;
-  
-  /** Creates a multi-valued view over the provided SortedDocValues */
-  public SingletonSortedSetDocValues(SortedDocValues in) {
-    this.in = in;
-    assert NO_MORE_ORDS == -1; // this allows our nextOrd() to work for missing values without a check
-  }
 
-  /** Return the wrapped {@link SortedDocValues} */
-  public SortedDocValues getSortedDocValues() {
-    return in;
-  }
+    private final SortedDocValues in;
+    private int docID;
+    private boolean set;
 
-  @Override
-  public long nextOrd() {
-    if (set) {
-      return NO_MORE_ORDS;
-    } else {
-      set = true;
-      return in.getOrd(docID);
+    /**
+     * Creates a multi-valued view over the provided SortedDocValues
+     */
+    public SingletonSortedSetDocValues(SortedDocValues in) {
+        this.in = in;
+        assert NO_MORE_ORDS
+            == -1; // this allows our nextOrd() to work for missing values without a check
     }
-  }
 
-  @Override
-  public void setDocument(int docID) {
-    this.docID = docID;
-    set = false;
-  }
+    /**
+     * Return the wrapped {@link SortedDocValues}
+     */
+    public SortedDocValues getSortedDocValues() {
+        return in;
+    }
 
-  @Override
-  public void lookupOrd(long ord, BytesRef result) {
-    // cast is ok: single-valued cannot exceed Integer.MAX_VALUE
-    in.lookupOrd((int)ord, result);
-  }
+    @Override
+    public long nextOrd() {
+        if (set) {
+            return NO_MORE_ORDS;
+        } else {
+            set = true;
+            return in.getOrd(docID);
+        }
+    }
 
-  @Override
-  public long getValueCount() {
-    return in.getValueCount();
-  }
+    @Override
+    public void setDocument(int docID) {
+        this.docID = docID;
+        set = false;
+    }
 
-  @Override
-  public long lookupTerm(BytesRef key) {
-    return in.lookupTerm(key);
-  }
+    @Override
+    public void lookupOrd(long ord, BytesRef result) {
+        // cast is ok: single-valued cannot exceed Integer.MAX_VALUE
+        in.lookupOrd((int) ord, result);
+    }
+
+    @Override
+    public long getValueCount() {
+        return in.getValueCount();
+    }
+
+    @Override
+    public long lookupTerm(BytesRef key) {
+        return in.lookupTerm(key);
+    }
 }

@@ -17,10 +17,9 @@
 
 package org.apache.jackrabbit.oak.segment.standby.client;
 
-import java.util.Queue;
-
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
+import java.util.Queue;
 import org.apache.jackrabbit.oak.segment.standby.codec.GetReferencesResponse;
 
 class GetReferencesResponseHandler extends SimpleChannelInboundHandler<GetReferencesResponse> {
@@ -32,7 +31,8 @@ class GetReferencesResponseHandler extends SimpleChannelInboundHandler<GetRefere
     }
 
     @Override
-    protected void channelRead0(ChannelHandlerContext ctx, GetReferencesResponse msg) throws Exception {
+    protected void channelRead0(ChannelHandlerContext ctx, GetReferencesResponse msg)
+        throws Exception {
         queue.offer(msg);
     }
 

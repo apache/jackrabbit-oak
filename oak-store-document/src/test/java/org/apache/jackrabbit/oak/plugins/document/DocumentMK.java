@@ -41,8 +41,8 @@ import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 
 /**
- * A JSON-based wrapper around the NodeStore implementation that stores the
- * data in a {@link DocumentStore}. It is used for testing purpose only.
+ * A JSON-based wrapper around the NodeStore implementation that stores the data in a
+ * {@link DocumentStore}. It is used for testing purpose only.
  */
 public class DocumentMK {
 
@@ -56,8 +56,8 @@ public class DocumentMK {
     static final String LONG_PATH = "/foo/barbar/qwerty/asdfgh/zxcvbnm/adfsuyhdgjebuuuuuuupcccccccccsdb123ceeeeeeeeeeideaallthe_rifbdjhhbgksdfdght_acbsajbvcfjdnswersfb_dvhffbjrhbfhjdbfjsideacentrefgduyfwerebhjvbrhuv_fbhefhsbjasbka/adfsuyhdgjebuuuuuuupcccccccccsdb123ceeeeeeeeeeideaallthe_rifbdjhhbgksdfdght_acbsajbvcfjdnswersfb_dvhffbjrhbfhjdbfjsideacentrefgduyfwerebhjvbrhuv_fbhefhsbjasbka/adfsuyhdgjebuuuuuuupcccccccccsdb123ceeeeeeeeeeideaallthe_rifbdjhhbgksdfdght_acbsajbvcfjdnswersfb_dvhffbjrhbfhjdbfjsideacentrefgduyfwerebhjvbrhuv_fbhefhsbjasbka";
 
     /**
-     * Number of content updates that need to happen before the updates
-     * are automatically purged to the private branch.
+     * Number of content updates that need to happen before the updates are automatically purged to
+     * the private branch.
      */
     static final int UPDATE_LIMIT = DocumentNodeStoreBuilder.UPDATE_LIMIT;
 
@@ -114,9 +114,9 @@ public class DocumentMK {
     }
 
     public String diff(String fromRevisionId,
-                       String toRevisionId,
-                       String path,
-                       int depth) throws DocumentStoreException {
+        String toRevisionId,
+        String path,
+        int depth) throws DocumentStoreException {
         if (depth != 0) {
             throw new DocumentStoreException("Only depth 0 is supported, depth is " + depth);
         }
@@ -130,8 +130,8 @@ public class DocumentMK {
         final DocumentNodeState after = nodeStore.getNode(p, toRev);
         if (before == null || after == null) {
             String msg = String.format("Diff is only supported if the node exists in both cases. " +
-                            "Node [%s], fromRev [%s] -> %s, toRev [%s] -> %s",
-                    path, fromRev, before != null, toRev, after != null);
+                    "Node [%s], fromRev [%s] -> %s, toRev [%s] -> %s",
+                path, fromRev, before != null, toRev, after != null);
             throw new DocumentStoreException(msg);
         }
 
@@ -141,7 +141,7 @@ public class DocumentMK {
     }
 
     public boolean nodeExists(String path, String revisionId)
-            throws DocumentStoreException {
+        throws DocumentStoreException {
         if (!PathUtils.isAbsolute(path)) {
             throw new DocumentStoreException("Path is not absolute: " + path);
         }
@@ -157,8 +157,8 @@ public class DocumentMK {
     }
 
     public String getNodes(String path, String revisionId, int depth,
-            long offset, int maxChildNodes, String filter)
-            throws DocumentStoreException {
+        long offset, int maxChildNodes, String filter)
+        throws DocumentStoreException {
         if (depth != 0) {
             throw new DocumentStoreException("Only depth 0 is supported, depth is " + depth);
         }
@@ -204,14 +204,15 @@ public class DocumentMK {
     }
 
     public String commit(String rootPath, String jsonDiff, String baseRevId,
-            String message) throws DocumentStoreException {
+        String message) throws DocumentStoreException {
         boolean success = false;
-        RevisionVector baseRev = baseRevId != null ? RevisionVector.fromString(baseRevId) : nodeStore.getHeadRevision();
+        RevisionVector baseRev =
+            baseRevId != null ? RevisionVector.fromString(baseRevId) : nodeStore.getHeadRevision();
         boolean isBranch = baseRev.isBranch();
         RevisionVector rev;
         Commit commit = nodeStore.newCommit(
-                changes -> parseJsonDiff(changes, jsonDiff, rootPath),
-                baseRev, null);
+            changes -> parseJsonDiff(changes, jsonDiff, rootPath),
+            baseRev, null);
         try {
             commit.apply();
             rev = nodeStore.done(commit, isBranch, CommitInfo.EMPTY);
@@ -230,12 +231,12 @@ public class DocumentMK {
         // nothing is written when the branch is created, the returned
         // revision simply acts as a reference to the branch base revision
         RevisionVector revision = trunkRevisionId != null
-                ? RevisionVector.fromString(trunkRevisionId) : nodeStore.getHeadRevision();
+            ? RevisionVector.fromString(trunkRevisionId) : nodeStore.getHeadRevision();
         return revision.asBranchRevision(nodeStore.getClusterId()).toString();
     }
 
     public String merge(String branchRevisionId, String message)
-            throws DocumentStoreException {
+        throws DocumentStoreException {
         RevisionVector revision = RevisionVector.fromString(branchRevisionId);
         if (!revision.isBranch()) {
             throw new DocumentStoreException("Not a branch: " + branchRevisionId);
@@ -249,19 +250,19 @@ public class DocumentMK {
 
     @NotNull
     public String rebase(@NotNull String branchRevisionId,
-                         @Nullable String newBaseRevisionId)
-            throws DocumentStoreException {
+        @Nullable String newBaseRevisionId)
+        throws DocumentStoreException {
         RevisionVector r = RevisionVector.fromString(branchRevisionId);
         RevisionVector base = newBaseRevisionId != null ?
-                RevisionVector.fromString(newBaseRevisionId) :
-                nodeStore.getHeadRevision();
+            RevisionVector.fromString(newBaseRevisionId) :
+            nodeStore.getHeadRevision();
         return nodeStore.rebase(r, base).toString();
     }
 
     @NotNull
     public String reset(@NotNull String branchRevisionId,
-                        @NotNull String ancestorRevisionId)
-            throws DocumentStoreException {
+        @NotNull String ancestorRevisionId)
+        throws DocumentStoreException {
         RevisionVector branch = RevisionVector.fromString(branchRevisionId);
         if (!branch.isBranch()) {
             throw new DocumentStoreException("Not a branch revision: " + branchRevisionId);
@@ -286,7 +287,7 @@ public class DocumentMK {
     }
 
     public int read(String blobId, long pos, byte[] buff, int off, int length)
-            throws DocumentStoreException {
+        throws DocumentStoreException {
         try {
             int read = nodeStore.getBlobStore().readBlob(blobId, pos, buff, off, length);
             return read < 0 ? 0 : read;
@@ -330,9 +331,11 @@ public class DocumentMK {
                     added.add(path);
                     break;
                 case '-':
-                    DocumentNodeState toRemove = nodeStore.getNode(Path.fromString(path), commit.getBaseRevision());
+                    DocumentNodeState toRemove = nodeStore.getNode(Path.fromString(path),
+                        commit.getBaseRevision());
                     if (toRemove == null) {
-                        throw new DocumentStoreException("Node not found: " + path + " in revision " + baseRevId);
+                        throw new DocumentStoreException(
+                            "Node not found: " + path + " in revision " + baseRevId);
                     }
                     markAsDeleted(toRemove, commit, true);
                     break;
@@ -345,8 +348,11 @@ public class DocumentMK {
                         value = t.readRawValue().trim();
                     }
                     String p = PathUtils.getParentPath(path);
-                    if (!added.contains(p) && nodeStore.getNode(Path.fromString(p), commit.getBaseRevision()) == null) {
-                        throw new DocumentStoreException("Node not found: " + path + " in revision " + baseRevId);
+                    if (!added.contains(p)
+                        && nodeStore.getNode(Path.fromString(p), commit.getBaseRevision())
+                        == null) {
+                        throw new DocumentStoreException(
+                            "Node not found: " + path + " in revision " + baseRevId);
                     }
                     String propertyName = PathUtils.getName(path);
                     commit.updateProperty(Path.fromString(p), propertyName, value);
@@ -359,9 +365,11 @@ public class DocumentMK {
                     }
                     DocumentNodeState source = nodeStore.getNode(Path.fromString(path), baseRev);
                     if (source == null) {
-                        throw new DocumentStoreException("Node not found: " + path + " in revision " + baseRevId);
+                        throw new DocumentStoreException(
+                            "Node not found: " + path + " in revision " + baseRevId);
                     } else if (nodeExists(targetPath, baseRevId)) {
-                        throw new DocumentStoreException("Node already exists: " + targetPath + " in revision " + baseRevId);
+                        throw new DocumentStoreException(
+                            "Node already exists: " + targetPath + " in revision " + baseRevId);
                     }
                     moveNode(source, targetPath, commit);
                     break;
@@ -374,9 +382,11 @@ public class DocumentMK {
                     }
                     DocumentNodeState source = nodeStore.getNode(Path.fromString(path), baseRev);
                     if (source == null) {
-                        throw new DocumentStoreException("Node not found: " + path + " in revision " + baseRevId);
+                        throw new DocumentStoreException(
+                            "Node not found: " + path + " in revision " + baseRevId);
                     } else if (nodeExists(targetPath, baseRevId)) {
-                        throw new DocumentStoreException("Node already exists: " + targetPath + " in revision " + baseRevId);
+                        throw new DocumentStoreException(
+                            "Node already exists: " + targetPath + " in revision " + baseRevId);
                     }
                     copyNode(source, targetPath, commit);
                     break;
@@ -404,7 +414,7 @@ public class DocumentMK {
             t.read('}');
         }
         DocumentNodeState n = new DocumentNodeState(nodeStore, Path.fromString(path),
-                new RevisionVector(commit.getRevision()), props, false, null);
+            new RevisionVector(commit.getRevision()), props, false, null);
         commit.addNode(n);
     }
 
@@ -428,12 +438,13 @@ public class DocumentMK {
     }
 
     private void moveOrCopyNode(boolean move,
-                                DocumentNodeState source,
-                                String targetPath,
-                                CommitBuilder commit) {
+        DocumentNodeState source,
+        String targetPath,
+        CommitBuilder commit) {
         RevisionVector destRevision = commit.getBaseRevision().update(commit.getRevision());
-        DocumentNodeState newNode = new DocumentNodeState(nodeStore, Path.fromString(targetPath), destRevision,
-                source.getProperties(), false, null);
+        DocumentNodeState newNode = new DocumentNodeState(nodeStore, Path.fromString(targetPath),
+            destRevision,
+            source.getProperties(), false, null);
 
         commit.addNode(newNode);
         if (move) {
@@ -447,8 +458,8 @@ public class DocumentMK {
     }
 
     private static void append(DocumentNodeState node,
-                               JsopWriter json,
-                               boolean includeId) {
+        JsopWriter json,
+        boolean includeId) {
         if (includeId) {
             json.key(":id").value(node.getPath() + "@" + node.getLastRevision());
         }
@@ -463,6 +474,7 @@ public class DocumentMK {
      * A builder for a DocumentMK instance.
      */
     public static class Builder extends MongoDocumentNodeStoreBuilderBase<Builder> {
+
         public static final long DEFAULT_MEMORY_CACHE_SIZE = DocumentNodeStoreBuilder.DEFAULT_MEMORY_CACHE_SIZE;
         public static final int DEFAULT_NODE_CACHE_PERCENTAGE = DocumentNodeStoreBuilder.DEFAULT_NODE_CACHE_PERCENTAGE;
         public static final int DEFAULT_PREV_DOC_CACHE_PERCENTAGE = DocumentNodeStoreBuilder.DEFAULT_PREV_DOC_CACHE_PERCENTAGE;

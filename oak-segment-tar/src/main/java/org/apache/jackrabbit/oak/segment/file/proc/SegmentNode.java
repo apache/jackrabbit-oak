@@ -31,8 +31,8 @@ class SegmentNode {
 
     static NodeState newSegmentNode(Backend backend, String segmentId) {
         return backend.getSegment(segmentId)
-            .map(segment -> newSegmentNode(backend, segmentId, segment))
-            .orElseGet(() -> newMissingSegment(segmentId));
+                      .map(segment -> newSegmentNode(backend, segmentId, segment))
+                      .orElseGet(() -> newMissingSegment(segmentId));
     }
 
     private static NodeState newSegmentNode(Backend backend, String segmentId, Segment segment) {

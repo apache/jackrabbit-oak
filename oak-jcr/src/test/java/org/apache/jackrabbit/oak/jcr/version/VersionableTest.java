@@ -16,6 +16,12 @@
  */
 package org.apache.jackrabbit.oak.jcr.version;
 
+import static java.util.Arrays.asList;
+import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
+import static org.apache.jackrabbit.guava.common.collect.Lists.transform;
+import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
+
+import java.util.Set;
 import javax.jcr.GuestCredentials;
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
@@ -27,27 +33,17 @@ import javax.jcr.version.Version;
 import javax.jcr.version.VersionException;
 import javax.jcr.version.VersionHistory;
 import javax.jcr.version.VersionManager;
-
-import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
+import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.test.AbstractJCRTest;
 import org.jetbrains.annotations.Nullable;
-import org.junit.Test;
-
-import java.util.Set;
-
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
-import static org.apache.jackrabbit.guava.common.collect.Lists.transform;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
-import static java.util.Arrays.asList;
 
 /**
- * {@code VersionableTest} contains tests for method relevant to
- * versionable nodes.
+ * {@code VersionableTest} contains tests for method relevant to versionable nodes.
  */
 public class VersionableTest extends AbstractJCRTest {
 
@@ -58,7 +54,7 @@ public class VersionableTest extends AbstractJCRTest {
         VersionManager vMgr = superuser.getWorkspace().getVersionManager();
         vMgr.checkin(node.getPath());
         assertEquals(PropertyType.nameFromValue(PropertyType.REFERENCE),
-                PropertyType.nameFromValue(node.getProperty(jcrPredecessors).getType()));
+            PropertyType.nameFromValue(node.getProperty(jcrPredecessors).getType()));
     }
 
     public void testReadOnlyAfterCheckin() throws RepositoryException {
@@ -80,7 +76,7 @@ public class VersionableTest extends AbstractJCRTest {
             // expected
         }
         try {
-            node.setProperty(propertyName1, (String)null);
+            node.setProperty(propertyName1, (String) null);
             fail("setProperty(..., null) must fail on a checked-in node");
         } catch (VersionException e) {
             // expected
@@ -116,10 +112,9 @@ public class VersionableTest extends AbstractJCRTest {
     /**
      * Test from Jackrabbit: JCR-3635 (OAK-940)
      * <p>
-     * Tests the case when a node already has a manual set
-     * JcrConstants.JCR_FROZENUUID property and is versioned. The manual set
-     * frozenUuid will overwrite the one that is automatically assigned by the
-     * VersionManager, which should not happen
+     * Tests the case when a node already has a manual set JcrConstants.JCR_FROZENUUID property and
+     * is versioned. The manual set frozenUuid will overwrite the one that is automatically assigned
+     * by the VersionManager, which should not happen
      */
     public void testCopyFrozenUuidProperty() throws Exception {
         Node firstNode = testRootNode.addNode(nodeName1);
@@ -134,7 +129,8 @@ public class VersionableTest extends AbstractJCRTest {
         Node secondNode = testRootNode.addNode(nodeName2);
         secondNode.setPrimaryType(JcrConstants.NT_UNSTRUCTURED);
         secondNode.addMixin(JcrConstants.MIX_VERSIONABLE);
-        Property firstNodeVersionFrozenUuid = firstNodeVersion.getFrozenNode().getProperty(JcrConstants.JCR_FROZENUUID);
+        Property firstNodeVersionFrozenUuid = firstNodeVersion.getFrozenNode().getProperty(
+            JcrConstants.JCR_FROZENUUID);
         secondNode.setProperty(JcrConstants.JCR_FROZENUUID, firstNodeVersionFrozenUuid.getValue());
         secondNode.getSession().save();
 
@@ -143,9 +139,11 @@ public class VersionableTest extends AbstractJCRTest {
         secondNode.checkout();
 
         // frozenUuid from the second node version node should not be the same as the one from the first node version
-        Property secondBodeVersionFrozenUuid = secondNodeVersion.getFrozenNode().getProperty(JcrConstants.JCR_FROZENUUID);
-        assertFalse(JcrConstants.JCR_FROZENUUID + " should not be the same for two different versions of different nodes! ",
-                secondBodeVersionFrozenUuid.getValue().equals(firstNodeVersionFrozenUuid.getValue()));
+        Property secondBodeVersionFrozenUuid = secondNodeVersion.getFrozenNode().getProperty(
+            JcrConstants.JCR_FROZENUUID);
+        assertFalse(JcrConstants.JCR_FROZENUUID
+                + " should not be the same for two different versions of different nodes! ",
+            secondBodeVersionFrozenUuid.getValue().equals(firstNodeVersionFrozenUuid.getValue()));
     }
 
     public void testCheckoutWithPendingChanges() throws Exception {
@@ -172,7 +170,7 @@ public class VersionableTest extends AbstractJCRTest {
         superuser.save();
 
         VersionManager vm = superuser.getWorkspace().getVersionManager();
-        vm.checkin(testRootNode.getPath()+"/parent/versionablechild");
+        vm.checkin(testRootNode.getPath() + "/parent/versionablechild");
 
         // delete and create exact same node
         Node parent = testRootNode.getNode("parent");
@@ -324,7 +322,9 @@ public class VersionableTest extends AbstractJCRTest {
     }
 
     /**
-     * See {@link org.apache.jackrabbit.oak.plugins.version.ReadOnlyVersionManager#isCheckedOut(Tree)} for details.
+     * See
+     * {@link org.apache.jackrabbit.oak.plugins.version.ReadOnlyVersionManager#isCheckedOut(Tree)}
+     * for details.
      */
     public void testIsCheckedOutOnNonAccessibleParent() throws Exception {
         Node node = testRootNode.addNode(nodeName1, testNodeType);
@@ -409,7 +409,7 @@ public class VersionableTest extends AbstractJCRTest {
         assertFalse(node.hasNode(nodeName2));
     }
 
-   public void testAddRemoveMixinVersionable() throws Exception {
+    public void testAddRemoveMixinVersionable() throws Exception {
         Node node = testRootNode.addNode(nodeName1, "nt:unstructured");
         node.addMixin(mixVersionable);
         superuser.save();
@@ -437,7 +437,8 @@ public class VersionableTest extends AbstractJCRTest {
         assertTrue(node.isCheckedOut());
     }
 
-    private static void assertSuccessors(VersionHistory history, Set<String> expectedSuccessors, String versionName) throws RepositoryException {
+    private static void assertSuccessors(VersionHistory history, Set<String> expectedSuccessors,
+        String versionName) throws RepositoryException {
         assertEquals(expectedSuccessors, getNames(history.getVersion(versionName).getSuccessors()));
     }
 

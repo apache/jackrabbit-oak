@@ -19,6 +19,7 @@ Group Membership
 --------------------------------------------------------------------------------
 
 <a name="jcr_api"></a>
+
 ### Jackrabbit API
 
 The Jackrabbit API extensions provide various methods to edit and explore the
@@ -39,11 +40,13 @@ member relationship of users and groups:
     - `memberOf() Iterator<Group>`
 
 <a name="default_implementation"></a>
+
 ### Characteristics of the Default Implementation
 
 #### Member Representation in the Repository
 
 ##### Behavior in Jackrabbit 2.x
+
 With the default configuration Jackrabbit 2.x stores the group members as
 _weak references_ in a `rep:members` multi value property in the group node.
 If the `groupMembershipSplitSize` configuration parameter is set and valid,
@@ -55,6 +58,7 @@ leave nodes carry the actual values in residual properties which name is the
 principal name of the member.
 
 ##### Behavior as of OAK 1.0
+
 As of Oak the user manager automatically chooses an appropriate storage structure
 depending on the number of group members. If the number of members is low they
 are stored as _weak references_ in a `rep:members` multi value property. This is
@@ -63,6 +67,7 @@ will limit the size of the multi value properties and create overflow
 `rep:MemberReferences` nodes below a `rep:membersList` node to hold the extra members.
 
 ##### Relevant new and modified node types
+
     [rep:Group] > rep:Authorizable, rep:MemberReferences
       + rep:members (rep:Members) = rep:Members multiple protected VERSION /* @deprecated */
       + rep:membersList (rep:MemberReferencesList) = rep:MemberReferencesList protected COPY
@@ -76,6 +81,7 @@ will limit the size of the multi value properties and create overflow
 ##### Examples
 
 ###### Example Group with few members
+
 *(irrelevant properties excluded)*
 
     {
@@ -93,6 +99,7 @@ will limit the size of the multi value properties and create overflow
     }
 
 ###### Example Group with many members
+
 *(irrelevant properties excluded)*
 
     {
@@ -149,8 +156,10 @@ Since Oak 1.3.4 the default user management implementation also allows to modify
 group membership by specifying the member id(s) (see [JCR-3880] and [OAK-3170]).
 The following details are worth mentioning:
 
-- a `null` or empty String id will immediately fail the operation with `ConstraintViolationException`; changes already made will not be reverted,
-- an attempt to make the same group member of itself will list that id in the return value but will not fail the operation,
+- a `null` or empty String id will immediately fail the operation
+  with `ConstraintViolationException`; changes already made will not be reverted,
+- an attempt to make the same group member of itself will list that id in the return value but will
+  not fail the operation,
 - duplicate ids in the parameter list will be silently ignored,
 - <s>cyclic membership validation is postponed to the validator called upon `Root.commit`
   and will only fail at that point; the cyclic membership then needs to be manually
@@ -170,19 +179,19 @@ The following details are worth mentioning:
 
 ##### Invalid Authorizable
 
-Adding a different implementation of `Authorizable` is not allowed. This is always 
+Adding a different implementation of `Authorizable` is not allowed. This is always
 verified when calling `Group.addMember(Authorizable)`.
 
 ##### Same Group as Member
 
-Adding the target group as member of itself will not succeed. When adding 
-members by ID (`Group.addMembers(String...)`) the violation is spotted by 
+Adding the target group as member of itself will not succeed. When adding
+members by ID (`Group.addMembers(String...)`) the violation is spotted by
 simple ID comparison.
 
 ##### Everyone Group and Everyone as Member
 
-The group representing the `EveryonePrincipal` is specially handled. Due to 
-it's dynamic nature adding members to this group is not allowed and adding it 
+The group representing the `EveryonePrincipal` is specially handled. Due to
+it's dynamic nature adding members to this group is not allowed and adding it
 as a member to any other group would cause a cyclic membership.
 
 Note however, that this validation is omitted in case of `Group.addMembers(String...)`
@@ -190,18 +199,22 @@ with `ImportBehavior.BESTEFFORT` (see above).
 
 ##### Cyclic Membership
 
-Since Oak 1.7.0 the explicit check for cyclic group membership has been 
-moved from the `Validator` to the `Group` implementation. As before cyclic 
-membership might not be spotted and the membership resolution will log the 
+Since Oak 1.7.0 the explicit check for cyclic group membership has been
+moved from the `Validator` to the `Group` implementation. As before cyclic
+membership might not be spotted and the membership resolution will log the
 cycle upon collection of all members/groups.
 
 The following scenarios may leave the cycle unnoticed upon adding members:
-- `Group.addMember(Authorizable)` when the editing `Session` cannot read all groups included in the cycle.
-- `Group.addMembers(String...)` with `ImportBehavior.BESTEFFORT` where the member ID is not resolved.
 
-See [OAK-3170] for additional information. 
+- `Group.addMember(Authorizable)` when the editing `Session` cannot read all groups included in the
+  cycle.
+- `Group.addMembers(String...)` with `ImportBehavior.BESTEFFORT` where the member ID is not
+  resolved.
+
+See [OAK-3170] for additional information.
 
 <a name="configuration"></a>
+
 ### Configuration
 
 Note that as of Oak 1.0 the implementation is responsible for defining the
@@ -210,7 +223,11 @@ Consequently, the following configuration option `groupMembershipSplitSize` pres
 with Jackrabbit 2.x is not supported anymore.
 
 <!-- hidden references -->
+
 [org.apache.jackrabbit.api.security.user.Group]: /oak/docs/apidocs/org/apache/jackrabbit/api/security/user/Group.html
+
 [org.apache.jackrabbit.api.security.user.Authorizable]: /oak/docs/apidocs/org/apache/jackrabbit/api/security/user/Authorizable.html
+
 [JCR-3880]: https://issues.apache.org/jira/browse/JCR-3880
+
 [OAK-3170]: https://issues.apache.org/jira/browse/OAK-3170

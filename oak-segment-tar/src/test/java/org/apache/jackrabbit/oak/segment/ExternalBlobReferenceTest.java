@@ -28,10 +28,7 @@ import static org.mockito.Mockito.mock;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-
 import org.apache.jackrabbit.guava.common.base.Strings;
-import org.apache.jackrabbit.oak.segment.SegmentBlob;
-import org.apache.jackrabbit.oak.segment.SegmentTestConstants;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.junit.After;
@@ -61,15 +58,13 @@ public class ExternalBlobReferenceTest {
     }
 
     /**
-     * The {@code SegmentWriter} should be able to write blob IDs whose length
-     * is between 0 and {@code Segment.BLOB_ID_SMALL_LIMIT - 1} bytes. It should
-     * be possible to correctly read the blob ID back and pass it to the {@code
-     * BlobStore} to obtain information about the blob.
+     * The {@code SegmentWriter} should be able to write blob IDs whose length is between 0 and
+     * {@code Segment.BLOB_ID_SMALL_LIMIT - 1} bytes. It should be possible to correctly read the
+     * blob ID back and pass it to the {@code BlobStore} to obtain information about the blob.
      * <p/>
-     * This code path executes only if the written stream is {@code
-     * Segment.MEDIUM_LIMIT} bytes long (or more). If the length of the stream
-     * is smaller, the binary value is inlined in the segment and the {@code
-     * BlobStore} is never called.
+     * This code path executes only if the written stream is {@code Segment.MEDIUM_LIMIT} bytes long
+     * (or more). If the length of the stream is smaller, the binary value is inlined in the segment
+     * and the {@code BlobStore} is never called.
      * <p/>
      * See OAK-3105.
      */
@@ -79,17 +74,15 @@ public class ExternalBlobReferenceTest {
     }
 
     /**
-     * If the {@code BlobStore} returns a blob ID whose length is {@code
-     * Segment.BLOB_ID_SMALL_LIMIT} bytes long (or more), writing the stream
-     * should succeed. In this case, the blob ID is considered a long blob ID
-     * and an alternate encoding is used. It should be possible to correctly
-     * read the blob ID back and pass it to the {@code BlobStore} to obtain
-     * information about the blob.
+     * If the {@code BlobStore} returns a blob ID whose length is
+     * {@code Segment.BLOB_ID_SMALL_LIMIT} bytes long (or more), writing the stream should succeed.
+     * In this case, the blob ID is considered a long blob ID and an alternate encoding is used. It
+     * should be possible to correctly read the blob ID back and pass it to the {@code BlobStore} to
+     * obtain information about the blob.
      * <p/>
-     * This code path executes only if the written stream is {@code
-     * Segment.MEDIUM_LIMIT} bytes long (or more). If the length of the stream
-     * is smaller, the binary value is inlined in the segment and the {@code
-     * BlobStore} is never called.
+     * This code path executes only if the written stream is {@code Segment.MEDIUM_LIMIT} bytes long
+     * (or more). If the length of the stream is smaller, the binary value is inlined in the segment
+     * and the {@code BlobStore} is never called.
      * <p/>
      * See OAK-3105 and OAK-3107.
      */
@@ -105,7 +98,8 @@ public class ExternalBlobReferenceTest {
         doReturn(blobId).when(blobStore).writeBlob(any(InputStream.class));
         doReturn(blobLength).when(blobStore).getBlobLength(blobId);
 
-        SegmentBlob blob = new SegmentBlob(blobStore, fileStore.getWriter().writeStream(newRandomInputStream(blobLength)));
+        SegmentBlob blob = new SegmentBlob(blobStore,
+            fileStore.getWriter().writeStream(newRandomInputStream(blobLength)));
 
         assertEquals(blobLength, blob.length());
     }

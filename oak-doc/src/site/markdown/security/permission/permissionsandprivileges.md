@@ -24,23 +24,32 @@ Usually it is not required for a application to check the privileges/permissions
 of a given session (or set of principals) as this evaluation can be left
 to the repository.
 
-For rare cases where the application needs to understand if a given session is 
-actually allowed to perform a given action, it is recommend to use `Session.hasPermission(String, String)`
+For rare cases where the application needs to understand if a given session is
+actually allowed to perform a given action, it is recommend to
+use `Session.hasPermission(String, String)`
 or `JackrabbitSession.hasPermission(String, String...)`
 
 In order to test permissions that are not reflected in the action constants
 defined on `Session` or `JackrabbitSession`, the default implementation also allows
-to pass the names of the Oak internal permission. 
+to pass the names of the Oak internal permission.
 
-To evaluate privileges granted for a given editing session `AccessControlManager.hasPrivileges(String, Privilege[])`,
-`AccessControlManager.getPrivileges(String)` can be used. The `JackrabbitAccessControlManager` defines variants of both 
-methods that in addition take a set of `Principal`. If the editing session as sufficient permissions these methods can 
-be used to  evaluate/obtain privileges for a different set of principals than associated with the editing session.
+To evaluate privileges granted for a given editing
+session `AccessControlManager.hasPrivileges(String, Privilege[])`,
+`AccessControlManager.getPrivileges(String)` can be used. The `JackrabbitAccessControlManager`
+defines variants of both
+methods that in addition take a set of `Principal`. If the editing session as sufficient permissions
+these methods can
+be used to evaluate/obtain privileges for a different set of principals than associated with the
+editing session.
 
-Since Oak 1.42.0 `JackrabbitAccessControlManager` defines `JackrabbitAccessControlManager.getPrivilegeCollection(String)`
-and `JackrabbitAccessControlManager.getPrivilegeCollection(String, Set)` which allows for efficient evaluation if a given set 
-of privileges are granted at a given path. It allows to avoid repeated calls to `hasPrivileges` for the same path or 
-manual resolution of privilege aggregation (see  [OAK-9494](https://issues.apache.org/jira/browse/OAK-9494) 
+Since Oak 1.42.0 `JackrabbitAccessControlManager`
+defines `JackrabbitAccessControlManager.getPrivilegeCollection(String)`
+and `JackrabbitAccessControlManager.getPrivilegeCollection(String, Set)` which allows for efficient
+evaluation if a given set
+of privileges are granted at a given path. It allows to avoid repeated calls to `hasPrivileges` for
+the same path or
+manual resolution of privilege aggregation (
+see  [OAK-9494](https://issues.apache.org/jira/browse/OAK-9494)
 for details).
 
 The subtle differences between the permission-testing `Session`  and the evaluation
@@ -57,19 +66,23 @@ of privileges on `AccessControlManager` are listed below.
 Where
 
 - `absPath` is an absolute path pointing to an existing or non-existing item (node or property)
-- `actions` defines a comma-separated string (or string array respectively) of the actions defined on `Session` and `JackrabbitSession` (see below). 
-  With the default implementation also Oak internal permission names are allowed ( _Note:_ permission names != privilege names)
-  
+- `actions` defines a comma-separated string (or string array respectively) of the actions defined
+  on `Session` and `JackrabbitSession` (see below).
+  With the default implementation also Oak internal permission names are allowed ( _Note:_
+  permission names != privilege names)
+
 See section [Permissions](../permission.html#oak_permissions) for a comprehensive
 list and the mapping from actions to permissions.
 
 #### Characteristics
 
-- API call always supported even if access control management is not part of the feature set (see corresponding repository descriptor).
-- _Note:_ `ACTION_ADD_NODE` is evaluating if the node at the specified absPath can be added; i.e. the path points to the non-existing node you want to add
-- Not possible to evaluate custom privileges with this method as those are not respected by the default permission evaluation.
-- Restrictions will be respected as possible with the given (limited) information 
-
+- API call always supported even if access control management is not part of the feature set (see
+  corresponding repository descriptor).
+- _Note:_ `ACTION_ADD_NODE` is evaluating if the node at the specified absPath can be added; i.e.
+  the path points to the non-existing node you want to add
+- Not possible to evaluate custom privileges with this method as those are not respected by the
+  default permission evaluation.
+- Restrictions will be respected as possible with the given (limited) information
 
 ### Testing Privileges
 
@@ -77,31 +90,37 @@ list and the mapping from actions to permissions.
 
 - `AccessControlManager.hasPrivileges(String absPath, Privilege[] privileges)`
 - `AccessControlManager.getPrivileges(String absPath)`
-- `JackrabbitAccessControlManager.getPrivilegeCollection(String absPath)` followed by `PrivilegeCollection.includes(String...)`
+- `JackrabbitAccessControlManager.getPrivilegeCollection(String absPath)` followed
+  by `PrivilegeCollection.includes(String...)`
 
 Where
 
 - `absPath` must point to an existing Node (i.e. existing and accessible to the editing session)
 - `privileges` represent an array of supported privileges (see corresponding API calls)
 
-For testing purpose the Jackrabbit extension further allows to verify the privileges 
-granted to a given combination of principals, which may or may not reflect the actual 
+For testing purpose the Jackrabbit extension further allows to verify the privileges
+granted to a given combination of principals, which may or may not reflect the actual
 principal-set assigned to a given `Subject`. These calls (see below) however
 requires the ability to read access control content on the target path.
 
 - `JackrabbitAccessControlManager.hasPrivileges(String absPath, Set<Principal> principals, Privilege[] privileges)`
 - `JackrabbitAccessControlManager.getPrivileges(String absPath, Set<Principal> principals)`
-- `JackrabbitAccessControlManager.getPrivilegeCollection(String absPath, Set<Principal> principals)` (see also section [Privilege Management](../privilege.html))
+- `JackrabbitAccessControlManager.getPrivilegeCollection(String absPath, Set<Principal> principals)` (
+  see also section [Privilege Management](../privilege.html))
 
 #### Characteristics
 
-- Only available if access control management is part of the supported feature set of the JCR repository.
+- Only available if access control management is part of the supported feature set of the JCR
+  repository.
 - Built-in and/or custom privileges can be tested
-- `jcr:addChildNode` evaluates if any child can be added at the parent node identify by the specified absPath. The name of child is not known here! 
+- `jcr:addChildNode` evaluates if any child can be added at the parent node identify by the
+  specified absPath. The name of child is not known here!
 - Restrictions may or may not be respected
-- Default implementation close to real permission evaluation (not exactly following the specification)
+- Default implementation close to real permission evaluation (not exactly following the
+  specification)
 
 <a name="further_reading"></a>
+
 ### Further Reading
 
 - [Mapping Privileges to Items](../privilege/mappingtoitems.html)

@@ -39,7 +39,8 @@ public class MoveSystemUserTest extends AbstractPrincipalBasedTest {
         principal = getTestSystemUser().getPrincipal();
         setupPrincipalBasedAccessControl(principal, "/content", JCR_READ);
         root.commit();
-        PrincipalPolicyImpl policy = getPrincipalPolicyImpl(principal, getAccessControlManager(root));
+        PrincipalPolicyImpl policy = getPrincipalPolicyImpl(principal,
+            getAccessControlManager(root));
         assertEquals(1, policy.size());
     }
 
@@ -48,7 +49,8 @@ public class MoveSystemUserTest extends AbstractPrincipalBasedTest {
         String srcJcrPath = getTestSystemUser().getPath();
         String name = PathUtils.getName(srcJcrPath);
         String destJcrPath = PathUtils.concat(PathUtils.getParentPath(srcJcrPath), name + "-moved");
-        assertTrue(root.move(getNamePathMapper().getOakPath(srcJcrPath), getNamePathMapper().getOakPath(destJcrPath)));
+        assertTrue(root.move(getNamePathMapper().getOakPath(srcJcrPath),
+            getNamePathMapper().getOakPath(destJcrPath)));
         root.commit();
 
         assertNull(getUserManager(root).getAuthorizableByPath(srcJcrPath));

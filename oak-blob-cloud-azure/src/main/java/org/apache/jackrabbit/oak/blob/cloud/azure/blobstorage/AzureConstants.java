@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
 
 public final class AzureConstants {
+
     /**
      * Azure storage account name
      */
@@ -81,12 +82,12 @@ public final class AzureConstants {
     public static final boolean AZURE_BLOB_ENABLE_SECONDARY_LOCATION_DEFAULT = false;
 
     /**
-     *  Proxy host
+     * Proxy host
      */
     public static final String PROXY_HOST = "proxyHost";
 
     /**
-     *  Proxy port
+     * Proxy port
      */
     public static final String PROXY_PORT = "proxyPort";
 
@@ -106,14 +107,13 @@ public final class AzureConstants {
     public static final String PRESIGNED_HTTP_DOWNLOAD_URI_CACHE_MAX_SIZE = "presignedHttpDownloadURICacheMaxSize";
 
     /**
-     * Boolean flag to allow disabling of verification check on download URI
-     * generation.  Default is true (the existence check is performed).
-     *
-     * Some installations may prefer to disable async uploads, in which case it
-     * is possible to disable the existence check and thus greatly speed up the
-     * generation of presigned download URIs.  See OAK-7998 which describes why
-     * the existence check was added to understand how async uploading relates
-     * to this feature.
+     * Boolean flag to allow disabling of verification check on download URI generation.  Default is
+     * true (the existence check is performed).
+     * <p>
+     * Some installations may prefer to disable async uploads, in which case it is possible to
+     * disable the existence check and thus greatly speed up the generation of presigned download
+     * URIs.  See OAK-7998 which describes why the existence check was added to understand how async
+     * uploading relates to this feature.
      */
     public static final String PRESIGNED_HTTP_DOWNLOAD_URI_VERIFY_EXISTS = "presignedHttpDownloadURIVerifyExists";
 
@@ -124,8 +124,8 @@ public final class AzureConstants {
     public static final String PRESIGNED_HTTP_DOWNLOAD_URI_DOMAIN_OVERRIDE = "presignedHttpDownloadURIDomainOverride";
 
     /**
-     * Domain name to use for direct uploads instead of the default Azure blob storage domain.
-     * This is usually used when an installation has configured a CDN domain for binary uploads.
+     * Domain name to use for direct uploads instead of the default Azure blob storage domain. This
+     * is usually used when an installation has configured a CDN domain for binary uploads.
      */
     public static final String PRESIGNED_HTTP_UPLOAD_URI_DOMAIN_OVERRIDE = "presignedHttpUploadURIDomainOverride";
 
@@ -133,6 +133,7 @@ public final class AzureConstants {
      * Property to enable/disable creation of reference secret on init.
      */
     public static final String AZURE_REF_ON_INIT = "refOnInit";
-    
-    private AzureConstants() { }
+
+    private AzureConstants() {
+    }
 }

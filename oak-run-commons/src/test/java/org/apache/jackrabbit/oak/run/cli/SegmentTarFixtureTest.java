@@ -27,7 +27,6 @@ import static org.mockito.Mockito.verify;
 
 import java.io.File;
 import java.io.IOException;
-
 import joptsimple.OptionParser;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
@@ -41,12 +40,14 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 public class SegmentTarFixtureTest {
+
     @Rule
     public TemporaryFolder folder = new TemporaryFolder(new File("target"));
 
     @Test
     public void testReadWrite() throws Exception {
-        try (NodeStoreFixture fixture = NodeStoreFixtureProvider.create(createSegmentOptions(folder.getRoot()), false)) {
+        try (NodeStoreFixture fixture = NodeStoreFixtureProvider.create(
+            createSegmentOptions(folder.getRoot()), false)) {
             NodeStore store = fixture.getStore();
             NodeBuilder builder = store.getRoot().builder();
             builder.setChildNode("foo");
@@ -56,12 +57,12 @@ public class SegmentTarFixtureTest {
 
     @Test(expected = UnsupportedOperationException.class)
     public void testReadOnly()
-            throws Exception {
+        throws Exception {
         File directory = folder.getRoot();
         createStoreAt(directory);
 
-
-        try (NodeStoreFixture fixture = NodeStoreFixtureProvider.create(createSegmentOptions(folder.getRoot()), true)) {
+        try (NodeStoreFixture fixture = NodeStoreFixtureProvider.create(
+            createSegmentOptions(folder.getRoot()), true)) {
             NodeStore s = fixture.getStore();
             NodeBuilder builder = s.getRoot().builder();
             builder.setChildNode("foo");
@@ -70,7 +71,7 @@ public class SegmentTarFixtureTest {
     }
 
     @Test
-    public void customizerCalled() throws Exception{
+    public void customizerCalled() throws Exception {
         Options o = createSegmentOptions(folder.getRoot());
         FileStoreTarBuilderCustomizer customizer = mock(FileStoreTarBuilderCustomizer.class);
         o.getWhiteboard().register(FileStoreTarBuilderCustomizer.class, customizer, emptyMap());
@@ -81,7 +82,8 @@ public class SegmentTarFixtureTest {
         verify(customizer, times(1)).customize(any(FileStoreBuilder.class));
     }
 
-    private static void createStoreAt(File path) throws InvalidFileStoreVersionException, IOException {
+    private static void createStoreAt(File path)
+        throws InvalidFileStoreVersionException, IOException {
         FileStore store = fileStoreBuilder(path).build();
         store.close();
     }
@@ -89,7 +91,7 @@ public class SegmentTarFixtureTest {
     private Options createSegmentOptions(File storePath) throws IOException {
         OptionParser parser = new OptionParser();
         Options opts = new Options().withDisableSystemExit();
-        opts.parseAndConfigure(parser, new String[] {storePath.getAbsolutePath()});
+        opts.parseAndConfigure(parser, new String[]{storePath.getAbsolutePath()});
         return opts;
     }
 }

@@ -22,7 +22,6 @@ import javax.jcr.Property;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.security.Privilege;
-
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
@@ -105,7 +104,9 @@ import org.apache.jackrabbit.test.AbstractJCRTest;
  *
  * </pre>
  *
- * @see <a href="http://jackrabbit.apache.org/oak/docs/security/permission/evaluation.html">Permission Evaluation in the Oak Docu</a>
+ * @see <a
+ * href="http://jackrabbit.apache.org/oak/docs/security/permission/evaluation.html">Permission
+ * Evaluation in the Oak Docu</a>
  */
 public class L3_PrecedenceRulesTest extends AbstractJCRTest {
 
@@ -126,17 +127,22 @@ public class L3_PrecedenceRulesTest extends AbstractJCRTest {
         Node child = testRootNode.addNode(nodeName1);
         childPath = child.getPath();
 
-        User testUser = ExerciseUtility.createTestUser(((JackrabbitSession) superuser).getUserManager());
-        Group testGroup = ExerciseUtility.createTestGroup(((JackrabbitSession) superuser).getUserManager());
+        User testUser = ExerciseUtility.createTestUser(
+            ((JackrabbitSession) superuser).getUserManager());
+        Group testGroup = ExerciseUtility.createTestGroup(
+            ((JackrabbitSession) superuser).getUserManager());
         testGroup.addMember(testUser);
         superuser.save();
 
         testPrincipal = testUser.getPrincipal();
         testGroupPrincipal = testGroup.getPrincipal();
 
-        AccessControlUtils.addAccessControlEntry(superuser, testRoot, EveryonePrincipal.getInstance(), AccessControlUtils.privilegesFromNames(superuser, Privilege.JCR_ALL), false);
+        AccessControlUtils.addAccessControlEntry(superuser, testRoot,
+            EveryonePrincipal.getInstance(),
+            AccessControlUtils.privilegesFromNames(superuser, Privilege.JCR_ALL), false);
 
-        testSession = superuser.getRepository().login(ExerciseUtility.getTestCredentials(testUser.getID()));
+        testSession = superuser.getRepository()
+                               .login(ExerciseUtility.getTestCredentials(testUser.getID()));
     }
 
     @Override
@@ -165,7 +171,8 @@ public class L3_PrecedenceRulesTest extends AbstractJCRTest {
 
         assertTrue(((GroupPrincipal) testGroupPrincipal).isMember(testPrincipal));
 
-        AccessControlUtils.addAccessControlEntry(superuser, testRoot, testGroupPrincipal, AccessControlUtils.privilegesFromNames(superuser, Privilege.JCR_READ), true);
+        AccessControlUtils.addAccessControlEntry(superuser, testRoot, testGroupPrincipal,
+            AccessControlUtils.privilegesFromNames(superuser, Privilege.JCR_READ), true);
         superuser.save();
 
         testSession.refresh(false);
@@ -192,10 +199,12 @@ public class L3_PrecedenceRulesTest extends AbstractJCRTest {
     public void testAceOrder() throws RepositoryException {
         assertFalse(testSession.nodeExists(testRoot));
 
-        Privilege[] readPrivs = AccessControlUtils.privilegesFromNames(superuser, Privilege.JCR_READ);
+        Privilege[] readPrivs = AccessControlUtils.privilegesFromNames(superuser,
+            Privilege.JCR_READ);
 
         // EXERCISE: fix the permission setup such that the test success without dropping either ACE
-        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(superuser, testRoot);
+        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(superuser,
+            testRoot);
         acl.addEntry(testGroupPrincipal, readPrivs, true);
         acl.addEntry(EveryonePrincipal.getInstance(), readPrivs, false);
         superuser.getAccessControlManager().setPolicy(acl.getPath(), acl);
@@ -208,9 +217,11 @@ public class L3_PrecedenceRulesTest extends AbstractJCRTest {
     }
 
     public void testPrecedenceOfUserPrincipals() throws RepositoryException {
-        Privilege[] readPrivs = AccessControlUtils.privilegesFromNames(superuser, Privilege.JCR_READ);
+        Privilege[] readPrivs = AccessControlUtils.privilegesFromNames(superuser,
+            Privilege.JCR_READ);
 
-        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(superuser, testRoot);
+        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(superuser,
+            testRoot);
         acl.addEntry(testPrincipal, readPrivs, false);
         acl.addEntry(testGroupPrincipal, readPrivs, true);
         superuser.getAccessControlManager().setPolicy(acl.getPath(), acl);
@@ -227,10 +238,13 @@ public class L3_PrecedenceRulesTest extends AbstractJCRTest {
     }
 
     public void testCombination() throws RepositoryException {
-        Privilege[] readPrivs = AccessControlUtils.privilegesFromNames(superuser, Privilege.JCR_READ);
+        Privilege[] readPrivs = AccessControlUtils.privilegesFromNames(superuser,
+            Privilege.JCR_READ);
 
-        AccessControlUtils.addAccessControlEntry(superuser, testRoot, testPrincipal, readPrivs, false);
-        AccessControlUtils.addAccessControlEntry(superuser, childPath, testGroupPrincipal, readPrivs, true);
+        AccessControlUtils.addAccessControlEntry(superuser, testRoot, testPrincipal, readPrivs,
+            false);
+        AccessControlUtils.addAccessControlEntry(superuser, childPath, testGroupPrincipal,
+            readPrivs, true);
         superuser.save();
 
         // EXERCISE what is the expected result?
@@ -242,11 +256,15 @@ public class L3_PrecedenceRulesTest extends AbstractJCRTest {
     }
 
     public void testCombination2() throws RepositoryException {
-        Privilege[] readPrivs = AccessControlUtils.privilegesFromNames(superuser, Privilege.JCR_READ);
+        Privilege[] readPrivs = AccessControlUtils.privilegesFromNames(superuser,
+            Privilege.JCR_READ);
 
-        AccessControlUtils.addAccessControlEntry(superuser, testRoot, testPrincipal, readPrivs, false);
-        AccessControlUtils.addAccessControlEntry(superuser, testRoot, testPrincipal, new String[] {PrivilegeConstants.REP_READ_PROPERTIES}, true);
-        AccessControlUtils.addAccessControlEntry(superuser, childPath, testGroupPrincipal, readPrivs, false);
+        AccessControlUtils.addAccessControlEntry(superuser, testRoot, testPrincipal, readPrivs,
+            false);
+        AccessControlUtils.addAccessControlEntry(superuser, testRoot, testPrincipal,
+            new String[]{PrivilegeConstants.REP_READ_PROPERTIES}, true);
+        AccessControlUtils.addAccessControlEntry(superuser, childPath, testGroupPrincipal,
+            readPrivs, false);
         superuser.save();
 
         // EXERCISE what is the expected result?
@@ -258,6 +276,7 @@ public class L3_PrecedenceRulesTest extends AbstractJCRTest {
         canRead = null; // EXERCISE
         assertEquals(canRead.booleanValue(), testSession.nodeExists(childPath));
         canRead = null; // EXERCISE
-        assertEquals(canRead.booleanValue(), testSession.propertyExists(childPath+"/jcr:primaryType"));
+        assertEquals(canRead.booleanValue(),
+            testSession.propertyExists(childPath + "/jcr:primaryType"));
     }
 }

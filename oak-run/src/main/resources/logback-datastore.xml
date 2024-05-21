@@ -22,38 +22,40 @@
   <appender name="datastore" class="ch.qos.logback.core.FileAppender">
     <file>${oak.workDir}/datastore.log</file>
     <encoder>
-      <pattern>%d{dd.MM.yyyy HH:mm:ss.SSS} %-5(*%level*) [%thread] %logger{30} %marker- %msg %n</pattern>
+      <pattern>%d{dd.MM.yyyy HH:mm:ss.SSS} %-5(*%level*) [%thread] %logger{30} %marker- %msg %n
+      </pattern>
     </encoder>
   </appender>
 
   <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
     <target>System.out</target>
     <encoder>
-      <pattern>%d{dd.MM.yyyy HH:mm:ss.SSS} %-5(*%level*) [%thread] %logger{30} %marker- %msg %n</pattern>
+      <pattern>%d{dd.MM.yyyy HH:mm:ss.SSS} %-5(*%level*) [%thread] %logger{30} %marker- %msg %n
+      </pattern>
     </encoder>
   </appender>
 
   <!-- For datastore operations -->
   <logger name="org.apache.jackrabbit.oak.blob" level="INFO">
-    <appender-ref ref="STDOUT" />
+    <appender-ref ref="STDOUT"/>
   </logger>
   <logger name="org.apache.jackrabbit.oak.plugins.blob" level="INFO">
-    <appender-ref ref="STDOUT" />
+    <appender-ref ref="STDOUT"/>
   </logger>
   <logger name="org.apache.jackrabbit.core.data" level="INFO">
-    <appender-ref ref="STDOUT" />
+    <appender-ref ref="STDOUT"/>
   </logger>
   <logger name="org.apache.jackrabbit.oak.run" level="INFO">
-    <appender-ref ref="STDOUT" />
+    <appender-ref ref="STDOUT"/>
   </logger>
 
   <logger name="org.apache.jackrabbit.oak.spi.cluster" level="INFO">
-    <appender-ref ref="STDOUT" />
+    <appender-ref ref="STDOUT"/>
   </logger>
 
 
   <root level="INFO">
-    <appender-ref ref="datastore" />
+    <appender-ref ref="datastore"/>
   </root>
 
 </configuration>

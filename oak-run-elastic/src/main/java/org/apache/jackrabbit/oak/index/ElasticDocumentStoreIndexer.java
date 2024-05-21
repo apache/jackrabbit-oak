@@ -18,17 +18,21 @@
  */
 package org.apache.jackrabbit.oak.index;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.oak.index.indexer.document.*;
-import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
-
 import java.io.IOException;
 import java.util.List;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.oak.index.indexer.document.DocumentStoreIndexerBase;
+import org.apache.jackrabbit.oak.index.indexer.document.ElasticIndexer;
+import org.apache.jackrabbit.oak.index.indexer.document.ElasticIndexerProvider;
+import org.apache.jackrabbit.oak.index.indexer.document.NodeStateIndexer;
+import org.apache.jackrabbit.oak.index.indexer.document.NodeStateIndexerProvider;
+import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 
 /*
 Out of band indexer for Elasticsearch. Provides support to index document store for  given index definitions or reindex existing indexes
  */
 public class ElasticDocumentStoreIndexer extends DocumentStoreIndexerBase {
+
     private final IndexHelper indexHelper;
     private final String indexPrefix;
     private final String scheme;
@@ -38,9 +42,9 @@ public class ElasticDocumentStoreIndexer extends DocumentStoreIndexerBase {
     private final String apiSecretId;
 
     public ElasticDocumentStoreIndexer(IndexHelper indexHelper, IndexerSupport indexerSupport,
-                                       String indexPrefix, String scheme,
-                                       String host, int port,
-                                       String apiKeyId, String apiSecretId) throws IOException {
+        String indexPrefix, String scheme,
+        String host, int port,
+        String apiKeyId, String apiSecretId) throws IOException {
         super(indexHelper, indexerSupport);
         this.indexHelper = indexHelper;
         this.indexPrefix = indexPrefix;
@@ -54,12 +58,13 @@ public class ElasticDocumentStoreIndexer extends DocumentStoreIndexerBase {
 
     protected List<NodeStateIndexerProvider> createProviders() {
         List<NodeStateIndexerProvider> providers = ImmutableList.of(
-                createElasticIndexerProvider()
+            createElasticIndexerProvider()
         );
 
         providers.forEach(closer::register);
         return providers;
     }
+
     /*
     Used to provision elastic index before starting indexing
     Otherwise proper alias naming and mapping will not be applied
@@ -77,12 +82,13 @@ public class ElasticDocumentStoreIndexer extends DocumentStoreIndexerBase {
 
     private NodeStateIndexerProvider createElasticIndexerProvider() {
         final ElasticConnection.Builder.BuildStep buildStep = ElasticConnection.newBuilder()
-                .withIndexPrefix(indexPrefix)
-                .withConnectionParameters(
-                        scheme,
-                        host,
-                        port
-                );
+                                                                               .withIndexPrefix(
+                                                                                   indexPrefix)
+                                                                               .withConnectionParameters(
+                                                                                   scheme,
+                                                                                   host,
+                                                                                   port
+                                                                               );
         final ElasticConnection coordinate;
         if (apiKeyId != null && apiSecretId != null) {
             coordinate = buildStep.withApiKeys(apiKeyId, apiSecretId).build();

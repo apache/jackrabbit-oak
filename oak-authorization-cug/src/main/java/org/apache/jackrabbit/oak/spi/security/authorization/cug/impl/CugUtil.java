@@ -42,7 +42,8 @@ final class CugUtil implements CugConstants {
 
     private static final Logger log = LoggerFactory.getLogger(CugUtil.class);
 
-    private CugUtil(){}
+    private CugUtil() {
+    }
 
     static boolean hasCug(@NotNull Tree tree) {
         return tree.exists() && tree.hasChild(REP_CUG_POLICY);
@@ -67,11 +68,13 @@ final class CugUtil implements CugConstants {
     }
 
     static boolean definesCug(@NotNull Tree tree) {
-        return tree.exists() && REP_CUG_POLICY.equals(tree.getName()) && NT_REP_CUG_POLICY.equals(TreeUtil.getPrimaryTypeName(tree));
+        return tree.exists() && REP_CUG_POLICY.equals(tree.getName()) && NT_REP_CUG_POLICY.equals(
+            TreeUtil.getPrimaryTypeName(tree));
     }
 
     static boolean definesCug(@NotNull String name, @NotNull NodeState state) {
-        return REP_CUG_POLICY.equals(name) && NT_REP_CUG_POLICY.equals(NodeStateUtils.getPrimaryTypeName(state));
+        return REP_CUG_POLICY.equals(name) && NT_REP_CUG_POLICY.equals(
+            NodeStateUtils.getPrimaryTypeName(state));
     }
 
     static boolean definesCug(@NotNull Tree tree, @NotNull PropertyState property) {
@@ -95,16 +98,22 @@ final class CugUtil implements CugConstants {
         return false;
     }
 
-    static Set<String> getSupportedPaths(@NotNull ConfigurationParameters params, @NotNull MountInfoProvider mountInfoProvider) {
-        Set<String> supportedPaths = params.getConfigValue(CugConstants.PARAM_CUG_SUPPORTED_PATHS, ImmutableSet.of());
+    static Set<String> getSupportedPaths(@NotNull ConfigurationParameters params,
+        @NotNull MountInfoProvider mountInfoProvider) {
+        Set<String> supportedPaths = params.getConfigValue(CugConstants.PARAM_CUG_SUPPORTED_PATHS,
+            ImmutableSet.of());
         if (!supportedPaths.isEmpty() && mountInfoProvider.hasNonDefaultMounts()) {
             for (Mount mount : mountInfoProvider.getNonDefaultMounts()) {
                 for (String path : supportedPaths) {
                     if (mount.isUnder(path)) {
-                        log.error("Configured supported CUG path '{}' includes node store mount '{}'.", path, mount.getName());
+                        log.error(
+                            "Configured supported CUG path '{}' includes node store mount '{}'.",
+                            path, mount.getName());
                         throw new IllegalStateException();
                     } else if (mount.isMounted(path)) {
-                        log.error("Configured supported CUG path '{}' is part of node store mount '{}'.", path, mount.getName());
+                        log.error(
+                            "Configured supported CUG path '{}' is part of node store mount '{}'.",
+                            path, mount.getName());
                         throw new IllegalStateException();
                     }
                 }
@@ -114,7 +123,8 @@ final class CugUtil implements CugConstants {
     }
 
     static int getImportBehavior(ConfigurationParameters config) {
-        String importBehaviorStr = config.getConfigValue(ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, ImportBehavior.NAME_ABORT);
+        String importBehaviorStr = config.getConfigValue(
+            ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, ImportBehavior.NAME_ABORT);
         return ImportBehavior.valueFromString(importBehaviorStr);
     }
 }

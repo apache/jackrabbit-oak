@@ -19,10 +19,12 @@
 
 package org.apache.jackrabbit.oak.run.cli;
 
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
+
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.InputStream;
-
 import org.apache.jackrabbit.core.data.FileDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
@@ -30,15 +32,13 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import static org.junit.Assert.*;
-
 public class ReadOnlyBlobStoreWrapperTest {
 
     @Rule
     public final TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
 
     @Test
-    public void readOnly() throws Exception{
+    public void readOnly() throws Exception {
         FileDataStore fds = new FileDataStore();
         fds.setPath(temporaryFolder.getRoot().getAbsolutePath());
         fds.init(null);
@@ -56,7 +56,7 @@ public class ReadOnlyBlobStoreWrapperTest {
 
         String blobId = writableBS.writeBlob(new ByteArrayInputStream("foo".getBytes()));
 
-        try(InputStream is = readOnly.getInputStream(blobId)) {
+        try (InputStream is = readOnly.getInputStream(blobId)) {
             assertNotNull(is);
         }
 

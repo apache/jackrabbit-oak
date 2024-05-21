@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
 import java.util.Properties;
-
 import org.apache.jackrabbit.oak.plugins.blob.AbstractSharedCachingDataStore;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
 
@@ -27,6 +26,7 @@ import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
  * File system implementation of {@link AbstractSharedCachingDataStore}.
  */
 public class CachingFileDataStore extends AbstractSharedCachingDataStore {
+
     private Properties properties;
 
     /**
@@ -37,7 +37,7 @@ public class CachingFileDataStore extends AbstractSharedCachingDataStore {
     protected AbstractSharedBackend createBackend() {
         FSBackend
             backend = new FSBackend();
-        if(this.properties != null) {
+        if (this.properties != null) {
             backend.setProperties(this.properties);
         }
 

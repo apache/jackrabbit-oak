@@ -67,35 +67,40 @@ public class InitialContentMigratorTest {
         root.child("second");
         seed.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         String checkpoint1 = seed.checkpoint(TimeUnit.MINUTES.toMillis(10));
-        
+
         root = seed.getRoot().builder();
         root.child("third");
         seed.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        
+
         MemoryNodeStore target = new MemoryNodeStore();
         NodeBuilder targetRootBuilder = target.getRoot().builder();
         targetRootBuilder.child(CLUSTER_CONFIG_NODE);
         target.merge(targetRootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         MountInfoProvider mip = Mounts.newBuilder().mount("seed", "/first").build();
-        
+
         // perform migration
-        InitialContentMigrator icm = new InitialContentMigrator(target, seed, mip.getMountByName("seed"));
+        InitialContentMigrator icm = new InitialContentMigrator(target, seed,
+            mip.getMountByName("seed"));
         icm.migrate();
-        
+
         NodeState targetRoot = target.getRoot();
-        
+
         // verify that the 'second' and 'third' nodes are visible in the migrated store
         assertFalse("Node /first should not have been migrated", targetRoot.hasChildNode("first"));
         assertTrue("Node /second should have been migrated", targetRoot.hasChildNode("second"));
         assertTrue("Node /third should have been migrated", targetRoot.hasChildNode("third"));
-        assertTrue(CLUSTER_CONFIG_NODE  + " should be retained", targetRoot.hasChildNode(CLUSTER_CONFIG_NODE));
+        assertTrue(CLUSTER_CONFIG_NODE + " should be retained",
+            targetRoot.hasChildNode(CLUSTER_CONFIG_NODE));
 
         // verify that the 'second' node is visible in the migrated store when retrieving the checkpoint
         NodeState checkpointTargetRoot = target.retrieve(checkpoint1);
-        assertFalse("Node /first should not have been migrated", checkpointTargetRoot.hasChildNode("first"));
-        assertTrue("Node /second should have been migrated", checkpointTargetRoot.hasChildNode("second"));
-        assertFalse("Node /third should not be visible from the migrated checkpoint", checkpointTargetRoot.hasChildNode("third"));
+        assertFalse("Node /first should not have been migrated",
+            checkpointTargetRoot.hasChildNode("first"));
+        assertTrue("Node /second should have been migrated",
+            checkpointTargetRoot.hasChildNode("second"));
+        assertFalse("Node /third should not be visible from the migrated checkpoint",
+            checkpointTargetRoot.hasChildNode("third"));
 
     }
 
@@ -119,17 +124,18 @@ public class InitialContentMigratorTest {
         List<DocumentNodeStore> stores = new ArrayList<>();
         for (int i = 0; i < 10; i++) {
             stores.add(new DocumentMK.Builder()
-                    .setDocumentStore(sharedStore)
-                    .setClusterId(i + 1)
-                    .build());
+                .setDocumentStore(sharedStore)
+                .setClusterId(i + 1)
+                .build());
         }
 
         List<Throwable> exceptions = Collections.synchronizedList(new ArrayList<>());
         AtomicBoolean migrated = new AtomicBoolean();
         List<Thread> threads = stores.stream()
-                .map(dns -> (Runnable) () -> runMigration(dns, seed, mip.getMountByName("seed"), exceptions, migrated))
-                .map(Thread::new)
-                .collect(Collectors.toList());
+                                     .map(dns -> (Runnable) () -> runMigration(dns, seed,
+                                         mip.getMountByName("seed"), exceptions, migrated))
+                                     .map(Thread::new)
+                                     .collect(Collectors.toList());
 
         threads.stream().forEach(Thread::start);
         for (Thread t : threads) {
@@ -142,14 +148,16 @@ public class InitialContentMigratorTest {
             NodeState targetRoot = dns.getRoot();
 
             // verify that the 'second' and 'third' nodes are visible in the migrated store
-            assertFalse("Node /first should not have been migrated", targetRoot.hasChildNode("first"));
+            assertFalse("Node /first should not have been migrated",
+                targetRoot.hasChildNode("first"));
             assertTrue("Node /second should have been migrated", targetRoot.hasChildNode("second"));
             assertTrue("Node /third should have been migrated", targetRoot.hasChildNode("third"));
 
             for (int i = 0; i < 10; i++) {
                 for (int j = 0; j < 10; j++) {
                     assertTrue("Node /third/" + i + "/" + j + " should have been migrated",
-                            targetRoot.getChildNode("third").getChildNode("a-" + i).hasChildNode("b-" + j));
+                        targetRoot.getChildNode("third").getChildNode("a-" + i)
+                                  .hasChildNode("b-" + j));
                 }
             }
 
@@ -157,7 +165,8 @@ public class InitialContentMigratorTest {
         }
     }
 
-    private void runMigration(NodeStore target, NodeStore seed, Mount seedMount, List<Throwable> exceptions, AtomicBoolean migrated) {
+    private void runMigration(NodeStore target, NodeStore seed, Mount seedMount,
+        List<Throwable> exceptions, AtomicBoolean migrated) {
         try {
             InitialContentMigrator icm = new InitialContentMigrator(target, seed, seedMount) {
                 protected void doMigrate() throws CommitFailedException {

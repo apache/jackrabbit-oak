@@ -16,6 +16,12 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 
+import static org.apache.jackrabbit.oak.security.authorization.accesscontrol.AbstractAccessControlTest.assertPolicies;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -23,9 +29,8 @@ import java.util.Iterator;
 import java.util.Set;
 import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.NamedAccessControlPolicy;
-
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -39,12 +44,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-
-import static org.apache.jackrabbit.oak.security.authorization.accesscontrol.AbstractAccessControlTest.assertPolicies;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 /**
  * Tests for the special {@code ReadPolicy} exposed at specified paths.

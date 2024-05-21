@@ -26,18 +26,17 @@ package org.apache.lucene.codecs.lucene40;
  */
 
 import java.io.IOException;
-
 import org.apache.lucene.codecs.CodecUtil;
 import org.apache.lucene.codecs.StoredFieldsFormat;
 import org.apache.lucene.codecs.StoredFieldsReader;
 import org.apache.lucene.codecs.StoredFieldsWriter;
 import org.apache.lucene.index.FieldInfos;
 import org.apache.lucene.index.SegmentInfo;
-import org.apache.lucene.store.DataOutput; // javadocs
+import org.apache.lucene.store.DataOutput;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.IOContext;
 
-/** 
+/**
  * Lucene 4.0 Stored Fields Format.
  * <p>Stored fields are represented by two files:</p>
  * <ol>
@@ -86,22 +85,26 @@ import org.apache.lucene.store.IOContext;
  * </li>
  * </ul>
  * </ol>
- * @lucene.experimental */
+ *
+ * @lucene.experimental
+ */
 public class Lucene40StoredFieldsFormat extends StoredFieldsFormat {
 
-  /** Sole constructor. */
-  public Lucene40StoredFieldsFormat() {
-  }
+    /**
+     * Sole constructor.
+     */
+    public Lucene40StoredFieldsFormat() {
+    }
 
-  @Override
-  public StoredFieldsReader fieldsReader(Directory directory, SegmentInfo si,
-      FieldInfos fn, IOContext context) throws IOException {
-    return new Lucene40StoredFieldsReader(directory, si, fn, context);
-  }
+    @Override
+    public StoredFieldsReader fieldsReader(Directory directory, SegmentInfo si,
+        FieldInfos fn, IOContext context) throws IOException {
+        return new Lucene40StoredFieldsReader(directory, si, fn, context);
+    }
 
-  @Override
-  public StoredFieldsWriter fieldsWriter(Directory directory, SegmentInfo si,
-      IOContext context) throws IOException {
-    return new Lucene40StoredFieldsWriter(directory, si.name, context);
-  }
+    @Override
+    public StoredFieldsWriter fieldsWriter(Directory directory, SegmentInfo si,
+        IOContext context) throws IOException {
+        return new Lucene40StoredFieldsWriter(directory, si.name, context);
+    }
 }

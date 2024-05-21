@@ -22,12 +22,11 @@ package org.apache.jackrabbit.oak.plugins.document.util;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.Iterator;
-
 import org.apache.jackrabbit.guava.common.io.Closer;
-
 import org.jetbrains.annotations.NotNull;
 
 public class CloseableIterable<T> implements Iterable<T>, Closeable {
+
     private final Iterable<T> iterable;
     private final Closer closer = Closer.create();
 

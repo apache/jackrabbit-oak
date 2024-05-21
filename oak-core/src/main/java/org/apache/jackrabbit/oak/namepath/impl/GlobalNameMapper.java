@@ -16,27 +16,25 @@
  */
 package org.apache.jackrabbit.oak.namepath.impl;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.apache.jackrabbit.oak.plugins.name.Namespaces.encodeUri;
+import static org.apache.jackrabbit.oak.plugins.tree.TreeUtil.getString;
+import static org.apache.jackrabbit.oak.plugins.tree.TreeUtil.getStrings;
+import static org.apache.jackrabbit.oak.plugins.tree.factories.RootFactory.createReadOnlyRoot;
+import static org.apache.jackrabbit.oak.plugins.tree.factories.TreeFactory.createReadOnlyTree;
 import static org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants.NAMESPACES_PATH;
 import static org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants.REP_NSDATA;
 import static org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants.REP_PREFIXES;
 import static org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants.REP_URIS;
-import static org.apache.jackrabbit.oak.plugins.name.Namespaces.encodeUri;
-import static org.apache.jackrabbit.oak.plugins.tree.factories.RootFactory.createReadOnlyRoot;
-import static org.apache.jackrabbit.oak.plugins.tree.factories.TreeFactory.createReadOnlyTree;
-import static org.apache.jackrabbit.oak.plugins.tree.TreeUtil.getString;
-import static org.apache.jackrabbit.oak.plugins.tree.TreeUtil.getStrings;
 
 import java.util.Map;
 import java.util.Map.Entry;
-
 import javax.jcr.RepositoryException;
-
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NameMapper;

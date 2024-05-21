@@ -73,9 +73,8 @@ import org.apache.jackrabbit.guava.common.base.Supplier;
 import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
 
 /**
- * A generic builder for a {@link DocumentNodeStore}. By default the builder
- * will create an in-memory {@link DocumentNodeStore}. In most cases this is
- * only useful for tests.
+ * A generic builder for a {@link DocumentNodeStore}. By default the builder will create an
+ * in-memory {@link DocumentNodeStore}. In most cases this is only useful for tests.
  */
 public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
 
@@ -94,13 +93,13 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
      * The path where the persistent cache is stored.
      */
     private static final String DEFAULT_PERSISTENT_CACHE_URI =
-            System.getProperty("oak.documentMK.persCache");
+        System.getProperty("oak.documentMK.persCache");
 
     /**
      * The threshold where special handling for many child node starts.
      */
     static final int MANY_CHILDREN_THRESHOLD = Integer.getInteger(
-            "oak.documentMK.manyChildren", 50);
+        "oak.documentMK.manyChildren", 50);
 
     /**
      * Whether to use the CacheLIRS (default) or the Guava cache implementation.
@@ -108,15 +107,15 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     private static final boolean LIRS_CACHE = !Boolean.getBoolean("oak.documentMK.guavaCache");
 
     /**
-     * Number of content updates that need to happen before the updates
-     * are automatically purged to the private branch.
+     * Number of content updates that need to happen before the updates are automatically purged to
+     * the private branch.
      */
     static final int UPDATE_LIMIT = Integer.getInteger("update.limit", DEFAULT_UPDATE_LIMIT);
 
     protected Supplier<DocumentStore> documentStoreSupplier = ofInstance(new MemoryDocumentStore());
     protected Supplier<BlobStore> blobStoreSupplier;
     private DiffCache diffCache;
-    private int clusterId  = Integer.getInteger("oak.documentMK.clusterId", 0);
+    private int clusterId = Integer.getInteger("oak.documentMK.clusterId", 0);
     private int asyncDelay = 1000;
     private long clusterIdReuseDelayAfterRecovery = ClusterNodeInfo.DEFAULT_REUSE_DELAY_AFTER_RECOVERY_MILLIS;
     private boolean timing;
@@ -156,14 +155,14 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     private Map<String, PersistentCacheStats> persistentCacheStats = new HashMap<>();
     private boolean bundlingDisabled;
     private JournalPropertyHandlerFactory journalPropertyHandlerFactory =
-            new JournalPropertyHandlerFactory();
+        new JournalPropertyHandlerFactory();
     private int updateLimit = UPDATE_LIMIT;
     private int commitValueCacheSize = 10000;
     private boolean cacheEmptyCommitValue = false;
     private long maxRevisionAgeMillis = DEFAULT_JOURNAL_GC_MAX_AGE_MILLIS;
     private long maxRevisionGCAgeMillis = TimeUnit.SECONDS.toMillis(DEFAULT_VER_GC_MAX_AGE);
     private GCMonitor gcMonitor = new LoggingGCMonitor(
-            LoggerFactory.getLogger(VersionGarbageCollector.class));
+        LoggerFactory.getLogger(VersionGarbageCollector.class));
     private Predicate<Path> nodeCachePredicate = Predicates.alwaysTrue();
     private boolean clusterInvisible;
     private boolean throttlingEnabled;
@@ -231,7 +230,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
 
     /**
      * Sets a custom prefix for the logger.
-     * 
+     *
      * @param prefix to be used in the logs output.
      * @return this
      */
@@ -246,12 +245,11 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     }
 
     /**
-     * If {@code true}, sets lease check mode to {@link LeaseCheckMode#LENIENT},
-     * otherwise sets the mode to {@link LeaseCheckMode#DISABLED}. This method
-     * is only kept for backward compatibility with the behaviour before
-     * OAK-7626. The new default lease check mode is {@link LeaseCheckMode#STRICT},
-     * but existing code may rely on the previous behaviour, when enabling the
-     * lease check corresponded with a {@link LeaseCheckMode#LENIENT} behaviour.
+     * If {@code true}, sets lease check mode to {@link LeaseCheckMode#LENIENT}, otherwise sets the
+     * mode to {@link LeaseCheckMode#DISABLED}. This method is only kept for backward compatibility
+     * with the behaviour before OAK-7626. The new default lease check mode is
+     * {@link LeaseCheckMode#STRICT}, but existing code may rely on the previous behaviour, when
+     * enabling the lease check corresponded with a {@link LeaseCheckMode#LENIENT} behaviour.
      *
      * @deprecated use {@link #setLeaseCheckMode(LeaseCheckMode)} instead.
      */
@@ -262,10 +260,9 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     }
 
     /**
-     * @deprecated This method does not distinguish between {@link
-     *         LeaseCheckMode#LENIENT} and {@link LeaseCheckMode#STRICT} and
-     *         returns {@code true} for both modes. Use {@link
-     *         #getLeaseCheckMode()} instead.
+     * @deprecated This method does not distinguish between {@link LeaseCheckMode#LENIENT} and
+     * {@link LeaseCheckMode#STRICT} and returns {@code true} for both modes. Use
+     * {@link #getLeaseCheckMode()} instead.
      */
     @Deprecated
     public boolean getLeaseCheck() {
@@ -391,8 +388,8 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     }
 
     /**
-     * Set the cluster id to use. By default, 0 is used, meaning the cluster
-     * id is automatically generated.
+     * Set the cluster id to use. By default, 0 is used, meaning the cluster id is automatically
+     * generated.
      *
      * @param clusterId the cluster id
      * @return this
@@ -403,8 +400,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     }
 
     /**
-     * Set the cluster as invisible to the discovery lite service. By default
-     * it is visible.
+     * Set the cluster as invisible to the discovery lite service. By default it is visible.
      *
      * @return this
      * @see DocumentDiscoveryLiteService
@@ -413,7 +409,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
         this.clusterInvisible = invisible;
         return thisBuilder();
     }
-    
+
     public T setCacheSegmentCount(int cacheSegmentCount) {
         this.cacheSegmentCount = cacheSegmentCount;
         return thisBuilder();
@@ -433,8 +429,8 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     }
 
     /**
-     * Set the maximum delay to write the last revision to the root node. By
-     * default 1000 (meaning 1 second) is used.
+     * Set the maximum delay to write the last revision to the root node. By default 1000 (meaning 1
+     * second) is used.
      *
      * @param asyncDelay in milliseconds
      * @return this
@@ -472,15 +468,15 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     }
 
     public T memoryCacheDistribution(int nodeCachePercentage,
-                                     int prevDocCachePercentage,
-                                     int childrenCachePercentage,
-                                     int diffCachePercentage) {
+        int prevDocCachePercentage,
+        int childrenCachePercentage,
+        int diffCachePercentage) {
         checkArgument(nodeCachePercentage >= 0);
         checkArgument(prevDocCachePercentage >= 0);
-        checkArgument(childrenCachePercentage>= 0);
+        checkArgument(childrenCachePercentage >= 0);
         checkArgument(diffCachePercentage >= 0);
         checkArgument(nodeCachePercentage + prevDocCachePercentage + childrenCachePercentage +
-                diffCachePercentage < 100);
+            diffCachePercentage < 100);
         this.nodeCachePercentage = nodeCachePercentage;
         this.prevDocCachePercentage = prevDocCachePercentage;
         this.childrenCachePercentage = childrenCachePercentage;
@@ -501,8 +497,9 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     }
 
     public long getDocumentCacheSize() {
-        return memoryCacheSize - getNodeCacheSize() - getPrevDocumentCacheSize() - getChildrenCacheSize()
-                - getDiffCacheSize();
+        return memoryCacheSize - getNodeCacheSize() - getPrevDocumentCacheSize()
+            - getChildrenCacheSize()
+            - getDiffCacheSize();
     }
 
     public long getDiffCacheSize() {
@@ -527,13 +524,13 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     }
 
     public Executor getExecutor() {
-        if (executor == null){
+        if (executor == null) {
             return MoreExecutors.newDirectExecutorService();
         }
         return executor;
     }
 
-    public T setExecutor(Executor executor){
+    public T setExecutor(Executor executor) {
         this.executor = executor;
         return thisBuilder();
     }
@@ -543,7 +540,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
         return thisBuilder();
     }
 
-    public T setStatisticsProvider(StatisticsProvider statisticsProvider){
+    public T setStatisticsProvider(StatisticsProvider statisticsProvider) {
         this.statisticsProvider = statisticsProvider;
         return thisBuilder();
     }
@@ -551,6 +548,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     public StatisticsProvider getStatisticsProvider() {
         return this.statisticsProvider;
     }
+
     public DocumentStoreStatsCollector getDocumentStoreStatsCollector() {
         if (documentStoreStatsCollector == null) {
             documentStoreStatsCollector = new DocumentStoreStats(statisticsProvider);
@@ -558,7 +556,8 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
         return documentStoreStatsCollector;
     }
 
-    public T setDocumentStoreStatsCollector(DocumentStoreStatsCollector documentStoreStatsCollector) {
+    public T setDocumentStoreStatsCollector(
+        DocumentStoreStatsCollector documentStoreStatsCollector) {
         this.documentStoreStatsCollector = documentStoreStatsCollector;
         return thisBuilder();
     }
@@ -571,7 +570,8 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
         return throttlingStatsCollector;
     }
 
-    public T setThrottlingStatsCollector(final @NotNull ThrottlingStatsCollector throttlingStatsCollector) {
+    public T setThrottlingStatsCollector(
+        final @NotNull ThrottlingStatsCollector throttlingStatsCollector) {
         this.throttlingStatsCollector = throttlingStatsCollector;
         return thisBuilder();
     }
@@ -662,10 +662,9 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     }
 
     /**
-     * Controls whether caching of empty commit values (negative cache) is
-     * enabled. This cache is disabled by default. The cache can only be enabled
-     * on a {@link #setReadOnlyMode() read-only} store. In read-write mode, the
-     * cache is always be disabled.
+     * Controls whether caching of empty commit values (negative cache) is enabled. This cache is
+     * disabled by default. The cache can only be enabled on a {@link #setReadOnlyMode() read-only}
+     * store. In read-write mode, the cache is always be disabled.
      *
      * @param enable {@code true} to enable the empty commit value cache.
      * @return this builder.
@@ -676,8 +675,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     }
 
     /**
-     * @return {@code true} when caching of empty commit values is enabled,
-     *      {@code false} otherwise.
+     * @return {@code true} when caching of empty commit values is enabled, {@code false} otherwise.
      */
     public boolean getCacheEmptyCommitValue() {
         return cacheEmptyCommitValue;
@@ -689,8 +687,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     }
 
     /**
-     * The maximum age for journal entries in milliseconds. Older entries
-     * are candidates for GC.
+     * The maximum age for journal entries in milliseconds. Older entries are candidates for GC.
      *
      * @return maximum age for journal entries in milliseconds.
      */
@@ -704,8 +701,8 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     }
 
     /**
-     * The maximum age for changes in milliseconds. Older changes are candidates
-     * for revision garbage collection.
+     * The maximum age for changes in milliseconds. Older changes are candidates for revision
+     * garbage collection.
      *
      * @return maximum age in milliseconds.
      */
@@ -756,7 +753,8 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
         return buildCache(CacheType.NODE, getNodeCacheSize(), store, null);
     }
 
-    public Cache<NamePathRev, DocumentNodeState.Children> buildChildrenCache(DocumentNodeStore store) {
+    public Cache<NamePathRev, DocumentNodeState.Children> buildChildrenCache(
+        DocumentNodeStore store) {
         return buildCache(CacheType.CHILDREN, getChildrenCacheSize(), store, null);
     }
 
@@ -776,21 +774,25 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
         return buildCache(CacheType.PREV_DOCUMENT, getPrevDocumentCacheSize(), null, docStore);
     }
 
-    public NodeDocumentCache buildNodeDocumentCache(DocumentStore docStore, NodeDocumentLocks locks) {
+    public NodeDocumentCache buildNodeDocumentCache(DocumentStore docStore,
+        NodeDocumentLocks locks) {
         Cache<CacheValue, NodeDocument> nodeDocumentsCache = buildDocumentCache(docStore);
-        CacheStats nodeDocumentsCacheStats = new CacheStats(nodeDocumentsCache, "Document-Documents", getWeigher(), getDocumentCacheSize());
+        CacheStats nodeDocumentsCacheStats = new CacheStats(nodeDocumentsCache,
+            "Document-Documents", getWeigher(), getDocumentCacheSize());
 
         Cache<StringValue, NodeDocument> prevDocumentsCache = buildPrevDocumentsCache(docStore);
-        CacheStats prevDocumentsCacheStats = new CacheStats(prevDocumentsCache, "Document-PrevDocuments", getWeigher(), getPrevDocumentCacheSize());
+        CacheStats prevDocumentsCacheStats = new CacheStats(prevDocumentsCache,
+            "Document-PrevDocuments", getWeigher(), getPrevDocumentCacheSize());
 
-        return new NodeDocumentCache(nodeDocumentsCache, nodeDocumentsCacheStats, prevDocumentsCache, prevDocumentsCacheStats, locks);
+        return new NodeDocumentCache(nodeDocumentsCache, nodeDocumentsCacheStats,
+            prevDocumentsCache, prevDocumentsCacheStats, locks);
     }
 
     /**
      * @deprecated Use {@link #setNodeCachePathPredicate(Predicate)} instead.
      */
     @Deprecated
-    public T setNodeCachePredicate(Predicate<String> p){
+    public T setNodeCachePredicate(Predicate<String> p) {
         this.nodeCachePredicate = input -> input != null && p.apply(input.toString());
         return thisBuilder();
     }
@@ -803,7 +805,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
         return input -> input != null && nodeCachePredicate.apply(Path.fromString(input));
     }
 
-    public T setNodeCachePathPredicate(Predicate<Path> p){
+    public T setNodeCachePathPredicate(Predicate<Path> p) {
         this.nodeCachePredicate = p;
         return thisBuilder();
     }
@@ -814,11 +816,11 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
 
     @SuppressWarnings("unchecked")
     private <K extends CacheValue, V extends CacheValue> Cache<K, V> buildCache(
-            CacheType cacheType,
-            long maxWeight,
-            DocumentNodeStore docNodeStore,
-            DocumentStore docStore) {
-        Set<EvictionListener<K, V>> listeners = new CopyOnWriteArraySet<EvictionListener<K,V>>();
+        CacheType cacheType,
+        long maxWeight,
+        DocumentNodeStore docNodeStore,
+        DocumentStore docStore) {
+        Set<EvictionListener<K, V>> listeners = new CopyOnWriteArraySet<EvictionListener<K, V>>();
         Cache<K, V> cache = buildCache(cacheType.name(), maxWeight, listeners);
         PersistentCache p = null;
         if (cacheType == CacheType.DIFF || cacheType == CacheType.LOCAL_DIFF) {
@@ -873,64 +875,64 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     }
 
     private <K extends CacheValue, V extends CacheValue> Cache<K, V> buildCache(
-            String module,
-            long maxWeight,
-            final Set<EvictionListener<K, V>> listeners) {
+        String module,
+        long maxWeight,
+        final Set<EvictionListener<K, V>> listeners) {
         // do not use LIRS cache when maxWeight is zero (OAK-6953)
         if (LIRS_CACHE && maxWeight > 0) {
             return CacheLIRS.<K, V>newBuilder().
-                    module(module).
-                    weigher(new Weigher<K, V>() {
-                        @Override
-                        public int weigh(K key, V value) {
-                            return weigher.weigh(key, value);
-                        }
-                    }).
-                    averageWeight(2000).
-                    maximumWeight(maxWeight).
-                    segmentCount(cacheSegmentCount).
-                    stackMoveDistance(cacheStackMoveDistance).
-                    recordStats().
-                    evictionCallback(new CacheLIRS.EvictionCallback<K, V>() {
-                        @Override
-                        public void evicted(K key, V value, RemovalCause cause) {
-                            for (EvictionListener<K, V> l : listeners) {
-                                l.evicted(key, value, cause);
-                            }
-                        }
-                    }).
-                    build();
+                            module(module).
+                            weigher(new Weigher<K, V>() {
+                                @Override
+                                public int weigh(K key, V value) {
+                                    return weigher.weigh(key, value);
+                                }
+                            }).
+                            averageWeight(2000).
+                            maximumWeight(maxWeight).
+                            segmentCount(cacheSegmentCount).
+                            stackMoveDistance(cacheStackMoveDistance).
+                            recordStats().
+                            evictionCallback(new CacheLIRS.EvictionCallback<K, V>() {
+                                @Override
+                                public void evicted(K key, V value, RemovalCause cause) {
+                                    for (EvictionListener<K, V> l : listeners) {
+                                        l.evicted(key, value, cause);
+                                    }
+                                }
+                            }).
+                            build();
         }
         return CacheBuilder.newBuilder().
-                concurrencyLevel(cacheSegmentCount).
-                weigher(weigher).
-                maximumWeight(maxWeight).
-                recordStats().
-                removalListener(new RemovalListener<K, V>() {
-                    @Override
-                    public void onRemoval(RemovalNotification<K, V> notification) {
-                        for (EvictionListener<K, V> l : listeners) {
-                            l.evicted(notification.getKey(), notification.getValue(), notification.getCause());
-                        }
-                    }
-                }).
-                build();
+                           concurrencyLevel(cacheSegmentCount).
+                           weigher(weigher).
+                           maximumWeight(maxWeight).
+                           recordStats().
+                           removalListener(new RemovalListener<K, V>() {
+                               @Override
+                               public void onRemoval(RemovalNotification<K, V> notification) {
+                                   for (EvictionListener<K, V> l : listeners) {
+                                       l.evicted(notification.getKey(), notification.getValue(),
+                                           notification.getCause());
+                                   }
+                               }
+                           }).
+                           build();
     }
 
     /**
-     * BlobStore which are created by builder might get wrapped.
-     * So here we perform any configuration and also access any
-     * service exposed by the store
+     * BlobStore which are created by builder might get wrapped. So here we perform any
+     * configuration and also access any service exposed by the store
      *
      * @param blobStore store to config
      */
     private void configureBlobStore(BlobStore blobStore) {
-        if (blobStore instanceof AbstractBlobStore){
+        if (blobStore instanceof AbstractBlobStore) {
             this.blobStoreStats = new BlobStoreStats(statisticsProvider);
             ((AbstractBlobStore) blobStore).setStatsCollector(blobStoreStats);
         }
 
-        if (blobStore instanceof CachingBlobStore){
+        if (blobStore instanceof CachingBlobStore) {
             blobStoreCacheStats = ((CachingBlobStore) blobStore).getCacheStats();
         }
     }

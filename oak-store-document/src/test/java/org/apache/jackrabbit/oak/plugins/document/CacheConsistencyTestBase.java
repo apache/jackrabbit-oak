@@ -46,7 +46,7 @@ public abstract class CacheConsistencyTestBase {
     public abstract void setTemporaryUpdateException(String msg);
 
     @Before
-    public void before() throws Exception{
+    public void before() throws Exception {
         fixture = getFixture();
         ds = fixture.createDocumentStore(1);
     }
@@ -98,7 +98,8 @@ public abstract class CacheConsistencyTestBase {
                 ds.findAndUpdate(Collection.NODES, up1);
                 fail("should have failed with DocumentStoreException");
             } catch (DocumentStoreException ex) {
-                assertEquals("should fail with enforced exception", ex.getCause().getMessage(), random);
+                assertEquals("should fail with enforced exception", ex.getCause().getMessage(),
+                    random);
                 // make sure cache was invalidated
                 NodeDocument newdoc = ds.find(Collection.NODES, id1, 1000);
                 assertNotNull(newdoc);
@@ -121,7 +122,8 @@ public abstract class CacheConsistencyTestBase {
                 ds.createOrUpdate(Collection.NODES, up1);
                 fail("should have failed with DocumentStoreException");
             } catch (DocumentStoreException ex) {
-                assertEquals("should fail with enforced exception", ex.getCause().getMessage(), random);
+                assertEquals("should fail with enforced exception", ex.getCause().getMessage(),
+                    random);
                 // make sure cache was invalidated
                 NodeDocument newdoc = ds.find(Collection.NODES, id1, 1000);
                 assertNotNull(newdoc);
@@ -154,7 +156,8 @@ public abstract class CacheConsistencyTestBase {
                 ds.createOrUpdate(Collection.NODES, Lists.newArrayList(up1, up2, up3));
                 fail("should have failed with DocumentStoreException");
             } catch (DocumentStoreException ex) {
-                assertEquals("should fail with enforced exception", ex.getCause().getMessage(), random);
+                assertEquals("should fail with enforced exception", ex.getCause().getMessage(),
+                    random);
 
                 // expected post conditions:
                 // 1) at least one of the documents should be updated
@@ -162,17 +165,19 @@ public abstract class CacheConsistencyTestBase {
                 // should return the same document
                 Set<String> modifiedDocuments = Sets.newHashSet();
 
-                for (String id : new String[] { id1, id2, id3 }) {
+                for (String id : new String[]{id1, id2, id3}) {
                     // get cached value
                     NodeDocument newdoc = ds.find(Collection.NODES, id, 1000);
                     if (random.equals(newdoc.get("_test"))) {
                         modifiedDocuments.add(id);
                     }
                     // compare with persisted value
-                    assertEquals(newdoc.get("_test"), ds.find(Collection.NODES, id, 0).get("_test"));
+                    assertEquals(newdoc.get("_test"),
+                        ds.find(Collection.NODES, id, 0).get("_test"));
                 }
 
-                assertTrue("at least one document should have been updated", !modifiedDocuments.isEmpty());
+                assertTrue("at least one document should have been updated",
+                    !modifiedDocuments.isEmpty());
             }
         } finally {
             setTemporaryUpdateException(null);
@@ -186,7 +191,8 @@ public abstract class CacheConsistencyTestBase {
                 ds.remove(Collection.NODES, id1);
                 fail("should have failed with DocumentStoreException");
             } catch (DocumentStoreException ex) {
-                assertEquals("should fail with enforced exception", ex.getCause().getMessage(), random);
+                assertEquals("should fail with enforced exception", ex.getCause().getMessage(),
+                    random);
                 // make sure cache was invalidated
                 NodeDocument newdoc = ds.find(Collection.NODES, id1, 1000);
                 assertNull(newdoc);

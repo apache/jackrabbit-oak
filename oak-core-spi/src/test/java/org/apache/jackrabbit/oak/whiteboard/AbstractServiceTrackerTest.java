@@ -16,6 +16,12 @@
  */
 package org.apache.jackrabbit.oak.whiteboard;
 
+import static javax.jcr.Repository.REP_VENDOR_DESC;
+import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.mock;
+
+import java.util.Collections;
+import java.util.Map;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.AbstractServiceTracker;
@@ -23,13 +29,6 @@ import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Rule;
 import org.junit.Test;
-
-import java.util.Collections;
-import java.util.Map;
-
-import static javax.jcr.Repository.REP_VENDOR_DESC;
-import static org.junit.Assert.assertEquals;
-import static org.mockito.Mockito.mock;
 
 public class AbstractServiceTrackerTest {
 
@@ -43,19 +42,24 @@ public class AbstractServiceTrackerTest {
             tracker.start(new OsgiWhiteboard(context.bundleContext()));
             tracker.assertSize(0);
 
-            context.registerService(ContentRepository.class, mock(ContentRepository.class), Collections.emptyMap());
+            context.registerService(ContentRepository.class, mock(ContentRepository.class),
+                Collections.emptyMap());
             tracker.assertSize(1);
 
-            context.registerService(ContentRepository.class, mock(ContentRepository.class), Collections.singletonMap(REP_VENDOR_DESC, "value"));
+            context.registerService(ContentRepository.class, mock(ContentRepository.class),
+                Collections.singletonMap(REP_VENDOR_DESC, "value"));
             tracker.assertSize(2);
 
-            context.registerService(ContentRepository.class, mock(ContentRepository.class), Collections.singletonMap("differentProperty", "Oak"));
+            context.registerService(ContentRepository.class, mock(ContentRepository.class),
+                Collections.singletonMap("differentProperty", "Oak"));
             tracker.assertSize(3);
 
-            context.registerService(ContentRepository.class, mock(ContentRepository.class), Collections.singletonMap(REP_VENDOR_DESC, "Oak"));
+            context.registerService(ContentRepository.class, mock(ContentRepository.class),
+                Collections.singletonMap(REP_VENDOR_DESC, "Oak"));
             tracker.assertSize(4);
 
-            context.registerService(ContentRepository.class, mock(ContentRepository.class), Collections.singletonMap(REP_VENDOR_DESC, "Oak"));
+            context.registerService(ContentRepository.class, mock(ContentRepository.class),
+                Collections.singletonMap(REP_VENDOR_DESC, "Oak"));
             tracker.assertSize(5);
         } finally {
             tracker.stop();
@@ -65,32 +69,38 @@ public class AbstractServiceTrackerTest {
 
     @Test
     public void testTrackWithProperties() {
-        TestServiceTracker tracker = new TestServiceTracker(Collections.singletonMap(REP_VENDOR_DESC, "Oak"));
+        TestServiceTracker tracker = new TestServiceTracker(
+            Collections.singletonMap(REP_VENDOR_DESC, "Oak"));
         try {
             tracker.start(new OsgiWhiteboard(context.bundleContext()));
             tracker.assertSize(0);
 
-            context.registerService(ContentRepository.class, mock(ContentRepository.class), Collections.emptyMap());
-            tracker.assertSize(0);
-            
-            context.registerService(ContentRepository.class, mock(ContentRepository.class), Collections.singletonMap(REP_VENDOR_DESC, "mismatch"));
+            context.registerService(ContentRepository.class, mock(ContentRepository.class),
+                Collections.emptyMap());
             tracker.assertSize(0);
 
-            context.registerService(ContentRepository.class, mock(ContentRepository.class), Collections.singletonMap("differentProperty", "Oak"));
+            context.registerService(ContentRepository.class, mock(ContentRepository.class),
+                Collections.singletonMap(REP_VENDOR_DESC, "mismatch"));
             tracker.assertSize(0);
 
-            context.registerService(ContentRepository.class, mock(ContentRepository.class), Collections.singletonMap(REP_VENDOR_DESC, "Oak"));
+            context.registerService(ContentRepository.class, mock(ContentRepository.class),
+                Collections.singletonMap("differentProperty", "Oak"));
+            tracker.assertSize(0);
+
+            context.registerService(ContentRepository.class, mock(ContentRepository.class),
+                Collections.singletonMap(REP_VENDOR_DESC, "Oak"));
             tracker.assertSize(1);
 
-            context.registerService(ContentRepository.class, mock(ContentRepository.class), Collections.singletonMap(REP_VENDOR_DESC, "Oak"));
+            context.registerService(ContentRepository.class, mock(ContentRepository.class),
+                Collections.singletonMap(REP_VENDOR_DESC, "Oak"));
             tracker.assertSize(2);
         } finally {
             tracker.stop();
             tracker.assertSize(0);
         }
     }
-    
-    @Test(expected = IllegalStateException.class) 
+
+    @Test(expected = IllegalStateException.class)
     public void testStartTwice() {
         TestServiceTracker tracker = new TestServiceTracker();
         tracker.start(new OsgiWhiteboard(context.bundleContext()));
@@ -103,11 +113,14 @@ public class AbstractServiceTrackerTest {
         tracker.stop();
         tracker.start(new OsgiWhiteboard(context.bundleContext()));
 
-        context.registerService(ContentRepository.class, mock(ContentRepository.class), Collections.emptyMap());
+        context.registerService(ContentRepository.class, mock(ContentRepository.class),
+            Collections.emptyMap());
         tracker.assertSize(1);
     }
-    
-    private static final class TestServiceTracker extends AbstractServiceTracker<ContentRepository> {
+
+    private static final class TestServiceTracker extends
+        AbstractServiceTracker<ContentRepository> {
+
         protected TestServiceTracker() {
             super(ContentRepository.class);
         }
@@ -115,10 +128,10 @@ public class AbstractServiceTrackerTest {
         protected TestServiceTracker(@NotNull Map<String, String> filterProperties) {
             super(ContentRepository.class, filterProperties);
         }
-        
+
         void assertSize(int expectedSize) {
             assertEquals(expectedSize, getServices().size());
-        } 
+        }
     }
-    
+
 }

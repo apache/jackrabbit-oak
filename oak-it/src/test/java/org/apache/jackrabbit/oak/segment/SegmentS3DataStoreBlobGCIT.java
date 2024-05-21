@@ -27,7 +27,6 @@ import java.io.File;
 import java.util.Date;
 import java.util.List;
 import java.util.Properties;
-
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants;
 import org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils;
@@ -43,6 +42,7 @@ import org.junit.runners.Parameterized;
  */
 @RunWith(Parameterized.class)
 public class SegmentS3DataStoreBlobGCIT extends SegmentDataStoreBlobGCIT {
+
     @Parameterized.Parameter
     public String s3Class;
 

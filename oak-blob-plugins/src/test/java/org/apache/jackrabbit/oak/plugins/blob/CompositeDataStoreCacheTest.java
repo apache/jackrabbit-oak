@@ -18,6 +18,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.blob;
 
+import static org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors.newDirectExecutorService;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -27,13 +34,12 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-
+import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.jackrabbit.guava.common.util.concurrent.ListeningExecutorService;
 import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
 import org.apache.jackrabbit.guava.common.util.concurrent.SettableFuture;
-import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
@@ -46,17 +52,11 @@ import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors.newDirectExecutorService;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-
 /**
  * Tests for {@link CompositeDataStoreCache}.
  */
 public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
+
     private static final Logger LOG = LoggerFactory.getLogger(UploadStagingCacheTest.class);
     private static final String ID_PREFIX = "12345";
 
@@ -106,8 +106,10 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
 
         //cache instance
         cache =
-            new CompositeDataStoreCache(root.getAbsolutePath(), null, 80 * 1024 /* bytes */, 10, 1/*threads*/,
-                loader, uploader, statsProvider, executor, scheduledExecutor, fileCacheExecutor,3000, 6000);
+            new CompositeDataStoreCache(root.getAbsolutePath(), null, 80 * 1024 /* bytes */, 10,
+                1/*threads*/,
+                loader, uploader, statsProvider, executor, scheduledExecutor, fileCacheExecutor,
+                3000, 6000);
         closer.register(cache);
 
         LOG.info("Finished setup");
@@ -123,7 +125,7 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
         LOG.info("Starting zeroCache");
 
         cache = new CompositeDataStoreCache(root.getAbsolutePath(), null, 0 /* bytes
-        */, 10, 1/*threads*/, loader,
+         */, 10, 1/*threads*/, loader,
             uploader, statsProvider, executor, scheduledExecutor, fileCacheExecutor,
             3000, 6000);
         closer.register(cache);
@@ -136,8 +138,8 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
 
         assertEquals(0, cache.getStagingCache().getStats().getMaxTotalWeight());
         assertEquals(0, cache.getStagingCacheStats().getMaxTotalWeight());
-        assertEquals(0,cache.getDownloadCache().getStats().getMaxTotalWeight());
-        assertEquals(0,cache.getCacheStats().getMaxTotalWeight());
+        assertEquals(0, cache.getDownloadCache().getStats().getMaxTotalWeight());
+        assertEquals(0, cache.getCacheStats().getMaxTotalWeight());
         cache.invalidate(ID_PREFIX + 0);
         cache.close();
 
@@ -160,6 +162,7 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
 
     /**
      * {@link CompositeDataStoreCache#get(String)} when no cache.
+     *
      * @throws IOException
      */
     @Test
@@ -221,8 +224,9 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
 
         cache = new CompositeDataStoreCache(root.getAbsolutePath(), null, 40 * 1024 /*
         bytes */, 10 /* staging % */,
-            1/*threads*/, loader, uploader, statsProvider, executor, scheduledExecutor, fileCacheExecutor,
-            3000,6000);
+            1/*threads*/, loader, uploader, statsProvider, executor, scheduledExecutor,
+            fileCacheExecutor,
+            3000, 6000);
         closer.register(cache);
 
         File f = copyToFile(randomStream(0, 4 * 1024), folder.newFile());
@@ -261,10 +265,10 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
         executor = new TestExecutor(1, taskLatch, callbackLatch, afterExecuteLatch);
         cache = new CompositeDataStoreCache(root.getAbsolutePath(), null, 80 * 1024 /*
         bytes */, 10 /* staging % */,
-            1/*threads*/, loader, uploader, statsProvider, executor, scheduledExecutor, fileCacheExecutor,
-            3000,6000);
+            1/*threads*/, loader, uploader, statsProvider, executor, scheduledExecutor,
+            fileCacheExecutor,
+            3000, 6000);
         closer.register(cache);
-
 
         File f = copyToFile(randomStream(0, 4 * 1024), folder.newFile());
         boolean accepted = cache.stage(ID_PREFIX + 0, f);
@@ -294,8 +298,9 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
     }
 
     /**
-     * Test {@link CompositeDataStoreCache#getIfPresent(String)} when file staged
-     * and then put in download cache when uploaded.
+     * Test {@link CompositeDataStoreCache#getIfPresent(String)} when file staged and then put in
+     * download cache when uploaded.
+     *
      * @throws IOException
      */
     @Test
@@ -308,8 +313,9 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
     }
 
     /**
-     * Test {@link CompositeDataStoreCache#get(String)} when file staged and then put in
-     * download cache when uploaded.
+     * Test {@link CompositeDataStoreCache#get(String)} when file staged and then put in download
+     * cache when uploaded.
+     *
      * @throws IOException
      */
     @Test
@@ -359,6 +365,7 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
 
     /**
      * Load and get from the download cache.
+     *
      * @throws Exception
      */
     @Test
@@ -390,6 +397,7 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
 
     /**
      * Invalidate cache entry.
+     *
      * @throws Exception
      */
     @Test
@@ -426,6 +434,7 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
 
     /**
      * Concurrently retrieves 2 different files from cache.
+     *
      * @throws Exception
      */
     @Test
@@ -476,8 +485,9 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
     }
 
     /**
-     * Concurrently retrieves 2 different files from cache.
-     * One is staged and other in the download cache.
+     * Concurrently retrieves 2 different files from cache. One is staged and other in the download
+     * cache.
+     *
      * @throws Exception
      */
     @Test
@@ -541,8 +551,8 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
     }
 
     /**
-     * Concurrently stage and get a file and then upload.
-     * Use the file retrieve to read contents.
+     * Concurrently stage and get a file and then upload. Use the file retrieve to read contents.
+     *
      * @throws Exception
      */
     @Test
@@ -593,13 +603,16 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
         LOG.info("Finished concurrentAddGet");
     }
 
-    /**--------------------------- Helper Methods -----------------------------------------------**/
+    /**
+     * --------------------------- Helper Methods -----------------------------------------------
+     **/
 
     private static SettableFuture<File> retrieveThread(ListeningExecutorService executor,
         final String id, final CompositeDataStoreCache cache, final CountDownLatch start) {
         final SettableFuture<File> future = SettableFuture.create();
         executor.submit(new Runnable() {
-            @Override public void run() {
+            @Override
+            public void run() {
                 try {
                     LOG.info("Waiting for start retrieve");
                     start.await();

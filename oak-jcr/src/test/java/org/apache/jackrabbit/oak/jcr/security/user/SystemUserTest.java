@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.jcr.security.user;
 import java.util.Iterator;
 import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
-
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.AuthorizableExistsException;
 import org.apache.jackrabbit.api.security.user.User;
@@ -155,7 +154,8 @@ public class SystemUserTest extends AbstractUserTest {
     public void testFindAuthorizable() throws Exception {
         user = createUser(uid);
 
-        Iterator<Authorizable> iterator = userMgr.findAuthorizables(UserConstants.REP_PRINCIPAL_NAME, user.getPrincipal().getName());
+        Iterator<Authorizable> iterator = userMgr.findAuthorizables(
+            UserConstants.REP_PRINCIPAL_NAME, user.getPrincipal().getName());
         assertTrue(iterator.hasNext());
 
         Authorizable authorizable = iterator.next();

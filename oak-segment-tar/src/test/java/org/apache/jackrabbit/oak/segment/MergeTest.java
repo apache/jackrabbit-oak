@@ -22,7 +22,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -54,7 +53,7 @@ public class MergeTest {
         assertTrue(store.getRoot().hasProperty("foo"));
         assertTrue(store.getRoot().hasProperty("bar"));
     }
-    
+
     @Test
     public void testSequentialMergeWithRebase() throws CommitFailedException, IOException {
         NodeStore store = SegmentNodeStoreBuilders.builder(new MemoryStore()).build();

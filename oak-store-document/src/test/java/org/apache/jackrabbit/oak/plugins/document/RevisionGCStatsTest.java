@@ -42,11 +42,11 @@ public class RevisionGCStatsTest {
 
     private ScheduledExecutorService executor = newSingleThreadScheduledExecutor();
     private MetricStatisticsProvider statsProvider =
-            new MetricStatisticsProvider(getPlatformMBeanServer(), executor);
+        new MetricStatisticsProvider(getPlatformMBeanServer(), executor);
     private RevisionGCStats stats = new RevisionGCStats(statsProvider);
 
     @After
-    public void shutDown(){
+    public void shutDown() {
         statsProvider.close();
         new ExecutorCloser(executor).close();
     }

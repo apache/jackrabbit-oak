@@ -5,9 +5,9 @@ The API for accessing core Oak functionality is located in the
 `org.apache.jackrabbit.oak.api` package and consists of the following
 key interfaces:
 
-  * ContentRepository
-  * ContentSession
-  * Root / Tree
+* ContentRepository
+* ContentSession
+* Root / Tree
 
 The `ContentRepository` interface represents an entire Oak content repository.
 The repository may local or remote, or a cluster of any size. These deployment
@@ -52,8 +52,8 @@ that they are not accessed concurrently from multiple threads. `Tree`
 instances *are* however thread-safe for read access, so implementations
 need to ensure that all reading clients see a coherent state.
 
-Content trees are recursive data structures that consist of named properties 
-and subtrees that share the same namespace, but are accessed through separate 
+Content trees are recursive data structures that consist of named properties
+and subtrees that share the same namespace, but are accessed through separate
 methods like outlined below:
 
     Tree tree = ...;
@@ -101,11 +101,11 @@ License
 Collective work: Copyright 2012 The Apache Software Foundation.
 
 Licensed to the Apache Software Foundation (ASF) under one or more
-contributor license agreements.  See the NOTICE file distributed with
+contributor license agreements. See the NOTICE file distributed with
 this work for additional information regarding copyright ownership.
 The ASF licenses this file to You under the Apache License, Version 2.0
 (the "License"); you may not use this file except in compliance with
-the License.  You may obtain a copy of the License at
+the License. You may obtain a copy of the License at
 
      http://www.apache.org/licenses/LICENSE-2.0
 

@@ -25,7 +25,6 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 
 import org.apache.jackrabbit.guava.common.base.Supplier;
-
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
@@ -66,25 +65,30 @@ public class NodeRecordTest {
             SegmentWriter writer;
 
             writer = defaultSegmentWriterBuilder("1")
-                    .withGeneration(newGCGeneration(1, 0, false))
-                    .build(store);
-            SegmentNodeState one = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(), writer.writeNode(EmptyNodeState.EMPTY_NODE));
+                .withGeneration(newGCGeneration(1, 0, false))
+                .build(store);
+            SegmentNodeState one = new SegmentNodeState(store.getReader(), writer,
+                store.getBlobStore(), writer.writeNode(EmptyNodeState.EMPTY_NODE));
             writer.flush();
 
             writer = defaultSegmentWriterBuilder("2")
-                    .withGeneration(newGCGeneration(2, 0, false))
-                    .build(store);
-            SegmentNodeState two = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(), writer.writeNode(one));
+                .withGeneration(newGCGeneration(2, 0, false))
+                .build(store);
+            SegmentNodeState two = new SegmentNodeState(store.getReader(), writer,
+                store.getBlobStore(), writer.writeNode(one));
             writer.flush();
 
             writer = defaultSegmentWriterBuilder("3")
-                    .withGeneration(newGCGeneration(3, 0, false))
-                    .build(store);
-            SegmentNodeState three = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(), writer.writeNode(two));
+                .withGeneration(newGCGeneration(3, 0, false))
+                .build(store);
+            SegmentNodeState three = new SegmentNodeState(store.getReader(), writer,
+                store.getBlobStore(), writer.writeNode(two));
             writer.flush();
 
-            assertArrayEquals(asByteArray(three.getStableIdBytes()), asByteArray(two.getStableIdBytes()));
-            assertArrayEquals(asByteArray(two.getStableIdBytes()), asByteArray(one.getStableIdBytes()));
+            assertArrayEquals(asByteArray(three.getStableIdBytes()),
+                asByteArray(two.getStableIdBytes()));
+            assertArrayEquals(asByteArray(two.getStableIdBytes()),
+                asByteArray(one.getStableIdBytes()));
         }
     }
 
@@ -104,10 +108,10 @@ public class NodeRecordTest {
             // records) will be cached and prevent this test to fail.
 
             SegmentWriter writer = defaultSegmentWriterBuilder("test")
-                    .withGeneration(generation)
-                    .withWriterPool()
-                    .with(nodesOnlyCache())
-                    .build(store);
+                .withGeneration(generation)
+                .withWriterPool()
+                .with(nodesOnlyCache())
+                .build(store);
 
             generation.set(newGCGeneration(1, 0, false));
 
@@ -115,18 +119,20 @@ public class NodeRecordTest {
             // belong to generation 1.
 
             RecordId baseId = writer.writeNode(EmptyNodeState.EMPTY_NODE.builder()
-                    .setProperty("a", "a")
-                    .setProperty("k", "v1")
-                    .getNodeState()
+                                                                        .setProperty("a", "a")
+                                                                        .setProperty("k", "v1")
+                                                                        .getNodeState()
             );
-            SegmentNodeState base = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(), baseId);
+            SegmentNodeState base = new SegmentNodeState(store.getReader(), writer,
+                store.getBlobStore(), baseId);
             writer.flush();
 
             generation.set(newGCGeneration(2, 0, false));
 
             // Compact that same record to generation 2.
 
-            SegmentNodeState compacted = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(), writer.writeNode(base));
+            SegmentNodeState compacted = new SegmentNodeState(store.getReader(), writer,
+                store.getBlobStore(), writer.writeNode(base));
             writer.flush();
 
             // Assert that even if the two records have the same stable ID,
@@ -142,7 +148,8 @@ public class NodeRecordTest {
             // affected by the change of generation. Writing a node state from
             // this builder should perform a partial compaction.
 
-            SegmentNodeState modified = (SegmentNodeState) base.builder().setProperty("k", "v2").getNodeState();
+            SegmentNodeState modified = (SegmentNodeState) base.builder().setProperty("k", "v2")
+                                                               .getNodeState();
 
             // Assert that the stable ID of this node state is different from
             // the one in the base state. This is expected, since we have

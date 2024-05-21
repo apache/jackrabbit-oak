@@ -19,10 +19,18 @@
 
 package org.apache.jackrabbit.oak.plugins.tika;
 
-import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.io.Closer;
+import static org.apache.jackrabbit.JcrConstants.JCR_PATH;
+import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
+import static org.apache.jackrabbit.oak.plugins.index.search.FieldNames.FULLTEXT;
+import static org.apache.jackrabbit.oak.plugins.index.search.FieldNames.PATH;
+import static org.apache.jackrabbit.oak.plugins.tika.CSVFileBinaryResourceProvider.FORMAT;
+
+import java.io.File;
+import java.io.IOException;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
+import org.apache.jackrabbit.guava.common.base.Stopwatch;
+import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.TextWriter;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.DirectoryReader;
@@ -35,16 +43,8 @@ import org.apache.lucene.store.FSDirectory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.IOException;
-
-import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
-import static org.apache.jackrabbit.JcrConstants.JCR_PATH;
-import static org.apache.jackrabbit.oak.plugins.index.search.FieldNames.FULLTEXT;
-import static org.apache.jackrabbit.oak.plugins.index.search.FieldNames.PATH;
-import static org.apache.jackrabbit.oak.plugins.tika.CSVFileBinaryResourceProvider.FORMAT;
-
 class TextPopulator {
+
     private static final Logger log = LoggerFactory.getLogger(TextPopulator.class);
 
     static final String BLOB_ID = "blobId";
@@ -66,7 +66,8 @@ class TextPopulator {
 
     void populate(File dataFile, File indexDir) throws IOException {
         try (Closer closer = Closer.create()) {
-            Iterable<CSVRecord> csvRecords = closer.register(CSVParser.parse(dataFile, UTF_8, FORMAT));
+            Iterable<CSVRecord> csvRecords = closer.register(
+                CSVParser.parse(dataFile, UTF_8, FORMAT));
 
             final FSDirectory dir = closer.register(FSDirectory.open(indexDir));
             final DirectoryReader reader = closer.register(DirectoryReader.open(dir));
@@ -132,6 +133,7 @@ class TextPopulator {
     }
 
     static class PopulatorStats {
+
         int read = 0;
         int ignored = 0;
         int processed = 0;
@@ -144,16 +146,16 @@ class TextPopulator {
         void readAndDumpStatsIfRequired(String path) {
             read++;
 
-            if (read%10000 == 0) {
+            if (read % 10000 == 0) {
                 log.info("{} - currently at {}", this.toString(), path);
             }
         }
 
         @Override
-        public String toString () {
+        public String toString() {
             return String.format("Text populator stats - " +
-                            "Read: %s; Ignored: %s; Processed: %s; Parsed: %s; Errored: %s; Empty: %s (in %s)",
-                    read, ignored, processed, parsed, errored, empty, w);
+                    "Read: %s; Ignored: %s; Processed: %s; Parsed: %s; Errored: %s; Empty: %s (in %s)",
+                read, ignored, processed, parsed, errored, empty, w);
         }
     }
 }

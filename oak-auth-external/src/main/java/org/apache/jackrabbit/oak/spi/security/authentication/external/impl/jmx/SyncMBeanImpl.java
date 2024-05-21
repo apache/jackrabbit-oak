@@ -45,9 +45,10 @@ public class SyncMBeanImpl implements SynchronizationMBean {
 
     private final String idpName;
 
-    public SyncMBeanImpl(@NotNull ContentRepository repository, @NotNull SecurityProvider securityProvider,
-                         @NotNull SyncManager syncManager, @NotNull String syncName,
-                         @NotNull ExternalIdentityProviderManager idpManager, @NotNull String idpName) {
+    public SyncMBeanImpl(@NotNull ContentRepository repository,
+        @NotNull SecurityProvider securityProvider,
+        @NotNull SyncManager syncManager, @NotNull String syncName,
+        @NotNull ExternalIdentityProviderManager idpManager, @NotNull String idpName) {
         this.repository = repository;
         this.securityProvider = securityProvider;
         this.syncManager = syncManager;

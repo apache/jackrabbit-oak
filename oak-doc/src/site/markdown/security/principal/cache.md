@@ -24,7 +24,8 @@ Since Oak 1.3.4 this `UserPrincipalProvider` optionally allows for temporary
 caching of the principal resolution mainly to optimize login performance (OAK-3003).
 
 This cache contains the result of the group principal resolution as performed by
-`PrincipalProvider.getPrincipals(String userId)`and `PrincipalProvider.getGroupMembership(Principal)`
+`PrincipalProvider.getPrincipals(String userId)`
+and `PrincipalProvider.getGroupMembership(Principal)`
 and will read from the cache upon subsequent calls for the configured expiration
 time.
 
@@ -48,7 +49,6 @@ It is expected that the cache is used in scenarios where subsequent repository
 login calls can (or even should) result in the creation of a `javax.security.auth.Subject`
 with equal principal set irrespective of group membership changes.
 See section Invalidation below for further details.
-
 
 ### How it works
 
@@ -82,6 +82,7 @@ be accessible in the non-cache scenario where access to principals is protected
 by regular permission evalution.
 
 <a name="validation"></a>
+
 ##### Validation
 
 The cache is system maintained, protected repository content that can only
@@ -96,13 +97,12 @@ These constraints and the consistency of the cache structure is asserted by a
 dedicated `CacheValidator`. The corresponding errors are all of type `Constraint`
 with the following codes:
 
-| Code              | Message                                                  |
-|-------------------|----------------------------------------------------------|
-| 0034              | Attempt to create or change the system maintained cache. |
+| Code | Message                                                  |
+|------|----------------------------------------------------------|
+| 0034 | Attempt to create or change the system maintained cache. |
 
 Note however, that the cache tree might be removed by any session that has
 sufficient privileges to remove it.
-
 
 ##### Cache Invalidation
 
@@ -122,7 +122,6 @@ must not enable the cache.
 Similarly, applications that have due to their design have an extremely high
 turnover wrt group membership might not be able to profit from this cache in
 the expected way.
-
 
 #### Interaction With User Management
 

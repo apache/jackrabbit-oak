@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
+import java.util.Collection;
+import java.util.Collections;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.IndexPathRestrictionCommonTest;
@@ -38,21 +40,18 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.slf4j.event.Level;
 
-import java.util.Collection;
-import java.util.Collections;
-
 @RunWith(Parameterized.class)
 public class ElasticIndexPathRestrictionCommonTest extends IndexPathRestrictionCommonTest {
 
     @ClassRule
     public static final ElasticConnectionRule elasticRule =
-            new ElasticConnectionRule(ElasticTestUtils.ELASTIC_CONNECTION_STRING);
+        new ElasticConnectionRule(ElasticTestUtils.ELASTIC_CONNECTION_STRING);
 
     // Default refresh is 1 minute - so we need to lower that otherwise test would need to wait at least 1 minute
     // before it can get the estimated doc count from the remote ES index
     @Rule
     public final ProvideSystemProperty updateSystemProperties
-            = new ProvideSystemProperty("oak.elastic.statsRefreshSeconds", "10");
+        = new ProvideSystemProperty("oak.elastic.statsRefreshSeconds", "10");
 
     @Rule
     public final RestoreSystemProperties restoreSystemProperties = new RestoreSystemProperties();
@@ -79,12 +78,14 @@ public class ElasticIndexPathRestrictionCommonTest extends IndexPathRestrictionC
 
     @Override
     protected void setupHook() {
-        ElasticConnection esConnection = elasticRule.useDocker() ? elasticRule.getElasticConnectionForDocker() :
+        ElasticConnection esConnection =
+            elasticRule.useDocker() ? elasticRule.getElasticConnectionForDocker() :
                 elasticRule.getElasticConnectionFromString();
-        this.indexTracker = new ElasticIndexTracker(esConnection, new ElasticMetricHandler(StatisticsProvider.NOOP));
+        this.indexTracker = new ElasticIndexTracker(esConnection,
+            new ElasticMetricHandler(StatisticsProvider.NOOP));
         hook = new EditorHook(
-                new IndexUpdateProvider(new ElasticIndexEditorProvider(indexTracker, esConnection,
-                        new ExtractedTextCache(10 * FileUtils.ONE_MB, 100))));
+            new IndexUpdateProvider(new ElasticIndexEditorProvider(indexTracker, esConnection,
+                new ExtractedTextCache(10 * FileUtils.ONE_MB, 100))));
     }
 
     @Override
@@ -99,14 +100,16 @@ public class ElasticIndexPathRestrictionCommonTest extends IndexPathRestrictionC
     }
 
     @Override
-    protected String getExpectedLogEntryForPostPathFiltering(String path, boolean shouldBeIncluded) {
+    protected String getExpectedLogEntryForPostPathFiltering(String path,
+        boolean shouldBeIncluded) {
         return shouldBeIncluded ? String.format("Path %s satisfies hierarchy inclusion rules", path)
-                : String.format("Path %s not included because of hierarchy inclusion rules", path);
+            : String.format("Path %s not included because of hierarchy inclusion rules", path);
     }
 
     @Override
     protected LogCustomizer getLogCustomizer() {
-        return LogCustomizer.forLogger(ElasticResultRowAsyncIterator.class.getName()).enable(Level.TRACE).contains("hierarchy inclusion rules").create();
+        return LogCustomizer.forLogger(ElasticResultRowAsyncIterator.class.getName())
+                            .enable(Level.TRACE).contains("hierarchy inclusion rules").create();
     }
 
 }

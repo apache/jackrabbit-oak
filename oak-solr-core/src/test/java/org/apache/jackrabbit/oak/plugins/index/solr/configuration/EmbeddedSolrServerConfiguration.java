@@ -21,7 +21,8 @@ import org.apache.jackrabbit.oak.plugins.index.solr.server.EmbeddedSolrServerPro
 /**
  * Configuration parameters for starting a {@link org.apache.solr.client.solrj.SolrClient}
  */
-public class EmbeddedSolrServerConfiguration extends SolrServerConfiguration<EmbeddedSolrServerProvider> {
+public class EmbeddedSolrServerConfiguration extends
+    SolrServerConfiguration<EmbeddedSolrServerProvider> {
 
     private final String solrHomePath;
     private final String coreName;
@@ -58,16 +59,22 @@ public class EmbeddedSolrServerConfiguration extends SolrServerConfiguration<Emb
     }
 
     /**
-     * get the {@link org.apache.jackrabbit.oak.plugins.index.solr.configuration.EmbeddedSolrServerConfiguration.HttpConfiguration} holding parameters for enabling Solr
-     * server with HTTP bindings
+     * get the
+     * {@link
+     * org.apache.jackrabbit.oak.plugins.index.solr.configuration.EmbeddedSolrServerConfiguration.HttpConfiguration}
+     * holding parameters for enabling Solr server with HTTP bindings
      *
-     * @return a {@link org.apache.jackrabbit.oak.plugins.index.solr.configuration.EmbeddedSolrServerConfiguration.HttpConfiguration} or <code>null</code> if not set
+     * @return a
+     * {@link
+     * org.apache.jackrabbit.oak.plugins.index.solr.configuration.EmbeddedSolrServerConfiguration.HttpConfiguration}
+     * or <code>null</code> if not set
      */
     public HttpConfiguration getHttpConfiguration() {
         return httpConfiguration;
     }
 
     public static class HttpConfiguration {
+
         private final String context;
         private final Integer httpPort;
 
@@ -87,18 +94,18 @@ public class EmbeddedSolrServerConfiguration extends SolrServerConfiguration<Emb
         @Override
         public String toString() {
             return "HttpConfiguration{" +
-                    "context='" + context + '\'' +
-                    ", httpPort=" + httpPort +
-                    '}';
+                "context='" + context + '\'' +
+                ", httpPort=" + httpPort +
+                '}';
         }
     }
 
     @Override
     public String toString() {
         return "EmbeddedSolrServerConfiguration{" +
-                "solrHomePath='" + solrHomePath + '\'' +
-                ", coreName='" + coreName + '\'' +
-                ", httpConfiguration=" + httpConfiguration +
-                '}';
+            "solrHomePath='" + solrHomePath + '\'' +
+            ", coreName='" + coreName + '\'' +
+            ", httpConfiguration=" + httpConfiguration +
+            '}';
     }
 }

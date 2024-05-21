@@ -18,11 +18,10 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.indexstore;
 
-import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
-
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.Iterator;
+import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 
 public interface IndexStore extends Iterable<NodeStateEntry>, Closeable {
 

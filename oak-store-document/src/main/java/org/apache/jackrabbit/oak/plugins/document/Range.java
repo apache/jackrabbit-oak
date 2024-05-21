@@ -22,8 +22,8 @@ import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull
 import org.jetbrains.annotations.NotNull;
 
 /**
-* A revision range for {@link NodeDocument#PREVIOUS} documents.
-*/
+ * A revision range for {@link NodeDocument#PREVIOUS} documents.
+ */
 final class Range {
 
     final Revision high;
@@ -34,26 +34,24 @@ final class Range {
      * A range of revisions, with both inclusive bounds.
      *
      * @param high the high bound.
-     * @param low the low bound.
+     * @param low  the low bound.
      */
     Range(@NotNull Revision high, @NotNull Revision low, int height) {
         this.high = checkNotNull(high);
         this.low = checkNotNull(low);
         this.height = height;
         checkArgument(high.getClusterId() == low.getClusterId(),
-                "Revisions from have the same clusterId");
+            "Revisions from have the same clusterId");
         checkArgument(high.compareRevisionTime(low) >= 0,
-                "High Revision must be later than low Revision, high=%s low=%s" ,high, low);
+            "High Revision must be later than low Revision, high=%s low=%s", high, low);
         checkArgument(height >= 0);
     }
 
     /**
      * Creates a {@code Range} from a revisioned document entry.
      *
-     * @param rev the revision of the entry corresponding to the high bound
-     *            of the range.
-     * @param value the string representation of the lower bound with the height
-     *              (e.g. r1-0-1/0).
+     * @param rev   the revision of the entry corresponding to the high bound of the range.
+     * @param value the string representation of the lower bound with the height (e.g. r1-0-1/0).
      * @return the range.
      */
     @NotNull
@@ -73,8 +71,7 @@ final class Range {
     }
 
     /**
-     * @return the string representation of the lower bound, including the
-     *         height (e.g. r1-0-1/0).
+     * @return the string representation of the lower bound, including the height (e.g. r1-0-1/0).
      */
     @NotNull
     String getLowValue() {
@@ -90,13 +87,13 @@ final class Range {
      */
     boolean includes(@NotNull Revision r) {
         return high.getClusterId() == r.getClusterId()
-                && high.compareRevisionTime(r) >= 0
-                && low.compareRevisionTime(r) <= 0;
+            && high.compareRevisionTime(r) >= 0
+            && low.compareRevisionTime(r) <= 0;
     }
 
     /**
-     * Returns the height of this range in the tree of previous documents. The
-     * range of a leaf document has height zero.
+     * Returns the height of this range in the tree of previous documents. The range of a leaf
+     * document has height zero.
      *
      * @return the height.
      */
@@ -119,8 +116,8 @@ final class Range {
         if (obj instanceof Range) {
             Range other = (Range) obj;
             return high.equals(other.high)
-                    && low.equals(other.low)
-                    && height == other.height;
+                && low.equals(other.low)
+                && height == other.height;
         }
         return false;
     }

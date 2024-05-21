@@ -22,7 +22,9 @@ import static org.junit.Assert.fail;
 
 /**
  * <code>ConflictTest</code> checks
- * <a href="http://wiki.apache.org/jackrabbit/Conflict%20handling%20through%20rebasing%20branches">conflict handling</a>.
+ * <a
+ * href="http://wiki.apache.org/jackrabbit/Conflict%20handling%20through%20rebasing%20branches">conflict
+ * handling</a>.
  */
 public class ConflictTest extends BaseDocumentMKTest {
 
@@ -742,14 +744,16 @@ public class ConflictTest extends BaseDocumentMKTest {
 
     @Test
     public void nonConflictingChangeProperty() {
-        String rev = mk.commit("/", "+\"foo\":{\"prop1\":\"value\", \"prop2\":\"value\"}", null, null);
+        String rev = mk.commit("/", "+\"foo\":{\"prop1\":\"value\", \"prop2\":\"value\"}", null,
+            null);
         mk.commit("/foo", "^\"prop1\":\"bar\"", rev, null);
         mk.commit("/foo", "^\"prop2\":\"baz\"", rev, null);
     }
 
     @Test
     public void nonConflictingChangePropertyWithBranch1() {
-        String rev = mk.commit("/", "+\"foo\":{\"prop1\":\"value\", \"prop2\":\"value\"}", null, null);
+        String rev = mk.commit("/", "+\"foo\":{\"prop1\":\"value\", \"prop2\":\"value\"}", null,
+            null);
         String branchRev = mk.branch(rev);
         // branch commit happens before trunk commit
         branchRev = mk.commit("/foo", "^\"prop1\":\"bar\"", branchRev, null);
@@ -759,7 +763,8 @@ public class ConflictTest extends BaseDocumentMKTest {
 
     @Test
     public void nonConflictingChangePropertyWithBranch2() {
-        String rev = mk.commit("/", "+\"foo\":{\"prop1\":\"value\", \"prop2\":\"value\"}", null, null);
+        String rev = mk.commit("/", "+\"foo\":{\"prop1\":\"value\", \"prop2\":\"value\"}", null,
+            null);
         String branchRev = mk.branch(rev);
         mk.commit("/foo", "^\"prop2\":\"baz\"", rev, null);
         // branch commit happens after trunk commit
@@ -796,14 +801,16 @@ public class ConflictTest extends BaseDocumentMKTest {
 
     @Test
     public void nonConflictingRemoveProperty() {
-        String rev = mk.commit("/", "+\"foo\":{\"prop1\":\"value\", \"prop2\":\"value\"}", null, null);
+        String rev = mk.commit("/", "+\"foo\":{\"prop1\":\"value\", \"prop2\":\"value\"}", null,
+            null);
         mk.commit("/foo", "^\"prop1\":\"bar\"", rev, null);
         mk.commit("/foo", "^\"prop2\":null", rev, null);
     }
 
     @Test
     public void nonConflictingRemovePropertyWithBranch1() {
-        String rev = mk.commit("/", "+\"foo\":{\"prop1\":\"value\", \"prop2\":\"value\"}", null, null);
+        String rev = mk.commit("/", "+\"foo\":{\"prop1\":\"value\", \"prop2\":\"value\"}", null,
+            null);
         String branchRev = mk.branch(rev);
         // branch commit happens before trunk commit
         branchRev = mk.commit("/foo", "^\"prop1\":\"bar\"", branchRev, null);
@@ -813,7 +820,8 @@ public class ConflictTest extends BaseDocumentMKTest {
 
     @Test
     public void nonConflictingRemovePropertyWithBranch2() {
-        String rev = mk.commit("/", "+\"foo\":{\"prop1\":\"value\", \"prop2\":\"value\"}", null, null);
+        String rev = mk.commit("/", "+\"foo\":{\"prop1\":\"value\", \"prop2\":\"value\"}", null,
+            null);
         String branchRev = mk.branch(rev);
         mk.commit("/foo", "^\"prop2\":null", rev, null);
         // branch commit happens after trunk commit

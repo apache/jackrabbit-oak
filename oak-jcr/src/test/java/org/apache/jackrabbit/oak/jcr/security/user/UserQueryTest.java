@@ -26,11 +26,6 @@ import java.util.List;
 import java.util.Set;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
-
-import org.apache.jackrabbit.guava.common.base.Predicate;
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.Query;
@@ -38,6 +33,10 @@ import org.apache.jackrabbit.api.security.user.QueryBuilder;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.jackrabbit.user.AuthorizableQueryManager;
+import org.apache.jackrabbit.guava.common.base.Predicate;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
@@ -70,7 +69,8 @@ public class UserQueryTest extends AbstractUserTest {
     public void setUp() throws Exception {
         super.setUp();
 
-        Iterator<Authorizable> systemAuthorizables = userMgr.findAuthorizables("rep:principalName", null);
+        Iterator<Authorizable> systemAuthorizables = userMgr.findAuthorizables("rep:principalName",
+            null);
         while (systemAuthorizables.hasNext()) {
             Authorizable authorizable = systemAuthorizables.next();
             if (authorizable.isGroup()) {
@@ -144,14 +144,16 @@ public class UserQueryTest extends AbstractUserTest {
         setProperty("poisonous", vf.createValue(true), blackWidow, bee, poisonDartFrog);
         setProperty("poisonous", vf.createValue(false), turtle, lemur);
         setProperty("hasWings", vf.createValue(false), blackWidow, gardenSpider, jumpingSpider, ant,
-                jackrabbit, deer, opossum, kangaroo, elephant, lemur, gibbon, crocodile, turtle, lizard,
-                salamander, goldenToad, poisonDartFrog);
-        setProperty("color", vf.createValue("black"), blackWidow, gardenSpider, ant, fly, lizard, salamander);
+            jackrabbit, deer, opossum, kangaroo, elephant, lemur, gibbon, crocodile, turtle, lizard,
+            salamander, goldenToad, poisonDartFrog);
+        setProperty("color", vf.createValue("black"), blackWidow, gardenSpider, ant, fly, lizard,
+            salamander);
         setProperty("color", vf.createValue("WHITE"), opossum, goose, pelican, dove);
         setProperty("color", vf.createValue("gold"), goldenToad);
         setProperty("numberOfLegs", vf.createValue(2), kangaroo, gibbon, kestrel, goose, dove);
-        setProperty("numberOfLegs", vf.createValue(4), jackrabbit, deer, opossum, elephant, lemur, crocodile,
-                turtle, lizard, salamander, goldenToad, poisonDartFrog);
+        setProperty("numberOfLegs", vf.createValue(4), jackrabbit, deer, opossum, elephant, lemur,
+            crocodile,
+            turtle, lizard, salamander, goldenToad, poisonDartFrog);
         setProperty("numberOfLegs", vf.createValue(6), ant, bee, fly);
         setProperty("numberOfLegs", vf.createValue(8), blackWidow, gardenSpider, jumpingSpider);
 
@@ -347,34 +349,37 @@ public class UserQueryTest extends AbstractUserTest {
             }
         });
 
-        Iterator<Authorizable> expected = Iterators.filter(authorizables.iterator(), new Predicate<Authorizable>() {
-            public boolean apply(Authorizable authorizable) {
-                try {
-                    String name = authorizable.getID();
-                    Principal principal = authorizable.getPrincipal();
-                    return name.startsWith("a") || principal != null && principal.getName().startsWith("a");
-                } catch (RepositoryException e) {
-                    fail(e.getMessage());
+        Iterator<Authorizable> expected = Iterators.filter(authorizables.iterator(),
+            new Predicate<Authorizable>() {
+                public boolean apply(Authorizable authorizable) {
+                    try {
+                        String name = authorizable.getID();
+                        Principal principal = authorizable.getPrincipal();
+                        return name.startsWith("a") || principal != null && principal.getName()
+                                                                                     .startsWith(
+                                                                                         "a");
+                    } catch (RepositoryException e) {
+                        fail(e.getMessage());
+                    }
+                    return false;
                 }
-                return false;
-            }
-        });
+            });
 
         assertTrue(result.hasNext());
         assertSameElements(result, expected);
     }
 
     /**
-     * The name matching condition must not only search for node-name and
-     * principal name but also needs to take the new rep:authoriableId into
-     * account that has been introduced as of Oak 1.0
+     * The name matching condition must not only search for node-name and principal name but also
+     * needs to take the new rep:authoriableId into account that has been introduced as of Oak 1.0
      *
      * @see <a href="https://issues.apache.org/jira/browse/OAK-2243">OAK-2243</a>
      */
     @Test
     public void testNameMatch2() throws RepositoryException {
         // create a user with different id and principal name
-        User user = userMgr.createUser("moloch", null, new PrincipalImpl("MolochHorridus"), "reptiles");
+        User user = userMgr.createUser("moloch", null, new PrincipalImpl("MolochHorridus"),
+            "reptiles");
         String userPath = user.getPath();
         // move it such that the node name doesn't reveal the id.
         superuser.move(userPath, Text.getRelativeParent(userPath, 1) + "/thorny_dragon");
@@ -420,7 +425,7 @@ public class UserQueryTest extends AbstractUserTest {
         Iterator<Authorizable> result = userMgr.findAuthorizables(new Query() {
             public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setCondition(builder.
-                        eq("@canFly", vf.createValue(true)));
+                    eq("@canFly", vf.createValue(true)));
             }
         });
 
@@ -445,7 +450,7 @@ public class UserQueryTest extends AbstractUserTest {
         Iterator<Authorizable> result = userMgr.findAuthorizables(new Query() {
             public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setCondition(builder.
-                        gt("profile/@weight", vf.createValue(2000.0)));
+                    gt("profile/@weight", vf.createValue(2000.0)));
             }
         });
 
@@ -470,7 +475,7 @@ public class UserQueryTest extends AbstractUserTest {
         Iterator<Authorizable> result = userMgr.findAuthorizables(new Query() {
             public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setCondition(builder.
-                        eq("@numberOfLegs", vf.createValue(8)));
+                    eq("@numberOfLegs", vf.createValue(8)));
             }
         });
 
@@ -478,7 +483,8 @@ public class UserQueryTest extends AbstractUserTest {
             public boolean apply(User user) {
                 try {
                     Value[] numberOfLegs = user.getProperty("numberOfLegs");
-                    return numberOfLegs != null && numberOfLegs.length == 1 && numberOfLegs[0].getLong() == 8;
+                    return numberOfLegs != null && numberOfLegs.length == 1
+                        && numberOfLegs[0].getLong() == 8;
                 } catch (RepositoryException e) {
                     fail(e.getMessage());
                 }
@@ -495,7 +501,7 @@ public class UserQueryTest extends AbstractUserTest {
         Iterator<Authorizable> result = userMgr.findAuthorizables(new Query() {
             public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setCondition(builder.
-                        exists("@poisonous"));
+                    exists("@poisonous"));
             }
         });
 
@@ -520,7 +526,7 @@ public class UserQueryTest extends AbstractUserTest {
         Iterator<Authorizable> result = userMgr.findAuthorizables(new Query() {
             public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setCondition(builder.
-                        like("profile/@food", "m%"));
+                    like("profile/@food", "m%"));
             }
         });
 
@@ -550,7 +556,7 @@ public class UserQueryTest extends AbstractUserTest {
         Iterator<Authorizable> result = userMgr.findAuthorizables(new Query() {
             public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setCondition(builder.
-                        contains(".", "gold"));
+                    contains(".", "gold"));
             }
         });
 
@@ -564,7 +570,7 @@ public class UserQueryTest extends AbstractUserTest {
         Iterator<Authorizable> result = userMgr.findAuthorizables(new Query() {
             public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setCondition(builder.
-                        contains("@color", "gold"));
+                    contains("@color", "gold"));
             }
         });
 
@@ -591,7 +597,7 @@ public class UserQueryTest extends AbstractUserTest {
         Iterator<Authorizable> result = userMgr.findAuthorizables(new Query() {
             public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setCondition(builder.
-                        contains("profile/@food", "grass"));
+                    contains("profile/@food", "grass"));
             }
         });
 
@@ -605,10 +611,10 @@ public class UserQueryTest extends AbstractUserTest {
         Iterator<Authorizable> result = userMgr.findAuthorizables(new Query() {
             public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setCondition(builder.
-                        and(builder.
-                                eq("profile/@cute", vf.createValue(true)), builder.
-                                not(builder.
-                                        eq("@color", vf.createValue("black")))));
+                    and(builder.
+                        eq("profile/@cute", vf.createValue(true)), builder.
+                        not(builder.
+                            eq("@color", vf.createValue("black")))));
             }
         });
 
@@ -618,7 +624,8 @@ public class UserQueryTest extends AbstractUserTest {
                     Value[] cute = user.getProperty("profile/cute");
                     Value[] black = user.getProperty("color");
                     return cute != null && cute.length == 1 && cute[0].getBoolean() &&
-                            !(black != null && black.length == 1 && black[0].getString().equals("black"));
+                        !(black != null && black.length == 1 && black[0].getString()
+                                                                        .equals("black"));
                 } catch (RepositoryException e) {
                     fail(e.getMessage());
                 }
@@ -635,9 +642,9 @@ public class UserQueryTest extends AbstractUserTest {
         Iterator<Authorizable> result = userMgr.findAuthorizables(new Query() {
             public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setCondition(builder.
-                        or(builder.
-                                eq("profile/@food", vf.createValue("mice")), builder.
-                                eq("profile/@food", vf.createValue("nectar"))));
+                    or(builder.
+                        eq("profile/@food", vf.createValue("mice")), builder.
+                        eq("profile/@food", vf.createValue("nectar"))));
             }
         });
 
@@ -646,7 +653,8 @@ public class UserQueryTest extends AbstractUserTest {
                 try {
                     Value[] food = user.getProperty("profile/food");
                     return food != null && food.length == 1 &&
-                            (food[0].getString().equals("mice") || food[0].getString().equals("nectar"));
+                        (food[0].getString().equals("mice") || food[0].getString()
+                                                                      .equals("nectar"));
                 } catch (RepositoryException e) {
                     fail(e.getMessage());
                 }
@@ -663,7 +671,7 @@ public class UserQueryTest extends AbstractUserTest {
         Iterator<Authorizable> result = userMgr.findAuthorizables(new Query() {
             public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setCondition(builder.
-                        impersonates("jackrabbit"));
+                    impersonates("jackrabbit"));
             }
         });
 
@@ -677,7 +685,7 @@ public class UserQueryTest extends AbstractUserTest {
         Iterator<Authorizable> result = userMgr.findAuthorizables(new Query() {
             public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setCondition(builder.
-                        impersonates("foo\\bar"));
+                    impersonates("foo\\bar"));
             }
         });
 
@@ -688,14 +696,16 @@ public class UserQueryTest extends AbstractUserTest {
 
     @Test
     public void testAdminImpersonation() throws Exception {
-        final String adminPrincipalName = userMgr.getAuthorizable(superuser.getUserID()).getPrincipal().getName();
+        final String adminPrincipalName = userMgr.getAuthorizable(superuser.getUserID())
+                                                 .getPrincipal().getName();
         Iterator<Authorizable> result = userMgr.findAuthorizables(new Query() {
             public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setCondition(builder.impersonates(adminPrincipalName));
             }
         });
 
-        Iterator<Authorizable> expected = userMgr.findAuthorizables(UserConstants.REP_PRINCIPAL_NAME, null, UserManager.SEARCH_TYPE_USER);
+        Iterator<Authorizable> expected = userMgr.findAuthorizables(
+            UserConstants.REP_PRINCIPAL_NAME, null, UserManager.SEARCH_TYPE_USER);
         assertTrue(result.hasNext());
         assertSameElements(expected, result);
     }
@@ -705,7 +715,7 @@ public class UserQueryTest extends AbstractUserTest {
         Iterator<Authorizable> result = userMgr.findAuthorizables(new Query() {
             public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setCondition(builder.
-                        exists("@color"));
+                    exists("@color"));
                 builder.setSortOrder("@color", QueryBuilder.Direction.DESCENDING, true);
             }
         });
@@ -727,7 +737,7 @@ public class UserQueryTest extends AbstractUserTest {
         Iterator<Authorizable> result = userMgr.findAuthorizables(new Query() {
             public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setCondition(builder.
-                        exists("@color"));
+                    exists("@color"));
                 builder.setSortOrder("@color", QueryBuilder.Direction.DESCENDING, false);
             }
         });
@@ -749,7 +759,7 @@ public class UserQueryTest extends AbstractUserTest {
         Iterator<Authorizable> result = userMgr.findAuthorizables(new Query() {
             public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setCondition(builder.
-                        exists("profile/@weight"));
+                    exists("profile/@weight"));
                 builder.setSortOrder("profile/@weight", QueryBuilder.Direction.ASCENDING, false);
             }
         });
@@ -802,7 +812,8 @@ public class UserQueryTest extends AbstractUserTest {
             }
         });
 
-        Iterator<String> continents = ImmutableList.of("Africa", "America", "africa", "australia").iterator();
+        Iterator<String> continents = ImmutableList.of("Africa", "America", "africa", "australia")
+                                                   .iterator();
         String expected = continents.next();
         while (result.hasNext()) {
             Authorizable a = result.next();
@@ -871,26 +882,29 @@ public class UserQueryTest extends AbstractUserTest {
             Iterator<Authorizable> result = userMgr.findAuthorizables(new Query() {
                 public <T> void build(@NotNull QueryBuilder<T> builder) {
                     builder.setCondition(builder.
-                            eq("profile/@cute", vf.createValue(true)));
-                    builder.setSortOrder("profile/@weight", QueryBuilder.Direction.ASCENDING, false);
+                        eq("profile/@cute", vf.createValue(true)));
+                    builder.setSortOrder("profile/@weight", QueryBuilder.Direction.ASCENDING,
+                        false);
                     builder.setLimit(vf.createValue(1000.0), count);
                 }
             });
 
-            Iterator<User> expected = Iterators.filter(sortedUsers.iterator(), new Predicate<User>() {
-                public boolean apply(User user) {
-                    try {
-                        Value[] cute = user.getProperty("profile/cute");
-                        Value[] weight = user.getProperty("profile/weight");
-                        return cute != null && cute.length == 1 && cute[0].getBoolean() &&
-                                weight != null && weight.length == 1 && weight[0].getDouble() > 1000.0;
+            Iterator<User> expected = Iterators.filter(sortedUsers.iterator(),
+                new Predicate<User>() {
+                    public boolean apply(User user) {
+                        try {
+                            Value[] cute = user.getProperty("profile/cute");
+                            Value[] weight = user.getProperty("profile/weight");
+                            return cute != null && cute.length == 1 && cute[0].getBoolean() &&
+                                weight != null && weight.length == 1
+                                && weight[0].getDouble() > 1000.0;
 
-                    } catch (RepositoryException e) {
-                        fail(e.getMessage());
+                        } catch (RepositoryException e) {
+                            fail(e.getMessage());
+                        }
+                        return false;
                     }
-                    return false;
-                }
-            });
+                });
 
             assertSame(expected, result, count);
             assertFalse(result.hasNext());
@@ -1005,7 +1019,8 @@ public class UserQueryTest extends AbstractUserTest {
 
                 boolean found = false;
                 String query = "{\"condition\":[{\"named\":\"" + id + "\"}]}";
-                AuthorizableQueryManager queryManager = new AuthorizableQueryManager(userMgr, superuser.getValueFactory());
+                AuthorizableQueryManager queryManager = new AuthorizableQueryManager(userMgr,
+                    superuser.getValueFactory());
                 Iterator<Authorizable> it = queryManager.execute(query);
                 while (it.hasNext() && !found) {
                     Authorizable a = it.next();
@@ -1021,11 +1036,10 @@ public class UserQueryTest extends AbstractUserTest {
         }
     }
 
-
-
     //------------------------------------------------------------< private >---
 
-    private static void addMembers(Group group, Authorizable... authorizables) throws RepositoryException {
+    private static void addMembers(Group group, Authorizable... authorizables)
+        throws RepositoryException {
         for (Authorizable authorizable : authorizables) {
             group.addMember(authorizable);
         }
@@ -1037,7 +1051,8 @@ public class UserQueryTest extends AbstractUserTest {
         return group;
     }
 
-    private User createUser(String name, String food, double weight, boolean cute) throws RepositoryException {
+    private User createUser(String name, String food, double weight, boolean cute)
+        throws RepositoryException {
         User user = userMgr.createUser(name, "");
         user.setProperty("profile/food", vf.createValue(food));
         user.setProperty("profile/weight", vf.createValue(weight));
@@ -1046,13 +1061,15 @@ public class UserQueryTest extends AbstractUserTest {
         return user;
     }
 
-    private static void setProperty(String relPath, Value value, Authorizable... authorizables) throws RepositoryException {
+    private static void setProperty(String relPath, Value value, Authorizable... authorizables)
+        throws RepositoryException {
         for (Authorizable authorizable : authorizables) {
             authorizable.setProperty(relPath, value);
         }
     }
 
-    private static <T> void assertSameElements(Iterator<? extends T> it1, Iterator<? extends T> it2) {
+    private static <T> void assertSameElements(Iterator<? extends T> it1,
+        Iterator<? extends T> it2) {
         Set<? extends T> set1 = toSet(it1);
         Set<? extends T> set2 = toSet(it2);
 
@@ -1081,7 +1098,8 @@ public class UserQueryTest extends AbstractUserTest {
         return set;
     }
 
-    private static <T> void assertSame(Iterator<? extends T> expected, Iterator<? extends T> actual, long count) {
+    private static <T> void assertSame(Iterator<? extends T> expected, Iterator<? extends T> actual,
+        long count) {
         for (int k = 0; k < count && actual.hasNext(); k++) {
             assertTrue(expected.hasNext());
             assertEquals(expected.next(), actual.next());

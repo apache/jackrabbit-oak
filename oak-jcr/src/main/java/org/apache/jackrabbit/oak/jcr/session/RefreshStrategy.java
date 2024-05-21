@@ -18,16 +18,15 @@
  */
 package org.apache.jackrabbit.oak.jcr.session;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static java.util.Arrays.asList;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 
 import java.util.ArrayList;
 
 /**
- * Implementations of this interface determine whether a session needs
- * to be refreshed before the next session operation is performed. This is
- * done by the session calling {@link #needsRefresh(long)} to determine
- * whether a refresh is needed.
+ * Implementations of this interface determine whether a session needs to be refreshed before the
+ * next session operation is performed. This is done by the session calling
+ * {@link #needsRefresh(long)} to determine whether a refresh is needed.
  *
  * @see Composite
  * @see Timed
@@ -35,23 +34,22 @@ import java.util.ArrayList;
 public interface RefreshStrategy {
 
     /**
-     * Determine whether the given session needs to refresh before the next
-     * session operation is performed.
+     * Determine whether the given session needs to refresh before the next session operation is
+     * performed.
      * <p>
-     * This implementation returns {@code true} if and only if any of the
-     * individual refresh strategies passed to the constructor returns
-     * {@code true}.
+     * This implementation returns {@code true} if and only if any of the individual refresh
+     * strategies passed to the constructor returns {@code true}.
      *
      * @param secondsSinceLastAccess seconds since last access
-     * @return  {@code true} if and only if the session needs to refresh.
+     * @return {@code true} if and only if the session needs to refresh.
      */
     boolean needsRefresh(long secondsSinceLastAccess);
 
     void refreshed();
 
     /**
-     * Composite of zero or more {@code RefreshStrategy} instances,
-     * each of which covers a certain strategy.
+     * Composite of zero or more {@code RefreshStrategy} instances, each of which covers a certain
+     * strategy.
      */
     class Composite implements RefreshStrategy {
 
@@ -70,24 +68,24 @@ public interface RefreshStrategy {
         }
 
         /**
-         * Create a new instance consisting of the composite of the
-         * passed {@code RefreshStrategy} instances.
-         * @param refreshStrategies  individual refresh strategies
+         * Create a new instance consisting of the composite of the passed {@code RefreshStrategy}
+         * instances.
+         *
+         * @param refreshStrategies individual refresh strategies
          */
         private Composite(RefreshStrategy... refreshStrategies) {
             this.refreshStrategies = refreshStrategies;
         }
 
         /**
-         * Determine whether the given session needs to refresh before the next
-         * session operation is performed.
+         * Determine whether the given session needs to refresh before the next session operation is
+         * performed.
          * <p>
-         * This implementation returns {@code true} if and only if any of the
-         * individual refresh strategies passed to the constructor returns
-         * {@code true}.
+         * This implementation returns {@code true} if and only if any of the individual refresh
+         * strategies passed to the constructor returns {@code true}.
          *
          * @param secondsSinceLastAccess seconds since last access
-         * @return  {@code true} if and only if the session needs to refresh.
+         * @return {@code true} if and only if the session needs to refresh.
          */
         @Override
         public boolean needsRefresh(long secondsSinceLastAccess) {
@@ -126,8 +124,8 @@ public interface RefreshStrategy {
         protected final long interval;
 
         /**
-         * @param interval  Interval in seconds after which a session should refresh if there was no
-         *                  activity.
+         * @param interval Interval in seconds after which a session should refresh if there was no
+         *                 activity.
          */
         public Timed(long interval) {
             this.interval = interval;

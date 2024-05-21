@@ -16,13 +16,19 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.query;
 
-import javax.jcr.query.Query;
+import static java.util.Arrays.asList;
+import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
-
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import javax.jcr.query.Query;
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -31,17 +37,12 @@ import org.apache.jackrabbit.oak.plugins.index.aggregate.SimpleNodeAggregator;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.DefaultSolrConfigurationProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.index.SolrIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.server.DefaultSolrServerProvider;
-import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
-
-import static java.util.Arrays.asList;
-import static org.apache.jackrabbit.oak.api.Type.STRINGS;
-import static org.junit.Assert.*;
 
 /**
  * General query extensive testcase for {@link SolrQueryIndex}
@@ -72,10 +73,12 @@ public class SolrIndexIT extends AbstractQueryTest {
             DefaultSolrServerProvider solrServerProvider = new DefaultSolrServerProvider();
             DefaultSolrConfigurationProvider oakSolrConfigurationProvider = new DefaultSolrConfigurationProvider();
             return new Oak().with(new InitialContent())
-                    .with(new OpenSecurityProvider())
-                    .with(new SolrQueryIndexProvider(solrServerProvider, oakSolrConfigurationProvider, new SimpleNodeAggregator()))
-                    .with(new SolrIndexEditorProvider(solrServerProvider, oakSolrConfigurationProvider))
-                    .createContentRepository();
+                            .with(new OpenSecurityProvider())
+                            .with(new SolrQueryIndexProvider(solrServerProvider,
+                                oakSolrConfigurationProvider, new SimpleNodeAggregator()))
+                            .with(new SolrIndexEditorProvider(solrServerProvider,
+                                oakSolrConfigurationProvider))
+                            .createContentRepository();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -110,8 +113,8 @@ public class SolrIndexIT extends AbstractQueryTest {
         root.commit();
 
         Iterator<String> result = executeQuery(
-                "select [jcr:path] from [nt:base] where isdescendantnode('/test')",
-                "JCR-SQL2").iterator();
+            "select [jcr:path] from [nt:base] where isdescendantnode('/test')",
+            "JCR-SQL2").iterator();
         assertTrue(result.hasNext());
         assertEquals("/test/a", result.next());
         assertTrue(result.hasNext());
@@ -131,8 +134,8 @@ public class SolrIndexIT extends AbstractQueryTest {
         root.commit();
 
         Iterator<String> result = executeQuery(
-                "select [jcr:path] from [nt:base] where isdescendantnode('/test') and name='World'",
-                "JCR-SQL2").iterator();
+            "select [jcr:path] from [nt:base] where isdescendantnode('/test') and name='World'",
+            "JCR-SQL2").iterator();
         assertTrue(result.hasNext());
         assertEquals("/test/a/c", result.next());
         assertFalse(result.hasNext());
@@ -153,8 +156,8 @@ public class SolrIndexIT extends AbstractQueryTest {
         root.commit();
 
         Iterator<String> result = executeQuery(
-                "select p.[jcr:path], p2.[jcr:path] from [nt:base] as p inner join [nt:base] as p2 on ischildnode(p2, p) where p.[jcr:path] = '/'",
-                "JCR-SQL2").iterator();
+            "select p.[jcr:path], p2.[jcr:path] from [nt:base] as p inner join [nt:base] as p2 on ischildnode(p2, p) where p.[jcr:path] = '/'",
+            "JCR-SQL2").iterator();
         assertTrue(result.hasNext());
         assertEquals("/, /children", result.next());
         assertTrue(result.hasNext());
@@ -175,7 +178,9 @@ public class SolrIndexIT extends AbstractQueryTest {
         test.addChild("resource");
         root.commit();
 
-        Iterator<String> strings = executeQuery("select [jcr:path] from [nt:base] as b where ischildnode(b, '/test')", "JCR-SQL2").iterator();
+        Iterator<String> strings = executeQuery(
+            "select [jcr:path] from [nt:base] as b where ischildnode(b, '/test')",
+            "JCR-SQL2").iterator();
         assertTrue(strings.hasNext());
         assertEquals("/test/jcr:resource", strings.next());
         assertTrue(strings.hasNext());
@@ -282,7 +287,8 @@ public class SolrIndexIT extends AbstractQueryTest {
     public void testRepSimilarXPathQuery() throws Exception {
         String query = "//element(*, nt:base)[rep:similar(., '/test/a')]";
         Tree test = root.getTree("/").addChild("test");
-        test.addChild("a").setProperty("text", "the quick brown fox jumped over the lazy white dog");
+        test.addChild("a")
+            .setProperty("text", "the quick brown fox jumped over the lazy white dog");
         test.addChild("b").setProperty("text", "I am a dog");
         test.addChild("c").setProperty("text", "dogs don't hurt");
         test.addChild("d").setProperty("text", "white men can't jump");
@@ -304,11 +310,11 @@ public class SolrIndexIT extends AbstractQueryTest {
             list += p + " ";
         }
         assertEquals(
-                "/test/b " +
-                        "/test/d " +
-                        "/test/e " +
-                        "/test/f " +
-                        "/test/h ", list);
+            "/test/b " +
+                "/test/d " +
+                "/test/e " +
+                "/test/f " +
+                "/test/h ", list);
     }
 
     @Test
@@ -329,9 +335,11 @@ public class SolrIndexIT extends AbstractQueryTest {
     @Ignore("OAK-9261")
     public void testCompositeRepExcerpt() throws Exception {
         String sqlQuery = "select [jcr:path], [jcr:score], [rep:excerpt] from [nt:base] as a " +
-                "where (contains([jcr:content/*], 'square') or contains([jcr:content/jcr:title], 'square')" +
-                " or contains([jcr:content/jcr:description], 'square')) and isdescendantnode(a, '/test') " +
-                "order by [jcr:score] desc";
+            "where (contains([jcr:content/*], 'square') or contains([jcr:content/jcr:title], 'square')"
+            +
+            " or contains([jcr:content/jcr:description], 'square')) and isdescendantnode(a, '/test') "
+            +
+            "order by [jcr:score] desc";
         Tree tree = root.getTree("/");
         Tree test = tree.addChild("test");
         Tree child = test.addChild("child");
@@ -364,7 +372,7 @@ public class SolrIndexIT extends AbstractQueryTest {
         stmt.append("/jcr:root//*[jcr:contains(., '").append(h);
         stmt.append("')]");
         assertQuery(stmt.toString(), "xpath",
-                ImmutableList.of("/test/a", "/test/b"));
+            ImmutableList.of("/test/a", "/test/b"));
 
         // query 'world'
         stmt = new StringBuffer();
@@ -384,9 +392,9 @@ public class SolrIndexIT extends AbstractQueryTest {
         root.commit();
 
         assertQuery("/jcr:root//*[jcr:contains(., 'hello-wor*')]", "xpath",
-                ImmutableList.of("/test/a", "/test/b"));
+            ImmutableList.of("/test/a", "/test/b"));
         assertQuery("/jcr:root//*[jcr:contains(., '*hello-wor*')]", "xpath",
-                ImmutableList.of("/test/a", "/test/b"));
+            ImmutableList.of("/test/a", "/test/b"));
 
     }
 
@@ -397,8 +405,8 @@ public class SolrIndexIT extends AbstractQueryTest {
         root.commit();
 
         assertQuery(
-                "/jcr:root//*[jcr:contains(@dc:format, 'type:appli*')]",
-                "xpath", ImmutableList.of("/test/a"));
+            "/jcr:root//*[jcr:contains(@dc:format, 'type:appli*')]",
+            "xpath", ImmutableList.of("/test/a"));
 
     }
 
@@ -445,7 +453,8 @@ public class SolrIndexIT extends AbstractQueryTest {
         a.setProperty("name", "/segment1/segment2/segment3");
         root.commit();
 
-        assertQuery("//*[jcr:contains(., '/segment1/segment2')]", "xpath", ImmutableList.of("/test/a"));
+        assertQuery("//*[jcr:contains(., '/segment1/segment2')]", "xpath",
+            ImmutableList.of("/test/a"));
 
     }
 
@@ -469,8 +478,10 @@ public class SolrIndexIT extends AbstractQueryTest {
 
         root.commit();
 
-        assertQuery("//*[jcr:contains(., 'media') and (@p = 'dam/smartcollection' or @p = 'dam/collection') ]", "xpath",
-                ImmutableList.of(one.getPath(), two.getPath()));
+        assertQuery(
+            "//*[jcr:contains(., 'media') and (@p = 'dam/smartcollection' or @p = 'dam/collection') ]",
+            "xpath",
+            ImmutableList.of(one.getPath(), two.getPath()));
     }
 
     @Test
@@ -481,8 +492,8 @@ public class SolrIndexIT extends AbstractQueryTest {
         root.commit();
 
         Iterator<String> result = executeQuery(
-                "select [jcr:path] from [nt:base] where isdescendantnode('/test') order by [jcr:path] asc",
-                "JCR-SQL2").iterator();
+            "select [jcr:path] from [nt:base] where isdescendantnode('/test') order by [jcr:path] asc",
+            "JCR-SQL2").iterator();
         assertTrue(result.hasNext());
         assertEquals("/test/a", result.next());
         assertTrue(result.hasNext());
@@ -506,8 +517,8 @@ public class SolrIndexIT extends AbstractQueryTest {
         root.commit();
 
         Iterator<String> result = executeQuery(
-                "select [jcr:path] from [nt:base] where isdescendantnode('/test') order by [foo] asc",
-                "JCR-SQL2").iterator();
+            "select [jcr:path] from [nt:base] where isdescendantnode('/test') order by [foo] asc",
+            "JCR-SQL2").iterator();
         assertTrue(result.hasNext());
         assertEquals("/test/a", result.next());
         assertTrue(result.hasNext());
@@ -536,10 +547,10 @@ public class SolrIndexIT extends AbstractQueryTest {
         root.commit();
 
         String statement = "select [jcr:path], [jcr:score], [rep:excerpt] " +
-                "from [nt:unstructured] as a " +
-                "where contains(*, 'doc') " +
-                "and isdescendantnode(a, '/content') " +
-                "order by [jcr:score] desc";
+            "from [nt:unstructured] as a " +
+            "where contains(*, 'doc') " +
+            "and isdescendantnode(a, '/content') " +
+            "order by [jcr:score] desc";
 
         Iterator<String> results = executeQuery(statement, Query.JCR_SQL2, true).iterator();
         assertTrue(results.hasNext());
@@ -582,10 +593,10 @@ public class SolrIndexIT extends AbstractQueryTest {
         root.commit();
 
         String statement = "select [jcr:path], [jcr:score] " +
-                "from [nt:unstructured] as a " +
-                "where contains(*, 'doc') " +
-                "and isdescendantnode(a, '/content') " +
-                "order by [type] desc";
+            "from [nt:unstructured] as a " +
+            "where contains(*, 'doc') " +
+            "and isdescendantnode(a, '/content') " +
+            "order by [type] desc";
 
         Iterator<String> results = executeQuery(statement, Query.JCR_SQL2, true).iterator();
         assertTrue(results.hasNext());
@@ -597,10 +608,10 @@ public class SolrIndexIT extends AbstractQueryTest {
         assertFalse(results.hasNext());
 
         statement = "select [jcr:path], [jcr:score] " +
-                "from [nt:unstructured] as a " +
-                "where contains(*, 'doc') " +
-                "and isdescendantnode(a, '/content') " +
-                "order by [type] asc";
+            "from [nt:unstructured] as a " +
+            "where contains(*, 'doc') " +
+            "and isdescendantnode(a, '/content') " +
+            "order by [type] asc";
 
         results = executeQuery(statement, Query.JCR_SQL2, true).iterator();
         assertTrue(results.hasNext());

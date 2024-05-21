@@ -20,7 +20,6 @@ import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
 import java.util.Locale;
 import java.util.Map;
-
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -52,8 +51,9 @@ public enum RDBBlobStoreDB {
 
         @Override
         public String getDataTableCreationStatement(String tableName) {
-            return "create table " + tableName + " (ID varchar(" + RDBBlobStore.IDSIZE + ") not null primary key, DATA blob("
-                    + MINBLOB + "))";
+            return "create table " + tableName + " (ID varchar(" + RDBBlobStore.IDSIZE
+                + ") not null primary key, DATA blob("
+                + MINBLOB + "))";
         }
     },
 
@@ -66,15 +66,15 @@ public enum RDBBlobStoreDB {
         @Override
         public String getDataTableCreationStatement(String tableName) {
             return "create table " + tableName + " (ID varchar(" + RDBBlobStore.IDSIZE
-                    + ") not null, DATA varbinary(max) "
-                    + "constraint "  + tableName + "_PK primary key clustered (ID ASC))";
+                + ") not null, DATA varbinary(max) "
+                + "constraint " + tableName + "_PK primary key clustered (ID ASC))";
         }
 
         @Override
         public String getMetaTableCreationStatement(String tableName) {
             return "create table " + tableName + " (ID varchar(" + RDBBlobStore.IDSIZE
-                    + ") not null, LVL int, LASTMOD bigint "
-                    + "constraint "  + tableName + "_PK primary key clustered (ID ASC))";
+                + ") not null, LVL int, LASTMOD bigint "
+                + "constraint " + tableName + "_PK primary key clustered (ID ASC))";
         }
 
         @Override
@@ -83,7 +83,7 @@ public enum RDBBlobStoreDB {
             String collation = diags.get("collation_name");
             if (collation != null && collation.toLowerCase(Locale.ENGLISH).startsWith("sql")) {
                 return "Default server collation is: '" + collation
-                        + "'. There's a risk of performance degradation; see https://issues.apache.org/jira/browse/OAK-8908 for more information.";
+                    + "'. There's a risk of performance degradation; see https://issues.apache.org/jira/browse/OAK-8908 for more information.";
             } else {
                 return null;
             }
@@ -98,7 +98,8 @@ public enum RDBBlobStoreDB {
 
         @Override
         public String getDataTableCreationStatement(String tableName) {
-            return "create table " + tableName + " (ID varchar(" + RDBBlobStore.IDSIZE + ") not null primary key, DATA mediumblob)";
+            return "create table " + tableName + " (ID varchar(" + RDBBlobStore.IDSIZE
+                + ") not null primary key, DATA mediumblob)";
         }
     },
 
@@ -111,7 +112,7 @@ public enum RDBBlobStoreDB {
         @Override
         public String getMetaTableCreationStatement(String tableName) {
             return "create table " + tableName + " (ID varchar(" + RDBBlobStore.IDSIZE
-                    + ") not null primary key, LVL number, LASTMOD number)";
+                + ") not null primary key, LVL number, LASTMOD number)";
         }
     },
 
@@ -123,7 +124,8 @@ public enum RDBBlobStoreDB {
 
         @Override
         public String getDataTableCreationStatement(String tableName) {
-            return "create table " + tableName + " (ID varchar(" + RDBBlobStore.IDSIZE + ") not null primary key, DATA bytea)";
+            return "create table " + tableName + " (ID varchar(" + RDBBlobStore.IDSIZE
+                + ") not null primary key, DATA bytea)";
         }
     },
 
@@ -140,12 +142,13 @@ public enum RDBBlobStoreDB {
     }
 
     public String getDataTableCreationStatement(String tableName) {
-        return "create table " + tableName + " (ID varchar(" + RDBBlobStore.IDSIZE + ") not null primary key, DATA blob)";
+        return "create table " + tableName + " (ID varchar(" + RDBBlobStore.IDSIZE
+            + ") not null primary key, DATA blob)";
     }
 
     public String getMetaTableCreationStatement(String tableName) {
         return "create table " + tableName + " (ID varchar(" + RDBBlobStore.IDSIZE
-                + ") not null primary key, LVL int, LASTMOD bigint)";
+            + ") not null primary key, LVL int, LASTMOD bigint)";
     }
 
     protected String description;

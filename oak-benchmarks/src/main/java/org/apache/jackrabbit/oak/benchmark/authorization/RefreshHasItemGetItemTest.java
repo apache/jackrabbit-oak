@@ -16,18 +16,18 @@
  */
 package org.apache.jackrabbit.oak.benchmark.authorization;
 
-import org.jetbrains.annotations.NotNull;
-
+import java.util.Random;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.security.AccessControlManager;
-import java.util.Random;
+import org.jetbrains.annotations.NotNull;
 
 public class RefreshHasItemGetItemTest extends AbstractHasItemGetItemTest {
 
     private final Random r = new Random();
 
-    public RefreshHasItemGetItemTest(int itemsToRead, int numberOfACEs, int numberOfGroups, boolean doReport) {
+    public RefreshHasItemGetItemTest(int itemsToRead, int numberOfACEs, int numberOfGroups,
+        boolean doReport) {
         super(itemsToRead, numberOfACEs, numberOfGroups, doReport);
     }
 
@@ -38,7 +38,8 @@ public class RefreshHasItemGetItemTest extends AbstractHasItemGetItemTest {
     }
 
     @Override
-    void additionalOperations(@NotNull String path, @NotNull Session s, @NotNull AccessControlManager acMgr) {
+    void additionalOperations(@NotNull String path, @NotNull Session s,
+        @NotNull AccessControlManager acMgr) {
         try {
             s.refresh(r.nextBoolean());
         } catch (RepositoryException e) {

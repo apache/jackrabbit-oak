@@ -22,7 +22,6 @@ package org.apache.jackrabbit.oak.segment;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
 import java.io.UnsupportedEncodingException;
-
 import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Supplier;
 import org.apache.jackrabbit.oak.cache.CacheStats;
@@ -36,14 +35,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * This {@code SegmentReader} implementation implements caching for
- * strings and templates. It can also optionally rely on a {@link BlobStore} for resolving blobs.
+ * This {@code SegmentReader} implementation implements caching for strings and templates. It can
+ * also optionally rely on a {@link BlobStore} for resolving blobs.
  */
 public class CachingSegmentReader implements SegmentReader {
+
     public static final int DEFAULT_STRING_CACHE_MB = 256;
     public static final int DEFAULT_TEMPLATE_CACHE_MB = 64;
 
-    private static final Logger LOG = LoggerFactory.getLogger(LoggingHook.class.getName() + ".reader");
+    private static final Logger LOG = LoggerFactory.getLogger(
+        LoggingHook.class.getName() + ".reader");
 
     @NotNull
     private final Supplier<SegmentWriter> writer;
@@ -67,9 +68,10 @@ public class CachingSegmentReader implements SegmentReader {
 
     /**
      * Create a new instance based on the supplied arguments.
+     *
      * @param writer          A {@code Supplier} for a the {@code SegmentWriter} used by the segment
-     *                        builders returned from {@link NodeState#builder()} to write ahead changes.
-     *                        {@code writer.get()} must not return {@code null}.
+     *                        builders returned from {@link NodeState#builder()} to write ahead
+     *                        changes. {@code writer.get()} must not return {@code null}.
      * @param blobStore       {@code BlobStore} instance of the underlying {@link SegmentStore}, or
      *                        {@code null} if none.
      * @param stringCacheMB   the size of the string cache in MBs or {@code 0} for no cache.
@@ -156,7 +158,8 @@ public class CachingSegmentReader implements SegmentReader {
 
     @NotNull
     @Override
-    public SegmentPropertyState readProperty(@NotNull RecordId id, @NotNull PropertyTemplate template) {
+    public SegmentPropertyState readProperty(@NotNull RecordId id,
+        @NotNull PropertyTemplate template) {
         if (LOG.isTraceEnabled()) {
             LOG.trace("{} p? {}", Thread.currentThread().getId(), id);
         }

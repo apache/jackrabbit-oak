@@ -16,24 +16,23 @@
  */
 package org.apache.jackrabbit.oak.exercise.security.user;
 
+import static org.junit.Assert.assertArrayEquals;
+
 import java.util.Iterator;
 import java.util.List;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
-
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.exercise.ExerciseUtility;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.test.AbstractJCRTest;
-
-import static org.junit.Assert.assertArrayEquals;
 
 /**
  * <pre>
@@ -115,12 +114,13 @@ public class L7_AuthorizablePropertiesTest extends AbstractJCRTest {
 
     public void testArbitraryProperties() throws RepositoryException {
         // set 2 different properties (single and multivalued)
-        testUser.setProperty(EMAIL_REL_PATH, superuser.getValueFactory().createValue("testUser@oak.apache.org"));
+        testUser.setProperty(EMAIL_REL_PATH,
+            superuser.getValueFactory().createValue("testUser@oak.apache.org"));
         testUser.setProperty(PETS_REL_PATH, new Value[]{
-                superuser.getValueFactory().createValue("cat"), superuser.getValueFactory().createValue("rabbit")
+            superuser.getValueFactory().createValue("cat"),
+            superuser.getValueFactory().createValue("rabbit")
         });
         superuser.save();
-
 
         Node node = getAuthorizableNode(testUser);
 
@@ -166,7 +166,8 @@ public class L7_AuthorizablePropertiesTest extends AbstractJCRTest {
         assertTrue(expectedGroupPropNames.isEmpty());
 
         Boolean hasPrimaryType = null; // EXERCISE
-        assertEquals(hasPrimaryType.booleanValue(), testGroup.hasProperty(JcrConstants.JCR_PRIMARYTYPE));
+        assertEquals(hasPrimaryType.booleanValue(),
+            testGroup.hasProperty(JcrConstants.JCR_PRIMARYTYPE));
 
         Value[] expectedMembers = null; // EXERCISE
         Value[] members = testGroup.getProperty(UserConstants.REP_MEMBERS);

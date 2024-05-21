@@ -34,7 +34,7 @@ public interface UserConfiguration extends SecurityConfiguration {
     /**
      * Create a new {@code UserManager} instance
      *
-     * @param root The root associated with the user manager.
+     * @param root           The root associated with the user manager.
      * @param namePathMapper A name path mapper used for conversion of jcr/oak names/paths.
      * @return a new instance of {@code UserManager}
      */
@@ -42,25 +42,22 @@ public interface UserConfiguration extends SecurityConfiguration {
     UserManager getUserManager(Root root, NamePathMapper namePathMapper);
 
     /**
-     * Optional method that allows a given user management implementation to
-     * provide a specific and optimized implementation of the {@link PrincipalProvider}
-     * interface for the principals represented by the user/groups known to
-     * this implementation.
+     * Optional method that allows a given user management implementation to provide a specific and
+     * optimized implementation of the {@link PrincipalProvider} interface for the principals
+     * represented by the user/groups known to this implementation.
+     * <p>
+     * If this method returns {@code null} the security setup will by default use a basic
+     * {@code PrincipalProvider} implementation based on public user management API or a combination
+     * of other {@link PrincipalProvider}s as configured with the repository setup.
      *
-     * If this method returns {@code null} the security setup will by default
-     * use a basic {@code PrincipalProvider} implementation based on public
-     * user management API or a combination of other {@link PrincipalProvider}s
-     * as configured with the repository setup.
-     *
-     * @param root The root used to read the principal information from.
+     * @param root           The root used to read the principal information from.
      * @param namePathMapper The {@code NamePathMapper} to convert oak paths to JCR paths.
-     * @return An implementation of {@code PrincipalProvider} or {@code null} if
-     * principal discovery is provided by other means of if the default principal
-     * provider implementation should be used that acts on public user management
-     * API.
-     *
+     * @return An implementation of {@code PrincipalProvider} or {@code null} if principal discovery
+     * is provided by other means of if the default principal provider implementation should be used
+     * that acts on public user management API.
      * @see org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration
      */
     @Nullable
-    PrincipalProvider getUserPrincipalProvider(@NotNull Root root, @NotNull NamePathMapper namePathMapper);
+    PrincipalProvider getUserPrincipalProvider(@NotNull Root root,
+        @NotNull NamePathMapper namePathMapper);
 }

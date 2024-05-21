@@ -16,6 +16,12 @@
  */
 package org.apache.jackrabbit.oak.upgrade.cli.node;
 
+import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentNodeStoreBuilder.newRDBDocumentNodeStoreBuilder;
+
+import java.io.Closeable;
+import java.io.IOException;
+import javax.sql.DataSource;
+import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
@@ -24,14 +30,6 @@ import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import org.apache.jackrabbit.guava.common.io.Closer;
-
-import javax.sql.DataSource;
-import java.io.Closeable;
-import java.io.IOException;
-
-import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentNodeStoreBuilder.newRDBDocumentNodeStoreBuilder;
 
 public class JdbcFactory extends DocumentFactory {
 
@@ -47,7 +45,8 @@ public class JdbcFactory extends DocumentFactory {
 
     private final boolean readOnly;
 
-    public JdbcFactory(String jdbcUri, int cacheSize, String user, String password, boolean readOnly) {
+    public JdbcFactory(String jdbcUri, int cacheSize, String user, String password,
+        boolean readOnly) {
         this.jdbcUri = jdbcUri;
         this.cacheSize = cacheSize;
         if (user == null || password == null) {
@@ -61,7 +60,8 @@ public class JdbcFactory extends DocumentFactory {
     @Override
     public NodeStore create(BlobStore blobStore, Closer closer) throws IOException {
         System.setProperty(DocumentNodeStore.SYS_PROP_DISABLE_JOURNAL, "true");
-        RDBDocumentNodeStoreBuilder builder = baseConfiguration(newRDBDocumentNodeStoreBuilder(), cacheSize);
+        RDBDocumentNodeStoreBuilder builder = baseConfiguration(newRDBDocumentNodeStoreBuilder(),
+            cacheSize);
         if (blobStore != null) {
             builder.setBlobStore(blobStore);
         }
@@ -69,8 +69,10 @@ public class JdbcFactory extends DocumentFactory {
         if (readOnly) {
             builder.setReadOnlyMode();
         }
-        log.info("Initialized DocumentNodeStore on RDB with Cache size : {} MB, Fast migration : {}", cacheSize,
-                builder.isDisableBranches());
+        log.info(
+            "Initialized DocumentNodeStore on RDB with Cache size : {} MB, Fast migration : {}",
+            cacheSize,
+            builder.isDisableBranches());
         DocumentNodeStore documentNodeStore = builder.build();
 
         // TODO probably we should disable all observers, see OAK-5651
@@ -83,7 +85,7 @@ public class JdbcFactory extends DocumentFactory {
     private DataSource getDataSource(Closer closer) {
         DataSource ds = RDBDataSourceFactory.forJdbcUrl(jdbcUri, user, password);
         if (ds instanceof Closeable) {
-            closer.register((Closeable)ds);
+            closer.register((Closeable) ds);
         }
         return ds;
     }
@@ -95,7 +97,7 @@ public class JdbcFactory extends DocumentFactory {
             DataSource ds = getDataSource(closer);
             RDBBlobStore blobStore = new RDBBlobStore(ds);
             return !blobStore.getAllChunkIds(0).hasNext();
-        } catch(Throwable e) {
+        } catch (Throwable e) {
             throw closer.rethrow(e);
         } finally {
             closer.close();

@@ -20,4 +20,3 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene.reader;
 
-import org.osgi.annotation.versioning.Version;

@@ -16,11 +16,22 @@
  */
 package org.apache.jackrabbit.oak.exercise.security.authorization.models.readonly;
 
+import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_SECURITY_NAME;
+
+import java.security.Principal;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+import javax.jcr.security.AccessControlException;
+import javax.jcr.security.AccessControlManager;
+import javax.jcr.security.AccessControlPolicy;
+import javax.jcr.security.AccessControlPolicyIterator;
+import javax.jcr.security.NamedAccessControlPolicy;
+import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
+import org.apache.jackrabbit.commons.iterator.AccessControlPolicyIteratorAdapter;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Sets;
-import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
-import org.apache.jackrabbit.commons.iterator.AccessControlPolicyIteratorAdapter;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -61,42 +72,30 @@ import org.osgi.service.metatype.annotations.AttributeDefinition;
 import org.osgi.service.metatype.annotations.Designate;
 import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 
-import javax.jcr.security.AccessControlException;
-import javax.jcr.security.AccessControlManager;
-import javax.jcr.security.AccessControlPolicy;
-import javax.jcr.security.AccessControlPolicyIterator;
-import javax.jcr.security.NamedAccessControlPolicy;
-import java.security.Principal;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-
-import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_SECURITY_NAME;
-
 /**
  * <h1>Read Only Authorization Model</h1>
- *
+ * <p>
  * This authorization module forms part of the training material provided by the
  * <i>oak-exercise</i> module and must not be used in a productive environment!
  *
  * <h2>Overview</h2>
- * This simplistic authorization model is limited to permission evaluation and
- * doesn't support access control management.
- *
- * The permission evaluation is hardcoded to only allow read access to every single
- * item in the repository (even access control content). All other permissions are
- * denied for every set of principals.
- *
- * There exists a single exception to that rule: For the internal {@link SystemPrincipal}
- * permission evaluation is not enforced by this module i.e. this module is skipped.
+ * This simplistic authorization model is limited to permission evaluation and doesn't support
+ * access control management.
+ * <p>
+ * The permission evaluation is hardcoded to only allow read access to every single item in the
+ * repository (even access control content). All other permissions are denied for every set of
+ * principals.
+ * <p>
+ * There exists a single exception to that rule: For the internal {@link SystemPrincipal} permission
+ * evaluation is not enforced by this module i.e. this module is skipped.
  *
  * <h2>Intended Usage</h2>
- * This authorization model is intended to be used in 'AND' combination with the
- * default authorization setup defined by Oak (and optionally additional models
- * such as e.g. <i>oak-authorization-cug</i>.
- *
- * It is not intended to be used as standalone model as it would grant full read
- * access to everyone.
+ * This authorization model is intended to be used in 'AND' combination with the default
+ * authorization setup defined by Oak (and optionally additional models such as e.g.
+ * <i>oak-authorization-cug</i>.
+ * <p>
+ * It is not intended to be used as standalone model as it would grant full read access to
+ * everyone.
  *
  * <h2>Limitations</h2>
  * Experimental model for training purpose and not intended for usage in production.
@@ -127,20 +126,20 @@ import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_S
  * </table>
  *
  * <h2>Representation in the Repository</h2>
- *
+ * <p>
  * There exists no dedicated access control or permission content for this
  * authorization model as it doesn't persist any information into the repository.
  * {@link SecurityConfiguration#getContext()} therefore returns the {@link Context#DEFAULT default}.
  *
  * <h2>Configuration</h2>
- *
+ * <p>
  * This model comes with a single mandatory configurable property:
- *
+ * <p>
  * - configurationRanking : {@link  CompositeConfiguration#PARAM_RANKING}, no default value.
  *
  *
  * <h2>Installation Instructions</h2>
- *
+ * <p>
  * The following steps are required to install this authorization model in an OSGi based Oak setup.
  *
  * <ul>
@@ -155,28 +154,34 @@ import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_S
  *     </li>
  *     <li>Wait for the {@link org.apache.jackrabbit.oak.spi.security.SecurityProvider} to be successfully registered again.</li>
  * </ul>
- *
  */
-@Component(service = {AuthorizationConfiguration.class, org.apache.jackrabbit.oak.spi.security.SecurityConfiguration.class},
-        property = OAK_SECURITY_NAME + "=org.apache.jackrabbit.oak.exercise.security.authorization.models.readonly.ReadOnlyAuthorizationConfiguration",
-        configurationPolicy = ConfigurationPolicy.REQUIRE)
+@Component(service = {AuthorizationConfiguration.class,
+    org.apache.jackrabbit.oak.spi.security.SecurityConfiguration.class},
+    property = OAK_SECURITY_NAME
+        + "=org.apache.jackrabbit.oak.exercise.security.authorization.models.readonly.ReadOnlyAuthorizationConfiguration",
+    configurationPolicy = ConfigurationPolicy.REQUIRE)
 @Designate(ocd = ReadOnlyAuthorizationConfiguration.Configuration.class)
-public final class ReadOnlyAuthorizationConfiguration extends ConfigurationBase implements AuthorizationConfiguration {
+public final class ReadOnlyAuthorizationConfiguration extends ConfigurationBase implements
+    AuthorizationConfiguration {
 
     @ObjectClassDefinition(name = "Apache Jackrabbit Oak ReadOnlyAuthorizationConfiguration (Oak Exercises)")
     @interface Configuration {
+
         @AttributeDefinition(
-                name = "Ranking",
-                description = "Ranking of this configuration in a setup with multiple authorization configurations.")
+            name = "Ranking",
+            description = "Ranking of this configuration in a setup with multiple authorization configurations.")
         int configurationRanking() default 300;
     }
 
     private static final long READ_PERMISSIONS = Permissions.READ | Permissions.READ_ACCESS_CONTROL;
-    private static final Set<String> READ_PRIVILEGE_NAMES = ImmutableSet.of(PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_READ_ACCESS_CONTROL, PrivilegeConstants.REP_READ_NODES, PrivilegeConstants.REP_READ_PROPERTIES);
+    private static final Set<String> READ_PRIVILEGE_NAMES = ImmutableSet.of(
+        PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_READ_ACCESS_CONTROL,
+        PrivilegeConstants.REP_READ_NODES, PrivilegeConstants.REP_READ_PROPERTIES);
 
     @NotNull
     @Override
-    public AccessControlManager getAccessControlManager(@NotNull Root root, @NotNull NamePathMapper namePathMapper) {
+    public AccessControlManager getAccessControlManager(@NotNull Root root,
+        @NotNull NamePathMapper namePathMapper) {
         return new AbstractAccessControlManager(root, namePathMapper, getSecurityProvider()) {
 
             @Override
@@ -186,7 +191,7 @@ public final class ReadOnlyAuthorizationConfiguration extends ConfigurationBase 
 
             @Override
             public AccessControlPolicy[] getEffectivePolicies(String absPath) {
-                return new AccessControlPolicy[] {ReadOnlyPolicy.INSTANCE};
+                return new AccessControlPolicy[]{ReadOnlyPolicy.INSTANCE};
             }
 
             @Override
@@ -195,18 +200,21 @@ public final class ReadOnlyAuthorizationConfiguration extends ConfigurationBase 
             }
 
             @Override
-            public void setPolicy(String absPath, AccessControlPolicy policy) throws AccessControlException {
+            public void setPolicy(String absPath, AccessControlPolicy policy)
+                throws AccessControlException {
                 throw new AccessControlException();
             }
 
             @Override
-            public void removePolicy(String absPath, AccessControlPolicy policy) throws AccessControlException {
+            public void removePolicy(String absPath, AccessControlPolicy policy)
+                throws AccessControlException {
                 throw new AccessControlException();
             }
 
             @NotNull
             @Override
-            public JackrabbitAccessControlPolicy[] getApplicablePolicies(@NotNull Principal principal) {
+            public JackrabbitAccessControlPolicy[] getApplicablePolicies(
+                @NotNull Principal principal) {
                 return new JackrabbitAccessControlPolicy[0];
             }
 
@@ -219,7 +227,7 @@ public final class ReadOnlyAuthorizationConfiguration extends ConfigurationBase 
             @NotNull
             @Override
             public AccessControlPolicy[] getEffectivePolicies(@NotNull Set<Principal> set) {
-                return new AccessControlPolicy[] {ReadOnlyPolicy.INSTANCE};
+                return new AccessControlPolicy[]{ReadOnlyPolicy.INSTANCE};
             }
         };
     }
@@ -232,7 +240,8 @@ public final class ReadOnlyAuthorizationConfiguration extends ConfigurationBase 
 
     @NotNull
     @Override
-    public PermissionProvider getPermissionProvider(@NotNull Root root, @NotNull String workspaceName, @NotNull Set<Principal> principals) {
+    public PermissionProvider getPermissionProvider(@NotNull Root root,
+        @NotNull String workspaceName, @NotNull Set<Principal> principals) {
         if (principals.contains(SystemPrincipal.INSTANCE)) {
             return EmptyPermissionProvider.getInstance();
         } else {
@@ -240,12 +249,15 @@ public final class ReadOnlyAuthorizationConfiguration extends ConfigurationBase 
 
                 @NotNull
                 @Override
-                public PrivilegeBits supportedPrivileges(@Nullable Tree tree, @Nullable PrivilegeBits privilegeBits) {
-                    return (privilegeBits != null) ? privilegeBits : new PrivilegeBitsProvider(root).getBits(PrivilegeConstants.JCR_ALL);
+                public PrivilegeBits supportedPrivileges(@Nullable Tree tree,
+                    @Nullable PrivilegeBits privilegeBits) {
+                    return (privilegeBits != null) ? privilegeBits
+                        : new PrivilegeBitsProvider(root).getBits(PrivilegeConstants.JCR_ALL);
                 }
 
                 @Override
-                public long supportedPermissions(@Nullable Tree tree, @Nullable PropertyState property, long permissions) {
+                public long supportedPermissions(@Nullable Tree tree,
+                    @Nullable PropertyState property, long permissions) {
                     return permissions;
                 }
 
@@ -255,7 +267,8 @@ public final class ReadOnlyAuthorizationConfiguration extends ConfigurationBase 
                 }
 
                 @Override
-                public long supportedPermissions(@NotNull TreePermission treePermission, @Nullable PropertyState property, long permissions) {
+                public long supportedPermissions(@NotNull TreePermission treePermission,
+                    @Nullable PropertyState property, long permissions) {
                     return permissions;
                 }
 
@@ -266,7 +279,8 @@ public final class ReadOnlyAuthorizationConfiguration extends ConfigurationBase 
 
                 @NotNull
                 @Override
-                public TreePermission getTreePermission(@NotNull Tree tree, @NotNull TreeType type, @NotNull TreePermission parentPermission) {
+                public TreePermission getTreePermission(@NotNull Tree tree, @NotNull TreeType type,
+                    @NotNull TreePermission parentPermission) {
                     return new ReadOnlyPermissions();
                 }
 
@@ -282,7 +296,8 @@ public final class ReadOnlyAuthorizationConfiguration extends ConfigurationBase 
                 }
 
                 @Override
-                public boolean hasPrivileges(@Nullable Tree tree, @NotNull String... privilegeNames) {
+                public boolean hasPrivileges(@Nullable Tree tree,
+                    @NotNull String... privilegeNames) {
                     Set<String> privs = Sets.newHashSet(privilegeNames);
                     privs.removeAll(READ_PRIVILEGE_NAMES);
 
@@ -297,18 +312,22 @@ public final class ReadOnlyAuthorizationConfiguration extends ConfigurationBase 
 
                 @NotNull
                 @Override
-                public TreePermission getTreePermission(@NotNull Tree tree, @NotNull TreePermission parentPermission) {
+                public TreePermission getTreePermission(@NotNull Tree tree,
+                    @NotNull TreePermission parentPermission) {
                     return ReadOnlyPermissions.INSTANCE;
                 }
 
                 @Override
-                public boolean isGranted(@NotNull Tree tree, @Nullable PropertyState property, long permissions) {
+                public boolean isGranted(@NotNull Tree tree, @Nullable PropertyState property,
+                    long permissions) {
                     return onlyReadPermissions(permissions);
                 }
 
                 @Override
                 public boolean isGranted(@NotNull String oakPath, @NotNull String jcrActions) {
-                    return onlyReadPermissions(Permissions.getPermissions(jcrActions, TreeLocation.create(root, oakPath), false));
+                    return onlyReadPermissions(
+                        Permissions.getPermissions(jcrActions, TreeLocation.create(root, oakPath),
+                            false));
                 }
             };
         }
@@ -350,7 +369,8 @@ public final class ReadOnlyAuthorizationConfiguration extends ConfigurationBase 
 
     @NotNull
     @Override
-    public List<? extends ValidatorProvider> getValidators(@NotNull String workspaceName, @NotNull Set<Principal> principals, @NotNull MoveTracker moveTracker) {
+    public List<? extends ValidatorProvider> getValidators(@NotNull String workspaceName,
+        @NotNull Set<Principal> principals, @NotNull MoveTracker moveTracker) {
         return ImmutableList.of();
     }
 
@@ -378,7 +398,8 @@ public final class ReadOnlyAuthorizationConfiguration extends ConfigurationBase 
 
         @NotNull
         @Override
-        public TreePermission getChildPermission(@NotNull String childName, @NotNull NodeState childState) {
+        public TreePermission getChildPermission(@NotNull String childName,
+            @NotNull NodeState childState) {
             return this;
         }
 

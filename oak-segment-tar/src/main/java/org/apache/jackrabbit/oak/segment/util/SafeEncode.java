@@ -29,10 +29,9 @@ public class SafeEncode {
     }
 
     /**
-     * Encodes the input string by translating special characters into escape
-     * sequences. The resulting string is encoded according to the rules for URL
-     * encoding with the exception of the forward slashes and the colon, which
-     * are left as-is.
+     * Encodes the input string by translating special characters into escape sequences. The
+     * resulting string is encoded according to the rules for URL encoding with the exception of the
+     * forward slashes and the colon, which are left as-is.
      *
      * @param s A UTF-8 string.
      * @return The encoded string.

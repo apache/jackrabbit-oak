@@ -16,8 +16,16 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.query;
 
+import co.elastic.clients.elasticsearch.core.SearchRequest;
+import co.elastic.clients.elasticsearch.core.SearchResponse;
 import co.elastic.clients.json.JsonpUtils;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import java.io.IOException;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.Objects;
+import java.util.PriorityQueue;
+import java.util.stream.Collectors;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexNode;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex.FulltextResultRow;
@@ -25,20 +33,9 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import co.elastic.clients.elasticsearch._types.query_dsl.Query;
-import co.elastic.clients.elasticsearch.core.SearchRequest;
-import co.elastic.clients.elasticsearch.core.SearchResponse;
-
-import java.io.IOException;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.Objects;
-import java.util.PriorityQueue;
-import java.util.stream.Collectors;
-
 /**
- * This class is in charge to extract suggestions for a given query. Suggestion is more like
- * a completion result.
+ * This class is in charge to extract suggestions for a given query. Suggestion is more like a
+ * completion result.
  */
 class ElasticSuggestIterator implements ElasticQueryIterator {
 
@@ -52,17 +49,18 @@ class ElasticSuggestIterator implements ElasticQueryIterator {
     private boolean loaded;
 
     ElasticSuggestIterator(@NotNull ElasticIndexNode indexNode,
-                           @NotNull ElasticRequestHandler requestHandler,
-                           @NotNull ElasticResponseHandler responseHandler) {
+        @NotNull ElasticRequestHandler requestHandler,
+        @NotNull ElasticResponseHandler responseHandler) {
         this.indexNode = indexNode;
         this.responseHandler = responseHandler;
 
-        String suggestQuery = requestHandler.getPropertyRestrictionQuery().replace(ElasticRequestHandler.SUGGEST_PREFIX, "");
+        String suggestQuery = requestHandler.getPropertyRestrictionQuery()
+                                            .replace(ElasticRequestHandler.SUGGEST_PREFIX, "");
         this.searchRequest = SearchRequest.of(s -> s
-                .index(indexNode.getDefinition().getIndexAlias())
-                .query(requestHandler.suggestionMatchQuery(suggestQuery))
-                .size(100)
-                .source(ss -> ss.filter(f -> f.includes(FieldNames.PATH))));
+            .index(indexNode.getDefinition().getIndexAlias())
+            .query(requestHandler.suggestionMatchQuery(suggestQuery))
+            .size(100)
+            .source(ss -> ss.filter(f -> f.includes(FieldNames.PATH))));
     }
 
     @Override
@@ -83,16 +81,22 @@ class ElasticSuggestIterator implements ElasticQueryIterator {
     public FulltextResultRow next() {
         return internalIterator.next();
     }
-    
+
     private void loadSuggestions() throws IOException {
-        SearchResponse<ObjectNode> sRes = indexNode.getConnection().getClient().search(searchRequest, ObjectNode.class);
+        SearchResponse<ObjectNode> sRes = indexNode.getConnection().getClient()
+                                                   .search(searchRequest, ObjectNode.class);
         this.internalIterator = sRes.hits().hits().stream()
-                .filter(hit -> responseHandler.isAccessible(responseHandler.getPath(hit)))
-                .map(hit -> hit.innerHits().get(FieldNames.SUGGEST).hits().hits())
-                .flatMap(Collection::stream)
-                .map(hit -> new ElasticSuggestion(hit.source().to(ObjectNode.class).get("value").asText(), hit.score()))
-                .collect(Collectors.toCollection(() -> new PriorityQueue<>((a, b) -> Double.compare(b.score, a.score))))
-                .stream().distinct().iterator();
+                                    .filter(hit -> responseHandler.isAccessible(
+                                        responseHandler.getPath(hit)))
+                                    .map(hit -> hit.innerHits().get(FieldNames.SUGGEST).hits()
+                                                   .hits())
+                                    .flatMap(Collection::stream)
+                                    .map(hit -> new ElasticSuggestion(
+                                        hit.source().to(ObjectNode.class).get("value").asText(),
+                                        hit.score()))
+                                    .collect(Collectors.toCollection(() -> new PriorityQueue<>(
+                                        (a, b) -> Double.compare(b.score, a.score))))
+                                    .stream().distinct().iterator();
     }
 
     @Override
@@ -101,14 +105,19 @@ class ElasticSuggestIterator implements ElasticQueryIterator {
     }
 
     private final static class ElasticSuggestion extends FulltextResultRow {
+
         private ElasticSuggestion(String suggestion, double score) {
             super(suggestion, score);
         }
 
         @Override
         public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
             FulltextResultRow fulltextResultRow = (FulltextResultRow) o;
             return Objects.equals(this.suggestion, fulltextResultRow.suggestion);
         }

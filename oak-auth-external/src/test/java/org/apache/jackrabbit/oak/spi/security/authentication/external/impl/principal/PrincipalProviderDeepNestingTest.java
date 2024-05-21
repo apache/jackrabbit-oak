@@ -16,13 +16,16 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
 import java.security.Principal;
 import java.util.Set;
-
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
@@ -30,11 +33,6 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.Defa
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
 public class PrincipalProviderDeepNestingTest extends ExternalGroupPrincipalProviderTest {
 
@@ -65,7 +63,8 @@ public class PrincipalProviderDeepNestingTest extends ExternalGroupPrincipalProv
         ExternalUser externalUser = idp.getUser(USER_ID);
         for (ExternalIdentityRef ref : externalUser.getDeclaredGroups()) {
             ExternalIdentity externalGroup = idp.getIdentity(ref);
-            Principal grPrincipal = principalProvider.getPrincipal(externalGroup.getPrincipalName());
+            Principal grPrincipal = principalProvider.getPrincipal(
+                externalGroup.getPrincipalName());
 
             for (ExternalIdentityRef inheritedGroupRef : externalGroup.getDeclaredGroups()) {
                 String inheritedPrincName = idp.getIdentity(inheritedGroupRef).getPrincipalName();
@@ -76,7 +75,8 @@ public class PrincipalProviderDeepNestingTest extends ExternalGroupPrincipalProv
                 assertTrue(principal instanceof GroupPrincipal);
 
                 GroupPrincipal inheritedGrPrincipal = (GroupPrincipal) principal;
-                assertTrue(inheritedGrPrincipal.isMember(new PrincipalImpl(externalUser.getPrincipalName())));
+                assertTrue(inheritedGrPrincipal.isMember(
+                    new PrincipalImpl(externalUser.getPrincipalName())));
                 assertFalse(inheritedGrPrincipal.isMember(grPrincipal));
             }
         }
@@ -85,8 +85,10 @@ public class PrincipalProviderDeepNestingTest extends ExternalGroupPrincipalProv
     @Override
     @Test
     public void testFindPrincipalsByHintTypeGroup() {
-        Set<? extends Principal> expected = ImmutableSet.of(new PrincipalImpl("a"), new PrincipalImpl("aa"), new PrincipalImpl("aaa"));
-        Set<? extends Principal> res = ImmutableSet.copyOf(principalProvider.findPrincipals("a", PrincipalManager.SEARCH_TYPE_GROUP));
+        Set<? extends Principal> expected = ImmutableSet.of(new PrincipalImpl("a"),
+            new PrincipalImpl("aa"), new PrincipalImpl("aaa"));
+        Set<? extends Principal> res = ImmutableSet.copyOf(
+            principalProvider.findPrincipals("a", PrincipalManager.SEARCH_TYPE_GROUP));
 
         assertEquals(expected, res);
     }
@@ -95,10 +97,11 @@ public class PrincipalProviderDeepNestingTest extends ExternalGroupPrincipalProv
     @Test
     public void testFindPrincipalsByHintTypeAll() {
         Set<? extends Principal> expected = ImmutableSet.of(
-                new PrincipalImpl("a"),
-                new PrincipalImpl("aa"),
-                new PrincipalImpl("aaa"));
-        Set<? extends Principal> res = ImmutableSet.copyOf(principalProvider.findPrincipals("a", PrincipalManager.SEARCH_TYPE_ALL));
+            new PrincipalImpl("a"),
+            new PrincipalImpl("aa"),
+            new PrincipalImpl("aaa"));
+        Set<? extends Principal> res = ImmutableSet.copyOf(
+            principalProvider.findPrincipals("a", PrincipalManager.SEARCH_TYPE_ALL));
 
         assertEquals(expected, res);
     }

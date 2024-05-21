@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.spi.security.principal;
 
 import java.security.Principal;
-
 import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.jetbrains.annotations.NotNull;
@@ -26,31 +25,31 @@ import org.osgi.annotation.versioning.ProviderType;
 
 /**
  * Extension for the {@code PrincipalManager} that offers range search.
- *
  */
 @ProviderType
 public interface PrincipalQueryManager {
 
     /**
-     * Gets the principals matching a simple filter expression applied against
-     * the {@link Principal#getName() principal name} AND the specified search
-     * type.
-     * Results are expected to be sorted by the principal name.
-     * An implementation may limit the number of principals returned.
-     * If there are no matching principals, an empty iterator is returned.
+     * Gets the principals matching a simple filter expression applied against the
+     * {@link Principal#getName() principal name} AND the specified search type. Results are
+     * expected to be sorted by the principal name. An implementation may limit the number of
+     * principals returned. If there are no matching principals, an empty iterator is returned.
+     *
      * @param simpleFilter
      * @param fullText
-     * @param searchType Any of the following constants:
-     * <ul>
-     * <li>{@link PrincipalManager#SEARCH_TYPE_ALL}</li>
-     * <li>{@link PrincipalManager#SEARCH_TYPE_GROUP}</li>
-     * <li>{@link PrincipalManager#SEARCH_TYPE_NOT_GROUP}</li>
-     * </ul>
-     * @param offset Offset from where to start returning results. <code>0</code> for no offset.
-     * @param limit Maximal number of results to return. -1 for no limit.
-     * @return a <code>PrincipalIterator</code> over the <code>Principal</code>s
-     * matching the given filter and search type.
+     * @param searchType   Any of the following constants:
+     *                     <ul>
+     *                     <li>{@link PrincipalManager#SEARCH_TYPE_ALL}</li>
+     *                     <li>{@link PrincipalManager#SEARCH_TYPE_GROUP}</li>
+     *                     <li>{@link PrincipalManager#SEARCH_TYPE_NOT_GROUP}</li>
+     *                     </ul>
+     * @param offset       Offset from where to start returning results. <code>0</code> for no
+     *                     offset.
+     * @param limit        Maximal number of results to return. -1 for no limit.
+     * @return a <code>PrincipalIterator</code> over the <code>Principal</code>s matching the given
+     * filter and search type.
      */
     @NotNull
-    PrincipalIterator findPrincipals(@Nullable String simpleFilter, boolean fullText, int searchType, long offset, long limit);
+    PrincipalIterator findPrincipals(@Nullable String simpleFilter, boolean fullText,
+        int searchType, long offset, long limit);
 }

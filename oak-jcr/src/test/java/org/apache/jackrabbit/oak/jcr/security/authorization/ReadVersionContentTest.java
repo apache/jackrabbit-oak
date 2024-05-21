@@ -27,7 +27,6 @@ import javax.jcr.security.Privilege;
 import javax.jcr.version.Version;
 import javax.jcr.version.VersionHistory;
 import javax.jcr.version.VersionIterator;
-
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.spi.version.VersionConstants;
@@ -66,7 +65,8 @@ public class ReadVersionContentTest extends AbstractEvaluationTest {
     @Override
     @After
     protected void tearDown() throws Exception {
-        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(superuser, VersionConstants.VERSION_STORE_PATH);
+        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(superuser,
+            VersionConstants.VERSION_STORE_PATH);
         if (acl != null) {
             for (AccessControlEntry entry : acl.getAccessControlEntries()) {
                 if (entry.getPrincipal().equals(testUser.getPrincipal())) {
@@ -79,7 +79,8 @@ public class ReadVersionContentTest extends AbstractEvaluationTest {
     }
 
     private Node createVersionableNode(Node parent) throws Exception {
-        Node n = (parent.hasNode(nodeName1)) ? parent.getNode(nodeName1) : parent.addNode(nodeName1);
+        Node n =
+            (parent.hasNode(nodeName1)) ? parent.getNode(nodeName1) : parent.addNode(nodeName1);
         if (n.canAddMixin(mixVersionable)) {
             n.addMixin(mixVersionable);
         } else {
@@ -108,7 +109,8 @@ public class ReadVersionContentTest extends AbstractEvaluationTest {
     public void testGetBaseVersion() throws Exception {
         // version information must still be accessible
         Version base = testSession.getNode(versionablePath).getBaseVersion();
-        Version base2 = testSession.getWorkspace().getVersionManager().getBaseVersion(versionablePath);
+        Version base2 = testSession.getWorkspace().getVersionManager()
+                                   .getBaseVersion(versionablePath);
     }
 
     /**
@@ -121,7 +123,8 @@ public class ReadVersionContentTest extends AbstractEvaluationTest {
         Node testNode = testSession.getNode(versionablePath);
 
         VersionHistory vh = testNode.getVersionHistory();
-        VersionHistory vh2 = testSession.getWorkspace().getVersionManager().getVersionHistory(versionablePath);
+        VersionHistory vh2 = testSession.getWorkspace().getVersionManager()
+                                        .getVersionHistory(versionablePath);
     }
 
     /**
@@ -258,7 +261,6 @@ public class ReadVersionContentTest extends AbstractEvaluationTest {
     }
 
 
-
     /**
      * @since oak
      */
@@ -273,21 +275,25 @@ public class ReadVersionContentTest extends AbstractEvaluationTest {
         // access version history directly => should fail
         try {
             VersionHistory history = (VersionHistory) testSession.getNode(vh.getPath());
-            fail("Access to version history should be denied if versionable node is not accessible");
+            fail(
+                "Access to version history should be denied if versionable node is not accessible");
         } catch (PathNotFoundException e) {
             // success
         }
 
         try {
-            VersionHistory history = (VersionHistory) testSession.getNodeByIdentifier(vh.getIdentifier());
-            fail("Access to version history should be denied if versionable node is not accessible");
+            VersionHistory history = (VersionHistory) testSession.getNodeByIdentifier(
+                vh.getIdentifier());
+            fail(
+                "Access to version history should be denied if versionable node is not accessible");
         } catch (ItemNotFoundException e) {
             // success
         }
 
         try {
             VersionHistory history = (VersionHistory) testSession.getNodeByUUID(vh.getUUID());
-            fail("Access to version history should be denied if versionable node is not accessible");
+            fail(
+                "Access to version history should be denied if versionable node is not accessible");
         } catch (ItemNotFoundException e) {
             // success
         }

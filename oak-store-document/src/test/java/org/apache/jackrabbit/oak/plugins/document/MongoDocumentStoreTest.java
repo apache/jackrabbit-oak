@@ -65,7 +65,8 @@ public class MongoDocumentStoreTest {
         if (MONGO_DB) {
             MongoConnection c = connectionFactory.getConnection();
             assertNotNull(c);
-            return new MongoDocumentStore(c.getMongoClient(), c.getDatabase(), new DocumentMK.Builder());
+            return new MongoDocumentStore(c.getMongoClient(), c.getDatabase(),
+                new DocumentMK.Builder());
         }
         return new MemoryDocumentStore();
     }
@@ -129,12 +130,12 @@ public class MongoDocumentStoreTest {
         }
         docStore.create(Collection.NODES, updateOps);
 
-        for(String id : ids){
+        for (String id : ids) {
             assertNotNull(docStore.find(Collection.NODES, id));
         }
 
         docStore.remove(Collection.NODES, ids);
-        for(String id : ids){
+        for (String id : ids) {
             assertNull(docStore.find(Collection.NODES, id));
         }
     }
@@ -158,7 +159,8 @@ public class MongoDocumentStoreTest {
 
     @Test
     public void addLotsOfNodes() throws Exception {
-        char[] nPrefix = new char[]{'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'};
+        char[] nPrefix = new char[]{'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M',
+            'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'};
         int nNodes = NODE_COUNT;
 
         for (int nThreads = 1; nThreads < 32; nThreads = nThreads * 2) {
@@ -225,18 +227,18 @@ public class MongoDocumentStoreTest {
     public void queryWithLimit() throws Exception {
         DocumentStore docStore = openDocumentStore();
         DocumentNodeStore store = new DocumentMK.Builder()
-                .setDocumentStore(docStore).setAsyncDelay(0).getNodeStore();
+            .setDocumentStore(docStore).setAsyncDelay(0).getNodeStore();
         Revision rev = Revision.newRevision(0);
         List<UpdateOp> inserts = new ArrayList<UpdateOp>();
         for (int i = 0; i < DocumentMK.MANY_CHILDREN_THRESHOLD * 2; i++) {
             DocumentNodeState n = new DocumentNodeState(store, Path.fromString("/node-" + i),
-                    new RevisionVector(rev));
+                new RevisionVector(rev));
             inserts.add(n.asOperation(rev));
         }
         docStore.create(Collection.NODES, inserts);
         List<NodeDocument> docs = docStore.query(Collection.NODES,
-                Utils.getKeyLowerLimit(Path.ROOT),  Utils.getKeyUpperLimit(Path.ROOT),
-                DocumentMK.MANY_CHILDREN_THRESHOLD);
+            Utils.getKeyLowerLimit(Path.ROOT), Utils.getKeyUpperLimit(Path.ROOT),
+            DocumentMK.MANY_CHILDREN_THRESHOLD);
         assertEquals(DocumentMK.MANY_CHILDREN_THRESHOLD, docs.size());
         store.dispose();
     }
@@ -254,7 +256,8 @@ public class MongoDocumentStoreTest {
         MongoConnection c = connectionFactory.getConnection();
         assertNotNull(c);
         MongoCollection<BasicDBObject> collection = c.getDatabase()
-                .getCollection("batchInsertTest", BasicDBObject.class);
+                                                     .getCollection("batchInsertTest",
+                                                         BasicDBObject.class);
         BasicDBObject index = new BasicDBObject();
         index.put("_path", 1L);
         IndexOptions options = new IndexOptions().unique(true);

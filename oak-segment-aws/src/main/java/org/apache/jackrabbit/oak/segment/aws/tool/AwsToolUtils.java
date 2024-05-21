@@ -24,12 +24,9 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.lang.annotation.Annotation;
-import java.net.URISyntaxException;
 import java.text.MessageFormat;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
-
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.aws.AwsContext;
 import org.apache.jackrabbit.oak.segment.aws.AwsPersistence;
@@ -70,88 +67,89 @@ public class AwsToolUtils {
     }
 
     public static FileStore newFileStore(SegmentNodeStorePersistence persistence, File directory,
-                                         boolean strictVersionCheck, int segmentCacheSize, long gcLogInterval)
-            throws IOException, InvalidFileStoreVersionException {
+        boolean strictVersionCheck, int segmentCacheSize, long gcLogInterval)
+        throws IOException, InvalidFileStoreVersionException {
         return newFileStore(persistence, directory, strictVersionCheck, segmentCacheSize,
-                gcLogInterval, CompactorType.PARALLEL_COMPACTOR, 1);
+            gcLogInterval, CompactorType.PARALLEL_COMPACTOR, 1);
     }
 
     public static FileStore newFileStore(SegmentNodeStorePersistence persistence, File directory,
-                                         boolean strictVersionCheck, int segmentCacheSize, long gcLogInterval,
-                                         CompactorType compactorType, int gcConcurrency)
-            throws IOException, InvalidFileStoreVersionException {
+        boolean strictVersionCheck, int segmentCacheSize, long gcLogInterval,
+        CompactorType compactorType, int gcConcurrency)
+        throws IOException, InvalidFileStoreVersionException {
         FileStoreBuilder builder = FileStoreBuilder.fileStoreBuilder(directory)
-                .withCustomPersistence(persistence)
-                .withMemoryMapping(false)
-                .withStrictVersionCheck(strictVersionCheck)
-                .withSegmentCacheSize(segmentCacheSize)
-                .withGCOptions(defaultGCOptions()
-                        .setOffline()
-                        .setGCLogInterval(gcLogInterval)
-                        .setCompactorType(compactorType)
-                        .setConcurrency(gcConcurrency));
+                                                   .withCustomPersistence(persistence)
+                                                   .withMemoryMapping(false)
+                                                   .withStrictVersionCheck(strictVersionCheck)
+                                                   .withSegmentCacheSize(segmentCacheSize)
+                                                   .withGCOptions(defaultGCOptions()
+                                                       .setOffline()
+                                                       .setGCLogInterval(gcLogInterval)
+                                                       .setCompactorType(compactorType)
+                                                       .setConcurrency(gcConcurrency));
 
         return builder.build();
     }
 
-    public static SegmentNodeStorePersistence newSegmentNodeStorePersistence(SegmentStoreType storeType,
-            String pathOrUri) throws IOException {
+    public static SegmentNodeStorePersistence newSegmentNodeStorePersistence(
+        SegmentStoreType storeType,
+        String pathOrUri) throws IOException {
         SegmentNodeStorePersistence persistence = null;
 
         switch (storeType) {
-        case AWS:
-            String[] parts = pathOrUri.substring(4).split(";");
-            Configuration configuration = new Configuration() {
-                @Override
-                public Class<? extends Annotation> annotationType() {
-                    return null;
-                }
-            
-                @Override
-                public String sessionToken() {
-                    return null;
-                }
-            
-                @Override
-                public String secretKey() {
-                    return null;
-                }
-            
-                @Override
-                public String rootDirectory() {
-                    return parts[1];
-                }
-            
-                @Override
-                public String region() {
-                    return null;
-                }
-            
-                @Override
-                public String lockTableName() {
-                    return parts[3];
-                }
-            
-                @Override
-                public String journalTableName() {
-                    return parts[2];
-                }
-            
-                @Override
-                public String bucketName() {
-                    return parts[0];
-                }
-            
-                @Override
-                public String accessKey() {
-                    return null;
-                }
-            };
-            AwsContext awsContext = AwsContext.create(configuration);
-            persistence = new AwsPersistence(awsContext);
-            break;
-        default:
-            persistence = new TarPersistence(new File(pathOrUri));
+            case AWS:
+                String[] parts = pathOrUri.substring(4).split(";");
+                Configuration configuration = new Configuration() {
+                    @Override
+                    public Class<? extends Annotation> annotationType() {
+                        return null;
+                    }
+
+                    @Override
+                    public String sessionToken() {
+                        return null;
+                    }
+
+                    @Override
+                    public String secretKey() {
+                        return null;
+                    }
+
+                    @Override
+                    public String rootDirectory() {
+                        return parts[1];
+                    }
+
+                    @Override
+                    public String region() {
+                        return null;
+                    }
+
+                    @Override
+                    public String lockTableName() {
+                        return parts[3];
+                    }
+
+                    @Override
+                    public String journalTableName() {
+                        return parts[2];
+                    }
+
+                    @Override
+                    public String bucketName() {
+                        return parts[0];
+                    }
+
+                    @Override
+                    public String accessKey() {
+                        return null;
+                    }
+                };
+                AwsContext awsContext = AwsContext.create(configuration);
+                persistence = new AwsPersistence(awsContext);
+                break;
+            default:
+                persistence = new TarPersistence(new File(pathOrUri));
         }
 
         return persistence;

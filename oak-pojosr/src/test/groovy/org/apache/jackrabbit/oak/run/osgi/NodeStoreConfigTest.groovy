@@ -26,20 +26,21 @@ import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore
 import org.apache.jackrabbit.oak.spi.state.NodeStore
 import org.junit.Test
 
-class NodeStoreConfigTest extends  AbstractRepositoryFactoryTest{
+class NodeStoreConfigTest extends AbstractRepositoryFactoryTest {
     private PojoServiceRegistry registry
+
     @Test
-    void testNodeStoreWithBlobStore_OAK_1676(){
+    void testNodeStoreWithBlobStore_OAK_1676() {
         registry = repositoryFactory.initializeServiceRegistry(config)
         registry.registerService(BlobStore.class.name, new MemoryBlobStore(), null)
 
         createConfig([
-                'org.apache.jackrabbit.oak.segment.SegmentNodeStoreService' : [:]
+                'org.apache.jackrabbit.oak.segment.SegmentNodeStoreService': [:]
         ])
 
         SegmentNodeStore ns = getServiceWithWait(NodeStore.class)
         //NodeStore is of type SegmentNodeStoreService
-        assert ns.blobStore == null , "BlobStore should not be picked up unless 'customBlobStore " +
+        assert ns.blobStore == null, "BlobStore should not be picked up unless 'customBlobStore " +
                 "is set to true"
     }
 

@@ -17,12 +17,9 @@
 package org.apache.jackrabbit.oak.exercise.security.principal;
 
 import java.security.Principal;
-
 import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
-import org.apache.jackrabbit.oak.exercise.security.principal.CustomPrincipalConfiguration;
-import org.apache.jackrabbit.oak.exercise.security.principal.CustomPrincipalProvider;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
@@ -84,12 +81,15 @@ public class L4_PrincipalProviderTest extends AbstractSecurityTest {
     public void before() throws Exception {
         super.before();
 
-        principalProvider = getConfig(PrincipalConfiguration.class).getPrincipalProvider(root, NamePathMapper.DEFAULT);
-        principalManager = getConfig(PrincipalConfiguration.class).getPrincipalManager(root, NamePathMapper.DEFAULT);
+        principalProvider = getConfig(PrincipalConfiguration.class).getPrincipalProvider(root,
+            NamePathMapper.DEFAULT);
+        principalManager = getConfig(PrincipalConfiguration.class).getPrincipalManager(root,
+            NamePathMapper.DEFAULT);
 
         // NOTE: this method call doesn't make to much sense outside of a
         // simple test with a very limited number of principals (!!)
-        PrincipalIterator principalIterator = principalManager.getPrincipals(PrincipalManager.SEARCH_TYPE_NOT_GROUP);
+        PrincipalIterator principalIterator = principalManager.getPrincipals(
+            PrincipalManager.SEARCH_TYPE_NOT_GROUP);
         if (principalIterator.hasNext()) {
             testPrincipalName = principalIterator.nextPrincipal().getName();
         }
@@ -108,7 +108,8 @@ public class L4_PrincipalProviderTest extends AbstractSecurityTest {
     public void testCorrespondance() {
         boolean exists = principalManager.hasPrincipal(testPrincipalName);
         Principal principal = principalManager.getPrincipal(testPrincipalName);
-        PrincipalIterator principalIterator = principalManager.findPrincipals(testPrincipalName, PrincipalManager.SEARCH_TYPE_ALL);
+        PrincipalIterator principalIterator = principalManager.findPrincipals(testPrincipalName,
+            PrincipalManager.SEARCH_TYPE_ALL);
         PrincipalIterator groups = principalManager.getGroupMembership(principal);
         PrincipalIterator all = principalManager.getPrincipals(PrincipalManager.SEARCH_TYPE_ALL);
 

@@ -16,6 +16,10 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
+import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
+import static org.apache.jackrabbit.oak.api.CommitFailedException.ACCESS_CONTROL;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
+
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -29,10 +33,6 @@ import org.apache.jackrabbit.oak.spi.commit.VisibleValidator;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.jetbrains.annotations.NotNull;
-
-import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
-import static org.apache.jackrabbit.oak.api.CommitFailedException.ACCESS_CONTROL;
-import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
 
 class CugValidatorProvider extends ValidatorProvider implements CugConstants {
 
@@ -62,7 +62,8 @@ class CugValidatorProvider extends ValidatorProvider implements CugConstants {
         private final String parentName;
         private final boolean isNodetypeTree;
 
-        private CugValidator(@NotNull String parentName, @NotNull NodeState parentAfter, boolean isNodetypeTree) {
+        private CugValidator(@NotNull String parentName, @NotNull NodeState parentAfter,
+            boolean isNodetypeTree) {
             this.parentAfter = parentAfter;
             this.parentName = parentName;
             this.isNodetypeTree = isNodetypeTree;
@@ -73,17 +74,21 @@ class CugValidatorProvider extends ValidatorProvider implements CugConstants {
         public void propertyAdded(PropertyState after) throws CommitFailedException {
             String name = after.getName();
             if (JcrConstants.JCR_PRIMARYTYPE.equals(name)) {
-                if (NT_REP_CUG_POLICY.equals(after.getValue(Type.STRING)) && !REP_CUG_POLICY.equals(parentName)) {
-                    throw accessViolation(23, "Attempt create Cug node with different name than 'rep:cugPolicy'.");
+                if (NT_REP_CUG_POLICY.equals(after.getValue(Type.STRING)) && !REP_CUG_POLICY.equals(
+                    parentName)) {
+                    throw accessViolation(23,
+                        "Attempt create Cug node with different name than 'rep:cugPolicy'.");
                 }
             }
         }
 
         @Override
-        public void propertyChanged(PropertyState before, PropertyState after) throws CommitFailedException {
+        public void propertyChanged(PropertyState before, PropertyState after)
+            throws CommitFailedException {
             String name = after.getName();
             if (JcrConstants.JCR_PRIMARYTYPE.equals(name)) {
-                if (NT_REP_CUG_POLICY.equals(before.getValue(Type.STRING)) || NT_REP_CUG_POLICY.equals(after.getValue(Type.STRING))) {
+                if (NT_REP_CUG_POLICY.equals(before.getValue(Type.STRING))
+                    || NT_REP_CUG_POLICY.equals(after.getValue(Type.STRING))) {
                     throw accessViolation(20, "Attempt to change primary type of/to CUG policy.");
                 }
             }
@@ -94,20 +99,25 @@ class CugValidatorProvider extends ValidatorProvider implements CugConstants {
             if (!isNodetypeTree && REP_CUG_POLICY.equals(name)) {
                 validateCugNode(parentAfter, after);
             }
-            return new VisibleValidator(new CugValidator(name, after, isNodetypeTree(this, name)), true, true);
+            return new VisibleValidator(new CugValidator(name, after, isNodetypeTree(this, name)),
+                true, true);
         }
 
         @Override
-        public Validator childNodeChanged(String name, NodeState before, NodeState after) throws CommitFailedException {
+        public Validator childNodeChanged(String name, NodeState before, NodeState after)
+            throws CommitFailedException {
             if (!isNodetypeTree && after.hasChildNode(REP_CUG_POLICY)) {
                 validateCugNode(after, after.getChildNode(REP_CUG_POLICY));
             }
-            return new VisibleValidator(new CugValidator(name, after, isNodetypeTree(this, name)), true, true);
+            return new VisibleValidator(new CugValidator(name, after, isNodetypeTree(this, name)),
+                true, true);
         }
 
-        private void validateCugNode(@NotNull NodeState parent, @NotNull NodeState nodeState) throws CommitFailedException {
+        private void validateCugNode(@NotNull NodeState parent, @NotNull NodeState nodeState)
+            throws CommitFailedException {
             if (!NT_REP_CUG_POLICY.equals(NodeStateUtils.getPrimaryTypeName(nodeState))) {
-                throw accessViolation(21, "Reserved name 'rep:cugPolicy' must only be used for nodes of type 'rep:CugPolicy'.");
+                throw accessViolation(21,
+                    "Reserved name 'rep:cugPolicy' must only be used for nodes of type 'rep:CugPolicy'.");
             }
             if (!isMixCug.test(parent)) {
                 throw accessViolation(22, "Parent node not of mixin type 'rep:CugMixin'.");

@@ -23,7 +23,6 @@ import static org.junit.Assert.fail;
 
 import java.text.ParseException;
 import java.util.List;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;

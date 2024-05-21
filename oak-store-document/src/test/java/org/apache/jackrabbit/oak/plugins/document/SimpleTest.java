@@ -82,7 +82,7 @@ public class SimpleTest {
         DocumentNodeStore ns = mk.getNodeStore();
         RevisionVector rev = RevisionVector.fromString(mk.getHeadRevision());
         DocumentNodeState n = new DocumentNodeState(ns, Path.fromString("/test"), rev,
-                Collections.singleton(ns.createPropertyState("name", "\"Hello\"")), false, null);
+            Collections.singleton(ns.createPropertyState("name", "\"Hello\"")), false, null);
         UpdateOp op = n.asOperation(rev.getRevision(ns.getClusterId()));
         // mark as commit root
         NodeDocument.setRevision(op, rev.getRevision(ns.getClusterId()), "c");
@@ -167,7 +167,8 @@ public class SimpleTest {
         String diff23 = mk.diff(rev2, rev3, "/", 0).trim();
         assertEquals("+\"/t3\":{}", diff23);
         String diff13 = mk.diff(rev1, rev3, "/", 0).trim();
-        assertThat(diff13, anyOf(equalTo("+\"/t2\":{}+\"/t3\":{}"), equalTo("+\"/t3\":{}+\"/t2\":{}")));
+        assertThat(diff13,
+            anyOf(equalTo("+\"/t2\":{}+\"/t3\":{}"), equalTo("+\"/t3\":{}+\"/t2\":{}")));
         String diff34 = mk.diff(rev3, rev4, "/", 0).trim();
         assertEquals("^\"/t3\":{}", diff34);
     }
@@ -228,7 +229,9 @@ public class SimpleTest {
     public void escapePropertyName() {
         DocumentMK mk = createMK();
         String rev = mk.commit(
-                "/", "+\"test1\":{\"name.first\": \"Hello\"} +\"test2\":{\"_id\": \"a\"} +\"test3\":{\"$x\": \"1\"}", null, null);
+            "/",
+            "+\"test1\":{\"name.first\": \"Hello\"} +\"test2\":{\"_id\": \"a\"} +\"test3\":{\"$x\": \"1\"}",
+            null, null);
         String test1 = mk.getNodes("/test1", rev, 0, 0, Integer.MAX_VALUE, null);
         assertEquals("{\"name.first\":\"Hello\",\":childNodeCount\":0}", test1);
         String test2 = mk.getNodes("/test2", rev, 0, 0, Integer.MAX_VALUE, null);
@@ -276,7 +279,8 @@ public class SimpleTest {
         mk.commit("/testDel", "+\"b\":{\"name\": \"!\"}", null, null);
         String r1 = mk.commit("/testDel", "+\"c\":{\"name\": \"!\"}", null, null);
 
-        DocumentNodeState n = ns.getNode(Path.fromString("/testDel"), RevisionVector.fromString(r1));
+        DocumentNodeState n = ns.getNode(Path.fromString("/testDel"),
+            RevisionVector.fromString(r1));
         assertNotNull(n);
         Children c = ns.getChildren(n, "", Integer.MAX_VALUE);
         assertEquals(3, c.children.size());
@@ -316,17 +320,17 @@ public class SimpleTest {
             JsopBuilder jsop = new JsopBuilder();
             jsop.tag('+').key(s).object().key(s).value("x").endObject();
             rev = mk.commit("/", jsop.toString(),
-                    null, null);
+                null, null);
             nodes = mk.getNodes("/" + s, rev, 0, 0, 100, null);
             jsop = new JsopBuilder();
             jsop.object().key(s).value("x").
-                    key(":childNodeCount").value(0).endObject();
+                key(":childNodeCount").value(0).endObject();
             String n = jsop.toString();
             assertEquals(n, nodes);
             nodes = mk.getNodes("/", rev, 0, 0, 100, null);
             jsop = new JsopBuilder();
             jsop.object().key(s).object().endObject().
-            key(":childNodeCount").value(1).endObject();
+                key(":childNodeCount").value(1).endObject();
             n = jsop.toString();
             assertEquals(n, nodes);
             jsop = new JsopBuilder();
@@ -341,7 +345,8 @@ public class SimpleTest {
         DocumentMK mk = createMK();
         String rev;
         String nodes;
-        for (String s : new String[] { "_", "$", "__", "_id", "$x", ".", ".\\", "x\\", "\\x", "first.name" }) {
+        for (String s : new String[]{"_", "$", "__", "_id", "$x", ".", ".\\", "x\\", "\\x",
+            "first.name"}) {
             String x2 = Utils.escapePropertyName(s);
             String s2 = Utils.unescapePropertyName(x2);
             if (!s.equals(s2)) {
@@ -350,17 +355,17 @@ public class SimpleTest {
             JsopBuilder jsop = new JsopBuilder();
             jsop.tag('+').key(s).object().key(s).value("x").endObject();
             rev = mk.commit("/", jsop.toString(),
-                    null, null);
+                null, null);
             nodes = mk.getNodes("/" + s, rev, 0, 0, 10, null);
             jsop = new JsopBuilder();
             jsop.object().key(s).value("x").
-                    key(":childNodeCount").value(0).endObject();
+                key(":childNodeCount").value(0).endObject();
             String n = jsop.toString();
             assertEquals(n, nodes);
             nodes = mk.getNodes("/", rev, 0, 0, 10, null);
             jsop = new JsopBuilder();
             jsop.object().key(s).object().endObject().
-            key(":childNodeCount").value(1).endObject();
+                key(":childNodeCount").value(1).endObject();
             n = jsop.toString();
             assertEquals(n, nodes);
             jsop = new JsopBuilder();
@@ -375,14 +380,14 @@ public class SimpleTest {
 
         String head = mk.getHeadRevision();
         head = mk.commit("",
-                "+\"/root\":{}\n" +
-                        "+\"/root/a\":{}\n"+
-                        "+\"/root/a/b\":{}\n",
-                head, "");
+            "+\"/root\":{}\n" +
+                "+\"/root/a\":{}\n" +
+                "+\"/root/a/b\":{}\n",
+            head, "");
 
         head = mk.commit("",
-                ">\"/root/a\":\"/root/c\"\n",
-                head, "");
+            ">\"/root/a\":\"/root/c\"\n",
+            head, "");
 
         assertFalse(mk.nodeExists("/root/a", head));
         assertTrue(mk.nodeExists("/root/c/b", head));
@@ -415,7 +420,8 @@ public class SimpleTest {
         assertFalse(foo.containsRevision(head));
         assertEquals(Path.ROOT, foo.getCommitRootPath(head));
 
-        head = Revision.fromString(mk.commit("", "+\"/bar\":{}+\"/test/foo/bar\":{}", head.toString(), null));
+        head = Revision.fromString(
+            mk.commit("", "+\"/bar\":{}+\"/test/foo/bar\":{}", head.toString(), null));
 
         // root node is root of commit
         rootDoc = store.find(Collection.NODES, "0:/");

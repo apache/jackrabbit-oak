@@ -26,6 +26,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeFalse;
 
+import ch.qos.logback.classic.Level;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -44,12 +45,10 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import ch.qos.logback.classic.Level;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.commons.CIHelper;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.ActiveDeletedBlobCollectorFactory.ActiveDeletedBlobCollector;
@@ -66,6 +65,7 @@ import org.junit.rules.TemporaryFolder;
 import org.mockito.internal.util.collections.Sets;
 
 public class ActiveDeletedBlobCollectorTest {
+
     @Rule
     public TemporaryFolder blobCollectionRoot = new TemporaryFolder(new File("target"));
 
@@ -82,7 +82,7 @@ public class ActiveDeletedBlobCollectorTest {
 
     private void createBlobCollector() {
         adbc = new ActiveDeletedBlobCollectorImpl(clock,
-                new File(blobCollectionRoot.getRoot(), "/a"), newDirectExecutorService());
+            new File(blobCollectionRoot.getRoot(), "/a"), newDirectExecutorService());
     }
 
     @Test
@@ -188,12 +188,13 @@ public class ActiveDeletedBlobCollectorTest {
         for (; threadIndex.get() < numThreads; threadIndex.incrementAndGet()) {
             threads.add(new Thread(new Runnable() {
                 private int thisThreadNum = threadIndex.get();
+
                 @Override
                 public void run() {
                     int blobCnt = 0;
                     while (blobCnt < numBlobsPerThread) {
                         BlobDeletionCallback bdc = adbc.getBlobDeletionCallback();
-                        for (; blobCnt < numBlobsPerThread;) {
+                        for (; blobCnt < numBlobsPerThread; ) {
                             String id = "Thread" + thisThreadNum + "Blob" + blobCnt;
                             bdc.deleted(id, Collections.singleton(id));
                             blobCnt++;
@@ -223,7 +224,7 @@ public class ActiveDeletedBlobCollectorTest {
         boolean timeout = executorService.awaitTermination(100, TimeUnit.MILLISECONDS);
         assertFalse(timeout);
 
-        List<String> deletedChunks = new ArrayList<>(numThreads*numBlobsPerThread*2);
+        List<String> deletedChunks = new ArrayList<>(numThreads * numBlobsPerThread * 2);
         for (int threadNum = 0; threadNum < numThreads; threadNum++) {
             for (int blobCnt = 0; blobCnt < numBlobsPerThread; blobCnt++) {
                 String id = "Thread" + threadNum + "Blob" + blobCnt;
@@ -253,7 +254,8 @@ public class ActiveDeletedBlobCollectorTest {
             }
         }
 
-        assertTrue("Timed out while waiting for marker chunk to be purged", blobStore.markerChunkDeleted);
+        assertTrue("Timed out while waiting for marker chunk to be purged",
+            blobStore.markerChunkDeleted);
 
         // don't care how many marker blobs are purged
         blobStore.deletedChunkIds.removeAll(markerChunks);
@@ -272,21 +274,25 @@ public class ActiveDeletedBlobCollectorTest {
         File rootDir = blobCollectionRoot.getRoot();
         File unwritableExistingRootFolder = new File(rootDir, "existingRoot");
         FileUtils.forceMkdir(unwritableExistingRootFolder);
-        File unwritableNonExistingRootFolder = new File(unwritableExistingRootFolder, "existingRoot");
+        File unwritableNonExistingRootFolder = new File(unwritableExistingRootFolder,
+            "existingRoot");
 
-        Path unwritableExistingPath = FileSystems.getDefault().getPath(unwritableExistingRootFolder.getPath());
+        Path unwritableExistingPath = FileSystems.getDefault()
+                                                 .getPath(unwritableExistingRootFolder.getPath());
         Files.setPosixFilePermissions(unwritableExistingPath,
-                Sets.newSet(PosixFilePermission.OWNER_READ,
-                        PosixFilePermission.GROUP_READ,
-                        PosixFilePermission.OTHERS_READ));
+            Sets.newSet(PosixFilePermission.OWNER_READ,
+                PosixFilePermission.GROUP_READ,
+                PosixFilePermission.OTHERS_READ));
 
-        adbc = ActiveDeletedBlobCollectorFactory.newInstance(unwritableExistingRootFolder, newDirectExecutorService());
+        adbc = ActiveDeletedBlobCollectorFactory.newInstance(unwritableExistingRootFolder,
+            newDirectExecutorService());
         assertEquals("Unwritable existing root folder must have NOOP active blob collector",
-                ActiveDeletedBlobCollectorFactory.NOOP, adbc);
+            ActiveDeletedBlobCollectorFactory.NOOP, adbc);
 
-        adbc = ActiveDeletedBlobCollectorFactory.newInstance(unwritableNonExistingRootFolder, newDirectExecutorService());
+        adbc = ActiveDeletedBlobCollectorFactory.newInstance(unwritableNonExistingRootFolder,
+            newDirectExecutorService());
         assertEquals("Unwritable non-existing root folder must have NOOP active blob collector",
-                ActiveDeletedBlobCollectorFactory.NOOP, adbc);
+            ActiveDeletedBlobCollectorFactory.NOOP, adbc);
     }
 
     @Test
@@ -366,9 +372,10 @@ public class ActiveDeletedBlobCollectorTest {
     @Test
     public void dontWarnWhileErrorsWhileDeletingBlobs() throws Exception {
         LogCustomizer warnLogCustomizer =
-                LogCustomizer.forLogger(ActiveDeletedBlobCollectorFactory.class.getName()).enable(Level.WARN)
-                        .contains("Exception occurred while ")
-                        .create();
+            LogCustomizer.forLogger(ActiveDeletedBlobCollectorFactory.class.getName())
+                         .enable(Level.WARN)
+                         .contains("Exception occurred while ")
+                         .create();
 
         BlobDeletionCallback bdc = adbc.getBlobDeletionCallback();
         bdc.deleted("blobId1", Collections.singleton("/a"));
@@ -376,7 +383,8 @@ public class ActiveDeletedBlobCollectorTest {
         bdc.deleted("blobId3", Collections.singleton("/c"));
         bdc.commitProgress(COMMIT_SUCCEDED);
 
-        List<String> externallyDeletedChunks = Lists.newArrayList(blobStore.resolveChunks("blobId2"));
+        List<String> externallyDeletedChunks = Lists.newArrayList(
+            blobStore.resolveChunks("blobId2"));
         blobStore.countDeleteChunks(externallyDeletedChunks, 0);
 
         warnLogCustomizer.starting();
@@ -385,7 +393,8 @@ public class ActiveDeletedBlobCollectorTest {
 
         verifyBlobsDeleted("blobId1", "blobId3");
 
-        assertEquals("No warn logs must show up: " + warnLogCustomizer.getLogs(), 0, warnLogCustomizer.getLogs().size());
+        assertEquals("No warn logs must show up: " + warnLogCustomizer.getLogs(), 0,
+            warnLogCustomizer.getLogs().size());
         warnLogCustomizer.finished();
 
         bdc = adbc.getBlobDeletionCallback();
@@ -394,7 +403,8 @@ public class ActiveDeletedBlobCollectorTest {
         bdc.commitProgress(COMMIT_SUCCEDED);
 
         blobStore.resetLists();
-        blobStore.failWithDSEForChunkIds.addAll(Lists.newArrayList(blobStore.resolveChunks("blobId4")));
+        blobStore.failWithDSEForChunkIds.addAll(
+            Lists.newArrayList(blobStore.resolveChunks("blobId4")));
 
         warnLogCustomizer.starting();
         adbc.purgeBlobsDeleted(clock.getTimeIncreasing(), blobStore);
@@ -410,7 +420,8 @@ public class ActiveDeletedBlobCollectorTest {
         bdc.commitProgress(COMMIT_SUCCEDED);
 
         blobStore.resetLists();
-        blobStore.failWithExceptionForChunkIds.addAll(Lists.newArrayList(blobStore.resolveChunks("blobId6")));
+        blobStore.failWithExceptionForChunkIds.addAll(
+            Lists.newArrayList(blobStore.resolveChunks("blobId6")));
 
         warnLogCustomizer.starting();
         adbc.purgeBlobsDeleted(clock.getTimeIncreasing(), blobStore);
@@ -424,9 +435,10 @@ public class ActiveDeletedBlobCollectorTest {
     @Test
     public void doDebugLogWhileErrorsWhileDeletingBlobs() throws Exception {
         LogCustomizer warnLogCustomizer =
-                LogCustomizer.forLogger(ActiveDeletedBlobCollectorFactory.class.getName()).enable(Level.DEBUG)
-                        .contains("Exception occurred while ")
-                        .create();
+            LogCustomizer.forLogger(ActiveDeletedBlobCollectorFactory.class.getName())
+                         .enable(Level.DEBUG)
+                         .contains("Exception occurred while ")
+                         .create();
 
         BlobDeletionCallback bdc = adbc.getBlobDeletionCallback();
         bdc.deleted("blobId1", Collections.singleton("/a"));
@@ -434,7 +446,8 @@ public class ActiveDeletedBlobCollectorTest {
         bdc.deleted("blobId3", Collections.singleton("/c"));
         bdc.commitProgress(COMMIT_SUCCEDED);
 
-        List<String> externallyDeletedChunks = Lists.newArrayList(blobStore.resolveChunks("blobId2"));
+        List<String> externallyDeletedChunks = Lists.newArrayList(
+            blobStore.resolveChunks("blobId2"));
         blobStore.countDeleteChunks(externallyDeletedChunks, 0);
 
         warnLogCustomizer.starting();
@@ -452,7 +465,8 @@ public class ActiveDeletedBlobCollectorTest {
         bdc.commitProgress(COMMIT_SUCCEDED);
 
         blobStore.resetLists();
-        blobStore.failWithDSEForChunkIds.addAll(Lists.newArrayList(blobStore.resolveChunks("blobId4")));
+        blobStore.failWithDSEForChunkIds.addAll(
+            Lists.newArrayList(blobStore.resolveChunks("blobId4")));
 
         warnLogCustomizer.starting();
         adbc.purgeBlobsDeleted(clock.getTimeIncreasing(), blobStore);
@@ -467,7 +481,8 @@ public class ActiveDeletedBlobCollectorTest {
     @Test
     public void pauseMarkingDeletedBlobs() {
         BlobDeletionCallback bdc = adbc.getBlobDeletionCallback();
-        assertFalse("Active deletion should be safe by default", bdc.isMarkingForActiveDeletionUnsafe());
+        assertFalse("Active deletion should be safe by default",
+            bdc.isMarkingForActiveDeletionUnsafe());
 
         adbc.flagActiveDeletionUnsafe(true);
         bdc = adbc.getBlobDeletionCallback();
@@ -475,7 +490,8 @@ public class ActiveDeletedBlobCollectorTest {
 
         adbc.flagActiveDeletionUnsafe(false);
         bdc = adbc.getBlobDeletionCallback();
-        assertFalse("Active deletion should be safe after unpausing", bdc.isMarkingForActiveDeletionUnsafe());
+        assertFalse("Active deletion should be safe after unpausing",
+            bdc.isMarkingForActiveDeletionUnsafe());
     }
 
     // OAK-6950
@@ -483,7 +499,8 @@ public class ActiveDeletedBlobCollectorTest {
     public void pauseMarkingDeletedBlobsNOOP() {
         adbc = ActiveDeletedBlobCollectorFactory.NOOP;
         BlobDeletionCallback bdc = adbc.getBlobDeletionCallback();
-        assertFalse("Active deletion should be safe by default", bdc.isMarkingForActiveDeletionUnsafe());
+        assertFalse("Active deletion should be safe by default",
+            bdc.isMarkingForActiveDeletionUnsafe());
 
         adbc.flagActiveDeletionUnsafe(true);
         bdc = adbc.getBlobDeletionCallback();
@@ -491,10 +508,11 @@ public class ActiveDeletedBlobCollectorTest {
 
         adbc.flagActiveDeletionUnsafe(false);
         bdc = adbc.getBlobDeletionCallback();
-        assertFalse("Active deletion should be safe after unpausing", bdc.isMarkingForActiveDeletionUnsafe());
+        assertFalse("Active deletion should be safe after unpausing",
+            bdc.isMarkingForActiveDeletionUnsafe());
     }
 
-    private void verifyBlobsDeleted(String ... blobIds) throws IOException {
+    private void verifyBlobsDeleted(String... blobIds) throws IOException {
         List<String> chunkIds = new ArrayList<>();
         for (String blobId : blobIds) {
             chunkIds.addAll(Lists.newArrayList(blobStore.resolveChunks(blobId)));
@@ -504,6 +522,7 @@ public class ActiveDeletedBlobCollectorTest {
     }
 
     class ChunkDeletionTrackingBlobStore implements GarbageCollectableBlobStore {
+
         Set<String> deletedChunkIds = org.apache.jackrabbit.guava.common.collect.Sets.newLinkedHashSet();
         Set<String> failWithDSEForChunkIds = org.apache.jackrabbit.guava.common.collect.Sets.newLinkedHashSet();
         Set<String> failWithExceptionForChunkIds = org.apache.jackrabbit.guava.common.collect.Sets.newLinkedHashSet();
@@ -521,7 +540,8 @@ public class ActiveDeletedBlobCollectorTest {
         }
 
         @Override
-        public int readBlob(String blobId, long pos, byte[] buff, int off, int length) throws IOException {
+        public int readBlob(String blobId, long pos, byte[] buff, int off, int length)
+            throws IOException {
             return 0;
         }
 
@@ -586,14 +606,16 @@ public class ActiveDeletedBlobCollectorTest {
         }
 
         @Override
-        public boolean deleteChunks(List<String> chunkIds, long maxLastModifiedTime) throws Exception {
+        public boolean deleteChunks(List<String> chunkIds, long maxLastModifiedTime)
+            throws Exception {
             setMarkerChunkDeletedFlag(chunkIds);
             deletedChunkIds.addAll(chunkIds);
             return true;
         }
 
         @Override
-        public long countDeleteChunks(List<String> chunkIds, long maxLastModifiedTime) throws Exception {
+        public long countDeleteChunks(List<String> chunkIds, long maxLastModifiedTime)
+            throws Exception {
             setMarkerChunkDeletedFlag(chunkIds);
 
             long count = 0;
@@ -601,9 +623,11 @@ public class ActiveDeletedBlobCollectorTest {
                 if (deletedChunkIds.contains(chunkId)) {
                     throw new DataStoreException("Already deleted chunk: " + chunkId);
                 } else if (failWithDSEForChunkIds.contains(chunkId)) {
-                    throw new DataStoreException("Synthetically failing with DSE for chunk: " + chunkId);
+                    throw new DataStoreException(
+                        "Synthetically failing with DSE for chunk: " + chunkId);
                 } else if (failWithExceptionForChunkIds.contains(chunkId)) {
-                    throw new Exception("Synthetically failing with Exception for chunk: " + chunkId);
+                    throw new Exception(
+                        "Synthetically failing with Exception for chunk: " + chunkId);
                 }
                 deletedChunkIds.add(chunkId);
                 count++;
@@ -643,11 +667,12 @@ public class ActiveDeletedBlobCollectorTest {
     }
 
     private interface Condition {
+
         boolean evaluate();
     }
 
     private boolean waitFor(long timeout, Condition c)
-            throws InterruptedException {
+        throws InterruptedException {
         long end = System.currentTimeMillis() + timeout;
         long remaining = end - System.currentTimeMillis();
         while (remaining > 0) {

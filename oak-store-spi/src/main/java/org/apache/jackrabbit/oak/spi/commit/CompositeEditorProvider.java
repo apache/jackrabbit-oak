@@ -16,19 +16,17 @@
  */
 package org.apache.jackrabbit.oak.spi.commit;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static java.util.Arrays.asList;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
 import java.util.Collection;
 import java.util.List;
-
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import org.apache.jackrabbit.guava.common.collect.Lists;
 
 /**
  * Aggregation of a list of editor providers into a single provider.
@@ -37,17 +35,18 @@ public class CompositeEditorProvider implements EditorProvider {
 
     private static final EditorProvider EMPTY_PROVIDER =
         new EditorProvider() {
-            @Override @Nullable
+            @Override
+            @Nullable
             public Editor getRootEditor(
-                    NodeState before, NodeState after,
-                    NodeBuilder builder, CommitInfo info) {
+                NodeState before, NodeState after,
+                NodeBuilder builder, CommitInfo info) {
                 return null;
             }
         };
 
     @NotNull
     public static EditorProvider compose(
-            @NotNull Collection<? extends EditorProvider> providers) {
+        @NotNull Collection<? extends EditorProvider> providers) {
         checkNotNull(providers);
         switch (providers.size()) {
             case 0:
@@ -62,7 +61,7 @@ public class CompositeEditorProvider implements EditorProvider {
     private final Collection<? extends EditorProvider> providers;
 
     private CompositeEditorProvider(
-            Collection<? extends EditorProvider> providers) {
+        Collection<? extends EditorProvider> providers) {
         this.providers = providers;
     }
 
@@ -70,10 +69,11 @@ public class CompositeEditorProvider implements EditorProvider {
         this(asList(providers));
     }
 
-    @Override @Nullable
+    @Override
+    @Nullable
     public Editor getRootEditor(
-            NodeState before, NodeState after, NodeBuilder builder,
-            CommitInfo info) throws CommitFailedException {
+        NodeState before, NodeState after, NodeBuilder builder,
+        CommitInfo info) throws CommitFailedException {
         List<Editor> list = Lists.newArrayListWithCapacity(providers.size());
         for (EditorProvider provider : providers) {
             Editor editor = provider.getRootEditor(before, after, builder, info);

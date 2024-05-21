@@ -22,7 +22,6 @@ import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull
 
 import java.io.IOException;
 import java.io.InputStream;
-
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
@@ -34,20 +33,20 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * A node builder that keeps track of the number of updates
- * (set property calls and so on). If there are too many updates,
- * getNodeState() is called, which will write the records to the segment,
- * and that might persist the changes (if the segment is flushed).
+ * A node builder that keeps track of the number of updates (set property calls and so on). If there
+ * are too many updates, getNodeState() is called, which will write the records to the segment, and
+ * that might persist the changes (if the segment is flushed).
  */
 public class SegmentNodeBuilder extends MemoryNodeBuilder {
+
     private static final Logger LOG = LoggerFactory.getLogger(SegmentNodeBuilder.class);
 
     /**
-     * Number of content updates that need to happen before the updates
-     * are automatically purged to the underlying segments.
+     * Number of content updates that need to happen before the updates are automatically purged to
+     * the underlying segments.
      */
     private static final int UPDATE_LIMIT =
-            Integer.getInteger("update.limit", 10000);
+        Integer.getInteger("update.limit", 10000);
 
     @Nullable
     private final BlobStore blobStore;
@@ -62,7 +61,7 @@ public class SegmentNodeBuilder extends MemoryNodeBuilder {
 
     /**
      * Local update counter for the root builder.
-     * 
+     * <p>
      * The value encodes both the counter and the type of the node builder:
      * <ul>
      * <li>value >= {@code 0} represents a root builder (builder keeps
@@ -70,7 +69,6 @@ public class SegmentNodeBuilder extends MemoryNodeBuilder {
      * <li>value = {@code -1} represents a child builder (value doesn't
      * change, builder doesn't keep an updated counter)</li>
      * </ul>
-     * 
      */
     private long updateCount;
 
@@ -106,7 +104,7 @@ public class SegmentNodeBuilder extends MemoryNodeBuilder {
     }
 
     /**
-     * @return  {@code true} iff this builder has been acquired from a root node state.
+     * @return {@code true} iff this builder has been acquired from a root node state.
      */
     boolean isRootBuilder() {
         return isRoot();
@@ -137,10 +135,11 @@ public class SegmentNodeBuilder extends MemoryNodeBuilder {
     public SegmentNodeState getNodeState() {
         try {
             NodeState state = super.getNodeState();
-            SegmentNodeState sState = new SegmentNodeState(reader, writer, blobStore, writer.writeNode(state), readStats);
+            SegmentNodeState sState = new SegmentNodeState(reader, writer, blobStore,
+                writer.writeNode(state), readStats);
             if (state != sState) {
                 set(sState);
-                if(!isChildBuilder()) {
+                if (!isChildBuilder()) {
                     updateCount = 0;
                 }
             }

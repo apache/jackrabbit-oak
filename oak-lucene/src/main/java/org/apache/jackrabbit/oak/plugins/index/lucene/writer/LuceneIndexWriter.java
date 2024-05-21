@@ -23,4 +23,5 @@ import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexWr
 import org.apache.lucene.index.IndexableField;
 
 public interface LuceneIndexWriter extends FulltextIndexWriter<Iterable<? extends IndexableField>> {
+
 }

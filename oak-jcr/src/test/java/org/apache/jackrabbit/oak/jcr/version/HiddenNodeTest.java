@@ -26,11 +26,9 @@ import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 import javax.jcr.version.Version;
 import javax.jcr.version.VersionManager;
-
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.tree.TreeConstants;
-import org.apache.jackrabbit.oak.spi.version.VersionConstants;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -38,6 +36,7 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.version.VersionConstants;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -226,7 +225,8 @@ public class HiddenNodeTest {
         test.addMixin("mix:versionable");
         session.save();
 
-        NodeBuilder testBuilder = store.getRoot().builder().getChildNode("test").getChildNode("child");
+        NodeBuilder testBuilder = store.getRoot().builder().getChildNode("test")
+                                       .getChildNode("child");
         assertTrue(testBuilder.hasProperty(TreeConstants.OAK_CHILD_ORDER));
 
         session.refresh(false);

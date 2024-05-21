@@ -35,20 +35,20 @@
 
   <!-- For index tooling -->
   <logger name="org.apache.jackrabbit.oak.index" level="INFO">
-    <appender-ref ref="STDOUT" />
+    <appender-ref ref="STDOUT"/>
   </logger>
   <logger name="org.apache.jackrabbit.oak.plugins.index.importer" level="INFO">
-    <appender-ref ref="STDOUT" />
+    <appender-ref ref="STDOUT"/>
   </logger>
   <logger name="org.apache.jackrabbit.oak.plugins.index.IndexUpdate" level="INFO">
-    <appender-ref ref="STDOUT" />
+    <appender-ref ref="STDOUT"/>
   </logger>
   <logger name="org.apache.jackrabbit.oak.plugins.index.progress" level="INFO">
-    <appender-ref ref="STDOUT" />
+    <appender-ref ref="STDOUT"/>
   </logger>
 
   <root level="INFO">
-    <appender-ref ref="index" />
+    <appender-ref ref="index"/>
   </root>
 
 </configuration>

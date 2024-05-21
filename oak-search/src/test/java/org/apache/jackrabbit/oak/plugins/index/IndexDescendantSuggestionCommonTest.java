@@ -16,25 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
-import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.api.JackrabbitSession;
-import org.apache.jackrabbit.commons.JcrUtils;
-import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
-import org.apache.jackrabbit.oak.plugins.index.search.IndexFormatVersion;
-import org.apache.jackrabbit.oak.query.AbstractJcrTest;
-import org.junit.Ignore;
-import org.junit.Test;
-
-import javax.jcr.Node;
-import javax.jcr.query.Query;
-import javax.jcr.query.QueryManager;
-import javax.jcr.query.QueryResult;
-import javax.jcr.query.RowIterator;
-import java.util.Set;
-
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
+import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
@@ -47,7 +31,23 @@ import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NT_OAK_UN
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Set;
+import javax.jcr.Node;
+import javax.jcr.query.Query;
+import javax.jcr.query.QueryManager;
+import javax.jcr.query.QueryResult;
+import javax.jcr.query.RowIterator;
+import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.api.JackrabbitSession;
+import org.apache.jackrabbit.commons.JcrUtils;
+import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexFormatVersion;
+import org.apache.jackrabbit.oak.query.AbstractJcrTest;
+import org.junit.Ignore;
+import org.junit.Test;
+
 public abstract class IndexDescendantSuggestionCommonTest extends AbstractJcrTest {
+
     protected TestRepository repositoryOptionsUtil;
     protected Node indexNode;
     protected IndexOptions indexOptions;
@@ -107,10 +107,11 @@ public abstract class IndexDescendantSuggestionCommonTest extends AbstractJcrTes
         subChild.addNode("test6", NT_OAK_UNSTRUCTURED);
     }
 
-    protected void createSuggestIndex(Node rootNode, String name, String indexedNodeType, String indexedPropertyName)
-            throws Exception {
+    protected void createSuggestIndex(Node rootNode, String name, String indexedNodeType,
+        String indexedPropertyName)
+        throws Exception {
         Node def = JcrUtils.getOrAddNode(rootNode, INDEX_DEFINITIONS_NAME)
-                .addNode(name, INDEX_DEFINITIONS_NODE_TYPE);
+                           .addNode(name, INDEX_DEFINITIONS_NODE_TYPE);
         def.setProperty(TYPE_PROPERTY_NAME, indexOptions.getIndexType());
         def.setProperty(REINDEX_PROPERTY_NAME, true);
         def.setProperty("name", name);
@@ -118,18 +119,20 @@ public abstract class IndexDescendantSuggestionCommonTest extends AbstractJcrTes
         def.setProperty(EVALUATE_PATH_RESTRICTION, true);
 
         Node propertyIdxDef = def.addNode(INDEX_RULES, JcrConstants.NT_UNSTRUCTURED)
-                .addNode(indexedNodeType, JcrConstants.NT_UNSTRUCTURED)
-                .addNode(FulltextIndexConstants.PROP_NODE, JcrConstants.NT_UNSTRUCTURED)
-                .addNode("indexedProperty", JcrConstants.NT_UNSTRUCTURED);
+                                 .addNode(indexedNodeType, JcrConstants.NT_UNSTRUCTURED)
+                                 .addNode(FulltextIndexConstants.PROP_NODE,
+                                     JcrConstants.NT_UNSTRUCTURED)
+                                 .addNode("indexedProperty", JcrConstants.NT_UNSTRUCTURED);
         propertyIdxDef.setProperty("analyzed", true);
         propertyIdxDef.setProperty(PROP_USE_IN_SUGGEST, true);
         propertyIdxDef.setProperty("name", indexedPropertyName);
     }
 
     protected String createSuggestQuery(String nodeTypeName, String suggestFor, String rootPath) {
-        return "SELECT [rep:suggest()] as suggestion, [jcr:score] as score  FROM [" + nodeTypeName + "]" +
-                " WHERE suggest('" + suggestFor + "')" +
-                (rootPath == null ? "" : " AND ISDESCENDANTNODE([" + rootPath + "])");
+        return "SELECT [rep:suggest()] as suggestion, [jcr:score] as score  FROM [" + nodeTypeName
+            + "]" +
+            " WHERE suggest('" + suggestFor + "')" +
+            (rootPath == null ? "" : " AND ISDESCENDANTNODE([" + rootPath + "])");
 
     }
 
@@ -162,30 +165,32 @@ public abstract class IndexDescendantSuggestionCommonTest extends AbstractJcrTes
     @Test
     public void noDescendantSuggestsAll() {
         validateSuggestions(
-                createSuggestQuery(NT_OAK_UNSTRUCTURED, "te", null),
-                newHashSet("test1", "test2", "test3", "test4", "test5", "test6"));
+            createSuggestQuery(NT_OAK_UNSTRUCTURED, "te", null),
+            newHashSet("test1", "test2", "test3", "test4", "test5", "test6"));
     }
 
     //OAK-3994
     @Test
     public void rootIndexWithDescendantConstraint() {
         validateSuggestions(
-                createSuggestQuery(NT_OAK_UNSTRUCTURED, "te", "/content1"),
-                newHashSet("test2", "test3"));
+            createSuggestQuery(NT_OAK_UNSTRUCTURED, "te", "/content1"),
+            newHashSet("test2", "test3"));
     }
 
     @Ignore("OAK-3992")
     @Test
     public void ambiguousSubtreeIndexWithDescendantConstraint() throws Exception {
         String query = createSuggestQuery(NT_OAK_UNSTRUCTURED, "te", "/content2");
-        String explainQuery = "EXPLAIN " + createSuggestQuery(NT_OAK_UNSTRUCTURED, "te", "/content2");
+        String explainQuery =
+            "EXPLAIN " + createSuggestQuery(NT_OAK_UNSTRUCTURED, "te", "/content2");
 
         QueryManager queryManager = session.getWorkspace().getQueryManager();
         QueryResult result = queryManager.createQuery(explainQuery, Query.JCR_SQL2).execute();
         RowIterator rows = result.getRows();
 
         String explanation = rows.nextRow().toString();
-        assertTrue("Subtree index should get picked", explanation.contains("lucene:sugg-idx(/content2/oak:index/sugg-idx)"));
+        assertTrue("Subtree index should get picked",
+            explanation.contains("lucene:sugg-idx(/content2/oak:index/sugg-idx)"));
 
         validateSuggestions(query, newHashSet("test4"));
     }
@@ -194,26 +199,26 @@ public abstract class IndexDescendantSuggestionCommonTest extends AbstractJcrTes
     @Test
     public void unambiguousSubtreeIndexWithDescendantConstraint() {
         validateSuggestions(
-                createSuggestQuery(NT_BASE, "te", "/content3"),
-                newHashSet("test5", "test6"));
+            createSuggestQuery(NT_BASE, "te", "/content3"),
+            newHashSet("test5", "test6"));
     }
 
     //OAK-3994
     @Test
     public void unambiguousSubtreeIndexWithSubDescendantConstraint() {
         validateSuggestions(
-                createSuggestQuery(NT_BASE, "te", "/content3/sC"),
-                newHashSet("test6"));
+            createSuggestQuery(NT_BASE, "te", "/content3/sC"),
+            newHashSet("test6"));
     }
 
     @Ignore("OAK-3993")
     @Test
     public void unionOnTwoDescendants() {
         validateSuggestions(
-                createSuggestQuery(NT_OAK_UNSTRUCTURED, "te", "/content1") +
-                        " UNION " +
-                        createSuggestQuery(NT_BASE, "te", "/content3"),
-                newHashSet("test2", "test3", "test5"));
+            createSuggestQuery(NT_OAK_UNSTRUCTURED, "te", "/content1") +
+                " UNION " +
+                createSuggestQuery(NT_BASE, "te", "/content3"),
+            newHashSet("test2", "test3", "test5"));
     }
 
     private static void assertEventually(Runnable r) {

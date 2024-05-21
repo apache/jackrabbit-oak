@@ -20,13 +20,12 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import javax.jcr.Credentials;
-
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public abstract class AbstractCredentials implements Credentials {
 
-    protected final Map<String,Object> attributes = new HashMap<>();
+    protected final Map<String, Object> attributes = new HashMap<>();
     protected final String userId;
 
     public AbstractCredentials(@NotNull String userId) {
@@ -44,13 +43,11 @@ public abstract class AbstractCredentials implements Credentials {
     }
 
     /**
-     * Stores an attribute in this credentials instance. If the specified
-     * {@code value} is {@code null} the attribute will be removed.
+     * Stores an attribute in this credentials instance. If the specified {@code value} is
+     * {@code null} the attribute will be removed.
      *
-     * @param name
-     *            a {@code String} specifying the name of the attribute
-     * @param value
-     *            the {@code Object} to be stored
+     * @param name  a {@code String} specifying the name of the attribute
+     * @param value the {@code Object} to be stored
      */
     public void setAttribute(@NotNull String name, @Nullable Object value) {
         // name cannot be null
@@ -68,15 +65,14 @@ public abstract class AbstractCredentials implements Credentials {
             attributes.put(name, value);
         }
     }
-    
+
     /**
-     * Returns the value of the named attribute as an {@code Object}, or
-     * {@code null} if no attribute of the given name exists.
+     * Returns the value of the named attribute as an {@code Object}, or {@code null} if no
+     * attribute of the given name exists.
      *
-     * @param name
-     *            a {@code String} specifying the name of the attribute
-     * @return an {@code Object} containing the value of the attribute, or
-     *         {@code null} if the attribute does not exist
+     * @param name a {@code String} specifying the name of the attribute
+     * @return an {@code Object} containing the value of the attribute, or {@code null} if the
+     * attribute does not exist
      */
     @Nullable
     public Object getAttribute(@NotNull String name) {
@@ -88,21 +84,19 @@ public abstract class AbstractCredentials implements Credentials {
     /**
      * Removes an attribute from this credentials instance.
      *
-     * @param name
-     *            a {@code String} specifying the name of the attribute to
-     *            remove
+     * @param name a {@code String} specifying the name of the attribute to remove
      */
     public void removeAttribute(@NotNull String name) {
         synchronized (attributes) {
             attributes.remove(name);
         }
     }
- 
+
     /**
      * @return an immutable map containing the attributes available to this credentials instance
      */
     @NotNull
-    public Map<String,Object> getAttributes() {
+    public Map<String, Object> getAttributes() {
         return Collections.unmodifiableMap(attributes);
     }
 
@@ -111,7 +105,7 @@ public abstract class AbstractCredentials implements Credentials {
      *
      * @param attributes The attributes to be stored
      */
-    public void setAttributes(@NotNull Map<String,Object> attributes) {
+    public void setAttributes(@NotNull Map<String, Object> attributes) {
         synchronized (this.attributes) {
             this.attributes.putAll(attributes);
         }

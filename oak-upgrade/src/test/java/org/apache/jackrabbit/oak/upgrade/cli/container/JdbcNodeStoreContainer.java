@@ -16,20 +16,17 @@
  */
 package org.apache.jackrabbit.oak.upgrade.cli.container;
 
+import static org.apache.jackrabbit.oak.upgrade.cli.container.SegmentTarNodeStoreContainer.deleteRecursive;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-
-import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.upgrade.cli.node.JdbcFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import org.apache.jackrabbit.guava.common.io.Closer;
-
-import static org.apache.jackrabbit.oak.upgrade.cli.container.SegmentTarNodeStoreContainer.deleteRecursive;
 
 public class JdbcNodeStoreContainer implements NodeStoreContainer {
 
@@ -52,7 +49,8 @@ public class JdbcNodeStoreContainer implements NodeStoreContainer {
     public JdbcNodeStoreContainer(BlobStoreContainer blob) throws IOException {
         this.blob = blob;
         this.h2Dir = Files.createTempDirectory(Paths.get("target"), "repo-h2").toFile();
-        this.jdbcUri = String.format("jdbc:h2:%s", h2Dir.getAbsolutePath() + "/JdbcNodeStoreContainer");
+        this.jdbcUri = String.format("jdbc:h2:%s",
+            h2Dir.getAbsolutePath() + "/JdbcNodeStoreContainer");
         this.jdbcFactory = new JdbcFactory(jdbcUri, 2, "sa", "pwd", false);
     }
 

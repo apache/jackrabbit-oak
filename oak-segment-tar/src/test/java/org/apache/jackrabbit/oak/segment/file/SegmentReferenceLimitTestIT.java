@@ -28,7 +28,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.FutureTask;
-
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -43,22 +42,23 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * <p>Tests verifying if the repository gets corrupted or not: {@code OAK-2294 Corrupt repository after concurrent version operations}</p>
+ * <p>Tests verifying if the repository gets corrupted or not:
+ * {@code OAK-2294 Corrupt repository after concurrent version operations}</p>
  *
  * <p>These tests are disabled by default due to their long running time. On the
- * command line specify {@code -DSegmentReferenceLimitTestIT=true} to enable
- * them.</p>
+ * command line specify {@code -DSegmentReferenceLimitTestIT=true} to enable them.</p>
  *
- *<p>If you only want to run this test:<br>
- * {@code mvn verify -Dsurefire.skip.ut=true -PintegrationTesting -Dit.test=SegmentReferenceLimitTestIT -DSegmentReferenceLimitTestIT=true}
+ * <p>If you only want to run this test:<br>
+ * {@code mvn verify -Dsurefire.skip.ut=true -PintegrationTesting
+ * -Dit.test=SegmentReferenceLimitTestIT -DSegmentReferenceLimitTestIT=true}
  * </p>
  */
 public class SegmentReferenceLimitTestIT {
 
     private static final Logger LOG = LoggerFactory
-            .getLogger(SegmentReferenceLimitTestIT.class);
+        .getLogger(SegmentReferenceLimitTestIT.class);
     private static final boolean ENABLED = Boolean
-            .getBoolean(SegmentReferenceLimitTestIT.class.getSimpleName());
+        .getBoolean(SegmentReferenceLimitTestIT.class.getSimpleName());
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder(new File("target"));
@@ -75,15 +75,15 @@ public class SegmentReferenceLimitTestIT {
     @Test
     public void corruption() throws Exception {
         FileStore fileStore = fileStoreBuilder(getFileStoreFolder())
-                .withMaxFileSize(1)
-                .withSegmentCacheSize(0)
-                .withStringCacheSize(0)
-                .withTemplateCacheSize(0)
-                .withNodeDeduplicationCacheSize(1)
-                .withStringDeduplicationCacheSize(0)
-                .withTemplateDeduplicationCacheSize(0)
-                .withMemoryMapping(true)
-                .build();
+            .withMaxFileSize(1)
+            .withSegmentCacheSize(0)
+            .withStringCacheSize(0)
+            .withTemplateCacheSize(0)
+            .withNodeDeduplicationCacheSize(1)
+            .withStringDeduplicationCacheSize(0)
+            .withTemplateDeduplicationCacheSize(0)
+            .withMemoryMapping(true)
+            .build();
         SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
 
         NodeBuilder root = nodeStore.getRoot().builder();
@@ -111,6 +111,7 @@ public class SegmentReferenceLimitTestIT {
     }
 
     private static class Worker implements Callable<Void> {
+
         private final NodeStore nodeStore;
         private final String name;
 

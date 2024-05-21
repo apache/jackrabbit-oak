@@ -19,13 +19,11 @@ package org.apache.jackrabbit.oak.cache;
 
 import java.util.HashMap;
 import java.util.concurrent.ExecutionException;
-
-import org.apache.jackrabbit.oak.cache.CacheLIRS.EvictionCallback;
-import org.junit.Test;
-
 import org.apache.jackrabbit.guava.common.cache.CacheLoader;
 import org.apache.jackrabbit.guava.common.cache.RemovalCause;
 import org.apache.jackrabbit.guava.common.cache.Weigher;
+import org.apache.jackrabbit.oak.cache.CacheLIRS.EvictionCallback;
+import org.junit.Test;
 
 /**
  * Test the maximum cache size (for the FileCache).
@@ -64,18 +62,19 @@ public class CacheSizeTest {
         };
 
         CacheLIRS<String, FileObj> cache = new CacheLIRS.Builder<String, FileObj>().
-                maximumWeight(size).
-                recordStats().
-                weigher(weigher).
-                segmentCount(1).
-                evictionCallback(new EvictionCallback<String, FileObj>() {
-                    @Override
-                    public void evicted(String key, FileObj cachedFile, RemovalCause cause) {
-                        if (cachedFile != null && cachedFile.exists() && cause != RemovalCause.REPLACED) {
-                            delete(cachedFile);
-                        }
+            maximumWeight(size).
+            recordStats().
+            weigher(weigher).
+            segmentCount(1).
+            evictionCallback(new EvictionCallback<String, FileObj>() {
+                @Override
+                public void evicted(String key, FileObj cachedFile, RemovalCause cause) {
+                    if (cachedFile != null && cachedFile.exists()
+                        && cause != RemovalCause.REPLACED) {
+                        delete(cachedFile);
                     }
-                }).build();
+                }
+            }).build();
 
         for (int i = 0; i < 15; i++) {
             String name = "n" + i;
@@ -110,12 +109,13 @@ public class CacheSizeTest {
             throw new AssertionError("trying to remove a file that doesn't exist: " + cachedFile);
         }
         long totalLength = getDirectoryLength();
-        throw new AssertionError("removing a file: unexpected in this test; total length " + totalLength + " " + old);
+        throw new AssertionError(
+            "removing a file: unexpected in this test; total length " + totalLength + " " + old);
     }
 
     private long getDirectoryLength() {
         long length = 0;
-        for(FileObj obj : files.values()) {
+        for (FileObj obj : files.values()) {
             length += obj.length;
         }
         return length;

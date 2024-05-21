@@ -19,13 +19,10 @@ package org.apache.jackrabbit.oak.upgrade.cli;
 import java.io.IOException;
 import java.util.List;
 import java.util.ServiceLoader;
-
 import javax.jcr.RepositoryException;
-
+import joptsimple.OptionSet;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.io.Closer;
-
-import joptsimple.OptionSet;
 import org.apache.jackrabbit.oak.spi.lifecycle.CompositeInitializer;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.upgrade.cli.parser.CliArgumentException;
@@ -41,12 +38,13 @@ public class OakUpgrade {
         OptionSet options = OptionParserFactory.create().parse(args);
         try {
             MigrationCliArguments cliArguments = new MigrationCliArguments(options);
-            if (cliArguments.hasOption(OptionParserFactory.HELP) || cliArguments.getArguments().isEmpty()) {
+            if (cliArguments.hasOption(OptionParserFactory.HELP) || cliArguments.getArguments()
+                                                                                .isEmpty()) {
                 CliUtils.displayUsage();
                 return;
             }
             migrate(cliArguments);
-        } catch(CliArgumentException e) {
+        } catch (CliArgumentException e) {
             if (e.getMessage() != null) {
                 System.err.println(e.getMessage());
             }
@@ -54,7 +52,8 @@ public class OakUpgrade {
         }
     }
 
-    public static void migrate(MigrationCliArguments argumentParser) throws IOException, CliArgumentException {
+    public static void migrate(MigrationCliArguments argumentParser)
+        throws IOException, CliArgumentException {
         MigrationOptions options = new MigrationOptions(argumentParser);
         options.logOptions();
 
@@ -67,7 +66,8 @@ public class OakUpgrade {
         migrate(options, stores, datastores);
     }
 
-    public static void migrate(MigrationOptions options, StoreArguments stores, DatastoreArguments datastores) throws IOException, CliArgumentException {
+    public static void migrate(MigrationOptions options, StoreArguments stores,
+        DatastoreArguments datastores) throws IOException, CliArgumentException {
         Closer closer = Closer.create();
         CliUtils.handleSigInt(closer);
         MigrationFactory factory = new MigrationFactory(options, stores, datastores, closer);
@@ -84,16 +84,19 @@ public class OakUpgrade {
         }
     }
 
-    private static void upgrade(MigrationFactory migrationFactory) throws IOException, RepositoryException, CliArgumentException {
+    private static void upgrade(MigrationFactory migrationFactory)
+        throws IOException, RepositoryException, CliArgumentException {
         migrationFactory.createUpgrade().copy(createCompositeInitializer());
     }
 
-    private static void sidegrade(MigrationFactory migrationFactory) throws IOException, RepositoryException, CliArgumentException {
+    private static void sidegrade(MigrationFactory migrationFactory)
+        throws IOException, RepositoryException, CliArgumentException {
         migrationFactory.createSidegrade().copy();
     }
 
     private static RepositoryInitializer createCompositeInitializer() {
-        ServiceLoader<RepositoryInitializer> loader = ServiceLoader.load(RepositoryInitializer.class);
+        ServiceLoader<RepositoryInitializer> loader = ServiceLoader.load(
+            RepositoryInitializer.class);
         List<RepositoryInitializer> initializers = Lists.newArrayList(loader.iterator());
         return new CompositeInitializer(initializers);
     }

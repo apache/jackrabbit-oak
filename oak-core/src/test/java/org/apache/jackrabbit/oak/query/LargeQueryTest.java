@@ -21,7 +21,6 @@ import static org.junit.Assert.assertTrue;
 
 import java.text.ParseException;
 import java.util.Random;
-
 import org.apache.jackrabbit.oak.query.xpath.XPathToSQL2Converter;
 import org.junit.Test;
 

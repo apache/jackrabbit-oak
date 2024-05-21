@@ -16,15 +16,14 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 
-import javax.jcr.PropertyType;
+import static org.junit.Assert.assertFalse;
 
+import javax.jcr.PropertyType;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.apache.jackrabbit.oak.spi.xml.PropInfo;
 import org.junit.Test;
-
-import static org.junit.Assert.assertFalse;
 
 public class AccessControlImporterIgnoreTest extends AccessControlImporterBaseTest {
 

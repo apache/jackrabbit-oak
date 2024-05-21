@@ -18,21 +18,21 @@
  */
 package org.apache.jackrabbit.oak.spi.blob;
 
-import java.security.SecureRandom;
+import static org.apache.commons.codec.binary.Hex.encodeHexString;
 
+import java.security.SecureRandom;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
-
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.commons.codec.binary.Hex.encodeHexString;
-
 /**
+ *
  */
 public abstract class AbstractSharedBackend implements SharedBackend {
+
     private static Logger LOG = LoggerFactory.getLogger(AbstractSharedBackend.class);
 
     private static final String ALGORITHM = "HmacSHA1";
@@ -54,21 +54,20 @@ public abstract class AbstractSharedBackend implements SharedBackend {
 
             return id + ':' + encodeHexString(hash);
         } catch (Exception e) {
-            LOG.error("Failed to hash identifier using MAC (Message Authentication Code) algorithm.", e);
+            LOG.error(
+                "Failed to hash identifier using MAC (Message Authentication Code) algorithm.", e);
         }
         return null;
     }
 
     /**
-     * Returns the reference key of this backend. If one does not already
-     * exist, it is automatically created in an implementation-specific way.
-     * The default implementation simply creates a temporary random key that's
-     * valid only until the data store gets restarted. Subclasses can override
-     * and/or decorate this method to support a more persistent reference key.
+     * Returns the reference key of this backend. If one does not already exist, it is automatically
+     * created in an implementation-specific way. The default implementation simply creates a
+     * temporary random key that's valid only until the data store gets restarted. Subclasses can
+     * override and/or decorate this method to support a more persistent reference key.
      * <p>
-     * This method is called only once during the lifetime of a backend
-     * instance and the return value is cached in memory, so it's no problem
-     * if the implementation is slow.
+     * This method is called only once during the lifetime of a backend instance and the return
+     * value is cached in memory, so it's no problem if the implementation is slow.
      *
      * @return reference key
      * @throws DataStoreException if the key is not available
@@ -82,8 +81,8 @@ public abstract class AbstractSharedBackend implements SharedBackend {
     //-----------------------------------------------------------< private >--
 
     /**
-     * Returns the reference key of this data store. Synchronized to
-     * control concurrent access to the cached {@link #referenceKey} value.
+     * Returns the reference key of this data store. Synchronized to control concurrent access to
+     * the cached {@link #referenceKey} value.
      *
      * @return reference key
      * @throws DataStoreException if the key is not available

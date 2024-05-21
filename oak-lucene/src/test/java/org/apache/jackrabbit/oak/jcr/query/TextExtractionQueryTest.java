@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.jcr.query;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-
 import javax.jcr.Binary;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
@@ -28,7 +27,6 @@ import javax.jcr.query.InvalidQueryException;
 import javax.jcr.query.Query;
 import javax.jcr.query.QueryResult;
 import javax.jcr.query.RowIterator;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.core.query.AbstractQueryTest;
@@ -43,10 +41,10 @@ public class TextExtractionQueryTest extends AbstractQueryTest {
             it.nextRow();
         }
     }
-    
+
     public void testFileContains() throws Exception {
         assertFileContains("test.txt", "text/plain",
-                "AE502DBEA2C411DEBD340AD156D89593");
+            "AE502DBEA2C411DEBD340AD156D89593");
         assertFileContains("test.rtf", "application/rtf", "quick brown fox");
     }
 
@@ -57,15 +55,15 @@ public class TextExtractionQueryTest extends AbstractQueryTest {
 
         String content = "The quick brown fox jumps over the lazy dog.";
         Node file = JcrUtils.putFile(testRootNode, nodeName1, "text/plain",
-                new ByteArrayInputStream(content.getBytes("UTF-8")));
+            new ByteArrayInputStream(content.getBytes("UTF-8")));
 
         testRootNode.getSession().save();
         String xpath = testPath + "/*[jcr:contains(jcr:content, 'lazy')]";
-        executeXPathQuery(xpath, new Node[] { file });
+        executeXPathQuery(xpath, new Node[]{file});
     }
 
     private void assertFileContains(String name, String type,
-            String... statements) throws Exception {
+        String... statements) throws Exception {
         if (testRootNode.hasNode(nodeName1)) {
             testRootNode.getNode(nodeName1).remove();
         }
@@ -77,7 +75,7 @@ public class TextExtractionQueryTest extends AbstractQueryTest {
         assertNotNull(stream);
         try {
             Binary binary = testRootNode.getSession().getValueFactory()
-                    .createBinary(stream);
+                                        .createBinary(stream);
             resource.setProperty(JcrConstants.JCR_DATA, binary);
         } finally {
             stream.close();
@@ -90,7 +88,7 @@ public class TextExtractionQueryTest extends AbstractQueryTest {
 
     @SuppressWarnings("deprecation")
     private void assertContainsQuery(String statement, boolean match)
-            throws InvalidQueryException, RepositoryException {
+        throws InvalidQueryException, RepositoryException {
         StringBuffer stmt = new StringBuffer();
         stmt.append("/jcr:root").append(testRoot).append("/*");
         stmt.append("[jcr:contains(., '").append(statement);

@@ -119,7 +119,7 @@ public class DocumentNodeStoreSweepIT extends AbstractTwoNodeTest {
     }
 
     private static DocumentNodeStore crashAndRestart(DocumentNodeStore ns,
-                                                     FailingDocumentStore store) {
+        FailingDocumentStore store) {
         DocumentStore s = ns.getDocumentStore();
         BlobStore bs = ns.getBlobStore();
         int clusterId = ns.getClusterId();
@@ -129,12 +129,13 @@ public class DocumentNodeStoreSweepIT extends AbstractTwoNodeTest {
         crash(ns, store);
 
         return new DocumentMK.Builder().setBlobStore(bs).setDocumentStore(s)
-                .setClusterId(clusterId).clock(clock).setAsyncDelay(asyncDelay)
-                .setLeaseCheckMode(LeaseCheckMode.DISABLED).getNodeStore();
+                                       .setClusterId(clusterId).clock(clock)
+                                       .setAsyncDelay(asyncDelay)
+                                       .setLeaseCheckMode(LeaseCheckMode.DISABLED).getNodeStore();
     }
 
     private static void crash(DocumentNodeStore ns,
-                              FailingDocumentStore store) {
+        FailingDocumentStore store) {
         store.fail().after(0).eternally();
         try {
             ns.dispose();
@@ -146,7 +147,7 @@ public class DocumentNodeStoreSweepIT extends AbstractTwoNodeTest {
     }
 
     static String createUncommittedChanges(DocumentNodeStore ns,
-                                          FailingDocumentStore store) throws Exception {
+        FailingDocumentStore store) throws Exception {
         ns.setMaxBackOffMillis(0);
         NodeBuilder builder = ns.getRoot().builder();
         for (int i = 0; i < 10; i++) {

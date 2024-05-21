@@ -16,11 +16,15 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+
 import javax.jcr.security.AccessControlList;
 import javax.jcr.security.AccessControlManager;
-
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -35,11 +39,6 @@ import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.junit.Before;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
 
 public class HiddenTest extends AbstractCugTest {
 
@@ -65,17 +64,20 @@ public class HiddenTest extends AbstractCugTest {
 
     @Test
     public void testSupportedPermissions() {
-        assertEquals(Permissions.NO_PERMISSION, pp.supportedPermissions(hiddenTree, null, Permissions.READ));
+        assertEquals(Permissions.NO_PERMISSION,
+            pp.supportedPermissions(hiddenTree, null, Permissions.READ));
     }
 
     @Test
     public void testSupportedPermissionsLocation() {
-        assertEquals(Permissions.NO_PERMISSION, pp.supportedPermissions(TreeLocation.create(hiddenTree), Permissions.READ));
+        assertEquals(Permissions.NO_PERMISSION,
+            pp.supportedPermissions(TreeLocation.create(hiddenTree), Permissions.READ));
     }
 
     @Test
     public void testSupportedPrivileges() {
-        assertSame(PrivilegeBits.EMPTY, pp.supportedPrivileges(hiddenTree, new PrivilegeBitsProvider(readOnlyRoot).getBits(PrivilegeConstants.JCR_READ)));
+        assertSame(PrivilegeBits.EMPTY, pp.supportedPrivileges(hiddenTree,
+            new PrivilegeBitsProvider(readOnlyRoot).getBits(PrivilegeConstants.JCR_READ)));
     }
 
     @Test
@@ -88,7 +90,8 @@ public class HiddenTest extends AbstractCugTest {
             tp = pp.getTreePermission(t, tp);
         }
         assertSame(TreePermission.NO_RECOURSE, tp);
-        assertEquals(Permissions.NO_PERMISSION, pp.supportedPermissions(tp, null, Permissions.READ));
+        assertEquals(Permissions.NO_PERMISSION,
+            pp.supportedPermissions(tp, null, Permissions.READ));
     }
 
     @Test
@@ -99,22 +102,27 @@ public class HiddenTest extends AbstractCugTest {
     @Test
     public void testIsGrantedHiddenBelowCug() {
         assertTrue(pp.isGranted(readOnlyRoot.getTree(SUPPORTED_PATH), null, Permissions.READ));
-        assertFalse(pp.isGranted(readOnlyRoot.getTree(SUPPORTED_PATH + "/:hidden"), null, Permissions.READ));
+        assertFalse(pp.isGranted(readOnlyRoot.getTree(SUPPORTED_PATH + "/:hidden"), null,
+            Permissions.READ));
     }
 
     @Test
     public void testIsGrantedPath() {
         assertTrue(pp.isGranted(SUPPORTED_PATH, Permissions.getString(Permissions.READ)));
 
-        assertFalse(pp.isGranted(SUPPORTED_PATH + "/:hidden", Permissions.getString(Permissions.READ)));
-        assertFalse(pp.isGranted(SUPPORTED_PATH + "/:hidden/child", Permissions.getString(Permissions.READ)));
+        assertFalse(
+            pp.isGranted(SUPPORTED_PATH + "/:hidden", Permissions.getString(Permissions.READ)));
+        assertFalse(pp.isGranted(SUPPORTED_PATH + "/:hidden/child",
+            Permissions.getString(Permissions.READ)));
         assertFalse(pp.isGranted(hiddenTree.getPath(), Permissions.getString(Permissions.READ)));
     }
 
     @Test
     public void testHasPrivileges() {
-        assertTrue(pp.hasPrivileges(readOnlyRoot.getTree(SUPPORTED_PATH), PrivilegeConstants.JCR_READ));
-        assertFalse(pp.hasPrivileges(readOnlyRoot.getTree(SUPPORTED_PATH + "/:hidden"), PrivilegeConstants.JCR_READ));
+        assertTrue(
+            pp.hasPrivileges(readOnlyRoot.getTree(SUPPORTED_PATH), PrivilegeConstants.JCR_READ));
+        assertFalse(pp.hasPrivileges(readOnlyRoot.getTree(SUPPORTED_PATH + "/:hidden"),
+            PrivilegeConstants.JCR_READ));
     }
 
     @Test
@@ -128,17 +136,22 @@ public class HiddenTest extends AbstractCugTest {
         AccessControlManager acMgr = getAccessControlManager(root);
         try {
             AccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, "/");
-            acl.addAccessControlEntry(EveryonePrincipal.getInstance(), AccessControlUtils.privilegesFromNames(acMgr, PrivilegeConstants.JCR_READ));
+            acl.addAccessControlEntry(EveryonePrincipal.getInstance(),
+                AccessControlUtils.privilegesFromNames(acMgr, PrivilegeConstants.JCR_READ));
             acMgr.setPolicy("/", acl);
             root.commit();
 
-            PermissionProvider combined = getConfig(AuthorizationConfiguration.class).getPermissionProvider(readOnlyRoot, root.getContentSession().getWorkspaceName(), ImmutableSet.of(EveryonePrincipal.getInstance()));
+            PermissionProvider combined = getConfig(
+                AuthorizationConfiguration.class).getPermissionProvider(readOnlyRoot,
+                root.getContentSession().getWorkspaceName(),
+                ImmutableSet.of(EveryonePrincipal.getInstance()));
 
             assertFalse(combined.hasPrivileges(hiddenTree, PrivilegeConstants.JCR_READ));
             assertTrue(combined.getPrivileges(hiddenTree).isEmpty());
 
             assertTrue(combined.isGranted(hiddenTree, null, Permissions.ALL));
-            assertTrue(combined.isGranted(hiddenTree.getPath(), Permissions.getString(Permissions.ALL)));
+            assertTrue(
+                combined.isGranted(hiddenTree.getPath(), Permissions.getString(Permissions.ALL)));
 
             Tree t = readOnlyRoot.getTree("/");
             TreePermission tp = combined.getTreePermission(t, TreePermission.EMPTY);
@@ -150,7 +163,8 @@ public class HiddenTest extends AbstractCugTest {
 
         } finally {
             AccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, "/");
-            acl.addAccessControlEntry(EveryonePrincipal.getInstance(), AccessControlUtils.privilegesFromNames(acMgr, PrivilegeConstants.JCR_READ));
+            acl.addAccessControlEntry(EveryonePrincipal.getInstance(),
+                AccessControlUtils.privilegesFromNames(acMgr, PrivilegeConstants.JCR_READ));
             acMgr.removePolicy("/", acl);
             root.commit();
         }

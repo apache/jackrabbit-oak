@@ -29,9 +29,8 @@ import org.apache.jackrabbit.guava.common.collect.Queues;
 /**
  * An iterator over all referenced binaries.
  * <p>
- * Only top-level referenced are returned (indirection, if any, is not
- * resolved). The items are returned in no particular order. An item might be
- * returned multiple times.
+ * Only top-level referenced are returned (indirection, if any, is not resolved). The items are
+ * returned in no particular order. An item might be returned multiple times.
  */
 public class BlobReferenceIterator extends AbstractIterator<ReferencedBlob> implements Closeable {
 
@@ -80,8 +79,9 @@ public class BlobReferenceIterator extends AbstractIterator<ReferencedBlob> impl
      */
     public Iterator<NodeDocument> getIteratorOverDocsWithBinaries() {
         int batchSize = 1000;
-        return Utils.getSelectedDocuments(documentStore, NodeDocument.HAS_BINARY_FLAG, NodeDocument.HAS_BINARY_VAL, batchSize)
-                .iterator();
+        return Utils.getSelectedDocuments(documentStore, NodeDocument.HAS_BINARY_FLAG,
+                        NodeDocument.HAS_BINARY_VAL, batchSize)
+                    .iterator();
     }
 
     @Override

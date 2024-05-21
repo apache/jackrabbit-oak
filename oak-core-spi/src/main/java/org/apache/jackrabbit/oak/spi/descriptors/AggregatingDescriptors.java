@@ -21,47 +21,44 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-
 import javax.jcr.Value;
-
 import org.apache.jackrabbit.oak.api.Descriptors;
 import org.apache.jackrabbit.oak.spi.whiteboard.Tracker;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * An AggregatingDescriptors is an implementation of Descriptors
- * that allows to aggregate multiple Descriptors (which are
- * provided dynamically via a whiteboard tracker).
+ * An AggregatingDescriptors is an implementation of Descriptors that allows to aggregate multiple
+ * Descriptors (which are provided dynamically via a whiteboard tracker).
  */
 public class AggregatingDescriptors implements Descriptors {
 
-	private final Tracker<Descriptors> tracker;
+    private final Tracker<Descriptors> tracker;
 
     /**
-     * Create an AggregatingDescriptors which uses descriptors.getServices()
-     * at method invocation time
+     * Create an AggregatingDescriptors which uses descriptors.getServices() at method invocation
+     * time
      */
     public AggregatingDescriptors(final Tracker<Descriptors> tracker) {
-    	if (tracker==null) {
-    		throw new IllegalArgumentException("tracker must not be null");
-    	}
-    	this.tracker = tracker;
+        if (tracker == null) {
+            throw new IllegalArgumentException("tracker must not be null");
+        }
+        this.tracker = tracker;
     }
-    
+
     private List<Descriptors> getDescriptors() {
-    	final List<Descriptors> descriptors = tracker.getServices();
-    	if (descriptors==null) {
-    		return Collections.emptyList();
-    	} else {
-    		return descriptors;
-    	}
+        final List<Descriptors> descriptors = tracker.getServices();
+        if (descriptors == null) {
+            return Collections.emptyList();
+        } else {
+            return descriptors;
+        }
     }
-    
+
     @Override
     public String[] getKeys() {
         Set<String> keys = new HashSet<String>();
-		for (Iterator<Descriptors> it = getDescriptors().iterator(); it.hasNext();) {
+        for (Iterator<Descriptors> it = getDescriptors().iterator(); it.hasNext(); ) {
             Descriptors descriptors = it.next();
             Collections.addAll(keys, descriptors.getKeys());
         }
@@ -70,7 +67,7 @@ public class AggregatingDescriptors implements Descriptors {
 
     @Override
     public boolean isStandardDescriptor(@NotNull String key) {
-        for (Iterator<Descriptors> it = getDescriptors().iterator(); it.hasNext();) {
+        for (Iterator<Descriptors> it = getDescriptors().iterator(); it.hasNext(); ) {
             Descriptors descriptors = it.next();
             if (descriptors.isStandardDescriptor(key)) {
                 return true;
@@ -81,7 +78,7 @@ public class AggregatingDescriptors implements Descriptors {
 
     @Override
     public boolean isSingleValueDescriptor(@NotNull String key) {
-        for (Iterator<Descriptors> it = getDescriptors().iterator(); it.hasNext();) {
+        for (Iterator<Descriptors> it = getDescriptors().iterator(); it.hasNext(); ) {
             Descriptors descriptors = it.next();
             if (descriptors.isSingleValueDescriptor(key)) {
                 return true;
@@ -93,10 +90,10 @@ public class AggregatingDescriptors implements Descriptors {
     @Nullable
     @Override
     public Value getValue(@NotNull String key) {
-        for (Iterator<Descriptors> it = getDescriptors().iterator(); it.hasNext();) {
+        for (Iterator<Descriptors> it = getDescriptors().iterator(); it.hasNext(); ) {
             Descriptors descriptors = it.next();
             Value value = descriptors.getValue(key);
-            if (value!=null) {
+            if (value != null) {
                 return value;
             }
         }
@@ -106,10 +103,10 @@ public class AggregatingDescriptors implements Descriptors {
     @Nullable
     @Override
     public Value[] getValues(@NotNull String key) {
-        for (Iterator<Descriptors> it = getDescriptors().iterator(); it.hasNext();) {
+        for (Iterator<Descriptors> it = getDescriptors().iterator(); it.hasNext(); ) {
             Descriptors descriptors = it.next();
             Value[] values = descriptors.getValues(key);
-            if (values!=null) {
+            if (values != null) {
                 return values;
             }
         }

@@ -32,12 +32,6 @@ import com.microsoft.azure.storage.blob.CloudBlobContainer;
 import com.microsoft.azure.storage.blob.CloudBlobDirectory;
 import com.microsoft.azure.storage.blob.LeaseStatus;
 import com.microsoft.azure.storage.blob.ListBlobItem;
-import org.apache.jackrabbit.oak.commons.Buffer;
-import org.apache.jackrabbit.oak.segment.spi.RepositoryNotReachableException;
-import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -48,8 +42,14 @@ import java.security.InvalidKeyException;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
+import org.apache.jackrabbit.oak.commons.Buffer;
+import org.apache.jackrabbit.oak.segment.spi.RepositoryNotReachableException;
+import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class AzureUtilities {
+
     public static final String AZURE_ACCOUNT_NAME = "AZURE_ACCOUNT_NAME";
     public static final String AZURE_SECRET_KEY = "AZURE_SECRET_KEY";
     public static final String AZURE_TENANT_ID = "AZURE_TENANT_ID";
@@ -75,7 +75,8 @@ public final class AzureUtilities {
         List<CloudBlob> blobList = new ArrayList<>();
         ResultContinuation token = null;
         do {
-            ResultSegment<ListBlobItem> result = listBlobsInSegments(directory, token); //get the blobs in pages of 5000
+            ResultSegment<ListBlobItem> result = listBlobsInSegments(directory,
+                token); //get the blobs in pages of 5000
             for (ListBlobItem b : result.getResults()) {                                //add resultant blobs to list
                 if (b instanceof CloudBlob) {
                     CloudBlob cloudBlob = (CloudBlob) b;
@@ -94,7 +95,8 @@ public final class AzureUtilities {
         } catch (StorageException e) {
             if (e.getHttpStatusCode() == 404) {
                 log.error("Blob not found in the remote repository: {}", blob.getName());
-                throw new FileNotFoundException("Blob not found in the remote repository: " + blob.getName());
+                throw new FileNotFoundException(
+                    "Blob not found in the remote repository: " + blob.getName());
             }
             throw new RepositoryNotReachableException(e);
         }
@@ -111,7 +113,7 @@ public final class AzureUtilities {
     }
 
     public static CloudBlobDirectory cloudBlobDirectoryFrom(StorageCredentials credentials,
-                                                            String uri, String dir) throws URISyntaxException, StorageException {
+        String uri, String dir) throws URISyntaxException, StorageException {
         StorageUri storageUri = new StorageUri(new URI(uri));
         CloudBlobContainer container = new CloudBlobContainer(storageUri, credentials);
 
@@ -121,39 +123,42 @@ public final class AzureUtilities {
     }
 
     public static CloudBlobDirectory cloudBlobDirectoryFrom(String connection, String containerName,
-                                                            String dir) throws InvalidKeyException, URISyntaxException, StorageException {
+        String dir) throws InvalidKeyException, URISyntaxException, StorageException {
         CloudStorageAccount cloud = CloudStorageAccount.parse(connection);
-        CloudBlobContainer container = cloud.createCloudBlobClient().getContainerReference(containerName);
+        CloudBlobContainer container = cloud.createCloudBlobClient()
+                                            .getContainerReference(containerName);
         container.createIfNotExists();
 
         return container.getDirectoryReference(dir);
     }
 
-    public static StorageCredentialsToken storageCredentialAccessTokenFrom(String accountName, String clientId, String clientSecret, String tenantId) {
+    public static StorageCredentialsToken storageCredentialAccessTokenFrom(String accountName,
+        String clientId, String clientSecret, String tenantId) {
         ClientSecretCredential clientSecretCredential = new ClientSecretCredentialBuilder()
-                .clientId(clientId)
-                .clientSecret(clientSecret)
-                .tenantId(tenantId)
-                .build();
+            .clientId(clientId)
+            .clientSecret(clientSecret)
+            .tenantId(tenantId)
+            .build();
 
-        String accessToken = clientSecretCredential.getTokenSync(new TokenRequestContext().addScopes(AZURE_DEFAULT_SCOPE)).getToken();
+        String accessToken = clientSecretCredential.getTokenSync(
+            new TokenRequestContext().addScopes(AZURE_DEFAULT_SCOPE)).getToken();
         return new StorageCredentialsToken(accountName, accessToken);
     }
 
     private static ResultSegment<ListBlobItem> listBlobsInSegments(CloudBlobDirectory directory,
-                                                                   ResultContinuation token) throws IOException {
+        ResultContinuation token) throws IOException {
         ResultSegment<ListBlobItem> result = null;
         IOException lastException = null;
         for (int sleep = 10; sleep <= 10000; sleep *= 10) {  //increment the sleep time in steps.
             try {
                 result = directory.listBlobsSegmented(
-                        null,
-                        false,
-                        EnumSet.of(BlobListingDetails.METADATA),
-                        5000,
-                        token,
-                        null,
-                        null);
+                    null,
+                    false,
+                    EnumSet.of(BlobListingDetails.METADATA),
+                    5000,
+                    token,
+                    null,
+                    null);
                 break;  //we have the results, no need to retry
             } catch (StorageException | URISyntaxException e) {
                 lastException = new IOException(e);
@@ -172,7 +177,8 @@ public final class AzureUtilities {
         }
     }
 
-    public static void deleteAllBlobs(@NotNull CloudBlobDirectory directory) throws URISyntaxException, StorageException, InterruptedException {
+    public static void deleteAllBlobs(@NotNull CloudBlobDirectory directory)
+        throws URISyntaxException, StorageException, InterruptedException {
         for (ListBlobItem blobItem : directory.listBlobs()) {
             if (blobItem instanceof CloudBlob) {
                 CloudBlob cloudBlob = (CloudBlob) blobItem;

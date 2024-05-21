@@ -53,7 +53,7 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
 public class PrincipalBasedPermissionProviderTest extends AbstractPrincipalBasedTest {
-    
+
     private PrincipalBasedPermissionProvider permissionProvider;
 
     private String childPath;
@@ -69,14 +69,18 @@ public class PrincipalBasedPermissionProviderTest extends AbstractPrincipalBased
         setupContentTrees(NT_FOLDER, childPath + "/folder", TEST_OAK_PATH + "/folder");
 
         // setup permissions on childPath + TEST_OAK_PATH
-        PrincipalPolicyImpl policy = setupPrincipalBasedAccessControl(testPrincipal, getNamePathMapper().getJcrPath(childPath), JCR_READ, JCR_REMOVE_CHILD_NODES);
-        addPrincipalBasedEntry(policy, getNamePathMapper().getJcrPath(TEST_OAK_PATH), JCR_VERSION_MANAGEMENT);
+        PrincipalPolicyImpl policy = setupPrincipalBasedAccessControl(testPrincipal,
+            getNamePathMapper().getJcrPath(childPath), JCR_READ, JCR_REMOVE_CHILD_NODES);
+        addPrincipalBasedEntry(policy, getNamePathMapper().getJcrPath(TEST_OAK_PATH),
+            JCR_VERSION_MANAGEMENT);
 
         // add an entry with nt-name restriction at childPath
         JackrabbitAccessControlManager jacm = getAccessControlManager(root);
         policy = getPrincipalPolicyImpl(testPrincipal, jacm);
-        Map<String, Value[]> restrictions = ImmutableMap.of(REP_NT_NAMES, new Value[] {getValueFactory(root).createValue(NT_FOLDER, PropertyType.NAME)});
-        policy.addEntry(childPath, privilegesFromNames(JCR_REMOVE_NODE), ImmutableMap.of(), restrictions);
+        Map<String, Value[]> restrictions = ImmutableMap.of(REP_NT_NAMES,
+            new Value[]{getValueFactory(root).createValue(NT_FOLDER, PropertyType.NAME)});
+        policy.addEntry(childPath, privilegesFromNames(JCR_REMOVE_NODE), ImmutableMap.of(),
+            restrictions);
         jacm.setPolicy(policy.getPath(), policy);
         root.commit();
 
@@ -115,11 +119,15 @@ public class PrincipalBasedPermissionProviderTest extends AbstractPrincipalBased
         Tree tree = mock(Tree.class);
         PropertyState property = mock(PropertyState.class);
         for (long permission : Permissions.aggregates(Permissions.ALL)) {
-            assertEquals(permission, permissionProvider.supportedPermissions(tree, property, permission));
-            assertEquals(permission, permissionProvider.supportedPermissions(tree, null, permission));
+            assertEquals(permission,
+                permissionProvider.supportedPermissions(tree, property, permission));
+            assertEquals(permission,
+                permissionProvider.supportedPermissions(tree, null, permission));
         }
-        assertEquals(Permissions.ALL, permissionProvider.supportedPermissions(tree, property, Permissions.ALL));
-        assertEquals(Permissions.ALL, permissionProvider.supportedPermissions(tree, null, Permissions.ALL));
+        assertEquals(Permissions.ALL,
+            permissionProvider.supportedPermissions(tree, property, Permissions.ALL));
+        assertEquals(Permissions.ALL,
+            permissionProvider.supportedPermissions(tree, null, Permissions.ALL));
     }
 
     @Test
@@ -128,7 +136,8 @@ public class PrincipalBasedPermissionProviderTest extends AbstractPrincipalBased
         for (long permission : Permissions.aggregates(Permissions.ALL)) {
             assertEquals(permission, permissionProvider.supportedPermissions(location, permission));
         }
-        assertEquals(Permissions.ALL, permissionProvider.supportedPermissions(location, Permissions.ALL));
+        assertEquals(Permissions.ALL,
+            permissionProvider.supportedPermissions(location, Permissions.ALL));
     }
 
     @Test
@@ -136,20 +145,30 @@ public class PrincipalBasedPermissionProviderTest extends AbstractPrincipalBased
         TreePermission tp = mock(TreePermission.class);
         PropertyState property = mock(PropertyState.class);
         for (long permission : Permissions.aggregates(Permissions.ALL)) {
-            assertEquals(permission, permissionProvider.supportedPermissions(tp, property, permission));
+            assertEquals(permission,
+                permissionProvider.supportedPermissions(tp, property, permission));
             assertEquals(permission, permissionProvider.supportedPermissions(tp, null, permission));
         }
-        assertEquals(Permissions.ALL, permissionProvider.supportedPermissions(tp, property, Permissions.ALL));
-        assertEquals(Permissions.ALL, permissionProvider.supportedPermissions(tp, null, Permissions.ALL));
+        assertEquals(Permissions.ALL,
+            permissionProvider.supportedPermissions(tp, property, Permissions.ALL));
+        assertEquals(Permissions.ALL,
+            permissionProvider.supportedPermissions(tp, null, Permissions.ALL));
     }
 
     @Test
     public void testHasPrivileges() {
-        assertTrue(permissionProvider.hasPrivileges(root.getTree(childPath), PrivilegeConstants.JCR_READ));
-        assertFalse(permissionProvider.hasPrivileges(root.getTree(childPath), PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_REMOVE_NODE));
-        assertTrue(permissionProvider.hasPrivileges(root.getTree(childPath + "/folder"), PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_REMOVE_NODE));
-        assertFalse(permissionProvider.hasPrivileges(root.getTree(childPath), PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_VERSION_MANAGEMENT));
-        assertTrue(permissionProvider.hasPrivileges(root.getTree(TEST_OAK_PATH), PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_VERSION_MANAGEMENT));
+        assertTrue(
+            permissionProvider.hasPrivileges(root.getTree(childPath), PrivilegeConstants.JCR_READ));
+        assertFalse(
+            permissionProvider.hasPrivileges(root.getTree(childPath), PrivilegeConstants.JCR_READ,
+                PrivilegeConstants.JCR_REMOVE_NODE));
+        assertTrue(permissionProvider.hasPrivileges(root.getTree(childPath + "/folder"),
+            PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_REMOVE_NODE));
+        assertFalse(
+            permissionProvider.hasPrivileges(root.getTree(childPath), PrivilegeConstants.JCR_READ,
+                PrivilegeConstants.JCR_VERSION_MANAGEMENT));
+        assertTrue(permissionProvider.hasPrivileges(root.getTree(TEST_OAK_PATH),
+            PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_VERSION_MANAGEMENT));
     }
 
     @Test
@@ -168,13 +187,16 @@ public class PrincipalBasedPermissionProviderTest extends AbstractPrincipalBased
     public void testIsGranted() {
         Tree t = root.getTree(childPath);
         assertTrue(permissionProvider.isGranted(t, null, Permissions.READ_NODE));
-        assertTrue(permissionProvider.isGranted(t, t.getProperty(JCR_PRIMARYTYPE), Permissions.READ_PROPERTY));
-        assertFalse(permissionProvider.isGranted(t, null, Permissions.READ_NODE|Permissions.VERSION_MANAGEMENT));
-
+        assertTrue(permissionProvider.isGranted(t, t.getProperty(JCR_PRIMARYTYPE),
+            Permissions.READ_PROPERTY));
+        assertFalse(permissionProvider.isGranted(t, null,
+            Permissions.READ_NODE | Permissions.VERSION_MANAGEMENT));
 
         t = root.getTree(TEST_OAK_PATH);
-        assertTrue(permissionProvider.isGranted(t, null, Permissions.READ_NODE|Permissions.VERSION_MANAGEMENT));
-        assertTrue(permissionProvider.isGranted(t, t.getProperty(JCR_PRIMARYTYPE), Permissions.READ_PROPERTY|Permissions.VERSION_MANAGEMENT));
+        assertTrue(permissionProvider.isGranted(t, null,
+            Permissions.READ_NODE | Permissions.VERSION_MANAGEMENT));
+        assertTrue(permissionProvider.isGranted(t, t.getProperty(JCR_PRIMARYTYPE),
+            Permissions.READ_PROPERTY | Permissions.VERSION_MANAGEMENT));
     }
 
     @Test
@@ -182,22 +204,27 @@ public class PrincipalBasedPermissionProviderTest extends AbstractPrincipalBased
         Tree nonExisting = root.getTree(TEST_OAK_PATH).getChild("nonExisting");
 
         assertTrue(permissionProvider.isGranted(nonExisting, null, Permissions.READ));
-        assertTrue(permissionProvider.isGranted(nonExisting, PropertyStates.createProperty("propName", "value"), Permissions.READ));
+        assertTrue(permissionProvider.isGranted(nonExisting,
+            PropertyStates.createProperty("propName", "value"), Permissions.READ));
     }
 
     @Test
     public void testIsGrantedWithRestriction() {
-        assertFalse(permissionProvider.isGranted(root.getTree(TEST_OAK_PATH), null, Permissions.REMOVE_NODE));
-        assertFalse(permissionProvider.isGranted(root.getTree(childPath), null, Permissions.REMOVE_NODE));
+        assertFalse(permissionProvider.isGranted(root.getTree(TEST_OAK_PATH), null,
+            Permissions.REMOVE_NODE));
+        assertFalse(
+            permissionProvider.isGranted(root.getTree(childPath), null, Permissions.REMOVE_NODE));
 
-        assertTrue(permissionProvider.isGranted(root.getTree(TEST_OAK_PATH + "/folder"), null, Permissions.REMOVE_NODE));
-        assertTrue(permissionProvider.isGranted(root.getTree(childPath + "/folder"), null, Permissions.REMOVE_NODE));
+        assertTrue(permissionProvider.isGranted(root.getTree(TEST_OAK_PATH + "/folder"), null,
+            Permissions.REMOVE_NODE));
+        assertTrue(permissionProvider.isGranted(root.getTree(childPath + "/folder"), null,
+            Permissions.REMOVE_NODE));
     }
 
     @Test
     public void testIsGrantedTreeLocation() {
         TreeLocation tl = TreeLocation.create(root, TEST_OAK_PATH);
-        assertFalse(permissionProvider.isGranted(tl, Permissions.READ|Permissions.REMOVE_NODE));
+        assertFalse(permissionProvider.isGranted(tl, Permissions.READ | Permissions.REMOVE_NODE));
     }
 
     @Test
@@ -217,8 +244,9 @@ public class PrincipalBasedPermissionProviderTest extends AbstractPrincipalBased
     }
 
     @Test
-    public void testIsGrantedAccessControlTreeLocation() throws Exception{
-        TreeLocation tl = TreeLocation.create(root, PathUtils.concat(getTestSystemUser().getPath(), REP_PRINCIPAL_POLICY));
+    public void testIsGrantedAccessControlTreeLocation() throws Exception {
+        TreeLocation tl = TreeLocation.create(root,
+            PathUtils.concat(getTestSystemUser().getPath(), REP_PRINCIPAL_POLICY));
         assertFalse(permissionProvider.isGranted(tl, Permissions.READ));
     }
 }

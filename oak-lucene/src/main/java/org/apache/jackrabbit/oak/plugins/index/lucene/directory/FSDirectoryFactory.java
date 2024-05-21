@@ -32,6 +32,7 @@ import org.apache.lucene.store.NoLockFactory;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.IndexRootDirectory.INDEX_METADATA_FILE_NAME;
 
 public class FSDirectoryFactory implements DirectoryFactory {
+
     private final File baseDir;
 
     public FSDirectoryFactory(File baseDir) {
@@ -40,7 +41,7 @@ public class FSDirectoryFactory implements DirectoryFactory {
 
     @Override
     public Directory newInstance(LuceneIndexDefinition definition, NodeBuilder builder,
-                                 String dirName, boolean reindex) throws IOException {
+        String dirName, boolean reindex) throws IOException {
         File indexDir = DirectoryUtils.createIndexDir(baseDir, definition.getIndexPath());
         File readMe = new File(indexDir, INDEX_METADATA_FILE_NAME);
         File subDir = DirectoryUtils.createSubDir(indexDir, dirName);

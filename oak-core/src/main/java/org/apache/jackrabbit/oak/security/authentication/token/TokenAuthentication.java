@@ -20,7 +20,6 @@ import java.security.Principal;
 import java.util.Date;
 import javax.jcr.Credentials;
 import javax.security.auth.login.LoginException;
-
 import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
 import org.apache.jackrabbit.oak.spi.security.authentication.Authentication;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginModuleMonitor;

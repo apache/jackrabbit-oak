@@ -18,6 +18,8 @@
  */
 package org.apache.jackrabbit.oak.run;
 
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
@@ -29,10 +31,8 @@ import org.apache.jackrabbit.oak.run.commons.Command;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-
 public abstract class PurgeOldIndexVersionCommand implements Command {
+
     private static final Logger LOG = LoggerFactory.getLogger(PurgeOldIndexVersionCommand.class);
 
     private long threshold;
@@ -46,9 +46,11 @@ public abstract class PurgeOldIndexVersionCommand implements Command {
         Options opts = parseCommandLineParams(args);
         try (NodeStoreFixture fixture = NodeStoreFixtureProvider.create(opts)) {
             if (!opts.getCommonOpts().isReadWrite()) {
-                LOG.info("Repository connected in read-only mode. Use '--read-write' for write operations");
+                LOG.info(
+                    "Repository connected in read-only mode. Use '--read-write' for write operations");
             }
-            getPurgeOldIndexVersionInstance().execute(fixture.getStore(), opts.getCommonOpts().isReadWrite(), threshold, indexPaths, shouldPurgeBaseIndex);
+            getPurgeOldIndexVersionInstance().execute(fixture.getStore(),
+                opts.getCommonOpts().isReadWrite(), threshold, indexPaths, shouldPurgeBaseIndex);
         }
     }
 
@@ -56,11 +58,16 @@ public abstract class PurgeOldIndexVersionCommand implements Command {
         OptionParser parser = new OptionParser();
         parser.allowsUnrecognizedOptions();
         OptionSpec<Long> thresholdOption = parser.accepts("threshold")
-                .withOptionalArg().ofType(Long.class).defaultsTo(DEFAULT_PURGE_THRESHOLD);
-        OptionSpec<String> indexPathsOption = parser.accepts("index-paths", "Comma separated list of index paths for which the " +
-                "selected operations need to be performed")
-                .withOptionalArg().ofType(String.class).withValuesSeparatedBy(",").defaultsTo(DEFAULT_INDEX_PATH);
-        OptionSpec<Void> donotPurgeBaseIndexOption = parser.accepts("donot-purge-base-index", "Don't disable base index");
+                                                 .withOptionalArg().ofType(Long.class)
+                                                 .defaultsTo(DEFAULT_PURGE_THRESHOLD);
+        OptionSpec<String> indexPathsOption = parser.accepts("index-paths",
+                                                        "Comma separated list of index paths for which the " +
+                                                            "selected operations need to be performed")
+                                                    .withOptionalArg().ofType(String.class)
+                                                    .withValuesSeparatedBy(",")
+                                                    .defaultsTo(DEFAULT_INDEX_PATH);
+        OptionSpec<Void> donotPurgeBaseIndexOption = parser.accepts("donot-purge-base-index",
+            "Don't disable base index");
 
         Options opts = new Options();
         OptionSet optionSet = opts.parseAndConfigure(parser, args);

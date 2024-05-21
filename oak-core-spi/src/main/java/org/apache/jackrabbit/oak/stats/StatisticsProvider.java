@@ -19,11 +19,12 @@
 
 package org.apache.jackrabbit.oak.stats;
 
-import org.osgi.annotation.versioning.ProviderType;
 import org.apache.jackrabbit.api.stats.RepositoryStatistics;
+import org.osgi.annotation.versioning.ProviderType;
 
 @ProviderType
 public interface StatisticsProvider {
+
     StatisticsProvider NOOP = new StatisticsProvider() {
         @Override
         public RepositoryStatistics getStats() {

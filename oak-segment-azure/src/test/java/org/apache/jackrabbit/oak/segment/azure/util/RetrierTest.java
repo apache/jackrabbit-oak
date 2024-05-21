@@ -18,14 +18,13 @@
  */
 package org.apache.jackrabbit.oak.segment.azure.util;
 
-import org.apache.jackrabbit.oak.segment.spi.RepositoryNotReachableException;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 
 import java.io.IOException;
 import java.util.function.Supplier;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
+import org.apache.jackrabbit.oak.segment.spi.RepositoryNotReachableException;
+import org.junit.Test;
 
 public class RetrierTest {
 
@@ -69,8 +68,9 @@ public class RetrierTest {
         assertEquals(5, throwingIOException.attempts);
 
         RetryTester throwingRepoNotReachableException = new RetryTester(10, "OK", () ->
-                new RepositoryNotReachableException(new RuntimeException()));
-        assertThrows(RepositoryNotReachableException.class, () -> retrier.execute(throwingRepoNotReachableException));
+            new RepositoryNotReachableException(new RuntimeException()));
+        assertThrows(RepositoryNotReachableException.class,
+            () -> retrier.execute(throwingRepoNotReachableException));
         assertEquals(5, throwingRepoNotReachableException.attempts);
     }
 
@@ -79,7 +79,8 @@ public class RetrierTest {
         Retrier retrier = Retrier.withParams(5, 1);
         RetryTester execution = new RetryTester(10, "OK", NullPointerException::new);
 
-        RuntimeException ex = assertThrows(RuntimeException.class, () -> retrier.execute(execution));
+        RuntimeException ex = assertThrows(RuntimeException.class,
+            () -> retrier.execute(execution));
         assertEquals("Unexpected exception while executing the operation", ex.getMessage());
         assertEquals(NullPointerException.class, ex.getCause().getClass());
         assertEquals(1, execution.attempts);
@@ -96,13 +97,15 @@ public class RetrierTest {
     }
 
     private static class RetryTester implements Retrier.ThrowingSupplier<String> {
+
         private final int succeedAfterAttempts;
         private final String result;
         private final Supplier<RuntimeException> runtimeExceptionSupplier;
 
         private int attempts = 0;
 
-        public RetryTester(int succeedAfterAttempts, String result, Supplier<RuntimeException> runtimeExceptionSupplier) {
+        public RetryTester(int succeedAfterAttempts, String result,
+            Supplier<RuntimeException> runtimeExceptionSupplier) {
             this.succeedAfterAttempts = succeedAfterAttempts;
             this.result = result;
             this.runtimeExceptionSupplier = runtimeExceptionSupplier;
@@ -127,6 +130,7 @@ public class RetrierTest {
     }
 
     private static class RetryTesterRunnable implements Retrier.ThrowingRunnable {
+
         private final int succeedAfterAttempts;
 
         private int attempts = 0;

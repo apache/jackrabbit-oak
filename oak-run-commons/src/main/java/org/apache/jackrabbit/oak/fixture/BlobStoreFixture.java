@@ -19,6 +19,10 @@
 
 package org.apache.jackrabbit.oak.fixture;
 
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.fixture.DataStoreUtils.cleanup;
+import static org.apache.jackrabbit.oak.fixture.DataStoreUtils.configureIfCloudDataStore;
+
 import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
@@ -26,13 +30,12 @@ import java.io.IOException;
 import java.util.Dictionary;
 import java.util.Enumeration;
 import java.util.Map;
-
-import org.apache.jackrabbit.guava.common.base.Strings;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.commons.io.FileUtils;
 import org.apache.felix.cm.file.ConfigurationHandler;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.FileDataStore;
+import org.apache.jackrabbit.guava.common.base.Strings;
+import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreStats;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
@@ -42,11 +45,8 @@ import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.Nullable;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.fixture.DataStoreUtils.cleanup;
-import static org.apache.jackrabbit.oak.fixture.DataStoreUtils.configureIfCloudDataStore;
+public abstract class BlobStoreFixture implements Closeable {
 
-public abstract class BlobStoreFixture implements Closeable{
     private final String name;
     protected final String unique;
 
@@ -61,24 +61,24 @@ public abstract class BlobStoreFixture implements Closeable{
 
     public abstract long size();
 
-    public void close(){
+    public void close() {
         tearDown();
     }
 
     /**
-     * Creates an instance of the BlobStoreFixture based on configuration
-     * determined from system properties
+     * Creates an instance of the BlobStoreFixture based on configuration determined from system
+     * properties
      *
-     * @param basedir directory to be used in case of file based BlobStore
-     * @param fallbackToFDS if true then FileDataStore would be used in absence of
-     *                      any explicitly defined BlobStore
+     * @param basedir       directory to be used in case of file based BlobStore
+     * @param fallbackToFDS if true then FileDataStore would be used in absence of any explicitly
+     *                      defined BlobStore
      */
     @Nullable
     public static BlobStoreFixture create(File basedir, boolean fallbackToFDS,
-                                          int fdsCacheInMB,
-                                          StatisticsProvider statisticsProvider) {
+        int fdsCacheInMB,
+        StatisticsProvider statisticsProvider) {
 
-        if(basedir == null) {
+        if (basedir == null) {
             basedir = FileUtils.getTempDirectory();
         }
 
@@ -89,7 +89,8 @@ public abstract class BlobStoreFixture implements Closeable{
 
         String blobStore = System.getProperty("blobStoreType");
         if ("FDS".equals(blobStore) || (blobStore == null && fallbackToFDS)) {
-            return getFileDataStore(basedir, DataStoreBlobStore.DEFAULT_CACHE_SIZE, statisticsProvider);
+            return getFileDataStore(basedir, DataStoreBlobStore.DEFAULT_CACHE_SIZE,
+                statisticsProvider);
         } else if ("FBS".equals(blobStore)) {
             return getFileBlobStore(basedir);
         } else if ("MEM".equals(blobStore)) {
@@ -100,7 +101,7 @@ public abstract class BlobStoreFixture implements Closeable{
     }
 
     public static BlobStoreFixture getFileDataStore(final File basedir, final int fdsCacheInMB,
-                                                    final StatisticsProvider statisticsProvider) {
+        final StatisticsProvider statisticsProvider) {
         return new BlobStoreFixture("FDS") {
             private File storeDir;
             private FileDataStore fds;
@@ -178,7 +179,7 @@ public abstract class BlobStoreFixture implements Closeable{
     }
 
     public static BlobStoreFixture getDataStore(final File basedir, final int fdsCacheInMB,
-                                                final StatisticsProvider statisticsProvider) {
+        final StatisticsProvider statisticsProvider) {
         return new BlobStoreFixture("DS") {
             private DataStore dataStore;
             private BlobStore blobStore;
@@ -194,7 +195,8 @@ public abstract class BlobStoreFixture implements Closeable{
                     config = getConfig();
                     configure(dataStore, config);
 
-                    dataStore = configureIfCloudDataStore(className, dataStore, config, unique.toLowerCase(), statisticsProvider);
+                    dataStore = configureIfCloudDataStore(className, dataStore, config,
+                        unique.toLowerCase(), statisticsProvider);
                     storeDir = new File(basedir, unique);
                     dataStore.init(storeDir.getAbsolutePath());
                     blobStore = new DataStoreBlobStore(dataStore, true, fdsCacheInMB);
@@ -223,7 +225,6 @@ public abstract class BlobStoreFixture implements Closeable{
             }
         };
     }
-
 
     //~------------------------------------------------< utility >
 

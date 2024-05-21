@@ -18,6 +18,9 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
+import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.storageCredentialAccessTokenFrom;
+import static org.osgi.framework.Constants.SERVICE_PID;
+
 import com.microsoft.azure.storage.CloudStorageAccount;
 import com.microsoft.azure.storage.LocationMode;
 import com.microsoft.azure.storage.StorageCredentialsToken;
@@ -25,6 +28,11 @@ import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.BlobRequestOptions;
 import com.microsoft.azure.storage.blob.CloudBlobClient;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.security.InvalidKeyException;
+import java.util.Hashtable;
+import java.util.Objects;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 import org.jetbrains.annotations.NotNull;
@@ -36,15 +44,6 @@ import org.osgi.service.component.annotations.ConfigurationPolicy;
 import org.osgi.service.component.annotations.Deactivate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.net.URISyntaxException;
-import java.security.InvalidKeyException;
-import java.util.Hashtable;
-import java.util.Objects;
-
-import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.storageCredentialAccessTokenFrom;
-import static org.osgi.framework.Constants.SERVICE_PID;
 
 @Component(
     configurationPolicy = ConfigurationPolicy.REQUIRE,
@@ -66,12 +65,15 @@ public class AzureSegmentStoreService {
     public void activate(ComponentContext context, Configuration config) throws IOException {
         AzurePersistence persistence = createAzurePersistenceFrom(config);
         registration = context.getBundleContext()
-            .registerService(SegmentNodeStorePersistence.class, persistence, new Hashtable<String, Object>() {{
-                put(SERVICE_PID, String.format("%s(%s, %s)", AzurePersistence.class.getName(), config.accountName(), config.rootPath()));
-                if (!Objects.equals(config.role(), "")) {
-                    put("role", config.role());
-                }
-            }});
+                              .registerService(SegmentNodeStorePersistence.class, persistence,
+                                  new Hashtable<String, Object>() {{
+                                      put(SERVICE_PID, String.format("%s(%s, %s)",
+                                          AzurePersistence.class.getName(), config.accountName(),
+                                          config.rootPath()));
+                                      if (!Objects.equals(config.role(), "")) {
+                                          put("role", config.role());
+                                      }
+                                  }});
     }
 
     @Deactivate
@@ -82,11 +84,13 @@ public class AzureSegmentStoreService {
         }
     }
 
-    private static AzurePersistence createAzurePersistenceFrom(Configuration configuration) throws IOException {
+    private static AzurePersistence createAzurePersistenceFrom(Configuration configuration)
+        throws IOException {
         if (!StringUtils.isBlank(configuration.connectionURL())) {
             return createPersistenceFromConnectionURL(configuration);
         }
-        if (!StringUtils.isAnyBlank(configuration.clientId(), configuration.clientSecret(), configuration.tenantId())) {
+        if (!StringUtils.isAnyBlank(configuration.clientId(), configuration.clientSecret(),
+            configuration.tenantId())) {
             return createPersistenceFromServicePrincipalCredentials(configuration);
         }
         if (!StringUtils.isBlank(configuration.sharedAccessSignature())) {
@@ -95,39 +99,49 @@ public class AzureSegmentStoreService {
         return createPersistenceFromAccessKey(configuration);
     }
 
-    private static AzurePersistence createPersistenceFromAccessKey(Configuration configuration) throws IOException {
+    private static AzurePersistence createPersistenceFromAccessKey(Configuration configuration)
+        throws IOException {
         StringBuilder connectionString = new StringBuilder();
         connectionString.append("DefaultEndpointsProtocol=https;");
         connectionString.append("AccountName=").append(configuration.accountName()).append(';');
         connectionString.append("AccountKey=").append(configuration.accessKey()).append(';');
         if (!StringUtils.isBlank(configuration.blobEndpoint())) {
-            connectionString.append("BlobEndpoint=").append(configuration.blobEndpoint()).append(';');
+            connectionString.append("BlobEndpoint=").append(configuration.blobEndpoint())
+                            .append(';');
         }
         return createAzurePersistence(connectionString.toString(), configuration, true);
     }
 
-    private static AzurePersistence createPersistenceFromSasUri(Configuration configuration) throws IOException {
+    private static AzurePersistence createPersistenceFromSasUri(Configuration configuration)
+        throws IOException {
         StringBuilder connectionString = new StringBuilder();
         connectionString.append("DefaultEndpointsProtocol=https;");
         connectionString.append("AccountName=").append(configuration.accountName()).append(';');
-        connectionString.append("SharedAccessSignature=").append(configuration.sharedAccessSignature()).append(';');
+        connectionString.append("SharedAccessSignature=")
+                        .append(configuration.sharedAccessSignature()).append(';');
         if (!StringUtils.isBlank(configuration.blobEndpoint())) {
-            connectionString.append("BlobEndpoint=").append(configuration.blobEndpoint()).append(';');
+            connectionString.append("BlobEndpoint=").append(configuration.blobEndpoint())
+                            .append(';');
         }
         return createAzurePersistence(connectionString.toString(), configuration, false);
     }
 
     @NotNull
-    private static AzurePersistence createPersistenceFromConnectionURL(Configuration configuration) throws IOException {
+    private static AzurePersistence createPersistenceFromConnectionURL(Configuration configuration)
+        throws IOException {
         return createAzurePersistence(configuration.connectionURL(), configuration, true);
     }
 
     @NotNull
-    private static AzurePersistence createPersistenceFromServicePrincipalCredentials(Configuration configuration) throws IOException {
-        StorageCredentialsToken storageCredentialsToken = storageCredentialAccessTokenFrom(configuration.accountName(), configuration.clientId(), configuration.clientSecret(), configuration.tenantId());
-        
+    private static AzurePersistence createPersistenceFromServicePrincipalCredentials(
+        Configuration configuration) throws IOException {
+        StorageCredentialsToken storageCredentialsToken = storageCredentialAccessTokenFrom(
+            configuration.accountName(), configuration.clientId(), configuration.clientSecret(),
+            configuration.tenantId());
+
         try {
-            CloudStorageAccount cloud = new CloudStorageAccount(storageCredentialsToken, true, DEFAULT_ENDPOINT_SUFFIX, configuration.accountName());
+            CloudStorageAccount cloud = new CloudStorageAccount(storageCredentialsToken, true,
+                DEFAULT_ENDPOINT_SUFFIX, configuration.accountName());
             return createAzurePersistence(cloud, configuration, true);
         } catch (StorageException | URISyntaxException e) {
             throw new IOException(e);
@@ -135,7 +149,8 @@ public class AzureSegmentStoreService {
     }
 
     @NotNull
-    private static AzurePersistence createAzurePersistence(String connectionString, Configuration configuration, boolean createContainer) throws IOException {
+    private static AzurePersistence createAzurePersistence(String connectionString,
+        Configuration configuration, boolean createContainer) throws IOException {
         try {
             CloudStorageAccount cloud = CloudStorageAccount.parse(connectionString);
             log.info("Connection string: '{}'", cloud);
@@ -146,7 +161,9 @@ public class AzureSegmentStoreService {
     }
 
     @NotNull
-    private static AzurePersistence createAzurePersistence(CloudStorageAccount cloud, Configuration configuration, boolean createContainer) throws URISyntaxException, StorageException {
+    private static AzurePersistence createAzurePersistence(CloudStorageAccount cloud,
+        Configuration configuration, boolean createContainer)
+        throws URISyntaxException, StorageException {
         CloudBlobClient cloudBlobClient = cloud.createCloudBlobClient();
         BlobRequestOptions blobRequestOptions = new BlobRequestOptions();
 
@@ -155,7 +172,8 @@ public class AzureSegmentStoreService {
         }
         cloudBlobClient.setDefaultRequestOptions(blobRequestOptions);
 
-        CloudBlobContainer container = cloudBlobClient.getContainerReference(configuration.containerName());
+        CloudBlobContainer container = cloudBlobClient.getContainerReference(
+            configuration.containerName());
         if (createContainer && !container.exists()) {
             container.create();
         }

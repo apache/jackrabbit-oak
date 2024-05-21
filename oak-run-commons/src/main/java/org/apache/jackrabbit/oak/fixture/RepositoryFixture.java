@@ -21,9 +21,8 @@ import javax.jcr.Repository;
 public interface RepositoryFixture {
 
     /**
-     * Checks whether this fixture is currently available. For example
-     * a database-based fixture would only be available when the underlying
-     * database service is running.
+     * Checks whether this fixture is currently available. For example a database-based fixture
+     * would only be available when the underlying database service is running.
      *
      * @param n size of the requested cluster
      * @return {@code true} iff the fixture is available
@@ -31,12 +30,11 @@ public interface RepositoryFixture {
     boolean isAvailable(int n);
 
     /**
-     * Creates a new repository cluster with the given number of nodes.
-     * The initial state of the cluster consists of just the default
-     * repository content included by the implementation. The caller of
-     * this method should have exclusive access to the created cluster.
-     * The caller is also responsible for calling {@link #tearDownCluster()}
-     * when the test cluster is no longer needed.
+     * Creates a new repository cluster with the given number of nodes. The initial state of the
+     * cluster consists of just the default repository content included by the implementation. The
+     * caller of this method should have exclusive access to the created cluster. The caller is also
+     * responsible for calling {@link #tearDownCluster()} when the test cluster is no longer
+     * needed.
      *
      * @param n size of the requested cluster
      * @return nodes of the created cluster
@@ -45,21 +43,18 @@ public interface RepositoryFixture {
     Repository[] setUpCluster(int n) throws Exception;
 
     /**
-     * Ensures that all content changes seen by one of the given cluster
-     * nodes are seen also by all the other given nodes. Used to help
-     * testing features like eventual consistency where the normal APIs
-     * don't make strong enough guarantees to enable writing a test case
-     * without a potentially unbounded wait for changes to propagate
-     * across the cluster.
+     * Ensures that all content changes seen by one of the given cluster nodes are seen also by all
+     * the other given nodes. Used to help testing features like eventual consistency where the
+     * normal APIs don't make strong enough guarantees to enable writing a test case without a
+     * potentially unbounded wait for changes to propagate across the cluster.
      *
      * @param nodes cluster nodes to be synchronized
      */
     void syncRepositoryCluster(Repository... nodes);
 
     /**
-     * Releases resources associated with the given repository cluster.
-     * The caller of {@link #setUpCluster(int)} shall call this
-     * method once the cluster is no longer needed.
+     * Releases resources associated with the given repository cluster. The caller of
+     * {@link #setUpCluster(int)} shall call this method once the cluster is no longer needed.
      */
     void tearDownCluster();
 

@@ -22,14 +22,15 @@ package org.apache.jackrabbit.oak.api.blob;
 import org.osgi.annotation.versioning.ProviderType;
 
 /**
- * Download options to be provided to a call to {@link
- * BlobAccessProvider#initiateBlobUpload(long, int, BlobUploadOptions)}.
+ * Download options to be provided to a call to
+ * {@link BlobAccessProvider#initiateBlobUpload(long, int, BlobUploadOptions)}.
  * <p>
- * This object is an internal corollary to {@code
- * org.apache.jackrabbit.api.binary.BinaryUploadOptions}.
+ * This object is an internal corollary to
+ * {@code org.apache.jackrabbit.api.binary.BinaryUploadOptions}.
  */
 @ProviderType
 public class BlobUploadOptions {
+
     private boolean domainOverrideIgnored = false;
 
     public static final BlobUploadOptions DEFAULT = new BlobUploadOptions();
@@ -41,20 +42,18 @@ public class BlobUploadOptions {
     /**
      * Creates a new upload options instance.
      *
-     * @param domainOverrideIgnored true if any configured domain override
-     *                              should be ignored when generating URIs;
-     *                              false otherwise.
+     * @param domainOverrideIgnored true if any configured domain override should be ignored when
+     *                              generating URIs; false otherwise.
      */
     public BlobUploadOptions(boolean domainOverrideIgnored) {
         this.domainOverrideIgnored = domainOverrideIgnored;
     }
 
     /**
-     * Get the setting to determine if any configured domain override should be
-     * ignored when generating URIs.
-     *
-     * Default behavior is to honor (i.e. not ignore) any configured domain
-     * override value (false).
+     * Get the setting to determine if any configured domain override should be ignored when
+     * generating URIs.
+     * <p>
+     * Default behavior is to honor (i.e. not ignore) any configured domain override value (false).
      *
      * @return true to ignore the domain override; false otherwise.
      */

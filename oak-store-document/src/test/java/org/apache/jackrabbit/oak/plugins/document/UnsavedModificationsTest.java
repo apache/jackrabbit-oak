@@ -33,7 +33,8 @@ public class UnsavedModificationsTest {
     public void persistWithoutFind() throws Exception {
         CountingDocumentStore store = new CountingDocumentStore(new MemoryDocumentStore());
         DocumentNodeStore ns = builderProvider.newBuilder()
-                .setDocumentStore(store).setAsyncDelay(0).getNodeStore();
+                                              .setDocumentStore(store).setAsyncDelay(0)
+                                              .getNodeStore();
         NodeBuilder builder = ns.getRoot().builder();
         builder.child("foo");
         merge(ns, builder);

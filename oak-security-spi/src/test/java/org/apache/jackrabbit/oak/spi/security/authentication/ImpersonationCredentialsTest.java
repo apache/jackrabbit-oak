@@ -16,14 +16,13 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication;
 
+import static org.junit.Assert.assertSame;
+
 import javax.jcr.Credentials;
 import javax.jcr.GuestCredentials;
 import javax.jcr.SimpleCredentials;
-
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.junit.Test;
-
-import static org.junit.Assert.assertSame;
 
 public class ImpersonationCredentialsTest {
 
@@ -35,11 +34,13 @@ public class ImpersonationCredentialsTest {
         assertSame(creds, new ImpersonationCredentials(creds, info).getBaseCredentials());
 
         Credentials simpleCreds = new SimpleCredentials("userId", new char[0]);
-        assertSame(simpleCreds, new ImpersonationCredentials(simpleCreds, info).getBaseCredentials());
+        assertSame(simpleCreds,
+            new ImpersonationCredentials(simpleCreds, info).getBaseCredentials());
     }
 
     @Test
     public void testGetAuthInfo() {
-        assertSame(info, new ImpersonationCredentials(new Credentials() {}, info).getImpersonatorInfo());
+        assertSame(info, new ImpersonationCredentials(new Credentials() {
+        }, info).getImpersonatorInfo());
     }
 }

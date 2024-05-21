@@ -34,7 +34,7 @@ public class ConcurrentUpdatesTest extends AbstractMongoConnectionTest {
     @Test
     public void test() throws Exception {
         final List<Exception> exceptions = Collections.synchronizedList(
-                new ArrayList<Exception>());
+            new ArrayList<Exception>());
         List<Thread> writers = new ArrayList<Thread>();
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < NUM_WRITERS; i++) {

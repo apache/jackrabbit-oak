@@ -16,6 +16,16 @@
  */
 package org.apache.jackrabbit.oak.benchmark.authentication.external;
 
+import static javax.security.auth.login.AppConfigurationEntry.LoginModuleControlFlag.OPTIONAL;
+import static javax.security.auth.login.AppConfigurationEntry.LoginModuleControlFlag.SUFFICIENT;
+
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import javax.jcr.Session;
+import javax.jcr.ValueFactory;
+import javax.security.auth.login.AppConfigurationEntry;
+import javax.security.auth.login.Configuration;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -34,23 +44,13 @@ import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.jetbrains.annotations.NotNull;
 
-import javax.jcr.Session;
-import javax.jcr.ValueFactory;
-import javax.security.auth.login.AppConfigurationEntry;
-import javax.security.auth.login.Configuration;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
-import static javax.security.auth.login.AppConfigurationEntry.LoginModuleControlFlag.OPTIONAL;
-import static javax.security.auth.login.AppConfigurationEntry.LoginModuleControlFlag.SUFFICIENT;
-
 public class AutoMembershipTest extends AbstractExternalTest {
-    
+
     private final boolean dynamicSync;
     private final int numberOfUsers;
 
-    public AutoMembershipTest(int numberOfUsers, int numberOfGroups, boolean dynamicMembership, @NotNull List<String> autoMembership) {
+    public AutoMembershipTest(int numberOfUsers, int numberOfGroups, boolean dynamicMembership,
+        @NotNull List<String> autoMembership) {
         super(numberOfUsers, numberOfGroups, Long.MAX_VALUE, dynamicMembership, autoMembership);
         this.dynamicSync = dynamicMembership;
         this.numberOfUsers = numberOfUsers;
@@ -61,7 +61,7 @@ public class AutoMembershipTest extends AbstractExternalTest {
         super.expandSyncConfig();
         syncConfig.group().setDynamicGroups(syncConfig.user().getDynamicMembership());
     }
-    
+
     @Override
     protected void beforeSuite() throws Exception {
         super.beforeSuite();
@@ -73,7 +73,8 @@ public class AutoMembershipTest extends AbstractExternalTest {
             ValueFactory valueFactory = systemSession.getValueFactory();
 
             Set<String> memberIds = new HashSet<>();
-            SyncContext ctx = (dynamicSync) ? new DynamicSyncContext(syncConfig, idp, userManager, valueFactory) :
+            SyncContext ctx =
+                (dynamicSync) ? new DynamicSyncContext(syncConfig, idp, userManager, valueFactory) :
                     new DefaultSyncContext(syncConfig, idp, userManager, valueFactory);
             for (int i = 0; i < numberOfUsers; i++) {
                 String uid = "u" + i;
@@ -84,8 +85,8 @@ public class AutoMembershipTest extends AbstractExternalTest {
             // create a test group and extra nested groups
             Group testGroup = userManager.createGroup("testGroup");
             for (int i = 0; i < 10; i++) {
-                Group nested = userManager.createGroup("nested_"+i);
-                memberIds.add("nested_"+i);
+                Group nested = userManager.createGroup("nested_" + i);
+                memberIds.add("nested_" + i);
             }
             // add all members to the test group
             testGroup.addMembers(memberIds.toArray(new String[0]));
@@ -104,7 +105,7 @@ public class AutoMembershipTest extends AbstractExternalTest {
         try {
             systemSession = systemLogin();
             UserManager um = ((JackrabbitSession) systemSession).getUserManager();
-            
+
             Group g = um.getAuthorizable("testGroup", Group.class);
             Authorizable member = um.getAuthorizable(id);
             // trigger auto-membership evaluation
@@ -122,25 +123,25 @@ public class AutoMembershipTest extends AbstractExternalTest {
         return new Configuration() {
             @Override
             public AppConfigurationEntry[] getAppConfigurationEntry(String s) {
-                return new AppConfigurationEntry[] {
-                        new AppConfigurationEntry(
-                                GuestLoginModule.class.getName(),
-                                OPTIONAL,
-                                ImmutableMap.of()),
-                        new AppConfigurationEntry(
-                                TokenLoginModule.class.getName(),
-                                SUFFICIENT,
-                                ImmutableMap.of()),
-                        new AppConfigurationEntry(
-                                ExternalLoginModule.class.getName(),
-                                SUFFICIENT,
-                                ImmutableMap.of(
-                                        ExternalLoginModule.PARAM_SYNC_HANDLER_NAME, syncConfig.getName(),
-                                        ExternalLoginModule.PARAM_IDP_NAME, idp.getName())),
-                        new AppConfigurationEntry(
-                                LoginModuleImpl.class.getName(),
-                                SUFFICIENT,
-                                ImmutableMap.of())
+                return new AppConfigurationEntry[]{
+                    new AppConfigurationEntry(
+                        GuestLoginModule.class.getName(),
+                        OPTIONAL,
+                        ImmutableMap.of()),
+                    new AppConfigurationEntry(
+                        TokenLoginModule.class.getName(),
+                        SUFFICIENT,
+                        ImmutableMap.of()),
+                    new AppConfigurationEntry(
+                        ExternalLoginModule.class.getName(),
+                        SUFFICIENT,
+                        ImmutableMap.of(
+                            ExternalLoginModule.PARAM_SYNC_HANDLER_NAME, syncConfig.getName(),
+                            ExternalLoginModule.PARAM_IDP_NAME, idp.getName())),
+                    new AppConfigurationEntry(
+                        LoginModuleImpl.class.getName(),
+                        SUFFICIENT,
+                        ImmutableMap.of())
                 };
             }
         };
@@ -148,6 +149,8 @@ public class AutoMembershipTest extends AbstractExternalTest {
 
     @Override
     protected ConfigurationParameters getSecurityConfiguration() {
-        return ConfigurationParameters.of(UserConfiguration.NAME, ConfigurationParameters.of(ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, ImportBehavior.NAME_BESTEFFORT));
+        return ConfigurationParameters.of(UserConfiguration.NAME,
+            ConfigurationParameters.of(ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR,
+                ImportBehavior.NAME_BESTEFFORT));
     }
 }

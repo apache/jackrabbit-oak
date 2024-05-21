@@ -24,8 +24,7 @@ import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * A merge commit containing multiple commit revisions. One for each branch
- * commit to merge.
+ * A merge commit containing multiple commit revisions. One for each branch commit to merge.
  */
 class MergeCommit extends Commit {
 
@@ -33,8 +32,8 @@ class MergeCommit extends Commit {
     private final Set<Revision> branchCommits = Sets.newHashSet();
 
     MergeCommit(DocumentNodeStore nodeStore,
-                RevisionVector baseRevision,
-                SortedSet<Revision> revisions) {
+        RevisionVector baseRevision,
+        SortedSet<Revision> revisions) {
         super(nodeStore, revisions.last(), baseRevision, new RevisionVector());
         this.mergeRevs = revisions;
     }

@@ -23,7 +23,6 @@ import static org.junit.Assert.fail;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;
-
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.jcr.query.PrefetchIterator.PrefetchOptions;
@@ -33,14 +32,15 @@ import org.junit.Test;
  * Test the PrefetchIterator class.
  */
 public class PrefetchIteratorTest {
-    
+
     @Test
     public void testFastSize() {
         Iterable<Integer> s;
         PrefetchIterator<Integer> it;
         s = seq(0, 21);
-        it = new PrefetchIterator<Integer>(s.iterator(), 
-                new PrefetchOptions() { {
+        it = new PrefetchIterator<Integer>(s.iterator(),
+            new PrefetchOptions() {
+                {
                     size = -1;
                     fastSize = true;
                     fastSizeCallback = new Result() {
@@ -74,24 +74,27 @@ public class PrefetchIteratorTest {
                         public long getSize(SizePrecision precision, long max) {
                             return 100;
                         }
-                        
+
                     };
-                } });
+                }
+            });
         assertEquals(21, it.size());
     }
-    
+
     @Test
     public void testKnownSize() {
         Iterable<Integer> s;
         PrefetchIterator<Integer> it;
         s = seq(0, 100);
-        it = new PrefetchIterator<Integer>(s.iterator(), 
-                new PrefetchOptions() { {
+        it = new PrefetchIterator<Integer>(s.iterator(),
+            new PrefetchOptions() {
+                {
                     min = 5;
                     timeout = 0;
                     max = 10;
                     size = 200;
-                } });
+                }
+            });
         // reports the 'wrong' value as it was set manually
         assertEquals(200, it.size());
     }
@@ -100,28 +103,32 @@ public class PrefetchIteratorTest {
     public void testTimeout() {
         Iterable<Integer> s;
         PrefetchIterator<Integer> it;
-        
+
         // long delay (10 ms per row)
         final long testTimeout = 10;
         s = seq(0, 100, 10);
-        it = new PrefetchIterator<Integer>(s.iterator(), 
-                new PrefetchOptions() { {
+        it = new PrefetchIterator<Integer>(s.iterator(),
+            new PrefetchOptions() {
+                {
                     min = 5;
                     timeout = testTimeout;
                     max = 10;
                     size = -1;
-                } });
+                }
+            });
         assertEquals(-1, it.size());
 
         // no delay
         s = seq(0, 100);
-        it = new PrefetchIterator<Integer>(s.iterator(), 
-                new PrefetchOptions() { {
+        it = new PrefetchIterator<Integer>(s.iterator(),
+            new PrefetchOptions() {
+                {
                     min = 5;
                     timeout = testTimeout;
                     max = 1000;
                     size = -1;
-                } });
+                }
+            });
         assertEquals(100, it.size());
     }
 
@@ -134,14 +141,16 @@ public class PrefetchIteratorTest {
                 // every 3th time, use a timeout
                 final long testTimeout = size % 3 == 0 ? 100 : 0;
                 Iterable<Integer> s = seq(0, size);
-                PrefetchIterator<Integer> it = 
-                        new PrefetchIterator<Integer>(s.iterator(), 
-                                new PrefetchOptions() { {
-                                    min = 20;
-                                    timeout = testTimeout;
-                                    max = 30;
-                                    size = -1;
-                                } });
+                PrefetchIterator<Integer> it =
+                    new PrefetchIterator<Integer>(s.iterator(),
+                        new PrefetchOptions() {
+                            {
+                                min = 20;
+                                timeout = testTimeout;
+                                max = 30;
+                                size = -1;
+                            }
+                        });
                 for (int x : seq(0, readBefore)) {
                     boolean hasNext = it.hasNext();
                     if (!hasNext) {
@@ -184,10 +193,10 @@ public class PrefetchIteratorTest {
             }
         }
     }
-    
+
     /**
      * Create an integer sequence.
-     * 
+     *
      * @param start the first value
      * @param limit the last value + 1
      * @return a sequence of the values [start .. limit-1]
@@ -195,10 +204,10 @@ public class PrefetchIteratorTest {
     private static Iterable<Integer> seq(final int start, final int limit) {
         return seq(start, limit, 0);
     }
-    
+
     /**
      * Create an integer sequence.
-     * 
+     *
      * @param start the first value
      * @param limit the last value + 1
      * @param sleep the time to wait for each element
@@ -210,10 +219,12 @@ public class PrefetchIteratorTest {
             public Iterator<Integer> iterator() {
                 return new Iterator<Integer>() {
                     int x = start;
+
                     @Override
                     public boolean hasNext() {
                         return x < limit;
                     }
+
                     @Override
                     public Integer next() {
                         if (sleep > 0) {
@@ -225,17 +236,19 @@ public class PrefetchIteratorTest {
                         }
                         return x++;
                     }
+
                     @Override
                     public void remove() {
                         throw new UnsupportedOperationException();
                     }
                 };
             }
+
             @Override
             public String toString() {
                 return "[" + start + ".." + (limit - 1) + "]";
             }
         };
     }
-    
+
 }

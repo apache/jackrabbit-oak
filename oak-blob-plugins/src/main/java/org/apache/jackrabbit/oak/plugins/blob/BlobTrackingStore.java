@@ -22,8 +22,10 @@ import org.apache.jackrabbit.oak.plugins.blob.datastore.BlobTracker;
  * Interface to be implemented by a data store which can support local blob id tracking.
  */
 public interface BlobTrackingStore extends SharedDataStore {
+
     /**
      * Registers a tracker in the data store.
+     *
      * @param tracker
      */
     void addTracker(BlobTracker tracker);

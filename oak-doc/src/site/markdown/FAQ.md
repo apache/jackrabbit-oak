@@ -14,6 +14,7 @@
    See the License for the specific language governing permissions and
    limitations under the License.
   -->
+
 # Frequently Asked Questions (FAQs)
 
 <!-- MACRO{toc} -->
@@ -26,21 +27,24 @@ You might be missing an index. See [Query engine](query.html).
 
 You are accessing a `Session` instance concurrently from multiple threads. Session instances are
 [not thread safe](dos_and_donts.html#Anti_pattern:_concurrent_session_access).
-Enabling `DEBUG` logging for `SessionDelegate` provides stack traces for both sessions involved. 
+Enabling `DEBUG` logging for `SessionDelegate` provides stack traces for both sessions involved.
 *Note*: this should be used for debugging only as it has a major impact on system performance.
 
 ## My repository size on disk is growing beyond control (SegmentNodeStore)
 
-You need to setup a regular job for [compacting the segments](nodestore/segmentmk.html#Segment_Compaction).
+You need to setup a regular job
+for [compacting the segments](nodestore/segmentmk.html#Segment_Compaction).
 
 ## How do I debug merge conflict errors
 
 Debugging merge conflict errors is now possible by enabling `DEBUG` logs on
 `org.apache.jackrabbit.oak.plugins.commit.MergingNodeStateDiff` and
-`org.apache.jackrabbit.oak.plugins.commit.ConflictValidator`. 
-This option is available via [OAK-3057](https://issues.apache.org/jira/browse/OAK-3057) since Oak 1.0.17, 1.2.3, 1.3.3. 
+`org.apache.jackrabbit.oak.plugins.commit.ConflictValidator`.
+This option is available via [OAK-3057](https://issues.apache.org/jira/browse/OAK-3057) since Oak
+1.0.17, 1.2.3, 1.3.3.
 
 ## Questions about External Authentication
+
 See the dedicated [FAQ](security/authentication/external/faq.html)
 
 ## My question is not listed here

@@ -27,7 +27,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,23 +35,22 @@ import org.slf4j.LoggerFactory;
 // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 /**
- * The {@code PropertiesUtil} is a utility class providing some
- * useful utility methods for converting property types.
+ * The {@code PropertiesUtil} is a utility class providing some useful utility methods for
+ * converting property types.
  */
 public final class PropertiesUtil {
 
     private static Logger log = LoggerFactory.getLogger(PropertiesUtil.class);
 
-    private PropertiesUtil() {}
+    private PropertiesUtil() {
+    }
 
     /**
-     * Returns the boolean value of the parameter or the
-     * {@code defaultValue} if the parameter is {@code null}.
-     * If the parameter is not a {@code Boolean} it is converted
-     * by calling {@code Boolean.valueOf} on the string value of the
-     * object.
+     * Returns the boolean value of the parameter or the {@code defaultValue} if the parameter is
+     * {@code null}. If the parameter is not a {@code Boolean} it is converted by calling
+     * {@code Boolean.valueOf} on the string value of the object.
      *
-     * @param propValue the property value or {@code null}
+     * @param propValue    the property value or {@code null}
      * @param defaultValue the default boolean value
      */
     public static boolean toBoolean(Object propValue, boolean defaultValue) {
@@ -67,9 +65,10 @@ public final class PropertiesUtil {
     }
 
     /**
-     * Returns the parameter as a string or the
-     * {@code defaultValue} if the parameter is {@code null}.
-     * @param propValue the property value or {@code null}
+     * Returns the parameter as a string or the {@code defaultValue} if the parameter is
+     * {@code null}.
+     *
+     * @param propValue    the property value or {@code null}
      * @param defaultValue the default string value
      */
     public static String toString(Object propValue, String defaultValue) {
@@ -78,12 +77,11 @@ public final class PropertiesUtil {
     }
 
     /**
-     * Returns the parameter as a long or the
-     * {@code defaultValue} if the parameter is {@code null} or if
-     * the parameter is not a {@code Long} and cannot be converted to
-     * a {@code Long} from the parameter's string value.
+     * Returns the parameter as a long or the {@code defaultValue} if the parameter is {@code null}
+     * or if the parameter is not a {@code Long} and cannot be converted to a {@code Long} from the
+     * parameter's string value.
      *
-     * @param propValue the property value or {@code null}
+     * @param propValue    the property value or {@code null}
      * @param defaultValue the default long value
      */
     public static long toLong(Object propValue, long defaultValue) {
@@ -102,12 +100,11 @@ public final class PropertiesUtil {
     }
 
     /**
-     * Returns the parameter as an integer or the
-     * {@code defaultValue} if the parameter is {@code null} or if
-     * the parameter is not an {@code Integer} and cannot be converted to
-     * an {@code Integer} from the parameter's string value.
+     * Returns the parameter as an integer or the {@code defaultValue} if the parameter is
+     * {@code null} or if the parameter is not an {@code Integer} and cannot be converted to an
+     * {@code Integer} from the parameter's string value.
      *
-     * @param propValue the property value or {@code null}
+     * @param propValue    the property value or {@code null}
      * @param defaultValue the default integer value
      */
     public static int toInteger(Object propValue, int defaultValue) {
@@ -126,12 +123,11 @@ public final class PropertiesUtil {
     }
 
     /**
-     * Returns the parameter as a double or the
-     * {@code defaultValue} if the parameter is {@code null} or if
-     * the parameter is not a {@code Double} and cannot be converted to
-     * a {@code Double} from the parameter's string value.
+     * Returns the parameter as a double or the {@code defaultValue} if the parameter is
+     * {@code null} or if the parameter is not a {@code Double} and cannot be converted to a
+     * {@code Double} from the parameter's string value.
      *
-     * @param propValue the property value or {@code null}
+     * @param propValue    the property value or {@code null}
      * @param defaultValue the default double value
      */
     public static double toDouble(Object propValue, double defaultValue) {
@@ -150,12 +146,11 @@ public final class PropertiesUtil {
     }
 
     /**
-     * Returns the parameter as a single value. If the
-     * parameter is neither an array nor a {@code java.util.Collection} the
-     * parameter is returned unmodified. If the parameter is a non-empty array,
-     * the first array element is returned. If the property is a non-empty
-     * {@code java.util.Collection}, the first collection element is returned.
-     * Otherwise {@code null} is returned.
+     * Returns the parameter as a single value. If the parameter is neither an array nor a
+     * {@code java.util.Collection} the parameter is returned unmodified. If the parameter is a
+     * non-empty array, the first array element is returned. If the property is a non-empty
+     * {@code java.util.Collection}, the first collection element is returned. Otherwise
+     * {@code null} is returned.
      *
      * @param propValue the parameter to convert.
      */
@@ -174,13 +169,11 @@ public final class PropertiesUtil {
     }
 
     /**
-     * Returns the parameter as an array of Strings. If
-     * the parameter is a scalar value its string value is returned as a single
-     * element array. If the parameter is an array, the elements are converted to
-     * String objects and returned as an array. If the parameter is a collection, the
-     * collection elements are converted to String objects and returned as an array.
-     * Otherwise (if the parameter is {@code null}) {@code null} is
-     * returned.
+     * Returns the parameter as an array of Strings. If the parameter is a scalar value its string
+     * value is returned as a single element array. If the parameter is an array, the elements are
+     * converted to String objects and returned as an array. If the parameter is a collection, the
+     * collection elements are converted to String objects and returned as an array. Otherwise (if
+     * the parameter is {@code null}) {@code null} is returned.
      *
      * @param propValue The object to convert.
      */
@@ -189,15 +182,13 @@ public final class PropertiesUtil {
     }
 
     /**
-     * Returns the parameter as an array of Strings. If
-     * the parameter is a scalar value its string value is returned as a single
-     * element array. If the parameter is an array, the elements are converted to
-     * String objects and returned as an array. If the parameter is a collection, the
-     * collection elements are converted to String objects and returned as an array.
-     * Otherwise (if the property is {@code null}) a provided default value is
-     * returned.
+     * Returns the parameter as an array of Strings. If the parameter is a scalar value its string
+     * value is returned as a single element array. If the parameter is an array, the elements are
+     * converted to String objects and returned as an array. If the parameter is a collection, the
+     * collection elements are converted to String objects and returned as an array. Otherwise (if
+     * the property is {@code null}) a provided default value is returned.
      *
-     * @param propValue The object to convert.
+     * @param propValue    The object to convert.
      * @param defaultArray The default array to return.
      */
     public static String[] toStringArray(Object propValue, String[] defaultArray) {
@@ -207,7 +198,7 @@ public final class PropertiesUtil {
 
         } else if (propValue instanceof String) {
             // single string
-            return new String[] { (String) propValue };
+            return new String[]{(String) propValue};
 
         } else if (propValue instanceof String[]) {
             // String[]
@@ -240,16 +231,15 @@ public final class PropertiesUtil {
     }
 
     /**
-     * Populates the bean properties from config instance. It supports coercing
-     *  values for simple types like Number, Integer, Long, Boolean etc. Complex
-     *  objects are not supported
+     * Populates the bean properties from config instance. It supports coercing values for simple
+     * types like Number, Integer, Long, Boolean etc. Complex objects are not supported
      *
      * @param instance bean to populate
-     * @param config properties to set in the passed bean
-     * @param validate Flag to validate the configured bean property names against
-     *                 the configured bean class
+     * @param config   properties to set in the passed bean
+     * @param validate Flag to validate the configured bean property names against the configured
+     *                 bean class
      */
-    public static void populate(Object instance, Map<String,?> config, boolean validate) {
+    public static void populate(Object instance, Map<String, ?> config, boolean validate) {
         Class<?> objectClass = instance.getClass();
 
         // Set all configured bean properties
@@ -257,13 +247,13 @@ public final class PropertiesUtil {
         StringBuilder buff = new StringBuilder();
         buff.append(objectClass.getSimpleName()).append('{');
         int count = 0;
-        for(Map.Entry<String,?> e : config.entrySet()) {
+        for (Map.Entry<String, ?> e : config.entrySet()) {
             String name = e.getKey();
             Method setter = setters.get(name);
             if (setter != null) {
                 if (setter.getAnnotation(Deprecated.class) != null) {
                     log.warn("Parameter {} of {} has been deprecated",
-                            name, objectClass.getName());
+                        name, objectClass.getName());
                 }
                 Object value = e.getValue();
                 setProperty(instance, name, setter, value);
@@ -273,8 +263,8 @@ public final class PropertiesUtil {
                 buff.append(name).append('=').append(value);
             } else if (validate) {
                 throw new IllegalArgumentException(
-                        "Configured class " + objectClass.getName()
-                                + " does not contain a property named " + name);
+                    "Configured class " + objectClass.getName()
+                        + " does not contain a property named " + name);
             }
         }
         buff.append('}');
@@ -286,62 +276,62 @@ public final class PropertiesUtil {
         for (Method method : klass.getMethods()) {
             String name = method.getName();
             if (name.startsWith("set") && name.length() > 3
-                    && Modifier.isPublic(method.getModifiers())
-                    && !Modifier.isStatic(method.getModifiers())
-                    && Void.TYPE.equals(method.getReturnType())
-                    && method.getParameterTypes().length == 1) {
+                && Modifier.isPublic(method.getModifiers())
+                && !Modifier.isStatic(method.getModifiers())
+                && Void.TYPE.equals(method.getReturnType())
+                && method.getParameterTypes().length == 1) {
                 methods.put(
-                        name.substring(3, 4).toLowerCase(Locale.ENGLISH) + name.substring(4),
-                        method);
+                    name.substring(3, 4).toLowerCase(Locale.ENGLISH) + name.substring(4),
+                    method);
             }
         }
         return methods;
     }
 
     private static void setProperty(
-            Object instance, String name, Method setter, Object value) {
+        Object instance, String name, Method setter, Object value) {
         String className = instance.getClass().getName();
         Class<?> type = setter.getParameterTypes()[0];
         try {
             if (type.isAssignableFrom(String.class)
-                    || type.isAssignableFrom(Object.class)) {
+                || type.isAssignableFrom(Object.class)) {
                 setter.invoke(instance, value);
             } else if (type.isAssignableFrom(Boolean.TYPE)
-                    || type.isAssignableFrom(Boolean.class)) {
+                || type.isAssignableFrom(Boolean.class)) {
                 setter.invoke(instance, toBoolean(value, false));
             } else if (type.isAssignableFrom(Integer.TYPE)
-                    || type.isAssignableFrom(Integer.class)) {
-                setter.invoke(instance, toInteger(value,0));
+                || type.isAssignableFrom(Integer.class)) {
+                setter.invoke(instance, toInteger(value, 0));
             } else if (type.isAssignableFrom(Long.TYPE)
-                    || type.isAssignableFrom(Long.class)) {
+                || type.isAssignableFrom(Long.class)) {
                 setter.invoke(instance, toLong(value, 0));
             } else if (type.isAssignableFrom(Double.TYPE)
-                    || type.isAssignableFrom(Double.class)) {
-                setter.invoke(instance, toDouble(value,0));
+                || type.isAssignableFrom(Double.class)) {
+                setter.invoke(instance, toDouble(value, 0));
             } else {
                 throw new RuntimeException(
-                        "The type (" + type.getName()
-                                + ") of property " + name + " of class "
-                                + className + " is not supported");
+                    "The type (" + type.getName()
+                        + ") of property " + name + " of class "
+                        + className + " is not supported");
             }
         } catch (NumberFormatException e) {
             throw new RuntimeException(
-                    "Invalid number format (" + value + ") for property "
-                            + name + " of class " + className, e);
+                "Invalid number format (" + value + ") for property "
+                    + name + " of class " + className, e);
         } catch (InvocationTargetException e) {
             throw new RuntimeException(
-                    "Property " + name + " of class "
-                            + className + " can not be set to \"" + value + '"',
-                    e);
+                "Property " + name + " of class "
+                    + className + " can not be set to \"" + value + '"',
+                e);
         } catch (IllegalAccessException e) {
             throw new RuntimeException(
-                    "The setter of property " + name
-                            + " of class " + className + " can not be accessed",
-                    e);
+                "The setter of property " + name
+                    + " of class " + className + " can not be accessed",
+                e);
         } catch (IllegalArgumentException e) {
             throw new RuntimeException(
-                    "Unable to call the setter of property "
-                            + name + " of class " + className, e);
+                "Unable to call the setter of property "
+                    + name + " of class " + className, e);
         }
     }
 }

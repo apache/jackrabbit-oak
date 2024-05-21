@@ -25,15 +25,14 @@ import javax.jcr.ValueFactory;
 import javax.jcr.security.AccessControlEntry;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.Privilege;
-
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
-import org.apache.jackrabbit.oak.exercise.security.authorization.restriction.CustomRestrictionProvider;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.exercise.ExerciseUtility;
+import org.apache.jackrabbit.oak.exercise.security.authorization.restriction.CustomRestrictionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.test.AbstractJCRTest;
 import org.apache.jackrabbit.test.NotExecutableException;
@@ -102,7 +101,9 @@ import org.apache.jackrabbit.test.NotExecutableException;
  *
  * </pre>
  *
- * @see <a href="http://jackrabbit.apache.org/oak/docs/security/accesscontrol/restriction.html">Restriction Management Documentation</a>
+ * @see <a
+ * href="http://jackrabbit.apache.org/oak/docs/security/accesscontrol/restriction.html">Restriction
+ * Management Documentation</a>
  */
 public class L7_RestrictionsTest extends AbstractJCRTest {
 
@@ -119,7 +120,8 @@ public class L7_RestrictionsTest extends AbstractJCRTest {
 
         acMgr = superuser.getAccessControlManager();
 
-        testPrincipal = ExerciseUtility.createTestGroup(((JackrabbitSession) superuser).getUserManager()).getPrincipal();
+        testPrincipal = ExerciseUtility.createTestGroup(
+            ((JackrabbitSession) superuser).getUserManager()).getPrincipal();
         superuser.save();
 
         acl = AccessControlUtils.getAccessControlList(superuser, testRoot);
@@ -127,13 +129,15 @@ public class L7_RestrictionsTest extends AbstractJCRTest {
             throw new NotExecutableException();
         }
 
-        testPrivileges = AccessControlUtils.privilegesFromNames(acMgr, Privilege.JCR_READ, Privilege.JCR_WRITE);
+        testPrivileges = AccessControlUtils.privilegesFromNames(acMgr, Privilege.JCR_READ,
+            Privilege.JCR_WRITE);
     }
 
     @Override
     protected void tearDown() throws Exception {
         try {
-            Authorizable testGroup = ((JackrabbitSession) superuser).getUserManager().getAuthorizable(testPrincipal);
+            Authorizable testGroup = ((JackrabbitSession) superuser).getUserManager()
+                                                                    .getAuthorizable(testPrincipal);
             if (testGroup != null) {
                 testGroup.remove();
                 superuser.save();
@@ -175,15 +179,17 @@ public class L7_RestrictionsTest extends AbstractJCRTest {
         // EXERCISE : create a map with the multi-valued restrictions as well.
         Map<String, Value[]> mvRestrictions = null;
 
-        assertTrue(acl.addEntry(testPrincipal, testPrivileges, false, restrictions, mvRestrictions));
+        assertTrue(
+            acl.addEntry(testPrincipal, testPrivileges, false, restrictions, mvRestrictions));
     }
 
     public void testRetrieveRestrictionsFromACE() throws RepositoryException {
         ValueFactory vf = superuser.getValueFactory();
 
         acl.addEntry(testPrincipal, testPrivileges, false,
-                ImmutableMap.of(AccessControlConstants.REP_GLOB, vf.createValue("/*")),
-                ImmutableMap.of(AccessControlConstants.REP_PREFIXES, new Value[] {vf.createValue("jcr"), vf.createValue("rep")})
+            ImmutableMap.of(AccessControlConstants.REP_GLOB, vf.createValue("/*")),
+            ImmutableMap.of(AccessControlConstants.REP_PREFIXES,
+                new Value[]{vf.createValue("jcr"), vf.createValue("rep")})
         );
 
         for (AccessControlEntry ace : acl.getAccessControlEntries()) {

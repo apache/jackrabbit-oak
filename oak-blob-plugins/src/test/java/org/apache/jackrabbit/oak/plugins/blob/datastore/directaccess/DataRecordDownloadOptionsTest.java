@@ -19,22 +19,21 @@
 
 package org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess;
 
-import java.util.List;
-
-import org.apache.jackrabbit.oak.api.blob.BlobDownloadOptions;
-import org.junit.Test;
-
-import org.apache.jackrabbit.guava.common.base.Charsets;
-import org.apache.jackrabbit.guava.common.base.Joiner;
-import org.apache.jackrabbit.guava.common.base.Strings;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
+import java.util.List;
+import org.apache.jackrabbit.guava.common.base.Charsets;
+import org.apache.jackrabbit.guava.common.base.Joiner;
+import org.apache.jackrabbit.guava.common.base.Strings;
+import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.oak.api.blob.BlobDownloadOptions;
+import org.junit.Test;
+
 public class DataRecordDownloadOptionsTest {
+
     private static final String MEDIA_TYPE_IMAGE_PNG = "image/png";
     private static final String MEDIA_TYPE_TEXT_PLAIN = "text/plain";
     private static final String CHARACTER_ENCODING_UTF_8 = "utf-8";
@@ -47,82 +46,77 @@ public class DataRecordDownloadOptionsTest {
     private static final String DISPOSITION_TYPE_ATTACHMENT = "attachment";
 
     private void verifyDownloadOptions(DataRecordDownloadOptions options,
-                                       String mediaType,
-                                       String characterEncoding,
-                                       String fileName,
-                                       String dispositionType) {
+        String mediaType,
+        String characterEncoding,
+        String fileName,
+        String dispositionType) {
         assertNotNull(options);
         if (null != mediaType) {
             assertEquals(mediaType, options.getMediaType());
-        }
-        else {
+        } else {
             assertNull(options.getMediaType());
         }
         if (null != characterEncoding) {
             assertEquals(characterEncoding, options.getCharacterEncoding());
-        }
-        else {
+        } else {
             assertNull(options.getCharacterEncoding());
         }
         if (null != dispositionType) {
             assertEquals(dispositionType, options.getDispositionType());
-        }
-        else {
+        } else {
             assertEquals(DISPOSITION_TYPE_ATTACHMENT, options.getDispositionType());
         }
         if (null != fileName) {
             assertEquals(fileName, options.getFileName());
-        }
-        else {
+        } else {
             assertNull(options.getFileName());
         }
     }
 
     private void verifyContentTypeHeader(DataRecordDownloadOptions options,
-                                         String contentTypeHeader) {
+        String contentTypeHeader) {
         if (Strings.isNullOrEmpty(contentTypeHeader)) {
             assertNull(options.getContentTypeHeader());
-        }
-        else {
+        } else {
             assertEquals(contentTypeHeader, options.getContentTypeHeader());
         }
     }
 
     private void verifyContentDispositionHeader(DataRecordDownloadOptions options,
-                                                String contentDispositionHeader) {
+        String contentDispositionHeader) {
         if (Strings.isNullOrEmpty(contentDispositionHeader)) {
             assertNull(options.getContentDispositionHeader());
-        }
-        else {
+        } else {
             assertEquals(contentDispositionHeader, options.getContentDispositionHeader());
         }
     }
 
     private DataRecordDownloadOptions getOptions(String mediaType,
-                                                 String characterEncoding,
-                                                 String fileName,
-                                                 String dispositionType) {
+        String characterEncoding,
+        String fileName,
+        String dispositionType) {
         if (null == dispositionType) {
             dispositionType = DataRecordDownloadOptions.DISPOSITION_TYPE_INLINE;
         }
         return DataRecordDownloadOptions.fromBlobDownloadOptions(
-                new BlobDownloadOptions(mediaType,
-                        characterEncoding,
-                        fileName,
-                        dispositionType)
+            new BlobDownloadOptions(mediaType,
+                characterEncoding,
+                fileName,
+                dispositionType)
         );
     }
 
     private String getContentTypeHeader(String mediaType, String characterEncoding) {
         return Strings.isNullOrEmpty(mediaType) ?
-                null :
-                (Strings.isNullOrEmpty(characterEncoding) ?
-                        mediaType :
-                        Joiner.on("; charset=").join(mediaType, characterEncoding)
-                );
+            null :
+            (Strings.isNullOrEmpty(characterEncoding) ?
+                mediaType :
+                Joiner.on("; charset=").join(mediaType, characterEncoding)
+            );
     }
 
-    private String getContentDispositionHeader(String fileName, String encodedFileName, String dispositionType) {
+    private String getContentDispositionHeader(String fileName, String encodedFileName,
+        String dispositionType) {
         if (Strings.isNullOrEmpty(fileName)) {
             if (dispositionType.equals(DISPOSITION_TYPE_ATTACHMENT)) {
                 return DISPOSITION_TYPE_ATTACHMENT;
@@ -135,41 +129,41 @@ public class DataRecordDownloadOptionsTest {
         }
 
         return String.format("%s; filename=\"%s\"; filename*=UTF-8''%s",
-                dispositionType, fileName, encodedFileName);
+            dispositionType, fileName, encodedFileName);
     }
 
     @Test
     public void testConstruct() {
         BlobDownloadOptions blobDownloadOptions =
-                new BlobDownloadOptions(
-                        MEDIA_TYPE_TEXT_PLAIN,
-                        CHARACTER_ENCODING_UTF_8,
-                        FILE_NAME_TEXT,
-                        DISPOSITION_TYPE_ATTACHMENT
-                );
-        DataRecordDownloadOptions options =
-                DataRecordDownloadOptions.fromBlobDownloadOptions(blobDownloadOptions);
-
-        verifyDownloadOptions(options,
+            new BlobDownloadOptions(
                 MEDIA_TYPE_TEXT_PLAIN,
                 CHARACTER_ENCODING_UTF_8,
                 FILE_NAME_TEXT,
-                DISPOSITION_TYPE_ATTACHMENT);
+                DISPOSITION_TYPE_ATTACHMENT
+            );
+        DataRecordDownloadOptions options =
+            DataRecordDownloadOptions.fromBlobDownloadOptions(blobDownloadOptions);
+
+        verifyDownloadOptions(options,
+            MEDIA_TYPE_TEXT_PLAIN,
+            CHARACTER_ENCODING_UTF_8,
+            FILE_NAME_TEXT,
+            DISPOSITION_TYPE_ATTACHMENT);
     }
 
     @Test
     public void testDefault() {
         verifyDownloadOptions(DataRecordDownloadOptions.DEFAULT,
-                null,
-                null,
-                null,
-                DISPOSITION_TYPE_INLINE);
+            null,
+            null,
+            null,
+            DISPOSITION_TYPE_INLINE);
         verifyDownloadOptions(DataRecordDownloadOptions
                 .fromBlobDownloadOptions(BlobDownloadOptions.DEFAULT),
-                null,
-                null,
-                null,
-                DISPOSITION_TYPE_INLINE);
+            null,
+            null,
+            null,
+            DISPOSITION_TYPE_INLINE);
     }
 
     @Test
@@ -177,17 +171,18 @@ public class DataRecordDownloadOptionsTest {
         try {
             DataRecordDownloadOptions.fromBlobDownloadOptions(null);
             fail();
+        } catch (NullPointerException | IllegalArgumentException e) {
         }
-        catch (NullPointerException | IllegalArgumentException e) { }
     }
 
     @Test
     public void testGetContentTypeHeader() {
         for (String mediaType : Lists.newArrayList(MEDIA_TYPE_TEXT_PLAIN, MEDIA_TYPE_IMAGE_PNG)) {
-            for (String characterEncoding : Lists.newArrayList(CHARACTER_ENCODING_UTF_8, CHARACTER_ENCODING_ISO_8859_1)) {
+            for (String characterEncoding : Lists.newArrayList(CHARACTER_ENCODING_UTF_8,
+                CHARACTER_ENCODING_ISO_8859_1)) {
                 verifyContentTypeHeader(
-                        getOptions(mediaType, characterEncoding, null, null),
-                        getContentTypeHeader(mediaType, characterEncoding)
+                    getOptions(mediaType, characterEncoding, null, null),
+                    getContentTypeHeader(mediaType, characterEncoding)
                 );
             }
         }
@@ -196,36 +191,38 @@ public class DataRecordDownloadOptionsTest {
     @Test
     public void testGetContentTypeHeaderWithNoCharacterEncoding() {
         verifyContentTypeHeader(
-                getOptions(MEDIA_TYPE_IMAGE_PNG, null, null, null),
-                MEDIA_TYPE_IMAGE_PNG
+            getOptions(MEDIA_TYPE_IMAGE_PNG, null, null, null),
+            MEDIA_TYPE_IMAGE_PNG
         );
     }
 
     @Test
     public void testGetContentTypeHeaderWithNoMediaType() {
         verifyContentTypeHeader(
-                getOptions(null, CHARACTER_ENCODING_ISO_8859_1, null, null),
-                null
+            getOptions(null, CHARACTER_ENCODING_ISO_8859_1, null, null),
+            null
         );
     }
 
     @Test
     public void testGetContentTypeHeaderWithNoMediaTypeOrCharacterEncoding() {
         verifyContentTypeHeader(
-                getOptions(null, null, null, null),
-                null
+            getOptions(null, null, null, null),
+            null
         );
     }
 
     @Test
     public void testGetContentDisposition() {
         for (String fileName : Lists.newArrayList(FILE_NAME_IMAGE, FILE_NAME_TEXT)) {
-            for (String dispositionType : Lists.newArrayList(DISPOSITION_TYPE_INLINE, DISPOSITION_TYPE_ATTACHMENT)) {
+            for (String dispositionType : Lists.newArrayList(DISPOSITION_TYPE_INLINE,
+                DISPOSITION_TYPE_ATTACHMENT)) {
                 verifyContentDispositionHeader(
-                        getOptions(null, null, fileName, dispositionType),
-                        getContentDispositionHeader(fileName,
-                                fileName.equals(FILE_NAME_IMAGE) ? ENCODED_FILE_NAME_IMAGE : ENCODED_FILE_NAME_TEXT,
-                                dispositionType)
+                    getOptions(null, null, fileName, dispositionType),
+                    getContentDispositionHeader(fileName,
+                        fileName.equals(FILE_NAME_IMAGE) ? ENCODED_FILE_NAME_IMAGE
+                            : ENCODED_FILE_NAME_TEXT,
+                        dispositionType)
                 );
             }
         }
@@ -235,28 +232,29 @@ public class DataRecordDownloadOptionsTest {
     public void testGetContentDispositionWithNoDispositionType() {
         // Ensures that the default disposition type is "inline"
         verifyContentDispositionHeader(
-                getOptions(null, null, FILE_NAME_IMAGE, null),
-                getContentDispositionHeader(FILE_NAME_IMAGE, ENCODED_FILE_NAME_IMAGE, DISPOSITION_TYPE_INLINE)
+            getOptions(null, null, FILE_NAME_IMAGE, null),
+            getContentDispositionHeader(FILE_NAME_IMAGE, ENCODED_FILE_NAME_IMAGE,
+                DISPOSITION_TYPE_INLINE)
         );
     }
 
     @Test
     public void testGetContentDispositionWithNoFileName() {
         verifyContentDispositionHeader(
-                getOptions(null, null, null, DISPOSITION_TYPE_INLINE),
-                null
+            getOptions(null, null, null, DISPOSITION_TYPE_INLINE),
+            null
         );
         verifyContentDispositionHeader(
-                getOptions(null, null, null, DISPOSITION_TYPE_ATTACHMENT),
-                DISPOSITION_TYPE_ATTACHMENT
+            getOptions(null, null, null, DISPOSITION_TYPE_ATTACHMENT),
+            DISPOSITION_TYPE_ATTACHMENT
         );
     }
 
     @Test
     public void testGetContentDispositionWithNoDispositionTypeOrFileName() {
         verifyContentDispositionHeader(
-                getOptions(null, null, null, null),
-                null
+            getOptions(null, null, null, null),
+            null
         );
     }
 
@@ -264,42 +262,44 @@ public class DataRecordDownloadOptionsTest {
     public void testGetContentDispositionWithSpecialCharacterFilenames() {
         String umlautFilename = "Uml\u00e4utfile.jpg";
         String umlautFilename_ISO_8859_1 = new String(
-                Charsets.ISO_8859_1.encode(umlautFilename).array(),
-                Charsets.ISO_8859_1
+            Charsets.ISO_8859_1.encode(umlautFilename).array(),
+            Charsets.ISO_8859_1
         );
         List<String> filenames = Lists.newArrayList(
-                "image.png",
-                "text.txt",
-                "filename with spaces.jpg",
-                "\"filename-with-double-quotes\".jpg",
-                "filename-with-one\"double-quote.jpg",
-                umlautFilename
+            "image.png",
+            "text.txt",
+            "filename with spaces.jpg",
+            "\"filename-with-double-quotes\".jpg",
+            "filename-with-one\"double-quote.jpg",
+            umlautFilename
         );
         List<String> iso_8859_1_filenames = Lists.newArrayList(
-                "image.png",
-                "text.txt",
-                "filename with spaces.jpg",
-                "\\\"filename-with-double-quotes\\\".jpg",
-                "filename-with-one\\\"double-quote.jpg",
-                umlautFilename_ISO_8859_1
+            "image.png",
+            "text.txt",
+            "filename with spaces.jpg",
+            "\\\"filename-with-double-quotes\\\".jpg",
+            "filename-with-one\\\"double-quote.jpg",
+            umlautFilename_ISO_8859_1
         );
         List<String> rfc8187_filenames = Lists.newArrayList(
-                "image.png",
-                "text.txt",
-                "filename%20with%20spaces.jpg",
-                "%22filename-with-double-quotes%22.jpg",
-                "filename-with-one%22double-quote.jpg",
-                "Uml%C3%A4utfile.jpg"
+            "image.png",
+            "text.txt",
+            "filename%20with%20spaces.jpg",
+            "%22filename-with-double-quotes%22.jpg",
+            "filename-with-one%22double-quote.jpg",
+            "Uml%C3%A4utfile.jpg"
         );
 
-        for (String dispositionType : Lists.newArrayList(DISPOSITION_TYPE_INLINE, DISPOSITION_TYPE_ATTACHMENT)) {
-            for (int i=0; i<filenames.size(); i++) {
+        for (String dispositionType : Lists.newArrayList(DISPOSITION_TYPE_INLINE,
+            DISPOSITION_TYPE_ATTACHMENT)) {
+            for (int i = 0; i < filenames.size(); i++) {
                 String fileName = filenames.get(i);
                 String iso_8859_1_fileName = iso_8859_1_filenames.get(i);
                 String rfc8187_fileName = rfc8187_filenames.get(i);
                 verifyContentDispositionHeader(
-                        getOptions(null, null, fileName, dispositionType),
-                        getContentDispositionHeader(iso_8859_1_fileName, rfc8187_fileName, dispositionType)
+                    getOptions(null, null, fileName, dispositionType),
+                    getContentDispositionHeader(iso_8859_1_fileName, rfc8187_fileName,
+                        dispositionType)
                 );
             }
         }

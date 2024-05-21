@@ -16,15 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-import org.junit.Test;
-import org.mockito.Answers;
-
-import javax.jcr.Credentials;
-import javax.jcr.SimpleCredentials;
-import javax.security.auth.login.LoginException;
-
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -33,10 +24,19 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.withSettings;
 
+import javax.jcr.Credentials;
+import javax.jcr.SimpleCredentials;
+import javax.security.auth.login.LoginException;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.junit.Test;
+import org.mockito.Answers;
+
 public class LoginModuleMonitorTest {
 
     private final LoginModuleMonitor noop = LoginModuleMonitor.NOOP;
-    private final LoginModuleMonitor monitor = mock(TestLoginModuleMonitor.class, withSettings().defaultAnswer(Answers.CALLS_REAL_METHODS));
+    private final LoginModuleMonitor monitor = mock(TestLoginModuleMonitor.class,
+        withSettings().defaultAnswer(Answers.CALLS_REAL_METHODS));
 
     @Test
     public void testLoginError() {
@@ -88,7 +88,8 @@ public class LoginModuleMonitorTest {
         }
 
         @Override
-        public void loginFailed(@NotNull LoginException loginException, @Nullable Credentials creds) {
+        public void loginFailed(@NotNull LoginException loginException,
+            @Nullable Credentials creds) {
             //nop
         }
 

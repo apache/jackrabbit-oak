@@ -16,12 +16,15 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import java.util.Collection;
+import static java.util.Collections.singleton;
+import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.MEMORY_NS;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
+import java.util.Collection;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.oak.NodeStoreFixtures;
@@ -29,18 +32,13 @@ import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.junit.Test;
 import org.junit.runners.Parameterized;
 
-import static java.util.Collections.singleton;
-import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.MEMORY_NS;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
 public class TransientMoveTest extends AbstractRepositoryTest {
 
     public TransientMoveTest(NodeStoreFixture fixture) {
         super(fixture);
     }
 
-    @Parameterized.Parameters(name="{0}")
+    @Parameterized.Parameters(name = "{0}")
     public static Collection<Object[]> memoryFixture() {
         return NodeStoreFixtures.asJunitParameters(singleton(MEMORY_NS));
     }
@@ -52,8 +50,8 @@ public class TransientMoveTest extends AbstractRepositoryTest {
         try {
             // Create the node tree we'll be updating/moving
             JcrUtils.getOrCreateByPath("/var/oak-bug/parent/child",
-                    JcrConstants.NT_UNSTRUCTURED, JcrConstants.NT_UNSTRUCTURED,
-                    session, false);
+                JcrConstants.NT_UNSTRUCTURED, JcrConstants.NT_UNSTRUCTURED,
+                session, false);
             session.save();
         } finally {
             session.logout();
@@ -64,8 +62,8 @@ public class TransientMoveTest extends AbstractRepositoryTest {
         try {
             // Create the new node to move the parent tree onto
             JcrUtils.getOrCreateByPath("/var/oak-bug/test",
-                    JcrConstants.NT_UNSTRUCTURED, JcrConstants.NT_UNSTRUCTURED,
-                    session, false);
+                JcrConstants.NT_UNSTRUCTURED, JcrConstants.NT_UNSTRUCTURED,
+                session, false);
             // Move the parent tree - this operation in this session, i believe, eventually causes the error later.
             session.move("/var/oak-bug/parent", "/var/oak-bug/test/parent");
             session.save();
@@ -81,8 +79,8 @@ public class TransientMoveTest extends AbstractRepositoryTest {
 
             // Create the new node using the original name "parent"
             Node parent = JcrUtils.getOrCreateByPath("/var/oak-bug/test/parent",
-                    JcrConstants.NT_UNSTRUCTURED, JcrConstants.NT_UNSTRUCTURED,
-                    session, false);
+                JcrConstants.NT_UNSTRUCTURED, JcrConstants.NT_UNSTRUCTURED,
+                session, false);
 
             // We need to preserve the original parent's children, so grab the child from the previous parent that was renamed,
             Node child = session.getNode("/var/oak-bug/test/tmp-1234/child");
@@ -92,10 +90,12 @@ public class TransientMoveTest extends AbstractRepositoryTest {
             // JcrUtil.copy(child, parent, "child", false);
             Node c = parent.addNode(child.getName(), child.getPrimaryNodeType().getName());
 
-            assertTrue(session.hasPendingChanges()); // None of these changes have been persisted yet. This is to verify that no auto-saves have occurred.
+            assertTrue(
+                session.hasPendingChanges()); // None of these changes have been persisted yet. This is to verify that no auto-saves have occurred.
 
             // Now, we need to actually process the child, so we need to move it so a new node can be created in its place, with the name "child".
-            session.move("/var/oak-bug/test/parent/child", "/var/oak-bug/test/parent/tmp-4321"); // NPE On this Call.
+            session.move("/var/oak-bug/test/parent/child",
+                "/var/oak-bug/test/parent/tmp-4321"); // NPE On this Call.
 
             session.save();
 

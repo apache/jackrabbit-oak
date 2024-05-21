@@ -16,12 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene.writer;
 
+import static org.junit.Assert.assertNull;
+
 import org.apache.lucene.index.MergePolicy;
 import org.apache.lucene.index.MergePolicy.MergeTrigger;
 import org.apache.lucene.index.SegmentInfos;
 import org.junit.Test;
-
-import static org.junit.Assert.assertNull;
 
 /**
  * Tests for {@link CommitMitigatingTieredMergePolicy}
@@ -33,7 +33,8 @@ public class CommitMitigatingTieredMergePolicyTest {
         CommitMitigatingTieredMergePolicy mergePolicy = new CommitMitigatingTieredMergePolicy();
 
         SegmentInfos infos = new SegmentInfos();
-        MergePolicy.MergeSpecification merges = mergePolicy.findMerges(MergeTrigger.SEGMENT_FLUSH, infos);
+        MergePolicy.MergeSpecification merges = mergePolicy.findMerges(MergeTrigger.SEGMENT_FLUSH,
+            infos);
         assertNull(merges);
     }
 

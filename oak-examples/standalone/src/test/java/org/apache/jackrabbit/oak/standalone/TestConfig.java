@@ -20,7 +20,6 @@
 package org.apache.jackrabbit.oak.standalone;
 
 import javax.servlet.ServletContext;
-
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.mock.web.MockServletContext;

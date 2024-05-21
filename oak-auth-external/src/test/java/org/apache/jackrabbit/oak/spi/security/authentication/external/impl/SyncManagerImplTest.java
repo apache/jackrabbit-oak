@@ -16,16 +16,16 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncHandler;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class SyncManagerImplTest {
 
@@ -44,7 +44,8 @@ public class SyncManagerImplTest {
         assertNull(syncManager.getSyncHandler("test"));
         assertNull(syncManager.getSyncHandler("another"));
 
-        SyncHandler syncHandler = when(mock(SyncHandler.class).getName()).thenReturn("test").getMock();
+        SyncHandler syncHandler = when(mock(SyncHandler.class).getName()).thenReturn("test")
+                                                                         .getMock();
         context.registerService(SyncHandler.class, syncHandler);
 
         assertSame(syncHandler, syncManager.getSyncHandler("test"));

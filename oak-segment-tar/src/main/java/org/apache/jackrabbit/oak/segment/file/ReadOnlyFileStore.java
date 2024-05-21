@@ -30,7 +30,6 @@ import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
-
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.guava.common.util.concurrent.UncheckedExecutionException;
 import org.apache.jackrabbit.oak.segment.RecordId;
@@ -44,15 +43,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * A read only {@link AbstractFileStore} implementation that supports going back
- * to old revisions.
+ * A read only {@link AbstractFileStore} implementation that supports going back to old revisions.
  * <p>
  * All write methods are no-ops.
  */
 public class ReadOnlyFileStore extends AbstractFileStore {
 
     private static final Logger log = LoggerFactory
-            .getLogger(ReadOnlyFileStore.class);
+        .getLogger(ReadOnlyFileStore.class);
 
     private final TarFiles tarFiles;
 
@@ -64,27 +62,29 @@ public class ReadOnlyFileStore extends AbstractFileStore {
 
     private RecordId currentHead;
 
-    ReadOnlyFileStore(FileStoreBuilder builder) throws InvalidFileStoreVersionException, IOException {
+    ReadOnlyFileStore(FileStoreBuilder builder)
+        throws InvalidFileStoreVersionException, IOException {
         super(builder);
 
-        newManifestChecker(builder.getPersistence(), builder.getStrictVersionCheck()).checkManifest();
+        newManifestChecker(builder.getPersistence(),
+            builder.getStrictVersionCheck()).checkManifest();
 
         tarFiles = TarFiles.builder()
-                .withDirectory(directory)
-                .withTarRecovery(recovery)
-                .withIOMonitor(ioMonitor)
-                .withRemoteStoreMonitor(remoteStoreMonitor)
-                .withMemoryMapping(memoryMapping)
-                .withReadOnly()
-                .withPersistence(builder.getPersistence())
-                .withInitialisedReadersAndWriters(false)
-                .build();
+                           .withDirectory(directory)
+                           .withTarRecovery(recovery)
+                           .withIOMonitor(ioMonitor)
+                           .withRemoteStoreMonitor(remoteStoreMonitor)
+                           .withMemoryMapping(memoryMapping)
+                           .withReadOnly()
+                           .withPersistence(builder.getPersistence())
+                           .withInitialisedReadersAndWriters(false)
+                           .build();
         tarFiles.init();
         writer = defaultSegmentWriterBuilder("read-only").withoutCache().build(this);
         gcRetainedGenerations = builder.getGcOptions().getRetainedGenerations();
 
         log.info("TarMK ReadOnly opened: {} (mmap={})", directory,
-                memoryMapping);
+            memoryMapping);
     }
 
     ReadOnlyFileStore bind(@NotNull ReadOnlyRevisions revisions) throws IOException {
@@ -177,6 +177,7 @@ public class ReadOnlyFileStore extends AbstractFileStore {
     @Override
     public void collectBlobReferences(Consumer<String> collector) throws IOException {
         tarFiles.collectBlobReferences(collector,
-            newOldReclaimer(SegmentGCOptions.GCType.FULL, revisions.getHead().getSegmentId().getGcGeneration(), gcRetainedGenerations));
+            newOldReclaimer(SegmentGCOptions.GCType.FULL,
+                revisions.getHead().getSegmentId().getGcGeneration(), gcRetainedGenerations));
     }
 }

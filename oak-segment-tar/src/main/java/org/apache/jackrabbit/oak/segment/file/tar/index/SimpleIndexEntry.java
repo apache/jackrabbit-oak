@@ -32,7 +32,8 @@ public class SimpleIndexEntry implements IndexEntry {
 
     private final boolean compacted;
 
-    public SimpleIndexEntry(long msb, long lsb, int position, int length, int generation, int fullGeneration, boolean compacted) {
+    public SimpleIndexEntry(long msb, long lsb, int position, int length, int generation,
+        int fullGeneration, boolean compacted) {
         this.msb = msb;
         this.lsb = lsb;
         this.position = position;

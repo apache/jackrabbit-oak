@@ -27,9 +27,8 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 
 /**
- * Base class for test cases that need a {@link MongoConnection}
- * to a clean test database. Tests in subclasses are automatically
- * skipped if the configured MongoDB connection can not be created.
+ * Base class for test cases that need a {@link MongoConnection} to a clean test database. Tests in
+ * subclasses are automatically skipped if the configured MongoDB connection can not be created.
  */
 public abstract class AbstractMongoConnectionTest extends DocumentMKTestBase {
 
@@ -51,7 +50,7 @@ public abstract class AbstractMongoConnectionTest extends DocumentMKTestBase {
         setRevisionClock(getTestClock());
         setClusterNodeInfoClock(getTestClock());
         mk = newBuilder(mongoConnection.getMongoClient(),
-                mongoConnection.getDBName()).open();
+            mongoConnection.getDBName()).open();
     }
 
     protected void setRevisionClock(Clock c) {
@@ -63,7 +62,8 @@ public abstract class AbstractMongoConnectionTest extends DocumentMKTestBase {
     }
 
     protected DocumentMK.Builder newBuilder(MongoClient client, String dbName) throws Exception {
-        return addToBuilder(new DocumentMK.Builder()).clock(getTestClock()).setMongoDB(client, dbName);
+        return addToBuilder(new DocumentMK.Builder()).clock(getTestClock())
+                                                     .setMongoDB(client, dbName);
     }
 
     protected DocumentMK.Builder addToBuilder(DocumentMK.Builder mk) {

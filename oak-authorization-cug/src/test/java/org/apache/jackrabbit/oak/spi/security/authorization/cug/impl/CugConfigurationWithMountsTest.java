@@ -16,13 +16,13 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
+import static org.junit.Assert.assertArrayEquals;
+
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.junit.Test;
-
-import static org.junit.Assert.assertArrayEquals;
 
 public class CugConfigurationWithMountsTest extends AbstractSecurityTest {
 
@@ -35,19 +35,23 @@ public class CugConfigurationWithMountsTest extends AbstractSecurityTest {
 
     @Test(expected = IllegalStateException.class)
     public void testMountAtCugSupportedPath() {
-        MountInfoProvider mip = Mounts.newBuilder().mount("mnt", AbstractCugTest.SUPPORTED_PATH).build();
+        MountInfoProvider mip = Mounts.newBuilder().mount("mnt", AbstractCugTest.SUPPORTED_PATH)
+                                      .build();
         createConfiguration(mip);
     }
 
     @Test(expected = IllegalStateException.class)
     public void testMountBelowCugSupportedPath() {
-        MountInfoProvider mip = Mounts.newBuilder().mount("mnt", AbstractCugTest.SUPPORTED_PATH + "/mount").build();
+        MountInfoProvider mip = Mounts.newBuilder()
+                                      .mount("mnt", AbstractCugTest.SUPPORTED_PATH + "/mount")
+                                      .build();
         createConfiguration(mip);
     }
 
     @Test(expected = IllegalStateException.class)
     public void testMountAboveCugSupportedPath() {
-        MountInfoProvider mip = Mounts.newBuilder().mount("mnt", PathUtils.getParentPath(AbstractCugTest.SUPPORTED_PATH3)).build();
+        MountInfoProvider mip = Mounts.newBuilder().mount("mnt",
+            PathUtils.getParentPath(AbstractCugTest.SUPPORTED_PATH3)).build();
         createConfiguration(mip);
     }
 
@@ -59,15 +63,24 @@ public class CugConfigurationWithMountsTest extends AbstractSecurityTest {
 
     @Test
     public void testMountAtUnsupportedPath() {
-        MountInfoProvider mip = Mounts.newBuilder().mount("mnt", AbstractCugTest.UNSUPPORTED_PATH).build();
+        MountInfoProvider mip = Mounts.newBuilder().mount("mnt", AbstractCugTest.UNSUPPORTED_PATH)
+                                      .build();
         CugConfiguration configuration = createConfiguration(mip);
-        assertArrayEquals(AbstractCugTest.SUPPORTED_PATHS, configuration.getParameters().getConfigValue(CugConstants.PARAM_CUG_SUPPORTED_PATHS, new String[0]));
+        assertArrayEquals(AbstractCugTest.SUPPORTED_PATHS, configuration.getParameters()
+                                                                        .getConfigValue(
+                                                                            CugConstants.PARAM_CUG_SUPPORTED_PATHS,
+                                                                            new String[0]));
     }
 
     @Test
     public void testMountBelowUnsupportedPath() {
-        MountInfoProvider mip = Mounts.newBuilder().mount("mnt", AbstractCugTest.UNSUPPORTED_PATH + "/mount").build();
+        MountInfoProvider mip = Mounts.newBuilder()
+                                      .mount("mnt", AbstractCugTest.UNSUPPORTED_PATH + "/mount")
+                                      .build();
         CugConfiguration configuration = createConfiguration(mip);
-        assertArrayEquals(AbstractCugTest.SUPPORTED_PATHS, configuration.getParameters().getConfigValue(CugConstants.PARAM_CUG_SUPPORTED_PATHS, new String[0]));
+        assertArrayEquals(AbstractCugTest.SUPPORTED_PATHS, configuration.getParameters()
+                                                                        .getConfigValue(
+                                                                            CugConstants.PARAM_CUG_SUPPORTED_PATHS,
+                                                                            new String[0]));
     }
 }

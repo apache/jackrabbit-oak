@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.plugins.index.search.spi.binary;
 
 import java.io.IOException;
 import java.io.InputStream;
-
 import org.apache.jackrabbit.guava.common.io.ByteSource;
 import org.apache.jackrabbit.oak.api.Blob;
 
@@ -29,6 +28,7 @@ import org.apache.jackrabbit.oak.api.Blob;
  * {@link ByteSource} extension to work with Oak {@link Blob}s
  */
 public final class BlobByteSource extends ByteSource {
+
     private final Blob blob;
 
     public BlobByteSource(Blob blob) {

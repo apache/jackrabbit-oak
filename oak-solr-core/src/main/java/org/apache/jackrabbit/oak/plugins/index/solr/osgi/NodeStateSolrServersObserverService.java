@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.index.solr.osgi;
 
 import java.util.ArrayList;
 import java.util.List;
-
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Deactivate;
@@ -35,12 +34,15 @@ import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.ComponentContext;
 
 /**
- * An OSGi service for {@link org.apache.jackrabbit.oak.plugins.index.solr.configuration.nodestate.NodeStateSolrServersObserver}.
- * This allows correct cleanup of any persisted Solr server configurations once they get changed or deleted.
+ * An OSGi service for
+ * {@link
+ * org.apache.jackrabbit.oak.plugins.index.solr.configuration.nodestate.NodeStateSolrServersObserver}.
+ * This allows correct cleanup of any persisted Solr server configurations once they get changed or
+ * deleted.
  */
 @Component(metatype = true,
-        immediate = true,
-        label = "Apache Jackrabbit Oak Solr persisted configuration observer"
+    immediate = true,
+    label = "Apache Jackrabbit Oak Solr persisted configuration observer"
 )
 public class NodeStateSolrServersObserverService {
 
@@ -58,7 +60,8 @@ public class NodeStateSolrServersObserverService {
     @Activate
     protected void activate(ComponentContext componentContext) throws Exception {
 
-        boolean enabled = PropertiesUtil.toBoolean(componentContext.getProperties().get(ENABLED), false);
+        boolean enabled = PropertiesUtil.toBoolean(componentContext.getProperties().get(ENABLED),
+            false);
 
         if (enabled) {
             BundleContext bundleContext = componentContext.getBundleContext();
@@ -67,7 +70,8 @@ public class NodeStateSolrServersObserverService {
             executor.start(whiteboard);
 
             backgroundObserver = new BackgroundObserver(nodeStateSolrServersObserver, executor, 5);
-            regs.add(bundleContext.registerService(Observer.class.getName(), backgroundObserver, null));
+            regs.add(
+                bundleContext.registerService(Observer.class.getName(), backgroundObserver, null));
         }
     }
 

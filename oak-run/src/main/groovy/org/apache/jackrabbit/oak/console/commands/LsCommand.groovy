@@ -18,14 +18,14 @@
  */
 package org.apache.jackrabbit.oak.console.commands
 
-import org.apache.jackrabbit.guava.common.collect.Iterables
 import groovy.transform.CompileStatic
+import org.apache.jackrabbit.guava.common.collect.Iterables
 import org.apache.jackrabbit.oak.console.ConsoleSession
 import org.codehaus.groovy.tools.shell.CommandSupport
 import org.codehaus.groovy.tools.shell.Groovysh
 
 @CompileStatic
-class LsCommand extends CommandSupport{
+class LsCommand extends CommandSupport {
     public static final String COMMAND_NAME = 'list'
 
     public LsCommand(Groovysh shell) {
@@ -41,13 +41,13 @@ class LsCommand extends CommandSupport{
             io.out.println(it)
         }
 
-        if(count == limit){
+        if (count == limit) {
             io.out.println("More than $limit children found...")
         }
         return null
     }
 
-    ConsoleSession getSession(){
-        return (ConsoleSession)variables.session
+    ConsoleSession getSession() {
+        return (ConsoleSession) variables.session
     }
 }

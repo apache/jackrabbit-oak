@@ -26,7 +26,6 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -64,7 +63,7 @@ public class NodeStreamTest {
             buff.append(",\"l\":\"pat:9\"");
             buff.append(",\"m\":\"[0]:Name\"");
             w.write("/n" + i + "|{" + buff.toString() +
-                    ",\"n\":null,\"x\":[\"1\"]}\n");
+                ",\"n\":null,\"x\":[\"1\"]}\n");
         }
         w.close();
 
@@ -72,13 +71,15 @@ public class NodeStreamTest {
         File compressedStreamFile = new File(f, "compressedStreamFile.lz4");
 
         NodeStreamConverter.convert(flatFile.getAbsolutePath(), streamFile.getAbsolutePath());
-        NodeStreamConverterCompressed.convert(flatFile.getAbsolutePath(), compressedStreamFile.getAbsolutePath());
+        NodeStreamConverterCompressed.convert(flatFile.getAbsolutePath(),
+            compressedStreamFile.getAbsolutePath());
 
         NodeDataReader flatReader = NodeLineReader.open(flatFile.getAbsolutePath());
         long fileSize1 = flatReader.getFileSize();
         NodeDataReader nodeStream = NodeStreamReader.open(streamFile.getAbsolutePath());
         long fileSize2 = nodeStream.getFileSize();
-        NodeDataReader compressedStream = NodeStreamReaderCompressed.open(compressedStreamFile.getAbsolutePath());
+        NodeDataReader compressedStream = NodeStreamReaderCompressed.open(
+            compressedStreamFile.getAbsolutePath());
         long fileSize3 = compressedStream.getFileSize();
         assertTrue(fileSize3 < fileSize2);
         assertTrue(fileSize2 < fileSize1);

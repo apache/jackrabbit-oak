@@ -43,104 +43,108 @@ import org.apache.lucene.codecs.perfield.PerFieldDocValuesFormat;
 import org.apache.lucene.codecs.perfield.PerFieldPostingsFormat;
 
 /**
- * Implements the Lucene 4.6 index format, with configurable per-field postings
- * and docvalues formats.
+ * Implements the Lucene 4.6 index format, with configurable per-field postings and docvalues
+ * formats.
  * <p>
- * If you want to reuse functionality of this codec in another codec, extend
- * {@link FilterCodec}.
+ * If you want to reuse functionality of this codec in another codec, extend {@link FilterCodec}.
  *
- * @see org.apache.lucene.codecs.lucene46 package documentation for file format details.
  * @lucene.experimental
+ * @see org.apache.lucene.codecs.lucene46 package documentation for file format details.
  */
 // NOTE: if we make largish changes in a minor release, easier to just make Lucene46Codec or whatever
 // if they are backwards compatible or smallish we can probably do the backwards in the postingsreader
 // (it writes a minor version, etc).
 public class Lucene46Codec extends Codec {
-  private final StoredFieldsFormat fieldsFormat = new Lucene41StoredFieldsFormat();
-  private final TermVectorsFormat vectorsFormat = new Lucene42TermVectorsFormat();
-  private final FieldInfosFormat fieldInfosFormat = new Lucene46FieldInfosFormat();
-  private final SegmentInfoFormat segmentInfosFormat = new Lucene46SegmentInfoFormat();
-  private final LiveDocsFormat liveDocsFormat = new Lucene40LiveDocsFormat();
-  
-  private final PostingsFormat postingsFormat = new PerFieldPostingsFormat() {
+
+    private final StoredFieldsFormat fieldsFormat = new Lucene41StoredFieldsFormat();
+    private final TermVectorsFormat vectorsFormat = new Lucene42TermVectorsFormat();
+    private final FieldInfosFormat fieldInfosFormat = new Lucene46FieldInfosFormat();
+    private final SegmentInfoFormat segmentInfosFormat = new Lucene46SegmentInfoFormat();
+    private final LiveDocsFormat liveDocsFormat = new Lucene40LiveDocsFormat();
+
+    private final PostingsFormat postingsFormat = new PerFieldPostingsFormat() {
+        @Override
+        public PostingsFormat getPostingsFormatForField(String field) {
+            return Lucene46Codec.this.getPostingsFormatForField(field);
+        }
+    };
+
+    private final DocValuesFormat docValuesFormat = new PerFieldDocValuesFormat() {
+        @Override
+        public DocValuesFormat getDocValuesFormatForField(String field) {
+            return Lucene46Codec.this.getDocValuesFormatForField(field);
+        }
+    };
+
+    /**
+     * Sole constructor.
+     */
+    public Lucene46Codec() {
+        super("Lucene46");
+    }
+
     @Override
+    public final StoredFieldsFormat storedFieldsFormat() {
+        return fieldsFormat;
+    }
+
+    @Override
+    public final TermVectorsFormat termVectorsFormat() {
+        return vectorsFormat;
+    }
+
+    @Override
+    public final PostingsFormat postingsFormat() {
+        return postingsFormat;
+    }
+
+    @Override
+    public final FieldInfosFormat fieldInfosFormat() {
+        return fieldInfosFormat;
+    }
+
+    @Override
+    public final SegmentInfoFormat segmentInfoFormat() {
+        return segmentInfosFormat;
+    }
+
+    @Override
+    public final LiveDocsFormat liveDocsFormat() {
+        return liveDocsFormat;
+    }
+
+    /**
+     * Returns the postings format that should be used for writing new segments of
+     * <code>field</code>.
+     * <p>
+     * The default implementation always returns "Lucene41"
+     */
     public PostingsFormat getPostingsFormatForField(String field) {
-      return Lucene46Codec.this.getPostingsFormatForField(field);
+        return defaultFormat;
     }
-  };
-  
-  private final DocValuesFormat docValuesFormat = new PerFieldDocValuesFormat() {
-    @Override
+
+    /**
+     * Returns the docvalues format that should be used for writing new segments of
+     * <code>field</code>.
+     * <p>
+     * The default implementation always returns "Lucene45"
+     */
     public DocValuesFormat getDocValuesFormatForField(String field) {
-      return Lucene46Codec.this.getDocValuesFormatForField(field);
+        return defaultDVFormat;
     }
-  };
 
-  /** Sole constructor. */
-  public Lucene46Codec() {
-    super("Lucene46");
-  }
-  
-  @Override
-  public final StoredFieldsFormat storedFieldsFormat() {
-    return fieldsFormat;
-  }
-  
-  @Override
-  public final TermVectorsFormat termVectorsFormat() {
-    return vectorsFormat;
-  }
+    @Override
+    public final DocValuesFormat docValuesFormat() {
+        return docValuesFormat;
+    }
 
-  @Override
-  public final PostingsFormat postingsFormat() {
-    return postingsFormat;
-  }
-  
-  @Override
-  public final FieldInfosFormat fieldInfosFormat() {
-    return fieldInfosFormat;
-  }
-  
-  @Override
-  public final SegmentInfoFormat segmentInfoFormat() {
-    return segmentInfosFormat;
-  }
-  
-  @Override
-  public final LiveDocsFormat liveDocsFormat() {
-    return liveDocsFormat;
-  }
+    private final PostingsFormat defaultFormat = PostingsFormat.forName("Lucene41");
+    private final DocValuesFormat defaultDVFormat = DocValuesFormat.forName("Lucene45");
 
-  /** Returns the postings format that should be used for writing 
-   *  new segments of <code>field</code>.
-   *  
-   *  The default implementation always returns "Lucene41"
-   */
-  public PostingsFormat getPostingsFormatForField(String field) {
-    return defaultFormat;
-  }
-  
-  /** Returns the docvalues format that should be used for writing 
-   *  new segments of <code>field</code>.
-   *  
-   *  The default implementation always returns "Lucene45"
-   */
-  public DocValuesFormat getDocValuesFormatForField(String field) {
-    return defaultDVFormat;
-  }
-  
-  @Override
-  public final DocValuesFormat docValuesFormat() {
-    return docValuesFormat;
-  }
+    private final NormsFormat normsFormat = new Lucene42NormsFormat();
 
-  private final PostingsFormat defaultFormat = PostingsFormat.forName("Lucene41");
-  private final DocValuesFormat defaultDVFormat = DocValuesFormat.forName("Lucene45");
-
-  private final NormsFormat normsFormat = new Lucene42NormsFormat();
-
-  @Override
-  public final NormsFormat normsFormat() {
-    return normsFormat;
-  }
+    @Override
+    public final NormsFormat normsFormat() {
+        return normsFormat;
+    }
 }

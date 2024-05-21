@@ -17,7 +17,8 @@
 /**
  * <h1>Composition support</h1>
  *
- * <p>This package contains support classes for implementing a composite persistence at the {@linkplain org.apache.jackrabbit.oak.spi.state.NodeStore} level.</p>
+ * <p>This package contains support classes for implementing a composite persistence at the
+ * {@linkplain org.apache.jackrabbit.oak.spi.state.NodeStore} level.</p>
  *
  * <h2>Design goals</h2>
  * <ol>

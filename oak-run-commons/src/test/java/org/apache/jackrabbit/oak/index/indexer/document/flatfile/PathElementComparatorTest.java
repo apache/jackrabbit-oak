@@ -19,16 +19,15 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
+import static java.util.Arrays.asList;
+import static java.util.Collections.singleton;
+import static org.junit.Assert.assertEquals;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-
 import org.junit.Test;
-
-import static java.util.Arrays.asList;
-import static java.util.Collections.singleton;
-import static org.junit.Assert.assertEquals;
 
 public class PathElementComparatorTest {
 
@@ -52,9 +51,10 @@ public class PathElementComparatorTest {
     @Test
     public void preferredElements() {
         PathElementComparator c = new PathElementComparator(singleton("jcr:content"));
-        assertEquals(asList("/a", "/a/jcr:content", "/a/b"), TestUtils.sortPaths(asList("/a/jcr:content", "/a/b", "/a"), c));
+        assertEquals(asList("/a", "/a/jcr:content", "/a/b"),
+            TestUtils.sortPaths(asList("/a/jcr:content", "/a/b", "/a"), c));
 
-        assertSorted(asList("/a", "/a/jcr:content", "/a/b"),c);
+        assertSorted(asList("/a", "/a/jcr:content", "/a/b"), c);
         assertSorted(asList("/a", "/a/jcr:content", "/a/b", "/a/b/c", "/d", "/e/f", "/g"), c);
     }
 

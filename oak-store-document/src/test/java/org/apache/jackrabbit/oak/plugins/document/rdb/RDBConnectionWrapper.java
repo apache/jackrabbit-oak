@@ -221,7 +221,8 @@ public class RDBConnectionWrapper implements Connection {
         return connection.nativeSQL(arg0);
     }
 
-    public CallableStatement prepareCall(String arg0, int arg1, int arg2, int arg3) throws SQLException {
+    public CallableStatement prepareCall(String arg0, int arg1, int arg2, int arg3)
+        throws SQLException {
         return connection.prepareCall(arg0, arg1, arg2, arg3);
     }
 
@@ -233,7 +234,8 @@ public class RDBConnectionWrapper implements Connection {
         return connection.prepareCall(arg0);
     }
 
-    public PreparedStatement prepareStatement(String arg0, int arg1, int arg2, int arg3) throws SQLException {
+    public PreparedStatement prepareStatement(String arg0, int arg1, int arg2, int arg3)
+        throws SQLException {
         return connection.prepareStatement(arg0, arg1, arg2, arg3);
     }
 

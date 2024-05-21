@@ -36,7 +36,8 @@ public class AsyncCacheTest {
         DocumentMK.Builder builder = builderProvider.newBuilder();
         builder.setPersistentCache("target/cacheTest");
         DocumentNodeStore nodeStore = builder.getNodeStore();
-        Cache<NamePathRev, DocumentNodeState.Children> cache = builder.buildChildrenCache(nodeStore);
+        Cache<NamePathRev, DocumentNodeState.Children> cache = builder.buildChildrenCache(
+            nodeStore);
         DocumentNodeState.Children c = new DocumentNodeState.Children();
         for (int i = 0; i < 100; i++) {
             c.children.add("node-" + i);

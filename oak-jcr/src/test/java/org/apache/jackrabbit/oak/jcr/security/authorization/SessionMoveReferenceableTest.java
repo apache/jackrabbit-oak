@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.jcr.security.authorization;
 
 import javax.jcr.Node;
-
 import org.apache.jackrabbit.JcrConstants;
 
 /**

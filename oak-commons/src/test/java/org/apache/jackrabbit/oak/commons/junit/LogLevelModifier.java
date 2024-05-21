@@ -21,14 +21,6 @@ package org.apache.jackrabbit.oak.commons.junit;
 
 import static org.junit.Assert.fail;
 
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-
-import org.junit.rules.TestWatcher;
-import org.junit.runner.Description;
-import org.slf4j.LoggerFactory;
-
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.LoggerContext;
@@ -37,11 +29,17 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.Appender;
 import ch.qos.logback.core.ConsoleAppender;
 import ch.qos.logback.core.filter.Filter;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
+import org.slf4j.LoggerFactory;
 
 /**
- * The LogLevelModifier Rule can be used to fine-tune log levels during a particular
- * test. This could be used together with LogDumper to have enough details
- * in case of test failure without setting the global log level to DEBUG for example.
+ * The LogLevelModifier Rule can be used to fine-tune log levels during a particular test. This
+ * could be used together with LogDumper to have enough details in case of test failure without
+ * setting the global log level to DEBUG for example.
  * <p/>
  * <pre>
  *     public class LoginTestIT {
@@ -63,20 +61,20 @@ import ch.qos.logback.core.filter.Filter;
 public class LogLevelModifier extends TestWatcher {
 
     class AppenderFilter {
-        
+
         private final Appender<ILoggingEvent> appender;
         private final String level;
         private ThresholdFilter thFilter;
 
         AppenderFilter(String appenderName, String level) {
             final Appender<ILoggingEvent> appender = rootLogger().getAppender(appenderName);
-            if (appender==null) {
-                fail("no appender found with name "+appenderName);
+            if (appender == null) {
+                fail("no appender found with name " + appenderName);
             }
             this.appender = appender;
             Level l = Level.toLevel(level, null);
-            if (l==null) {
-                fail("unknown level: "+level);
+            if (l == null) {
+                fail("unknown level: " + level);
             }
             this.level = l.levelStr;
         }
@@ -89,23 +87,23 @@ public class LogLevelModifier extends TestWatcher {
         }
 
         public void finished() {
-            if (thFilter==null) {
+            if (thFilter == null) {
                 // then we did not add it
                 return;
             }
             List<Filter<ILoggingEvent>> filterList = appender.getCopyOfAttachedFiltersList();
             appender.clearAllFilters();
-            for (Iterator<Filter<ILoggingEvent>> it = filterList.iterator(); it.hasNext();) {
+            for (Iterator<Filter<ILoggingEvent>> it = filterList.iterator(); it.hasNext(); ) {
                 Filter<ILoggingEvent> filter = it.next();
-                if (filter!=thFilter) {
+                if (filter != thFilter) {
                     appender.addFilter(filter);
                 }
             }
         }
     }
-    
+
     class LoggerLevel {
-        
+
         private final Logger logger;
         private final Level previousLevel;
         private Level level;
@@ -113,7 +111,7 @@ public class LogLevelModifier extends TestWatcher {
         LoggerLevel(String loggerName, String level) {
             final LoggerContext c = getContext();
             Logger existing = c.exists(loggerName);
-            if (existing!=null) {
+            if (existing != null) {
                 logger = existing;
                 previousLevel = existing.getLevel();
             } else {
@@ -121,8 +119,8 @@ public class LogLevelModifier extends TestWatcher {
                 previousLevel = null;
             }
             Level l = Level.toLevel(level, null);
-            if (l==null) {
-                fail("unknown level: "+level);
+            if (l == null) {
+                fail("unknown level: " + level);
             }
             this.level = l;
         }
@@ -135,12 +133,12 @@ public class LogLevelModifier extends TestWatcher {
             logger.setLevel(previousLevel);
         }
     }
-    
+
     private final List<AppenderFilter> appenderFilters = new LinkedList<AppenderFilter>();
     @SuppressWarnings("rawtypes")
     private final List<Appender> newAppenders = new LinkedList<Appender>();
     private final List<LoggerLevel> loggerLevels = new LinkedList<LoggerLevel>();
-    
+
     public LogLevelModifier newConsoleAppender(String name) {
         ConsoleAppender<ILoggingEvent> c = new ConsoleAppender<ILoggingEvent>();
         c.setName(name);
@@ -150,50 +148,52 @@ public class LogLevelModifier extends TestWatcher {
         newAppenders.add(c);
         return this;
     }
-    
-    /** 
+
+    /**
      * Adds a ThresholdFilter with the given level to an existing appender during the test.
      * <p>
      * Note that unless you filter existing appenders, changing the log level via setLoggerLevel
-     * will, as a side-effect, also apply and influence existing appenders. So the
-     * idea is to do eg addAppenderFilter("console", "warn") to make sure nothing
-     * gets logged on console, when changing a log level.
+     * will, as a side-effect, also apply and influence existing appenders. So the idea is to do eg
+     * addAppenderFilter("console", "warn") to make sure nothing gets logged on console, when
+     * changing a log level.
      */
     public LogLevelModifier addAppenderFilter(String appenderName, String level) {
         appenderFilters.add(new AppenderFilter(appenderName, level));
         return this;
     }
-    
-    /** Change the log level of a particular logger during the test **/
+
+    /**
+     * Change the log level of a particular logger during the test
+     **/
     public LogLevelModifier setLoggerLevel(String loggerName, String level) {
         loggerLevels.add(new LoggerLevel(loggerName, level));
         return this;
     }
-    
+
     @Override
     protected void starting(Description description) {
-        for (Iterator<AppenderFilter> it = appenderFilters.iterator(); it.hasNext();) {
+        for (Iterator<AppenderFilter> it = appenderFilters.iterator(); it.hasNext(); ) {
             AppenderFilter appenderFilter = (AppenderFilter) it.next();
             appenderFilter.starting();
         }
-        for (Iterator<LoggerLevel> it = loggerLevels.iterator(); it.hasNext();) {
+        for (Iterator<LoggerLevel> it = loggerLevels.iterator(); it.hasNext(); ) {
             LoggerLevel loggerLevel = (LoggerLevel) it.next();
             loggerLevel.starting();
         }
     }
 
-    @SuppressWarnings({ "unchecked", "rawtypes" })
+    @SuppressWarnings({"unchecked", "rawtypes"})
     @Override
     protected void finished(Description description) {
-        for (Iterator<AppenderFilter> it = appenderFilters.iterator(); it.hasNext();) {
+        for (Iterator<AppenderFilter> it = appenderFilters.iterator(); it.hasNext(); ) {
             AppenderFilter appenderFilter = (AppenderFilter) it.next();
             appenderFilter.finished();
         }
-        for (Iterator<LoggerLevel> it = loggerLevels.iterator(); it.hasNext();) {
+        for (Iterator<LoggerLevel> it = loggerLevels.iterator(); it.hasNext(); ) {
             LoggerLevel loggerLevel = (LoggerLevel) it.next();
             loggerLevel.finished();
         }
-        for (Iterator<Appender> it = newAppenders.iterator(); it.hasNext();) {
+        for (Iterator<Appender> it = newAppenders.iterator(); it.hasNext(); ) {
             Appender appender = it.next();
             rootLogger().detachAppender(appender);
         }

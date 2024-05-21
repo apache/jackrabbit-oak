@@ -24,7 +24,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Calendar;
 import java.util.List;
-
 import javax.jcr.Binary;
 import javax.jcr.Node;
 import javax.jcr.PropertyType;
@@ -32,7 +31,6 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.ValueFormatException;
 import javax.jcr.nodetype.NodeType;
-
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -58,8 +56,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * A partial value factory implementation that only deals with in-memory values
- * and can wrap a {@link Value} around a {@link PropertyState}.
+ * A partial value factory implementation that only deals with in-memory values and can wrap a
+ * {@link Value} around a {@link PropertyState}.
  */
 public class PartialValueFactory {
 
@@ -76,11 +74,10 @@ public class PartialValueFactory {
     private final BlobAccessProvider blobAccessProvider;
 
     /**
-     * Creates a new value factory stub using the given {@link NamePathMapper}.
-     * The factory instance created with this constructor does not have a
-     * {@link BlobAccessProvider} and any {@link Binary} retrieved from a
-     * {@link Value} returned by this factory instance will not provide a
-     * download URI.
+     * Creates a new value factory stub using the given {@link NamePathMapper}. The factory instance
+     * created with this constructor does not have a {@link BlobAccessProvider} and any
+     * {@link Binary} retrieved from a {@link Value} returned by this factory instance will not
+     * provide a download URI.
      *
      * @param namePathMapper the name path mapper.
      */
@@ -89,14 +86,14 @@ public class PartialValueFactory {
     }
 
     /**
-     * Creates a new value factory stub using the given {@link NamePathMapper}
-     * and {@link BlobAccessProvider}.
+     * Creates a new value factory stub using the given {@link NamePathMapper} and
+     * {@link BlobAccessProvider}.
      *
-     * @param namePathMapper the name path mapper.
+     * @param namePathMapper     the name path mapper.
      * @param blobAccessProvider the blob access provider.
      */
     public PartialValueFactory(@NotNull NamePathMapper namePathMapper,
-                               @NotNull BlobAccessProvider blobAccessProvider) {
+        @NotNull BlobAccessProvider blobAccessProvider) {
         this.namePathMapper = checkNotNull(namePathMapper);
         this.blobAccessProvider = checkNotNull(blobAccessProvider);
     }
@@ -115,13 +112,11 @@ public class PartialValueFactory {
     }
 
     /**
-     * Utility method for creating a {@code Value} based on a
-     * {@code PropertyState}.
+     * Utility method for creating a {@code Value} based on a {@code PropertyState}.
      *
      * @param property The property state
      * @return New {@code Value} instance
-     * @throws IllegalArgumentException if {@code property.isArray()} is
-     *         {@code true}.
+     * @throws IllegalArgumentException if {@code property.isArray()} is {@code true}.
      */
     @NotNull
     public Value createValue(@NotNull PropertyState property) {
@@ -129,8 +124,7 @@ public class PartialValueFactory {
     }
 
     /**
-     * Utility method for creating {@code Value}s based on a
-     * {@code PropertyState}.
+     * Utility method for creating {@code Value}s based on a {@code PropertyState}.
      *
      * @param property The property state
      * @return A list of new {@code Value} instances
@@ -148,27 +142,32 @@ public class PartialValueFactory {
 
     @NotNull
     public Value createValue(@NotNull String value) {
-        return newValue(StringPropertyState.stringProperty("", value), namePathMapper, getBlobAccessProvider());
+        return newValue(StringPropertyState.stringProperty("", value), namePathMapper,
+            getBlobAccessProvider());
     }
 
     @NotNull
     public Value createValue(long value) {
-        return newValue(LongPropertyState.createLongProperty("", value), namePathMapper, getBlobAccessProvider());
+        return newValue(LongPropertyState.createLongProperty("", value), namePathMapper,
+            getBlobAccessProvider());
     }
 
     @NotNull
     public Value createValue(double value) {
-        return newValue(DoublePropertyState.doubleProperty("", value), namePathMapper, getBlobAccessProvider());
+        return newValue(DoublePropertyState.doubleProperty("", value), namePathMapper,
+            getBlobAccessProvider());
     }
 
     @NotNull
     public Value createValue(@NotNull Calendar value) {
-        return newValue(PropertyStates.createProperty("", value), namePathMapper, getBlobAccessProvider());
+        return newValue(PropertyStates.createProperty("", value), namePathMapper,
+            getBlobAccessProvider());
     }
 
     @NotNull
     public Value createValue(boolean value) {
-        return newValue(BooleanPropertyState.booleanProperty("", value), namePathMapper, getBlobAccessProvider());
+        return newValue(BooleanPropertyState.booleanProperty("", value), namePathMapper,
+            getBlobAccessProvider());
     }
 
     @NotNull
@@ -180,16 +179,19 @@ public class PartialValueFactory {
     public Value createValue(@NotNull Node value, boolean weak) throws RepositoryException {
         if (!value.isNodeType(NodeType.MIX_REFERENCEABLE)) {
             throw new ValueFormatException(
-                    "Node is not referenceable: " + value.getPath());
+                "Node is not referenceable: " + value.getPath());
         }
         return weak
-                ? newValue(GenericPropertyState.weakreferenceProperty("", value.getUUID()), namePathMapper, getBlobAccessProvider())
-                : newValue(GenericPropertyState.referenceProperty("", value.getUUID()), namePathMapper, getBlobAccessProvider());
+            ? newValue(GenericPropertyState.weakreferenceProperty("", value.getUUID()),
+            namePathMapper, getBlobAccessProvider())
+            : newValue(GenericPropertyState.referenceProperty("", value.getUUID()), namePathMapper,
+                getBlobAccessProvider());
     }
 
     @NotNull
     public Value createValue(@NotNull BigDecimal value) {
-        return newValue(DecimalPropertyState.decimalProperty("", value), namePathMapper, getBlobAccessProvider());
+        return newValue(DecimalPropertyState.decimalProperty("", value), namePathMapper,
+            getBlobAccessProvider());
     }
 
     @NotNull
@@ -203,7 +205,8 @@ public class PartialValueFactory {
                 case PropertyType.STRING:
                     return createValue(value);
                 case PropertyType.BINARY:
-                    return newValue(BinaryPropertyState.binaryProperty("", value), namePathMapper, getBlobAccessProvider());
+                    return newValue(BinaryPropertyState.binaryProperty("", value), namePathMapper,
+                        getBlobAccessProvider());
                 case PropertyType.LONG:
                     return createValue(Conversions.convert(value).toLong());
                 case PropertyType.DOUBLE:
@@ -212,7 +215,8 @@ public class PartialValueFactory {
                     if (ISO8601.parse(value) == null) {
                         throw new ValueFormatException("Invalid date " + value);
                     }
-                    return newValue(GenericPropertyState.dateProperty("", value), namePathMapper, getBlobAccessProvider());
+                    return newValue(GenericPropertyState.dateProperty("", value), namePathMapper,
+                        getBlobAccessProvider());
                 case PropertyType.BOOLEAN:
                     return createValue(Conversions.convert(value).toBoolean());
                 case PropertyType.NAME:
@@ -220,7 +224,8 @@ public class PartialValueFactory {
                     if (oakName == null || !JcrNameParser.validate(oakName)) {
                         throw new ValueFormatException("Invalid name: " + value);
                     }
-                    return newValue(GenericPropertyState.nameProperty("", oakName), namePathMapper, getBlobAccessProvider());
+                    return newValue(GenericPropertyState.nameProperty("", oakName), namePathMapper,
+                        getBlobAccessProvider());
                 case PropertyType.PATH:
                     String oakValue = value;
                     if (value.startsWith("[") && value.endsWith("]")) {
@@ -231,48 +236,54 @@ public class PartialValueFactory {
                             throw new ValueFormatException("Invalid path: " + value);
                         }
                     }
-                    return newValue(GenericPropertyState.pathProperty("", oakValue), namePathMapper, getBlobAccessProvider());
+                    return newValue(GenericPropertyState.pathProperty("", oakValue), namePathMapper,
+                        getBlobAccessProvider());
                 case PropertyType.REFERENCE:
                     if (!UUIDUtils.isValidUUID(value)) {
                         throw new ValueFormatException("Invalid reference value " + value);
                     }
-                    return newValue(GenericPropertyState.referenceProperty("", value), namePathMapper, getBlobAccessProvider());
+                    return newValue(GenericPropertyState.referenceProperty("", value),
+                        namePathMapper, getBlobAccessProvider());
                 case PropertyType.WEAKREFERENCE:
                     if (!UUIDUtils.isValidUUID(value)) {
                         throw new ValueFormatException("Invalid weak reference value " + value);
                     }
-                    return newValue(GenericPropertyState.weakreferenceProperty("", value), namePathMapper, getBlobAccessProvider());
+                    return newValue(GenericPropertyState.weakreferenceProperty("", value),
+                        namePathMapper, getBlobAccessProvider());
                 case PropertyType.URI:
                     new URI(value);
-                    return newValue(GenericPropertyState.uriProperty("", value), namePathMapper, getBlobAccessProvider());
+                    return newValue(GenericPropertyState.uriProperty("", value), namePathMapper,
+                        getBlobAccessProvider());
                 case PropertyType.DECIMAL:
                     return createValue(Conversions.convert(value).toDecimal());
                 default:
                     throw new ValueFormatException("Invalid type: " + type);
             }
         } catch (NumberFormatException | URISyntaxException e) {
-            throw new ValueFormatException("Invalid value " + value + " for type " + PropertyType.nameFromValue(type), e);
+            throw new ValueFormatException(
+                "Invalid value " + value + " for type " + PropertyType.nameFromValue(type), e);
         }
     }
 
     /**
-     * A {@link BlobAccessProvider} implementation that does not support direct
-     * binary up- or download.
+     * A {@link BlobAccessProvider} implementation that does not support direct binary up- or
+     * download.
      */
     private static class DefaultBlobAccessProvider
-            implements BlobAccessProvider {
+        implements BlobAccessProvider {
 
         @Nullable
         @Override
         public BlobUpload initiateBlobUpload(long maxUploadSizeInBytes,
-                                             int maxNumberOfURIs) {
-            return initiateBlobUpload(maxUploadSizeInBytes, maxNumberOfURIs, BlobUploadOptions.DEFAULT);
+            int maxNumberOfURIs) {
+            return initiateBlobUpload(maxUploadSizeInBytes, maxNumberOfURIs,
+                BlobUploadOptions.DEFAULT);
         }
 
         @Nullable
         public BlobUpload initiateBlobUpload(long maxUploadSizeInBytes,
-                                             int maxNumberOfURIs,
-                                             @NotNull final BlobUploadOptions options) {
+            int maxNumberOfURIs,
+            @NotNull final BlobUploadOptions options) {
             return null;
         }
 
@@ -285,6 +296,8 @@ public class PartialValueFactory {
         @Nullable
         @Override
         public URI getDownloadURI(@NotNull Blob blob,
-                                  @NotNull BlobDownloadOptions downloadOptions) { return null; }
+            @NotNull BlobDownloadOptions downloadOptions) {
+            return null;
+        }
     }
 }

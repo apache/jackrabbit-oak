@@ -22,17 +22,17 @@ package org.apache.jackrabbit.oak.plugins.value;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.util.Calendar;
-
 import javax.jcr.Binary;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 
 /**
- * Instances of this class represent a {@code Value} which couldn't be retrieved.
- * All its accessors throw a {@code RepositoryException}.
+ * Instances of this class represent a {@code Value} which couldn't be retrieved. All its accessors
+ * throw a {@code RepositoryException}.
  */
 public class ErrorValue implements Value {
+
     private final Exception exception;
     private final int type;
 

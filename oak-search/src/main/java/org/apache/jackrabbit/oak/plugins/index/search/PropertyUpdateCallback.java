@@ -29,18 +29,19 @@ import org.jetbrains.annotations.Nullable;
 public interface PropertyUpdateCallback {
 
     /**
-     * Invoked upon any change in property either added, updated or removed.
-     * Implementation can determine if property is added, updated or removed based
-     * on whether before or after is null
+     * Invoked upon any change in property either added, updated or removed. Implementation can
+     * determine if property is added, updated or removed based on whether before or after is null
      *
-     * @param nodePath path of node for which is to be indexed for this property change
+     * @param nodePath             path of node for which is to be indexed for this property change
      * @param propertyRelativePath relative path of the property wrt the indexed node
-     * @param pd property definition associated with the property to be indexed
-     * @param before before state. Is null when property is added. For other cases it's not null
-     * @param after after state of the property. Is null when property is removed. For other cases it's not null
+     * @param pd                   property definition associated with the property to be indexed
+     * @param before               before state. Is null when property is added. For other cases
+     *                             it's not null
+     * @param after                after state of the property. Is null when property is removed.
+     *                             For other cases it's not null
      */
     void propertyUpdated(String nodePath, String propertyRelativePath, PropertyDefinition pd,
-                         @Nullable PropertyState before, @Nullable PropertyState after);
+        @Nullable PropertyState before, @Nullable PropertyState after);
 
     /**
      * Invoked after editor has traversed all the changes

@@ -34,8 +34,8 @@ import com.mongodb.MongoClientURI;
 import com.mongodb.client.MongoDatabase;
 
 /**
- * A utility class to get a {@link MongoConnection} to a local mongo instance
- * and clean a test database.
+ * A utility class to get a {@link MongoConnection} to a local mongo instance and clean a test
+ * database.
  */
 public class MongoUtils {
 
@@ -44,13 +44,13 @@ public class MongoUtils {
     protected static Map<String, Exception> exceptions = new ConcurrentHashMap<>();
 
     protected static final String HOST =
-            System.getProperty("mongo.host", "127.0.0.1");
+        System.getProperty("mongo.host", "127.0.0.1");
 
     protected static final int PORT =
-            Integer.getInteger("mongo.port", 27017);
+        Integer.getInteger("mongo.port", 27017);
 
     public static final String DB =
-            System.getProperty("mongo.db", "MongoMKDB");
+        System.getProperty("mongo.db", "MongoMKDB");
 
     private static final String OPTIONS = "connectTimeoutMS=3000&serverSelectionTimeoutMS=3000";
 
@@ -124,9 +124,8 @@ public class MongoUtils {
     }
 
     /**
-     * Drop all user defined collections in the given database. System
-     * collections are not dropped. This method returns silently if MongoDB is
-     * not available.
+     * Drop all user defined collections in the given database. System collections are not dropped.
+     * This method returns silently if MongoDB is not available.
      *
      * @param dbName the database name.
      */
@@ -170,8 +169,8 @@ public class MongoUtils {
     }
 
     /**
-     * Drops the database with the given name. This method returns silently if
-     * MongoDB is not available.
+     * Drops the database with the given name. This method returns silently if MongoDB is not
+     * available.
      *
      * @param dbName the name of the database to drop.
      */

@@ -19,17 +19,16 @@
 
 package org.apache.jackrabbit.oak.commons.jmx;
 
-import junit.framework.TestCase;
-import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
-import org.junit.Test;
-
-import javax.management.ObjectName;
-import java.util.Collections;
-import java.util.Map;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+
+import java.util.Collections;
+import java.util.Map;
+import javax.management.ObjectName;
+import junit.framework.TestCase;
+import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
+import org.junit.Test;
 
 public class JmxUtilTest {
 
@@ -45,10 +44,11 @@ public class JmxUtilTest {
         assertTrue(JmxUtil.quoteValueIfRequired("text,withComma").startsWith("\""));
         assertTrue(JmxUtil.quoteValueIfRequired("text=withEqual").startsWith("\""));
     }
-    
+
     @Test
     public void testCreateObjectNameMap() throws Exception {
-        Map<String, ObjectName> m = JmxUtil.createObjectNameMap("type", "name", Collections.singletonMap("key", "value"));
+        Map<String, ObjectName> m = JmxUtil.createObjectNameMap("type", "name",
+            Collections.singletonMap("key", "value"));
         assertEquals(1, m.size());
         ObjectName objectName = m.get("jmx.objectname");
         assertNotNull(objectName);

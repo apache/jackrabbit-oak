@@ -25,13 +25,16 @@ import org.jetbrains.annotations.NotNull;
 
 final class ContextImpl implements Context, Constants {
 
-    private ContextImpl(){}
+    private ContextImpl() {
+    }
 
     static final Context INSTANCE = new ContextImpl();
 
-    private static final String[] NODE_NAMES = new String[] {REP_PRINCIPAL_POLICY, REP_RESTRICTIONS};
-    private static final String[] PROPERTY_NAMES = new String[] {REP_PRINCIPAL_NAME, REP_EFFECTIVE_PATH, REP_PRIVILEGES};
-    private static final String[] NT_NAMES = new String[] {NT_REP_PRINCIPAL_POLICY, NT_REP_PRINCIPAL_ENTRY, NT_REP_RESTRICTIONS};
+    private static final String[] NODE_NAMES = new String[]{REP_PRINCIPAL_POLICY, REP_RESTRICTIONS};
+    private static final String[] PROPERTY_NAMES = new String[]{REP_PRINCIPAL_NAME,
+        REP_EFFECTIVE_PATH, REP_PRIVILEGES};
+    private static final String[] NT_NAMES = new String[]{NT_REP_PRINCIPAL_POLICY,
+        NT_REP_PRINCIPAL_ENTRY, NT_REP_RESTRICTIONS};
 
     //------------------------------------------------------------< Context >---
     @Override

@@ -17,9 +17,7 @@
 package org.apache.jackrabbit.oak.http;
 
 import java.io.IOException;
-
 import javax.servlet.http.HttpServletResponse;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.tika.mime.MediaType;
@@ -29,9 +27,9 @@ public interface Representation {
     MediaType getType();
 
     void render(Tree tree, HttpServletResponse response)
-            throws IOException;
+        throws IOException;
 
     void render(PropertyState property, HttpServletResponse response)
-            throws IOException;
+        throws IOException;
 
 }

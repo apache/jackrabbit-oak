@@ -18,11 +18,9 @@ package org.apache.jackrabbit.oak.benchmark;
 
 import java.io.InputStream;
 import java.util.Calendar;
-
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-
 import org.apache.jackrabbit.guava.common.io.ByteStreams;
 
 public class SmallFileReadTest extends AbstractTest {
@@ -40,14 +38,14 @@ public class SmallFileReadTest extends AbstractTest {
         session = getRepository().login(getCredentials());
 
         root = session.getRootNode().addNode(
-                getClass().getSimpleName() + TEST_ID, "nt:folder");
+            getClass().getSimpleName() + TEST_ID, "nt:folder");
         for (int i = 0; i < FILE_COUNT; i++) {
             Node file = root.addNode("file" + i, "nt:file");
             Node content = file.addNode("jcr:content", "nt:resource");
             content.setProperty("jcr:mimeType", "application/octet-stream");
             content.setProperty("jcr:lastModified", Calendar.getInstance());
             content.setProperty(
-                    "jcr:data", new TestInputStream(FILE_SIZE * 1024));
+                "jcr:data", new TestInputStream(FILE_SIZE * 1024));
         }
         session.save();
     }

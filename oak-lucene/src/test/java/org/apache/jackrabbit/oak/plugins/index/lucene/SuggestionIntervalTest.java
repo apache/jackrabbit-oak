@@ -25,10 +25,9 @@ import static org.junit.Assert.assertNotNull;
 
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-
 import javax.jcr.query.Query;
-
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
@@ -47,8 +46,6 @@ import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
 import org.junit.Test;
-
-import org.apache.jackrabbit.guava.common.collect.Sets;
 
 public class SuggestionIntervalTest extends AbstractQueryTest {
 
@@ -86,7 +83,7 @@ public class SuggestionIntervalTest extends AbstractQueryTest {
         throws Exception {
         String indexName = "lucene-suggest";
         Tree def = root.getTree("/" + INDEX_DEFINITIONS_NAME)
-            .addChild(indexName);
+                       .addChild(indexName);
         def.setProperty(JcrConstants.JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE, Type.NAME);
         def.setProperty(TYPE_PROPERTY_NAME, LuceneIndexConstants.TYPE_LUCENE);
         def.setProperty(REINDEX_PROPERTY_NAME, true);
@@ -94,9 +91,9 @@ public class SuggestionIntervalTest extends AbstractQueryTest {
         def.setProperty(FulltextIndexConstants.COMPAT_MODE, IndexFormatVersion.V2.getVersion());
 
         Tree propertyIdxDef = def.addChild(FulltextIndexConstants.INDEX_RULES)
-            .addChild(indexedNodeType)
-            .addChild(FulltextIndexConstants.PROP_NODE)
-            .addChild("indexedProperty");
+                                 .addChild(indexedNodeType)
+                                 .addChild(FulltextIndexConstants.PROP_NODE)
+                                 .addChild("indexedProperty");
         propertyIdxDef.setProperty("propertyIndex", true);
         propertyIdxDef.setProperty("analyzed", true);
         propertyIdxDef.setProperty("useInSuggest", true);
@@ -120,7 +117,8 @@ public class SuggestionIntervalTest extends AbstractQueryTest {
     }
 
     private String createSuggestQuery(String nodeType, String suggestFor) {
-        return "SELECT [rep:suggest()] as suggestion, [jcr:score] as score  FROM [" + nodeType + "] WHERE suggest('" + suggestFor + "')";
+        return "SELECT [rep:suggest()] as suggestion, [jcr:score] as score  FROM [" + nodeType
+            + "] WHERE suggest('" + suggestFor + "')";
     }
 
     //OAK-4068
@@ -156,7 +154,8 @@ public class SuggestionIntervalTest extends AbstractQueryTest {
         root.commit();
 
         long currTime = clock.getTime();
-        long toTime = currTime + TimeUnit.MINUTES.toMillis(IndexDefinition.DEFAULT_SUGGESTER_UPDATE_FREQUENCY_MINUTES);
+        long toTime = currTime + TimeUnit.MINUTES.toMillis(
+            IndexDefinition.DEFAULT_SUGGESTER_UPDATE_FREQUENCY_MINUTES);
 
         //add a node that get part in the index
         root.getTree("/").addChild("indexedNode")
@@ -193,7 +192,8 @@ public class SuggestionIntervalTest extends AbstractQueryTest {
         assertNotNull("Suggestions update timestamp couldn't be read", suggUpdateTime1);
 
         long currTime = clock.getTime();
-        long toTime = currTime + TimeUnit.MINUTES.toMillis(IndexDefinition.DEFAULT_SUGGESTER_UPDATE_FREQUENCY_MINUTES);
+        long toTime = currTime + TimeUnit.MINUTES.toMillis(
+            IndexDefinition.DEFAULT_SUGGESTER_UPDATE_FREQUENCY_MINUTES);
 
         //wait for suggestions refresh time
         clock.waitUntil(toTime);
@@ -212,7 +212,8 @@ public class SuggestionIntervalTest extends AbstractQueryTest {
     }
 
     private String getSuggestionLastUpdated(Tree indexDef) {
-        Tree suggStat = root.getTree(indexDef.getPath() + "/" + LuceneIndexConstants.SUGGEST_DATA_CHILD_NAME);
+        Tree suggStat = root.getTree(
+            indexDef.getPath() + "/" + LuceneIndexConstants.SUGGEST_DATA_CHILD_NAME);
         if (!suggStat.hasProperty("lastUpdated")) {
             return null;
         }

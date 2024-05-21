@@ -17,19 +17,18 @@
 
 package org.apache.jackrabbit.oak.explorer;
 
+import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
+
+import java.io.File;
+import java.io.IOException;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.file.tar.LocalJournalFile;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
 
-import java.io.File;
-import java.io.IOException;
-
-import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
-
 /**
  * Backend using a local SegmentTar Node store.
  */
-class SegmentTarExplorerBackend extends AbstractSegmentTarExplorerBackend  {
+class SegmentTarExplorerBackend extends AbstractSegmentTarExplorerBackend {
 
     private final File path;
 

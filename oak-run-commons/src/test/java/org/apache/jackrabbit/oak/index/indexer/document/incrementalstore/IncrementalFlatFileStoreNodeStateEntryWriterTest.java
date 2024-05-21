@@ -18,15 +18,16 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.incrementalstore;
 
+import static org.junit.Assert.assertArrayEquals;
+
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMergeSortTaskTest;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.junit.Assert.assertArrayEquals;
-
 public class IncrementalFlatFileStoreNodeStateEntryWriterTest {
+
     private static final Logger LOG = LoggerFactory.getLogger(PipelinedMergeSortTaskTest.class);
 
     /*
@@ -43,7 +44,8 @@ public class IncrementalFlatFileStoreNodeStateEntryWriterTest {
         while (System.currentTimeMillis() < testEndTime) {
             String[] testStringParts = createStringParts();
             String testString = String.join("|", testStringParts);
-            String[] evaluatedParts = IncrementalFlatFileStoreNodeStateEntryWriter.getParts(testString);
+            String[] evaluatedParts = IncrementalFlatFileStoreNodeStateEntryWriter.getParts(
+                testString);
             assertArrayEquals(testStringParts, evaluatedParts);
             int initialLength = testString.length();
             String testStringWithPipeRemoved = testString.replace("|", "");
@@ -57,8 +59,9 @@ public class IncrementalFlatFileStoreNodeStateEntryWriterTest {
         LOG.info("total Strings with more than 3 |'s :{}", stringsWithPipesGreaterThanThree);
 
         System.out.println("total Strings with mre than 3 |'s :"
-                + stringsWithPipesGreaterThanThree + "  " + totalRuns);
+            + stringsWithPipesGreaterThanThree + "  " + totalRuns);
     }
+
     private String[] createStringParts() {
         String path = RandomStringUtils.randomPrint(1000).replace("|", "/");
         String nodeData = RandomStringUtils.randomPrint(5000);

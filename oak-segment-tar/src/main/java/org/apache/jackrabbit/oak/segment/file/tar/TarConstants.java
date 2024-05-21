@@ -28,8 +28,8 @@ public class TarConstants {
     /**
      * Magic byte sequence at the end of the graph block.
      * <p>
-     * The file is read from the end (the tar file is read from the end: the
-     * last entry is the index, then the graph). File format:
+     * The file is read from the end (the tar file is read from the end: the last entry is the
+     * index, then the graph). File format:
      * <ul>
      * <li>0 padding to make the footer end at a 512 byte boundary</li>
      * <li>The list of UUIDs (segments included the graph; this includes

@@ -19,6 +19,30 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 
+import static org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors.newDirectExecutorService;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_FACETS;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.STATISTICAL_FACET_SAMPLE_SIZE_DEFAULT;
+import static org.apache.jackrabbit.oak.spi.mount.Mounts.defaultMountInfoProvider;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.Properties;
+import java.util.Random;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
+import javax.jcr.GuestCredentials;
+import javax.jcr.Repository;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import javax.jcr.Value;
+import javax.jcr.query.Query;
+import javax.jcr.query.QueryManager;
+import javax.jcr.query.QueryResult;
+import javax.jcr.query.RowIterator;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
@@ -60,32 +84,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import javax.jcr.GuestCredentials;
-import javax.jcr.Repository;
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-import javax.jcr.Value;
-import javax.jcr.query.Query;
-import javax.jcr.query.QueryManager;
-import javax.jcr.query.QueryResult;
-import javax.jcr.query.RowIterator;
-import java.io.File;
-import java.io.IOException;
-import java.util.Properties;
-import java.util.Random;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Predicate;
-
-import static org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors.newDirectExecutorService;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_FACETS;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.STATISTICAL_FACET_SAMPLE_SIZE_DEFAULT;
-import static org.apache.jackrabbit.oak.spi.mount.Mounts.defaultMountInfoProvider;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
-
 public class DelayedFacetReadTest extends AbstractQueryTest {
+
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
 
@@ -133,34 +133,36 @@ public class DelayedFacetReadTest extends AbstractQueryTest {
             throw new RuntimeException(e);
         }
         MountInfoProvider mip = defaultMountInfoProvider();
-        nrtIndexFactory = new NRTIndexFactory(copier, clock, TimeUnit.MILLISECONDS.toSeconds(REFRESH_DELTA), StatisticsProvider.NOOP);
+        nrtIndexFactory = new NRTIndexFactory(copier, clock,
+            TimeUnit.MILLISECONDS.toSeconds(REFRESH_DELTA), StatisticsProvider.NOOP);
         nrtIndexFactory.setAssertAllResourcesClosed(true);
         LuceneIndexReaderFactory indexReaderFactory = new DefaultIndexReaderFactory(mip, copier);
         IndexTracker tracker = new IndexTracker(indexReaderFactory, nrtIndexFactory);
         luceneIndexProvider = new LuceneIndexProvider(tracker);
         queue = new DocumentQueue(100, tracker, newDirectExecutorService());
         LuceneIndexEditorProvider editorProvider = new LuceneIndexEditorProvider(copier,
-                tracker,
-                null,
-                null,
-                mip);
+            tracker,
+            null,
+            null,
+            mip);
         editorProvider.setIndexingQueue(queue);
-        LocalIndexObserver localIndexObserver = new LocalIndexObserver(queue, StatisticsProvider.NOOP);
+        LocalIndexObserver localIndexObserver = new LocalIndexObserver(queue,
+            StatisticsProvider.NOOP);
         nodeStore = new MemoryNodeStore();
         oak = new Oak(nodeStore)
-                .with(new InitialContent())
-                .with(new OpenSecurityProvider())
-                .with((QueryIndexProvider) luceneIndexProvider)
-                .with((Observer) luceneIndexProvider)
-                .with(localIndexObserver)
-                .with(editorProvider)
-                .with(new PropertyIndexEditorProvider())
-                .with(new NodeTypeIndexProvider())
-                .with(optionalEditorProvider)
-                .with(new NodeCounterEditorProvider())
-                //Effectively disable async indexing auto run
-                //such that we can control run timing as per test requirement
-                .withAsyncIndexing("async", TimeUnit.DAYS.toSeconds(1));
+            .with(new InitialContent())
+            .with(new OpenSecurityProvider())
+            .with((QueryIndexProvider) luceneIndexProvider)
+            .with((Observer) luceneIndexProvider)
+            .with(localIndexObserver)
+            .with(editorProvider)
+            .with(new PropertyIndexEditorProvider())
+            .with(new NodeTypeIndexProvider())
+            .with(optionalEditorProvider)
+            .with(new NodeCounterEditorProvider())
+            //Effectively disable async indexing auto run
+            //such that we can control run timing as per test requirement
+            .withAsyncIndexing("async", TimeUnit.DAYS.toSeconds(1));
 
         wb = oak.getWhiteboard();
         ContentRepository repo = oak.createContentRepository();
@@ -194,7 +196,7 @@ public class DelayedFacetReadTest extends AbstractQueryTest {
         System.setProperty(LucenePropertyIndex.OLD_FACET_PROVIDER_CONFIG_NAME, "false");
         // The variable is static final so once set it remains same for all tests and which will lead to slow execution
         // of other tests as this add a sleep of specified milliseconds in refresh reader method in LuceneIndexNodeManager.
-       // System.setProperty(LuceneIndexNodeManager.OLD_FACET_PROVIDER_TEST_FAILURE_SLEEP_INSTRUMENT_NAME, "40");
+        // System.setProperty(LuceneIndexNodeManager.OLD_FACET_PROVIDER_TEST_FAILURE_SLEEP_INSTRUMENT_NAME, "40");
         Thread.currentThread().setName("main");
         String idxName = "hybridtest";
         Tree idx = createIndex(root.getTree("/"), idxName);
@@ -212,7 +214,8 @@ public class DelayedFacetReadTest extends AbstractQueryTest {
         root.commit();
         Session anonSession = jcrRepo.login(new GuestCredentials());
         qm = anonSession.getWorkspace().getQueryManager();
-        Query q = qm.createQuery("SELECT [rep:facet(foo)] FROM [nt:base] WHERE [cons] = 'val'", SQL2);
+        Query q = qm.createQuery("SELECT [rep:facet(foo)] FROM [nt:base] WHERE [cons] = 'val'",
+            SQL2);
         QueryResult qr = q.execute();
 
         thread = new Thread(new Runnable() {
@@ -221,7 +224,8 @@ public class DelayedFacetReadTest extends AbstractQueryTest {
                 Query q = null;
                 try {
                     clock.waitUntil(clock.getTime() + REFRESH_DELTA + 1);
-                    q = qm.createQuery("SELECT [rep:facet(foo)] FROM [nt:base] WHERE [cons] = 'val'", SQL2);
+                    q = qm.createQuery(
+                        "SELECT [rep:facet(foo)] FROM [nt:base] WHERE [cons] = 'val'", SQL2);
                     QueryResult qr = q.execute();
                 } catch (RepositoryException | InterruptedException e) {
                     e.printStackTrace();
@@ -242,12 +246,13 @@ public class DelayedFacetReadTest extends AbstractQueryTest {
     }
 
     private void runAsyncIndex() {
-        AsyncIndexUpdate async = (AsyncIndexUpdate) WhiteboardUtils.getService(wb, Runnable.class, new Predicate<Runnable>() {
-            @Override
-            public boolean test(@Nullable Runnable input) {
-                return input instanceof AsyncIndexUpdate;
-            }
-        });
+        AsyncIndexUpdate async = (AsyncIndexUpdate) WhiteboardUtils.getService(wb, Runnable.class,
+            new Predicate<Runnable>() {
+                @Override
+                public boolean test(@Nullable Runnable input) {
+                    return input instanceof AsyncIndexUpdate;
+                }
+            });
         assertNotNull(async);
         async.run();
         if (async.isFailing()) {
@@ -267,10 +272,10 @@ public class DelayedFacetReadTest extends AbstractQueryTest {
     private Tree createIndex(Tree index, String name) throws RepositoryException {
         LuceneIndexDefinitionBuilder idxBuilder = new LuceneIndexDefinitionBuilder();
         idxBuilder.noAsync()
-                .indexRule("nt:base")
-                .property("cons").propertyIndex()
-                .property("foo").propertyIndex()
-                .getBuilderTree().setProperty(PROP_FACETS, true);
+                  .indexRule("nt:base")
+                  .property("cons").propertyIndex()
+                  .property("foo").propertyIndex()
+                  .getBuilderTree().setProperty(PROP_FACETS, true);
         Tree facetConfig = idxBuilder.getBuilderTree().addChild(FACET_PROP);
         facetConfig.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
         facetConfig.setProperty("secure", "statistical");

@@ -18,12 +18,18 @@
  */
 package org.apache.jackrabbit.oak.run;
 
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getIdFromPath;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
+
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
@@ -39,14 +45,6 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
-
-import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getIdFromPath;
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeTrue;
 
 public class RevisionsCommandTest {
 
@@ -92,7 +90,7 @@ public class RevisionsCommandTest {
         MongoConnection c = connectionFactory.getConnection();
         assertNotNull(c);
         ns = builderProvider.newBuilder()
-                .setMongoDB(c.getMongoClient(), c.getDBName()).getNodeStore();
+                            .setMongoDB(c.getMongoClient(), c.getDBName()).getNodeStore();
         doc = ns.getDocumentStore().find(Collection.SETTINGS, "versionGC");
         assertNull(doc);
     }
@@ -125,7 +123,8 @@ public class RevisionsCommandTest {
         MongoConnection c = connectionFactory.getConnection();
         assertNotNull(c);
         DocumentNodeStoreBuilder<?> builder = builderProvider.newBuilder()
-                .setMongoDB(c.getMongoClient(), c.getDBName());
+                                                             .setMongoDB(c.getMongoClient(),
+                                                                 c.getDBName());
         DocumentStore store = builder.getDocumentStore();
         UpdateOp op = new UpdateOp(getIdFromPath("/"), false);
         op.removeMapEntry("_sweepRev", new Revision(0, 0, clusterId));
@@ -140,7 +139,7 @@ public class RevisionsCommandTest {
         assertNotNull(c);
         MongoUtils.dropCollections(c.getDatabase());
         return builderProvider.newBuilder()
-                .setMongoDB(c.getMongoClient(), c.getDBName()).getNodeStore();
+                              .setMongoDB(c.getMongoClient(), c.getDBName()).getNodeStore();
     }
 
     private String captureSystemOut(Runnable r) {
@@ -177,7 +176,7 @@ public class RevisionsCommandTest {
 
         public RevisionsCmd(String... args) {
             this.args = ImmutableList.<String>builder().add(MongoUtils.URL)
-                    .add(args).build().asList();
+                                     .add(args).build().asList();
         }
 
         @Override

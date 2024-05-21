@@ -20,7 +20,6 @@ import javax.jcr.Node;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -29,8 +28,8 @@ import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.util.Text;
 
 /**
- * Measure performance of repository login with the test user being direct or
- * inherited member of a specified number of groups.
+ * Measure performance of repository login with the test user being direct or inherited member of a
+ * specified number of groups.
  */
 public class LoginWithMembershipTest extends AbstractLoginTest {
 
@@ -41,7 +40,8 @@ public class LoginWithMembershipTest extends AbstractLoginTest {
     private final int numberOfGroups;
     private final boolean nestedGroups;
 
-    public LoginWithMembershipTest(boolean runWithToken, int noIterations, int numberOfGroups, boolean nestedGroups, long expiration) {
+    public LoginWithMembershipTest(boolean runWithToken, int noIterations, int numberOfGroups,
+        boolean nestedGroups, long expiration) {
         super(USER, runWithToken, noIterations, expiration);
 
         this.numberOfGroups = numberOfGroups;
@@ -81,7 +81,8 @@ public class LoginWithMembershipTest extends AbstractLoginTest {
         Session s = loginAdministrative();
         try {
 
-            Authorizable authorizable = ((JackrabbitSession) s).getUserManager().getAuthorizable(GROUP);
+            Authorizable authorizable = ((JackrabbitSession) s).getUserManager()
+                                                               .getAuthorizable(GROUP);
             if (authorizable != null) {
                 Node n = s.getNode(Text.getRelativeParent(authorizable.getPath(), 1));
                 n.remove();

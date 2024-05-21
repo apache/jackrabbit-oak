@@ -19,9 +19,14 @@
 
 package org.apache.jackrabbit.oak.exporter;
 
+import static java.util.Arrays.asList;
+import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+
 import java.io.File;
 import java.util.Collections;
-
 import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.json.BlobDeserializer;
@@ -33,13 +38,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
-import static java.util.Arrays.asList;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.mock;
-
 public class NodeStateSerializerTest {
+
     private NodeBuilder builder = EMPTY_NODE.builder();
     private BlobDeserializer blobHandler = mock(BlobDeserializer.class);
 
@@ -47,7 +47,7 @@ public class NodeStateSerializerTest {
     public final TemporaryFolder folder = new TemporaryFolder(new File("target"));
 
     @Test
-    public void basics() throws Exception{
+    public void basics() throws Exception {
         builder.child("a").setProperty("foo", "bar");
 
         NodeStateSerializer serializer = new NodeStateSerializer(builder.getNodeState());
@@ -57,7 +57,7 @@ public class NodeStateSerializerTest {
     }
 
     @Test
-    public void serializeToFile() throws Exception{
+    public void serializeToFile() throws Exception {
         builder.child("a").setProperty("foo", "bar");
 
         NodeStateSerializer serializer = new NodeStateSerializer(builder.getNodeState());
@@ -72,7 +72,7 @@ public class NodeStateSerializerTest {
     }
 
     @Test
-    public void text() throws Exception{
+    public void text() throws Exception {
         builder.child("a").setProperty("foo", "bar");
         builder.child("a").child("d").setProperty("foo", "bar");
         builder.child("a").child("d").setProperty("foo2", asList("x", "y"), Type.STRINGS);

@@ -23,11 +23,14 @@ the codebase. The [README files](https://github.com/apache/jackrabbit-oak/blob/t
 this documentation, and the [Oak mailing list](http://oak.markmail.org/) archives are good places
 to start learning about Oak.
 
-There is also the [Jackrabbit 3 wiki page](https://jackrabbit.apache.org/archive/wiki/JCR/Jackrabbit-3_115513423.html), which
+There is also
+the [Jackrabbit 3 wiki page](https://jackrabbit.apache.org/archive/wiki/JCR/Jackrabbit-3_115513423.html),
+which
 is mostly outdated though and should only be consulted for historical research.
 
-To get started developing Oak, clone the [Git repository](https://github.com/apache/jackrabbit-oak), 
-or fork it on [GitHub](https://github.com/apache/jackrabbit-oak). Then build the latest sources with Maven 3 and 
+To get started developing Oak, clone the [Git repository](https://github.com/apache/jackrabbit-oak),
+or fork it on [GitHub](https://github.com/apache/jackrabbit-oak). Then build the latest sources with
+Maven 3 and
 Java 8 (or higher) like this:
 
     mvn clean install
@@ -62,64 +65,63 @@ Components
 
 The build consists of the following components:
 
-  - oak-parent        - parent POM
-  - oak-doc           - Oak documentation
-  - oak-commons       - shared utility code
-  
-  - [oak-api][1]      - Oak repository API   
-  - oak-core          - Oak repository implementation
-  - oak-core-spi      - Oak repository extensions
-  
-  - oak-jcr           - JCR binding for the Oak repository
+- oak-parent - parent POM
+- oak-doc - Oak documentation
+- oak-commons - shared utility code
 
-  - oak-solr-core     - Apache Solr indexing and search
-  - oak-solr-osgi
-  - oak-lucene        - Lucene-based query index
-  
-  - oak-auth-external - External authentication support
-  - oak-auth-ldap     - LDAP implementation of external authentication
-  - oak-authorization-cug - Authorization model for closed user groups (CUG)
-     
-  - oak-blob          - Oak Blob Store API
-  - oak-blob-plugins  - Oak Blob : Extensions and Base Implementations
-  - oak-blob-cloud    - S3 cloud blob store implementation
-  - oak-blob-cloud-azure - Azure cloud blob store implementation 
+- [oak-api][1]      - Oak repository API
+- oak-core - Oak repository implementation
+- oak-core-spi - Oak repository extensions
 
-  - oak-store-spi     - Oak NodeStore and Commit SPI 
-  - oak-segment-tar   - TarMK API and nodestore implementation
-  - oak-store-document - Oak DocumentNodeStore implementation on MongoDB and RDB
-  - oak-store-composite - CompositeNodeStore implementation
+- oak-jcr - JCR binding for the Oak repository
 
-  - oak-upgrade       - tooling for upgrading Jackrabbit repositories to Oak and sidegrading Oak to Oak
-   
-  - oak-run           - runnable jar packaging
-  - oak-run-commons   - utilities shared by oak-run and oak-benchmarks
-  
-  - oak-benchmarks    - benchmark tests
-  - oak-it            - integration tests
-  - oak-it-osgi       - integration tests for OSGi
-  
-  - oak-http          - HTTP binding for Oak
-  - oak-pojosr  
-  
-  - [oak-exercise][3] - Oak training material
-  - oak-examples      - Oak examples (webapp and standalone)
+- oak-solr-core - Apache Solr indexing and search
+- oak-solr-osgi
+- oak-lucene - Lucene-based query index
 
+- oak-auth-external - External authentication support
+- oak-auth-ldap - LDAP implementation of external authentication
+- oak-authorization-cug - Authorization model for closed user groups (CUG)
+
+- oak-blob - Oak Blob Store API
+- oak-blob-plugins - Oak Blob : Extensions and Base Implementations
+- oak-blob-cloud - S3 cloud blob store implementation
+- oak-blob-cloud-azure - Azure cloud blob store implementation
+
+- oak-store-spi - Oak NodeStore and Commit SPI
+- oak-segment-tar - TarMK API and nodestore implementation
+- oak-store-document - Oak DocumentNodeStore implementation on MongoDB and RDB
+- oak-store-composite - CompositeNodeStore implementation
+
+- oak-upgrade - tooling for upgrading Jackrabbit repositories to Oak and sidegrading Oak to Oak
+
+- oak-run - runnable jar packaging
+- oak-run-commons - utilities shared by oak-run and oak-benchmarks
+
+- oak-benchmarks - benchmark tests
+- oak-it - integration tests
+- oak-it-osgi - integration tests for OSGi
+
+- oak-http - HTTP binding for Oak
+- oak-pojosr
+
+- [oak-exercise][3] - Oak training material
+- oak-examples - Oak examples (webapp and standalone)
 
 Archive
 -------
 
 The following components have been moved to the Jackrabbit Attic:
 
-  - oak-mk-api        - MicroKernel API (_deprecated_, OAK-2701)
-  - oak-mk            - MicroKernel implementation (see OAK-2702)
-  - oak-mk-remote     - MicroKernel remoting  (see [OAK-2693][2])
-  - oak-it/mk         - integration tests for MicroKernel
-  - oak-remote        - Oak Remote API (see OAK-7035)
+- oak-mk-api - MicroKernel API (_deprecated_, OAK-2701)
+- oak-mk - MicroKernel implementation (see OAK-2702)
+- oak-mk-remote - MicroKernel remoting  (see [OAK-2693][2])
+- oak-it/mk - integration tests for MicroKernel
+- oak-remote - Oak Remote API (see OAK-7035)
 
+[1]: https://github.com/apache/jackrabbit-oak/blob/trunk/oak-core/README.md
 
+[2]: https://issues.apache.org/jira/browse/OAK-2693
 
-  [1]: https://github.com/apache/jackrabbit-oak/blob/trunk/oak-core/README.md
-  [2]: https://issues.apache.org/jira/browse/OAK-2693
-  [3]: https://github.com/apache/jackrabbit-oak/blob/trunk/oak-exercise/README.md
+[3]: https://github.com/apache/jackrabbit-oak/blob/trunk/oak-exercise/README.md
 

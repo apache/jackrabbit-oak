@@ -45,19 +45,19 @@ public class NodeBuilderTest extends OakBaseTest {
         builder = store.getRoot().builder();
         assertTrue("child node x should be present", builder.hasChildNode("x"));
         assertTrue("child node x/y should be present", builder.child("x")
-                .hasChildNode("y"));
+                                                              .hasChildNode("y"));
         assertTrue("child node x/y/z should be present", builder.child("x")
-                .child("y").hasChildNode("z"));
+                                                                .child("y").hasChildNode("z"));
 
         builder.getChildNode("x").remove();
         assertFalse("child node x not should be present",
-                builder.hasChildNode("x"));
+            builder.hasChildNode("x"));
         assertFalse("child node x/y not should be present", builder.child("x")
-                .hasChildNode("y"));
+                                                                   .hasChildNode("y"));
 
         // See OAK-531
         assertFalse("child node x/y/z not should not be present", builder
-                .child("x").child("y").hasChildNode("z"));
+            .child("x").child("y").hasChildNode("z"));
 
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
@@ -92,7 +92,7 @@ public class NodeBuilderTest extends OakBaseTest {
     }
 
     @Test
-    public void isReplacedBehaviour() throws Exception{
+    public void isReplacedBehaviour() throws Exception {
         NodeBuilder nb = store.getRoot().builder();
         nb.child("a").setProperty("foo", "bar");
 

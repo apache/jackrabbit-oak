@@ -16,6 +16,7 @@
   -->
 
 ## Atomic Counter
+
 `@since 1.3.0 (stand-alone) , 1.3.14 (full cluster support)`
 
 ### Overview
@@ -74,6 +75,7 @@ the default Oak repository constructions, so other that you customise
 further no actions should be needed.
 
 ### Enabling the feature (Repository Construction)
+
 #### Plain Java
 
 ##### Stand-alone
@@ -152,7 +154,7 @@ available it will fall back to synchronous behaviour.
     System.out.println("counter now: " + counter.getProperty("oak:counter").getLong());
   
     session.logout();
- 
+
 ### Debug
 
 If you're experiencing any problems with the counter you can start

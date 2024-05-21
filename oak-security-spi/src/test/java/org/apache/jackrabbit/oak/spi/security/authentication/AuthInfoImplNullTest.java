@@ -16,15 +16,14 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication;
 
-import javax.security.auth.Subject;
-
-import org.apache.jackrabbit.oak.api.AuthInfo;
-import org.junit.Test;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+
+import javax.security.auth.Subject;
+import org.apache.jackrabbit.oak.api.AuthInfo;
+import org.junit.Test;
 
 public class AuthInfoImplNullTest {
 

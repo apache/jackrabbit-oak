@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.jcr.version;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.version.VersionManager;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.test.AbstractJCRTest;
 

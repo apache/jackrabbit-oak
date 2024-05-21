@@ -33,7 +33,7 @@ public class LargeTreeOperationTest {
     @Test
     public void removeLargeSubtree() throws CommitFailedException {
         DocumentNodeStore ns = new DocumentMK.Builder()
-                .setUseSimpleRevision(true).getNodeStore();
+            .setUseSimpleRevision(true).getNodeStore();
 
         NodeBuilder builder = ns.getRoot().builder();
         NodeBuilder test = builder.child("test");
@@ -49,7 +49,7 @@ public class LargeTreeOperationTest {
         Revision r2 = ns.newRevision();
 
         assertTrue("remove of large subtree must trigger branch commits",
-                r2.getTimestamp() - r1.getTimestamp() > 1);
+            r2.getTimestamp() - r1.getTimestamp() > 1);
 
         ns.dispose();
     }
@@ -74,7 +74,7 @@ public class LargeTreeOperationTest {
         memStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         DocumentNodeStore ns = new DocumentMK.Builder()
-                .setUseSimpleRevision(true).getNodeStore();
+            .setUseSimpleRevision(true).getNodeStore();
 
         builder = ns.getRoot().builder();
         for (String name : path) {
@@ -86,7 +86,7 @@ public class LargeTreeOperationTest {
         Revision r2 = ns.newRevision();
 
         assertTrue("setting a large subtree must trigger branch commits",
-                r2.getTimestamp() - r1.getTimestamp() > 1);
+            r2.getTimestamp() - r1.getTimestamp() > 1);
 
         ns.dispose();
     }

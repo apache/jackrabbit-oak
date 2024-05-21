@@ -18,33 +18,28 @@
  */
 package org.apache.jackrabbit.oak.run;
 
-import java.util.List;
-
-import javax.sql.DataSource;
-
-import com.mongodb.MongoClientURI;
-
-import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
-import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBuilder;
-import org.apache.jackrabbit.oak.run.commons.Command;
-import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
-import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
-import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
-import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
-import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore;
-import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
-
-import joptsimple.OptionParser;
-import joptsimple.OptionSet;
-import joptsimple.OptionSpec;
-
 import static com.mongodb.MongoURI.MONGODB_PREFIX;
 import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore.VERSION;
 
+import com.mongodb.MongoClientURI;
+import java.util.List;
+import javax.sql.DataSource;
+import joptsimple.OptionParser;
+import joptsimple.OptionSet;
+import joptsimple.OptionSpec;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
+import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBuilder;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
+import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
+import org.apache.jackrabbit.oak.run.commons.Command;
+
 /**
- * Unlocks the DocumentStore for an upgrade to the current DocumentNodeStore
- * version.
+ * Unlocks the DocumentStore for an upgrade to the current DocumentNodeStore version.
  */
 class UnlockUpgradeCommand implements Command {
 
@@ -52,10 +47,13 @@ class UnlockUpgradeCommand implements Command {
     public void execute(String... args) throws Exception {
         OptionParser parser = new OptionParser();
         // RDB specific options
-        OptionSpec<String> rdbjdbcuser = parser.accepts("rdbjdbcuser", "RDB JDBC user").withOptionalArg().defaultsTo("");
-        OptionSpec<String> rdbjdbcpasswd = parser.accepts("rdbjdbcpasswd", "RDB JDBC password").withOptionalArg().defaultsTo("");
+        OptionSpec<String> rdbjdbcuser = parser.accepts("rdbjdbcuser", "RDB JDBC user")
+                                               .withOptionalArg().defaultsTo("");
+        OptionSpec<String> rdbjdbcpasswd = parser.accepts("rdbjdbcpasswd", "RDB JDBC password")
+                                                 .withOptionalArg().defaultsTo("");
 
-        OptionSpec<String> nonOption = parser.nonOptions("unlockUpgrade {<jdbc-uri> | <mongodb-uri>}");
+        OptionSpec<String> nonOption = parser.nonOptions(
+            "unlockUpgrade {<jdbc-uri> | <mongodb-uri>}");
         OptionSpec help = parser.acceptsAll(asList("h", "?", "help"), "show help").forHelp();
 
         OptionSet options = parser.parse(args);
@@ -81,12 +79,12 @@ class UnlockUpgradeCommand implements Command {
                 } else {
                     MongoConnection mongo = new MongoConnection(clientURI.getURI());
                     store = new MongoDocumentStore(
-                            mongo.getMongoClient(), mongo.getDatabase(),
-                            new MongoDocumentNodeStoreBuilder());
+                        mongo.getMongoClient(), mongo.getDatabase(),
+                        new MongoDocumentNodeStoreBuilder());
                 }
             } else if (uri.startsWith("jdbc")) {
                 DataSource ds = RDBDataSourceFactory.forJdbcUrl(uri,
-                        rdbjdbcuser.value(options), rdbjdbcpasswd.value(options));
+                    rdbjdbcuser.value(options), rdbjdbcpasswd.value(options));
                 store = new RDBDocumentStore(ds, new DocumentNodeStoreBuilder());
             } else {
                 System.err.println("Unrecognized URI: " + uri);

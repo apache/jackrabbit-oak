@@ -33,7 +33,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -79,11 +78,11 @@ public class ConsistencyChecker {
         // Do nothing.
     }
 
-    protected  void onCheckChekpoints() {
+    protected void onCheckChekpoints() {
         // Do nothing.
     }
 
-    protected  void onCheckCheckpoint(String checkpoint) {
+    protected void onCheckCheckpoint(String checkpoint) {
         // Do nothing.
     }
 
@@ -195,7 +194,8 @@ public class ConsistencyChecker {
         return checkNode(node, path, binaries) != null;
     }
 
-    private String findFirstCorruptedPathInSet(NodeState root, Set<String> corruptedPaths, boolean binaries) {
+    private String findFirstCorruptedPathInSet(NodeState root, Set<String> corruptedPaths,
+        boolean binaries) {
         for (String corruptedPath : corruptedPaths) {
             if (isPathInvalid(root, corruptedPath, binaries)) {
                 return corruptedPath;
@@ -215,7 +215,8 @@ public class ConsistencyChecker {
         return checkNodeAndDescendants(node, path, binaries);
     }
 
-    private String checkTreeConsistency(NodeState root, String path, Set<String> corruptedPaths, boolean binaries, boolean head) {
+    private String checkTreeConsistency(NodeState root, String path, Set<String> corruptedPaths,
+        boolean binaries, boolean head) {
         String corruptedPath = findFirstCorruptedPathInSet(root, corruptedPaths, binaries);
 
         if (corruptedPath != null) {
@@ -228,7 +229,8 @@ public class ConsistencyChecker {
         return corruptedPath;
     }
 
-    private boolean checkPathConsistency(NodeState root, PathToCheck ptc, JournalEntry entry, boolean binaries, boolean head) {
+    private boolean checkPathConsistency(NodeState root, PathToCheck ptc, JournalEntry entry,
+        boolean binaries, boolean head) {
         if (ptc.journalEntry != null) {
             return true;
         }
@@ -245,7 +247,8 @@ public class ConsistencyChecker {
         return true;
     }
 
-    private boolean checkAllPathsConsistency(NodeState root, List<PathToCheck> paths, JournalEntry entry, boolean binaries, boolean head) {
+    private boolean checkAllPathsConsistency(NodeState root, List<PathToCheck> paths,
+        JournalEntry entry, boolean binaries, boolean head) {
         boolean result = true;
 
         for (PathToCheck ptc : paths) {
@@ -257,7 +260,8 @@ public class ConsistencyChecker {
         return result;
     }
 
-    private boolean checkHeadConsistency(SegmentNodeStore store, List<PathToCheck> paths, JournalEntry entry, boolean binaries) {
+    private boolean checkHeadConsistency(SegmentNodeStore store, List<PathToCheck> paths,
+        JournalEntry entry, boolean binaries) {
         boolean allConsistent = paths.stream().allMatch(p -> p.journalEntry != null);
 
         if (allConsistent) {
@@ -268,7 +272,8 @@ public class ConsistencyChecker {
         return checkAllPathsConsistency(store.getRoot(), paths, entry, binaries, true);
     }
 
-    private boolean checkCheckpointConsistency(SegmentNodeStore store, String checkpoint, List<PathToCheck> paths, JournalEntry entry, boolean binaries) {
+    private boolean checkCheckpointConsistency(SegmentNodeStore store, String checkpoint,
+        List<PathToCheck> paths, JournalEntry entry, boolean binaries) {
         boolean allConsistent = paths.stream().allMatch(p -> p.journalEntry != null);
 
         if (allConsistent) {
@@ -287,7 +292,8 @@ public class ConsistencyChecker {
         return checkAllPathsConsistency(root, paths, entry, binaries, false);
     }
 
-    private boolean checkCheckpointsConsistency(SegmentNodeStore store, Map<String, List<PathToCheck>> paths, JournalEntry entry, boolean binaries) {
+    private boolean checkCheckpointsConsistency(SegmentNodeStore store,
+        Map<String, List<PathToCheck>> paths, JournalEntry entry, boolean binaries) {
         boolean result = true;
         for (Entry<String, List<PathToCheck>> e : paths.entrySet()) {
             if (!checkCheckpointConsistency(store, e.getKey(), e.getValue(), entry, binaries)) {
@@ -297,7 +303,8 @@ public class ConsistencyChecker {
         return result;
     }
 
-    private boolean allPathsConsistent(List<PathToCheck> headPaths, Map<String, List<PathToCheck>> checkpointPaths) {
+    private boolean allPathsConsistent(List<PathToCheck> headPaths,
+        Map<String, List<PathToCheck>> checkpointPaths) {
         for (PathToCheck path : headPaths) {
             if (path.journalEntry == null) {
                 return false;
@@ -324,18 +331,18 @@ public class ConsistencyChecker {
     }
 
     /**
-     * Check the consistency of a given subtree and returns the first
-     * inconsistent path. If provided, this method probes a set of inconsistent
-     * paths before performing a full traversal of the subtree.
+     * Check the consistency of a given subtree and returns the first inconsistent path. If
+     * provided, this method probes a set of inconsistent paths before performing a full traversal
+     * of the subtree.
      *
      * @param root           The root node of the subtree.
      * @param corruptedPaths A set of possibly inconsistent paths.
      * @param binaries       Whether to check binaries for consistency.
-     * @return The first inconsistent path or {@code null}. The path might be
-     * either one of the provided inconsistent paths or a new one discovered
-     * during a full traversal of the tree.
+     * @return The first inconsistent path or {@code null}. The path might be either one of the
+     * provided inconsistent paths or a new one discovered during a full traversal of the tree.
      */
-    public String checkTreeConsistency(NodeState root, Set<String> corruptedPaths, boolean binaries) {
+    public String checkTreeConsistency(NodeState root, Set<String> corruptedPaths,
+        boolean binaries) {
         return checkTreeConsistency(root, "/", corruptedPaths, binaries, true);
     }
 
@@ -348,7 +355,8 @@ public class ConsistencyChecker {
         boolean binaries,
         Integer revisionsCount
     ) {
-        return checkConsistency(store, journal, head, checkpoints, paths, binaries, revisionsCount, false);
+        return checkConsistency(store, journal, head, checkpoints, paths, binaries, revisionsCount,
+            false);
     }
 
     public final ConsistencyCheckResult checkConsistency(
@@ -399,7 +407,9 @@ public class ConsistencyChecker {
 
                 if (shouldCheckCheckpointsConsistency(checkpointPaths)) {
                     onCheckChekpoints();
-                    overall = overall && checkCheckpointsConsistency(sns, checkpointPaths, journalEntry, binaries);
+                    overall =
+                        overall && checkCheckpointsConsistency(sns, checkpointPaths, journalEntry,
+                            binaries);
                 }
 
                 if (overall) {
@@ -460,10 +470,9 @@ public class ConsistencyChecker {
      *
      * @param node          node to be checked
      * @param path          path of the node
-     * @param checkBinaries if {@code true} full content of binary properties
-     *                      will be scanned
-     * @return {@code null}, if the node is consistent, or the path of the first
-     * inconsistency otherwise.
+     * @param checkBinaries if {@code true} full content of binary properties will be scanned
+     * @return {@code null}, if the node is consistent, or the path of the first inconsistency
+     * otherwise.
      */
     private String checkNode(NodeState node, String path, boolean checkBinaries) {
         try {
@@ -497,15 +506,13 @@ public class ConsistencyChecker {
     }
 
     /**
-     * Recursively checks the consistency of a node and its descendants at the
-     * given path.
+     * Recursively checks the consistency of a node and its descendants at the given path.
      *
      * @param node          node to be checked
      * @param path          path of the node
-     * @param checkBinaries if {@code true} full content of binary properties
-     *                      will be scanned
-     * @return {@code null}, if the node is consistent, or the path of the first
-     * inconsistency otherwise.
+     * @param checkBinaries if {@code true} full content of binary properties will be scanned
+     * @return {@code null}, if the node is consistent, or the path of the first inconsistency
+     * otherwise.
      */
     private String checkNodeAndDescendants(NodeState node, String path, boolean checkBinaries) {
         String result = checkNode(node, path, checkBinaries);

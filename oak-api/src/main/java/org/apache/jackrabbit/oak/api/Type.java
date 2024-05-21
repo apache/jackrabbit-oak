@@ -21,15 +21,14 @@ package org.apache.jackrabbit.oak.api;
 import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
-
 import javax.jcr.PropertyType;
-
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Instances of this class map Java types to {@link PropertyType property types}.
- * Passing an instance of this class to {@link PropertyState#getValue(Type)} determines
- * the return type of that method.
+ * Instances of this class map Java types to {@link PropertyType property types}. Passing an
+ * instance of this class to {@link PropertyState#getValue(Type)} determines the return type of that
+ * method.
+ *
  * @param <T>
  */
 public final class Type<T> implements Comparable<Type<?>> {
@@ -42,109 +41,161 @@ public final class Type<T> implements Comparable<Type<?>> {
         return type;
     }
 
-    /** Map {@code String} to {@link PropertyType#STRING} */
+    /**
+     * Map {@code String} to {@link PropertyType#STRING}
+     */
     public static final Type<String> STRING =
-            create(PropertyType.STRING, false, "STRING");
+        create(PropertyType.STRING, false, "STRING");
 
-    /** Map {@code Blob} to {@link PropertyType#BINARY} */
+    /**
+     * Map {@code Blob} to {@link PropertyType#BINARY}
+     */
     public static final Type<Blob> BINARY =
-            create(PropertyType.BINARY, false, "BINARY");
+        create(PropertyType.BINARY, false, "BINARY");
 
-    /** Map {@code Long} to {@link PropertyType#LONG} */
+    /**
+     * Map {@code Long} to {@link PropertyType#LONG}
+     */
     public static final Type<Long> LONG =
-            create(PropertyType.LONG, false, "LONG");
+        create(PropertyType.LONG, false, "LONG");
 
-    /** Map {@code Double} to {@link PropertyType#DOUBLE} */
+    /**
+     * Map {@code Double} to {@link PropertyType#DOUBLE}
+     */
     public static final Type<Double> DOUBLE =
-            create(PropertyType.DOUBLE, false, "DOUBLE");
+        create(PropertyType.DOUBLE, false, "DOUBLE");
 
-    /** Map {@code String} to {@link PropertyType#DATE} */
+    /**
+     * Map {@code String} to {@link PropertyType#DATE}
+     */
     public static final Type<String> DATE =
-            create(PropertyType.DATE, false, "DATE");
+        create(PropertyType.DATE, false, "DATE");
 
-    /** Map {@code Boolean} to {@link PropertyType#BOOLEAN} */
+    /**
+     * Map {@code Boolean} to {@link PropertyType#BOOLEAN}
+     */
     public static final Type<Boolean> BOOLEAN =
-            create(PropertyType.BOOLEAN, false, "BOOLEAN");
+        create(PropertyType.BOOLEAN, false, "BOOLEAN");
 
-    /** Map {@code String} to {@link PropertyType#STRING} */
+    /**
+     * Map {@code String} to {@link PropertyType#STRING}
+     */
     public static final Type<String> NAME =
-            create(PropertyType.NAME, false, "NAME");
+        create(PropertyType.NAME, false, "NAME");
 
-    /** Map {@code String} to {@link PropertyType#PATH} */
+    /**
+     * Map {@code String} to {@link PropertyType#PATH}
+     */
     public static final Type<String> PATH =
-            create(PropertyType.PATH, false, "PATH");
+        create(PropertyType.PATH, false, "PATH");
 
-    /** Map {@code String} to {@link PropertyType#REFERENCE} */
+    /**
+     * Map {@code String} to {@link PropertyType#REFERENCE}
+     */
     public static final Type<String> REFERENCE =
-            create(PropertyType.REFERENCE, false, "REFERENCE");
+        create(PropertyType.REFERENCE, false, "REFERENCE");
 
-    /** Map {@code String} to {@link PropertyType#WEAKREFERENCE} */
+    /**
+     * Map {@code String} to {@link PropertyType#WEAKREFERENCE}
+     */
     public static final Type<String> WEAKREFERENCE =
-            create(PropertyType.WEAKREFERENCE, false, "WEAKREFERENCE");
+        create(PropertyType.WEAKREFERENCE, false, "WEAKREFERENCE");
 
-    /** Map {@code String} to {@link PropertyType#URI} */
+    /**
+     * Map {@code String} to {@link PropertyType#URI}
+     */
     public static final Type<String> URI =
-            create(PropertyType.URI, false, "URI");
+        create(PropertyType.URI, false, "URI");
 
-    /** Map {@code BigDecimal} to {@link PropertyType#DECIMAL} */
+    /**
+     * Map {@code BigDecimal} to {@link PropertyType#DECIMAL}
+     */
     public static final Type<BigDecimal> DECIMAL =
-            create(PropertyType.DECIMAL, false, "DECIMAL");
+        create(PropertyType.DECIMAL, false, "DECIMAL");
 
-    /** Map {@code Iterable<String>} to array of {@link PropertyType#STRING} */
+    /**
+     * Map {@code Iterable<String>} to array of {@link PropertyType#STRING}
+     */
     public static final Type<Iterable<String>> STRINGS =
-            create(PropertyType.STRING, true, "STRINGS");
+        create(PropertyType.STRING, true, "STRINGS");
 
-    /** Map {@code Iterable<Blob>} to array of {@link PropertyType#BINARY} */
+    /**
+     * Map {@code Iterable<Blob>} to array of {@link PropertyType#BINARY}
+     */
     public static final Type<Iterable<Blob>> BINARIES =
-            create(PropertyType.BINARY, true, "BINARIES");
+        create(PropertyType.BINARY, true, "BINARIES");
 
-    /** Map {@code Iterable<Long>} to array of {@link PropertyType#LONG} */
+    /**
+     * Map {@code Iterable<Long>} to array of {@link PropertyType#LONG}
+     */
     public static final Type<Iterable<Long>> LONGS =
-            create(PropertyType.LONG, true, "LONGS");
+        create(PropertyType.LONG, true, "LONGS");
 
-    /** Map {@code Iterable<Double>} to array of {@link PropertyType#DOUBLE} */
+    /**
+     * Map {@code Iterable<Double>} to array of {@link PropertyType#DOUBLE}
+     */
     public static final Type<Iterable<Double>> DOUBLES =
-            create(PropertyType.DOUBLE, true, "DOUBLES");
+        create(PropertyType.DOUBLE, true, "DOUBLES");
 
-    /** Map {@code Iterable<String>} to array of {@link PropertyType#DATE} */
+    /**
+     * Map {@code Iterable<String>} to array of {@link PropertyType#DATE}
+     */
     public static final Type<Iterable<String>> DATES =
-            create(PropertyType.DATE, true, "DATES");
+        create(PropertyType.DATE, true, "DATES");
 
-    /** Map {@code Iterable<Boolean>} to array of {@link PropertyType#BOOLEAN} */
+    /**
+     * Map {@code Iterable<Boolean>} to array of {@link PropertyType#BOOLEAN}
+     */
     public static final Type<Iterable<Boolean>> BOOLEANS =
-            create(PropertyType.BOOLEAN, true, "BOOLEANS");
+        create(PropertyType.BOOLEAN, true, "BOOLEANS");
 
-    /** Map {@code Iterable<String>} to array of {@link PropertyType#NAME} */
+    /**
+     * Map {@code Iterable<String>} to array of {@link PropertyType#NAME}
+     */
     public static final Type<Iterable<String>> NAMES =
-            create(PropertyType.NAME, true, "NAMES");
+        create(PropertyType.NAME, true, "NAMES");
 
-    /** Map {@code Iterable<String>} to array of {@link PropertyType#PATH} */
+    /**
+     * Map {@code Iterable<String>} to array of {@link PropertyType#PATH}
+     */
     public static final Type<Iterable<String>> PATHS =
-            create(PropertyType.PATH, true, "PATHS");
+        create(PropertyType.PATH, true, "PATHS");
 
-    /** Map {@code Iterable<String>} to array of {@link PropertyType#REFERENCE} */
+    /**
+     * Map {@code Iterable<String>} to array of {@link PropertyType#REFERENCE}
+     */
     public static final Type<Iterable<String>> REFERENCES =
-            create(PropertyType.REFERENCE, true, "REFERENCES");
+        create(PropertyType.REFERENCE, true, "REFERENCES");
 
-    /** Map {@code Iterable<String>} to array of {@link PropertyType#WEAKREFERENCE} */
+    /**
+     * Map {@code Iterable<String>} to array of {@link PropertyType#WEAKREFERENCE}
+     */
     public static final Type<Iterable<String>> WEAKREFERENCES =
-            create(PropertyType.WEAKREFERENCE, true, "WEAKREFERENCES");
+        create(PropertyType.WEAKREFERENCE, true, "WEAKREFERENCES");
 
-    /** Map {@code Iterable<String>} to array of {@link PropertyType#URI} */
+    /**
+     * Map {@code Iterable<String>} to array of {@link PropertyType#URI}
+     */
     public static final Type<Iterable<String>> URIS =
-            create(PropertyType.URI, true, "URIS");
+        create(PropertyType.URI, true, "URIS");
 
-    /** Map {@code Iterable<BigDecimal>} to array of {@link PropertyType#DECIMAL} */
+    /**
+     * Map {@code Iterable<BigDecimal>} to array of {@link PropertyType#DECIMAL}
+     */
     public static final Type<Iterable<BigDecimal>> DECIMALS =
-            create(PropertyType.DECIMAL, true, "DECIMALS");
+        create(PropertyType.DECIMAL, true, "DECIMALS");
 
-    /** The special "undefined" type, never encountered in normal values */
+    /**
+     * The special "undefined" type, never encountered in normal values
+     */
     public static final Type<Void> UNDEFINED =
-            create(PropertyType.UNDEFINED, false, "UNDEFINED");
+        create(PropertyType.UNDEFINED, false, "UNDEFINED");
 
-    /** Multi-valued "undefined" type, never encountered in normal values */
+    /**
+     * Multi-valued "undefined" type, never encountered in normal values
+     */
     public static final Type<Iterable<Void>> UNDEFINEDS =
-            create(PropertyType.UNDEFINED, true, "UNDEFINEDS");
+        create(PropertyType.UNDEFINED, true, "UNDEFINEDS");
 
     private final int tag;
 
@@ -160,7 +211,8 @@ public final class Type<T> implements Comparable<Type<?>> {
 
     /**
      * Corresponding type tag as defined in {@link PropertyType}.
-     * @return  type tag
+     *
+     * @return type tag
      */
     public int tag() {
         return tag;
@@ -168,7 +220,8 @@ public final class Type<T> implements Comparable<Type<?>> {
 
     /**
      * Determine whether this is an array type
-     * @return  {@code true} if and only if this is an array type
+     *
+     * @return {@code true} if and only if this is an array type
      */
     public boolean isArray() {
         return array;
@@ -176,27 +229,43 @@ public final class Type<T> implements Comparable<Type<?>> {
 
     /**
      * Corresponding {@code Type} for a given type tag and array flag.
-     * @param tag  type tag as defined in {@link PropertyType}.
-     * @param array  whether this is an array or not
-     * @return  {@code Type} instance
-     * @throws IllegalArgumentException if tag is not valid as per definition in {@link PropertyType}.
+     *
+     * @param tag   type tag as defined in {@link PropertyType}.
+     * @param array whether this is an array or not
+     * @return {@code Type} instance
+     * @throws IllegalArgumentException if tag is not valid as per definition in
+     *                                  {@link PropertyType}.
      */
     public static Type<?> fromTag(int tag, boolean array) {
         switch (tag) {
-            case PropertyType.STRING: return array ? STRINGS : STRING;
-            case PropertyType.BINARY: return array ? BINARIES : BINARY;
-            case PropertyType.LONG: return array ? LONGS : LONG;
-            case PropertyType.DOUBLE: return array ? DOUBLES : DOUBLE;
-            case PropertyType.DATE: return array ? DATES: DATE;
-            case PropertyType.BOOLEAN: return array ? BOOLEANS: BOOLEAN;
-            case PropertyType.NAME: return array ? NAMES : NAME;
-            case PropertyType.PATH: return array ? PATHS: PATH;
-            case PropertyType.REFERENCE: return array ? REFERENCES : REFERENCE;
-            case PropertyType.WEAKREFERENCE: return array ? WEAKREFERENCES : WEAKREFERENCE;
-            case PropertyType.URI: return array ? URIS: URI;
-            case PropertyType.DECIMAL: return array ? DECIMALS : DECIMAL;
-            case PropertyType.UNDEFINED: return array ? UNDEFINEDS : UNDEFINED;
-            default: throw new IllegalArgumentException("Invalid type tag: " + tag);
+            case PropertyType.STRING:
+                return array ? STRINGS : STRING;
+            case PropertyType.BINARY:
+                return array ? BINARIES : BINARY;
+            case PropertyType.LONG:
+                return array ? LONGS : LONG;
+            case PropertyType.DOUBLE:
+                return array ? DOUBLES : DOUBLE;
+            case PropertyType.DATE:
+                return array ? DATES : DATE;
+            case PropertyType.BOOLEAN:
+                return array ? BOOLEANS : BOOLEAN;
+            case PropertyType.NAME:
+                return array ? NAMES : NAME;
+            case PropertyType.PATH:
+                return array ? PATHS : PATH;
+            case PropertyType.REFERENCE:
+                return array ? REFERENCES : REFERENCE;
+            case PropertyType.WEAKREFERENCE:
+                return array ? WEAKREFERENCES : WEAKREFERENCE;
+            case PropertyType.URI:
+                return array ? URIS : URI;
+            case PropertyType.DECIMAL:
+                return array ? DECIMALS : DECIMAL;
+            case PropertyType.UNDEFINED:
+                return array ? UNDEFINEDS : UNDEFINED;
+            default:
+                throw new IllegalArgumentException("Invalid type tag: " + tag);
         }
     }
 
@@ -216,7 +285,8 @@ public final class Type<T> implements Comparable<Type<?>> {
 
     /**
      * Determine the base type of array types
-     * @return  base type
+     *
+     * @return base type
      * @throws IllegalStateException if {@code isArray} is false.
      */
     public Type<?> getBaseType() {
@@ -226,7 +296,8 @@ public final class Type<T> implements Comparable<Type<?>> {
 
     /**
      * Determine the array type which has this type as base type
-     * @return  array type with this type as base type
+     *
+     * @return array type with this type as base type
      * @throws IllegalStateException if {@code isArray} is true.
      */
     public Type<?> getArrayType() {

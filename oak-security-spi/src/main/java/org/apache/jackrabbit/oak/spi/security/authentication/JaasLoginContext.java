@@ -25,7 +25,8 @@ import javax.security.auth.login.LoginException;
  * Bridge class that connects the JAAS {@link javax.security.auth.login.LoginContext} class with the
  * {@link LoginContext} interface used by Oak.
  */
-public class JaasLoginContext extends javax.security.auth.login.LoginContext implements LoginContext {
+public class JaasLoginContext extends javax.security.auth.login.LoginContext implements
+    LoginContext {
 
     public JaasLoginContext(String name) throws LoginException {
         super(name);
@@ -40,12 +41,12 @@ public class JaasLoginContext extends javax.security.auth.login.LoginContext imp
     }
 
     public JaasLoginContext(String name, Subject subject, CallbackHandler handler)
-            throws LoginException {
+        throws LoginException {
         super(name, subject, handler);
     }
 
     public JaasLoginContext(String name, Subject subject, CallbackHandler handler,
-                            Configuration configuration) throws LoginException {
+        Configuration configuration) throws LoginException {
         super(name, subject, handler, configuration);
     }
 

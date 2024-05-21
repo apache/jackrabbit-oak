@@ -16,6 +16,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
+import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Map;
+import java.util.stream.Collectors;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.rules.ExternalResource;
@@ -24,14 +31,6 @@ import org.junit.runners.model.Statement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.elasticsearch.ElasticsearchContainer;
-
-import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 /*
 To be used as a @ClassRule
@@ -49,9 +48,9 @@ public class ElasticConnectionRule extends ExternalResource {
 
     public ElasticConnectionRule(String elasticConnectionString) {
         this(elasticConnectionString,
-                "elastic_test_" +
-                        RandomStringUtils.random(5, true, false).toLowerCase() +
-                        System.currentTimeMillis()
+            "elastic_test_" +
+                RandomStringUtils.random(5, true, false).toLowerCase() +
+                System.currentTimeMillis()
         );
     }
 
@@ -87,7 +86,8 @@ public class ElasticConnectionRule extends ExternalResource {
             } catch (IOException e) {
                 LOG.error("Unable to delete indexes with prefix {}", this.indexPrefix);
             } finally {
-                IOUtils.closeQuietly(esConnection, e -> LOG.debug("Error closing Elasticsearch connection", e));
+                IOUtils.closeQuietly(esConnection,
+                    e -> LOG.debug("Error closing Elasticsearch connection", e));
             }
         }
     }
@@ -133,11 +133,11 @@ public class ElasticConnectionRule extends ExternalResource {
         String query = uri.getQuery();
         if (query != null) {
             return Arrays.stream(query.split(","))
-                    .map(s -> s.split("="))
-                    .collect(Collectors.toMap(
-                            a -> a[0],  //key
-                            a -> a[1]   //value
-                    ));
+                         .map(s -> s.split("="))
+                         .collect(Collectors.toMap(
+                             a -> a[0],  //key
+                             a -> a[1]   //value
+                         ));
         }
         return Collections.emptyMap();
     }
@@ -153,10 +153,10 @@ public class ElasticConnectionRule extends ExternalResource {
             String apiSecret = queryParams.get("key_secret");
 
             return ElasticConnection.newBuilder()
-                    .withIndexPrefix(indexPrefix)
-                    .withConnectionParameters(scheme, host, port)
-                    .withApiKeys(apiKey, apiSecret)
-                    .build();
+                                    .withIndexPrefix(indexPrefix)
+                                    .withConnectionParameters(scheme, host, port)
+                                    .withApiKeys(apiKey, apiSecret)
+                                    .build();
         } catch (URISyntaxException e) {
             LOG.error("Provided elastic connection string is not valid ", e);
             return null;
@@ -177,32 +177,35 @@ public class ElasticConnectionRule extends ExternalResource {
     }
 
     /**
-     * We initialise elasticConnectionModel in apply method. So use this method only
-     * if apply had been called once.
+     * We initialise elasticConnectionModel in apply method. So use this method only if apply had
+     * been called once.
      *
      * @return
      */
     public ElasticConnection getElasticConnection() {
         return ElasticConnection.newBuilder()
-                .withIndexPrefix(elasticConnectionModel.indexPrefix)
-                .withConnectionParameters(elasticConnectionModel.scheme,
-                        elasticConnectionModel.elasticHost, elasticConnectionModel.elasticPort)
-                .withApiKeys(elasticConnectionModel.elasticApiKey, elasticConnectionModel.elasticApiSecret)
-                .build();
+                                .withIndexPrefix(elasticConnectionModel.indexPrefix)
+                                .withConnectionParameters(elasticConnectionModel.scheme,
+                                    elasticConnectionModel.elasticHost,
+                                    elasticConnectionModel.elasticPort)
+                                .withApiKeys(elasticConnectionModel.elasticApiKey,
+                                    elasticConnectionModel.elasticApiSecret)
+                                .build();
     }
 
     public ElasticConnection getElasticConnectionForDocker() {
         return getElasticConnectionForDocker(elasticConnectionModel.elasticHost,
-                elasticConnectionModel.elasticPort);
+            elasticConnectionModel.elasticPort);
     }
 
     public ElasticConnection getElasticConnectionForDocker(String containerIpAddress, int port) {
         return ElasticConnection.newBuilder()
-                .withIndexPrefix(elasticConnectionModel.indexPrefix)
-                .withConnectionParameters(elasticConnectionModel.scheme,
-                        containerIpAddress, port)
-                .withApiKeys(elasticConnectionModel.elasticApiKey, elasticConnectionModel.elasticApiSecret)
-                .build();
+                                .withIndexPrefix(elasticConnectionModel.indexPrefix)
+                                .withConnectionParameters(elasticConnectionModel.scheme,
+                                    containerIpAddress, port)
+                                .withApiKeys(elasticConnectionModel.elasticApiKey,
+                                    elasticConnectionModel.elasticApiSecret)
+                                .build();
     }
 
     private void setUseDocker(boolean useDocker) {
@@ -214,6 +217,7 @@ public class ElasticConnectionRule extends ExternalResource {
     }
 
     public static class ElasticConnectionModel {
+
         private String elasticApiSecret;
         private String elasticApiKey;
         private String scheme;

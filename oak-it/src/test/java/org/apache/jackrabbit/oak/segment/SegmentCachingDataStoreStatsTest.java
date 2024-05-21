@@ -28,7 +28,6 @@ import static org.mockito.Mockito.mock;
 
 import java.io.File;
 import java.util.Map;
-
 import org.apache.jackrabbit.oak.api.jmx.ConsolidatedDataStoreCacheStatsMBean;
 import org.apache.jackrabbit.oak.plugins.blob.AbstractSharedCachingDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.ConsolidatedDataStoreCacheStats;
@@ -120,7 +119,8 @@ public class SegmentCachingDataStoreStatsTest {
     private ServiceRegistration blobStore;
 
     private void registerBlobStore() {
-        blobStore = context.bundleContext().registerService(BlobStore.class.getName(), mock(BlobStore.class), null);
+        blobStore = context.bundleContext()
+                           .registerService(BlobStore.class.getName(), mock(BlobStore.class), null);
     }
 
     private void unregisterBlobStore() {

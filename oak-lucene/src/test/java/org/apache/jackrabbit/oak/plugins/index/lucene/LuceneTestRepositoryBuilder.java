@@ -18,6 +18,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider.compose;
+
+import java.io.IOException;
+import java.util.concurrent.ExecutorService;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
@@ -29,29 +34,25 @@ import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.junit.rules.TemporaryFolder;
 
-import java.io.IOException;
-import java.util.concurrent.ExecutorService;
-
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider.compose;
-
 public class LuceneTestRepositoryBuilder extends TestRepositoryBuilder {
 
     private ResultCountingIndexProvider resultCountingIndexProvider;
     private TestUtil.OptionalEditorProvider optionalEditorProvider;
 
-    public LuceneTestRepositoryBuilder(ExecutorService executorService, TemporaryFolder temporaryFolder) {
+    public LuceneTestRepositoryBuilder(ExecutorService executorService,
+        TemporaryFolder temporaryFolder) {
         IndexCopier copier = null;
         try {
             copier = new IndexCopier(executorService, temporaryFolder.getRoot());
         } catch (IOException e) {
             e.printStackTrace();
         }
-        this.editorProvider = new LuceneIndexEditorProvider(copier, new ExtractedTextCache(10 * FileUtils.ONE_MB, 100));
+        this.editorProvider = new LuceneIndexEditorProvider(copier,
+            new ExtractedTextCache(10 * FileUtils.ONE_MB, 100));
         this.indexProvider = new LuceneIndexProvider(copier);
         this.asyncIndexUpdate = new AsyncIndexUpdate("async", nodeStore, compose(newArrayList(
-                editorProvider,
-                new NodeCounterEditorProvider()
+            editorProvider,
+            new NodeCounterEditorProvider()
         )));
 
         resultCountingIndexProvider = new ResultCountingIndexProvider(indexProvider);
@@ -62,15 +63,15 @@ public class LuceneTestRepositoryBuilder extends TestRepositoryBuilder {
 
     public TestRepository build() {
         Oak oak = new Oak(nodeStore)
-                .with(getInitialContent())
-                .with(securityProvider)
-                .with(resultCountingIndexProvider)
-                .with((Observer) indexProvider)
-                .with(editorProvider)
-                .with(optionalEditorProvider)
-                .with(indexEditorProvider)
-                .with(queryIndexProvider)
-                .with(queryEngineSettings);
+            .with(getInitialContent())
+            .with(securityProvider)
+            .with(resultCountingIndexProvider)
+            .with((Observer) indexProvider)
+            .with(editorProvider)
+            .with(optionalEditorProvider)
+            .with(indexEditorProvider)
+            .with(queryIndexProvider)
+            .with(queryEngineSettings);
         if (isAsync) {
             oak.withAsyncIndexing("async", defaultAsyncIndexingTimeInSeconds);
         }

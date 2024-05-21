@@ -21,13 +21,12 @@ import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.guava.common.collect.Sets.newIdentityHashSet;
 
 import java.util.Set;
-
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Composite observer that delegates all content changes to the set of
- * currently registered component observers.
+ * Composite observer that delegates all content changes to the set of currently registered
+ * component observers.
  */
 public class CompositeObserver implements Observer {
 
@@ -45,7 +44,7 @@ public class CompositeObserver implements Observer {
 
     @Override
     public synchronized void contentChanged(
-            @NotNull NodeState root, @NotNull CommitInfo info) {
+        @NotNull NodeState root, @NotNull CommitInfo info) {
         checkNotNull(root);
         for (Observer observer : observers) {
             observer.contentChanged(root, info);

@@ -20,12 +20,10 @@ import java.net.URI;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Random;
-
 import javax.jcr.Binary;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-
 import org.apache.commons.compress.utils.Lists;
 import org.apache.jackrabbit.api.binary.BinaryDownload;
 import org.apache.jackrabbit.api.binary.BinaryDownloadOptions;
@@ -51,7 +49,8 @@ public class GetURITest extends AbstractTest {
      */
     private int iteration = 0;
 
-    @Override @SuppressWarnings("deprecation")
+    @Override
+    @SuppressWarnings("deprecation")
     public void beforeSuite() throws RepositoryException {
         session = loginWriter();
         root = session.getRootNode().addNode(
@@ -64,7 +63,8 @@ public class GetURITest extends AbstractTest {
             content.setProperty("jcr:lastModified", Calendar.getInstance());
             content.setProperty(
                 "jcr:data", new TestInputStream(FILE_SIZE * 1024));
-            Binary binary = root.getNode("file" + i).getNode("jcr:content").getProperty("jcr:data").getBinary();
+            Binary binary = root.getNode("file" + i).getNode("jcr:content").getProperty("jcr:data")
+                                .getBinary();
             binariesAdded.add(binary);
         }
         session.save();

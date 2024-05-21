@@ -20,7 +20,6 @@ import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.slf4j.Logger;
@@ -83,7 +82,7 @@ public class MigrationOptions {
     private final String srcS3Config;
 
     private final String srcS3;
-    
+
     private final String srcAzureConfig;
 
     private final String srcAzure;
@@ -95,7 +94,7 @@ public class MigrationOptions {
     private final String dstS3Config;
 
     private final String dstS3;
-    
+
     private final String dstAzureConfig;
 
     private final String dstAzure;
@@ -116,12 +115,14 @@ public class MigrationOptions {
         final Calendar epoch = Calendar.getInstance();
         epoch.setTimeInMillis(0);
         if (args.hasOption(OptionParserFactory.COPY_VERSIONS)) {
-            this.copyVersions = parseVersionCopyArgument(args.getOption(OptionParserFactory.COPY_VERSIONS));
+            this.copyVersions = parseVersionCopyArgument(
+                args.getOption(OptionParserFactory.COPY_VERSIONS));
         } else {
             this.copyVersions = epoch;
         }
         if (args.hasOption(OptionParserFactory.COPY_ORPHANED_VERSIONS)) {
-            this.copyOrphanedVersions = parseVersionCopyArgument(args.getOption(OptionParserFactory.COPY_ORPHANED_VERSIONS));
+            this.copyOrphanedVersions = parseVersionCopyArgument(
+                args.getOption(OptionParserFactory.COPY_ORPHANED_VERSIONS));
         } else {
             this.copyOrphanedVersions = epoch;
         }
@@ -238,7 +239,9 @@ public class MigrationOptions {
         return forceCheckpoints;
     }
 
-    public boolean isAddSecondaryMetadata() { return addSecondaryMetadata; }
+    public boolean isAddSecondaryMetadata() {
+        return addSecondaryMetadata;
+    }
 
     public String getSrcUser() {
         return srcUser;
@@ -271,7 +274,7 @@ public class MigrationOptions {
     public String getSrcS3() {
         return srcS3;
     }
-    
+
     public String getSrcAzureConfig() {
         return srcAzureConfig;
     }
@@ -295,7 +298,7 @@ public class MigrationOptions {
     public String getDstS3() {
         return dstS3;
     }
-    
+
     public String getDstAzureConfig() {
         return dstAzureConfig;
     }
@@ -315,10 +318,10 @@ public class MigrationOptions {
     public boolean isSrcS3() {
         return StringUtils.isNotBlank(srcS3) && StringUtils.isNotBlank(srcS3Config);
     }
-    
+
     public boolean isSrcAzure() {
-    	
-    	// OAK-6632 - only Azure config should be required (path not needed)
+
+        // OAK-6632 - only Azure config should be required (path not needed)
         return StringUtils.isNotBlank(srcAzureConfig);
     }
 
@@ -333,9 +336,9 @@ public class MigrationOptions {
     public boolean isDstS3() {
         return StringUtils.isNotBlank(dstS3) && StringUtils.isNotBlank(dstS3Config);
     }
-    
+
     public boolean isDstAzure() {
-    	// OAK-6632 - only Azure config should be required (path not needed)
+        // OAK-6632 - only Azure config should be required (path not needed)
         return StringUtils.isNotBlank(dstAzureConfig);
     }
 
@@ -355,13 +358,15 @@ public class MigrationOptions {
         if (copyVersions == null) {
             log.info("copyVersions parameter set to false");
         } else {
-            log.info("copyVersions parameter set to {}", DATE_FORMAT.format(copyVersions.getTime()));
+            log.info("copyVersions parameter set to {}",
+                DATE_FORMAT.format(copyVersions.getTime()));
         }
 
         if (copyOrphanedVersions == null) {
             log.info("copyOrphanedVersions parameter set to false");
         } else {
-            log.info("copyOrphanedVersions parameter set to {}", DATE_FORMAT.format(copyOrphanedVersions.getTime()));
+            log.info("copyOrphanedVersions parameter set to {}",
+                DATE_FORMAT.format(copyOrphanedVersions.getTime()));
         }
 
         if (includePaths != null) {

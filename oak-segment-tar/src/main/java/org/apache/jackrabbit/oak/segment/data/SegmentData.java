@@ -19,47 +19,42 @@ package org.apache.jackrabbit.oak.segment.data;
 
 import java.io.IOException;
 import java.io.OutputStream;
-
 import org.apache.jackrabbit.oak.commons.Buffer;
 
 /**
  * Access the data of a segment.
  * <p>
- * A segment is composed of a header and the proper data. The header has a
- * fixed- and a variable-length part.
+ * A segment is composed of a header and the proper data. The header has a fixed- and a
+ * variable-length part.
  * <p>
- * The fixed-length part of the header contains a {@link #getSignature()
- * signature}, which is a string that uniquely identifies the rest of the
- * content as a segment; a {@link #getVersion()}, which specifies the version of
- * the binary format used to serialize the content of the segment; a {@link
- * #getFullGeneration() full generation}, which describes the generation of the
- * segment with regards to full compaction; a {@link #getGeneration()
- * generation}, which identifies the generation of the segment with regards to
- * full or tail compaction; a {@link #isCompacted() compacted flag}, which
- * determines if the segment was written by a compaction operation; the {@link
- * #getRecordReferencesCount() number of record references}, which is the number
- * of record entries in the segment; the {@link #getSegmentReferencesCount()
- * number of segment references}, which is the number of identifiers of other
- * segments used by this segment.
+ * The fixed-length part of the header contains a {@link #getSignature() signature}, which is a
+ * string that uniquely identifies the rest of the content as a segment; a {@link #getVersion()},
+ * which specifies the version of the binary format used to serialize the content of the segment; a
+ * {@link #getFullGeneration() full generation}, which describes the generation of the segment with
+ * regards to full compaction; a {@link #getGeneration() generation}, which identifies the
+ * generation of the segment with regards to full or tail compaction; a
+ * {@link #isCompacted() compacted flag}, which determines if the segment was written by a
+ * compaction operation; the {@link #getRecordReferencesCount() number of record references}, which
+ * is the number of record entries in the segment; the
+ * {@link #getSegmentReferencesCount() number of segment references}, which is the number of
+ * identifiers of other segments used by this segment.
  * <p>
- * The variable part of the header contains the list of segment references and
- * the list of record references. A segment references is composed by the {@link
- * #getSegmentReferenceMsb(int) most significant bits} and {@link
- * #getSegmentReferenceLsb(int) lsb} of the segment identifier. A record
- * reference is composed of a {@link #getRecordReferenceNumber(int) record
- * number}, a {@link #getRecordReferenceType(int) record type} and a {@link
- * #getRecordReferenceOffset(int) record offset}.
+ * The variable part of the header contains the list of segment references and the list of record
+ * references. A segment references is composed by the
+ * {@link #getSegmentReferenceMsb(int) most significant bits} and
+ * {@link #getSegmentReferenceLsb(int) lsb} of the segment identifier. A record reference is
+ * composed of a {@link #getRecordReferenceNumber(int) record number}, a
+ * {@link #getRecordReferenceType(int) record type} and a
+ * {@link #getRecordReferenceOffset(int) record offset}.
  * <p>
- * The most prominent use for a segment is to hold record data. Many methods of
- * this class allows access to the record data. These methods accept an integer
- * representing an absolute position pointing to the record data. The absolute
- * position, though, is virtual: it is computed on a virtual segment 256K long.
- * This offset is usually obtained by accessing the {@link
- * #getRecordReferenceOffset(int) record offset} of a record reference entry.
- * The class will normalize the offset for the actual size of the segment, which
- * can be smaller than 256K. It is acceptable to displace the offset of a record
- * reference entry by a positive amount. This can be useful to access a field of
- * a composite record saved at a specific offset.
+ * The most prominent use for a segment is to hold record data. Many methods of this class allows
+ * access to the record data. These methods accept an integer representing an absolute position
+ * pointing to the record data. The absolute position, though, is virtual: it is computed on a
+ * virtual segment 256K long. This offset is usually obtained by accessing the
+ * {@link #getRecordReferenceOffset(int) record offset} of a record reference entry. The class will
+ * normalize the offset for the actual size of the segment, which can be smaller than 256K. It is
+ * acceptable to displace the offset of a record reference entry by a positive amount. This can be
+ * useful to access a field of a composite record saved at a specific offset.
  */
 public interface SegmentData {
 

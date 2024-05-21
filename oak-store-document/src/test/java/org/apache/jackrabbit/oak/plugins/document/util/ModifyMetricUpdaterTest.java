@@ -37,59 +37,70 @@ import static org.junit.Assert.fail;
  */
 public class ModifyMetricUpdaterTest extends BaseUpdaterTest {
 
-    private final ModifyMetricUpdater mMUWithoutThrottling = new ModifyMetricUpdater(provider.getMeter(NODES_CREATE_UPSERT, DEFAULT),
-            provider.getTimer(NODES_CREATE_UPSERT_TIMER, METRICS_ONLY),
-            provider.getMeter(NODES_UPDATE, DEFAULT),
-            provider.getTimer(NODES_UPDATE_TIMER, METRICS_ONLY),
-            provider.getMeter(NODES_UPDATE_RETRY_COUNT, DEFAULT),
-            provider.getMeter(NODES_UPDATE_FAILURE, DEFAULT));
-    private final ModifyMetricUpdater mMUWithThrottling = new ModifyMetricUpdater(provider.getMeter(NODES_CREATE_UPSERT_THROTTLING, DEFAULT),
-            provider.getTimer(NODES_CREATE_UPSERT_THROTTLING_TIMER, METRICS_ONLY),
-            provider.getMeter(NODES_UPDATE_THROTTLING, DEFAULT),
-            provider.getTimer(NODES_UPDATE_THROTTLING_TIMER, METRICS_ONLY),
-            provider.getMeter(NODES_UPDATE_RETRY_COUNT_THROTTLING, DEFAULT),
-            provider.getMeter(NODES_UPDATE_FAILURE_THROTTLING, DEFAULT));
+    private final ModifyMetricUpdater mMUWithoutThrottling = new ModifyMetricUpdater(
+        provider.getMeter(NODES_CREATE_UPSERT, DEFAULT),
+        provider.getTimer(NODES_CREATE_UPSERT_TIMER, METRICS_ONLY),
+        provider.getMeter(NODES_UPDATE, DEFAULT),
+        provider.getTimer(NODES_UPDATE_TIMER, METRICS_ONLY),
+        provider.getMeter(NODES_UPDATE_RETRY_COUNT, DEFAULT),
+        provider.getMeter(NODES_UPDATE_FAILURE, DEFAULT));
+    private final ModifyMetricUpdater mMUWithThrottling = new ModifyMetricUpdater(
+        provider.getMeter(NODES_CREATE_UPSERT_THROTTLING, DEFAULT),
+        provider.getTimer(NODES_CREATE_UPSERT_THROTTLING_TIMER, METRICS_ONLY),
+        provider.getMeter(NODES_UPDATE_THROTTLING, DEFAULT),
+        provider.getTimer(NODES_UPDATE_THROTTLING_TIMER, METRICS_ONLY),
+        provider.getMeter(NODES_UPDATE_RETRY_COUNT_THROTTLING, DEFAULT),
+        provider.getMeter(NODES_UPDATE_FAILURE_THROTTLING, DEFAULT));
 
 
     @Test(expected = NullPointerException.class)
     public void updateWithNullNodesPredicate() {
-        mMUWithThrottling.update(NODES, 0, 100, true, true, ids, null, getStatsConsumer(), getStatsConsumer(), MeterStats::mark, MeterStats::mark);
+        mMUWithThrottling.update(NODES, 0, 100, true, true, ids, null, getStatsConsumer(),
+            getStatsConsumer(), MeterStats::mark, MeterStats::mark);
         fail("Shouldn't reach here");
     }
 
     @Test(expected = NullPointerException.class)
     public void updateWithNullCreateStatsConsumer() {
-        mMUWithoutThrottling.update(NODES, 0, 100, true, true, ids, isNodesCollectionUpdated(), null, getStatsConsumer(), MeterStats::mark, MeterStats::mark);
+        mMUWithoutThrottling.update(NODES, 0, 100, true, true, ids, isNodesCollectionUpdated(),
+            null, getStatsConsumer(), MeterStats::mark, MeterStats::mark);
         fail("Shouldn't reach here");
     }
 
     @Test(expected = NullPointerException.class)
     public void updateWithNullUpdateStatsConsumer() {
-        mMUWithThrottling.update(NODES, 0, 100, true, true, ids, isNodesCollectionUpdated(), getStatsConsumer(), null, MeterStats::mark, MeterStats::mark);
+        mMUWithThrottling.update(NODES, 0, 100, true, true, ids, isNodesCollectionUpdated(),
+            getStatsConsumer(), null, MeterStats::mark, MeterStats::mark);
         fail("Shouldn't reach here");
     }
 
     @Test(expected = NullPointerException.class)
     public void updateWithNullRetryStatsConsumer() {
-        mMUWithoutThrottling.update(NODES, 0, 100, true, true, ids, isNodesCollectionUpdated(), getStatsConsumer(), getStatsConsumer(), null, MeterStats::mark);
+        mMUWithoutThrottling.update(NODES, 0, 100, true, true, ids, isNodesCollectionUpdated(),
+            getStatsConsumer(), getStatsConsumer(), null, MeterStats::mark);
         fail("Shouldn't reach here");
     }
 
     @Test(expected = NullPointerException.class)
     public void updateWithNullFailureStatsConsumer() {
-        mMUWithThrottling.update(NODES, 0, 100, true, true, ids, isNodesCollectionUpdated(), getStatsConsumer(), getStatsConsumer(), MeterStats::mark, null);
+        mMUWithThrottling.update(NODES, 0, 100, true, true, ids, isNodesCollectionUpdated(),
+            getStatsConsumer(), getStatsConsumer(), MeterStats::mark, null);
         fail("Shouldn't reach here");
     }
 
     @Test
     public void updateZeroDocInNodesCollection() {
-        mMUWithoutThrottling.update(JOURNAL, 0, 100, true, true, emptyList(), isNodesCollectionUpdated(), getStatsConsumer(), getStatsConsumer(), MeterStats::mark, MeterStats::mark);
+        mMUWithoutThrottling.update(JOURNAL, 0, 100, true, true, emptyList(),
+            isNodesCollectionUpdated(), getStatsConsumer(), getStatsConsumer(), MeterStats::mark,
+            MeterStats::mark);
         assertCreateWithoutThrottling(0, 0);
         assertUpdateWithoutThrottling(0, 0);
         assertEquals(0, getMeter(NODES_UPDATE_RETRY_COUNT).getCount());
         assertEquals(0, getMeter(NODES_UPDATE_FAILURE).getCount());
 
-        mMUWithThrottling.update(CLUSTER_NODES, 0, 100, true, true, emptyList(), isNodesCollectionUpdated(), getStatsConsumer(), getStatsConsumer(), MeterStats::mark, MeterStats::mark);
+        mMUWithThrottling.update(CLUSTER_NODES, 0, 100, true, true, emptyList(),
+            isNodesCollectionUpdated(), getStatsConsumer(), getStatsConsumer(), MeterStats::mark,
+            MeterStats::mark);
         assertCreateWithThrottling(0, 0);
         assertUpdateWithThrottling(0, 0);
         assertEquals(0, getMeter(NODES_UPDATE_RETRY_COUNT_THROTTLING).getCount());
@@ -98,13 +109,15 @@ public class ModifyMetricUpdaterTest extends BaseUpdaterTest {
 
     @Test
     public void updateNonNodesCollection() {
-        mMUWithoutThrottling.update(JOURNAL, 0, 100, true, true, ids, isNodesCollectionUpdated(), getStatsConsumer(), getStatsConsumer(), MeterStats::mark, MeterStats::mark);
+        mMUWithoutThrottling.update(JOURNAL, 0, 100, true, true, ids, isNodesCollectionUpdated(),
+            getStatsConsumer(), getStatsConsumer(), MeterStats::mark, MeterStats::mark);
         assertCreateWithoutThrottling(0, 0);
         assertUpdateWithoutThrottling(0, 0);
         assertEquals(0, getMeter(NODES_UPDATE_RETRY_COUNT).getCount());
         assertEquals(0, getMeter(NODES_UPDATE_FAILURE).getCount());
 
-        mMUWithThrottling.update(CLUSTER_NODES, 0, 100, true, true, ids, isNodesCollectionUpdated(), getStatsConsumer(), getStatsConsumer(), MeterStats::mark, MeterStats::mark);
+        mMUWithThrottling.update(CLUSTER_NODES, 0, 100, true, true, ids, isNodesCollectionUpdated(),
+            getStatsConsumer(), getStatsConsumer(), MeterStats::mark, MeterStats::mark);
         assertCreateWithThrottling(0, 0);
         assertUpdateWithThrottling(0, 0);
         assertEquals(0, getMeter(NODES_UPDATE_RETRY_COUNT_THROTTLING).getCount());
@@ -113,24 +126,28 @@ public class ModifyMetricUpdaterTest extends BaseUpdaterTest {
 
     @Test
     public void updateNodesFailure() {
-        mMUWithoutThrottling.update(NODES, 3, 100, false, true, ids, isNodesCollectionUpdated(), getStatsConsumer(), getStatsConsumer(), MeterStats::mark, MeterStats::mark);
+        mMUWithoutThrottling.update(NODES, 3, 100, false, true, ids, isNodesCollectionUpdated(),
+            getStatsConsumer(), getStatsConsumer(), MeterStats::mark, MeterStats::mark);
         assertEquals(3, getMeter(NODES_UPDATE_RETRY_COUNT).getCount());
         assertEquals(1, getMeter(NODES_UPDATE_FAILURE).getCount());
 
-        mMUWithThrottling.update(NODES, 3, 100, false, true, ids, isNodesCollectionUpdated(), getStatsConsumer(), getStatsConsumer(), MeterStats::mark, MeterStats::mark);
+        mMUWithThrottling.update(NODES, 3, 100, false, true, ids, isNodesCollectionUpdated(),
+            getStatsConsumer(), getStatsConsumer(), MeterStats::mark, MeterStats::mark);
         assertEquals(3, getMeter(NODES_UPDATE_RETRY_COUNT_THROTTLING).getCount());
         assertEquals(1, getMeter(NODES_UPDATE_FAILURE_THROTTLING).getCount());
     }
 
     @Test
     public void updateNodesNewEntry() {
-        mMUWithoutThrottling.update(NODES, 3, 100, true, true, ids, isNodesCollectionUpdated(), getStatsConsumer(), getStatsConsumer(), MeterStats::mark, MeterStats::mark);
+        mMUWithoutThrottling.update(NODES, 3, 100, true, true, ids, isNodesCollectionUpdated(),
+            getStatsConsumer(), getStatsConsumer(), MeterStats::mark, MeterStats::mark);
         assertCreateWithoutThrottling(2, 50);
         assertUpdateWithoutThrottling(0, 0);
         assertEquals(3, getMeter(NODES_UPDATE_RETRY_COUNT).getCount());
         assertEquals(0, getMeter(NODES_UPDATE_FAILURE).getCount());
 
-        mMUWithThrottling.update(NODES, 0, 100, true, true, ids, isNodesCollectionUpdated(), getStatsConsumer(), getStatsConsumer(), MeterStats::mark, MeterStats::mark);
+        mMUWithThrottling.update(NODES, 0, 100, true, true, ids, isNodesCollectionUpdated(),
+            getStatsConsumer(), getStatsConsumer(), MeterStats::mark, MeterStats::mark);
         assertCreateWithThrottling(2, 50);
         assertUpdateWithThrottling(0, 0);
         assertEquals(0, getMeter(NODES_UPDATE_RETRY_COUNT_THROTTLING).getCount());
@@ -139,13 +156,15 @@ public class ModifyMetricUpdaterTest extends BaseUpdaterTest {
 
     @Test
     public void updateNodesExistingEntry() {
-        mMUWithoutThrottling.update(NODES, 3, 100, true, false, ids, isNodesCollectionUpdated(), getStatsConsumer(), getStatsConsumer(), MeterStats::mark, MeterStats::mark);
+        mMUWithoutThrottling.update(NODES, 3, 100, true, false, ids, isNodesCollectionUpdated(),
+            getStatsConsumer(), getStatsConsumer(), MeterStats::mark, MeterStats::mark);
         assertCreateWithoutThrottling(0, 0);
         assertUpdateWithoutThrottling(2, 50);
         assertEquals(3, getMeter(NODES_UPDATE_RETRY_COUNT).getCount());
         assertEquals(0, getMeter(NODES_UPDATE_FAILURE).getCount());
 
-        mMUWithThrottling.update(NODES, 0, 100, true, false, ids, isNodesCollectionUpdated(), getStatsConsumer(), getStatsConsumer(), MeterStats::mark, MeterStats::mark);
+        mMUWithThrottling.update(NODES, 0, 100, true, false, ids, isNodesCollectionUpdated(),
+            getStatsConsumer(), getStatsConsumer(), MeterStats::mark, MeterStats::mark);
         assertCreateWithThrottling(0, 0);
         assertUpdateWithThrottling(2, 50);
         assertEquals(0, getMeter(NODES_UPDATE_RETRY_COUNT_THROTTLING).getCount());
@@ -153,23 +172,27 @@ public class ModifyMetricUpdaterTest extends BaseUpdaterTest {
     }
 
     // helper methods
-    private void assertUpdateWithoutThrottling(final long nodesUpdate, final long nodesUpdateTimer) {
+    private void assertUpdateWithoutThrottling(final long nodesUpdate,
+        final long nodesUpdateTimer) {
         assertEquals(nodesUpdate, getMeter(NODES_UPDATE).getCount());
         assertEquals(nodesUpdateTimer, getTimer(NODES_UPDATE_TIMER).getSnapshot().getMax());
     }
 
     private void assertUpdateWithThrottling(final long nodesUpdate, final long nodesUpdateTimer) {
         assertEquals(nodesUpdate, getMeter(NODES_UPDATE_THROTTLING).getCount());
-        assertEquals(nodesUpdateTimer, getTimer(NODES_UPDATE_THROTTLING_TIMER).getSnapshot().getMax());
+        assertEquals(nodesUpdateTimer,
+            getTimer(NODES_UPDATE_THROTTLING_TIMER).getSnapshot().getMax());
     }
 
-    private void assertCreateWithoutThrottling(final long nodesCreate, final long nodesCreateTimer) {
+    private void assertCreateWithoutThrottling(final long nodesCreate,
+        final long nodesCreateTimer) {
         assertEquals(nodesCreate, getMeter(NODES_CREATE_UPSERT).getCount());
         assertEquals(nodesCreateTimer, getTimer(NODES_CREATE_UPSERT_TIMER).getSnapshot().getMax());
     }
 
     private void assertCreateWithThrottling(final long nodesCreate, final long nodesCreateTimer) {
         assertEquals(nodesCreate, getMeter(NODES_CREATE_UPSERT_THROTTLING).getCount());
-        assertEquals(nodesCreateTimer, getTimer(NODES_CREATE_UPSERT_THROTTLING_TIMER).getSnapshot().getMax());
+        assertEquals(nodesCreateTimer,
+            getTimer(NODES_CREATE_UPSERT_THROTTLING_TIMER).getSnapshot().getMax());
     }
 }

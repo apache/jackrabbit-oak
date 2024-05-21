@@ -28,17 +28,17 @@ import org.jetbrains.annotations.Nullable;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isLocalChange;
 
 /**
- * Implements a tiered diff cache which consists of a {@link LocalDiffCache} and
- * a {@link MemoryDiffCache}.
+ * Implements a tiered diff cache which consists of a {@link LocalDiffCache} and a
+ * {@link MemoryDiffCache}.
  */
 class TieredDiffCache extends DiffCache {
 
     /**
-     * A small cache of local diff cache misses to prevent repeated calls with
-     * the same revision vector range.
+     * A small cache of local diff cache misses to prevent repeated calls with the same revision
+     * vector range.
      */
     private Cache<RevisionsKey, RevisionsKey> localDiffMisses
-            = CacheBuilder.newBuilder().maximumSize(128).build();
+        = CacheBuilder.newBuilder().maximumSize(128).build();
 
     private final int clusterId;
     private final DiffCache localCache;
@@ -52,9 +52,9 @@ class TieredDiffCache extends DiffCache {
 
     @Override
     public String getChanges(@NotNull RevisionVector from,
-                             @NotNull RevisionVector to,
-                             @NotNull Path path,
-                             @Nullable Loader loader) {
+        @NotNull RevisionVector to,
+        @NotNull Path path,
+        @Nullable Loader loader) {
         // do not check local cache when changes are external
         if (isLocalChange(from, to, clusterId)) {
             // do not read from the localCache when there was a previous miss
@@ -75,11 +75,11 @@ class TieredDiffCache extends DiffCache {
     }
 
     /**
-     * Creates a new entry in the {@link LocalDiffCache} for local changes
-     * and {@link MemoryDiffCache} for external changes
+     * Creates a new entry in the {@link LocalDiffCache} for local changes and
+     * {@link MemoryDiffCache} for external changes
      *
      * @param from the from revision.
-     * @param to the to revision.
+     * @param to   the to revision.
      * @return the new entry.
      */
     @NotNull

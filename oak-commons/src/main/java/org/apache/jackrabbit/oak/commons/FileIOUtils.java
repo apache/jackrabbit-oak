@@ -45,7 +45,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.jetbrains.annotations.NotNull;
@@ -61,7 +60,8 @@ public final class FileIOUtils {
     }
 
     public final static Comparator<String> lexComparator = new Comparator<String>() {
-        @Override public int compare(String s1, String s2) {
+        @Override
+        public int compare(String s1, String s2) {
             return s1.compareTo(s2);
         }
     };
@@ -80,7 +80,7 @@ public final class FileIOUtils {
     /**
      * Sorts the given file externally with the given comparator and removes duplicates.
      *
-     * @param file file whose contents needs to be sorted
+     * @param file       file whose contents needs to be sorted
      * @param comparator to compare
      * @throws IOException
      */
@@ -93,7 +93,7 @@ public final class FileIOUtils {
     /**
      * Merges a list of files after sorting with the {@link #lexComparator}.
      *
-     * @param files files to merge
+     * @param files  files to merge
      * @param output merge output file
      * @throws IOException
      */
@@ -106,18 +106,18 @@ public final class FileIOUtils {
     /**
      * Merges a list of files after sorting with the given comparator.
      *
-     * @param files files to merge
+     * @param files  files to merge
      * @param output merge output file
      * @throws IOException
      */
-    public static void merge(List<File> files, File output, Comparator<String> comparator) throws IOException {
+    public static void merge(List<File> files, File output, Comparator<String> comparator)
+        throws IOException {
         mergeSortedFiles(
             files,
             output, comparator, true);
     }
 
     /**
-
      * Copies an input stream to a file.
      *
      * @param stream steam to copy
@@ -131,12 +131,13 @@ public final class FileIOUtils {
     }
 
     /**
-     * Appends the contents of the list of files to the given file and deletes the files
-     * if the delete flag is enabled.
-     *
+     * Appends the contents of the list of files to the given file and deletes the files if the
+     * delete flag is enabled.
+     * <p>
      * If there is a scope for lines in the files containing line break characters it should be
      * ensured that the files are written with {@link #writeAsLine(BufferedWriter, String, boolean)}
      * with true to escape line break characters.
+     *
      * @param files
      * @param appendTo
      * @throws IOException
@@ -168,15 +169,16 @@ public final class FileIOUtils {
     }
 
     /**
-     * Writes a string as a new line into the given buffered writer and optionally
-     * escapes the line for line breaks.
+     * Writes a string as a new line into the given buffered writer and optionally escapes the line
+     * for line breaks.
      *
      * @param writer to write the string
-     * @param str the string to write
+     * @param str    the string to write
      * @param escape whether to escape string for line breaks
      * @throws IOException
      */
-    public static void writeAsLine(BufferedWriter writer, String str, boolean escape) throws IOException {
+    public static void writeAsLine(BufferedWriter writer, String str, boolean escape)
+        throws IOException {
         if (escape) {
             writer.write(escapeLineBreak(str));
         } else {
@@ -186,12 +188,12 @@ public final class FileIOUtils {
     }
 
     /**
-     * Writes string from the given iterator to the given file and optionally
-     * escape the written strings for line breaks.
+     * Writes string from the given iterator to the given file and optionally escape the written
+     * strings for line breaks.
      *
      * @param iterator the source of the strings
-     * @param f file to write to
-     * @param escape whether to escape for line breaks
+     * @param f        file to write to
+     * @param escape   whether to escape for line breaks
      * @return count
      * @throws IOException
      */
@@ -201,14 +203,14 @@ public final class FileIOUtils {
     }
 
     /**
-     * Writes string from the given iterator to the given file and optionally
-     * escape the written strings for line breaks.
+     * Writes string from the given iterator to the given file and optionally escape the written
+     * strings for line breaks.
      *
      * @param iterator the source of the strings
-     * @param f file to write to
-     * @param escape escape whether to escape for line breaks
-     * @param logger logger to log progress
-     * @param message message to log
+     * @param f        file to write to
+     * @param escape   escape whether to escape for line breaks
+     * @param logger   logger to log progress
+     * @param message  message to log
      * @return
      * @throws IOException
      */
@@ -218,20 +220,21 @@ public final class FileIOUtils {
     }
 
     /**
-     * Writes string from the given iterator to the given file and optionally
-     * escape the written strings for line breaks.
+     * Writes string from the given iterator to the given file and optionally escape the written
+     * strings for line breaks.
      *
-     * @param iterator the source of the strings
-     * @param f file to write to
-     * @param escape escape whether to escape for line breaks
+     * @param iterator    the source of the strings
+     * @param f           file to write to
+     * @param escape      escape whether to escape for line breaks
      * @param transformer any transformation on the input
-     * @param logger logger to log progress
-     * @param message message to log
+     * @param logger      logger to log progress
+     * @param message     message to log
      * @return
      * @throws IOException
      */
     public static int writeStrings(Iterator<String> iterator, File f, boolean escape,
-        @NotNull Function<String, String> transformer, @Nullable Logger logger, @Nullable String message) throws IOException {
+        @NotNull Function<String, String> transformer, @Nullable Logger logger,
+        @Nullable String message) throws IOException {
         BufferedWriter writer = newWriter(f, UTF_8);
         boolean threw = true;
 
@@ -256,19 +259,20 @@ public final class FileIOUtils {
     /**
      * Reads strings from the given stream into a set and optionally unescaping for line breaks.
      *
-     * @param stream the source of the strings
+     * @param stream   the source of the strings
      * @param unescape whether to unescape for line breaks
      * @return set
      * @throws IOException
      */
-    public static Set<String> readStringsAsSet(InputStream stream, boolean unescape) throws IOException {
+    public static Set<String> readStringsAsSet(InputStream stream, boolean unescape)
+        throws IOException {
         BufferedReader reader = null;
         Set<String> set = new HashSet<>();
         boolean threw = true;
 
         try {
             reader = new BufferedReader(new InputStreamReader(stream, UTF_8));
-            String line  = null;
+            String line = null;
             while ((line = reader.readLine()) != null) {
                 if (unescape) {
                     set.add(unescapeLineBreaks(line));
@@ -290,7 +294,7 @@ public final class FileIOUtils {
      * @param delegate the actual comparison iterator
      * @return comparator aware of line breaks
      */
-    public static Comparator<String> lineBreakAwareComparator (Comparator<String> delegate) {
+    public static Comparator<String> lineBreakAwareComparator(Comparator<String> delegate) {
         return new FileIOUtils.TransformingComparator(delegate, new Function<String, String>() {
             @Nullable
             @Override
@@ -301,14 +305,14 @@ public final class FileIOUtils {
     }
 
     /**
-     *
      * Copy the input stream to the given file. Delete the file in case of exception.
      *
-     * @param source the input stream source
+     * @param source      the input stream source
      * @param destination the file to write to
      * @throws IOException
      */
-    public static void copyInputStreamToFile(final InputStream source, final File destination) throws IOException {
+    public static void copyInputStreamToFile(final InputStream source, final File destination)
+        throws IOException {
         boolean success = false;
         try {
             FileUtils.copyInputStreamToFile(source, destination);
@@ -325,6 +329,7 @@ public final class FileIOUtils {
      * comparator.
      */
     public static class TransformingComparator implements Comparator<String> {
+
         private Comparator<String> delegate;
         private Function<String, String> func;
 

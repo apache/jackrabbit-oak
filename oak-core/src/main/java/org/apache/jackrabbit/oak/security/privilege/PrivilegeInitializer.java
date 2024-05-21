@@ -16,8 +16,9 @@
  */
 package org.apache.jackrabbit.oak.security.privilege;
 
-import javax.jcr.RepositoryException;
+import static org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState.squeeze;
 
+import javax.jcr.RepositoryException;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Type;
@@ -32,8 +33,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState.squeeze;
 
 /**
  * {@code RepositoryInitializer} that asserts the existence and node type of the

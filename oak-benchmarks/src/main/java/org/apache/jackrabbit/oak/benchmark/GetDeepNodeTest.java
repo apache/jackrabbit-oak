@@ -22,10 +22,11 @@ import javax.jcr.Node;
 import javax.jcr.Session;
 
 /**
- * {@code GetDeepNodeTest} implements a performance test, which reads
- * a node deep down in the hierarchy.
+ * {@code GetDeepNodeTest} implements a performance test, which reads a node deep down in the
+ * hierarchy.
  */
 public class GetDeepNodeTest extends AbstractTest {
+
     private static final int DEPTH = 20;
 
     private Session session;
@@ -36,7 +37,7 @@ public class GetDeepNodeTest extends AbstractTest {
     protected void beforeSuite() throws Exception {
         session = loginWriter();
         testRoot = session.getRootNode().addNode(
-                getClass().getSimpleName() + TEST_ID, "nt:unstructured");
+            getClass().getSimpleName() + TEST_ID, "nt:unstructured");
         Node node = testRoot;
         testPath = "";
         for (int k = 0; k < DEPTH; k++) {

@@ -18,18 +18,18 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.search.spi.query;
 
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
+import java.util.ArrayList;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.IndexName;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 import org.slf4j.event.Level;
-import java.util.ArrayList;
 
 /**
  * Test the IndexName class
@@ -39,22 +39,22 @@ public class IndexNameTest {
     @Test
     public void parse() {
         assertEquals("/lucene base=/lucene product=0 custom=0",
-                IndexName.parse("/lucene").toString());
+            IndexName.parse("/lucene").toString());
         assertEquals("/lucene-1 base=/lucene versioned product=1 custom=0",
-                IndexName.parse("/lucene-1").toString());
+            IndexName.parse("/lucene-1").toString());
         assertEquals("/lucene-2 base=/lucene versioned product=2 custom=0",
-                IndexName.parse("/lucene-2").toString());
+            IndexName.parse("/lucene-2").toString());
         assertEquals("/lucene-custom-3 base=/lucene versioned product=0 custom=3",
-                IndexName.parse("/lucene-custom-3").toString());
+            IndexName.parse("/lucene-custom-3").toString());
         assertEquals("/lucene-4-custom-5 base=/lucene versioned product=4 custom=5",
-                IndexName.parse("/lucene-4-custom-5").toString());
+            IndexName.parse("/lucene-4-custom-5").toString());
         assertEquals("/lucene-12-custom-34 base=/lucene versioned product=12 custom=34",
-                IndexName.parse("/lucene-12-custom-34").toString());
+            IndexName.parse("/lucene-12-custom-34").toString());
         // illegal
         assertEquals("/lucene-abc base=/lucene-abc product=0 custom=0 illegal",
-                IndexName.parse("/lucene-abc").toString());
+            IndexName.parse("/lucene-abc").toString());
         assertEquals("/lucene-abc-custom-2 base=/lucene-abc-custom-2 product=0 custom=0 illegal",
-                IndexName.parse("/lucene-abc-custom-2").toString());
+            IndexName.parse("/lucene-abc-custom-2").toString());
     }
 
     @Test
@@ -89,9 +89,9 @@ public class IndexNameTest {
     @Test
     public void recursiveActive() {
         LogCustomizer lc = LogCustomizer.forLogger(IndexName.class)
-                .enable(Level.WARN)
-                .filter(Level.WARN)
-                .create();
+                                        .enable(Level.WARN)
+                                        .filter(Level.WARN)
+                                        .create();
 
         NodeBuilder builder = EMPTY_NODE.builder();
         NodeBuilder luceneOneBuilder = builder.child("lucene-1-custom-1");
@@ -106,7 +106,7 @@ public class IndexNameTest {
             lc.starting();
             IndexName.filterReplacedIndexes(indexPaths, base, true);
             assertTrue("High recursion depth should be detected", lc.getLogs().contains(
-                    "Fail to check index activeness for lucene-1-custom-1 due to high recursion depth: 51"));
+                "Fail to check index activeness for lucene-1-custom-1 due to high recursion depth: 51"));
         } catch (StackOverflowError e) {
             fail("should not run into StackOverflowError exception");
         } finally {

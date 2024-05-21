@@ -37,5 +37,6 @@ public interface PrivilegeConfiguration extends SecurityConfiguration {
      * @return A new {@code PrivilegeManager}.
      */
     @NotNull
-    PrivilegeManager getPrivilegeManager(@NotNull Root root, @NotNull NamePathMapper namePathMapper);
+    PrivilegeManager getPrivilegeManager(@NotNull Root root,
+        @NotNull NamePathMapper namePathMapper);
 }

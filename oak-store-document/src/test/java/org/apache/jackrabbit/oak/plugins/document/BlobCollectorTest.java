@@ -38,6 +38,7 @@ import static org.apache.jackrabbit.oak.plugins.document.MongoBlobGCTest.randomS
 import static org.junit.Assert.assertEquals;
 
 public class BlobCollectorTest {
+
     private DocumentNodeStore store = new DocumentMK.Builder().getNodeStore();
     private BlobCollector blobCollector = new BlobCollector(store);
 
@@ -55,7 +56,7 @@ public class BlobCollectorTest {
         store.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         //1. Set some single value Binary property
-        for(int i = 0; i < 2; i++){
+        for (int i = 0; i < 2; i++) {
             b1 = store.getRoot().builder();
             Blob b = store.createBlob(randomStream(i, 4096));
             b1.child("x").child("y").setProperty("b" + i, b);
@@ -65,8 +66,8 @@ public class BlobCollectorTest {
 
         //2. Set some multi value property
         PropertyBuilder<Blob> p1 = PropertyBuilder.array(Type.BINARY)
-                .setName("barr");
-        for(int i = 0; i < 2; i++){
+                                                  .setName("barr");
+        for (int i = 0; i < 2; i++) {
             Blob b = store.createBlob(randomStream(i, 4096));
             p1.addValue(b);
             blobs.add(new ReferencedBlob(b, "/x/y"));
@@ -76,21 +77,22 @@ public class BlobCollectorTest {
         store.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         //3. Create some new rev for the property b1 and b2
-        for(int i = 0; i < 2; i++){
+        for (int i = 0; i < 2; i++) {
             b1 = store.getRoot().builder();
             //Change the see to create diff binary
-            Blob b = store.createBlob(randomStream(i+1, 4096));
+            Blob b = store.createBlob(randomStream(i + 1, 4096));
             b1.child("x").child("y").setProperty("b" + i, b);
             blobs.add(new ReferencedBlob(b, "/x/y"));
             store.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         }
 
         NodeDocument doc =
-                store.getDocumentStore().find(Collection.NODES, Utils.getIdFromPath("/x/y"));
+            store.getDocumentStore().find(Collection.NODES, Utils.getIdFromPath("/x/y"));
         List<ReferencedBlob> collectedBlobs = Lists.newArrayList();
         blobCollector.collect(doc, collectedBlobs);
 
         assertEquals(blobs.size(), collectedBlobs.size());
-        assertEquals(new HashSet<ReferencedBlob>(blobs), new HashSet<ReferencedBlob>(collectedBlobs));
+        assertEquals(new HashSet<ReferencedBlob>(blobs),
+            new HashSet<ReferencedBlob>(collectedBlobs));
     }
 }

@@ -16,10 +16,21 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
+import static java.util.stream.Collectors.toList;
+import static org.apache.jackrabbit.guava.common.collect.Lists.reverse;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudAppendBlob;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
 import com.microsoft.azure.storage.blob.ListBlobItem;
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.security.InvalidKeyException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.stream.IntStream;
 import org.apache.commons.lang3.time.StopWatch;
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzuriteDockerRule;
@@ -30,18 +41,6 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
-
-import java.io.IOException;
-import java.net.URISyntaxException;
-import java.security.InvalidKeyException;
-import java.util.ArrayList;
-import java.util.List;
-
-import static org.apache.jackrabbit.guava.common.collect.Lists.reverse;
-import static java.util.stream.Collectors.toList;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 public class AzureJournalFileTest {
 
@@ -57,7 +56,8 @@ public class AzureJournalFileTest {
         container = azurite.getContainer("oak-test");
         WriteAccessController writeAccessController = new WriteAccessController();
         writeAccessController.enableWriting();
-        journal = new AzureJournalFile(container.getDirectoryReference("journal"), "journal.log", writeAccessController, 50);
+        journal = new AzureJournalFile(container.getDirectoryReference("journal"), "journal.log",
+            writeAccessController, 50);
     }
 
     @Test
@@ -152,8 +152,10 @@ public class AzureJournalFileTest {
         watchOptimizedImpl.stop();
         long optimizedImplTime = watchOptimizedImpl.getTime();
         long naiveImplTime = watchNaiveImpl.getTime();
-        assertTrue("batchWriteLines() should be significantly faster (>10x) than the naive implementation, but took "
-            + optimizedImplTime + "ms while naive implementation took " + naiveImplTime + "ms", optimizedImplTime < naiveImplTime / 10);
+        assertTrue(
+            "batchWriteLines() should be significantly faster (>10x) than the naive implementation, but took "
+                + optimizedImplTime + "ms while naive implementation took " + naiveImplTime + "ms",
+            optimizedImplTime < naiveImplTime / 10);
     }
 
     @Test
@@ -197,8 +199,8 @@ public class AzureJournalFileTest {
     @NotNull
     private static List<String> buildLines(int start, int count) {
         return IntStream.range(start, count + start)
-            .mapToObj(i -> "line " + i)
-            .collect(toList());
+                        .mapToObj(i -> "line " + i)
+                        .collect(toList());
     }
 
     @NotNull

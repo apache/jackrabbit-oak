@@ -26,24 +26,28 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.jetbrains.annotations.NotNull;
 
 public class ElasticIndexWriterFactory implements FulltextIndexWriterFactory<ElasticDocument> {
+
     private final ElasticConnection elasticConnection;
     private final ElasticIndexTracker indexTracker;
 
-    public ElasticIndexWriterFactory(@NotNull ElasticConnection elasticConnection, @NotNull ElasticIndexTracker indexTracker) {
+    public ElasticIndexWriterFactory(@NotNull ElasticConnection elasticConnection,
+        @NotNull ElasticIndexTracker indexTracker) {
         this.elasticConnection = elasticConnection;
         this.indexTracker = indexTracker;
     }
 
     @Override
     public ElasticIndexWriter newInstance(IndexDefinition definition, NodeBuilder definitionBuilder,
-                                          CommitInfo commitInfo, boolean reindex) {
+        CommitInfo commitInfo, boolean reindex) {
         if (!(definition instanceof ElasticIndexDefinition)) {
-            throw new IllegalArgumentException("IndexDefinition must be of type ElasticsearchIndexDefinition " +
+            throw new IllegalArgumentException(
+                "IndexDefinition must be of type ElasticsearchIndexDefinition " +
                     "instead of " + definition.getClass().getName());
         }
 
         ElasticIndexDefinition esDefinition = (ElasticIndexDefinition) definition;
 
-        return new ElasticIndexWriter(indexTracker, elasticConnection, esDefinition, definitionBuilder, reindex, commitInfo);
+        return new ElasticIndexWriter(indexTracker, elasticConnection, esDefinition,
+            definitionBuilder, reindex, commitInfo);
     }
 }

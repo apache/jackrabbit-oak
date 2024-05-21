@@ -22,9 +22,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Calendar;
 import java.util.Iterator;
-
 import javax.jcr.PropertyType;
-
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
@@ -93,27 +91,27 @@ public class PropertyStateValue implements PropertyValue {
             return Integer.signum(p2.getType().tag() - getType().tag());
         }
         switch (getType().tag()) {
-        case PropertyType.BOOLEAN:
-            return compare(getValue(Type.BOOLEANS), p2.getValue(Type.BOOLEANS));
-        case PropertyType.DECIMAL:
-            return compare(getValue(Type.DECIMALS), p2.getValue(Type.DECIMALS));
-        case PropertyType.DOUBLE:
-            return compare(getValue(Type.DOUBLES), p2.getValue(Type.DOUBLES));
-        case PropertyType.LONG:
-            return compare(getValue(Type.LONGS), p2.getValue(Type.LONGS));
-        case PropertyType.BINARY:
-            return compareBinaries(
+            case PropertyType.BOOLEAN:
+                return compare(getValue(Type.BOOLEANS), p2.getValue(Type.BOOLEANS));
+            case PropertyType.DECIMAL:
+                return compare(getValue(Type.DECIMALS), p2.getValue(Type.DECIMALS));
+            case PropertyType.DOUBLE:
+                return compare(getValue(Type.DOUBLES), p2.getValue(Type.DOUBLES));
+            case PropertyType.LONG:
+                return compare(getValue(Type.LONGS), p2.getValue(Type.LONGS));
+            case PropertyType.BINARY:
+                return compareBinaries(
                     getValue(Type.BINARIES), p2.getValue(Type.BINARIES));
-        case PropertyType.DATE:
-            return compareAsDate(
+            case PropertyType.DATE:
+                return compareAsDate(
                     getValue(Type.STRINGS), p2.getValue(Type.STRINGS));
-        default:
-            return compare(getValue(Type.STRINGS), p2.getValue(Type.STRINGS));
+            default:
+                return compare(getValue(Type.STRINGS), p2.getValue(Type.STRINGS));
         }
     }
 
     private static <T extends Comparable<T>> int compare(Iterable<T> p1,
-            Iterable<T> p2) {
+        Iterable<T> p2) {
         Iterator<T> i1 = p1.iterator();
         Iterator<T> i2 = p2.iterator();
         while (i1.hasNext() || i2.hasNext()) {
@@ -187,7 +185,7 @@ public class PropertyStateValue implements PropertyValue {
             char v1sign = v1.charAt(0);
             char v2sign = v2.charAt(0);
             boolean processStringLiterals = false;
-            
+
             if (v1sign != plus && v1sign != minus && v2sign != plus && v2sign != minus) {
                 // if both the dates don't start with a sign
                 String tz1 = v1.substring(23);
@@ -198,7 +196,7 @@ public class PropertyStateValue implements PropertyValue {
                     processStringLiterals = true;
                 }
             }
-            
+
             if (processStringLiterals) {
                 return v1.compareTo(v2);
             } else {
@@ -212,7 +210,7 @@ public class PropertyStateValue implements PropertyValue {
                 }
                 if (compare != 0) {
                     return compare;
-                }                
+                }
             }
         }
         return 0;

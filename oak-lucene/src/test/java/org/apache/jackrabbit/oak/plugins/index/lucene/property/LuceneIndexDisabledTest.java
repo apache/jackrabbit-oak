@@ -23,12 +23,13 @@ import static org.apache.jackrabbit.oak.spi.commit.CommitInfo.EMPTY;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.InitialContentHelper;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexTracker;
-import org.apache.jackrabbit.oak.plugins.index.lucene.LucenePropertyIndex;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LucenePropertyIndex;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.query.NodeStateNodeTypeInfoProvider;
@@ -45,8 +46,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Before;
 import org.junit.Test;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-
 /**
  * Test the Property2 index mechanism.
  */
@@ -57,7 +56,7 @@ public class LuceneIndexDisabledTest {
     private NodeState root;
     private NodeBuilder rootBuilder;
     private static final EditorHook HOOK = new EditorHook(
-            new IndexUpdateProvider(new LuceneIndexEditorProvider()));
+        new IndexUpdateProvider(new LuceneIndexEditorProvider()));
 
     @Before
     public void setup() throws Exception {
@@ -69,8 +68,8 @@ public class LuceneIndexDisabledTest {
     @Test
     public void disabled() throws Exception {
         NodeBuilder index = newLucenePropertyIndexDefinition(
-                rootBuilder.child(INDEX_DEFINITIONS_NAME),
-                "foo", ImmutableSet.of("foo"), null);
+            rootBuilder.child(INDEX_DEFINITIONS_NAME),
+            "foo", ImmutableSet.of("foo"), null);
         index.setProperty(IndexConstants.USE_IF_EXISTS, "/");
         commit();
         for (int i = 0; i < MANY; i++) {
@@ -129,7 +128,8 @@ public class LuceneIndexDisabledTest {
         NodeTypeInfoProvider nodeTypes = new NodeStateNodeTypeInfoProvider(root);
         NodeTypeInfo type = nodeTypes.getNodeTypeInfo(nodeTypeName);
         SelectorImpl selector = new SelectorImpl(type, nodeTypeName);
-        return new FilterImpl(selector, "SELECT * FROM [" + nodeTypeName + "]", new QueryEngineSettings());
+        return new FilterImpl(selector, "SELECT * FROM [" + nodeTypeName + "]",
+            new QueryEngineSettings());
     }
 
 }

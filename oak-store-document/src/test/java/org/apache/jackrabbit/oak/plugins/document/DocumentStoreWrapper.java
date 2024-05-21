@@ -24,8 +24,7 @@ import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * A DocumentStore implementation which wraps another store and delegates all
- * calls to it.
+ * A DocumentStore implementation which wraps another store and delegates all calls to it.
  */
 public class DocumentStoreWrapper implements DocumentStore {
 
@@ -42,78 +41,78 @@ public class DocumentStoreWrapper implements DocumentStore {
 
     @Override
     public <T extends Document> T find(Collection<T> collection,
-                                       String key,
-                                       int maxCacheAge) {
+        String key,
+        int maxCacheAge) {
         return store.find(collection, key, maxCacheAge);
     }
 
     @NotNull
     @Override
     public <T extends Document> List<T> query(Collection<T> collection,
-                                              String fromKey,
-                                              String toKey,
-                                              int limit) {
+        String fromKey,
+        String toKey,
+        int limit) {
         return store.query(collection, fromKey, toKey, limit);
     }
 
     @NotNull
     @Override
     public <T extends Document> List<T> query(Collection<T> collection,
-                                              String fromKey,
-                                              String toKey,
-                                              String indexedProperty,
-                                              long startValue,
-                                              int limit) {
+        String fromKey,
+        String toKey,
+        String indexedProperty,
+        long startValue,
+        int limit) {
         return store.query(collection, fromKey, toKey,
-                indexedProperty, startValue, limit);
+            indexedProperty, startValue, limit);
     }
 
     @Override
     public <T extends Document> void remove(Collection<T> collection,
-                                            String key) {
+        String key) {
         store.remove(collection, key);
     }
 
     @Override
     public <T extends Document> void remove(Collection<T> collection,
-                                            List<String> keys) {
+        List<String> keys) {
         store.remove(collection, keys);
     }
 
     @Override
     public <T extends Document> int remove(Collection<T> collection,
-                                           Map<String, Long> toRemove) {
+        Map<String, Long> toRemove) {
         return store.remove(collection, toRemove);
     }
 
     @Override
     public <T extends Document> int remove(Collection<T> collection,
-                                           String indexedProperty, long startValue, long endValue)
-            throws DocumentStoreException {
+        String indexedProperty, long startValue, long endValue)
+        throws DocumentStoreException {
         return store.remove(collection, indexedProperty, startValue, endValue);
     }
 
     @Override
     public <T extends Document> boolean create(Collection<T> collection,
-                                               List<UpdateOp> updateOps) {
+        List<UpdateOp> updateOps) {
         return store.create(collection, updateOps);
     }
 
     @Override
     public <T extends Document> T createOrUpdate(Collection<T> collection,
-                                                 UpdateOp update) {
+        UpdateOp update) {
         return store.createOrUpdate(collection, update);
     }
 
     @Override
     public <T extends Document> List<T> createOrUpdate(Collection<T> collection,
-                                                       List<UpdateOp> updateOps) {
+        List<UpdateOp> updateOps) {
         return store.createOrUpdate(collection, updateOps);
     }
 
     @Override
     public <T extends Document> T findAndUpdate(Collection<T> collection,
-                                                UpdateOp update) {
+        UpdateOp update) {
         return store.findAndUpdate(collection, update);
     }
 
@@ -129,7 +128,7 @@ public class DocumentStoreWrapper implements DocumentStore {
 
     @Override
     public <T extends Document> void invalidateCache(Collection<T> collection,
-                                                     String key) {
+        String key) {
         store.invalidateCache(collection, key);
     }
 
@@ -140,7 +139,7 @@ public class DocumentStoreWrapper implements DocumentStore {
 
     @Override
     public <T extends Document> T getIfCached(Collection<T> collection,
-                                              String key) {
+        String key) {
         return store.getIfCached(collection, key);
     }
 

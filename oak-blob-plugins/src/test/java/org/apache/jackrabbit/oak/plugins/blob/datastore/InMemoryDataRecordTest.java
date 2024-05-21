@@ -19,17 +19,17 @@
 
 package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import java.io.ByteArrayInputStream;
 import java.util.Random;
-
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
 public class InMemoryDataRecordTest {
+
     @Test
     public void testGetInstance() throws Exception {
         int length = 400;

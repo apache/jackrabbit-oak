@@ -18,11 +18,9 @@
 package org.apache.jackrabbit.oak.benchmark;
 
 import java.util.UUID;
-
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-
 import org.apache.jackrabbit.oak.benchmark.util.OakIndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.property.OrderedIndex;
@@ -34,6 +32,7 @@ import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
  */
 @SuppressWarnings("rawtypes")
 public abstract class OrderedIndexBaseTest extends AbstractTest {
+
     /**
      * the number of nodes created per iteration
      */
@@ -60,7 +59,7 @@ public abstract class OrderedIndexBaseTest extends AbstractTest {
      */
     static final int BATCH_SAVING_SIZE = Integer
         .parseInt(System.getProperty("batchSaving", "1024"));
-    
+
     /**
      * flags whether batch saving or not. Provide {@code -DbatchSaving=XYZ} where {@code XYZ} is
      * greater than 0 to enable batch saving otherwise it will save every added nodes.
@@ -84,7 +83,7 @@ public abstract class OrderedIndexBaseTest extends AbstractTest {
 
     /**
      * insert a {@code numberOfNode} random nodes in the repository
-     * 
+     *
      * @param numberOfNodes
      */
     void insertRandomNodes(int numberOfNodes) {
@@ -137,7 +136,7 @@ public abstract class OrderedIndexBaseTest extends AbstractTest {
                 "Error while creating the index definition. index node is null.");
         }
         if (!OrderedIndex.TYPE.equals(index.getProperty(IndexConstants.TYPE_PROPERTY_NAME)
-            .getString())) {
+                                           .getString())) {
             throw new RuntimeException("The index type does not match the expected");
         }
         session.save();
@@ -145,9 +144,8 @@ public abstract class OrderedIndexBaseTest extends AbstractTest {
     }
 
     /**
-     * 
      * @return true if you want batch saving during {@code insertRandomNodes} by
-     *         {@code BATCH_SAVE_SIZE}
+     * {@code BATCH_SAVE_SIZE}
      */
     boolean isBatchSaving() {
         return BATCH_SAVING;

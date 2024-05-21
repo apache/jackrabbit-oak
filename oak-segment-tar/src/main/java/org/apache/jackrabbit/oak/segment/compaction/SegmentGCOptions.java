@@ -37,8 +37,8 @@ public class SegmentGCOptions {
         FULL,
 
         /**
-         * Tail gc: compaction will compact the diff between the head state created by
-         * the previous compaction run and the current head state.
+         * Tail gc: compaction will compact the diff between the head state created by the previous
+         * compaction run and the current head state.
          */
         TAIL
     }
@@ -70,14 +70,15 @@ public class SegmentGCOptions {
 
         public static CompactorType fromDescription(String description) {
             switch (description) {
-            case "classic":
-                return CLASSIC_COMPACTOR;
-            case "diff":
-                return CHECKPOINT_COMPACTOR;
-            case "parallel":
-                return PARALLEL_COMPACTOR;
-            default:
-                throw new IllegalArgumentException("Unrecognized compactor type " + description);
+                case "classic":
+                    return CLASSIC_COMPACTOR;
+                case "diff":
+                    return CHECKPOINT_COMPACTOR;
+                case "parallel":
+                    return PARALLEL_COMPACTOR;
+                default:
+                    throw new IllegalArgumentException(
+                        "Unrecognized compactor type " + description);
             }
         }
 
@@ -152,18 +153,17 @@ public class SegmentGCOptions {
     private int memoryThreshold = MEMORY_THRESHOLD_DEFAULT;
 
     private long gcSizeDeltaEstimation = Long.getLong(
-            "oak.segment.compaction.gcSizeDeltaEstimation",
-            SIZE_DELTA_ESTIMATION_DEFAULT);
+        "oak.segment.compaction.gcSizeDeltaEstimation",
+        SIZE_DELTA_ESTIMATION_DEFAULT);
 
     /**
-     * Number of nodes after which an update about the compaction process is logged.
-     * -1 for never.
+     * Number of nodes after which an update about the compaction process is logged. -1 for never.
      */
     private long gcLogInterval = -1;
 
     /**
-     * Number of threads to use for compaction. Negative numbers are interpreted
-     * relative to number of available processors.
+     * Number of threads to use for compaction. Negative numbers are interpreted relative to number
+     * of available processors.
      */
     private int concurrency = DEFAULT_CONCURRENCY;
 
@@ -188,7 +188,7 @@ public class SegmentGCOptions {
     }
 
     /**
-     * @return  {@code true} iff revision gc is paused.
+     * @return {@code true} iff revision gc is paused.
      */
     public boolean isPaused() {
         return paused;
@@ -196,6 +196,7 @@ public class SegmentGCOptions {
 
     /**
      * Set revision gc to paused.
+     *
      * @param paused
      * @return this instance
      */
@@ -205,17 +206,17 @@ public class SegmentGCOptions {
     }
 
     /**
-     * Get the number of tries to compact concurrent commits on top of already
-     * compacted commits
-     * @return  retry count
+     * Get the number of tries to compact concurrent commits on top of already compacted commits
+     *
+     * @return retry count
      */
     public int getRetryCount() {
         return retryCount;
     }
 
     /**
-     * Set the number of tries to compact concurrent commits on top of already
-     * compacted commits
+     * Set the number of tries to compact concurrent commits on top of already compacted commits
+     *
      * @param retryCount
      * @return this instance
      */
@@ -225,22 +226,24 @@ public class SegmentGCOptions {
     }
 
     /**
-     * Get the number of seconds to attempt to force compact concurrent commits on top of
-     * already compacted commits after the maximum number of retries has been reached.
-     * Forced compaction acquires an exclusive write lock on the node store.
-     * @return  the number of seconds until forced compaction gives up and the exclusive
-     *          write lock on the node store is released.
+     * Get the number of seconds to attempt to force compact concurrent commits on top of already
+     * compacted commits after the maximum number of retries has been reached. Forced compaction
+     * acquires an exclusive write lock on the node store.
+     *
+     * @return the number of seconds until forced compaction gives up and the exclusive write lock
+     * on the node store is released.
      */
     public int getForceTimeout() {
         return forceTimeout;
     }
 
     /**
-     * Set the number of seconds to attempt to force compact concurrent commits on top of
-     * already compacted commits after the maximum number of retries has been reached.
-     * Forced compaction acquires an exclusively write lock on the node store.
-     * @param timeout  the number of seconds until forced compaction gives up and the exclusive
-     *                 lock on the node store is released.
+     * Set the number of seconds to attempt to force compact concurrent commits on top of already
+     * compacted commits after the maximum number of retries has been reached. Forced compaction
+     * acquires an exclusively write lock on the node store.
+     *
+     * @param timeout the number of seconds until forced compaction gives up and the exclusive lock
+     *                on the node store is released.
      * @return this instance
      */
     public SegmentGCOptions setForceTimeout(int timeout) {
@@ -250,18 +253,19 @@ public class SegmentGCOptions {
 
     /**
      * Number of segment generations to retain.
-     * @return  number of gc generations.
+     *
+     * @return number of gc generations.
      */
     public int getRetainedGenerations() {
         return retainedGenerations;
     }
 
     /**
-     * Set the number of segment generations to retain: each compaction run creates
-     * a new segment generation. {@code retainGenerations} determines how many of
-     * those generations are retained during cleanup.
+     * Set the number of segment generations to retain: each compaction run creates a new segment
+     * generation. {@code retainGenerations} determines how many of those generations are retained
+     * during cleanup.
      *
-     * @param retainedGenerations  number of generations to retain. Must be {@code >= 2}.
+     * @param retainedGenerations number of generations to retain. Must be {@code >= 2}.
      * @return this instance
      * @throws IllegalArgumentException if {@code retainGenerations < 2}
      */
@@ -280,7 +284,8 @@ public class SegmentGCOptions {
 
     /**
      * Set the gc type.
-     * @param gcType  the type of gc to run.
+     *
+     * @param gcType the type of gc to run.
      */
     public void setGCType(@NotNull GCType gcType) {
         this.gcType = gcType;
@@ -290,34 +295,33 @@ public class SegmentGCOptions {
     public String toString() {
         if (offline) {
             return getClass().getSimpleName() + "{" +
-                    "offline=" + offline +
-                    ", retainedGenerations=" + retainedGenerations +
-                    ", compactorType=" + compactorType +
-                    ", concurrency=" + concurrency +
-                    "}";
+                "offline=" + offline +
+                ", retainedGenerations=" + retainedGenerations +
+                ", compactorType=" + compactorType +
+                ", concurrency=" + concurrency +
+                "}";
         } else {
             return getClass().getSimpleName() + "{" +
-                    "paused=" + paused +
-                    ", estimationDisabled=" + estimationDisabled +
-                    ", gcSizeDeltaEstimation=" + gcSizeDeltaEstimation +
-                    ", retryCount=" + retryCount +
-                    ", forceTimeout=" + forceTimeout +
-                    ", retainedGenerations=" + retainedGenerations +
-                    ", gcType=" + gcType +
-                    ", compactorType=" + compactorType +
-                    "}";
+                "paused=" + paused +
+                ", estimationDisabled=" + estimationDisabled +
+                ", gcSizeDeltaEstimation=" + gcSizeDeltaEstimation +
+                ", retryCount=" + retryCount +
+                ", forceTimeout=" + forceTimeout +
+                ", retainedGenerations=" + retainedGenerations +
+                ", gcType=" + gcType +
+                ", compactorType=" + compactorType +
+                "}";
         }
     }
 
     /**
-     * Check if the approximate repository size is getting too big compared with
-     * the available space on disk.
+     * Check if the approximate repository size is getting too big compared with the available space
+     * on disk.
      *
-     * @param repositoryDiskSpace Approximate size of the disk space occupied by
-     *                            the repository.
+     * @param repositoryDiskSpace Approximate size of the disk space occupied by the repository.
      * @param availableDiskSpace  Currently available disk space.
-     * @return {@code true} if the available disk space is considered enough for
-     * normal repository operations.
+     * @return {@code true} if the available disk space is considered enough for normal repository
+     * operations.
      */
     public static boolean isDiskSpaceSufficient(long repositoryDiskSpace, long availableDiskSpace) {
         return availableDiskSpace > 0.25 * repositoryDiskSpace;
@@ -328,8 +332,9 @@ public class SegmentGCOptions {
     }
 
     /**
-     * Enables the offline compaction mode, allowing for certain optimizations,
-     * like reducing the retained generation to 1.
+     * Enables the offline compaction mode, allowing for certain optimizations, like reducing the
+     * retained generation to 1.
+     *
      * @return this instance
      */
     public SegmentGCOptions setOffline() {
@@ -348,9 +353,9 @@ public class SegmentGCOptions {
     }
 
     /**
-     * Get the available memory threshold beyond which revision gc will be
-     * canceled. Value represents a percentage so an value between {@code 0} and
-     * {@code 100} will be returned.
+     * Get the available memory threshold beyond which revision gc will be canceled. Value
+     * represents a percentage so an value between {@code 0} and {@code 100} will be returned.
+     *
      * @return memoryThreshold
      */
     public int getMemoryThreshold() {
@@ -358,10 +363,10 @@ public class SegmentGCOptions {
     }
 
     /**
-     * Set the available memory threshold beyond which revision gc will be
-     * canceled. Value represents a percentage so an input between {@code 0} and
-     * {@code 100} is expected. Setting this to {@code 0} will disable the
-     * check.
+     * Set the available memory threshold beyond which revision gc will be canceled. Value
+     * represents a percentage so an input between {@code 0} and {@code 100} is expected. Setting
+     * this to {@code 0} will disable the check.
+     *
      * @param memoryThreshold
      * @return this instance
      */
@@ -376,6 +381,7 @@ public class SegmentGCOptions {
 
     /**
      * Disables the estimation phase, thus allowing GC to run every time.
+     *
      * @return this instance
      */
     public SegmentGCOptions setEstimationDisabled(boolean disabled) {
@@ -384,9 +390,10 @@ public class SegmentGCOptions {
     }
 
     /**
-     * Set the number of nodes after which an update about the compaction process is logged.
-     * -1 for never.
-     * @param gcLogInterval  update interval
+     * Set the number of nodes after which an update about the compaction process is logged. -1 for
+     * never.
+     *
+     * @param gcLogInterval update interval
      * @return this instance
      */
     public SegmentGCOptions setGCLogInterval(long gcLogInterval) {
@@ -395,8 +402,8 @@ public class SegmentGCOptions {
     }
 
     /**
-     * @return Number of nodes after which an update about the compaction process is logged.
-     * -1 for never.
+     * @return Number of nodes after which an update about the compaction process is logged. -1 for
+     * never.
      */
     public long getGcLogInterval() {
         return gcLogInterval;
@@ -411,6 +418,7 @@ public class SegmentGCOptions {
 
     /**
      * Sets the compactor type to be used for compaction
+     *
      * @param compactorType
      * @return this instance
      */
@@ -428,8 +436,9 @@ public class SegmentGCOptions {
 
     /**
      * Sets the concurrency level for compaction
+     *
      * @param concurrency number of threads to use
-     * @return this instance                    
+     * @return this instance
      */
     public SegmentGCOptions setConcurrency(int concurrency) {
         this.concurrency = concurrency;

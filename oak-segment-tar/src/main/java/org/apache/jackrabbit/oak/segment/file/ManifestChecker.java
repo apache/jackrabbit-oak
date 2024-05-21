@@ -17,15 +17,15 @@
 
 package org.apache.jackrabbit.oak.segment.file;
 
-import org.apache.jackrabbit.oak.segment.spi.persistence.ManifestFile;
-
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 
 import java.io.IOException;
+import org.apache.jackrabbit.oak.segment.spi.persistence.ManifestFile;
 
 public class ManifestChecker {
 
-    public static ManifestChecker newManifestChecker(ManifestFile file, boolean shouldExist, int minStoreVersion, int maxStoreVersion) {
+    public static ManifestChecker newManifestChecker(ManifestFile file, boolean shouldExist,
+        int minStoreVersion, int maxStoreVersion) {
         checkArgument(file != null, "file");
         checkArgument(minStoreVersion > 0, "minStoreVersion");
         checkArgument(maxStoreVersion > 0, "maxStoreVersion");
@@ -40,7 +40,8 @@ public class ManifestChecker {
 
     private final int maxStoreVersion;
 
-    private ManifestChecker(ManifestFile file, boolean shouldExist, int minStoreVersion, int maxStoreVersion) {
+    private ManifestChecker(ManifestFile file, boolean shouldExist, int minStoreVersion,
+        int maxStoreVersion) {
         this.file = file;
         this.shouldExist = shouldExist;
         this.minStoreVersion = minStoreVersion;
@@ -62,7 +63,8 @@ public class ManifestChecker {
             return Manifest.load(file);
         }
         if (shouldExist) {
-            throw new InvalidFileStoreVersionException("Using oak-segment-tar, but oak-segment should be used");
+            throw new InvalidFileStoreVersionException(
+                "Using oak-segment-tar, but oak-segment should be used");
         }
         return Manifest.empty();
     }
@@ -79,10 +81,12 @@ public class ManifestChecker {
             throw new IllegalStateException("Invalid store version");
         }
         if (storeVersion < minStoreVersion) {
-            throw new InvalidFileStoreVersionException("Using a too recent version of oak-segment-tar");
+            throw new InvalidFileStoreVersionException(
+                "Using a too recent version of oak-segment-tar");
         }
         if (storeVersion > maxStoreVersion) {
-            throw new InvalidFileStoreVersionException("Using a too old version of oak-segment tar");
+            throw new InvalidFileStoreVersionException(
+                "Using a too old version of oak-segment tar");
         }
     }
 

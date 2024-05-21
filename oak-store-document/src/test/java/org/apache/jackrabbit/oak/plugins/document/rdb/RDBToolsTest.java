@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
 import static org.junit.Assert.assertEquals;
+
 import org.junit.Test;
 
 public class RDBToolsTest {
@@ -26,8 +27,10 @@ public class RDBToolsTest {
         assertEquals("", appendInCondition("ID", 0, 1000));
         assertEquals("ID = ?", appendInCondition("ID", 1, 1000));
         assertEquals("ID in (?,?,?)", appendInCondition("ID", 3, 1000));
-        assertEquals("(ID in (?,?,?) or ID in (?,?,?) or ID in (?,?,?))", appendInCondition("ID", 9, 3));
-        assertEquals("(ID in (?,?,?) or ID in (?,?,?) or ID in (?,?,?) or ID in (?,?))", appendInCondition("ID", 11, 3));
+        assertEquals("(ID in (?,?,?) or ID in (?,?,?) or ID in (?,?,?))",
+            appendInCondition("ID", 9, 3));
+        assertEquals("(ID in (?,?,?) or ID in (?,?,?) or ID in (?,?,?) or ID in (?,?))",
+            appendInCondition("ID", 11, 3));
     }
 
     private String appendInCondition(String field, int placeholdersCount, int maxListLength) {

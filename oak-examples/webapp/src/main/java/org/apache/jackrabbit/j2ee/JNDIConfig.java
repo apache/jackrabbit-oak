@@ -19,13 +19,12 @@ package org.apache.jackrabbit.j2ee;
 import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.Properties;
-
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
 
 /**
  * The JNDI config hold information about JNDI connection details.
- *
+ * <p>
  * It supports the following properties and init parameters:
  * <pre>
  * +-------------------+--------------------+
@@ -88,7 +87,7 @@ public class JNDIConfig extends AbstractConfig {
         }
     }
 
-    public void init(ServletConfig ctx) throws ServletException  {
+    public void init(ServletConfig ctx) throws ServletException {
         super.init(ctx);
         // add all params whose name starts with 'java.namming.' to the env
         Enumeration names = ctx.getInitParameterNames();

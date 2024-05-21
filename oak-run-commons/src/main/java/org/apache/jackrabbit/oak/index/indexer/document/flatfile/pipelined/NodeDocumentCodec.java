@@ -18,6 +18,8 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
+import java.util.Map;
+import java.util.TreeMap;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
@@ -36,12 +38,9 @@ import org.bson.codecs.DecoderContext;
 import org.bson.codecs.EncoderContext;
 import org.bson.codecs.configuration.CodecRegistry;
 
-import java.util.Map;
-import java.util.TreeMap;
-
 /**
- * Custom codec for MongoDB to transform a stream of BSON tokens into a NodeDocument. This custom codec provides two
- * benefits compared to using a standard Mongo codec.
+ * Custom codec for MongoDB to transform a stream of BSON tokens into a NodeDocument. This custom
+ * codec provides two benefits compared to using a standard Mongo codec.
  * <ul>
  *   <li>The standard codecs produce objects from the Mongo client API (BasicDBObject or BsonDocument or Document) which have
  *   then to be converted into NodeDocuments (OAK API). This custom codec creates directly a NodeDocument, thereby
@@ -49,11 +48,11 @@ import java.util.TreeMap;
  *   <li>Allows estimating the size of the document while reading it, which will have a negligible overhead (as compared
  *   with doing an additional traverse of the object structure to compute the size).</li>
  * </ul>
- *
+ * <p>
  * This class must be thread-safe, Mongo uses a single coded implementation across multiple threads.
- *
  */
 public class NodeDocumentCodec implements Codec<NodeDocument> {
+
     // The estimated size is stored in the NodeDocument itself
     public final static String SIZE_FIELD = "__ESTIMATED_SIZE__";
     private final MongoDocumentStore store;
@@ -65,7 +64,8 @@ public class NodeDocumentCodec implements Codec<NodeDocument> {
     private final Codec<Long> longCoded;
     private final Codec<Boolean> booleanCoded;
 
-    public NodeDocumentCodec(MongoDocumentStore store, Collection<NodeDocument> collection, CodecRegistry defaultRegistry) {
+    public NodeDocumentCodec(MongoDocumentStore store, Collection<NodeDocument> collection,
+        CodecRegistry defaultRegistry) {
         this.store = store;
         this.collection = collection;
         this.bsonTypeCodecMap = new BsonTypeCodecMap(new BsonTypeClassMap(), defaultRegistry);
@@ -100,7 +100,8 @@ public class NodeDocumentCodec implements Codec<NodeDocument> {
         return NodeDocument.class;
     }
 
-    private Object readValue(BsonReader reader, String fieldName, MutableInt estimatedSizeOfCurrentObject) {
+    private Object readValue(BsonReader reader, String fieldName,
+        MutableInt estimatedSizeOfCurrentObject) {
         BsonType bsonType = reader.getCurrentBsonType();
         Object value;
         int valSize;
@@ -136,7 +137,8 @@ public class NodeDocumentCodec implements Codec<NodeDocument> {
                 value = bsonTypeCodecMap.get(bsonType).decode(reader, decoderContext);
                 valSize = 16;
                 if (value instanceof Number &&
-                        (NodeDocument.MODIFIED_IN_SECS.equals(fieldName) || Document.MOD_COUNT.equals(fieldName))) {
+                    (NodeDocument.MODIFIED_IN_SECS.equals(fieldName) || Document.MOD_COUNT.equals(
+                        fieldName))) {
                     value = Utils.asLong((Number) value);
                 }
                 break;
@@ -145,7 +147,8 @@ public class NodeDocumentCodec implements Codec<NodeDocument> {
         return value;
     }
 
-    private Map<Revision, Object> readDocument(BsonReader reader, MutableInt estimatedSizeOfCurrentObject) {
+    private Map<Revision, Object> readDocument(BsonReader reader,
+        MutableInt estimatedSizeOfCurrentObject) {
         TreeMap<Revision, Object> map = new TreeMap<>(StableRevisionComparator.REVERSE);
         reader.readStartDocument();
         while (reader.readBsonType() != BsonType.END_OF_DOCUMENT) {

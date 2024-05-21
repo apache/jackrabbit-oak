@@ -97,10 +97,10 @@ public class MongoDocumentStoreIT extends AbstractMongoConnectionTest {
                             Integer previousValue = previous.get(r);
                             Integer currentValue = Integer.parseInt(entry.getValue());
                             if (previousValue != null &&
-                                    previousValue > currentValue) {
+                                previousValue > currentValue) {
                                 throw new Exception("inconsistent read for " +
-                                        r + ". previous value: " + previousValue +
-                                        ", now: " + entry.getValue());
+                                    r + ". previous value: " + previousValue +
+                                    ", now: " + entry.getValue());
                             }
                             // remember for next round
                             previous.put(r, currentValue);
@@ -228,15 +228,15 @@ public class MongoDocumentStoreIT extends AbstractMongoConnectionTest {
         List<UpdateOp> inserts = new ArrayList<UpdateOp>();
         for (int i = 0; i < 10; i++) {
             DocumentNodeState n = new DocumentNodeState(store, Path.fromString("/node-" + i),
-                    new RevisionVector(rev));
+                new RevisionVector(rev));
             inserts.add(n.asOperation(rev));
         }
         docStore.create(Collection.NODES, inserts);
         List<NodeDocument> docs = docStore.query(Collection.NODES,
-                Utils.getKeyLowerLimit(Path.ROOT),  Utils.getKeyUpperLimit(Path.ROOT), null, 0,
-                20, newArrayList(MODIFIED_IN_SECS));
+            Utils.getKeyLowerLimit(Path.ROOT), Utils.getKeyUpperLimit(Path.ROOT), null, 0,
+            20, newArrayList(MODIFIED_IN_SECS));
         // since _id is mandatory, so data size should be 2
-        docs.forEach(d -> assertEquals(2 , d.keySet().size()));
+        docs.forEach(d -> assertEquals(2, d.keySet().size()));
         assertEquals(10, docs.size());
     }
 
@@ -248,14 +248,14 @@ public class MongoDocumentStoreIT extends AbstractMongoConnectionTest {
         List<UpdateOp> inserts = new ArrayList<UpdateOp>();
         for (int i = 0; i < 10; i++) {
             DocumentNodeState n = new DocumentNodeState(store, Path.fromString("/node-" + i),
-                    new RevisionVector(rev));
+                new RevisionVector(rev));
             inserts.add(n.asOperation(rev));
         }
         docStore.create(Collection.NODES, inserts);
         List<NodeDocument> docs = docStore.query(Collection.NODES,
-                Utils.getKeyLowerLimit(Path.ROOT),  Utils.getKeyUpperLimit(Path.ROOT), null, 0,
-                20, newArrayList());
-        docs.forEach(d -> assertEquals(4 , d.keySet().size()));
+            Utils.getKeyLowerLimit(Path.ROOT), Utils.getKeyUpperLimit(Path.ROOT), null, 0,
+            20, newArrayList());
+        docs.forEach(d -> assertEquals(4, d.keySet().size()));
         assertEquals(10, docs.size());
     }
 
@@ -267,14 +267,14 @@ public class MongoDocumentStoreIT extends AbstractMongoConnectionTest {
         List<UpdateOp> inserts = new ArrayList<UpdateOp>();
         for (int i = 0; i < 10; i++) {
             DocumentNodeState n = new DocumentNodeState(store, Path.fromString("/node-" + i),
-                    new RevisionVector(rev));
+                new RevisionVector(rev));
             inserts.add(n.asOperation(rev));
         }
         docStore.create(Collection.NODES, inserts);
         List<NodeDocument> docs = docStore.query(Collection.NODES,
-                Utils.getKeyLowerLimit(Path.ROOT),  Utils.getKeyUpperLimit(Path.ROOT), null, 0,
-                20, null);
-        docs.forEach(d -> assertEquals(4 , d.keySet().size()));
+            Utils.getKeyLowerLimit(Path.ROOT), Utils.getKeyUpperLimit(Path.ROOT), null, 0,
+            20, null);
+        docs.forEach(d -> assertEquals(4, d.keySet().size()));
         assertEquals(10, docs.size());
     }
 
@@ -287,7 +287,7 @@ public class MongoDocumentStoreIT extends AbstractMongoConnectionTest {
         List<UpdateOp> inserts = new ArrayList<>(10);
         for (int i = 0; i < 10; i++) {
             DocumentNodeState n = new DocumentNodeState(store, fromString("/node-" + i),
-                    new RevisionVector(rev), of(new LongPropertyState("prop", 10L)), false, null);
+                new RevisionVector(rev), of(new LongPropertyState("prop", 10L)), false, null);
             inserts.add(n.asOperation(rev));
         }
         docStore.create(NODES, inserts);
@@ -304,7 +304,8 @@ public class MongoDocumentStoreIT extends AbstractMongoConnectionTest {
         List<NodeDocument> docs = docStore.findAndUpdate(NODES, updateOps);
         assertEquals(10, docs.size());
         docs.forEach(doc -> assertTrue(doc.isSealed()));
-        docs.forEach(d -> assertEquals(10L, parseLong(d.getLocalMap("prop").get(d.getLocalMap("prop").firstKey()))));
+        docs.forEach(d -> assertEquals(10L,
+            parseLong(d.getLocalMap("prop").get(d.getLocalMap("prop").firstKey()))));
     }
 
     @Test
@@ -315,7 +316,7 @@ public class MongoDocumentStoreIT extends AbstractMongoConnectionTest {
         List<UpdateOp> inserts = new ArrayList<>(10);
         for (int i = 0; i < 10; i++) {
             DocumentNodeState n = new DocumentNodeState(store, fromString("/node-" + i),
-                    new RevisionVector(rev), of(new LongPropertyState("prop", 10L)), false, null);
+                new RevisionVector(rev), of(new LongPropertyState("prop", 10L)), false, null);
             inserts.add(n.asOperation(rev));
         }
         docStore.create(NODES, inserts);
@@ -342,11 +343,11 @@ public class MongoDocumentStoreIT extends AbstractMongoConnectionTest {
         List<UpdateOp> inserts = new ArrayList<>(20);
         for (int i = 0; i < 10; i++) {
             DocumentNodeState n = new DocumentNodeState(store, fromString("/node-" + i),
-                    new RevisionVector(rev), of(new LongPropertyState("prop", 10L)), false, null);
+                new RevisionVector(rev), of(new LongPropertyState("prop", 10L)), false, null);
             inserts.add(n.asOperation(rev));
 
-            n = new DocumentNodeState(store, fromString("/node-" + (i+100)),
-                    new RevisionVector(rev), of(new LongPropertyState("prop2", 10L)), false, null);
+            n = new DocumentNodeState(store, fromString("/node-" + (i + 100)),
+                new RevisionVector(rev), of(new LongPropertyState("prop2", 10L)), false, null);
             inserts.add(n.asOperation(rev));
 
         }
@@ -360,7 +361,7 @@ public class MongoDocumentStoreIT extends AbstractMongoConnectionTest {
             updateOp.contains(MODIFIED_IN_SECS, false);
             updateOps.add(updateOp);
 
-            updateOp = new UpdateOp(getIdFromPath(fromString("/node-" + (i+100))), false);
+            updateOp = new UpdateOp(getIdFromPath(fromString("/node-" + (i + 100))), false);
             updateOp.set("prop2", 20L);
             updateOp.contains(MODIFIED_IN_SECS, true);
             updateOps.add(updateOp);
@@ -369,20 +370,22 @@ public class MongoDocumentStoreIT extends AbstractMongoConnectionTest {
         List<NodeDocument> docs = docStore.findAndUpdate(NODES, updateOps);
         assertEquals(20, docs.size());
 
-        Map<String, NodeDocument> updatedIdsMap = docs.stream().filter(Objects::nonNull).collect(toMap(Document::getId, identity()));
+        Map<String, NodeDocument> updatedIdsMap = docs.stream().filter(Objects::nonNull)
+                                                      .collect(toMap(Document::getId, identity()));
 
         for (int i = 0; i < 10; i++) {
             // ids starting from /node-1 to /node-9
             // should be null since they were not updated
             assertNull(updatedIdsMap.get(getIdFromPath(fromString("/node-" + i))));
 
-            NodeDocument d = updatedIdsMap.get(getIdFromPath(fromString("/node-" + (i+100))));
+            NodeDocument d = updatedIdsMap.get(getIdFromPath(fromString("/node-" + (i + 100))));
             // ids starting from /node-100 to /node-109
             // should be non-null since they were updated
             assertNotNull(d);
             assertTrue(d.isSealed());
             // returned docs are previous docs with property "prop2" set to 10L
-            assertEquals(10L, parseLong(d.getLocalMap("prop2").get(d.getLocalMap("prop2").firstKey())));
+            assertEquals(10L,
+                parseLong(d.getLocalMap("prop2").get(d.getLocalMap("prop2").firstKey())));
         }
     }
 }

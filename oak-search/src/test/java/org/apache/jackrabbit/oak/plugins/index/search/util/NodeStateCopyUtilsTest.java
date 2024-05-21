@@ -19,14 +19,17 @@
 
 package org.apache.jackrabbit.oak.plugins.index.search.util;
 
+import static java.util.Arrays.asList;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NT_OAK_UNSTRUCTURED;
+import static org.junit.Assert.assertEquals;
+
 import java.io.InputStream;
 import java.util.Calendar;
 import java.util.Iterator;
-
 import javax.jcr.Node;
 import javax.jcr.Repository;
 import javax.jcr.Session;
-
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitRepository;
@@ -41,24 +44,20 @@ import org.apache.jackrabbit.util.ISO8601;
 import org.junit.After;
 import org.junit.Test;
 
-import static java.util.Arrays.asList;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NT_OAK_UNSTRUCTURED;
-import static org.junit.Assert.assertEquals;
-
 public class NodeStateCopyUtilsTest {
+
     private final NodeBuilder builder = EMPTY_NODE.builder();
     private Repository repository;
 
     @After
-    public void cleanup(){
+    public void cleanup() {
         if (repository instanceof JackrabbitRepository) {
             ((JackrabbitRepository) repository).shutdown();
         }
     }
 
     @Test
-    public void copyUnordered() throws Exception{
+    public void copyUnordered() throws Exception {
         builder.setProperty("foo", "x");
         builder.child("a").setProperty("foo", "y");
         builder.child("b").setProperty("foo", "z");
@@ -71,11 +70,12 @@ public class NodeStateCopyUtilsTest {
         assertEquals(2, tree.getChildrenCount(100));
         assertEquals("y", tree.getChild("a").getProperty("foo").getValue(Type.STRING));
         assertEquals("z", tree.getChild("b").getProperty("foo").getValue(Type.STRING));
-        assertEquals("acx", tree.getChild("a").getChild("c").getProperty("foo").getValue(Type.STRING));
+        assertEquals("acx",
+            tree.getChild("a").getChild("c").getProperty("foo").getValue(Type.STRING));
     }
 
     @Test
-    public void copyOrdered() throws Exception{
+    public void copyOrdered() throws Exception {
         NodeBuilder testBuilder = EMPTY_NODE.builder();
         Tree srcTree = TreeFactory.createTree(testBuilder);
         srcTree.setOrderableChildren(true);
@@ -102,7 +102,7 @@ public class NodeStateCopyUtilsTest {
     }
 
     @Test
-    public void copyToJcr() throws Exception{
+    public void copyToJcr() throws Exception {
         repository = new Jcr().with(new OpenSecurityProvider()).createRepository();
 
         Tree srcTree = TreeFactory.createTree(builder);
@@ -113,11 +113,13 @@ public class NodeStateCopyUtilsTest {
 
         srcTree.addChild("a").setOrderableChildren(true);
         srcTree.addChild("a").setProperty("foo", "y");
-        srcTree.addChild("a").setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_OAK_UNSTRUCTURED, Type.NAME);
+        srcTree.addChild("a")
+               .setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_OAK_UNSTRUCTURED, Type.NAME);
 
         srcTree.addChild("b").setOrderableChildren(true);
         srcTree.addChild("b").setProperty("foo", "z");
-        srcTree.addChild("b").setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_OAK_UNSTRUCTURED, Type.NAME);
+        srcTree.addChild("b")
+               .setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_OAK_UNSTRUCTURED, Type.NAME);
 
         Session session = repository.login(null, null);
         Node node = session.getRootNode();
@@ -132,12 +134,13 @@ public class NodeStateCopyUtilsTest {
     }
 
     @Test
-    public void copyToJcrAndHiddenProps() throws Exception{
+    public void copyToJcrAndHiddenProps() throws Exception {
         repository = new Jcr().with(new OpenSecurityProvider()).createRepository();
 
         Tree srcTree = TreeFactory.createTree(builder);
         srcTree.addChild("a").setProperty("foo", "y");
-        srcTree.addChild("a").setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_OAK_UNSTRUCTURED, Type.NAME);
+        srcTree.addChild("a")
+               .setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_OAK_UNSTRUCTURED, Type.NAME);
         builder.child(":hidden-node").setProperty("x", "y");
         builder.setProperty(":hidden-prop", "y");
 
@@ -153,7 +156,7 @@ public class NodeStateCopyUtilsTest {
     }
 
     @Test
-    public void copyToJcrVariousProps() throws Exception{
+    public void copyToJcrVariousProps() throws Exception {
         repository = new Jcr().with(new OpenSecurityProvider()).createRepository();
 
         Calendar cal = ISO8601.parse(ISO8601.format(Calendar.getInstance()));
@@ -170,7 +173,8 @@ public class NodeStateCopyUtilsTest {
         srcTree.setProperty("fooBlob", new ArrayBasedBlob("foo".getBytes()), Type.BINARY);
         srcTree.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_OAK_UNSTRUCTURED, Type.NAME);
 
-        srcTree.setProperty(JcrConstants.JCR_MIXINTYPES, asList("mix:mimeType", "mix:title"), Type.NAMES);
+        srcTree.setProperty(JcrConstants.JCR_MIXINTYPES, asList("mix:mimeType", "mix:title"),
+            Type.NAMES);
 
         Session session = repository.login(null, null);
         Node node = session.getRootNode();

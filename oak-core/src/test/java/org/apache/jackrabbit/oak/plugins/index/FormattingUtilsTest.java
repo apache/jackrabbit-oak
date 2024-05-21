@@ -16,13 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
+import static org.junit.Assert.assertEquals;
+
+import java.util.concurrent.TimeUnit;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.base.Ticker;
 import org.junit.Test;
-
-import java.util.concurrent.TimeUnit;
-
-import static org.junit.Assert.assertEquals;
 
 
 public class FormattingUtilsTest {

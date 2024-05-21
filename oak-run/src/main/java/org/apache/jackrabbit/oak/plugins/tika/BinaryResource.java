@@ -19,13 +19,13 @@
 
 package org.apache.jackrabbit.oak.plugins.tika;
 
-import org.apache.jackrabbit.guava.common.io.ByteSource;
-
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
+import org.apache.jackrabbit.guava.common.io.ByteSource;
 import org.jetbrains.annotations.Nullable;
 
 class BinaryResource {
+
     private final ByteSource byteSource;
     private final String mimeType;
     private final String encoding;
@@ -33,10 +33,10 @@ class BinaryResource {
     private final String blobId;
 
     public BinaryResource(ByteSource byteSource,
-                          @Nullable String mimeType,
-                          @Nullable String encoding,
-                          String path,
-                          String blobId) {
+        @Nullable String mimeType,
+        @Nullable String encoding,
+        String path,
+        String blobId) {
         this.byteSource = checkNotNull(byteSource, "ByteSource must be provided");
         this.mimeType = mimeType;
         this.encoding = encoding;

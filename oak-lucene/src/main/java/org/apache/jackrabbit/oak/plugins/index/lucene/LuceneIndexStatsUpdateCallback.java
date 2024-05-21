@@ -18,6 +18,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import java.io.IOException;
+import java.util.Collections;
+import java.util.Map;
+import java.util.function.BiFunction;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.index.IndexingContext;
 import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
@@ -30,13 +34,9 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.util.Collections;
-import java.util.Map;
-import java.util.function.BiFunction;
-
 /**
- * {@link PropertyUpdateCallback} that records statistics about a certain index size (on disk) and number of documents.
+ * {@link PropertyUpdateCallback} that records statistics about a certain index size (on disk) and
+ * number of documents.
  */
 public class LuceneIndexStatsUpdateCallback implements PropertyUpdateCallback {
 
@@ -55,9 +55,9 @@ public class LuceneIndexStatsUpdateCallback implements PropertyUpdateCallback {
     private final StatsProviderUtil statsProviderUtil;
 
     LuceneIndexStatsUpdateCallback(String indexPath, @NotNull LuceneIndexMBean luceneIndexMBean,
-                                   @NotNull StatisticsProvider statisticsProvider,
-                                   AsyncIndexesSizeStatsUpdate asyncIndexesSizeStatsUpdate,
-                                   IndexingContext indexingContext) {
+        @NotNull StatisticsProvider statisticsProvider,
+        AsyncIndexesSizeStatsUpdate asyncIndexesSizeStatsUpdate,
+        IndexingContext indexingContext) {
         this.indexPath = indexPath;
         this.luceneIndexMBean = luceneIndexMBean;
         this.statisticsProvider = statisticsProvider;
@@ -68,7 +68,8 @@ public class LuceneIndexStatsUpdateCallback implements PropertyUpdateCallback {
     }
 
     @Override
-    public void propertyUpdated(String nodePath, String propertyRelativePath, PropertyDefinition pd, @Nullable PropertyState before, @Nullable PropertyState after) {
+    public void propertyUpdated(String nodePath, String propertyRelativePath, PropertyDefinition pd,
+        @Nullable PropertyState before, @Nullable PropertyState after) {
         // do nothing
     }
 
@@ -81,13 +82,15 @@ public class LuceneIndexStatsUpdateCallback implements PropertyUpdateCallback {
                 int docCount = Integer.parseInt(luceneIndexMBean.getDocCount(indexPath));
                 HistogramStats docCountHistogram = histogram.apply(NO_DOCS, labels);
                 docCountHistogram.update(docCount);
-                log.trace("{} stats updated, docCount {}, timeToUpdate {}", indexPath, docCount, System.currentTimeMillis() - startTime);
+                log.trace("{} stats updated, docCount {}, timeToUpdate {}", indexPath, docCount,
+                    System.currentTimeMillis() - startTime);
                 long indexSize = Long.parseLong(luceneIndexMBean.getSize(indexPath));
                 HistogramStats indexSizeHistogram = histogram.apply(INDEX_SIZE, labels);
                 indexSizeHistogram.update(indexSize);
                 long endTime = System.currentTimeMillis();
                 asyncIndexesSizeStatsUpdate.setLastStatsUpdateTime(indexPath, endTime);
-                log.debug("{} stats updated; docCount {}, size {}, timeToUpdate {}", indexPath, docCount, indexSize, endTime - startTime);
+                log.debug("{} stats updated; docCount {}, size {}, timeToUpdate {}", indexPath,
+                    docCount, indexSize, endTime - startTime);
             } catch (IOException e) {
                 log.warn("could not update no_docs/index_size stats for index at {}", indexPath, e);
             }
@@ -97,9 +100,9 @@ public class LuceneIndexStatsUpdateCallback implements PropertyUpdateCallback {
     private boolean shouldUpdateStats() {
         boolean timeToUpdate = false;
         if (indexingContext.isAsync()
-                && asyncIndexesSizeStatsUpdate != null
-                && asyncIndexesSizeStatsUpdate.getScheduleTimeInMillis() >= 0
-                && isScheduled()) {
+            && asyncIndexesSizeStatsUpdate != null
+            && asyncIndexesSizeStatsUpdate.getScheduleTimeInMillis() >= 0
+            && isScheduled()) {
             timeToUpdate = true;
         }
         return timeToUpdate;

@@ -18,7 +18,6 @@
 package org.apache.jackrabbit.oak.segment.file.tar.binaries;
 
 import java.io.IOException;
-
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.util.ReaderAtEnd;
 
@@ -29,19 +28,18 @@ public class BinaryReferencesIndexLoader {
     }
 
     /**
-     * Load and validate a binary references index. The binary references index
-     * is read backward. The medium the index is read from is represented by an
-     * instance of {@link ReaderAtEnd}. The {@link ReaderAtEnd} should behave as
-     * it is positioned at the end of the binary references index.
+     * Load and validate a binary references index. The binary references index is read backward.
+     * The medium the index is read from is represented by an instance of {@link ReaderAtEnd}. The
+     * {@link ReaderAtEnd} should behave as it is positioned at the end of the binary references
+     * index.
      *
      * @param reader An instance of {@link ReaderAtEnd}.
      * @return The binary references index.
-     * @throws IOException                           if an error occurs while
-     *                                               reading the index.
-     * @throws InvalidBinaryReferencesIndexException if the index is invalid or
-     *                                               malformed.
+     * @throws IOException                           if an error occurs while reading the index.
+     * @throws InvalidBinaryReferencesIndexException if the index is invalid or malformed.
      */
-    public static Buffer loadBinaryReferencesIndex(ReaderAtEnd reader) throws IOException, InvalidBinaryReferencesIndexException {
+    public static Buffer loadBinaryReferencesIndex(ReaderAtEnd reader)
+        throws IOException, InvalidBinaryReferencesIndexException {
         switch (readMagic(reader)) {
             case BinaryReferencesIndexLoaderV1.MAGIC:
                 return BinaryReferencesIndexLoaderV1.loadBinaryReferencesIndex(reader);
@@ -52,7 +50,8 @@ public class BinaryReferencesIndexLoader {
         }
     }
 
-    public static BinaryReferencesIndex parseBinaryReferencesIndex(Buffer buffer) throws InvalidBinaryReferencesIndexException {
+    public static BinaryReferencesIndex parseBinaryReferencesIndex(Buffer buffer)
+        throws InvalidBinaryReferencesIndexException {
         switch (readMagic(buffer)) {
             case BinaryReferencesIndexLoaderV1.MAGIC:
                 return BinaryReferencesIndexLoaderV1.parseBinaryReferencesIndex(buffer);

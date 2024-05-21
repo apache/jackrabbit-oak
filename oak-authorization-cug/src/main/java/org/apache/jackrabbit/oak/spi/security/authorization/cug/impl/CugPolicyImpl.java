@@ -16,9 +16,15 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
+import java.security.Principal;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Set;
+import javax.jcr.security.AccessControlException;
+import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.Sets;
-import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.authorization.cug.CugExclude;
 import org.apache.jackrabbit.oak.spi.security.authorization.cug.CugPolicy;
@@ -27,13 +33,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.jcr.security.AccessControlException;
-import java.security.Principal;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Set;
 
 /**
  * Implementation of the {@link org.apache.jackrabbit.oak.spi.security.authorization.cug.CugPolicy}
@@ -51,16 +50,19 @@ class CugPolicyImpl implements CugPolicy {
     private final CugExclude cugExclude;
     private final boolean immutable;
 
-    private final Map<String,Principal> principals = new LinkedHashMap<>();
+    private final Map<String, Principal> principals = new LinkedHashMap<>();
 
     CugPolicyImpl(@NotNull String oakPath, @NotNull NamePathMapper namePathMapper,
-                  @NotNull PrincipalManager principalManager, int importBehavior, @NotNull CugExclude cugExclude) {
-        this(oakPath, namePathMapper, principalManager, importBehavior, cugExclude, Collections.emptySet(), false);
+        @NotNull PrincipalManager principalManager, int importBehavior,
+        @NotNull CugExclude cugExclude) {
+        this(oakPath, namePathMapper, principalManager, importBehavior, cugExclude,
+            Collections.emptySet(), false);
     }
 
     CugPolicyImpl(@NotNull String oakPath, @NotNull NamePathMapper namePathMapper,
-                  @NotNull PrincipalManager principalManager, int importBehavior,
-                  @NotNull CugExclude cugExclude, @NotNull Iterable<Principal> principals, boolean immutable) {
+        @NotNull PrincipalManager principalManager, int importBehavior,
+        @NotNull CugExclude cugExclude, @NotNull Iterable<Principal> principals,
+        boolean immutable) {
         ImportBehavior.nameFromValue(importBehavior);
         this.oakPath = oakPath;
         this.namePathMapper = namePathMapper;
@@ -99,7 +101,8 @@ class CugPolicyImpl implements CugPolicy {
     }
 
     @Override
-    public boolean removePrincipals(@NotNull Principal... principals) throws AccessControlException {
+    public boolean removePrincipals(@NotNull Principal... principals)
+        throws AccessControlException {
         checkIsMutable();
         boolean modified = false;
         for (Principal principal : principals) {
@@ -129,12 +132,12 @@ class CugPolicyImpl implements CugPolicy {
      * Validate the specified {@code principal} taking the configured
      * {@link org.apache.jackrabbit.oak.spi.xml.ImportBehavior} into account.
      *
-     *
      * @param principal The principal to validate.
      * @return if the principal is considered valid and can be added to the list.
-     * @throws AccessControlException If the principal has an invalid name or
-     * if {@link org.apache.jackrabbit.oak.spi.xml.ImportBehavior#ABORT} is
-     * configured and this principal is not known to the repository.
+     * @throws AccessControlException If the principal has an invalid name or if
+     *                                {@link org.apache.jackrabbit.oak.spi.xml.ImportBehavior#ABORT}
+     *                                is configured and this principal is not known to the
+     *                                repository.
      */
     private boolean isValidPrincipal(@Nullable Principal principal) throws AccessControlException {
         if (principal == null) {

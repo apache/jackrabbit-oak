@@ -17,21 +17,21 @@
 package org.apache.jackrabbit.oak.spi.security.authentication.external;
 
 import java.util.Iterator;
-
 import javax.jcr.RepositoryException;
 import javax.jcr.ValueFactory;
-
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * SyncHandler is used to sync users and groups from an {@link ExternalIdentityProvider}.
- * The synchronization performed within the scope of a {@link SyncContext} which is acquired during the
- * {@link #createContext(ExternalIdentityProvider, org.apache.jackrabbit.api.security.user.UserManager, javax.jcr.ValueFactory)} call.
- *
- * The exact configuration is managed by the sync handler instance. The system may contain several sync handler
- * implementations with different configurations. those are managed by the {@link SyncManager}.
+ * SyncHandler is used to sync users and groups from an {@link ExternalIdentityProvider}. The
+ * synchronization performed within the scope of a {@link SyncContext} which is acquired during the
+ * {@link #createContext(ExternalIdentityProvider,
+ * org.apache.jackrabbit.api.security.user.UserManager, javax.jcr.ValueFactory)} call.
+ * <p>
+ * The exact configuration is managed by the sync handler instance. The system may contain several
+ * sync handler implementations with different configurations. those are managed by the
+ * {@link SyncManager}.
  *
  * @see org.apache.jackrabbit.oak.spi.security.authentication.external.SyncContext
  * @see org.apache.jackrabbit.oak.spi.security.authentication.external.SyncManager
@@ -40,6 +40,7 @@ public interface SyncHandler {
 
     /**
      * Returns the name of this sync handler.
+     *
      * @return sync handler name
      */
     @NotNull
@@ -48,28 +49,31 @@ public interface SyncHandler {
     /**
      * Initializes a sync context which is used to start the sync operations.
      *
-     * @param idp the external identity provider used for syncing
-     * @param userManager user manager for managing authorizables
+     * @param idp          the external identity provider used for syncing
+     * @param userManager  user manager for managing authorizables
      * @param valueFactory the value factory to create values
      * @return the sync context
      */
     @NotNull
     SyncContext createContext(@NotNull ExternalIdentityProvider idp,
-                              @NotNull UserManager userManager,
-                              @NotNull ValueFactory valueFactory);
+        @NotNull UserManager userManager,
+        @NotNull ValueFactory valueFactory);
 
     /**
      * Tries to find the identity with the given authorizable id or name.
+     *
      * @param userManager the user manager
-     * @param id the id or name of the authorizable
+     * @param id          the id or name of the authorizable
      * @return a synced identity object or {@code null}
      * @throws RepositoryException if an error occurs
      */
     @Nullable
-    SyncedIdentity findIdentity(@NotNull UserManager userManager, @NotNull String id) throws RepositoryException;
+    SyncedIdentity findIdentity(@NotNull UserManager userManager, @NotNull String id)
+        throws RepositoryException;
 
     /**
      * Checks if the identity requires sync based on the configuration, type and last sync time.
+     *
      * @param identity the identity to check
      * @return {@code true} if the identity requires synchronization.
      */
@@ -77,11 +81,13 @@ public interface SyncHandler {
 
     /**
      * Lists all externally synced identities.
+     *
      * @param userManager the user manager
      * @return an iterator over all authorizable that are externally synced.
      * @throws RepositoryException if an error occurs
      */
     @NotNull
-    Iterator<SyncedIdentity> listIdentities(@NotNull UserManager userManager) throws RepositoryException;
+    Iterator<SyncedIdentity> listIdentities(@NotNull UserManager userManager)
+        throws RepositoryException;
 
 }

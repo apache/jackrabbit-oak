@@ -26,29 +26,33 @@ package org.apache.lucene.search.similarities;
  */
 
 /**
- * The smoothed power-law (SPL) distribution for the information-based framework
- * that is described in the original paper.
+ * The smoothed power-law (SPL) distribution for the information-based framework that is described
+ * in the original paper.
  * <p>Unlike for DFR, the natural logarithm is used, as
- * it is faster to compute and the original paper does not express any
- * preference to a specific base.</p>
+ * it is faster to compute and the original paper does not express any preference to a specific
+ * base.</p>
+ *
  * @lucene.experimental
  */
 public class DistributionSPL extends Distribution {
-  
-  /** Sole constructor: parameter-free */
-  public DistributionSPL() {}
 
-  @Override
-  public final float score(BasicStats stats, float tfn, float lambda) {
-    if (lambda == 1f) {
-      lambda = 0.99f;
+    /**
+     * Sole constructor: parameter-free
+     */
+    public DistributionSPL() {
     }
-    return (float)-Math.log(
-        (Math.pow(lambda, (tfn / (tfn + 1))) - lambda) / (1 - lambda));
-  }
-  
-  @Override
-  public String toString() {
-    return "SPL";
-  }
+
+    @Override
+    public final float score(BasicStats stats, float tfn, float lambda) {
+        if (lambda == 1f) {
+            lambda = 0.99f;
+        }
+        return (float) -Math.log(
+            (Math.pow(lambda, (tfn / (tfn + 1))) - lambda) / (1 - lambda));
+    }
+
+    @Override
+    public String toString() {
+        return "SPL";
+    }
 }

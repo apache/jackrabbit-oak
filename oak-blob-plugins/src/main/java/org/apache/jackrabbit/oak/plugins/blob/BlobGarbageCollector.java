@@ -24,20 +24,22 @@ import java.util.List;
 public interface BlobGarbageCollector {
 
     /**
-     * Marks garbage blobs from the passed node store instance.
-     * Collects them only if markOnly is false.
+     * Marks garbage blobs from the passed node store instance. Collects them only if markOnly is
+     * false.
      *
-     * @param markOnly whether to only mark references and not sweep in the mark and sweep operation.
+     * @param markOnly whether to only mark references and not sweep in the mark and sweep
+     *                 operation.
      * @throws Exception the exception
      */
     void collectGarbage(boolean markOnly) throws Exception;
 
     /**
-     * Marks garbage blobs from the passed node store instance.
-     * Collects them only if markOnly is false. Also forces retrieval of
-     * blob ids from the blob store rather than using any local tracking.
+     * Marks garbage blobs from the passed node store instance. Collects them only if markOnly is
+     * false. Also forces retrieval of blob ids from the blob store rather than using any local
+     * tracking.
      *
-     * @param markOnly whether to only mark references and not sweep in the mark and sweep operation.
+     * @param markOnly          whether to only mark references and not sweep in the mark and sweep
+     *                          operation.
      * @param forceBlobRetrieve whether to force retrieve of blob ids from datastore
      * @throws Exception
      */
@@ -45,7 +47,7 @@ public interface BlobGarbageCollector {
 
     /**
      * Retuns the list of stats
-     * 
+     *
      * @return stats
      * @throws Exception
      */
@@ -53,16 +55,16 @@ public interface BlobGarbageCollector {
 
     /**
      * Checks for consistency in the blob store and reporting the number of missing blobs.
-     * 
+     *
      * @return number of inconsistencies
      * @throws Exception
      */
     long checkConsistency() throws Exception;
 
     /**
-     * Collects the blob references and consolidates references from other repositories if available in the DataStore.
-     * Adds relevant metrics.
-     * 
+     * Collects the blob references and consolidates references from other repositories if available
+     * in the DataStore. Adds relevant metrics.
+     *
      * @return
      * @throws Exception
      */

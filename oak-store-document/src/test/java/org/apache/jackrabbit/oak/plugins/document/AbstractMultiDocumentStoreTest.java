@@ -52,7 +52,7 @@ public abstract class AbstractMultiDocumentStoreTest extends AbstractDocumentSto
         ds2.dispose();
     }
 
-    @Parameterized.Parameters(name="{0}")
+    @Parameterized.Parameters(name = "{0}")
     public static Collection<Object[]> fixtures() {
         return fixtures(true);
     }

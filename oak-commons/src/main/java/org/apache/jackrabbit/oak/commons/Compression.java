@@ -26,19 +26,21 @@ import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
 /**
- * This interface provides a default list of support compression algorithms and some utility functions.
- * It is mainly used by intermediate stored files in {@link org.apache.jackrabbit.oak.commons.sort.ExternalSort} and
- * sort/index utilities in {@code org.apache.jackrabbit.oak.index.indexer.document.flatfile}.
- *
+ * This interface provides a default list of support compression algorithms and some utility
+ * functions. It is mainly used by intermediate stored files in
+ * {@link org.apache.jackrabbit.oak.commons.sort.ExternalSort} and sort/index utilities in
+ * {@code org.apache.jackrabbit.oak.index.indexer.document.flatfile}.
+ * <p>
  * Other compression algorithms can be supported by implementing the methods.
  */
 public interface Compression {
+
     Compression NONE = new Compression() {
         public InputStream getInputStream(InputStream in) throws IOException {
             return in;
         }
 
-        public OutputStream getOutputStream(OutputStream out) throws  IOException {
+        public OutputStream getOutputStream(OutputStream out) throws IOException {
             return out;
         }
 
@@ -52,14 +54,16 @@ public interface Compression {
         public InputStream getInputStream(InputStream in) throws IOException {
             return new GZIPInputStream(in, 2048);
         }
+
         @Override
-        public OutputStream getOutputStream(OutputStream out) throws  IOException {
+        public OutputStream getOutputStream(OutputStream out) throws IOException {
             return new GZIPOutputStream(out, 2048) {
                 {
                     def.setLevel(Deflater.BEST_SPEED);
                 }
             };
         }
+
         @Override
         public String addSuffix(String filename) {
             return filename + ".gz";
@@ -67,6 +71,8 @@ public interface Compression {
     };
 
     InputStream getInputStream(InputStream in) throws IOException;
-    OutputStream getOutputStream(OutputStream out) throws  IOException ;
+
+    OutputStream getOutputStream(OutputStream out) throws IOException;
+
     String addSuffix(String filename);
 }

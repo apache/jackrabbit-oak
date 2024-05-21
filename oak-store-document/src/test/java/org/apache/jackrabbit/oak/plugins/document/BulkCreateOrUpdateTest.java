@@ -50,7 +50,7 @@ public class BulkCreateOrUpdateTest extends AbstractDocumentStoreTest {
         DataSource dataSource = dsf.getRDBDataSource();
         if (dataSource instanceof RDBDataSourceWrapper) {
             // test drivers that do not return precise batch results
-            ((RDBDataSourceWrapper)dataSource).setBatchResultPrecise(false);
+            ((RDBDataSourceWrapper) dataSource).setBatchResultPrecise(false);
         }
     }
 
@@ -58,13 +58,13 @@ public class BulkCreateOrUpdateTest extends AbstractDocumentStoreTest {
     public void after() {
         DataSource dataSource = dsf.getRDBDataSource();
         if (dataSource instanceof RDBDataSourceWrapper) {
-            ((RDBDataSourceWrapper)dataSource).setBatchResultPrecise(true);
+            ((RDBDataSourceWrapper) dataSource).setBatchResultPrecise(true);
         }
     }
 
     /**
-     * This tests create multiple items using createOrUpdate() method. The
-     * return value should be a list of null values.
+     * This tests create multiple items using createOrUpdate() method. The return value should be a
+     * list of null values.
      */
     @Test
     public void testCreateMultiple() {
@@ -83,13 +83,14 @@ public class BulkCreateOrUpdateTest extends AbstractDocumentStoreTest {
         assertEquals(amount, docs.size());
         for (int i = 0; i < amount; i++) {
             assertNull("There shouldn't be a value for created doc", docs.get(i));
-            assertNotNull("The node hasn't been created", ds.find(Collection.NODES, updates.get(i).getId()));
+            assertNotNull("The node hasn't been created",
+                ds.find(Collection.NODES, updates.get(i).getId()));
         }
     }
 
     /**
-     * This method updates multiple items using createOrUpdate() method. The
-     * return value should be a list of items before the update.
+     * This method updates multiple items using createOrUpdate() method. The return value should be
+     * a list of items before the update.
      */
     @Test
     public void testUpdateMultiple() {
@@ -125,10 +126,9 @@ public class BulkCreateOrUpdateTest extends AbstractDocumentStoreTest {
     }
 
     /**
-     * This method creates or updates multiple items using createOrUpdate()
-     * method. New items have odd indexes and updates items have even indexes.
-     * The return value should be a list of old documents (for the updates) or
-     * nulls (for the inserts).
+     * This method creates or updates multiple items using createOrUpdate() method. New items have
+     * odd indexes and updates items have even indexes. The return value should be a list of old
+     * documents (for the updates) or nulls (for the inserts).
      */
     @Test
     public void testCreateOrUpdateMultiple() {
@@ -167,7 +167,8 @@ public class BulkCreateOrUpdateTest extends AbstractDocumentStoreTest {
             } else {
                 assertNotNull("The returned doc shouldn't be null for updated doc", oldDoc);
                 assertEquals("The old value is not correct", 100l, oldDoc.get("prop"));
-                assertEquals("The result list order is incorrect", updates.get(i).getId(), oldDoc.getId());
+                assertEquals("The result list order is incorrect", updates.get(i).getId(),
+                    oldDoc.getId());
             }
             assertEquals("The document hasn't been updated", 200l, newDoc.get("prop"));
         }
@@ -197,7 +198,8 @@ public class BulkCreateOrUpdateTest extends AbstractDocumentStoreTest {
         for (int i = 0; i < threadCount; i++) {
             final List<UpdateOp> threadUpdates = new ArrayList<UpdateOp>(amountPerThread);
             for (int j = 0; j < amountPerThread; j++) {
-                String id = this.getClass().getName() + ".testConcurrentNoConflict" + (j + i * amountPerThread);
+                String id = this.getClass().getName() + ".testConcurrentNoConflict" + (j
+                    + i * amountPerThread);
                 UpdateOp up = new UpdateOp(id, true);
                 up.set("prop", 200 + i + j);
                 threadUpdates.add(up);
@@ -278,8 +280,7 @@ public class BulkCreateOrUpdateTest extends AbstractDocumentStoreTest {
                 public void run() {
                     try {
                         ds.createOrUpdate(Collection.NODES, threadUpdates);
-                    }
-                    catch (Exception ex) {
+                    } catch (Exception ex) {
                         exceptions.add(ex);
                     }
                 }
@@ -297,7 +298,8 @@ public class BulkCreateOrUpdateTest extends AbstractDocumentStoreTest {
         }
 
         if (!exceptions.isEmpty()) {
-            String msg = exceptions.size() + " out of " + threadCount +  " failed with exceptions, the first being: " + exceptions.iterator().next();
+            String msg = exceptions.size() + " out of " + threadCount
+                + " failed with exceptions, the first being: " + exceptions.iterator().next();
             fail(msg);
         }
 
@@ -335,16 +337,20 @@ public class BulkCreateOrUpdateTest extends AbstractDocumentStoreTest {
             Long modCount = docs.get(i).getModCount();
             if (prevModCount != null) {
                 assertNotNull(modCount);
-                assertTrue("_modCount, when present, must be increasing, but changed from " + prevModCount + " to " + modCount,
-                        prevModCount.longValue() < modCount.longValue());
+                assertTrue(
+                    "_modCount, when present, must be increasing, but changed from " + prevModCount
+                        + " to " + modCount,
+                    prevModCount.longValue() < modCount.longValue());
             }
             prevModCount = modCount;
-            assertEquals("The old value is not correct", Long.valueOf(i - 1), docs.get(i).get("update_id"));
+            assertEquals("The old value is not correct", Long.valueOf(i - 1),
+                docs.get(i).get("update_id"));
         }
 
         NodeDocument newDoc = ds.find(Collection.NODES, id);
         if (newDoc.getModCount() != null) {
-            assertEquals("The final mod count is not correct", Long.valueOf(5), newDoc.getModCount());
+            assertEquals("The final mod count is not correct", Long.valueOf(5),
+                newDoc.getModCount());
         }
         for (int i = 0; i < amount; i++) {
             assertEquals("The value is not correct", 100l, newDoc.get("prop_" + i));

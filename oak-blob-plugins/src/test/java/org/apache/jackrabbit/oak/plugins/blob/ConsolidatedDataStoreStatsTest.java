@@ -16,6 +16,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.blob;
 
+import static org.apache.commons.codec.binary.Hex.encodeHexString;
+import static org.apache.commons.io.FileUtils.copyInputStreamToFile;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -29,15 +36,14 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-
-import org.apache.jackrabbit.guava.common.base.Charsets;
-import org.apache.jackrabbit.guava.common.base.Optional;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.output.NullOutputStream;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.guava.common.base.Charsets;
+import org.apache.jackrabbit.guava.common.base.Optional;
+import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -60,14 +66,8 @@ import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.commons.codec.binary.Hex.encodeHexString;
-import static org.apache.commons.io.FileUtils.copyInputStreamToFile;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
 public class ConsolidatedDataStoreStatsTest extends AbstractDataStoreCacheTest {
+
     private static final Logger LOG = LoggerFactory.getLogger(ConsolidatedDataStoreStatsTest.class);
     private static final String ID_PREFIX = "12345";
     private static String testNodePathName = "test/node/path/name";
@@ -128,11 +128,13 @@ public class ConsolidatedDataStoreStatsTest extends AbstractDataStoreCacheTest {
 
         final File datastoreRoot = folder.newFolder();
         dataStore = new AbstractSharedCachingDataStore() {
-            @Override protected AbstractSharedBackend createBackend() {
+            @Override
+            protected AbstractSharedBackend createBackend() {
                 return new TestMemoryBackend(datastoreRoot);
             }
 
-            @Override public int getMinRecordLength() {
+            @Override
+            public int getMinRecordLength() {
                 return 0;
             }
         };
@@ -295,8 +297,7 @@ public class ConsolidatedDataStoreStatsTest extends AbstractDataStoreCacheTest {
                     // expected
                 }
             }
-        }
-        finally {
+        } finally {
             delete(dataStore, records);
         }
     }

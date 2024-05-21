@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.segment.standby.client;
 
+import io.netty.channel.nio.NioEventLoopGroup;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
@@ -27,12 +28,9 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
 import javax.management.StandardMBean;
-
-import io.netty.channel.nio.NioEventLoopGroup;
 import org.apache.jackrabbit.core.data.util.NamedThreadFactory;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
@@ -63,7 +61,8 @@ public final class StandbyClientSync implements ClientStandbyStatusMBean, Runnab
         private String sslChainFile;
         private String sslSubjectPattern;
 
-        private Builder() {}
+        private Builder() {
+        }
 
         public Builder withHost(String host) {
             this.host = host;
@@ -204,7 +203,9 @@ public final class StandbyClientSync implements ClientStandbyStatusMBean, Runnab
         this.sslChainFile = builder.sslChainFile;
         this.sslSubjectPattern = builder.sslSubjectPattern;
         try {
-            ManagementFactory.getPlatformMBeanServer().registerMBean(new StandardMBean(this, ClientStandbyStatusMBean.class), new ObjectName(this.getMBeanName()));
+            ManagementFactory.getPlatformMBeanServer()
+                             .registerMBean(new StandardMBean(this, ClientStandbyStatusMBean.class),
+                                 new ObjectName(this.getMBeanName()));
         } catch (Exception e) {
             log.error("cannot register standby status mbean", e);
         }
@@ -254,17 +255,18 @@ public final class StandbyClientSync implements ClientStandbyStatusMBean, Runnab
                 GCGeneration genBefore = headGeneration(fileStore);
 
                 try (StandbyClient client = StandbyClient.builder()
-                     .withHost(host)
-                     .withPort(port)
-                     .withGroup(group)
-                     .withClientId(observer.getID())
-                     .withSecure(secure)
-                     .withReadTimeoutMs(readTimeoutMs)
-                     .withSpoolFolder(spoolFolder)
-                     .withSSLKeyFile(sslKeyFile)
-                     .withSSLKeyPassword(sslKeyPassword)
-                     .withSSLChainFile(sslChainFile)
-                     .withSSLSubjectPattern(sslSubjectPattern).build()) {
+                                                         .withHost(host)
+                                                         .withPort(port)
+                                                         .withGroup(group)
+                                                         .withClientId(observer.getID())
+                                                         .withSecure(secure)
+                                                         .withReadTimeoutMs(readTimeoutMs)
+                                                         .withSpoolFolder(spoolFolder)
+                                                         .withSSLKeyFile(sslKeyFile)
+                                                         .withSSLKeyPassword(sslKeyPassword)
+                                                         .withSSLChainFile(sslChainFile)
+                                                         .withSSLSubjectPattern(sslSubjectPattern)
+                                                         .build()) {
                     execution.execute(client);
                 }
 
@@ -273,7 +275,9 @@ public final class StandbyClientSync implements ClientStandbyStatusMBean, Runnab
                 GCGeneration genAfter = headGeneration(fileStore);
 
                 if (autoClean && genAfter.compareWith(genBefore) > 0) {
-                    log.info("New head generation detected (prevHeadGen: {} newHeadGen: {}), running cleanup.", genBefore, genAfter);
+                    log.info(
+                        "New head generation detected (prevHeadGen: {} newHeadGen: {}), running cleanup.",
+                        genBefore, genAfter);
                     cleanupAndRemove();
                 }
 
@@ -375,7 +379,8 @@ public final class StandbyClientSync implements ClientStandbyStatusMBean, Runnab
         if (group == null) {
             return;
         }
-        if (group.shutdownGracefully(2, 15, TimeUnit.SECONDS).awaitUninterruptibly(20, TimeUnit.SECONDS)) {
+        if (group.shutdownGracefully(2, 15, TimeUnit.SECONDS)
+                 .awaitUninterruptibly(20, TimeUnit.SECONDS)) {
             log.debug("Group shut down");
         } else {
             log.debug("Group shutdown timed out");

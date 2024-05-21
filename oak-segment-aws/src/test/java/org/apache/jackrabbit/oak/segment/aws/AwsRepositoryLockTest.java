@@ -20,13 +20,11 @@ package org.apache.jackrabbit.oak.segment.aws;
 
 import static org.junit.Assert.fail;
 
+import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
+import com.amazonaws.services.dynamodbv2.local.embedded.DynamoDBEmbedded;
 import java.io.IOException;
 import java.util.Date;
 import java.util.concurrent.Semaphore;
-
-import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
-import com.amazonaws.services.dynamodbv2.local.embedded.DynamoDBEmbedded;
-
 import org.apache.jackrabbit.oak.segment.spi.persistence.RepositoryLock;
 import org.junit.Before;
 import org.junit.Test;

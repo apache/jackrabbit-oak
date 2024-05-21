@@ -16,6 +16,16 @@
  */
 package org.apache.jackrabbit.oak.core;
 
+import static org.apache.jackrabbit.oak.core.TestPermissionProvider.NAME_ACCESSIBLE;
+import static org.apache.jackrabbit.oak.core.TestPermissionProvider.NAME_NON_ACCESSIBLE;
+import static org.apache.jackrabbit.oak.core.TestPermissionProvider.NAME_NON_EXISTING;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.Type;
@@ -30,16 +40,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Before;
 import org.junit.Test;
-
-import static org.apache.jackrabbit.oak.core.TestPermissionProvider.NAME_ACCESSIBLE;
-import static org.apache.jackrabbit.oak.core.TestPermissionProvider.NAME_NON_ACCESSIBLE;
-import static org.apache.jackrabbit.oak.core.TestPermissionProvider.NAME_NON_EXISTING;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
 
 public class SecureNodeBuilderTest {
 

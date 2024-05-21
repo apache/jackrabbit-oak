@@ -26,12 +26,15 @@ import org.jetbrains.annotations.NotNull;
 
 final class CugSecurityProvider {
 
-    private CugSecurityProvider() {}
+    private CugSecurityProvider() {
+    }
 
-    public static SecurityProvider newTestSecurityProvider(@NotNull ConfigurationParameters configuration) {
+    public static SecurityProvider newTestSecurityProvider(
+        @NotNull ConfigurationParameters configuration) {
         CugConfiguration cugConfiguration = new CugConfiguration();
 
-        ConfigurationParameters params = configuration.getConfigValue(AuthorizationConfiguration.NAME, ConfigurationParameters.EMPTY);
+        ConfigurationParameters params = configuration.getConfigValue(
+            AuthorizationConfiguration.NAME, ConfigurationParameters.EMPTY);
         cugConfiguration.setParameters(params);
 
         SecurityProvider sp = SecurityProviderBuilder.newBuilder().with(configuration).build();
@@ -40,7 +43,8 @@ final class CugSecurityProvider {
     }
 
     public static CugConfiguration getCugConfiguration(@NotNull SecurityProvider securityProvider) {
-        AuthorizationConfiguration ac = securityProvider.getConfiguration(AuthorizationConfiguration.class);
+        AuthorizationConfiguration ac = securityProvider.getConfiguration(
+            AuthorizationConfiguration.class);
         if (!(ac instanceof CompositeAuthorizationConfiguration)) {
             throw new IllegalStateException();
         }

@@ -22,7 +22,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.base.Supplier;
 import org.apache.jackrabbit.oak.segment.RecordId;
@@ -37,10 +36,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Encapsulates the algorithm for a single execution of the synchronization
- * process between the primary and the standby instance. It also contains
- * temporary state that is supposed to be used for the lifetime of a
- * synchronization run.
+ * Encapsulates the algorithm for a single execution of the synchronization process between the
+ * primary and the standby instance. It also contains temporary state that is supposed to be used
+ * for the lifetime of a synchronization run.
  */
 class StandbyClientSyncExecution {
 
@@ -92,10 +90,12 @@ class StandbyClientSyncExecution {
         return store.getReader().readNode(id);
     }
 
-    private void compareAgainstBaseState(StandbyClient client, SegmentNodeState current, SegmentNodeState before, SegmentNodeBuilder builder) throws Exception {
+    private void compareAgainstBaseState(StandbyClient client, SegmentNodeState current,
+        SegmentNodeState before, SegmentNodeBuilder builder) throws Exception {
         while (true) {
             try {
-                current.compareAgainstBaseState(before, new StandbyDiff(builder, store, client, running));
+                current.compareAgainstBaseState(before,
+                    new StandbyDiff(builder, store, client, running));
                 return;
             } catch (SegmentNotFoundException e) {
                 log.debug("Found missing segment {}", e.getSegmentId());
@@ -104,7 +104,8 @@ class StandbyClientSyncExecution {
         }
     }
 
-    private void copySegmentHierarchyFromPrimary(StandbyClient client, UUID segmentId) throws Exception {
+    private void copySegmentHierarchyFromPrimary(StandbyClient client, UUID segmentId)
+        throws Exception {
         Set<UUID> visited = new HashSet<>();
         List<UUID> bulk = new LinkedList<>();
         List<UUID> data = new LinkedList<>();
@@ -122,7 +123,8 @@ class StandbyClientSyncExecution {
         }
     }
 
-    private void deriveTopologicalOrder(StandbyClient client, UUID id, Set<UUID> visited, List<UUID> data, List<UUID> bulk) throws Exception {
+    private void deriveTopologicalOrder(StandbyClient client, UUID id, Set<UUID> visited,
+        List<UUID> data, List<UUID> bulk) throws Exception {
         if (visited.contains(id) || isLocal(id)) {
             return;
         }
@@ -147,11 +149,13 @@ class StandbyClientSyncExecution {
         }
     }
 
-    private Iterable<String> readReferences(StandbyClient client, UUID id) throws InterruptedException {
+    private Iterable<String> readReferences(StandbyClient client, UUID id)
+        throws InterruptedException {
         Iterable<String> references = client.getReferences(id.toString());
 
         if (references == null) {
-            throw new IllegalStateException(String.format("Unable to read references of segment %s from primary", id));
+            throw new IllegalStateException(
+                String.format("Unable to read references of segment %s from primary", id));
         }
 
         return references;
@@ -159,8 +163,8 @@ class StandbyClientSyncExecution {
 
     private boolean isLocal(UUID id) {
         return store.containsSegment(idProvider.newSegmentId(
-                id.getMostSignificantBits(),
-                id.getLeastSignificantBits()
+            id.getMostSignificantBits(),
+            id.getLeastSignificantBits()
         ));
     }
 

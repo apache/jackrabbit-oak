@@ -72,20 +72,22 @@ public class AbstractTwoNodeTest {
     @Parameterized.Parameters(name = "{0}")
     public static java.util.Collection<Object[]> fixtures() throws IOException {
         List<Object[]> fixtures = new ArrayList<>();
-        fixtures.add(new Object[] {new DocumentStoreFixture.MemoryFixture()});
+        fixtures.add(new Object[]{new DocumentStoreFixture.MemoryFixture()});
 
-        DocumentStoreFixture.RDBFixture rdb = new DocumentStoreFixture.RDBFixture("RDB-H2(file)", "jdbc:h2:file:./target/ds-test",
-                "sa", "");
+        DocumentStoreFixture.RDBFixture rdb = new DocumentStoreFixture.RDBFixture("RDB-H2(file)",
+            "jdbc:h2:file:./target/ds-test",
+            "sa", "");
         // ensure we have an empty database to start with
         rdb.setRDBOptions(
-                new RDBOptions().tablePrefix("A2NT" + Long.toHexString(System.currentTimeMillis())).dropTablesOnClose(true));
+            new RDBOptions().tablePrefix("A2NT" + Long.toHexString(System.currentTimeMillis()))
+                            .dropTablesOnClose(true));
         if (rdb.isAvailable()) {
-            fixtures.add(new Object[] { rdb });
+            fixtures.add(new Object[]{rdb});
         }
 
         DocumentStoreFixture mongo = new DocumentStoreFixture.MongoFixture();
         if (mongo.isAvailable()) {
-            fixtures.add(new Object[] { mongo });
+            fixtures.add(new Object[]{mongo});
         }
         return fixtures;
     }
@@ -108,29 +110,31 @@ public class AbstractTwoNodeTest {
 
         String rootdoc = "0:/";
 
-        assertNull("precondition: freshly instantiated document store " + store1 + " should not have a root document '" + rootdoc
-                + "' yet", store1.find(Collection.NODES, rootdoc));
+        assertNull("precondition: freshly instantiated document store " + store1
+            + " should not have a root document '" + rootdoc
+            + "' yet", store1.find(Collection.NODES, rootdoc));
 
         ds1 = new DocumentMK.Builder()
-                .setAsyncDelay(0)
-                .clock(clock)
-                .setDocumentStore(wrap(customize(store1)))
-                .setLeaseCheckMode(LeaseCheckMode.DISABLED)
-                .setClusterId(1)
-                .getNodeStore();
+            .setAsyncDelay(0)
+            .clock(clock)
+            .setDocumentStore(wrap(customize(store1)))
+            .setLeaseCheckMode(LeaseCheckMode.DISABLED)
+            .setClusterId(1)
+            .getNodeStore();
         c1Id = ds1.getClusterId();
 
         ds2 = new DocumentMK.Builder()
-                .setAsyncDelay(0)
-                .clock(clock)
-                .setDocumentStore(wrap(customize(store2)))
-                .setLeaseCheckMode(LeaseCheckMode.DISABLED)
-                .setClusterId(2)
-                .getNodeStore();
+            .setAsyncDelay(0)
+            .clock(clock)
+            .setDocumentStore(wrap(customize(store2)))
+            .setLeaseCheckMode(LeaseCheckMode.DISABLED)
+            .setClusterId(2)
+            .getNodeStore();
         c2Id = ds2.getClusterId();
 
-        assertNotNull("precondition: freshly initialized document store " + store1 + " should have a root node '" + rootdoc + "'",
-                store1.find(Collection.NODES, rootdoc));
+        assertNotNull("precondition: freshly initialized document store " + store1
+                + " should have a root node '" + rootdoc + "'",
+            store1.find(Collection.NODES, rootdoc));
     }
 
     @After

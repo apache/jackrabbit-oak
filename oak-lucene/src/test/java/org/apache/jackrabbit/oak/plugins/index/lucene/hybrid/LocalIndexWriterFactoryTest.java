@@ -19,16 +19,21 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 
+import static org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors.newDirectExecutorService;
+import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+
 import java.io.IOException;
 import java.util.List;
-
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexTracker;
-import org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.spi.commit.CommitContext;
@@ -42,12 +47,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors.newDirectExecutorService;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
-import static org.junit.Assert.*;
-
 public class LocalIndexWriterFactoryTest {
+
     private NodeState root = INITIAL_CONTENT;
     private NodeBuilder builder = root.builder();
 
@@ -62,10 +63,10 @@ public class LocalIndexWriterFactoryTest {
         tracker = new IndexTracker();
         DocumentQueue queue = new DocumentQueue(100, tracker, newDirectExecutorService());
         editorProvider = new LuceneIndexEditorProvider(
-                null,
-                null,
-                null,
-                Mounts.defaultMountInfoProvider()
+            null,
+            null,
+            null,
+            Mounts.defaultMountInfoProvider()
         );
         editorProvider.setIndexingQueue(queue);
         syncHook = new EditorHook(new IndexUpdateProvider(editorProvider));
@@ -77,7 +78,7 @@ public class LocalIndexWriterFactoryTest {
     }
 
     @Test
-    public void ignoreReindexCase() throws Exception{
+    public void ignoreReindexCase() throws Exception {
         createIndexDefinition("fooIndex", FulltextIndexConstants.IndexingMode.NRT);
 
         builder.child("a").setProperty("foo", "bar");
@@ -91,7 +92,7 @@ public class LocalIndexWriterFactoryTest {
     }
 
     @Test
-    public void localIndexWriter() throws Exception{
+    public void localIndexWriter() throws Exception {
         NodeState indexed = createAndPopulateAsyncIndex(FulltextIndexConstants.IndexingMode.NRT);
         builder = indexed.builder();
         builder.child("b").setProperty("foo", "bar");
@@ -108,7 +109,7 @@ public class LocalIndexWriterFactoryTest {
     }
 
     @Test
-    public void mutlipleIndex() throws Exception{
+    public void mutlipleIndex() throws Exception {
         NodeState indexed = createAndPopulateTwoAsyncIndex(FulltextIndexConstants.IndexingMode.NRT);
         builder = indexed.builder();
         builder.child("b").setProperty("foo", "bar");
@@ -129,7 +130,7 @@ public class LocalIndexWriterFactoryTest {
     }
 
     @Test
-    public void syncIndexing() throws Exception{
+    public void syncIndexing() throws Exception {
         NodeState indexed = createAndPopulateAsyncIndex(FulltextIndexConstants.IndexingMode.SYNC);
         builder = indexed.builder();
         builder.child("b").setProperty("foo", "bar");
@@ -141,11 +142,11 @@ public class LocalIndexWriterFactoryTest {
         assertNotNull(holder);
 
         //2 add none for delete
-        assertEquals(2, getIndexedDocList(holder,"/oak:index/fooIndex").size());
+        assertEquals(2, getIndexedDocList(holder, "/oak:index/fooIndex").size());
     }
 
     @Test
-    public void inMemoryDocLimit() throws Exception{
+    public void inMemoryDocLimit() throws Exception {
         NodeState indexed = createAndPopulateAsyncIndex(FulltextIndexConstants.IndexingMode.NRT);
         editorProvider.setInMemoryDocsLimit(5);
         editorProvider.setIndexingQueue(new DocumentQueue(1, tracker, newDirectExecutorService()));
@@ -161,7 +162,8 @@ public class LocalIndexWriterFactoryTest {
         assertEquals(5 + 1, getIndexedDocList(holder, "/oak:index/fooIndex").size());
     }
 
-    private NodeState createAndPopulateAsyncIndex(FulltextIndexConstants.IndexingMode indexingMode) throws CommitFailedException {
+    private NodeState createAndPopulateAsyncIndex(FulltextIndexConstants.IndexingMode indexingMode)
+        throws CommitFailedException {
         createIndexDefinition("fooIndex", indexingMode);
 
         //Have some stuff to be indexed
@@ -170,7 +172,8 @@ public class LocalIndexWriterFactoryTest {
         return asyncHook.processCommit(EMPTY_NODE, after, newCommitInfo());
     }
 
-    private NodeState createAndPopulateTwoAsyncIndex(FulltextIndexConstants.IndexingMode indexingMode) throws CommitFailedException {
+    private NodeState createAndPopulateTwoAsyncIndex(
+        FulltextIndexConstants.IndexingMode indexingMode) throws CommitFailedException {
         createIndexDefinition("fooIndex", indexingMode);
         createIndexDefinition("barIndex", indexingMode);
 
@@ -181,32 +184,33 @@ public class LocalIndexWriterFactoryTest {
         return asyncHook.processCommit(EMPTY_NODE, after, newCommitInfo());
     }
 
-    private LuceneDocumentHolder getHolder(){
+    private LuceneDocumentHolder getHolder() {
         return (LuceneDocumentHolder) getCommitAttribute(LuceneDocumentHolder.NAME);
     }
 
-    private Object getCommitAttribute(String name){
+    private Object getCommitAttribute(String name) {
         CommitContext cc = (CommitContext) info.getInfo().get(CommitContext.NAME);
         return cc.get(name);
     }
 
-    private CommitInfo newCommitInfo(){
+    private CommitInfo newCommitInfo() {
         info = new CommitInfo("admin", "s1",
-                ImmutableMap.<String, Object>of(CommitContext.NAME, new SimpleCommitContext()));
+            ImmutableMap.<String, Object>of(CommitContext.NAME, new SimpleCommitContext()));
         return info;
     }
 
-    private void createIndexDefinition(String idxName, FulltextIndexConstants.IndexingMode indexingMode) {
+    private void createIndexDefinition(String idxName,
+        FulltextIndexConstants.IndexingMode indexingMode) {
         LuceneIndexDefinitionBuilder idx = new LuceneIndexDefinitionBuilder();
         TestUtil.enableIndexingMode(idx.getBuilderTree(), indexingMode);
         idx.indexRule("nt:base").property("foo").propertyIndex();
         builder.child("oak:index").setChildNode(idxName, idx.build());
     }
 
-    private static List<String> getIndexedDocList(LuceneDocumentHolder holder, String indexPath){
+    private static List<String> getIndexedDocList(LuceneDocumentHolder holder, String indexPath) {
         List<String> paths = Lists.newArrayList();
-        for (LuceneDocInfo doc : holder.getAllLuceneDocInfo()){
-            if (doc.getIndexPath().equals(indexPath)){
+        for (LuceneDocInfo doc : holder.getAllLuceneDocInfo()) {
+            if (doc.getIndexPath().equals(indexPath)) {
                 paths.add(doc.getDocPath());
             }
         }

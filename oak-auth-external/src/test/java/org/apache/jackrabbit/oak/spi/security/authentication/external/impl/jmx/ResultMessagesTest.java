@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.jmx;
 
+import static org.junit.Assert.assertEquals;
+
+import java.util.Collections;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncResult;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncResultImpl;
@@ -24,15 +27,12 @@ import org.apache.jackrabbit.util.Text;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
-import java.util.Collections;
-
-import static org.junit.Assert.assertEquals;
-
 public class ResultMessagesTest {
 
     private final ResultMessages messages = new ResultMessages();
 
-    private static void assertResultMessages(@NotNull ResultMessages resultMessages, @NotNull String expectedUid, @NotNull String expectedOperation) {
+    private static void assertResultMessages(@NotNull ResultMessages resultMessages,
+        @NotNull String expectedUid, @NotNull String expectedOperation) {
         for (String msg : resultMessages.getMessages()) {
             String op = msg.substring(msg.indexOf(":") + 2, msg.indexOf("\","));
 
@@ -77,7 +77,9 @@ public class ResultMessagesTest {
 
     @Test
     public void testUidReflectedInMessage() {
-        SyncResult result = new DefaultSyncResultImpl(new DefaultSyncedIdentity("id", new ExternalIdentityRef("id", "name"), false, 0), SyncResult.Status.ENABLE);
+        SyncResult result = new DefaultSyncResultImpl(
+            new DefaultSyncedIdentity("id", new ExternalIdentityRef("id", "name"), false, 0),
+            SyncResult.Status.ENABLE);
         ResultMessages msgs = new ResultMessages();
         msgs.append(Collections.singletonList(result));
         assertResultMessages(msgs, "id", extractOp(SyncResult.Status.ENABLE));

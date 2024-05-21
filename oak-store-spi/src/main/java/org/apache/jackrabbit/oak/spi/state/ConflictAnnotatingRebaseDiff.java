@@ -16,25 +16,25 @@
  */
 package org.apache.jackrabbit.oak.spi.state;
 
+import static org.apache.jackrabbit.oak.spi.state.ConflictType.ADD_EXISTING_NODE;
+import static org.apache.jackrabbit.oak.spi.state.ConflictType.ADD_EXISTING_PROPERTY;
+import static org.apache.jackrabbit.oak.spi.state.ConflictType.CHANGE_CHANGED_PROPERTY;
+import static org.apache.jackrabbit.oak.spi.state.ConflictType.CHANGE_DELETED_NODE;
+import static org.apache.jackrabbit.oak.spi.state.ConflictType.CHANGE_DELETED_PROPERTY;
+import static org.apache.jackrabbit.oak.spi.state.ConflictType.DELETE_CHANGED_NODE;
+import static org.apache.jackrabbit.oak.spi.state.ConflictType.DELETE_CHANGED_PROPERTY;
+import static org.apache.jackrabbit.oak.spi.state.ConflictType.DELETE_DELETED_NODE;
+import static org.apache.jackrabbit.oak.spi.state.ConflictType.DELETE_DELETED_PROPERTY;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 
-import static org.apache.jackrabbit.oak.spi.state.ConflictType.DELETE_CHANGED_PROPERTY;
-import static org.apache.jackrabbit.oak.spi.state.ConflictType.DELETE_CHANGED_NODE;
-import static org.apache.jackrabbit.oak.spi.state.ConflictType.ADD_EXISTING_PROPERTY;
-import static org.apache.jackrabbit.oak.spi.state.ConflictType.CHANGE_DELETED_PROPERTY;
-import static org.apache.jackrabbit.oak.spi.state.ConflictType.CHANGE_CHANGED_PROPERTY;
-import static org.apache.jackrabbit.oak.spi.state.ConflictType.DELETE_DELETED_PROPERTY;
-import static org.apache.jackrabbit.oak.spi.state.ConflictType.ADD_EXISTING_NODE;
-import static org.apache.jackrabbit.oak.spi.state.ConflictType.CHANGE_DELETED_NODE;
-import static org.apache.jackrabbit.oak.spi.state.ConflictType.DELETE_DELETED_NODE;
-
 /**
- * This implementation of {@code AbstractRebaseDiff} implements a {@link NodeStateDiff},
- * which performs the conflict handling as defined in {@link NodeStore#rebase(NodeBuilder)}
- * on the Oak SPI state level by annotating conflicting items with conflict
- * markers.
+ * This implementation of {@code AbstractRebaseDiff} implements a {@link NodeStateDiff}, which
+ * performs the conflict handling as defined in {@link NodeStore#rebase(NodeBuilder)} on the Oak SPI
+ * state level by annotating conflicting items with conflict markers.
  */
 public class ConflictAnnotatingRebaseDiff extends AbstractRebaseDiff {
+
     public static final String CONFLICT = ":conflict";
     public static final String BASE = ":base";
     public static final String OURS = ":ours";
@@ -49,21 +49,24 @@ public class ConflictAnnotatingRebaseDiff extends AbstractRebaseDiff {
     }
 
     @Override
-    protected void addExistingProperty(NodeBuilder builder, PropertyState before, PropertyState after) {
+    protected void addExistingProperty(NodeBuilder builder, PropertyState before,
+        PropertyState after) {
         NodeBuilder cb = conflictMarker(builder, ADD_EXISTING_PROPERTY);
         cb.child(BASE).setProperty(before);
         cb.child(OURS).setProperty(after);
     }
 
     @Override
-    protected void changeDeletedProperty(NodeBuilder builder, PropertyState after, PropertyState base) {
+    protected void changeDeletedProperty(NodeBuilder builder, PropertyState after,
+        PropertyState base) {
         NodeBuilder cb = conflictMarker(builder, CHANGE_DELETED_PROPERTY);
         cb.child(BASE).setProperty(base);
         cb.child(OURS).setProperty(after);
     }
 
     @Override
-    protected void changeChangedProperty(NodeBuilder builder, PropertyState before, PropertyState after) {
+    protected void changeChangedProperty(NodeBuilder builder, PropertyState before,
+        PropertyState after) {
         NodeBuilder cb = conflictMarker(builder, CHANGE_CHANGED_PROPERTY);
         cb.child(BASE).setProperty(before);
         cb.child(OURS).setProperty(after);
@@ -82,14 +85,16 @@ public class ConflictAnnotatingRebaseDiff extends AbstractRebaseDiff {
     }
 
     @Override
-    protected void addExistingNode(NodeBuilder builder, String name, NodeState before, NodeState after) {
+    protected void addExistingNode(NodeBuilder builder, String name, NodeState before,
+        NodeState after) {
         NodeBuilder cb = conflictMarker(builder, ADD_EXISTING_NODE);
         cb.child(BASE).setChildNode(name, before);
         cb.child(OURS).setChildNode(name, after);
     }
 
     @Override
-    protected void changeDeletedNode(NodeBuilder builder, String name, NodeState after, NodeState base) {
+    protected void changeDeletedNode(NodeBuilder builder, String name, NodeState after,
+        NodeState base) {
         NodeBuilder cb = conflictMarker(builder, CHANGE_DELETED_NODE);
         cb.child(BASE).setChildNode(name, base);
         cb.child(OURS).setChildNode(name, after);

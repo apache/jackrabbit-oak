@@ -19,6 +19,15 @@
 
 package org.apache.jackrabbit.oak.plugins.index;
 
+import static org.apache.jackrabbit.JcrConstants.JCR_CONTENT;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
+import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
+
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+import javax.jcr.Repository;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitRepository;
@@ -50,17 +59,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.jcr.Repository;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
-import static org.apache.jackrabbit.JcrConstants.JCR_CONTENT;
-import static org.apache.jackrabbit.oak.api.Type.STRINGS;
-import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
-
 public class TestUtil {
+
     private static final AtomicInteger COUNTER = new AtomicInteger();
     private static final Logger LOG = LoggerFactory.getLogger(TestUtil.class);
 
@@ -71,13 +71,15 @@ public class TestUtil {
 
     public static void useV2(NodeBuilder idxNb) {
         if (!IndexFormatVersion.getDefault().isAtLeast(IndexFormatVersion.V2)) {
-            idxNb.setProperty(FulltextIndexConstants.COMPAT_MODE, IndexFormatVersion.V2.getVersion());
+            idxNb.setProperty(FulltextIndexConstants.COMPAT_MODE,
+                IndexFormatVersion.V2.getVersion());
         }
     }
 
     public static void useV2(Tree idxTree) {
         if (!IndexFormatVersion.getDefault().isAtLeast(IndexFormatVersion.V2)) {
-            idxTree.setProperty(FulltextIndexConstants.COMPAT_MODE, IndexFormatVersion.V2.getVersion());
+            idxTree.setProperty(FulltextIndexConstants.COMPAT_MODE,
+                IndexFormatVersion.V2.getVersion());
         }
     }
 
@@ -140,6 +142,7 @@ public class TestUtil {
     }
 
     static class AggregatorBuilder {
+
         private final Tree aggs;
 
         private AggregatorBuilder(Tree indexDefn) {
@@ -149,7 +152,8 @@ public class TestUtil {
         AggregatorBuilder newRuleWithName(String primaryType, List<String> includes) {
             Tree agg = aggs.addChild(primaryType);
             for (String include : includes) {
-                agg.addChild(unique("include")).setProperty(FulltextIndexConstants.AGG_PATH, include);
+                agg.addChild(unique("include"))
+                   .setProperty(FulltextIndexConstants.AGG_PATH, include);
             }
             return this;
         }
@@ -170,7 +174,8 @@ public class TestUtil {
         NodeState base = ModifiedNodeState.squeeze(builder.getNodeState());
         NodeStore store = new MemoryNodeStore(base);
         Root root = RootFactory.createSystemRoot(store,
-            new EditorHook(new CompositeEditorProvider(new NamespaceEditorProvider(), new TypeEditorProvider())),
+            new EditorHook(new CompositeEditorProvider(new NamespaceEditorProvider(),
+                new TypeEditorProvider())),
             null, null, null);
         NodeTypeRegistry.register(root, IOUtils.toInputStream(nodeTypeDefn), "test node types");
         NodeState target = store.getRoot();
@@ -183,7 +188,8 @@ public class TestUtil {
         return t;
     }
 
-    public static NodeBuilder createNodeWithType(NodeBuilder builder, String nodeName, String typeName) {
+    public static NodeBuilder createNodeWithType(NodeBuilder builder, String nodeName,
+        String typeName) {
         builder = builder.child(nodeName);
         builder.setProperty(JcrConstants.JCR_PRIMARYTYPE, typeName, Type.NAME);
         return builder;
@@ -215,7 +221,8 @@ public class TestUtil {
     }
 
     private static PropertyState createAsyncProperty(String indexingMode) {
-        return createProperty(IndexConstants.ASYNC_PROPERTY_NAME, of(indexingMode, "async"), STRINGS);
+        return createProperty(IndexConstants.ASYNC_PROPERTY_NAME, of(indexingMode, "async"),
+            STRINGS);
     }
 
     private static PropertyState createAsyncProperty(IndexingMode indexingMode) {
@@ -231,10 +238,12 @@ public class TestUtil {
     }
 
     public static class OptionalEditorProvider implements EditorProvider {
+
         public EditorProvider delegate;
 
         @Override
-        public Editor getRootEditor(NodeState before, NodeState after, NodeBuilder builder, CommitInfo info)
+        public Editor getRootEditor(NodeState before, NodeState after, NodeBuilder builder,
+            CommitInfo info)
             throws CommitFailedException {
             if (delegate != null) {
                 return delegate.getRootEditor(before, after, builder, info);
@@ -258,10 +267,12 @@ public class TestUtil {
                 return;
             } catch (Throwable e) {
                 long elapsedTime = lastAttempt - start;
-                LOG.trace("assertEventually attempt {} failed because of {}", attempts, e.getMessage());
+                LOG.trace("assertEventually attempt {} failed because of {}", attempts,
+                    e.getMessage());
                 if (elapsedTime >= timeoutMillis) {
-                    String msg = String.format("Condition not satisfied after %1.2f seconds and %d attempts",
-                            elapsedTime / 1000d, attempts);
+                    String msg = String.format(
+                        "Condition not satisfied after %1.2f seconds and %d attempts",
+                        elapsedTime / 1000d, attempts);
                     throw new AssertionError(msg, e);
                 }
                 try {

@@ -31,12 +31,10 @@ import java.io.Reader;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.io.Writer;
-
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
-
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.xml.TextValue;
 import org.apache.jackrabbit.util.Base64;
@@ -45,13 +43,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * {@code BufferedStringValue} represents an appendable
- * serialized value that is either buffered in-memory or backed
- * by a temporary file if its size exceeds a certain limit.
+ * {@code BufferedStringValue} represents an appendable serialized value that is either buffered
+ * in-memory or backed by a temporary file if its size exceeds a certain limit.
  * <p>
  * <b>Important:</b> Note that in order to free resources
- * {@code {@link #dispose()}} should be called as soon as
- * {@code BufferedStringValue} instance is not used anymore.
+ * {@code {@link #dispose()}} should be called as soon as {@code BufferedStringValue} instance is
+ * not used anymore.
  */
 class BufferedStringValue implements TextValue {
 
@@ -68,14 +65,13 @@ class BufferedStringValue implements TextValue {
     private StringWriter buffer;
 
     /**
-     * The number of characters written so far.
-     * If the in-memory buffer is used, this is position within buffer (size of actual data in buffer)
+     * The number of characters written so far. If the in-memory buffer is used, this is position
+     * within buffer (size of actual data in buffer)
      */
     private long length;
 
     /**
-     * Backing temporary file created when size of data exceeds
-     * MAX_BUFFER_SIZE.
+     * Backing temporary file created when size of data exceeds MAX_BUFFER_SIZE.
      */
     private File tmpFile;
 
@@ -95,12 +91,12 @@ class BufferedStringValue implements TextValue {
     /**
      * Constructs a new empty {@code BufferedStringValue}.
      *
-     * @param valueFactory The value factory
+     * @param valueFactory   The value factory
      * @param namePathMapper the name/path mapper
      */
     protected BufferedStringValue(
-            ValueFactory valueFactory, NamePathMapper namePathMapper,
-            boolean base64) {
+        ValueFactory valueFactory, NamePathMapper namePathMapper,
+        boolean base64) {
         buffer = new StringWriter();
         length = 0;
         tmpFile = null;
@@ -221,7 +217,7 @@ class BufferedStringValue implements TextValue {
      * @throws IOException if an I/O error occurs
      */
     public void append(char[] chars, int start, int len)
-            throws IOException {
+        throws IOException {
         if (buffer != null) {
             if (this.length + len > MAX_BUFFER_SIZE) {
                 // threshold for keeping data in memory exceeded;
@@ -246,8 +242,8 @@ class BufferedStringValue implements TextValue {
     }
 
     /**
-     * Close this value. Once a value has been closed,
-     * further append() invocations will cause an IOException to be thrown.
+     * Close this value. Once a value has been closed, further append() invocations will cause an
+     * IOException to be thrown.
      *
      * @throws IOException if an I/O error occurs
      */
@@ -263,7 +259,8 @@ class BufferedStringValue implements TextValue {
 
     //--------------------------------------------------------< TextValue >
 
-    @Override @SuppressWarnings("deprecation")
+    @Override
+    @SuppressWarnings("deprecation")
     public Value getValue(int targetType) throws RepositoryException {
         try {
             if (targetType == PropertyType.BINARY) {
@@ -279,7 +276,7 @@ class BufferedStringValue implements TextValue {
             return valueFactory.createValue(jcrValue, targetType);
         } catch (IOException e) {
             throw new RepositoryException(
-                    "failed to retrieve serialized value", e);
+                "failed to retrieve serialized value", e);
         }
     }
 

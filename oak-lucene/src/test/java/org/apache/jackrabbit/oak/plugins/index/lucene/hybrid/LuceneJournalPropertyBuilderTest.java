@@ -19,11 +19,6 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 
-import org.apache.jackrabbit.guava.common.collect.HashMultimap;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Multimap;
-import org.junit.Test;
-
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
@@ -32,48 +27,57 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import org.apache.jackrabbit.guava.common.collect.HashMultimap;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.apache.jackrabbit.guava.common.collect.Multimap;
+import org.junit.Test;
+
 public class LuceneJournalPropertyBuilderTest {
 
     private LuceneJournalPropertyBuilder builder = new LuceneJournalPropertyBuilder(1000);
 
     @Test
-    public void nullProperty() throws Exception{
+    public void nullProperty() throws Exception {
         builder.addProperty(null);
         assertEquals("{}", builder.buildAsString());
-        assertTrue(Iterables.isEmpty(((IndexedPaths)builder.build())));
+        assertTrue(Iterables.isEmpty(((IndexedPaths) builder.build())));
     }
 
     @Test
-    public void nullOrEmptyJson() throws Exception{
+    public void nullOrEmptyJson() throws Exception {
         builder.addProperty(null);
 
         LuceneJournalPropertyBuilder builder2 = new LuceneJournalPropertyBuilder(1000);
         builder2.addSerializedProperty(null);
         builder2.addSerializedProperty(builder.buildAsString());
 
-        assertTrue(Iterables.isEmpty(((IndexedPaths)builder2.build())));
+        assertTrue(Iterables.isEmpty(((IndexedPaths) builder2.build())));
     }
+
     @Test
     public void addJsonLessThanMaxBuilderSize() throws Exception {
         String a = null;
         for (int i = 0; i < 499; i++) {
-            a = "{\"/var/eventing/jobs/foo/2022/4/19/14/27/af96fcfa9e32_8589" + i + "\" :[\"/oak:index/foo\",\"/oak:index/bar\"]}";
+            a = "{\"/var/eventing/jobs/foo/2022/4/19/14/27/af96fcfa9e32_8589" + i
+                + "\" :[\"/oak:index/foo\",\"/oak:index/bar\"]}";
             builder.addSerializedProperty(a);
         }
-        assertEquals(998, createdIndexPathMap((IndexedPaths)builder.build()).size());
+        assertEquals(998, createdIndexPathMap((IndexedPaths) builder.build()).size());
     }
 
     @Test
     public void addJsonBiggerThanMaxBuilderSize() throws Exception {
         String a = null;
         for (int i = 0; i < 502; i++) {
-            a = "{\"/var/eventing/jobs/foo/2022/4/19/14/27/af96fcfa9e32_8589" + i + "\" :[\"/oak:index/foo\",\"/oak:index/bar\"]}";
+            a = "{\"/var/eventing/jobs/foo/2022/4/19/14/27/af96fcfa9e32_8589" + i
+                + "\" :[\"/oak:index/foo\",\"/oak:index/bar\"]}";
             builder.addSerializedProperty(a);
         }
-        assertEquals(1000, createdIndexPathMap((IndexedPaths)builder.build()).size());
+        assertEquals(1000, createdIndexPathMap((IndexedPaths) builder.build()).size());
     }
+
     @Test
-    public void addMulti() throws Exception{
+    public void addMulti() throws Exception {
         LuceneDocumentHolder h1 = createHolder();
         h1.add(true, LuceneDoc.forDelete("/oak:index/foo", "/a"));
         h1.add(true, LuceneDoc.forDelete("/oak:index/foo", "/b"));
@@ -90,7 +94,7 @@ public class LuceneJournalPropertyBuilderTest {
     }
 
     @Test
-    public void addMultiJson() throws Exception{
+    public void addMultiJson() throws Exception {
         LuceneDocumentHolder h1 = createHolder();
         h1.add(true, LuceneDoc.forDelete("/oak:index/foo", "/a"));
         h1.add(true, LuceneDoc.forDelete("/oak:index/foo", "/b"));
@@ -111,12 +115,12 @@ public class LuceneJournalPropertyBuilderTest {
     }
 
     @Test
-    public void maxLimitReached() throws Exception{
+    public void maxLimitReached() throws Exception {
         int maxSize = 5;
         builder = new LuceneJournalPropertyBuilder(maxSize);
-        for (int i = 0; i < maxSize*2; i++) {
+        for (int i = 0; i < maxSize * 2; i++) {
             LuceneDocumentHolder h1 = createHolder();
-            h1.add(true, LuceneDoc.forDelete("/oak:index/foo", "/a"+i));
+            h1.add(true, LuceneDoc.forDelete("/oak:index/foo", "/a" + i));
             builder.addProperty(h1);
         }
 
@@ -124,17 +128,17 @@ public class LuceneJournalPropertyBuilderTest {
         assertEquals(maxSize, Iterables.size(indexedPaths));
     }
 
-    private Multimap<String, String> createdIndexPathMap(Iterable<IndexedPathInfo> itr){
+    private Multimap<String, String> createdIndexPathMap(Iterable<IndexedPathInfo> itr) {
         Multimap<String, String> map = HashMultimap.create();
-        for (IndexedPathInfo i : itr){
-            for (String indexPath : i.getIndexPaths()){
+        for (IndexedPathInfo i : itr) {
+            for (String indexPath : i.getIndexPaths()) {
                 map.put(indexPath, i.getPath());
             }
         }
         return map;
     }
 
-    private LuceneDocumentHolder createHolder(){
+    private LuceneDocumentHolder createHolder() {
         IndexingQueue queue = mock(IndexingQueue.class);
         when(queue.addIfNotFullWithoutWait(any(LuceneDoc.class))).thenReturn(true);
         return new LuceneDocumentHolder(queue, 100);

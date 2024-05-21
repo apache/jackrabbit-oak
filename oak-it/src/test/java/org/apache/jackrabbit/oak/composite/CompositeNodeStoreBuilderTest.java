@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.composite;
 
 import java.util.Collections;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.IllegalRepositoryStateException;
@@ -40,8 +39,8 @@ public class CompositeNodeStoreBuilderTest {
     @Test(expected = IllegalArgumentException.class)
     public void builderRejectsTooManyReadWriteStores_oneExtra() {
         MountInfoProvider mip = Mounts.newBuilder()
-                .mount("temp", "/tmp")
-                .build();
+                                      .mount("temp", "/tmp")
+                                      .build();
 
         new CompositeNodeStore.Builder(mip, new MemoryNodeStore())
             .addMount("temp", new MemoryNodeStore())
@@ -51,9 +50,9 @@ public class CompositeNodeStoreBuilderTest {
     @Test(expected = IllegalArgumentException.class)
     public void builderRejectsTooManyReadWriteStores_mixed() {
         MountInfoProvider mip = Mounts.newBuilder()
-                .mount("temp", "/tmp")
-                .readOnlyMount("readOnly", "/readOnly")
-                .build();
+                                      .mount("temp", "/tmp")
+                                      .readOnlyMount("readOnly", "/readOnly")
+                                      .build();
 
         new CompositeNodeStore.Builder(mip, new MemoryNodeStore())
             .addMount("temp", new MemoryNodeStore())
@@ -64,9 +63,9 @@ public class CompositeNodeStoreBuilderTest {
     @Test
     public void builderAcceptsMultipleReadOnlyStores() {
         MountInfoProvider mip = Mounts.newBuilder()
-                .readOnlyMount("readOnly", "/readOnly")
-                .readOnlyMount("readOnly2", "/readOnly2")
-                .build();
+                                      .readOnlyMount("readOnly", "/readOnly")
+                                      .readOnlyMount("readOnly2", "/readOnly2")
+                                      .build();
 
         new CompositeNodeStore.Builder(mip, new MemoryNodeStore())
             .addMount("readOnly", new MemoryNodeStore())
@@ -77,46 +76,49 @@ public class CompositeNodeStoreBuilderTest {
     @Test(expected = IllegalArgumentException.class)
     public void mismatchBetweenMountsAndStoresIsRejected() {
         MountInfoProvider mip = Mounts.newBuilder()
-                .mount("temp", "/tmp")
-                .build();
+                                      .mount("temp", "/tmp")
+                                      .build();
 
         new CompositeNodeStore.Builder(mip, new MemoryNodeStore())
-                .build();
+            .build();
     }
 
     @Test(expected = NullPointerException.class)
     public void mismatchBetweenMountNameAndStoreName() {
         MountInfoProvider mip = Mounts.newBuilder()
-                .mount("temp", "/tmp")
-                .build();
+                                      .mount("temp", "/tmp")
+                                      .build();
 
         new CompositeNodeStore.Builder(mip, new MemoryNodeStore())
             .addMount("not-temp", new MemoryNodeStore())
             .build();
     }
-    
+
     @Test(expected = IllegalRepositoryStateException.class)
     public void versionableNode() throws CommitFailedException {
 
         MemoryNodeStore root = new MemoryNodeStore();
         MemoryNodeStore mount = new MemoryNodeStore();
-        
+
         // create a child node that is versionable
         // note that we won't cover all checks here, we are only interested in seeing that at least one check is triggered
         NodeBuilder rootBuilder = mount.getRoot().builder();
-        NodeBuilder childNode = rootBuilder.setChildNode("readOnly").setChildNode("second").setChildNode("third");
+        NodeBuilder childNode = rootBuilder.setChildNode("readOnly").setChildNode("second")
+                                           .setChildNode("third");
         childNode.setProperty(JcrConstants.JCR_ISCHECKEDOUT, false);
-        childNode.setProperty(PropertyStates.createProperty(JcrConstants.JCR_MIXINTYPES , Collections.singletonList(JcrConstants.MIX_VERSIONABLE), Type.NAMES));
+        childNode.setProperty(PropertyStates.createProperty(JcrConstants.JCR_MIXINTYPES,
+            Collections.singletonList(JcrConstants.MIX_VERSIONABLE), Type.NAMES));
         mount.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        
+
         MountInfoProvider mip = Mounts.newBuilder()
-                .readOnlyMount("readOnly", "/readOnly")
-                .build();
+                                      .readOnlyMount("readOnly", "/readOnly")
+                                      .build();
 
         new CompositeNodeStore.Builder(mip, root)
             .addMount("readOnly", mount)
-            .with(new NodeStoreChecksService(mip, Collections.singletonList(new NodeTypeMountedNodeStoreChecker(JcrConstants.MIX_VERSIONABLE, "test error"))))
-            .build();        
-        
+            .with(new NodeStoreChecksService(mip, Collections.singletonList(
+                new NodeTypeMountedNodeStoreChecker(JcrConstants.MIX_VERSIONABLE, "test error"))))
+            .build();
+
     }
 }

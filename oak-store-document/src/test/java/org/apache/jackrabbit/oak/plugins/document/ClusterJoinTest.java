@@ -38,10 +38,10 @@ public class ClusterJoinTest extends AbstractMongoConnectionTest {
         // because it started after the commit on the first DocumentMK
         MongoConnection connection = connectionFactory.getConnection();
         DocumentMK mk2 = new DocumentMK.Builder().
-                setAsyncDelay(0).
-                setMongoDB(connection.getMongoClient(), connection.getDBName()).
-                setClusterId(mk.getNodeStore().getClusterId() + 1).
-                open();
+            setAsyncDelay(0).
+            setMongoDB(connection.getMongoClient(), connection.getDBName()).
+            setClusterId(mk.getNodeStore().getClusterId() + 1).
+            open();
 
         try {
             // this creates a first commit from the second DocumentMK instance

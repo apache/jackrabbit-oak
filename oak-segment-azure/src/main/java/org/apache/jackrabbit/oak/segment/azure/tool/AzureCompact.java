@@ -25,31 +25,29 @@ import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.newFileStor
 import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.newSegmentNodeStorePersistence;
 import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.printableStopwatch;
 
-import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.io.Files;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.BlobListingDetails;
 import com.microsoft.azure.storage.blob.CloudBlob;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
 import com.microsoft.azure.storage.blob.CloudBlobDirectory;
 import com.microsoft.azure.storage.blob.ListBlobItem;
-
-import org.apache.jackrabbit.oak.segment.SegmentCache;
-import org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.SegmentStoreType;
-import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.GCType;
-import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.CompactorType;
-import org.apache.jackrabbit.oak.segment.file.FileStore;
-import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
-import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
-import org.apache.jackrabbit.oak.segment.spi.persistence.split.SplitPersistence;
-import org.apache.jackrabbit.oak.segment.tool.Compact;
-
 import java.io.IOException;
 import java.io.PrintStream;
 import java.net.URISyntaxException;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
+import org.apache.jackrabbit.guava.common.base.Stopwatch;
+import org.apache.jackrabbit.guava.common.io.Files;
+import org.apache.jackrabbit.oak.segment.SegmentCache;
+import org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.SegmentStoreType;
+import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.CompactorType;
+import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.GCType;
+import org.apache.jackrabbit.oak.segment.file.FileStore;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
+import org.apache.jackrabbit.oak.segment.spi.persistence.split.SplitPersistence;
+import org.apache.jackrabbit.oak.segment.tool.Compact;
 
 /**
  * Perform an offline compaction of an existing Azure Segment Store.
@@ -97,8 +95,7 @@ public class AzureCompact {
         /**
          * The path (URI) to an existing segment store. This parameter is required.
          *
-         * @param path
-         *            the path to an existing segment store.
+         * @param path the path to an existing segment store.
          * @return this builder.
          */
         public Builder withPath(String path) {
@@ -109,8 +106,7 @@ public class AzureCompact {
         /**
          * The path (URI) to the target segment store.
          *
-         * @param targetPath
-         *             the path to the target segment store.
+         * @param targetPath the path to the target segment store.
          * @return this builder
          */
         public Builder withTargetPath(String targetPath) {
@@ -119,11 +115,9 @@ public class AzureCompact {
         }
 
         /**
-         * Whether to fail if run on an older version of the store of force upgrading
-         * its format.
+         * Whether to fail if run on an older version of the store of force upgrading its format.
          *
-         * @param force
-         *            upgrade iff {@code true}
+         * @param force upgrade iff {@code true}
          * @return this builder.
          */
         public Builder withForce(boolean force) {
@@ -133,14 +127,11 @@ public class AzureCompact {
 
         /**
          * The size of the segment cache in MB. The default of
-         * {@link SegmentCache#DEFAULT_SEGMENT_CACHE_MB} when this method is not
-         * invoked.
+         * {@link SegmentCache#DEFAULT_SEGMENT_CACHE_MB} when this method is not invoked.
          *
-         * @param segmentCacheSize
-         *            cache size in MB
+         * @param segmentCacheSize cache size in MB
          * @return this builder
-         * @throws IllegalArgumentException
-         *             if {@code segmentCacheSize} is not a positive integer.
+         * @throws IllegalArgumentException if {@code segmentCacheSize} is not a positive integer.
          */
         public Builder withSegmentCacheSize(int segmentCacheSize) {
             checkArgument(segmentCacheSize > 0, "segmentCacheSize must be strictly positive");
@@ -149,12 +140,11 @@ public class AzureCompact {
         }
 
         /**
-         * The number of nodes after which an update about the compaction process is
-         * logged. Set to a negative number to disable progress logging. If not
-         * specified, it defaults to 150,000 nodes.
+         * The number of nodes after which an update about the compaction process is logged. Set to
+         * a negative number to disable progress logging. If not specified, it defaults to 150,000
+         * nodes.
          *
-         * @param gcLogInterval
-         *            The log interval.
+         * @param gcLogInterval The log interval.
          * @return this builder.
          */
         public Builder withGCLogInterval(long gcLogInterval) {
@@ -164,6 +154,7 @@ public class AzureCompact {
 
         /**
          * The garbage collection type used. If not specified it defaults to full compaction
+         *
          * @param gcType the GC type
          * @return this builder
          */
@@ -173,8 +164,9 @@ public class AzureCompact {
         }
 
         /**
-         * The compactor type to be used by compaction. If not specified it defaults to
-         * "parallel" compactor
+         * The compactor type to be used by compaction. If not specified it defaults to "parallel"
+         * compactor
+         *
          * @param compactorType the compactor type
          * @return this builder
          */
@@ -184,7 +176,9 @@ public class AzureCompact {
         }
 
         /**
-         * The number of threads to be used for compaction. This only applies to the "parallel" compactor
+         * The number of threads to be used for compaction. This only applies to the "parallel"
+         * compactor
+         *
          * @param concurrency the number of threads
          * @return this builder
          */
@@ -196,8 +190,7 @@ public class AzureCompact {
         /**
          * The path where segments in the persistent cache will be stored.
          *
-         * @param persistentCachePath
-         *             the path to the persistent cache.
+         * @param persistentCachePath the path to the persistent cache.
          * @return this builder
          */
         public Builder withPersistentCachePath(String persistentCachePath) {
@@ -208,8 +201,7 @@ public class AzureCompact {
         /**
          * The maximum size in GB of the persistent disk cache.
          *
-         * @param persistentCacheSizeGb
-         *             the maximum size of the persistent cache.
+         * @param persistentCacheSizeGb the maximum size of the persistent cache.
          * @return this builder
          */
         public Builder withPersistentCacheSizeGb(Integer persistentCacheSizeGb) {
@@ -263,10 +255,13 @@ public class AzureCompact {
 
     public int run() throws IOException, StorageException, URISyntaxException {
         Stopwatch watch = Stopwatch.createStarted();
-        SegmentNodeStorePersistence roPersistence = newSegmentNodeStorePersistence(SegmentStoreType.AZURE, path, persistentCachePath, persistentCacheSizeGb);
-        SegmentNodeStorePersistence rwPersistence = newSegmentNodeStorePersistence(SegmentStoreType.AZURE, targetPath);
+        SegmentNodeStorePersistence roPersistence = newSegmentNodeStorePersistence(
+            SegmentStoreType.AZURE, path, persistentCachePath, persistentCacheSizeGb);
+        SegmentNodeStorePersistence rwPersistence = newSegmentNodeStorePersistence(
+            SegmentStoreType.AZURE, targetPath);
 
-        SegmentNodeStorePersistence splitPersistence = new SplitPersistence(roPersistence, rwPersistence);
+        SegmentNodeStorePersistence splitPersistence = new SplitPersistence(roPersistence,
+            rwPersistence);
 
         SegmentArchiveManager roArchiveManager = createArchiveManager(roPersistence);
         SegmentArchiveManager rwArchiveManager = createArchiveManager(rwPersistence);
@@ -284,8 +279,9 @@ public class AzureCompact {
         printArchives(System.out, beforeArchives);
         System.out.printf("    -> compacting\n");
 
-        try (FileStore store = newFileStore(splitPersistence, Files.createTempDir(), strictVersionCheck, segmentCacheSize,
-                gcLogInterval, compactorType, concurrency)) {
+        try (FileStore store = newFileStore(splitPersistence, Files.createTempDir(),
+            strictVersionCheck, segmentCacheSize,
+            gcLogInterval, compactorType, concurrency)) {
             boolean success = false;
             switch (gcType) {
                 case FULL:
@@ -330,7 +326,8 @@ public class AzureCompact {
     private long printTargetRepoSizeInfo(CloudBlobContainer container) {
         System.out.printf("Calculating the size of container %s\n", container.getName());
         long size = 0;
-        for (ListBlobItem i : container.listBlobs(null, true, EnumSet.of(BlobListingDetails.METADATA), null, null)) {
+        for (ListBlobItem i : container.listBlobs(null, true,
+            EnumSet.of(BlobListingDetails.METADATA), null, null)) {
             if (i instanceof CloudBlob) {
                 size += ((CloudBlob) i).getProperties().getLength();
             }

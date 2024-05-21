@@ -16,10 +16,11 @@
  */
 package org.apache.jackrabbit.oak.exercise.security.privilege;
 
+import static org.junit.Assert.assertEquals;
+
 import java.util.Set;
 import javax.jcr.RepositoryException;
 import javax.jcr.security.Privilege;
-
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -27,15 +28,13 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.exercise.security.authorization.permission.L4_PrivilegesAndPermissionsTest;
 import org.apache.jackrabbit.oak.exercise.security.authorization.permission.L7_PermissionContentTest;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeDefinition;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeUtil;
-import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
 
 /**
  * <pre>
@@ -127,7 +126,8 @@ public class L5_PrivilegeContentTest extends AbstractSecurityTest {
 
     @Test
     public void testPrivilegeDefinition() throws RepositoryException {
-        Tree repWriteTree = PrivilegeUtil.getPrivilegesTree(root).getChild(PrivilegeConstants.REP_WRITE);
+        Tree repWriteTree = PrivilegeUtil.getPrivilegesTree(root)
+                                         .getChild(PrivilegeConstants.REP_WRITE);
 
         PrivilegeDefinition def = PrivilegeUtil.readDefinition(repWriteTree);
 
@@ -141,16 +141,20 @@ public class L5_PrivilegeContentTest extends AbstractSecurityTest {
         assertEquals(expectedAggregates, def.getDeclaredAggregateNames());
 
         // EXERCISE: compare the internal privilege definition (and it's tree representation) with the privilege itself.
-        Privilege repWritePrivilege = getPrivilegeManager(root).getPrivilege(PrivilegeConstants.REP_WRITE);
+        Privilege repWritePrivilege = getPrivilegeManager(root).getPrivilege(
+            PrivilegeConstants.REP_WRITE);
     }
 
     @Test
     public void testPrivilegeBits() {
-        Tree jcrReadTree = PrivilegeUtil.getPrivilegesTree(root).getChild(PrivilegeConstants.JCR_READ);
-        Tree repWriteTree = PrivilegeUtil.getPrivilegesTree(root).getChild(PrivilegeConstants.REP_WRITE);
+        Tree jcrReadTree = PrivilegeUtil.getPrivilegesTree(root)
+                                        .getChild(PrivilegeConstants.JCR_READ);
+        Tree repWriteTree = PrivilegeUtil.getPrivilegesTree(root)
+                                         .getChild(PrivilegeConstants.REP_WRITE);
 
         PrivilegeBitsProvider provider = new PrivilegeBitsProvider(root);
-        PrivilegeBits privilegeBits = provider.getBits(PrivilegeConstants.REP_WRITE, PrivilegeBits.JCR_READ);
+        PrivilegeBits privilegeBits = provider.getBits(PrivilegeConstants.REP_WRITE,
+            PrivilegeBits.JCR_READ);
 
         PrivilegeBits readBits = PrivilegeBits.getInstance(jcrReadTree);
         PrivilegeBits writeBits = PrivilegeBits.getInstance(jcrReadTree);
@@ -161,7 +165,8 @@ public class L5_PrivilegeContentTest extends AbstractSecurityTest {
 
     @Test
     public void testNext() throws RepositoryException, CommitFailedException {
-        PropertyState next = PrivilegeUtil.getPrivilegesTree(root).getProperty(PrivilegeConstants.REP_NEXT);
+        PropertyState next = PrivilegeUtil.getPrivilegesTree(root)
+                                          .getProperty(PrivilegeConstants.REP_NEXT);
 
         PrivilegeManager privilegeManager = getPrivilegeManager(root);
         Privilege newPrivilege = privilegeManager.registerPrivilege("myPrivilege", true, null);
@@ -169,7 +174,8 @@ public class L5_PrivilegeContentTest extends AbstractSecurityTest {
 
         // EXERCISE: compare the 'next' property state with rep:bits property of the newly created privilege.
 
-        PropertyState nextAgain = PrivilegeUtil.getPrivilegesTree(root).getProperty(PrivilegeConstants.REP_NEXT);
+        PropertyState nextAgain = PrivilegeUtil.getPrivilegesTree(root)
+                                               .getProperty(PrivilegeConstants.REP_NEXT);
 
         // EXERCISE: look at the new value of rep:next and explain it. Q: where did it get modified?
 

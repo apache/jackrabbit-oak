@@ -18,6 +18,11 @@
  */
 package org.apache.jackrabbit.oak.segment.osgi;
 
+import static org.osgi.framework.Constants.SERVICE_PID;
+import static org.osgi.service.component.annotations.ReferencePolicyOption.GREEDY;
+
+import java.io.IOException;
+import java.util.Properties;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 import org.apache.jackrabbit.oak.segment.spi.persistence.split.SplitPersistence;
@@ -27,12 +32,6 @@ import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Deactivate;
 import org.osgi.service.component.annotations.Reference;
-
-import java.io.IOException;
-import java.util.Properties;
-
-import static org.osgi.framework.Constants.SERVICE_PID;
-import static org.osgi.service.component.annotations.ReferencePolicyOption.GREEDY;
 
 @Component
 public class SplitPersistenceService {
@@ -53,15 +52,15 @@ public class SplitPersistenceService {
     void activate(BundleContext bundleContext) throws IOException {
         final OsgiWhiteboard whiteboard = new OsgiWhiteboard(bundleContext);
         registration = whiteboard.register(
-                SegmentNodeStorePersistence.class,
-                new SplitPersistence(roPersistence, rwPersistence),
-                new Properties() {{
-                    put(SERVICE_PID, String.format("%s(%s, %s)",
-                            SplitPersistence.class.getName(),
-                            roPersistence.getClass().getSimpleName(),
-                            rwPersistence.getClass().getSimpleName()));
-                    put("role", "split-persistence");
-                }});
+            SegmentNodeStorePersistence.class,
+            new SplitPersistence(roPersistence, rwPersistence),
+            new Properties() {{
+                put(SERVICE_PID, String.format("%s(%s, %s)",
+                    SplitPersistence.class.getName(),
+                    roPersistence.getClass().getSimpleName(),
+                    rwPersistence.getClass().getSimpleName()));
+                put("role", "split-persistence");
+            }});
     }
 
     @Deactivate

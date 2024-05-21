@@ -19,9 +19,10 @@
 
 package org.apache.jackrabbit.oak.index;
 
+import static org.apache.commons.io.FileUtils.ONE_GB;
+
 import java.io.File;
 import java.io.IOException;
-
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.run.cli.DocumentBuilderCustomizer;
@@ -30,9 +31,8 @@ import org.apache.jackrabbit.oak.run.cli.Options;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.commons.io.FileUtils.ONE_GB;
-
 class IndexDocumentBuilderCustomizer implements DocumentBuilderCustomizer {
+
     private static final String PERSISTENT_CACHE_PROP = "oak.documentMK.persCache";
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final Options opts;
@@ -59,7 +59,8 @@ class IndexDocumentBuilderCustomizer implements DocumentBuilderCustomizer {
         if (System.getProperty(PERSISTENT_CACHE_PROP) == null) {
             File temp = opts.getOptionBean(IndexOptions.class).getWorkDir();
             File cache = new File(temp, "cache");
-            String cacheConfig = String.format("%s,size=4096,binary=0,-nodes,-children", cache.getAbsolutePath());
+            String cacheConfig = String.format("%s,size=4096,binary=0,-nodes,-children",
+                cache.getAbsolutePath());
             builder.setPersistentCache(cacheConfig);
             log.info("Persistent cache set to [{}]", cacheConfig);
         }
@@ -68,10 +69,10 @@ class IndexDocumentBuilderCustomizer implements DocumentBuilderCustomizer {
     private void configureCacheForReadOnlyMode(DocumentNodeStoreBuilder<?> builder) {
         if (!docStoreOpts.isCacheDistributionDefined()) {
             builder.memoryCacheDistribution(
-                    35,
-                    10,
-                    15,
-                    2
+                35,
+                10,
+                15,
+                2
             );
         }
 
@@ -92,7 +93,8 @@ class IndexDocumentBuilderCustomizer implements DocumentBuilderCustomizer {
             long maxMem = Runtime.getRuntime().maxMemory();
             long memToUse = Math.min(ONE_GB * 4, maxMem / 2);
             builder.memoryCacheSize(memToUse);
-            log.info("Initializing cache size to {} ({})", memToUse, IOUtils.humanReadableByteCount(memToUse));
+            log.info("Initializing cache size to {} ({})", memToUse,
+                IOUtils.humanReadableByteCount(memToUse));
         }
     }
 }

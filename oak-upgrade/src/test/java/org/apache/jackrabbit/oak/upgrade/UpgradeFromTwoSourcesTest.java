@@ -20,10 +20,8 @@ import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreB
 
 import java.io.File;
 import java.io.IOException;
-
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.core.RepositoryContext;
 import org.apache.jackrabbit.core.RepositoryImpl;
@@ -38,8 +36,8 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 /**
- * Test case that simulates copying different paths from two source repositories
- * into a single target repository.
+ * Test case that simulates copying different paths from two source repositories into a single
+ * target repository.
  */
 public class UpgradeFromTwoSourcesTest extends AbstractRepositoryUpgradeTest {
 
@@ -104,7 +102,8 @@ public class UpgradeFromTwoSourcesTest extends AbstractRepositoryUpgradeTest {
         }
     }
 
-    private void doUpgradeRepository(File source, NodeStore target, String... includes) throws RepositoryException {
+    private void doUpgradeRepository(File source, NodeStore target, String... includes)
+        throws RepositoryException {
         final RepositoryConfig config = RepositoryConfig.create(source);
         final RepositoryContext context = RepositoryContext.create(config);
         try {
@@ -140,24 +139,24 @@ public class UpgradeFromTwoSourcesTest extends AbstractRepositoryUpgradeTest {
     @Test
     public void shouldContainNodesFromBothSources() throws Exception {
         assertExisting(
-                "/",
-                "/left",
-                "/left/child1",
-                "/left/child2",
-                "/left/child3",
-                "/left/child1/grandchild1",
-                "/left/child1/grandchild2",
-                "/left/child1/grandchild3",
-                "/left/child2/grandchild2",
-                "/left/child2/grandchild3",
-                "/right",
-                "/right/child1",
-                "/right/child1/grandchild1",
-                "/right/child1/grandchild2"
+            "/",
+            "/left",
+            "/left/child1",
+            "/left/child2",
+            "/left/child3",
+            "/left/child1/grandchild1",
+            "/left/child1/grandchild2",
+            "/left/child1/grandchild3",
+            "/left/child2/grandchild2",
+            "/left/child2/grandchild3",
+            "/right",
+            "/right/child1",
+            "/right/child1/grandchild1",
+            "/right/child1/grandchild2"
         );
 
         assertMissing(
-                "/left/child2/grandchild1"
+            "/left/child2/grandchild1"
         );
     }
 }

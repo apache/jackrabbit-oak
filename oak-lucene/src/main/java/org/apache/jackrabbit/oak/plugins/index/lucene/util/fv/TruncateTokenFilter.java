@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene.util.fv;
 
 import java.io.IOException;
-
 import org.apache.lucene.analysis.TokenFilter;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
@@ -34,22 +33,23 @@ class TruncateTokenFilter extends TokenFilter {
     private final int length;
 
     TruncateTokenFilter(TokenStream input, int length) {
-      super(input);
-      if (length < 1) {
-        throw new IllegalArgumentException("length parameter must be a positive number: " + length);
-      }
-      this.length = length;
+        super(input);
+        if (length < 1) {
+            throw new IllegalArgumentException(
+                "length parameter must be a positive number: " + length);
+        }
+        this.length = length;
     }
 
     @Override
     public final boolean incrementToken() throws IOException {
-      if (input.incrementToken()) {
-        if (!keywordAttr.isKeyword() && termAttribute.length() > length) {
-          termAttribute.setLength(length);
+        if (input.incrementToken()) {
+            if (!keywordAttr.isKeyword() && termAttribute.length() > length) {
+                termAttribute.setLength(length);
+            }
+            return true;
+        } else {
+            return false;
         }
-        return true;
-      } else {
-        return false;
-      }
     }
-  }
+}

@@ -18,8 +18,8 @@
 
 package org.apache.jackrabbit.oak.segment.tool.iotrace;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static java.lang.String.valueOf;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 
@@ -28,7 +28,6 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Function;
-
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
@@ -36,14 +35,15 @@ import org.jetbrains.annotations.NotNull;
 /**
  * A depth first traversal trace.
  * <p>
- * When {@link Trace#run(NodeState) run} this trace performs a depth first traversal starting
- * from the passed node down to a certain depth. It logs the current depth, the number of traversed
- * nodes and the current path as additional {@link IOTracer#setContext(List) context}.
+ * When {@link Trace#run(NodeState) run} this trace performs a depth first traversal starting from
+ * the passed node down to a certain depth. It logs the current depth, the number of traversed nodes
+ * and the current path as additional {@link IOTracer#setContext(List) context}.
  */
 public class DepthFirstTrace implements Trace {
 
     /**
      * The context specification of this trace.
+     *
      * @see IOTracer#newIOTracer(Function, Writer, String)
      */
     @NotNull
@@ -62,11 +62,13 @@ public class DepthFirstTrace implements Trace {
 
     /**
      * Create a new instance of a depth first traversal trace.
-     * @param depth     maximal depth of the nodes to traverse
-     * @param path      path of the root node where to start traversing
-     * @param context   consumer to pass the additional context to
+     *
+     * @param depth   maximal depth of the nodes to traverse
+     * @param path    path of the root node where to start traversing
+     * @param context consumer to pass the additional context to
      */
-    public DepthFirstTrace(int depth, @NotNull String path, @NotNull Consumer<List<String>> context) {
+    public DepthFirstTrace(int depth, @NotNull String path,
+        @NotNull Consumer<List<String>> context) {
         checkArgument(depth >= 0);
 
         this.depth = depth;
@@ -99,7 +101,7 @@ public class DepthFirstTrace implements Trace {
     }
 
     private static void updateContext(
-            @NotNull Consumer<List<String>> context, int depth, int count, @NotNull String path) {
+        @NotNull Consumer<List<String>> context, int depth, int count, @NotNull String path) {
         context.accept(ImmutableList.of(valueOf(depth), valueOf(count), path));
     }
 

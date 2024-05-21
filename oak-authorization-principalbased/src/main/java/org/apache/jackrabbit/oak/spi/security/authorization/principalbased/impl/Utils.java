@@ -45,20 +45,22 @@ final class Utils implements Constants {
 
     private static final Logger log = LoggerFactory.getLogger(Utils.class);
 
-    private Utils() {}
+    private Utils() {
+    }
 
     /**
-     * Returns {@code true} if the given tree exists and represents a valid principal policy node, i.e. name equals to
-     * {@link #REP_PRINCIPAL_POLICY} and primary type name equals to {@link #NT_REP_PRINCIPAL_POLICY}. Otherwise this
-     * method returns {@code false}.
+     * Returns {@code true} if the given tree exists and represents a valid principal policy node,
+     * i.e. name equals to {@link #REP_PRINCIPAL_POLICY} and primary type name equals to
+     * {@link #NT_REP_PRINCIPAL_POLICY}. Otherwise this method returns {@code false}.
      *
      * @param tree The tree to be tested.
-     * @return {@code true} if the given tree exists and represents a valid principal policy node, i.e. name equals to
-     * {@link #REP_PRINCIPAL_POLICY} and primary type name equals to {@link #NT_REP_PRINCIPAL_POLICY}; otherwise
-     * returns {@code false}.
+     * @return {@code true} if the given tree exists and represents a valid principal policy node,
+     * i.e. name equals to {@link #REP_PRINCIPAL_POLICY} and primary type name equals to
+     * {@link #NT_REP_PRINCIPAL_POLICY}; otherwise returns {@code false}.
      */
     public static boolean isPrincipalPolicyTree(@NotNull Tree tree) {
-        return tree.exists() && REP_PRINCIPAL_POLICY.equals(tree.getName()) && NT_REP_PRINCIPAL_POLICY.equals(TreeUtil.getPrimaryTypeName(tree));
+        return tree.exists() && REP_PRINCIPAL_POLICY.equals(tree.getName())
+            && NT_REP_PRINCIPAL_POLICY.equals(TreeUtil.getPrimaryTypeName(tree));
     }
 
     public static boolean isPrincipalEntry(@NotNull Tree tree) {
@@ -66,15 +68,17 @@ final class Utils implements Constants {
     }
 
     /**
-     * Validate the specified {@code principal} taking the configured
-     * {@link ImportBehavior} into account.
+     * Validate the specified {@code principal} taking the configured {@link ImportBehavior} into
+     * account.
      *
      * @param principal The principal to validate.
      * @return if the principal can be handled by the filter
-     * @throws AccessControlException If the principal has an invalid name or
-     * if {@link ImportBehavior#ABORT} is configured and this principal cannot be handled by the filter.
+     * @throws AccessControlException If the principal has an invalid name or if
+     *                                {@link ImportBehavior#ABORT} is configured and this principal
+     *                                cannot be handled by the filter.
      */
-    public static boolean canHandle(@NotNull Principal principal, @NotNull Filter filter, int importBehavior) throws AccessControlException {
+    public static boolean canHandle(@NotNull Principal principal, @NotNull Filter filter,
+        int importBehavior) throws AccessControlException {
         String name = principal.getName();
         if (Strings.isNullOrEmpty(name)) {
             throw new AccessControlException("Invalid principal " + name);
@@ -98,15 +102,17 @@ final class Utils implements Constants {
     }
 
     /**
-     * Returns an array of privileges from the given Oak names. Note that {@link RepositoryException} thrown by
-     * {@link PrivilegeManager#getPrivilege(String)} will be swallowed but notified in the error log.
+     * Returns an array of privileges from the given Oak names. Note that
+     * {@link RepositoryException} thrown by {@link PrivilegeManager#getPrivilege(String)} will be
+     * swallowed but notified in the error log.
      *
-     * @param privilegeNames The Oak names of privileges as stored in the repository.
+     * @param privilegeNames   The Oak names of privileges as stored in the repository.
      * @param privilegeManager The {@link PrivilegeManager} to retrieve the privileges.
-     * @param namePathMapper The {@link NamePathMapper} to convert the Oak names to JCR names.
+     * @param namePathMapper   The {@link NamePathMapper} to convert the Oak names to JCR names.
      * @return An array of {@link Privilege} for the given names.
      */
-    public static Privilege[] privilegesFromOakNames(@NotNull Set<String> privilegeNames, @NotNull PrivilegeManager privilegeManager, @NotNull NamePathMapper namePathMapper) {
+    public static Privilege[] privilegesFromOakNames(@NotNull Set<String> privilegeNames,
+        @NotNull PrivilegeManager privilegeManager, @NotNull NamePathMapper namePathMapper) {
         return Collections2.filter(Collections2.transform(privilegeNames, privilegeName -> {
             try {
                 return privilegeManager.getPrivilege(namePathMapper.getJcrName(privilegeName));
@@ -117,53 +123,61 @@ final class Utils implements Constants {
         }), Predicates.notNull()).toArray(new Privilege[0]);
     }
 
-    public static boolean hasModAcPermission(@NotNull PermissionProvider permissionProvider, @NotNull String effectivePath) {
+    public static boolean hasModAcPermission(@NotNull PermissionProvider permissionProvider,
+        @NotNull String effectivePath) {
         if (REPOSITORY_PERMISSION_PATH.equals(effectivePath)) {
-            return permissionProvider.getRepositoryPermission().isGranted(Permissions.MODIFY_ACCESS_CONTROL);
+            return permissionProvider.getRepositoryPermission()
+                                     .isGranted(Permissions.MODIFY_ACCESS_CONTROL);
         } else {
-            return permissionProvider.isGranted(effectivePath, Permissions.getString(Permissions.MODIFY_ACCESS_CONTROL));
+            return permissionProvider.isGranted(effectivePath,
+                Permissions.getString(Permissions.MODIFY_ACCESS_CONTROL));
         }
     }
 
     /**
-     * Tests if the given ACE tree comes with any restrictions. Since node type {@code rep:PrincipalEntry} requires 
-     * restrictions to be stored in a separate {@code rep:restrictions} child node, this can be determined by checking if
-     * a restriction child-node exists.
-     * 
+     * Tests if the given ACE tree comes with any restrictions. Since node type
+     * {@code rep:PrincipalEntry} requires restrictions to be stored in a separate
+     * {@code rep:restrictions} child node, this can be determined by checking if a restriction
+     * child-node exists.
+     *
      * @param aceTree The tree defining the principal-based access control entry
      * @return {@code true} if the given ACE defines restrictions, {@code false} otherwise.
      */
     public static boolean hasRestrictions(@NotNull Tree aceTree) {
         return aceTree.hasChild(REP_RESTRICTIONS);
     }
-    
-    public static boolean hasValidRestrictions(@Nullable String oakPath, @NotNull Tree aceTree, @NotNull RestrictionProvider restrictionProvider) {
+
+    public static boolean hasValidRestrictions(@Nullable String oakPath, @NotNull Tree aceTree,
+        @NotNull RestrictionProvider restrictionProvider) {
         if (hasRestrictions(aceTree)) {
             try {
                 restrictionProvider.validateRestrictions(oakPath, aceTree);
                 return true;
             } catch (RepositoryException e) {
-                log.warn("Access control entry at {} contains unsupported restrictions: {}", oakPath, e.getMessage());
+                log.warn("Access control entry at {} contains unsupported restrictions: {}",
+                    oakPath, e.getMessage());
                 return false;
-            } 
+            }
         } else {
-            // no restriction tree present -> skip validation as principal-acl does not allow for restriction properties 
-            // on the ACE-node itself as the regular rep:policy in the default access control management. 
+            // no restriction tree present -> skip validation as principal-acl does not allow for restriction properties
+            // on the ACE-node itself as the regular rep:policy in the default access control management.
             return true;
         }
     }
 
     /**
-     * Utility method that conditionally reads restrictions from provider if the given {@code aceTree} has restriction 
-     * child tree, i.e. combining {@link #hasRestrictions(Tree)} with {@link RestrictionProvider#readRestrictions(String, Tree)}.
-     * 
-     * @param provider The restriction provider
+     * Utility method that conditionally reads restrictions from provider if the given
+     * {@code aceTree} has restriction child tree, i.e. combining {@link #hasRestrictions(Tree)}
+     * with {@link RestrictionProvider#readRestrictions(String, Tree)}.
+     *
+     * @param provider      The restriction provider
      * @param effectivePath The effective path
-     * @param aceTree The ace tree
-     * @return restrictions as read from the provider if the given {@code aceTree} has a rep:restriction child. otherwise,
-     * an empty set without calling the provider.
+     * @param aceTree       The ace tree
+     * @return restrictions as read from the provider if the given {@code aceTree} has a
+     * rep:restriction child. otherwise, an empty set without calling the provider.
      */
-    public static Set<Restriction> readRestrictions(@NotNull RestrictionProvider provider, @Nullable String effectivePath, @NotNull Tree aceTree) {
+    public static Set<Restriction> readRestrictions(@NotNull RestrictionProvider provider,
+        @Nullable String effectivePath, @NotNull Tree aceTree) {
         if (hasRestrictions(aceTree)) {
             return provider.readRestrictions(effectivePath, aceTree);
         } else {

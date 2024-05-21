@@ -21,19 +21,20 @@ package org.apache.jackrabbit.oak.benchmark.util;
 import co.elastic.clients.elasticsearch.indices.DeleteIndexResponse;
 import co.elastic.clients.elasticsearch.indices.GetAliasResponse;
 import co.elastic.clients.elasticsearch.indices.get_alias.IndexAliases;
+import java.io.IOException;
+import java.util.Map;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexNameHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.util.Map;
-
 public class TestHelper {
 
     private static final Logger LOG = LoggerFactory.getLogger(TestHelper.class);
+
     /**
      * Generates a unique index name from the given suggestion.
+     *
      * @param name name suggestion
      * @return unique index name
      */
@@ -44,16 +45,21 @@ public class TestHelper {
     /*
     Deletes the remote elastic index from the elastic server.
      */
-    public static void cleanupRemoteElastic(ElasticConnection connection, String indexName) throws IOException {
-        String alias =  ElasticIndexNameHelper.getElasticSafeIndexName(connection.getIndexPrefix(), "/oak:index/" + indexName);
+    public static void cleanupRemoteElastic(ElasticConnection connection, String indexName)
+        throws IOException {
+        String alias = ElasticIndexNameHelper.getElasticSafeIndexName(connection.getIndexPrefix(),
+            "/oak:index/" + indexName);
         // get and delete the indexes which this alias is pointing to
-        GetAliasResponse aliasResponse = connection.getClient().indices().getAlias(fn -> fn.name(alias));
+        GetAliasResponse aliasResponse = connection.getClient().indices()
+                                                   .getAlias(fn -> fn.name(alias));
         Map<String, IndexAliases> aliases = aliasResponse.result();
         for (String remoteIndexName : aliases.keySet()) {
             DeleteIndexResponse deleteIndexResponse = connection.getClient().indices().
-                    delete(fn -> fn.index(remoteIndexName));
+                                                                delete(fn -> fn.index(
+                                                                    remoteIndexName));
             if (!deleteIndexResponse.acknowledged()) {
-                LOG.warn("Delete index call not acknowledged for index " + remoteIndexName + " .Please check if remote index deleted or not.");
+                LOG.warn("Delete index call not acknowledged for index " + remoteIndexName
+                    + " .Please check if remote index deleted or not.");
             }
         }
     }

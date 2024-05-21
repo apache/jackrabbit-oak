@@ -16,20 +16,17 @@
  */
 package org.apache.jackrabbit.oak.jcr.delegate;
 
-import java.util.List;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.JcrConstants.JCR_PREDECESSORS;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
+import java.util.List;
 import javax.jcr.RepositoryException;
-
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import org.apache.jackrabbit.guava.common.collect.Lists;
 
 /**
  * {@code VersionDelegate}...
@@ -41,7 +38,7 @@ public class VersionDelegate extends NodeDelegate {
     }
 
     static VersionDelegate create(@NotNull SessionDelegate sessionDelegate,
-                                  @NotNull Tree tree) {
+        @NotNull Tree tree) {
         return new VersionDelegate(sessionDelegate, tree);
     }
 
@@ -50,18 +47,18 @@ public class VersionDelegate extends NodeDelegate {
         NodeDelegate frozenNode = getChild(JcrConstants.JCR_FROZENNODE);
         if (frozenNode == null) {
             throw new RepositoryException("Inconsistent version storage. " +
-                    "Version at " + getPath() + " does not have a jcr:frozenNode");
+                "Version at " + getPath() + " does not have a jcr:frozenNode");
         }
         return frozenNode;
     }
 
     @NotNull
     public Iterable<VersionDelegate> getPredecessors()
-            throws RepositoryException {
+        throws RepositoryException {
         PropertyDelegate p = getPropertyOrNull(JCR_PREDECESSORS);
         if (p == null) {
             throw new RepositoryException("Inconsistent version storage. " +
-                    "Version does not have a " + JCR_PREDECESSORS + " property.");
+                "Version does not have a " + JCR_PREDECESSORS + " property.");
         }
         List<VersionDelegate> predecessors = Lists.newArrayList();
         VersionManagerDelegate vMgr = VersionManagerDelegate.create(sessionDelegate);

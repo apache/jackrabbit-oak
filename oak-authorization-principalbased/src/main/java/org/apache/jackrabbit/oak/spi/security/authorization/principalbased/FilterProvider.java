@@ -23,23 +23,26 @@ import org.jetbrains.annotations.NotNull;
 import org.osgi.annotation.versioning.ProviderType;
 
 /**
- * Interface that allows to define the principals for which principal based access control management and permission
- * evaluation can be executed. For any other principals this module would never take effect.
+ * Interface that allows to define the principals for which principal based access control
+ * management and permission evaluation can be executed. For any other principals this module would
+ * never take effect.
  */
 @ProviderType
 public interface FilterProvider {
 
     /**
-     * Reveals if the given implementation is able to handle access control at the tree defined by the given {@code oakPath}.
+     * Reveals if the given implementation is able to handle access control at the tree defined by
+     * the given {@code oakPath}.
      *
      * @param oakPath The absolute oak path to be tested.
-     * @return {@code true} if the given path is supported by this implememntation, {@code false} otherwise.
+     * @return {@code true} if the given path is supported by this implememntation, {@code false}
+     * otherwise.
      */
     boolean handlesPath(@NotNull String oakPath);
 
     /**
-     * Returns the root path handled by the filer. In case multiple paths are supported this method returns the common
-     * ancestor path.
+     * Returns the root path handled by the filer. In case multiple paths are supported this method
+     * returns the common ancestor path.
      *
      * @return An absolute oak path.
      */
@@ -50,10 +53,11 @@ public interface FilterProvider {
      * Returns a {@link Filter} for the given parameters.
      *
      * @param securityProvider The security provider.
-     * @param root The reading/editing root.
-     * @param namePathMapper The name path mapper.
+     * @param root             The reading/editing root.
+     * @param namePathMapper   The name path mapper.
      * @return A new filter associated with the given parameters.
      */
     @NotNull
-    Filter getFilter(@NotNull SecurityProvider securityProvider, @NotNull Root root, @NotNull NamePathMapper namePathMapper);
+    Filter getFilter(@NotNull SecurityProvider securityProvider, @NotNull Root root,
+        @NotNull NamePathMapper namePathMapper);
 }

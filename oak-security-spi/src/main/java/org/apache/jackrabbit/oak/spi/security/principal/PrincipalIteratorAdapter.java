@@ -19,15 +19,14 @@ package org.apache.jackrabbit.oak.spi.security.principal;
 import java.security.Principal;
 import java.util.Collection;
 import java.util.Iterator;
-
 import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
 import org.apache.jackrabbit.commons.iterator.RangeIteratorAdapter;
 import org.apache.jackrabbit.commons.iterator.RangeIteratorDecorator;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Principal specific {@code RangeIteratorAdapter} implementing the
- * {@code PrincipalIterator} interface.
+ * Principal specific {@code RangeIteratorAdapter} implementing the {@code PrincipalIterator}
+ * interface.
  */
 public class PrincipalIteratorAdapter extends RangeIteratorDecorator implements PrincipalIterator {
 
@@ -36,7 +35,7 @@ public class PrincipalIteratorAdapter extends RangeIteratorDecorator implements 
      */
     @SuppressWarnings("unchecked")
     public static final PrincipalIteratorAdapter EMPTY =
-            new PrincipalIteratorAdapter((Iterator<? extends Principal>) RangeIteratorAdapter.EMPTY);
+        new PrincipalIteratorAdapter((Iterator<? extends Principal>) RangeIteratorAdapter.EMPTY);
 
     /**
      * Creates an adapter for the given {@link java.util.Iterator} of principals.
@@ -57,6 +56,7 @@ public class PrincipalIteratorAdapter extends RangeIteratorDecorator implements 
     }
 
     //----------------------------------------< AccessControlPolicyIterator >---
+
     /**
      * Returns the next policy.
      *

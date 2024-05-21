@@ -91,7 +91,7 @@ public class DocumentMKNodeExistsTest extends BaseDocumentMKTest {
     @Test
     public void grandParentDelete() throws Exception {
         mk.commit("/", "+\"a\" : { \"b\" : { \"c\" : { \"d\" : {} } } }", null,
-                "Add /a/b/c/d");
+            "Add /a/b/c/d");
 
         mk.commit("/a", "-\"b\"", null, "Remove /b");
 

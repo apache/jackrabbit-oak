@@ -17,12 +17,6 @@
 
 package org.apache.jackrabbit.oak.segment.standby.client;
 
-import java.io.File;
-import java.io.InputStream;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingDeque;
-import java.util.concurrent.TimeUnit;
-
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
@@ -39,6 +33,11 @@ import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import io.netty.handler.timeout.ReadTimeoutHandler;
 import io.netty.util.CharsetUtil;
+import java.io.File;
+import java.io.InputStream;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.TimeUnit;
 import org.apache.jackrabbit.oak.segment.standby.codec.GetBlobRequest;
 import org.apache.jackrabbit.oak.segment.standby.codec.GetBlobRequestEncoder;
 import org.apache.jackrabbit.oak.segment.standby.codec.GetBlobResponse;
@@ -77,7 +76,8 @@ class StandbyClient implements AutoCloseable {
         private String sslChainFile;
         public String sslSubjectPattern;
 
-        private Builder() {}
+        private Builder() {
+        }
 
         public Builder withHost(String host) {
             this.host = host;
@@ -175,9 +175,12 @@ class StandbyClient implements AutoCloseable {
                     if (builder.secure) {
                         SslContext sslContext;
                         if (builder.sslKeyFile != null && !"".equals(builder.sslKeyFile)) {
-                            sslContext = SslContextBuilder.forClient().keyManager(new File(builder.sslChainFile), new File(builder.sslKeyFile), builder.sslKeyPassword).build();
+                            sslContext = SslContextBuilder.forClient().keyManager(
+                                new File(builder.sslChainFile), new File(builder.sslKeyFile),
+                                builder.sslKeyPassword).build();
                         } else {
-                            sslContext = SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE).build();
+                            sslContext = SslContextBuilder.forClient().trustManager(
+                                InsecureTrustManagerFactory.INSTANCE).build();
                         }
                         p.addLast("ssl", sslContext.newHandler(ch.alloc()));
 
@@ -289,5 +292,5 @@ class StandbyClient implements AutoCloseable {
     public int getReadTimeoutMs() {
         return readTimeoutMs;
     }
-    
+
 }

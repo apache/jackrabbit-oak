@@ -19,22 +19,20 @@
 
 package org.apache.jackrabbit.oak.segment.file;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static java.lang.Thread.currentThread;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * A {@code Runnable} implementation that is safe to submit to an executor or
- * {@link Scheduler}.
+ * A {@code Runnable} implementation that is safe to submit to an executor or {@link Scheduler}.
  * <p>
- * When this implementation's {@link #run()} method is invoked, it will set the
- * name of the current thread to the name passed to {@link SafeRunnable}, run
- * the wrapped runnable and finally restore the initial thread name. When the
- * wrapped runnable throws any unhandled exception, this exception is logged at
- * error level and the exception is re-thrown.
+ * When this implementation's {@link #run()} method is invoked, it will set the name of the current
+ * thread to the name passed to {@link SafeRunnable}, run the wrapped runnable and finally restore
+ * the initial thread name. When the wrapped runnable throws any unhandled exception, this exception
+ * is logged at error level and the exception is re-thrown.
  */
 class SafeRunnable implements Runnable {
 
@@ -47,8 +45,7 @@ class SafeRunnable implements Runnable {
     private final Runnable runnable;
 
     /**
-     * New instance with the given {@code name} wrapping the passed {@code
-     * runnable}.
+     * New instance with the given {@code name} wrapping the passed {@code runnable}.
      *
      * @param name     The name of the background operation.
      * @param runnable The background operation.

@@ -20,7 +20,6 @@ import javax.jcr.Node;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.commons.UUIDUtils;
 import org.apache.jackrabbit.test.AbstractJCRTest;
@@ -83,10 +82,9 @@ public class MoveTest extends AbstractJCRTest {
     }
 
     /**
-     * Simulate a 'rename' call using 3 sessions:
-     * - 1st create a node that has a '.tmp' extension 
-     * - 2nd remove the '.tmp' by issuing a Session#move call on a new session
-     * - 3rd verify the move by issuing a #getNode call on the destination path using a new session
+     * Simulate a 'rename' call using 3 sessions: - 1st create a node that has a '.tmp' extension -
+     * 2nd remove the '.tmp' by issuing a Session#move call on a new session - 3rd verify the move
+     * by issuing a #getNode call on the destination path using a new session
      */
     @Test
     public void testOak898() throws Exception {

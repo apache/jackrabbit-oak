@@ -18,14 +18,23 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
+import static org.apache.jackrabbit.guava.common.collect.ImmutableList.of;
+import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
+import static org.apache.jackrabbit.oak.api.Type.LONG;
+import static org.apache.jackrabbit.oak.api.Type.NAMES;
+import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.newLuceneIndexDefinition;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.MIX_ATOMIC_COUNTER;
+import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.mock;
+
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-
 import javax.jcr.SimpleCredentials;
-
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -48,18 +57,6 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableList.of;
-import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
-import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
-import static org.apache.jackrabbit.oak.api.Type.LONG;
-import static org.apache.jackrabbit.oak.api.Type.NAMES;
-import static org.apache.jackrabbit.oak.api.Type.STRINGS;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.newLuceneIndexDefinition;
-import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.MIX_ATOMIC_COUNTER;
-import static org.junit.Assert.assertEquals;
-import static org.mockito.Mockito.mock;
-
 public class AtomicCounterIT {
 
     @Rule
@@ -74,7 +71,8 @@ public class AtomicCounterIT {
         DocumentNodeStore ns = builderProvider.newBuilder().getNodeStore();
         NodeBuilder builder = ns.getRoot().builder();
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
-        NodeBuilder lucene = newLuceneIndexDefinition(index, "lucene", ImmutableSet.of("String"), null, "async");
+        NodeBuilder lucene = newLuceneIndexDefinition(index, "lucene", ImmutableSet.of("String"),
+            null, "async");
         lucene.setProperty("async", of("async", "nrt"), STRINGS);
         IndexDefinition.updateDefinition(index.child("lucene"));
         ns.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
@@ -83,18 +81,18 @@ public class AtomicCounterIT {
         editorProvider.setIndexingQueue(mock(DocumentQueue.class));
         LuceneIndexProvider provider = new LuceneIndexProvider();
         ContentRepository repository = new Oak(ns)
-                .with(ns) // Clusterable
-                .with(new OpenSecurityProvider())
-                .with((QueryIndexProvider) provider)
-                .with((Observer) provider)
-                .with(editorProvider)
-                .with(executorService)
-                .withAtomicCounter()
-                .withAsyncIndexing("async", 1)
-                .withFailOnMissingIndexProvider()
-                .createContentRepository();
+            .with(ns) // Clusterable
+            .with(new OpenSecurityProvider())
+            .with((QueryIndexProvider) provider)
+            .with((Observer) provider)
+            .with(editorProvider)
+            .with(executorService)
+            .withAtomicCounter()
+            .withAsyncIndexing("async", 1)
+            .withFailOnMissingIndexProvider()
+            .createContentRepository();
         session = repository.login(
-                new SimpleCredentials("admin", "admin".toCharArray()), null);
+            new SimpleCredentials("admin", "admin".toCharArray()), null);
         while (isReindexing(session)) {
             Thread.sleep(100);
         }

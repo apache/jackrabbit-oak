@@ -19,42 +19,50 @@ package org.apache.jackrabbit.oak.plugins.blob;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
-
 import org.apache.commons.io.FileUtils;
 
 /**
  * Class for keeping the file system state of the garbage collection.
- * 
+ * <p>
  * Also, manages any temporary files needed as well as external sorting.
- * 
  */
-public class GarbageCollectorFileState implements Closeable{
-    /** The root of the gc file state directory. */
+public class GarbageCollectorFileState implements Closeable {
+
+    /**
+     * The root of the gc file state directory.
+     */
     private final File home;
 
-    /** The marked references. */
+    /**
+     * The marked references.
+     */
     private final File markedRefs;
 
-    /** The available references. */
+    /**
+     * The available references.
+     */
     private final File availableRefs;
 
-    /** The gc candidates. */
+    /**
+     * The gc candidates.
+     */
     private final File gcCandidates;
 
-    /** The garbage stores the garbage collection candidates which were not deleted . */
+    /**
+     * The garbage stores the garbage collection candidates which were not deleted .
+     */
     private final File garbage;
 
     /**
      * Instantiates a new garbage collector file state.
-     * 
-     * @param root path of the root directory under which the
-     *             files created during gc are stored
+     *
+     * @param root path of the root directory under which the files created during gc are stored
      */
     public GarbageCollectorFileState(String root) throws IOException {
         long startTime = System.currentTimeMillis();
         home = new File(root, "gcworkdir-" + startTime);
         markedRefs = new File(home, "marked-" + startTime);
-        availableRefs = new File(home,"avail-" + startTime);
+        availableRefs = new File(home, "avail-" + startTime);
         gcCandidates = new File(home, "gccand-" + startTime);
         garbage = new File(home, "gc-" + startTime);
         FileUtils.forceMkdir(home);
@@ -62,7 +70,7 @@ public class GarbageCollectorFileState implements Closeable{
 
     /**
      * Gets the file storing the marked references.
-     * 
+     *
      * @return the marked references
      */
     public File getMarkedRefs() {
@@ -71,7 +79,7 @@ public class GarbageCollectorFileState implements Closeable{
 
     /**
      * Gets the file storing the available references.
-     * 
+     *
      * @return the available references
      */
     public File getAvailableRefs() {
@@ -80,7 +88,7 @@ public class GarbageCollectorFileState implements Closeable{
 
     /**
      * Gets the file storing the gc candidates.
-     * 
+     *
      * @return the gc candidates
      */
     public File getGcCandidates() {
@@ -89,7 +97,7 @@ public class GarbageCollectorFileState implements Closeable{
 
     /**
      * Gets the storing the garbage.
-     * 
+     *
      * @return the garbage
      */
     public File getGarbage() {
@@ -98,13 +106,12 @@ public class GarbageCollectorFileState implements Closeable{
 
     /**
      * Completes the process by deleting the files.
-     * 
-     * @throws IOException
-     *             Signals that an I/O exception has occurred.
+     *
+     * @throws IOException Signals that an I/O exception has occurred.
      */
     public void close() throws IOException {
         if (!getGarbage().exists() ||
-                FileUtils.sizeOf(getGarbage()) == 0) {
+            FileUtils.sizeOf(getGarbage()) == 0) {
             FileUtils.deleteDirectory(home);
         }
     }

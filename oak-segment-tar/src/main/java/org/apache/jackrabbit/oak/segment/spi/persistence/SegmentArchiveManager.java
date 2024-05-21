@@ -27,10 +27,9 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * SegmentArchiveManager provides a low-level access to the segment files (eg.
- * stored in the .tar). It allows to perform a few FS-like operations (delete,
- * rename, copy, etc.) and also opens the segment archives either for reading
- * or reading and writing.
+ * SegmentArchiveManager provides a low-level access to the segment files (eg. stored in the .tar).
+ * It allows to perform a few FS-like operations (delete, rename, copy, etc.) and also opens the
+ * segment archives either for reading or reading and writing.
  * <p>
  * The implementation doesn't need to be thread-safe.
  */
@@ -48,8 +47,7 @@ public interface SegmentArchiveManager {
      * Opens a given archive for reading.
      *
      * @param archiveName
-     * @return the archive reader or null if the archive doesn't exist or doesn't
-     * have a valid index
+     * @return the archive reader or null if the archive doesn't exist or doesn't have a valid index
      */
     @Nullable
     SegmentArchiveReader open(@NotNull String archiveName) throws IOException;
@@ -58,8 +56,8 @@ public interface SegmentArchiveManager {
      * Opens an archive that wasn't closed correctly.
      *
      * @param archiveName
-     * @return the archive reader or null if the implementation doesn't support
-     * opening an unclosed archive
+     * @return the archive reader or null if the implementation doesn't support opening an unclosed
+     * archive
      */
     @Nullable
     SegmentArchiveReader forceOpen(String archiveName) throws IOException;
@@ -85,7 +83,7 @@ public interface SegmentArchiveManager {
      * Renames the archive.
      *
      * @param from the existing archive
-     * @param to new name
+     * @param to   new name
      * @return true if the archive was renamed, false otherwise
      */
     boolean renameTo(@NotNull String from, @NotNull String to);
@@ -94,7 +92,7 @@ public interface SegmentArchiveManager {
      * Copies the archive with all the segments.
      *
      * @param from the existing archive
-     * @param to new name
+     * @param to   new name
      */
     void copyFile(@NotNull String from, @NotNull String to) throws IOException;
 
@@ -110,21 +108,22 @@ public interface SegmentArchiveManager {
      * Finds all the segments included in the archive.
      *
      * @param archiveName archive to recover
-     * @param entries results will be put there, in the order of presence in the
-     *                archive
+     * @param entries     results will be put there, in the order of presence in the archive
      */
-    void recoverEntries(@NotNull String archiveName, @NotNull LinkedHashMap<UUID, byte[]> entries) throws IOException;
+    void recoverEntries(@NotNull String archiveName, @NotNull LinkedHashMap<UUID, byte[]> entries)
+        throws IOException;
 
     /**
-     * Method that is doing a backup of the archive given with {@code archiveName} into {@code backupArchiveName}.
-     * In addition, set of UUIDs of recovered segments is provided which can be inspected during backup.
-     * Method is invoked during archive recovery procedure and concrete implementation can decide whether original archive
-     * should be deleted or modified.
+     * Method that is doing a backup of the archive given with {@code archiveName} into
+     * {@code backupArchiveName}. In addition, set of UUIDs of recovered segments is provided which
+     * can be inspected during backup. Method is invoked during archive recovery procedure and
+     * concrete implementation can decide whether original archive should be deleted or modified.
      *
      * @param archiveName
      * @param backupArchiveName
      * @param recoveredEntries
      * @throws IOException
      */
-    void backup(@NotNull String archiveName, @NotNull String backupArchiveName, @NotNull Set<UUID> recoveredEntries) throws IOException;
+    void backup(@NotNull String archiveName, @NotNull String backupArchiveName,
+        @NotNull Set<UUID> recoveredEntries) throws IOException;
 }

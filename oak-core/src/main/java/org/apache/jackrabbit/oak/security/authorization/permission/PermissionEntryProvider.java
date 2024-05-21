@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.security.authorization.permission;
 
 import java.util.Collection;
 import java.util.Iterator;
-
 import org.apache.jackrabbit.oak.api.Tree;
 import org.jetbrains.annotations.NotNull;
 

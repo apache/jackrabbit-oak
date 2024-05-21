@@ -18,20 +18,18 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static java.lang.Integer.parseInt;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.segment.CacheWeights.OBJECT_HEADER_SIZE;
 
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * The record id. This includes the segment id and the offset within the
- * segment.
+ * The record id. This includes the segment id and the offset within the segment.
  */
 public final class RecordId implements Comparable<RecordId> {
 
@@ -41,7 +39,7 @@ public final class RecordId implements Comparable<RecordId> {
     public static final RecordId NULL = new RecordId(SegmentId.NULL, 0);
 
     private static final Pattern PATTERN = Pattern.compile(
-            "([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})"
+        "([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})"
             + "(:(0|[1-9][0-9]*)|\\.([0-9a-f]{8}))");
 
     static final int SERIALIZED_RECORD_ID_BYTES = 20;
@@ -53,8 +51,8 @@ public final class RecordId implements Comparable<RecordId> {
         if (matcher.matches()) {
             UUID uuid = UUID.fromString(matcher.group(1));
             SegmentId segmentId = idProvider.newSegmentId(
-                    uuid.getMostSignificantBits(),
-                    uuid.getLeastSignificantBits());
+                uuid.getMostSignificantBits(),
+                uuid.getLeastSignificantBits());
 
             int offset;
             if (matcher.group(3) != null) {
@@ -87,7 +85,7 @@ public final class RecordId implements Comparable<RecordId> {
     }
 
     /**
-     * @return  the segment id part of this record id as UUID
+     * @return the segment id part of this record id as UUID
      */
     public UUID asUUID() {
         return segmentId.asUUID();
@@ -100,7 +98,8 @@ public final class RecordId implements Comparable<RecordId> {
 
     /**
      * Serialise this record id into an array of bytes: {@code (msb, lsb, offset >> 2)}
-     * @return  this record id as byte array
+     *
+     * @return this record id as byte array
      */
     @NotNull
     Buffer getBytes() {

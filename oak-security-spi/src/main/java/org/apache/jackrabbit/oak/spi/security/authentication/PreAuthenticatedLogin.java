@@ -19,13 +19,14 @@ package org.apache.jackrabbit.oak.spi.security.authentication;
 import javax.jcr.Credentials;
 
 /**
- * {@code PreAuthenticatedLogin} is used as marker in the shared map of the login context. it indicates that the
- * respective user is pre authenticated on an external system. Note that is class is only used internally by the
- * login modules and cannot be "abused" from outside.
+ * {@code PreAuthenticatedLogin} is used as marker in the shared map of the login context. it
+ * indicates that the respective user is pre authenticated on an external system. Note that is class
+ * is only used internally by the login modules and cannot be "abused" from outside.
  */
 public final class PreAuthenticatedLogin {
 
-    public static final Credentials PRE_AUTHENTICATED = new Credentials() { };
+    public static final Credentials PRE_AUTHENTICATED = new Credentials() {
+    };
 
     private final String userId;
 

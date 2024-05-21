@@ -16,8 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
+import co.elastic.clients.elasticsearch._types.HealthStatus;
+import co.elastic.clients.elasticsearch._types.Level;
+import co.elastic.clients.elasticsearch.cluster.HealthRequest;
+import co.elastic.clients.elasticsearch.cluster.HealthResponse;
 import java.io.IOException;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfo;
@@ -31,11 +34,6 @@ import org.apache.jackrabbit.util.ISO8601;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import co.elastic.clients.elasticsearch._types.HealthStatus;
-import co.elastic.clients.elasticsearch._types.Level;
-import co.elastic.clients.elasticsearch.cluster.HealthRequest;
-import co.elastic.clients.elasticsearch.cluster.HealthResponse;
-
 class ElasticIndexInfoProvider implements IndexInfoProvider {
 
     private final ElasticIndexTracker indexTracker;
@@ -43,7 +41,7 @@ class ElasticIndexInfoProvider implements IndexInfoProvider {
     private final AsyncIndexInfoService asyncIndexInfoService;
 
     ElasticIndexInfoProvider(@NotNull ElasticIndexTracker indexTracker,
-                                    @NotNull AsyncIndexInfoService asyncIndexInfoService) {
+        @NotNull AsyncIndexInfoService asyncIndexInfoService) {
         this.indexTracker = indexTracker;
         this.asyncIndexInfoService = asyncIndexInfoService;
     }
@@ -57,18 +55,21 @@ class ElasticIndexInfoProvider implements IndexInfoProvider {
     public @Nullable IndexInfo getInfo(String indexPath) {
         ElasticIndexNode node = indexTracker.acquireIndexNode(indexPath);
         try {
-            String asyncName = IndexUtils.getAsyncLaneName(node.getDefinition().getDefinitionNodeState(), indexPath);
+            String asyncName = IndexUtils.getAsyncLaneName(
+                node.getDefinition().getDefinitionNodeState(), indexPath);
             AsyncIndexInfo asyncInfo = asyncIndexInfoService.getInfo(asyncName);
 
             return new ElasticIndexInfo(
-                    indexPath,
-                    asyncName,
-                    asyncInfo != null ? asyncInfo.getLastIndexedTo() : -1L,
-                    getStatusTimestamp(node.getDefinition().getDefinitionNodeState(), IndexDefinition.STATUS_LAST_UPDATED),
-                    node.getIndexStatistics().numDocs(),
-                    node.getIndexStatistics().primaryStoreSize(),
-                    node.getIndexStatistics().creationDate(),
-                    getStatusTimestamp(node.getDefinition().getDefinitionNodeState(), IndexDefinition.REINDEX_COMPLETION_TIMESTAMP)
+                indexPath,
+                asyncName,
+                asyncInfo != null ? asyncInfo.getLastIndexedTo() : -1L,
+                getStatusTimestamp(node.getDefinition().getDefinitionNodeState(),
+                    IndexDefinition.STATUS_LAST_UPDATED),
+                node.getIndexStatistics().numDocs(),
+                node.getIndexStatistics().primaryStoreSize(),
+                node.getIndexStatistics().creationDate(),
+                getStatusTimestamp(node.getDefinition().getDefinitionNodeState(),
+                    IndexDefinition.REINDEX_COMPLETION_TIMESTAMP)
             );
         } finally {
             node.release();
@@ -80,10 +81,11 @@ class ElasticIndexInfoProvider implements IndexInfoProvider {
         ElasticIndexNode node = indexTracker.acquireIndexNode(indexPath);
         try {
             HealthResponse response = node.getConnection().getClient().cluster()
-                    .health(HealthRequest.of(hrb -> hrb
-                            .index(node.getDefinition().getIndexAlias())
-                            .level(Level.Indices)));
-            return response.indices().values().stream().map(i -> i.status() == HealthStatus.Green).findFirst().orElse(false);
+                                          .health(HealthRequest.of(hrb -> hrb
+                                              .index(node.getDefinition().getIndexAlias())
+                                              .level(Level.Indices)));
+            return response.indices().values().stream().map(i -> i.status() == HealthStatus.Green)
+                           .findFirst().orElse(false);
         } finally {
             node.release();
         }
@@ -111,8 +113,10 @@ class ElasticIndexInfoProvider implements IndexInfoProvider {
         private final long creationTimestamp;
         private final long reindexCompletionTimestamp;
 
-        ElasticIndexInfo(String indexPath, String asyncLane, long indexedUpToTime, long lastUpdatedTime,
-                         long estimatedEntryCount, long sizeInBytes, long creationTimestamp, long reindexCompletionTimestamp) {
+        ElasticIndexInfo(String indexPath, String asyncLane, long indexedUpToTime,
+            long lastUpdatedTime,
+            long estimatedEntryCount, long sizeInBytes, long creationTimestamp,
+            long reindexCompletionTimestamp) {
             this.indexPath = indexPath;
             this.asyncLane = asyncLane;
             this.indexedUpToTime = indexedUpToTime;

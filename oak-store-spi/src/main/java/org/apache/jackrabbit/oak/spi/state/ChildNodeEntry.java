@@ -18,33 +18,32 @@ package org.apache.jackrabbit.oak.spi.state;
 
 
 import org.apache.jackrabbit.guava.common.base.Function;
-
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * A {@code ChildNodeEntry} instance represents the child node states of a
- * {@link NodeState}.
+ * A {@code ChildNodeEntry} instance represents the child node states of a {@link NodeState}.
  * <h2>Equality and hash codes</h2>
  * <p>
- * Two child node entries are considered equal if and only if their names
- * and referenced node states match. The {@link Object#equals(Object)}
- * method needs to be implemented so that it complies with this definition.
- * And while child node entries are not meant for use as hash keys, the
- * {@link Object#hashCode()} method should still be implemented according
- * to this equality contract.
+ * Two child node entries are considered equal if and only if their names and referenced node states
+ * match. The {@link Object#equals(Object)} method needs to be implemented so that it complies with
+ * this definition. And while child node entries are not meant for use as hash keys, the
+ * {@link Object#hashCode()} method should still be implemented according to this equality
+ * contract.
  */
 public interface ChildNodeEntry {
 
     /**
      * The name of the child node state wrt. to its parent state.
-     * @return  name of the child node
+     *
+     * @return name of the child node
      */
     @NotNull
     String getName();
 
     /**
      * The child node state
+     *
      * @return child node state
      */
     @NotNull
@@ -54,15 +53,16 @@ public interface ChildNodeEntry {
      * Mapping from a ChildNodeEntry instance to its name.
      */
     Function<ChildNodeEntry, String> GET_NAME =
-            new Function<ChildNodeEntry, String>() {
-                @Override @Nullable
-                public String apply(@Nullable ChildNodeEntry input) {
-                    if (input != null) {
-                        return input.getName();
-                    } else {
-                        return null;
-                    }
+        new Function<ChildNodeEntry, String>() {
+            @Override
+            @Nullable
+            public String apply(@Nullable ChildNodeEntry input) {
+                if (input != null) {
+                    return input.getName();
+                } else {
+                    return null;
                 }
-            };
+            }
+        };
 
 }

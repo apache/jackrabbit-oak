@@ -29,51 +29,53 @@ import org.apache.lucene.util.RamUsageEstimator;
 import org.apache.lucene.util.packed.PackedInts.Mutable;
 
 /**
- * A {@link PagedMutable}. This class slices data into fixed-size blocks
- * which have the same number of bits per value. It can be a useful replacement
- * for {@link PackedInts.Mutable} to store more than 2B values.
+ * A {@link PagedMutable}. This class slices data into fixed-size blocks which have the same number
+ * of bits per value. It can be a useful replacement for {@link PackedInts.Mutable} to store more
+ * than 2B values.
+ *
  * @lucene.internal
  */
 public final class PagedMutable extends AbstractPagedMutable<PagedMutable> {
 
-  final PackedInts.Format format;
+    final PackedInts.Format format;
 
-  /**
-   * Create a new {@link PagedMutable} instance.
-   *
-   * @param size the number of values to store.
-   * @param pageSize the number of values per page
-   * @param bitsPerValue the number of bits per value
-   * @param acceptableOverheadRatio an acceptable overhead ratio
-   */
-  public PagedMutable(long size, int pageSize, int bitsPerValue, float acceptableOverheadRatio) {
-    this(size, pageSize, PackedInts.fastestFormatAndBits(pageSize, bitsPerValue, acceptableOverheadRatio));
-    fillPages();
-  }
+    /**
+     * Create a new {@link PagedMutable} instance.
+     *
+     * @param size                    the number of values to store.
+     * @param pageSize                the number of values per page
+     * @param bitsPerValue            the number of bits per value
+     * @param acceptableOverheadRatio an acceptable overhead ratio
+     */
+    public PagedMutable(long size, int pageSize, int bitsPerValue, float acceptableOverheadRatio) {
+        this(size, pageSize,
+            PackedInts.fastestFormatAndBits(pageSize, bitsPerValue, acceptableOverheadRatio));
+        fillPages();
+    }
 
-  PagedMutable(long size, int pageSize, PackedInts.FormatAndBits formatAndBits) {
-    this(size, pageSize, formatAndBits.bitsPerValue, formatAndBits.format);
-  }
+    PagedMutable(long size, int pageSize, PackedInts.FormatAndBits formatAndBits) {
+        this(size, pageSize, formatAndBits.bitsPerValue, formatAndBits.format);
+    }
 
-  PagedMutable(long size, int pageSize, int bitsPerValue, PackedInts.Format format) {
-    super(bitsPerValue, size, pageSize);
-    this.format = format;
-  }
+    PagedMutable(long size, int pageSize, int bitsPerValue, PackedInts.Format format) {
+        super(bitsPerValue, size, pageSize);
+        this.format = format;
+    }
 
-  @Override
-  protected Mutable newMutable(int valueCount, int bitsPerValue) {
-    assert this.bitsPerValue >= bitsPerValue;
-    return PackedInts.getMutable(valueCount, this.bitsPerValue, format);
-  }
+    @Override
+    protected Mutable newMutable(int valueCount, int bitsPerValue) {
+        assert this.bitsPerValue >= bitsPerValue;
+        return PackedInts.getMutable(valueCount, this.bitsPerValue, format);
+    }
 
-  @Override
-  protected PagedMutable newUnfilledCopy(long newSize) {
-    return new PagedMutable(newSize, pageSize(), bitsPerValue, format);
-  }
+    @Override
+    protected PagedMutable newUnfilledCopy(long newSize) {
+        return new PagedMutable(newSize, pageSize(), bitsPerValue, format);
+    }
 
-  @Override
-  protected long baseRamBytesUsed() {
-    return super.baseRamBytesUsed() + RamUsageEstimator.NUM_BYTES_OBJECT_REF;
-  }
+    @Override
+    protected long baseRamBytesUsed() {
+        return super.baseRamBytesUsed() + RamUsageEstimator.NUM_BYTES_OBJECT_REF;
+    }
 
 }

@@ -22,7 +22,6 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
 import java.io.File;
-
 import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.MongoConnectionFactory;
@@ -57,7 +56,7 @@ public class FlatFileCommandTest {
         assertNotNull(c);
         MongoUtils.dropCollections(c.getDatabase());
         return builderProvider.newBuilder().setBlobStore(new MemoryBlobStore())
-                .setMongoDB(c.getMongoClient(), c.getDBName()).getNodeStore();
+                              .setMongoDB(c.getMongoClient(), c.getDBName()).getNodeStore();
     }
 
     @Before
@@ -74,7 +73,7 @@ public class FlatFileCommandTest {
     public void after() {
         if (tmpFlatfileOut != null && tmpFlatfileOut.exists()) {
             assertTrue("File should not now be deleted but is not : " + tmpFlatfileOut,
-                    tmpFlatfileOut.delete());
+                tmpFlatfileOut.delete());
         }
         tmpFlatfileOut = null;
         if (ns != null) {
@@ -87,11 +86,11 @@ public class FlatFileCommandTest {
     public void flatfile() throws Exception {
         FlatFileCommand cmd = new FlatFileCommand();
         assertFalse("File should not exist but does : " + tmpFlatfileOut,
-                tmpFlatfileOut.exists());
+            tmpFlatfileOut.exists());
         cmd.execute(MongoUtils.URL, "--out",
-                tmpFlatfileOut.getAbsolutePath(), "--fake-ds-path=.");
+            tmpFlatfileOut.getAbsolutePath(), "--fake-ds-path=.");
         assertTrue("File should exist but does not : " + tmpFlatfileOut,
-                tmpFlatfileOut.exists());
+            tmpFlatfileOut.exists());
         assertTrue(tmpFlatfileOut.exists());
     }
 

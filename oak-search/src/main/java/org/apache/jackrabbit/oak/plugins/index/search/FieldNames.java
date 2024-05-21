@@ -21,8 +21,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * Defines field names that are used internally to store data in the
- * search index.
+ * Defines field names that are used internally to store data in the search index.
  */
 public final class FieldNames {
 
@@ -39,8 +38,8 @@ public final class FieldNames {
     public static final String PATH = ":path";
 
     /**
-     * Name of the field that contains all the path hierarchy e.g. for /a/b/c
-     * it would contain /a, /a/b, /a/b/c
+     * Name of the field that contains all the path hierarchy e.g. for /a/b/c it would contain /a,
+     * /a/b, /a/b/c
      */
     public static final String ANCESTORS = ":ancestors";
 
@@ -90,14 +89,14 @@ public final class FieldNames {
     public static final String FULLTEXT_RELATIVE_NODE = "fullnode:";
 
     /**
-     * Name of the field that contains those property names which are not found
-     * (or were null) for the given
+     * Name of the field that contains those property names which are not found (or were null) for
+     * the given
      */
     public static final String NULL_PROPS = ":nullProps";
 
     /**
-     * Name of the field that contains those property names which are exist i.e. not null
-     * for the given NodeState
+     * Name of the field that contains those property names which are exist i.e. not null for the
+     * given NodeState
      */
     public static final String NOT_NULL_PROPS = ":notNullProps";
 
@@ -105,7 +104,7 @@ public final class FieldNames {
      * Name of the field that contains the node name
      */
     public static final String NODE_NAME = ":nodeName";
-    
+
     /**
      * Suffix of the fields that contains function values
      */
@@ -118,14 +117,13 @@ public final class FieldNames {
         Collections.singletonList(PATH));
 
     /**
-     * Encodes the field name such that it can be used for storing DocValue
-     * This is done such a field if used for both sorting and querying uses
-     * a different name for docvalue field
+     * Encodes the field name such that it can be used for storing DocValue This is done such a
+     * field if used for both sorting and querying uses a different name for docvalue field
      *
      * @param name name to encode
      * @return encoded field name
      */
-    public static String createDocValFieldName(String name){
+    public static String createDocValFieldName(String name) {
         return ":dv" + name;
     }
 
@@ -134,7 +132,7 @@ public final class FieldNames {
     }
 
     public static String createFulltextFieldName(String nodeRelativePath) {
-        if (nodeRelativePath == null){
+        if (nodeRelativePath == null) {
             return FULLTEXT;
         }
         return FULLTEXT_RELATIVE_NODE + nodeRelativePath;
@@ -149,9 +147,9 @@ public final class FieldNames {
      */
     public static boolean isPropertyField(String field) {
         return !field.startsWith(ANALYZED_FIELD_PREFIX)
-                && !field.startsWith(FULLTEXT_RELATIVE_NODE)
-                && !field.startsWith(":")
-                && !field.endsWith("_facet");
+            && !field.startsWith(FULLTEXT_RELATIVE_NODE)
+            && !field.startsWith(":")
+            && !field.endsWith("_facet");
     }
 
     public static String createSimilarityFieldName(String name) {

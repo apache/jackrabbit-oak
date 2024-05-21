@@ -16,13 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
-import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
-
 import com.mongodb.event.ServerHeartbeatFailedEvent;
 import com.mongodb.event.ServerHeartbeatStartedEvent;
 import com.mongodb.event.ServerHeartbeatSucceededEvent;
 import com.mongodb.event.ServerMonitorListener;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * A composite {@link ServerMonitorListener}.

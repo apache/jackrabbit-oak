@@ -27,12 +27,10 @@ import java.io.File;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
-
 import javax.jcr.Node;
 import javax.jcr.Repository;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
-
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
@@ -46,6 +44,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class RefreshOnGCTest {
+
     private Callable<Void> compact;
     private Repository repository;
     private GCMonitorTracker gcMonitor;
@@ -66,7 +65,7 @@ public class RefreshOnGCTest {
 
     private NodeStore createSegmentTarStore(File directory, GCMonitor gcMonitor) throws Exception {
         final org.apache.jackrabbit.oak.segment.file.FileStore fileStore =
-                fileStoreBuilder(directory).withGCMonitor(gcMonitor).build();
+            fileStoreBuilder(directory).withGCMonitor(gcMonitor).build();
         compact = new Callable<Void>() {
             @Override
             public Void call() throws Exception {
@@ -113,20 +112,21 @@ public class RefreshOnGCTest {
             compact.call();
             assertTrue(root.hasNode("one"));
             assertTrue("Node two must be visible as compaction should cause the session to refresh",
-                    root.hasNode("two"));
+                root.hasNode("two"));
         } finally {
             session.logout();
         }
     }
 
     private static void addNode(final Repository repository, final String name)
-            throws ExecutionException, InterruptedException {
+        throws ExecutionException, InterruptedException {
         // Execute on different threads to ensure same thread session
         // refreshing doesn't come into our way
         run(new Callable<Void>() {
             @Override
             public Void call() throws Exception {
-                Session session = repository.login(new SimpleCredentials("admin", "admin".toCharArray()));
+                Session session = repository.login(
+                    new SimpleCredentials("admin", "admin".toCharArray()));
                 try {
                     Node root = session.getRootNode();
                     root.addNode(name);
@@ -139,7 +139,8 @@ public class RefreshOnGCTest {
         });
     }
 
-    private static void run(Callable<Void> callable) throws InterruptedException, ExecutionException {
+    private static void run(Callable<Void> callable)
+        throws InterruptedException, ExecutionException {
         FutureTask<Void> task = new FutureTask<Void>(callable);
         new Thread(task).start();
         task.get();

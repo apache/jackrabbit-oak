@@ -16,10 +16,19 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.query;
 
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-
+import org.apache.jackrabbit.oak.InitialContentHelper;
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.DefaultSolrConfiguration;
@@ -27,7 +36,6 @@ import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfigu
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfigurationProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
-import org.apache.jackrabbit.oak.InitialContentHelper;
 import org.apache.jackrabbit.oak.query.NodeStateNodeTypeInfoProvider;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.query.ast.NodeTypeInfo;
@@ -49,13 +57,6 @@ import org.apache.solr.common.params.SolrParams;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.junit.Assert.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
 /**
  * Tests for {@link SolrQueryIndex}
  */
@@ -68,9 +69,9 @@ public class SolrQueryIndexTest {
         NodeState root = EMPTY_NODE;
         NodeBuilder builder = root.builder();
         builder.child("oak:index").child("solr")
-                .setProperty(JCR_PRIMARYTYPE, "oak:QueryIndexDefinition")
-                .setProperty("type", "solr")
-                .child("server").setProperty("solrServerType", "embedded");
+               .setProperty(JCR_PRIMARYTYPE, "oak:QueryIndexDefinition")
+               .setProperty("type", "solr")
+               .child("server").setProperty("solrServerType", "embedded");
         nodeState = builder.getNodeState();
     }
 
@@ -94,7 +95,9 @@ public class SolrQueryIndexTest {
 
         SolrQueryIndex solrQueryIndex = new SolrQueryIndex(null, null, null);
 
-        FilterImpl filter = new FilterImpl(selector, "select * from [nt:base] as a where isdescendantnode(a, '/test')", new QueryEngineSettings());
+        FilterImpl filter = new FilterImpl(selector,
+            "select * from [nt:base] as a where isdescendantnode(a, '/test')",
+            new QueryEngineSettings());
         filter.restrictPath("/test", Filter.PathRestriction.ALL_CHILDREN);
         List<QueryIndex.OrderEntry> sortOrder = new LinkedList<QueryIndex.OrderEntry>();
         List<QueryIndex.IndexPlan> plans = solrQueryIndex.getPlans(filter, sortOrder, nodeState);
@@ -111,7 +114,9 @@ public class SolrQueryIndexTest {
 
         SolrQueryIndex solrQueryIndex = new SolrQueryIndex(null, null, null);
 
-        FilterImpl filter = new FilterImpl(selector, "select * from [nt:base] as a where isdescendantnode(a, '/test')", new QueryEngineSettings());
+        FilterImpl filter = new FilterImpl(selector,
+            "select * from [nt:base] as a where isdescendantnode(a, '/test')",
+            new QueryEngineSettings());
         filter.restrictPath("/test", Filter.PathRestriction.ALL_CHILDREN);
         List<QueryIndex.OrderEntry> sortOrder = new LinkedList<QueryIndex.OrderEntry>();
         List<QueryIndex.IndexPlan> plans = solrQueryIndex.getPlans(filter, sortOrder, nodeState);
@@ -122,15 +127,17 @@ public class SolrQueryIndexTest {
     public void testPlanWithPropertyAndPathRestrictionsEnabled() throws Exception {
         NodeBuilder builder = nodeState.builder();
         builder.child("oak:index").child("solr")
-                .setProperty("pathRestrictions", true)
-                .setProperty("propertyRestrictions", true);
+               .setProperty("pathRestrictions", true)
+               .setProperty("propertyRestrictions", true);
         nodeState = builder.getNodeState();
 
         SelectorImpl selector = newSelector(nodeState, "a");
 
         SolrQueryIndex solrQueryIndex = new SolrQueryIndex(null, null, null);
 
-        FilterImpl filter = new FilterImpl(selector, "select * from [nt:base] as a where isdescendantnode(a, '/test')", new QueryEngineSettings());
+        FilterImpl filter = new FilterImpl(selector,
+            "select * from [nt:base] as a where isdescendantnode(a, '/test')",
+            new QueryEngineSettings());
         filter.restrictPath("/test", Filter.PathRestriction.ALL_CHILDREN);
         filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
         List<QueryIndex.OrderEntry> sortOrder = new LinkedList<QueryIndex.OrderEntry>();
@@ -144,7 +151,8 @@ public class SolrQueryIndexTest {
 
         SolrQueryIndex solrQueryIndex = new SolrQueryIndex(null, null, null);
 
-        FilterImpl filter = new FilterImpl(selector, "select * from [nt:base] as a where name = 'hello')", new QueryEngineSettings());
+        FilterImpl filter = new FilterImpl(selector,
+            "select * from [nt:base] as a where name = 'hello')", new QueryEngineSettings());
         filter.restrictProperty("name", Operator.EQUAL, PropertyValues.newString("hello"));
         List<QueryIndex.OrderEntry> sortOrder = new LinkedList<QueryIndex.OrderEntry>();
         List<QueryIndex.IndexPlan> plans = solrQueryIndex.getPlans(filter, sortOrder, nodeState);
@@ -155,14 +163,15 @@ public class SolrQueryIndexTest {
     public void testPlanWithPropertyRestrictionsEnabled() throws Exception {
         NodeBuilder builder = nodeState.builder();
         builder.child("oak:index").child("solr")
-                .setProperty("propertyRestrictions", true);
+               .setProperty("propertyRestrictions", true);
         nodeState = builder.getNodeState();
 
         SelectorImpl selector = newSelector(nodeState, "a");
 
         SolrQueryIndex solrQueryIndex = new SolrQueryIndex(null, null, null);
 
-        FilterImpl filter = new FilterImpl(selector, "select * from [nt:base] as a where name = 'hello')", new QueryEngineSettings());
+        FilterImpl filter = new FilterImpl(selector,
+            "select * from [nt:base] as a where name = 'hello')", new QueryEngineSettings());
         filter.restrictProperty("name", Operator.EQUAL, PropertyValues.newString("hello"));
         List<QueryIndex.OrderEntry> sortOrder = new LinkedList<QueryIndex.OrderEntry>();
         List<QueryIndex.IndexPlan> plans = solrQueryIndex.getPlans(filter, sortOrder, nodeState);
@@ -175,8 +184,11 @@ public class SolrQueryIndexTest {
 
         SolrQueryIndex solrQueryIndex = new SolrQueryIndex(null, null, null);
 
-        FilterImpl filter = new FilterImpl(selector, "select * from [nt:base] as a where jcr:primaryType = 'nt:unstructured')", new QueryEngineSettings());
-        filter.restrictProperty("jcr:primaryType", Operator.EQUAL, PropertyValues.newString("nt:unstructured"));
+        FilterImpl filter = new FilterImpl(selector,
+            "select * from [nt:base] as a where jcr:primaryType = 'nt:unstructured')",
+            new QueryEngineSettings());
+        filter.restrictProperty("jcr:primaryType", Operator.EQUAL,
+            PropertyValues.newString("nt:unstructured"));
         List<QueryIndex.OrderEntry> sortOrder = new LinkedList<QueryIndex.OrderEntry>();
         List<QueryIndex.IndexPlan> plans = solrQueryIndex.getPlans(filter, sortOrder, nodeState);
         assertEquals(0, plans.size());
@@ -192,8 +204,11 @@ public class SolrQueryIndexTest {
 
         SolrQueryIndex solrQueryIndex = new SolrQueryIndex(null, null, null);
 
-        FilterImpl filter = new FilterImpl(selector, "select * from [nt:base] as a where jcr:primaryType = 'nt:unstructured')", new QueryEngineSettings());
-        filter.restrictProperty("jcr:primaryType", Operator.EQUAL, PropertyValues.newString("nt:unstructured"));
+        FilterImpl filter = new FilterImpl(selector,
+            "select * from [nt:base] as a where jcr:primaryType = 'nt:unstructured')",
+            new QueryEngineSettings());
+        filter.restrictProperty("jcr:primaryType", Operator.EQUAL,
+            PropertyValues.newString("nt:unstructured"));
         List<QueryIndex.OrderEntry> sortOrder = new LinkedList<QueryIndex.OrderEntry>();
         List<QueryIndex.IndexPlan> plans = solrQueryIndex.getPlans(filter, sortOrder, nodeState);
         assertEquals(0, plans.size());
@@ -203,16 +218,19 @@ public class SolrQueryIndexTest {
     public void testPlanWithPropertyAndPrimaryTypeRestrictionsEnabled() throws Exception {
         NodeBuilder builder = nodeState.builder();
         builder.child("oak:index").child("solr")
-                .setProperty("propertyRestrictions", true)
-                .setProperty("primaryTypes", true);
+               .setProperty("propertyRestrictions", true)
+               .setProperty("primaryTypes", true);
         nodeState = builder.getNodeState();
 
         SelectorImpl selector = newSelector(nodeState, "a");
 
         SolrQueryIndex solrQueryIndex = new SolrQueryIndex(null, null, null);
 
-        FilterImpl filter = new FilterImpl(selector, "select * from [nt:base] as a where jcr:primaryType = 'nt:unstructured')", new QueryEngineSettings());
-        filter.restrictProperty("jcr:primaryType", Operator.EQUAL, PropertyValues.newString("nt:unstructured"));
+        FilterImpl filter = new FilterImpl(selector,
+            "select * from [nt:base] as a where jcr:primaryType = 'nt:unstructured')",
+            new QueryEngineSettings());
+        filter.restrictProperty("jcr:primaryType", Operator.EQUAL,
+            PropertyValues.newString("nt:unstructured"));
         filter.restrictProperty("name", Operator.EQUAL, PropertyValues.newString("hello"));
         List<QueryIndex.OrderEntry> sortOrder = new LinkedList<QueryIndex.OrderEntry>();
         List<QueryIndex.IndexPlan> plans = solrQueryIndex.getPlans(filter, sortOrder, nodeState);
@@ -223,15 +241,16 @@ public class SolrQueryIndexTest {
     public void testNoPlanWithPropertyRestrictionsEnabledButPropertyIgnored() throws Exception {
         NodeBuilder builder = nodeState.builder();
         builder.child("oak:index").child("solr")
-                .setProperty("ignoredProperties", Collections.singleton("name"), Type.STRINGS)
-                .setProperty("propertyRestrictions", true);
+               .setProperty("ignoredProperties", Collections.singleton("name"), Type.STRINGS)
+               .setProperty("propertyRestrictions", true);
         nodeState = builder.getNodeState();
 
         SelectorImpl selector = newSelector(nodeState, "a");
 
         SolrQueryIndex solrQueryIndex = new SolrQueryIndex(null, null, null);
 
-        FilterImpl filter = new FilterImpl(selector, "select * from [nt:base] as a where name = 'hello')", new QueryEngineSettings());
+        FilterImpl filter = new FilterImpl(selector,
+            "select * from [nt:base] as a where name = 'hello')", new QueryEngineSettings());
         filter.restrictProperty("name", Operator.EQUAL, PropertyValues.newString("hello"));
         List<QueryIndex.OrderEntry> sortOrder = new LinkedList<QueryIndex.OrderEntry>();
         List<QueryIndex.IndexPlan> plans = solrQueryIndex.getPlans(filter, sortOrder, nodeState);
@@ -242,15 +261,16 @@ public class SolrQueryIndexTest {
     public void testNoPlanWithPropertyRestrictionsEnabledButNotUsedProperty() throws Exception {
         NodeBuilder builder = nodeState.builder();
         builder.child("oak:index").child("solr")
-                .setProperty("usedProperties", Collections.singleton("foo"), Type.STRINGS)
-                .setProperty("propertyRestrictions", true);
+               .setProperty("usedProperties", Collections.singleton("foo"), Type.STRINGS)
+               .setProperty("propertyRestrictions", true);
         nodeState = builder.getNodeState();
 
         SelectorImpl selector = newSelector(nodeState, "a");
 
         SolrQueryIndex solrQueryIndex = new SolrQueryIndex(null, null, null);
 
-        FilterImpl filter = new FilterImpl(selector, "select * from [nt:base] as a where name = 'hello')", new QueryEngineSettings());
+        FilterImpl filter = new FilterImpl(selector,
+            "select * from [nt:base] as a where name = 'hello')", new QueryEngineSettings());
         filter.restrictProperty("name", Operator.EQUAL, PropertyValues.newString("hello"));
         List<QueryIndex.OrderEntry> sortOrder = new LinkedList<QueryIndex.OrderEntry>();
         List<QueryIndex.IndexPlan> plans = solrQueryIndex.getPlans(filter, sortOrder, nodeState);
@@ -261,15 +281,16 @@ public class SolrQueryIndexTest {
     public void testPlanWithPropertyRestrictionsEnabledAndUsedProperty() throws Exception {
         NodeBuilder builder = nodeState.builder();
         builder.child("oak:index").child("solr")
-                .setProperty("usedProperties", Collections.singleton("name"), Type.STRINGS)
-                .setProperty("propertyRestrictions", true);
+               .setProperty("usedProperties", Collections.singleton("name"), Type.STRINGS)
+               .setProperty("propertyRestrictions", true);
         nodeState = builder.getNodeState();
 
         SelectorImpl selector = newSelector(nodeState, "a");
 
         SolrQueryIndex solrQueryIndex = new SolrQueryIndex(null, null, null);
 
-        FilterImpl filter = new FilterImpl(selector, "select * from [nt:base] as a where name = 'hello')", new QueryEngineSettings());
+        FilterImpl filter = new FilterImpl(selector,
+            "select * from [nt:base] as a where name = 'hello')", new QueryEngineSettings());
         filter.restrictProperty("name", Operator.EQUAL, PropertyValues.newString("hello"));
         List<QueryIndex.OrderEntry> sortOrder = new LinkedList<QueryIndex.OrderEntry>();
         List<QueryIndex.IndexPlan> plans = solrQueryIndex.getPlans(filter, sortOrder, nodeState);
@@ -280,37 +301,42 @@ public class SolrQueryIndexTest {
     public void testNoPlanWithPropertyNotListedInUsedProperties() throws Exception {
         NodeBuilder builder = nodeState.builder();
         builder.child("oak:index").child("solr")
-                .setProperty("usedProperties", Collections.singleton("name"), Type.STRINGS)
-                .setProperty("propertyRestrictions", true);
+               .setProperty("usedProperties", Collections.singleton("name"), Type.STRINGS)
+               .setProperty("propertyRestrictions", true);
         nodeState = builder.getNodeState();
 
         SelectorImpl selector = newSelector(nodeState, "a");
 
         SolrQueryIndex solrQueryIndex = new SolrQueryIndex(null, null, null);
 
-        FilterImpl filter = new FilterImpl(selector, "select * from [nt:base] as a where foo = 'bar')", new QueryEngineSettings());
+        FilterImpl filter = new FilterImpl(selector,
+            "select * from [nt:base] as a where foo = 'bar')", new QueryEngineSettings());
         filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
         List<QueryIndex.OrderEntry> sortOrder = new LinkedList<QueryIndex.OrderEntry>();
         List<QueryIndex.IndexPlan> plans = solrQueryIndex.getPlans(filter, sortOrder, nodeState);
         assertEquals(0, plans.size());
     }
 
-   @Test
+    @Test
     public void testUnion() throws Exception {
-       SelectorImpl selector = mock(SelectorImpl.class);
+        SelectorImpl selector = mock(SelectorImpl.class);
 
-       SolrQueryIndex solrQueryIndex = new SolrQueryIndex(null, null, null);
+        SolrQueryIndex solrQueryIndex = new SolrQueryIndex(null, null, null);
 
-       String sqlQuery = "select [jcr:path], [jcr:score], [rep:excerpt] from [nt:hierarchyNode] as a where" +
-                " isdescendantnode(a, '/content') and contains([jcr:content/*], 'founded') union select [jcr:path]," +
-                " [jcr:score], [rep:excerpt] from [nt:hierarchyNode] as a where isdescendantnode(a, '/content') and " +
-                "contains([jcr:content/jcr:title], 'founded') union select [jcr:path], [jcr:score], [rep:excerpt]" +
+        String sqlQuery =
+            "select [jcr:path], [jcr:score], [rep:excerpt] from [nt:hierarchyNode] as a where" +
+                " isdescendantnode(a, '/content') and contains([jcr:content/*], 'founded') union select [jcr:path],"
+                +
+                " [jcr:score], [rep:excerpt] from [nt:hierarchyNode] as a where isdescendantnode(a, '/content') and "
+                +
+                "contains([jcr:content/jcr:title], 'founded') union select [jcr:path], [jcr:score], [rep:excerpt]"
+                +
                 " from [nt:hierarchyNode] as a where isdescendantnode(a, '/content') and " +
                 "contains([jcr:content/jcr:description], 'founded') order by [jcr:score] desc";
         FilterImpl filter = new FilterImpl(selector, sqlQuery, new QueryEngineSettings());
-       List<QueryIndex.OrderEntry> sortOrder = new LinkedList<QueryIndex.OrderEntry>();
-       List<QueryIndex.IndexPlan> plans = solrQueryIndex.getPlans(filter, sortOrder, nodeState);
-       assertEquals(0, plans.size());
+        List<QueryIndex.OrderEntry> sortOrder = new LinkedList<QueryIndex.OrderEntry>();
+        List<QueryIndex.IndexPlan> plans = solrQueryIndex.getPlans(filter, sortOrder, nodeState);
+        assertEquals(0, plans.size());
     }
 
     @Test
@@ -318,9 +344,10 @@ public class SolrQueryIndexTest {
         NodeState root = InitialContentHelper.INITIAL_CONTENT;
         SelectorImpl selector = newSelector(root, "a");
         String sqlQuery = "select [jcr:path], [jcr:score] from [nt:base] as a where" +
-                " contains([jcr:content/*], 'founded')";
+            " contains([jcr:content/*], 'founded')";
         SolrServerProvider solrServerProvider = mock(SolrServerProvider.class);
-        OakSolrConfigurationProvider configurationProvider = mock(OakSolrConfigurationProvider.class);
+        OakSolrConfigurationProvider configurationProvider = mock(
+            OakSolrConfigurationProvider.class);
         OakSolrConfiguration configuration = new DefaultSolrConfiguration() {
             @Override
             public boolean useForPropertyRestrictions() {
@@ -329,7 +356,8 @@ public class SolrQueryIndexTest {
         };
         when(configurationProvider.getConfiguration()).thenReturn(configuration);
 
-        SolrQueryIndex solrQueryIndex = new SolrQueryIndex(null, configurationProvider, solrServerProvider);
+        SolrQueryIndex solrQueryIndex = new SolrQueryIndex(null, configurationProvider,
+            solrServerProvider);
         FilterImpl filter = new FilterImpl(selector, sqlQuery, new QueryEngineSettings());
         List<QueryIndex.IndexPlan> plans = solrQueryIndex.getPlans(filter, null, root);
         for (QueryIndex.IndexPlan p : plans) {
@@ -348,11 +376,12 @@ public class SolrQueryIndexTest {
         NodeState root = InitialContentHelper.INITIAL_CONTENT;
         SelectorImpl selector = newSelector(root, "a");
         String sqlQuery = "select [jcr:path], [jcr:score] from [nt:base] as a where" +
-                " contains([jcr:content/*], 'founded')";
+            " contains([jcr:content/*], 'founded')";
         SolrClient solrServer = mock(SolrClient.class);
         SolrServerProvider solrServerProvider = mock(SolrServerProvider.class);
         when(solrServerProvider.getSearchingSolrServer()).thenReturn(solrServer);
-        OakSolrConfigurationProvider configurationProvider = mock(OakSolrConfigurationProvider.class);
+        OakSolrConfigurationProvider configurationProvider = mock(
+            OakSolrConfigurationProvider.class);
         OakSolrConfiguration configuration = new DefaultSolrConfiguration() {
             @Override
             public boolean useForPropertyRestrictions() {
@@ -366,7 +395,8 @@ public class SolrQueryIndexTest {
         };
         when(configurationProvider.getConfiguration()).thenReturn(configuration);
 
-        SolrQueryIndex solrQueryIndex = new SolrQueryIndex(null, configurationProvider, solrServerProvider);
+        SolrQueryIndex solrQueryIndex = new SolrQueryIndex(null, configurationProvider,
+            solrServerProvider);
         FilterImpl filter = new FilterImpl(selector, sqlQuery, new QueryEngineSettings());
         CountingResponse response = new CountingResponse(0);
         when(solrServer.query(any(SolrParams.class))).thenReturn(response);
@@ -388,18 +418,21 @@ public class SolrQueryIndexTest {
         NodeState root = InitialContentHelper.INITIAL_CONTENT;
         NodeBuilder builder = root.builder();
         builder.child("oak:index").child("solr")
-                .setProperty("usedProperties", Collections.singleton("name"), Type.STRINGS)
-                .setProperty("propertyRestrictions", true)
-                .setProperty("type", "solr");
+               .setProperty("usedProperties", Collections.singleton("name"), Type.STRINGS)
+               .setProperty("propertyRestrictions", true)
+               .setProperty("type", "solr");
         nodeState = builder.getNodeState();
         SelectorImpl selector = newSelector(root, "a");
-        String query = "select * from [nt:base] as a where native('solr','select?q=searchKeywords:\"foo\"^20 text:\"foo\"^1 " +
+        String query =
+            "select * from [nt:base] as a where native('solr','select?q=searchKeywords:\"foo\"^20 text:\"foo\"^1 "
+                +
                 "description:\"foo\"^8 something:\"foo\"^3 headline:\"foo\"^5 title:\"foo\"^10 &q.op=OR'";
         String sqlQuery = "select * from [nt:base] a where native('solr','" + query + "'";
         SolrClient solrServer = mock(SolrClient.class);
         SolrServerProvider solrServerProvider = mock(SolrServerProvider.class);
         when(solrServerProvider.getSearchingSolrServer()).thenReturn(solrServer);
-        OakSolrConfigurationProvider configurationProvider = mock(OakSolrConfigurationProvider.class);
+        OakSolrConfigurationProvider configurationProvider = mock(
+            OakSolrConfigurationProvider.class);
         OakSolrConfiguration configuration = new DefaultSolrConfiguration() {
             @Override
             public boolean useForPropertyRestrictions() {
@@ -413,7 +446,8 @@ public class SolrQueryIndexTest {
         };
         when(configurationProvider.getConfiguration()).thenReturn(configuration);
 
-        SolrQueryIndex solrQueryIndex = new SolrQueryIndex(null, configurationProvider, solrServerProvider);
+        SolrQueryIndex solrQueryIndex = new SolrQueryIndex(null, configurationProvider,
+            solrServerProvider);
         FilterImpl filter = new FilterImpl(selector, sqlQuery, new QueryEngineSettings());
         filter.restrictProperty("native*solr", Operator.EQUAL, PropertyValues.newString(query));
         CountingResponse response = new CountingResponse(0);

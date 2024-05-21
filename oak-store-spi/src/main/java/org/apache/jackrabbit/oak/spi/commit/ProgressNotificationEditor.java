@@ -29,11 +29,11 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 
 /**
- * This {@code Editor} instance logs invocations to the logger
- * passed to its constructor after each 10000 calls to it
- * {@code enter()} method.
+ * This {@code Editor} instance logs invocations to the logger passed to its constructor after each
+ * 10000 calls to it {@code enter()} method.
  */
 public class ProgressNotificationEditor implements Editor {
+
     private final Editor editor;
     private final String path;
     private final Function<String, Void> onProgress;
@@ -57,7 +57,8 @@ public class ProgressNotificationEditor implements Editor {
         return editor;
     }
 
-    private ProgressNotificationEditor(Editor editor, String path, Function<String, Void> onProgress) {
+    private ProgressNotificationEditor(Editor editor, String path,
+        Function<String, Void> onProgress) {
         this.editor = editor;
         this.path = path;
         this.onProgress = onProgress;
@@ -80,7 +81,8 @@ public class ProgressNotificationEditor implements Editor {
     }
 
     @Override
-    public void propertyChanged(PropertyState before, PropertyState after) throws CommitFailedException {
+    public void propertyChanged(PropertyState before, PropertyState after)
+        throws CommitFailedException {
         editor.propertyChanged(before, after);
     }
 
@@ -95,7 +97,8 @@ public class ProgressNotificationEditor implements Editor {
     }
 
     @Override
-    public Editor childNodeChanged(String name, NodeState before, NodeState after) throws CommitFailedException {
+    public Editor childNodeChanged(String name, NodeState before, NodeState after)
+        throws CommitFailedException {
         return createChildEditor(editor.childNodeChanged(name, before, after), name);
     }
 

@@ -25,8 +25,7 @@ import org.apache.jackrabbit.oak.segment.standby.codec.GetSegmentResponse;
 import org.apache.jackrabbit.oak.segment.standby.store.CommunicationObserver;
 
 /**
- * Notifies an observer when a 'get segment' or 'get blob' response is sent
- * from this server.
+ * Notifies an observer when a 'get segment' or 'get blob' response is sent from this server.
  */
 class ResponseObserverHandler extends ChannelOutboundHandlerAdapter {
 
@@ -37,7 +36,8 @@ class ResponseObserverHandler extends ChannelOutboundHandlerAdapter {
     }
 
     @Override
-    public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
+    public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise)
+        throws Exception {
         if (msg instanceof GetSegmentResponse) {
             onGetSegmentResponse((GetSegmentResponse) msg);
         } else if (msg instanceof GetBlobResponse) {

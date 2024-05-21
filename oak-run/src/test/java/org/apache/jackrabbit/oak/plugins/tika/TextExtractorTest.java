@@ -19,17 +19,16 @@
 
 package org.apache.jackrabbit.oak.plugins.tika;
 
+import static java.util.Arrays.asList;
+import static org.junit.Assert.assertEquals;
+
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.io.ByteSource;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.TextWriter;
 import org.junit.Test;
-
-import static java.util.Arrays.asList;
-import static org.junit.Assert.assertEquals;
 
 public class TextExtractorTest {
 
@@ -39,8 +38,8 @@ public class TextExtractorTest {
         TextExtractor extractor = new TextExtractor(writer);
 
         List<BinaryResource> binaries = asList(
-                bin("hello", "text/plain", "a"),
-                bin("foo", "text/plain", "b")
+            bin("hello", "text/plain", "a"),
+            bin("foo", "text/plain", "b")
         );
 
         extractor.extract(binaries);
@@ -55,6 +54,7 @@ public class TextExtractorTest {
     }
 
     private static class MapTextWriter implements TextWriter {
+
         final Map<String, String> data = Maps.newConcurrentMap();
 
         @Override

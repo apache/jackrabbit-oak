@@ -22,8 +22,8 @@ package org.apache.jackrabbit.oak.spi.query;
 import org.osgi.annotation.versioning.ProviderType;
 
 /**
- * User-specific settings which may be passed by the query engine to index providers during query planning and iteration
- * of results.
+ * User-specific settings which may be passed by the query engine to index providers during query
+ * planning and iteration of results.
  */
 @ProviderType
 public interface SessionQuerySettings {

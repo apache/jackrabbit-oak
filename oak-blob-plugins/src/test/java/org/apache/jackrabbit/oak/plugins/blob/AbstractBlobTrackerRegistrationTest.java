@@ -19,8 +19,13 @@
 
 package org.apache.jackrabbit.oak.plugins.blob;
 
-import java.io.File;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
+import java.io.File;
 import org.apache.jackrabbit.oak.commons.io.FileTreeTraverser;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.BlobTracker;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
@@ -36,16 +41,11 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.osgi.framework.ServiceRegistration;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-
 /**
  * Tests OSGi registration for {@link BlobTrackingStore}.
  */
 public abstract class AbstractBlobTrackerRegistrationTest {
+
     @Rule
     public TemporaryFolder folder = new TemporaryFolder(new File("target"));
 
@@ -55,7 +55,7 @@ public abstract class AbstractBlobTrackerRegistrationTest {
     protected String repoHome;
 
     @Before
-    public void setUp() throws  Exception {
+    public void setUp() throws Exception {
         context.registerService(StatisticsProvider.class, StatisticsProvider.NOOP);
         repoHome = folder.newFolder().getAbsolutePath();
     }
@@ -109,8 +109,9 @@ public abstract class AbstractBlobTrackerRegistrationTest {
     private void assertTrackerReinitialized() {
         File blobIdFiles = new File(repoHome, "blobids");
         long fileCount = FileTreeTraverser.depthFirstPostOrder(blobIdFiles)
-                .filter(input -> input.getAbsolutePath().endsWith(".process"))
-                .count();
+                                          .filter(
+                                              input -> input.getAbsolutePath().endsWith(".process"))
+                                          .count();
         assertEquals(1, fileCount);
     }
 
@@ -126,7 +127,8 @@ public abstract class AbstractBlobTrackerRegistrationTest {
 
     protected void registerTrackingBlobStore() throws Exception {
         DataStoreBlobStore blobStore = DataStoreUtils.getBlobStore(repoHome);
-        this.blobStore = context.bundleContext().registerService(BlobStore.class.getName(), blobStore, null);
+        this.blobStore = context.bundleContext()
+                                .registerService(BlobStore.class.getName(), blobStore, null);
     }
 
     protected void unregisterBlobStore() {

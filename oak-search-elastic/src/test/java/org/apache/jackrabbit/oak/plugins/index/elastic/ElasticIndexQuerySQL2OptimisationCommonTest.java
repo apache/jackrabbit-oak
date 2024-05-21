@@ -30,7 +30,8 @@ import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.junit.ClassRule;
 
-public class ElasticIndexQuerySQL2OptimisationCommonTest extends IndexQuerySQL2OptimisationCommonTest {
+public class ElasticIndexQuerySQL2OptimisationCommonTest extends
+    IndexQuerySQL2OptimisationCommonTest {
 
     protected TestRepository repositoryOptionsUtil;
     private final ElasticConnection esConnection;
@@ -39,14 +40,15 @@ public class ElasticIndexQuerySQL2OptimisationCommonTest extends IndexQuerySQL2O
 
     @ClassRule
     public static final ElasticConnectionRule elasticRule =
-            new ElasticConnectionRule(ElasticTestUtils.ELASTIC_CONNECTION_STRING);
+        new ElasticConnectionRule(ElasticTestUtils.ELASTIC_CONNECTION_STRING);
 
     public ElasticIndexQuerySQL2OptimisationCommonTest() {
         this.esConnection = elasticRule.useDocker() ? elasticRule.getElasticConnectionForDocker() :
-                elasticRule.getElasticConnectionFromString();
-        this.indexTracker = new ElasticIndexTracker(esConnection, new ElasticMetricHandler(StatisticsProvider.NOOP));
+            elasticRule.getElasticConnectionFromString();
+        this.indexTracker = new ElasticIndexTracker(esConnection,
+            new ElasticMetricHandler(StatisticsProvider.NOOP));
         this.editorProvider = new ElasticIndexEditorProvider(indexTracker, esConnection,
-                new ExtractedTextCache(10 * FileUtils.ONE_MB, 100));
+            new ExtractedTextCache(10 * FileUtils.ONE_MB, 100));
         this.indexProvider = new ElasticIndexProvider(indexTracker);
     }
 
@@ -55,15 +57,15 @@ public class ElasticIndexQuerySQL2OptimisationCommonTest extends IndexQuerySQL2O
         indexOptions = new ElasticIndexOptions();
 
         return new Oak(new MemoryNodeStore(InitialContentHelper.INITIAL_CONTENT))
-                .with(new OpenSecurityProvider())
-                .with(indexProvider)
-                .with(indexTracker)
-                .with(editorProvider)
-                .with(new QueryEngineSettings() {
-                    @Override
-                    public boolean isSql2Optimisation() {
-                        return true;
-                    }
-                });
+            .with(new OpenSecurityProvider())
+            .with(indexProvider)
+            .with(indexTracker)
+            .with(editorProvider)
+            .with(new QueryEngineSettings() {
+                @Override
+                public boolean isSql2Optimisation() {
+                    return true;
+                }
+            });
     }
 }

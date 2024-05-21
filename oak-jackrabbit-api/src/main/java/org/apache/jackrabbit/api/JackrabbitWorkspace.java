@@ -25,8 +25,8 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Workspace;
 
 /**
- * The Jackrabbit workspace interface. This interface contains the
- * Jackrabbit-specific extensions to the JCR {@link Workspace} interface.
+ * The Jackrabbit workspace interface. This interface contains the Jackrabbit-specific extensions to
+ * the JCR {@link Workspace} interface.
  */
 @ProviderType
 public interface JackrabbitWorkspace extends Workspace {
@@ -35,29 +35,26 @@ public interface JackrabbitWorkspace extends Workspace {
      * Creates a workspace with the given name.
      *
      * @param workspaceName name of the new workspace
-     * @throws AccessDeniedException if the current session is not allowed to
-     *                               create the workspace
-     * @throws RepositoryException   if a workspace with the given name
-     *                               already exists or if another error occurs
+     * @throws AccessDeniedException if the current session is not allowed to create the workspace
+     * @throws RepositoryException   if a workspace with the given name already exists or if another
+     *                               error occurs
      * @see #getAccessibleWorkspaceNames()
      */
     void createWorkspace(String workspaceName)
-            throws AccessDeniedException, RepositoryException;
+        throws AccessDeniedException, RepositoryException;
 
     /**
-     * Creates a workspace with the given name and a workspace configuration
-     * template.
+     * Creates a workspace with the given name and a workspace configuration template.
      *
-     * @param workspaceName name of the new workspace
+     * @param workspaceName     name of the new workspace
      * @param workspaceTemplate the configuration template of the new workspace
-     * @throws AccessDeniedException if the current session is not allowed to
-     *                               create the workspace
-     * @throws RepositoryException   if a workspace with the given name
-     *                               already exists or if another error occurs
+     * @throws AccessDeniedException if the current session is not allowed to create the workspace
+     * @throws RepositoryException   if a workspace with the given name already exists or if another
+     *                               error occurs
      * @see #getAccessibleWorkspaceNames()
      */
     void createWorkspace(String workspaceName, InputSource workspaceTemplate)
-            throws AccessDeniedException, RepositoryException;
+        throws AccessDeniedException, RepositoryException;
 
     /**
      * Returns the privilege manager.

@@ -18,9 +18,9 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
+import static java.util.Collections.nCopies;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMapWithExpectedSize;
-import static java.util.Collections.nCopies;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,27 +39,26 @@ import org.slf4j.LoggerFactory;
 public class SegmentIdTable {
 
     /**
-     * The list of weak references to segment identifiers that are currently
-     * being accessed. This represents a hash table that uses open addressing
-     * with linear probing. It is not a hash map, to speed up read access.
+     * The list of weak references to segment identifiers that are currently being accessed. This
+     * represents a hash table that uses open addressing with linear probing. It is not a hash map,
+     * to speed up read access.
      * <p>
-     * The size of the table is always a power of two, so that we can use
-     * bitwise "and" instead of modulo.
+     * The size of the table is always a power of two, so that we can use bitwise "and" instead of
+     * modulo.
      * <p>
-     * The table is indexed by the random identifier bits, which guarantees
-     * uniform distribution of entries.
+     * The table is indexed by the random identifier bits, which guarantees uniform distribution of
+     * entries.
      * <p>
-     * Open addressing with linear probing is used. Each table entry is either
-     * null (when there are no matching identifiers), a weak references to the
-     * matching identifier, or a weak reference to another identifier.
-     * There are no tombstone entries as there is no explicit remove operation,
-     * but a referent can become null if the entry is garbage collected.
+     * Open addressing with linear probing is used. Each table entry is either null (when there are
+     * no matching identifiers), a weak references to the matching identifier, or a weak reference
+     * to another identifier. There are no tombstone entries as there is no explicit remove
+     * operation, but a referent can become null if the entry is garbage collected.
      * <p>
-     * The array is not sorted (we could; lookup might be faster, but adding
-     * entries would be slower).
+     * The array is not sorted (we could; lookup might be faster, but adding entries would be
+     * slower).
      */
     private final ArrayList<WeakReference<SegmentId>> references =
-            newArrayList(nCopies(1024, (WeakReference<SegmentId>) null));
+        newArrayList(nCopies(1024, (WeakReference<SegmentId>) null));
 
     private static final Logger LOG = LoggerFactory.getLogger(SegmentIdTable.class);
 
@@ -76,10 +74,9 @@ public class SegmentIdTable {
     private int entryCount;
 
     /**
-     * Get the segment id, and reference it in the weak references map. If the
-     * pair of MSB/LSB is not tracked by this table, a new instance of {@link
-     * SegmentId} is created using the provided {@link SegmentIdFactory} and
-     * tracked by this table.
+     * Get the segment id, and reference it in the weak references map. If the pair of MSB/LSB is
+     * not tracked by this table, a new instance of {@link SegmentId} is created using the provided
+     * {@link SegmentIdFactory} and tracked by this table.
      *
      * @param msb   The most significant bits of the {@link SegmentId}.
      * @param lsb   The least significant bits of the {@link SegmentId}.
@@ -95,8 +92,8 @@ public class SegmentIdTable {
         while (reference != null) {
             SegmentId id = reference.get();
             if (id != null
-                    && id.getMostSignificantBits() == msb
-                    && id.getLeastSignificantBits() == lsb) {
+                && id.getMostSignificantBits() == msb
+                && id.getLeastSignificantBits() == lsb) {
                 return id;
             }
             // shouldRefresh if we have a garbage collected entry
@@ -131,7 +128,7 @@ public class SegmentIdTable {
     private synchronized Collection<SegmentId> refresh() {
         int size = references.size();
         Map<SegmentId, WeakReference<SegmentId>> ids =
-                newHashMapWithExpectedSize(size);
+            newHashMapWithExpectedSize(size);
 
         boolean hashCollisions = false;
         boolean emptyReferences = false;
@@ -174,7 +171,7 @@ public class SegmentIdTable {
             references.addAll(nCopies(size, (WeakReference<SegmentId>) null));
 
             for (Map.Entry<SegmentId, WeakReference<SegmentId>> entry
-                    : ids.entrySet()) {
+                : ids.entrySet()) {
                 int index = getIndex(entry.getKey());
                 while (references.get(index) != null) {
                     index = (index + 1) % size;

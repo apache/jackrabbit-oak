@@ -32,8 +32,7 @@ import org.jetbrains.annotations.Nullable;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
 /**
- * A change dispatcher that pre-fetches visible external changes in a background
- * task.
+ * A change dispatcher that pre-fetches visible external changes in a background task.
  */
 class PrefetchDispatcher extends ChangeDispatcher {
 
@@ -41,7 +40,7 @@ class PrefetchDispatcher extends ChangeDispatcher {
     private NodeState root;
 
     public PrefetchDispatcher(@NotNull NodeState root,
-                              @NotNull Executor executor) {
+        @NotNull Executor executor) {
         super(root);
         this.root = root;
         this.executor = checkNotNull(executor);
@@ -49,17 +48,18 @@ class PrefetchDispatcher extends ChangeDispatcher {
 
     @Override
     public synchronized void contentChanged(@NotNull NodeState root,
-                                            @NotNull CommitInfo info) {
+        @NotNull CommitInfo info) {
         if (root instanceof DocumentNodeState) {
             final DocumentNodeState state = (DocumentNodeState) root;
             if (state.isFromExternalChange()) {
                 executor.execute(new Runnable() {
                     private final NodeState before = PrefetchDispatcher.this.root;
+
                     @Override
                     public void run() {
                         EditorDiff.process(
-                                new VisibleEditor(TraversingEditor.INSTANCE),
-                                before, state);
+                            new VisibleEditor(TraversingEditor.INSTANCE),
+                            before, state);
                     }
                 });
             }
@@ -74,21 +74,21 @@ class PrefetchDispatcher extends ChangeDispatcher {
 
         @Override
         public Editor childNodeAdded(String name, NodeState after)
-                throws CommitFailedException {
+            throws CommitFailedException {
             return this;
         }
 
         @Override
         public Editor childNodeChanged(String name,
-                                       NodeState before,
-                                       NodeState after)
-                throws CommitFailedException {
+            NodeState before,
+            NodeState after)
+            throws CommitFailedException {
             return this;
         }
 
         @Override
         public Editor childNodeDeleted(String name, NodeState before)
-                throws CommitFailedException {
+            throws CommitFailedException {
             return this;
         }
     }

@@ -19,6 +19,9 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -29,10 +32,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
-
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -59,23 +61,20 @@ import org.apache.lucene.util.Version;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-
 /**
  * Constructs a Lucene Analyzer from nodes (based on NodeState content).
- *
- * Approach taken is similar to one taken in
- * org.apache.solr.schema.FieldTypePluginLoader which is implemented for xml
- * based config. Resource lookup are performed via binary property access
+ * <p>
+ * Approach taken is similar to one taken in org.apache.solr.schema.FieldTypePluginLoader which is
+ * implemented for xml based config. Resource lookup are performed via binary property access
  */
 final class NodeStateAnalyzerFactory {
+
     private static final AtomicBoolean versionWarningAlreadyLogged = new AtomicBoolean(false);
 
     private static final Set<String> IGNORE_PROP_NAMES = ImmutableSet.of(
-            FulltextIndexConstants.ANL_CLASS,
-            FulltextIndexConstants.ANL_NAME,
-            JcrConstants.JCR_PRIMARYTYPE
+        FulltextIndexConstants.ANL_CLASS,
+        FulltextIndexConstants.ANL_NAME,
+        JcrConstants.JCR_PRIMARYTYPE
     );
 
     private static final Logger log = LoggerFactory.getLogger(NodeStateAnalyzerFactory.class);
@@ -83,8 +82,9 @@ final class NodeStateAnalyzerFactory {
     private final ResourceLoader defaultLoader;
     private final Version defaultVersion;
 
-    NodeStateAnalyzerFactory(Version defaultVersion){
-        this(new ClasspathResourceLoader(NodeStateAnalyzerFactory.class.getClassLoader()), defaultVersion);
+    NodeStateAnalyzerFactory(Version defaultVersion) {
+        this(new ClasspathResourceLoader(NodeStateAnalyzerFactory.class.getClassLoader()),
+            defaultVersion);
     }
 
     NodeStateAnalyzerFactory(ResourceLoader defaultLoader, Version defaultVersion) {
@@ -93,16 +93,19 @@ final class NodeStateAnalyzerFactory {
     }
 
     public Analyzer createInstance(NodeState state) {
-        if (state.hasProperty(FulltextIndexConstants.ANL_CLASS)){
+        if (state.hasProperty(FulltextIndexConstants.ANL_CLASS)) {
             return createAnalyzerViaReflection(state);
         }
         return composeAnalyzer(state);
     }
 
     private Analyzer composeAnalyzer(NodeState state) {
-        TokenizerFactory tf = loadTokenizer(state.getChildNode(FulltextIndexConstants.ANL_TOKENIZER));
-        CharFilterFactory[] cfs = loadCharFilterFactories(state.getChildNode(FulltextIndexConstants.ANL_CHAR_FILTERS));
-        TokenFilterFactory[] tffs = loadTokenFilterFactories(state.getChildNode(FulltextIndexConstants.ANL_FILTERS));
+        TokenizerFactory tf = loadTokenizer(
+            state.getChildNode(FulltextIndexConstants.ANL_TOKENIZER));
+        CharFilterFactory[] cfs = loadCharFilterFactories(
+            state.getChildNode(FulltextIndexConstants.ANL_CHAR_FILTERS));
+        TokenFilterFactory[] tffs = loadTokenFilterFactories(
+            state.getChildNode(FulltextIndexConstants.ANL_FILTERS));
         return new TokenizerChain(cfs, tf, tffs);
     }
 
@@ -110,7 +113,7 @@ final class NodeStateAnalyzerFactory {
         List<TokenFilterFactory> result = newArrayList();
 
         Tree tree = TreeFactory.createReadOnlyTree(tokenFiltersState);
-        for (Tree t : tree.getChildren()){
+        for (Tree t : tree.getChildren()) {
             NodeState state = tokenFiltersState.getChildNode(t.getName());
 
             String factoryType = getFactoryType(state, t.getName());
@@ -128,7 +131,7 @@ final class NodeStateAnalyzerFactory {
 
         //Need to read children in order
         Tree tree = TreeFactory.createReadOnlyTree(charFiltersState);
-        for (Tree t : tree.getChildren()){
+        for (Tree t : tree.getChildren()) {
             NodeState state = charFiltersState.getChildNode(t.getName());
 
             String factoryType = getFactoryType(state, t.getName());
@@ -156,10 +159,11 @@ final class NodeStateAnalyzerFactory {
         Version matchVersion = getVersion(state);
         CharArraySet stopwords = null;
         if (StopwordAnalyzerBase.class.isAssignableFrom(analyzerClazz)
-                && state.hasChildNode(FulltextIndexConstants.ANL_STOPWORDS)) {
+            && state.hasChildNode(FulltextIndexConstants.ANL_STOPWORDS)) {
             try {
-                stopwords = loadStopwordSet(state.getChildNode(FulltextIndexConstants.ANL_STOPWORDS),
-                        FulltextIndexConstants.ANL_STOPWORDS, matchVersion);
+                stopwords = loadStopwordSet(
+                    state.getChildNode(FulltextIndexConstants.ANL_STOPWORDS),
+                    FulltextIndexConstants.ANL_STOPWORDS, matchVersion);
             } catch (IOException e) {
                 throw new RuntimeException("Error occurred while loading stopwords", e);
             }
@@ -175,13 +179,17 @@ final class NodeStateAnalyzerFactory {
                 return c.newInstance(matchVersion);
             }
         } catch (NoSuchMethodException e) {
-            throw new RuntimeException("Error occurred while instantiating Analyzer for " + analyzerClazz, e);
+            throw new RuntimeException(
+                "Error occurred while instantiating Analyzer for " + analyzerClazz, e);
         } catch (InstantiationException e) {
-            throw new RuntimeException("Error occurred while instantiating Analyzer for " + analyzerClazz, e);
+            throw new RuntimeException(
+                "Error occurred while instantiating Analyzer for " + analyzerClazz, e);
         } catch (IllegalAccessException e) {
-            throw new RuntimeException("Error occurred while instantiating Analyzer for " + analyzerClazz, e);
+            throw new RuntimeException(
+                "Error occurred while instantiating Analyzer for " + analyzerClazz, e);
         } catch (InvocationTargetException e) {
-            throw new RuntimeException("Error occurred while instantiating Analyzer for " + analyzerClazz, e);
+            throw new RuntimeException(
+                "Error occurred while instantiating Analyzer for " + analyzerClazz, e);
         }
     }
 
@@ -190,11 +198,12 @@ final class NodeStateAnalyzerFactory {
             try {
                 ((ResourceLoaderAware) o).inform(new NodeStateResourceLoader(state, defaultLoader));
             } catch (IOException e) {
-                throw new IllegalArgumentException("Error occurred while initializing type " + o.getClass(), e);
+                throw new IllegalArgumentException(
+                    "Error occurred while initializing type " + o.getClass(), e);
             }
         }
 
-        if (state.hasProperty(LuceneIndexConstants.ANL_LUCENE_MATCH_VERSION)){
+        if (state.hasProperty(LuceneIndexConstants.ANL_LUCENE_MATCH_VERSION)) {
             o.setExplicitLuceneMatchVersion(true);
         }
     }
@@ -204,9 +213,9 @@ final class NodeStateAnalyzerFactory {
         for (PropertyState ps : state.getProperties()) {
             String name = ps.getName();
             if (ps.getType() != Type.BINARY
-                    && !ps.isArray()
-                    && !(name != null && NodeStateUtils.isHidden(name))
-                    && !IGNORE_PROP_NAMES.contains(name)) {
+                && !ps.isArray()
+                && !(name != null && NodeStateUtils.isHidden(name))
+                && !IGNORE_PROP_NAMES.contains(name)) {
                 result.put(name, ps.getValue(Type.STRING));
             }
         }
@@ -214,15 +223,16 @@ final class NodeStateAnalyzerFactory {
         return result;
     }
 
-    private Version getVersion(NodeState state){
+    private Version getVersion(NodeState state) {
         Version version = defaultVersion;
-        if (state.hasProperty(LuceneIndexConstants.ANL_LUCENE_MATCH_VERSION)){
-            version = parseLuceneVersionString(state.getString(LuceneIndexConstants.ANL_LUCENE_MATCH_VERSION));
+        if (state.hasProperty(LuceneIndexConstants.ANL_LUCENE_MATCH_VERSION)) {
+            version = parseLuceneVersionString(
+                state.getString(LuceneIndexConstants.ANL_LUCENE_MATCH_VERSION));
         }
         return version;
     }
 
-    private static String getFactoryType(NodeState state, String nodeStateName){
+    private static String getFactoryType(NodeState state, String nodeStateName) {
         String type = state.getString(FulltextIndexConstants.ANL_NAME);
         return type != null ? type : nodeStateName;
     }
@@ -232,17 +242,18 @@ final class NodeStateAnalyzerFactory {
         final Version version = Version.parseLeniently(matchVersion);
         if (version == Version.LUCENE_CURRENT && !versionWarningAlreadyLogged.getAndSet(true)) {
             log.warn(
-                    "You should not use LATEST as luceneMatchVersion property: "+
-                            "if you use this setting, and then Solr upgrades to a newer release of Lucene, "+
-                            "sizable changes may happen. If precise back compatibility is important "+
-                            "then you should instead explicitly specify an actual Lucene version."
+                "You should not use LATEST as luceneMatchVersion property: " +
+                    "if you use this setting, and then Solr upgrades to a newer release of Lucene, "
+                    +
+                    "sizable changes may happen. If precise back compatibility is important " +
+                    "then you should instead explicitly specify an actual Lucene version."
             );
         }
         return version;
     }
 
     private static CharArraySet loadStopwordSet(NodeState file, String name,
-                                                Version matchVersion) throws IOException {
+        Version matchVersion) throws IOException {
         Blob blob = ConfigUtil.getBlob(file, name);
         Reader stopwords = new InputStreamReader(blob.getNewStream(), IOUtils.CHARSET_UTF_8);
         try {
@@ -253,6 +264,7 @@ final class NodeStateAnalyzerFactory {
     }
 
     static class NodeStateResourceLoader implements ResourceLoader {
+
         private final NodeState state;
         private final ResourceLoader delegate;
 
@@ -263,7 +275,7 @@ final class NodeStateAnalyzerFactory {
 
         @Override
         public InputStream openResource(String resource) throws IOException {
-            if (state.hasChildNode(resource)){
+            if (state.hasChildNode(resource)) {
                 return ConfigUtil.getBlob(state.getChildNode(resource), resource).getNewStream();
             }
             return delegate.openResource(resource);

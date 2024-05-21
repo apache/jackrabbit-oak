@@ -16,11 +16,18 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import org.apache.jackrabbit.guava.common.base.Stopwatch;
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
+
+import java.util.Collections;
+import java.util.Iterator;
+import javax.jcr.RepositoryException;
+import javax.jcr.Value;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.commons.iterator.RangeIteratorAdapter;
+import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.tree.TreeAware;
@@ -32,14 +39,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.jcr.RepositoryException;
-import javax.jcr.Value;
-import java.util.Collections;
-import java.util.Iterator;
-
-import static java.util.concurrent.TimeUnit.NANOSECONDS;
-import static org.apache.jackrabbit.oak.api.Type.STRING;
 
 /**
  * Base class for {@code User} and {@code Group} implementations.

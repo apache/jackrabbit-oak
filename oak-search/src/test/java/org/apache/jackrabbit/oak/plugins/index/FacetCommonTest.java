@@ -16,30 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
-import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.PerfLogger;
-import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
-import org.apache.jackrabbit.oak.query.AbstractJcrTest;
-import org.apache.jackrabbit.oak.query.facet.FacetResult;
-import org.junit.Before;
-import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.jcr.Node;
-import javax.jcr.RepositoryException;
-import javax.jcr.query.Query;
-import javax.jcr.query.QueryResult;
-import javax.jcr.query.RowIterator;
-import javax.jcr.security.Privilege;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Random;
-import java.util.stream.Collectors;
-
 import static org.apache.jackrabbit.commons.JcrUtils.getOrCreateByPath;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.FACETS;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_RANDOM_SEED;
@@ -53,7 +29,31 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Random;
+import java.util.stream.Collectors;
+import javax.jcr.Node;
+import javax.jcr.RepositoryException;
+import javax.jcr.query.Query;
+import javax.jcr.query.QueryResult;
+import javax.jcr.query.RowIterator;
+import javax.jcr.security.Privilege;
+import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.PerfLogger;
+import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.query.AbstractJcrTest;
+import org.apache.jackrabbit.oak.query.facet.FacetResult;
+import org.junit.Before;
+import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public abstract class FacetCommonTest extends AbstractJcrTest {
+
     private static final Logger LOG = LoggerFactory.getLogger(AbstractJcrTest.class);
     private static final PerfLogger LOG_PERF = new PerfLogger(LOG);
     protected TestRepository repositoryOptionsUtil;
@@ -73,9 +73,11 @@ public abstract class FacetCommonTest extends AbstractJcrTest {
 
     @Before
     public void createIndex() throws RepositoryException {
-        IndexDefinitionBuilder builder = indexOptions.createIndex(indexOptions.createIndexDefinitionBuilder(), false);
+        IndexDefinitionBuilder builder = indexOptions.createIndex(
+            indexOptions.createIndexDefinitionBuilder(), false);
         builder.noAsync().evaluatePathRestrictions();
-        builder.getBuilderTree().setProperty("jcr:primaryType", "oak:QueryIndexDefinition", Type.NAME);
+        builder.getBuilderTree()
+               .setProperty("jcr:primaryType", "oak:QueryIndexDefinition", Type.NAME);
         // Statistical facets in Elasticsearch use a random function with a fixed seed but the results are not
         // consistent when the index name changes. So we set the index name to a fixed values.
         String indexName = "FacetCommonTestIndex" + INDEX_SUFFIX_RANDOMIZER.nextInt(1000);
@@ -83,9 +85,12 @@ public abstract class FacetCommonTest extends AbstractJcrTest {
         builder.getBuilderTree().setProperty("indexNameSeed", 300L, Type.LONG);
         IndexDefinitionBuilder.IndexRule indexRule = builder.indexRule(JcrConstants.NT_BASE);
         indexRule.property("cons").propertyIndex();
-        indexRule.property("foo").propertyIndex().getBuilderTree().setProperty(FACET_PROP, true, Type.BOOLEAN);
-        indexRule.property("bar").propertyIndex().getBuilderTree().setProperty(FACET_PROP, true, Type.BOOLEAN);
-        indexRule.property("baz").propertyIndex().getBuilderTree().setProperty(FACET_PROP, true, Type.BOOLEAN);
+        indexRule.property("foo").propertyIndex().getBuilderTree()
+                 .setProperty(FACET_PROP, true, Type.BOOLEAN);
+        indexRule.property("bar").propertyIndex().getBuilderTree()
+                 .setProperty(FACET_PROP, true, Type.BOOLEAN);
+        indexRule.property("baz").propertyIndex().getBuilderTree()
+                 .setProperty(FACET_PROP, true, Type.BOOLEAN);
 
         indexOptions.setIndex(adminSession, indexName, builder);
         indexNode = indexOptions.getIndexNode(adminSession, indexName);
@@ -141,7 +146,8 @@ public abstract class FacetCommonTest extends AbstractJcrTest {
             actualAclPar1LabelCount.put("l" + i, fooaclPar1LabelCount[i]);
             actualAclPar1LabelCount.put("m" + i, baraclPar1LabelCount[i]);
         }
-        assertNotEquals("Acl-ed and actual counts mustn't be same", actualLabelCount, actualAclLabelCount);
+        assertNotEquals("Acl-ed and actual counts mustn't be same", actualLabelCount,
+            actualAclLabelCount);
     }
 
     @Test
@@ -153,7 +159,8 @@ public abstract class FacetCommonTest extends AbstractJcrTest {
     @Test
     public void secureFacets_withOneLabelInaccessible() throws Exception {
         createDataset(NUM_LEAF_NODES_FOR_LARGE_DATASET);
-        Node inaccessibleChild = deny(adminSession.getNode("/parent").addNode("par4")).addNode("c0");
+        Node inaccessibleChild = deny(adminSession.getNode("/parent").addNode("par4")).addNode(
+            "c0");
         inaccessibleChild.setProperty("cons", "val");
         inaccessibleChild.setProperty("foo", "l4");
         adminSession.save();
@@ -162,7 +169,8 @@ public abstract class FacetCommonTest extends AbstractJcrTest {
 
     @Test
     public void insecureFacets() throws Exception {
-        Node facetConfig = getOrCreateByPath(indexNode.getPath() + "/" + FACETS, "nt:unstructured", adminSession);
+        Node facetConfig = getOrCreateByPath(indexNode.getPath() + "/" + FACETS, "nt:unstructured",
+            adminSession);
         facetConfig.setProperty(PROP_SECURE_FACETS, PROP_SECURE_FACETS_VALUE_INSECURE);
         adminSession.save();
 
@@ -172,7 +180,8 @@ public abstract class FacetCommonTest extends AbstractJcrTest {
 
     @Test
     public void statisticalFacets() throws Exception {
-        Node facetConfig = getOrCreateByPath(indexNode.getPath() + "/" + FACETS, "nt:unstructured", adminSession);
+        Node facetConfig = getOrCreateByPath(indexNode.getPath() + "/" + FACETS, "nt:unstructured",
+            adminSession);
         facetConfig.setProperty(PROP_SECURE_FACETS, PROP_SECURE_FACETS_VALUE_STATISTICAL);
         facetConfig.setProperty(PROP_STATISTICAL_FACET_SAMPLE_SIZE, 3000);
         adminSession.save();
@@ -188,9 +197,11 @@ public abstract class FacetCommonTest extends AbstractJcrTest {
                 assertEventually(() -> {
                     int facetCount = facets.get(facetLabel);
                     float ratio = ((float) facetCount) / facet.getValue();
-                    assertTrue("Facet count for label: " + facetLabel + " is outside of 10% margin of error. " +
-                                    "Expected: " + facet.getValue() + "; Got: " + facetCount + "; Ratio: " + ratio,
-                            Math.abs(ratio - 1) < 0.1);
+                    assertTrue("Facet count for label: " + facetLabel
+                            + " is outside of 10% margin of error. " +
+                            "Expected: " + facet.getValue() + "; Got: " + facetCount + "; Ratio: "
+                            + ratio,
+                        Math.abs(ratio - 1) < 0.1);
                 });
             }
 
@@ -211,7 +222,8 @@ public abstract class FacetCommonTest extends AbstractJcrTest {
 
     @Test
     public void statisticalFacetsWithHitCountLessThanSampleSize() throws Exception {
-        Node facetConfig = getOrCreateByPath(indexNode.getPath() + "/" + FACETS, "nt:unstructured", adminSession);
+        Node facetConfig = getOrCreateByPath(indexNode.getPath() + "/" + FACETS, "nt:unstructured",
+            adminSession);
         facetConfig.setProperty(PROP_SECURE_FACETS, PROP_SECURE_FACETS_VALUE_STATISTICAL);
         indexNode.setProperty(PROP_REFRESH_DEFN, true);
         adminSession.save();
@@ -230,7 +242,8 @@ public abstract class FacetCommonTest extends AbstractJcrTest {
 
     @Test
     public void statisticalFacets_withHitCountSameAsSampleSize() throws Exception {
-        Node facetConfig = getOrCreateByPath(indexNode.getPath() + "/" + FACETS, "nt:unstructured", adminSession);
+        Node facetConfig = getOrCreateByPath(indexNode.getPath() + "/" + FACETS, "nt:unstructured",
+            adminSession);
         facetConfig.setProperty(PROP_SECURE_FACETS, PROP_SECURE_FACETS_VALUE_STATISTICAL);
         indexNode.setProperty(PROP_REFRESH_DEFN, true);
         adminSession.save();
@@ -239,28 +252,34 @@ public abstract class FacetCommonTest extends AbstractJcrTest {
 
         assertEventually(() -> {
             Map<String, Integer> facets = getFacets("/parent/par1");
-            assertEquals("Unexpected number of facets", actualAclPar1LabelCount.size(), facets.size());
+            assertEquals("Unexpected number of facets", actualAclPar1LabelCount.size(),
+                facets.size());
 
             for (Map.Entry<String, Integer> facet : actualAclPar1LabelCount.entrySet()) {
                 String facetLabel = facet.getKey();
                 int facetCount = facets.get(facetLabel);
                 float ratio = ((float) facetCount) / facet.getValue();
-                assertTrue("Facet count for label: " + facetLabel + " is outside of 10% margin of error. " +
-                                "Expected: " + facet.getValue() + "; Got: " + facetCount + "; Ratio: " + ratio,
-                        Math.abs(ratio - 1) < 0.1);
+                assertTrue(
+                    "Facet count for label: " + facetLabel + " is outside of 10% margin of error. "
+                        +
+                        "Expected: " + facet.getValue() + "; Got: " + facetCount + "; Ratio: "
+                        + ratio,
+                    Math.abs(ratio - 1) < 0.1);
             }
         });
     }
 
     @Test
     public void statisticalFacets_withOneLabelInaccessible() throws Exception {
-        Node facetConfig = getOrCreateByPath(indexNode.getPath() + "/" + FACETS, "nt:unstructured", adminSession);
+        Node facetConfig = getOrCreateByPath(indexNode.getPath() + "/" + FACETS, "nt:unstructured",
+            adminSession);
         facetConfig.setProperty(PROP_SECURE_FACETS, PROP_SECURE_FACETS_VALUE_STATISTICAL);
         indexNode.setProperty(PROP_REFRESH_DEFN, true);
         adminSession.save();
 
         createDataset(NUM_LEAF_NODES_FOR_LARGE_DATASET);
-        Node inaccessibleChild = deny(adminSession.getNode("/parent").addNode("par4")).addNode("c0");
+        Node inaccessibleChild = deny(adminSession.getNode("/parent").addNode("par4")).addNode(
+            "c0");
         inaccessibleChild.setProperty("cons", "val");
         inaccessibleChild.setProperty("foo", "l4");
         adminSession.save();
@@ -272,16 +291,20 @@ public abstract class FacetCommonTest extends AbstractJcrTest {
                 String facetLabel = facet.getKey();
                 int facetCount = facets.get(facetLabel);
                 float ratio = ((float) facetCount) / facet.getValue();
-                assertTrue("Facet count for label: " + facetLabel + " is outside of 10% margin of error. " +
-                                "Expected: " + facet.getValue() + "; Got: " + facetCount + "; Ratio: " + ratio,
-                        Math.abs(ratio - 1) < 0.1);
+                assertTrue(
+                    "Facet count for label: " + facetLabel + " is outside of 10% margin of error. "
+                        +
+                        "Expected: " + facet.getValue() + "; Got: " + facetCount + "; Ratio: "
+                        + ratio,
+                    Math.abs(ratio - 1) < 0.1);
             }
         });
     }
 
     @Test
     public void secureFacets_withAdminSession() throws Exception {
-        Node facetConfig = getOrCreateByPath(indexNode.getPath() + "/" + FACETS, "nt:unstructured", adminSession);
+        Node facetConfig = getOrCreateByPath(indexNode.getPath() + "/" + FACETS, "nt:unstructured",
+            adminSession);
         facetConfig.setProperty(PROP_SECURE_FACETS, PROP_SECURE_FACETS_VALUE_INSECURE);
         indexNode.setProperty(PROP_REFRESH_DEFN, true);
         adminSession.save();
@@ -292,7 +315,8 @@ public abstract class FacetCommonTest extends AbstractJcrTest {
 
     @Test
     public void statisticalFacets_withAdminSession() throws Exception {
-        Node facetConfig = getOrCreateByPath(indexNode.getPath() + "/" + FACETS, "nt:unstructured", adminSession);
+        Node facetConfig = getOrCreateByPath(indexNode.getPath() + "/" + FACETS, "nt:unstructured",
+            adminSession);
         facetConfig.setProperty(PROP_SECURE_FACETS, PROP_SECURE_FACETS_VALUE_STATISTICAL);
         indexNode.setProperty(PROP_REFRESH_DEFN, true);
         adminSession.save();
@@ -306,9 +330,11 @@ public abstract class FacetCommonTest extends AbstractJcrTest {
                 String facetLabel = facet.getKey();
                 int facetCount = facets.get(facetLabel);
                 float ratio = ((float) facetCount) / facet.getValue();
-                assertTrue("Facet count for label: " + facetLabel + " is outside of 5% margin of error. " +
-                                "Expected: " + facet.getValue() + "; Got: " + facetCount + "; Ratio: " + ratio,
-                        Math.abs(ratio - 1) < 0.05);
+                assertTrue(
+                    "Facet count for label: " + facetLabel + " is outside of 5% margin of error. " +
+                        "Expected: " + facet.getValue() + "; Got: " + facetCount + "; Ratio: "
+                        + ratio,
+                    Math.abs(ratio - 1) < 0.05);
             }
         });
     }
@@ -334,9 +360,11 @@ public abstract class FacetCommonTest extends AbstractJcrTest {
         LOG_PERF.end(start, -1, "Facet Results fetched");
 
         return facetResult.getDimensions()
-                .stream()
-                .flatMap(dim -> Objects.requireNonNull(facetResult.getFacets(dim)).stream())
-                .collect(Collectors.toMap(FacetResult.Facet::getLabel, FacetResult.Facet::getCount));
+                          .stream()
+                          .flatMap(
+                              dim -> Objects.requireNonNull(facetResult.getFacets(dim)).stream())
+                          .collect(Collectors.toMap(FacetResult.Facet::getLabel,
+                              FacetResult.Facet::getCount));
     }
 
     private QueryResult getQueryResult(String path) {
@@ -344,7 +372,9 @@ public abstract class FacetCommonTest extends AbstractJcrTest {
         if (path != null) {
             pathCons = " AND ISDESCENDANTNODE('" + path + "')";
         }
-        String query = "SELECT [jcr:path], [rep:facet(foo)], [rep:facet(bar)], [rep:facet(baz)] FROM [nt:base] WHERE [cons] = 'val'" + pathCons;
+        String query =
+            "SELECT [jcr:path], [rep:facet(foo)], [rep:facet(bar)], [rep:facet(baz)] FROM [nt:base] WHERE [cons] = 'val'"
+                + pathCons;
         Query q;
         QueryResult queryResult;
         try {
@@ -357,6 +387,7 @@ public abstract class FacetCommonTest extends AbstractJcrTest {
     }
 
     protected void assertEventually(Runnable r) {
-        TestUtil.assertEventually(r, ((repositoryOptionsUtil.isAsync() ? repositoryOptionsUtil.defaultAsyncIndexingTimeInSeconds : 0) + 3000) * 5);
+        TestUtil.assertEventually(r, ((repositoryOptionsUtil.isAsync()
+            ? repositoryOptionsUtil.defaultAsyncIndexingTimeInSeconds : 0) + 3000) * 5);
     }
 }

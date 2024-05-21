@@ -22,6 +22,6 @@ import java.io.InputStream;
 interface StandbyBlobReader {
 
     InputStream readBlob(String blobId);
-    
+
     long getBlobLength(String blobId);
 }

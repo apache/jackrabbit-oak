@@ -22,20 +22,20 @@ This example demonstrates how to embed Oak in an standalone application
 Getting Started
 ---------------
 
-To get started build the build the latest sources with Maven 3 and Java 6 
-(or higher). 
+To get started build the build the latest sources with Maven 3 and Java 6
+(or higher).
 
     $ cd oak-examples/standalone
     $ mvn clean install 
-    
+
 Once done you can run the application by executing
 
     $ java -jar target/oak-standalone-*-exec.jar
-    
-This would start an Oak based repository which uses filesystem storage. All 
+
+This would start an Oak based repository which uses filesystem storage. All
 the content would be by default stored under `oak` folder. The server
-would listen at port 8080 and support remote access via DavEx (at `/server`) 
-and WebDAV (at `/repository/default`). 
+would listen at port 8080 and support remote access via DavEx (at `/server`)
+and WebDAV (at `/repository/default`).
 
 Now lets write something in the repository
 
@@ -51,11 +51,11 @@ Now lets write something in the repository
     </sv:node>
     END
 
-This would create a node `hello` at root. 
+This would create a node `hello` at root.
 
     $ curl --user admin:admin http://localhost:8080/server/default/jcr:root/hello.json
-    
-This should return a json rendition of the node. Application also has some 
+
+This should return a json rendition of the node. Application also has some
 other web interfaces which are linked at http://localhost:8080/
 
 ### Scripting Repository
@@ -93,7 +93,7 @@ Above script would dump path for all index definition nodes.
 Using Mongo
 -----------
 
-By default the application uses SegmentMk for which stores the data on 
+By default the application uses SegmentMk for which stores the data on
 filesystem. Instead of that it can be configured to use Mongo
 
     $ java -jar target/oak-standalone-*-exec.jar --mongo
@@ -102,12 +102,11 @@ It would try to connect to a Mongo server at localhost and 27017 port. One can
 specify the server detail also
 
     $ java -jar target/oak-standalone-*-exec.jar --mongo=mongodb://server:27017
-    
 
 Application Structure
 ---------------------
 
-Oak uses a repository home (defaults to `oak`) folder in current 
+Oak uses a repository home (defaults to `oak`) folder in current
 directory.
 
     oak/
@@ -127,14 +126,14 @@ directory.
 In above structure
 
 1. `bundles` - Storage used by OSGi bundles
-2. `repository` - All content is stored here. Binary content is stored in 
+2. `repository` - All content is stored here. Binary content is stored in
    `datastore` directory and node content is stored in `segmentstore` directory
-3. json file - These are config files which are used to configure the 
-  repository components like JAAS setup, SegmentStore config etc. These are OSGi
-  config. To see what all config options are supported go to 
-  http://localhost:8080/osgi/system/console/configMgr
-  
-The default setup is configured to use a FileDataStore to store binary 
+3. json file - These are config files which are used to configure the
+   repository components like JAAS setup, SegmentStore config etc. These are OSGi
+   config. To see what all config options are supported go to
+   http://localhost:8080/osgi/system/console/configMgr
+
+The default setup is configured to use a FileDataStore to store binary
 content for both SegmentMk and MongoMk
 
 Setup
@@ -165,14 +164,14 @@ construct the Oak Repository instance via `OakOSGiRepositoryFactory`
 
         return new OakOSGiRepositoryFactory().getRepository(config);
     }
-    
+
 In above setup
 
-1. `REPOSITORY_HOME` - Path to the directory which would be used to store 
+1. `REPOSITORY_HOME` - Path to the directory which would be used to store
    repository content
-2. `REPOSITORY_CONFIG_FILE` - Comma separated json config file paths 
+2. `REPOSITORY_CONFIG_FILE` - Comma separated json config file paths
 
 Standalone Application is based on [Spring Boot](http://projects.spring.io/spring-boot/)
-and thus supports all features provided by it. 
+and thus supports all features provided by it.
 
 [1]: http://felix.apache.org/documentation/subprojects/apache-felix-script-console-plugin.html

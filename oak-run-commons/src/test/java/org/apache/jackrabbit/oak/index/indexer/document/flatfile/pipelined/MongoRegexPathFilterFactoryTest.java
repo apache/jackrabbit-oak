@@ -18,26 +18,27 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
-import org.apache.jackrabbit.oak.spi.filter.PathFilter;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
 
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
-import static org.junit.Assert.*;
+import org.apache.jackrabbit.oak.spi.filter.PathFilter;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 public class MongoRegexPathFilterFactoryTest {
 
     private static MongoRegexPathFilterFactory filter;
     PathFilter fullTree = new PathFilter(Set.of("/"), Set.of());
-    PathFilter multipleExcludes = new PathFilter(Set.of("/"), Set.of("/excluded/sub1/sub2", "/excluded2", "/tmp"));
+    PathFilter multipleExcludes = new PathFilter(Set.of("/"),
+        Set.of("/excluded/sub1/sub2", "/excluded2", "/tmp"));
     PathFilter singleInclude = new PathFilter(Set.of("/included/sub"), Set.of());
 
     @BeforeClass
     public static void init() {
-        filter = new MongoRegexPathFilterFactory(PipelinedMongoDownloadTask.DEFAULT_OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING_MAX_PATHS);
+        filter = new MongoRegexPathFilterFactory(
+            PipelinedMongoDownloadTask.DEFAULT_OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING_MAX_PATHS);
     }
 
     @Test
@@ -85,7 +86,8 @@ public class MongoRegexPathFilterFactoryTest {
 
     @Test
     public void customExcludeChildrenOfIndexExcludes() {
-        var f = filter.buildMongoFilter(List.of(multipleExcludes), List.of("/excluded2", "/tmp/bin"));
+        var f = filter.buildMongoFilter(List.of(multipleExcludes),
+            List.of("/excluded2", "/tmp/bin"));
         assertPaths(List.of("/"), multipleExcludes.getExcludedPaths(), f);
     }
 
@@ -95,7 +97,8 @@ public class MongoRegexPathFilterFactoryTest {
         assertPaths(List.of("/"), List.of("/excluded", "/excluded2", "/tmp"), f);
     }
 
-    private static void assertPaths(List<String> expectedIncluded, List<String> expectedExcluded, MongoRegexPathFilterFactory.MongoFilterPaths actual) {
+    private static void assertPaths(List<String> expectedIncluded, List<String> expectedExcluded,
+        MongoRegexPathFilterFactory.MongoFilterPaths actual) {
         assertEquals(new HashSet<>(expectedIncluded), new HashSet<>(actual.included));
         assertEquals(new HashSet<>(expectedExcluded), new HashSet<>(actual.excluded));
     }

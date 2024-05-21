@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 
 /**
+ *
  */
 public class GroupEditorProvider implements EditorProvider {
 
@@ -36,8 +37,8 @@ public class GroupEditorProvider implements EditorProvider {
 
     @Override
     public Editor getRootEditor(
-            NodeState before, NodeState after,
-            NodeBuilder builder, CommitInfo info) {
+        NodeState before, NodeState after,
+        NodeBuilder builder, CommitInfo info) {
         return new GroupEditor(builder, groupsPath);
     }
 

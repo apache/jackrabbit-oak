@@ -18,10 +18,8 @@ package org.apache.jackrabbit.oak.jcr;
 
 import java.io.File;
 import java.util.Properties;
-
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
-
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
@@ -29,6 +27,7 @@ import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 
 /**
  * A repository stub implementation for Oak on TarMK
+ *
  * @deprecated Use {@link OakSegmentTarRepositoryStub} instead.
  */
 @Deprecated
@@ -49,8 +48,9 @@ public class OakTarMKRepositoryStub extends BaseRepositoryStub {
 
         try {
             File directory =
-                    new File("target", "tarmk-" + System.currentTimeMillis());
-            this.store = FileStoreBuilder.fileStoreBuilder(directory).withMaxFileSize(1).withMemoryMapping(false).build();
+                new File("target", "tarmk-" + System.currentTimeMillis());
+            this.store = FileStoreBuilder.fileStoreBuilder(directory).withMaxFileSize(1)
+                                         .withMemoryMapping(false).build();
             Jcr jcr = new Jcr(new Oak(SegmentNodeStoreBuilders.builder(store).build()));
             preCreateRepository(jcr);
             this.repository = jcr.createRepository();

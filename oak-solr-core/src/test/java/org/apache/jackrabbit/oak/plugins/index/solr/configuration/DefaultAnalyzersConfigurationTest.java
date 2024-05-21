@@ -16,10 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.configuration;
 
+import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import java.io.StringReader;
 import java.util.regex.Pattern;
-
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.BaseTokenStreamTestCase;
 import org.apache.lucene.analysis.TokenStream;
@@ -38,9 +37,11 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 /**
- * Testcase for checking default analyzers configurations behave as expected with regards to path related restrictions
- *
- * Note that default Solr analyzers for Oak should be equivalent to the ones programmatically defined here.
+ * Testcase for checking default analyzers configurations behave as expected with regards to path
+ * related restrictions
+ * <p>
+ * Note that default Solr analyzers for Oak should be equivalent to the ones programmatically
+ * defined here.
  */
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
@@ -88,8 +89,10 @@ public class DefaultAnalyzersConfigurationTest extends BaseTokenStreamTestCase {
                 Tokenizer source = new KeywordTokenizer();
                 TokenStream filter = new ReverseStringFilter(source);
                 filter = new LengthFilter(filter, 2, Integer.MAX_VALUE);
-                filter = new PatternReplaceFilter(filter, Pattern.compile("([^\\/]+)(\\/)"), "$2", false);
-                filter = new PatternReplaceFilter(filter, Pattern.compile("(\\/)(.+)"), "$2", false);
+                filter = new PatternReplaceFilter(filter, Pattern.compile("([^\\/]+)(\\/)"), "$2",
+                    false);
+                filter = new PatternReplaceFilter(filter, Pattern.compile("(\\/)(.+)"), "$2",
+                    false);
                 filter = new ReverseStringFilter(filter);
                 return new TokenStreamComponents(source, filter);
             }
@@ -106,7 +109,8 @@ public class DefaultAnalyzersConfigurationTest extends BaseTokenStreamTestCase {
             @Override
             protected TokenStreamComponents createComponents(String fieldName) {
                 Tokenizer source = new PathHierarchyTokenizer();
-                TokenStream filter = new PatternCaptureGroupTokenFilter(source, false, Pattern.compile("((\\/).*)"));
+                TokenStream filter = new PatternCaptureGroupTokenFilter(source, false,
+                    Pattern.compile("((\\/).*)"));
                 filter = new RemoveDuplicatesTokenFilter(filter);
                 return new TokenStreamComponents(source, filter);
             }
@@ -135,8 +139,11 @@ public class DefaultAnalyzersConfigurationTest extends BaseTokenStreamTestCase {
     @Test
     public void testAllChildrenIndexingTokenization() throws Exception {
         try {
-            TokenStream ts = allChildrenPathIndexingAnalyzer.tokenStream("text", new StringReader("/jcr:a/jcr:b/c/jcr:d"));
-            assertTokenStreamContents(ts, new String[]{"/jcr:a", "/", "/jcr:a/jcr:b", "/jcr:a/jcr:b/c", "/jcr:a/jcr:b/c/jcr:d"});
+            TokenStream ts = allChildrenPathIndexingAnalyzer.tokenStream("text",
+                new StringReader("/jcr:a/jcr:b/c/jcr:d"));
+            assertTokenStreamContents(ts,
+                new String[]{"/jcr:a", "/", "/jcr:a/jcr:b", "/jcr:a/jcr:b/c",
+                    "/jcr:a/jcr:b/c/jcr:d"});
         } finally {
             allChildrenPathIndexingAnalyzer.close();
         }
@@ -145,7 +152,8 @@ public class DefaultAnalyzersConfigurationTest extends BaseTokenStreamTestCase {
     @Test
     public void testAllChildrenSearchingTokenization() throws Exception {
         try {
-            TokenStream ts = allChildrenPathSearchingAnalyzer.tokenStream("text", new StringReader("/jcr:a/jcr:b/jcr:c"));
+            TokenStream ts = allChildrenPathSearchingAnalyzer.tokenStream("text",
+                new StringReader("/jcr:a/jcr:b/jcr:c"));
             assertTokenStreamContents(ts, new String[]{"/jcr:a/jcr:b/jcr:c"});
         } finally {
             allChildrenPathSearchingAnalyzer.close();
@@ -155,7 +163,8 @@ public class DefaultAnalyzersConfigurationTest extends BaseTokenStreamTestCase {
     @Test
     public void testDirectChildrenPathIndexingTokenization() throws Exception {
         try {
-            TokenStream ts = directChildrenPathIndexingAnalyzer.tokenStream("text", new StringReader("/jcr:a/b/jcr:c"));
+            TokenStream ts = directChildrenPathIndexingAnalyzer.tokenStream("text",
+                new StringReader("/jcr:a/b/jcr:c"));
             assertTokenStreamContents(ts, new String[]{"/jcr:a/b"});
             ts = directChildrenPathIndexingAnalyzer.tokenStream("text", new StringReader("/jcr:a"));
             assertTokenStreamContents(ts, new String[]{"/"});
@@ -169,7 +178,8 @@ public class DefaultAnalyzersConfigurationTest extends BaseTokenStreamTestCase {
     @Test
     public void testDirectChildrenPathSearchingTokenization() throws Exception {
         try {
-            TokenStream ts = directChildrenPathSearchingAnalyzer.tokenStream("text", new StringReader("/jcr:a/jcr:b"));
+            TokenStream ts = directChildrenPathSearchingAnalyzer.tokenStream("text",
+                new StringReader("/jcr:a/jcr:b"));
             assertTokenStreamContents(ts, new String[]{"/jcr:a/jcr:b"});
         } finally {
             directChildrenPathSearchingAnalyzer.close();
@@ -179,7 +189,8 @@ public class DefaultAnalyzersConfigurationTest extends BaseTokenStreamTestCase {
     @Test
     public void testExactPathIndexingTokenizationAndSearch() throws Exception {
         try {
-            TokenStream ts = exactPathAnalyzer.tokenStream("text", new StringReader("/jcr:a/jcr:b/c"));
+            TokenStream ts = exactPathAnalyzer.tokenStream("text",
+                new StringReader("/jcr:a/jcr:b/c"));
             assertTokenStreamContents(ts, new String[]{"/jcr:a/jcr:b/c"});
         } finally {
             exactPathAnalyzer.close();
@@ -189,7 +200,8 @@ public class DefaultAnalyzersConfigurationTest extends BaseTokenStreamTestCase {
     @Test
     public void testParentPathSearchingTokenization() throws Exception {
         try {
-            TokenStream ts = parentPathSearchingAnalyzer.tokenStream("text", new StringReader("/jcr:a/b/jcr:c"));
+            TokenStream ts = parentPathSearchingAnalyzer.tokenStream("text",
+                new StringReader("/jcr:a/b/jcr:c"));
             assertTokenStreamContents(ts, new String[]{"/jcr:a/b"});
         } finally {
             parentPathSearchingAnalyzer.close();
@@ -199,7 +211,8 @@ public class DefaultAnalyzersConfigurationTest extends BaseTokenStreamTestCase {
     @Test
     public void testParentPathIndexingTokenization() throws Exception {
         try {
-            TokenStream ts = parentPathIndexingAnalyzer.tokenStream("text", new StringReader("/a/b"));
+            TokenStream ts = parentPathIndexingAnalyzer.tokenStream("text",
+                new StringReader("/a/b"));
             assertTokenStreamContents(ts, new String[]{"/a/b"});
         } finally {
             parentPathIndexingAnalyzer.close();
@@ -211,14 +224,16 @@ public class DefaultAnalyzersConfigurationTest extends BaseTokenStreamTestCase {
     public void testAllChildrenPathMatching() throws Exception {
         String nodePath = "/jcr:a/jcr:b/c";
         String descendantPath = nodePath + "/d/jcr:e";
-        assertAnalyzesTo(allChildrenPathIndexingAnalyzer, descendantPath, new String[]{"/jcr:a", "/", "/jcr:a/jcr:b",
+        assertAnalyzesTo(allChildrenPathIndexingAnalyzer, descendantPath,
+            new String[]{"/jcr:a", "/", "/jcr:a/jcr:b",
                 "/jcr:a/jcr:b/c", "/jcr:a/jcr:b/c/d", "/jcr:a/jcr:b/c/d/jcr:e"});
         assertAnalyzesTo(allChildrenPathSearchingAnalyzer, nodePath, new String[]{nodePath});
         assertAnalyzesTo(allChildrenPathSearchingAnalyzer, "/jcr:a", new String[]{"/jcr:a"});
         assertAnalyzesTo(allChildrenPathSearchingAnalyzer, "/jcr:a/b", new String[]{"/jcr:a/b"});
         assertAnalyzesTo(allChildrenPathSearchingAnalyzer, "/a/b/c", new String[]{"/a/b/c"});
         assertAnalyzesTo(allChildrenPathSearchingAnalyzer, "/a/b/c/d", new String[]{"/a/b/c/d"});
-        assertAnalyzesTo(allChildrenPathSearchingAnalyzer, "/a/b/c/d/jcr:e", new String[]{"/a/b/c/d/jcr:e"});
+        assertAnalyzesTo(allChildrenPathSearchingAnalyzer, "/a/b/c/d/jcr:e",
+            new String[]{"/a/b/c/d/jcr:e"});
         assertAnalyzesTo(allChildrenPathSearchingAnalyzer, "/", new String[]{"/"});
     }
 
@@ -227,7 +242,8 @@ public class DefaultAnalyzersConfigurationTest extends BaseTokenStreamTestCase {
     public void testAllChildrenPathMatchingOnRootNode() throws Exception {
         String nodePath = "/";
         String descendantPath = nodePath + "jcr:a/jcr:b";
-        assertAnalyzesTo(allChildrenPathIndexingAnalyzer, descendantPath, new String[]{"/jcr:a", "/", "/jcr:a/jcr:b"});
+        assertAnalyzesTo(allChildrenPathIndexingAnalyzer, descendantPath,
+            new String[]{"/jcr:a", "/", "/jcr:a/jcr:b"});
     }
 
     @Test

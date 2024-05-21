@@ -16,24 +16,23 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.token;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-import org.junit.Before;
-import org.junit.Test;
-
-import javax.jcr.Credentials;
-import javax.jcr.GuestCredentials;
-import javax.jcr.SimpleCredentials;
-import java.util.Map;
-
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+
+import java.util.Map;
+import javax.jcr.Credentials;
+import javax.jcr.GuestCredentials;
+import javax.jcr.SimpleCredentials;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.junit.Before;
+import org.junit.Test;
 
 public class CompositeTokenProviderTest {
 
@@ -60,7 +59,8 @@ public class CompositeTokenProviderTest {
 
         assertSame(tp, CompositeTokenProvider.newInstance(ImmutableList.<TokenProvider>of()));
 
-        Credentials creds = new Credentials() {};
+        Credentials creds = new Credentials() {
+        };
 
         assertFalse(tp.doCreateToken(null));
         assertFalse(tp.doCreateToken(creds));
@@ -101,7 +101,8 @@ public class CompositeTokenProviderTest {
     public void testDoCreateToken() {
         assertTrue(composite.doCreateToken(new SimpleCredentials(USERID, new char[0])));
         assertFalse(composite.doCreateToken(new GuestCredentials()));
-        assertFalse(composite.doCreateToken(new Credentials() {}));
+        assertFalse(composite.doCreateToken(new Credentials() {
+        }));
     }
 
     @Test
@@ -125,7 +126,9 @@ public class CompositeTokenProviderTest {
     @Test
     public void testCreateTokenFromIdFirstWins() {
         TokenInfo ti = mock(TokenInfo.class);
-        TokenProvider tp1 = when(mock(TokenProvider.class).createToken(USERID, ImmutableMap.of())).thenReturn(ti).getMock();
+        TokenProvider tp1 = when(
+            mock(TokenProvider.class).createToken(USERID, ImmutableMap.of())).thenReturn(ti)
+                                                                             .getMock();
         TokenProvider tp2 = new TestTokenProvider();
 
         TokenProvider ctp = CompositeTokenProvider.newInstance(tp1, tp2);
@@ -139,6 +142,7 @@ public class CompositeTokenProviderTest {
     }
 
     private final class TestTokenProvider implements TokenProvider {
+
         @Override
         public boolean doCreateToken(@NotNull Credentials credentials) {
             return credentials instanceof SimpleCredentials;
@@ -173,5 +177,7 @@ public class CompositeTokenProviderTest {
                 return null;
             }
         }
-    };
+    }
+
+    ;
 }

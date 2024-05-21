@@ -18,6 +18,11 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.incrementalstore;
 
+import static com.google.common.base.StandardSystemProperty.LINE_SEPARATOR;
+
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.util.function.Predicate;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
@@ -26,12 +31,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.BufferedWriter;
-import java.io.IOException;
-import java.util.function.Predicate;
-
-import static com.google.common.base.StandardSystemProperty.LINE_SEPARATOR;
 
 public class IncrementalFlatFileStoreEditor implements Editor {
 
@@ -42,8 +41,9 @@ public class IncrementalFlatFileStoreEditor implements Editor {
     private final IncrementalFlatFileStoreStrategy incrementalFlatFileStoreStrategy;
     private static final int LINE_SEP_LENGTH = LINE_SEPARATOR.value().length();
 
-    public IncrementalFlatFileStoreEditor(BufferedWriter bufferedWriter, IncrementalFlatFileStoreNodeStateEntryWriter entryWriter, Predicate<String> predicate,
-                                          IncrementalFlatFileStoreStrategy incrementalFlatFileStoreStrategy) {
+    public IncrementalFlatFileStoreEditor(BufferedWriter bufferedWriter,
+        IncrementalFlatFileStoreNodeStateEntryWriter entryWriter, Predicate<String> predicate,
+        IncrementalFlatFileStoreStrategy incrementalFlatFileStoreStrategy) {
         this.bufferedWriter = bufferedWriter;
         this.entryWriter = entryWriter;
         this.predicate = predicate;
@@ -94,7 +94,8 @@ public class IncrementalFlatFileStoreEditor implements Editor {
             path = ((DocumentNodeState) e).getPath().toString();
         } else {
             log.error("DeltaFFSEditor implementation is only for DocumentNodeState");
-            throw new RuntimeException("DeltaFFSEditor implementation is only for DocumentNodeState");
+            throw new RuntimeException(
+                "DeltaFFSEditor implementation is only for DocumentNodeState");
         }
         return path;
     }
@@ -103,11 +104,14 @@ public class IncrementalFlatFileStoreEditor implements Editor {
         try {
             String path = getPath(e);
             if (!NodeStateUtils.isHiddenPath(path) && predicate.test(path)) {
-                String line = path + "|" + entryWriter.asJson(e) + "|" + incrementalFlatFileStoreStrategy.getAfterCheckpoint() + "|" + action;
+                String line = path + "|" + entryWriter.asJson(e) + "|"
+                    + incrementalFlatFileStoreStrategy.getAfterCheckpoint() + "|" + action;
                 bufferedWriter.append(line);
                 bufferedWriter.newLine();
                 incrementalFlatFileStoreStrategy.incrementEntryCount();
-                incrementalFlatFileStoreStrategy.setTextSize(incrementalFlatFileStoreStrategy.getTextSize() + line.length() + LINE_SEP_LENGTH);
+                incrementalFlatFileStoreStrategy.setTextSize(
+                    incrementalFlatFileStoreStrategy.getTextSize() + line.length()
+                        + LINE_SEP_LENGTH);
             }
         } catch (IOException ex) {
             log.error("Error while creating incremental store", ex);

@@ -25,7 +25,6 @@ import static org.junit.Assert.assertEquals;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.concurrent.ScheduledExecutorService;
-
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
 import org.apache.jackrabbit.oak.stats.MeterStats;
@@ -36,6 +35,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class CacheAccessTrackerTest {
+
     private CacheAccessTracker<String, RecordId> cache;
     private Closeable closer;
 

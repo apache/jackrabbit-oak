@@ -16,8 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.persistentCache;
 
-import org.apache.jackrabbit.guava.common.base.MoreObjects;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
+import javax.management.openmbean.CompositeData;
 import org.apache.jackrabbit.api.stats.TimeSeries;
+import org.apache.jackrabbit.guava.common.base.MoreObjects;
 import org.apache.jackrabbit.oak.api.jmx.PersistentCacheStatsMBean;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
@@ -29,19 +33,16 @@ import org.apache.jackrabbit.oak.stats.StatsOptions;
 import org.apache.jackrabbit.oak.stats.TimerStats;
 import org.apache.jackrabbit.stats.TimeSeriesStatsUtil;
 
-import javax.management.openmbean.CompositeData;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
-
 /**
  * Persistence Cache Statistics.
  */
-public class PersistentCacheStats extends AnnotatedStandardMBean implements PersistentCacheStatsMBean {
+public class PersistentCacheStats extends AnnotatedStandardMBean implements
+    PersistentCacheStatsMBean {
 
     private static final Boolean ENABLE_READ_TIMER;
     private static final Boolean ENABLE_LOAD_TIMER;
     private static final Boolean ENABLE_REJECTED_PUT;
+
     static {
         String enableReadTimer = System.getProperty("PersistentCacheStats.readTimer", "false");
         String enableLoadTimer = System.getProperty("PersistentCacheStats.loadTimer", "false");
@@ -143,8 +144,7 @@ public class PersistentCacheStats extends AnnotatedStandardMBean implements Pers
         loadRateHistory = new DifferenceTimeSeries(requestRateHistory, hitRateHistory);
         if (ENABLE_LOAD_TIMER) {
             loadTimer = statisticsProvider.getTimer(statName, StatsOptions.METRICS_ONLY);
-        }
-        else {
+        } else {
             loadTimer = StatisticsProvider.NOOP.getTimer(statName, StatsOptions.METRICS_ONLY);
         }
 
@@ -175,36 +175,45 @@ public class PersistentCacheStats extends AnnotatedStandardMBean implements Pers
         statName = getStatName(READ_TIMER, cacheName);
         if (ENABLE_READ_TIMER) {
             readTimer = statisticsProvider.getTimer(statName, StatsOptions.METRICS_ONLY);
-        }
-        else {
+        } else {
             readTimer = StatisticsProvider.NOOP.getTimer(statName, StatsOptions.METRICS_ONLY);
         }
 
         statName = getStatName(PUT_REJECTED_ALREADY_PERSISTED, cacheName);
         if (ENABLE_REJECTED_PUT) {
-            putRejectedAlreadyPersistedMeter = statisticsProvider.getMeter(statName, StatsOptions.DEFAULT);
+            putRejectedAlreadyPersistedMeter = statisticsProvider.getMeter(statName,
+                StatsOptions.DEFAULT);
             putRejectedAlreadyPersistedHistory = getTimeSeries(statName);
         } else {
-            putRejectedAlreadyPersistedMeter = StatisticsProvider.NOOP.getMeter(statName, StatsOptions.DEFAULT);
-            putRejectedAlreadyPersistedHistory = StatisticsProvider.NOOP.getStats().getTimeSeries(statName, false);
+            putRejectedAlreadyPersistedMeter = StatisticsProvider.NOOP.getMeter(statName,
+                StatsOptions.DEFAULT);
+            putRejectedAlreadyPersistedHistory = StatisticsProvider.NOOP.getStats()
+                                                                        .getTimeSeries(statName,
+                                                                            false);
         }
 
         statName = getStatName(PUT_REJECTED_ENTRY_NOT_USED, cacheName);
         if (ENABLE_REJECTED_PUT) {
-            putRejectedEntryNotUsedMeter = statisticsProvider.getMeter(statName, StatsOptions.DEFAULT);
+            putRejectedEntryNotUsedMeter = statisticsProvider.getMeter(statName,
+                StatsOptions.DEFAULT);
             putRejectedEntryNotUseHistory = getTimeSeries(statName);
         } else {
-            putRejectedEntryNotUsedMeter = StatisticsProvider.NOOP.getMeter(statName, StatsOptions.DEFAULT);
-            putRejectedEntryNotUseHistory = StatisticsProvider.NOOP.getStats().getTimeSeries(statName, false);
+            putRejectedEntryNotUsedMeter = StatisticsProvider.NOOP.getMeter(statName,
+                StatsOptions.DEFAULT);
+            putRejectedEntryNotUseHistory = StatisticsProvider.NOOP.getStats()
+                                                                   .getTimeSeries(statName, false);
         }
 
         statName = getStatName(PUT_REJECTED_FULL_QUEUE, cacheName);
         if (ENABLE_REJECTED_PUT) {
-            putRejectedByFullQueueMeter = statisticsProvider.getMeter(statName, StatsOptions.DEFAULT);
+            putRejectedByFullQueueMeter = statisticsProvider.getMeter(statName,
+                StatsOptions.DEFAULT);
             putRejectedByFullQueueHistory = getTimeSeries(statName);
         } else {
-            putRejectedByFullQueueMeter = StatisticsProvider.NOOP.getMeter(statName, StatsOptions.DEFAULT);
-            putRejectedByFullQueueHistory = StatisticsProvider.NOOP.getStats().getTimeSeries(statName, false);
+            putRejectedByFullQueueMeter = StatisticsProvider.NOOP.getMeter(statName,
+                StatsOptions.DEFAULT);
+            putRejectedByFullQueueHistory = StatisticsProvider.NOOP.getStats()
+                                                                   .getTimeSeries(statName, false);
         }
 
         statName = getStatName(PUT_REJECTED_SECONDARY_CACHE, cacheName);
@@ -285,6 +294,7 @@ public class PersistentCacheStats extends AnnotatedStandardMBean implements Pers
     //~--------------------------------------< diskspace usage helper
 
     static class UsedSpaceTracker {
+
         private final CounterStats byteCounter;
 
         private final Map<Integer, AtomicLong> generationByteCounters;
@@ -334,7 +344,7 @@ public class PersistentCacheStats extends AnnotatedStandardMBean implements Pers
     public double getHitRate() {
         long hitCount = hitMeter.getCount();
         long requestCount = requestMeter.getCount();
-        return (requestCount == 0L ? 0L : (double)hitCount/requestCount);
+        return (requestCount == 0L ? 0L : (double) hitCount / requestCount);
     }
 
     @Override
@@ -346,7 +356,7 @@ public class PersistentCacheStats extends AnnotatedStandardMBean implements Pers
     public double getMissRate() {
         long missCount = getMissCount();
         long requestCount = requestMeter.getCount();
-        return (requestCount == 0L ? 0L : (double)missCount/requestCount);
+        return (requestCount == 0L ? 0L : (double) missCount / requestCount);
     }
 
     @Override
@@ -368,7 +378,7 @@ public class PersistentCacheStats extends AnnotatedStandardMBean implements Pers
     public double getLoadExceptionRate() {
         long exceptionCount = loadExceptionMeter.getCount();
         long loadCount = loadTimer.getCount();
-        return (loadCount == 0L ? 0L : (double)exceptionCount/loadCount);
+        return (loadCount == 0L ? 0L : (double) exceptionCount / loadCount);
     }
 
     @Override
@@ -389,78 +399,91 @@ public class PersistentCacheStats extends AnnotatedStandardMBean implements Pers
 
     @Override
     public CompositeData getLoadRateHistory() {
-        return TimeSeriesStatsUtil.asCompositeData(loadRateHistory, "Persistent cache loads/misses");
+        return TimeSeriesStatsUtil.asCompositeData(loadRateHistory,
+            "Persistent cache loads/misses");
     }
 
     @Override
     public CompositeData getLoadExceptionRateHistory() {
-        return TimeSeriesStatsUtil.asCompositeData(loadExceptionRateHistory, "Persistent cache load exceptions");
+        return TimeSeriesStatsUtil.asCompositeData(loadExceptionRateHistory,
+            "Persistent cache load exceptions");
     }
 
     @Override
     public CompositeData getHitPercentageHistory() {
-        return TimeSeriesStatsUtil.asCompositeData(hitPercentageHistory, "Persistent cache hit percentage");
+        return TimeSeriesStatsUtil.asCompositeData(hitPercentageHistory,
+            "Persistent cache hit percentage");
     }
 
     @Override
     public CompositeData getPutRateHistory() {
-        return TimeSeriesStatsUtil.asCompositeData(putRateHistory, "Persistent cache manual put entry");
+        return TimeSeriesStatsUtil.asCompositeData(putRateHistory,
+            "Persistent cache manual put entry");
     }
 
     @Override
     public CompositeData getPutRejectedAlreadyPersistedRateHistory() {
-        return TimeSeriesStatsUtil.asCompositeData(putRejectedAlreadyPersistedHistory, "Persistent cache put rejected (already persisted)");
+        return TimeSeriesStatsUtil.asCompositeData(putRejectedAlreadyPersistedHistory,
+            "Persistent cache put rejected (already persisted)");
     }
 
     @Override
     public CompositeData getPutRejectedEntryNotUsedRateHistory() {
-        return TimeSeriesStatsUtil.asCompositeData(putRejectedEntryNotUseHistory, "Persistent cache put rejected (entry not used)");
+        return TimeSeriesStatsUtil.asCompositeData(putRejectedEntryNotUseHistory,
+            "Persistent cache put rejected (entry not used)");
     }
 
     @Override
     public CompositeData getPutRejectedQueueFullRateHistory() {
-        return TimeSeriesStatsUtil.asCompositeData(putRejectedByFullQueueHistory, "Persistent cache put rejected (queue is full)");
+        return TimeSeriesStatsUtil.asCompositeData(putRejectedByFullQueueHistory,
+            "Persistent cache put rejected (queue is full)");
     }
 
     @Override
     public CompositeData getPutRejectedAsCachedInSecRateHistory() {
-        return TimeSeriesStatsUtil.asCompositeData(putRejectedAsCachedInSecHistory, "Persistent cache put rejected " +
+        return TimeSeriesStatsUtil.asCompositeData(putRejectedAsCachedInSecHistory,
+            "Persistent cache put rejected " +
                 "(entry is covered by secondary)");
     }
 
     @Override
     public CompositeData getInvalidateOneRateHistory() {
-        return TimeSeriesStatsUtil.asCompositeData(invalidateOneRateHistory, "Persistent cache invalidate one entry");
+        return TimeSeriesStatsUtil.asCompositeData(invalidateOneRateHistory,
+            "Persistent cache invalidate one entry");
     }
 
     @Override
     public CompositeData getInvalidateAllRateHistory() {
-        return TimeSeriesStatsUtil.asCompositeData(invalidateAllRateHistory, "Persistent cache invalidate all entries");
+        return TimeSeriesStatsUtil.asCompositeData(invalidateAllRateHistory,
+            "Persistent cache invalidate all entries");
     }
 
     @Override
     public CompositeData getBroadcastRecvRateHistory() {
-        return TimeSeriesStatsUtil.asCompositeData(broadcastRecvRateHistory, "Persistent cache entries received from broadcast");
+        return TimeSeriesStatsUtil.asCompositeData(broadcastRecvRateHistory,
+            "Persistent cache entries received from broadcast");
     }
 
     @Override
     public CompositeData getUsedSpaceHistory() {
-        return TimeSeriesStatsUtil.asCompositeData(usedSpaceByteCounterHistory, "Persistent cache estimated size (bytes)");
+        return TimeSeriesStatsUtil.asCompositeData(usedSpaceByteCounterHistory,
+            "Persistent cache estimated size (bytes)");
     }
 
     @Override
     public String cacheInfoAsString() {
         return MoreObjects.toStringHelper("PersistentCacheStats")
-                .add("requestCount", getRequestCount())
-                .add("hitCount", getHitCount())
-                .add("hitRate", String.format("%1.2f", getHitRate()))
-                .add("missCount", getMissCount())
-                .add("missRate", String.format("%1.2f", getMissRate()))
-                .add("loadCount", getLoadCount())
-                .add("loadSuccessCount", getLoadSuccessCount())
-                .add("loadExceptionCount", getLoadExceptionCount())
-                .add("totalWeight", IOUtils.humanReadableByteCount(estimateCurrentWeight()))
-                .toString();
+                          .add("requestCount", getRequestCount())
+                          .add("hitCount", getHitCount())
+                          .add("hitRate", String.format("%1.2f", getHitRate()))
+                          .add("missCount", getMissCount())
+                          .add("missRate", String.format("%1.2f", getMissRate()))
+                          .add("loadCount", getLoadCount())
+                          .add("loadSuccessCount", getLoadSuccessCount())
+                          .add("loadExceptionCount", getLoadExceptionCount())
+                          .add("totalWeight",
+                              IOUtils.humanReadableByteCount(estimateCurrentWeight()))
+                          .toString();
     }
 
     //~--------------------------------------< CacheStatsMbean - stats that are not (yet) available
@@ -552,11 +575,10 @@ public class PersistentCacheStats extends AnnotatedStandardMBean implements Pers
 
         private static long[] percentage(long[] a, long[] b) {
             long[] result = new long[a.length];
-            for (int i=0; i<a.length; ++i) {
+            for (int i = 0; i < a.length; ++i) {
                 if (b[i] == 0) {
                     result[i] = 0;
-                }
-                else {
+                } else {
                     result[i] = (a[i] * 100) / b[i];
                 }
             }
@@ -603,7 +625,7 @@ public class PersistentCacheStats extends AnnotatedStandardMBean implements Pers
 
         private static long[] difference(long[] a, long[] b) {
             long[] result = new long[a.length];
-            for (int i=0; i<a.length; ++i) {
+            for (int i = 0; i < a.length; ++i) {
                 result[i] = a[i] - b[i];
             }
             return result;

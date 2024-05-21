@@ -16,17 +16,16 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
-
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 public class ElasticIndexCleanerTest extends ElasticAbstractQueryTest {
 
@@ -35,7 +34,8 @@ public class ElasticIndexCleanerTest extends ElasticAbstractQueryTest {
         return true;
     }
 
-    private Tree createIndexAndContentNode(String indexProperty, String contentNodeName) throws Exception {
+    private Tree createIndexAndContentNode(String indexProperty, String contentNodeName)
+        throws Exception {
         IndexDefinitionBuilder builder = createIndex(indexProperty);
 
         String indexName = UUID.randomUUID().toString();
@@ -94,7 +94,8 @@ public class ElasticIndexCleanerTest extends ElasticAbstractQueryTest {
         index.setProperty("type", "disabled");
         root.commit();
 
-        ElasticIndexCleaner cleaner = new ElasticIndexCleaner(esConnection, nodeStore, indexDeletionThresholdTime);
+        ElasticIndexCleaner cleaner = new ElasticIndexCleaner(esConnection, nodeStore,
+            indexDeletionThresholdTime);
         cleaner.run();
 
         assertTrue(exists(index));
@@ -115,7 +116,8 @@ public class ElasticIndexCleanerTest extends ElasticAbstractQueryTest {
         index.removeProperty(ElasticIndexDefinition.PROP_INDEX_NAME_SEED);
         root.commit();
 
-        ElasticIndexCleaner cleaner = new ElasticIndexCleaner(esConnection, nodeStore, indexDeletionThresholdTime);
+        ElasticIndexCleaner cleaner = new ElasticIndexCleaner(esConnection, nodeStore,
+            indexDeletionThresholdTime);
         cleaner.run();
 
         assertTrue(exists(index));

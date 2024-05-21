@@ -50,7 +50,7 @@ public class LocalDiffCacheTest {
     }
 
     @Test
-    public void simpleDiff() throws Exception{
+    public void simpleDiff() throws Exception {
         TestNodeObserver o = new TestNodeObserver("/");
         store = createMK().getNodeStore();
         store.addObserver(o);
@@ -94,7 +94,7 @@ public class LocalDiffCacheTest {
     }
 
     @Test
-    public void emptyDiff() throws Exception{
+    public void emptyDiff() throws Exception {
         Map<Path, String> changes = new HashMap<>();
         Diff diff = new Diff(changes, 100);
         String asString = diff.asString();
@@ -103,21 +103,21 @@ public class LocalDiffCacheTest {
     }
 
     private static DocumentNodeState merge(NodeStore store, NodeBuilder builder)
-            throws CommitFailedException {
+        throws CommitFailedException {
         return (DocumentNodeState) store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 
-    private static DocumentMK createMK(){
+    private static DocumentMK createMK() {
         return create(new MemoryDocumentStore(), 0);
     }
 
-    private static DocumentMK create(DocumentStore ds, int clusterId){
+    private static DocumentMK create(DocumentStore ds, int clusterId) {
         return new DocumentMK.Builder()
-                .setAsyncDelay(0)
-                .setDocumentStore(ds)
-                .setClusterId(clusterId)
-                .setPersistentCache("target/persistentCache,time")
-                .open();
+            .setAsyncDelay(0)
+            .setDocumentStore(ds)
+            .setClusterId(clusterId)
+            .setPersistentCache("target/persistentCache,time")
+            .open();
     }
 
     private static long getHitCount(Iterable<CacheStats> stats) {

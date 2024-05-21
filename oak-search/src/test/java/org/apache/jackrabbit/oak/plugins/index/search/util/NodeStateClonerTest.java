@@ -19,20 +19,20 @@
 
 package org.apache.jackrabbit.oak.plugins.index.search.util;
 
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import org.apache.jackrabbit.oak.spi.state.EqualsDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-
 public class NodeStateClonerTest {
 
     @Test
-    public void simple() throws Exception{
+    public void simple() throws Exception {
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.child("a").child("b");
         builder.child("a").setProperty("foo", "bar");
@@ -42,7 +42,7 @@ public class NodeStateClonerTest {
     }
 
     @Test
-    public void excludeHidden() throws Exception{
+    public void excludeHidden() throws Exception {
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.child("a").child(":b").child("e");
         builder.child("a").child("c").child(":d");

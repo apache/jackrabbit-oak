@@ -20,11 +20,9 @@ package org.apache.jackrabbit.oak.plugins.memory;
 
 import java.io.IOException;
 import java.io.InputStream;
-
 import org.apache.jackrabbit.guava.common.hash.HashCode;
 import org.apache.jackrabbit.guava.common.hash.Hashing;
 import org.apache.jackrabbit.guava.common.io.ByteSource;
-
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
 import org.jetbrains.annotations.NotNull;
@@ -33,25 +31,24 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Abstract base class for {@link Blob} implementations.
- * This base class provides default implementations for
- * {@code hashCode} and {@code equals}.
+ * Abstract base class for {@link Blob} implementations. This base class provides default
+ * implementations for {@code hashCode} and {@code equals}.
  */
 public abstract class AbstractBlob implements Blob {
 
     private static final Logger LOG = LoggerFactory.getLogger(AbstractBlob.class);
 
     private static final boolean DEBUG_BLOB_EQUAL_LOG = SystemPropertySupplier
-            .create("oak.abstractblob.equal.log", false)
-            .loggingTo(LOG)
-            .formatSetMessage( (name, value) -> String.format("%s set to: %s", name, value) )
-            .get();
+        .create("oak.abstractblob.equal.log", false)
+        .loggingTo(LOG)
+        .formatSetMessage((name, value) -> String.format("%s set to: %s", name, value))
+        .get();
 
     private static final long DEBUG_BLOB_EQUAL_LOG_LIMIT = SystemPropertySupplier
-            .create("oak.abstractblob.equal.log.limit", 100_000_000L)
-            .loggingTo(LOG)
-            .formatSetMessage( (name, value) -> String.format("%s set to: %s", name, value) )
-            .get();
+        .create("oak.abstractblob.equal.log.limit", 100_000_000L)
+        .loggingTo(LOG)
+        .formatSetMessage((name, value) -> String.format("%s set to: %s", name, value))
+        .get();
 
     private static ByteSource supplier(final Blob blob) {
         return new ByteSource() {
@@ -75,12 +72,14 @@ public abstract class AbstractBlob implements Blob {
 
         //Check for identity first. If they are same then its
         //definitely same blob. If not we need to check further.
-        if (ai != null && bi != null && ai.equals(bi)){
+        if (ai != null && bi != null && ai.equals(bi)) {
             return true;
         }
 
         if (DEBUG_BLOB_EQUAL_LOG && al > DEBUG_BLOB_EQUAL_LOG_LIMIT) {
-            LOG.debug("Blobs have the same length of {} and we're falling back to byte-wise comparison.", al);
+            LOG.debug(
+                "Blobs have the same length of {} and we're falling back to byte-wise comparison.",
+                al);
         }
 
         try {
@@ -101,7 +100,8 @@ public abstract class AbstractBlob implements Blob {
                     return blob.length();
                 }
 
-                @Override public boolean isInlined() {
+                @Override
+                public boolean isInlined() {
                     return blob.isInlined();
                 }
 
@@ -139,6 +139,7 @@ public abstract class AbstractBlob implements Blob {
 
     /**
      * This hash code implementation returns the hash code of the underlying stream
+     *
      * @return a byte array of the hash
      */
     protected byte[] sha256() {
@@ -147,7 +148,8 @@ public abstract class AbstractBlob implements Blob {
 
     //--------------------------------------------------------------< Blob >--
 
-    @Override @Nullable
+    @Override
+    @Nullable
     public String getReference() {
         return null;
     }
@@ -160,8 +162,9 @@ public abstract class AbstractBlob implements Blob {
 //------------------------------------------------------------< Object >--
 
     /**
-     * To {@code Blob} instances are considered equal iff they have the
-     * same SHA-256 hash code  are equal.
+     * To {@code Blob} instances are considered equal iff they have the same SHA-256 hash code  are
+     * equal.
+     *
      * @param other
      */
     @Override

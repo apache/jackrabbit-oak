@@ -23,8 +23,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Determines the weight of object based on the memory taken by them. The memory estimates
- * are based on empirical data and not exact
+ * Determines the weight of object based on the memory taken by them. The memory estimates are based
+ * on empirical data and not exact
  */
 public class EmpiricalWeigher implements Weigher<CacheValue, CacheValue> {
 
@@ -41,5 +41,5 @@ public class EmpiricalWeigher implements Weigher<CacheValue, CacheValue> {
         }
         return (int) size;
     }
-    
+
 }

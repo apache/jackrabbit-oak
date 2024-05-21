@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.segment;
 import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
 import static org.apache.jackrabbit.guava.common.collect.Queues.newConcurrentLinkedQueue;
 
+import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 import java.lang.ref.WeakReference;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -30,21 +31,19 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Supplier;
-
-import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * A simple tracker for the source of commits (writes) in
- * {@link SegmentNodeStore}. It provides two basic functionalities:
+ * A simple tracker for the source of commits (writes) in {@link SegmentNodeStore}. It provides two
+ * basic functionalities:
  * <ul>
  * <li>exposes the number of commits executed per thread</li>
  * <li>exposes the threads (and possibly their details - i.e., stack traces)
  * currently waiting on the commit semaphore
  * </ul>
- * 
+ * <p>
  * For the most part, this class delegates thread-safety to its underlying
  * state variables. However, the {@link #trackDequedCommitOf(Thread)} and
  * {@link #trackExecutedCommitOf(Thread)} method must be called in
@@ -52,6 +51,7 @@ import org.jetbrains.annotations.Nullable;
  * via the {@link #currentCommit} field.
  */
 class CommitsTracker {
+
     private final String[] threadGroups;
     private final int otherWritersLimit;
     private final ConcurrentMap<String, Commit> queuedWritersMap;
@@ -63,6 +63,7 @@ class CommitsTracker {
     private volatile Commit currentCommit;
 
     static final class Commit {
+
         private final String threadName;
         private final WeakReference<Thread> thread;
         private final Supplier<GCGeneration> gcGeneration;
@@ -203,7 +204,7 @@ class CommitsTracker {
 
     public Map<String, Long> getCommitsCountOthers() {
         Map<String, Long> commitsOther = new ConcurrentLinkedHashMap.Builder<String, Long>()
-                .maximumWeightedCapacity(otherWritersLimit).build();
+            .maximumWeightedCapacity(otherWritersLimit).build();
         long t = System.currentTimeMillis() - 60000;
         for (Commit commit : commits) {
             if (commit.getQueued() > t) {

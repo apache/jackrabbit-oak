@@ -19,12 +19,10 @@ package org.apache.jackrabbit.oak.plugins.nodetype;
 import static javax.jcr.PropertyType.UNDEFINED;
 
 import java.util.List;
-
 import javax.jcr.Value;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.PropertyDefinition;
 import javax.jcr.query.qom.QueryObjectModelConstants;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;

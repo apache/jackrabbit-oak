@@ -16,10 +16,23 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
+
+import java.io.File;
+import java.util.Collection;
+import java.util.LinkedList;
+import java.util.List;
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.plugins.index.*;
+import org.apache.jackrabbit.oak.plugins.index.ContextAwareCallback;
+import org.apache.jackrabbit.oak.plugins.index.IndexCommitCallback;
+import org.apache.jackrabbit.oak.plugins.index.IndexEditor;
+import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
+import org.apache.jackrabbit.oak.plugins.index.IndexingContext;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier.COWDirectoryTracker;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.ActiveDeletedBlobCollectorFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.ActiveDeletedBlobCollectorFactory.ActiveDeletedBlobCollector;
@@ -54,21 +67,11 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.util.Collection;
-import java.util.LinkedList;
-import java.util.List;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
-
 /**
  * Service that provides Lucene based {@link IndexEditor}s
  *
  * @see LuceneIndexEditor
  * @see IndexEditorProvider
- *
  */
 public class LuceneIndexEditorProvider implements IndexEditorProvider {
 
@@ -88,9 +91,8 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
     private final StatisticsProvider statisticsProvider;
 
     /**
-     * Number of indexed Lucene document that can be held in memory
-     * This ensures that for very large commit memory consumption
-     * is bounded
+     * Number of indexed Lucene document that can be held in memory This ensures that for very large
+     * commit memory consumption is bounded
      */
     private int inMemoryDocsLimit = Integer.getInteger("oak.lucene.inMemoryDocsLimit", 500);
     private AsyncIndexesSizeStatsUpdate asyncIndexesSizeStatsUpdate;
@@ -105,36 +107,38 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
     }
 
     public LuceneIndexEditorProvider(@Nullable IndexCopier indexCopier,
-                                     ExtractedTextCache extractedTextCache) {
+        ExtractedTextCache extractedTextCache) {
         this(indexCopier, extractedTextCache, null, Mounts.defaultMountInfoProvider());
     }
 
     public LuceneIndexEditorProvider(@Nullable IndexCopier indexCopier,
-                                     ExtractedTextCache extractedTextCache,
-                                     @Nullable IndexAugmentorFactory augmentorFactory,
-                                     MountInfoProvider mountInfoProvider) {
+        ExtractedTextCache extractedTextCache,
+        @Nullable IndexAugmentorFactory augmentorFactory,
+        MountInfoProvider mountInfoProvider) {
         this(indexCopier, null, extractedTextCache, augmentorFactory, mountInfoProvider);
     }
 
     public LuceneIndexEditorProvider(@Nullable IndexCopier indexCopier,
-                                     @Nullable IndexTracker indexTracker,
-                                     ExtractedTextCache extractedTextCache,
-                                     @Nullable IndexAugmentorFactory augmentorFactory,
-                                     MountInfoProvider mountInfoProvider) {
+        @Nullable IndexTracker indexTracker,
+        ExtractedTextCache extractedTextCache,
+        @Nullable IndexAugmentorFactory augmentorFactory,
+        MountInfoProvider mountInfoProvider) {
         this(indexCopier, indexTracker, extractedTextCache, augmentorFactory, mountInfoProvider,
-                ActiveDeletedBlobCollectorFactory.NOOP, null, null);
+            ActiveDeletedBlobCollectorFactory.NOOP, null, null);
     }
+
     public LuceneIndexEditorProvider(@Nullable IndexCopier indexCopier,
-                                     @Nullable IndexTracker indexTracker,
-                                     ExtractedTextCache extractedTextCache,
-                                     @Nullable IndexAugmentorFactory augmentorFactory,
-                                     MountInfoProvider mountInfoProvider,
-                                     @NotNull ActiveDeletedBlobCollectorFactory.ActiveDeletedBlobCollector activeDeletedBlobCollector,
-                                     @Nullable LuceneIndexMBean mbean,
-                                     @Nullable StatisticsProvider statisticsProvider) {
+        @Nullable IndexTracker indexTracker,
+        ExtractedTextCache extractedTextCache,
+        @Nullable IndexAugmentorFactory augmentorFactory,
+        MountInfoProvider mountInfoProvider,
+        @NotNull ActiveDeletedBlobCollectorFactory.ActiveDeletedBlobCollector activeDeletedBlobCollector,
+        @Nullable LuceneIndexMBean mbean,
+        @Nullable StatisticsProvider statisticsProvider) {
         this.indexCopier = indexCopier;
         this.indexTracker = indexTracker;
-        this.extractedTextCache = extractedTextCache != null ? extractedTextCache : new ExtractedTextCache(0, 0);
+        this.extractedTextCache =
+            extractedTextCache != null ? extractedTextCache : new ExtractedTextCache(0, 0);
         this.augmentorFactory = augmentorFactory;
         this.mountInfoProvider = checkNotNull(mountInfoProvider);
         this.activeDeletedBlobCollector = activeDeletedBlobCollector;
@@ -142,7 +146,8 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
         this.statisticsProvider = statisticsProvider;
     }
 
-    public LuceneIndexEditorProvider withAsyncIndexesSizeStatsUpdate(AsyncIndexesSizeStatsUpdate asyncIndexesSizeStatsUpdate) {
+    public LuceneIndexEditorProvider withAsyncIndexesSizeStatsUpdate(
+        AsyncIndexesSizeStatsUpdate asyncIndexesSizeStatsUpdate) {
         this.asyncIndexesSizeStatsUpdate = asyncIndexesSizeStatsUpdate;
         return this;
     }
@@ -151,11 +156,12 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
     public Editor getIndexEditor(
         @NotNull String type, @NotNull NodeBuilder definition, @NotNull NodeState root,
         @NotNull IndexUpdateCallback callback)
-            throws CommitFailedException {
+        throws CommitFailedException {
         if (TYPE_LUCENE.equals(type)) {
-            checkArgument(callback instanceof ContextAwareCallback, "callback instance not of type " +
+            checkArgument(callback instanceof ContextAwareCallback,
+                "callback instance not of type " +
                     "ContextAwareCallback [%s]", callback);
-            IndexingContext indexingContext = ((ContextAwareCallback)callback).getIndexingContext();
+            IndexingContext indexingContext = ((ContextAwareCallback) callback).getIndexingContext();
             BlobDeletionCallback blobDeletionCallback = activeDeletedBlobCollector.getBlobDeletionCallback();
             indexingContext.registerIndexCommitCallback(blobDeletionCallback);
             FulltextIndexWriterFactory writerFactory = null;
@@ -165,16 +171,17 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
             Collection<PropertyUpdateCallback> callbacks = new LinkedList<>();
             PropertyIndexUpdateCallback propertyIndexUpdateCallback = null;
 
-            if (nrtIndexingEnabled() && !indexingContext.isAsync() && IndexDefinition.supportsSyncOrNRTIndexing(definition)) {
+            if (nrtIndexingEnabled() && !indexingContext.isAsync()
+                && IndexDefinition.supportsSyncOrNRTIndexing(definition)) {
 
                 //Would not participate in reindexing. Only interested in
                 //incremental indexing
-                if (indexingContext.isReindexing()){
+                if (indexingContext.isReindexing()) {
                     return null;
                 }
 
                 CommitContext commitContext = getCommitContext(indexingContext);
-                if (commitContext == null){
+                if (commitContext == null) {
                     //Logically there should not be any commit without commit context. But
                     //some initializer code does the commit with out it. So ignore such calls with
                     //warning now
@@ -185,32 +192,35 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
 
                 //TODO Also check if index has been done once
 
-
                 writerFactory = new LocalIndexWriterFactory(getDocumentHolder(commitContext),
-                        indexPath);
+                    indexPath);
 
                 //IndexDefinition from tracker might differ from one passed here for reindexing
                 //case which should be fine. However reusing existing definition would avoid
                 //creating definition instance for each commit as this gets executed for each commit
-                if (indexTracker != null){
+                if (indexTracker != null) {
                     indexDefinition = indexTracker.getIndexDefinition(indexPath);
-                    if (indexDefinition != null && !indexDefinition.hasMatchingNodeTypeReg(root)){
-                        log.debug("Detected change in NodeType registry for index {}. Would not use " +
+                    if (indexDefinition != null && !indexDefinition.hasMatchingNodeTypeReg(root)) {
+                        log.debug(
+                            "Detected change in NodeType registry for index {}. Would not use " +
                                 "existing index definition", indexDefinition.getIndexPath());
                         indexDefinition = null;
                     }
                 }
 
                 if (indexDefinition == null) {
-                    indexDefinition = LuceneIndexDefinition.newBuilder(root, definition.getNodeState(),
-                            indexPath).build();
+                    indexDefinition = LuceneIndexDefinition.newBuilder(root,
+                        definition.getNodeState(),
+                        indexPath).build();
                 }
 
                 if (indexDefinition.hasSyncPropertyDefinitions()) {
-                    propertyIndexUpdateCallback = new PropertyIndexUpdateCallback(indexPath, definition, root);
+                    propertyIndexUpdateCallback = new PropertyIndexUpdateCallback(indexPath,
+                        definition, root);
                     if (indexTracker != null) {
                         PropertyQuery query = new LuceneIndexPropertyQuery(indexTracker, indexPath);
-                        propertyIndexUpdateCallback.getUniquenessConstraintValidator().setSecondStore(query);
+                        propertyIndexUpdateCallback.getUniquenessConstraintValidator()
+                                                   .setSecondStore(query);
                     }
                 }
 
@@ -229,12 +239,14 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
                 indexingContext.registerIndexCommitCallback(cowDirectoryCleanupCallback);
 
                 writerFactory = new DefaultIndexWriterFactory(mountInfoProvider,
-                        newDirectoryFactory(blobDeletionCallback, cowDirectoryCleanupCallback),
-                        writerConfig);
+                    newDirectoryFactory(blobDeletionCallback, cowDirectoryCleanupCallback),
+                    writerConfig);
             }
 
-            LuceneIndexEditorContext context = new LuceneIndexEditorContext(root, definition, indexDefinition, callback,
-                    writerFactory, extractedTextCache, augmentorFactory, indexingContext, asyncIndexing);
+            LuceneIndexEditorContext context = new LuceneIndexEditorContext(root, definition,
+                indexDefinition, callback,
+                writerFactory, extractedTextCache, augmentorFactory, indexingContext,
+                asyncIndexing);
 
             if (propertyIndexUpdateCallback != null) {
                 callbacks.add(propertyIndexUpdateCallback);
@@ -243,12 +255,14 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
                 // Below mentioned callback (LuceneIndexStatsUpdateCallback) is only executed
                 // in async indexing flow. There is a check on
                 // indexingContext.isAsync()
-                callbacks.add(new LuceneIndexStatsUpdateCallback(indexPath, mbean, statisticsProvider,
+                callbacks.add(
+                    new LuceneIndexStatsUpdateCallback(indexPath, mbean, statisticsProvider,
                         asyncIndexesSizeStatsUpdate, indexingContext));
             }
 
             if (!callbacks.isEmpty()) {
-                CompositePropertyUpdateCallback compositePropertyUpdateCallback = new CompositePropertyUpdateCallback(callbacks);
+                CompositePropertyUpdateCallback compositePropertyUpdateCallback = new CompositePropertyUpdateCallback(
+                    callbacks);
                 context.setPropertyUpdateCallback(compositePropertyUpdateCallback);
             }
             return new LuceneIndexEditor(context);
@@ -273,12 +287,14 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
     }
 
     protected DirectoryFactory newDirectoryFactory(BlobDeletionCallback blobDeletionCallback,
-                                                   COWDirectoryTracker cowDirectoryTracker) {
-        return new DefaultDirectoryFactory(indexCopier, blobStore, blobDeletionCallback, cowDirectoryTracker);
+        COWDirectoryTracker cowDirectoryTracker) {
+        return new DefaultDirectoryFactory(indexCopier, blobStore, blobDeletionCallback,
+            cowDirectoryTracker);
     }
 
-    private LuceneDocumentHolder getDocumentHolder(CommitContext commitContext){
-        LuceneDocumentHolder holder = (LuceneDocumentHolder) commitContext.get(LuceneDocumentHolder.NAME);
+    private LuceneDocumentHolder getDocumentHolder(CommitContext commitContext) {
+        LuceneDocumentHolder holder = (LuceneDocumentHolder) commitContext.get(
+            LuceneDocumentHolder.NAME);
         if (holder == null) {
             holder = new LuceneDocumentHolder(indexingQueue, inMemoryDocsLimit);
             commitContext.set(LuceneDocumentHolder.NAME, holder);
@@ -311,8 +327,11 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
         return (CommitContext) indexingContext.getCommitInfo().getInfo().get(CommitContext.NAME);
     }
 
-    private static class COWDirectoryCleanupCallback implements IndexCommitCallback, COWDirectoryTracker {
-        private static final Logger LOG = LoggerFactory.getLogger(COWDirectoryCleanupCallback.class);
+    private static class COWDirectoryCleanupCallback implements IndexCommitCallback,
+        COWDirectoryTracker {
+
+        private static final Logger LOG = LoggerFactory.getLogger(
+            COWDirectoryCleanupCallback.class);
 
         private List<CopyOnWriteDirectory> openedCoWDirectories = Lists.newArrayList();
         private List<File> reindexingLocalDirectories = Lists.newArrayList();
@@ -331,7 +350,7 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
                 }
 
                 for (File f : reindexingLocalDirectories) {
-                    if ( ! FileUtils.deleteQuietly(f)) {
+                    if (!FileUtils.deleteQuietly(f)) {
                         LOG.warn("Failed to delete {}", f);
                     }
                 }

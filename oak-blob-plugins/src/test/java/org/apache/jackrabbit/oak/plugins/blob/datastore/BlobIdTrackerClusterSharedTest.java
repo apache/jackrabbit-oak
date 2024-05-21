@@ -18,6 +18,20 @@
  */
 package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
+import static java.lang.String.valueOf;
+import static java.util.UUID.randomUUID;
+import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.guava.common.io.Closeables.close;
+import static org.apache.jackrabbit.oak.commons.FileIOUtils.writeStrings;
+import static org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils.getBlobStore;
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assume.assumeNoException;
+import static org.junit.Assume.assumeThat;
+
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
@@ -26,7 +40,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
-
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
@@ -39,26 +52,12 @@ import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
-import static org.apache.jackrabbit.guava.common.io.Closeables.close;
-import static java.lang.String.valueOf;
-import static java.util.UUID.randomUUID;
-import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static org.apache.jackrabbit.oak.commons.FileIOUtils.writeStrings;
-import static org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils.getBlobStore;
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assume.assumeNoException;
-import static org.junit.Assume.assumeThat;
-
 /**
- * Test for BlobIdTracker simulating a cluster and a shared data store scenarios
- * to test addition, retrieval and removal of blob ids.
+ * Test for BlobIdTracker simulating a cluster and a shared data store scenarios to test addition,
+ * retrieval and removal of blob ids.
  */
 public class BlobIdTrackerClusterSharedTest {
+
     private static final Logger log = LoggerFactory.getLogger(BlobIdTrackerClusterSharedTest.class);
 
     File root;
@@ -160,6 +159,7 @@ public class BlobIdTrackerClusterSharedTest {
      * Logical instance.
      */
     class Cluster {
+
         ScheduledExecutorService scheduler;
         BlobIdTracker tracker;
         TemporaryFolder folder;
@@ -225,11 +225,11 @@ public class BlobIdTrackerClusterSharedTest {
         Set<String> retrieved = newHashSet();
         Iterator<String> iter = tracker.get();
         log.info("retrieving blob ids");
-        while(iter.hasNext()) {
+        while (iter.hasNext()) {
             retrieved.add(iter.next());
         }
         if (iter instanceof Closeable) {
-            close((Closeable)iter, true);
+            close((Closeable) iter, true);
         }
         return retrieved;
     }

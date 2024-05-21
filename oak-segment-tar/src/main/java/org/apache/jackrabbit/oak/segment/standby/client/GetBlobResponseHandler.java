@@ -17,10 +17,9 @@
 
 package org.apache.jackrabbit.oak.segment.standby.client;
 
-import java.util.concurrent.BlockingQueue;
-
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
+import java.util.concurrent.BlockingQueue;
 import org.apache.jackrabbit.oak.segment.standby.codec.GetBlobResponse;
 
 class GetBlobResponseHandler extends SimpleChannelInboundHandler<GetBlobResponse> {

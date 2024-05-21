@@ -16,20 +16,18 @@
  */
 package org.apache.jackrabbit.oak.spi.xml;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
- * Helper class used to keep track of uuid mappings (e.g. if the uuid of an
- * imported or copied node is mapped to a new uuid) and processed (e.g. imported
- * or copied) reference properties that might need to be adjusted depending on
- * the UUID mapping resulting from the import.
+ * Helper class used to keep track of uuid mappings (e.g. if the uuid of an imported or copied node
+ * is mapped to a new uuid) and processed (e.g. imported or copied) reference properties that might
+ * need to be adjusted depending on the UUID mapping resulting from the import.
  *
  * @see javax.jcr.ImportUUIDBehavior
  */
@@ -46,8 +44,8 @@ public class ReferenceChangeTracker {
     private final List<Object> references = new ArrayList<>();
 
     /**
-     * Returns the new node id to which {@code oldUUID} has been mapped
-     * or {@code null} if no such mapping exists.
+     * Returns the new node id to which {@code oldUUID} has been mapped or {@code null} if no such
+     * mapping exists.
      *
      * @param oldUUID old node id
      * @return mapped new id or {@code null} if no such mapping exists
@@ -59,8 +57,7 @@ public class ReferenceChangeTracker {
     }
 
     /**
-     * Store the given id mapping for later lookup using
-     * {@link #get(String)}.
+     * Store the given id mapping for later lookup using {@link #get(String)}.
      *
      * @param oldUUID old node id
      * @param newUUID new node id
@@ -99,8 +96,7 @@ public class ReferenceChangeTracker {
     }
 
     /**
-     * Remove the given references that have already been processed from the
-     * references list.
+     * Remove the given references that have already been processed from the references list.
      *
      * @param processedReferences List of processed references to be removed.
      * @return {@code true} if the internal list of references changed.

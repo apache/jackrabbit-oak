@@ -20,19 +20,18 @@ import java.security.Principal;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Set;
-
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Implementation of the {@code PrincipalProvider} interface that never
- * returns any principals.
+ * Implementation of the {@code PrincipalProvider} interface that never returns any principals.
  */
 public final class EmptyPrincipalProvider implements PrincipalProvider {
 
     public static final PrincipalProvider INSTANCE = new EmptyPrincipalProvider();
 
-    private EmptyPrincipalProvider() {}
+    private EmptyPrincipalProvider() {
+    }
 
     @Nullable
     @Override

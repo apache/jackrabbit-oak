@@ -30,17 +30,17 @@ import javax.jcr.Session
 import static org.apache.jackrabbit.oak.run.osgi.OakOSGiRepositoryFactory.REPOSITORY_CONFIG
 import static org.apache.jackrabbit.oak.run.osgi.OakOSGiRepositoryFactory.REPOSITORY_CONFIG_FILE
 
-class JsonConfigRepFactoryTest extends AbstractRepositoryFactoryTest{
+class JsonConfigRepFactoryTest extends AbstractRepositoryFactoryTest {
 
     @Before
-    void setupRepo(){
+    void setupRepo() {
         config[REPOSITORY_CONFIG_FILE] = getResource("oak-base-config.json").absolutePath
     }
 
     @Test
     public void testRepositoryTar() throws Exception {
         config[REPOSITORY_CONFIG] = [
-                'org.apache.jackrabbit.oak.segment.SegmentNodeStoreService' : [:]
+                'org.apache.jackrabbit.oak.segment.SegmentNodeStoreService': [:]
         ]
 
         repository = repositoryFactory.getRepository(config);

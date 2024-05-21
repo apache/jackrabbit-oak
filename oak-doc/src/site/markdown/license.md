@@ -16,6 +16,7 @@
   -->
 
 # License
+
 Jackrabbit Oak and any of its parts are licensed according to the terms listed in the
 [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0.html).
 

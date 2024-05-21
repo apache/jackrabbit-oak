@@ -22,13 +22,11 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeData;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeProperty;
 
 /**
- * A collector for index definitions.
- * This is for demonstration purposes only.
+ * A collector for index definitions. This is for demonstration purposes only.
  */
 public class IndexDefinitions implements StatsCollector {
 
@@ -40,7 +38,8 @@ public class IndexDefinitions implements StatsCollector {
         if (pathElements.size() < 6 || !pathElements.get(0).equals("oak:index")) {
             return;
         }
-        if (!pathElements.get(2).equals("indexRules") || !pathElements.get(4).equals("properties")) {
+        if (!pathElements.get(2).equals("indexRules") || !pathElements.get(4)
+                                                                      .equals("properties")) {
             return;
         }
         String nodeType = pathElements.get(3);
@@ -57,9 +56,10 @@ public class IndexDefinitions implements StatsCollector {
                 return;
             }
             IndexedProperty ip = IndexedProperty.create(nodeType, name);
-            ArrayList<IndexedProperty> list = map.computeIfAbsent(ip.getPropertyName(), s -> new ArrayList<>());
+            ArrayList<IndexedProperty> list = map.computeIfAbsent(ip.getPropertyName(),
+                s -> new ArrayList<>());
             boolean duplicate = false;
-            for(IndexedProperty e : list) {
+            for (IndexedProperty e : list) {
                 if (e.toString().equals(ip.toString())) {
                     duplicate = true;
                 }

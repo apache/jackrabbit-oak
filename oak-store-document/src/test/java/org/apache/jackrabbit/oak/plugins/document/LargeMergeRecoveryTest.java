@@ -46,7 +46,7 @@ public class LargeMergeRecoveryTest extends AbstractTwoNodeTest {
     }
 
     private static NodeDocument getDocument(DocumentNodeStore nodeStore,
-                                            String path) {
+        String path) {
         return nodeStore.getDocumentStore().find(NODES, getIdFromPath(path));
     }
 
@@ -56,21 +56,21 @@ public class LargeMergeRecoveryTest extends AbstractTwoNodeTest {
         // disabling MemoryFixture, as that runs into an OutOfMemoryError
 //        fixtures.add(new Object[] {new DocumentStoreFixture.MemoryFixture()});
 
-        DocumentStoreFixture rdb = new DocumentStoreFixture.RDBFixture("RDB-H2(file)", "jdbc:h2:file:./target/ds-test", "sa", "");
+        DocumentStoreFixture rdb = new DocumentStoreFixture.RDBFixture("RDB-H2(file)",
+            "jdbc:h2:file:./target/ds-test", "sa", "");
         if (rdb.isAvailable()) {
-            fixtures.add(new Object[] { rdb });
+            fixtures.add(new Object[]{rdb});
         }
 
         DocumentStoreFixture mongo = new DocumentStoreFixture.MongoFixture();
         if (mongo.isAvailable()) {
-            fixtures.add(new Object[] { mongo });
+            fixtures.add(new Object[]{mongo});
         }
         return fixtures;
     }
 
     /**
-     * Does 1 large, and 2 minor normal commits, that all require recovery
-     * Reproduces OAK-9535
+     * Does 1 large, and 2 minor normal commits, that all require recovery Reproduces OAK-9535
      */
     @Test
     @Ignore(value = "slow test, we have one that reproduces OAK-9535 enabled, so this one is not ran by default")
@@ -79,10 +79,9 @@ public class LargeMergeRecoveryTest extends AbstractTwoNodeTest {
     }
 
     /**
-     * Does 1 large, and 2 minor normal commits, that all require recovery
-     * Depending on actual update.limit it might or might not reproduce OAK-9535
-     * (update limit must be 100'000 in order to reproduce the bug - but that
-     * results in a long test duration)
+     * Does 1 large, and 2 minor normal commits, that all require recovery Depending on actual
+     * update.limit it might or might not reproduce OAK-9535 (update limit must be 100'000 in order
+     * to reproduce the bug - but that results in a long test duration)
      */
     @Test
     public void testMixedSmallBranchMergeRecovery() throws Exception {
@@ -102,13 +101,14 @@ public class LargeMergeRecoveryTest extends AbstractTwoNodeTest {
         NodeBuilder b2 = ds2.getRoot().builder();
         NodeBuilder test = b2.child("x").child("y");
         System.out.println(
-                "Creating large branch merge, can take over a minute... (limit = " + updateLimit + ")");
+            "Creating large branch merge, can take over a minute... (limit = " + updateLimit + ")");
 
         for (int i = 0; i < updateLimit * 3; i++) {
             test.child(childPrefix + i);
         }
 
-        assertFalse(ds1.getRoot().getChildNode("x").getChildNode("y").hasChildNode(childPrefix + "0"));
+        assertFalse(
+            ds1.getRoot().getChildNode("x").getChildNode("y").hasChildNode(childPrefix + "0"));
 
         // before merging, make another merge on C2 - non-conflicting
         NodeBuilder b22 = ds2.getRoot().builder();
@@ -120,9 +120,11 @@ public class LargeMergeRecoveryTest extends AbstractTwoNodeTest {
         b22.child("a").child("b2");
         ds2.merge(b22, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        assertFalse(ds1.getRoot().getChildNode("x").getChildNode("y").hasChildNode(childPrefix + "0"));
+        assertFalse(
+            ds1.getRoot().getChildNode("x").getChildNode("y").hasChildNode(childPrefix + "0"));
         ds1.runBackgroundOperations();
-        assertFalse(ds1.getRoot().getChildNode("x").getChildNode("y").hasChildNode(childPrefix + "0"));
+        assertFalse(
+            ds1.getRoot().getChildNode("x").getChildNode("y").hasChildNode(childPrefix + "0"));
 
         ds2.merge(b2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
@@ -137,11 +139,12 @@ public class LargeMergeRecoveryTest extends AbstractTwoNodeTest {
         assertTrue(ds1.getLastRevRecoveryAgent().isRecoveryNeeded());
 
         Iterable<Integer> cids = ds1.getLastRevRecoveryAgent()
-                .getRecoveryCandidateNodes();
+                                    .getRecoveryCandidateNodes();
         assertEquals(1, Iterables.size(cids));
         assertEquals(c2Id, Iterables.get(cids, 0).intValue());
 
-        assertFalse(ds1.getRoot().getChildNode("x").getChildNode("y").hasChildNode(childPrefix + "0"));
+        assertFalse(
+            ds1.getRoot().getChildNode("x").getChildNode("y").hasChildNode(childPrefix + "0"));
         assertFalse(ds1.getRoot().getChildNode("a").hasChildNode("b1"));
         assertFalse(ds1.getRoot().getChildNode("a").hasChildNode("b2"));
 
@@ -151,7 +154,8 @@ public class LargeMergeRecoveryTest extends AbstractTwoNodeTest {
 
         ds1.runBackgroundOperations();
 
-        assertTrue(ds1.getRoot().getChildNode("x").getChildNode("y").hasChildNode(childPrefix + "0"));
+        assertTrue(
+            ds1.getRoot().getChildNode("x").getChildNode("y").hasChildNode(childPrefix + "0"));
         assertTrue(ds1.getRoot().getChildNode("a").hasChildNode("b1"));
         assertTrue(ds1.getRoot().getChildNode("a").hasChildNode("b2"));
 
@@ -160,24 +164,24 @@ public class LargeMergeRecoveryTest extends AbstractTwoNodeTest {
     }
 
     /**
-     * Does 1 large branch commit that requires recovery
-     * Reproduces OAK-9535
+     * Does 1 large branch commit that requires recovery Reproduces OAK-9535
      */
     @Test
     @Ignore(value = "still fails on jenkins - disabling again temporarily")
     public void testOneLargeBranchMergeRecovery() throws Exception {
         if (!new DocumentStoreFixture.MongoFixture().getName().equals(fixture.getName())) {
             // only run this test for MongoDB, might help avoid OutOfMemoryError on travis
-            System.out.println("Skipping testOneLargeBranchMergeRecovery with fixture " + fixture.getName());
+            System.out.println(
+                "Skipping testOneLargeBranchMergeRecovery with fixture " + fixture.getName());
             return;
         }
         doTestOneLargeBranchMergeRecovery(DocumentNodeStoreBuilder.DEFAULT_UPDATE_LIMIT);
     }
 
     /**
-     * Does 1 large branch commit that requires recovery
-     * Depending on actual update.limit it might or might not reproduce OAK-9535
-     * (with default likely set to 100 for tests, this is a quick version to test just the logic)
+     * Does 1 large branch commit that requires recovery Depending on actual update.limit it might
+     * or might not reproduce OAK-9535 (with default likely set to 100 for tests, this is a quick
+     * version to test just the logic)
      */
     @Test
     public void testOneSmallBranchMergeRecovery() throws Exception {
@@ -197,7 +201,8 @@ public class LargeMergeRecoveryTest extends AbstractTwoNodeTest {
         // 2. create a branch in C2
         NodeBuilder b2 = ds2.getRoot().builder();
         NodeBuilder test = b2.child("x").child("y");
-        System.out.println("Creating large branch merge, can take over a minute... (limit = " + updateLimit + ")");
+        System.out.println(
+            "Creating large branch merge, can take over a minute... (limit = " + updateLimit + ")");
         for (int i = 0; i < updateLimit * 3; i++) {
             test.child(childPrefix + i);
         }
@@ -220,11 +225,12 @@ public class LargeMergeRecoveryTest extends AbstractTwoNodeTest {
         assertTrue(ds1.getLastRevRecoveryAgent().isRecoveryNeeded());
 
         Iterable<Integer> cids = ds1.getLastRevRecoveryAgent()
-                .getRecoveryCandidateNodes();
+                                    .getRecoveryCandidateNodes();
         assertEquals(1, Iterables.size(cids));
         assertEquals(c2Id, Iterables.get(cids, 0).intValue());
 
-        assertFalse(ds1.getRoot().getChildNode("x").getChildNode("y").hasChildNode(childPrefix + "0"));
+        assertFalse(
+            ds1.getRoot().getChildNode("x").getChildNode("y").hasChildNode(childPrefix + "0"));
 
         System.out.println("RECOVER...");
         ds1.getLastRevRecoveryAgent().recover(Iterables.get(cids, 0));
@@ -235,7 +241,8 @@ public class LargeMergeRecoveryTest extends AbstractTwoNodeTest {
         assertEquals(zlastRev2, getDocument(ds1, "/").getLastRev().get(c2Id));
 
         ds1.runBackgroundOperations();
-        assertTrue(ds1.getRoot().getChildNode("x").getChildNode("y").hasChildNode(childPrefix + "0"));
+        assertTrue(
+            ds1.getRoot().getChildNode("x").getChildNode("y").hasChildNode(childPrefix + "0"));
 
         // dispose ds2 quietly because it may now throw an exception
         disposeQuietly(ds2);

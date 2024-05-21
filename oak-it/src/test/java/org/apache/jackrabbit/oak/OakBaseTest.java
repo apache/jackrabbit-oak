@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak;
 
 import java.util.Collection;
 import java.util.Set;
-
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.commons.FixturesHelper;
@@ -34,13 +33,12 @@ import org.junit.runners.Parameterized;
 public abstract class OakBaseTest {
 
     /**
-     * The system property "nsfixtures" can be used to provide a
-     * whitespace-separated list of fixtures names for which the
-     * tests should be run (the default is to use all fixtures).
+     * The system property "nsfixtures" can be used to provide a whitespace-separated list of
+     * fixtures names for which the tests should be run (the default is to use all fixtures).
      */
     private static final Set<Fixture> FIXTURES = FixturesHelper.getFixtures();
 
-    @Parameterized.Parameters(name="{0}")
+    @Parameterized.Parameters(name = "{0}")
     public static Collection<Object[]> fixtures() {
         return NodeStoreFixtures.asJunitParameters(FIXTURES);
     }

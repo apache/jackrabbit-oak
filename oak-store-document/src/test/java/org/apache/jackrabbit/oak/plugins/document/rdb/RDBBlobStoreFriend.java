@@ -29,7 +29,8 @@ import org.apache.jackrabbit.oak.commons.StringUtils;
 
 public class RDBBlobStoreFriend {
 
-    public static void storeBlock(RDBBlobStore ds, byte[] digest, int level, byte[] data) throws IOException {
+    public static void storeBlock(RDBBlobStore ds, byte[] digest, int level, byte[] data)
+        throws IOException {
         ds.storeBlock(digest, level, data);
     }
 
@@ -70,7 +71,8 @@ public class RDBBlobStoreFriend {
         }
     }
 
-    public static void deleteChunks(RDBBlobStore ds, List<String> chunkIds, long maxLastModifiedTime) throws Exception {
+    public static void deleteChunks(RDBBlobStore ds, List<String> chunkIds,
+        long maxLastModifiedTime) throws Exception {
         ds.deleteChunks(chunkIds, maxLastModifiedTime);
     }
 }

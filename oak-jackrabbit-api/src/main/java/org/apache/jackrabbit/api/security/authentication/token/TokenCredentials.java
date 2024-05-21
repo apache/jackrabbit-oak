@@ -17,18 +17,15 @@
 package org.apache.jackrabbit.api.security.authentication.token;
 
 import java.util.HashMap;
-
 import javax.jcr.Credentials;
-
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ProviderType;
 
 /**
  * <code>TokenCredentials</code> implements the <code>Credentials</code>
- * interface and represents single token credentials. Similar to
- * {@link javax.jcr.SimpleCredentials} this credentials implementation allows
- * to set additional attributes.
+ * interface and represents single token credentials. Similar to {@link javax.jcr.SimpleCredentials}
+ * this credentials implementation allows to set additional attributes.
  */
 @ProviderType
 public final class TokenCredentials implements Credentials {
@@ -40,8 +37,8 @@ public final class TokenCredentials implements Credentials {
      * Create a new instance.
      *
      * @param token A token string used to create this credentials instance.
-     * @throws IllegalArgumentException If the specified token is <code>null</code>
-     * or empty string.
+     * @throws IllegalArgumentException If the specified token is <code>null</code> or empty
+     *                                  string.
      */
     public TokenCredentials(@NotNull String token) throws IllegalArgumentException {
         if (token == null || token.length() == 0) {
@@ -52,7 +49,7 @@ public final class TokenCredentials implements Credentials {
 
     /**
      * Returns the token this credentials are built from.
-     * 
+     *
      * @return the token.
      */
     @NotNull
@@ -89,7 +86,7 @@ public final class TokenCredentials implements Credentials {
      *
      * @param name a <code>String</code> specifying the name of the attribute
      * @return an <code>Object</code> containing the value of the attribute, or
-     *         <code>null</code> if the attribute does not exist
+     * <code>null</code> if the attribute does not exist
      */
     @Nullable
     public String getAttribute(@NotNull String name) {
@@ -101,8 +98,7 @@ public final class TokenCredentials implements Credentials {
     /**
      * Removes an attribute from this credentials instance.
      *
-     * @param name a <code>String</code> specifying the name of the attribute to
-     *             remove
+     * @param name a <code>String</code> specifying the name of the attribute to remove
      */
     public void removeAttribute(@NotNull String name) {
         synchronized (attributes) {
@@ -111,9 +107,8 @@ public final class TokenCredentials implements Credentials {
     }
 
     /**
-     * Returns the names of the attributes available to this credentials
-     * instance. This method returns an empty array if the credentials instance
-     * has no attributes available to it.
+     * Returns the names of the attributes available to this credentials instance. This method
+     * returns an empty array if the credentials instance has no attributes available to it.
      *
      * @return a string array containing the names of the stored attributes
      */

@@ -45,6 +45,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
 public class SecondaryStoreObserverTest {
+
     private final List<String> empty = Collections.emptyList();
 
     @Rule
@@ -60,7 +61,7 @@ public class SecondaryStoreObserverTest {
     }
 
     @Test
-    public void basicSetup() throws Exception{
+    public void basicSetup() throws Exception {
         PathFilter pathFilter = new PathFilter(of("/a"), empty);
         SecondaryStoreObserver observer = createBuilder(pathFilter).buildObserver();
         primary.addObserver(observer);
@@ -72,11 +73,11 @@ public class SecondaryStoreObserverTest {
         dump(secondaryRoot(), "/a");
         dump(primary.getRoot(), "/a");
         assertEquals(secondaryRoot().getChildNode("a"),
-                primary.getRoot().getChildNode("a"));
+            primary.getRoot().getChildNode("a"));
     }
 
     @Test
-    public void childNodeAdded() throws Exception{
+    public void childNodeAdded() throws Exception {
         PathFilter pathFilter = new PathFilter(of("/a"), empty);
         SecondaryStoreObserver observer = createBuilder(pathFilter).buildObserver();
         primary.addObserver(observer);
@@ -94,7 +95,7 @@ public class SecondaryStoreObserverTest {
     }
 
     @Test
-    public void childNodeChangedAndExclude() throws Exception{
+    public void childNodeChangedAndExclude() throws Exception {
         PathFilter pathFilter = new PathFilter(of("/a"), of("a/b"));
         SecondaryStoreObserver observer = createBuilder(pathFilter).buildObserver();
         primary.addObserver(observer);
@@ -111,7 +112,7 @@ public class SecondaryStoreObserverTest {
     }
 
     @Test
-    public void childNodeDeleted() throws Exception{
+    public void childNodeDeleted() throws Exception {
         PathFilter pathFilter = new PathFilter(of("/a"), empty);
         SecondaryStoreObserver observer = createBuilder(pathFilter).buildObserver();
         primary.addObserver(observer);
@@ -128,7 +129,8 @@ public class SecondaryStoreObserverTest {
     }
 
     private NodeState secondaryRoot() {
-        return DelegatingDocumentNodeState.wrap(secondary.getRoot(), NodeStateDiffer.DEFAULT_DIFFER);
+        return DelegatingDocumentNodeState.wrap(secondary.getRoot(),
+            NodeStateDiffer.DEFAULT_DIFFER);
     }
 
     private SecondaryStoreBuilder createBuilder(PathFilter pathFilter) {
@@ -136,29 +138,29 @@ public class SecondaryStoreObserverTest {
     }
 
 
-    private static void assertMetaState(NodeState root1, NodeState root2, String path){
+    private static void assertMetaState(NodeState root1, NodeState root2, String path) {
         assertMetaState(documentState(root1, path), documentState(root2, path));
     }
 
-    private static void assertMetaState(AbstractDocumentNodeState a, AbstractDocumentNodeState b){
+    private static void assertMetaState(AbstractDocumentNodeState a, AbstractDocumentNodeState b) {
         assertEquals(a.getLastRevision(), b.getLastRevision());
         assertEquals(a.getRootRevision(), b.getRootRevision());
         assertEquals(a.getPath(), b.getPath());
     }
 
-    static AbstractDocumentNodeState documentState(NodeState root, String path){
+    static AbstractDocumentNodeState documentState(NodeState root, String path) {
         return (AbstractDocumentNodeState) NodeStateUtils.getNode(root, path);
     }
 
-    private static void dump(NodeState root, String path){
+    private static void dump(NodeState root, String path) {
         NodeState state = NodeStateUtils.getNode(root, path);
         System.out.println(NodeStateUtils.toString(state));
     }
 
-    static NodeState create(NodeBuilder b, String ... paths){
-        for (String path : paths){
+    static NodeState create(NodeBuilder b, String... paths) {
+        for (String path : paths) {
             NodeBuilder cb = b;
-            for (String pathElement : PathUtils.elements(path)){
+            for (String pathElement : PathUtils.elements(path)) {
                 cb = cb.child(pathElement);
             }
         }

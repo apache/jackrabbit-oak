@@ -20,25 +20,24 @@
 
 package org.apache.jackrabbit.oak.spi.filter;
 
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.oak.commons.PathUtils.isAncestor;
+
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.jetbrains.annotations.NotNull;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
-import static org.apache.jackrabbit.oak.commons.PathUtils.isAncestor;
-
 /**
- * Filter which determines whether given path should be included for processing
- * or not
+ * Filter which determines whether given path should be included for processing or not
  */
 public class PathFilter {
+
     private static final Set<String> INCLUDE_ROOT = Set.of("/");
     /**
      * Multi value property name used to determine list of paths to be included
@@ -63,9 +62,8 @@ public class PathFilter {
         EXCLUDE,
 
         /**
-         * Do not process the path but just perform traversal to
-         * child nodes. For IndexEditor it means that such nodes
-         * should not be indexed but editor must traverse down
+         * Do not process the path but just perform traversal to child nodes. For IndexEditor it
+         * means that such nodes should not be indexed but editor must traverse down
          */
         TRAVERSE
     }
@@ -78,15 +76,13 @@ public class PathFilter {
     };
 
     /**
-     * Constructs the predicate based on given definition state. It looks for
-     * multi value property with names {@link PathFilter#PROP_INCLUDED_PATHS}
-     * and {@link PathFilter#PROP_EXCLUDED_PATHS}. Both the properties are
-     * optional.
-     * If the properties are defined as String instead of Strings, then they
-     * are interpreted as a single-element list.
+     * Constructs the predicate based on given definition state. It looks for multi value property
+     * with names {@link PathFilter#PROP_INCLUDED_PATHS} and {@link PathFilter#PROP_EXCLUDED_PATHS}.
+     * Both the properties are optional. If the properties are defined as String instead of Strings,
+     * then they are interpreted as a single-element list.
      *
-     * @param defn nodestate representing the configuration. Generally it would
-     *             be the nodestate representing the index definition
+     * @param defn nodestate representing the configuration. Generally it would be the nodestate
+     *             representing the index definition
      * @return predicate based on the passed definition state
      */
     public static PathFilter from(@NotNull NodeBuilder defn) {
@@ -94,8 +90,8 @@ public class PathFilter {
             return ALL;
         }
         return new PathFilter(
-                getStrings(defn.getProperty(PROP_INCLUDED_PATHS), INCLUDE_ROOT),
-                getStrings(defn.getProperty(PROP_EXCLUDED_PATHS), Set.of())
+            getStrings(defn.getProperty(PROP_INCLUDED_PATHS), INCLUDE_ROOT),
+            getStrings(defn.getProperty(PROP_EXCLUDED_PATHS), Set.of())
         );
     }
 
@@ -127,7 +123,7 @@ public class PathFilter {
         Set<String> excludeCopy = newHashSet(excludes);
         PathUtils.unifyInExcludes(includeCopy, excludeCopy);
         checkState(!includeCopy.isEmpty(), "No valid include provided. Includes %s, " +
-                "Excludes %s", includes, excludes);
+            "Excludes %s", includes, excludes);
         this.includedPaths = includeCopy.toArray(new String[0]);
         this.excludedPaths = excludeCopy.toArray(new String[0]);
     }
@@ -171,9 +167,9 @@ public class PathFilter {
     @Override
     public String toString() {
         return "PathFilter{" +
-                "includedPaths=" + Arrays.toString(includedPaths) +
-                ", excludedPaths=" + Arrays.toString(excludedPaths) +
-                '}';
+            "includedPaths=" + Arrays.toString(includedPaths) +
+            ", excludedPaths=" + Arrays.toString(excludedPaths) +
+            '}';
     }
 
     /**
@@ -184,7 +180,8 @@ public class PathFilter {
      */
     public boolean areAllDescendantsIncluded(String path) {
         for (String excludedPath : excludedPaths) {
-            if (excludedPath.equals(path) || isAncestor(excludedPath, path) || isAncestor(path, excludedPath)) {
+            if (excludedPath.equals(path) || isAncestor(excludedPath, path) || isAncestor(path,
+                excludedPath)) {
                 return false;
             }
         }

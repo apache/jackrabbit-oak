@@ -24,7 +24,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.LineNumberReader;
 import java.util.ArrayList;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.json.JsonObject;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
@@ -39,7 +38,7 @@ public class IndexDefMergerTest {
     public void merge() throws IOException, CommitFailedException {
         String s = readFromResource("merge.txt");
         JsonObject json = JsonObject.fromJson(s, true);
-        for(JsonObject e : array(json.getProperties().get("tests"))) {
+        for (JsonObject e : array(json.getProperties().get("tests"))) {
             merge(e);
         }
     }
@@ -50,9 +49,9 @@ public class IndexDefMergerTest {
         JsonObject product = e.getChildren().get("product");
         try {
             JsonObject got = IndexDefMergerUtils.merge(
-                    "", ancestor,
-                    "/oak:index/test-1-custom-1", custom,
-                    product, "/oak:index/test-2");
+                "", ancestor,
+                "/oak:index/test-1-custom-1", custom,
+                product, "/oak:index/test-2");
             JsonObject expected = e.getChildren().get("expected");
             assertEquals(expected.toString(), got.toString());
         } catch (UnsupportedOperationException e2) {
@@ -63,7 +62,7 @@ public class IndexDefMergerTest {
 
     static String readFromResource(String resourceName) throws IOException {
         try (InputStreamReader reader = new InputStreamReader(
-                IndexDefMergerTest.class.getResourceAsStream(resourceName))) {
+            IndexDefMergerTest.class.getResourceAsStream(resourceName))) {
             StringBuilder buff = new StringBuilder();
             try (LineNumberReader l = new LineNumberReader(reader)) {
                 while (true) {

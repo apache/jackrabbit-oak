@@ -23,14 +23,16 @@ import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.jetbrains.annotations.NotNull;
 
 final class Role {
+
     static final Role NONE = new Role(Permissions.NO_PERMISSION);
     static final Role READER = new Role(Permissions.READ, PrivilegeConstants.JCR_READ);
     static final Role EDITOR = new Role(READER,
-            Permissions.WRITE|Permissions.MODIFY_CHILD_NODE_COLLECTION|Permissions.NODE_TYPE_MANAGEMENT|Permissions.VERSION_MANAGEMENT,
-            PrivilegeConstants.REP_WRITE, PrivilegeConstants.JCR_VERSION_MANAGEMENT);
+        Permissions.WRITE | Permissions.MODIFY_CHILD_NODE_COLLECTION
+            | Permissions.NODE_TYPE_MANAGEMENT | Permissions.VERSION_MANAGEMENT,
+        PrivilegeConstants.REP_WRITE, PrivilegeConstants.JCR_VERSION_MANAGEMENT);
     static final Role OWNER = new Role(EDITOR,
-            Permissions.READ_ACCESS_CONTROL|Permissions.MODIFY_ACCESS_CONTROL,
-            PrivilegeConstants.JCR_READ_ACCESS_CONTROL, PrivilegeConstants.JCR_MODIFY_ACCESS_CONTROL);
+        Permissions.READ_ACCESS_CONTROL | Permissions.MODIFY_ACCESS_CONTROL,
+        PrivilegeConstants.JCR_READ_ACCESS_CONTROL, PrivilegeConstants.JCR_MODIFY_ACCESS_CONTROL);
 
     private final long permissions;
     private final Set<String> privilegeNames;
@@ -41,8 +43,9 @@ final class Role {
     }
 
     private Role(@NotNull Role base, long permissions, String... privilegeNames) {
-        this.permissions = base.permissions|permissions;
-        this.privilegeNames = ImmutableSet.<String>builder().addAll(base.privilegeNames).add(privilegeNames).build();
+        this.permissions = base.permissions | permissions;
+        this.privilegeNames = ImmutableSet.<String>builder().addAll(base.privilegeNames)
+                                          .add(privilegeNames).build();
     }
 
     boolean grants(long permissions) {

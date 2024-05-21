@@ -22,15 +22,14 @@ import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull
 
 import java.io.File;
 import java.util.Iterator;
-
-import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
 import org.apache.jackrabbit.oak.segment.file.tar.LocalJournalFile;
 import org.apache.jackrabbit.oak.segment.file.tooling.RevisionHistory;
 import org.apache.jackrabbit.oak.segment.file.tooling.RevisionHistory.HistoryElement;
+import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
 
 /**
- * Prints the revision history of an existing segment store. Optionally, it can
- * narrow to the output to the history of a single node.
+ * Prints the revision history of an existing segment store. Optionally, it can narrow to the output
+ * to the history of a single node.
  */
 public class History {
 
@@ -83,9 +82,8 @@ public class History {
         }
 
         /**
-         * A path to a node. If specified, the history will be restricted to the
-         * subtree pointed to by this node. This parameter is not mandatory and
-         * defaults to the entire tree.
+         * A path to a node. If specified, the history will be restricted to the subtree pointed to
+         * by this node. This parameter is not mandatory and defaults to the entire tree.
          *
          * @param node a path to a node.
          * @return this builder.
@@ -96,9 +94,9 @@ public class History {
         }
 
         /**
-         * Maximum depth of the history. If specified, this command will print
-         * information about the history of every node at or below the provided
-         * depth. This parameter is not mandatory and defaults to zero.
+         * Maximum depth of the history. If specified, this command will print information about the
+         * history of every node at or below the provided depth. This parameter is not mandatory and
+         * defaults to zero.
          *
          * @param depth the depth of the subtree.
          * @return this builder.

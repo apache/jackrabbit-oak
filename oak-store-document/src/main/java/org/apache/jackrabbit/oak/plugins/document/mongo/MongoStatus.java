@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import com.mongodb.BasicDBObject;
 import com.mongodb.ClientSessionOptions;
 import com.mongodb.MongoClient;
@@ -32,23 +30,24 @@ import com.mongodb.event.ServerHeartbeatStartedEvent;
 import com.mongodb.event.ServerHeartbeatSucceededEvent;
 import com.mongodb.event.ServerMonitorListener;
 import com.mongodb.session.ClientSession;
-
-import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.collect.Maps;
+import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class MongoStatus implements ServerMonitorListener {
 
     private static final Logger LOG = LoggerFactory.getLogger(MongoStatus.class);
 
     private static final ImmutableSet<String> SERVER_DETAIL_FIELD_NAMES
-            = ImmutableSet.<String>builder()
-            .add("host", "process", "connections", "repl", "storageEngine", "mem")
-            .build();
+        = ImmutableSet.<String>builder()
+                      .add("host", "process", "connections", "repl", "storageEngine", "mem")
+                      .build();
 
     private final MongoClient client;
 
@@ -69,7 +68,7 @@ public class MongoStatus implements ServerMonitorListener {
     private final ReplicaSetStatus replicaSetStatus = new ReplicaSetStatus();
 
     public MongoStatus(@NotNull MongoClient client,
-                       @NotNull String dbName) {
+        @NotNull String dbName) {
         this.client = client;
         this.dbName = dbName;
     }
@@ -77,15 +76,14 @@ public class MongoStatus implements ServerMonitorListener {
     public void checkVersion() {
         if (!isVersion(2, 6)) {
             String msg = "MongoDB version 2.6.0 or higher required. " +
-                    "Currently connected to a MongoDB with version: " + version;
+                "Currently connected to a MongoDB with version: " + version;
             throw new RuntimeException(msg);
         }
     }
 
     /**
-     * Check if the majority read concern is supported by this storage engine.
-     * The fact that read concern is supported doesn't it can be used - it also
-     * has to be enabled.
+     * Check if the majority read concern is supported by this storage engine. The fact that read
+     * concern is supported doesn't it can be used - it also has to be enabled.
      *
      * @return true if the majority read concern is supported
      */
@@ -93,12 +91,14 @@ public class MongoStatus implements ServerMonitorListener {
         if (majorityReadConcernSupported == null) {
             BasicDBObject stat = getServerStatus();
             if (stat.isEmpty()) {
-                LOG.debug("User doesn't have privileges to get server status; falling back to the isMajorityReadConcernEnabled()");
+                LOG.debug(
+                    "User doesn't have privileges to get server status; falling back to the isMajorityReadConcernEnabled()");
                 return isMajorityReadConcernEnabled();
             } else {
                 if (stat.containsField("storageEngine")) {
                     BasicDBObject storageEngine = (BasicDBObject) stat.get("storageEngine");
-                    majorityReadConcernSupported = storageEngine.getBoolean("supportsCommittedReads");
+                    majorityReadConcernSupported = storageEngine.getBoolean(
+                        "supportsCommittedReads");
                 } else {
                     majorityReadConcernSupported = false;
                 }
@@ -118,10 +118,11 @@ public class MongoStatus implements ServerMonitorListener {
             // majority read concern has been enabled, so we have to try to use
             // it and optionally catch the exception.
             MongoCollection<?> emptyCollection = client.getDatabase(dbName)
-                    .getCollection("emptyCollection-" + System.currentTimeMillis());
+                                                       .getCollection("emptyCollection-"
+                                                           + System.currentTimeMillis());
             try (MongoCursor cursor = emptyCollection
-                    .withReadConcern(ReadConcern.MAJORITY)
-                    .find(new BasicDBObject()).iterator()) {
+                .withReadConcern(ReadConcern.MAJORITY)
+                .find(new BasicDBObject()).iterator()) {
                 cursor.hasNext();
                 majorityReadConcernEnabled = true;
             } catch (MongoQueryException | IllegalArgumentException e) {
@@ -183,7 +184,8 @@ public class MongoStatus implements ServerMonitorListener {
             // must be at least 3.6
             if (isVersion(3, 6)) {
                 ClientSessionOptions options = ClientSessionOptions.builder()
-                        .causallyConsistent(true).build();
+                                                                   .causallyConsistent(true)
+                                                                   .build();
                 try (ClientSession ignored = client.startSession(options)) {
                     clientSessionSupported = true;
                 } catch (MongoClientException e) {
@@ -197,13 +199,12 @@ public class MongoStatus implements ServerMonitorListener {
     }
 
     /**
-     * Returns an estimate of the replica-set lag in milliseconds. The returned
-     * value is not an accurate measurement of the replication lag and should
-     * only be used as a rough estimate to decide whether secondaries can be
-     * used for queries in general. 
+     * Returns an estimate of the replica-set lag in milliseconds. The returned value is not an
+     * accurate measurement of the replication lag and should only be used as a rough estimate to
+     * decide whether secondaries can be used for queries in general.
      * <p>
-     * This method may return {@link ReplicaSetStatus#UNKNOWN_LAG} if the value
-     * is currently unknown.
+     * This method may return {@link ReplicaSetStatus#UNKNOWN_LAG} if the value is currently
+     * unknown.
      *
      * @return an estimate of the
      */
@@ -228,8 +229,8 @@ public class MongoStatus implements ServerMonitorListener {
     @Override
     public void serverHeartbeatFailed(ServerHeartbeatFailedEvent event) {
         LOG.debug("serverHeartbeatFailed {} ({} ms)", event.getConnectionId(),
-                event.getElapsedTime(TimeUnit.MILLISECONDS),
-                event.getThrowable());
+            event.getElapsedTime(TimeUnit.MILLISECONDS),
+            event.getThrowable());
         replicaSetStatus.serverHeartbeatFailed(event);
     }
 
@@ -239,7 +240,7 @@ public class MongoStatus implements ServerMonitorListener {
         if (serverStatus == null) {
             try {
                 serverStatus = client.getDatabase(dbName).runCommand(
-                        new BasicDBObject("serverStatus", 1), BasicDBObject.class);
+                    new BasicDBObject("serverStatus", 1), BasicDBObject.class);
             } catch (MongoCommandException e) {
                 if (e.getErrorCode() == -1) {
                     // OAK-7485: workaround when running on
@@ -261,7 +262,7 @@ public class MongoStatus implements ServerMonitorListener {
     private BasicDBObject getBuildInfo() {
         if (buildInfo == null) {
             buildInfo = client.getDatabase(dbName).runCommand(
-                    new BasicDBObject("buildInfo", 1), BasicDBObject.class);
+                new BasicDBObject("buildInfo", 1), BasicDBObject.class);
         }
         return buildInfo;
     }

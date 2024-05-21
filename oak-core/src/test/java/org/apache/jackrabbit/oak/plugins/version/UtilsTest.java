@@ -16,13 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.version;
 
-import org.apache.jackrabbit.oak.InitialContentHelper;
-import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
-import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
-import org.junit.Test;
-
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+
+import org.apache.jackrabbit.oak.InitialContentHelper;
+import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
+import org.junit.Test;
 
 public class UtilsTest {
 

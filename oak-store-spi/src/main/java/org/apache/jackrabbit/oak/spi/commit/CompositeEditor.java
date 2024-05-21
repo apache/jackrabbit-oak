@@ -16,19 +16,17 @@
  */
 package org.apache.jackrabbit.oak.spi.commit;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static java.util.Arrays.asList;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
+import java.util.Collection;
+import java.util.List;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import org.apache.jackrabbit.guava.common.collect.Lists;
-
-import java.util.Collection;
-import java.util.List;
 
 /**
  * Aggregation of a list of editors into a single editor.
@@ -39,12 +37,12 @@ public class CompositeEditor implements Editor {
     public static Editor compose(@NotNull Collection<? extends Editor> editors) {
         checkNotNull(editors);
         switch (editors.size()) {
-        case 0:
-            return null;
-        case 1:
-            return editors.iterator().next();
-        default:
-            return new CompositeEditor(editors);
+            case 0:
+                return null;
+            case 1:
+                return editors.iterator().next();
+            default:
+                return new CompositeEditor(editors);
         }
     }
 
@@ -60,7 +58,7 @@ public class CompositeEditor implements Editor {
 
     @Override
     public void enter(NodeState before, NodeState after)
-            throws CommitFailedException {
+        throws CommitFailedException {
         for (Editor editor : editors) {
             editor.enter(before, after);
         }
@@ -68,7 +66,7 @@ public class CompositeEditor implements Editor {
 
     @Override
     public void leave(NodeState before, NodeState after)
-            throws CommitFailedException {
+        throws CommitFailedException {
         for (Editor editor : editors) {
             editor.leave(before, after);
         }
@@ -77,7 +75,7 @@ public class CompositeEditor implements Editor {
 
     @Override
     public void propertyAdded(PropertyState after)
-            throws CommitFailedException {
+        throws CommitFailedException {
         for (Editor editor : editors) {
             editor.propertyAdded(after);
         }
@@ -85,7 +83,7 @@ public class CompositeEditor implements Editor {
 
     @Override
     public void propertyChanged(PropertyState before, PropertyState after)
-            throws CommitFailedException {
+        throws CommitFailedException {
         for (Editor editor : editors) {
             editor.propertyChanged(before, after);
         }
@@ -93,7 +91,7 @@ public class CompositeEditor implements Editor {
 
     @Override
     public void propertyDeleted(PropertyState before)
-            throws CommitFailedException {
+        throws CommitFailedException {
         for (Editor editor : editors) {
             editor.propertyDeleted(before);
         }
@@ -101,7 +99,7 @@ public class CompositeEditor implements Editor {
 
     @Override
     public Editor childNodeAdded(String name, NodeState after)
-            throws CommitFailedException {
+        throws CommitFailedException {
         List<Editor> list = Lists.newArrayListWithCapacity(editors.size());
         for (Editor editor : editors) {
             Editor child = editor.childNodeAdded(name, after);
@@ -114,8 +112,8 @@ public class CompositeEditor implements Editor {
 
     @Override
     public Editor childNodeChanged(
-            String name, NodeState before, NodeState after)
-            throws CommitFailedException {
+        String name, NodeState before, NodeState after)
+        throws CommitFailedException {
         List<Editor> list = Lists.newArrayListWithCapacity(editors.size());
         for (Editor editor : editors) {
             Editor child = editor.childNodeChanged(name, before, after);
@@ -128,7 +126,7 @@ public class CompositeEditor implements Editor {
 
     @Override
     public Editor childNodeDeleted(String name, NodeState before)
-            throws CommitFailedException {
+        throws CommitFailedException {
         List<Editor> list = Lists.newArrayListWithCapacity(editors.size());
         for (Editor editor : editors) {
             Editor child = editor.childNodeDeleted(name, before);

@@ -23,12 +23,14 @@ import org.apache.jackrabbit.oak.spi.state.EqualsDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 
-public class ElasticIndexTracker extends FulltextIndexTracker<ElasticIndexNodeManager, ElasticIndexNode> implements Observer {
+public class ElasticIndexTracker extends
+    FulltextIndexTracker<ElasticIndexNodeManager, ElasticIndexNode> implements Observer {
 
     private final ElasticConnection elasticConnection;
     private final ElasticMetricHandler elasticMetricHandler;
 
-    public ElasticIndexTracker(@NotNull ElasticConnection elasticConnection, @NotNull ElasticMetricHandler elasticMetricHandler) {
+    public ElasticIndexTracker(@NotNull ElasticConnection elasticConnection,
+        @NotNull ElasticMetricHandler elasticMetricHandler) {
         this.elasticConnection = elasticConnection;
         this.elasticMetricHandler = elasticMetricHandler;
     }

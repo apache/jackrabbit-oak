@@ -16,25 +16,26 @@
  */
 package org.apache.jackrabbit.oak.segment.remote;
 
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.util.Collections;
 import java.util.HashMap;
-
-import static org.junit.Assert.*;
-
-import org.apache.jackrabbit.oak.segment.remote.RemoteSegmentArchiveEntry;
+import org.junit.Test;
 
 public class RemoteBlobMetadataTest {
 
     @Test
     public void toSegmentMetadata() {
-        RemoteSegmentArchiveEntry entry = new RemoteSegmentArchiveEntry(-7554506325726244935L, -5874985927363300041L,
-                3, 5, 50, 60, true);
+        RemoteSegmentArchiveEntry entry = new RemoteSegmentArchiveEntry(-7554506325726244935L,
+            -5874985927363300041L,
+            3, 5, 50, 60, true);
         HashMap<String, String> map = RemoteBlobMetadata.toSegmentMetadata(entry);
 
         assertEquals("segment", map.get(RemoteBlobMetadata.METADATA_TYPE));
-        assertEquals("97290085-b1a5-4fb9-ae77-db6d13177537", map.get(RemoteBlobMetadata.METADATA_SEGMENT_UUID));
+        assertEquals("97290085-b1a5-4fb9-ae77-db6d13177537",
+            map.get(RemoteBlobMetadata.METADATA_SEGMENT_UUID));
         assertEquals("3", map.get(RemoteBlobMetadata.METADATA_SEGMENT_POSITION));
         assertEquals("50", map.get(RemoteBlobMetadata.METADATA_SEGMENT_GENERATION));
         assertEquals("60", map.get(RemoteBlobMetadata.METADATA_SEGMENT_FULL_GENERATION));
@@ -45,14 +46,15 @@ public class RemoteBlobMetadataTest {
     @Test
     public void toIndexEntry() {
         HashMap<String, String> metadata = new HashMap<>();
-        metadata.put(RemoteBlobMetadata.METADATA_SEGMENT_UUID, "97290085-b1a5-4fb9-ae77-db6d13177537");
+        metadata.put(RemoteBlobMetadata.METADATA_SEGMENT_UUID,
+            "97290085-b1a5-4fb9-ae77-db6d13177537");
         metadata.put(RemoteBlobMetadata.METADATA_SEGMENT_POSITION, "3");
         metadata.put(RemoteBlobMetadata.METADATA_SEGMENT_GENERATION, "50");
         metadata.put(RemoteBlobMetadata.METADATA_SEGMENT_FULL_GENERATION, "60");
         metadata.put(RemoteBlobMetadata.METADATA_SEGMENT_COMPACTED, "true");
-        RemoteSegmentArchiveEntry azureSegmentArchiveEntry = RemoteBlobMetadata.toIndexEntry(metadata, 5);
+        RemoteSegmentArchiveEntry azureSegmentArchiveEntry = RemoteBlobMetadata.toIndexEntry(
+            metadata, 5);
         System.out.println(azureSegmentArchiveEntry);
-
 
         assertEquals(-7554506325726244935L, azureSegmentArchiveEntry.getMsb());
         assertEquals(-5874985927363300041L, azureSegmentArchiveEntry.getLsb());

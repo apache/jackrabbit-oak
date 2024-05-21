@@ -41,15 +41,17 @@ public class JsopStreamTest extends TestCase {
 
     public void testNested() {
         JsopStream s = new JsopStream().key("x");
-        JsopStream nested = new JsopStream().array().value(1).value(null).value(true).value(false).value("Hello").endArray();
+        JsopStream nested = new JsopStream().array().value(1).value(null).value(true).value(false)
+                                            .value("Hello").endArray();
         s.append(nested);
         assertEquals("\"x\":[1,null,true,false,\"Hello\"]", s.toString());
     }
 
     public void testRawValue() {
         JsopStream s = new JsopStream().tag('+').
-        key("x").object().
-            key("y").array().value(1).array().endArray().value(2).endArray().endObject();
+                                       key("x").object().
+                                       key("y").array().value(1).array().endArray().value(2)
+                                       .endArray().endObject();
         assertEquals("+\"x\":{\"y\":[1,[],2]}", s.toString());
         testRawValue(s);
         testRawValue(new JsopTokenizer(s.toString()));
@@ -73,11 +75,11 @@ public class JsopStreamTest extends TestCase {
 
     public void testJsopReader() {
         JsopStream s = new JsopStream().tag('+').
-            key("x").object().
-                key("y").value(1).
-                key("n").value("").
-                key("z").encodedValue("n10").
-                endObject();
+                                       key("x").object().
+                                       key("y").value(1).
+                                       key("n").value("").
+                                       key("z").encodedValue("n10").
+                                       endObject();
         s.setLineLength(-1);
         assertEquals("+\"x\":{\"y\":1,\"n\":\"\",\"z\":n10}", s.toString());
         assertFalse(s.matches('-'));
@@ -107,18 +109,18 @@ public class JsopStreamTest extends TestCase {
 
     public void testTokenizer() {
         test("+ \"x\": {}",
-                new JsopStream().tag('+').
-                    key("x").object().endObject());
+            new JsopStream().tag('+').
+                            key("x").object().endObject());
         test("[\"-1\": -1, " +
                 "\"true\": true, " +
                 "\"false\": false, " +
                 "\"null\": null]",
-                new JsopStream().array().
-                    key("-1").value(-1).
-                    key("true").value(true).
-                    key("false").value(false).
-                    key("null").value(null).
-                    endArray());
+            new JsopStream().array().
+                            key("-1").value(-1).
+                            key("true").value(true).
+                            key("false").value(false).
+                            key("null").value(null).
+                            endArray());
 
     }
 
@@ -195,35 +197,35 @@ public class JsopStreamTest extends TestCase {
 
         JsopWriter buff = new JsopStream();
         buff.tag('+').object().
-                key("foo").value("bar").
-                key("int").value(3).
-                key("decimal").encodedValue("3.0").
-                key("obj").object().
-                key("boolean").value(true).
-                key("null").value(null).
-                key("arr").array().
-                array().
-                value(1).
-                value("\u001f ~ \u007f \u0080").
-                value("42").
-                endArray().
-                array().
-                endArray().
-                endArray().
-                endObject().
-                key("some").value("more").
-                endObject();
+            key("foo").value("bar").
+            key("int").value(3).
+            key("decimal").encodedValue("3.0").
+            key("obj").object().
+            key("boolean").value(true).
+            key("null").value(null).
+            key("arr").array().
+            array().
+            value(1).
+            value("\u001f ~ \u007f \u0080").
+            value("42").
+            endArray().
+            array().
+            endArray().
+            endArray().
+            endObject().
+            key("some").value("more").
+            endObject();
 
         String json = buff.toString();
         assertEquals("+{\"foo\":\"bar\",\"int\":3,\"decimal\":3.0," +
-                "\"obj\":{\"boolean\":true,\"null\":null," +
-                "\"arr\":[[1,\"\\u001f ~ \u007f \u0080\",\"42\"],[]]},\"some\":\"more\"}", json);
+            "\"obj\":{\"boolean\":true,\"null\":null," +
+            "\"arr\":[[1,\"\\u001f ~ \u007f \u0080\",\"42\"],[]]},\"some\":\"more\"}", json);
 
         buff.resetWriter();
         buff.array().
-                object().key("x").value("1").endObject().newline().
-                object().key("y").value("2").endObject().newline().
-                endArray();
+            object().key("x").value("1").endObject().newline().
+            object().key("y").value("2").endObject().newline().
+            endArray();
         json = buff.toString();
         assertEquals("[{\"x\":\"1\"}\n,{\"y\":\"2\"}\n]", json);
 

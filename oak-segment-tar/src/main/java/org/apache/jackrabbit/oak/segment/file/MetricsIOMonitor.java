@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.segment.file;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
 import java.io.File;
-
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
 import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
@@ -30,8 +29,8 @@ import org.apache.jackrabbit.oak.stats.TimerStats;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * This {@code IOMonitor} implementations registers the following monitoring endpoints
- * with the Metrics library if available:
+ * This {@code IOMonitor} implementations registers the following monitoring endpoints with the
+ * Metrics library if available:
  * <ul>
  *     <li>{@link #OAK_SEGMENT_SEGMENT_READ_BYTES}:
  *          a meter metrics for the number of bytes read from tar files</li>
@@ -44,6 +43,7 @@ import org.jetbrains.annotations.NotNull;
  * </ul>
  */
 public class MetricsIOMonitor extends IOMonitorAdapter {
+
     public static final String OAK_SEGMENT_SEGMENT_READ_BYTES = "oak.segment.segment-read-bytes";
     public static final String OAK_SEGMENT_SEGMENT_WRITE_BYTES = "oak.segment.segment-write-bytes";
     public static final String OAK_SEGMENT_SEGMENT_READ_TIME = "oak.segment.segment-read-time";
@@ -56,13 +56,13 @@ public class MetricsIOMonitor extends IOMonitorAdapter {
 
     public MetricsIOMonitor(@NotNull StatisticsProvider statisticsProvider) {
         segmentReadBytes = statisticsProvider.getMeter(
-                OAK_SEGMENT_SEGMENT_READ_BYTES, StatsOptions.METRICS_ONLY);
+            OAK_SEGMENT_SEGMENT_READ_BYTES, StatsOptions.METRICS_ONLY);
         segmentWriteBytes = statisticsProvider.getMeter(
-                OAK_SEGMENT_SEGMENT_WRITE_BYTES, StatsOptions.METRICS_ONLY);
+            OAK_SEGMENT_SEGMENT_WRITE_BYTES, StatsOptions.METRICS_ONLY);
         segmentReadTime = statisticsProvider.getTimer(
-                OAK_SEGMENT_SEGMENT_READ_TIME, StatsOptions.METRICS_ONLY);
+            OAK_SEGMENT_SEGMENT_READ_TIME, StatsOptions.METRICS_ONLY);
         segmentWriteTime = statisticsProvider.getTimer(
-                OAK_SEGMENT_SEGMENT_WRITE_TIME, StatsOptions.METRICS_ONLY);
+            OAK_SEGMENT_SEGMENT_WRITE_TIME, StatsOptions.METRICS_ONLY);
     }
 
     @Override

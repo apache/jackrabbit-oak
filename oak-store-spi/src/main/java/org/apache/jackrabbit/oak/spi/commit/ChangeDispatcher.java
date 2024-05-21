@@ -21,14 +21,11 @@ package org.apache.jackrabbit.oak.spi.commit;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
 import java.io.Closeable;
-
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /**
- * A {@code ChangeDispatcher} instance dispatches content changes
- * to registered {@link Observer}s.
+ * A {@code ChangeDispatcher} instance dispatches content changes to registered {@link Observer}s.
  * <p>
  * Changes are reported by calling {@link #contentChanged(NodeState, CommitInfo)}.
  * <p>
@@ -36,6 +33,7 @@ import org.jetbrains.annotations.Nullable;
  * notifications for all changes reported to this instance.
  */
 public class ChangeDispatcher implements Observable, Observer {
+
     private final CompositeObserver observers = new CompositeObserver();
 
     @NotNull
@@ -43,21 +41,22 @@ public class ChangeDispatcher implements Observable, Observer {
 
     /**
      * Create a new instance for dispatching content changes
-     * @param root  current root node state
+     *
+     * @param root current root node state
      */
     public ChangeDispatcher(@NotNull NodeState root) {
         this.root = checkNotNull(root);
     }
 
     /**
-     * Register a new {@link Observer} for receiving notifications about changes reported to
-     * this change dispatcher. Changes are reported synchronously and clients need to ensure
-     * to no block any length of time (e.g. by relaying through a {@link BackgroundObserver}).
+     * Register a new {@link Observer} for receiving notifications about changes reported to this
+     * change dispatcher. Changes are reported synchronously and clients need to ensure to no block
+     * any length of time (e.g. by relaying through a {@link BackgroundObserver}).
      * <p>
      * Clients need to call {@link java.io.Closeable#close()} close} on the returned
      * {@code Closeable} instance to stop receiving notifications.
      *
-     * @return  a {@link Closeable} instance
+     * @return a {@link Closeable} instance
      */
     @Override
     @NotNull

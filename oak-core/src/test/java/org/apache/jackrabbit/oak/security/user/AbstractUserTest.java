@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+import static org.mockito.Mockito.mock;
+
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.security.user.monitor.UserMonitor;
@@ -26,8 +28,6 @@ import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardAware;
 import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Before;
-
-import static org.mockito.Mockito.mock;
 
 public abstract class AbstractUserTest extends AbstractSecurityTest {
 

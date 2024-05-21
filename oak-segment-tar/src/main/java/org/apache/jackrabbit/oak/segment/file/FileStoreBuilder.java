@@ -19,11 +19,10 @@
 
 package org.apache.jackrabbit.oak.segment.file;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static java.lang.Boolean.getBoolean;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
-import static java.lang.Boolean.getBoolean;
 import static org.apache.jackrabbit.oak.segment.CachingSegmentReader.DEFAULT_STRING_CACHE_MB;
 import static org.apache.jackrabbit.oak.segment.CachingSegmentReader.DEFAULT_TEMPLATE_CACHE_MB;
 import static org.apache.jackrabbit.oak.segment.SegmentCache.DEFAULT_SEGMENT_CACHE_MB;
@@ -36,9 +35,7 @@ import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.defa
 import java.io.File;
 import java.io.IOException;
 import java.util.Set;
-
 import org.apache.jackrabbit.guava.common.base.Predicate;
-
 import org.apache.jackrabbit.oak.segment.CacheWeights.NodeCacheWeigher;
 import org.apache.jackrabbit.oak.segment.CacheWeights.StringCacheWeigher;
 import org.apache.jackrabbit.oak.segment.CacheWeights.TemplateCacheWeigher;
@@ -50,7 +47,11 @@ import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.segment.file.proc.Proc.Backend;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.apache.jackrabbit.oak.segment.file.tar.TarPersistence;
-import org.apache.jackrabbit.oak.segment.spi.monitor.*;
+import org.apache.jackrabbit.oak.segment.spi.monitor.CompositeIOMonitor;
+import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
+import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
+import org.apache.jackrabbit.oak.segment.spi.monitor.RemoteStoreMonitor;
+import org.apache.jackrabbit.oak.segment.spi.monitor.RemoteStoreMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 import org.apache.jackrabbit.oak.segment.tool.iotrace.IOTraceLogWriter;
 import org.apache.jackrabbit.oak.segment.tool.iotrace.IOTraceMonitor;
@@ -68,10 +69,11 @@ import org.slf4j.LoggerFactory;
  * Builder for creating {@link FileStore} instances.
  */
 public class FileStoreBuilder {
+
     private static final Logger LOG = LoggerFactory.getLogger(FileStore.class);
-    
+
     private static final boolean MEMORY_MAPPING_DEFAULT =
-            "64".equals(System.getProperty("sun.arch.data.model", "32"));
+        "64".equals(System.getProperty("sun.arch.data.model", "32"));
 
     public static final int DEFAULT_MAX_FILE_SIZE = 256;
 
@@ -98,7 +100,7 @@ public class FileStoreBuilder {
     private boolean memoryMapping = MEMORY_MAPPING_DEFAULT;
 
     private boolean offHeapAccess = getBoolean("access.off.heap");
-    
+
     private int binariesInlineThreshold = Segment.MEDIUM_LIMIT;
 
     private SegmentNodeStorePersistence persistence;
@@ -113,6 +115,7 @@ public class FileStoreBuilder {
     private EvictingWriteCacheManager cacheManager;
 
     private class FileStoreGCListener extends DelegatingGCMonitor implements GCListener {
+
         @Override
         public void compactionSucceeded(@NotNull GCGeneration newGeneration) {
             compacted();
@@ -338,7 +341,8 @@ public class FileStoreBuilder {
      * @return this instance
      */
     @NotNull
-    public FileStoreBuilder withSnfeListener(@NotNull SegmentNotFoundExceptionListener snfeListener) {
+    public FileStoreBuilder withSnfeListener(
+        @NotNull SegmentNotFoundExceptionListener snfeListener) {
         this.snfeListener = checkNotNull(snfeListener);
         return this;
     }
@@ -370,10 +374,10 @@ public class FileStoreBuilder {
     }
 
     /**
-     * Enable strict version checking. With strict version checking enabled Oak
-     * will fail to start if the store version does not exactly match this Oak version.
-     * This is useful to e.g. avoid inadvertent upgrades during when running offline
-     * compaction accidentally against an older version of a store.
+     * Enable strict version checking. With strict version checking enabled Oak will fail to start
+     * if the store version does not exactly match this Oak version. This is useful to e.g. avoid
+     * inadvertent upgrades during when running offline compaction accidentally against an older
+     * version of a store.
      *
      * @param strictVersionCheck enables strict version checking iff {@code true}.
      * @return this instance
@@ -390,9 +394,9 @@ public class FileStoreBuilder {
     }
 
     /**
-     * Enable eager segment caching. This proves useful when segments need to
-     * be cached as soon as they are created, right before persisting them to disk.
-     * One such scenario is the cold standby, see OAK-8006.
+     * Enable eager segment caching. This proves useful when segments need to be cached as soon as
+     * they are created, right before persisting them to disk. One such scenario is the cold
+     * standby, see OAK-8006.
      *
      * @param eagerSegmentCaching enables eager segment caching iff {@code true}.
      * @return this instance
@@ -401,9 +405,10 @@ public class FileStoreBuilder {
         this.eagerSegmentCaching = eagerSegmentCaching;
         return this;
     }
-    
+
     /**
      * Sets the threshold under which binaries are inlined in data segments.
+     *
      * @param binariesInlineThreshold the threshold
      * @return this instance
      */
@@ -417,9 +422,9 @@ public class FileStoreBuilder {
     }
 
     /**
-     * Create a new {@link FileStore} instance with the settings specified in this
-     * builder. If none of the {@code with} methods have been called before calling
-     * this method, a file store with the following default settings is returned:
+     * Create a new {@link FileStore} instance with the settings specified in this builder. If none
+     * of the {@code with} methods have been called before calling this method, a file store with
+     * the following default settings is returned:
      * <ul>
      * <li>blob store: inline</li>
      * <li>max file size: 256MB</li>
@@ -456,9 +461,9 @@ public class FileStoreBuilder {
     }
 
     /**
-     * Create a new {@link ReadOnlyFileStore} instance with the settings specified in this
-     * builder. If none of the {@code with} methods have been called before calling
-     * this method, a file store with the following default settings is returned:
+     * Create a new {@link ReadOnlyFileStore} instance with the settings specified in this builder.
+     * If none of the {@code with} methods have been called before calling this method, a file store
+     * with the following default settings is returned:
      * <ul>
      * <li>blob store: inline</li>
      * <li>max file size: 256MB</li>
@@ -476,7 +481,7 @@ public class FileStoreBuilder {
     public ReadOnlyFileStore buildReadOnly() throws InvalidFileStoreVersionException, IOException {
         checkState(!built, "Cannot re-use builder");
         checkState(directory.exists() && directory.isDirectory(),
-                "%s does not exist or is not a directory", directory);
+            "%s does not exist or is not a directory", directory);
         built = true;
         ReadOnlyRevisions revisions = new ReadOnlyRevisions(persistence);
         LOG.info("Creating file store {}", this);
@@ -554,8 +559,8 @@ public class FileStoreBuilder {
     }
 
     /**
-     * @return creates or returns the {@code WriterCacheManager} this builder passes or
-     * passed to the store on {@link #build()}.
+     * @return creates or returns the {@code WriterCacheManager} this builder passes or passed to
+     * the store on {@link #build()}.
      * @see #withNodeDeduplicationCacheSize(int)
      * @see #withStringDeduplicationCacheSize(int)
      * @see #withTemplateDeduplicationCacheSize(int)
@@ -564,15 +569,15 @@ public class FileStoreBuilder {
     public WriterCacheManager getCacheManager() {
         if (cacheManager == null) {
             cacheManager = new EvictingWriteCacheManager(stringDeduplicationCacheSize,
-                    templateDeduplicationCacheSize, nodeDeduplicationCacheSize);
+                templateDeduplicationCacheSize, nodeDeduplicationCacheSize);
         }
         return cacheManager;
     }
 
     IOMonitor getIOMonitor() {
         return ioMonitors.isEmpty()
-                ? new IOMonitorAdapter()
-                : new CompositeIOMonitor(ioMonitors);
+            ? new IOMonitorAdapter()
+            : new CompositeIOMonitor(ioMonitors);
     }
 
     RemoteStoreMonitor getRemoteStoreMonitor() {
@@ -589,7 +594,7 @@ public class FileStoreBuilder {
     boolean getEagerSegmentCaching() {
         return eagerSegmentCaching;
     }
-    
+
     int getBinariesInlineThreshold() {
         return binariesInlineThreshold;
     }
@@ -597,31 +602,32 @@ public class FileStoreBuilder {
     @Override
     public String toString() {
         return "FileStoreBuilder{" +
-                "version=" + getClass().getPackage().getImplementationVersion() +
-                ", directory=" + directory +
-                ", blobStore=" + blobStore +
-                ", binariesInlineThreshold=" + binariesInlineThreshold +
-                ", maxFileSize=" + maxFileSize +
-                ", segmentCacheSize=" + segmentCacheSize +
-                ", stringCacheSize=" + stringCacheSize +
-                ", templateCacheSize=" + templateCacheSize +
-                ", stringDeduplicationCacheSize=" + stringDeduplicationCacheSize +
-                ", templateDeduplicationCacheSize=" + templateDeduplicationCacheSize +
-                ", nodeDeduplicationCacheSize=" + nodeDeduplicationCacheSize +
-                ", memoryMapping=" + memoryMapping +
-                ", offHeapAccess=" + offHeapAccess +
-                ", gcOptions=" + gcOptions +
-                '}';
+            "version=" + getClass().getPackage().getImplementationVersion() +
+            ", directory=" + directory +
+            ", blobStore=" + blobStore +
+            ", binariesInlineThreshold=" + binariesInlineThreshold +
+            ", maxFileSize=" + maxFileSize +
+            ", segmentCacheSize=" + segmentCacheSize +
+            ", stringCacheSize=" + stringCacheSize +
+            ", templateCacheSize=" + templateCacheSize +
+            ", stringDeduplicationCacheSize=" + stringDeduplicationCacheSize +
+            ", templateDeduplicationCacheSize=" + templateDeduplicationCacheSize +
+            ", nodeDeduplicationCacheSize=" + nodeDeduplicationCacheSize +
+            ", memoryMapping=" + memoryMapping +
+            ", offHeapAccess=" + offHeapAccess +
+            ", gcOptions=" + gcOptions +
+            '}';
     }
 
     private static class EvictingWriteCacheManager extends WriterCacheManager.Default {
+
         public EvictingWriteCacheManager(
-                int stringCacheSize,
-                int templateCacheSize,
-                int nodeCacheSize) {
+            int stringCacheSize,
+            int templateCacheSize,
+            int nodeCacheSize) {
             super(RecordCache.factory(stringCacheSize, new StringCacheWeigher()),
-                    RecordCache.factory(templateCacheSize, new TemplateCacheWeigher()),
-                    PriorityCache.factory(nodeCacheSize, new NodeCacheWeigher()));
+                RecordCache.factory(templateCacheSize, new TemplateCacheWeigher()),
+                PriorityCache.factory(nodeCacheSize, new NodeCacheWeigher()));
         }
 
         void evictOldGeneration(final int newGeneration) {

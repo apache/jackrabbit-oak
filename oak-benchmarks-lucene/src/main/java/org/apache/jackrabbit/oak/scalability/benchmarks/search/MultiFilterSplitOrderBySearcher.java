@@ -21,18 +21,22 @@ package org.apache.jackrabbit.oak.scalability.benchmarks.search;
 
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
-import javax.jcr.query.*;
-
+import javax.jcr.query.Query;
+import javax.jcr.query.QueryManager;
+import javax.jcr.query.QueryResult;
+import javax.jcr.query.RowIterator;
+import org.apache.jackrabbit.oak.scalability.suites.ScalabilityAbstractSuite.ExecutionContext;
 import org.apache.jackrabbit.oak.scalability.suites.ScalabilityBlobSearchSuite;
 import org.apache.jackrabbit.oak.scalability.suites.ScalabilityNodeSuite;
-import org.apache.jackrabbit.oak.scalability.suites.ScalabilityAbstractSuite.ExecutionContext;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Splits the query in {@link org.apache.jackrabbit.oak.scalability.benchmarks.search.MultiFilterOrderBySearcher}
- * into multiple queries and unions the results.
+ * Splits the query in
+ * {@link org.apache.jackrabbit.oak.scalability.benchmarks.search.MultiFilterOrderBySearcher} into
+ * multiple queries and unions the results.
  */
 public class MultiFilterSplitOrderBySearcher extends MultiFilterOrderBySearcher {
+
     @Override
     protected void search(QueryManager qm, ExecutionContext context)
         throws RepositoryException {
@@ -70,11 +74,12 @@ public class MultiFilterSplitOrderBySearcher extends MultiFilterOrderBySearcher 
         StringBuilder statement = new StringBuilder("/jcr:root/");
 
         statement.append(
-            ((String) context.getMap().get(ScalabilityBlobSearchSuite.CTX_ROOT_NODE_NAME_PROP)))
-            .append("//element(*, ")
-            .append(context.getMap().get(ScalabilityNodeSuite.CTX_ACT_NODE_TYPE_PROP)).append(")");
+                     ((String) context.getMap().get(ScalabilityBlobSearchSuite.CTX_ROOT_NODE_NAME_PROP)))
+                 .append("//element(*, ")
+                 .append(context.getMap().get(ScalabilityNodeSuite.CTX_ACT_NODE_TYPE_PROP))
+                 .append(")");
         statement.append("[(").append("@").append(ScalabilityNodeSuite.SORT_PROP)
-            .append("= 'true'");
+                 .append("= 'true'");
         statement.append(")]");
 
         LOG.debug("{}", statement);

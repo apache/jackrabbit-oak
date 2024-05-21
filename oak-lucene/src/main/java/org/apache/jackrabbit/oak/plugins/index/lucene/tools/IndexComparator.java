@@ -18,14 +18,12 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.tools;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Function;
-
 import org.apache.jackrabbit.oak.commons.json.JsonObject;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.LocalIndexDir;
@@ -40,22 +38,21 @@ import org.apache.lucene.store.SimpleFSDirectory;
 import org.apache.lucene.util.BytesRef;
 
 /**
- * Tool to compare Lucene indexes.
- * Indexes are considered equal if everything except the following is equal:
- * - checksums of .si, .cfe, .cfs files
- * - size of .si, .cfe, .cfs files (up to 1000 bytes or 0.1% difference is acceptable)
+ * Tool to compare Lucene indexes. Indexes are considered equal if everything except the following
+ * is equal: - checksums of .si, .cfe, .cfs files - size of .si, .cfe, .cfs files (up to 1000 bytes
+ * or 0.1% difference is acceptable)
  */
 public class IndexComparator {
 
     public static void main(String... args) throws Exception {
         if (args.length < 1) {
             System.out.println("Usage: java " + IndexComparator.class.getName() +
-                    " <lucene index directory> [<second lucene index directory>]");
+                " <lucene index directory> [<second lucene index directory>]");
             System.out.println(
-                    "If only one directory is specified, then the output is json " +
+                "If only one directory is specified, then the output is json " +
                     "that contains the statistics of the index.");
             System.out.println(
-                    "Instead of a directory, each argument can be a json file " +
+                "Instead of a directory, each argument can be a json file " +
                     "that contains the statistics of a previous run.");
             return;
         }
@@ -93,7 +90,7 @@ public class IndexComparator {
                 // ".si" files contain a timestamp
                 ignoreChecksums = true;
             } else if (path.endsWith(".cfs")
-                    || path.endsWith(".cfe")) {
+                || path.endsWith(".cfe")) {
                 // ".cfs" and ".cfe files depends on
                 // the aggregation order
                 ignoreChecksums = true;
@@ -124,9 +121,9 @@ public class IndexComparator {
                     }
                 }
                 result.key(path + "/" + k).object().
-                    key("v1").encodedValue(v1).
-                    key("v2").encodedValue(v2).
-                    endObject();
+                      key("v1").encodedValue(v1).
+                      key("v2").encodedValue(v2).
+                      endObject();
             }
         }
         both = new HashSet<>(o1.getChildren().keySet());
@@ -136,9 +133,9 @@ public class IndexComparator {
             JsonObject v2 = o2.getChildren().get(k);
             if (v1 == null || v2 == null) {
                 result.key(path + "/" + k).object().
-                    key("v1").encodedValue("" + v1).
-                    key("v2").encodedValue("" + v2).
-                    endObject();
+                      key("v1").encodedValue("" + v1).
+                      key("v2").encodedValue("" + v2).
+                      endObject();
             } else {
                 diff(v1, v2, path + "/" + k, result);
             }
@@ -146,8 +143,7 @@ public class IndexComparator {
     }
 
     /**
-     * Create or load a string that contains the JSON representation of the
-     * statistics of an index.
+     * Create or load a string that contains the JSON representation of the statistics of an index.
      *
      * @param file the Lucene directory, or JSON file
      * @return the statistics in JSON form
@@ -213,7 +209,8 @@ public class IndexComparator {
         return JsopBuilder.prettyPrint(builder.toString());
     }
 
-    private static void fileStats(File file, JsopBuilder builder) throws IOException, NoSuchAlgorithmException {
+    private static void fileStats(File file, JsopBuilder builder)
+        throws IOException, NoSuchAlgorithmException {
         if (file.isDirectory()) {
             for (File f : file.listFiles()) {
                 fileStats(f, builder);
@@ -221,12 +218,12 @@ public class IndexComparator {
         } else {
             builder.key(file.getName()).object();
             builder.key("bytes").value(file.length());
-            try(FileInputStream in = new FileInputStream(file)) {
+            try (FileInputStream in = new FileInputStream(file)) {
                 MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
                 MessageDigest md5 = MessageDigest.getInstance("MD5");
                 byte[] buffer = new byte[8 * 1024];
                 int numOfBytesRead;
-                while( (numOfBytesRead = in.read(buffer)) > 0){
+                while ((numOfBytesRead = in.read(buffer)) > 0) {
                     sha256.update(buffer, 0, numOfBytesRead);
                     md5.update(buffer, 0, numOfBytesRead);
                 }
@@ -239,7 +236,7 @@ public class IndexComparator {
 
     private static String toHex(byte[] data) {
         StringBuilder buff = new StringBuilder();
-        for(byte b: data) {
+        for (byte b : data) {
             buff.append(String.format("%02x", b));
         }
         return buff.toString();

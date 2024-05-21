@@ -27,12 +27,16 @@ public class StandbyStoreServiceDeprecationErrorTest {
 
     @Test
     public void testComponentDescriptor() throws Exception {
-        ComponentDescriptor cd = ComponentDescriptor.open(getClass().getResourceAsStream("/OSGI-INF/org.apache.jackrabbit.oak.segment.osgi.StandbyStoreServiceDeprecationError.xml"));
-        assertTrue(cd.hasName("org.apache.jackrabbit.oak.segment.osgi.StandbyStoreServiceDeprecationError"));
+        ComponentDescriptor cd = ComponentDescriptor.open(getClass().getResourceAsStream(
+            "/OSGI-INF/org.apache.jackrabbit.oak.segment.osgi.StandbyStoreServiceDeprecationError.xml"));
+        assertTrue(cd.hasName(
+            "org.apache.jackrabbit.oak.segment.osgi.StandbyStoreServiceDeprecationError"));
         assertTrue(cd.hasRequireConfigurationPolicy());
         assertTrue(cd.hasActivateMethod("activate"));
-        assertTrue(cd.hasConfigurationPid("org.apache.jackrabbit.oak.plugins.segment.standby.store.StandbyStoreService"));
-        assertTrue(cd.hasImplementationClass("org.apache.jackrabbit.oak.segment.osgi.StandbyStoreServiceDeprecationError"));
+        assertTrue(cd.hasConfigurationPid(
+            "org.apache.jackrabbit.oak.plugins.segment.standby.store.StandbyStoreService"));
+        assertTrue(cd.hasImplementationClass(
+            "org.apache.jackrabbit.oak.segment.osgi.StandbyStoreServiceDeprecationError"));
     }
 
 }

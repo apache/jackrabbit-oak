@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.api.security.user;
 
 import javax.jcr.RepositoryException;
-
 import org.osgi.annotation.versioning.ProviderType;
 
 /**

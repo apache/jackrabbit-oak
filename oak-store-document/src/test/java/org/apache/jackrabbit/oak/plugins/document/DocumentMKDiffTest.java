@@ -34,8 +34,10 @@ public class DocumentMKDiffTest extends AbstractMongoConnectionTest {
 
     @Test
     public void oak596() {
-        String rev1 = mk.commit("/", "+\"node1\":{\"node2\":{\"prop1\":\"val1\",\"prop2\":\"val2\"}}", null, null);
-        String rev2 = mk.commit("/", "^\"node1/node2/prop1\":\"val1 new\" ^\"node1/node2/prop2\":null", null, null);
+        String rev1 = mk.commit("/",
+            "+\"node1\":{\"node2\":{\"prop1\":\"val1\",\"prop2\":\"val2\"}}", null, null);
+        String rev2 = mk.commit("/",
+            "^\"node1/node2/prop1\":\"val1 new\" ^\"node1/node2/prop2\":null", null, null);
 
         String diff = mk.diff(rev1, rev2, "/node1/node2", 0);
         assertTrue(diff.contains("^\"/node1/node2/prop2\":null"));
@@ -98,7 +100,7 @@ public class DocumentMKDiffTest extends AbstractMongoConnectionTest {
     public void removePath() {
         // Add level1 & level1/level2
         String rev0 = mk.commit("/",
-                "+\"level1\":{}" +
+            "+\"level1\":{}" +
                 "+\"level1/level2\":{}", null, null);
         assertTrue(mk.nodeExists("/level1", null));
         assertTrue(mk.nodeExists("/level1/level2", null));

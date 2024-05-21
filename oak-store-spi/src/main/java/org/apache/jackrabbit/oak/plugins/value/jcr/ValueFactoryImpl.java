@@ -21,14 +21,12 @@ import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
-
 import javax.jcr.Binary;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
 import javax.jcr.ValueFormatException;
-
 import org.apache.jackrabbit.api.JackrabbitValueFactory;
 import org.apache.jackrabbit.api.ReferenceBinary;
 import org.apache.jackrabbit.api.binary.BinaryUpload;
@@ -52,7 +50,7 @@ import org.slf4j.LoggerFactory;
 public class ValueFactoryImpl extends PartialValueFactory implements JackrabbitValueFactory {
 
     private static final PerfLogger binOpsLogger = new PerfLogger(
-            LoggerFactory.getLogger("org.apache.jackrabbit.oak.jcr.operations.binary.perf"));
+        LoggerFactory.getLogger("org.apache.jackrabbit.oak.jcr.operations.binary.perf"));
 
     @NotNull
     private final Root root;
@@ -60,26 +58,25 @@ public class ValueFactoryImpl extends PartialValueFactory implements JackrabbitV
     /**
      * Creates a new instance of {@code ValueFactory}.
      *
-     * @param root the root instance for creating binary values
-     * @param namePathMapper The name/path mapping used for converting JCR names/paths to
-     * @param blobAccessProvider The blob access provider
-     * the internal representation.
+     * @param root               the root instance for creating binary values
+     * @param namePathMapper     The name/path mapping used for converting JCR names/paths to
+     * @param blobAccessProvider The blob access provider the internal representation.
      */
     public ValueFactoryImpl(@NotNull Root root,
-                            @NotNull NamePathMapper namePathMapper,
-                            @NotNull BlobAccessProvider blobAccessProvider) {
+        @NotNull NamePathMapper namePathMapper,
+        @NotNull BlobAccessProvider blobAccessProvider) {
         super(namePathMapper, blobAccessProvider);
         this.root = checkNotNull(root);
     }
 
     /**
-     * Creates a new instance of {@code ValueFactory}. The {@link Value}s
-     * created by this value factory instance will not be backed by a blob
-     * access provider and never return a download URI for a binary value.
+     * Creates a new instance of {@code ValueFactory}. The {@link Value}s created by this value
+     * factory instance will not be backed by a blob access provider and never return a download URI
+     * for a binary value.
      *
-     * @param root the root instance for creating binary values
-     * @param namePathMapper The name/path mapping used for converting JCR names/paths to
-     * the internal representation.
+     * @param root           the root instance for creating binary values
+     * @param namePathMapper The name/path mapping used for converting JCR names/paths to the
+     *                       internal representation.
      */
     public ValueFactoryImpl(@NotNull Root root, @NotNull NamePathMapper namePathMapper) {
         this(root, namePathMapper, DEFAULT_BLOB_ACCESS_PROVIDER);
@@ -143,11 +140,12 @@ public class ValueFactoryImpl extends PartialValueFactory implements JackrabbitV
 
     @Override
     @Nullable
-    public BinaryUpload initiateBinaryUpload(long maxSize, int maxParts, @NotNull final BinaryUploadOptions options) {
+    public BinaryUpload initiateBinaryUpload(long maxSize, int maxParts,
+        @NotNull final BinaryUploadOptions options) {
         BlobUpload upload = getBlobAccessProvider()
-                .initiateBlobUpload(maxSize,
-                        maxParts,
-                        new BlobUploadOptions(options.isDomainOverrideIgnored()));
+            .initiateBlobUpload(maxSize,
+                maxParts,
+                new BlobUploadOptions(options.isDomainOverrideIgnored()));
         if (null == upload) {
             return null;
         }
@@ -171,7 +169,9 @@ public class ValueFactoryImpl extends PartialValueFactory implements JackrabbitV
 
             @Override
             @NotNull
-            public String getUploadToken() { return upload.getUploadToken(); }
+            public String getUploadToken() {
+                return upload.getUploadToken();
+            }
         };
     }
 
@@ -179,11 +179,12 @@ public class ValueFactoryImpl extends PartialValueFactory implements JackrabbitV
     @Nullable
     public Binary completeBinaryUpload(@NotNull String uploadToken) throws RepositoryException {
         return createBinary(
-                getBlobAccessProvider().completeBlobUpload(uploadToken));
+            getBlobAccessProvider().completeBlobUpload(uploadToken));
     }
 
     @NotNull
-    private ValueImpl createBinaryValue(@NotNull InputStream value) throws IOException, RepositoryException {
+    private ValueImpl createBinaryValue(@NotNull InputStream value)
+        throws IOException, RepositoryException {
         long start = binOpsLogger.start();
         Blob blob = root.createBlob(value);
         binOpsLogger.end(start, -1, "Created binary property of size [{}]", blob.length());
@@ -193,7 +194,7 @@ public class ValueFactoryImpl extends PartialValueFactory implements JackrabbitV
     @NotNull
     private ValueImpl createBinaryValue(@NotNull Blob blob) throws RepositoryException {
         return new ValueImpl(BinaryPropertyState.binaryProperty("", blob),
-                getNamePathMapper(), getBlobAccessProvider());
+            getNamePathMapper(), getBlobAccessProvider());
     }
 
     @Nullable

@@ -16,6 +16,12 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+
 import java.security.Principal;
 import java.util.Collections;
 import java.util.Map;
@@ -25,12 +31,11 @@ import javax.jcr.SimpleCredentials;
 import javax.jcr.ValueFactory;
 import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.Configuration;
-
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
@@ -46,12 +51,6 @@ import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
 
 public class ExternalLoginAutoMembershipTest extends ExternalLoginTestBase {
 
@@ -81,7 +80,8 @@ public class ExternalLoginAutoMembershipTest extends ExternalLoginTestBase {
         // - dynamic membership = true
         // - auto-membership = 'gr_default' and 'nonExisting'
         syncConfig.user().setDynamicMembership(true);
-        setup1 = new ExternalSetup(idp, syncConfig, WhiteboardUtils.getService(whiteboard, SyncHandler.class), "gr" + UUID.randomUUID());
+        setup1 = new ExternalSetup(idp, syncConfig,
+            WhiteboardUtils.getService(whiteboard, SyncHandler.class), "gr" + UUID.randomUUID());
 
         // second configuration with different IDP ('idp2') and
         // - dynamic membership = true
@@ -106,7 +106,8 @@ public class ExternalLoginAutoMembershipTest extends ExternalLoginTestBase {
         // - auto-membership => nothing configured
         DefaultSyncConfig sc5 = new DefaultSyncConfig();
         sc5.setName("name5").user().setDynamicMembership(true);
-        setup5 = new ExternalSetup(new TestIdentityProvider("idp5"), sc5, new DefaultSyncHandler(sc5), null);
+        setup5 = new ExternalSetup(new TestIdentityProvider("idp5"), sc5,
+            new DefaultSyncHandler(sc5), null);
     }
 
     @Override
@@ -131,7 +132,8 @@ public class ExternalLoginAutoMembershipTest extends ExternalLoginTestBase {
             public AppConfigurationEntry[] getAppConfigurationEntry(String s) {
                 AppConfigurationEntry[] entries = new AppConfigurationEntry[5];
                 int i = 0;
-                for (ExternalSetup setup : new ExternalSetup[] {setup1, setup2, setup3, setup4, setup5}) {
+                for (ExternalSetup setup : new ExternalSetup[]{setup1, setup2, setup3, setup4,
+                    setup5}) {
                     entries[i++] = setup.asConfigurationEntry();
                 }
                 return entries;
@@ -139,23 +141,26 @@ public class ExternalLoginAutoMembershipTest extends ExternalLoginTestBase {
         };
     }
 
-    private static void registerSyncHandlerMapping(@NotNull OsgiContext ctx, @NotNull ExternalSetup setup) {
+    private static void registerSyncHandlerMapping(@NotNull OsgiContext ctx,
+        @NotNull ExternalSetup setup) {
         String syncHandlerName = setup.sc.getName();
         Map<String, Object> props = ImmutableMap.of(
-                DefaultSyncConfigImpl.PARAM_NAME, syncHandlerName,
-                DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, setup.sc.user().getDynamicMembership(),
-                DefaultSyncConfigImpl.PARAM_USER_AUTO_MEMBERSHIP, setup.sc.user().getAutoMembership());
+            DefaultSyncConfigImpl.PARAM_NAME, syncHandlerName,
+            DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP,
+            setup.sc.user().getDynamicMembership(),
+            DefaultSyncConfigImpl.PARAM_USER_AUTO_MEMBERSHIP, setup.sc.user().getAutoMembership());
         ctx.registerService(SyncHandler.class, setup.sh, props);
 
         Map<String, String> mappingProps = ImmutableMap.of(
-                SyncHandlerMapping.PARAM_IDP_NAME, setup.idp.getName(),
-                SyncHandlerMapping.PARAM_SYNC_HANDLER_NAME, syncHandlerName);
-        ctx.registerService(SyncHandlerMapping.class, new SyncHandlerMapping() {}, mappingProps);
+            SyncHandlerMapping.PARAM_IDP_NAME, setup.idp.getName(),
+            SyncHandlerMapping.PARAM_SYNC_HANDLER_NAME, syncHandlerName);
+        ctx.registerService(SyncHandlerMapping.class, new SyncHandlerMapping() {
+        }, mappingProps);
     }
 
     @Test
     public void testLoginSyncAutoMembershipSetup1() throws Exception {
-        try (ContentSession cs = login(new SimpleCredentials(USER_ID, new char[0]))){
+        try (ContentSession cs = login(new SimpleCredentials(USER_ID, new char[0]))) {
             // the login must set the existing auto-membership principals to the subject
             Set<Principal> principals = cs.getAuthInfo().getPrincipals();
             assertTrue(principals.contains(setup1.gr.getPrincipal()));
@@ -295,7 +300,8 @@ public class ExternalLoginAutoMembershipTest extends ExternalLoginTestBase {
             // as auto-membership is not configured on this setup.
             Set<Principal> principals = cs.getAuthInfo().getPrincipals();
 
-            Set<Principal> expected = ImmutableSet.of(EveryonePrincipal.getInstance(), userManager.getAuthorizable(USER_ID).getPrincipal());
+            Set<Principal> expected = ImmutableSet.of(EveryonePrincipal.getInstance(),
+                userManager.getAuthorizable(USER_ID).getPrincipal());
             assertEquals(expected, principals);
 
             assertFalse(principals.contains(new PrincipalImpl(NON_EXISTING_NAME)));
@@ -319,11 +325,13 @@ public class ExternalLoginAutoMembershipTest extends ExternalLoginTestBase {
 
         private SyncContext ctx;
 
-        private ExternalSetup(@NotNull ExternalIdentityProvider idp, @NotNull DefaultSyncConfig sc) throws Exception {
+        private ExternalSetup(@NotNull ExternalIdentityProvider idp, @NotNull DefaultSyncConfig sc)
+            throws Exception {
             this(idp, sc, new DefaultSyncHandler(sc), "gr_" + sc.getName());
         }
 
-        private ExternalSetup(@NotNull ExternalIdentityProvider idp, @NotNull DefaultSyncConfig sc, @NotNull SyncHandler sh, @Nullable String groupId) throws Exception {
+        private ExternalSetup(@NotNull ExternalIdentityProvider idp, @NotNull DefaultSyncConfig sc,
+            @NotNull SyncHandler sh, @Nullable String groupId) throws Exception {
             this.idp = idp;
             this.sc = sc;
             this.sh = sh;
@@ -337,16 +345,19 @@ public class ExternalLoginAutoMembershipTest extends ExternalLoginTestBase {
                 }
                 r.commit();
 
-                sc.user().setAutoMembership(gr.getID(), NON_EXISTING_NAME).setExpirationTime(Long.MAX_VALUE);
+                sc.user().setAutoMembership(gr.getID(), NON_EXISTING_NAME)
+                  .setExpirationTime(Long.MAX_VALUE);
             } else {
                 gr = null;
             }
 
-            idpRegistration = whiteboard.register(ExternalIdentityProvider.class, idp, Collections.<String, Object>emptyMap());
+            idpRegistration = whiteboard.register(ExternalIdentityProvider.class, idp,
+                Collections.<String, Object>emptyMap());
             shRegistration = whiteboard.register(SyncHandler.class, sh, ImmutableMap.of(
-                            DefaultSyncConfigImpl.PARAM_NAME, sh.getName(),
-                            DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, sc.user().getDynamicMembership(),
-                            DefaultSyncConfigImpl.PARAM_GROUP_AUTO_MEMBERSHIP, sc.user().getAutoMembership()));
+                DefaultSyncConfigImpl.PARAM_NAME, sh.getName(),
+                DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP,
+                sc.user().getDynamicMembership(),
+                DefaultSyncConfigImpl.PARAM_GROUP_AUTO_MEMBERSHIP, sc.user().getAutoMembership()));
             registerSyncHandlerMapping(context, this);
         }
 
@@ -375,12 +386,12 @@ public class ExternalLoginAutoMembershipTest extends ExternalLoginTestBase {
 
         private AppConfigurationEntry asConfigurationEntry() {
             return new AppConfigurationEntry(
-                    ExternalLoginModule.class.getName(),
-                    AppConfigurationEntry.LoginModuleControlFlag.SUFFICIENT,
-                    ImmutableMap.of(
-                            SyncHandlerMapping.PARAM_SYNC_HANDLER_NAME, sh.getName(),
-                            SyncHandlerMapping.PARAM_IDP_NAME, idp.getName()
-                    ));
+                ExternalLoginModule.class.getName(),
+                AppConfigurationEntry.LoginModuleControlFlag.SUFFICIENT,
+                ImmutableMap.of(
+                    SyncHandlerMapping.PARAM_SYNC_HANDLER_NAME, sh.getName(),
+                    SyncHandlerMapping.PARAM_IDP_NAME, idp.getName()
+                ));
         }
     }
 }

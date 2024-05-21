@@ -16,17 +16,16 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.evaluation;
 
-import javax.jcr.SimpleCredentials;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
+import javax.jcr.SimpleCredentials;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.junit.Before;
 import org.junit.Test;
-
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 /**
  * Tests if ACL changes done by different sessions are isolated correctly following the MVCC

@@ -16,15 +16,18 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import java.util.Collections;
 import java.util.Map;
 import javax.jcr.Credentials;
 import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.Configuration;
-
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
 import org.apache.jackrabbit.api.security.user.User;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.security.authentication.token.TokenConfigurationImpl;
@@ -34,10 +37,6 @@ import org.apache.jackrabbit.oak.spi.security.authentication.token.CompositeToke
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConfiguration;
 import org.junit.Before;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 public class TokenExternalLoginModuleTest extends CustomCredentialsSupportTest {
 
@@ -51,7 +50,8 @@ public class TokenExternalLoginModuleTest extends CustomCredentialsSupportTest {
         credentialsSupport = getCredentialsSupport();
 
         // NOTE: should be replaced by proper OSGi setup
-        CompositeTokenConfiguration composite = ((CompositeTokenConfiguration) getSecurityProvider().getConfiguration(TokenConfiguration.class));
+        CompositeTokenConfiguration composite = ((CompositeTokenConfiguration) getSecurityProvider().getConfiguration(
+            TokenConfiguration.class));
         tc = (TokenConfigurationImpl) composite.getDefaultConfig();
         tc.bindCredentialsSupport(credentialsSupport);
     }
@@ -72,15 +72,15 @@ public class TokenExternalLoginModuleTest extends CustomCredentialsSupportTest {
             @Override
             public AppConfigurationEntry[] getAppConfigurationEntry(String s) {
                 return new AppConfigurationEntry[]{
-                        new AppConfigurationEntry(
-                                TokenLoginModule.class.getName(),
-                                AppConfigurationEntry.LoginModuleControlFlag.SUFFICIENT,
-                                Collections.emptyMap()),
+                    new AppConfigurationEntry(
+                        TokenLoginModule.class.getName(),
+                        AppConfigurationEntry.LoginModuleControlFlag.SUFFICIENT,
+                        Collections.emptyMap()),
 
-                        new AppConfigurationEntry(
-                                ExternalLoginModule.class.getName(),
-                                AppConfigurationEntry.LoginModuleControlFlag.REQUIRED,
-                                options)
+                    new AppConfigurationEntry(
+                        ExternalLoginModule.class.getName(),
+                        AppConfigurationEntry.LoginModuleControlFlag.REQUIRED,
+                        options)
                 };
             }
         };
@@ -89,7 +89,8 @@ public class TokenExternalLoginModuleTest extends CustomCredentialsSupportTest {
     @Test
     public void testTokenCreation() throws Exception {
         Credentials creds = createTestCredentials();
-        assertTrue(credentialsSupport.setAttributes(creds, ImmutableMap.<String, Object>of(".token", "")));
+        assertTrue(
+            credentialsSupport.setAttributes(creds, ImmutableMap.<String, Object>of(".token", "")));
 
         String expectedUserId = credentialsSupport.getUserId(creds);
 
@@ -112,7 +113,8 @@ public class TokenExternalLoginModuleTest extends CustomCredentialsSupportTest {
     @Test
     public void testTokenLogin() throws Exception {
         Credentials creds = createTestCredentials();
-        assertTrue(credentialsSupport.setAttributes(creds, ImmutableMap.<String, Object>of(".token", "")));
+        assertTrue(
+            credentialsSupport.setAttributes(creds, ImmutableMap.<String, Object>of(".token", "")));
 
         String expectedUserId = credentialsSupport.getUserId(creds);
 

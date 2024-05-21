@@ -16,14 +16,14 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
+import java.util.Map;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.commons.json.JsonObject;
 import org.bson.BsonDocument;
 import org.bson.conversions.Bson;
 
-import java.util.Map;
-
 public class MongoDBConfig {
+
     static final String COLLECTION_COMPRESSION_TYPE = "collectionCompressionType";
     static final String STORAGE_ENGINE = "wiredTiger";
     static final String STORAGE_CONFIG = "configString";
@@ -58,37 +58,38 @@ public class MongoDBConfig {
     }
 
     /**
-     * reads all storage options from map backed by config, and constructs
-     * storage options for collection to be created
+     * reads all storage options from map backed by config, and constructs storage options for
+     * collection to be created
      *
      * @param mongoStorageOptions
      * @return
      */
     public static Bson getCollectionStorageOptions(
-            Map<String, String> mongoStorageOptions) {
+        Map<String, String> mongoStorageOptions) {
 
         String compressionType = mongoStorageOptions.getOrDefault(
-                COLLECTION_COMPRESSION_TYPE,
-                CollectionCompressor.SNAPPY.getName());
+            COLLECTION_COMPRESSION_TYPE,
+            CollectionCompressor.SNAPPY.getName());
 
         if (CollectionCompressor.isSupportedCompressor(compressionType)) {
             JsonObject root = new JsonObject();
             JsonObject configString = new JsonObject();
             configString.getProperties().put(STORAGE_CONFIG,
-                    getCompressionConfig(mongoStorageOptions));
+                getCompressionConfig(mongoStorageOptions));
             root.getChildren().put(STORAGE_ENGINE, configString);
 
             Bson storageOptions = BsonDocument.parse(root.toString());
             return storageOptions;
         } else {
-            throw new IllegalArgumentException("Invalid collection compressionType provided: " + compressionType);
+            throw new IllegalArgumentException(
+                "Invalid collection compressionType provided: " + compressionType);
         }
     }
 
     private static String getCompressionConfig(
-            Map<String, String> storageOptions) {
+        Map<String, String> storageOptions) {
         return "\"block_compressor=" + storageOptions.getOrDefault(
-                COLLECTION_COMPRESSION_TYPE, "snappy") + "\"";
+            COLLECTION_COMPRESSION_TYPE, "snappy") + "\"";
     }
 
 }

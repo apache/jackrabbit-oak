@@ -25,6 +25,7 @@ import java.util.Iterator;
  * Track the blob ids.
  */
 public interface BlobTracker extends Closeable {
+
     /**
      * Adds the given id.
      *
@@ -72,6 +73,7 @@ public interface BlobTracker extends Closeable {
      * @throws IOException
      */
     void remove(File recs, Options options) throws IOException;
+
     /**
      * Fetches an iterator of records available.
      *
@@ -81,8 +83,8 @@ public interface BlobTracker extends Closeable {
     Iterator<String> get() throws IOException;
 
     /**
-     * Fetches a File object which having all the sorted records.
-     * The lifecycle of the returned {@link File} handle is the responsibility of the handler.
+     * Fetches a File object which having all the sorted records. The lifecycle of the returned
+     * {@link File} handle is the responsibility of the handler.
      *
      * @return
      * @throws IOException

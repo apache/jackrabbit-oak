@@ -19,6 +19,19 @@
 
 package org.apache.jackrabbit.oak.segment.file;
 
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.fail;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
@@ -45,19 +58,9 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
-
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
-import static org.junit.Assert.*;
-
 public class FileStoreTest {
-    private  static final String FAILED_TO_WRITE_ON_CLOSE = "Failed to write to the archive on closing";
+
+    private static final String FAILED_TO_WRITE_ON_CLOSE = "Failed to write to the archive on closing";
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder(new File("target"));
@@ -79,7 +82,7 @@ public class FileStoreTest {
     @Test
     public void overlapping() {
         try (FileStore ignored1 = fileStoreBuilder(getFileStoreFolder()).build();
-             FileStore ignored2 = fileStoreBuilder(getFileStoreFolder()).build()) {
+            FileStore ignored2 = fileStoreBuilder(getFileStoreFolder()).build()) {
             fail("should not be able to open 2 stores on the same path");
         } catch (Exception ex) {
             // expected
@@ -104,22 +107,24 @@ public class FileStoreTest {
     }
 
     @Test
-    public void writeSegment_shouldThrowUnrecoverableExceptionWhenFailToCloseArchive() throws Exception {
+    public void writeSegment_shouldThrowUnrecoverableExceptionWhenFailToCloseArchive()
+        throws Exception {
         File directory = getFileStoreFolder();
-        TarPersistence persistence = getPersistenceThrowingUnrecoverableExceptionOnClosingArchive(directory);
+        TarPersistence persistence = getPersistenceThrowingUnrecoverableExceptionOnClosingArchive(
+            directory);
 
-        try(FileStore fileStore = fileStoreBuilder(directory)
-                .withMaxFileSize(1) // max archive size = 1 MB
-                .withCustomPersistence(persistence)
-                .build()) {
+        try (FileStore fileStore = fileStoreBuilder(directory)
+            .withMaxFileSize(1) // max archive size = 1 MB
+            .withCustomPersistence(persistence)
+            .build()) {
 
-
-            int size = 1024 * 1025; // Bigger than 1 MB to force closing the current archive and create a new one
+            int size = 1024
+                * 1025; // Bigger than 1 MB to force closing the current archive and create a new one
             byte[] dataExceedingMaxFileSize = new byte[size];
 
             assertThrows(UnrecoverableArchiveException.class, () ->
-                    // write to the archive but fail to close it when it's full
-                    fileStore.writeSegment(getSegmentId(fileStore), dataExceedingMaxFileSize, 0, size)
+                // write to the archive but fail to close it when it's full
+                fileStore.writeSegment(getSegmentId(fileStore), dataExceedingMaxFileSize, 0, size)
             );
         }
     }
@@ -127,12 +132,13 @@ public class FileStoreTest {
     @Test
     public void tryFlush_shouldCloseFileStoreWhenFailToCloseArchive() throws Exception {
         File directory = getFileStoreFolder();
-        TarPersistence failingPersistence = getPersistenceThrowingUnrecoverableExceptionOnClosingArchive(directory);
+        TarPersistence failingPersistence = getPersistenceThrowingUnrecoverableExceptionOnClosingArchive(
+            directory);
 
         FileStore fileStore = fileStoreBuilder(directory)
-                .withMaxFileSize(1) // max archive size = 1 MB
-                .withCustomPersistence(failingPersistence)
-                .build();
+            .withMaxFileSize(1) // max archive size = 1 MB
+            .withCustomPersistence(failingPersistence)
+            .build();
 
         // Write slightly less than 1MB
         writeData(fileStore, 1024 * 1000);
@@ -144,13 +150,15 @@ public class FileStoreTest {
         fileStore.tryFlush();
 
         // FileStore should have been already shut down by tryFlush because of the UnrecoverableArchiveException
-        IllegalStateException closeEx = assertThrows("FileStore#tryFlush should have already shut down FileStore",
-                IllegalStateException.class, fileStore::close);
+        IllegalStateException closeEx = assertThrows(
+            "FileStore#tryFlush should have already shut down FileStore",
+            IllegalStateException.class, fileStore::close);
         assertEquals("already shut down", closeEx.getMessage());
     }
 
     @Test
-    public void testRecovery_FileStore_withExternalBlobStore() throws InvalidFileStoreVersionException, IOException, CommitFailedException {
+    public void testRecovery_FileStore_withExternalBlobStore()
+        throws InvalidFileStoreVersionException, IOException, CommitFailedException {
 
         File segmentStore = getFileStoreFolder();
         BlobStore blobStore = new LongIdMappingBlobStore();
@@ -162,7 +170,6 @@ public class FileStoreTest {
         builder.setProperty("foo", "bar");
 
         Blob blob = builder.createBlob(new ZeroStream(100));
-
 
         segmentNodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         fileStore.flush();
@@ -179,27 +186,26 @@ public class FileStoreTest {
         // with this, tha last tar archive will not have index, graph and binary references
         File segmentStoreClone = folder.newFolder("segmentstore-clone");
         Files.walk(segmentStore.toPath())
-                .forEach(source -> {
-                    try {
-                            Path target = segmentStoreClone.toPath().resolve(segmentStore.toPath().relativize(source));
-                            Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING);
-                    } catch (IOException e) {
-                        throw new RuntimeException(e.getMessage(), e);
-                    }
-                });
-
+             .forEach(source -> {
+                 try {
+                     Path target = segmentStoreClone.toPath().resolve(
+                         segmentStore.toPath().relativize(source));
+                     Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING);
+                 } catch (IOException e) {
+                     throw new RuntimeException(e.getMessage(), e);
+                 }
+             });
 
         fileStore.close();
 
         // Start new FileStore, which should be able to recover successfully despite now having the index, graph and binary references
         try {
-        fileStore = createFileStore(segmentStoreClone, blobStore);
-        } catch (Exception e){
+            fileStore = createFileStore(segmentStoreClone, blobStore);
+        } catch (Exception e) {
             fail("Should not throw exception" + e);
         }
 
         segmentNodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
-
 
         builder = segmentNodeStore.getRoot().builder();
 
@@ -209,11 +215,12 @@ public class FileStoreTest {
         assertNotNull(blob);
     }
 
-    public FileStore createFileStore(File segmentStore, BlobStore blobStore) throws IOException, InvalidFileStoreVersionException {
+    public FileStore createFileStore(File segmentStore, BlobStore blobStore)
+        throws IOException, InvalidFileStoreVersionException {
         return fileStoreBuilder(segmentStore)
-                .withBinariesInlineThreshold(0)
-                .withBlobStore(blobStore)
-                .build();
+            .withBinariesInlineThreshold(0)
+            .withBlobStore(blobStore)
+            .build();
     }
 
     private static int counter = 0;
@@ -222,19 +229,24 @@ public class FileStoreTest {
         NodeBuilder nodeBuilder = EMPTY_NODE.builder();
         Blob blob = nodeBuilder.createBlob(new ZeroStream(size));
         int i = counter++;
-        nodeBuilder.child("node"+ i).setProperty("prop" + i, blob);
+        nodeBuilder.child("node" + i).setProperty("prop" + i, blob);
         fileStore.getWriter().writeNode(nodeBuilder.getNodeState());
     }
 
     @NotNull
-    private static TarPersistence getPersistenceThrowingUnrecoverableExceptionOnClosingArchive(File directory) {
+    private static TarPersistence getPersistenceThrowingUnrecoverableExceptionOnClosingArchive(
+        File directory) {
         return new TarPersistence(directory) {
             @Override
-            public SegmentArchiveManager createArchiveManager(boolean memoryMapping, boolean offHeapAccess, IOMonitor ioMonitor, FileStoreMonitor fileStoreMonitor, RemoteStoreMonitor remoteStoreMonitor) {
-                return new SegmentTarManager(directory, fileStoreMonitor, ioMonitor, memoryMapping, offHeapAccess) {
+            public SegmentArchiveManager createArchiveManager(boolean memoryMapping,
+                boolean offHeapAccess, IOMonitor ioMonitor, FileStoreMonitor fileStoreMonitor,
+                RemoteStoreMonitor remoteStoreMonitor) {
+                return new SegmentTarManager(directory, fileStoreMonitor, ioMonitor, memoryMapping,
+                    offHeapAccess) {
                     @Override
                     public SegmentArchiveWriter create(String archiveName) {
-                        return new SegmentTarWriter(new File(directory, archiveName), fileStoreMonitor, ioMonitor) {
+                        return new SegmentTarWriter(new File(directory, archiveName),
+                            fileStoreMonitor, ioMonitor) {
                             @Override
                             public void writeGraph(byte[] data) throws IOException {
                                 throw new IOException(FAILED_TO_WRITE_ON_CLOSE);
@@ -252,6 +264,7 @@ public class FileStoreTest {
     }
 
     private static class ZeroStream extends InputStream {
+
         private final int size;
 
         private int position = 0;

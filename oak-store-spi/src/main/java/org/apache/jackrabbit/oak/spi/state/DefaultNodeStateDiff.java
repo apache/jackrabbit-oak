@@ -21,9 +21,8 @@ package org.apache.jackrabbit.oak.spi.state;
 import org.apache.jackrabbit.oak.api.PropertyState;
 
 /**
- * Node state diff handler that by default does nothing. Useful as a base
- * class for more complicated diff handlers that can safely ignore one or
- * more types of changes.
+ * Node state diff handler that by default does nothing. Useful as a base class for more complicated
+ * diff handlers that can safely ignore one or more types of changes.
  */
 public class DefaultNodeStateDiff implements NodeStateDiff {
 

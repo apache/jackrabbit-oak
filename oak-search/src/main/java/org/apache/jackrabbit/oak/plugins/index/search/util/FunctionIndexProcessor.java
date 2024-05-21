@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.plugins.index.search.util;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -33,17 +32,18 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * A parser for function-based indexes. It converts the human-readable function
- * definition (XPath) to the internal Polish notation.
+ * A parser for function-based indexes. It converts the human-readable function definition (XPath)
+ * to the internal Polish notation.
  */
 public class FunctionIndexProcessor {
 
     private static final Logger LOG =
-            LoggerFactory.getLogger(FunctionIndexProcessor.class);
+        LoggerFactory.getLogger(FunctionIndexProcessor.class);
 
     private String remaining;
 
-    private static final PropertyState EMPTY_PROPERTY_STATE = EmptyPropertyState.emptyProperty("empty", Type.STRINGS);
+    private static final PropertyState EMPTY_PROPERTY_STATE = EmptyPropertyState.emptyProperty(
+        "empty", Type.STRINGS);
 
     protected FunctionIndexProcessor(String function) {
         this.remaining = function;
@@ -57,7 +57,7 @@ public class FunctionIndexProcessor {
      */
     public static String[] getProperties(String[] functionCode) {
         ArrayList<String> properties = new ArrayList<>();
-        for(String token : functionCode) {
+        for (String token : functionCode) {
             if (token.startsWith("@")) {
                 String propertyName = token.substring(1);
                 properties.add(propertyName);
@@ -69,12 +69,13 @@ public class FunctionIndexProcessor {
     /**
      * Try to calculate the value for the given function code.
      *
-     * @param path the path of the node
-     * @param state the node state
+     * @param path         the path of the node
+     * @param state        the node state
      * @param functionCode the tokens, for example ["function", "lower", "@name"]
      * @return null, or the calculated value
      */
-    public static PropertyState tryCalculateValue(String path, NodeState state, String[] functionCode) {
+    public static PropertyState tryCalculateValue(String path, NodeState state,
+        String[] functionCode) {
         Deque<PropertyState> stack = new ArrayDeque<>();
         for (int i = functionCode.length - 1; i > 0; i--) {
             String token = functionCode[i];
@@ -98,8 +99,8 @@ public class FunctionIndexProcessor {
     /**
      * Split the polish notation into a tokens that can more easily be processed.
      *
-     *  @param functionDescription in polish notation, for example "function*lower*{@literal @}name"
-     *  @return tokens, for example ["function", "lower", "{@literal @}name"]
+     * @param functionDescription in polish notation, for example "function*lower*{@literal @}name"
+     * @return tokens, for example ["function", "lower", "{@literal @}name"]
      */
     public static String[] getFunctionCode(String functionDescription) {
         if (functionDescription == null) {
@@ -109,7 +110,7 @@ public class FunctionIndexProcessor {
     }
 
     private static PropertyState calculateFunction(String functionName,
-                                                   Deque<PropertyState> stack) {
+        Deque<PropertyState> stack) {
         PropertyState ps = stack.pop();
         if ("coalesce".equals(functionName)) {
             // coalesce (a, b) => (a != null ? a : b)
@@ -164,9 +165,9 @@ public class FunctionIndexProcessor {
     }
 
     private static PropertyState getProperty(String path, NodeState state,
-                                             String propertyName) {
+        String propertyName) {
         if (PathUtils.getDepth(propertyName) != 1) {
-            for(String n : PathUtils.elements(PathUtils.getParentPath(propertyName))) {
+            for (String n : PathUtils.elements(PathUtils.getParentPath(propertyName))) {
                 state = state.getChildNode(n);
                 if (!state.exists()) {
                     return null;
@@ -177,13 +178,13 @@ public class FunctionIndexProcessor {
         PropertyState ps;
         if (":localname".equals(propertyName)) {
             ps = PropertyStates.createProperty("value",
-                    getLocalName(PathUtils.getName(path)), Type.STRING);
+                getLocalName(PathUtils.getName(path)), Type.STRING);
         } else if (":name".equals(propertyName)) {
             ps = PropertyStates.createProperty("value",
-                    PathUtils.getName(path), Type.STRING);
+                PathUtils.getName(path), Type.STRING);
         } else if (":path".equals(propertyName)) {
             ps = PropertyStates.createProperty("value",
-                   path, Type.STRING);
+                path, Type.STRING);
         } else {
             ps = state.getProperty(propertyName);
         }
@@ -258,7 +259,7 @@ public class FunctionIndexProcessor {
             int paren = remaining.indexOf(')');
             int comma = remaining.indexOf(',');
             int end = comma;
-            if (paren >=0) {
+            if (paren >= 0) {
                 end = (end < 0) ? paren : Math.min(end, paren);
             }
             if (end >= 0) {

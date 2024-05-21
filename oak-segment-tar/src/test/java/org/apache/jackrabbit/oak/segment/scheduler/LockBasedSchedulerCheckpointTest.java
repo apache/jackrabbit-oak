@@ -19,8 +19,8 @@
 
 package org.apache.jackrabbit.oak.segment.scheduler;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
@@ -29,7 +29,6 @@ import java.util.Collections;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
-
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreStats;
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
@@ -39,10 +38,12 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
+
 public class LockBasedSchedulerCheckpointTest {
+
     /**
-     * OAK-3587 test simulates a timeout while trying to create a checkpoint,
-     * then releases the lock and tries again
+     * OAK-3587 test simulates a timeout while trying to create a checkpoint, then releases the lock
+     * and tries again
      */
     @Test
     public void testShortWait() throws Exception {
@@ -50,8 +51,9 @@ public class LockBasedSchedulerCheckpointTest {
         System.setProperty("oak.checkpoints.lockWaitTime", "1");
         StatisticsProvider statsProvider = StatisticsProvider.NOOP;
         SegmentNodeStoreStats stats = new SegmentNodeStoreStats(statsProvider);
-        final LockBasedScheduler scheduler = LockBasedScheduler.builder(ms.getRevisions(), ms.getReader(), stats)
-                .build();
+        final LockBasedScheduler scheduler = LockBasedScheduler.builder(ms.getRevisions(),
+                                                                   ms.getReader(), stats)
+                                                               .build();
 
         final Semaphore semaphore = new Semaphore(0);
         final AtomicBoolean blocking = new AtomicBoolean(true);
@@ -84,18 +86,18 @@ public class LockBasedSchedulerCheckpointTest {
         background.start();
         semaphore.acquire();
 
-        String cp0 = scheduler.checkpoint(10, Collections.<String, String> emptyMap());
+        String cp0 = scheduler.checkpoint(10, Collections.<String, String>emptyMap());
         assertNull(retrieveCheckpoint(scheduler, cp0));
 
         blocking.set(false);
-        String cp1 = scheduler.checkpoint(10, Collections.<String, String> emptyMap());
+        String cp1 = scheduler.checkpoint(10, Collections.<String, String>emptyMap());
         assertNotNull(retrieveCheckpoint(scheduler, cp1));
     }
 
     /**
      * OAK-3587 test simulates a wait less than configured
-     * {@code SegmentNodeStore#setCheckpointsLockWaitTime(int)} value so the
-     * checkpoint call must return a valid value
+     * {@code SegmentNodeStore#setCheckpointsLockWaitTime(int)} value so the checkpoint call must
+     * return a valid value
      */
     @Test
     public void testLongWait() throws Exception {
@@ -104,8 +106,9 @@ public class LockBasedSchedulerCheckpointTest {
         System.setProperty("oak.checkpoints.lockWaitTime", "2");
         StatisticsProvider statsProvider = StatisticsProvider.NOOP;
         SegmentNodeStoreStats stats = new SegmentNodeStoreStats(statsProvider);
-        final LockBasedScheduler scheduler = LockBasedScheduler.builder(ms.getRevisions(), ms.getReader(), stats)
-                .build();
+        final LockBasedScheduler scheduler = LockBasedScheduler.builder(ms.getRevisions(),
+                                                                   ms.getReader(), stats)
+                                                               .build();
 
         final Semaphore semaphore = new Semaphore(0);
 
@@ -138,14 +141,15 @@ public class LockBasedSchedulerCheckpointTest {
         background.start();
         semaphore.acquire();
 
-        String cp0 = scheduler.checkpoint(10, Collections.<String, String> emptyMap());
+        String cp0 = scheduler.checkpoint(10, Collections.<String, String>emptyMap());
         assertNotNull(retrieveCheckpoint(scheduler, cp0));
     }
 
     private NodeState retrieveCheckpoint(final Scheduler scheduler, final String checkpoint) {
         checkNotNull(checkpoint);
-        NodeState cp = scheduler.getHeadNodeState().getChildNode("checkpoints").getChildNode(checkpoint)
-                .getChildNode("root");
+        NodeState cp = scheduler.getHeadNodeState().getChildNode("checkpoints")
+                                .getChildNode(checkpoint)
+                                .getChildNode("root");
         if (cp.exists()) {
             return cp;
         }
@@ -156,8 +160,9 @@ public class LockBasedSchedulerCheckpointTest {
         return scheduler.getHeadNodeState().getChildNode("root");
     }
 
-    private Commit createBlockingCommit(final Scheduler scheduler, final String property, String value,
-            final Callable<Boolean> callable) {
+    private Commit createBlockingCommit(final Scheduler scheduler, final String property,
+        String value,
+        final Callable<Boolean> callable) {
         NodeBuilder a = getRoot(scheduler).builder();
         a.setProperty(property, value);
         Commit blockingCommit = new Commit(a, new CommitHook() {

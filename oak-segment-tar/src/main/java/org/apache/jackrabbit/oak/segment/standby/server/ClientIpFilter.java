@@ -24,8 +24,8 @@ import java.util.Arrays;
 import java.util.regex.Pattern;
 
 /**
- * A white list for IP addresses. A filter can be a single IP address, a single
- * host name or a range of IP addresses.
+ * A white list for IP addresses. A filter can be a single IP address, a single host name or a range
+ * of IP addresses.
  */
 class ClientIpFilter implements ClientFilter {
 
@@ -58,7 +58,8 @@ class ClientIpFilter implements ClientFilter {
         return 0;
     }
 
-    private static boolean isAddressInRange(InetAddress address, InetAddress left, InetAddress right) {
+    private static boolean isAddressInRange(InetAddress address, InetAddress left,
+        InetAddress right) {
         byte[] addressBytes = address.getAddress();
 
         byte[] leftBytes = left.getAddress();
@@ -76,7 +77,8 @@ class ClientIpFilter implements ClientFilter {
         return compare(leftBytes, addressBytes) <= 0 && compare(addressBytes, rightBytes) <= 0;
     }
 
-    private static boolean isAllowed(InetAddress client, AddressResolver addressResolver, String left, String right) {
+    private static boolean isAllowed(InetAddress client, AddressResolver addressResolver,
+        String left, String right) {
         InetAddress leftAddress = addressResolver.resolve(left);
         InetAddress rightAddress = addressResolver.resolve(right);
 
@@ -87,7 +89,8 @@ class ClientIpFilter implements ClientFilter {
         return isAddressInRange(client, leftAddress, rightAddress);
     }
 
-    private static boolean isAllowed(InetAddress client, AddressResolver addressResolver, String match) {
+    private static boolean isAllowed(InetAddress client, AddressResolver addressResolver,
+        String match) {
         InetAddress matchAddress = addressResolver.resolve(match);
 
         if (matchAddress == null) {
@@ -115,8 +118,7 @@ class ClientIpFilter implements ClientFilter {
      * Create a new white list based on the provided filters.
      *
      * @param filters         An array of filters.
-     * @param addressResolver The resolver to be used for resolving IP
-     *                        addresses.
+     * @param addressResolver The resolver to be used for resolving IP addresses.
      */
     ClientIpFilter(String[] filters, AddressResolver addressResolver) {
         this.allowedIpRanges = filters;

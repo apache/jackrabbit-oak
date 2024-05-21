@@ -24,14 +24,15 @@ import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ProviderType;
 
 /**
- * Download options to be provided to a call to {@link
- * BlobAccessProvider#getDownloadURI(Blob, BlobDownloadOptions)}.
+ * Download options to be provided to a call to
+ * {@link BlobAccessProvider#getDownloadURI(Blob, BlobDownloadOptions)}.
  * <p>
- * This object is an internal corollary to {@code
- * org.apache.jackrabbit.api.binary.BinaryDownloadOptions}.
+ * This object is an internal corollary to
+ * {@code org.apache.jackrabbit.api.binary.BinaryDownloadOptions}.
  */
 @ProviderType
 public class BlobDownloadOptions {
+
     private static final String DISPOSITION_TYPE_INLINE = "inline";
 
     private final String mediaType;
@@ -49,34 +50,33 @@ public class BlobDownloadOptions {
     /**
      * Creates new download options.
      *
-     * @param mediaType the internet media type for the blob.
+     * @param mediaType         the internet media type for the blob.
      * @param characterEncoding the character encoding for the blob.
-     * @param fileName the file name for the blob.
-     * @param dispositionType the disposition type.
+     * @param fileName          the file name for the blob.
+     * @param dispositionType   the disposition type.
      */
     public BlobDownloadOptions(@Nullable String mediaType,
-                               @Nullable String characterEncoding,
-                               @Nullable String fileName,
-                               @NotNull String dispositionType) {
+        @Nullable String characterEncoding,
+        @Nullable String fileName,
+        @NotNull String dispositionType) {
         this(mediaType, characterEncoding, fileName, dispositionType, false);
     }
 
     /**
      * Creates new download options.
      *
-     * @param mediaType the internet media type for the blob.
-     * @param characterEncoding the character encoding for the blob.
-     * @param fileName the file name for the blob.
-     * @param dispositionType the disposition type.
-     * @param domainOverrideIgnored true if any configured domain override
-     *                              should be ignored when generating URIs;
-     *                              false otherwise.
+     * @param mediaType             the internet media type for the blob.
+     * @param characterEncoding     the character encoding for the blob.
+     * @param fileName              the file name for the blob.
+     * @param dispositionType       the disposition type.
+     * @param domainOverrideIgnored true if any configured domain override should be ignored when
+     *                              generating URIs; false otherwise.
      */
     public BlobDownloadOptions(@Nullable String mediaType,
-                               @Nullable String characterEncoding,
-                               @Nullable String fileName,
-                               @NotNull String dispositionType,
-                               boolean domainOverrideIgnored) {
+        @Nullable String characterEncoding,
+        @Nullable String fileName,
+        @NotNull String dispositionType,
+        boolean domainOverrideIgnored) {
         if (dispositionType == null) {
             throw new NullPointerException("dispositionType must not be null");
         }
@@ -88,12 +88,10 @@ public class BlobDownloadOptions {
     }
 
     /**
-     * Returns the internet media type that should be assumed for the blob
-     * that is to be downloaded. This value should be a valid {@code
-     * jcr:mimeType}.
+     * Returns the internet media type that should be assumed for the blob that is to be downloaded.
+     * This value should be a valid {@code jcr:mimeType}.
      *
-     * @return The internet media type, or {@code null} if no type has been
-     *         specified.
+     * @return The internet media type, or {@code null} if no type has been specified.
      */
     @Nullable
     public String getMediaType() {
@@ -101,11 +99,10 @@ public class BlobDownloadOptions {
     }
 
     /**
-     * Returns the character encoding that should be assumed for the blob that
-     * is to be downloaded. This value should be a valid {@code jcr:encoding}.
+     * Returns the character encoding that should be assumed for the blob that is to be downloaded.
+     * This value should be a valid {@code jcr:encoding}.
      *
-     * @return The character encoding, or {@code null} if no encoding has been
-     *         specified.
+     * @return The character encoding, or {@code null} if no encoding has been specified.
      */
     @Nullable
     public String getCharacterEncoding() {
@@ -113,11 +110,9 @@ public class BlobDownloadOptions {
     }
 
     /**
-     * Returns the filename that should be assumed for the blob that is to be
-     * downloaded.
+     * Returns the filename that should be assumed for the blob that is to be downloaded.
      *
-     * @return The file name, or {@code null} if no file name has been
-     *         specified.
+     * @return The file name, or {@code null} if no file name has been specified.
      */
     @Nullable
     public String getFileName() {
@@ -125,12 +120,12 @@ public class BlobDownloadOptions {
     }
 
     /**
-     * Returns the disposition type that should be assumed for the binary that
-     * is to be downloaded. The default value of this setting is "inline".
+     * Returns the disposition type that should be assumed for the binary that is to be downloaded.
+     * The default value of this setting is "inline".
      *
      * @return The disposition type.
      * @see <a href="https://tools.ietf.org/html/rfc6266#section-4.2">RFC
-     *         6266, Section 4.2</a>
+     * 6266, Section 4.2</a>
      */
     @NotNull
     public String getDispositionType() {
@@ -138,10 +133,12 @@ public class BlobDownloadOptions {
     }
 
     /**
-     * Indicates whether the data store should ignore any provided download
-     * domain override configuration value when generating the signed URI.
+     * Indicates whether the data store should ignore any provided download domain override
+     * configuration value when generating the signed URI.
      *
      * @return true if the domain override should be ignored; false otherwise.
      */
-    public boolean isDomainOverrideIgnored() { return domainOverrideIgnored; }
+    public boolean isDomainOverrideIgnored() {
+        return domainOverrideIgnored;
+    }
 }

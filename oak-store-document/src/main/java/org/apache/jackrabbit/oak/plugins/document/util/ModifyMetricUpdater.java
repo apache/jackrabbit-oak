@@ -18,6 +18,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.util;
 
+import static java.util.Objects.requireNonNull;
+
+import java.util.List;
+import java.util.function.BiPredicate;
+import java.util.function.Consumer;
+import java.util.function.ObjIntConsumer;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
@@ -25,17 +31,13 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentStoreStatsCollector;
 import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.TimerStats;
 
-import java.util.List;
-import java.util.function.BiPredicate;
-import java.util.function.Consumer;
-import java.util.function.ObjIntConsumer;
-
-import static java.util.Objects.requireNonNull;
-
 /**
- * Base class to update the metrics for {@link DocumentStoreStatsCollector#doneFindAndModify(long, Collection, String, boolean, boolean, int)} for underlying {@link DocumentStore}
+ * Base class to update the metrics for
+ * {@link DocumentStoreStatsCollector#doneFindAndModify(long, Collection, String, boolean, boolean,
+ * int)} for underlying {@link DocumentStore}
  *
- * <p>Users provide instances of {@link MeterStats}, {@link TimerStats} based on whether throttling is ongoing or not
+ * <p>Users provide instances of {@link MeterStats}, {@link TimerStats} based on whether throttling
+ * is ongoing or not
  */
 public final class ModifyMetricUpdater {
 
@@ -47,11 +49,11 @@ public final class ModifyMetricUpdater {
     private final MeterStats updateNodeFailureMeter;
 
     public ModifyMetricUpdater(final MeterStats createNodeUpsertMeter,
-                               final TimerStats createNodeUpsertTimer,
-                               final MeterStats updateNodeMeter,
-                               final TimerStats updateNodeTimer,
-                               final MeterStats updateNodeRetryCountMeter,
-                               final MeterStats updateNodeFailureMeter) {
+        final TimerStats createNodeUpsertTimer,
+        final MeterStats updateNodeMeter,
+        final TimerStats updateNodeTimer,
+        final MeterStats updateNodeRetryCountMeter,
+        final MeterStats updateNodeFailureMeter) {
         this.createNodeUpsertMeter = createNodeUpsertMeter;
         this.createNodeUpsertTimer = createNodeUpsertTimer;
         this.updateNodeMeter = updateNodeMeter;
@@ -61,12 +63,13 @@ public final class ModifyMetricUpdater {
     }
 
     public void update(final Collection<? extends Document> collection, final int retryCount,
-                       final long timeTakenNanos, final boolean isSuccess, final boolean  newEntry,
-                       final List<String> ids, final BiPredicate<Collection<? extends Document>, Integer> isNodesCollectionUpdated,
-                       final BiStatsConsumer createBiStatsConsumer,
-                       final BiStatsConsumer updateBiStatsConsumer,
-                       final ObjIntConsumer<MeterStats> retryNodesConsumer,
-                       final Consumer<MeterStats> failureNodesConsumer) {
+        final long timeTakenNanos, final boolean isSuccess, final boolean newEntry,
+        final List<String> ids,
+        final BiPredicate<Collection<? extends Document>, Integer> isNodesCollectionUpdated,
+        final BiStatsConsumer createBiStatsConsumer,
+        final BiStatsConsumer updateBiStatsConsumer,
+        final ObjIntConsumer<MeterStats> retryNodesConsumer,
+        final Consumer<MeterStats> failureNodesConsumer) {
 
         requireNonNull(isNodesCollectionUpdated);
         requireNonNull(createBiStatsConsumer);
@@ -80,11 +83,15 @@ public final class ModifyMetricUpdater {
 
         if (isSuccess) {
             if (newEntry) {
-                createBiStatsConsumer.accept(createNodeUpsertMeter, createNodeUpsertTimer, ids.size(), timeTakenNanos);
+                createBiStatsConsumer.accept(createNodeUpsertMeter, createNodeUpsertTimer,
+                    ids.size(), timeTakenNanos);
             } else {
-                updateBiStatsConsumer.accept(updateNodeMeter, updateNodeTimer, ids.size(), timeTakenNanos);
+                updateBiStatsConsumer.accept(updateNodeMeter, updateNodeTimer, ids.size(),
+                    timeTakenNanos);
             }
-            if (retryCount > 0) retryNodesConsumer.accept(updateNodeRetryCountMeter, retryCount);
+            if (retryCount > 0) {
+                retryNodesConsumer.accept(updateNodeRetryCountMeter, retryCount);
+            }
         } else {
             retryNodesConsumer.accept(updateNodeRetryCountMeter, retryCount);
             failureNodesConsumer.accept(updateNodeFailureMeter);

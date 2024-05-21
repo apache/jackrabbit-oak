@@ -16,11 +16,11 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.composite;
 
-import org.junit.Test;
-
 import static org.apache.jackrabbit.oak.security.authorization.composite.CompositeAuthorizationConfiguration.CompositionType.AND;
 import static org.apache.jackrabbit.oak.security.authorization.composite.CompositeAuthorizationConfiguration.CompositionType.OR;
 import static org.junit.Assert.assertSame;
+
+import org.junit.Test;
 
 public class CompositionTypeTest {
 

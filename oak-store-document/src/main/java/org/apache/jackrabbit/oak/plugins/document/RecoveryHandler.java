@@ -17,10 +17,9 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 /**
- * This handler gets called back when recovery is needed for a clusterId. An
- * implementation then tries to perform the recovery and returns whether the
- * recovery was successful. Upon successful recovery, the clusterId will have
- * transitioned to the inactive state.
+ * This handler gets called back when recovery is needed for a clusterId. An implementation then
+ * tries to perform the recovery and returns whether the recovery was successful. Upon successful
+ * recovery, the clusterId will have transitioned to the inactive state.
  */
 interface RecoveryHandler {
 
@@ -30,8 +29,7 @@ interface RecoveryHandler {
     RecoveryHandler NOOP = clusterId -> false;
 
     /**
-     * Perform recovery for the given clusterId and return whether the recovery
-     * was successful.
+     * Perform recovery for the given clusterId and return whether the recovery was successful.
      *
      * @param clusterId perform recovery for this clusterId.
      * @return {@code true} if recovery was successful, {@code false} otherwise.

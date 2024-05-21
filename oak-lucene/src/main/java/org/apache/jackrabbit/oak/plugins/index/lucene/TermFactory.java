@@ -31,11 +31,10 @@ public final class TermFactory {
     }
 
     /**
-     * Creates a Term with the given {@code path} value and with a field
-     * name {@link FieldNames#PATH}.
+     * Creates a Term with the given {@code path} value and with a field name
+     * {@link FieldNames#PATH}.
      *
-     * @param path
-     *            the path.
+     * @param path the path.
      * @return the path term.
      */
     public static Term newPathTerm(String path) {
@@ -49,7 +48,7 @@ public final class TermFactory {
         return new Term(field, ft);
     }
 
-    public static Term newAncestorTerm(String path){
+    public static Term newAncestorTerm(String path) {
         return new Term(FieldNames.ANCESTORS, preparePath(path));
     }
 

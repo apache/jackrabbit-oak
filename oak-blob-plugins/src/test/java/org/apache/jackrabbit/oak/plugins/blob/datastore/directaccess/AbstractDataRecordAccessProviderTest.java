@@ -18,6 +18,15 @@
  */
 package org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess;
 
+import static org.apache.jackrabbit.guava.common.io.ByteStreams.toByteArray;
+import static org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils.randomStream;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringWriter;
@@ -29,14 +38,16 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-
 import javax.net.ssl.HttpsURLConnection;
-
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.guava.common.base.Charsets;
+import org.apache.jackrabbit.guava.common.base.Strings;
+import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.blob.BlobDownloadOptions;
 import org.apache.jackrabbit.util.Base64;
 import org.jetbrains.annotations.NotNull;
@@ -44,36 +55,39 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.base.Charsets;
-import org.apache.jackrabbit.guava.common.base.Strings;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Maps;
-
-import static org.apache.jackrabbit.guava.common.io.ByteStreams.toByteArray;
-import static org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils.randomStream;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
 public abstract class AbstractDataRecordAccessProviderTest {
-    protected static final Logger LOG = LoggerFactory.getLogger(AbstractDataRecordAccessProviderTest.class);
+
+    protected static final Logger LOG = LoggerFactory.getLogger(
+        AbstractDataRecordAccessProviderTest.class);
 
     protected abstract ConfigurableDataRecordAccessProvider getDataStore();
-    protected abstract ConfigurableDataRecordAccessProvider getDataStore(@NotNull Properties overrideProperties) throws Exception;
-    protected abstract long getProviderMinPartSize();
-    protected abstract long getProviderMaxPartSize();
-    protected abstract long getProviderMaxSinglePutSize();
-    protected abstract long getProviderMaxBinaryUploadSize();
-    protected abstract boolean isSinglePutURI(URI url);
-    protected abstract HttpsURLConnection getHttpsConnection(long length, URI url) throws IOException;
-    protected abstract DataRecord doGetRecord(DataStore ds, DataIdentifier identifier) throws DataStoreException;
-    protected abstract DataRecord doSynchronousAddRecord(DataStore ds, InputStream in) throws DataStoreException;
-    protected abstract void doDeleteRecord(DataStore ds, DataIdentifier identifier) throws DataStoreException;
 
-    protected static int expirySeconds = 60*15;
+    protected abstract ConfigurableDataRecordAccessProvider getDataStore(
+        @NotNull Properties overrideProperties) throws Exception;
+
+    protected abstract long getProviderMinPartSize();
+
+    protected abstract long getProviderMaxPartSize();
+
+    protected abstract long getProviderMaxSinglePutSize();
+
+    protected abstract long getProviderMaxBinaryUploadSize();
+
+    protected abstract boolean isSinglePutURI(URI url);
+
+    protected abstract HttpsURLConnection getHttpsConnection(long length, URI url)
+        throws IOException;
+
+    protected abstract DataRecord doGetRecord(DataStore ds, DataIdentifier identifier)
+        throws DataStoreException;
+
+    protected abstract DataRecord doSynchronousAddRecord(DataStore ds, InputStream in)
+        throws DataStoreException;
+
+    protected abstract void doDeleteRecord(DataStore ds, DataIdentifier identifier)
+        throws DataStoreException;
+
+    protected static int expirySeconds = 60 * 15;
 
     protected static long ONE_KB = 1024;
     protected static long ONE_MB = ONE_KB * ONE_KB;
@@ -98,8 +112,7 @@ public abstract class AbstractDataRecordAccessProviderTest {
             DataIdentifier id = record.getIdentifier();
             URI uri = getDataStore().getDownloadURI(id, DataRecordDownloadOptions.DEFAULT);
             assertNotNull(uri);
-        }
-        finally {
+        } finally {
             if (null != record) {
                 doDeleteRecord((DataStore) dataStore, record.getIdentifier());
             }
@@ -127,18 +140,18 @@ public abstract class AbstractDataRecordAccessProviderTest {
         try {
             getDataStore().getDownloadURI(null, DataRecordDownloadOptions.DEFAULT);
             fail();
+        } catch (NullPointerException | IllegalArgumentException e) {
         }
-        catch (NullPointerException | IllegalArgumentException e) { }
     }
 
     @Test
     public void testGetDownloadURIRequiresValidDownloadOptions() {
         try {
             getDataStore().getDownloadURI(new DataIdentifier("testIdentifier"),
-                    null);
+                null);
             fail();
+        } catch (NullPointerException | IllegalArgumentException e) {
         }
-        catch (NullPointerException | IllegalArgumentException e) { }
     }
 
     @Test
@@ -146,9 +159,9 @@ public abstract class AbstractDataRecordAccessProviderTest {
         ConfigurableDataRecordAccessProvider dataStore = getDataStore();
         try {
             dataStore.setDirectDownloadURIExpirySeconds(0);
-            assertNull(dataStore.getDownloadURI(new DataIdentifier("testIdentifier"), DataRecordDownloadOptions.DEFAULT));
-        }
-        finally {
+            assertNull(dataStore.getDownloadURI(new DataIdentifier("testIdentifier"),
+                DataRecordDownloadOptions.DEFAULT));
+        } finally {
             dataStore.setDirectDownloadURIExpirySeconds(expirySeconds);
         }
     }
@@ -160,15 +173,15 @@ public abstract class AbstractDataRecordAccessProviderTest {
         try {
             InputStream testStream = randomStream(0, 256);
             record = doSynchronousAddRecord((DataStore) dataStore, testStream);
-            URI uri = dataStore.getDownloadURI(record.getIdentifier(), DataRecordDownloadOptions.DEFAULT);
+            URI uri = dataStore.getDownloadURI(record.getIdentifier(),
+                DataRecordDownloadOptions.DEFAULT);
             HttpsURLConnection conn = (HttpsURLConnection) uri.toURL().openConnection();
             conn.setRequestMethod("GET");
             assertEquals(200, conn.getResponseCode());
 
             testStream.reset();
             assertTrue(Arrays.equals(toByteArray(testStream), toByteArray(conn.getInputStream())));
-        }
-        finally {
+        } finally {
             if (null != record) {
                 doDeleteRecord((DataStore) dataStore, record.getIdentifier());
             }
@@ -179,29 +192,29 @@ public abstract class AbstractDataRecordAccessProviderTest {
     public void testGetDownloadURIWithCustomHeadersIT() throws DataStoreException, IOException {
         String umlautFilename = "Uml\u00e4utfile.png";
         String umlautFilename_ISO_8859_1 = new String(
-                Charsets.ISO_8859_1.encode(umlautFilename).array(),
-                Charsets.ISO_8859_1
+            Charsets.ISO_8859_1.encode(umlautFilename).array(),
+            Charsets.ISO_8859_1
         );
         List<String> fileNames = Lists.newArrayList(
-                "image.png",
-                "beautiful landscape.png",
-                "\"filename-with-double-quotes\".png",
-                "filename-with-one\"double-quote.jpg",
-                umlautFilename
-                );
+            "image.png",
+            "beautiful landscape.png",
+            "\"filename-with-double-quotes\".png",
+            "filename-with-one\"double-quote.jpg",
+            umlautFilename
+        );
         List<String> iso_8859_1_fileNames = Lists.newArrayList(
-                "image.png",
-                "beautiful landscape.png",
-                "\\\"filename-with-double-quotes\\\".png",
-                "filename-with-one\\\"double-quote.jpg",
-                umlautFilename_ISO_8859_1
+            "image.png",
+            "beautiful landscape.png",
+            "\\\"filename-with-double-quotes\\\".png",
+            "filename-with-one\\\"double-quote.jpg",
+            umlautFilename_ISO_8859_1
         );
         List<String> rfc8187_fileNames = Lists.newArrayList(
-                "image.png",
-                "beautiful%20landscape.png",
-                "%22filename-with-double-quotes%22.png",
-                "filename-with-one%22double-quote.jpg",
-                "Uml%C3%A4utfile.png"
+            "image.png",
+            "beautiful%20landscape.png",
+            "%22filename-with-double-quotes%22.png",
+            "filename-with-one%22double-quote.jpg",
+            "Uml%C3%A4utfile.png"
         );
 
         DataRecord record = null;
@@ -211,21 +224,21 @@ public abstract class AbstractDataRecordAccessProviderTest {
             record = doSynchronousAddRecord((DataStore) dataStore, testStream);
             String mimeType = "image/png";
             String dispositionType = "inline";
-            for (int i=0; i<fileNames.size(); i++) {
+            for (int i = 0; i < fileNames.size(); i++) {
                 String fileName = fileNames.get(i);
                 String iso_8859_1_fileName = iso_8859_1_fileNames.get(i);
                 String encodedFileName = rfc8187_fileNames.get(i);
                 DataRecordDownloadOptions downloadOptions =
-                        DataRecordDownloadOptions.fromBlobDownloadOptions(
-                                new BlobDownloadOptions(
-                                        mimeType,
-                                        null,
-                                        fileName,
-                                        dispositionType
-                                )
-                        );
+                    DataRecordDownloadOptions.fromBlobDownloadOptions(
+                        new BlobDownloadOptions(
+                            mimeType,
+                            null,
+                            fileName,
+                            dispositionType
+                        )
+                    );
                 URI uri = dataStore.getDownloadURI(record.getIdentifier(),
-                        downloadOptions
+                    downloadOptions
                 );
 
                 HttpsURLConnection conn = (HttpsURLConnection) uri.toURL().openConnection();
@@ -234,17 +247,17 @@ public abstract class AbstractDataRecordAccessProviderTest {
 
                 assertEquals(mimeType, conn.getHeaderField("Content-Type"));
                 assertEquals(
-                        String.format("%s; filename=\"%s\"; filename*=UTF-8''%s",
-                                dispositionType, iso_8859_1_fileName, encodedFileName
-                        ),
-                        conn.getHeaderField("Content-Disposition")
+                    String.format("%s; filename=\"%s\"; filename*=UTF-8''%s",
+                        dispositionType, iso_8859_1_fileName, encodedFileName
+                    ),
+                    conn.getHeaderField("Content-Disposition")
                 );
 
                 testStream.reset();
-                assertTrue(Arrays.equals(toByteArray(testStream), toByteArray(conn.getInputStream())));
+                assertTrue(
+                    Arrays.equals(toByteArray(testStream), toByteArray(conn.getInputStream())));
             }
-        }
-        finally {
+        } finally {
             if (null != record) {
                 doDeleteRecord((DataStore) dataStore, record.getIdentifier());
             }
@@ -258,7 +271,8 @@ public abstract class AbstractDataRecordAccessProviderTest {
         try {
             dataStore.setDirectDownloadURIExpirySeconds(2);
             record = doSynchronousAddRecord((DataStore) dataStore, randomStream(0, 256));
-            URI uri = dataStore.getDownloadURI(record.getIdentifier(), DataRecordDownloadOptions.DEFAULT);
+            URI uri = dataStore.getDownloadURI(record.getIdentifier(),
+                DataRecordDownloadOptions.DEFAULT);
             try {
                 Thread.sleep(5 * 1000);
             } catch (InterruptedException e) {
@@ -266,8 +280,7 @@ public abstract class AbstractDataRecordAccessProviderTest {
             HttpsURLConnection conn = (HttpsURLConnection) uri.toURL().openConnection();
             conn.setRequestMethod("GET");
             assertEquals(403, conn.getResponseCode());
-        }
-        finally {
+        } finally {
             if (null != record) {
                 doDeleteRecord((DataStore) dataStore, record.getIdentifier());
             }
@@ -284,7 +297,8 @@ public abstract class AbstractDataRecordAccessProviderTest {
 
         doDeleteRecord((DataStore) dataStore, record.getIdentifier());
 
-        URI uri = dataStore.getDownloadURI(record.getIdentifier(), DataRecordDownloadOptions.DEFAULT);
+        URI uri = dataStore.getDownloadURI(record.getIdentifier(),
+            DataRecordDownloadOptions.DEFAULT);
 
         assertNull(uri);
     }
@@ -293,16 +307,18 @@ public abstract class AbstractDataRecordAccessProviderTest {
     // Direct upload tests
     //
     @Test
-    public void testInitiateDirectUploadReturnsValidUploadContext() throws DataRecordUploadException {
+    public void testInitiateDirectUploadReturnsValidUploadContext()
+        throws DataRecordUploadException {
         DataRecordUpload uploadContext =
-                getDataStore().initiateDataRecordUpload(ONE_MB, 10);
+            getDataStore().initiateDataRecordUpload(ONE_MB, 10);
         assertNotNull(uploadContext);
         assertFalse(uploadContext.getUploadURIs().isEmpty());
         assertTrue(uploadContext.getMinPartSize() > 0);
         assertTrue(uploadContext.getMinPartSize() >= getProviderMinPartSize());
         assertTrue(uploadContext.getMaxPartSize() >= uploadContext.getMinPartSize());
         assertTrue(uploadContext.getMaxPartSize() <= getProviderMaxPartSize());
-        assertTrue((uploadContext.getMaxPartSize() * uploadContext.getUploadURIs().size()) >= ONE_MB);
+        assertTrue(
+            (uploadContext.getMaxPartSize() * uploadContext.getUploadURIs().size()) >= ONE_MB);
         assertFalse(Strings.isNullOrEmpty(uploadContext.getUploadToken()));
     }
 
@@ -311,8 +327,8 @@ public abstract class AbstractDataRecordAccessProviderTest {
         try {
             getDataStore().initiateDataRecordUpload(0, 10);
             fail();
+        } catch (IllegalArgumentException e) {
         }
-        catch (IllegalArgumentException e) { }
     }
 
     @Test
@@ -320,24 +336,23 @@ public abstract class AbstractDataRecordAccessProviderTest {
         try {
             getDataStore().initiateDataRecordUpload(ONE_MB, 0);
             fail();
+        } catch (IllegalArgumentException e) {
         }
-        catch (IllegalArgumentException e) { }
     }
 
     @Test
     public void testInitiateDirectUploadRequiresNonNegativeNumURIs()
-            throws DataRecordUploadException {
+        throws DataRecordUploadException {
         try {
             getDataStore().initiateDataRecordUpload(ONE_MB, -2);
             fail();
+        } catch (IllegalArgumentException e) {
         }
-        catch (IllegalArgumentException e) { }
 
         // -1 is allowed which means any number of URIs
         try {
             assertNotNull(getDataStore().initiateDataRecordUpload(ONE_HUNDRED_MB, -1));
-        }
-        catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException e) {
             fail();
         }
     }
@@ -345,15 +360,16 @@ public abstract class AbstractDataRecordAccessProviderTest {
     @Test
     public void testInititateDirectUploadSingleURIRequested() throws DataRecordUploadException {
         DataRecordUpload uploadContext =
-                getDataStore().initiateDataRecordUpload(TWENTY_MB, 1);
+            getDataStore().initiateDataRecordUpload(TWENTY_MB, 1);
         assertEquals(1, uploadContext.getUploadURIs().size());
         assertTrue(isSinglePutURI(uploadContext.getUploadURIs().iterator().next()));
     }
 
     @Test
-    public void testInititateDirectUploadSizeLowerThanMinPartSize() throws DataRecordUploadException {
+    public void testInititateDirectUploadSizeLowerThanMinPartSize()
+        throws DataRecordUploadException {
         DataRecordUpload uploadContext =
-                getDataStore().initiateDataRecordUpload(getProviderMinPartSize()-1L, 10);
+            getDataStore().initiateDataRecordUpload(getProviderMinPartSize() - 1L, 10);
         assertEquals(1, uploadContext.getUploadURIs().size());
         assertTrue(isSinglePutURI(uploadContext.getUploadURIs().iterator().next()));
     }
@@ -365,8 +381,7 @@ public abstract class AbstractDataRecordAccessProviderTest {
             ds.setDirectUploadURIExpirySeconds(0);
             assertNull(ds.initiateDataRecordUpload(TWENTY_MB, 10));
             assertNull(ds.initiateDataRecordUpload(20, 1));
-        }
-        finally {
+        } finally {
             ds.setDirectUploadURIExpirySeconds(expirySeconds);
         }
     }
@@ -375,86 +390,264 @@ public abstract class AbstractDataRecordAccessProviderTest {
     public void testInititateDirectUploadURIListSizes() throws DataRecordUploadException {
         DataRecordAccessProvider ds = getDataStore();
         for (InitUploadResult res : Lists.newArrayList(
-                // 20MB upload and 10 URIs requested => should result in 2 URIs (10MB each)
-                new InitUploadResult() {
-                    @Override public long getUploadSize() { return TWENTY_MB; }
-                    @Override public int getMaxNumURIs() { return 10; }
-                    @Override public int getExpectedNumURIs() { return 2; }
-                    @Override public long getExpectedMinPartSize() { return getProviderMinPartSize(); }
-                    @Override public long getExpectedMaxPartSize() { return getProviderMaxPartSize(); }
-                },
-                // 100MB upload and 10 URIs requested => should result in 10 URIs (10MB each)
-                new InitUploadResult() {
-                    @Override public long getUploadSize() { return ONE_HUNDRED_MB; }
-                    @Override public int getMaxNumURIs() { return 10; }
-                    @Override public int getExpectedNumURIs() { return 10; }
-                    @Override public long getExpectedMinPartSize() { return getProviderMinPartSize(); }
-                    @Override public long getExpectedMaxPartSize() { return getProviderMaxPartSize(); }
-                },
-                // 100MB upload and 5 URIs requested => should result in 5 URIs (20MB each)
-                new InitUploadResult() {
-                    @Override public long getUploadSize() { return ONE_HUNDRED_MB; }
-                    @Override public int getMaxNumURIs() { return 5; }
-                    @Override public int getExpectedNumURIs() { return 5; }
-                    @Override public long getExpectedMinPartSize() { return getProviderMinPartSize(); }
-                    @Override public long getExpectedMaxPartSize() { return getProviderMaxPartSize(); }
-                },
-                // 500MB upload and 50 URIs requested => should result in 50 URIs (10MB each)
-                new InitUploadResult() {
-                    @Override public long getUploadSize() { return FIVE_HUNDRED_MB; }
-                    @Override public int getMaxNumURIs() { return 50; }
-                    @Override public int getExpectedNumURIs() { return 50; }
-                    @Override public long getExpectedMinPartSize() { return getProviderMinPartSize(); }
-                    @Override public long getExpectedMaxPartSize() { return getProviderMaxPartSize(); }
-                },
-                // 500MB upload and 10 URIs requested => should result in 10 URIs (50MB each)
-                new InitUploadResult() {
-                    @Override public long getUploadSize() { return FIVE_HUNDRED_MB; }
-                    @Override public int getMaxNumURIs() { return 10; }
-                    @Override public int getExpectedNumURIs() { return 10; }
-                    @Override public long getExpectedMinPartSize() { return getProviderMinPartSize(); }
-                    @Override public long getExpectedMaxPartSize() { return getProviderMaxPartSize(); }
-                },
-                // 500MB upload and 60 URIs requested => should result in 50 uls (10MB each)
-                new InitUploadResult() {
-                    @Override public long getUploadSize() { return FIVE_HUNDRED_MB; }
-                    @Override public int getMaxNumURIs() { return 60; }
-                    @Override public int getExpectedNumURIs() { return 50; }
-                    @Override public long getExpectedMinPartSize() { return getProviderMinPartSize(); }
-                    @Override public long getExpectedMaxPartSize() { return getProviderMaxPartSize(); }
-                },
-                // 500MB upload and 5 URIs requested => should result in 5 URIs (100MB each)
-                new InitUploadResult() {
-                    @Override public long getUploadSize() { return FIVE_HUNDRED_MB; }
-                    @Override public int getMaxNumURIs() { return 5; }
-                    @Override public int getExpectedNumURIs() { return 5; }
-                    @Override public long getExpectedMinPartSize() { return getProviderMinPartSize(); }
-                    @Override public long getExpectedMaxPartSize() { return getProviderMaxPartSize(); }
-                },
-                // 1GB upload and 10 URIs requested => should result in 10 URIs (100MB each)
-                new InitUploadResult() {
-                    @Override public long getUploadSize() { return ONE_GB; }
-                    @Override public int getMaxNumURIs() { return 10; }
-                    @Override public int getExpectedNumURIs() { return 10; }
-                    @Override public long getExpectedMinPartSize() { return getProviderMinPartSize(); }
-                    @Override public long getExpectedMaxPartSize() { return getProviderMaxPartSize(); }
-                },
-                // 5GB upload and 50 URIs requested => should result in 50 URIs (100MB each)
-                new InitUploadResult() {
-                    @Override public long getUploadSize() { return FIVE_GB; }
-                    @Override public int getMaxNumURIs() { return 50; }
-                    @Override public int getExpectedNumURIs() { return 50; }
-                    @Override public long getExpectedMinPartSize() { return getProviderMinPartSize(); }
-                    @Override public long getExpectedMaxPartSize() { return getProviderMaxPartSize(); }
+            // 20MB upload and 10 URIs requested => should result in 2 URIs (10MB each)
+            new InitUploadResult() {
+                @Override
+                public long getUploadSize() {
+                    return TWENTY_MB;
                 }
+
+                @Override
+                public int getMaxNumURIs() {
+                    return 10;
+                }
+
+                @Override
+                public int getExpectedNumURIs() {
+                    return 2;
+                }
+
+                @Override
+                public long getExpectedMinPartSize() {
+                    return getProviderMinPartSize();
+                }
+
+                @Override
+                public long getExpectedMaxPartSize() {
+                    return getProviderMaxPartSize();
+                }
+            },
+            // 100MB upload and 10 URIs requested => should result in 10 URIs (10MB each)
+            new InitUploadResult() {
+                @Override
+                public long getUploadSize() {
+                    return ONE_HUNDRED_MB;
+                }
+
+                @Override
+                public int getMaxNumURIs() {
+                    return 10;
+                }
+
+                @Override
+                public int getExpectedNumURIs() {
+                    return 10;
+                }
+
+                @Override
+                public long getExpectedMinPartSize() {
+                    return getProviderMinPartSize();
+                }
+
+                @Override
+                public long getExpectedMaxPartSize() {
+                    return getProviderMaxPartSize();
+                }
+            },
+            // 100MB upload and 5 URIs requested => should result in 5 URIs (20MB each)
+            new InitUploadResult() {
+                @Override
+                public long getUploadSize() {
+                    return ONE_HUNDRED_MB;
+                }
+
+                @Override
+                public int getMaxNumURIs() {
+                    return 5;
+                }
+
+                @Override
+                public int getExpectedNumURIs() {
+                    return 5;
+                }
+
+                @Override
+                public long getExpectedMinPartSize() {
+                    return getProviderMinPartSize();
+                }
+
+                @Override
+                public long getExpectedMaxPartSize() {
+                    return getProviderMaxPartSize();
+                }
+            },
+            // 500MB upload and 50 URIs requested => should result in 50 URIs (10MB each)
+            new InitUploadResult() {
+                @Override
+                public long getUploadSize() {
+                    return FIVE_HUNDRED_MB;
+                }
+
+                @Override
+                public int getMaxNumURIs() {
+                    return 50;
+                }
+
+                @Override
+                public int getExpectedNumURIs() {
+                    return 50;
+                }
+
+                @Override
+                public long getExpectedMinPartSize() {
+                    return getProviderMinPartSize();
+                }
+
+                @Override
+                public long getExpectedMaxPartSize() {
+                    return getProviderMaxPartSize();
+                }
+            },
+            // 500MB upload and 10 URIs requested => should result in 10 URIs (50MB each)
+            new InitUploadResult() {
+                @Override
+                public long getUploadSize() {
+                    return FIVE_HUNDRED_MB;
+                }
+
+                @Override
+                public int getMaxNumURIs() {
+                    return 10;
+                }
+
+                @Override
+                public int getExpectedNumURIs() {
+                    return 10;
+                }
+
+                @Override
+                public long getExpectedMinPartSize() {
+                    return getProviderMinPartSize();
+                }
+
+                @Override
+                public long getExpectedMaxPartSize() {
+                    return getProviderMaxPartSize();
+                }
+            },
+            // 500MB upload and 60 URIs requested => should result in 50 uls (10MB each)
+            new InitUploadResult() {
+                @Override
+                public long getUploadSize() {
+                    return FIVE_HUNDRED_MB;
+                }
+
+                @Override
+                public int getMaxNumURIs() {
+                    return 60;
+                }
+
+                @Override
+                public int getExpectedNumURIs() {
+                    return 50;
+                }
+
+                @Override
+                public long getExpectedMinPartSize() {
+                    return getProviderMinPartSize();
+                }
+
+                @Override
+                public long getExpectedMaxPartSize() {
+                    return getProviderMaxPartSize();
+                }
+            },
+            // 500MB upload and 5 URIs requested => should result in 5 URIs (100MB each)
+            new InitUploadResult() {
+                @Override
+                public long getUploadSize() {
+                    return FIVE_HUNDRED_MB;
+                }
+
+                @Override
+                public int getMaxNumURIs() {
+                    return 5;
+                }
+
+                @Override
+                public int getExpectedNumURIs() {
+                    return 5;
+                }
+
+                @Override
+                public long getExpectedMinPartSize() {
+                    return getProviderMinPartSize();
+                }
+
+                @Override
+                public long getExpectedMaxPartSize() {
+                    return getProviderMaxPartSize();
+                }
+            },
+            // 1GB upload and 10 URIs requested => should result in 10 URIs (100MB each)
+            new InitUploadResult() {
+                @Override
+                public long getUploadSize() {
+                    return ONE_GB;
+                }
+
+                @Override
+                public int getMaxNumURIs() {
+                    return 10;
+                }
+
+                @Override
+                public int getExpectedNumURIs() {
+                    return 10;
+                }
+
+                @Override
+                public long getExpectedMinPartSize() {
+                    return getProviderMinPartSize();
+                }
+
+                @Override
+                public long getExpectedMaxPartSize() {
+                    return getProviderMaxPartSize();
+                }
+            },
+            // 5GB upload and 50 URIs requested => should result in 50 URIs (100MB each)
+            new InitUploadResult() {
+                @Override
+                public long getUploadSize() {
+                    return FIVE_GB;
+                }
+
+                @Override
+                public int getMaxNumURIs() {
+                    return 50;
+                }
+
+                @Override
+                public int getExpectedNumURIs() {
+                    return 50;
+                }
+
+                @Override
+                public long getExpectedMinPartSize() {
+                    return getProviderMinPartSize();
+                }
+
+                @Override
+                public long getExpectedMaxPartSize() {
+                    return getProviderMaxPartSize();
+                }
+            }
         )) {
-            DataRecordUpload uploadContext = ds.initiateDataRecordUpload(res.getUploadSize(), res.getMaxNumURIs());
-            assertEquals(String.format("Failed for upload size: %d, num URIs %d", res.getUploadSize(), res.getMaxNumURIs()),
-                    res.getExpectedNumURIs(), uploadContext.getUploadURIs().size());
-            assertEquals(String.format("Failed for upload size: %d, num URIs %d", res.getUploadSize(), res.getMaxNumURIs()),
-                    res.getExpectedMinPartSize(), uploadContext.getMinPartSize());
-            assertEquals(String.format("Failed for upload size: %d, num URIs %d", res.getUploadSize(), res.getMaxNumURIs()),
-                    res.getExpectedMaxPartSize(), uploadContext.getMaxPartSize());
+            DataRecordUpload uploadContext = ds.initiateDataRecordUpload(res.getUploadSize(),
+                res.getMaxNumURIs());
+            assertEquals(
+                String.format("Failed for upload size: %d, num URIs %d", res.getUploadSize(),
+                    res.getMaxNumURIs()),
+                res.getExpectedNumURIs(), uploadContext.getUploadURIs().size());
+            assertEquals(
+                String.format("Failed for upload size: %d, num URIs %d", res.getUploadSize(),
+                    res.getMaxNumURIs()),
+                res.getExpectedMinPartSize(), uploadContext.getMinPartSize());
+            assertEquals(
+                String.format("Failed for upload size: %d, num URIs %d", res.getUploadSize(),
+                    res.getMaxNumURIs()),
+                res.getExpectedMaxPartSize(), uploadContext.getMaxPartSize());
         }
     }
 
@@ -463,8 +656,8 @@ public abstract class AbstractDataRecordAccessProviderTest {
         try {
             getDataStore().initiateDataRecordUpload(getProviderMaxSinglePutSize() + 1, 1);
             fail();
+        } catch (IllegalArgumentException e) {
         }
-        catch (IllegalArgumentException e) { }
     }
 
     @Test
@@ -472,41 +665,45 @@ public abstract class AbstractDataRecordAccessProviderTest {
         try {
             getDataStore().initiateDataRecordUpload(getProviderMaxBinaryUploadSize() + 1, -1);
             fail();
+        } catch (IllegalArgumentException e) {
         }
-        catch (IllegalArgumentException e) { }
     }
 
     @Test
-    public void testInititateDirectUploadRequestedPartSizesTooBig() throws DataRecordUploadException {
+    public void testInititateDirectUploadRequestedPartSizesTooBig()
+        throws DataRecordUploadException {
         try {
             getDataStore().initiateDataRecordUpload(FIVE_GB, 5);
             fail();
+        } catch (IllegalArgumentException e) {
         }
-        catch (IllegalArgumentException e) { }
     }
 
     @Test
-    public void testCompleteDirectUploadRequiresNonNullToken() throws DataRecordUploadException, DataStoreException {
+    public void testCompleteDirectUploadRequiresNonNullToken()
+        throws DataRecordUploadException, DataStoreException {
         try {
             getDataStore().completeDataRecordUpload(null);
             fail();
+        } catch (NullPointerException | IllegalArgumentException e) {
         }
-        catch (NullPointerException | IllegalArgumentException e) { }
     }
 
     @Test
-    public void testCompleteDirectUploadRequiresValidToken() throws DataRecordUploadException, DataStoreException {
+    public void testCompleteDirectUploadRequiresValidToken()
+        throws DataRecordUploadException, DataStoreException {
         for (String token : Lists.newArrayList("", "abc", "abc#123")) {
             try {
                 getDataStore().completeDataRecordUpload(token);
                 fail();
+            } catch (IllegalArgumentException e) {
             }
-            catch (IllegalArgumentException e) { }
         }
     }
 
     @Test
-    public void testCompleteDirectUploadSignatureMustMatch() throws DataRecordUploadException, DataStoreException {
+    public void testCompleteDirectUploadSignatureMustMatch()
+        throws DataRecordUploadException, DataStoreException {
         DataRecordUpload uploadContext = getDataStore().initiateDataRecordUpload(ONE_MB, 1);
 
         // Pull the blob id out and modify it
@@ -516,9 +713,9 @@ public abstract class AbstractDataRecordAccessProviderTest {
         String sigPart = parts[1];
         String[] subParts = tokenPart.split("#");
         String blobId = subParts[0];
-        char c = (char)((int)(blobId.charAt(blobId.length()-1))+1);
-        blobId = blobId.substring(0, blobId.length()-1) + c;
-        for (int i = 1; i<subParts.length; i++) {
+        char c = (char) ((int) (blobId.charAt(blobId.length() - 1)) + 1);
+        blobId = blobId.substring(0, blobId.length() - 1) + c;
+        for (int i = 1; i < subParts.length; i++) {
             blobId += "#" + subParts[i];
         }
         String newToken = Base64.encode(blobId) + "#" + sigPart;
@@ -526,12 +723,13 @@ public abstract class AbstractDataRecordAccessProviderTest {
         try {
             getDataStore().completeDataRecordUpload(newToken);
             fail();
+        } catch (IllegalArgumentException e) {
         }
-        catch (IllegalArgumentException e) { }
     }
 
     @Test
-    public void testCompleteAlreadyUploadedBinaryReturnsSameBinaryIT() throws DataStoreException, DataRecordUploadException, IOException {
+    public void testCompleteAlreadyUploadedBinaryReturnsSameBinaryIT()
+        throws DataStoreException, DataRecordUploadException, IOException {
         DataRecordAccessProvider ds = getDataStore();
         DataRecord uploadedRecord = null;
         try {
@@ -551,8 +749,7 @@ public abstract class AbstractDataRecordAccessProviderTest {
             StringWriter second = new StringWriter();
             IOUtils.copy(secondRecord.getStream(), second, Charset.forName("UTF-8"));
             assertEquals(original.toString(), second.toString());
-        }
-        finally {
+        } finally {
             if (null != uploadedRecord) {
                 doDeleteRecord((DataStore) ds, uploadedRecord.getIdentifier());
             }
@@ -560,20 +757,41 @@ public abstract class AbstractDataRecordAccessProviderTest {
     }
 
     @Test
-    public void testSinglePutDirectUploadIT() throws DataRecordUploadException, DataStoreException, IOException {
+    public void testSinglePutDirectUploadIT()
+        throws DataRecordUploadException, DataStoreException, IOException {
         DataRecordAccessProvider ds = getDataStore();
         for (InitUploadResult res : Lists.newArrayList(
-                new InitUploadResult() {
-                    @Override public long getUploadSize() { return ONE_MB; }
-                    @Override public int getMaxNumURIs() { return 10; }
-                    @Override public int getExpectedNumURIs() { return 1; }
-                    @Override public long getExpectedMinPartSize() { return TEN_MB; }
-                    @Override public long getExpectedMaxPartSize() { return getProviderMaxPartSize(); }
+            new InitUploadResult() {
+                @Override
+                public long getUploadSize() {
+                    return ONE_MB;
                 }
+
+                @Override
+                public int getMaxNumURIs() {
+                    return 10;
+                }
+
+                @Override
+                public int getExpectedNumURIs() {
+                    return 1;
+                }
+
+                @Override
+                public long getExpectedMinPartSize() {
+                    return TEN_MB;
+                }
+
+                @Override
+                public long getExpectedMaxPartSize() {
+                    return getProviderMaxPartSize();
+                }
+            }
         )) {
             DataRecord uploadedRecord = null;
             try {
-                DataRecordUpload uploadContext = ds.initiateDataRecordUpload(res.getUploadSize(), res.getMaxNumURIs());
+                DataRecordUpload uploadContext = ds.initiateDataRecordUpload(res.getUploadSize(),
+                    res.getMaxNumURIs());
 
                 assertEquals(res.getExpectedNumURIs(), uploadContext.getUploadURIs().size());
 
@@ -584,12 +802,13 @@ public abstract class AbstractDataRecordAccessProviderTest {
                 uploadedRecord = ds.completeDataRecordUpload(uploadContext.getUploadToken());
                 assertNotNull(uploadedRecord);
 
-                DataRecord retrievedRecord = doGetRecord((DataStore) ds, uploadedRecord.getIdentifier());
+                DataRecord retrievedRecord = doGetRecord((DataStore) ds,
+                    uploadedRecord.getIdentifier());
                 assertNotNull(retrievedRecord);
                 uploadStream.reset();
-                assertTrue(Arrays.equals(toByteArray(uploadStream), toByteArray(retrievedRecord.getStream())));
-            }
-            finally {
+                assertTrue(Arrays.equals(toByteArray(uploadStream),
+                    toByteArray(retrievedRecord.getStream())));
+            } finally {
                 if (null != uploadedRecord) {
                     doDeleteRecord((DataStore) ds, uploadedRecord.getIdentifier());
                 }
@@ -605,8 +824,7 @@ public abstract class AbstractDataRecordAccessProviderTest {
                 String[] kv = pair.split("=", 2);
                 parsed.put(URLDecoder.decode(kv[0], "utf-8"), URLDecoder.decode(kv[1], "utf-8"));
             }
-        }
-        catch (UnsupportedEncodingException e) {
+        } catch (UnsupportedEncodingException e) {
             LOG.error("UnsupportedEncodingException caught", e);
         }
         return parsed;
@@ -620,10 +838,15 @@ public abstract class AbstractDataRecordAccessProviderTest {
     }
 
     interface InitUploadResult {
+
         long getUploadSize();
+
         int getMaxNumURIs();
+
         int getExpectedNumURIs();
+
         long getExpectedMinPartSize();
+
         long getExpectedMaxPartSize();
     }
 }

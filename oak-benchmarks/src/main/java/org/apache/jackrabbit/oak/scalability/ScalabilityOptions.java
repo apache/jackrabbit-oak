@@ -19,12 +19,11 @@
 package org.apache.jackrabbit.oak.scalability;
 
 
-import joptsimple.OptionParser;
-import joptsimple.OptionSpec;
+import static java.util.Arrays.asList;
 
 import java.io.File;
-
-import static java.util.Arrays.asList;
+import joptsimple.OptionParser;
+import joptsimple.OptionSpec;
 
 public class ScalabilityOptions {
 
@@ -37,7 +36,7 @@ public class ScalabilityOptions {
     private final OptionSpec<String> rdbjdbcuser;
     private final OptionSpec<String> rdbjdbcpasswd;
     private final OptionSpec<String> rdbjdbctableprefix;
-    private final  OptionSpec<Boolean> mmap;
+    private final OptionSpec<Boolean> mmap;
     private final OptionSpec<Integer> cache;
     private final OptionSpec<Integer> fdsCache;
     private final OptionSpec<Boolean> withStorage;
@@ -140,69 +139,69 @@ public class ScalabilityOptions {
     }
 
 
-
     public ScalabilityOptions(OptionParser parser) {
 
         base = parser.accepts("base", "Base directory")
-                .withRequiredArg().ofType(File.class)
-                .defaultsTo(new File("target"));
+                     .withRequiredArg().ofType(File.class)
+                     .defaultsTo(new File("target"));
         host = parser.accepts("host", "MongoDB host")
-                .withRequiredArg().defaultsTo("localhost");
+                     .withRequiredArg().defaultsTo("localhost");
         port = parser.accepts("port", "MongoDB port")
-                .withRequiredArg().ofType(Integer.class).defaultsTo(27017);
+                     .withRequiredArg().ofType(Integer.class).defaultsTo(27017);
         dbName = parser.accepts("db", "MongoDB database")
-                .withRequiredArg();
+                       .withRequiredArg();
         dropDBAfterTest =
-                parser.accepts("dropDBAfterTest",
-                        "Whether to drop the MongoDB database after the test")
-                        .withOptionalArg().ofType(Boolean.class).defaultsTo(true);
+            parser.accepts("dropDBAfterTest",
+                      "Whether to drop the MongoDB database after the test")
+                  .withOptionalArg().ofType(Boolean.class).defaultsTo(true);
         rdbjdbcuri = parser.accepts("rdbjdbcuri", "RDB JDBC URI")
-                .withOptionalArg().defaultsTo("jdbc:h2:./target/benchmark");
+                           .withOptionalArg().defaultsTo("jdbc:h2:./target/benchmark");
         rdbjdbcuser = parser.accepts("rdbjdbcuser", "RDB JDBC user")
-                .withOptionalArg().defaultsTo("");
+                            .withOptionalArg().defaultsTo("");
         rdbjdbcpasswd = parser.accepts("rdbjdbcpasswd", "RDB JDBC password")
-                .withOptionalArg().defaultsTo("");
+                              .withOptionalArg().defaultsTo("");
         rdbjdbctableprefix = parser.accepts("rdbjdbctableprefix", "RDB JDBC table prefix")
-                .withOptionalArg().defaultsTo("");
+                                   .withOptionalArg().defaultsTo("");
         mmap = parser.accepts("mmap", "TarMK memory mapping")
-                .withOptionalArg().ofType(Boolean.class)
-                .defaultsTo("64".equals(System.getProperty("sun.arch.data.model")));
+                     .withOptionalArg().ofType(Boolean.class)
+                     .defaultsTo("64".equals(System.getProperty("sun.arch.data.model")));
         cache = parser.accepts("cache", "cache size (MB)")
-                .withRequiredArg().ofType(Integer.class).defaultsTo(100);
+                      .withRequiredArg().ofType(Integer.class).defaultsTo(100);
         fdsCache = parser.accepts("blobCache", "cache size (MB)")
-                .withRequiredArg().ofType(Integer.class).defaultsTo(32);
+                         .withRequiredArg().ofType(Integer.class).defaultsTo(32);
         withStorage = parser
-                .accepts("storage", "Index storage enabled").withOptionalArg()
-                .ofType(Boolean.class);
+            .accepts("storage", "Index storage enabled").withOptionalArg()
+            .ofType(Boolean.class);
         csvFile =
-                parser.accepts("csvFile", "File to write a CSV version of the benchmark data.")
-                        .withOptionalArg().ofType(File.class);
-        coldSyncInterval = parser.accepts("coldSyncInterval", "interval between sync cycles in sec (Segment-Tar-Cold only)")
-                .withRequiredArg().ofType(Integer.class).defaultsTo(5);
+            parser.accepts("csvFile", "File to write a CSV version of the benchmark data.")
+                  .withOptionalArg().ofType(File.class);
+        coldSyncInterval = parser.accepts("coldSyncInterval",
+                                     "interval between sync cycles in sec (Segment-Tar-Cold only)")
+                                 .withRequiredArg().ofType(Integer.class).defaultsTo(5);
         coldUseDataStore = parser
-                .accepts("useDataStore",
-                        "Whether to use a datastore in the cold standby topology (Segment-Tar-Cold only)")
-                .withOptionalArg().ofType(Boolean.class)
-                .defaultsTo(Boolean.TRUE);
+            .accepts("useDataStore",
+                "Whether to use a datastore in the cold standby topology (Segment-Tar-Cold only)")
+            .withOptionalArg().ofType(Boolean.class)
+            .defaultsTo(Boolean.TRUE);
         coldShareDataStore = parser
-                .accepts("shareDataStore",
-                        "Whether to share the datastore for primary and standby in the cold standby topology (Segment-Tar-Cold only)")
-                .withOptionalArg().ofType(Boolean.class)
-                .defaultsTo(Boolean.FALSE);
+            .accepts("shareDataStore",
+                "Whether to share the datastore for primary and standby in the cold standby topology (Segment-Tar-Cold only)")
+            .withOptionalArg().ofType(Boolean.class)
+            .defaultsTo(Boolean.FALSE);
         coldOneShotRun = parser
-                .accepts("oneShotRun",
-                        "Whether to do a continuous sync between client and server or sync only once (Segment-Tar-Cold only)")
-                .withOptionalArg().ofType(Boolean.class)
-                .defaultsTo(Boolean.TRUE);
+            .accepts("oneShotRun",
+                "Whether to do a continuous sync between client and server or sync only once (Segment-Tar-Cold only)")
+            .withOptionalArg().ofType(Boolean.class)
+            .defaultsTo(Boolean.TRUE);
         coldSecure = parser
-                .accepts("secure",
-                        "Whether to enable secure communication between primary and standby in the cold standby topology (Segment-Tar-Cold only)")
-                .withOptionalArg().ofType(Boolean.class)
-                .defaultsTo(Boolean.FALSE);
+            .accepts("secure",
+                "Whether to enable secure communication between primary and standby in the cold standby topology (Segment-Tar-Cold only)")
+            .withOptionalArg().ofType(Boolean.class)
+            .defaultsTo(Boolean.FALSE);
         throttlingEnabled = parser
-                .accepts("throttlingEnabled", "Whether throttling for Document Store is enabled or not")
-                .withOptionalArg().ofType(Boolean.class)
-                .defaultsTo(Boolean.FALSE); // throttling is disabled by default
+            .accepts("throttlingEnabled", "Whether throttling for Document Store is enabled or not")
+            .withOptionalArg().ofType(Boolean.class)
+            .defaultsTo(Boolean.FALSE); // throttling is disabled by default
 
         help = parser.acceptsAll(asList("h", "?", "help"), "show help").forHelp();
         nonOption = parser.nonOptions();

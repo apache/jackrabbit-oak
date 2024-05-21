@@ -24,7 +24,7 @@ import java.util.TreeMap;
 
 /**
  * An in-memory storage for collectors.
- *
+ * <p>
  * It allows to measure the amount of memory used.
  */
 public class Storage {
@@ -61,7 +61,8 @@ public class Storage {
     }
 
     public String toString() {
-        return "storage size: " + (storageSize / 1024 / 1024) + " MB; " + data.size() + " entries\n";
+        return "storage size: " + (storageSize / 1024 / 1024) + " MB; " + data.size()
+            + " entries\n";
     }
 
     /**

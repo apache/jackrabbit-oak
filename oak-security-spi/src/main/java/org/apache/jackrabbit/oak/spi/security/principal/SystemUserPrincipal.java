@@ -22,4 +22,5 @@ import java.security.Principal;
  * Principal used to mark a system user.
  */
 public interface SystemUserPrincipal extends Principal {
+
 }

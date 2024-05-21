@@ -16,11 +16,11 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.callback;
 
+import static org.junit.Assert.assertSame;
+
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
 import org.junit.Test;
 import org.mockito.Mockito;
-
-import static org.junit.Assert.assertSame;
 
 public class TokenProviderCallbackTest {
 

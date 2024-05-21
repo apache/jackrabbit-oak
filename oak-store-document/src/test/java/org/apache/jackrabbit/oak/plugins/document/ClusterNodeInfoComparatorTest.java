@@ -39,7 +39,7 @@ public class ClusterNodeInfoComparatorTest {
     private DocumentStore store = new MemoryDocumentStore();
 
     private ClusterNodeInfoComparator comparator =
-            new ClusterNodeInfoComparator(MACHINE_ID, INSTANCE_1);
+        new ClusterNodeInfoComparator(MACHINE_ID, INSTANCE_1);
 
     @Test
     public void lowerClusterIdFirst() {
@@ -82,7 +82,8 @@ public class ClusterNodeInfoComparatorTest {
     private ClusterNodeInfo newClusterNodeInfo(int id, String instanceId) {
         try {
             Constructor<ClusterNodeInfo> ctr = ClusterNodeInfo.class.getDeclaredConstructor(
-                    int.class, DocumentStore.class, String.class, String.class, boolean.class, boolean.class);
+                int.class, DocumentStore.class, String.class, String.class, boolean.class,
+                boolean.class);
             ctr.setAccessible(true);
             return ctr.newInstance(id, store, MACHINE_ID, instanceId, true, false);
         } catch (Exception e) {

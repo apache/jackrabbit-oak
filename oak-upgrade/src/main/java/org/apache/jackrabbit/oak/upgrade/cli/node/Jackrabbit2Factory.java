@@ -22,14 +22,11 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
-
 import javax.jcr.RepositoryException;
-
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.core.RepositoryContext;
 import org.apache.jackrabbit.core.config.RepositoryConfig;
-
 import org.apache.jackrabbit.guava.common.io.Closer;
 
 public class Jackrabbit2Factory {
@@ -45,12 +42,14 @@ public class Jackrabbit2Factory {
         this.repositoryDir = new File(repositoryDir);
         this.repositoryFile = new File(repositoryFile);
         if (!isRepositoryXml(repositoryFile)) {
-            throw new IllegalArgumentException("Repository configuration not found: " + repositoryFile);
+            throw new IllegalArgumentException(
+                "Repository configuration not found: " + repositoryFile);
         }
     }
 
     public RepositoryContext create(Closer closer) throws RepositoryException {
-        RepositoryContext source = RepositoryContext.create(RepositoryConfig.create(repositoryFile, repositoryDir));
+        RepositoryContext source = RepositoryContext.create(
+            RepositoryConfig.create(repositoryFile, repositoryDir));
         closer.register(asCloseable(source));
         return source;
     }

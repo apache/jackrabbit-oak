@@ -14,25 +14,26 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 --%><%
-%><jsp:include page="header.jsp"/>
-      <div id="content">
-        <h2>JCR Remoting Server - Introduction</h2>
-        <p>Ths section shortly overviews the batch read/write extensions
+%>
+<jsp:include page="header.jsp"/>
+<div id="content">
+    <h2>JCR Remoting Server - Introduction</h2>
+    <p>Ths section shortly overviews the batch read/write extensions
         added to the JCR remoting feature.
+    <ul>
+        <li>Read</li>
         <ul>
-            <li>Read</li>
-            <ul>
-                <li><a href="read.jsp#default_read">Default Reading</a></li>
-                <li><a href="read.jsp#batch_read">Batch Read</a></li>
-            </ul>
-            <li>Write</li>
-            <ul>
-                <li><a href="write.jsp#default_write">Default Writing</a></li>
-                <li><a href="write.jsp#batch_write">Batch Write</a></li>
-                <li><a href="write.jsp#simple_write">Direct Content Editing</a></li>
-            </ul>
+            <li><a href="read.jsp#default_read">Default Reading</a></li>
+            <li><a href="read.jsp#batch_read">Batch Read</a></li>
         </ul>
-        </p>
-        <p>Some principals are demonstrated in the corresponding example section.</p>
-      </div>
+        <li>Write</li>
+        <ul>
+            <li><a href="write.jsp#default_write">Default Writing</a></li>
+            <li><a href="write.jsp#batch_write">Batch Write</a></li>
+            <li><a href="write.jsp#simple_write">Direct Content Editing</a></li>
+        </ul>
+    </ul>
+    </p>
+    <p>Some principals are demonstrated in the corresponding example section.</p>
+</div>
 <jsp:include page="footer.jsp"/>

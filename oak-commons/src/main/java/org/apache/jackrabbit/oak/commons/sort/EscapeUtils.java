@@ -25,11 +25,9 @@ import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Utility class to escape '\n', '\r', '\' char
- * while being written to file and unescape then upon getting
- * read from file. This is used by StringSort and ExternalSort
- * to handle data which contains line break. If left unescaped
- * then such data interferes with the processing of such utilities
+ * Utility class to escape '\n', '\r', '\' char while being written to file and unescape then upon
+ * getting read from file. This is used by StringSort and ExternalSort to handle data which contains
+ * line break. If left unescaped then such data interferes with the processing of such utilities
  */
 public abstract class EscapeUtils {
 
@@ -105,7 +103,8 @@ public abstract class EscapeUtils {
         for (int i = 0; i < len; i++) {
             char c = line.charAt(i);
             if (c == '\\') {
-                checkState(i < len - 1, "Expected one more char after '\\' at [%s] in [%s]", i, line);
+                checkState(i < len - 1, "Expected one more char after '\\' at [%s] in [%s]", i,
+                    line);
                 char nextChar = line.charAt(i + 1);
                 switch (nextChar) {
                     case 'n':
@@ -122,7 +121,7 @@ public abstract class EscapeUtils {
                         break;
                     default:
                         String msg = String.format("Unexpected char [%c] found at %d of [%s]. " +
-                                "Expected '\\' or 'r' or 'n", nextChar, i, line);
+                            "Expected '\\' or 'r' or 'n", nextChar, i, line);
                         throw new IllegalArgumentException(msg);
                 }
             } else {

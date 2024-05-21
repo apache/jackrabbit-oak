@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.spi.state;
 
 import java.io.IOException;
 import java.io.InputStream;
-
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -28,10 +27,9 @@ import org.jetbrains.annotations.Nullable;
 /**
  * Builder interface for constructing new {@link NodeState node states}.
  * <p>
- * A node builder can be thought of as a mutable version of a node state.
- * In addition to property and child node access methods like the ones that
- * are already present in the NodeState interface, the {@code NodeBuilder}
- * interface contains the following key methods:
+ * A node builder can be thought of as a mutable version of a node state. In addition to property
+ * and child node access methods like the ones that are already present in the NodeState interface,
+ * the {@code NodeBuilder} interface contains the following key methods:
  * <ul>
  * <li>The {@code setProperty} and {@code removeProperty} methods for
  *     modifying properties</li>
@@ -73,8 +71,7 @@ import org.jetbrains.annotations.Nullable;
 public interface NodeBuilder {
 
     /**
-     * Returns an immutable node state that matches the current state of
-     * the builder.
+     * Returns an immutable node state that matches the current state of the builder.
      *
      * @return immutable node state
      */
@@ -82,10 +79,9 @@ public interface NodeBuilder {
     NodeState getNodeState();
 
     /**
-     * Returns the original base state that this builder is modifying.
-     * The return value may be non-existent (i.e. its {@code exists} method
-     * returns {@code false}) if this builder represents a new node that
-     * didn't exist in the base content tree.
+     * Returns the original base state that this builder is modifying. The return value may be
+     * non-existent (i.e. its {@code exists} method returns {@code false}) if this builder
+     * represents a new node that didn't exist in the base content tree.
      *
      * @return base node state, possibly non-existent
      */
@@ -101,7 +97,8 @@ public interface NodeBuilder {
 
     /**
      * Check whether this builder represents a new node, which is not present in the base state.
-     * @return  {@code true} for a new node
+     *
+     * @return {@code true} for a new node
      */
     boolean isNew();
 
@@ -116,23 +113,22 @@ public interface NodeBuilder {
     /**
      * Check whether this builder represents a modified node, which has either modified properties
      * or removed or added child nodes.
-     * @return  {@code true} for a modified node
+     *
+     * @return {@code true} for a modified node
      */
     boolean isModified();
 
     /**
-     * Check whether this builder represents a node that used to exist but
-     * was then replaced with other content, for example as a result of
-     * a {@link #setChildNode(String)} call.
+     * Check whether this builder represents a node that used to exist but was then replaced with
+     * other content, for example as a result of a {@link #setChildNode(String)} call.
      *
      * @return {@code true} for a replaced node
      */
     boolean isReplaced();
 
     /**
-     * Check whether the named property exists in the base state but is
-     * replaced with other content, for example as a result of
-     * a {@link #setProperty(PropertyState)} call.
+     * Check whether the named property exists in the base state but is replaced with other content,
+     * for example as a result of a {@link #setProperty(PropertyState)} call.
      *
      * @param name property name
      * @return {@code true} for a replaced property
@@ -142,11 +138,10 @@ public interface NodeBuilder {
     /**
      * Returns the current number of child nodes.
      * <p>
-     * If an implementation does know the exact value, it returns it (even if
-     * the value is higher than max). If the implementation does not know the
-     * exact value, and the child node count is higher than max, it may return
-     * Long.MAX_VALUE. The cost of the operation is at most O(max).
-     * 
+     * If an implementation does know the exact value, it returns it (even if the value is higher
+     * than max). If the implementation does not know the exact value, and the child node count is
+     * higher than max, it may return Long.MAX_VALUE. The cost of the operation is at most O(max).
+     *
      * @param max the maximum value
      * @return number of child nodes
      */
@@ -164,110 +159,105 @@ public interface NodeBuilder {
      * Checks whether the named child node currently exists.
      *
      * @param name child node name
-     * @return {@code true} if the named child node exists,
-     *         {@code false} otherwise
+     * @return {@code true} if the named child node exists, {@code false} otherwise
      */
     boolean hasChildNode(@NotNull String name);
 
     /**
-     * Returns a builder for constructing changes to the named child node.
-     * If the named child node does not already exist, a new empty child
-     * node is automatically created as the base state of the returned
-     * child builder. Otherwise the existing child node state is used
-     * as the base state of the returned builder.
+     * Returns a builder for constructing changes to the named child node. If the named child node
+     * does not already exist, a new empty child node is automatically created as the base state of
+     * the returned child builder. Otherwise the existing child node state is used as the base state
+     * of the returned builder.
      * <p>
-     * All updates to the returned child builder will implicitly affect
-     * also this builder, as if a
-     * {@code setNode(name, childBuilder.getNodeState())} method call
-     * had been made after each update. Repeated calls to this method with
-     * the same name will return the same child builder instance until an
-     * explicit {@link #setChildNode(String, NodeState)} or
-     * {@link #remove()} call is made, at which point the link
-     * between this builder and a previously returned child builder for
-     * that child node name will get broken.
+     * All updates to the returned child builder will implicitly affect also this builder, as if a
+     * {@code setNode(name, childBuilder.getNodeState())} method call had been made after each
+     * update. Repeated calls to this method with the same name will return the same child builder
+     * instance until an explicit {@link #setChildNode(String, NodeState)} or {@link #remove()} call
+     * is made, at which point the link between this builder and a previously returned child builder
+     * for that child node name will get broken.
      *
-     * @since Oak 0.6
      * @param name name of the child node
      * @return child builder
-     * @throws IllegalArgumentException if the given name string is empty
-     *                                  or contains the forward slash character
+     * @throws IllegalArgumentException if the given name string is empty or contains the forward
+     *                                  slash character
+     * @since Oak 0.6
      */
     @NotNull
     NodeBuilder child(@NotNull String name) throws IllegalArgumentException;
 
     /**
-     * Returns a builder for constructing changes to the named child node.
-     * If the named child node does not already exist, the returned builder
-     * will refer to a non-existent node and trying to modify it will cause
-     * {@link IllegalStateException}s to be thrown.
+     * Returns a builder for constructing changes to the named child node. If the named child node
+     * does not already exist, the returned builder will refer to a non-existent node and trying to
+     * modify it will cause {@link IllegalStateException}s to be thrown.
      *
-     * @since Oak 0.7
      * @param name name of the child node
      * @return child builder, possibly non-existent
-     * @throws IllegalArgumentException if the given name string is empty
-     *                                  or contains the forward slash character
+     * @throws IllegalArgumentException if the given name string is empty or contains the forward
+     *                                  slash character
+     * @since Oak 0.7
      */
     @NotNull
     NodeBuilder getChildNode(@NotNull String name)
-            throws IllegalArgumentException;
+        throws IllegalArgumentException;
 
     /**
-     * Adds the named child node and returns a builder for modifying it.
-     * Possible previous content in the named subtree is removed.
+     * Adds the named child node and returns a builder for modifying it. Possible previous content
+     * in the named subtree is removed.
      *
-     * @since Oak 0.7
      * @param name name of the child node
      * @return child builder
-     * @throws IllegalArgumentException if the given name string is empty
-     *                                  or contains the forward slash character
+     * @throws IllegalArgumentException if the given name string is empty or contains the forward
+     *                                  slash character
+     * @since Oak 0.7
      */
     @NotNull
     NodeBuilder setChildNode(@NotNull String name)
-            throws IllegalArgumentException;
+        throws IllegalArgumentException;
 
     /**
      * Adds or replaces a subtree.
      *
-     * @param name name of the child node containing the new subtree
+     * @param name      name of the child node containing the new subtree
      * @param nodeState subtree
      * @return child builder
-     * @throws IllegalArgumentException if the given name string is empty
-     *                                  or contains the forward slash character
+     * @throws IllegalArgumentException if the given name string is empty or contains the forward
+     *                                  slash character
      */
     @NotNull
     NodeBuilder setChildNode(@NotNull String name, @NotNull NodeState nodeState)
-            throws IllegalArgumentException;
+        throws IllegalArgumentException;
 
     /**
      * Remove this child node from its parent.
+     *
      * @return {@code true} for existing nodes, {@code false} otherwise
      */
     boolean remove();
 
     /**
-     * Move this child to a new parent with a new name. When the move succeeded this
-     * builder has been moved to {@code newParent} as child {@code newName}. Otherwise neither
-     * this builder nor {@code newParent} are modified.
+     * Move this child to a new parent with a new name. When the move succeeded this builder has
+     * been moved to {@code newParent} as child {@code newName}. Otherwise neither this builder nor
+     * {@code newParent} are modified.
      * <p>
      * The move succeeds if both, this builder and {@code newParent} exist, there is no child with
      * {@code newName} at {@code newParent} and {@code newParent} is not in the subtree of this
      * builder.
      * <p>
-     * The move fails if the this builder or {@code newParent} does not exist or if there is
-     * already a child {@code newName} at {@code newParent}.
+     * The move fails if the this builder or {@code newParent} does not exist or if there is already
+     * a child {@code newName} at {@code newParent}.
      * <p>
-     * For all remaining cases (e.g. moving a builder into its own subtree) it is left
-     * to the implementation whether the move succeeds or fails as long as the state of the
-     * involved builder stays consistent.
+     * For all remaining cases (e.g. moving a builder into its own subtree) it is left to the
+     * implementation whether the move succeeds or fails as long as the state of the involved
+     * builder stays consistent.
      *
-     * @param newParent  builder for the new parent.
-     * @param newName  name of this child at the new parent
-     * @return  {@code true} on success, {@code false} otherwise
-     * @throws IllegalArgumentException if the given name string is empty
-     *                                  or contains the forward slash character
+     * @param newParent builder for the new parent.
+     * @param newName   name of this child at the new parent
+     * @return {@code true} on success, {@code false} otherwise
+     * @throws IllegalArgumentException if the given name string is empty or contains the forward
+     *                                  slash character
      */
     boolean moveTo(@NotNull NodeBuilder newParent, @NotNull String newName)
-            throws IllegalArgumentException;
+        throws IllegalArgumentException;
 
     /**
      * Returns the current number of properties.
@@ -285,19 +275,17 @@ public interface NodeBuilder {
     Iterable<? extends PropertyState> getProperties();
 
     /**
-     * Checks whether the named property exists. The implementation is
-     * equivalent to {@code getProperty(name) != null}, but may be optimized
-     * to avoid having to load the property value.
+     * Checks whether the named property exists. The implementation is equivalent to
+     * {@code getProperty(name) != null}, but may be optimized to avoid having to load the property
+     * value.
      *
      * @param name property name
-     * @return {@code true} if the named property exists,
-     *         {@code false} otherwise
+     * @return {@code true} if the named property exists, {@code false} otherwise
      */
     boolean hasProperty(String name);
 
     /**
-     * Returns the current state of the named property, or {@code null}
-     * if the property is not set.
+     * Returns the current state of the named property, or {@code null} if the property is not set.
      *
      * @param name property name
      * @return property state
@@ -306,8 +294,8 @@ public interface NodeBuilder {
     PropertyState getProperty(String name);
 
     /**
-     * Returns the boolean value of the named property. The implementation
-     * is equivalent to the following code, but may be optimized.
+     * Returns the boolean value of the named property. The implementation is equivalent to the
+     * following code, but may be optimized.
      * <pre>
      * {@code
      * PropertyState property = builder.getProperty(name);
@@ -323,8 +311,8 @@ public interface NodeBuilder {
     boolean getBoolean(@NotNull String name);
 
     /**
-     * Returns the name value of the named property. The implementation
-     * is equivalent to the following code, but may be optimized.
+     * Returns the name value of the named property. The implementation is equivalent to the
+     * following code, but may be optimized.
      * <pre>
      * {@code
      * PropertyState property = builder.getProperty(name);
@@ -343,8 +331,8 @@ public interface NodeBuilder {
     String getString(String name);
 
     /**
-     * Returns the name value of the named property. The implementation
-     * is equivalent to the following code, but may be optimized.
+     * Returns the name value of the named property. The implementation is equivalent to the
+     * following code, but may be optimized.
      * <pre>
      * {@code
      * PropertyState property = builder.getProperty(name);
@@ -363,8 +351,8 @@ public interface NodeBuilder {
     String getName(@NotNull String name);
 
     /**
-     * Returns the name values of the named property. The implementation
-     * is equivalent to the following code, but may be optimized.
+     * Returns the name values of the named property. The implementation is equivalent to the
+     * following code, but may be optimized.
      * <pre>
      * {@code
      * PropertyState property = builder.getProperty(name);
@@ -384,45 +372,52 @@ public interface NodeBuilder {
 
     /**
      * Set a property state
-     * @param property  The property state to set
+     *
+     * @param property The property state to set
      * @return this builder
-     * @throws IllegalArgumentException if the property name is empty
-     *                                  or contains the forward slash character
+     * @throws IllegalArgumentException if the property name is empty or contains the forward slash
+     *                                  character
      */
     @NotNull
     NodeBuilder setProperty(@NotNull PropertyState property)
-            throws IllegalArgumentException;
+        throws IllegalArgumentException;
 
     /**
      * Set a property state
+     *
      * @param name  The name of this property
-     * @param value  The value of this property
-     * @param <T>  The type of this property. Must be one of {@code String, Blob, byte[], Long, Integer, Double, Boolean, BigDecimal}
-     * @throws IllegalArgumentException if {@code T} is not one of the above types, or if the property name is empty or contains the forward slash character
+     * @param value The value of this property
+     * @param <T>   The type of this property. Must be one of
+     *              {@code String, Blob, byte[], Long, Integer, Double, Boolean, BigDecimal}
      * @return this builder
+     * @throws IllegalArgumentException if {@code T} is not one of the above types, or if the
+     *                                  property name is empty or contains the forward slash
+     *                                  character
      */
     @NotNull
     <T> NodeBuilder setProperty(String name, @NotNull T value)
-            throws IllegalArgumentException;
+        throws IllegalArgumentException;
 
     /**
      * Set a property state
+     *
      * @param name  The name of this property
-     * @param value  The value of this property
-     * @param <T>  The type of this property.
+     * @param value The value of this property
+     * @param <T>   The type of this property.
      * @return this builder
-     * @throws IllegalArgumentException if the property name is empty
-     *                                  or contains the forward slash character
+     * @throws IllegalArgumentException if the property name is empty or contains the forward slash
+     *                                  character
      */
     @NotNull
     <T> NodeBuilder setProperty(String name, @NotNull T value, Type<T> type)
-            throws IllegalArgumentException;
+        throws IllegalArgumentException;
 
     /**
-    * Remove the named property. This method has no effect if a
-    * property of the given {@code name} does not exist.
-    * @param name  name of the property
-    */
+     * Remove the named property. This method has no effect if a property of the given {@code name}
+     * does not exist.
+     *
+     * @param name name of the property
+     */
     @NotNull
     NodeBuilder removeProperty(String name);
 

@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.security.user.query;
 
 import javax.jcr.Value;
-
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.QueryBuilder;

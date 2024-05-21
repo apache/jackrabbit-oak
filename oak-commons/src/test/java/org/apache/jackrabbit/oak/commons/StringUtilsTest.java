@@ -20,7 +20,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 import java.util.Map;
-
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.junit.Test;
 
@@ -31,10 +30,10 @@ public class StringUtilsTest {
 
     @Test
     public void testBytesToHex() {
-        assertEquals("0123", StringUtils.convertBytesToHex(new byte[] {(byte) 0x01, (byte) 0x23}));
-        assertEquals("89bd", StringUtils.convertBytesToHex(new byte[] {(byte) 0x89, (byte) 0xbd}));
-        assertEquals("face", StringUtils.convertBytesToHex(new byte[] {(byte) 0xfa, (byte) 0xce}));
-        assertEquals("", StringUtils.convertBytesToHex(new byte[] {}));
+        assertEquals("0123", StringUtils.convertBytesToHex(new byte[]{(byte) 0x01, (byte) 0x23}));
+        assertEquals("89bd", StringUtils.convertBytesToHex(new byte[]{(byte) 0x89, (byte) 0xbd}));
+        assertEquals("face", StringUtils.convertBytesToHex(new byte[]{(byte) 0xfa, (byte) 0xce}));
+        assertEquals("", StringUtils.convertBytesToHex(new byte[]{}));
     }
 
     @Test(expected = NullPointerException.class)
@@ -44,11 +43,15 @@ public class StringUtilsTest {
 
     @Test
     public void testHexToBytes() {
-        IOUtilsTest.assertEquals(new byte[] {(byte) 0xfa, (byte) 0xce}, StringUtils.convertHexToBytes("face"));
-        IOUtilsTest.assertEquals(new byte[] {(byte) 0xfa, (byte) 0xce}, StringUtils.convertHexToBytes("fAcE"));
-        IOUtilsTest.assertEquals(new byte[] {(byte) 0xfa, (byte) 0xce}, StringUtils.convertHexToBytes("FaCe"));
-        IOUtilsTest.assertEquals(new byte[] {(byte) 0x09, (byte) 0xaf}, StringUtils.convertHexToBytes("09af"));
-        IOUtilsTest.assertEquals(new byte[] {}, StringUtils.convertHexToBytes(""));
+        IOUtilsTest.assertEquals(new byte[]{(byte) 0xfa, (byte) 0xce},
+            StringUtils.convertHexToBytes("face"));
+        IOUtilsTest.assertEquals(new byte[]{(byte) 0xfa, (byte) 0xce},
+            StringUtils.convertHexToBytes("fAcE"));
+        IOUtilsTest.assertEquals(new byte[]{(byte) 0xfa, (byte) 0xce},
+            StringUtils.convertHexToBytes("FaCe"));
+        IOUtilsTest.assertEquals(new byte[]{(byte) 0x09, (byte) 0xaf},
+            StringUtils.convertHexToBytes("09af"));
+        IOUtilsTest.assertEquals(new byte[]{}, StringUtils.convertHexToBytes(""));
     }
 
     @Test
@@ -57,7 +60,8 @@ public class StringUtilsTest {
             try {
                 StringUtils.convertHexToBytes(s);
                 fail();
-            } catch (IllegalArgumentException expected) { }
+            } catch (IllegalArgumentException expected) {
+            }
         }
     }
 

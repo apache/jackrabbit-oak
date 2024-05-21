@@ -19,8 +19,9 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 
-import java.util.Set;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
+import java.util.Set;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexTracker;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneDocumentMaker;
@@ -40,19 +41,20 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-
 class ExternalIndexObserver implements Observer, Filter {
+
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final IndexingQueue indexingQueue;
     private final IndexTracker indexTracker;
     private final MeterStats added;
     private final TimerStats timer;
 
-    public ExternalIndexObserver(IndexingQueue indexingQueue, IndexTracker indexTracker, StatisticsProvider statisticsProvider) {
+    public ExternalIndexObserver(IndexingQueue indexingQueue, IndexTracker indexTracker,
+        StatisticsProvider statisticsProvider) {
         this.indexingQueue = checkNotNull(indexingQueue);
         this.indexTracker = checkNotNull(indexTracker);
-        this.added = statisticsProvider.getMeter("HYBRID_EXTERNAL_ADDED", StatsOptions.METRICS_ONLY);
+        this.added = statisticsProvider.getMeter("HYBRID_EXTERNAL_ADDED",
+            StatsOptions.METRICS_ONLY);
         this.timer = statisticsProvider.getTimer("HYBRID_EXTERNAL_TIME", StatsOptions.METRICS_ONLY);
     }
 
@@ -76,7 +78,7 @@ class ExternalIndexObserver implements Observer, Filter {
             return true;
         }
 
-        if (indexedPaths.isEmpty()){
+        if (indexedPaths.isEmpty()) {
             return true;
         }
 
@@ -124,7 +126,8 @@ class ExternalIndexObserver implements Observer, Filter {
                     continue;
                 }
 
-                IndexDefinition.IndexingRule indexingRule = defn.getApplicableIndexingRule(indexedNode);
+                IndexDefinition.IndexingRule indexingRule = defn.getApplicableIndexingRule(
+                    indexedNode);
 
                 if (indexingRule == null) {
                     log.debug("No indexingRule found for path {} for index {}", path, indexPath);
@@ -132,7 +135,8 @@ class ExternalIndexObserver implements Observer, Filter {
                 }
                 indexPaths.add(indexPath);
                 try {
-                    Document doc = new LuceneDocumentMaker(defn, indexingRule, path).makeDocument(indexedNode);
+                    Document doc = new LuceneDocumentMaker(defn, indexingRule, path).makeDocument(
+                        indexedNode);
 
                     if (doc != null) {
                         if (indexingQueue.add(LuceneDoc.forUpdate(indexPath, path, doc))) {
@@ -142,7 +146,9 @@ class ExternalIndexObserver implements Observer, Filter {
                         }
                     }
                 } catch (Exception e) {
-                    log.warn("Ignoring making LuceneDocument for path {} for index {} due to exception", path, indexPath, e);
+                    log.warn(
+                        "Ignoring making LuceneDocument for path {} for index {} due to exception",
+                        path, indexPath, e);
                 }
             }
         }
@@ -151,6 +157,7 @@ class ExternalIndexObserver implements Observer, Filter {
         }
         added.mark(indexedCount);
         ctx.stop();
-        log.debug("Added {} documents for {} indexes from external changes", indexedCount, indexPaths.size());
+        log.debug("Added {} documents for {} indexes from external changes", indexedCount,
+            indexPaths.size());
     }
 }

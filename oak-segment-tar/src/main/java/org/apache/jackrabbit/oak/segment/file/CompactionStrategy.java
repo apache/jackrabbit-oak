@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.segment.file;
 
 import java.io.IOException;
 import java.util.function.Supplier;
-
 import org.apache.jackrabbit.oak.segment.Revisions;
 import org.apache.jackrabbit.oak.segment.SegmentReader;
 import org.apache.jackrabbit.oak.segment.SegmentTracker;

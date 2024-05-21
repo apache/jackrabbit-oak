@@ -19,12 +19,17 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.property;
 
+import static java.util.Arrays.asList;
+import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.getNode;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.TreeTraverser;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -44,15 +49,12 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import static java.util.Arrays.asList;
-import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.getNode;
-import static org.junit.Assert.*;
-
 @RunWith(Parameterized.class)
 public class RecursiveDeleteTest {
+
     private final NodeStoreFixture fixture;
     private final NodeStore nodeStore;
-    private String testNodePath =  "/content/testNode";
+    private String testNodePath = "/content/testNode";
     private Random rnd = new Random();
     private int maxBucketSize = 100;
     private int maxDepth = 4;
@@ -63,11 +65,11 @@ public class RecursiveDeleteTest {
     }
 
     @After
-    public void tearDown(){
+    public void tearDown() {
         fixture.dispose(nodeStore);
     }
 
-    @Parameterized.Parameters(name="{0}")
+    @Parameterized.Parameters(name = "{0}")
     public static Collection<Object[]> fixtures() {
         Collection<Object[]> result = new ArrayList<Object[]>();
         result.add(new Object[]{new MemoryFixture()});
@@ -76,11 +78,12 @@ public class RecursiveDeleteTest {
     }
 
     @Test
-    public void recursiveDelete() throws Exception{
+    public void recursiveDelete() throws Exception {
         int actualCount = createSubtree(10000);
         assertEquals(actualCount, getSubtreeCount(getNode(nodeStore.getRoot(), testNodePath)));
 
-        RecursiveDelete rd = new RecursiveDelete(nodeStore, EmptyHook.INSTANCE, () -> CommitInfo.EMPTY);
+        RecursiveDelete rd = new RecursiveDelete(nodeStore, EmptyHook.INSTANCE,
+            () -> CommitInfo.EMPTY);
         rd.setBatchSize(100);
         rd.run(testNodePath);
 
@@ -92,17 +95,18 @@ public class RecursiveDeleteTest {
     }
 
     @Test
-    public void multiplePaths() throws Exception{
-        int count  = 121;
+    public void multiplePaths() throws Exception {
+        int count = 121;
         NodeBuilder nb = nodeStore.getRoot().builder();
         nb.child("c");
         for (int i = 0; i < count; i++) {
-            nb.child("a").child("c"+i);
-            nb.child("b").child("c"+i);
+            nb.child("a").child("c" + i);
+            nb.child("b").child("c" + i);
         }
         nodeStore.merge(nb, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        RecursiveDelete rd = new RecursiveDelete(nodeStore, EmptyHook.INSTANCE, () -> CommitInfo.EMPTY);
+        RecursiveDelete rd = new RecursiveDelete(nodeStore, EmptyHook.INSTANCE,
+            () -> CommitInfo.EMPTY);
         rd.setBatchSize(50);
         rd.run(asList("/a", "/b"));
 
@@ -134,10 +138,10 @@ public class RecursiveDeleteTest {
         }
 
         List<NodeBuilder> children = new ArrayList<>();
-        for (int i = 0; i < childCount && maxNodes.get() > 0; i++){
+        for (int i = 0; i < childCount && maxNodes.get() > 0; i++) {
             maxNodes.decrementAndGet();
             totalCount++;
-            children.add(child.child("c"+i));
+            children.add(child.child("c" + i));
 
         }
 
@@ -148,11 +152,12 @@ public class RecursiveDeleteTest {
         return totalCount;
     }
 
-    private int getSubtreeCount(NodeState state){
+    private int getSubtreeCount(NodeState state) {
         TreeTraverser<NodeState> t = new TreeTraverser<NodeState>() {
             @Override
             public Iterable<NodeState> children(NodeState root) {
-                return Iterables.transform(root.getChildNodeEntries(), ChildNodeEntry::getNodeState);
+                return Iterables.transform(root.getChildNodeEntries(),
+                    ChildNodeEntry::getNodeState);
             }
         };
         return t.preOrderTraversal(state).size();

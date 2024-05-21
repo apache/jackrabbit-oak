@@ -16,9 +16,17 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.permission;
 
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+import javax.jcr.Session;
+import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Sets;
-import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
 import org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
@@ -28,18 +36,9 @@ import org.apache.jackrabbit.util.Text;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import javax.jcr.Session;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-
 /**
- * Provides constants for permissions used in the OAK access evaluation as well
- * as permission related utility methods.
+ * Provides constants for permissions used in the OAK access evaluation as well as permission
+ * related utility methods.
  */
 public final class Permissions {
 
@@ -119,47 +118,48 @@ public final class Permissions {
     public static final long WRITE = ADD_NODE | REMOVE_NODE | SET_PROPERTY;
 
     public static final long ALL = (READ
-            | SET_PROPERTY
-            | ADD_NODE | REMOVE_NODE
-            | READ_ACCESS_CONTROL | MODIFY_ACCESS_CONTROL
-            | NODE_TYPE_MANAGEMENT
-            | VERSION_MANAGEMENT
-            | LOCK_MANAGEMENT
-            | LIFECYCLE_MANAGEMENT
-            | RETENTION_MANAGEMENT
-            | MODIFY_CHILD_NODE_COLLECTION
-            | NODE_TYPE_DEFINITION_MANAGEMENT
-            | NAMESPACE_MANAGEMENT
-            | WORKSPACE_MANAGEMENT
-            | PRIVILEGE_MANAGEMENT
-            | USER_MANAGEMENT
-            | INDEX_DEFINITION_MANAGEMENT
+        | SET_PROPERTY
+        | ADD_NODE | REMOVE_NODE
+        | READ_ACCESS_CONTROL | MODIFY_ACCESS_CONTROL
+        | NODE_TYPE_MANAGEMENT
+        | VERSION_MANAGEMENT
+        | LOCK_MANAGEMENT
+        | LIFECYCLE_MANAGEMENT
+        | RETENTION_MANAGEMENT
+        | MODIFY_CHILD_NODE_COLLECTION
+        | NODE_TYPE_DEFINITION_MANAGEMENT
+        | NAMESPACE_MANAGEMENT
+        | WORKSPACE_MANAGEMENT
+        | PRIVILEGE_MANAGEMENT
+        | USER_MANAGEMENT
+        | INDEX_DEFINITION_MANAGEMENT
     );
 
     private static final Set<Long> NON_AGGREGATES = ImmutableSet.of(
-            READ_NODE,
-            READ_PROPERTY,
-            ADD_PROPERTY,
-            MODIFY_PROPERTY,
-            REMOVE_PROPERTY,
-            ADD_NODE,
-            REMOVE_NODE,
-            MODIFY_CHILD_NODE_COLLECTION,
-            READ_ACCESS_CONTROL,
-            MODIFY_ACCESS_CONTROL,
-            NODE_TYPE_MANAGEMENT,
-            VERSION_MANAGEMENT,
-            LOCK_MANAGEMENT,
-            LIFECYCLE_MANAGEMENT,
-            RETENTION_MANAGEMENT,
-            NODE_TYPE_DEFINITION_MANAGEMENT,
-            NAMESPACE_MANAGEMENT,
-            WORKSPACE_MANAGEMENT,
-            PRIVILEGE_MANAGEMENT,
-            USER_MANAGEMENT,
-            INDEX_DEFINITION_MANAGEMENT);
+        READ_NODE,
+        READ_PROPERTY,
+        ADD_PROPERTY,
+        MODIFY_PROPERTY,
+        REMOVE_PROPERTY,
+        ADD_NODE,
+        REMOVE_NODE,
+        MODIFY_CHILD_NODE_COLLECTION,
+        READ_ACCESS_CONTROL,
+        MODIFY_ACCESS_CONTROL,
+        NODE_TYPE_MANAGEMENT,
+        VERSION_MANAGEMENT,
+        LOCK_MANAGEMENT,
+        LIFECYCLE_MANAGEMENT,
+        RETENTION_MANAGEMENT,
+        NODE_TYPE_DEFINITION_MANAGEMENT,
+        NAMESPACE_MANAGEMENT,
+        WORKSPACE_MANAGEMENT,
+        PRIVILEGE_MANAGEMENT,
+        USER_MANAGEMENT,
+        INDEX_DEFINITION_MANAGEMENT);
 
     public static final Map<Long, String> PERMISSION_NAMES = new LinkedHashMap<>();
+
     static {
         PERMISSION_NAMES.put(ALL, "ALL");
         PERMISSION_NAMES.put(READ, "READ");
@@ -190,6 +190,7 @@ public final class Permissions {
     }
 
     private static final Map<String, Long> PERMISSION_LOOKUP = new LinkedHashMap<>();
+
     static {
         PERMISSION_LOOKUP.put("ALL", ALL);
         PERMISSION_LOOKUP.put("READ", READ);
@@ -220,16 +221,17 @@ public final class Permissions {
     }
 
     private static final Set<String> WRITE_ACTIONS = ImmutableSet.of(
-            Session.ACTION_REMOVE,
-            Session.ACTION_ADD_NODE,
-            Session.ACTION_SET_PROPERTY,
-            JackrabbitSession.ACTION_REMOVE_NODE,
-            JackrabbitSession.ACTION_ADD_PROPERTY,
-            JackrabbitSession.ACTION_MODIFY_PROPERTY,
-            JackrabbitSession.ACTION_REMOVE_PROPERTY
+        Session.ACTION_REMOVE,
+        Session.ACTION_ADD_NODE,
+        Session.ACTION_SET_PROPERTY,
+        JackrabbitSession.ACTION_REMOVE_NODE,
+        JackrabbitSession.ACTION_ADD_PROPERTY,
+        JackrabbitSession.ACTION_MODIFY_PROPERTY,
+        JackrabbitSession.ACTION_REMOVE_PROPERTY
     );
 
     private static final Map<String, Long> ACTIONS_MAP = new LinkedHashMap<>();
+
     static {
         ACTIONS_MAP.put(Session.ACTION_ADD_NODE, ADD_NODE);
         ACTIONS_MAP.put(JackrabbitSession.ACTION_ADD_PROPERTY, ADD_PROPERTY);
@@ -247,8 +249,7 @@ public final class Permissions {
     /**
      * Returns names of the specified permissions.
      *
-     * @param permissions The permissions for which the string representation
-     * should be collected.
+     * @param permissions The permissions for which the string representation should be collected.
      * @return The names of the given permissions.
      */
     public static Set<String> getNames(long permissions) {
@@ -269,11 +270,10 @@ public final class Permissions {
     /**
      * Returns the names of the specified permissions separated by ','.
      *
-     * @param permissions The permissions for which the string representation
-     * should be collected.
-     * @return The names of the given permissions separated by ',' such
-     * that i can be passed to {@link Session#hasPermission(String, String)}
-     * and {@link Session#checkPermission(String, String)}.
+     * @param permissions The permissions for which the string representation should be collected.
+     * @return The names of the given permissions separated by ',' such that i can be passed to
+     * {@link Session#hasPermission(String, String)} and
+     * {@link Session#checkPermission(String, String)}.
      */
     public static String getString(long permissions) {
         if (PERMISSION_NAMES.containsKey(permissions)) {
@@ -295,9 +295,9 @@ public final class Permissions {
 
     public static boolean isRepositoryPermission(long permission) {
         return permission == NAMESPACE_MANAGEMENT ||
-                permission == NODE_TYPE_DEFINITION_MANAGEMENT ||
-                permission == PRIVILEGE_MANAGEMENT ||
-                permission == WORKSPACE_MANAGEMENT;
+            permission == NODE_TYPE_DEFINITION_MANAGEMENT ||
+            permission == PRIVILEGE_MANAGEMENT ||
+            permission == WORKSPACE_MANAGEMENT;
     }
 
     public static boolean isAggregate(long permission) {
@@ -308,7 +308,8 @@ public final class Permissions {
         if (ALL == permissions) {
             return NON_AGGREGATES;
         } else {
-            return NON_AGGREGATES.stream().filter(permission -> includes(permissions, permission)).collect(Collectors.toSet());
+            return NON_AGGREGATES.stream().filter(permission -> includes(permissions, permission))
+                                 .collect(Collectors.toSet());
         }
     }
 
@@ -318,19 +319,17 @@ public final class Permissions {
 
     public static boolean respectParentPermissions(long permissions) {
         return Permissions.includes(permissions, Permissions.ADD_NODE) ||
-                Permissions.includes(permissions, Permissions.REMOVE_NODE);
+            Permissions.includes(permissions, Permissions.REMOVE_NODE);
     }
 
     /**
-     * Returns those bits from {@code permissions} that are not present in
-     * the {@code otherPermissions}, i.e. subtracts the other permissions
-     * from permissions.<br>
-     * If the specified {@code otherPermissions} do not intersect with
-     * {@code permissions},  {@code permissions} are returned.<br>
-     * If {@code permissions} is included in {@code otherPermissions},
-     * {@link #NO_PERMISSION} is returned.
+     * Returns those bits from {@code permissions} that are not present in the
+     * {@code otherPermissions}, i.e. subtracts the other permissions from permissions.<br> If the
+     * specified {@code otherPermissions} do not intersect with {@code permissions},
+     * {@code permissions} are returned.<br> If {@code permissions} is included in
+     * {@code otherPermissions}, {@link #NO_PERMISSION} is returned.
      *
-     * @param permissions The permissions from which to subtract {@code otherPermissions}.
+     * @param permissions      The permissions from which to subtract {@code otherPermissions}.
      * @param otherPermissions The permissions to be subtracted.
      * @return the differences of the 2 permissions or {@link #NO_PERMISSION}.
      */
@@ -339,26 +338,22 @@ public final class Permissions {
     }
 
     /**
-     * Returns the permissions that correspond the given jcr actions such as
-     * specified in {@link Session#hasPermission(String, String)}. Note that
-     * in addition to the regular JCR actions ({@link Session#ACTION_READ},
-     * {@link Session#ACTION_ADD_NODE}, {@link Session#ACTION_REMOVE} and
-     * {@link Session#ACTION_SET_PROPERTY}) the string may also contain
-     * the names of all permissions defined by this class.
+     * Returns the permissions that correspond the given jcr actions such as specified in
+     * {@link Session#hasPermission(String, String)}. Note that in addition to the regular JCR
+     * actions ({@link Session#ACTION_READ}, {@link Session#ACTION_ADD_NODE},
+     * {@link Session#ACTION_REMOVE} and {@link Session#ACTION_SET_PROPERTY}) the string may also
+     * contain the names of all permissions defined by this class.
      *
-     * @param jcrActions A comma separated string of JCR actions and permission
-     * names.
-     * @param location The tree location for which the permissions should be
-     * calculated.
-     * @param isAccessControlContent Flag to mark the given location as access
-     * control content.
+     * @param jcrActions             A comma separated string of JCR actions and permission names.
+     * @param location               The tree location for which the permissions should be
+     *                               calculated.
+     * @param isAccessControlContent Flag to mark the given location as access control content.
      * @return The permissions.
-     * @throws IllegalArgumentException If the string contains unknown actions
-     * or permission names.
+     * @throws IllegalArgumentException If the string contains unknown actions or permission names.
      */
     public static long getPermissions(@NotNull String jcrActions,
-                                      @NotNull TreeLocation location,
-                                      boolean isAccessControlContent) {
+        @NotNull TreeLocation location,
+        boolean isAccessControlContent) {
         Set<String> actions = Sets.newHashSet(Text.explode(jcrActions, ',', false));
         long permissions = NO_PERMISSION;
         // map read action respecting the 'isAccessControlContent' flag.
@@ -370,7 +365,7 @@ public final class Permissions {
         if (!actions.isEmpty()) {
             if (isAccessControlContent) {
                 if (actions.removeAll(WRITE_ACTIONS)) {
-                    permissions |=  MODIFY_ACCESS_CONTROL;
+                    permissions |= MODIFY_ACCESS_CONTROL;
                 }
             } else {
                 permissions |= mapWriteActions(actions, location);
@@ -395,7 +390,8 @@ public final class Permissions {
         return permissions;
     }
 
-    private static long mapReadAction(@NotNull TreeLocation location, boolean isAccessControlContent) {
+    private static long mapReadAction(@NotNull TreeLocation location,
+        boolean isAccessControlContent) {
         if (isAccessControlContent) {
             return READ_ACCESS_CONTROL;
         } else if (!location.exists()) {
@@ -407,7 +403,8 @@ public final class Permissions {
         }
     }
 
-    private static long mapWriteActions(@NotNull Set<String> actions, @NotNull TreeLocation location) {
+    private static long mapWriteActions(@NotNull Set<String> actions,
+        @NotNull TreeLocation location) {
         // item is not access controlled -> cover actions that don't have
         // a 1:1 mapping to a given permission.
         long permissions = NO_PERMISSION;
@@ -435,8 +432,7 @@ public final class Permissions {
      *
      * @param permissionNames A comma separated string of permission names.
      * @return The permissions.
-     * @throws IllegalArgumentException If the string contains unknown actions
-     * or permission names.
+     * @throws IllegalArgumentException If the string contains unknown actions or permission names.
      */
     public static long getPermissions(@Nullable String permissionNames) {
         if (permissionNames == null || permissionNames.isEmpty()) {

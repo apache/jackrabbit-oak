@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.plugins.document.check;
 
 import java.util.concurrent.BlockingQueue;
-
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.util.ISO8601;
 import org.jetbrains.annotations.NotNull;
@@ -28,27 +27,26 @@ import org.jetbrains.annotations.NotNull;
 public interface DocumentProcessor {
 
     /**
-     * Process the given document and publish the result to the {@code results}
-     * queue. An implementation is not required to publish a result for each
-     * processed document.
+     * Process the given document and publish the result to the {@code results} queue. An
+     * implementation is not required to publish a result for each processed document.
      *
      * @param document the document to process.
-     * @param results the queue to publish results if necessary.
+     * @param results  the queue to publish results if necessary.
      * @throws InterruptedException if publishing a result is interrupted.
      */
     void processDocument(@NotNull NodeDocument document,
-                         @NotNull BlockingQueue<Result> results)
-            throws InterruptedException;
+        @NotNull BlockingQueue<Result> results)
+        throws InterruptedException;
 
     /**
-     * This method is called after the last document has been processed. An
-     * implementation may wish to publish aggregated results at the end.
+     * This method is called after the last document has been processed. An implementation may wish
+     * to publish aggregated results at the end.
      *
      * @param results the queue to publish results if necessary.
      * @throws InterruptedException if publishing a result is interrupted.
      */
     default void end(@NotNull BlockingQueue<Result> results)
-            throws InterruptedException {
+        throws InterruptedException {
     }
 
     /**

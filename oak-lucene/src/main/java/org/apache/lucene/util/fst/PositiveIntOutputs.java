@@ -26,105 +26,103 @@ package org.apache.lucene.util.fst;
  */
 
 import java.io.IOException;
-
 import org.apache.lucene.store.DataInput;
 import org.apache.lucene.store.DataOutput;
 
 /**
- * An FST {@link Outputs} implementation where each output
- * is a non-negative long value.
+ * An FST {@link Outputs} implementation where each output is a non-negative long value.
  *
  * @lucene.experimental
  */
 
 public final class PositiveIntOutputs extends Outputs<Long> {
-  
-  private final static Long NO_OUTPUT = new Long(0);
 
-  private final static PositiveIntOutputs singleton = new PositiveIntOutputs();
+    private final static Long NO_OUTPUT = new Long(0);
 
-  private PositiveIntOutputs() {
-  }
+    private final static PositiveIntOutputs singleton = new PositiveIntOutputs();
 
-  public static PositiveIntOutputs getSingleton() {
-    return singleton;
-  }
-
-  @Override
-  public Long common(Long output1, Long output2) {
-    assert valid(output1);
-    assert valid(output2);
-    if (output1 == NO_OUTPUT || output2 == NO_OUTPUT) {
-      return NO_OUTPUT;
-    } else {
-      assert output1 > 0;
-      assert output2 > 0;
-      return Math.min(output1, output2);
+    private PositiveIntOutputs() {
     }
-  }
 
-  @Override
-  public Long subtract(Long output, Long inc) {
-    assert valid(output);
-    assert valid(inc);
-    assert output >= inc;
-
-    if (inc == NO_OUTPUT) {
-      return output;
-    } else if (output.equals(inc)) {
-      return NO_OUTPUT;
-    } else {
-      return output - inc;
+    public static PositiveIntOutputs getSingleton() {
+        return singleton;
     }
-  }
 
-  @Override
-  public Long add(Long prefix, Long output) {
-    assert valid(prefix);
-    assert valid(output);
-    if (prefix == NO_OUTPUT) {
-      return output;
-    } else if (output == NO_OUTPUT) {
-      return prefix;
-    } else {
-      return prefix + output;
+    @Override
+    public Long common(Long output1, Long output2) {
+        assert valid(output1);
+        assert valid(output2);
+        if (output1 == NO_OUTPUT || output2 == NO_OUTPUT) {
+            return NO_OUTPUT;
+        } else {
+            assert output1 > 0;
+            assert output2 > 0;
+            return Math.min(output1, output2);
+        }
     }
-  }
 
-  @Override
-  public void write(Long output, DataOutput out) throws IOException {
-    assert valid(output);
-    out.writeVLong(output);
-  }
+    @Override
+    public Long subtract(Long output, Long inc) {
+        assert valid(output);
+        assert valid(inc);
+        assert output >= inc;
 
-  @Override
-  public Long read(DataInput in) throws IOException {
-    long v = in.readVLong();
-    if (v == 0) {
-      return NO_OUTPUT;
-    } else {
-      return v;
+        if (inc == NO_OUTPUT) {
+            return output;
+        } else if (output.equals(inc)) {
+            return NO_OUTPUT;
+        } else {
+            return output - inc;
+        }
     }
-  }
 
-  private boolean valid(Long o) {
-    assert o != null;
-    assert o == NO_OUTPUT || o > 0: "o=" + o;
-    return true;
-  }
+    @Override
+    public Long add(Long prefix, Long output) {
+        assert valid(prefix);
+        assert valid(output);
+        if (prefix == NO_OUTPUT) {
+            return output;
+        } else if (output == NO_OUTPUT) {
+            return prefix;
+        } else {
+            return prefix + output;
+        }
+    }
 
-  @Override
-  public Long getNoOutput() {
-    return NO_OUTPUT;
-  }
+    @Override
+    public void write(Long output, DataOutput out) throws IOException {
+        assert valid(output);
+        out.writeVLong(output);
+    }
 
-  @Override
-  public String outputToString(Long output) {
-    return output.toString();
-  }
+    @Override
+    public Long read(DataInput in) throws IOException {
+        long v = in.readVLong();
+        if (v == 0) {
+            return NO_OUTPUT;
+        } else {
+            return v;
+        }
+    }
 
-  @Override
-  public String toString() {
-    return "PositiveIntOutputs";
-  }
+    private boolean valid(Long o) {
+        assert o != null;
+        assert o == NO_OUTPUT || o > 0 : "o=" + o;
+        return true;
+    }
+
+    @Override
+    public Long getNoOutput() {
+        return NO_OUTPUT;
+    }
+
+    @Override
+    public String outputToString(Long output) {
+        return output.toString();
+    }
+
+    @Override
+    public String toString() {
+        return "PositiveIntOutputs";
+    }
 }

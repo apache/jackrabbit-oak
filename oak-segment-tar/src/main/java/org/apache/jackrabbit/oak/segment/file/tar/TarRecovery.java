@@ -26,16 +26,14 @@ import java.util.UUID;
 public interface TarRecovery {
 
     /**
-     * Recover the data and meta-data of the given segment. The implementor of
-     * this method might want to parse the content of the segment and generate
-     * any metadata as needed. The result of the recovery process has to be
-     * saved in the provided {@link TarWriter}.
+     * Recover the data and meta-data of the given segment. The implementor of this method might
+     * want to parse the content of the segment and generate any metadata as needed. The result of
+     * the recovery process has to be saved in the provided {@link TarWriter}.
      *
-     * @param uuid   the identifier of the segment.
-     * @param data   the raw data of the segment.
+     * @param uuid          the identifier of the segment.
+     * @param data          the raw data of the segment.
      * @param entryRecovery the destination of the recovered data.
-     * @throws IOException if an I/O error occurs while recovering the data of
-     *                     the segment.
+     * @throws IOException if an I/O error occurs while recovering the data of the segment.
      */
     void recoverEntry(UUID uuid, byte[] data, EntryRecovery entryRecovery) throws IOException;
 

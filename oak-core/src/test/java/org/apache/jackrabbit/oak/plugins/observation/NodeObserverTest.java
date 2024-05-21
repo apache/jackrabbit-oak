@@ -27,7 +27,6 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.Map;
 import java.util.Set;
-
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;

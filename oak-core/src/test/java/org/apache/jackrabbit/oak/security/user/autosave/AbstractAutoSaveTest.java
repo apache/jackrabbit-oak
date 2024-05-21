@@ -16,11 +16,11 @@
  */
 package org.apache.jackrabbit.oak.security.user.autosave;
 
-import org.apache.jackrabbit.api.security.user.UserManager;
-import org.apache.jackrabbit.oak.AbstractSecurityTest;
-
 import static org.junit.Assert.assertFalse;
 import static org.mockito.Mockito.spy;
+
+import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.oak.AbstractSecurityTest;
 
 public abstract class AbstractAutoSaveTest extends AbstractSecurityTest {
 

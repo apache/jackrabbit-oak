@@ -20,14 +20,17 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncHandle
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Interface to identify a given {@link SyncHandler} as being aware of the optional {@link AutoMembershipConfig}.
+ * Interface to identify a given {@link SyncHandler} as being aware of the optional
+ * {@link AutoMembershipConfig}.
  */
 public interface AutoMembershipAware {
 
     /**
-     * Returns the {@link AutoMembershipConfig} defined with the {@link SyncHandler} implementing this interface.
-     * 
+     * Returns the {@link AutoMembershipConfig} defined with the {@link SyncHandler} implementing
+     * this interface.
+     *
      * @return an instance of {@code AutoMembershipConfig}
      */
-    @NotNull AutoMembershipConfig getAutoMembershipConfig();
+    @NotNull
+    AutoMembershipConfig getAutoMembershipConfig();
 }

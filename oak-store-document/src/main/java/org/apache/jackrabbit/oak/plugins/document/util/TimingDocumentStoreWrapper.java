@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.util;
 
+import static java.util.stream.Collectors.toList;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -24,27 +26,24 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
-import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import org.apache.jackrabbit.oak.plugins.document.Throttler;
+import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import static java.util.stream.Collectors.toList;
-
 /**
- * A DocumentStore wrapper that can be used to log and also time DocumentStore
- * calls.
+ * A DocumentStore wrapper that can be used to log and also time DocumentStore calls.
  */
 public class TimingDocumentStoreWrapper implements DocumentStore {
 
-    private static final boolean DEBUG = Boolean.parseBoolean(System.getProperty("base.debug", "true"));
+    private static final boolean DEBUG = Boolean.parseBoolean(
+        System.getProperty("base.debug", "true"));
     private static final AtomicInteger NEXT_ID = new AtomicInteger();
 
     private final DocumentStore base;
@@ -62,6 +61,7 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
      * A class that keeps track of timing data and call counts.
      */
     static class Count {
+
         public long count;
         public long max;
         public long total;
@@ -145,9 +145,9 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
     @Override
     @NotNull
     public <T extends Document> List<T> query(Collection<T> collection,
-                                                String fromKey,
-                                                String toKey,
-                                                int limit) {
+        String fromKey,
+        String toKey,
+        int limit) {
         try {
             long start = now();
             List<T> result = base.query(collection, fromKey, toKey, limit);
@@ -159,7 +159,8 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
                 updateAndLogTimes("query, result>1", start, 0, size(result));
             }
             if (logCommonCall()) {
-                logCommonCall(start, "query " + collection + " " + fromKey + " " + toKey + " " + limit);
+                logCommonCall(start,
+                    "query " + collection + " " + fromKey + " " + toKey + " " + limit);
             }
             return result;
         } catch (Exception e) {
@@ -170,17 +171,20 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
     @Override
     @NotNull
     public <T extends Document> List<T> query(Collection<T> collection,
-                                              String fromKey,
-                                              String toKey,
-                                              String indexedProperty,
-                                              long startValue,
-                                              int limit) {
+        String fromKey,
+        String toKey,
+        String indexedProperty,
+        long startValue,
+        int limit) {
         try {
             long start = now();
-            List<T> result = base.query(collection, fromKey, toKey, indexedProperty, startValue, limit);
+            List<T> result = base.query(collection, fromKey, toKey, indexedProperty, startValue,
+                limit);
             updateAndLogTimes("query2", start, 0, size(result));
             if (logCommonCall()) {
-                logCommonCall(start, "query2 " + collection + " " + fromKey + " " + toKey + " " + indexedProperty + " " + startValue + " " + limit);
+                logCommonCall(start,
+                    "query2 " + collection + " " + fromKey + " " + toKey + " " + indexedProperty
+                        + " " + startValue + " " + limit);
             }
             return result;
         } catch (Exception e) {
@@ -190,15 +194,19 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
 
     @Override
     @NotNull
-    public <T extends Document> List<T> query(final Collection<T> collection, final String fromKey, final String toKey,
-                                              final String indexedProperty, final long startValue, final int limit,
-                                              final List<String> projection) throws DocumentStoreException {
+    public <T extends Document> List<T> query(final Collection<T> collection, final String fromKey,
+        final String toKey,
+        final String indexedProperty, final long startValue, final int limit,
+        final List<String> projection) throws DocumentStoreException {
         try {
             long start = now();
-            List<T> result = base.query(collection, fromKey, toKey, indexedProperty, startValue, limit, projection);
+            List<T> result = base.query(collection, fromKey, toKey, indexedProperty, startValue,
+                limit, projection);
             updateAndLogTimes("query3", start, 0, size(result));
             if (logCommonCall()) {
-                logCommonCall(start, "query3 " + collection + " " + fromKey + " " + toKey + " " + indexedProperty + " " + startValue + " " + limit + " " + projection.toString());
+                logCommonCall(start,
+                    "query3 " + collection + " " + fromKey + " " + toKey + " " + indexedProperty
+                        + " " + startValue + " " + limit + " " + projection.toString());
             }
             return result;
         } catch (Exception e) {
@@ -236,7 +244,7 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
 
     @Override
     public <T extends Document> int remove(Collection<T> collection,
-                                           Map<String, Long> toRemove) {
+        Map<String, Long> toRemove) {
         try {
             long start = now();
             int result = base.remove(collection, toRemove);
@@ -252,15 +260,16 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
 
     @Override
     public <T extends Document> int remove(Collection<T> collection,
-                                               String indexedProperty, long startValue, long endValue)
-            throws DocumentStoreException {
+        String indexedProperty, long startValue, long endValue)
+        throws DocumentStoreException {
         try {
             long start = now();
             int result = base.remove(collection, indexedProperty, startValue, endValue);
             updateAndLogTimes("remove", start, 0, 0);
             if (logCommonCall()) {
-                logCommonCall(start, "remove " + collection + "; indexedProperty" + indexedProperty +
-                    "; range - (" + startValue + ", " + endValue + ")");
+                logCommonCall(start,
+                    "remove " + collection + "; indexedProperty" + indexedProperty +
+                        "; range - (" + startValue + ", " + endValue + ")");
             }
             return result;
         } catch (Exception e) {
@@ -301,7 +310,8 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
     }
 
     @Override
-    public <T extends Document> List<T> createOrUpdate(Collection<T> collection, List<UpdateOp> updateOps) {
+    public <T extends Document> List<T> createOrUpdate(Collection<T> collection,
+        List<UpdateOp> updateOps) {
         try {
             long start = now();
             List<T> result = base.createOrUpdate(collection, updateOps);
@@ -337,7 +347,8 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
 
     @Override
     @NotNull
-    public <T extends Document> List<T> findAndUpdate(@NotNull Collection<T> collection, @NotNull List<UpdateOp> updateOps) {
+    public <T extends Document> List<T> findAndUpdate(@NotNull Collection<T> collection,
+        @NotNull List<UpdateOp> updateOps) {
         try {
             long start = now();
             List<T> result = base.findAndUpdate(collection, updateOps);
@@ -363,7 +374,7 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
             throw convert(e);
         }
     }
-    
+
     @Override
     public CacheInvalidationStats invalidateCache(Iterable<String> keys) {
         try {
@@ -482,8 +493,7 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
     }
 
     /**
-     * Return the {@link Throttler} for the underlying store
-     * Default is no throttling
+     * Return the {@link Throttler} for the underlying store Default is no throttling
      *
      * @return throttler for document store
      */
@@ -514,7 +524,8 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
         int maxElements = 1000;
         int minCount = 1;
         while (map.size() > maxElements) {
-            for (Iterator<Map.Entry<String, Integer>> ei = map.entrySet().iterator(); ei.hasNext();) {
+            for (Iterator<Map.Entry<String, Integer>> ei = map.entrySet().iterator();
+                ei.hasNext(); ) {
                 Map.Entry<String, Integer> e = ei.next();
                 if (e.getValue() <= minCount) {
                     ei.remove();
@@ -589,20 +600,20 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
                 long out = c.resultSize / 1024 / 1024;
                 if (count > 0) {
                     log(e.getKey() +
-                            " count " + count +
-                            " " + (100 * count / totalCount) + "%" +
-                            " in " + in + " out " + out +
-                            " time " + total +
-                            " " + (100 * total / totalTime) + "%");
+                        " count " + count +
+                        " " + (100 * count / totalCount) + "%" +
+                        " in " + in + " out " + out +
+                        " time " + total +
+                        " " + (100 * total / totalTime) + "%");
                 }
             }
             log("all count " + totalCount + " time " + totalTime + " " +
-                    (100 * totalTime / totalLogTime) + "%");
+                (100 * totalTime / totalLogTime) + "%");
 
             Map<String, Integer> map = slowCalls;
             int top = 10;
             int max = Integer.MAX_VALUE;
-            for (int i = 0; i < top;) {
+            for (int i = 0; i < top; ) {
                 int best = 0;
                 for (int x : map.values()) {
                     if (x < max && x > best) {

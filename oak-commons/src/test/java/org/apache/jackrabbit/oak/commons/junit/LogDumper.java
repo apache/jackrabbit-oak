@@ -19,22 +19,21 @@
 
 package org.apache.jackrabbit.oak.commons.junit;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
-
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.PatternLayout;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.CyclicBufferAppender;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 import org.slf4j.LoggerFactory;
 
 /**
  * The LogDumper Rule collects logs which are generated due to execution of test  and dumps them
- * locally upon test failure. This simplifies determining failure
- * cause by providing all required data locally. This would be specially useful when running test
- * in CI server where server logs gets cluttered with all other test executions
+ * locally upon test failure. This simplifies determining failure cause by providing all required
+ * data locally. This would be specially useful when running test in CI server where server logs
+ * gets cluttered with all other test executions
  * <p/>
  * <pre>
  *     public class LoginTestIT {
@@ -52,6 +51,7 @@ import org.slf4j.LoggerFactory;
  * </pre>
  */
 public class LogDumper extends TestWatcher {
+
     /**
      * Number of log entries to keep in memory
      */
@@ -72,15 +72,16 @@ public class LogDumper extends TestWatcher {
     public LogDumper() {
         this(LOG_BUFFER_SIZE);
     }
-    
+
     /**
      * Creates a new LogDumper with the given log buffer size
+     *
      * @param logBufferSize
      */
     public LogDumper(int logBufferSize) {
         this.logBufferSize = logBufferSize;
     }
-    
+
     @Override
     protected void finished(Description description) {
         deregisterAppender();
@@ -103,7 +104,7 @@ public class LogDumper extends TestWatcher {
             }
 
             pw.printf("=============== Logs for [%s#%s]===================%n",
-                    description.getClassName(), description.getMethodName());
+                description.getClassName(), description.getMethodName());
             pw.print(getLogs());
             pw.println("========================================================");
 

@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.upgrade.nodestate;
 
+import java.util.ArrayList;
+import java.util.List;
 import org.apache.jackrabbit.guava.common.base.Charsets;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -26,8 +28,6 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.List;
 public class NameFilteringNodeState extends AbstractDecoratedNodeState {
 
     private static final Logger LOG = LoggerFactory.getLogger(NameFilteringNodeState.class);
@@ -40,14 +40,16 @@ public class NameFilteringNodeState extends AbstractDecoratedNodeState {
         return new NameFilteringNodeState(delegate, null, null);
     }
 
-    private NameFilteringNodeState(final NodeState delegate, NameFilteringNodeState parent, String name) {
+    private NameFilteringNodeState(final NodeState delegate, NameFilteringNodeState parent,
+        String name) {
         super(delegate, false);
         this.parent = parent;
         this.name = name;
     }
 
     @Override
-    protected boolean hideChild(@NotNull final String name, @NotNull final NodeState delegateChild) {
+    protected boolean hideChild(@NotNull final String name,
+        @NotNull final NodeState delegateChild) {
         if (isNameTooLong(name)) {
             LOG.warn("Node name '{}' too long. Skipping child of {}", name, this);
             return true;
@@ -57,7 +59,8 @@ public class NameFilteringNodeState extends AbstractDecoratedNodeState {
 
     @Override
     @NotNull
-    protected NodeState decorateChild(@NotNull final String name, @NotNull final NodeState delegateChild) {
+    protected NodeState decorateChild(@NotNull final String name,
+        @NotNull final NodeState delegateChild) {
         return new NameFilteringNodeState(delegateChild, this, name);
     }
 
@@ -67,12 +70,12 @@ public class NameFilteringNodeState extends AbstractDecoratedNodeState {
     }
 
     /**
-     * This method checks whether the name is no longer than the maximum node
-     * name length supported by the DocumentNodeStore.
+     * This method checks whether the name is no longer than the maximum node name length supported
+     * by the DocumentNodeStore.
      *
-     * @param name
-     *            to check
-     * @return true if the name is longer than {@link org.apache.jackrabbit.oak.plugins.document.util.Utils#NODE_NAME_LIMIT}
+     * @param name to check
+     * @return true if the name is longer than
+     * {@link org.apache.jackrabbit.oak.plugins.document.util.Utils#NODE_NAME_LIMIT}
      */
     private boolean isNameTooLong(@NotNull String name) {
         // OAK-1589: maximum supported length of name for DocumentNodeStore

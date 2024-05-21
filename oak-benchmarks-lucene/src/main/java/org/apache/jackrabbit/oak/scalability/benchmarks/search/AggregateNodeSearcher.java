@@ -19,32 +19,34 @@
 
 package org.apache.jackrabbit.oak.scalability.benchmarks.search;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
-
-import org.apache.jackrabbit.api.security.user.Authorizable;
-import org.jetbrains.annotations.NotNull;
-
-import javax.jcr.*;
-import javax.jcr.query.Query;
-import javax.jcr.query.QueryManager;
-
 import java.util.List;
 import java.util.Random;
-
-import org.apache.jackrabbit.oak.scalability.suites.ScalabilityNodeRelationshipSuite;
+import javax.jcr.Credentials;
+import javax.jcr.Node;
+import javax.jcr.NodeIterator;
+import javax.jcr.Repository;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import javax.jcr.query.Query;
+import javax.jcr.query.QueryManager;
+import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.scalability.suites.ScalabilityAbstractSuite.ExecutionContext;
+import org.apache.jackrabbit.oak.scalability.suites.ScalabilityNodeRelationshipSuite;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Retrieves search property by iterating over nodes and then executes search using the retrieved
  * criteria.
  */
 public class AggregateNodeSearcher extends SearchScalabilityBenchmark {
+
     private static final String RELATIONSHIPS = "relationships";
 
     /**
      * Queries for nodes with property satisfying a set of properties and ordering by the latest.
      *
-     * @param qm the query manager
+     * @param qm      the query manager
      * @param context the execution context
      * @return the query object
      * @throws RepositoryException
@@ -56,16 +58,17 @@ public class AggregateNodeSearcher extends SearchScalabilityBenchmark {
         // descending
         StringBuilder statement = new StringBuilder("");
         statement.append("/jcr:root")
-            .append("//element(*, ")
-            .append(
-                (String) context.getMap().get(ScalabilityNodeRelationshipSuite.CTX_ACT_NODE_TYPE_PROP))
-            .append(")");
+                 .append("//element(*, ")
+                 .append(
+                     (String) context.getMap()
+                                     .get(ScalabilityNodeRelationshipSuite.CTX_ACT_NODE_TYPE_PROP))
+                 .append(")");
         statement.append("[((");
 
         // adding all the possible mime-types in an OR fashion
         for (String relationship : relationships) {
             statement.append(ScalabilityNodeRelationshipSuite.SOURCE_ID).append(" = '")
-                .append(relationship).append("' or ");
+                     .append(relationship).append("' or ");
         }
 
         // removing latest ' or '
@@ -74,7 +77,7 @@ public class AggregateNodeSearcher extends SearchScalabilityBenchmark {
         statement.append("))]");
         // order by jcr:created descending
         statement.append(" order by").append(" @").append(ScalabilityNodeRelationshipSuite.CREATED)
-            .append(" descending");
+                 .append(" descending");
 
         LOG.debug("{}", statement);
 
@@ -88,7 +91,8 @@ public class AggregateNodeSearcher extends SearchScalabilityBenchmark {
         QueryManager qm;
         try {
             List<Authorizable> users = (List<Authorizable>) context.getMap()
-                .get(ScalabilityNodeRelationshipSuite.CTX_USER);
+                                                                   .get(
+                                                                       ScalabilityNodeRelationshipSuite.CTX_USER);
             Random rand = new Random(99);
             Authorizable user = users.get(rand.nextInt(users.size()));
             List<String> targets = getRelatedUsers(session, user);

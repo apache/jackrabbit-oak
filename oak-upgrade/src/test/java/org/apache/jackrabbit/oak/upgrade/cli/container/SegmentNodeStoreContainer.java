@@ -16,18 +16,17 @@
  */
 package org.apache.jackrabbit.oak.upgrade.cli.container;
 
+import static org.apache.jackrabbit.oak.upgrade.cli.container.SegmentTarNodeStoreContainer.deleteRecursive;
+import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreArguments.SEGMENT_OLD_PREFIX;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-
-import static org.apache.jackrabbit.oak.upgrade.cli.container.SegmentTarNodeStoreContainer.deleteRecursive;
-import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreArguments.SEGMENT_OLD_PREFIX;
 
 public class SegmentNodeStoreContainer implements NodeStoreContainer {
 
@@ -51,8 +50,11 @@ public class SegmentNodeStoreContainer implements NodeStoreContainer {
 
     private SegmentNodeStoreContainer(BlobStoreContainer blob, File directory) throws IOException {
         this.blob = blob;
-        this.directory = directory == null ? Files.createTempDirectory(Paths.get("target"), "repo-segment").toFile() : directory;
+        this.directory =
+            directory == null ? Files.createTempDirectory(Paths.get("target"), "repo-segment")
+                                     .toFile() : directory;
     }
+
     @Override
     public NodeStore open() throws IOException {
         directory.mkdirs();

@@ -32,9 +32,10 @@ public class MultiLongPropertyState extends MultiPropertyState<Long> {
 
     /**
      * Create a multi valued {@code PropertyState} from a list of longs.
-     * @param name  The name of the property state
-     * @param values  The values of the property state
-     * @return  The new property state of type {@link Type#LONGS}
+     *
+     * @param name   The name of the property state
+     * @param values The values of the property state
+     * @return The new property state of type {@link Type#LONGS}
      */
     public static PropertyState createLongProperty(String name, Iterable<Long> values) {
         return new MultiLongPropertyState(name, Lists.newArrayList(values));

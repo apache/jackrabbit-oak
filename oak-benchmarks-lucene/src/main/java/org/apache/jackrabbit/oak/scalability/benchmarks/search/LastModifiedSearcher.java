@@ -21,59 +21,60 @@ package org.apache.jackrabbit.oak.scalability.benchmarks.search;
 import javax.jcr.RepositoryException;
 import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
-
 import org.apache.jackrabbit.oak.benchmark.util.Date;
-import org.apache.jackrabbit.oak.scalability.suites.ScalabilityBlobSearchSuite;
 import org.apache.jackrabbit.oak.scalability.suites.ScalabilityAbstractSuite.ExecutionContext;
+import org.apache.jackrabbit.oak.scalability.suites.ScalabilityBlobSearchSuite;
 
 /**
  * perform searches using the {@code jcr:lastModified} and the provided timeframe
  */
 public class LastModifiedSearcher extends SearchScalabilityBenchmark {
+
     private final Date timeframe;
-    
+
     public LastModifiedSearcher(Date timeframe) {
         this.timeframe = timeframe;
     }
-    
+
     @SuppressWarnings("deprecation")
     @Override
     protected Query getQuery(QueryManager qm, ExecutionContext context) throws RepositoryException {
         //  /jcr:root/content/dam//element(*, dam:Asset)[(jcr:content/@jcr:lastModified >= xs:dateTime('2013-05-09T09:44:01.403Z'))
-        final String path = (String) context.getMap().get(ScalabilityBlobSearchSuite.CTX_ROOT_NODE_NAME_PROP);
+        final String path = (String) context.getMap().get(
+            ScalabilityBlobSearchSuite.CTX_ROOT_NODE_NAME_PROP);
         final String statement = "/jcr:root/" + path + "//element(*, "
-                                 + context.getMap().get(ScalabilityBlobSearchSuite.CTX_FILE_NODE_TYPE_PROP)
-                                 + ")[(jcr:content/@jcr:lastModified >= xs:dateTime('"
-                                 + timeframe.toISO_8601_2000() + "'))]";
-        
+            + context.getMap().get(ScalabilityBlobSearchSuite.CTX_FILE_NODE_TYPE_PROP)
+            + ")[(jcr:content/@jcr:lastModified >= xs:dateTime('"
+            + timeframe.toISO_8601_2000() + "'))]";
+
         LOG.debug("LastModifiedSearcher: {}", statement);
-        
+
         return qm.createQuery(statement, Query.XPATH);
     }
 
     @Override
     public String toString() {
         String s = "::";
-        
-        switch(timeframe) {
-        case LAST_2_HRS:
-            s += "Hour";
-            break;
-        case LAST_24_HRS:
-            s += "Day";
-            break;
-        case LAST_7_DAYS:
-            s += "Week";
-            break;
-        case LAST_MONTH:
-            s += "Month";
-            break;
-        case LAST_YEAR:
-            s += "Year";
-            break;
-        default:
+
+        switch (timeframe) {
+            case LAST_2_HRS:
+                s += "Hour";
+                break;
+            case LAST_24_HRS:
+                s += "Day";
+                break;
+            case LAST_7_DAYS:
+                s += "Week";
+                break;
+            case LAST_MONTH:
+                s += "Month";
+                break;
+            case LAST_YEAR:
+                s += "Year";
+                break;
+            default:
         }
-        
+
         return super.toString() + s;
     }
 }

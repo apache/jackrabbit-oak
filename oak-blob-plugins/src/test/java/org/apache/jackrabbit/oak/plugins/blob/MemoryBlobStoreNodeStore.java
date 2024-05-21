@@ -22,7 +22,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Set;
 import java.util.UUID;
-
 import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
@@ -32,6 +31,7 @@ import org.jetbrains.annotations.NotNull;
  * MemoryNodeStore extension which created blobs in the in-memory blob store
  */
 public class MemoryBlobStoreNodeStore extends MemoryNodeStore {
+
     private final BlobStore blobStore;
     private final boolean fakePath;
     Set<String> referencedBlobs;
@@ -58,7 +58,7 @@ public class MemoryBlobStoreNodeStore extends MemoryNodeStore {
         try {
             String id = blobStore.writeBlob(in);
             return new TestBlob(id, blobStore);
-        } catch(Exception e) {
+        } catch (Exception e) {
             BlobGCTest.log.error("Error in createBlobs", e);
         }
         return null;
@@ -73,6 +73,7 @@ public class MemoryBlobStoreNodeStore extends MemoryNodeStore {
     }
 
     static class TestBlob extends ArrayBasedBlob {
+
         private String id;
         private BlobStore blobStore;
 
@@ -86,6 +87,7 @@ public class MemoryBlobStoreNodeStore extends MemoryNodeStore {
         public String getContentIdentity() {
             return id;
         }
+
         @NotNull
         @Override
         public InputStream getNewStream() {

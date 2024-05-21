@@ -25,14 +25,16 @@ public class SolrBenchmarkRunner extends BenchmarkRunner {
 
     public static void main(String[] args) throws Exception {
         initOptionSet(args);
-        statsProvider = options.has(benchmarkOptions.getMetrics()) ? getStatsProvider() : StatisticsProvider.NOOP;
+        statsProvider = options.has(benchmarkOptions.getMetrics()) ? getStatsProvider()
+            : StatisticsProvider.NOOP;
 
         BenchmarkRunner.addToBenchMarkList(
-                Arrays.asList(new FullTextSolrSearchTest(
-                        benchmarkOptions.getWikipedia().value(options),
-                        benchmarkOptions.getFlatStructure().value(options),
-                        benchmarkOptions.getReport().value(options), benchmarkOptions.getWithStorage().value(options),
-                        benchmarkOptions.getWithServer().value(options)))
+            Arrays.asList(new FullTextSolrSearchTest(
+                benchmarkOptions.getWikipedia().value(options),
+                benchmarkOptions.getFlatStructure().value(options),
+                benchmarkOptions.getReport().value(options),
+                benchmarkOptions.getWithStorage().value(options),
+                benchmarkOptions.getWithServer().value(options)))
         );
 
         BenchmarkRunner.main(args);

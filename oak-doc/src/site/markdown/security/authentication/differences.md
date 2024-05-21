@@ -14,6 +14,7 @@
    See the License for the specific language governing permissions and
    limitations under the License.
   -->
+
 ### Authentication : Differences wrt Jackrabbit 2.x
 
 #### Guest Login vs Null Login
@@ -21,9 +22,9 @@
 ##### Null Login
 
 As of Oak 1.0 `Repository#login()` and `Repository#login(null, wspName)` is no
-longer treated as guest login but as _pre-authenticed_ as defined by JSR 283. 
-In order to get backwards compatible behavior, Oak comes with a dedicated 
-[GuestLoginModule] that can be added to the JAAS (or the corresponding OSGi) 
+longer treated as guest login but as _pre-authenticed_ as defined by JSR 283.
+In order to get backwards compatible behavior, Oak comes with a dedicated
+[GuestLoginModule] that can be added to the JAAS (or the corresponding OSGi)
 configuration.
 
 ##### Guest Login
@@ -112,7 +113,11 @@ contains the following changes compared to Jackrabbit 2.x:
 <!-- references -->
 
 [TokenLoginModule]: /oak/docs/apidocs/org/apache/jackrabbit/oak/security/authentication/token/TokenLoginModule.html
+
 [TokenCredentials]: /oak/docs/apidocs/org/apache/jackrabbit/api/security/authentication/token/TokenCredentials.html
+
 [GuestLoginModule]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/GuestLoginModule.html
+
 [JSR_333-27]: https://java.net/jira/browse/JSR_333-27
+
 [ImpersonationCredentials]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/ImpersonationCredentials.html

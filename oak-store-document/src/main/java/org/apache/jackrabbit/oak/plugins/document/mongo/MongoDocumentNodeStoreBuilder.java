@@ -22,7 +22,7 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
  * A builder for a {@link DocumentNodeStore} backed by MongoDB.
  */
 public class MongoDocumentNodeStoreBuilder
-        extends MongoDocumentNodeStoreBuilderBase<MongoDocumentNodeStoreBuilder> {
+    extends MongoDocumentNodeStoreBuilderBase<MongoDocumentNodeStoreBuilder> {
 
     /**
      * @return a new {@link MongoDocumentNodeStoreBuilder}.

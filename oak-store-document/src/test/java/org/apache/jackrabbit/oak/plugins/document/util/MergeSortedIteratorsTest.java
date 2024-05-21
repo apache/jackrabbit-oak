@@ -71,12 +71,13 @@ public class MergeSortedIteratorsTest {
             iterators.add(list.iterator());
         }
         final Iterator<Iterator<Integer>> it = iterators.iterator();
-        MergeSortedIterators<Integer> sort = new MergeSortedIterators<Integer>(new Comparator<Integer>() {
-            @Override
-            public int compare(Integer o1, Integer o2) {
-                return o1.compareTo(o2);
-            }
-        }) {
+        MergeSortedIterators<Integer> sort = new MergeSortedIterators<Integer>(
+            new Comparator<Integer>() {
+                @Override
+                public int compare(Integer o1, Integer o2) {
+                    return o1.compareTo(o2);
+                }
+            }) {
             @Override
             public Iterator<Integer> nextIterator() {
                 return it.hasNext() ? it.next() : null;
@@ -90,13 +91,13 @@ public class MergeSortedIteratorsTest {
     }
 
     final static String[][] TEST_DATA = {
-            {
-                    "r14298e4442a-0-2",
-                    "r14298e443e5-0-2",
-            },
-            {
-                    "r14298e4548d-0-1"
-            },
+        {
+            "r14298e4442a-0-2",
+            "r14298e443e5-0-2",
+        },
+        {
+            "r14298e4548d-0-1"
+        },
     };
 
     private static List<Iterator<Revision>> prepareData() {

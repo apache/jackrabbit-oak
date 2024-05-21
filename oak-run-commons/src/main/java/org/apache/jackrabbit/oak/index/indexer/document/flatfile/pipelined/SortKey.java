@@ -18,38 +18,38 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
-import org.apache.jackrabbit.oak.commons.PathUtils;
-
-import java.util.Set;
-
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 
+import java.util.Set;
+import org.apache.jackrabbit.oak.commons.PathUtils;
+
 public final class SortKey {
+
     private static final Set<String> COMMON_PATH_WORDS = Set.of(
-            ":index",
-            "assets",
-            "audit",
-            "components",
-            "content",
-            "dam",
-            "data",
-            "items",
-            "jcr:content",
-            "jcr:created",
-            "jcr:primaryType",
-            "jcr:system",
-            "jcr:uuid",
-            "jcr:versionStorage",
-            "libs",
-            "master",
-            "metadata",
-            "oak:index",
-            "predictedTags",
-            "product-assets",
-            "related",
-            "renditions",
-            "uuid",
-            "var"
+        ":index",
+        "assets",
+        "audit",
+        "components",
+        "content",
+        "dam",
+        "data",
+        "items",
+        "jcr:content",
+        "jcr:created",
+        "jcr:primaryType",
+        "jcr:system",
+        "jcr:uuid",
+        "jcr:versionStorage",
+        "libs",
+        "master",
+        "metadata",
+        "oak:index",
+        "predictedTags",
+        "product-assets",
+        "related",
+        "renditions",
+        "uuid",
+        "var"
     );
 
     public static String[] genSortKeyPathElements(String path) {

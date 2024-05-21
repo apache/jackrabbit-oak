@@ -25,7 +25,6 @@ import java.util.List;
 import java.util.concurrent.AbstractExecutorService;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.jackrabbit.oak.plugins.observation.Filter;
 import org.apache.jackrabbit.oak.plugins.observation.FilteringAwareObserver;
 import org.apache.jackrabbit.oak.plugins.observation.FilteringObserver;

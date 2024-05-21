@@ -16,22 +16,6 @@
  */
 package org.apache.jackrabbit.j2ee;
 
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
-import org.apache.felix.connect.launch.PojoServiceRegistry;
-import org.apache.felix.webconsole.WebConsoleSecurityProvider;
-import org.apache.jackrabbit.api.JackrabbitRepository;
-import org.apache.jackrabbit.commons.repository.RepositoryFactory;
-import org.apache.jackrabbit.oak.run.osgi.OakOSGiRepositoryFactory;
-import org.apache.jackrabbit.oak.run.osgi.ServiceRegistryProvider;
-import org.apache.jackrabbit.rmi.server.RemoteAdapterFactory;
-import org.apache.jackrabbit.rmi.server.ServerAdapterFactory;
-import org.apache.jackrabbit.servlet.AbstractRepositoryServlet;
-import org.osgi.framework.BundleActivator;
-import org.osgi.framework.BundleContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -53,7 +37,6 @@ import java.rmi.server.UnicastRemoteObject;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
-
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.naming.InitialContext;
@@ -62,32 +45,44 @@ import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
+import org.apache.felix.connect.launch.PojoServiceRegistry;
+import org.apache.felix.webconsole.WebConsoleSecurityProvider;
+import org.apache.jackrabbit.api.JackrabbitRepository;
+import org.apache.jackrabbit.commons.repository.RepositoryFactory;
+import org.apache.jackrabbit.oak.run.osgi.OakOSGiRepositoryFactory;
+import org.apache.jackrabbit.oak.run.osgi.ServiceRegistryProvider;
+import org.apache.jackrabbit.rmi.server.RemoteAdapterFactory;
+import org.apache.jackrabbit.rmi.server.ServerAdapterFactory;
+import org.apache.jackrabbit.servlet.AbstractRepositoryServlet;
+import org.osgi.framework.BundleActivator;
+import org.osgi.framework.BundleContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
- * The RepositoryStartupServlet starts a jackrabbit repository and registers it
- * to the JNDI environment and optional to the RMI registry.
+ * The RepositoryStartupServlet starts a jackrabbit repository and registers it to the JNDI
+ * environment and optional to the RMI registry.
  * <p id="registerAlgo">
  * <b>Registration with RMI</b>
  * <p>
- * Upon successfull creation of the repository in the {@link #init()} method,
- * the repository is registered with an RMI registry if the web application is
- * so configured. To register with RMI, the following web application
+ * Upon successfull creation of the repository in the {@link #init()} method, the repository is
+ * registered with an RMI registry if the web application is so configured. To register with RMI,
+ * the following web application
  * <code>init-params</code> are considered: <code>rmi-port</code> designating
- * the port on which the RMI registry is listening, <code>rmi-host</code>
- * designating the interface on the local host on which the RMI registry is
- * active, <code>repository-name</code> designating the name to which the
- * repository is to be bound in the registry, and <code>rmi-uri</code>
- * designating an RMI URI complete with host, optional port and name to which
- * the object is bound.
+ * the port on which the RMI registry is listening, <code>rmi-host</code> designating the interface
+ * on the local host on which the RMI registry is active, <code>repository-name</code> designating
+ * the name to which the repository is to be bound in the registry, and <code>rmi-uri</code>
+ * designating an RMI URI complete with host, optional port and name to which the object is bound.
  * <p>
- * If the <code>rmi-uri</code> parameter is configured with a non-empty value,
- * the <code>rmi-port</code> and <code>rmi-host</code> parameters are ignored.
- * The <code>repository-name</code> parameter is only considered if a non-empty
+ * If the <code>rmi-uri</code> parameter is configured with a non-empty value, the
+ * <code>rmi-port</code> and <code>rmi-host</code> parameters are ignored. The
+ * <code>repository-name</code> parameter is only considered if a non-empty
  * <code>rmi-uri</code> parameter is configured if the latter does not contain
  * a name to which to bind the repository.
  * <p>
- * This is the algorithm used to find out the host, port and name for RMI
- * registration:
+ * This is the algorithm used to find out the host, port and name for RMI registration:
  * <ol>
  * <li>If neither a <code>rmi-uri</code> nor a <code>rmi-host</code> nor a
  * <code>rmi-port</code> parameter is configured, the repository is not
@@ -188,12 +183,11 @@ public class RepositoryStartupServlet extends AbstractRepositoryServlet {
     private Registry rmiRegistry = null;
 
     /**
-     * Keeps a strong reference to the server side RMI repository instance to
-     * prevent the RMI distributed Garbage Collector from collecting the
-     * instance making the repository unaccessible though it should still be.
-     * This field is only set to a non-<code>null</code> value, if registration
-     * of the repository to an RMI registry succeeded in the
-     * {@link #registerRMI()} method.
+     * Keeps a strong reference to the server side RMI repository instance to prevent the RMI
+     * distributed Garbage Collector from collecting the instance making the repository unaccessible
+     * though it should still be. This field is only set to a non-<code>null</code> value, if
+     * registration of the repository to an RMI registry succeeded in the {@link #registerRMI()}
+     * method.
      *
      * @see #registerRMI()
      * @see #unregisterRMI()
@@ -211,16 +205,15 @@ public class RepositoryStartupServlet extends AbstractRepositoryServlet {
     private BootstrapConfig config;
 
     /**
-     * Initializes the servlet.<br>
-     * Please note that only one repository startup servlet may exist per
-     * webapp. it registers itself as context attribute and acts as singleton.
+     * Initializes the servlet.<br> Please note that only one repository startup servlet may exist
+     * per webapp. it registers itself as context attribute and acts as singleton.
      *
-     * @throws ServletException if a same servlet is already registered or of
-     * another initialization error occurs.
+     * @throws ServletException if a same servlet is already registered or of another initialization
+     *                          error occurs.
      */
     public void init() throws ServletException {
         // check if servlet is defined twice
-        if (getServletContext().getAttribute(CTX_PARAM_THIS) !=  null) {
+        if (getServletContext().getAttribute(CTX_PARAM_THIS) != null) {
             throw new ServletException("Only one repository startup servlet allowed per web-app.");
         }
         getServletContext().setAttribute(CTX_PARAM_THIS, this);
@@ -228,8 +221,8 @@ public class RepositoryStartupServlet extends AbstractRepositoryServlet {
     }
 
     /**
-     * Returns an instance of this servlet. Please note, that only 1
-     * repository startup servlet can exist per webapp.
+     * Returns an instance of this servlet. Please note, that only 1 repository startup servlet can
+     * exist per webapp.
      *
      * @param context the servlet context
      * @return this servlet
@@ -239,8 +232,9 @@ public class RepositoryStartupServlet extends AbstractRepositoryServlet {
     }
 
     /**
-     * Configures and starts the repository. It registers it then to the
-     * RMI registry and bind is to the JNDI context if so configured.
+     * Configures and starts the repository. It registers it then to the RMI registry and bind is to
+     * the JNDI context if so configured.
+     *
      * @throws ServletException if an error occurs.
      */
     public void startup() throws ServletException {
@@ -258,7 +252,7 @@ public class RepositoryStartupServlet extends AbstractRepositoryServlet {
 
             //Once repository is initialized get its instances bounded to ServletContext
             //via super class init
-            if (repository != null){
+            if (repository != null) {
                 super.init();
             }
 
@@ -271,8 +265,8 @@ public class RepositoryStartupServlet extends AbstractRepositoryServlet {
     }
 
     /**
-     * Does a shutdown of the repository and deregisters it from the RMI
-     * registry and unbinds if from the JNDI context if so configured.
+     * Does a shutdown of the repository and deregisters it from the RMI registry and unbinds if
+     * from the JNDI context if so configured.
      */
     public void shutdown() {
         if (repository == null) {
@@ -289,6 +283,7 @@ public class RepositoryStartupServlet extends AbstractRepositoryServlet {
 
     /**
      * Restarts the repository.
+     *
      * @throws ServletException if an error occurs.
      * @see #shutdown()
      * @see #startup()
@@ -309,8 +304,8 @@ public class RepositoryStartupServlet extends AbstractRepositoryServlet {
     }
 
     /**
-     * Returns the started repository or <code>null</code> if not started
-     * yet.
+     * Returns the started repository or <code>null</code> if not started yet.
+     *
      * @return the JCR repository
      */
     public Repository getRepository() {
@@ -318,8 +313,8 @@ public class RepositoryStartupServlet extends AbstractRepositoryServlet {
     }
 
     /**
-     * Returns a repository factory that returns the repository if available
-     * or throws an exception if not.
+     * Returns a repository factory that returns the repository if available or throws an exception
+     * if not.
      *
      * @return repository factory
      */
@@ -337,8 +332,8 @@ public class RepositoryStartupServlet extends AbstractRepositoryServlet {
     }
 
     /**
-     * Reads the configuration and initializes the {@link #config} field if
-     * successful.
+     * Reads the configuration and initializes the {@link #config} field if successful.
+     *
      * @throws ServletException if an error occurs.
      */
     private boolean configure() throws ServletException {
@@ -359,7 +354,7 @@ public class RepositoryStartupServlet extends AbstractRepositoryServlet {
                         in = new FileInputStream(bootstrapConfigFile);
                     } catch (FileNotFoundException e) {
                         throw new ServletExceptionWithCause(
-                                "Bootstrap configuration not found: " + bstrp, e);
+                            "Bootstrap configuration not found: " + bstrp, e);
                     }
                 }
             }
@@ -368,7 +363,7 @@ public class RepositoryStartupServlet extends AbstractRepositoryServlet {
                     bootstrapProps.load(in);
                 } catch (IOException e) {
                     throw new ServletException(
-                            "Bootstrap configuration failure: " + bstrp, e);
+                        "Bootstrap configuration failure: " + bstrp, e);
                 } finally {
                     try {
                         in.close();
@@ -385,11 +380,12 @@ public class RepositoryStartupServlet extends AbstractRepositoryServlet {
         config.init(bootstrapProps);
         config.validate();
         if (!config.isValid()
-                || config.getRepositoryHome() == null) {
+            || config.getRepositoryHome() == null) {
             if (bstrp == null) {
                 log.error("Repository startup configuration is not valid.");
             } else {
-                log.error("Repository startup configuration is not valid but a bootstrap config is specified.");
+                log.error(
+                    "Repository startup configuration is not valid but a bootstrap config is specified.");
                 log.error("Either create the {} file or", bstrp);
                 log.error("use the '/config/index.jsp' for easy configuration.");
             }
@@ -401,8 +397,8 @@ public class RepositoryStartupServlet extends AbstractRepositoryServlet {
     }
 
     /**
-     * Creates a new Repository based on the configuration and initializes the
-     * {@link #repository} field if successful.
+     * Creates a new Repository based on the configuration and initializes the {@link #repository}
+     * field if successful.
      *
      * @throws ServletException if an error occurs
      */
@@ -413,14 +409,14 @@ public class RepositoryStartupServlet extends AbstractRepositoryServlet {
             repHome = new File(config.getRepositoryHome()).getCanonicalFile();
         } catch (IOException e) {
             throw new ServletExceptionWithCause(
-                    "Repository configuration failure: " + config.getRepositoryHome(), e);
+                "Repository configuration failure: " + config.getRepositoryHome(), e);
         }
         String repConfig = config.getRepositoryConfig();
         if (repConfig != null) {
             File configJson = new File(repHome, repConfig);
-            if (!configJson.exists()){
+            if (!configJson.exists()) {
                 InputStream in = getServletContext().getResourceAsStream(repConfig);
-                if (in == null){
+                if (in == null) {
                     throw new ServletException("No config file found in classpath " + repConfig);
                 }
                 OutputStream os = null;
@@ -429,7 +425,7 @@ public class RepositoryStartupServlet extends AbstractRepositoryServlet {
                     IOUtils.copy(in, os);
                 } catch (IOException e1) {
                     throw new ServletExceptionWithCause(
-                            "Error copying the repository config json", e1);
+                        "Error copying the repository config json", e1);
                 } finally {
                     IOUtils.closeQuietly(os);
                     IOUtils.closeQuietly(in);
@@ -438,7 +434,7 @@ public class RepositoryStartupServlet extends AbstractRepositoryServlet {
 
             try {
                 repository = createRepository(configJson, repHome);
-                if (getBootstrapConfig().isRepositoryCreateDefaultIndexes()){
+                if (getBootstrapConfig().isRepositoryCreateDefaultIndexes()) {
                     new IndexInitializer(repository).initialize();
                 }
             } catch (RepositoryException e) {
@@ -448,9 +444,9 @@ public class RepositoryStartupServlet extends AbstractRepositoryServlet {
     }
 
     /**
-     * Shuts down the repository. If the repository is an instanceof
-     * {@link JackrabbitRepository} it's {@link JackrabbitRepository#shutdown()}
-     * method is called. in any case, the {@link #repository} field is
+     * Shuts down the repository. If the repository is an instanceof {@link JackrabbitRepository}
+     * it's {@link JackrabbitRepository#shutdown()} method is called. in any case, the
+     * {@link #repository} field is
      * <code>nulled</code>.
      */
     private void shutdownRepository() {
@@ -461,23 +457,25 @@ public class RepositoryStartupServlet extends AbstractRepositoryServlet {
     }
 
     /**
-     * Creates the repository instance for the given config and homedir.
-     * Subclasses may override this method of providing own implementations of
-     * a {@link Repository}.
+     * Creates the repository instance for the given config and homedir. Subclasses may override
+     * this method of providing own implementations of a {@link Repository}.
      *
      * @param configJson input source of the repository config
-     * @param homedir the repository home directory
+     * @param homedir    the repository home directory
      * @return a new jcr repository.
      * @throws RepositoryException if an error during creation occurs.
      */
     protected Repository createRepository(File configJson, File homedir)
-            throws RepositoryException {
-        Map<String,Object> config = new HashMap<String, Object>();
+        throws RepositoryException {
+        Map<String, Object> config = new HashMap<String, Object>();
         config.put(OakOSGiRepositoryFactory.REPOSITORY_HOME, homedir.getAbsolutePath());
         config.put(OakOSGiRepositoryFactory.REPOSITORY_CONFIG_FILE, configJson.getAbsolutePath());
-        config.put(OakOSGiRepositoryFactory.REPOSITORY_BUNDLE_FILTER, getBootstrapConfig().getBundleFilter());
-        config.put(OakOSGiRepositoryFactory.REPOSITORY_SHUTDOWN_ON_TIMEOUT, getBootstrapConfig().isShutdownOnTimeout());
-        config.put(OakOSGiRepositoryFactory.REPOSITORY_TIMEOUT_IN_SECS, getBootstrapConfig().getStartupTimeout());
+        config.put(OakOSGiRepositoryFactory.REPOSITORY_BUNDLE_FILTER,
+            getBootstrapConfig().getBundleFilter());
+        config.put(OakOSGiRepositoryFactory.REPOSITORY_SHUTDOWN_ON_TIMEOUT,
+            getBootstrapConfig().isShutdownOnTimeout());
+        config.put(OakOSGiRepositoryFactory.REPOSITORY_TIMEOUT_IN_SECS,
+            getBootstrapConfig().getStartupTimeout());
         configureActivator(config);
         //TODO oak-jcr also provides a dummy RepositoryFactory. Hence this
         //cannot be used
@@ -488,15 +486,15 @@ public class RepositoryStartupServlet extends AbstractRepositoryServlet {
     }
 
     private void configWebConsoleSecurityProvider(Repository repository) {
-        if (repository instanceof ServiceRegistryProvider){
+        if (repository instanceof ServiceRegistryProvider) {
             PojoServiceRegistry registry = ((ServiceRegistryProvider) repository).getServiceRegistry();
             registry.registerService(WebConsoleSecurityProvider.class.getName(),
-                    new RepositorySecurityProvider(repository), null);
+                new RepositorySecurityProvider(repository), null);
         }
     }
 
     private void configureActivator(Map<String, Object> config) {
-        try{
+        try {
             config.put(BundleActivator.class.getName(), new BundleActivator() {
                 @Override
                 public void start(BundleContext bundleContext) throws Exception {
@@ -508,13 +506,14 @@ public class RepositoryStartupServlet extends AbstractRepositoryServlet {
                     unregisterOSGi();
                 }
             });
-        } catch (Throwable t){
+        } catch (Throwable t) {
             log.warn("OSGi support not present", t);
         }
     }
 
     /**
      * Binds the repository to the JNDI context
+     *
      * @throws ServletException if an error occurs.
      */
     private void registerJNDI() throws ServletException {
@@ -526,7 +525,7 @@ public class RepositoryStartupServlet extends AbstractRepositoryServlet {
                 log.info("Repository bound to JNDI with name: " + jc.getJndiName());
             } catch (NamingException e) {
                 throw new ServletExceptionWithCause(
-                        "Unable to bind repository using JNDI: " + jc.getJndiName(), e);
+                    "Unable to bind repository using JNDI: " + jc.getJndiName(), e);
             }
         }
     }
@@ -545,10 +544,10 @@ public class RepositoryStartupServlet extends AbstractRepositoryServlet {
     }
 
     /**
-     * Registers the repository to an RMI registry configured in the web
-     * application. See <a href="#registerAlgo">Registration with RMI</a> in the
-     * class documentation for a description of the algorithms used to register
-     * the repository with an RMI registry.
+     * Registers the repository to an RMI registry configured in the web application. See <a
+     * href="#registerAlgo">Registration with RMI</a> in the class documentation for a description
+     * of the algorithms used to register the repository with an RMI registry.
+     *
      * @throws ServletException if an error occurs.
      */
     private void registerRMI() {
@@ -568,7 +567,7 @@ public class RepositoryStartupServlet extends AbstractRepositoryServlet {
             return;
         } catch (Throwable t) {
             log.warn("Unable to create RMI repository."
-                    + " The jcr-rmi jar might be missing.", t);
+                + " The jcr-rmi jar might be missing.", t);
             return;
         }
 
@@ -615,12 +614,12 @@ public class RepositoryStartupServlet extends AbstractRepositoryServlet {
             // registry is actually accessible.
             if (reg == null) {
                 log.debug("Trying to access existing registry at " + rc.getRmiHost()
-                        + ":" + rc.getRmiPort());
+                    + ":" + rc.getRmiPort());
                 try {
                     reg = LocateRegistry.getRegistry(rc.getRmiHost(), rc.rmiPort());
                 } catch (RemoteException re) {
                     log.warn("Cannot create the reference to the registry at "
-                            + rc.getRmiHost() + ":" + rc.getRmiPort(), re);
+                        + rc.getRmiHost() + ":" + rc.getRmiPort(), re);
                 }
             }
 
@@ -628,7 +627,7 @@ public class RepositoryStartupServlet extends AbstractRepositoryServlet {
             // rmiName
             if (reg != null) {
                 log.debug("Registering repository as " + rc.getRmiName()
-                        + " to registry " + reg);
+                    + " to registry " + reg);
                 reg.bind(rc.getRmiName(), remote);
 
                 // when successfull, keep references
@@ -645,8 +644,7 @@ public class RepositoryStartupServlet extends AbstractRepositoryServlet {
     }
 
     /**
-     * Unregisters the repository from the RMI registry, if it has previously
-     * been registered.
+     * Unregisters the repository from the RMI registry, if it has previously been registered.
      */
     private void unregisterRMI() {
         if (rmiRepository != null) {
@@ -678,9 +676,9 @@ public class RepositoryStartupServlet extends AbstractRepositoryServlet {
     }
 
     /**
-     * Set the BundleContext reference with ServletContext. This is then used by
-     * Felix Proxy Servlet. Kept the type as object to allow logic to work in
-     * absence of OSGi classes also.
+     * Set the BundleContext reference with ServletContext. This is then used by Felix Proxy
+     * Servlet. Kept the type as object to allow logic to work in absence of OSGi classes also.
+     *
      * @param bundleContext
      */
     private void registerOSGi(Object bundleContext) {
@@ -693,6 +691,7 @@ public class RepositoryStartupServlet extends AbstractRepositoryServlet {
 
     /**
      * Returns the config that was used to bootstrap this servlet.
+     *
      * @return the bootstrap config or <code>null</code>.
      */
     public BootstrapConfig getBootstrapConfig() {
@@ -700,12 +699,10 @@ public class RepositoryStartupServlet extends AbstractRepositoryServlet {
     }
 
     /**
-     * Return the fully qualified name of the class providing the remote
-     * repository. The class whose name is returned must implement the
-     * {@link RemoteFactoryDelegater} interface.
+     * Return the fully qualified name of the class providing the remote repository. The class whose
+     * name is returned must implement the {@link RemoteFactoryDelegater} interface.
      * <p>
-     * Subclasses may override this method for providing a name of a own
-     * implementation.
+     * Subclasses may override this method for providing a name of a own implementation.
      *
      * @return getClass().getName() + "$RMIRemoteFactoryDelegater"
      */
@@ -714,25 +711,23 @@ public class RepositoryStartupServlet extends AbstractRepositoryServlet {
     }
 
     /**
-     * Returns an <code>RMIServerSocketFactory</code> used to create the server
-     * socket for a locally created RMI registry.
+     * Returns an <code>RMIServerSocketFactory</code> used to create the server socket for a locally
+     * created RMI registry.
      * <p>
      * This implementation returns a new instance of a simple
      * <code>RMIServerSocketFactory</code> which just creates instances of
      * the <code>java.net.ServerSocket</code> class bound to the given
      * <code>hostAddress</code>. Implementations may overwrite this method to
-     * provide factory instances, which provide more elaborate server socket
-     * creation, such as SSL server sockets.
+     * provide factory instances, which provide more elaborate server socket creation, such as SSL
+     * server sockets.
      *
-     * @param hostAddress The <code>InetAddress</code> instance representing the
-     *                    the interface on the local host to which the server sockets are
-     *                    bound.
-     * @return A new instance of a simple <code>RMIServerSocketFactory</code>
-     *         creating <code>java.net.ServerSocket</code> instances bound to
-     *         the <code>rmiHost</code>.
+     * @param hostAddress The <code>InetAddress</code> instance representing the the interface on
+     *                    the local host to which the server sockets are bound.
+     * @return A new instance of a simple <code>RMIServerSocketFactory</code> creating
+     * <code>java.net.ServerSocket</code> instances bound to the <code>rmiHost</code>.
      */
     protected RMIServerSocketFactory getRMIServerSocketFactory(
-            final InetAddress hostAddress) {
+        final InetAddress hostAddress) {
         return new RMIServerSocketFactory() {
             public ServerSocket createServerSocket(int port) throws IOException {
                 return new ServerSocket(port, -1, hostAddress);
@@ -746,7 +741,7 @@ public class RepositoryStartupServlet extends AbstractRepositoryServlet {
     protected static abstract class RemoteFactoryDelegater {
 
         public abstract Remote createRemoteRepository(Repository repository)
-                throws RemoteException;
+            throws RemoteException;
     }
 
     /**
@@ -758,7 +753,7 @@ public class RepositoryStartupServlet extends AbstractRepositoryServlet {
             new ServerAdapterFactory();
 
         public Remote createRemoteRepository(Repository repository)
-                throws RemoteException {
+            throws RemoteException {
             return FACTORY.getRemoteRepository(repository);
         }
 
@@ -770,7 +765,7 @@ public class RepositoryStartupServlet extends AbstractRepositoryServlet {
      * {@inheritDoc}
      */
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
-            throws ServletException, IOException {
+        throws ServletException, IOException {
         if (repository == null) {
             redirect(req, resp, "/bootstrap/missing.jsp");
         } else {
@@ -782,12 +777,12 @@ public class RepositoryStartupServlet extends AbstractRepositoryServlet {
      * {@inheritDoc}
      */
     protected void doPost(HttpServletRequest req, HttpServletResponse resp)
-            throws ServletException, IOException {
+        throws ServletException, IOException {
         if (repository != null) {
             redirect(req, resp, "/bootstrap/reconfigure.jsp");
         } else {
             int rc = new Installer(bootstrapConfigFile,
-                    getServletContext()).installRepository(req);
+                getServletContext()).installRepository(req);
             switch (rc) {
                 case Installer.C_INSTALL_OK:
                     // restart rep
@@ -806,7 +801,7 @@ public class RepositoryStartupServlet extends AbstractRepositoryServlet {
                 case Installer.C_HOME_EXISTS:
                     redirect(req, resp, "/bootstrap/exists.jsp");
                     break;
-                case Installer. C_HOME_MISSING:
+                case Installer.C_HOME_MISSING:
                 case Installer.C_CONFIG_MISSING:
                     redirect(req, resp, "/bootstrap/notexists.jsp");
                     break;
@@ -820,15 +815,15 @@ public class RepositoryStartupServlet extends AbstractRepositoryServlet {
     /**
      * Helper function to send a redirect response respecting the context path.
      *
-     * @param req the request
+     * @param req  the request
      * @param resp the response
-     * @param loc the location for the redirect
+     * @param loc  the location for the redirect
      * @throws ServletException if an servlet error occurs.
-     * @throws IOException if an I/O error occurs.
+     * @throws IOException      if an I/O error occurs.
      */
     private void redirect(HttpServletRequest req,
-                          HttpServletResponse resp, String loc)
-            throws ServletException, IOException {
+        HttpServletResponse resp, String loc)
+        throws ServletException, IOException {
         String cp = req.getContextPath();
         if (cp == null || cp.equals("/")) {
             cp = "";

@@ -18,6 +18,11 @@
  */
 package org.apache.jackrabbit.oak.explorer;
 
+import static java.util.Collections.sort;
+import static javax.jcr.PropertyType.BINARY;
+import static javax.jcr.PropertyType.STRING;
+import static javax.swing.tree.TreeSelectionModel.SINGLE_TREE_SELECTION;
+import static org.apache.commons.io.FileUtils.byteCountToDisplaySize;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
 import static org.apache.jackrabbit.guava.common.collect.Maps.newTreeMap;
@@ -25,17 +30,12 @@ import static org.apache.jackrabbit.guava.common.collect.Sets.intersection;
 import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.guava.common.collect.Sets.newTreeSet;
 import static org.apache.jackrabbit.guava.common.escape.Escapers.builder;
-import static java.util.Collections.sort;
-import static javax.jcr.PropertyType.BINARY;
-import static javax.jcr.PropertyType.STRING;
-import static javax.swing.tree.TreeSelectionModel.SINGLE_TREE_SELECTION;
-import static org.apache.commons.io.FileUtils.byteCountToDisplaySize;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.commons.json.JsopBuilder.prettyPrint;
 import static org.apache.jackrabbit.oak.json.JsopDiff.diffToJsop;
 
-import java.awt.*;
+import java.awt.GridLayout;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.List;
@@ -43,13 +43,14 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
-
-import javax.swing.*;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
+import javax.swing.JTree;
 import javax.swing.event.TreeSelectionEvent;
 import javax.swing.event.TreeSelectionListener;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
-
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -64,7 +65,8 @@ class NodeStoreTree extends JPanel implements TreeSelectionListener, Closeable {
 
     private static final String newline = "\n";
 
-    private static void printGcRoots(StringBuilder sb, Map<UUID, Set<Entry<UUID, String>>> links, UUID uuid, String space, String inc) {
+    private static void printGcRoots(StringBuilder sb, Map<UUID, Set<Entry<UUID, String>>> links,
+        UUID uuid, String space, String inc) {
         Set<Entry<UUID, String>> roots = links.remove(uuid);
 
         if (roots == null || roots.isEmpty()) {
@@ -73,7 +75,8 @@ class NodeStoreTree extends JPanel implements TreeSelectionListener, Closeable {
 
         // TODO is sorting by file name needed?
         for (Entry<UUID, String> r : roots) {
-            sb.append(space).append(r.getKey()).append("[").append(r.getValue()).append("]").append(newline);
+            sb.append(space).append(r.getKey()).append("[").append(r.getValue()).append("]")
+              .append(newline);
             printGcRoots(sb, links, r.getKey(), space + inc, inc);
         }
     }
@@ -90,7 +93,8 @@ class NodeStoreTree extends JPanel implements TreeSelectionListener, Closeable {
         }
     }
 
-    private static void printPropertyState(ExplorerBackend store, PropertyState state, String parentFile, StringBuilder b) {
+    private static void printPropertyState(ExplorerBackend store, PropertyState state,
+        String parentFile, StringBuilder b) {
         if (store.isPersisted(state)) {
             printRecordId(store.getRecordId(state), store.getFile(state), parentFile, b);
         } else {
@@ -98,7 +102,8 @@ class NodeStoreTree extends JPanel implements TreeSelectionListener, Closeable {
         }
     }
 
-    private static void printNodeState(ExplorerBackend store, NodeState state, String parentTarFile, StringBuilder b) {
+    private static void printNodeState(ExplorerBackend store, NodeState state, String parentTarFile,
+        StringBuilder b) {
         if (store.isPersisted(state)) {
             printRecordId(store.getRecordId(state), store.getFile(state), parentTarFile, b);
         } else {
@@ -106,7 +111,8 @@ class NodeStoreTree extends JPanel implements TreeSelectionListener, Closeable {
         }
     }
 
-    private static void printRecordId(String recordId, String file, String parentFile, StringBuilder l) {
+    private static void printRecordId(String recordId, String file, String parentFile,
+        StringBuilder l) {
         l.append(" (").append(recordId);
 
         if (file != null && !file.equals(parentFile)) {
@@ -135,7 +141,7 @@ class NodeStoreTree extends JPanel implements TreeSelectionListener, Closeable {
     private final boolean skipSizeCheck;
 
     NodeStoreTree(ExplorerBackend backend, JTextArea log, boolean skipSizeCheck)
-            throws IOException {
+        throws IOException {
         super(new GridLayout(1, 0));
         this.backend = backend;
         this.log = log;
@@ -162,8 +168,8 @@ class NodeStoreTree extends JPanel implements TreeSelectionListener, Closeable {
         index = backend.getTarReaderIndex();
         sizeCache = newHashMap();
         DefaultMutableTreeNode rootNode = new DefaultMutableTreeNode(
-                new NamePathModel("/", "/", backend.getHead(), sizeCache,
-                        skipSizeCheck, backend), true);
+            new NamePathModel("/", "/", backend.getHead(), sizeCache,
+                skipSizeCheck, backend), true);
         treeModel = new DefaultTreeModel(rootNode);
         addChildren(rootNode);
         tree.setModel(treeModel);
@@ -178,7 +184,7 @@ class NodeStoreTree extends JPanel implements TreeSelectionListener, Closeable {
     @Override
     public void valueChanged(TreeSelectionEvent e) {
         DefaultMutableTreeNode node = (DefaultMutableTreeNode) tree
-                .getLastSelectedPathComponent();
+            .getLastSelectedPathComponent();
         if (node == null) {
             return;
         }
@@ -219,14 +225,14 @@ class NodeStoreTree extends JPanel implements TreeSelectionListener, Closeable {
         List<NamePathModel> kids = newArrayList();
         for (ChildNodeEntry ce : model.getState().getChildNodeEntries()) {
             NamePathModel c = new NamePathModel(ce.getName(), concat(
-                    model.getPath(), ce.getName()), ce.getNodeState(),
-                    sizeCache, skipSizeCheck, backend);
+                model.getPath(), ce.getName()), ce.getNodeState(),
+                sizeCache, skipSizeCheck, backend);
             kids.add(c);
         }
         sort(kids);
         for (NamePathModel c : kids) {
             DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(c,
-                    true);
+                true);
             treeModel.insertNodeInto(childNode, parent, parent.getChildCount());
         }
         model.loaded();
@@ -311,7 +317,8 @@ class NodeStoreTree extends JPanel implements TreeSelectionListener, Closeable {
             sb.append(newline);
         }
 
-        sb.append("Child nodes (count: ").append(state.getChildNodeCount(Long.MAX_VALUE)).append(")");
+        sb.append("Child nodes (count: ").append(state.getChildNodeCount(Long.MAX_VALUE))
+          .append(")");
         sb.append(newline);
         Map<String, String> childLines = newTreeMap();
         for (ChildNodeEntry ce : state.getChildNodeEntries()) {
@@ -367,11 +374,11 @@ class NodeStoreTree extends JPanel implements TreeSelectionListener, Closeable {
     private static String displayString(String value) {
         if (MAX_CHAR_DISPLAY > 0 && value.length() > MAX_CHAR_DISPLAY) {
             value = value.substring(0, MAX_CHAR_DISPLAY) + "... ("
-                    + value.length() + " chars)";
+                + value.length() + " chars)";
         }
         String escaped = builder().setSafeRange(' ', '~')
-                .addEscape('"', "\\\"").addEscape('\\', "\\\\").build()
-                .escape(value);
+                                  .addEscape('"', "\\\"").addEscape('\\', "\\\\").build()
+                                  .escape(value);
         return '"' + escaped + '"';
     }
 
@@ -427,7 +434,7 @@ class NodeStoreTree extends JPanel implements TreeSelectionListener, Closeable {
             sb.append("Tar graph:").append(newline);
             for (Entry<UUID, Set<UUID>> entry : graph.entrySet()) {
                 sb.append(entry.getKey()).append('=').append(entry.getValue())
-                        .append(newline);
+                  .append(newline);
             }
             sb.append(newline);
         } catch (IOException e) {
@@ -479,7 +486,8 @@ class NodeStoreTree extends JPanel implements TreeSelectionListener, Closeable {
         setText(sb.toString());
     }
 
-    private static void filterNodeStates(Set<UUID> uuids, List<String> paths, NodeState state, String path, ExplorerBackend store) {
+    private static void filterNodeStates(Set<UUID> uuids, List<String> paths, NodeState state,
+        String path, ExplorerBackend store) {
         Set<String> localPaths = newTreeSet();
         for (PropertyState ps : state.getProperties()) {
             if (store.isPersisted(ps)) {
@@ -493,11 +501,11 @@ class NodeStoreTree extends JPanel implements TreeSelectionListener, Closeable {
                             val = displayString(ps.getValue(Type.STRING, 0));
                         }
                         localPaths.add(path + ps.getName() + " = " + val
-                                + " [SegmentPropertyState<" + ps.getType()
-                                + ">@" + recordId + "]");
+                            + " [SegmentPropertyState<" + ps.getType()
+                            + ">@" + recordId + "]");
                     } else {
                         localPaths.add(path + ps + " [SegmentPropertyState<"
-                                + ps.getType() + ">@" + recordId + "]");
+                            + ps.getType() + ">@" + recordId + "]");
                     }
 
                 }
@@ -508,8 +516,8 @@ class NodeStoreTree extends JPanel implements TreeSelectionListener, Closeable {
                         for (Entry<UUID, String> e : store.getBulkSegmentIds(b).entrySet()) {
                             if (!e.getKey().equals(id) && uuids.contains(e.getKey())) {
                                 localPaths.add(path + ps
-                                        + " [SegmentPropertyState<"
-                                        + ps.getType() + ">@" + recordId + "]");
+                                    + " [SegmentPropertyState<"
+                                    + ps.getType() + ">@" + recordId + "]");
                             }
                         }
                     }
@@ -625,7 +633,8 @@ class NodeStoreTree extends JPanel implements TreeSelectionListener, Closeable {
 
         private Long[] size = {-1L, -1L};
 
-        NamePathModel(String name, String path, NodeState state, Map<String, Long[]> sizeCache, boolean skipSizeCheck, ExplorerBackend backend) {
+        NamePathModel(String name, String path, NodeState state, Map<String, Long[]> sizeCache,
+            boolean skipSizeCheck, ExplorerBackend backend) {
             this.backend = backend;
             this.name = name;
             this.path = path;
@@ -650,7 +659,7 @@ class NodeStoreTree extends JPanel implements TreeSelectionListener, Closeable {
             }
             if (size[1] > 0) {
                 return name + " (" + byteCountToDisplaySize(size[0]) + ";"
-                        + byteCountToDisplaySize(size[1]) + ")";
+                    + byteCountToDisplaySize(size[1]) + ")";
             }
             if (size[0] > 0) {
                 return name + " (" + byteCountToDisplaySize(size[0]) + ")";
@@ -697,7 +706,8 @@ class NodeStoreTree extends JPanel implements TreeSelectionListener, Closeable {
         }
     }
 
-    private static Long[] exploreSize(NodeState ns, Map<String, Long[]> sizeCache, ExplorerBackend store) {
+    private static Long[] exploreSize(NodeState ns, Map<String, Long[]> sizeCache,
+        ExplorerBackend store) {
         String key = store.getRecordId(ns);
         if (sizeCache.containsKey(key)) {
             return sizeCache.get(key);

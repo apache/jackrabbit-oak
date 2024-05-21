@@ -35,7 +35,8 @@ public class IndexLoaderTest {
         });
     }
 
-    private static void assertEntry(IndexEntry entry, long msb, long lsb, int position, int length, int full, int tail, boolean isTail) {
+    private static void assertEntry(IndexEntry entry, long msb, long lsb, int position, int length,
+        int full, int tail, boolean isTail) {
         assertEquals(msb, entry.getMsb());
         assertEquals(lsb, entry.getLsb());
         assertEquals(position, entry.getPosition());
@@ -61,12 +62,12 @@ public class IndexLoaderTest {
     public void testLoadIndexV1() throws Exception {
         Buffer buffer = Buffer.allocate(2 * IndexEntryV1.SIZE + IndexV1.FOOTER_SIZE);
         buffer.duplicate()
-                .putLong(1).putLong(2).putInt(3).putInt(4).putInt(5)
-                .putLong(6).putLong(7).putInt(8).putInt(9).putInt(10)
-                .putInt(0x3F5F40E9)
-                .putInt(2)
-                .putInt(2 * IndexEntryV1.SIZE + IndexV1.FOOTER_SIZE)
-                .putInt(IndexLoaderV1.MAGIC);
+              .putLong(1).putLong(2).putInt(3).putInt(4).putInt(5)
+              .putLong(6).putLong(7).putInt(8).putInt(9).putInt(10)
+              .putInt(0x3F5F40E9)
+              .putInt(2)
+              .putInt(2 * IndexEntryV1.SIZE + IndexV1.FOOTER_SIZE)
+              .putInt(IndexLoaderV1.MAGIC);
         Index index = loadIndex(buffer);
         assertNotNull(index);
         assertEquals(2, index.count());
@@ -78,12 +79,12 @@ public class IndexLoaderTest {
     public void testLoadIndexV2() throws Exception {
         Buffer buffer = Buffer.allocate(2 * IndexEntryV2.SIZE + IndexV2.FOOTER_SIZE);
         buffer.duplicate()
-                .putLong(1).putLong(2).putInt(3).putInt(4).putInt(5).putInt(6).put((byte) 0)
-                .putLong(7).putLong(8).putInt(9).putInt(10).putInt(11).putInt(12).put((byte) 1)
-                .putInt(0xE2138EB4)
-                .putInt(2)
-                .putInt(2 * IndexEntryV2.SIZE + IndexV2.FOOTER_SIZE)
-                .putInt(IndexLoaderV2.MAGIC);
+              .putLong(1).putLong(2).putInt(3).putInt(4).putInt(5).putInt(6).put((byte) 0)
+              .putLong(7).putLong(8).putInt(9).putInt(10).putInt(11).putInt(12).put((byte) 1)
+              .putInt(0xE2138EB4)
+              .putInt(2)
+              .putInt(2 * IndexEntryV2.SIZE + IndexV2.FOOTER_SIZE)
+              .putInt(IndexLoaderV2.MAGIC);
         Index index = loadIndex(buffer);
         assertNotNull(index);
         assertEquals(2, index.count());

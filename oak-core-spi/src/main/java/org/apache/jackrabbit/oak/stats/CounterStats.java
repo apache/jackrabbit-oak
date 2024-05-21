@@ -22,7 +22,8 @@ package org.apache.jackrabbit.oak.stats;
 import org.osgi.annotation.versioning.ProviderType;
 
 @ProviderType
-public interface CounterStats extends Stats, Counting{
+public interface CounterStats extends Stats, Counting {
+
     /**
      * Increment the counter by one.
      */

@@ -21,7 +21,6 @@ import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlEntry;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.Privilege;
-
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -99,7 +98,8 @@ public class L3_AccessControlListTest extends AbstractJCRTest {
 
         acMgr = superuser.getAccessControlManager();
 
-        testPrincipal = ExerciseUtility.createTestGroup(((JackrabbitSession) superuser).getUserManager()).getPrincipal();
+        testPrincipal = ExerciseUtility.createTestGroup(
+            ((JackrabbitSession) superuser).getUserManager()).getPrincipal();
         superuser.save();
 
         acl = AccessControlUtils.getAccessControlList(superuser, testRoot);
@@ -111,7 +111,8 @@ public class L3_AccessControlListTest extends AbstractJCRTest {
     @Override
     protected void tearDown() throws Exception {
         try {
-            Authorizable testGroup = ((JackrabbitSession) superuser).getUserManager().getAuthorizable(testPrincipal);
+            Authorizable testGroup = ((JackrabbitSession) superuser).getUserManager()
+                                                                    .getAuthorizable(testPrincipal);
             if (testGroup != null) {
                 testGroup.remove();
                 superuser.save();
@@ -139,7 +140,8 @@ public class L3_AccessControlListTest extends AbstractJCRTest {
     }
 
     public void testAddEntries() throws RepositoryException {
-        Privilege[] privileges1 = AccessControlUtils.privilegesFromNames(acMgr, Privilege.JCR_READ, Privilege.JCR_WRITE);
+        Privilege[] privileges1 = AccessControlUtils.privilegesFromNames(acMgr, Privilege.JCR_READ,
+            Privilege.JCR_WRITE);
         Privilege[] privileges2 = AccessControlUtils.privilegesFromNames(acMgr, Privilege.JCR_ALL);
 
         Principal principal1 = testPrincipal;
@@ -151,18 +153,22 @@ public class L3_AccessControlListTest extends AbstractJCRTest {
     }
 
     public void testRemoveEntry() throws RepositoryException {
-        assertTrue(AccessControlUtils.addAccessControlEntry(superuser, testRoot, testPrincipal, new String[]{Privilege.JCR_READ}, true));
-        assertTrue(AccessControlUtils.addAccessControlEntry(superuser, testRoot, EveryonePrincipal.getInstance(), new String[]{Privilege.JCR_READ}, false));
+        assertTrue(AccessControlUtils.addAccessControlEntry(superuser, testRoot, testPrincipal,
+            new String[]{Privilege.JCR_READ}, true));
+        assertTrue(AccessControlUtils.addAccessControlEntry(superuser, testRoot,
+            EveryonePrincipal.getInstance(), new String[]{Privilege.JCR_READ}, false));
 
         // EXERCISE remove the Everyone-ACE from the list and verify that the list still contains the entry for testPrincipal.
 
-        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(superuser, testRoot);
+        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(superuser,
+            testRoot);
         assertNotNull(acl);
         assertEquals(1, acl.size());
     }
 
     public void testReorderEntries() throws Exception {
-        Privilege[] read = AccessControlUtils.privilegesFromNames(acMgr, Privilege.JCR_READ, Privilege.JCR_READ_ACCESS_CONTROL);
+        Privilege[] read = AccessControlUtils.privilegesFromNames(acMgr, Privilege.JCR_READ,
+            Privilege.JCR_READ_ACCESS_CONTROL);
         Privilege[] write = AccessControlUtils.privilegesFromNames(acMgr, Privilege.JCR_WRITE);
 
         acl.addAccessControlEntry(testPrincipal, read);

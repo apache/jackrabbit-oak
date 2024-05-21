@@ -23,7 +23,6 @@ import static org.junit.Assert.assertEquals;
 
 import java.io.File;
 import java.io.IOException;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
@@ -39,6 +38,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 public class ReadOnlyStoreTest {
+
     @Rule
     public TemporaryFolder folder = new TemporaryFolder(new File("target"));
 
@@ -53,7 +53,8 @@ public class ReadOnlyStoreTest {
         store = SegmentNodeStoreBuilders.builder(fileStore).build();
     }
 
-    private static void initStoreAt(File path) throws InvalidFileStoreVersionException, IOException {
+    private static void initStoreAt(File path)
+        throws InvalidFileStoreVersionException, IOException {
         FileStore store = fileStoreBuilder(path).build();
         store.close();
     }

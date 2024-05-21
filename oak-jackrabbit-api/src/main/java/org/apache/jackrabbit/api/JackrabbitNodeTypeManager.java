@@ -18,37 +18,32 @@ package org.apache.jackrabbit.api;
 
 import java.io.IOException;
 import java.io.InputStream;
-
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.NodeTypeManager;
-
 import org.osgi.annotation.versioning.ProviderType;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
 /**
- * The Jackrabbit node type manager interface. This interface contains the
- * Jackrabbit-specific extensions to the JCR {@link NodeTypeManager} interface.
+ * The Jackrabbit node type manager interface. This interface contains the Jackrabbit-specific
+ * extensions to the JCR {@link NodeTypeManager} interface.
  * <p>
- * Currently Jackrabbit provides a mechanism to register new node types, but
- * it is not possible to modify or remove existing node types.
+ * Currently Jackrabbit provides a mechanism to register new node types, but it is not possible to
+ * modify or remove existing node types.
  *
- * @deprecated Use standard JCR 2.0 API methods defined by
- * {@link NodeTypeManager} instead.
+ * @deprecated Use standard JCR 2.0 API methods defined by {@link NodeTypeManager} instead.
  */
 @ProviderType
 public interface JackrabbitNodeTypeManager extends NodeTypeManager {
 
     /**
-     * The standard XML content type to be used with XML-formatted
-     * node type streams.
+     * The standard XML content type to be used with XML-formatted node type streams.
      */
     String TEXT_XML = "text/xml";
 
     /**
-     * The experimental content type for the compact node type definition
-     * files.
+     * The experimental content type for the compact node type definition files.
      */
     String TEXT_X_JCR_CND = "text/x-jcr-cnd";
 
@@ -57,9 +52,8 @@ public interface JackrabbitNodeTypeManager extends NodeTypeManager {
      *
      * @param in node type XML stream
      * @return registered node types
-     * @throws SAXException if the XML stream could not be read or parsed
-     * @throws RepositoryException if the node types are invalid or another
-     *                             repository error occurs
+     * @throws SAXException        if the XML stream could not be read or parsed
+     * @throws RepositoryException if the node types are invalid or another repository error occurs
      */
     NodeType[] registerNodeTypes(InputSource in)
         throws SAXException, RepositoryException;
@@ -67,12 +61,11 @@ public interface JackrabbitNodeTypeManager extends NodeTypeManager {
     /**
      * Registers node types from the given input stream of the given type.
      *
-     * @param in node type stream
+     * @param in          node type stream
      * @param contentType type of the input stream
      * @return registered node types
-     * @throws IOException if the input stream could not be read or parsed
-     * @throws RepositoryException if the node types are invalid or another
-     *                             repository error occurs
+     * @throws IOException         if the input stream could not be read or parsed
+     * @throws RepositoryException if the node types are invalid or another repository error occurs
      */
     NodeType[] registerNodeTypes(InputStream in, String contentType)
         throws IOException, RepositoryException;
@@ -82,7 +75,7 @@ public interface JackrabbitNodeTypeManager extends NodeTypeManager {
      *
      * @param name node type name
      * @return <code>true</code> if the named node type is registered
-     *         <code>false</code> otherwise
+     * <code>false</code> otherwise
      * @throws RepositoryException if an error occurs
      */
     boolean hasNodeType(String name) throws RepositoryException;

@@ -19,8 +19,8 @@ package org.apache.jackrabbit.oak.spi.state;
 import java.util.Collection;
 
 /**
- * Experimental {@link NodeStore} extension that allows prefetching of node
- * states given a collection of paths.
+ * Experimental {@link NodeStore} extension that allows prefetching of node states given a
+ * collection of paths.
  */
 public interface PrefetchNodeStore {
 
@@ -29,10 +29,9 @@ public interface PrefetchNodeStore {
     };
 
     /**
-     * Make an attempt to prefetch node states for the given paths and hold them
-     * in a cache.
+     * Make an attempt to prefetch node states for the given paths and hold them in a cache.
      *
-     * @param paths the paths of the node states to prefetch.
+     * @param paths     the paths of the node states to prefetch.
      * @param rootState the current root node state.
      */
     void prefetch(Collection<String> paths, NodeState rootState);

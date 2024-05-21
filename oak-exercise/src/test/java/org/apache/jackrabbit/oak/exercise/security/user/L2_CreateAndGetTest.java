@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.exercise.security.user;
 
 import java.security.Principal;
 import javax.jcr.RepositoryException;
-
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
@@ -119,8 +118,10 @@ public class L2_CreateAndGetTest extends AbstractJCRTest {
     }
 
     public void testGetAuthorizable() throws RepositoryException {
-        testUser = userManager.createUser("testUser", null, new PrincipalImpl("testPrincipal"), null);
-        testGroup = userManager.createGroup("testGroup", new PrincipalImpl("testGroupPrincipal"), null);
+        testUser = userManager.createUser("testUser", null, new PrincipalImpl("testPrincipal"),
+            null);
+        testGroup = userManager.createGroup("testGroup", new PrincipalImpl("testGroupPrincipal"),
+            null);
         superuser.save();
 
         // EXERCISE: use all methods provided on UserManager interface to retrieve a given user/group.

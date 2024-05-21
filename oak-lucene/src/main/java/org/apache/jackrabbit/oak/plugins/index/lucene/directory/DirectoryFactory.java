@@ -20,7 +20,6 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
 import java.io.IOException;
-
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.lucene.store.Directory;
@@ -32,23 +31,21 @@ public interface DirectoryFactory {
 
     /**
      * Open a new directory.
-     * 
-     * Internally, it read the data from the index definition. It writes to the
-     * builder, for example when closing the directory.
-     * 
+     * <p>
+     * Internally, it read the data from the index definition. It writes to the builder, for example
+     * when closing the directory.
+     *
      * @param definition the index definition
-     * @param builder the builder pointing to the index definition (see above
-     *            for usage)
-     * @param dirName the name of the directory (in the file system)
-     * @param reindex whether reindex is needed
+     * @param builder    the builder pointing to the index definition (see above for usage)
+     * @param dirName    the name of the directory (in the file system)
+     * @param reindex    whether reindex is needed
      * @return the Lucene directory
      */
     Directory newInstance(LuceneIndexDefinition definition, NodeBuilder builder, String dirName,
-                          boolean reindex) throws IOException;
+        boolean reindex) throws IOException;
 
     /**
-     * Determines if the Directory is having a remote storage
-     * or local storage
+     * Determines if the Directory is having a remote storage or local storage
      */
     boolean remoteDirectory();
 

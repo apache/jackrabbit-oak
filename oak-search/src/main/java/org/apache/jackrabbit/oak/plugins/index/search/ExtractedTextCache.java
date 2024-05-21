@@ -38,7 +38,6 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.guava.common.cache.CacheBuilder;
 import org.apache.jackrabbit.guava.common.cache.Weigher;
@@ -56,20 +55,21 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * A cache to avoid extracting text of binaries that were already processed (in
- * a different node that references the same binary).
+ * A cache to avoid extracting text of binaries that were already processed (in a different node
+ * that references the same binary).
  */
 public class ExtractedTextCache {
+
     private static final boolean CACHE_ONLY_SUCCESS =
-            Boolean.getBoolean("oak.extracted.cacheOnlySuccess");
+        Boolean.getBoolean("oak.extracted.cacheOnlySuccess");
     private static final int EXTRACTION_TIMEOUT_SECONDS =
-            Integer.getInteger("oak.extraction.timeoutSeconds", 60);
+        Integer.getInteger("oak.extraction.timeoutSeconds", 60);
     private static final int EXTRACTION_MAX_THREADS =
-            Integer.getInteger("oak.extraction.maxThreads", 10);
+        Integer.getInteger("oak.extraction.maxThreads", 10);
     private static final boolean EXTRACT_IN_CALLER_THREAD =
-            Boolean.getBoolean("oak.extraction.inCallerThread");
+        Boolean.getBoolean("oak.extraction.inCallerThread");
     private static final boolean EXTRACT_FORGET_TIMEOUT =
-            Boolean.getBoolean("oak.extraction.forgetTimeout");
+        Boolean.getBoolean("oak.extraction.forgetTimeout");
 
     private static final String TIMEOUT_MAP = "textExtractionTimeout.properties";
     private static final String EMPTY_STRING = "";
@@ -93,26 +93,28 @@ public class ExtractedTextCache {
     private volatile int timeoutCount;
     private long extractionTimeoutMillis = EXTRACTION_TIMEOUT_SECONDS * 1000;
 
-    public ExtractedTextCache(long maxWeight, long expiryTimeInSecs){
+    public ExtractedTextCache(long maxWeight, long expiryTimeInSecs) {
         this(maxWeight, expiryTimeInSecs, false, null);
     }
 
-    public ExtractedTextCache(long maxWeight, long expiryTimeInSecs, boolean alwaysUsePreExtractedCache,
-                              File indexDir) {
+    public ExtractedTextCache(long maxWeight, long expiryTimeInSecs,
+        boolean alwaysUsePreExtractedCache,
+        File indexDir) {
         this(maxWeight, expiryTimeInSecs, alwaysUsePreExtractedCache, indexDir, null);
     }
 
-    public ExtractedTextCache(long maxWeight, long expiryTimeInSecs, boolean alwaysUsePreExtractedCache,
-                              File indexDir, StatisticsProvider statisticsProvider) {
+    public ExtractedTextCache(long maxWeight, long expiryTimeInSecs,
+        boolean alwaysUsePreExtractedCache,
+        File indexDir, StatisticsProvider statisticsProvider) {
         if (maxWeight > 0) {
             cache = CacheBuilder.newBuilder()
-                    .weigher(EmpiricalWeigher.INSTANCE)
-                    .maximumWeight(maxWeight)
-                    .expireAfterAccess(expiryTimeInSecs, TimeUnit.SECONDS)
-                    .recordStats()
-                    .build();
+                                .weigher(EmpiricalWeigher.INSTANCE)
+                                .maximumWeight(maxWeight)
+                                .expireAfterAccess(expiryTimeInSecs, TimeUnit.SECONDS)
+                                .recordStats()
+                                .build();
             cacheStats = new CacheStats(cache, "ExtractedTextCache",
-                    EmpiricalWeigher.INSTANCE, maxWeight);
+                EmpiricalWeigher.INSTANCE, maxWeight);
         } else {
             cache = null;
             cacheStats = null;
@@ -126,18 +128,19 @@ public class ExtractedTextCache {
 
     /**
      * Get the pre extracted text for given blob
-     * @return null if no pre extracted text entry found. Otherwise returns the pre extracted
-     *  text
+     *
+     * @return null if no pre extracted text entry found. Otherwise returns the pre extracted text
      */
     @Nullable
-    public String get(String nodePath, String propertyName, Blob blob, boolean reindexMode){
+    public String get(String nodePath, String propertyName, Blob blob, boolean reindexMode) {
         String result = null;
         //Consult the PreExtractedTextProvider only in reindex mode and not in
         //incremental indexing mode. As that would only contain older entries
         //That also avoid loading on various state (See DataStoreTextWriter)
         String propertyPath = concat(nodePath, propertyName);
-        log.trace("Looking for extracted text for [{}] with blobId [{}]", propertyPath, blob.getContentIdentity());
-        if ((reindexMode || alwaysUsePreExtractedCache) && extractedTextProvider != null){
+        log.trace("Looking for extracted text for [{}] with blobId [{}]", propertyPath,
+            blob.getContentIdentity());
+        if ((reindexMode || alwaysUsePreExtractedCache) && extractedTextProvider != null) {
             try {
                 ExtractedText text = extractedTextProvider.getText(propertyPath, blob);
                 if (text != null) {
@@ -145,7 +148,8 @@ public class ExtractedTextCache {
                     result = getText(text);
                 }
             } catch (IOException e) {
-                log.warn("Error occurred while fetching pre extracted text for {}", propertyPath, e);
+                log.warn("Error occurred while fetching pre extracted text for {}", propertyPath,
+                    e);
             }
         }
         String id = blob.getContentIdentity();
@@ -162,7 +166,7 @@ public class ExtractedTextCache {
         String id = blob.getContentIdentity();
         if (cache != null && id != null) {
             if (extractedText.getExtractionResult() == ExtractionResult.SUCCESS
-                    || !CACHE_ONLY_SUCCESS) {
+                || !CACHE_ONLY_SUCCESS) {
                 cache.put(id, getText(extractedText));
             }
         }
@@ -182,17 +186,17 @@ public class ExtractedTextCache {
 
     private static String getText(ExtractedText text) {
         switch (text.getExtractionResult()) {
-        case SUCCESS:
-            return text.getExtractedText().toString();
-        case ERROR:
-            return FulltextIndexEditor.TEXT_EXTRACTION_ERROR;
-        case EMPTY:
-            return EMPTY_STRING;
+            case SUCCESS:
+                return text.getExtractedText().toString();
+            case ERROR:
+                return FulltextIndexEditor.TEXT_EXTRACTION_ERROR;
+            case EMPTY:
+                return EMPTY_STRING;
         }
         throw new IllegalArgumentException();
     }
 
-    public void addStats(int count, long timeInMillis, long bytesRead, long textLength){
+    public void addStats(int count, long timeInMillis, long bytesRead, long textLength) {
         this.textExtractionCount += count;
         this.totalTime += timeInMillis;
         this.totalBytesRead += bytesRead;
@@ -260,8 +264,8 @@ public class ExtractedTextCache {
         return extractedTextProvider;
     }
 
-    public void resetCache(){
-        if (cache != null){
+    public void resetCache() {
+        if (cache != null) {
             cache.invalidateAll();
         }
     }
@@ -272,6 +276,7 @@ public class ExtractedTextCache {
 
     //Taken from DocumentNodeStore and cache packages as they are private
     private static class EmpiricalWeigher implements Weigher<String, String> {
+
         public static final EmpiricalWeigher INSTANCE = new EmpiricalWeigher();
 
         private EmpiricalWeigher() {
@@ -279,7 +284,7 @@ public class ExtractedTextCache {
 
         private static long getMemory(@NotNull String s) {
             return 16                              // shallow size
-                    + 40 + (long)s.length() * 2;   // value
+                + 40 + (long) s.length() * 2;   // value
         }
 
         @Override
@@ -348,7 +353,7 @@ public class ExtractedTextCache {
         }
         log.debug("ExtractedTextCache createExecutor " + this);
         ThreadPoolExecutor executor = new ThreadPoolExecutor(1, EXTRACTION_MAX_THREADS,
-                60L, TimeUnit.SECONDS,
+            60L, TimeUnit.SECONDS,
             new LinkedBlockingQueue<>(), new ThreadFactory() {
             private final AtomicInteger counter = new AtomicInteger();
             private final Thread.UncaughtExceptionHandler handler = new Thread.UncaughtExceptionHandler() {
@@ -357,6 +362,7 @@ public class ExtractedTextCache {
                     log.warn("Error occurred in asynchronous processing ", e);
                 }
             };
+
             @Override
             public Thread newThread(@NotNull Runnable r) {
                 Thread thread = new Thread(r, createName());
@@ -400,12 +406,12 @@ public class ExtractedTextCache {
         try (FileInputStream in = new FileInputStream(file)) {
             Properties prop = new Properties();
             prop.load(in);
-            for(Entry<Object, Object> e : prop.entrySet()) {
+            for (Entry<Object, Object> e : prop.entrySet()) {
                 timeoutMap.put(e.getKey().toString(), e.getValue().toString());
             }
         } catch (Exception e) {
             log.warn("Could not load timeout map {} from {}",
-                    TIMEOUT_MAP, indexDir, e);
+                TIMEOUT_MAP, indexDir, e);
         }
     }
 
@@ -417,10 +423,11 @@ public class ExtractedTextCache {
         try (FileOutputStream out = new FileOutputStream(file)) {
             Properties prop = new Properties();
             prop.putAll(timeoutMap);
-            prop.store(out, "Text extraction timed out for the following binaries, and will not be retried");
+            prop.store(out,
+                "Text extraction timed out for the following binaries, and will not be retried");
         } catch (Exception e) {
             log.warn("Could not store timeout map {} from {}",
-                    TIMEOUT_MAP, indexDir, e);
+                TIMEOUT_MAP, indexDir, e);
         }
     }
 

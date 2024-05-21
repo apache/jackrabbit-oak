@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modul
 import static org.junit.Assert.assertEquals;
 
 import java.util.Arrays;
-
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeData;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeProperty;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeProperty.ValueType;
@@ -40,17 +39,21 @@ public class BinarySizeTest {
 
         for (int i = 0; i < 1_000; i++) {
             // 1 MB each
-            NodeProperty p1 = new NodeProperty("p1", ValueType.BINARY, ":blobId:" + (i % 20) + "#1000000");
-            NodeData n = new NodeData(Arrays.asList("content", "dam", "common", "n" + i), Arrays.asList(p1));
+            NodeProperty p1 = new NodeProperty("p1", ValueType.BINARY,
+                ":blobId:" + (i % 20) + "#1000000");
+            NodeData n = new NodeData(Arrays.asList("content", "dam", "common", "n" + i),
+                Arrays.asList(p1));
             list.add(n);
             // 1 KB each
-            NodeProperty p2 = new NodeProperty("p2", ValueType.BINARY, ":blobId:" + (i % 20) + "#1000");
-            n = new NodeData(Arrays.asList("content", "dam", "filtered", "n" + i), Arrays.asList(p2));
+            NodeProperty p2 = new NodeProperty("p2", ValueType.BINARY,
+                ":blobId:" + (i % 20) + "#1000");
+            n = new NodeData(Arrays.asList("content", "dam", "filtered", "n" + i),
+                Arrays.asList(p2));
             list.add(n);
         }
         // we have an unfiltered, and filtered histogram now
         assertEquals(
-                "BinarySizeHistogram\n"
+            "BinarySizeHistogram\n"
                 + "refs / 11 (512B..1KiB): 1000\n"
                 + "refs / 21 (512KiB..1MiB): 1000\n"
                 + "refs /content 11 (512B..1KiB): 1000\n"
@@ -101,19 +104,24 @@ public class BinarySizeTest {
         String embeddedBinary5k = "0".repeat(10000);
         for (int i = 0; i < 1_000; i++) {
             // 1 distinct embedded blobs, each 5 KB
-            NodeProperty p1 = new NodeProperty("data1", ValueType.BINARY, ":blobId:0x" + embeddedBinary5k);
+            NodeProperty p1 = new NodeProperty("data1", ValueType.BINARY,
+                ":blobId:0x" + embeddedBinary5k);
             // 20 distinct blobs ids, each 500 KB
             String id = ("00" + (i % 20)).repeat(20);
-            NodeProperty p2 = new NodeProperty("data2", ValueType.BINARY, ":blobId:" + id + "#5000000");
-            NodeData n = new NodeData(Arrays.asList("content", "dam", "abc", "n" + i), Arrays.asList(p1, p2));
+            NodeProperty p2 = new NodeProperty("data2", ValueType.BINARY,
+                ":blobId:" + id + "#5000000");
+            NodeData n = new NodeData(Arrays.asList("content", "dam", "abc", "n" + i),
+                Arrays.asList(p1, p2));
             list.add(n);
         }
         list.end();
 
-        assertEquals("[[/: 5, /content: 5, /content/dam: 5, /content/dam/abc: 5]]", Arrays.asList(binary.getRecords()).toString());
-        assertEquals("[[/: 5, /content: 5, /content/dam: 5, /content/dam/abc: 5]]", Arrays.asList(binaryEmbedded.getRecords()).toString());
+        assertEquals("[[/: 5, /content: 5, /content/dam: 5, /content/dam/abc: 5]]",
+            Arrays.asList(binary.getRecords()).toString());
+        assertEquals("[[/: 5, /content: 5, /content/dam: 5, /content/dam/abc: 5]]",
+            Arrays.asList(binaryEmbedded.getRecords()).toString());
         assertEquals(
-                "BinarySize references in GB (resolution: 100000000)\n"
+            "BinarySize references in GB (resolution: 100000000)\n"
                 + "/: 5\n"
                 + "/content: 5\n"
                 + "/content/dam: 5\n"

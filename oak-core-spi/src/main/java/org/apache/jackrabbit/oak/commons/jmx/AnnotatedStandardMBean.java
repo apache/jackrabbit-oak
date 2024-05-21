@@ -24,7 +24,6 @@ import javax.management.MBeanInfo;
 import javax.management.MBeanOperationInfo;
 import javax.management.MBeanParameterInfo;
 import javax.management.StandardMBean;
-
 import org.apache.jackrabbit.oak.api.jmx.Description;
 import org.apache.jackrabbit.oak.api.jmx.Impact;
 import org.apache.jackrabbit.oak.api.jmx.ImpactOption;
@@ -40,17 +39,18 @@ import org.apache.jackrabbit.oak.api.jmx.Name;
  * @see Impact
  */
 public class AnnotatedStandardMBean extends StandardMBean {
+
     /**
-     * Make a DynamicMBean out of the object implementation, using the specified
-     * mbeanInterface class.
+     * Make a DynamicMBean out of the object implementation, using the specified mbeanInterface
+     * class.
      *
      * @see javax.management.StandardMBean#StandardMBean(Object, Class)
      */
-    public <T> AnnotatedStandardMBean(T implementation, Class<T> mbeanInterface){
+    public <T> AnnotatedStandardMBean(T implementation, Class<T> mbeanInterface) {
         super(implementation, mbeanInterface, false);
     }
 
-    protected AnnotatedStandardMBean(Class<?> mbeanInterface){
+    protected AnnotatedStandardMBean(Class<?> mbeanInterface) {
         super(mbeanInterface, false);
     }
 
@@ -80,23 +80,23 @@ public class AnnotatedStandardMBean extends StandardMBean {
 
     @Override
     protected String getParameterName(MBeanOperationInfo op,
-                                      MBeanParameterInfo param, int sequence) {
+        MBeanParameterInfo param, int sequence) {
         String name = getValue(param, Name.NAME);
         return name == null
-                ? super.getParameterName(op, param, sequence)
-                : name;
+            ? super.getParameterName(op, param, sequence)
+            : name;
     }
 
     @Override
     protected String getDescription(MBeanOperationInfo op,
-                                    MBeanParameterInfo param, int sequence) {
+        MBeanParameterInfo param, int sequence) {
         String desc = getValue(param, Description.NAME);
         return desc == null
-                ? super.getDescription(op, param, sequence)
-                : desc;
+            ? super.getDescription(op, param, sequence)
+            : desc;
     }
 
-    private static String getValue(DescriptorRead dr, String fieldName){
+    private static String getValue(DescriptorRead dr, String fieldName) {
         return (String) dr.getDescriptor().getFieldValue(fieldName);
     }
 }

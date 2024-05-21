@@ -23,7 +23,6 @@ import javax.jcr.GuestCredentials;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-
 import org.apache.jackrabbit.oak.plugins.document.bundlor.BundlingConfigInitializer;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
@@ -63,16 +62,15 @@ abstract class BaseRepositoryStub extends RepositoryStub {
     }
 
     @Override
-    public Principal getUnknownPrincipal(Session session) throws RepositoryException, NotExecutableException {
+    public Principal getUnknownPrincipal(Session session)
+        throws RepositoryException, NotExecutableException {
         return UNKNOWN_PRINCIPAL;
     }
 
     /**
-     * Override in subclass and perform additional configuration on the
-     * {@link Jcr} builder before the repository is created. This default
-     * implementation set query engine settings as returned by
-     * {@link #getQueryEngineSettings()} and adds a
-     * {@link BundlingConfigInitializer}.
+     * Override in subclass and perform additional configuration on the {@link Jcr} builder before
+     * the repository is created. This default implementation set query engine settings as returned
+     * by {@link #getQueryEngineSettings()} and adds a {@link BundlingConfigInitializer}.
      *
      * @param jcr the builder.
      */
@@ -82,7 +80,7 @@ abstract class BaseRepositoryStub extends RepositoryStub {
     }
 
     protected void loadTestContent(Repository repository)
-            throws RepositoryException {
+        throws RepositoryException {
         Session session = repository.login(superuser);
         try {
             TestContentLoader loader = new TestContentLoader();

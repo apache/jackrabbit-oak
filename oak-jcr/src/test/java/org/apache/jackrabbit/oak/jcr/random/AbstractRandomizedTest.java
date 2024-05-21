@@ -16,16 +16,16 @@
  */
 package org.apache.jackrabbit.oak.jcr.random;
 
+import static org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest.dispose;
+
 import java.io.File;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.List;
-
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
-
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -37,19 +37,17 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Before;
 
-import static org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest.dispose;
-
 
 /**
  * Base class for randomized tests.
  */
 public abstract class AbstractRandomizedTest {
 
-    private  Repository jackrabbitRepository;
-    private  Repository oakRepository;
+    private Repository jackrabbitRepository;
+    private Repository oakRepository;
 
-    protected  String userId = "testuser";
-    protected String[] ids = new String[] {userId, "group1", "group2"};
+    protected String userId = "testuser";
+    protected String[] ids = new String[]{userId, "group1", "group2"};
 
     protected List<JackrabbitSession> writeSessions = new ArrayList();
     protected List<Session> readSessions = new ArrayList();
@@ -57,16 +55,19 @@ public abstract class AbstractRandomizedTest {
     @Before
     public void setUp() throws Exception {
         jackrabbitRepository = JcrUtils.getRepository(
-                new File("target", "jackrabbit").toURI().toURL().toString());
+            new File("target", "jackrabbit").toURI().toURL().toString());
         oakRepository = new Jcr().createRepository();
 
-        writeSessions.add((JackrabbitSession) jackrabbitRepository.login(new SimpleCredentials("admin", "admin".toCharArray())));
-        writeSessions.add((JackrabbitSession) oakRepository.login(new SimpleCredentials("admin", "admin".toCharArray())));
+        writeSessions.add((JackrabbitSession) jackrabbitRepository.login(
+            new SimpleCredentials("admin", "admin".toCharArray())));
+        writeSessions.add((JackrabbitSession) oakRepository.login(
+            new SimpleCredentials("admin", "admin".toCharArray())));
 
         setupAuthorizables();
         setupContent();
 
-        readSessions.add(jackrabbitRepository.login(new SimpleCredentials(userId, userId.toCharArray())));
+        readSessions.add(
+            jackrabbitRepository.login(new SimpleCredentials(userId, userId.toCharArray())));
         readSessions.add(oakRepository.login(new SimpleCredentials(userId, userId.toCharArray())));
     }
 
@@ -91,11 +92,13 @@ public abstract class AbstractRandomizedTest {
         oakRepository = dispose(oakRepository);
     }
 
-    protected Principal getTestPrincipal(@NotNull JackrabbitSession session) throws RepositoryException {
+    protected Principal getTestPrincipal(@NotNull JackrabbitSession session)
+        throws RepositoryException {
         return session.getUserManager().getAuthorizable(userId).getPrincipal();
     }
 
-    protected Principal getPrincipal(@NotNull JackrabbitSession session, int index) throws RepositoryException {
+    protected Principal getPrincipal(@NotNull JackrabbitSession session, int index)
+        throws RepositoryException {
         return session.getPrincipalManager().getPrincipal(ids[index]);
 
     }

@@ -19,27 +19,30 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+
 import org.apache.lucene.index.IndexableField;
 import org.jetbrains.annotations.Nullable;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-
 class LuceneDoc implements LuceneDocInfo {
+
     final String indexPath;
     final String docPath;
     final Iterable<? extends IndexableField> doc;
     final boolean delete;
     private volatile boolean processed;
 
-    public static LuceneDoc forUpdate(String indexPath, String path, Iterable<? extends IndexableField> doc){
+    public static LuceneDoc forUpdate(String indexPath, String path,
+        Iterable<? extends IndexableField> doc) {
         return new LuceneDoc(indexPath, path, checkNotNull(doc), false);
     }
 
-    public static LuceneDoc forDelete(String indexPath, String path){
+    public static LuceneDoc forDelete(String indexPath, String path) {
         return new LuceneDoc(indexPath, path, null, true);
     }
 
-    private LuceneDoc(String indexPath, String path, @Nullable Iterable<? extends IndexableField> doc, boolean delete) {
+    private LuceneDoc(String indexPath, String path,
+        @Nullable Iterable<? extends IndexableField> doc, boolean delete) {
         this.docPath = checkNotNull(path);
         this.indexPath = checkNotNull(indexPath);
         this.doc = doc;
@@ -55,7 +58,7 @@ class LuceneDoc implements LuceneDocInfo {
         return processed;
     }
 
-    public void markProcessed(){
+    public void markProcessed() {
         processed = true;
     }
 

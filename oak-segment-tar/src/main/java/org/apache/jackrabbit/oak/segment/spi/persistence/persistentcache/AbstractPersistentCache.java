@@ -20,15 +20,6 @@ package org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache;
 import static java.lang.Thread.currentThread;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
-import org.apache.jackrabbit.guava.common.base.Stopwatch;
-
-import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
-import org.apache.jackrabbit.oak.commons.Buffer;
-import org.apache.jackrabbit.oak.segment.spi.RepositoryNotReachableException;
-import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.Closeable;
 import java.util.Set;
 import java.util.UUID;
@@ -38,8 +29,16 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import org.apache.jackrabbit.guava.common.base.Stopwatch;
+import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
+import org.apache.jackrabbit.oak.commons.Buffer;
+import org.apache.jackrabbit.oak.segment.spi.RepositoryNotReachableException;
+import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class AbstractPersistentCache implements PersistentCache, Closeable {
+
     private static final Logger logger = LoggerFactory.getLogger(AbstractPersistentCache.class);
 
     public static final int THREADS = Integer.getInteger("oak.segment.cache.threads", 10);
@@ -72,8 +71,8 @@ public abstract class AbstractPersistentCache implements PersistentCache, Closea
 
         // Either use the next cache or the 'loader'
         Callable<Buffer> nextLoader = nextCache != null
-                ? () -> nextCache.readSegment(msb, lsb, loader)
-                : loader;
+            ? () -> nextCache.readSegment(msb, lsb, loader)
+            : loader;
 
         Stopwatch stopwatch = Stopwatch.createStarted();
         try {
@@ -91,15 +90,16 @@ public abstract class AbstractPersistentCache implements PersistentCache, Closea
             // rethrow exception so that this condition can be distinguished from other types of errors (see OAK-9303)
             throw e;
         } catch (Exception t) {
-            logger.error("Exception while loading segment {} from remote store or linked cache", new UUID(msb, lsb), t);
+            logger.error("Exception while loading segment {} from remote store or linked cache",
+                new UUID(msb, lsb), t);
             recordCacheLoadTimeInternal(stopwatch.elapsed(TimeUnit.NANOSECONDS), false);
         }
         return segment;
     }
 
     /**
-     * Reads the segment from the cache.
-     * If segment is not found, this method does not query next cache that was set with {@link #linkWith(AbstractPersistentCache)}
+     * Reads the segment from the cache. If segment is not found, this method does not query next
+     * cache that was set with {@link #linkWith(AbstractPersistentCache)}
      *
      * @param msb the most significant bits of the identifier of the segment
      * @param lsb the least significant bits of the identifier of the segment

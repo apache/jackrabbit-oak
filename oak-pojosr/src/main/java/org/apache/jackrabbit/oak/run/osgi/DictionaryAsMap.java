@@ -28,8 +28,8 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * A wrapper around a dictionary access it as a Map
- * Taken from org.apache.felix.utils.collections.DictionaryAsMap
+ * A wrapper around a dictionary access it as a Map Taken from
+ * org.apache.felix.utils.collections.DictionaryAsMap
  */
 class DictionaryAsMap<U, V> extends AbstractMap<U, V> {
 

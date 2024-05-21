@@ -34,7 +34,7 @@ public class ThreadDumpCleaner {
 
     private static final String[] PATTERN_ARRAY = {
         "Threads class SMR info:(?s).*?\n\n",
-        
+
         "JNI global refs.*\n\n",
 
         "\"Reference Handler\"(?s).*?\n\n",
@@ -54,7 +54,7 @@ public class ThreadDumpCleaner {
         "\\$\\$YJP\\$\\$",
 
         "\"(Attach|Service|VM|GC|DestroyJavaVM|Signal|AWT|AppKit|C2 |Low Mem|" +
-                "process reaper|YJPAgent-).*?\"(?s).*?\n\n",
+            "process reaper|YJPAgent-).*?\"(?s).*?\n\n",
 
         "   Locked ownable synchronizers:(?s).*?\n\n",
 
@@ -63,49 +63,49 @@ public class ThreadDumpCleaner {
         "\".*?\".*?\n   java.lang.Thread.State: (TIMED_)?WAITING(?s).*?\n\n",
 
         "\".*?\".*?\n   java.lang.Thread.State:.*\n\t" +
-                "at sun.nio.ch.KQueueArrayWrapper.kevent0(?s).*?\n\n",
+            "at sun.nio.ch.KQueueArrayWrapper.kevent0(?s).*?\n\n",
 
         "\".*?\".*?\n   java.lang.Thread.State:.*\n\t" +
-                "at java.io.FileInputStream.readBytes(?s).*?\n\n",
+            "at java.io.FileInputStream.readBytes(?s).*?\n\n",
 
         "\".*?\".*?\n   java.lang.Thread.State:.*\n\t" +
-                "at sun.nio.ch.ServerSocketChannelImpl.accept(?s).*?\n\n",
+            "at sun.nio.ch.ServerSocketChannelImpl.accept(?s).*?\n\n",
 
         "\".*?\".*?\n   java.lang.Thread.State:.*\n\t" +
-                "at java.net.DualStackPlainSocketImpl.accept0(?s).*\n\n",
+            "at java.net.DualStackPlainSocketImpl.accept0(?s).*\n\n",
 
         "\".*?\".*?\n   java.lang.Thread.State:.*\n\t" +
-                "at sun.nio.ch.EPollArrayWrapper.epollWait(?s).*?\n\n",
+            "at sun.nio.ch.EPollArrayWrapper.epollWait(?s).*?\n\n",
 
         "\".*?\".*?\n   java.lang.Thread.State:.*\n\t" +
-                "at sun.nio.ch.EPoll.wait(?s).*?\n\n",
+            "at sun.nio.ch.EPoll.wait(?s).*?\n\n",
 
         "\".*?\".*?\n   java.lang.Thread.State:.*\n\t" +
-                "at java.lang.Object.wait(?s).*?\n\n",
+            "at java.lang.Object.wait(?s).*?\n\n",
 
         "\".*?\".*?\n   java.lang.Thread.State:.*\n\t" +
-                "at java.net.PlainSocketImpl.socketAccept(?s).*?\n\n",
+            "at java.net.PlainSocketImpl.socketAccept(?s).*?\n\n",
 
         "\".*?\".*?\n   java.lang.Thread.State:.*\n\t" +
-                "at java.net.SocketInputStream.socketRead0(?s).*?\n\n",
+            "at java.net.SocketInputStream.socketRead0(?s).*?\n\n",
 
         "\".*?\".*?\n   java.lang.Thread.State:.*\n\t" +
-                "at sun.nio.ch.WindowsSelectorImpl\\$SubSelector.poll0(?s).*?\n\n",
+            "at sun.nio.ch.WindowsSelectorImpl\\$SubSelector.poll0(?s).*?\n\n",
 
         "\".*?\".*?\n   java.lang.Thread.State:.*\n\t" +
-                "at sun.management.ThreadImpl.dumpThreads0(?s).*?\n\n",
+            "at sun.management.ThreadImpl.dumpThreads0(?s).*?\n\n",
 
         "\".*?\".*?\n   java.lang.Thread.State:.*\n\t" +
-                "at sun.misc.Unsafe.park(?s).*?\n\n",
+            "at sun.misc.Unsafe.park(?s).*?\n\n",
 
         "\".*?\".*?\n   java.lang.Thread.State:.*\n\t" +
-                "at java.net.PlainSocketImpl.socketClose0(?s).*?\n\n",
+            "at java.net.PlainSocketImpl.socketClose0(?s).*?\n\n",
 
         "\".*?\".*?\n   java.lang.Thread.State:.*\n\t" +
-                "at java.net.PlainSocketImpl.socketAvailable(?s).*?\n\n",
+            "at java.net.PlainSocketImpl.socketAvailable(?s).*?\n\n",
 
         "\".*?\".*?\n   java.lang.Thread.State:.*\n\t" +
-                "at java.net.PlainSocketImpl.socketConnect(?s).*?\n\n",
+            "at java.net.PlainSocketImpl.socketConnect(?s).*?\n\n",
 
         "<EndOfDump>\n\n",
 
@@ -126,7 +126,7 @@ public class ThreadDumpCleaner {
         }
         File target = new File(file.getParentFile(), fileName + ".filtered.txt");
         PrintWriter writer = new PrintWriter(new BufferedWriter(
-                new FileWriter(target)));
+            new FileWriter(target)));
         try {
             processFile(file, writer);
         } finally {
@@ -137,7 +137,7 @@ public class ThreadDumpCleaner {
 
     private static void processFile(File file, PrintWriter writer) throws IOException {
         LineNumberReader r = new LineNumberReader(new BufferedReader(
-                new FileReader(file)));
+            new FileReader(file)));
         try {
             process(r, writer);
         } finally {

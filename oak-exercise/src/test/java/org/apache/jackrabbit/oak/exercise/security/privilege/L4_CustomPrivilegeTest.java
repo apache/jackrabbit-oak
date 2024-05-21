@@ -16,26 +16,25 @@
  */
 package org.apache.jackrabbit.oak.exercise.security.privilege;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.security.Principal;
 import java.util.Set;
 import java.util.UUID;
 import javax.jcr.security.Privilege;
-
+import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Sets;
-import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 /**
  * <pre>
@@ -93,7 +92,8 @@ import static org.junit.Assert.fail;
  *
  * </pre>
  *
- * @see org.apache.jackrabbit.api.security.authorization.PrivilegeManager#registerPrivilege(String, boolean, String[])
+ * @see org.apache.jackrabbit.api.security.authorization.PrivilegeManager#registerPrivilege(String,
+ * boolean, String[])
  */
 public class L4_CustomPrivilegeTest extends AbstractSecurityTest {
 
@@ -107,10 +107,10 @@ public class L4_CustomPrivilegeTest extends AbstractSecurityTest {
 
         privilegeManager = getPrivilegeManager(root);
         customAbstractPriv = privilegeManager.registerPrivilege(
-                "customAbstractPriv_" + UUID.randomUUID().toString(), true, new String[0]);
+            "customAbstractPriv_" + UUID.randomUUID().toString(), true, new String[0]);
         customAggrPriv = privilegeManager.registerPrivilege(
-                "customAbstractPriv_" + UUID.randomUUID().toString(), false,
-                new String[] {customAbstractPriv.getName(), PrivilegeConstants.JCR_READ});
+            "customAbstractPriv_" + UUID.randomUUID().toString(), false,
+            new String[]{customAbstractPriv.getName(), PrivilegeConstants.JCR_READ});
     }
 
     private static void assertEqualPrivileges(Set<String> expectedNames, Privilege[] result) {
@@ -118,13 +118,14 @@ public class L4_CustomPrivilegeTest extends AbstractSecurityTest {
             fail();
         }
 
-        Iterable<String> resultNames = Iterables.transform(Sets.newHashSet(result), new Function<Privilege, String>() {
-            @Nullable
-            @Override
-            public String apply(Privilege input) {
-                return input.toString();
-            }
-        });
+        Iterable<String> resultNames = Iterables.transform(Sets.newHashSet(result),
+            new Function<Privilege, String>() {
+                @Nullable
+                @Override
+                public String apply(Privilege input) {
+                    return input.toString();
+                }
+            });
 
         Iterables.removeAll(resultNames, expectedNames);
         assertFalse(resultNames.iterator().hasNext());
@@ -152,9 +153,11 @@ public class L4_CustomPrivilegeTest extends AbstractSecurityTest {
         try {
             // EXERCISE : fix the test case such that the test principals have the specified privileges granted at "/"
 
-            Privilege[] testPrivileges = new Privilege[] {customAbstractPriv, customAggrPriv};
-            Set<Principal> testPrincipals = ImmutableSet.of(EveryonePrincipal.getInstance(), getTestUser().getPrincipal());
-            boolean hasPrivilege = getAccessControlManager(root).hasPrivileges("/", testPrincipals, testPrivileges);
+            Privilege[] testPrivileges = new Privilege[]{customAbstractPriv, customAggrPriv};
+            Set<Principal> testPrincipals = ImmutableSet.of(EveryonePrincipal.getInstance(),
+                getTestUser().getPrincipal());
+            boolean hasPrivilege = getAccessControlManager(root).hasPrivileges("/", testPrincipals,
+                testPrivileges);
 
             assertTrue(hasPrivilege);
         } finally {

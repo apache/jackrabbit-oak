@@ -35,7 +35,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
-public class AggregationFilterImplTest extends AbstractPrincipalBasedTest{
+public class AggregationFilterImplTest extends AbstractPrincipalBasedTest {
 
     private AggregationFilterImpl aggregationFilter;
     private Set<Principal> systemUserPrincipals;
@@ -47,27 +47,36 @@ public class AggregationFilterImplTest extends AbstractPrincipalBasedTest{
 
         aggregationFilter = new AggregationFilterImpl();
         systemUserPrincipals = ImmutableSet.of(getTestSystemUser().getPrincipal());
-        testUserPrincipals = ImmutableSet.of(getTestUser().getPrincipal(), EveryonePrincipal.getInstance());
+        testUserPrincipals = ImmutableSet.of(getTestUser().getPrincipal(),
+            EveryonePrincipal.getInstance());
     }
 
     @Test
     public void testStopPermissionProviderTrue() {
-        assertTrue(aggregationFilter.stop(createPermissionProvider(root, systemUserPrincipals.toArray(new Principal[0])), systemUserPrincipals));
+        assertTrue(aggregationFilter.stop(
+            createPermissionProvider(root, systemUserPrincipals.toArray(new Principal[0])),
+            systemUserPrincipals));
     }
 
     @Test
     public void testStopPermissionProviderFalse() {
-        assertFalse(aggregationFilter.stop(mock(AggregatedPermissionProvider.class), systemUserPrincipals));
-        assertFalse(aggregationFilter.stop(mock(AggregatedPermissionProvider.class), testUserPrincipals));
+        assertFalse(
+            aggregationFilter.stop(mock(AggregatedPermissionProvider.class), systemUserPrincipals));
+        assertFalse(
+            aggregationFilter.stop(mock(AggregatedPermissionProvider.class), testUserPrincipals));
 
-        PermissionProvider pp = getConfig(AuthorizationConfiguration.class).getPermissionProvider(root, adminSession.getWorkspaceName(), systemUserPrincipals);
+        PermissionProvider pp = getConfig(AuthorizationConfiguration.class).getPermissionProvider(
+            root, adminSession.getWorkspaceName(), systemUserPrincipals);
         if (pp instanceof AggregatedPermissionProvider) {
-            assertFalse(aggregationFilter.stop((AggregatedPermissionProvider) pp, systemUserPrincipals));
+            assertFalse(
+                aggregationFilter.stop((AggregatedPermissionProvider) pp, systemUserPrincipals));
         }
 
-        pp = getConfig(AuthorizationConfiguration.class).getPermissionProvider(root, adminSession.getWorkspaceName(), testUserPrincipals);
+        pp = getConfig(AuthorizationConfiguration.class).getPermissionProvider(root,
+            adminSession.getWorkspaceName(), testUserPrincipals);
         if (pp instanceof AggregatedPermissionProvider) {
-            assertFalse(aggregationFilter.stop((AggregatedPermissionProvider) pp, testUserPrincipals));
+            assertFalse(
+                aggregationFilter.stop((AggregatedPermissionProvider) pp, testUserPrincipals));
         }
     }
 
@@ -78,26 +87,33 @@ public class AggregationFilterImplTest extends AbstractPrincipalBasedTest{
 
     @Test
     public void testStopAcMgrPrincipalsFalse() {
-        assertFalse(aggregationFilter.stop(mock(JackrabbitAccessControlManager.class), systemUserPrincipals));
-        assertFalse(aggregationFilter.stop(mock(JackrabbitAccessControlManager.class), testUserPrincipals));
+        assertFalse(aggregationFilter.stop(mock(JackrabbitAccessControlManager.class),
+            systemUserPrincipals));
+        assertFalse(
+            aggregationFilter.stop(mock(JackrabbitAccessControlManager.class), testUserPrincipals));
 
         assertFalse(aggregationFilter.stop(createAccessControlManager(root), testUserPrincipals));
 
-        AccessControlManager acMgr = getConfig(AuthorizationConfiguration.class).getAccessControlManager(root, getNamePathMapper());
+        AccessControlManager acMgr = getConfig(
+            AuthorizationConfiguration.class).getAccessControlManager(root, getNamePathMapper());
         if (acMgr instanceof JackrabbitAccessControlManager) {
-            assertFalse(aggregationFilter.stop((JackrabbitAccessControlManager) acMgr, systemUserPrincipals));
+            assertFalse(aggregationFilter.stop((JackrabbitAccessControlManager) acMgr,
+                systemUserPrincipals));
         }
     }
 
     @Test
     public void testStopAcMgrPrincipalsInvalid() {
-        assertFalse(aggregationFilter.stop(createAccessControlManager(root), ImmutableSet.of(new PrincipalImpl("invalid"))));
+        assertFalse(aggregationFilter.stop(createAccessControlManager(root),
+            ImmutableSet.of(new PrincipalImpl("invalid"))));
     }
 
     @Test
     public void testStopAcMgrPath() {
         assertFalse(aggregationFilter.stop(createAccessControlManager(root), PathUtils.ROOT_PATH));
         assertFalse(aggregationFilter.stop(createAccessControlManager(root), SUPPORTED_PATH));
-        assertFalse(aggregationFilter.stop(getConfig(AuthorizationConfiguration.class).getAccessControlManager(root, getNamePathMapper()), SUPPORTED_PATH));
+        assertFalse(aggregationFilter.stop(
+            getConfig(AuthorizationConfiguration.class).getAccessControlManager(root,
+                getNamePathMapper()), SUPPORTED_PATH));
     }
 }

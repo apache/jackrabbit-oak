@@ -19,14 +19,29 @@
 
 package org.apache.jackrabbit.oak.index;
 
+import static java.util.Collections.emptyMap;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_SORTED_FILE_PATH;
+
+import java.io.File;
+import java.io.IOException;
+import java.lang.management.ManagementFactory;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import joptsimple.OptionParser;
+import org.apache.commons.io.FileUtils;
+import org.apache.felix.inventory.Format;
 import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.guava.common.io.Closer;
-import joptsimple.OptionParser;
-import org.apache.commons.io.FileUtils;
-import org.apache.felix.inventory.Format;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.index.async.AsyncIndexerLucene;
 import org.apache.jackrabbit.oak.index.indexer.document.DocumentStoreIndexer;
@@ -44,23 +59,8 @@ import org.apache.jackrabbit.util.ISO8601;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.IOException;
-import java.lang.management.ManagementFactory;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static java.util.Collections.emptyMap;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_SORTED_FILE_PATH;
-
 public class IndexCommand implements Command {
+
     private static final Logger log = LoggerFactory.getLogger(IndexCommand.class);
     private static final String LOG_SUFFIX = "indexing";
 
@@ -100,11 +100,13 @@ public class IndexCommand implements Command {
 
         indexOpts = opts.getOptionBean(IndexOptions.class);
 
-        if (indexOpts.isReindex() && !opts.getCommonOpts().isHelpRequested() && !indexOpts.isIgnoreMissingTikaDep()) {
+        if (indexOpts.isReindex() && !opts.getCommonOpts().isHelpRequested()
+            && !indexOpts.isIgnoreMissingTikaDep()) {
             try {
                 checkTikaDependency();
             } catch (Throwable e) {
-                System.err.println("Missing tika parser dependencies, use --ignore-missing-tika-dep to force continue");
+                System.err.println(
+                    "Missing tika parser dependencies, use --ignore-missing-tika-dep to force continue");
                 exit(1);
                 return;
             }
@@ -124,9 +126,11 @@ public class IndexCommand implements Command {
             } else if (indexOpts.isAsyncIndex()) {
                 Closer closer = Closer.create();
                 NodeStoreFixture fixture = NodeStoreFixtureProvider.create(opts);
-                ExtendedIndexHelper extendedIndexHelper = createIndexHelper(fixture, indexOpts, closer);
-                AsyncIndexerLucene asyncIndexerService = new AsyncIndexerLucene(extendedIndexHelper, indexOpts.isCowCorEnabled(), closer,
-                        indexOpts.getAsyncLanes(), indexOpts.aysncDelay());
+                ExtendedIndexHelper extendedIndexHelper = createIndexHelper(fixture, indexOpts,
+                    closer);
+                AsyncIndexerLucene asyncIndexerService = new AsyncIndexerLucene(extendedIndexHelper,
+                    indexOpts.isCowCorEnabled(), closer,
+                    indexOpts.getAsyncLanes(), indexOpts.aysncDelay());
                 closer.register(asyncIndexerService);
                 closer.register(fixture);
                 asyncIndexerService.execute();
@@ -169,12 +173,13 @@ public class IndexCommand implements Command {
         }
 
         if (consistencyCheckReport != null) {
-            System.out.printf("Index consistency check report stored at %s%n", getPath(consistencyCheckReport));
+            System.out.printf("Index consistency check report stored at %s%n",
+                getPath(consistencyCheckReport));
         }
     }
 
-    private void execute(NodeStoreFixture fixture,  IndexOptions indexOpts, Closer closer)
-            throws IOException, CommitFailedException {
+    private void execute(NodeStoreFixture fixture, IndexOptions indexOpts, Closer closer)
+        throws IOException, CommitFailedException {
         ExtendedIndexHelper extendedIndexHelper = createIndexHelper(fixture, indexOpts, closer);
 
         dumpIndexStats(indexOpts, extendedIndexHelper);
@@ -184,13 +189,15 @@ public class IndexCommand implements Command {
         reindexOperation(indexOpts, extendedIndexHelper);
         importIndexOperation(indexOpts, extendedIndexHelper);
 
-        log.info("[INDEXING_REPORT:INDEX_UPLOAD]\n{}" , extendedIndexHelper.getIndexReporter().generateReport());
+        log.info("[INDEXING_REPORT:INDEX_UPLOAD]\n{}",
+            extendedIndexHelper.getIndexReporter().generateReport());
     }
 
     private ExtendedIndexHelper createIndexHelper(NodeStoreFixture fixture,
-                                          IndexOptions indexOpts, Closer closer) throws IOException {
-        ExtendedIndexHelper extendedIndexHelper = new ExtendedIndexHelper(fixture.getStore(), fixture.getBlobStore(), fixture.getWhiteboard(),
-                indexOpts.getOutDir(),  indexOpts.getWorkDir(), computeIndexPaths(indexOpts));
+        IndexOptions indexOpts, Closer closer) throws IOException {
+        ExtendedIndexHelper extendedIndexHelper = new ExtendedIndexHelper(fixture.getStore(),
+            fixture.getBlobStore(), fixture.getWhiteboard(),
+            indexOpts.getOutDir(), indexOpts.getWorkDir(), computeIndexPaths(indexOpts));
 
         configurePreExtractionSupport(indexOpts, extendedIndexHelper);
 
@@ -206,15 +213,17 @@ public class IndexCommand implements Command {
             IndexDefinitionUpdater updater = new IndexDefinitionUpdater(definitions);
             Set<String> indexPathsFromJson = updater.getIndexPaths();
             Set<String> diff = Sets.difference(indexPathsFromJson, indexPaths);
-            if (!diff.isEmpty()){
-                log.info("Augmenting the indexPaths with {} which are present in {}", diff, definitions);
+            if (!diff.isEmpty()) {
+                log.info("Augmenting the indexPaths with {} which are present in {}", diff,
+                    definitions);
             }
             indexPaths.addAll(indexPathsFromJson);
         }
         return new ArrayList<>(indexPaths);
     }
 
-    private void configurePreExtractionSupport(IndexOptions indexOpts, ExtendedIndexHelper extendedIndexHelper) throws IOException {
+    private void configurePreExtractionSupport(IndexOptions indexOpts,
+        ExtendedIndexHelper extendedIndexHelper) throws IOException {
         File preExtractedTextDir = indexOpts.getPreExtractedTextDir();
         if (preExtractedTextDir != null) {
             extendedIndexHelper.setPreExtractedTextDir(preExtractedTextDir);
@@ -222,35 +231,43 @@ public class IndexCommand implements Command {
         }
     }
 
-    private void reindexOperation(IndexOptions indexOpts, ExtendedIndexHelper extendedIndexHelper) throws IOException, CommitFailedException {
-        if (!indexOpts.isReindex()){
+    private void reindexOperation(IndexOptions indexOpts, ExtendedIndexHelper extendedIndexHelper)
+        throws IOException, CommitFailedException {
+        if (!indexOpts.isReindex()) {
             return;
         }
 
         String checkpoint = indexOpts.getCheckpoint();
         File destDir = reindex(indexOpts, extendedIndexHelper, checkpoint);
-        log.info("To complete indexing import the created index files via IndexerMBean#importIndex operation with " +
+        log.info(
+            "To complete indexing import the created index files via IndexerMBean#importIndex operation with "
+                +
                 "[{}] as input", getPath(destDir));
     }
 
-    private void importIndexOperation(IndexOptions indexOpts, ExtendedIndexHelper extendedIndexHelper) throws IOException, CommitFailedException {
+    private void importIndexOperation(IndexOptions indexOpts,
+        ExtendedIndexHelper extendedIndexHelper) throws IOException, CommitFailedException {
         if (indexOpts.isImportIndex()) {
             File importDir = indexOpts.getIndexImportDir();
             importIndex(extendedIndexHelper, importDir);
         }
     }
 
-    private File reindex(IndexOptions idxOpts, ExtendedIndexHelper extendedIndexHelper, String checkpoint) throws IOException, CommitFailedException {
-        checkNotNull(checkpoint, "Checkpoint value is required for reindexing done in read only mode");
+    private File reindex(IndexOptions idxOpts, ExtendedIndexHelper extendedIndexHelper,
+        String checkpoint) throws IOException, CommitFailedException {
+        checkNotNull(checkpoint,
+            "Checkpoint value is required for reindexing done in read only mode");
 
         Stopwatch reindexWatch = Stopwatch.createStarted();
         IndexerSupport indexerSupport = createIndexerSupport(extendedIndexHelper, checkpoint);
-        log.info("Proceeding to index {} upto checkpoint {} {}", extendedIndexHelper.getIndexPaths(), checkpoint,
-                indexerSupport.getCheckpointInfo());
+        log.info("Proceeding to index {} upto checkpoint {} {}",
+            extendedIndexHelper.getIndexPaths(), checkpoint,
+            indexerSupport.getCheckpointInfo());
 
         if (opts.getCommonOpts().isMongo() && idxOpts.isDocTraversalMode()) {
             log.info("Using Document order traversal to perform reindexing");
-            try (DocumentStoreIndexer indexer = new DocumentStoreIndexer(extendedIndexHelper, indexerSupport)) {
+            try (DocumentStoreIndexer indexer = new DocumentStoreIndexer(extendedIndexHelper,
+                indexerSupport)) {
                 if (idxOpts.buildFlatFileStoreSeparately()) {
                     FlatFileStore ffs = indexer.buildFlatFileStore();
                     String pathToFFS = ffs.getFlatFileStorePath();
@@ -259,7 +276,8 @@ public class IndexCommand implements Command {
                 indexer.reindex();
             }
         } else {
-            try (OutOfBandIndexer indexer = new OutOfBandIndexer(extendedIndexHelper, indexerSupport)) {
+            try (OutOfBandIndexer indexer = new OutOfBandIndexer(extendedIndexHelper,
+                indexerSupport)) {
                 indexer.reindex();
             }
         }
@@ -267,11 +285,13 @@ public class IndexCommand implements Command {
         indexerSupport.writeMetaInfo(checkpoint);
         File destDir = indexerSupport.copyIndexFilesToOutput();
         log.info("Indexing completed for indexes {} in {} ({} ms) and index files are copied to {}",
-                extendedIndexHelper.getIndexPaths(), reindexWatch, reindexWatch.elapsed(TimeUnit.MILLISECONDS), IndexCommand.getPath(destDir));
+            extendedIndexHelper.getIndexPaths(), reindexWatch,
+            reindexWatch.elapsed(TimeUnit.MILLISECONDS), IndexCommand.getPath(destDir));
         return destDir;
     }
 
-    private void importIndex(ExtendedIndexHelper extendedIndexHelper, File importDir) throws IOException, CommitFailedException {
+    private void importIndex(ExtendedIndexHelper extendedIndexHelper, File importDir)
+        throws IOException, CommitFailedException {
         new IndexImporterSupport(extendedIndexHelper).importIndex(importDir);
     }
 
@@ -285,14 +305,19 @@ public class IndexCommand implements Command {
         File indexDir = performReindexInReadOnlyMode(indexOpts, checkpoint);
 
         Stopwatch importWatch = Stopwatch.createStarted();
-        log.info("Proceeding to import index data from [{}] by connecting to NodeStore in read-write mode", getPath(indexDir));
+        log.info(
+            "Proceeding to import index data from [{}] by connecting to NodeStore in read-write mode",
+            getPath(indexDir));
         connectInReadWriteModeAndImportIndex(indexOpts, indexDir);
-        log.info("Indexes imported successfully in {} ({} ms)", importWatch, importWatch.elapsed(TimeUnit.MILLISECONDS));
+        log.info("Indexes imported successfully in {} ({} ms)", importWatch,
+            importWatch.elapsed(TimeUnit.MILLISECONDS));
 
-        log.info("Indexing completed and imported successfully in {} ({} ms)", w, w.elapsed(TimeUnit.MILLISECONDS));
+        log.info("Indexing completed and imported successfully in {} ({} ms)", w,
+            w.elapsed(TimeUnit.MILLISECONDS));
     }
 
-    private File performReindexInReadOnlyMode(IndexOptions indexOpts, String checkpoint) throws Exception {
+    private File performReindexInReadOnlyMode(IndexOptions indexOpts, String checkpoint)
+        throws Exception {
         try (Closer closer = Closer.create()) {
             configureCustomizer(opts, closer, true);
             NodeStoreFixture fixture = NodeStoreFixtureProvider.create(opts, true);
@@ -303,21 +328,23 @@ public class IndexCommand implements Command {
         }
     }
 
-    private String connectInReadWriteModeAndCreateCheckPoint(IndexOptions indexOpts) throws Exception {
+    private String connectInReadWriteModeAndCreateCheckPoint(IndexOptions indexOpts)
+        throws Exception {
         String checkpoint = indexOpts.getCheckpoint();
-        if (checkpoint != null){
+        if (checkpoint != null) {
             log.info("Using provided checkpoint [{}]", checkpoint);
             return checkpoint;
         }
 
         try (NodeStoreFixture fixture = NodeStoreFixtureProvider.create(opts)) {
             return fixture.getStore().checkpoint(TimeUnit.DAYS.toMillis(100), ImmutableMap.of(
-                    "creator", IndexCommand.class.getSimpleName(),
-                    "created", now()));
+                "creator", IndexCommand.class.getSimpleName(),
+                "created", now()));
         }
     }
 
-    private void connectInReadWriteModeAndImportIndex(IndexOptions indexOpts, File indexDir) throws Exception {
+    private void connectInReadWriteModeAndImportIndex(IndexOptions indexOpts, File indexDir)
+        throws Exception {
         try (Closer closer = Closer.create()) {
             configureCustomizer(opts, closer, false);
             NodeStoreFixture fixture = NodeStoreFixtureProvider.create(opts);
@@ -327,48 +354,58 @@ public class IndexCommand implements Command {
         }
     }
 
-    private void dumpIndexContents(IndexOptions indexOpts, ExtendedIndexHelper extendedIndexHelper) throws IOException {
+    private void dumpIndexContents(IndexOptions indexOpts, ExtendedIndexHelper extendedIndexHelper)
+        throws IOException {
         if (indexOpts.dumpIndex()) {
             new IndexDumper(extendedIndexHelper, indexOpts.getOutDir()).dump();
         }
     }
 
-    private void performConsistencyCheck(IndexOptions indexOpts, ExtendedIndexHelper extendedIndexHelper) throws IOException {
+    private void performConsistencyCheck(IndexOptions indexOpts,
+        ExtendedIndexHelper extendedIndexHelper) throws IOException {
         if (indexOpts.checkConsistency()) {
             IndexConsistencyCheckPrinter printer =
-                    new IndexConsistencyCheckPrinter(extendedIndexHelper, indexOpts.consistencyCheckLevel());
-            PrinterDumper dumper = new PrinterDumper(extendedIndexHelper.getOutputDir(), INDEX_CONSISTENCY_CHECK_TXT,
-                    false, Format.TEXT, printer);
+                new IndexConsistencyCheckPrinter(extendedIndexHelper,
+                    indexOpts.consistencyCheckLevel());
+            PrinterDumper dumper = new PrinterDumper(extendedIndexHelper.getOutputDir(),
+                INDEX_CONSISTENCY_CHECK_TXT,
+                false, Format.TEXT, printer);
             dumper.dump();
             consistencyCheckReport = dumper.getOutFile();
         }
     }
 
-    private void dumpIndexDefinitions(IndexOptions indexOpts, ExtendedIndexHelper extendedIndexHelper) throws IOException {
+    private void dumpIndexDefinitions(IndexOptions indexOpts,
+        ExtendedIndexHelper extendedIndexHelper) throws IOException {
         if (indexOpts.dumpDefinitions()) {
-            PrinterDumper dumper = new PrinterDumper(extendedIndexHelper.getOutputDir(), INDEX_DEFINITIONS_JSON,
-                    false, Format.JSON, extendedIndexHelper.getIndexDefnPrinter());
+            PrinterDumper dumper = new PrinterDumper(extendedIndexHelper.getOutputDir(),
+                INDEX_DEFINITIONS_JSON,
+                false, Format.JSON, extendedIndexHelper.getIndexDefnPrinter());
             dumper.dump();
             definitions = dumper.getOutFile();
         }
     }
 
-    private void dumpIndexStats(IndexOptions indexOpts, ExtendedIndexHelper extendedIndexHelper) throws IOException {
+    private void dumpIndexStats(IndexOptions indexOpts, ExtendedIndexHelper extendedIndexHelper)
+        throws IOException {
         if (indexOpts.dumpStats()) {
-            PrinterDumper dumper = new PrinterDumper(extendedIndexHelper.getOutputDir(), INDEX_INFO_TXT,
-                    true, Format.TEXT, extendedIndexHelper.getIndexPrinter());
+            PrinterDumper dumper = new PrinterDumper(extendedIndexHelper.getOutputDir(),
+                INDEX_INFO_TXT,
+                true, Format.TEXT, extendedIndexHelper.getIndexPrinter());
             dumper.dump();
             info = dumper.getOutFile();
         }
     }
 
-    private IndexerSupport createIndexerSupport(ExtendedIndexHelper extendedIndexHelper, String checkpoint) {
+    private IndexerSupport createIndexerSupport(ExtendedIndexHelper extendedIndexHelper,
+        String checkpoint) {
         IndexerSupport indexerSupport = new IndexerSupport(extendedIndexHelper, checkpoint)
-                .withExistingDataDumpDir(indexOpts.getExistingDataDumpDir());
+            .withExistingDataDumpDir(indexOpts.getExistingDataDumpDir());
 
         File definitions = indexOpts.getIndexDefinitionsFile();
         if (definitions != null) {
-            checkArgument(definitions.exists(), "Index definitions file [%s] not found", getPath(definitions));
+            checkArgument(definitions.exists(), "Index definitions file [%s] not found",
+                getPath(definitions));
             indexerSupport.setIndexDefinitions(definitions);
         }
         return indexerSupport;
@@ -377,7 +414,7 @@ public class IndexCommand implements Command {
     private static void setupDirectories(IndexOptions indexOpts) throws IOException {
         if (indexOpts.getOutDir().exists()) {
             if (indexOpts.isImportIndex() &&
-                    FileUtils.directoryContains(indexOpts.getOutDir(), indexOpts.getIndexImportDir())) {
+                FileUtils.directoryContains(indexOpts.getOutDir(), indexOpts.getIndexImportDir())) {
                 //Do not clean directory in this case
             } else {
                 FileUtils.cleanDirectory(indexOpts.getOutDir());
@@ -419,11 +456,14 @@ public class IndexCommand implements Command {
     }
 
     private static void configureCustomizer(Options opts, Closer closer, boolean readOnlyAccess) {
-        if (opts.getCommonOpts().isDocument()){
+        if (opts.getCommonOpts().isDocument()) {
             IndexOptions indexOpts = opts.getOptionBean(IndexOptions.class);
             if (indexOpts.isReindex()) {
-                IndexDocumentBuilderCustomizer customizer = new IndexDocumentBuilderCustomizer(opts, readOnlyAccess);
-                Registration reg = opts.getWhiteboard().register(DocumentBuilderCustomizer.class, customizer, emptyMap());
+                IndexDocumentBuilderCustomizer customizer = new IndexDocumentBuilderCustomizer(opts,
+                    readOnlyAccess);
+                Registration reg = opts.getWhiteboard()
+                                       .register(DocumentBuilderCustomizer.class, customizer,
+                                           emptyMap());
                 closer.register(reg::unregister);
             }
         }

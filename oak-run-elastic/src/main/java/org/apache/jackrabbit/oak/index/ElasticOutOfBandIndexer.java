@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.index;
 
+import java.util.Collections;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
@@ -28,12 +29,11 @@ import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticIndexEditorP
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
-import java.util.Collections;
-
 /*
 Out of band indexer for Elasticsearch. Provides support to index segment store for  given index definitions or reindex existing indexes
  */
 public class ElasticOutOfBandIndexer extends OutOfBandIndexerBase {
+
     private final String indexPrefix;
     private final String scheme;
     private final String host;
@@ -42,9 +42,9 @@ public class ElasticOutOfBandIndexer extends OutOfBandIndexerBase {
     private final String apiSecretId;
 
     public ElasticOutOfBandIndexer(IndexHelper indexHelper, IndexerSupport indexerSupport,
-                                   String indexPrefix, String scheme,
-                                   String host, int port,
-                                   String apiKeyId, String apiSecretId) {
+        String indexPrefix, String scheme,
+        String host, int port,
+        String apiKeyId, String apiSecretId) {
         super(indexHelper, indexerSupport);
         this.indexPrefix = indexPrefix;
         this.scheme = scheme;
@@ -62,12 +62,13 @@ public class ElasticOutOfBandIndexer extends OutOfBandIndexerBase {
 
     private IndexEditorProvider createElasticEditorProvider() {
         final ElasticConnection.Builder.BuildStep buildStep = ElasticConnection.newBuilder()
-                .withIndexPrefix(indexPrefix)
-                .withConnectionParameters(
-                        scheme,
-                        host,
-                        port
-                );
+                                                                               .withIndexPrefix(
+                                                                                   indexPrefix)
+                                                                               .withConnectionParameters(
+                                                                                   scheme,
+                                                                                   host,
+                                                                                   port
+                                                                               );
         final ElasticConnection connection;
         if (apiKeyId != null && apiSecretId != null) {
             connection = buildStep.withApiKeys(apiKeyId, apiSecretId).build();
@@ -76,8 +77,8 @@ public class ElasticOutOfBandIndexer extends OutOfBandIndexerBase {
         }
         closer.register(connection);
         ElasticIndexTracker indexTracker = new ElasticIndexTracker(connection,
-                new ElasticMetricHandler(StatisticsProvider.NOOP));
+            new ElasticMetricHandler(StatisticsProvider.NOOP));
         return new ElasticIndexEditorProvider(indexTracker, connection,
-                new ExtractedTextCache(10 * FileUtils.ONE_MB, 100));
+            new ExtractedTextCache(10 * FileUtils.ONE_MB, 100));
     }
 }

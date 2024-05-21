@@ -16,10 +16,10 @@
  */
 package org.apache.jackrabbit.oak.upgrade;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 import static org.apache.jackrabbit.JcrConstants.JCR_SAMENAMESIBLINGS;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.REP_NAMED_CHILD_NODE_DEFINITIONS;
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.REP_RESIDUAL_CHILD_NODE_DEFINITIONS;
@@ -31,7 +31,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
+import org.apache.jackrabbit.guava.common.base.Function;
+import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -44,13 +45,10 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.base.Function;
-import org.apache.jackrabbit.guava.common.base.Predicate;
-
 /**
- * This editor check if same name sibling nodes are allowed under a given
- * parent. If they are not, they will be renamed by replacing brackets with a
- * underscore: {@code sns_name[3] -> sns_name_3_}.
+ * This editor check if same name sibling nodes are allowed under a given parent. If they are not,
+ * they will be renamed by replacing brackets with a underscore:
+ * {@code sns_name[3] -> sns_name_3_}.
  */
 public class SameNameSiblingsEditor extends DefaultEditor {
 
@@ -81,9 +79,11 @@ public class SameNameSiblingsEditor extends DefaultEditor {
     private final String path;
 
     public static class Provider implements EditorProvider {
+
         @Override
-        public Editor getRootEditor(NodeState before, NodeState after, NodeBuilder builder, CommitInfo info)
-                throws CommitFailedException {
+        public Editor getRootEditor(NodeState before, NodeState after, NodeBuilder builder,
+            CommitInfo info)
+            throws CommitFailedException {
             return new SameNameSiblingsEditor(builder);
         }
     }
@@ -106,7 +106,8 @@ public class SameNameSiblingsEditor extends DefaultEditor {
     }
 
     @Override
-    public Editor childNodeChanged(String name, NodeState before, NodeState after) throws CommitFailedException {
+    public Editor childNodeChanged(String name, NodeState before, NodeState after)
+        throws CommitFailedException {
         return new SameNameSiblingsEditor(this, name, builder.getChildNode(name));
     }
 
@@ -136,22 +137,26 @@ public class SameNameSiblingsEditor extends DefaultEditor {
     }
 
     private static List<ChildTypeDef> parseNamedChildNodeDefs(NodeState root, NodeState parentType,
-            TypePredicate parentTypePredicate) {
+        TypePredicate parentTypePredicate) {
         List<ChildTypeDef> defs = new ArrayList<ChildTypeDef>();
-        NodeState namedChildNodeDefinitions = parentType.getChildNode(REP_NAMED_CHILD_NODE_DEFINITIONS);
+        NodeState namedChildNodeDefinitions = parentType.getChildNode(
+            REP_NAMED_CHILD_NODE_DEFINITIONS);
         for (ChildNodeEntry childName : namedChildNodeDefinitions.getChildNodeEntries()) {
             for (String childType : filterChildren(childName.getNodeState(), NO_SNS_PROPERTY)) {
                 TypePredicate childTypePredicate = new TypePredicate(root, childType);
-                defs.add(new ChildTypeDef(parentTypePredicate, childName.getName(), childTypePredicate));
+                defs.add(
+                    new ChildTypeDef(parentTypePredicate, childName.getName(), childTypePredicate));
             }
         }
         return defs;
     }
 
-    private static List<ChildTypeDef> parseResidualChildNodeDefs(NodeState root, NodeState parentType,
-            TypePredicate parentTypePredicate) {
+    private static List<ChildTypeDef> parseResidualChildNodeDefs(NodeState root,
+        NodeState parentType,
+        TypePredicate parentTypePredicate) {
         List<ChildTypeDef> defs = new ArrayList<ChildTypeDef>();
-        NodeState resChildNodeDefinitions = parentType.getChildNode(REP_RESIDUAL_CHILD_NODE_DEFINITIONS);
+        NodeState resChildNodeDefinitions = parentType.getChildNode(
+            REP_RESIDUAL_CHILD_NODE_DEFINITIONS);
         for (String childType : filterChildren(resChildNodeDefinitions, NO_SNS_PROPERTY)) {
             TypePredicate childTypePredicate = new TypePredicate(root, childType);
             defs.add(new ChildTypeDef(parentTypePredicate, childTypePredicate));
@@ -160,13 +165,15 @@ public class SameNameSiblingsEditor extends DefaultEditor {
     }
 
     /**
-     * Filter children of the given node using predicate and return the list of matching child names.
+     * Filter children of the given node using predicate and return the list of matching child
+     * names.
      *
      * @param parent
      * @param predicate
      * @return a list of names of children accepting the predicate
      */
-    private static Iterable<String> filterChildren(NodeState parent, final Predicate<NodeState> predicate) {
+    private static Iterable<String> filterChildren(NodeState parent,
+        final Predicate<NodeState> predicate) {
         return transform(filter(parent.getChildNodeEntries(), new Predicate<ChildNodeEntry>() {
             @Override
             public boolean apply(ChildNodeEntry input) {
@@ -219,7 +226,8 @@ public class SameNameSiblingsEditor extends DefaultEditor {
     }
 
     /**
-     * Check if SNS with given name is allowed under the given parent using the {@link #childrenDefsWithoutSns} list.
+     * Check if SNS with given name is allowed under the given parent using the
+     * {@link #childrenDefsWithoutSns} list.
      */
     private boolean isSnsAllowedForChild(NodeState parent, String name) {
         for (ChildTypeDef snsDef : childrenDefsWithoutSns) {
@@ -231,11 +239,11 @@ public class SameNameSiblingsEditor extends DefaultEditor {
     }
 
     /**
-     * Create new name for the conflicting SNS node. This method makes sure that
-     * no node with this name already exists.
+     * Create new name for the conflicting SNS node. This method makes sure that no node with this
+     * name already exists.
      *
      * @param prefix prefix of the new name, eg. <b>my_name</b>[3]
-     * @param index SNS index, eg. my_name[<b>3</b>]
+     * @param index  SNS index, eg. my_name[<b>3</b>]
      * @param parent of the SNS node
      * @return new and unused name for the node
      */
@@ -254,8 +262,8 @@ public class SameNameSiblingsEditor extends DefaultEditor {
     }
 
     /**
-     * Definition of a children type. It contains the parent type, the child
-     * type and an optional child name.
+     * Definition of a children type. It contains the parent type, the child type and an optional
+     * child name.
      */
     private static class ChildTypeDef {
 
@@ -278,7 +286,8 @@ public class SameNameSiblingsEditor extends DefaultEditor {
         public boolean applies(NodeState parent, String childName) {
             boolean result = true;
             result &= parentType.test(parent);
-            result &= childNameConstraint == null || childName.startsWith(this.childNameConstraint + '[');
+            result &=
+                childNameConstraint == null || childName.startsWith(this.childNameConstraint + '[');
             result &= childType.test(parent.getChildNode(childName));
             return result;
         }

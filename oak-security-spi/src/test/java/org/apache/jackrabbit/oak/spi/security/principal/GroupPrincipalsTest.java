@@ -26,7 +26,6 @@ import static org.mockito.Mockito.verify;
 import java.security.Principal;
 import java.util.Collections;
 import java.util.Enumeration;
-
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
@@ -61,7 +60,8 @@ public class GroupPrincipalsTest {
 
     @Test
     public void testMembersOfNonGroup() {
-        assertEquals(Collections.emptyEnumeration(), GroupPrincipals.members(mock(Principal.class)));
+        assertEquals(Collections.emptyEnumeration(),
+            GroupPrincipals.members(mock(Principal.class)));
     }
 
     @Test

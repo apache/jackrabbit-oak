@@ -20,9 +20,10 @@ import org.junit.Test;
 
 public class StoreArgumentsTest {
 
-    @Test(expected =  CliArgumentException.class)
+    @Test(expected = CliArgumentException.class)
     public void testSameRepositoryFails() throws CliArgumentException {
-        MigrationCliArguments parsed = new MigrationCliArguments(OptionParserFactory.create().parse("my/repo", "my/repo"));
+        MigrationCliArguments parsed = new MigrationCliArguments(
+            OptionParserFactory.create().parse("my/repo", "my/repo"));
         MigrationOptions options = new MigrationOptions(parsed);
         new StoreArguments(options, parsed.getArguments());
     }

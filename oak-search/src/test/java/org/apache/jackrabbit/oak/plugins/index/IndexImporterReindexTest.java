@@ -18,6 +18,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
+import java.util.Collections;
+import java.util.Set;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.importer.IndexImporter;
@@ -25,9 +27,6 @@ import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.junit.Assert;
 import org.junit.Test;
-
-import java.util.Collections;
-import java.util.Set;
 
 public abstract class IndexImporterReindexTest extends AbstractQueryTest {
 
@@ -38,17 +37,20 @@ public abstract class IndexImporterReindexTest extends AbstractQueryTest {
     public void indexImporterFlagDeleteOnReindex() throws Exception {
         Tree luceneIndex = createIndex("test-index", Collections.<String>emptySet());
         Tree func = luceneIndex.addChild(FulltextIndexConstants.INDEX_RULES)
-                .addChild("nt:base")
-                .addChild(FulltextIndexConstants.PROP_NODE)
-                .addChild("lowerLocalName");
+                               .addChild("nt:base")
+                               .addChild(FulltextIndexConstants.PROP_NODE)
+                               .addChild("lowerLocalName");
         func.setProperty(FulltextIndexConstants.PROP_FUNCTION, "lower(localname())");
 
         root.commit();
-        Assert.assertFalse(root.getTree("/oak:index/test-index").getProperty("reindex").getValue(Type.BOOLEAN));
-        root.getTree("/oak:index/test-index").setProperty(IndexImporter.INDEX_IMPORT_STATE_KEY, "test", Type.STRING);
+        Assert.assertFalse(
+            root.getTree("/oak:index/test-index").getProperty("reindex").getValue(Type.BOOLEAN));
+        root.getTree("/oak:index/test-index")
+            .setProperty(IndexImporter.INDEX_IMPORT_STATE_KEY, "test", Type.STRING);
         root.getTree("/oak:index/test-index").setProperty("reindex", true, Type.BOOLEAN);
         root.commit();
-        Assert.assertNull(root.getTree("/oak:index/test-index").getProperty(IndexImporter.INDEX_IMPORT_STATE_KEY));
+        Assert.assertNull(root.getTree("/oak:index/test-index")
+                              .getProperty(IndexImporter.INDEX_IMPORT_STATE_KEY));
     }
 
     protected Tree createIndex(String name, Set<String> propNames) {

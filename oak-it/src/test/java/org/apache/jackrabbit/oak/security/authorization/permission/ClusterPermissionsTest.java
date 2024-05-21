@@ -28,12 +28,12 @@ import javax.jcr.security.AccessControlEntry;
 import javax.jcr.security.AccessControlManager;
 import javax.security.auth.login.Configuration;
 import javax.security.auth.login.LoginException;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
+import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -49,7 +49,6 @@ import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.reference.ReferenceEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.reference.ReferenceIndexProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
-import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -96,36 +95,44 @@ public class ClusterPermissionsTest {
         ns2 = builder.setClusterId(2).getNodeStore();
 
         Oak oak = new Oak(ns1)
-                .with(new InitialContent())
-                .with(new ReferenceEditorProvider())
-                .with(new ReferenceIndexProvider())
-                .with(new PropertyIndexEditorProvider())
-                .with(new PropertyIndexProvider())
-                .with(new TypeEditorProvider())
-                .with(securityProvider1 = SecurityProviderBuilder.newBuilder().with(getSecurityConfigParameters()).build());
+            .with(new InitialContent())
+            .with(new ReferenceEditorProvider())
+            .with(new ReferenceIndexProvider())
+            .with(new PropertyIndexEditorProvider())
+            .with(new PropertyIndexProvider())
+            .with(new TypeEditorProvider())
+            .with(securityProvider1 = SecurityProviderBuilder.newBuilder()
+                                                             .with(getSecurityConfigParameters())
+                                                             .build());
         contentRepository1 = oak.createContentRepository();
         adminSession1 = login1(getAdminCredentials());
         root1 = adminSession1.getLatestRoot();
-        userManager1 = securityProvider1.getConfiguration(UserConfiguration.class).getUserManager(root1, namePathMapper);
-        aclMgr1 = securityProvider1.getConfiguration(AuthorizationConfiguration.class).getAccessControlManager(root1, namePathMapper);
+        userManager1 = securityProvider1.getConfiguration(UserConfiguration.class)
+                                        .getUserManager(root1, namePathMapper);
+        aclMgr1 = securityProvider1.getConfiguration(AuthorizationConfiguration.class)
+                                   .getAccessControlManager(root1, namePathMapper);
 
         // make sure initial content is visible to ns2
         syncClusterNodes();
 
         oak = new Oak(ns2)
-                .with(new InitialContent())
-                .with(new ReferenceEditorProvider())
-                .with(new ReferenceIndexProvider())
-                .with(new PropertyIndexEditorProvider())
-                .with(new PropertyIndexProvider())
-                .with(new TypeEditorProvider())
-                .with(securityProvider2 = SecurityProviderBuilder.newBuilder().with(getSecurityConfigParameters()).build());
+            .with(new InitialContent())
+            .with(new ReferenceEditorProvider())
+            .with(new ReferenceIndexProvider())
+            .with(new PropertyIndexEditorProvider())
+            .with(new PropertyIndexProvider())
+            .with(new TypeEditorProvider())
+            .with(securityProvider2 = SecurityProviderBuilder.newBuilder()
+                                                             .with(getSecurityConfigParameters())
+                                                             .build());
 
         contentRepository2 = oak.createContentRepository();
         adminSession2 = login2(getAdminCredentials());
         root2 = adminSession2.getLatestRoot();
-        userManager2 = securityProvider2.getConfiguration(UserConfiguration.class).getUserManager(root2, namePathMapper);
-        aclMgr2 = securityProvider2.getConfiguration(AuthorizationConfiguration.class).getAccessControlManager(root2, namePathMapper);
+        userManager2 = securityProvider2.getConfiguration(UserConfiguration.class)
+                                        .getUserManager(root2, namePathMapper);
+        aclMgr2 = securityProvider2.getConfiguration(AuthorizationConfiguration.class)
+                                   .getAccessControlManager(root2, namePathMapper);
     }
 
     @After
@@ -143,11 +150,12 @@ public class ClusterPermissionsTest {
     }
 
     protected ContentSession login1(@Nullable Credentials credentials)
-            throws LoginException, NoSuchWorkspaceException {
+        throws LoginException, NoSuchWorkspaceException {
         return contentRepository1.login(credentials, null);
     }
+
     protected ContentSession login2(@Nullable Credentials credentials)
-            throws LoginException, NoSuchWorkspaceException {
+        throws LoginException, NoSuchWorkspaceException {
         return contentRepository2.login(credentials, null);
     }
 
@@ -162,7 +170,8 @@ public class ClusterPermissionsTest {
         root1.commit();
         syncClusterNodes();
         root2.refresh();
-        assertNotNull("testUser must exist on 2nd cluster node", userManager2.getAuthorizable("testUser"));
+        assertNotNull("testUser must exist on 2nd cluster node",
+            userManager2.getAuthorizable("testUser"));
     }
 
     @Test
@@ -170,14 +179,17 @@ public class ClusterPermissionsTest {
         Tree node = root1.getTree("/").addChild("testNode");
         node.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_UNSTRUCTURED, Type.NAME);
         User user1 = userManager1.createUser("testUser", "testUser");
-        JackrabbitAccessControlList acl1 = AccessControlUtils.getAccessControlList(aclMgr1, "/testNode");
-        acl1.addEntry(user1.getPrincipal(), AccessControlUtils.privilegesFromNames(aclMgr1, "jcr:all"), true);
+        JackrabbitAccessControlList acl1 = AccessControlUtils.getAccessControlList(aclMgr1,
+            "/testNode");
+        acl1.addEntry(user1.getPrincipal(),
+            AccessControlUtils.privilegesFromNames(aclMgr1, "jcr:all"), true);
         aclMgr1.setPolicy("/testNode", acl1);
         root1.commit();
 
         syncClusterNodes();
         root2.refresh();
-        JackrabbitAccessControlList acl2 = AccessControlUtils.getAccessControlList(aclMgr2, "/testNode");
+        JackrabbitAccessControlList acl2 = AccessControlUtils.getAccessControlList(aclMgr2,
+            "/testNode");
         AccessControlEntry[] aces = acl2.getAccessControlEntries();
         assertEquals(1, aces.length);
     }
@@ -192,13 +204,16 @@ public class ClusterPermissionsTest {
         User user1 = userManager1.createUser("testUser1", "testUser1");
         User user2 = userManager1.createUser("testUser2", "testUser2");
 
-        JackrabbitAccessControlList acl1 = AccessControlUtils.getAccessControlList(aclMgr1, "/testNode");
+        JackrabbitAccessControlList acl1 = AccessControlUtils.getAccessControlList(aclMgr1,
+            "/testNode");
 
         // deny jcr:all for everyone on /testNode
-        acl1.addEntry(EveryonePrincipal.getInstance(), AccessControlUtils.privilegesFromNames(aclMgr1, "jcr:all"), false);
+        acl1.addEntry(EveryonePrincipal.getInstance(),
+            AccessControlUtils.privilegesFromNames(aclMgr1, "jcr:all"), false);
 
         // allow jcr:read for testUser1 on /testNode
-        acl1.addEntry(user1.getPrincipal(), AccessControlUtils.privilegesFromNames(aclMgr1, "jcr:read"), true);
+        acl1.addEntry(user1.getPrincipal(),
+            AccessControlUtils.privilegesFromNames(aclMgr1, "jcr:read"), true);
         aclMgr1.setPolicy("/testNode", acl1);
         root1.commit();
 
@@ -206,8 +221,10 @@ public class ClusterPermissionsTest {
         root2.refresh();
 
         // login with testUser1 and testUser2 (on cluster node 2)
-        ContentSession session1 = contentRepository2.login(new SimpleCredentials("testUser1", "testUser1".toCharArray()), null);
-        ContentSession session2 = contentRepository2.login(new SimpleCredentials("testUser2", "testUser2".toCharArray()), null);
+        ContentSession session1 = contentRepository2.login(
+            new SimpleCredentials("testUser1", "testUser1".toCharArray()), null);
+        ContentSession session2 = contentRepository2.login(
+            new SimpleCredentials("testUser2", "testUser2".toCharArray()), null);
 
         // testUser1 can read /testNode
         assertTrue(session1.getLatestRoot().getTree("/testNode").exists());
@@ -217,7 +234,8 @@ public class ClusterPermissionsTest {
 
         // now, allow jcr:read also for 'everyone' (on cluster node 1)
         acl1 = AccessControlUtils.getAccessControlList(aclMgr1, "/testNode");
-        acl1.addEntry(EveryonePrincipal.getInstance(), AccessControlUtils.privilegesFromNames(aclMgr1, "jcr:read"), true);
+        acl1.addEntry(EveryonePrincipal.getInstance(),
+            AccessControlUtils.privilegesFromNames(aclMgr1, "jcr:read"), true);
         aclMgr1.setPolicy("/testNode", acl1);
         root1.commit();
 

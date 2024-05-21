@@ -31,10 +31,10 @@ import org.junit.BeforeClass;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
 /**
- * Tests for {@code DocumentMK#read(String, long, byte[], int, int)} using
- * {@link DataStore}
+ * Tests for {@code DocumentMK#read(String, long, byte[], int, int)} using {@link DataStore}
  */
 public class DocumentMKDataStoreReadTest extends DocumentMKReadTest {
+
     @BeforeClass
     public static void setUpBeforeClass() {
         try {
@@ -51,8 +51,8 @@ public class DocumentMKDataStoreReadTest extends DocumentMKReadTest {
         checkNotNull(mongoConnection);
         MongoUtils.dropCollections(mongoConnection.getDBName());
         mk = new DocumentMK.Builder()
-                .setMongoDB(mongoConnection.getMongoClient(), mongoConnection.getDBName())
-                .setBlobStore(DataStoreUtils.getBlobStore()).open();
+            .setMongoDB(mongoConnection.getMongoClient(), mongoConnection.getDBName())
+            .setBlobStore(DataStoreUtils.getBlobStore()).open();
     }
 
     @Override

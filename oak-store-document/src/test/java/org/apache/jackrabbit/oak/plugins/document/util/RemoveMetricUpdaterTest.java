@@ -32,10 +32,12 @@ import static org.junit.Assert.fail;
  */
 public class RemoveMetricUpdaterTest extends BaseUpdaterTest {
 
-    private final RemoveMetricUpdater rMUWithoutThrottling = new RemoveMetricUpdater(provider.getMeter(NODES_REMOVE, DEFAULT),
-            provider.getTimer(NODES_REMOVE_TIMER, METRICS_ONLY));
-    private final RemoveMetricUpdater rMUWithThrottling = new RemoveMetricUpdater(provider.getMeter(NODES_REMOVE_THROTTLING, DEFAULT),
-            provider.getTimer(NODES_REMOVE_THROTTLING_TIMER, METRICS_ONLY));
+    private final RemoveMetricUpdater rMUWithoutThrottling = new RemoveMetricUpdater(
+        provider.getMeter(NODES_REMOVE, DEFAULT),
+        provider.getTimer(NODES_REMOVE_TIMER, METRICS_ONLY));
+    private final RemoveMetricUpdater rMUWithThrottling = new RemoveMetricUpdater(
+        provider.getMeter(NODES_REMOVE_THROTTLING, DEFAULT),
+        provider.getTimer(NODES_REMOVE_THROTTLING_TIMER, METRICS_ONLY));
 
     @Test(expected = NullPointerException.class)
     public void updateNodesNullConsumer() {
@@ -80,6 +82,7 @@ public class RemoveMetricUpdaterTest extends BaseUpdaterTest {
 
     private void assertWithThrottling(final long nodesRemoved, final long nodesRemovedTimer) {
         assertEquals(nodesRemoved, getMeter(NODES_REMOVE_THROTTLING).getCount());
-        assertEquals(nodesRemovedTimer, getTimer(NODES_REMOVE_THROTTLING_TIMER).getSnapshot().getMax());
+        assertEquals(nodesRemovedTimer,
+            getTimer(NODES_REMOVE_THROTTLING_TIMER).getSnapshot().getMax());
     }
 }

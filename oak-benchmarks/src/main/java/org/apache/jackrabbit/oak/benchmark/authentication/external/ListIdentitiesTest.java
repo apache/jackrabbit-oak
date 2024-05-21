@@ -20,7 +20,6 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import javax.security.auth.login.Configuration;
-
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -30,14 +29,17 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.jmx.S
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.jmx.SynchronizationMBean;
 
 /**
- * Benchmark for {@link org.apache.jackrabbit.oak.spi.security.authentication.external.SyncHandler#listIdentities(UserManager)}
+ * Benchmark for
+ * {@link
+ * org.apache.jackrabbit.oak.spi.security.authentication.external.SyncHandler#listIdentities(UserManager)}
  */
 public class ListIdentitiesTest extends AbstractExternalTest {
 
     private static final List<String> AUTO_IDS = new ArrayList();
+
     static {
-        for (int i = 0; i<100; i++) {
-            AUTO_IDS.add("autoGroup"+i);
+        for (int i = 0; i < 100; i++) {
+            AUTO_IDS.add("autoGroup" + i);
         }
     }
 
@@ -53,7 +55,8 @@ public class ListIdentitiesTest extends AbstractExternalTest {
     @Override
     protected void beforeSuite() throws Exception {
         super.beforeSuite();
-        SynchronizationMBean bean = new SyncMBeanImpl(getContentRepository(), getSecurityProvider(), syncManager, "default", idpManager, idp.getName());
+        SynchronizationMBean bean = new SyncMBeanImpl(getContentRepository(), getSecurityProvider(),
+            syncManager, "default", idpManager, idp.getName());
         bean.syncAllExternalUsers();
     }
 

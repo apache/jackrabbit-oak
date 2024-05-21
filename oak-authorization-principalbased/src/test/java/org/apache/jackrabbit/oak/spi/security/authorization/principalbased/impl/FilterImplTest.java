@@ -67,13 +67,14 @@ public class FilterImplTest extends AbstractPrincipalBasedTest {
     }
 
     @Test
-    public void testCanHandleEmptySet()  {
+    public void testCanHandleEmptySet() {
         assertFalse(filter.canHandle(Collections.emptySet()));
     }
 
     @Test
     public void testCanHandleGroupPrincipal() throws Exception {
-        assertFalse(filter.canHandle(singleton(getUserManager(root).createGroup("group").getPrincipal())));
+        assertFalse(
+            filter.canHandle(singleton(getUserManager(root).createGroup("group").getPrincipal())));
     }
 
     @Test
@@ -89,7 +90,8 @@ public class FilterImplTest extends AbstractPrincipalBasedTest {
 
     @Test
     public void testCanHandleRandomSystemUserPrincipal() throws Exception {
-        Principal principal = getUserManager(root).createSystemUser("anySystemUser", null).getPrincipal();
+        Principal principal = getUserManager(root).createSystemUser("anySystemUser", null)
+                                                  .getPrincipal();
         assertFalse(filter.canHandle(singleton(principal)));
     }
 
@@ -151,7 +153,8 @@ public class FilterImplTest extends AbstractPrincipalBasedTest {
     public void testCanHandleMovedUnsupportedItemBasedSystemUserPrincipal() throws Exception {
         Principal principal = getTestSystemUser().getPrincipal();
         String srcPath = getNamePathMapper().getOakPath(getTestSystemUser().getPath());
-        String destPath = PathUtils.concat(DEFAULT_USER_PATH, DEFAULT_SYSTEM_RELATIVE_PATH, "moved");
+        String destPath = PathUtils.concat(DEFAULT_USER_PATH, DEFAULT_SYSTEM_RELATIVE_PATH,
+            "moved");
         Principal movedPrincipal = new TestPrincipal(principal.getName(), destPath);
 
         root.move(srcPath, destPath);
@@ -186,41 +189,53 @@ public class FilterImplTest extends AbstractPrincipalBasedTest {
     }
 
     /**
-     * Test that the filter can deal with principals that have been accessed with a different {@code NamePathMapper}.
-     * This might occur with {@code AbstractAccessControlManager#hasPrivilege} and {@code AbstractAccessControlManager#getPrivileges},
-     * when a {@code PermissionProvider} is built from the principal set passed to the Jackrabbit API methods (and not from
-     * principals obtained on the system level when populating the {@code Subject}.
+     * Test that the filter can deal with principals that have been accessed with a different
+     * {@code NamePathMapper}. This might occur with
+     * {@code AbstractAccessControlManager#hasPrivilege} and
+     * {@code AbstractAccessControlManager#getPrivileges}, when a {@code PermissionProvider} is
+     * built from the principal set passed to the Jackrabbit API methods (and not from principals
+     * obtained on the system level when populating the {@code Subject}.
      */
     @Test
     public void testCanHandlePathMapperMismatch() throws Exception {
         Principal principal = getTestSystemUser().getPrincipal();
 
         // create filter with a different NamePathMapper than was used to build the principal
-        Filter f =  getFilterProvider().getFilter(getSecurityProvider(), root, NamePathMapper.DEFAULT);
+        Filter f = getFilterProvider().getFilter(getSecurityProvider(), root,
+            NamePathMapper.DEFAULT);
         assertTrue(f.canHandle(singleton(principal)));
     }
 
     @Test
     public void testCanHandlePathMapperMismatchUnknownPrincipal() {
-        Principal principal = new TestPrincipal("name", PathUtils.concat(supportedPath, "oak:path/to/oak:principal"));
+        Principal principal = new TestPrincipal("name",
+            PathUtils.concat(supportedPath, "oak:path/to/oak:principal"));
 
         // create filter with a different NamePathMapper than was used to build the principal
         // since the principal is not known to the PrincipalManager, the extra lookup doesn't reveal a valid principal.
-        Filter f =  getFilterProvider().getFilter(getSecurityProvider(), root, NamePathMapper.DEFAULT);
+        Filter f = getFilterProvider().getFilter(getSecurityProvider(), root,
+            NamePathMapper.DEFAULT);
         assertFalse(f.canHandle(singleton(principal)));
     }
 
     @Test
     public void testCanHandleCombination() throws Exception {
-        assertFalse(filter.canHandle(ImmutableSet.of(getTestSystemUser().getPrincipal(), getTestUser().getPrincipal())));
+        assertFalse(filter.canHandle(
+            ImmutableSet.of(getTestSystemUser().getPrincipal(), getTestUser().getPrincipal())));
     }
 
     @Test
-    public void testCanHandlePopulatesCache() throws Exception  {
+    public void testCanHandlePopulatesCache() throws Exception {
         Principal principal = getTestSystemUser().getPrincipal();
-        PrincipalProvider pp = when(mock(PrincipalProvider.class).getPrincipal(principal.getName())).thenReturn(principal).getMock();
-        PrincipalConfiguration pc = when(mock(PrincipalConfiguration.class).getPrincipalProvider(root, getNamePathMapper())).thenReturn(pp).getMock();
-        SecurityProvider sp = when(mock(SecurityProvider.class).getConfiguration(PrincipalConfiguration.class)).thenReturn(pc).getMock();
+        PrincipalProvider pp = when(
+            mock(PrincipalProvider.class).getPrincipal(principal.getName())).thenReturn(principal)
+                                                                            .getMock();
+        PrincipalConfiguration pc = when(
+            mock(PrincipalConfiguration.class).getPrincipalProvider(root,
+                getNamePathMapper())).thenReturn(pp).getMock();
+        SecurityProvider sp = when(
+            mock(SecurityProvider.class).getConfiguration(PrincipalConfiguration.class)).thenReturn(
+            pc).getMock();
 
         Filter filter = getFilterProvider().getFilter(sp, root, getNamePathMapper());
 
@@ -237,9 +252,15 @@ public class FilterImplTest extends AbstractPrincipalBasedTest {
     public void testCanHandlePopulatesCacheUnsupportedSystemUser() {
         Principal unsupported = (SystemUserPrincipal) () -> "unsupported";
 
-        PrincipalProvider pp = when(mock(PrincipalProvider.class).getPrincipal(unsupported.getName())).thenReturn(unsupported).getMock();
-        PrincipalConfiguration pc = when(mock(PrincipalConfiguration.class).getPrincipalProvider(root, getNamePathMapper())).thenReturn(pp).getMock();
-        SecurityProvider sp = when(mock(SecurityProvider.class).getConfiguration(PrincipalConfiguration.class)).thenReturn(pc).getMock();
+        PrincipalProvider pp = when(
+            mock(PrincipalProvider.class).getPrincipal(unsupported.getName())).thenReturn(
+            unsupported).getMock();
+        PrincipalConfiguration pc = when(
+            mock(PrincipalConfiguration.class).getPrincipalProvider(root,
+                getNamePathMapper())).thenReturn(pp).getMock();
+        SecurityProvider sp = when(
+            mock(SecurityProvider.class).getConfiguration(PrincipalConfiguration.class)).thenReturn(
+            pc).getMock();
 
         Filter filter = getFilterProvider().getFilter(sp, root, getNamePathMapper());
 
@@ -253,12 +274,18 @@ public class FilterImplTest extends AbstractPrincipalBasedTest {
     }
 
     @Test
-    public void testCanHandleUserPrincipalDoesntHitProvider() throws Exception  {
+    public void testCanHandleUserPrincipalDoesntHitProvider() throws Exception {
         Principal userPrincipal = getTestUser().getPrincipal();
 
-        PrincipalProvider pp = when(mock(PrincipalProvider.class).getPrincipal(userPrincipal.getName())).thenReturn(userPrincipal).getMock();
-        PrincipalConfiguration pc = when(mock(PrincipalConfiguration.class).getPrincipalProvider(root, getNamePathMapper())).thenReturn(pp).getMock();
-        SecurityProvider sp = when(mock(SecurityProvider.class).getConfiguration(PrincipalConfiguration.class)).thenReturn(pc).getMock();
+        PrincipalProvider pp = when(
+            mock(PrincipalProvider.class).getPrincipal(userPrincipal.getName())).thenReturn(
+            userPrincipal).getMock();
+        PrincipalConfiguration pc = when(
+            mock(PrincipalConfiguration.class).getPrincipalProvider(root,
+                getNamePathMapper())).thenReturn(pp).getMock();
+        SecurityProvider sp = when(
+            mock(SecurityProvider.class).getConfiguration(PrincipalConfiguration.class)).thenReturn(
+            pc).getMock();
 
         Filter filter = getFilterProvider().getFilter(sp, root, getNamePathMapper());
 
@@ -292,7 +319,8 @@ public class FilterImplTest extends AbstractPrincipalBasedTest {
         filter.canHandle(singleton(principal));
 
         assertNotEquals(principal.getPath(), filter.getOakPath(principal));
-        assertEquals(getNamePathMapper().getOakPath(principal.getPath()), filter.getOakPath(principal));
+        assertEquals(getNamePathMapper().getOakPath(principal.getPath()),
+            filter.getOakPath(principal));
     }
 
     @Test
@@ -301,12 +329,14 @@ public class FilterImplTest extends AbstractPrincipalBasedTest {
         filter.getValidPrincipal(getNamePathMapper().getOakPath(principal.getPath()));
 
         assertNotEquals(principal.getPath(), filter.getOakPath(principal));
-        assertEquals(getNamePathMapper().getOakPath(principal.getPath()), filter.getOakPath(principal));
+        assertEquals(getNamePathMapper().getOakPath(principal.getPath()),
+            filter.getOakPath(principal));
     }
 
     @Test
     public void testGetPrincipalUserPath() throws Exception {
-        assertNull(filter.getValidPrincipal(getNamePathMapper().getOakPath(getTestUser().getPath())));
+        assertNull(
+            filter.getValidPrincipal(getNamePathMapper().getOakPath(getTestUser().getPath())));
     }
 
     @Test
@@ -318,7 +348,8 @@ public class FilterImplTest extends AbstractPrincipalBasedTest {
     public void testGetPrincipalSystemUserPath() throws Exception {
         User user = getTestSystemUser();
         Principal principal = user.getPrincipal();
-        assertEquals(principal, filter.getValidPrincipal(getNamePathMapper().getOakPath(user.getPath())));
+        assertEquals(principal,
+            filter.getValidPrincipal(getNamePathMapper().getOakPath(user.getPath())));
     }
 
     @Test
@@ -331,9 +362,15 @@ public class FilterImplTest extends AbstractPrincipalBasedTest {
         ItemBasedPrincipal principal = (ItemBasedPrincipal) getTestSystemUser().getPrincipal();
         String oakPath = getNamePathMapper().getOakPath(principal.getPath());
 
-        PrincipalProvider pp = when(mock(PrincipalProvider.class).getItemBasedPrincipal(oakPath)).thenReturn(principal).getMock();
-        PrincipalConfiguration pc = when(mock(PrincipalConfiguration.class).getPrincipalProvider(root, getNamePathMapper())).thenReturn(pp).getMock();
-        SecurityProvider sp = when(mock(SecurityProvider.class).getConfiguration(PrincipalConfiguration.class)).thenReturn(pc).getMock();
+        PrincipalProvider pp = when(
+            mock(PrincipalProvider.class).getItemBasedPrincipal(oakPath)).thenReturn(principal)
+                                                                         .getMock();
+        PrincipalConfiguration pc = when(
+            mock(PrincipalConfiguration.class).getPrincipalProvider(root,
+                getNamePathMapper())).thenReturn(pp).getMock();
+        SecurityProvider sp = when(
+            mock(SecurityProvider.class).getConfiguration(PrincipalConfiguration.class)).thenReturn(
+            pc).getMock();
 
         Filter filter = getFilterProvider().getFilter(sp, root, getNamePathMapper());
 
@@ -353,8 +390,12 @@ public class FilterImplTest extends AbstractPrincipalBasedTest {
         String oakPath = getNamePathMapper().getOakPath(principal.getPath());
 
         PrincipalProvider pp = mock(PrincipalProvider.class);
-        PrincipalConfiguration pc = when(mock(PrincipalConfiguration.class).getPrincipalProvider(root, getNamePathMapper())).thenReturn(pp).getMock();
-        SecurityProvider sp = when(mock(SecurityProvider.class).getConfiguration(PrincipalConfiguration.class)).thenReturn(pc).getMock();
+        PrincipalConfiguration pc = when(
+            mock(PrincipalConfiguration.class).getPrincipalProvider(root,
+                getNamePathMapper())).thenReturn(pp).getMock();
+        SecurityProvider sp = when(
+            mock(SecurityProvider.class).getConfiguration(PrincipalConfiguration.class)).thenReturn(
+            pc).getMock();
 
         Filter filter = getFilterProvider().getFilter(sp, root, getNamePathMapper());
 

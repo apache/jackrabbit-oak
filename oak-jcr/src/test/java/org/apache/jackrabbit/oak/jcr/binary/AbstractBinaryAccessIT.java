@@ -22,7 +22,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import javax.jcr.Repository;
-
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.oak.api.blob.BlobAccessProvider;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
@@ -39,7 +38,9 @@ import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.junit.runners.Parameterized;
 
-/** Base test class for testing direct HTTP access to binaries. */
+/**
+ * Base test class for testing direct HTTP access to binaries.
+ */
 public abstract class AbstractBinaryAccessIT extends AbstractRepositoryTest {
 
     @Parameterized.Parameters(name = "{0}")
@@ -62,8 +63,8 @@ public abstract class AbstractBinaryAccessIT extends AbstractRepositoryTest {
     }
 
     /**
-     * Adjust JCR repository creation to register BlobAccessProvider (BlobStore) in Whiteboard
-     * so it can be picked up by oak-jcr.
+     * Adjust JCR repository creation to register BlobAccessProvider (BlobStore) in Whiteboard so it
+     * can be picked up by oak-jcr.
      */
     @Override
     protected Repository createRepository(NodeStore nodeStore) {
@@ -72,19 +73,22 @@ public abstract class AbstractBinaryAccessIT extends AbstractRepositoryTest {
         BlobStore blobStore = getNodeStoreComponent(BlobStore.class);
         if (blobStore != null && blobStore instanceof BlobAccessProvider) {
             wb.register(BlobAccessProvider.class, (BlobAccessProvider) blobStore,
-                    Collections.emptyMap());
+                Collections.emptyMap());
 
         }
 
         return initJcr(new Jcr(nodeStore).with(wb)).createRepository();
     }
 
-    /** Return underlying DataStore configuration extension */
+    /**
+     * Return underlying DataStore configuration extension
+     */
     protected ConfigurableDataRecordAccessProvider getConfigurableHttpDataRecordProvider() {
         DataStore dataStore = getNodeStoreComponent(DataStore.class);
         if (dataStore != null && dataStore instanceof ConfigurableDataRecordAccessProvider) {
             return (ConfigurableDataRecordAccessProvider) dataStore;
         }
-        throw new AssertionError("issue with test setup, cannot retrieve underlying DataStore / ConfigurableDataRecordAccessProvider");
+        throw new AssertionError(
+            "issue with test setup, cannot retrieve underlying DataStore / ConfigurableDataRecordAccessProvider");
     }
 }

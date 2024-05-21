@@ -22,7 +22,6 @@ import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProp
 
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
-
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
@@ -69,8 +68,8 @@ class TarNode extends AbstractNode {
     @Override
     public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
         return StreamSupport.stream(backend.getSegmentIds(name).spliterator(), false)
-            .map(this::newSegmentEntry)
-            .collect(Collectors.toList());
+                            .map(this::newSegmentEntry)
+                            .collect(Collectors.toList());
     }
 
     ChildNodeEntry newSegmentEntry(String segmentId) {

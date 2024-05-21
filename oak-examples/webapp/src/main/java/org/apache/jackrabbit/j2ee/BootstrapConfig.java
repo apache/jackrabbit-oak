@@ -18,14 +18,13 @@ package org.apache.jackrabbit.j2ee;
 
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
-
-import javax.servlet.ServletException;
 import javax.servlet.ServletConfig;
+import javax.servlet.ServletException;
 
 /**
- * The bootstrap configuration hold information about initial startup
- * parameters like repository config and home.
- *
+ * The bootstrap configuration hold information about initial startup parameters like repository
+ * config and home.
+ * <p>
  * It supports the following properties and init parameters:
  * <pre>
  * +-------------------+-------------------+

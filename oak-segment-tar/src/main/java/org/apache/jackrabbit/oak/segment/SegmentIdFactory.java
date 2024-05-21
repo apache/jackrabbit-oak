@@ -22,11 +22,11 @@ import org.jetbrains.annotations.NotNull;
 /**
  * A factory for {@link SegmentId} given their representation in MSB/LSB longs.
  * <p>
- * An instance of this class is used by the {@link SegmentTracker} to delegate
- * the creation of {@link SegmentId}s to its caller, that usually is a {@link
- * SegmentStore}. This way, the {@link SegmentStore} may attach additional,
- * implementation-dependent information to the returned {@link SegmentId} in a
- * way that is transparent to the implementation of the {@link SegmentTracker}.
+ * An instance of this class is used by the {@link SegmentTracker} to delegate the creation of
+ * {@link SegmentId}s to its caller, that usually is a {@link SegmentStore}. This way, the
+ * {@link SegmentStore} may attach additional, implementation-dependent information to the returned
+ * {@link SegmentId} in a way that is transparent to the implementation of the
+ * {@link SegmentTracker}.
  */
 public interface SegmentIdFactory {
 
@@ -35,8 +35,7 @@ public interface SegmentIdFactory {
      *
      * @param msb The most significant bits of the {@link SegmentId}.
      * @param lsb The least significant bits of the {@link SegmentId}.
-     * @return An instance of {@link SegmentId}. The returned instance is never
-     * {@code null}.
+     * @return An instance of {@link SegmentId}. The returned instance is never {@code null}.
      */
     @NotNull
     SegmentId newSegmentId(long msb, long lsb);

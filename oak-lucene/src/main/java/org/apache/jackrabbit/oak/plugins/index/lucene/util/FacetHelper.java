@@ -24,7 +24,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.SecureFacetConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex;
@@ -52,7 +51,8 @@ public class FacetHelper {
     private static final Logger LOGGER = LoggerFactory.getLogger(FacetHelper.class);
 
     /**
-     * IndexPaln Attribute name which refers to the name of the fields that should be used for facets.
+     * IndexPaln Attribute name which refers to the name of the fields that should be used for
+     * facets.
      */
     public static final String ATTR_FACET_FIELDS = "oak.facet.fields";
 
@@ -76,12 +76,12 @@ public class FacetHelper {
             return Collections.emptyList();
         }
         return facetFields.stream().map(
-                FulltextIndex::convertFacetFieldNameToColumnName).
-                collect(Collectors.toList());
+                              FulltextIndex::convertFacetFieldNameToColumnName).
+                          collect(Collectors.toList());
     }
 
     public static Facets getFacets(IndexSearcher searcher, Query query, QueryIndex.IndexPlan plan,
-                                   SecureFacetConfiguration secureFacetConfiguration) throws IOException {
+        SecureFacetConfiguration secureFacetConfiguration) throws IOException {
         Facets facets = null;
         @SuppressWarnings("unchecked")
         List<String> facetFields = (List<String>) plan.getAttribute(ATTR_FACET_FIELDS);
@@ -92,20 +92,23 @@ public class FacetHelper {
                 FacetsCollector facetsCollector = new FacetsCollector();
                 try {
                     DefaultSortedSetDocValuesReaderState state = new DefaultSortedSetDocValuesReaderState(
-                            searcher.getIndexReader(), FieldNames.createFacetFieldName(facetField));
-                    FacetsCollector.search(searcher, query, null,1, Sort.INDEXORDER, facetsCollector);
+                        searcher.getIndexReader(), FieldNames.createFacetFieldName(facetField));
+                    FacetsCollector.search(searcher, query, null, 1, Sort.INDEXORDER,
+                        facetsCollector);
 
                     switch (secureFacetConfiguration.getMode()) {
                         case INSECURE:
                             facets = new SortedSetDocValuesFacetCounts(state, facetsCollector);
                             break;
                         case STATISTICAL:
-                            facets = new StatisticalSortedSetDocValuesFacetCounts(state, facetsCollector, plan.getFilter(),
-                                    secureFacetConfiguration);
+                            facets = new StatisticalSortedSetDocValuesFacetCounts(state,
+                                facetsCollector, plan.getFilter(),
+                                secureFacetConfiguration);
                             break;
                         case SECURE:
                         default:
-                            facets = new SecureSortedSetDocValuesFacetCounts(state, facetsCollector, plan.getFilter());
+                            facets = new SecureSortedSetDocValuesFacetCounts(state, facetsCollector,
+                                plan.getFilter());
                             break;
                     }
 

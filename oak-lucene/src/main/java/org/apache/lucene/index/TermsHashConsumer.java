@@ -29,9 +29,16 @@ import java.io.IOException;
 import java.util.Map;
 
 abstract class TermsHashConsumer {
-  abstract void flush(Map<String, TermsHashConsumerPerField> fieldsToFlush, final SegmentWriteState state) throws IOException;
-  abstract void abort();
-  abstract void startDocument() throws IOException;
-  abstract void finishDocument(TermsHash termsHash) throws IOException;
-  abstract public TermsHashConsumerPerField addField(TermsHashPerField termsHashPerField, FieldInfo fieldInfo);
+
+    abstract void flush(Map<String, TermsHashConsumerPerField> fieldsToFlush,
+        final SegmentWriteState state) throws IOException;
+
+    abstract void abort();
+
+    abstract void startDocument() throws IOException;
+
+    abstract void finishDocument(TermsHash termsHash) throws IOException;
+
+    abstract public TermsHashConsumerPerField addField(TermsHashPerField termsHashPerField,
+        FieldInfo fieldInfo);
 }

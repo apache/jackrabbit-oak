@@ -47,7 +47,7 @@ public class LastRevRecoveryAgentTest extends AbstractTwoNodeTest {
     }
 
     @Test
-    public void testIsRecoveryRequired() throws Exception{
+    public void testIsRecoveryRequired() throws Exception {
         //1. Create base structure /x/y
         NodeBuilder b1 = ds1.getRoot().builder();
         b1.child("x").child("y");
@@ -89,7 +89,7 @@ public class LastRevRecoveryAgentTest extends AbstractTwoNodeTest {
 
     //OAK-5337
     @Test
-    public void testSelfRecovery() throws Exception{
+    public void testSelfRecovery() throws Exception {
         //1. Create base structure /x/y
         NodeBuilder b1 = ds1.getRoot().builder();
         b1.child("x").child("y");
@@ -240,9 +240,9 @@ public class LastRevRecoveryAgentTest extends AbstractTwoNodeTest {
         assertEquals(c2Id, Iterables.get(cids, 0).intValue());
 
         int updates = ds1.getLastRevRecoveryAgent().recover(
-                Utils.getAllDocuments(store1),
-                Iterables.get(cids, 0),
-                true // dryRun
+            Utils.getAllDocuments(store1),
+            Iterables.get(cids, 0),
+            true // dryRun
         );
         assertEquals(3, updates);
 
@@ -253,12 +253,12 @@ public class LastRevRecoveryAgentTest extends AbstractTwoNodeTest {
     }
 
     private static NodeDocument getDocument(DocumentNodeStore nodeStore,
-                                            String path) {
+        String path) {
         return nodeStore.getDocumentStore().find(NODES, getIdFromPath(path));
     }
 
     private static void merge(DocumentNodeStore store, NodeBuilder builder)
-            throws CommitFailedException {
+        throws CommitFailedException {
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 }

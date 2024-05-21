@@ -16,10 +16,6 @@
  */
 package org.apache.jackrabbit.oak.segment.remote.queue;
 
-import org.apache.jackrabbit.oak.segment.remote.RemoteSegmentArchiveEntry;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.Map;
@@ -32,6 +28,9 @@ import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import org.apache.jackrabbit.oak.segment.remote.RemoteSegmentArchiveEntry;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SegmentWriteQueue implements Closeable {
 
@@ -88,7 +87,8 @@ public class SegmentWriteQueue implements Closeable {
                 try {
                     queue.put(segment);
                 } catch (InterruptedException e1) {
-                    log.error("Can't re-add the segment {} to the queue. It'll be dropped.", segment.getUuid(), e1);
+                    log.error("Can't re-add the segment {} to the queue. It'll be dropped.",
+                        segment.getUuid(), e1);
 
                     synchronized (segmentsByUUID) {
                         segmentsByUUID.remove(segment.getUuid());
@@ -144,21 +144,24 @@ public class SegmentWriteQueue implements Closeable {
                     success = true;
                 } catch (SegmentConsumeException e) {
                     segmentToRetry = e.segment;
-                    log.error("Can't persist the segment {}", segmentToRetry.getUuid(), e.getCause());
+                    log.error("Can't persist the segment {}", segmentToRetry.getUuid(),
+                        e.getCause());
                     try {
                         Thread.sleep(1000);
                     } catch (InterruptedException e1) {
                         log.warn("Interrupted", e);
                     }
                     if (shutdown) {
-                        log.error("Shutdown initiated. The segment {} will be dropped.", segmentToRetry.getUuid());
+                        log.error("Shutdown initiated. The segment {} will be dropped.",
+                            segmentToRetry.getUuid());
                     }
                 }
             } while (!success && !shutdown);
         }
     }
 
-    public void addToQueue(RemoteSegmentArchiveEntry indexEntry, byte[] data, int offset, int size) throws IOException {
+    public void addToQueue(RemoteSegmentArchiveEntry indexEntry, byte[] data, int offset, int size)
+        throws IOException {
         waitWhileBroken();
         if (shutdown) {
             throw new IllegalStateException("Can't accept the new segment - shutdown in progress");
@@ -188,7 +191,8 @@ public class SegmentWriteQueue implements Closeable {
                 while (!segmentsByUUID.isEmpty()) {
                     segmentsByUUID.wait(100);
                     if (System.currentTimeMillis() - start > TimeUnit.MINUTES.toMillis(1)) {
-                        log.error("Can't flush the queue in 1 minute. Queue: {}. Segment map: {}", queue, segmentsByUUID);
+                        log.error("Can't flush the queue in 1 minute. Queue: {}. Segment map: {}",
+                            queue, segmentsByUUID);
                         start = System.currentTimeMillis();
                     }
                 }
@@ -268,7 +272,8 @@ public class SegmentWriteQueue implements Closeable {
 
     public interface SegmentConsumer {
 
-        void consume(RemoteSegmentArchiveEntry indexEntry, byte[] data, int offset, int size) throws IOException;
+        void consume(RemoteSegmentArchiveEntry indexEntry, byte[] data, int offset, int size)
+            throws IOException;
 
     }
 

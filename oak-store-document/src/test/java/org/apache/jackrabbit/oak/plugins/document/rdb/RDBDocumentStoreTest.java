@@ -78,8 +78,9 @@ public class RDBDocumentStoreTest extends AbstractDocumentStoreTest {
             conditions.add(new QueryCondition(NodeDocument.DELETED_ONCE, "=", 0));
             // matches first eight
             conditions.add(new QueryCondition(NodeDocument.MODIFIED_IN_SECS, "<", now - 2));
-            List<NodeDocument> result = rds.query(Collection.NODES, base, base + "A", RDBDocumentStore.EMPTY_KEY_PATTERN,
-                    conditions, 10);
+            List<NodeDocument> result = rds.query(Collection.NODES, base, base + "A",
+                RDBDocumentStore.EMPTY_KEY_PATTERN,
+                conditions, 10);
             assertEquals(4, result.size());
         }
     }
@@ -102,16 +103,18 @@ public class RDBDocumentStoreTest extends AbstractDocumentStoreTest {
             }
 
             List<QueryCondition> conditions = new ArrayList<QueryCondition>();
-            List<NodeDocument> result = rds.query(Collection.NODES, NodeDocument.MIN_ID_VALUE, NodeDocument.MAX_ID_VALUE,
-                    Arrays.asList("_:/%", "__:/%", "___:/%"), conditions, 10000);
+            List<NodeDocument> result = rds.query(Collection.NODES, NodeDocument.MIN_ID_VALUE,
+                NodeDocument.MAX_ID_VALUE,
+                Arrays.asList("_:/%", "__:/%", "___:/%"), conditions, 10000);
             for (NodeDocument d : result) {
                 if (base.equals(d.get("_test"))) {
                     assertTrue(d.getId().startsWith("1:p"));
                 }
             }
 
-            Iterable<NodeDocument> it = rds.queryAsIterable(Collection.NODES, NodeDocument.MIN_ID_VALUE, NodeDocument.MAX_ID_VALUE,
-                    Arrays.asList("_:/%", "__:/%", "___:/%"), conditions, Integer.MAX_VALUE, null);
+            Iterable<NodeDocument> it = rds.queryAsIterable(Collection.NODES,
+                NodeDocument.MIN_ID_VALUE, NodeDocument.MAX_ID_VALUE,
+                Arrays.asList("_:/%", "__:/%", "___:/%"), conditions, Integer.MAX_VALUE, null);
             assertTrue(it instanceof Closeable);
 
             int c1 = 0, c2 = 0;
@@ -154,11 +157,15 @@ public class RDBDocumentStoreTest extends AbstractDocumentStoreTest {
     @Test
     public void testRDBJDBCPerfLog() {
         if (ds instanceof RDBDocumentStore) {
-            LogCustomizer logCustomizerRead = LogCustomizer.forLogger(RDBDocumentStoreJDBC.class.getName() + ".perf")
-                    .enable(Level.TRACE).matchesRegex("read: .*").create();
+            LogCustomizer logCustomizerRead = LogCustomizer.forLogger(
+                                                               RDBDocumentStoreJDBC.class.getName() + ".perf")
+                                                           .enable(Level.TRACE)
+                                                           .matchesRegex("read: .*").create();
             logCustomizerRead.starting();
-            LogCustomizer logCustomizerQuery = LogCustomizer.forLogger(RDBDocumentStoreJDBC.class.getName() + ".perf")
-                    .enable(Level.TRACE).matchesRegex("quer.*").create();
+            LogCustomizer logCustomizerQuery = LogCustomizer.forLogger(
+                                                                RDBDocumentStoreJDBC.class.getName() + ".perf")
+                                                            .enable(Level.TRACE)
+                                                            .matchesRegex("quer.*").create();
             logCustomizerQuery.starting();
 
             try {
@@ -173,8 +180,9 @@ public class RDBDocumentStoreTest extends AbstractDocumentStoreTest {
                 int count = logCustomizerRead.getLogs().size();
                 assertTrue(count > 0);
                 super.ds.find(Collection.NODES, id1);
-                assertEquals("no new log entry expected but got: " + logCustomizerRead.getLogs(), count,
-                        logCustomizerRead.getLogs().size());
+                assertEquals("no new log entry expected but got: " + logCustomizerRead.getLogs(),
+                    count,
+                    logCustomizerRead.getLogs().size());
                 count = logCustomizerRead.getLogs().size();
 
                 // add a child node
@@ -185,7 +193,8 @@ public class RDBDocumentStoreTest extends AbstractDocumentStoreTest {
 
                 // query
                 Path p = Path.fromString("/testRDBJDBCPerfLog");
-                List<NodeDocument> results = super.ds.query(Collection.NODES, Utils.getKeyLowerLimit(p), Utils.getKeyUpperLimit(p), 10);
+                List<NodeDocument> results = super.ds.query(Collection.NODES,
+                    Utils.getKeyLowerLimit(p), Utils.getKeyUpperLimit(p), 10);
                 assertEquals(1, results.size());
                 assertEquals(2, logCustomizerQuery.getLogs().size());
             } finally {
@@ -212,7 +221,8 @@ public class RDBDocumentStoreTest extends AbstractDocumentStoreTest {
 
             Set<String> ids = Sets.newHashSet();
             boolean updated = false;
-            MissingLastRevSeeker seeker = new RDBMissingLastRevSeeker((RDBDocumentStore) ds, Clock.SIMPLE);
+            MissingLastRevSeeker seeker = new RDBMissingLastRevSeeker((RDBDocumentStore) ds,
+                Clock.SIMPLE);
             for (NodeDocument doc : seeker.getCandidates(0)) {
                 if (!updated) {
                     // as soon as we have the first document, update

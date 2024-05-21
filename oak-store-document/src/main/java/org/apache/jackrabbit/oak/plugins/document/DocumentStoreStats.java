@@ -50,7 +50,9 @@ import static org.apache.jackrabbit.oak.plugins.document.util.StatsCollectorUtil
  * Document Store statistics helper class.
  */
 public class DocumentStoreStats implements DocumentStoreStatsCollector, DocumentStoreStatsMBean {
-    private final Logger perfLog = LoggerFactory.getLogger(DocumentStoreStats.class.getName() + ".perf");
+
+    private final Logger perfLog = LoggerFactory.getLogger(
+        DocumentStoreStats.class.getName() + ".perf");
 
     public static final int PERF_LOG_THRESHOLD = 1;
 
@@ -135,7 +137,8 @@ public class DocumentStoreStats implements DocumentStoreStatsCollector, Document
         statisticsProvider = checkNotNull(provider);
         findNodesCachedMeter = provider.getMeter(NODES_FIND_CACHED, StatsOptions.DEFAULT);
         findNodesMissing = provider.getMeter(NODES_FIND_MISSING, StatsOptions.DEFAULT);
-        findNodesMissingTimer = provider.getTimer(NODES_FIND_MISSING_TIMER, StatsOptions.METRICS_ONLY);
+        findNodesMissingTimer = provider.getTimer(NODES_FIND_MISSING_TIMER,
+            StatsOptions.METRICS_ONLY);
         findNodesTimer = provider.getTimer(NODES_FIND_TIMER, StatsOptions.METRICS_ONLY);
         findSplitNodes = provider.getMeter(NODES_FIND_SPLIT, StatsOptions.DEFAULT);
 
@@ -146,7 +149,8 @@ public class DocumentStoreStats implements DocumentStoreStatsCollector, Document
         queryNodesPrimary = provider.getMeter(NODES_QUERY_PRIMARY, StatsOptions.DEFAULT);
         queryNodesResult = provider.getMeter(NODES_QUERY_FIND_READ_COUNT, StatsOptions.DEFAULT);
 
-        queryNodesWithFilterTimer = provider.getTimer(NODES_QUERY_FILTER, StatsOptions.METRICS_ONLY);
+        queryNodesWithFilterTimer = provider.getTimer(NODES_QUERY_FILTER,
+            StatsOptions.METRICS_ONLY);
         queryNodesTimer = provider.getTimer(NODES_QUERY_TIMER, StatsOptions.METRICS_ONLY);
 
         queryJournal = provider.getMeter(JOURNAL_QUERY, StatsOptions.DEFAULT);
@@ -154,7 +158,8 @@ public class DocumentStoreStats implements DocumentStoreStatsCollector, Document
         createJournal = provider.getMeter(JOURNAL_CREATE, StatsOptions.DEFAULT);
         createJournalTimer = provider.getTimer(JOURNAL_CREATE_TIMER, StatsOptions.METRICS_ONLY);
 
-        createNodeUpsertTimer = provider.getTimer(NODES_CREATE_UPSERT_TIMER, StatsOptions.METRICS_ONLY);
+        createNodeUpsertTimer = provider.getTimer(NODES_CREATE_UPSERT_TIMER,
+            StatsOptions.METRICS_ONLY);
         createNodeTimer = provider.getTimer(NODES_CREATE_TIMER, StatsOptions.METRICS_ONLY);
         updateNodeTimer = provider.getTimer(NODES_UPDATE_TIMER, StatsOptions.METRICS_ONLY);
         createNodeMeter = provider.getMeter(NODES_CREATE, StatsOptions.DEFAULT);
@@ -162,7 +167,8 @@ public class DocumentStoreStats implements DocumentStoreStatsCollector, Document
         createSplitNodeMeter = provider.getMeter(NODES_CREATE_SPLIT, StatsOptions.DEFAULT);
         updateNodeMeter = provider.getMeter(NODES_UPDATE, StatsOptions.DEFAULT);
         updateNodeFailureMeter = provider.getMeter(NODES_UPDATE_FAILURE, StatsOptions.DEFAULT);
-        updateNodeRetryCountMeter = provider.getMeter(NODES_UPDATE_RETRY_COUNT, StatsOptions.DEFAULT);
+        updateNodeRetryCountMeter = provider.getMeter(NODES_UPDATE_RETRY_COUNT,
+            StatsOptions.DEFAULT);
 
         queryNodesLock = provider.getMeter(NODES_QUERY_LOCK, StatsOptions.DEFAULT);
         queryNodesLockTimer = provider.getTimer(NODES_QUERY_LOCK_TIMER, StatsOptions.METRICS_ONLY);
@@ -175,13 +181,16 @@ public class DocumentStoreStats implements DocumentStoreStatsCollector, Document
 
         removeMetricUpdater = new RemoveMetricUpdater(removeNodes, removeNodesTimer);
 
-        createMetricUpdater = new CreateMetricUpdater(createNodeMeter, createSplitNodeMeter, createNodeTimer, createJournal,
-                createJournalTimer);
+        createMetricUpdater = new CreateMetricUpdater(createNodeMeter, createSplitNodeMeter,
+            createNodeTimer, createJournal,
+            createJournalTimer);
 
-        upsertMetricUpdater = new UpsertMetricUpdater(createNodeUpsertMeter, createSplitNodeMeter, createNodeUpsertTimer);
+        upsertMetricUpdater = new UpsertMetricUpdater(createNodeUpsertMeter, createSplitNodeMeter,
+            createNodeUpsertTimer);
 
-        modifyMetricUpdater = new ModifyMetricUpdater(createNodeUpsertMeter, createNodeUpsertTimer, updateNodeMeter,
-                updateNodeTimer, updateNodeRetryCountMeter, updateNodeFailureMeter);
+        modifyMetricUpdater = new ModifyMetricUpdater(createNodeUpsertMeter, createNodeUpsertTimer,
+            updateNodeMeter,
+            updateNodeTimer, updateNodeRetryCountMeter, updateNodeFailureMeter);
     }
 
     //~------------------------------------------< DocumentStoreStatsCollector >
@@ -189,15 +198,16 @@ public class DocumentStoreStats implements DocumentStoreStatsCollector, Document
     @Override
     public void doneFindCached(Collection<? extends Document> collection, String key) {
         //findCached call is almost done for NODES collection only
-        if (collection == Collection.NODES){
+        if (collection == Collection.NODES) {
             findNodesCachedMeter.mark();
         }
     }
 
     @Override
-    public void doneFindUncached(long timeTakenNanos, Collection<? extends Document> collection, String key,
-                                 boolean docFound, boolean isSlaveOk) {
-        if (collection == Collection.NODES){
+    public void doneFindUncached(long timeTakenNanos, Collection<? extends Document> collection,
+        String key,
+        boolean docFound, boolean isSlaveOk) {
+        if (collection == Collection.NODES) {
             //For now collect time for reads from primary/secondary in same timer
             TimerStats timer;
             if (docFound) {
@@ -209,24 +219,26 @@ public class DocumentStoreStats implements DocumentStoreStatsCollector, Document
             timer.update(timeTakenNanos, TimeUnit.NANOSECONDS);
 
             //For now only nodes can be looked up from slave
-            if (isSlaveOk){
+            if (isSlaveOk) {
                 findNodesSlave.mark();
             } else {
                 findNodesPrimary.mark();
             }
 
-            if (Utils.isPreviousDocId(key)){
+            if (Utils.isPreviousDocId(key)) {
                 findSplitNodes.mark();
             }
         }
 
-        perfLog(perfLog, PERF_LOG_THRESHOLD, timeTakenNanos, "findUncached on key={}, isSlaveOk={}", key, isSlaveOk);
+        perfLog(perfLog, PERF_LOG_THRESHOLD, timeTakenNanos, "findUncached on key={}, isSlaveOk={}",
+            key, isSlaveOk);
     }
 
     @Override
-    public void doneQuery(long timeTakenNanos, Collection<? extends Document> collection, String fromKey, String toKey,
-                          boolean indexedProperty, int resultSize, long lockTime, boolean isSlaveOk) {
-        if (collection == Collection.NODES){
+    public void doneQuery(long timeTakenNanos, Collection<? extends Document> collection,
+        String fromKey, String toKey,
+        boolean indexedProperty, int resultSize, long lockTime, boolean isSlaveOk) {
+        if (collection == Collection.NODES) {
             //Distinguish between query done with filter and without filter
             TimerStats timer = indexedProperty ? queryNodesWithFilterTimer : queryNodesTimer;
             timer.update(timeTakenNanos, TimeUnit.NANOSECONDS);
@@ -235,76 +247,87 @@ public class DocumentStoreStats implements DocumentStoreStatsCollector, Document
             queryNodesResult.mark(resultSize);
 
             //Stats for queries to slaves
-            if (isSlaveOk){
+            if (isSlaveOk) {
                 queryNodesSlave.mark();
             } else {
                 queryNodesPrimary.mark();
             }
 
-            if (lockTime > 0){
+            if (lockTime > 0) {
                 queryNodesLock.mark();
                 queryNodesLockTimer.update(lockTime, TimeUnit.NANOSECONDS);
             }
 
             //TODO What more to gather
             // - Histogram of result - How the number of children vary
-        } else if (collection == Collection.JOURNAL){
+        } else if (collection == Collection.JOURNAL) {
             //Journals are read from primary and without any extra condition on indexedProperty
             queryJournal.mark(resultSize);
             queryJournalTimer.update(timeTakenNanos, TimeUnit.NANOSECONDS);
         }
-        perfLog(perfLog, PERF_LOG_THRESHOLD, timeTakenNanos, "query for children from [{}] to [{}], lock:{}", fromKey, toKey, lockTime);
+        perfLog(perfLog, PERF_LOG_THRESHOLD, timeTakenNanos,
+            "query for children from [{}] to [{}], lock:{}", fromKey, toKey, lockTime);
     }
 
     @Override
-    public void doneCreate(long timeTakenNanos, Collection<? extends Document> collection, List<String> ids, boolean insertSuccess) {
+    public void doneCreate(long timeTakenNanos, Collection<? extends Document> collection,
+        List<String> ids, boolean insertSuccess) {
 
-        createMetricUpdater.update(collection, timeTakenNanos, ids, insertSuccess, isNodesCollectionUpdated(), getCreateStatsConsumer(),
-                c -> c == JOURNAL, getJournalStatsConsumer());
+        createMetricUpdater.update(collection, timeTakenNanos, ids, insertSuccess,
+            isNodesCollectionUpdated(), getCreateStatsConsumer(),
+            c -> c == JOURNAL, getJournalStatsConsumer());
 
         perfLog(perfLog, PERF_LOG_THRESHOLD, timeTakenNanos, "create");
     }
 
     @Override
-    public void doneCreateOrUpdate(long timeTakenNanos, Collection<? extends Document> collection, List<String> ids) {
+    public void doneCreateOrUpdate(long timeTakenNanos, Collection<? extends Document> collection,
+        List<String> ids) {
 
-        upsertMetricUpdater.update(collection, timeTakenNanos, ids, isNodesCollectionUpdated(), getCreateStatsConsumer());
+        upsertMetricUpdater.update(collection, timeTakenNanos, ids, isNodesCollectionUpdated(),
+            getCreateStatsConsumer());
 
         perfLog(perfLog, PERF_LOG_THRESHOLD, timeTakenNanos, "createOrUpdate {}", ids);
     }
 
     @Override
-    public void doneFindAndModify(long timeTakenNanos, Collection<? extends Document> collection, String key, boolean newEntry,
-                                  boolean success, int retryCount) {
+    public void doneFindAndModify(long timeTakenNanos, Collection<? extends Document> collection,
+        String key, boolean newEntry,
+        boolean success, int retryCount) {
 
-        modifyMetricUpdater.update(collection, retryCount, timeTakenNanos, success, newEntry, of(key), isNodesCollectionUpdated(), getStatsConsumer(),
-                getStatsConsumer(), MeterStats::mark, MeterStats::mark);
+        modifyMetricUpdater.update(collection, retryCount, timeTakenNanos, success, newEntry,
+            of(key), isNodesCollectionUpdated(), getStatsConsumer(),
+            getStatsConsumer(), MeterStats::mark, MeterStats::mark);
 
         perfLog(perfLog, PERF_LOG_THRESHOLD, timeTakenNanos, "findAndModify [{}]", key);
     }
 
     @Override
-    public void doneFindAndModify(long timeTakenNanos, Collection<? extends Document> collection, List<String> ids,
-                                  boolean success, int retryCount) {
+    public void doneFindAndModify(long timeTakenNanos, Collection<? extends Document> collection,
+        List<String> ids,
+        boolean success, int retryCount) {
 
-        modifyMetricUpdater.update(collection, retryCount, timeTakenNanos, success, false, ids, isNodesCollectionUpdated(), getStatsConsumer(),
-                getStatsConsumer(), MeterStats::mark, MeterStats::mark);
+        modifyMetricUpdater.update(collection, retryCount, timeTakenNanos, success, false, ids,
+            isNodesCollectionUpdated(), getStatsConsumer(),
+            getStatsConsumer(), MeterStats::mark, MeterStats::mark);
 
         perfLog(perfLog, PERF_LOG_THRESHOLD, timeTakenNanos, "findAndModify {}", ids);
     }
 
     @Override
-    public void doneRemove(long timeTakenNanos, Collection<? extends Document> collection, int removeCount) {
+    public void doneRemove(long timeTakenNanos, Collection<? extends Document> collection,
+        int removeCount) {
 
-        removeMetricUpdater.update(collection, removeCount, timeTakenNanos, isNodesCollectionUpdated(), getStatsConsumer());
+        removeMetricUpdater.update(collection, removeCount, timeTakenNanos,
+            isNodesCollectionUpdated(), getStatsConsumer());
 
         perfLog(perfLog, PERF_LOG_THRESHOLD, timeTakenNanos, "remove [{}]", removeCount);
     }
 
     @Override
     public void donePrefetch(long timeTakenNanos,
-                             Collection<? extends Document> collection,
-                             List<String> ids) {
+        Collection<? extends Document> collection,
+        List<String> ids) {
         if (collection == Collection.NODES) {
             prefetchNodes.mark(ids.size());
             prefetchNodesTimer.update(timeTakenNanos, TimeUnit.NANOSECONDS);
@@ -367,100 +390,100 @@ public class DocumentStoreStats implements DocumentStoreStatsCollector, Document
     @Override
     public CompositeData getFindCachedNodesHistory() {
         return getTimeSeriesData(NODES_FIND_CACHED,
-                "Number of find node document calls served from the cache.");
+            "Number of find node document calls served from the cache.");
     }
 
     @Override
     public CompositeData getFindSplitNodesHistory() {
         return getTimeSeriesData(NODES_FIND_SPLIT,
-                "Number of un-cached find calls for split document.");
+            "Number of un-cached find calls for split document.");
     }
 
     @Override
     public CompositeData getFindNodesFromPrimaryHistory() {
         return getTimeSeriesData(NODES_FIND_PRIMARY,
-                "Number of un-cached find node document calls targeting the primary.");
+            "Number of un-cached find node document calls targeting the primary.");
     }
 
     @Override
     public CompositeData getFindNodesFromSlaveHistory() {
         return getTimeSeriesData(NODES_FIND_SLAVE,
-                "Number of un-cached find node document calls targeting a slave/secondary.");
+            "Number of un-cached find node document calls targeting a slave/secondary.");
     }
 
     @Override
     public CompositeData getFindNodesMissingHistory() {
         return getTimeSeriesData(NODES_FIND_MISSING,
-                "Number of un-cached find node document calls that returned no document.");
+            "Number of un-cached find node document calls that returned no document.");
     }
 
     @Override
     public CompositeData getQueryNodesFromSlaveHistory() {
         return getTimeSeriesData(NODES_QUERY_SLAVE,
-                "Number of queries for node documents targeting a slave/secondary.");
+            "Number of queries for node documents targeting a slave/secondary.");
     }
 
     @Override
     public CompositeData getQueryNodesFromPrimaryHistory() {
         return getTimeSeriesData(NODES_QUERY_PRIMARY,
-                "Number of queries for node documents targeting the primary.");
+            "Number of queries for node documents targeting the primary.");
     }
 
     @Override
     public CompositeData getQueryNodesLockHistory() {
         return getTimeSeriesData(NODES_QUERY_LOCK,
-                "Number of queries for node documents done while holding a lock.");
+            "Number of queries for node documents done while holding a lock.");
     }
 
     @Override
     public CompositeData getQueryJournalHistory() {
         return getTimeSeriesData(JOURNAL_QUERY,
-                "Number of queries for journal documents.");
+            "Number of queries for journal documents.");
     }
 
     @Override
     public CompositeData getCreateJournalHistory() {
         return getTimeSeriesData(JOURNAL_CREATE,
-                "Number of journal documents created.");
+            "Number of journal documents created.");
     }
 
     @Override
     public CompositeData getCreateNodesHistory() {
         return getTimeSeriesData(NODES_CREATE,
-                "Number of node documents created.");
+            "Number of node documents created.");
     }
 
     @Override
     public CompositeData getUpdateNodesHistory() {
         return getTimeSeriesData(NODES_UPDATE,
-                "Number of node documents updated.");
+            "Number of node documents updated.");
     }
 
     @Override
     public CompositeData getUpdateNodesRetryHistory() {
         return getTimeSeriesData(NODES_UPDATE_RETRY_COUNT,
-                "Number of times a node document update had to be retried.");
+            "Number of times a node document update had to be retried.");
     }
 
     @Override
     public CompositeData getUpdateNodesFailureHistory() {
         return getTimeSeriesData(NODES_UPDATE_FAILURE,
-                "Number of times a node document update failed.");
+            "Number of times a node document update failed.");
     }
 
     @Override
     public CompositeData getRemoveNodesHistory() {
         return getTimeSeriesData(NODES_REMOVE,
-                "Number of removed node documents.");
+            "Number of removed node documents.");
     }
 
     @Override
     public CompositeData getPrefetchNodesHistory() {
         return getTimeSeriesData(NODES_PREFETCH,
-                "Number of prefetched node documents.");
+            "Number of prefetched node documents.");
     }
 
-    private CompositeData getTimeSeriesData(String name, String desc){
+    private CompositeData getTimeSeriesData(String name, String desc) {
         return TimeSeriesStatsUtil.asCompositeData(getTimeSeries(name), desc);
     }
 

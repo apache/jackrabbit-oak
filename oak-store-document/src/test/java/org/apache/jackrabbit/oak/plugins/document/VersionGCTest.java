@@ -77,11 +77,11 @@ public class VersionGCTest {
         clock.waitUntil(System.currentTimeMillis());
         Revision.setClock(clock);
         ns = builderProvider.newBuilder()
-                .clock(clock)
-                .setLeaseCheckMode(LeaseCheckMode.DISABLED)
-                .setDocumentStore(store)
-                .setAsyncDelay(0)
-                .getNodeStore();
+                            .clock(clock)
+                            .setLeaseCheckMode(LeaseCheckMode.DISABLED)
+                            .setDocumentStore(store)
+                            .setAsyncDelay(0)
+                            .getNodeStore();
         // create test content
         createNode("foo");
         removeNode("foo");
@@ -109,7 +109,7 @@ public class VersionGCTest {
         store.semaphore.acquireUninterruptibly();
         Future<VersionGCStats> stats = gc();
         boolean gcBlocked = false;
-        for (int i = 0; i < 10; i ++) {
+        for (int i = 0; i < 10; i++) {
             if (store.semaphore.hasQueuedThreads()) {
                 gcBlocked = true;
                 break;
@@ -135,7 +135,7 @@ public class VersionGCTest {
         store.semaphore.acquireUninterruptibly();
         Future<VersionGCStats> stats = gc();
         boolean gcBlocked = false;
-        for (int i = 0; i < 10; i ++) {
+        for (int i = 0; i < 10; i++) {
             if (store.semaphore.hasQueuedThreads()) {
                 gcBlocked = true;
                 break;
@@ -159,7 +159,7 @@ public class VersionGCTest {
         store.semaphore.acquireUninterruptibly();
         Future<VersionGCStats> stats = gc();
         boolean gcBlocked = false;
-        for (int i = 0; i < 10; i ++) {
+        for (int i = 0; i < 10; i++) {
             if (store.semaphore.hasQueuedThreads()) {
                 gcBlocked = true;
                 break;
@@ -179,9 +179,11 @@ public class VersionGCTest {
         } else {
             assertNotNull(statusAfter);
             assertEquals(
-                    "canceled GC shouldn't change the " + lastOldestTimeStampProp + " property on " + versionGCId
-                            + " settings entry",
-                    statusBefore.get(lastOldestTimeStampProp), statusAfter.get(lastOldestTimeStampProp));
+                "canceled GC shouldn't change the " + lastOldestTimeStampProp + " property on "
+                    + versionGCId
+                    + " settings entry",
+                statusBefore.get(lastOldestTimeStampProp),
+                statusAfter.get(lastOldestTimeStampProp));
         }
     }
 
@@ -200,8 +202,8 @@ public class VersionGCTest {
         gc.gc(30, TimeUnit.MINUTES);
 
         List<String> expected = Lists.newArrayList("INITIALIZING",
-                "COLLECTING", "CHECKING", "COLLECTING", "DELETING", "SORTING",
-                "DELETING", "UPDATING", "SPLITS_CLEANUP", "IDLE");
+            "COLLECTING", "CHECKING", "COLLECTING", "DELETING", "SORTING",
+            "DELETING", "UPDATING", "SPLITS_CLEANUP", "IDLE");
         assertEquals(expected, monitor.getStatusMessages());
     }
 
@@ -235,13 +237,15 @@ public class VersionGCTest {
         final long twelveTimesTheLimit = options.collectLimit * 12;
         final long secondsPerDay = TimeUnit.DAYS.toMillis(1);
 
-        VersionGCSupport localgcsupport = fakeVersionGCSupport(ns.getDocumentStore(), oneYearAgo, twelveTimesTheLimit);
+        VersionGCSupport localgcsupport = fakeVersionGCSupport(ns.getDocumentStore(), oneYearAgo,
+            twelveTimesTheLimit);
 
-        VersionGCRecommendations rec = new VersionGCRecommendations(secondsPerDay, ns.getCheckpoints(), ns.getClock(), localgcsupport,
-                options, new TestGCMonitor());
+        VersionGCRecommendations rec = new VersionGCRecommendations(secondsPerDay,
+            ns.getCheckpoints(), ns.getClock(), localgcsupport,
+            options, new TestGCMonitor());
 
         // should select a duration of roughly one month
-        long duration= rec.scope.getDurationMs();
+        long duration = rec.scope.getDurationMs();
 
         assertTrue(duration <= TimeUnit.DAYS.toMillis(33));
         assertTrue(duration >= TimeUnit.DAYS.toMillis(28));
@@ -251,8 +255,9 @@ public class VersionGCTest {
         rec.evaluate(stats);
         assertTrue(stats.needRepeat);
 
-        rec = new VersionGCRecommendations(secondsPerDay, ns.getCheckpoints(), ns.getClock(), localgcsupport, options,
-                new TestGCMonitor());
+        rec = new VersionGCRecommendations(secondsPerDay, ns.getCheckpoints(), ns.getClock(),
+            localgcsupport, options,
+            new TestGCMonitor());
 
         // new duration should be half
         long nduration = rec.scope.getDurationMs();
@@ -280,8 +285,9 @@ public class VersionGCTest {
 
         // loop until the recommended interval is at 60s (precisionMS)
         do {
-            rec = new VersionGCRecommendations(secondsPerDay, ns.getCheckpoints(), ns.getClock(), localgcsupport, options,
-                    testmonitor);
+            rec = new VersionGCRecommendations(secondsPerDay, ns.getCheckpoints(), ns.getClock(),
+                localgcsupport, options,
+                testmonitor);
             stats = new VersionGCStats();
             stats.limitExceeded = true;
             rec.evaluate(stats);
@@ -296,9 +302,11 @@ public class VersionGCTest {
             oldestDeleted = rec.scope.fromMs + rec.scope.getDurationMs();
             int deleted = (int) (rec.scope.getDurationMs() / TimeUnit.SECONDS.toMillis(1));
             deletedCount -= deleted;
-            localgcsupport = fakeVersionGCSupport(ns.getDocumentStore(), oldestDeleted, deletedCount);
-            rec = new VersionGCRecommendations(secondsPerDay, ns.getCheckpoints(), ns.getClock(), localgcsupport, options,
-                    testmonitor);
+            localgcsupport = fakeVersionGCSupport(ns.getDocumentStore(), oldestDeleted,
+                deletedCount);
+            rec = new VersionGCRecommendations(secondsPerDay, ns.getCheckpoints(), ns.getClock(),
+                localgcsupport, options,
+                testmonitor);
             stats = new VersionGCStats();
             stats.limitExceeded = false;
             stats.deletedDocGCCount = deleted;
@@ -306,8 +314,9 @@ public class VersionGCTest {
             rec.evaluate(stats);
         } while (stats.needRepeat && iterations < maxiterations);
 
-        assertTrue("VersionGC should have finished after " + maxiterations + " iterations, but did not. Last scope was: "
-                + rec.scope + ".", !stats.needRepeat);
+        assertTrue("VersionGC should have finished after " + maxiterations
+            + " iterations, but did not. Last scope was: "
+            + rec.scope + ".", !stats.needRepeat);
     }
 
     // OAK-7378
@@ -320,7 +329,8 @@ public class VersionGCTest {
             @Override
             public long getDeletedOnceCount() {
                 deletedOnceCountCalls.incrementAndGet();
-                return Iterables.size(Utils.getSelectedDocuments(store, NodeDocument.DELETED_ONCE, 1));
+                return Iterables.size(
+                    Utils.getSelectedDocuments(store, NodeDocument.DELETED_ONCE, 1));
             }
         });
 
@@ -361,12 +371,12 @@ public class VersionGCTest {
     }
 
     private void merge(DocumentNodeStore store, NodeBuilder builder)
-            throws CommitFailedException {
+        throws CommitFailedException {
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 
     private void advanceClock(long time, TimeUnit unit)
-            throws InterruptedException {
+        throws InterruptedException {
         Clock c = ns.getClock();
         c.waitUntil(c.getTime() + unit.toMillis(time));
     }
@@ -380,11 +390,11 @@ public class VersionGCTest {
         @NotNull
         @Override
         public <T extends Document> List<T> query(Collection<T> collection,
-                                                  String fromKey,
-                                                  String toKey,
-                                                  String indexedProperty,
-                                                  long startValue,
-                                                  int limit) {
+            String fromKey,
+            String toKey,
+            String indexedProperty,
+            long startValue,
+            int limit) {
             semaphore.acquireUninterruptibly();
             try {
                 return super.query(collection, fromKey, toKey, indexedProperty, startValue, limit);
@@ -395,9 +405,9 @@ public class VersionGCTest {
 
         @Override
         public <T extends Document> T find(Collection<T> collection,
-                                           String key) {
+            String key) {
             if (collection == Collection.SETTINGS
-                    && key.equals("versionGC")) {
+                && key.equals("versionGC")) {
                 findVersionGC.incrementAndGet();
             }
             return super.find(collection, key);
@@ -405,6 +415,7 @@ public class VersionGCTest {
     }
 
     private class TestGCMonitor implements GCMonitor {
+
         final List<String> infoMessages = Lists.newArrayList();
         final List<String> statusMessages = Lists.newArrayList();
 
@@ -447,7 +458,8 @@ public class VersionGCTest {
         }
     }
 
-    private VersionGCSupport fakeVersionGCSupport(final DocumentStore ds, final long oldestDeleted, final long countDeleted) {
+    private VersionGCSupport fakeVersionGCSupport(final DocumentStore ds, final long oldestDeleted,
+        final long countDeleted) {
         return new VersionGCSupport(ds) {
 
             @Override

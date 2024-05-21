@@ -17,15 +17,14 @@
 package org.apache.jackrabbit.oak.api;
 
 /**
- * This exception can be thrown by implementers of this API to signal an error
- * condition caused by an invalid state of the repository.
+ * This exception can be thrown by implementers of this API to signal an error condition caused by
+ * an invalid state of the repository.
  * <p>
- * It's up to the implementation to distinguish between recoverable and
- * unrecoverable error conditions. In case of recoverable error conditions, it's
- * appropriate for an implementation to create a subclass of this exception and
- * expose that subclass as part of its public API. This way, clients of the
- * Content Repository API can catch specific failures, provided that they also
- * want to introduce a dependency to the implementation's API.
+ * It's up to the implementation to distinguish between recoverable and unrecoverable error
+ * conditions. In case of recoverable error conditions, it's appropriate for an implementation to
+ * create a subclass of this exception and expose that subclass as part of its public API. This way,
+ * clients of the Content Repository API can catch specific failures, provided that they also want
+ * to introduce a dependency to the implementation's API.
  */
 public class IllegalRepositoryStateException extends RuntimeException {
 

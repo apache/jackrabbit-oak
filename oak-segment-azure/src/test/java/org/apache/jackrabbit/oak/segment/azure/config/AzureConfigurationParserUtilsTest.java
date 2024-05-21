@@ -16,13 +16,17 @@
  */
 package org.apache.jackrabbit.oak.segment.azure.config;
 
-import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.*;
+import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.KEY_ACCOUNT_NAME;
+import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.KEY_CONNECTION_STRING;
+import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.KEY_CONTAINER_NAME;
+import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.KEY_DIR;
+import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.KEY_SHARED_ACCESS_SIGNATURE;
+import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.KEY_STORAGE_URI;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Map;
-
 import org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils;
 import org.junit.Test;
 
@@ -39,9 +43,11 @@ public class AzureConfigurationParserUtilsTest {
             + "ContainerName=oak-test;"
             + "Directory=repository";
 
-        assertTrue("Should be a custom Azure connection string", AzureConfigurationParserUtils.isCustomAzureConnectionString(conn));
+        assertTrue("Should be a custom Azure connection string",
+            AzureConfigurationParserUtils.isCustomAzureConnectionString(conn));
 
-        Map<String, String> config = AzureConfigurationParserUtils.parseAzureConfigurationFromCustomConnection(conn);
+        Map<String, String> config = AzureConfigurationParserUtils.parseAzureConfigurationFromCustomConnection(
+            conn);
         assertEquals(connStr, config.get(KEY_CONNECTION_STRING));
         assertEquals("oak-test", config.get(KEY_CONTAINER_NAME));
         assertEquals("repository", config.get(KEY_DIR));
@@ -50,17 +56,19 @@ public class AzureConfigurationParserUtilsTest {
     @Test
     public void testParseConnectionDetailsFromCustomConnectionShuffledKeys() {
         String conn = "Directory=repository;"
-            + "DefaultEndpointsProtocol=https;" 
-            + "ContainerName=oak-test;" 
+            + "DefaultEndpointsProtocol=https;"
+            + "ContainerName=oak-test;"
             + "AccountName=myaccount;"
-            + "BlobEndpoint=http://127.0.0.1:32806/myaccount;" 
+            + "BlobEndpoint=http://127.0.0.1:32806/myaccount;"
             + "AccountKey=mykey==";
 
-        assertTrue("Should be a custom Azure connection string", AzureConfigurationParserUtils.isCustomAzureConnectionString(conn));
-        
+        assertTrue("Should be a custom Azure connection string",
+            AzureConfigurationParserUtils.isCustomAzureConnectionString(conn));
+
         String azureConn = "DefaultEndpointsProtocol=https;AccountName=myaccount;AccountKey=mykey==;BlobEndpoint=http://127.0.0.1:32806/myaccount;";
 
-        Map<String, String> config = AzureConfigurationParserUtils.parseAzureConfigurationFromCustomConnection(conn);
+        Map<String, String> config = AzureConfigurationParserUtils.parseAzureConfigurationFromCustomConnection(
+            conn);
         assertEquals(azureConn, config.get(KEY_CONNECTION_STRING));
         assertEquals("oak-test", config.get(KEY_CONTAINER_NAME));
         assertEquals("repository", config.get(KEY_DIR));
@@ -77,9 +85,11 @@ public class AzureConfigurationParserUtilsTest {
             + "ContainerName=oak-test;"
             + "Directory=repository";
 
-        assertTrue("Should be a custom Azure connection string", AzureConfigurationParserUtils.isCustomAzureConnectionString(conn));
+        assertTrue("Should be a custom Azure connection string",
+            AzureConfigurationParserUtils.isCustomAzureConnectionString(conn));
 
-        Map<String, String> config = AzureConfigurationParserUtils.parseAzureConfigurationFromCustomConnection(conn);
+        Map<String, String> config = AzureConfigurationParserUtils.parseAzureConfigurationFromCustomConnection(
+            conn);
         assertEquals(connStr, config.get(KEY_CONNECTION_STRING));
         assertEquals("oak-test", config.get(KEY_CONTAINER_NAME));
         assertEquals("repository", config.get(KEY_DIR));
@@ -89,12 +99,15 @@ public class AzureConfigurationParserUtilsTest {
     @Test
     public void testParseConnectionDetailsFromUri() {
         String uri = "https://myaccount.blob.core.windows.net/oak-test/repository";
-        assertFalse("Should not be a custom Azure connection", AzureConfigurationParserUtils.isCustomAzureConnectionString(uri));
+        assertFalse("Should not be a custom Azure connection",
+            AzureConfigurationParserUtils.isCustomAzureConnectionString(uri));
 
-        Map<String, String> config = AzureConfigurationParserUtils.parseAzureConfigurationFromUri(uri);
+        Map<String, String> config = AzureConfigurationParserUtils.parseAzureConfigurationFromUri(
+            uri);
 
         assertEquals("myaccount", config.get(KEY_ACCOUNT_NAME));
-        assertEquals("https://myaccount.blob.core.windows.net/oak-test", config.get(KEY_STORAGE_URI));
+        assertEquals("https://myaccount.blob.core.windows.net/oak-test",
+            config.get(KEY_STORAGE_URI));
         assertEquals("repository", config.get(KEY_DIR));
     }
 
@@ -102,12 +115,15 @@ public class AzureConfigurationParserUtilsTest {
     public void testParseConnectionDetailsFromSASUri() {
         String sasToken = "sig=qL%2Fi%2BP7J6S0sA8Ihc%2BKq75U5uJcnukpfktT2fm1ckXk%3D&se=2022-02-09T11%3A52%3A42Z&sv=2019-02-02&sp=rl&sr=c";
         String uri = "https://myaccount.blob.core.windows.net/oak-test/repository?" + sasToken;
-        assertFalse("Should not be a custom Azure connection", AzureConfigurationParserUtils.isCustomAzureConnectionString(uri));
+        assertFalse("Should not be a custom Azure connection",
+            AzureConfigurationParserUtils.isCustomAzureConnectionString(uri));
 
-        Map<String, String> config = AzureConfigurationParserUtils.parseAzureConfigurationFromUri(uri);
+        Map<String, String> config = AzureConfigurationParserUtils.parseAzureConfigurationFromUri(
+            uri);
 
         assertEquals("myaccount", config.get(KEY_ACCOUNT_NAME));
-        assertEquals("https://myaccount.blob.core.windows.net/oak-test", config.get(KEY_STORAGE_URI));
+        assertEquals("https://myaccount.blob.core.windows.net/oak-test",
+            config.get(KEY_STORAGE_URI));
         assertEquals("repository", config.get(KEY_DIR));
         assertEquals(sasToken, config.get(KEY_SHARED_ACCESS_SIGNATURE));
     }

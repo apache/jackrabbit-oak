@@ -16,9 +16,18 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
+import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
+
+import java.io.File;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.core.data.FileDataStore;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -32,10 +41,9 @@ import org.apache.jackrabbit.oak.plugins.document.mongo.MongoBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
-import org.apache.jackrabbit.oak.plugins.index.lucene.directory.ActiveDeletedBlobCollectorFactory.ActiveDeletedBlobCollectorImpl;
-
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProvider;
+import org.apache.jackrabbit.oak.plugins.index.lucene.directory.ActiveDeletedBlobCollectorFactory.ActiveDeletedBlobCollectorImpl;
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -55,16 +63,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-
-import java.io.File;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeTrue;
 
 @RunWith(Parameterized.class)
 public class ActiveDeletedBlobCollectionIT extends AbstractActiveDeletedBlobTest {
@@ -88,7 +86,7 @@ public class ActiveDeletedBlobCollectionIT extends AbstractActiveDeletedBlobTest
         WITHOUT_FDS
     }
 
-    @Parameterized.Parameters(name="{0}")
+    @Parameterized.Parameters(name = "{0}")
     public static Collection<Object[]> fixtures() {
         List<Object[]> result = Lists.newArrayList();
         result.add(new Object[]{DataStoreType.WITHOUT_FDS});
@@ -108,8 +106,8 @@ public class ActiveDeletedBlobCollectionIT extends AbstractActiveDeletedBlobTest
 
         IndexCopier copier = createIndexCopier();
         editorProvider = new LuceneIndexEditorProvider(copier, null,
-                new ExtractedTextCache(10* FileUtils.ONE_MB,100),
-                null, Mounts.defaultMountInfoProvider(), adbc, null, null);
+            new ExtractedTextCache(10 * FileUtils.ONE_MB, 100),
+            null, Mounts.defaultMountInfoProvider(), adbc, null, null);
         provider = new LuceneIndexProvider(copier);
         mongoConnection = connectionFactory.getConnection();
         MongoUtils.dropCollections(mongoConnection.getDatabase());
@@ -126,21 +124,22 @@ public class ActiveDeletedBlobCollectionIT extends AbstractActiveDeletedBlobTest
             this.blobStore = new CountingBlobStore(dsbs);
         }
         nodeStore = new DocumentMK.Builder()
-                .setMongoDB(mongoConnection.getMongoClient(), mongoConnection.getDBName())
-                .setBlobStore(this.blobStore)
-                .getNodeStore();
+            .setMongoDB(mongoConnection.getMongoClient(), mongoConnection.getDBName())
+            .setBlobStore(this.blobStore)
+            .getNodeStore();
 
         failOnDemandValidatorProvider = new FailOnDemandValidatorProvider();
         asyncIndexUpdate = new AsyncIndexUpdate("async", nodeStore, editorProvider);
-        asyncIndexUpdate.setValidatorProviders(Collections.singletonList(failOnDemandValidatorProvider));
+        asyncIndexUpdate.setValidatorProviders(
+            Collections.singletonList(failOnDemandValidatorProvider));
 
         return new Oak(nodeStore)
-                .with(new InitialContent())
-                .with(new OpenSecurityProvider())
-                .with((QueryIndexProvider) provider)
-                .with((Observer) provider)
-                .with(editorProvider)
-                .createContentRepository();
+            .with(new InitialContent())
+            .with(new OpenSecurityProvider())
+            .with((QueryIndexProvider) provider)
+            .with((Observer) provider)
+            .with(editorProvider)
+            .createContentRepository();
     }
 
     @After
@@ -166,7 +165,7 @@ public class ActiveDeletedBlobCollectionIT extends AbstractActiveDeletedBlobTest
         long time = clock.getTimeIncreasing();
         long hackPurgeNumChunks = blobStore.numChunks;
         Assert.assertEquals("Hack purge must not purge any blob (first commit)",
-                firstCommitNumChunks, hackPurgeNumChunks);
+            firstCommitNumChunks, hackPurgeNumChunks);
 
         root.getTree("/").addChild("test").setProperty("propa", "foo1");
         root.commit();
@@ -175,7 +174,7 @@ public class ActiveDeletedBlobCollectionIT extends AbstractActiveDeletedBlobTest
         adbc.purgeBlobsDeleted(0, blobStore);//hack to purge file
         hackPurgeNumChunks = blobStore.numChunks;
         Assert.assertEquals("Hack purge must not purge any blob (second commit)",
-                secondCommitNumChunks, hackPurgeNumChunks);
+            secondCommitNumChunks, hackPurgeNumChunks);
 
         adbc.purgeBlobsDeleted(time, blobStore);
         long firstGCNumChunks = blobStore.numChunks;
@@ -183,7 +182,8 @@ public class ActiveDeletedBlobCollectionIT extends AbstractActiveDeletedBlobTest
         long secondGCNumChunks = blobStore.numChunks;
 
         assertTrue("First commit must create some chunks", firstCommitNumChunks > initialNumChunks);
-        assertTrue("First commit must create some chunks", secondCommitNumChunks > firstCommitNumChunks);
+        assertTrue("First commit must create some chunks",
+            secondCommitNumChunks > firstCommitNumChunks);
         assertTrue("First GC should delete some chunks", firstGCNumChunks < secondCommitNumChunks);
         assertTrue("Second GC should delete some chunks too", secondGCNumChunks < firstGCNumChunks);
     }
@@ -204,7 +204,7 @@ public class ActiveDeletedBlobCollectionIT extends AbstractActiveDeletedBlobTest
         long time = clock.getTimeIncreasing();
         long hackPurgeNumChunks = blobStore.numChunks;
         Assert.assertEquals("Hack purge must not purge any blob (first commit)",
-                firstCommitNumChunks, hackPurgeNumChunks);
+            firstCommitNumChunks, hackPurgeNumChunks);
 
         failOnDemandValidatorProvider.shouldFail = true;
 
@@ -216,7 +216,7 @@ public class ActiveDeletedBlobCollectionIT extends AbstractActiveDeletedBlobTest
         adbc.purgeBlobsDeleted(0, blobStore);//hack to purge file
         hackPurgeNumChunks = blobStore.numChunks;
         Assert.assertEquals("Hack purge must not purge any blob (second commit)",
-                secondCommitNumChunks, hackPurgeNumChunks);
+            secondCommitNumChunks, hackPurgeNumChunks);
 
         adbc.purgeBlobsDeleted(time, blobStore);
         long firstGCNumChunks = blobStore.numChunks;
@@ -224,21 +224,27 @@ public class ActiveDeletedBlobCollectionIT extends AbstractActiveDeletedBlobTest
         long secondGCNumChunks = blobStore.numChunks;
 
         assertTrue("First commit must create some chunks", firstCommitNumChunks > initialNumChunks);
-        assertTrue("Second commit must create some chunks", secondCommitNumChunks > firstCommitNumChunks);
+        assertTrue("Second commit must create some chunks",
+            secondCommitNumChunks > firstCommitNumChunks);
         assertTrue("First GC should delete some chunks", firstGCNumChunks < secondCommitNumChunks);
-        assertEquals("Second GC must not delete chunks as commit failed", firstGCNumChunks, secondGCNumChunks);
+        assertEquals("Second GC must not delete chunks as commit failed", firstGCNumChunks,
+            secondGCNumChunks);
     }
 
     private static class FailOnDemandValidatorProvider extends ValidatorProvider {
+
         boolean shouldFail;
 
         @Override
-        protected @Nullable Validator getRootValidator(NodeState before, NodeState after, CommitInfo info) {
+        protected @Nullable Validator getRootValidator(NodeState before, NodeState after,
+            CommitInfo info) {
             return new DefaultValidator() {
                 @Override
-                public Validator childNodeChanged(String name, NodeState before, NodeState after) throws CommitFailedException {
+                public Validator childNodeChanged(String name, NodeState before, NodeState after)
+                    throws CommitFailedException {
                     if (shouldFail && FulltextIndexConstants.INDEX_DATA_CHILD_NAME.equals(name)) {
-                        throw new CommitFailedException("failing-validator", 1, "Failed commit as requested");
+                        throw new CommitFailedException("failing-validator", 1,
+                            "Failed commit as requested");
                     }
 
                     return this;

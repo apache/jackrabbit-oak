@@ -16,6 +16,17 @@
  */
 package org.apache.jackrabbit.oak.security.authentication.ldap.impl;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
+
+import javax.net.ssl.TrustManager;
 import org.apache.commons.pool2.impl.DefaultPooledObject;
 import org.apache.directory.ldap.client.api.LdapConnection;
 import org.apache.directory.ldap.client.api.LdapConnectionConfig;
@@ -29,24 +40,13 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import javax.net.ssl.TrustManager;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.when;
-
 public class PoolableUnboundConnectionFactoryTest {
 
     private static LdapServerClassLoader.Proxy PROXY;
 
     private final LdapConnectionConfig config = spy(new LdapConnectionConfig());
-    private final PoolableUnboundConnectionFactory factory = new PoolableUnboundConnectionFactory(config);
+    private final PoolableUnboundConnectionFactory factory = new PoolableUnboundConnectionFactory(
+        config);
 
     @BeforeClass
     public static void beforeClass() throws Exception {
@@ -107,7 +107,8 @@ public class PoolableUnboundConnectionFactoryTest {
         when(config.getLdapPort()).thenReturn(PROXY.port);
 
         when(config.isUseTls()).thenReturn(true);
-        when(config.getTrustManagers()).thenReturn(new TrustManager[] {new NoVerificationTrustManager()});
+        when(config.getTrustManagers()).thenReturn(
+            new TrustManager[]{new NoVerificationTrustManager()});
         LdapNetworkConnection lc = (LdapNetworkConnection) factory.create();
         assertTrue(lc.isConnected());
         lc.startTls();

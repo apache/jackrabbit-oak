@@ -24,14 +24,11 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 import java.util.zip.CRC32;
-
+import org.apache.jackrabbit.guava.common.base.Charsets;
 import org.apache.jackrabbit.oak.commons.Buffer;
 
-import org.apache.jackrabbit.guava.common.base.Charsets;
-
 /**
- * Maintains the transient state of a binary references index, formats it and
- * serializes it.
+ * Maintains the transient state of a binary references index, formats it and serializes it.
  */
 public class BinaryReferencesIndexWriter {
 
@@ -53,17 +50,15 @@ public class BinaryReferencesIndexWriter {
     /**
      * Add an entry to the binary references index.
      *
-     * @param generation The generation of the segment containing the
-     *                   reference.
-     * @param full       The full generation of the segment containing the
-     *                   reference.
-     * @param compacted  {@code true} if the segment containing the reference is
-     *                   created by a compaction operation.
-     * @param segment    The identifier of the segment containing the
-     *                   reference.
+     * @param generation The generation of the segment containing the reference.
+     * @param full       The full generation of the segment containing the reference.
+     * @param compacted  {@code true} if the segment containing the reference is created by a
+     *                   compaction operation.
+     * @param segment    The identifier of the segment containing the reference.
      * @param reference  The binary reference.
      */
-    public void addEntry(int generation, int full, boolean compacted, UUID segment, String reference) {
+    public void addEntry(int generation, int full, boolean compacted, UUID segment,
+        String reference) {
         entries
             .computeIfAbsent(new Generation(generation, full, compacted), k -> new HashMap<>())
             .computeIfAbsent(segment, k -> new HashSet<>())
@@ -73,8 +68,7 @@ public class BinaryReferencesIndexWriter {
     /**
      * Write the current state of this instance to an array of bytes.
      *
-     * @return An array of bytes containing the serialized state of the binary
-     * references index.
+     * @return An array of bytes containing the serialized state of the binary references index.
      */
     public byte[] write() {
         int binaryReferenceSize = 0;

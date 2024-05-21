@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.security.authentication.ldap.impl;
 
 import java.util.Map;
-
 import org.apache.directory.api.ldap.model.entry.Entry;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalGroup;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityException;
@@ -28,7 +27,8 @@ public class LdapGroup extends LdapIdentity implements ExternalGroup {
 
     private Map<String, ExternalIdentityRef> members;
 
-    public LdapGroup(LdapIdentityProvider provider, ExternalIdentityRef ref, String id, String path, Entry entry) {
+    public LdapGroup(LdapIdentityProvider provider, ExternalIdentityRef ref, String id, String path,
+        Entry entry) {
         super(provider, ref, id, path, entry);
     }
 

@@ -20,6 +20,9 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import static org.junit.Assume.assumeTrue;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.Properties;
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants;
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureDataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStoreUtilsTest;
@@ -29,14 +32,11 @@ import org.junit.BeforeClass;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.Properties;
-
 /**
  * SharedDataStoreUtilsTest for Azure.
  */
 public class SharedAzureDataStoreUtilsTest extends SharedDataStoreUtilsTest {
+
     private static final Logger log = LoggerFactory.getLogger(SharedAzureDataStoreUtilsTest.class);
 
     protected String containerName;

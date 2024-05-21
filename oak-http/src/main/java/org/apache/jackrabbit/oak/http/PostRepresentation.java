@@ -16,24 +16,22 @@
  */
 package org.apache.jackrabbit.oak.http;
 
+import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
-
 import javax.servlet.http.HttpServletResponse;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.tika.mime.MediaType;
 
-import static org.apache.jackrabbit.oak.api.Type.STRING;
-import static org.apache.jackrabbit.oak.api.Type.STRINGS;
-
 class PostRepresentation implements Representation {
 
     private static final MediaType TYPE =
-            MediaType.parse("application/x-www-form-urlencoded");
+        MediaType.parse("application/x-www-form-urlencoded");
 
     private static final String ENCODING = "UTF-8";
 
@@ -44,7 +42,7 @@ class PostRepresentation implements Representation {
 
     @Override
     public void render(Tree tree, HttpServletResponse response)
-            throws IOException {
+        throws IOException {
         PrintWriter writer = startResponse(response);
 
         boolean first = true;
@@ -62,7 +60,7 @@ class PostRepresentation implements Representation {
 
     @Override
     public void render(PropertyState property, HttpServletResponse response)
-            throws IOException {
+        throws IOException {
         PrintWriter writer = startResponse(response);
         if (property.isArray()) {
             for (String value : property.getValue(STRINGS)) {
@@ -75,14 +73,14 @@ class PostRepresentation implements Representation {
     }
 
     private static PrintWriter startResponse(HttpServletResponse response)
-            throws IOException {
+        throws IOException {
         response.setContentType(TYPE.toString());
         response.setCharacterEncoding(ENCODING);
         return response.getWriter();
     }
 
     private static boolean render(
-            boolean first, String name, String value, PrintWriter writer) {
+        boolean first, String name, String value, PrintWriter writer) {
         if (!first) {
             writer.print('&');
         }

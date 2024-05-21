@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.segment.aws;
 
 import java.io.IOException;
 import java.util.Hashtable;
-
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.ComponentContext;
@@ -29,7 +28,8 @@ import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.ConfigurationPolicy;
 import org.osgi.service.component.annotations.Deactivate;
 
-@Component(configurationPolicy = ConfigurationPolicy.REQUIRE, configurationPid = { Configuration.PID })
+@Component(configurationPolicy = ConfigurationPolicy.REQUIRE, configurationPid = {
+    Configuration.PID})
 public class AwsSegmentStoreService {
 
     public static final String DEFAULT_ROOT_DIRECTORY = "oak/";
@@ -48,7 +48,7 @@ public class AwsSegmentStoreService {
     public void activate(ComponentContext context, Configuration config) throws IOException {
         persistence = createAwsPersistence(config);
         registration = context.getBundleContext().registerService(SegmentNodeStorePersistence.class,
-                persistence, new Hashtable<String, Object>());
+            persistence, new Hashtable<String, Object>());
     }
 
     @Deactivate
@@ -60,7 +60,8 @@ public class AwsSegmentStoreService {
         persistence = null;
     }
 
-    private static SegmentNodeStorePersistence createAwsPersistence(Configuration configuration) throws IOException {
+    private static SegmentNodeStorePersistence createAwsPersistence(Configuration configuration)
+        throws IOException {
         AwsContext awsContext = AwsContext.create(configuration);
         AwsPersistence persistence = new AwsPersistence(awsContext);
         return persistence;

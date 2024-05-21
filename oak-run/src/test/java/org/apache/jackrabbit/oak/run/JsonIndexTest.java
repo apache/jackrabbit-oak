@@ -23,7 +23,6 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-
 import org.apache.jackrabbit.oak.run.cli.NodeStoreFixture;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
@@ -38,49 +37,49 @@ public class JsonIndexTest {
     @Test
     public void simple() throws Exception {
         assertCommand(
-                combineLines("hello"),
-                "{'print':'hello'}");
+            combineLines("hello"),
+            "{'print':'hello'}");
         assertCommand(
-                combineLines("false"),
-                "{'print':false}");
+            combineLines("false"),
+            "{'print':false}");
         assertCommand(
-                combineLines("1", "2", "3"),
-                "{'$x':[1, 2, 3]}",
-                "{'for':'$x', 'do': [{'print': '$x'}]}");
+            combineLines("1", "2", "3"),
+            "{'$x':[1, 2, 3]}",
+            "{'for':'$x', 'do': [{'print': '$x'}]}");
         assertCommand(
-                combineLines("x1", "x2", "x3"),
-                "{'$myFunction':[{'$y': 'x', '+': '$x'}, {'print':'$y'}]}",
-                "{'$x':[1, 2, 3]}",
-                "{'for':'$x', 'do': '$myFunction'}");
+            combineLines("x1", "x2", "x3"),
+            "{'$myFunction':[{'$y': 'x', '+': '$x'}, {'print':'$y'}]}",
+            "{'$x':[1, 2, 3]}",
+            "{'for':'$x', 'do': '$myFunction'}");
         assertCommand(
-                combineLines("2", "4", "8"),
-                "{'$x':1}",
-                "{'loop':[{'$x': '$x', '+':'$x'}, {'print': '$x'}, {'$break': true, 'if': '$x', '=': 8}]}");
+            combineLines("2", "4", "8"),
+            "{'$x':1}",
+            "{'loop':[{'$x': '$x', '+':'$x'}, {'print': '$x'}, {'$break': true, 'if': '$x', '=': 8}]}");
         assertCommand(
-                combineLines("b", "d"),
-                "{'$x':1}",
-                "{'print':'a', 'if':'$x', '=':null}",
-                "{'print':'b', 'if':'$x', '=':1}",
-                "{'print':'c', 'if':null, '=':1}",
-                "{'print':'d', 'if':null, '=':null}");
+            combineLines("b", "d"),
+            "{'$x':1}",
+            "{'print':'a', 'if':'$x', '=':null}",
+            "{'print':'b', 'if':'$x', '=':1}",
+            "{'print':'c', 'if':null, '=':1}",
+            "{'print':'d', 'if':null, '=':null}");
         assertCommand(
-                combineLines("10", "10"),
-                "{'$x':1}",
-                "{'$$x':10}",
-                "{'print':'$1'}",
-                "{'print':'$$x'}");
+            combineLines("10", "10"),
+            "{'$x':1}",
+            "{'$$x':10}",
+            "{'print':'$1'}",
+            "{'print':'$$x'}");
         assertCommand(
-                combineLines("1", "null", "1", "2", "a1"),
-                "{'$x':1, '+':null}",
-                "{'print':'$x'}",
-                "{'$x':null, '+':null}",
-                "{'print':'$x'}",
-                "{'$x':null, '+':1}",
-                "{'print':'$x'}",
-                "{'$x':1, '+':1}",
-                "{'print':'$x'}",
-                "{'$x':'a', '+':'1'}",
-                "{'print':'$x'}");
+            combineLines("1", "null", "1", "2", "a1"),
+            "{'$x':1, '+':null}",
+            "{'print':'$x'}",
+            "{'$x':null, '+':null}",
+            "{'print':'$x'}",
+            "{'$x':null, '+':1}",
+            "{'print':'$x'}",
+            "{'$x':1, '+':1}",
+            "{'print':'$x'}",
+            "{'$x':'a', '+':'1'}",
+            "{'print':'$x'}");
     }
 
     private static NodeStoreFixture memoryFixture() {
@@ -120,75 +119,77 @@ public class JsonIndexTest {
             NodeStore store = fixture.getStore();
             index.session = JsonIndexCommand.openSession(store, "admin", "admin");
             assertCommand(index,
-                    combineLines(""),
-                    "{'addNode':'/foo', 'node':{'jcr:primaryType': 'nt:unstructured', 'x': 1, 'y':{}}}",
-                    "{'session': 'save'}");
+                combineLines(""),
+                "{'addNode':'/foo', 'node':{'jcr:primaryType': 'nt:unstructured', 'x': 1, 'y':{}}}",
+                "{'session': 'save'}");
             assertCommand(index,
-                    combineLines("/foo", "/jcr:system", "/oak:index", "/rep:security"),
-                    "{'xpath':'/jcr:root/* order by @jcr:path'}");
+                combineLines("/foo", "/jcr:system", "/oak:index", "/rep:security"),
+                "{'xpath':'/jcr:root/* order by @jcr:path'}");
             assertCommand(index,
-                    combineLines("/oak:index/counter"),
-                    "{'xpath':'/jcr:root//element(*, oak:QueryIndexDefinition)[@type=`counter`] " +
-                        "order by @jcr:path'}");
+                combineLines("/oak:index/counter"),
+                "{'xpath':'/jcr:root//element(*, oak:QueryIndexDefinition)[@type=`counter`] " +
+                    "order by @jcr:path'}");
             assertCommand(index,
-                    combineLines("[nt:unstructured] as [a] /* property test\n"
-                            + "    indexDefinition: /oak:index/test\n"
-                            + "    values: '1'\n"
-                            + "    estimatedCost: 4.0\n"
-                            + " */"),
-                    "{'addNode':'/oak:index/test', 'node':{ " +
-                        "'jcr:primaryType':'oak:QueryIndexDefinition', " +
-                        "'type':'property', " +
-                        "'reindex':true, " +
-                        "'entryCount': 1, " +
-                        "'{Name}declaringNodeTypes': ['nt:unstructured'], " +
-                        "'{Name}propertyNames':['x'] " +
-                        "}}",
-                    "{'session':'save'}",
-                    "{'xpath':'explain /jcr:root//element(*, nt:unstructured)[@x=1]'}",
-                    "{'xpath':'/jcr:root//element(*, nt:unstructured)[@x=2]'}"
-                    );
+                combineLines("[nt:unstructured] as [a] /* property test\n"
+                    + "    indexDefinition: /oak:index/test\n"
+                    + "    values: '1'\n"
+                    + "    estimatedCost: 4.0\n"
+                    + " */"),
+                "{'addNode':'/oak:index/test', 'node':{ " +
+                    "'jcr:primaryType':'oak:QueryIndexDefinition', " +
+                    "'type':'property', " +
+                    "'reindex':true, " +
+                    "'entryCount': 1, " +
+                    "'{Name}declaringNodeTypes': ['nt:unstructured'], " +
+                    "'{Name}propertyNames':['x'] " +
+                    "}}",
+                "{'session':'save'}",
+                "{'xpath':'explain /jcr:root//element(*, nt:unstructured)[@x=1]'}",
+                "{'xpath':'/jcr:root//element(*, nt:unstructured)[@x=2]'}"
+            );
             assertCommand(index,
-                    combineLines("50"),
-                    "{'addNode':'/foo/test', 'node':{'jcr:primaryType': 'oak:Unstructured', 'child':{}}}",
-                    "{'$x':1}",
-                    "{'loop':[" +
-                            "{'$p': '/foo/test/child/n', '+': '$x'}, " +
-                            "{'addNode': '$p', 'node': {'x': '$x', 'jcr:primaryType': 'nt:unstructured'}}, " +
-                            "{'session':'save'}, " +
-                            "{'$x': '$x', '+':1}, " +
-                            "{'$break': true, 'if': '$x', '=': 100}]}",
-                    "{'session':'save'}",
-                    "{'xpath':'/jcr:root//element(*, nt:unstructured)[@x<50]', 'quiet':true}",
-                    "{'$y':0}",
-                    "{'for':'$result', 'do': [{'$y': '$y', '+': 1}]}",
-                    "{'print': '$y'}"
-                    );
+                combineLines("50"),
+                "{'addNode':'/foo/test', 'node':{'jcr:primaryType': 'oak:Unstructured', 'child':{}}}",
+                "{'$x':1}",
+                "{'loop':[" +
+                    "{'$p': '/foo/test/child/n', '+': '$x'}, " +
+                    "{'addNode': '$p', 'node': {'x': '$x', 'jcr:primaryType': 'nt:unstructured'}}, "
+                    +
+                    "{'session':'save'}, " +
+                    "{'$x': '$x', '+':1}, " +
+                    "{'$break': true, 'if': '$x', '=': 100}]}",
+                "{'session':'save'}",
+                "{'xpath':'/jcr:root//element(*, nt:unstructured)[@x<50]', 'quiet':true}",
+                "{'$y':0}",
+                "{'for':'$result', 'do': [{'$y': '$y', '+': 1}]}",
+                "{'print': '$y'}"
+            );
             assertCommand(index,
-                    combineLines("[nt:unstructured] as [a] /* nodeType\n"
-                            + "    path: /\n"
-                            + "    primaryTypes: [nt:unstructured, rep:root]\n"
-                            + "    mixinTypes: []\n"
-                            + " */"),
-                    "{'setProperty': '/oak:index/test/type', 'value': 'disabled'}",
-                    "{'session':'save'}",
-                    "{'xpath':'explain /jcr:root//element(*, nt:unstructured)[@x=1]'}"
-                    );
+                combineLines("[nt:unstructured] as [a] /* nodeType\n"
+                    + "    path: /\n"
+                    + "    primaryTypes: [nt:unstructured, rep:root]\n"
+                    + "    mixinTypes: []\n"
+                    + " */"),
+                "{'setProperty': '/oak:index/test/type', 'value': 'disabled'}",
+                "{'session':'save'}",
+                "{'xpath':'explain /jcr:root//element(*, nt:unstructured)[@x=1]'}"
+            );
             assertCommand(index,
-                    combineLines("[nt:unstructured] as [a] /* traverse\n"
-                            + "    allNodes (warning: slow)\n"
-                            + "    estimatedEntries: 1.0E8\n"
-                            + " */"),
-                    "{'removeNode': '/oak:index/nodetype'}",
-                    "{'session':'save'}",
-                    "{'sql':'explain select * from [nt:unstructured] as [a] where [x]=1'}"
-                    );
+                combineLines("[nt:unstructured] as [a] /* traverse\n"
+                    + "    allNodes (warning: slow)\n"
+                    + "    estimatedEntries: 1.0E8\n"
+                    + " */"),
+                "{'removeNode': '/oak:index/nodetype'}",
+                "{'session':'save'}",
+                "{'sql':'explain select * from [nt:unstructured] as [a] where [x]=1'}"
+            );
             assertCommand(index,
-                    combineLines("['/foo': {\n" +
-                            "  'jcr:primaryType': 'nt:unstructured', '{Long}x': '1', 'y': {}, 'test': {}\n" +
-                            "}]"),
-                    "{'xpath':'/jcr:root/foo', 'depth':2}"
-                    );
+                combineLines("['/foo': {\n" +
+                    "  'jcr:primaryType': 'nt:unstructured', '{Long}x': '1', 'y': {}, 'test': {}\n"
+                    +
+                    "}]"),
+                "{'xpath':'/jcr:root/foo', 'depth':2}"
+            );
             index.session.logout();
         }
     }
@@ -197,11 +198,12 @@ public class JsonIndexTest {
         assertCommand(new JsonIndexCommand(), expected, commands);
     }
 
-    void assertCommand(JsonIndexCommand index, String expected, String... commands) throws Exception {
+    void assertCommand(JsonIndexCommand index, String expected, String... commands)
+        throws Exception {
         ByteArrayOutputStream w = new ByteArrayOutputStream();
         PrintStream out = new PrintStream(w, false, "UTF-8");
         index.output = out;
-        for(String c : commands) {
+        for (String c : commands) {
             index.execute(c.replace('\'', '"').replace('`', '\''));
         }
         String got = new String(w.toByteArray());
@@ -212,7 +214,7 @@ public class JsonIndexTest {
     static String combineLines(String... lines) {
         StringWriter w = new StringWriter();
         PrintWriter p = new PrintWriter(w);
-        for(String l : lines) {
+        for (String l : lines) {
             p.println(l);
         }
         return w.toString().trim();

@@ -21,16 +21,16 @@ package org.apache.jackrabbit.oak.index.indexer.document.indexstore;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.jackrabbit.oak.commons.Compression;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
+import org.apache.jackrabbit.oak.commons.Compression;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class IndexStoreMetadataOperatorImpl<M> implements IndexStoreMetadataOperator<M> {
+
     private static final Logger log = LoggerFactory.getLogger(IndexStoreMetadataOperatorImpl.class);
     private static final ObjectMapper JSON_MAPPER = new ObjectMapper();
 
@@ -43,7 +43,8 @@ public class IndexStoreMetadataOperatorImpl<M> implements IndexStoreMetadataOper
             metadataFile = file;
         }
 
-        try (BufferedWriter metadataWriter = IndexStoreUtils.createWriter(metadataFile, algorithm)) {
+        try (BufferedWriter metadataWriter = IndexStoreUtils.createWriter(metadataFile,
+            algorithm)) {
             writeMetadataToFile(metadataWriter, m);
         }
         log.info("Created metadataFile:{} ", metadataFile.getPath());
@@ -59,9 +60,11 @@ public class IndexStoreMetadataOperatorImpl<M> implements IndexStoreMetadataOper
         provide JavaType info to jackson.
      */
     @Override
-    public M getIndexStoreMetadata(File metadataFile, Compression algorithm, TypeReference<M> clazz) throws IOException {
+    public M getIndexStoreMetadata(File metadataFile, Compression algorithm, TypeReference<M> clazz)
+        throws IOException {
         JavaType javaType = JSON_MAPPER.getTypeFactory().constructType(clazz);
-        try (BufferedReader metadataFilebufferedReader = IndexStoreUtils.createReader(metadataFile, algorithm)){
+        try (BufferedReader metadataFilebufferedReader = IndexStoreUtils.createReader(metadataFile,
+            algorithm)) {
             return JSON_MAPPER.readValue(metadataFilebufferedReader.readLine(), javaType);
         }
     }

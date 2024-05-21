@@ -26,6 +26,7 @@ based on the information stored in a dedicated part of the repository content ca
 the [permission store](#permissionStore).
 
 <a name="default_implementation"></a>
+
 ## Characteristics of the Permission Evaluation
 
 ### Regular Permission Evaluation
@@ -58,23 +59,26 @@ on the Oak API) irrespective of the access control content:
 - `SystemPrincipal`
 - All instances of `AdminPrincipal`
 - All principals whose name matches the configured administrative principal names
-(see Configuration section below). This configuration only applies to the permission
-evaluation and is currently not reflected in other security models nor methods
-that deal with the administrator (i.e. `User#isAdmin`).
+  (see Configuration section below). This configuration only applies to the permission
+  evaluation and is currently not reflected in other security models nor methods
+  that deal with the administrator (i.e. `User#isAdmin`).
 
 ### Permission Evaluation in Multiplexed Stores
 
 See section [Multiplexing support in the PermissionStore](multiplexing.html).
 
 <a name="representation"></a>
+
 ## Representation in the Repository
 
 <a name="permissionStore"></a>
+
 ### Permission Store
 
 The permission evaluation present with Oak 1.0 keeps a dedicated location where
 permissions are being stored for later evaluation. The store is kept in sync
-with the access control content by a separated `PostValidationHook` implementation ([PermissionHook]).
+with the access control content by a separated `PostValidationHook`
+implementation ([PermissionHook]).
 
 The location of the permission store is `/jcr:system/rep:permissionStore`; in
 accordance with other stores underneath `jcr:system` it is global to the whole
@@ -128,7 +132,7 @@ that prevents any modifications underneath `/jcr:system/rep:permissionStore`.
 Similarly read access is not allowed except for system principals. In order to
 discover and display access control related information API consumers should
 use the regular JCR and Jackrabbit permission and access control management API
-as listed in the [introduction](../permission.html#jcr_api) and in section 
+as listed in the [introduction](../permission.html#jcr_api) and in section
 [Using the Access Control Management API](../accesscontrol/editing.html).
 
 ### Node Type Definitions
@@ -157,47 +161,59 @@ implementation (`VersionablePathHook`).
       - * (PATH) protected ABORT
 
 <a name="validation"></a>
+
 ## Validation
 
 The consistency of this content structure is asserted by a dedicated `PermissionValidator`.
 The corresponding errors are all of type `Access` with the following codes:
 
-| Code              | Message                                                  |
-|-------------------|----------------------------------------------------------|
-| 0000              | Generic access violation                                 |
-| 0021              | Version storage: Node creation without version history   |
-| 0022              | Version storage: Removal of intermediate node            |
+| Code | Message                                                |
+|------|--------------------------------------------------------|
+| 0000 | Generic access violation                               |
+| 0021 | Version storage: Node creation without version history |
+| 0022 | Version storage: Removal of intermediate node          |
 
 <a name="configuration"></a>
+
 ## Configuration
 
 ### Configuration Parameters
 
 The default implementation supports the following configuration parameters:
 
-| Parameter                         | Type                | Default  | Description |
-|-----------------------------------|---------------------|----------|-------------|
-| `PARAM_PERMISSIONS_JR2`           | String              | \-       | Enables backwards compatible behavior for the permissions listed in the parameter value containing the permission names separated by ','. Supported values are: `USER_MANAGEMENT`,`REMOVE_NODE` |
-| `PARAM_READ_PATHS`                | Set\<String\>       | paths to namespace, nodetype and privilege root nodes  | Set of paths that are always readable to all principals irrespective of other permissions defined at that path or inherited from other nodes. |
-| `PARAM_ADMINISTRATIVE_PRINCIPALS` | String[]            | \-       | The names of the additional principals that have full permission and for which the permission evaluation can be skipped altogether. |
-| | | | |
+| Parameter                         | Type          | Default                                               | Description                                                                                                                                                                                     |
+|-----------------------------------|---------------|-------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `PARAM_PERMISSIONS_JR2`           | String        | \-                                                    | Enables backwards compatible behavior for the permissions listed in the parameter value containing the permission names separated by ','. Supported values are: `USER_MANAGEMENT`,`REMOVE_NODE` |
+| `PARAM_READ_PATHS`                | Set\<String\> | paths to namespace, nodetype and privilege root nodes | Set of paths that are always readable to all principals irrespective of other permissions defined at that path or inherited from other nodes.                                                   |
+| `PARAM_ADMINISTRATIVE_PRINCIPALS` | String[]      | \-                                                    | The names of the additional principals that have full permission and for which the permission evaluation can be skipped altogether.                                                             |
+|                                   |               |                                                       |                                                                                                                                                                                                 |
 
 #### Supported Values for PARAM_PERMISSIONS_JR2
 
-- `REMOVE_NODE`: if present, the permission evaluation will traverse down the hierarchy upon node removal. This config flag is a best effort approach but doesn't guarantee an identical behavior.
-- `USER_MANAGEMENT`: if set permissions for user related items will be evaluated the same way as regular JCR items irrespective of their protection status.
+- `REMOVE_NODE`: if present, the permission evaluation will traverse down the hierarchy upon node
+  removal. This config flag is a best effort approach but doesn't guarantee an identical behavior.
+- `USER_MANAGEMENT`: if set permissions for user related items will be evaluated the same way as
+  regular JCR items irrespective of their protection status.
 
 #### Differences to Jackrabbit 2.x
 
-The `omit-default-permission` configuration option present with the Jackrabbit's AccessControlProvider implementations is no longer supported with Oak.
+The `omit-default-permission` configuration option present with the Jackrabbit's
+AccessControlProvider implementations is no longer supported with Oak.
 Since there are no permissions installed by default this flag has become superfluous.
 
 ## Known Limitations
-### Isolated Access Control Properties
-As reported in [OAK-10269](https://issues.apache.org/jira/browse/OAK-10269) the default permission evaluation will not enforce `jcr:readAccessControl` privilege being granted for isolated access control properties that are not located below a node that marks an access control policy.
 
-All access control properties shipped with Oak are associated with an access control policy node. The issue therefore only applies to custom models that
-- define isolated access control properties (through custom `Context.definesProperty` implementation)
+### Isolated Access Control Properties
+
+As reported in [OAK-10269](https://issues.apache.org/jira/browse/OAK-10269) the default permission
+evaluation will not enforce `jcr:readAccessControl` privilege being granted for isolated access
+control properties that are not located below a node that marks an access control policy.
+
+All access control properties shipped with Oak are associated with an access control policy node.
+The issue therefore only applies to custom models that
+
+- define isolated access control properties (through custom `Context.definesProperty`
+  implementation)
 - rely on the default authorization model to enforce `READ_ACCESS_CONTROL` permission
 
 

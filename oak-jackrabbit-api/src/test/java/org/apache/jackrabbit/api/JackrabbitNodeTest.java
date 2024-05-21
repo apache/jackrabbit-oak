@@ -16,11 +16,6 @@
  */
 package org.apache.jackrabbit.api;
 
-import org.junit.Test;
-import org.mockito.Answers;
-
-import javax.jcr.Property;
-
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -31,19 +26,24 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
 
+import javax.jcr.Property;
+import org.junit.Test;
+import org.mockito.Answers;
+
 public class JackrabbitNodeTest {
 
     @Test
     public void testGetNodeOrNull() throws Exception {
-        JackrabbitNode n = mock(JackrabbitNode.class, withSettings().defaultAnswer(Answers.CALLS_REAL_METHODS));
+        JackrabbitNode n = mock(JackrabbitNode.class,
+            withSettings().defaultAnswer(Answers.CALLS_REAL_METHODS));
         JackrabbitNode child = mock(JackrabbitNode.class);
-        
+
         when(n.hasNode("child")).thenReturn(true);
         when(n.getNode("child")).thenReturn(child);
-        
+
         assertSame(child, n.getNodeOrNull("child"));
         assertNull(n.getNodeOrNull("not/existing"));
-        
+
         verify(n, times(2)).hasNode(anyString());
         verify(n, times(1)).getNode(anyString());
         verify(n, times(2)).getNodeOrNull(anyString());
@@ -52,7 +52,8 @@ public class JackrabbitNodeTest {
 
     @Test
     public void testGetPropertyOrNull() throws Exception {
-        JackrabbitNode n = mock(JackrabbitNode.class, withSettings().defaultAnswer(Answers.CALLS_REAL_METHODS));
+        JackrabbitNode n = mock(JackrabbitNode.class,
+            withSettings().defaultAnswer(Answers.CALLS_REAL_METHODS));
         Property prop = mock(Property.class);
 
         when(n.hasProperty("prop")).thenReturn(true);

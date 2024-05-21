@@ -63,6 +63,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 public class SecondaryStoreCacheTest {
+
     private final List<String> empty = Collections.emptyList();
     @Rule
     public DocumentMKBuilderProvider builderProvider = new DocumentMKBuilderProvider();
@@ -77,21 +78,21 @@ public class SecondaryStoreCacheTest {
     }
 
     @Test
-    public void basicTest() throws Exception{
+    public void basicTest() throws Exception {
         SecondaryStoreCache cache = createCache(new PathFilter(of("/a"), empty));
 
         NodeBuilder nb = primary.getRoot().builder();
         create(nb, "/a/b", "/a/c", "/x/y/z");
         merge(nb);
 
-        RevisionVector rv1 = new RevisionVector(new Revision(1,0,1));
-        RevisionVector rv2 = new RevisionVector(new Revision(1,0,3));
+        RevisionVector rv1 = new RevisionVector(new Revision(1, 0, 1));
+        RevisionVector rv2 = new RevisionVector(new Revision(1, 0, 3));
         assertNull(cache.getDocumentNodeState(Path.fromString("/a/b"), rv1, rv2));
         assertNull(cache.getDocumentNodeState(Path.fromString("/x"), rv1, rv2));
     }
 
     @Test
-    public void updateAndReadAtReadRev() throws Exception{
+    public void updateAndReadAtReadRev() throws Exception {
         SecondaryStoreCache cache = createCache(new PathFilter(of("/a"), empty));
 
         NodeBuilder nb = primary.getRoot().builder();
@@ -106,7 +107,8 @@ public class SecondaryStoreCacheTest {
         //Lookup should work fine
         AbstractDocumentNodeState a_r2 = documentState(r2, "/a/c");
         AbstractDocumentNodeState result
-                = cache.getDocumentNodeState(Path.fromString("/a/c"), r2.getRootRevision(), a_r2.getLastRevision());
+            = cache.getDocumentNodeState(Path.fromString("/a/c"), r2.getRootRevision(),
+            a_r2.getLastRevision());
         assertTrue(EqualsDiff.equals(a_r2, result));
 
         //Child docs should only have lastRev and not root rev
@@ -122,7 +124,8 @@ public class SecondaryStoreCacheTest {
         AbstractDocumentNodeState r3 = merge(nb);
 
         //Now look from older revision
-        result = cache.getDocumentNodeState(Path.fromString("/a/c"), r3.getRootRevision(), a_r2.getLastRevision());
+        result = cache.getDocumentNodeState(Path.fromString("/a/c"), r3.getRootRevision(),
+            a_r2.getLastRevision());
 
         //now as its not visible from head it would not be visible
         assertNull(result);
@@ -144,32 +147,35 @@ public class SecondaryStoreCacheTest {
         AbstractDocumentNodeState a_c_1 = documentState(primary.getRoot(), "/a/c");
 
         AbstractDocumentNodeState result
-                = cache.getDocumentNodeState(Path.fromString("/a/c"), r1.getRootRevision(), a_c_1.getLastRevision());
+            = cache.getDocumentNodeState(Path.fromString("/a/c"), r1.getRootRevision(),
+            a_c_1.getLastRevision());
         assertTrue(EqualsDiff.equals(a_c_1, result));
 
         //Read from older revision
-        result = cache.getDocumentNodeState(Path.fromString("/a/c"), r0.getRootRevision(), a_c_0.getLastRevision());
+        result = cache.getDocumentNodeState(Path.fromString("/a/c"), r0.getRootRevision(),
+            a_c_0.getLastRevision());
         assertTrue(EqualsDiff.equals(a_c_0, result));
     }
 
     @Test
-    public void binarySearch() throws Exception{
+    public void binarySearch() throws Exception {
         SecondaryStoreCache cache = createCache(new PathFilter(of("/a"), empty));
 
         List<AbstractDocumentNodeState> roots = Lists.newArrayList();
         List<RevisionVector> revs = Lists.newArrayList();
         for (int i = 0; i < 50; i++) {
             NodeBuilder nb = primary.getRoot().builder();
-            create(nb, "/a/b"+i);
+            create(nb, "/a/b" + i);
             AbstractDocumentNodeState r = merge(nb);
             roots.add(r);
             revs.add(r.getRootRevision());
         }
 
-        AbstractDocumentNodeState[] rootsArr = Iterables.toArray(roots, AbstractDocumentNodeState.class);
+        AbstractDocumentNodeState[] rootsArr = Iterables.toArray(roots,
+            AbstractDocumentNodeState.class);
 
         Collections.shuffle(revs);
-        for (RevisionVector rev : revs){
+        for (RevisionVector rev : revs) {
             AbstractDocumentNodeState result = SecondaryStoreCache.findMatchingRoot(rootsArr, rev);
             assertNotNull(result);
             assertEquals(rev, result.getRootRevision());
@@ -178,13 +184,14 @@ public class SecondaryStoreCacheTest {
         NodeBuilder nb = primary.getRoot().builder();
         create(nb, "/a/m");
         AbstractDocumentNodeState r = merge(nb);
-        AbstractDocumentNodeState result = SecondaryStoreCache.findMatchingRoot(rootsArr, r.getRootRevision());
+        AbstractDocumentNodeState result = SecondaryStoreCache.findMatchingRoot(rootsArr,
+            r.getRootRevision());
         assertNull(result);
 
     }
 
     @Test
-    public void readWithSecondaryLagging() throws Exception{
+    public void readWithSecondaryLagging() throws Exception {
         PathFilter pathFilter = new PathFilter(of("/a"), empty);
         SecondaryStoreCache cache = createBuilder(pathFilter).buildCache();
         SecondaryStoreObserver observer = createBuilder(pathFilter).buildObserver(cache);
@@ -196,7 +203,8 @@ public class SecondaryStoreCacheTest {
 
         observer.contentChanged(r0, CommitInfo.EMPTY);
 
-        AbstractDocumentNodeState result = cache.getDocumentNodeState(Path.fromString("/a/c"), r0.getRootRevision(), a_c_0
+        AbstractDocumentNodeState result = cache.getDocumentNodeState(Path.fromString("/a/c"),
+            r0.getRootRevision(), a_c_0
                 .getLastRevision());
         assertTrue(EqualsDiff.equals(a_c_0, result));
 
@@ -208,18 +216,18 @@ public class SecondaryStoreCacheTest {
         //Change is yet not pushed to secondary i.e. observer not invoked
         //but lookup with latest root should still work fine if lastRev matches
         result = cache.getDocumentNodeState(Path.fromString("/a/c"), r1.getRootRevision(), a_c_0
-                .getLastRevision());
+            .getLastRevision());
         assertTrue(EqualsDiff.equals(a_c_0, result));
 
         //Change which is not pushed would though not be visible
         AbstractDocumentNodeState a_e_1 = documentState(primary.getRoot(), "/a/e");
         result = cache.getDocumentNodeState(Path.fromString("/a/e"), r1.getRootRevision(), a_e_1
-                .getLastRevision());
+            .getLastRevision());
         assertNull(result);
     }
 
     @Test
-    public void isCached() throws Exception{
+    public void isCached() throws Exception {
         SecondaryStoreCache cache = createCache(new PathFilter(of("/a"), empty));
 
         assertTrue(cache.isCached(Path.fromString("/a")));
@@ -228,7 +236,7 @@ public class SecondaryStoreCacheTest {
     }
 
     @Test
-    public void bundledNodes() throws Exception{
+    public void bundledNodes() throws Exception {
         SecondaryStoreCache cache = createCache(new PathFilter(of("/"), empty));
         primary.setNodeStateCache(cache);
 
@@ -237,10 +245,11 @@ public class SecondaryStoreCacheTest {
         BundlingConfigInitializer.INSTANCE.initialize(builder);
         merge(builder);
 
-        BundledTypesRegistry registry = BundledTypesRegistry.from(NodeStateUtils.getNode(primary.getRoot(),
+        BundledTypesRegistry registry = BundledTypesRegistry.from(
+            NodeStateUtils.getNode(primary.getRoot(),
                 BundlingConfigHandler.CONFIG_PATH));
         assertNotNull("DocumentBundling not found to be enabled for nt:file",
-                registry.getBundlor(newNode("nt:file").getNodeState()));
+            registry.getBundlor(newNode("nt:file").getNodeState()));
 
         //1. Create a file node
         builder = primary.getRoot().builder();
@@ -254,11 +263,12 @@ public class SecondaryStoreCacheTest {
 
         //3. Now update the file node
         builder = primary.getRoot().builder();
-        builder.getChildNode("test").getChildNode("book.jpg").getChildNode("jcr:content").setProperty("foo", "bar");
+        builder.getChildNode("test").getChildNode("book.jpg").getChildNode("jcr:content")
+               .setProperty("foo", "bar");
         merge(builder);
     }
 
-    private SecondaryStoreCache createCache(PathFilter pathFilter){
+    private SecondaryStoreCache createCache(PathFilter pathFilter) {
         SecondaryStoreBuilder builder = createBuilder(pathFilter);
         builder.metaPropNames(DocumentNodeStore.META_PROP_NAMES);
         SecondaryStoreCache cache = builder.buildCache();
@@ -268,7 +278,7 @@ public class SecondaryStoreCacheTest {
         return cache;
     }
 
-    private static NodeBuilder newNode(String typeName){
+    private static NodeBuilder newNode(String typeName) {
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.setProperty(JCR_PRIMARYTYPE, typeName);
         return builder;

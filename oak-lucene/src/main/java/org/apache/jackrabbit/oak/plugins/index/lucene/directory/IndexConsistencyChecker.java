@@ -19,6 +19,9 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -28,15 +31,13 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.List;
-
 import javax.jcr.PropertyType;
-
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.io.ByteStreams;
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.guava.common.io.CountingInputStream;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
@@ -58,10 +59,8 @@ import org.apache.lucene.store.IOContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
-
 public class IndexConsistencyChecker {
+
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final NodeState rootState;
     private final String indexPath;
@@ -72,19 +71,22 @@ public class IndexConsistencyChecker {
 
     public enum Level {
         /**
-         * Consistency check would only check if all blobs referred by index nodes
-         * are present in BlobStore
+         * Consistency check would only check if all blobs referred by index nodes are present in
+         * BlobStore
          */
         BLOBS_ONLY,
         /**
-         * Performs full check via {@code org.apache.lucene.index.CheckIndex}. This
-         * reads whole index and hence can take time
+         * Performs full check via {@code org.apache.lucene.index.CheckIndex}. This reads whole
+         * index and hence can take time
          */
         FULL
     }
 
     public static class Result {
-        /** True if no problems were found with the index. */
+
+        /**
+         * True if no problems were found with the index.
+         */
         public boolean clean;
 
         public boolean typeMismatch;
@@ -105,7 +107,7 @@ public class IndexConsistencyChecker {
 
         private Stopwatch watch;
 
-        public void dump(PrintWriter pw){
+        public void dump(PrintWriter pw) {
             if (clean) {
                 pw.printf("%s => VALID%n", indexPath);
             } else {
@@ -113,14 +115,14 @@ public class IndexConsistencyChecker {
             }
             pw.printf("\tSize : %s%n", humanReadableByteCount(binaryPropSize));
 
-            if (!missingBlobIds.isEmpty()){
+            if (!missingBlobIds.isEmpty()) {
                 pw.println("Missing blobs");
                 for (String id : missingBlobIds) {
                     pw.println("\t - " + id);
                 }
             }
 
-            if (!invalidBlobIds.isEmpty()){
+            if (!invalidBlobIds.isEmpty()) {
                 pw.println("Invalid blobs");
                 for (FileSizeStatus status : invalidBlobIds) {
                     pw.println("\t - " + status);
@@ -135,7 +137,7 @@ public class IndexConsistencyChecker {
         }
 
         @Override
-        public String toString(){
+        public String toString() {
             StringWriter sw = new StringWriter();
             PrintWriter pw = new PrintWriter(sw);
             dump(pw);
@@ -144,6 +146,7 @@ public class IndexConsistencyChecker {
     }
 
     public static class DirectoryStatus {
+
         public final String dirName;
 
         public final List<String> missingFiles = new ArrayList<>();
@@ -163,31 +166,32 @@ public class IndexConsistencyChecker {
         }
 
         public void dump(PrintWriter pw) {
-            pw.println("Directory : " +  dirName);
+            pw.println("Directory : " + dirName);
             pw.printf("\tSize     : %s%n", humanReadableByteCount(size));
             pw.printf("\tNum docs : %d%n", numDocs);
 
-            if (!missingFiles.isEmpty()){
+            if (!missingFiles.isEmpty()) {
                 pw.println("\tMissing Files");
                 for (String file : missingFiles) {
                     pw.println("\t\t- " + file);
                 }
             }
 
-            if (!filesWithSizeMismatch.isEmpty()){
+            if (!filesWithSizeMismatch.isEmpty()) {
                 pw.println("Invalid files");
                 for (FileSizeStatus status : filesWithSizeMismatch) {
                     pw.println("\t - " + status);
                 }
             }
 
-            if (status != null){
+            if (status != null) {
                 pw.printf("\tCheckIndex status : %s%n", status.clean);
             }
         }
     }
 
     public static class FileSizeStatus {
+
         public final String name;
 
         public final long actualSize;
@@ -209,12 +213,12 @@ public class IndexConsistencyChecker {
     /**
      * Checks the index at given path for consistency
      *
-     * @param rootState root state of repository
-     * @param indexPath path of index which needs to be checked
-     * @param workDirRoot directory which would be used for copying the index file locally to perform
-     *                    check. File would be created in a subdirectory. If the index is valid
-     *                    then the files would be removed otherwise whatever files have been copied
-     *                    would be left as is
+     * @param rootState   root state of repository
+     * @param indexPath   path of index which needs to be checked
+     * @param workDirRoot directory which would be used for copying the index file locally to
+     *                    perform check. File would be created in a subdirectory. If the index is
+     *                    valid then the files would be removed otherwise whatever files have been
+     *                    copied would be left as is
      */
     public IndexConsistencyChecker(NodeState rootState, String indexPath, File workDirRoot) {
         this.rootState = checkNotNull(rootState);
@@ -250,20 +254,21 @@ public class IndexConsistencyChecker {
         log.info("[{}] Starting check", indexPath);
 
         checkBlobs(result);
-        if (level == Level.FULL && result.clean){
+        if (level == Level.FULL && result.clean) {
             checkIndex(result, closer);
         }
 
-        if (result.clean){
-            log.info("[{}] No problems were detected with this index. Time taken {}", indexPath, watch);
+        if (result.clean) {
+            log.info("[{}] No problems were detected with this index. Time taken {}", indexPath,
+                watch);
 
         } else {
             log.warn("[{}] Problems detected with this index. Time taken {}", indexPath, watch);
         }
 
-        if (cleanWorkDir){
+        if (cleanWorkDir) {
             FileUtils.deleteQuietly(workDir);
-        } else if (workDir != null){
+        } else if (workDir != null) {
             log.info("[{}] Index files are copied to {}", indexPath, workDir.getAbsolutePath());
         }
 
@@ -273,31 +278,34 @@ public class IndexConsistencyChecker {
 
     private void checkIndex(Result result, Closer closer) throws IOException {
         NodeState idx = NodeStateUtils.getNode(rootState, indexPath);
-        LuceneIndexDefinition defn = LuceneIndexDefinition.newBuilder(rootState, idx, indexPath).build();
+        LuceneIndexDefinition defn = LuceneIndexDefinition.newBuilder(rootState, idx, indexPath)
+                                                          .build();
         workDir = createWorkDir(workDirRoot, PathUtils.getName(indexPath));
 
-        for (String dirName : idx.getChildNodeNames()){
+        for (String dirName : idx.getChildNodeNames()) {
             //TODO Check for SuggestionDirectory Pending
-            if (NodeStateUtils.isHidden(dirName) && MultiplexersLucene.isIndexDirName(dirName)){
+            if (NodeStateUtils.isHidden(dirName) && MultiplexersLucene.isIndexDirName(dirName)) {
                 DirectoryStatus dirStatus = new DirectoryStatus(dirName);
                 result.dirStatus.add(dirStatus);
                 log.debug("[{}] Checking directory {}", indexPath, dirName);
                 try {
                     checkIndexDirectory(dirStatus, idx, defn, workDir, dirName, closer);
-                } catch (IOException e){
+                } catch (IOException e) {
                     dirStatus.clean = false;
-                    log.warn("[{}][{}] Error occurred while performing directory check", indexPath, dirName, e);
+                    log.warn("[{}][{}] Error occurred while performing directory check", indexPath,
+                        dirName, e);
                 }
 
-                if (!dirStatus.clean){
+                if (!dirStatus.clean) {
                     result.clean = false;
                 }
             }
         }
     }
 
-    private void checkIndexDirectory(DirectoryStatus dirStatus, NodeState idx, LuceneIndexDefinition defn,
-                                     File workDir, String dirName, Closer closer) throws IOException {
+    private void checkIndexDirectory(DirectoryStatus dirStatus, NodeState idx,
+        LuceneIndexDefinition defn,
+        File workDir, String dirName, Closer closer) throws IOException {
         File idxDir = createWorkDir(workDir, dirName);
         Directory sourceDir = new OakDirectory(new ReadOnlyBuilder(idx), dirName, defn, true);
         Directory targetDir = FSDirectory.open(idxDir);
@@ -310,14 +318,15 @@ public class IndexConsistencyChecker {
             log.debug("[{}][{}] Checking {}", indexPath, dirName, file);
             try {
                 sourceDir.copy(targetDir, file, file, IOContext.DEFAULT);
-            } catch (FileNotFoundException ignore){
+            } catch (FileNotFoundException ignore) {
                 dirStatus.missingFiles.add(file);
                 clean = false;
                 log.warn("[{}][{}] File {} missing", indexPath, dirName, file);
             }
 
-            if (targetDir.fileLength(file) != sourceDir.fileLength(file)){
-                FileSizeStatus fileStatus = new FileSizeStatus(file, targetDir.fileLength(file), sourceDir.fileLength(file));
+            if (targetDir.fileLength(file) != sourceDir.fileLength(file)) {
+                FileSizeStatus fileStatus = new FileSizeStatus(file, targetDir.fileLength(file),
+                    sourceDir.fileLength(file));
                 dirStatus.filesWithSizeMismatch.add(fileStatus);
                 clean = false;
                 log.warn("[{}][{}] File size mismatch {}", indexPath, dirName, fileStatus);
@@ -327,8 +336,9 @@ public class IndexConsistencyChecker {
             }
         }
 
-        if (clean){
-            log.debug("[{}][{}] Directory content found to be consistent. Proceeding to IndexCheck", indexPath, dirName);
+        if (clean) {
+            log.debug("[{}][{}] Directory content found to be consistent. Proceeding to IndexCheck",
+                indexPath, dirName);
             CheckIndex ci = new CheckIndex(targetDir);
 
             if (printStream != null) {
@@ -339,10 +349,11 @@ public class IndexConsistencyChecker {
 
             dirStatus.status = ci.checkIndex();
             dirStatus.clean = dirStatus.status.clean;
-            log.debug("[{}][{}] IndexCheck was successful. Proceeding to open DirectoryReader", indexPath, dirName);
+            log.debug("[{}][{}] IndexCheck was successful. Proceeding to open DirectoryReader",
+                indexPath, dirName);
         }
 
-        if (dirStatus.clean){
+        if (dirStatus.clean) {
             DirectoryReader dirReader = DirectoryReader.open(targetDir);
             dirStatus.numDocs = dirReader.numDocs();
             log.debug("[{}][{}] DirectoryReader can be opened", indexPath, dirName);
@@ -356,7 +367,7 @@ public class IndexConsistencyChecker {
         Root root = RootFactory.createReadOnlyRoot(rootState);
         Tree idx = root.getTree(indexPath);
         PropertyState type = idx.getProperty("type");
-        if (type != null && LuceneIndexConstants.TYPE_LUCENE.equals(type.getValue(Type.STRING))){
+        if (type != null && LuceneIndexConstants.TYPE_LUCENE.equals(type.getValue(Type.STRING))) {
             checkBlobs(result, idx);
         } else {
             result.clean = false;
@@ -365,9 +376,9 @@ public class IndexConsistencyChecker {
     }
 
     private void checkBlobs(Result result, Tree tree) {
-        for (PropertyState ps : tree.getProperties()){
-            if (ps.getType().tag() == PropertyType.BINARY){
-                if (ps.isArray()){
+        for (PropertyState ps : tree.getProperties()) {
+            if (ps.getType().tag() == PropertyType.BINARY) {
+                if (ps.isArray()) {
                     for (int i = 0; i < ps.count(); i++) {
                         Blob b = ps.getValue(Type.BINARY, i);
                         checkBlob(ps.getName(), b, tree, result);
@@ -379,7 +390,7 @@ public class IndexConsistencyChecker {
             }
         }
 
-        for (Tree child : tree.getChildren()){
+        for (Tree child : tree.getChildren()) {
             checkBlobs(result, child);
         }
     }
@@ -387,15 +398,17 @@ public class IndexConsistencyChecker {
     private void checkBlob(String propName, Blob blob, Tree tree, Result result) {
         String id = blob.getContentIdentity();
         String blobPath = String.format("%s/%s/%s", tree.getPath(), propName, id);
-        try{
+        try {
             InputStream is = blob.getNewStream();
             CountingInputStream cis = new CountingInputStream(is);
             IOUtils.copyLarge(cis, ByteStreams.nullOutputStream());
 
-            if (cis.getCount() != blob.length()){
-                String msg = String.format("Invalid blob %s. Length mismatch - expected ${%d} -> found ${%d}",
-                        blobPath, blob.length(), cis.getCount());
-                result.invalidBlobIds.add(new FileSizeStatus(blobPath, cis.getCount(), blob.length()));
+            if (cis.getCount() != blob.length()) {
+                String msg = String.format(
+                    "Invalid blob %s. Length mismatch - expected ${%d} -> found ${%d}",
+                    blobPath, blob.length(), cis.getCount());
+                result.invalidBlobIds.add(
+                    new FileSizeStatus(blobPath, cis.getCount(), blob.length()));
                 log.warn("[{}] {}", indexPath, msg);
                 result.clean = false;
                 result.blobSizeMismatch = true;
@@ -424,7 +437,9 @@ public class IndexConsistencyChecker {
      */
     private static final class LoggingPrintStream extends PrintStream {
 
-        /** Buffer print calls until a newline is written */
+        /**
+         * Buffer print calls until a newline is written
+         */
         private final StringBuffer buffer = new StringBuffer();
 
         private final Logger log;

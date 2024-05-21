@@ -20,14 +20,11 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Random;
-
 import javax.jcr.Binary;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-
 import org.apache.jackrabbit.commons.JcrUtils;
-
 import org.apache.jackrabbit.guava.common.io.ByteStreams;
 
 abstract class ReadManyTest extends AbstractTest {
@@ -35,7 +32,9 @@ abstract class ReadManyTest extends AbstractTest {
     private static final Random RANDOM = new Random(1234567890L);
 
     public interface Content {
+
         void create(Node parent, String name) throws RepositoryException;
+
         void read(Node node) throws RepositoryException;
     }
 
@@ -44,6 +43,7 @@ abstract class ReadManyTest extends AbstractTest {
         public void create(Node parent, String name) throws RepositoryException {
             parent.addNode(name);
         }
+
         @Override
         public void read(Node node) {
         }
@@ -57,6 +57,7 @@ abstract class ReadManyTest extends AbstractTest {
             InputStream stream = new ByteArrayInputStream(randomBytes);
             JcrUtils.putFile(parent, name, "application/octet-stream", stream);
         }
+
         @Override
         public void read(Node node) throws RepositoryException {
             Binary binary = node.getProperty("jcr:content/jcr:data").getBinary();
@@ -94,6 +95,7 @@ abstract class ReadManyTest extends AbstractTest {
                 child.setProperty("content", new String(randomText));
             }
         }
+
         @Override
         public void read(Node node) throws RepositoryException {
             for (Node child : JcrUtils.getChildNodes(node)) {
@@ -122,9 +124,9 @@ abstract class ReadManyTest extends AbstractTest {
             protected void runTest() throws Exception {
                 for (int i = 0; i < 1000; i++) {
                     content.read(root
-                            .getNode("node" + RANDOM.nextInt(scale))
-                            .getNode("node" + RANDOM.nextInt(1000))
-                            .getNode("node" + RANDOM.nextInt(1000)));
+                        .getNode("node" + RANDOM.nextInt(scale))
+                        .getNode("node" + RANDOM.nextInt(1000))
+                        .getNode("node" + RANDOM.nextInt(1000)));
                 }
             }
         };

@@ -23,7 +23,6 @@ import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull
 import static org.apache.jackrabbit.oak.segment.SegmentBufferWriterPool.PoolType;
 
 import org.apache.jackrabbit.guava.common.base.Supplier;
-import org.apache.jackrabbit.guava.common.base.Suppliers;
 import org.apache.jackrabbit.oak.segment.WriterCacheManager.Empty;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
@@ -33,21 +32,20 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Builder for building {@link DefaultSegmentWriter} instances.
- * The returned instances are thread-safe if {@link #withWriterPool(PoolType)}
- * was specified and <em>not</em> thread-safe if {@link #withoutWriterPool()}
- * was specified (default).
+ * Builder for building {@link DefaultSegmentWriter} instances. The returned instances are
+ * thread-safe if {@link #withWriterPool(PoolType)} was specified and <em>not</em> thread-safe if
+ * {@link #withoutWriterPool()} was specified (default).
  * <p>
  * <em>Default:</em> calling one of the {@code build()} methods without previously
- * calling one of the {@code with...()} methods returns a {@code SegmentWriter}
- * as would the following chain of calls:
+ * calling one of the {@code with...()} methods returns a {@code SegmentWriter} as would the
+ * following chain of calls:
  * <pre>
-     segmentWriterBuilder("name")
-        .with(LATEST_VERSION)
-        .withGeneration(0)
-        .withoutWriterPool()
-        .with(new WriterCacheManager.Default())
-        .build(store);
+ * segmentWriterBuilder("name")
+ * .with(LATEST_VERSION)
+ * .withGeneration(0)
+ * .withoutWriterPool()
+ * .with(new WriterCacheManager.Default())
+ * .build(store);
  * </pre>
  */
 public final class DefaultSegmentWriterBuilder {
@@ -68,8 +66,7 @@ public final class DefaultSegmentWriterBuilder {
     }
 
     /**
-     * Set the {@code name} of this builder. This name will appear in the segment's
-     * meta data.
+     * Set the {@code name} of this builder. This name will appear in the segment's meta data.
      */
     @NotNull
     public static DefaultSegmentWriterBuilder defaultSegmentWriterBuilder(@NotNull String name) {
@@ -77,15 +74,13 @@ public final class DefaultSegmentWriterBuilder {
     }
 
     /**
-     * Specify the {@code generation} for the segment written by the returned
-     * segment writer.
+     * Specify the {@code generation} for the segment written by the returned segment writer.
      * <p>
-     * If {@link #withoutWriterPool()} was specified all segments will be written
-     * at the generation that {@code generation.get()} returned at the time
-     * any of the {@code build()} methods is called.
-     * If {@link #withWriterPool(PoolType)} ()} was specified, segments will be written
-     * at the generation that {@code generation.get()} returns when a new segment
-     * is created by the returned writer.
+     * If {@link #withoutWriterPool()} was specified all segments will be written at the generation
+     * that {@code generation.get()} returned at the time any of the {@code build()} methods is
+     * called. If {@link #withWriterPool(PoolType)} ()} was specified, segments will be written at
+     * the generation that {@code generation.get()} returns when a new segment is created by the
+     * returned writer.
      */
     @NotNull
     public DefaultSegmentWriterBuilder withGeneration(@NotNull Supplier<GCGeneration> generation) {
@@ -94,8 +89,7 @@ public final class DefaultSegmentWriterBuilder {
     }
 
     /**
-     * Specify the {@code generation} for the segment written by the returned
-     * segment writer.
+     * Specify the {@code generation} for the segment written by the returned segment writer.
      */
     @NotNull
     public DefaultSegmentWriterBuilder withGeneration(@NotNull GCGeneration generation) {
@@ -109,8 +103,8 @@ public final class DefaultSegmentWriterBuilder {
     }
 
     /**
-     * Create a {@code SegmentWriter} backed by a {@link SegmentBufferWriterPool}.
-     * The returned instance is thread safe.
+     * Create a {@code SegmentWriter} backed by a {@link SegmentBufferWriterPool}. The returned
+     * instance is thread safe.
      */
     @NotNull
     public DefaultSegmentWriterBuilder withWriterPool(PoolType writerType) {
@@ -119,8 +113,8 @@ public final class DefaultSegmentWriterBuilder {
     }
 
     /**
-     * Create a {@code SegmentWriter} backed by a {@link SegmentBufferWriter}.
-     * The returned instance is <em>not</em> thread safe.
+     * Create a {@code SegmentWriter} backed by a {@link SegmentBufferWriter}. The returned instance
+     * is <em>not</em> thread safe.
      */
     @NotNull
     public DefaultSegmentWriterBuilder withoutWriterPool() {
@@ -139,6 +133,7 @@ public final class DefaultSegmentWriterBuilder {
 
     /**
      * Specify that the returned writer should not use a cache.
+     *
      * @see #with(WriterCacheManager)
      */
     @NotNull
@@ -153,50 +148,49 @@ public final class DefaultSegmentWriterBuilder {
     @NotNull
     public DefaultSegmentWriter build(@NotNull FileStore store) {
         return new DefaultSegmentWriter(
-                checkNotNull(store),
-                store.getReader(),
-                store.getSegmentIdProvider(),
-                store.getBlobStore(),
-                cacheManager,
-                createWriter(store, poolType),
-                store.getBinariesInlineThreshold()
+            checkNotNull(store),
+            store.getReader(),
+            store.getSegmentIdProvider(),
+            store.getBlobStore(),
+            cacheManager,
+            createWriter(store, poolType),
+            store.getBinariesInlineThreshold()
         );
     }
 
     /**
-     * Build a {@code SegmentWriter} for a {@code ReadOnlyFileStore}.
-     * Attempting to write to the returned writer will cause a
-     * {@code UnsupportedOperationException} to be thrown.
+     * Build a {@code SegmentWriter} for a {@code ReadOnlyFileStore}. Attempting to write to the
+     * returned writer will cause a {@code UnsupportedOperationException} to be thrown.
      */
     @NotNull
     public DefaultSegmentWriter build(@NotNull ReadOnlyFileStore store) {
         return new DefaultSegmentWriter(
-                checkNotNull(store),
-                store.getReader(),
-                store.getSegmentIdProvider(),
-                store.getBlobStore(),
-                cacheManager,
-                new WriteOperationHandler() {
+            checkNotNull(store),
+            store.getReader(),
+            store.getSegmentIdProvider(),
+            store.getBlobStore(),
+            cacheManager,
+            new WriteOperationHandler() {
 
-                    @Override
-                    @NotNull
-                    public GCGeneration getGCGeneration() {
-                        throw new UnsupportedOperationException("Cannot write to read-only store");
-                    }
+                @Override
+                @NotNull
+                public GCGeneration getGCGeneration() {
+                    throw new UnsupportedOperationException("Cannot write to read-only store");
+                }
 
-                    @NotNull
-                    @Override
-                    public RecordId execute(@NotNull GCGeneration gcGeneration,
-                                            @NotNull WriteOperation writeOperation) {
-                        throw new UnsupportedOperationException("Cannot write to read-only store");
-                    }
+                @NotNull
+                @Override
+                public RecordId execute(@NotNull GCGeneration gcGeneration,
+                    @NotNull WriteOperation writeOperation) {
+                    throw new UnsupportedOperationException("Cannot write to read-only store");
+                }
 
-                    @Override
-                    public void flush(@NotNull SegmentStore store) {
-                        throw new UnsupportedOperationException("Cannot write to read-only store");
-                    }
-                },
-                store.getBinariesInlineThreshold()
+                @Override
+                public void flush(@NotNull SegmentStore store) {
+                    throw new UnsupportedOperationException("Cannot write to read-only store");
+                }
+            },
+            store.getBinariesInlineThreshold()
         );
     }
 
@@ -206,32 +200,36 @@ public final class DefaultSegmentWriterBuilder {
     @NotNull
     public DefaultSegmentWriter build(@NotNull MemoryStore store) {
         return new DefaultSegmentWriter(
-                checkNotNull(store),
-                store.getReader(),
-                store.getSegmentIdProvider(),
-                store.getBlobStore(),
-                cacheManager,
-                createWriter(store, poolType),
-                Segment.MEDIUM_LIMIT
+            checkNotNull(store),
+            store.getReader(),
+            store.getSegmentIdProvider(),
+            store.getBlobStore(),
+            cacheManager,
+            createWriter(store, poolType),
+            Segment.MEDIUM_LIMIT
         );
     }
 
     @NotNull
-    private WriteOperationHandler createWriter(@NotNull FileStore store, @Nullable PoolType poolType) {
+    private WriteOperationHandler createWriter(@NotNull FileStore store,
+        @Nullable PoolType poolType) {
         return createWriter(store.getSegmentIdProvider(), store.getReader(), poolType);
     }
 
     @NotNull
-    private WriteOperationHandler createWriter(@NotNull MemoryStore store, @Nullable PoolType poolType) {
+    private WriteOperationHandler createWriter(@NotNull MemoryStore store,
+        @Nullable PoolType poolType) {
         return createWriter(store.getSegmentIdProvider(), store.getReader(), poolType);
     }
 
     @NotNull
-    private WriteOperationHandler createWriter(@NotNull SegmentIdProvider idProvider, @NotNull SegmentReader reader, @Nullable PoolType poolType) {
+    private WriteOperationHandler createWriter(@NotNull SegmentIdProvider idProvider,
+        @NotNull SegmentReader reader, @Nullable PoolType poolType) {
         if (poolType == null) {
             return new SegmentBufferWriter(idProvider, reader, name, generation.get());
         } else {
-            return SegmentBufferWriterPool.factory(idProvider, reader, name, generation).newPool(poolType);
+            return SegmentBufferWriterPool.factory(idProvider, reader, name, generation)
+                                          .newPool(poolType);
         }
     }
 }

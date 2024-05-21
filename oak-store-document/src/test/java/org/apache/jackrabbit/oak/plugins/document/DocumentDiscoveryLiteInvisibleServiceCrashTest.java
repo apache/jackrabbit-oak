@@ -37,7 +37,7 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 
 public class DocumentDiscoveryLiteInvisibleServiceCrashTest
-        extends BaseDocumentDiscoveryLiteServiceTest {
+    extends BaseDocumentDiscoveryLiteServiceTest {
 
     private static final int TEST_WAIT_TIMEOUT = 10000;
 
@@ -75,7 +75,8 @@ public class DocumentDiscoveryLiteInvisibleServiceCrashTest
         doTestTwoNodesWithCrashAndLongduringDeactivation(true);
     }
 
-    private void doTestTwoNodesWithCrashAndLongduringDeactivation(boolean withBacklog) throws Throwable {
+    private void doTestTwoNodesWithCrashAndLongduringDeactivation(boolean withBacklog)
+        throws Throwable {
         ns1 = newDocumentNodeStore(store, wd1);
         SimplifiedInstance s1 = createInstance(ns1, wd1);
         ViewExpectation e1 = new ViewExpectation(s1);
@@ -120,7 +121,8 @@ public class DocumentDiscoveryLiteInvisibleServiceCrashTest
         logger.info(s1.getClusterViewStr());
         final ViewExpectation expectation1AfterCrashBeforeLastRevRecovery = new ViewExpectation(s1);
         expectation1AfterCrashBeforeLastRevRecovery.setActiveIds(ns1.getClusterId());
-        waitFor(expectation1AfterCrashBeforeLastRevRecovery, TEST_WAIT_TIMEOUT, "first should still see only itself as active");
+        waitFor(expectation1AfterCrashBeforeLastRevRecovery, TEST_WAIT_TIMEOUT,
+            "first should still see only itself as active");
 
         // the next part is a bit tricky: we want to fine-control the
         // lastRevRecoveryThread's acquire/release locking.
@@ -129,9 +131,10 @@ public class DocumentDiscoveryLiteInvisibleServiceCrashTest
         // when acquireRecoveryLock is called, that thread should wait for the
         // waitBeforeLocking semaphore to be released
         final MissingLastRevSeeker missingLastRevUtil = (MissingLastRevSeeker) PrivateAccessor
-                .getField(s1.ns.getLastRevRecoveryAgent(), "missingLastRevUtil");
+            .getField(s1.ns.getLastRevRecoveryAgent(), "missingLastRevUtil");
         assertNotNull(missingLastRevUtil);
-        MissingLastRevSeeker mockedLongduringMissingLastRevUtil = mock(MissingLastRevSeeker.class, delegatesTo(missingLastRevUtil));
+        MissingLastRevSeeker mockedLongduringMissingLastRevUtil = mock(MissingLastRevSeeker.class,
+            delegatesTo(missingLastRevUtil));
         final Semaphore waitBeforeLocking = new Semaphore(0);
         doAnswer(new Answer<Boolean>() {
             @Override
@@ -139,11 +142,13 @@ public class DocumentDiscoveryLiteInvisibleServiceCrashTest
                 logger.info("going to waitBeforeLocking");
                 waitBeforeLocking.acquire();
                 logger.info("done with waitBeforeLocking");
-                return missingLastRevUtil.acquireRecoveryLock((Integer) invocation.getArguments()[0],
-                        (Integer) invocation.getArguments()[1]);
+                return missingLastRevUtil.acquireRecoveryLock(
+                    (Integer) invocation.getArguments()[0],
+                    (Integer) invocation.getArguments()[1]);
             }
         }).when(mockedLongduringMissingLastRevUtil).acquireRecoveryLock(anyInt(), anyInt());
-        PrivateAccessor.setField(s1.ns.getLastRevRecoveryAgent(), "missingLastRevUtil", mockedLongduringMissingLastRevUtil);
+        PrivateAccessor.setField(s1.ns.getLastRevRecoveryAgent(), "missingLastRevUtil",
+            mockedLongduringMissingLastRevUtil);
 
         // so let's start the lastRevThread again and wait for that
         // waitBeforeLocking semaphore to be hit
@@ -163,9 +168,11 @@ public class DocumentDiscoveryLiteInvisibleServiceCrashTest
         // at this stage the crashed s2 is still not in recovery mode, so let's
         // check:
         logger.info(s1.getClusterViewStr());
-        final ViewExpectation expectation1AfterCrashBeforeLastRevRecoveryLocking = new ViewExpectation(s1);
+        final ViewExpectation expectation1AfterCrashBeforeLastRevRecoveryLocking = new ViewExpectation(
+            s1);
         expectation1AfterCrashBeforeLastRevRecoveryLocking.setActiveIds(ns1.getClusterId());
-        waitFor(expectation1AfterCrashBeforeLastRevRecoveryLocking, TEST_WAIT_TIMEOUT, "first should still see itself as active");
+        waitFor(expectation1AfterCrashBeforeLastRevRecoveryLocking, TEST_WAIT_TIMEOUT,
+            "first should still see itself as active");
 
         // one thing, before we let the waitBeforeLocking go, setup the release
         // semaphore/mock:
@@ -176,8 +183,8 @@ public class DocumentDiscoveryLiteInvisibleServiceCrashTest
                 waitBeforeUnlocking.acquire();
                 logger.info("Done with waitBeforeUnlocking");
                 missingLastRevUtil.releaseRecoveryLock(
-                        (Integer) invocation.getArguments()[0],
-                        (Boolean) invocation.getArguments()[1]);
+                    (Integer) invocation.getArguments()[0],
+                    (Boolean) invocation.getArguments()[1]);
                 return null;
             }
         }).when(mockedLongduringMissingLastRevUtil).releaseRecoveryLock(anyInt(), anyBoolean());
@@ -187,9 +194,11 @@ public class DocumentDiscoveryLiteInvisibleServiceCrashTest
 
         // then, right after we let the waitBeforeLocking semaphore go, we
         // should see s2 in recovery mode
-        final ViewExpectation expectation1AfterCrashWhileLastRevRecoveryLocking = new ViewExpectation(s1);
+        final ViewExpectation expectation1AfterCrashWhileLastRevRecoveryLocking = new ViewExpectation(
+            s1);
         expectation1AfterCrashWhileLastRevRecoveryLocking.setActiveIds(ns1.getClusterId());
-        waitFor(expectation1AfterCrashWhileLastRevRecoveryLocking, TEST_WAIT_TIMEOUT, "first should still see itself as active");
+        waitFor(expectation1AfterCrashWhileLastRevRecoveryLocking, TEST_WAIT_TIMEOUT,
+            "first should still see itself as active");
 
         // ok, meanwhile, the lastRevRecoveryAgent should have hit the ot
         waitFor(new Expectation() {
@@ -205,7 +214,8 @@ public class DocumentDiscoveryLiteInvisibleServiceCrashTest
         }, TEST_WAIT_TIMEOUT, "lastRevRecoveryThread should want to release a lock");
 
         // so then, we should still see the same state
-        waitFor(expectation1AfterCrashWhileLastRevRecoveryLocking, TEST_WAIT_TIMEOUT, "first should still see itself as active");
+        waitFor(expectation1AfterCrashWhileLastRevRecoveryLocking, TEST_WAIT_TIMEOUT,
+            "first should still see itself as active");
 
         logger.info("Waiting 2 sec");
         clock.waitUntil(clock.getTime() + 2000);
@@ -213,7 +223,8 @@ public class DocumentDiscoveryLiteInvisibleServiceCrashTest
 
         // first, lets check to see what the view looks like - should be
         // unchanged:
-        waitFor(expectation1AfterCrashWhileLastRevRecoveryLocking, TEST_WAIT_TIMEOUT, "first should still see itself as active");
+        waitFor(expectation1AfterCrashWhileLastRevRecoveryLocking, TEST_WAIT_TIMEOUT,
+            "first should still see itself as active");
 
         // let waitBeforeUnlocking go
         logger.info("releasing waitBeforeUnlocking, state: " + s1.getClusterViewStr());
@@ -243,7 +254,8 @@ public class DocumentDiscoveryLiteInvisibleServiceCrashTest
             final ViewExpectation expectationBeforeBgRead = new ViewExpectation(s1);
             expectationBeforeBgRead.setActiveIds(ns1.getClusterId());
             waitFor(() -> {
-                ClusterNodeInfoDocument latestClusterInfo = getLatestClusterInfo(ns2.getClusterId(), ns2);
+                ClusterNodeInfoDocument latestClusterInfo = getLatestClusterInfo(ns2.getClusterId(),
+                    ns2);
                 boolean hasBacklog = s1.service.hasBacklog(latestClusterInfo);
                 if (hasBacklog) {
                     return null;
@@ -251,7 +263,8 @@ public class DocumentDiscoveryLiteInvisibleServiceCrashTest
                     return "No Backlog";
                 }
             }, TEST_WAIT_TIMEOUT, "Second cluster should have backlogs");
-            waitFor(expectationBeforeBgRead, TEST_WAIT_TIMEOUT, "first should only see itself after shutdown");
+            waitFor(expectationBeforeBgRead, TEST_WAIT_TIMEOUT,
+                "first should only see itself after shutdown");
 
             // ook, now we explicitly do a background read to get out of the
             // backlog situation
@@ -261,7 +274,8 @@ public class DocumentDiscoveryLiteInvisibleServiceCrashTest
             expectationAfterBgRead.setActiveIds(ns1.getClusterId());
             waitFor(expectationAfterBgRead, TEST_WAIT_TIMEOUT, "we should see s1 as only active");
             waitFor(() -> {
-                ClusterNodeInfoDocument latestClusterInfo = getLatestClusterInfo(ns2.getClusterId(), ns2);
+                ClusterNodeInfoDocument latestClusterInfo = getLatestClusterInfo(ns2.getClusterId(),
+                    ns2);
                 boolean hasBacklog = s1.service.hasBacklog(latestClusterInfo);
                 if (!hasBacklog) {
                     return null;
@@ -289,7 +303,8 @@ public class DocumentDiscoveryLiteInvisibleServiceCrashTest
     }
 
     private ClusterNodeInfoDocument getLatestClusterInfo(int id, DocumentNodeStore nodeStore) {
-        for (ClusterNodeInfoDocument doc : ClusterNodeInfoDocument.all(nodeStore.getDocumentStore())) {
+        for (ClusterNodeInfoDocument doc : ClusterNodeInfoDocument.all(
+            nodeStore.getDocumentStore())) {
             int cId = doc.getClusterId();
             if (cId == id) {
                 return doc;
@@ -304,19 +319,19 @@ public class DocumentDiscoveryLiteInvisibleServiceCrashTest
     }
 
     private DocumentNodeStore newDocumentNodeStore(DocumentStore store,
-                                                   String workingDir, boolean invisible) {
+        String workingDir, boolean invisible) {
         String prevWorkingDir = ClusterNodeInfo.WORKING_DIR;
         try {
             // ensure that we always get a fresh cluster[node]id
             ClusterNodeInfo.WORKING_DIR = workingDir;
 
             return new DocumentMK.Builder()
-                    .clock(clock)
-                    .setAsyncDelay(0)
-                    .setDocumentStore(store)
-                    .setLeaseCheckMode(LeaseCheckMode.DISABLED)
-                    .setClusterInvisible(invisible)
-                    .getNodeStore();
+                .clock(clock)
+                .setAsyncDelay(0)
+                .setDocumentStore(store)
+                .setLeaseCheckMode(LeaseCheckMode.DISABLED)
+                .setClusterInvisible(invisible)
+                .getNodeStore();
         } finally {
             ClusterNodeInfo.WORKING_DIR = prevWorkingDir;
         }

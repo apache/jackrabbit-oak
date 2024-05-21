@@ -20,7 +20,6 @@ import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.NodeDefinition;
 import javax.jcr.nodetype.PropertyDefinition;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.jetbrains.annotations.NotNull;
@@ -36,47 +35,45 @@ public interface DefinitionProvider {
     NodeDefinition getRootDefinition() throws RepositoryException;
 
     /**
-     * Returns the node definition for a child node of {@code parent} named
-     * {@code nodeName} with a default primary type. First the non-residual
-     * child node definitions of {@code parent} are checked matching the
-     * given node name. Then the residual definitions are checked.
+     * Returns the node definition for a child node of {@code parent} named {@code nodeName} with a
+     * default primary type. First the non-residual child node definitions of {@code parent} are
+     * checked matching the given node name. Then the residual definitions are checked.
      *
      * @param parent   the parent node.
      * @param nodeName The internal oak name of the child node.
      * @return the applicable node definition.
      * @throws ConstraintViolationException If no matching definition can be found.
-     * @throws RepositoryException If another error occurs.
+     * @throws RepositoryException          If another error occurs.
      */
     @NotNull
     NodeDefinition getDefinition(@NotNull Tree parent, @NotNull String nodeName)
-            throws ConstraintViolationException, RepositoryException;
+        throws ConstraintViolationException, RepositoryException;
 
     /**
-     * Calculates the applicable definition for the child node under the given
-     * parent node.
+     * Calculates the applicable definition for the child node under the given parent node.
      *
-     * @param parent The parent node.
+     * @param parent     The parent node.
      * @param targetNode The child node for which the definition is calculated.
      * @return the definition of the target node.
      * @throws ConstraintViolationException If no matching definition can be found.
-     * @throws RepositoryException If another error occurs.
+     * @throws RepositoryException          If another error occurs.
      */
     @NotNull
     NodeDefinition getDefinition(@NotNull Tree parent, @NotNull Tree targetNode)
-            throws ConstraintViolationException, RepositoryException;
+        throws ConstraintViolationException, RepositoryException;
 
     /**
-     * Calculates the applicable definition for the property state under the
-     * given parent tree.
+     * Calculates the applicable definition for the property state under the given parent tree.
      *
-     * @param parent The parent tree.
+     * @param parent        The parent tree.
      * @param propertyState The target property.
      * @return the definition for the target property.
      * @throws ConstraintViolationException If no matching definition can be found.
-     * @throws RepositoryException If another error occurs.
+     * @throws RepositoryException          If another error occurs.
      */
     @NotNull
-    PropertyDefinition getDefinition(@NotNull Tree parent, @NotNull PropertyState propertyState, boolean exactTypeMatch)
-            throws ConstraintViolationException, RepositoryException;
+    PropertyDefinition getDefinition(@NotNull Tree parent, @NotNull PropertyState propertyState,
+        boolean exactTypeMatch)
+        throws ConstraintViolationException, RepositoryException;
 
 }

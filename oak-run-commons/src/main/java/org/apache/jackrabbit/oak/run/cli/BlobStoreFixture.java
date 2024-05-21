@@ -20,7 +20,6 @@
 package org.apache.jackrabbit.oak.run.cli;
 
 import java.io.Closeable;
-
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 
 public interface BlobStoreFixture extends Closeable {

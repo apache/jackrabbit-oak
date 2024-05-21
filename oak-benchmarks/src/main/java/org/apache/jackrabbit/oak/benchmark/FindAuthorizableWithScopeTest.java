@@ -21,7 +21,6 @@ import javax.jcr.Node;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 import javax.jcr.security.Privilege;
-
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -50,7 +49,8 @@ public class FindAuthorizableWithScopeTest extends AbstractTest {
     private JackrabbitSession adminSession;
     private UserManager testUserManager;
 
-    public FindAuthorizableWithScopeTest(long numberOfUsers, long numberOfMembership, int maxCount, boolean setScope, boolean declaredMembership, boolean runAsAdmin) {
+    public FindAuthorizableWithScopeTest(long numberOfUsers, long numberOfMembership, int maxCount,
+        boolean setScope, boolean declaredMembership, boolean runAsAdmin) {
         this.numberOfUsers = numberOfUsers;
         this.numberOfMembership = numberOfMembership;
         this.maxCount = maxCount;
@@ -67,7 +67,8 @@ public class FindAuthorizableWithScopeTest extends AbstractTest {
         Group gr = userManager.createGroup(GROUP_ID, new PrincipalImpl(GROUP_ID), "test");
         User u = null;
         for (int i = 0; i < numberOfUsers; i++) {
-            u = userManager.createUser("testUser" + i, "pw", new PrincipalImpl("testUser" + i), "test");
+            u = userManager.createUser("testUser" + i, "pw", new PrincipalImpl("testUser" + i),
+                "test");
             gr.addMember(u);
         }
 
@@ -82,9 +83,11 @@ public class FindAuthorizableWithScopeTest extends AbstractTest {
         if (runAsAdmin) {
             testUserManager = userManager;
         } else {
-            JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(adminSession, "/");
+            JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(adminSession,
+                "/");
             if (acl != null) {
-                acl.addEntry(EveryonePrincipal.getInstance(), AccessControlUtils.privilegesFromNames(adminSession, Privilege.JCR_READ), true);
+                acl.addEntry(EveryonePrincipal.getInstance(),
+                    AccessControlUtils.privilegesFromNames(adminSession, Privilege.JCR_READ), true);
                 adminSession.getAccessControlManager().setPolicy("/", acl);
                 adminSession.save();
             }

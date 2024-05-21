@@ -16,15 +16,14 @@
  */
 package org.apache.jackrabbit.oak.security.principal;
 
+import java.security.Principal;
+import java.util.Iterator;
+import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import java.security.Principal;
-import java.util.Iterator;
 
 public final class EveryoneFilter {
 

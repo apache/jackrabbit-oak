@@ -24,16 +24,17 @@ import org.apache.jackrabbit.oak.spi.security.user.DynamicMembershipService;
 import org.jetbrains.annotations.NotNull;
 
 public class AutomembershipService implements DynamicMembershipService {
-    
+
     private final SyncConfigTracker scTracker;
-    
+
     public AutomembershipService(@NotNull SyncConfigTracker scTracker) {
         this.scTracker = scTracker;
     }
-    
+
     @Override
     @NotNull
-    public DynamicMembershipProvider getDynamicMembershipProvider(@NotNull Root root, @NotNull UserManager userManager, @NotNull NamePathMapper namePathMapper) {
+    public DynamicMembershipProvider getDynamicMembershipProvider(@NotNull Root root,
+        @NotNull UserManager userManager, @NotNull NamePathMapper namePathMapper) {
         if (scTracker.isEnabled()) {
             return new AutoMembershipProvider(root, userManager, namePathMapper, scTracker);
         } else {

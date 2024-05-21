@@ -16,19 +16,18 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.permission;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+
 import java.util.Set;
 import javax.jcr.Session;
-
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.util.Text;
 import org.junit.Test;
 import org.mockito.Mockito;
-
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
 
 public class OpenPermissionProviderTest {
 
@@ -61,11 +60,14 @@ public class OpenPermissionProviderTest {
     @Test
     public void testIsGranted() {
         assertTrue(openProvider.isGranted(tree, null, Permissions.ALL));
-        assertTrue(openProvider.isGranted(tree, PropertyStates.createProperty("prop", "value"), Permissions.ALL));
+        assertTrue(openProvider.isGranted(tree, PropertyStates.createProperty("prop", "value"),
+            Permissions.ALL));
     }
 
     @Test
     public void testIsGrantedActions() {
-        assertTrue(openProvider.isGranted("/", Text.implode(new String[]{Session.ACTION_READ, Session.ACTION_ADD_NODE, Session.ACTION_REMOVE, Session.ACTION_SET_PROPERTY}, ",")));
+        assertTrue(openProvider.isGranted("/", Text.implode(
+            new String[]{Session.ACTION_READ, Session.ACTION_ADD_NODE, Session.ACTION_REMOVE,
+                Session.ACTION_SET_PROPERTY}, ",")));
     }
 }

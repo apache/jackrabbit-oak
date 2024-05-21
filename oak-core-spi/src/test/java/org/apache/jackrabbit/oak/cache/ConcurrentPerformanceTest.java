@@ -25,12 +25,10 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import org.junit.Ignore;
-import org.junit.Test;
-
 import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.guava.common.cache.CacheBuilder;
+import org.junit.Ignore;
+import org.junit.Test;
 
 /**
  * Compares the LIRS cache by concurrently reading.
@@ -38,13 +36,13 @@ import org.apache.jackrabbit.guava.common.cache.CacheBuilder;
 public class ConcurrentPerformanceTest {
 
     private static Cache<Integer, Integer> buildCache(boolean lirs,
-            int concurrencyLevel) {
+        int concurrencyLevel) {
         if (lirs) {
             return new CacheLIRS.Builder<Integer, Integer>()
-                    .segmentCount(concurrencyLevel).maximumSize(1000).build();
+                .segmentCount(concurrencyLevel).maximumSize(1000).build();
         }
         return CacheBuilder.newBuilder().concurrencyLevel(concurrencyLevel)
-                .maximumSize(1000).build();
+                           .maximumSize(1000).build();
     }
 
     @Test
@@ -69,7 +67,7 @@ public class ConcurrentPerformanceTest {
     }
 
     private static void testPerformance(int threadCount, int concurrencyLevel,
-            boolean lirs) throws Exception {
+        boolean lirs) throws Exception {
         final Cache<Integer, Integer> cache = buildCache(lirs, concurrencyLevel);
         Thread[] threads = new Thread[threadCount];
         final AtomicBoolean stop = new AtomicBoolean();
@@ -105,8 +103,8 @@ public class ConcurrentPerformanceTest {
         Thread.sleep(1000);
         stop.set(true);
         System.out.println("threads " + threadCount +
-                " concurrency " + concurrencyLevel + " ops/s " + count + 
-                " " + (lirs ? "lirs" : "guava"));
+            " concurrency " + concurrencyLevel + " ops/s " + count +
+            " " + (lirs ? "lirs" : "guava"));
         for (Thread t : threads) {
             t.join(1000);
             // if the thread is still alive after 1 second, we assume

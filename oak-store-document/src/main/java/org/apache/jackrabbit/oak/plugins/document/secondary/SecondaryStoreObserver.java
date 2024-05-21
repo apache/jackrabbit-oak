@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.plugins.document.secondary;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.document.AbstractDocumentNodeState;
@@ -42,6 +41,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class SecondaryStoreObserver implements Observer {
+
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final NodeStore nodeStore;
     private final PathFilter pathFilter;
@@ -53,25 +53,26 @@ public class SecondaryStoreObserver implements Observer {
     private boolean firstEventProcessed;
 
     public SecondaryStoreObserver(NodeStore nodeStore,
-                                  List<String> metaPropNames,
-                                  NodeStateDiffer differ,
-                                  PathFilter pathFilter,
-                                  StatisticsProvider statisticsProvider,
-                                  SecondaryStoreRootObserver secondaryObserver) {
+        List<String> metaPropNames,
+        NodeStateDiffer differ,
+        PathFilter pathFilter,
+        StatisticsProvider statisticsProvider,
+        SecondaryStoreRootObserver secondaryObserver) {
         this.nodeStore = nodeStore;
         this.pathFilter = pathFilter;
         this.secondaryObserver = secondaryObserver;
         this.differ = differ;
         this.metaPropNames = metaPropNames;
         this.local = statisticsProvider.getTimer("DOCUMENT_CACHE_SEC_LOCAL", StatsOptions.DEFAULT);
-        this.external = statisticsProvider.getTimer("DOCUMENT_CACHE_SEC_EXTERNAL", StatsOptions.DEFAULT);
+        this.external = statisticsProvider.getTimer("DOCUMENT_CACHE_SEC_EXTERNAL",
+            StatsOptions.DEFAULT);
     }
 
     @Override
     public void contentChanged(@NotNull NodeState root, @NotNull CommitInfo info) {
         //Diff here would also be traversing non visible areas and there
         //diffManyChildren might pose problem for e.g. data under uuid index
-        if (!firstEventProcessed){
+        if (!firstEventProcessed) {
             log.info("Starting initial sync");
         }
 
@@ -88,13 +89,15 @@ public class SecondaryStoreObserver implements Observer {
         //Apply the rest of properties
         target.compareAgainstBaseState(base, diff);
         try {
-            NodeState updatedSecondaryRoot = nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-            secondaryObserver.contentChanged(DelegatingDocumentNodeState.wrap(updatedSecondaryRoot, differ));
+            NodeState updatedSecondaryRoot = nodeStore.merge(builder, EmptyHook.INSTANCE,
+                CommitInfo.EMPTY);
+            secondaryObserver.contentChanged(
+                DelegatingDocumentNodeState.wrap(updatedSecondaryRoot, differ));
 
             TimerStats timer = info.isExternal() ? external : local;
             timer.update(w.elapsed(TimeUnit.NANOSECONDS), TimeUnit.NANOSECONDS);
 
-            if (!firstEventProcessed){
+            if (!firstEventProcessed) {
                 log.info("Time taken for initial sync {}", w);
                 firstEventProcessed = true;
             }

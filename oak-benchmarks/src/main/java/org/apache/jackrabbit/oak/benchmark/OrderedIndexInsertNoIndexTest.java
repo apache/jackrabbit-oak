@@ -18,13 +18,13 @@ package org.apache.jackrabbit.oak.benchmark;
 
 
 public class OrderedIndexInsertNoIndexTest extends OrderedIndexInsertBaseTest {
-   /*
-    * this class is empty extending a base only because during benchmark testing
-    * it was found that an extended class had an overhead of 4-6ms even if it was 
-    * not doing anything. Like this one.
-    * 
-    * So in order to have consistent numbers to compare here's this empty extension.
-    * 
-    * (or at least as much consistent as possible).
-    */
+    /*
+     * this class is empty extending a base only because during benchmark testing
+     * it was found that an extended class had an overhead of 4-6ms even if it was
+     * not doing anything. Like this one.
+     *
+     * So in order to have consistent numbers to compare here's this empty extension.
+     *
+     * (or at least as much consistent as possible).
+     */
 }

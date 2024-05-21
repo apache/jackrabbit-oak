@@ -22,10 +22,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Initializer of repository content. A component that needs to add specific
- * content to a new repository can implement this interface. Then when a
- * repository becomes available, all the configured initializers are invoked
- * in sequence.
+ * Initializer of repository content. A component that needs to add specific content to a new
+ * repository can implement this interface. Then when a repository becomes available, all the
+ * configured initializers are invoked in sequence.
  */
 public interface RepositoryInitializer {
 
@@ -39,10 +38,9 @@ public interface RepositoryInitializer {
     };
 
     /**
-     * Initializes repository content. This method is called as soon as a
-     * repository becomes available. Note that the repository may already
-     * have been initialized, so the implementation of this method should
-     * check for that before blindly adding new content.
+     * Initializes repository content. This method is called as soon as a repository becomes
+     * available. Note that the repository may already have been initialized, so the implementation
+     * of this method should check for that before blindly adding new content.
      *
      * @param builder builder for accessing and modifying repository content
      */

@@ -23,24 +23,25 @@ import org.jetbrains.annotations.Nullable;
 
 /**
  * Provides a user management specific implementation of the
- * {@link org.apache.jackrabbit.oak.spi.security.authentication.Authentication}
- * interface to those {@link javax.security.auth.spi.LoginModule}s that verify
- * a given authentication request by evaluation information exposed by the
- * Jackrabbit user management API.
+ * {@link org.apache.jackrabbit.oak.spi.security.authentication.Authentication} interface to those
+ * {@link javax.security.auth.spi.LoginModule}s that verify a given authentication request by
+ * evaluation information exposed by the Jackrabbit user management API.
  */
 public interface UserAuthenticationFactory {
 
     /**
-     * Returns an implementation {@link org.apache.jackrabbit.oak.spi.security.authentication.Authentication}
-     * for the specified {@code userId}.
+     * Returns an implementation
+     * {@link org.apache.jackrabbit.oak.spi.security.authentication.Authentication} for the
+     * specified {@code userId}.
      *
      * @param configuration The user configuration.
-     * @param root   The {@link org.apache.jackrabbit.oak.api.Root} that provides repository access.
-     * @param userId The userId for which a user authentication is provided.
-     * @return The authentication object for the given {@code configuration} and
-     * {@code userId} or {@code null} if this implementation cannot not handle the
-     * specified parameters.
+     * @param root          The {@link org.apache.jackrabbit.oak.api.Root} that provides repository
+     *                      access.
+     * @param userId        The userId for which a user authentication is provided.
+     * @return The authentication object for the given {@code configuration} and {@code userId} or
+     * {@code null} if this implementation cannot not handle the specified parameters.
      */
     @Nullable
-    Authentication getAuthentication(@NotNull UserConfiguration configuration, @NotNull Root root, @Nullable String userId);
+    Authentication getAuthentication(@NotNull UserConfiguration configuration, @NotNull Root root,
+        @Nullable String userId);
 }

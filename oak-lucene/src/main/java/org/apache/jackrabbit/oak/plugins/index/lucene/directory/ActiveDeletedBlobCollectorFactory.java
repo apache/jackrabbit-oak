@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.BufferedWriter;
@@ -35,17 +37,16 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-
-import org.apache.jackrabbit.guava.common.base.Charsets;
-import org.apache.jackrabbit.guava.common.base.Joiner;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.io.Closeables;
-import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.LineIterator;
 import org.apache.commons.io.filefilter.IOFileFilter;
 import org.apache.commons.io.filefilter.RegexFileFilter;
 import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.guava.common.base.Charsets;
+import org.apache.jackrabbit.guava.common.base.Joiner;
+import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.io.Closeables;
+import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.plugins.blob.BlobTrackingStore;
@@ -58,12 +59,13 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-
 public class ActiveDeletedBlobCollectorFactory {
+
     public interface ActiveDeletedBlobCollector {
+
         /**
-         * @return an instance of {@link BlobDeletionCallback} that can be used to track deleted blobs
+         * @return an instance of {@link BlobDeletionCallback} that can be used to track deleted
+         * blobs
          */
         BlobDeletionCallback getBlobDeletionCallback();
 
@@ -106,13 +108,15 @@ public class ActiveDeletedBlobCollectorFactory {
     };
 
     public interface BlobDeletionCallback extends IndexCommitCallback {
+
         /**
-         * Tracks deleted blobs. From the pov of this interface, blobId is an opaque string
-         * that needs to be tracked.
+         * Tracks deleted blobs. From the pov of this interface, blobId is an opaque string that
+         * needs to be tracked.
+         *
          * @param blobId blobId representing deleted blob. In theory, it has nothing to do with
          *               blobs though.
-         * @param ids Information that can be useful for debugging - this is not used for purging
-         *            blobs.
+         * @param ids    Information that can be useful for debugging - this is not used for purging
+         *               blobs.
          */
         void deleted(String blobId, Iterable<String> ids);
 
@@ -135,31 +139,34 @@ public class ActiveDeletedBlobCollectorFactory {
     }
 
     public static ActiveDeletedBlobCollector newInstance(@NotNull File rootDirectory,
-                                                         ExecutorService executorService) {
+        ExecutorService executorService) {
         try {
             FileUtils.forceMkdir(rootDirectory);
         } catch (IOException ioe) {
-            ActiveDeletedBlobCollectorImpl.LOG.warn("Disabling active blob collector as we couldn't not create folder: "
+            ActiveDeletedBlobCollectorImpl.LOG.warn(
+                "Disabling active blob collector as we couldn't not create folder: "
                     + rootDirectory, ioe);
             return NOOP;
         }
-        if(!rootDirectory.canRead() || !rootDirectory.canWrite() || !rootDirectory.canExecute()) {
-            ActiveDeletedBlobCollectorImpl.LOG.warn("Insufficient access in directory - {}. Disabling active blob collector",
-                    rootDirectory);
+        if (!rootDirectory.canRead() || !rootDirectory.canWrite() || !rootDirectory.canExecute()) {
+            ActiveDeletedBlobCollectorImpl.LOG.warn(
+                "Insufficient access in directory - {}. Disabling active blob collector",
+                rootDirectory);
             return NOOP;
         }
         return new ActiveDeletedBlobCollectorImpl(rootDirectory, executorService);
     }
 
     /**
-     * Blob collector which takes *no* guarantees about checking whether the
-     * blob might be referred by paths other than one for which it is notified
-     * due deleted blob
+     * Blob collector which takes *no* guarantees about checking whether the blob might be referred
+     * by paths other than one for which it is notified due deleted blob
      */
     static class ActiveDeletedBlobCollectorImpl implements ActiveDeletedBlobCollector {
+
         private static PerfLogger PERF_LOG = new PerfLogger(
-                LoggerFactory.getLogger(ActiveDeletedBlobCollectorImpl.class.getName() + ".perf"));
-        private static Logger LOG = LoggerFactory.getLogger(ActiveDeletedBlobCollectorImpl.class.getName());
+            LoggerFactory.getLogger(ActiveDeletedBlobCollectorImpl.class.getName() + ".perf"));
+        private static Logger LOG = LoggerFactory.getLogger(
+            ActiveDeletedBlobCollectorImpl.class.getName());
 
         private final Clock clock;
 
@@ -173,24 +180,26 @@ public class ActiveDeletedBlobCollectorFactory {
 
         private static final String BLOB_FILE_PATTERN_PREFIX = "blobs-";
         private static final String BLOB_FILE_PATTERN_SUFFIX = ".txt";
-        private static final String BLOB_FILE_PATTERN = BLOB_FILE_PATTERN_PREFIX + "%s" + BLOB_FILE_PATTERN_SUFFIX;
-        private static final IOFileFilter blobFileNameFilter = new RegexFileFilter("blobs-.*\\.txt");
+        private static final String BLOB_FILE_PATTERN =
+            BLOB_FILE_PATTERN_PREFIX + "%s" + BLOB_FILE_PATTERN_SUFFIX;
+        private static final IOFileFilter blobFileNameFilter = new RegexFileFilter(
+            "blobs-.*\\.txt");
 
         private final BlockingQueue<BlobIdInfoStruct> deletedBlobs;
         private final DeletedBlobsFileWriter deletedBlobsFileWriter;
 
         /**
-         * @param rootDirectory directory that may be used by this instance to
-         *                      keep temporary data (e.g. reported deleted blob-ids).
-         * @param executorService executor service to asynchronously flush deleted blobs
-         *                        to a file.
+         * @param rootDirectory   directory that may be used by this instance to keep temporary data
+         *                        (e.g. reported deleted blob-ids).
+         * @param executorService executor service to asynchronously flush deleted blobs to a file.
          */
-        ActiveDeletedBlobCollectorImpl(@NotNull File rootDirectory, @NotNull ExecutorService executorService) {
+        ActiveDeletedBlobCollectorImpl(@NotNull File rootDirectory,
+            @NotNull ExecutorService executorService) {
             this(Clock.SIMPLE, rootDirectory, executorService);
         }
 
         ActiveDeletedBlobCollectorImpl(Clock clock, @NotNull File rootDirectory,
-                                       @NotNull ExecutorService executorService) {
+            @NotNull ExecutorService executorService) {
             this.clock = clock;
             this.rootDirectory = rootDirectory;
             this.executorService = executorService;
@@ -200,7 +209,8 @@ public class ActiveDeletedBlobCollectorFactory {
 
         /**
          * Purges blobs form blob-store which were tracked earlier to deleted.
-         * @param before only purge blobs which were deleted before this timestamps
+         *
+         * @param before    only purge blobs which were deleted before this timestamps
          * @param blobStore used to purge blobs/chunks
          */
         public void purgeBlobsDeleted(long before, @NotNull GarbageCollectableBlobStore blobStore) {
@@ -229,7 +239,8 @@ public class ActiveDeletedBlobCollectorFactory {
             long lastDeletedBlobTimestamp = lastCheckedBlobTimestamp;
             String currInUseFileName = deletedBlobsFileWriter.inUseFileName;
             deletedBlobsFileWriter.releaseInUseFile();
-            for (File deletedBlobListFile : FileUtils.listFiles(rootDirectory, blobFileNameFilter, null)) {
+            for (File deletedBlobListFile : FileUtils.listFiles(rootDirectory, blobFileNameFilter,
+                null)) {
                 if (cancelled) {
                     break;
                 }
@@ -241,7 +252,8 @@ public class ActiveDeletedBlobCollectorFactory {
                 try {
                     timestamp = getTimestampFromBlobFileName(deletedBlobListFile.getName());
                 } catch (IllegalArgumentException iae) {
-                    LOG.warn("Couldn't extract timestamp from filename - " + deletedBlobListFile, iae);
+                    LOG.warn("Couldn't extract timestamp from filename - " + deletedBlobListFile,
+                        iae);
                     continue;
                 }
                 if (timestamp < before) {
@@ -257,11 +269,12 @@ public class ActiveDeletedBlobCollectorFactory {
                             String[] parsedDeletedBlobIdLine = deletedBlobLine.split("\\|", 3);
                             if (parsedDeletedBlobIdLine.length != 3) {
                                 LOG.warn("Unparseable line ({}) in file {}. It won't be retried.",
-                                        parsedDeletedBlobIdLine, deletedBlobListFile);
+                                    parsedDeletedBlobIdLine, deletedBlobListFile);
                             } else {
                                 String deletedBlobId = parsedDeletedBlobIdLine[0];
                                 try {
-                                    long blobDeletionTimestamp = Long.valueOf(parsedDeletedBlobIdLine[1]);
+                                    long blobDeletionTimestamp = Long.valueOf(
+                                        parsedDeletedBlobIdLine[1]);
 
                                     if (blobDeletionTimestamp < lastCheckedBlobTimestamp) {
                                         continue;
@@ -271,13 +284,16 @@ public class ActiveDeletedBlobCollectorFactory {
                                         break;
                                     }
 
-                                    lastDeletedBlobTimestamp = Math.max(lastDeletedBlobTimestamp, blobDeletionTimestamp);
+                                    lastDeletedBlobTimestamp = Math.max(lastDeletedBlobTimestamp,
+                                        blobDeletionTimestamp);
 
-                                    List<String> chunkIds = Lists.newArrayList(blobStore.resolveChunks(deletedBlobId));
+                                    List<String> chunkIds = Lists.newArrayList(
+                                        blobStore.resolveChunks(deletedBlobId));
                                     if (chunkIds.size() > 0) {
                                         long deleted = blobStore.countDeleteChunks(chunkIds, 0);
                                         if (deleted < 1) {
-                                            LOG.warn("Blob {} in file {} not deleted", deletedBlobId, deletedBlobListFile);
+                                            LOG.warn("Blob {} in file {} not deleted",
+                                                deletedBlobId, deletedBlobListFile);
                                         } else {
                                             numBlobsDeleted++;
                                             numChunksDeleted += deleted;
@@ -285,25 +301,31 @@ public class ActiveDeletedBlobCollectorFactory {
                                             if (blobIdsTracked) {
                                                 // Save deleted chunkIds to a temporary file
                                                 for (String id : chunkIds) {
-                                                    FileIOUtils.writeAsLine(idTempDeleteWriter, id, true);
+                                                    FileIOUtils.writeAsLine(idTempDeleteWriter, id,
+                                                        true);
                                                 }
                                             }
                                         }
                                     }
                                 } catch (NumberFormatException nfe) {
-                                    LOG.warn("Couldn't parse blobTimestamp(" + parsedDeletedBlobIdLine[1] +
+                                    LOG.warn(
+                                        "Couldn't parse blobTimestamp(" + parsedDeletedBlobIdLine[1]
+                                            +
                                             "). deletedBlobLine - " + deletedBlobLine +
                                             "; file - " + deletedBlobListFile.getName(), nfe);
                                 } catch (DataStoreException dse) {
-                                    LOG.debug("Exception occurred while attempting to delete blob " + deletedBlobId, dse);
+                                    LOG.debug("Exception occurred while attempting to delete blob "
+                                        + deletedBlobId, dse);
                                 } catch (Exception e) {
-                                    LOG.warn("Exception occurred while attempting to delete blob " + deletedBlobId, e);
+                                    LOG.warn("Exception occurred while attempting to delete blob "
+                                        + deletedBlobId, e);
                                 }
                             }
                         }
                     } catch (IOException ioe) {
                         //log error and continue
-                        LOG.warn("Couldn't read deleted blob list file - " + deletedBlobListFile, ioe);
+                        LOG.warn("Couldn't read deleted blob list file - " + deletedBlobListFile,
+                            ioe);
                     } finally {
                         LineIterator.closeQuietly(blobLineIter);
                     }
@@ -313,13 +335,16 @@ public class ActiveDeletedBlobCollectorFactory {
                     // delete
                     if (!deletedBlobListFile.getName().equals(currInUseFileName)) {
                         if (!deletedBlobListFile.delete()) {
-                            LOG.warn("File {} couldn't be deleted while all blobs listed in it have been purged", deletedBlobListFile);
+                            LOG.warn(
+                                "File {} couldn't be deleted while all blobs listed in it have been purged",
+                                deletedBlobListFile);
                         } else {
                             LOG.debug("File {} deleted", deletedBlobListFile);
                         }
                     }
                 } else {
-                    LOG.debug("Skipping {} as its timestamp is newer than {}", deletedBlobListFile.getName(), before);
+                    LOG.debug("Skipping {} as its timestamp is newer than {}",
+                        deletedBlobListFile.getName(), before);
                 }
             }
 
@@ -334,17 +359,19 @@ public class ActiveDeletedBlobCollectorFactory {
                         tracker.remove(idTempDeleteFile, Options.ACTIVE_DELETION);
                     }
                 }
-            } catch(Exception e) {
+            } catch (Exception e) {
                 LOG.warn("Error refreshing tracked blob ids", e);
             }
             long endBlobTrackerSyncTime = clock.getTime();
-            LOG.info("Synchronizing changes with blob tracker took {} ms", endBlobTrackerSyncTime - startBlobTrackerSyncTime);
+            LOG.info("Synchronizing changes with blob tracker took {} ms",
+                endBlobTrackerSyncTime - startBlobTrackerSyncTime);
 
             if (cancelled) {
                 LOG.info("Deletion run cancelled by user");
             }
             long end = clock.getTime();
-            LOG.info("Deleted {} blobs contained in {} chunks in {} ms", numBlobsDeleted, numChunksDeleted, end - start);
+            LOG.info("Deleted {} blobs contained in {} chunks in {} ms", numBlobsDeleted,
+                numChunksDeleted, end - start);
             writeOutLastCheckedBlobTimestamp(lastDeletedBlobTimestamp);
         }
 
@@ -366,7 +393,8 @@ public class ActiveDeletedBlobCollectorFactory {
         private long readLastCheckedBlobTimestamp() {
             File blobCollectorInfoFile = new File(rootDirectory, "collection-info.txt");
             if (!blobCollectorInfoFile.exists()) {
-                LOG.debug("Couldn't read last checked blob timestamp (file not found). Would do a bit more scan");
+                LOG.debug(
+                    "Couldn't read last checked blob timestamp (file not found). Would do a bit more scan");
                 return -1;
             }
             InputStream is = null;
@@ -376,8 +404,9 @@ public class ActiveDeletedBlobCollectorFactory {
                 p = new Properties();
                 p.load(is);
             } catch (IOException e) {
-                LOG.warn("Couldn't read last checked blob timestamp from {} ... would do a bit more scan",
-                        blobCollectorInfoFile, e);
+                LOG.warn(
+                    "Couldn't read last checked blob timestamp from {} ... would do a bit more scan",
+                    blobCollectorInfoFile, e);
                 return -1;
             } finally {
                 org.apache.commons.io.IOUtils.closeQuietly(is);
@@ -385,14 +414,16 @@ public class ActiveDeletedBlobCollectorFactory {
 
             String resString = p.getProperty("last-checked-blob-timestamp");
             if (resString == null) {
-                LOG.warn("Couldn't fine last checked blob timestamp property in collection-info.txt");
+                LOG.warn(
+                    "Couldn't fine last checked blob timestamp property in collection-info.txt");
                 return -1;
             }
 
             try {
                 return Long.valueOf(resString);
             } catch (NumberFormatException nfe) {
-                LOG.warn("Couldn't read last checked blob timestamp '" + resString + "' as long", nfe);
+                LOG.warn("Couldn't read last checked blob timestamp '" + resString + "' as long",
+                    nfe);
                 return -1;
             }
         }
@@ -419,12 +450,12 @@ public class ActiveDeletedBlobCollectorFactory {
 
         static long getTimestampFromBlobFileName(String filename) throws IllegalArgumentException {
             checkArgument(filename.startsWith(BLOB_FILE_PATTERN_PREFIX),
-                    "Filename(%s) must start with %s", filename, BLOB_FILE_PATTERN_PREFIX);
+                "Filename(%s) must start with %s", filename, BLOB_FILE_PATTERN_PREFIX);
             checkArgument(filename.endsWith(BLOB_FILE_PATTERN_SUFFIX),
-                    "Filename(%s) must end with %s", filename, BLOB_FILE_PATTERN_SUFFIX);
+                "Filename(%s) must end with %s", filename, BLOB_FILE_PATTERN_SUFFIX);
             String timestampStr = filename.substring(
-                    BLOB_FILE_PATTERN_PREFIX.length(),
-                    filename.length() - BLOB_FILE_PATTERN_SUFFIX.length());
+                BLOB_FILE_PATTERN_PREFIX.length(),
+                filename.length() - BLOB_FILE_PATTERN_SUFFIX.length());
 
             return Long.parseLong(timestampStr);
         }
@@ -445,12 +476,13 @@ public class ActiveDeletedBlobCollectorFactory {
             }
             if (LOG.isDebugEnabled()) {
                 LOG.debug("Added {} (out of {} tried) to be flushed. QSize: {}",
-                        addedForFlush, deletedBlobs.size(), this.deletedBlobs.size());
+                    addedForFlush, deletedBlobs.size(), this.deletedBlobs.size());
             }
             deletedBlobsFileWriter.scheduleFileFlushIfNeeded();
         }
 
         private class DeletedBlobsFileWriter implements Runnable {
+
             private final AtomicBoolean fileFlushScheduled = new AtomicBoolean(false);
 
             private volatile String inUseFileName = null;
@@ -468,7 +500,8 @@ public class ActiveDeletedBlobCollectorFactory {
                         LOG.error("Couldn't write out to " + outFile, e);
                     }
                     if (LOG.isDebugEnabled()) {
-                        LOG.debug("Flushed {} blobs to {}", localDeletedBlobs.size(), outFile.getName());
+                        LOG.debug("Flushed {} blobs to {}", localDeletedBlobs.size(),
+                            outFile.getName());
                     }
                 }
             }
@@ -502,6 +535,7 @@ public class ActiveDeletedBlobCollectorFactory {
          * {@link ActiveDeletedBlobCollectorImpl} on a successful commit
          */
         private class DeletedBlobCollector implements BlobDeletionCallback {
+
             List<BlobIdInfoStruct> deletedBlobs = new ArrayList<>();
 
             @Override
@@ -511,7 +545,8 @@ public class ActiveDeletedBlobCollectorFactory {
 
             @Override
             public void commitProgress(IndexProgress indexProgress) {
-                if (indexProgress != IndexProgress.COMMIT_SUCCEDED && indexProgress != IndexProgress.COMMIT_FAILED) {
+                if (indexProgress != IndexProgress.COMMIT_SUCCEDED
+                    && indexProgress != IndexProgress.COMMIT_FAILED) {
                     LOG.debug("We only care for commit success/failure");
                     return;
                 }
@@ -529,6 +564,7 @@ public class ActiveDeletedBlobCollectorFactory {
         }
 
         private class BlobIdInfoStruct {
+
             final String blobId;
             final Iterable<String> ids;
 

@@ -17,10 +17,10 @@
 
 package org.apache.jackrabbit.oak.segment.tool;
 
+import static org.apache.commons.io.FileUtils.byteCountToDisplaySize;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
-import static org.apache.commons.io.FileUtils.byteCountToDisplaySize;
 import static org.apache.jackrabbit.oak.segment.RecordType.NODE;
 import static org.apache.jackrabbit.oak.segment.tool.Utils.openReadOnlyFileStore;
 
@@ -32,7 +32,6 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 import java.util.UUID;
-
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.collect.Queues;
 import org.apache.jackrabbit.oak.segment.RecordId;
@@ -105,7 +104,8 @@ public class DebugStore {
         }
     }
 
-    private static List<SegmentId> getReferencedSegmentIds(ReadOnlyFileStore store, Segment segment) {
+    private static List<SegmentId> getReferencedSegmentIds(ReadOnlyFileStore store,
+        Segment segment) {
         List<SegmentId> result = new ArrayList<>();
 
         for (int i = 0; i < segment.getReferencedSegmentIdCount(); i++) {

@@ -21,7 +21,8 @@ package org.apache.jackrabbit.oak.segment.azure.util;
 import java.util.Map;
 
 /**
- * Wrapper around {@link java.lang.System#getenv()}. Can be sub-classed to provide alternative means to retrieve environment variables.
+ * Wrapper around {@link java.lang.System#getenv()}. Can be sub-classed to provide alternative means
+ * to retrieve environment variables.
  */
 public class Environment {
 

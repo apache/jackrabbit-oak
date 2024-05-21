@@ -29,7 +29,8 @@ final class ErrorSyncResult implements SyncResult {
     private final Exception error;
 
     ErrorSyncResult(@NotNull String userId, @Nullable String idpName, @NotNull Exception error) {
-        ExternalIdentityRef ref = (idpName != null) ? new ExternalIdentityRef(userId, idpName) : null;
+        ExternalIdentityRef ref =
+            (idpName != null) ? new ExternalIdentityRef(userId, idpName) : null;
         this.syncedIdentity = new DefaultSyncedIdentity(userId, ref, false, -1);
         this.error = error;
     }

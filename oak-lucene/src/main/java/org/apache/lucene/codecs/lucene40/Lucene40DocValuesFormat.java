@@ -26,7 +26,6 @@ package org.apache.lucene.codecs.lucene40;
  */
 
 import java.io.IOException;
-
 import org.apache.lucene.codecs.CodecUtil;
 import org.apache.lucene.codecs.DocValuesConsumer;
 import org.apache.lucene.codecs.DocValuesFormat;
@@ -60,9 +59,9 @@ import org.apache.lucene.util.packed.PackedInts;
  * </p>
  * Formats:
  * <ul>
- *    <li>{@code VAR_INTS} .dat --&gt; Header, PackedType, MinValue, 
+ *    <li>{@code VAR_INTS} .dat --&gt; Header, PackedType, MinValue,
  *        DefaultValue, PackedStream</li>
- *    <li>{@code FIXED_INTS_8} .dat --&gt; Header, ValueSize, 
+ *    <li>{@code FIXED_INTS_8} .dat --&gt; Header, ValueSize,
  *        {@link DataOutput#writeByte Byte}<sup>maxdoc</sup></li>
  *    <li>{@code FIXED_INTS_16} .dat --&gt; Header, ValueSize,
  *        {@link DataOutput#writeShort Short}<sup>maxdoc</sup></li>
@@ -76,7 +75,7 @@ import org.apache.lucene.util.packed.PackedInts;
  *        ({@link DataOutput#writeByte Byte} * ValueSize)<sup>maxdoc</sup></li>
  *    <li>{@code BYTES_VAR_STRAIGHT} .idx --&gt; Header, TotalBytes, Addresses</li>
  *    <li>{@code BYTES_VAR_STRAIGHT} .dat --&gt; Header,
-          ({@link DataOutput#writeByte Byte} * <i>variable ValueSize</i>)<sup>maxdoc</sup></li>
+ * ({@link DataOutput#writeByte Byte} * <i>variable ValueSize</i>)<sup>maxdoc</sup></li>
  *    <li>{@code BYTES_FIXED_DEREF} .idx --&gt; Header, NumValues, Addresses</li>
  *    <li>{@code BYTES_FIXED_DEREF} .dat --&gt; Header, ValueSize,
  *        ({@link DataOutput#writeByte Byte} * ValueSize)<sup>NumValues</sup></li>
@@ -110,19 +109,19 @@ import org.apache.lucene.util.packed.PackedInts;
  * <ul>
  *    <li>PackedType is a 0 when compressed, 1 when the stream is written as 64-bit integers.</li>
  *    <li>Addresses stores pointers to the actual byte location (indexed by docid). In the VAR_STRAIGHT
- *        case, each entry can have a different length, so to determine the length, docid+1 is 
- *        retrieved. A sentinel address is written at the end for the VAR_STRAIGHT case, so the Addresses 
+ *        case, each entry can have a different length, so to determine the length, docid+1 is
+ *        retrieved. A sentinel address is written at the end for the VAR_STRAIGHT case, so the Addresses
  *        stream contains maxdoc+1 indices. For the deduplicated VAR_DEREF case, each length
- *        is encoded as a prefix to the data itself as a {@link DataOutput#writeVInt VInt} 
+ *        is encoded as a prefix to the data itself as a {@link DataOutput#writeVInt VInt}
  *        (maximum of 2 bytes).</li>
  *    <li>Ordinals stores the term ID in sorted order (indexed by docid). In the FIXED_SORTED case,
- *        the address into the .dat can be computed from the ordinal as 
+ *        the address into the .dat can be computed from the ordinal as
  *        <code>Header+ValueSize+(ordinal*ValueSize)</code> because the byte length is fixed.
  *        In the VAR_SORTED case, there is double indirection (docid -> ordinal -> address), but
  *        an additional sentinel ordinal+address is always written (so there are NumValues+1 ordinals). To
  *        determine the length, ord+1's address is looked up as well.</li>
- *    <li>{@code BYTES_VAR_STRAIGHT BYTES_VAR_STRAIGHT} in contrast to other straight 
- *        variants uses a <tt>.idx</tt> file to improve lookup perfromance. In contrast to 
+ *    <li>{@code BYTES_VAR_STRAIGHT BYTES_VAR_STRAIGHT} in contrast to other straight
+ *        variants uses a <tt>.idx</tt> file to improve lookup perfromance. In contrast to
  *        {@code BYTES_VAR_DEREF BYTES_VAR_DEREF} it doesn't apply deduplication of the document values.
  *    </li>
  * </ul>
@@ -131,84 +130,90 @@ import org.apache.lucene.util.packed.PackedInts;
  * <ul>
  *   <li> Binary doc values can be at most {@link #MAX_BINARY_FIELD_LENGTH} in length.
  * </ul>
+ *
  * @deprecated Only for reading old 4.0 and 4.1 segments
  */
 @Deprecated
 // NOTE: not registered in SPI, doesnt respect segment suffix, etc
 // for back compat only!
 public class Lucene40DocValuesFormat extends DocValuesFormat {
-  
-  /** Maximum length for each binary doc values field. */
-  public static final int MAX_BINARY_FIELD_LENGTH = (1 << 15) - 2;
-  
-  /** Sole constructor. */
-  public Lucene40DocValuesFormat() {
-    super("Lucene40");
-  }
-  
-  @Override
-  public DocValuesConsumer fieldsConsumer(SegmentWriteState state) throws IOException {
-    throw new UnsupportedOperationException("this codec can only be used for reading");
-  }
-  
-  @Override
-  public DocValuesProducer fieldsProducer(SegmentReadState state) throws IOException {
-    String filename = IndexFileNames.segmentFileName(state.segmentInfo.name, 
-                                                     "dv", 
-                                                     IndexFileNames.COMPOUND_FILE_EXTENSION);
-    return new Lucene40DocValuesReader(state, filename, Lucene40FieldInfosReader.LEGACY_DV_TYPE_KEY);
-  }
-  
-  // constants for VAR_INTS
-  static final String VAR_INTS_CODEC_NAME = "PackedInts";
-  static final int VAR_INTS_VERSION_START = 0;
-  static final int VAR_INTS_VERSION_CURRENT = VAR_INTS_VERSION_START;
-  static final byte VAR_INTS_PACKED = 0x00;
-  static final byte VAR_INTS_FIXED_64 = 0x01;
-  
-  // constants for FIXED_INTS_8, FIXED_INTS_16, FIXED_INTS_32, FIXED_INTS_64
-  static final String INTS_CODEC_NAME = "Ints";
-  static final int INTS_VERSION_START = 0;
-  static final int INTS_VERSION_CURRENT = INTS_VERSION_START;
-  
-  // constants for FLOAT_32, FLOAT_64
-  static final String FLOATS_CODEC_NAME = "Floats";
-  static final int FLOATS_VERSION_START = 0;
-  static final int FLOATS_VERSION_CURRENT = FLOATS_VERSION_START;
-  
-  // constants for BYTES_FIXED_STRAIGHT
-  static final String BYTES_FIXED_STRAIGHT_CODEC_NAME = "FixedStraightBytes";
-  static final int BYTES_FIXED_STRAIGHT_VERSION_START = 0;
-  static final int BYTES_FIXED_STRAIGHT_VERSION_CURRENT = BYTES_FIXED_STRAIGHT_VERSION_START;
-  
-  // constants for BYTES_VAR_STRAIGHT
-  static final String BYTES_VAR_STRAIGHT_CODEC_NAME_IDX = "VarStraightBytesIdx";
-  static final String BYTES_VAR_STRAIGHT_CODEC_NAME_DAT = "VarStraightBytesDat";
-  static final int BYTES_VAR_STRAIGHT_VERSION_START = 0;
-  static final int BYTES_VAR_STRAIGHT_VERSION_CURRENT = BYTES_VAR_STRAIGHT_VERSION_START;
-  
-  // constants for BYTES_FIXED_DEREF
-  static final String BYTES_FIXED_DEREF_CODEC_NAME_IDX = "FixedDerefBytesIdx";
-  static final String BYTES_FIXED_DEREF_CODEC_NAME_DAT = "FixedDerefBytesDat";
-  static final int BYTES_FIXED_DEREF_VERSION_START = 0;
-  static final int BYTES_FIXED_DEREF_VERSION_CURRENT = BYTES_FIXED_DEREF_VERSION_START;
-  
-  // constants for BYTES_VAR_DEREF
-  static final String BYTES_VAR_DEREF_CODEC_NAME_IDX = "VarDerefBytesIdx";
-  static final String BYTES_VAR_DEREF_CODEC_NAME_DAT = "VarDerefBytesDat";
-  static final int BYTES_VAR_DEREF_VERSION_START = 0;
-  static final int BYTES_VAR_DEREF_VERSION_CURRENT = BYTES_VAR_DEREF_VERSION_START;
-  
-  // constants for BYTES_FIXED_SORTED
-  static final String BYTES_FIXED_SORTED_CODEC_NAME_IDX = "FixedSortedBytesIdx";
-  static final String BYTES_FIXED_SORTED_CODEC_NAME_DAT = "FixedSortedBytesDat";
-  static final int BYTES_FIXED_SORTED_VERSION_START = 0;
-  static final int BYTES_FIXED_SORTED_VERSION_CURRENT = BYTES_FIXED_SORTED_VERSION_START;
-  
-  // constants for BYTES_VAR_SORTED
-  // NOTE THIS IS NOT A BUG! 4.0 actually screwed this up (VAR_SORTED and VAR_DEREF have same codec header)
-  static final String BYTES_VAR_SORTED_CODEC_NAME_IDX = "VarDerefBytesIdx";
-  static final String BYTES_VAR_SORTED_CODEC_NAME_DAT = "VarDerefBytesDat";
-  static final int BYTES_VAR_SORTED_VERSION_START = 0;
-  static final int BYTES_VAR_SORTED_VERSION_CURRENT = BYTES_VAR_SORTED_VERSION_START;
+
+    /**
+     * Maximum length for each binary doc values field.
+     */
+    public static final int MAX_BINARY_FIELD_LENGTH = (1 << 15) - 2;
+
+    /**
+     * Sole constructor.
+     */
+    public Lucene40DocValuesFormat() {
+        super("Lucene40");
+    }
+
+    @Override
+    public DocValuesConsumer fieldsConsumer(SegmentWriteState state) throws IOException {
+        throw new UnsupportedOperationException("this codec can only be used for reading");
+    }
+
+    @Override
+    public DocValuesProducer fieldsProducer(SegmentReadState state) throws IOException {
+        String filename = IndexFileNames.segmentFileName(state.segmentInfo.name,
+            "dv",
+            IndexFileNames.COMPOUND_FILE_EXTENSION);
+        return new Lucene40DocValuesReader(state, filename,
+            Lucene40FieldInfosReader.LEGACY_DV_TYPE_KEY);
+    }
+
+    // constants for VAR_INTS
+    static final String VAR_INTS_CODEC_NAME = "PackedInts";
+    static final int VAR_INTS_VERSION_START = 0;
+    static final int VAR_INTS_VERSION_CURRENT = VAR_INTS_VERSION_START;
+    static final byte VAR_INTS_PACKED = 0x00;
+    static final byte VAR_INTS_FIXED_64 = 0x01;
+
+    // constants for FIXED_INTS_8, FIXED_INTS_16, FIXED_INTS_32, FIXED_INTS_64
+    static final String INTS_CODEC_NAME = "Ints";
+    static final int INTS_VERSION_START = 0;
+    static final int INTS_VERSION_CURRENT = INTS_VERSION_START;
+
+    // constants for FLOAT_32, FLOAT_64
+    static final String FLOATS_CODEC_NAME = "Floats";
+    static final int FLOATS_VERSION_START = 0;
+    static final int FLOATS_VERSION_CURRENT = FLOATS_VERSION_START;
+
+    // constants for BYTES_FIXED_STRAIGHT
+    static final String BYTES_FIXED_STRAIGHT_CODEC_NAME = "FixedStraightBytes";
+    static final int BYTES_FIXED_STRAIGHT_VERSION_START = 0;
+    static final int BYTES_FIXED_STRAIGHT_VERSION_CURRENT = BYTES_FIXED_STRAIGHT_VERSION_START;
+
+    // constants for BYTES_VAR_STRAIGHT
+    static final String BYTES_VAR_STRAIGHT_CODEC_NAME_IDX = "VarStraightBytesIdx";
+    static final String BYTES_VAR_STRAIGHT_CODEC_NAME_DAT = "VarStraightBytesDat";
+    static final int BYTES_VAR_STRAIGHT_VERSION_START = 0;
+    static final int BYTES_VAR_STRAIGHT_VERSION_CURRENT = BYTES_VAR_STRAIGHT_VERSION_START;
+
+    // constants for BYTES_FIXED_DEREF
+    static final String BYTES_FIXED_DEREF_CODEC_NAME_IDX = "FixedDerefBytesIdx";
+    static final String BYTES_FIXED_DEREF_CODEC_NAME_DAT = "FixedDerefBytesDat";
+    static final int BYTES_FIXED_DEREF_VERSION_START = 0;
+    static final int BYTES_FIXED_DEREF_VERSION_CURRENT = BYTES_FIXED_DEREF_VERSION_START;
+
+    // constants for BYTES_VAR_DEREF
+    static final String BYTES_VAR_DEREF_CODEC_NAME_IDX = "VarDerefBytesIdx";
+    static final String BYTES_VAR_DEREF_CODEC_NAME_DAT = "VarDerefBytesDat";
+    static final int BYTES_VAR_DEREF_VERSION_START = 0;
+    static final int BYTES_VAR_DEREF_VERSION_CURRENT = BYTES_VAR_DEREF_VERSION_START;
+
+    // constants for BYTES_FIXED_SORTED
+    static final String BYTES_FIXED_SORTED_CODEC_NAME_IDX = "FixedSortedBytesIdx";
+    static final String BYTES_FIXED_SORTED_CODEC_NAME_DAT = "FixedSortedBytesDat";
+    static final int BYTES_FIXED_SORTED_VERSION_START = 0;
+    static final int BYTES_FIXED_SORTED_VERSION_CURRENT = BYTES_FIXED_SORTED_VERSION_START;
+
+    // constants for BYTES_VAR_SORTED
+    // NOTE THIS IS NOT A BUG! 4.0 actually screwed this up (VAR_SORTED and VAR_DEREF have same codec header)
+    static final String BYTES_VAR_SORTED_CODEC_NAME_IDX = "VarDerefBytesIdx";
+    static final String BYTES_VAR_SORTED_CODEC_NAME_DAT = "VarDerefBytesDat";
+    static final int BYTES_VAR_SORTED_VERSION_START = 0;
+    static final int BYTES_VAR_SORTED_VERSION_CURRENT = BYTES_VAR_SORTED_VERSION_START;
 }

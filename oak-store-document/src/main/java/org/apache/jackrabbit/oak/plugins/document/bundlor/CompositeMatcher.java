@@ -19,16 +19,16 @@
 
 package org.apache.jackrabbit.oak.plugins.document.bundlor;
 
-import java.util.List;
-
-import org.apache.jackrabbit.guava.common.collect.Lists;
-
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 
+import java.util.List;
+import org.apache.jackrabbit.guava.common.collect.Lists;
+
 class CompositeMatcher implements Matcher {
+
     private final List<Matcher> matchers;
 
-    public static Matcher compose(List<Matcher> matchers){
+    public static Matcher compose(List<Matcher> matchers) {
         switch (matchers.size()) {
             case 0:
                 return Matcher.NON_MATCHING;
@@ -40,11 +40,10 @@ class CompositeMatcher implements Matcher {
     }
 
     /**
-     * A CompositeMatcher must only be constructed when all passed
-     * matchers are matching
+     * A CompositeMatcher must only be constructed when all passed matchers are matching
      */
     private CompositeMatcher(List<Matcher> matchers) {
-        for (Matcher m : matchers){
+        for (Matcher m : matchers) {
             checkArgument(m.isMatch(), "Non matching matcher found in [%s]", matchers);
         }
         this.matchers = matchers;
@@ -53,9 +52,9 @@ class CompositeMatcher implements Matcher {
     @Override
     public Matcher next(String name) {
         List<Matcher> nextSet = Lists.newArrayListWithCapacity(matchers.size());
-        for (Matcher current : matchers){
+        for (Matcher current : matchers) {
             Matcher next = current.next(name);
-            if (next.isMatch()){
+            if (next.isMatch()) {
                 nextSet.add(next);
             }
         }
@@ -81,8 +80,8 @@ class CompositeMatcher implements Matcher {
 
     @Override
     public boolean matchesAllChildren() {
-        for (Matcher m : matchers){
-            if (m.matchesAllChildren()){
+        for (Matcher m : matchers) {
+            if (m.matchesAllChildren()) {
                 return true;
             }
         }

@@ -29,7 +29,10 @@ import org.junit.Assert;
 import org.junit.Test;
 
 public class AbstractRebaseDiffTest {
-    private final NodeState base; {
+
+    private final NodeState base;
+
+    {
         NodeBuilder builder = EmptyNodeState.EMPTY_NODE.builder();
         builder.setChildNode("a");
         builder.setChildNode("b");
@@ -54,7 +57,8 @@ public class AbstractRebaseDiffTest {
 
         RebaseDiff rebaseDiff = new RebaseDiff(head.builder()) {
             @Override
-            protected void addExistingProperty(NodeBuilder builder, PropertyState before, PropertyState after) {
+            protected void addExistingProperty(NodeBuilder builder, PropertyState before,
+                PropertyState after) {
                 assertEquals(createProperty("p", 0), after);
                 resolve();
             }
@@ -77,7 +81,8 @@ public class AbstractRebaseDiffTest {
 
         RebaseDiff rebaseDiff = new RebaseDiff(head.builder()) {
             @Override
-            protected void changeDeletedProperty(NodeBuilder builder, PropertyState after, PropertyState base) {
+            protected void changeDeletedProperty(NodeBuilder builder, PropertyState after,
+                PropertyState base) {
                 assertEquals(createProperty("y", 0), after);
                 resolve();
             }
@@ -100,7 +105,8 @@ public class AbstractRebaseDiffTest {
 
         RebaseDiff rebaseDiff = new RebaseDiff(head.builder()) {
             @Override
-            protected void changeChangedProperty(NodeBuilder builder, PropertyState before, PropertyState after) {
+            protected void changeChangedProperty(NodeBuilder builder, PropertyState before,
+                PropertyState after) {
                 assertEquals(createProperty("y", 0), after);
                 resolve();
             }
@@ -206,6 +212,7 @@ public class AbstractRebaseDiffTest {
         NodeBuilder builder = head.builder();
 
         class ConflictResolver extends RebaseDiff {
+
             private final ConflictResolver parent;
 
             private ConflictResolver(NodeBuilder builder) {
@@ -229,12 +236,12 @@ public class AbstractRebaseDiffTest {
             @Override
             protected AbstractRebaseDiff createDiff(NodeBuilder builder, String name) {
                 return new ConflictResolver(
-                        this, builder.getChildNode(name));
+                    this, builder.getChildNode(name));
             }
 
             @Override
             protected void addExistingProperty(NodeBuilder builder,
-                    PropertyState before, PropertyState after) {
+                PropertyState before, PropertyState after) {
                 assertEquals(createProperty("pp", 1), before);
                 assertEquals(createProperty("pp", 2), after);
                 resolve();
@@ -258,7 +265,8 @@ public class AbstractRebaseDiffTest {
 
         RebaseDiff rebaseDiff = new RebaseDiff(head.builder()) {
             @Override
-            protected void changeDeletedNode(NodeBuilder builder, String name, NodeState after, NodeState base) {
+            protected void changeDeletedNode(NodeBuilder builder, String name, NodeState after,
+                NodeState base) {
                 assertEquals("a", name);
                 resolve();
             }
@@ -312,6 +320,7 @@ public class AbstractRebaseDiffTest {
     //------------------------------------------------------------< RebaseDiff >---
 
     private static class RebaseDiff extends AbstractRebaseDiff {
+
         private boolean resolved;
 
         protected RebaseDiff(NodeBuilder builder) {
@@ -332,17 +341,20 @@ public class AbstractRebaseDiffTest {
         }
 
         @Override
-        protected void addExistingProperty(NodeBuilder builder, PropertyState before, PropertyState after) {
+        protected void addExistingProperty(NodeBuilder builder, PropertyState before,
+            PropertyState after) {
             Assert.fail("addExistingProperty " + after);
         }
 
         @Override
-        protected void changeDeletedProperty(NodeBuilder builder, PropertyState after, PropertyState base) {
+        protected void changeDeletedProperty(NodeBuilder builder, PropertyState after,
+            PropertyState base) {
             Assert.fail("changeDeletedProperty " + after);
         }
 
         @Override
-        protected void changeChangedProperty(NodeBuilder builder, PropertyState before, PropertyState after) {
+        protected void changeChangedProperty(NodeBuilder builder, PropertyState before,
+            PropertyState after) {
             Assert.fail("changeChangedProperty " + after);
         }
 
@@ -357,12 +369,14 @@ public class AbstractRebaseDiffTest {
         }
 
         @Override
-        protected void addExistingNode(NodeBuilder builder, String name, NodeState before, NodeState after) {
+        protected void addExistingNode(NodeBuilder builder, String name, NodeState before,
+            NodeState after) {
             Assert.fail("addExistingNode " + name + '=' + after);
         }
 
         @Override
-        protected void changeDeletedNode(NodeBuilder builder, String name, NodeState after, NodeState base) {
+        protected void changeDeletedNode(NodeBuilder builder, String name, NodeState after,
+            NodeState base) {
             Assert.fail("changeDeletedNode " + name + '=' + after);
         }
 

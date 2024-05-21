@@ -40,7 +40,8 @@ public class LoggingDocumentStoreWrapperTest {
     @Rule
     public DocumentMKBuilderProvider builderProvider = new DocumentMKBuilderProvider();
 
-    private LogCustomizer customizer = LogCustomizer.forLogger(LoggingDocumentStoreWrapper.class).create();
+    private LogCustomizer customizer = LogCustomizer.forLogger(LoggingDocumentStoreWrapper.class)
+                                                    .create();
 
     @After
     public void after() {
@@ -56,12 +57,13 @@ public class LoggingDocumentStoreWrapperTest {
         merge(ns, builder);
         assertFalse(customizer.getLogs().isEmpty());
     }
-    
+
     @Test
     public void loggingWithPrefix() throws Exception {
         String logPrefix = "testPrefix";
         customizer.starting();
-        DocumentNodeStore ns = builderProvider.newBuilder().setLogging(true).setLoggingPrefix(logPrefix).build();
+        DocumentNodeStore ns = builderProvider.newBuilder().setLogging(true)
+                                              .setLoggingPrefix(logPrefix).build();
         NodeBuilder builder = ns.getRoot().builder();
         builder.child("foo");
         merge(ns, builder);
@@ -80,7 +82,8 @@ public class LoggingDocumentStoreWrapperTest {
     public void loggingWithPrefix2() {
         String logPrefix = "testPrefix";
         customizer.starting();
-        DocumentStore store = new LoggingDocumentStoreWrapper(new MemoryDocumentStore()).withPrefix(logPrefix);
+        DocumentStore store = new LoggingDocumentStoreWrapper(new MemoryDocumentStore()).withPrefix(
+            logPrefix);
         store.find(Collection.NODES, "some-id");
         assertFalse(customizer.getLogs().isEmpty());
         int prefixCount = 0;

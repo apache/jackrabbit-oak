@@ -16,6 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import java.io.File;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import javax.jcr.Repository;
+import javax.jcr.RepositoryException;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.index.IndexSuggestionCommonTest;
@@ -24,13 +29,8 @@ import org.junit.After;
 import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
 
-import javax.jcr.Repository;
-import javax.jcr.RepositoryException;
-import java.io.File;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-
 public class LuceneIndexSuggestionCommonTest extends IndexSuggestionCommonTest {
+
     private ExecutorService executorService = Executors.newFixedThreadPool(2);
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
@@ -38,7 +38,8 @@ public class LuceneIndexSuggestionCommonTest extends IndexSuggestionCommonTest {
     @Override
     protected Repository createJcrRepository() throws RepositoryException {
         indexOptions = new LuceneIndexOptions();
-        repositoryOptionsUtil = new LuceneTestRepositoryBuilder(executorService, temporaryFolder).build();
+        repositoryOptionsUtil = new LuceneTestRepositoryBuilder(executorService,
+            temporaryFolder).build();
         Oak oak = repositoryOptionsUtil.getOak();
         Jcr jcr = new Jcr(oak);
         Repository repository = jcr.createRepository();

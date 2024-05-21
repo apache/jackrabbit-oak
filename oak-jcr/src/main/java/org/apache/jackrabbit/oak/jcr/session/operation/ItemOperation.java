@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.jcr.session.operation;
 
 import javax.jcr.RepositoryException;
-
 import org.apache.jackrabbit.oak.jcr.delegate.ItemDelegate;
 
 public abstract class ItemOperation<U> extends SessionOperation<U> {

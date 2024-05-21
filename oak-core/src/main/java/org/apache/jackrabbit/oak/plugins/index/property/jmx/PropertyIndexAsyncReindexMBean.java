@@ -18,7 +18,6 @@
 package org.apache.jackrabbit.oak.plugins.index.property.jmx;
 
 import javax.management.openmbean.CompositeData;
-
 import org.jetbrains.annotations.NotNull;
 
 /**

@@ -28,6 +28,9 @@ import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.newSegmentN
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import com.microsoft.azure.storage.StorageException;
+import com.microsoft.azure.storage.blob.SharedAccessBlobPermissions;
+import com.microsoft.azure.storage.blob.SharedAccessBlobPolicy;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -39,11 +42,6 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.EnumSet;
 import java.util.List;
-
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.blob.SharedAccessBlobPermissions;
-import com.microsoft.azure.storage.blob.SharedAccessBlobPolicy;
-
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzuriteDockerRule;
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.SegmentCache;
@@ -78,9 +76,11 @@ import org.junit.rules.TemporaryFolder;
 
 
 public abstract class SegmentCopyTestBase {
+
     private static final String AZURE_DIRECTORY = "repository";
     private static final String AZURE_CONTAINER = "oak-test";
-    private static final EnumSet<SharedAccessBlobPermissions> READ_WRITE = EnumSet.of(READ, LIST, CREATE, WRITE, ADD);
+    private static final EnumSet<SharedAccessBlobPermissions> READ_WRITE = EnumSet.of(READ, LIST,
+        CREATE, WRITE, ADD);
 
     @ClassRule
     public static AzuriteDockerRule azurite = new AzuriteDockerRule();
@@ -111,10 +111,12 @@ public abstract class SegmentCopyTestBase {
         IOMonitor ioMonitor = new IOMonitorAdapter();
         RemoteStoreMonitor remoteStoreMonitor = new RemoteStoreMonitorAdapter();
         FileStoreMonitor fileStoreMonitor = new FileStoreMonitorAdapter();
-        SegmentArchiveManager srcArchiveManager = srcPersistence.createArchiveManager(false, false, ioMonitor,
-                fileStoreMonitor, remoteStoreMonitor);
-        SegmentArchiveManager destArchiveManager = destPersistence.createArchiveManager(false, false, ioMonitor,
-                fileStoreMonitor, remoteStoreMonitor);
+        SegmentArchiveManager srcArchiveManager = srcPersistence.createArchiveManager(false, false,
+            ioMonitor,
+            fileStoreMonitor, remoteStoreMonitor);
+        SegmentArchiveManager destArchiveManager = destPersistence.createArchiveManager(false,
+            false, ioMonitor,
+            fileStoreMonitor, remoteStoreMonitor);
 
         checkArchives(srcArchiveManager, destArchiveManager);
         checkJournal(srcPersistence, destPersistence);
@@ -122,12 +124,14 @@ public abstract class SegmentCopyTestBase {
         checkManifest(srcPersistence, destPersistence);
     }
 
-    private int runSegmentCopy(SegmentNodeStorePersistence srcPersistence, SegmentNodeStorePersistence destPersistence,
-            String srcPathOrUri, String destPathOrUri) throws Exception {
+    private int runSegmentCopy(SegmentNodeStorePersistence srcPersistence,
+        SegmentNodeStorePersistence destPersistence,
+        String srcPathOrUri, String destPathOrUri) throws Exception {
         // Repeatedly add content and close FileStore to obtain a new tar file each time
         for (int i = 0; i < 10; i++) {
             try (FileStore fileStore = newFileStore(srcPersistence, folder.getRoot(), true,
-                    SegmentCache.DEFAULT_SEGMENT_CACHE_MB, 150_000L, CompactorType.CHECKPOINT_COMPACTOR)) {
+                SegmentCache.DEFAULT_SEGMENT_CACHE_MB, 150_000L,
+                CompactorType.CHECKPOINT_COMPACTOR)) {
                 SegmentNodeStore sns = SegmentNodeStoreBuilders.builder(fileStore).build();
                 addContent(sns, i);
 
@@ -142,8 +146,11 @@ public abstract class SegmentCopyTestBase {
         PrintWriter errWriter = new PrintWriter(System.err, true);
 
         SegmentCopy segmentCopy = SegmentCopy.builder().withSrcPersistencee(srcPersistence)
-                .withDestPersistence(destPersistence).withSource(srcPathOrUri).withDestination(destPathOrUri)
-                .withOutWriter(outWriter).withErrWriter(errWriter).build();
+                                             .withDestPersistence(destPersistence)
+                                             .withSource(srcPathOrUri)
+                                             .withDestination(destPathOrUri)
+                                             .withOutWriter(outWriter).withErrWriter(errWriter)
+                                             .build();
         return segmentCopy.run();
     }
 
@@ -157,8 +164,9 @@ public abstract class SegmentCopyTestBase {
         nodeStore.merge(extra, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 
-    private void checkArchives(SegmentArchiveManager srcArchiveManager, SegmentArchiveManager destArchiveManager)
-            throws IOException {
+    private void checkArchives(SegmentArchiveManager srcArchiveManager,
+        SegmentArchiveManager destArchiveManager)
+        throws IOException {
         // check archives
         List<String> srcArchives = srcArchiveManager.listArchives();
         List<String> destArchives = destArchiveManager.listArchives();
@@ -186,8 +194,10 @@ public abstract class SegmentCopyTestBase {
                 assertEquals(srcSegment.getFullGeneration(), destSegment.getFullGeneration());
                 assertEquals(srcSegment.getGeneration(), destSegment.getFullGeneration());
 
-                Buffer srcDataBuffer = srcArchiveReader.readSegment(srcSegment.getMsb(), srcSegment.getLsb());
-                Buffer destDataBuffer = destArchiveReader.readSegment(destSegment.getMsb(), destSegment.getLsb());
+                Buffer srcDataBuffer = srcArchiveReader.readSegment(srcSegment.getMsb(),
+                    srcSegment.getLsb());
+                Buffer destDataBuffer = destArchiveReader.readSegment(destSegment.getMsb(),
+                    destSegment.getLsb());
 
                 assertEquals(srcDataBuffer, destDataBuffer);
             }
@@ -204,10 +214,13 @@ public abstract class SegmentCopyTestBase {
         }
     }
 
-    private void checkJournal(SegmentNodeStorePersistence srcPersistence, SegmentNodeStorePersistence destPersistence)
-            throws IOException {
-        JournalFileReader srcJournalFileReader = srcPersistence.getJournalFile().openJournalReader();
-        JournalFileReader destJournalFileReader = destPersistence.getJournalFile().openJournalReader();
+    private void checkJournal(SegmentNodeStorePersistence srcPersistence,
+        SegmentNodeStorePersistence destPersistence)
+        throws IOException {
+        JournalFileReader srcJournalFileReader = srcPersistence.getJournalFile()
+                                                               .openJournalReader();
+        JournalFileReader destJournalFileReader = destPersistence.getJournalFile()
+                                                                 .openJournalReader();
 
         String srcJournalLine = null;
         while ((srcJournalLine = srcJournalFileReader.readLine()) != null) {
@@ -216,26 +229,30 @@ public abstract class SegmentCopyTestBase {
         }
     }
 
-    private void checkGCJournal(SegmentNodeStorePersistence srcPersistence, SegmentNodeStorePersistence destPersistence)
-            throws IOException {
+    private void checkGCJournal(SegmentNodeStorePersistence srcPersistence,
+        SegmentNodeStorePersistence destPersistence)
+        throws IOException {
         GCJournalFile srcGCJournalFile = srcPersistence.getGCJournalFile();
         GCJournalFile destGCJournalFile = destPersistence.getGCJournalFile();
         assertEquals(srcGCJournalFile.readLines(), destGCJournalFile.readLines());
     }
 
-    private void checkManifest(SegmentNodeStorePersistence srcPersistence, SegmentNodeStorePersistence destPersistence)
-            throws IOException {
+    private void checkManifest(SegmentNodeStorePersistence srcPersistence,
+        SegmentNodeStorePersistence destPersistence)
+        throws IOException {
         ManifestFile srcManifestFile = srcPersistence.getManifestFile();
         ManifestFile destManifestFile = destPersistence.getManifestFile();
         assertEquals(srcManifestFile.load(), destManifestFile.load());
     }
 
     protected SegmentNodeStorePersistence getTarPersistence() {
-        return newSegmentNodeStorePersistence(SegmentStoreType.TAR, folder.getRoot().getAbsolutePath());
+        return newSegmentNodeStorePersistence(SegmentStoreType.TAR,
+            folder.getRoot().getAbsolutePath());
     }
 
     protected SegmentNodeStorePersistence getAzurePersistence() throws Exception {
-        return new AzurePersistence(azurite.getContainer(AZURE_CONTAINER).getDirectoryReference(AZURE_DIRECTORY));
+        return new AzurePersistence(
+            azurite.getContainer(AZURE_CONTAINER).getDirectoryReference(AZURE_DIRECTORY));
     }
 
     protected String getTarPersistencePathOrUri() {
@@ -258,7 +275,7 @@ public abstract class SegmentCopyTestBase {
 
         try {
             sasToken = azurite.getContainer(AZURE_CONTAINER)
-                    .generateSharedAccessSignature(policy(READ_WRITE), null);
+                              .generateSharedAccessSignature(policy(READ_WRITE), null);
         } catch (StorageException | InvalidKeyException | URISyntaxException e) {
             throw new RuntimeException("Error while accessing container ", e);
         }
@@ -276,7 +293,8 @@ public abstract class SegmentCopyTestBase {
     private static SharedAccessBlobPolicy policy(EnumSet<SharedAccessBlobPermissions> permissions) {
         SharedAccessBlobPolicy sharedAccessBlobPolicy = new SharedAccessBlobPolicy();
         sharedAccessBlobPolicy.setPermissions(permissions);
-        sharedAccessBlobPolicy.setSharedAccessExpiryTime(Date.from(Instant.now().plus(Duration.ofDays(7))));
+        sharedAccessBlobPolicy.setSharedAccessExpiryTime(
+            Date.from(Instant.now().plus(Duration.ofDays(7))));
         return sharedAccessBlobPolicy;
     }
 }

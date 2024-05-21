@@ -43,15 +43,13 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-
 import javax.sql.DataSource;
-
-import org.apache.jackrabbit.guava.common.base.Predicate;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.base.Predicates;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.guava.common.base.Predicate;
+import org.apache.jackrabbit.guava.common.base.Predicates;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
@@ -103,13 +101,13 @@ public class CompositeNodeStoreTest {
     private NodeStore readOnlyStore;
     private MountInfoProvider mip;
 
-    @Parameters(name="Root: {0}, Mounts: {1}")
+    @Parameters(name = "Root: {0}, Mounts: {1}")
     public static Collection<Object[]> data() {
-        return Arrays.asList(new Object[][] {
-            { NodeStoreKind.MEMORY, NodeStoreKind.MEMORY },
-            { NodeStoreKind.SEGMENT, NodeStoreKind.SEGMENT},
-            { NodeStoreKind.DOCUMENT_H2, NodeStoreKind.DOCUMENT_H2},
-            { NodeStoreKind.DOCUMENT_H2, NodeStoreKind.SEGMENT}
+        return Arrays.asList(new Object[][]{
+            {NodeStoreKind.MEMORY, NodeStoreKind.MEMORY},
+            {NodeStoreKind.SEGMENT, NodeStoreKind.SEGMENT},
+            {NodeStoreKind.DOCUMENT_H2, NodeStoreKind.DOCUMENT_H2},
+            {NodeStoreKind.DOCUMENT_H2, NodeStoreKind.SEGMENT}
         });
     }
 
@@ -121,17 +119,18 @@ public class CompositeNodeStoreTest {
     @Before
     public void initStore() throws Exception {
         mip = Mounts.newBuilder()
-                .readOnlyMount("temp", "/tmp")
-                .readOnlyMount("deep", "/libs/mount")
-                .readOnlyMount("empty", "/nowhere")
-                .readOnlyMount("readOnly", "/readOnly")
-                .build();
+                    .readOnlyMount("temp", "/tmp")
+                    .readOnlyMount("deep", "/libs/mount")
+                    .readOnlyMount("empty", "/nowhere")
+                    .readOnlyMount("readOnly", "/readOnly")
+                    .build();
 
         globalStore = register(root.create(null));
         mountedStore = register(mounts.create("temp"));
         deepMountedStore = register(mounts.create("deep"));
         readOnlyStore = register(mounts.create("readOnly"));
-        NodeStore emptyStore = register(mounts.create("empty")); // this NodeStore will always be empty
+        NodeStore emptyStore = register(
+            mounts.create("empty")); // this NodeStore will always be empty
 
         // create a property on the root node
         NodeBuilder builder = globalStore.getRoot().builder();
@@ -172,7 +171,8 @@ public class CompositeNodeStoreTest {
 
         deepMountedStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        assertTrue(deepMountedStore.getRoot().getChildNode("libs").getChildNode("mount").getChildNode("third").hasProperty("mounted"));
+        assertTrue(deepMountedStore.getRoot().getChildNode("libs").getChildNode("mount")
+                                   .getChildNode("third").hasProperty("mounted"));
 
         // populate /readonly with a single node
         builder = readOnlyStore.getRoot().builder();
@@ -192,7 +192,7 @@ public class CompositeNodeStoreTest {
 
     @After
     public void closeRepositories() throws Exception {
-        for ( NodeStoreRegistration reg : registrations ) {
+        for (NodeStoreRegistration reg : registrations) {
             reg.close();
         }
     }
@@ -205,7 +205,8 @@ public class CompositeNodeStoreTest {
     @Test
     public void rootPropertyIsSet() {
         assertThat("root[prop]", store.getRoot().hasProperty("prop"), equalTo(true));
-        assertThat("root[prop] = val", store.getRoot().getProperty("prop").getValue(Type.STRING), equalTo("val"));
+        assertThat("root[prop] = val", store.getRoot().getProperty("prop").getValue(Type.STRING),
+            equalTo("val"));
     }
 
     @Test
@@ -215,7 +216,8 @@ public class CompositeNodeStoreTest {
 
     @Test
     public void nestedMountNodeIsVisible() {
-        assertThat("root.libs(childCount)", store.getRoot().getChildNode("libs").getChildNodeCount(10), equalTo(3l));
+        assertThat("root.libs(childCount)",
+            store.getRoot().getChildNode("libs").getChildNodeCount(10), equalTo(3l));
     }
 
     @Test
@@ -231,20 +233,23 @@ public class CompositeNodeStoreTest {
 
     @Test
     public void childrenUnderMountAreFound() {
-        assertThat("root.tmp(childCount)", store.getRoot().getChildNode("tmp").getChildNodeCount(10), equalTo(2l));
+        assertThat("root.tmp(childCount)",
+            store.getRoot().getChildNode("tmp").getChildNodeCount(10), equalTo(2l));
     }
 
     @Test
     public void childNodeEntryForMountIsComposite() {
-        ChildNodeEntry libsNode = Iterables.find(store.getRoot().getChildNodeEntries(), new Predicate<ChildNodeEntry>() {
+        ChildNodeEntry libsNode = Iterables.find(store.getRoot().getChildNodeEntries(),
+            new Predicate<ChildNodeEntry>() {
 
-            @Override
-            public boolean apply(ChildNodeEntry input) {
-                return input.getName().equals("libs");
-            }
-        });
+                @Override
+                public boolean apply(ChildNodeEntry input) {
+                    return input.getName().equals("libs");
+                }
+            });
 
-        assertThat("root.libs(childCount)", libsNode.getNodeState().getChildNodeCount(10), equalTo(3l));
+        assertThat("root.libs(childCount)", libsNode.getNodeState().getChildNodeCount(10),
+            equalTo(3l));
     }
 
     @Test
@@ -272,7 +277,8 @@ public class CompositeNodeStoreTest {
         globalBuilder.child("new");
         globalStore.merge(globalBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        assertFalse("store incorrectly exposes child at /new", store.retrieve(checkpoint).hasChildNode("new"));
+        assertFalse("store incorrectly exposes child at /new",
+            store.retrieve(checkpoint).hasChildNode("new"));
     }
 
     @Test
@@ -331,10 +337,11 @@ public class CompositeNodeStoreTest {
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         assertThat("Property must be visible in composite store",
-                store.getRoot().getProperty("newProp").getValue(Type.STRING), equalTo("newValue"));
+            store.getRoot().getProperty("newProp").getValue(Type.STRING), equalTo("newValue"));
 
         assertThat("Property must be visible in owning (root) store",
-                globalStore.getRoot().getProperty("newProp").getValue(Type.STRING), equalTo("newValue"));
+            globalStore.getRoot().getProperty("newProp").getValue(Type.STRING),
+            equalTo("newValue"));
     }
 
     @Test
@@ -345,8 +352,10 @@ public class CompositeNodeStoreTest {
 
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        assertFalse("Property must be removed from composite store", store.getRoot().hasProperty("prop"));
-        assertFalse("Property must be removed from owning (root) store", globalStore.getRoot().hasProperty("prop"));
+        assertFalse("Property must be removed from composite store",
+            store.getRoot().hasProperty("prop"));
+        assertFalse("Property must be removed from owning (root) store",
+            globalStore.getRoot().hasProperty("prop"));
     }
 
     @Test
@@ -357,8 +366,10 @@ public class CompositeNodeStoreTest {
 
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        assertTrue("Node must be added to composite store", store.getRoot().hasChildNode("newNode"));
-        assertTrue("Node must be added to owning (root) store", globalStore.getRoot().hasChildNode("newNode"));
+        assertTrue("Node must be added to composite store",
+            store.getRoot().hasChildNode("newNode"));
+        assertTrue("Node must be added to owning (root) store",
+            globalStore.getRoot().hasChildNode("newNode"));
     }
 
     @Test
@@ -369,18 +380,22 @@ public class CompositeNodeStoreTest {
 
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        assertFalse("Node must be removed from the composite store", store.getRoot().hasChildNode("apps"));
-        assertFalse("Node must be removed from the owning (root) store", globalStore.getRoot().hasChildNode("apps"));
+        assertFalse("Node must be removed from the composite store",
+            store.getRoot().hasChildNode("apps"));
+        assertFalse("Node must be removed from the owning (root) store",
+            globalStore.getRoot().hasChildNode("apps"));
     }
 
     @Test
     public void builderChildrenCountInRootStore() throws Exception {
-        assertThat("root(childCount)", store.getRoot().builder().getChildNodeCount(100), equalTo(4l));
+        assertThat("root(childCount)", store.getRoot().builder().getChildNodeCount(100),
+            equalTo(4l));
     }
 
     @Test
     public void builderChildrenCountInMountedStore() {
-        assertThat("root.tmp(childCount)", store.getRoot().builder().getChildNode("tmp").getChildNodeCount(10), equalTo(2l));
+        assertThat("root.tmp(childCount)",
+            store.getRoot().builder().getChildNode("tmp").getChildNodeCount(10), equalTo(2l));
     }
 
     @Test
@@ -398,7 +413,8 @@ public class CompositeNodeStoreTest {
         NodeBuilder builder = store.getRoot().builder();
         builder.child("newChild");
 
-        assertTrue("Newly created node should be visible in the builder's node state", builder.hasChildNode("newChild"));
+        assertTrue("Newly created node should be visible in the builder's node state",
+            builder.hasChildNode("newChild"));
     }
 
     @Test
@@ -406,21 +422,26 @@ public class CompositeNodeStoreTest {
         NodeBuilder builder = store.getRoot().getChildNode("tmp").builder();
         builder.child("newChild");
 
-        assertTrue("Newly created node should be visible in the builder's node state", builder.hasChildNode("newChild"));
+        assertTrue("Newly created node should be visible in the builder's node state",
+            builder.hasChildNode("newChild"));
     }
 
 
     @Test
     public void builderHasPropertyNameInRootStore() {
         assertFalse("Node 'nope' does not exist", store.getRoot().builder().hasChildNode("nope"));
-        assertTrue("Node 'tmp' should exist (contributed by mount)", store.getRoot().builder().hasChildNode("tmp"));
-        assertTrue("Node 'libs' should exist (contributed by root)", store.getRoot().builder().hasChildNode("libs"));
+        assertTrue("Node 'tmp' should exist (contributed by mount)",
+            store.getRoot().builder().hasChildNode("tmp"));
+        assertTrue("Node 'libs' should exist (contributed by root)",
+            store.getRoot().builder().hasChildNode("libs"));
     }
 
     @Test
     public void builderHasPropertyNameInMountedStore() {
-        assertFalse("Node 'nope' does not exist", store.getRoot().builder().getChildNode("tmp").hasChildNode("nope"));
-        assertTrue("Node 'child1' should exist", store.getRoot().builder().getChildNode("tmp").hasChildNode("child1"));
+        assertFalse("Node 'nope' does not exist",
+            store.getRoot().builder().getChildNode("tmp").hasChildNode("nope"));
+        assertTrue("Node 'child1' should exist",
+            store.getRoot().builder().getChildNode("tmp").hasChildNode("child1"));
     }
 
     @Test
@@ -432,7 +453,8 @@ public class CompositeNodeStoreTest {
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         assertTrue("Node apps must still exist", store.getRoot().hasChildNode("apps"));
-        assertThat("Node apps must not have any properties", store.getRoot().getChildNode("apps").getPropertyCount(), equalTo(0l));
+        assertThat("Node apps must not have any properties",
+            store.getRoot().getChildNode("apps").getPropertyCount(), equalTo(0l));
     }
 
     @Test
@@ -445,11 +467,15 @@ public class CompositeNodeStoreTest {
 
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        assertFalse("Node apps must have no properties (composite store)", store.getRoot().getChildNode("apps").hasProperty("prop"));
-        assertFalse("Node apps must have no properties (root store)", globalStore.getRoot().getChildNode("apps").hasProperty("prop"));
+        assertFalse("Node apps must have no properties (composite store)",
+            store.getRoot().getChildNode("apps").hasProperty("prop"));
+        assertFalse("Node apps must have no properties (root store)",
+            globalStore.getRoot().getChildNode("apps").hasProperty("prop"));
 
-        assertTrue("Node /apps/child1 must exist (composite store)", store.getRoot().getChildNode("apps").hasChildNode("child1"));
-        assertTrue("Node /apps/child1 must exist (root store)", globalStore.getRoot().getChildNode("apps").hasChildNode("child1"));
+        assertTrue("Node /apps/child1 must exist (composite store)",
+            store.getRoot().getChildNode("apps").hasChildNode("child1"));
+        assertTrue("Node /apps/child1 must exist (root store)",
+            globalStore.getRoot().getChildNode("apps").hasChildNode("child1"));
     }
 
     @Test
@@ -499,7 +525,8 @@ public class CompositeNodeStoreTest {
         NodeBuilder libsBuilder = builder.setChildNode("libs");
 
         assertTrue("libsBuilder.isReplaced", libsBuilder.isReplaced());
-        assertTrue("builder.getChild('libs').isReplaced", builder.getChildNode("libs").isReplaced());
+        assertTrue("builder.getChild('libs').isReplaced",
+            builder.getChildNode("libs").isReplaced());
     }
 
     @Test
@@ -527,11 +554,12 @@ public class CompositeNodeStoreTest {
 
         NodeState holderNode = store.getRoot().getChildNode("multi-holder");
         assertTrue("/multi-holder/oak:mount-temp should be visible from the composite store",
-                holderNode.hasChildNode("oak:mount-temp"));
+            holderNode.hasChildNode("oak:mount-temp"));
 
         assertChildNodeNames(holderNode, "oak:mount-temp");
 
-        assertThat("/multi-holder/ must have 1 child entry", holderNode.getChildNodeCount(10), equalTo(1l));
+        assertThat("/multi-holder/ must have 1 child entry", holderNode.getChildNodeCount(10),
+            equalTo(1l));
     }
 
     @Test
@@ -547,7 +575,8 @@ public class CompositeNodeStoreTest {
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         assertFalse("/src must no longer exist", store.getRoot().hasChildNode("src"));
-        assertTrue("/dst/src must exist (composite store)", store.getRoot().getChildNode("dst").hasChildNode("src"));
+        assertTrue("/dst/src must exist (composite store)",
+            store.getRoot().getChildNode("dst").hasChildNode("src"));
     }
 
     @Test
@@ -564,7 +593,8 @@ public class CompositeNodeStoreTest {
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         assertFalse("/src must no longer exist", store.getRoot().hasChildNode("src"));
-        assertTrue("/tmp/src must exist (composite store)", store.getRoot().getChildNode("tmp").hasChildNode("src"));
+        assertTrue("/tmp/src must exist (composite store)",
+            store.getRoot().getChildNode("tmp").hasChildNode("src"));
 
     }
 
@@ -575,7 +605,8 @@ public class CompositeNodeStoreTest {
 
         store.reset(builder);
 
-        assertFalse("Newly added child should no longer be visible after reset", builder.hasChildNode("newChild"));
+        assertFalse("Newly added child should no longer be visible after reset",
+            builder.hasChildNode("newChild"));
     }
 
     @Test
@@ -585,11 +616,13 @@ public class CompositeNodeStoreTest {
         NodeBuilder builder = store.getRoot().builder();
         builder.child("newNode");
 
-        assertFalse("old NodeState should not see newly added child node before merge ", old.hasChildNode("newNode"));
+        assertFalse("old NodeState should not see newly added child node before merge ",
+            old.hasChildNode("newNode"));
 
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        assertFalse("old NodeState should not see newly added child node after merge ", old.hasChildNode("newNode"));
+        assertFalse("old NodeState should not see newly added child node after merge ",
+            old.hasChildNode("newNode"));
     }
 
     // this test ensures that when going from State -> Builder -> State -> Builder the state is properly maintained
@@ -620,7 +653,7 @@ public class CompositeNodeStoreTest {
         //assertTrue(builderFromState.getBaseState().getBoolean("newProperty")); // FIXME
     }
 
-    @Test (expected = UnsupportedOperationException.class)
+    @Test(expected = UnsupportedOperationException.class)
     public void readOnlyMountRejectsChanges() throws Exception {
         NodeBuilder builder = store.getRoot().builder();
         builder.getChildNode("readOnly").child("newChild");
@@ -638,7 +671,8 @@ public class CompositeNodeStoreTest {
         globalStore.merge(globalBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         NodeBuilder rootCheckpointBuilder = store.retrieve(checkpoint).builder();
-        assertFalse("store incorrectly exposes child at /new", rootCheckpointBuilder.hasChildNode("new"));
+        assertFalse("store incorrectly exposes child at /new",
+            rootCheckpointBuilder.hasChildNode("new"));
     }
 
     @Test
@@ -658,23 +692,25 @@ public class CompositeNodeStoreTest {
         deepMountBuilder.child("new").setProperty("store", "deepMounted", Type.STRING);
         deepMountedStore.merge(deepMountBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        List<ChildNodeEntry> children = newArrayList(filter(store.getRoot().getChildNodeEntries(), compose(Predicates.equalTo("new"), GET_NAME)));
+        List<ChildNodeEntry> children = newArrayList(filter(store.getRoot().getChildNodeEntries(),
+            compose(Predicates.equalTo("new"), GET_NAME)));
         assertEquals(1, children.size());
         assertEquals("global", children.get(0).getNodeState().getString("store"));
 
         NodeBuilder rootBuilder = store.getRoot().builder();
-        List<String> childNames = newArrayList(filter(rootBuilder.getChildNodeNames(), Predicates.equalTo("new")));
+        List<String> childNames = newArrayList(
+            filter(rootBuilder.getChildNodeNames(), Predicates.equalTo("new")));
         assertEquals(1, childNames.size());
         assertEquals("global", rootBuilder.getChildNode("new").getString("store"));
     }
 
     @Test
-    public void propertyIndex() throws Exception{
+    public void propertyIndex() throws Exception {
         NodeBuilder globalBuilder = globalStore.getRoot().builder();
         createIndexDefinition(globalBuilder.child(INDEX_DEFINITIONS_NAME), "foo",
-                true, false, ImmutableSet.of("foo"), null);
+            true, false, ImmutableSet.of("foo"), null);
         EditorHook hook = new EditorHook(
-                new IndexUpdateProvider(new PropertyIndexEditorProvider().with(mip)));
+            new IndexUpdateProvider(new PropertyIndexEditorProvider().with(mip)));
 
         globalStore.merge(globalBuilder, hook, CommitInfo.EMPTY);
 
@@ -688,12 +724,12 @@ public class CompositeNodeStoreTest {
     }
 
     @Test
-    public void bigPropertyIndexUpdate() throws Exception{
+    public void bigPropertyIndexUpdate() throws Exception {
         NodeBuilder globalBuilder = globalStore.getRoot().builder();
         createIndexDefinition(globalBuilder.child(INDEX_DEFINITIONS_NAME), "foo",
-                true, false, ImmutableSet.of("foo"), null);
+            true, false, ImmutableSet.of("foo"), null);
         EditorHook hook = new EditorHook(
-                new IndexUpdateProvider(new PropertyIndexEditorProvider().with(mip)));
+            new IndexUpdateProvider(new PropertyIndexEditorProvider().with(mip)));
 
         globalStore.merge(globalBuilder, hook, CommitInfo.EMPTY);
 
@@ -766,7 +802,8 @@ public class CompositeNodeStoreTest {
 
                         BlobStore blobStore = new FileBlobStore(blobStorePath);
 
-                        store = FileStoreBuilder.fileStoreBuilder(storePath).withBlobStore(blobStore).build();
+                        store = FileStoreBuilder.fileStoreBuilder(storePath)
+                                                .withBlobStore(blobStore).build();
                         instance = SegmentNodeStoreBuilders.builder(store).build();
 
                         return instance;
@@ -798,13 +835,13 @@ public class CompositeNodeStoreTest {
                     public NodeStore get() throws Exception {
                         RDBOptions options = new RDBOptions().dropTablesOnClose(true);
                         String jdbcUrl = "jdbc:h2:file:./target/classes/document";
-                        if ( name != null ) {
+                        if (name != null) {
                             jdbcUrl += "-" + name;
                         }
                         ds = RDBDataSourceFactory.forJdbcUrl(jdbcUrl, "sa", "");
 
                         instance = new RDBDocumentNodeStoreBuilder()
-                                .setRDBConnection(ds, options).build();
+                            .setRDBConnection(ds, options).build();
                         instance.setMaxBackOffMillis(0);
 
                         return instance;
@@ -814,7 +851,7 @@ public class CompositeNodeStoreTest {
                     @Override
                     public void close() throws Exception {
                         instance.dispose();
-                        if ( ds instanceof Closeable ) {
+                        if (ds instanceof Closeable) {
                             ((Closeable) ds).close();
                         }
                     }
@@ -832,6 +869,7 @@ public class CompositeNodeStoreTest {
     }
 
     private interface NodeStoreRegistration {
+
         NodeStore get() throws Exception;
 
         void close() throws Exception;
@@ -858,7 +896,8 @@ public class CompositeNodeStoreTest {
         Iterable<String> childNodeNames = builder.getChildNodeNames();
 
         assertNotNull("childNodeNames must not be empty", childNodeNames);
-        assertThat("Incorrect number of elements", Iterables.size(childNodeNames), equalTo(names.length));
+        assertThat("Incorrect number of elements", Iterables.size(childNodeNames),
+            equalTo(names.length));
         assertThat("Mismatched elements", childNodeNames, hasItems(names));
     }
 
@@ -866,7 +905,8 @@ public class CompositeNodeStoreTest {
         Iterable<String> childNodeNames = state.getChildNodeNames();
 
         assertNotNull("childNodeNames must not be empty", childNodeNames);
-        assertThat("Incorrect number of elements", Iterables.size(childNodeNames), equalTo(names.length));
+        assertThat("Incorrect number of elements", Iterables.size(childNodeNames),
+            equalTo(names.length));
         assertThat("Mismatched elements", childNodeNames, hasItems(names));
     }
 }

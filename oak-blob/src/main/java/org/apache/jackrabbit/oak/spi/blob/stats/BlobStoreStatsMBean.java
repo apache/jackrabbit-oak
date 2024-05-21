@@ -20,11 +20,11 @@
 package org.apache.jackrabbit.oak.spi.blob.stats;
 
 import javax.management.openmbean.CompositeData;
-
 import org.osgi.annotation.versioning.ProviderType;
 
 @ProviderType
 public interface BlobStoreStatsMBean {
+
     String TYPE = "BlobStoreStats";
 
     long getUploadTotalSize();

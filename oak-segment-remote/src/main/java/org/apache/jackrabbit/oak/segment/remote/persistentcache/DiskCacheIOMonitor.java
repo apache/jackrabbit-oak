@@ -18,6 +18,9 @@
 
 package org.apache.jackrabbit.oak.segment.remote.persistentcache;
 
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
+
+import java.io.File;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
 import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
@@ -25,13 +28,9 @@ import org.apache.jackrabbit.oak.stats.StatsOptions;
 import org.apache.jackrabbit.oak.stats.TimerStats;
 import org.jetbrains.annotations.NotNull;
 
-import java.io.File;
-
-import static java.util.concurrent.TimeUnit.NANOSECONDS;
-
 /**
- * This {@code IOMonitor} implementations registers the following monitoring endpoints
- * with the Metrics library if available:
+ * This {@code IOMonitor} implementations registers the following monitoring endpoints with the
+ * Metrics library if available:
  * <ul>
  *     <li>{@link #OAK_SEGMENT_CACHE_DISK_SEGMENT_READ_BYTES}:
  *          a meter metrics for the number of bytes read from segment disk cache</li>
@@ -44,6 +43,7 @@ import static java.util.concurrent.TimeUnit.NANOSECONDS;
  * </ul>
  */
 public class DiskCacheIOMonitor extends IOMonitorAdapter {
+
     public static final String OAK_SEGMENT_CACHE_DISK_SEGMENT_READ_BYTES = "oak.segment.cache.disk.segment-read-bytes";
     public static final String OAK_SEGMENT_CACHE_DISK_SEGMENT_WRITE_BYTES = "oak.segment.cache.disk.segment-write-bytes";
     public static final String OAK_SEGMENT_CACHE_DISK_SEGMENT_READ_TIME = "oak.segment.cache.disk.segment-read-time";
@@ -56,13 +56,13 @@ public class DiskCacheIOMonitor extends IOMonitorAdapter {
 
     public DiskCacheIOMonitor(@NotNull StatisticsProvider statisticsProvider) {
         segmentReadBytes = statisticsProvider.getMeter(
-                OAK_SEGMENT_CACHE_DISK_SEGMENT_READ_BYTES, StatsOptions.METRICS_ONLY);
+            OAK_SEGMENT_CACHE_DISK_SEGMENT_READ_BYTES, StatsOptions.METRICS_ONLY);
         segmentWriteBytes = statisticsProvider.getMeter(
-                OAK_SEGMENT_CACHE_DISK_SEGMENT_WRITE_BYTES, StatsOptions.METRICS_ONLY);
+            OAK_SEGMENT_CACHE_DISK_SEGMENT_WRITE_BYTES, StatsOptions.METRICS_ONLY);
         segmentReadTime = statisticsProvider.getTimer(
-                OAK_SEGMENT_CACHE_DISK_SEGMENT_READ_TIME, StatsOptions.METRICS_ONLY);
+            OAK_SEGMENT_CACHE_DISK_SEGMENT_READ_TIME, StatsOptions.METRICS_ONLY);
         segmentWriteTime = statisticsProvider.getTimer(
-                OAK_SEGMENT_CACHE_DISk_SEGMENT_WRITE_TIME, StatsOptions.METRICS_ONLY);
+            OAK_SEGMENT_CACHE_DISk_SEGMENT_WRITE_TIME, StatsOptions.METRICS_ONLY);
     }
 
     @Override

@@ -19,6 +19,12 @@
 package org.apache.jackrabbit.oak.benchmark;
 
 
+import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
+
+import java.io.File;
+import java.io.IOException;
+import javax.jcr.Repository;
+import javax.jcr.query.Query;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.fixture.JcrCreator;
 import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
@@ -31,18 +37,12 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProvider;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 
-import javax.jcr.Repository;
-import javax.jcr.query.Query;
-import java.io.File;
-import java.io.IOException;
-
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
-
 public class LucenePropertySearchTest extends SearchTest {
 
     private final boolean disableCopyOnRead = Boolean.getBoolean("disableCopyOnRead");
 
-    public LucenePropertySearchTest(File dump, boolean flat, boolean doReport, Boolean storageEnabled) {
+    public LucenePropertySearchTest(File dump, boolean flat, boolean doReport,
+        Boolean storageEnabled) {
         super(dump, flat, doReport, storageEnabled);
     }
 
@@ -69,10 +69,11 @@ public class LucenePropertySearchTest extends SearchTest {
                 public Jcr customize(Oak oak) {
                     LuceneIndexProvider provider = createLuceneIndexProvider();
                     oak.with((QueryIndexProvider) provider)
-                            .with((Observer) provider)
-                            .with(new LuceneIndexEditorProvider())
-                            .with(new PropertyFullTextTest.FullTextPropertyInitialiser("luceneTitle", of("title"),
-                                    LuceneIndexConstants.TYPE_LUCENE));
+                       .with((Observer) provider)
+                       .with(new LuceneIndexEditorProvider())
+                       .with(new PropertyFullTextTest.FullTextPropertyInitialiser("luceneTitle",
+                           of("title"),
+                           LuceneIndexConstants.TYPE_LUCENE));
                     return new Jcr(oak);
                 }
             });

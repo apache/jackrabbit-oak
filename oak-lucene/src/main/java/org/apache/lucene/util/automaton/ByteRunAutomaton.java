@@ -29,26 +29,30 @@ package org.apache.lucene.util.automaton;
  * Automaton representation for matching UTF-8 byte[].
  */
 public class ByteRunAutomaton extends RunAutomaton {
-  
-  public ByteRunAutomaton(Automaton a) {
-    this(a, false);
-  }
-  
-  /** expert: if utf8 is true, the input is already byte-based */
-  public ByteRunAutomaton(Automaton a, boolean utf8) {
-    super(utf8 ? a : new UTF32ToUTF8().convert(a), 256, true);
-  }
 
-  /**
-   * Returns true if the given byte array is accepted by this automaton
-   */
-  public boolean run(byte[] s, int offset, int length) {
-    int p = initial;
-    int l = offset + length;
-    for (int i = offset; i < l; i++) {
-      p = step(p, s[i] & 0xFF);
-      if (p == -1) return false;
+    public ByteRunAutomaton(Automaton a) {
+        this(a, false);
     }
-    return accept[p];
-  }
+
+    /**
+     * expert: if utf8 is true, the input is already byte-based
+     */
+    public ByteRunAutomaton(Automaton a, boolean utf8) {
+        super(utf8 ? a : new UTF32ToUTF8().convert(a), 256, true);
+    }
+
+    /**
+     * Returns true if the given byte array is accepted by this automaton
+     */
+    public boolean run(byte[] s, int offset, int length) {
+        int p = initial;
+        int l = offset + length;
+        for (int i = offset; i < l; i++) {
+            p = step(p, s[i] & 0xFF);
+            if (p == -1) {
+                return false;
+            }
+        }
+        return accept[p];
+    }
 }

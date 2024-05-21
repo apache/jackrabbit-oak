@@ -19,8 +19,12 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
-import java.io.File;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.createFile;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.IndexRootDirectory.INDEX_METADATA_FILE_NAME;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
+import java.io.File;
 import org.apache.jackrabbit.oak.InitialContentHelper;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexDefinitionBuilder;
@@ -32,12 +36,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.createFile;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.IndexRootDirectory.INDEX_METADATA_FILE_NAME;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-
 public class LuceneIndexDumperTest {
+
     private NodeState rootState = InitialContentHelper.INITIAL_CONTENT;
     private NodeBuilder idx = new LuceneIndexDefinitionBuilder().build().builder();
 
@@ -45,8 +45,9 @@ public class LuceneIndexDumperTest {
     public final TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
 
     @Test
-    public void directoryDump() throws Exception{
-        LuceneIndexDefinition defn = LuceneIndexDefinition.newBuilder(rootState, idx.getNodeState(), "/fooIndex").build();
+    public void directoryDump() throws Exception {
+        LuceneIndexDefinition defn = LuceneIndexDefinition.newBuilder(rootState, idx.getNodeState(),
+            "/fooIndex").build();
 
         long size = 0;
 
@@ -54,7 +55,8 @@ public class LuceneIndexDumperTest {
         createFile(dir, "foo.txt", "Test content");
         size += DirectoryUtils.dirSize(dir);
 
-        Directory dir2 = new OakDirectory(idx, ":data2"+ MultiplexersLucene.INDEX_DIR_SUFFIX, defn, false);
+        Directory dir2 = new OakDirectory(idx, ":data2" + MultiplexersLucene.INDEX_DIR_SUFFIX, defn,
+            false);
         createFile(dir2, "foo.txt", "Test content");
         size += DirectoryUtils.dirSize(dir2);
 
@@ -74,6 +76,6 @@ public class LuceneIndexDumperTest {
 
         IndexMeta meta = new IndexMeta(new File(indexDir, INDEX_METADATA_FILE_NAME));
         assertNotNull(meta.getFSNameFromJCRName(":data"));
-        assertNotNull(meta.getFSNameFromJCRName(":data2"+ MultiplexersLucene.INDEX_DIR_SUFFIX));
+        assertNotNull(meta.getFSNameFromJCRName(":data2" + MultiplexersLucene.INDEX_DIR_SUFFIX));
     }
 }

@@ -25,16 +25,16 @@ import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
-
 import org.apache.felix.webconsole.WebConsoleSecurityProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * A simple WebConsoleSecurityProvider implementation which only allows
- * repository admin user to perform login
+ * A simple WebConsoleSecurityProvider implementation which only allows repository admin user to
+ * perform login
  */
 class RepositorySecurityProvider implements WebConsoleSecurityProvider {
+
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     private final Repository repository;
@@ -46,7 +46,7 @@ class RepositorySecurityProvider implements WebConsoleSecurityProvider {
     @Override
     public Object authenticate(String userName, String password) {
         final Credentials creds = new SimpleCredentials(userName,
-                (password == null) ? new char[0] : password.toCharArray());
+            (password == null) ? new char[0] : password.toCharArray());
         Session session = null;
         try {
             session = repository.login(creds);
@@ -59,9 +59,10 @@ class RepositorySecurityProvider implements WebConsoleSecurityProvider {
 
         } catch (LoginException re) {
             log.info("authenticate: User {} failed to authenticate with the repository " +
-                    "for Web Console access", userName, re);
+                "for Web Console access", userName, re);
         } catch (RepositoryException re) {
-            log.info("authenticate: Generic problem trying grant User {} access to the Web Console", userName, re);
+            log.info("authenticate: Generic problem trying grant User {} access to the Web Console",
+                userName, re);
         } finally {
             if (session != null) {
                 session.logout();

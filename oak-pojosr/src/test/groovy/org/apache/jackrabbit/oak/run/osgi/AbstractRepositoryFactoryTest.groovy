@@ -19,8 +19,8 @@
 
 package org.apache.jackrabbit.oak.run.osgi
 
-import org.apache.felix.connect.launch.PojoServiceRegistry
 import org.apache.commons.io.FilenameUtils
+import org.apache.felix.connect.launch.PojoServiceRegistry
 import org.apache.jackrabbit.api.JackrabbitRepository
 import org.junit.After
 import org.junit.Before
@@ -44,7 +44,7 @@ import static org.apache.jackrabbit.oak.run.osgi.OakOSGiRepositoryFactory.REPOSI
 import static org.apache.jackrabbit.oak.run.osgi.OakOSGiRepositoryFactory.REPOSITORY_TIMEOUT_IN_SECS
 import static org.junit.Assert.fail
 
-abstract class AbstractRepositoryFactoryTest{
+abstract class AbstractRepositoryFactoryTest {
     static final int SVC_WAIT_TIME = Integer.getInteger("pojosr.waitTime", 10)
     Map config
     File workDir
@@ -58,8 +58,8 @@ abstract class AbstractRepositoryFactoryTest{
     void setUp() {
         workDir = tmpFolder.getRoot();
         config = [
-                (REPOSITORY_HOME): workDir.absolutePath,
-                (REPOSITORY_TIMEOUT_IN_SECS) : 60,
+                (REPOSITORY_HOME)           : workDir.absolutePath,
+                (REPOSITORY_TIMEOUT_IN_SECS): 60,
         ]
     }
 
@@ -70,7 +70,7 @@ abstract class AbstractRepositoryFactoryTest{
                 PojoServiceRegistry registry = getRegistry()
                 OakOSGiRepositoryFactory.shutdown(registry, 5)
             }
-        } catch (AssertionError ignore){
+        } catch (AssertionError ignore) {
 
         }
 
@@ -103,17 +103,17 @@ abstract class AbstractRepositoryFactoryTest{
         ServiceTracker st = new ServiceTracker(bundleContext, clazz.name, null)
         st.open()
         T sr = (T) st.waitForService(TimeUnit.SECONDS.toMillis(SVC_WAIT_TIME))
-        assert sr , "No service found for ${clazz.name}"
+        assert sr, "No service found for ${clazz.name}"
         return sr
     }
 
-    protected File getResource(String path){
+    protected File getResource(String path) {
         File file = new File(FilenameUtils.concat(getBaseDir(), "src/test/resources/$path"))
-        assert file.exists() : "No file found at ${file.absolutePath}"
+        assert file.exists(): "No file found at ${file.absolutePath}"
         return file
     }
 
-    protected void createConfig(Map config){
+    protected void createConfig(Map config) {
         ConfigurationAdmin cm = getService(ConfigurationAdmin.class)
         ConfigInstaller ci = new ConfigInstaller(cm, getRegistry().bundleContext)
         ci.installConfigs(config)
@@ -123,15 +123,15 @@ abstract class AbstractRepositoryFactoryTest{
         return getRepository().login(new SimpleCredentials("admin", "admin".toCharArray()));
     }
 
-    protected String createConfigValue(String ... configFiles){
-        return configFiles.collect {getResource(it).absolutePath}.join(',')
+    protected String createConfigValue(String... configFiles) {
+        return configFiles.collect { getResource(it).absolutePath }.join(',')
     }
 
     private static String getBaseDir() {
         // 'basedir' is set by Maven Surefire. It always points to the current subproject,
         // even in reactor builds.
         String baseDir = System.getProperty("basedir");
-        if(baseDir) {
+        if (baseDir) {
             return baseDir
         }
         return new File(".").getAbsolutePath();
@@ -242,8 +242,8 @@ abstract class AbstractRepositoryFactoryTest{
     }
 
     ComponentDescriptionDTO getComponentDTO(ServiceComponentRuntime scr, String name) {
-        ComponentDescriptionDTO dto = scr.getComponentDescriptionDTOs().find {ComponentDescriptionDTO d -> (d.name == name) }
-        assert dto : "No component found with name $name"
+        ComponentDescriptionDTO dto = scr.getComponentDescriptionDTOs().find { ComponentDescriptionDTO d -> (d.name == name) }
+        assert dto: "No component found with name $name"
         return dto
     }
 }

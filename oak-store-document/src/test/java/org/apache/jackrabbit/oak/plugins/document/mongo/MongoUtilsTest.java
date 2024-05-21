@@ -72,7 +72,7 @@ public class MongoUtilsTest {
         MongoUtils.createIndex(collection, "foo", true, false, true);
         MongoUtils.createIndex(collection, "bar", false, true, false);
         MongoUtils.createIndex(collection, new String[]{"baz", "qux"},
-                new boolean[]{true, false}, false, false);
+            new boolean[]{true, false}, false, false);
 
         assertTrue(MongoUtils.hasIndex(collection, "_id"));
         assertTrue(MongoUtils.hasIndex(collection, "foo"));
@@ -113,7 +113,7 @@ public class MongoUtilsTest {
         MongoCollection collection = c.getDatabase().getCollection("test");
 
         MongoUtils.createPartialIndex(collection, new String[]{"foo", "bar"},
-                new boolean[]{true, true}, "{foo:true}");
+            new boolean[]{true, true}, "{foo:true}");
         assertTrue(MongoUtils.hasIndex(collection, "_id"));
         assertTrue(MongoUtils.hasIndex(collection, "foo", "bar"));
 
@@ -142,7 +142,7 @@ public class MongoUtilsTest {
         assertNotNull(c);
         MongoCollection collection = c.getDatabase().getCollection("test");
         MongoUtils.createIndex(collection, new String[]{"foo", "bar"},
-                new boolean[]{true}, false, true);
+            new boolean[]{true}, false, true);
     }
 
     @Test
@@ -150,14 +150,16 @@ public class MongoUtilsTest {
         assertEquals(GENERIC, getDocumentStoreExceptionTypeFor(new IOException()));
         assertEquals(GENERIC, getDocumentStoreExceptionTypeFor(new MongoException("message")));
         assertEquals(GENERIC, getDocumentStoreExceptionTypeFor(newMongoCommandException(42)));
-        assertEquals(GENERIC, getDocumentStoreExceptionTypeFor(new DuplicateKeyException(response(11000), new ServerAddress(), null)));
+        assertEquals(GENERIC, getDocumentStoreExceptionTypeFor(
+            new DuplicateKeyException(response(11000), new ServerAddress(), null)));
         assertEquals(TRANSIENT, getDocumentStoreExceptionTypeFor(newWriteConcernException(11600)));
         assertEquals(TRANSIENT, getDocumentStoreExceptionTypeFor(newWriteConcernException(11601)));
         assertEquals(TRANSIENT, getDocumentStoreExceptionTypeFor(newWriteConcernException(11602)));
         assertEquals(TRANSIENT, getDocumentStoreExceptionTypeFor(newMongoCommandException(11600)));
         assertEquals(TRANSIENT, getDocumentStoreExceptionTypeFor(newMongoCommandException(11601)));
         assertEquals(TRANSIENT, getDocumentStoreExceptionTypeFor(newMongoCommandException(11602)));
-        assertEquals(TRANSIENT, getDocumentStoreExceptionTypeFor(new MongoSocketException("message", new ServerAddress())));
+        assertEquals(TRANSIENT, getDocumentStoreExceptionTypeFor(
+            new MongoSocketException("message", new ServerAddress())));
     }
 
     @Test
@@ -171,7 +173,7 @@ public class MongoUtilsTest {
 
         // consider empty when collection doesn't exist
         MongoCollection<BasicDBObject> nodes = c.getDatabase()
-                .getCollection(collectionName, BasicDBObject.class);
+                                                .getCollection(collectionName, BasicDBObject.class);
         assertTrue(MongoUtils.isCollectionEmpty(nodes, null));
         if (status.isClientSessionSupported()) {
             try (ClientSession s = c.getMongoClient().startSession()) {

@@ -20,7 +20,6 @@ import java.security.Principal;
 import javax.jcr.Credentials;
 import javax.jcr.RepositoryException;
 import javax.security.auth.Subject;
-
 import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
 import org.apache.jackrabbit.api.security.user.Impersonation;
 import org.apache.jackrabbit.api.security.user.User;

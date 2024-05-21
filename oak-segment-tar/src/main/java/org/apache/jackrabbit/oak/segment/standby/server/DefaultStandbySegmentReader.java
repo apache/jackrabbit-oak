@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.segment.standby.server;
 
 import java.io.IOException;
 import java.util.UUID;
-
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.jackrabbit.oak.segment.Segment;
 import org.apache.jackrabbit.oak.segment.SegmentId;
@@ -54,7 +53,7 @@ class DefaultStandbySegmentReader implements StandbySegmentReader {
                 return null;
             }
         }
-        
+
         return null;
     }
 

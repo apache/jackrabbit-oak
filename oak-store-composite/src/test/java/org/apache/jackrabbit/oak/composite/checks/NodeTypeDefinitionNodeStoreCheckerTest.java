@@ -40,10 +40,9 @@ import org.junit.Test;
 
 /**
  * Validates that the <tt>NodeTypeDefinitionNodeStoreChecker</tt> is properly applied
- * 
- * <p>This class does not attempt to exhaustively validate the checks that should be performed, only
- * that they are performed when needed.</p>
  *
+ * <p>This class does not attempt to exhaustively validate the checks that should be performed,
+ * only that they are performed when needed.</p>
  */
 @Component
 @Service(MountedNodeStoreChecker.class)
@@ -51,20 +50,22 @@ public class NodeTypeDefinitionNodeStoreCheckerTest {
 
     @Test
     public void mountWithConsistentDefinition() throws CommitFailedException, IOException {
-        
+
         new Fixture() {
             @Override
             protected void initMountContent(NodeBuilder builder) {
-                builder.setProperty(JcrConstants.JCR_PRIMARYTYPE, NodeTypeConstants.NT_REP_ROOT, Type.NAME);
+                builder.setProperty(JcrConstants.JCR_PRIMARYTYPE, NodeTypeConstants.NT_REP_ROOT,
+                    Type.NAME);
                 builder.child("first")
-                    .setProperty(JcrConstants.JCR_PRIMARYTYPE, NodeTypeConstants.NT_UNSTRUCTURED, Type.NAME);
+                       .setProperty(JcrConstants.JCR_PRIMARYTYPE, NodeTypeConstants.NT_UNSTRUCTURED,
+                           Type.NAME);
             }
         }.run();
     }
-    
+
     @Test(expected = IllegalRepositoryStateException.class)
     public void mountWithInconsistentDefinition() throws CommitFailedException {
-        
+
         new Fixture() {
             @Override
             protected void initMountContent(NodeBuilder builder) {
@@ -75,7 +76,7 @@ public class NodeTypeDefinitionNodeStoreCheckerTest {
 
     @Test(expected = IllegalRepositoryStateException.class)
     public void addingDefaultPrimaryTypeFails() throws CommitFailedException {
-        
+
         new Fixture() {
             @Override
             protected void initMountContent(NodeBuilder builder) {
@@ -86,22 +87,23 @@ public class NodeTypeDefinitionNodeStoreCheckerTest {
             }
         }.run();
     }
-    
+
     @Test
     public void mountWithDefinitionButHiddenNodes() throws CommitFailedException {
-        
+
         new Fixture() {
             @Override
             protected void initMountContent(NodeBuilder builder) {
-                builder.setProperty(JcrConstants.JCR_PRIMARYTYPE, NodeTypeConstants.NT_REP_ROOT, Type.NAME);
-                // if visible would try to add a default node type - which would fail 
+                builder.setProperty(JcrConstants.JCR_PRIMARYTYPE, NodeTypeConstants.NT_REP_ROOT,
+                    Type.NAME);
+                // if visible would try to add a default node type - which would fail
                 builder.child(":hidden").setProperty("foo", "bar");
             }
         }.run();
     }
-    
+
     static abstract class Fixture {
-        
+
         public void run() throws CommitFailedException {
             MemoryNodeStore root = new MemoryNodeStore(INITIAL_CONTENT);
             MemoryNodeStore mount = new MemoryNodeStore();
@@ -109,19 +111,20 @@ public class NodeTypeDefinitionNodeStoreCheckerTest {
             NodeBuilder mountBuilder = mount.getRoot().builder();
             initMountContent(mountBuilder);
             mount.merge(mountBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-            
+
             MountInfoProvider mip = Mounts.newBuilder()
-                    .readOnlyMount("first", "/first")
-                    .build();
-            
+                                          .readOnlyMount("first", "/first")
+                                          .build();
+
             NodeTypeDefinitionNodeStoreChecker checker = new NodeTypeDefinitionNodeStoreChecker();
             Context context = checker.createContext(root, mip);
             ErrorHolder errorHolder = new ErrorHolder();
-            
-            checker.check(new MountedNodeStore(mip.getMountByName("first"), mount), TreeFactory.createReadOnlyTree(mount.getRoot()), errorHolder, context);
+
+            checker.check(new MountedNodeStore(mip.getMountByName("first"), mount),
+                TreeFactory.createReadOnlyTree(mount.getRoot()), errorHolder, context);
             errorHolder.end();
         }
-        
+
         protected abstract void initMountContent(NodeBuilder builder);
     }
 }

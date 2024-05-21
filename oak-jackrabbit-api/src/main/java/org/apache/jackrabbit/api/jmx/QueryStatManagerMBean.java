@@ -17,13 +17,11 @@
 package org.apache.jackrabbit.api.jmx;
 
 import javax.management.openmbean.TabularData;
-
 import org.apache.jackrabbit.api.stats.QueryStat;
 import org.osgi.annotation.versioning.ProviderType;
 
 /**
  * JMX Bindings for {@link QueryStat}.
- * 
  */
 @ProviderType
 public interface QueryStatManagerMBean {
@@ -31,14 +29,13 @@ public interface QueryStatManagerMBean {
     String NAME = "org.apache.jackrabbit:type=QueryStats";
 
     /**
-     * @return a sorted array containing the top
-     *         {@link #getSlowQueriesQueueSize()} slowest queries
+     * @return a sorted array containing the top {@link #getSlowQueriesQueueSize()} slowest queries
      */
     TabularData getSlowQueries();
 
     /**
-     * @return a sorted array containing the
-     *         {@link #getPopularQueriesQueueSize()} most popular queries
+     * @return a sorted array containing the {@link #getPopularQueriesQueueSize()} most popular
+     * queries
      */
     TabularData getPopularQueries();
 
@@ -49,9 +46,8 @@ public interface QueryStatManagerMBean {
 
     /**
      * Change the size of the <b>Slow</b> queue
-     * 
-     * @param size
-     *            the new size
+     *
+     * @param size the new size
      */
     void setSlowQueriesQueueSize(int size);
 
@@ -67,9 +63,8 @@ public interface QueryStatManagerMBean {
 
     /**
      * Change the size of the <b>Popular</b> queue
-     * 
-     * @param size
-     *            the new size
+     *
+     * @param size the new size
      */
     void setPopularQueriesQueueSize(int size);
 

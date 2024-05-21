@@ -41,8 +41,8 @@ class DocumentNodeBuilder extends AbstractDocumentNodeBuilder {
     private NodeState rootBase;
 
     DocumentNodeBuilder(MemoryNodeBuilder base,
-                        String name,
-                        DocumentRootBuilder root) {
+        String name,
+        DocumentRootBuilder root) {
         super(base, name);
         this.root = checkNotNull(root);
     }

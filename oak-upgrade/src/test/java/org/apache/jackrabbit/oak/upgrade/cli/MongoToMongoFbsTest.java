@@ -16,11 +16,10 @@
  */
 package org.apache.jackrabbit.oak.upgrade.cli;
 
-import java.io.IOException;
-
 import static org.apache.jackrabbit.oak.upgrade.cli.container.MongoNodeStoreContainer.isMongoAvailable;
 import static org.junit.Assume.assumeTrue;
 
+import java.io.IOException;
 import org.apache.jackrabbit.oak.upgrade.cli.container.BlobStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.container.FileBlobStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.container.MongoNodeStoreContainer;
@@ -56,8 +55,8 @@ public class MongoToMongoFbsTest extends AbstractOak2OakTest {
 
     @Override
     protected String[] getArgs() {
-        return new String[] { "--copy-binaries", "--fileblobstore", destinationBlob.getDescription(),
-                source.getDescription(), destination.getDescription() };
+        return new String[]{"--copy-binaries", "--fileblobstore", destinationBlob.getDescription(),
+            source.getDescription(), destination.getDescription()};
     }
 
     @Override

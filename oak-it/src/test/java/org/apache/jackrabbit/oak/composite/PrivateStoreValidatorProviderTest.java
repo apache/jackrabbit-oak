@@ -19,13 +19,21 @@
 
 package org.apache.jackrabbit.oak.composite;
 
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
+import java.io.Closeable;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
@@ -37,19 +45,11 @@ import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 
-import java.io.Closeable;
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-
 /**
  * Tests the {@link PrivateStoreValidatorProvider}
  */
 public class PrivateStoreValidatorProviderTest {
+
     @Rule
     public final OsgiContext context = new OsgiContext();
 
@@ -59,15 +59,15 @@ public class PrivateStoreValidatorProviderTest {
     private void setUp(String... readOnlyPaths) {
         configureMountInfoProvider(readOnlyPaths);
         repository = new Oak()
-                .with(new OpenSecurityProvider())
-                .with(new InitialContent())
-                .with(privateStoreValidatorProvider)
-                .createContentRepository();
+            .with(new OpenSecurityProvider())
+            .with(new InitialContent())
+            .with(privateStoreValidatorProvider)
+            .createContentRepository();
     }
 
     @After
     public void tearDown() throws IOException {
-        if (repository instanceof Closeable){
+        if (repository instanceof Closeable) {
             ((Closeable) repository).close();
         }
     }
@@ -147,7 +147,7 @@ public class PrivateStoreValidatorProviderTest {
         EditorProvider validator = context.getService(EditorProvider.class);
         assertNotNull("No PrivateStoreValidatorProvider available!", validator);
         assertTrue(validator instanceof PrivateStoreValidatorProvider);
-        assertTrue(((PrivateStoreValidatorProvider)validator).isFailOnDetection());
+        assertTrue(((PrivateStoreValidatorProvider) validator).isFailOnDetection());
 
         MockOsgi.deactivate(privateStoreValidatorProvider, context.bundleContext());
         assertNull(context.getService(EditorProvider.class));
@@ -161,11 +161,13 @@ public class PrivateStoreValidatorProviderTest {
         registerValidatorProvider(privateStoreValidatorProvider, true);
 
         EditorProvider validator = context.getService(EditorProvider.class);
-        assertNull("No PrivateStoreValidatorProvider should be registered for default mounts!", validator);
+        assertNull("No PrivateStoreValidatorProvider should be registered for default mounts!",
+            validator);
     }
 
 
-    private void registerValidatorProvider(PrivateStoreValidatorProvider validatorProvider, boolean failOnDetection) {
+    private void registerValidatorProvider(PrivateStoreValidatorProvider validatorProvider,
+        boolean failOnDetection) {
         Map<String, Object> propMap = new HashMap<>();
         propMap.put("failOnDetection", failOnDetection);
 
@@ -174,8 +176,8 @@ public class PrivateStoreValidatorProviderTest {
     }
 
     /**
-     * Register a {@link MountInfoProvider} service
-     * If the given path array is empty, the {@code MountInfoProvider.DEFAULT} will be registered.
+     * Register a {@link MountInfoProvider} service If the given path array is empty, the
+     * {@code MountInfoProvider.DEFAULT} will be registered.
      *
      * @param readOnlyPaths - contains the string paths mounted on a read-only store
      */
@@ -188,7 +190,8 @@ public class PrivateStoreValidatorProviderTest {
     private MountInfoProvider createMountInfoProvider(String... readOnlyPaths) {
         MountInfoProvider mountInfoProvider = Mounts.defaultMountInfoProvider();
         if (readOnlyPaths.length > 0) {
-            mountInfoProvider = Mounts.newBuilder().readOnlyMount("readOnly", readOnlyPaths).build();
+            mountInfoProvider = Mounts.newBuilder().readOnlyMount("readOnly", readOnlyPaths)
+                                      .build();
         }
         return mountInfoProvider;
     }

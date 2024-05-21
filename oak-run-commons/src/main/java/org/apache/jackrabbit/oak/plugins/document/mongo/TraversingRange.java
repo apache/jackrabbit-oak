@@ -18,11 +18,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
+import java.util.Objects;
 import org.apache.jackrabbit.oak.index.indexer.document.LastModifiedRange;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.bson.BsonDocument;
-
-import java.util.Objects;
 
 public class TraversingRange {
 
@@ -46,14 +45,16 @@ public class TraversingRange {
     }
 
     public BsonDocument getFindQuery() {
-        String lastModifiedRangeQueryPart = "{$gte:" + lastModifiedRange.getLastModifiedFrom() + ",";
+        String lastModifiedRangeQueryPart =
+            "{$gte:" + lastModifiedRange.getLastModifiedFrom() + ",";
         lastModifiedRangeQueryPart += "$lt:" + lastModifiedRange.getLastModifiedTo() + "}";
         String idRangeQueryPart = "";
         if (startAfterDocumentID != null) {
             String condition = "{$gt:\"" + startAfterDocumentID + "\"}";
             idRangeQueryPart = ", " + NodeDocument.ID + ":" + condition;
         }
-        return BsonDocument.parse("{" + NodeDocument.MODIFIED_IN_SECS + ":" + lastModifiedRangeQueryPart
+        return BsonDocument.parse(
+            "{" + NodeDocument.MODIFIED_IN_SECS + ":" + lastModifiedRangeQueryPart
                 + idRangeQueryPart + "}");
     }
 
@@ -63,15 +64,21 @@ public class TraversingRange {
 
     @Override
     public String toString() {
-        return "Range: " + lastModifiedRange.toString() + ", startAfterDocument: " + startAfterDocumentID;
+        return "Range: " + lastModifiedRange.toString() + ", startAfterDocument: "
+            + startAfterDocumentID;
     }
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         TraversingRange that = (TraversingRange) o;
-        return Objects.equals(lastModifiedRange, that.lastModifiedRange) && Objects.equals(startAfterDocumentID, that.startAfterDocumentID);
+        return Objects.equals(lastModifiedRange, that.lastModifiedRange) && Objects.equals(
+            startAfterDocumentID, that.startAfterDocumentID);
     }
 
     @Override

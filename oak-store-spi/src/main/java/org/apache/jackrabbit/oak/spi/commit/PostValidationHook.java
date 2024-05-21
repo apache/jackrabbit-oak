@@ -17,9 +17,9 @@
 package org.apache.jackrabbit.oak.spi.commit;
 
 /**
- * Extension to the {@code CommitHook} interface that indicates that this
- * commit hook implementation must be executed <strong>after</strong> the
- * validation hooks.
+ * Extension to the {@code CommitHook} interface that indicates that this commit hook implementation
+ * must be executed <strong>after</strong> the validation hooks.
  */
 public interface PostValidationHook extends CommitHook {
+
 }

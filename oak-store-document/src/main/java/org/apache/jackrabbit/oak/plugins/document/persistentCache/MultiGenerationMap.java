@@ -22,14 +22,14 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListMap;
 
 public class MultiGenerationMap<K, V> implements Map<K, V> {
-    
+
     private volatile CacheMap<K, V> write;
-    private ConcurrentSkipListMap<Integer, CacheMap<K, V>> read = 
-            new ConcurrentSkipListMap<Integer, CacheMap<K, V>>();
-    
+    private ConcurrentSkipListMap<Integer, CacheMap<K, V>> read =
+        new ConcurrentSkipListMap<Integer, CacheMap<K, V>>();
+
     MultiGenerationMap() {
     }
-    
+
     public void setWriteMap(CacheMap<K, V> m) {
         write = m;
     }
@@ -37,11 +37,11 @@ public class MultiGenerationMap<K, V> implements Map<K, V> {
     public void addReadMap(int generation, CacheMap<K, V> m) {
         read.put(generation, m);
     }
-    
+
     public void removeReadMap(int generation) {
         read.remove(generation);
     }
-    
+
     @Override
     public V put(K key, V value) {
         CacheMap<K, V> m = write;
@@ -76,7 +76,7 @@ public class MultiGenerationMap<K, V> implements Map<K, V> {
         }
         return null;
     }
-    
+
     @Override
     public boolean containsKey(Object key) {
         for (int generation : read.descendingKeySet()) {
@@ -99,7 +99,7 @@ public class MultiGenerationMap<K, V> implements Map<K, V> {
     public void clear() {
         write.clear();
     }
-    
+
     @Override
     public int size() {
         throw new UnsupportedOperationException();

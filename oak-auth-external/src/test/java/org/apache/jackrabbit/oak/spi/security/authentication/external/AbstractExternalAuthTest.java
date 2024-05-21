@@ -16,12 +16,27 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Sets;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+
+import java.security.PrivilegedExceptionAction;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
+import javax.jcr.RepositoryException;
+import javax.security.auth.Subject;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
+import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -43,22 +58,6 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
-
-import javax.jcr.RepositoryException;
-import javax.security.auth.Subject;
-import java.security.PrivilegedExceptionAction;
-import java.util.Calendar;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 
 /**
  * Abstract base test for external-authentication tests.
@@ -126,14 +125,16 @@ public abstract class AbstractExternalAuthTest extends AbstractSecurityTest {
         }
     }
 
-    protected static void assertException(@NotNull CommitFailedException e, @NotNull String expectedType, int expectedCode) throws CommitFailedException {
+    protected static void assertException(@NotNull CommitFailedException e,
+        @NotNull String expectedType, int expectedCode) throws CommitFailedException {
         assertEquals(expectedType, e.getType());
         assertEquals(expectedCode, e.getCode());
         throw e;
     }
 
     @NotNull
-    private static Iterator<String> getAllAuthorizableIds(@NotNull UserManager userManager) throws Exception {
+    private static Iterator<String> getAllAuthorizableIds(@NotNull UserManager userManager)
+        throws Exception {
         Iterator<Authorizable> iter = userManager.findAuthorizables("jcr:primaryType", null);
         return Iterators.filter(Iterators.transform(iter, input -> {
             try {
@@ -151,14 +152,16 @@ public abstract class AbstractExternalAuthTest extends AbstractSecurityTest {
     @NotNull
     protected SecurityProvider getSecurityProvider() {
         if (securityProvider == null) {
-            securityProvider = TestSecurityProvider.newTestSecurityProvider(getSecurityConfigParameters(), externalPrincipalConfiguration);
+            securityProvider = TestSecurityProvider.newTestSecurityProvider(
+                getSecurityConfigParameters(), externalPrincipalConfiguration);
 
             // register PrincipalConfiguration with OSGi context
-            context.registerInjectActivateService(externalPrincipalConfiguration, getExternalPrincipalConfiguration());
+            context.registerInjectActivateService(externalPrincipalConfiguration,
+                getExternalPrincipalConfiguration());
         }
         return securityProvider;
     }
-    
+
     @NotNull
     protected Map<String, Object> getExternalPrincipalConfiguration() {
         return Collections.emptyMap();
@@ -191,35 +194,47 @@ public abstract class AbstractExternalAuthTest extends AbstractSecurityTest {
         return syncConfig;
     }
 
-    protected DefaultSyncHandler registerSyncHandler(@NotNull Map<String, Object> syncConfigMap, @NotNull String idpName) {
-        context.registerService(SyncHandlerMapping.class, new ExternalLoginModuleFactory(), ImmutableMap.of(
+    protected DefaultSyncHandler registerSyncHandler(@NotNull Map<String, Object> syncConfigMap,
+        @NotNull String idpName) {
+        context.registerService(SyncHandlerMapping.class, new ExternalLoginModuleFactory(),
+            ImmutableMap.of(
                 SyncHandlerMapping.PARAM_IDP_NAME, idpName,
-                SyncHandlerMapping.PARAM_SYNC_HANDLER_NAME, syncConfigMap.get(DefaultSyncConfigImpl.PARAM_NAME)
-        ));
-        return (DefaultSyncHandler) context.registerService(SyncHandler.class, new DefaultSyncHandler(), syncConfigMap);
+                SyncHandlerMapping.PARAM_SYNC_HANDLER_NAME,
+                syncConfigMap.get(DefaultSyncConfigImpl.PARAM_NAME)
+            ));
+        return (DefaultSyncHandler) context.registerService(SyncHandler.class,
+            new DefaultSyncHandler(), syncConfigMap);
     }
-    
+
     protected @NotNull Map<String, Object> syncConfigAsMap() {
         ImmutableMap.Builder<String, Object> builder = new ImmutableMap.Builder<>();
         builder.put(DefaultSyncConfigImpl.PARAM_NAME, syncConfig.getName())
-                .put(DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, syncConfig.user().getDynamicMembership())
-                .put(DefaultSyncConfigImpl.PARAM_USER_MEMBERSHIP_NESTING_DEPTH, syncConfig.user().getMembershipNestingDepth())
-                .put(DefaultSyncConfigImpl.PARAM_USER_AUTO_MEMBERSHIP, syncConfig.user().getAutoMembership().toArray(new String[0]))
-                .put(DefaultSyncConfigImpl.PARAM_GROUP_AUTO_MEMBERSHIP, syncConfig.group().getAutoMembership().toArray(new String[0]))
-                .put(DefaultSyncConfigImpl.PARAM_GROUP_DYNAMIC_GROUPS, syncConfig.group().getDynamicGroups());
+               .put(DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP,
+                   syncConfig.user().getDynamicMembership())
+               .put(DefaultSyncConfigImpl.PARAM_USER_MEMBERSHIP_NESTING_DEPTH,
+                   syncConfig.user().getMembershipNestingDepth())
+               .put(DefaultSyncConfigImpl.PARAM_USER_AUTO_MEMBERSHIP,
+                   syncConfig.user().getAutoMembership().toArray(new String[0]))
+               .put(DefaultSyncConfigImpl.PARAM_GROUP_AUTO_MEMBERSHIP,
+                   syncConfig.group().getAutoMembership().toArray(new String[0]))
+               .put(DefaultSyncConfigImpl.PARAM_GROUP_DYNAMIC_GROUPS,
+                   syncConfig.group().getDynamicGroups());
         return builder.build();
     }
 
     @NotNull
     protected Root getSystemRoot() throws Exception {
         if (systemRoot == null) {
-            systemSession = Subject.doAs(SystemSubject.INSTANCE, (PrivilegedExceptionAction<ContentSession>) () -> getContentRepository().login(null, null));
+            systemSession = Subject.doAs(SystemSubject.INSTANCE,
+                (PrivilegedExceptionAction<ContentSession>) () -> getContentRepository().login(null,
+                    null));
             systemRoot = systemSession.getLatestRoot();
         }
         return systemRoot;
     }
 
-    protected static void waitUntilExpired(@NotNull User user, @NotNull Root root, long expTime) throws RepositoryException {
+    protected static void waitUntilExpired(@NotNull User user, @NotNull Root root, long expTime)
+        throws RepositoryException {
         Tree t = root.getTree(user.getPath());
         PropertyState ps = t.getProperty(ExternalIdentityConstants.REP_LAST_SYNCED);
         if (ps == null || ps.count() == 0) {
@@ -233,7 +248,9 @@ public abstract class AbstractExternalAuthTest extends AbstractSecurityTest {
         }
     }
 
-    protected static Set<ExternalIdentityRef> getExpectedSyncedGroupRefs(long membershipNestingDepth, @NotNull ExternalIdentityProvider idp, @NotNull ExternalIdentity extId) throws Exception {
+    protected static Set<ExternalIdentityRef> getExpectedSyncedGroupRefs(
+        long membershipNestingDepth, @NotNull ExternalIdentityProvider idp,
+        @NotNull ExternalIdentity extId) throws Exception {
         if (membershipNestingDepth <= 0) {
             return Collections.emptySet();
         }
@@ -243,19 +260,23 @@ public abstract class AbstractExternalAuthTest extends AbstractSecurityTest {
         return groupRefs;
     }
 
-    protected static Set<String> getExpectedSyncedGroupIds(long membershipNestingDepth, @NotNull ExternalIdentityProvider idp, @NotNull ExternalIdentity extId) throws Exception {
-        Set<ExternalIdentityRef> groupRefs = getExpectedSyncedGroupRefs(membershipNestingDepth, idp, extId);
+    protected static Set<String> getExpectedSyncedGroupIds(long membershipNestingDepth,
+        @NotNull ExternalIdentityProvider idp, @NotNull ExternalIdentity extId) throws Exception {
+        Set<ExternalIdentityRef> groupRefs = getExpectedSyncedGroupRefs(membershipNestingDepth, idp,
+            extId);
         return groupRefs.stream().map(ExternalIdentityRef::getId).collect(Collectors.toSet());
     }
-    
-    private static void getExpectedSyncedGroupRefs(long membershipNestingDepth, @NotNull ExternalIdentityProvider idp, 
-                                                  @NotNull ExternalIdentity extId, @NotNull Set<ExternalIdentityRef> groupRefs) throws Exception {
+
+    private static void getExpectedSyncedGroupRefs(long membershipNestingDepth,
+        @NotNull ExternalIdentityProvider idp,
+        @NotNull ExternalIdentity extId, @NotNull Set<ExternalIdentityRef> groupRefs)
+        throws Exception {
         extId.getDeclaredGroups().forEach(groupRefs::add);
         if (membershipNestingDepth > 1) {
             for (ExternalIdentityRef ref : extId.getDeclaredGroups()) {
                 ExternalIdentity id = idp.getIdentity(ref);
                 assertNotNull(id);
-                getExpectedSyncedGroupRefs(membershipNestingDepth-1, idp, id, groupRefs);
+                getExpectedSyncedGroupRefs(membershipNestingDepth - 1, idp, id, groupRefs);
             }
         }
     }

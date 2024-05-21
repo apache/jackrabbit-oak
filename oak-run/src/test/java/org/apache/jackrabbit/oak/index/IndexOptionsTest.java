@@ -19,18 +19,17 @@
 
 package org.apache.jackrabbit.oak.index;
 
-import joptsimple.OptionParser;
-import org.apache.jackrabbit.oak.run.cli.Options;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.util.List;
-
 import static org.hamcrest.core.IsCollectionContaining.hasItems;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+
+import java.util.List;
+import joptsimple.OptionParser;
+import org.apache.jackrabbit.oak.run.cli.Options;
+import org.junit.Before;
+import org.junit.Test;
 
 public class IndexOptionsTest {
 
@@ -38,14 +37,14 @@ public class IndexOptionsTest {
     private OptionParser parser = new OptionParser();
 
     @Before
-    public void setUp(){
+    public void setUp() {
         options = new Options().withDisableSystemExit();
         options.registerOptionsFactory(IndexOptions.FACTORY);
     }
 
     @Test
-    public void defaultActions() throws Exception{
-        options.parseAndConfigure(parser, new String[] {});
+    public void defaultActions() throws Exception {
+        options.parseAndConfigure(parser, new String[]{});
         IndexOptions idxOpts = options.getOptionBean(IndexOptions.class);
 
         assertTrue(idxOpts.dumpDefinitions());
@@ -53,8 +52,8 @@ public class IndexOptionsTest {
     }
 
     @Test
-    public void defaultActionDisabled() throws Exception{
-        options.parseAndConfigure(parser, new String[] {"--index-info"});
+    public void defaultActionDisabled() throws Exception {
+        options.parseAndConfigure(parser, new String[]{"--index-info"});
 
         IndexOptions idxOpts = options.getOptionBean(IndexOptions.class);
 
@@ -63,8 +62,8 @@ public class IndexOptionsTest {
     }
 
     @Test
-    public void indexPathsAreTrimmed() throws Exception{
-        options.parseAndConfigure(parser, new String[] {"--index-paths=foo, bar, baz ,"});
+    public void indexPathsAreTrimmed() throws Exception {
+        options.parseAndConfigure(parser, new String[]{"--index-paths=foo, bar, baz ,"});
 
         IndexOptions idxOpts = options.getOptionBean(IndexOptions.class);
         List<String> paths = idxOpts.getIndexPaths();

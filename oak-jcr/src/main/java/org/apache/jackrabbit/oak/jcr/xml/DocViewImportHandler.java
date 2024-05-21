@@ -22,13 +22,12 @@ import java.io.Reader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
-
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.Node;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
-
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.jcr.session.SessionContext;
 import org.apache.jackrabbit.oak.namepath.JcrNameParser;
 import org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants;
@@ -42,20 +41,17 @@ import org.slf4j.LoggerFactory;
 import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
-
 /**
- * {@code DocViewImportHandler} processes Document View XML SAX events
- * and 'translates' them into {@code {@link Importer}} method calls.
+ * {@code DocViewImportHandler} processes Document View XML SAX events and 'translates' them into
+ * {@code {@link Importer}} method calls.
  */
 class DocViewImportHandler extends TargetImportHandler {
 
     private static final Logger log = LoggerFactory.getLogger(DocViewImportHandler.class);
 
     /**
-     * stack of NodeInfo instances; an instance is pushed onto the stack
-     * in the startElement method and is popped from the stack in the
-     * endElement method.
+     * stack of NodeInfo instances; an instance is pushed onto the stack in the startElement method
+     * and is popped from the stack in the endElement method.
      */
     private final Stack<NodeInfo> stack = new Stack<NodeInfo>();
     // buffer used to merge adjacent character data
@@ -64,7 +60,7 @@ class DocViewImportHandler extends TargetImportHandler {
     /**
      * Constructs a new {@code DocViewImportHandler}.
      *
-     * @param importer     the importer
+     * @param importer       the importer
      * @param sessionContext the session context
      */
     DocViewImportHandler(Importer importer, SessionContext sessionContext) {
@@ -72,10 +68,9 @@ class DocViewImportHandler extends TargetImportHandler {
     }
 
     /**
-     * Parses the given string as a list of JCR names. Any whitespace sequence
-     * is supported as a names separator instead of just a single space to
-     * be more liberal in what we accept. The current namespace context is
-     * used to convert the prefixed name strings to QNames.
+     * Parses the given string as a list of JCR names. Any whitespace sequence is supported as a
+     * names separator instead of just a single space to be more liberal in what we accept. The
+     * current namespace context is used to convert the prefixed name strings to QNames.
      *
      * @param value string value
      * @return the parsed names
@@ -106,11 +101,11 @@ class DocViewImportHandler extends TargetImportHandler {
      * @see #processCharacters()
      */
     private void appendCharacters(char[] ch, int start, int length)
-            throws SAXException {
+        throws SAXException {
         if (textHandler == null) {
             textHandler = new BufferedStringValue(
-                    sessionContext.getValueFactory(), currentNamePathMapper(),
-                    false);
+                sessionContext.getValueFactory(), currentNamePathMapper(),
+                false);
         }
         try {
             textHandler.append(ch, start, length);
@@ -122,17 +117,15 @@ class DocViewImportHandler extends TargetImportHandler {
     }
 
     /**
-     * Translates character data reported by the
-     * {@code {@link #characters(char[], int, int)}} &
-     * {@code {@link #ignorableWhitespace(char[], int, int)}} SAX events
-     * into a  {@code jcr:xmltext} child node with one
-     * {@code jcr:xmlcharacters} property.
+     * Translates character data reported by the {@code {@link #characters(char[], int, int)}} &
+     * {@code {@link #ignorableWhitespace(char[], int, int)}} SAX events into a  {@code jcr:xmltext}
+     * child node with one {@code jcr:xmlcharacters} property.
      *
      * @throws SAXException if an error occurs
      * @see #appendCharacters(char[], int, int)
      */
     private void processCharacters()
-            throws SAXException {
+        throws SAXException {
         try {
             if (textHandler != null && textHandler.length() > 0) {
                 // there is character data that needs to be added to
@@ -159,10 +152,11 @@ class DocViewImportHandler extends TargetImportHandler {
                     reader.close();
                 }
 
-                NodeInfo node = new NodeInfo(getJcrName(NamespaceRegistry.NAMESPACE_JCR, "xmltext"), null, null, null);
+                NodeInfo node = new NodeInfo(getJcrName(NamespaceRegistry.NAMESPACE_JCR, "xmltext"),
+                    null, null, null);
                 ArrayList<PropInfo> props = new ArrayList<PropInfo>();
                 props.add(new PropInfo(getJcrName(NamespaceRegistry.NAMESPACE_JCR, "xmlcharacters"),
-                        PropertyType.STRING, textHandler));
+                    PropertyType.STRING, textHandler));
                 // call Importer
                 importer.startNode(node, props);
                 importer.endNode(node);
@@ -181,17 +175,16 @@ class DocViewImportHandler extends TargetImportHandler {
     }
 
     private String getJcrName(String uri, String name)
-            throws RepositoryException {
+        throws RepositoryException {
         return sessionContext.getSession().getNamespacePrefix(uri) + ':' + name;
     }
 
     /**
-     * Processes the given {@code name}, i.e. decodes it and checks
-     * the format of the decoded name.
+     * Processes the given {@code name}, i.e. decodes it and checks the format of the decoded name.
      *
      * @param nameInfo name to process
-     * @return the decoded and valid jcr name or the original name if it is
-     *         not encoded or if the resulting decoded name would be illegal.
+     * @return the decoded and valid jcr name or the original name if it is not encoded or if the
+     * resulting decoded name would be illegal.
      * @throws javax.jcr.RepositoryException
      */
     private NameInfo processName(NameInfo nameInfo) throws RepositoryException {
@@ -215,13 +208,13 @@ class DocViewImportHandler extends TargetImportHandler {
     /**
      * {@inheritDoc}
      * <p>
-     * See also {@link org.apache.jackrabbit.commons.xml.Exporter#exportProperties(Node)}
-     * regarding special handling of multi-valued properties on export.
+     * See also {@link org.apache.jackrabbit.commons.xml.Exporter#exportProperties(Node)} regarding
+     * special handling of multi-valued properties on export.
      */
     @Override
     public void startElement(String namespaceURI, String localName,
-                             String qName, Attributes atts)
-            throws SAXException {
+        String qName, Attributes atts)
+        throws SAXException {
         // process buffered character data
         processCharacters();
 
@@ -245,18 +238,18 @@ class DocViewImportHandler extends TargetImportHandler {
                 NameInfo propNameInfo = processName(new NameInfo(atts.getQName(i)));
                 String attrValue = atts.getValue(i);
                 if (NamespaceRegistry.NAMESPACE_JCR.equals(propNameInfo.getNamespaceUri())
-                        && "primaryType".equals(propNameInfo.getLocalName())) {
+                    && "primaryType".equals(propNameInfo.getLocalName())) {
                     // jcr:primaryType
                     if (!attrValue.isEmpty()) {
                         //TODO
                         nodeTypeName = attrValue;
                     }
                 } else if (NamespaceRegistry.NAMESPACE_JCR.equals(propNameInfo.getNamespaceUri())
-                        && "mixinTypes".equals(propNameInfo.getLocalName())) {
+                    && "mixinTypes".equals(propNameInfo.getLocalName())) {
                     // jcr:mixinTypes
                     mixinTypes = parseNames(attrValue);
                 } else if (NamespaceRegistry.NAMESPACE_JCR.equals(propNameInfo.getNamespaceUri())
-                        && "uuid".equals(propNameInfo.getLocalName())) {
+                    && "uuid".equals(propNameInfo.getLocalName())) {
                     // jcr:uuid
                     if (!attrValue.isEmpty()) {
                         id = attrValue;
@@ -267,12 +260,16 @@ class DocViewImportHandler extends TargetImportHandler {
                     // properties on re-import is found (see JCR-325);
                     // see also DocViewSAXEventGenerator#leavingProperties(Node, int)
                     // TODO proper multi-value serialization support
-                    TextValue tv = new StringValue(attrValue, sessionContext.getValueFactory(), currentNamePathMapper());
-                    props.add(new PropInfo(propNameInfo.getRepoQualifiedName(), PropertyType.UNDEFINED, tv));
+                    TextValue tv = new StringValue(attrValue, sessionContext.getValueFactory(),
+                        currentNamePathMapper());
+                    props.add(
+                        new PropInfo(propNameInfo.getRepoQualifiedName(), PropertyType.UNDEFINED,
+                            tv));
                 }
             }
 
-            NodeInfo node = new NodeInfo(nameInfo.getRepoQualifiedName(), nodeTypeName, mixinTypes, id);
+            NodeInfo node = new NodeInfo(nameInfo.getRepoQualifiedName(), nodeTypeName, mixinTypes,
+                id);
             // all information has been collected, now delegate to importer
             importer.startNode(node, props);
             // push current node data onto stack
@@ -284,7 +281,7 @@ class DocViewImportHandler extends TargetImportHandler {
 
     @Override
     public void characters(char[] ch, int start, int length)
-            throws SAXException {
+        throws SAXException {
         /**
          * buffer data reported by the characters event;
          * will be processed on the next endElement or startElement event.
@@ -294,7 +291,7 @@ class DocViewImportHandler extends TargetImportHandler {
 
     @Override
     public void ignorableWhitespace(char[] ch, int start, int length)
-            throws SAXException {
+        throws SAXException {
         /**
          * buffer data reported by the ignorableWhitespace event;
          * will be processed on the next endElement or startElement event.
@@ -304,7 +301,7 @@ class DocViewImportHandler extends TargetImportHandler {
 
     @Override
     public void endElement(String namespaceURI, String localName, String qName)
-            throws SAXException {
+        throws SAXException {
         // process buffered character data
         processCharacters();
 

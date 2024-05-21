@@ -19,16 +19,16 @@ package org.apache.jackrabbit.oak.spi.security;
 
 /**
  * Holds the names of well-known registration properties for security-related components
- *
  */
 public abstract class RegistrationConstants {
 
     /**
-     * Name to be used when registering components that are required by the {@code org.apache.jackrabbit.oak.security.internal.SecurityProviderRegistration}
+     * Name to be used when registering components that are required by the
+     * {@code org.apache.jackrabbit.oak.security.internal.SecurityProviderRegistration}
      */
     public static final String OAK_SECURITY_NAME = "oak.security.name";
-    
+
     private RegistrationConstants() {
-        
+
     }
 }

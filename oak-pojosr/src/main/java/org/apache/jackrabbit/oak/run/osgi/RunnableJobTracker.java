@@ -23,7 +23,6 @@ import java.io.Closeable;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.jackrabbit.guava.common.base.Supplier;
 import org.apache.jackrabbit.guava.common.base.Suppliers;
 import org.apache.jackrabbit.oak.Oak;
@@ -38,17 +37,18 @@ import org.osgi.framework.SynchronousBundleListener;
 import org.osgi.util.tracker.ServiceTracker;
 
 public class RunnableJobTracker extends ServiceTracker<Runnable, Future>
-        implements Closeable, SynchronousBundleListener {
+    implements Closeable, SynchronousBundleListener {
+
     /**
      * Lazily loaded executor
      */
     private final Supplier<ScheduledExecutorService> executor =
-            Suppliers.memoize(new Supplier<ScheduledExecutorService>() {
-        @Override
-        public ScheduledExecutorService get() {
-            return Oak.defaultScheduledExecutor();
-        }
-    });
+        Suppliers.memoize(new Supplier<ScheduledExecutorService>() {
+            @Override
+            public ScheduledExecutorService get() {
+                return Oak.defaultScheduledExecutor();
+            }
+        });
 
     public RunnableJobTracker(BundleContext context) {
         super(context, createFilter(), null);
@@ -60,15 +60,16 @@ public class RunnableJobTracker extends ServiceTracker<Runnable, Future>
     public Future addingService(ServiceReference<Runnable> reference) {
         Runnable runnable = context.getService(reference);
         long period = PropertiesUtil.toLong(reference.getProperty("scheduler.period"), -1);
-        boolean concurrent = PropertiesUtil.toBoolean(reference.getProperty("scheduler.concurrent"), false);
+        boolean concurrent = PropertiesUtil.toBoolean(reference.getProperty("scheduler.concurrent"),
+            false);
         Future future = null;
         if (period != -1) {
             if (concurrent) {
                 future = getExecutor().scheduleAtFixedRate(
-                        runnable, period, period, TimeUnit.SECONDS);
+                    runnable, period, period, TimeUnit.SECONDS);
             } else {
                 future = getExecutor().scheduleWithFixedDelay(
-                        runnable, period, period, TimeUnit.SECONDS);
+                    runnable, period, period, TimeUnit.SECONDS);
             }
         }
         return future;
@@ -90,19 +91,20 @@ public class RunnableJobTracker extends ServiceTracker<Runnable, Future>
         //Look for close event of system bundle to shutdown executor
         //Ideally we should listen to FrameworkEvent but PojoSR
         //currently does not emit framework event
-        if(bundleEvent.getBundle().getBundleId() == 0
-                && bundleEvent.getType() == bundleEvent.STOPPED){
+        if (bundleEvent.getBundle().getBundleId() == 0
+            && bundleEvent.getType() == bundleEvent.STOPPED) {
             close();
         }
     }
 
-    private ScheduledExecutorService getExecutor(){
+    private ScheduledExecutorService getExecutor() {
         return executor.get();
     }
 
-    private static Filter createFilter()  {
+    private static Filter createFilter() {
         try {
-            return FrameworkUtil.createFilter("(&(objectclass=java.lang.Runnable)(scheduler.period=*))");
+            return FrameworkUtil.createFilter(
+                "(&(objectclass=java.lang.Runnable)(scheduler.period=*))");
         } catch (InvalidSyntaxException e) {
             throw new IllegalArgumentException(e);
         }

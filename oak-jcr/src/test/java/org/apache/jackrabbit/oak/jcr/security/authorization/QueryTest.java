@@ -29,9 +29,9 @@ import javax.jcr.security.Privilege;
  * Tests access rights for queries.
  */
 public class QueryTest extends AbstractEvaluationTest {
-    
+
     public void testJoin() throws Exception {
-        // create a visible node /test/node1 
+        // create a visible node /test/node1
         // with an invisible child /test/node1/node2
         // with an invisible child /test/node1/node2/node3
         Node n = superuser.getNode(path);
@@ -45,15 +45,15 @@ public class QueryTest extends AbstractEvaluationTest {
 
         // test visibility
         testSession.refresh(false);
-        testSession.checkPermission(visible.getPath(), Session.ACTION_READ);        
+        testSession.checkPermission(visible.getPath(), Session.ACTION_READ);
         try {
-            testSession.checkPermission(invisible.getPath(), Session.ACTION_READ);        
+            testSession.checkPermission(invisible.getPath(), Session.ACTION_READ);
             fail();
         } catch (AccessControlException e) {
             // expected
         }
         Node x = testSession.getNode(visible.getPath());
-        
+
         ValueFactory vf = testSession.getValueFactory();
         Query q;
         QueryResult r;
@@ -61,7 +61,7 @@ public class QueryTest extends AbstractEvaluationTest {
 
         // verify we can see the visible node
         q = testSession.getWorkspace().getQueryManager().createQuery(
-                "select * from [nt:base] where [jcr:path]=$path", Query.JCR_SQL2);
+            "select * from [nt:base] where [jcr:path]=$path", Query.JCR_SQL2);
         q.bindValue("path", vf.createValue(visible.getPath()));
         r = q.execute();
         ni = r.getNodes();
@@ -71,14 +71,14 @@ public class QueryTest extends AbstractEvaluationTest {
 
         // verify we cannot see the invisible node
         q = testSession.getWorkspace().getQueryManager().createQuery(
-                "select * from [nt:base] where [jcr:path]=$path", Query.JCR_SQL2);
+            "select * from [nt:base] where [jcr:path]=$path", Query.JCR_SQL2);
         q.bindValue("path", vf.createValue(invisible.getPath()));
         r = q.execute();
         assertFalse(r.getNodes().hasNext());
-        
+
         // the superuser should see both nodes
         q = superuser.getWorkspace().getQueryManager().createQuery(
-                "select a.* from [nt:base] as a " +
+            "select a.* from [nt:base] as a " +
                 "inner join [nt:base] as b on isdescendantnode(b, a) " +
                 "where a.[jcr:path]=$path", Query.JCR_SQL2);
         q.bindValue("path", vf.createValue(visible.getPath()));
@@ -89,7 +89,7 @@ public class QueryTest extends AbstractEvaluationTest {
         // verify we can not deduce existence of the invisible node
         // using a join
         q = testSession.getWorkspace().getQueryManager().createQuery(
-                "select a.* from [nt:base] as a " +
+            "select a.* from [nt:base] as a " +
                 "inner join [nt:base] as b on isdescendantnode(b, a) " +
                 "where a.[jcr:path]=$path", Query.JCR_SQL2);
         q.bindValue("path", vf.createValue(visible.getPath()));
@@ -97,5 +97,5 @@ public class QueryTest extends AbstractEvaluationTest {
         assertFalse(r.getNodes().hasNext());
 
     }
-    
+
 }

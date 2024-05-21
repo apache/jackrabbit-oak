@@ -16,6 +16,10 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
+import static org.apache.jackrabbit.guava.common.collect.Iterators.concat;
+import static org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission.ALL;
+import static org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission.EMPTY;
+
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -25,9 +29,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.iterator.AbstractLazyIterator;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -53,10 +57,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.apache.jackrabbit.guava.common.collect.Iterators.concat;
-import static org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission.ALL;
-import static org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission.EMPTY;
 
 final class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants {
 

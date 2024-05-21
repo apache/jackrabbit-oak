@@ -26,7 +26,7 @@ import org.codehaus.groovy.tools.shell.Groovysh
 import java.util.concurrent.TimeUnit
 
 @CompileStatic
-class CheckpointCommand extends CommandSupport{
+class CheckpointCommand extends CommandSupport {
     public static final String COMMAND_NAME = 'checkpoint'
 
     public CheckpointCommand(Groovysh shell) {
@@ -46,7 +46,7 @@ class CheckpointCommand extends CommandSupport{
         return null
     }
 
-    ConsoleSession getSession(){
-        return (ConsoleSession)variables.session
+    ConsoleSession getSession() {
+        return (ConsoleSession) variables.session
     }
 }

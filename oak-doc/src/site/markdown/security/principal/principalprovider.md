@@ -34,9 +34,9 @@ different implementation of `UserConfiguration`.
 ### [UserPrincipalProvider]
 
 The introduction of the optional `UserConfiguration.getUserPrincipalProvider`
-extension (since Oak 1.3.4) allows for an optimized variant of the default 
-principal provider, which is reading principal information from user and group 
-accounts using generic user management API. _Note:_ every single user/group 
+extension (since Oak 1.3.4) allows for an optimized variant of the default
+principal provider, which is reading principal information from user and group
+accounts using generic user management API. _Note:_ every single user/group
 exposes a `Principal` instance through the call `Authorizable.getPrincipal()`
 
 This extension allows for a provider based on implementation details of the user
@@ -65,27 +65,32 @@ where principals are backed by an existing user/group account.
 
 ### [ExternalGroupPrincipalProvider]
 
-Implementation of the `PrincipalProvider` interface that exposes _external_ principals 
+Implementation of the `PrincipalProvider` interface that exposes _external_ principals
 of type `java.security.acl.Group`. _External_ refers to the fact that these
 principals are defined and managed by an external identity provider in contrast to
 the default implementation that represents principals native to the repository.
 This implies that the principals known and exposed by this provider implementation
 does not expect principals to be backed by an authorizable group. As such they
-can only be retrieved using Jackrabbit Principal Management API but not with 
+can only be retrieved using Jackrabbit Principal Management API but not with
 User Management calls.
 
-For performance reasons the `ExternalGroupPrincipalProvider` doesn't lookup 
+For performance reasons the `ExternalGroupPrincipalProvider` doesn't lookup
 principals on the IDP but relies data persisted inside the repository where
 the names of these external principals are synchronized based on a configurable
 expiration time.
 
-See section [User and Group Synchronization : The Default Implementation](../authentication/external/defaultusersync.html)
+See
+section [User and Group Synchronization : The Default Implementation](../authentication/external/defaultusersync.html)
 for additional details.
 
 Since Oak 1.5.3
 
 <!-- references -->
+
 [PrincipalProviderImpl]: https://github.com/apache/jackrabbit-oak/tree/trunk/oak-core/src/main/java/org/apache/jackrabbit/oak/security/principal/PrincipalProviderImpl.java
+
 [CompositePrincipalProvider]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/principal/CompositePrincipalProvider.html
+
 [UserPrincipalProvider]: https://github.com/apache/jackrabbit-oak/tree/trunk/oak-core/src/main/java/org/apache/jackrabbit/oak/security/user/UserPrincipalProvider.java
+
 [ExternalGroupPrincipalProvider]: https://github.com/apache/jackrabbit-oak/tree/trunk/oak-auth-external/src/main/org/apache/jackrabbit/oak/spi/security/authentication/external/impl/principal/ExternalGroupPrincipalProvider.java

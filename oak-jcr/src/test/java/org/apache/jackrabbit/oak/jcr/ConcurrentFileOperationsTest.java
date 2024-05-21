@@ -26,7 +26,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-
 import javax.jcr.Node;
 import javax.jcr.Property;
 import javax.jcr.PropertyIterator;
@@ -34,7 +33,6 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.Value;
 import javax.jcr.util.TraversingItemVisitor;
-
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
@@ -67,7 +65,7 @@ public class ConcurrentFileOperationsTest extends AbstractRepositoryTest {
     public void setup() throws RepositoryException {
         session = getAdminSession();
         testRootNode = JcrUtils.getOrAddNode(session.getRootNode(),
-                "test-node", "nt:unstructured");
+            "test-node", "nt:unstructured");
         session.save();
     }
 
@@ -84,7 +82,7 @@ public class ConcurrentFileOperationsTest extends AbstractRepositoryTest {
         addFile(testRootNode, "dummy");
         session.save();
         final Map<String, Exception> exceptions = Collections.synchronizedMap(
-                new HashMap<String, Exception>());
+            new HashMap<String, Exception>());
         List<Thread> writers = new ArrayList<Thread>();
         for (int i = 0; i < sessions.size(); i++) {
             final Session s = sessions.get(i);
@@ -123,7 +121,8 @@ public class ConcurrentFileOperationsTest extends AbstractRepositoryTest {
             s.logout();
         }
         for (Map.Entry<String, Exception> entry : exceptions.entrySet()) {
-            log.info("Worker (" + entry.getKey() + ") failed with exception: " + entry.getValue().toString());
+            log.info("Worker (" + entry.getKey() + ") failed with exception: " + entry.getValue()
+                                                                                      .toString());
             throw entry.getValue();
         }
     }
@@ -134,7 +133,7 @@ public class ConcurrentFileOperationsTest extends AbstractRepositoryTest {
             s.getNode(path).accept(new TraversingItemVisitor.Default() {
                 @Override
                 protected void entering(Node node, int level)
-                        throws RepositoryException {
+                    throws RepositoryException {
                     String indent = "";
                     for (int i = 0; i < level; i++) {
                         indent += "  ";
@@ -219,13 +218,13 @@ public class ConcurrentFileOperationsTest extends AbstractRepositoryTest {
     }
 
     private static Node addFile(Node parent, String name)
-            throws RepositoryException {
+        throws RepositoryException {
         return JcrUtils.putFile(parent, name,
-                "application/octet-stream", new ByteArrayInputStream(DATA));
+            "application/octet-stream", new ByteArrayInputStream(DATA));
     }
 
     private static void rename(Node node, String name)
-            throws RepositoryException {
+        throws RepositoryException {
         String destPath = PathUtils.getParentPath(node.getPath()) + "/" + name;
         node.getSession().move(node.getPath(), destPath);
     }

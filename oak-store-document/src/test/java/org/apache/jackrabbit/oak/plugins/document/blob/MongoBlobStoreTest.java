@@ -57,7 +57,7 @@ public class MongoBlobStoreTest extends AbstractBlobStoreTest {
 
         // Some tests assume read from the primary
         MongoDatabase db = mongoConnection.getDatabase()
-                .withReadPreference(ReadPreference.primary());
+                                          .withReadPreference(ReadPreference.primary());
         MongoBlobStore blobStore = new MongoBlobStore(db);
         blobStore.setBlockSize(128);
         blobStore.setBlockSizeMin(48);
@@ -77,7 +77,7 @@ public class MongoBlobStoreTest extends AbstractBlobStoreTest {
         try {
             MongoUtils.dropCollections(mongoConnection.getDatabase());
             MongoDocumentNodeStoreBuilder mdnssb = MongoDocumentNodeStoreBuilder.newMongoDocumentNodeStoreBuilder()
-                    .setReadOnlyMode();
+                                                                                .setReadOnlyMode();
             MongoBlobStore mbs = new MongoBlobStore(mongoConnection.getDatabase(), 0, mdnssb);
             fail("Read-only instantiation should fail when collection is missing, but got: " + mbs);
         } catch (RuntimeException expected) {

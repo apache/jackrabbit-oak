@@ -22,5 +22,6 @@ package org.apache.jackrabbit.oak.segment;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 
 public interface SegmentWriterFactory {
+
     SegmentWriter newSegmentWriter(GCGeneration generation);
 }

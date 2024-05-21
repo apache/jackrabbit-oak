@@ -28,11 +28,11 @@ public class JournalPropertyHandlerFactory extends AbstractServiceTracker<Journa
         super(JournalPropertyService.class);
     }
 
-    public JournalPropertyHandler newHandler(){
+    public JournalPropertyHandler newHandler() {
         return new JournalPropertyHandler(getServices());
     }
 
-    int getServiceCount(){
+    int getServiceCount() {
         return getServices().size();
     }
 }

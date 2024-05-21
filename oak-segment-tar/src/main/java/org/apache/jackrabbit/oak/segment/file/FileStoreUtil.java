@@ -18,11 +18,10 @@
 package org.apache.jackrabbit.oak.segment.file;
 
 import java.io.IOException;
-
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.SegmentIdProvider;
-import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
 import org.apache.jackrabbit.oak.segment.SegmentStore;
+import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,18 +34,17 @@ class FileStoreUtil {
     }
 
     /**
-     * Traverse the journal until a record ID is found that exists in the
-     * provided segment store.
+     * Traverse the journal until a record ID is found that exists in the provided segment store.
      *
-     * @param store   An instance of {@link SegmentStore}.
+     * @param store       An instance of {@link SegmentStore}.
      * @param idProvider  The {@code SegmentIdProvider} of the {@code store}
      * @param journalFile The journal of the {@code store}
-     * @return An instance of {@link RecordId}, or {@code null} if none could be
-     * found.
+     * @return An instance of {@link RecordId}, or {@code null} if none could be found.
      * @throws IOException If an I/O error occurs.
      */
-    static RecordId findPersistedRecordId(SegmentStore store, SegmentIdProvider idProvider, JournalFile journalFile)
-    throws IOException {
+    static RecordId findPersistedRecordId(SegmentStore store, SegmentIdProvider idProvider,
+        JournalFile journalFile)
+        throws IOException {
         try (JournalReader journalReader = new JournalReader(journalFile)) {
             while (journalReader.hasNext()) {
                 JournalEntry entry = journalReader.next();

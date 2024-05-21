@@ -20,15 +20,13 @@
 package org.apache.jackrabbit.oak.segment;
 
 import java.util.Date;
-
 import javax.management.openmbean.OpenDataException;
 import javax.management.openmbean.TabularDataSupport;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.jmx.AbstractCheckpointMBean;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.commons.jmx.AbstractCheckpointMBean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,6 +34,7 @@ import org.slf4j.LoggerFactory;
  * {@code CheckpointMBean} implementation for the {@code SegmentNodeStore}.
  */
 public class SegmentCheckpointMBean extends AbstractCheckpointMBean {
+
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final SegmentNodeStore store;
 
@@ -64,7 +63,7 @@ public class SegmentCheckpointMBean extends AbstractCheckpointMBean {
                 minTimestamp = Math.min(minTimestamp, p.getValue(Type.LONG));
             }
         }
-        return (minTimestamp==Long.MAX_VALUE)?0:minTimestamp;
+        return (minTimestamp == Long.MAX_VALUE) ? 0 : minTimestamp;
     }
 
     private static String getDate(NodeState checkpoint, String name) {

@@ -19,8 +19,8 @@ package org.apache.jackrabbit.oak.json;
 import org.apache.jackrabbit.oak.api.Blob;
 
 /**
- * Customizable mechanism for mapping {@link Blob} instances to corresponding
- * serialization identifiers.
+ * Customizable mechanism for mapping {@link Blob} instances to corresponding serialization
+ * identifiers.
  */
 public class BlobSerializer {
 

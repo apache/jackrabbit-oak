@@ -26,19 +26,19 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
-
 import org.apache.jackrabbit.guava.common.cache.AbstractCache;
 import org.apache.jackrabbit.guava.common.cache.CacheLoader;
+import org.apache.jackrabbit.guava.common.util.concurrent.ListeningExecutorService;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.util.concurrent.ListeningExecutorService;
-
 /**
+ *
  */
 public class CompositeDataStoreCache extends AbstractCache<String, File> implements Closeable {
+
     /**
      * Logger instance.
      */

@@ -24,15 +24,14 @@ import static org.apache.jackrabbit.oak.stats.StatsOptions.METRICS_ONLY;
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.WeakReference;
 import java.util.Set;
-
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.stats.CounterStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * This class exposes {@link CounterStats} for allocations and de-allocations
- * of {@link Buffer} instances:
+ * This class exposes {@link CounterStats} for allocations and de-allocations of {@link Buffer}
+ * instances:
  * <ul>
  *     <li>{@link #DIRECT_BUFFER_COUNT}: number of allocated direct byte
  *          buffers.</li>
@@ -87,18 +86,21 @@ public class SegmentBufferMonitor {
     private final CounterStats heapBufferCapacity;
 
     /**
-     * Create a new instance using the passed {@code statisticsProvider} to expose
-     * buffer allocations.
+     * Create a new instance using the passed {@code statisticsProvider} to expose buffer
+     * allocations.
+     *
      * @param statisticsProvider
      */
     public SegmentBufferMonitor(@NotNull StatisticsProvider statisticsProvider) {
         directBufferCount = statisticsProvider.getCounterStats(DIRECT_BUFFER_COUNT, METRICS_ONLY);
-        directBufferCapacity = statisticsProvider.getCounterStats(DIRECT_BUFFER_CAPACITY, METRICS_ONLY);
+        directBufferCapacity = statisticsProvider.getCounterStats(DIRECT_BUFFER_CAPACITY,
+            METRICS_ONLY);
         heapBufferCount = statisticsProvider.getCounterStats(HEAP_BUFFER_COUNT, METRICS_ONLY);
         heapBufferCapacity = statisticsProvider.getCounterStats(HEAP_BUFFER_CAPACITY, METRICS_ONLY);
     }
 
     private static class BufferReference extends WeakReference<Buffer> {
+
         private final int capacity;
         private final boolean isDirect;
 
@@ -112,6 +114,7 @@ public class SegmentBufferMonitor {
 
     /**
      * Track the allocation of a {@code buffer} and update the exposed statistics.
+     *
      * @param buffer
      */
     public void trackAllocation(@NotNull Buffer buffer) {

@@ -16,8 +16,10 @@
  */
 package org.apache.jackrabbit.oak.exercise.security.user;
 
-import javax.jcr.RepositoryException;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
+import javax.jcr.RepositoryException;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
@@ -26,12 +28,9 @@ import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.exercise.ExerciseUtility;
-import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 
 /**
  * <pre>
@@ -142,7 +141,8 @@ public class L4_AuthorizableIdTest extends AbstractSecurityTest {
             Tree anotherUser = authorizableFolder.addChild("nodeName");
             anotherUser.setProperty(userTree.getProperty(JcrConstants.JCR_PRIMARYTYPE));
             anotherUser.setProperty(userTree.getProperty(JcrConstants.JCR_UUID));
-            anotherUser.setProperty(UserConstants.REP_PRINCIPAL_NAME, TreeUtil.getString(userTree, UserConstants.REP_PRINCIPAL_NAME));
+            anotherUser.setProperty(UserConstants.REP_PRINCIPAL_NAME,
+                TreeUtil.getString(userTree, UserConstants.REP_PRINCIPAL_NAME));
             anotherUser.setProperty(UserConstants.REP_AUTHORIZABLE_ID, id);
             root.commit();
 

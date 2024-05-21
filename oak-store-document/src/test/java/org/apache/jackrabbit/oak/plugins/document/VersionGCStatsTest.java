@@ -46,7 +46,7 @@ public class VersionGCStatsTest {
     };
 
     private VersionGCStats stats = new VersionGCStats();
-    
+
     @Before
     public void before() throws Exception {
         forEachStopwatch(stats, START);
@@ -55,18 +55,23 @@ public class VersionGCStatsTest {
         }
         forEachStopwatch(stats, STOP);
     }
-    
+
     @Test
     public void addRun() {
         VersionGCStats cumulative = new VersionGCStats();
         cumulative.addRun(stats);
         assertEquals(stats.active.elapsed(MICROSECONDS), cumulative.activeElapsed);
-        assertEquals(stats.collectDeletedDocs.elapsed(MICROSECONDS), cumulative.collectDeletedDocsElapsed);
-        assertEquals(stats.checkDeletedDocs.elapsed(MICROSECONDS), cumulative.checkDeletedDocsElapsed);
-        assertEquals(stats.deleteDeletedDocs.elapsed(MICROSECONDS), cumulative.deleteDeletedDocsElapsed);
-        assertEquals(stats.collectAndDeleteSplitDocs.elapsed(MICROSECONDS), cumulative.collectAndDeleteSplitDocsElapsed);
+        assertEquals(stats.collectDeletedDocs.elapsed(MICROSECONDS),
+            cumulative.collectDeletedDocsElapsed);
+        assertEquals(stats.checkDeletedDocs.elapsed(MICROSECONDS),
+            cumulative.checkDeletedDocsElapsed);
+        assertEquals(stats.deleteDeletedDocs.elapsed(MICROSECONDS),
+            cumulative.deleteDeletedDocsElapsed);
+        assertEquals(stats.collectAndDeleteSplitDocs.elapsed(MICROSECONDS),
+            cumulative.collectAndDeleteSplitDocsElapsed);
         assertEquals(stats.sortDocIds.elapsed(MICROSECONDS), cumulative.sortDocIdsElapsed);
-        assertEquals(stats.updateResurrectedDocuments.elapsed(MICROSECONDS), cumulative.updateResurrectedDocumentsElapsed);
+        assertEquals(stats.updateResurrectedDocuments.elapsed(MICROSECONDS),
+            cumulative.updateResurrectedDocumentsElapsed);
     }
 
     @Test
@@ -77,12 +82,17 @@ public class VersionGCStatsTest {
         cumulative.addRun(cumulative);
         // now the stats must have doubled
         assertEquals(stats.active.elapsed(MICROSECONDS) * 2, cumulative.activeElapsed);
-        assertEquals(stats.collectDeletedDocs.elapsed(MICROSECONDS) * 2, cumulative.collectDeletedDocsElapsed);
-        assertEquals(stats.checkDeletedDocs.elapsed(MICROSECONDS) * 2, cumulative.checkDeletedDocsElapsed);
-        assertEquals(stats.deleteDeletedDocs.elapsed(MICROSECONDS) * 2, cumulative.deleteDeletedDocsElapsed);
-        assertEquals(stats.collectAndDeleteSplitDocs.elapsed(MICROSECONDS) * 2, cumulative.collectAndDeleteSplitDocsElapsed);
+        assertEquals(stats.collectDeletedDocs.elapsed(MICROSECONDS) * 2,
+            cumulative.collectDeletedDocsElapsed);
+        assertEquals(stats.checkDeletedDocs.elapsed(MICROSECONDS) * 2,
+            cumulative.checkDeletedDocsElapsed);
+        assertEquals(stats.deleteDeletedDocs.elapsed(MICROSECONDS) * 2,
+            cumulative.deleteDeletedDocsElapsed);
+        assertEquals(stats.collectAndDeleteSplitDocs.elapsed(MICROSECONDS) * 2,
+            cumulative.collectAndDeleteSplitDocsElapsed);
         assertEquals(stats.sortDocIds.elapsed(MICROSECONDS) * 2, cumulative.sortDocIdsElapsed);
-        assertEquals(stats.updateResurrectedDocuments.elapsed(MICROSECONDS) * 2, cumulative.updateResurrectedDocumentsElapsed);
+        assertEquals(stats.updateResurrectedDocuments.elapsed(MICROSECONDS) * 2,
+            cumulative.updateResurrectedDocumentsElapsed);
     }
 
     private void forEachStopwatch(VersionGCStats stats, Callable c) {
@@ -94,7 +104,7 @@ public class VersionGCStatsTest {
         c.call(stats.sortDocIds);
         c.call(stats.updateResurrectedDocuments);
     }
-    
+
     private interface Callable {
 
         void call(Stopwatch watch);

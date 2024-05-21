@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.jcr.security.authorization;
 
 
 import javax.jcr.security.AccessControlException;
-
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.junit.Test;
 

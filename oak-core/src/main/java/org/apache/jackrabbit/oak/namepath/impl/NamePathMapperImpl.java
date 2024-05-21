@@ -19,9 +19,7 @@ package org.apache.jackrabbit.oak.namepath.impl;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-
 import javax.jcr.RepositoryException;
-
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.JcrPathParser;
 import org.apache.jackrabbit.oak.namepath.JcrPathParser.Listener;

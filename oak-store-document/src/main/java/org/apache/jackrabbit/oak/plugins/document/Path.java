@@ -18,24 +18,22 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.elementsEqual;
+
 import java.util.Arrays;
 import java.util.Objects;
-
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.elementsEqual;
-
 /**
- * The {@code Path} class is closely modeled after the semantics of
- * {@code PathUtils} in oak-commons. Corresponding methods in this class can
- * be used as a replacement for the methods in {@code PathUtils} on {@code Path}
- * objects.
+ * The {@code Path} class is closely modeled after the semantics of {@code PathUtils} in
+ * oak-commons. Corresponding methods in this class can be used as a replacement for the methods in
+ * {@code PathUtils} on {@code Path} objects.
  */
 public final class Path implements CacheValue, Comparable<Path> {
 
@@ -50,19 +48,19 @@ public final class Path implements CacheValue, Comparable<Path> {
     private int hash;
 
     private Path(@Nullable Path parent,
-                 @NotNull String name,
-                 int hash) {
+        @NotNull String name,
+        int hash) {
         this.parent = parent;
         this.name = name;
         this.hash = hash;
     }
 
     /**
-     * Creates a new {@code Path} from the given parent {@code Path}. The name
-     * of the new {@code Path} cannot be the empty {@code String}.
+     * Creates a new {@code Path} from the given parent {@code Path}. The name of the new
+     * {@code Path} cannot be the empty {@code String}.
      *
      * @param parent the parent {@code Path}.
-     * @param name the name of the new {@code Path}.
+     * @param name   the name of the new {@code Path}.
      * @throws IllegalArgumentException if the {@code name} is empty.
      */
     public Path(@NotNull Path parent, @NotNull String name) {
@@ -71,8 +69,8 @@ public final class Path implements CacheValue, Comparable<Path> {
     }
 
     /**
-     * Creates a relative path with a single name element. The name cannot be
-     * the empty {@code String}.
+     * Creates a relative path with a single name element. The name cannot be the empty
+     * {@code String}.
      *
      * @param name the name of the first path element.
      * @throws IllegalArgumentException if the {@code name} is empty.
@@ -84,8 +82,8 @@ public final class Path implements CacheValue, Comparable<Path> {
     }
 
     /**
-     * Returns the name of this path. The {@link #ROOT} is the only path with
-     * an empty name. That is a String with length zero.
+     * Returns the name of this path. The {@link #ROOT} is the only path with an empty name. That is
+     * a String with length zero.
      *
      * @return the name of this path.
      */
@@ -95,9 +93,9 @@ public final class Path implements CacheValue, Comparable<Path> {
     }
 
     /**
-     * Returns the names of the path elements with increasing {@link #getDepth()}
-     * starting at depth 1.
-     * 
+     * Returns the names of the path elements with increasing {@link #getDepth()} starting at depth
+     * 1.
+     *
      * @return the names of the path elements.
      */
     @NotNull
@@ -106,8 +104,7 @@ public final class Path implements CacheValue, Comparable<Path> {
     }
 
     /**
-     * Returns {@code true} if this is the {@link #ROOT} path; {@code false}
-     * otherwise.
+     * Returns {@code true} if this is the {@link #ROOT} path; {@code false} otherwise.
      *
      * @return whether this is the {@link #ROOT} path.
      */
@@ -116,12 +113,10 @@ public final class Path implements CacheValue, Comparable<Path> {
     }
 
     /**
-     * The parent of this path or {@code null} if this path does not have a
-     * parent. The {@link #ROOT} path and the first path element of a relative
-     * path do not have a parent.
+     * The parent of this path or {@code null} if this path does not have a parent. The
+     * {@link #ROOT} path and the first path element of a relative path do not have a parent.
      *
-     * @return the parent of this path or {@code null} if this path does not
-     *      have a parent.
+     * @return the parent of this path or {@code null} if this path does not have a parent.
      */
     @Nullable
     public Path getParent() {
@@ -129,8 +124,7 @@ public final class Path implements CacheValue, Comparable<Path> {
     }
 
     /**
-     * @return the number of characters of the {@code String} representation of
-     *  this path.
+     * @return the number of characters of the {@code String} representation of this path.
      */
     public int length() {
         if (isRoot()) {
@@ -149,8 +143,8 @@ public final class Path implements CacheValue, Comparable<Path> {
     }
 
     /**
-     * The depth of this path. The {@link #ROOT} has a depth of 0. The path
-     * {@code /foo/bar} as well as {@code bar/baz} have depth 2.
+     * The depth of this path. The {@link #ROOT} has a depth of 0. The path {@code /foo/bar} as well
+     * as {@code bar/baz} have depth 2.
      *
      * @return the depth of the path.
      */
@@ -159,13 +153,12 @@ public final class Path implements CacheValue, Comparable<Path> {
     }
 
     /**
-     * Get the nth ancestor of a path. The 1st ancestor is the parent path,
-     * 2nd ancestor the grandparent path, and so on...
+     * Get the nth ancestor of a path. The 1st ancestor is the parent path, 2nd ancestor the
+     * grandparent path, and so on...
      * <p>
      * If {@code nth <= 0}, then this path is returned.
      *
-     * @param nth  indicates the ancestor level for which the path should be
-     *             calculated.
+     * @param nth indicates the ancestor level for which the path should be calculated.
      * @return the ancestor path
      */
     @NotNull
@@ -178,8 +171,8 @@ public final class Path implements CacheValue, Comparable<Path> {
     }
 
     /**
-     * Return {@code true} if {@code this} path is an ancestor of the
-     * {@code other} path, otherwise {@code false}.
+     * Return {@code true} if {@code this} path is an ancestor of the {@code other} path, otherwise
+     * {@code false}.
      *
      * @param other the other path.
      * @return whether this path is an ancestor of the other path.
@@ -188,7 +181,7 @@ public final class Path implements CacheValue, Comparable<Path> {
         checkNotNull(other);
         int depthDiff = other.getDepth() - getDepth();
         return depthDiff > 0
-                && elementsEqual(elements(true), other.getAncestor(depthDiff).elements(true));
+            && elementsEqual(elements(true), other.getAncestor(depthDiff).elements(true));
     }
 
     /**
@@ -207,8 +200,7 @@ public final class Path implements CacheValue, Comparable<Path> {
      *
      * @param path the {@code String} to parse.
      * @return the {@code Path} from the {@code String}.
-     * @throws IllegalArgumentException if the {@code path} is the empty
-     *      {@code String}.
+     * @throws IllegalArgumentException if the {@code path} is the empty {@code String}.
      */
     @NotNull
     public static Path fromString(@NotNull String path) throws IllegalArgumentException {
@@ -232,8 +224,8 @@ public final class Path implements CacheValue, Comparable<Path> {
     }
 
     /**
-     * Appends the {@code String} representation of this {@code Path} to the
-     * passed {@code StringBuilder}. See also {@link #toString()}.
+     * Appends the {@code String} representation of this {@code Path} to the passed
+     * {@code StringBuilder}. See also {@link #toString()}.
      *
      * @param sb the {@code StringBuilder} this {@code Path} is appended to.
      * @return the passed {@code StringBuilder}.
@@ -267,7 +259,7 @@ public final class Path implements CacheValue, Comparable<Path> {
         }
         Path t = this;
         int off = t.getNumberOfPathElements(true) -
-                checkNotNull(other).getNumberOfPathElements(true);
+            checkNotNull(other).getNumberOfPathElements(true);
         int corrected = off;
         while (corrected > 0) {
             t = t.parent;
@@ -312,7 +304,7 @@ public final class Path implements CacheValue, Comparable<Path> {
         } else if (obj instanceof Path) {
             Path other = (Path) obj;
             return this.name.equals(other.name)
-                    && Objects.equals(this.parent, other.parent);
+                && Objects.equals(this.parent, other.parent);
         }
         return false;
     }
@@ -341,8 +333,8 @@ public final class Path implements CacheValue, Comparable<Path> {
     }
 
     /**
-     * Returns the number of path elements. Depending on {@code withRoot} the
-     * root of an absolute path is also taken into account.
+     * Returns the number of path elements. Depending on {@code withRoot} the root of an absolute
+     * path is also taken into account.
      *
      * @param withRoot whether the root of an absolute path is also counted.
      * @return the number of path elements.

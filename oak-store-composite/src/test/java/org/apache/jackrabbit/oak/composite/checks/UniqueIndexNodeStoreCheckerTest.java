@@ -46,132 +46,140 @@ public class UniqueIndexNodeStoreCheckerTest {
 
     @Rule
     public final ExpectedException exception = ExpectedException.none();
-    
+
     private MountInfoProvider mip;
-    
+
     @Before
     public void prepare() {
         mip = Mounts.newBuilder().
-                readOnlyMount("libs", "/libs", "/libs2").
-                readOnlyMount("apps", "/apps", "/apps2").
-                build();
+                    readOnlyMount("libs", "/libs", "/libs2").
+                    readOnlyMount("apps", "/apps", "/apps2").
+                    build();
     }
-    
+
     @Test
     public void uuidConflict_twoStores() throws Exception {
-        
+
         MemoryNodeStore globalStore = new MemoryNodeStore();
         MemoryNodeStore mountedStore = new MemoryNodeStore();
-        
-        populateStore(globalStore, b  -> b.child("first").setProperty("foo", "bar"));
+
+        populateStore(globalStore, b -> b.child("first").setProperty("foo", "bar"));
         populateStore(mountedStore, b -> b.child("libs").child("first").setProperty("foo", "bar"));
-        
+
         UniqueIndexNodeStoreChecker checker = new UniqueIndexNodeStoreChecker();
         Context ctx = checker.createContext(globalStore, mip);
-        
+
         exception.expect(IllegalRepositoryStateException.class);
         exception.expectMessage("1 errors were found");
         exception.expectMessage("clash for value bar: 'duplicate unique index entry'");
-        
+
         ErrorHolder error = new ErrorHolder();
-        checker.check(new MountedNodeStore(mip.getMountByName("libs"), mountedStore), TreeFactory.createReadOnlyTree(mountedStore.getRoot()), error, ctx);
+        checker.check(new MountedNodeStore(mip.getMountByName("libs"), mountedStore),
+            TreeFactory.createReadOnlyTree(mountedStore.getRoot()), error, ctx);
         error.end();
     }
-    
+
     @Test
     public void uuidConflict_threeStores() throws Exception {
-        
+
         MemoryNodeStore globalStore = new MemoryNodeStore();
         MemoryNodeStore mountedStore = new MemoryNodeStore();
         MemoryNodeStore mountedStore2 = new MemoryNodeStore();
-        
-        populateStore(globalStore, b  -> b.child("first").setProperty("foo", "bar"));
-        populateStore(globalStore, b  -> b.child("second").setProperty("foo", "baz"));
+
+        populateStore(globalStore, b -> b.child("first").setProperty("foo", "bar"));
+        populateStore(globalStore, b -> b.child("second").setProperty("foo", "baz"));
         populateStore(mountedStore, b -> b.child("libs").child("first").setProperty("foo", "bar"));
         populateStore(mountedStore2, b -> b.child("apps").child("first").setProperty("foo", "baz"));
-        
+
         UniqueIndexNodeStoreChecker checker = new UniqueIndexNodeStoreChecker();
         Context ctx = checker.createContext(globalStore, mip);
-        
+
         exception.expect(IllegalRepositoryStateException.class);
         exception.expectMessage("2 errors were found");
         exception.expectMessage("clash for value bar: 'duplicate unique index entry'");
         exception.expectMessage("clash for value baz: 'duplicate unique index entry'");
-        
+
         ErrorHolder error = new ErrorHolder();
-        checker.check(new MountedNodeStore(mip.getMountByName("libs"), mountedStore), TreeFactory.createReadOnlyTree(mountedStore.getRoot()), error, ctx);
-        checker.check(new MountedNodeStore(mip.getMountByName("apps"), mountedStore2), TreeFactory.createReadOnlyTree(mountedStore.getRoot()), error, ctx);
+        checker.check(new MountedNodeStore(mip.getMountByName("libs"), mountedStore),
+            TreeFactory.createReadOnlyTree(mountedStore.getRoot()), error, ctx);
+        checker.check(new MountedNodeStore(mip.getMountByName("apps"), mountedStore2),
+            TreeFactory.createReadOnlyTree(mountedStore.getRoot()), error, ctx);
         error.end();
     }
-    
+
     @Test
     public void noConflict() throws Exception {
 
         MemoryNodeStore globalStore = new MemoryNodeStore();
         MemoryNodeStore mountedStore = new MemoryNodeStore();
-        
-        populateStore(globalStore, b  -> b.child("first").setProperty("foo", "baz"));
+
+        populateStore(globalStore, b -> b.child("first").setProperty("foo", "baz"));
         populateStore(mountedStore, b -> b.child("libs").child("first").setProperty("foo", "bar"));
-        
+
         UniqueIndexNodeStoreChecker checker = new UniqueIndexNodeStoreChecker();
         Context ctx = checker.createContext(globalStore, mip);
-        
+
         ErrorHolder error = new ErrorHolder();
-        checker.check(new MountedNodeStore(mip.getMountByName("libs"), mountedStore), TreeFactory.createReadOnlyTree(mountedStore.getRoot()), error, ctx);
+        checker.check(new MountedNodeStore(mip.getMountByName("libs"), mountedStore),
+            TreeFactory.createReadOnlyTree(mountedStore.getRoot()), error, ctx);
         error.end();
     }
-    
+
     /**
-     * Tests that if a mount has an index clash but the path does not belong to the mount no error is reported
+     * Tests that if a mount has an index clash but the path does not belong to the mount no error
+     * is reported
      */
     @Test
     public void noConflict_mountHasDuplicateOutsideOfPath() throws Exception {
-        
+
         MemoryNodeStore globalStore = new MemoryNodeStore();
         MemoryNodeStore mountedStore = new MemoryNodeStore();
-        
-        populateStore(globalStore, b  -> b.child("first").setProperty("foo", "bar"));
+
+        populateStore(globalStore, b -> b.child("first").setProperty("foo", "bar"));
         populateStore(mountedStore, b -> b.child("second").setProperty("foo", "bar"));
-        
+
         UniqueIndexNodeStoreChecker checker = new UniqueIndexNodeStoreChecker();
         Context ctx = checker.createContext(globalStore, mip);
-        
+
         ErrorHolder error = new ErrorHolder();
-        checker.check(new MountedNodeStore(mip.getMountByName("libs"), mountedStore), TreeFactory.createReadOnlyTree(mountedStore.getRoot()), error, ctx);
+        checker.check(new MountedNodeStore(mip.getMountByName("libs"), mountedStore),
+            TreeFactory.createReadOnlyTree(mountedStore.getRoot()), error, ctx);
         error.end();
     }
-    
+
     /**
-     * Tests that if a mount has an index clash but the path does not belog to the global mount no error is reported  
-     * 
+     * Tests that if a mount has an index clash but the path does not belog to the global mount no
+     * error is reported
      */
     @Test
     public void noConflict_globalMountHasDuplicateOutsideOfPath() throws Exception {
-        
+
         MemoryNodeStore globalStore = new MemoryNodeStore();
         MemoryNodeStore mountedStore = new MemoryNodeStore();
-        
-        populateStore(globalStore, b  -> b.child("libs").child("first").setProperty("foo", "bar"));
+
+        populateStore(globalStore, b -> b.child("libs").child("first").setProperty("foo", "bar"));
         populateStore(mountedStore, b -> b.child("libs").child("second").setProperty("foo", "bar"));
-        
+
         UniqueIndexNodeStoreChecker checker = new UniqueIndexNodeStoreChecker();
         Context ctx = checker.createContext(globalStore, mip);
-        
+
         ErrorHolder error = new ErrorHolder();
-        checker.check(new MountedNodeStore(mip.getMountByName("libs"), mountedStore), TreeFactory.createReadOnlyTree(mountedStore.getRoot()), error, ctx);
+        checker.check(new MountedNodeStore(mip.getMountByName("libs"), mountedStore),
+            TreeFactory.createReadOnlyTree(mountedStore.getRoot()), error, ctx);
         error.end();
     }
-    
-    private void populateStore(NodeStore ns, Consumer<NodeBuilder> action) throws CommitFailedException {
-        
+
+    private void populateStore(NodeStore ns, Consumer<NodeBuilder> action)
+        throws CommitFailedException {
+
         NodeBuilder builder = ns.getRoot().builder();
         NodeBuilder index = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
-                true, true, ImmutableSet.of("foo"), null);
-        index.setProperty("entryCount", -1);   
-        
+            true, true, ImmutableSet.of("foo"), null);
+        index.setProperty("entryCount", -1);
+
         action.accept(builder);
-        
-        ns.merge(builder,new EditorHook(new IndexUpdateProvider(
-                new PropertyIndexEditorProvider().with(mip))), CommitInfo.EMPTY);
+
+        ns.merge(builder, new EditorHook(new IndexUpdateProvider(
+            new PropertyIndexEditorProvider().with(mip))), CommitInfo.EMPTY);
     }
 }

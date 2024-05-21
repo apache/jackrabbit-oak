@@ -20,7 +20,6 @@
 package org.apache.jackrabbit.oak.spi.blob.split;
 
 import java.io.IOException;
-
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 
 public interface SplitBlobStore extends BlobStore {

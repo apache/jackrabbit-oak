@@ -18,22 +18,21 @@
  */
 package org.apache.jackrabbit.oak.plugins.migration.report;
 
-import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.hamcrest.Description;
-import org.hamcrest.Matcher;
-import org.jetbrains.annotations.NotNull;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.any;
 import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.anything;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.collection.IsMapContaining.hasEntry;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.hamcrest.Description;
+import org.hamcrest.Matcher;
+import org.jetbrains.annotations.NotNull;
 
 class AssertingPeriodicReporter extends PeriodicReporter {
 

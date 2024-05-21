@@ -16,16 +16,16 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProvider;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class ExternalIDPManagerImplTest {
 
@@ -44,7 +44,8 @@ public class ExternalIDPManagerImplTest {
         assertNull(externalIDPManager.getProvider("test"));
         assertNull(externalIDPManager.getProvider("unknown"));
 
-        ExternalIdentityProvider provider = when(mock(ExternalIdentityProvider.class).getName()).thenReturn("test").getMock();
+        ExternalIdentityProvider provider = when(
+            mock(ExternalIdentityProvider.class).getName()).thenReturn("test").getMock();
         context.registerService(ExternalIdentityProvider.class, provider);
 
         assertSame(provider, externalIDPManager.getProvider("test"));

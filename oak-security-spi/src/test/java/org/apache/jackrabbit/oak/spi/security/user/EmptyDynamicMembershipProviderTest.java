@@ -16,21 +16,20 @@
  */
 package org.apache.jackrabbit.oak.spi.security.user;
 
-import org.apache.jackrabbit.api.security.user.Authorizable;
-import org.apache.jackrabbit.api.security.user.Group;
-import org.junit.Test;
-
-import javax.jcr.RepositoryException;
-
 import static org.junit.Assert.assertFalse;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
+
+import javax.jcr.RepositoryException;
+import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.jackrabbit.api.security.user.Group;
+import org.junit.Test;
 
 public class EmptyDynamicMembershipProviderTest {
 
     private final Group group = mock(Group.class);
     private final Authorizable authorizable = mock(Authorizable.class);
-    
+
     @Test
     public void testCoversAllMembers() {
         assertFalse(DynamicMembershipProvider.EMPTY.coversAllMembers(group));
@@ -47,14 +46,14 @@ public class EmptyDynamicMembershipProviderTest {
     @Test
     public void testIsMember() throws RepositoryException {
         assertFalse(DynamicMembershipProvider.EMPTY.isMember(group, authorizable, true));
-        assertFalse(DynamicMembershipProvider.EMPTY.isMember(group, authorizable,false));
+        assertFalse(DynamicMembershipProvider.EMPTY.isMember(group, authorizable, false));
         verifyNoInteractions(group, authorizable);
     }
 
     @Test
     public void testGetMembership() throws RepositoryException {
         assertFalse(DynamicMembershipProvider.EMPTY.getMembership(authorizable, true).hasNext());
-        assertFalse(DynamicMembershipProvider.EMPTY.getMembership(authorizable,false).hasNext());
+        assertFalse(DynamicMembershipProvider.EMPTY.getMembership(authorizable, false).hasNext());
         verifyNoInteractions(authorizable);
     }
 }

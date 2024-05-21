@@ -16,22 +16,20 @@
  */
 package org.apache.jackrabbit.oak.jcr.security.user;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import javax.jcr.Node;
 import javax.jcr.Value;
-
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
 /**
- * Testing user import with default {@link org.apache.jackrabbit.oak.spi.xml.ImportBehavior}
- * and pw-history content: test that the history is imported irrespective of the
- * configuration.
+ * Testing user import with default {@link org.apache.jackrabbit.oak.spi.xml.ImportBehavior} and
+ * pw-history content: test that the history is imported irrespective of the configuration.
  */
 public class UserImportHistoryTest extends AbstractImportTest {
 
@@ -52,28 +50,30 @@ public class UserImportHistoryTest extends AbstractImportTest {
     public void testImportUserWithPwdHistory() throws Exception {
         // import user
         String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
-                "<sv:node sv:name=\"y\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
-                "   <sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\">" +
-                "      <sv:value>rep:User</sv:value>" +
-                "   </sv:property>" +
-                "   <sv:property sv:name=\"jcr:uuid\" sv:type=\"String\">" +
-                "      <sv:value>41529076-9594-360e-ae48-5922904f345d</sv:value>" +
-                "   </sv:property>" +
-                "   <sv:property sv:name=\"rep:password\" sv:type=\"String\">" +
-                "      <sv:value>pw</sv:value>" +
-                "   </sv:property>" +
-                "   <sv:property sv:name=\"rep:principalName\" sv:type=\"String\">" +
-                "      <sv:value>yPrincipal</sv:value>" +
-                "   </sv:property>" +
-                "   <sv:node sv:name=\"" + UserConstants.REP_PWD + "\">" +
-                "      <sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\">" +
-                "         <sv:value>" + UserConstants.NT_REP_PASSWORD + "</sv:value>" +
-                "      </sv:property>" +
-                "      <sv:property sv:name=\"" + UserConstants.REP_PWD_HISTORY + "\" sv:type=\"String\" sv:multiple=\"true\">" +
-                "         <sv:value>{sha1}8efd86fb78a56a5145ed7739dcb00c78581c5375</sv:value>" +
-                "      </sv:property>" +
-                "   </sv:node>" +
-                "</sv:node>";
+            "<sv:node sv:name=\"y\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">"
+            +
+            "   <sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\">" +
+            "      <sv:value>rep:User</sv:value>" +
+            "   </sv:property>" +
+            "   <sv:property sv:name=\"jcr:uuid\" sv:type=\"String\">" +
+            "      <sv:value>41529076-9594-360e-ae48-5922904f345d</sv:value>" +
+            "   </sv:property>" +
+            "   <sv:property sv:name=\"rep:password\" sv:type=\"String\">" +
+            "      <sv:value>pw</sv:value>" +
+            "   </sv:property>" +
+            "   <sv:property sv:name=\"rep:principalName\" sv:type=\"String\">" +
+            "      <sv:value>yPrincipal</sv:value>" +
+            "   </sv:property>" +
+            "   <sv:node sv:name=\"" + UserConstants.REP_PWD + "\">" +
+            "      <sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\">" +
+            "         <sv:value>" + UserConstants.NT_REP_PASSWORD + "</sv:value>" +
+            "      </sv:property>" +
+            "      <sv:property sv:name=\"" + UserConstants.REP_PWD_HISTORY
+            + "\" sv:type=\"String\" sv:multiple=\"true\">" +
+            "         <sv:value>{sha1}8efd86fb78a56a5145ed7739dcb00c78581c5375</sv:value>" +
+            "      </sv:property>" +
+            "   </sv:node>" +
+            "</sv:node>";
 
         doImport(USERPATH, xml);
 

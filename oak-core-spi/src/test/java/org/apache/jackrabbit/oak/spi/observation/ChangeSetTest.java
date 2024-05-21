@@ -19,20 +19,20 @@
 
 package org.apache.jackrabbit.oak.spi.observation;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.junit.Test;
-
 import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import org.junit.Test;
+
 public class ChangeSetTest {
 
     @Test
-    public void asJson() throws Exception{
+    public void asJson() throws Exception {
         ChangeSet cs1 = new ChangeSet(2, of("p-2", "p-3"), null,
-                ImmutableSet.<String>of(), of("pn-2"), of("nt-2"));
+            ImmutableSet.<String>of(), of("pn-2"), of("nt-2"));
         String json = cs1.asString();
 
         ChangeSet cs2 = ChangeSet.fromString(json);
@@ -42,8 +42,9 @@ public class ChangeSetTest {
     }
 
     @Test
-    public void asJsonAll() throws Exception{
-        ChangeSet cs1 = new ChangeSet(2, of("p-2"), of("nn-2"), of("pnt-2"), of("pn-2"), of("nt-2"));
+    public void asJsonAll() throws Exception {
+        ChangeSet cs1 = new ChangeSet(2, of("p-2"), of("nn-2"), of("pnt-2"), of("pn-2"),
+            of("nt-2"));
         String json = cs1.asString();
         ChangeSet cs2 = ChangeSet.fromString(json);
         assertEquals(cs1, cs2);

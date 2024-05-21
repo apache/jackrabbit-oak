@@ -18,10 +18,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import static org.junit.Assume.assumeTrue;
+
 import java.io.File;
 import java.util.List;
 import java.util.Properties;
-
 import org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants;
 import org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
@@ -29,8 +30,6 @@ import org.junit.After;
 import org.junit.BeforeClass;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-
-import static org.junit.Assume.assumeTrue;
 
 /**
  * Shared BlobStoreGCTest for S3.

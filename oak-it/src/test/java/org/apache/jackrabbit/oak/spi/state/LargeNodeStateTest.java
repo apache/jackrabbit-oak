@@ -32,6 +32,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class LargeNodeStateTest extends OakBaseTest {
+
     private static final int N = 100;
 
     private NodeState state;

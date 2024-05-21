@@ -17,7 +17,9 @@
    limitations under the License.
   -->
 
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd ">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd ">
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
@@ -83,7 +85,7 @@
     <module>oak-benchmarks-lucene</module>
     <module>oak-benchmarks-solr</module>
     <module>oak-benchmarks-elastic</module>
-      <module>oak-run-elastic</module>
+    <module>oak-run-elastic</module>
   </modules>
 
   <build>
@@ -145,7 +147,7 @@
       <id>apache-release</id>
       <properties>
         <keyfile>${user.home}/.ssh/id_rsa</keyfile>
-        <passphrase />
+        <passphrase/>
       </properties>
       <build>
         <plugins>
@@ -181,104 +183,111 @@
                 <phase>deploy</phase>
                 <configuration>
                   <target>
-                    <mkdir dir="${basedir}/target/${project.version}" />
+                    <mkdir dir="${basedir}/target/${project.version}"/>
                     <copy todir="${basedir}/target/${project.version}" flatten="true">
                       <fileset dir="${basedir}">
-                        <include name="RELEASE-NOTES.txt" />
-                        <include name="target/*-src.zip*" />
+                        <include name="RELEASE-NOTES.txt"/>
+                        <include name="target/*-src.zip*"/>
                       </fileset>
                     </copy>
                     <checksum algorithm="SHA1" fileext=".sha1">
                       <fileset dir="${basedir}/target/${project.version}">
-                        <include name="*.zip" />
+                        <include name="*.zip"/>
                       </fileset>
                     </checksum>
                     <checksum algorithm="SHA-512" fileext=".sha512">
                       <fileset dir="${basedir}/target/${project.version}">
-                        <include name="*.zip" />
+                        <include name="*.zip"/>
                       </fileset>
                     </checksum>
-                    <checksum file="${basedir}/target/${project.version}/${project.artifactId}-${project.version}-src.zip" algorithm="SHA1" property="checksum" />
+                    <checksum
+                      file="${basedir}/target/${project.version}/${project.artifactId}-${project.version}-src.zip"
+                      algorithm="SHA1" property="checksum"/>
                     <echo file="${basedir}/target/vote.txt">
-From: ${apache.username}@apache.org
-To: oak-dev@jackrabbit.apache.org
-Subject: [VOTE] Release Apache Jackrabbit Oak ${project.version}
+                      From: ${apache.username}@apache.org
+                      To: oak-dev@jackrabbit.apache.org
+                      Subject: [VOTE] Release Apache Jackrabbit Oak ${project.version}
 
-A candidate for the Jackrabbit Oak ${project.version} release is available at:
+                      A candidate for the Jackrabbit Oak ${project.version} release is available at:
 
-    https://dist.apache.org/repos/dist/dev/jackrabbit/oak/${project.version}/
+                      https://dist.apache.org/repos/dist/dev/jackrabbit/oak/${project.version}/
 
-The release candidate is a zip archive of the sources in:
+                      The release candidate is a zip archive of the sources in:
 
-     https://github.com/apache/jackrabbit-oak/tree/${project.artifactId}-${project.version}/
+                      https://github.com/apache/jackrabbit-oak/tree/${project.artifactId}-${project.version}/
 
-The SHA1 checksum of the archive is ${checksum}.
+                      The SHA1 checksum of the archive is ${checksum}.
 
-A staged Maven repository is available for review at:
+                      A staged Maven repository is available for review at:
 
-    https://repository.apache.org/
+                      https://repository.apache.org/
 
-The command for running automated checks against this release candidate is:
+                      The command for running automated checks against this release candidate is:
 
-    # run in SVN checkout of https://dist.apache.org/repos/dist/dev/jackrabbit
-    $ sh check-release.sh oak ${project.version} ${checksum}
+                      # run in SVN checkout of https://dist.apache.org/repos/dist/dev/jackrabbit
+                      $ sh check-release.sh oak ${project.version} ${checksum}
 
-Please vote on releasing this package as Apache Jackrabbit Oak ${project.version}.
-The vote is open for the next 72 hours and passes if a majority of at
-least three +1 Jackrabbit PMC votes are cast.
+                      Please vote on releasing this package as Apache Jackrabbit Oak
+                      ${project.version}.
+                      The vote is open for the next 72 hours and passes if a majority of at
+                      least three +1 Jackrabbit PMC votes are cast.
 
-    [ ] +1 Release this package as Apache Jackrabbit Oak ${project.version}
-    [ ] -1 Do not release this package because...${line.separator}
+                      [ ] +1 Release this package as Apache Jackrabbit Oak ${project.version}
+                      [ ] -1 Do not release this package because...${line.separator}
                     </echo>
                     <echo file="${basedir}/target/announcement.txt">
-From: ${username}@apache.org
-To: announce@apache.org, announce@jackrabbit.apache.org, users@jackrabbit.apache.org, dev@jackrabbit.apache.org, oak-dev@jackrabbit.apache.org
-Subject: [ANNOUNCE] Apache Jackrabbit Oak ${project.version} released
+                      From: ${username}@apache.org
+                      To: announce@apache.org, announce@jackrabbit.apache.org,
+                      users@jackrabbit.apache.org, dev@jackrabbit.apache.org,
+                      oak-dev@jackrabbit.apache.org
+                      Subject: [ANNOUNCE] Apache Jackrabbit Oak ${project.version} released
 
-The Apache Jackrabbit community is pleased to announce the release of
-Apache Jackrabbit Oak ${project.version}. The release is available for download at:
+                      The Apache Jackrabbit community is pleased to announce the release of
+                      Apache Jackrabbit Oak ${project.version}. The release is available for
+                      download at:
 
-     http://jackrabbit.apache.org/downloads.html
+                      http://jackrabbit.apache.org/downloads.html
 
-See the full release notes below for details about this release:
-${line.separator}
-${line.separator}
+                      See the full release notes below for details about this release:
+                      ${line.separator}
+                      ${line.separator}
                     </echo>
                     <concat destfile="${basedir}/target/announcement.txt" append="true">
-                      <filelist files="RELEASE-NOTES.txt" />
+                      <filelist files="RELEASE-NOTES.txt"/>
                     </concat>
-                    <echo />
+                    <echo/>
                     <echo>
-The release candidate has been prepared in:
+                      The release candidate has been prepared in:
 
-    ${basedir}/target/${project.version}
+                      ${basedir}/target/${project.version}
 
-Please deploy it to https://dist.apache.org/repos/dist/dev/jackrabbit/oak/:
+                      Please deploy it to https://dist.apache.org/repos/dist/dev/jackrabbit/oak/:
 
-    cd /path/to/jackrabbit-dev
-    cp -r ${basedir}/target/${project.version} oak/${project.version}
-    svn add oak/${project.version}
-    svn commit -m 'Apache Jackrabbit Oak ${project.version} release candidate' oak/${project.version}
+                      cd /path/to/jackrabbit-dev
+                      cp -r ${basedir}/target/${project.version} oak/${project.version}
+                      svn add oak/${project.version}
+                      svn commit -m 'Apache Jackrabbit Oak ${project.version} release candidate'
+                      oak/${project.version}
 
-A release vote template has been generated for you:
+                      A release vote template has been generated for you:
 
-    file://${basedir}/target/vote.txt
+                      file://${basedir}/target/vote.txt
 
-An announcement mail template can be found at:
+                      An announcement mail template can be found at:
 
-    file://${basedir}/target/announcement.txt
+                      file://${basedir}/target/announcement.txt
                     </echo>
-                    <echo />
+                    <echo/>
                   </target>
                 </configuration>
               </execution>
             </executions>
             <dependencies>
               <dependency>
-                 <groupId>org.apache.ant</groupId>
-                 <artifactId>ant-nodeps</artifactId>
-                 <version>1.8.1</version>
-               </dependency>
+                <groupId>org.apache.ant</groupId>
+                <artifactId>ant-nodeps</artifactId>
+                <version>1.8.1</version>
+              </dependency>
             </dependencies>
           </plugin>
         </plugins>

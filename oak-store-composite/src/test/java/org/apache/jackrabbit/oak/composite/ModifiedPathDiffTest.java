@@ -31,7 +31,9 @@ import static org.junit.Assert.assertEquals;
 
 public class ModifiedPathDiffTest {
 
-    private final NodeState base; {
+    private final NodeState base;
+
+    {
         NodeBuilder builder = EmptyNodeState.EMPTY_NODE.builder();
         builder.setChildNode("a");
         builder.setChildNode("b");

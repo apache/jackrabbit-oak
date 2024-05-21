@@ -22,12 +22,10 @@ import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgumen
 import java.util.ArrayList;
 import java.util.List;
 import java.util.zip.CRC32;
-
 import org.apache.jackrabbit.oak.commons.Buffer;
 
 /**
- * Builds an index incrementally in memory, and serializes its contents into a
- * sequence of bytes.
+ * Builds an index incrementally in memory, and serializes its contents into a sequence of bytes.
  */
 public class IndexWriter {
 
@@ -50,10 +48,9 @@ public class IndexWriter {
     }
 
     /**
-     * Create a new {@link IndexWriter} for the specified block size. The block
-     * size is needed to ensure that the data produced by the returned {@link
-     * IndexWriter} is aligned to a specified boundary, i.e. is a multiple of
-     * the block size.
+     * Create a new {@link IndexWriter} for the specified block size. The block size is needed to
+     * ensure that the data produced by the returned {@link IndexWriter} is aligned to a specified
+     * boundary, i.e. is a multiple of the block size.
      *
      * @param blockSize The block size. It must be strictly positive.
      * @return An index of {@link IndexWriter}.
@@ -75,16 +72,15 @@ public class IndexWriter {
      * Add an entry to this index.
      *
      * @param msb            The most significant bits of the entry identifier.
-     * @param lsb            The least significant bits of the entry
-     *                       identifier.
+     * @param lsb            The least significant bits of the entry identifier.
      * @param offset         The position of the entry in the file.
      * @param size           The size of the entry.
      * @param generation     The generation of the entry.
      * @param fullGeneration The full generation of the entry.
-     * @param isCompacted    Whether the entry is generated as part of a
-     *                       compaction operation.
+     * @param isCompacted    Whether the entry is generated as part of a compaction operation.
      */
-    public void addEntry(long msb, long lsb, int offset, int size, int generation, int fullGeneration, boolean isCompacted) {
+    public void addEntry(long msb, long lsb, int offset, int size, int generation,
+        int fullGeneration, boolean isCompacted) {
         Entry entry = new Entry();
         entry.msb = msb;
         entry.lsb = lsb;
@@ -97,9 +93,8 @@ public class IndexWriter {
     }
 
     /**
-     * Serializes the content of the index. The returned array of bytes is
-     * always a multiple of the block size specified when this {@link
-     * IndexWriter} was created.
+     * Serializes the content of the index. The returned array of bytes is always a multiple of the
+     * block size specified when this {@link IndexWriter} was created.
      *
      * @return the serialized content of the index.
      */

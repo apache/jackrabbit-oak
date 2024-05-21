@@ -23,10 +23,11 @@ import org.apache.jackrabbit.oak.spi.whiteboard.AbstractServiceTracker;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 
 /**
- * This {@link GCMonitor} implementation tracks {@code GCMonitor} instances registered
- * to the {@link Whiteboard} delegating all calls to to those.
+ * This {@link GCMonitor} implementation tracks {@code GCMonitor} instances registered to the
+ * {@link Whiteboard} delegating all calls to to those.
  */
 public class GCMonitorTracker extends AbstractServiceTracker<GCMonitor> implements GCMonitor {
+
     public GCMonitorTracker() {
         super(GCMonitor.class);
     }

@@ -22,18 +22,18 @@ package org.apache.jackrabbit.oak.spi.commit;
 import java.io.Closeable;
 
 /**
- * An {@code Observable} supports attaching {@link Observer} instances for
- * listening to content changes.
+ * An {@code Observable} supports attaching {@link Observer} instances for listening to content
+ * changes.
  *
  * @see Observable
  */
 public interface Observable {
 
     /**
-     * Register a new {@code Observer}. Clients need to call {@link Closeable#close()} 
-     * to stop getting notifications on the registered observer and to free up any resources
-     * associated with the registration.
-     * 
+     * Register a new {@code Observer}. Clients need to call {@link Closeable#close()} to stop
+     * getting notifications on the registered observer and to free up any resources associated with
+     * the registration.
+     *
      * @return a {@code Closeable} instance.
      */
     Closeable addObserver(Observer observer);

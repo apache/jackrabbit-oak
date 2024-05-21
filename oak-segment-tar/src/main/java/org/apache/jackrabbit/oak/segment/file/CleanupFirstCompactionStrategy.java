@@ -24,7 +24,6 @@ import static org.apache.jackrabbit.oak.segment.file.PrintableBytes.newPrintable
 
 import java.io.IOException;
 import java.util.List;
-
 import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.oak.segment.file.tar.CleanupContext;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
@@ -37,7 +36,8 @@ class CleanupFirstCompactionStrategy implements CompactionStrategy {
 
     private final CompactionStrategy strategy;
 
-    CleanupFirstCompactionStrategy(GarbageCollectionStrategy.Context parentContext, CompactionStrategy strategy) {
+    CleanupFirstCompactionStrategy(GarbageCollectionStrategy.Context parentContext,
+        CompactionStrategy strategy) {
         this.parentContext = parentContext;
         this.strategy = strategy;
     }
@@ -77,14 +77,17 @@ class CleanupFirstCompactionStrategy implements CompactionStrategy {
 
         System.gc();
 
-        TarFiles.CleanupResult cleanupResult = context.getTarFiles().cleanup(newCleanupContext(context));
+        TarFiles.CleanupResult cleanupResult = context.getTarFiles()
+                                                      .cleanup(newCleanupContext(context));
 
         if (cleanupResult.isInterrupted()) {
             context.getGCListener().info("cleanup interrupted");
         }
 
-        context.getSegmentTracker().clearSegmentIdTables(cleanupResult.getReclaimedSegmentIds(), "[pre-compaction cleanup]");
-        context.getGCListener().info("cleanup marking files for deletion: {}", toFileNames(cleanupResult.getRemovableFiles()));
+        context.getSegmentTracker().clearSegmentIdTables(cleanupResult.getReclaimedSegmentIds(),
+            "[pre-compaction cleanup]");
+        context.getGCListener().info("cleanup marking files for deletion: {}",
+            toFileNames(cleanupResult.getRemovableFiles()));
 
         long finalSize = context.getTarFiles().size();
         long reclaimedSize = cleanupResult.getReclaimedSize();
@@ -103,7 +106,8 @@ class CleanupFirstCompactionStrategy implements CompactionStrategy {
     }
 
     private static CleanupContext newCleanupContext(Context context) {
-        GCGeneration currentGeneration = context.getRevisions().getHead().getSegmentId().getGcGeneration();
+        GCGeneration currentGeneration = context.getRevisions().getHead().getSegmentId()
+                                                .getGcGeneration();
         String compactedRoot = context.getGCJournal().read().getRoot();
 
         switch (context.getGCOptions().getGCType()) {
@@ -115,20 +119,24 @@ class CleanupFirstCompactionStrategy implements CompactionStrategy {
                     if (generation.getFullGeneration() < currentGeneration.getFullGeneration()) {
                         return true;
                     }
-                    return generation.getGeneration() < currentGeneration.getGeneration() && !generation.isCompacted();
+                    return generation.getGeneration() < currentGeneration.getGeneration()
+                        && !generation.isCompacted();
                 }, compactedRoot);
             case TAIL:
                 return new DefaultCleanupContext(context.getSegmentTracker(), generation -> {
                     if (generation == null) {
                         return false;
                     }
-                    if (generation.getFullGeneration() < currentGeneration.getFullGeneration() - 1) {
+                    if (generation.getFullGeneration()
+                        < currentGeneration.getFullGeneration() - 1) {
                         return true;
                     }
-                    if (generation.getFullGeneration() == currentGeneration.getFullGeneration() - 1) {
+                    if (generation.getFullGeneration()
+                        == currentGeneration.getFullGeneration() - 1) {
                         return !generation.isCompacted();
                     }
-                    return generation.getGeneration() < currentGeneration.getGeneration() && !generation.isCompacted();
+                    return generation.getGeneration() < currentGeneration.getGeneration()
+                        && !generation.isCompacted();
                 }, compactedRoot);
             default:
                 throw new IllegalArgumentException("invalid garbage collection type");

@@ -16,12 +16,10 @@
  */
 package org.apache.jackrabbit.oak.segment.aws;
 
-import java.util.Date;
-
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.amazonaws.services.dynamodbv2.local.embedded.DynamoDBEmbedded;
 import com.amazonaws.services.s3.AmazonS3;
-
+import java.util.Date;
 import org.apache.jackrabbit.oak.segment.file.tar.TarFiles;
 import org.apache.jackrabbit.oak.segment.file.tar.TarFilesTest;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitorAdapter;
@@ -41,18 +39,19 @@ public class AwsTarFilesTest extends TarFilesTest {
         AmazonS3 s3 = s3Mock.createClient();
         AmazonDynamoDB ddb = DynamoDBEmbedded.create().amazonDynamoDB();
         long time = new Date().getTime();
-        AwsContext awsContext = AwsContext.create(s3, "bucket-" + time, "oak", ddb, "journaltable-" + time, "locktable-" + time);
-        
+        AwsContext awsContext = AwsContext.create(s3, "bucket-" + time, "oak", ddb,
+            "journaltable-" + time, "locktable-" + time);
+
         tarFiles = TarFiles.builder()
-                .withDirectory(folder.newFolder())
-                .withTarRecovery((id, data, recovery) -> {
-                    // Intentionally left blank
-                })
-                .withIOMonitor(new IOMonitorAdapter())
-                .withFileStoreMonitor(new FileStoreMonitorAdapter())
-                .withRemoteStoreMonitor(new RemoteStoreMonitorAdapter())
-                .withMaxFileSize(MAX_FILE_SIZE)
-                .withPersistence(new AwsPersistence(awsContext))
-                .build();
+                           .withDirectory(folder.newFolder())
+                           .withTarRecovery((id, data, recovery) -> {
+                               // Intentionally left blank
+                           })
+                           .withIOMonitor(new IOMonitorAdapter())
+                           .withFileStoreMonitor(new FileStoreMonitorAdapter())
+                           .withRemoteStoreMonitor(new RemoteStoreMonitorAdapter())
+                           .withMaxFileSize(MAX_FILE_SIZE)
+                           .withPersistence(new AwsPersistence(awsContext))
+                           .build();
     }
 }

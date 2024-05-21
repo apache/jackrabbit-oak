@@ -19,15 +19,14 @@
 package org.apache.jackrabbit.oak.spi.query.fulltext;
 
 /**
- * A visitor for full-text expressions. This class is abstract because at least
- * one of the methods needs to be implemented to make anything useful, most
- * likely visit(FullTextTerm).
+ * A visitor for full-text expressions. This class is abstract because at least one of the methods
+ * needs to be implemented to make anything useful, most likely visit(FullTextTerm).
  */
 public interface FullTextVisitor {
-    
+
     /**
      * Visit an "contains" expression.
-     * 
+     *
      * @param contains the "contains" expression
      * @return true if visiting should continue
      */
@@ -35,7 +34,7 @@ public interface FullTextVisitor {
 
     /**
      * Visit an "and" expression.
-     * 
+     *
      * @param and the "and" expression
      * @return true if visiting should continue
      */
@@ -43,7 +42,7 @@ public interface FullTextVisitor {
 
     /**
      * Visit an "or" expression.
-     * 
+     *
      * @param or the "or" expression
      * @return true if visiting should continue
      */
@@ -51,12 +50,12 @@ public interface FullTextVisitor {
 
     /**
      * Visit a term
-     * 
+     *
      * @param term the term
      * @return true if visiting should continue
      */
     boolean visit(FullTextTerm term);
-    
+
     /**
      * The base implementation of a full-text visitor.
      */
@@ -88,5 +87,5 @@ public interface FullTextVisitor {
         }
 
     }
-    
+
 }

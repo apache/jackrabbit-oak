@@ -21,7 +21,7 @@ import org.jetbrains.annotations.Nullable;
 
 /**
  * The external identity provider management.
- *
+ * <p>
  * The default manager is registered as OSGi service and can also be retrieved via
  * {@link org.apache.jackrabbit.oak.spi.security.SecurityProvider#getConfiguration(Class)}
  */
@@ -29,6 +29,7 @@ public interface ExternalIdentityProviderManager {
 
     /**
      * Returns the registered identity provider with the given name.
+     *
      * @param name the provider name
      * @return the registered provider or {@code null}
      */

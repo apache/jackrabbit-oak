@@ -60,8 +60,8 @@ public class ReplicaSetDefaultWriteConcernIT {
     public void majorityWriteConcern() {
         String uri = "mongodb://" + MongodProcessFactory.localhost(executables.keySet());
         DocumentNodeStore ns = builderProvider.newBuilder()
-                .setLeaseCheckMode(LeaseCheckMode.DISABLED)
-                .setMongoDB(uri, MongoUtils.DB, 0).build();
+                                              .setLeaseCheckMode(LeaseCheckMode.DISABLED)
+                                              .setMongoDB(uri, MongoUtils.DB, 0).build();
         DocumentStore store = ns.getDocumentStore();
         assertTrue(store instanceof MongoDocumentStore);
         MongoDocumentStore mds = (MongoDocumentStore) store;

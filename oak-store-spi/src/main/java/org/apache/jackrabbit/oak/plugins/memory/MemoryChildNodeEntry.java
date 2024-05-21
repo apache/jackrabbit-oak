@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.plugins.memory;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
 import java.util.Map.Entry;
-
 import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.spi.state.AbstractChildNodeEntry;
@@ -34,15 +33,15 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 public class MemoryChildNodeEntry extends AbstractChildNodeEntry {
 
     public static <E extends Entry<String, ? extends NodeState>> Iterable<ChildNodeEntry> iterable(
-            Iterable<E> set) {
+        Iterable<E> set) {
         return Iterables.transform(
-                set,
-                new Function<Entry<String, ? extends NodeState>, ChildNodeEntry>() {
-                    @Override
-                    public ChildNodeEntry apply(Entry<String, ? extends NodeState> entry) {
-                        return new MemoryChildNodeEntry(entry.getKey(), entry.getValue());
-                    }
-                });
+            set,
+            new Function<Entry<String, ? extends NodeState>, ChildNodeEntry>() {
+                @Override
+                public ChildNodeEntry apply(Entry<String, ? extends NodeState> entry) {
+                    return new MemoryChildNodeEntry(entry.getKey(), entry.getValue());
+                }
+            });
     }
 
     private final String name;
@@ -50,8 +49,7 @@ public class MemoryChildNodeEntry extends AbstractChildNodeEntry {
     private final NodeState node;
 
     /**
-     * Creates a child node entry with the given name and referenced
-     * child node state.
+     * Creates a child node entry with the given name and referenced child node state.
      *
      * @param name child node name
      * @param node child node state

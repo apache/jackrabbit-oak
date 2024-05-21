@@ -26,17 +26,17 @@ import java.io.File;
 import java.util.Collection;
 import java.util.List;
 import java.util.Random;
-
 import javax.jcr.Binary;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
-
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.api.ReferenceBinary;
 import org.apache.jackrabbit.commons.jackrabbit.SimpleReferenceBinary;
 import org.apache.jackrabbit.core.data.RandomInputStream;
+import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.io.BaseEncoding;
 import org.apache.jackrabbit.oak.fixture.DocumentMongoFixture;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
@@ -55,9 +55,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.io.BaseEncoding;
 
 @RunWith(Parameterized.class)
 public class ReferenceBinaryIT {
@@ -81,11 +78,12 @@ public class ReferenceBinaryIT {
     @Before
     public void setup() throws RepositoryException {
         nodeStore = fixture.createNodeStore();
-        repository  = new Jcr(nodeStore).createRepository();
+        repository = new Jcr(nodeStore).createRepository();
     }
 
     /**
      * Taken from org.apache.jackrabbit.core.value.ReferenceBinaryTest
+     *
      * @throws Exception
      */
     @Test
@@ -93,7 +91,8 @@ public class ReferenceBinaryIT {
         Session firstSession = createAdminSession();
 
         // create a binary
-        Binary b = firstSession.getValueFactory().createBinary(new RandomInputStream(1, STREAM_LENGTH));
+        Binary b = firstSession.getValueFactory()
+                               .createBinary(new RandomInputStream(1, STREAM_LENGTH));
 
         ReferenceBinary referenceBinary = null;
         if (b instanceof ReferenceBinary) {
@@ -107,16 +106,19 @@ public class ReferenceBinaryIT {
         // in the current test the message is exchanged via repository which is shared as well
         // put the reference message value in a property on a node
         String newNode = "sample_" + System.nanoTime();
-        firstSession.getRootNode().addNode(newNode).setProperty("reference", referenceBinary.getReference());
+        firstSession.getRootNode().addNode(newNode)
+                    .setProperty("reference", referenceBinary.getReference());
 
         // save the first session
         firstSession.save();
 
         // get a second session over the same repository / ds
-        Session secondSession = repository.login(new SimpleCredentials("admin", "admin".toCharArray()));
+        Session secondSession = repository.login(
+            new SimpleCredentials("admin", "admin".toCharArray()));
 
         // read the binary referenced by the referencing binary
-        String reference = secondSession.getRootNode().getNode(newNode).getProperty("reference").getString();
+        String reference = secondSession.getRootNode().getNode(newNode).getProperty("reference")
+                                        .getString();
 
         ReferenceBinary ref = new SimpleReferenceBinary(reference);
 
@@ -135,47 +137,48 @@ public class ReferenceBinaryIT {
         fixture.dispose(nodeStore);
     }
 
-    @Parameterized.Parameters(name="{0}")
+    @Parameterized.Parameters(name = "{0}")
     public static Collection<Object[]> fixtures() throws Exception {
         File file = getTestDir("tar");
         FileStore fileStore = FileStoreBuilder.fileStoreBuilder(file)
-                .withBlobStore(createBlobStore())
-                .withMaxFileSize(256)
-                .withMemoryMapping(true)
-                .build();
-        
+                                              .withBlobStore(createBlobStore())
+                                              .withMaxFileSize(256)
+                                              .withMemoryMapping(true)
+                                              .build();
+
         SegmentNodeStore sns = SegmentNodeStoreBuilders.builder(fileStore).build();
-        
+
         List<Object[]> fixtures = Lists.newArrayList();
         SegmentTarFixture segmentTarFixture = new SegmentTarFixture(sns);
-        
+
         if (segmentTarFixture.isAvailable()) {
-            fixtures.add(new Object[] {segmentTarFixture});
+            fixtures.add(new Object[]{segmentTarFixture});
         }
-        
+
         FileBlobStore fbs = new FileBlobStore(getTestDir("fbs1").getAbsolutePath());
         fbs.setReferenceKeyPlainText("foobar");
         FileStore fileStoreWithFBS = FileStoreBuilder.fileStoreBuilder(getTestDir("tar2"))
-                .withBlobStore(fbs)
-                .withMaxFileSize(256)
-                .withMemoryMapping(true)
-                .build();
-        
+                                                     .withBlobStore(fbs)
+                                                     .withMaxFileSize(256)
+                                                     .withMemoryMapping(true)
+                                                     .build();
+
         SegmentNodeStore snsWithFBS = SegmentNodeStoreBuilders.builder(fileStoreWithFBS).build();
-        
+
         SegmentTarFixture segmentTarFixtureFBS = new SegmentTarFixture(snsWithFBS);
         if (segmentTarFixtureFBS.isAvailable()) {
-            fixtures.add(new Object[] {segmentTarFixtureFBS});
+            fixtures.add(new Object[]{segmentTarFixtureFBS});
         }
 
-        DocumentMongoFixture documentFixture = new DocumentMongoFixture(MongoUtils.URL, createBlobStore());
+        DocumentMongoFixture documentFixture = new DocumentMongoFixture(MongoUtils.URL,
+            createBlobStore());
         if (documentFixture.isAvailable()) {
             fixtures.add(new Object[]{documentFixture});
         }
         return fixtures;
     }
 
-    private static BlobStore createBlobStore(){
+    private static BlobStore createBlobStore() {
         File file = getTestDir("datastore");
         OakFileDataStore fds = new OakFileDataStore();
         byte[] key = new byte[256];
@@ -187,7 +190,7 @@ public class ReferenceBinaryIT {
     }
 
     private static File getTestDir(String prefix) {
-        return new File(new File("target"), prefix+ "." + System.nanoTime());
+        return new File(new File("target"), prefix + "." + System.nanoTime());
     }
 
     private Session createAdminSession() throws RepositoryException {
@@ -197,6 +200,7 @@ public class ReferenceBinaryIT {
     private static void safeLogout(Session session) {
         try {
             session.logout();
-        } catch (Exception ignore) {}
+        } catch (Exception ignore) {
+        }
     }
 }

@@ -28,24 +28,27 @@ package org.apache.lucene.codecs;
 import org.apache.lucene.index.SegmentInfo;
 
 /**
- * Expert: Controls the format of the 
- * {@link SegmentInfo} (segment metadata file).
+ * Expert: Controls the format of the {@link SegmentInfo} (segment metadata file).
  * <p>
- * 
- * @see SegmentInfo
+ *
  * @lucene.experimental
+ * @see SegmentInfo
  */
 public abstract class SegmentInfoFormat {
-  /** Sole constructor. (For invocation by subclass 
-   *  constructors, typically implicit.) */
-  protected SegmentInfoFormat() {
-  }
 
-  /** Returns the {@link SegmentInfoReader} for reading
-   *  {@link SegmentInfo} instances. */
-  public abstract SegmentInfoReader getSegmentInfoReader();
+    /**
+     * Sole constructor. (For invocation by subclass constructors, typically implicit.)
+     */
+    protected SegmentInfoFormat() {
+    }
 
-  /** Returns the {@link SegmentInfoWriter} for writing
-   *  {@link SegmentInfo} instances. */
-  public abstract SegmentInfoWriter getSegmentInfoWriter();
+    /**
+     * Returns the {@link SegmentInfoReader} for reading {@link SegmentInfo} instances.
+     */
+    public abstract SegmentInfoReader getSegmentInfoReader();
+
+    /**
+     * Returns the {@link SegmentInfoWriter} for writing {@link SegmentInfo} instances.
+     */
+    public abstract SegmentInfoWriter getSegmentInfoWriter();
 }

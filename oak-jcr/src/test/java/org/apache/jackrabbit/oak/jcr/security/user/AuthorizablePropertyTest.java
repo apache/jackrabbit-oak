@@ -22,7 +22,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-
 import javax.jcr.Node;
 import javax.jcr.Property;
 import javax.jcr.PropertyIterator;
@@ -30,7 +29,6 @@ import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.nodetype.ConstraintViolationException;
-
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.test.NotExecutableException;
@@ -75,13 +73,13 @@ public class AuthorizablePropertyTest extends AbstractUserTest {
 
         try {
             boolean found = false;
-            for (Iterator<String> it = user.getPropertyNames(); it.hasNext() && !found;) {
+            for (Iterator<String> it = user.getPropertyNames(); it.hasNext() && !found; ) {
                 found = propName.equals(it.next());
             }
             assertTrue(found);
 
             found = false;
-            for (Iterator<String> it = user.getPropertyNames("."); it.hasNext() && !found;) {
+            for (Iterator<String> it = user.getPropertyNames("."); it.hasNext() && !found; ) {
                 found = propName.equals(it.next());
             }
             assertTrue(found);
@@ -108,7 +106,7 @@ public class AuthorizablePropertyTest extends AbstractUserTest {
     @Test
     public void testSetMultiValueProperty() throws NotExecutableException, RepositoryException {
         String propName = "Fullname";
-        Value[] v = new Value[] {superuser.getValueFactory().createValue("Super User")};
+        Value[] v = new Value[]{superuser.getValueFactory().createValue("Super User")};
         try {
             user.setProperty(propName, v);
             superuser.save();
@@ -118,13 +116,13 @@ public class AuthorizablePropertyTest extends AbstractUserTest {
 
         try {
             boolean found = false;
-            for (Iterator<String> it = user.getPropertyNames(); it.hasNext() && !found;) {
+            for (Iterator<String> it = user.getPropertyNames(); it.hasNext() && !found; ) {
                 found = propName.equals(it.next());
             }
             assertTrue(found);
 
             found = false;
-            for (Iterator<String> it = user.getPropertyNames("."); it.hasNext() && !found;) {
+            for (Iterator<String> it = user.getPropertyNames("."); it.hasNext() && !found; ) {
                 found = propName.equals(it.next());
             }
             assertTrue(found);
@@ -148,7 +146,7 @@ public class AuthorizablePropertyTest extends AbstractUserTest {
 
     @Test
     public void testSetPropertyByRelPath() throws RepositoryException {
-        Value[] v = new Value[] {superuser.getValueFactory().createValue("Super User")};
+        Value[] v = new Value[]{superuser.getValueFactory().createValue("Super User")};
 
         List<String> relPaths = new ArrayList<String>();
         relPaths.add("testing/Fullname");
@@ -174,7 +172,7 @@ public class AuthorizablePropertyTest extends AbstractUserTest {
 
     @Test
     public void testSetPropertyInvalidRelativePath() throws RepositoryException {
-        Value[] v = new Value[] {superuser.getValueFactory().createValue("Super User")};
+        Value[] v = new Value[]{superuser.getValueFactory().createValue("Super User")};
 
         List<String> invalidPaths = new ArrayList<String>();
         // try setting outside of tree defined by the user.
@@ -187,7 +185,8 @@ public class AuthorizablePropertyTest extends AbstractUserTest {
         for (String invalidRelPath : invalidPaths) {
             try {
                 user.setProperty(invalidRelPath, v);
-                fail("Modifications outside of the scope of the authorizable must fail. Path was: " + invalidRelPath);
+                fail("Modifications outside of the scope of the authorizable must fail. Path was: "
+                    + invalidRelPath);
             } catch (RepositoryException e) {
                 // success.
             } finally {
@@ -254,7 +253,7 @@ public class AuthorizablePropertyTest extends AbstractUserTest {
         }
 
         try {
-            for (Iterator<String> it = user.getPropertyNames(); it.hasNext();) {
+            for (Iterator<String> it = user.getPropertyNames(); it.hasNext(); ) {
                 String name = it.next();
                 assertTrue(user.hasProperty(name));
                 assertNotNull(user.getProperty(name));
@@ -278,12 +277,12 @@ public class AuthorizablePropertyTest extends AbstractUserTest {
         }
 
         try {
-            for (Iterator<String> it = user.getPropertyNames(); it.hasNext();) {
+            for (Iterator<String> it = user.getPropertyNames(); it.hasNext(); ) {
                 String name = it.next();
                 assertFalse("Fullname".equals(name));
             }
 
-            for (Iterator<String> it = user.getPropertyNames("testing"); it.hasNext();) {
+            for (Iterator<String> it = user.getPropertyNames("testing"); it.hasNext(); ) {
                 String name = it.next();
                 String rp = "testing/" + name;
 
@@ -293,7 +292,7 @@ public class AuthorizablePropertyTest extends AbstractUserTest {
                 assertTrue(user.hasProperty(rp));
                 assertNotNull(user.getProperty(rp));
             }
-            for (Iterator<String> it = user.getPropertyNames("./testing"); it.hasNext();) {
+            for (Iterator<String> it = user.getPropertyNames("./testing"); it.hasNext(); ) {
                 String name = it.next();
                 String rp = "testing/" + name;
 
@@ -322,7 +321,8 @@ public class AuthorizablePropertyTest extends AbstractUserTest {
         for (String invalidRelPath : invalidPaths) {
             try {
                 user.getPropertyNames(invalidRelPath);
-                fail("Calling Authorizable#getPropertyNames with " + invalidRelPath + " must fail.");
+                fail(
+                    "Calling Authorizable#getPropertyNames with " + invalidRelPath + " must fail.");
             } catch (RepositoryException e) {
                 // success
             }
@@ -347,7 +347,7 @@ public class AuthorizablePropertyTest extends AbstractUserTest {
         Value v = superuser.getValueFactory().createValue("testValue");
         try {
             user.setProperty("testProperty", v);
-            user.setProperty("testMvProperty", new Value[] {v});
+            user.setProperty("testMvProperty", new Value[]{v});
             superuser.save();
         } catch (RepositoryException e) {
             throw new NotExecutableException("Cannot test 'Authorizable.setProperty'.");
@@ -370,7 +370,7 @@ public class AuthorizablePropertyTest extends AbstractUserTest {
             throw new NotExecutableException("Cannot test 'Authorizable.setProperty'.");
         }
 
-        user.setProperty("testProperty", new Value[] {v});
+        user.setProperty("testProperty", new Value[]{v});
         Property p = superuser.getProperty(user.getPath() + "/testProperty");
         assertTrue(p.isMultiple());
     }
@@ -379,7 +379,7 @@ public class AuthorizablePropertyTest extends AbstractUserTest {
     public void testMultiValueToSingleValue() throws RepositoryException, NotExecutableException {
         Value v = superuser.getValueFactory().createValue("testValue");
         try {
-            user.setProperty("testProperty", new Value[] {v});
+            user.setProperty("testProperty", new Value[]{v});
             superuser.save();
         } catch (RepositoryException e) {
             throw new NotExecutableException("Cannot test 'Authorizable.setProperty'.");
@@ -410,7 +410,7 @@ public class AuthorizablePropertyTest extends AbstractUserTest {
             try {
                 boolean isMultiValued = protectedUserProps.get(pName);
                 if (isMultiValued) {
-                    user.setProperty(pName, new Value[] {v});
+                    user.setProperty(pName, new Value[]{v});
                 } else {
                     user.setProperty(pName, v);
                 }
@@ -427,7 +427,7 @@ public class AuthorizablePropertyTest extends AbstractUserTest {
             try {
                 boolean isMultiValued = protectedGroupProps.get(pName);
                 if (isMultiValued) {
-                    group.setProperty(pName, new Value[] {v});
+                    group.setProperty(pName, new Value[]{v});
                 } else {
                     group.setProperty(pName, v);
                 }
@@ -508,7 +508,8 @@ public class AuthorizablePropertyTest extends AbstractUserTest {
     }
 
     @Test
-    public void testSetSpecialPropertiesDirectly() throws NotExecutableException, RepositoryException {
+    public void testSetSpecialPropertiesDirectly()
+        throws NotExecutableException, RepositoryException {
         Node n = getNode(user, superuser);
         try {
             String pName = user.getPrincipal().getName();
@@ -524,9 +525,9 @@ public class AuthorizablePropertyTest extends AbstractUserTest {
         try {
             String imperson = "anyimpersonator";
             n.setProperty(
-                    UserConstants.REP_IMPERSONATORS,
-                    new Value[] {new StringValue(imperson)},
-                    PropertyType.STRING);
+                UserConstants.REP_IMPERSONATORS,
+                new Value[]{new StringValue(imperson)},
+                PropertyType.STRING);
             fail("Attempt to change protected property rep:impersonators should fail.");
         } catch (ConstraintViolationException e) {
             // ok.
@@ -534,7 +535,8 @@ public class AuthorizablePropertyTest extends AbstractUserTest {
     }
 
     @Test
-    public void testRemoveSpecialUserPropertiesDirectly() throws RepositoryException, NotExecutableException {
+    public void testRemoveSpecialUserPropertiesDirectly()
+        throws RepositoryException, NotExecutableException {
         Node n = getNode(user, superuser);
         try {
             n.getProperty(UserConstants.REP_PASSWORD).remove();
@@ -553,7 +555,8 @@ public class AuthorizablePropertyTest extends AbstractUserTest {
     }
 
     @Test
-    public void testRemoveSpecialGroupPropertiesDirectly() throws RepositoryException, NotExecutableException {
+    public void testRemoveSpecialGroupPropertiesDirectly()
+        throws RepositoryException, NotExecutableException {
         Node n = getNode(group, superuser);
         try {
             if (n.hasProperty(UserConstants.REP_PRINCIPAL_NAME)) {
@@ -576,7 +579,7 @@ public class AuthorizablePropertyTest extends AbstractUserTest {
     @Test
     public void testUserGetProperties() throws RepositoryException, NotExecutableException {
         Node n = getNode(user, superuser);
-        for (PropertyIterator it = n.getProperties(); it.hasNext();) {
+        for (PropertyIterator it = n.getProperties(); it.hasNext(); ) {
             Property p = it.nextProperty();
             if (p.getDefinition().isProtected()) {
                 assertFalse(user.hasProperty(p.getName()));
@@ -592,7 +595,7 @@ public class AuthorizablePropertyTest extends AbstractUserTest {
     @Test
     public void testGroupGetProperties() throws RepositoryException, NotExecutableException {
         Node n = getNode(group, superuser);
-        for (PropertyIterator it = n.getProperties(); it.hasNext();) {
+        for (PropertyIterator it = n.getProperties(); it.hasNext(); ) {
             Property prop = it.nextProperty();
             if (prop.getDefinition().isProtected()) {
                 assertFalse(group.hasProperty(prop.getName()));
@@ -614,7 +617,7 @@ public class AuthorizablePropertyTest extends AbstractUserTest {
             if (!uMgr.isAutoSave()) {
                 superuser.save();
             }
-            Value[] vs = new Value[] {v, v};
+            Value[] vs = new Value[]{v, v};
             user.setProperty("someProp", vs);
             if (!uMgr.isAutoSave()) {
                 superuser.save();
@@ -631,7 +634,7 @@ public class AuthorizablePropertyTest extends AbstractUserTest {
         UserManager uMgr = getUserManager(superuser);
         try {
             Value v = superuser.getValueFactory().createValue("anyValue");
-            Value[] vs = new Value[] {v, v};
+            Value[] vs = new Value[]{v, v};
             user.setProperty("someProp", vs);
             if (!uMgr.isAutoSave()) {
                 superuser.save();

@@ -22,7 +22,6 @@ import javax.jcr.Node;
 import javax.jcr.Session;
 import javax.jcr.security.AccessControlEntry;
 import javax.jcr.security.Privilege;
-
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
@@ -60,10 +59,12 @@ public class InheritanceTest extends AbstractEvaluationTest {
     @Test
     public void testInheritance() throws Exception {
         // give 'modify_properties' and 'remove_node' privilege on 'path'
-        Privilege[] privileges = privilegesFromNames(new String[] {Privilege.JCR_REMOVE_NODE, Privilege.JCR_MODIFY_PROPERTIES});
+        Privilege[] privileges = privilegesFromNames(
+            new String[]{Privilege.JCR_REMOVE_NODE, Privilege.JCR_MODIFY_PROPERTIES});
         allow(path, privileges);
         // give 'add-child-nodes', remove_child_nodes' on 'childNPath'
-        privileges = privilegesFromNames(new String[] {Privilege.JCR_ADD_CHILD_NODES, Privilege.JCR_REMOVE_CHILD_NODES});
+        privileges = privilegesFromNames(
+            new String[]{Privilege.JCR_ADD_CHILD_NODES, Privilege.JCR_REMOVE_CHILD_NODES});
         allow(childNPath, privileges);
 
         /*
@@ -75,12 +76,12 @@ public class InheritanceTest extends AbstractEvaluationTest {
         - jcr:removeChildNodes
         - jcr:removeNode
         */
-        Privilege[] expectedPrivileges =  privilegesFromNames(new String[] {
-                Privilege.JCR_READ,
-                Privilege.JCR_ADD_CHILD_NODES,
-                Privilege.JCR_REMOVE_CHILD_NODES,
-                Privilege.JCR_REMOVE_NODE,
-                Privilege.JCR_MODIFY_PROPERTIES
+        Privilege[] expectedPrivileges = privilegesFromNames(new String[]{
+            Privilege.JCR_READ,
+            Privilege.JCR_ADD_CHILD_NODES,
+            Privilege.JCR_REMOVE_CHILD_NODES,
+            Privilege.JCR_REMOVE_NODE,
+            Privilege.JCR_MODIFY_PROPERTIES
         });
         assertTrue(testAcMgr.hasPrivileges(childNPath, expectedPrivileges));
 
@@ -93,7 +94,8 @@ public class InheritanceTest extends AbstractEvaluationTest {
          - add-node
          - remove.
          */
-        String aActions = javax.jcr.Session.ACTION_SET_PROPERTY + ',' + javax.jcr.Session.ACTION_READ;
+        String aActions =
+            javax.jcr.Session.ACTION_SET_PROPERTY + ',' + javax.jcr.Session.ACTION_READ;
         assertTrue(testSession.hasPermission(childNPath, aActions));
         String dActions = javax.jcr.Session.ACTION_REMOVE + ',' + javax.jcr.Session.ACTION_ADD_NODE;
         assertFalse(testSession.hasPermission(childNPath, dActions));
@@ -123,7 +125,7 @@ public class InheritanceTest extends AbstractEvaluationTest {
     @Test
     public void testInheritance2() throws Exception {
         // give jcr:write privilege on 'path' and withdraw them on 'childNPath'
-        Privilege[] privileges = privilegesFromNames(new String[] {Privilege.JCR_WRITE});
+        Privilege[] privileges = privilegesFromNames(new String[]{Privilege.JCR_WRITE});
         allow(path, privileges);
         deny(childNPath, privileges);
 
@@ -136,7 +138,8 @@ public class InheritanceTest extends AbstractEvaluationTest {
         /*
          ... same for permissions at 'childNPath'
          */
-        String actions = getActions(Session.ACTION_SET_PROPERTY, Session.ACTION_REMOVE, Session.ACTION_ADD_NODE);
+        String actions = getActions(Session.ACTION_SET_PROPERTY, Session.ACTION_REMOVE,
+            Session.ACTION_ADD_NODE);
 
         String nonExistingItemPath = childNPath + "/anyItem";
         assertFalse(testSession.hasPermission(nonExistingItemPath, actions));

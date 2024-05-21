@@ -22,7 +22,6 @@ package org.apache.jackrabbit.oak.index;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
-
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier.COWDirectoryTracker;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
@@ -33,6 +32,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class LuceneIndexHelper implements Closeable {
+
     private static final String PROP_BUFFER_SIZE = "oak.index.ramBufferSizeMB";
     private static final int BUFFER_SIZE_DEFAULT = 32;
 
@@ -50,23 +50,24 @@ public class LuceneIndexHelper implements Closeable {
         LuceneIndexEditorProvider editor;
         if (directoryFactory != null) {
             editor = new LuceneIndexEditorProvider(
-                    getIndexCopier(),
-                    extendedIndexHelper.getExtractedTextCache(),
-                    null,
-                    extendedIndexHelper.getMountInfoProvider()
+                getIndexCopier(),
+                extendedIndexHelper.getExtractedTextCache(),
+                null,
+                extendedIndexHelper.getMountInfoProvider()
             ) {
                 @Override
-                protected DirectoryFactory newDirectoryFactory(BlobDeletionCallback blobDeletionCallback,
-                                                               COWDirectoryTracker cowDirectoryTracker) {
+                protected DirectoryFactory newDirectoryFactory(
+                    BlobDeletionCallback blobDeletionCallback,
+                    COWDirectoryTracker cowDirectoryTracker) {
                     return directoryFactory;
                 }
             };
         } else {
             editor = new LuceneIndexEditorProvider(
-                    getIndexCopier(),
-                    extendedIndexHelper.getExtractedTextCache(),
-                    null,
-                    extendedIndexHelper.getMountInfoProvider()
+                getIndexCopier(),
+                extendedIndexHelper.getExtractedTextCache(),
+                null,
+                extendedIndexHelper.getMountInfoProvider()
             );
         }
 
@@ -79,7 +80,7 @@ public class LuceneIndexHelper implements Closeable {
         int buffSize = Integer.getInteger(PROP_BUFFER_SIZE, BUFFER_SIZE_DEFAULT);
 
         log.info("Setting RAMBufferSize for LuceneIndexWriter (configurable via " +
-                "system property '{}') to {} MB", PROP_BUFFER_SIZE, buffSize);
+            "system property '{}') to {} MB", PROP_BUFFER_SIZE, buffSize);
 
         return new LuceneIndexWriterConfig(buffSize);
     }

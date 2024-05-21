@@ -18,26 +18,27 @@
  */
 package org.apache.jackrabbit.oak.run;
 
-import org.apache.jackrabbit.oak.run.commons.Command;
-import org.apache.jackrabbit.oak.run.commons.Utils;
-
-import java.util.Locale;
-
 import static java.util.Arrays.copyOfRange;
 import static org.apache.jackrabbit.oak.run.AvailableElasticModes.MODES;
+
+import java.util.Locale;
+import org.apache.jackrabbit.oak.run.commons.Command;
+import org.apache.jackrabbit.oak.run.commons.Utils;
 
 /*
 Entry point for the oak run elastic utility
  */
 public final class Main {
+
     private Main() {
         // Prevent instantiation.
     }
 
     public static void main(String... args) throws Exception {
         Utils.printProductInfo(
-                args,
-                Main.class.getResourceAsStream("/META-INF/maven/org.apache.jackrabbit/oak-run-elastic/pom.properties"));
+            args,
+            Main.class.getResourceAsStream(
+                "/META-INF/maven/org.apache.jackrabbit/oak-run-elastic/pom.properties"));
 
         Command command = MODES.getCommand("help");
 

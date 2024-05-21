@@ -18,20 +18,19 @@
 
 package org.apache.jackrabbit.oak.segment;
 
+import static org.apache.jackrabbit.oak.segment.CompactorTestUtils.SimpleCompactorFactory;
+import static org.apache.jackrabbit.oak.segment.DefaultSegmentWriterBuilder.defaultSegmentWriterBuilder;
+
+import java.util.ArrayList;
+import java.util.List;
+import org.apache.jackrabbit.oak.segment.file.CompactionWriter;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.GCNodeWriteMonitor;
-import org.apache.jackrabbit.oak.segment.file.CompactionWriter;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 import org.jetbrains.annotations.NotNull;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-
-import java.util.ArrayList;
-import java.util.List;
-
-import static org.apache.jackrabbit.oak.segment.DefaultSegmentWriterBuilder.defaultSegmentWriterBuilder;
-import static org.apache.jackrabbit.oak.segment.CompactorTestUtils.SimpleCompactorFactory;
 
 @RunWith(Parameterized.class)
 public class ParallelCompactorExternalBlobTest extends AbstractCompactorExternalBlobTest {
@@ -51,18 +50,22 @@ public class ParallelCompactorExternalBlobTest extends AbstractCompactorExternal
         return parameters;
     }
 
-    public ParallelCompactorExternalBlobTest(@NotNull SimpleCompactorFactory compactorFactory, int concurrency) {
+    public ParallelCompactorExternalBlobTest(@NotNull SimpleCompactorFactory compactorFactory,
+        int concurrency) {
         super(compactorFactory);
         this.concurrency = concurrency;
     }
 
     @Override
-    protected ParallelCompactor createCompactor(@NotNull FileStore fileStore, @NotNull GCGeneration generation) {
+    protected ParallelCompactor createCompactor(@NotNull FileStore fileStore,
+        @NotNull GCGeneration generation) {
         SegmentWriter writer = defaultSegmentWriterBuilder("c")
-                .withGeneration(generation)
-                .withWriterPool(SegmentBufferWriterPool.PoolType.THREAD_SPECIFIC)
-                .build(fileStore);
-        CompactionWriter compactionWriter = new CompactionWriter(fileStore.getReader(), fileStore.getBlobStore(), generation, writer);
-        return new ParallelCompactor(GCMonitor.EMPTY, compactionWriter, GCNodeWriteMonitor.EMPTY, concurrency);
+            .withGeneration(generation)
+            .withWriterPool(SegmentBufferWriterPool.PoolType.THREAD_SPECIFIC)
+            .build(fileStore);
+        CompactionWriter compactionWriter = new CompactionWriter(fileStore.getReader(),
+            fileStore.getBlobStore(), generation, writer);
+        return new ParallelCompactor(GCMonitor.EMPTY, compactionWriter, GCNodeWriteMonitor.EMPTY,
+            concurrency);
     }
 }

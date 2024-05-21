@@ -18,26 +18,26 @@
  */
 package org.apache.jackrabbit.oak.scalability.benchmarks.search;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.commons.JcrUtils;
-import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
-import org.apache.jackrabbit.oak.scalability.benchmarks.ScalabilityBenchmark;
-import org.apache.jackrabbit.oak.scalability.suites.ScalabilityAbstractSuite;
-import org.apache.jackrabbit.oak.scalability.suites.ScalabilityAbstractSuite.ExecutionContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import java.util.List;
+import java.util.Random;
+import java.util.UUID;
 import javax.jcr.Credentials;
 import javax.jcr.Node;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-import java.util.List;
-import java.util.Random;
-import java.util.UUID;
+import org.apache.jackrabbit.commons.JcrUtils;
+import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.oak.scalability.benchmarks.ScalabilityBenchmark;
+import org.apache.jackrabbit.oak.scalability.suites.ScalabilityAbstractSuite;
+import org.apache.jackrabbit.oak.scalability.suites.ScalabilityAbstractSuite.ExecutionContext;
+import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
- * Reads random paths concurrently with multiple readers/writers configured with {@link #WRITERS} and {@link #READERS}.
+ * Reads random paths concurrently with multiple readers/writers configured with {@link #WRITERS}
+ * and {@link #READERS}.
  *
  * <p>
  * The following system JVM properties can be defined to configure the benchmark behavior.
@@ -55,9 +55,9 @@ import java.util.UUID;
  *     Defaults to 100.
  * </li>
  * </ul>
- *
  */
 public class ConcurrentReader extends ScalabilityBenchmark {
+
     protected static final Logger LOG = LoggerFactory.getLogger(ConcurrentReader.class);
     private static final Random rand = new Random();
     private static final int WRITERS = Integer.getInteger("concurrentReaders", 0);
@@ -70,13 +70,14 @@ public class ConcurrentReader extends ScalabilityBenchmark {
     private List<Thread> jobs = Lists.newArrayList();
 
     @Override
-    public void beforeExecute(Repository repository, Credentials credentials, ExecutionContext context) throws Exception {
+    public void beforeExecute(Repository repository, Credentials credentials,
+        ExecutionContext context) throws Exception {
         Session session = repository.login(credentials);
         JcrUtils.getOrAddNode(session.getRootNode(), ROOT_NODE_NAME);
         session.save();
         session.logout();
 
-        for(int idx = 0; idx < WRITERS; idx++) {
+        for (int idx = 0; idx < WRITERS; idx++) {
             try {
                 Thread thread = createJob(
                     new Writer("concurrentWriter-" + UUID.randomUUID() + idx, MAX_ASSETS,
@@ -88,7 +89,7 @@ public class ConcurrentReader extends ScalabilityBenchmark {
             }
         }
 
-        for(int idx = 0; idx < READERS; idx++) {
+        for (int idx = 0; idx < READERS; idx++) {
             try {
                 Thread thread = createJob(
                     new Reader("concurrentReader-" + UUID.randomUUID() + idx, MAX_ASSETS,
@@ -104,7 +105,8 @@ public class ConcurrentReader extends ScalabilityBenchmark {
 
     private Thread createJob(final Job job) throws RepositoryException {
         Thread thread = new Thread(job.id) {
-            @Override public void run() {
+            @Override
+            public void run() {
                 while (running) {
                     job.process();
                 }
@@ -115,7 +117,8 @@ public class ConcurrentReader extends ScalabilityBenchmark {
     }
 
     @Override
-    public void afterExecute(Repository repository, Credentials credentials, ExecutionContext context) {
+    public void afterExecute(Repository repository, Credentials credentials,
+        ExecutionContext context) {
         running = false;
         for (Thread thread : jobs) {
             try {
@@ -136,6 +139,7 @@ public class ConcurrentReader extends ScalabilityBenchmark {
     }
 
     abstract class Job {
+
         final Node parent;
         final Session session;
         final String id;
@@ -143,7 +147,8 @@ public class ConcurrentReader extends ScalabilityBenchmark {
         final List<String> readPaths;
         final Random rand;
 
-        Job(String id, int maxAssets, Session session, ExecutionContext context) throws RepositoryException {
+        Job(String id, int maxAssets, Session session, ExecutionContext context)
+            throws RepositoryException {
             this.id = id;
             this.maxAssets = maxAssets;
             this.session = session;
@@ -165,7 +170,9 @@ public class ConcurrentReader extends ScalabilityBenchmark {
      * Simple Reader job
      */
     class Reader extends Job {
-        Reader(String id, int maxAssets, Session session, ExecutionContext context) throws RepositoryException {
+
+        Reader(String id, int maxAssets, Session session, ExecutionContext context)
+            throws RepositoryException {
             super(id, maxAssets, session, context);
         }
 
@@ -177,7 +184,8 @@ public class ConcurrentReader extends ScalabilityBenchmark {
                 while (count <= maxAssets) {
                     session.refresh(false);
                     Node node =
-                        JcrUtils.getNodeIfExists(readPaths.get(rand.nextInt(readPathSize)), session);
+                        JcrUtils.getNodeIfExists(readPaths.get(rand.nextInt(readPathSize)),
+                            session);
                     if (LOG.isDebugEnabled()) {
                         LOG.debug(node.getPath());
                     }
@@ -194,7 +202,9 @@ public class ConcurrentReader extends ScalabilityBenchmark {
      * Simple Writer job
      */
     class Writer extends Job {
-        Writer(String id, int maxAssets, Session session, ExecutionContext context) throws RepositoryException {
+
+        Writer(String id, int maxAssets, Session session, ExecutionContext context)
+            throws RepositoryException {
             super(id, maxAssets, session, context);
         }
 
@@ -205,7 +215,8 @@ public class ConcurrentReader extends ScalabilityBenchmark {
                 while (count <= maxAssets) {
                     session.refresh(false);
                     Node node =
-                        JcrUtils.getOrAddNode(parent, "Node" + count, NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+                        JcrUtils.getOrAddNode(parent, "Node" + count,
+                            NodeTypeConstants.NT_OAK_UNSTRUCTURED);
                     node.setProperty("prop1", "val1");
                     node.setProperty("prop2", "val2");
                     session.save();

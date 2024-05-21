@@ -28,7 +28,7 @@ public final class RevisionContextWrapper implements RevisionContext {
     private final int clusterId;
 
     public RevisionContextWrapper(RevisionContext context,
-                                  int clusterId) {
+        int clusterId) {
         this.context = context;
         this.clusterId = clusterId;
     }
@@ -69,7 +69,7 @@ public final class RevisionContextWrapper implements RevisionContext {
 
     @Override
     public String getCommitValue(@NotNull Revision revision,
-                                 @NotNull NodeDocument nodeDocument) {
+        @NotNull NodeDocument nodeDocument) {
         return context.getCommitValue(revision, nodeDocument);
     }
 }

@@ -16,17 +16,6 @@
  */
 package org.apache.jackrabbit.oak.jcr.delegate;
 
-import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
-import org.apache.jackrabbit.api.security.principal.PrincipalManager;
-import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
-import org.apache.jackrabbit.oak.spi.security.principal.PrincipalQueryManager;
-import org.jetbrains.annotations.NotNull;
-import org.junit.Test;
-
-import javax.jcr.RepositoryException;
-import java.security.Principal;
-
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -37,28 +26,39 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.withSettings;
 
+import java.security.Principal;
+import javax.jcr.RepositoryException;
+import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
+import org.apache.jackrabbit.api.security.principal.PrincipalManager;
+import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalQueryManager;
+import org.jetbrains.annotations.NotNull;
+import org.junit.Test;
+
 public class PrincipalManagerDelegatorTest extends AbstractDelegatorTest {
 
     private final SessionDelegate sessionDelegate = mockSessionDelegate();
     private final PrincipalManager principalManager = mock(PrincipalManager.class);
     private final Principal principal = mock(Principal.class);
 
-    private final PrincipalManagerDelegator delegator = new PrincipalManagerDelegator(sessionDelegate, principalManager);
+    private final PrincipalManagerDelegator delegator = new PrincipalManagerDelegator(
+        sessionDelegate, principalManager);
 
-    private static void verifySavePerform(@NotNull SessionDelegate sessionDelegate, int times) throws RepositoryException {
+    private static void verifySavePerform(@NotNull SessionDelegate sessionDelegate, int times)
+        throws RepositoryException {
         verify(sessionDelegate, times(times)).safePerform(any(SessionOperation.class));
         verify(sessionDelegate, times(times)).perform(any(SessionOperation.class));
     }
-    
+
     @Test
     public void testHasPrincipal() throws Exception {
         delegator.hasPrincipal("name");
-        
+
         verify(principalManager).hasPrincipal("name");
         verifySavePerform(sessionDelegate, 1);
         verifyNoMoreInteractions(principalManager, sessionDelegate);
     }
-    
+
     @Test
     public void testGetPrincipal() throws Exception {
         delegator.getPrincipal("name");
@@ -68,19 +68,20 @@ public class PrincipalManagerDelegatorTest extends AbstractDelegatorTest {
         verify(sessionDelegate).performNullable(any(SessionOperation.class));
         verifyNoMoreInteractions(principalManager, sessionDelegate);
     }
-    
+
     @Test
     public void testFindPrincipals() throws Exception {
         PrincipalIterator it = mock(PrincipalIterator.class);
         doReturn(it).when(principalManager).findPrincipals(anyString(), anyInt());
-        
+
         String simpleFilter = "simpleFilter";
         delegator.findPrincipals(simpleFilter);
         delegator.findPrincipals(simpleFilter, PrincipalManager.SEARCH_TYPE_NOT_GROUP);
         delegator.findPrincipals(simpleFilter, true, PrincipalManager.SEARCH_TYPE_GROUP, 6, 0);
-        
+
         verify(principalManager).findPrincipals(simpleFilter);
-        verify(principalManager).findPrincipals(simpleFilter, PrincipalManager.SEARCH_TYPE_NOT_GROUP);
+        verify(principalManager).findPrincipals(simpleFilter,
+            PrincipalManager.SEARCH_TYPE_NOT_GROUP);
         verify(principalManager).findPrincipals(simpleFilter, PrincipalManager.SEARCH_TYPE_GROUP);
         verify(it).skip(6);
         verifySavePerform(sessionDelegate, 3);
@@ -89,16 +90,18 @@ public class PrincipalManagerDelegatorTest extends AbstractDelegatorTest {
 
     @Test
     public void testFindPrincipalsOnPrincipalQueryManager() throws Exception {
-        PrincipalManager pm = mock(PrincipalManager.class, withSettings().extraInterfaces(PrincipalQueryManager.class));
+        PrincipalManager pm = mock(PrincipalManager.class,
+            withSettings().extraInterfaces(PrincipalQueryManager.class));
         PrincipalManagerDelegator del = new PrincipalManagerDelegator(sessionDelegate, pm);
         del.findPrincipals("simpleFilter", false, PrincipalManager.SEARCH_TYPE_ALL, 25, 2);
 
-        verify((PrincipalQueryManager) pm).findPrincipals("simpleFilter", false, PrincipalManager.SEARCH_TYPE_ALL, 25, 2);
+        verify((PrincipalQueryManager) pm).findPrincipals("simpleFilter", false,
+            PrincipalManager.SEARCH_TYPE_ALL, 25, 2);
 
         verifySavePerform(sessionDelegate, 1);
         verifyNoMoreInteractions(principalManager, sessionDelegate);
     }
-    
+
     @Test
     public void testGetPrincipals() throws Exception {
         delegator.getPrincipals(PrincipalManager.SEARCH_TYPE_ALL);
@@ -107,7 +110,7 @@ public class PrincipalManagerDelegatorTest extends AbstractDelegatorTest {
         verifySavePerform(sessionDelegate, 1);
         verifyNoMoreInteractions(principalManager, sessionDelegate);
     }
-    
+
     @Test
     public void testGetGroupMembership() throws Exception {
         delegator.getGroupMembership(principal);
@@ -116,11 +119,11 @@ public class PrincipalManagerDelegatorTest extends AbstractDelegatorTest {
         verifySavePerform(sessionDelegate, 1);
         verifyNoMoreInteractions(principalManager, sessionDelegate);
     }
-    
+
     @Test
     public void testGetEveryone() throws Exception {
         delegator.getEveryone();
-        
+
         verify(principalManager).getEveryone();
         verifySavePerform(sessionDelegate, 1);
         verifyNoMoreInteractions(principalManager, sessionDelegate);

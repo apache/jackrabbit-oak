@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.index;
 
+import java.io.File;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexTracker;
@@ -26,8 +27,6 @@ import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticIndexEditorP
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
-
-import java.io.File;
 
 public class ElasticRepositoryFixture extends IndexRepositoryFixture {
 
@@ -40,11 +39,13 @@ public class ElasticRepositoryFixture extends IndexRepositoryFixture {
 
     @Override
     protected void configureIndexProvider(Oak oak) {
-        ElasticIndexTracker tracker = new ElasticIndexTracker(connection, new ElasticMetricHandler(StatisticsProvider.NOOP));
+        ElasticIndexTracker tracker = new ElasticIndexTracker(connection,
+            new ElasticMetricHandler(StatisticsProvider.NOOP));
 
-        ElasticIndexEditorProvider ep = new ElasticIndexEditorProvider(tracker, connection,new ExtractedTextCache(0,0));
+        ElasticIndexEditorProvider ep = new ElasticIndexEditorProvider(tracker, connection,
+            new ExtractedTextCache(0, 0));
         ElasticIndexProvider provider = new ElasticIndexProvider(tracker);
         oak.with(provider)
-                .with(ep);
+           .with(ep);
     }
 }

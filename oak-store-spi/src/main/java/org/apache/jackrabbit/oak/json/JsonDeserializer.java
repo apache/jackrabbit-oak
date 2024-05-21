@@ -19,11 +19,17 @@
 
 package org.apache.jackrabbit.oak.json;
 
+import static java.util.Collections.emptyList;
+import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
+import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
+
 import java.util.List;
 import java.util.Set;
-
 import javax.jcr.PropertyType;
-
 import org.apache.jackrabbit.guava.common.base.CharMatcher;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -39,21 +45,15 @@ import org.apache.jackrabbit.oak.plugins.value.Conversions;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
-import static java.util.Collections.emptyList;
-import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
-import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
-
 public class JsonDeserializer {
+
     public static final String OAK_CHILD_ORDER = ":childOrder";
     private final BlobDeserializer blobHandler;
     private final NodeBuilder builder;
     private final DeserializationSupport deserializationSupport;
 
-    private JsonDeserializer(BlobDeserializer blobHandler, NodeBuilder builder, DeserializationSupport support) {
+    private JsonDeserializer(BlobDeserializer blobHandler, NodeBuilder builder,
+        DeserializationSupport support) {
         this.blobHandler = blobHandler;
         this.builder = builder;
         this.deserializationSupport = support;
@@ -67,7 +67,7 @@ public class JsonDeserializer {
         this(blobHandler, builder, DeserializationSupport.INSTANCE);
     }
 
-    public NodeState deserialize(String json){
+    public NodeState deserialize(String json) {
         JsopReader reader = new JsopTokenizer(json);
         reader.read('{');
         NodeState state = deserialize(reader);
@@ -75,7 +75,7 @@ public class JsonDeserializer {
         return state;
     }
 
-    public NodeState deserialize(JsopReader reader){
+    public NodeState deserialize(JsopReader reader) {
         readNode(reader, builder);
         return builder.getNodeState();
     }
@@ -99,7 +99,7 @@ public class JsonDeserializer {
         }
 
         if (deserializationSupport.hasOrderableChildren(builder)
-                && !builder.hasProperty(OAK_CHILD_ORDER)){
+            && !builder.hasProperty(OAK_CHILD_ORDER)) {
             builder.setProperty(OAK_CHILD_ORDER, childNames, Type.NAMES);
         }
 
@@ -107,8 +107,9 @@ public class JsonDeserializer {
 
     /**
      * Read a {@code PropertyState} from a {@link JsopReader}
-     * @param name  The name of the property state
-     * @param reader  The reader
+     *
+     * @param name   The name of the property state
+     * @param reader The reader
      * @return new property state
      */
     private PropertyState readProperty(String name, JsopReader reader) {
@@ -128,22 +129,22 @@ public class JsonDeserializer {
             Type inferredType = deserializationSupport.inferPropertyType(name, jsonString);
             if (jsonString.startsWith(TypeCodes.EMPTY_ARRAY)) {
                 int type = PropertyType.valueFromName(
-                        jsonString.substring(TypeCodes.EMPTY_ARRAY.length()));
+                    jsonString.substring(TypeCodes.EMPTY_ARRAY.length()));
                 return PropertyStates.createProperty(
-                        name, emptyList(), Type.fromTag(type, true));
+                    name, emptyList(), Type.fromTag(type, true));
             }
             int split = TypeCodes.split(jsonString);
             if (split != -1) {
                 int type = TypeCodes.decodeType(split, jsonString);
                 String value = TypeCodes.decodeName(split, jsonString);
                 if (type == PropertyType.BINARY) {
-                    return  BinaryPropertyState.binaryProperty(
-                            name, blobHandler.deserialize(value));
+                    return BinaryPropertyState.binaryProperty(
+                        name, blobHandler.deserialize(value));
                 } else {
                     //It can happen that a value like oak:Unstructured is also interpreted
                     //as type code. So if oakType is not undefined then use raw value
                     //Also default to STRING in case of UNDEFINED
-                    if (type == PropertyType.UNDEFINED){
+                    if (type == PropertyType.UNDEFINED) {
                         Type oakType = inferredType != Type.UNDEFINED ? inferredType : Type.STRING;
                         return createProperty(name, jsonString, oakType);
                     }
@@ -160,8 +161,9 @@ public class JsonDeserializer {
 
     /**
      * Read a multi valued {@code PropertyState} from a {@link JsopReader}
-     * @param name  The name of the property state
-     * @param reader  The reader
+     *
+     * @param name   The name of the property state
+     * @param reader The reader
      * @return new property state
      */
     private PropertyState readArrayProperty(String name, JsopReader reader) {
@@ -197,17 +199,19 @@ public class JsonDeserializer {
                     } else if (type == PropertyType.DECIMAL) {
                         values.add(Conversions.convert(value).toDecimal());
                     } else {
-                        if (type == PropertyType.UNDEFINED){
+                        if (type == PropertyType.UNDEFINED) {
                             //If determine type is undefined then check if inferred type is defined
                             //else default to STRING
-                            type = inferredType != Type.UNDEFINED ? inferredType.tag() : PropertyType.STRING;
+                            type = inferredType != Type.UNDEFINED ? inferredType.tag()
+                                : PropertyType.STRING;
                             values.add(jsonString);
                         } else {
                             values.add(value);
                         }
                     }
                 } else {
-                    type = inferredType != Type.UNDEFINED ? inferredType.tag() : PropertyType.STRING;
+                    type =
+                        inferredType != Type.UNDEFINED ? inferredType.tag() : PropertyType.STRING;
                     values.add(jsonString);
                 }
             } else {
@@ -223,6 +227,7 @@ public class JsonDeserializer {
      * Provides support for inferring types for some common property name and types
      */
     private static class DeserializationSupport {
+
         static final Set<String> NAME_PROPS = of(JCR_PRIMARYTYPE, JCR_MIXINTYPES);
         static final Set<String> ORDERABLE_TYPES = of(NT_UNSTRUCTURED);
         static final DeserializationSupport INSTANCE = new DeserializationSupport();

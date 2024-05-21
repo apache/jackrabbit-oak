@@ -19,15 +19,20 @@ Privilege Management
 --------------------------------------------------------------------------------
 
 <a name="jcr_api"></a>
+
 ### JCR API
 
 As of JSR 283 the API contains the following privilege related interfaces and methods:
 
-- `Privilege`: exposes the name and characteristics of a given privilege and provides constants for privilege names defined by JCR.
-- `AccessControlManager.getSupportedPrivileges(String)` (see also `PrivilegeManager.getRegisteredPrivileges()`)
-- `AccessControlManager.privilegeFromName(String)` equivalent to `PrivilegeManager.getPrivilege(String)`
+- `Privilege`: exposes the name and characteristics of a given privilege and provides constants for
+  privilege names defined by JCR.
+- `AccessControlManager.getSupportedPrivileges(String)` (see
+  also `PrivilegeManager.getRegisteredPrivileges()`)
+- `AccessControlManager.privilegeFromName(String)` equivalent
+  to `PrivilegeManager.getPrivilege(String)`
 
 <a name="jackrabbit_api"></a>
+
 ### Jackrabbit API
 
 Privilege management is outside of the scope provided by JCR and therefore provided
@@ -37,10 +42,13 @@ by the extensions defined by the Jackrabbit API. It consists of a single interfa
     - `getRegisteredPrivileges()`
     - `getPrivilege(String)`
     - `registerPrivilege(String, boolean, String[])
-- [PrivilegeCollection]: Wraps around a set of privileges allowing for testing if one or multiple privilege 
-names are part of the given set without having to manually resolve the aggregation. Since Oak 1.42.0. For additional details
-see [OAK-9494](https://issues.apache.org/jira/browse/OAK-9494) as well as
-`JackrabbitAccessControlManager.getPrivilegeCollection(String)` and `JackrabbitAccessControlManager.getPrivilegeCollection(String,Set)`.
+- [PrivilegeCollection]: Wraps around a set of privileges allowing for testing if one or multiple
+  privilege
+  names are part of the given set without having to manually resolve the aggregation. Since Oak
+  1.42.0. For additional details
+  see [OAK-9494](https://issues.apache.org/jira/browse/OAK-9494) as well as
+  `JackrabbitAccessControlManager.getPrivilegeCollection(String)`
+  and `JackrabbitAccessControlManager.getPrivilegeCollection(String,Set)`.
 
 ##### Examples
 
@@ -64,14 +72,19 @@ see [OAK-9494](https://issues.apache.org/jira/browse/OAK-9494) as well as
     privilegeManager.registerPrivilege(privilegeName, isAbstract, declaredAggregateNames);
 
 <a name="api_extensions"></a>
+
 ### API Extensions
 
-- [PrivilegeConfiguration] : Oak level entry point to retrieve `PrivilegeManager` and privilege related configuration options.
-- [PrivilegeConstants] : Constants related to privilege management such as Oak names of the built-in privileges.
-- [PrivilegeBitsProvider] : Internal provider to read `PrivilegeBits` from the repository content and map names to internal representation (and vice versa).
+- [PrivilegeConfiguration] : Oak level entry point to retrieve `PrivilegeManager` and privilege
+  related configuration options.
+- [PrivilegeConstants] : Constants related to privilege management such as Oak names of the built-in
+  privileges.
+- [PrivilegeBitsProvider] : Internal provider to read `PrivilegeBits` from the repository content
+  and map names to internal representation (and vice versa).
 - [PrivilegeBits]: Internal representation of JCR privileges.
 
 <a name="utilities"></a>
+
 ### Utilities
 
 The jcr-commons module present with Jackrabbit provide some privilege related
@@ -82,12 +95,14 @@ utility methods:
     - `privilegesFromNames(AccessControlManager accessControlManager, String... privilegeNames)`
 
 <a name="default_implementation"></a>
+
 ### Oak Privilege Management Implementation
 
-The behavior of the default privilege management implementation is described in section 
+The behavior of the default privilege management implementation is described in section
 [Privilege Management: The Default Implementation](privilege/default.html).
 
 <a name="configuration"></a>
+
 ### Configuration
 
 The [PrivilegeConfiguration] is the Oak level entry point to obtain a new
@@ -96,6 +111,7 @@ implementation of the `PrivilegeManager` interface is based on Oak API and can
 equally be used for privilege related tasks in the Oak layer.
 
 <a name="pluggability"></a>
+
 ### Pluggability
 
 _Please note:_ While it's in theory possible to replace the default privilege
@@ -105,6 +121,7 @@ the security risk associated with it. Doing so, will most likely require a re-wr
 of the default access control and permission evaluation.
 
 <a name="further_reading"></a>
+
 ### Further Reading
 
 - [Differences wrt Jackrabbit 2.x](privilege/differences.html)
@@ -116,11 +133,16 @@ of the default access control and permission evaluation.
     - [Mapping Privileges to JCR/Jackrabbit Actions](privilege/mappingprivilegestoactions.html)
     - [Mapping of JCR Actions to Oak Permissions](permission.html#mapping-of-jcr-actions-to-oak-permissions)
 
-
 <!-- references -->
+
 [PrivilegeConfiguration]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/privilege/PrivilegeConfiguration.html
+
 [PrivilegeConstants]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/privilege/PrivilegeConstants.html
+
 [PrivilegeBitsProvider]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/privilege/PrivilegeBitsProvider.html
+
 [PrivilegeBits]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/privilege/PrivilegeBits.html
+
 [PrivilegeManager]: /oak/docs/apidocs/org/apache/jackrabbit/api/security/authorization/PrivilegeManager.java
+
 [PrivilegeCollection]: /oak/docs/apidocs/org/apache/jackrabbit/api/security/authorization/PrivilegeCollection.java

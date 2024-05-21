@@ -18,6 +18,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.blob;
 
+import static java.lang.String.format;
+import static org.apache.jackrabbit.guava.common.base.MoreObjects.toStringHelper;
+import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
+import static org.apache.jackrabbit.oak.plugins.blob.DataStoreCacheUpgradeUtils.movePendingUploadsToStaging;
+
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
@@ -34,7 +39,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
-
+import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.core.data.util.NamedThreadFactory;
 import org.apache.jackrabbit.guava.common.base.Optional;
 import org.apache.jackrabbit.guava.common.cache.Weigher;
 import org.apache.jackrabbit.guava.common.collect.Lists;
@@ -46,8 +52,6 @@ import org.apache.jackrabbit.guava.common.util.concurrent.ListenableFuture;
 import org.apache.jackrabbit.guava.common.util.concurrent.ListeningExecutorService;
 import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
 import org.apache.jackrabbit.guava.common.util.concurrent.SettableFuture;
-import org.apache.jackrabbit.core.data.DataStoreException;
-import org.apache.jackrabbit.core.data.util.NamedThreadFactory;
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
@@ -61,21 +65,15 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.MoreObjects.toStringHelper;
-import static java.lang.String.format;
-import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
-import static org.apache.jackrabbit.oak.plugins.blob.DataStoreCacheUpgradeUtils
-    .movePendingUploadsToStaging;
-
 /**
- * Cache for staging async uploads. This serves as a temporary cache for serving local
- * requests till the time the upload has not been synced with the backend.
+ * Cache for staging async uploads. This serves as a temporary cache for serving local requests till
+ * the time the upload has not been synced with the backend.
  * <p>
- * The appropriate backend for this cache are wrapped in {@link StagingUploader}
- * implementations.
+ * The appropriate backend for this cache are wrapped in {@link StagingUploader} implementations.
  * <p>
  */
 public class UploadStagingCache implements Closeable {
+
     /**
      * Logger instance.
      */
@@ -85,10 +83,12 @@ public class UploadStagingCache implements Closeable {
 
     //Rough estimate of the in-memory key, value pair
     private final Weigher<String, File> memWeigher = new Weigher<String, File>() {
-        @Override public int weigh(String key, File value) {
+        @Override
+        public int weigh(String key, File value) {
             return (StringUtils.estimateMemoryUsage(key) +
                 StringUtils.estimateMemoryUsage(value.getAbsolutePath()) + 48);
-        }};
+        }
+    };
 
     /**
      * Max size of the upload staging cache in bytes
@@ -162,7 +162,8 @@ public class UploadStagingCache implements Closeable {
         this.executor = executor;
         if (executor == null) {
             this.executor = MoreExecutors.listeningDecorator(Executors
-                .newFixedThreadPool(uploadThreads, new NamedThreadFactory("oak-ds-async-upload-thread")));
+                .newFixedThreadPool(uploadThreads,
+                    new NamedThreadFactory("oak-ds-async-upload-thread")));
         }
 
         this.scheduledExecutor = scheduledExecutor;
@@ -204,33 +205,41 @@ public class UploadStagingCache implements Closeable {
                 statisticsProvider, executor, scheduledExecutor, purgeInterval, retryInterval);
         }
         return new UploadStagingCache() {
-            @Override public Optional<SettableFuture<Integer>> put(String id, File input) {
+            @Override
+            public Optional<SettableFuture<Integer>> put(String id, File input) {
                 return Optional.absent();
             }
 
-            @Override protected void invalidate(String key) {
+            @Override
+            protected void invalidate(String key) {
             }
 
-            @Override protected Iterator<String> getAllIdentifiers() {
+            @Override
+            protected Iterator<String> getAllIdentifiers() {
                 return Collections.emptyIterator();
             }
 
-            @Nullable @Override public File getIfPresent(String key) {
+            @Nullable
+            @Override
+            public File getIfPresent(String key) {
                 return null;
             }
 
-            @Override public DataStoreCacheStatsMBean getStats() {
+            @Override
+            public DataStoreCacheStatsMBean getStats() {
                 return new StagingCacheStats(this, StatisticsProvider.NOOP, 0);
             }
 
-            @Override public void close() {
+            @Override
+            public void close() {
             }
         };
     }
 
     /**
      * Retrieves all the files staged in the staging area and schedules them for uploads.
-     * @param home the home of the repo
+     *
+     * @param home     the home of the repo
      * @param rootPath the parent of the cache
      */
     private void build(File home, File rootPath) {
@@ -241,9 +250,10 @@ public class UploadStagingCache implements Closeable {
         List<File> files;
         try {
             uploadCacheSpace.mkdirs();
-            files = java.nio.file.Files.find(uploadCacheSpace.toPath(), Integer.MAX_VALUE, (path, basicFileAttributes) -> basicFileAttributes.isRegularFile())
-                    .map(Path::toFile)
-                    .collect(Collectors.toList());
+            files = java.nio.file.Files.find(uploadCacheSpace.toPath(), Integer.MAX_VALUE,
+                            (path, basicFileAttributes) -> basicFileAttributes.isRegularFile())
+                                       .map(Path::toFile)
+                                       .collect(Collectors.toList());
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
@@ -263,22 +273,21 @@ public class UploadStagingCache implements Closeable {
     }
 
     /**
-     * Puts the file into the staging cache if possible.
-     * Returns an optional SettableFuture if staged for upload otherwise empty.
+     * Puts the file into the staging cache if possible. Returns an optional SettableFuture if
+     * staged for upload otherwise empty.
      *
-     * @param id the id of the file to be staged
+     * @param id    the id of the file to be staged
      * @param input the file to be staged
-     * @return An Optional SettableFuture containing
-     *              1 if upload was successful,
-     *              0 if an existing id is already pending for upload
+     * @return An Optional SettableFuture containing 1 if upload was successful, 0 if an existing id
+     * is already pending for upload
      */
     public Optional<SettableFuture<Integer>> put(String id, File input) {
         return putOptionalDisregardingSize(id, input, false);
     }
 
     /**
-     * Puts the file into the staging cache if ignoreSize else if possible
-     * Returns an optional SettableFuture if staged for upload otherwise empty.
+     * Puts the file into the staging cache if ignoreSize else if possible Returns an optional
+     * SettableFuture if staged for upload otherwise empty.
      *
      * @param id
      * @param input
@@ -295,10 +304,10 @@ public class UploadStagingCache implements Closeable {
         // if ignoreSize update internal size else size permits
         // and not upload complete or already scheduled for upload
         if (((ignoreSize && currentSize.addAndGet(length) >= 0)
-                || currentSize.addAndGet(length) <= size)
+            || currentSize.addAndGet(length) <= size)
             && !attic.containsKey(id)
             && existsOrNotExistsMoveFile(input, uploadFile, currentSize, length)
-            && map.putIfAbsent(id, uploadFile) == null ) {
+            && map.putIfAbsent(id, uploadFile) == null) {
 
             try {
                 // update stats
@@ -327,7 +336,8 @@ public class UploadStagingCache implements Closeable {
         return Optional.absent();
     }
 
-    private synchronized boolean existsOrNotExistsMoveFile(File source, File destination, AtomicLong currentSize,
+    private synchronized boolean existsOrNotExistsMoveFile(File source, File destination,
+        AtomicLong currentSize,
         long length) {
         if (!destination.exists()) {
             try {
@@ -345,12 +355,12 @@ public class UploadStagingCache implements Closeable {
     }
 
     /**
-     * Stages the file for async upload.
-     * * Puts the file into the stage caching file system directory
-     * * Schedules a job for upload to write using the given {@link StagingUploader}
-     * * Updates the internal map and size variable
-     * * Adds a callback listener to remove the file once finished
-     * @param id of the file to be staged
+     * Stages the file for async upload. * Puts the file into the stage caching file system
+     * directory * Schedules a job for upload to write using the given {@link StagingUploader} *
+     * Updates the internal map and size variable * Adds a callback listener to remove the file once
+     * finished
+     *
+     * @param id     of the file to be staged
      * @param upload the file to be staged
      * @return a SettableFuture instance
      */
@@ -360,7 +370,8 @@ public class UploadStagingCache implements Closeable {
         try {
             // create an async job
             ListenableFuture<Integer> future = executor.submit(new Callable<Integer>() {
-                @Override public Integer call() throws Exception {
+                @Override
+                public Integer call() throws Exception {
                     try {
                         final TimerStats.Context uploadContext = cacheStats.startUpLoaderTimer();
 
@@ -379,7 +390,8 @@ public class UploadStagingCache implements Closeable {
 
             // Add a callback to the returned Future object for handling success and error
             Futures.addCallback(future, new FutureCallback<Integer>() {
-                @Override public void onSuccess(@Nullable Integer r) {
+                @Override
+                public void onSuccess(@Nullable Integer r) {
                     LOG.info("Successfully added [{}], [{}]", id, upload);
 
                     try {
@@ -402,7 +414,8 @@ public class UploadStagingCache implements Closeable {
                     result.set(r);
                 }
 
-                @Override public void onFailure(Throwable t) {
+                @Override
+                public void onFailure(Throwable t) {
                     LOG.error("Error adding [{}] with file [{}] to backend", id, upload, t);
                     result.setException(t);
                     retryQueue.add(id);
@@ -418,6 +431,7 @@ public class UploadStagingCache implements Closeable {
 
     /**
      * Invalidate called externally.
+     *
      * @param key to invalidate
      */
     protected void invalidate(String key) {
@@ -447,7 +461,8 @@ public class UploadStagingCache implements Closeable {
      * Removes all cached from attic
      */
     private void remove() {
-        LOG.info("Starting purge of uploaded files, current size [{}]", humanReadableByteCount(currentSize.get()));
+        LOG.info("Starting purge of uploaded files, current size [{}]",
+            humanReadableByteCount(currentSize.get()));
 
         Iterator<String> iterator = attic.keySet().iterator();
         int count = 0;
@@ -470,13 +485,14 @@ public class UploadStagingCache implements Closeable {
             }
         }
 
-        LOG.info("Finished removal of [{}] files, current size [{}]", count, humanReadableByteCount(currentSize.get()));
+        LOG.info("Finished removal of [{}] files, current size [{}]", count,
+            humanReadableByteCount(currentSize.get()));
     }
 
     /**
      * Adjust stats and delete file.
      *
-     * @param key to delete
+     * @param key         to delete
      * @param toBeDeleted file to delete
      * @throws IOException
      */
@@ -495,10 +511,9 @@ public class UploadStagingCache implements Closeable {
     }
 
     /**
-     * Returns the File if present or null otherwise.
-     * Any usage of the returned file should assert for its existence as the file
-     * could be purged from the file system once uploaded using the internal scheduled remove
-     * mechanism.
+     * Returns the File if present or null otherwise. Any usage of the returned file should assert
+     * for its existence as the file could be purged from the file system once uploaded using the
+     * internal scheduled remove mechanism.
      *
      * @param key of the file to check
      * @return a File object if found
@@ -540,6 +555,7 @@ public class UploadStagingCache implements Closeable {
      * Class which calls remove on all
      */
     class RemoveJob implements Runnable {
+
         @Override
         public void run() {
             remove();
@@ -551,6 +567,7 @@ public class UploadStagingCache implements Closeable {
      * Job to retry failed uploads.
      */
     class RetryJob implements Runnable {
+
         @Override
         public void run() {
             LOG.debug("Retry job started");
@@ -585,34 +602,54 @@ class StagingCacheStats extends AnnotatedStandardMBean implements DataStoreCache
 
     private final String cacheName;
 
-    /** Max size in bytes configured for the cache **/
+    /**
+     * Max size in bytes configured for the cache
+     **/
     private final long maxWeight;
 
-    /** Tracking the number of uploads that could be staged **/
+    /**
+     * Tracking the number of uploads that could be staged
+     **/
     private final MeterStats hitMeter;
 
-    /** Tracking the number of requests to upload & stage **/
+    /**
+     * Tracking the number of requests to upload & stage
+     **/
     private final MeterStats requestMeter;
 
-    /** Tracking the number of get requests serviced by the cache **/
+    /**
+     * Tracking the number of get requests serviced by the cache
+     **/
     private final MeterStats loadSuccessMeter;
 
-    /** Tracking the number of get requests received by the cache **/
+    /**
+     * Tracking the number of get requests received by the cache
+     **/
     private final MeterStats loadMeter;
 
-    /** Tracking the upload time **/
+    /**
+     * Tracking the upload time
+     **/
     private final TimerStats uploadTimer;
 
-    /** Tracking the current size in MB **/
+    /**
+     * Tracking the current size in MB
+     **/
     private final CounterStats currentSizeMeter;
 
-    /** Tracking the in-memory size of cache **/
+    /**
+     * Tracking the in-memory size of cache
+     **/
     private final CounterStats currentMemSizeMeter;
 
-    /** Tracking the cache element count **/
+    /**
+     * Tracking the cache element count
+     **/
     private final CounterStats countMeter;
 
-    /** Handle to the cache **/
+    /**
+     * Handle to the cache
+     **/
     private final UploadStagingCache cache;
 
     StagingCacheStats(UploadStagingCache cache, StatisticsProvider provider, long maxWeight) {
@@ -648,7 +685,8 @@ class StagingCacheStats extends AnnotatedStandardMBean implements DataStoreCache
         currentSizeMeter = statisticsProvider.getCounterStats(statName, StatsOptions.METRICS_ONLY);
 
         statName = getStatName(CURRENT_MEM_SIZE, cacheName);
-        currentMemSizeMeter = statisticsProvider.getCounterStats(statName, StatsOptions.METRICS_ONLY);
+        currentMemSizeMeter = statisticsProvider.getCounterStats(statName,
+            StatsOptions.METRICS_ONLY);
 
         statName = getStatName(COUNT, cacheName);
         countMeter = statisticsProvider.getCounterStats(statName, StatsOptions.METRICS_ONLY);
@@ -720,7 +758,7 @@ class StagingCacheStats extends AnnotatedStandardMBean implements DataStoreCache
     public double getHitRate() {
         long hitCount = hitMeter.getCount();
         long requestCount = requestMeter.getCount();
-        return (requestCount == 0L ? 0L : (double)hitCount/requestCount);
+        return (requestCount == 0L ? 0L : (double) hitCount / requestCount);
     }
 
     @Override
@@ -732,7 +770,7 @@ class StagingCacheStats extends AnnotatedStandardMBean implements DataStoreCache
     public double getMissRate() {
         long missCount = getMissCount();
         long requestCount = requestMeter.getCount();
-        return (requestCount == 0L ? 0L : (double) missCount/requestCount);
+        return (requestCount == 0L ? 0L : (double) missCount / requestCount);
     }
 
     @Override
@@ -754,7 +792,7 @@ class StagingCacheStats extends AnnotatedStandardMBean implements DataStoreCache
     public double getLoadExceptionRate() {
         long loadExceptionCount = getLoadExceptionCount();
         long loadCount = loadMeter.getCount();
-        return (loadCount == 0L ? 0L : (double) loadExceptionCount/loadCount);
+        return (loadCount == 0L ? 0L : (double) loadExceptionCount / loadCount);
     }
 
     @Override
@@ -825,6 +863,7 @@ class StagingCacheStats extends AnnotatedStandardMBean implements DataStoreCache
  * Wrapper for backend used for uploading
  */
 interface StagingUploader {
+
     void write(String id, File f) throws DataStoreException;
 
     void adopt(File f, File moved) throws IOException;

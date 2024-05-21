@@ -21,7 +21,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.mock;
 
 import java.util.Set;
-
 import org.hamcrest.Matchers;
 import org.junit.Test;
 

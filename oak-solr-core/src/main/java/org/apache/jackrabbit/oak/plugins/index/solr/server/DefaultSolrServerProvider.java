@@ -32,9 +32,10 @@ public class DefaultSolrServerProvider implements SolrServerProvider {
     public SolrClient getSolrServer() throws Exception {
         if (solrServer == null) {
             solrServer = new HttpSolrClient.Builder()
-                    .withBaseSolrUrl(SolrServerConfigurationDefaults.LOCAL_BASE_URL + ':' +
-                            SolrServerConfigurationDefaults.HTTP_PORT + SolrServerConfigurationDefaults.CONTEXT)
-                    .build();
+                .withBaseSolrUrl(SolrServerConfigurationDefaults.LOCAL_BASE_URL + ':' +
+                    SolrServerConfigurationDefaults.HTTP_PORT
+                    + SolrServerConfigurationDefaults.CONTEXT)
+                .build();
         }
         return solrServer;
     }
@@ -44,9 +45,10 @@ public class DefaultSolrServerProvider implements SolrServerProvider {
     public SolrClient getIndexingSolrServer() throws Exception {
         if (indexingSolrServer == null) {
             indexingSolrServer = new ConcurrentUpdateSolrClient.Builder(
-                    SolrServerConfigurationDefaults.LOCAL_BASE_URL + ':' +
-                    SolrServerConfigurationDefaults.HTTP_PORT + SolrServerConfigurationDefaults.CONTEXT)
-                    .withQueueSize(1000).withThreadCount(4).build();
+                SolrServerConfigurationDefaults.LOCAL_BASE_URL + ':' +
+                    SolrServerConfigurationDefaults.HTTP_PORT
+                    + SolrServerConfigurationDefaults.CONTEXT)
+                .withQueueSize(1000).withThreadCount(4).build();
         }
         return indexingSolrServer;
     }
@@ -59,8 +61,8 @@ public class DefaultSolrServerProvider implements SolrServerProvider {
 
     private String getUrl() {
         return SolrServerConfigurationDefaults.LOCAL_BASE_URL + ':' +
-                SolrServerConfigurationDefaults.HTTP_PORT + SolrServerConfigurationDefaults.CONTEXT +
-                '/' + SolrServerConfigurationDefaults.CORE_NAME;
+            SolrServerConfigurationDefaults.HTTP_PORT + SolrServerConfigurationDefaults.CONTEXT +
+            '/' + SolrServerConfigurationDefaults.CORE_NAME;
     }
 
     @Override
@@ -72,14 +74,16 @@ public class DefaultSolrServerProvider implements SolrServerProvider {
             }
         } catch (Exception e) {
             // do nothing
-        } try {
+        }
+        try {
             SolrClient indexingSolrServer = getIndexingSolrServer();
             if (indexingSolrServer != null) {
                 indexingSolrServer.close();
             }
         } catch (Exception e) {
             // do nothing
-        } try {
+        }
+        try {
             getSearchingSolrServer().close();
         } catch (Exception e) {
             // do nothing

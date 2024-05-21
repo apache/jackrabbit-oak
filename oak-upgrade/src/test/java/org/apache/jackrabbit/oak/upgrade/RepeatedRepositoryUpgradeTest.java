@@ -22,12 +22,10 @@ import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreB
 
 import java.io.File;
 import java.io.IOException;
-
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-
 import org.apache.jackrabbit.api.JackrabbitWorkspace;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.commons.JcrUtils;
@@ -47,13 +45,13 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 /**
- * Test case to simulate an incremental upgrade, where a source repository is
- * copied to target initially. Then some modifications are made in the source
- * repository and these are (incrementally) copied to the target repository.
+ * Test case to simulate an incremental upgrade, where a source repository is copied to target
+ * initially. Then some modifications are made in the source repository and these are
+ * (incrementally) copied to the target repository.
  * <br>
- * The expectation is that in the end the state in the target repository is
- * identical to the state in the source repository, with the exception of any
- * initial content that the upgrade tool created.
+ * The expectation is that in the end the state in the target repository is identical to the state
+ * in the source repository, with the exception of any initial content that the upgrade tool
+ * created.
  */
 public class RepeatedRepositoryUpgradeTest extends AbstractRepositoryUpgradeTest {
 
@@ -124,7 +122,8 @@ public class RepeatedRepositoryUpgradeTest extends AbstractRepositoryUpgradeTest
         }
     }
 
-    protected void doUpgradeRepository(File source, NodeStore target, boolean skipInit) throws RepositoryException, IOException {
+    protected void doUpgradeRepository(File source, NodeStore target, boolean skipInit)
+        throws RepositoryException, IOException {
         final RepositoryConfig config = RepositoryConfig.create(source);
         final RepositoryContext context = RepositoryContext.create(config);
         try {
@@ -158,7 +157,8 @@ public class RepeatedRepositoryUpgradeTest extends AbstractRepositoryUpgradeTest
         JcrUtils.getOrCreateByPath("/content/child2/grandchild3", "nt:unstructured", session);
         JcrUtils.getOrCreateByPath("/content/child3", "nt:unstructured", session);
 
-        final Node child1 = JcrUtils.getOrCreateByPath("/content/child1", "nt:unstructured", session);
+        final Node child1 = JcrUtils.getOrCreateByPath("/content/child1", "nt:unstructured",
+            session);
         child1.remove();
 
         session.save();
@@ -173,40 +173,40 @@ public class RepeatedRepositoryUpgradeTest extends AbstractRepositoryUpgradeTest
         final PrivilegeManager privilegeManager = workspace.getPrivilegeManager();
         privilegeManager.registerPrivilege("test:privilege", false, null);
         privilegeManager.registerPrivilege(
-                "test:aggregate", false, new String[]{"jcr:read", "test:privilege"});
+            "test:aggregate", false, new String[]{"jcr:read", "test:privilege"});
     }
 
     @Test
     public void shouldReflectSourceAfterModifications() throws Exception {
 
         assertExisting(
-                "/",
-                "/content",
-                "/content/child2",
-                "/content/child2/grandchild1",
-                "/content/child2/grandchild2",
-                "/content/child2/grandchild3",
-                "/content/child3"
+            "/",
+            "/content",
+            "/content/child2",
+            "/content/child2/grandchild1",
+            "/content/child2/grandchild2",
+            "/content/child2/grandchild3",
+            "/content/child3"
         );
 
         assertMissing(
-                "/content/child1"
+            "/content/child1"
         );
     }
 
     @Test
     public void shouldContainCustomInitializerContent() throws Exception {
         assertExisting(
-                "/foo",
-                "/foo/bar"
+            "/foo",
+            "/foo/bar"
         );
     }
 
     @Test
     public void shouldContainUpgradeInitializedContent() throws Exception {
         assertExisting(
-                "/rep:security",
-                "/oak:index"
+            "/rep:security",
+            "/oak:index"
         );
     }
 

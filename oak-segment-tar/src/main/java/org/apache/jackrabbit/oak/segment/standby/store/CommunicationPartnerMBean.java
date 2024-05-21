@@ -19,9 +19,7 @@ package org.apache.jackrabbit.oak.segment.standby.store;
 
 import java.util.Date;
 import java.util.concurrent.atomic.AtomicLong;
-
 import javax.management.MalformedObjectNameException;
-
 import org.apache.jackrabbit.oak.segment.standby.jmx.ObservablePartnerMBean;
 import org.jetbrains.annotations.NotNull;
 
@@ -45,7 +43,8 @@ class CommunicationPartnerMBean implements ObservablePartnerMBean {
 
     private volatile Date lastSeen;
 
-    CommunicationPartnerMBean(String clientName, String remoteAddress, int remotePort) throws MalformedObjectNameException {
+    CommunicationPartnerMBean(String clientName, String remoteAddress, int remotePort)
+        throws MalformedObjectNameException {
         this.clientName = clientName;
         this.remoteAddress = remoteAddress;
         this.remotePort = remotePort;

@@ -22,7 +22,7 @@ import java.util.Map;
 
 /**
  * Simple JSON Object representation.
- * 
+ * <p>
  * It optionally supports respecting the order of properties, and the order children.
  */
 public class JsonObject {
@@ -36,25 +36,25 @@ public class JsonObject {
     public JsonObject() {
         this(false);
     }
-    
+
     /**
      * Create a Json object.
-     * 
+     *
      * @param respectOrder whether the object should respect the order
      */
     public JsonObject(boolean respectOrder) {
         props = map(respectOrder);
         children = map(respectOrder);
     }
-    
+
     private static <K, V> Map<K, V> map(boolean respectOrder) {
         return respectOrder ? new LinkedHashMap<K, V>() : new HashMap<K, V>();
     }
-    
+
     /**
      * Build a Json object from a String.
-     * 
-     * @param json the json string
+     *
+     * @param json         the json string
      * @param respectOrder whether the object should respect the child order
      * @return the json object
      */
@@ -67,13 +67,12 @@ public class JsonObject {
             tokenizer.read(JsopReader.END);
         }
     }
-    
+
     /**
-     * Reads a JSON object from the given tokenizer. The opening '{' of the
-     * object should already have been consumed from the tokenizer before
-     * this method is called.
+     * Reads a JSON object from the given tokenizer. The opening '{' of the object should already
+     * have been consumed from the tokenizer before this method is called.
      *
-     * @param t tokenizer
+     * @param t            tokenizer
      * @param respectOrder whether the order should be respected
      * @return JSON object
      */
@@ -91,13 +90,12 @@ public class JsonObject {
             } while (t.matches(','));
             t.read('}');
         }
-        return obj;        
+        return obj;
     }
 
     /**
-     * Reads a JSON object from the given tokenizer. The opening '{' of the
-     * object should already have been consumed from the tokenizer before
-     * this method is called.
+     * Reads a JSON object from the given tokenizer. The opening '{' of the object should already
+     * have been consumed from the tokenizer before this method is called.
      *
      * @param t tokenizer
      * @return JSON object
@@ -108,7 +106,7 @@ public class JsonObject {
 
     /**
      * Write the object to a builder.
-     * 
+     *
      * @param buf the target
      */
     public void toJson(JsopBuilder buf) {
@@ -117,7 +115,7 @@ public class JsonObject {
 
     /**
      * Get the (mutable) map of properties.
-     * 
+     *
      * @return the property map
      */
     public Map<String, String> getProperties() {
@@ -126,7 +124,7 @@ public class JsonObject {
 
     /**
      * Get the (mutable) map of children.
-     * 
+     *
      * @return the children map
      */
     public Map<String, JsonObject> getChildren() {
@@ -135,7 +133,7 @@ public class JsonObject {
 
     /**
      * Pretty-print the object.
-     * 
+     *
      * @return the pretty-printed string representation
      */
     @Override

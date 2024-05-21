@@ -18,9 +18,8 @@
  */
 package org.apache.jackrabbit.oak.run;
 
-import org.apache.jackrabbit.oak.commons.PathUtils;
-
 import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 
 /**
  * Contains one particular reference to an nt:frozenNode.
@@ -36,7 +35,8 @@ public class FrozenNodeRef {
     private final String targetPath;
 
     static boolean isFrozenNodeReferenceCandidate(String uuidRefPath) {
-        boolean isVersionStorage = PathUtils.isAncestor("/jcr:system/jcr:versionStorage", uuidRefPath);
+        boolean isVersionStorage = PathUtils.isAncestor("/jcr:system/jcr:versionStorage",
+            uuidRefPath);
         if (!isVersionStorage) {
             // TODO: we could consider NOT continuing here, as an nt:frozenNode could "in theory"
             // also show up somewhere else - but it is slightly faster this way..
@@ -48,7 +48,8 @@ public class FrozenNodeRef {
             // could at some point change and this '7' no longer be correct - but so far it is and it's faster this way
             return false;
         }
-        boolean containsJcrFrozenNodeName = Iterables.contains(PathUtils.elements(uuidRefPath), "jcr:frozenNode");
+        boolean containsJcrFrozenNodeName = Iterables.contains(PathUtils.elements(uuidRefPath),
+            "jcr:frozenNode");
         if (!containsJcrFrozenNodeName) {
             // TODO: we could consider NOT continuing here, as we might opt to store frozenNodes
             // under another parent than 'jcr:frozenNode' - but so far that's how it is and it's faster
@@ -57,7 +58,8 @@ public class FrozenNodeRef {
         return true;
     }
 
-    FrozenNodeRef(String refPropertyPath, String refPropertyName, String refPropertyType, String refPropertyValue, String targetPath) {
+    FrozenNodeRef(String refPropertyPath, String refPropertyName, String refPropertyType,
+        String refPropertyValue, String targetPath) {
         this.refPath = refPropertyPath;
         this.refName = refPropertyName;
         this.refType = refPropertyType;
@@ -66,7 +68,8 @@ public class FrozenNodeRef {
     }
 
     String toInfoString() {
-        return "Node " + refPath + " has a property '" + refName + "'" + " (of type " + refType + ")" + " with a value '"
-                + refValue + "'" + " which points to an nt:frozenNode, namely to: " + targetPath;
+        return "Node " + refPath + " has a property '" + refName + "'" + " (of type " + refType
+            + ")" + " with a value '"
+            + refValue + "'" + " which points to an nt:frozenNode, namely to: " + targetPath;
     }
 }

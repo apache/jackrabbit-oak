@@ -24,7 +24,6 @@ import static org.junit.Assert.assertNotNull;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.SizeEstimator;
@@ -62,14 +61,14 @@ public class FulltextIndexTest {
     @Test
     public void testConvertParseFacetField() {
         assertEquals("rep:facet(text)",
-                FulltextIndex.convertFacetFieldNameToColumnName(
-                        "text"));
+            FulltextIndex.convertFacetFieldNameToColumnName(
+                "text"));
         assertEquals("rep:facet(jcr:title)",
-                FulltextIndex.convertFacetFieldNameToColumnName(
-                        "jcr:title"));
+            FulltextIndex.convertFacetFieldNameToColumnName(
+                "jcr:title"));
         assertEquals("rep:facet(jcr:primaryType)",
-                FulltextIndex.convertFacetFieldNameToColumnName(
-                        "jcr:primaryType"));
+            FulltextIndex.convertFacetFieldNameToColumnName(
+                "jcr:primaryType"));
     }
 
     /**
@@ -92,6 +91,7 @@ public class FulltextIndexTest {
     }
 
     static class TestFulltextPathCursor extends FulltextPathCursor {
+
         public TestFulltextPathCursor(Iterator<FulltextResultRow> it) {
             super(it, new IteratorRewoundStateProvider() {
 
@@ -186,8 +186,9 @@ public class FulltextIndexTest {
         @Override
         public @Nullable Object getAttribute(String name) {
             if (name.equals(FulltextIndex.ATTR_PLAN_RESULT)) {
-                IndexDefinition indexDef = new IndexDefinition(EmptyNodeState.EMPTY_NODE, EmptyNodeState.EMPTY_NODE,
-                        "");
+                IndexDefinition indexDef = new IndexDefinition(EmptyNodeState.EMPTY_NODE,
+                    EmptyNodeState.EMPTY_NODE,
+                    "");
                 PlanResult pr = new PlanResult("test", indexDef, null);
                 pr.disableUniquePaths();
                 return pr;

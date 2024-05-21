@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.plugins.memory;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
-
 import org.apache.jackrabbit.guava.common.base.Objects;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.Blob;
@@ -31,16 +30,15 @@ import org.apache.jackrabbit.oak.plugins.value.OakValue;
 
 /**
  * Abstract base class for {@link org.apache.jackrabbit.oak.api.PropertyState} implementations. This
- * class provides default implementations of basic {@link Object} methods,
- * for consistency across all property states.
+ * class provides default implementations of basic {@link Object} methods, for consistency across
+ * all property states.
  */
 public abstract class AbstractPropertyState implements PropertyState {
 
     /**
-     * Checks whether the given two property states are equal. They are
-     * considered equal if their names and types match, they have an equal
-     * number of values, and each of the values is equal with the
-     * corresponding value in the other property.
+     * Checks whether the given two property states are equal. They are considered equal if their
+     * names and types match, they have an equal number of values, and each of the values is equal
+     * with the corresponding value in the other property.
      *
      * @param a first property state
      * @param b second property state
@@ -48,13 +46,13 @@ public abstract class AbstractPropertyState implements PropertyState {
      */
     public static boolean equal(PropertyState a, PropertyState b) {
         if (Objects.equal(a.getName(), b.getName())
-                && Objects.equal(a.getType(), b.getType())) {
+            && Objects.equal(a.getType(), b.getType())) {
             Type<?> type = a.getType();
             if (a.isArray()) {
                 return a.count() == b.count()
-                        && Iterables.elementsEqual(
-                                (Iterable<?>) a.getValue(type),
-                                (Iterable<?>) b.getValue(type));
+                    && Iterables.elementsEqual(
+                    (Iterable<?>) a.getValue(type),
+                    (Iterable<?>) b.getValue(type));
             } else {
                 return Objects.equal(a.getValue(type), b.getValue(type));
             }
@@ -81,9 +79,9 @@ public abstract class AbstractPropertyState implements PropertyState {
 
     /**
      * Checks whether the given object is equal to this one. See the
-     * {@link #equal(PropertyState, PropertyState)} method for the definition
-     * of property state equality. Subclasses may override this method with
-     * a more efficient equality check if one is available.
+     * {@link #equal(PropertyState, PropertyState)} method for the definition of property state
+     * equality. Subclasses may override this method with a more efficient equality check if one is
+     * available.
      *
      * @param other target of the comparison
      * @return {@code true} if the objects are equal, {@code false} otherwise
@@ -94,16 +92,14 @@ public abstract class AbstractPropertyState implements PropertyState {
             return true;
         } else {
             return other instanceof PropertyState
-                    && equal(this, (PropertyState) other);
+                && equal(this, (PropertyState) other);
         }
     }
 
     /**
-     * Returns a hash code that's compatible with how the
-     * {@link #equals(Object)} method is implemented. The current
-     * implementation simply returns the hash code of the property name
-     * since {@link PropertyState} instances are not intended for use as
-     * hash keys.
+     * Returns a hash code that's compatible with how the {@link #equals(Object)} method is
+     * implemented. The current implementation simply returns the hash code of the property name
+     * since {@link PropertyState} instances are not intended for use as hash keys.
      *
      * @return hash code
      */

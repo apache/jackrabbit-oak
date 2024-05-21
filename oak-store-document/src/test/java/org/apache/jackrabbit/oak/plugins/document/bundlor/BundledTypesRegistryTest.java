@@ -43,8 +43,9 @@ public class BundledTypesRegistryTest {
     private NodeBuilder builder = EMPTY_NODE.builder();
 
     @Test
-    public void basicSetup() throws Exception{
-        builder.child("nt:file").setProperty(createProperty(PROP_PATTERN, asList("jcr:content"), STRINGS));
+    public void basicSetup() throws Exception {
+        builder.child("nt:file")
+               .setProperty(createProperty(PROP_PATTERN, asList("jcr:content"), STRINGS));
         BundledTypesRegistry registry = BundledTypesRegistry.from(builder.getNodeState());
 
         assertNull(registry.getBundlor(EMPTY_NODE));
@@ -57,23 +58,26 @@ public class BundledTypesRegistryTest {
     }
 
     @Test
-    public void disabledIgnored() throws Exception{
-        builder.child("nt:file").setProperty(createProperty(PROP_PATTERN, asList("jcr:content"), STRINGS));
+    public void disabledIgnored() throws Exception {
+        builder.child("nt:file")
+               .setProperty(createProperty(PROP_PATTERN, asList("jcr:content"), STRINGS));
         builder.child("nt:file").setProperty(DocumentBundlor.PROP_DISABLED, true);
         BundledTypesRegistry registry = BundledTypesRegistry.from(builder.getNodeState());
         assertTrue(registry.getBundlors().isEmpty());
     }
 
     @Test
-    public void mixin() throws Exception{
-        builder.child("mix:foo").setProperty(createProperty(PROP_PATTERN, asList("jcr:content"), STRINGS));
+    public void mixin() throws Exception {
+        builder.child("mix:foo")
+               .setProperty(createProperty(PROP_PATTERN, asList("jcr:content"), STRINGS));
         BundledTypesRegistry registry = BundledTypesRegistry.from(builder.getNodeState());
         assertNotNull(registry.getBundlor(newNode("mix:foo", true)));
     }
 
     @Test
-    public void versioned() throws Exception{
-        builder.child("nt:file").setProperty(createProperty(PROP_PATTERN, asList("jcr:content"), STRINGS));
+    public void versioned() throws Exception {
+        builder.child("nt:file")
+               .setProperty(createProperty(PROP_PATTERN, asList("jcr:content"), STRINGS));
         BundledTypesRegistry registry = BundledTypesRegistry.from(builder.getNodeState());
 
         NodeBuilder builder = EMPTY_NODE.builder();
@@ -84,8 +88,9 @@ public class BundledTypesRegistryTest {
     }
 
     @Test
-    public void versionedMixins() throws Exception{
-        builder.child("mix:foo").setProperty(createProperty(PROP_PATTERN, asList("jcr:content"), STRINGS));
+    public void versionedMixins() throws Exception {
+        builder.child("mix:foo")
+               .setProperty(createProperty(PROP_PATTERN, asList("jcr:content"), STRINGS));
         BundledTypesRegistry registry = BundledTypesRegistry.from(builder.getNodeState());
 
         NodeBuilder builder = EMPTY_NODE.builder();
@@ -97,9 +102,10 @@ public class BundledTypesRegistryTest {
 
 
     @Test
-    public void mixinOverPrimaryType() throws Exception{
+    public void mixinOverPrimaryType() throws Exception {
         builder.child("mix:foo").setProperty(createProperty(PROP_PATTERN, asList("foo"), STRINGS));
-        builder.child("nt:file").setProperty(createProperty(PROP_PATTERN, asList("jcr:content"), STRINGS));
+        builder.child("nt:file")
+               .setProperty(createProperty(PROP_PATTERN, asList("jcr:content"), STRINGS));
         BundledTypesRegistry registry = BundledTypesRegistry.from(builder.getNodeState());
 
         NodeBuilder b2 = EMPTY_NODE.builder();
@@ -113,7 +119,7 @@ public class BundledTypesRegistryTest {
         assertFalse(bundlor.isBundled("jcr:content"));
     }
 
-    private static NodeState newNode(String typeName, boolean mixin){
+    private static NodeState newNode(String typeName, boolean mixin) {
         NodeBuilder builder = EMPTY_NODE.builder();
         setType(typeName, mixin, builder);
         return builder.getNodeState();

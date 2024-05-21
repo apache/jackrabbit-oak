@@ -24,16 +24,14 @@ import java.io.InputStream;
 import java.math.BigDecimal;
 import java.net.URI;
 import java.util.Calendar;
-
 import javax.jcr.Binary;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.ValueFormatException;
-
-import org.apache.jackrabbit.guava.common.base.Objects;
 import org.apache.jackrabbit.api.JackrabbitValue;
 import org.apache.jackrabbit.api.binary.BinaryDownloadOptions;
+import org.apache.jackrabbit.guava.common.base.Objects;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.IllegalRepositoryStateException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -53,6 +51,7 @@ import org.slf4j.LoggerFactory;
  * Implementation of {@link Value} based on {@code PropertyState}.
  */
 class ValueImpl implements JackrabbitValue, OakValue {
+
     private static final Logger LOG = LoggerFactory.getLogger(ValueImpl.class);
 
     private final PropertyState propertyState;
@@ -65,18 +64,19 @@ class ValueImpl implements JackrabbitValue, OakValue {
 
     /**
      * Create a new {@code Value} instance
-     * @param property  The property state this instance is based on
-     * @param index  The index
-     * @param namePathMapper The name/path mapping used for converting JCR names/paths to
-     * the internal representation.
+     *
+     * @param property           The property state this instance is based on
+     * @param index              The index
+     * @param namePathMapper     The name/path mapping used for converting JCR names/paths to the
+     *                           internal representation.
      * @param blobAccessProvider The blob access provider
      * @throws IllegalArgumentException if {@code index < propertyState.count()}
-     * @throws RepositoryException if the underlying node state cannot be accessed
+     * @throws RepositoryException      if the underlying node state cannot be accessed
      */
     private ValueImpl(@NotNull PropertyState property, int index,
-                      @NotNull NamePathMapper namePathMapper,
-                      @NotNull BlobAccessProvider blobAccessProvider)
-            throws RepositoryException {
+        @NotNull NamePathMapper namePathMapper,
+        @NotNull BlobAccessProvider blobAccessProvider)
+        throws RepositoryException {
         checkArgument(index < property.count());
         this.propertyState = checkNotNull(property);
         this.type = getType(property);
@@ -87,17 +87,18 @@ class ValueImpl implements JackrabbitValue, OakValue {
 
     /**
      * Create a new {@code Value} instance
-     * @param property  The property state this instance is based on
-     * @param namePathMapper The name/path mapping used for converting JCR names/paths to
-     * the internal representation.
+     *
+     * @param property           The property state this instance is based on
+     * @param namePathMapper     The name/path mapping used for converting JCR names/paths to the
+     *                           internal representation.
      * @param blobAccessProvider The blob access provider
      * @throws IllegalArgumentException if {@code property.isArray()} is {@code true}.
-     * @throws RepositoryException if the underlying node state cannot be accessed
+     * @throws RepositoryException      if the underlying node state cannot be accessed
      */
     ValueImpl(@NotNull PropertyState property,
-              @NotNull NamePathMapper namePathMapper,
-              @NotNull BlobAccessProvider blobAccessProvider)
-            throws RepositoryException {
+        @NotNull NamePathMapper namePathMapper,
+        @NotNull BlobAccessProvider blobAccessProvider)
+        throws RepositoryException {
         this(checkSingleValued(property), 0, namePathMapper, checkNotNull(blobAccessProvider));
     }
 
@@ -108,17 +109,18 @@ class ValueImpl implements JackrabbitValue, OakValue {
 
     /**
      * Create a new {@code Value} instance
-     * @param property  The property state this instance is based on
-     * @param index  The index
-     * @param namePathMapper The name/path mapping used for converting JCR names/paths to
-     * the internal representation.
+     *
+     * @param property           The property state this instance is based on
+     * @param index              The index
+     * @param namePathMapper     The name/path mapping used for converting JCR names/paths to the
+     *                           internal representation.
      * @param blobAccessProvider The blob access provider
      * @throws IllegalArgumentException if {@code index < propertyState.count()}
      */
     @NotNull
     static Value newValue(@NotNull PropertyState property, int index,
-                          @NotNull NamePathMapper namePathMapper,
-                          @NotNull BlobAccessProvider blobAccessProvider) {
+        @NotNull NamePathMapper namePathMapper,
+        @NotNull BlobAccessProvider blobAccessProvider) {
         try {
             return new ValueImpl(property, index, namePathMapper, blobAccessProvider);
         } catch (RepositoryException e) {
@@ -128,16 +130,17 @@ class ValueImpl implements JackrabbitValue, OakValue {
 
     /**
      * Create a new {@code Value} instance
-     * @param property  The property state this instance is based on
-     * @param namePathMapper The name/path mapping used for converting JCR names/paths to
-     * the internal representation.
+     *
+     * @param property           The property state this instance is based on
+     * @param namePathMapper     The name/path mapping used for converting JCR names/paths to the
+     *                           internal representation.
      * @param blobAccessProvider The blob access provider
      * @throws IllegalArgumentException if {@code property.isArray()} is {@code true}.
      */
     @NotNull
     static Value newValue(@NotNull PropertyState property,
-                          @NotNull NamePathMapper namePathMapper,
-                          @NotNull BlobAccessProvider blobAccessProvider) {
+        @NotNull NamePathMapper namePathMapper,
+        @NotNull BlobAccessProvider blobAccessProvider) {
         try {
             return new ValueImpl(property, 0, namePathMapper, blobAccessProvider);
         } catch (RepositoryException e) {
@@ -152,9 +155,10 @@ class ValueImpl implements JackrabbitValue, OakValue {
     }
 
     /**
-     * Same as {@link #getString()} unless that names and paths are returned in their
-     * Oak representation instead of being mapped to their JCR representation.
-     * @return  A String representation of the value of this property.
+     * Same as {@link #getString()} unless that names and paths are returned in their Oak
+     * representation instead of being mapped to their JCR representation.
+     *
+     * @return A String representation of the value of this property.
      */
     public String getOakString() throws RepositoryException {
         return getValue(Type.STRING, index);
@@ -181,7 +185,8 @@ class ValueImpl implements JackrabbitValue, OakValue {
             case PropertyType.BOOLEAN:
                 return getValue(Type.BOOLEAN, index);
             default:
-                throw new ValueFormatException("Incompatible type " + PropertyType.nameFromValue(getType()));
+                throw new ValueFormatException(
+                    "Incompatible type " + PropertyType.nameFromValue(getType()));
         }
     }
 
@@ -202,10 +207,10 @@ class ValueImpl implements JackrabbitValue, OakValue {
                 case PropertyType.DECIMAL:
                     return Conversions.convert(getValue(Type.LONG, index)).toCalendar();
                 default:
-                    throw new ValueFormatException("Incompatible type " + PropertyType.nameFromValue(getType()));
+                    throw new ValueFormatException(
+                        "Incompatible type " + PropertyType.nameFromValue(getType()));
             }
-        }
-        catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException e) {
             throw new ValueFormatException("Error converting value to date", e);
         }
     }
@@ -225,10 +230,10 @@ class ValueImpl implements JackrabbitValue, OakValue {
                 case PropertyType.DECIMAL:
                     return getValue(Type.DECIMAL, index);
                 default:
-                    throw new ValueFormatException("Incompatible type " + PropertyType.nameFromValue(getType()));
+                    throw new ValueFormatException(
+                        "Incompatible type " + PropertyType.nameFromValue(getType()));
             }
-        }
-        catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException e) {
             throw new ValueFormatException("Error converting value to decimal", e);
         }
     }
@@ -248,10 +253,10 @@ class ValueImpl implements JackrabbitValue, OakValue {
                 case PropertyType.DECIMAL:
                     return getValue(Type.DOUBLE, index);
                 default:
-                    throw new ValueFormatException("Incompatible type " + PropertyType.nameFromValue(getType()));
+                    throw new ValueFormatException(
+                        "Incompatible type " + PropertyType.nameFromValue(getType()));
             }
-        }
-        catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException e) {
             throw new ValueFormatException("Error converting value to double", e);
         }
     }
@@ -271,10 +276,10 @@ class ValueImpl implements JackrabbitValue, OakValue {
                 case PropertyType.DECIMAL:
                     return getValue(Type.LONG, index);
                 default:
-                    throw new ValueFormatException("Incompatible type " + PropertyType.nameFromValue(getType()));
+                    throw new ValueFormatException(
+                        "Incompatible type " + PropertyType.nameFromValue(getType()));
             }
-        }
-        catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException e) {
             throw new ValueFormatException("Error converting value to long", e);
         }
     }
@@ -285,7 +290,7 @@ class ValueImpl implements JackrabbitValue, OakValue {
     @Override
     public String getString() throws RepositoryException {
         checkState(getType() != PropertyType.BINARY || stream == null,
-                "getStream has previously been called on this Value instance. " +
+            "getStream has previously been called on this Value instance. " +
                 "In this case a new Value instance must be acquired in order to successfully call this method.");
 
         switch (getType()) {
@@ -352,9 +357,9 @@ class ValueImpl implements JackrabbitValue, OakValue {
             }
             try {
                 return thisType == thatType
-                        && Objects.equal(
-                        getValue(thatType, index),
-                        that.getValue(thatType, that.index));
+                    && Objects.equal(
+                    getValue(thatType, index),
+                    that.getValue(thatType, that.index));
             } catch (RepositoryException e) {
                 LOG.warn("Error while comparing values", e);
                 return false;
@@ -396,13 +401,13 @@ class ValueImpl implements JackrabbitValue, OakValue {
             return null;
         } else {
             return blobAccessProvider.getDownloadURI(blob,
-                    new BlobDownloadOptions(
-                            downloadOptions.getMediaType(),
-                            downloadOptions.getCharacterEncoding(),
-                            downloadOptions.getFileName(),
-                            downloadOptions.getDispositionType(),
-                            downloadOptions.isDownloadDomainIgnored())
-                    );
+                new BlobDownloadOptions(
+                    downloadOptions.getMediaType(),
+                    downloadOptions.getCharacterEncoding(),
+                    downloadOptions.getFileName(),
+                    downloadOptions.getDispositionType(),
+                    downloadOptions.isDownloadDomainIgnored())
+            );
         }
     }
 

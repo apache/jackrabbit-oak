@@ -16,12 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.version;
 
+import static org.apache.jackrabbit.oak.commons.PathUtils.relativize;
+import static org.apache.jackrabbit.oak.spi.version.VersionConstants.VERSION_STORE_PATH;
+
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.migration.version.VersionHistoryUtil;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-
-import static org.apache.jackrabbit.oak.commons.PathUtils.relativize;
-import static org.apache.jackrabbit.oak.spi.version.VersionConstants.VERSION_STORE_PATH;
 
 public class ReadWriteVersionManagerUtil {
 

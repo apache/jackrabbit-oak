@@ -25,7 +25,7 @@ public final class NoopStats implements TimerStats, MeterStats, CounterStats, Hi
 
     public static final NoopStats INSTANCE = new NoopStats();
 
-    private NoopStats(){
+    private NoopStats() {
 
     }
 
@@ -80,6 +80,7 @@ public final class NoopStats implements TimerStats, MeterStats, CounterStats, Hi
     }
 
     private static final class NoopContext implements Context {
+
         public static final NoopContext INSTANCE = new NoopContext();
 
         @Override

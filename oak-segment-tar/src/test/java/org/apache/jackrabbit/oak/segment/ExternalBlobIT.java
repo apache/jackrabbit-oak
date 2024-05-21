@@ -34,11 +34,10 @@ import java.util.List;
 import java.util.Random;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.core.data.FileDataStore;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -84,7 +83,7 @@ public class ExternalBlobIT {
         nodeStore = getNodeStore(dbs);
 
         //Test for Blob which get inlined
-        Blob b1 = testCreateAndRead(createBlob(fds.getMinRecordLength()-2));
+        Blob b1 = testCreateAndRead(createBlob(fds.getMinRecordLength() - 2));
         assertTrue(b1 instanceof SegmentBlob);
         assertNull(((SegmentBlob) b1).getBlobId());
         assertFalse(((SegmentBlob) b1).isExternal());
@@ -105,7 +104,7 @@ public class ExternalBlobIT {
     }
 
     @Test
-    public void testNullBlobId() throws Exception{
+    public void testNullBlobId() throws Exception {
         FileDataStore fds = createFileDataStore();
         DataStoreBlobStore dbs = new DataStoreBlobStore(fds);
         nodeStore = getNodeStore(dbs);
@@ -115,8 +114,8 @@ public class ExternalBlobIT {
         cb.setProperty("blob1", createBlob(Segment.MEDIUM_LIMIT - 1));
 
         int noOfBlobs = 4000;
-        for(int i = 0; i < noOfBlobs; i++){
-            cb.setProperty("blob"+i, createBlob(Segment.MEDIUM_LIMIT+1));
+        for (int i = 0; i < noOfBlobs; i++) {
+            cb.setProperty("blob" + i, createBlob(Segment.MEDIUM_LIMIT + 1));
         }
 
         cb.setProperty("anotherBlob2", createBlob(Segment.MEDIUM_LIMIT + 1));
@@ -125,8 +124,8 @@ public class ExternalBlobIT {
 
         final List<String> references = Lists.newArrayList();
         store.collectBlobReferences(reference -> {
-                assertNotNull(reference);
-                references.add(reference);
+            assertNotNull(reference);
+            references.add(reference);
         });
 
         assertEquals(noOfBlobs + 2, references.size());
@@ -148,7 +147,7 @@ public class ExternalBlobIT {
         blob = state.getProperty("world").getValue(Type.BINARY);
 
         assertTrue("Blob written and read must be equal",
-                AbstractBlob.equal(blob, blob));
+            AbstractBlob.equal(blob, blob));
         return blob;
     }
 
@@ -163,11 +162,12 @@ public class ExternalBlobIT {
     protected SegmentNodeStore getNodeStore(BlobStore blobStore) throws Exception {
         if (nodeStore == null) {
             ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
-            
+
             store = fileStoreBuilder(getWorkDir()).withBlobStore(blobStore)
-                    .withMaxFileSize(1)
-                    .withStatisticsProvider(new DefaultStatisticsProvider(executor))
-                    .build();
+                                                  .withMaxFileSize(1)
+                                                  .withStatisticsProvider(
+                                                      new DefaultStatisticsProvider(executor))
+                                                  .build();
             nodeStore = SegmentNodeStoreBuilders.builder(store).build();
         }
         return nodeStore;
@@ -186,7 +186,7 @@ public class ExternalBlobIT {
         return fds;
     }
 
-    private File getWorkDir(){
+    private File getWorkDir() {
         return folder.getRoot();
     }
 
@@ -204,6 +204,7 @@ public class ExternalBlobIT {
     }
 
     private class TestBlobStore implements BlobStore {
+
         @Override
         public String writeBlob(InputStream in) throws IOException {
             throw new UnsupportedOperationException();
@@ -215,7 +216,8 @@ public class ExternalBlobIT {
         }
 
         @Override
-        public int readBlob(String blobId, long pos, byte[] buff, int off, int length) throws IOException {
+        public int readBlob(String blobId, long pos, byte[] buff, int off, int length)
+            throws IOException {
             throw new UnsupportedOperationException();
         }
 
@@ -226,7 +228,7 @@ public class ExternalBlobIT {
 
         @Override
         public InputStream getInputStream(String blobId) throws IOException {
-            if(blobId.equals(fileBlob.getReference())){
+            if (blobId.equals(fileBlob.getReference())) {
                 return fileBlob.getNewStream();
             }
             return null;
@@ -262,7 +264,6 @@ public class ExternalBlobIT {
         builder.child("hello").setProperty("world", b);
         nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-
         PropertyState ps = nodeStore.getRoot().getChildNode("hello").getProperty("world");
         // world = {2318851547697882338 bytes}
 
@@ -292,7 +293,7 @@ public class ExternalBlobIT {
 
         SegmentGCOptions gcOptions = defaultGCOptions().setOffline();
         store = fileStoreBuilder(getWorkDir()).withMaxFileSize(1)
-                .withGCOptions(gcOptions).build();
+                                              .withGCOptions(gcOptions).build();
         assertTrue(store.getStats().getApproximateSize() < 10 * 1024);
 
         store.compactFull();

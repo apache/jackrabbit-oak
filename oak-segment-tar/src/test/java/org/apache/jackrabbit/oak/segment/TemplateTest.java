@@ -24,7 +24,6 @@ import static org.junit.Assert.assertNotEquals;
 
 import java.io.IOException;
 import java.util.ArrayList;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
@@ -32,6 +31,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class TemplateTest {
+
     private MemoryStore store;
 
     @Before
@@ -57,7 +57,7 @@ public class TemplateTest {
         // mixins null vs []
         PropertyState primary = createProperty("primary", "primary");
         PropertyState mixin = createProperty("mixin", new ArrayList<String>(),
-                Type.STRINGS);
+            Type.STRINGS);
         PropertyTemplate[] properties = new PropertyTemplate[0];
         String childNode = "c";
 
@@ -75,8 +75,8 @@ public class TemplateTest {
 
         PropertyTemplate p0 = new PropertyTemplate(createProperty("p0", "v0"));
         PropertyTemplate p1 = new PropertyTemplate(createProperty("p1", "v1"));
-        PropertyTemplate[] pt0 = new PropertyTemplate[] { p0, p1 };
-        PropertyTemplate[] pt1 = new PropertyTemplate[] { p1, p0 };
+        PropertyTemplate[] pt0 = new PropertyTemplate[]{p0, p1};
+        PropertyTemplate[] pt1 = new PropertyTemplate[]{p1, p0};
 
         String childNode = "c";
 

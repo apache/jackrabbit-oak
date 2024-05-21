@@ -19,23 +19,22 @@
 
 package org.apache.jackrabbit.oak.plugins.index.search;
 
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+
 import java.util.Collection;
 import java.util.Set;
 import java.util.function.Predicate;
-
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
-
 /**
  * Allows to check which indexes can possibly be used for a certain query.
- *
- * For example, for a query of the form "/jcr:root/content//*", the indexes
- * under "/" and the indexes under "/content" can be used.
+ * <p>
+ * For example, for a query of the form "/jcr:root/content//*", the indexes under "/" and the
+ * indexes under "/content" can be used.
  */
 public class IndexLookup {
 
@@ -62,15 +61,16 @@ public class IndexLookup {
             for (String element : PathUtils.elements(filter.getPath())) {
                 nodeState = nodeState.getChildNode(element);
                 collectIndexNodePaths(nodeState,
-                        sb.append("/").append(element).toString(),
-                        paths);
+                    sb.append("/").append(element).toString(),
+                    paths);
             }
         }
 
         return paths;
     }
 
-    private void collectIndexNodePaths(NodeState nodeState, String parentPath, Collection<String> paths) {
+    private void collectIndexNodePaths(NodeState nodeState, String parentPath,
+        Collection<String> paths) {
         NodeState state = nodeState.getChildNode(INDEX_DEFINITIONS_NAME);
         for (ChildNodeEntry entry : state.getChildNodeEntries()) {
             if (definitionPredicate.test(entry.getNodeState())) {
@@ -79,7 +79,7 @@ public class IndexLookup {
         }
     }
 
-    private static String createIndexNodePath(String parentPath, String name){
+    private static String createIndexNodePath(String parentPath, String name) {
         return PathUtils.concat(parentPath, INDEX_DEFINITIONS_NAME, name);
     }
 }

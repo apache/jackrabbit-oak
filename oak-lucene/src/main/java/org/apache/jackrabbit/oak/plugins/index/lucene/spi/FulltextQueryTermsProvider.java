@@ -16,25 +16,23 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene.spi;
 
+import java.util.Collections;
+import java.util.Set;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.search.Query;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Collections;
-import java.util.Set;
-
 /**
- * Implementations of this interface would get callbacks while forming lucene
- * full text queries.
+ * Implementations of this interface would get callbacks while forming lucene full text queries.
  *
- * @deprecated This interface exposes Lucene API directly - it will be removed
- *             as soon as an alternative is available. See also
- *             IndexFieldProvider.
+ * @deprecated This interface exposes Lucene API directly - it will be removed as soon as an
+ * alternative is available. See also IndexFieldProvider.
  */
 @Deprecated
 public interface FulltextQueryTermsProvider {
+
     /**
      * Implementation which doesn't do anything useful... yet, abides with the contract.
      */
@@ -49,22 +47,27 @@ public interface FulltextQueryTermsProvider {
             return Collections.EMPTY_SET;
         }
     };
+
     /**
-     * This method would get called while forming full text clause for full text clause not constrained on a particular
-     * field.
-     * @param text full text term
-     * @param analyzer {@link Analyzer} being used while forming the query. Can be used to analyze text consistently.
+     * This method would get called while forming full text clause for full text clause not
+     * constrained on a particular field.
+     *
+     * @param text            full text term
+     * @param analyzer        {@link Analyzer} being used while forming the query. Can be used to
+     *                        analyze text consistently.
      * @param indexDefinition {@link NodeState} of index definition
-     * @return {@link Query} object to be OR'ed with query being prepared. {@code null}, if nothing is to be added.
+     * @return {@link Query} object to be OR'ed with query being prepared. {@code null}, if nothing
+     * is to be added.
      */
     @Nullable
     Query getQueryTerm(String text, Analyzer analyzer, NodeState indexDefinition);
 
     /**
-     * This method is used to find which node types are supported by the implementation. Based, on the index
-     * definition being used to query the document, only those implementations would get callback to
-     * {@link FulltextQueryTermsProvider#getQueryTerm} which declare a matching node type. Note, node types are
-     * exact matches and do not support inheritance.
+     * This method is used to find which node types are supported by the implementation. Based, on
+     * the index definition being used to query the document, only those implementations would get
+     * callback to {@link FulltextQueryTermsProvider#getQueryTerm} which declare a matching node
+     * type. Note, node types are exact matches and do not support inheritance.
+     *
      * @return {@link Set} of types supported by the implementation
      */
     @NotNull

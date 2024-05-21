@@ -31,7 +31,7 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class RDBCacheConsistencyTest extends CacheConsistencyTestBase {
 
-    @Parameterized.Parameters(name="{0}")
+    @Parameterized.Parameters(name = "{0}")
     public static Collection<Object[]> fixtures() {
         return fixtures(false);
     }
@@ -44,16 +44,16 @@ public class RDBCacheConsistencyTest extends CacheConsistencyTestBase {
 
     protected static Collection<Object[]> fixtures(boolean multi) {
         Collection<Object[]> result = new ArrayList<Object[]>();
-        DocumentStoreFixture candidates[] = new DocumentStoreFixture[] {
-                DocumentStoreFixture.RDB_H2, DocumentStoreFixture.RDB_DERBY,
-                DocumentStoreFixture.RDB_PG, DocumentStoreFixture.RDB_DB2,
-                DocumentStoreFixture.RDB_MYSQL, DocumentStoreFixture.RDB_ORACLE,
-                DocumentStoreFixture.RDB_MSSQL };
+        DocumentStoreFixture candidates[] = new DocumentStoreFixture[]{
+            DocumentStoreFixture.RDB_H2, DocumentStoreFixture.RDB_DERBY,
+            DocumentStoreFixture.RDB_PG, DocumentStoreFixture.RDB_DB2,
+            DocumentStoreFixture.RDB_MYSQL, DocumentStoreFixture.RDB_ORACLE,
+            DocumentStoreFixture.RDB_MSSQL};
 
         for (DocumentStoreFixture dsf : candidates) {
             if (dsf.isAvailable()) {
                 if (!multi || dsf.hasSinglePersistence()) {
-                    result.add(new Object[] { dsf });
+                    result.add(new Object[]{dsf});
                 }
             }
         }

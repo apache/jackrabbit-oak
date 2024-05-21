@@ -17,11 +17,11 @@
 package org.apache.jackrabbit.oak.plugins.index.search.util;
 
 import java.util.Arrays;
-
 import org.apache.jackrabbit.oak.spi.query.Filter;
 
 /**
- * A very simple estimator for no. of entries in the index using least mean square update method for linear regression.
+ * A very simple estimator for no. of entries in the index using least mean square update method for
+ * linear regression.
  */
 public class LMSEstimator {
 
@@ -75,12 +75,10 @@ public class LMSEstimator {
     /**
      * Get the input value for a certain feature (by index) in the given filter.
      * <p/>
-     * A filter is represented as a vector in R^5 where
-     * i_0 : no. of property restrictions
-     * i_1 : 1 if any native constraint exists in the filter, 0 otherwise
-     * i_2 : the path restriction ordinal
-     * i_3 : the depth of the path restriction if set, 0 otherwise
-     * i_4 : the precedence of the dominant full text constraint if present, 0 otherwise
+     * A filter is represented as a vector in R^5 where i_0 : no. of property restrictions i_1 : 1
+     * if any native constraint exists in the filter, 0 otherwise i_2 : the path restriction ordinal
+     * i_3 : the depth of the path restriction if set, 0 otherwise i_4 : the precedence of the
+     * dominant full text constraint if present, 0 otherwise
      *
      * @param filter the filter
      * @param i      the index of the filter vector feature to retrieve
@@ -89,15 +87,18 @@ public class LMSEstimator {
     private long getInput(Filter filter, int i) {
         assert i < 5;
         if (i == 0) {
-            return filter.getPropertyRestrictions() != null ? filter.getPropertyRestrictions().size() : 0;
+            return filter.getPropertyRestrictions() != null ? filter.getPropertyRestrictions()
+                                                                    .size() : 0;
         } else if (i == 1) {
             return filter.containsNativeConstraint() ? 1 : 0;
         } else if (i == 2) {
             return filter.getPathRestriction() != null ? filter.getPathRestriction().ordinal() : 0;
         } else if (i == 3) {
-            return filter.getPathRestriction() != null ? filter.getPathRestriction().toString().split("/").length : 0;
+            return filter.getPathRestriction() != null ? filter.getPathRestriction().toString()
+                                                               .split("/").length : 0;
         } else if (i == 4) {
-            return filter.getFullTextConstraint() != null ? filter.getFullTextConstraint().getPrecedence() : 0;
+            return filter.getFullTextConstraint() != null ? filter.getFullTextConstraint()
+                                                                  .getPrecedence() : 0;
         }
         return 0;
     }

@@ -17,13 +17,12 @@
 package org.apache.jackrabbit.oak.benchmark;
 
 import javax.jcr.RepositoryException;
-
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 
 /**
- * Same as {@link IsMemberTest} but the test run will check for the randomly selected
- * user to be a declared member of the target group.
+ * Same as {@link IsMemberTest} but the test run will check for the randomly selected user to be a
+ * declared member of the target group.
  */
 public class IsDeclaredMemberTest extends IsMemberTest {
 

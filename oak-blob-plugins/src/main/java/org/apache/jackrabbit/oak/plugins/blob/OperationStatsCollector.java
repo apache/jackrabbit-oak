@@ -25,20 +25,26 @@ import java.util.concurrent.TimeUnit;
  * Implementations of this can use to mark the relevant statistics.
  */
 public interface OperationStatsCollector {
+
     OperationStatsCollector NOOP = new OperationStatsCollector() {
-        @Override public void start() {
+        @Override
+        public void start() {
         }
 
-        @Override public void finishFailure() {
+        @Override
+        public void finishFailure() {
         }
 
-        @Override public void updateNumDeleted(long num) {
+        @Override
+        public void updateNumDeleted(long num) {
         }
 
-        @Override public void updateNumCandidates(long num) {
+        @Override
+        public void updateNumCandidates(long num) {
         }
 
-        @Override public void updateTotalSizeDeleted(long size) {
+        @Override
+        public void updateTotalSizeDeleted(long size) {
         }
 
         @Override
@@ -49,13 +55,16 @@ public interface OperationStatsCollector {
         public void updateBlobReferencesSize(long size) {
         }
 
-        @Override public void updateDuration(long time, TimeUnit timeUnit) {
+        @Override
+        public void updateDuration(long time, TimeUnit timeUnit) {
         }
 
-        @Override public void updateMarkDuration(long time, TimeUnit timeUnit) {
+        @Override
+        public void updateMarkDuration(long time, TimeUnit timeUnit) {
         }
 
-        @Override public void updateSweepDuration(long time, TimeUnit timeUnit) {
+        @Override
+        public void updateSweepDuration(long time, TimeUnit timeUnit) {
         }
     };
 
@@ -71,38 +80,43 @@ public interface OperationStatsCollector {
 
     /**
      * Update the number deleted
+     *
      * @param num
      */
     void updateNumDeleted(long num);
 
     /**
      * Update the number of candidates found
+     *
      * @param num
      */
     void updateNumCandidates(long num);
 
     /**
      * Update the size deleted
+     *
      * @param size
      */
     void updateTotalSizeDeleted(long size);
 
     /**
      * Update the number of blob references
+     *
      * @param num
      */
     public void updateNumBlobReferences(long num);
 
     /**
      * Update the size of blob references
+     *
      * @param size
      */
     public void updateBlobReferencesSize(long size);
-    
+
     /**
      * Increment the duration timer
      *
-     * @param time time recorded for the operation
+     * @param time     time recorded for the operation
      * @param timeUnit unit of time
      */
     void updateDuration(long time, TimeUnit timeUnit);
@@ -110,7 +124,7 @@ public interface OperationStatsCollector {
     /**
      * Increment the mark phase duration timer
      *
-     * @param time time recorded for the operation
+     * @param time     time recorded for the operation
      * @param timeUnit unit of time
      */
     void updateMarkDuration(long time, TimeUnit timeUnit);
@@ -118,7 +132,7 @@ public interface OperationStatsCollector {
     /**
      * Increment the sweep phase duration timer
      *
-     * @param time time recorded for the operation
+     * @param time     time recorded for the operation
      * @param timeUnit unit of time
      */
     void updateSweepDuration(long time, TimeUnit timeUnit);

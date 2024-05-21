@@ -39,7 +39,8 @@ public abstract class DocumentMKTestBase {
         if (entry instanceof JSONObject) {
             return (JSONObject) entry;
         }
-        throw new AssertionError("failed to resolve JSONObject array entry at pos " + pos + ": " + entry);
+        throw new AssertionError(
+            "failed to resolve JSONObject array entry at pos " + pos + ": " + entry);
     }
 
     protected JSONArray parseJSONArray(String json) throws AssertionError {
@@ -64,30 +65,32 @@ public abstract class DocumentMKTestBase {
         }
     }
 
-    protected void assertNodesExist(String revision, String...paths) {
+    protected void assertNodesExist(String revision, String... paths) {
         doAssertNodes(true, revision, paths);
     }
 
-    protected void assertNodesNotExist(String revision, String...paths) {
+    protected void assertNodesNotExist(String revision, String... paths) {
         doAssertNodes(false, revision, paths);
     }
 
     protected void assertChildNodeCount(String path,
-                                        String revision,
-                                        long numChildNodes) {
+        String revision,
+        long numChildNodes) {
         JSONObject json = parseJSONObject(getDocumentMK().getNodes(
-                path, revision, 0, 0, -1, null));
+            path, revision, 0, 0, -1, null));
         assertPropertyValue(json, ":childNodeCount", numChildNodes);
     }
 
     protected void assertPropExists(String rev, String path, String property) {
-        String nodes = getDocumentMK().getNodes(path, rev, 0 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        String nodes = getDocumentMK().getNodes(path, rev, 0 /*depth*/, 0 /*offset*/,
+            -1 /*maxChildNodes*/, null /*filter*/);
         JSONObject obj = parseJSONObject(nodes);
         assertPropertyExists(obj, property);
     }
 
     protected void assertPropNotExists(String rev, String path, String property) {
-        String nodes = getDocumentMK().getNodes(path, rev, 0 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        String nodes = getDocumentMK().getNodes(path, rev, 0 /*depth*/, 0 /*offset*/,
+            -1 /*maxChildNodes*/, null /*filter*/);
         if (nodes == null) {
             return;
         }
@@ -96,13 +99,14 @@ public abstract class DocumentMKTestBase {
     }
 
     protected void assertPropValue(String rev, String path, String property, String value) {
-        String nodes = getDocumentMK().getNodes(path, rev, 0 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        String nodes = getDocumentMK().getNodes(path, rev, 0 /*depth*/, 0 /*offset*/,
+            -1 /*maxChildNodes*/, null /*filter*/);
         JSONObject obj = parseJSONObject(nodes);
         assertPropertyValue(obj, property, value);
     }
 
     protected void assertPropertyExists(JSONObject obj, String relPath, Class<?> type)
-            throws AssertionError {
+        throws AssertionError {
         Object val = resolveValue(obj, relPath);
         assertNotNull("not found: " + relPath, val);
 
@@ -110,26 +114,26 @@ public abstract class DocumentMKTestBase {
     }
 
     protected void assertPropertyExists(JSONObject obj, String relPath)
-            throws AssertionError {
+        throws AssertionError {
         Object val = resolveValue(obj, relPath);
         assertNotNull("not found: " + relPath, val);
     }
 
     protected void assertPropertyNotExists(JSONObject obj, String relPath)
-            throws AssertionError {
+        throws AssertionError {
         Object val = resolveValue(obj, relPath);
         assertNull(val);
     }
 
     protected void assertPropertyValue(JSONObject obj, String relPath, String expected)
-            throws AssertionError {
+        throws AssertionError {
         Object val = resolveValue(obj, relPath);
         assertNotNull("not found: " + relPath, val);
         assertEquals(expected, val);
     }
 
     protected void assertPropertyValue(JSONObject obj, String relPath, Double expected)
-            throws AssertionError {
+        throws AssertionError {
         Object val = resolveValue(obj, relPath);
         assertNotNull("not found: " + relPath, val);
 
@@ -137,21 +141,21 @@ public abstract class DocumentMKTestBase {
     }
 
     protected void assertPropertyValue(JSONObject obj, String relPath, Long expected)
-            throws AssertionError {
+        throws AssertionError {
         Object val = resolveValue(obj, relPath);
         assertNotNull("not found: " + relPath, val);
         assertEquals(expected, val);
     }
 
     protected void assertPropertyValue(JSONObject obj, String relPath, Boolean expected)
-            throws AssertionError {
+        throws AssertionError {
         Object val = resolveValue(obj, relPath);
         assertNotNull("not found: " + relPath, val);
 
         assertEquals(expected, val);
     }
 
-    private void doAssertNodes(boolean checkExists, String revision, String...paths) {
+    private void doAssertNodes(boolean checkExists, String revision, String... paths) {
         for (String path : paths) {
             boolean exists = getDocumentMK().nodeExists(path, revision);
             if (checkExists) {
@@ -182,7 +186,7 @@ public abstract class DocumentMKTestBase {
         return val;
     }
 
-    protected String addNodes(String rev, String...nodes) {
+    protected String addNodes(String rev, String... nodes) {
         String newRev = rev;
         for (String node : nodes) {
             newRev = getDocumentMK().commit("", "+\"" + node + "\":{}", newRev, "");

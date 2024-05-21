@@ -27,7 +27,6 @@ import java.io.InputStream;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.util.Random;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -44,7 +43,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public abstract class AbstractMigratorTest {
@@ -71,7 +69,8 @@ public abstract class AbstractMigratorTest {
         closeNodeStore();
 
         newBlobStore = createNewBlobStore(repository);
-        DefaultSplitBlobStore splitBlobStore = new DefaultSplitBlobStore(repository.getPath(), oldBlobStore, newBlobStore);
+        DefaultSplitBlobStore splitBlobStore = new DefaultSplitBlobStore(repository.getPath(),
+            oldBlobStore, newBlobStore);
         nodeStore = createNodeStore(splitBlobStore, repository);
         migrator = new BlobMigrator(splitBlobStore, nodeStore);
 
@@ -82,7 +81,8 @@ public abstract class AbstractMigratorTest {
 
     }
 
-    protected abstract NodeStore createNodeStore(BlobStore blobStore, File repository) throws IOException;
+    protected abstract NodeStore createNodeStore(BlobStore blobStore, File repository)
+        throws IOException;
 
     protected abstract void closeNodeStore();
 
@@ -142,7 +142,8 @@ public abstract class AbstractMigratorTest {
         assertStreamEquals(blob.getNewStream(), newBlobStore.getInputStream(blobId));
     }
 
-    private static void createContent(NodeStore nodeStore) throws IOException, CommitFailedException {
+    private static void createContent(NodeStore nodeStore)
+        throws IOException, CommitFailedException {
         NodeBuilder rootBuilder = nodeStore.getRoot().builder();
         rootBuilder.child("node1").setProperty("prop", createBlob(nodeStore));
         rootBuilder.child("node2").setProperty("prop", createBlob(nodeStore));
@@ -160,7 +161,8 @@ public abstract class AbstractMigratorTest {
         return new ArrayBasedBlob(buffer);
     }
 
-    private static void assertStreamEquals(InputStream expected, InputStream actual) throws IOException {
+    private static void assertStreamEquals(InputStream expected, InputStream actual)
+        throws IOException {
         while (true) {
             int expectedByte = expected.read();
             int actualByte = actual.read();

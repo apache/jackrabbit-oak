@@ -21,7 +21,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.Configuration;
-
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncHandler;
@@ -34,8 +33,8 @@ import org.junit.After;
 import org.junit.Before;
 
 /**
- * Abstract base test for external-authentication including proper OSGi service
- * registrations required for repository login respecting the {@link ExternalLoginModule}.
+ * Abstract base test for external-authentication including proper OSGi service registrations
+ * required for repository login respecting the {@link ExternalLoginModule}.
  */
 public abstract class ExternalLoginTestBase extends AbstractExternalAuthTest {
 
@@ -53,7 +52,8 @@ public abstract class ExternalLoginTestBase extends AbstractExternalAuthTest {
     public void before() throws Exception {
         super.before();
 
-        testIdpReg = whiteboard.register(ExternalIdentityProvider.class, idp, Collections.<String, Object>emptyMap());
+        testIdpReg = whiteboard.register(ExternalIdentityProvider.class, idp,
+            Collections.<String, Object>emptyMap());
 
         setSyncConfig(syncConfig);
 
@@ -83,7 +83,8 @@ public abstract class ExternalLoginTestBase extends AbstractExternalAuthTest {
         syncManager = new SyncManagerImpl(whiteboard);
         whiteboard.register(SyncManager.class, syncManager, Collections.emptyMap());
         idpManager = new ExternalIDPManagerImpl(whiteboard);
-        whiteboard.register(ExternalIdentityProviderManager.class, idpManager, Collections.emptyMap());
+        whiteboard.register(ExternalIdentityProviderManager.class, idpManager,
+            Collections.emptyMap());
 
         return oak;
     }
@@ -94,7 +95,8 @@ public abstract class ExternalLoginTestBase extends AbstractExternalAuthTest {
             syncHandlerReg = null;
         }
         if (cfg != null) {
-            syncHandlerReg = whiteboard.register(SyncHandler.class, new DefaultSyncHandler(cfg), Collections.<String, Object>emptyMap());
+            syncHandlerReg = whiteboard.register(SyncHandler.class, new DefaultSyncHandler(cfg),
+                Collections.<String, Object>emptyMap());
         }
     }
 
@@ -103,9 +105,9 @@ public abstract class ExternalLoginTestBase extends AbstractExternalAuthTest {
             @Override
             public AppConfigurationEntry[] getAppConfigurationEntry(String s) {
                 AppConfigurationEntry entry = new AppConfigurationEntry(
-                        ExternalLoginModule.class.getName(),
-                        AppConfigurationEntry.LoginModuleControlFlag.REQUIRED,
-                        options);
+                    ExternalLoginModule.class.getName(),
+                    AppConfigurationEntry.LoginModuleControlFlag.REQUIRED,
+                    options);
                 return new AppConfigurationEntry[]{entry};
             }
         };

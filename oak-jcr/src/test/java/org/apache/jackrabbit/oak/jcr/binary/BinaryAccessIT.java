@@ -38,13 +38,10 @@ import java.net.HttpURLConnection;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
-
 import javax.jcr.AccessDeniedException;
 import javax.jcr.Binary;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitValueFactory;
@@ -52,6 +49,7 @@ import org.apache.jackrabbit.api.ReferenceBinary;
 import org.apache.jackrabbit.api.binary.BinaryDownload;
 import org.apache.jackrabbit.api.binary.BinaryDownloadOptions;
 import org.apache.jackrabbit.api.binary.BinaryUpload;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStore;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.binary.util.Content;
@@ -66,18 +64,16 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Integration test for direct binary GET/PUT via HTTP, that requires a fully working data store
- * (such as S3) for each {@link AbstractBinaryAccessIT#dataStoreFixtures() configured fixture}.
- * The data store in question must support direct GET/PUT access via a URI.
- * 
+ * (such as S3) for each {@link AbstractBinaryAccessIT#dataStoreFixtures() configured fixture}. The
+ * data store in question must support direct GET/PUT access via a URI.
+ * <p>
  * Data store must be configured through e.g. aws.properties.
- *
+ * <p>
  * Run this IT in maven using either:
- *
- *   single test:
- *     mvn clean test -Dtest=BinaryAccessIT
- * 
- *   as part of all integration tests:
- *     mvn -PintegrationTesting clean install
+ * <p>
+ * single test: mvn clean test -Dtest=BinaryAccessIT
+ * <p>
+ * as part of all integration tests: mvn -PintegrationTesting clean install
  */
 @RunWith(Parameterized.class)
 public class BinaryAccessIT extends AbstractBinaryAccessIT {
@@ -85,8 +81,8 @@ public class BinaryAccessIT extends AbstractBinaryAccessIT {
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     private static final String FILE_PATH = "/file";
-    private static final int REGULAR_WRITE_EXPIRY = 60*5; // seconds
-    private static final int REGULAR_READ_EXPIRY = 60*5; // seconds
+    private static final int REGULAR_WRITE_EXPIRY = 60 * 5; // seconds
+    private static final int REGULAR_READ_EXPIRY = 60 * 5; // seconds
 
     public BinaryAccessIT(NodeStoreFixture fixture) {
         // reuse NodeStore (and DataStore) across all tests in this class
@@ -113,7 +109,7 @@ public class BinaryAccessIT extends AbstractBinaryAccessIT {
     public void testUpload() throws Exception {
         // enable writable URI feature
         getConfigurableHttpDataRecordProvider()
-                .setDirectUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
+            .setDirectUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
 
         Content content = Content.createRandom(256);
 
@@ -132,7 +128,7 @@ public class BinaryAccessIT extends AbstractBinaryAccessIT {
         int code = httpPut(uri, content.size(), content.getStream());
 
         assertTrue("PUT to pre-signed URI failed",
-                isSuccessfulHttpPut(code, getConfigurableHttpDataRecordProvider()));
+            isSuccessfulHttpPut(code, getConfigurableHttpDataRecordProvider()));
 
         Binary writeBinary = uploadProvider.completeBinaryUpload(upload.getUploadToken());
         putBinary(getAdminSession(), FILE_PATH, writeBinary);
@@ -145,7 +141,7 @@ public class BinaryAccessIT extends AbstractBinaryAccessIT {
     @Test
     public void testMultiPartUpload() throws Exception {
         getConfigurableHttpDataRecordProvider()
-                .setDirectUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
+            .setDirectUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
 
         assertTrue(getAdminSession().getValueFactory() instanceof JackrabbitValueFactory);
 
@@ -159,7 +155,8 @@ public class BinaryAccessIT extends AbstractBinaryAccessIT {
 
         // this follows the upload algorithm from BinaryUpload
         if (content.size() / upload.getMaxPartSize() > uris.size()) {
-            fail("exact binary size was provided but implementation failed to provide enough upload URIs");
+            fail(
+                "exact binary size was provided but implementation failed to provide enough upload URIs");
         }
         if (content.size() < upload.getMinPartSize()) {
             // single upload
@@ -167,7 +164,7 @@ public class BinaryAccessIT extends AbstractBinaryAccessIT {
         } else {
             // multipart upload
             final long basePartSize = (long) Math.ceil(content.size() / (double) uris.size());
-            
+
             long offset = 0;
             for (URI uri : uris) {
                 final long partSize = Math.min(basePartSize, content.size() - offset);
@@ -195,7 +192,7 @@ public class BinaryAccessIT extends AbstractBinaryAccessIT {
     public void testStreamBinaryThroughJCRAfterURIWrite() throws Exception {
         // enable writable URI feature
         getConfigurableHttpDataRecordProvider()
-                .setDirectUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
+            .setDirectUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
 
         // 1. add binary and upload
         Content content = Content.createRandom(256);
@@ -220,10 +217,10 @@ public class BinaryAccessIT extends AbstractBinaryAccessIT {
     @Test
     public void testGetBinary() throws Exception {
         getConfigurableHttpDataRecordProvider()
-                .setDirectDownloadURIExpirySeconds(REGULAR_READ_EXPIRY);
+            .setDirectDownloadURIExpirySeconds(REGULAR_READ_EXPIRY);
 
         // Must be larger than the minimum file size, to keep it from being inlined in the node store.
-        Content content = Content.createRandom(1024*20);
+        Content content = Content.createRandom(1024 * 20);
 
         // make sure to test getting a fresh Binary
         Binary binary = storeBinaryAndRetrieve(getAdminSession(), FILE_PATH, content);
@@ -236,8 +233,8 @@ public class BinaryAccessIT extends AbstractBinaryAccessIT {
         // different way to retrieve binary
         // TODO: also test multivalue binary prop
         binary = getAdminSession().getNode(FILE_PATH)
-            .getNode(JcrConstants.JCR_CONTENT)
-            .getProperty(JcrConstants.JCR_DATA).getValue().getBinary();
+                                  .getNode(JcrConstants.JCR_CONTENT)
+                                  .getProperty(JcrConstants.JCR_DATA).getValue().getBinary();
         downloadURI = ((BinaryDownload) binary).getURI(BinaryDownloadOptions.DEFAULT);
         assertNotNull("HTTP download URI is null", downloadURI);
     }
@@ -251,7 +248,7 @@ public class BinaryAccessIT extends AbstractBinaryAccessIT {
         provider.setDirectDownloadURIExpirySeconds(REGULAR_READ_EXPIRY);
 
         // 1. add binary and upload
-        Content content = Content.createRandom(1024*20);
+        Content content = Content.createRandom(1024 * 20);
         BinaryUpload upload = uploadProvider.initiateBinaryUpload(content.size(), 10);
         int code = content.httpPUT(upload.getUploadURIs().iterator().next());
         assertTrue(isSuccessfulHttpPut(code, getConfigurableHttpDataRecordProvider()));
@@ -260,7 +257,7 @@ public class BinaryAccessIT extends AbstractBinaryAccessIT {
 
         // 2. read binary, get the URI
         Binary binary = getBinary(getAdminSession(), FILE_PATH);
-        URI downloadURI = ((BinaryDownload)(binary)).getURI(BinaryDownloadOptions.DEFAULT);
+        URI downloadURI = ((BinaryDownload) (binary)).getURI(BinaryDownloadOptions.DEFAULT);
 
         // 3. GET on URI and verify contents are the same
         content.assertEqualsWith(httpGet(downloadURI));
@@ -269,30 +266,30 @@ public class BinaryAccessIT extends AbstractBinaryAccessIT {
     @Test
     public void testGetSmallBinaryReturnsNull() throws Exception {
         getConfigurableHttpDataRecordProvider()
-                .setDirectDownloadURIExpirySeconds(REGULAR_READ_EXPIRY);
+            .setDirectDownloadURIExpirySeconds(REGULAR_READ_EXPIRY);
 
         // Must be smaller than the minimum file size, (inlined binary)
         Content content = Content.createRandom(256);
         Binary binary = storeBinaryAndRetrieve(getAdminSession(), FILE_PATH, content);
 
-        URI downloadURI = ((BinaryDownload)(binary)).getURI(BinaryDownloadOptions.DEFAULT);
+        URI downloadURI = ((BinaryDownload) (binary)).getURI(BinaryDownloadOptions.DEFAULT);
         assertNull(downloadURI);
     }
 
     @Test
     public void testGetBinaryWithSpecificMediaType() throws Exception {
         getConfigurableHttpDataRecordProvider()
-                .setDirectDownloadURIExpirySeconds(REGULAR_READ_EXPIRY);
+            .setDirectDownloadURIExpirySeconds(REGULAR_READ_EXPIRY);
 
-        Content content = Content.createRandom(1024*20);
+        Content content = Content.createRandom(1024 * 20);
         Binary binary = storeBinaryAndRetrieve(getAdminSession(), FILE_PATH, content);
 
         String expectedMediaType = "image/png";
         BinaryDownloadOptions downloadOptions = BinaryDownloadOptions
-                .builder()
-                .withMediaType(expectedMediaType)
-                .build();
-        URI downloadURI = ((BinaryDownload)(binary)).getURI(downloadOptions);
+            .builder()
+            .withMediaType(expectedMediaType)
+            .build();
+        URI downloadURI = ((BinaryDownload) (binary)).getURI(downloadOptions);
 
         HttpURLConnection conn = (HttpURLConnection) downloadURI.toURL().openConnection();
         String mediaType = conn.getHeaderField("Content-Type");
@@ -307,25 +304,25 @@ public class BinaryAccessIT extends AbstractBinaryAccessIT {
     @Test
     public void testGetBinaryWithSpecificMediaTypeAndEncoding() throws Exception {
         getConfigurableHttpDataRecordProvider()
-                .setDirectDownloadURIExpirySeconds(REGULAR_READ_EXPIRY);
+            .setDirectDownloadURIExpirySeconds(REGULAR_READ_EXPIRY);
 
-        Content content = Content.createRandom(1024*20);
+        Content content = Content.createRandom(1024 * 20);
         Binary binary = storeBinaryAndRetrieve(getAdminSession(), FILE_PATH, content);
 
         String expectedMediaType = "text/plain";
         String expectedCharacterEncoding = "utf-8";
         BinaryDownloadOptions downloadOptions = BinaryDownloadOptions
-                .builder()
-                .withMediaType(expectedMediaType)
-                .withCharacterEncoding(expectedCharacterEncoding)
-                .build();
-        URI downloadURI = ((BinaryDownload)(binary)).getURI(downloadOptions);
+            .builder()
+            .withMediaType(expectedMediaType)
+            .withCharacterEncoding(expectedCharacterEncoding)
+            .build();
+        URI downloadURI = ((BinaryDownload) (binary)).getURI(downloadOptions);
 
         HttpURLConnection conn = (HttpURLConnection) downloadURI.toURL().openConnection();
         String mediaType = conn.getHeaderField("Content-Type");
         assertNotNull(mediaType);
         assertEquals(String.format("%s; charset=%s", expectedMediaType, expectedCharacterEncoding),
-                mediaType);
+            mediaType);
 
         // Verify response content
         assertEquals(200, conn.getResponseCode());
@@ -335,17 +332,17 @@ public class BinaryAccessIT extends AbstractBinaryAccessIT {
     @Test
     public void testGetBinaryWithCharacterEncodingOnly() throws Exception {
         getConfigurableHttpDataRecordProvider()
-                .setDirectDownloadURIExpirySeconds(REGULAR_READ_EXPIRY);
+            .setDirectDownloadURIExpirySeconds(REGULAR_READ_EXPIRY);
 
-        Content content = Content.createRandom(1024*20);
+        Content content = Content.createRandom(1024 * 20);
         Binary binary = storeBinaryAndRetrieve(getAdminSession(), FILE_PATH, content);
 
         String expectedCharacterEncoding = "utf-8";
         BinaryDownloadOptions downloadOptions = BinaryDownloadOptions
-                .builder()
-                .withCharacterEncoding(expectedCharacterEncoding)
-                .build();
-        URI downloadURI = ((BinaryDownload)(binary)).getURI(downloadOptions);
+            .builder()
+            .withCharacterEncoding(expectedCharacterEncoding)
+            .build();
+        URI downloadURI = ((BinaryDownload) (binary)).getURI(downloadOptions);
 
         HttpURLConnection conn = (HttpURLConnection) downloadURI.toURL().openConnection();
         String mediaType = conn.getHeaderField("Content-Type");
@@ -361,26 +358,26 @@ public class BinaryAccessIT extends AbstractBinaryAccessIT {
     @Test
     public void testGetBinaryWithSpecificFileName() throws Exception {
         getConfigurableHttpDataRecordProvider()
-                .setDirectDownloadURIExpirySeconds(REGULAR_READ_EXPIRY);
+            .setDirectDownloadURIExpirySeconds(REGULAR_READ_EXPIRY);
 
-        Content content = Content.createRandom(1024*20);
+        Content content = Content.createRandom(1024 * 20);
         Binary binary = storeBinaryAndRetrieve(getAdminSession(), FILE_PATH, content);
 
         String expectedName = "beautiful landscape.png";
         String encodedName = "beautiful%20landscape.png";
         BinaryDownloadOptions downloadOptions = BinaryDownloadOptions
-                .builder()
-                .withFileName(expectedName)
-                .build();
-        URI downloadURI = ((BinaryDownload)(binary)).getURI(downloadOptions);
+            .builder()
+            .withFileName(expectedName)
+            .build();
+        URI downloadURI = ((BinaryDownload) (binary)).getURI(downloadOptions);
 
         HttpURLConnection conn = (HttpURLConnection) downloadURI.toURL().openConnection();
         String contentDisposition = conn.getHeaderField("Content-Disposition");
         assertNotNull(contentDisposition);
         assertEquals(
-                String.format("inline; filename=\"%s\"; filename*=UTF-8''%s",
-                        expectedName, encodedName),
-                contentDisposition
+            String.format("inline; filename=\"%s\"; filename*=UTF-8''%s",
+                expectedName, encodedName),
+            contentDisposition
         );
 
         // Verify response content
@@ -391,27 +388,27 @@ public class BinaryAccessIT extends AbstractBinaryAccessIT {
     @Test
     public void testGetBinaryWithSpecificFileNameAndDispositionType() throws Exception {
         getConfigurableHttpDataRecordProvider()
-                .setDirectDownloadURIExpirySeconds(REGULAR_READ_EXPIRY);
+            .setDirectDownloadURIExpirySeconds(REGULAR_READ_EXPIRY);
 
-        Content content = Content.createRandom(1024*20);
+        Content content = Content.createRandom(1024 * 20);
         Binary binary = storeBinaryAndRetrieve(getAdminSession(), FILE_PATH, content);
 
         String expectedName = "beautiful landscape.png";
         String encodedName = "beautiful%20landscape.png";
         BinaryDownloadOptions downloadOptions = BinaryDownloadOptions
-                .builder()
-                .withFileName(expectedName)
-                .withDispositionTypeAttachment()
-                .build();
-        URI downloadURI = ((BinaryDownload)(binary)).getURI(downloadOptions);
+            .builder()
+            .withFileName(expectedName)
+            .withDispositionTypeAttachment()
+            .build();
+        URI downloadURI = ((BinaryDownload) (binary)).getURI(downloadOptions);
 
         HttpURLConnection conn = (HttpURLConnection) downloadURI.toURL().openConnection();
         String contentDisposition = conn.getHeaderField("Content-Disposition");
         assertNotNull(contentDisposition);
         assertEquals(
-                String.format("attachment; filename=\"%s\"; filename*=UTF-8''%s",
-                        expectedName, encodedName),
-                contentDisposition
+            String.format("attachment; filename=\"%s\"; filename*=UTF-8''%s",
+                expectedName, encodedName),
+            contentDisposition
         );
 
         // Verify response content
@@ -422,16 +419,16 @@ public class BinaryAccessIT extends AbstractBinaryAccessIT {
     @Test
     public void testGetBinaryWithDispositionType() throws Exception {
         getConfigurableHttpDataRecordProvider()
-                .setDirectDownloadURIExpirySeconds(REGULAR_READ_EXPIRY);
+            .setDirectDownloadURIExpirySeconds(REGULAR_READ_EXPIRY);
 
-        Content content = Content.createRandom(1024*20);
+        Content content = Content.createRandom(1024 * 20);
         Binary binary = storeBinaryAndRetrieve(getAdminSession(), FILE_PATH, content);
 
         BinaryDownloadOptions downloadOptions = BinaryDownloadOptions
-                .builder()
-                .withDispositionTypeInline()
-                .build();
-        URI downloadURI = ((BinaryDownload)(binary)).getURI(downloadOptions);
+            .builder()
+            .withDispositionTypeInline()
+            .build();
+        URI downloadURI = ((BinaryDownload) (binary)).getURI(downloadOptions);
 
         HttpURLConnection conn = (HttpURLConnection) downloadURI.toURL().openConnection();
         String contentDisposition = conn.getHeaderField("Content-Disposition");
@@ -444,10 +441,10 @@ public class BinaryAccessIT extends AbstractBinaryAccessIT {
         content.assertEqualsWith(conn.getInputStream());
 
         downloadOptions = BinaryDownloadOptions
-                .builder()
-                .withDispositionTypeAttachment()
-                .build();
-        downloadURI = ((BinaryDownload)(binary)).getURI(downloadOptions);
+            .builder()
+            .withDispositionTypeAttachment()
+            .build();
+        downloadURI = ((BinaryDownload) (binary)).getURI(downloadOptions);
 
         conn = (HttpURLConnection) downloadURI.toURL().openConnection();
         contentDisposition = conn.getHeaderField("Content-Disposition");
@@ -459,9 +456,9 @@ public class BinaryAccessIT extends AbstractBinaryAccessIT {
     @Test
     public void testGetBinarySetsAllHeaders() throws Exception {
         getConfigurableHttpDataRecordProvider()
-                .setDirectDownloadURIExpirySeconds(REGULAR_READ_EXPIRY);
+            .setDirectDownloadURIExpirySeconds(REGULAR_READ_EXPIRY);
 
-        Content content = Content.createRandom(1024*20);
+        Content content = Content.createRandom(1024 * 20);
         Binary binary = storeBinaryAndRetrieve(getAdminSession(), FILE_PATH, content);
 
         String expectedMediaType = "image/png";
@@ -469,32 +466,33 @@ public class BinaryAccessIT extends AbstractBinaryAccessIT {
         String expectedName = "beautiful landscape.png";
         String encodedName = "beautiful%20landscape.png";
         BinaryDownloadOptions downloadOptions = BinaryDownloadOptions
-                .builder()
-                .withMediaType(expectedMediaType)
-                .withCharacterEncoding(expectedCharacterEncoding)
-                .withFileName(expectedName)
-                .withDispositionTypeAttachment()
-                .build();
-        URI downloadURI = ((BinaryDownload)(binary)).getURI(downloadOptions);
+            .builder()
+            .withMediaType(expectedMediaType)
+            .withCharacterEncoding(expectedCharacterEncoding)
+            .withFileName(expectedName)
+            .withDispositionTypeAttachment()
+            .build();
+        URI downloadURI = ((BinaryDownload) (binary)).getURI(downloadOptions);
 
         HttpURLConnection conn = (HttpURLConnection) downloadURI.toURL().openConnection();
         String mediaType = conn.getHeaderField("Content-Type");
         assertNotNull(mediaType);
         assertEquals(
-                String.format("%s; charset=%s", expectedMediaType, expectedCharacterEncoding),
-                mediaType);
+            String.format("%s; charset=%s", expectedMediaType, expectedCharacterEncoding),
+            mediaType);
 
         String contentDisposition = conn.getHeaderField("Content-Disposition");
         assertNotNull(contentDisposition);
         assertEquals(
-                String.format("attachment; filename=\"%s\"; filename*=UTF-8''%s",
-                        expectedName, encodedName),
-                contentDisposition
+            String.format("attachment; filename=\"%s\"; filename*=UTF-8''%s",
+                expectedName, encodedName),
+            contentDisposition
         );
 
         String cacheControl = conn.getHeaderField("Cache-Control");
         assertNotNull(cacheControl);
-        assertEquals(String.format("private, max-age=%d, immutable", REGULAR_READ_EXPIRY), cacheControl);
+        assertEquals(String.format("private, max-age=%d, immutable", REGULAR_READ_EXPIRY),
+            cacheControl);
 
         // Verify response content
         assertEquals(200, conn.getResponseCode());
@@ -504,12 +502,12 @@ public class BinaryAccessIT extends AbstractBinaryAccessIT {
     @Test
     public void testGetBinaryDefaultOptions() throws Exception {
         getConfigurableHttpDataRecordProvider()
-                .setDirectDownloadURIExpirySeconds(REGULAR_READ_EXPIRY);
+            .setDirectDownloadURIExpirySeconds(REGULAR_READ_EXPIRY);
 
-        Content content = Content.createRandom(1024*20);
+        Content content = Content.createRandom(1024 * 20);
         Binary binary = storeBinaryAndRetrieve(getAdminSession(), FILE_PATH, content);
 
-        URI downloadURI = ((BinaryDownload)(binary)).getURI(BinaryDownloadOptions.DEFAULT);
+        URI downloadURI = ((BinaryDownload) (binary)).getURI(BinaryDownloadOptions.DEFAULT);
 
         HttpURLConnection conn = (HttpURLConnection) downloadURI.toURL().openConnection();
         String mediaType = conn.getHeaderField("Content-Type");
@@ -521,7 +519,8 @@ public class BinaryAccessIT extends AbstractBinaryAccessIT {
 
         String cacheControl = conn.getHeaderField("Cache-Control");
         assertNotNull(cacheControl);
-        assertEquals(String.format("private, max-age=%d, immutable", REGULAR_READ_EXPIRY), cacheControl);
+        assertEquals(String.format("private, max-age=%d, immutable", REGULAR_READ_EXPIRY),
+            cacheControl);
 
         // Verify response content
         assertEquals(200, conn.getResponseCode());
@@ -535,13 +534,13 @@ public class BinaryAccessIT extends AbstractBinaryAccessIT {
     public void testUnprivilegedSessionCannotUploadBinary() throws Exception {
         // enable writable URI feature
         getConfigurableHttpDataRecordProvider()
-                .setDirectUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
+            .setDirectUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
 
         try {
-            anonymousUploadProvider.initiateBinaryUpload(1024*20, 10);
+            anonymousUploadProvider.initiateBinaryUpload(1024 * 20, 10);
             fail();
+        } catch (AccessDeniedException e) {
         }
-        catch (AccessDeniedException e) { }
     }
 
     // A2 - disable write URIs entirely
@@ -549,7 +548,7 @@ public class BinaryAccessIT extends AbstractBinaryAccessIT {
     public void testDisableDirectHttpUpload() throws Exception {
         // disable in data store config by setting expiry to zero
         getConfigurableHttpDataRecordProvider()
-                .setDirectUploadURIExpirySeconds(0);
+            .setDirectUploadURIExpirySeconds(0);
 
         Content content = Content.createRandom(256);
         BinaryUpload upload = uploadProvider.initiateBinaryUpload(content.size(), 10);
@@ -561,12 +560,12 @@ public class BinaryAccessIT extends AbstractBinaryAccessIT {
     @Test
     public void testDisableDirectHttpDownload() throws Exception {
         getConfigurableHttpDataRecordProvider()
-                .setDirectDownloadURIExpirySeconds(0);
+            .setDirectDownloadURIExpirySeconds(0);
 
-        Content content = Content.createRandom(1024*20);
+        Content content = Content.createRandom(1024 * 20);
         Binary binary = storeBinaryAndRetrieve(getAdminSession(), FILE_PATH, content);
 
-        URI downloadURI = ((BinaryDownload)(binary)).getURI(BinaryDownloadOptions.DEFAULT);
+        URI downloadURI = ((BinaryDownload) (binary)).getURI(BinaryDownloadOptions.DEFAULT);
         assertNull(downloadURI);
     }
 
@@ -575,16 +574,17 @@ public class BinaryAccessIT extends AbstractBinaryAccessIT {
     public void testPutURIExpires() throws Exception {
         // short timeout
         getConfigurableHttpDataRecordProvider()
-                .setDirectUploadURIExpirySeconds(1);
+            .setDirectUploadURIExpirySeconds(1);
 
-        Content content = Content.createRandom(1024*20);
+        Content content = Content.createRandom(1024 * 20);
         BinaryUpload upload = uploadProvider.initiateBinaryUpload(content.size(), 10);
 
         // wait to pass timeout: 2 seconds
         Thread.sleep(2 * 1000);
 
         // ensure PUT fails with 403 or anything 400+
-        assertTrue(content.httpPUT(upload.getUploadURIs().iterator().next()) >= HttpURLConnection.HTTP_BAD_REQUEST);
+        assertTrue(content.httpPUT(upload.getUploadURIs().iterator().next())
+            >= HttpURLConnection.HTTP_BAD_REQUEST);
     }
 
     // F2 - transfer accelerator (S3 only feature)
@@ -607,7 +607,7 @@ public class BinaryAccessIT extends AbstractBinaryAccessIT {
             assertTrue(uri.getHost().endsWith(".s3-accelerate.amazonaws.com"));
 
             provider.setBinaryTransferAccelerationEnabled(false);
-            upload = uploadProvider.initiateBinaryUpload(1024*20, 1);
+            upload = uploadProvider.initiateBinaryUpload(1024 * 20, 1);
             uri = upload.getUploadURIs().iterator().next();
             assertNotNull(uri);
 
@@ -621,19 +621,20 @@ public class BinaryAccessIT extends AbstractBinaryAccessIT {
     public void testModifiedPutURIFails() throws Exception {
         // enable writable URI feature
         getConfigurableHttpDataRecordProvider()
-                .setDirectUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
-        Content content = Content.createRandom(1024*20);
+            .setDirectUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
+        Content content = Content.createRandom(1024 * 20);
         BinaryUpload upload = uploadProvider.initiateBinaryUpload(content.size(), 1);
         URI uri = upload.getUploadURIs().iterator().next();
         URI changedURI = new URI(
-                String.format("%s://%s/%sX?%s",  // NOTE the injected "X" in the URI filename
+            String.format("%s://%s/%sX?%s",  // NOTE the injected "X" in the URI filename
                 uri.getScheme(),
                 uri.getHost(),
                 uri.getPath(),
                 uri.getQuery())
         );
         int code = content.httpPUT(changedURI);
-        assertTrue("Expected failed request but got " + String.valueOf(code), isFailedHttpPut(code));
+        assertTrue("Expected failed request but got " + String.valueOf(code),
+            isFailedHttpPut(code));
     }
 
     // A1 - get put URI, upload, then try reading from the same URI
@@ -644,7 +645,7 @@ public class BinaryAccessIT extends AbstractBinaryAccessIT {
         provider.setDirectUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
         provider.setDirectDownloadURIExpirySeconds(REGULAR_READ_EXPIRY);
 
-        Content content = Content.createRandom(1024*20);
+        Content content = Content.createRandom(1024 * 20);
         BinaryUpload upload = uploadProvider.initiateBinaryUpload(content.size(), 1);
         URI uri = upload.getUploadURIs().iterator().next();
         int code = content.httpPUT(uri);
@@ -663,13 +664,13 @@ public class BinaryAccessIT extends AbstractBinaryAccessIT {
         provider.setDirectUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
         provider.setDirectDownloadURIExpirySeconds(REGULAR_READ_EXPIRY);
 
-        Content content = Content.createRandom(1024*20);
+        Content content = Content.createRandom(1024 * 20);
         Binary binary = storeBinaryAndRetrieve(getAdminSession(), FILE_PATH, content);
 
-        URI downloadURI = ((BinaryDownload)(binary)).getURI(BinaryDownloadOptions.DEFAULT);
+        URI downloadURI = ((BinaryDownload) (binary)).getURI(BinaryDownloadOptions.DEFAULT);
         assertNotNull(downloadURI);
 
-        Content moreContent = Content.createRandom(1024*20);
+        Content moreContent = Content.createRandom(1024 * 20);
         uploadProvider.initiateBinaryUpload(moreContent.size(), 1);
         HttpURLConnection conn = (HttpURLConnection) downloadURI.toURL().openConnection();
         conn.setRequestMethod("PUT");
@@ -687,10 +688,10 @@ public class BinaryAccessIT extends AbstractBinaryAccessIT {
     public void testUploadedBinaryIsImmutable() throws Exception {
         // enable writable URI feature
         getConfigurableHttpDataRecordProvider()
-                .setDirectUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
+            .setDirectUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
 
         // 1. upload and store first binary
-        Content content = Content.createRandom(1024*20);
+        Content content = Content.createRandom(1024 * 20);
         BinaryUpload upload = uploadProvider.initiateBinaryUpload(content.size(), 1);
         assertNotNull(upload);
         int code = content.httpPUT(upload.getUploadURIs().iterator().next());
@@ -701,7 +702,7 @@ public class BinaryAccessIT extends AbstractBinaryAccessIT {
         Binary binary1 = getBinary(getAdminSession(), FILE_PATH);
 
         // 2. upload different binary content, but store at the same JCR location
-        Content moreContent = Content.createRandom(1024*21);
+        Content moreContent = Content.createRandom(1024 * 21);
         upload = uploadProvider.initiateBinaryUpload(moreContent.size(), 1);
         assertNotNull(upload);
         code = moreContent.httpPUT(upload.getUploadURIs().iterator().next());
@@ -714,7 +715,8 @@ public class BinaryAccessIT extends AbstractBinaryAccessIT {
         // 3. verify they have different references
         assertTrue(binary1 instanceof ReferenceBinary);
         assertTrue(binary2 instanceof ReferenceBinary);
-        assertNotEquals(((ReferenceBinary) binary1).getReference(), ((ReferenceBinary) binary2).getReference());
+        assertNotEquals(((ReferenceBinary) binary1).getReference(),
+            ((ReferenceBinary) binary2).getReference());
     }
 
     // D2 - unique identifiers
@@ -723,9 +725,9 @@ public class BinaryAccessIT extends AbstractBinaryAccessIT {
         // Every upload destination should be unique with no regard to file content
         // The content is not read by the Oak code so no deduplication can be performed
         getConfigurableHttpDataRecordProvider()
-                .setDirectUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
+            .setDirectUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
 
-        Content content = Content.createRandom(1024*20);
+        Content content = Content.createRandom(1024 * 20);
 
         BinaryUpload upload1 = uploadProvider.initiateBinaryUpload(content.size(), 1);
         assertNotNull(upload1);
@@ -733,26 +735,26 @@ public class BinaryAccessIT extends AbstractBinaryAccessIT {
         assertNotNull(upload2);
 
         assertNotEquals(upload1.getUploadURIs().iterator().next().toString(),
-                upload2.getUploadURIs().iterator().next().toString());
+            upload2.getUploadURIs().iterator().next().toString());
     }
 
     // D3 - do not delete directly => copy nt:file node, delete one, ensure binary still there
     @Test
     public void testBinaryNotDeletedWithNode() throws Exception {
         getConfigurableHttpDataRecordProvider()
-                .setDirectUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
+            .setDirectUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
 
-        Content content = Content.createRandom(1024*20);
+        Content content = Content.createRandom(1024 * 20);
 
         BinaryUpload upload = uploadProvider.initiateBinaryUpload(content.size(), 1);
         int code = content.httpPUT(upload.getUploadURIs().iterator().next());
         assertTrue(isSuccessfulHttpPut(code, getConfigurableHttpDataRecordProvider()));
         Binary binary = uploadProvider.completeBinaryUpload(upload.getUploadToken());
-        storeBinary(getAdminSession(), FILE_PATH+"2", binary);
+        storeBinary(getAdminSession(), FILE_PATH + "2", binary);
 
         storeBinary(getAdminSession(), FILE_PATH, binary);
 
-        getAdminSession().getNode(FILE_PATH+"2").remove();
+        getAdminSession().getNode(FILE_PATH + "2").remove();
         getAdminSession().save();
 
         Binary savedBinary = getBinary(getAdminSession(), FILE_PATH);
@@ -760,7 +762,7 @@ public class BinaryAccessIT extends AbstractBinaryAccessIT {
         assertTrue(binary instanceof ReferenceBinary);
         assertTrue(savedBinary instanceof ReferenceBinary);
         assertEquals(((ReferenceBinary) binary).getReference(),
-                ((ReferenceBinary) savedBinary).getReference());
+            ((ReferenceBinary) savedBinary).getReference());
     }
 
     // D5 - blob ref not persisted in NodeStore until binary uploaded and immutable
@@ -773,41 +775,41 @@ public class BinaryAccessIT extends AbstractBinaryAccessIT {
     @Test
     public void testInitiateHttpUploadWithZeroSizeFails() throws RepositoryException {
         getConfigurableHttpDataRecordProvider()
-                .setDirectUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
+            .setDirectUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
         try {
             uploadProvider.initiateBinaryUpload(0, 1);
             fail();
+        } catch (IllegalArgumentException e) {
         }
-        catch (IllegalArgumentException e) { }
     }
 
     @Test
     public void testInitiateHttpUploadWithZeroURIsFails() throws RepositoryException {
         getConfigurableHttpDataRecordProvider()
-                .setDirectUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
+            .setDirectUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
         try {
             uploadProvider.initiateBinaryUpload(1024 * 20, 0);
             fail();
+        } catch (IllegalArgumentException e) {
         }
-        catch (IllegalArgumentException e) { }
     }
 
     @Test
     public void testInitiateHttpUploadWithUnsupportedNegativeNumberURIsFails()
         throws RepositoryException {
         getConfigurableHttpDataRecordProvider()
-                .setDirectUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
+            .setDirectUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
         try {
             uploadProvider.initiateBinaryUpload(1024 * 20, -2);
             fail();
+        } catch (IllegalArgumentException e) {
         }
-        catch (IllegalArgumentException e) { }
     }
 
     @Test
     public void testInitiateHttpUploadWithUnlimitedURIs() throws RepositoryException {
         getConfigurableHttpDataRecordProvider()
-                .setDirectUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
+            .setDirectUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
         BinaryUpload upload = uploadProvider.initiateBinaryUpload(1024 * 1024 * 1024, -1);
         assertNotNull(upload);
         assertTrue(Iterables.size(upload.getUploadURIs()) > 50);
@@ -819,7 +821,7 @@ public class BinaryAccessIT extends AbstractBinaryAccessIT {
     @Test
     public void testInitiateHttpUploadLargeSinglePut() throws RepositoryException {
         getConfigurableHttpDataRecordProvider()
-                .setDirectUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
+            .setDirectUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
         BinaryUpload upload = uploadProvider.initiateBinaryUpload(1024 * 1024 * 100, 1);
         assertNotNull(upload);
         assertEquals(1, Iterables.size(upload.getUploadURIs()));
@@ -828,40 +830,40 @@ public class BinaryAccessIT extends AbstractBinaryAccessIT {
     @Test
     public void testInitiateHttpUploadTooLargeForSinglePut() throws RepositoryException {
         getConfigurableHttpDataRecordProvider()
-                .setDirectUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
+            .setDirectUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
         try {
             uploadProvider.initiateBinaryUpload(1024L * 1024L * 1024L * 10L, 1);
             fail();
+        } catch (IllegalArgumentException e) {
         }
-        catch (IllegalArgumentException e) { }
     }
 
     @Test
     public void testInitiateHttpUploadTooLargeForUpload() throws RepositoryException {
         getConfigurableHttpDataRecordProvider()
-                .setDirectUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
+            .setDirectUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
         try {
             uploadProvider.initiateBinaryUpload(1024L * 1024L * 1024L * 1024L * 10L, -1);
             fail();
+        } catch (IllegalArgumentException e) {
         }
-        catch (IllegalArgumentException e) { }
     }
 
     @Test
     public void testInitiateHttpUploadTooLargeForRequestedNumURIs() throws RepositoryException {
         getConfigurableHttpDataRecordProvider()
-                .setDirectUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
+            .setDirectUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
         try {
             uploadProvider.initiateBinaryUpload(1024L * 1024L * 1024L * 10L, 10);
             fail();
+        } catch (IllegalArgumentException e) {
         }
-        catch (IllegalArgumentException e) { }
     }
 
     @Test
     public void testCompleteHttpUploadWithInvalidTokenFails() throws RepositoryException {
         getConfigurableHttpDataRecordProvider()
-                .setDirectUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
+            .setDirectUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
 
         BinaryUpload upload = uploadProvider.initiateBinaryUpload(256, 10);
         assertNotNull(upload);
@@ -869,7 +871,7 @@ public class BinaryAccessIT extends AbstractBinaryAccessIT {
         try {
             uploadProvider.completeBinaryUpload(upload.getUploadToken() + "X");
             fail();
+        } catch (IllegalArgumentException e) {
         }
-        catch (IllegalArgumentException e) { }
     }
 }

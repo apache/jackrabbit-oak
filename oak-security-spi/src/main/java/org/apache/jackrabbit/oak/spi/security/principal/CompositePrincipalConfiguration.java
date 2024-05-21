@@ -26,10 +26,11 @@ import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * {@link PrincipalConfiguration} that combines different principal provider
- * implementations that share a common principal manager implementation.
+ * {@link PrincipalConfiguration} that combines different principal provider implementations that
+ * share a common principal manager implementation.
  */
-public class CompositePrincipalConfiguration extends CompositeConfiguration<PrincipalConfiguration> implements PrincipalConfiguration {
+public class CompositePrincipalConfiguration extends
+    CompositeConfiguration<PrincipalConfiguration> implements PrincipalConfiguration {
 
     public CompositePrincipalConfiguration() {
         super(PrincipalConfiguration.NAME);
@@ -47,15 +48,19 @@ public class CompositePrincipalConfiguration extends CompositeConfiguration<Prin
 
     @NotNull
     @Override
-    public PrincipalProvider getPrincipalProvider(final Root root, final NamePathMapper namePathMapper) {
+    public PrincipalProvider getPrincipalProvider(final Root root,
+        final NamePathMapper namePathMapper) {
         List<PrincipalConfiguration> configurations = getConfigurations();
         switch (configurations.size()) {
-            case 0: return EmptyPrincipalProvider.INSTANCE;
-            case 1: return configurations.get(0).getPrincipalProvider(root, namePathMapper);
+            case 0:
+                return EmptyPrincipalProvider.INSTANCE;
+            case 1:
+                return configurations.get(0).getPrincipalProvider(root, namePathMapper);
             default:
                 List<PrincipalProvider> pps = new ArrayList<>(configurations.size());
                 for (PrincipalConfiguration principalConfig : configurations) {
-                    PrincipalProvider principalProvider = principalConfig.getPrincipalProvider(root, namePathMapper);
+                    PrincipalProvider principalProvider = principalConfig.getPrincipalProvider(root,
+                        namePathMapper);
                     if (!(principalProvider instanceof EmptyPrincipalProvider)) {
                         pps.add(principalProvider);
                     }

@@ -59,7 +59,6 @@ import javax.jcr.query.qom.SameNodeJoinCondition;
 import javax.jcr.query.qom.Selector;
 import javax.jcr.query.qom.Source;
 import javax.jcr.query.qom.UpperCase;
-
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.ReadOnlyRepositoryTestBase;
 import org.junit.Before;
@@ -84,32 +83,32 @@ public class QomTest extends ReadOnlyRepositoryTestBase {
         QueryManager qm = session.getWorkspace().getQueryManager();
         f = qm.getQOMFactory();
     }
-    
+
     @Test
     public void jcrNameConversion() throws RepositoryException {
-        assertEquals("[nt:base]", 
-                f.column(null, NodeType.NT_BASE, null).toString());
-        assertEquals("[s1].[nt:base] = [s2].[nt:base]", 
-                f.equiJoinCondition("s1", NodeType.NT_BASE, "s2", NodeType.NT_BASE).toString());
-        assertEquals("CONTAINS([nt:base], null)", 
-                f.fullTextSearch(null, NodeType.NT_BASE, null).toString());
-        assertEquals("CAST('nt:base' AS NAME)", 
-                f.literal(vf.createValue(NodeType.NT_BASE, PropertyType.NAME)).toString());
-        assertEquals("[nt:base] IS NOT NULL", 
-                f.propertyExistence(null, NodeType.NT_BASE).toString());
-        assertEquals("[nt:base]", 
-                f.propertyValue(null, NodeType.NT_BASE).toString());
-        assertEquals("[nt:base]", 
-                f.selector(NodeType.NT_BASE, null).toString());
-        
+        assertEquals("[nt:base]",
+            f.column(null, NodeType.NT_BASE, null).toString());
+        assertEquals("[s1].[nt:base] = [s2].[nt:base]",
+            f.equiJoinCondition("s1", NodeType.NT_BASE, "s2", NodeType.NT_BASE).toString());
+        assertEquals("CONTAINS([nt:base], null)",
+            f.fullTextSearch(null, NodeType.NT_BASE, null).toString());
+        assertEquals("CAST('nt:base' AS NAME)",
+            f.literal(vf.createValue(NodeType.NT_BASE, PropertyType.NAME)).toString());
+        assertEquals("[nt:base] IS NOT NULL",
+            f.propertyExistence(null, NodeType.NT_BASE).toString());
+        assertEquals("[nt:base]",
+            f.propertyValue(null, NodeType.NT_BASE).toString());
+        assertEquals("[nt:base]",
+            f.selector(NodeType.NT_BASE, null).toString());
+
         Source source1 = f.selector(NodeType.NT_BASE, "selector");
-        Column[] columns = new Column[] { f.column("selector", null, null) };
+        Column[] columns = new Column[]{f.column("selector", null, null)};
         Constraint constraint2 = f.childNode("selector", "/");
         QueryObjectModel qom = f.createQuery(source1, constraint2, null,
-                columns);
-        assertEquals("select [selector].* from " + 
-                "[nt:base] AS [selector] " + 
-                "where ISCHILDNODE([selector], [/])", qom.toString());
+            columns);
+        assertEquals("select [selector].* from " +
+            "[nt:base] AS [selector] " +
+            "where ISCHILDNODE([selector], [/])", qom.toString());
     }
 
     @Test
@@ -144,18 +143,18 @@ public class QomTest extends ReadOnlyRepositoryTestBase {
         assertEquals("selectorName", cn.getSelectorName());
         assertEquals("parentPath", cn.getParentPath());
         assertEquals("ISCHILDNODE([selectorName], [parentPath])", cn.toString());
-        
+
         assertEquals("ISCHILDNODE([p])", f.childNode(null, "p").toString());
     }
 
     @Test
     public void childNodeJoinCondition() throws RepositoryException {
         ChildNodeJoinCondition c = f.childNodeJoinCondition("childSelectorName",
-                "parentSelectorName");
+            "parentSelectorName");
         assertEquals("childSelectorName", c.getChildSelectorName());
         assertEquals("parentSelectorName", c.getParentSelectorName());
         assertEquals("ISCHILDNODE([childSelectorName], [parentSelectorName])",
-                c.toString());
+            c.toString());
     }
 
     @Test
@@ -165,7 +164,7 @@ public class QomTest extends ReadOnlyRepositoryTestBase {
         assertEquals("propertyName", c.getPropertyName());
         assertEquals("columnName", c.getColumnName());
         assertEquals("[selectorName].[propertyName] AS [columnName]", c.toString());
-        
+
         assertEquals("[p]", f.column(null, "p", null).toString());
         assertEquals("[p] AS [c]", f.column(null, "p", "c").toString());
         assertEquals("[s].[p]", f.column("s", "p", null).toString());
@@ -193,19 +192,19 @@ public class QomTest extends ReadOnlyRepositoryTestBase {
         assertEquals("selectorName", d.getSelectorName());
         assertEquals("path", d.getAncestorPath());
         assertEquals("ISDESCENDANTNODE([selectorName], [path])", d.toString());
-        
-        assertEquals("ISDESCENDANTNODE([p])", 
-                f.descendantNode(null, "p").toString());
+
+        assertEquals("ISDESCENDANTNODE([p])",
+            f.descendantNode(null, "p").toString());
     }
 
     @Test
     public void descendantNodeJoinCondition() throws RepositoryException {
         DescendantNodeJoinCondition d = f.descendantNodeJoinCondition("descendantSelectorName",
-                "ancestorSelectorName");
+            "ancestorSelectorName");
         assertEquals("descendantSelectorName", d.getDescendantSelectorName());
         assertEquals("ancestorSelectorName", d.getAncestorSelectorName());
         assertEquals("ISDESCENDANTNODE([descendantSelectorName], [ancestorSelectorName])",
-                d.toString());
+            d.toString());
     }
 
     @Test
@@ -220,13 +219,13 @@ public class QomTest extends ReadOnlyRepositoryTestBase {
     @Test
     public void equiJoinCondition() throws RepositoryException {
         EquiJoinCondition e = f.equiJoinCondition("selector1Name", "property1Name",
-                "selector2Name", "property2Name");
+            "selector2Name", "property2Name");
         assertEquals("selector1Name", e.getSelector1Name());
         assertEquals("property1Name", e.getProperty1Name());
         assertEquals("selector2Name", e.getSelector2Name());
         assertEquals("property2Name", e.getProperty2Name());
         assertEquals("[selector1Name].[property1Name] = [selector2Name].[property2Name]",
-                e.toString());
+            e.toString());
     }
 
     @Test
@@ -237,11 +236,11 @@ public class QomTest extends ReadOnlyRepositoryTestBase {
         assertEquals("propertyName", x.getPropertyName());
         assertEquals(l, x.getFullTextSearchExpression());
         assertEquals("CONTAINS([selectorName].[propertyName], 1)", x.toString());
-        
-        assertEquals("CONTAINS([p], null)", f.fullTextSearch(null,  "p",  null).toString());
-        assertEquals("CONTAINS([s].[p], null)", f.fullTextSearch("s",  "p",  null).toString());
-        assertEquals("CONTAINS([s].*, null)", f.fullTextSearch("s",  null,  null).toString());
-        assertEquals("CONTAINS(*, null)", f.fullTextSearch(null,  null,  null).toString());
+
+        assertEquals("CONTAINS([p], null)", f.fullTextSearch(null, "p", null).toString());
+        assertEquals("CONTAINS([s].[p], null)", f.fullTextSearch("s", "p", null).toString());
+        assertEquals("CONTAINS([s].*, null)", f.fullTextSearch("s", null, null).toString());
+        assertEquals("CONTAINS(*, null)", f.fullTextSearch(null, null, null).toString());
     }
 
     @Test
@@ -249,7 +248,7 @@ public class QomTest extends ReadOnlyRepositoryTestBase {
         FullTextSearchScore x = f.fullTextSearchScore("selectorName");
         assertEquals("selectorName", x.getSelectorName());
         assertEquals("SCORE([selectorName])", x.toString());
-        
+
         assertEquals("SCORE()", f.fullTextSearchScore(null).toString());
 
     }
@@ -258,7 +257,8 @@ public class QomTest extends ReadOnlyRepositoryTestBase {
     public void join() throws RepositoryException {
         Source left = f.selector("nodeTypeName", "selectorName");
         Source right = f.selector("nodeTypeName2", "selectorName2");
-        ChildNodeJoinCondition jc = f.childNodeJoinCondition("childSelectorName", "parentSelectorName");
+        ChildNodeJoinCondition jc = f.childNodeJoinCondition("childSelectorName",
+            "parentSelectorName");
         Join j = f.join(left, right, QueryObjectModelConstants.JCR_JOIN_TYPE_INNER, jc);
         assertEquals(left, j.getLeft());
         assertEquals(right, j.getRight());
@@ -316,7 +316,7 @@ public class QomTest extends ReadOnlyRepositoryTestBase {
         Not n = f.not(c);
         assertEquals(c, n.getConstraint());
         assertEquals("[x].[c0] IS NOT NULL", c.toString());
-        
+
         assertEquals("* IS NOT NULL", f.propertyExistence(null, null).toString());
         assertEquals("[s].* IS NOT NULL", f.propertyExistence("s", null).toString());
         assertEquals("[p] IS NOT NULL", f.propertyExistence(null, "p").toString());
@@ -339,15 +339,15 @@ public class QomTest extends ReadOnlyRepositoryTestBase {
         assertEquals("selectorName", pe.getSelectorName());
         assertEquals("propertyName", pe.getPropertyName());
         assertEquals("[selectorName].[propertyName] IS NOT NULL", pe.toString());
-        
-        assertEquals("* IS NOT NULL", 
-                f.propertyExistence(null, null).toString());
-        assertEquals("[s].* IS NOT NULL", 
-                f.propertyExistence("s", null).toString());
-        assertEquals("[p] IS NOT NULL", 
-                f.propertyExistence(null, "p").toString());
-        assertEquals("[s].[p] IS NOT NULL", 
-                f.propertyExistence("s", "p").toString());
+
+        assertEquals("* IS NOT NULL",
+            f.propertyExistence(null, null).toString());
+        assertEquals("[s].* IS NOT NULL",
+            f.propertyExistence("s", null).toString());
+        assertEquals("[p] IS NOT NULL",
+            f.propertyExistence(null, "p").toString());
+        assertEquals("[s].[p] IS NOT NULL",
+            f.propertyExistence("s", "p").toString());
     }
 
     @Test
@@ -356,7 +356,7 @@ public class QomTest extends ReadOnlyRepositoryTestBase {
         assertEquals("selectorName", pv.getSelectorName());
         assertEquals("propertyName", pv.getPropertyName());
         assertEquals("[selectorName].[propertyName]", pv.toString());
-        
+
         assertEquals("*", f.propertyValue(null, null).toString());
         assertEquals("[s].*", f.propertyValue("s", null).toString());
         assertEquals("[p]", f.propertyValue(null, "p").toString());
@@ -369,7 +369,7 @@ public class QomTest extends ReadOnlyRepositoryTestBase {
         assertEquals("selectorName", s.getSelectorName());
         assertEquals("path", s.getPath());
         assertEquals("ISSAMENODE([selectorName], [path])", s.toString());
-        
+
         assertEquals("ISSAMENODE([path])", f.sameNode(null, "path").toString());
         assertEquals("ISSAMENODE([s], [path])", f.sameNode("s", "path").toString());
 
@@ -377,12 +377,13 @@ public class QomTest extends ReadOnlyRepositoryTestBase {
 
     @Test
     public void sameNodeJoinCondition() throws RepositoryException {
-        SameNodeJoinCondition s = f.sameNodeJoinCondition("selector1Name", "selector2Name", "selector2Path");
+        SameNodeJoinCondition s = f.sameNodeJoinCondition("selector1Name", "selector2Name",
+            "selector2Path");
         assertEquals("selector1Name", s.getSelector1Name());
         assertEquals("selector2Name", s.getSelector2Name());
         assertEquals("selector2Path", s.getSelector2Path());
         assertEquals("ISSAMENODE([selector1Name], [selector2Name], [selector2Path])",
-                s.toString());
+            s.toString());
     }
 
     @Test
@@ -391,7 +392,7 @@ public class QomTest extends ReadOnlyRepositoryTestBase {
         assertEquals("nodeTypeName", s.getNodeTypeName());
         assertEquals("selectorName", s.getSelectorName());
         assertEquals("[nodeTypeName] AS [selectorName]", s.toString());
-        assertEquals("[n]", f.selector("n",  null).toString());
+        assertEquals("[n]", f.selector("n", null).toString());
     }
 
     @Test
@@ -424,14 +425,14 @@ public class QomTest extends ReadOnlyRepositoryTestBase {
         assertEquals(o, q.getOrderings()[0]);
         assertEquals(col, q.getColumns()[0]);
     }
-    
+
     @Test
     public void escapedName() throws RepositoryException {
-        assertEquals("[[n]]]", f.selector("[n]",  null).toString());
+        assertEquals("[[n]]]", f.selector("[n]", null).toString());
         assertEquals("[[s]]].[[p]]]", f.propertyValue("[s]", "[p]").toString());
-        assertEquals("ISSAMENODE([[s1]]], [[s2]]], [[p]]])", 
-                f.sameNodeJoinCondition("[s1]", "[s2]", "[p]").toString());        
-        assertEquals("ISSAMENODE([[s]]], [[p]]])", 
-                f.sameNode("[s]", "[p]").toString());        
+        assertEquals("ISSAMENODE([[s1]]], [[s2]]], [[p]]])",
+            f.sameNodeJoinCondition("[s1]", "[s2]", "[p]").toString());
+        assertEquals("ISSAMENODE([[s]]], [[p]]])",
+            f.sameNode("[s]", "[p]").toString());
     }
 }

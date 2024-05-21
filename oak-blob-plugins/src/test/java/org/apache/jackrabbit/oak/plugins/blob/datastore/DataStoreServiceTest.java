@@ -29,13 +29,11 @@ import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
-
 import javax.jcr.RepositoryException;
-
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.FileDataStore;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.spi.blob.SharedBackend;
@@ -48,6 +46,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 public class DataStoreServiceTest {
+
     @Rule
     public final TemporaryFolder folder = new TemporaryFolder(new File("target"));
 
@@ -55,9 +54,9 @@ public class DataStoreServiceTest {
     public final OsgiContext context = new OsgiContext();
 
     @Test
-    public void mbeanRegs() throws Exception{
+    public void mbeanRegs() throws Exception {
         Map<String, Object> config = ImmutableMap.<String, Object>of(
-                "repository.home", folder.getRoot().getAbsolutePath()
+            "repository.home", folder.getRoot().getAbsolutePath()
         );
 
         FileDataStoreService fds = new FileDataStoreService();
@@ -69,7 +68,6 @@ public class DataStoreServiceTest {
     }
 
     /**
-     *
      * Test {@link CachingFileDataStore} is returned when cacheSize > 0 by default.
      */
     @Test
@@ -84,7 +82,6 @@ public class DataStoreServiceTest {
     }
 
     /**
-     *
      * Test to verify @FileDataStore is returned if cacheSize is not configured.
      */
     @Test
@@ -106,8 +103,9 @@ public class DataStoreServiceTest {
     }
 
     /**
-     * Tests the regitration of CachingFileDataStore and checks existence of
-     * reference.key file on first access of getOrCreateReference.
+     * Tests the regitration of CachingFileDataStore and checks existence of reference.key file on
+     * first access of getOrCreateReference.
+     *
      * @throws Exception
      */
     @Test

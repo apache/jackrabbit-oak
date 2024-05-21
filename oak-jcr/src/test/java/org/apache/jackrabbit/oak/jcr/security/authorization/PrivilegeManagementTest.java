@@ -22,14 +22,16 @@ import javax.jcr.Workspace;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.Privilege;
-
 import org.apache.jackrabbit.api.JackrabbitWorkspace;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.test.NotExecutableException;
 import org.junit.Test;
 
 /**
- * Permission evaluation tests related to {@link org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants#REP_PRIVILEGE_MANAGEMENT} privilege.
+ * Permission evaluation tests related to
+ * {@link
+ * org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants#REP_PRIVILEGE_MANAGEMENT}
+ * privilege.
  */
 public class PrivilegeManagementTest extends AbstractEvaluationTest {
 
@@ -53,7 +55,8 @@ public class PrivilegeManagementTest extends AbstractEvaluationTest {
         }
     }
 
-    private String getNewPrivilegeName(Workspace wsp) throws RepositoryException, NotExecutableException {
+    private String getNewPrivilegeName(Workspace wsp)
+        throws RepositoryException, NotExecutableException {
         String privName = null;
         AccessControlManager acMgr = wsp.getSession().getAccessControlManager();
         for (int i = 0; i < 100; i++) {
@@ -75,7 +78,9 @@ public class PrivilegeManagementTest extends AbstractEvaluationTest {
     public void testRegisterPrivilege() throws Exception {
         try {
             Workspace testWsp = testSession.getWorkspace();
-            ((JackrabbitWorkspace) testWsp).getPrivilegeManager().registerPrivilege(getNewPrivilegeName(testWsp), false, new String[0]);
+            ((JackrabbitWorkspace) testWsp).getPrivilegeManager()
+                                           .registerPrivilege(getNewPrivilegeName(testWsp), false,
+                                               new String[0]);
             fail("Privilege registration should be denied.");
         } catch (AccessDeniedException e) {
             // success
@@ -96,7 +101,9 @@ public class PrivilegeManagementTest extends AbstractEvaluationTest {
         modify(null, PrivilegeConstants.REP_PRIVILEGE_MANAGEMENT, true);
         try {
             Workspace testWsp = testSession.getWorkspace();
-            ((JackrabbitWorkspace) testWsp).getPrivilegeManager().registerPrivilege(getNewPrivilegeName(testWsp), false, new String[0]);
+            ((JackrabbitWorkspace) testWsp).getPrivilegeManager()
+                                           .registerPrivilege(getNewPrivilegeName(testWsp), false,
+                                               new String[0]);
         } finally {
             modify(null, PrivilegeConstants.REP_PRIVILEGE_MANAGEMENT, false);
         }

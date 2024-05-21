@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.run.cli;
 
 
 import java.io.IOException;
-
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 
 public interface FileStoreBuilderCustomizer {

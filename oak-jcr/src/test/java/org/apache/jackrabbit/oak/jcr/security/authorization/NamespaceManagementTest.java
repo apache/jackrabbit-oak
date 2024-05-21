@@ -22,7 +22,6 @@ import javax.jcr.AccessDeniedException;
 import javax.jcr.RepositoryException;
 import javax.jcr.Workspace;
 import javax.jcr.security.AccessControlPolicy;
-
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.jetbrains.annotations.NotNull;
 import org.junit.After;
@@ -30,7 +29,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 /**
- * Permission evaluation tests related to {@link PrivilegeConstants#JCR_NAMESPACE_MANAGEMENT} privilege.
+ * Permission evaluation tests related to {@link PrivilegeConstants#JCR_NAMESPACE_MANAGEMENT}
+ * privilege.
  */
 public class NamespaceManagementTest extends AbstractEvaluationTest {
 
@@ -81,7 +81,8 @@ public class NamespaceManagementTest extends AbstractEvaluationTest {
     public void testRegisterNamespace() throws Exception {
         try {
             Workspace testWsp = testSession.getWorkspace();
-            testWsp.getNamespaceRegistry().registerNamespace(getNewNamespacePrefix(testWsp), getNewNamespaceURI(testWsp));
+            testWsp.getNamespaceRegistry()
+                   .registerNamespace(getNewNamespacePrefix(testWsp), getNewNamespaceURI(testWsp));
             fail("Namespace registration should be denied.");
         } catch (AccessDeniedException e) {
             // success
@@ -102,7 +103,8 @@ public class NamespaceManagementTest extends AbstractEvaluationTest {
         modify(null, PrivilegeConstants.JCR_NAMESPACE_MANAGEMENT.toString(), true);
         try {
             Workspace testWsp = testSession.getWorkspace();
-            testWsp.getNamespaceRegistry().registerNamespace(getNewNamespacePrefix(testWsp), getNewNamespaceURI(testWsp));
+            testWsp.getNamespaceRegistry()
+                   .registerNamespace(getNewNamespacePrefix(testWsp), getNewNamespaceURI(testWsp));
         } finally {
             modify(null, PrivilegeConstants.JCR_NAMESPACE_MANAGEMENT.toString(), false);
         }

@@ -18,9 +18,9 @@
 package org.apache.jackrabbit.oak.run;
 
 import org.apache.jackrabbit.guava.common.io.Closer;
-import org.apache.jackrabbit.oak.run.commons.Command;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreHelper;
+import org.apache.jackrabbit.oak.run.commons.Command;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 class GarbageCommand implements Command {

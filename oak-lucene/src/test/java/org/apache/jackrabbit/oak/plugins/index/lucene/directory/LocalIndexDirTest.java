@@ -19,26 +19,26 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
-
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-
 public class LocalIndexDirTest {
+
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
 
     @Test
-    public void basicStuff() throws Exception{
+    public void basicStuff() throws Exception {
         IndexMeta m = new IndexMeta("/a/b", 100);
         File baseDir = createDirWithIndexMetaFile(m);
 
@@ -49,12 +49,12 @@ public class LocalIndexDirTest {
     }
 
     @Test(expected = IllegalStateException.class)
-    public void invalidDir() throws Exception{
+    public void invalidDir() throws Exception {
         new LocalIndexDir(temporaryFolder.getRoot());
     }
 
     @Test
-    public void nonEmptyDir() throws Exception{
+    public void nonEmptyDir() throws Exception {
         IndexMeta m = new IndexMeta("/a/b", 100);
         File baseDir = createDirWithIndexMetaFile(m);
         new File(baseDir, "foo").mkdir();
@@ -63,10 +63,13 @@ public class LocalIndexDirTest {
     }
 
     @Test
-    public void comparison() throws Exception{
-        LocalIndexDir dir = new LocalIndexDir(createDirWithIndexMetaFile(new IndexMeta("/a/b", 100)));
-        LocalIndexDir dir2 = new LocalIndexDir(createDirWithIndexMetaFile(new IndexMeta("/a/b/c", 200)));
-        LocalIndexDir dir3 = new LocalIndexDir(createDirWithIndexMetaFile(new IndexMeta("/a", 300)));
+    public void comparison() throws Exception {
+        LocalIndexDir dir = new LocalIndexDir(
+            createDirWithIndexMetaFile(new IndexMeta("/a/b", 100)));
+        LocalIndexDir dir2 = new LocalIndexDir(
+            createDirWithIndexMetaFile(new IndexMeta("/a/b/c", 200)));
+        LocalIndexDir dir3 = new LocalIndexDir(
+            createDirWithIndexMetaFile(new IndexMeta("/a", 300)));
 
         List<LocalIndexDir> dirs = Lists.newArrayList();
         dirs.add(dir2);

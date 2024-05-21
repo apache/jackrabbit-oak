@@ -19,6 +19,11 @@
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
 import com.mongodb.client.model.Filters;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.TreeSet;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -27,13 +32,8 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.TreeSet;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-
 class MongoDownloaderRegexUtils {
+
     private static final Logger LOG = LoggerFactory.getLogger(PipelinedMongoDownloadTask.class);
 
     final static Pattern LONG_PATH_ID_PATTERN = Pattern.compile("^[0-9]{1,3}:h");
@@ -41,12 +41,17 @@ class MongoDownloaderRegexUtils {
     /**
      * Creates the filter to be used in the Mongo query
      *
-     * @param mongoFilterPaths          The paths to be included/excluded in the filter. These define subtrees to be included or excluded.
-     *                                  (see {@link MongoRegexPathFilterFactory.MongoFilterPaths} for details)
-     * @param customExcludeEntriesRegex Documents with paths matching this regex are excluded from download
+     * @param mongoFilterPaths          The paths to be included/excluded in the filter. These
+     *                                  define subtrees to be included or excluded. (see
+     *                                  {@link MongoRegexPathFilterFactory.MongoFilterPaths} for
+     *                                  details)
+     * @param customExcludeEntriesRegex Documents with paths matching this regex are excluded from
+     *                                  download
      * @return The filter to be used in the Mongo query, or null if no filter is required
      */
-    static Bson computeMongoQueryFilter(@NotNull MongoRegexPathFilterFactory.MongoFilterPaths mongoFilterPaths, String customExcludeEntriesRegex) {
+    static Bson computeMongoQueryFilter(
+        @NotNull MongoRegexPathFilterFactory.MongoFilterPaths mongoFilterPaths,
+        String customExcludeEntriesRegex) {
         var filters = new ArrayList<Bson>();
 
         List<Pattern> includedPatterns = compileIncludedDirectoriesRegex(mongoFilterPaths.included);
@@ -78,7 +83,8 @@ class MongoDownloaderRegexUtils {
         List<Pattern> filterPatterns = compileExcludedDirectoriesRegex(mongoFilterPaths.excluded);
         filterPatterns.forEach(p -> filters.add(Filters.regex(NodeDocument.ID, p)));
 
-        Pattern customRegexExcludePattern = compileCustomExcludedPatterns(customExcludeEntriesRegex);
+        Pattern customRegexExcludePattern = compileCustomExcludedPatterns(
+            customExcludeEntriesRegex);
         if (customRegexExcludePattern != null) {
             filters.add(Filters.regex(NodeDocument.ID, customRegexExcludePattern));
         }
@@ -141,9 +147,10 @@ class MongoDownloaderRegexUtils {
     }
 
     /**
-     * Returns all the ancestors paths of the given list of paths. That is, if the list is ["/a/b/c", "/a/b/d"],
-     * this method will return ["/", "/a", "/a/b", "/a/b/c", "/a/b/d"]. Note that the paths on the input list are also
-     * returned, even though they are not strictly ancestors of themselves.
+     * Returns all the ancestors paths of the given list of paths. That is, if the list is
+     * ["/a/b/c", "/a/b/d"], this method will return ["/", "/a", "/a/b", "/a/b/c", "/a/b/d"]. Note
+     * that the paths on the input list are also returned, even though they are not strictly
+     * ancestors of themselves.
      */
     static List<String> getAncestors(List<String> paths) {
         // Use a TreeSet to remove duplicates and sort them
@@ -162,8 +169,8 @@ class MongoDownloaderRegexUtils {
 
     static Bson ancestorsFilter(List<String> paths) {
         List<String> parentFilters = getAncestors(paths).stream()
-                .map(Utils::getIdFromPath)
-                .collect(Collectors.toList());
+                                                        .map(Utils::getIdFromPath)
+                                                        .collect(Collectors.toList());
         return Filters.in(NodeDocument.ID, parentFilters);
     }
 }

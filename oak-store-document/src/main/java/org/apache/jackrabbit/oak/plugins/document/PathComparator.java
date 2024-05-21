@@ -24,8 +24,8 @@ import java.util.Comparator;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 
 /**
- * Implements a comparator, which sorts paths according to 1) their depth
- * (highest first) and 2) the paths natural ordering.
+ * Implements a comparator, which sorts paths according to 1) their depth (highest first) and 2) the
+ * paths natural ordering.
  */
 public class PathComparator implements Comparator<Path>, Serializable {
 

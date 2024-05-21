@@ -26,7 +26,6 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 import javax.jcr.UnsupportedRepositoryOperationException;
-
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.AuthorizableExistsException;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -109,7 +108,8 @@ public class UserManagerTest extends AbstractUserTest {
             u = userMgr.createUser(uid, "pw");
             superuser.save();
 
-            uSession = superuser.getRepository().login(new SimpleCredentials(uid, "pw".toCharArray()));
+            uSession = superuser.getRepository()
+                                .login(new SimpleCredentials(uid, "pw".toCharArray()));
             assertEquals(u.getID(), uSession.getUserID());
         } finally {
             if (uSession != null) {
@@ -123,7 +123,8 @@ public class UserManagerTest extends AbstractUserTest {
     }
 
     @Test
-    public void testCreateUserPrincipalNameEqualsUserID() throws RepositoryException, NotExecutableException {
+    public void testCreateUserPrincipalNameEqualsUserID()
+        throws RepositoryException, NotExecutableException {
         User u = null;
         try {
             String uid = createUserId();
@@ -144,7 +145,8 @@ public class UserManagerTest extends AbstractUserTest {
     }
 
     @Test
-    public void testCreateUserIdDifferentFromPrincipalName() throws RepositoryException, NotExecutableException {
+    public void testCreateUserIdDifferentFromPrincipalName()
+        throws RepositoryException, NotExecutableException {
         User u = null;
         Session uSession = null;
         try {
@@ -161,7 +163,8 @@ public class UserManagerTest extends AbstractUserTest {
 
             // make sure the userID exposed by a Session corresponding to that
             // user is equal to the users ID.
-            uSession = superuser.getRepository().login(new SimpleCredentials(uid, "pw".toCharArray()));
+            uSession = superuser.getRepository()
+                                .login(new SimpleCredentials(uid, "pw".toCharArray()));
             assertEquals(uid, uSession.getUserID());
         } finally {
             if (uSession != null) {
@@ -175,7 +178,8 @@ public class UserManagerTest extends AbstractUserTest {
     }
 
     @Test
-    public void testCreateGroupWithInvalidIdOrPrincipal() throws RepositoryException, NotExecutableException {
+    public void testCreateGroupWithInvalidIdOrPrincipal()
+        throws RepositoryException, NotExecutableException {
         Principal p = getTestPrincipal();
         String uid = p.getName();
 
@@ -192,7 +196,8 @@ public class UserManagerTest extends AbstractUserTest {
             try {
                 Principal princ = fail.get(id);
                 g = userMgr.createGroup(id, princ, null);
-                fail("Creating group with id '" + id + "' and principal '" + princ.getName() + "' should fail");
+                fail("Creating group with id '" + id + "' and principal '" + princ.getName()
+                    + "' should fail");
             } catch (IllegalArgumentException e) {
                 // success
             } finally {
@@ -252,7 +257,8 @@ public class UserManagerTest extends AbstractUserTest {
     }
 
     @Test
-    public void testCreateGroupWithIdAndPrincipal() throws RepositoryException, NotExecutableException {
+    public void testCreateGroupWithIdAndPrincipal()
+        throws RepositoryException, NotExecutableException {
         Group gr = null;
         try {
             Principal p = getTestPrincipal();
@@ -263,7 +269,8 @@ public class UserManagerTest extends AbstractUserTest {
             superuser.save();
 
             assertEquals("Expect group with exact ID", uid, gr.getID());
-            assertEquals("Expected group with exact principal name", p.getName(), gr.getPrincipal().getName());
+            assertEquals("Expected group with exact principal name", p.getName(),
+                gr.getPrincipal().getName());
 
         } finally {
             if (gr != null) {
@@ -274,7 +281,8 @@ public class UserManagerTest extends AbstractUserTest {
     }
 
     @Test
-    public void testCreateGroupIdDifferentFromPrincipalName() throws RepositoryException, NotExecutableException {
+    public void testCreateGroupIdDifferentFromPrincipalName()
+        throws RepositoryException, NotExecutableException {
         Group g = null;
         try {
             Principal p = getTestPrincipal();
@@ -296,7 +304,8 @@ public class UserManagerTest extends AbstractUserTest {
     }
 
     @Test
-    public void testCreateGroupWithExistingPrincipal() throws RepositoryException, NotExecutableException {
+    public void testCreateGroupWithExistingPrincipal()
+        throws RepositoryException, NotExecutableException {
         User u = null;
         try {
             Principal p = getTestPrincipal();
@@ -310,7 +319,8 @@ public class UserManagerTest extends AbstractUserTest {
             Group gr = null;
             try {
                 gr = userMgr.createGroup(p);
-                fail("Principal " + p.getName() + " is already in use -> must throw AuthorizableExistsException.");
+                fail("Principal " + p.getName()
+                    + " is already in use -> must throw AuthorizableExistsException.");
             } catch (AuthorizableExistsException e) {
                 // expected this
             } finally {
@@ -329,7 +339,8 @@ public class UserManagerTest extends AbstractUserTest {
     }
 
     @Test
-    public void testCreateGroupWithExistingPrincipal2() throws RepositoryException, NotExecutableException {
+    public void testCreateGroupWithExistingPrincipal2()
+        throws RepositoryException, NotExecutableException {
         Principal p = getTestPrincipal();
         String uid = createUserId();
 
@@ -345,7 +356,8 @@ public class UserManagerTest extends AbstractUserTest {
             Group gr = null;
             try {
                 gr = userMgr.createGroup(p);
-                fail("Principal " + p.getName() + " is already in use -> must throw AuthorizableExistsException.");
+                fail("Principal " + p.getName()
+                    + " is already in use -> must throw AuthorizableExistsException.");
             } catch (AuthorizableExistsException e) {
                 // expected this
             } finally {
@@ -364,7 +376,8 @@ public class UserManagerTest extends AbstractUserTest {
     }
 
     @Test
-    public void testCreateGroupWithExistingPrincipal3() throws RepositoryException, NotExecutableException {
+    public void testCreateGroupWithExistingPrincipal3()
+        throws RepositoryException, NotExecutableException {
         Principal p = getTestPrincipal();
         String uid = createUserId();
 
@@ -380,7 +393,8 @@ public class UserManagerTest extends AbstractUserTest {
             Group gr = null;
             try {
                 gr = userMgr.createGroup(createGroupId(), p, null);
-                fail("Principal " + p.getName() + " is already in use -> must throw AuthorizableExistsException.");
+                fail("Principal " + p.getName()
+                    + " is already in use -> must throw AuthorizableExistsException.");
             } catch (AuthorizableExistsException e) {
                 // expected this
             } finally {
@@ -399,13 +413,14 @@ public class UserManagerTest extends AbstractUserTest {
     }
 
     /**
-     * @since oak 1.0 : if collision is added within the same set of transient
-     *        modifications it will only be detected upon save. in this case RepositoryException
-     *        is thrown instead of AuthorizableExistsException as the violation is
-     *        detected by the uniqueness constraint on the corresponding property index.
+     * @since oak 1.0 : if collision is added within the same set of transient modifications it will
+     * only be detected upon save. in this case RepositoryException is thrown instead of
+     * AuthorizableExistsException as the violation is detected by the uniqueness constraint on the
+     * corresponding property index.
      */
     @Test
-    public void testCreateGroupWithExistingPrincipal4() throws RepositoryException, NotExecutableException {
+    public void testCreateGroupWithExistingPrincipal4()
+        throws RepositoryException, NotExecutableException {
         Principal p = getTestPrincipal();
         String uid = createUserId();
 
@@ -419,7 +434,8 @@ public class UserManagerTest extends AbstractUserTest {
             gr = userMgr.createGroup(createGroupId(), p, null);
             superuser.save();
 
-            fail("Principal " + p.getName() + " is already in use -> must throw AuthorizableExistsException.");
+            fail("Principal " + p.getName()
+                + " is already in use -> must throw AuthorizableExistsException.");
         } catch (RepositoryException e) {
             // expected this
         } finally {
@@ -436,7 +452,8 @@ public class UserManagerTest extends AbstractUserTest {
     }
 
     @Test
-    public void testCreateGroupWithExistingUserID() throws RepositoryException, NotExecutableException {
+    public void testCreateGroupWithExistingUserID()
+        throws RepositoryException, NotExecutableException {
         User u = null;
         try {
             String uid = createUserId();
@@ -468,7 +485,8 @@ public class UserManagerTest extends AbstractUserTest {
     }
 
     @Test
-    public void testCreateGroupWithExistingGroupID() throws RepositoryException, NotExecutableException {
+    public void testCreateGroupWithExistingGroupID()
+        throws RepositoryException, NotExecutableException {
         Group g = null;
         try {
             String id = createGroupId();
@@ -500,7 +518,8 @@ public class UserManagerTest extends AbstractUserTest {
     }
 
     @Test
-    public void testCreateGroupWithExistingGroupID2() throws RepositoryException, NotExecutableException {
+    public void testCreateGroupWithExistingGroupID2()
+        throws RepositoryException, NotExecutableException {
 
         Group g = null;
         try {
@@ -559,7 +578,8 @@ public class UserManagerTest extends AbstractUserTest {
         String uid = createUserId();
         assertNull(userMgr.getAuthorizable(uid));
         try {
-            Session s = superuser.getRepository().login(new SimpleCredentials(uid, uid.toCharArray()));
+            Session s = superuser.getRepository()
+                                 .login(new SimpleCredentials(uid, uid.toCharArray()));
             s.logout();
 
             fail("An unknown user should not be allowed to execute the login.");
@@ -580,7 +600,8 @@ public class UserManagerTest extends AbstractUserTest {
             // any more -> accessing users must fail.
             try {
                 umgr.getAuthorizable("any userid");
-                fail("After having logged out the original session, the user manager must not be live any more.");
+                fail(
+                    "After having logged out the original session, the user manager must not be live any more.");
             } catch (RepositoryException e) {
                 // success
             }
@@ -606,7 +627,8 @@ public class UserManagerTest extends AbstractUserTest {
                 // any more -> accessing users must fail.
                 try {
                     umgr.getAuthorizable("any userid");
-                    fail("After having logged out the original session, the user manager must not be live any more.");
+                    fail(
+                        "After having logged out the original session, the user manager must not be live any more.");
                 } catch (RepositoryException e) {
                     // success
                 }

@@ -48,7 +48,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.Blob;
@@ -71,7 +70,7 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class SegmentParserTest {
 
-    @Parameterized.Parameters(name="{1}")
+    @Parameterized.Parameters(name = "{1}")
     public static Collection<Object[]> fixtures() throws Exception {
         BlobStore shortIdBlobStore = mock(BlobStore.class);
         when(shortIdBlobStore.writeBlob(any())).thenReturn("shortId");
@@ -80,9 +79,9 @@ public class SegmentParserTest {
         when(longIdBlobStore.writeBlob(any())).thenReturn(Strings.repeat("shortId", 1000));
 
         return newArrayList(
-                new Object[]{null, "No BlobStore"},
-                new Object[]{shortIdBlobStore, "Short Id BlobStore"},
-                new Object[]{longIdBlobStore, "Long Id BlobStore"});
+            new Object[]{null, "No BlobStore"},
+            new Object[]{shortIdBlobStore, "Short Id BlobStore"},
+            new Object[]{longIdBlobStore, "Long Id BlobStore"});
     }
 
     private final BlobStore blobStore;
@@ -96,6 +95,7 @@ public class SegmentParserTest {
     private DefaultSegmentWriter writer;
 
     private static class TestParser extends SegmentParser {
+
         private final String name;
 
         private TestParser(SegmentReader reader, String name) {
@@ -138,7 +138,8 @@ public class SegmentParserTest {
         }
 
         @Override
-        protected void onProperty(RecordId parentId, RecordId propertyId, PropertyTemplate template) {
+        protected void onProperty(RecordId parentId, RecordId propertyId,
+            PropertyTemplate template) {
             throwUOE("onProperty");
         }
 
@@ -163,7 +164,8 @@ public class SegmentParserTest {
         }
 
         @Override
-        protected void onListBucket(RecordId parentId, RecordId listId, int index, int count, int capacity) {
+        protected void onListBucket(RecordId parentId, RecordId listId, int index, int count,
+            int capacity) {
             throwUOE("onListBucket");
         }
     }
@@ -182,9 +184,12 @@ public class SegmentParserTest {
 
     @Test
     public void emptyNode() throws IOException {
-        SegmentNodeState node = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(), writer.writeNode(EMPTY_NODE));
+        SegmentNodeState node = new SegmentNodeState(store.getReader(), writer,
+            store.getBlobStore(), writer.writeNode(EMPTY_NODE));
         NodeInfo info = new TestParser(store.getReader(), "emptyNode") {
-            @Override protected void onTemplate(RecordId parentId, RecordId templateId) { }
+            @Override
+            protected void onTemplate(RecordId parentId, RecordId templateId) {
+            }
         }.parseNode(node.getRecordId());
         assertEquals(node.getRecordId(), info.nodeId);
         assertEquals(0, info.nodeCount);
@@ -196,10 +201,16 @@ public class SegmentParserTest {
     public void singleChildNode() throws IOException {
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.setChildNode("child");
-        SegmentNodeState node = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(), writer.writeNode(builder.getNodeState()));
+        SegmentNodeState node = new SegmentNodeState(store.getReader(), writer,
+            store.getBlobStore(), writer.writeNode(builder.getNodeState()));
         NodeInfo info = new TestParser(store.getReader(), "singleChildNode") {
-            @Override protected void onNode(RecordId parentId, RecordId nodeId) { }
-            @Override protected void onTemplate(RecordId parentId, RecordId templateId) { }
+            @Override
+            protected void onNode(RecordId parentId, RecordId nodeId) {
+            }
+
+            @Override
+            protected void onTemplate(RecordId parentId, RecordId templateId) {
+            }
         }.parseNode(node.getRecordId());
         assertEquals(node.getRecordId(), info.nodeId);
         assertEquals(1, info.nodeCount);
@@ -213,13 +224,29 @@ public class SegmentParserTest {
         builder.setChildNode("one");
         builder.setChildNode("two");
         builder.setProperty("three", 42);
-        SegmentNodeState node = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(), writer.writeNode(builder.getNodeState()));
+        SegmentNodeState node = new SegmentNodeState(store.getReader(), writer,
+            store.getBlobStore(), writer.writeNode(builder.getNodeState()));
         NodeInfo info = new TestParser(store.getReader(), "node") {
-            @Override protected void onNode(RecordId parentId, RecordId nodeId) { }
-            @Override protected void onTemplate(RecordId parentId, RecordId templateId) { }
-            @Override protected void onMap(RecordId parentId, RecordId mapId, MapRecord map) { }
-            @Override protected void onProperty(RecordId parentId, RecordId propertyId, PropertyTemplate template) { }
-            @Override protected void onList(RecordId parentId, RecordId listId, int count) { }
+            @Override
+            protected void onNode(RecordId parentId, RecordId nodeId) {
+            }
+
+            @Override
+            protected void onTemplate(RecordId parentId, RecordId templateId) {
+            }
+
+            @Override
+            protected void onMap(RecordId parentId, RecordId mapId, MapRecord map) {
+            }
+
+            @Override
+            protected void onProperty(RecordId parentId, RecordId propertyId,
+                PropertyTemplate template) {
+            }
+
+            @Override
+            protected void onList(RecordId parentId, RecordId listId, int count) {
+            }
         }.parseNode(node.getRecordId());
         assertEquals(node.getRecordId(), info.nodeId);
         assertEquals(2, info.nodeCount);
@@ -234,7 +261,8 @@ public class SegmentParserTest {
         builder.setProperty("p", 1);
         builder.setProperty("jcr:primaryType", "type", NAME);
         builder.setProperty("jcr:mixinTypes", ImmutableList.of("type1", "type2"), NAMES);
-        SegmentNodeState node = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(), writer.writeNode(builder.getNodeState()));
+        SegmentNodeState node = new SegmentNodeState(store.getReader(), writer,
+            store.getBlobStore(), writer.writeNode(builder.getNodeState()));
         NodeInfo nodeInfo = new TestParser(store.getReader(), "template") {
             @Override
             protected void onTemplate(RecordId parentId, RecordId templateId) {
@@ -247,10 +275,23 @@ public class SegmentParserTest {
                 assertEquals(2, info.mixinCount);
                 assertEquals(1, info.propertyCount);
             }
-            @Override protected void onString(RecordId parentId, RecordId stringId) { }
-            @Override protected void onNode(RecordId parentId, RecordId nodeId) { }
-            @Override protected void onProperty(RecordId parentId, RecordId propertyId, PropertyTemplate template) { }
-            @Override protected void onList(RecordId parentId, RecordId listId, int count) { }
+
+            @Override
+            protected void onString(RecordId parentId, RecordId stringId) {
+            }
+
+            @Override
+            protected void onNode(RecordId parentId, RecordId nodeId) {
+            }
+
+            @Override
+            protected void onProperty(RecordId parentId, RecordId propertyId,
+                PropertyTemplate template) {
+            }
+
+            @Override
+            protected void onList(RecordId parentId, RecordId listId, int count) {
+            }
         }.parseNode(node.getRecordId());
     }
 
@@ -259,7 +300,9 @@ public class SegmentParserTest {
         Map<String, RecordId> empty = newHashMap();
         MapRecord map = new MapRecord(store.getReader(), writer.writeMap(null, empty));
         MapInfo mapInfo = new TestParser(store.getReader(), "emptyMap") {
-            @Override protected void onMapLeaf(RecordId parentId, RecordId mapId, MapRecord map) { }
+            @Override
+            protected void onMapLeaf(RecordId parentId, RecordId mapId, MapRecord map) {
+            }
         }.parseMap(null, map.getRecordId(), map);
         assertEquals(map.getRecordId(), mapInfo.mapId);
     }
@@ -267,7 +310,8 @@ public class SegmentParserTest {
     @Test
     public void nonEmptyMap() throws IOException {
         Random rnd = new Random();
-        MapRecord base = new MapRecord(store.getReader(), writer.writeMap(null, createMap(33, rnd)));
+        MapRecord base = new MapRecord(store.getReader(),
+            writer.writeMap(null, createMap(33, rnd)));
         MapRecord map = new MapRecord(store.getReader(), writer.writeMap(base, createMap(1, rnd)));
         MapInfo mapInfo = new TestParser(store.getReader(), "nonEmptyMap") {
             @Override
@@ -275,22 +319,28 @@ public class SegmentParserTest {
                 MapInfo mapInfo = parseMapDiff(mapId, map);
                 assertEquals(mapId, mapInfo.mapId);
             }
+
             @Override
             protected void onMap(RecordId parentId, RecordId mapId, MapRecord map) {
                 MapInfo mapInfo = parseMap(parentId, mapId, map);
                 assertEquals(mapId, mapInfo.mapId);
             }
+
             @Override
             protected void onMapBranch(RecordId parentId, RecordId mapId, MapRecord map) {
                 MapInfo mapInfo = parseMapBranch(mapId, map);
                 assertEquals(mapId, mapInfo.mapId);
             }
+
             @Override
             protected void onMapLeaf(RecordId parentId, RecordId mapId, MapRecord map) {
                 MapInfo mapInfo = parseMapLeaf(mapId, map);
                 assertEquals(mapId, mapInfo.mapId);
             }
-            @Override protected void onString(RecordId parentId, RecordId stringId) { }
+
+            @Override
+            protected void onString(RecordId parentId, RecordId stringId) {
+            }
         }.parseMap(null, map.getRecordId(), map);
         assertEquals(map.getRecordId(), mapInfo.mapId);
     }
@@ -307,17 +357,28 @@ public class SegmentParserTest {
     public void singleValueProperty() throws IOException {
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.setProperty("p", 1);
-        SegmentNodeState node = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(), writer.writeNode(builder.getNodeState()));
+        SegmentNodeState node = new SegmentNodeState(store.getReader(), writer,
+            store.getBlobStore(), writer.writeNode(builder.getNodeState()));
         NodeInfo nodeInfo = new TestParser(store.getReader(), "singleValueProperty") {
             @Override
-            protected void onProperty(RecordId parentId, RecordId propertyId, PropertyTemplate template) {
+            protected void onProperty(RecordId parentId, RecordId propertyId,
+                PropertyTemplate template) {
                 PropertyInfo propertyInfo = parseProperty(parentId, propertyId, template);
                 assertEquals(propertyId, propertyInfo.propertyId);
                 assertEquals(-1, propertyInfo.count);
             }
-            @Override protected void onTemplate(RecordId parentId, RecordId templateId) { }
-            @Override protected void onValue(RecordId parentId, RecordId valueId, Type<?> type) { }
-            @Override protected void onList(RecordId parentId, RecordId listId, int count) { }
+
+            @Override
+            protected void onTemplate(RecordId parentId, RecordId templateId) {
+            }
+
+            @Override
+            protected void onValue(RecordId parentId, RecordId valueId, Type<?> type) {
+            }
+
+            @Override
+            protected void onList(RecordId parentId, RecordId listId, int count) {
+            }
         }.parseNode(node.getRecordId());
     }
 
@@ -325,23 +386,35 @@ public class SegmentParserTest {
     public void multiValueProperty() throws IOException {
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.setProperty("p", ImmutableList.of(1L, 2L, 3L, 4L), LONGS);
-        SegmentNodeState node = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(), writer.writeNode(builder.getNodeState()));
+        SegmentNodeState node = new SegmentNodeState(store.getReader(), writer,
+            store.getBlobStore(), writer.writeNode(builder.getNodeState()));
         NodeInfo nodeInfo = new TestParser(store.getReader(), "multiValueProperty") {
             @Override
-            protected void onProperty(RecordId parentId, RecordId propertyId, PropertyTemplate template) {
+            protected void onProperty(RecordId parentId, RecordId propertyId,
+                PropertyTemplate template) {
                 PropertyInfo propertyInfo = parseProperty(parentId, propertyId, template);
                 assertEquals(propertyId, propertyInfo.propertyId);
                 assertEquals(4, propertyInfo.count);
             }
-            @Override protected void onTemplate(RecordId parentId, RecordId templateId) { }
-            @Override protected void onValue(RecordId parentId, RecordId valueId, Type<?> type) { }
-            @Override protected void onList(RecordId parentId, RecordId listId, int count) { }
+
+            @Override
+            protected void onTemplate(RecordId parentId, RecordId templateId) {
+            }
+
+            @Override
+            protected void onValue(RecordId parentId, RecordId valueId, Type<?> type) {
+            }
+
+            @Override
+            protected void onList(RecordId parentId, RecordId listId, int count) {
+            }
         }.parseNode(node.getRecordId());
     }
 
     @Test
     public void smallBlob() throws IOException {
-        SegmentBlob blob = new SegmentBlob(store.getBlobStore(), writer.writeBlob(createRandomBlob(4)));
+        SegmentBlob blob = new SegmentBlob(store.getBlobStore(),
+            writer.writeBlob(createRandomBlob(4)));
         ValueInfo valueInfo = new TestParser(store.getReader(), "smallBlob") {
             @Override
             protected void onBlob(RecordId parentId, RecordId blobId) {
@@ -356,7 +429,8 @@ public class SegmentParserTest {
 
     @Test
     public void mediumBlob() throws IOException {
-        SegmentBlob blob = new SegmentBlob(store.getBlobStore(), writer.writeBlob(createRandomBlob(SMALL_LIMIT)));
+        SegmentBlob blob = new SegmentBlob(store.getBlobStore(),
+            writer.writeBlob(createRandomBlob(SMALL_LIMIT)));
         ValueInfo valueInfo = new TestParser(store.getReader(), "mediumBlob") {
             @Override
             protected void onBlob(RecordId parentId, RecordId blobId) {
@@ -371,7 +445,8 @@ public class SegmentParserTest {
 
     @Test
     public void longBlob() throws IOException {
-        SegmentBlob blob = new SegmentBlob(store.getBlobStore(), writer.writeBlob(createRandomBlob(MEDIUM_LIMIT)));
+        SegmentBlob blob = new SegmentBlob(store.getBlobStore(),
+            writer.writeBlob(createRandomBlob(MEDIUM_LIMIT)));
         ValueInfo valueInfo = new TestParser(store.getReader(), "longBlob") {
             @Override
             protected void onBlob(RecordId parentId, RecordId blobId) {
@@ -379,7 +454,10 @@ public class SegmentParserTest {
                 assertEquals(blobId, blobInfo.blobId);
                 assertEquals(blobStore == null ? LONG : EXTERNAL, blobInfo.blobType);
             }
-            @Override protected void onList(RecordId parentId, RecordId listId, int count) { }
+
+            @Override
+            protected void onList(RecordId parentId, RecordId listId, int count) {
+            }
         }.parseValue(null, blob.getRecordId(), BINARY);
         assertEquals(blob.getRecordId(), valueInfo.valueId);
         assertEquals(BINARY, valueInfo.type);
@@ -410,8 +488,10 @@ public class SegmentParserTest {
     @Test
     public void longString() throws IOException {
         RecordId stringId = writer.writeString(repeat("s", MEDIUM_LIMIT));
-        BlobInfo blobInfo = new TestParser(store.getReader(), "longString"){
-            @Override protected void onList(RecordId parentId, RecordId listId, int count) { }
+        BlobInfo blobInfo = new TestParser(store.getReader(), "longString") {
+            @Override
+            protected void onList(RecordId parentId, RecordId listId, int count) {
+            }
         }.parseString(stringId);
         assertEquals(stringId, blobInfo.blobId);
         assertEquals(LONG, blobInfo.blobType);
@@ -420,7 +500,8 @@ public class SegmentParserTest {
     @Test
     public void emptyList() {
         RecordId listId = newRecordId(store.getSegmentIdProvider(), new Random());
-        ListInfo listInfo = new TestParser(store.getReader(), "emptyList").parseList(null, listId, 0);
+        ListInfo listInfo = new TestParser(store.getReader(), "emptyList").parseList(null, listId,
+            0);
         assertEquals(listId, listInfo.listId);
         assertEquals(0, listInfo.count);
     }
@@ -434,9 +515,10 @@ public class SegmentParserTest {
             list.add(writer.writeString("string " + rnd.nextLong()));
         }
         RecordId listId = writer.writeList(list);
-        ListInfo listInfo = new TestParser(store.getReader(), "nonEmptyList"){
+        ListInfo listInfo = new TestParser(store.getReader(), "nonEmptyList") {
             @Override
-            protected void onListBucket(RecordId parentId, RecordId listId, int index, int count, int capacity) {
+            protected void onListBucket(RecordId parentId, RecordId listId, int index, int count,
+                int capacity) {
                 parseListBucket(listId, index, count, capacity);
             }
         }.parseList(null, listId, count);

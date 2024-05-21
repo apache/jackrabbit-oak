@@ -28,7 +28,6 @@ import com.mongodb.ReadPreference;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.Filters;
-
 import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo;
 import org.apache.jackrabbit.oak.plugins.document.MissingLastRevSeeker;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
@@ -38,12 +37,13 @@ import org.bson.conversions.Bson;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Mongo specific version of MissingLastRevSeeker which uses mongo queries
- * to fetch candidates which may have missed '_lastRev' updates.
- * 
+ * Mongo specific version of MissingLastRevSeeker which uses mongo queries to fetch candidates which
+ * may have missed '_lastRev' updates.
+ * <p>
  * Uses a time range to find documents modified during that interval.
  */
 public class MongoMissingLastRevSeeker extends MissingLastRevSeeker {
+
     private final MongoDocumentStore store;
 
     public MongoMissingLastRevSeeker(MongoDocumentStore store, Clock clock) {
@@ -55,24 +55,25 @@ public class MongoMissingLastRevSeeker extends MissingLastRevSeeker {
     @NotNull
     public CloseableIterable<NodeDocument> getCandidates(final long startTime) {
         Bson query = Filters.and(
-                Filters.gte(NodeDocument.MODIFIED_IN_SECS, NodeDocument.getModifiedInSecs(startTime)),
-                Filters.exists(NodeDocument.SD_TYPE, false));
+            Filters.gte(NodeDocument.MODIFIED_IN_SECS, NodeDocument.getModifiedInSecs(startTime)),
+            Filters.exists(NodeDocument.SD_TYPE, false));
         Bson sortFields = new BasicDBObject(NodeDocument.MODIFIED_IN_SECS, 1);
 
         FindIterable<BasicDBObject> cursor = getNodeCollection()
-                .find(query).sort(sortFields);
+            .find(query).sort(sortFields);
         return CloseableIterable.wrap(transform(cursor,
-                input -> store.convertFromDBObject(NODES, input)));
+            input -> store.convertFromDBObject(NODES, input)));
     }
 
     @Override
     public boolean isRecoveryNeeded() {
         Bson query = Filters.and(
-                Filters.eq(ClusterNodeInfo.STATE, ClusterNodeInfo.ClusterNodeState.ACTIVE.name()),
-                Filters.or(
-                        Filters.lt(ClusterNodeInfo.LEASE_END_KEY, clock.getTime()),
-                        Filters.eq(ClusterNodeInfo.REV_RECOVERY_LOCK, ClusterNodeInfo.RecoverLockState.ACQUIRED.name())
-                )
+            Filters.eq(ClusterNodeInfo.STATE, ClusterNodeInfo.ClusterNodeState.ACTIVE.name()),
+            Filters.or(
+                Filters.lt(ClusterNodeInfo.LEASE_END_KEY, clock.getTime()),
+                Filters.eq(ClusterNodeInfo.REV_RECOVERY_LOCK,
+                    ClusterNodeInfo.RecoverLockState.ACQUIRED.name())
+            )
         );
 
         return getClusterNodeCollection().find(query).iterator().hasNext();

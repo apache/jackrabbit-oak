@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.index.indexer.document;
 
 import java.io.IOException;
 import java.util.Set;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneDocumentMaker;
@@ -37,6 +36,7 @@ import org.apache.lucene.document.Document;
 import org.apache.lucene.facet.FacetsConfig;
 
 public class LuceneIndexer implements NodeStateIndexer, FacetsConfigProvider {
+
     private final IndexDefinition definition;
     private final FulltextBinaryTextExtractor binaryTextExtractor;
     private final NodeBuilder definitionBuilder;
@@ -45,8 +45,8 @@ public class LuceneIndexer implements NodeStateIndexer, FacetsConfigProvider {
     private FacetsConfig facetsConfig;
 
     public LuceneIndexer(IndexDefinition definition, LuceneIndexWriter indexWriter,
-                         NodeBuilder builder, FulltextBinaryTextExtractor binaryTextExtractor,
-                         IndexingProgressReporter progressReporter) {
+        NodeBuilder builder, FulltextBinaryTextExtractor binaryTextExtractor,
+        IndexingProgressReporter progressReporter) {
         this.definition = definition;
         this.binaryTextExtractor = binaryTextExtractor;
         this.indexWriter = indexWriter;
@@ -71,7 +71,8 @@ public class LuceneIndexer implements NodeStateIndexer, FacetsConfigProvider {
             return false;
         }
 
-        IndexDefinition.IndexingRule indexingRule = definition.getApplicableIndexingRule(entry.getNodeState());
+        IndexDefinition.IndexingRule indexingRule = definition.getApplicableIndexingRule(
+            entry.getNodeState());
 
         if (indexingRule == null) {
             return false;
@@ -111,16 +112,17 @@ public class LuceneIndexer implements NodeStateIndexer, FacetsConfigProvider {
         indexWriter.updateDocument(path, doc);
     }
 
-    private LuceneDocumentMaker newDocumentMaker(IndexDefinition.IndexingRule indexingRule, String path) {
+    private LuceneDocumentMaker newDocumentMaker(IndexDefinition.IndexingRule indexingRule,
+        String path) {
         return new LuceneDocumentMaker(
-                binaryTextExtractor,
-                // we re-use the facet config
-                this,
-                // augmentorFactory is not supported (it is deprecated)
-                null,
-                definition,
-                indexingRule,
-                path
+            binaryTextExtractor,
+            // we re-use the facet config
+            this,
+            // augmentorFactory is not supported (it is deprecated)
+            null,
+            definition,
+            indexingRule,
+            path
         );
     }
 

@@ -44,19 +44,21 @@ class EntryCache implements Constants {
     private final PrivilegeBitsProvider bitsProvider;
 
     /**
-     * Mapping effective path (empty string representing the null path) to the permission entries defined for each
-     * effective path. Note that this map does not record the name or nature (group vs non-group) of the principal for
-     * which the entries have been defined. Similarly it ignores the order of entries as the implementation only
-     * supports 'allow' entries.
+     * Mapping effective path (empty string representing the null path) to the permission entries
+     * defined for each effective path. Note that this map does not record the name or nature (group
+     * vs non-group) of the principal for which the entries have been defined. Similarly it ignores
+     * the order of entries as the implementation only supports 'allow' entries.
      */
     private final Map<String, List<PermissionEntry>> entries = new HashMap<>();
 
-    EntryCache(@NotNull Root root, @NotNull Iterable<String> principalPathSet, @NotNull RestrictionProvider restrictionProvider) {
+    EntryCache(@NotNull Root root, @NotNull Iterable<String> principalPathSet,
+        @NotNull RestrictionProvider restrictionProvider) {
         this.restrictionProvider = restrictionProvider;
         this.bitsProvider = new PrivilegeBitsProvider(root);
 
         for (String principalPath : principalPathSet) {
-            Tree policyTree = root.getTree(PathUtils.concat(principalPath, Constants.REP_PRINCIPAL_POLICY));
+            Tree policyTree = root.getTree(
+                PathUtils.concat(principalPath, Constants.REP_PRINCIPAL_POLICY));
             if (!policyTree.exists()) {
                 continue;
             }
@@ -64,7 +66,8 @@ class EntryCache implements Constants {
                 if (Constants.NT_REP_PRINCIPAL_ENTRY.equals(TreeUtil.getPrimaryTypeName(child))) {
                     PermissionEntryImpl entry = new PermissionEntryImpl(child);
                     String key = Strings.nullToEmpty(entry.effectivePath);
-                    List<PermissionEntry> list = entries.computeIfAbsent(key, k -> new ArrayList<>());
+                    List<PermissionEntry> list = entries.computeIfAbsent(key,
+                        k -> new ArrayList<>());
                     list.add(entry);
                 }
             }
@@ -85,9 +88,11 @@ class EntryCache implements Constants {
 
         private PermissionEntryImpl(@NotNull Tree entryTree) {
             effectivePath = Strings.emptyToNull(TreeUtil.getString(entryTree, REP_EFFECTIVE_PATH));
-            privilegeBits = bitsProvider.getBits(entryTree.getProperty(REP_PRIVILEGES).getValue(Type.NAMES));
+            privilegeBits = bitsProvider.getBits(
+                entryTree.getProperty(REP_PRIVILEGES).getValue(Type.NAMES));
             if (Utils.hasRestrictions(entryTree)) {
-                pattern = restrictionProvider.getPattern(effectivePath, restrictionProvider.readRestrictions(effectivePath, entryTree));
+                pattern = restrictionProvider.getPattern(effectivePath,
+                    restrictionProvider.readRestrictions(effectivePath, entryTree));
             } else {
                 pattern = RestrictionPattern.EMPTY;
             }

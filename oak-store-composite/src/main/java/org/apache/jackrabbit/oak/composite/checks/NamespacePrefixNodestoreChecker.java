@@ -34,60 +34,66 @@ import org.apache.jackrabbit.guava.common.collect.Sets;
 
 @Component
 @Service(MountedNodeStoreChecker.class)
-public class NamespacePrefixNodestoreChecker implements MountedNodeStoreChecker<NamespacePrefixNodestoreChecker.Context> {
+public class NamespacePrefixNodestoreChecker implements
+    MountedNodeStoreChecker<NamespacePrefixNodestoreChecker.Context> {
 
     @Override
     public Context createContext(NodeStore globalStore, MountInfoProvider mip) {
 
         Root root = RootFactory.createReadOnlyRoot(globalStore.getRoot());
-        
+
         ReadOnlyNamespaceRegistry registry = new ReadOnlyNamespaceRegistry(root);
-        
+
         return new Context(registry.getPrefixes());
     }
 
     @Override
-    public boolean check(MountedNodeStore mountedStore, Tree tree, ErrorHolder errorHolder, Context context) {
-        
+    public boolean check(MountedNodeStore mountedStore, Tree tree, ErrorHolder errorHolder,
+        Context context) {
+
         String name = tree.getName();
         String path = tree.getPath();
-        
+
         validate(mountedStore, errorHolder, context, name, path);
-        
-        for ( PropertyState prop : tree.getProperties() ) {
+
+        for (PropertyState prop : tree.getProperties()) {
             String propName = prop.getName();
-            validate(mountedStore, errorHolder, context, propName, PathUtils.concat(tree.getPath(), propName));
+            validate(mountedStore, errorHolder, context, propName,
+                PathUtils.concat(tree.getPath(), propName));
         }
-        
+
         return true;
     }
 
-    private void validate(MountedNodeStore mountedStore, ErrorHolder errorHolder, Context context, String name,
-            String path) {
-        
+    private void validate(MountedNodeStore mountedStore, ErrorHolder errorHolder, Context context,
+        String name,
+        String path) {
+
         String prefix = getPrefix(name);
-        if ( prefix != null && !context.validPrefixes.contains(prefix) ) {
-            errorHolder.report(mountedStore, path, "invalid namespace prefix " + prefix + " , expected one of " + context.validPrefixes, this);
+        if (prefix != null && !context.validPrefixes.contains(prefix)) {
+            errorHolder.report(mountedStore, path,
+                "invalid namespace prefix " + prefix + " , expected one of "
+                    + context.validPrefixes, this);
         }
     }
-    
+
     private static String getPrefix(String name) {
         int idx = name.indexOf(':');
-        if ( idx < 0 ) {
+        if (idx < 0) {
             return null;
         }
-        
+
         // name will not start with a colon as it's an invalid JCR name
         // and we assume the repositories to be well-formed
         return name.substring(0, idx);
     }
-    
+
     static class Context {
 
         private final Set<String> validPrefixes = Sets.newHashSet();
-        
+
         public Context(String[] prefixes) {
-            for (String prefix : prefixes ) {
+            for (String prefix : prefixes) {
                 validPrefixes.add(prefix);
             }
         }

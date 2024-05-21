@@ -16,6 +16,12 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
@@ -24,12 +30,6 @@ import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 
 public class ExternalIdentityRefTest {
 
@@ -95,8 +95,10 @@ public class ExternalIdentityRefTest {
     @Test
     public void testEquals() {
         assertEquals(refNullProvider, refNullProvider);
-        assertEquals(refNullProvider, new ExternalIdentityRef(USERID, refNullProvider.getProviderName()));
-        assertEquals(refNullProvider, new ExternalIdentityRef(USERID, refEmptyProvider.getProviderName()));
+        assertEquals(refNullProvider,
+            new ExternalIdentityRef(USERID, refNullProvider.getProviderName()));
+        assertEquals(refNullProvider,
+            new ExternalIdentityRef(USERID, refEmptyProvider.getProviderName()));
 
         assertEquals(refNullProvider, refEmptyProvider);
         assertEquals(refEmptyProvider, refNullProvider);
@@ -169,10 +171,11 @@ public class ExternalIdentityRefTest {
     @Test
     public void testToString() {
         for (ExternalIdentityRef r : ImmutableList.of(ref, refEmptyProvider, refEmptyProvider)) {
-            assertEquals("ExternalIdentityRef{" + "id='" + r.getId() + '\'' + ", providerName='" + r.getProviderName() + '\'' + '}', r.toString());
+            assertEquals("ExternalIdentityRef{" + "id='" + r.getId() + '\'' + ", providerName='"
+                + r.getProviderName() + '\'' + '}', r.toString());
         }
     }
-    
+
     @Test
     public void testDeprecatedGroupRef() {
         ExternalGroupRef ref = new ExternalGroupRef(USERID, PROVIDER_NAME);

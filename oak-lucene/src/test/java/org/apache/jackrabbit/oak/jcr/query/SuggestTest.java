@@ -18,6 +18,11 @@
  */
 package org.apache.jackrabbit.oak.jcr.query;
 
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.SUGGESTION_CONFIG;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.SUGGEST_UPDATE_FREQUENCY_MINUTES;
+
+import java.util.List;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -26,16 +31,10 @@ import javax.jcr.query.QueryManager;
 import javax.jcr.query.QueryResult;
 import javax.jcr.query.Row;
 import javax.jcr.query.RowIterator;
-import java.util.List;
-
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.core.query.AbstractQueryTest;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.junit.After;
 import org.junit.Before;
-
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.SUGGESTION_CONFIG;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.SUGGEST_UPDATE_FREQUENCY_MINUTES;
 
 /**
  * Tests the suggest support.
@@ -48,7 +47,7 @@ public class SuggestTest extends AbstractQueryTest {
 
         // change suggester update frequency
         superuser.getNode("/oak:index/luceneGlobal/" + SUGGESTION_CONFIG)
-                .setProperty(SUGGEST_UPDATE_FREQUENCY_MINUTES, 0);
+                 .setProperty(SUGGEST_UPDATE_FREQUENCY_MINUTES, 0);
         superuser.getNode("/oak:index/luceneGlobal").setProperty(REINDEX_PROPERTY_NAME, true);
     }
 
@@ -56,7 +55,7 @@ public class SuggestTest extends AbstractQueryTest {
     public void tearDown() throws Exception {
         // reset suggester update frequency
         superuser.getNode("/oak:index/luceneGlobal/" + SUGGESTION_CONFIG)
-                .setProperty(SUGGEST_UPDATE_FREQUENCY_MINUTES, 10);
+                 .setProperty(SUGGEST_UPDATE_FREQUENCY_MINUTES, 10);
 
         super.tearDown();
     }
@@ -128,7 +127,8 @@ public class SuggestTest extends AbstractQueryTest {
         assertEquals(0, results.size());
     }
 
-    static List<String> getResult(QueryResult result, String propertyName) throws RepositoryException {
+    static List<String> getResult(QueryResult result, String propertyName)
+        throws RepositoryException {
         List<String> results = Lists.newArrayList();
         RowIterator it = result.getRows();
         while (it.hasNext()) {

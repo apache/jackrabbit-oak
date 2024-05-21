@@ -114,7 +114,8 @@ class SegmentDataV12 implements SegmentData {
     }
 
     private int getRecordReferenceBase(int i) {
-        return HEADER_SIZE + getSegmentReferencesCount() * SEGMENT_REFERENCE_LENGTH + i * RECORD_REFERENCE_LENGTH;
+        return HEADER_SIZE + getSegmentReferencesCount() * SEGMENT_REFERENCE_LENGTH
+            + i * RECORD_REFERENCE_LENGTH;
     }
 
     @Override
@@ -189,7 +190,8 @@ class SegmentDataV12 implements SegmentData {
             return new StringData(internalReadRecordId(index + Long.BYTES), (int) length);
         }
 
-        throw new IllegalStateException("String is too long: " + length + "; possibly trying to read a "
+        throw new IllegalStateException(
+            "String is too long: " + length + "; possibly trying to read a "
                 + "BLOB using getString; can not convert BLOB to String");
     }
 

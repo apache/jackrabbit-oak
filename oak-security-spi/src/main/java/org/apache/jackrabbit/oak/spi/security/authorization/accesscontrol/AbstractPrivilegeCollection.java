@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol;
 
+import java.util.Objects;
+import javax.jcr.RepositoryException;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeCollection;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
@@ -23,18 +25,16 @@ import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeUtil;
 import org.jetbrains.annotations.NotNull;
 
-import javax.jcr.RepositoryException;
-import java.util.Objects;
-
 abstract class AbstractPrivilegeCollection implements PrivilegeCollection {
-    
+
     private final PrivilegeBits privilegeBits;
 
     AbstractPrivilegeCollection(@NotNull PrivilegeBits privilegeBits) {
         this.privilegeBits = privilegeBits;
     }
-    
+
     abstract @NotNull PrivilegeBitsProvider getPrivilegeBitsProvider();
+
     abstract @NotNull NamePathMapper getNamePathMapper();
 
     @Override
@@ -45,7 +45,8 @@ abstract class AbstractPrivilegeCollection implements PrivilegeCollection {
         if (privilegeBits.isEmpty()) {
             return false;
         }
-        PrivilegeBits toTest = getPrivilegeBitsProvider().getBits(PrivilegeUtil.getOakNames(privilegeNames, getNamePathMapper()), true);
+        PrivilegeBits toTest = getPrivilegeBitsProvider().getBits(
+            PrivilegeUtil.getOakNames(privilegeNames, getNamePathMapper()), true);
         return privilegeBits.includes(toTest);
     }
 

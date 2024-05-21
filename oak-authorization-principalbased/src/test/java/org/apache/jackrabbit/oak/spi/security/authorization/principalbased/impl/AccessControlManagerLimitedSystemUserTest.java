@@ -33,8 +33,9 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * Tests for PrincipalBasedAccessControlManager where the editing session (based on a system user with both default and
- * principal-based permission evaluation) lacks permissions to read/modify access control on the target system-principal.
+ * Tests for PrincipalBasedAccessControlManager where the editing session (based on a system user
+ * with both default and principal-based permission evaluation) lacks permissions to read/modify
+ * access control on the target system-principal.
  */
 public class AccessControlManagerLimitedSystemUserTest extends AccessControlManagerLimitedUserTest {
 
@@ -62,11 +63,15 @@ public class AccessControlManagerLimitedSystemUserTest extends AccessControlMana
     Root createTestRoot() throws Exception {
         Set<Principal> principals = ImmutableSet.of(testPrincipal);
         AuthInfo authInfo = new AuthInfoImpl(UID, Collections.emptyMap(), principals);
-        Subject subject = new Subject(true, principals, ImmutableSet.of(authInfo), ImmutableSet.of());
-        return Subject.doAsPrivileged(subject, (PrivilegedExceptionAction<Root>) () -> getContentRepository().login(null, null).getLatestRoot(), null);
+        Subject subject = new Subject(true, principals, ImmutableSet.of(authInfo),
+            ImmutableSet.of());
+        return Subject.doAsPrivileged(subject,
+            (PrivilegedExceptionAction<Root>) () -> getContentRepository().login(null, null)
+                                                                          .getLatestRoot(), null);
     }
 
-    void grant(@NotNull Principal principal, @Nullable String path, @NotNull String... privNames) throws Exception {
+    void grant(@NotNull Principal principal, @Nullable String path, @NotNull String... privNames)
+        throws Exception {
         super.grant(principal, path, privNames);
         setupPrincipalBasedAccessControl(principal, path, privNames);
     }

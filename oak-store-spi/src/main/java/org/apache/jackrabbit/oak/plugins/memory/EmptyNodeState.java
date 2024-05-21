@@ -28,8 +28,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Singleton instances of empty and non-existent node states, i.e. ones
- * with neither properties nor child nodes.
+ * Singleton instances of empty and non-existent node states, i.e. ones with neither properties nor
+ * child nodes.
  */
 public final class EmptyNodeState implements NodeState {
 
@@ -58,7 +58,8 @@ public final class EmptyNodeState implements NodeState {
         return false;
     }
 
-    @Override @Nullable
+    @Override
+    @Nullable
     public PropertyState getProperty(@NotNull String name) {
         return null;
     }
@@ -84,17 +85,20 @@ public final class EmptyNodeState implements NodeState {
         return emptyList();
     }
 
-    @Override @Nullable
+    @Override
+    @Nullable
     public String getName(@NotNull String name) {
         return null;
     }
 
-    @Override @NotNull
+    @Override
+    @NotNull
     public Iterable<String> getNames(@NotNull String name) {
         return emptyList();
     }
 
-    @Override @NotNull
+    @Override
+    @NotNull
     public Iterable<? extends PropertyState> getProperties() {
         return emptyList();
     }
@@ -109,7 +113,8 @@ public final class EmptyNodeState implements NodeState {
         return false;
     }
 
-    @Override @NotNull
+    @Override
+    @NotNull
     public NodeState getChildNode(@NotNull String name) {
         checkValidName(name);
         return MISSING_NODE;
@@ -120,12 +125,14 @@ public final class EmptyNodeState implements NodeState {
         return emptyList();
     }
 
-    @Override @NotNull
+    @Override
+    @NotNull
     public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
         return emptyList();
     }
 
-    @Override @NotNull
+    @Override
+    @NotNull
     public NodeBuilder builder() {
         return new MemoryNodeBuilder(this);
     }
@@ -140,7 +147,7 @@ public final class EmptyNodeState implements NodeState {
             }
             for (ChildNodeEntry before : base.getChildNodeEntries()) {
                 if (!diff.childNodeDeleted(
-                        before.getName(), before.getNodeState())) {
+                    before.getName(), before.getNodeState())) {
                     return false;
                 }
             }
@@ -149,7 +156,7 @@ public final class EmptyNodeState implements NodeState {
     }
 
     public static boolean compareAgainstEmptyState(
-            NodeState state, NodeStateDiff diff) {
+        NodeState state, NodeStateDiff diff) {
         if (state != EMPTY_NODE && state.exists()) {
             for (PropertyState after : state.getProperties()) {
                 if (!diff.propertyAdded(after)) {
@@ -185,8 +192,8 @@ public final class EmptyNodeState implements NodeState {
         } else if (object instanceof NodeState) {
             NodeState that = (NodeState) object;
             return that.getPropertyCount() == 0
-                    && that.getChildNodeCount(1) == 0
-                    && (exists == that.exists());
+                && that.getChildNodeCount(1) == 0
+                && (exists == that.exists());
         } else {
             return false;
         }

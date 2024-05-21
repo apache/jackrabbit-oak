@@ -46,26 +46,40 @@ public abstract class DocumentStoreFixture {
     public static final DocumentStoreFixture MEMORY = new MemoryFixture();
     public static final DocumentStoreFixture MONGO = new MongoFixture();
 
-    public static final DocumentStoreFixture RDB_DB2 = new RDBFixture("RDB-DB2", System.getProperty("rdb-db2-jdbc-url",
-            "jdbc:db2://localhost:50000/OAK"), System.getProperty("rdb-db2-jdbc-user", "oak"), System.getProperty(
+    public static final DocumentStoreFixture RDB_DB2 = new RDBFixture("RDB-DB2",
+        System.getProperty("rdb-db2-jdbc-url",
+            "jdbc:db2://localhost:50000/OAK"), System.getProperty("rdb-db2-jdbc-user", "oak"),
+        System.getProperty(
             "rdb-db2-jdbc-passwd", "geheim"));
-    public static final DocumentStoreFixture RDB_DERBY = new RDBFixture("RDB-Derby(embedded)", System.getProperty(
+    public static final DocumentStoreFixture RDB_DERBY = new RDBFixture("RDB-Derby(embedded)",
+        System.getProperty(
             "rdb-derby-jdbc-url", "jdbc:derby:./target/derby-ds-test;create=true"),
-            System.getProperty("rdb-derby-jdbc-user", "sa"), System.getProperty("rdb-derby-jdbc-passwd", ""));
-    public static final DocumentStoreFixture RDB_H2 = new RDBFixture("RDB-H2(file)", System.getProperty("rdb-h2-jdbc-url",
-            "jdbc:h2:file:./target/h2-ds-test"), System.getProperty("rdb-h2-jdbc-user", "sa"), System.getProperty(
+        System.getProperty("rdb-derby-jdbc-user", "sa"),
+        System.getProperty("rdb-derby-jdbc-passwd", ""));
+    public static final DocumentStoreFixture RDB_H2 = new RDBFixture("RDB-H2(file)",
+        System.getProperty("rdb-h2-jdbc-url",
+            "jdbc:h2:file:./target/h2-ds-test"), System.getProperty("rdb-h2-jdbc-user", "sa"),
+        System.getProperty(
             "rdb-h2-jdbc-passwd", ""));
-    public static final DocumentStoreFixture RDB_MSSQL = new RDBFixture("RDB-MSSql", System.getProperty("rdb-mssql-jdbc-url",
-            "jdbc:sqlserver://localhost:1433;databaseName=OAK"), System.getProperty("rdb-mssql-jdbc-user", "sa"),
-            System.getProperty("rdb-mssql-jdbc-passwd", "geheim"));
-    public static final DocumentStoreFixture RDB_MYSQL = new RDBFixture("RDB-MySQL", System.getProperty("rdb-mysql-jdbc-url",
-            "jdbc:mysql://localhost:3306/oak"), System.getProperty("rdb-mysql-jdbc-user", "root"), System.getProperty(
+    public static final DocumentStoreFixture RDB_MSSQL = new RDBFixture("RDB-MSSql",
+        System.getProperty("rdb-mssql-jdbc-url",
+            "jdbc:sqlserver://localhost:1433;databaseName=OAK"),
+        System.getProperty("rdb-mssql-jdbc-user", "sa"),
+        System.getProperty("rdb-mssql-jdbc-passwd", "geheim"));
+    public static final DocumentStoreFixture RDB_MYSQL = new RDBFixture("RDB-MySQL",
+        System.getProperty("rdb-mysql-jdbc-url",
+            "jdbc:mysql://localhost:3306/oak"), System.getProperty("rdb-mysql-jdbc-user", "root"),
+        System.getProperty(
             "rdb-mysql-jdbc-passwd", "geheim"));
-    public static final DocumentStoreFixture RDB_ORACLE = new RDBFixture("RDB-Oracle", System.getProperty("rdb-oracle-jdbc-url",
-            "jdbc:oracle:thin:@localhost:1521:orcl"), System.getProperty("rdb-oracle-jdbc-user", "system"), System.getProperty(
-            "rdb-oracle-jdbc-passwd", "geheim"));
-    public static final DocumentStoreFixture RDB_PG = new RDBFixture("RDB-Postgres", System.getProperty("rdb-postgres-jdbc-url",
-            "jdbc:postgresql:oak"), System.getProperty("rdb-postgres-jdbc-user", "postgres"), System.getProperty(
+    public static final DocumentStoreFixture RDB_ORACLE = new RDBFixture("RDB-Oracle",
+        System.getProperty("rdb-oracle-jdbc-url",
+            "jdbc:oracle:thin:@localhost:1521:orcl"),
+        System.getProperty("rdb-oracle-jdbc-user", "system"), System.getProperty(
+        "rdb-oracle-jdbc-passwd", "geheim"));
+    public static final DocumentStoreFixture RDB_PG = new RDBFixture("RDB-Postgres",
+        System.getProperty("rdb-postgres-jdbc-url",
+            "jdbc:postgresql:oak"), System.getProperty("rdb-postgres-jdbc-user", "postgres"),
+        System.getProperty(
             "rdb-postgres-jdbc-passwd", "geheim"));
 
     public static final String TABLEPREFIX = "dstest_";
@@ -73,17 +87,17 @@ public abstract class DocumentStoreFixture {
     public static List<Object[]> getFixtures() {
         List<Object[]> fixtures = Lists.newArrayList();
         if (FixturesHelper.getFixtures().contains(DOCUMENT_MEM)) {
-            fixtures.add(new Object[] { new DocumentStoreFixture.MemoryFixture() });
+            fixtures.add(new Object[]{new DocumentStoreFixture.MemoryFixture()});
         }
 
         DocumentStoreFixture mongo = new DocumentStoreFixture.MongoFixture();
         if (FixturesHelper.getFixtures().contains(DOCUMENT_NS) && mongo.isAvailable()) {
-            fixtures.add(new Object[] { mongo });
+            fixtures.add(new Object[]{mongo});
         }
 
         DocumentStoreFixture rdb = new DocumentStoreFixture.RDBFixture();
         if (FixturesHelper.getFixtures().contains(DOCUMENT_RDB) && rdb.isAvailable()) {
-            fixtures.add(new Object[] { rdb });
+            fixtures.add(new Object[]{rdb});
         }
         return fixtures;
     }
@@ -115,7 +129,7 @@ public abstract class DocumentStoreFixture {
     }
 
     public String toString() {
-        return getClass().getSimpleName() + ": "+ getName();
+        return getClass().getSimpleName() + ": " + getName();
     }
 
     public void dispose() throws Exception {
@@ -184,7 +198,8 @@ public abstract class DocumentStoreFixture {
         public RDBFixture(String name, String url, String username, String passwd) {
             this.name = name;
             try {
-                dataSource = new RDBDataSourceWrapper(RDBDataSourceFactory.forJdbcUrl(url, username, passwd));
+                dataSource = new RDBDataSourceWrapper(
+                    RDBDataSourceFactory.forJdbcUrl(url, username, passwd));
             } catch (Exception ex) {
                 LOG.info("Database instance not available at " + url + ", skipping tests...", ex);
             }
@@ -222,9 +237,8 @@ public abstract class DocumentStoreFixture {
         public void dispose() {
             if (dataSource instanceof Closeable) {
                 try {
-                    ((Closeable)dataSource).close();
-                }
-                catch (IOException ignored) {
+                    ((Closeable) dataSource).close();
+                } catch (IOException ignored) {
                 }
             }
         }
@@ -235,6 +249,7 @@ public abstract class DocumentStoreFixture {
     }
 
     public static class MongoFixture extends DocumentStoreFixture {
+
         protected List<MongoConnection> connections = Lists.newArrayList();
 
         @Override
@@ -248,7 +263,7 @@ public abstract class DocumentStoreFixture {
                 MongoConnection connection = MongoUtils.getConnection();
                 connections.add(connection);
                 return new MongoDocumentStore(connection.getMongoClient(),
-                        connection.getDatabase(), builder);
+                    connection.getDatabase(), builder);
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }

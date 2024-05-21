@@ -16,13 +16,23 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.search.spi.query;
 
+import static java.util.Collections.emptyMap;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Predicates.in;
+import static org.apache.jackrabbit.guava.common.base.Predicates.not;
+import static org.apache.jackrabbit.guava.common.base.Predicates.notNull;
+import static org.apache.jackrabbit.guava.common.collect.Maps.filterKeys;
+import static org.apache.jackrabbit.guava.common.collect.Maps.filterValues;
+import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.INDEX_DEFINITION_NODE;
+import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.STATUS_NODE;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -43,22 +53,11 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.base.Predicates.in;
-import static org.apache.jackrabbit.guava.common.base.Predicates.not;
-import static org.apache.jackrabbit.guava.common.base.Predicates.notNull;
-import static org.apache.jackrabbit.guava.common.collect.Maps.filterKeys;
-import static org.apache.jackrabbit.guava.common.collect.Maps.filterValues;
-import static java.util.Collections.emptyMap;
-import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.INDEX_DEFINITION_NODE;
-import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.STATUS_NODE;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-
 public abstract class FulltextIndexTracker<I extends IndexNodeManager<N>, N extends IndexNode> {
 
     private static final Logger LOG = LoggerFactory.getLogger(FulltextIndexTracker.class);
     private static final PerfLogger PERF_LOGGER =
-            new PerfLogger(LoggerFactory.getLogger(FulltextIndexTracker.class.getName() + ".perf"));
+        new PerfLogger(LoggerFactory.getLogger(FulltextIndexTracker.class.getName() + ".perf"));
 
     private final BadIndexTracker badIndexTracker = new BadIndexTracker();
 
@@ -93,11 +92,11 @@ public abstract class FulltextIndexTracker<I extends IndexNodeManager<N>, N exte
     }
 
     /**
-     * Receives the before and after state to decide when to reload the {@link IndexNode}.
-     * By default, it checks for changes of the :status node and the index definition.
+     * Receives the before and after state to decide when to reload the {@link IndexNode}. By
+     * default, it checks for changes of the :status node and the index definition.
      *
      * @param before before state, non-existent if this node was added
-     * @param after after state, non-existent if this node was removed
+     * @param after  after state, non-existent if this node was removed
      * @return true if the {@link IndexNode} need to be opened and updated
      */
     public boolean isUpdateNeeded(NodeState before, NodeState after) {
@@ -113,7 +112,8 @@ public abstract class FulltextIndexTracker<I extends IndexNodeManager<N>, N exte
     }
 
     private synchronized void diffAndUpdate(final NodeState root) {
-        if (asyncIndexInfoService != null && !asyncIndexInfoService.hasIndexerUpdatedForAnyLane(this.root, root)) {
+        if (asyncIndexInfoService != null && !asyncIndexInfoService.hasIndexerUpdatedForAnyLane(
+            this.root, root)) {
             LOG.trace("No changed detected in async indexer state. Skipping further diff");
             this.root = root;
             return;
@@ -135,7 +135,8 @@ public abstract class FulltextIndexTracker<I extends IndexNodeManager<N>, N exte
                         if (isUpdateNeeded(before, after)) {
                             long start = PERF_LOGGER.start();
                             I index = openIndex(path, root, after);
-                            PERF_LOGGER.end(start, -1, "[{}] Index found to be updated. Reopening the IndexNode", path);
+                            PERF_LOGGER.end(start, -1,
+                                "[{}] Index found to be updated. Reopening the IndexNode", path);
                             updates.put(path, index); // index can be null
                         }
                     } catch (Exception e) {
@@ -150,9 +151,9 @@ public abstract class FulltextIndexTracker<I extends IndexNodeManager<N>, N exte
 
         if (!updates.isEmpty()) {
             indices = ImmutableMap.<String, I>builder()
-                    .putAll(filterKeys(original, not(in(updates.keySet()))))
-                    .putAll(filterValues(updates, notNull()))
-                    .build();
+                                  .putAll(filterKeys(original, not(in(updates.keySet()))))
+                                  .putAll(filterValues(updates, notNull()))
+                                  .build();
 
             badIndexTracker.markGoodIndexes(updates.keySet());
 
@@ -185,9 +186,9 @@ public abstract class FulltextIndexTracker<I extends IndexNodeManager<N>, N exte
     }
 
     @Nullable
-    public IndexDefinition getIndexDefinition(String indexPath){
+    public IndexDefinition getIndexDefinition(String indexPath) {
         I node = indices.get(indexPath);
-        if (node != null){
+        if (node != null) {
             //Accessing the definition should not require
             //locking as its immutable state
             return node.getDefinition();
@@ -195,7 +196,7 @@ public abstract class FulltextIndexTracker<I extends IndexNodeManager<N>, N exte
         return null;
     }
 
-    public Set<String> getIndexNodePaths(){
+    public Set<String> getIndexNodePaths() {
         return indices.keySet();
     }
 
@@ -217,7 +218,7 @@ public abstract class FulltextIndexTracker<I extends IndexNodeManager<N>, N exte
             return checkNotNull(indexNode);
         }
 
-        if (badIndexTracker.isIgnoredBadIndex(path)){
+        if (badIndexTracker.isIgnoredBadIndex(path)) {
             return null;
         }
 
@@ -233,9 +234,9 @@ public abstract class FulltextIndexTracker<I extends IndexNodeManager<N>, N exte
                     N indexNode = index.acquire();
                     checkNotNull(indexNode);
                     indices = ImmutableMap.<String, I>builder()
-                            .putAll(indices)
-                            .put(path, index)
-                            .build();
+                                          .putAll(indices)
+                                          .put(path, index)
+                                          .build();
                     badIndexTracker.markGoodIndex(path);
                     return indexNode;
                 }
@@ -250,10 +251,12 @@ public abstract class FulltextIndexTracker<I extends IndexNodeManager<N>, N exte
     }
 
     private static boolean isStatusChanged(NodeState before, NodeState after) {
-        return !EqualsDiff.equals(before.getChildNode(STATUS_NODE), after.getChildNode(STATUS_NODE));
+        return !EqualsDiff.equals(before.getChildNode(STATUS_NODE),
+            after.getChildNode(STATUS_NODE));
     }
 
     protected static boolean isIndexDefinitionChanged(NodeState before, NodeState after) {
-        return !EqualsDiff.equals(before.getChildNode(INDEX_DEFINITION_NODE), after.getChildNode(INDEX_DEFINITION_NODE));
+        return !EqualsDiff.equals(before.getChildNode(INDEX_DEFINITION_NODE),
+            after.getChildNode(INDEX_DEFINITION_NODE));
     }
 }

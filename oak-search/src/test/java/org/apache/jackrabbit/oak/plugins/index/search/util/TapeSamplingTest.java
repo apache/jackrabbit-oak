@@ -18,19 +18,19 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.search.util;
 
-import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.junit.Test;
-
-import java.util.Iterator;
-import java.util.List;
-import java.util.Random;
-
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Iterator;
+import java.util.List;
+import java.util.Random;
+import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
+import org.junit.Test;
+
 public class TapeSamplingTest {
+
     @Test
     public void testWithHighestRandom() {
         final int start = 10;
@@ -119,13 +119,14 @@ public class TapeSamplingTest {
         }
         int expectedCount = testCount / (size / k);
         for (int i = 0; i < size; i++) {
-            assertTrue(counts[i] > expectedCount* 0.9 && counts[i] < expectedCount * 1.1);
+            assertTrue(counts[i] > expectedCount * 0.9 && counts[i] < expectedCount * 1.1);
         }
     }
 
     private List<Integer> range(final int start, final int end) {
         Iterator<Integer> iter = new AbstractIterator<Integer>() {
             int curr = start;
+
             @Override
             protected Integer computeNext() {
                 if (curr > end) {

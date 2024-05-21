@@ -21,8 +21,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 
 /**
- * Collector interface for DocumentNodeStore revision garbage collection
- * statistics.
+ * Collector interface for DocumentNodeStore revision garbage collection statistics.
  */
 public interface RevisionGCStatsCollector {
 

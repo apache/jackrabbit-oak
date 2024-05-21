@@ -63,7 +63,7 @@ public class VersionGCQueryTest {
         store = new MemoryDocumentStore() {
             @Override
             public <T extends Document> T find(Collection<T> collection,
-                                               String key) {
+                String key) {
                 if (collection == Collection.NODES && Utils.isPreviousDocId(key)) {
                     prevDocIds.add(key);
                 }
@@ -71,8 +71,8 @@ public class VersionGCQueryTest {
             }
         };
         ns = provider.newBuilder().setDocumentStore(store)
-                .setLeaseCheckMode(LeaseCheckMode.LENIENT)
-                .setAsyncDelay(0).clock(clock).getNodeStore();
+                     .setLeaseCheckMode(LeaseCheckMode.LENIENT)
+                     .setAsyncDelay(0).clock(clock).getNodeStore();
     }
 
     @AfterClass
@@ -107,7 +107,7 @@ public class VersionGCQueryTest {
         clock.waitUntil(clock.getTime() + TimeUnit.HOURS.toMillis(1));
 
         VersionGarbageCollector gc = new VersionGarbageCollector(
-                ns, new VersionGCSupport(store));
+            ns, new VersionGCSupport(store));
         prevDocIds.clear();
         VersionGCStats stats = gc.gc(30, TimeUnit.MINUTES);
         assertEquals(11, stats.deletedDocGCCount);
@@ -123,7 +123,8 @@ public class VersionGCQueryTest {
         builder.child("test");
         merge(builder);
         String id = Utils.getIdFromPath("/test");
-        while (!Iterables.any(store.find(Collection.NODES, id).getPreviousRanges().values(), INTERMEDIATE)) {
+        while (!Iterables.any(store.find(Collection.NODES, id).getPreviousRanges().values(),
+            INTERMEDIATE)) {
             InputStream s = new RandomStream(10 * 1024, 42);
             PropertyState p = new BinaryPropertyState("p", ns.createBlob(s));
             builder = ns.getRoot().builder();
@@ -140,7 +141,7 @@ public class VersionGCQueryTest {
         clock.waitUntil(clock.getTime() + TimeUnit.HOURS.toMillis(1));
 
         VersionGarbageCollector gc = new VersionGarbageCollector(
-                ns, new VersionGCSupport(store));
+            ns, new VersionGCSupport(store));
         prevDocIds.clear();
         VersionGCStats stats = gc.gc(30, TimeUnit.MINUTES);
         assertEquals(1, stats.deletedDocGCCount);
@@ -157,10 +158,10 @@ public class VersionGCQueryTest {
     }
 
     private static final Predicate<Range> INTERMEDIATE =
-            new Predicate<Range>() {
-        @Override
-        public boolean apply(Range input) {
-            return input.height > 0;
-        }
-    };
+        new Predicate<Range>() {
+            @Override
+            public boolean apply(Range input) {
+                return input.height > 0;
+            }
+        };
 }

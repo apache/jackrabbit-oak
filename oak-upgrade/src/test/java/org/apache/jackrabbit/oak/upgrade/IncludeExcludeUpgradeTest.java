@@ -16,17 +16,15 @@
  */
 package org.apache.jackrabbit.oak.upgrade;
 
+import java.io.File;
+import java.io.IOException;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.core.RepositoryContext;
 import org.apache.jackrabbit.core.config.RepositoryConfig;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Test;
-
-import javax.jcr.Repository;
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-import java.io.File;
-import java.io.IOException;
 
 public class IncludeExcludeUpgradeTest extends AbstractRepositoryUpgradeTest {
 
@@ -50,21 +48,22 @@ public class IncludeExcludeUpgradeTest extends AbstractRepositoryUpgradeTest {
     }
 
     @Override
-    protected void doUpgradeRepository(File source, NodeStore target) throws RepositoryException, IOException {
+    protected void doUpgradeRepository(File source, NodeStore target)
+        throws RepositoryException, IOException {
         final RepositoryConfig config = RepositoryConfig.create(source);
         final RepositoryContext context = RepositoryContext.create(config);
         try {
             final RepositoryUpgrade upgrade = new RepositoryUpgrade(context, target);
             upgrade.setIncludes(
-                    "/content/foo/en",
-                    "/content/assets/foo",
-                    "/content/other"
+                "/content/foo/en",
+                "/content/assets/foo",
+                "/content/other"
             );
             upgrade.setExcludes(
-                    "/content/assets/foo/2013",
-                    "/content/assets/foo/2012",
-                    "/content/assets/foo/2011",
-                    "/content/assets/foo/2010"
+                "/content/assets/foo/2013",
+                "/content/assets/foo/2012",
+                "/content/assets/foo/2011",
+                "/content/assets/foo/2010"
             );
             upgrade.copy(null);
         } finally {
@@ -75,29 +74,29 @@ public class IncludeExcludeUpgradeTest extends AbstractRepositoryUpgradeTest {
     @Test
     public void shouldHaveIncludedPaths() throws RepositoryException {
         assertExisting(
-                "/content/foo/en",
-                "/content/assets/foo/2015/02",
-                "/content/assets/foo/2015/01",
-                "/content/assets/foo/2014"
+            "/content/foo/en",
+            "/content/assets/foo/2015/02",
+            "/content/assets/foo/2015/01",
+            "/content/assets/foo/2014"
         );
     }
 
     @Test
     public void shouldLackPathsThatWereNotIncluded() throws RepositoryException {
         assertMissing(
-                "/content/foo/de",
-                "/content/foo/fr",
-                "/content/foo/it"
+            "/content/foo/de",
+            "/content/foo/fr",
+            "/content/foo/it"
         );
     }
 
     @Test
     public void shouldLackExcludedPaths() throws RepositoryException {
         assertMissing(
-                "/content/assets/foo/2013",
-                "/content/assets/foo/2012",
-                "/content/assets/foo/2011",
-                "/content/assets/foo/2010"
+            "/content/assets/foo/2013",
+            "/content/assets/foo/2012",
+            "/content/assets/foo/2011",
+            "/content/assets/foo/2010"
         );
     }
 }

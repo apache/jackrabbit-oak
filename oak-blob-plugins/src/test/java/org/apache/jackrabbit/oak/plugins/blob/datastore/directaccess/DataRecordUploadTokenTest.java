@@ -21,8 +21,8 @@ package org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import java.nio.charset.StandardCharsets;
 
+import java.nio.charset.StandardCharsets;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.Test;
@@ -38,7 +38,8 @@ public class DataRecordUploadTokenTest {
         String encodedToken = new DataRecordUploadToken(BLOB_ID, UPLOAD_ID).getEncodedToken(SECRET);
 
         // also check token can be parsed and is valid
-        DataRecordUploadToken parsedToken = DataRecordUploadToken.fromEncodedToken(encodedToken, SECRET);
+        DataRecordUploadToken parsedToken = DataRecordUploadToken.fromEncodedToken(encodedToken,
+            SECRET);
         assertEquals(BLOB_ID, parsedToken.getBlobId());
         assertTrue(parsedToken.getUploadId().isPresent());
         assertEquals(UPLOAD_ID, parsedToken.getUploadId().get());
@@ -49,11 +50,14 @@ public class DataRecordUploadTokenTest {
 
         // run a few times to rule out the (low) chance it is ascii just by chance; the seed will change regularly
         for (int i = 0; i < 1000; i++) {
-            String encodedToken = new DataRecordUploadToken(BLOB_ID, UPLOAD_ID).getEncodedToken(SECRET);
-            assertTrue("upload token is not ascii: " + encodedToken, StringUtils.isAsciiPrintable(encodedToken));
+            String encodedToken = new DataRecordUploadToken(BLOB_ID, UPLOAD_ID).getEncodedToken(
+                SECRET);
+            assertTrue("upload token is not ascii: " + encodedToken,
+                StringUtils.isAsciiPrintable(encodedToken));
 
             // also check token can be parsed and is valid
-            DataRecordUploadToken parsedToken = DataRecordUploadToken.fromEncodedToken(encodedToken, SECRET);
+            DataRecordUploadToken parsedToken = DataRecordUploadToken.fromEncodedToken(encodedToken,
+                SECRET);
             assertEquals(BLOB_ID, parsedToken.getBlobId());
             assertTrue(parsedToken.getUploadId().isPresent());
             assertEquals(UPLOAD_ID, parsedToken.getUploadId().get());
@@ -63,7 +67,8 @@ public class DataRecordUploadTokenTest {
     @Test
     public void testUploadTokenSignature() {
         // simple test to check the signature is present and validated
-        String spoofedToken = Base64.encodeBase64String((BLOB_ID + "#" + UPLOAD_ID).getBytes(StandardCharsets.UTF_8));
+        String spoofedToken = Base64.encodeBase64String(
+            (BLOB_ID + "#" + UPLOAD_ID).getBytes(StandardCharsets.UTF_8));
 
         try {
             DataRecordUploadToken.fromEncodedToken(spoofedToken, SECRET);

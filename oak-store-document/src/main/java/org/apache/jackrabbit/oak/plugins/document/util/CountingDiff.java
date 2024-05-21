@@ -16,16 +16,16 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.util;
 
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
-
 /**
- * A {@link NodeStateDiff} implementation that counts the differences between
- * two node states, including their sub tree.
+ * A {@link NodeStateDiff} implementation that counts the differences between two node states,
+ * including their sub tree.
  */
 public class CountingDiff implements NodeStateDiff {
 
@@ -63,8 +63,8 @@ public class CountingDiff implements NodeStateDiff {
 
     @Override
     public boolean childNodeChanged(String name,
-                                    NodeState before,
-                                    NodeState after) {
+        NodeState before,
+        NodeState after) {
         return after.compareAgainstBaseState(before, this);
     }
 

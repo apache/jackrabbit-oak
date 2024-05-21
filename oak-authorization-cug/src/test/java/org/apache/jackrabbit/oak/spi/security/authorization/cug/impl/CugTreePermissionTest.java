@@ -16,6 +16,10 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+
 import java.security.Principal;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -31,10 +35,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
-
 public class CugTreePermissionTest extends AbstractCugTest {
 
     private CugTreePermission allowedTp;
@@ -47,7 +47,8 @@ public class CugTreePermissionTest extends AbstractCugTest {
         createCug(SUPPORTED_PATH, EveryonePrincipal.getInstance());
         root.commit();
 
-        allowedTp = getCugTreePermission(getTestUser().getPrincipal(), EveryonePrincipal.getInstance());
+        allowedTp = getCugTreePermission(getTestUser().getPrincipal(),
+            EveryonePrincipal.getInstance());
         deniedTp = getCugTreePermission();
     }
 
@@ -55,8 +56,10 @@ public class CugTreePermissionTest extends AbstractCugTest {
         return getCugTreePermission(SUPPORTED_PATH, principals);
     }
 
-    private CugTreePermission getCugTreePermission(@NotNull String path, @NotNull Principal... principals) {
-        CugPermissionProvider pp = createCugPermissionProvider(ImmutableSet.copyOf(SUPPORTED_PATHS), principals);
+    private CugTreePermission getCugTreePermission(@NotNull String path,
+        @NotNull Principal... principals) {
+        CugPermissionProvider pp = createCugPermissionProvider(ImmutableSet.copyOf(SUPPORTED_PATHS),
+            principals);
         TreePermission targetTp = getTreePermission(root, path, pp);
         assertTrue(targetTp instanceof CugTreePermission);
         return (CugTreePermission) targetTp;
@@ -72,7 +75,8 @@ public class CugTreePermissionTest extends AbstractCugTest {
         child = deniedTp.getChildPermission("subtree", ns);
         assertTrue(child instanceof CugTreePermission);
 
-        NodeState cugNs = treeProvider.asNodeState(root.getTree(PathUtils.concat(SUPPORTED_PATH, REP_CUG_POLICY)));
+        NodeState cugNs = treeProvider.asNodeState(
+            root.getTree(PathUtils.concat(SUPPORTED_PATH, REP_CUG_POLICY)));
         TreePermission cugChild = allowedTp.getChildPermission(REP_CUG_POLICY, cugNs);
         assertSame(TreePermission.NO_RECOURSE, cugChild);
     }
@@ -90,7 +94,8 @@ public class CugTreePermissionTest extends AbstractCugTest {
         // before creating nested CUG
         CugTreePermission tp = getCugTreePermission(childPath);
         assertFalse(tp.isAllow());
-        tp = getCugTreePermission(childPath, getTestUser().getPrincipal(), EveryonePrincipal.getInstance());
+        tp = getCugTreePermission(childPath, getTestUser().getPrincipal(),
+            EveryonePrincipal.getInstance());
         assertTrue(tp.isAllow());
 
         // create nested CUG for same principal
@@ -100,7 +105,8 @@ public class CugTreePermissionTest extends AbstractCugTest {
         tp = getCugTreePermission(childPath);
         assertFalse(tp.isAllow());
 
-        tp = getCugTreePermission(childPath, getTestUser().getPrincipal(), EveryonePrincipal.getInstance());
+        tp = getCugTreePermission(childPath, getTestUser().getPrincipal(),
+            EveryonePrincipal.getInstance());
         assertTrue(tp.isAllow());
     }
 
@@ -117,7 +123,8 @@ public class CugTreePermissionTest extends AbstractCugTest {
         CugTreePermission tp = getCugTreePermission(childPath);
         assertTrue(tp.isInCug());
 
-        tp = getCugTreePermission(childPath, getTestUser().getPrincipal(), EveryonePrincipal.getInstance());
+        tp = getCugTreePermission(childPath, getTestUser().getPrincipal(),
+            EveryonePrincipal.getInstance());
         assertTrue(tp.isInCug());
     }
 
@@ -132,7 +139,8 @@ public class CugTreePermissionTest extends AbstractCugTest {
         CugTreePermission tp = getCugTreePermission(childPath);
         assertTrue(tp.isInCug());
 
-        tp = getCugTreePermission(childPath, getTestUser().getPrincipal(), EveryonePrincipal.getInstance());
+        tp = getCugTreePermission(childPath, getTestUser().getPrincipal(),
+            EveryonePrincipal.getInstance());
         assertTrue(tp.isInCug());
     }
 

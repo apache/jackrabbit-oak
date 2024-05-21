@@ -16,9 +16,11 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.restriction;
 
+import java.util.Set;
+import javax.jcr.NamespaceRegistry;
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.guava.common.base.Objects;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -32,9 +34,6 @@ import org.apache.jackrabbit.oak.spi.version.VersionConstants;
 import org.apache.jackrabbit.util.Text;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import javax.jcr.NamespaceRegistry;
-import java.util.Set;
 
 /**
  * Restriction that limits the effect of a given ACE to the target node where the entry takes effect

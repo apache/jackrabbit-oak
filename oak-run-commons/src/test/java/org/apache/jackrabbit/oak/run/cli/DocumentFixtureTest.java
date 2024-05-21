@@ -19,9 +19,16 @@
 
 package org.apache.jackrabbit.oak.run.cli;
 
+import static java.util.Collections.emptyMap;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+
 import java.io.IOException;
 import java.util.List;
-
 import joptsimple.OptionParser;
 import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfoDocument;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
@@ -35,14 +42,6 @@ import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import static java.util.Collections.emptyMap;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-
 public class DocumentFixtureTest {
 
     @BeforeClass
@@ -51,8 +50,9 @@ public class DocumentFixtureTest {
     }
 
     @Test
-    public void documentNodeStore() throws Exception{
-        try (NodeStoreFixture fixture = NodeStoreFixtureProvider.create(createMongoOptions(), false)) {
+    public void documentNodeStore() throws Exception {
+        try (NodeStoreFixture fixture = NodeStoreFixtureProvider.create(createMongoOptions(),
+            false)) {
             NodeStore store = fixture.getStore();
             NodeBuilder builder = store.getRoot().builder();
             builder.setChildNode("foo");
@@ -63,7 +63,7 @@ public class DocumentFixtureTest {
     }
 
     @Test
-    public void customizer() throws Exception{
+    public void customizer() throws Exception {
         Options o = createMongoOptions();
         DocumentBuilderCustomizer customizer = mock(DocumentBuilderCustomizer.class);
         o.getWhiteboard().register(DocumentBuilderCustomizer.class, customizer, emptyMap());
@@ -77,7 +77,7 @@ public class DocumentFixtureTest {
     private Options createMongoOptions() throws IOException {
         OptionParser parser = new OptionParser();
         Options opts = new Options().withDisableSystemExit();
-        opts.parseAndConfigure(parser, new String[] {MongoUtils.URL});
+        opts.parseAndConfigure(parser, new String[]{MongoUtils.URL});
         return opts;
     }
 

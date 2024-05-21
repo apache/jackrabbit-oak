@@ -21,9 +21,10 @@ package org.apache.jackrabbit.oak.jcr.binary.fixtures.nodestore;
 import java.io.File;
 import java.io.IOException;
 import javax.jcr.RepositoryException;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.core.data.DataStore;
+import org.apache.jackrabbit.guava.common.collect.HashBasedTable;
+import org.apache.jackrabbit.guava.common.collect.Table;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.binary.fixtures.datastore.DataStoreFixture;
 import org.apache.jackrabbit.oak.jcr.util.ComponentHolder;
@@ -36,13 +37,9 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.collect.HashBasedTable;
-import org.apache.jackrabbit.guava.common.collect.Table;
-
 /**
- * Creates a repository with
- * - DocumentNodeStore, storing data in-memory
- * - an optional DataStore provided by DataStoreFixture
+ * Creates a repository with - DocumentNodeStore, storing data in-memory - an optional DataStore
+ * provided by DataStoreFixture
  */
 public class DocumentMemoryNodeStoreFixture extends NodeStoreFixture implements ComponentHolder {
 
@@ -104,14 +101,15 @@ public class DocumentMemoryNodeStoreFixture extends NodeStoreFixture implements 
     public void dispose(NodeStore nodeStore) {
         try {
             if (nodeStore instanceof DocumentNodeStore) {
-                ((DocumentNodeStore)nodeStore).dispose();
+                ((DocumentNodeStore) nodeStore).dispose();
             }
 
             DataStore dataStore = (DataStore) components.get(nodeStore, DataStore.class.getName());
             if (dataStore != null && dataStoreFixture != null) {
                 dataStoreFixture.dispose(dataStore);
 
-                File dataStoreFolder = (File) components.get(nodeStore, DataStore.class.getName() + ":folder");
+                File dataStoreFolder = (File) components.get(nodeStore,
+                    DataStore.class.getName() + ":folder");
                 FileUtils.deleteQuietly(dataStoreFolder);
             }
         } finally {

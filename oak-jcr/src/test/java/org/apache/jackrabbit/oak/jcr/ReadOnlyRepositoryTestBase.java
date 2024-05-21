@@ -19,8 +19,8 @@ package org.apache.jackrabbit.oak.jcr;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 
 /**
- * A base class for tests that never read from the repository and therefore
- * share a node store that is initialized just once per test class.
+ * A base class for tests that never read from the repository and therefore share a node store that
+ * is initialized just once per test class.
  */
 public abstract class ReadOnlyRepositoryTestBase extends AbstractRepositoryTest {
 

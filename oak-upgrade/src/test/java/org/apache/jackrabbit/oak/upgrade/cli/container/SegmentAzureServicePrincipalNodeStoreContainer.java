@@ -17,6 +17,8 @@
 package org.apache.jackrabbit.oak.upgrade.cli.container;
 
 import com.microsoft.azure.storage.blob.CloudBlobDirectory;
+import java.io.File;
+import java.io.IOException;
 import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
@@ -30,10 +32,8 @@ import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.upgrade.cli.node.FileStoreUtils;
 
-import java.io.File;
-import java.io.IOException;
-
 public class SegmentAzureServicePrincipalNodeStoreContainer implements NodeStoreContainer {
+
     private static final Environment ENVIRONMENT = new Environment();
     private static final String CONTAINER_NAME = "oak-migration-test";
     private static final String DIR = "repository";
@@ -63,7 +63,8 @@ public class SegmentAzureServicePrincipalNodeStoreContainer implements NodeStore
 
         tmpDir = Files.createTempDir();
         FileStoreBuilder builder = FileStoreBuilder.fileStoreBuilder(tmpDir)
-                .withCustomPersistence(azurePersistence).withMemoryMapping(false);
+                                                   .withCustomPersistence(azurePersistence)
+                                                   .withMemoryMapping(false);
         if (blobStore != null) {
             builder.withBlobStore(blobStore);
         }
@@ -74,16 +75,19 @@ public class SegmentAzureServicePrincipalNodeStoreContainer implements NodeStore
             throw new IllegalStateException(e);
         }
 
-        return new FileStoreUtils.NodeStoreWithFileStore(SegmentNodeStoreBuilders.builder(fs).build(), fs);
+        return new FileStoreUtils.NodeStoreWithFileStore(
+            SegmentNodeStoreBuilders.builder(fs).build(), fs);
     }
 
     private AzurePersistence createAzurePersistence() {
         if (azurePersistence != null) {
             return azurePersistence;
         }
-        String path = String.format(AZURE_SEGMENT_STORE_PATH, ENVIRONMENT.getVariable(AzureUtilities.AZURE_ACCOUNT_NAME),
-                CONTAINER_NAME, DIR);
-        CloudBlobDirectory cloudBlobDirectory = ToolUtils.createCloudBlobDirectory(path, ENVIRONMENT);
+        String path = String.format(AZURE_SEGMENT_STORE_PATH,
+            ENVIRONMENT.getVariable(AzureUtilities.AZURE_ACCOUNT_NAME),
+            CONTAINER_NAME, DIR);
+        CloudBlobDirectory cloudBlobDirectory = ToolUtils.createCloudBlobDirectory(path,
+            ENVIRONMENT);
         return new AzurePersistence(cloudBlobDirectory);
     }
 
@@ -110,7 +114,8 @@ public class SegmentAzureServicePrincipalNodeStoreContainer implements NodeStore
 
     @Override
     public String getDescription() {
-        return "az:" + String.format(AZURE_SEGMENT_STORE_PATH, ENVIRONMENT.getVariable(AzureUtilities.AZURE_ACCOUNT_NAME),
-                CONTAINER_NAME, DIR);
+        return "az:" + String.format(AZURE_SEGMENT_STORE_PATH,
+            ENVIRONMENT.getVariable(AzureUtilities.AZURE_ACCOUNT_NAME),
+            CONTAINER_NAME, DIR);
     }
 }

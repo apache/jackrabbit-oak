@@ -21,7 +21,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
@@ -59,14 +58,14 @@ class DataTypeUtil {
     }
 
     static RevisionVector revisionVectorFromBuffer(ByteBuffer buffer) {
-        int dim  = DataUtils.readVarInt(buffer);
+        int dim = DataUtils.readVarInt(buffer);
         List<Revision> revisions = new ArrayList<>();
         for (int i = 0; i < dim; i++) {
             revisions.add(new Revision(
-                    buffer.getLong(),
-                    DataUtils.readVarInt(buffer),
-                    DataUtils.readVarInt(buffer),
-                    booleanFromBuffer(buffer))
+                buffer.getLong(),
+                DataUtils.readVarInt(buffer),
+                DataUtils.readVarInt(buffer),
+                booleanFromBuffer(buffer))
             );
         }
         return new RevisionVector(revisions);
@@ -110,8 +109,8 @@ class DataTypeUtil {
 
     static PathRev pathRevFromBuffer(ByteBuffer buffer) {
         return new PathRev(
-                pathFromBuffer(buffer),
-                revisionVectorFromBuffer(buffer)
+            pathFromBuffer(buffer),
+            revisionVectorFromBuffer(buffer)
         );
     }
 
@@ -123,9 +122,9 @@ class DataTypeUtil {
 
     static NamePathRev namePathRevFromBuffer(ByteBuffer buffer) {
         return new NamePathRev(
-                StringDataType.INSTANCE.read(buffer),
-                pathFromBuffer(buffer),
-                revisionVectorFromBuffer(buffer)
+            StringDataType.INSTANCE.read(buffer),
+            pathFromBuffer(buffer),
+            revisionVectorFromBuffer(buffer)
         );
     }
 
@@ -148,7 +147,7 @@ class DataTypeUtil {
     }
 
     static DocumentNodeState stateFromBuffer(DocumentNodeStore store,
-                                             ByteBuffer buffer) {
+        ByteBuffer buffer) {
         Path p = pathFromBuffer(buffer);
         RevisionVector rootRevision = revisionVectorFromBuffer(buffer);
         RevisionVector lastRevision = revisionVectorFromBuffer(buffer);
@@ -165,7 +164,7 @@ class DataTypeUtil {
             props.put(name, store.createPropertyState(name, value));
         }
         return new DocumentNodeState(store, p, rootRevision, props,
-                !noChildren, mem, lastRevision, false);
+            !noChildren, mem, lastRevision, false);
     }
 
     /**
@@ -175,10 +174,11 @@ class DataTypeUtil {
      * @return the array
      */
     static Object[] cast(Object storage) {
-        return (Object[])storage;
+        return (Object[]) storage;
     }
 
-    static int binarySearch(DataType<Object> dataType, Object key, Object storageObj, int size, int initialGuess) {
+    static int binarySearch(DataType<Object> dataType, Object key, Object storageObj, int size,
+        int initialGuess) {
         Object[] storage = cast(storageObj);
         int low = 0;
         int high = size - 1;

@@ -24,13 +24,16 @@ import org.jetbrains.annotations.NotNull;
 public interface DynamicMembershipService {
 
     /**
-     * Returns in instance of {@link DynamicMembershipProvider} for the given root, user manager and name-path mapper.
-     * 
-     * @param root The root associated with the {@link DynamicMembershipProvider}
-     * @param userManager The user manager associated with the {@link DynamicMembershipProvider}
-     * @param namePathMapper The name-path mapper associated with the {@link DynamicMembershipProvider}
+     * Returns in instance of {@link DynamicMembershipProvider} for the given root, user manager and
+     * name-path mapper.
+     *
+     * @param root           The root associated with the {@link DynamicMembershipProvider}
+     * @param userManager    The user manager associated with the {@link DynamicMembershipProvider}
+     * @param namePathMapper The name-path mapper associated with the
+     *                       {@link DynamicMembershipProvider}
      * @return an new instance of {@link DynamicMembershipProvider}
      */
     @NotNull
-    DynamicMembershipProvider getDynamicMembershipProvider(@NotNull Root root, @NotNull UserManager userManager, @NotNull NamePathMapper namePathMapper);
+    DynamicMembershipProvider getDynamicMembershipProvider(@NotNull Root root,
+        @NotNull UserManager userManager, @NotNull NamePathMapper namePathMapper);
 }

@@ -19,14 +19,13 @@ package org.apache.jackrabbit.oak.plugins.blob.datastore;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-
+import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.guava.common.base.Splitter;
 import org.apache.jackrabbit.guava.common.collect.FluentIterable;
 import org.apache.jackrabbit.guava.common.collect.Ordering;
 import org.apache.jackrabbit.guava.common.collect.Sets;
-import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.jetbrains.annotations.NotNull;
@@ -36,6 +35,7 @@ import org.jetbrains.annotations.Nullable;
  * Utility class for {@link SharedDataStore}.
  */
 public class SharedDataStoreUtils {
+
     /**
      * Checks if the blob store shared.
      *
@@ -49,53 +49,55 @@ public class SharedDataStoreUtils {
 
     /**
      * Gets the earliest record of the available reference records.
-     * 
+     *
      * @param recs the recs
      * @return the earliest record
      */
     public static DataRecord getEarliestRecord(List<DataRecord> recs) {
         return Ordering.natural().onResultOf(
-                new Function<DataRecord, Long>() {
-                    @Override
-                    @Nullable
-                    public Long apply(@NotNull DataRecord input) {
-                        return input.getLastModified();
-                    }
-                }).min(recs);
+            new Function<DataRecord, Long>() {
+                @Override
+                @Nullable
+                public Long apply(@NotNull DataRecord input) {
+                    return input.getLastModified();
+                }
+            }).min(recs);
     }
 
     /**
      * Repositories from which marked references not available.
-     * 
+     *
      * @param repos the repos
-     * @param refs the refs
+     * @param refs  the refs
      * @return the sets the sets whose references not available
      */
     public static Set<String> refsNotAvailableFromRepos(List<DataRecord> repos,
-            List<DataRecord> refs) {
+        List<DataRecord> refs) {
         return Sets.difference(FluentIterable.from(repos).uniqueIndex(
                 new Function<DataRecord, String>() {
                     @Override
                     @Nullable
                     public String apply(@NotNull DataRecord input) {
-                        return SharedStoreRecordType.REPOSITORY.getIdFromName(input.getIdentifier().toString());
+                        return SharedStoreRecordType.REPOSITORY.getIdFromName(
+                            input.getIdentifier().toString());
                     }
                 }).keySet(),
-                FluentIterable.from(refs).index(
-                        new Function<DataRecord, String>() {
-                            @Override
-                            @Nullable
-                            public String apply(@NotNull DataRecord input) {
-                                return SharedStoreRecordType.REFERENCES.getIdFromName(input.getIdentifier().toString());
-                            }
-                        }).keySet());
+            FluentIterable.from(refs).index(
+                new Function<DataRecord, String>() {
+                    @Override
+                    @Nullable
+                    public String apply(@NotNull DataRecord input) {
+                        return SharedStoreRecordType.REFERENCES.getIdFromName(
+                            input.getIdentifier().toString());
+                    }
+                }).keySet());
     }
 
     /**
      * Repositories from which marked references older than retention time are not available.
      *
-     * @param repos the repos
-     * @param refs the refs
+     * @param repos         the repos
+     * @param refs          the refs
      * @param referenceTime the retention time
      * @return the sets the sets whose references not available
      */
@@ -104,16 +106,22 @@ public class SharedDataStoreUtils {
 
         // Filter records older than the retention time and group by the repository id
         Set<String> qualifyingRefs = refs.stream()
-            .filter(dataRecord -> dataRecord.getLastModified() < referenceTime)
-            .collect(Collectors
-                .groupingBy(input -> SharedStoreRecordType.MARKED_START_MARKER.getIdFromName(input.getIdentifier().toString()),
-                            Collectors.mapping(java.util.function.Function.identity(), Collectors.toList())))
-            .keySet();
+                                         .filter(dataRecord -> dataRecord.getLastModified()
+                                             < referenceTime)
+                                         .collect(Collectors
+                                             .groupingBy(
+                                                 input -> SharedStoreRecordType.MARKED_START_MARKER.getIdFromName(
+                                                     input.getIdentifier().toString()),
+                                                 Collectors.mapping(
+                                                     java.util.function.Function.identity(),
+                                                     Collectors.toList())))
+                                         .keySet();
 
         Set<String> repoIds =
             repos.stream()
-                .map(dataRecord -> SharedStoreRecordType.REPOSITORY.getIdFromName(dataRecord.getIdentifier().toString()))
-                .collect(Collectors.toSet());
+                 .map(dataRecord -> SharedStoreRecordType.REPOSITORY.getIdFromName(
+                     dataRecord.getIdentifier().toString()))
+                 .collect(Collectors.toSet());
 
         repoIds.removeAll(qualifyingRefs);
         return repoIds;

@@ -72,12 +72,13 @@ public class BranchStateTest {
     }
 
     private static final class FailingHook implements CommitHook {
+
         @NotNull
         @Override
         public NodeState processCommit(NodeState before,
-                                       NodeState after,
-                                       CommitInfo info)
-                throws CommitFailedException {
+            NodeState after,
+            CommitInfo info)
+            throws CommitFailedException {
             throw new CommitFailedException(CommitFailedException.OAK, 0, "fail");
         }
     }

@@ -24,8 +24,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Listener for {@code SegmentNotFoundException}. Its purpose is to e.g. provide meaningful
- * logging information about these exceptions.
+ * Listener for {@code SegmentNotFoundException}. Its purpose is to e.g. provide meaningful logging
+ * information about these exceptions.
  */
 public interface SegmentNotFoundExceptionListener {
 
@@ -34,7 +34,8 @@ public interface SegmentNotFoundExceptionListener {
      */
     SegmentNotFoundExceptionListener IGNORE_SNFE = new SegmentNotFoundExceptionListener() {
         @Override
-        public void notify(@NotNull SegmentId id, @NotNull SegmentNotFoundException snfe) { }
+        public void notify(@NotNull SegmentId id, @NotNull SegmentNotFoundException snfe) {
+        }
     };
 
     /**
@@ -42,16 +43,18 @@ public interface SegmentNotFoundExceptionListener {
      */
     SegmentNotFoundExceptionListener LOG_SNFE = new SegmentNotFoundExceptionListener() {
         private final Logger log = LoggerFactory.getLogger(SegmentNotFoundExceptionListener.class);
+
         @Override
         public void notify(@NotNull SegmentId id, @NotNull SegmentNotFoundException snfe) {
             log.error("Segment not found: {}. {}", id, id.gcInfo(), snfe);
         }
     };
-    
+
     /**
-     * Notification about {@code SegmentNotFoundException} thrown by the underlying store
-     * in a meaningful way. E.g. by logging it.
-     * @param id the segment id of the offending {@code Segment}
+     * Notification about {@code SegmentNotFoundException} thrown by the underlying store in a
+     * meaningful way. E.g. by logging it.
+     *
+     * @param id   the segment id of the offending {@code Segment}
      * @param snfe the raised exception
      */
     void notify(@NotNull final SegmentId id, @NotNull final SegmentNotFoundException snfe);

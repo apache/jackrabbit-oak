@@ -31,12 +31,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.guava.common.io.ByteStreams;
-
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
@@ -52,8 +50,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Basic in-memory node store implementation. Useful as a base class for
- * more complex functionality.
+ * Basic in-memory node store implementation. Useful as a base class for more complex
+ * functionality.
  */
 public class MemoryNodeStore implements NodeStore, Observable {
 
@@ -110,19 +108,20 @@ public class MemoryNodeStore implements NodeStore, Observable {
     }
 
     /**
-     * This implementation is equal to first rebasing the builder and then applying it to a
-     * new branch and immediately merging it back.
-     * @param builder  the builder whose changes to apply
+     * This implementation is equal to first rebasing the builder and then applying it to a new
+     * branch and immediately merging it back.
+     *
+     * @param builder    the builder whose changes to apply
      * @param commitHook the commit hook to apply while merging changes
      * @return the node state resulting from the merge.
      * @throws CommitFailedException
-     * @throws IllegalArgumentException if the builder is not acquired from a root state of
-     *                                  this store
+     * @throws IllegalArgumentException if the builder is not acquired from a root state of this
+     *                                  store
      */
     @Override
     public synchronized NodeState merge(
-            @NotNull NodeBuilder builder, @NotNull CommitHook commitHook,
-            @NotNull CommitInfo info) throws CommitFailedException {
+        @NotNull NodeBuilder builder, @NotNull CommitHook commitHook,
+        @NotNull CommitInfo info) throws CommitFailedException {
         checkArgument(builder instanceof MemoryNodeBuilder);
         MemoryNodeBuilder mnb = (MemoryNodeBuilder) builder;
         checkArgument(mnb.isRoot());
@@ -136,14 +135,15 @@ public class MemoryNodeStore implements NodeStore, Observable {
     }
 
     /**
-     * This implementation is equal to applying the differences between the builders base state
-     * and its head state to a fresh builder on the stores root state using
+     * This implementation is equal to applying the differences between the builders base state and
+     * its head state to a fresh builder on the stores root state using
      * {@link org.apache.jackrabbit.oak.spi.state.ConflictAnnotatingRebaseDiff} for resolving
      * conflicts.
-     * @param builder  the builder to rebase
+     *
+     * @param builder the builder to rebase
      * @return the node state resulting from the rebase.
-     * @throws IllegalArgumentException if the builder is not acquired from a root state of
-     *                                  this store
+     * @throws IllegalArgumentException if the builder is not acquired from a root state of this
+     *                                  store
      */
     @Override
     public NodeState rebase(@NotNull NodeBuilder builder) {
@@ -154,19 +154,20 @@ public class MemoryNodeStore implements NodeStore, Observable {
         if (base != newBase) {
             ((MemoryNodeBuilder) builder).reset(newBase);
             head.compareAgainstBaseState(
-                    base, new ConflictAnnotatingRebaseDiff(builder));
+                base, new ConflictAnnotatingRebaseDiff(builder));
             head = builder.getNodeState();
         }
         return head;
     }
 
     /**
-     * This implementation is equal resetting the builder to the root of the store and returning
-     * the resulting node state from the builder.
+     * This implementation is equal resetting the builder to the root of the store and returning the
+     * resulting node state from the builder.
+     *
      * @param builder the builder to reset
      * @return the node state resulting from the reset.
-     * @throws IllegalArgumentException if the builder is not acquired from a root state of
-     *                                  this store
+     * @throws IllegalArgumentException if the builder is not acquired from a root state of this
+     *                                  store
      */
     @Override
     public NodeState reset(@NotNull NodeBuilder builder) {
@@ -183,8 +184,7 @@ public class MemoryNodeStore implements NodeStore, Observable {
     public ArrayBasedBlob createBlob(InputStream inputStream) throws IOException {
         try {
             return new ArrayBasedBlob(ByteStreams.toByteArray(inputStream));
-        }
-        finally {
+        } finally {
             inputStream.close();
         }
     }
@@ -204,7 +204,8 @@ public class MemoryNodeStore implements NodeStore, Observable {
         return checkpoint;
     }
 
-    @Override @NotNull
+    @Override
+    @NotNull
     public synchronized String checkpoint(long lifetime) {
         return checkpoint(lifetime, Collections.<String, String>emptyMap());
     }
@@ -226,7 +227,8 @@ public class MemoryNodeStore implements NodeStore, Observable {
         return Lists.newArrayList(checkpoints.keySet());
     }
 
-    @Override @Nullable
+    @Override
+    @Nullable
     public synchronized NodeState retrieve(@NotNull String checkpoint) {
         Checkpoint cp = checkpoints.get(checkNotNull(checkpoint));
         if (cp == null) {
@@ -242,7 +244,9 @@ public class MemoryNodeStore implements NodeStore, Observable {
         return true;
     }
 
-    /** test purpose only! */
+    /**
+     * test purpose only!
+     */
     public Set<String> listCheckpoints() {
         return Sets.newHashSet(checkpoints());
     }
@@ -251,13 +255,19 @@ public class MemoryNodeStore implements NodeStore, Observable {
 
     private static class MemoryNodeStoreBranch implements NodeStoreBranch {
 
-        /** The underlying store to which this branch belongs */
+        /**
+         * The underlying store to which this branch belongs
+         */
         private final MemoryNodeStore store;
 
-        /** Root state of the base revision of this branch */
+        /**
+         * Root state of the base revision of this branch
+         */
         private final NodeState base;
 
-        /** Root state of the head revision of this branch*/
+        /**
+         * Root state of the head revision of this branch
+         */
         private volatile NodeState root;
 
         public MemoryNodeStoreBranch(MemoryNodeStore store, NodeState base) {
@@ -285,8 +295,8 @@ public class MemoryNodeStore implements NodeStore, Observable {
 
         @Override
         public NodeState merge(
-                @NotNull CommitHook hook, @NotNull CommitInfo info)
-                throws CommitFailedException {
+            @NotNull CommitHook hook, @NotNull CommitInfo info)
+            throws CommitFailedException {
             checkNotNull(hook);
             checkNotNull(info);
             // TODO: rebase();
@@ -309,7 +319,6 @@ public class MemoryNodeStore implements NodeStore, Observable {
             return root.toString();
         }
 
-
         // ----------------------------------------------------< private >---
 
         private void checkNotMerged() {
@@ -318,6 +327,7 @@ public class MemoryNodeStore implements NodeStore, Observable {
     }
 
     private static class Checkpoint {
+
         private final NodeState root;
         private final Map<String, String> properties;
 

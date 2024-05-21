@@ -19,6 +19,10 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
+import static java.util.Arrays.stream;
+import static org.apache.jackrabbit.guava.common.collect.Maps.newConcurrentMap;
+import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
+
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
@@ -30,7 +34,6 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
-
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Sets;
@@ -44,20 +47,19 @@ import org.apache.lucene.store.IndexOutput;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.collect.Maps.newConcurrentMap;
-import static java.util.Arrays.stream;
-import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
-
 /**
- * Directory implementation which lazily copies the index files from a
- * remote directory in background.
+ * Directory implementation which lazily copies the index files from a remote directory in
+ * background.
  */
 public class CopyOnReadDirectory extends FilterDirectory {
+
     private static final Logger log = LoggerFactory.getLogger(CopyOnReadDirectory.class);
-    private static final PerfLogger PERF_LOGGER = new PerfLogger(LoggerFactory.getLogger(log.getName() + ".perf"));
+    private static final PerfLogger PERF_LOGGER = new PerfLogger(
+        LoggerFactory.getLogger(log.getName() + ".perf"));
 
     public static final String DELETE_MARGIN_MILLIS_NAME = "oak.lucene.delete.margin";
-    public final long DELETE_MARGIN_MILLIS = Long.getLong(DELETE_MARGIN_MILLIS_NAME, TimeUnit.MINUTES.toMillis(5));
+    public final long DELETE_MARGIN_MILLIS = Long.getLong(DELETE_MARGIN_MILLIS_NAME,
+        TimeUnit.MINUTES.toMillis(5));
 
     private final IndexCopier indexCopier;
     private final Directory remote;
@@ -70,12 +72,14 @@ public class CopyOnReadDirectory extends FilterDirectory {
     // exported as package private to be useful in tests
     static final String WAIT_OTHER_COPY_SYSPROP_NAME = "cor.waitCopyMillis";
 
-    long waitOtherCopyTimeoutMillis = Long.getLong(WAIT_OTHER_COPY_SYSPROP_NAME, TimeUnit.SECONDS.toMillis(30));
+    long waitOtherCopyTimeoutMillis = Long.getLong(WAIT_OTHER_COPY_SYSPROP_NAME,
+        TimeUnit.SECONDS.toMillis(30));
 
     private final ConcurrentMap<String, CORFileReference> files = newConcurrentMap();
 
-    public CopyOnReadDirectory(IndexCopier indexCopier, Directory remote, Directory local, boolean prefetch,
-                               String indexPath, Executor executor) throws IOException {
+    public CopyOnReadDirectory(IndexCopier indexCopier, Directory remote, Directory local,
+        boolean prefetch,
+        String indexPath, Executor executor) throws IOException {
         super(remote);
         this.indexCopier = indexCopier;
         this.executor = executor;
@@ -114,18 +118,18 @@ public class CopyOnReadDirectory extends FilterDirectory {
             } else {
                 indexCopier.readFromRemote(true);
                 logRemoteAccess(
-                        "[{}] opening existing remote file as local version is not valid {}",
-                        indexPath, name);
+                    "[{}] opening existing remote file as local version is not valid {}",
+                    indexPath, name);
                 return remote.openInput(name, context);
             }
         }
 
         //If file does not exist then just delegate to remote and not
         //schedule a copy task
-        if (!remote.fileExists(name)){
+        if (!remote.fileExists(name)) {
             if (log.isDebugEnabled()) {
                 log.debug("[{}] Looking for non existent file {}. Current known files {}",
-                        indexPath, name, Arrays.toString(remote.listAll()));
+                    indexPath, name, Arrays.toString(remote.listAll()));
             }
             return remote.openInput(name, context);
         }
@@ -183,7 +187,8 @@ public class CopyOnReadDirectory extends FilterDirectory {
         }
 
         local.sync(copiedFileNames);
-        PERF_LOGGER.end(start, -1, "[{}] Copied {} files totaling {}", indexPath, copyCount, humanReadableByteCount(totalSize));
+        PERF_LOGGER.end(start, -1, "[{}] Copied {} files totaling {}", indexPath, copyCount,
+            humanReadableByteCount(totalSize));
     }
 
     private long copyFilesToLocal(CORFileReference reference, boolean sync, boolean logDuration) {
@@ -213,8 +218,8 @@ public class CopyOnReadDirectory extends FilterDirectory {
                 indexCopier.doneCopy(file, start);
                 if (logDuration) {
                     PERF_LOGGER.end(perfStart, 0,
-                            "[{}] Copied file {} of size {}", indexPath,
-                            name, humanReadableByteCount(fileSize));
+                        "[{}] Copied file {} of size {}", indexPath,
+                        name, humanReadableByteCount(fileSize));
                 }
             } else {
                 long remoteLength = remote.fileLength(name);
@@ -229,33 +234,39 @@ public class CopyOnReadDirectory extends FilterDirectory {
                 //updated but still do a check if the copy is consistent
                 if (localLength != remoteLength) {
                     if (!indexCopier.isCopyInProgress(file)) {
-                        log.warn("[{}] Found local copy for {} in {} but size of local {} differs from remote {}. " +
-                                        "Content would be read from remote file only",
-                                indexPath, name, local, localLength, remoteLength);
+                        log.warn(
+                            "[{}] Found local copy for {} in {} but size of local {} differs from remote {}. "
+                                +
+                                "Content would be read from remote file only",
+                            indexPath, name, local, localLength, remoteLength);
                         indexCopier.foundInvalidFile();
                     } else {
 
-                        logRemoteAccess("[{}] Found in progress copy of file {}. Would read from remote", indexPath, name);
+                        logRemoteAccess(
+                            "[{}] Found in progress copy of file {}. Would read from remote",
+                            indexPath, name);
                     }
                 } else {
                     reference.markValid();
                     log.trace("[{}] found local copy of file {}",
-                            indexPath, name);
+                        indexPath, name);
                 }
             }
             success = true;
         } catch (IOException e) {
             //TODO In case of exception there would not be any other attempt
             //to download the file. Look into support for retry
-            log.warn("[{}] Error occurred while copying file [{}] from {} to {}", indexPath, name, remote, local, e);
+            log.warn("[{}] Error occurred while copying file [{}] from {} to {}", indexPath, name,
+                remote, local, e);
         } finally {
-            if (copyAttempted && !success){
+            if (copyAttempted && !success) {
                 try {
                     if (local.fileExists(name)) {
                         local.deleteFile(name);
                     }
                 } catch (IOException e) {
-                    log.warn("[{}] Error occurred while deleting corrupted file [{}] from [{}]", indexPath, name, local, e);
+                    log.warn("[{}] Error occurred while deleting corrupted file [{}] from [{}]",
+                        indexPath, name, local, e);
                 }
             }
         }
@@ -264,22 +275,21 @@ public class CopyOnReadDirectory extends FilterDirectory {
 
     /**
      * Close the files _after_ the method returns (asynchronously).
-     *
-     * On close file which are not present in remote are removed from local.
-     * CopyOnReadDir is opened at different revisions of the index state
-     *
-     * CDir1 - V1
-     * CDir2 - V2
-     *
-     * Its possible that two different IndexSearcher are opened at same local
-     * directory but pinned to different revisions. So while removing it must
-     * be ensured that any currently opened IndexSearcher does not get affected.
-     * The way IndexSearchers get created in IndexTracker it ensures that new searcher
-     * pinned to newer revision gets opened first and then existing ones are closed.
+     * <p>
+     * On close file which are not present in remote are removed from local. CopyOnReadDir is opened
+     * at different revisions of the index state
+     * <p>
+     * CDir1 - V1 CDir2 - V2
+     * <p>
+     * Its possible that two different IndexSearcher are opened at same local directory but pinned
+     * to different revisions. So while removing it must be ensured that any currently opened
+     * IndexSearcher does not get affected. The way IndexSearchers get created in IndexTracker it
+     * ensures that new searcher pinned to newer revision gets opened first and then existing ones
+     * are closed.
      */
     @Override
     public void close() throws IOException {
-        if (!closed.compareAndSet(false, true)){
+        if (!closed.compareAndSet(false, true)) {
             return;
         }
         //Always remove old index file on close as it ensures that
@@ -289,12 +299,12 @@ public class CopyOnReadDirectory extends FilterDirectory {
         executor.execute(new Runnable() {
             @Override
             public void run() {
-                try{
+                try {
                     removeDeletedFiles();
                 } catch (IOException e) {
                     log.warn(
-                            "[{}] Error occurred while removing deleted files from Local {}, Remote {}",
-                            indexPath, local, remote, e);
+                        "[{}] Error occurred while removing deleted files from Local {}, Remote {}",
+                        indexPath, local, remote, e);
                 }
 
                 try {
@@ -305,8 +315,8 @@ public class CopyOnReadDirectory extends FilterDirectory {
                     remote.close();
                 } catch (IOException e) {
                     log.warn(
-                            "[{}] Error occurred while closing directory ",
-                            indexPath, e);
+                        "[{}] Error occurred while closing directory ",
+                        indexPath, e);
                 }
             }
         });
@@ -319,8 +329,8 @@ public class CopyOnReadDirectory extends FilterDirectory {
 
     private void removeDeletedFiles() throws IOException {
         Set<String> remoteFiles = stream(remote.listAll())
-                .filter(name -> !IndexCopier.REMOTE_ONLY.contains(name))
-                .collect(Collectors.toSet());
+            .filter(name -> !IndexCopier.REMOTE_ONLY.contains(name))
+            .collect(Collectors.toSet());
 
         long maxTS = IndexCopier.getNewestLocalFSTimestampFor(remoteFiles, local);
         if (maxTS == -1) {
@@ -332,31 +342,31 @@ public class CopyOnReadDirectory extends FilterDirectory {
         final long deleteBeforeTS = maxTS - DELETE_MARGIN_MILLIS;
 
         Set<String> filesToBeDeleted =
-                // Files present locally
-                ImmutableSet.copyOf(local.listAll()).stream()
-                // but not in my view
-                .filter(name -> !remoteFiles.contains(name))
-                // and also older than a safe timestamp (deleteBeforeTS)
-                .filter(name -> IndexCopier.isFileModifiedBefore(name, local, deleteBeforeTS))
-                // can be deleted
-                .collect(Collectors.toSet())
-        ;
+            // Files present locally
+            ImmutableSet.copyOf(local.listAll()).stream()
+                        // but not in my view
+                        .filter(name -> !remoteFiles.contains(name))
+                        // and also older than a safe timestamp (deleteBeforeTS)
+                        .filter(
+                            name -> IndexCopier.isFileModifiedBefore(name, local, deleteBeforeTS))
+                        // can be deleted
+                        .collect(Collectors.toSet());
 
         Set<String> failedToDelete = Sets.newHashSet();
 
         for (String fileName : filesToBeDeleted) {
             boolean deleted = indexCopier.deleteFile(local, fileName, true);
-            if (!deleted){
+            if (!deleted) {
                 failedToDelete.add(fileName);
             }
         }
 
         filesToBeDeleted = new HashSet<String>(filesToBeDeleted);
         filesToBeDeleted.removeAll(failedToDelete);
-        if(!filesToBeDeleted.isEmpty()) {
+        if (!filesToBeDeleted.isEmpty()) {
             log.debug(
-                    "[{}] Following files have been removed from Lucene index directory {}",
-                    indexPath, filesToBeDeleted);
+                "[{}] Following files have been removed from Lucene index directory {}",
+                indexPath, filesToBeDeleted);
         }
     }
 
@@ -369,6 +379,7 @@ public class CopyOnReadDirectory extends FilterDirectory {
     }
 
     private class CORFileReference {
+
         final String name;
         private volatile boolean valid;
 
@@ -376,16 +387,16 @@ public class CopyOnReadDirectory extends FilterDirectory {
             this.name = name;
         }
 
-        boolean isLocalValid(){
+        boolean isLocalValid() {
             return valid;
         }
 
-        IndexInput openLocalInput( IOContext context) throws IOException {
+        IndexInput openLocalInput(IOContext context) throws IOException {
             indexCopier.readFromLocal(true);
             return local.openInput(name, context);
         }
 
-        void markValid(){
+        void markValid() {
             this.valid = true;
         }
     }

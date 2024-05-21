@@ -18,6 +18,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+
+import java.util.concurrent.TimeUnit;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
@@ -29,10 +32,6 @@ import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.jetbrains.annotations.NotNull;
-
-import java.util.concurrent.TimeUnit;
-
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 
 public abstract class TestRepositoryBuilder {
 
@@ -54,7 +53,8 @@ public abstract class TestRepositoryBuilder {
     public TestRepositoryBuilder() {
         this.nodeStore = createNodeStore(TestRepository.NodeStoreType.MEMORY_NODE_STORE);
         this.trackingCorruptIndexHandler = new TrackingCorruptIndexHandler();
-        trackingCorruptIndexHandler.setCorruptInterval(indexCorruptIntervalInMillis, TimeUnit.MILLISECONDS);
+        trackingCorruptIndexHandler.setCorruptInterval(indexCorruptIntervalInMillis,
+            TimeUnit.MILLISECONDS);
         initialContent = getInitialContent();
         securityProvider = new OpenSecurityProvider();
         indexEditorProvider = new PropertyIndexEditorProvider();
@@ -120,7 +120,8 @@ public abstract class TestRepositoryBuilder {
         this.asyncIndexUpdate = asyncIndexUpdate;
     }
 
-    public void setTrackingCorruptIndexHandler(TrackingCorruptIndexHandler trackingCorruptIndexHandler) {
+    public void setTrackingCorruptIndexHandler(
+        TrackingCorruptIndexHandler trackingCorruptIndexHandler) {
         this.trackingCorruptIndexHandler = trackingCorruptIndexHandler;
     }
 

@@ -16,13 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.jmx;
 
-import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityException;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncResult;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncedIdentity;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncedIdentity;
-import org.junit.Test;
-
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.TestIdentityProvider.DEFAULT_IDP_NAME;
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.TestIdentityProvider.ID_TEST_USER;
 import static org.junit.Assert.assertEquals;
@@ -31,10 +24,18 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
+import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityException;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncResult;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncedIdentity;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncedIdentity;
+import org.junit.Test;
+
 public class ErrorSyncResultTest {
-    
+
     private static final Exception ERROR = new ExternalIdentityException();
-    private static final ExternalIdentityRef EXTERNAL_IDENTITY_REF = new ExternalIdentityRef(ID_TEST_USER, DEFAULT_IDP_NAME);
+    private static final ExternalIdentityRef EXTERNAL_IDENTITY_REF = new ExternalIdentityRef(
+        ID_TEST_USER, DEFAULT_IDP_NAME);
 
     private final ErrorSyncResult result = new ErrorSyncResult(EXTERNAL_IDENTITY_REF, ERROR);
     private final ErrorSyncResult result2 = new ErrorSyncResult(ID_TEST_USER, null, ERROR);
@@ -58,14 +59,14 @@ public class ErrorSyncResultTest {
         assertFalse(si.isGroup());
         assertEquals(-1, si.lastSynced());
     }
-    
+
     @Test
     public void testGetStatus() {
         assertSame(SyncResult.Status.NOP, result.getStatus());
     }
-    
+
     @Test
     public void testGetException() {
-        assertSame(ERROR,result.getException());
+        assertSame(ERROR, result.getException());
     }
 }

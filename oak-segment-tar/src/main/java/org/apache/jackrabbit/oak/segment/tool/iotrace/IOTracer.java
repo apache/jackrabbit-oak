@@ -23,30 +23,30 @@ import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull
 import java.io.Writer;
 import java.util.List;
 import java.util.function.Function;
-
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * This utility class allows collecting IO traces of read accesses to segments
- * caused by reading specific items.
+ * This utility class allows collecting IO traces of read accesses to segments caused by reading
+ * specific items.
  * <p>
- * An instance of {@link Trace} is used to specify a read pattern. Segment reads
- * are recorded in CSV format:
- <pre>
- timestamp,file,segmentId,length,elapsed
- 1522147945084,data01415a.tar,f81378df-b3f8-4b25-0000-00000002c450,181328,171849
- 1522147945096,data01415a.tar,f81378df-b3f8-4b25-0000-00000002c450,181328,131272
- 1522147945097,data01415a.tar,f81378df-b3f8-4b25-0000-00000002c450,181328,142766
- ...
- </pre>
- * {@link Trace} implementations can specify an additional context, which is recorded
- * with each line of the CSV output. A context is simply a list of additional fields
- * as specified during instantiation of an {@code IOTracer}.
+ * An instance of {@link Trace} is used to specify a read pattern. Segment reads are recorded in CSV
+ * format:
+ * <pre>
+ * timestamp,file,segmentId,length,elapsed
+ * 1522147945084,data01415a.tar,f81378df-b3f8-4b25-0000-00000002c450,181328,171849
+ * 1522147945096,data01415a.tar,f81378df-b3f8-4b25-0000-00000002c450,181328,131272
+ * 1522147945097,data01415a.tar,f81378df-b3f8-4b25-0000-00000002c450,181328,142766
+ * ...
+ * </pre>
+ * {@link Trace} implementations can specify an additional context, which is recorded with each line
+ * of the CSV output. A context is simply a list of additional fields as specified during
+ * instantiation of an {@code IOTracer}.
  */
 public class IOTracer {
+
     @NotNull
     private final Function<IOMonitor, FileStore> fileStoreFactory;
 
@@ -54,34 +54,37 @@ public class IOTracer {
     private final IOTraceMonitor ioMonitor;
 
     private IOTracer(
-            @NotNull Function<IOMonitor, FileStore> fileStoreFactory,
-            @NotNull Writer output,
-            @Nullable String contextSpec) {
+        @NotNull Function<IOMonitor, FileStore> fileStoreFactory,
+        @NotNull Writer output,
+        @Nullable String contextSpec) {
         this.fileStoreFactory = checkNotNull(fileStoreFactory);
         ioMonitor = new IOTraceMonitor(new DefaultIOTraceWriter(output), contextSpec);
     }
 
     /**
      * Create a new {@code IOTracer} instance.
-     * @param fileStoreFactory  A factory for creating a {@link FileStore} with the
-     *                          passed {@link IOMonitor} for monitoring segment IO.
-     * @param output            The target for the CSV formatted IO trace.
-     * @param contextSpec       The specification of additional context provided by
-     *                          the {@link Trace traces} being {@link IOTracer#collectTrace(Trace) run}.
-     *                          A trace consists of a comma separated list of values, which must match
-     *                          the list of values passed to {@link IOTracer#setContext(List)}.
+     *
+     * @param fileStoreFactory A factory for creating a {@link FileStore} with the passed
+     *                         {@link IOMonitor} for monitoring segment IO.
+     * @param output           The target for the CSV formatted IO trace.
+     * @param contextSpec      The specification of additional context provided by the
+     *                         {@link Trace traces} being {@link IOTracer#collectTrace(Trace) run}.
+     *                         A trace consists of a comma separated list of values, which must
+     *                         match the list of values passed to
+     *                         {@link IOTracer#setContext(List)}.
      * @return A new {@code IOTracer} instance.
      */
     @NotNull
     public static IOTracer newIOTracer(
-            @NotNull Function<IOMonitor, FileStore> fileStoreFactory,
-            @NotNull Writer output,
-            @Nullable String contextSpec) {
+        @NotNull Function<IOMonitor, FileStore> fileStoreFactory,
+        @NotNull Writer output,
+        @Nullable String contextSpec) {
         return new IOTracer(fileStoreFactory, output, contextSpec);
     }
 
     /**
      * Collect a IO trace.
+     *
      * @param trace
      */
     public void collectTrace(@NotNull Trace trace) {
@@ -94,9 +97,10 @@ public class IOTracer {
     }
 
     /**
-     * Set the {@code context} to be added to each line of the IOTrace going forward. The list
-     * of values needs to match the context specification passed to
+     * Set the {@code context} to be added to each line of the IOTrace going forward. The list of
+     * values needs to match the context specification passed to
      * {@link IOTracer#newIOTracer(Function, Writer, String)}.
+     *
      * @param context
      */
     public void setContext(@NotNull List<String> context) {

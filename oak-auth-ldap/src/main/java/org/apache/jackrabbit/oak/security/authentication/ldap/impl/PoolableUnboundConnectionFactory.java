@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.security.authentication.ldap.impl;
 
 import java.io.IOException;
-
 import org.apache.commons.pool2.BasePooledObjectFactory;
 import org.apache.commons.pool2.PooledObject;
 import org.apache.commons.pool2.impl.DefaultPooledObject;
@@ -39,7 +38,8 @@ public class PoolableUnboundConnectionFactory extends BasePooledObjectFactory<Ld
     /**
      * default logger
      */
-    private static final Logger log = LoggerFactory.getLogger(PoolableUnboundConnectionFactory.class);
+    private static final Logger log = LoggerFactory.getLogger(
+        PoolableUnboundConnectionFactory.class);
 
     /**
      * configuration object for the connection
@@ -62,6 +62,7 @@ public class PoolableUnboundConnectionFactory extends BasePooledObjectFactory<Ld
 
     /**
      * gets the connection validator
+     *
      * @return the connection validator
      */
     public LdapConnectionValidator getValidator() {
@@ -70,6 +71,7 @@ public class PoolableUnboundConnectionFactory extends BasePooledObjectFactory<Ld
 
     /**
      * Sets the connection validator that is used when the connection is taken out of the pool
+     *
      * @param validator the validator
      */
     public void setValidator(LdapConnectionValidator validator) {

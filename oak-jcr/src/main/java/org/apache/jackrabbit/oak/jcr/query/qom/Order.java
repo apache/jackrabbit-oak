@@ -50,8 +50,7 @@ public enum Order {
      *
      * @param name the JCR name of an order.
      * @return the order with the given name.
-     * @throws IllegalArgumentException if {@code name} is not a known JCR
-     *                                  order name.
+     * @throws IllegalArgumentException if {@code name} is not a known JCR order name.
      */
     public static Order getOrderByName(String name) {
         for (Order order : Order.values()) {

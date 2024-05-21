@@ -32,7 +32,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Osgi Service that provides Solr based {@link org.apache.jackrabbit.oak.plugins.index.IndexEditor}s
+ * Osgi Service that provides Solr based
+ * {@link org.apache.jackrabbit.oak.plugins.index.IndexEditor}s
  *
  * @see org.apache.jackrabbit.oak.plugins.index.solr.index.SolrIndexEditorProvider
  * @see org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider
@@ -50,10 +51,11 @@ public class SolrIndexEditorProviderService implements IndexEditorProvider {
     @Override
     @Nullable
     public Editor getIndexEditor(@NotNull String type, @NotNull NodeBuilder definition,
-                                 @NotNull NodeState root, @NotNull IndexUpdateCallback callback) throws CommitFailedException {
+        @NotNull NodeState root, @NotNull IndexUpdateCallback callback)
+        throws CommitFailedException {
         if (solrServerProvider != null && oakSolrConfigurationProvider != null) {
             return new SolrIndexEditorProvider(solrServerProvider,
-                    oakSolrConfigurationProvider).getIndexEditor(type, definition, root, callback);
+                oakSolrConfigurationProvider).getIndexEditor(type, definition, root, callback);
         } else {
             return null;
         }

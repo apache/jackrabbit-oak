@@ -23,18 +23,17 @@ import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreB
 
 import java.io.File;
 import java.io.IOException;
-
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.backup.FileStoreRestore;
-import org.apache.jackrabbit.oak.segment.DefaultSegmentWriter;
 import org.apache.jackrabbit.oak.segment.ClassicCompactor;
+import org.apache.jackrabbit.oak.segment.DefaultSegmentWriter;
 import org.apache.jackrabbit.oak.segment.SegmentBufferWriter;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.segment.SegmentWriter;
 import org.apache.jackrabbit.oak.segment.WriterCacheManager;
+import org.apache.jackrabbit.oak.segment.file.CompactionWriter;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.GCNodeWriteMonitor;
-import org.apache.jackrabbit.oak.segment.file.CompactionWriter;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.apache.jackrabbit.oak.segment.file.cancel.Canceller;
@@ -49,7 +48,8 @@ public class FileStoreRestoreImpl implements FileStoreRestore {
     private static final String JOURNAL_FILE_NAME = "journal.log";
 
     @Override
-    public void restore(File source, File destination) throws IOException, InvalidFileStoreVersionException {
+    public void restore(File source, File destination)
+        throws IOException, InvalidFileStoreVersionException {
         if (!validFileStore(source)) {
             throw new IOException("Folder " + source + " is not a valid FileStore directory");
         }
@@ -66,22 +66,24 @@ public class FileStoreRestoreImpl implements FileStoreRestore {
             SegmentNodeState head = restore.getHead();
             GCGeneration gen = head.getRecordId().getSegmentId().getGcGeneration();
             SegmentBufferWriter bufferWriter = new SegmentBufferWriter(
-                    store.getSegmentIdProvider(),
-                    store.getReader(),
-                    "r",
-                    gen
+                store.getSegmentIdProvider(),
+                store.getReader(),
+                "r",
+                gen
             );
             SegmentWriter writer = new DefaultSegmentWriter(
-                    store,
-                    store.getReader(),
-                    store.getSegmentIdProvider(),
-                    store.getBlobStore(),
-                    new WriterCacheManager.Default(),
-                    bufferWriter,
-                    store.getBinariesInlineThreshold()
+                store,
+                store.getReader(),
+                store.getSegmentIdProvider(),
+                store.getBlobStore(),
+                new WriterCacheManager.Default(),
+                bufferWriter,
+                store.getBinariesInlineThreshold()
             );
-            CompactionWriter compactionWriter = new CompactionWriter(store.getReader(), store.getBlobStore(), gen, writer);
-            ClassicCompactor compactor = new ClassicCompactor(compactionWriter, GCNodeWriteMonitor.EMPTY);
+            CompactionWriter compactionWriter = new CompactionWriter(store.getReader(),
+                store.getBlobStore(), gen, writer);
+            ClassicCompactor compactor = new ClassicCompactor(compactionWriter,
+                GCNodeWriteMonitor.EMPTY);
             SegmentNodeState after = compactor.compactUp(current, head, Canceller.newCanceller());
             compactionWriter.flush();
             store.getRevisions().setHead(current.getRecordId(), after.getRecordId());

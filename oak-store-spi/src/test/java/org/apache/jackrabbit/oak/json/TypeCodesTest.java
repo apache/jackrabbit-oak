@@ -17,12 +17,10 @@
 
 package org.apache.jackrabbit.oak.json;
 
-import javax.jcr.PropertyType;
-
-import org.apache.jackrabbit.oak.json.TypeCodes;
-import org.junit.Test;
-
 import static org.junit.Assert.assertEquals;
+
+import javax.jcr.PropertyType;
+import org.junit.Test;
 
 public class TypeCodesTest {
 

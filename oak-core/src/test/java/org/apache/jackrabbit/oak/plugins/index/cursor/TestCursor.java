@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.plugins.index.cursor;
 
 import java.util.Iterator;
-
 import org.apache.jackrabbit.oak.spi.query.IndexRow;
 
 public class TestCursor extends AbstractCursor {

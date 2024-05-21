@@ -19,12 +19,11 @@
 package org.apache.jackrabbit.oak.spi.toggle;
 
 import java.util.concurrent.atomic.AtomicBoolean;
-
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 
 /**
- * A feature toggle is registered with the {@link Whiteboard} and can be
- * discovered by third party code to control the state of feature toggles.
+ * A feature toggle is registered with the {@link Whiteboard} and can be discovered by third party
+ * code to control the state of feature toggles.
  */
 public final class FeatureToggle {
 
@@ -35,7 +34,7 @@ public final class FeatureToggle {
     /**
      * Create a new adapter with a given name and value.
      *
-     * @param name the name of the feature toggle.
+     * @param name  the name of the feature toggle.
      * @param state the state for the feature toggle.
      */
     public FeatureToggle(String name, AtomicBoolean state) {

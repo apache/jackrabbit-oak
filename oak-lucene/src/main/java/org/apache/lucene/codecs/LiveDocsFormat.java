@@ -27,36 +27,50 @@ package org.apache.lucene.codecs;
 
 import java.io.IOException;
 import java.util.Collection;
-
 import org.apache.lucene.index.SegmentCommitInfo;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.IOContext;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.MutableBits;
 
-/** Format for live/deleted documents
- * @lucene.experimental */
+/**
+ * Format for live/deleted documents
+ *
+ * @lucene.experimental
+ */
 public abstract class LiveDocsFormat {
 
-  /** Sole constructor. (For invocation by subclass 
-   *  constructors, typically implicit.) */
-  protected LiveDocsFormat() {
-  }
+    /**
+     * Sole constructor. (For invocation by subclass constructors, typically implicit.)
+     */
+    protected LiveDocsFormat() {
+    }
 
-  /** Creates a new MutableBits, with all bits set, for the specified size. */
-  public abstract MutableBits newLiveDocs(int size) throws IOException;
+    /**
+     * Creates a new MutableBits, with all bits set, for the specified size.
+     */
+    public abstract MutableBits newLiveDocs(int size) throws IOException;
 
-  /** Creates a new mutablebits of the same bits set and size of existing. */
-  public abstract MutableBits newLiveDocs(Bits existing) throws IOException;
+    /**
+     * Creates a new mutablebits of the same bits set and size of existing.
+     */
+    public abstract MutableBits newLiveDocs(Bits existing) throws IOException;
 
-  /** Read live docs bits. */
-  public abstract Bits readLiveDocs(Directory dir, SegmentCommitInfo info, IOContext context) throws IOException;
+    /**
+     * Read live docs bits.
+     */
+    public abstract Bits readLiveDocs(Directory dir, SegmentCommitInfo info, IOContext context)
+        throws IOException;
 
-  /** Persist live docs bits.  Use {@link
-   *  SegmentCommitInfo#getNextDelGen} to determine the
-   *  generation of the deletes file you should write to. */
-  public abstract void writeLiveDocs(MutableBits bits, Directory dir, SegmentCommitInfo info, int newDelCount, IOContext context) throws IOException;
+    /**
+     * Persist live docs bits.  Use {@link SegmentCommitInfo#getNextDelGen} to determine the
+     * generation of the deletes file you should write to.
+     */
+    public abstract void writeLiveDocs(MutableBits bits, Directory dir, SegmentCommitInfo info,
+        int newDelCount, IOContext context) throws IOException;
 
-  /** Records all files in use by this {@link SegmentCommitInfo} into the files argument. */
-  public abstract void files(SegmentCommitInfo info, Collection<String> files) throws IOException;
+    /**
+     * Records all files in use by this {@link SegmentCommitInfo} into the files argument.
+     */
+    public abstract void files(SegmentCommitInfo info, Collection<String> files) throws IOException;
 }

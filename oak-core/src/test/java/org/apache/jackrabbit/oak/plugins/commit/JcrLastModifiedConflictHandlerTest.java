@@ -31,7 +31,6 @@ import static org.mockito.Mockito.when;
 
 import java.util.Calendar;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.PropertyState;

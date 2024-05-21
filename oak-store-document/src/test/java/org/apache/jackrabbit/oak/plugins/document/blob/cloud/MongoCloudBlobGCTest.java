@@ -27,7 +27,6 @@ import org.junit.BeforeClass;
 
 /**
  * Test for MongoMK GC with {@link CloudBlobStore}
- *
  */
 public class MongoCloudBlobGCTest extends MongoBlobGCTest {
 

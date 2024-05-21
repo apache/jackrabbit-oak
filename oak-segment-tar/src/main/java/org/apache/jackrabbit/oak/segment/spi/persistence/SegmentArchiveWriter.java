@@ -19,16 +19,15 @@
 package org.apache.jackrabbit.oak.segment.spi.persistence;
 
 import java.io.IOException;
-
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Represents a write-enabled, append-only archive. It allows to append segments
- * and other data structures (segment graph, serialized binary references) to the
- * archive and also to read the already persisted segments.<p>
- * Caller will use the methods modifying the archive in the following order:
+ * Represents a write-enabled, append-only archive. It allows to append segments and other data
+ * structures (segment graph, serialized binary references) to the archive and also to read the
+ * already persisted segments.<p> Caller will use the methods modifying the archive in the following
+ * order:
  * <ol>
  *     <li>phase 1:
  *         <ul>
@@ -54,18 +53,22 @@ public interface SegmentArchiveWriter {
     /**
      * Write the new segment to the archive.
      *
-     * @param msb the most significant bits of the identifier of the segment
-     * @param lsb the least significant bits of the identifier of the segment
-     * @param data the data.
-     * @param offset the start offset in the data.
-     * @param size the number of bytes to write.
-     * @param generation the segment generation, see {@link SegmentArchiveEntry#getGeneration()}
-     * @param fullGeneration the segment full generation, see {@link SegmentArchiveEntry#getFullGeneration()}
-     * @param isCompacted the segment compaction property, see {@link SegmentArchiveEntry#isCompacted()}
+     * @param msb            the most significant bits of the identifier of the segment
+     * @param lsb            the least significant bits of the identifier of the segment
+     * @param data           the data.
+     * @param offset         the start offset in the data.
+     * @param size           the number of bytes to write.
+     * @param generation     the segment generation, see
+     *                       {@link SegmentArchiveEntry#getGeneration()}
+     * @param fullGeneration the segment full generation, see
+     *                       {@link SegmentArchiveEntry#getFullGeneration()}
+     * @param isCompacted    the segment compaction property, see
+     *                       {@link SegmentArchiveEntry#isCompacted()}
      * @throws IOException
      */
     @NotNull
-    void writeSegment(long msb, long lsb, @NotNull byte[] data, int offset, int size, int generation, int fullGeneration, boolean isCompacted) throws IOException;
+    void writeSegment(long msb, long lsb, @NotNull byte[] data, int offset, int size,
+        int generation, int fullGeneration, boolean isCompacted) throws IOException;
 
     /**
      * Read the segment.
@@ -110,7 +113,7 @@ public interface SegmentArchiveWriter {
     /**
      * Get the number of entries currently contained in the archive.
      *
-     * @return  number of entries
+     * @return number of entries
      */
     int getEntryCount();
 
@@ -127,9 +130,10 @@ public interface SegmentArchiveWriter {
     boolean isCreated();
 
     /**
-     * Flush all the data to the storage. After returning from this method
-     * successfully, all the segments written with the {@link #writeSegment(long, long, byte[], int, int, int, int, boolean)}
-     * should be actually saved to the storage.
+     * Flush all the data to the storage. After returning from this method successfully, all the
+     * segments written with the
+     * {@link #writeSegment(long, long, byte[], int, int, int, int, boolean)} should be actually
+     * saved to the storage.
      */
     void flush() throws IOException;
 
@@ -142,10 +146,12 @@ public interface SegmentArchiveWriter {
     String getName();
 
     /**
-     * This method returns {@code true} if the storage is accessed via a network protocol, not tight to the traditional storage technology,
-     * for example, HTTP. Based on that info, for instance, calling classes can decide to update archive metadata (graph, binary references, index) more frequently,
-     * and not only when the archive is being closed. With that multiple Oak processes can access the storage simultaneously, with one process in read-write mode and
-     * one or more processes in read-only mode.
+     * This method returns {@code true} if the storage is accessed via a network protocol, not tight
+     * to the traditional storage technology, for example, HTTP. Based on that info, for instance,
+     * calling classes can decide to update archive metadata (graph, binary references, index) more
+     * frequently, and not only when the archive is being closed. With that multiple Oak processes
+     * can access the storage simultaneously, with one process in read-write mode and one or more
+     * processes in read-only mode.
      *
      * @return
      */

@@ -22,9 +22,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-
 import javax.jcr.PropertyType;
-
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextExpression;
@@ -32,22 +30,22 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * The filter for an index lookup that contains a number of restrictions that
- * are combined with AND. Possible restrictions are a property restriction, a
- * path restriction, a node type restriction, and a fulltext restriction.
+ * The filter for an index lookup that contains a number of restrictions that are combined with AND.
+ * Possible restrictions are a property restriction, a path restriction, a node type restriction,
+ * and a fulltext restriction.
  * <p>
- * A property restriction could be that the property must exist, or that the
- * property value has to be within a certain range.
+ * A property restriction could be that the property must exist, or that the property value has to
+ * be within a certain range.
  * <p>
- * A path restriction could be a restriction to a certain subtree, a parent of a
- * certain path, or equality to a certain path.
+ * A path restriction could be a restriction to a certain subtree, a parent of a certain path, or
+ * equality to a certain path.
  */
 public interface Filter {
 
     /**
-     * Get the list of property restrictions, if any. Each property may contain
-     * multiple restrictions, for example x=1 and x=2. For this case, only
-     * multi-valued properties match that contain both 1 and 2.
+     * Get the list of property restrictions, if any. Each property may contain multiple
+     * restrictions, for example x=1 and x=2. For this case, only multi-valued properties match that
+     * contain both 1 and 2.
      *
      * @return the conditions (an empty collection if not used)
      */
@@ -71,9 +69,12 @@ public interface Filter {
     QueryLimits getQueryLimits();
 
     /**
-     * check whether a certain (valid) path is accessible (can be read) from the user associated with the query Session
+     * check whether a certain (valid) path is accessible (can be read) from the user associated
+     * with the query Session
+     *
      * @param path a valid JCR path
-     * @return <code>true</code> if path can be read by the calling user, <code>false</code> otherwise.
+     * @return <code>true</code> if path can be read by the calling user, <code>false</code>
+     * otherwise.
      */
     boolean isAccessible(String path);
 
@@ -85,12 +86,10 @@ public interface Filter {
     boolean containsNativeConstraint();
 
     /**
-     * Get the most restrictive property restriction for the given property, if
-     * any.
+     * Get the most restrictive property restriction for the given property, if any.
      *
      * @param propertyName the property name
-     * @return the first restriction, or null if there is no restriction for
-     *         this property
+     * @return the first restriction, or null if there is no restriction for this property
      */
     PropertyRestriction getPropertyRestriction(String propertyName);
 
@@ -163,8 +162,7 @@ public interface Filter {
     Set<String> getMixinTypes();
 
     /**
-     * Get the complete query statement. The statement should only be used for
-     * logging purposes.
+     * Get the complete query statement. The statement should only be used for logging purposes.
      *
      * @return the query statement (possibly null)
      */
@@ -172,8 +170,8 @@ public interface Filter {
     String getQueryStatement();
 
     /**
-     * If the filter condition can not possibly match any row, due to a
-     * contradiction in the query (for example "x=1 and x=2").
+     * If the filter condition can not possibly match any row, due to a contradiction in the query
+     * (for example "x=1 and x=2").
      *
      * @return true if the filter condition can not match any row
      */
@@ -220,20 +218,19 @@ public interface Filter {
         public PropertyValue not;
 
         /**
-         * Whether this is a like constraint. in this case only the 'first'
-         * value should be taken into consideration
+         * Whether this is a like constraint. in this case only the 'first' value should be taken
+         * into consideration
          */
         public boolean isLike;
 
         /**
-         * A list of possible values, for conditions of the type
-         * "x=1 or x=2 or x=3".
+         * A list of possible values, for conditions of the type "x=1 or x=2 or x=3".
          */
         public List<PropertyValue> list;
 
         /**
-         * The property type, if restricted.
-         * If not restricted, this field is set to PropertyType.UNDEFINED.
+         * The property type, if restricted. If not restricted, this field is set to
+         * PropertyType.UNDEFINED.
          */
         public int propertyType = PropertyType.UNDEFINED;
 
@@ -242,7 +239,8 @@ public interface Filter {
         }
 
         public boolean isNotNullRestriction() {
-            return first == null && last == null && list == null && !lastIncluding && !firstIncluding && !isNot;
+            return first == null && last == null && list == null && !lastIncluding
+                && !firstIncluding && !isNot;
         }
 
         @Override
@@ -285,8 +283,7 @@ public interface Filter {
         /**
          * How restrictive a condition is.
          *
-         * @return 0 for "is not null", 10 for equality, and 5 for everything
-         *         else
+         * @return 0 for "is not null", 10 for equality, and 5 for everything else
          */
         public int sortOrder() {
             if (first == null && last == null) {
@@ -313,7 +310,7 @@ public interface Filter {
             result = prime * result + (lastIncluding ? 1231 : 1237);
             result = prime * result + ((list == null) ? 0 : list.hashCode());
             result = prime * result +
-                    ((propertyName == null) ? 0 : propertyName.hashCode());
+                ((propertyName == null) ? 0 : propertyName.hashCode());
             result = prime * result + propertyType;
             return result;
         }
@@ -412,8 +409,7 @@ public interface Filter {
         DIRECT_CHILDREN("/*"),
 
         /**
-         * All direct and indirect child nodes (excluding the node with the
-         * given path).
+         * All direct and indirect child nodes (excluding the node with the given path).
          */
         ALL_CHILDREN("//*");
 

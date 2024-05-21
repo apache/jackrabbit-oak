@@ -21,37 +21,35 @@ package org.apache.jackrabbit.oak.spi.state;
 import org.apache.jackrabbit.oak.api.PropertyState;
 
 /**
- * Helper class for comparing the equality of node states based on the
- * content diff mechanism.
+ * Helper class for comparing the equality of node states based on the content diff mechanism.
  */
 public class EqualsDiff implements NodeStateDiff {
 
     /**
-     * Diffs the given node states and returns {@code true} if there are no
-     * differences.
+     * Diffs the given node states and returns {@code true} if there are no differences.
      *
      * @param before before state
-     * @param after after state
+     * @param after  after state
      * @return {@code true} if the states are equal, {@code false} otherwise
      */
     public static boolean equals(NodeState before, NodeState after) {
         return before.exists() == after.exists()
-                && after.compareAgainstBaseState(before, new EqualsDiff());
+            && after.compareAgainstBaseState(before, new EqualsDiff());
     }
 
     /**
-     * Diffs the given node states and returns {@code true} if there are
-     * differences within the properties or direct child nodes.
+     * Diffs the given node states and returns {@code true} if there are differences within the
+     * properties or direct child nodes.
      *
      * @param before before state
-     * @param after after state
+     * @param after  after state
      * @return {@code true} if there are modifications, {@code false} otherwise
      */
     public static boolean modified(NodeState before, NodeState after) {
         return !after.compareAgainstBaseState(before, new EqualsDiff() {
             @Override
             public boolean childNodeChanged(
-                    String name, NodeState before, NodeState after) {
+                String name, NodeState before, NodeState after) {
                 return true;
             }
         });
@@ -79,7 +77,7 @@ public class EqualsDiff implements NodeStateDiff {
 
     @Override
     public boolean childNodeChanged(
-            String name, NodeState before, NodeState after) {
+        String name, NodeState before, NodeState after) {
         return after.compareAgainstBaseState(before, this);
     }
 

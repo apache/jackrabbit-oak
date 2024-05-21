@@ -24,11 +24,11 @@ import org.jetbrains.annotations.NotNull;
 public interface CommitValueResolver {
 
     /**
-     * Resolve a change revision on the given document and return the commit
-     * value for the change revision.
+     * Resolve a change revision on the given document and return the commit value for the change
+     * revision.
      *
      * @param changeRevision the revision for a change.
-     * @param doc the document with the change.
+     * @param doc            the document with the change.
      * @return the commit value of the revision.
      */
     String resolve(@NotNull Revision changeRevision, @NotNull NodeDocument doc);

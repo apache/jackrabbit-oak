@@ -25,7 +25,6 @@ import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.junit.Test;

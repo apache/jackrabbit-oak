@@ -16,17 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authentication.ldap.impl;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.directory.api.ldap.model.entry.Entry;
-import org.apache.directory.api.ldap.model.name.Dn;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
-import org.jetbrains.annotations.NotNull;
-import org.junit.Test;
-import org.mockito.invocation.InvocationOnMock;
-
-import java.util.Collection;
-import java.util.Map;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
@@ -35,6 +24,16 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
+
+import java.util.Collection;
+import java.util.Map;
+import org.apache.directory.api.ldap.model.entry.Entry;
+import org.apache.directory.api.ldap.model.name.Dn;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
+import org.jetbrains.annotations.NotNull;
+import org.junit.Test;
+import org.mockito.invocation.InvocationOnMock;
 
 public class LdapIdentityTest {
 
@@ -46,8 +45,11 @@ public class LdapIdentityTest {
 
     final LdapIdentity identity = mockIdentity(idp, ref, id, path, entry);
 
-    LdapIdentity mockIdentity(@NotNull LdapIdentityProvider idp, @NotNull ExternalIdentityRef ref, @NotNull String id, @NotNull String path, @NotNull Entry entry) {
-        return mock(LdapIdentity.class, withSettings().useConstructor(idp, ref, id, path, entry).defaultAnswer(InvocationOnMock::callRealMethod));
+    LdapIdentity mockIdentity(@NotNull LdapIdentityProvider idp, @NotNull ExternalIdentityRef ref,
+        @NotNull String id, @NotNull String path, @NotNull Entry entry) {
+        return mock(LdapIdentity.class, withSettings().useConstructor(idp, ref, id, path, entry)
+                                                      .defaultAnswer(
+                                                          InvocationOnMock::callRealMethod));
     }
 
     @Test
@@ -61,7 +63,8 @@ public class LdapIdentityTest {
         Dn dn = when(mock(Dn.class).getName()).thenReturn("dn").getMock();
         when(entry.getDn()).thenReturn(dn);
 
-        Map<String, ExternalIdentityRef> groupRefs = ImmutableMap.of("gr", mock(ExternalIdentityRef.class));
+        Map<String, ExternalIdentityRef> groupRefs = ImmutableMap.of("gr",
+            mock(ExternalIdentityRef.class));
         when(idp.getDeclaredGroupRefs(ref, "dn")).thenReturn(groupRefs);
 
         Collection<ExternalIdentityRef> expected = groupRefs.values();
@@ -76,7 +79,11 @@ public class LdapIdentityTest {
     public void testToString() {
         String s = identity.toString();
         assertNotNull(s);
-        assertEquals(s, mock(LdapIdentity.class, withSettings().useConstructor(null, ref, id, null, null).defaultAnswer(InvocationOnMock::callRealMethod)).toString());
-        assertNotEquals(s, mock(LdapIdentity.class, withSettings().useConstructor(idp, ref, "otherId", path, entry).defaultAnswer(InvocationOnMock::callRealMethod)).toString());
+        assertEquals(s, mock(LdapIdentity.class,
+            withSettings().useConstructor(null, ref, id, null, null)
+                          .defaultAnswer(InvocationOnMock::callRealMethod)).toString());
+        assertNotEquals(s, mock(LdapIdentity.class,
+            withSettings().useConstructor(idp, ref, "otherId", path, entry)
+                          .defaultAnswer(InvocationOnMock::callRealMethod)).toString());
     }
 }

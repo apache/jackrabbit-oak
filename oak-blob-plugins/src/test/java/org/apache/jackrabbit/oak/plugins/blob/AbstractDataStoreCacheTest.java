@@ -39,7 +39,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.core.data.DataIdentifier;
@@ -47,6 +46,9 @@ import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.util.NamedThreadFactory;
 import org.apache.jackrabbit.guava.common.cache.CacheLoader;
+import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Maps;
+import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.jackrabbit.guava.common.util.concurrent.AbstractListeningExecutorService;
 import org.apache.jackrabbit.guava.common.util.concurrent.FutureCallback;
 import org.apache.jackrabbit.guava.common.util.concurrent.Futures;
@@ -60,17 +62,15 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.guava.common.io.Files;
-
 /**
  * Abstract class for DataStore cache related tests.
  */
 public class AbstractDataStoreCacheTest {
+
     static final Logger LOG = LoggerFactory.getLogger(AbstractDataStoreCacheTest.class);
 
     static class TestStagingUploader implements StagingUploader {
+
         private final File root;
         private CountDownLatch adoptLatch;
 
@@ -85,7 +85,8 @@ public class AbstractDataStoreCacheTest {
             this.adoptLatch = adoptLatch;
         }
 
-        @Override public void write(String id, File f) throws DataStoreException {
+        @Override
+        public void write(String id, File f) throws DataStoreException {
             try {
                 File move = getFile(id, root);
                 move.getParentFile().mkdirs();
@@ -96,7 +97,8 @@ public class AbstractDataStoreCacheTest {
             }
         }
 
-        @Override public void adopt(File f, File moved) throws IOException {
+        @Override
+        public void adopt(File f, File moved) throws IOException {
             try {
                 if (adoptLatch != null) {
                     adoptLatch.await();
@@ -114,6 +116,7 @@ public class AbstractDataStoreCacheTest {
 
 
     static class TestCacheLoader<S, I> extends CacheLoader<String, FileInputStream> {
+
         protected File root;
 
         public TestCacheLoader(File dir) {
@@ -132,7 +135,8 @@ public class AbstractDataStoreCacheTest {
             }
         }
 
-        @Override public FileInputStream load(@NotNull String key) throws Exception {
+        @Override
+        public FileInputStream load(@NotNull String key) throws Exception {
             return FileUtils.openInputStream(getFile(key, root));
         }
     }
@@ -142,6 +146,7 @@ public class AbstractDataStoreCacheTest {
      * Throws error after reading partially defined by max
      */
     private static class ErrorInputStream extends FileInputStream {
+
         private long bytesread;
         private long max;
 
@@ -165,6 +170,7 @@ public class AbstractDataStoreCacheTest {
      * Test loader which uses the ErrorInputStream for load
      */
     static class TestErrorCacheLoader<S, I> extends TestCacheLoader<String, FileInputStream> {
+
         private long max;
 
         public TestErrorCacheLoader(File dir, long max) {
@@ -181,12 +187,14 @@ public class AbstractDataStoreCacheTest {
             this.max = max;
         }
 
-        @Override public FileInputStream load(@NotNull String key) throws Exception {
+        @Override
+        public FileInputStream load(@NotNull String key) throws Exception {
             return new ErrorInputStream(getFile(key, root), max);
         }
     }
 
     static class TestPoolExecutor extends ThreadPoolExecutor {
+
         private final CountDownLatch beforeLatch;
         private final CountDownLatch afterLatch;
 
@@ -197,7 +205,8 @@ public class AbstractDataStoreCacheTest {
             this.afterLatch = afterLatch;
         }
 
-        @Override public void beforeExecute(Thread t, Runnable command) {
+        @Override
+        public void beforeExecute(Thread t, Runnable command) {
             try {
                 LOG.trace("Before execution....waiting for latch");
                 beforeLatch.await();
@@ -209,7 +218,8 @@ public class AbstractDataStoreCacheTest {
             }
         }
 
-        @Override protected void afterExecute(Runnable r, Throwable t) {
+        @Override
+        protected void afterExecute(Runnable r, Throwable t) {
             try {
                 LOG.trace("After execution....counting down latch");
                 afterLatch.countDown();
@@ -224,6 +234,7 @@ public class AbstractDataStoreCacheTest {
 
 
     static class TestExecutor extends AbstractListeningExecutorService {
+
         private final CountDownLatch afterLatch;
         private final ExecutorService delegate;
         final List<ListenableFuture<Integer>> futures;
@@ -235,51 +246,63 @@ public class AbstractDataStoreCacheTest {
             this.afterLatch = afterLatch;
         }
 
-        @Override @NotNull public ListenableFuture<?> submit(@NotNull Callable task) {
+        @Override
+        @NotNull
+        public ListenableFuture<?> submit(@NotNull Callable task) {
             LOG.trace("Before submitting to super....");
             ListenableFuture<Integer> submit = super.submit(task);
             LOG.trace("After submitting to super....");
 
             futures.add(submit);
-            Futures.addCallback(submit, new TestFutureCallback<Integer>(afterLatch), MoreExecutors.directExecutor());
+            Futures.addCallback(submit, new TestFutureCallback<Integer>(afterLatch),
+                MoreExecutors.directExecutor());
             LOG.trace("Added callback");
 
             return submit;
         }
 
-        @Override public void execute(@NotNull Runnable command) {
+        @Override
+        public void execute(@NotNull Runnable command) {
             delegate.execute(command);
         }
 
-        @Override public void shutdown() {
+        @Override
+        public void shutdown() {
             delegate.shutdown();
         }
 
-        @Override @NotNull public List<Runnable> shutdownNow() {
+        @Override
+        @NotNull
+        public List<Runnable> shutdownNow() {
             return delegate.shutdownNow();
         }
 
-        @Override public boolean isShutdown() {
+        @Override
+        public boolean isShutdown() {
             return delegate.isShutdown();
         }
 
-        @Override public boolean isTerminated() {
+        @Override
+        public boolean isTerminated() {
             return delegate.isTerminated();
         }
 
-        @Override public boolean awaitTermination(long timeout, @NotNull TimeUnit unit)
+        @Override
+        public boolean awaitTermination(long timeout, @NotNull TimeUnit unit)
             throws InterruptedException {
             return delegate.awaitTermination(timeout, unit);
         }
 
         static class TestFutureCallback<Integer> implements FutureCallback {
+
             private final CountDownLatch latch;
 
             public TestFutureCallback(CountDownLatch latch) {
                 this.latch = latch;
             }
 
-            @Override public void onSuccess(@Nullable Object result) {
+            @Override
+            public void onSuccess(@Nullable Object result) {
                 try {
                     LOG.trace("Waiting for latch in callback");
                     latch.await(100, TimeUnit.MILLISECONDS);
@@ -289,7 +312,8 @@ public class AbstractDataStoreCacheTest {
                 }
             }
 
-            @Override public void onFailure(@NotNull Throwable t) {
+            @Override
+            public void onFailure(@NotNull Throwable t) {
                 try {
                     LOG.trace("Waiting for latch onFailure in callback");
                     latch.await(100, TimeUnit.MILLISECONDS);
@@ -304,6 +328,7 @@ public class AbstractDataStoreCacheTest {
     // A mock Backend implementation that uses a Map to keep track of what
     // records have been added and removed, for test purposes only.
     static class TestMemoryBackend extends AbstractSharedBackend {
+
         final Map<DataIdentifier, File> _backend = Maps.newHashMap();
         private final File root;
 
@@ -311,7 +336,8 @@ public class AbstractDataStoreCacheTest {
             this.root = root;
         }
 
-        @Override public InputStream read(DataIdentifier identifier) throws DataStoreException {
+        @Override
+        public InputStream read(DataIdentifier identifier) throws DataStoreException {
             try {
                 return new FileInputStream(_backend.get(identifier));
             } catch (FileNotFoundException e) {
@@ -319,7 +345,8 @@ public class AbstractDataStoreCacheTest {
             }
         }
 
-        @Override public void write(DataIdentifier identifier, File file)
+        @Override
+        public void write(DataIdentifier identifier, File file)
             throws DataStoreException {
             File backendFile = getFile(identifier.toString(), root);
             if (file != null && file.exists()) {
@@ -331,19 +358,22 @@ public class AbstractDataStoreCacheTest {
                 _backend.put(identifier, backendFile);
             } else {
                 throw new DataStoreException(
-                    String.format("file %s of id %s", new Object[] {file, identifier.toString()}));
+                    String.format("file %s of id %s", new Object[]{file, identifier.toString()}));
             }
         }
 
-        @Override public DataRecord getRecord(DataIdentifier id) throws DataStoreException {
+        @Override
+        public DataRecord getRecord(DataIdentifier id) throws DataStoreException {
             if (_backend.containsKey(id)) {
                 final File f = _backend.get(id);
                 return new AbstractDataRecord(this, id) {
-                    @Override public long getLength() throws DataStoreException {
+                    @Override
+                    public long getLength() throws DataStoreException {
                         return f.length();
                     }
 
-                    @Override public InputStream getStream() throws DataStoreException {
+                    @Override
+                    public InputStream getStream() throws DataStoreException {
                         try {
                             return new FileInputStream(f);
                         } catch (FileNotFoundException e) {
@@ -352,7 +382,8 @@ public class AbstractDataStoreCacheTest {
                         return null;
                     }
 
-                    @Override public long getLastModified() {
+                    @Override
+                    public long getLastModified() {
                         return f.lastModified();
                     }
                 };
@@ -360,54 +391,67 @@ public class AbstractDataStoreCacheTest {
             return null;
         }
 
-        @Override public Iterator<DataIdentifier> getAllIdentifiers() throws DataStoreException {
+        @Override
+        public Iterator<DataIdentifier> getAllIdentifiers() throws DataStoreException {
             return _backend.keySet().iterator();
         }
 
-        @Override public Iterator<DataRecord> getAllRecords() throws DataStoreException {
+        @Override
+        public Iterator<DataRecord> getAllRecords() throws DataStoreException {
             return null;
         }
 
-        @Override public boolean exists(DataIdentifier identifier) throws DataStoreException {
+        @Override
+        public boolean exists(DataIdentifier identifier) throws DataStoreException {
             return _backend.containsKey(identifier);
         }
 
-        @Override public void close() throws DataStoreException {
+        @Override
+        public void close() throws DataStoreException {
         }
 
-        @Override public void deleteRecord(DataIdentifier identifier) throws DataStoreException {
+        @Override
+        public void deleteRecord(DataIdentifier identifier) throws DataStoreException {
             if (_backend.containsKey(identifier)) {
                 _backend.remove(identifier);
             }
         }
 
-        @Override public void addMetadataRecord(InputStream input, String name)
+        @Override
+        public void addMetadataRecord(InputStream input, String name)
             throws DataStoreException {
         }
 
-        @Override public void addMetadataRecord(File input, String name) throws DataStoreException {
+        @Override
+        public void addMetadataRecord(File input, String name) throws DataStoreException {
         }
 
-        @Override public DataRecord getMetadataRecord(String name) {
+        @Override
+        public DataRecord getMetadataRecord(String name) {
             return null;
         }
 
-        @Override public List<DataRecord> getAllMetadataRecords(String prefix) {
+        @Override
+        public List<DataRecord> getAllMetadataRecords(String prefix) {
             return null;
         }
 
-        @Override public boolean deleteMetadataRecord(String name) {
+        @Override
+        public boolean deleteMetadataRecord(String name) {
             return false;
         }
 
-        @Override public void deleteAllMetadataRecords(String prefix) {
+        @Override
+        public void deleteAllMetadataRecords(String prefix) {
         }
 
-        @Override public boolean metadataRecordExists(String name) {
+        @Override
+        public boolean metadataRecordExists(String name) {
             return false;
         }
 
-        @Override public void init() throws DataStoreException {
+        @Override
+        public void init() throws DataStoreException {
 
         }
 
@@ -436,7 +480,7 @@ public class AbstractDataStoreCacheTest {
         return file;
     }
 
-    static void serializeMap(Map<String,Long> pendingupload, File file) throws IOException {
+    static void serializeMap(Map<String, Long> pendingupload, File file) throws IOException {
         OutputStream fos = new FileOutputStream(file);
         OutputStream buffer = new BufferedOutputStream(fos);
         ObjectOutput output = new ObjectOutputStream(buffer);

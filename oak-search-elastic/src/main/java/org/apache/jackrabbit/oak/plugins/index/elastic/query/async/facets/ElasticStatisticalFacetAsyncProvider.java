@@ -26,15 +26,6 @@ import co.elastic.clients.elasticsearch.core.search.Hit;
 import co.elastic.clients.elasticsearch.core.search.SourceConfig;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
-import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
-import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticRequestHandler;
-import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticResponseHandler;
-import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
-import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -46,15 +37,25 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
+import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticRequestHandler;
+import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticResponseHandler;
+import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
+import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
- * An {@link ElasticFacetProvider} extension that performs random sampling on the result set to compute facets.
- * SearchHit events are sampled and then used to adjust facets coming from Aggregations in order to minimize
- * access checks. This provider could improve facets performance especially when the result set is quite big.
+ * An {@link ElasticFacetProvider} extension that performs random sampling on the result set to
+ * compute facets. SearchHit events are sampled and then used to adjust facets coming from
+ * Aggregations in order to minimize access checks. This provider could improve facets performance
+ * especially when the result set is quite big.
  */
 public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvider {
 
-    private static final Logger LOG = LoggerFactory.getLogger(ElasticStatisticalFacetAsyncProvider.class);
+    private static final Logger LOG = LoggerFactory.getLogger(
+        ElasticStatisticalFacetAsyncProvider.class);
 
     private final ElasticResponseHandler elasticResponseHandler;
     private final Predicate<String> isAccessible;
@@ -66,9 +67,10 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
     private int sampled;
     private long totalHits;
 
-    ElasticStatisticalFacetAsyncProvider(ElasticConnection connection, ElasticIndexDefinition indexDefinition,
-                                         ElasticRequestHandler elasticRequestHandler, ElasticResponseHandler elasticResponseHandler,
-                                         Predicate<String> isAccessible, long randomSeed, int sampleSize) {
+    ElasticStatisticalFacetAsyncProvider(ElasticConnection connection,
+        ElasticIndexDefinition indexDefinition,
+        ElasticRequestHandler elasticRequestHandler, ElasticResponseHandler elasticResponseHandler,
+        Predicate<String> isAccessible, long randomSeed, int sampleSize) {
 
         this.elasticResponseHandler = elasticResponseHandler;
         this.isAccessible = isAccessible;
@@ -76,20 +78,24 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
 
         BoolQuery.Builder builder = elasticRequestHandler.baseQueryBuilder();
         builder.should(sb -> sb.functionScore(fsb ->
-                fsb.functions(f -> f.randomScore(rsb -> rsb.seed("" + randomSeed).field(FieldNames.PATH)))
+            fsb.functions(
+                f -> f.randomScore(rsb -> rsb.seed("" + randomSeed).field(FieldNames.PATH)))
         ));
 
-        SearchRequest searchRequest = SearchRequest.of(srb -> srb.index(indexDefinition.getIndexAlias())
-                .trackTotalHits(thb -> thb.enabled(true))
-                .source(SourceConfig.of(scf -> scf.filter(ff -> ff.includes(FieldNames.PATH).includes(new ArrayList<>(facetFields)))))
-                .query(Query.of(qb -> qb.bool(builder.build())))
-                .aggregations(elasticRequestHandler.aggregations())
-                .size(sampleSize)
+        SearchRequest searchRequest = SearchRequest.of(
+            srb -> srb.index(indexDefinition.getIndexAlias())
+                      .trackTotalHits(thb -> thb.enabled(true))
+                      .source(SourceConfig.of(scf -> scf.filter(ff -> ff.includes(FieldNames.PATH)
+                                                                        .includes(new ArrayList<>(
+                                                                            facetFields)))))
+                      .query(Query.of(qb -> qb.bool(builder.build())))
+                      .aggregations(elasticRequestHandler.aggregations())
+                      .size(sampleSize)
         );
 
         LOG.trace("Kicking search query with random sampling {}", searchRequest);
         CompletableFuture<SearchResponse<ObjectNode>> searchFuture =
-                connection.getAsyncClient().search(searchRequest, ObjectNode.class);
+            connection.getAsyncClient().search(searchRequest, ObjectNode.class);
 
         searchFuture.whenCompleteAsync((searchResponse, throwable) -> {
             try {
@@ -152,8 +158,9 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
         for (String field : facetFields) {
             List<StringTermsBucket> buckets = aggregations.get(field).sterms().buckets().array();
             allFacets.put(field, buckets.stream()
-                    .map(b -> new FulltextIndex.Facet(b.key().stringValue(), (int) b.docCount()))
-                    .collect(Collectors.toList())
+                                        .map(b -> new FulltextIndex.Facet(b.key().stringValue(),
+                                            (int) b.docCount()))
+                                        .collect(Collectors.toList())
             );
         }
     }
@@ -165,30 +172,41 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
                 List<FulltextIndex.Facet> uncheckedFacet = allFacets.get(facetKey);
                 for (FulltextIndex.Facet facet : uncheckedFacet) {
                     if (accessibleFacet.containsKey(facet.getLabel())) {
-                        double sampleProportion = (double) accessibleFacet.get(facet.getLabel()) / sampled;
+                        double sampleProportion =
+                            (double) accessibleFacet.get(facet.getLabel()) / sampled;
                         // returned count is the minimum between the accessible count and the count computed from the sample
-                        accessibleFacet.put(facet.getLabel(), Math.min(facet.getCount(), (int) (sampleProportion * totalHits)));
+                        accessibleFacet.put(facet.getLabel(),
+                            Math.min(facet.getCount(), (int) (sampleProportion * totalHits)));
                     }
                 }
             }
         }
         // create Facet objects, order by count (desc) and then by label (asc)
         facets = accessibleFacetCounts.entrySet()
-                .stream()
-                .collect(Collectors.toMap
-                        (Map.Entry::getKey, x -> x.getValue().entrySet()
-                                .stream()
-                                .map(e -> new FulltextIndex.Facet(e.getKey(), e.getValue()))
-                                .sorted((f1, f2) -> {
-                                    int f1Count = f1.getCount();
-                                    int f2Count = f2.getCount();
-                                    if (f1Count == f2Count) {
-                                        return f1.getLabel().compareTo(f2.getLabel());
-                                    } else return f2Count - f1Count;
-                                })
-                                .collect(Collectors.toList())
-                        )
-                );
+                                      .stream()
+                                      .collect(Collectors.toMap
+                                                             (Map.Entry::getKey,
+                                                                 x -> x.getValue().entrySet()
+                                                                       .stream()
+                                                                       .map(
+                                                                           e -> new FulltextIndex.Facet(
+                                                                               e.getKey(),
+                                                                               e.getValue()))
+                                                                       .sorted((f1, f2) -> {
+                                                                           int f1Count = f1.getCount();
+                                                                           int f2Count = f2.getCount();
+                                                                           if (f1Count == f2Count) {
+                                                                               return f1.getLabel()
+                                                                                        .compareTo(
+                                                                                            f2.getLabel());
+                                                                           } else {
+                                                                               return f2Count
+                                                                                   - f1Count;
+                                                                           }
+                                                                       })
+                                                                       .collect(Collectors.toList())
+                                                             )
+                                      );
         LOG.trace("Statistical facets {}", facets);
     }
 

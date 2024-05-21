@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.plugins.document.persistentCache.async;
 
 import java.util.Map;
-
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCache;
 
@@ -28,7 +27,7 @@ import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCach
  * @param <V> value type
  */
 class PutToCacheAction<K extends CacheValue, V extends CacheValue>
-        implements CacheAction {
+    implements CacheAction {
 
     private final PersistentCache cache;
 

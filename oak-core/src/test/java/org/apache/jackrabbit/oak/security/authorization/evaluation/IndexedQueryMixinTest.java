@@ -16,15 +16,14 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.evaluation;
 
+import static org.junit.Assert.assertTrue;
+
+import javax.jcr.RepositoryException;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
-
-import javax.jcr.RepositoryException;
-
-import static org.junit.Assert.assertTrue;
 
 public class IndexedQueryMixinTest extends AbstractQueryTest {
 

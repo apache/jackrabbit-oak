@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.plugins.document.rdb;
 import static org.apache.jackrabbit.guava.common.base.Suppliers.memoize;
 
 import javax.sql.DataSource;
-
 import org.apache.jackrabbit.oak.plugins.blob.ReferencedBlob;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
@@ -31,7 +30,7 @@ import org.apache.jackrabbit.oak.plugins.document.VersionGCSupport;
  * A builder for a {@link DocumentNodeStore} backed by a relational database.
  */
 public class RDBDocumentNodeStoreBuilder
-        extends DocumentNodeStoreBuilder<RDBDocumentNodeStoreBuilder> {
+    extends DocumentNodeStoreBuilder<RDBDocumentNodeStoreBuilder> {
 
     /**
      * @return a new {@link RDBDocumentNodeStoreBuilder}.
@@ -41,8 +40,7 @@ public class RDBDocumentNodeStoreBuilder
     }
 
     /**
-     * Sets a {@link DataSource} to use for the RDB document and blob
-     * stores.
+     * Sets a {@link DataSource} to use for the RDB document and blob stores.
      *
      * @return this
      */
@@ -52,8 +50,8 @@ public class RDBDocumentNodeStoreBuilder
     }
 
     /**
-     * Sets a {@link DataSource} to use for the RDB document and blob
-     * stores, including {@link RDBOptions}.
+     * Sets a {@link DataSource} to use for the RDB document and blob stores, including
+     * {@link RDBOptions}.
      *
      * @return this
      */
@@ -63,26 +61,29 @@ public class RDBDocumentNodeStoreBuilder
     }
 
     /**
-     * Sets a {@link DataSource}s to use for the RDB document and blob
-     * stores.
+     * Sets a {@link DataSource}s to use for the RDB document and blob stores.
      *
      * @return this
      */
-    public RDBDocumentNodeStoreBuilder setRDBConnection(DataSource documentStoreDataSource, DataSource blobStoreDataSource) {
+    public RDBDocumentNodeStoreBuilder setRDBConnection(DataSource documentStoreDataSource,
+        DataSource blobStoreDataSource) {
         setRDBConnection(documentStoreDataSource, blobStoreDataSource, new RDBOptions());
         return thisBuilder();
     }
 
     /**
-     * Sets a {@link DataSource}s to use for the RDB document and blob
-     * stores, including {@link RDBOptions}.
+     * Sets a {@link DataSource}s to use for the RDB document and blob stores, including
+     * {@link RDBOptions}.
      *
      * @return this
      */
-    public RDBDocumentNodeStoreBuilder setRDBConnection(DataSource documentStoreDataSource, DataSource blobStoreDataSource, RDBOptions options) {
-        this.documentStoreSupplier = memoize(() -> new RDBDocumentStore(documentStoreDataSource, this, options));
+    public RDBDocumentNodeStoreBuilder setRDBConnection(DataSource documentStoreDataSource,
+        DataSource blobStoreDataSource, RDBOptions options) {
+        this.documentStoreSupplier = memoize(
+            () -> new RDBDocumentStore(documentStoreDataSource, this, options));
         if (this.blobStoreSupplier == null) {
-            this.blobStoreSupplier = memoize(() -> new RDBBlobStore(blobStoreDataSource, this, options));
+            this.blobStoreSupplier = memoize(
+                () -> new RDBBlobStore(blobStoreDataSource, this, options));
         }
         return thisBuilder();
     }

@@ -18,10 +18,10 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
+import static java.util.Arrays.fill;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-import static java.util.Arrays.fill;
 import static org.apache.jackrabbit.oak.commons.IOUtils.closeQuietly;
 import static org.apache.jackrabbit.oak.segment.CacheWeights.OBJECT_HEADER_SIZE;
 import static org.apache.jackrabbit.oak.segment.RecordNumbers.EMPTY_RECORD_NUMBERS;
@@ -39,11 +39,10 @@ import java.io.PrintStream;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.UUID;
-
-import org.apache.jackrabbit.guava.common.base.Charsets;
-import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 import org.apache.commons.io.HexDump;
 import org.apache.commons.io.output.ByteArrayOutputStream;
+import org.apache.jackrabbit.guava.common.base.Charsets;
+import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.Buffer;
@@ -60,8 +59,8 @@ import org.jetbrains.annotations.Nullable;
 /**
  * A list of records.
  * <p>
- * Record data is not kept in memory, but some entries are cached (templates,
- * all strings in the segment).
+ * Record data is not kept in memory, but some entries are cached (templates, all strings in the
+ * segment).
  * <p>
  * This class includes method to read records from the raw bytes.
  */
@@ -75,21 +74,19 @@ public class Segment {
     static final int SEGMENT_REFERENCE_SIZE = 16;
 
     /**
-     * Size of a line in the table mapping record numbers to their type and
-     * offset.
+     * Size of a line in the table mapping record numbers to their type and offset.
      */
     static final int RECORD_SIZE = 9;
 
     /**
-     * Number of bytes used for storing a record identifier. Two bytes
-     * are used for identifying the segment and four for the record offset
-     * within that segment.
+     * Number of bytes used for storing a record identifier. Two bytes are used for identifying the
+     * segment and four for the record offset within that segment.
      */
     static final int RECORD_ID_BYTES = 2 + 4;
 
     /**
-     * The number of bytes (or bits of address space) to use for the
-     * alignment boundary of segment records.
+     * The number of bytes (or bits of address space) to use for the alignment boundary of segment
+     * records.
      */
     static final int RECORD_ALIGN_BITS = 2; // align at the four-byte boundary
 
@@ -99,27 +96,25 @@ public class Segment {
     static final int MAX_SEGMENT_SIZE = 1 << 18; // 256kB
 
     /**
-     * The size limit for small values. The variable length of small values
-     * is encoded as a single byte with the high bit as zero, which gives us
-     * seven bits for encoding the length of the value.
+     * The size limit for small values. The variable length of small values is encoded as a single
+     * byte with the high bit as zero, which gives us seven bits for encoding the length of the
+     * value.
      */
     static final int SMALL_LIMIT = 1 << 7;
 
     /**
-     * The size limit for medium values. The variable length of medium values
-     * is encoded as two bytes with the highest bits of the first byte set to
-     * one and zero, which gives us 14 bits for encoding the length of the
-     * value. And since small values are never stored as medium ones, we can
-     * extend the size range to cover that many longer values.
+     * The size limit for medium values. The variable length of medium values is encoded as two
+     * bytes with the highest bits of the first byte set to one and zero, which gives us 14 bits for
+     * encoding the length of the value. And since small values are never stored as medium ones, we
+     * can extend the size range to cover that many longer values.
      */
     public static final int MEDIUM_LIMIT = (1 << (16 - 2)) + SMALL_LIMIT;
-    
+
     /**
-     * Maximum size of small blob IDs. A small blob ID is stored in a value
-     * record whose length field contains the pattern "1110" in its most
-     * significant bits. Since two bytes are used to store both the bit pattern
-     * and the actual length of the blob ID, a maximum of 2^12 values can be
-     * stored in the length field.
+     * Maximum size of small blob IDs. A small blob ID is stored in a value record whose length
+     * field contains the pattern "1110" in its most significant bits. Since two bytes are used to
+     * store both the bit pattern and the actual length of the blob ID, a maximum of 2^12 values can
+     * be stored in the length field.
      */
     static final int BLOB_ID_SMALL_LIMIT = 1 << 12;
 
@@ -158,10 +153,10 @@ public class Segment {
     /**
      * Align an {@code address} on the given {@code boundary}
      *
-     * @param address     address to align
-     * @param boundary    boundary to align to
-     * @return  {@code n = address + a} such that {@code n % boundary == 0} and
-     *          {@code 0 <= a < boundary}.
+     * @param address  address to align
+     * @param boundary boundary to align to
+     * @return {@code n = address + a} such that {@code n % boundary == 0} and
+     * {@code 0 <= a < boundary}.
      */
     static int align(int address, int boundary) {
         return (address + boundary - 1) & ~(boundary - 1);
@@ -190,22 +185,24 @@ public class Segment {
     }
 
     public Segment(@NotNull SegmentIdProvider idProvider,
-                   @NotNull SegmentReader reader,
-                   @NotNull final SegmentId id,
+        @NotNull SegmentReader reader,
+        @NotNull final SegmentId id,
         @NotNull final Buffer data) {
         this.reader = checkNotNull(reader);
         this.id = checkNotNull(id);
         if (id.isDataSegmentId()) {
             this.data = newSegmentData(checkNotNull(data).slice());
             byte segmentVersion = this.data.getVersion();
-            checkState(this.data.getSignature().equals("0aK") && isValid(segmentVersion), new Object() {
+            checkState(this.data.getSignature().equals("0aK") && isValid(segmentVersion),
+                new Object() {
 
                     @Override
                     public String toString() {
-                        return String.format("Invalid segment format. Dumping segment %s\n%s", id, toHex(data.array()));
+                        return String.format("Invalid segment format. Dumping segment %s\n%s", id,
+                            toHex(data.array()));
                     }
 
-            });
+                });
             this.version = SegmentVersion.fromByte(segmentVersion);
             this.recordNumbers = readRecordNumberOffsets();
             this.segmentReferences = readReferencedSegments(idProvider);
@@ -257,7 +254,8 @@ public class Segment {
     }
 
     private SegmentReferences readReferencedSegments(final SegmentIdProvider idProvider) {
-        checkState(getReferencedSegmentIdCount() + 1 < 0xffff, "Segment cannot have more than 0xffff references");
+        checkState(getReferencedSegmentIdCount() + 1 < 0xffff,
+            "Segment cannot have more than 0xffff references");
 
         final int referencedSegmentIdCount = getReferencedSegmentIdCount();
 
@@ -276,7 +274,8 @@ public class Segment {
 
             @Override
             public SegmentId getSegmentId(int reference) {
-                checkArgument(reference <= referencedSegmentIdCount, "Segment reference out of bounds");
+                checkArgument(reference <= referencedSegmentIdCount,
+                    "Segment reference out of bounds");
                 SegmentId id = refIds[reference - 1];
                 if (id == null) {
                     synchronized (refIds) {
@@ -335,25 +334,27 @@ public class Segment {
     }
 
     /**
-     * Determine the gc generation a segment from its data. Note that bulk
-     * segments don't have generations (i.e. stay at 0).
+     * Determine the gc generation a segment from its data. Note that bulk segments don't have
+     * generations (i.e. stay at 0).
      *
      * @param data      the data of the segment
      * @param segmentId the id of the segment
-     * @return the gc generation of this segment or {@link GCGeneration#NULL} if
-     * this is bulk segment.
+     * @return the gc generation of this segment or {@link GCGeneration#NULL} if this is bulk
+     * segment.
      */
     public static GCGeneration getGcGeneration(SegmentData data, UUID segmentId) {
         if (isDataSegmentId(segmentId.getLeastSignificantBits())) {
-            return newGCGeneration(data.getGeneration(), data.getFullGeneration(), data.isCompacted());
+            return newGCGeneration(data.getGeneration(), data.getFullGeneration(),
+                data.isCompacted());
         }
         return GCGeneration.NULL;
     }
 
     /**
-     * Determine the gc generation of this segment. Note that bulk segments don't have
-     * generations (i.e. stay at 0).
-     * @return  the gc generation of this segment or 0 if this is bulk segment.
+     * Determine the gc generation of this segment. Note that bulk segments don't have generations
+     * (i.e. stay at 0).
+     *
+     * @return the gc generation of this segment or 0 if this is bulk segment.
      */
     @NotNull
     public GCGeneration getGcGeneration() {
@@ -365,8 +366,7 @@ public class Segment {
     /**
      * Returns the segment meta data of this segment or {@code null} if none is present.
      * <p>
-     * The segment meta data is a string of the format {@code "{wid=W,sno=S,gc=G,t=T}"}
-     * where:
+     * The segment meta data is a string of the format {@code "{wid=W,sno=S,gc=G,t=T}"} where:
      * <ul>
      * <li>{@code W} is the writer id {@code wid}, </li>
      * <li>{@code S} is a unique, increasing sequence number corresponding to the allocation order
@@ -375,6 +375,7 @@ public class Segment {
      * that have been run),</li>
      * <li>{@code T} is a time stamp according to {@link System#currentTimeMillis()}.</li>
      * </ul>
+     *
      * @return the segment meta data
      */
     @Nullable
@@ -423,9 +424,11 @@ public class Segment {
 
     @NotNull
     RecordId readRecordId(int recordNumber, int rawOffset, int recordIdOffset) {
-        int offset = recordNumbers.getOffset(recordNumber) + rawOffset + recordIdOffset * RecordIdData.BYTES;
+        int offset =
+            recordNumbers.getOffset(recordNumber) + rawOffset + recordIdOffset * RecordIdData.BYTES;
         RecordIdData recordIdData = data.readRecordId(offset);
-        return new RecordId(dereferenceSegmentId(recordIdData.getSegmentReference()), recordIdData.getRecordNumber());
+        return new RecordId(dereferenceSegmentId(recordIdData.getSegmentReference()),
+            recordIdData.getRecordNumber());
     }
 
     RecordId readRecordId(int recordNumber, int rawOffset) {
@@ -462,8 +465,10 @@ public class Segment {
         if (data.isRecordId()) {
             SegmentId segmentId = dereferenceSegmentId(data.getRecordId().getSegmentReference());
             RecordId recordId = new RecordId(segmentId, data.getRecordId().getRecordNumber());
-            ListRecord list = new ListRecord(recordId, (data.getLength() + BLOCK_SIZE - 1) / BLOCK_SIZE);
-            try (SegmentStream stream = new SegmentStream(new RecordId(id, recordNumber), list, data.getLength())) {
+            ListRecord list = new ListRecord(recordId,
+                (data.getLength() + BLOCK_SIZE - 1) / BLOCK_SIZE);
+            try (SegmentStream stream = new SegmentStream(new RecordId(id, recordNumber), list,
+                data.getLength())) {
                 return stream.getString();
             }
         }
@@ -487,7 +492,7 @@ public class Segment {
         if (hasPrimaryType) {
             RecordId primaryId = readRecordId(recordNumber, offset);
             primaryType = PropertyStates.createProperty(
-                    "jcr:primaryType", reader.readString(primaryId), Type.NAME);
+                "jcr:primaryType", reader.readString(primaryId), Type.NAME);
             offset += RECORD_ID_BYTES;
         }
 
@@ -496,11 +501,11 @@ public class Segment {
             String[] mixins = new String[mixinCount];
             for (int i = 0; i < mixins.length; i++) {
                 RecordId mixinId = readRecordId(recordNumber, offset);
-                mixins[i] =  reader.readString(mixinId);
+                mixins[i] = reader.readString(mixinId);
                 offset += RECORD_ID_BYTES;
             }
             mixinTypes = PropertyStates.createProperty(
-                    "jcr:mixinTypes", Arrays.asList(mixins), Type.NAMES);
+                "jcr:mixinTypes", Arrays.asList(mixins), Type.NAMES);
         }
 
         String childName = Template.ZERO_CHILD_NODES;
@@ -526,8 +531,8 @@ public class Segment {
             for (int i = 0; i < propertyCount; i++) {
                 byte type = readByte(recordNumber, offset++);
                 properties[i] = new PropertyTemplate(i,
-                        reader.readString(propertyNames.getEntry(i)), Type.fromTag(
-                                Math.abs(type), type < 0));
+                    reader.readString(propertyNames.getEntry(i)), Type.fromTag(
+                    Math.abs(type), type < 0));
             }
         }
         return properties;
@@ -568,8 +573,9 @@ public class Segment {
 
     /**
      * Convert an offset into an address.
+     *
      * @param offset
-     * @return  the address corresponding the {@code offset}
+     * @return the address corresponding the {@code offset}
      */
     public int getAddress(int offset) {
         return data.size() - (MAX_SEGMENT_SIZE - offset);
@@ -603,8 +609,7 @@ public class Segment {
     }
 
     /**
-     * Estimate of how much memory this instance would occupy in the segment
-     * cache.
+     * Estimate of how much memory this instance would occupy in the segment cache.
      */
     int estimateMemoryUsage() {
         int size = OBJECT_HEADER_SIZE + 76;

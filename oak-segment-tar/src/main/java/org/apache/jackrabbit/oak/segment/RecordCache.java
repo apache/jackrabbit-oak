@@ -21,11 +21,7 @@ package org.apache.jackrabbit.oak.segment;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.LongAdder;
-import java.util.LinkedHashMap;
-import java.util.Map;
-
 import org.apache.jackrabbit.guava.common.base.Supplier;
 import org.apache.jackrabbit.guava.common.cache.CacheBuilder;
 import org.apache.jackrabbit.guava.common.cache.CacheStats;
@@ -34,12 +30,14 @@ import org.apache.jackrabbit.guava.common.cache.Weigher;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Partial mapping of keys of type {@code K} to values of type {@link RecordId}. This is
- * typically used for de-duplicating values that have already been persisted and thus
- * already have a {@code RecordId}.
+ * Partial mapping of keys of type {@code K} to values of type {@link RecordId}. This is typically
+ * used for de-duplicating values that have already been persisted and thus already have a
+ * {@code RecordId}.
+ *
  * @param <K>
  */
 public abstract class RecordCache<K> implements Cache<K, RecordId> {
+
     /**
      * @return number of mappings
      */
@@ -53,18 +51,17 @@ public abstract class RecordCache<K> implements Cache<K, RecordId> {
     }
 
     /**
-     * @return  access statistics for this cache
+     * @return access statistics for this cache
      */
     @NotNull
     public abstract CacheStats getStats();
 
     /**
-     * Factory method for creating {@code RecordCache} instances. The returned
-     * instances are all thread safe. They implement a simple LRU behaviour where
-     * the least recently accessed mapping would be replaced when inserting a
-     * new mapping would exceed {@code size}.
+     * Factory method for creating {@code RecordCache} instances. The returned instances are all
+     * thread safe. They implement a simple LRU behaviour where the least recently accessed mapping
+     * would be replaced when inserting a new mapping would exceed {@code size}.
      *
-     * @return  A new {@code RecordCache} instance of the given {@code size}.
+     * @return A new {@code RecordCache} instance of the given {@code size}.
      */
     @NotNull
     public static <T> RecordCache<T> newRecordCache(int size) {
@@ -76,14 +73,15 @@ public abstract class RecordCache<K> implements Cache<K, RecordId> {
     }
 
     /**
-     * @param size size of the cache
-     * @param weigher   Needed to provide an estimation of the cache weight in memory
-     * @return  A factory returning {@code RecordCache} instances of the given {@code size}
-     *          when invoked.
+     * @param size    size of the cache
+     * @param weigher Needed to provide an estimation of the cache weight in memory
+     * @return A factory returning {@code RecordCache} instances of the given {@code size} when
+     * invoked.
      * @see #newRecordCache(int)
      */
     @NotNull
-    public static <T> Supplier<RecordCache<T>> factory(int size, @NotNull Weigher<T, RecordId> weigher) {
+    public static <T> Supplier<RecordCache<T>> factory(int size,
+        @NotNull Weigher<T, RecordId> weigher) {
         if (size <= 0) {
             return Empty.emptyFactory();
         } else {
@@ -93,8 +91,8 @@ public abstract class RecordCache<K> implements Cache<K, RecordId> {
 
     /**
      * @param size size of the cache
-     * @return  A factory returning {@code RecordCache} instances of the given {@code size}
-     *          when invoked.
+     * @return A factory returning {@code RecordCache} instances of the given {@code size} when
+     * invoked.
      * @see #newRecordCache(int)
      */
     @NotNull
@@ -107,6 +105,7 @@ public abstract class RecordCache<K> implements Cache<K, RecordId> {
     }
 
     private static class Empty<T> extends RecordCache<T> {
+
         @NotNull
         private final LongAdder missCount = new LongAdder();
 
@@ -120,7 +119,8 @@ public abstract class RecordCache<K> implements Cache<K, RecordId> {
         }
 
         @Override
-        public void put(@NotNull T key, @NotNull RecordId value) { }
+        public void put(@NotNull T key, @NotNull RecordId value) {
+        }
 
         @Override
         public RecordId get(@NotNull T key) {
@@ -140,6 +140,7 @@ public abstract class RecordCache<K> implements Cache<K, RecordId> {
     }
 
     private static class Default<K> extends RecordCache<K> {
+
         @NotNull
         private final org.apache.jackrabbit.guava.common.cache.Cache<K, RecordId> cache;
 
@@ -155,24 +156,26 @@ public abstract class RecordCache<K> implements Cache<K, RecordId> {
             CacheStats internalStats = cache.stats();
             // any addition to the cache counts as load by our definition
             return new CacheStats(internalStats.hitCount(), internalStats.missCount(),
-                    loadCount.sum(), 0, 0,  internalStats.evictionCount());
+                loadCount.sum(), 0, 0, internalStats.evictionCount());
         }
 
-        static <K> Supplier<RecordCache<K>> defaultFactory(final int size, @NotNull final Weigher<K, RecordId> weigher) {
+        static <K> Supplier<RecordCache<K>> defaultFactory(final int size,
+            @NotNull final Weigher<K, RecordId> weigher) {
             return () -> new Default<>(size, checkNotNull(weigher));
         }
 
         Default(final int size, @NotNull final Weigher<K, RecordId> weigher) {
             this.cache = CacheBuilder.newBuilder()
-                    .maximumSize(size * 4L / 3)
-                    .initialCapacity(size)
-                    .concurrencyLevel(4)
-                    .recordStats()
-                    .removalListener((RemovalListener<K, RecordId>) removal -> {
-                        int removedWeight = weigher.weigh(removal.getKey(), removal.getValue());
-                        weight.add(-removedWeight);
-                    })
-                    .build();
+                                     .maximumSize(size * 4L / 3)
+                                     .initialCapacity(size)
+                                     .concurrencyLevel(4)
+                                     .recordStats()
+                                     .removalListener((RemovalListener<K, RecordId>) removal -> {
+                                         int removedWeight = weigher.weigh(removal.getKey(),
+                                             removal.getValue());
+                                         weight.add(-removedWeight);
+                                     })
+                                     .build();
             this.weigher = weigher;
         }
 

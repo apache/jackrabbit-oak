@@ -21,7 +21,6 @@ import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.NodeDefinition;
 import javax.jcr.nodetype.PropertyDefinition;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.jetbrains.annotations.NotNull;
@@ -30,6 +29,7 @@ import org.osgi.annotation.versioning.ProviderType;
 
 @ProviderType
 public interface EffectiveNodeType {
+
     boolean includesNodeType(@NotNull String nodeTypeName);
 
     boolean includesNodeTypes(@NotNull String[] nodeTypeNames);
@@ -75,11 +75,14 @@ public interface EffectiveNodeType {
     void checkOrderableChildNodes() throws UnsupportedRepositoryOperationException;
 
     @NotNull
-    PropertyDefinition getPropertyDefinition(@NotNull String propertyName, boolean isMultiple, int type, boolean exactTypeMatch) throws ConstraintViolationException;
+    PropertyDefinition getPropertyDefinition(@NotNull String propertyName, boolean isMultiple,
+        int type, boolean exactTypeMatch) throws ConstraintViolationException;
 
     @Nullable
-    PropertyDefinition getPropertyDefinition(@NotNull String name, int type, boolean unknownMultiple);
+    PropertyDefinition getPropertyDefinition(@NotNull String name, int type,
+        boolean unknownMultiple);
 
     @NotNull
-    NodeDefinition getNodeDefinition(@NotNull String childName, @Nullable EffectiveNodeType childEffective) throws ConstraintViolationException;
+    NodeDefinition getNodeDefinition(@NotNull String childName,
+        @Nullable EffectiveNodeType childEffective) throws ConstraintViolationException;
 }

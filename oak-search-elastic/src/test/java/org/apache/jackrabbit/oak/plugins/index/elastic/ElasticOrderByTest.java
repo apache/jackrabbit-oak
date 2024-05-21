@@ -24,7 +24,7 @@ public class ElasticOrderByTest extends OrderByCommonTest {
 
     @ClassRule
     public static final ElasticConnectionRule elasticRule =
-            new ElasticConnectionRule(ElasticTestUtils.ELASTIC_CONNECTION_STRING);
+        new ElasticConnectionRule(ElasticTestUtils.ELASTIC_CONNECTION_STRING);
 
     public ElasticOrderByTest() {
         indexOptions = new ElasticIndexOptions();

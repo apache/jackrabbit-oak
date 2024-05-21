@@ -17,9 +17,8 @@
 
 package org.apache.jackrabbit.oak.segment.file.tar.index;
 
-import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveEntry;
-
 import java.util.Comparator;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveEntry;
 
 /**
  * An entry in the index of entries of a TAR file.

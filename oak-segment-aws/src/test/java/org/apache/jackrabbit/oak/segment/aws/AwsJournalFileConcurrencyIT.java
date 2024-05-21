@@ -16,15 +16,13 @@
  */
 package org.apache.jackrabbit.oak.segment.aws;
 
+import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
+import com.amazonaws.services.dynamodbv2.local.embedded.DynamoDBEmbedded;
 import java.io.IOException;
 import java.util.Date;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
-
-import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
-import com.amazonaws.services.dynamodbv2.local.embedded.DynamoDBEmbedded;
-
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileReader;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileWriter;
@@ -35,6 +33,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class AwsJournalFileConcurrencyIT {
+
     private static final Logger log = LoggerFactory.getLogger(AwsJournalFileConcurrencyIT.class);
 
     private DynamoDBClient dynamoDBClient;
@@ -107,7 +106,8 @@ public class AwsJournalFileConcurrencyIT {
         }
     }
 
-    private void writeJournalLines(int lines, int delayMillis) throws IOException, InterruptedException {
+    private void writeJournalLines(int lines, int delayMillis)
+        throws IOException, InterruptedException {
         JournalFile file = new AwsJournalFile(dynamoDBClient, "journal.log");
         try (JournalFileWriter writer = file.openJournalWriter()) {
             for (int i = 0; i < lines; i++) {

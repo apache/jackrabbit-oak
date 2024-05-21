@@ -20,7 +20,6 @@ import java.security.Principal;
 import java.util.UUID;
 import javax.jcr.RepositoryException;
 import javax.jcr.SimpleCredentials;
-
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
@@ -35,23 +34,26 @@ public final class ExerciseUtility {
     public static final String TEST_GROUP_PRINCIPAL_HINT = "testGroupPrincipal";
     public static final String TEST_PW = "pw";
 
-    private ExerciseUtility() {}
+    private ExerciseUtility() {
+    }
 
     public static String getTestId(@NotNull String hint) {
         return hint + UUID.randomUUID().toString();
     }
 
     public static Principal getTestPrincipal(@NotNull String hint) {
-        String name = hint  + UUID.randomUUID().toString();
+        String name = hint + UUID.randomUUID().toString();
         return new PrincipalImpl(name);
     }
 
     public static User createTestUser(@NotNull UserManager userMgr) throws RepositoryException {
-        return userMgr.createUser(getTestId(TEST_USER_HINT), TEST_PW, getTestPrincipal(TEST_PRINCIPAL_HINT), null);
+        return userMgr.createUser(getTestId(TEST_USER_HINT), TEST_PW,
+            getTestPrincipal(TEST_PRINCIPAL_HINT), null);
     }
 
     public static Group createTestGroup(@NotNull UserManager userMgr) throws RepositoryException {
-        return userMgr.createGroup(getTestId(TEST_GROUP_HINT), getTestPrincipal(TEST_GROUP_PRINCIPAL_HINT), null);
+        return userMgr.createGroup(getTestId(TEST_GROUP_HINT),
+            getTestPrincipal(TEST_GROUP_PRINCIPAL_HINT), null);
     }
 
     public static SimpleCredentials getTestCredentials(@NotNull String userID) {

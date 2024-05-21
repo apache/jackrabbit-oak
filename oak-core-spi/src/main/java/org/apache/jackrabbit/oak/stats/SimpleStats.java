@@ -23,7 +23,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 public final class SimpleStats implements TimerStats, MeterStats, CounterStats, HistogramStats {
+
     public enum Type {COUNTER, METER, TIMER, HISTOGRAM}
+
     private final AtomicLong statsHolder;
     private long counter;
 
@@ -50,7 +52,7 @@ public final class SimpleStats implements TimerStats, MeterStats, CounterStats, 
 
     @Override
     public long getCount() {
-        switch(type){
+        switch (type) {
             case HISTOGRAM:
             case TIMER:
                 //For timer and histogram we need to manage explicit
@@ -116,6 +118,7 @@ public final class SimpleStats implements TimerStats, MeterStats, CounterStats, 
     }
 
     private static final class SimpleContext implements Context {
+
         private final TimerStats timer;
         private final long startTime;
 

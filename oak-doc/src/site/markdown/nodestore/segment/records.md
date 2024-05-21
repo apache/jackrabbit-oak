@@ -35,8 +35,8 @@ identifiers are 16 bytes long, but Oak uses 4 bits to set apart bulk segments
 from data segments. The following bit patterns are used (each `x` represents
 four random bits):
 
-  * `xxxxxxxx-xxxx-4xxx-axxx-xxxxxxxxxxxx` data segment UUID
-  * `xxxxxxxx-xxxx-4xxx-bxxx-xxxxxxxxxxxx` bulk segment UUID
+* `xxxxxxxx-xxxx-4xxx-axxx-xxxxxxxxxxxx` data segment UUID
+* `xxxxxxxx-xxxx-4xxx-bxxx-xxxxxxxxxxxx` bulk segment UUID
 
 (This encoding makes segment UUIDs appear as syntactically valid version 4
 random UUIDs specified in RFC 4122.)
@@ -123,36 +123,48 @@ and a record offset (4 bytes) from the end of the segment.
 
 ## Record numbers and offsets
 
-Records need a mechanism to reference each other, both from inside the same segment and across different segments. 
+Records need a mechanism to reference each other, both from inside the same segment and across
+different segments.
 The mechanism used to reference a record is (unsurprisingly) a record identifier.
 
-A record identifier is composed of a *segment field* and a *record number field*. 
-The segment field is two-bytes short integer that identifies the segment where the referenced record is stored. 
-The record number field is the number of the record inside the segment identified by the segment field. 
-There are some peculiarities in both the segment and the position field that may not be immediately obvious. 
+A record identifier is composed of a *segment field* and a *record number field*.
+The segment field is two-bytes short integer that identifies the segment where the referenced record
+is stored.
+The record number field is the number of the record inside the segment identified by the segment
+field.
+There are some peculiarities in both the segment and the position field that may not be immediately
+obvious.
 The picture below shows how a segment looks like.
 
 ![Overview of a segment](segment.png)
 
-The segment field is two bytes long, but a segment identifier is 16 bytes long. 
-To bridge the gap, the segment header contains an array of segment identifiers that is used as a look-up table. 
-The array can store up to `Integer.MAX_VALUE` entries, but two bytes are enough to access every element in the array in practice.
-In fact, the segment field in a record identifier is just an index in the array of segment identifiers that is used as a look-up table.
+The segment field is two bytes long, but a segment identifier is 16 bytes long.
+To bridge the gap, the segment header contains an array of segment identifiers that is used as a
+look-up table.
+The array can store up to `Integer.MAX_VALUE` entries, but two bytes are enough to access every
+element in the array in practice.
+In fact, the segment field in a record identifier is just an index in the array of segment
+identifiers that is used as a look-up table.
 The segment field can have the special value of `0`.
 If the segment field is `0`, the referenced record is stored in the current segment.
 
 The record number field is a logical identifier for the record.
-The logical identifier is used as a lookup key in the record references table in the segment identified by the segment field.
-Once the correct row in the record references table is found, the record offset can be used to locate the position of the record in the segment.
+The logical identifier is used as a lookup key in the record references table in the segment
+identified by the segment field.
+Once the correct row in the record references table is found, the record offset can be used to
+locate the position of the record in the segment.
 
 The offset is relative to the beginning of a theoretical segment which is defined to be 256 KiB.
-Since records are added from the bottom of a segment to the top (i.e. from higher to lower offsets), and since segments could be shrunk down to be smaller than 256 KiB, the offset has to be normalized with to the following formula.
+Since records are added from the bottom of a segment to the top (i.e. from higher to lower offsets),
+and since segments could be shrunk down to be smaller than 256 KiB, the offset has to be normalized
+with to the following formula.
 
 ```
 SIZE - 256 KiB + OFFSET
 ```
 
-`SIZE` is the actual size of the segment under inspection, and `OFFSET` is the offset looked up from the record references table.
+`SIZE` is the actual size of the segment under inspection, and `OFFSET` is the offset looked up from
+the record references table.
 The normalized offset can be used to locate the position of the record in the current segment.
 
 ## Records
@@ -214,11 +226,10 @@ reference (up to 4kB in length) to some external storage location.
 The type of a value record is encoded in the high-order bits of the first
 byte of the record. These bit patterns are:
 
-  * `0xxxxxxx`: small value, length (0 - 127 bytes) encoded in 7 bits
-  * `10xxxxxx`: medium value length (128 - 16511 bytes) encoded in 6 + 8 bits
-  * `110xxxxx`: long value, length (up to 2^61 bytes) encoded in 5 + 7*8 bits
-  * `1110xxxx`: external value, reference string length encoded in 4 + 8 bits
-
+* `0xxxxxxx`: small value, length (0 - 127 bytes) encoded in 7 bits
+* `10xxxxxx`: medium value length (128 - 16511 bytes) encoded in 6 + 8 bits
+* `110xxxxx`: long value, length (up to 2^61 bytes) encoded in 5 + 7*8 bits
+* `1110xxxx`: external value, reference string length encoded in 4 + 8 bits
 
 ### List records
 
@@ -238,7 +249,6 @@ records to represent itself:
 - list record: this is a top-level record that maintains the size of the list in
   an integer field and a record identifier pointing to a bucket.
 
-
       +--------+--------+--------+-----+
       | sub-list ID 1            | ... |
       +--------+--------+--------+-----+
@@ -254,7 +264,7 @@ appending list elements (and thus creating a new immutable list) is
 also O(log N).
 
 List records are useful to store a list of references to other records. If the
-list is too big, it is split into different bucket records that may be  stored
+list is too big, it is split into different bucket records that may be stored
 in the same segment or across segments. This guarantees good performance for
 small lists, without loosing the capability to store lists with a big number of
 elements.
@@ -292,7 +302,11 @@ only a "diff" of the map is stored. This prevents the full storage of the
 modified map, which can save a considerable amount of space if the original map
 was big.
 
-_Warning: A map record can store up to 2^29 - 1 (i.e. 536.870.911) entries! In order to avoid reaching this number and possibly running into issues from surpassing it, log messages are printed after reaching 400.000.000 entries and writing beyond 500.000.000 entries is not allowed unless the boolean system property `oak.segmentNodeStore.allowWritesOnHugeMapRecord` is set. Finally, the segment store does not allow writing map records with more than 536.000.000 entries._
+_Warning: A map record can store up to 2^29 - 1 (i.e. 536.870.911) entries! In order to avoid
+reaching this number and possibly running into issues from surpassing it, log messages are printed
+after reaching 400.000.000 entries and writing beyond 500.000.000 entries is not allowed unless the
+boolean system property `oak.segmentNodeStore.allowWritesOnHugeMapRecord` is set. Finally, the
+segment store does not allow writing map records with more than 536.000.000 entries._
 
 ### Template records
 
@@ -340,7 +354,6 @@ The names used in a template are stored as separate value records and
 included by reference. This way multiple templates that for example all
 contain the "jcr:primaryType" property name don't need to repeatedly
 store it.
-
 
 ### Node records
 

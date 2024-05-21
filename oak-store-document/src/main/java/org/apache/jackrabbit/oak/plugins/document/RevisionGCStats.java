@@ -153,7 +153,6 @@ class RevisionGCStats implements RevisionGCStatsCollector, RevisionGCStatsMBean 
         }
     }
 
-
     //------------------------< RevisionGCStatsMBean >--------------------------
 
     @Override
@@ -189,54 +188,53 @@ class RevisionGCStats implements RevisionGCStatsCollector, RevisionGCStatsMBean 
     @Override
     public CompositeData getReadDocHistory() {
         return getTimeSeriesData(READ_DOC,
-                "Documents read by RevisionGC");
+            "Documents read by RevisionGC");
     }
 
     @Override
     public CompositeData getDeletedDocHistory() {
         return getTimeSeriesData(DELETE_DOC,
-                "Documents deleted by RevisionGC");
+            "Documents deleted by RevisionGC");
     }
 
     @Override
     public CompositeData getDeletedLeafDocHistory() {
         return getTimeSeriesData(DELETE_LEAF_DOC,
-                "Leaf documents deleted by RevisionGC");
+            "Leaf documents deleted by RevisionGC");
     }
 
     @Override
     public CompositeData getDeletedSplitDocHistory() {
         return getTimeSeriesData(DELETE_SPLIT_DOC,
-                "Split documents deleted by RevisionGC");
+            "Split documents deleted by RevisionGC");
     }
 
     @Override
     public CompositeData getDeletedIntSplitDocHistory() {
         return getTimeSeriesData(DELETE_INT_SPLIT_DOC,
-                "Intermediate split documents deleted by RevisionGC");
+            "Intermediate split documents deleted by RevisionGC");
     }
 
     @Override
     public CompositeData getResetDeletedFlagHistory() {
         return getTimeSeriesData(RESET_DELETED_FLAG,
-                "Deleted once flags reset by RevisionGC");
+            "Deleted once flags reset by RevisionGC");
     }
-
 
     //----------------------------< internal >----------------------------------
 
     private static MeterStats meter(StatisticsProvider provider,
-                                    String name) {
+        String name) {
         return provider.getMeter(qualifiedName(name), DEFAULT);
     }
 
     private static TimerStats timer(StatisticsProvider provider,
-                                    String name) {
+        String name) {
         return provider.getTimer(qualifiedName(name), METRICS_ONLY);
     }
 
     private static CounterStats counter(StatisticsProvider provider,
-                                        String name) {
+        String name) {
         return provider.getCounterStats(qualifiedName(name), METRICS_ONLY);
     }
 

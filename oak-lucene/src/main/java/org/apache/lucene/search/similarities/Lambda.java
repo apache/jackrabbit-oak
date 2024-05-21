@@ -28,30 +28,34 @@ package org.apache.lucene.search.similarities;
 import org.apache.lucene.search.Explanation;
 
 /**
- * The <em>lambda (&lambda;<sub>w</sub>)</em> parameter in information-based
- * models.
- * @see IBSimilarity
+ * The <em>lambda (&lambda;<sub>w</sub>)</em> parameter in information-based models.
+ *
  * @lucene.experimental
+ * @see IBSimilarity
  */
 public abstract class Lambda {
-  
-  /**
-   * Sole constructor. (For invocation by subclass 
-   * constructors, typically implicit.)
-   */
-  public Lambda() {}
 
-  /** Computes the lambda parameter. */
-  public abstract float lambda(BasicStats stats);
-  /** Explains the lambda parameter. */
-  public abstract Explanation explain(BasicStats stats);
-  
-  /**
-   * Subclasses must override this method to return the code of the lambda
-   * formula. Since the original paper is not very clear on this matter, and
-   * also uses the DFR naming scheme incorrectly, the codes here were chosen
-   * arbitrarily.
-   */
-  @Override
-  public abstract String toString();
+    /**
+     * Sole constructor. (For invocation by subclass constructors, typically implicit.)
+     */
+    public Lambda() {
+    }
+
+    /**
+     * Computes the lambda parameter.
+     */
+    public abstract float lambda(BasicStats stats);
+
+    /**
+     * Explains the lambda parameter.
+     */
+    public abstract Explanation explain(BasicStats stats);
+
+    /**
+     * Subclasses must override this method to return the code of the lambda formula. Since the
+     * original paper is not very clear on this matter, and also uses the DFR naming scheme
+     * incorrectly, the codes here were chosen arbitrarily.
+     */
+    @Override
+    public abstract String toString();
 }

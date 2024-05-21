@@ -33,8 +33,6 @@ import org.apache.jackrabbit.oak.AbstractSecurityTest;
  * Exercises:
  *
  * - {@link #TODO}
- *
- *
  */
 public class L2_ExternalLoginModuleTest extends AbstractSecurityTest {
 

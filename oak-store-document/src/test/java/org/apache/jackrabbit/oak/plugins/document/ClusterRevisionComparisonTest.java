@@ -41,18 +41,19 @@ import org.junit.Test;
 import static org.junit.Assert.assertTrue;
 
 public class ClusterRevisionComparisonTest {
+
     private MemoryDocumentStore ds = new MemoryDocumentStore();
     private MemoryBlobStore bs = new MemoryBlobStore();
     private Clock clock = new Clock.Virtual();
     private List<DocumentNodeStore> stores = Lists.newArrayList();
 
     @Before
-    public void setUp(){
+    public void setUp() {
         Revision.setClock(clock);
     }
 
     @Test
-    public void revisionComparisonMultipleClusterNode() throws Exception{
+    public void revisionComparisonMultipleClusterNode() throws Exception {
         DocumentNodeStore c1 = createNS(1);
         DocumentNodeStore c2 = createNS(2);
         DocumentNodeStore c3 = createNS(3);
@@ -89,8 +90,10 @@ public class ClusterRevisionComparisonTest {
 
         //7. Purge revision comparator. Also purge entries from nodeCache
         //such that later reads at rT1-C2 triggers read from underlying DocumentStore
-        c1.invalidateNodeCache("/a/c2" , ((DocumentNodeState)c1ns1.getChildNode("a")).getLastRevision());
-        c1.invalidateNodeCache("/a/c3" , ((DocumentNodeState)c1ns1.getChildNode("a")).getLastRevision());
+        c1.invalidateNodeCache("/a/c2",
+            ((DocumentNodeState) c1ns1.getChildNode("a")).getLastRevision());
+        c1.invalidateNodeCache("/a/c3",
+            ((DocumentNodeState) c1ns1.getChildNode("a")).getLastRevision());
 
         runBgOps(c1);
 
@@ -134,8 +137,8 @@ public class ClusterRevisionComparisonTest {
 
         // 6. Purge revision comparator. Also purge entries from nodeCache
         // such that later reads at rT1-C2 triggers read from underlying DocumentStore
-        c1.invalidateNodeCache("/a/c1" , ((DocumentNodeState)a).getLastRevision());
-        c1.invalidateNodeCache("/a/c2" , ((DocumentNodeState)a).getLastRevision());
+        c1.invalidateNodeCache("/a/c1", ((DocumentNodeState) a).getLastRevision());
+        c1.invalidateNodeCache("/a/c2", ((DocumentNodeState) a).getLastRevision());
 
         runBgOps(c1);
 
@@ -150,14 +153,14 @@ public class ClusterRevisionComparisonTest {
         c1.invalidateNodeCache("/a", c1ns1.getLastRevision());
         assertTrue("/a missing", c1ns1.hasChildNode("a"));
         a = c1ns1.getChildNode("a");
-        c1.invalidateNodeCache("/a/c1", ((DocumentNodeState)a).getLastRevision());
-        c1.invalidateNodeCache("/a/c2", ((DocumentNodeState)a).getLastRevision());
+        c1.invalidateNodeCache("/a/c1", ((DocumentNodeState) a).getLastRevision());
+        c1.invalidateNodeCache("/a/c2", ((DocumentNodeState) a).getLastRevision());
         assertTrue("/a/c1 disappeared", a.hasChildNode("c1"));
         assertTrue("/a/c2 disappeared", a.hasChildNode("c2"));
     }
 
     @After
-    public void tearDown(){
+    public void tearDown() {
         for (DocumentNodeStore store : stores) {
             store.dispose();
         }
@@ -165,26 +168,26 @@ public class ClusterRevisionComparisonTest {
         Revision.resetClockToDefault();
     }
 
-    private DocumentNodeStore createNS(int clusterId){
+    private DocumentNodeStore createNS(int clusterId) {
         DocumentNodeStore store = new DocumentMK.Builder()
-                .setDocumentStore(ds)
-                .setBlobStore(bs)
-                .setClusterId(clusterId)
-                .setAsyncDelay(0)
-                .open()
-                .getNodeStore();
+            .setDocumentStore(ds)
+            .setBlobStore(bs)
+            .setClusterId(clusterId)
+            .setAsyncDelay(0)
+            .open()
+            .getNodeStore();
         stores.add(store);
         return store;
     }
 
-   private NodeState createNode(NodeStore ns, String path) throws CommitFailedException {
-       NodeBuilder nb = ns.getRoot().builder();
-       NodeBuilder cb = nb;
-       for (String name : PathUtils.elements(path)) {
-           cb = cb.child(name);
-       }
-       return ns.merge(nb, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-   }
+    private NodeState createNode(NodeStore ns, String path) throws CommitFailedException {
+        NodeBuilder nb = ns.getRoot().builder();
+        NodeBuilder cb = nb;
+        for (String name : PathUtils.elements(path)) {
+            cb = cb.child(name);
+        }
+        return ns.merge(nb, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    }
 
     private static void runBgOps(DocumentNodeStore... stores) {
         for (DocumentNodeStore ns : stores) {

@@ -19,13 +19,11 @@ package org.apache.jackrabbit.oak.segment.standby;
 
 import static org.mockito.Mockito.mock;
 
-import java.util.UUID;
-
-import org.apache.jackrabbit.guava.common.base.Charsets;
-import org.apache.jackrabbit.guava.common.hash.Hashing;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
-
+import java.util.UUID;
+import org.apache.jackrabbit.guava.common.base.Charsets;
+import org.apache.jackrabbit.guava.common.hash.Hashing;
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.Segment;
@@ -58,11 +56,12 @@ public class StandbyTestUtils {
     public static long hash(byte[] data) {
         return Hashing.murmur3_32().newHasher().putBytes(data).hash().padToLong();
     }
-    
+
     public static long hash(byte mask, long blobLength, byte[] data) {
-        return Hashing.murmur3_32().newHasher().putByte(mask).putLong(blobLength).putBytes(data).hash().padToLong();
+        return Hashing.murmur3_32().newHasher().putByte(mask).putLong(blobLength).putBytes(data)
+                      .hash().padToLong();
     }
-    
+
     public static byte createMask(int currentChunk, int totalChunks) {
         byte mask = 0;
         if (currentChunk == 1) {
@@ -75,10 +74,11 @@ public class StandbyTestUtils {
 
         return mask;
     }
-    
-    public static ByteBuf createBlobChunkBuffer(byte header, long blobLength, String blobId, byte[] data, byte mask) {
+
+    public static ByteBuf createBlobChunkBuffer(byte header, long blobLength, String blobId,
+        byte[] data, byte mask) {
         byte[] blobIdBytes = blobId.getBytes(Charsets.UTF_8);
-        
+
         ByteBuf buf = Unpooled.buffer();
         buf.writeInt(1 + 1 + 8 + 4 + blobIdBytes.length + 8 + data.length);
         buf.writeByte(header);
@@ -88,7 +88,7 @@ public class StandbyTestUtils {
         buf.writeBytes(blobIdBytes);
         buf.writeLong(hash(mask, blobLength, data));
         buf.writeBytes(data);
-        
+
         return buf;
     }
 

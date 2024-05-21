@@ -28,7 +28,6 @@ import static org.easymock.EasyMock.verify;
 import java.io.IOException;
 import java.util.Set;
 import java.util.regex.Pattern;
-
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -42,7 +41,7 @@ import org.junit.Test;
 public class MapRecordTest {
 
     private final NodeStateDiff diff =
-            createControl().createMock("diff", NodeStateDiff.class);
+        createControl().createMock("diff", NodeStateDiff.class);
 
     private NodeBuilder builder;
 
@@ -50,7 +49,8 @@ public class MapRecordTest {
     public MapRecordTest() throws IOException {
         MemoryStore store = new MemoryStore();
         RecordId id = store.getWriter().writeNode(EMPTY_NODE);
-        SegmentNodeState node = new SegmentNodeState(store.getReader(), store.getWriter(), store.getBlobStore(), id);
+        SegmentNodeState node = new SegmentNodeState(store.getReader(), store.getWriter(),
+            store.getBlobStore(), id);
         builder = node.builder();
     }
 
@@ -58,12 +58,12 @@ public class MapRecordTest {
     public void testOak1104() {
         Pattern pattern = Pattern.compile(", ");
         Set<String> beforeNames = newHashSet(pattern.split(
-                "_b_Lucene41_0.doc, _b.fdx, _b.fdt, segments_34, _b_4.del,"
+            "_b_Lucene41_0.doc, _b.fdx, _b.fdt, segments_34, _b_4.del,"
                 + " _b_Lucene41_0.pos, _b.nvm, _b.nvd, _b.fnm, _3n.si,"
                 + " _b_Lucene41_0.tip, _b_Lucene41_0.tim, _3n.cfe,"
                 + " segments.gen, _3n.cfs, _b.si"));
         Set<String> afterNames = newHashSet(pattern.split(
-                "_b_Lucene41_0.pos, _3k.cfs, _3j_1.del, _b.nvm, _b.nvd,"
+            "_b_Lucene41_0.pos, _3k.cfs, _3j_1.del, _b.nvm, _b.nvd,"
                 + " _3d.cfe, _3d.cfs, _b.fnm, _3j.si, _3h.si, _3i.cfe,"
                 + " _3i.cfs, _3e_2.del, _3f.si, _b_Lucene41_0.tip,"
                 + " _b_Lucene41_0.tim, segments.gen, _3e.cfe, _3e.cfs,"

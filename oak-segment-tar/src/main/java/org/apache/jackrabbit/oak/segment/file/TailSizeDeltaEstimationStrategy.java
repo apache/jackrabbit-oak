@@ -27,13 +27,15 @@ class TailSizeDeltaEstimationStrategy implements EstimationStrategy {
     @Override
     public EstimationResult estimate(Context context) {
         if (context.getSizeDelta() == 0) {
-            return new EstimationResult(true, "Estimation skipped because the size delta value equals 0");
+            return new EstimationResult(true,
+                "Estimation skipped because the size delta value equals 0");
         }
 
         long previousSize = readPreviousSize(context);
 
         if (previousSize < 0) {
-            return new EstimationResult(true, "Estimation skipped because of missing gc journal data (expected on first run)");
+            return new EstimationResult(true,
+                "Estimation skipped because of missing gc journal data (expected on first run)");
         }
 
         long gain = context.getCurrentSize() - previousSize;

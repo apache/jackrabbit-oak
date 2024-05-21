@@ -33,14 +33,14 @@ To get good performance, queries should not traverse more than about 1000 nodes
 
 #### Potentially Slow Queries
 
-In addition to avoiding queries that traverse many nodes, 
+In addition to avoiding queries that traverse many nodes,
 it makes sense to avoid queries that don't use an index.
 Such queries might be fast (and only traverse few nodes) with a small repository,
 but with a large repository they are typically slow as well.
 Therefore, it makes sense to detect such queries as soon as possible
-(in a developer environment), 
+(in a developer environment),
 even before the code that runs those queries is tested with a larger repository.
-Oak will detect such queries and log them as follows 
+Oak will detect such queries and log them as follows
 (with log level INFO for Oak 1.6.x, and WARN for Oak 1.8.x):
 
     *INFO* org.apache.jackrabbit.oak.query.QueryImpl Traversal query (query without index): 
@@ -55,7 +55,7 @@ For the above case, the plan is:
 
     [nt:base] as [nt:base] /* traverse "/etc//*" 
     where (isdescendantnode([nt:base], [/etc])) and (lower([nt:base].[jcr:title]) like '%coat%') */
-    
+
 That means, all nodes below `/etc` are traversed.
 
 #### Making the Query More Specific
@@ -65,7 +65,7 @@ This will usually require some knowledge about the expected results.
 For example, if the path restriction is more specific, then less nodes need to be read.
 This is also true if an index is used. Also, if possible use a more specific node type.
 To understand if a nodetype or mixin is indexed, consult the nodetype index
-at `/oak:index/nodetype`, property `	declaringNodeTypes`.
+at `/oak:index/nodetype`, property `    declaringNodeTypes`.
 But even if this is not the case, the nodetype should be as specific as possible.
 Assuming the query is changed to this:
 
@@ -79,7 +79,7 @@ But in this case, it already was enough to make the traversal warning go away.
 
 #### Queries Without Index
 
-After changing the query, 
+After changing the query,
 there is still a message in the log file that complains the query doesn't use an index,
 as described above:
 
@@ -90,17 +90,17 @@ as described above:
         and [commerceType] = 'product'; consider creating an index
 
 The query plan of the index didn't change, so still nodes are traversed.
-In this case, there are relatively few nodes because it's 
+In this case, there are relatively few nodes because it's
 an almost empty development repository, so no traversal warning is logged.
-But for production, there might be a lot more nodes under `/etc/commerce`, 
+But for production, there might be a lot more nodes under `/etc/commerce`,
 so it makes sense to continue optimization.
 
 #### Where Traversal is OK
 
 If it is known from the data model that a query will never traverse many nodes,
-then no index is needed. This is a corner case, and only applies to queries that 
+then no index is needed. This is a corner case, and only applies to queries that
 traverse a fixed number of (for example) configuration nodes, or
-if the number of descendant nodes is guaranteed to be very low by using 
+if the number of descendant nodes is guaranteed to be very low by using
 a certain nodetype that only allows for a fixed number of child nodes.
 If this is the case, then the query can be changed to say traversal is fine.
 To mark such queries, append `option(traversal ok)` to the query.
@@ -125,7 +125,7 @@ which can estimate the node count. Example: run
     /etc/images: 1231232,
     ...
 
-So in this case, there are still many nodes below `/etc/commerce` in the production repository. 
+So in this case, there are still many nodes below `/etc/commerce` in the production repository.
 Also note that the number of nodes can grow over time.
 
 #### Prevent Running Traversal Queries
@@ -160,7 +160,7 @@ There are multiple options:
   appear in the result for a few seconds.
 * To ensure there is only one node matching the result in the repository,
   consider creating a unique [property index](./property-index.html).
-* Consider using a fulltext index, that is: change the query from using 
+* Consider using a fulltext index, that is: change the query from using
   `lower([jcr:title]) like '%...%'` to using `contains([jcr:title], '...')`.
   Possibly combine this with adding the property
   `commerceType` to the fulltext index.
@@ -177,7 +177,7 @@ to create a new index; it might be better to extend an existing index.
 However, note that:
 
 * Changing an existing index requires reindexing that index.
-* If an out-of-the-box index is modified, you will need to merge those modifications 
+* If an out-of-the-box index is modified, you will need to merge those modifications
   when migrating to newer software.
   It is best to add documentation to the index definition to simplify merging,
   for example in the form of "info" properties.
@@ -197,7 +197,7 @@ and verify the right plan is used, in this case that might be, for the query:
 
 So in this case, only the fulltext restriction of the query was used by the index,
 but this might already be sufficient. If it is not, then the fulltext index might
-be changed to also index `commerceType`, or possibly 
+be changed to also index `commerceType`, or possibly
 to use `evaluatePathRestrictions`.
 
 #### Queries With Many OR or UNION Conditions
@@ -225,12 +225,12 @@ This will simplify the query to:
     /jcr:root/content/(a|b|c|d|e)//element(*, cq:Page)[jcr:contains(., 'some text')]
 
 This should resolve most problems.
-To further speed up the query by avoiding to running 5 subqueries, 
+To further speed up the query by avoiding to running 5 subqueries,
 it might be better to use a less specific path constraint,
 but instead use a different way to filter results, such as:
 
     /jcr:root/content//element(*, cq:Page)[jcr:contains(., 'some text') and @category='x']
-    
+
 #### Ordering by Score Combined With OR / UNION Conditions
 
 Queries that expect results to be sorted by score ("order by @jcr:score descending"),

@@ -22,9 +22,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Test S3DataStore operation with SSE_S3 encryption.
- * It requires to pass aws config file via system property  or system properties by prefixing with 'ds.'.
- * See details @ {@link S3DataStoreUtils}.
+ * Test S3DataStore operation with SSE_S3 encryption. It requires to pass aws config file via system
+ * property  or system properties by prefixing with 'ds.'. See details @ {@link S3DataStoreUtils}.
  * For e.g. -Dconfig=/opt/cq/aws.properties. Sample aws properties located at
  * src/test/resources/aws.properties
  */

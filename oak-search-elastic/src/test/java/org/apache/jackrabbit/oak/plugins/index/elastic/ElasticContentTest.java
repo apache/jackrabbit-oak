@@ -16,22 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
-import org.apache.jackrabbit.oak.stats.StatisticsProvider;
-import org.junit.Ignore;
-import org.junit.Test;
-
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.UUID;
-import java.util.function.BiConsumer;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-
 import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticTestUtils.randomString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -47,10 +31,25 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.UUID;
+import java.util.function.BiConsumer;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.junit.Ignore;
+import org.junit.Test;
+
 public class ElasticContentTest extends ElasticAbstractQueryTest {
 
     private final ElasticMetricHandler spyMetricHandler =
-            spy(new ElasticMetricHandler(StatisticsProvider.NOOP));
+        spy(new ElasticMetricHandler(StatisticsProvider.NOOP));
 
     @Override
     protected ElasticMetricHandler getMetricHandler() {
@@ -132,9 +131,10 @@ public class ElasticContentTest extends ElasticAbstractQueryTest {
         final Random random = new Random(42);
 
         String generatedPath = random.ints(leftLimit, rightLimit + 1)
-                .limit(targetStringLength)
-                .collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append)
-                .toString();
+                                     .limit(targetStringLength)
+                                     .collect(StringBuilder::new, StringBuilder::appendCodePoint,
+                                         StringBuilder::append)
+                                     .toString();
 
         Tree content = root.getTree("/").addChild("content");
         content.addChild(generatedPath).setProperty("a", "foo");
@@ -186,13 +186,14 @@ public class ElasticContentTest extends ElasticAbstractQueryTest {
 
         Tree content = root.getTree("/").addChild("content");
         IntStream.range(0, 20).forEach(n -> {
-                    Tree child = content.addChild("child_" + n);
-                    child.setProperty("a", "text");
-                }
+                Tree child = content.addChild("child_" + n);
+                child.setProperty("a", "text");
+            }
         );
         root.commit(Map.of("sync-mode", "rt"));
 
-        List<String> results = IntStream.range(0, 20).mapToObj(i -> "/content/child_" + i).collect(Collectors.toList());
+        List<String> results = IntStream.range(0, 20).mapToObj(i -> "/content/child_" + i)
+                                        .collect(Collectors.toList());
 
         reset(spyMetricHandler);
         assertQuery("select [jcr:path] from [nt:base] where [a] = 'text'", results);
@@ -216,15 +217,16 @@ public class ElasticContentTest extends ElasticAbstractQueryTest {
 
         Tree content = root.getTree("/").addChild("content");
         IntStream.range(0, 3).forEach(n -> {
-                    Tree child = content.addChild("child_" + n);
-                    child.setProperty("a", "text");
-                    child.setProperty("b", "text");
-                    child.setProperty("c", "text");
-                }
+                Tree child = content.addChild("child_" + n);
+                child.setProperty("a", "text");
+                child.setProperty("b", "text");
+                child.setProperty("c", "text");
+            }
         );
         root.commit(Map.of("sync-mode", "rt"));
 
-        List<String> results = IntStream.range(0, 3).mapToObj(i -> "/content/child_" + i).collect(Collectors.toList());
+        List<String> results = IntStream.range(0, 3).mapToObj(i -> "/content/child_" + i)
+                                        .collect(Collectors.toList());
 
         reset(spyMetricHandler);
         assertQuery("select [jcr:path] from [nt:base] where [a] = 'text'", results);
@@ -256,16 +258,17 @@ public class ElasticContentTest extends ElasticAbstractQueryTest {
         Tree content = root.getTree("/").addChild("content");
 
         List<String> results = IntStream.range(0, 100)
-                .mapToObj(n -> {
-                    Tree child = content.addChild("child_" + n);
-                    child.setProperty("a", "text");
-                    return "/content/child_" + n;
-                })
-                .collect(Collectors.toList());
+                                        .mapToObj(n -> {
+                                            Tree child = content.addChild("child_" + n);
+                                            child.setProperty("a", "text");
+                                            return "/content/child_" + n;
+                                        })
+                                        .collect(Collectors.toList());
 
         root.commit();
 
-        assertEventually(() -> assertQuery("select [jcr:path] from [nt:base] where [a] = 'text'", results));
+        assertEventually(
+            () -> assertQuery("select [jcr:path] from [nt:base] where [a] = 'text'", results));
     }
 
     @Test

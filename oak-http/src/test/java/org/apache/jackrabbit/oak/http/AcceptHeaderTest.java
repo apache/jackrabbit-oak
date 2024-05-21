@@ -18,14 +18,14 @@ package org.apache.jackrabbit.oak.http;
 
 import static org.junit.Assert.assertEquals;
 
+import com.fasterxml.jackson.core.JsonFactory;
 import org.apache.tika.mime.MediaType;
 import org.junit.Test;
 
-import com.fasterxml.jackson.core.JsonFactory;
-
 public class AcceptHeaderTest {
 
-    private Representation json = new JsonRepresentation(MediaType.parse("application/json"), new JsonFactory());
+    private Representation json = new JsonRepresentation(MediaType.parse("application/json"),
+        new JsonFactory());
     private Representation html = new HtmlRepresentation();
 
     @Test
@@ -50,7 +50,7 @@ public class AcceptHeaderTest {
         // OAK-8135
         selected = ah.resolve(html, json);
         assertEquals(json, selected);
- 
+
         // retry with q values
         ah = new AcceptHeader("application/json; q=0.4, */*; q=0.5");
         selected = ah.resolve(html, json);

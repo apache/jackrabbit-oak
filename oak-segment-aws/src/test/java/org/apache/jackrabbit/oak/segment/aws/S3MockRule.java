@@ -16,20 +16,18 @@
  */
 package org.apache.jackrabbit.oak.segment.aws;
 
-import java.io.IOException;
-import java.net.ServerSocket;
-
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.AnonymousAWSCredentials;
 import com.amazonaws.client.builder.AwsClientBuilder.EndpointConfiguration;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
-
+import io.findify.s3mock.S3Mock;
+import java.io.IOException;
+import java.net.ServerSocket;
 import org.junit.rules.ExternalResource;
 
-import io.findify.s3mock.S3Mock;
-
 public class S3MockRule extends ExternalResource implements AutoCloseable {
+
     private Integer port;
     private S3Mock api;
 
@@ -38,10 +36,12 @@ public class S3MockRule extends ExternalResource implements AutoCloseable {
             port = getFreePort();
         }
 
-        EndpointConfiguration endpoint = new EndpointConfiguration("http://localhost:" + port, "us-west-2");
+        EndpointConfiguration endpoint = new EndpointConfiguration("http://localhost:" + port,
+            "us-west-2");
         AmazonS3 client = AmazonS3ClientBuilder.standard().withPathStyleAccessEnabled(true)
-                .withEndpointConfiguration(endpoint)
-                .withCredentials(new AWSStaticCredentialsProvider(new AnonymousAWSCredentials())).build();
+                                               .withEndpointConfiguration(endpoint)
+                                               .withCredentials(new AWSStaticCredentialsProvider(
+                                                   new AnonymousAWSCredentials())).build();
         return client;
     }
 

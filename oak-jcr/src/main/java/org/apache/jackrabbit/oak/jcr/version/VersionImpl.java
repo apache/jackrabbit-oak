@@ -22,7 +22,6 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Iterator;
 import java.util.List;
-
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
@@ -30,15 +29,14 @@ import javax.jcr.Value;
 import javax.jcr.ValueFormatException;
 import javax.jcr.version.Version;
 import javax.jcr.version.VersionHistory;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
-import org.apache.jackrabbit.oak.jcr.session.NodeImpl;
-import org.apache.jackrabbit.oak.jcr.session.SessionContext;
 import org.apache.jackrabbit.oak.jcr.delegate.PropertyDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.VersionDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.VersionHistoryDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.VersionManagerDelegate;
+import org.apache.jackrabbit.oak.jcr.session.NodeImpl;
+import org.apache.jackrabbit.oak.jcr.session.SessionContext;
 import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
 import org.apache.jackrabbit.oak.plugins.value.Conversions;
 import org.apache.jackrabbit.oak.plugins.value.jcr.PartialValueFactory;
@@ -58,8 +56,8 @@ public class VersionImpl extends NodeImpl<VersionDelegate> implements Version {
             @Override
             public VersionHistory perform() throws RepositoryException {
                 return new VersionHistoryImpl(
-                        getVersionManagerDelegate().createVersionHistory(
-                                dlg.getParent()), sessionContext);
+                    getVersionManagerDelegate().createVersionHistory(
+                        dlg.getParent()), sessionContext);
             }
         });
     }
@@ -78,17 +76,18 @@ public class VersionImpl extends NodeImpl<VersionDelegate> implements Version {
 
     @Override
     public Version getLinearPredecessor() throws RepositoryException {
-        return sessionDelegate.performNullable(new SessionOperation<Version>("getLinearPredecessor") {
-            @Override
-            public Version performNullable() throws RepositoryException {
-                VersionDelegate predecessor = dlg.getLinearPredecessor();
-                if (predecessor == null) {
-                    return null;
-                } else {
-                    return new VersionImpl(predecessor, sessionContext);
+        return sessionDelegate.performNullable(
+            new SessionOperation<Version>("getLinearPredecessor") {
+                @Override
+                public Version performNullable() throws RepositoryException {
+                    VersionDelegate predecessor = dlg.getLinearPredecessor();
+                    if (predecessor == null) {
+                        return null;
+                    } else {
+                        return new VersionImpl(predecessor, sessionContext);
+                    }
                 }
-            }
-        });
+            });
     }
 
     @Override
@@ -97,13 +96,13 @@ public class VersionImpl extends NodeImpl<VersionDelegate> implements Version {
             @Override
             public Version performNullable() throws RepositoryException {
                 VersionHistoryDelegate vHistory = getVersionManagerDelegate()
-                        .createVersionHistory(dlg.getParent());
+                    .createVersionHistory(dlg.getParent());
                 Iterator<VersionDelegate> it = vHistory.getAllLinearVersions();
                 // search for this version ...
                 while (it.hasNext()) {
                     VersionDelegate vDlg = it.next();
                     if (vDlg.getIdentifier().equals(dlg.getIdentifier())
-                            && it.hasNext()) {
+                        && it.hasNext()) {
                         // ... and return next
                         return new VersionImpl(it.next(), sessionContext);
                     }
@@ -114,9 +113,10 @@ public class VersionImpl extends NodeImpl<VersionDelegate> implements Version {
         });
     }
 
-    private List<Value> getValues(PropertyDelegate p) throws InvalidItemStateException, ValueFormatException {
+    private List<Value> getValues(PropertyDelegate p)
+        throws InvalidItemStateException, ValueFormatException {
         return new PartialValueFactory(sessionContext, sessionContext.getBlobAccessProvider())
-                .createValues(p.getMultiState());
+            .createValues(p.getMultiState());
     }
 
     @Override
@@ -145,7 +145,8 @@ public class VersionImpl extends NodeImpl<VersionDelegate> implements Version {
                 VersionManagerDelegate vMgr = getVersionManagerDelegate();
                 for (Value v : getValues(p)) {
                     String id = v.getString();
-                    successors.add(new VersionImpl(vMgr.getVersionByIdentifier(id), sessionContext));
+                    successors.add(
+                        new VersionImpl(vMgr.getVersionByIdentifier(id), sessionContext));
                 }
                 return successors.toArray(new Version[successors.size()]);
             }
@@ -163,8 +164,8 @@ public class VersionImpl extends NodeImpl<VersionDelegate> implements Version {
                     throw new IllegalStateException("Version without frozen node.");
                 }
                 return NodeImpl.createNode(
-                        frozenNode,
-                        sessionContext);
+                    frozenNode,
+                    sessionContext);
             }
         });
     }
@@ -178,11 +179,11 @@ public class VersionImpl extends NodeImpl<VersionDelegate> implements Version {
 
     @NotNull
     private PropertyDelegate getPropertyOrThrow(@NotNull String name)
-            throws RepositoryException {
+        throws RepositoryException {
         PropertyDelegate p = dlg.getPropertyOrNull(checkNotNull(name));
         if (p == null) {
             throw new RepositoryException("Inconsistent version storage. " +
-                    "Version does not have a " + name + " property.");
+                "Version does not have a " + name + " property.");
         }
         return p;
     }

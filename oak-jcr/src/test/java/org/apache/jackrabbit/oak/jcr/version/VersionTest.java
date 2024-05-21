@@ -16,8 +16,10 @@
  */
 package org.apache.jackrabbit.oak.jcr.version;
 
-import java.util.Set;
+import static java.util.Collections.emptySet;
+import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 
+import java.util.Set;
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
 import javax.jcr.Property;
@@ -29,15 +31,10 @@ import javax.jcr.query.QueryManager;
 import javax.jcr.query.RowIterator;
 import javax.jcr.version.Version;
 import javax.jcr.version.VersionManager;
-
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Sets;
-
 import org.apache.jackrabbit.test.AbstractJCRTest;
 import org.apache.jackrabbit.test.NotExecutableException;
-
-import static java.util.Collections.emptySet;
-import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 
 /**
  * <code>VersionTest</code> performs tests on JCR Version nodes.
@@ -50,8 +47,9 @@ public class VersionTest extends AbstractJCRTest {
         superuser.save();
         VersionManager vMgr = superuser.getWorkspace().getVersionManager();
         String id = vMgr.getBaseVersion(n.getPath()).getIdentifier();
-        assertTrue("Session.getNodeByIdentifier() did not return Version object for a nt:version node.",
-                superuser.getNodeByIdentifier(id) instanceof Version);
+        assertTrue(
+            "Session.getNodeByIdentifier() did not return Version object for a nt:version node.",
+            superuser.getNodeByIdentifier(id) instanceof Version);
     }
 
     @SuppressWarnings("deprecation")
@@ -62,11 +60,11 @@ public class VersionTest extends AbstractJCRTest {
         VersionManager vMgr = superuser.getWorkspace().getVersionManager();
         String uuid = vMgr.getBaseVersion(n.getPath()).getUUID();
         assertTrue("Session.getNodeByUUID() did not return Version object for a nt:version node.",
-                superuser.getNodeByUUID(uuid) instanceof Version);
+            superuser.getNodeByUUID(uuid) instanceof Version);
     }
 
     public void testVersionFromQuery()
-            throws RepositoryException, NotExecutableException {
+        throws RepositoryException, NotExecutableException {
         Node n = testRootNode.addNode(nodeName1, testNodeType);
         n.addMixin(mixVersionable);
         superuser.save();
@@ -75,7 +73,7 @@ public class VersionTest extends AbstractJCRTest {
         QueryManager qm = superuser.getWorkspace().getQueryManager();
         Version v = vMgr.getBaseVersion(n.getPath());
         Query q = qm.createQuery("//element(*, nt:version)[@jcr:uuid = '" +
-                v.getIdentifier() + "']", Query.XPATH);
+            v.getIdentifier() + "']", Query.XPATH);
         NodeIterator nodes = q.execute().getNodes();
         assertTrue(nodes.hasNext());
         assertTrue(nodes.nextNode() instanceof Version);
@@ -108,7 +106,7 @@ public class VersionTest extends AbstractJCRTest {
         Version baseVersion = vMgr.getBaseVersion(n.getPath());
         Node frozenChild = baseVersion.getFrozenNode().getNode(child.getName());
         assertEquals(child.getIdentifier(),
-                frozenChild.getProperty(Property.JCR_FROZEN_UUID).getString());
+            frozenChild.getProperty(Property.JCR_FROZEN_UUID).getString());
         vMgr.restore(v, true);
     }
 
@@ -161,13 +159,13 @@ public class VersionTest extends AbstractJCRTest {
         // from the rootVersion's jcr:successors property, but for
         // compatibility reasons it is not returned
         Set<String> expected = ImmutableSet.of(
-                concat(n.getPath(), jcrBaseVersion)
+            concat(n.getPath(), jcrBaseVersion)
         );
         assertEquals("references mismatch", expected, refs);
     }
 
     private static Set<String> getReferencingPaths(Node n)
-            throws RepositoryException {
+        throws RepositoryException {
         Set<String> refs = Sets.newHashSet();
         PropertyIterator it = n.getReferences();
         while (it.hasNext()) {

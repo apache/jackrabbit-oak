@@ -25,18 +25,21 @@ package org.apache.lucene.search;
  * limitations under the License.
  */
 
-/** Throw this exception in {@link Collector#collect(int)} to prematurely
- *  terminate collection of the current leaf.
- *  <p>Note: IndexSearcher swallows this exception and never re-throws it.
- *  As a consequence, you should not catch it when calling
- *  {@link IndexSearcher#search} as it is unnecessary and might hide misuse
- *  of this exception. */
+/**
+ * Throw this exception in {@link Collector#collect(int)} to prematurely terminate collection of the
+ * current leaf.
+ * <p>Note: IndexSearcher swallows this exception and never re-throws it.
+ * As a consequence, you should not catch it when calling {@link IndexSearcher#search} as it is
+ * unnecessary and might hide misuse of this exception.
+ */
 @SuppressWarnings("serial")
 public final class CollectionTerminatedException extends RuntimeException {
 
-  /** Sole constructor. */
-  public CollectionTerminatedException() {
-    super();
-  }
+    /**
+     * Sole constructor.
+     */
+    public CollectionTerminatedException() {
+        super();
+    }
 
 }

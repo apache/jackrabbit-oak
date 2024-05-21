@@ -26,11 +26,13 @@ import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Static factories for creating {@link SegmentNodeBuilder} instances
- * pertaining to specific {@link SegmentStore} instances.
+ * Static factories for creating {@link SegmentNodeBuilder} instances pertaining to specific
+ * {@link SegmentStore} instances.
  */
 public final class SegmentNodeStoreBuilders {
-    private SegmentNodeStoreBuilders() {}
+
+    private SegmentNodeStoreBuilders() {
+    }
 
     /**
      * Create a {@code SegmentNodeStoreBuilder} based on a {@code FileStore}.
@@ -38,7 +40,7 @@ public final class SegmentNodeStoreBuilders {
     @NotNull
     public static SegmentNodeStoreBuilder builder(@NotNull FileStore store) {
         return SegmentNodeStore.builder(store.getRevisions(),
-                store.getReader(), store.getWriter(), store.getBlobStore());
+            store.getReader(), store.getWriter(), store.getBlobStore());
     }
 
     /**
@@ -47,7 +49,7 @@ public final class SegmentNodeStoreBuilders {
     @NotNull
     public static SegmentNodeStoreBuilder builder(@NotNull MemoryStore store) {
         return SegmentNodeStore.builder(store.getRevisions(),
-                store.getReader(), store.getWriter(), store.getBlobStore());
+            store.getReader(), store.getWriter(), store.getBlobStore());
     }
 
     /**
@@ -56,6 +58,6 @@ public final class SegmentNodeStoreBuilders {
     @NotNull
     public static SegmentNodeStoreBuilder builder(@NotNull ReadOnlyFileStore store) {
         return SegmentNodeStore.builder(store.getRevisions(),
-                store.getReader(), store.getWriter(), store.getBlobStore());
+            store.getReader(), store.getWriter(), store.getBlobStore());
     }
 }

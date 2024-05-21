@@ -18,6 +18,8 @@
  */
 package org.apache.jackrabbit.oak.benchmark;
 
+import java.io.File;
+import javax.jcr.Repository;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.benchmark.util.ElasticGlobalInitializer;
 import org.apache.jackrabbit.oak.benchmark.util.TestHelper;
@@ -34,15 +36,13 @@ import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvi
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
-import javax.jcr.Repository;
-import java.io.File;
-
 public class ElasticFullTextWithGlobalIndexSearchTest extends SearchTest {
 
     private final ElasticConnection connection;
     private String elasticGlobalIndexName;
 
-    ElasticFullTextWithGlobalIndexSearchTest(File dump, boolean flat, boolean doReport, Boolean storageEnabled, ElasticConnection connection) {
+    ElasticFullTextWithGlobalIndexSearchTest(File dump, boolean flat, boolean doReport,
+        Boolean storageEnabled, ElasticConnection connection) {
         super(dump, flat, doReport, storageEnabled);
         this.connection = connection;
     }
@@ -53,17 +53,18 @@ public class ElasticFullTextWithGlobalIndexSearchTest extends SearchTest {
         if (fixture instanceof OakRepositoryFixture) {
             return ((OakRepositoryFixture) fixture).setUpCluster(1, oak -> {
                 ElasticIndexTracker indexTracker = new ElasticIndexTracker(connection,
-                        new ElasticMetricHandler(StatisticsProvider.NOOP));
-                ElasticIndexEditorProvider editorProvider = new ElasticIndexEditorProvider(indexTracker, connection,
-                        new ExtractedTextCache(10 * FileUtils.ONE_MB, 100));
+                    new ElasticMetricHandler(StatisticsProvider.NOOP));
+                ElasticIndexEditorProvider editorProvider = new ElasticIndexEditorProvider(
+                    indexTracker, connection,
+                    new ExtractedTextCache(10 * FileUtils.ONE_MB, 100));
                 ElasticIndexProvider indexProvider = new ElasticIndexProvider(indexTracker);
                 oak.with(editorProvider)
-                        .with(indexTracker)
-                        .with(indexProvider)
-                        .with(new PropertyIndexEditorProvider())
-                        .with(new NodeTypeIndexProvider())
-                        .with(new ElasticGlobalInitializer(elasticGlobalIndexName, storageEnabled))
-                        .with(new UUIDInitializer());
+                   .with(indexTracker)
+                   .with(indexProvider)
+                   .with(new PropertyIndexEditorProvider())
+                   .with(new NodeTypeIndexProvider())
+                   .with(new ElasticGlobalInitializer(elasticGlobalIndexName, storageEnabled))
+                   .with(new UUIDInitializer());
                 return new Jcr(oak);
             });
         }

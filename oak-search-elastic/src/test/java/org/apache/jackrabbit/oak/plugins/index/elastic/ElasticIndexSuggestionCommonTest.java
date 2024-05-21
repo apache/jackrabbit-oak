@@ -16,6 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
+import javax.jcr.Node;
+import javax.jcr.Repository;
+import javax.jcr.query.Query;
+import javax.jcr.query.Row;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.index.IndexSuggestionCommonTest;
@@ -25,16 +29,11 @@ import org.hamcrest.MatcherAssert;
 import org.junit.ClassRule;
 import org.junit.Test;
 
-import javax.jcr.Node;
-import javax.jcr.Repository;
-import javax.jcr.query.Query;
-import javax.jcr.query.Row;
-
 public class ElasticIndexSuggestionCommonTest extends IndexSuggestionCommonTest {
 
     @ClassRule
     public static final ElasticConnectionRule elasticRule =
-            new ElasticConnectionRule(ElasticTestUtils.ELASTIC_CONNECTION_STRING);
+        new ElasticConnectionRule(ElasticTestUtils.ELASTIC_CONNECTION_STRING);
 
     protected Repository createJcrRepository() {
         indexOptions = new ElasticIndexOptions();
@@ -46,7 +45,9 @@ public class ElasticIndexSuggestionCommonTest extends IndexSuggestionCommonTest 
 
     protected void assertEventually(Runnable r) {
         TestUtil.assertEventually(r,
-                ((repositoryOptionsUtil.isAsync() ? repositoryOptionsUtil.defaultAsyncIndexingTimeInSeconds : 0) + ElasticIndexDefinition.BULK_FLUSH_INTERVAL_MS_DEFAULT) * 5);
+            ((repositoryOptionsUtil.isAsync()
+                ? repositoryOptionsUtil.defaultAsyncIndexingTimeInSeconds : 0)
+                + ElasticIndexDefinition.BULK_FLUSH_INTERVAL_MS_DEFAULT) * 5);
     }
 
     @Test
@@ -61,11 +62,14 @@ public class ElasticIndexSuggestionCommonTest extends IndexSuggestionCommonTest 
         session.save();
 
         String sql = "EXPLAIN SELECT [rep:suggest()] FROM [" + nodeType + "] WHERE suggest('boo')";
-        String expected = "{\"_source\":{\"includes\":[\":path\"]},\"query\":{\"bool\":{\"must\":[{\"nested\":{\"inner_hits\":" +
+        String expected =
+            "{\"_source\":{\"includes\":[\":path\"]},\"query\":{\"bool\":{\"must\":[{\"nested\":{\"inner_hits\":"
+                +
                 "{\"size\":100},\"path\":\":suggest\",\"query\":{\"match_bool_prefix\":{\":suggest.value\":{\"operator\":\"and\",\"query\":\"boo\"}}},\"score_mode\":\"max\"}}]}},\"size\":100}";
 
         Query q = qm.createQuery(sql, Query.SQL);
         Row row = q.execute().getRows().nextRow();
-        MatcherAssert.assertThat(row.getValue("plan").getString(), CoreMatchers.containsString(expected));
+        MatcherAssert.assertThat(row.getValue("plan").getString(),
+            CoreMatchers.containsString(expected));
     }
 }

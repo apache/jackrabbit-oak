@@ -34,9 +34,9 @@ import org.osgi.service.component.annotations.Reference;
  * Inventory printer for {@link DocumentStore#getStats()}.
  */
 @Component(property = {
-        "felix.inventory.printer.name=oak-document-store-stats",
-        "felix.inventory.printer.title=Oak DocumentStore Statistics",
-        "felix.inventory.printer.format=TEXT"
+    "felix.inventory.printer.name=oak-document-store-stats",
+    "felix.inventory.printer.title=Oak DocumentStore Statistics",
+    "felix.inventory.printer.format=TEXT"
 })
 public class DocumentStoreStatsPrinter implements InventoryPrinter {
 

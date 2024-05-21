@@ -17,19 +17,19 @@
 package org.apache.jackrabbit.oak.spi.whiteboard;
 
 import java.util.Map;
-
 import org.osgi.annotation.versioning.ProviderType;
 
 @ProviderType
 public interface Whiteboard {
 
     /**
-     * Publishes the given service to the whiteboard. Use the returned
-     * registration object to unregister the service.
+     * Publishes the given service to the whiteboard. Use the returned registration object to
+     * unregister the service.
      *
-     * @param type type of the service
-     * @param service service instance
-     * @param properties service properties. Those need to use {@link String} keys, but for backwards compatibility reasons this is not enforced via generics.
+     * @param type       type of the service
+     * @param service    service instance
+     * @param properties service properties. Those need to use {@link String} keys, but for
+     *                   backwards compatibility reasons this is not enforced via generics.
      * @return service registration
      */
     <T> Registration register(Class<T> type, T service, Map<?, ?> properties);
@@ -45,10 +45,9 @@ public interface Whiteboard {
     /**
      * Starts tracking services of the given type, with given attributes.
      *
-     * @param type type of the services to track
-     * @param filterProperties only services with these properties will be tracked.
-     *                         Null keys are not permitted. Null values means that
-     *                         the property should be absent.
+     * @param type             type of the services to track
+     * @param filterProperties only services with these properties will be tracked. Null keys are
+     *                         not permitted. Null values means that the property should be absent.
      * @return service tracker
      */
     <T> Tracker<T> track(Class<T> type, Map<String, String> filterProperties);

@@ -19,26 +19,15 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
-import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.oak.commons.Compression;
-import org.apache.jackrabbit.oak.commons.sort.ExternalSort;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedStrategy;
-import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreSortStrategyBase;
-import org.apache.jackrabbit.oak.index.indexer.document.LastModifiedRange;
-import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
-import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverser;
-import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverserFactory;
-import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils;
-import org.apache.jackrabbit.oak.plugins.document.mongo.TraversingRange;
-import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static java.lang.management.ManagementFactory.getMemoryMXBean;
+import static java.lang.management.ManagementFactory.getMemoryPoolMXBeans;
+import static java.lang.management.MemoryType.HEAP;
+import static org.apache.commons.io.FileUtils.ONE_GB;
+import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
+import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_MAX_SORT_MEMORY_IN_GB;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_MAX_SORT_MEMORY_IN_GB_DEFAULT;
 
-import javax.management.Notification;
-import javax.management.NotificationEmitter;
-import javax.management.NotificationListener;
-import javax.management.openmbean.CompositeData;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
@@ -53,20 +42,32 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import javax.management.Notification;
+import javax.management.NotificationEmitter;
+import javax.management.NotificationListener;
+import javax.management.openmbean.CompositeData;
+import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.guava.common.base.Stopwatch;
+import org.apache.jackrabbit.oak.commons.Compression;
+import org.apache.jackrabbit.oak.commons.sort.ExternalSort;
+import org.apache.jackrabbit.oak.index.indexer.document.LastModifiedRange;
+import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
+import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverser;
+import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverserFactory;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedStrategy;
+import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreSortStrategyBase;
+import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils;
+import org.apache.jackrabbit.oak.plugins.document.mongo.TraversingRange;
+import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import static java.lang.management.ManagementFactory.getMemoryMXBean;
-import static java.lang.management.ManagementFactory.getMemoryPoolMXBeans;
-import static java.lang.management.MemoryType.HEAP;
-import static org.apache.commons.io.FileUtils.ONE_GB;
-import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
-import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_MAX_SORT_MEMORY_IN_GB;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_MAX_SORT_MEMORY_IN_GB_DEFAULT;
 /**
  * @deprecated Use {@link PipelinedStrategy} instead
  */
 @Deprecated
 class TraverseWithSortStrategy extends IndexStoreSortStrategyBase {
+
     private static final String OAK_INDEXER_MIN_MEMORY = "oak.indexer.minMemoryForWork";
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final AtomicBoolean sufficientMemory = new AtomicBoolean(true);
@@ -76,16 +77,17 @@ class TraverseWithSortStrategy extends IndexStoreSortStrategyBase {
     private final Comparator<NodeStateHolder> comparator;
     private NotificationEmitter emitter;
     private MemoryListener listener;
-    private final int maxMemory = Integer.getInteger(OAK_INDEXER_MAX_SORT_MEMORY_IN_GB, OAK_INDEXER_MAX_SORT_MEMORY_IN_GB_DEFAULT);
+    private final int maxMemory = Integer.getInteger(OAK_INDEXER_MAX_SORT_MEMORY_IN_GB,
+        OAK_INDEXER_MAX_SORT_MEMORY_IN_GB_DEFAULT);
     private final long minMemory = Integer.getInteger(OAK_INDEXER_MIN_MEMORY, 2);
     /**
-     * Max memory to be used if jmx based memory monitoring is not available. This value is not considered if jmx based
-     * monitoring is available.
+     * Max memory to be used if jmx based memory monitoring is not available. This value is not
+     * considered if jmx based monitoring is available.
      */
     private final long maxMemoryBytes = maxMemory * ONE_GB;
     /**
-     * When jmx based memory monitoring is available, this value indicates minimum memory which should be free/available for this
-     * task to proceed.
+     * When jmx based memory monitoring is available, this value indicates minimum memory which
+     * should be free/available for this task to proceed.
      */
     private final long minMemoryBytes = minMemory * ONE_GB;
     private boolean useMaxMemory;
@@ -95,31 +97,38 @@ class TraverseWithSortStrategy extends IndexStoreSortStrategyBase {
     private final List<File> sortedFiles = new ArrayList<>();
     private final ArrayList<NodeStateHolder> entryBatch = new ArrayList<>();
 
-    TraverseWithSortStrategy(NodeStateEntryTraverserFactory nodeStatesFactory, Set<String> preferredPaths,
-                             NodeStateEntryWriter entryWriter, File storeDir, Compression algorithm,
-                             Predicate<String> pathPredicate, String checkpoint) {
+    TraverseWithSortStrategy(NodeStateEntryTraverserFactory nodeStatesFactory,
+        Set<String> preferredPaths,
+        NodeStateEntryWriter entryWriter, File storeDir, Compression algorithm,
+        Predicate<String> pathPredicate, String checkpoint) {
         super(storeDir, algorithm, pathPredicate, preferredPaths, checkpoint);
         this.nodeStatesFactory = nodeStatesFactory;
         this.entryWriter = entryWriter;
-        this.comparator = (e1, e2) -> new PathElementComparator(preferredPaths).compare(e1.getPathElements(), e2.getPathElements());
+        this.comparator = (e1, e2) -> new PathElementComparator(preferredPaths).compare(
+            e1.getPathElements(), e2.getPathElements());
     }
 
     /**
-     * @deprecated use {@link TraverseWithSortStrategy#TraverseWithSortStrategy(NodeStateEntryTraverserFactory, Set, NodeStateEntryWriter, File, Compression, Predicate, String)} instead
+     * @deprecated use
+     * {@link TraverseWithSortStrategy#TraverseWithSortStrategy(NodeStateEntryTraverserFactory, Set,
+     * NodeStateEntryWriter, File, Compression, Predicate, String)} instead
      */
     @Deprecated
-    TraverseWithSortStrategy(NodeStateEntryTraverserFactory nodeStatesFactory, PathElementComparator pathComparator,
-                             NodeStateEntryWriter entryWriter, File storeDir, Compression algorithm, Predicate<String> pathPredicate) {
-        super(storeDir, algorithm, pathPredicate,null, null);
+    TraverseWithSortStrategy(NodeStateEntryTraverserFactory nodeStatesFactory,
+        PathElementComparator pathComparator,
+        NodeStateEntryWriter entryWriter, File storeDir, Compression algorithm,
+        Predicate<String> pathPredicate) {
+        super(storeDir, algorithm, pathPredicate, null, null);
         this.nodeStatesFactory = nodeStatesFactory;
         this.entryWriter = entryWriter;
-        this.comparator = (e1, e2) -> pathComparator.compare(e1.getPathElements(), e2.getPathElements());
+        this.comparator = (e1, e2) -> pathComparator.compare(e1.getPathElements(),
+            e2.getPathElements());
     }
 
     @Override
     public File createSortedStoreFile() throws IOException {
         try (NodeStateEntryTraverser nodeStates = nodeStatesFactory.create(
-                new TraversingRange(new LastModifiedRange(0, Long.MAX_VALUE), null))
+            new TraversingRange(new LastModifiedRange(0, Long.MAX_VALUE), null))
         ) {
             logFlags();
             configureMemoryListener();
@@ -137,18 +146,22 @@ class TraverseWithSortStrategy extends IndexStoreSortStrategyBase {
     private File sortStoreFile() throws IOException {
         log.info("Proceeding to perform merge of {} sorted files", sortedFiles.size());
         Stopwatch w = Stopwatch.createStarted();
-        File sortedFile = new File(this.getStoreDir(), IndexStoreUtils.getSortedStoreFileName(this.getAlgorithm()));
-        try (BufferedWriter writer = IndexStoreUtils.createWriter(sortedFile, this.getAlgorithm())) {
-            Function<String, NodeStateHolder> func1 = (line) -> line == null ? null : new SimpleNodeStateHolder(line);
-            Function<NodeStateHolder, String> func2 = holder -> holder == null ? null : holder.getLine();
+        File sortedFile = new File(this.getStoreDir(),
+            IndexStoreUtils.getSortedStoreFileName(this.getAlgorithm()));
+        try (BufferedWriter writer = IndexStoreUtils.createWriter(sortedFile,
+            this.getAlgorithm())) {
+            Function<String, NodeStateHolder> func1 = (line) -> line == null ? null
+                : new SimpleNodeStateHolder(line);
+            Function<NodeStateHolder, String> func2 = holder -> holder == null ? null
+                : holder.getLine();
             ExternalSort.mergeSortedFiles(sortedFiles,
-                    writer,
-                    comparator,
-                    charset,
-                    true, //distinct
-                    this.getAlgorithm(),
-                    func2,
-                    func1
+                writer,
+                comparator,
+                charset,
+                true, //distinct
+                this.getAlgorithm(),
+                func2,
+                func1
             );
         }
         log.info("Merging of sorted files completed in {}", w);
@@ -171,7 +184,7 @@ class TraverseWithSortStrategy extends IndexStoreSortStrategyBase {
 
         log.info("Dumped {} nodestates in json format in {}", entryCount, w);
         log.info("Created {} sorted files of size {} to merge",
-                sortedFiles.size(), humanReadableByteCount(IndexStoreUtils.sizeOf(sortedFiles)));
+            sortedFiles.size(), humanReadableByteCount(IndexStoreUtils.sizeOf(sortedFiles)));
     }
 
     private void addEntry(NodeStateEntry e) throws IOException {
@@ -205,7 +218,8 @@ class TraverseWithSortStrategy extends IndexStoreSortStrategyBase {
         Stopwatch w = Stopwatch.createStarted();
         File newtmpfile = File.createTempFile("sortInBatch", "flatfile", sortWorkDir);
         long textSize = 0;
-        try (BufferedWriter writer = IndexStoreUtils.createWriter(newtmpfile, this.getAlgorithm())) {
+        try (BufferedWriter writer = IndexStoreUtils.createWriter(newtmpfile,
+            this.getAlgorithm())) {
             for (NodeStateHolder h : entryBatch) {
                 //Here holder line only contains nodeState json
                 String text = entryWriter.toString(h.getPathElements(), h.getLine());
@@ -215,7 +229,8 @@ class TraverseWithSortStrategy extends IndexStoreSortStrategyBase {
             }
         }
         log.info("Sorted and stored batch of size {} (uncompressed {}) with {} entries in {}",
-                humanReadableByteCount(newtmpfile.length()), humanReadableByteCount(textSize), entryBatch.size(), w);
+            humanReadableByteCount(newtmpfile.length()), humanReadableByteCount(textSize),
+            entryBatch.size(), w);
         sortedFiles.add(newtmpfile);
     }
 
@@ -237,8 +252,10 @@ class TraverseWithSortStrategy extends IndexStoreSortStrategyBase {
     }
 
     private void logFlags() {
-        log.info("Min heap memory (GB) to be required : {} ({})", minMemory, OAK_INDEXER_MIN_MEMORY);
-        log.info("Max heap memory (GB) to be used for merge sort : {} ({})", maxMemory, OAK_INDEXER_MAX_SORT_MEMORY_IN_GB);
+        log.info("Min heap memory (GB) to be required : {} ({})", minMemory,
+            OAK_INDEXER_MIN_MEMORY);
+        log.info("Max heap memory (GB) to be used for merge sort : {} ({})", maxMemory,
+            OAK_INDEXER_MAX_SORT_MEMORY_IN_GB);
     }
 
     //~-------------------------------------< memory management >
@@ -247,7 +264,7 @@ class TraverseWithSortStrategy extends IndexStoreSortStrategyBase {
         MemoryPoolMXBean pool = getMemoryPool();
         if (pool == null) {
             log.warn("Unable to setup monitoring of available memory. " +
-                    "Would use configured maxMemory limit of {} GB", maxMemory);
+                "Would use configured maxMemory limit of {} GB", maxMemory);
             useMaxMemory = true;
             return;
         }
@@ -260,11 +277,13 @@ class TraverseWithSortStrategy extends IndexStoreSortStrategyBase {
         long warningThreshold = minMemory * ONE_GB;
         if (warningThreshold > maxMemory) {
             log.warn("Configured minimum memory {} GB more than available memory ({})." +
-                    "Overriding configuration accordingly.", minMemory, humanReadableByteCount(maxMemory));
+                    "Overriding configuration accordingly.", minMemory,
+                humanReadableByteCount(maxMemory));
             warningThreshold = maxMemory;
         }
         log.info("Setting up a listener to monitor pool '{}' and trigger batch save " +
-                "if memory drop below {} GB (max {})", pool.getName(), minMemory, humanReadableByteCount(maxMemory));
+                "if memory drop below {} GB (max {})", pool.getName(), minMemory,
+            humanReadableByteCount(maxMemory));
         pool.setCollectionUsageThreshold(warningThreshold);
         checkMemory(usage);
     }
@@ -275,27 +294,30 @@ class TraverseWithSortStrategy extends IndexStoreSortStrategyBase {
         long avail = maxMemory - usedMemory;
         if (avail > minMemoryBytes) {
             sufficientMemory.set(true);
-            log.info("Available memory level {} is good. Current batch size {}", humanReadableByteCount(avail), entryBatch.size());
+            log.info("Available memory level {} is good. Current batch size {}",
+                humanReadableByteCount(avail), entryBatch.size());
         } else {
             sufficientMemory.set(false);
-            log.info("Available memory level {} (required {}) is low. Enabling flag to trigger batch save",
-                    humanReadableByteCount(avail), minMemory);
+            log.info(
+                "Available memory level {} (required {}) is low. Enabling flag to trigger batch save",
+                humanReadableByteCount(avail), minMemory);
         }
     }
 
     //Taken from GCMemoryBarrier
     private class MemoryListener implements NotificationListener {
+
         @Override
         public void handleNotification(Notification notification,
-                                       Object handback) {
+            Object handback) {
             if (notification
-                    .getType()
-                    .equals(MemoryNotificationInfo.MEMORY_COLLECTION_THRESHOLD_EXCEEDED)) {
+                .getType()
+                .equals(MemoryNotificationInfo.MEMORY_COLLECTION_THRESHOLD_EXCEEDED)) {
                 if (sufficientMemory.get()) {
                     CompositeData cd = (CompositeData) notification
-                            .getUserData();
+                        .getUserData();
                     MemoryNotificationInfo info = MemoryNotificationInfo
-                            .from(cd);
+                        .from(cd);
                     checkMemory(info.getUsage());
                 }
             }
@@ -307,7 +329,7 @@ class TraverseWithSortStrategy extends IndexStoreSortStrategyBase {
         MemoryPoolMXBean maxPool = null;
         for (MemoryPoolMXBean pool : getMemoryPoolMXBeans()) {
             if (HEAP == pool.getType()
-                    && pool.isCollectionUsageThresholdSupported()) {
+                && pool.isCollectionUsageThresholdSupported()) {
                 // Get usage after a GC, which is more stable, if available
                 long poolSize = pool.getCollectionUsage().getMax();
                 // Keep the pool with biggest size, by default it should be Old Gen Space

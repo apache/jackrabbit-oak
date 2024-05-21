@@ -16,14 +16,14 @@
  */
 package org.apache.jackrabbit.oak.plugins.tree.impl;
 
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
 import org.apache.jackrabbit.oak.plugins.tree.factories.TreeFactory;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 import org.osgi.service.component.annotations.Component;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 
 @Component(service = {TreeProvider.class})
 public class TreeProviderService implements TreeProvider {

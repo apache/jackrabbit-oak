@@ -20,7 +20,6 @@ import java.io.File;
 import java.io.InputStream;
 import java.util.Iterator;
 import java.util.List;
-
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
@@ -30,6 +29,7 @@ import org.jetbrains.annotations.Nullable;
  * Interface to be implemented by a shared data store.
  */
 public interface SharedDataStore {
+
     /**
      * Explicitly identifies the type of the data store
      */
@@ -39,18 +39,18 @@ public interface SharedDataStore {
 
     /**
      * Adds the root record.
-     * 
+     *
      * @param stream the stream
-     * @param name the name of the root record
+     * @param name   the name of the root record
      * @throws DataStoreException the data store exception
      */
     void addMetadataRecord(InputStream stream, String name)
-            throws DataStoreException;
+        throws DataStoreException;
 
     /**
      * Adds the root record.
      *
-     * @param f the file
+     * @param f    the file
      * @param name the name of the root record
      * @throws DataStoreException the data store exception
      */
@@ -75,14 +75,14 @@ public interface SharedDataStore {
 
     /**
      * Gets the all root records.
-     * 
+     *
      * @return the all root records
      */
     List<DataRecord> getAllMetadataRecords(String prefix);
 
     /**
      * Deletes the root record represented by the given parameters.
-     * 
+     *
      * @param name the name of the root record
      * @return success/failure
      */
@@ -90,7 +90,7 @@ public interface SharedDataStore {
 
     /**
      * Deletes all records matching the given prefix.
-     * 
+     *
      * @param prefix metadata type identifier
      */
     void deleteAllMetadataRecords(String prefix);
@@ -112,13 +112,14 @@ public interface SharedDataStore {
 
     /**
      * Gets the type.
-     * 
+     *
      * @return the type
      */
     Type getType();
 
     /**
      * Returns the repository id (identifier for the repository in the DataStore)
+     *
      * @return repository id
      */
     @Nullable
@@ -128,9 +129,11 @@ public interface SharedDataStore {
 
     /**
      * Sets the repository id to identify repository in the DataStore
+     *
      * @param repositoryId
      * @throws DataStoreException
      */
-    default void setRepositoryId(String repositoryId) throws DataStoreException {}
+    default void setRepositoryId(String repositoryId) throws DataStoreException {
+    }
 }
 

@@ -16,11 +16,12 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import static org.junit.Assert.assertNotNull;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.Properties;
 import javax.jcr.RepositoryException;
-
 import org.apache.jackrabbit.oak.plugins.index.aggregate.AggregateIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.DefaultSolrConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.DefaultSolrConfigurationProvider;
@@ -38,28 +39,28 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 
-import static org.junit.Assert.assertNotNull;
-
 public class SolrOakRepositoryStub extends OakSegmentTarRepositoryStub {
 
     private SolrServerProvider solrServerProvider;
 
     public SolrOakRepositoryStub(Properties settings)
-            throws RepositoryException {
+        throws RepositoryException {
         super(settings);
     }
 
     @After
-    public void tearDown() throws Exception{
+    public void tearDown() throws Exception {
         solrServerProvider.close();
     }
 
     @Override
     protected void preCreateRepository(Jcr jcr) {
-        File f = new File("target" + File.separatorChar + "queryjcrtest-" + System.currentTimeMillis());
+        File f = new File(
+            "target" + File.separatorChar + "queryjcrtest-" + System.currentTimeMillis());
         final SolrClient solrServer;
         try {
-            solrServer = new EmbeddedSolrServerProvider(new EmbeddedSolrServerConfiguration(f.getPath(), "oak")).getSolrServer();
+            solrServer = new EmbeddedSolrServerProvider(
+                new EmbeddedSolrServerConfiguration(f.getPath(), "oak")).getSolrServer();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -102,10 +103,12 @@ public class SolrOakRepositoryStub extends OakSegmentTarRepositoryStub {
                 return CommitPolicy.HARD;
             }
         };
-        OakSolrConfigurationProvider oakSolrConfigurationProvider = new DefaultSolrConfigurationProvider(configuration);
+        OakSolrConfigurationProvider oakSolrConfigurationProvider = new DefaultSolrConfigurationProvider(
+            configuration);
         jcr.with(new SolrIndexInitializer(false))
-                .with(AggregateIndexProvider.wrap(new SolrQueryIndexProvider(solrServerProvider, oakSolrConfigurationProvider)))
-                .with(new NodeStateSolrServersObserver())
-                .with(new SolrIndexEditorProvider(solrServerProvider, oakSolrConfigurationProvider));
+           .with(AggregateIndexProvider.wrap(
+               new SolrQueryIndexProvider(solrServerProvider, oakSolrConfigurationProvider)))
+           .with(new NodeStateSolrServersObserver())
+           .with(new SolrIndexEditorProvider(solrServerProvider, oakSolrConfigurationProvider));
     }
 }

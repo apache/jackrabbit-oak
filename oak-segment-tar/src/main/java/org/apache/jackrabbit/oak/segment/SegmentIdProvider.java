@@ -21,9 +21,8 @@ package org.apache.jackrabbit.oak.segment;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Instances of this class provides {@link SegmentId} instances of a given
- * {@link SegmentStore} and creates new {@code SegmentId} instances on the fly
- * if required.
+ * Instances of this class provides {@link SegmentId} instances of a given {@link SegmentStore} and
+ * creates new {@code SegmentId} instances on the fly if required.
  */
 public interface SegmentIdProvider {
 

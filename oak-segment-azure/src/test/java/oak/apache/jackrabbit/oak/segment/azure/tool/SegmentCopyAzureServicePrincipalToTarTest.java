@@ -18,6 +18,12 @@
  */
 package oak.apache.jackrabbit.oak.segment.azure.tool;
 
+import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.AZURE_ACCOUNT_NAME;
+import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.AZURE_CLIENT_ID;
+import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.AZURE_CLIENT_SECRET;
+import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.AZURE_TENANT_ID;
+import static org.junit.Assume.assumeNotNull;
+
 import com.microsoft.azure.storage.blob.CloudBlobDirectory;
 import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
 import org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils;
@@ -25,13 +31,8 @@ import org.apache.jackrabbit.oak.segment.azure.util.Environment;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.AZURE_ACCOUNT_NAME;
-import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.AZURE_CLIENT_ID;
-import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.AZURE_CLIENT_SECRET;
-import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.AZURE_TENANT_ID;
-import static org.junit.Assume.assumeNotNull;
-
 public class SegmentCopyAzureServicePrincipalToTarTest extends SegmentCopyTestBase {
+
     private static final Environment ENVIRONMENT = new Environment();
     private static final String CONTAINER_NAME = "oak";
     private static final String DIR = "repository";
@@ -52,7 +53,8 @@ public class SegmentCopyAzureServicePrincipalToTarTest extends SegmentCopyTestBa
     protected SegmentNodeStorePersistence getSrcPersistence() {
         String accountName = ENVIRONMENT.getVariable(AZURE_ACCOUNT_NAME);
         String path = String.format(SEGMENT_STORE_PATH_FORMAT, accountName, CONTAINER_NAME, DIR);
-        CloudBlobDirectory cloudBlobDirectory = ToolUtils.createCloudBlobDirectory(path, ENVIRONMENT);
+        CloudBlobDirectory cloudBlobDirectory = ToolUtils.createCloudBlobDirectory(path,
+            ENVIRONMENT);
 
         return new AzurePersistence(cloudBlobDirectory);
     }

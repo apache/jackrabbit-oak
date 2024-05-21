@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import java.io.IOException;
-
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.IndexingContext;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.FacetHelper;
@@ -33,19 +31,22 @@ import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.lucene.facet.FacetsConfig;
 import org.jetbrains.annotations.Nullable;
 
-public class LuceneIndexEditorContext extends FulltextIndexEditorContext implements FacetsConfigProvider {
+public class LuceneIndexEditorContext extends FulltextIndexEditorContext implements
+    FacetsConfigProvider {
+
     private FacetsConfig facetsConfig;
 
     private final IndexAugmentorFactory augmentorFactory;
 
     LuceneIndexEditorContext(NodeState root, NodeBuilder definition,
-                             @Nullable IndexDefinition indexDefinition,
-                             IndexUpdateCallback updateCallback,
-                             FulltextIndexWriterFactory indexWriterFactory,
-                             ExtractedTextCache extractedTextCache,
-                             IndexAugmentorFactory augmentorFactory,
-                             IndexingContext indexingContext, boolean asyncIndexing) {
-        super(root, definition, indexDefinition, updateCallback, indexWriterFactory, extractedTextCache,
+        @Nullable IndexDefinition indexDefinition,
+        IndexUpdateCallback updateCallback,
+        FulltextIndexWriterFactory indexWriterFactory,
+        ExtractedTextCache extractedTextCache,
+        IndexAugmentorFactory augmentorFactory,
+        IndexingContext indexingContext, boolean asyncIndexing) {
+        super(root, definition, indexDefinition, updateCallback, indexWriterFactory,
+            extractedTextCache,
             indexingContext, asyncIndexing);
         this.augmentorFactory = augmentorFactory;
     }
@@ -56,7 +57,7 @@ public class LuceneIndexEditorContext extends FulltextIndexEditorContext impleme
     }
 
     @Override
-    public LuceneDocumentMaker newDocumentMaker(IndexDefinition.IndexingRule rule, String path){
+    public LuceneDocumentMaker newDocumentMaker(IndexDefinition.IndexingRule rule, String path) {
         //Faceting is only enabled for async mode
         FacetsConfigProvider facetsConfigProvider = isAsyncIndexing() ? this : null;
         return new LuceneDocumentMaker(getTextExtractor(), facetsConfigProvider, augmentorFactory,
@@ -65,20 +66,22 @@ public class LuceneIndexEditorContext extends FulltextIndexEditorContext impleme
 
     @Override
     public LuceneIndexWriter getWriter() {
-        return (LuceneIndexWriter)super.getWriter();
+        return (LuceneIndexWriter) super.getWriter();
     }
 
     @Override
     public FacetsConfig getFacetsConfig() {
-        if (facetsConfig == null){
+        if (facetsConfig == null) {
             facetsConfig = FacetHelper.getFacetsConfig(definitionBuilder);
         }
         return facetsConfig;
     }
 
-    /** Only set for testing
+    /**
+     * Only set for testing
+     *
      * @param c clock
-     * */
+     */
     public static void setClock(Clock c) {
         FulltextIndexEditorContext.setClock(c);
     }

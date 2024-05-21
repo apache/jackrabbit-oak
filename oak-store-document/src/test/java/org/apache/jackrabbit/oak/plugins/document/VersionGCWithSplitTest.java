@@ -51,8 +51,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 /**
- * Runs a DocumentMK revision GC interleaved with a document split.
- * Test for OAK-1791.
+ * Runs a DocumentMK revision GC interleaved with a document split. Test for OAK-1791.
  */
 @RunWith(Parameterized.class)
 public class VersionGCWithSplitTest {
@@ -74,11 +73,11 @@ public class VersionGCWithSplitTest {
     @Parameterized.Parameters(name = "{0}")
     public static java.util.Collection<Object[]> fixtures() throws IOException {
         List<Object[]> fixtures = Lists.newArrayList();
-        fixtures.add(new Object[] {new DocumentStoreFixture.MemoryFixture()});
+        fixtures.add(new Object[]{new DocumentStoreFixture.MemoryFixture()});
 
         DocumentStoreFixture mongo = new DocumentStoreFixture.MongoFixture();
-        if(mongo.isAvailable()){
-            fixtures.add(new Object[] {mongo});
+        if (mongo.isAvailable()) {
+            fixtures.add(new Object[]{mongo});
         }
         return fixtures;
     }
@@ -90,11 +89,11 @@ public class VersionGCWithSplitTest {
 
         clock = new Clock.Virtual();
         store = new DocumentMK.Builder()
-                .clock(clock)
-                .setLeaseCheckMode(LeaseCheckMode.LENIENT)
-                .setDocumentStore(testStore)
-                .setAsyncDelay(0)
-                .getNodeStore();
+            .clock(clock)
+            .setLeaseCheckMode(LeaseCheckMode.LENIENT)
+            .setDocumentStore(testStore)
+            .setAsyncDelay(0)
+            .getNodeStore();
         gc = store.getVersionGarbageCollector();
 
         //Baseline the clock
@@ -130,8 +129,8 @@ public class VersionGCWithSplitTest {
         }
         // wait one hour
         clock.waitUntil(Revision.getCurrentTimestamp() +
-                HOURS.toMillis(1) +
-                2 * SECONDS.toMillis(MODIFIED_IN_SECS_RESOLUTION));
+            HOURS.toMillis(1) +
+            2 * SECONDS.toMillis(MODIFIED_IN_SECS_RESOLUTION));
 
         final AtomicReference<VersionGarbageCollector.VersionGCStats> stats = new AtomicReference<VersionGarbageCollector.VersionGCStats>();
         Thread t = new Thread(new Runnable() {
@@ -194,7 +193,7 @@ public class VersionGCWithSplitTest {
     }
 
     private void merge(DocumentNodeStore store, NodeBuilder builder)
-            throws CommitFailedException {
+        throws CommitFailedException {
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 
@@ -209,7 +208,7 @@ public class VersionGCWithSplitTest {
 
         @Override
         public <T extends Document> T createOrUpdate(final Collection<T> collection,
-                                                     final UpdateOp update) {
+            final UpdateOp update) {
             final AtomicReference<T> ref = new AtomicReference<T>();
             runLocked(new Runnable() {
                 public void run() {
@@ -221,7 +220,7 @@ public class VersionGCWithSplitTest {
 
         @Override
         public <T extends Document> T findAndUpdate(final Collection<T> collection,
-                                                    final UpdateOp update) {
+            final UpdateOp update) {
             final AtomicReference<T> ref = new AtomicReference<T>();
             runLocked(new Runnable() {
                 public void run() {

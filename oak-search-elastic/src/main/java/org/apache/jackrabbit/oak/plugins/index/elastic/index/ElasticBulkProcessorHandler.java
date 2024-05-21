@@ -23,17 +23,6 @@ import co.elastic.clients.elasticsearch.core.BulkRequest;
 import co.elastic.clients.elasticsearch.core.BulkResponse;
 import co.elastic.clients.elasticsearch.core.bulk.BulkOperation;
 import co.elastic.clients.elasticsearch.core.bulk.BulkResponseItem;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
-import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
-import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
-import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -46,11 +35,22 @@ import java.util.concurrent.Phaser;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
+import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class ElasticBulkProcessorHandler {
 
     private static final Logger LOG = LoggerFactory.getLogger(ElasticBulkProcessorHandler.class);
-    private final int FAILED_DOC_COUNT_FOR_STATUS_NODE = Integer.getInteger("oak.failedDocStatusLimit", 10000);
+    private final int FAILED_DOC_COUNT_FOR_STATUS_NODE = Integer.getInteger(
+        "oak.failedDocStatusLimit", 10000);
 
     private static final int BULK_PROCESSOR_CONCURRENCY =
         Integer.getInteger("oak.indexer.elastic.bulkProcessorConcurrency", 1);
@@ -65,10 +65,11 @@ class ElasticBulkProcessorHandler {
     private final boolean waitForESAcknowledgement;
 
     /**
-     * Coordinates communication between bulk processes. It has a main controller registered at creation time and
-     * de-registered on {@link ElasticIndexWriter#close(long)}. Each bulk request register a new party in
-     * this Phaser in {@link OakBulkListener#beforeBulk(long, BulkRequest, List)} and de-register itself when
-     * the request returns.
+     * Coordinates communication between bulk processes. It has a main controller registered at
+     * creation time and de-registered on {@link ElasticIndexWriter#close(long)}. Each bulk request
+     * register a new party in this Phaser in
+     * {@link OakBulkListener#beforeBulk(long, BulkRequest, List)} and de-register itself when the
+     * request returns.
      */
     private final Phaser phaser = new Phaser(1); // register main controller
 
@@ -78,18 +79,19 @@ class ElasticBulkProcessorHandler {
     private final ConcurrentLinkedQueue<ErrorCause> suppressedErrorCauses = new ConcurrentLinkedQueue<>();
 
     /**
-     * Key-value structure to keep the history of bulk requests. Keys are the bulk execution ids, the boolean
-     * value is {@code true} when at least an update is performed, otherwise {@code false}.
+     * Key-value structure to keep the history of bulk requests. Keys are the bulk execution ids,
+     * the boolean value is {@code true} when at least an update is performed, otherwise
+     * {@code false}.
      */
     private final ConcurrentHashMap<Long, Boolean> updatesMap = new ConcurrentHashMap<>();
 
     protected long totalOperations;
 
     private ElasticBulkProcessorHandler(@NotNull ElasticConnection elasticConnection,
-                                        @NotNull String indexName,
-                                        @NotNull ElasticIndexDefinition indexDefinition,
-                                        @NotNull NodeBuilder definitionBuilder,
-                                        boolean waitForESAcknowledgement) {
+        @NotNull String indexName,
+        @NotNull ElasticIndexDefinition indexDefinition,
+        @NotNull NodeBuilder definitionBuilder,
+        boolean waitForESAcknowledgement) {
         this.elasticConnection = elasticConnection;
         this.indexName = indexName;
         this.indexDefinition = indexDefinition;
@@ -101,18 +103,20 @@ class ElasticBulkProcessorHandler {
     /**
      * Returns an ElasticBulkProcessorHandler instance based on the index definition configuration.
      * <p>
-     * The `sync-mode` property can be set to `rt` (real-time). In this case the returned handler will be real-time.
-     * This option is available for sync index definitions only.
+     * The `sync-mode` property can be set to `rt` (real-time). In this case the returned handler
+     * will be real-time. This option is available for sync index definitions only.
      */
-    public static ElasticBulkProcessorHandler getBulkProcessorHandler(@NotNull ElasticConnection elasticConnection,
-                                                                      @NotNull String indexName,
-                                                                      @NotNull ElasticIndexDefinition indexDefinition,
-                                                                      @NotNull NodeBuilder definitionBuilder, CommitInfo commitInfo,
-                                                                      boolean waitForESAcknowledgement) {
+    public static ElasticBulkProcessorHandler getBulkProcessorHandler(
+        @NotNull ElasticConnection elasticConnection,
+        @NotNull String indexName,
+        @NotNull ElasticIndexDefinition indexDefinition,
+        @NotNull NodeBuilder definitionBuilder, CommitInfo commitInfo,
+        boolean waitForESAcknowledgement) {
         PropertyState async = indexDefinition.getDefinitionNodeState().getProperty("async");
 
         if (async != null) {
-            return new ElasticBulkProcessorHandler(elasticConnection, indexName, indexDefinition, definitionBuilder, waitForESAcknowledgement);
+            return new ElasticBulkProcessorHandler(elasticConnection, indexName, indexDefinition,
+                definitionBuilder, waitForESAcknowledgement);
         }
 
         // commit-info has priority over configuration in index definition
@@ -122,17 +126,20 @@ class ElasticBulkProcessorHandler {
         }
 
         if (syncMode == null) {
-            PropertyState syncModeProp = indexDefinition.getDefinitionNodeState().getProperty("sync-mode");
+            PropertyState syncModeProp = indexDefinition.getDefinitionNodeState()
+                                                        .getProperty("sync-mode");
             if (syncModeProp != null) {
                 syncMode = syncModeProp.getValue(Type.STRING);
             }
         }
 
         if (SYNC_RT_MODE.equals(syncMode)) {
-            return new RealTimeBulkProcessorHandler(elasticConnection, indexName, indexDefinition, definitionBuilder, waitForESAcknowledgement);
+            return new RealTimeBulkProcessorHandler(elasticConnection, indexName, indexDefinition,
+                definitionBuilder, waitForESAcknowledgement);
         }
 
-        return new ElasticBulkProcessorHandler(elasticConnection, indexName, indexDefinition, definitionBuilder, waitForESAcknowledgement);
+        return new ElasticBulkProcessorHandler(elasticConnection, indexName, indexDefinition,
+            definitionBuilder, waitForESAcknowledgement);
     }
 
     private BulkIngester<String> initBulkIngester() {
@@ -140,7 +147,7 @@ class ElasticBulkProcessorHandler {
         // More details here: https://github.com/elastic/elasticsearch-java/issues/478
         return BulkIngester.of(b -> {
             b = b.client(elasticConnection.getAsyncClient())
-                    .listener(new OakBulkListener());
+                 .listener(new OakBulkListener());
             if (indexDefinition.bulkActions > 0) {
                 b = b.maxOperations(indexDefinition.bulkActions);
             }
@@ -156,14 +163,17 @@ class ElasticBulkProcessorHandler {
 
     private void checkFailures() throws IOException {
         if (!suppressedErrorCauses.isEmpty()) {
-            IOException ioe = new IOException("Exception while indexing. See suppressed for details");
-            suppressedErrorCauses.stream().map(ec -> new IllegalStateException(ec.reason())).forEach(ioe::addSuppressed);
+            IOException ioe = new IOException(
+                "Exception while indexing. See suppressed for details");
+            suppressedErrorCauses.stream().map(ec -> new IllegalStateException(ec.reason()))
+                                 .forEach(ioe::addSuppressed);
             throw ioe;
         }
     }
 
     public void update(String id, ElasticDocument document) throws IOException {
-        add(BulkOperation.of(op -> op.index(idx -> idx.index(indexName).id(id).document(document))), id);
+        add(BulkOperation.of(op -> op.index(idx -> idx.index(indexName).id(id).document(document))),
+            id);
     }
 
     public void delete(String id) throws IOException {
@@ -179,6 +189,7 @@ class ElasticBulkProcessorHandler {
 
     /**
      * Closes the bulk ingester and waits for all the bulk requests to return.
+     *
      * @return {@code true} if at least one update was performed, {@code false} otherwise
      * @throws IOException if an error happened while processing the bulk requests
      */
@@ -190,14 +201,16 @@ class ElasticBulkProcessorHandler {
         // de-register main controller
         int phase = phaser.arriveAndDeregister();
 
-        if (totalOperations == 0) { // no need to invoke phaser await if we already know there were no operations
+        if (totalOperations
+            == 0) { // no need to invoke phaser await if we already know there were no operations
             LOG.debug("No operations executed in this processor. Close immediately");
             return false;
         }
 
         if (waitForESAcknowledgement) {
             try {
-                phaser.awaitAdvanceInterruptibly(phase, indexDefinition.bulkFlushIntervalMs * 5, TimeUnit.MILLISECONDS);
+                phaser.awaitAdvanceInterruptibly(phase, indexDefinition.bulkFlushIntervalMs * 5,
+                    TimeUnit.MILLISECONDS);
             } catch (TimeoutException e) {
                 LOG.error("Error waiting for bulk requests to return", e);
             } catch (InterruptedException e) {
@@ -227,26 +240,29 @@ class ElasticBulkProcessorHandler {
             LOG.debug("Sending bulk with id {} -> {}", executionId, contexts);
             if (LOG.isTraceEnabled()) {
                 LOG.trace("Bulk Requests: \n{}", request.operations()
-                        .stream()
-                        .map(BulkOperation::toString)
-                        .collect(Collectors.joining("\n"))
+                                                        .stream()
+                                                        .map(BulkOperation::toString)
+                                                        .collect(Collectors.joining("\n"))
                 );
             }
         }
 
         @Override
-        public void afterBulk(long executionId, BulkRequest request, List<String> contexts, BulkResponse response) {
+        public void afterBulk(long executionId, BulkRequest request, List<String> contexts,
+            BulkResponse response) {
             try {
                 LOG.debug("Bulk with id {} processed in {} ms", executionId, response.took());
                 if (LOG.isTraceEnabled()) {
                     LOG.trace(response.toString());
                 }
-                if (response.items().stream().anyMatch(i -> i.error() != null)) { // check if some operations failed to execute
+                if (response.items().stream().anyMatch(
+                    i -> i.error() != null)) { // check if some operations failed to execute
                     Set<String> failedDocSet = new LinkedHashSet<>();
                     NodeBuilder status = definitionBuilder.child(IndexDefinition.STATUS_NODE);
                     // Read the current failed paths (if any) on the :status node into failedDocList
                     if (status.hasProperty(IndexDefinition.FAILED_DOC_PATHS)) {
-                        for (String str : status.getProperty(IndexDefinition.FAILED_DOC_PATHS).getValue(Type.STRINGS)) {
+                        for (String str : status.getProperty(IndexDefinition.FAILED_DOC_PATHS)
+                                                .getValue(Type.STRINGS)) {
                             failedDocSet.add(str);
                         }
                     }
@@ -261,15 +277,19 @@ class ElasticBulkProcessorHandler {
                             if (indexDefinition.failOnError) {
                                 suppressedErrorCauses.add(item.error());
                             }
-                            if (!isFailedDocSetFull && failedDocSet.size() < FAILED_DOC_COUNT_FOR_STATUS_NODE) {
+                            if (!isFailedDocSetFull
+                                && failedDocSet.size() < FAILED_DOC_COUNT_FOR_STATUS_NODE) {
                                 failedDocSet.add(contexts.get(i));
                             } else {
                                 isFailedDocSetFull = true;
                             }
                             // Log entry to be used to parse logs to get the failed doc id/path if needed
-                            LOG.error("ElasticIndex Update Doc Failure: Error while adding/updating doc with id: [{}]", contexts.get(i));
-                            LOG.error("Failure Details: BulkItem ID: {}, Index: {}, Failure Cause: {}",
-                                    item.id(), item.index(), item.error());
+                            LOG.error(
+                                "ElasticIndex Update Doc Failure: Error while adding/updating doc with id: [{}]",
+                                contexts.get(i));
+                            LOG.error(
+                                "Failure Details: BulkItem ID: {}, Index: {}, Failure Cause: {}",
+                                item.id(), item.index(), item.error());
                         } else if (!hasSuccesses) {
                             // Set indexUpdated to true even if 1 item was updated successfully
                             updatesMap.put(executionId, Boolean.TRUE);
@@ -278,10 +298,13 @@ class ElasticBulkProcessorHandler {
                     }
 
                     if (isFailedDocSetFull) {
-                        LOG.info("Cannot store all new Failed Docs because {} has been filled up. " +
-                                "See previous log entries to find out the details of failed paths", IndexDefinition.FAILED_DOC_PATHS);
+                        LOG.info(
+                            "Cannot store all new Failed Docs because {} has been filled up. " +
+                                "See previous log entries to find out the details of failed paths",
+                            IndexDefinition.FAILED_DOC_PATHS);
                     } else if (failedDocSet.size() != initialSize) {
-                        status.setProperty(IndexDefinition.FAILED_DOC_PATHS, failedDocSet, Type.STRINGS);
+                        status.setProperty(IndexDefinition.FAILED_DOC_PATHS, failedDocSet,
+                            Type.STRINGS);
                     }
                 } else {
                     updatesMap.put(executionId, Boolean.TRUE);
@@ -292,9 +315,11 @@ class ElasticBulkProcessorHandler {
         }
 
         @Override
-        public void afterBulk(long executionId, BulkRequest request, List<String> contexts, Throwable failure) {
+        public void afterBulk(long executionId, BulkRequest request, List<String> contexts,
+            Throwable failure) {
             try {
-                LOG.error("ElasticIndex Update Bulk Failure : Bulk with id {} threw an error", executionId, failure);
+                LOG.error("ElasticIndex Update Bulk Failure : Bulk with id {} threw an error",
+                    executionId, failure);
                 suppressedErrorCauses.add(ErrorCause.of(ec -> {
                     StringWriter sw = new StringWriter();
                     PrintWriter pw = new PrintWriter(sw);
@@ -308,23 +333,24 @@ class ElasticBulkProcessorHandler {
     }
 
     /**
-     * {@link ElasticBulkProcessorHandler} extension with real time behaviour.
-     * It also uses the same async bulk processor as the parent except for the last flush that waits until the
-     * indexed documents are searchable.
+     * {@link ElasticBulkProcessorHandler} extension with real time behaviour. It also uses the same
+     * async bulk processor as the parent except for the last flush that waits until the indexed
+     * documents are searchable.
      * <p>
-     * BulkIngester does not support customization of intermediate requests. This means we cannot intercept the last
-     * request and apply a WAIT_UNTIL refresh policy. The workaround is to force a refresh when the handler is closed.
-     * We can improve this when this issue gets fixed:
-     * <a href="https://github.com/elastic/elasticsearch-java/issues/703">elasticsearch-java#703</a>
+     * BulkIngester does not support customization of intermediate requests. This means we cannot
+     * intercept the last request and apply a WAIT_UNTIL refresh policy. The workaround is to force
+     * a refresh when the handler is closed. We can improve this when this issue gets fixed: <a
+     * href="https://github.com/elastic/elasticsearch-java/issues/703">elasticsearch-java#703</a>
      */
     protected static class RealTimeBulkProcessorHandler extends ElasticBulkProcessorHandler {
 
         private RealTimeBulkProcessorHandler(@NotNull ElasticConnection elasticConnection,
-                                             @NotNull String indexName,
-                                             @NotNull ElasticIndexDefinition indexDefinition,
-                                             @NotNull NodeBuilder definitionBuilder,
-                                             boolean waitForESAcknowledgement) {
-            super(elasticConnection, indexName, indexDefinition, definitionBuilder, waitForESAcknowledgement);
+            @NotNull String indexName,
+            @NotNull ElasticIndexDefinition indexDefinition,
+            @NotNull NodeBuilder definitionBuilder,
+            boolean waitForESAcknowledgement) {
+            super(elasticConnection, indexName, indexDefinition, definitionBuilder,
+                waitForESAcknowledgement);
         }
 
         @Override
@@ -336,7 +362,7 @@ class ElasticBulkProcessorHandler {
             if (totalOperations > 0) {
                 LOG.debug("Forcing refresh");
                 try {
-                	this.elasticConnection.getClient().indices().refresh(b -> b.index(indexName));
+                    this.elasticConnection.getClient().indices().refresh(b -> b.index(indexName));
                 } catch (IOException e) {
                     LOG.warn("Error refreshing index " + indexName, e);
                 }

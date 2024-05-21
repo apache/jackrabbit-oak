@@ -25,8 +25,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * {@code TreePermission} implementation for all tree located within one of the
- * supported paths which may or may not contain a CUG.
+ * {@code TreePermission} implementation for all tree located within one of the supported paths
+ * which may or may not contain a CUG.
  */
 final class CugTreePermission extends AbstractTreePermission implements CugConstants {
 
@@ -34,13 +34,14 @@ final class CugTreePermission extends AbstractTreePermission implements CugConst
     private Status status;
 
     CugTreePermission(@NotNull Tree tree, @NotNull TreeType type, @NotNull TreePermission parent,
-                      @NotNull CugPermissionProvider permissionProvider) {
+        @NotNull CugPermissionProvider permissionProvider) {
         super(tree, type, permissionProvider);
         this.parent = parent;
     }
 
     CugTreePermission(@NotNull Tree tree, @NotNull TreeType type, @NotNull TreePermission parent,
-                      @NotNull CugPermissionProvider permissionProvider, boolean inCug, boolean canRead, boolean hasNestedCug) {
+        @NotNull CugPermissionProvider permissionProvider, boolean inCug, boolean canRead,
+        boolean hasNestedCug) {
         super(tree, type, permissionProvider);
         this.parent = parent;
         status = new Status(inCug, canRead, hasNestedCug);
@@ -59,30 +60,32 @@ final class CugTreePermission extends AbstractTreePermission implements CugConst
         }
         return status.allow;
     }
-    
+
     boolean hasNestedCug() {
         if (status == null) {
             loadStatus();
         }
         return status.hasNested;
     }
-    
+
     private Status getStatus() {
         if (status == null) {
             loadStatus();
         }
         return status;
     }
-    
+
     private void loadStatus() {
-        CugTreePermission parentCugPerm = (parent instanceof CugTreePermission) ? (CugTreePermission) parent : null;
+        CugTreePermission parentCugPerm =
+            (parent instanceof CugTreePermission) ? (CugTreePermission) parent : null;
         if (neverNested(parentCugPerm)) {
             status = parentCugPerm.getStatus();
         } else {
             // need to load information
             Tree cugTree = CugUtil.getCug(tree);
             if (cugTree != null) {
-                status = new Status(true, permissionProvider.isAllow(cugTree), CugUtil.hasNestedCug(cugTree));
+                status = new Status(true, permissionProvider.isAllow(cugTree),
+                    CugUtil.hasNestedCug(cugTree));
             } else if (parentCugPerm != null) {
                 status = parentCugPerm.getStatus();
             } else {

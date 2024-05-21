@@ -18,6 +18,8 @@ package org.apache.jackrabbit.oak.segment.aws;
 
 import static org.apache.jackrabbit.oak.segment.remote.RemoteUtilities.getSegmentUUID;
 
+import com.amazonaws.services.s3.model.DeleteObjectsRequest.KeyVersion;
+import com.amazonaws.services.s3.model.S3ObjectSummary;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -31,10 +33,6 @@ import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-
-import com.amazonaws.services.s3.model.S3ObjectSummary;
-import com.amazonaws.services.s3.model.DeleteObjectsRequest.KeyVersion;
-
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
@@ -55,7 +53,8 @@ public class AwsArchiveManager implements SegmentArchiveManager {
 
     private final FileStoreMonitor monitor;
 
-    public AwsArchiveManager(S3Directory directory, IOMonitor ioMonitor, FileStoreMonitor fileStoreMonitor) {
+    public AwsArchiveManager(S3Directory directory, IOMonitor ioMonitor,
+        FileStoreMonitor fileStoreMonitor) {
         this.directory = directory;
         this.ioMonitor = ioMonitor;
         this.monitor = fileStoreMonitor;
@@ -63,8 +62,10 @@ public class AwsArchiveManager implements SegmentArchiveManager {
 
     @Override
     public List<String> listArchives() throws IOException {
-        List<String> archiveNames = directory.listPrefixes().stream().filter(i -> i.endsWith(".tar/")).map(Paths::get)
-                .map(Path::getFileName).map(Path::toString).collect(Collectors.toList());
+        List<String> archiveNames = directory.listPrefixes().stream()
+                                             .filter(i -> i.endsWith(".tar/")).map(Paths::get)
+                                             .map(Path::getFileName).map(Path::toString)
+                                             .collect(Collectors.toList());
 
         Iterator<String> it = archiveNames.iterator();
         while (it.hasNext()) {
@@ -105,7 +106,8 @@ public class AwsArchiveManager implements SegmentArchiveManager {
 
     @Override
     public SegmentArchiveWriter create(String archiveName) throws IOException {
-        return new AwsSegmentArchiveWriter(directory.withDirectory(archiveName), archiveName, ioMonitor, monitor);
+        return new AwsSegmentArchiveWriter(directory.withDirectory(archiveName), archiveName,
+            ioMonitor, monitor);
     }
 
     @Override
@@ -154,7 +156,8 @@ public class AwsArchiveManager implements SegmentArchiveManager {
     }
 
     @Override
-    public void recoverEntries(String archiveName, LinkedHashMap<UUID, byte[]> entries) throws IOException {
+    public void recoverEntries(String archiveName, LinkedHashMap<UUID, byte[]> entries)
+        throws IOException {
         Pattern pattern = Pattern.compile(SEGMENT_FILE_NAME_PATTERN);
         List<RecoveredEntry> entryList = new ArrayList<>();
 
@@ -177,7 +180,7 @@ public class AwsArchiveManager implements SegmentArchiveManager {
         for (RecoveredEntry e : entryList) {
             if (e.position != i) {
                 log.warn("Missing entry {}.??? when recovering {}. No more segments will be read.",
-                        String.format("%04X", i), archiveName);
+                    String.format("%04X", i), archiveName);
                 break;
             }
             log.info("Recovering segment {}/{}", archiveName, e.fileName);
@@ -187,13 +190,14 @@ public class AwsArchiveManager implements SegmentArchiveManager {
     }
 
     /**
-     * Avoids deleting segments from the directory given with {@code archiveName},
-     * if they are in the set of recovered segments. Reason for that is because
-     * during execution of this method, remote repository can be accessed by another
-     * application, and deleting a valid segment can cause consistency issues there.
+     * Avoids deleting segments from the directory given with {@code archiveName}, if they are in
+     * the set of recovered segments. Reason for that is because during execution of this method,
+     * remote repository can be accessed by another application, and deleting a valid segment can
+     * cause consistency issues there.
      */
     @Override
-    public void backup(String archiveName, String backupArchiveName, Set<UUID> recoveredEntries) throws IOException {
+    public void backup(String archiveName, String backupArchiveName, Set<UUID> recoveredEntries)
+        throws IOException {
         copyFile(archiveName, backupArchiveName);
         delete(archiveName, recoveredEntries);
     }

@@ -16,6 +16,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.index;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.function.BiFunction;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import org.apache.jackrabbit.guava.common.base.CaseFormat;
 import org.apache.lucene.analysis.AbstractAnalysisFactory;
 import org.apache.lucene.analysis.charfilter.MappingCharFilterFactory;
@@ -35,14 +42,6 @@ import org.apache.lucene.analysis.synonym.SynonymFilterFactory;
 import org.apache.lucene.analysis.util.ElisionFilterFactory;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.function.BiFunction;
-import java.util.function.Consumer;
-import java.util.stream.Collectors;
-
 public class ElasticCustomAnalyzerMappings {
 
     /*
@@ -52,17 +51,18 @@ public class ElasticCustomAnalyzerMappings {
 
     static {
         UNSUPPORTED_LUCENE_PARAMETERS = Map.of(
-                CommonGramsFilterFactory.class, List.of("query_mode"),
-                AbstractWordsFileFilterFactory.class, List.of("enablePositionIncrements"),
-                SynonymFilterFactory.class, List.of("lenient"),
-                EdgeNGramFilterFactory.class, List.of("preserveOriginal"),
-                LengthFilterFactory.class, List.of("enablePositionIncrements"),
-                NGramFilterFactory.class, List.of("keepShortTerm", "preserveOriginal")
+            CommonGramsFilterFactory.class, List.of("query_mode"),
+            AbstractWordsFileFilterFactory.class, List.of("enablePositionIncrements"),
+            SynonymFilterFactory.class, List.of("lenient"),
+            EdgeNGramFilterFactory.class, List.of("preserveOriginal"),
+            LengthFilterFactory.class, List.of("enablePositionIncrements"),
+            NGramFilterFactory.class, List.of("keepShortTerm", "preserveOriginal")
         );
     }
 
     @FunctionalInterface
     protected interface ContentTransformer {
+
         @Nullable
         String transform(String line);
     }
@@ -86,6 +86,7 @@ public class ElasticCustomAnalyzerMappings {
 
     @FunctionalInterface
     protected interface ParameterTransformer {
+
         /**
          * Transforms the input lucene parameters into elastic ones
          */
@@ -112,7 +113,8 @@ public class ElasticCustomAnalyzerMappings {
         LUCENE_ELASTIC_TRANSFORMERS = new LinkedHashMap<>();
 
         LUCENE_ELASTIC_TRANSFORMERS.put(WordDelimiterFilterFactory.class, luceneParams -> {
-            Consumer<String> transformFlag = flag -> luceneParams.computeIfPresent(flag, (k, v) -> Integer.parseInt(v.toString()) == 1);
+            Consumer<String> transformFlag = flag -> luceneParams.computeIfPresent(flag,
+                (k, v) -> Integer.parseInt(v.toString()) == 1);
 
             transformFlag.accept("generateWordParts");
             transformFlag.accept("generateNumberParts");
@@ -125,58 +127,58 @@ public class ElasticCustomAnalyzerMappings {
             transformFlag.accept("stemEnglishPossessive");
 
             return reKey.apply(luceneParams, Map.of(
-                    "protectedTokens", "protected_words"
+                "protectedTokens", "protected_words"
             ));
         });
 
         LUCENE_ELASTIC_TRANSFORMERS.put(PatternCaptureGroupFilterFactory.class, luceneParams ->
-                reKey.apply(luceneParams, Map.of("pattern", "patterns"))
+            reKey.apply(luceneParams, Map.of("pattern", "patterns"))
         );
 
         LUCENE_ELASTIC_TRANSFORMERS.put(KeepWordFilterFactory.class, luceneParams ->
-                reKey.apply(luceneParams, Map.of(
-                        "words", "keep_words",
-                        "ignoreCase", "keep_words_case"
-                ))
+            reKey.apply(luceneParams, Map.of(
+                "words", "keep_words",
+                "ignoreCase", "keep_words_case"
+            ))
         );
 
         LUCENE_ELASTIC_TRANSFORMERS.put(ElisionFilterFactory.class, luceneParams ->
-                reKey.apply(luceneParams, Map.of("ignoreCase", "articles_case"))
+            reKey.apply(luceneParams, Map.of("ignoreCase", "articles_case"))
         );
 
         LUCENE_ELASTIC_TRANSFORMERS.put(EdgeNGramFilterFactory.class, luceneParams -> {
             luceneParams.remove("side");
             return reKey.apply(luceneParams, Map.of(
-                    "minGramSize", "min_gram",
-                    "maxGramSize", "max_gram"
+                "minGramSize", "min_gram",
+                "maxGramSize", "max_gram"
             ));
         });
 
         LUCENE_ELASTIC_TRANSFORMERS.put(NGramFilterFactory.class, luceneParams ->
-                reKey.apply(luceneParams, Map.of(
+            reKey.apply(luceneParams, Map.of(
                 "minGramSize", "min_gram",
                 "maxGramSize", "max_gram"
-                ))
+            ))
         );
 
         LUCENE_ELASTIC_TRANSFORMERS.put(DelimitedPayloadTokenFilterFactory.class, luceneParams ->
-                reKey.apply(luceneParams, Map.of("encoder", "encoding"))
+            reKey.apply(luceneParams, Map.of("encoder", "encoding"))
         );
 
         LUCENE_ELASTIC_TRANSFORMERS.put(CommonGramsFilterFactory.class, luceneParams ->
-                reKey.apply(luceneParams, Map.of("words", "common_words"))
+            reKey.apply(luceneParams, Map.of("words", "common_words"))
         );
 
         LUCENE_ELASTIC_TRANSFORMERS.put(MappingCharFilterFactory.class, luceneParams ->
-                reKey.apply(luceneParams, Map.of("mapping", "mappings"))
+            reKey.apply(luceneParams, Map.of("mapping", "mappings"))
         );
 
         LUCENE_ELASTIC_TRANSFORMERS.put(SynonymFilterFactory.class, luceneParams ->
-                reKey.apply(luceneParams, Map.of("tokenizerFactory", "tokenizer"))
+            reKey.apply(luceneParams, Map.of("tokenizerFactory", "tokenizer"))
         );
 
         LUCENE_ELASTIC_TRANSFORMERS.put(KeywordMarkerFilterFactory.class, luceneParams ->
-                reKey.apply(luceneParams, Map.of("protected", "keywords"))
+            reKey.apply(luceneParams, Map.of("protected", "keywords"))
         );
 
         LUCENE_ELASTIC_TRANSFORMERS.put(CJKBigramFilterFactory.class, luceneParams -> {
@@ -204,18 +206,21 @@ public class ElasticCustomAnalyzerMappings {
             return reKey.apply(luceneParams, Map.of("words", "stopwords"));
         });
 
-        LUCENE_ELASTIC_TRANSFORMERS.put(DictionaryCompoundWordTokenFilterFactory.class, luceneParams -> reKey.apply(luceneParams, Map.of(
+        LUCENE_ELASTIC_TRANSFORMERS.put(DictionaryCompoundWordTokenFilterFactory.class,
+            luceneParams -> reKey.apply(luceneParams, Map.of(
                 "dictionary", "word_list"
-        )));
+            )));
 
         // default transformer executed as final step on all the filters to transform the keys from camel case to snake case
         LUCENE_ELASTIC_TRANSFORMERS.put(AbstractAnalysisFactory.class, luceneParams ->
-                luceneParams.entrySet().stream()
+            luceneParams.entrySet().stream()
                         .collect(Collectors.toMap(
-                                entry -> CaseFormat.UPPER_CAMEL.to(CaseFormat.LOWER_UNDERSCORE, entry.getKey()),
-                                Map.Entry::getValue, // keep the original value
-                                (oldValue, newValue) -> oldValue, // in case of duplicate keys, keep the old value
-                                LinkedHashMap::new // preserve the original order
+                            entry -> CaseFormat.UPPER_CAMEL.to(CaseFormat.LOWER_UNDERSCORE,
+                                entry.getKey()),
+                            Map.Entry::getValue, // keep the original value
+                            (oldValue, newValue) -> oldValue,
+                            // in case of duplicate keys, keep the old value
+                            LinkedHashMap::new // preserve the original order
                         ))
         );
     }
@@ -224,16 +229,16 @@ public class ElasticCustomAnalyzerMappings {
      * Some filter names cannot be transformed from the original name. Here we map the exceptions
      */
     protected static final Map<String, String> FILTERS = Map.ofEntries(
-            Map.entry("porter_stem", "porter2"),
-            Map.entry("ascii_folding", "asciifolding"),
-            Map.entry("n_gram", "ngram"),
-            Map.entry("edge_n_gram", "edge_ngram"),
-            Map.entry("keep_word", "keep"),
-            Map.entry("k_stem", "kstem"),
-            Map.entry("limit_token_count", "limit"),
-            Map.entry("pattern_capture_group", "pattern_capture"),
-            Map.entry("reverse_string", "reverse"),
-            Map.entry("snowball_porter", "snowball"),
-            Map.entry("dictionary_compound_word", "dictionary_decompounder")
+        Map.entry("porter_stem", "porter2"),
+        Map.entry("ascii_folding", "asciifolding"),
+        Map.entry("n_gram", "ngram"),
+        Map.entry("edge_n_gram", "edge_ngram"),
+        Map.entry("keep_word", "keep"),
+        Map.entry("k_stem", "kstem"),
+        Map.entry("limit_token_count", "limit"),
+        Map.entry("pattern_capture_group", "pattern_capture"),
+        Map.entry("reverse_string", "reverse"),
+        Map.entry("snowball_porter", "snowball"),
+        Map.entry("dictionary_compound_word", "dictionary_decompounder")
     );
 }

@@ -29,10 +29,11 @@ import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.junit.Assert.*;
 
 public class BundlingConfigInitializerTest {
+
     private NodeState root = INITIAL_CONTENT;
 
     @Test
-    public void bootstrapDefault() throws Exception{
+    public void bootstrapDefault() throws Exception {
         NodeBuilder builder = root.builder();
         BundlingConfigInitializer.INSTANCE.initialize(builder);
 
@@ -43,7 +44,7 @@ public class BundlingConfigInitializerTest {
     }
 
     @Test
-    public void noInitWhenJcrSystemNotPresent() throws Exception{
+    public void noInitWhenJcrSystemNotPresent() throws Exception {
         NodeBuilder builder = EMPTY_NODE.builder();
         BundlingConfigInitializer.INSTANCE.initialize(builder);
 

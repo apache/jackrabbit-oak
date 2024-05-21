@@ -23,17 +23,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
-
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeData;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeProperty;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeProperty.ValueType;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.utils.HyperLogLog;
 
 /**
- * A histogram of distinct binaries. For each size range, we calculate the
- * number of entries and number of distinct entries. The number of distinct
- * entries is calculated using a set if the number of entries is smaller than
- * 1024, or HyperLogLog otherwise.
+ * A histogram of distinct binaries. For each size range, we calculate the number of entries and
+ * number of distinct entries. The number of distinct entries is calculated using a set if the
+ * number of entries is smaller than 1024, or HyperLogLog otherwise.
  */
 public class DistinctBinarySizeHistogram implements StatsCollector {
 
@@ -47,7 +45,7 @@ public class DistinctBinarySizeHistogram implements StatsCollector {
 
     public void add(NodeData node) {
         ArrayList<BinaryId> list = new ArrayList<>();
-        for(NodeProperty p : node.getProperties()) {
+        for (NodeProperty p : node.getProperties()) {
             if (p.getType() == ValueType.BINARY) {
                 for (String v : p.getValues()) {
                     if (!v.startsWith(":blobId:")) {
@@ -91,7 +89,7 @@ public class DistinctBinarySizeHistogram implements StatsCollector {
     }
 
     public void end() {
-        for(Entry<String, HyperLogLog> e : distinctMap.entrySet()) {
+        for (Entry<String, HyperLogLog> e : distinctMap.entrySet()) {
             storage.put(e.getKey() + " distinct", e.getValue().estimate());
         }
     }

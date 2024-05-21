@@ -21,23 +21,24 @@ package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
 
 import java.net.URI;
 import java.util.Properties;
-
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.plugins.blob.AbstractSharedCachingDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.ConfigurableDataRecordAccessProvider;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadException;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDownloadOptions;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUpload;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadException;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadOptions;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
 import org.apache.jackrabbit.oak.spi.blob.SharedBackend;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class AzureDataStore extends AbstractSharedCachingDataStore implements ConfigurableDataRecordAccessProvider {
-    private int minRecordLength = 16*1024;
+public class AzureDataStore extends AbstractSharedCachingDataStore implements
+    ConfigurableDataRecordAccessProvider {
+
+    private int minRecordLength = 16 * 1024;
 
     protected Properties properties;
 
@@ -87,24 +88,27 @@ public class AzureDataStore extends AbstractSharedCachingDataStore implements Co
     @Nullable
     @Override
     public DataRecordUpload initiateDataRecordUpload(long maxUploadSizeInBytes, int maxNumberOfURIs)
-            throws IllegalArgumentException, DataRecordUploadException {
-        return initiateDataRecordUpload(maxUploadSizeInBytes, maxNumberOfURIs, DataRecordUploadOptions.DEFAULT);
+        throws IllegalArgumentException, DataRecordUploadException {
+        return initiateDataRecordUpload(maxUploadSizeInBytes, maxNumberOfURIs,
+            DataRecordUploadOptions.DEFAULT);
     }
 
     @Nullable
     @Override
-    public DataRecordUpload initiateDataRecordUpload(long maxUploadSizeInBytes, int maxNumberOfURIs, @NotNull final DataRecordUploadOptions options)
-            throws IllegalArgumentException, DataRecordUploadException {
+    public DataRecordUpload initiateDataRecordUpload(long maxUploadSizeInBytes, int maxNumberOfURIs,
+        @NotNull final DataRecordUploadOptions options)
+        throws IllegalArgumentException, DataRecordUploadException {
         if (null == azureBlobStoreBackend) {
             throw new DataRecordUploadException("Backend not initialized");
         }
-        return azureBlobStoreBackend.initiateHttpUpload(maxUploadSizeInBytes, maxNumberOfURIs, options);
+        return azureBlobStoreBackend.initiateHttpUpload(maxUploadSizeInBytes, maxNumberOfURIs,
+            options);
     }
 
     @NotNull
     @Override
     public DataRecord completeDataRecordUpload(String uploadToken)
-            throws IllegalArgumentException, DataRecordUploadException, DataStoreException {
+        throws IllegalArgumentException, DataRecordUploadException, DataStoreException {
         if (null == azureBlobStoreBackend) {
             throw new DataRecordUploadException("Backend not initialized");
         }
@@ -126,7 +130,7 @@ public class AzureDataStore extends AbstractSharedCachingDataStore implements Co
     @Nullable
     @Override
     public URI getDownloadURI(@NotNull DataIdentifier identifier,
-                              @NotNull DataRecordDownloadOptions downloadOptions) {
+        @NotNull DataRecordDownloadOptions downloadOptions) {
         if (null != azureBlobStoreBackend) {
             return azureBlobStoreBackend.createHttpDownloadURI(identifier, downloadOptions);
         }

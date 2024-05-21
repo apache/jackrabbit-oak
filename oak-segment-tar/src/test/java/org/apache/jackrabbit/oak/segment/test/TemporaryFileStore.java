@@ -22,7 +22,6 @@ import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreB
 import java.io.IOException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.segment.Segment;
 import org.apache.jackrabbit.oak.segment.SegmentNotFoundExceptionListener;
@@ -54,36 +53,40 @@ public class TemporaryFileStore extends ExternalResource {
         this(folder, null, standby, null);
     }
 
-    public TemporaryFileStore(TemporaryFolder folder, TemporaryBlobStore blobStore, boolean standby) {
+    public TemporaryFileStore(TemporaryFolder folder, TemporaryBlobStore blobStore,
+        boolean standby) {
         this(folder, blobStore, standby, null);
     }
 
-    public TemporaryFileStore(TemporaryFolder folder, TemporaryBlobStore blobStore, boolean standby, String name) {
+    public TemporaryFileStore(TemporaryFolder folder, TemporaryBlobStore blobStore, boolean standby,
+        String name) {
         this.folder = folder;
         this.blobStore = blobStore;
         this.standby = standby;
         this.name = name;
     }
 
-    public TemporaryFileStore(TemporaryFolder folder, TemporaryBlobStore blobStore, int binariesInlineThreshold) {
+    public TemporaryFileStore(TemporaryFolder folder, TemporaryBlobStore blobStore,
+        int binariesInlineThreshold) {
         this(folder, blobStore, false, null);
         this.binariesInlineThreshold = binariesInlineThreshold;
     }
 
     protected void init() throws InvalidFileStoreVersionException, IOException {
         executor = Executors.newSingleThreadScheduledExecutor();
-        FileStoreBuilder builder = fileStoreBuilder(name == null ? folder.newFolder() : folder.newFolder(name))
-                .withMaxFileSize(1)
-                .withMemoryMapping(false)
-                .withBinariesInlineThreshold(binariesInlineThreshold)
-                .withNodeDeduplicationCacheSize(1)
-                .withSegmentCacheSize(256)
-                .withStringCacheSize(0)
-                .withTemplateCacheSize(0)
-                .withStatisticsProvider(new DefaultStatisticsProvider(executor));
+        FileStoreBuilder builder = fileStoreBuilder(
+            name == null ? folder.newFolder() : folder.newFolder(name))
+            .withMaxFileSize(1)
+            .withMemoryMapping(false)
+            .withBinariesInlineThreshold(binariesInlineThreshold)
+            .withNodeDeduplicationCacheSize(1)
+            .withSegmentCacheSize(256)
+            .withStringCacheSize(0)
+            .withTemplateCacheSize(0)
+            .withStatisticsProvider(new DefaultStatisticsProvider(executor));
         if (standby) {
             SegmentGCOptions gcOptions = SegmentGCOptions.defaultGCOptions()
-                .setRetainedGenerations(1);
+                                                         .setRetainedGenerations(1);
             builder
                 .withGCOptions(gcOptions)
                 .withSnfeListener(SegmentNotFoundExceptionListener.IGNORE_SNFE)

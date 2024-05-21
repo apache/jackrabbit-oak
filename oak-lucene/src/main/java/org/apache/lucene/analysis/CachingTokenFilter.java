@@ -29,78 +29,74 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-
 import org.apache.lucene.util.AttributeSource;
 
 /**
- * This class can be used if the token attributes of a TokenStream
- * are intended to be consumed more than once. It caches
- * all token attribute states locally in a List.
- * 
+ * This class can be used if the token attributes of a TokenStream are intended to be consumed more
+ * than once. It caches all token attribute states locally in a List.
+ *
  * <P>CachingTokenFilter implements the optional method
- * {@link TokenStream#reset()}, which repositions the
- * stream to the first Token. 
+ * {@link TokenStream#reset()}, which repositions the stream to the first Token.
  */
 public final class CachingTokenFilter extends TokenFilter {
-  private List<AttributeSource.State> cache = null;
-  private Iterator<AttributeSource.State> iterator = null; 
-  private AttributeSource.State finalState;
-  
-  /**
-   * Create a new CachingTokenFilter around <code>input</code>,
-   * caching its token attributes, which can be replayed again
-   * after a call to {@link #reset()}.
-   */
-  public CachingTokenFilter(TokenStream input) {
-    super(input);
-  }
-  
-  @Override
-  public final boolean incrementToken() throws IOException {
-    if (cache == null) {
-      // fill cache lazily
-      cache = new LinkedList<AttributeSource.State>();
-      fillCache();
-      iterator = cache.iterator();
-    }
-    
-    if (!iterator.hasNext()) {
-      // the cache is exhausted, return false
-      return false;
-    }
-    // Since the TokenFilter can be reset, the tokens need to be preserved as immutable.
-    restoreState(iterator.next());
-    return true;
-  }
-  
-  @Override
-  public final void end() {
-    if (finalState != null) {
-      restoreState(finalState);
-    }
-  }
 
-  /**
-   * Rewinds the iterator to the beginning of the cached list.
-   * <p>
-   * Note that this does not call reset() on the wrapped tokenstream ever, even
-   * the first time. You should reset() the inner tokenstream before wrapping
-   * it with CachingTokenFilter.
-   */
-  @Override
-  public void reset() {
-    if(cache != null) {
-      iterator = cache.iterator();
+    private List<AttributeSource.State> cache = null;
+    private Iterator<AttributeSource.State> iterator = null;
+    private AttributeSource.State finalState;
+
+    /**
+     * Create a new CachingTokenFilter around <code>input</code>, caching its token attributes,
+     * which can be replayed again after a call to {@link #reset()}.
+     */
+    public CachingTokenFilter(TokenStream input) {
+        super(input);
     }
-  }
-  
-  private void fillCache() throws IOException {
-    while(input.incrementToken()) {
-      cache.add(captureState());
+
+    @Override
+    public final boolean incrementToken() throws IOException {
+        if (cache == null) {
+            // fill cache lazily
+            cache = new LinkedList<AttributeSource.State>();
+            fillCache();
+            iterator = cache.iterator();
+        }
+
+        if (!iterator.hasNext()) {
+            // the cache is exhausted, return false
+            return false;
+        }
+        // Since the TokenFilter can be reset, the tokens need to be preserved as immutable.
+        restoreState(iterator.next());
+        return true;
     }
-    // capture final state
-    input.end();
-    finalState = captureState();
-  }
+
+    @Override
+    public final void end() {
+        if (finalState != null) {
+            restoreState(finalState);
+        }
+    }
+
+    /**
+     * Rewinds the iterator to the beginning of the cached list.
+     * <p>
+     * Note that this does not call reset() on the wrapped tokenstream ever, even the first time.
+     * You should reset() the inner tokenstream before wrapping it with CachingTokenFilter.
+     */
+    @Override
+    public void reset() {
+        if (cache != null) {
+            iterator = cache.iterator();
+        }
+    }
+
+    private void fillCache() throws IOException {
+        while (input.incrementToken()) {
+            cache.add(captureState());
+        }
+        // capture final state
+        input.end();
+        finalState = captureState();
+    }
 
 }

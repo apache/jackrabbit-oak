@@ -29,9 +29,8 @@ import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import junit.framework.TestCase;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 
 /**
  * Test the utility classes.
@@ -44,8 +43,8 @@ public class IOUtilsTest extends TestCase {
     protected void setUp() throws Exception {
         testFile = new File("target", "test");
         writeByteArrayToFile(
-                testFile,
-                new byte[]{0,1,2,3,4,5,6,7});
+            testFile,
+            new byte[]{0, 1, 2, 3, 4, 5, 6, 7});
     }
 
     @Override
@@ -352,10 +351,12 @@ public class IOUtilsTest extends TestCase {
         assertEquals(32L, IOUtils.nextPowerOf2(21)); // random mid-range number
 
         // Test values around the upper limit of powers of 2 in the signed int range
-        assertEquals(0x01L << (Integer.SIZE-2), IOUtils.nextPowerOf2(Integer.MAX_VALUE >> 1));
-        assertEquals(0x01L << (Integer.SIZE-2), IOUtils.nextPowerOf2((Integer.MAX_VALUE >> 1) + 1));
-        assertEquals( 0x01L << ((long)Integer.SIZE - 1L), IOUtils.nextPowerOf2((Integer.MAX_VALUE >> 1) + 2));
-        assertEquals(0x01L << ((long)Integer.SIZE - 1L), IOUtils.nextPowerOf2(Integer.MAX_VALUE));
+        assertEquals(0x01L << (Integer.SIZE - 2), IOUtils.nextPowerOf2(Integer.MAX_VALUE >> 1));
+        assertEquals(0x01L << (Integer.SIZE - 2),
+            IOUtils.nextPowerOf2((Integer.MAX_VALUE >> 1) + 1));
+        assertEquals(0x01L << ((long) Integer.SIZE - 1L),
+            IOUtils.nextPowerOf2((Integer.MAX_VALUE >> 1) + 2));
+        assertEquals(0x01L << ((long) Integer.SIZE - 1L), IOUtils.nextPowerOf2(Integer.MAX_VALUE));
 
         // Negative values
         assertEquals(1L, IOUtils.nextPowerOf2(-1));
@@ -365,7 +366,7 @@ public class IOUtilsTest extends TestCase {
 
     public void testCopyStream() throws IOException {
         final Random r = new Random(1);
-        for (int length : Lists.newArrayList(0, 1, 1000, 4096, 4097, 1024*1024)) {
+        for (int length : Lists.newArrayList(0, 1, 1000, 4096, 4097, 1024 * 1024)) {
             byte[] inData = new byte[length];
             r.nextBytes(inData);
             ByteArrayInputStream in = new ByteArrayInputStream(inData);

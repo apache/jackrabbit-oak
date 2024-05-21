@@ -18,19 +18,18 @@
  */
 package org.apache.jackrabbit.oak.index;
 
+import static org.apache.jackrabbit.commons.JcrUtils.getOrCreateByPath;
+
+import java.io.File;
+import java.io.IOException;
+import javax.jcr.Node;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnectionRule;
 import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexDefinitionBuilder;
 import org.junit.After;
 import org.junit.ClassRule;
-
-import javax.jcr.Node;
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-import java.io.File;
-import java.io.IOException;
-
-import static org.apache.jackrabbit.commons.JcrUtils.getOrCreateByPath;
 
 public class ElasticAbstractIndexCommandTest extends AbstractIndexTestCommand {
 
@@ -39,21 +38,24 @@ public class ElasticAbstractIndexCommandTest extends AbstractIndexTestCommand {
     // key_id and key_secret are optional in case the ES server
     // needs authentication
     // Do not set this if docker is running and you want to run the tests on docker instead.
-    private static final String elasticConnectionString = System.getProperty("elasticConnectionString");
+    private static final String elasticConnectionString = System.getProperty(
+        "elasticConnectionString");
 
     protected ElasticConnection esConnection;
 
     @ClassRule
-    public static ElasticConnectionRule elasticRule = new ElasticConnectionRule(elasticConnectionString);
+    public static ElasticConnectionRule elasticRule = new ElasticConnectionRule(
+        elasticConnectionString);
 
     @Override
     protected IndexRepositoryFixture getRepositoryFixture(File dir) {
         esConnection = getElasticConnection();
-        return new ElasticRepositoryFixture(dir,esConnection);
+        return new ElasticRepositoryFixture(dir, esConnection);
     }
 
     @Override
-    protected void createIndex(String nodeType, String propName, boolean asyncIndex) throws IOException, RepositoryException {
+    protected void createIndex(String nodeType, String propName, boolean asyncIndex)
+        throws IOException, RepositoryException {
         ElasticIndexDefinitionBuilder idxBuilder = new ElasticIndexDefinitionBuilder();
         if (!asyncIndex) {
             idxBuilder.noAsync();
@@ -62,7 +64,7 @@ public class ElasticAbstractIndexCommandTest extends AbstractIndexTestCommand {
 
         Session session = fixture.getAdminSession();
         Node fooIndex = getOrCreateByPath(TEST_INDEX_PATH,
-                "oak:QueryIndexDefinition", session);
+            "oak:QueryIndexDefinition", session);
 
         idxBuilder.build(fooIndex);
         if (fooIndex.hasNode("suggestion")) {
@@ -76,14 +78,14 @@ public class ElasticAbstractIndexCommandTest extends AbstractIndexTestCommand {
 
     protected ElasticConnection getElasticConnection() {
         return elasticRule.useDocker() ? elasticRule.getElasticConnectionForDocker() :
-                elasticRule.getElasticConnectionFromString();
+            elasticRule.getElasticConnectionFromString();
     }
 
     @After
     public void tearDown() throws IOException {
         if (esConnection != null) {
-            esConnection.getClient().indices().delete(i->i
-                    .index(esConnection.getIndexPrefix() + "*"));
+            esConnection.getClient().indices().delete(i -> i
+                .index(esConnection.getIndexPrefix() + "*"));
         }
     }
 }

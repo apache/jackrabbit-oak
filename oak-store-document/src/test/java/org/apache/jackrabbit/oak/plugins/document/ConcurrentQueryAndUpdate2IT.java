@@ -51,8 +51,8 @@ public class ConcurrentQueryAndUpdate2IT extends AbstractDocumentStoreTest {
     }
 
     /**
-     * Perform concurrent update and query operations and check if the document
-     * cache is consistent afterwards. See OAK-7101.
+     * Perform concurrent update and query operations and check if the document cache is consistent
+     * afterwards. See OAK-7101.
      */
     @Test
     public void cacheUpdate() throws Exception {
@@ -90,7 +90,7 @@ public class ConcurrentQueryAndUpdate2IT extends AbstractDocumentStoreTest {
                 NodeDocument doc = ds.getIfCached(NODES, Utils.getIdFromPath("/node-" + j));
                 if (doc != null) {
                     assertEquals("Unexpected revision timestamp for " + doc.getId(),
-                            counter.get(), doc.getLastRev().get(1).getTimestamp());
+                        counter.get(), doc.getLastRev().get(1).getTimestamp());
                 }
             }
         }

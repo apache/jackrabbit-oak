@@ -19,10 +19,10 @@
 
 package org.apache.jackrabbit.oak.commons.jmx;
 
-import static org.apache.jackrabbit.guava.common.base.MoreObjects.toStringHelper;
 import static java.lang.Thread.currentThread;
 import static javax.management.openmbean.SimpleType.INTEGER;
 import static javax.management.openmbean.SimpleType.STRING;
+import static org.apache.jackrabbit.guava.common.base.MoreObjects.toStringHelper;
 import static org.apache.jackrabbit.oak.api.jmx.RepositoryManagementMBean.StatusCode;
 import static org.apache.jackrabbit.oak.api.jmx.RepositoryManagementMBean.StatusCode.FAILED;
 import static org.apache.jackrabbit.oak.api.jmx.RepositoryManagementMBean.StatusCode.INITIATED;
@@ -42,7 +42,6 @@ import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
-
 import javax.management.openmbean.CompositeData;
 import javax.management.openmbean.CompositeDataSupport;
 import javax.management.openmbean.CompositeType;
@@ -51,21 +50,20 @@ import javax.management.openmbean.OpenType;
 import javax.management.openmbean.TabularData;
 import javax.management.openmbean.TabularDataSupport;
 import javax.management.openmbean.TabularType;
-
 import org.apache.jackrabbit.oak.commons.TimeDurationFormatter;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * A {@code ManagementOperation} is a background task, which can be
- * executed by an {@code Executor}. Its {@link Status} indicates
- * whether execution has already been started, is currently under the
+ * A {@code ManagementOperation} is a background task, which can be executed by an {@code Executor}.
+ * Its {@link Status} indicates whether execution has already been started, is currently under the
  * way or has already finished.
  *
  * @see org.apache.jackrabbit.oak.api.jmx.RepositoryManagementMBean
  */
 public class ManagementOperation<R> extends FutureTask<R> {
+
     private static final Logger LOG = LoggerFactory.getLogger(ManagementOperation.class);
     private static final AtomicInteger idGen = new AtomicInteger();
 
@@ -78,31 +76,31 @@ public class ManagementOperation<R> extends FutureTask<R> {
     private final Supplier<String> statusMessage;
 
     /**
-     * Create a new {@code ManagementOperation} of the given name. The {@code name}
-     * is an informal value attached to this instance.
+     * Create a new {@code ManagementOperation} of the given name. The {@code name} is an informal
+     * value attached to this instance.
      *
-     * @param name  informal name
-     * @param task  task to execute for this operation
+     * @param name informal name
+     * @param task task to execute for this operation
      */
     public static <R> ManagementOperation<R> newManagementOperation(
-            @NotNull String name,
-            @NotNull Callable<R> task) {
+        @NotNull String name,
+        @NotNull Callable<R> task) {
         return new ManagementOperation<R>(name, () -> "", task);
     }
 
     /**
-     * Create a new {@code ManagementOperation} of the given name. The {@code name}
-     * is an informal value attached to this instance.
+     * Create a new {@code ManagementOperation} of the given name. The {@code name} is an informal
+     * value attached to this instance.
      *
-     * @param name           informal name
-     * @param statusMessage  an informal status message describing the status of the background
-     *                       operation at the time of invocation.
-     * @param task           task to execute for this operation
+     * @param name          informal name
+     * @param statusMessage an informal status message describing the status of the background
+     *                      operation at the time of invocation.
+     * @param task          task to execute for this operation
      */
     public static <R> ManagementOperation<R> newManagementOperation(
-            @NotNull String name,
-            @NotNull Supplier<String> statusMessage,
-            @NotNull Callable<R> task) {
+        @NotNull String name,
+        @NotNull Supplier<String> statusMessage,
+        @NotNull Callable<R> task) {
         return new ManagementOperation<R>(name, statusMessage, task);
     }
 
@@ -111,17 +109,17 @@ public class ManagementOperation<R> extends FutureTask<R> {
      *
      * @param name   name of the operation
      * @param result result returned by the operation
-     * @return  a {@code ManagementOperation} instance that is already done.
+     * @return a {@code ManagementOperation} instance that is already done.
      */
     @NotNull
     public static <R> ManagementOperation<R> done(String name, final R result) {
         return new ManagementOperation<R>("done", () -> "",
-                new Callable<R>() {
-            @Override
-            public R call() throws Exception {
-                return result;
-            }
-        }) {
+            new Callable<R>() {
+                @Override
+                public R call() throws Exception {
+                    return result;
+                }
+            }) {
             @Override
             public boolean isDone() {
                 return true;
@@ -145,17 +143,18 @@ public class ManagementOperation<R> extends FutureTask<R> {
     }
 
     /**
-     * Create a new {@code ManagementOperation} of the given name. The {@code name}
-     * is an informal value attached to this instance.
-     * @param name           informal name
-     * @param statusMessage  an informal status message describing the status of the background
-     *                       operation at the time of invocation.
-     * @param task           task to execute for this operation
+     * Create a new {@code ManagementOperation} of the given name. The {@code name} is an informal
+     * value attached to this instance.
+     *
+     * @param name          informal name
+     * @param statusMessage an informal status message describing the status of the background
+     *                      operation at the time of invocation.
+     * @param task          task to execute for this operation
      */
     private ManagementOperation(
-            @NotNull String name,
-            @NotNull Supplier<String> statusMessage,
-            @NotNull Callable<R> task) {
+        @NotNull String name,
+        @NotNull Supplier<String> statusMessage,
+        @NotNull Callable<R> task) {
         super(task);
         this.id = idGen.incrementAndGet();
         this.name = Objects.requireNonNull(name);
@@ -163,11 +162,10 @@ public class ManagementOperation<R> extends FutureTask<R> {
     }
 
     /**
-     * Each instance of a {@code ManagementOperation} has an unique id
-     * associated with it. This id is returned as a part of its
-     * {@link #getStatus() status}
+     * Each instance of a {@code ManagementOperation} has an unique id associated with it. This id
+     * is returned as a part of its {@link #getStatus() status}
      *
-     * @return  id of this operation
+     * @return id of this operation
      */
     public int getId() {
         return id;
@@ -175,7 +173,8 @@ public class ManagementOperation<R> extends FutureTask<R> {
 
     /**
      * Informal name
-     * @return  name of this operation
+     *
+     * @return name of this operation
      */
     @NotNull
     public String getName() {
@@ -194,7 +193,7 @@ public class ManagementOperation<R> extends FutureTask<R> {
      *     with an exception.</li>
      * </ul>
      *
-     * @return  the current status of this operation
+     * @return the current status of this operation
      */
     @NotNull
     public Status getStatus() {
@@ -225,25 +224,26 @@ public class ManagementOperation<R> extends FutureTask<R> {
     }
 
     /**
-     * Status of a {@link ManagementOperation}. One of
-     * {@link #unavailable(String)}, {@link #none(String)}, {@link #initiated(String)},
-     * {@link #running(String)}, {@link #succeeded(String)} and {@link #failed(String)},
-     * the semantics of which correspond to the respective status codes in
+     * Status of a {@link ManagementOperation}. One of {@link #unavailable(String)},
+     * {@link #none(String)}, {@link #initiated(String)}, {@link #running(String)},
+     * {@link #succeeded(String)} and {@link #failed(String)}, the semantics of which correspond to
+     * the respective status codes in
      * {@link org.apache.jackrabbit.oak.api.jmx.RepositoryManagementMBean}.
      */
     public static final class Status {
+
         public static final String ITEM_CODE = "code";
         public static final String ITEM_ID = "id";
         public static final String ITEM_MESSAGE = "message";
-        public static final String[] ITEM_NAMES = new String[] {
-                ITEM_CODE, ITEM_ID, ITEM_MESSAGE};
+        public static final String[] ITEM_NAMES = new String[]{
+            ITEM_CODE, ITEM_ID, ITEM_MESSAGE};
 
         public static final CompositeType ITEM_TYPES = createItemTypes();
 
         private static CompositeType createItemTypes() {
             try {
                 return new CompositeType("status", "status", ITEM_NAMES, ITEM_NAMES,
-                        new OpenType[] {INTEGER, INTEGER, STRING});
+                    new OpenType[]{INTEGER, INTEGER, STRING});
             } catch (OpenDataException e) {
                 // should never happen
                 throw new IllegalStateException(e);
@@ -285,7 +285,7 @@ public class ManagementOperation<R> extends FutureTask<R> {
         }
 
         public static Status unavailable(ManagementOperation<?> op, String message) {
-            return new Status(UNAVAILABLE, op.getId() , message);
+            return new Status(UNAVAILABLE, op.getId(), message);
         }
 
         public static Status none(ManagementOperation<?> op, String message) {
@@ -309,9 +309,9 @@ public class ManagementOperation<R> extends FutureTask<R> {
         }
 
         /**
-         * Utility method for formatting a duration in nano seconds
-         * into a human readable string.
-         * @param nanos  number of nano seconds
+         * Utility method for formatting a duration in nano seconds into a human readable string.
+         *
+         * @param nanos number of nano seconds
          * @return human readable string
          */
         public static String formatTime(long nanos) {
@@ -319,13 +319,13 @@ public class ManagementOperation<R> extends FutureTask<R> {
         }
 
         /**
-         * Utility method for converting a {@code CompositeData} encoding
-         * of a status to a {@code Status} instance.
+         * Utility method for converting a {@code CompositeData} encoding of a status to a
+         * {@code Status} instance.
          *
-         * @param status  {@code CompositeData} encoding of a status
+         * @param status {@code CompositeData} encoding of a status
          * @return {@code Status} for {@code status}
-         * @throws IllegalArgumentException  if {@code status} is not a valid
-         *         encoding of a {@code Status}.
+         * @throws IllegalArgumentException if {@code status} is not a valid encoding of a
+         *                                  {@code Status}.
          */
         public static Status fromCompositeData(CompositeData status) {
             int code = toInt(status.get(ITEM_CODE));
@@ -351,14 +351,14 @@ public class ManagementOperation<R> extends FutureTask<R> {
         }
 
         /**
-         * Utility method for converting this instance to a {@code CompositeData}
-         * encoding of the respective status.
+         * Utility method for converting this instance to a {@code CompositeData} encoding of the
+         * respective status.
          *
          * @return {@code CompositeData} of this {@code Status}
          */
         public CompositeData toCompositeData() {
             try {
-                Object[] values = new Object[] {code.ordinal(), id, message};
+                Object[] values = new Object[]{code.ordinal(), id, message};
                 return new CompositeDataSupport(ITEM_TYPES, ITEM_NAMES, values);
             } catch (OpenDataException e) {
                 // should never happen
@@ -369,7 +369,8 @@ public class ManagementOperation<R> extends FutureTask<R> {
         public static TabularData toTabularData(Iterable<Status> statuses) {
             try {
                 TabularDataSupport tab = new TabularDataSupport(
-                    new TabularType("Statuses", "List of statuses", ITEM_TYPES, new String[] {ITEM_ID}));
+                    new TabularType("Statuses", "List of statuses", ITEM_TYPES,
+                        new String[]{ITEM_ID}));
 
                 for (Status status : statuses) {
                     tab.put(status.toCompositeData());

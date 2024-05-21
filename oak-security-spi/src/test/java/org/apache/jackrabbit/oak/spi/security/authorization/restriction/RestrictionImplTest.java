@@ -16,6 +16,12 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.restriction;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
+
+import java.util.ArrayList;
+import java.util.List;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -23,13 +29,6 @@ import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.util.ArrayList;
-import java.util.List;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertTrue;
 
 /**
  * Tests for {@link RestrictionImpl}
@@ -59,7 +58,8 @@ public class RestrictionImplTest {
 
     @Test
     public void testGetDefinition() {
-        assertEquals(new RestrictionDefinitionImpl(name, type, isMandatory), restriction.getDefinition());
+        assertEquals(new RestrictionDefinitionImpl(name, type, isMandatory),
+            restriction.getDefinition());
     }
 
     @Test
@@ -91,13 +91,15 @@ public class RestrictionImplTest {
     @Test
     public void testEquals() {
         // same definition
-        assertEquals(restriction, new RestrictionImpl(createProperty(name, value, type), isMandatory));
+        assertEquals(restriction,
+            new RestrictionImpl(createProperty(name, value, type), isMandatory));
     }
 
     @Test
     public void testEqualsSameDefinition() {
         // same definition
-        assertEquals(restriction, new RestrictionImpl(restriction.getProperty(), restriction.getDefinition()));
+        assertEquals(restriction,
+            new RestrictionImpl(restriction.getProperty(), restriction.getDefinition()));
     }
 
     @Test
@@ -110,9 +112,11 @@ public class RestrictionImplTest {
     public void testNotEqual() {
         List<Restriction> rs = new ArrayList<>();
         // - different type
-        rs.add(new RestrictionImpl(PropertyStates.createProperty(name, value, Type.STRING), isMandatory));
+        rs.add(new RestrictionImpl(PropertyStates.createProperty(name, value, Type.STRING),
+            isMandatory));
         // - different multi-value status
-        rs.add(new RestrictionImpl(PropertyStates.createProperty(name, ImmutableList.of(value), Type.NAMES), isMandatory));
+        rs.add(new RestrictionImpl(
+            PropertyStates.createProperty(name, ImmutableList.of(value), Type.NAMES), isMandatory));
         // - different name
         rs.add(new RestrictionImpl(createProperty("otherName", value, type), isMandatory));
         // - different value
@@ -142,16 +146,19 @@ public class RestrictionImplTest {
     @Test
     public void testSameHashCode() {
         // same definition
-        assertEquals(restriction.hashCode(), new RestrictionImpl(createProperty(name, value, type), isMandatory).hashCode());
+        assertEquals(restriction.hashCode(),
+            new RestrictionImpl(createProperty(name, value, type), isMandatory).hashCode());
     }
 
     @Test
     public void testNotSameHashCode() {
         List<Restriction> rs = new ArrayList<>();
         // - different type
-        rs.add(new RestrictionImpl(PropertyStates.createProperty(name, value, Type.STRING), isMandatory));
+        rs.add(new RestrictionImpl(PropertyStates.createProperty(name, value, Type.STRING),
+            isMandatory));
         // - different multi-value status
-        rs.add(new RestrictionImpl(PropertyStates.createProperty(name, ImmutableList.of(value), Type.NAMES), isMandatory));
+        rs.add(new RestrictionImpl(
+            PropertyStates.createProperty(name, ImmutableList.of(value), Type.NAMES), isMandatory));
         // - different name
         rs.add(new RestrictionImpl(createProperty("otherName", value, type), isMandatory));
         // - different value

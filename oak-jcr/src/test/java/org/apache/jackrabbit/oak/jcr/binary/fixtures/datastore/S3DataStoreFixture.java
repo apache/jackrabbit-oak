@@ -21,9 +21,6 @@ package org.apache.jackrabbit.oak.jcr.binary.fixtures.datastore;
 
 import static org.junit.Assert.assertTrue;
 
-import java.util.Properties;
-import java.util.UUID;
-
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.BucketAccelerateConfiguration;
 import com.amazonaws.services.s3.model.BucketAccelerateStatus;
@@ -31,6 +28,8 @@ import com.amazonaws.services.s3.model.CreateBucketRequest;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.amazonaws.services.s3.model.SetBucketAccelerateConfigurationRequest;
+import java.util.Properties;
+import java.util.UUID;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.blob.cloud.s3.S3Backend;
@@ -45,21 +44,24 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Fixture for S3DataStore based on an aws.properties config file. It creates
- * a new temporary Azure Blob Container for each DataStore created.
+ * Fixture for S3DataStore based on an aws.properties config file. It creates a new temporary Azure
+ * Blob Container for each DataStore created.
  *
  * <p>
- * Note: when using this, it's highly recommended to reuse the NodeStores across multiple tests (using
- * {@link org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest#AbstractRepositoryTest(NodeStoreFixture, boolean) AbstractRepositoryTest(fixture, true)})
- * otherwise it will be slower and can lead to out of memory issues if there are many tests.
+ * Note: when using this, it's highly recommended to reuse the NodeStores across multiple tests
+ * (using
+ * {@link
+ * org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest#AbstractRepositoryTest(NodeStoreFixture,
+ * boolean) AbstractRepositoryTest(fixture, true)}) otherwise it will be slower and can lead to out
+ * of memory issues if there are many tests.
  *
  * <p>
- * Test buckets are named "direct-binary-test-...". If some did not get cleaned up, you can
- * list them using the aws cli with this command:
+ * Test buckets are named "direct-binary-test-...". If some did not get cleaned up, you can list
+ * them using the aws cli with this command:
  * <pre>
  *     aws s3 ls | grep direct-binary-test-
  * </pre>
- *
+ * <p>
  * And after checking, delete them all in one go with this command:
  * <pre>
  *     aws s3 ls | grep direct-binary-test- | cut -f 3 -d " " | xargs -n 1 -I {} sh -c 'aws s3 rb s3://{} || exit 1'
@@ -79,8 +81,9 @@ public class S3DataStoreFixture implements DataStoreFixture {
     @Override
     public boolean isAvailable() {
         if (s3Props == null) {
-            log.warn("Skipping S3 DataStore fixture because no S3 properties file was found given by " +
-                "'s3.config' system property or named 'aws.properties' or '~/.aws/aws.properties'.");
+            log.warn(
+                "Skipping S3 DataStore fixture because no S3 properties file was found given by " +
+                    "'s3.config' system property or named 'aws.properties' or '~/.aws/aws.properties'.");
             return false;
         }
         return true;
@@ -101,7 +104,8 @@ public class S3DataStoreFixture implements DataStoreFixture {
         log.info("Creating S3 test bucket {}", bucketName);
         CreateBucketRequest createBucket = new CreateBucketRequest(bucketName);
         s3Client.createBucket(createBucket);
-        assertTrue("Failed to create test bucket [" + bucketName + "]", Utils.waitForBucket(s3Client, bucketName));
+        assertTrue("Failed to create test bucket [" + bucketName + "]",
+            Utils.waitForBucket(s3Client, bucketName));
 
         log.info("Enabling S3 acceleration for bucket {}", bucketName);
         s3Client.setBucketAccelerateConfiguration(
@@ -147,23 +151,23 @@ public class S3DataStoreFixture implements DataStoreFixture {
                 log.warn("Could not cleanup and remove S3 bucket {}", bucketName);
                 return;
             }
-            
+
             AmazonS3 s3Client = Utils.openService(s3Props);
 
             // For S3, you have to empty the bucket before removing the bucket itself
             log.info("Emptying S3 test bucket {}", bucketName);
-            
+
             ObjectListing listing = s3Client.listObjects(bucketName);
             while (true) {
                 for (S3ObjectSummary summary : listing.getObjectSummaries()) {
                     s3Client.deleteObject(bucketName, summary.getKey());
                 }
-                if (! listing.isTruncated()) {
+                if (!listing.isTruncated()) {
                     break;
                 }
                 listing = s3Client.listNextBatchOfObjects(listing);
             }
-            
+
             log.info("Removing S3 test bucket {}", bucketName);
             s3Client.deleteBucket(bucketName);
 

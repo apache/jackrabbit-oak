@@ -16,12 +16,12 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+import static org.junit.Assert.assertTrue;
+
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
-
-import static org.junit.Assert.assertTrue;
 
 public class UserImporterMembershipBesteffortTest extends UserImporterMembershipIgnoreTest {
 

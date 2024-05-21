@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.segment;
 
 import java.io.IOException;
-
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -54,7 +53,7 @@ public interface SegmentStore {
          */
         @Override
         public void writeSegment(SegmentId id, byte[] bytes, int offset, int length)
-        throws IOException {
+            throws IOException {
             throw new IOException("This store is read only");
         }
     };
@@ -79,8 +78,8 @@ public interface SegmentStore {
     /**
      * Writes the given segment to the segment store.
      *
-     * @param id segment identifier
-     * @param bytes byte buffer that contains the raw contents of the segment
+     * @param id     segment identifier
+     * @param bytes  byte buffer that contains the raw contents of the segment
      * @param offset start offset within the byte buffer
      * @param length length of the segment
      */

@@ -19,9 +19,11 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
+import static org.apache.jackrabbit.oak.plugins.index.lucene.writer.MultiplexersLucene.isIndexDirName;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.writer.MultiplexersLucene.isSuggestIndexDirName;
+
 import java.io.File;
 import java.io.IOException;
-
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -31,10 +33,8 @@ import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.store.IOContext;
 
-import static org.apache.jackrabbit.oak.plugins.index.lucene.writer.MultiplexersLucene.isIndexDirName;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.writer.MultiplexersLucene.isSuggestIndexDirName;
-
 public class LuceneIndexDumper {
+
     private final NodeState rootState;
     private final String indexPath;
     private final File baseDir;
@@ -46,9 +46,9 @@ public class LuceneIndexDumper {
      *
      * @param rootState rootState of repository
      * @param indexPath path of index
-     * @param baseDir directory under which index contents would be copied to. Dumper
-     *                would create a sub directory based on index path and then copy
-     *                the index content under that directory
+     * @param baseDir   directory under which index contents would be copied to. Dumper would create
+     *                  a sub directory based on index path and then copy the index content under
+     *                  that directory
      */
     public LuceneIndexDumper(NodeState rootState, String indexPath, File baseDir) {
         this.rootState = rootState;
@@ -59,13 +59,14 @@ public class LuceneIndexDumper {
     public void dump() throws IOException {
         try (Closer closer = Closer.create()) {
             NodeState idx = NodeStateUtils.getNode(rootState, indexPath);
-            LuceneIndexDefinition defn = LuceneIndexDefinition.newBuilder(rootState, idx, indexPath).build();
+            LuceneIndexDefinition defn = LuceneIndexDefinition.newBuilder(rootState, idx, indexPath)
+                                                              .build();
             indexDir = DirectoryUtils.createIndexDir(baseDir, indexPath);
             IndexMeta meta = new IndexMeta(indexPath);
 
             for (String dirName : idx.getChildNodeNames()) {
                 if (NodeStateUtils.isHidden(dirName) &&
-                        (isIndexDirName(dirName) || isSuggestIndexDirName(dirName))) {
+                    (isIndexDirName(dirName) || isSuggestIndexDirName(dirName))) {
                     copyContent(idx, defn, meta, indexDir, dirName, closer);
                 }
             }
@@ -82,7 +83,8 @@ public class LuceneIndexDumper {
         return indexDir;
     }
 
-    private void copyContent(NodeState idx, LuceneIndexDefinition defn, IndexMeta meta, File dir, String dirName, Closer closer) throws IOException {
+    private void copyContent(NodeState idx, LuceneIndexDefinition defn, IndexMeta meta, File dir,
+        String dirName, Closer closer) throws IOException {
         File idxDir = DirectoryUtils.createSubDir(dir, dirName);
 
         meta.addDirectoryMapping(dirName, idxDir.getName());

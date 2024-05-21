@@ -19,9 +19,12 @@
 
 The direct binary upload process is split into [3 phases](direct-binary-access.html)
 
-The remote client performs the actual binary upload directly to the binary storage provider. The BinaryUpload returned  to `initiateBinaryUpload(long, int)` contains detailed instructions on how to complete the upload successfully. For more information, see the `BinaryUpload` documentation.
+The remote client performs the actual binary upload directly to the binary storage provider. The
+BinaryUpload returned to `initiateBinaryUpload(long, int)` contains detailed instructions on how to
+complete the upload successfully. For more information, see the `BinaryUpload` documentation.
 
 Example A: Here’s how to initiateHttpUpload:
+
 ```
 long ONE_GB = 1048576000;
 int dataLength = 123456;
@@ -38,7 +41,9 @@ randomGen.nextBytes(data);
 CloseableHttpResponse resultHttpStatusCode = httpPut(uploadContext, new ByteArrayInputStream(data), data.length);
 ```
 
-Here’s how to make use of the context returned by the `initiateHttpUpload` in Example A to upload a file using different SSE Encryption:
+Here’s how to make use of the context returned by the `initiateHttpUpload` in Example A to upload a
+file using different SSE Encryption:
+
 ```
 CloseableHttpResponse httpPut(@Nullable DataRecordUpload uploadContext, InputStream inputstream, long length) throws IOException  {
     // this weird combination of @Nullable and assertNotNull() is for IDEs not warning in test methods
@@ -66,4 +71,6 @@ CloseableHttpResponse httpPut(@Nullable DataRecordUpload uploadContext, InputStr
 
 ```
 
-Here is an example of a [test case](https://github.com/apache/jackrabbit-oak/blob/5f89d905e96de6f9bb9314a08529e262607ba406/oak-blob-cloud/src/test/java/org/apache/jackrabbit/oak/blob/cloud/s3/TestS3Ds.java#L219) where initiate, upload and complete binary upload phases are shown.
+Here is an example of
+a [test case](https://github.com/apache/jackrabbit-oak/blob/5f89d905e96de6f9bb9314a08529e262607ba406/oak-blob-cloud/src/test/java/org/apache/jackrabbit/oak/blob/cloud/s3/TestS3Ds.java#L219)
+where initiate, upload and complete binary upload phases are shown.

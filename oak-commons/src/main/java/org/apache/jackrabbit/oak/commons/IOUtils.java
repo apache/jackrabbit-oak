@@ -40,9 +40,8 @@ public final class IOUtils {
     }
 
     /**
-     * Try to read the given number of bytes to the buffer. This method reads
-     * until the maximum number of bytes have been read or until the end of
-     * file.
+     * Try to read the given number of bytes to the buffer. This method reads until the maximum
+     * number of bytes have been read or until the end of file.
      *
      * @param in     the input stream
      * @param buffer the output buffer
@@ -51,7 +50,8 @@ public final class IOUtils {
      * @return the number of bytes read, 0 meaning EOF or no space in buffer
      * @throws java.io.IOException If an error occurs.
      */
-    public static int readFully(InputStream in, byte[] buffer, int off, int max) throws IOException {
+    public static int readFully(InputStream in, byte[] buffer, int off, int max)
+        throws IOException {
         int len = Math.min(max, buffer.length);
         int result = 0;
         while (len > 0) {
@@ -67,18 +67,18 @@ public final class IOUtils {
     }
 
     /**
-     * Try to read the given number of bytes starting at the specified position
-     * into the buffer. This method reads until the maximum number of bytes have
-     * been read or until the end of the channel.
+     * Try to read the given number of bytes starting at the specified position into the buffer.
+     * This method reads until the maximum number of bytes have been read or until the end of the
+     * channel.
      *
-     * @param channel     the input channel
-     * @param position    the position to start reading from the channel
-     * @param buffer      the output buffer
+     * @param channel  the input channel
+     * @param position the position to start reading from the channel
+     * @param buffer   the output buffer
      * @return the number of bytes read, 0 meaning EOF or no space in buffer
      * @throws java.io.IOException If an error occurs.
      */
     public static int readFully(FileChannel channel, int position, ByteBuffer buffer)
-    throws IOException {
+        throws IOException {
         int result = 0;
         while (buffer.remaining() > 0) {
             int count = channel.read(buffer, position);
@@ -96,8 +96,7 @@ public final class IOUtils {
      *
      * @param in   the input stream
      * @param skip the number of bytes to skip
-     * @throws EOFException if the end of file has been reached before all bytes
-     *                      could be skipped
+     * @throws EOFException if the end of file has been reached before all bytes could be skipped
      * @throws IOException  if an IO exception occurred while skipping
      */
     public static void skipFully(InputStream in, long skip) throws IOException {
@@ -111,8 +110,8 @@ public final class IOUtils {
     }
 
     /**
-     * Write a String. This will first write the length as 4 bytes, and then the
-     * UTF-8 encoded string.
+     * Write a String. This will first write the length as 4 bytes, and then the UTF-8 encoded
+     * string.
      *
      * @param out the data output stream
      * @param s   the string (maximum length about 2 GB)
@@ -123,8 +122,8 @@ public final class IOUtils {
     }
 
     /**
-     * Read a String. This will first read the length as 4 bytes, and then the
-     * UTF-8 encoded string.
+     * Read a String. This will first read the length as 4 bytes, and then the UTF-8 encoded
+     * string.
      *
      * @param in the data input stream
      * @return the string
@@ -135,8 +134,7 @@ public final class IOUtils {
     }
 
     /**
-     * Write a byte array. This will first write the length as 4 bytes, and then
-     * the actual bytes.
+     * Write a byte array. This will first write the length as 4 bytes, and then the actual bytes.
      *
      * @param out  the data output stream
      * @param data the byte array
@@ -148,8 +146,7 @@ public final class IOUtils {
     }
 
     /**
-     * Read a byte array. This will first read the length as 4 bytes, and then
-     * the actual bytes.
+     * Read a byte array. This will first read the length as 4 bytes, and then the actual bytes.
      *
      * @param in the data input stream
      * @return the bytes
@@ -158,7 +155,7 @@ public final class IOUtils {
     public static byte[] readBytes(InputStream in) throws IOException {
         int len = readVarInt(in);
         byte[] data = new byte[len];
-        for (int pos = 0; pos < len;) {
+        for (int pos = 0; pos < len; ) {
             int l = in.read(data, pos, data.length - pos);
             if (l < 0) {
                 throw new EOFException();
@@ -196,7 +193,7 @@ public final class IOUtils {
             return x;
         }
         x &= 0x7f;
-        for (int s = 7;; s += 7) {
+        for (int s = 7; ; s += 7) {
             int b = in.read();
             if (b < 0) {
                 throw new EOFException();
@@ -210,8 +207,7 @@ public final class IOUtils {
     }
 
     /**
-     * Write a variable size long.
-     * Negative values need 10 bytes.
+     * Write a variable size long. Negative values need 10 bytes.
      *
      * @param out the output stream
      * @param x   the value
@@ -271,9 +267,9 @@ public final class IOUtils {
      */
     public static int readInt(InputStream in) throws IOException {
         return ((in.read() & 0xff) << 24) +
-                ((in.read() & 0xff) << 16) +
-                ((in.read() & 0xff) << 8) +
-                (in.read() & 0xff);
+            ((in.read() & 0xff) << 16) +
+            ((in.read() & 0xff) << 8) +
+            (in.read() & 0xff);
     }
 
     /**
@@ -289,7 +285,7 @@ public final class IOUtils {
             return x;
         }
         x &= 0x7f;
-        for (int s = 7;; s += 7) {
+        for (int s = 7; ; s += 7) {
             long b = in.read();
             if (b < 0) {
                 throw new EOFException();
@@ -303,14 +299,12 @@ public final class IOUtils {
     }
 
     /**
-     * Get the value that is equal or higher than this value, and that is a
-     * power of two.  The returned value will be in the range [0, 2^31].
-     * If the input is less than zero, the result of 1 is returned (powers of
-     * negative numbers are not integer values).
+     * Get the value that is equal or higher than this value, and that is a power of two.  The
+     * returned value will be in the range [0, 2^31]. If the input is less than zero, the result of
+     * 1 is returned (powers of negative numbers are not integer values).
      *
      * @param x the original value.
-     * @return the next power of two value.  Results are always in the
-     * range [0, 2^31].
+     * @return the next power of two value.  Results are always in the range [0, 2^31].
      */
     public static long nextPowerOf2(int x) {
         long i = 1;
@@ -323,8 +317,8 @@ public final class IOUtils {
     /**
      * Unconditionally close a {@code Closeable}.
      * <p>
-     * Equivalent to {@link Closeable#close()}, except any exceptions will be ignored.
-     * This is typically used in finally blocks.
+     * Equivalent to {@link Closeable#close()}, except any exceptions will be ignored. This is
+     * typically used in finally blocks.
      *
      * @param closeable the object to close, may be null or already closed
      */
@@ -341,8 +335,8 @@ public final class IOUtils {
     /**
      * Unconditionally close a {@code Socket}.
      * <p>
-     * Equivalent to {@link Socket#close()}, except any exceptions will be ignored.
-     * This is typically used in finally blocks.
+     * Equivalent to {@link Socket#close()}, except any exceptions will be ignored. This is
+     * typically used in finally blocks.
      *
      * @param sock the Socket to close, may be null or already closed
      */
@@ -357,8 +351,7 @@ public final class IOUtils {
     }
 
     /**
-     * Copy bytes from an {@code InputStream} to an
-     * {@code OutputStream}.
+     * Copy bytes from an {@code InputStream} to an {@code OutputStream}.
      * <p>
      * This method buffers the input internally, so there is no need to use a
      * {@code BufferedInputStream}.
@@ -369,7 +362,7 @@ public final class IOUtils {
      * @throws IOException if an I/O error occurs
      */
     public static long copy(InputStream input, OutputStream output)
-            throws IOException {
+        throws IOException {
         byte[] buffer = new byte[4096];
         long count = 0;
         int n = 0;
@@ -381,8 +374,8 @@ public final class IOUtils {
     }
 
     /**
-     * Returns a human-readable version of the file size, where the input represents
-     * a specific number of bytes. Based on http://stackoverflow.com/a/3758880/1035417
+     * Returns a human-readable version of the file size, where the input represents a specific
+     * number of bytes. Based on http://stackoverflow.com/a/3758880/1035417
      */
     public static String humanReadableByteCount(long bytes) {
         if (bytes < 0) {
@@ -398,8 +391,8 @@ public final class IOUtils {
     }
 
     /**
-     * Returns a human-readable version of this byte count. The result uses the binary system, that is, 1K = 1024.
-     * Based on https://stackoverflow.com/a/3758880/2071159.
+     * Returns a human-readable version of this byte count. The result uses the binary system, that
+     * is, 1K = 1024. Based on https://stackoverflow.com/a/3758880/2071159.
      */
     public static String humanReadableByteCountBin(long bytes) {
         long absB = bytes == Long.MIN_VALUE ? Long.MAX_VALUE : Math.abs(bytes);

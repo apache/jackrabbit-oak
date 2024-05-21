@@ -21,19 +21,18 @@ package org.apache.jackrabbit.oak.jcr.binary.fixtures.datastore;
 
 import org.apache.jackrabbit.core.data.DataStore;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /**
- *  DataStore fixture for parametrized tests. To be used inside NodeStoreFixture implementations.
+ * DataStore fixture for parametrized tests. To be used inside NodeStoreFixture implementations.
  */
 public interface DataStoreFixture {
 
     /**
-     * Create a new DataStore instance. This might include setting up a temporary folder,
-     * bucket, container... of the underlying storage solution. Return null if this
-     * DataStore is not available because of missing configuration or setup issues
-     * (implementation shall log such warnings/errors).
-     *
+     * Create a new DataStore instance. This might include setting up a temporary folder, bucket,
+     * container... of the underlying storage solution. Return null if this DataStore is not
+     * available because of missing configuration or setup issues (implementation shall log such
+     * warnings/errors).
+     * <p>
      * Calling DataStore.init() is left to the client.
      */
     @NotNull
@@ -45,7 +44,8 @@ public interface DataStoreFixture {
     void dispose(DataStore dataStore);
 
     /**
-     * Return whether this fixture is available, for example if the necessary configuration is present.
+     * Return whether this fixture is available, for example if the necessary configuration is
+     * present.
      */
     boolean isAvailable();
 }

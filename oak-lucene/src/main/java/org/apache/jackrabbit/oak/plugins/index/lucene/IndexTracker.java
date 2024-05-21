@@ -16,11 +16,23 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import static java.util.Collections.emptyMap;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Predicates.in;
+import static org.apache.jackrabbit.guava.common.base.Predicates.not;
+import static org.apache.jackrabbit.guava.common.base.Predicates.notNull;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
+import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.isLuceneIndexNode;
+import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.INDEX_DEFINITION_NODE;
+import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.STATUS_NODE;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Maps;
@@ -46,22 +58,8 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.base.Predicates.in;
-import static org.apache.jackrabbit.guava.common.base.Predicates.not;
-import static org.apache.jackrabbit.guava.common.base.Predicates.notNull;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
-import static java.util.Collections.emptyMap;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.isLuceneIndexNode;
-import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.INDEX_DEFINITION_NODE;
-import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.STATUS_NODE;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-
 /**
- * Keeps track of all Lucene indexes in a repository (all readers, writers, and
- * definitions).
+ * Keeps track of all Lucene indexes in a repository (all readers, writers, and definitions).
  */
 public class IndexTracker {
 
@@ -70,13 +68,15 @@ public class IndexTracker {
     // to refresh every hour, set it to 3600000
     // we don't use Long.MAX_VALUE to avoid (now + AUTO_REFRESH_MILLIS) to become negative
     private static final long AUTO_REFRESH_MILLIS = Long.getLong(
-            "oak.indexTracker.autoRefresh",
-            100L * 365 * 24 * 60 * 60 * 1000);
+        "oak.indexTracker.autoRefresh",
+        100L * 365 * 24 * 60 * 60 * 1000);
 
-    /** Logger instance. */
+    /**
+     * Logger instance.
+     */
     private static final Logger log = LoggerFactory.getLogger(IndexTracker.class);
     private static final PerfLogger PERF_LOGGER =
-            new PerfLogger(LoggerFactory.getLogger(IndexTracker.class.getName() + ".perf"));
+        new PerfLogger(LoggerFactory.getLogger(IndexTracker.class.getName() + ".perf"));
 
     private final LuceneIndexReaderFactory readerFactory;
     private final NRTIndexFactory nrtFactory;
@@ -92,10 +92,10 @@ public class IndexTracker {
     private volatile long nextAutoRefresh = System.currentTimeMillis() + AUTO_REFRESH_MILLIS;
 
     public IndexTracker() {
-        this((IndexCopier)null);
+        this((IndexCopier) null);
     }
 
-    public IndexTracker(IndexCopier cloner){
+    public IndexTracker(IndexCopier cloner) {
         this(new DefaultIndexReaderFactory(Mounts.defaultMountInfoProvider(), cloner));
     }
 
@@ -103,7 +103,8 @@ public class IndexTracker {
         this(readerFactory, null);
     }
 
-    public IndexTracker(LuceneIndexReaderFactory readerFactory, @Nullable NRTIndexFactory nrtFactory){
+    public IndexTracker(LuceneIndexReaderFactory readerFactory,
+        @Nullable NRTIndexFactory nrtFactory) {
         this.readerFactory = readerFactory;
         this.nrtFactory = nrtFactory;
     }
@@ -150,7 +151,8 @@ public class IndexTracker {
     }
 
     private synchronized void diffAndUpdate(final NodeState root) {
-        if (asyncIndexInfoService != null && !asyncIndexInfoService.hasIndexerUpdatedForAnyLane(this.root, root)) {
+        if (asyncIndexInfoService != null && !asyncIndexInfoService.hasIndexerUpdatedForAnyLane(
+            this.root, root)) {
             log.trace("No changed detected in async indexer state. Skipping further diff");
             this.root = root;
             return;
@@ -169,10 +171,14 @@ public class IndexTracker {
                 @Override
                 public void leave(NodeState before, NodeState after) {
                     try {
-                        if (isStatusChanged(before, after) || isIndexDefinitionChanged(before, after)) {
+                        if (isStatusChanged(before, after) || isIndexDefinitionChanged(before,
+                            after)) {
                             long start = PERF_LOGGER.start();
-                            LuceneIndexNodeManager index = LuceneIndexNodeManager.open(path, root, after, readerFactory, nrtFactory);
-                            PERF_LOGGER.end(start, -1, "[{}] Index found to be updated. Reopening the LuceneIndexNode", path);
+                            LuceneIndexNodeManager index = LuceneIndexNodeManager.open(path, root,
+                                after, readerFactory, nrtFactory);
+                            PERF_LOGGER.end(start, -1,
+                                "[{}] Index found to be updated. Reopening the LuceneIndexNode",
+                                path);
                             updates.put(path, index); // index can be null
                         }
                     } catch (IOException e) {
@@ -187,9 +193,9 @@ public class IndexTracker {
 
         if (!updates.isEmpty()) {
             indices = ImmutableMap.<String, LuceneIndexNodeManager>builder()
-                    .putAll(Maps.filterKeys(original, not(in(updates.keySet()))))
-                    .putAll(Maps.filterValues(updates, notNull()))
-                    .build();
+                                  .putAll(Maps.filterKeys(original, not(in(updates.keySet()))))
+                                  .putAll(Maps.filterValues(updates, notNull()))
+                                  .build();
 
             badIndexTracker.markGoodIndexes(updates.keySet());
 
@@ -248,7 +254,7 @@ public class IndexTracker {
             return checkNotNull(indexNode);
         }
 
-        if (badIndexTracker.isIgnoredBadIndex(path)){
+        if (badIndexTracker.isIgnoredBadIndex(path)) {
             return null;
         }
 
@@ -264,14 +270,15 @@ public class IndexTracker {
                     LuceneIndexNode indexNode = index.acquire();
                     checkNotNull(indexNode);
                     indices = ImmutableMap.<String, LuceneIndexNodeManager>builder()
-                            .putAll(indices)
-                            .put(path, index)
-                            .build();
+                                          .putAll(indices)
+                                          .put(path, index)
+                                          .build();
                     badIndexTracker.markGoodIndex(path);
                     return indexNode;
                 }
             } else if (node.exists()) {
-                log.warn("Cannot open Lucene Index at path {} as the index is not of type {}", path, TYPE_LUCENE);
+                log.warn("Cannot open Lucene Index at path {} as the index is not of type {}", path,
+                    TYPE_LUCENE);
             }
         } catch (Throwable e) {
             badIndexTracker.markBadIndexForRead(path, e);
@@ -281,7 +288,7 @@ public class IndexTracker {
     }
 
     @Nullable
-    public LuceneIndexDefinition getIndexDefinition(String indexPath){
+    public LuceneIndexDefinition getIndexDefinition(String indexPath) {
         LuceneIndexNodeManager indexNodeManager = indices.get(indexPath);
         if (indexNodeManager != null) {
             // Accessing the definition should not require
@@ -304,7 +311,7 @@ public class IndexTracker {
         return new LuceneIndexDefinition(root, node, indexPath);
     }
 
-    public Set<String> getIndexNodePaths(){
+    public Set<String> getIndexNodePaths() {
         return indices.keySet();
     }
 
@@ -317,11 +324,13 @@ public class IndexTracker {
     }
 
     private static boolean isStatusChanged(NodeState before, NodeState after) {
-        return !EqualsDiff.equals(before.getChildNode(STATUS_NODE), after.getChildNode(STATUS_NODE));
+        return !EqualsDiff.equals(before.getChildNode(STATUS_NODE),
+            after.getChildNode(STATUS_NODE));
     }
 
     private static boolean isIndexDefinitionChanged(NodeState before, NodeState after) {
-        return !EqualsDiff.equals(before.getChildNode(INDEX_DEFINITION_NODE), after.getChildNode(INDEX_DEFINITION_NODE));
+        return !EqualsDiff.equals(before.getChildNode(INDEX_DEFINITION_NODE),
+            after.getChildNode(INDEX_DEFINITION_NODE));
     }
 
 }

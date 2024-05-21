@@ -19,19 +19,11 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
-import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.Compression;
-import org.apache.jackrabbit.oak.index.indexer.document.IndexerConfiguration;
-import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
-import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils;
-import org.apache.jackrabbit.oak.plugins.index.search.Aggregate;
-import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
-import org.apache.jackrabbit.oak.query.ast.NodeTypeInfo;
-import org.apache.jackrabbit.oak.query.ast.NodeTypeInfoProvider;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.JcrConstants.NT_BASE;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createReader;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createWriter;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.getSortedStoreFileName;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -47,19 +39,28 @@ import java.util.Set;
 import java.util.Stack;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
-import static org.apache.jackrabbit.JcrConstants.NT_BASE;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createReader;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createWriter;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.getSortedStoreFileName;
+import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.Compression;
+import org.apache.jackrabbit.oak.index.indexer.document.IndexerConfiguration;
+import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
+import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils;
+import org.apache.jackrabbit.oak.plugins.index.search.Aggregate;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
+import org.apache.jackrabbit.oak.query.ast.NodeTypeInfo;
+import org.apache.jackrabbit.oak.query.ast.NodeTypeInfoProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
- * This class is being used when {@value IndexerConfiguration#PROP_OAK_INDEXER_PARALLEL_INDEX} is set to true.
- * It will split a flat file safely by checking the index definitions. An entry is considered safe to split if only
- * none of the parent directories contains nodes in indexRule and aggregate fields of the provided index definitions.
+ * This class is being used when {@value IndexerConfiguration#PROP_OAK_INDEXER_PARALLEL_INDEX} is
+ * set to true. It will split a flat file safely by checking the index definitions. An entry is
+ * considered safe to split if only none of the parent directories contains nodes in indexRule and
+ * aggregate fields of the provided index definitions.
  */
 public class FlatFileSplitter {
+
     private static final Logger LOG = LoggerFactory.getLogger(FlatFileSplitter.class);
 
     private static final String SPLIT_DIR_NAME = "split";
@@ -73,9 +74,10 @@ public class FlatFileSplitter {
     private Set<String> splitNodeTypeNames;
 
     static Predicate<File> IS_SPLIT = path -> path.getParent().endsWith(SPLIT_DIR_NAME);
-    
-    public FlatFileSplitter(File flatFile, File workdir, NodeTypeInfoProvider infoProvider, NodeStateEntryReader entryReader,
-            Set<IndexDefinition> indexDefinitions) {
+
+    public FlatFileSplitter(File flatFile, File workdir, NodeTypeInfoProvider infoProvider,
+        NodeStateEntryReader entryReader,
+        Set<IndexDefinition> indexDefinitions) {
         this.flatFile = flatFile;
         this.indexDefinitions = indexDefinitions;
         this.workDir = new File(workdir, SPLIT_DIR_NAME);
@@ -83,7 +85,7 @@ public class FlatFileSplitter {
         this.infoProvider = infoProvider;
         this.entryReader = entryReader;
 
-        this.algorithm =  IndexStoreUtils.compressionAlgorithm();
+        this.algorithm = IndexStoreUtils.compressionAlgorithm();
     }
 
     private List<File> returnOriginalFlatFile() {
@@ -104,17 +106,20 @@ public class FlatFileSplitter {
         }
 
         long fileSizeInBytes = flatFile.length();
-        long splitThreshold = Math.round((double) (fileSizeInBytes / IndexerConfiguration.splitSize()));
+        long splitThreshold = Math.round(
+            (double) (fileSizeInBytes / IndexerConfiguration.splitSize()));
         LOG.info("original flat file size: ~{}", FileUtils.byteCountToDisplaySize(fileSizeInBytes));
-        LOG.info("split threshold is ~{} bytes, estimate split size >={} files", FileUtils.byteCountToDisplaySize(splitThreshold), IndexerConfiguration.splitSize());
+        LOG.info("split threshold is ~{} bytes, estimate split size >={} files",
+            FileUtils.byteCountToDisplaySize(splitThreshold), IndexerConfiguration.splitSize());
 
         // return original if file too small or split size equals 1
-        if (splitThreshold < IndexerConfiguration.minSplitThreshold() || IndexerConfiguration.splitSize() <= 1) {
+        if (splitThreshold < IndexerConfiguration.minSplitThreshold()
+            || IndexerConfiguration.splitSize() <= 1) {
             LOG.info("split is not necessary, skip splitting");
             return returnOriginalFlatFile();
         }
 
-        Set<String>splitNodeTypesName = getSplitNodeTypeNames();
+        Set<String> splitNodeTypesName = getSplitNodeTypeNames();
         LOG.info("unsafe split types: {}", splitNodeTypesName);
         if (splitNodeTypesName.contains(NT_BASE)) {
             LOG.info("Skipping split because split node types set contains {}", NT_BASE);
@@ -124,7 +129,8 @@ public class FlatFileSplitter {
         try (BufferedReader reader = createReader(flatFile, algorithm)) {
             long readPos = 0;
             int outFileIndex = 1;
-            File currentFile = new File(workDir, "split-" + outFileIndex + "-" + getSortedStoreFileName(algorithm));
+            File currentFile = new File(workDir,
+                "split-" + outFileIndex + "-" + getSortedStoreFileName(algorithm));
             BufferedWriter writer = createWriter(currentFile, algorithm);
             splitFlatFiles.add(currentFile);
 
@@ -136,13 +142,17 @@ public class FlatFileSplitter {
                 boolean shouldSplit = (readPos > splitThreshold);
                 if (shouldSplit && canSplit(splitNodeTypesName, nodeTypeNameStack)) {
                     writer.close();
-                    LOG.info("created split flat file {} with size {}", currentFile.getAbsolutePath(), FileUtils.byteCountToDisplaySize(currentFile.length()));
+                    LOG.info("created split flat file {} with size {}",
+                        currentFile.getAbsolutePath(),
+                        FileUtils.byteCountToDisplaySize(currentFile.length()));
                     readPos = 0;
                     outFileIndex++;
-                    currentFile = new File(workDir, "split-" + outFileIndex + "-" + getSortedStoreFileName(algorithm));
+                    currentFile = new File(workDir,
+                        "split-" + outFileIndex + "-" + getSortedStoreFileName(algorithm));
                     writer = createWriter(currentFile, algorithm);
                     splitFlatFiles.add(currentFile);
-                    LOG.info("split position found at line {}, creating new split file {}", lineCount, currentFile.getAbsolutePath());
+                    LOG.info("split position found at line {}, creating new split file {}",
+                        lineCount, currentFile.getAbsolutePath());
                 }
                 writer.append(line);
                 writer.newLine();
@@ -150,13 +160,15 @@ public class FlatFileSplitter {
                 lineCount++;
             }
             writer.close();
-            LOG.info("created split flat file {} with size {}", currentFile.getAbsolutePath(), FileUtils.byteCountToDisplaySize(currentFile.length()));
+            LOG.info("created split flat file {} with size {}", currentFile.getAbsolutePath(),
+                FileUtils.byteCountToDisplaySize(currentFile.length()));
 
             LOG.info("split total line count: {}", lineCount);
         }
 
         if (deleteOriginal) {
-            LOG.info("removing original flat file {} after splitting into {} files", flatFile.getAbsolutePath(), splitFlatFiles);
+            LOG.info("removing original flat file {} after splitting into {} files",
+                flatFile.getAbsolutePath(), splitFlatFiles);
             flatFile.delete();
         }
 
@@ -199,7 +211,8 @@ public class FlatFileSplitter {
         if (nodeTypeNameStack.contains("")) {
             return false;
         }
-        for (String parentNodeTypeName : nodeTypeNameStack.subList(0, nodeTypeNameStack.size()-1)) {
+        for (String parentNodeTypeName : nodeTypeNameStack.subList(0,
+            nodeTypeNameStack.size() - 1)) {
             if (nodeTypes.contains(parentNodeTypeName)) {
                 return false;
             }
@@ -214,7 +227,7 @@ public class FlatFileSplitter {
         Set<String> subTypes = nodeType.getMixinSubTypes();
         subTypes.addAll(nodeType.getPrimarySubTypes());
 
-        for (String subTypeName: subTypes) {
+        for (String subTypeName : subTypes) {
             initialSet.add(infoProvider.getNodeTypeInfo(subTypeName));
             initialSet.addAll(getSubTypes(subTypeName));
         }
@@ -225,19 +238,22 @@ public class FlatFileSplitter {
     public Set<String> getSplitNodeTypeNames() {
         if (splitNodeTypeNames == null) {
             Set<NodeTypeInfo> splitNodeTypes = getSplitNodeType();
-            splitNodeTypeNames = splitNodeTypes.stream().map(NodeTypeInfo::getNodeTypeName).collect(Collectors.toSet());
+            splitNodeTypeNames = splitNodeTypes.stream().map(NodeTypeInfo::getNodeTypeName)
+                                               .collect(Collectors.toSet());
         }
         return splitNodeTypeNames;
     }
 
-    private Set<NodeTypeInfo> getSplitNodeType(){
+    private Set<NodeTypeInfo> getSplitNodeType() {
         HashSet<String> nodeTypeNameSet = new HashSet<>();
         Set<NodeTypeInfo> setOfNodeType = new HashSet<>();
 
         for (IndexDefinition indexDf : indexDefinitions) {
             Map<String, Aggregate> aggregateMap = indexDf.getAggregates();
             nodeTypeNameSet.addAll(Objects.requireNonNull(aggregateMap).keySet());
-            nodeTypeNameSet.addAll(indexDf.getDefinedRules().stream().map(IndexDefinition.IndexingRule::getBaseNodeType).collect(Collectors.toList()));
+            nodeTypeNameSet.addAll(indexDf.getDefinedRules().stream()
+                                          .map(IndexDefinition.IndexingRule::getBaseNodeType)
+                                          .collect(Collectors.toList()));
         }
 
         for (String nodeTypeName : nodeTypeNameSet) {

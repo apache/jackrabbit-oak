@@ -28,11 +28,7 @@ import static org.mockito.Mockito.when;
 
 import java.io.Closeable;
 import java.util.Set;
-
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.oak.spi.commit.Observable;
-import org.apache.jackrabbit.oak.spi.commit.Observer;
-import org.apache.jackrabbit.oak.spi.commit.ObserverTracker;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -40,6 +36,7 @@ import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceReference;
 
 public class ObserverTrackerTest {
+
     private final Set<Observer> observers = newHashSet();
 
     private final Observable observable = new Observable() {

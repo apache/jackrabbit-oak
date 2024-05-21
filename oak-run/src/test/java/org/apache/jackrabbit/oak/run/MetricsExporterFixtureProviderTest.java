@@ -18,21 +18,20 @@
  */
 package org.apache.jackrabbit.oak.run;
 
-import java.util.Map;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
 
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import io.prometheus.client.exporter.PushGateway;
+import java.util.Map;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
+import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.run.MetricsExporterFixtureProvider.ExportMetricsArgs;
 import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertTrue;
 
 /**
  * Tests for MetricsExporterFixtureProvider
@@ -47,7 +46,8 @@ public class MetricsExporterFixtureProviderTest {
         OptionParser parser = new OptionParser();
         DataStoreOptions dataStoreOptions = new DataStoreOptions(parser);
 
-        OptionSet option = parser.parse("--export-metrics", "pushgateway;localhost:9091;key1=value1,key2=value2");
+        OptionSet option = parser.parse("--export-metrics",
+            "pushgateway;localhost:9091;key1=value1,key2=value2");
         dataStoreOptions.configure(option);
 
         MetricsExporterFixture metricsExporterFixture =

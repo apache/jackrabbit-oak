@@ -18,8 +18,8 @@
 Segment Storage Design Overview
 =========================
 
-*NOTE:* The information on this page applies to an older version of the 
-TarMK and is mainly of historical interest. For the documentation of the 
+*NOTE:* The information on this page applies to an older version of the
+TarMK and is mainly of historical interest. For the documentation of the
 current versions see [Oak Segment Tar](segment/overview.html).
 
 The SegmentNodeStore is an Oak storage backend that stores content as various
@@ -30,20 +30,20 @@ only one "root" journal is used.
 The SegmentNodeStore was designed from the ground up based on the following
 key principles:
 
-  * Immutability. Segments are immutable, which makes is easy to cache
-    frequently accessed segments. This also makes it less likely for
-    programming or system errors to cause repository inconsistencies, and
-    simplifies features like backups or master-slave clustering.
+* Immutability. Segments are immutable, which makes is easy to cache
+  frequently accessed segments. This also makes it less likely for
+  programming or system errors to cause repository inconsistencies, and
+  simplifies features like backups or master-slave clustering.
 
-  * Compactness. The formatting of records is optimized for size to
-    reduce IO costs and to fit as much content in caches as possible.
-    A node stored in SegmentNodeStore typically consumes only a fraction of the
-    size it would as a bundle in Jackrabbit Classic.
+* Compactness. The formatting of records is optimized for size to
+  reduce IO costs and to fit as much content in caches as possible.
+  A node stored in SegmentNodeStore typically consumes only a fraction of the
+  size it would as a bundle in Jackrabbit Classic.
 
-  * Locality. Segments are written so that related records, like a node
-    and its immediate children, usually end up stored in the same segment.
-    This makes tree traversals very fast and avoids most cache misses for
-    typical clients that access more than one related node per session.
+* Locality. Segments are written so that related records, like a node
+  and its immediate children, usually end up stored in the same segment.
+  This makes tree traversals very fast and avoids most cache misses for
+  typical clients that access more than one related node per session.
 
 This document describes the overall design of the SegmentNodeStore. See the
 source code and javadocs in `org.apache.jackrabbit.oak.plugins.segment`
@@ -64,8 +64,8 @@ is encoded in its UUID and can thus be determined already before reading
 the segment. The following bit patterns are used (each `x` represents four
 random bits):
 
-  * `xxxxxxxx-xxxx-4xxx-axxx-xxxxxxxxxxxx` data segment UUID
-  * `xxxxxxxx-xxxx-4xxx-bxxx-xxxxxxxxxxxx` bulk segment UUID
+* `xxxxxxxx-xxxx-4xxx-axxx-xxxxxxxxxxxx` data segment UUID
+* `xxxxxxxx-xxxx-4xxx-bxxx-xxxxxxxxxxxx` bulk segment UUID
 
 (This encoding makes segment UUIDs appear as syntactically valid version 4
 random UUIDs specified in RFC 4122.)
@@ -158,7 +158,8 @@ a jmx operation via the `RevisionGarbageCollection` MBean. This is a non-blockin
 operation, it will set an internal flag for compaction during the next `flush` call.
 
 As a workaround in the case where the size is already too big, you might want to run
-a manual compaction using the [Oak run](https://github.com/apache/jackrabbit-oak/blob/trunk/oak-run/README.md)
+a manual compaction using
+the [Oak run](https://github.com/apache/jackrabbit-oak/blob/trunk/oak-run/README.md)
 tool.
 
 Journals
@@ -289,10 +290,10 @@ reference (up to 4kB in length) to some external storage location.
 The type of a value record is encoded in the high-order bits of the first
 byte of the record. These bit patterns are:
 
-  * `0xxxxxxx`: small value, length (0 - 127 bytes) encoded in 7 bits
-  * `10xxxxxx`: medium value length (128 - 16511 bytes) encoded in 6 + 8 bits
-  * `110xxxxx`: long value, length (up to 2^61 bytes) encoded in 5 + 7*8 bits
-  * `1110xxxx`: external value, reference string length encoded in 4 + 8 bits
+* `0xxxxxxx`: small value, length (0 - 127 bytes) encoded in 7 bits
+* `10xxxxxx`: medium value length (128 - 16511 bytes) encoded in 6 + 8 bits
+* `110xxxxx`: long value, length (up to 2^61 bytes) encoded in 5 + 7*8 bits
+* `1110xxxx`: external value, reference string length encoded in 4 + 8 bits
 
 Template records
 ----------------

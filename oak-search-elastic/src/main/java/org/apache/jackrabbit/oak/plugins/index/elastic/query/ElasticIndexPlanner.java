@@ -18,6 +18,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.query;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexNode;
@@ -27,19 +30,17 @@ import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
 public class ElasticIndexPlanner extends FulltextIndexPlanner {
 
-    public ElasticIndexPlanner(IndexNode indexNode, String indexPath, Filter filter, List<QueryIndex.OrderEntry> sortOrder) {
+    public ElasticIndexPlanner(IndexNode indexNode, String indexPath, Filter filter,
+        List<QueryIndex.OrderEntry> sortOrder) {
         super(indexNode, indexPath, filter, sortOrder);
     }
 
     /**
-     * Overrides the basic planner to add support for all the defined properties regardless of the ordered flag since
-     * Elastic supports sorting on all fields without any additional configuration.
+     * Overrides the basic planner to add support for all the defined properties regardless of the
+     * ordered flag since Elastic supports sorting on all fields without any additional
+     * configuration.
      */
     @Override
     protected List<QueryIndex.OrderEntry> createSortOrder(IndexDefinition.IndexingRule rule) {
@@ -52,11 +53,12 @@ public class ElasticIndexPlanner extends FulltextIndexPlanner {
             String propName = o.getPropertyName();
             PropertyDefinition pd = rule.getConfig(propName);
             if (pd != null
-                    && o.getPropertyType() != null
-                    && pd.propertyIndex
-                    // functions on regexp-based properties must be skipped since the values cannot be indexed
-                    && (!pd.isRegexp || !propName.startsWith(QueryConstants.FUNCTION_RESTRICTION_PREFIX))
-                    && !o.getPropertyType().isArray()) {
+                && o.getPropertyType() != null
+                && pd.propertyIndex
+                // functions on regexp-based properties must be skipped since the values cannot be indexed
+                && (!pd.isRegexp || !propName.startsWith(
+                QueryConstants.FUNCTION_RESTRICTION_PREFIX))
+                && !o.getPropertyType().isArray()) {
                 orderEntries.add(o); // can manage any order desc/asc
             } else if (JcrConstants.JCR_SCORE.equals(propName)) {
                 // Supports jcr:score in both directions

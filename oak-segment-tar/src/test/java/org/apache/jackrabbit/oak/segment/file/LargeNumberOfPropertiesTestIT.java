@@ -24,7 +24,6 @@ import static org.junit.Assume.assumeTrue;
 
 import java.io.File;
 import java.io.IOException;
-
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -38,22 +37,23 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * <p>Tests verifying if the repository gets corrupted or not: {@code OAK-2481 IllegalStateException in TarMk with large number of properties}</p>
+ * <p>Tests verifying if the repository gets corrupted or not:
+ * {@code OAK-2481 IllegalStateException in TarMk with large number of properties}</p>
  *
  * <p>These tests are disabled by default due to their long running time. On the
- * command line specify {@code -DLargeNumberOfPropertiesTestIT=true} to enable
- * them.</p>
+ * command line specify {@code -DLargeNumberOfPropertiesTestIT=true} to enable them.</p>
  *
- *<p>If you only want to run this test:<br>
- * {@code mvn verify -Dsurefire.skip.ut=true -PintegrationTesting -Dit.test=LargeNumberOfPropertiesTestIT -DLargeNumberOfPropertiesTestIT=true}
+ * <p>If you only want to run this test:<br>
+ * {@code mvn verify -Dsurefire.skip.ut=true -PintegrationTesting
+ * -Dit.test=LargeNumberOfPropertiesTestIT -DLargeNumberOfPropertiesTestIT=true}
  * </p>
  */
 public class LargeNumberOfPropertiesTestIT {
 
     private static final Logger LOG = LoggerFactory
-            .getLogger(LargeNumberOfPropertiesTestIT.class);
+        .getLogger(LargeNumberOfPropertiesTestIT.class);
     private static final boolean ENABLED = Boolean
-            .getBoolean(LargeNumberOfPropertiesTestIT.class.getSimpleName());
+        .getBoolean(LargeNumberOfPropertiesTestIT.class.getSimpleName());
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder(new File("target"));
@@ -70,12 +70,12 @@ public class LargeNumberOfPropertiesTestIT {
     @Test
     public void corruption() throws Exception {
         FileStore fileStore = fileStoreBuilder(getFileStoreFolder())
-                .withMaxFileSize(5)
-                .withSegmentCacheSize(0)
-                .withStringCacheSize(0)
-                .withTemplateCacheSize(0)
-                .withMemoryMapping(true)
-                .build();
+            .withMaxFileSize(5)
+            .withSegmentCacheSize(0)
+            .withStringCacheSize(0)
+            .withTemplateCacheSize(0)
+            .withMemoryMapping(true)
+            .build();
         SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
 
         NodeBuilder root = nodeStore.getRoot().builder();

@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.security.internal;
 
+import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
+
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -29,8 +31,6 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardAware;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 
 class InternalSecurityProvider implements SecurityProvider, WhiteboardAware {
 

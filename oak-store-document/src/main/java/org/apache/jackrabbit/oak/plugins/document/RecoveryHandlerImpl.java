@@ -33,19 +33,18 @@ class RecoveryHandlerImpl implements RecoveryHandler {
     private static final int COMMIT_VALUE_CACHE_SIZE = 10000;
 
     /**
-     * The timeout in milliseconds to wait for the recovery performed by
-     * another cluster node.
+     * The timeout in milliseconds to wait for the recovery performed by another cluster node.
      */
     private long recoveryWaitTimeoutMS =
-            Long.getLong("oak.recoveryWaitTimeoutMS", 60000);
+        Long.getLong("oak.recoveryWaitTimeoutMS", 60000);
 
     private final DocumentStore store;
     private final Clock clock;
     private final MissingLastRevSeeker lastRevSeeker;
 
     RecoveryHandlerImpl(DocumentStore store,
-                        Clock clock,
-                        MissingLastRevSeeker lastRevSeeker) {
+        Clock clock,
+        MissingLastRevSeeker lastRevSeeker) {
         this.store = store;
         this.clock = clock;
         this.lastRevSeeker = lastRevSeeker;
@@ -62,14 +61,15 @@ class RecoveryHandlerImpl implements RecoveryHandler {
     }
 
     private boolean recoverInternal(int clusterId)
-            throws DocumentStoreException {
+        throws DocumentStoreException {
         NodeDocument root = Utils.getRootDocument(store);
         // prepare a context for recovery
         RevisionContext context = new RecoveryContext(
-                root, clock, clusterId,
-                new CachingCommitValueResolver(COMMIT_VALUE_CACHE_SIZE, root::getSweepRevisions));
+            root, clock, clusterId,
+            new CachingCommitValueResolver(COMMIT_VALUE_CACHE_SIZE, root::getSweepRevisions));
         LastRevRecoveryAgent agent = new LastRevRecoveryAgent(
-                store, context, lastRevSeeker, id -> {});
+            store, context, lastRevSeeker, id -> {
+        });
         long timeout = context.getClock().getTime() + recoveryWaitTimeoutMS;
         int numRecovered = agent.recover(clusterId, timeout);
         if (numRecovered == -1) {
@@ -79,9 +79,9 @@ class RecoveryHandlerImpl implements RecoveryHandler {
                 otherId = String.valueOf(doc.get(ClusterNodeInfo.REV_RECOVERY_BY));
             }
             String msg = "This cluster node (" + clusterId + ") requires " +
-                    "_lastRev recovery which is currently performed by " +
-                    "another cluster node (" + otherId + "). Recovery is " +
-                    "still ongoing after " + recoveryWaitTimeoutMS + " ms.";
+                "_lastRev recovery which is currently performed by " +
+                "another cluster node (" + otherId + "). Recovery is " +
+                "still ongoing after " + recoveryWaitTimeoutMS + " ms.";
             LOG.info(msg);
             return false;
         }

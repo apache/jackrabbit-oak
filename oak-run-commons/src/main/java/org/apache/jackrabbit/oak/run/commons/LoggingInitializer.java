@@ -19,30 +19,29 @@
 
 package org.apache.jackrabbit.oak.run.commons;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URL;
-
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.joran.JoranConfigurator;
 import ch.qos.logback.classic.util.ContextInitializer;
 import ch.qos.logback.core.joran.spi.JoranException;
 import ch.qos.logback.core.util.StatusPrinter;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Configures the logging based on logback-{logIdentifier}.xml specified. This file
- * would be copied to work directory and then logging would be
- * configured based on that
- *
- * The log file is configured for auto scan so any change made while
- * oak-run is in progress would be picked up
+ * Configures the logging based on logback-{logIdentifier}.xml specified. This file would be copied
+ * to work directory and then logging would be configured based on that
+ * <p>
+ * The log file is configured for auto scan so any change made while oak-run is in progress would be
+ * picked up
  */
 public class LoggingInitializer {
+
     private static final String LOGBACK_XML_PREFIX = "logback-";
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final File workDir;
@@ -82,7 +81,7 @@ public class LoggingInitializer {
         if (System.getProperty(ContextInitializer.CONFIG_FILE_PROPERTY) != null) {
             return;
         }
-        
+
         LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
         context.stop();
     }
@@ -93,7 +92,8 @@ public class LoggingInitializer {
         try {
             JoranConfigurator configurator = new JoranConfigurator();
             configurator.setContext(context);
-            System.setProperty("oak.workDir", FilenameUtils.normalizeNoEndSeparator(workDir.getAbsolutePath()));
+            System.setProperty("oak.workDir",
+                FilenameUtils.normalizeNoEndSeparator(workDir.getAbsolutePath()));
             // Call context.reset() to clear any previous configuration, e.g. default
             // configuration. For multi-step configuration, omit calling context.reset().
             if (doReset) {

@@ -19,10 +19,8 @@
 package org.apache.jackrabbit.oak.api;
 
 import java.io.IOException;
-
 import javax.jcr.NoSuchWorkspaceException;
 import javax.security.auth.login.LoginException;
-
 import org.apache.jackrabbit.oak.OakBaseTest;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.junit.After;
@@ -48,7 +46,8 @@ public class ContentSessionTest extends OakBaseTest {
     }
 
     @Test(expected = IllegalStateException.class)
-    public void throwOnClosedSession() throws LoginException, NoSuchWorkspaceException, IOException {
+    public void throwOnClosedSession()
+        throws LoginException, NoSuchWorkspaceException, IOException {
         ContentSession session = repository.login(null, null);
         session.close();
         session.getLatestRoot();

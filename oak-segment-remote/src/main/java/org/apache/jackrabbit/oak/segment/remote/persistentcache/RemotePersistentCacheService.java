@@ -19,8 +19,10 @@ package org.apache.jackrabbit.oak.segment.remote.persistentcache;
 
 import static org.apache.jackrabbit.oak.commons.IOUtils.closeQuietly;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.Hashtable;
 import org.apache.jackrabbit.guava.common.io.Closer;
-
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
@@ -37,15 +39,11 @@ import org.osgi.service.component.annotations.ConfigurationPolicy;
 import org.osgi.service.component.annotations.Deactivate;
 import org.osgi.service.component.annotations.Reference;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.Hashtable;
-import java.util.Properties;
-
 @Component(
-        configurationPolicy = ConfigurationPolicy.REQUIRE,
-        configurationPid = {Configuration.PID})
+    configurationPolicy = ConfigurationPolicy.REQUIRE,
+    configurationPid = {Configuration.PID})
 public class RemotePersistentCacheService {
+
     private ServiceRegistration registration;
 
     private PersistentCache persistentCache;
@@ -62,7 +60,9 @@ public class RemotePersistentCacheService {
         osgiWhiteboard = new OsgiWhiteboard(context.getBundleContext());
         persistentCache = createPersistentCache(config, closer);
         if (persistentCache != null) {
-            registration = context.getBundleContext().registerService(PersistentCache.class, persistentCache, new Hashtable<String, Object>());
+            registration = context.getBundleContext()
+                                  .registerService(PersistentCache.class, persistentCache,
+                                      new Hashtable<String, Object>());
         }
     }
 
@@ -80,42 +80,61 @@ public class RemotePersistentCacheService {
         closer.register(registration::unregister);
     }
 
-    protected  <T> Registration registerMBean(Class<T> clazz, T bean, String type, String name) {
+    protected <T> Registration registerMBean(Class<T> clazz, T bean, String type, String name) {
         return WhiteboardUtils.registerMBean(osgiWhiteboard, clazz, bean, type, name);
     }
 
     private PersistentCache createPersistentCache(Configuration configuration, Closer closer) {
 
-        RoleStatisticsProvider roleStatisticsProvider = new RoleStatisticsProvider(statisticsProvider, "remote_persistence");
+        RoleStatisticsProvider roleStatisticsProvider = new RoleStatisticsProvider(
+            statisticsProvider, "remote_persistence");
 
         DiskCacheIOMonitor diskCacheIOMonitor = new DiskCacheIOMonitor(roleStatisticsProvider);
         RedisCacheIOMonitor redisCacheIOMonitor = new RedisCacheIOMonitor(roleStatisticsProvider);
 
         if (configuration.diskCacheEnabled()) {
-            PersistentDiskCache persistentDiskCache = new PersistentDiskCache(new File(configuration.diskCacheDirectory()), configuration.diskCacheMaxSizeMB(), diskCacheIOMonitor);
+            PersistentDiskCache persistentDiskCache = new PersistentDiskCache(
+                new File(configuration.diskCacheDirectory()), configuration.diskCacheMaxSizeMB(),
+                diskCacheIOMonitor);
             closer.register(persistentDiskCache);
 
             CacheStatsMBean diskCacheStatsMBean = persistentDiskCache.getCacheStats();
-            registerCloseable(registerMBean(CacheStatsMBean.class, diskCacheStatsMBean, CacheStats.TYPE, diskCacheStatsMBean.getName()));
+            registerCloseable(
+                registerMBean(CacheStatsMBean.class, diskCacheStatsMBean, CacheStats.TYPE,
+                    diskCacheStatsMBean.getName()));
 
             if (configuration.redisCacheEnabled()) {
-                PersistentRedisCache redisCache = new PersistentRedisCache(configuration.redisCacheHost(), configuration.redisCachePort(), configuration.redisCacheExpireSeconds(), configuration.redisSocketTimeout(), configuration.redisConnectionTimeout(),
-                        configuration.redisMinConnections(), configuration.redisMaxConnections(), configuration.redisMaxTotalConnections(), configuration.redisDBIndex(), redisCacheIOMonitor);
+                PersistentRedisCache redisCache = new PersistentRedisCache(
+                    configuration.redisCacheHost(), configuration.redisCachePort(),
+                    configuration.redisCacheExpireSeconds(), configuration.redisSocketTimeout(),
+                    configuration.redisConnectionTimeout(),
+                    configuration.redisMinConnections(), configuration.redisMaxConnections(),
+                    configuration.redisMaxTotalConnections(), configuration.redisDBIndex(),
+                    redisCacheIOMonitor);
                 persistentDiskCache.linkWith(redisCache);
                 closer.register(redisCache);
 
                 CacheStatsMBean redisCacheStatsMBean = redisCache.getCacheStats();
-                registerCloseable(registerMBean(CacheStatsMBean.class, redisCacheStatsMBean, CacheStats.TYPE, redisCacheStatsMBean.getName()));
+                registerCloseable(
+                    registerMBean(CacheStatsMBean.class, redisCacheStatsMBean, CacheStats.TYPE,
+                        redisCacheStatsMBean.getName()));
             }
 
             return persistentDiskCache;
         } else if (configuration.redisCacheEnabled()) {
-            PersistentRedisCache redisCache = new PersistentRedisCache(configuration.redisCacheHost(), configuration.redisCachePort(), configuration.redisCacheExpireSeconds(), configuration.redisSocketTimeout(), configuration.redisConnectionTimeout(),
-                    configuration.redisMinConnections(), configuration.redisMaxConnections(), configuration.redisMaxTotalConnections(), configuration.redisDBIndex(), redisCacheIOMonitor);
+            PersistentRedisCache redisCache = new PersistentRedisCache(
+                configuration.redisCacheHost(), configuration.redisCachePort(),
+                configuration.redisCacheExpireSeconds(), configuration.redisSocketTimeout(),
+                configuration.redisConnectionTimeout(),
+                configuration.redisMinConnections(), configuration.redisMaxConnections(),
+                configuration.redisMaxTotalConnections(), configuration.redisDBIndex(),
+                redisCacheIOMonitor);
             closer.register(redisCache);
 
             CacheStatsMBean redisCacheStatsMBean = redisCache.getCacheStats();
-            registerCloseable(registerMBean(CacheStatsMBean.class, redisCacheStatsMBean, CacheStats.TYPE, redisCacheStatsMBean.getName()));
+            registerCloseable(
+                registerMBean(CacheStatsMBean.class, redisCacheStatsMBean, CacheStats.TYPE,
+                    redisCacheStatsMBean.getName()));
 
             return redisCache;
         }

@@ -16,17 +16,16 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
-import org.apache.jackrabbit.guava.common.base.Charsets;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudAppendBlob;
-import org.apache.commons.io.IOUtils;
-import org.apache.jackrabbit.oak.segment.spi.persistence.GCJournalFile;
-
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.Collections;
 import java.util.List;
+import org.apache.commons.io.IOUtils;
+import org.apache.jackrabbit.guava.common.base.Charsets;
+import org.apache.jackrabbit.oak.segment.spi.persistence.GCJournalFile;
 
 public class AzureGCJournalFile implements GCJournalFile {
 

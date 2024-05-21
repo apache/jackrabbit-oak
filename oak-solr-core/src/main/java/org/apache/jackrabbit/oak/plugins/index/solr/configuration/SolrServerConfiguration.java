@@ -20,7 +20,6 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
-
 import org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider;
 
 /**
@@ -48,23 +47,27 @@ public abstract class SolrServerConfiguration<S extends SolrServerProvider> {
     }
 
     public S getProvider()
-            throws IllegalAccessException,
-            InvocationTargetException, InstantiationException {
+        throws IllegalAccessException,
+        InvocationTargetException, InstantiationException {
         if (constructor == null) {
             Class<?> rawType = type instanceof Class<?>
-                    ? (Class<?>) type
-                    : (Class<?>) ((ParameterizedType) type).getRawType();
+                ? (Class<?>) type
+                : (Class<?>) ((ParameterizedType) type).getRawType();
             Constructor<?>[] constructors = rawType.getConstructors();
-            for (Constructor<?> c: constructors) {
-                if (c.getParameterTypes().length == 1 && c.getParameterTypes()[0].equals(this.getClass())) {
+            for (Constructor<?> c : constructors) {
+                if (c.getParameterTypes().length == 1 && c.getParameterTypes()[0].equals(
+                    this.getClass())) {
                     constructor = c;
                 }
             }
             if (constructor == null) {
-                throw new InstantiationException("missing constructor SolrServerProvider(SolrServerConfiguration) for type "+ rawType);
+                throw new InstantiationException(
+                    "missing constructor SolrServerProvider(SolrServerConfiguration) for type "
+                        + rawType);
             }
         }
-        return (S) constructor.newInstance(this); // TODO : each SolrServerProvider impl. is forced to have a constructor with a SolrServerConfiguration, fix?
+        return (S) constructor.newInstance(
+            this); // TODO : each SolrServerProvider impl. is forced to have a constructor with a SolrServerConfiguration, fix?
     }
 
 }

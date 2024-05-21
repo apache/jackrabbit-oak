@@ -19,12 +19,19 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
+import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.createFile;
+import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.PROP_UID;
+import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.STATUS_NODE;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
-
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.InitialContentHelper;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
@@ -41,12 +48,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.createFile;
-import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.PROP_UID;
-import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.STATUS_NODE;
-import static org.junit.Assert.*;
-
 public class LuceneIndexImporterTest {
+
     private NodeState rootState = InitialContentHelper.INITIAL_CONTENT;
     private NodeBuilder idx = new LuceneIndexDefinitionBuilder().build().builder();
 
@@ -54,9 +57,10 @@ public class LuceneIndexImporterTest {
     public final TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
 
     @Test
-    public void exportAndImport() throws Exception{
+    public void exportAndImport() throws Exception {
         NodeState baseIndexState = idx.getNodeState();
-        LuceneIndexDefinition defn = LuceneIndexDefinition.newBuilder(rootState, baseIndexState, "/oak:index/fooIndex").build();
+        LuceneIndexDefinition defn = LuceneIndexDefinition.newBuilder(rootState, baseIndexState,
+            "/oak:index/fooIndex").build();
 
         LuceneIndexEditorContext.configureUniqueId(idx);
 
@@ -79,7 +83,8 @@ public class LuceneIndexImporterTest {
         dumper.dump();
 
         LuceneIndexImporter importer = new LuceneIndexImporter();
-        NodeBuilder newIdxBuilder = indexState.builder().getChildNode("oak:index").getChildNode("fooIndex");
+        NodeBuilder newIdxBuilder = indexState.builder().getChildNode("oak:index")
+                                              .getChildNode("fooIndex");
 
         //Add a file to builder to check if existing hidden nodes are removed or not
         Directory dir3 = new OakDirectory(newIdxBuilder, dirName, defn, false);
@@ -88,7 +93,8 @@ public class LuceneIndexImporterTest {
 
         importer.importIndex(rootState, newIdxBuilder, dumper.getIndexDir());
 
-        NodeState exportedIndexState = indexState.getChildNode("oak:index").getChildNode("fooIndex");
+        NodeState exportedIndexState = indexState.getChildNode("oak:index")
+                                                 .getChildNode("fooIndex");
         NodeState importedIndexState = newIdxBuilder.getNodeState();
 
         assertDirectoryEquals(defn, exportedIndexState, importedIndexState, dirName);
@@ -101,7 +107,8 @@ public class LuceneIndexImporterTest {
         assertNotNull(importedUid);
     }
 
-    private static void assertDirectoryEquals(LuceneIndexDefinition defn, NodeState expected, NodeState actual, String dirName) throws IOException {
+    private static void assertDirectoryEquals(LuceneIndexDefinition defn, NodeState expected,
+        NodeState actual, String dirName) throws IOException {
         OakDirectory dir1 = new OakDirectory(new ReadOnlyBuilder(expected), dirName, defn, true);
         OakDirectory dir2 = new OakDirectory(new ReadOnlyBuilder(actual), dirName, defn, true);
         assertDirectoryEquals(dir1, dir2);
@@ -109,7 +116,8 @@ public class LuceneIndexImporterTest {
         dir2.close();
     }
 
-    private static void assertDirectoryEquals(Directory expected, Directory actual) throws IOException {
+    private static void assertDirectoryEquals(Directory expected, Directory actual)
+        throws IOException {
         assertEquals(fileNameSet(expected), fileNameSet(actual));
 
         for (String fileName : expected.listAll()) {

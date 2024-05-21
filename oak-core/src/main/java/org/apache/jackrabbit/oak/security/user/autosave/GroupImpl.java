@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.security.user.autosave;
 import java.util.Iterator;
 import java.util.Set;
 import javax.jcr.RepositoryException;
-
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.jetbrains.annotations.NotNull;

@@ -28,7 +28,7 @@ import static org.junit.Assert.assertTrue;
 public class IncludeTest {
 
     @Test
-    public void simpleWildcard() throws Exception{
+    public void simpleWildcard() throws Exception {
         Include i = new Include("*");
         assertTrue(i.match("x"));
         assertTrue(i.match("/x"));
@@ -36,7 +36,7 @@ public class IncludeTest {
     }
 
     @Test
-    public void exactName() throws Exception{
+    public void exactName() throws Exception {
         assertTrue(new Include("x").match("x"));
         assertFalse(new Include("x").match("y"));
 
@@ -46,7 +46,7 @@ public class IncludeTest {
     }
 
     @Test
-    public void directive() throws Exception{
+    public void directive() throws Exception {
         Include i0 = new Include("x/*");
         assertEquals(Include.Directive.NONE, i0.getDirective());
 
@@ -55,12 +55,12 @@ public class IncludeTest {
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void invalidDirective() throws Exception{
+    public void invalidDirective() throws Exception {
         new Include("x/y;all/z");
     }
 
     @Test
-    public void directiveAll() throws Exception{
+    public void directiveAll() throws Exception {
         Include i = new Include("x/**");
         assertTrue(i.match("x/y"));
         assertTrue(i.match("x/y/z"));
@@ -73,7 +73,7 @@ public class IncludeTest {
     }
 
     @Test
-    public void depth() throws Exception{
+    public void depth() throws Exception {
         Include i0 = new Include("x/*");
         assertEquals(0, i0.createMatcher().depth());
         assertEquals(1, i0.createMatcher().next("x").depth());
@@ -90,7 +90,7 @@ public class IncludeTest {
     }
 
     @Test
-    public void matchChildren() throws Exception{
+    public void matchChildren() throws Exception {
         Include i0 = new Include("x/*");
         Matcher m = i0.createMatcher();
         assertFalse(m.matchesAllChildren());

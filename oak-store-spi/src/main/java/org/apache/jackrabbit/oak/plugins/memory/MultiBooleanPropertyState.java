@@ -16,23 +16,25 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
+import static org.apache.jackrabbit.oak.api.Type.BOOLEANS;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.value.Conversions;
 import org.apache.jackrabbit.oak.plugins.value.Conversions.Converter;
 
-import static org.apache.jackrabbit.oak.api.Type.BOOLEANS;
-
 public class MultiBooleanPropertyState extends MultiPropertyState<Boolean> {
+
     public MultiBooleanPropertyState(String name, Iterable<Boolean> values) {
         super(name, values);
     }
 
     /**
      * Create a multi valued {@code PropertyState} from a list of booleans.
-     * @param name  The name of the property state
-     * @param values  The values of the property state
-     * @return  The new property state of type {@link Type#BOOLEANS}
+     *
+     * @param name   The name of the property state
+     * @param values The values of the property state
+     * @return The new property state of type {@link Type#BOOLEANS}
      */
     public static PropertyState booleanProperty(String name, Iterable<Boolean> values) {
         return new MultiBooleanPropertyState(name, values);

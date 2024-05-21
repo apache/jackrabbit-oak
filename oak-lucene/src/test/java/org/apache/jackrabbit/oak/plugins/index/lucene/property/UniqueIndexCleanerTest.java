@@ -20,21 +20,22 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene.property;
 
 
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.junit.Test;
-
-import static org.apache.jackrabbit.guava.common.collect.ImmutableList.copyOf;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static org.apache.jackrabbit.guava.common.collect.ImmutableList.copyOf;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.PROP_CREATED;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertThat;
+
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.junit.Test;
 
 public class UniqueIndexCleanerTest {
+
     private NodeBuilder builder = EMPTY_NODE.builder();
 
     @Test
-    public void nothingCleaned() throws Exception{
+    public void nothingCleaned() throws Exception {
         builder.child("a").setProperty(PROP_CREATED, 100);
         builder.child("b").setProperty(PROP_CREATED, 100);
 
@@ -46,7 +47,7 @@ public class UniqueIndexCleanerTest {
     }
 
     @Test
-    public void cleanWithMargin() throws Exception{
+    public void cleanWithMargin() throws Exception {
         builder.child("a").setProperty(PROP_CREATED, 100);
         builder.child("b").setProperty(PROP_CREATED, 200);
 
@@ -56,7 +57,7 @@ public class UniqueIndexCleanerTest {
         assertThat(copyOf(builder.getChildNodeNames()), containsInAnyOrder("b"));
     }
 
-    private void refresh(){
+    private void refresh() {
         builder = builder.getNodeState().builder();
     }
 }

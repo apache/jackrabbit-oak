@@ -19,21 +19,22 @@
 
 package org.apache.jackrabbit.oak.json;
 
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringReader;
 import java.io.StringWriter;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
 import org.apache.jackrabbit.util.Base64;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-
 public class Base64BlobSerializer extends BlobSerializer implements BlobDeserializer {
-    private static final int DEFAULT_LIMIT = Integer.getInteger("oak.serializer.maxBlobSize", (int)FileUtils.ONE_MB);
+
+    private static final int DEFAULT_LIMIT = Integer.getInteger("oak.serializer.maxBlobSize",
+        (int) FileUtils.ONE_MB);
     private final int maxSize;
 
     public Base64BlobSerializer() {
@@ -47,7 +48,7 @@ public class Base64BlobSerializer extends BlobSerializer implements BlobDeserial
     @Override
     public String serialize(Blob blob) {
         checkArgument(blob.length() < maxSize, "Cannot serialize Blob of size [%s] " +
-                "which is more than allowed maxSize of [%s]", blob.length(), maxSize);
+            "which is more than allowed maxSize of [%s]", blob.length(), maxSize);
         try {
             try (InputStream is = blob.getNewStream()) {
                 StringWriter writer = new StringWriter();

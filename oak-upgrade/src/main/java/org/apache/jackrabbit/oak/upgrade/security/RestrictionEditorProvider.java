@@ -26,15 +26,14 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
- * Editor provider for upgrading ACL restrictions (rep:glob) from
- * Jackrabbit Classic to Oak.
+ * Editor provider for upgrading ACL restrictions (rep:glob) from Jackrabbit Classic to Oak.
  */
 public class RestrictionEditorProvider implements EditorProvider {
 
     @Override
     public Editor getRootEditor(
-            NodeState before, NodeState after,
-            NodeBuilder builder, CommitInfo info) {
+        NodeState before, NodeState after,
+        NodeBuilder builder, CommitInfo info) {
         TypePredicate isACE = new TypePredicate(after, NT_REP_ACE);
         return new RestrictionEditor(builder, isACE);
     }

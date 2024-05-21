@@ -22,7 +22,6 @@ import javax.jcr.Session;
 
 /**
  * This is a micro bench for the NamespaceRegistry prefix to uri mapping
- * 
  */
 public class NamespaceRegistryTest extends AbstractTest {
 

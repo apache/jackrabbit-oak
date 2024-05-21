@@ -22,7 +22,6 @@ import javax.jcr.NodeIterator;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
-
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.test.NotExecutableException;
@@ -31,8 +30,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 /**
- * Testing Workspace#copy with limited permissions both on source and target
- * location.
+ * Testing Workspace#copy with limited permissions both on source and target location.
  */
 public class CopyTest extends AbstractEvaluationTest {
 
@@ -110,7 +108,7 @@ public class CopyTest extends AbstractEvaluationTest {
         Node copiedNode = testSession.getNode(destPath);
         String childName = Text.getName(childNPath);
         assertTrue(copiedNode.hasNode(childName));
-        assertFalse(copiedNode.hasProperty(childName + '/'+ propertyName1));
+        assertFalse(copiedNode.hasProperty(childName + '/' + propertyName1));
 
         superuser.refresh(false);
         assertFalse(superuser.nodeExists(destPath + '/' + childName + '/' + propertyName1));
@@ -142,7 +140,8 @@ public class CopyTest extends AbstractEvaluationTest {
         // deny read access to the parent of the source to be copied
         deny(path, privilegesFromName(PrivilegeConstants.JCR_ALL));
         // allow copying the node itself
-        Privilege[] readWrite = privilegesFromNames(new String[] {PrivilegeConstants.JCR_READ, PrivilegeConstants.REP_WRITE});
+        Privilege[] readWrite = privilegesFromNames(
+            new String[]{PrivilegeConstants.JCR_READ, PrivilegeConstants.REP_WRITE});
         allow(childNPath, readWrite);
         allow(targetPath, readWrite);
 
@@ -159,7 +158,8 @@ public class CopyTest extends AbstractEvaluationTest {
         allow(targetPath, privilegesFromName(Privilege.JCR_ALL));
 
         Node destParent = null;
-        NodeIterator nodeIterator = superuser.getNode(targetPath).getNode(AccessControlConstants.REP_POLICY).getNodes();
+        NodeIterator nodeIterator = superuser.getNode(targetPath)
+                                             .getNode(AccessControlConstants.REP_POLICY).getNodes();
         while (nodeIterator.hasNext()) {
             Node n = nodeIterator.nextNode();
             if (n.getDefinition().isProtected()) {
@@ -174,7 +174,8 @@ public class CopyTest extends AbstractEvaluationTest {
 
         try {
             superuser.getWorkspace().copy(childNPath, destParent.getPath() + "/copy");
-            fail("Copy must fail with constraint-violation if the destination parent is a protected node.");
+            fail(
+                "Copy must fail with constraint-violation if the destination parent is a protected node.");
         } catch (ConstraintViolationException e) {
             // success
             assertEquals("Node " + destParent.getPath() + " is protected.", e.getMessage());
@@ -191,7 +192,8 @@ public class CopyTest extends AbstractEvaluationTest {
         allow(childNPath, privilegesFromName(PrivilegeConstants.JCR_ALL));
 
         Node sourceNode = null;
-        NodeIterator nodeIterator = superuser.getNode(childNPath).getNode(AccessControlConstants.REP_POLICY).getNodes();
+        NodeIterator nodeIterator = superuser.getNode(childNPath)
+                                             .getNode(AccessControlConstants.REP_POLICY).getNodes();
         while (nodeIterator.hasNext()) {
             Node n = nodeIterator.nextNode();
             if (n.getDefinition().isProtected()) {

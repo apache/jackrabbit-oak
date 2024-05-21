@@ -18,6 +18,15 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.SUGGEST_DATA_CHILD_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.INDEX_DATA_CHILD_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.PROP_UID;
+import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.STATUS_NODE;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.Random;
@@ -26,10 +35,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import org.apache.jackrabbit.guava.common.io.Closer;
-
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
@@ -47,15 +54,6 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.SUGGEST_DATA_CHILD_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.INDEX_DATA_CHILD_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.PROP_UID;
-import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.STATUS_NODE;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
 public class CopyOnWriteDirectoryTest {
 
@@ -102,7 +100,8 @@ public class CopyOnWriteDirectoryTest {
     public void copyOnWrite() throws Exception {
         LuceneIndexDefinition def = new LuceneIndexDefinition(ns.getRoot(), ns.getRoot(), "/foo");
         NodeBuilder builder = ns.getRoot().builder();
-        Directory dir = new DefaultDirectoryFactory(copier, null).newInstance(def, builder.child("foo"), INDEX_DATA_CHILD_NAME, false);
+        Directory dir = new DefaultDirectoryFactory(copier, null).newInstance(def,
+            builder.child("foo"), INDEX_DATA_CHILD_NAME, false);
         addFiles(dir);
         writeTree(builder);
         dir.close();
@@ -116,30 +115,38 @@ public class CopyOnWriteDirectoryTest {
         try {
             NodeBuilder builder = ns.getRoot().builder().child("foo");
 
-            LuceneIndexDefinition def = new LuceneIndexDefinition(ns.getRoot(), builder.getNodeState(), "/foo");
-            Directory dir = new DefaultDirectoryFactory(copier, null).newInstance(def, builder.child("foo"), INDEX_DATA_CHILD_NAME, false);
-            Directory suggestDir = new DefaultDirectoryFactory(copier, null).newInstance(def, builder.child("foo"), SUGGEST_DATA_CHILD_NAME, false);
+            LuceneIndexDefinition def = new LuceneIndexDefinition(ns.getRoot(),
+                builder.getNodeState(), "/foo");
+            Directory dir = new DefaultDirectoryFactory(copier, null).newInstance(def,
+                builder.child("foo"), INDEX_DATA_CHILD_NAME, false);
+            Directory suggestDir = new DefaultDirectoryFactory(copier, null).newInstance(def,
+                builder.child("foo"), SUGGEST_DATA_CHILD_NAME, false);
 
             closer.register(dir);
             closer.register(suggestDir);
 
             assertTrue("Data directory not COW-wrapped", dir instanceof CopyOnWriteDirectory);
-            assertFalse("Suggester directory COW-wrapped", suggestDir instanceof CopyOnWriteDirectory);
+            assertFalse("Suggester directory COW-wrapped",
+                suggestDir instanceof CopyOnWriteDirectory);
 
             builder.child(STATUS_NODE).setProperty(PROP_UID, "some_random_string");
             def = new LuceneIndexDefinition(ns.getRoot(), builder.getNodeState(), "/foo");
 
             assertNotNull("Synthetic UID not read by definition", def.getUniqueId());
 
-            dir = new DefaultDirectoryFactory(copier, null).newInstance(def, builder.child("foo"), INDEX_DATA_CHILD_NAME, false);
-            Directory dir1 = new DefaultDirectoryFactory(copier, null).newInstance(def, builder.child("foo"), INDEX_DATA_CHILD_NAME, false);
-            suggestDir = new DefaultDirectoryFactory(copier, null).newInstance(def, builder.child("foo"), SUGGEST_DATA_CHILD_NAME, false);
+            dir = new DefaultDirectoryFactory(copier, null).newInstance(def, builder.child("foo"),
+                INDEX_DATA_CHILD_NAME, false);
+            Directory dir1 = new DefaultDirectoryFactory(copier, null).newInstance(def,
+                builder.child("foo"), INDEX_DATA_CHILD_NAME, false);
+            suggestDir = new DefaultDirectoryFactory(copier, null).newInstance(def,
+                builder.child("foo"), SUGGEST_DATA_CHILD_NAME, false);
 
             closer.register(dir);
             closer.register(suggestDir);
 
             assertTrue("Data directory not COW-wrapped", dir instanceof CopyOnWriteDirectory);
-            assertTrue("Suggester directory not COW-wrapped", suggestDir instanceof CopyOnWriteDirectory);
+            assertTrue("Suggester directory not COW-wrapped",
+                suggestDir instanceof CopyOnWriteDirectory);
         } finally {
             closer.close();
         }
@@ -152,7 +159,8 @@ public class CopyOnWriteDirectoryTest {
         GarbageCollectableBlobStore blobStore = new MemoryBlobStore();
         LuceneIndexDefinition def = new LuceneIndexDefinition(ns.getRoot(), ns.getRoot(), "/foo");
         NodeBuilder builder = ns.getRoot().builder();
-        Directory dir = new DefaultDirectoryFactory(copier, blobStore).newInstance(def, builder.child("foo"), INDEX_DATA_CHILD_NAME, false);
+        Directory dir = new DefaultDirectoryFactory(copier, blobStore).newInstance(def,
+            builder.child("foo"), INDEX_DATA_CHILD_NAME, false);
         // add some files
         addFiles(dir);
         // close
@@ -169,7 +177,8 @@ public class CopyOnWriteDirectoryTest {
         // open the directory again -
         // this is to download the files from the blob store,
         // and store them back to the local directory
-        dir = new DefaultDirectoryFactory(copier, blobStore).newInstance(def, builder.child("foo"), INDEX_DATA_CHILD_NAME, false);
+        dir = new DefaultDirectoryFactory(copier, blobStore).newInstance(def, builder.child("foo"),
+            INDEX_DATA_CHILD_NAME, false);
 
         // check if the directory size matches,
         // if yes then all files are restored

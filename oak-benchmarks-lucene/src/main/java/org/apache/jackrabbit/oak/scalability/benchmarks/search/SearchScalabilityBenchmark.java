@@ -35,10 +35,10 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Abstract class for search scalability benchmarks.
- *
  */
 public abstract class SearchScalabilityBenchmark extends ScalabilityBenchmark {
-    protected static final Logger LOG = LoggerFactory.getLogger(SearchScalabilityBenchmark.class);    
+
+    protected static final Logger LOG = LoggerFactory.getLogger(SearchScalabilityBenchmark.class);
 
     /**
      * Controls the max results retrieved after search
@@ -46,8 +46,8 @@ public abstract class SearchScalabilityBenchmark extends ScalabilityBenchmark {
     private static final int MAX_RESULTS = Integer.getInteger("maxResults", 100);
 
     @Override
-    public void execute(Repository repository, Credentials credentials, ExecutionContext context) 
-            throws Exception {
+    public void execute(Repository repository, Credentials credentials, ExecutionContext context)
+        throws Exception {
         Session session = repository.login(credentials);
         QueryManager qm;
         try {
@@ -68,7 +68,7 @@ public abstract class SearchScalabilityBenchmark extends ScalabilityBenchmark {
         }
     }
 
-    protected abstract Query getQuery(@NotNull final QueryManager qm, ExecutionContext context) 
-            throws RepositoryException;
+    protected abstract Query getQuery(@NotNull final QueryManager qm, ExecutionContext context)
+        throws RepositoryException;
 }
 

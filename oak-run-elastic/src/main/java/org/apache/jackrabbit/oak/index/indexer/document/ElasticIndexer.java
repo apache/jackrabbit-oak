@@ -18,10 +18,16 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document;
 
+import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition.TYPE_ELASTICSEARCH;
+
+import java.io.IOException;
+import java.util.Set;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.index.IndexHelper;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
-import org.apache.jackrabbit.oak.plugins.index.*;
+import org.apache.jackrabbit.oak.plugins.index.ContextAwareCallback;
+import org.apache.jackrabbit.oak.plugins.index.IndexCommitCallback;
+import org.apache.jackrabbit.oak.plugins.index.IndexingContext;
 import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticDocument;
 import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticDocumentMaker;
 import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticIndexEditorProvider;
@@ -33,11 +39,6 @@ import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexWr
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-
-import java.io.IOException;
-import java.util.Set;
-
-import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition.TYPE_ELASTICSEARCH;
 
 /*
 NodeStateIndexer for Elastic. Indexes entries from a given nodestate.
@@ -52,9 +53,11 @@ public class ElasticIndexer implements NodeStateIndexer {
     private final ElasticIndexEditorProvider elasticIndexEditorProvider;
     private final IndexHelper indexHelper;
 
-    public ElasticIndexer(IndexDefinition definition, FulltextBinaryTextExtractor binaryTextExtractor,
-                          NodeBuilder definitionBuilder, IndexingProgressReporter progressReporter,
-                          FulltextIndexWriter<ElasticDocument> indexWriter, ElasticIndexEditorProvider elasticIndexEditorProvider, IndexHelper indexHelper) {
+    public ElasticIndexer(IndexDefinition definition,
+        FulltextBinaryTextExtractor binaryTextExtractor,
+        NodeBuilder definitionBuilder, IndexingProgressReporter progressReporter,
+        FulltextIndexWriter<ElasticDocument> indexWriter,
+        ElasticIndexEditorProvider elasticIndexEditorProvider, IndexHelper indexHelper) {
         this.definition = definition;
         this.binaryTextExtractor = binaryTextExtractor;
         this.definitionBuilder = definitionBuilder;
@@ -77,7 +80,8 @@ public class ElasticIndexer implements NodeStateIndexer {
 
     public void provisionIndex() {
         FulltextIndexEditor editor = (FulltextIndexEditor) elasticIndexEditorProvider.getIndexEditor(
-                TYPE_ELASTICSEARCH, definitionBuilder, indexHelper.getNodeStore().getRoot(), new ReportingCallback(definition.getIndexPath(),false));
+            TYPE_ELASTICSEARCH, definitionBuilder, indexHelper.getNodeStore().getRoot(),
+            new ReportingCallback(definition.getIndexPath(), false));
         editor.getContext().enableReindexMode();
     }
 
@@ -87,7 +91,8 @@ public class ElasticIndexer implements NodeStateIndexer {
         if (getFilterResult(entry.getPath()) != PathFilter.Result.INCLUDE) {
             return false;
         }
-        IndexDefinition.IndexingRule indexingRule = definition.getApplicableIndexingRule(entry.getNodeState());
+        IndexDefinition.IndexingRule indexingRule = definition.getApplicableIndexingRule(
+            entry.getNodeState());
 
         if (indexingRule == null) {
             return false;
@@ -127,13 +132,15 @@ public class ElasticIndexer implements NodeStateIndexer {
         indexWriter.updateDocument(path, doc);
     }
 
-    private ElasticDocumentMaker newDocumentMaker(IndexDefinition.IndexingRule indexingRule, String path) {
+    private ElasticDocumentMaker newDocumentMaker(IndexDefinition.IndexingRule indexingRule,
+        String path) {
         return new ElasticDocumentMaker(binaryTextExtractor, definition,
-                indexingRule,
-                path);
+            indexingRule,
+            path);
     }
 
     private class ReportingCallback implements ContextAwareCallback, IndexingContext {
+
         final String indexPath;
         final boolean reindex;
 

@@ -18,17 +18,18 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene.util;
 
+import java.util.Iterator;
+import java.util.Random;
 import org.apache.jackrabbit.guava.common.base.Preconditions;
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 
-import java.util.Iterator;
-import java.util.Random;
-
 /**
- * @deprecated Class moved to package org.apache.jackrabbit.oak.plugins.index.search.util in oak-search
+ * @deprecated Class moved to package org.apache.jackrabbit.oak.plugins.index.search.util in
+ * oak-search
  */
 @Deprecated
 public class TapeSampling<T> {
+
     private final Random rGen;
     private final Iterator<T> input;
     private final int N;
@@ -54,7 +55,8 @@ public class TapeSampling<T> {
 
                 while (true) {
                     Preconditions.checkArgument(input.hasNext(),
-                            "Not enough input items provided. Declared: " + N + "; got " + seen + "; sampled: " + sampled);
+                        "Not enough input items provided. Declared: " + N + "; got " + seen
+                            + "; sampled: " + sampled);
 
                     T i = input.next();
 

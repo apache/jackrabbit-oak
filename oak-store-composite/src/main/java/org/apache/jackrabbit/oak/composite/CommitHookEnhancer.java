@@ -23,6 +23,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Map;
+
 import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
 
 class CommitHookEnhancer implements CommitHook {
@@ -38,7 +39,8 @@ class CommitHookEnhancer implements CommitHook {
 
     @NotNull
     @Override
-    public NodeState processCommit(NodeState before, NodeState after, CommitInfo info) throws CommitFailedException {
+    public NodeState processCommit(NodeState before, NodeState after, CommitInfo info)
+        throws CommitFailedException {
         Map<MountedNodeStore, NodeState> beforeStates = newHashMap();
         Map<MountedNodeStore, NodeState> afterStates = newHashMap();
         for (MountedNodeStore mns : ctx.getNonDefaultStores()) {
@@ -56,7 +58,8 @@ class CommitHookEnhancer implements CommitHook {
         if (result instanceof CompositeNodeState) {
             return ((CompositeNodeState) result).getNodeState(ctx.getGlobalStore());
         } else {
-            throw new IllegalStateException("The commit hook result should be a composite node state");
+            throw new IllegalStateException(
+                "The commit hook result should be a composite node state");
         }
     }
 }

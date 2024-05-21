@@ -22,13 +22,11 @@ package org.apache.jackrabbit.oak.plugins.blob.migration;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Iterator;
-
+import org.apache.jackrabbit.guava.common.base.Joiner;
+import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-
-import org.apache.jackrabbit.guava.common.base.Joiner;
-import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,7 +47,8 @@ public class DepthFirstNodeIterator extends AbstractIterator<ChildNodeEntry> {
         reset();
     }
 
-    private DepthFirstNodeIterator(NodeState root, Deque<Iterator<? extends ChildNodeEntry>> itQueue, Deque<String> nameQueue) {
+    private DepthFirstNodeIterator(NodeState root,
+        Deque<Iterator<? extends ChildNodeEntry>> itQueue, Deque<String> nameQueue) {
         this.root = root;
         this.itQueue = itQueue;
         this.nameQueue = nameQueue;

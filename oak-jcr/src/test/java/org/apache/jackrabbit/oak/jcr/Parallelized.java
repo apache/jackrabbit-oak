@@ -19,27 +19,25 @@ package org.apache.jackrabbit.oak.jcr;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-
 import org.junit.runners.Parameterized;
 import org.junit.runners.model.RunnerScheduler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Extension of the {@link Parameterized} test runner, which runs tests in
- * parallel.
+ * Extension of the {@link Parameterized} test runner, which runs tests in parallel.
  */
 public class Parallelized extends Parameterized {
 
     /**
-     * Logger instance. Present to force early auto-initialization of the
-     * logging system and thus to avoid warnings about concurrent
-     * initialization.
+     * Logger instance. Present to force early auto-initialization of the logging system and thus to
+     * avoid warnings about concurrent initialization.
      */
     private static final Logger log =
-            LoggerFactory.getLogger(Parallelized.class);
+        LoggerFactory.getLogger(Parallelized.class);
 
     private static class ThreadPoolScheduler implements RunnerScheduler {
+
         private ExecutorService executor;
 
         public ThreadPoolScheduler() {

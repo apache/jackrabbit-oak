@@ -23,18 +23,19 @@ import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.jackrabbit.guava.common.io.CountingInputStream;
 import org.jetbrains.annotations.NotNull;
 
 
 public final class StatsCollectingStreams {
 
-    public static InputStream wrap(@NotNull final BlobStatsCollector collector, final String blobId, InputStream in) {
+    public static InputStream wrap(@NotNull final BlobStatsCollector collector, final String blobId,
+        InputStream in) {
         return StatsCollectingStreams.wrap(collector, blobId, in, System.nanoTime());
     }
 
-    public static InputStream wrap(@NotNull final BlobStatsCollector collector, final String blobId, InputStream in, long startTime) {
+    public static InputStream wrap(@NotNull final BlobStatsCollector collector, final String blobId,
+        InputStream in, long startTime) {
         final CountingInputStream cin = new CountingInputStream(in);
         return new FilterInputStream(cin) {
             @Override
@@ -48,7 +49,8 @@ public final class StatsCollectingStreams {
                 //be processing also as it moved further in stream. So that
                 //overhead would add to the download time
 
-                collector.downloaded(blobId, System.nanoTime() - startTime, TimeUnit.NANOSECONDS, cin.getCount());
+                collector.downloaded(blobId, System.nanoTime() - startTime, TimeUnit.NANOSECONDS,
+                    cin.getCount());
                 collector.downloadCompleted(blobId);
             }
         };

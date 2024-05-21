@@ -18,14 +18,12 @@ package org.apache.jackrabbit.api.security.user;
 
 import javax.jcr.Credentials;
 import javax.jcr.RepositoryException;
-
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ProviderType;
 
 /**
- * User is a special {@link Authorizable} that can be authenticated and
- * impersonated.
+ * User is a special {@link Authorizable} that can be authenticated and impersonated.
  *
  * @see #getCredentials()
  * @see #getImpersonation()
@@ -44,10 +42,9 @@ public interface User extends Authorizable {
     boolean isSystemUser();
 
     /**
-     * Returns the internal <code>Credentials</code> representation for this
-     * user. This method is expected to be used for validation during the
-     * login process. However, the return value should neither be usable nor
-     * used for {@link javax.jcr.Repository#login}.
+     * Returns the internal <code>Credentials</code> representation for this user. This method is
+     * expected to be used for validation during the login process. However, the return value should
+     * neither be usable nor used for {@link javax.jcr.Repository#login}.
      *
      * @return <code>Credentials</code> for this user.
      * @throws javax.jcr.RepositoryException If an error occurs.
@@ -73,28 +70,26 @@ public interface User extends Authorizable {
     /**
      * Change the password of this user.
      *
-     * @param password The new password.
+     * @param password    The new password.
      * @param oldPassword The old password.
-     * @throws RepositoryException If the old password doesn't match or if
-     * an error occurs.
+     * @throws RepositoryException If the old password doesn't match or if an error occurs.
      */
-    void changePassword(@Nullable String password, @NotNull String oldPassword) throws RepositoryException;
+    void changePassword(@Nullable String password, @NotNull String oldPassword)
+        throws RepositoryException;
 
     /**
-     * Disable this user thus preventing future login if the <code>reason</code>
-     * is a non-null String.<br>
-     * Note however, that this user will still be accessible by
+     * Disable this user thus preventing future login if the <code>reason</code> is a non-null
+     * String.<br> Note however, that this user will still be accessible by
      * {@link UserManager#getAuthorizable}.
      *
      * @param reason String describing the reason for disable this user or
-     * <code>null</code> if the user account should be enabled again.
+     *               <code>null</code> if the user account should be enabled again.
      * @throws RepositoryException If an error occurs.
      */
     void disable(@Nullable String reason) throws RepositoryException;
 
     /**
-     * Returns <code>true</code> if this user is disabled, <code>false</code>
-     * otherwise.
+     * Returns <code>true</code> if this user is disabled, <code>false</code> otherwise.
      *
      * @return <code>true</code> if this user is disabled, <code>false</code>
      * otherwise.
@@ -103,11 +98,11 @@ public interface User extends Authorizable {
     boolean isDisabled() throws RepositoryException;
 
     /**
-     * Returns the String specified upon disabling this user or <code>null</code>
-     * if {@link #isDisabled()} returns <code>false</code>.
-     * 
-     * @return The reason specified upon disabling this user or <code>null</code>
-     * if this user is not disabled.
+     * Returns the String specified upon disabling this user or <code>null</code> if
+     * {@link #isDisabled()} returns <code>false</code>.
+     *
+     * @return The reason specified upon disabling this user or <code>null</code> if this user is
+     * not disabled.
      * @throws RepositoryException If an error occurs.
      */
     @Nullable

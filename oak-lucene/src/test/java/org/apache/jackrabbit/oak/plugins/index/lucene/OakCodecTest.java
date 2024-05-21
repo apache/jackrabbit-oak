@@ -16,9 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import org.junit.Test;
-
 import static org.junit.Assert.assertNotNull;
+
+import org.junit.Test;
 
 /**
  * Tests for {@link OakCodec}

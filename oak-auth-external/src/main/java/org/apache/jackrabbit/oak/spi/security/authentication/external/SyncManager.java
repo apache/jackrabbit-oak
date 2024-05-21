@@ -21,7 +21,7 @@ import org.jetbrains.annotations.Nullable;
 
 /**
  * The external identity synchronization management.
- *
+ * <p>
  * The default manager is registered as OSGi service and can also be retrieved via
  * {@link org.apache.jackrabbit.oak.spi.security.SecurityProvider#getConfiguration(Class)}
  */
@@ -29,6 +29,7 @@ public interface SyncManager {
 
     /**
      * Returns the sync handler with the given name.
+     *
      * @param name the name of the sync handler or {@code null}
      * @return the sync handler
      */

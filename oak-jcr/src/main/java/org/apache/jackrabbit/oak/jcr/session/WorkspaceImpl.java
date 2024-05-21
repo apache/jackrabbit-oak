@@ -22,7 +22,6 @@ import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NODE_TYPE
 
 import java.io.IOException;
 import java.io.InputStream;
-
 import javax.jcr.InvalidSerializedDataException;
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.PathNotFoundException;
@@ -34,7 +33,6 @@ import javax.jcr.observation.ObservationManager;
 import javax.jcr.query.QueryManager;
 import javax.jcr.version.Version;
 import javax.jcr.version.VersionManager;
-
 import org.apache.jackrabbit.api.JackrabbitWorkspace;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.commons.xml.ParsingContentHandler;
@@ -138,8 +136,8 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
 
     @Override
     public void copy(String srcWorkspace,
-                     String srcAbsPath,
-                     final String destAbsPath) throws RepositoryException {
+        String srcAbsPath,
+        final String destAbsPath) throws RepositoryException {
         final String srcOakPath = getOakPathOrThrowNotFound(srcAbsPath);
         final String destOakPath = getOakPathOrThrowNotFound(destAbsPath);
 
@@ -167,7 +165,8 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
     }
 
     @Override
-    public void clone(String srcWorkspace, String srcAbsPath, String destAbsPath, boolean removeExisting) throws RepositoryException {
+    public void clone(String srcWorkspace, String srcAbsPath, String destAbsPath,
+        boolean removeExisting) throws RepositoryException {
         final String srcOakPath = getOakPathOrThrowNotFound(srcAbsPath);
         final String destOakPath = getOakPathOrThrowNotFound(destAbsPath);
 
@@ -225,6 +224,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
             protected Root getWriteRoot() {
                 return sessionDelegate.getContentSession().getLatestRoot();
             }
+
             @Override
             protected void refresh() throws RepositoryException {
                 getSession().refresh(true);
@@ -258,14 +258,16 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
     }
 
     @Override
-    public ContentHandler getImportContentHandler(String parentAbsPath, int uuidBehavior) throws RepositoryException {
+    public ContentHandler getImportContentHandler(String parentAbsPath, int uuidBehavior)
+        throws RepositoryException {
         ensureIsAlive();
 
         return new ImportHandler(parentAbsPath, sessionContext, uuidBehavior, true);
     }
 
     @Override
-    public void importXML(String parentAbsPath, InputStream in, int uuidBehavior) throws IOException, RepositoryException {
+    public void importXML(String parentAbsPath, InputStream in, int uuidBehavior)
+        throws IOException, RepositoryException {
         ensureIsAlive();
 
         try {
@@ -314,7 +316,8 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
     //------------------------------------------------< JackrabbitWorkspace >---
 
     @Override
-    public void createWorkspace(String workspaceName, InputSource workspaceTemplate) throws RepositoryException {
+    public void createWorkspace(String workspaceName, InputSource workspaceTemplate)
+        throws RepositoryException {
         ensureIsAlive();
         throw new UnsupportedRepositoryOperationException("OAK-118: Workspace.createWorkspace");
     }
@@ -326,7 +329,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
     public PrivilegeManager getPrivilegeManager() throws RepositoryException {
         return sessionContext.getPrivilegeManager();
     }
-    
+
     //------------------------------------------------------------< internal >---
     public @NotNull VersionManagerImpl internalGetVersionManager() {
         return versionManager;

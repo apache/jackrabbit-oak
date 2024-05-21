@@ -31,7 +31,6 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.oak.commons.concurrent.NotifyingFutureTask;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -40,17 +39,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * An observer that uses a change queue and a background thread to forward
- * content changes to another observer. The mechanism is designed so that
- * the {@link #contentChanged(NodeState, CommitInfo)} method will never block,
- * regardless of the behavior of the other observer. If that observer blocks
- * or is too slow to consume all content changes, causing the change queue
- * to fill up, any further update will automatically be merged into just one
- * external content change, causing potential loss of local commit information.
- * To help prevent such cases, any sequential external content changes that
- * the background observer thread has yet to process are optionally
- * (see {@code alwaysCollapseExternalEvents} and {@code oak.observation.alwaysCollapseExternal})
- * automatically merged to just one change.
+ * An observer that uses a change queue and a background thread to forward content changes to
+ * another observer. The mechanism is designed so that the
+ * {@link #contentChanged(NodeState, CommitInfo)} method will never block, regardless of the
+ * behavior of the other observer. If that observer blocks or is too slow to consume all content
+ * changes, causing the change queue to fill up, any further update will automatically be merged
+ * into just one external content change, causing potential loss of local commit information. To
+ * help prevent such cases, any sequential external content changes that the background observer
+ * thread has yet to process are optionally (see {@code alwaysCollapseExternalEvents} and
+ * {@code oak.observation.alwaysCollapseExternal}) automatically merged to just one change.
  */
 public class BackgroundObserver implements Observer, Closeable {
 
@@ -90,12 +87,14 @@ public class BackgroundObserver implements Observer, Closeable {
      * Whether external events should be collapsed even if queue isn't full yet.
      */
     private final boolean alwaysCollapseExternalEvents =
-            Boolean.parseBoolean(System.getProperty("oak.observation.alwaysCollapseExternal", "false"));
+        Boolean.parseBoolean(System.getProperty("oak.observation.alwaysCollapseExternal", "false"));
 
     private static class ContentChange {
+
         private final NodeState root;
         private final CommitInfo info;
         private final long created = System.currentTimeMillis();
+
         ContentChange(NodeState root, CommitInfo info) {
             this.root = root;
             this.info = info;
@@ -103,8 +102,7 @@ public class BackgroundObserver implements Observer, Closeable {
     }
 
     /**
-     * The content change that was last added to the queue.
-     * Used to compact external changes.
+     * The content change that was last added to the queue. Used to compact external changes.
      */
     private ContentChange last;
 
@@ -114,8 +112,8 @@ public class BackgroundObserver implements Observer, Closeable {
     private volatile NotifyingFutureTask currentTask = NotifyingFutureTask.completed();
 
     /**
-     * Completion handler: set the current task to the next task and schedules that one
-     * on the background thread.
+     * Completion handler: set the current task to the next task and schedules that one on the
+     * background thread.
      */
     private final Runnable completionHandler = new Runnable() {
         Callable<Void> task = new Callable<Void>() {
@@ -148,10 +146,10 @@ public class BackgroundObserver implements Observer, Closeable {
     private volatile boolean stopped;
 
     public BackgroundObserver(
-            @NotNull Observer observer,
-            @NotNull Executor executor,
-            int queueLength,
-            @NotNull UncaughtExceptionHandler exceptionHandler) {
+        @NotNull Observer observer,
+        @NotNull Executor executor,
+        int queueLength,
+        @NotNull UncaughtExceptionHandler exceptionHandler) {
         this.observer = checkNotNull(observer);
         this.executor = checkNotNull(executor);
         this.exceptionHandler = checkNotNull(exceptionHandler);
@@ -160,9 +158,9 @@ public class BackgroundObserver implements Observer, Closeable {
     }
 
     public BackgroundObserver(
-            @NotNull final Observer observer,
-            @NotNull Executor executor,
-            int queueLength) {
+        @NotNull final Observer observer,
+        @NotNull Executor executor,
+        int queueLength) {
         this(observer, executor, queueLength, new UncaughtExceptionHandler() {
             @Override
             public void uncaughtException(Thread t, Throwable e) {
@@ -172,40 +170,41 @@ public class BackgroundObserver implements Observer, Closeable {
     }
 
     public BackgroundObserver(
-            @NotNull Observer observer,
-            @NotNull Executor executor) {
+        @NotNull Observer observer,
+        @NotNull Executor executor) {
         this(observer, executor, DEFAULT_QUEUE_SIZE);
     }
 
     /**
      * Called when ever an item has been added to the queue
-     * @param queueSize  size of the queue
+     *
+     * @param queueSize size of the queue
      */
-    protected void added(int queueSize) { }
+    protected void added(int queueSize) {
+    }
 
     /**
      * Called when ever an item has been removed from the queue.
      *
      * @param queueSize the size of the queue after the item was removed.
-     * @param created the time in milliseconds when the removed item was put
-     *                into the queue.
+     * @param created   the time in milliseconds when the removed item was put into the queue.
      */
-    protected void removed(int queueSize, long created) { }
+    protected void removed(int queueSize, long created) {
+    }
 
     /**
-     * @return  The max queue length used for this observer's queue
+     * @return The max queue length used for this observer's queue
      */
     public int getMaxQueueLength() {
         return maxQueueLength;
     }
 
     /**
-     * Clears the change queue and signals the background thread to stop
-     * without making any further {@link #contentChanged(NodeState, CommitInfo)}
-     * calls to the background observer. If the thread is currently in the
-     * middle of such a call, then that call is allowed to complete; i.e.
-     * the thread is not forcibly interrupted. This method returns immediately
-     * without blocking to wait for the thread to finish.
+     * Clears the change queue and signals the background thread to stop without making any further
+     * {@link #contentChanged(NodeState, CommitInfo)} calls to the background observer. If the
+     * thread is currently in the middle of such a call, then that call is allowed to complete; i.e.
+     * the thread is not forcibly interrupted. This method returns immediately without blocking to
+     * wait for the thread to finish.
      * <p>
      * After a call to this method further calls to {@link #contentChanged(NodeState, CommitInfo)}
      * will throw a {@code IllegalStateException}.
@@ -218,7 +217,7 @@ public class BackgroundObserver implements Observer, Closeable {
     }
 
     @NotNull
-    public BackgroundObserverMBean getMBean(){
+    public BackgroundObserverMBean getMBean() {
         return new BackgroundObserverMBean() {
             @Override
             public String getClassName() {
@@ -260,7 +259,7 @@ public class BackgroundObserver implements Observer, Closeable {
     //----------------------------------------------------------< Observer >--
 
     /**
-     * @throws IllegalStateException  if {@link #close()} has already been called.
+     * @throws IllegalStateException if {@link #close()} has already been called.
      */
     @Override
     public synchronized void contentChanged(@NotNull NodeState root, @NotNull CommitInfo info) {
@@ -268,7 +267,8 @@ public class BackgroundObserver implements Observer, Closeable {
         checkNotNull(root);
         checkNotNull(info);
 
-        if (alwaysCollapseExternalEvents && info.isExternal() && last != null && last.info.isExternal()) {
+        if (alwaysCollapseExternalEvents && info.isExternal() && last != null
+            && last.info.isExternal()) {
             // This is an external change. If the previous change was
             // also external, we can drop it from the queue (since external
             // changes in any case can cover multiple commits) to help
@@ -285,13 +285,13 @@ public class BackgroundObserver implements Observer, Closeable {
 
         if (full && last != null) { // last is only null at the beginning
             // queue is full.
-            
+
             // when the change can't be added to the queue because it's full
             // remove the last entry and add an explicit overflow entry instead.
             queue.remove(last);
 
             // by removing the last entry we have to drop the possible
-            // local commit information of the current change, 
+            // local commit information of the current change,
             // as we're doing collapsing here and the commit information
             // no longer represents an individual commit
             change = new ContentChange(root, CommitInfo.EMPTY_EXTERNAL);
@@ -314,14 +314,17 @@ public class BackgroundObserver implements Observer, Closeable {
         return LoggerFactory.getLogger(checkNotNull(observer).getClass());
     }
 
-    
-    /** FOR TESTING ONLY 
-     * @throws InterruptedException **/
+
+    /**
+     * FOR TESTING ONLY
+     *
+     * @throws InterruptedException
+     **/
     boolean waitUntilStopped(int timeout, TimeUnit unit) throws InterruptedException {
         long done = System.currentTimeMillis() + unit.toMillis(timeout);
         boolean added = false;
-        while(done > System.currentTimeMillis()) {
-            synchronized(this) {
+        while (done > System.currentTimeMillis()) {
+            synchronized (this) {
                 if (!added) {
                     added = queue.offer(STOP);
                     if (added) {

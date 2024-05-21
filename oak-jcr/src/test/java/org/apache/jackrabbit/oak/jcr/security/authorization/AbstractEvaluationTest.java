@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.jcr.security.authorization;
 
+import static org.junit.Assert.assertArrayEquals;
+
 import java.security.Principal;
 import java.util.Collections;
 import java.util.Map;
@@ -34,24 +36,20 @@ import javax.jcr.security.AccessControlList;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.Privilege;
-
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
+import org.apache.jackrabbit.guava.common.collect.Maps;
+import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.test.NotExecutableException;
 import org.apache.jackrabbit.test.api.security.AbstractAccessControlTest;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
-
-import org.apache.jackrabbit.guava.common.collect.Sets;
-
-import static org.junit.Assert.assertArrayEquals;
 
 /**
  * Base class for testing permission evaluation using JCR API.
@@ -176,7 +174,8 @@ public abstract class AbstractEvaluationTest extends AbstractAccessControlTest {
         return hint + UUID.randomUUID();
     }
 
-    protected static boolean canReadNode(Session session, String nodePath) throws RepositoryException {
+    protected static boolean canReadNode(Session session, String nodePath)
+        throws RepositoryException {
         try {
             session.getNode(nodePath);
             return session.nodeExists(nodePath);
@@ -201,19 +200,23 @@ public abstract class AbstractEvaluationTest extends AbstractAccessControlTest {
     }
 
     protected Map<String, Value> createGlobRestriction(String value) throws RepositoryException {
-        return Collections.singletonMap("rep:glob", testSession.getValueFactory().createValue(value));
+        return Collections.singletonMap("rep:glob",
+            testSession.getValueFactory().createValue(value));
     }
 
-    protected void assertHasRepoPrivilege(@NotNull String privName, boolean isAllow) throws Exception {
+    protected void assertHasRepoPrivilege(@NotNull String privName, boolean isAllow)
+        throws Exception {
         Privilege[] privs = privilegesFromName(privName.toString());
         assertEquals(isAllow, testAcMgr.hasPrivileges(null, privs));
     }
 
-    protected void assertHasPrivilege(@NotNull String path, @NotNull String privName, boolean isAllow) throws Exception {
+    protected void assertHasPrivilege(@NotNull String path, @NotNull String privName,
+        boolean isAllow) throws Exception {
         assertHasPrivileges(path, privilegesFromName(privName), isAllow);
     }
 
-    protected void assertHasPrivileges(@NotNull String path, @NotNull Privilege[] privileges, boolean isAllow) throws Exception {
+    protected void assertHasPrivileges(@NotNull String path, @NotNull Privilege[] privileges,
+        boolean isAllow) throws Exception {
         if (testSession.nodeExists(path)) {
             assertEquals(isAllow, testAcMgr.hasPrivileges(path, privileges));
         } else {
@@ -231,18 +234,22 @@ public abstract class AbstractEvaluationTest extends AbstractAccessControlTest {
         assertArrayEquals(privilegesFromName(Privilege.JCR_READ), privs);
     }
 
-    protected JackrabbitAccessControlList modify(@Nullable String path, @NotNull String privilege, boolean isAllow) throws Exception {
-        return modify(path, testUser.getPrincipal(), privilegesFromName(privilege), isAllow, EMPTY_RESTRICTIONS);
-    }
-
-    protected JackrabbitAccessControlList modify(String path, Principal principal, Privilege[] privileges, boolean isAllow, Map<String, Value> restrictions) throws Exception {
-        return modify(path, principal, privileges, isAllow, restrictions, Collections.<String, Value[]>emptyMap());
+    protected JackrabbitAccessControlList modify(@Nullable String path, @NotNull String privilege,
+        boolean isAllow) throws Exception {
+        return modify(path, testUser.getPrincipal(), privilegesFromName(privilege), isAllow,
+            EMPTY_RESTRICTIONS);
     }
 
     protected JackrabbitAccessControlList modify(String path, Principal principal,
-                                                 Privilege[] privileges, boolean isAllow,
-                                                 Map<String, Value> restrictions,
-                                                 Map<String, Value[]> mvRestrictions) throws Exception {
+        Privilege[] privileges, boolean isAllow, Map<String, Value> restrictions) throws Exception {
+        return modify(path, principal, privileges, isAllow, restrictions,
+            Collections.<String, Value[]>emptyMap());
+    }
+
+    protected JackrabbitAccessControlList modify(String path, Principal principal,
+        Privilege[] privileges, boolean isAllow,
+        Map<String, Value> restrictions,
+        Map<String, Value[]> mvRestrictions) throws Exception {
         // remember for restore during tearDown
         rememberForRestore(path);
 
@@ -257,36 +264,38 @@ public abstract class AbstractEvaluationTest extends AbstractAccessControlTest {
     }
 
     protected JackrabbitAccessControlList allow(@Nullable String nPath,
-                                                @NotNull Privilege[] privileges)
-            throws Exception {
+        @NotNull Privilege[] privileges)
+        throws Exception {
         return modify(nPath, testUser.getPrincipal(), privileges, true, EMPTY_RESTRICTIONS);
     }
 
     protected JackrabbitAccessControlList allow(@Nullable String nPath,
-                                                @NotNull Privilege[] privileges,
-                                                Map<String, Value> restrictions)
-            throws Exception {
+        @NotNull Privilege[] privileges,
+        Map<String, Value> restrictions)
+        throws Exception {
         return modify(nPath, testUser.getPrincipal(), privileges, true, restrictions);
     }
 
     protected JackrabbitAccessControlList allow(String nPath, Principal principal,
-                                                Privilege[] privileges)
-            throws Exception {
+        Privilege[] privileges)
+        throws Exception {
         return modify(nPath, principal, privileges, true, EMPTY_RESTRICTIONS);
     }
 
     protected JackrabbitAccessControlList deny(String nPath, Privilege[] privileges)
-            throws Exception {
+        throws Exception {
         return modify(nPath, testUser.getPrincipal(), privileges, false, EMPTY_RESTRICTIONS);
     }
 
-    protected JackrabbitAccessControlList deny(String nPath, Privilege[] privileges, Map<String, Value> restrictions)
-            throws Exception {
+    protected JackrabbitAccessControlList deny(String nPath, Privilege[] privileges,
+        Map<String, Value> restrictions)
+        throws Exception {
         return modify(nPath, testUser.getPrincipal(), privileges, false, restrictions);
     }
 
-    protected JackrabbitAccessControlList deny(String nPath, Principal principal, Privilege[] privileges)
-            throws Exception {
+    protected JackrabbitAccessControlList deny(String nPath, Principal principal,
+        Privilege[] privileges)
+        throws Exception {
         return modify(nPath, principal, privileges, false, EMPTY_RESTRICTIONS);
     }
 

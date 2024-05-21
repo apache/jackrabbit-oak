@@ -34,15 +34,14 @@ import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
-
 import org.apache.jackrabbit.guava.common.base.Supplier;
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.guava.common.util.concurrent.UncheckedExecutionException;
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.Segment;
-import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.SegmentBufferWriterPool;
+import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.segment.SegmentNotFoundException;
 import org.apache.jackrabbit.oak.segment.SegmentNotFoundExceptionListener;
@@ -52,9 +51,9 @@ import org.apache.jackrabbit.oak.segment.file.ShutDown.ShutDownCloser;
 import org.apache.jackrabbit.oak.segment.file.cancel.Canceller;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.apache.jackrabbit.oak.segment.file.tar.TarFiles;
+import org.apache.jackrabbit.oak.segment.spi.RepositoryNotReachableException;
 import org.apache.jackrabbit.oak.segment.spi.persistence.RepositoryLock;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
-import org.apache.jackrabbit.oak.segment.spi.RepositoryNotReachableException;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.stats.CounterStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
@@ -68,12 +67,13 @@ import org.slf4j.LoggerFactory;
  * The storage implementation for tar files.
  */
 public class FileStore extends AbstractFileStore {
+
     private static final Logger log = LoggerFactory.getLogger(FileStore.class);
     private static final int MB = 1024 * 1024;
 
     /**
-     * Name of the {@link CounterStats counter} exposing the number of {@code TarReader}
-     * instances in use by {@link TarFiles}.
+     * Name of the {@link CounterStats counter} exposing the number of {@code TarReader} instances
+     * in use by {@link TarFiles}.
      */
     private static final String TAR_READER_COUNT = "TAR_READER_COUNT";
 
@@ -85,9 +85,11 @@ public class FileStore extends AbstractFileStore {
 
     private static GarbageCollectionStrategy newGarbageCollectionStrategy() {
         if (Boolean.getBoolean("gc.classic")) {
-            return new SynchronizedGarbageCollectionStrategy(new DefaultGarbageCollectionStrategy());
+            return new SynchronizedGarbageCollectionStrategy(
+                new DefaultGarbageCollectionStrategy());
         }
-        return new SynchronizedGarbageCollectionStrategy(new CleanupFirstGarbageCollectionStrategy());
+        return new SynchronizedGarbageCollectionStrategy(
+            new CleanupFirstGarbageCollectionStrategy());
     }
 
     @NotNull
@@ -108,21 +110,21 @@ public class FileStore extends AbstractFileStore {
     private final Scheduler fileStoreScheduler = new Scheduler("FileStore background tasks");
 
     /**
-     * List of old tar file generations that are waiting to be removed. They can
-     * not be removed immediately, because they first need to be closed, and the
-     * JVM needs to release the memory mapped file references.
+     * List of old tar file generations that are waiting to be removed. They can not be removed
+     * immediately, because they first need to be closed, and the JVM needs to release the memory
+     * mapped file references.
      */
     private final FileReaper fileReaper;
 
     /**
-     * This flag is periodically updated by calling the {@code SegmentGCOptions}
-     * at regular intervals.
+     * This flag is periodically updated by calling the {@code SegmentGCOptions} at regular
+     * intervals.
      */
     private final AtomicBoolean sufficientDiskSpace = new AtomicBoolean(true);
 
     /**
-     * This flag is raised whenever the available memory falls under a specified
-     * threshold. See {@link GCMemoryBarrier}
+     * This flag is raised whenever the available memory falls under a specified threshold. See
+     * {@link GCMemoryBarrier}
      */
     private final AtomicBoolean sufficientMemory = new AtomicBoolean(true);
 
@@ -145,11 +147,11 @@ public class FileStore extends AbstractFileStore {
         StatisticsProvider statsProvider = builder.getStatsProvider();
 
         this.segmentWriter = defaultSegmentWriterBuilder("sys")
-                .withGeneration(() -> getGcGeneration().nonGC())
-                .withWriterPool()
-                .with(builder.getCacheManager()
-                        .withAccessTracking("WRITE", statsProvider))
-                .build(this);
+            .withGeneration(() -> getGcGeneration().nonGC())
+            .withWriterPool()
+            .with(builder.getCacheManager()
+                         .withAccessTracking("WRITE", statsProvider))
+            .build(this);
 
         newManifestChecker(persistence, builder.getStrictVersionCheck()).checkAndUpdateManifest();
 
@@ -160,17 +162,17 @@ public class FileStore extends AbstractFileStore {
         CounterStats readerCountStats = statsProvider.getCounterStats(TAR_READER_COUNT, DEFAULT);
         CounterStats segmentCountStats = statsProvider.getCounterStats(SEGMENT_COUNT, DEFAULT);
         TarFiles.Builder tarFilesBuilder = TarFiles.builder()
-                .withDirectory(directory)
-                .withMemoryMapping(memoryMapping)
-                .withTarRecovery(recovery)
-                .withIOMonitor(ioMonitor)
-                .withRemoteStoreMonitor(remoteStoreMonitor)
-                .withFileStoreMonitor(stats)
-                .withMaxFileSize(builder.getMaxFileSize() * MB)
-                .withPersistence(builder.getPersistence())
-                .withReaderCountStats(readerCountStats)
-                .withSegmentCountStats(segmentCountStats)
-                .withInitialisedReadersAndWriters(false);
+                                                   .withDirectory(directory)
+                                                   .withMemoryMapping(memoryMapping)
+                                                   .withTarRecovery(recovery)
+                                                   .withIOMonitor(ioMonitor)
+                                                   .withRemoteStoreMonitor(remoteStoreMonitor)
+                                                   .withFileStoreMonitor(stats)
+                                                   .withMaxFileSize(builder.getMaxFileSize() * MB)
+                                                   .withPersistence(builder.getPersistence())
+                                                   .withReaderCountStats(readerCountStats)
+                                                   .withSegmentCountStats(segmentCountStats)
+                                                   .withInitialisedReadersAndWriters(false);
 
         this.tarFiles = tarFilesBuilder.build();
         this.tarFiles.init();
@@ -195,9 +197,9 @@ public class FileStore extends AbstractFileStore {
             segmentWriter,
             stats,
             Canceller.newCanceller()
-                .withCondition("not enough disk space", () -> !sufficientDiskSpace.get())
-                .withCondition("not enough memory", () -> !sufficientMemory.get())
-                .withCondition("FileStore is shutting down", shutDown::isShutDown),
+                     .withCondition("not enough disk space", () -> !sufficientDiskSpace.get())
+                     .withCondition("not enough memory", () -> !sufficientMemory.get())
+                     .withCondition("FileStore is shutting down", shutDown::isShutDown),
             this::flush,
             generation ->
                 defaultSegmentWriterBuilder("c")
@@ -210,27 +212,30 @@ public class FileStore extends AbstractFileStore {
         this.eagerSegmentCaching = builder.getEagerSegmentCaching();
 
         TimerStats flushTimer = statsProvider.getTimer("oak.segment.flush", METRICS_ONLY);
-        fileStoreScheduler.scheduleWithFixedDelay(format("TarMK flush [%s]", directory), 5, SECONDS, () -> {
-            Context timer = flushTimer.time();
-            try {
-                tryFlush();
-            } finally {
-                timer.stop();
-            }
-        });
+        fileStoreScheduler.scheduleWithFixedDelay(format("TarMK flush [%s]", directory), 5, SECONDS,
+            () -> {
+                Context timer = flushTimer.time();
+                try {
+                    tryFlush();
+                } finally {
+                    timer.stop();
+                }
+            });
 
-        fileStoreScheduler.scheduleWithFixedDelay(format("TarMK filer reaper [%s]", directory), 5, SECONDS,
-                                                  fileReaper::reap);
+        fileStoreScheduler.scheduleWithFixedDelay(format("TarMK filer reaper [%s]", directory), 5,
+            SECONDS,
+            fileReaper::reap);
 
-        fileStoreScheduler.scheduleWithFixedDelay(format("TarMK disk space check [%s]", directory), 1, MINUTES, () -> {
-           try (ShutDownCloser ignore = shutDown.tryKeepAlive()) {
-               if (shutDown.isShutDown()) {
-                   log.debug("Shut down in progress, skipping disk space check");
-               } else {
-                   checkDiskSpace(builder.getGcOptions());
-               }
-           }
-        });
+        fileStoreScheduler.scheduleWithFixedDelay(format("TarMK disk space check [%s]", directory),
+            1, MINUTES, () -> {
+                try (ShutDownCloser ignore = shutDown.tryKeepAlive()) {
+                    if (shutDown.isShutDown()) {
+                        log.debug("Shut down in progress, skipping disk space check");
+                    } else {
+                        checkDiskSpace(builder.getGcOptions());
+                    }
+                }
+            });
 
         log.info("TarMK opened at {}, mmap={}, offHeapAccess={}, size={}",
             directory,
@@ -255,10 +260,12 @@ public class FileStore extends AbstractFileStore {
             @Override
             public RecordId get() {
                 try {
-                    SegmentWriter writer = defaultSegmentWriterBuilder("init").build(FileStore.this);
+                    SegmentWriter writer = defaultSegmentWriterBuilder("init").build(
+                        FileStore.this);
                     NodeBuilder builder = EMPTY_NODE.builder();
                     builder.setChildNode("root", EMPTY_NODE);
-                    SegmentNodeState node = new SegmentNodeState(segmentReader, writer, getBlobStore(), writer.writeNode(builder.getNodeState()));
+                    SegmentNodeState node = new SegmentNodeState(segmentReader, writer,
+                        getBlobStore(), writer.writeNode(builder.getNodeState()));
                     writer.flush();
                     return node.getRecordId();
                 } catch (IOException e) {
@@ -276,7 +283,7 @@ public class FileStore extends AbstractFileStore {
     }
 
     /**
-     * @return  a runnable for running garbage collection
+     * @return a runnable for running garbage collection
      */
     public Runnable getGCRunner() {
         return new SafeRunnable(format("TarMK revision gc [%s]", directory), () -> {
@@ -311,7 +318,7 @@ public class FileStore extends AbstractFileStore {
     }
 
     /**
-     * @return  the number of segments in the segment store
+     * @return the number of segments in the segment store
      */
     public int getSegmentCount() {
         try (ShutDownCloser ignored = shutDown.keepAlive()) {
@@ -348,8 +355,8 @@ public class FileStore extends AbstractFileStore {
     }
 
     /**
-     * Try to flush all pending changes to disk if possible without waiting
-     * for a lock or other resources currently not available.
+     * Try to flush all pending changes to disk if possible without waiting for a lock or other
+     * resources currently not available.
      */
     public void tryFlush() {
         try (ShutDownCloser ignore = shutDown.tryKeepAlive()) {
@@ -365,7 +372,8 @@ public class FileStore extends AbstractFileStore {
                 });
             }
         } catch (UnrecoverableArchiveException e) {
-            log.error("Critical failure while flushing pending changes. Shutting down the FileStore.", e);
+            log.error(
+                "Critical failure while flushing pending changes. Shutting down the FileStore.", e);
             close();
         } catch (IOException e) {
             log.warn("Failed to flush the TarMK at {}", directory, e);
@@ -391,9 +399,9 @@ public class FileStore extends AbstractFileStore {
     }
 
     /**
-     * Copy every referenced record in data (non-bulk) segments. Bulk segments
-     * are fully kept (they are only removed in cleanup, if there is no
-     * reference to them).
+     * Copy every referenced record in data (non-bulk) segments. Bulk segments are fully kept (they
+     * are only removed in cleanup, if there is no reference to them).
+     *
      * @return {@code true} on success, {@code false} otherwise.
      */
     public boolean compactFull() {
@@ -415,11 +423,10 @@ public class FileStore extends AbstractFileStore {
     }
 
     /**
-     * Run garbage collection on the segment level: reclaim those data segments
-     * that are from an old segment generation and those bulk segments that are not
-     * reachable anymore.
-     * Those tar files that shrink by at least 25% are rewritten to a new tar generation
-     * skipping the reclaimed segments.
+     * Run garbage collection on the segment level: reclaim those data segments that are from an old
+     * segment generation and those bulk segments that are not reachable anymore. Those tar files
+     * that shrink by at least 25% are rewritten to a new tar generation skipping the reclaimed
+     * segments.
      */
     public void cleanup() throws IOException {
         try (ShutDownCloser ignored = shutDown.keepAlive()) {
@@ -428,16 +435,15 @@ public class FileStore extends AbstractFileStore {
     }
 
     /**
-     * Finds all external blob references that are currently accessible
-     * in this repository and adds them to the given collector. Useful
-     * for collecting garbage in an external data store.
+     * Finds all external blob references that are currently accessible in this repository and adds
+     * them to the given collector. Useful for collecting garbage in an external data store.
      * <p>
-     * Note that this method only collects blob references that are already
-     * stored in the repository (at the time when this method is called), so
-     * the garbage collector will need some other mechanism for tracking
-     * in-memory references and references stored while this method is
+     * Note that this method only collects blob references that are already stored in the repository
+     * (at the time when this method is called), so the garbage collector will need some other
+     * mechanism for tracking in-memory references and references stored while this method is
      * running.
-     * @param collector  reference collector called back for each blob reference found
+     *
+     * @param collector reference collector called back for each blob reference found
      */
     @Override
     public void collectBlobReferences(Consumer<String> collector) throws IOException {
@@ -447,8 +453,8 @@ public class FileStore extends AbstractFileStore {
     }
 
     /**
-     * Cancel a running revision garbage collection compaction process as soon as possible.
-     * Does nothing if gc is not running.
+     * Cancel a running revision garbage collection compaction process as soon as possible. Does
+     * nothing if gc is not running.
      */
     public void cancelGC() {
         garbageCollector.cancel();
@@ -485,7 +491,7 @@ public class FileStore extends AbstractFileStore {
 
             Closer closer = Closer.create();
             closer.register(repositoryLock::unlock);
-            closer.register(tarFiles) ;
+            closer.register(tarFiles);
             closer.register(revisions);
 
             closeAndLogOnFail(closer);
@@ -501,7 +507,8 @@ public class FileStore extends AbstractFileStore {
     @Override
     public boolean containsSegment(SegmentId id) {
         try (ShutDownCloser ignored = shutDown.keepAlive()) {
-            return tarFiles.containsSegment(id.getMostSignificantBits(), id.getLeastSignificantBits());
+            return tarFiles.containsSegment(id.getMostSignificantBits(),
+                id.getLeastSignificantBits());
         }
     }
 
@@ -525,7 +532,8 @@ public class FileStore extends AbstractFileStore {
     }
 
     @Override
-    public void writeSegment(SegmentId id, byte[] buffer, int offset, int length) throws IOException {
+    public void writeSegment(SegmentId id, byte[] buffer, int offset, int length)
+        throws IOException {
         try (ShutDownCloser ignored = shutDown.keepAlive()) {
             Segment segment = null;
 
@@ -579,19 +587,21 @@ public class FileStore extends AbstractFileStore {
     private void checkDiskSpace(SegmentGCOptions gcOptions) {
         long repositoryDiskSpace = size();
         long availableDiskSpace = directory.getFreeSpace();
-        boolean updated = SegmentGCOptions.isDiskSpaceSufficient(repositoryDiskSpace, availableDiskSpace);
+        boolean updated = SegmentGCOptions.isDiskSpaceSufficient(repositoryDiskSpace,
+            availableDiskSpace);
         boolean previous = sufficientDiskSpace.getAndSet(updated);
 
         if (previous && !updated) {
             log.warn("Available disk space ({}) is too low, current repository size is approx. {}",
-                    humanReadableByteCount(availableDiskSpace),
-                    humanReadableByteCount(repositoryDiskSpace));
+                humanReadableByteCount(availableDiskSpace),
+                humanReadableByteCount(repositoryDiskSpace));
         }
 
         if (updated && !previous) {
-            log.info("Available disk space ({}) is sufficient again for repository operations, current repository size is approx. {}",
-                    humanReadableByteCount(availableDiskSpace),
-                    humanReadableByteCount(repositoryDiskSpace));
+            log.info(
+                "Available disk space ({}) is sufficient again for repository operations, current repository size is approx. {}",
+                humanReadableByteCount(availableDiskSpace),
+                humanReadableByteCount(repositoryDiskSpace));
         }
     }
 

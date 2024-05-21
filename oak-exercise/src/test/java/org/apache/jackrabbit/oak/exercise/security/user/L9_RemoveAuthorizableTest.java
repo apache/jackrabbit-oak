@@ -22,16 +22,15 @@ import javax.jcr.Session;
 import javax.jcr.security.AccessControlEntry;
 import javax.jcr.security.AccessControlList;
 import javax.jcr.security.Privilege;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
+import org.apache.jackrabbit.oak.exercise.ExerciseUtility;
 import org.apache.jackrabbit.oak.spi.lock.LockConstants;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
-import org.apache.jackrabbit.oak.exercise.ExerciseUtility;
 import org.apache.jackrabbit.test.AbstractJCRTest;
 import org.apache.jackrabbit.test.NotExecutableException;
 
@@ -101,7 +100,6 @@ import org.apache.jackrabbit.test.NotExecutableException;
  * - {@link L10_RemovalAndMembershipTest ()}
  *
  * </pre>
- *
  */
 public class L9_RemoveAuthorizableTest extends AbstractJCRTest {
 
@@ -120,13 +118,16 @@ public class L9_RemoveAuthorizableTest extends AbstractJCRTest {
         superuser.save();
 
         // setup full access for test-user on the test-node
-        Privilege[] privileges = AccessControlUtils.privilegesFromNames(superuser, Privilege.JCR_ALL);
-        if (!AccessControlUtils.addAccessControlEntry(superuser, testRoot, testUser.getPrincipal(), privileges, true)) {
+        Privilege[] privileges = AccessControlUtils.privilegesFromNames(superuser,
+            Privilege.JCR_ALL);
+        if (!AccessControlUtils.addAccessControlEntry(superuser, testRoot, testUser.getPrincipal(),
+            privileges, true)) {
             throw new NotExecutableException();
         }
         superuser.save();
 
-        testSession = getHelper().getRepository().login(ExerciseUtility.getTestCredentials(testUser.getID()));
+        testSession = getHelper().getRepository()
+                                 .login(ExerciseUtility.getTestCredentials(testUser.getID()));
     }
 
     @Override
@@ -180,7 +181,8 @@ public class L9_RemoveAuthorizableTest extends AbstractJCRTest {
 
         // EXERCISE: explain why the folder node must have a jcr:created property.
         assertTrue(folder.hasProperty(NodeTypeConstants.JCR_CREATEDBY));
-        assertEquals(testSession.getUserID(), folder.getProperty(NodeTypeConstants.JCR_CREATEDBY).getString());
+        assertEquals(testSession.getUserID(),
+            folder.getProperty(NodeTypeConstants.JCR_CREATEDBY).getString());
 
         removeTestUser();
         testSession.refresh(false);
@@ -196,7 +198,8 @@ public class L9_RemoveAuthorizableTest extends AbstractJCRTest {
         testSession.save();
 
         assertTrue(testNode.hasProperty(NodeTypeConstants.JCR_LASTMODIFIEDBY));
-        assertEquals(testSession.getUserID(), testNode.getProperty(NodeTypeConstants.JCR_LASTMODIFIEDBY).getString());
+        assertEquals(testSession.getUserID(),
+            testNode.getProperty(NodeTypeConstants.JCR_LASTMODIFIEDBY).getString());
 
         removeTestUser();
         testSession.refresh(false);
@@ -214,7 +217,8 @@ public class L9_RemoveAuthorizableTest extends AbstractJCRTest {
 
         try {
             assertTrue(testNode.hasProperty(LockConstants.JCR_LOCKOWNER));
-            assertEquals(testSession.getUserID(), testNode.getProperty(LockConstants.JCR_LOCKOWNER).getString());
+            assertEquals(testSession.getUserID(),
+                testNode.getProperty(LockConstants.JCR_LOCKOWNER).getString());
 
             removeTestUser();
             testSession.refresh(false);

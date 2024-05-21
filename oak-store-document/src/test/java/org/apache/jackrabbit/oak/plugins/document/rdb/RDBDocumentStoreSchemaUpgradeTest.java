@@ -55,13 +55,15 @@ public class RDBDocumentStoreSchemaUpgradeTest {
     @Parameterized.Parameters(name = "{0}")
     public static java.util.Collection<Object[]> fixtures() {
         java.util.Collection<Object[]> result = new ArrayList<Object[]>();
-        DocumentStoreFixture candidates[] = new DocumentStoreFixture[] { DocumentStoreFixture.RDB_H2,
-                DocumentStoreFixture.RDB_DERBY, DocumentStoreFixture.RDB_PG, DocumentStoreFixture.RDB_DB2,
-                DocumentStoreFixture.RDB_MYSQL, DocumentStoreFixture.RDB_ORACLE, DocumentStoreFixture.RDB_MSSQL };
+        DocumentStoreFixture candidates[] = new DocumentStoreFixture[]{DocumentStoreFixture.RDB_H2,
+            DocumentStoreFixture.RDB_DERBY, DocumentStoreFixture.RDB_PG,
+            DocumentStoreFixture.RDB_DB2,
+            DocumentStoreFixture.RDB_MYSQL, DocumentStoreFixture.RDB_ORACLE,
+            DocumentStoreFixture.RDB_MSSQL};
 
         for (DocumentStoreFixture dsf : candidates) {
             if (dsf.isAvailable()) {
-                result.add(new Object[] { dsf });
+                result.add(new Object[]{dsf});
             }
         }
 
@@ -76,7 +78,8 @@ public class RDBDocumentStoreSchemaUpgradeTest {
 
     @Test
     public void initDefault() {
-        RDBOptions op = new RDBOptions().tablePrefix("T00").initialSchema(0).upgradeToSchema(0).dropTablesOnClose(true);
+        RDBOptions op = new RDBOptions().tablePrefix("T00").initialSchema(0).upgradeToSchema(0)
+                                        .dropTablesOnClose(true);
         RDBDocumentStore rdb = null;
         try {
             rdb = new RDBDocumentStore(this.ds, new DocumentMK.Builder(), op);
@@ -92,7 +95,8 @@ public class RDBDocumentStoreSchemaUpgradeTest {
 
     @Test
     public void initDefaultRO() {
-        RDBOptions op = new RDBOptions().tablePrefix("T00RO").initialSchema(0).upgradeToSchema(0).dropTablesOnClose(true);
+        RDBOptions op = new RDBOptions().tablePrefix("T00RO").initialSchema(0).upgradeToSchema(0)
+                                        .dropTablesOnClose(true);
         RDBDocumentStore rdb = null;
         try {
             DocumentMK.Builder builder = new DocumentMK.Builder().setReadOnlyMode();
@@ -108,19 +112,22 @@ public class RDBDocumentStoreSchemaUpgradeTest {
 
     @Test
     public void init01() {
-        LogCustomizer logCustomizer = LogCustomizer.forLogger(RDBDocumentStore.class.getName()).enable(Level.INFO)
-                .contains("to DB level 1").create();
+        LogCustomizer logCustomizer = LogCustomizer.forLogger(RDBDocumentStore.class.getName())
+                                                   .enable(Level.INFO)
+                                                   .contains("to DB level 1").create();
         logCustomizer.starting();
 
-        RDBOptions op = new RDBOptions().tablePrefix("T01").initialSchema(0).upgradeToSchema(1).dropTablesOnClose(true);
+        RDBOptions op = new RDBOptions().tablePrefix("T01").initialSchema(0).upgradeToSchema(1)
+                                        .dropTablesOnClose(true);
         RDBDocumentStore rdb = null;
         try {
             rdb = new RDBDocumentStore(this.ds, new DocumentMK.Builder(), op);
             RDBTableMetaData meta = rdb.getTable(Collection.NODES);
             assertEquals(op.getTablePrefix() + "_NODES", meta.getName());
             assertTrue(meta.hasVersion());
-            assertEquals("unexpected # of log entries: " + logCustomizer.getLogs(), RDBDocumentStore.getTableNames().size(),
-                    logCustomizer.getLogs().size());
+            assertEquals("unexpected # of log entries: " + logCustomizer.getLogs(),
+                RDBDocumentStore.getTableNames().size(),
+                logCustomizer.getLogs().size());
         } finally {
             logCustomizer.finished();
             if (rdb != null) {
@@ -131,14 +138,16 @@ public class RDBDocumentStoreSchemaUpgradeTest {
 
     @Test
     public void init0then1() {
-        RDBOptions op = new RDBOptions().tablePrefix("T0T1").initialSchema(0).upgradeToSchema(0).dropTablesOnClose(true);
+        RDBOptions op = new RDBOptions().tablePrefix("T0T1").initialSchema(0).upgradeToSchema(0)
+                                        .dropTablesOnClose(true);
         RDBDocumentStore rdb0 = null;
         RDBDocumentStore rdb1 = null;
         try {
             rdb0 = new RDBDocumentStore(this.ds, new DocumentMK.Builder(), op);
             RDBTableMetaData meta0 = rdb0.getTable(Collection.NODES);
             assertFalse(meta0.hasVersion());
-            rdb1 = new RDBDocumentStore(this.ds, new DocumentMK.Builder(), new RDBOptions().tablePrefix("T0T1").initialSchema(0).upgradeToSchema(1));
+            rdb1 = new RDBDocumentStore(this.ds, new DocumentMK.Builder(),
+                new RDBOptions().tablePrefix("T0T1").initialSchema(0).upgradeToSchema(1));
             RDBTableMetaData meta1 = rdb1.getTable(Collection.NODES);
             assertTrue(meta1.hasVersion());
             UpdateOp testInsert = new UpdateOp(Utils.getIdFromPath("/foo"), true);
@@ -155,14 +164,16 @@ public class RDBDocumentStoreSchemaUpgradeTest {
 
     @Test
     public void init0then2() {
-        RDBOptions op = new RDBOptions().tablePrefix("T0T2").initialSchema(0).upgradeToSchema(0).dropTablesOnClose(true);
+        RDBOptions op = new RDBOptions().tablePrefix("T0T2").initialSchema(0).upgradeToSchema(0)
+                                        .dropTablesOnClose(true);
         RDBDocumentStore rdb0 = null;
         RDBDocumentStore rdb1 = null;
         try {
             rdb0 = new RDBDocumentStore(this.ds, new DocumentMK.Builder(), op);
             RDBTableMetaData meta0 = rdb0.getTable(Collection.NODES);
             assertFalse(meta0.hasVersion());
-            rdb1 = new RDBDocumentStore(this.ds, new DocumentMK.Builder(), new RDBOptions().tablePrefix("T0T2").initialSchema(0).upgradeToSchema(2));
+            rdb1 = new RDBDocumentStore(this.ds, new DocumentMK.Builder(),
+                new RDBOptions().tablePrefix("T0T2").initialSchema(0).upgradeToSchema(2));
             RDBTableMetaData meta1 = rdb1.getTable(Collection.NODES);
             assertTrue(meta1.hasVersion());
             UpdateOp testInsert = new UpdateOp(Utils.getIdFromPath("/foo"), true);
@@ -184,11 +195,13 @@ public class RDBDocumentStoreSchemaUpgradeTest {
 
     @Test
     public void init12() {
-        LogCustomizer logCustomizer = LogCustomizer.forLogger(RDBDocumentStore.class.getName()).enable(Level.INFO)
-                .contains("to DB level 2").create();
+        LogCustomizer logCustomizer = LogCustomizer.forLogger(RDBDocumentStore.class.getName())
+                                                   .enable(Level.INFO)
+                                                   .contains("to DB level 2").create();
         logCustomizer.starting();
 
-        RDBOptions op = new RDBOptions().tablePrefix("T12").initialSchema(1).upgradeToSchema(2).dropTablesOnClose(true);
+        RDBOptions op = new RDBOptions().tablePrefix("T12").initialSchema(1).upgradeToSchema(2)
+                                        .dropTablesOnClose(true);
         RDBDocumentStore rdb = null;
         try {
             rdb = new RDBDocumentStore(this.ds, new DocumentMK.Builder(), op);
@@ -197,7 +210,8 @@ public class RDBDocumentStoreSchemaUpgradeTest {
             assertTrue(meta.hasSplitDocs());
             int statementsPerTable = 5;
             assertEquals("unexpected # of log entries: " + logCustomizer.getLogs(),
-                    statementsPerTable * RDBDocumentStore.getTableNames().size(), logCustomizer.getLogs().size());
+                statementsPerTable * RDBDocumentStore.getTableNames().size(),
+                logCustomizer.getLogs().size());
         } finally {
             logCustomizer.finished();
             if (rdb != null) {
@@ -208,23 +222,26 @@ public class RDBDocumentStoreSchemaUpgradeTest {
 
     @Test
     public void init01fail() {
-        LogCustomizer logCustomizer = LogCustomizer.forLogger(RDBDocumentStore.class.getName()).enable(Level.INFO)
-                .contains("Attempted to upgrade").create();
+        LogCustomizer logCustomizer = LogCustomizer.forLogger(RDBDocumentStore.class.getName())
+                                                   .enable(Level.INFO)
+                                                   .contains("Attempted to upgrade").create();
         logCustomizer.starting();
 
         Assume.assumeTrue(ds instanceof RDBDataSourceWrapper);
-        RDBDataSourceWrapper wds = (RDBDataSourceWrapper)ds;
+        RDBDataSourceWrapper wds = (RDBDataSourceWrapper) ds;
         wds.setFailAlterTableAddColumnStatements(true);
 
-        RDBOptions op = new RDBOptions().tablePrefix("T01F").initialSchema(0).upgradeToSchema(1).dropTablesOnClose(true);
+        RDBOptions op = new RDBOptions().tablePrefix("T01F").initialSchema(0).upgradeToSchema(1)
+                                        .dropTablesOnClose(true);
         RDBDocumentStore rdb = null;
         try {
             rdb = new RDBDocumentStore(this.ds, new DocumentMK.Builder(), op);
             RDBTableMetaData meta = rdb.getTable(Collection.NODES);
             assertEquals(op.getTablePrefix() + "_NODES", meta.getName());
             assertFalse(meta.hasVersion());
-            assertEquals("unexpected # of log entries: " + logCustomizer.getLogs(), RDBDocumentStore.getTableNames().size(),
-                    logCustomizer.getLogs().size());
+            assertEquals("unexpected # of log entries: " + logCustomizer.getLogs(),
+                RDBDocumentStore.getTableNames().size(),
+                logCustomizer.getLogs().size());
             UpdateOp testInsert = new UpdateOp(Utils.getIdFromPath("/foo"), true);
             assertTrue(rdb.create(Collection.NODES, Collections.singletonList(testInsert)));
         } finally {
@@ -238,18 +255,21 @@ public class RDBDocumentStoreSchemaUpgradeTest {
 
     @Test
     public void init11() {
-        LogCustomizer logCustomizer = LogCustomizer.forLogger(RDBDocumentStore.class.getName()).enable(Level.INFO)
-                .contains("to DB level 1").create();
+        LogCustomizer logCustomizer = LogCustomizer.forLogger(RDBDocumentStore.class.getName())
+                                                   .enable(Level.INFO)
+                                                   .contains("to DB level 1").create();
         logCustomizer.starting();
 
-        RDBOptions op = new RDBOptions().tablePrefix("T11").initialSchema(1).upgradeToSchema(1).dropTablesOnClose(true);
+        RDBOptions op = new RDBOptions().tablePrefix("T11").initialSchema(1).upgradeToSchema(1)
+                                        .dropTablesOnClose(true);
         RDBDocumentStore rdb = null;
         try {
             rdb = new RDBDocumentStore(this.ds, new DocumentMK.Builder(), op);
             RDBTableMetaData meta = rdb.getTable(Collection.NODES);
             assertEquals(op.getTablePrefix() + "_NODES", meta.getName());
             assertTrue(meta.hasVersion());
-            assertEquals("unexpected # of log entries: " + logCustomizer.getLogs(), 0, logCustomizer.getLogs().size());
+            assertEquals("unexpected # of log entries: " + logCustomizer.getLogs(), 0,
+                logCustomizer.getLogs().size());
         } finally {
             logCustomizer.finished();
             if (rdb != null) {
@@ -260,11 +280,13 @@ public class RDBDocumentStoreSchemaUpgradeTest {
 
     @Test
     public void init22() {
-        LogCustomizer logCustomizer = LogCustomizer.forLogger(RDBDocumentStore.class.getName()).enable(Level.INFO)
-                .contains("to DB level").create();
+        LogCustomizer logCustomizer = LogCustomizer.forLogger(RDBDocumentStore.class.getName())
+                                                   .enable(Level.INFO)
+                                                   .contains("to DB level").create();
         logCustomizer.starting();
 
-        RDBOptions op = new RDBOptions().tablePrefix("T" + "22").initialSchema(2).upgradeToSchema(2).dropTablesOnClose(true);
+        RDBOptions op = new RDBOptions().tablePrefix("T" + "22").initialSchema(2).upgradeToSchema(2)
+                                        .dropTablesOnClose(true);
         RDBDocumentStore rdb = null;
         try {
             rdb = new RDBDocumentStore(this.ds, new DocumentMK.Builder(), op);
@@ -272,7 +294,8 @@ public class RDBDocumentStoreSchemaUpgradeTest {
             assertEquals(op.getTablePrefix() + "_NODES", meta.getName());
             assertTrue(meta.hasVersion());
             assertTrue(meta.hasSplitDocs());
-            assertEquals("unexpected # of log entries: " + logCustomizer.getLogs(), 0, logCustomizer.getLogs().size());
+            assertEquals("unexpected # of log entries: " + logCustomizer.getLogs(), 0,
+                logCustomizer.getLogs().size());
         } finally {
             logCustomizer.finished();
             if (rdb != null) {
@@ -283,23 +306,26 @@ public class RDBDocumentStoreSchemaUpgradeTest {
 
     @Test
     public void init12fail() {
-        LogCustomizer logCustomizer = LogCustomizer.forLogger(RDBDocumentStore.class.getName()).enable(Level.INFO)
-                .contains("Attempted to upgrade").create();
+        LogCustomizer logCustomizer = LogCustomizer.forLogger(RDBDocumentStore.class.getName())
+                                                   .enable(Level.INFO)
+                                                   .contains("Attempted to upgrade").create();
         logCustomizer.starting();
 
         Assume.assumeTrue(ds instanceof RDBDataSourceWrapper);
-        RDBDataSourceWrapper wds = (RDBDataSourceWrapper)ds;
+        RDBDataSourceWrapper wds = (RDBDataSourceWrapper) ds;
         wds.setFailAlterTableAddColumnStatements(true);
 
-        RDBOptions op = new RDBOptions().tablePrefix("T12F").initialSchema(1).upgradeToSchema(2).dropTablesOnClose(true);
+        RDBOptions op = new RDBOptions().tablePrefix("T12F").initialSchema(1).upgradeToSchema(2)
+                                        .dropTablesOnClose(true);
         RDBDocumentStore rdb = null;
         try {
             rdb = new RDBDocumentStore(this.ds, new DocumentMK.Builder(), op);
             RDBTableMetaData meta = rdb.getTable(Collection.NODES);
             assertEquals(op.getTablePrefix() + "_NODES", meta.getName());
             assertTrue(meta.hasVersion());
-            assertEquals("unexpected # of log entries: " + logCustomizer.getLogs(), RDBDocumentStore.getTableNames().size() * 4,
-                    logCustomizer.getLogs().size());
+            assertEquals("unexpected # of log entries: " + logCustomizer.getLogs(),
+                RDBDocumentStore.getTableNames().size() * 4,
+                logCustomizer.getLogs().size());
             String id = Utils.getIdFromPath("/foo");
             UpdateOp testInsert = new UpdateOp(id, true);
             assertTrue(rdb.create(Collection.NODES, Collections.singletonList(testInsert)));
@@ -349,7 +375,8 @@ public class RDBDocumentStoreSchemaUpgradeTest {
 
     @Test
     public void testVersionGCOnOldDB() {
-        RDBOptions op = new RDBOptions().tablePrefix("T11").initialSchema(1).upgradeToSchema(1).dropTablesOnClose(true);
+        RDBOptions op = new RDBOptions().tablePrefix("T11").initialSchema(1).upgradeToSchema(1)
+                                        .dropTablesOnClose(true);
         RDBDocumentStore rdb = null;
         Iterable<NodeDocument> garbage = null;
         try {
@@ -358,8 +385,9 @@ public class RDBDocumentStoreSchemaUpgradeTest {
             assertEquals(op.getTablePrefix() + "_NODES", meta.getName());
             assertTrue(meta.hasVersion());
             RDBVersionGCSupport vgc = new RDBVersionGCSupport(rdb);
-            Set<NodeDocument.SplitDocType> gctypes = EnumSet.of(SplitDocType.DEFAULT_LEAF, SplitDocType.COMMIT_ROOT_ONLY,
-                    SplitDocType.DEFAULT_NO_BRANCH);
+            Set<NodeDocument.SplitDocType> gctypes = EnumSet.of(SplitDocType.DEFAULT_LEAF,
+                SplitDocType.COMMIT_ROOT_ONLY,
+                SplitDocType.DEFAULT_NO_BRANCH);
             garbage = vgc.identifyGarbage(gctypes, new RevisionVector(), 0L);
             int cnt = 0;
             for (NodeDocument g : garbage) {
@@ -390,7 +418,8 @@ public class RDBDocumentStoreSchemaUpgradeTest {
         try {
             // create schema-0 ds and write one split document and one regular document
             {
-                RDBOptions options = new RDBOptions().tablePrefix("TMIXED").initialSchema(0).upgradeToSchema(0).dropTablesOnClose(true);
+                RDBOptions options = new RDBOptions().tablePrefix("TMIXED").initialSchema(0)
+                                                     .upgradeToSchema(0).dropTablesOnClose(true);
                 rdb0 = new RDBDocumentStore(this.ds, new DocumentMK.Builder(), options);
                 RDBTableMetaData meta = rdb0.getTable(Collection.NODES);
                 assertFalse(meta.hasVersion());
@@ -413,7 +442,8 @@ public class RDBDocumentStoreSchemaUpgradeTest {
 
             // upgrade to schema 1 and write one split document
             {
-                RDBOptions options = new RDBOptions().tablePrefix("TMIXED").initialSchema(0).upgradeToSchema(1).dropTablesOnClose(false);
+                RDBOptions options = new RDBOptions().tablePrefix("TMIXED").initialSchema(0)
+                                                     .upgradeToSchema(1).dropTablesOnClose(false);
                 rdb1 = new RDBDocumentStore(this.ds, new DocumentMK.Builder(), options);
                 RDBTableMetaData meta = rdb1.getTable(Collection.NODES);
                 assertTrue(meta.hasVersion());
@@ -429,7 +459,8 @@ public class RDBDocumentStoreSchemaUpgradeTest {
 
             // upgrade to schema 2, add another split document
             {
-                RDBOptions options2 = new RDBOptions().tablePrefix("TMIXED").initialSchema(0).upgradeToSchema(2).dropTablesOnClose(false);
+                RDBOptions options2 = new RDBOptions().tablePrefix("TMIXED").initialSchema(0)
+                                                      .upgradeToSchema(2).dropTablesOnClose(false);
                 rdb2 = new RDBDocumentStore(this.ds, new DocumentMK.Builder(), options2);
                 RDBTableMetaData meta2 = rdb2.getTable(Collection.NODES);
                 assertTrue(meta2.hasVersion());
@@ -445,10 +476,11 @@ public class RDBDocumentStoreSchemaUpgradeTest {
 
             // GC should find both
             RDBVersionGCSupport vgc = new RDBVersionGCSupport(rdb2);
-            Set<NodeDocument.SplitDocType> gctypes = EnumSet.of(SplitDocType.DEFAULT_LEAF, SplitDocType.COMMIT_ROOT_ONLY,
-                    SplitDocType.DEFAULT_NO_BRANCH);
+            Set<NodeDocument.SplitDocType> gctypes = EnumSet.of(SplitDocType.DEFAULT_LEAF,
+                SplitDocType.COMMIT_ROOT_ONLY,
+                SplitDocType.DEFAULT_NO_BRANCH);
             garbage = vgc.identifyGarbage(gctypes, new RevisionVector(), sdmaxrev * 1000 + 10000);
-            Set<String> found = new HashSet<String>(); 
+            Set<String> found = new HashSet<String>();
             for (NodeDocument g : garbage) {
                 found.add(g.getId());
             }

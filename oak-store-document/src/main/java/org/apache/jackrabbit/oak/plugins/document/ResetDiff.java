@@ -16,8 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import java.util.Map;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 
+import java.util.Map;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -25,13 +28,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
-
 /**
- * Implementation of a node state diff, which translates a diff into reset
- * operations on a branch.
+ * Implementation of a node state diff, which translates a diff into reset operations on a branch.
  */
 class ResetDiff implements NodeStateDiff {
 
@@ -42,14 +40,14 @@ class ResetDiff implements NodeStateDiff {
     private UpdateOp update;
 
     ResetDiff(@NotNull Revision revision,
-              @NotNull Map<Path, UpdateOp> operations) {
+        @NotNull Map<Path, UpdateOp> operations) {
         this(null, revision, Path.ROOT, operations);
     }
 
     private ResetDiff(@Nullable ResetDiff parent,
-                      @NotNull Revision revision,
-                      @NotNull Path path,
-                      @NotNull Map<Path, UpdateOp> operations) {
+        @NotNull Revision revision,
+        @NotNull Path path,
+        @NotNull Map<Path, UpdateOp> operations) {
         this.parent = parent;
         this.revision = checkNotNull(revision);
         this.path = checkNotNull(path);
@@ -91,11 +89,11 @@ class ResetDiff implements NodeStateDiff {
 
     @Override
     public boolean childNodeChanged(String name,
-                                    NodeState before,
-                                    NodeState after) {
+        NodeState before,
+        NodeState after) {
         Path p = new Path(path, name);
         return after.compareAgainstBaseState(before,
-                new ResetDiff(this, revision, p, operations));
+            new ResetDiff(this, revision, p, operations));
     }
 
     @Override

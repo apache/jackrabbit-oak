@@ -21,15 +21,15 @@ package org.apache.jackrabbit.oak.plugins.document.util;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-
 import org.apache.jackrabbit.oak.plugins.document.Path;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 
 /**
- * Experimental extension point for OAK-1772 to try out alternative approaches for persisting in memory state
- * Not part of API
+ * Experimental extension point for OAK-1772 to try out alternative approaches for persisting in
+ * memory state Not part of API
  */
 public abstract class MapFactory {
+
     private static MapFactory DEFAULT = new MapFactory() {
         @Override
         public ConcurrentMap<Path, Revision> create() {
@@ -41,7 +41,7 @@ public abstract class MapFactory {
 
     private static MapFactory instance = DEFAULT;
 
-    public static MapFactory getInstance(){
+    public static MapFactory getInstance() {
         return instance;
     }
 

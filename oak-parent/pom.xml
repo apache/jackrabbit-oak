@@ -17,14 +17,16 @@
    limitations under the License.
   -->
 
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd ">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd ">
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
     <groupId>org.apache</groupId>
     <artifactId>apache</artifactId>
     <version>29</version>
-    <relativePath />
+    <relativePath/>
   </parent>
 
   <groupId>org.apache.jackrabbit</groupId>
@@ -37,14 +39,17 @@
     <!-- build time stamp: should be updated prior to a release -->
     <!-- see https://maven.apache.org/guides/mini/guide-reproducible-builds.html -->
     <project.build.outputTimestamp>1712163091</project.build.outputTimestamp>
-    <minimalMavenBuildVersion>3.6.1</minimalMavenBuildVersion><!-- due to https://issues.apache.org/jira/browse/MNG-6059 -->
+    <minimalMavenBuildVersion>3.6.1
+    </minimalMavenBuildVersion><!-- due to https://issues.apache.org/jira/browse/MNG-6059 -->
     <test.opts.memory>-Xmx512m</test.opts.memory>
-    <test.opts>${test.opts.coverage} ${test.opts.memory} -XX:+HeapDumpOnOutOfMemoryError -Dupdate.limit=100 -Djava.awt.headless=true</test.opts>
+    <test.opts>${test.opts.coverage} ${test.opts.memory} -XX:+HeapDumpOnOutOfMemoryError
+      -Dupdate.limit=100 -Djava.awt.headless=true
+    </test.opts>
     <skip.deployment>false</skip.deployment>
     <skip.coverage>true</skip.coverage>
     <minimum.line.coverage>0.0</minimum.line.coverage>
     <minimum.branch.coverage>0.0</minimum.branch.coverage>
-    <known.issues />
+    <known.issues/>
     <project.reporting.outputEncoding>
       ${project.build.sourceEncoding}
     </project.reporting.outputEncoding>
@@ -53,7 +58,7 @@
     <mongo.port>27017</mongo.port>
     <mongo.db>MongoMKDB</mongo.db>
     <mongo.db2>MongoMKDB2</mongo.db2>
-    <mongo.url />
+    <mongo.url/>
     <mongo.version>3.6</mongo.version>
     <segment.db>SegmentMK</segment.db>
     <lucene.version>4.7.2</lucene.version>
@@ -74,15 +79,15 @@
     <maven.compiler.release>${javaTargetVersion}</maven.compiler.release>
     <maven.compiler.target>${javaTargetVersion}</maven.compiler.target>
     <minimalJavaBuildVersion>${javaTargetVersion}</minimalJavaBuildVersion>
-    
-   <!-- specifies on which fixture to run the integration testing tests. 
-      override in profiles or provide from command line to change behaviour. Provide 
-      more fixtures space separated. See org.apache.jackrabbit.oak.jcr.FixturesHelper#AVAILABLE_FIXTURES 
-      for the possible values: SEGMENT_MK SEGMENT_TAR SEGMENT_AWS SEGMENT_AZURE DOCUMENT_NS DOCUMENT_RDB -->
+
+    <!-- specifies on which fixture to run the integration testing tests.
+       override in profiles or provide from command line to change behaviour. Provide
+       more fixtures space separated. See org.apache.jackrabbit.oak.jcr.FixturesHelper#AVAILABLE_FIXTURES
+       for the possible values: SEGMENT_MK SEGMENT_TAR SEGMENT_AWS SEGMENT_AZURE DOCUMENT_NS DOCUMENT_RDB -->
     <fixtures>SEGMENT_TAR</fixtures>
 
-   <!-- whether skip the surefire unit testing during the integration testing. 
-      Override with -Dsurefire.skip.ut=true when needed -->
+    <!-- whether skip the surefire unit testing during the integration testing.
+       Override with -Dsurefire.skip.ut=true when needed -->
     <surefire.skip.ut>false</surefire.skip.ut>
 
     <!-- refresh interval in seconds for elastic stats cache (default is 60 seconds).
@@ -133,7 +138,7 @@
               <link>http://www.slf4j.org/apidocs/</link>
             </links>
             <!-- workaround for https://issues.apache.org/jira/browse/OAK-8517 -->
-      	    <excludePackageNames>org.apache.jackrabbit.oak.plugins.index.*</excludePackageNames>
+            <excludePackageNames>org.apache.jackrabbit.oak.plugins.index.*</excludePackageNames>
           </configuration>
         </plugin>
         <plugin>
@@ -144,19 +149,19 @@
           <inherited>true</inherited>
           <dependencies>
             <dependency>
-                <groupId>org.apache.felix</groupId>
-                <artifactId>org.apache.felix.scr.bnd</artifactId>
-                <version>1.9.6</version>
-                <exclusions>
-                    <!--
-                        This SCR plugin pulls in a bnd version with a different artifactId, thus leading
-                        to two bnd artifacts existing at the same time.
-                      -->
-                    <exclusion>
-                        <groupId>biz.aQute.bnd</groupId>
-                        <artifactId>bnd</artifactId>
-                    </exclusion>
-                </exclusions>
+              <groupId>org.apache.felix</groupId>
+              <artifactId>org.apache.felix.scr.bnd</artifactId>
+              <version>1.9.6</version>
+              <exclusions>
+                <!--
+                    This SCR plugin pulls in a bnd version with a different artifactId, thus leading
+                    to two bnd artifacts existing at the same time.
+                  -->
+                <exclusion>
+                  <groupId>biz.aQute.bnd</groupId>
+                  <artifactId>bnd</artifactId>
+                </exclusion>
+              </exclusions>
             </dependency>
           </dependencies>
           <configuration>
@@ -172,7 +177,9 @@
                    See FELIX-5172 -->
               <_nodefaultversion>true</_nodefaultversion>
               <!-- Support parsing of maven-scr-plugin annotations through the felix.scr.bnd plugin -->
-              <_plugin>org.apache.felix.scrplugin.bnd.SCRDescriptorBndPlugin;destdir=${project.build.outputDirectory}</_plugin>
+              <_plugin>
+                org.apache.felix.scrplugin.bnd.SCRDescriptorBndPlugin;destdir=${project.build.outputDirectory}
+              </_plugin>
             </instructions>
           </configuration>
           <executions>
@@ -245,13 +252,13 @@
             </execution>
             <!-- Configure extra execution of 'manifest' in process-classes phase to make sure SCR metadata is generated before unit test runs -->
             <execution>
-                <id>scr-metadata</id>
-                <goals>
-                    <goal>manifest</goal>
-                </goals>
-                <configuration>
-                    <supportIncrementalBuild>true</supportIncrementalBuild>
-                </configuration>
+              <id>scr-metadata</id>
+              <goals>
+                <goal>manifest</goal>
+              </goals>
+              <configuration>
+                <supportIncrementalBuild>true</supportIncrementalBuild>
+              </configuration>
             </execution>
           </executions>
         </plugin>
@@ -296,8 +303,10 @@
               <mongo.url>${mongo.url}</mongo.url>
               <segment.db>${segment.db}</segment.db>
               <nsfixtures>${fixtures}</nsfixtures>
-              <oak.elastic.statsRefreshSeconds>${oak.elastic.statsRefreshSeconds}</oak.elastic.statsRefreshSeconds>
-              <derby.stream.error.file>${project.build.directory}/derby.log</derby.stream.error.file>
+              <oak.elastic.statsRefreshSeconds>${oak.elastic.statsRefreshSeconds}
+              </oak.elastic.statsRefreshSeconds>
+              <derby.stream.error.file>${project.build.directory}/derby.log
+              </derby.stream.error.file>
             </systemPropertyVariables>
             <redirectTestOutputToFile>true</redirectTestOutputToFile>
           </configuration>
@@ -318,14 +327,15 @@
               <mongo.db2>${mongo.db2}</mongo.db2>
               <mongo.url>${mongo.url}</mongo.url>
               <nsfixtures>${fixtures}</nsfixtures>
-              <derby.stream.error.file>${project.build.directory}/derby.log</derby.stream.error.file>
+              <derby.stream.error.file>${project.build.directory}/derby.log
+              </derby.stream.error.file>
             </systemPropertyVariables>
           </configuration>
         </plugin>
-          <plugin>
-            <artifactId>maven-checkstyle-plugin</artifactId>
-            <version>3.3.1</version>
-          </plugin>
+        <plugin>
+          <artifactId>maven-checkstyle-plugin</artifactId>
+          <version>3.3.1</version>
+        </plugin>
         <plugin>
           <groupId>com.github.spotbugs</groupId>
           <artifactId>spotbugs-maven-plugin</artifactId>
@@ -341,7 +351,7 @@
           <artifactId>versions-maven-plugin</artifactId>
           <version>2.16.2</version>
         </plugin>
-        
+
         <!-- This plugin's configuration is used to store Eclipse m2e      -->
         <!-- settings only. It has no influence on the Maven build itself. -->
         <plugin>
@@ -361,7 +371,7 @@
                     </goals>
                   </pluginExecutionFilter>
                   <action>
-                    <execute />
+                    <execute/>
                   </action>
                 </pluginExecution>
                 <pluginExecution>
@@ -374,7 +384,7 @@
                     </goals>
                   </pluginExecutionFilter>
                   <action>
-                    <ignore />
+                    <ignore/>
                   </action>
                 </pluginExecution>
               </pluginExecutions>
@@ -388,7 +398,8 @@
             <generateReports>false</generateReports>
             <skip>true</skip>
             <skipDeploy>true</skipDeploy>
-            <relativizeDecorationLinks>false</relativizeDecorationLinks><!-- leave absolute URLs untouched: https://maven.apache.org/plugins/maven-site-plugin/site-mojo.html#relativizeDecorationLinks -->
+            <relativizeDecorationLinks>false
+            </relativizeDecorationLinks><!-- leave absolute URLs untouched: https://maven.apache.org/plugins/maven-site-plugin/site-mojo.html#relativizeDecorationLinks -->
           </configuration>
         </plugin>
         <plugin>
@@ -531,12 +542,14 @@
       <dependency>
         <groupId>org.osgi</groupId>
         <artifactId>org.osgi.annotation.bundle</artifactId>
-        <version>1.0.0</version><!-- R7 version, https://docs.osgi.org/javadoc/osgi.annotation/7.0.0/org/osgi/annotation/bundle/package-summary.html -->
+        <version>1.0.0
+        </version><!-- R7 version, https://docs.osgi.org/javadoc/osgi.annotation/7.0.0/org/osgi/annotation/bundle/package-summary.html -->
       </dependency>
       <dependency>
         <groupId>org.osgi</groupId>
         <artifactId>org.osgi.annotation.versioning</artifactId>
-        <version>1.1.2</version><!-- R7 version, https://docs.osgi.org/javadoc/osgi.annotation/7.0.0/org/osgi/annotation/versioning/package-summary.html -->
+        <version>1.1.2
+        </version><!-- R7 version, https://docs.osgi.org/javadoc/osgi.annotation/7.0.0/org/osgi/annotation/versioning/package-summary.html -->
       </dependency>
       <dependency>
         <groupId>org.apache.felix</groupId>
@@ -705,7 +718,7 @@
         <groupId>org.apache.httpcomponents</groupId>
         <artifactId>httpcore-osgi</artifactId>
         <version>4.4.16</version>
-     </dependency>
+      </dependency>
       <dependency>
         <groupId>org.apache.httpcomponents</groupId>
         <artifactId>httpmime</artifactId>
@@ -874,18 +887,18 @@
   <profiles>
     <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -  Unit testing profiles -->
     <profile>
-         <id>unittesting</id>
-         <properties>
-            <!-- emptying $fixtures means run on all -->
-            <fixtures />
-         </properties>
-         <build>
-            <plugins>
-              <plugin>
-                <artifactId>maven-surefire-plugin</artifactId>
-              </plugin>
-            </plugins>
-         </build>
+      <id>unittesting</id>
+      <properties>
+        <!-- emptying $fixtures means run on all -->
+        <fixtures/>
+      </properties>
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-surefire-plugin</artifactId>
+          </plugin>
+        </plugins>
+      </build>
     </profile>
     <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - Integration testing profiles -->
     <profile>
@@ -898,12 +911,12 @@
       </activation>
       <build>
         <plugins>
-           <plugin>
-             <artifactId>maven-surefire-plugin</artifactId>
-             <configuration>
-               <skipTests>${surefire.skip.ut}</skipTests>
-             </configuration>
-           </plugin>
+          <plugin>
+            <artifactId>maven-surefire-plugin</artifactId>
+            <configuration>
+              <skipTests>${surefire.skip.ut}</skipTests>
+            </configuration>
+          </plugin>
           <plugin>
             <artifactId>maven-failsafe-plugin</artifactId>
             <executions>
@@ -919,122 +932,125 @@
       </build>
     </profile>
 
-   <!--  - - - - - - - - - - - - - - - - - - - will run all the required tests before a release -->
-   <profile>
-      <id>release</id> <!-- needs to be activated manually, not used automatically with m-release-p goals -->
+    <!--  - - - - - - - - - - - - - - - - - - - will run all the required tests before a release -->
+    <profile>
+      <id>release
+      </id> <!-- needs to be activated manually, not used automatically with m-release-p goals -->
       <properties>
-         <nsfixtures />
-         <rdb.jdbc-url>jdbc:derby:./target/derby-release-test;create=true</rdb.jdbc-url>
-         <derby.stream.error.file>${project.build.directory}/derby.log</derby.stream.error.file>
+        <nsfixtures/>
+        <rdb.jdbc-url>jdbc:derby:./target/derby-release-test;create=true</rdb.jdbc-url>
+        <derby.stream.error.file>${project.build.directory}/derby.log</derby.stream.error.file>
       </properties>
       <build>
-         <plugins>
-            <plugin>
-               <artifactId>maven-surefire-plugin</artifactId>
-               <configuration>
-                    <systemProperties>
-                        <derby.stream.error.file>${project.build.directory}/derby.log</derby.stream.error.file>
-                    </systemProperties>
-               </configuration>
-            </plugin>
-             <plugin>
-               <artifactId>maven-failsafe-plugin</artifactId>
-               <executions>
-                  <execution>
-                     <goals>
-                        <goal>integration-test</goal>
-                        <goal>verify</goal>
-                     </goals>
-                     <configuration>
-                        <systemProperties>
-                            <derby.stream.error.file>${project.build.directory}/derby.log</derby.stream.error.file>
-                        </systemProperties>
-                     </configuration>
-                  </execution>
-               </executions>
-            </plugin>
-            <plugin>
-               <groupId>org.apache.rat</groupId>
-               <artifactId>apache-rat-plugin</artifactId>
-               <executions>
-                  <execution>
-                     <phase>verify</phase>
-                     <goals>
-                        <goal>check</goal>
-                     </goals>
-                  </execution>
-               </executions>
-            </plugin>
-            <plugin>
-               <artifactId>maven-checkstyle-plugin</artifactId>
-               <configuration>
-                  <failOnViolation>false</failOnViolation>
-               </configuration>
-               <executions>
-                  <execution>
-                     <goals>
-                        <goal>check</goal>
-                     </goals>
-                  </execution>
-               </executions>
-            </plugin>
-            <plugin>
-               <groupId>com.github.spotbugs</groupId>
-               <artifactId>spotbugs-maven-plugin</artifactId>
-               <configuration>
-                  <failOnError>false</failOnError>
-               </configuration>
-               <executions>
-                  <execution>
-                     <goals>
-                        <goal>check</goal>
-                     </goals>
-                  </execution>
-               </executions>
-            </plugin>
-         </plugins>
+        <plugins>
+          <plugin>
+            <artifactId>maven-surefire-plugin</artifactId>
+            <configuration>
+              <systemProperties>
+                <derby.stream.error.file>${project.build.directory}/derby.log
+                </derby.stream.error.file>
+              </systemProperties>
+            </configuration>
+          </plugin>
+          <plugin>
+            <artifactId>maven-failsafe-plugin</artifactId>
+            <executions>
+              <execution>
+                <goals>
+                  <goal>integration-test</goal>
+                  <goal>verify</goal>
+                </goals>
+                <configuration>
+                  <systemProperties>
+                    <derby.stream.error.file>${project.build.directory}/derby.log
+                    </derby.stream.error.file>
+                  </systemProperties>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.apache.rat</groupId>
+            <artifactId>apache-rat-plugin</artifactId>
+            <executions>
+              <execution>
+                <phase>verify</phase>
+                <goals>
+                  <goal>check</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <artifactId>maven-checkstyle-plugin</artifactId>
+            <configuration>
+              <failOnViolation>false</failOnViolation>
+            </configuration>
+            <executions>
+              <execution>
+                <goals>
+                  <goal>check</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>com.github.spotbugs</groupId>
+            <artifactId>spotbugs-maven-plugin</artifactId>
+            <configuration>
+              <failOnError>false</failOnError>
+            </configuration>
+            <executions>
+              <execution>
+                <goals>
+                  <goal>check</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
       </build>
       <dependencies>
-         <dependency>
-            <groupId>org.apache.derby</groupId>
-            <artifactId>derby</artifactId>
-            <version>${derby.version}</version>
-         </dependency>
+        <dependency>
+          <groupId>org.apache.derby</groupId>
+          <artifactId>derby</artifactId>
+          <version>${derby.version}</version>
+        </dependency>
       </dependencies>
-   </profile>
-   
+    </profile>
+
     <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - other profiles -->
 
-   <profile>
+    <profile>
       <id>longevity</id>
       <build>
-         <plugins>
-            <plugin>
-               <artifactId>maven-surefire-plugin</artifactId>
-               <configuration>
-                  <skipTests>true</skipTests>
-               </configuration>
-            </plugin>
-            <plugin>
-               <artifactId>maven-failsafe-plugin</artifactId>
-               <executions>
-                  <execution>
-                     <goals>
-                        <goal>integration-test</goal>
-                        <goal>verify</goal>
-                     </goals>
-                  </execution>
-               </executions>
-               <configuration>
-               <includes>
+        <plugins>
+          <plugin>
+            <artifactId>maven-surefire-plugin</artifactId>
+            <configuration>
+              <skipTests>true</skipTests>
+            </configuration>
+          </plugin>
+          <plugin>
+            <artifactId>maven-failsafe-plugin</artifactId>
+            <executions>
+              <execution>
+                <goals>
+                  <goal>integration-test</goal>
+                  <goal>verify</goal>
+                </goals>
+              </execution>
+            </executions>
+            <configuration>
+              <includes>
                 <include>**/*LT.java</include>
-               </includes>
-               </configuration>
-            </plugin>
-         </plugins>
+              </includes>
+            </configuration>
+          </plugin>
+        </plugins>
       </build>
-   </profile>
-    
+    </profile>
+
     <profile>
       <id>rat</id>
       <build>
@@ -1051,14 +1067,14 @@
               </execution>
             </executions>
           </plugin>
-           <plugin>
-             <artifactId>maven-surefire-plugin</artifactId>
-             <configuration>
-               <!-- run a test to prevent Jenkins from failing because no test ran -->
-               <test>PathUtilsTest</test>
-               <failIfNoSpecifiedTests>false</failIfNoSpecifiedTests>
-             </configuration>
-           </plugin>
+          <plugin>
+            <artifactId>maven-surefire-plugin</artifactId>
+            <configuration>
+              <!-- run a test to prevent Jenkins from failing because no test ran -->
+              <test>PathUtilsTest</test>
+              <failIfNoSpecifiedTests>false</failIfNoSpecifiedTests>
+            </configuration>
+          </plugin>
         </plugins>
       </build>
     </profile>
@@ -1131,12 +1147,12 @@
               </execution>
             </executions>
           </plugin>
-           <plugin>
-             <artifactId>maven-surefire-plugin</artifactId>
-             <configuration>
-               <skipTests>${surefire.skip.ut}</skipTests>
-             </configuration>
-           </plugin>
+          <plugin>
+            <artifactId>maven-surefire-plugin</artifactId>
+            <configuration>
+              <skipTests>${surefire.skip.ut}</skipTests>
+            </configuration>
+          </plugin>
         </plugins>
       </build>
     </profile>
@@ -1352,7 +1368,7 @@
               <executions>
                 <execution>
                   <id>animal-sniffer</id>
-                  <phase />
+                  <phase/>
                 </execution>
               </executions>
             </plugin>
@@ -1395,9 +1411,11 @@
   </profiles>
 
   <!-- using adjusted inheritance rules: https://issues.apache.org/jira/browse/MNG-6059 -->
-  <scm child.scm.connection.inherit.append.path="false" child.scm.developerConnection.inherit.append.path="false">
+  <scm child.scm.connection.inherit.append.path="false"
+    child.scm.developerConnection.inherit.append.path="false">
     <connection>scm:git:https://gitbox.apache.org/repos/asf/jackrabbit-oak.git</connection>
-    <developerConnection>scm:git:https://gitbox.apache.org/repos/asf/jackrabbit-oak.git</developerConnection>
+    <developerConnection>scm:git:https://gitbox.apache.org/repos/asf/jackrabbit-oak.git
+    </developerConnection>
     <url>https://github.com/apache/jackrabbit/tree/${project.scm.tag}</url>
     <tag>trunk</tag>
   </scm>

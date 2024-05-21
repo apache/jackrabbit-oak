@@ -23,10 +23,9 @@ import java.io.IOException;
 import java.io.Reader;
 import java.util.Collections;
 import java.util.List;
-
+import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.guava.common.io.Files;
-import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.index.IndexReader;
@@ -56,8 +55,9 @@ public class SuggestHelper {
         }
     };
 
-    public static void updateSuggester(Directory directory, Analyzer analyzer, IndexReader reader, final Closer closer)
-            throws IOException {
+    public static void updateSuggester(Directory directory, Analyzer analyzer, IndexReader reader,
+        final Closer closer)
+        throws IOException {
         File tempDir = null;
         boolean shouldCloseDirectory = true;
         try {
@@ -72,7 +72,8 @@ public class SuggestHelper {
 
             if (reader.getDocCount(FieldNames.SUGGEST) > 0) {
                 Dictionary dictionary = new LuceneDictionary(reader, FieldNames.SUGGEST);
-                AnalyzingInfixSuggester suggester = closer.register(getLookup(directory, analyzer, tempSubChild));
+                AnalyzingInfixSuggester suggester = closer.register(
+                    getLookup(directory, analyzer, tempSubChild));
                 shouldCloseDirectory = false;
                 suggester.build(dictionary);
             }
@@ -89,7 +90,8 @@ public class SuggestHelper {
         }
     }
 
-    public static List<Lookup.LookupResult> getSuggestions(AnalyzingInfixSuggester suggester, @Nullable SuggestQuery suggestQuery) {
+    public static List<Lookup.LookupResult> getSuggestions(AnalyzingInfixSuggester suggester,
+        @Nullable SuggestQuery suggestQuery) {
         try {
             if (suggester != null && suggester.getCount() > 0) {
                 return suggester.lookup(suggestQuery.getText(), 10, true, false);
@@ -106,8 +108,10 @@ public class SuggestHelper {
             String text = null;
             for (String param : suggestQueryString.split("&")) {
                 String[] keyValuePair = param.split("=");
-                if (keyValuePair.length != 2 || keyValuePair[0] == null || keyValuePair[1] == null) {
-                    throw new RuntimeException("Unparsable native Lucene Suggest query: " + suggestQueryString);
+                if (keyValuePair.length != 2 || keyValuePair[0] == null
+                    || keyValuePair[1] == null) {
+                    throw new RuntimeException(
+                        "Unparsable native Lucene Suggest query: " + suggestQueryString);
                 } else {
                     if ("term".equals(keyValuePair[0])) {
                         text = keyValuePair[1];
@@ -125,15 +129,19 @@ public class SuggestHelper {
         }
     }
 
-    public static AnalyzingInfixSuggester getLookup(final Directory suggestDirectory) throws IOException {
+    public static AnalyzingInfixSuggester getLookup(final Directory suggestDirectory)
+        throws IOException {
         return getLookup(suggestDirectory, SuggestHelper.analyzer);
     }
 
-    public static AnalyzingInfixSuggester getLookup(final Directory suggestDirectory, Analyzer analyzer) throws IOException {
+    public static AnalyzingInfixSuggester getLookup(final Directory suggestDirectory,
+        Analyzer analyzer) throws IOException {
         return getLookup(suggestDirectory, analyzer, null);
     }
-    public static AnalyzingInfixSuggester getLookup(final Directory suggestDirectory, Analyzer analyzer,
-                                                    final File tempDir) throws IOException {
+
+    public static AnalyzingInfixSuggester getLookup(final Directory suggestDirectory,
+        Analyzer analyzer,
+        final File tempDir) throws IOException {
         return new AnalyzingInfixSuggester(Version.LUCENE_47, tempDir, analyzer, analyzer, 3) {
             @Override
             protected Directory getDirectory(File path) throws IOException {
@@ -165,8 +173,8 @@ public class SuggestHelper {
         @Override
         public String toString() {
             return "SuggestQuery{" +
-                    "text='" + text + '\'' +
-                    '}';
+                "text='" + text + '\'' +
+                '}';
         }
     }
 }

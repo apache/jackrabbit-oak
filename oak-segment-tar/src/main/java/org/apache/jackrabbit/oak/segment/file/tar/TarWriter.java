@@ -19,12 +19,12 @@
 
 package org.apache.jackrabbit.oak.segment.file.tar;
 
+import static java.lang.String.format;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkPositionIndexes;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
 import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
-import static java.lang.String.format;
 import static org.apache.jackrabbit.oak.segment.file.tar.TarConstants.FILE_NAME_FORMAT;
 import static org.apache.jackrabbit.oak.segment.file.tar.TarConstants.GRAPH_MAGIC;
 import static org.apache.jackrabbit.oak.segment.file.tar.binaries.BinaryReferencesIndexWriter.newBinaryReferencesIndexWriter;
@@ -36,7 +36,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 import java.util.zip.CRC32;
-
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.file.UnrecoverableArchiveException;
 import org.apache.jackrabbit.oak.segment.file.tar.binaries.BinaryReferencesIndexWriter;
@@ -48,19 +47,20 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * A writer for tar files. It is also used to read entries while the file is
- * still open.
+ * A writer for tar files. It is also used to read entries while the file is still open.
  */
 class TarWriter implements Closeable {
 
-    /** Logger instance */
+    /**
+     * Logger instance
+     */
     private static final Logger log = LoggerFactory.getLogger(TarWriter.class);
 
     private final int writeIndex;
 
     /**
-     * Flag to indicate a closed writer. Accessing a closed writer is illegal.
-     * Should only be accessed from synchronized code.
+     * Flag to indicate a closed writer. Accessing a closed writer is illegal. Should only be
+     * accessed from synchronized code.
      */
     private boolean closed = false;
 
@@ -78,10 +78,11 @@ class TarWriter implements Closeable {
 
     private final SegmentArchiveWriter archive;
 
-    /** This object is used as an additional
-     *  synchronization point by {@link #flush()} and {@link #close()} to
-     *  allow {@link #flush()} to work concurrently with normal reads and
-     *  writes, but not with a concurrent {@link #close()}. */
+    /**
+     * This object is used as an additional synchronization point by {@link #flush()} and
+     * {@link #close()} to allow {@link #flush()} to work concurrently with normal reads and writes,
+     * but not with a concurrent {@link #close()}.
+     */
     private final Object closeMonitor = new Object();
 
     /**
@@ -90,8 +91,7 @@ class TarWriter implements Closeable {
     private final CounterStats segmentCount;
 
     /**
-     * Used for maintenance operations (GC or recovery) via the TarReader and
-     * tests
+     * Used for maintenance operations (GC or recovery) via the TarReader and tests
      */
     TarWriter(SegmentArchiveManager archiveManager, String archiveName) throws IOException {
         this.archiveManager = archiveManager;
@@ -101,7 +101,7 @@ class TarWriter implements Closeable {
     }
 
     TarWriter(SegmentArchiveManager archiveManager, int writeIndex, CounterStats segmentCountStats)
-    throws IOException {
+        throws IOException {
         this.archiveManager = archiveManager;
         this.archive = archiveManager.create(format(FILE_NAME_FORMAT, writeIndex, "a"));
         this.writeIndex = writeIndex;
@@ -114,16 +114,15 @@ class TarWriter implements Closeable {
     }
 
     /**
-     * @return  the number of entries currently in this writer
+     * @return the number of entries currently in this writer
      */
     int getEntryCount() {
         return archive.getEntryCount();
     }
 
     /**
-     * If the given segment is in this file, get the byte buffer that allows
-     * reading it.
-     * 
+     * If the given segment is in this file, get the byte buffer that allows reading it.
+     *
      * @param msb the most significant bits of the segment id
      * @param lsb the least significant bits of the segment id
      * @return the byte buffer, or null if not in this file
@@ -135,14 +134,16 @@ class TarWriter implements Closeable {
         return archive.readSegment(msb, lsb);
     }
 
-    long writeEntry(long msb, long lsb, byte[] data, int offset, int size, GCGeneration generation) throws IOException {
+    long writeEntry(long msb, long lsb, byte[] data, int offset, int size, GCGeneration generation)
+        throws IOException {
         checkNotNull(data);
         checkPositionIndexes(offset, offset + size, data.length);
 
         synchronized (this) {
             checkState(!closed);
 
-            archive.writeSegment(msb, lsb, data, offset, size, generation.getGeneration(), generation.getFullGeneration(), generation.isCompacted());
+            archive.writeSegment(msb, lsb, data, offset, size, generation.getGeneration(),
+                generation.getFullGeneration(), generation.isCompacted());
             segmentCount.inc();
             long currentLength = archive.getLength();
 
@@ -167,11 +168,10 @@ class TarWriter implements Closeable {
     }
 
     /**
-     * Flushes the entries that have so far been written to the disk.
-     * This method is <em>not</em> synchronized to allow concurrent reads
-     * and writes to proceed while the file is being flushed. However,
-     * this method <em>is</em> carefully synchronized with {@link #close()}
-     * to prevent accidental flushing of an already closed file.
+     * Flushes the entries that have so far been written to the disk. This method is <em>not</em>
+     * synchronized to allow concurrent reads and writes to proceed while the file is being flushed.
+     * However, this method <em>is</em> carefully synchronized with {@link #close()} to prevent
+     * accidental flushing of an already closed file.
      *
      * @throws IOException if the tar file could not be flushed
      */
@@ -228,10 +228,9 @@ class TarWriter implements Closeable {
     }
 
     /**
-     * If the current instance is dirty, this will return a new TarWriter based
-     * on the next generation of the file being written to by incrementing the
-     * internal {@link #writeIndex} counter. Otherwise it will return the
-     * current instance.
+     * If the current instance is dirty, this will return a new TarWriter based on the next
+     * generation of the file being written to by incrementing the internal {@link #writeIndex}
+     * counter. Otherwise it will return the current instance.
      */
     TarWriter createNextGeneration() throws IOException {
         checkState(writeIndex >= 0);

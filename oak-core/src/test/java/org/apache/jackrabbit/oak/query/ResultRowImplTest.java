@@ -17,18 +17,16 @@
 
 package org.apache.jackrabbit.oak.query;
 
+import static org.apache.jackrabbit.oak.plugins.memory.PropertyValues.newString;
+import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.util.Map;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
 import org.junit.Test;
-
-import java.util.Map;
-
-import static org.apache.jackrabbit.oak.plugins.memory.PropertyValues.newString;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class ResultRowImplTest {
 

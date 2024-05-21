@@ -40,7 +40,8 @@ public class ImmutablePrincipalPolicyTest extends AbstractPrincipalBasedTest {
     public void before() throws Exception {
         super.before();
 
-        policy = setupPrincipalBasedAccessControl(getTestSystemUser().getPrincipal(), testContentJcrPath, PrivilegeConstants.JCR_READ);
+        policy = setupPrincipalBasedAccessControl(getTestSystemUser().getPrincipal(),
+            testContentJcrPath, PrivilegeConstants.JCR_READ);
         immutable = new ImmutablePrincipalPolicy(policy);
     }
 
@@ -56,20 +57,26 @@ public class ImmutablePrincipalPolicyTest extends AbstractPrincipalBasedTest {
 
     @Test(expected = AccessControlException.class)
     public void testAddEntryWithRestrictions() throws Exception {
-        immutable.addEntry(null, privilegesFromNames(PrivilegeConstants.JCR_ALL), Collections.singletonMap(getNamePathMapper().getJcrName(REP_GLOB), getValueFactory(root).createValue("*")), Collections.emptyMap());
+        immutable.addEntry(null, privilegesFromNames(PrivilegeConstants.JCR_ALL),
+            Collections.singletonMap(getNamePathMapper().getJcrName(REP_GLOB),
+                getValueFactory(root).createValue("*")), Collections.emptyMap());
     }
 
     @Test
     public void testHashcode() {
         int expectedHashCode = immutable.hashCode();
-        ImmutablePrincipalPolicy ipp = new ImmutablePrincipalPolicy(policy.getPrincipal(), policy.getOakPath(), policy.getEntries(), policy.getRestrictionProvider(), policy.getNamePathMapper());
+        ImmutablePrincipalPolicy ipp = new ImmutablePrincipalPolicy(policy.getPrincipal(),
+            policy.getOakPath(), policy.getEntries(), policy.getRestrictionProvider(),
+            policy.getNamePathMapper());
         assertEquals(expectedHashCode, ipp.hashCode());
         assertEquals(ipp.hashCode(), new ImmutablePrincipalPolicy(policy).hashCode());
     }
 
     @Test
     public void testEquals() {
-        ImmutablePrincipalPolicy ipp = new ImmutablePrincipalPolicy(policy.getPrincipal(), policy.getOakPath(), policy.getEntries(), policy.getRestrictionProvider(), policy.getNamePathMapper());
+        ImmutablePrincipalPolicy ipp = new ImmutablePrincipalPolicy(policy.getPrincipal(),
+            policy.getOakPath(), policy.getEntries(), policy.getRestrictionProvider(),
+            policy.getNamePathMapper());
         assertEquals(immutable, ipp);
         assertEquals(immutable, new ImmutablePrincipalPolicy(policy));
         assertEquals(immutable, immutable);
@@ -77,9 +84,15 @@ public class ImmutablePrincipalPolicyTest extends AbstractPrincipalBasedTest {
 
     @Test
     public void testNotEquals() {
-        ImmutablePrincipalPolicy differentPath = new ImmutablePrincipalPolicy(policy.getPrincipal(), "/different/path", policy.getEntries(), policy.getRestrictionProvider(), policy.getNamePathMapper());
-        ImmutablePrincipalPolicy differentPrincipal = new ImmutablePrincipalPolicy(EveryonePrincipal.getInstance(), policy.getOakPath(), policy.getEntries(), policy.getRestrictionProvider(), policy.getNamePathMapper());
-        ImmutablePrincipalPolicy differentEntries = new ImmutablePrincipalPolicy(policy.getPrincipal(), policy.getOakPath(), Collections.emptyList(), policy.getRestrictionProvider(), policy.getNamePathMapper());
+        ImmutablePrincipalPolicy differentPath = new ImmutablePrincipalPolicy(policy.getPrincipal(),
+            "/different/path", policy.getEntries(), policy.getRestrictionProvider(),
+            policy.getNamePathMapper());
+        ImmutablePrincipalPolicy differentPrincipal = new ImmutablePrincipalPolicy(
+            EveryonePrincipal.getInstance(), policy.getOakPath(), policy.getEntries(),
+            policy.getRestrictionProvider(), policy.getNamePathMapper());
+        ImmutablePrincipalPolicy differentEntries = new ImmutablePrincipalPolicy(
+            policy.getPrincipal(), policy.getOakPath(), Collections.emptyList(),
+            policy.getRestrictionProvider(), policy.getNamePathMapper());
 
         assertNotEquals(immutable, policy);
         assertNotEquals(immutable, new ImmutableACL(policy));

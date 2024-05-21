@@ -16,14 +16,13 @@
  */
 package org.apache.jackrabbit.oak.upgrade.cli.blob;
 
-import org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStore;
-import org.apache.jackrabbit.oak.plugins.blob.AbstractSharedCachingDataStore;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
 
 import java.lang.reflect.Field;
 import java.util.Properties;
-
-import static org.junit.Assert.assertEquals;
+import org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStore;
+import org.apache.jackrabbit.oak.plugins.blob.AbstractSharedCachingDataStore;
+import org.junit.Test;
 
 public class S3DataStoreFactoryTest {
 
@@ -45,7 +44,8 @@ public class S3DataStoreFactoryTest {
         assertEquals(123, readLong("cacheSize", AbstractSharedCachingDataStore.class, ds));
     }
 
-    private static long readLong(String fieldName, Class<?> clazz, Object object) throws NoSuchFieldException, IllegalAccessException {
+    private static long readLong(String fieldName, Class<?> clazz, Object object)
+        throws NoSuchFieldException, IllegalAccessException {
         Field field = clazz.getDeclaredField(fieldName);
         field.setAccessible(true);
         return field.getLong(object);

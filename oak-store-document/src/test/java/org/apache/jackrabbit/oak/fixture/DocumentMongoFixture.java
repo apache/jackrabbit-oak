@@ -63,7 +63,8 @@ public class DocumentMongoFixture extends NodeStoreFixture {
     @Override
     public NodeStore createNodeStore() {
         try {
-            String suffix = String.format("-%d-%d", System.currentTimeMillis(), sequence.incrementAndGet());
+            String suffix = String.format("-%d-%d", System.currentTimeMillis(),
+                sequence.incrementAndGet());
 
             DocumentMK.Builder builder = new DocumentMK.Builder();
             if (blobStore != null) {
@@ -73,7 +74,8 @@ public class DocumentMongoFixture extends NodeStoreFixture {
             builder.setMongoDB(createClient(), getDBName(suffix));
             //do not reuse the whiteboard
             setWhiteboard(new DefaultWhiteboard());
-            builder.setNoChildOrderCleanupFeature(Feature.newFeature("FT_NOCOCLEANUP_OAK-10660", getWhiteboard()));
+            builder.setNoChildOrderCleanupFeature(
+                Feature.newFeature("FT_NOCOCLEANUP_OAK-10660", getWhiteboard()));
             DocumentNodeStore ns = builder.getNodeStore();
             suffixes.put(ns, suffix);
             return ns;

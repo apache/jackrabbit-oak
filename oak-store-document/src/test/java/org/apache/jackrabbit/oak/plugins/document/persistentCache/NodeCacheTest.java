@@ -76,19 +76,20 @@ public class NodeCacheTest {
     private StatisticsProvider statsProvider = new DefaultStatisticsProvider(executor);
 
     @After
-    public void shutDown(){
+    public void shutDown() {
         new ExecutorCloser(executor).close();
     }
 
     @Test
-    public void testAsyncCache() throws Exception{
+    public void testAsyncCache() throws Exception {
         initializeNodeStore(true);
         ns.setNodeStateCache(new PathExcludingCache("/c"));
 
         NodeBuilder builder = ns.getRoot().builder();
         builder.child("a").child("b");
         builder.child("c").child("d");
-        AbstractDocumentNodeState root = (AbstractDocumentNodeState) ns.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        AbstractDocumentNodeState root = (AbstractDocumentNodeState) ns.merge(builder,
+            EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         PathRev prc = new PathRev(Path.fromString("/c"), root.getRootRevision());
         PathRev pra = new PathRev(Path.fromString("/a"), root.getRootRevision());
@@ -103,7 +104,7 @@ public class NodeCacheTest {
         //Adding this should NOT be rejected
         nodeCache.evicted(pra, (DocumentNodeState) root.getChildNode("a"), RemovalCause.SIZE);
         long count2 = counter.getCount();
-        assertEquals(count1 , count2);
+        assertEquals(count1, count2);
     }
 
     @Test
@@ -132,10 +133,10 @@ public class NodeCacheTest {
     }
 
     @Test
-    public void cachePredicateSync() throws Exception{
+    public void cachePredicateSync() throws Exception {
         Path a = Path.fromString("/a");
         initializeNodeStore(false, b -> b.setNodeCachePathPredicate(
-                path -> path != null && (a.equals(path) || a.isAncestorOf(path))
+            path -> path != null && (a.equals(path) || a.isAncestorOf(path))
         ));
 
         NodeBuilder builder = ns.getRoot().builder();
@@ -158,7 +159,7 @@ public class NodeCacheTest {
     public void persistentCacheAccessForIncludedPathOnly() throws Exception {
         Path a = Path.fromString("/a");
         initializeNodeStore(false, b -> b.setNodeCachePathPredicate(
-                path -> path != null && (a.equals(path) || a.isAncestorOf(path))
+            path -> path != null && (a.equals(path) || a.isAncestorOf(path))
         ));
 
         NodeBuilder builder = ns.getRoot().builder();
@@ -168,7 +169,8 @@ public class NodeCacheTest {
         ns.getNodeCache().invalidateAll();
         ns.getNodeChildrenCache().invalidateAll();
 
-        MeterStats stats = statsProvider.getMeter("PersistentCache.NodeCache.node.REQUESTS", StatsOptions.DEFAULT);
+        MeterStats stats = statsProvider.getMeter("PersistentCache.NodeCache.node.REQUESTS",
+            StatsOptions.DEFAULT);
         // hasChildNode() is not cached and will cause a request
         // to the persistent cache
         long requests = stats.getCount() + 1;
@@ -186,12 +188,13 @@ public class NodeCacheTest {
         initializeNodeStore(false);
         // initialize a second cluster node using the same document store
         DocumentNodeStore ns2 = builderProvider.newBuilder().setClusterId(2)
-                .setDocumentStore(store).setAsyncDelay(0).build();
+                                               .setDocumentStore(store).setAsyncDelay(0).build();
         // sync the two cluster nodes
         ns2.runBackgroundOperations();
         ns.runBackgroundOperations();
 
-        MeterStats stats = statsProvider.getMeter("PersistentCache.NodeCache.local_diff.REQUESTS", StatsOptions.DEFAULT);
+        MeterStats stats = statsProvider.getMeter("PersistentCache.NodeCache.local_diff.REQUESTS",
+            StatsOptions.DEFAULT);
 
         NodeState r1 = ns.getRoot();
 
@@ -213,19 +216,20 @@ public class NodeCacheTest {
     }
 
     private void initializeNodeStore(boolean asyncCache) {
-        initializeNodeStore(asyncCache, b -> {});
+        initializeNodeStore(asyncCache, b -> {
+        });
     }
 
     private void initializeNodeStore(boolean asyncCache, Consumer<DocumentMK.Builder> processor) {
         store = new MemoryDocumentStore();
         DocumentMK.Builder builder = builderProvider.newBuilder()
-                .setDocumentStore(store)
-                .setAsyncDelay(0)
-                .setStatisticsProvider(statsProvider);
+                                                    .setDocumentStore(store)
+                                                    .setAsyncDelay(0)
+                                                    .setStatisticsProvider(statsProvider);
 
-        if (asyncCache){
+        if (asyncCache) {
             builder.setPersistentCache("target/persistentCache,time");
-        }else {
+        } else {
             builder.setPersistentCache("target/persistentCache,time,-async");
         }
 
@@ -237,15 +241,18 @@ public class NodeCacheTest {
     }
 
 
-    private static <V extends CacheValue> void assertContains(NodeCache<PathRev, V> cache, String path) {
+    private static <V extends CacheValue> void assertContains(NodeCache<PathRev, V> cache,
+        String path) {
         assertPathRevs(cache, path, true);
     }
 
-    private static <V extends CacheValue> void assertNotContains(NodeCache<PathRev, V> cache, String path) {
+    private static <V extends CacheValue> void assertNotContains(NodeCache<PathRev, V> cache,
+        String path) {
         assertPathRevs(cache, path, false);
     }
 
-    private static <V extends CacheValue> void assertPathRevs(NodeCache<PathRev, V> cache, String path, boolean contains) {
+    private static <V extends CacheValue> void assertPathRevs(NodeCache<PathRev, V> cache,
+        String path, boolean contains) {
         List<PathRev> revs = getPathRevs(cache, path);
         List<PathRev> matchingRevs = Lists.newArrayList();
         for (PathRev pr : revs) {
@@ -255,7 +262,8 @@ public class NodeCacheTest {
         }
 
         if (contains && matchingRevs.isEmpty()) {
-            fail(String.format("Expecting entry for [%s]. Did not found in %s", path, matchingRevs));
+            fail(
+                String.format("Expecting entry for [%s]. Did not found in %s", path, matchingRevs));
         }
 
         if (!contains && !matchingRevs.isEmpty()) {
@@ -263,7 +271,8 @@ public class NodeCacheTest {
         }
     }
 
-    private static <V extends CacheValue> void assertPathNameRevs(NodeCache<NamePathRev, V> cache, String path, boolean contains) {
+    private static <V extends CacheValue> void assertPathNameRevs(NodeCache<NamePathRev, V> cache,
+        String path, boolean contains) {
         List<NamePathRev> revs = getPathNameRevs(cache, path);
         List<NamePathRev> matchingRevs = Lists.newArrayList();
         for (NamePathRev pr : revs) {
@@ -273,7 +282,8 @@ public class NodeCacheTest {
         }
 
         if (contains && matchingRevs.isEmpty()) {
-            fail(String.format("Expecting entry for [%s]. Did not found in %s", path, matchingRevs));
+            fail(
+                String.format("Expecting entry for [%s]. Did not found in %s", path, matchingRevs));
         }
 
         if (!contains && !matchingRevs.isEmpty()) {
@@ -281,7 +291,8 @@ public class NodeCacheTest {
         }
     }
 
-    private static <V extends CacheValue> List<PathRev> getPathRevs(NodeCache<PathRev, V> cache, String path) {
+    private static <V extends CacheValue> List<PathRev> getPathRevs(NodeCache<PathRev, V> cache,
+        String path) {
         List<PathRev> revs = Lists.newArrayList();
         for (PathRev pr : cache.asMap().keySet()) {
             if (pr.getPath().toString().equals(path)) {
@@ -291,7 +302,8 @@ public class NodeCacheTest {
         return revs;
     }
 
-    private static <V extends CacheValue> List<NamePathRev> getPathNameRevs(NodeCache<NamePathRev, V> cache, String path) {
+    private static <V extends CacheValue> List<NamePathRev> getPathNameRevs(
+        NodeCache<NamePathRev, V> cache, String path) {
         List<NamePathRev> revs = Lists.newArrayList();
         for (NamePathRev pr : cache.asMap().keySet()) {
             if (pr.getPath().toString().equals(path)) {
@@ -302,6 +314,7 @@ public class NodeCacheTest {
     }
 
     private static class PathExcludingCache implements DocumentNodeStateCache {
+
         private final String excludeRoot;
 
         private PathExcludingCache(String excludeRoot) {
@@ -309,8 +322,9 @@ public class NodeCacheTest {
         }
 
         @Override
-        public AbstractDocumentNodeState getDocumentNodeState(Path path, RevisionVector rootRevision,
-                                                              RevisionVector lastRev) {
+        public AbstractDocumentNodeState getDocumentNodeState(Path path,
+            RevisionVector rootRevision,
+            RevisionVector lastRev) {
             return null;
         }
 
@@ -321,5 +335,7 @@ public class NodeCacheTest {
             }
             return false;
         }
-    };
+    }
+
+    ;
 }

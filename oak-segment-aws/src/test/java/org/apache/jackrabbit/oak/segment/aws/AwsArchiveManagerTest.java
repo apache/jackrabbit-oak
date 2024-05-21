@@ -19,6 +19,10 @@ package org.apache.jackrabbit.oak.segment.aws;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.junit.Assert.assertEquals;
 
+import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
+import com.amazonaws.services.dynamodbv2.local.embedded.DynamoDBEmbedded;
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.model.S3ObjectSummary;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -26,12 +30,6 @@ import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.UUID;
-
-import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
-import com.amazonaws.services.dynamodbv2.local.embedded.DynamoDBEmbedded;
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.S3ObjectSummary;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
@@ -69,27 +67,31 @@ public class AwsArchiveManagerTest {
         AmazonDynamoDB ddb = DynamoDBEmbedded.create().amazonDynamoDB();
         long time = new Date().getTime();
         bucketName = "bucket-" + time;
-        awsContext = AwsContext.create(s3, bucketName, "oak", ddb, "journaltable-" + time, "locktable-" + time);
+        awsContext = AwsContext.create(s3, bucketName, "oak", ddb, "journaltable-" + time,
+            "locktable-" + time);
     }
 
     @Test
     public void testRecovery() throws IOException {
-        SegmentArchiveManager manager = new AwsPersistence(awsContext).createArchiveManager(false, false,
-                new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
+        SegmentArchiveManager manager = new AwsPersistence(awsContext).createArchiveManager(false,
+            false,
+            new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
         SegmentArchiveWriter writer = manager.create("data00000a.tar");
 
         List<UUID> uuids = new ArrayList<>();
         for (int i = 0; i < 10; i++) {
             UUID u = UUID.randomUUID();
-            writer.writeSegment(u.getMostSignificantBits(), u.getLeastSignificantBits(), new byte[10], 0, 10, 0, 0,
-                    false);
+            writer.writeSegment(u.getMostSignificantBits(), u.getLeastSignificantBits(),
+                new byte[10], 0, 10, 0, 0,
+                false);
             uuids.add(u);
         }
 
         writer.flush();
         writer.close();
 
-        s3.deleteObject(bucketName, rootDirectory + "/data00000a.tar/0005." + uuids.get(5).toString());
+        s3.deleteObject(bucketName,
+            rootDirectory + "/data00000a.tar/0005." + uuids.get(5).toString());
 
         LinkedHashMap<UUID, byte[]> recovered = new LinkedHashMap<>();
         manager.recoverEntries("data00000a.tar", recovered);
@@ -97,9 +99,11 @@ public class AwsArchiveManagerTest {
     }
 
     @Test
-    public void testUncleanStop() throws InvalidFileStoreVersionException, IOException, CommitFailedException {
+    public void testUncleanStop()
+        throws InvalidFileStoreVersionException, IOException, CommitFailedException {
         SegmentNodeStorePersistence p = new AwsPersistence(awsContext);
-        FileStore fs = FileStoreBuilder.fileStoreBuilder(new File("target")).withCustomPersistence(p).build();
+        FileStore fs = FileStoreBuilder.fileStoreBuilder(new File("target"))
+                                       .withCustomPersistence(p).build();
         SegmentNodeStore segmentNodeStore = SegmentNodeStoreBuilders.builder(fs).build();
         NodeBuilder builder = segmentNodeStore.getRoot().builder();
         builder.setProperty("foo", "bar");
@@ -119,9 +123,10 @@ public class AwsArchiveManagerTest {
     @Test
     // see OAK-8566
     public void testUncleanStopWithEmptyArchive()
-            throws IOException, CommitFailedException, InvalidFileStoreVersionException {
+        throws IOException, CommitFailedException, InvalidFileStoreVersionException {
         AwsPersistence p = new AwsPersistence(awsContext);
-        FileStore fs = FileStoreBuilder.fileStoreBuilder(new File("target")).withCustomPersistence(p).build();
+        FileStore fs = FileStoreBuilder.fileStoreBuilder(new File("target"))
+                                       .withCustomPersistence(p).build();
         SegmentNodeStore segmentNodeStore = SegmentNodeStoreBuilders.builder(fs).build();
         NodeBuilder builder = segmentNodeStore.getRoot().builder();
         builder.setProperty("foo", "bar");
@@ -137,7 +142,8 @@ public class AwsArchiveManagerTest {
         fs.close();
 
         // remove the segment 0000 from the second archive
-        S3ObjectSummary segment0000 = awsContext.directory.listObjects("data00001a.tar/0000.").iterator().next();
+        S3ObjectSummary segment0000 = awsContext.directory.listObjects("data00001a.tar/0000.")
+                                                          .iterator().next();
         s3.deleteObject(segment0000.getBucketName(), segment0000.getKey());
         s3.deleteObject(segment0000.getBucketName(), "oak/data00001a.tar/closed");
 
@@ -149,15 +155,17 @@ public class AwsArchiveManagerTest {
 
     @Test
     public void testExists() throws IOException {
-        SegmentArchiveManager manager = new AwsPersistence(awsContext).createArchiveManager(false, false,
-                new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
+        SegmentArchiveManager manager = new AwsPersistence(awsContext).createArchiveManager(false,
+            false,
+            new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
         SegmentArchiveWriter writer = manager.create("data00000a.tar");
 
         List<UUID> uuids = new ArrayList<>();
         for (int i = 0; i < 10; i++) {
             UUID u = UUID.randomUUID();
-            writer.writeSegment(u.getMostSignificantBits(), u.getLeastSignificantBits(), new byte[10], 0, 10, 0, 0,
-                    false);
+            writer.writeSegment(u.getMostSignificantBits(), u.getLeastSignificantBits(),
+                new byte[10], 0, 10, 0, 0,
+                false);
             uuids.add(u);
         }
 
@@ -170,13 +178,15 @@ public class AwsArchiveManagerTest {
 
     @Test
     public void testArchiveExistsAfterFlush() throws IOException {
-        SegmentArchiveManager manager = new AwsPersistence(awsContext).createArchiveManager(false, false,
-                new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
+        SegmentArchiveManager manager = new AwsPersistence(awsContext).createArchiveManager(false,
+            false,
+            new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
         SegmentArchiveWriter writer = manager.create("data00000a.tar");
 
         Assert.assertFalse(manager.exists("data00000a.tar"));
         UUID u = UUID.randomUUID();
-        writer.writeSegment(u.getMostSignificantBits(), u.getLeastSignificantBits(), new byte[10], 0, 10, 0, 0, false);
+        writer.writeSegment(u.getMostSignificantBits(), u.getLeastSignificantBits(), new byte[10],
+            0, 10, 0, 0, false);
         writer.flush();
         Assert.assertTrue(manager.exists("data00000a.tar"));
     }

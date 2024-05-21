@@ -20,9 +20,9 @@
 package org.apache.jackrabbit.oak.stats;
 
 public final class StatsOptions {
+
     /**
-     * Default mode where both TimeSeries data and other statistical data
-     * would be collected
+     * Default mode where both TimeSeries data and other statistical data would be collected
      */
     public static final StatsOptions DEFAULT = new StatsOptions(true, true);
     /**

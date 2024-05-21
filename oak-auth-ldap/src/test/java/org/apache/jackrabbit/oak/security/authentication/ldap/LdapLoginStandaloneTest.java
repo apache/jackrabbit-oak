@@ -16,16 +16,15 @@
  */
 package org.apache.jackrabbit.oak.security.authentication.ldap;
 
+import static org.junit.Assert.fail;
+
 import javax.jcr.GuestCredentials;
 import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.Configuration;
 import javax.security.auth.login.LoginException;
-
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalLoginModule;
 import org.junit.Test;
-
-import static org.junit.Assert.fail;
 
 public class LdapLoginStandaloneTest extends LdapLoginTestBase {
 
@@ -35,10 +34,10 @@ public class LdapLoginStandaloneTest extends LdapLoginTestBase {
             @Override
             public AppConfigurationEntry[] getAppConfigurationEntry(String s) {
                 return new AppConfigurationEntry[]{
-                        new AppConfigurationEntry(
-                                ExternalLoginModule.class.getName(),
-                                AppConfigurationEntry.LoginModuleControlFlag.REQUIRED,
-                                options)
+                    new AppConfigurationEntry(
+                        ExternalLoginModule.class.getName(),
+                        AppConfigurationEntry.LoginModuleControlFlag.REQUIRED,
+                        options)
                 };
             }
         };

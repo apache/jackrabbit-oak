@@ -22,7 +22,6 @@ import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
-
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.plugins.document.Consistency;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
@@ -49,7 +48,7 @@ public class ConsistencyCheck extends AsyncDocumentProcessor {
 
     @Override
     protected Optional<Callable<Void>> createTask(@NotNull NodeDocument document,
-                                                  @NotNull BlockingQueue<Result> results) {
+        @NotNull BlockingQueue<Result> results) {
         if (document.isSplitDocument()) {
             return Optional.empty();
         } else {
@@ -68,9 +67,9 @@ public class ConsistencyCheck extends AsyncDocumentProcessor {
         private final BlockingQueue<Result> results;
 
         public CheckDocument(DocumentNodeStore ns,
-                             DocumentNodeState root,
-                             NodeDocument doc,
-                             BlockingQueue<Result> results) {
+            DocumentNodeState root,
+            NodeDocument doc,
+            BlockingQueue<Result> results) {
             this.ns = ns;
             this.root = root;
             this.doc = doc;

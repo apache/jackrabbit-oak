@@ -16,9 +16,11 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+
 import java.security.Principal;
 import java.util.Map;
-
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
@@ -38,17 +40,14 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
-
 public class CugConfigurationOsgiTest extends AbstractSecurityTest {
 
     private static final String EXCLUDED_PRINCIPAL_NAME = "excludedPrincipal";
     private static final String ANY_PRINCIPAL_NAME = "anyPrincipal";
 
     private static final Map<String, Object> PROPERTIES = ImmutableMap.of(
-            CugConstants.PARAM_CUG_ENABLED, true,
-            CugConstants.PARAM_CUG_SUPPORTED_PATHS, new String[] {"/"});
+        CugConstants.PARAM_CUG_ENABLED, true,
+        CugConstants.PARAM_CUG_SUPPORTED_PATHS, new String[]{"/"});
 
     @Rule
     public final OsgiContext context = new OsgiContext();
@@ -88,57 +87,67 @@ public class CugConfigurationOsgiTest extends AbstractSecurityTest {
         SystemUserPrincipal suPrincipal = () -> "name";
 
         AuthorizationConfiguration config = context.getService(AuthorizationConfiguration.class);
-        for (Principal p : new Principal[] {SystemPrincipal.INSTANCE, admin, suPrincipal}) {
-            PermissionProvider permissionProvider = config.getPermissionProvider(root, wspName, ImmutableSet.of(p));
+        for (Principal p : new Principal[]{SystemPrincipal.INSTANCE, admin, suPrincipal}) {
+            PermissionProvider permissionProvider = config.getPermissionProvider(root, wspName,
+                ImmutableSet.of(p));
             assertSame(EmptyPermissionProvider.getInstance(), permissionProvider);
         }
 
         // however, other principals must not be excluded
-        PermissionProvider permissionProvider = config.getPermissionProvider(root, wspName, ImmutableSet.of(new PrincipalImpl(EXCLUDED_PRINCIPAL_NAME)));
+        PermissionProvider permissionProvider = config.getPermissionProvider(root, wspName,
+            ImmutableSet.of(new PrincipalImpl(EXCLUDED_PRINCIPAL_NAME)));
         assertTrue(permissionProvider instanceof CugPermissionProvider);
     }
 
     @Test
     public void testCugExcludeExcludedPrincipal() {
-        context.registerInjectActivateService(cugExclude, ImmutableMap.of("principalNames", new String[] {EXCLUDED_PRINCIPAL_NAME}));
+        context.registerInjectActivateService(cugExclude,
+            ImmutableMap.of("principalNames", new String[]{EXCLUDED_PRINCIPAL_NAME}));
         context.registerInjectActivateService(cugConfiguration, PROPERTIES);
 
         AuthorizationConfiguration config = context.getService(AuthorizationConfiguration.class);
-        PermissionProvider permissionProvider = config.getPermissionProvider(root, wspName, ImmutableSet.of(new PrincipalImpl(EXCLUDED_PRINCIPAL_NAME)));
+        PermissionProvider permissionProvider = config.getPermissionProvider(root, wspName,
+            ImmutableSet.of(new PrincipalImpl(EXCLUDED_PRINCIPAL_NAME)));
         assertSame(EmptyPermissionProvider.getInstance(), permissionProvider);
     }
 
     @Test
     public void testCugExcludeAnyPrincipal() {
-        context.registerInjectActivateService(cugExclude, ImmutableMap.of("principalNames", new String[] {EXCLUDED_PRINCIPAL_NAME}));
+        context.registerInjectActivateService(cugExclude,
+            ImmutableMap.of("principalNames", new String[]{EXCLUDED_PRINCIPAL_NAME}));
         context.registerInjectActivateService(cugConfiguration, PROPERTIES);
 
         AuthorizationConfiguration config = context.getService(AuthorizationConfiguration.class);
-        PermissionProvider permissionProvider = config.getPermissionProvider(root, wspName, ImmutableSet.of(new PrincipalImpl(ANY_PRINCIPAL_NAME)));
+        PermissionProvider permissionProvider = config.getPermissionProvider(root, wspName,
+            ImmutableSet.of(new PrincipalImpl(ANY_PRINCIPAL_NAME)));
         assertTrue(permissionProvider instanceof CugPermissionProvider);
     }
 
     @Test
     public void testNotEnabled() {
-        context.registerInjectActivateService(cugExclude, ImmutableMap.of("principalNames", new String[] {ANY_PRINCIPAL_NAME}));
+        context.registerInjectActivateService(cugExclude,
+            ImmutableMap.of("principalNames", new String[]{ANY_PRINCIPAL_NAME}));
         context.registerInjectActivateService(cugConfiguration, ImmutableMap.of(
-                CugConstants.PARAM_CUG_ENABLED, false,
-                CugConstants.PARAM_CUG_SUPPORTED_PATHS, new String[]{"/"}));
+            CugConstants.PARAM_CUG_ENABLED, false,
+            CugConstants.PARAM_CUG_SUPPORTED_PATHS, new String[]{"/"}));
 
         AuthorizationConfiguration config = context.getService(AuthorizationConfiguration.class);
-        PermissionProvider permissionProvider = config.getPermissionProvider(root, wspName, ImmutableSet.of(new PrincipalImpl(ANY_PRINCIPAL_NAME)));
+        PermissionProvider permissionProvider = config.getPermissionProvider(root, wspName,
+            ImmutableSet.of(new PrincipalImpl(ANY_PRINCIPAL_NAME)));
         assertSame(EmptyPermissionProvider.getInstance(), permissionProvider);
     }
 
     @Test
     public void testNoSupportedPaths() {
-        context.registerInjectActivateService(cugExclude, ImmutableMap.of("principalNames", new String[] {ANY_PRINCIPAL_NAME}));
+        context.registerInjectActivateService(cugExclude,
+            ImmutableMap.of("principalNames", new String[]{ANY_PRINCIPAL_NAME}));
         context.registerInjectActivateService(cugConfiguration, ImmutableMap.of(
-                CugConstants.PARAM_CUG_ENABLED, true,
-                CugConstants.PARAM_CUG_SUPPORTED_PATHS, new String[0]));
+            CugConstants.PARAM_CUG_ENABLED, true,
+            CugConstants.PARAM_CUG_SUPPORTED_PATHS, new String[0]));
 
         AuthorizationConfiguration config = context.getService(AuthorizationConfiguration.class);
-        PermissionProvider permissionProvider = config.getPermissionProvider(root, wspName, ImmutableSet.of(new PrincipalImpl(ANY_PRINCIPAL_NAME)));
+        PermissionProvider permissionProvider = config.getPermissionProvider(root, wspName,
+            ImmutableSet.of(new PrincipalImpl(ANY_PRINCIPAL_NAME)));
         assertSame(EmptyPermissionProvider.getInstance(), permissionProvider);
     }
 }

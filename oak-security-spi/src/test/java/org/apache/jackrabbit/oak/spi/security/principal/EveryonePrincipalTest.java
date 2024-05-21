@@ -16,14 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.principal;
 
-import java.security.Principal;
-import java.util.Enumeration;
-
-import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
-import org.apache.jackrabbit.api.security.principal.JackrabbitPrincipal;
-import org.jetbrains.annotations.NotNull;
-import org.junit.Test;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
@@ -31,7 +23,14 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
-public class EveryonePrincipalTest  {
+import java.security.Principal;
+import java.util.Enumeration;
+import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
+import org.apache.jackrabbit.api.security.principal.JackrabbitPrincipal;
+import org.jetbrains.annotations.NotNull;
+import org.junit.Test;
+
+public class EveryonePrincipalTest {
 
     private final EveryonePrincipal everyone = EveryonePrincipal.getInstance();
 
@@ -101,9 +100,11 @@ public class EveryonePrincipalTest  {
     //--------------------------------------------------------------------------
 
     private static class OtherEveryone implements JackrabbitPrincipal {
+
         public String getName() {
             return EveryonePrincipal.NAME;
         }
+
         @Override
         public boolean equals(Object o) {
             if (o instanceof JackrabbitPrincipal) {
@@ -111,6 +112,7 @@ public class EveryonePrincipalTest  {
             }
             return false;
         }
+
         @Override
         public int hashCode() {
             return getName().hashCode();

@@ -23,7 +23,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
-
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
@@ -56,6 +55,7 @@ public class IOTraceMonitorTest {
     }
 
     private static class TraceWriterAssertion implements IOTraceWriter {
+
         private String header;
         private String entry;
         private boolean flushed;

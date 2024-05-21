@@ -20,11 +20,12 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * A {@code Restriction} object represents a "live" restriction object that
- * has been created using the Jackrabbit specific extensions of the
+ * A {@code Restriction} object represents a "live" restriction object that has been created using
+ * the Jackrabbit specific extensions of the
  * {@link javax.jcr.security.AccessControlEntry AccessControlEntry} interface.
  *
- * @see org.apache.jackrabbit.api.security.JackrabbitAccessControlList#addEntry(java.security.Principal, javax.jcr.security.Privilege[], boolean, java.util.Map)
+ * @see org.apache.jackrabbit.api.security.JackrabbitAccessControlList#addEntry(java.security.Principal,
+ * javax.jcr.security.Privilege[], boolean, java.util.Map)
  */
 public interface Restriction {
 

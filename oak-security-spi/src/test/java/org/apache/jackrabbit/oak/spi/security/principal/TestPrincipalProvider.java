@@ -21,6 +21,9 @@ import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
+import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
+import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
@@ -28,10 +31,6 @@ import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.collect.Sets;
-
-import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
-import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
-import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -53,18 +52,19 @@ public final class TestPrincipalProvider implements PrincipalProvider {
 
     public TestPrincipalProvider(String... principalNames) {
         this.exposesEveryone = true;
-        this.principals = Maps.toMap(ImmutableSet.copyOf(principalNames), input -> new ItemBasedPrincipal() {
-            @NotNull
-            @Override
-            public String getPath() {
-                return "/path/to/principal/" + input;
-            }
+        this.principals = Maps.toMap(ImmutableSet.copyOf(principalNames),
+            input -> new ItemBasedPrincipal() {
+                @NotNull
+                @Override
+                public String getPath() {
+                    return "/path/to/principal/" + input;
+                }
 
-            @Override
-            public String getName() {
-                return input;
-            }
-        });
+                @Override
+                public String getName() {
+                    return input;
+                }
+            });
     }
 
     public Iterable<Principal> getTestPrincipals() {
@@ -152,15 +152,20 @@ public final class TestPrincipalProvider implements PrincipalProvider {
 
         @Override
         public boolean apply(Principal principal) {
-            if (nameHint != null && principal != null && !principal.getName().startsWith(nameHint)) {
+            if (nameHint != null && principal != null && !principal.getName()
+                                                                   .startsWith(nameHint)) {
                 return false;
             }
 
             switch (searchType) {
-                case PrincipalManager.SEARCH_TYPE_ALL: return true;
-                case PrincipalManager.SEARCH_TYPE_GROUP: return principal instanceof GroupPrincipal;
-                case PrincipalManager.SEARCH_TYPE_NOT_GROUP: return !(principal instanceof GroupPrincipal);
-                default: throw new IllegalArgumentException();
+                case PrincipalManager.SEARCH_TYPE_ALL:
+                    return true;
+                case PrincipalManager.SEARCH_TYPE_GROUP:
+                    return principal instanceof GroupPrincipal;
+                case PrincipalManager.SEARCH_TYPE_NOT_GROUP:
+                    return !(principal instanceof GroupPrincipal);
+                default:
+                    throw new IllegalArgumentException();
             }
         }
     }
@@ -196,12 +201,17 @@ public final class TestPrincipalProvider implements PrincipalProvider {
         private static final GroupPrincipal gr3 = new TestGroup("gr2", gr2, ac);
 
         private static final Map<String, Principal> principals = ImmutableMap.<String, Principal>builder()
-                .put(a.getName(), a)
-                .put("b", new PrincipalImpl("b"))
-                .put(ac.getName(), ac)
-                .put(gr1.getName(), gr1)
-                .put(gr2.getName(), gr2)
-                .put(gr3.getName(), gr3).build();
+                                                                             .put(a.getName(), a)
+                                                                             .put("b",
+                                                                                 new PrincipalImpl(
+                                                                                     "b"))
+                                                                             .put(ac.getName(), ac)
+                                                                             .put(gr1.getName(),
+                                                                                 gr1)
+                                                                             .put(gr2.getName(),
+                                                                                 gr2)
+                                                                             .put(gr3.getName(),
+                                                                                 gr3).build();
 
         private static Map<String, Principal> asMap() {
             return principals;

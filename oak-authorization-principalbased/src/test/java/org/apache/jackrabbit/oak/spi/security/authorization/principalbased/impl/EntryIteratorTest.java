@@ -29,7 +29,9 @@ import static org.mockito.Mockito.when;
 
 public class EntryIteratorTest {
 
-    private final EntryCache cache = when(mock(EntryCache.class).getEntries(anyString())).thenReturn(Iterators.singletonIterator(mock(PermissionEntry.class))).getMock();
+    private final EntryCache cache = when(
+        mock(EntryCache.class).getEntries(anyString())).thenReturn(
+        Iterators.singletonIterator(mock(PermissionEntry.class))).getMock();
 
     @Test
     public void testIterationStopsAtRootPath() {
@@ -38,7 +40,7 @@ public class EntryIteratorTest {
             it.next();
         }
         verify(cache, times(4)).getEntries(anyString());
-        for (String path : new String[] {"/some/test/path", "/some/test", "/some", "/"}) {
+        for (String path : new String[]{"/some/test/path", "/some/test", "/some", "/"}) {
             verify(cache, times(1)).getEntries(path);
         }
     }

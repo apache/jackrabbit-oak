@@ -19,32 +19,28 @@ package org.apache.jackrabbit.oak.api;
 import javax.jcr.Credentials;
 import javax.jcr.NoSuchWorkspaceException;
 import javax.security.auth.login.LoginException;
-
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Oak content repository. The repository may be local or remote, or a cluster
- * of any size. These deployment details are all hidden behind this interface.
+ * Oak content repository. The repository may be local or remote, or a cluster of any size. These
+ * deployment details are all hidden behind this interface.
  * <p>
- * All access to the repository happens through authenticated
- * {@link ContentSession} instances acquired through the
- * {@link #login(Credentials, String)} method, which is why that is the only
+ * All access to the repository happens through authenticated {@link ContentSession} instances
+ * acquired through the {@link #login(Credentials, String)} method, which is why that is the only
  * method of this interface.
  * <p>
- * Starting and stopping ContentRepository instances is the responsibility
- * of each particular deployment and not covered by this interface.
- * Repository clients should use a deployment-specific mechanism (JNDI,
- * OSGi service, etc.) to acquire references to ContentRepository instances.
+ * Starting and stopping ContentRepository instances is the responsibility of each particular
+ * deployment and not covered by this interface. Repository clients should use a deployment-specific
+ * mechanism (JNDI, OSGi service, etc.) to acquire references to ContentRepository instances.
  * <p>
  * This interface is thread-safe.
  */
 public interface ContentRepository {
 
     /**
-     * Authenticates a user based on the given credentials or available
-     * out-of-band information and, if successful, returns a
-     * {@link ContentSession} instance for accessing repository content
+     * Authenticates a user based on the given credentials or available out-of-band information and,
+     * if successful, returns a {@link ContentSession} instance for accessing repository content
      * inside the specified workspace as the authenticated user.
      * <p>
      * TODO clarify workspace handling once multiple workspaces are
@@ -70,19 +66,19 @@ public interface ContentRepository {
      * </pre>
      *
      * @param credentials   access credentials, or {@code null}
-     * @param workspaceName The workspace name or {@code null} if the default
-     *                      workspace should be used.
+     * @param workspaceName The workspace name or {@code null} if the default workspace should be
+     *                      used.
      * @return authenticated repository session
      * @throws LoginException           if authentication failed
      * @throws NoSuchWorkspaceException if the specified workspace name is invalid.
      */
     @NotNull
     ContentSession login(@Nullable Credentials credentials, @Nullable String workspaceName)
-            throws LoginException, NoSuchWorkspaceException;
+        throws LoginException, NoSuchWorkspaceException;
 
     /**
-     * Returns the repository descriptors which contain all or a subset of the descriptors defined in
-     * {@link javax.jcr.Repository}.
+     * Returns the repository descriptors which contain all or a subset of the descriptors defined
+     * in {@link javax.jcr.Repository}.
      *
      * @return the repository descriptors
      */

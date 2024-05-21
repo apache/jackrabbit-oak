@@ -21,9 +21,7 @@ import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
 import java.math.BigDecimal;
 import java.util.List;
-
 import javax.jcr.PropertyType;
-
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.Blob;
@@ -33,9 +31,11 @@ import org.jetbrains.annotations.NotNull;
 
 /**
  * {@code PropertyBuilder} for building in memory {@code PropertyState} instances.
+ *
  * @param <T>
  */
 public class PropertyBuilder<T> {
+
     private final Type<T> type;
 
     private String name;
@@ -43,9 +43,10 @@ public class PropertyBuilder<T> {
     private List<T> values = Lists.newArrayList();
 
     /**
-     * Create a new instance for building {@code PropertyState} instances
-     * of the given {@code type}.
-     * @param type  type of the {@code PropertyState} instances to be built.
+     * Create a new instance for building {@code PropertyState} instances of the given
+     * {@code type}.
+     *
+     * @param type type of the {@code PropertyState} instances to be built.
      * @throws IllegalArgumentException if {@code type.isArray()} is {@code true}.
      */
     public PropertyBuilder(Type<T> type) {
@@ -54,9 +55,10 @@ public class PropertyBuilder<T> {
     }
 
     /**
-     * Create a new instance for building scalar {@code PropertyState} instances
-     * of the given {@code type}.
-     * @param type  type of the {@code PropertyState} instances to be built.
+     * Create a new instance for building scalar {@code PropertyState} instances of the given
+     * {@code type}.
+     *
+     * @param type type of the {@code PropertyState} instances to be built.
      * @return {@code PropertyBuilder} for {@code type}
      */
     public static <T> PropertyBuilder<T> scalar(Type<T> type) {
@@ -64,9 +66,10 @@ public class PropertyBuilder<T> {
     }
 
     /**
-     * Create a new instance for building array {@code PropertyState} instances
-     * of the given {@code type}.
-     * @param type  type of the {@code PropertyState} instances to be built.
+     * Create a new instance for building array {@code PropertyState} instances of the given
+     * {@code type}.
+     *
+     * @param type type of the {@code PropertyState} instances to be built.
      * @return {@code PropertyBuilder} for {@code type}
      */
     public static <T> PropertyBuilder<T> array(Type<T> type) {
@@ -74,15 +77,14 @@ public class PropertyBuilder<T> {
     }
 
     /**
-     * Create a new instance for building scalar {@code PropertyState} instances
-     * of the given {@code type}. The builder is initialised with the
-     * given {@code name}.
-     * Equivalent to
+     * Create a new instance for building scalar {@code PropertyState} instances of the given
+     * {@code type}. The builder is initialised with the given {@code name}. Equivalent to
      * <pre>
      *     MemoryPropertyBuilder.create(type).setName(name);
      * </pre>
-     * @param type  type of the {@code PropertyState} instances to be built.
-     * @param name  initial name
+     *
+     * @param type type of the {@code PropertyState} instances to be built.
+     * @param name initial name
      * @return {@code PropertyBuilder} for {@code type}
      */
     public static <T> PropertyBuilder<T> scalar(Type<T> type, String name) {
@@ -90,15 +92,14 @@ public class PropertyBuilder<T> {
     }
 
     /**
-     * Create a new instance for building array {@code PropertyState} instances
-     * of the given {@code type}. The builder is initialised with the
-     * given {@code name}.
-     * Equivalent to
+     * Create a new instance for building array {@code PropertyState} instances of the given
+     * {@code type}. The builder is initialised with the given {@code name}. Equivalent to
      * <pre>
      *     MemoryPropertyBuilder.create(type).setName(name).setArray();
      * </pre>
-     * @param type  type of the {@code PropertyState} instances to be built.
-     * @param name  initial name
+     *
+     * @param type type of the {@code PropertyState} instances to be built.
+     * @param name initial name
      * @return {@code PropertyBuilder} for {@code type}
      */
     public static <T> PropertyBuilder<T> array(Type<T> type, String name) {
@@ -106,16 +107,14 @@ public class PropertyBuilder<T> {
     }
 
     /**
-     * Create a new instance for building {@code PropertyState} instances
-     * of the given {@code type}. The builder is initialised with the name and
-     * the values of {@code property}.
-     * Equivalent to
+     * Create a new instance for building {@code PropertyState} instances of the given {@code type}.
+     * The builder is initialised with the name and the values of {@code property}. Equivalent to
      * <pre>
      *     PropertyBuilder.scalar(type).assignFrom(property);
      * </pre>
      *
-     * @param type  type of the {@code PropertyState} instances to be built.
-     * @param property  initial name and values
+     * @param type     type of the {@code PropertyState} instances to be built.
+     * @param property initial name and values
      * @return {@code PropertyBuilder} for {@code type}
      */
     public static <T> PropertyBuilder<T> copy(Type<T> type, PropertyState property) {
@@ -168,17 +167,21 @@ public class PropertyBuilder<T> {
                 case PropertyType.STRING:
                     return MultiStringPropertyState.stringProperty(name, (Iterable<String>) values);
                 case PropertyType.BINARY:
-                    return MultiBinaryPropertyState.binaryPropertyFromBlob(name, (Iterable<Blob>) values);
+                    return MultiBinaryPropertyState.binaryPropertyFromBlob(name,
+                        (Iterable<Blob>) values);
                 case PropertyType.LONG:
                     return MultiLongPropertyState.createLongProperty(name, (Iterable<Long>) values);
                 case PropertyType.DOUBLE:
                     return MultiDoublePropertyState.doubleProperty(name, (Iterable<Double>) values);
                 case PropertyType.BOOLEAN:
-                    return MultiBooleanPropertyState.booleanProperty(name, (Iterable<Boolean>) values);
+                    return MultiBooleanPropertyState.booleanProperty(name,
+                        (Iterable<Boolean>) values);
                 case PropertyType.DECIMAL:
-                    return MultiDecimalPropertyState.decimalProperty(name, (Iterable<BigDecimal>) values);
+                    return MultiDecimalPropertyState.decimalProperty(name,
+                        (Iterable<BigDecimal>) values);
                 default:
-                    return new MultiGenericPropertyState(name, (Iterable<String>) values, Type.fromTag(type.tag(), true));
+                    return new MultiGenericPropertyState(name, (Iterable<String>) values,
+                        Type.fromTag(type.tag(), true));
             }
         } else {
             T value = values.get(0);

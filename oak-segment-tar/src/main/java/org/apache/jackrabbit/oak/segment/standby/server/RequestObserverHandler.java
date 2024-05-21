@@ -17,18 +17,16 @@
 
 package org.apache.jackrabbit.oak.segment.standby.server;
 
-import java.net.InetSocketAddress;
-
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
+import java.net.InetSocketAddress;
 import org.apache.jackrabbit.oak.segment.standby.codec.GetBlobRequest;
 import org.apache.jackrabbit.oak.segment.standby.codec.GetHeadRequest;
 import org.apache.jackrabbit.oak.segment.standby.codec.GetSegmentRequest;
 import org.apache.jackrabbit.oak.segment.standby.store.CommunicationObserver;
 
 /**
- * Notifies an observer when a valid request has been received and parsed by
- * this server.
+ * Notifies an observer when a valid request has been received and parsed by this server.
  */
 class RequestObserverHandler extends ChannelInboundHandlerAdapter {
 
@@ -53,16 +51,22 @@ class RequestObserverHandler extends ChannelInboundHandlerAdapter {
         ctx.fireChannelRead(msg);
     }
 
-    private void onGetHeadRequest(GetHeadRequest request, InetSocketAddress address) throws Exception {
-        observer.gotMessageFrom(request.getClientId(), "get head", address.getAddress().getHostAddress(), address.getPort());
+    private void onGetHeadRequest(GetHeadRequest request, InetSocketAddress address)
+        throws Exception {
+        observer.gotMessageFrom(request.getClientId(), "get head",
+            address.getAddress().getHostAddress(), address.getPort());
     }
 
-    private void onGetSegmentRequest(GetSegmentRequest request, InetSocketAddress address) throws Exception {
-        observer.gotMessageFrom(request.getClientId(), "get segment", address.getAddress().getHostAddress(), address.getPort());
+    private void onGetSegmentRequest(GetSegmentRequest request, InetSocketAddress address)
+        throws Exception {
+        observer.gotMessageFrom(request.getClientId(), "get segment",
+            address.getAddress().getHostAddress(), address.getPort());
     }
 
-    private void onGetBlobRequest(GetBlobRequest request, InetSocketAddress address) throws Exception {
-        observer.gotMessageFrom(request.getClientId(), "get blob id", address.getAddress().getHostAddress(), address.getPort());
+    private void onGetBlobRequest(GetBlobRequest request, InetSocketAddress address)
+        throws Exception {
+        observer.gotMessageFrom(request.getClientId(), "get blob id",
+            address.getAddress().getHostAddress(), address.getPort());
     }
 
 }

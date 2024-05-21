@@ -37,16 +37,17 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 import org.junit.Test;
 
 public class RecordCacheTest {
+
     private final Random rnd = new Random();
     private final MemoryStore store = new MemoryStore();
     private final SegmentIdProvider idProvider = store.getSegmentIdProvider();
 
-    public RecordCacheTest() throws IOException {}
+    public RecordCacheTest() throws IOException {
+    }
 
     @Test
     public void emptyCache() {
@@ -75,7 +76,7 @@ public class RecordCacheTest {
         HashMap<String, RecordId> values = new HashMap<>(SIZE);
         List<Integer> indices = new ArrayList<>(SIZE);
 
-        for (int k = 0; k < SIZE; k ++) {
+        for (int k = 0; k < SIZE; k++) {
             String key = "key-" + k;
             RecordId value = newRecordId(idProvider, rnd);
             values.put(key, value);
@@ -87,7 +88,7 @@ public class RecordCacheTest {
         List<Future<String>> putFutures = new ArrayList<>(SIZE);
         List<Future<Void>> getFutures = new ArrayList<>(SIZE);
 
-        for (int k = 0; k < SIZE; k ++) {
+        for (int k = 0; k < SIZE; k++) {
             int idx = k;
             putFutures.add(executor.submit(() -> {
                 String key = "key-" + idx;
@@ -113,7 +114,7 @@ public class RecordCacheTest {
     public void invalidate() {
         RecordCache<String> cache = newRecordCache(100);
         Map<String, RecordId> keys = newLinkedHashMap();
-        for (int k = 0; k < 100; k ++) {
+        for (int k = 0; k < 100; k++) {
             String key = "key-" + k;
             RecordId value = newRecordId(idProvider, rnd);
             keys.put(key, value);
@@ -122,7 +123,7 @@ public class RecordCacheTest {
 
         for (Entry<String, RecordId> entry : keys.entrySet()) {
             assertEquals(entry.getKey() + " should be in the cache",
-                    entry.getValue(), cache.get(entry.getKey()));
+                entry.getValue(), cache.get(entry.getKey()));
         }
 
         RecordId value = newRecordId(idProvider, rnd);
@@ -132,7 +133,7 @@ public class RecordCacheTest {
         keys.remove("key-0");
         for (Entry<String, RecordId> entry : keys.entrySet()) {
             assertEquals(entry.getKey() + " should be in the cache",
-                    entry.getValue(), cache.get(entry.getKey()));
+                entry.getValue(), cache.get(entry.getKey()));
         }
     }
 

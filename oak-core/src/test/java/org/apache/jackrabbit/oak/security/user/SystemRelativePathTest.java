@@ -16,18 +16,17 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.DEFAULT_SYSTEM_RELATIVE_PATH;
+import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.PARAM_SYSTEM_RELATIVE_PATH;
+import static org.junit.Assert.assertTrue;
+
+import javax.jcr.RepositoryException;
+import javax.jcr.nodetype.ConstraintViolationException;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.junit.Test;
-
-import javax.jcr.RepositoryException;
-import javax.jcr.nodetype.ConstraintViolationException;
-
-import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.DEFAULT_SYSTEM_RELATIVE_PATH;
-import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.PARAM_SYSTEM_RELATIVE_PATH;
-import static org.junit.Assert.assertTrue;
 
 public class SystemRelativePathTest extends AbstractSecurityTest {
 

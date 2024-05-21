@@ -26,28 +26,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import com.microsoft.azure.storage.StorageException;
-
-import org.apache.commons.io.IOUtils;
-import org.apache.commons.io.output.NullOutputStream;
-import org.apache.jackrabbit.core.data.DataIdentifier;
-import org.apache.jackrabbit.core.data.DataRecord;
-import org.apache.jackrabbit.core.data.DataStoreException;
-import org.apache.jackrabbit.oak.spi.blob.SharedBackend;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -68,19 +47,37 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
-
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import javax.jcr.RepositoryException;
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.io.output.NullOutputStream;
+import org.apache.jackrabbit.core.data.DataIdentifier;
+import org.apache.jackrabbit.core.data.DataRecord;
+import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.guava.common.base.Strings;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
+import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Maps;
+import org.apache.jackrabbit.guava.common.collect.Sets;
+import org.apache.jackrabbit.oak.spi.blob.SharedBackend;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
- * Test {@link AzureDataStore} with AzureDataStore and local cache on.
- * It requires to pass azure config file via system property or system properties by prefixing with 'ds.'.
- * See details @ {@link AzureDataStoreUtils}.
- * For e.g. -Dconfig=/opt/cq/azure.properties. Sample azure properties located at
- * src/test/resources/azure.properties
+ * Test {@link AzureDataStore} with AzureDataStore and local cache on. It requires to pass azure
+ * config file via system property or system properties by prefixing with 'ds.'. See details @
+ * {@link AzureDataStoreUtils}. For e.g. -Dconfig=/opt/cq/azure.properties. Sample azure properties
+ * located at src/test/resources/azure.properties
  */
 public class AzureDataStoreTest {
+
     protected static final Logger LOG = LoggerFactory.getLogger(AzureDataStoreTest.class);
 
     @Rule
@@ -99,11 +96,13 @@ public class AzureDataStoreTest {
     }
 
     @Before
-    public void setup() throws IOException, RepositoryException, URISyntaxException, InvalidKeyException, StorageException {
+    public void setup()
+        throws IOException, RepositoryException, URISyntaxException, InvalidKeyException, StorageException {
 
         props = AzureDataStoreUtils.getAzureConfig();
-        container = String.valueOf(randomGen.nextInt(9999)) + "-" + String.valueOf(randomGen.nextInt(9999))
-                    + "-test";
+        container =
+            String.valueOf(randomGen.nextInt(9999)) + "-" + String.valueOf(randomGen.nextInt(9999))
+                + "-test";
         props.setProperty(AzureConstants.AZURE_BLOB_CONTAINER_NAME, container);
 
         ds = new AzureDataStore();
@@ -118,32 +117,34 @@ public class AzureDataStoreTest {
         ds = null;
         try {
             AzureDataStoreUtils.deleteContainer(container);
-        } catch (Exception ignore) {}
+        } catch (Exception ignore) {
+        }
     }
 
     private void validateRecord(final DataRecord record,
-                                final String contents,
-                                final DataRecord rhs)
-            throws DataStoreException, IOException {
-        validateRecord(record, contents, rhs.getIdentifier(), rhs.getLength(), rhs.getLastModified());
+        final String contents,
+        final DataRecord rhs)
+        throws DataStoreException, IOException {
+        validateRecord(record, contents, rhs.getIdentifier(), rhs.getLength(),
+            rhs.getLastModified());
     }
 
     private void validateRecord(final DataRecord record,
-                                final String contents,
-                                final DataIdentifier identifier,
-                                final long length,
-                                final long lastModified)
-            throws DataStoreException, IOException {
+        final String contents,
+        final DataIdentifier identifier,
+        final long length,
+        final long lastModified)
+        throws DataStoreException, IOException {
         validateRecord(record, contents, identifier, length, lastModified, true);
     }
 
     private void validateRecord(final DataRecord record,
-                                final String contents,
-                                final DataIdentifier identifier,
-                                final long length,
-                                final long lastModified,
-                                final boolean lastModifiedEquals)
-            throws DataStoreException, IOException {
+        final String contents,
+        final DataIdentifier identifier,
+        final long length,
+        final long lastModified,
+        final boolean lastModifiedEquals)
+        throws DataStoreException, IOException {
         assertEquals(record.getLength(), length);
         if (lastModifiedEquals) {
             assertEquals(record.getLastModified(), lastModified);
@@ -164,7 +165,7 @@ public class AzureDataStoreTest {
     }
 
     private static String getIdForInputStream(final InputStream in)
-            throws NoSuchAlgorithmException, IOException {
+        throws NoSuchAlgorithmException, IOException {
         MessageDigest digest = MessageDigest.getInstance("SHA-1");
         OutputStream output = new DigestOutputStream(new NullOutputStream(), digest);
         try {
@@ -202,7 +203,10 @@ public class AzureDataStoreTest {
         final DataRecord record1 = ds.getRecord(identifier1);
         validateRecord(record1, new String(testBuffer), createdRecord);
 
-        try { Thread.sleep(1001); } catch (InterruptedException e) { }
+        try {
+            Thread.sleep(1001);
+        } catch (InterruptedException e) {
+        }
 
         final DataRecord updatedRecord = ds.addRecord(new ByteArrayInputStream(testBuffer));
         DataIdentifier identifier2 = updatedRecord.getIdentifier();
@@ -237,14 +241,14 @@ public class AzureDataStoreTest {
     ////
 
     private void validateRecordData(final SharedBackend backend,
-                                    final DataIdentifier identifier,
-                                    int expectedSize,
-                                    final InputStream expected) throws IOException, DataStoreException {
+        final DataIdentifier identifier,
+        int expectedSize,
+        final InputStream expected) throws IOException, DataStoreException {
         byte[] blobData = new byte[expectedSize];
         backend.read(identifier).read(blobData);
         byte[] expectedData = new byte[expectedSize];
         expected.read(expectedData);
-        for (int i=0; i<expectedSize; i++) {
+        for (int i = 0; i < expectedSize; i++) {
             assertEquals(expectedData[i], blobData[i]);
         }
     }
@@ -252,7 +256,8 @@ public class AzureDataStoreTest {
     // Write (Backend)
 
     @Test
-    public void testBackendWriteDifferentSizedRecords() throws IOException, NoSuchAlgorithmException, DataStoreException {
+    public void testBackendWriteDifferentSizedRecords()
+        throws IOException, NoSuchAlgorithmException, DataStoreException {
         // Sizes are chosen as follows:
         // 0 - explicitly test zero-size file
         // 10 - very small file
@@ -264,7 +269,8 @@ public class AzureDataStoreTest {
         for (int size : Lists.newArrayList(0, 10, 1000, 4100, 16500, 66000, 132000)) {
             File testFile = folder.newFile();
             copyInputStreamToFile(randomStream(size, size), testFile);
-            DataIdentifier identifier = new DataIdentifier(getIdForInputStream(new FileInputStream(testFile)));
+            DataIdentifier identifier = new DataIdentifier(
+                getIdForInputStream(new FileInputStream(testFile)));
             backend.write(identifier, testFile);
             assertTrue(backend.exists(identifier));
 
@@ -276,7 +282,8 @@ public class AzureDataStoreTest {
     }
 
     @Test
-    public void testBackendWriteRecordNullIdentifierThrowsNullPointerException() throws IOException, DataStoreException{
+    public void testBackendWriteRecordNullIdentifierThrowsNullPointerException()
+        throws IOException, DataStoreException {
         DataIdentifier identifier = null;
         File testFile = folder.newFile();
         copyInputStreamToFile(randomStream(0, 10), testFile);
@@ -289,23 +296,25 @@ public class AzureDataStoreTest {
     }
 
     @Test
-    public void testBackendWriteRecordNullFileThrowsNullPointerException() throws DataStoreException {
+    public void testBackendWriteRecordNullFileThrowsNullPointerException()
+        throws DataStoreException {
         File testFile = null;
         DataIdentifier identifier = new DataIdentifier("fake");
         try {
             backend.write(identifier, testFile);
             fail();
-        }
-        catch (NullPointerException e) {
+        } catch (NullPointerException e) {
             assertTrue("file".equals(e.getMessage()));
         }
     }
 
     @Test
-    public void testBackendWriteRecordFileNotFoundThrowsException() throws IOException, NoSuchAlgorithmException {
+    public void testBackendWriteRecordFileNotFoundThrowsException()
+        throws IOException, NoSuchAlgorithmException {
         File testFile = folder.newFile();
         copyInputStreamToFile(randomStream(0, 10), testFile);
-        DataIdentifier identifier = new DataIdentifier(getIdForInputStream(new FileInputStream(testFile)));
+        DataIdentifier identifier = new DataIdentifier(
+            getIdForInputStream(new FileInputStream(testFile)));
         assertTrue(testFile.delete());
         try {
             backend.write(identifier, testFile);
@@ -323,9 +332,8 @@ public class AzureDataStoreTest {
         try {
             backend.read(identifier);
             fail();
-        }
-        catch (NullPointerException e) {
-            assert("identifier".equals(e.getMessage()));
+        } catch (NullPointerException e) {
+            assert ("identifier".equals(e.getMessage()));
         }
     }
 
@@ -335,8 +343,8 @@ public class AzureDataStoreTest {
         try {
             backend.read(identifier);
             fail();
+        } catch (DataStoreException e) {
         }
-        catch (DataStoreException e) { }
     }
 
     // Delete (Backend)
@@ -347,16 +355,16 @@ public class AzureDataStoreTest {
         try {
             backend.deleteRecord(identifier);
             fail();
-        }
-        catch (NullPointerException e) {
-            assert("identifier".equals(e.getMessage()));
+        } catch (NullPointerException e) {
+            assert ("identifier".equals(e.getMessage()));
         }
     }
 
     @Test
     public void testBackendDeleteRecordInvalidIdentifier() throws DataStoreException {
         DataIdentifier identifier = new DataIdentifier("fake");
-        backend.deleteRecord(identifier); // We don't care if the identifier is invalid; this is a noop
+        backend.deleteRecord(
+            identifier); // We don't care if the identifier is invalid; this is a noop
     }
 
     // Exists (Backend)
@@ -367,13 +375,14 @@ public class AzureDataStoreTest {
     }
 
     @Test
-    public void testBackendRecordExistsNullIdentifierThrowsNullPointerException() throws DataStoreException {
+    public void testBackendRecordExistsNullIdentifierThrowsNullPointerException()
+        throws DataStoreException {
         try {
             DataIdentifier nullIdentifier = null;
             backend.exists(nullIdentifier);
             fail();
+        } catch (NullPointerException e) {
         }
-        catch (NullPointerException e) { }
     }
 
     // GetAllIdentifiers (Backend)
@@ -385,13 +394,15 @@ public class AzureDataStoreTest {
     }
 
     @Test
-    public void testBackendGetAllIdentifiers() throws DataStoreException, IOException, NoSuchAlgorithmException {
+    public void testBackendGetAllIdentifiers()
+        throws DataStoreException, IOException, NoSuchAlgorithmException {
         for (int expectedRecCount : Lists.newArrayList(1, 2, 5)) {
             final List<DataIdentifier> ids = Lists.newArrayList();
-            for (int i=0; i<expectedRecCount; i++) {
+            for (int i = 0; i < expectedRecCount; i++) {
                 File testfile = folder.newFile();
                 copyInputStreamToFile(randomStream(i, 10), testfile);
-                DataIdentifier identifier = new DataIdentifier(getIdForInputStream(new FileInputStream(testfile)));
+                DataIdentifier identifier = new DataIdentifier(
+                    getIdForInputStream(new FileInputStream(testfile)));
                 backend.write(identifier, testfile);
                 ids.add(identifier);
             }
@@ -417,13 +428,13 @@ public class AzureDataStoreTest {
     }
 
     @Test
-    public void testBackendGetRecordNullIdentifierThrowsNullPointerException() throws DataStoreException {
+    public void testBackendGetRecordNullIdentifierThrowsNullPointerException()
+        throws DataStoreException {
         try {
             DataIdentifier identifier = null;
             backend.getRecord(identifier);
             fail();
-        }
-        catch (NullPointerException e) {
+        } catch (NullPointerException e) {
             assertTrue("identifier".equals(e.getMessage()));
         }
     }
@@ -433,8 +444,7 @@ public class AzureDataStoreTest {
         try {
             backend.getRecord(new DataIdentifier("invalid"));
             fail();
-        }
-        catch (DataStoreException e) {
+        } catch (DataStoreException e) {
 
         }
     }
@@ -477,7 +487,8 @@ public class AzureDataStoreTest {
     // AddMetadataRecord (Backend)
 
     @Test
-    public void testBackendAddMetadataRecordsFromInputStream() throws DataStoreException, IOException, NoSuchAlgorithmException {
+    public void testBackendAddMetadataRecordsFromInputStream()
+        throws DataStoreException, IOException, NoSuchAlgorithmException {
         for (boolean fromInputStream : Lists.newArrayList(false, true)) {
             String prefix = String.format("%s.META.", getClass().getSimpleName());
             for (int count : Lists.newArrayList(1, 3)) {
@@ -488,9 +499,9 @@ public class AzureDataStoreTest {
                     records.put(recordName, data);
 
                     if (fromInputStream) {
-                        backend.addMetadataRecord(new ByteArrayInputStream(data.getBytes()), recordName);
-                    }
-                    else {
+                        backend.addMetadataRecord(new ByteArrayInputStream(data.getBytes()),
+                            recordName);
+                    } else {
                         File testFile = folder.newFile();
                         copyInputStreamToFile(new ByteArrayInputStream(data.getBytes()), testFile);
                         backend.addMetadataRecord(testFile, recordName);
@@ -513,43 +524,44 @@ public class AzureDataStoreTest {
     }
 
     @Test
-    public void testBackendAddMetadataRecordFileNotFoundThrowsDataStoreException() throws IOException {
+    public void testBackendAddMetadataRecordFileNotFoundThrowsDataStoreException()
+        throws IOException {
         File testFile = folder.newFile();
         copyInputStreamToFile(randomStream(0, 10), testFile);
         testFile.delete();
         try {
             backend.addMetadataRecord(testFile, "name");
             fail();
-        }
-        catch (DataStoreException e) {
+        } catch (DataStoreException e) {
             assertTrue(e.getCause() instanceof FileNotFoundException);
         }
     }
 
     @Test
-    public void testBackendAddMetadataRecordNullInputStreamThrowsNullPointerException() throws DataStoreException {
+    public void testBackendAddMetadataRecordNullInputStreamThrowsNullPointerException()
+        throws DataStoreException {
         try {
-            backend.addMetadataRecord((InputStream)null, "name");
+            backend.addMetadataRecord((InputStream) null, "name");
             fail();
-        }
-        catch (NullPointerException e) {
+        } catch (NullPointerException e) {
             assertTrue("input".equals(e.getMessage()));
         }
     }
 
     @Test
-    public void testBackendAddMetadataRecordNullFileThrowsNullPointerException() throws DataStoreException {
+    public void testBackendAddMetadataRecordNullFileThrowsNullPointerException()
+        throws DataStoreException {
         try {
-            backend.addMetadataRecord((File)null, "name");
+            backend.addMetadataRecord((File) null, "name");
             fail();
-        }
-        catch (NullPointerException e) {
+        } catch (NullPointerException e) {
             assertTrue("input".equals(e.getMessage()));
         }
     }
 
     @Test
-    public void testBackendAddMetadataRecordNullEmptyNameThrowsIllegalArgumentException() throws DataStoreException, IOException {
+    public void testBackendAddMetadataRecordNullEmptyNameThrowsIllegalArgumentException()
+        throws DataStoreException, IOException {
         final String data = "testData";
         for (boolean fromInputStream : Lists.newArrayList(false, true)) {
             for (String name : Lists.newArrayList(null, "")) {
@@ -579,7 +591,8 @@ public class AzureDataStoreTest {
             try {
                 backend.getMetadataRecord(name);
                 fail("Expect to throw");
-            } catch(Exception e) {}
+            } catch (Exception e) {
+            }
         }
 
         backend.deleteMetadataRecord("testRecord");
@@ -619,8 +632,7 @@ public class AzureDataStoreTest {
         try {
             backend.getAllMetadataRecords(null);
             fail();
-        }
-        catch (NullPointerException e) {
+        } catch (NullPointerException e) {
             assertTrue("prefix".equals(e.getMessage()));
         }
     }
@@ -634,10 +646,9 @@ public class AzureDataStoreTest {
             if (Strings.isNullOrEmpty(name)) {
                 try {
                     backend.deleteMetadataRecord(name);
+                } catch (IllegalArgumentException e) {
                 }
-                catch (IllegalArgumentException e) { }
-            }
-            else {
+            } else {
                 assertFalse(backend.deleteMetadataRecord(name));
             }
         }
@@ -652,10 +663,9 @@ public class AzureDataStoreTest {
             if (Strings.isNullOrEmpty(name)) {
                 try {
                     backend.metadataRecordExists(name);
+                } catch (IllegalArgumentException e) {
                 }
-                catch (IllegalArgumentException e) { }
-            }
-            else {
+            } else {
                 assertFalse(backend.metadataRecordExists(name));
             }
         }
@@ -678,10 +688,14 @@ public class AzureDataStoreTest {
         prefixCounts.put(prefixNone, 0);
 
         for (Map.Entry<String, Integer> entry : prefixCounts.entrySet()) {
-            backend.addMetadataRecord(randomStream(1, 10), String.format("%s.testRecord1", prefixAll));
-            backend.addMetadataRecord(randomStream(2, 10), String.format("%s.testRecord2", prefixSome));
-            backend.addMetadataRecord(randomStream(3, 10), String.format("%s.testRecord3", prefixSome));
-            backend.addMetadataRecord(randomStream(4, 10), String.format("%s.testRecord4", prefixOne));
+            backend.addMetadataRecord(randomStream(1, 10),
+                String.format("%s.testRecord1", prefixAll));
+            backend.addMetadataRecord(randomStream(2, 10),
+                String.format("%s.testRecord2", prefixSome));
+            backend.addMetadataRecord(randomStream(3, 10),
+                String.format("%s.testRecord3", prefixSome));
+            backend.addMetadataRecord(randomStream(4, 10),
+                String.format("%s.testRecord4", prefixOne));
 
             int preCount = backend.getAllMetadataRecords("").size();
 
@@ -709,8 +723,7 @@ public class AzureDataStoreTest {
         try {
             backend.deleteAllMetadataRecords(null);
             fail();
-        }
-        catch (NullPointerException e) {
+        } catch (NullPointerException e) {
             assertTrue("prefix".equals(e.getMessage()));
         }
     }
@@ -720,7 +733,7 @@ public class AzureDataStoreTest {
         // assert secret already created on init
         DataRecord refRec = ds.getMetadataRecord("reference.key");
         assertNotNull("Reference data record null", refRec);
-        
+
         byte[] data = new byte[4096];
         randomGen.nextBytes(data);
         DataRecord rec = ds.addRecord(new ByteArrayInputStream(data));

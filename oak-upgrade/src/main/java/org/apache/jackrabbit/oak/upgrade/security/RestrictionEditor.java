@@ -50,8 +50,8 @@ public class RestrictionEditor extends DefaultEditor {
     @Override
     public void leave(NodeState before, NodeState after) {
         if (glob != null
-                && isACE.test(after)
-                && !builder.hasChildNode(REP_RESTRICTIONS)) {
+            && isACE.test(after)
+            && !builder.hasChildNode(REP_RESTRICTIONS)) {
             NodeBuilder restrictions = builder.setChildNode(REP_RESTRICTIONS);
             restrictions.setProperty(JCR_PRIMARYTYPE, NT_REP_RESTRICTIONS, NAME);
             restrictions.setProperty(glob);
@@ -80,7 +80,7 @@ public class RestrictionEditor extends DefaultEditor {
 
     @Override
     public Editor childNodeChanged(
-            String name, NodeState before, NodeState after) {
+        String name, NodeState before, NodeState after) {
         return new RestrictionEditor(this, name);
     }
 

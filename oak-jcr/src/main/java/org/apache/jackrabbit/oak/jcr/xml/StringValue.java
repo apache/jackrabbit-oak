@@ -19,12 +19,10 @@ package org.apache.jackrabbit.oak.jcr.xml;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
-
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.xml.TextValue;
 import org.apache.jackrabbit.util.Base64;
@@ -39,11 +37,10 @@ class StringValue implements TextValue {
     private final NamePathMapper namePathMapper;
 
     /**
-     * Constructs a new {@code StringValue} representing the given
-     * value.
+     * Constructs a new {@code StringValue} representing the given value.
      *
-     * @param value serialized value from document
-     * @param valueFactory the ValueFactory
+     * @param value          serialized value from document
+     * @param valueFactory   the ValueFactory
      * @param namePathMapper a namePathMapper knowing the document context
      */
     protected StringValue(String value, ValueFactory valueFactory, NamePathMapper namePathMapper) {
@@ -60,17 +57,18 @@ class StringValue implements TextValue {
         return this.value;
     }
 
-    @Override @SuppressWarnings("deprecation")
+    @Override
+    @SuppressWarnings("deprecation")
     public Value getValue(int type) throws RepositoryException {
         if (type == PropertyType.BINARY) {
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             try {
                 Base64.decode(value, baos);
                 return valueFactory.createValue(
-                        new ByteArrayInputStream(baos.toByteArray()));
+                    new ByteArrayInputStream(baos.toByteArray()));
             } catch (IOException e) {
                 throw new RepositoryException(
-                        "Failed to decode binary value: " + value, e);
+                    "Failed to decode binary value: " + value, e);
             }
         }
 

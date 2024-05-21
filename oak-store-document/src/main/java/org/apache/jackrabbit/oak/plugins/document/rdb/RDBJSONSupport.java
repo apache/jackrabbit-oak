@@ -21,7 +21,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
-
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
@@ -32,11 +31,11 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Utilities that provide JSON support on top of the existing
- * {@link JsopTokenizer} support in oak-commons.
+ * Utilities that provide JSON support on top of the existing {@link JsopTokenizer} support in
+ * oak-commons.
  * <p>
- * The result of parsing uses the simplest possible Java representation of the
- * JSON values (see Section 3 of RFC 7159), thus
+ * The result of parsing uses the simplest possible Java representation of the JSON values (see
+ * Section 3 of RFC 7159), thus
  * <ul>
  * <li>{@code null}, {@link Boolean#TRUE}, {@link Boolean#FALSE}, {@link Number}
  * , or {@link String}, or
@@ -54,9 +53,7 @@ public class RDBJSONSupport {
     private final boolean useRevisionMaps;
 
     /**
-     * @param useRevisionMaps
-     *            whether to use revision maps instead of regular
-     *            {@link Map}s.
+     * @param useRevisionMaps whether to use revision maps instead of regular {@link Map}s.
      */
     public RDBJSONSupport(boolean useRevisionMaps) {
         this.useRevisionMaps = useRevisionMaps;
@@ -86,15 +83,15 @@ public class RDBJSONSupport {
                 String t = json.getToken();
                 try {
                     return Long.parseLong(t);
-                }
-                catch (NumberFormatException ex) {
+                } catch (NumberFormatException ex) {
                     return Double.parseDouble(t);
                 }
             case JsopReader.STRING:
                 return json.getToken();
             case '{':
                 if (useRevisionMaps) {
-                    Map<Revision, Object> map = new TreeMap<Revision, Object>(StableRevisionComparator.REVERSE);
+                    Map<Revision, Object> map = new TreeMap<Revision, Object>(
+                        StableRevisionComparator.REVERSE);
                     while (true) {
                         if (json.matches('}')) {
                             break;

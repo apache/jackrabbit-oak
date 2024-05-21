@@ -53,29 +53,30 @@ public class VersionGCRecommendations {
     private final boolean scopeIsComplete;
 
     /**
-     * With the given maximum age of revisions to keep (earliest time in the past to collect),
-     * the desired precision in which times shall be sliced and the given limit on the number
-     * of collected documents in one run, calculate <ol>
-     *     <li>if gc shall run at all (ignoreDueToCheckPoint)</li>
-     *     <li>in which time interval documents shall be collected (scope)</li>
-     *     <li>if collection should fail if it reaches maxCollect documents, maxCollect will specify
-     *     the limit or be 0 if no limit shall be enforced.</li>
+     * With the given maximum age of revisions to keep (earliest time in the past to collect), the
+     * desired precision in which times shall be sliced and the given limit on the number of
+     * collected documents in one run, calculate <ol>
+     * <li>if gc shall run at all (ignoreDueToCheckPoint)</li>
+     * <li>in which time interval documents shall be collected (scope)</li>
+     * <li>if collection should fail if it reaches maxCollect documents, maxCollect will specify
+     * the limit or be 0 if no limit shall be enforced.</li>
      * </ol>
-     * After a run, recommendations evaluate the result of the gc to update its persisted recommendations
-     * for future runs.
+     * After a run, recommendations evaluate the result of the gc to update its persisted
+     * recommendations for future runs.
      * <p>
-     * In the settings collection, recommendations keeps "revisionsOlderThan" from the last successful run.
-     * It also updates the time interval recommended for the next run.
+     * In the settings collection, recommendations keeps "revisionsOlderThan" from the last
+     * successful run. It also updates the time interval recommended for the next run.
      *
      * @param maxRevisionAgeMs the minimum age for revisions to be collected
-     * @param checkpoints checkpoints from {@link DocumentNodeStore}
-     * @param clock clock from {@link DocumentNodeStore}
-     * @param vgc VersionGC support class
-     * @param options options for running the gc
-     * @param gcMonitor monitor class for messages
+     * @param checkpoints      checkpoints from {@link DocumentNodeStore}
+     * @param clock            clock from {@link DocumentNodeStore}
+     * @param vgc              VersionGC support class
+     * @param options          options for running the gc
+     * @param gcMonitor        monitor class for messages
      */
-    public VersionGCRecommendations(long maxRevisionAgeMs, Checkpoints checkpoints, Clock clock, VersionGCSupport vgc,
-            VersionGCOptions options, GCMonitor gcMonitor) {
+    public VersionGCRecommendations(long maxRevisionAgeMs, Checkpoints checkpoints, Clock clock,
+        VersionGCSupport vgc,
+        VersionGCOptions options, GCMonitor gcMonitor) {
         boolean ignoreDueToCheckPoint = false;
         long deletedOnceCount = 0;
         long suggestedIntervalMs;
@@ -89,9 +90,11 @@ public class VersionGCRecommendations {
         TimeInterval keep = new TimeInterval(clock.getTime() - maxRevisionAgeMs, Long.MAX_VALUE);
 
         Map<String, Long> settings = getLongSettings();
-        lastOldestTimestamp = settings.get(VersionGarbageCollector.SETTINGS_COLLECTION_OLDEST_TIMESTAMP_PROP);
+        lastOldestTimestamp = settings.get(
+            VersionGarbageCollector.SETTINGS_COLLECTION_OLDEST_TIMESTAMP_PROP);
         if (lastOldestTimestamp == 0) {
-            log.debug("No lastOldestTimestamp found, querying for the oldest deletedOnce candidate");
+            log.debug(
+                "No lastOldestTimestamp found, querying for the oldest deletedOnce candidate");
             oldestPossible = vgc.getOldestDeletedOnceTimestamp(clock, options.precisionMs) - 1;
             log.debug("lastOldestTimestamp found: {}", Utils.timestampToString(oldestPossible));
         } else {
@@ -101,13 +104,14 @@ public class VersionGCRecommendations {
         TimeInterval scope = new TimeInterval(oldestPossible, Long.MAX_VALUE);
         scope = scope.notLaterThan(keep.fromMs);
 
-        suggestedIntervalMs = settings.get(VersionGarbageCollector.SETTINGS_COLLECTION_REC_INTERVAL_PROP);
+        suggestedIntervalMs = settings.get(
+            VersionGarbageCollector.SETTINGS_COLLECTION_REC_INTERVAL_PROP);
         if (suggestedIntervalMs > 0) {
             suggestedIntervalMs = Math.max(suggestedIntervalMs, options.precisionMs);
             if (suggestedIntervalMs < scope.getDurationMs()) {
                 scope = scope.startAndDuration(suggestedIntervalMs);
                 log.debug("previous runs recommend a {} sec duration, scope now {}",
-                        TimeUnit.MILLISECONDS.toSeconds(suggestedIntervalMs), scope);
+                    TimeUnit.MILLISECONDS.toSeconds(suggestedIntervalMs), scope);
             }
         } else if (scope.getDurationMs() <= options.precisionMs) {
             // the scope is smaller than the minimum precision
@@ -119,15 +123,17 @@ public class VersionGCRecommendations {
              * that we likely see a fitting fraction of those documents.
              */
             try {
-                long preferredLimit = Math.min(collectLimit, (long)Math.ceil(options.overflowToDiskThreshold * 0.95));
+                long preferredLimit = Math.min(collectLimit,
+                    (long) Math.ceil(options.overflowToDiskThreshold * 0.95));
                 deletedOnceCount = vgc.getDeletedOnceCount();
                 if (deletedOnceCount > preferredLimit) {
                     double chunks = ((double) deletedOnceCount) / preferredLimit;
-                    suggestedIntervalMs = (long) Math.floor((scope.getDurationMs() + maxRevisionAgeMs) / chunks);
+                    suggestedIntervalMs = (long) Math.floor(
+                        (scope.getDurationMs() + maxRevisionAgeMs) / chunks);
                     if (suggestedIntervalMs < scope.getDurationMs()) {
                         scope = scope.startAndDuration(suggestedIntervalMs);
                         log.debug("deletedOnce candidates: {} found, {} preferred, scope now {}",
-                                deletedOnceCount, preferredLimit, scope);
+                            deletedOnceCount, preferredLimit, scope);
                     }
                 }
             } catch (UnsupportedOperationException ex) {
@@ -140,12 +146,14 @@ public class VersionGCRecommendations {
         if (checkpoint != null && scope.endsAfter(checkpoint.getTimestamp())) {
             TimeInterval minimalScope = scope.startAndDuration(options.precisionMs);
             if (minimalScope.endsAfter(checkpoint.getTimestamp())) {
-                log.warn("Ignoring RGC run because a valid checkpoint [{}] exists inside minimal scope {}.",
-                        checkpoint.toReadableString(), minimalScope);
+                log.warn(
+                    "Ignoring RGC run because a valid checkpoint [{}] exists inside minimal scope {}.",
+                    checkpoint.toReadableString(), minimalScope);
                 ignoreDueToCheckPoint = true;
             } else {
                 scope = scope.notLaterThan(checkpoint.getTimestamp() - 1);
-                log.debug("checkpoint at [{}] found, scope now {}", Utils.timestampToString(checkpoint.getTimestamp()), scope);
+                log.debug("checkpoint at [{}] found, scope now {}",
+                    Utils.timestampToString(checkpoint.getTimestamp()), scope);
             }
         }
 
@@ -153,7 +161,8 @@ public class VersionGCRecommendations {
             // If we have narrowed the collect time interval down as much as we can, no
             // longer enforce a limit. We need to get through this.
             collectLimit = 0;
-            log.debug("time interval <= precision ({} ms), disabling collection limits", options.precisionMs);
+            log.debug("time interval <= precision ({} ms), disabling collection limits",
+                options.precisionMs);
         }
 
         this.precisionMs = options.precisionMs;
@@ -166,9 +175,9 @@ public class VersionGCRecommendations {
     }
 
     /**
-     * Evaluate the results of the last run. Update recommendations for future runs.
-     * Will set {@link VersionGCStats#needRepeat} if collection needs to run another
-     * iteration for collecting documents up to "now".
+     * Evaluate the results of the last run. Update recommendations for future runs. Will set
+     * {@link VersionGCStats#needRepeat} if collection needs to run another iteration for collecting
+     * documents up to "now".
      *
      * @param stats the statistics from the last run
      */
@@ -176,13 +185,16 @@ public class VersionGCRecommendations {
         if (stats.limitExceeded) {
             // if the limit was exceeded, slash the recommended interval in half.
             long nextDuration = Math.max(precisionMs, scope.getDurationMs() / 2);
-            gcmon.info("Limit {} documents exceeded, reducing next collection interval to {} seconds",
-                    this.maxCollect, TimeUnit.MILLISECONDS.toSeconds(nextDuration));
-            setLongSetting(VersionGarbageCollector.SETTINGS_COLLECTION_REC_INTERVAL_PROP, nextDuration);
+            gcmon.info(
+                "Limit {} documents exceeded, reducing next collection interval to {} seconds",
+                this.maxCollect, TimeUnit.MILLISECONDS.toSeconds(nextDuration));
+            setLongSetting(VersionGarbageCollector.SETTINGS_COLLECTION_REC_INTERVAL_PROP,
+                nextDuration);
             stats.needRepeat = true;
         } else if (!stats.canceled && !stats.ignoredGCDueToCheckPoint) {
             // success, we would not expect to encounter revisions older than this in the future
-            setLongSetting(VersionGarbageCollector.SETTINGS_COLLECTION_OLDEST_TIMESTAMP_PROP, scope.toMs);
+            setLongSetting(VersionGarbageCollector.SETTINGS_COLLECTION_OLDEST_TIMESTAMP_PROP,
+                scope.toMs);
 
             int count = stats.deletedDocGCCount - stats.deletedLeafDocGCCount;
             double usedFraction;
@@ -197,12 +209,16 @@ public class VersionGCRecommendations {
             if (scope.getDurationMs() == suggestedIntervalMs) {
                 if (usedFraction < allowedFraction) {
                     long nextDuration = (long) Math.ceil(suggestedIntervalMs * 1.5);
-                    log.debug("successful run using {}% of limit, raising recommended interval to {} seconds",
-                            Math.round(usedFraction * 1000) / 10.0, TimeUnit.MILLISECONDS.toSeconds(nextDuration));
-                    setLongSetting(VersionGarbageCollector.SETTINGS_COLLECTION_REC_INTERVAL_PROP, nextDuration);
+                    log.debug(
+                        "successful run using {}% of limit, raising recommended interval to {} seconds",
+                        Math.round(usedFraction * 1000) / 10.0,
+                        TimeUnit.MILLISECONDS.toSeconds(nextDuration));
+                    setLongSetting(VersionGarbageCollector.SETTINGS_COLLECTION_REC_INTERVAL_PROP,
+                        nextDuration);
                 } else {
-                    log.debug("not increasing limit: collected {} documents ({}% >= {}% limit)", count, usedFraction,
-                            allowedFraction);
+                    log.debug("not increasing limit: collected {} documents ({}% >= {}% limit)",
+                        count, usedFraction,
+                        allowedFraction);
                 }
             } else {
                 log.debug("successful run not following recommendations, keeping them");
@@ -212,7 +228,8 @@ public class VersionGCRecommendations {
     }
 
     private Map<String, Long> getLongSettings() {
-        Document versionGCDoc = vgc.getDocumentStore().find(Collection.SETTINGS, VersionGarbageCollector.SETTINGS_COLLECTION_ID, 0);
+        Document versionGCDoc = vgc.getDocumentStore().find(Collection.SETTINGS,
+            VersionGarbageCollector.SETTINGS_COLLECTION_ID, 0);
         Map<String, Long> settings = Maps.newHashMap();
         // default values
         settings.put(VersionGarbageCollector.SETTINGS_COLLECTION_OLDEST_TIMESTAMP_PROP, 0L);

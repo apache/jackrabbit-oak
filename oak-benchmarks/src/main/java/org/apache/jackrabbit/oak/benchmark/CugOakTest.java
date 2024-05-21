@@ -23,7 +23,6 @@ import javax.jcr.Credentials;
 import javax.jcr.GuestCredentials;
 import javax.jcr.Repository;
 import javax.security.auth.Subject;
-
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -37,9 +36,8 @@ import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Test the effect of multiple authorization configurations on the general read
- * operations.
- *
+ * Test the effect of multiple authorization configurations on the general read operations.
+ * <p>
  * TODO: setup configured number of cugs.
  */
 public class CugOakTest extends CugTest {
@@ -48,7 +46,8 @@ public class CugOakTest extends CugTest {
     private ContentSession cs;
     private Subject subject;
 
-    protected CugOakTest(boolean runAsAdmin, int itemsToRead, boolean singleSession, @NotNull List<String> supportedPaths, boolean reverseOrder) {
+    protected CugOakTest(boolean runAsAdmin, int itemsToRead, boolean singleSession,
+        @NotNull List<String> supportedPaths, boolean reverseOrder) {
         super(runAsAdmin, itemsToRead, singleSession, supportedPaths, reverseOrder);
     }
 
@@ -64,7 +63,8 @@ public class CugOakTest extends CugTest {
                 }
             });
         } else {
-            throw new IllegalArgumentException("Fixture " + fixture + " not supported for this benchmark.");
+            throw new IllegalArgumentException(
+                "Fixture " + fixture + " not supported for this benchmark.");
         }
     }
 
@@ -73,7 +73,8 @@ public class CugOakTest extends CugTest {
         super.beforeSuite();
         Credentials creds = (runAsAdmin) ? getCredentials() : new GuestCredentials();
         cs = contentRepository.login(creds, null);
-        subject = new Subject(true, cs.getAuthInfo().getPrincipals(), Collections.emptySet(), Collections.emptySet());
+        subject = new Subject(true, cs.getAuthInfo().getPrincipals(), Collections.emptySet(),
+            Collections.emptySet());
     }
 
     @Override
@@ -123,7 +124,10 @@ public class CugOakTest extends CugTest {
             }
             long end = System.currentTimeMillis();
             if (doReport) {
-                System.out.println("ContentSession " + cs.getAuthInfo().getUserID() + " reading " + (itemsToRead - noAccess) + " (Tree: " + nodeCnt + "; PropertyState: " + propertyCnt + ") completed in " + (end - start));
+                System.out.println(
+                    "ContentSession " + cs.getAuthInfo().getUserID() + " reading " + (itemsToRead
+                        - noAccess) + " (Tree: " + nodeCnt + "; PropertyState: " + propertyCnt
+                        + ") completed in " + (end - start));
             }
         } finally {
             if (logout) {

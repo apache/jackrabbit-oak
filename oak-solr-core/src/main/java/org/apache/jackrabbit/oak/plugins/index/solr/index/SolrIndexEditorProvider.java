@@ -49,29 +49,33 @@ public class SolrIndexEditorProvider implements IndexEditorProvider {
     private final OakSolrConfigurationProvider oakSolrConfigurationProvider;
 
     public SolrIndexEditorProvider(
-            @NotNull SolrServerProvider solrServerProvider,
-            @NotNull OakSolrConfigurationProvider oakSolrConfigurationProvider) {
+        @NotNull SolrServerProvider solrServerProvider,
+        @NotNull OakSolrConfigurationProvider oakSolrConfigurationProvider) {
         this.solrServerProvider = solrServerProvider;
         this.oakSolrConfigurationProvider = oakSolrConfigurationProvider;
     }
 
     @Override
     public Editor getIndexEditor(
-            @NotNull String type, @NotNull NodeBuilder definition, @NotNull NodeState root, @NotNull IndexUpdateCallback callback)
-            throws CommitFailedException {
+        @NotNull String type, @NotNull NodeBuilder definition, @NotNull NodeState root,
+        @NotNull IndexUpdateCallback callback)
+        throws CommitFailedException {
         SolrIndexEditor editor = null;
         if (SolrQueryIndex.TYPE.equals(type)) {
             try {
                 // if index definition contains a persisted configuration, use that
                 if (isPersistedConfiguration(definition)) {
                     NodeState nodeState = definition.getNodeState();
-                    OakSolrConfiguration configuration = new OakSolrNodeStateConfiguration(nodeState);
-                    SolrServerConfigurationProvider configurationProvider = new NodeStateSolrServerConfigurationProvider(definition.getChildNode("server").getNodeState());
+                    OakSolrConfiguration configuration = new OakSolrNodeStateConfiguration(
+                        nodeState);
+                    SolrServerConfigurationProvider configurationProvider = new NodeStateSolrServerConfigurationProvider(
+                        definition.getChildNode("server").getNodeState());
                     SolrClient solrServer = new OakSolrServer(configurationProvider);
                     editor = getEditor(configuration, solrServer, callback);
                 } else { // otherwise use the default configuration providers (e.g. defined via code or OSGi)
                     OakSolrConfiguration configuration = oakSolrConfigurationProvider.getConfiguration();
-                    editor = getEditor(configuration, solrServerProvider.getIndexingSolrServer(), callback);
+                    editor = getEditor(configuration, solrServerProvider.getIndexingSolrServer(),
+                        callback);
                 }
             } catch (Exception e) {
                 log.warn("could not get Solr index editor from {}", definition.getNodeState(), e);
@@ -85,7 +89,7 @@ public class SolrIndexEditorProvider implements IndexEditorProvider {
     }
 
     private SolrIndexEditor getEditor(OakSolrConfiguration configuration, SolrClient solrServer,
-                                      IndexUpdateCallback callback) {
+        IndexUpdateCallback callback) {
         SolrIndexEditor editor = null;
         try {
             if (solrServer != null) {

@@ -16,6 +16,16 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
+import java.security.Principal;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import javax.jcr.RepositoryException;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
@@ -29,17 +39,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.jcr.RepositoryException;
-import java.security.Principal;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-
 final class AutoMembershipPrincipals {
 
     private static final Logger log = LoggerFactory.getLogger(AutoMembershipPrincipals.class);
@@ -50,20 +49,21 @@ final class AutoMembershipPrincipals {
     private final Map<String, Set<Principal>> principalMap;
 
     AutoMembershipPrincipals(@NotNull UserManager userManager,
-                             @NotNull Map<String, String[]> autoMembershipMapping,
-                             @NotNull Map<String, AutoMembershipConfig> autoMembershipConfigMap) {
+        @NotNull Map<String, String[]> autoMembershipMapping,
+        @NotNull Map<String, AutoMembershipConfig> autoMembershipConfigMap) {
         this.userManager = userManager;
         this.autoMembershipMapping = autoMembershipMapping;
         this.autoMembershipConfigMap = autoMembershipConfigMap;
         this.principalMap = new ConcurrentHashMap<>(autoMembershipMapping.size());
     }
-    
+
     /**
-     * Return the IDP names for which the given group principal is configured in the global auto-membership configuration.
-     * 
+     * Return the IDP names for which the given group principal is configured in the global
+     * auto-membership configuration.
+     *
      * @param groupPrincipal A group principal
      * @return A set of IDP names.
-     * @see AutoMembershipProvider#getMembers(Group, boolean) 
+     * @see AutoMembershipProvider#getMembers(Group, boolean)
      */
     Set<String> getConfiguredIdpNames(@NotNull Principal groupPrincipal) {
         // populate principal-map for all IDP-names in the mapping
@@ -72,7 +72,7 @@ final class AutoMembershipPrincipals {
                 collectGlobalAutoMembershipPrincipals(idpName);
             }
         }
-        
+
         String name = groupPrincipal.getName();
         Set<String> idpNames = new HashSet<>(principalMap.size());
         principalMap.forEach((idpName, principals) -> {
@@ -84,32 +84,38 @@ final class AutoMembershipPrincipals {
     }
 
     /**
-     * Returns the automatic members of the given group across all configured IDPs according to the result of  
-     * {@link AutoMembershipConfig#getAutoMembers(UserManager, Group)}
-     * 
+     * Returns the automatic members of the given group across all configured IDPs according to the
+     * result of {@link AutoMembershipConfig#getAutoMembers(UserManager, Group)}
+     *
      * @param group The target group
-     * @return An iterator of users/groups that have the given group as auto-membership group defined in {@link AutoMembershipConfig#getAutoMembership(Authorizable)}
-     * @see AutoMembershipProvider#getMembers(Group, boolean) 
+     * @return An iterator of users/groups that have the given group as auto-membership group
+     * defined in {@link AutoMembershipConfig#getAutoMembership(Authorizable)}
+     * @see AutoMembershipProvider#getMembers(Group, boolean)
      */
     @NotNull
     Iterator<Authorizable> getMembersFromAutoMembershipConfig(@NotNull Group group) {
         List<Iterator<? extends Authorizable>> results = new ArrayList<>();
-        autoMembershipConfigMap.values().forEach(autoMembershipConfig -> results.add(autoMembershipConfig.getAutoMembers(userManager, group)));
+        autoMembershipConfigMap.values().forEach(autoMembershipConfig -> results.add(
+            autoMembershipConfig.getAutoMembers(userManager, group)));
         return Iterators.concat(results.iterator());
     }
 
     /**
-     * Tests if the given authorizabe is an automatic member of the group identified by {@code groupId}. Note that this 
-     * method evaluates both global auto-membership mapping and {@link AutoMembershipConfig} if they exist for the given IDP name.
-     * 
-     * @param idpName The name of an IDP
-     * @param groupId The target group id
-     * @param authorizable The authorizable for which to evaluation if it is an automatic member of the group identified by {@code groupId}.
-     * @return {@code true} if the given authorizable is an automatic member of the group identified by {@code groupId}; {@code false} otherwise.
-     * @see AutoMembershipProvider#isMember(Group, Authorizable, boolean) 
+     * Tests if the given authorizabe is an automatic member of the group identified by
+     * {@code groupId}. Note that this method evaluates both global auto-membership mapping and
+     * {@link AutoMembershipConfig} if they exist for the given IDP name.
+     *
+     * @param idpName      The name of an IDP
+     * @param groupId      The target group id
+     * @param authorizable The authorizable for which to evaluation if it is an automatic member of
+     *                     the group identified by {@code groupId}.
+     * @return {@code true} if the given authorizable is an automatic member of the group identified
+     * by {@code groupId}; {@code false} otherwise.
+     * @see AutoMembershipProvider#isMember(Group, Authorizable, boolean)
      */
-    boolean isMember(@NotNull String idpName, @NotNull String groupId, @NotNull Authorizable authorizable) {
-        // check global auto-membership mapping first  
+    boolean isMember(@NotNull String idpName, @NotNull String groupId,
+        @NotNull Authorizable authorizable) {
+        // check global auto-membership mapping first
         String[] vs = autoMembershipMapping.get(idpName);
         if (vs != null) {
             for (String grId : vs) {
@@ -127,7 +133,8 @@ final class AutoMembershipPrincipals {
         return false;
     }
 
-    boolean isInheritedMember(@NotNull String idpName, @NotNull Group group, @NotNull Authorizable authorizable) throws RepositoryException {
+    boolean isInheritedMember(@NotNull String idpName, @NotNull Group group,
+        @NotNull Authorizable authorizable) throws RepositoryException {
         String groupId = group.getID();
         if (isMember(idpName, groupId, authorizable)) {
             // groupId is listed in auto-membership configuration
@@ -135,28 +142,32 @@ final class AutoMembershipPrincipals {
         }
 
         // to test for inherited membership collect automembership-ids and loop auto-membership groups
-        Set<String> automembershipIds = new HashSet<>(Arrays.asList(autoMembershipMapping.get(idpName)));
+        Set<String> automembershipIds = new HashSet<>(
+            Arrays.asList(autoMembershipMapping.get(idpName)));
         AutoMembershipConfig config = autoMembershipConfigMap.get(idpName);
         if (config != null) {
             automembershipIds.addAll(config.getAutoMembership(authorizable));
         }
 
-        // keep track of processed ids over all 'automembership' ids to avoid repeated evaluation 
+        // keep track of processed ids over all 'automembership' ids to avoid repeated evaluation
         Set<String> processed = new HashSet<>();
         for (String automembershipId : automembershipIds) {
             Authorizable gr = userManager.getAuthorizable(automembershipId);
             if (gr == null || !gr.isGroup()) {
-                log.warn("Configured automembership id '{}' is not a valid group", automembershipId);
-            } else if (hasInheritedMembership(gr.declaredMemberOf(), groupId, automembershipId, processed, "> ")) {
+                log.warn("Configured automembership id '{}' is not a valid group",
+                    automembershipId);
+            } else if (hasInheritedMembership(gr.declaredMemberOf(), groupId, automembershipId,
+                processed, "> ")) {
                 return true;
             }
         }
         return false;
     }
 
-    private static boolean hasInheritedMembership(@NotNull Iterator<Group> declared, @NotNull String groupId, 
-                                                  @NotNull String memberId, @NotNull Set<String> processed, 
-                                                  @NotNull String trace) throws RepositoryException {
+    private static boolean hasInheritedMembership(@NotNull Iterator<Group> declared,
+        @NotNull String groupId,
+        @NotNull String memberId, @NotNull Set<String> processed,
+        @NotNull String trace) throws RepositoryException {
         List<Group> groups = new ArrayList<>();
         while (declared.hasNext()) {
             Group gr = declared.next();
@@ -166,18 +177,20 @@ final class AutoMembershipPrincipals {
                 return true;
             }
             if (memberId.equals(grId)) {
-                log.error("Cyclic group membership detected for group id {} via {}{}", memberId, trace, grId);
+                log.error("Cyclic group membership detected for group id {} via {}{}", memberId,
+                    trace, grId);
                 continue;
             }
             if (processed.add(grId)) {
-                // remember group for traversing up the membership hierarchy if it has not already been 
+                // remember group for traversing up the membership hierarchy if it has not already been
                 // processed before (shared membership e.g. for the 'everyone' group)
                 groups.add(gr);
             }
         }
         // recursively call to search for inherited membership
         for (Group group : groups) {
-            if (hasInheritedMembership(group.declaredMemberOf(), groupId, memberId, processed, String.format("%s %s > ", trace, group.getID()))) {
+            if (hasInheritedMembership(group.declaredMemberOf(), groupId, memberId, processed,
+                String.format("%s %s > ", trace, group.getID()))) {
                 return true;
             }
         }
@@ -185,18 +198,21 @@ final class AutoMembershipPrincipals {
     }
 
     /**
-     * Returns the group principal that given authorizable is an automatic member of. This method evaluates both the 
-     * global auto-membership settings and {@link AutoMembershipConfig} if they exist for the given IDP name.
-     * 
-     * @param idpName The name of an IDP
-     * @param authorizable The target user/group
-     * @param includeInherited Flag indicating if inherited groups should be resolved for global automemberbship groups.                    
+     * Returns the group principal that given authorizable is an automatic member of. This method
+     * evaluates both the global auto-membership settings and {@link AutoMembershipConfig} if they
+     * exist for the given IDP name.
+     *
+     * @param idpName          The name of an IDP
+     * @param authorizable     The target user/group
+     * @param includeInherited Flag indicating if inherited groups should be resolved for global
+     *                         automemberbship groups.
      * @return A collection of principals the given authorizable is an automatic member of.
      */
     @NotNull
-    Map<Principal,Group> getAutoMembership(@NotNull String idpName, @NotNull Authorizable authorizable, boolean includeInherited) {
+    Map<Principal, Group> getAutoMembership(@NotNull String idpName,
+        @NotNull Authorizable authorizable, boolean includeInherited) {
         // global auto-membership
-        Map<Principal,Group> map = collectGlobalAutoMembershipPrincipals(idpName);
+        Map<Principal, Group> map = collectGlobalAutoMembershipPrincipals(idpName);
         if (includeInherited) {
             for (Group gr : map.values().toArray(new Group[0])) {
                 collectInheritedPrincipals(gr, map);
@@ -205,7 +221,8 @@ final class AutoMembershipPrincipals {
         // conditional auto-membership
         AutoMembershipConfig config = autoMembershipConfigMap.get(idpName);
         if (config != null) {
-            config.getAutoMembership(authorizable).forEach(groupId -> addVerifiedPrincipal(groupId, map, includeInherited));
+            config.getAutoMembership(authorizable)
+                  .forEach(groupId -> addVerifiedPrincipal(groupId, map, includeInherited));
         }
         return map;
     }
@@ -235,7 +252,7 @@ final class AutoMembershipPrincipals {
     }
 
     private static void collectInheritedPrincipals(@NotNull Group group,
-                                                   @NotNull Map<Principal, Group> map) {
+        @NotNull Map<Principal, Group> map) {
         try {
             Iterator<Group> groups = group.memberOf();
             while (groups.hasNext()) {
@@ -250,15 +267,16 @@ final class AutoMembershipPrincipals {
         }
     }
 
-    private void addVerifiedPrincipal(@NotNull String groupId, @NotNull Map<Principal,Group> builder,
-                                      boolean includeInherited) {
+    private void addVerifiedPrincipal(@NotNull String groupId,
+        @NotNull Map<Principal, Group> builder,
+        boolean includeInherited) {
         try {
             Authorizable a = userManager.getAuthorizable(groupId);
             if (a == null || !a.isGroup()) {
                 log.warn("Configured auto-membership group {} does not exist -> Ignoring", groupId);
                 return;
             }
-            
+
             Group group = (Group) a;
             Principal principal = getVerifiedPrincipal(group);
             if (principal != null) {
@@ -293,7 +311,8 @@ final class AutoMembershipPrincipals {
                 log.warn("Cannot retrieve group from principal {} -> Ignoring", principal);
             }
         } catch (RepositoryException e) {
-            log.debug("Failed to retrieved 'auto-membership' group for principal {}", principal.getName(), e);
+            log.debug("Failed to retrieved 'auto-membership' group for principal {}",
+                principal.getName(), e);
         }
         return null;
     }

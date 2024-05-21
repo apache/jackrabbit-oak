@@ -29,11 +29,11 @@ import java.io.PrintWriter;
  * A tool that converts full thread dumps files to the "standard" format.
  */
 public class ThreadDumpConverter {
-    
+
     public static void main(String... args) throws IOException {
         process(new File(args[0]));
     }
-    
+
     public static File process(File file) throws IOException {
         String fileName = file.getName();
         if (fileName.endsWith(".txt")) {
@@ -41,7 +41,7 @@ public class ThreadDumpConverter {
         }
         File target = new File(file.getParentFile(), fileName + ".converted.txt");
         PrintWriter writer = new PrintWriter(new BufferedWriter(
-                new FileWriter(target)));       
+            new FileWriter(target)));
         try {
             processFile(file, writer);
         } finally {
@@ -49,10 +49,10 @@ public class ThreadDumpConverter {
         }
         return target;
     }
-    
+
     private static void processFile(File file, PrintWriter writer) throws IOException {
         LineNumberReader r = new LineNumberReader(new BufferedReader(
-                new FileReader(file)));
+            new FileReader(file)));
         try {
             process(r, writer);
         } finally {
@@ -100,11 +100,11 @@ public class ThreadDumpConverter {
         for (Thread.State state : Thread.State.values()) {
             int index = firstLine.indexOf(" in " + state.toString());
             if (index > 0) {
-                String stateName = firstLine.substring(index + 4, 
-                        index + 4 + state.toString().length());
+                String stateName = firstLine.substring(index + 4,
+                    index + 4 + state.toString().length());
                 firstLine = firstLine.substring(0, index) + "\n";
-                remainingText = "   java.lang.Thread.State: "+ stateName + 
-                        remainingText;
+                remainingText = "   java.lang.Thread.State: " + stateName +
+                    remainingText;
             }
         }
         return firstLine + remainingText;

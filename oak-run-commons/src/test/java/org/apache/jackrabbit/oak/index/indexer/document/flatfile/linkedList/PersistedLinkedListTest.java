@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile.linkedList;
 
 import java.io.File;
 import java.io.IOException;
-
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryReader;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryWriter;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;

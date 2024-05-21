@@ -85,8 +85,9 @@ class Record {
     }
 
     /**
-     * Get the underlying segment's gc generation. Might cause the segment to
-     * get loaded if the generation info is missing
+     * Get the underlying segment's gc generation. Might cause the segment to get loaded if the
+     * generation info is missing
+     *
      * @return the segment's gc generation
      */
     @NotNull

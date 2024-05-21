@@ -17,7 +17,9 @@
    limitations under the License.
   -->
 
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd ">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd ">
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
@@ -110,22 +112,22 @@
               org.apache.lucene.*;version=4.7.2-oak2<!-- second Oak modification of original lucence-core 4.7.2 source code, see OAK-10786 for further information -->
             </_exportcontents>
             <Export-Package>
-                org.apache.jackrabbit.oak.plugins.index.lucene,
-                org.apache.jackrabbit.oak.plugins.index.lucene.util,
-                org.apache.jackrabbit.oak.plugins.index.lucene.spi,
+              org.apache.jackrabbit.oak.plugins.index.lucene,
+              org.apache.jackrabbit.oak.plugins.index.lucene.util,
+              org.apache.jackrabbit.oak.plugins.index.lucene.spi,
             </Export-Package>
             <Import-Package>
-                org.apache.lucene.sandbox.*;resolution:=optional,
-                !org.apache.lucene.*,
-                !org.apache.jackrabbit.oak.cache,
-                !com.sun.management.*,
-                !sun.management.*,
-                !sun.misc.*,
-                *
+              org.apache.lucene.sandbox.*;resolution:=optional,
+              !org.apache.lucene.*,
+              !org.apache.jackrabbit.oak.cache,
+              !com.sun.management.*,
+              !sun.management.*,
+              !sun.misc.*,
+              *
             </Import-Package>
             <Embed-Dependency>
               oak-search;scope=compile|runtime;inline=true,
-                lucene-*;inline=true,
+              lucene-*;inline=true,
               <!-- TODO FIXME OAK-3598 -->
               oak-core-spi;inline="org/apache/jackrabbit/oak/cache/AbstractCacheStats.class|org/apache/jackrabbit/oak/cache/CacheStats.class"
               <!-- TODO FIXME OAK-3598 -->

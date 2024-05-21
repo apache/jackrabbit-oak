@@ -19,10 +19,8 @@
 package org.apache.jackrabbit.oak.spi.observation;
 
 import java.util.Set;
-
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Sets;
-
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
@@ -31,33 +29,29 @@ import org.apache.jackrabbit.oak.commons.json.JsopWriter;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * A ChangeSet is a collection of items that have been changed as part of a
- * commit. A ChangeSet is immutable and built by a ChangeSetBuilder.
+ * A ChangeSet is a collection of items that have been changed as part of a commit. A ChangeSet is
+ * immutable and built by a ChangeSetBuilder.
  * <p>
- * Those items are parent paths, parent node names, parent node types and
- * (child) properties. 'Changed' refers to any of add, remove, change (where
- * applicable).
+ * Those items are parent paths, parent node names, parent node types and (child) properties.
+ * 'Changed' refers to any of add, remove, change (where applicable).
  * <p>
- * A ChangeSet is piggybacked on a CommitInfo in the CommitContext and can be
- * used by (downstream) Observers for their convenience.
+ * A ChangeSet is piggybacked on a CommitInfo in the CommitContext and can be used by (downstream)
+ * Observers for their convenience.
  * <p>
- * To limit memory usage, the ChangeSet has a limit on the number of items,
- * each, that it collects. If one of those items reach the limit this is called
- * an 'overflow' and the corresponding item type is marked as having
- * 'overflown'. Downstream Observers should thus check if a particular item has
- * overflown or not - this is indicated with null as the return value of the
- * corresponding getters (while empty means: not overflown but nothing changed
- * of that type).
+ * To limit memory usage, the ChangeSet has a limit on the number of items, each, that it collects.
+ * If one of those items reach the limit this is called an 'overflow' and the corresponding item
+ * type is marked as having 'overflown'. Downstream Observers should thus check if a particular item
+ * has overflown or not - this is indicated with null as the return value of the corresponding
+ * getters (while empty means: not overflown but nothing changed of that type).
  * <p>
- * Also, the ChangeSet carries a 'maxPathDepth' which is the depth of the path
- * up until which paths have been collected. Thus any path that is longer than
- * this 'maxPathDepth' will be cut off and only reported up to that max depth.
- * Downstream Observers should thus inspect the 'maxPathDepth' and compare
- * actual path depths with it in order to find out if any child paths have been
- * cut off.
+ * Also, the ChangeSet carries a 'maxPathDepth' which is the depth of the path up until which paths
+ * have been collected. Thus any path that is longer than this 'maxPathDepth' will be cut off and
+ * only reported up to that max depth. Downstream Observers should thus inspect the 'maxPathDepth'
+ * and compare actual path depths with it in order to find out if any child paths have been cut
+ * off.
  * <p>
- * Naming: note that path, node name and node types all refer to the *parent* of
- * a change. While properties naturally are leafs.
+ * Naming: note that path, node name and node types all refer to the *parent* of a change. While
+ * properties naturally are leafs.
  */
 public final class ChangeSet {
 
@@ -71,15 +65,18 @@ public final class ChangeSet {
     private final Set<String> allNodeTypes;
     private final boolean hitsMaxPathDepth;
 
-    ChangeSet(int maxPathDepth, Set<String> parentPaths, Set<String> parentNodeNames, Set<String> parentNodeTypes,
-            Set<String> propertyNames, Set<String> allNodeTypes) {
+    ChangeSet(int maxPathDepth, Set<String> parentPaths, Set<String> parentNodeNames,
+        Set<String> parentNodeTypes,
+        Set<String> propertyNames, Set<String> allNodeTypes) {
         this.maxPathDepth = maxPathDepth;
         this.parentPaths = parentPaths == null ? null : ImmutableSet.copyOf(parentPaths);
-        this.parentNodeNames = parentNodeNames == null ? null : ImmutableSet.copyOf(parentNodeNames);
-        this.parentNodeTypes = parentNodeTypes == null ? null : ImmutableSet.copyOf(parentNodeTypes);
+        this.parentNodeNames =
+            parentNodeNames == null ? null : ImmutableSet.copyOf(parentNodeNames);
+        this.parentNodeTypes =
+            parentNodeTypes == null ? null : ImmutableSet.copyOf(parentNodeTypes);
         this.propertyNames = propertyNames == null ? null : ImmutableSet.copyOf(propertyNames);
         this.allNodeTypes = allNodeTypes == null ? null : ImmutableSet.copyOf(allNodeTypes);
-        
+
         boolean hitsMaxPathDepth = false;
         if (parentPaths != null) {
             for (String aPath : parentPaths) {
@@ -94,10 +91,11 @@ public final class ChangeSet {
 
     @Override
     public String toString() {
-        return "ChangeSet{paths[maxDepth:" + maxPathDepth + "]=" + parentPaths + ", propertyNames=" + propertyNames
-                + ", parentNodeNames=" + parentNodeNames + ", parentNodeTypes=" + parentNodeTypes 
-                + ", allNodeTypes=" + allNodeTypes + ", any overflow: " + anyOverflow()
-                + ", hits max path depth: " + hitsMaxPathDepth + "}";
+        return "ChangeSet{paths[maxDepth:" + maxPathDepth + "]=" + parentPaths + ", propertyNames="
+            + propertyNames
+            + ", parentNodeNames=" + parentNodeNames + ", parentNodeTypes=" + parentNodeTypes
+            + ", allNodeTypes=" + allNodeTypes + ", any overflow: " + anyOverflow()
+            + ", hits max path depth: " + hitsMaxPathDepth + "}";
     }
 
     public boolean doesHitMaxPathDepth() {
@@ -132,34 +130,49 @@ public final class ChangeSet {
     public Set<String> getAllNodeTypes() {
         return allNodeTypes;
     }
-    
+
     public boolean anyOverflow() {
-        return getAllNodeTypes() == null || 
-                getParentNodeNames() == null ||
-                getParentNodeTypes() == null ||
-                getParentPaths() == null ||
-                getPropertyNames() == null;
+        return getAllNodeTypes() == null ||
+            getParentNodeNames() == null ||
+            getParentNodeTypes() == null ||
+            getParentPaths() == null ||
+            getPropertyNames() == null;
     }
 
     //~---------------------------------------------------< equals/hashcode >
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
 
         ChangeSet changeSet = (ChangeSet) o;
 
-        if (maxPathDepth != changeSet.maxPathDepth) return false;
-        if (parentPaths != null ? !parentPaths.equals(changeSet.parentPaths) : changeSet.parentPaths != null)
+        if (maxPathDepth != changeSet.maxPathDepth) {
             return false;
-        if (parentNodeNames != null ? !parentNodeNames.equals(changeSet.parentNodeNames) : changeSet.parentNodeNames != null)
+        }
+        if (parentPaths != null ? !parentPaths.equals(changeSet.parentPaths)
+            : changeSet.parentPaths != null) {
             return false;
-        if (parentNodeTypes != null ? !parentNodeTypes.equals(changeSet.parentNodeTypes) : changeSet.parentNodeTypes != null)
+        }
+        if (parentNodeNames != null ? !parentNodeNames.equals(changeSet.parentNodeNames)
+            : changeSet.parentNodeNames != null) {
             return false;
-        if (propertyNames != null ? !propertyNames.equals(changeSet.propertyNames) : changeSet.propertyNames != null)
+        }
+        if (parentNodeTypes != null ? !parentNodeTypes.equals(changeSet.parentNodeTypes)
+            : changeSet.parentNodeTypes != null) {
             return false;
-        return allNodeTypes != null ? allNodeTypes.equals(changeSet.allNodeTypes) : changeSet.allNodeTypes == null;
+        }
+        if (propertyNames != null ? !propertyNames.equals(changeSet.propertyNames)
+            : changeSet.propertyNames != null) {
+            return false;
+        }
+        return allNodeTypes != null ? allNodeTypes.equals(changeSet.allNodeTypes)
+            : changeSet.allNodeTypes == null;
     }
 
     @Override
@@ -169,7 +182,7 @@ public final class ChangeSet {
 
     //~----------------------------------------------------< json support >
 
-    public String asString(){
+    public String asString() {
         JsopWriter json = new JsopBuilder();
         json.object();
         json.key("maxPathDepth").value(maxPathDepth);
@@ -196,19 +209,19 @@ public final class ChangeSet {
             do {
                 String name = reader.readString();
                 reader.read(':');
-                if ("maxPathDepth".equals(name)){
+                if ("maxPathDepth".equals(name)) {
                     maxPathDepth = Integer.parseInt(reader.read(JsopReader.NUMBER));
                 } else {
                     Set<String> data = readArrayAsSet(reader);
-                    if ("parentPaths".equals(name)){
+                    if ("parentPaths".equals(name)) {
                         parentPaths = data;
-                    } else if ("parentNodeNames".equals(name)){
+                    } else if ("parentNodeNames".equals(name)) {
                         parentNodeNames = data;
-                    } else if ("parentNodeTypes".equals(name)){
+                    } else if ("parentNodeTypes".equals(name)) {
                         parentNodeTypes = data;
-                    } else if ("propertyNames".equals(name)){
+                    } else if ("propertyNames".equals(name)) {
                         propertyNames = data;
-                    } else if ("allNodeTypes".equals(name)){
+                    } else if ("allNodeTypes".equals(name)) {
                         allNodeTypes = data;
                     }
                 }
@@ -216,7 +229,8 @@ public final class ChangeSet {
             reader.read('}');
         }
         reader.read(JsopReader.END);
-        return new ChangeSet(maxPathDepth, parentPaths, parentNodeNames, parentNodeTypes, propertyNames, allNodeTypes);
+        return new ChangeSet(maxPathDepth, parentPaths, parentNodeNames, parentNodeTypes,
+            propertyNames, allNodeTypes);
     }
 
     private static Set<String> readArrayAsSet(JsopReader reader) {
@@ -231,12 +245,12 @@ public final class ChangeSet {
         return values;
     }
 
-    private static void addToJson(JsopWriter json, String name, Set<String> values){
-        if (values == null){
+    private static void addToJson(JsopWriter json, String name, Set<String> values) {
+        if (values == null) {
             return;
         }
         json.key(name).array();
-        for (String v : values){
+        for (String v : values) {
             json.value(v);
         }
         json.endArray();

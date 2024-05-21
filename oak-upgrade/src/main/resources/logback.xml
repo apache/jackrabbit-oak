@@ -23,11 +23,11 @@
     <!-- encoders are assigned the type
          ch.qos.logback.classic.encoder.PatternLayoutEncoder by default -->
     <encoder>
-      <pattern>%d{dd.MM.yyyy HH:mm:ss.SSS} [%thread] *%level*  %logger - %message%n</pattern>
+      <pattern>%d{dd.MM.yyyy HH:mm:ss.SSS} [%thread] *%level* %logger - %message%n</pattern>
     </encoder>
   </appender>
 
   <root level="info">
-    <appender-ref ref="CONSOLE" />
+    <appender-ref ref="CONSOLE"/>
   </root>
 </configuration>

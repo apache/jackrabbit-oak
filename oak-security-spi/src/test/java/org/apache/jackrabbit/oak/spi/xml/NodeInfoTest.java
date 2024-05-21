@@ -16,15 +16,16 @@
  */
 package org.apache.jackrabbit.oak.spi.xml;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.junit.Test;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.junit.Test;
+
 public class NodeInfoTest {
 
-    private final NodeInfo nodeInfo = new NodeInfo("name", "primaryType", ImmutableList.of("mixin1", "mixin2"), "uuid");
+    private final NodeInfo nodeInfo = new NodeInfo("name", "primaryType",
+        ImmutableList.of("mixin1", "mixin2"), "uuid");
 
     @Test
     public void testGetName() {

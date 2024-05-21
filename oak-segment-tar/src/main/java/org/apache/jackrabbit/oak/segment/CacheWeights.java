@@ -48,7 +48,8 @@ public final class CacheWeights {
      */
     private static final int SEGMENT_CACHE_OVERHEAD = 32;
 
-    private CacheWeights() {}
+    private CacheWeights() {
+    }
 
     public static class OneWeigher<K, V> implements Weigher<K, V> {
 
@@ -70,7 +71,8 @@ public final class CacheWeights {
     }
 
     public static class SegmentCacheWeigher implements
-            Weigher<SegmentId, Segment> {
+        Weigher<SegmentId, Segment> {
+
         @Override
         public int weigh(@NotNull SegmentId id, @NotNull Segment segment) {
             return segmentWeight(segment);
@@ -100,7 +102,7 @@ public final class CacheWeights {
     }
 
     public static class TemplateCacheWeigher implements
-            Weigher<Template, RecordId> {
+        Weigher<Template, RecordId> {
 
         @Override
         public int weigh(@NotNull Template key, @NotNull RecordId value) {
@@ -112,7 +114,7 @@ public final class CacheWeights {
     }
 
     public static class ReaderTemplateCacheWeigher implements
-            Weigher<CacheKey, Template> {
+        Weigher<CacheKey, Template> {
 
         @Override
         public int weigh(@NotNull CacheKey key, @NotNull Template value) {
@@ -124,7 +126,7 @@ public final class CacheWeights {
     }
 
     public static class ReaderStringCacheWeigher implements
-            Weigher<CacheKey, String> {
+        Weigher<CacheKey, String> {
 
         @Override
         public int weigh(@NotNull CacheKey key, @NotNull String value) {

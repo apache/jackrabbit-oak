@@ -23,9 +23,9 @@ public interface CacheValue {
 
     /**
      * The estimated amount of memory used by this object, in bytes.
-     * 
+     *
      * @return the estimated number of bytes
      */
     int getMemory();
-    
+
 }

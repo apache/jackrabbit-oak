@@ -44,12 +44,12 @@ class SupportedPaths {
     }
 
     /**
-     * Test if the specified {@code path} is contained in any of the configured
-     * supported paths for CUGs.
+     * Test if the specified {@code path} is contained in any of the configured supported paths for
+     * CUGs.
      *
      * @param path An absolute path.
-     * @return {@code true} if the specified {@code path} is equal to or a
-     * descendant of one of the configured supported paths.
+     * @return {@code true} if the specified {@code path} is equal to or a descendant of one of the
+     * configured supported paths.
      */
     boolean includes(@NotNull String path) {
         if (paths.length == 0) {
@@ -72,14 +72,13 @@ class SupportedPaths {
     }
 
     /**
-     * Tests if further evaluation below {@code path} is required as one of the
-     * configured supported paths is a descendant (e.g. there might be CUGs
-     * in the subtree although the specified {@code path} does not directly
-     * support CUGs.
+     * Tests if further evaluation below {@code path} is required as one of the configured supported
+     * paths is a descendant (e.g. there might be CUGs in the subtree although the specified
+     * {@code path} does not directly support CUGs.
      *
      * @param path An absolute path
-     * @return {@code true} if there exists a configured supported path that is
-     * a descendant of the given {@code path}.
+     * @return {@code true} if there exists a configured supported path that is a descendant of the
+     * given {@code path}.
      */
     boolean mayContainCug(@NotNull String path) {
         if (paths.length == 0) {

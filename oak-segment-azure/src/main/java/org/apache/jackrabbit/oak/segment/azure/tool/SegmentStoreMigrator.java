@@ -21,7 +21,20 @@ import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.storeDescri
 
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlobDirectory;
-
+import java.io.Closeable;
+import java.io.File;
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Properties;
+import java.util.UUID;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
 import org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.SegmentStoreType;
@@ -42,22 +55,7 @@ import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersist
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.Closeable;
-import java.io.File;
-import java.io.IOException;
-import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Properties;
-import java.util.UUID;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-
-public class SegmentStoreMigrator implements Closeable  {
+public class SegmentStoreMigrator implements Closeable {
 
     private static final Logger log = LoggerFactory.getLogger(SegmentStoreMigrator.class);
 
@@ -158,10 +156,12 @@ public class SegmentStoreMigrator implements Closeable  {
             log.info("No segment archives at {}; skipping.", sourceName);
             return;
         }
-        SegmentArchiveManager sourceManager = source.createArchiveManager(false, false, new IOMonitorAdapter(),
-                new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
-        SegmentArchiveManager targetManager = target.createArchiveManager(false, false, new IOMonitorAdapter(),
-                new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
+        SegmentArchiveManager sourceManager = source.createArchiveManager(false, false,
+            new IOMonitorAdapter(),
+            new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
+        SegmentArchiveManager targetManager = target.createArchiveManager(false, false,
+            new IOMonitorAdapter(),
+            new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
         List<String> targetArchives = targetManager.listArchives();
 
         if (appendMode && !targetArchives.isEmpty()) {
@@ -192,7 +192,8 @@ public class SegmentStoreMigrator implements Closeable  {
         }
     }
 
-    private void migrateSegments(SegmentArchiveReader reader, SegmentArchiveWriter writer) throws ExecutionException, InterruptedException, IOException {
+    private void migrateSegments(SegmentArchiveReader reader, SegmentArchiveWriter writer)
+        throws ExecutionException, InterruptedException, IOException {
         List<Future<Segment>> futures = new ArrayList<>();
         for (SegmentArchiveEntry entry : reader.listSegments()) {
             futures.add(executor.submit(() -> RETRIER.execute(() -> {
@@ -208,7 +209,8 @@ public class SegmentStoreMigrator implements Closeable  {
         }
     }
 
-    private void migrateBinaryRef(SegmentArchiveReader reader, SegmentArchiveWriter writer) throws IOException, ExecutionException, InterruptedException {
+    private void migrateBinaryRef(SegmentArchiveReader reader, SegmentArchiveWriter writer)
+        throws IOException, ExecutionException, InterruptedException {
         Future<Buffer> future = executor.submit(() -> RETRIER.execute(reader::getBinaryReferences));
         Buffer binaryReferences = future.get();
         if (binaryReferences != null) {
@@ -217,7 +219,8 @@ public class SegmentStoreMigrator implements Closeable  {
         }
     }
 
-    private void migrateGraph(SegmentArchiveReader reader, SegmentArchiveWriter writer) throws IOException, ExecutionException, InterruptedException {
+    private void migrateGraph(SegmentArchiveReader reader, SegmentArchiveWriter writer)
+        throws IOException, ExecutionException, InterruptedException {
         Future<Buffer> future = executor.submit(() -> RETRIER.execute(() -> {
             if (reader.hasGraph()) {
                 return reader.getGraph();
@@ -236,7 +239,8 @@ public class SegmentStoreMigrator implements Closeable  {
     public void close() throws IOException {
         executor.shutdown();
         try {
-            while (!executor.awaitTermination(100, TimeUnit.MILLISECONDS));
+            while (!executor.awaitTermination(100, TimeUnit.MILLISECONDS))
+                ;
         } catch (InterruptedException e) {
             throw new IOException(e);
         }
@@ -259,8 +263,9 @@ public class SegmentStoreMigrator implements Closeable  {
         void write(SegmentArchiveWriter writer) throws IOException {
             final byte[] array = data.array();
             final int offset = 0;
-            writer.writeSegment(entry.getMsb(), entry.getLsb(), array, offset, entry.getLength(), entry.getGeneration(),
-                    entry.getFullGeneration(), entry.isCompacted());
+            writer.writeSegment(entry.getMsb(), entry.getLsb(), array, offset, entry.getLength(),
+                entry.getGeneration(),
+                entry.getFullGeneration(), entry.isCompacted());
         }
 
         @Override
@@ -289,19 +294,23 @@ public class SegmentStoreMigrator implements Closeable  {
             return this;
         }
 
-        public Builder withSource(CloudBlobDirectory dir) throws URISyntaxException, StorageException {
+        public Builder withSource(CloudBlobDirectory dir)
+            throws URISyntaxException, StorageException {
             this.source = new AzurePersistence(dir);
-            this.sourceName = storeDescription(SegmentStoreType.AZURE, dir.getContainer().getName() + "/" + dir.getPrefix());
+            this.sourceName = storeDescription(SegmentStoreType.AZURE,
+                dir.getContainer().getName() + "/" + dir.getPrefix());
             return this;
         }
 
-        public Builder withSourcePersistence(SegmentNodeStorePersistence source, String sourceName) {
+        public Builder withSourcePersistence(SegmentNodeStorePersistence source,
+            String sourceName) {
             this.source = source;
             this.sourceName = sourceName;
             return this;
         }
 
-        public Builder withTargetPersistence(SegmentNodeStorePersistence target, String targetName) {
+        public Builder withTargetPersistence(SegmentNodeStorePersistence target,
+            String targetName) {
             this.target = target;
             this.targetName = targetName;
             return this;
@@ -313,9 +322,11 @@ public class SegmentStoreMigrator implements Closeable  {
             return this;
         }
 
-        public Builder withTarget(CloudBlobDirectory dir) throws URISyntaxException, StorageException {
+        public Builder withTarget(CloudBlobDirectory dir)
+            throws URISyntaxException, StorageException {
             this.target = new AzurePersistence(dir);
-            this.targetName = storeDescription(SegmentStoreType.AZURE, dir.getContainer().getName() + "/" + dir.getPrefix());
+            this.targetName = storeDescription(SegmentStoreType.AZURE,
+                dir.getContainer().getName() + "/" + dir.getPrefix());
             return this;
         }
 

@@ -19,16 +19,16 @@
 package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
 import java.io.InputStream;
-
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
 
 /**
- * Interface to provide ability to the {@link org.apache.jackrabbit.core.data.DataStore}
- * to add records with {@link BlobOptions}.
+ * Interface to provide ability to the {@link org.apache.jackrabbit.core.data.DataStore} to add
+ * records with {@link BlobOptions}.
  */
 public interface TypedDataStore {
+
     /**
      * Add a record with specified options.
      *

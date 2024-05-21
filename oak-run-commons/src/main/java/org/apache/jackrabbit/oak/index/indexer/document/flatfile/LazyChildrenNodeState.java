@@ -28,7 +28,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-class LazyChildrenNodeState implements NodeState{
+class LazyChildrenNodeState implements NodeState {
+
     private final NodeState delegate;
     private final ChildNodeStateProvider childProvider;
 

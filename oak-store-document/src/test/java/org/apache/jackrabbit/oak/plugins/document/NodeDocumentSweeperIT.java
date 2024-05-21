@@ -74,7 +74,8 @@ public class NodeDocumentSweeperIT extends AbstractTwoNodeTest {
                 public @NotNull Iterable<NodeDocument> getCandidates(long startTime) {
                     List<NodeDocument> docs = new ArrayList<>();
                     super.getCandidates(startTime).forEach(docs::add);
-                    docs.sort((o1, o2) -> NodeDocumentIdComparator.INSTANCE.compare(o1.getId(), o2.getId()));
+                    docs.sort((o1, o2) -> NodeDocumentIdComparator.INSTANCE.compare(o1.getId(),
+                        o2.getId()));
                     return docs;
                 }
             };
@@ -89,11 +90,13 @@ public class NodeDocumentSweeperIT extends AbstractTwoNodeTest {
             public @NotNull Iterable<NodeDocument> getCandidates(long startTime) {
                 List<NodeDocument> docs = new ArrayList<>();
                 seeker.getCandidates(startTime).forEach(docs::add);
-                docs.sort((o1, o2) -> NodeDocumentIdComparator.INSTANCE.compare(o1.getId(), o2.getId()));
+                docs.sort(
+                    (o1, o2) -> NodeDocumentIdComparator.INSTANCE.compare(o1.getId(), o2.getId()));
                 return docs;
             }
         };
-        agent2 = new LastRevRecoveryAgent(ds2.getDocumentStore(), ds2, testSeeker, v -> {});
+        agent2 = new LastRevRecoveryAgent(ds2.getDocumentStore(), ds2, testSeeker, v -> {
+        });
     }
 
     @Test

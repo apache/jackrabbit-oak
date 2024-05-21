@@ -40,7 +40,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 public class ResurrectNodeAfterRevisionGCTest
-        extends AbstractMultiDocumentStoreTest {
+    extends AbstractMultiDocumentStoreTest {
 
     private Clock c;
     private DocumentNodeStore ns1;
@@ -66,11 +66,11 @@ public class ResurrectNodeAfterRevisionGCTest
         c.waitUntil(System.currentTimeMillis());
         Revision.setClock(c);
         ns1 = new DocumentMK.Builder().setAsyncDelay(0).clock(c)
-                .setLeaseCheckMode(LeaseCheckMode.LENIENT)
-                .setClusterId(1).setDocumentStore(wrap(ds1)).getNodeStore();
+                                      .setLeaseCheckMode(LeaseCheckMode.LENIENT)
+                                      .setClusterId(1).setDocumentStore(wrap(ds1)).getNodeStore();
         ns2 = new DocumentMK.Builder().setAsyncDelay(0).clock(c)
-                .setLeaseCheckMode(LeaseCheckMode.LENIENT)
-                .setClusterId(2).setDocumentStore(wrap(ds2)).getNodeStore();
+                                      .setLeaseCheckMode(LeaseCheckMode.LENIENT)
+                                      .setClusterId(2).setDocumentStore(wrap(ds2)).getNodeStore();
     }
 
     @After
@@ -199,7 +199,7 @@ public class ResurrectNodeAfterRevisionGCTest
     }
 
     private void resurrectInvalidateWithModified(Invalidate inv)
-            throws Exception {
+        throws Exception {
         UpdateOp op = new UpdateOp(getIdFromPath("/foo"), true);
         op.set("p", 0);
         op.set(NodeDocument.MODIFIED_IN_SECS, 50);
@@ -242,11 +242,12 @@ public class ResurrectNodeAfterRevisionGCTest
     }
 
     interface Invalidate {
+
         void perform(DocumentStore store, Iterable<String> ids);
     }
 
     private static void merge(NodeStore store, NodeBuilder builder)
-            throws CommitFailedException {
+        throws CommitFailedException {
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 

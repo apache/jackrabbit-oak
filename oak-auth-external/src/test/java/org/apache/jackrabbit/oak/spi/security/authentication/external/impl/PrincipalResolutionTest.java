@@ -16,10 +16,20 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Sets;
+import static org.apache.jackrabbit.oak.spi.security.authentication.external.TestIdentityProvider.ID_SECOND_USER;
+import static org.apache.jackrabbit.oak.spi.security.authentication.external.TestIdentityProvider.ID_TEST_USER;
+import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants.REP_EXTERNAL_ID;
+import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
+import java.util.Set;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
@@ -36,17 +46,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
-import java.util.Set;
-
-import static org.apache.jackrabbit.oak.spi.security.authentication.external.TestIdentityProvider.ID_SECOND_USER;
-import static org.apache.jackrabbit.oak.spi.security.authentication.external.TestIdentityProvider.ID_TEST_USER;
-import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants.REP_EXTERNAL_ID;
-import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-
 public class PrincipalResolutionTest extends DynamicSyncContextTest {
 
     @Override
@@ -55,11 +54,13 @@ public class PrincipalResolutionTest extends DynamicSyncContextTest {
         return new PrincipalResolvingIDP();
     }
 
-    static class PrincipalResolvingIDP extends TestIdentityProvider implements PrincipalNameResolver {
+    static class PrincipalResolvingIDP extends TestIdentityProvider implements
+        PrincipalNameResolver {
 
         @NotNull
         @Override
-        public String fromExternalIdentityRef(@NotNull ExternalIdentityRef externalIdentityRef) throws ExternalIdentityException {
+        public String fromExternalIdentityRef(@NotNull ExternalIdentityRef externalIdentityRef)
+            throws ExternalIdentityException {
             ExternalIdentity identity = getIdentity(externalIdentityRef);
             if (identity == null) {
                 throw new ExternalIdentityException();
@@ -81,7 +82,8 @@ public class PrincipalResolutionTest extends DynamicSyncContextTest {
         // since the shortcut is in place and dynamic groups are not synched the mismatch in principal-name
         // cannot be spotted (but also doesn't have too much implication apart from being confusing as principal names
         // are not case-insensitive and conflicting dynamic groups are not being created)
-        assertSynched(externalUser, externalGroup, externalGroup.getId(), externalGroup.getPrincipalName()+"mismatch", ref);
+        assertSynched(externalUser, externalGroup, externalGroup.getId(),
+            externalGroup.getPrincipalName() + "mismatch", ref);
     }
 
     @Test
@@ -96,15 +98,20 @@ public class PrincipalResolutionTest extends DynamicSyncContextTest {
         // since the shortcut is in place and dynamic groups are not synched the mismatch in principal-name
         // cannot be spotted (but also doesn't have too much implication apart from being confusing as principal names
         // are not case-insensitive and conflicting dynamic groups are not being created)
-        assertSynched(externalUser, externalGroup, externalGroup.getId(), externalGroup.getPrincipalName().toUpperCase(), ref);
+        assertSynched(externalUser, externalGroup, externalGroup.getId(),
+            externalGroup.getPrincipalName().toUpperCase(), ref);
     }
 
-    private void assertSynched(@NotNull ExternalUser externalUser, @NotNull ExternalIdentity externalGroup,
-                               @NotNull String existingId, @NotNull String existingPrincipalName, @Nullable ExternalIdentityRef existingGroupRef) throws Exception {
+    private void assertSynched(@NotNull ExternalUser externalUser,
+        @NotNull ExternalIdentity externalGroup,
+        @NotNull String existingId, @NotNull String existingPrincipalName,
+        @Nullable ExternalIdentityRef existingGroupRef) throws Exception {
 
-        Group g = userManager.createGroup(existingId, new PrincipalImpl(existingPrincipalName), null);
+        Group g = userManager.createGroup(existingId, new PrincipalImpl(existingPrincipalName),
+            null);
         if (existingGroupRef != null) {
-            g.setProperty(REP_EXTERNAL_ID, getValueFactory().createValue(existingGroupRef.getString()));
+            g.setProperty(REP_EXTERNAL_ID,
+                getValueFactory().createValue(existingGroupRef.getString()));
         }
         r.commit();
 
@@ -118,17 +125,20 @@ public class PrincipalResolutionTest extends DynamicSyncContextTest {
 
         // the resulting rep:externalPrincipalNames must contain the name of the principal
         Set<String> pNames = Sets.newHashSet(extPrincipalNames.getValue(Type.STRINGS));
-        assertTrue(pNames + " must contain " + externalGroup.getPrincipalName(), pNames.contains(externalGroup.getPrincipalName()));
+        assertTrue(pNames + " must contain " + externalGroup.getPrincipalName(),
+            pNames.contains(externalGroup.getPrincipalName()));
     }
 
     @Test
     public void testSyncMembershipWithUserRef() throws Exception {
-        TestIdentityProvider.TestUser testuser = (TestIdentityProvider.TestUser) idp.getUser(ID_TEST_USER);
-        Set<ExternalIdentityRef> groupRefs = getExpectedSyncedGroupRefs(syncConfig.user().getMembershipNestingDepth(), idp, testuser);
+        TestIdentityProvider.TestUser testuser = (TestIdentityProvider.TestUser) idp.getUser(
+            ID_TEST_USER);
+        Set<ExternalIdentityRef> groupRefs = getExpectedSyncedGroupRefs(
+            syncConfig.user().getMembershipNestingDepth(), idp, testuser);
 
         // verify that the conflicting user has not been synced before
         assertNull(userManager.getAuthorizable(ID_SECOND_USER));
-        
+
         ExternalUser second = idp.getUser(ID_SECOND_USER);
         testuser.withGroups(second.getExternalId());
         assertFalse(Iterables.elementsEqual(groupRefs, testuser.getDeclaredGroups()));
@@ -138,7 +148,7 @@ public class PrincipalResolutionTest extends DynamicSyncContextTest {
         Authorizable a = userManager.getAuthorizable(ID_TEST_USER);
         assertTrue(a.hasProperty(REP_EXTERNAL_PRINCIPAL_NAMES));
 
-        // with IDP implementing PrincipalNameResolver the extra verification for all member-refs being groups 
+        // with IDP implementing PrincipalNameResolver the extra verification for all member-refs being groups
         // is omitted _unless_ dynamic groups are enabled as well, in which case the short-cut is ignored.
         assertDynamicMembership(testuser, 1);
     }

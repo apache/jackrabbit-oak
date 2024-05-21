@@ -16,6 +16,10 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.restriction;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+
 import java.util.List;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -26,14 +30,13 @@ import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
-
 public class CompositePatternTest {
 
-    private final RestrictionPattern alwaysMatching = CompositePattern.create(ImmutableList.of(TestRestrictionPatter.INSTANCE_TRUE, TestRestrictionPatter.INSTANCE_TRUE));
-    private final RestrictionPattern neverMatching = CompositePattern.create(ImmutableList.of(TestRestrictionPatter.INSTANCE_TRUE, TestRestrictionPatter.INSTANCE_FALSE));
+    private final RestrictionPattern alwaysMatching = CompositePattern.create(
+        ImmutableList.of(TestRestrictionPatter.INSTANCE_TRUE, TestRestrictionPatter.INSTANCE_TRUE));
+    private final RestrictionPattern neverMatching = CompositePattern.create(
+        ImmutableList.of(TestRestrictionPatter.INSTANCE_TRUE,
+            TestRestrictionPatter.INSTANCE_FALSE));
 
     @Test
     public void testCreateFromEmptyList() {
@@ -43,13 +46,16 @@ public class CompositePatternTest {
 
     @Test
     public void testCreateFromSingletonList() {
-        RestrictionPattern rp = CompositePattern.create(ImmutableList.of(TestRestrictionPatter.INSTANCE_TRUE));
+        RestrictionPattern rp = CompositePattern.create(
+            ImmutableList.of(TestRestrictionPatter.INSTANCE_TRUE));
         assertSame(TestRestrictionPatter.INSTANCE_TRUE, rp);
     }
 
     @Test
     public void testCreateFromList() {
-        RestrictionPattern rp = CompositePattern.create(ImmutableList.of(TestRestrictionPatter.INSTANCE_TRUE, TestRestrictionPatter.INSTANCE_FALSE));
+        RestrictionPattern rp = CompositePattern.create(
+            ImmutableList.of(TestRestrictionPatter.INSTANCE_TRUE,
+                TestRestrictionPatter.INSTANCE_FALSE));
         assertTrue(rp instanceof CompositePattern);
     }
 

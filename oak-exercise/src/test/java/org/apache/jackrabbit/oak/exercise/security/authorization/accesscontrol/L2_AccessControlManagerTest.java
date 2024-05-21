@@ -26,7 +26,6 @@ import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.AccessControlPolicyIterator;
 import javax.jcr.security.Privilege;
-
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
@@ -34,8 +33,8 @@ import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
-import org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants;
 import org.apache.jackrabbit.oak.exercise.ExerciseUtility;
+import org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.test.AbstractJCRTest;
 
@@ -175,7 +174,8 @@ public class L2_AccessControlManagerTest extends AbstractJCRTest {
 
         acMgr = superuser.getAccessControlManager();
 
-        User testUser = ExerciseUtility.createTestUser(((JackrabbitSession) superuser).getUserManager());
+        User testUser = ExerciseUtility.createTestUser(
+            ((JackrabbitSession) superuser).getUserManager());
         testPrincipal = testUser.getPrincipal();
         testID = testUser.getID();
         superuser.save();
@@ -188,7 +188,8 @@ public class L2_AccessControlManagerTest extends AbstractJCRTest {
                 testSession.logout();
             }
 
-            Authorizable testUser = ((JackrabbitSession) superuser).getUserManager().getAuthorizable(testPrincipal);
+            Authorizable testUser = ((JackrabbitSession) superuser).getUserManager()
+                                                                   .getAuthorizable(testPrincipal);
             if (testUser != null) {
                 testUser.remove();
                 superuser.save();
@@ -214,14 +215,14 @@ public class L2_AccessControlManagerTest extends AbstractJCRTest {
         int expectedLength = -1; // EXERCISE
         assertEquals(expectedLength, policies.length);
 
-
         AccessControlPolicyIterator policyIterator = acMgr.getApplicablePolicies(testRoot);
         int expectedSize = -1; // EXERCISE
         assertEquals(expectedSize, policyIterator.getSize());
 
         // EXERCISE: look at the utility methods and explain the expected return value
         JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, testRoot);
-        JackrabbitAccessControlList acl2 = AccessControlUtils.getAccessControlList(superuser, testRoot);
+        JackrabbitAccessControlList acl2 = AccessControlUtils.getAccessControlList(superuser,
+            testRoot);
         assertEquals(acl, acl2); // EXERCISE: is this correct?
     }
 
@@ -230,14 +231,16 @@ public class L2_AccessControlManagerTest extends AbstractJCRTest {
         int expectedLength = -1; // EXERCISE
         assertEquals(expectedLength, policies.length);
 
-
-        AccessControlPolicyIterator policyIterator = acMgr.getApplicablePolicies(NamespaceConstants.NAMESPACES_PATH);
+        AccessControlPolicyIterator policyIterator = acMgr.getApplicablePolicies(
+            NamespaceConstants.NAMESPACES_PATH);
         int expectedSize = -1; // EXERCISE
         assertEquals(expectedSize, policyIterator.getSize());
 
         // EXERCISE: look at the utility methods and explain the expected return value
-        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, NamespaceConstants.NAMESPACES_PATH);
-        JackrabbitAccessControlList acl2 = AccessControlUtils.getAccessControlList(superuser, NamespaceConstants.NAMESPACES_PATH);
+        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr,
+            NamespaceConstants.NAMESPACES_PATH);
+        JackrabbitAccessControlList acl2 = AccessControlUtils.getAccessControlList(superuser,
+            NamespaceConstants.NAMESPACES_PATH);
         assertEquals(acl, acl2); // EXERCISE: is this correct?
     }
 
@@ -247,7 +250,8 @@ public class L2_AccessControlManagerTest extends AbstractJCRTest {
         assertNotNull(acl);
         assertEquals(0, acl.getAccessControlEntries().length);
 
-        acl.addAccessControlEntry(EveryonePrincipal.getInstance(), new Privilege[] {acMgr.privilegeFromName(Privilege.JCR_READ)});
+        acl.addAccessControlEntry(EveryonePrincipal.getInstance(),
+            new Privilege[]{acMgr.privilegeFromName(Privilege.JCR_READ)});
         int expectedLength = -1; // EXERCISE
         assertEquals(expectedLength, acl.getAccessControlEntries().length);
 
@@ -261,7 +265,8 @@ public class L2_AccessControlManagerTest extends AbstractJCRTest {
     public void testAddAceWithUtility() throws RepositoryException {
         JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, testRoot);
 
-        boolean success = AccessControlUtils.addAccessControlEntry(superuser, testRoot, testPrincipal, new String[] {Privilege.JCR_READ}, false);
+        boolean success = AccessControlUtils.addAccessControlEntry(superuser, testRoot,
+            testPrincipal, new String[]{Privilege.JCR_READ}, false);
         boolean expectedSuccess = false; // EXERCISE
         assertEquals(expectedSuccess, success);
 
@@ -293,7 +298,8 @@ public class L2_AccessControlManagerTest extends AbstractJCRTest {
     public void testSetPolicy() throws RepositoryException {
         JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, testRoot);
 
-        assertTrue(acl.addEntry(testPrincipal, AccessControlUtils.privilegesFromNames(acMgr, Privilege.JCR_READ), false));
+        assertTrue(acl.addEntry(testPrincipal,
+            AccessControlUtils.privilegesFromNames(acMgr, Privilege.JCR_READ), false));
 
         // EXERCISE: fix the test.
 
@@ -325,7 +331,8 @@ public class L2_AccessControlManagerTest extends AbstractJCRTest {
             // success
         }
 
-        AccessControlUtils.addAccessControlEntry(superuser, testRoot, testPrincipal, new String[] {Privilege.JCR_READ}, false);
+        AccessControlUtils.addAccessControlEntry(superuser, testRoot, testPrincipal,
+            new String[]{Privilege.JCR_READ}, false);
 
         acl = AccessControlUtils.getAccessControlList(acMgr, testRoot);
         acMgr.removePolicy(testRoot, acl);
@@ -333,7 +340,8 @@ public class L2_AccessControlManagerTest extends AbstractJCRTest {
 
     public void testTransientNature() throws RepositoryException {
         JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, testRoot);
-        assertTrue(acl.addEntry(testPrincipal, AccessControlUtils.privilegesFromNames(acMgr, Privilege.JCR_READ), false));
+        assertTrue(acl.addEntry(testPrincipal,
+            AccessControlUtils.privilegesFromNames(acMgr, Privilege.JCR_READ), false));
         acMgr.setPolicy(testRoot, acl);
 
         assertEquals(acl, AccessControlUtils.getAccessControlList(acMgr, testRoot));
@@ -356,8 +364,10 @@ public class L2_AccessControlManagerTest extends AbstractJCRTest {
         testSession = superuser.getRepository().login(ExerciseUtility.getTestCredentials(testID));
 
         // EXERCISE: Fix the test and explain your fix.
-        AccessControlPolicyIterator policyIterator = testSession.getAccessControlManager().getApplicablePolicies(testRoot);
-        AccessControlPolicy[] policies = testSession.getAccessControlManager().getPolicies(testRoot);
+        AccessControlPolicyIterator policyIterator = testSession.getAccessControlManager()
+                                                                .getApplicablePolicies(testRoot);
+        AccessControlPolicy[] policies = testSession.getAccessControlManager()
+                                                    .getPolicies(testRoot);
     }
 
     public void testWritePoliciesAsReadOnlySession() throws RepositoryException {

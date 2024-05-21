@@ -19,18 +19,17 @@
 
 package org.apache.jackrabbit.oak.plugins.index.property;
 
+import static org.apache.jackrabbit.guava.common.collect.Sets.newLinkedHashSet;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
 import org.jetbrains.annotations.Nullable;
-
-import static org.apache.jackrabbit.guava.common.collect.Sets.newLinkedHashSet;
 
 public final class ValuePatternUtil {
 

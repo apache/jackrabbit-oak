@@ -21,20 +21,22 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-
 import net.jpountz.lz4.LZ4FrameInputStream;
 import net.jpountz.lz4.LZ4FrameOutputStream;
 import org.apache.jackrabbit.oak.commons.Compression;
 
 public class LZ4Compression implements Compression {
+
     @Override
     public InputStream getInputStream(InputStream in) throws IOException {
         return new LZ4FrameInputStream(in);
     }
+
     @Override
-    public OutputStream getOutputStream(OutputStream out) throws  IOException {
+    public OutputStream getOutputStream(OutputStream out) throws IOException {
         return new LZ4FrameOutputStream(out);
     }
+
     @Override
     public String addSuffix(String filename) {
         return filename + ".lz4";

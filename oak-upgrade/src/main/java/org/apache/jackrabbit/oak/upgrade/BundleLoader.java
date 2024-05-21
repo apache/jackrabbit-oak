@@ -16,9 +16,10 @@
  */
 package org.apache.jackrabbit.oak.upgrade;
 
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-
 import org.apache.jackrabbit.core.id.NodeId;
 import org.apache.jackrabbit.core.id.PropertyId;
 import org.apache.jackrabbit.core.persistence.PersistenceManager;
@@ -29,8 +30,6 @@ import org.apache.jackrabbit.core.state.ItemStateException;
 import org.apache.jackrabbit.core.state.NodeState;
 import org.apache.jackrabbit.spi.Name;
 import org.apache.jackrabbit.spi.commons.name.NameConstants;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
 class BundleLoader {
 
@@ -45,7 +44,7 @@ class BundleLoader {
         if (pm instanceof AbstractBundlePersistenceManager) {
             try {
                 method = AbstractBundlePersistenceManager.class
-                        .getDeclaredMethod("loadBundle", NodeId.class);
+                    .getDeclaredMethod("loadBundle", NodeId.class);
                 method.setAccessible(true);
             } catch (SecurityException e) {
                 method = null;
@@ -60,7 +59,7 @@ class BundleLoader {
         if (loadBundle != null) {
             try {
                 return checkNotNull((NodePropBundle) loadBundle.invoke(pm, id),
-                        "Could not load NodePropBundle for id [%s]", id);
+                    "Could not load NodePropBundle for id [%s]", id);
             } catch (InvocationTargetException e) {
                 if (e.getCause() instanceof ItemStateException) {
                     throw (ItemStateException) e.getCause();
@@ -80,9 +79,9 @@ class BundleLoader {
             if (NameConstants.JCR_UUID.equals(name)) {
                 bundle.setReferenceable(true);
             } else if (!NameConstants.JCR_PRIMARYTYPE.equals(name)
-                    && !NameConstants.JCR_MIXINTYPES.equals(name)) {
+                && !NameConstants.JCR_MIXINTYPES.equals(name)) {
                 bundle.addProperty(new PropertyEntry(
-                        pm.load(new PropertyId(id, name))));
+                    pm.load(new PropertyId(id, name))));
             }
         }
         return bundle;

@@ -17,6 +17,7 @@
 
 package org.apache.jackrabbit.oak.query;
 
+import java.util.List;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.Oak;
@@ -31,8 +32,6 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.util.List;
 
 public class OrQueryOrderLimitWithoutIndexTest extends AbstractQueryTest {
 

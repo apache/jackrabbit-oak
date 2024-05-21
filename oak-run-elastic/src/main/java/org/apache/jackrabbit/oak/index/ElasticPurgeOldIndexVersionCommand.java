@@ -33,7 +33,7 @@ public class ElasticPurgeOldIndexVersionCommand extends PurgeOldIndexVersionComm
     private final String summary = "Provides elastic purge index related operations";
 
     @Override
-    public void execute(String ... args) throws Exception {
+    public void execute(String... args) throws Exception {
         OptionParser parser = new OptionParser();
         parser.allowsUnrecognizedOptions();
 
@@ -50,7 +50,8 @@ public class ElasticPurgeOldIndexVersionCommand extends PurgeOldIndexVersionComm
 
     @Override
     protected PurgeOldIndexVersion getPurgeOldIndexVersionInstance() {
-        return new ElasticPurgeOldIndexVersion(indexOpts.getIndexPrefix(), indexOpts.getElasticScheme(), indexOpts.getElasticHost(),
-                indexOpts.getElasticPort(), indexOpts.getApiKeyId(), indexOpts.getApiKeySecret());
+        return new ElasticPurgeOldIndexVersion(indexOpts.getIndexPrefix(),
+            indexOpts.getElasticScheme(), indexOpts.getElasticHost(),
+            indexOpts.getElasticPort(), indexOpts.getApiKeyId(), indexOpts.getApiKeySecret());
     }
 }

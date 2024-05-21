@@ -18,15 +18,13 @@
  */
 package org.apache.jackrabbit.oak.jcr.query;
 
+import java.util.List;
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
 import javax.jcr.Session;
 import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
 import javax.jcr.query.QueryResult;
-
-import java.util.List;
-
 import org.apache.jackrabbit.core.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.query.facet.FacetResult;
 
@@ -47,7 +45,7 @@ public class FacetTest extends AbstractQueryTest {
 
         QueryManager qm = session.getWorkspace().getQueryManager();
         String sql2 = "select [jcr:path], [rep:facet(text)] from [nt:base] " +
-                "where contains([text], 'hello OR hallo') order by [jcr:path]";
+            "where contains([text], 'hello OR hallo') order by [jcr:path]";
         Query q = qm.createQuery(sql2, Query.JCR_SQL2);
         QueryResult result = q.execute();
         FacetResult facetResult = new FacetResult(result);
@@ -92,7 +90,7 @@ public class FacetTest extends AbstractQueryTest {
 
         QueryManager qm = session.getWorkspace().getQueryManager();
         String sql2 = "select [jcr:path], [rep:facet(tags)] from [nt:base] " +
-                "where contains([jcr:title], 'oak') order by [jcr:path]";
+            "where contains([jcr:title], 'oak') order by [jcr:path]";
         Query q = qm.createQuery(sql2, Query.JCR_SQL2);
         QueryResult result = q.execute();
         FacetResult facetResult = new FacetResult(result);
@@ -114,7 +112,6 @@ public class FacetTest extends AbstractQueryTest {
         assertEquals(1, facets.get(4).getCount(), 0);
         assertEquals("furniture", facets.get(5).getLabel());
         assertEquals(1, facets.get(5).getCount(), 0);
-
 
         NodeIterator nodes = result.getNodes();
         assertTrue(nodes.hasNext());
@@ -143,7 +140,7 @@ public class FacetTest extends AbstractQueryTest {
 
         QueryManager qm = session.getWorkspace().getQueryManager();
         String sql2 = "select [jcr:path], [rep:facet(text)] from [nt:base] " +
-                "where contains([text], 'hello OR hallo') order by [jcr:path]";
+            "where contains([text], 'hello OR hallo') order by [jcr:path]";
         Query q = qm.createQuery(sql2, Query.JCR_SQL2);
         QueryResult result = q.execute();
         FacetResult facetResult = new FacetResult(result);
@@ -183,7 +180,7 @@ public class FacetTest extends AbstractQueryTest {
 
         QueryManager qm = session.getWorkspace().getQueryManager();
         String sql2 = "select [jcr:path], [rep:facet(" + pn + ")] from [nt:base] " +
-                "where contains([" + pn + "], 'hallo') order by [jcr:path]";
+            "where contains([" + pn + "], 'hallo') order by [jcr:path]";
         Query q = qm.createQuery(sql2, Query.JCR_SQL2);
         QueryResult result = q.execute();
         FacetResult facetResult = new FacetResult(result);
@@ -222,7 +219,8 @@ public class FacetTest extends AbstractQueryTest {
         session.save();
 
         QueryManager qm = session.getWorkspace().getQueryManager();
-        String sql2 = "select [jcr:path], [rep:facet(" + pn + ")], [rep:facet(" + pn2 + ")] from [nt:base] " +
+        String sql2 =
+            "select [jcr:path], [rep:facet(" + pn + ")], [rep:facet(" + pn2 + ")] from [nt:base] " +
                 "where contains([" + pn + "], 'hallo') order by [jcr:path]";
         Query q = qm.createQuery(sql2, Query.JCR_SQL2);
         QueryResult result = q.execute();

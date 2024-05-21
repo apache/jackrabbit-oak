@@ -24,10 +24,10 @@ public class SQL2SearchTest extends SimpleSearchTest {
 
     @Override
     protected Query createQuery(QueryManager manager, int i)
-            throws RepositoryException {
+        throws RepositoryException {
         return manager.createQuery(
-                "SELECT * FROM [nt:base] WHERE testcount=" + i,
-                "JCR-SQL2");
+            "SELECT * FROM [nt:base] WHERE testcount=" + i,
+            "JCR-SQL2");
     }
 
 }

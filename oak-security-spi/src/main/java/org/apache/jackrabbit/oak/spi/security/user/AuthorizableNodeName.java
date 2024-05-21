@@ -20,8 +20,8 @@ import org.apache.jackrabbit.util.Text;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * The {@code AuthorizableNodeName} is in charge of generating a valid node
- * name from a given authorizable ID.
+ * The {@code AuthorizableNodeName} is in charge of generating a valid node name from a given
+ * authorizable ID.
  *
  * @since OAK 1.0
  */
@@ -44,10 +44,10 @@ public interface AuthorizableNodeName {
     String generateNodeName(@NotNull String authorizableId);
 
     /**
-     * Default implementation of the {@code AuthorizableNodeName} interface
-     * that uses the specified authorizable identifier as node name
-     * {@link org.apache.jackrabbit.util.Text#escapeIllegalJcrChars(String) escaping}
-     * any illegal JCR chars.
+     * Default implementation of the {@code AuthorizableNodeName} interface that uses the specified
+     * authorizable identifier as node name
+     * {@link org.apache.jackrabbit.util.Text#escapeIllegalJcrChars(String) escaping} any illegal
+     * JCR chars.
      */
     final class Default implements AuthorizableNodeName {
 

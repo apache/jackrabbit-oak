@@ -20,17 +20,17 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.io.IOException;
-
 import org.apache.lucene.util.InfoStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class LoggingInfoStream extends InfoStream {
+
     static final String PREFIX = "oak.lucene";
 
-    public static final LoggingInfoStream INSTANCE  = new LoggingInfoStream();
+    public static final LoggingInfoStream INSTANCE = new LoggingInfoStream();
 
-    private LoggingInfoStream(){
+    private LoggingInfoStream() {
 
     }
 
@@ -49,7 +49,7 @@ public class LoggingInfoStream extends InfoStream {
 
     }
 
-    private static Logger getLog(String component){
+    private static Logger getLog(String component) {
         return LoggerFactory.getLogger(PREFIX + "." + component);
     }
 }

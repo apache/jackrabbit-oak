@@ -16,10 +16,17 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene.util.fv;
 
+import static org.apache.lucene.search.BooleanClause.Occur.SHOULD;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.*;
-
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
 import org.apache.lucene.analysis.Analyzer;
@@ -39,8 +46,6 @@ import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.util.BytesRef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.apache.lucene.search.BooleanClause.Occur.SHOULD;
 
 /**
  * Utility methods for indexing and searching for similar feature vectors
@@ -79,13 +84,14 @@ public class SimSearchUtils {
         int capacity = array.length / blockSize;
         double[] doubles = new double[capacity];
         for (int i = 0; i < capacity; i++) {
-                double e = wrap.getDouble(i * blockSize);
-                doubles[i] = e;
-            }
+            double e = wrap.getDouble(i * blockSize);
+            doubles[i] = e;
+        }
         return doubles;
     }
 
-    private static Collection<BytesRef> getTokens(Analyzer analyzer, String field, String sampleTextString) throws IOException {
+    private static Collection<BytesRef> getTokens(Analyzer analyzer, String field,
+        String sampleTextString) throws IOException {
         Collection<BytesRef> tokens = new LinkedList<>();
         TokenStream ts = analyzer.tokenStream(field, sampleTextString);
         ts.addAttribute(CharTermAttribute.class);
@@ -101,7 +107,7 @@ public class SimSearchUtils {
     }
 
     static Query getSimQuery(Analyzer analyzer, String fieldName, String text) throws IOException {
-        return createLSHQuery(fieldName, getTokens(analyzer, fieldName, text), 1f,1f);
+        return createLSHQuery(fieldName, getTokens(analyzer, fieldName, text), 1f, 1f);
     }
 
     public static byte[] toByteArray(List<Double> values) {
@@ -121,15 +127,18 @@ public class SimSearchUtils {
         return toByteArray(doubles);
     }
 
-    public static Query getSimilarityQuery(List<PropertyDefinition> sp, IndexReader reader, String queryString) {
+    public static Query getSimilarityQuery(List<PropertyDefinition> sp, IndexReader reader,
+        String queryString) {
         try {
             log.debug("parsing similarity query on {}", queryString);
             Query similarityQuery = null;
             String text = null;
             for (String param : queryString.split("&")) {
                 String[] keyValuePair = param.split("=");
-                if (keyValuePair.length != 2 || keyValuePair[0] == null || keyValuePair[1] == null) {
-                    throw new RuntimeException("Unparsable native Lucene query for fv similarity: " + queryString);
+                if (keyValuePair.length != 2 || keyValuePair[0] == null
+                    || keyValuePair[1] == null) {
+                    throw new RuntimeException(
+                        "Unparsable native Lucene query for fv similarity: " + queryString);
                 } else {
                     if ("stream.body".equals(keyValuePair[0])) {
                         text = keyValuePair[1];
@@ -153,21 +162,26 @@ public class SimSearchUtils {
                         String similarityFieldName = FieldNames.createSimilarityFieldName(pd.name);
                         String fvString = doc.get(similarityFieldName);
                         if (fvString != null && fvString.trim().length() > 0) {
-                            log.trace("generating sim query on field {} and text {}", similarityFieldName, fvString);
-                            Query simQuery = SimSearchUtils.getSimQuery(analyzer, similarityFieldName, fvString);
+                            log.trace("generating sim query on field {} and text {}",
+                                similarityFieldName, fvString);
+                            Query simQuery = SimSearchUtils.getSimQuery(analyzer,
+                                similarityFieldName, fvString);
                             booleanQuery.add(new BooleanClause(simQuery, SHOULD));
                             String[] binaryTags = doc.getValues(FieldNames.SIMILARITY_TAGS);
                             if (binaryTags != null && binaryTags.length > 0) {
                                 BooleanQuery tagQuery = new BooleanQuery();
                                 for (String brt : binaryTags) {
-                                    tagQuery.add(new BooleanClause(new TermQuery(new Term(FieldNames.SIMILARITY_TAGS, brt)), SHOULD));
+                                    tagQuery.add(new BooleanClause(
+                                        new TermQuery(new Term(FieldNames.SIMILARITY_TAGS, brt)),
+                                        SHOULD));
                                 }
                                 tagQuery.setBoost(0.5f);
                                 booleanQuery.add(tagQuery, SHOULD);
                             }
                             log.trace("similarity query generated for {}", pd.name);
                         } else {
-                            log.warn("could not create query for similarity field {}", similarityFieldName);
+                            log.warn("could not create query for similarity field {}",
+                                similarityFieldName);
                         }
                     }
                 }
@@ -184,7 +198,7 @@ public class SimSearchUtils {
     }
 
     private static Query createLSHQuery(String field, Collection<BytesRef> minhashes,
-                                        float similarity, float expectedTruePositive) {
+        float similarity, float expectedTruePositive) {
         int bandSize = 1;
         if (expectedTruePositive < 1) {
             bandSize = computeBandSize(minhashes.size(), similarity, expectedTruePositive);
@@ -202,7 +216,7 @@ public class SimSearchUtils {
                 rowInBand++;
                 if (rowInBand == bandSize) {
                     builder.add(new ConstantScoreQuery(childBuilder),
-                            BooleanClause.Occur.SHOULD);
+                        BooleanClause.Occur.SHOULD);
                     childBuilder = new BooleanQuery();
                     rowInBand = 0;
                 }
@@ -216,7 +230,7 @@ public class SimSearchUtils {
                 rowInBand++;
                 if (rowInBand == bandSize) {
                     builder.add(new ConstantScoreQuery(childBuilder),
-                            BooleanClause.Occur.SHOULD);
+                        BooleanClause.Occur.SHOULD);
                     break;
                 }
             }
@@ -225,13 +239,15 @@ public class SimSearchUtils {
         if (expectedTruePositive >= 1.0 && similarity < 1) {
             builder.setMinimumNumberShouldMatch((int) (Math.ceil(minhashes.size() * similarity)));
         }
-        log.trace("similarity query with bands : {}, minShouldMatch : {}, no. of clauses : {}", bandSize,
-                builder.getMinimumNumberShouldMatch(), builder.clauses().size());
+        log.trace("similarity query with bands : {}, minShouldMatch : {}, no. of clauses : {}",
+            bandSize,
+            builder.getMinimumNumberShouldMatch(), builder.clauses().size());
         return builder;
 
     }
 
-    private static int computeBandSize(int numHash, double similarity, double expectedTruePositive) {
+    private static int computeBandSize(int numHash, double similarity,
+        double expectedTruePositive) {
         for (int bands = 1; bands <= numHash; bands++) {
             int rowsInBand = numHash / bands;
             double truePositive = 1 - Math.pow(1 - Math.pow(similarity, rowsInBand), bands);
@@ -242,7 +258,8 @@ public class SimSearchUtils {
         return 1;
     }
 
-    public static void bruteForceFVRerank(List<PropertyDefinition> sp, TopDocs docs, IndexSearcher indexSearcher) throws IOException {
+    public static void bruteForceFVRerank(List<PropertyDefinition> sp, TopDocs docs,
+        IndexSearcher indexSearcher) throws IOException {
         double distSum = 0d;
         double counter = 0d;
         Map<Integer, Double> distances = new HashMap<>();
@@ -256,10 +273,11 @@ public class SimSearchUtils {
                 double[] inputVector = toDoubleArray(binaryValue.bytes);
                 for (int j = 0; j < docs.scoreDocs.length; j++) {
                     BytesRef featureVectorBinary = indexSearcher.doc(docs.scoreDocs[j].doc)
-                            .getBinaryValue(fieldName);
+                                                                .getBinaryValue(fieldName);
                     if (featureVectorBinary != null) {
                         double[] currentVector = toDoubleArray(featureVectorBinary.bytes);
-                        double distance = dist(inputVector, currentVector) + 1e-10; // constant term to avoid division by zero
+                        double distance = dist(inputVector, currentVector)
+                            + 1e-10; // constant term to avoid division by zero
                         if (Double.isNaN(distance) || Double.isInfinite(distance)) {
                             toDiscard.add(docs.scoreDocs[j].doc);
                         } else {
@@ -275,12 +293,15 @@ public class SimSearchUtils {
 
         // remove docs having invalid distance
         if (!toDiscard.isEmpty()) {
-            docs.scoreDocs = Arrays.stream(docs.scoreDocs).filter(e -> !toDiscard.contains(e.doc)).toArray(ScoreDoc[]::new);
+            docs.scoreDocs = Arrays.stream(docs.scoreDocs).filter(e -> !toDiscard.contains(e.doc))
+                                   .toArray(ScoreDoc[]::new);
         }
 
         // remove docs whose distance is one order of magnitude higher than average distance
         final double distanceThreshold = 10 * distSum / counter;
-        docs.scoreDocs = Arrays.stream(docs.scoreDocs).filter(e -> distances.containsKey(e.doc) && distances.get(e.doc) < distanceThreshold).toArray(ScoreDoc[]::new);
+        docs.scoreDocs = Arrays.stream(docs.scoreDocs).filter(
+                                   e -> distances.containsKey(e.doc) && distances.get(e.doc) < distanceThreshold)
+                               .toArray(ScoreDoc[]::new);
 
         // rerank scoreDocs
         Arrays.parallelSort(docs.scoreDocs, 0, docs.scoreDocs.length, (o1, o2) -> {

@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.console.commands
 
+import groovy.cli.picocli.CliBuilder
 import org.apache.jackrabbit.oak.commons.PathUtils
 import org.apache.jackrabbit.oak.console.ConsoleSession
 import org.apache.jackrabbit.oak.plugins.document.Collection
@@ -27,7 +28,6 @@ import org.apache.jackrabbit.oak.plugins.document.NodeDocument
 import org.apache.jackrabbit.oak.plugins.document.util.Utils
 import org.codehaus.groovy.tools.shell.CommandSupport
 import org.codehaus.groovy.tools.shell.Groovysh
-import groovy.cli.picocli.CliBuilder
 
 class ExportRelevantDocumentsCommand extends CommandSupport {
     public static final String COMMAND_NAME = 'export-docs'
@@ -80,7 +80,7 @@ class ExportRelevantDocumentsCommand extends CommandSupport {
     }
 
     private void initStores() {
-        store = (DocumentNodeStore)getSession().getStore()
+        store = (DocumentNodeStore) getSession().getStore()
         docStore = store.getDocumentStore()
     }
 
@@ -124,7 +124,7 @@ class ExportRelevantDocumentsCommand extends CommandSupport {
         file << System.getProperty("line.separator")
     }
 
-    ConsoleSession getSession(){
-        return (ConsoleSession)variables.session
+    ConsoleSession getSession() {
+        return (ConsoleSession) variables.session
     }
 }

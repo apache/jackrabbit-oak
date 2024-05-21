@@ -18,6 +18,20 @@
  */
 package org.apache.jackrabbit.oak.explorer;
 
+import static java.util.Collections.reverseOrder;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
+
+import java.io.IOException;
+import java.util.AbstractMap;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.collect.Maps;
@@ -35,25 +49,11 @@ import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
-import java.io.IOException;
-import java.util.AbstractMap;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Deque;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
-import static java.util.Collections.reverseOrder;
-
 /**
  * Abstraction for Segment-Tar based backends.
  */
 public abstract class AbstractSegmentTarExplorerBackend implements ExplorerBackend {
+
     protected ReadOnlyFileStore store;
     protected Map<String, Set<UUID>> index;
 
@@ -84,12 +84,12 @@ public abstract class AbstractSegmentTarExplorerBackend implements ExplorerBacke
         try {
             journalReader = new JournalReader(journal);
             Iterator<String> revisionIterator = Iterators.transform(journalReader,
-                    new Function<JournalEntry, String>() {
-                        @Override
-                        public String apply(JournalEntry entry) {
-                            return entry.getRevision();
-                        }
-                    });
+                new Function<JournalEntry, String>() {
+                    @Override
+                    public String apply(JournalEntry entry) {
+                        return entry.getRevision();
+                    }
+                });
 
             try {
                 revs = newArrayList(revisionIterator);
@@ -129,7 +129,8 @@ public abstract class AbstractSegmentTarExplorerBackend implements ExplorerBacke
     }
 
     @Override
-    public void getGcRoots(UUID uuidIn, Map<UUID, Set<Map.Entry<UUID, String>>> links) throws IOException {
+    public void getGcRoots(UUID uuidIn, Map<UUID, Set<Map.Entry<UUID, String>>> links)
+        throws IOException {
         Deque<UUID> todos = new ArrayDeque<UUID>();
         todos.add(uuidIn);
         Set<UUID> visited = newHashSet();
@@ -151,7 +152,7 @@ public abstract class AbstractSegmentTarExplorerBackend implements ExplorerBacke
                                 links.put(uuid, deps);
                             }
                             deps.add(new AbstractMap.SimpleImmutableEntry<UUID, String>(
-                                    uuidP, f));
+                                uuidP, f));
                         }
                     }
                 }
@@ -177,7 +178,8 @@ public abstract class AbstractSegmentTarExplorerBackend implements ExplorerBacke
 
     @Override
     public NodeState readNodeState(String recordId) {
-        return store.getReader().readNode(RecordId.fromString(store.getSegmentIdProvider(), recordId));
+        return store.getReader()
+                    .readNode(RecordId.fromString(store.getSegmentIdProvider(), recordId));
     }
 
     @Override

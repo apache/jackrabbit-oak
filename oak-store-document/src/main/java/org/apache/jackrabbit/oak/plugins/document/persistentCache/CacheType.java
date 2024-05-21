@@ -17,11 +17,10 @@
 package org.apache.jackrabbit.oak.plugins.document.persistentCache;
 
 import java.nio.ByteBuffer;
-
-import org.apache.jackrabbit.oak.plugins.document.LocalDiffCache;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.LocalDiffCache;
 import org.apache.jackrabbit.oak.plugins.document.MemoryDiffCache;
 import org.apache.jackrabbit.oak.plugins.document.NamePathRev;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
@@ -34,9 +33,8 @@ import org.h2.mvstore.WriteBuffer;
 import org.h2.mvstore.type.StringDataType;
 
 public enum CacheType {
-    
-    NODE {
 
+    NODE {
         @Override
         public <K> void writeKey(WriteBuffer buffer, K key) {
             PathRev pr = (PathRev) key;
@@ -62,23 +60,22 @@ public enum CacheType {
         @SuppressWarnings("unchecked")
         @Override
         public <V> V readValue(DocumentNodeStore store,
-                               DocumentStore docStore,
-                               ByteBuffer buffer) {
+            DocumentStore docStore,
+            ByteBuffer buffer) {
             return (V) DataTypeUtil.stateFromBuffer(store, buffer);
         }
 
         @Override
         public <K> boolean shouldCache(DocumentNodeStore store, K key) {
             Path path = ((PathRev) key).getPath();
-            if (!store.getNodeCachePredicate().apply(path)){
+            if (!store.getNodeCachePredicate().apply(path)) {
                 return false;
             }
             return !store.getNodeStateCache().isCached(path);
         }
     },
-    
-    CHILDREN {
 
+    CHILDREN {
         @Override
         public <K> void writeKey(WriteBuffer buffer, K key) {
             DataTypeUtil.namePathRevToBuffer((NamePathRev) key, buffer);
@@ -104,23 +101,22 @@ public enum CacheType {
         @SuppressWarnings("unchecked")
         @Override
         public <V> V readValue(DocumentNodeStore store,
-                               DocumentStore docStore,
-                               ByteBuffer buffer) {
+            DocumentStore docStore,
+            ByteBuffer buffer) {
             return (V) DocumentNodeState.Children.fromString(readString(buffer));
         }
 
         @Override
         public <K> boolean shouldCache(DocumentNodeStore store, K key) {
             Path path = ((NamePathRev) key).getPath();
-            if (!store.getNodeCachePredicate().apply(path)){
+            if (!store.getNodeCachePredicate().apply(path)) {
                 return false;
             }
             return !store.getNodeStateCache().isCached(path);
         }
-    }, 
-    
-    DIFF {
+    },
 
+    DIFF {
         @Override
         public <K> void writeKey(WriteBuffer buffer, K key) {
             MemoryDiffCache.Key k = ((MemoryDiffCache.Key) key);
@@ -153,8 +149,8 @@ public enum CacheType {
         @SuppressWarnings("unchecked")
         @Override
         public <V> V readValue(DocumentNodeStore store,
-                               DocumentStore docStore,
-                               ByteBuffer buffer) {
+            DocumentStore docStore,
+            ByteBuffer buffer) {
             return (V) StringValue.fromString(readString(buffer));
         }
 
@@ -165,7 +161,6 @@ public enum CacheType {
     },
 
     DOCUMENT {
-
         @Override
         public <K> void writeKey(WriteBuffer buffer, K key) {
             throw new UnsupportedOperationException();
@@ -188,8 +183,8 @@ public enum CacheType {
 
         @Override
         public <V> V readValue(DocumentNodeStore store,
-                               DocumentStore docStore,
-                               ByteBuffer buffer) {
+            DocumentStore docStore,
+            ByteBuffer buffer) {
             throw new UnsupportedOperationException();
         }
 
@@ -200,7 +195,6 @@ public enum CacheType {
     },
 
     PREV_DOCUMENT {
-
         @Override
         public <K> void writeKey(WriteBuffer buffer, K key) {
             String s = ((StringValue) key).asString();
@@ -227,8 +221,8 @@ public enum CacheType {
         @SuppressWarnings("unchecked")
         @Override
         public <V> V readValue(DocumentNodeStore store,
-                               DocumentStore docStore,
-                               ByteBuffer buffer) {
+            DocumentStore docStore,
+            ByteBuffer buffer) {
             return (V) NodeDocument.fromString(docStore, readString(buffer));
         }
 
@@ -239,7 +233,6 @@ public enum CacheType {
     },
 
     LOCAL_DIFF {
-
         @Override
         public <K> void writeKey(WriteBuffer buffer, K key) {
             RevisionsKey revisionsKey = ((RevisionsKey) key);
@@ -269,8 +262,8 @@ public enum CacheType {
         @SuppressWarnings("unchecked")
         @Override
         public <V> V readValue(DocumentNodeStore store,
-                               DocumentStore docStore,
-                               ByteBuffer buffer) {
+            DocumentStore docStore,
+            ByteBuffer buffer) {
             return (V) LocalDiffCache.Diff.fromString(readString(buffer));
         }
 
@@ -279,7 +272,7 @@ public enum CacheType {
             return true;
         }
     };
-    
+
     public static final CacheType[] VALUES = CacheType.values();
 
     public String getMapName() {
@@ -289,11 +282,16 @@ public enum CacheType {
     }
 
     public abstract <K> void writeKey(WriteBuffer buffer, K key);
+
     public abstract <K> K readKey(ByteBuffer buffer);
+
     public abstract <K> int compareKeys(K a, K b);
+
     public abstract <V> void writeValue(WriteBuffer buffer, V value);
+
     public abstract <V> V readValue(
-            DocumentNodeStore store, DocumentStore docStore, ByteBuffer buffer);
+        DocumentNodeStore store, DocumentStore docStore, ByteBuffer buffer);
+
     public abstract <K> boolean shouldCache(DocumentNodeStore store, K key);
 
     private static String readString(ByteBuffer buffer) {

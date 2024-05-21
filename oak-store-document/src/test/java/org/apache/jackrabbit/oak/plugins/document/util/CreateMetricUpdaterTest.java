@@ -38,129 +38,159 @@ import static org.junit.Assert.fail;
  */
 public class CreateMetricUpdaterTest extends BaseUpdaterTest {
 
-    private final CreateMetricUpdater cMUWithoutThrottling = new CreateMetricUpdater(provider.getMeter(NODES_CREATE, DEFAULT),
-            provider.getMeter(NODES_CREATE_SPLIT, DEFAULT),
-            provider.getTimer(NODES_CREATE_TIMER, METRICS_ONLY),
-            provider.getMeter(JOURNAL_CREATE, DEFAULT),
-            provider.getTimer(JOURNAL_CREATE_TIMER, METRICS_ONLY));
-    private final CreateMetricUpdater cMUWithThrottling = new CreateMetricUpdater(provider.getMeter(NODES_CREATE_THROTTLING, DEFAULT),
-            provider.getMeter(NODES_CREATE_SPLIT_THROTTLING, DEFAULT),
-            provider.getTimer(NODES_CREATE_THROTTLING_TIMER, METRICS_ONLY),
-            provider.getMeter(JOURNAL_CREATE_THROTTLING, DEFAULT),
-            provider.getTimer(JOURNAL_CREATE_THROTTLING_TIMER, METRICS_ONLY));
+    private final CreateMetricUpdater cMUWithoutThrottling = new CreateMetricUpdater(
+        provider.getMeter(NODES_CREATE, DEFAULT),
+        provider.getMeter(NODES_CREATE_SPLIT, DEFAULT),
+        provider.getTimer(NODES_CREATE_TIMER, METRICS_ONLY),
+        provider.getMeter(JOURNAL_CREATE, DEFAULT),
+        provider.getTimer(JOURNAL_CREATE_TIMER, METRICS_ONLY));
+    private final CreateMetricUpdater cMUWithThrottling = new CreateMetricUpdater(
+        provider.getMeter(NODES_CREATE_THROTTLING, DEFAULT),
+        provider.getMeter(NODES_CREATE_SPLIT_THROTTLING, DEFAULT),
+        provider.getTimer(NODES_CREATE_THROTTLING_TIMER, METRICS_ONLY),
+        provider.getMeter(JOURNAL_CREATE_THROTTLING, DEFAULT),
+        provider.getTimer(JOURNAL_CREATE_THROTTLING_TIMER, METRICS_ONLY));
 
     @Test(expected = NullPointerException.class)
     public void updateWithNullNodesPredicate() {
-        cMUWithThrottling.update(NODES, 100, ids, true, null, getCreateStatsConsumer(), c -> c == JOURNAL, getJournalStatsConsumer());
+        cMUWithThrottling.update(NODES, 100, ids, true, null, getCreateStatsConsumer(),
+            c -> c == JOURNAL, getJournalStatsConsumer());
         fail("Shouldn't reach here");
     }
 
     @Test(expected = NullPointerException.class)
     public void updateWithNullCreateStatsConsumer() {
-        cMUWithThrottling.update(NODES, 100, ids, true, isNodesCollectionUpdated(), null, c -> c == JOURNAL, getJournalStatsConsumer());
+        cMUWithThrottling.update(NODES, 100, ids, true, isNodesCollectionUpdated(), null,
+            c -> c == JOURNAL, getJournalStatsConsumer());
         fail("Shouldn't reach here");
     }
 
     @Test(expected = NullPointerException.class)
     public void updateWithNullJournalPredicate() {
-        cMUWithoutThrottling.update(NODES, 100, ids, true, isNodesCollectionUpdated(), getCreateStatsConsumer(), null, getJournalStatsConsumer());
+        cMUWithoutThrottling.update(NODES, 100, ids, true, isNodesCollectionUpdated(),
+            getCreateStatsConsumer(), null, getJournalStatsConsumer());
         fail("Shouldn't reach here");
     }
 
     @Test(expected = NullPointerException.class)
     public void updateWithNullJournalStatsConsumer() {
-        cMUWithoutThrottling.update(NODES, 100, ids, true, isNodesCollectionUpdated(), getCreateStatsConsumer(), c -> c == JOURNAL, null);
+        cMUWithoutThrottling.update(NODES, 100, ids, true, isNodesCollectionUpdated(),
+            getCreateStatsConsumer(), c -> c == JOURNAL, null);
         fail("Shouldn't reach here");
     }
 
     @Test
     public void updateNodes() {
-        cMUWithoutThrottling.update(NODES, 100, ids, true, isNodesCollectionUpdated(), getCreateStatsConsumer(), c -> c == JOURNAL, getJournalStatsConsumer());
+        cMUWithoutThrottling.update(NODES, 100, ids, true, isNodesCollectionUpdated(),
+            getCreateStatsConsumer(), c -> c == JOURNAL, getJournalStatsConsumer());
         assertNodesWithoutThrottling(2, 0, 50);
 
-        cMUWithThrottling.update(NODES, 100, ids, true, isNodesCollectionUpdated(), getCreateStatsConsumer(), c -> c == JOURNAL, getJournalStatsConsumer());
+        cMUWithThrottling.update(NODES, 100, ids, true, isNodesCollectionUpdated(),
+            getCreateStatsConsumer(), c -> c == JOURNAL, getJournalStatsConsumer());
         assertNodesWithThrottling(2, 0, 50);
     }
 
     @Test
     public void updateNodesWithPreviousDocId() {
-        cMUWithoutThrottling.update(NODES, 100, of("15:p/a/b/c/d/e/f/g/h/i/j/k/l/m/r182f83543dd-0-0/3"), true, isNodesCollectionUpdated(), getCreateStatsConsumer(), c -> c == JOURNAL, getJournalStatsConsumer());
+        cMUWithoutThrottling.update(NODES, 100,
+            of("15:p/a/b/c/d/e/f/g/h/i/j/k/l/m/r182f83543dd-0-0/3"), true,
+            isNodesCollectionUpdated(), getCreateStatsConsumer(), c -> c == JOURNAL,
+            getJournalStatsConsumer());
         assertNodesWithoutThrottling(1, 1, 100);
 
-        cMUWithThrottling.update(NODES, 100, of("15:p/a/b/c/d/e/f/g/h/i/j/k/l/m/r182f83543dd-0-0/3"), true, isNodesCollectionUpdated(), getCreateStatsConsumer(), c -> c == JOURNAL, getJournalStatsConsumer());
+        cMUWithThrottling.update(NODES, 100,
+            of("15:p/a/b/c/d/e/f/g/h/i/j/k/l/m/r182f83543dd-0-0/3"), true,
+            isNodesCollectionUpdated(), getCreateStatsConsumer(), c -> c == JOURNAL,
+            getJournalStatsConsumer());
         assertNodesWithThrottling(1, 1, 100);
     }
 
     @Test
     public void updateNodesNotSuccessfully() {
-        cMUWithThrottling.update(NODES, 100, ids, false, isNodesCollectionUpdated(), getCreateStatsConsumer(), c -> c == JOURNAL, getJournalStatsConsumer());
+        cMUWithThrottling.update(NODES, 100, ids, false, isNodesCollectionUpdated(),
+            getCreateStatsConsumer(), c -> c == JOURNAL, getJournalStatsConsumer());
         assertNodesWithThrottling(0, 0, 0);
     }
 
     @Test
     public void updateNodesEmptyList() {
-        cMUWithoutThrottling.update(NODES, 100, of(), true, isNodesCollectionUpdated(), getCreateStatsConsumer(), c -> c == JOURNAL, getJournalStatsConsumer());
+        cMUWithoutThrottling.update(NODES, 100, of(), true, isNodesCollectionUpdated(),
+            getCreateStatsConsumer(), c -> c == JOURNAL, getJournalStatsConsumer());
         assertNodesWithoutThrottling(0, 0, 0);
     }
 
     @Test
     public void updateNonNodesJournalCollection() {
-        cMUWithoutThrottling.update(BLOBS, 100, of(), true, isNodesCollectionUpdated(), getCreateStatsConsumer(), c -> c == JOURNAL, getJournalStatsConsumer());
+        cMUWithoutThrottling.update(BLOBS, 100, of(), true, isNodesCollectionUpdated(),
+            getCreateStatsConsumer(), c -> c == JOURNAL, getJournalStatsConsumer());
         assertNodesWithoutThrottling(0, 0, 0);
         assertJournalWithoutThrottling(0, 0);
 
-        cMUWithThrottling.update(CLUSTER_NODES, 100, of(), true, isNodesCollectionUpdated(), getCreateStatsConsumer(), c -> c == JOURNAL, getJournalStatsConsumer());
+        cMUWithThrottling.update(CLUSTER_NODES, 100, of(), true, isNodesCollectionUpdated(),
+            getCreateStatsConsumer(), c -> c == JOURNAL, getJournalStatsConsumer());
         assertNodesWithThrottling(0, 0, 0);
         assertJournalWithThrottling(0, 0);
     }
 
     @Test
     public void updateWithJournalSuccessfully() {
-        cMUWithThrottling.update(JOURNAL, 100, ids, true, isNodesCollectionUpdated(), getCreateStatsConsumer(), c -> c == JOURNAL, getJournalStatsConsumer());
+        cMUWithThrottling.update(JOURNAL, 100, ids, true, isNodesCollectionUpdated(),
+            getCreateStatsConsumer(), c -> c == JOURNAL, getJournalStatsConsumer());
         assertJournalWithThrottling(2, 100);
 
-        cMUWithoutThrottling.update(JOURNAL, 100, ids, true, isNodesCollectionUpdated(), getCreateStatsConsumer(), c -> c == JOURNAL, getJournalStatsConsumer());
+        cMUWithoutThrottling.update(JOURNAL, 100, ids, true, isNodesCollectionUpdated(),
+            getCreateStatsConsumer(), c -> c == JOURNAL, getJournalStatsConsumer());
         assertJournalWithoutThrottling(2, 100);
     }
 
     @Test
     public void updateWithJournalNotSuccessfully() {
-        cMUWithThrottling.update(JOURNAL, 100, ids, false, isNodesCollectionUpdated(), getCreateStatsConsumer(), c -> c == JOURNAL, getJournalStatsConsumer());
+        cMUWithThrottling.update(JOURNAL, 100, ids, false, isNodesCollectionUpdated(),
+            getCreateStatsConsumer(), c -> c == JOURNAL, getJournalStatsConsumer());
         assertJournalWithThrottling(2, 100);
 
-        cMUWithoutThrottling.update(JOURNAL, 100, ids, false, isNodesCollectionUpdated(), getCreateStatsConsumer(), c -> c == JOURNAL, getJournalStatsConsumer());
+        cMUWithoutThrottling.update(JOURNAL, 100, ids, false, isNodesCollectionUpdated(),
+            getCreateStatsConsumer(), c -> c == JOURNAL, getJournalStatsConsumer());
         assertJournalWithoutThrottling(2, 100);
     }
 
     @Test
     public void updateWithJournalEmptyList() {
-        cMUWithThrottling.update(JOURNAL, 100, of(), true, isNodesCollectionUpdated(), getCreateStatsConsumer(), c -> c == JOURNAL, getJournalStatsConsumer());
+        cMUWithThrottling.update(JOURNAL, 100, of(), true, isNodesCollectionUpdated(),
+            getCreateStatsConsumer(), c -> c == JOURNAL, getJournalStatsConsumer());
         assertJournalWithThrottling(0, 100);
 
-        cMUWithoutThrottling.update(JOURNAL, 100, of(), true, isNodesCollectionUpdated(), getCreateStatsConsumer(), c -> c == JOURNAL, getJournalStatsConsumer());
+        cMUWithoutThrottling.update(JOURNAL, 100, of(), true, isNodesCollectionUpdated(),
+            getCreateStatsConsumer(), c -> c == JOURNAL, getJournalStatsConsumer());
         assertJournalWithoutThrottling(0, 100);
     }
 
     // helper methods
-    private void assertNodesWithThrottling(final long nodesCreate, final long nodesCreateSplit, final long nodesCreateTimer) {
+    private void assertNodesWithThrottling(final long nodesCreate, final long nodesCreateSplit,
+        final long nodesCreateTimer) {
         assertEquals(nodesCreate, getMeter(NODES_CREATE_THROTTLING).getCount());
         assertEquals(nodesCreateSplit, getMeter(NODES_CREATE_SPLIT_THROTTLING).getCount());
-        assertEquals(nodesCreateTimer, getTimer(NODES_CREATE_THROTTLING_TIMER).getSnapshot().getMax());
+        assertEquals(nodesCreateTimer,
+            getTimer(NODES_CREATE_THROTTLING_TIMER).getSnapshot().getMax());
     }
 
-    private void assertNodesWithoutThrottling(final long nodesCreate, final long nodesCreateSplit, final long nodesCreateTimer) {
+    private void assertNodesWithoutThrottling(final long nodesCreate, final long nodesCreateSplit,
+        final long nodesCreateTimer) {
         assertEquals(nodesCreate, getMeter(NODES_CREATE).getCount());
         assertEquals(nodesCreateSplit, getMeter(NODES_CREATE_SPLIT).getCount());
         assertEquals(nodesCreateTimer, getTimer(NODES_CREATE_TIMER).getSnapshot().getMax());
     }
 
-    private void assertJournalWithoutThrottling(final long journalCreate, final long journalCreateTimer) {
+    private void assertJournalWithoutThrottling(final long journalCreate,
+        final long journalCreateTimer) {
         assertEquals(journalCreate, getMeter(JOURNAL_CREATE).getCount());
         assertEquals(journalCreateTimer, getTimer(JOURNAL_CREATE_TIMER).getSnapshot().getMax());
     }
 
-    private void assertJournalWithThrottling(final long journalCreate, final long journalCreateTimer) {
+    private void assertJournalWithThrottling(final long journalCreate,
+        final long journalCreateTimer) {
         assertEquals(journalCreate, getMeter(JOURNAL_CREATE_THROTTLING).getCount());
-        assertEquals(journalCreateTimer, getTimer(JOURNAL_CREATE_THROTTLING_TIMER).getSnapshot().getMax());
+        assertEquals(journalCreateTimer,
+            getTimer(JOURNAL_CREATE_THROTTLING_TIMER).getSnapshot().getMax());
     }
 }

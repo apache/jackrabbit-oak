@@ -1,3 +1,8 @@
-/a|{}
-/a/a|{"jcr:primaryType":"not-for-split"}
-/a/b|{"jcr:primaryType":"vvbmftryiyofbsdfg7w0y8eru32qwhrfwsfjm;d"}
+/a|{
+}
+/a/a|{
+"jcr:primaryType": "not-for-split"
+}
+/a/b|{
+"jcr:primaryType": "vvbmftryiyofbsdfg7w0y8eru32qwhrfwsfjm;d"
+}

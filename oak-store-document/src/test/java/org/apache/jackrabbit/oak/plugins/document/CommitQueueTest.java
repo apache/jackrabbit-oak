@@ -70,7 +70,7 @@ public class CommitQueueTest {
 
         Closeable observer = store.addObserver(new Observer() {
             private RevisionVector before = new RevisionVector(
-                    new Revision(0, 0, store.getClusterId()));
+                new Revision(0, 0, store.getClusterId()));
 
             @Override
             public void contentChanged(@NotNull NodeState root, @Nullable CommitInfo info) {
@@ -79,8 +79,8 @@ public class CommitQueueTest {
                 LOG.debug("seen: {}", r);
                 if (r.compareTo(before) < 0) {
                     exceptions.add(new Exception(
-                            "Inconsistent revision sequence. Before: " +
-                                    before + ", after: " + r));
+                        "Inconsistent revision sequence. Before: " +
+                            before + ", after: " + r));
                 }
                 before = r;
             }
@@ -95,7 +95,8 @@ public class CommitQueueTest {
                 public void run() {
                     try {
                         for (int i = 0; i < COMMITS_PER_WRITER; i++) {
-                            Commit commit = store.newCommit(nop -> {}, null, null);
+                            Commit commit = store.newCommit(nop -> {
+                            }, null, null);
                             try {
                                 Thread.sleep(0, random.nextInt(1000));
                             } catch (InterruptedException e) {
@@ -139,8 +140,8 @@ public class CommitQueueTest {
                 LOG.debug("seen: {}", r);
                 if (r.compareRevisionTime(before) < 0) {
                     exceptions.add(new Exception(
-                            "Inconsistent revision sequence. Before: " +
-                                    before + ", after: " + r));
+                        "Inconsistent revision sequence. Before: " +
+                            before + ", after: " + r));
                 }
                 before = r;
             }
@@ -189,7 +190,8 @@ public class CommitQueueTest {
         final DocumentNodeStore ds = builderProvider.newBuilder().getNodeStore();
 
         // simulate start of a branch commit
-        Commit c = ds.newCommit(nop -> {}, ds.getHeadRevision().asBranchRevision(ds.getClusterId()), null);
+        Commit c = ds.newCommit(nop -> {
+        }, ds.getHeadRevision().asBranchRevision(ds.getClusterId()), null);
 
         Thread t = new Thread(new Runnable() {
             @Override
@@ -378,7 +380,7 @@ public class CommitQueueTest {
         try {
             if (t2.isAlive()) {
                 fail("CommitQueue.Callback.headOfQueue() must not " +
-                        "block CommitQueue.createRevision()");
+                    "block CommitQueue.createRevision()");
             }
         } finally {
             s1.release();

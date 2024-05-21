@@ -26,7 +26,6 @@ package org.apache.lucene.codecs.lucene42;
  */
 
 import java.io.IOException;
-
 import org.apache.lucene.codecs.Codec;
 import org.apache.lucene.codecs.DocValuesConsumer;
 import org.apache.lucene.codecs.DocValuesFormat;
@@ -46,14 +45,13 @@ import org.apache.lucene.codecs.perfield.PerFieldPostingsFormat;
 import org.apache.lucene.index.SegmentWriteState;
 
 /**
- * Implements the Lucene 4.2 index format, with configurable per-field postings
- * and docvalues formats.
+ * Implements the Lucene 4.2 index format, with configurable per-field postings and docvalues
+ * formats.
  * <p>
- * If you want to reuse functionality of this codec in another codec, extend
- * {@link FilterCodec}.
+ * If you want to reuse functionality of this codec in another codec, extend {@link FilterCodec}.
  *
- * @see org.apache.lucene.codecs.lucene42 package documentation for file format details.
  * @lucene.experimental
+ * @see org.apache.lucene.codecs.lucene42 package documentation for file format details.
  * @deprecated Only for reading old 4.2 segments
  */
 // NOTE: if we make largish changes in a minor release, easier to just make Lucene43Codec or whatever
@@ -61,97 +59,102 @@ import org.apache.lucene.index.SegmentWriteState;
 // (it writes a minor version, etc).
 @Deprecated
 public class Lucene42Codec extends Codec {
-  private final StoredFieldsFormat fieldsFormat = new Lucene41StoredFieldsFormat();
-  private final TermVectorsFormat vectorsFormat = new Lucene42TermVectorsFormat();
-  private final FieldInfosFormat fieldInfosFormat = new Lucene42FieldInfosFormat();
-  private final SegmentInfoFormat infosFormat = new Lucene40SegmentInfoFormat();
-  private final LiveDocsFormat liveDocsFormat = new Lucene40LiveDocsFormat();
-  
-  private final PostingsFormat postingsFormat = new PerFieldPostingsFormat() {
+
+    private final StoredFieldsFormat fieldsFormat = new Lucene41StoredFieldsFormat();
+    private final TermVectorsFormat vectorsFormat = new Lucene42TermVectorsFormat();
+    private final FieldInfosFormat fieldInfosFormat = new Lucene42FieldInfosFormat();
+    private final SegmentInfoFormat infosFormat = new Lucene40SegmentInfoFormat();
+    private final LiveDocsFormat liveDocsFormat = new Lucene40LiveDocsFormat();
+
+    private final PostingsFormat postingsFormat = new PerFieldPostingsFormat() {
+        @Override
+        public PostingsFormat getPostingsFormatForField(String field) {
+            return Lucene42Codec.this.getPostingsFormatForField(field);
+        }
+    };
+
+
+    private final DocValuesFormat docValuesFormat = new PerFieldDocValuesFormat() {
+        @Override
+        public DocValuesFormat getDocValuesFormatForField(String field) {
+            return Lucene42Codec.this.getDocValuesFormatForField(field);
+        }
+    };
+
+    /**
+     * Sole constructor.
+     */
+    public Lucene42Codec() {
+        super("Lucene42");
+    }
+
     @Override
+    public final StoredFieldsFormat storedFieldsFormat() {
+        return fieldsFormat;
+    }
+
+    @Override
+    public final TermVectorsFormat termVectorsFormat() {
+        return vectorsFormat;
+    }
+
+    @Override
+    public final PostingsFormat postingsFormat() {
+        return postingsFormat;
+    }
+
+    @Override
+    public FieldInfosFormat fieldInfosFormat() {
+        return fieldInfosFormat;
+    }
+
+    @Override
+    public SegmentInfoFormat segmentInfoFormat() {
+        return infosFormat;
+    }
+
+    @Override
+    public final LiveDocsFormat liveDocsFormat() {
+        return liveDocsFormat;
+    }
+
+    /**
+     * Returns the postings format that should be used for writing new segments of
+     * <code>field</code>.
+     * <p>
+     * The default implementation always returns "Lucene41"
+     */
     public PostingsFormat getPostingsFormatForField(String field) {
-      return Lucene42Codec.this.getPostingsFormatForField(field);
+        return defaultFormat;
     }
-  };
-  
-  
-  private final DocValuesFormat docValuesFormat = new PerFieldDocValuesFormat() {
-    @Override
+
+    /**
+     * Returns the docvalues format that should be used for writing new segments of
+     * <code>field</code>.
+     * <p>
+     * The default implementation always returns "Lucene42"
+     */
     public DocValuesFormat getDocValuesFormatForField(String field) {
-      return Lucene42Codec.this.getDocValuesFormatForField(field);
+        return defaultDVFormat;
     }
-  };
 
-  /** Sole constructor. */
-  public Lucene42Codec() {
-    super("Lucene42");
-  }
-  
-  @Override
-  public final StoredFieldsFormat storedFieldsFormat() {
-    return fieldsFormat;
-  }
-  
-  @Override
-  public final TermVectorsFormat termVectorsFormat() {
-    return vectorsFormat;
-  }
-
-  @Override
-  public final PostingsFormat postingsFormat() {
-    return postingsFormat;
-  }
-  
-  @Override
-  public FieldInfosFormat fieldInfosFormat() {
-    return fieldInfosFormat;
-  }
-  
-  @Override
-  public SegmentInfoFormat segmentInfoFormat() {
-    return infosFormat;
-  }
-  
-  @Override
-  public final LiveDocsFormat liveDocsFormat() {
-    return liveDocsFormat;
-  }
-
-  /** Returns the postings format that should be used for writing 
-   *  new segments of <code>field</code>.
-   *  
-   *  The default implementation always returns "Lucene41"
-   */
-  public PostingsFormat getPostingsFormatForField(String field) {
-    return defaultFormat;
-  }
-  
-  /** Returns the docvalues format that should be used for writing 
-   *  new segments of <code>field</code>.
-   *  
-   *  The default implementation always returns "Lucene42"
-   */
-  public DocValuesFormat getDocValuesFormatForField(String field) {
-    return defaultDVFormat;
-  }
-  
-  @Override
-  public final DocValuesFormat docValuesFormat() {
-    return docValuesFormat;
-  }
-
-  private final PostingsFormat defaultFormat = PostingsFormat.forName("Lucene41");
-  private final DocValuesFormat defaultDVFormat = DocValuesFormat.forName("Lucene42");
-
-  private final NormsFormat normsFormat = new Lucene42NormsFormat() {
     @Override
-    public DocValuesConsumer normsConsumer(SegmentWriteState state) throws IOException {
-      throw new UnsupportedOperationException("this codec can only be used for reading");
+    public final DocValuesFormat docValuesFormat() {
+        return docValuesFormat;
     }
-  };
 
-  @Override
-  public NormsFormat normsFormat() {
-    return normsFormat;
-  }
+    private final PostingsFormat defaultFormat = PostingsFormat.forName("Lucene41");
+    private final DocValuesFormat defaultDVFormat = DocValuesFormat.forName("Lucene42");
+
+    private final NormsFormat normsFormat = new Lucene42NormsFormat() {
+        @Override
+        public DocValuesConsumer normsConsumer(SegmentWriteState state) throws IOException {
+            throw new UnsupportedOperationException("this codec can only be used for reading");
+        }
+    };
+
+    @Override
+    public NormsFormat normsFormat() {
+        return normsFormat;
+    }
 }

@@ -74,9 +74,12 @@ public class PermissionProviderAccessControlTest extends AbstractPrincipalBasedT
 
         child2Path = "/oak:content/child2";
 
-        PrincipalPolicyImpl policy = setupPrincipalBasedAccessControl(testPrincipal, getNamePathMapper().getJcrPath(contentPath), JCR_READ);
-        addPrincipalBasedEntry(policy, getNamePathMapper().getJcrPath(childPath), PrivilegeConstants.JCR_READ_ACCESS_CONTROL);
-        addPrincipalBasedEntry(policy, getNamePathMapper().getJcrPath(child2Path), PrivilegeConstants.JCR_MODIFY_ACCESS_CONTROL);
+        PrincipalPolicyImpl policy = setupPrincipalBasedAccessControl(testPrincipal,
+            getNamePathMapper().getJcrPath(contentPath), JCR_READ);
+        addPrincipalBasedEntry(policy, getNamePathMapper().getJcrPath(childPath),
+            PrivilegeConstants.JCR_READ_ACCESS_CONTROL);
+        addPrincipalBasedEntry(policy, getNamePathMapper().getJcrPath(child2Path),
+            PrivilegeConstants.JCR_MODIFY_ACCESS_CONTROL);
         accessControlledPath = policy.getOakPath();
         root.commit();
 
@@ -104,9 +107,11 @@ public class PermissionProviderAccessControlTest extends AbstractPrincipalBasedT
 
     @Test
     public void testIsGrantedOnAccessControlledTree() throws Exception {
-        Tree accessControlledTree = root.getTree(getNamePathMapper().getOakPath(accessControlledPath));
+        Tree accessControlledTree = root.getTree(
+            getNamePathMapper().getOakPath(accessControlledPath));
         assertFalse(permissionProvider.isGranted(accessControlledTree, null, Permissions.READ));
-        assertFalse(permissionProvider.isGranted(accessControlledTree, null, Permissions.READ_ACCESS_CONTROL));
+        assertFalse(permissionProvider.isGranted(accessControlledTree, null,
+            Permissions.READ_ACCESS_CONTROL));
 
         setupPrincipalBasedAccessControl(testPrincipal, accessControlledPath, JCR_READ);
         root.commit();
@@ -118,10 +123,13 @@ public class PermissionProviderAccessControlTest extends AbstractPrincipalBasedT
 
     @Test
     public void testIsGrantedOnPolicyTree() {
-        Tree policyTree = root.getTree(PathUtils.concat(accessControlledPath, REP_PRINCIPAL_POLICY));
+        Tree policyTree = root.getTree(
+            PathUtils.concat(accessControlledPath, REP_PRINCIPAL_POLICY));
         assertFalse(permissionProvider.isGranted(policyTree, null, Permissions.READ));
-        assertFalse(permissionProvider.isGranted(policyTree, null, Permissions.READ_ACCESS_CONTROL));
-        assertFalse(permissionProvider.isGranted(policyTree, null, Permissions.READ_ACCESS_CONTROL|Permissions.MODIFY_ACCESS_CONTROL));
+        assertFalse(
+            permissionProvider.isGranted(policyTree, null, Permissions.READ_ACCESS_CONTROL));
+        assertFalse(permissionProvider.isGranted(policyTree, null,
+            Permissions.READ_ACCESS_CONTROL | Permissions.MODIFY_ACCESS_CONTROL));
         assertFalse(permissionProvider.isGranted(policyTree, null, Permissions.WRITE));
     }
 
@@ -131,93 +139,121 @@ public class PermissionProviderAccessControlTest extends AbstractPrincipalBasedT
         root.commit();
         permissionProvider.refresh();
 
-        Tree policyTree = root.getTree(PathUtils.concat(accessControlledPath, REP_PRINCIPAL_POLICY));
+        Tree policyTree = root.getTree(
+            PathUtils.concat(accessControlledPath, REP_PRINCIPAL_POLICY));
         assertTrue(permissionProvider.isGranted(policyTree, null, Permissions.READ));
-        assertFalse(permissionProvider.isGranted(policyTree, null, Permissions.READ_ACCESS_CONTROL));
-        assertFalse(permissionProvider.isGranted(policyTree, null, Permissions.READ_ACCESS_CONTROL|Permissions.MODIFY_ACCESS_CONTROL));
+        assertFalse(
+            permissionProvider.isGranted(policyTree, null, Permissions.READ_ACCESS_CONTROL));
+        assertFalse(permissionProvider.isGranted(policyTree, null,
+            Permissions.READ_ACCESS_CONTROL | Permissions.MODIFY_ACCESS_CONTROL));
         assertFalse(permissionProvider.isGranted(policyTree, null, Permissions.WRITE));
     }
 
     @Test
     public void testIsGrantedOnPolicyTreePrincipalAccessControlReadable() throws Exception {
-        setupPrincipalBasedAccessControl(testPrincipal, accessControlledPath, JCR_READ, JCR_READ_ACCESS_CONTROL);
+        setupPrincipalBasedAccessControl(testPrincipal, accessControlledPath, JCR_READ,
+            JCR_READ_ACCESS_CONTROL);
         root.commit();
         permissionProvider.refresh();
 
-        Tree policyTree = root.getTree(PathUtils.concat(accessControlledPath, REP_PRINCIPAL_POLICY));
+        Tree policyTree = root.getTree(
+            PathUtils.concat(accessControlledPath, REP_PRINCIPAL_POLICY));
         assertTrue(permissionProvider.isGranted(policyTree, null, Permissions.READ));
         assertTrue(permissionProvider.isGranted(policyTree, null, Permissions.READ_ACCESS_CONTROL));
-        assertFalse(permissionProvider.isGranted(policyTree, null, Permissions.READ_ACCESS_CONTROL|Permissions.MODIFY_ACCESS_CONTROL));
+        assertFalse(permissionProvider.isGranted(policyTree, null,
+            Permissions.READ_ACCESS_CONTROL | Permissions.MODIFY_ACCESS_CONTROL));
         assertFalse(permissionProvider.isGranted(policyTree, null, Permissions.WRITE));
     }
 
     @Test
     public void testIsGrantedOnEntryTree() throws Exception {
-        setupPrincipalBasedAccessControl(testPrincipal, accessControlledPath, JCR_READ, JCR_READ_ACCESS_CONTROL);
+        setupPrincipalBasedAccessControl(testPrincipal, accessControlledPath, JCR_READ,
+            JCR_READ_ACCESS_CONTROL);
         root.commit();
         permissionProvider.refresh();
 
-        Tree policyTree = root.getTree(PathUtils.concat(accessControlledPath, REP_PRINCIPAL_POLICY));
+        Tree policyTree = root.getTree(
+            PathUtils.concat(accessControlledPath, REP_PRINCIPAL_POLICY));
         for (Tree child : policyTree.getChildren()) {
-            assertTrue(permissionProvider.isGranted(child, null, Permissions.READ|Permissions.READ_ACCESS_CONTROL));
-            assertFalse(permissionProvider.isGranted(child, null, Permissions.MODIFY_ACCESS_CONTROL));
+            assertTrue(permissionProvider.isGranted(child, null,
+                Permissions.READ | Permissions.READ_ACCESS_CONTROL));
+            assertFalse(
+                permissionProvider.isGranted(child, null, Permissions.MODIFY_ACCESS_CONTROL));
         }
     }
 
     @Test
     public void testIsGrantedOnEntryTreeAccessControlModifiable() throws Exception {
-        setupPrincipalBasedAccessControl(testPrincipal, accessControlledPath, JCR_READ, JCR_MODIFY_ACCESS_CONTROL);
+        setupPrincipalBasedAccessControl(testPrincipal, accessControlledPath, JCR_READ,
+            JCR_MODIFY_ACCESS_CONTROL);
         root.commit();
         permissionProvider.refresh();
 
-        Tree policyTree = root.getTree(PathUtils.concat(accessControlledPath, REP_PRINCIPAL_POLICY));
+        Tree policyTree = root.getTree(
+            PathUtils.concat(accessControlledPath, REP_PRINCIPAL_POLICY));
         for (Tree child : policyTree.getChildren()) {
             assertTrue(permissionProvider.isGranted(child, null, Permissions.READ));
 
             String effectivePath = child.getProperty(REP_EFFECTIVE_PATH).getValue(STRING);
             if (contentPath.equals(effectivePath)) {
-                assertFalse(permissionProvider.isGranted(child, null, Permissions.READ_ACCESS_CONTROL));
-                assertFalse(permissionProvider.isGranted(child, null, Permissions.MODIFY_ACCESS_CONTROL));
+                assertFalse(
+                    permissionProvider.isGranted(child, null, Permissions.READ_ACCESS_CONTROL));
+                assertFalse(
+                    permissionProvider.isGranted(child, null, Permissions.MODIFY_ACCESS_CONTROL));
             } else if (childPath.equals(effectivePath)) {
-                assertFalse(permissionProvider.isGranted(child, null, Permissions.READ_ACCESS_CONTROL));
-                assertFalse(permissionProvider.isGranted(child, null, Permissions.MODIFY_ACCESS_CONTROL));
+                assertFalse(
+                    permissionProvider.isGranted(child, null, Permissions.READ_ACCESS_CONTROL));
+                assertFalse(
+                    permissionProvider.isGranted(child, null, Permissions.MODIFY_ACCESS_CONTROL));
             } else if (child2Path.equals(effectivePath)) {
-                assertFalse(permissionProvider.isGranted(child, null, Permissions.READ_ACCESS_CONTROL));
-                assertTrue(permissionProvider.isGranted(child, null, Permissions.MODIFY_ACCESS_CONTROL));
+                assertFalse(
+                    permissionProvider.isGranted(child, null, Permissions.READ_ACCESS_CONTROL));
+                assertTrue(
+                    permissionProvider.isGranted(child, null, Permissions.MODIFY_ACCESS_CONTROL));
             }
         }
     }
 
     @Test
     public void testIsGrantedOnEntryTreeAccessMgt() throws Exception {
-        setupPrincipalBasedAccessControl(testPrincipal, accessControlledPath, JCR_READ, JCR_READ_ACCESS_CONTROL, JCR_MODIFY_ACCESS_CONTROL);
+        setupPrincipalBasedAccessControl(testPrincipal, accessControlledPath, JCR_READ,
+            JCR_READ_ACCESS_CONTROL, JCR_MODIFY_ACCESS_CONTROL);
         root.commit();
         permissionProvider.refresh();
 
-        Tree policyTree = root.getTree(PathUtils.concat(accessControlledPath, REP_PRINCIPAL_POLICY));
+        Tree policyTree = root.getTree(
+            PathUtils.concat(accessControlledPath, REP_PRINCIPAL_POLICY));
         for (Tree child : policyTree.getChildren()) {
-            assertTrue(permissionProvider.isGranted(child, null, Permissions.READ|Permissions.READ_ACCESS_CONTROL));
-            assertTrue(permissionProvider.isGranted(child, child.getProperty(REP_EFFECTIVE_PATH), Permissions.READ_ACCESS_CONTROL));
-            assertTrue(permissionProvider.isGranted(child, child.getProperty(REP_PRIVILEGES), Permissions.READ_ACCESS_CONTROL));
+            assertTrue(permissionProvider.isGranted(child, null,
+                Permissions.READ | Permissions.READ_ACCESS_CONTROL));
+            assertTrue(permissionProvider.isGranted(child, child.getProperty(REP_EFFECTIVE_PATH),
+                Permissions.READ_ACCESS_CONTROL));
+            assertTrue(permissionProvider.isGranted(child, child.getProperty(REP_PRIVILEGES),
+                Permissions.READ_ACCESS_CONTROL));
 
             String effectivePath = child.getProperty(REP_EFFECTIVE_PATH).getValue(STRING);
             if (contentPath.equals(effectivePath)) {
-                assertFalse(permissionProvider.isGranted(child, null, Permissions.MODIFY_ACCESS_CONTROL));
+                assertFalse(
+                    permissionProvider.isGranted(child, null, Permissions.MODIFY_ACCESS_CONTROL));
             } else if (childPath.equals(effectivePath)) {
-                assertFalse(permissionProvider.isGranted(child, null, Permissions.MODIFY_ACCESS_CONTROL));
+                assertFalse(
+                    permissionProvider.isGranted(child, null, Permissions.MODIFY_ACCESS_CONTROL));
             } else if (child2Path.equals(effectivePath)) {
-                assertTrue(permissionProvider.isGranted(child, null, Permissions.MODIFY_ACCESS_CONTROL));
+                assertTrue(
+                    permissionProvider.isGranted(child, null, Permissions.MODIFY_ACCESS_CONTROL));
             }
         }
     }
 
     @Test
     public void testIsGrantedOnNonExistingRestrictionTree() throws Exception {
-        setupPrincipalBasedAccessControl(testPrincipal, accessControlledPath, JCR_READ_ACCESS_CONTROL, JCR_MODIFY_ACCESS_CONTROL);
+        setupPrincipalBasedAccessControl(testPrincipal, accessControlledPath,
+            JCR_READ_ACCESS_CONTROL, JCR_MODIFY_ACCESS_CONTROL);
         root.commit();
         permissionProvider.refresh();
 
-        Tree policyTree = root.getTree(PathUtils.concat(accessControlledPath, REP_PRINCIPAL_POLICY));
+        Tree policyTree = root.getTree(
+            PathUtils.concat(accessControlledPath, REP_PRINCIPAL_POLICY));
         for (Tree child : policyTree.getChildren()) {
             Tree restr = child.getChild(REP_RESTRICTIONS);
             PropertyState propertyState = PropertyStates.createProperty(REP_GLOB, "any");
@@ -226,38 +262,53 @@ public class PermissionProviderAccessControlTest extends AbstractPrincipalBasedT
 
             String effectivePath = child.getProperty(REP_EFFECTIVE_PATH).getValue(STRING);
             if (contentPath.equals(effectivePath)) {
-                assertTrue(permissionProvider.isGranted(restr, null, Permissions.READ_ACCESS_CONTROL));
-                assertTrue(permissionProvider.isGranted(restr, propertyState, Permissions.READ_ACCESS_CONTROL));
-                assertFalse(permissionProvider.isGranted(restr, null, Permissions.MODIFY_ACCESS_CONTROL));
+                assertTrue(
+                    permissionProvider.isGranted(restr, null, Permissions.READ_ACCESS_CONTROL));
+                assertTrue(permissionProvider.isGranted(restr, propertyState,
+                    Permissions.READ_ACCESS_CONTROL));
+                assertFalse(
+                    permissionProvider.isGranted(restr, null, Permissions.MODIFY_ACCESS_CONTROL));
             } else if (childPath.equals(effectivePath)) {
-                assertTrue(permissionProvider.isGranted(restr, null, Permissions.READ_ACCESS_CONTROL));
-                assertTrue(permissionProvider.isGranted(restr, propertyState, Permissions.READ_ACCESS_CONTROL));
-                assertFalse(permissionProvider.isGranted(restr, null, Permissions.MODIFY_ACCESS_CONTROL));
+                assertTrue(
+                    permissionProvider.isGranted(restr, null, Permissions.READ_ACCESS_CONTROL));
+                assertTrue(permissionProvider.isGranted(restr, propertyState,
+                    Permissions.READ_ACCESS_CONTROL));
+                assertFalse(
+                    permissionProvider.isGranted(restr, null, Permissions.MODIFY_ACCESS_CONTROL));
             } else if (child2Path.equals(effectivePath)) {
-                assertTrue(permissionProvider.isGranted(restr, null, Permissions.READ_ACCESS_CONTROL|Permissions.MODIFY_ACCESS_CONTROL));
-                assertTrue(permissionProvider.isGranted(restr, propertyState, Permissions.READ_ACCESS_CONTROL|Permissions.MODIFY_ACCESS_CONTROL));
+                assertTrue(permissionProvider.isGranted(restr, null,
+                    Permissions.READ_ACCESS_CONTROL | Permissions.MODIFY_ACCESS_CONTROL));
+                assertTrue(permissionProvider.isGranted(restr, propertyState,
+                    Permissions.READ_ACCESS_CONTROL | Permissions.MODIFY_ACCESS_CONTROL));
             }
         }
     }
 
     @Test
     public void testIsGrantedOnRestrictionTree() throws Exception {
-        PrincipalPolicyImpl policy = getPrincipalPolicyImpl(testPrincipal, getAccessControlManager(root));
-        Map<String, Value> restr = ImmutableMap.of(getNamePathMapper().getJcrName(REP_GLOB), getValueFactory(root).createValue(REP_RESTRICTIONS + "*"));
-        policy.addEntry(accessControlledPath, privilegesFromNames(JCR_READ_ACCESS_CONTROL), restr, ImmutableMap.of());
+        PrincipalPolicyImpl policy = getPrincipalPolicyImpl(testPrincipal,
+            getAccessControlManager(root));
+        Map<String, Value> restr = ImmutableMap.of(getNamePathMapper().getJcrName(REP_GLOB),
+            getValueFactory(root).createValue(REP_RESTRICTIONS + "*"));
+        policy.addEntry(accessControlledPath, privilegesFromNames(JCR_READ_ACCESS_CONTROL), restr,
+            ImmutableMap.of());
         root.commit();
         permissionProvider.refresh();
 
-        Tree policyTree = root.getTree(PathUtils.concat(accessControlledPath, REP_PRINCIPAL_POLICY));
+        Tree policyTree = root.getTree(
+            PathUtils.concat(accessControlledPath, REP_PRINCIPAL_POLICY));
         for (Tree child : policyTree.getChildren()) {
             assertFalse(permissionProvider.isGranted(child, null, Permissions.READ));
             if (child.hasChild(REP_RESTRICTIONS)) {
                 Tree restrTree = child.getChild(REP_RESTRICTIONS);
-                assertTrue(permissionProvider.isGranted(restrTree, null, Permissions.READ_ACCESS_CONTROL));
+                assertTrue(
+                    permissionProvider.isGranted(restrTree, null, Permissions.READ_ACCESS_CONTROL));
                 assertFalse(permissionProvider.isGranted(restrTree, null, Permissions.READ));
-                assertFalse(permissionProvider.isGranted(restrTree, null, Permissions.READ_ACCESS_CONTROL|Permissions.MODIFY_ACCESS_CONTROL));
+                assertFalse(permissionProvider.isGranted(restrTree, null,
+                    Permissions.READ_ACCESS_CONTROL | Permissions.MODIFY_ACCESS_CONTROL));
                 for (PropertyState ps : restrTree.getProperties()) {
-                    assertTrue(permissionProvider.isGranted(restrTree, ps, Permissions.READ_ACCESS_CONTROL));
+                    assertTrue(permissionProvider.isGranted(restrTree, ps,
+                        Permissions.READ_ACCESS_CONTROL));
                 }
                 break;
             }
@@ -266,28 +317,40 @@ public class PermissionProviderAccessControlTest extends AbstractPrincipalBasedT
 
     @Test
     public void testIsGrantedByPath() throws Exception {
-        setupPrincipalBasedAccessControl(testPrincipal, accessControlledPath, JCR_READ, JCR_READ_ACCESS_CONTROL, JCR_MODIFY_ACCESS_CONTROL);
+        setupPrincipalBasedAccessControl(testPrincipal, accessControlledPath, JCR_READ,
+            JCR_READ_ACCESS_CONTROL, JCR_MODIFY_ACCESS_CONTROL);
         root.commit();
         permissionProvider.refresh();
 
-        assertTrue(permissionProvider.isGranted(accessControlledPath, Permissions.getString(Permissions.READ|Permissions.READ_ACCESS_CONTROL|Permissions.MODIFY_ACCESS_CONTROL)));
-        assertFalse(permissionProvider.isGranted(accessControlledPath, Permissions.getString(Permissions.READ|Permissions.WRITE)));
+        assertTrue(permissionProvider.isGranted(accessControlledPath, Permissions.getString(
+            Permissions.READ | Permissions.READ_ACCESS_CONTROL
+                | Permissions.MODIFY_ACCESS_CONTROL)));
+        assertFalse(permissionProvider.isGranted(accessControlledPath,
+            Permissions.getString(Permissions.READ | Permissions.WRITE)));
 
         String policyPath = PathUtils.concat(accessControlledPath, REP_PRINCIPAL_POLICY);
-        assertTrue(permissionProvider.isGranted(policyPath, Permissions.getString(Permissions.READ_PROPERTY|Permissions.READ_NODE|Permissions.READ_ACCESS_CONTROL|Permissions.MODIFY_ACCESS_CONTROL)));
+        assertTrue(permissionProvider.isGranted(policyPath, Permissions.getString(
+            Permissions.READ_PROPERTY | Permissions.READ_NODE | Permissions.READ_ACCESS_CONTROL
+                | Permissions.MODIFY_ACCESS_CONTROL)));
 
         for (Tree child : root.getTree(policyPath).getChildren()) {
             String childPath = child.getPath();
             String effectivePath = child.getProperty(REP_EFFECTIVE_PATH).getValue(STRING);
             if (contentPath.equals(effectivePath)) {
-                assertTrue(permissionProvider.isGranted(childPath, Permissions.getString(Permissions.READ|Permissions.READ_ACCESS_CONTROL)));
-                assertFalse(permissionProvider.isGranted(childPath, Permissions.getString(Permissions.MODIFY_ACCESS_CONTROL)));
+                assertTrue(permissionProvider.isGranted(childPath,
+                    Permissions.getString(Permissions.READ | Permissions.READ_ACCESS_CONTROL)));
+                assertFalse(permissionProvider.isGranted(childPath,
+                    Permissions.getString(Permissions.MODIFY_ACCESS_CONTROL)));
             } else if (childPath.equals(effectivePath)) {
-                assertTrue(permissionProvider.isGranted(childPath, Permissions.getString(Permissions.READ|Permissions.READ_ACCESS_CONTROL)));
-                assertFalse(permissionProvider.isGranted(childPath, Permissions.getString(Permissions.READ|Permissions.MODIFY_ACCESS_CONTROL)));
+                assertTrue(permissionProvider.isGranted(childPath,
+                    Permissions.getString(Permissions.READ | Permissions.READ_ACCESS_CONTROL)));
+                assertFalse(permissionProvider.isGranted(childPath,
+                    Permissions.getString(Permissions.READ | Permissions.MODIFY_ACCESS_CONTROL)));
             } else if (child2Path.equals(effectivePath)) {
-                assertTrue(permissionProvider.isGranted(childPath, Permissions.getString(Permissions.READ|Permissions.READ_ACCESS_CONTROL)));
-                assertTrue(permissionProvider.isGranted(childPath, Permissions.getString(Permissions.READ|Permissions.MODIFY_ACCESS_CONTROL)));
+                assertTrue(permissionProvider.isGranted(childPath,
+                    Permissions.getString(Permissions.READ | Permissions.READ_ACCESS_CONTROL)));
+                assertTrue(permissionProvider.isGranted(childPath,
+                    Permissions.getString(Permissions.READ | Permissions.MODIFY_ACCESS_CONTROL)));
             }
         }
     }
@@ -295,7 +358,8 @@ public class PermissionProviderAccessControlTest extends AbstractPrincipalBasedT
     @Test
     public void testGetPrivileges() throws Exception {
         assertTrue(permissionProvider.getPrivileges(root.getTree(accessControlledPath)).isEmpty());
-        Tree policyTree = root.getTree(PathUtils.concat(accessControlledPath, REP_PRINCIPAL_POLICY));
+        Tree policyTree = root.getTree(
+            PathUtils.concat(accessControlledPath, REP_PRINCIPAL_POLICY));
         assertTrue(permissionProvider.getPrivileges(policyTree).isEmpty());
         for (Tree child : policyTree.getChildren()) {
             assertTrue(permissionProvider.getPrivileges(child).isEmpty());
@@ -306,41 +370,52 @@ public class PermissionProviderAccessControlTest extends AbstractPrincipalBasedT
         permissionProvider.refresh();
 
         Set<String> expectedPrivNames = ImmutableSet.of(JCR_READ);
-        assertEquals(expectedPrivNames, permissionProvider.getPrivileges(root.getTree(accessControlledPath)));
+        assertEquals(expectedPrivNames,
+            permissionProvider.getPrivileges(root.getTree(accessControlledPath)));
         policyTree = root.getTree(PathUtils.concat(accessControlledPath, REP_PRINCIPAL_POLICY));
         assertEquals(expectedPrivNames, permissionProvider.getPrivileges(policyTree));
         for (Tree child : policyTree.getChildren()) {
             assertEquals(expectedPrivNames, permissionProvider.getPrivileges(child));
         }
 
-        setupPrincipalBasedAccessControl(testPrincipal, accessControlledPath, JCR_READ_ACCESS_CONTROL);
+        setupPrincipalBasedAccessControl(testPrincipal, accessControlledPath,
+            JCR_READ_ACCESS_CONTROL);
         root.commit();
         permissionProvider.refresh();
 
         expectedPrivNames = ImmutableSet.of(JCR_READ, JCR_READ_ACCESS_CONTROL);
-        assertEquals(expectedPrivNames, permissionProvider.getPrivileges(root.getTree(accessControlledPath)));
+        assertEquals(expectedPrivNames,
+            permissionProvider.getPrivileges(root.getTree(accessControlledPath)));
         policyTree = root.getTree(PathUtils.concat(accessControlledPath, REP_PRINCIPAL_POLICY));
         assertEquals(expectedPrivNames, permissionProvider.getPrivileges(policyTree));
         for (Tree child : policyTree.getChildren()) {
-            assertEquals(ImmutableSet.of(JCR_READ, JCR_READ_ACCESS_CONTROL), permissionProvider.getPrivileges(child));
+            assertEquals(ImmutableSet.of(JCR_READ, JCR_READ_ACCESS_CONTROL),
+                permissionProvider.getPrivileges(child));
         }
 
-        setupPrincipalBasedAccessControl(testPrincipal, accessControlledPath, JCR_MODIFY_ACCESS_CONTROL);
+        setupPrincipalBasedAccessControl(testPrincipal, accessControlledPath,
+            JCR_MODIFY_ACCESS_CONTROL);
         root.commit();
         permissionProvider.refresh();
 
-        expectedPrivNames = ImmutableSet.of(JCR_READ, JCR_READ_ACCESS_CONTROL, JCR_MODIFY_ACCESS_CONTROL);
-        assertEquals(expectedPrivNames, permissionProvider.getPrivileges(root.getTree(accessControlledPath)));
+        expectedPrivNames = ImmutableSet.of(JCR_READ, JCR_READ_ACCESS_CONTROL,
+            JCR_MODIFY_ACCESS_CONTROL);
+        assertEquals(expectedPrivNames,
+            permissionProvider.getPrivileges(root.getTree(accessControlledPath)));
         policyTree = root.getTree(PathUtils.concat(accessControlledPath, REP_PRINCIPAL_POLICY));
         assertEquals(expectedPrivNames, permissionProvider.getPrivileges(policyTree));
         for (Tree child : policyTree.getChildren()) {
             String effectivePath = child.getProperty(REP_EFFECTIVE_PATH).getValue(STRING);
             if (contentPath.equals(effectivePath)) {
-                assertEquals(ImmutableSet.of(JCR_READ, JCR_READ_ACCESS_CONTROL), permissionProvider.getPrivileges(child));
+                assertEquals(ImmutableSet.of(JCR_READ, JCR_READ_ACCESS_CONTROL),
+                    permissionProvider.getPrivileges(child));
             } else if (childPath.equals(effectivePath)) {
-                assertEquals(ImmutableSet.of(JCR_READ, JCR_READ_ACCESS_CONTROL), permissionProvider.getPrivileges(child));
+                assertEquals(ImmutableSet.of(JCR_READ, JCR_READ_ACCESS_CONTROL),
+                    permissionProvider.getPrivileges(child));
             } else if (child2Path.equals(effectivePath)) {
-                assertEquals(ImmutableSet.of(JCR_READ, JCR_READ_ACCESS_CONTROL, JCR_MODIFY_ACCESS_CONTROL), permissionProvider.getPrivileges(child));
+                assertEquals(
+                    ImmutableSet.of(JCR_READ, JCR_READ_ACCESS_CONTROL, JCR_MODIFY_ACCESS_CONTROL),
+                    permissionProvider.getPrivileges(child));
             }
         }
     }

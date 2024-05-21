@@ -18,23 +18,22 @@ package org.apache.jackrabbit.oak.jcr.security.authorization;
 
 import java.util.List;
 import java.util.Map;
-
 import javax.jcr.Session;
-
+import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 
 /**
- * Testing {@link Session#hasPermission(String,String)} and {@link JackrabbitSession#hasPermission(String, String...)}
+ * Testing {@link Session#hasPermission(String, String)} and
+ * {@link JackrabbitSession#hasPermission(String, String...)}
  */
 public class HasPermissionTest extends AbstractEvaluationTest {
 
     public void testEmpty() throws Exception {
         List<String> paths = ImmutableList.of(
-                "/", path, childPPath, path + "/rep:policy",
-                "/nonExisting", path + "/nonExisting");
+            "/", path, childPPath, path + "/rep:policy",
+            "/nonExisting", path + "/nonExisting");
 
         for (String p : paths) {
             assertTrue(testSession.hasPermission(p, ""));
@@ -58,7 +57,8 @@ public class HasPermissionTest extends AbstractEvaluationTest {
         for (String p : map.keySet()) {
             boolean expected = map.get(p);
             assertEquals(p, expected, testSession.hasPermission(p, Session.ACTION_READ));
-            assertEquals(p, expected, ((JackrabbitSession) testSession).hasPermission(p, new String[]{Session.ACTION_READ}));
+            assertEquals(p, expected, ((JackrabbitSession) testSession).hasPermission(p,
+                new String[]{Session.ACTION_READ}));
         }
     }
 
@@ -73,28 +73,42 @@ public class HasPermissionTest extends AbstractEvaluationTest {
 
         for (String p : map.keySet()) {
             boolean expected = map.get(p);
-            assertEquals(p, expected, testSession.hasPermission(p, Session.ACTION_READ + "," + Permissions.getString(Permissions.READ)));
-            assertEquals(p, expected, ((JackrabbitSession) testSession).hasPermission(p, new String[]{Session.ACTION_READ, Session.ACTION_READ}));
-            assertEquals(p, expected, ((JackrabbitSession) testSession).hasPermission(p, Session.ACTION_READ, Session.ACTION_READ));
-            assertEquals(p, expected, ((JackrabbitSession) testSession).hasPermission(p, new String[]{Session.ACTION_READ, Permissions.PERMISSION_NAMES.get(Permissions.READ)}));
-            assertEquals(p, expected, ((JackrabbitSession) testSession).hasPermission(p, Session.ACTION_READ, Permissions.PERMISSION_NAMES.get(Permissions.READ)));
+            assertEquals(p, expected, testSession.hasPermission(p,
+                Session.ACTION_READ + "," + Permissions.getString(Permissions.READ)));
+            assertEquals(p, expected, ((JackrabbitSession) testSession).hasPermission(p,
+                new String[]{Session.ACTION_READ, Session.ACTION_READ}));
+            assertEquals(p, expected,
+                ((JackrabbitSession) testSession).hasPermission(p, Session.ACTION_READ,
+                    Session.ACTION_READ));
+            assertEquals(p, expected, ((JackrabbitSession) testSession).hasPermission(p,
+                new String[]{Session.ACTION_READ,
+                    Permissions.PERMISSION_NAMES.get(Permissions.READ)}));
+            assertEquals(p, expected,
+                ((JackrabbitSession) testSession).hasPermission(p, Session.ACTION_READ,
+                    Permissions.PERMISSION_NAMES.get(Permissions.READ)));
         }
     }
 
     public void testMultiple() throws Exception {
         List<String> paths = ImmutableList.of(
-                "/", path, childPPath, path + "/rep:policy",
-                "/nonExisting", path + "/nonExisting");
+            "/", path, childPPath, path + "/rep:policy",
+            "/nonExisting", path + "/nonExisting");
 
         for (String p : paths) {
-            assertFalse(testSession.hasPermission(p, Session.ACTION_READ + "," + Session.ACTION_SET_PROPERTY));
-            assertFalse(testSession.hasPermission(p, Session.ACTION_READ + "," + Permissions.getString(Permissions.ADD_PROPERTY)));
+            assertFalse(testSession.hasPermission(p,
+                Session.ACTION_READ + "," + Session.ACTION_SET_PROPERTY));
+            assertFalse(testSession.hasPermission(p,
+                Session.ACTION_READ + "," + Permissions.getString(Permissions.ADD_PROPERTY)));
 
-            assertFalse(((JackrabbitSession) testSession).hasPermission(p, Session.ACTION_READ, Session.ACTION_SET_PROPERTY));
-            assertFalse(((JackrabbitSession) testSession).hasPermission(p, Session.ACTION_READ, JackrabbitSession.ACTION_ADD_PROPERTY));
+            assertFalse(((JackrabbitSession) testSession).hasPermission(p, Session.ACTION_READ,
+                Session.ACTION_SET_PROPERTY));
+            assertFalse(((JackrabbitSession) testSession).hasPermission(p, Session.ACTION_READ,
+                JackrabbitSession.ACTION_ADD_PROPERTY));
 
-            assertFalse(testSession.hasPermission(p, Session.ACTION_READ + "," + JackrabbitSession.ACTION_READ_ACCESS_CONTROL));
-            assertFalse(((JackrabbitSession) testSession).hasPermission(p, Session.ACTION_READ, JackrabbitSession.ACTION_READ_ACCESS_CONTROL));
+            assertFalse(testSession.hasPermission(p,
+                Session.ACTION_READ + "," + JackrabbitSession.ACTION_READ_ACCESS_CONTROL));
+            assertFalse(((JackrabbitSession) testSession).hasPermission(p, Session.ACTION_READ,
+                JackrabbitSession.ACTION_READ_ACCESS_CONTROL));
         }
     }
 }

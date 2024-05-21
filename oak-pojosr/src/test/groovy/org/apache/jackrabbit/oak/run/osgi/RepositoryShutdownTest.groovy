@@ -30,10 +30,7 @@ import javax.jcr.Repository
 
 import static org.apache.jackrabbit.oak.run.osgi.OakOSGiRepositoryFactory.REPOSITORY_HOME
 import static org.apache.jackrabbit.oak.run.osgi.OakOSGiRepositoryFactory.REPOSITORY_TIMEOUT_IN_SECS
-import static org.mockito.Mockito.mock
-import static org.mockito.Mockito.times
-import static org.mockito.Mockito.verify
-
+import static org.mockito.Mockito.*
 
 class RepositoryShutdownTest {
 
@@ -41,7 +38,7 @@ class RepositoryShutdownTest {
     public final TemporaryFolder tmpFolder = new TemporaryFolder(new File("target"))
 
     @Test
-    public void multipleShutdown() throws Exception{
+    public void multipleShutdown() throws Exception {
         JackrabbitRepository repository = mock(JackrabbitRepository.class)
         def config = getConfig(repository)
 
@@ -53,7 +50,7 @@ class RepositoryShutdownTest {
     }
 
     @Test
-    public void multipleShutdownAndWait() throws Exception{
+    public void multipleShutdownAndWait() throws Exception {
         JackrabbitRepository repository = mock(JackrabbitRepository.class)
         def config = getConfig(repository)
 

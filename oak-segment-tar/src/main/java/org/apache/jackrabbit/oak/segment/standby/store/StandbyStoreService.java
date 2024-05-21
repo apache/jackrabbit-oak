@@ -23,7 +23,6 @@ import static org.osgi.service.component.annotations.ReferencePolicyOption.GREED
 import java.io.File;
 import java.util.Dictionary;
 import java.util.Hashtable;
-
 import org.apache.jackrabbit.guava.common.base.StandardSystemProperty;
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.segment.SegmentStore;
@@ -52,7 +51,8 @@ public class StandbyStoreService {
 
     private static final Logger log = LoggerFactory.getLogger(StandbyStoreService.class);
 
-    private static final int BLOB_CHUNK_SIZE = Integer.getInteger("oak.standby.blob.chunkSize", 1024 * 1024);
+    private static final int BLOB_CHUNK_SIZE = Integer.getInteger("oak.standby.blob.chunkSize",
+        1024 * 1024);
 
     @ObjectClassDefinition(
         name = "Apache Jackrabbit Oak Segment Tar Cold Standby Service",
@@ -119,8 +119,8 @@ public class StandbyStoreService {
         boolean standby_autoclean() default true;
 
         @AttributeDefinition(
-                name = "SSL Key File",
-                description = "The file name which contains the SSL key. If this is empty, a key will be generated on-the-fly."
+            name = "SSL Key File",
+            description = "The file name which contains the SSL key. If this is empty, a key will be generated on-the-fly."
         )
         String sslKeyFile();
 
@@ -131,14 +131,14 @@ public class StandbyStoreService {
         String sslKeyPassword() default "";
 
         @AttributeDefinition(
-                name = "SSL Certificate Chain File",
-                description = "The file name which contains the SSL certificate chain."
+            name = "SSL Certificate Chain File",
+            description = "The file name which contains the SSL certificate chain."
         )
         String sslChainFile();
 
         @AttributeDefinition(
-                name = "SSL Validate Client",
-                description = "Validate the client's SSL certificate."
+            name = "SSL Validate Client",
+            description = "Validate the client's SSL certificate."
         )
         boolean sslValidateClient() default false;
 
@@ -176,7 +176,8 @@ public class StandbyStoreService {
             return;
         }
 
-        throw new IllegalArgumentException(String.format("Unexpected mode property, got '%s'", mode));
+        throw new IllegalArgumentException(
+            String.format("Unexpected mode property, got '%s'", mode));
     }
 
     @Deactivate
@@ -194,15 +195,17 @@ public class StandbyStoreService {
         String sslSubjectPattern = config.sslSubjectPattern();
 
         StandbyServerSync.Builder builder = StandbyServerSync.builder()
-            .withPort(port)
-            .withFileStore(fileStore)
-            .withBlobChunkSize(BLOB_CHUNK_SIZE)
-            .withAllowedClientIPRanges(ranges)
-            .withSecureConnection(secure)
-            .withSSLKeyFile(sslKeyFile)
-            .withSSLChainFile(sslChainFile)
-            .withSSLClientValidation(sslValidateClient)
-            .withSSLSubjectPattern(sslSubjectPattern);
+                                                             .withPort(port)
+                                                             .withFileStore(fileStore)
+                                                             .withBlobChunkSize(BLOB_CHUNK_SIZE)
+                                                             .withAllowedClientIPRanges(ranges)
+                                                             .withSecureConnection(secure)
+                                                             .withSSLKeyFile(sslKeyFile)
+                                                             .withSSLChainFile(sslChainFile)
+                                                             .withSSLClientValidation(
+                                                                 sslValidateClient)
+                                                             .withSSLSubjectPattern(
+                                                                 sslSubjectPattern);
 
         if (!"".equals(config.sslKeyPassword())) {
             builder.withSSLKeyPassword(config.sslKeyPassword());
@@ -216,20 +219,26 @@ public class StandbyStoreService {
         log.info("Started primary on port {} with allowed IP ranges {}", port, ranges);
     }
 
-    private void bootstrapSecondary(ComponentContext context, Configuration config, FileStore fileStore) {
+    private void bootstrapSecondary(ComponentContext context, Configuration config,
+        FileStore fileStore) {
 
         StandbyClientSync.Builder builder = StandbyClientSync.builder()
-            .withHost(config.primary_host())
-            .withPort(config.port())
-            .withFileStore(fileStore)
-            .withSecureConnection(config.secure())
-            .withReadTimeoutMs(config.standby_readtimeout())
-            .withAutoClean(config.standby_autoclean())
-            .withSpoolFolder(new File(StandardSystemProperty.JAVA_IO_TMPDIR.value()))
-            .withSecureConnection(config.secure())
-            .withSSLKeyFile(config.sslKeyFile())
-            .withSSLChainFile(config.sslChainFile())
-            .withSSLSubjectPattern(config.sslSubjectPattern());
+                                                             .withHost(config.primary_host())
+                                                             .withPort(config.port())
+                                                             .withFileStore(fileStore)
+                                                             .withSecureConnection(config.secure())
+                                                             .withReadTimeoutMs(
+                                                                 config.standby_readtimeout())
+                                                             .withAutoClean(
+                                                                 config.standby_autoclean())
+                                                             .withSpoolFolder(new File(
+                                                                 StandardSystemProperty.JAVA_IO_TMPDIR.value()))
+                                                             .withSecureConnection(config.secure())
+                                                             .withSSLKeyFile(config.sslKeyFile())
+                                                             .withSSLChainFile(
+                                                                 config.sslChainFile())
+                                                             .withSSLSubjectPattern(
+                                                                 config.sslSubjectPattern());
 
         if (!"".equals(config.sslKeyPassword())) {
             builder.withSSLKeyPassword(config.sslKeyPassword());
@@ -241,10 +250,13 @@ public class StandbyStoreService {
         Dictionary<String, Object> dictionary = new Hashtable<>();
         dictionary.put("scheduler.period", config.interval());
         dictionary.put("scheduler.concurrent", false);
-        ServiceRegistration registration = context.getBundleContext().registerService(Runnable.class, standbyClientSync, dictionary);
+        ServiceRegistration registration = context.getBundleContext()
+                                                  .registerService(Runnable.class,
+                                                      standbyClientSync, dictionary);
         closer.register(registration::unregister);
 
-        log.info("Started standby on port {} with {}s sync frequency", config.port(), config.interval());
+        log.info("Started standby on port {} with {}s sync frequency", config.port(),
+            config.interval());
     }
 
 }

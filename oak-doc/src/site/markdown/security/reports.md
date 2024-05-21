@@ -20,27 +20,35 @@ Security Reports
 
 ### Security Updates
 
-Please note that binary patches are not produced for individual vulnerabilities. To obtain the fix for a particular 
-vulnerability you should upgrade to the officially released version where that vulnerability has been fixed.
+Please note that binary patches are not produced for individual vulnerabilities. To obtain the fix
+for a particular
+vulnerability you should upgrade to the officially released version where that vulnerability has
+been fixed.
 
 #### List of Vulnerabilities
 
-Note: the vulnerability reports linked below will provide additional details including reference to the public 
+Note: the vulnerability reports linked below will provide additional details including reference to
+the public
 announcement and a short description.
 
-| CVE Number    | Type                                             | Fix Versions                                                    |
-|---------------|--------------------------------------------------|-----------------------------------------------------------------|
-|[CVE-2020-1940]| Sensitive information disclosure vulnerability   | 1.24.0, 1.10.8, 1.8.20, 1.6.20, 1.4.26, patch for 1.2 see [OAK-8870] |
-| | |
+| CVE Number      | Type                                           | Fix Versions                                                         |
+|-----------------|------------------------------------------------|----------------------------------------------------------------------|
+| [CVE-2020-1940] | Sensitive information disclosure vulnerability | 1.24.0, 1.10.8, 1.8.20, 1.6.20, 1.4.26, patch for 1.2 see [OAK-8870] |
+|                 |                                                |
 
 ### Reporting Vulnerabilities with Apache Jackrabbit Oak
 
-The Apache Software Foundation takes an active stance in eliminating security problems. We strongly encourage everyone 
-to report vulnerabilities to the Apache security mailing list _security(at)apache.org_, before disclosing them in a public forum.
+The Apache Software Foundation takes an active stance in eliminating security problems. We strongly
+encourage everyone
+to report vulnerabilities to the Apache security mailing list _security(at)apache.org_, before
+disclosing them in a public forum.
 
-Please note that the security mailing list should only be used for reporting undisclosed vulnerabilities and 
-managing the process of fixing them. We cannot accept regular bug reports or other queries at this address. If you wish 
-to report a bug that isn't an undisclosed security vulnerability, please use [https://issues.apache.org/jira/projects/OAK/issues](https://issues.apache.org/jira/projects/OAK/issues).
+Please note that the security mailing list should only be used for reporting undisclosed
+vulnerabilities and
+managing the process of fixing them. We cannot accept regular bug reports or other queries at this
+address. If you wish
+to report a bug that isn't an undisclosed security vulnerability, please
+use [https://issues.apache.org/jira/projects/OAK/issues](https://issues.apache.org/jira/projects/OAK/issues).
 
 ###Errors and Omissions
 
@@ -48,5 +56,7 @@ Please report any errors or omissions to _security(at)apache.org_.
 
 
 <!-- hidden references -->
+
 [CVE-2020-1940]: https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2020-1940
+
 [OAK-8870]: https://issues.apache.org/jira/browse/OAK-8870?focusedCommentId=17025637&page=com.atlassian.jira.plugin.system.issuetabpanels%3Acomment-tabpanel#comment-17025637

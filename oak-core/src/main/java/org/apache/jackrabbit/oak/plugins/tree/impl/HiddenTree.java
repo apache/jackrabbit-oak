@@ -22,7 +22,6 @@ package org.apache.jackrabbit.oak.plugins.tree.impl;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
 import java.util.Collections;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;

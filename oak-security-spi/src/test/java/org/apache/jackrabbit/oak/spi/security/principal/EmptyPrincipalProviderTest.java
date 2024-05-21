@@ -21,7 +21,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.security.Principal;
-
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.junit.Test;
 
@@ -38,8 +37,11 @@ public class EmptyPrincipalProviderTest {
 
     @Test
     public void testGetMembershipPrincipals() {
-        assertTrue(principalProvider.getMembershipPrincipals(EveryonePrincipal.getInstance()).isEmpty());
-        assertTrue(principalProvider.getMembershipPrincipals(new PrincipalImpl(EveryonePrincipal.NAME)).isEmpty());
+        assertTrue(
+            principalProvider.getMembershipPrincipals(EveryonePrincipal.getInstance()).isEmpty());
+        assertTrue(
+            principalProvider.getMembershipPrincipals(new PrincipalImpl(EveryonePrincipal.NAME))
+                             .isEmpty());
         assertTrue(principalProvider.getMembershipPrincipals(testPrincipal).isEmpty());
     }
 
@@ -50,16 +52,21 @@ public class EmptyPrincipalProviderTest {
 
     @Test
     public void testFindPrincipalsByHint() {
-        assertFalse(principalProvider.findPrincipals(EveryonePrincipal.NAME, PrincipalManager.SEARCH_TYPE_ALL).hasNext());
-        assertFalse(principalProvider.findPrincipals(EveryonePrincipal.NAME.substring(0, 1), PrincipalManager.SEARCH_TYPE_ALL).hasNext());
-        assertFalse(principalProvider.findPrincipals(testPrincipal.getName(), PrincipalManager.SEARCH_TYPE_ALL).hasNext());
-        assertFalse(principalProvider.findPrincipals(testPrincipal.getName().substring(0, 2), PrincipalManager.SEARCH_TYPE_ALL).hasNext());
+        assertFalse(principalProvider.findPrincipals(EveryonePrincipal.NAME,
+            PrincipalManager.SEARCH_TYPE_ALL).hasNext());
+        assertFalse(principalProvider.findPrincipals(EveryonePrincipal.NAME.substring(0, 1),
+            PrincipalManager.SEARCH_TYPE_ALL).hasNext());
+        assertFalse(principalProvider.findPrincipals(testPrincipal.getName(),
+            PrincipalManager.SEARCH_TYPE_ALL).hasNext());
+        assertFalse(principalProvider.findPrincipals(testPrincipal.getName().substring(0, 2),
+            PrincipalManager.SEARCH_TYPE_ALL).hasNext());
     }
 
     @Test
     public void testFindPrincipalsByType() {
         assertFalse(principalProvider.findPrincipals(PrincipalManager.SEARCH_TYPE_ALL).hasNext());
-        assertFalse(principalProvider.findPrincipals(PrincipalManager.SEARCH_TYPE_NOT_GROUP).hasNext());
+        assertFalse(
+            principalProvider.findPrincipals(PrincipalManager.SEARCH_TYPE_NOT_GROUP).hasNext());
         assertFalse(principalProvider.findPrincipals(PrincipalManager.SEARCH_TYPE_GROUP).hasNext());
     }
 }

@@ -91,23 +91,22 @@ public class DocumentNodeStoreBranchesTest {
         {
             LOG.info("initialization");
             NodeBuilder initBuilder = ns.getRoot().builder();
-            for(int i=0; i<NUM_NODES; i++) {
-                initBuilder.child("child"+i);
+            for (int i = 0; i < NUM_NODES; i++) {
+                initBuilder.child("child" + i);
             }
             ns.merge(initBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         }
-
 
         // 1) do more than UPDATE_LIMIT changes
         LOG.info("starting doing many changes to force a branch commit");
         NodeBuilder rootBuilder = ns.getRoot().builder();
         int totalUpdates = 5 * DocumentMK.UPDATE_LIMIT;
         int updateShare = totalUpdates / NUM_NODES;
-        for(int i=0; i<NUM_NODES; i++) {
-            NodeBuilder childBuilder = rootBuilder.child("child"+i);
-            childBuilder.child("grandChild"+i);
+        for (int i = 0; i < NUM_NODES; i++) {
+            NodeBuilder childBuilder = rootBuilder.child("child" + i);
+            childBuilder.child("grandChild" + i);
             childBuilder.setProperty("p1", "originalValue");
-            for(int j=0; j<updateShare; j++) {
+            for (int j = 0; j < updateShare; j++) {
                 childBuilder.setProperty("someProperty" + j, "sameValue");
             }
         }
@@ -123,14 +122,16 @@ public class DocumentNodeStoreBranchesTest {
         ns.merge(parallelBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         // 4) now merge the first session - this should now fail
-        LOG.info("now merge the original builder - this should cause not all children to be visited");
-        ns.merge(rootBuilder, CompositeHook.compose(Arrays.<CommitHook> asList(new TestHook("p"), new TestHook("q"))),
-                CommitInfo.EMPTY);
+        LOG.info(
+            "now merge the original builder - this should cause not all children to be visited");
+        ns.merge(rootBuilder,
+            CompositeHook.compose(Arrays.<CommitHook>asList(new TestHook("p"), new TestHook("q"))),
+            CommitInfo.EMPTY);
 
         DocumentNodeState root = ns.getRoot();
 
-        for(int i=0; i<NUM_NODES; i++) {
-            NodeState child = root.getChildNode("child"+i);
+        for (int i = 0; i < NUM_NODES; i++) {
+            NodeState child = root.getChildNode("child" + i);
             assertTrue(child.exists());
             assertEquals("test", child.getProperty("p1").getValue(Type.STRING));
         }
@@ -143,10 +144,10 @@ public class DocumentNodeStoreBranchesTest {
         final int updateLimit = 100;
         final CountingDocumentStore store = new CountingDocumentStore(new MemoryDocumentStore());
         DocumentNodeStore ns = builderProvider.newBuilder()
-                .setUpdateLimit(updateLimit).setAsyncDelay(0)
-                .setDocumentStore(store).getNodeStore();
+                                              .setUpdateLimit(updateLimit).setAsyncDelay(0)
+                                              .setDocumentStore(store).getNodeStore();
         ns.setMaxBackOffMillis(0); // do not retry merges
-        NodeBuilder nb  = ns.getRoot().builder();
+        NodeBuilder nb = ns.getRoot().builder();
         for (int i = 0; i < branchCommits; i++) {
             NodeBuilder child = nb.child("foo").child("node-" + i);
             for (int j = 0; j < updateLimit; j++) {
@@ -164,9 +165,9 @@ public class DocumentNodeStoreBranchesTest {
                 @NotNull
                 @Override
                 public NodeState processCommit(NodeState before,
-                                               NodeState after,
-                                               CommitInfo info)
-                        throws CommitFailedException {
+                    NodeState after,
+                    CommitInfo info)
+                    throws CommitFailedException {
                     // add more nodes and then fail the commit to trigger a reset
                     NodeBuilder nb = after.builder().child("bar");
                     for (int i = 0; i < branchCommits; i++) {
@@ -210,19 +211,19 @@ public class DocumentNodeStoreBranchesTest {
         final long branchCommits = 5;
         final int updateLimit = 100;
         DocumentNodeStore ns = builderProvider.newBuilder()
-                .setUpdateLimit(updateLimit).setAsyncDelay(0)
-                .getNodeStore();
+                                              .setUpdateLimit(updateLimit).setAsyncDelay(0)
+                                              .getNodeStore();
         ns.setMaxBackOffMillis(0); // do not retry merges
-        NodeBuilder nb  = ns.getRoot().builder();
+        NodeBuilder nb = ns.getRoot().builder();
         nb.child("foo");
         try {
             ns.merge(nb, new CommitHook() {
                 @NotNull
                 @Override
                 public NodeState processCommit(NodeState before,
-                                               NodeState after,
-                                               CommitInfo info)
-                        throws CommitFailedException {
+                    NodeState after,
+                    CommitInfo info)
+                    throws CommitFailedException {
                     // add more nodes and then fail the commit to trigger a reset
                     NodeBuilder nb = after.builder().child("bar");
                     for (int i = 0; i < branchCommits; i++) {
@@ -257,23 +258,23 @@ public class DocumentNodeStoreBranchesTest {
     // OAK-8106
     @Test
     public void resetBranchWithFinalRebaseBranchCommit()
-            throws CommitFailedException {
+        throws CommitFailedException {
         final long branchCommits = 5;
         final int updateLimit = 100;
         final DocumentNodeStore ns = builderProvider.newBuilder()
-                .setUpdateLimit(updateLimit).setAsyncDelay(0)
-                .getNodeStore();
+                                                    .setUpdateLimit(updateLimit).setAsyncDelay(0)
+                                                    .getNodeStore();
         ns.setMaxBackOffMillis(0); // do not retry merges
-        NodeBuilder nb  = ns.getRoot().builder();
+        NodeBuilder nb = ns.getRoot().builder();
         nb.child("foo");
         try {
             ns.merge(nb, new CommitHook() {
                 @NotNull
                 @Override
                 public NodeState processCommit(NodeState before,
-                                               NodeState after,
-                                               CommitInfo info)
-                        throws CommitFailedException {
+                    NodeState after,
+                    CommitInfo info)
+                    throws CommitFailedException {
                     // add more nodes to create branch commits
                     DocumentRootBuilder nb = (DocumentRootBuilder) after.builder();
                     for (int i = 0; i < branchCommits; i++) {
@@ -287,7 +288,8 @@ public class DocumentNodeStoreBranchesTest {
                         nb.rebase();
                     }
                     // eventually fail the commit to trigger a reset
-                    throw new CommitFailedException(CommitFailedException.OAK, Integer.MAX_VALUE, "failure");
+                    throw new CommitFailedException(CommitFailedException.OAK, Integer.MAX_VALUE,
+                        "failure");
                 }
             }, CommitInfo.EMPTY);
             fail("Merge must fail with CommitFailedException");
@@ -316,23 +318,23 @@ public class DocumentNodeStoreBranchesTest {
     // OAK-8106
     @Test
     public void resetBranchWithFirstRebaseBranchCommit()
-            throws CommitFailedException {
+        throws CommitFailedException {
         final long branchCommits = 5;
         final int updateLimit = 100;
         final DocumentNodeStore ns = builderProvider.newBuilder()
-                .setUpdateLimit(updateLimit).setAsyncDelay(0)
-                .getNodeStore();
+                                                    .setUpdateLimit(updateLimit).setAsyncDelay(0)
+                                                    .getNodeStore();
         ns.setMaxBackOffMillis(0); // do not retry merges
-        NodeBuilder nb  = ns.getRoot().builder();
+        NodeBuilder nb = ns.getRoot().builder();
         nb.child("foo");
         try {
             ns.merge(nb, new CommitHook() {
                 @NotNull
                 @Override
                 public NodeState processCommit(NodeState before,
-                                               NodeState after,
-                                               CommitInfo info)
-                        throws CommitFailedException {
+                    NodeState after,
+                    CommitInfo info)
+                    throws CommitFailedException {
                     // add more nodes to create branch commits
                     DocumentRootBuilder nb = (DocumentRootBuilder) after.builder();
                     for (int i = 0; i < branchCommits; i++) {
@@ -347,7 +349,8 @@ public class DocumentNodeStoreBranchesTest {
                         }
                     }
                     // eventually fail the commit to trigger a reset
-                    throw new CommitFailedException(CommitFailedException.OAK, Integer.MAX_VALUE, "failure");
+                    throw new CommitFailedException(CommitFailedException.OAK, Integer.MAX_VALUE,
+                        "failure");
                 }
             }, CommitInfo.EMPTY);
             fail("Merge must fail with CommitFailedException");
@@ -374,7 +377,7 @@ public class DocumentNodeStoreBranchesTest {
     }
 
     private void addNodes(DocumentNodeStore ns, String... paths)
-            throws CommitFailedException {
+        throws CommitFailedException {
         NodeBuilder nb = ns.getRoot().builder();
         for (String p : paths) {
             NodeBuilder b = nb;
@@ -401,7 +404,8 @@ public class DocumentNodeStoreBranchesTest {
         }
 
         @Override
-        public Editor childNodeChanged(String name, NodeState before, NodeState after) throws CommitFailedException {
+        public Editor childNodeChanged(String name, NodeState before, NodeState after)
+            throws CommitFailedException {
             return new TestEditor(builder.child(name), prefix);
         }
 
@@ -419,8 +423,9 @@ public class DocumentNodeStoreBranchesTest {
             super(new EditorProvider() {
                 @Nullable
                 @Override
-                public Editor getRootEditor(NodeState before, NodeState after, NodeBuilder builder, CommitInfo info)
-                        throws CommitFailedException {
+                public Editor getRootEditor(NodeState before, NodeState after, NodeBuilder builder,
+                    CommitInfo info)
+                    throws CommitFailedException {
                     return new TestEditor(builder, prefix);
                 }
             });

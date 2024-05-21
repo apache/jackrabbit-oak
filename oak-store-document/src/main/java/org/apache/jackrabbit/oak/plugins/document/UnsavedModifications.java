@@ -45,8 +45,7 @@ import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.Commit.createUpdateOp;
 
 /**
- * Keeps track of when nodes where last modified. To be persisted later by
- * a background thread.
+ * Keeps track of when nodes where last modified. To be persisted later by a background thread.
  */
 class UnsavedModifications {
 
@@ -60,20 +59,20 @@ class UnsavedModifications {
     private final ConcurrentMap<Path, Revision> map = MapFactory.getInstance().create();
 
     /**
-     * Puts a revision for the given path. The revision for the given path is
-     * only put if there is no modification present for the revision or if the
-     * current modification revision is older than the passed revision.
+     * Puts a revision for the given path. The revision for the given path is only put if there is
+     * no modification present for the revision or if the current modification revision is older
+     * than the passed revision.
      *
-     * @param path the path of the modified node.
+     * @param path     the path of the modified node.
      * @param revision the revision of the modification.
-     * @return the previously set revision for the given path or null if there
-     *          was none or the current revision is newer.
+     * @return the previously set revision for the given path or null if there was none or the
+     * current revision is newer.
      */
     @Nullable
     public Revision put(@NotNull Path path, @NotNull Revision revision) {
         checkNotNull(path);
         checkNotNull(revision);
-        for (;;) {
+        for (; ; ) {
             Revision previous = map.get(path);
             if (previous == null) {
                 if (map.putIfAbsent(path, revision) == null) {
@@ -103,8 +102,7 @@ class UnsavedModifications {
     }
 
     /**
-     * Returns all paths of nodes with modifications at the start revision
-     * (inclusive) or later.
+     * Returns all paths of nodes with modifications at the start revision (inclusive) or later.
      *
      * @param start the start revision (inclusive).
      * @return matching paths with pending modifications.
@@ -115,12 +113,12 @@ class UnsavedModifications {
             return Collections.emptyList();
         } else {
             return Iterables.transform(Iterables.filter(map.entrySet(),
-                    new Predicate<Map.Entry<Path, Revision>>() {
-                @Override
-                public boolean apply(Map.Entry<Path, Revision> input) {
-                    return start.compareRevisionTime(input.getValue()) < 1;
-                }
-            }), new Function<Map.Entry<Path, Revision>, Path>() {
+                new Predicate<Map.Entry<Path, Revision>>() {
+                    @Override
+                    public boolean apply(Map.Entry<Path, Revision> input) {
+                        return start.compareRevisionTime(input.getValue()) < 1;
+                    }
+                }), new Function<Map.Entry<Path, Revision>, Path>() {
                 @Override
                 public Path apply(Map.Entry<Path, Revision> input) {
                     return input.getKey();
@@ -130,22 +128,21 @@ class UnsavedModifications {
     }
 
     /**
-     * Persist the pending changes to _lastRev to the given store. This method
-     * will persist a snapshot of the pending revisions and current sweep
-     * revision by acquiring the passed lock for a short period of time.
+     * Persist the pending changes to _lastRev to the given store. This method will persist a
+     * snapshot of the pending revisions and current sweep revision by acquiring the passed lock for
+     * a short period of time.
      *
-     * @param store the document store.
+     * @param store         the document store.
      * @param sweepRevision supplier for the current sweep revision.
-     * @param snapshot callback when the snapshot of the pending changes is
-     *                 acquired.
-     * @param lock the lock to acquire to get a consistent snapshot of the
-     *             revisions to write back.
+     * @param snapshot      callback when the snapshot of the pending changes is acquired.
+     * @param lock          the lock to acquire to get a consistent snapshot of the revisions to
+     *                      write back.
      * @return stats about the write operation.
      */
     public BackgroundWriteStats persist(@NotNull DocumentStore store,
-                                        @NotNull Supplier<Revision> sweepRevision,
-                                        @NotNull Snapshot snapshot,
-                                        @NotNull Lock lock) {
+        @NotNull Supplier<Revision> sweepRevision,
+        @NotNull Snapshot snapshot,
+        @NotNull Lock lock) {
         BackgroundWriteStats stats = new BackgroundWriteStats();
         if (map.size() == 0) {
             return stats;
@@ -174,7 +171,7 @@ class UnsavedModifications {
         List<UpdateOp> updates = Lists.newArrayList();
         Map<Path, Revision> pathToRevision = Maps.newHashMap();
         for (Iterable<Map.Entry<Path, Revision>> batch : Iterables.partition(
-                pending.entrySet(), BACKGROUND_MULTI_UPDATE_LIMIT)) {
+            pending.entrySet(), BACKGROUND_MULTI_UPDATE_LIMIT)) {
             for (Map.Entry<Path, Revision> entry : batch) {
                 Path p = entry.getKey();
                 Revision r = entry.getValue();
@@ -207,13 +204,14 @@ class UnsavedModifications {
                 LOG.debug("Updating _sweepRev to {}", sweepRev);
             }
             // ensure lastRev is not updated by someone else in the meantime
-            Revision lastRev = Utils.getRootDocument(store).getLastRev().get(rootRev.getClusterId());
+            Revision lastRev = Utils.getRootDocument(store).getLastRev()
+                                    .get(rootRev.getClusterId());
             if (lastRev != null) {
                 NodeDocument.hasLastRev(rootUpdate, lastRev);
             }
             if (store.findAndUpdate(NODES, rootUpdate) == null) {
                 throw new DocumentStoreException("Update of root document to _lastRev " +
-                        rootRev + " failed. Detected concurrent update");
+                    rootRev + " failed. Detected concurrent update");
             }
             stats.calls++;
             map.remove(Path.ROOT, rootRev);

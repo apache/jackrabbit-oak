@@ -27,64 +27,68 @@ package org.apache.lucene.store;
 
 import java.util.ArrayList;
 
-/** 
+/**
  * Represents a file in RAM as a list of byte[] buffers.
- * @lucene.internal */
+ *
+ * @lucene.internal
+ */
 public class RAMFile {
-  protected ArrayList<byte[]> buffers = new ArrayList<byte[]>();
-  long length;
-  RAMDirectory directory;
-  protected long sizeInBytes;
 
-  // File used as buffer, in no RAMDirectory
-  public RAMFile() {}
-  
-  RAMFile(RAMDirectory directory) {
-    this.directory = directory;
-  }
+    protected ArrayList<byte[]> buffers = new ArrayList<byte[]>();
+    long length;
+    RAMDirectory directory;
+    protected long sizeInBytes;
 
-  // For non-stream access from thread that might be concurrent with writing
-  public synchronized long getLength() {
-    return length;
-  }
-
-  protected synchronized void setLength(long length) {
-    this.length = length;
-  }
-
-  protected final byte[] addBuffer(int size) {
-    byte[] buffer = newBuffer(size);
-    synchronized(this) {
-      buffers.add(buffer);
-      sizeInBytes += size;
+    // File used as buffer, in no RAMDirectory
+    public RAMFile() {
     }
 
-    if (directory != null) {
-      directory.sizeInBytes.getAndAdd(size);
+    RAMFile(RAMDirectory directory) {
+        this.directory = directory;
     }
-    return buffer;
-  }
 
-  protected final synchronized byte[] getBuffer(int index) {
-    return buffers.get(index);
-  }
+    // For non-stream access from thread that might be concurrent with writing
+    public synchronized long getLength() {
+        return length;
+    }
 
-  protected final synchronized int numBuffers() {
-    return buffers.size();
-  }
+    protected synchronized void setLength(long length) {
+        this.length = length;
+    }
 
-  /**
-   * Expert: allocate a new buffer. 
-   * Subclasses can allocate differently. 
-   * @param size size of allocated buffer.
-   * @return allocated buffer.
-   */
-  protected byte[] newBuffer(int size) {
-    return new byte[size];
-  }
+    protected final byte[] addBuffer(int size) {
+        byte[] buffer = newBuffer(size);
+        synchronized (this) {
+            buffers.add(buffer);
+            sizeInBytes += size;
+        }
 
-  public synchronized long getSizeInBytes() {
-    return sizeInBytes;
-  }
-  
+        if (directory != null) {
+            directory.sizeInBytes.getAndAdd(size);
+        }
+        return buffer;
+    }
+
+    protected final synchronized byte[] getBuffer(int index) {
+        return buffers.get(index);
+    }
+
+    protected final synchronized int numBuffers() {
+        return buffers.size();
+    }
+
+    /**
+     * Expert: allocate a new buffer. Subclasses can allocate differently.
+     *
+     * @param size size of allocated buffer.
+     * @return allocated buffer.
+     */
+    protected byte[] newBuffer(int size) {
+        return new byte[size];
+    }
+
+    public synchronized long getSizeInBytes() {
+        return sizeInBytes;
+    }
+
 }

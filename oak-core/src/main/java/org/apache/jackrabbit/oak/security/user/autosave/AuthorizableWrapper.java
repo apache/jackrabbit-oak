@@ -17,11 +17,10 @@
 package org.apache.jackrabbit.oak.security.user.autosave;
 
 import java.util.Iterator;
-
-import org.apache.jackrabbit.guava.common.base.Function;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
+import org.apache.jackrabbit.guava.common.base.Function;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
 
 final class AuthorizableWrapper<T extends Authorizable> implements Function<T, T> {
 

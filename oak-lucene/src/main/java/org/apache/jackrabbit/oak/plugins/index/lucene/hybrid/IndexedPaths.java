@@ -19,18 +19,18 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
-
 import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.collect.Multimap;
 import org.apache.jackrabbit.oak.plugins.document.spi.JournalProperty;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-
 class IndexedPaths implements JournalProperty, Iterable<IndexedPathInfo> {
+
     private final Multimap<String, String> indexedPaths;
 
     public IndexedPaths(Multimap<String, String> indexedPaths) {
@@ -40,22 +40,22 @@ class IndexedPaths implements JournalProperty, Iterable<IndexedPathInfo> {
     @Override
     public Iterator<IndexedPathInfo> iterator() {
         return Iterators.transform(indexedPaths.asMap().entrySet().iterator(),
-                new Function<Map.Entry<String, Collection<String>>, IndexedPathInfo>() {
-            @Override
-            public IndexedPathInfo apply(final Map.Entry<String, Collection<String>> input) {
-                return new IndexedPathInfo() {
-                    @Override
-                    public String getPath() {
-                        return input.getKey();
-                    }
+            new Function<Map.Entry<String, Collection<String>>, IndexedPathInfo>() {
+                @Override
+                public IndexedPathInfo apply(final Map.Entry<String, Collection<String>> input) {
+                    return new IndexedPathInfo() {
+                        @Override
+                        public String getPath() {
+                            return input.getKey();
+                        }
 
-                    @Override
-                    public Iterable<String> getIndexPaths() {
-                        return input.getValue();
-                    }
-                };
-            }
-        });
+                        @Override
+                        public Iterable<String> getIndexPaths() {
+                            return input.getValue();
+                        }
+                    };
+                }
+            });
     }
 
     @Override
@@ -63,14 +63,18 @@ class IndexedPaths implements JournalProperty, Iterable<IndexedPathInfo> {
         return indexedPaths.toString();
     }
 
-    public boolean isEmpty(){
+    public boolean isEmpty() {
         return indexedPaths.isEmpty();
     }
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
 
         IndexedPaths that = (IndexedPaths) o;
 

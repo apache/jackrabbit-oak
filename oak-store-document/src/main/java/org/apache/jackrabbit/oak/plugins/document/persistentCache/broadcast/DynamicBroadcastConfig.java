@@ -20,48 +20,47 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Broadcast configuration. Configuration is dynamic, that means can change over
- * time. The configuration consists of a list of connected clients. Each client
- * can connect and disconnect, and therefore allow other clients to connect to
- * it.
+ * Broadcast configuration. Configuration is dynamic, that means can change over time. The
+ * configuration consists of a list of connected clients. Each client can connect and disconnect,
+ * and therefore allow other clients to connect to it.
  */
 public interface DynamicBroadcastConfig {
-    
+
     /**
      * The unique id of this client.
      */
     String ID = "broadcastId";
-    
+
     /**
      * The listener address, for example the IP address and port.
      */
     String LISTENER = "broadcastListener";
-    
+
     /**
      * Get the global configuration data that is not associated to a specific client.
-     * 
+     *
      * @return the configuration
      */
     String getConfig();
-    
+
     /**
      * Get the client info of all connected clients.
-     * 
+     *
      * @return the list of client info maps
      */
     List<Map<String, String>> getClientInfo();
-    
+
     /**
      * Announce a new client to others.
-     * 
+     *
      * @param clientInfo the client info
      * @return a unique id (to be used when disconnecting)
      */
     String connect(Map<String, String> clientInfo);
-    
+
     /**
      * Sign off.
-     * 
+     *
      * @param id the unique id
      */
     void disconnect(String id);

@@ -16,19 +16,17 @@
  */
 package org.apache.jackrabbit.j2ee;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.rmi.registry.Registry;
-
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The RMI config hold information about RMI connection details.
- *
+ * <p>
  * It supports the following properties and init parameters:
  * <pre>
  * +-------------------+--------------------+
@@ -69,7 +67,7 @@ public class RMIConfig extends AbstractConfig {
     public void init(ServletConfig ctx) throws ServletException {
         super.init(ctx);
         // enable RMI if either port or url was defined
-        rmiEnabled = rmiPort >=0 || rmiUri != null;
+        rmiEnabled = rmiPort >= 0 || rmiUri != null;
     }
 
     public String getRmiName() {
@@ -164,7 +162,7 @@ public class RMIConfig extends AbstractConfig {
         }
 
         // check name - use repositoryName if empty or null
-        if (rmiName == null || rmiName.length() ==0) {
+        if (rmiName == null || rmiName.length() == 0) {
             rmiName = parentConfig.getRepositoryName();
         }
 

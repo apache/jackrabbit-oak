@@ -17,25 +17,26 @@
 package org.apache.jackrabbit.oak.plugins.index.elastic.query.async.facets;
 
 import co.elastic.clients.elasticsearch._types.aggregations.Aggregate;
-import org.apache.jackrabbit.oak.plugins.index.elastic.query.async.ElasticResponseListener;
-import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import org.apache.jackrabbit.oak.plugins.index.elastic.query.async.ElasticResponseListener;
+import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
- * An {@link ElasticFacetProvider} that subscribes to Elastic Aggregation events.
- * The provider is async: {@code getFacets} waits until the aggregation is read or for a max of 15 seconds. In the latter
- * case, an {@link IllegalStateException} is thrown.
+ * An {@link ElasticFacetProvider} that subscribes to Elastic Aggregation events. The provider is
+ * async: {@code getFacets} waits until the aggregation is read or for a max of 15 seconds. In the
+ * latter case, an {@link IllegalStateException} is thrown.
  */
-class ElasticInsecureFacetAsyncProvider implements ElasticFacetProvider, ElasticResponseListener.AggregationListener {
+class ElasticInsecureFacetAsyncProvider implements ElasticFacetProvider,
+    ElasticResponseListener.AggregationListener {
 
-    private static final Logger LOG = LoggerFactory.getLogger(ElasticInsecureFacetAsyncProvider.class);
+    private static final Logger LOG = LoggerFactory.getLogger(
+        ElasticInsecureFacetAsyncProvider.class);
 
     private Map<String, Aggregate> aggregations;
 
@@ -57,9 +58,12 @@ class ElasticInsecureFacetAsyncProvider implements ElasticFacetProvider, Elastic
         if (aggregations != null) {
             Aggregate aggregate = aggregations.get(FulltextIndex.parseFacetField(columnName));
             return aggregate.sterms().buckets().array().stream()
-                    .map(term -> new FulltextIndex.Facet(term.key().stringValue(), (int) term.docCount()))
-                    .collect(Collectors.toList());
-        } else return null;
+                            .map(term -> new FulltextIndex.Facet(term.key().stringValue(),
+                                (int) term.docCount()))
+                            .collect(Collectors.toList());
+        } else {
+            return null;
+        }
     }
 
     @Override

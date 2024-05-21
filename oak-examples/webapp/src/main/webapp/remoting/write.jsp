@@ -18,27 +18,28 @@
   limitations under the License.
 --%><%
 
-URI uri = new URI(request.getRequestURL().toString());
-String href =
-    uri.getScheme() + "://" + uri.getHost() + ":" + uri.getPort()
-    + request.getContextPath()
-    + JcrRemotingServlet.getPathPrefix(pageContext.getServletContext());
-href = Text.encodeIllegalXMLCharacters(href);
-href += "/default/jcr:root";
-    
-%><jsp:include page="header.jsp"/>
+    URI uri = new URI(request.getRequestURL().toString());
+    String href =
+            uri.getScheme() + "://" + uri.getHost() + ":" + uri.getPort()
+                    + request.getContextPath()
+                    + JcrRemotingServlet.getPathPrefix(pageContext.getServletContext());
+    href = Text.encodeIllegalXMLCharacters(href);
+    href += "/default/jcr:root";
+
+%>
+<jsp:include page="header.jsp"/>
 <div id="content">
     <h2>Write</h2>
     <h3><a name="default_write">Default Writing</a></h3>
     <p>Writing remotely to the repository generally follows the rules described in
-    <a href="http://jackrabbit.apache.org/JCR_Webdav_Protocol.doc">JCR_Webdav_Protocol.zip</a>.
+        <a href="http://jackrabbit.apache.org/JCR_Webdav_Protocol.doc">JCR_Webdav_Protocol.zip</a>.
     </p>
     <h3><a name="batch_write">Batch Write</a></h3>
     <p>A set of transient modifications can in addition be sent by using the
-    extended batch write: A single POST request that contains a custom
-    <strong>:diff</strong> parameter describing the changes to be applied.
-    The expected format is described in the
-    <a href ="http://svn.apache.org/repos/asf/jackrabbit/trunk/jackrabbit-jcr-server/src/main/java/org/apache/jackrabbit/server/remoting/davex/JcrRemotingServlet.java">JavaDoc</a>.
+        extended batch write: A single POST request that contains a custom
+        <strong>:diff</strong> parameter describing the changes to be applied.
+        The expected format is described in the
+        <a href="http://svn.apache.org/repos/asf/jackrabbit/trunk/jackrabbit-jcr-server/src/main/java/org/apache/jackrabbit/server/remoting/davex/JcrRemotingServlet.java">JavaDoc</a>.
     </p>
     Some cases however can be easily demonstrated. The following examples can
     be tested with the form provided at
@@ -46,8 +47,8 @@ href += "/default/jcr:root";
     </p>
     <h4>Examples</h4>
     <p>The following examples illustrate the basics of the diff format. It does
-    not cover the special treatment of properties with type <i>Date</i>,
-    <i>Name</i>, <i>Path</i>, <i>Reference</i> and <i>Binary</i> (see below).</p>
+        not cover the special treatment of properties with type <i>Date</i>,
+        <i>Name</i>, <i>Path</i>, <i>Reference</i> and <i>Binary</i> (see below).</p>
     <p style="font-size:smaller">Set properties</p>
     <pre class="code">
 ^prop1  : "stringvalue"
@@ -80,16 +81,16 @@ href += "/default/jcr:root";
 -/moved/to/another/destination :</pre>
     <h4>Dealing with Special Property Types</h4>
     <p>Property types that can not be covered unambigously, need some special
-    handling (see JavaDoc). This affects JCR properties being of type
+        handling (see JavaDoc). This affects JCR properties being of type
     <ul>
-    <li>Date,</li>
-    <li>Name,</li>
-    <li>Path,</li>
-    <li>Reference,</li>
-    <li>Binary.</li>
+        <li>Date,</li>
+        <li>Name,</li>
+        <li>Path,</li>
+        <li>Reference,</li>
+        <li>Binary.</li>
     </ul>
     In order to set properties of any of the types listed, the value part in the
-    :diff param must  be left empty and a separate request parameter must be
+    :diff param must be left empty and a separate request parameter must be
     included. Its name equals the corresponding key in the :diff, its value represents
     the property value. In addition the desired property type must be specified
     using the conversion defined with
@@ -104,7 +105,7 @@ Content-Type: multipart/form-data; boundary=kTmAb2lkjCtxbMVFzHEplAJjHCUo5aQndaUu
 Content-Disposition: form-data; <b>name="dateProp"</b>
 Content-Type: <b>jcr-value/date</b>
 
-<b>2009-02-12T10:19:40.778+01:00</b>         
+<b>2009-02-12T10:19:40.778+01:00</b>
 --kTmAb2lkjCtxbMVFzHEplAJjHCUo5aQndaUu
 Content-Disposition: form-data; <b>name=":diff"</b>
 Content-Type: text/plain
@@ -118,7 +119,7 @@ Content-Type: text/plain
 
     <h3><a name="simple_write">Direct Content Editing</a></h3>
     <p>The functionality present with batch reading also enables very simplified
-    content editing using common HTML forms.</p>
+        content editing using common HTML forms.</p>
     <p>The :diff parameter is omitted altogether and each request parameter is
         treated as property
     <ul>

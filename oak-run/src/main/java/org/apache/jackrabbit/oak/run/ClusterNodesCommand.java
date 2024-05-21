@@ -27,16 +27,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
-
+import joptsimple.OptionSpec;
+import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfoDocument;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBJSONSupport;
 import org.apache.jackrabbit.oak.run.commons.Command;
-
-import org.apache.jackrabbit.guava.common.io.Closer;
-
-import joptsimple.OptionSpec;
 
 class ClusterNodesCommand implements Command {
 
@@ -55,7 +52,8 @@ class ClusterNodesCommand implements Command {
 
             if (builder == null) {
                 System.err
-                        .println("Clusternodes command only available for DocumentNodeStore backed by MongoDB or RDB persistence");
+                    .println(
+                        "Clusternodes command only available for DocumentNodeStore backed by MongoDB or RDB persistence");
                 System.exit(1);
             }
 
@@ -63,7 +61,8 @@ class ClusterNodesCommand implements Command {
             DocumentStore ds = builder.getDocumentStore();
 
             try {
-                List<ClusterNodeInfoDocument> all = new ArrayList<>(ClusterNodeInfoDocument.all(ds));
+                List<ClusterNodeInfoDocument> all = new ArrayList<>(
+                    ClusterNodeInfoDocument.all(ds));
                 Collections.sort(all, new Comparator<ClusterNodeInfoDocument>() {
                     @Override
                     public int compare(ClusterNodeInfoDocument one, ClusterNodeInfoDocument two) {
@@ -99,7 +98,8 @@ class ClusterNodesCommand implements Command {
         long now = System.currentTimeMillis();
 
         List<String> header = new ArrayList<>();
-        header.addAll(Arrays.asList(new String[] { sId, sState, sStarted, sLeaseEnd, sLeft, sRecoveryBy }));
+        header.addAll(
+            Arrays.asList(new String[]{sId, sState, sStarted, sLeaseEnd, sLeft, sRecoveryBy}));
         if (verbose) {
             header.add(sLastRootRev);
             header.add(sOakVersion);
@@ -130,12 +130,13 @@ class ClusterNodesCommand implements Command {
             e.put(sLeaseEnd, leaseEnd == 0 ? "-" : df.format(new Date(leaseEnd)));
             e.put(sLeft, (left < -999) ? "-" : (Long.toString(left) + "s"));
             e.put(sRecoveryBy,
-                    c.getRecoveryBy() == null ? (c.isRecoveryNeeded(now) ? "!" : "-") : Long.toString(c.getRecoveryBy()));
+                c.getRecoveryBy() == null ? (c.isRecoveryNeeded(now) ? "!" : "-")
+                    : Long.toString(c.getRecoveryBy()));
 
             if (verbose) {
                 e.put(sLastRootRev, c.getLastWrittenRootRev());
                 Object oakVersion = c.get("oakVersion");
-                e.put(sOakVersion,  oakVersion == null ? "-" : oakVersion.toString());
+                e.put(sOakVersion, oakVersion == null ? "-" : oakVersion.toString());
             }
             body.add(e);
         }
@@ -143,16 +144,12 @@ class ClusterNodesCommand implements Command {
     }
 
     /**
-     * A generic method to print a table, choosing column widths automatically
-     * based both on column title and values.
-     * 
-     * @param out
-     *            output target
-     * @param header
-     *            list of column titles
-     * @param body
-     *            list of rows, where each row is a map from column title to
-     *            value
+     * A generic method to print a table, choosing column widths automatically based both on column
+     * title and values.
+     *
+     * @param out    output target
+     * @param header list of column titles
+     * @param body   list of rows, where each row is a map from column title to value
      */
     private static void list(PrintStream out, List<String> header, List<Map<String, String>> body) {
         // find column widths

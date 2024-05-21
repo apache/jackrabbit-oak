@@ -9,7 +9,6 @@
 package org.apache.lucene.search;
 
 import org.apache.lucene.index.Term;
-
 import org.apache.lucene.util.ToStringUtils;
 import org.apache.lucene.util.automaton.Automaton;
 import org.apache.lucene.util.automaton.AutomatonProvider;
@@ -33,8 +32,7 @@ import org.apache.lucene.util.automaton.RegExp;
  */
 
 /**
- * A fast regular expression query based on the
- * {@link org.apache.lucene.util.automaton} package.
+ * A fast regular expression query based on the {@link org.apache.lucene.util.automaton} package.
  * <ul>
  * <li>Comparisons are <a
  * href="http://tusker.org/regex/regex_benchmark.html">fast</a>
@@ -50,66 +48,69 @@ import org.apache.lucene.util.automaton.RegExp;
  * Note this query can be slow, as it needs to iterate over many terms. In order
  * to prevent extremely slow RegexpQueries, a Regexp term should not start with
  * the expression <code>.*</code>
- * 
- * @see RegExp
+ *
  * @lucene.experimental
+ * @see RegExp
  */
 public class RegexpQuery extends AutomatonQuery {
-  /**
-   * A provider that provides no named automata
-   */
-  private static AutomatonProvider defaultProvider = new AutomatonProvider() {
+
+    /**
+     * A provider that provides no named automata
+     */
+    private static AutomatonProvider defaultProvider = new AutomatonProvider() {
+        @Override
+        public Automaton getAutomaton(String name) {
+            return null;
+        }
+    };
+
+    /**
+     * Constructs a query for terms matching <code>term</code>.
+     * <p>
+     * By default, all regular expression features are enabled.
+     * </p>
+     *
+     * @param term regular expression.
+     */
+    public RegexpQuery(Term term) {
+        this(term, RegExp.ALL);
+    }
+
+    /**
+     * Constructs a query for terms matching <code>term</code>.
+     *
+     * @param term  regular expression.
+     * @param flags optional RegExp features from {@link RegExp}
+     */
+    public RegexpQuery(Term term, int flags) {
+        this(term, flags, defaultProvider);
+    }
+
+    /**
+     * Constructs a query for terms matching <code>term</code>.
+     *
+     * @param term     regular expression.
+     * @param flags    optional RegExp features from {@link RegExp}
+     * @param provider custom AutomatonProvider for named automata
+     */
+    public RegexpQuery(Term term, int flags, AutomatonProvider provider) {
+        super(term, new RegExp(term.text(), flags).toAutomaton(provider));
+    }
+
+    /**
+     * Prints a user-readable version of this query.
+     */
     @Override
-    public Automaton getAutomaton(String name) {
-      return null;
+    public String toString(String field) {
+        StringBuilder buffer = new StringBuilder();
+        if (!term.field().equals(field)) {
+            buffer.append(term.field());
+            buffer.append(":");
+        }
+        buffer.append('/');
+        buffer.append(term.text());
+        buffer.append('/');
+        buffer.append(ToStringUtils.boost(getBoost()));
+        return buffer.toString();
     }
-  };
-  
-  /**
-   * Constructs a query for terms matching <code>term</code>.
-   * <p>
-   * By default, all regular expression features are enabled.
-   * </p>
-   * 
-   * @param term regular expression.
-   */
-  public RegexpQuery(Term term) {
-    this(term, RegExp.ALL);
-  }
-  
-  /**
-   * Constructs a query for terms matching <code>term</code>.
-   * 
-   * @param term regular expression.
-   * @param flags optional RegExp features from {@link RegExp}
-   */
-  public RegexpQuery(Term term, int flags) {
-    this(term, flags, defaultProvider);
-  }
-  
-  /**
-   * Constructs a query for terms matching <code>term</code>.
-   * 
-   * @param term regular expression.
-   * @param flags optional RegExp features from {@link RegExp}
-   * @param provider custom AutomatonProvider for named automata
-   */
-  public RegexpQuery(Term term, int flags, AutomatonProvider provider) {
-    super(term, new RegExp(term.text(), flags).toAutomaton(provider));
-  }
-  
-  /** Prints a user-readable version of this query. */
-  @Override
-  public String toString(String field) {
-    StringBuilder buffer = new StringBuilder();
-    if (!term.field().equals(field)) {
-      buffer.append(term.field());
-      buffer.append(":");
-    }
-    buffer.append('/');
-    buffer.append(term.text());
-    buffer.append('/');
-    buffer.append(ToStringUtils.boost(getBoost()));
-    return buffer.toString();
-  }
 }

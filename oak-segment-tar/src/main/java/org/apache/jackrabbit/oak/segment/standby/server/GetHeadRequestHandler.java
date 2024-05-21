@@ -25,8 +25,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Handles 'get head' requests and produces 'get head' responses. A response is
- * generated only iff the record ID of the head root state can be read.
+ * Handles 'get head' requests and produces 'get head' responses. A response is generated only iff
+ * the record ID of the head root state can be read.
  */
 class GetHeadRequestHandler extends SimpleChannelInboundHandler<GetHeadRequest> {
 

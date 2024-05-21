@@ -25,49 +25,54 @@
 package org.apache.lucene.util.mutable;
 
 /**
- * {@link MutableValue} implementation of type 
+ * {@link MutableValue} implementation of type
  * <code>float</code>.
  */
 public class MutableValueFloat extends MutableValue {
-  public float value;
 
-  @Override
-  public Object toObject() {
-    return exists ? value : null;
-  }
+    public float value;
 
-  @Override
-  public void copy(MutableValue source) {
-    MutableValueFloat s = (MutableValueFloat) source;
-    value = s.value;
-    exists = s.exists;
-  }
+    @Override
+    public Object toObject() {
+        return exists ? value : null;
+    }
 
-  @Override
-  public MutableValue duplicate() {
-    MutableValueFloat v = new MutableValueFloat();
-    v.value = this.value;
-    v.exists = this.exists;
-    return v;
-  }
+    @Override
+    public void copy(MutableValue source) {
+        MutableValueFloat s = (MutableValueFloat) source;
+        value = s.value;
+        exists = s.exists;
+    }
 
-  @Override
-  public boolean equalsSameType(Object other) {
-    MutableValueFloat b = (MutableValueFloat)other;
-    return value == b.value && exists == b.exists;
-  }
+    @Override
+    public MutableValue duplicate() {
+        MutableValueFloat v = new MutableValueFloat();
+        v.value = this.value;
+        v.exists = this.exists;
+        return v;
+    }
 
-  @Override
-  public int compareSameType(Object other) {
-    MutableValueFloat b = (MutableValueFloat)other;
-    int c = Float.compare(value, b.value);
-    if (c != 0) return c;
-    if (exists == b.exists) return 0;
-    return exists ? 1 : -1;
-  }
+    @Override
+    public boolean equalsSameType(Object other) {
+        MutableValueFloat b = (MutableValueFloat) other;
+        return value == b.value && exists == b.exists;
+    }
 
-  @Override
-  public int hashCode() {
-    return Float.floatToIntBits(value);
-  }
+    @Override
+    public int compareSameType(Object other) {
+        MutableValueFloat b = (MutableValueFloat) other;
+        int c = Float.compare(value, b.value);
+        if (c != 0) {
+            return c;
+        }
+        if (exists == b.exists) {
+            return 0;
+        }
+        return exists ? 1 : -1;
+    }
+
+    @Override
+    public int hashCode() {
+        return Float.floatToIntBits(value);
+    }
 }

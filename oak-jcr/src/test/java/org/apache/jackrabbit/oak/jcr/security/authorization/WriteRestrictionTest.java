@@ -16,20 +16,19 @@
  */
 package org.apache.jackrabbit.oak.jcr.security.authorization;
 
+import static javax.jcr.security.Privilege.JCR_ADD_CHILD_NODES;
+import static javax.jcr.security.Privilege.JCR_REMOVE_CHILD_NODES;
+import static javax.jcr.security.Privilege.JCR_REMOVE_NODE;
+
 import javax.jcr.AccessDeniedException;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.security.Privilege;
-
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.test.api.util.Text;
 import org.junit.Before;
 import org.junit.Test;
-
-import static javax.jcr.security.Privilege.JCR_ADD_CHILD_NODES;
-import static javax.jcr.security.Privilege.JCR_REMOVE_CHILD_NODES;
-import static javax.jcr.security.Privilege.JCR_REMOVE_NODE;
 
 /**
  * WriteRestrictionTest: tests add and remove node in combination with glob restrictions.
@@ -51,11 +50,12 @@ public class WriteRestrictionTest extends AbstractEvaluationTest {
 
     @Test
     public void testGlobRestriction() throws Exception {
-        String writeActions = getActions(Session.ACTION_ADD_NODE, Session.ACTION_REMOVE, Session.ACTION_SET_PROPERTY);
+        String writeActions = getActions(Session.ACTION_ADD_NODE, Session.ACTION_REMOVE,
+            Session.ACTION_SET_PROPERTY);
 
         // permissions defined @ path
         // restriction: grants write priv to all nodeName3 children
-        allow(path, repWritePrivileges, createGlobRestriction("/*"+nodeName3));
+        allow(path, repWritePrivileges, createGlobRestriction("/*" + nodeName3));
 
         assertFalse(testAcMgr.hasPrivileges(path, repWritePrivileges));
         assertFalse(testSession.hasPermission(path, javax.jcr.Session.ACTION_SET_PROPERTY));
@@ -65,7 +65,8 @@ public class WriteRestrictionTest extends AbstractEvaluationTest {
 
         assertTrue(testAcMgr.hasPrivileges(childNPath2, repWritePrivileges));
         assertTrue(testSession.hasPermission(childNPath2, Session.ACTION_SET_PROPERTY));
-        assertFalse(testSession.hasPermission(childNPath2, writeActions)); // removal req. rmchildnode privilege on parent.
+        assertFalse(testSession.hasPermission(childNPath2,
+            writeActions)); // removal req. rmchildnode privilege on parent.
 
         assertTrue(testAcMgr.hasPrivileges(nodePath3, repWritePrivileges));
     }
@@ -78,7 +79,7 @@ public class WriteRestrictionTest extends AbstractEvaluationTest {
 
         // permissions defined @ path
         // restriction: grants write-priv to nodeName3 grand-children but not direct nodeName3 children.
-        allow(path, repWritePrivileges, createGlobRestriction("/*/"+nodeName3));
+        allow(path, repWritePrivileges, createGlobRestriction("/*/" + nodeName3));
 
         assertFalse(testAcMgr.hasPrivileges(path, repWritePrivileges));
         assertFalse(testAcMgr.hasPrivileges(path, rmNode));
@@ -93,7 +94,7 @@ public class WriteRestrictionTest extends AbstractEvaluationTest {
 
         // permissions defined @ path
         // restriction: allows write to nodeName3 children
-        allow(path, repWritePrivileges, createGlobRestriction("/*/"+nodeName3));
+        allow(path, repWritePrivileges, createGlobRestriction("/*/" + nodeName3));
         // and grant add-node only at path (no glob restriction)
         allow(path, addNode);
 
@@ -111,7 +112,7 @@ public class WriteRestrictionTest extends AbstractEvaluationTest {
     public void testGlobRestriction4() throws Exception {
         Privilege[] addNode = privilegesFromName(JCR_ADD_CHILD_NODES);
 
-        allow(path, repWritePrivileges, createGlobRestriction("/*"+nodeName3));
+        allow(path, repWritePrivileges, createGlobRestriction("/*" + nodeName3));
         deny(childNPath2, addNode);
 
         assertFalse(testAcMgr.hasPrivileges(path, repWritePrivileges));
@@ -143,7 +144,8 @@ public class WriteRestrictionTest extends AbstractEvaluationTest {
         /* allow READ/WRITE privilege for testUser at 'path' */
         allow(path, testUser.getPrincipal(), readWritePrivileges);
         /* deny REMOVE_NODE privileges at subtree. */
-        deny(path, privilegesFromName(JCR_REMOVE_CHILD_NODES), createGlobRestriction("*/" + Text.getName(childNPath)));
+        deny(path, privilegesFromName(JCR_REMOVE_CHILD_NODES),
+            createGlobRestriction("*/" + Text.getName(childNPath)));
 
         testSession.getNode(childNPath).getNode(nodeName3).remove();
         try {
@@ -159,7 +161,8 @@ public class WriteRestrictionTest extends AbstractEvaluationTest {
         /* allow READ/WRITE privilege for testUser at 'path' */
         allow(path, testUser.getPrincipal(), readWritePrivileges);
         /* deny ADD_CHILD_NODES privileges at subtree. */
-        deny(path, privilegesFromName(JCR_ADD_CHILD_NODES), createGlobRestriction("*/"+nodeName3));
+        deny(path, privilegesFromName(JCR_ADD_CHILD_NODES),
+            createGlobRestriction("*/" + nodeName3));
 
         Node node4 = testSession.getNode(nodePath3).addNode(nodeName4);
         try {
@@ -179,7 +182,8 @@ public class WriteRestrictionTest extends AbstractEvaluationTest {
         String ccPath = grandchild.getPath();
 
         // allow ADD_CHILD_NODES privileges at '/cat/' -> matches descendants of childNPath
-        allow(path, privilegesFromName(JCR_ADD_CHILD_NODES), createGlobRestriction("/"+PathUtils.getName(childNPath) + "/"));
+        allow(path, privilegesFromName(JCR_ADD_CHILD_NODES),
+            createGlobRestriction("/" + PathUtils.getName(childNPath) + "/"));
         assertGlobTrailingSlashEffect(ccPath);
     }
 
@@ -192,19 +196,22 @@ public class WriteRestrictionTest extends AbstractEvaluationTest {
         String ccPath = grandchild.getPath();
 
         // allow ADD_CHILD_NODES privileges at '/cat/*' -> matches descendants of childNPath
-        allow(path, privilegesFromName(JCR_ADD_CHILD_NODES), createGlobRestriction("/"+PathUtils.getName(childNPath) + "/*"));
+        allow(path, privilegesFromName(JCR_ADD_CHILD_NODES),
+            createGlobRestriction("/" + PathUtils.getName(childNPath) + "/*"));
         assertGlobTrailingSlashEffect(ccPath);
     }
 
     private void assertGlobTrailingSlashEffect(String ccPath) throws RepositoryException {
         assertFalse(testSession.hasPermission(path, Session.ACTION_ADD_NODE));
         assertFalse(testSession.hasPermission(childNPath, Session.ACTION_ADD_NODE));
-        assertFalse(testSession.hasPermission(childNPath+"/", Session.ACTION_ADD_NODE));
+        assertFalse(testSession.hasPermission(childNPath + "/", Session.ACTION_ADD_NODE));
         assertFalse(testSession.hasPermission(ccPath, Session.ACTION_ADD_NODE));
-        assertFalse(testSession.hasPermission(ccPath+"/", Session.ACTION_ADD_NODE));
-        assertTrue(testSession.hasPermission(ccPath+"/greatgrandchild", Session.ACTION_ADD_NODE));
-        assertTrue(testSession.hasPermission(ccPath+"/greatgrandchild/", Session.ACTION_ADD_NODE));
-        assertTrue(testSession.hasPermission(ccPath+"/greatgrandchild/descendant", Session.ACTION_ADD_NODE));
+        assertFalse(testSession.hasPermission(ccPath + "/", Session.ACTION_ADD_NODE));
+        assertTrue(testSession.hasPermission(ccPath + "/greatgrandchild", Session.ACTION_ADD_NODE));
+        assertTrue(
+            testSession.hasPermission(ccPath + "/greatgrandchild/", Session.ACTION_ADD_NODE));
+        assertTrue(testSession.hasPermission(ccPath + "/greatgrandchild/descendant",
+            Session.ACTION_ADD_NODE));
         testSession.getNode(ccPath).addNode("greatgrandchild").addNode("descendant");
         testSession.save();
     }

@@ -23,7 +23,6 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
-
 import org.apache.jackrabbit.oak.benchmark.util.OakIndexUtils;
 
 /**
@@ -36,14 +35,15 @@ public class DescendantSearchTest extends AbstractTest {
     private Session session;
 
     private Node root;
-    
+
     String testNodeName = "test" + TEST_ID;
 
     protected Query createQuery(QueryManager manager, int i)
-            throws RepositoryException {
+        throws RepositoryException {
         @SuppressWarnings("deprecation")
         String xpath = Query.XPATH;
-        return manager.createQuery("/jcr:root/" + testNodeName + "//element(*,nt:base)[@testcount=" + i + "]", xpath);
+        return manager.createQuery(
+            "/jcr:root/" + testNodeName + "//element(*,nt:base)[@testcount=" + i + "]", xpath);
     }
 
     @Override
@@ -107,7 +107,7 @@ public class DescendantSearchTest extends AbstractTest {
 
     private void ensurePropertyIndex() throws RepositoryException {
         new OakIndexUtils.PropertyIndex().
-                property("testcount").
-                create(session);
+            property("testcount").
+            create(session);
     }
 }

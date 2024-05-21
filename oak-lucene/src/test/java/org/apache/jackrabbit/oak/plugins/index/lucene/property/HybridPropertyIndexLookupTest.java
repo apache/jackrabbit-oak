@@ -19,8 +19,15 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.property;
 
-import java.util.List;
+import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
+import static org.apache.jackrabbit.oak.plugins.memory.PropertyValues.newString;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.empty;
+import static org.junit.Assert.assertThat;
 
+import java.util.List;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexDefinitionBuilder;
@@ -38,23 +45,17 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
-import static org.apache.jackrabbit.oak.plugins.memory.PropertyValues.newString;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.empty;
-import static org.junit.Assert.assertThat;
-
 public class HybridPropertyIndexLookupTest {
+
     private NodeState root = INITIAL_CONTENT;
     private NodeBuilder builder = EMPTY_NODE.builder();
     private LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
-    private String indexPath  = "/oak:index/foo";
-    private PropertyIndexUpdateCallback callback = new PropertyIndexUpdateCallback(indexPath, builder, root);
+    private String indexPath = "/oak:index/foo";
+    private PropertyIndexUpdateCallback callback = new PropertyIndexUpdateCallback(indexPath,
+        builder, root);
 
     @Test
-    public void simplePropertyRestriction() throws Exception{
+    public void simplePropertyRestriction() throws Exception {
         defnb.indexRule("nt:base").property("foo").sync();
 
         propertyUpdated("/a", "foo", "bar");
@@ -66,7 +67,7 @@ public class HybridPropertyIndexLookupTest {
     }
 
     @Test
-    public void valuePattern() throws Exception{
+    public void valuePattern() throws Exception {
         defnb.indexRule("nt:base").property("foo").sync().valuePattern("(a.*|b)");
 
         propertyUpdated("/a", "foo", "a");
@@ -83,7 +84,7 @@ public class HybridPropertyIndexLookupTest {
     }
 
     @Test
-    public void relativeProperty() throws Exception{
+    public void relativeProperty() throws Exception {
         defnb.indexRule("nt:base").property("foo").sync();
 
         propertyUpdated("/a", "foo", "bar");
@@ -95,7 +96,7 @@ public class HybridPropertyIndexLookupTest {
     }
 
     @Test
-    public void pathResultAbsolutePath() throws Exception{
+    public void pathResultAbsolutePath() throws Exception {
         defnb.indexRule("nt:base").property("foo").sync();
 
         propertyUpdated("/a", "foo", "bar");
@@ -104,15 +105,16 @@ public class HybridPropertyIndexLookupTest {
         FilterImpl filter = createFilter();
         filter.restrictProperty("foo", Operator.EQUAL, newString("bar"));
 
-        HybridPropertyIndexLookup lookup = new HybridPropertyIndexLookup(indexPath, builder.getNodeState());
+        HybridPropertyIndexLookup lookup = new HybridPropertyIndexLookup(indexPath,
+            builder.getNodeState());
         Iterable<String> paths = lookup.query(filter, propertyName,
-                filter.getPropertyRestriction(propertyName));
+            filter.getPropertyRestriction(propertyName));
 
         assertThat(ImmutableList.copyOf(paths), containsInAnyOrder("/a"));
     }
 
     @Test
-    public void nonRootIndex() throws Exception{
+    public void nonRootIndex() throws Exception {
         defnb.indexRule("nt:base").property("foo").sync();
         indexPath = "/content/oak:index/fooIndex";
 
@@ -123,24 +125,25 @@ public class HybridPropertyIndexLookupTest {
         filter.restrictProperty("foo", Operator.EQUAL, newString("bar"));
         filter.restrictPath("/content", Filter.PathRestriction.ALL_CHILDREN);
 
-        HybridPropertyIndexLookup lookup = new HybridPropertyIndexLookup(indexPath, builder.getNodeState(),
-                "/content", false);
+        HybridPropertyIndexLookup lookup = new HybridPropertyIndexLookup(indexPath,
+            builder.getNodeState(),
+            "/content", false);
         Iterable<String> paths = lookup.query(filter, propertyName,
-                filter.getPropertyRestriction(propertyName));
+            filter.getPropertyRestriction(propertyName));
 
         assertThat(ImmutableList.copyOf(paths), containsInAnyOrder("/a"));
 
         lookup = new HybridPropertyIndexLookup(indexPath, builder.getNodeState(),
-                "/content", true);
+            "/content", true);
         paths = lookup.query(filter, propertyName,
-                filter.getPropertyRestriction(propertyName));
+            filter.getPropertyRestriction(propertyName));
 
         assertThat(ImmutableList.copyOf(paths), containsInAnyOrder("/content/a"));
     }
 
-    private void propertyUpdated(String nodePath, String propertyRelativeName, String value){
+    private void propertyUpdated(String nodePath, String propertyRelativeName, String value) {
         callback.propertyUpdated(nodePath, propertyRelativeName, pd(propertyRelativeName),
-                null, createProperty(PathUtils.getName(propertyRelativeName), value));
+            null, createProperty(PathUtils.getName(propertyRelativeName), value));
     }
 
     private List<String> query(String propertyName, String value) {
@@ -154,13 +157,14 @@ public class HybridPropertyIndexLookupTest {
     }
 
     private List<String> query(Filter filter, String propertyName, String propertyRestrictionName) {
-        HybridPropertyIndexLookup lookup = new HybridPropertyIndexLookup(indexPath, builder.getNodeState());
+        HybridPropertyIndexLookup lookup = new HybridPropertyIndexLookup(indexPath,
+            builder.getNodeState());
         Iterable<String> paths = lookup.query(filter, propertyName,
-                filter.getPropertyRestriction(propertyRestrictionName));
+            filter.getPropertyRestriction(propertyRestrictionName));
         return ImmutableList.copyOf(paths);
     }
 
-    private PropertyDefinition pd(String propName){
+    private PropertyDefinition pd(String propName) {
         IndexDefinition defn = new IndexDefinition(root, defnb.build(), indexPath);
         return defn.getApplicableIndexingRule("nt:base").getConfig(propName);
     }
@@ -173,7 +177,8 @@ public class HybridPropertyIndexLookupTest {
         NodeTypeInfoProvider nodeTypes = new NodeStateNodeTypeInfoProvider(root);
         NodeTypeInfo type = nodeTypes.getNodeTypeInfo(nodeTypeName);
         SelectorImpl selector = new SelectorImpl(type, nodeTypeName);
-        return new FilterImpl(selector, "SELECT * FROM [" + nodeTypeName + "]", new QueryEngineSettings());
+        return new FilterImpl(selector, "SELECT * FROM [" + nodeTypeName + "]",
+            new QueryEngineSettings());
     }
 
 }

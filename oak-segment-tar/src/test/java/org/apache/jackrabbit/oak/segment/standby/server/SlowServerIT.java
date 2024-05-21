@@ -26,7 +26,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.commons.io.input.NullInputStream;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -51,18 +50,20 @@ public class SlowServerIT {
 
     private TemporaryBlobStore serverBlobStore = new TemporaryBlobStore(folder);
 
-    private TemporaryFileStore serverFileStore = new TemporaryFileStore(folder, serverBlobStore, false);
+    private TemporaryFileStore serverFileStore = new TemporaryFileStore(folder, serverBlobStore,
+        false);
 
     private TemporaryBlobStore clientBlobStore = new TemporaryBlobStore(folder);
 
-    private TemporaryFileStore clientFileStore = new TemporaryFileStore(folder, clientBlobStore, true);
+    private TemporaryFileStore clientFileStore = new TemporaryFileStore(folder, clientBlobStore,
+        true);
 
     @Rule
     public RuleChain chain = RuleChain.outerRule(folder)
-        .around(serverBlobStore)
-        .around(serverFileStore)
-        .around(clientBlobStore)
-        .around(clientFileStore);
+                                      .around(serverBlobStore)
+                                      .around(serverFileStore)
+                                      .around(clientBlobStore)
+                                      .around(clientFileStore);
 
     @Rule
     public TemporaryPort serverPort = new TemporaryPort();
@@ -79,7 +80,8 @@ public class SlowServerIT {
         // Configure a StandbyBlobReader that behaves like the default one, but
         // adds a 2s delay every time a binary is fetched from the Data Store.
 
-        StandbyBlobReader blobReader = newDelayedBlobReader(2, TimeUnit.SECONDS, new DefaultStandbyBlobReader(primary.getBlobStore()));
+        StandbyBlobReader blobReader = newDelayedBlobReader(2, TimeUnit.SECONDS,
+            new DefaultStandbyBlobReader(primary.getBlobStore()));
 
         try (
 
@@ -87,25 +89,25 @@ public class SlowServerIT {
             // to transfer binaries in chunks of 1MB.
 
             StandbyServerSync server = StandbyServerSync.builder()
-                .withPort(serverPort.getPort())
-                .withFileStore(primary)
-                .withBlobChunkSize(1024 * 1024)
-                .withStandbyBlobReader(blobReader)
-                .build();
+                                                        .withPort(serverPort.getPort())
+                                                        .withFileStore(primary)
+                                                        .withBlobChunkSize(1024 * 1024)
+                                                        .withStandbyBlobReader(blobReader)
+                                                        .build();
 
             // The client expects the server to respond withing 1s. When the
             // binary is requested, the delay on the server guarantees that the
             // timeout on the client will expire.
 
             StandbyClientSync client = StandbyClientSync.builder()
-                .withHost("localhost")
-                .withPort(serverPort.getPort())
-                .withFileStore(secondary)
-                .withSecureConnection(false)
-                .withReadTimeoutMs(1000)
-                .withAutoClean(false)
-                .withSpoolFolder(folder.newFolder())
-                .build()
+                                                        .withHost("localhost")
+                                                        .withPort(serverPort.getPort())
+                                                        .withFileStore(secondary)
+                                                        .withSecureConnection(false)
+                                                        .withReadTimeoutMs(1000)
+                                                        .withAutoClean(false)
+                                                        .withSpoolFolder(folder.newFolder())
+                                                        .build()
         ) {
             server.start();
             client.run();
@@ -126,7 +128,8 @@ public class SlowServerIT {
         fileStore.flush();
     }
 
-    private StandbyBlobReader newDelayedBlobReader(int delay, TimeUnit timeUnit, StandbyBlobReader wrapped) {
+    private StandbyBlobReader newDelayedBlobReader(int delay, TimeUnit timeUnit,
+        StandbyBlobReader wrapped) {
         return new StandbyBlobReader() {
 
             @Override

@@ -16,14 +16,14 @@
  */
 package org.apache.jackrabbit.oak.segment.remote.queue;
 
-import java.util.concurrent.CopyOnWriteArraySet;
-import java.util.function.Supplier;
-import java.util.stream.IntStream;
-import org.apache.jackrabbit.oak.segment.remote.RemoteSegmentArchiveEntry;
-import org.junit.After;
-import org.junit.Test;
-import org.mockito.Mockito;
-import org.mockito.internal.util.reflection.InstanceField;
+import static java.util.stream.Collectors.toSet;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -34,18 +34,17 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.BlockingDeque;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-
-import static java.util.stream.Collectors.toSet;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
+import java.util.function.Supplier;
+import java.util.stream.IntStream;
+import org.apache.jackrabbit.oak.segment.remote.RemoteSegmentArchiveEntry;
+import org.junit.After;
+import org.junit.Test;
+import org.mockito.Mockito;
+import org.mockito.internal.util.reflection.InstanceField;
 
 public class SegmentWriteQueueTest {
 
@@ -67,11 +66,11 @@ public class SegmentWriteQueueTest {
     }
 
     @Test
-    public void testThreadInterruptedWhileAddigToQueue() throws InterruptedException, NoSuchFieldException {
+    public void testThreadInterruptedWhileAddigToQueue()
+        throws InterruptedException, NoSuchFieldException {
 
         Set<UUID> added = Collections.synchronizedSet(new HashSet<>());
         Semaphore semaphore = new Semaphore(0);
-
 
         BlockingDeque<SegmentWriteAction> queue = Mockito.mock(BlockingDeque.class);
 
@@ -83,8 +82,10 @@ public class SegmentWriteQueueTest {
             added.add(new UUID(tarEntry.getMsb(), tarEntry.getLsb()));
         });
 
-        Mockito.when(queue.offer(any(SegmentWriteAction.class), anyLong(), any(TimeUnit.class))).thenThrow(new InterruptedException());
-        new InstanceField(queueBlocked.getClass().getDeclaredField("queue"), queueBlocked).set(queue);
+        Mockito.when(queue.offer(any(SegmentWriteAction.class), anyLong(), any(TimeUnit.class)))
+               .thenThrow(new InterruptedException());
+        new InstanceField(queueBlocked.getClass().getDeclaredField("queue"), queueBlocked).set(
+            queue);
 
         try {
             queueBlocked.addToQueue(tarEntry(0), EMPTY_DATA, 0, 0);
@@ -107,7 +108,8 @@ public class SegmentWriteQueueTest {
 
         Thread.sleep(1000);
 
-        assertEquals("Flush thread should have been completed till now", Thread.State.TERMINATED, flusher.getState());
+        assertEquals("Flush thread should have been completed till now", Thread.State.TERMINATED,
+            flusher.getState());
         assertTrue("Segment queue is empty", flushFinished.get());
     }
 
@@ -183,26 +185,30 @@ public class SegmentWriteQueueTest {
         });
 
         Thread.sleep(100);
-        assertFalse("Adding segments should be blocked until the flush is finished", addFinished.get());
+        assertFalse("Adding segments should be blocked until the flush is finished",
+            addFinished.get());
 
         semaphore.release(Integer.MAX_VALUE);
 
         awaitUntil(addFinished);
         awaitUntil(flushFinished);
         assertTrue("Flush should be finished", flushFinished.get());
-        assertTrue("Adding segments should be blocked until the flush is finished", addFinished.get());
+        assertTrue("Adding segments should be blocked until the flush is finished",
+            addFinished.get());
 
         Set<UUID> expectedAddedAfterFlush = IntStream.range(0, 3)
-            .mapToObj(SegmentWriteQueueTest::uuid)
-            .collect(toSet());
+                                                     .mapToObj(SegmentWriteQueueTest::uuid)
+                                                     .collect(toSet());
 
-        assertTrue("Expected all values of " + expectedAddedAfterFlush + " to be in " + addedAfterFlush,
+        assertTrue(
+            "Expected all values of " + expectedAddedAfterFlush + " to be in " + addedAfterFlush,
             addedAfterFlush.containsAll(expectedAddedAfterFlush));
     }
 
     @Test(expected = IllegalStateException.class)
     public void testClose() throws IOException {
-        queue = new SegmentWriteQueue((tarEntry, data, offset, size) -> {});
+        queue = new SegmentWriteQueue((tarEntry, data, offset, size) -> {
+        });
         queue.close();
         queue.addToQueue(tarEntry(10), EMPTY_DATA, 0, 0);
     }
@@ -240,7 +246,9 @@ public class SegmentWriteQueueTest {
         long lastAttempt = writeAttempts.get(0);
         for (int i = 1; i < 5; i++) {
             long delay = writeAttempts.get(i) - lastAttempt;
-            assertTrue("The delay between attempts to persist segment should be larger than 1000ms. Actual: " + delay, delay >= 1000);
+            assertTrue(
+                "The delay between attempts to persist segment should be larger than 1000ms. Actual: "
+                    + delay, delay >= 1000);
             lastAttempt = writeAttempts.get(i);
         }
 
@@ -255,7 +263,8 @@ public class SegmentWriteQueueTest {
         });
 
         Thread.sleep(100);
-        assertFalse("Adding segments should be blocked until the recovery mode is finished", addFinished.get());
+        assertFalse("Adding segments should be blocked until the recovery mode is finished",
+            addFinished.get());
 
         doBreak.set(false);
         awaitWhile(() -> queue.isBroken());

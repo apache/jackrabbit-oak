@@ -30,13 +30,14 @@ public interface FulltextIndexWriterFactory<D> {
 
     /**
      * create a new index writer instance
-     * @param definition the index definition
+     *
+     * @param definition        the index definition
      * @param definitionBuilder the node builder associated with the index definition
-     * @param commitInfo metadata associated with the commit for this writer
-     * @param reindex whether or not reindex should be performed
+     * @param commitInfo        metadata associated with the commit for this writer
+     * @param reindex           whether or not reindex should be performed
      * @return an index writer
      */
     FulltextIndexWriter<D> newInstance(IndexDefinition definition, NodeBuilder definitionBuilder,
-                                       CommitInfo commitInfo, boolean reindex);
+        CommitInfo commitInfo, boolean reindex);
 
 }

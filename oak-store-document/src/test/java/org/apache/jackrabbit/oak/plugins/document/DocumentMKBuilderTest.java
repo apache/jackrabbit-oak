@@ -34,10 +34,10 @@ public class DocumentMKBuilderTest extends AbstractMongoConnectionTest {
     private static final long CACHE_SIZE = 8 * 1024 * 1024;
     private static final long PREV_DOC_CACHE_SIZE = cacheSize(DEFAULT_PREV_DOC_CACHE_PERCENTAGE);
     private static final long DOC_CACHE_SIZE = CACHE_SIZE -
-            cacheSize(DEFAULT_CHILDREN_CACHE_PERCENTAGE) -
-            cacheSize(DEFAULT_DIFF_CACHE_PERCENTAGE) -
-            cacheSize(DEFAULT_NODE_CACHE_PERCENTAGE) -
-            cacheSize(DEFAULT_PREV_DOC_CACHE_PERCENTAGE);
+        cacheSize(DEFAULT_CHILDREN_CACHE_PERCENTAGE) -
+        cacheSize(DEFAULT_DIFF_CACHE_PERCENTAGE) -
+        cacheSize(DEFAULT_NODE_CACHE_PERCENTAGE) -
+        cacheSize(DEFAULT_PREV_DOC_CACHE_PERCENTAGE);
 
     @Override
     protected DocumentMK.Builder newBuilder(MongoClient client, String dbName) throws Exception {

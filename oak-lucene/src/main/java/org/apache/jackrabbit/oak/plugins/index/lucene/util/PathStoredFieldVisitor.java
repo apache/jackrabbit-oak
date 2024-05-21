@@ -20,7 +20,6 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene.util;
 
 import java.io.IOException;
-
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.StoredFieldVisitor;
@@ -40,7 +39,7 @@ public class PathStoredFieldVisitor extends StoredFieldVisitor {
 
     @Override
     public void stringField(FieldInfo fieldInfo, String value)
-            throws IOException {
+        throws IOException {
         if (FieldNames.PATH.equals(fieldInfo.name)) {
             path = value;
             pathVisited = true;

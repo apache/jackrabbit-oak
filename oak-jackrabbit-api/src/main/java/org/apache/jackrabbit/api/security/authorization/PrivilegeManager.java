@@ -21,18 +21,16 @@ import javax.jcr.NamespaceException;
 import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
-
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ProviderType;
 
 /**
  * <code>PrivilegeManager</code> is a jackrabbit specific extensions to
- * JCR access control management that allows to retrieve privileges known
- * by this JCR implementation and to register new custom privileges according
- * to implementation specific rules.
+ * JCR access control management that allows to retrieve privileges known by this JCR implementation
+ * and to register new custom privileges according to implementation specific rules.
  *
- * @see javax.jcr.security.AccessControlManager#privilegeFromName(String) 
+ * @see javax.jcr.security.AccessControlManager#privilegeFromName(String)
  */
 @ProviderType
 public interface PrivilegeManager {
@@ -51,34 +49,37 @@ public interface PrivilegeManager {
      *
      * @param privilegeName Name of the principal.
      * @return the privilege with the specified <code>privilegeName</code>.
-     * @throws javax.jcr.security.AccessControlException If no privilege with the given name exists.
-     * @throws javax.jcr.RepositoryException If another error occurs.
+     * @throws javax.jcr.security.AccessControlException If no privilege with the given name
+     *                                                   exists.
+     * @throws javax.jcr.RepositoryException             If another error occurs.
      */
     @NotNull
-    Privilege getPrivilege(@NotNull String privilegeName) throws AccessControlException, RepositoryException;
+    Privilege getPrivilege(@NotNull String privilegeName)
+        throws AccessControlException, RepositoryException;
 
     /**
-     * Creates and registers a new custom privilege with the specified
-     * characteristics and returns the new privilege.
+     * Creates and registers a new custom privilege with the specified characteristics and returns
+     * the new privilege.
      * <p>
-     * If the registration succeeds, the changes are immediately effective;
-     * there is no need to call <code>save</code>.
+     * If the registration succeeds, the changes are immediately effective; there is no need to
+     * call
+     * <code>save</code>.
      *
-     * @param privilegeName The name of the new custom privilege.
-     * @param isAbstract Boolean flag indicating if the privilege is abstract.
-     * @param declaredAggregateNames An array of privilege names referring to
-     * registered privileges being aggregated by this new custom privilege.
-     * In case of a non aggregate privilege an empty array should be passed.
+     * @param privilegeName          The name of the new custom privilege.
+     * @param isAbstract             Boolean flag indicating if the privilege is abstract.
+     * @param declaredAggregateNames An array of privilege names referring to registered privileges
+     *                               being aggregated by this new custom privilege. In case of a non
+     *                               aggregate privilege an empty array should be passed.
      * @return the new privilege.
-     * @throws AccessDeniedException If the session this manager has been created
-     * for is not allowed to register new privileges.
-     * @throws NamespaceException If any of the specified JCR names is illegal.
-     * @throws RepositoryException If the privilege could not be registered due
-     * to any implementation specific constraint violations or if persisting the
-     * custom privilege fails.
+     * @throws AccessDeniedException If the session this manager has been created for is not allowed
+     *                               to register new privileges.
+     * @throws NamespaceException    If any of the specified JCR names is illegal.
+     * @throws RepositoryException   If the privilege could not be registered due to any
+     *                               implementation specific constraint violations or if persisting
+     *                               the custom privilege fails.
      */
     @NotNull
     Privilege registerPrivilege(@NotNull String privilegeName, boolean isAbstract,
-                                @Nullable String[] declaredAggregateNames)
-            throws AccessDeniedException, NamespaceException, RepositoryException;
+        @Nullable String[] declaredAggregateNames)
+        throws AccessDeniedException, NamespaceException, RepositoryException;
 }

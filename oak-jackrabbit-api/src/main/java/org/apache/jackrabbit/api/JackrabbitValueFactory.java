@@ -24,21 +24,19 @@ import javax.jcr.Binary;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.ValueFactory;
-
+import org.apache.jackrabbit.api.binary.BinaryDownload;
 import org.apache.jackrabbit.api.binary.BinaryDownloadOptions;
 import org.apache.jackrabbit.api.binary.BinaryUpload;
-import org.apache.jackrabbit.api.binary.BinaryDownload;
 import org.apache.jackrabbit.api.binary.BinaryUploadOptions;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ProviderType;
 
 /**
- * Defines optional functionality that a {@link ValueFactory} may choose to
- * provide. A {@link ValueFactory} may also implement this interface without
- * supporting all of the capabilities in this interface. Each method of the
- * interface describes the behavior of that method if the underlying capability
- * is not available.
+ * Defines optional functionality that a {@link ValueFactory} may choose to provide. A
+ * {@link ValueFactory} may also implement this interface without supporting all of the capabilities
+ * in this interface. Each method of the interface describes the behavior of that method if the
+ * underlying capability is not available.
  *
  * <p>
  * This interface defines the following optional features:
@@ -53,7 +51,7 @@ import org.osgi.annotation.versioning.ProviderType;
  * The features are described in more detail below.
  *
  * <h2>Direct Binary Access</h2>
- *
+ * <p>
  * The Direct Binary Access feature provides the capability for a client to
  * upload or download binaries directly to/from a storage location. For example,
  * this might be a cloud storage providing high-bandwidth direct network access.
@@ -65,7 +63,7 @@ import org.osgi.annotation.versioning.ProviderType;
  * The feature consists of two parts, download and upload.
  *
  * <h3>Direct Binary Download</h3>
- *
+ * <p>
  * This feature enables remote clients to download binaries directly from a
  * storage location without streaming the binary through the Jackrabbit-based
  * application.
@@ -76,7 +74,7 @@ import org.osgi.annotation.versioning.ProviderType;
  * can be retrieved and passed to a remote client, such as a browser.
  *
  * <h3>Direct Binary Upload</h3>
- *
+ * <p>
  * This feature enables remote clients to upload binaries directly to a storage
  * location.
  *
@@ -121,123 +119,101 @@ import org.osgi.annotation.versioning.ProviderType;
 public interface JackrabbitValueFactory extends ValueFactory {
 
     /**
-     * Initiate a transaction to upload a binary directly to a storage
-     * location and return {@link BinaryUpload} instructions for a remote client.
-     * Returns {@code null} if the feature is not available.
+     * Initiate a transaction to upload a binary directly to a storage location and return
+     * {@link BinaryUpload} instructions for a remote client. Returns {@code null} if the feature is
+     * not available.
      *
      * <p>
-     * {@link IllegalArgumentException} will be thrown if an upload
-     * cannot be supported for the required parameters, or if the parameters are
-     * otherwise invalid. Each service provider has specific limitations.
+     * {@link IllegalArgumentException} will be thrown if an upload cannot be supported for the
+     * required parameters, or if the parameters are otherwise invalid. Each service provider has
+     * specific limitations.
      *
-     * @param maxSize The exact size of the binary to be uploaded or the
-     *                estimated maximum size if the exact size is unknown.
-     *                If the estimation was too small, the transaction
-     *                should be restarted by invoking this method again
-     *                using the correct size.
-     * @param maxURIs The maximum number of upload URIs that the client can
-     *                accept, for example due to message size limitations.
-     *                A value of -1 indicates no limit.
-     *                Upon a successful return, it is ensured that an upload
-     *                of {@code maxSize} can be completed by splitting the
-     *                binary into {@code maxURIs} parts, otherwise
+     * @param maxSize The exact size of the binary to be uploaded or the estimated maximum size if
+     *                the exact size is unknown. If the estimation was too small, the transaction
+     *                should be restarted by invoking this method again using the correct size.
+     * @param maxURIs The maximum number of upload URIs that the client can accept, for example due
+     *                to message size limitations. A value of -1 indicates no limit. Upon a
+     *                successful return, it is ensured that an upload of {@code maxSize} can be
+     *                completed by splitting the binary into {@code maxURIs} parts, otherwise
      *                {@link IllegalArgumentException} will be thrown.
-     *
-     * @return A {@link BinaryUpload} providing the upload instructions,
-     *         or {@code null} if the implementation does not support the direct
-     *         upload feature.
-     *
-     * @throws IllegalArgumentException if the provided arguments are
-     *         invalid or if an upload cannot be completed given the
-     *         provided arguments. For example, if the value of {@code maxSize}
-     *         exceeds the size limits for a single binary upload for the
-     *         implementation or the service provider, or if the value of
-     *         {@code maxSize} divided by {@code maxParts} exceeds the size
-     *         limit for an upload or upload part.
-     *
-     * @throws AccessDeniedException if the session has insufficient
-     *         permission to perform the upload.
+     * @return A {@link BinaryUpload} providing the upload instructions, or {@code null} if the
+     * implementation does not support the direct upload feature.
+     * @throws IllegalArgumentException if the provided arguments are invalid or if an upload cannot
+     *                                  be completed given the provided arguments. For example, if
+     *                                  the value of {@code maxSize} exceeds the size limits for a
+     *                                  single binary upload for the implementation or the service
+     *                                  provider, or if the value of {@code maxSize} divided by
+     *                                  {@code maxParts} exceeds the size limit for an upload or
+     *                                  upload part.
+     * @throws AccessDeniedException    if the session has insufficient permission to perform the
+     *                                  upload.
      */
     @Nullable
     BinaryUpload initiateBinaryUpload(long maxSize, int maxURIs)
-            throws IllegalArgumentException, AccessDeniedException;
+        throws IllegalArgumentException, AccessDeniedException;
 
     /**
-     * Initiate a transaction to upload a binary directly to a storage
-     * location and return {@link BinaryUpload} instructions for a remote client.
-     * Returns {@code null} if the feature is not available.
+     * Initiate a transaction to upload a binary directly to a storage location and return
+     * {@link BinaryUpload} instructions for a remote client. Returns {@code null} if the feature is
+     * not available.
      *
      * <p>
-     * {@link IllegalArgumentException} will be thrown if an upload
-     * cannot be supported for the required parameters, or if the parameters are
-     * otherwise invalid. Each service provider has specific limitations.
+     * {@link IllegalArgumentException} will be thrown if an upload cannot be supported for the
+     * required parameters, or if the parameters are otherwise invalid. Each service provider has
+     * specific limitations.
      *
-     * @param maxSize The exact size of the binary to be uploaded or the
-     *                estimated maximum size if the exact size is unknown.
-     *                If the estimation was too small, the transaction
-     *                should be restarted by invoking this method again
-     *                using the correct size.
-     * @param maxURIs The maximum number of upload URIs that the client can
-     *                accept, for example due to message size limitations.
-     *                A value of -1 indicates no limit.
-     *                Upon a successful return, it is ensured that an upload
-     *                of {@code maxSize} can be completed by splitting the
-     *                binary into {@code maxURIs} parts, otherwise
+     * @param maxSize The exact size of the binary to be uploaded or the estimated maximum size if
+     *                the exact size is unknown. If the estimation was too small, the transaction
+     *                should be restarted by invoking this method again using the correct size.
+     * @param maxURIs The maximum number of upload URIs that the client can accept, for example due
+     *                to message size limitations. A value of -1 indicates no limit. Upon a
+     *                successful return, it is ensured that an upload of {@code maxSize} can be
+     *                completed by splitting the binary into {@code maxURIs} parts, otherwise
      *                {@link IllegalArgumentException} will be thrown.
-     * @param options A {@link BinaryUploadOptions} instance containing any
-     *                options for this call.
-     *
-     * @return A {@link BinaryUpload} providing the upload instructions,
-     *         or {@code null} if the implementation does not support the direct
-     *         upload feature.
-     *
-     * @throws IllegalArgumentException if the provided arguments are
-     *         invalid or if an upload cannot be completed given the
-     *         provided arguments. For example, if the value of {@code maxSize}
-     *         exceeds the size limits for a single binary upload for the
-     *         implementation or the service provider, or if the value of
-     *         {@code maxSize} divided by {@code maxParts} exceeds the size
-     *         limit for an upload or upload part.
-     *
-     * @throws AccessDeniedException if the session has insufficient
-     *         permission to perform the upload.
+     * @param options A {@link BinaryUploadOptions} instance containing any options for this call.
+     * @return A {@link BinaryUpload} providing the upload instructions, or {@code null} if the
+     * implementation does not support the direct upload feature.
+     * @throws IllegalArgumentException if the provided arguments are invalid or if an upload cannot
+     *                                  be completed given the provided arguments. For example, if
+     *                                  the value of {@code maxSize} exceeds the size limits for a
+     *                                  single binary upload for the implementation or the service
+     *                                  provider, or if the value of {@code maxSize} divided by
+     *                                  {@code maxParts} exceeds the size limit for an upload or
+     *                                  upload part.
+     * @throws AccessDeniedException    if the session has insufficient permission to perform the
+     *                                  upload.
      */
     @Nullable
     BinaryUpload initiateBinaryUpload(long maxSize, int maxURIs, BinaryUploadOptions options)
-            throws IllegalArgumentException, AccessDeniedException;
+        throws IllegalArgumentException, AccessDeniedException;
 
     /**
-     * Complete the transaction of uploading a binary directly to a storage
-     * location and return a {@link Binary} to set as value for a binary
-     * JCR property. The binary is not automatically associated with
-     * any location in the JCR.
+     * Complete the transaction of uploading a binary directly to a storage location and return a
+     * {@link Binary} to set as value for a binary JCR property. The binary is not automatically
+     * associated with any location in the JCR.
      *
      * <p>
      * The client must provide a valid upload token, obtained from
-     * {@link BinaryUpload#getUploadToken()} when this transaction was initialized
-     * using {@link #initiateBinaryUpload(long, int)}.
-     * If the {@code uploadToken} is unreadable or invalid,
-     * an {@link IllegalArgumentException} will be thrown.
-     *
-     * This method is idempotent.  Calling the method more than one time with the
-     * same upload token must not cause an existing binary to be modified; thus
-     * if a prior call with this upload token succeeded in creating the binary,
-     * subsequent calls with the same upload token have no effect on the binary.
-     * This method should always return the binary that was uploaded with this
-     * upload token, even in subsequent calls with the same upload token
-     * (in other words, calling this method twice with the same upload token
-     * results in the same binary being returned both times).
+     * {@link BinaryUpload#getUploadToken()} when this transaction was initialized using
+     * {@link #initiateBinaryUpload(long, int)}. If the {@code uploadToken} is unreadable or
+     * invalid, an {@link IllegalArgumentException} will be thrown.
+     * <p>
+     * This method is idempotent.  Calling the method more than one time with the same upload token
+     * must not cause an existing binary to be modified; thus if a prior call with this upload token
+     * succeeded in creating the binary, subsequent calls with the same upload token have no effect
+     * on the binary. This method should always return the binary that was uploaded with this upload
+     * token, even in subsequent calls with the same upload token (in other words, calling this
+     * method twice with the same upload token results in the same binary being returned both
+     * times).
      *
      * @param uploadToken A String identifying the upload transaction.
-     *
-     * @return The uploaded {@link Binary}, or {@code null} if the
-     *         implementation does not support the direct upload feature.
-     *
-     * @throws IllegalArgumentException if the {@code uploadToken} is invalid or
-     *         does not identify a known binary upload.
-     * @throws RepositoryException if another error occurs.
+     * @return The uploaded {@link Binary}, or {@code null} if the implementation does not support
+     * the direct upload feature.
+     * @throws IllegalArgumentException if the {@code uploadToken} is invalid or does not identify a
+     *                                  known binary upload.
+     * @throws RepositoryException      if another error occurs.
      */
     @Nullable
     Binary completeBinaryUpload(@NotNull String uploadToken)
-            throws IllegalArgumentException, RepositoryException;
+        throws IllegalArgumentException, RepositoryException;
 }

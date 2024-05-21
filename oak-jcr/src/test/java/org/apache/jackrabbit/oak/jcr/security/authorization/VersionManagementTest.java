@@ -28,7 +28,6 @@ import javax.jcr.security.Privilege;
 import javax.jcr.version.Version;
 import javax.jcr.version.VersionHistory;
 import javax.jcr.version.VersionManager;
-
 import org.apache.jackrabbit.test.NotExecutableException;
 import org.junit.Before;
 import org.junit.Test;
@@ -51,11 +50,12 @@ public class VersionManagementTest extends AbstractEvaluationTest {
         versionPrivileges = privilegesFromName(Privilege.JCR_VERSION_MANAGEMENT);
         // must not see version storage or must not have version privilege
         assertTrue(!testSession.nodeExists(VERSIONSTORE)
-                || !testAcMgr.hasPrivileges(VERSIONSTORE, versionPrivileges));
+            || !testAcMgr.hasPrivileges(VERSIONSTORE, versionPrivileges));
     }
 
     private Node createVersionableNode(Node parent) throws Exception {
-        Node n = (parent.hasNode(nodeName1)) ? parent.getNode(nodeName1) : parent.addNode(nodeName1);
+        Node n =
+            (parent.hasNode(nodeName1)) ? parent.getNode(nodeName1) : parent.addNode(nodeName1);
         if (n.canAddMixin(mixVersionable)) {
             n.addMixin(mixVersionable);
         } else {
@@ -73,7 +73,8 @@ public class VersionManagementTest extends AbstractEvaluationTest {
         Node testNode = testSession.getNode(path);
         try {
             createVersionableNode(testNode);
-            fail("Test session does not have permission to add mixins -> no version content should be created.");
+            fail(
+                "Test session does not have permission to add mixins -> no version content should be created.");
         } catch (AccessDeniedException e) {
             // success
             // ... but autocreated versionable node properties must not be present
@@ -240,21 +241,24 @@ public class VersionManagementTest extends AbstractEvaluationTest {
         // access version history directly => should fail
         try {
             VersionHistory history = (VersionHistory) testSession.getNode(vhPath);
-            fail("Access to version history should be denied if versionable node is not accessible");
+            fail(
+                "Access to version history should be denied if versionable node is not accessible");
         } catch (PathNotFoundException e) {
             // success
         }
 
         try {
             VersionHistory history = (VersionHistory) testSession.getNodeByIdentifier(vhUUID);
-            fail("Access to version history should be denied if versionable node is not accessible");
+            fail(
+                "Access to version history should be denied if versionable node is not accessible");
         } catch (ItemNotFoundException e) {
             // success
         }
 
         try {
             VersionHistory history = (VersionHistory) testSession.getNodeByUUID(vhUUID);
-            fail("Access to version history should be denied if versionable node is not accessible");
+            fail(
+                "Access to version history should be denied if versionable node is not accessible");
         } catch (ItemNotFoundException e) {
             // success
         }
@@ -372,7 +376,8 @@ public class VersionManagementTest extends AbstractEvaluationTest {
      */
     @Test
     public void testVersionableChildNode() throws Exception {
-        Node testNode = superuser.getNode(path).addNode("n1").addNode("n2").addNode("n3").addNode("jcr:content");
+        Node testNode = superuser.getNode(path).addNode("n1").addNode("n2").addNode("n3")
+                                 .addNode("jcr:content");
         superuser.save();
 
         testNode.addMixin("mix:versionable");
@@ -389,13 +394,14 @@ public class VersionManagementTest extends AbstractEvaluationTest {
      */
     @Test
     public void testVersionableChildNode2() throws Exception {
-        Node testNode = superuser.getNode(path).addNode("n1").addNode("n2").addNode("n3").addNode("jcr:content");
+        Node testNode = superuser.getNode(path).addNode("n1").addNode("n2").addNode("n3")
+                                 .addNode("jcr:content");
         testNode.addMixin("mix:versionable");
         superuser.save();
 
-
         testNode.remove();
-        testNode = superuser.getNode(path).getNode("n1").getNode("n2").getNode("n3").addNode("jcr:content");
+        testNode = superuser.getNode(path).getNode("n1").getNode("n2").getNode("n3")
+                            .addNode("jcr:content");
         testNode.addMixin("mix:versionable");
         superuser.save();
 

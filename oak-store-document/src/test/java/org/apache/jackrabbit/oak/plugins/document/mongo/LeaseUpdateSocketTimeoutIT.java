@@ -53,7 +53,8 @@ import static org.junit.Assume.assumeTrue;
 
 public class LeaseUpdateSocketTimeoutIT {
 
-    private static final DockerImageName TOXIPROXY_IMAGE = DockerImageName.parse("ghcr.io/shopify/toxiproxy:2.6.0");
+    private static final DockerImageName TOXIPROXY_IMAGE = DockerImageName.parse(
+        "ghcr.io/shopify/toxiproxy:2.6.0");
 
     private static final int MONGODB_DEFAULT_PORT = 27017;
 
@@ -63,14 +64,15 @@ public class LeaseUpdateSocketTimeoutIT {
     public Network network = Network.newNetwork();
 
     @Rule
-    public MongoDBContainer mongoDBContainer = new MongoDBContainer(MongoDockerRule.getDockerImageName())
-            .withNetwork(network)
-            .withNetworkAliases("mongo")
-            .withExposedPorts(MONGODB_DEFAULT_PORT);
+    public MongoDBContainer mongoDBContainer = new MongoDBContainer(
+        MongoDockerRule.getDockerImageName())
+        .withNetwork(network)
+        .withNetworkAliases("mongo")
+        .withExposedPorts(MONGODB_DEFAULT_PORT);
 
     @Rule
     public ToxiproxyContainer tp = new ToxiproxyContainer(TOXIPROXY_IMAGE)
-            .withNetwork(network);
+        .withNetwork(network);
 
     private Proxy proxy;
 
@@ -92,12 +94,13 @@ public class LeaseUpdateSocketTimeoutIT {
         clock.waitUntil(System.currentTimeMillis());
         setClusterNodeInfoClock(clock);
         ToxiproxyClient toxiproxyClient = new ToxiproxyClient(tp.getHost(), tp.getControlPort());
-        proxy = toxiproxyClient.createProxy("mongo", "0.0.0.0:8666", "mongo:" + MONGODB_DEFAULT_PORT);
+        proxy = toxiproxyClient.createProxy("mongo", "0.0.0.0:8666",
+            "mongo:" + MONGODB_DEFAULT_PORT);
         String uri = "mongodb://" + tp.getHost() + ":" + tp.getMappedPort(8666);
         store = new MongoDocumentNodeStoreBuilder()
-                .setMongoDB(uri, "oak", 0)
-                .setLeaseSocketTimeout(LEASE_SO_TIMEOUT)
-                .getDocumentStore();
+            .setMongoDB(uri, "oak", 0)
+            .setLeaseSocketTimeout(LEASE_SO_TIMEOUT)
+            .getDocumentStore();
     }
 
     @After
@@ -146,7 +149,7 @@ public class LeaseUpdateSocketTimeoutIT {
     }
 
     private void assertRootException(Throwable t,
-                                     Class<?> clazz) {
+        Class<?> clazz) {
         while (t.getCause() != null) {
             t = t.getCause();
         }
@@ -155,7 +158,7 @@ public class LeaseUpdateSocketTimeoutIT {
 
     private ClusterNodeInfo newClusterNodeInfo() {
         ClusterNodeInfo info = ClusterNodeInfo.getInstance(store,
-                new SimpleRecoveryHandler(store, clock), null, null, 1);
+            new SimpleRecoveryHandler(store, clock), null, null, 1);
         info.setLeaseFailureHandler(handler);
         return info;
     }

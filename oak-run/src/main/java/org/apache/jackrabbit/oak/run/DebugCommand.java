@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.run;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
-
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
@@ -104,9 +103,9 @@ class DebugCommand implements Command {
 
     private static int debugStore(File store) {
         return DebugStore.builder()
-            .withPath(store)
-            .build()
-            .run();
+                         .withPath(store)
+                         .build()
+                         .run();
     }
 
 }

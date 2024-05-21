@@ -32,7 +32,8 @@ public class StringUtils {
 
     private static final char[] HEX = "0123456789abcdef".toCharArray();
 
-    private StringUtils() {}
+    private StringUtils() {
+    }
 
     /**
      * Convert a byte array to a hex encoded string.
@@ -101,7 +102,7 @@ public class StringUtils {
      * @return the estimated memory usage.
      */
     public static int estimateMemoryUsage(String s) {
-        long size = s == null ? 0 : 48 + (long)s.length() * 2;
+        long size = s == null ? 0 : 48 + (long) s.length() * 2;
         if (size > Integer.MAX_VALUE) {
             LOG.debug("Estimated memory footprint larger than Integer.MAX_VALUE: {}.", size);
             size = Integer.MAX_VALUE;

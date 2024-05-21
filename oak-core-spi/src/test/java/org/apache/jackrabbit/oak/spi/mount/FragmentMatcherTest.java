@@ -18,12 +18,12 @@
  */
 package org.apache.jackrabbit.oak.spi.mount;
 
-import org.junit.Test;
-
 import static org.apache.jackrabbit.oak.spi.mount.FragmentMatcher.Result.FULL_MATCH;
 import static org.apache.jackrabbit.oak.spi.mount.FragmentMatcher.Result.MISMATCH;
 import static org.apache.jackrabbit.oak.spi.mount.FragmentMatcher.Result.PARTIAL_MATCH;
 import static org.junit.Assert.assertEquals;
+
+import org.junit.Test;
 
 public class FragmentMatcherTest {
 
@@ -61,7 +61,8 @@ public class FragmentMatcherTest {
         assertResult(FULL_MATCH, "/content/*/site/", "/content/acme/site/en/home");
     }
 
-    private static void assertResult(FragmentMatcher.Result expectedResult, String pattern, String subject) {
+    private static void assertResult(FragmentMatcher.Result expectedResult, String pattern,
+        String subject) {
         assertEquals(expectedResult, FragmentMatcher.startsWith(pattern, subject));
     }
 

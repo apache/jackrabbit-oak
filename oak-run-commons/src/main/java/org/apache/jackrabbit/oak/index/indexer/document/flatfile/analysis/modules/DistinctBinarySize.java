@@ -24,7 +24,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
-
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeData;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeProperty;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeProperty.ValueType;
@@ -33,30 +32,27 @@ import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.utils.
 
 /**
  * Collects the number and size of distinct binaries.
- *
- * We keep references to large binaries in a fixed-size set, so that for large
- * binaries, we have accurate data. For smaller binaries, we have approximate
- * data only, managed in a Bloom filter (also with a fixed size). If the set of
- * large binaries grows too large, the entries are removed and instead added to
- * a Bloom filter. The size threshold (which binaries go to the set and which
- * binaries go to the Bloom filter) is changed dynamically. The Bloom filter can
- * collect about 1 million entries per MB with a false-positive rate of 1%.
- *
- * That means that for large binaries, we have the exact de-duplicated count and
- * size. For smaller binaries, we only have an approximation, due to the nature
- * of the Bloom filter. To compensate for false positives, the total size of the
- * presumed duplicates (where the size was not accumulated when adding to the
- * Bloom filter) is summed up, and at the end of the collection process,
+ * <p>
+ * We keep references to large binaries in a fixed-size set, so that for large binaries, we have
+ * accurate data. For smaller binaries, we have approximate data only, managed in a Bloom filter
+ * (also with a fixed size). If the set of large binaries grows too large, the entries are removed
+ * and instead added to a Bloom filter. The size threshold (which binaries go to the set and which
+ * binaries go to the Bloom filter) is changed dynamically. The Bloom filter can collect about 1
+ * million entries per MB with a false-positive rate of 1%.
+ * <p>
+ * That means that for large binaries, we have the exact de-duplicated count and size. For smaller
+ * binaries, we only have an approximation, due to the nature of the Bloom filter. To compensate for
+ * false positives, the total size of the presumed duplicates (where the size was not accumulated
+ * when adding to the Bloom filter) is summed up, and at the end of the collection process,
  * multiplied with the false-positive rate of the Bloom filter.
- *
- * Experiments show that for 4 million references, total size 17 TB, the
- * approximation error is less than nearly zero when allocating 16 MB for the
- * large set, and 16 MB for the Bloom filter. When not allocating any memory for
- * the large binaries, and only 1 MB for the Bloom filter, the estimation error
- * is 5%. In general it seems that giving more memory to the Bloom filter is
- * more efficient than giving the memory to have accurate data for very large
- * binaries, unless if the size distribution of binaries is very skewed (and so,
- * having an error for a very large binary would have a big effect).
+ * <p>
+ * Experiments show that for 4 million references, total size 17 TB, the approximation error is less
+ * than nearly zero when allocating 16 MB for the large set, and 16 MB for the Bloom filter. When
+ * not allocating any memory for the large binaries, and only 1 MB for the Bloom filter, the
+ * estimation error is 5%. In general it seems that giving more memory to the Bloom filter is more
+ * efficient than giving the memory to have accurate data for very large binaries, unless if the
+ * size distribution of binaries is very skewed (and so, having an error for a very large binary
+ * would have a big effect).
  */
 public class DistinctBinarySize implements StatsCollector {
 
@@ -87,7 +83,7 @@ public class DistinctBinarySize implements StatsCollector {
 
     public void add(NodeData node) {
         ArrayList<BinaryId> list = new ArrayList<>();
-        for(NodeProperty p : node.getProperties()) {
+        for (NodeProperty p : node.getProperties()) {
             if (p.getType() == ValueType.BINARY) {
                 for (String v : p.getValues()) {
                     if (!v.startsWith(":blobId:")) {
@@ -104,7 +100,7 @@ public class DistinctBinarySize implements StatsCollector {
             }
         }
         referenceCount += list.size();
-        for(BinaryId id : list) {
+        for (BinaryId id : list) {
             referenceSize += id.getLength();
             if (largeBinariesCountMax > 0 && id.getLength() >= largeBinarySizeThreshold) {
                 largeBinaries.add(id);
@@ -132,13 +128,13 @@ public class DistinctBinarySize implements StatsCollector {
         }
         long[] lengths = new long[largeBinaries.size()];
         int i = 0;
-        for(BinaryId id : largeBinaries) {
+        for (BinaryId id : largeBinaries) {
             lengths[i++] = id.getLength();
         }
         Arrays.sort(lengths);
         // the new threshold is the median of all the lengths
         largeBinarySizeThreshold = lengths[largeBinariesCountMax];
-        for(Iterator<BinaryId> it = largeBinaries.iterator(); it.hasNext();) {
+        for (Iterator<BinaryId> it = largeBinaries.iterator(); it.hasNext(); ) {
             BinaryId id = it.next();
             if (id.getLength() < largeBinarySizeThreshold) {
                 addToBloomFilter(id);
@@ -155,7 +151,7 @@ public class DistinctBinarySize implements StatsCollector {
         storage.add("large binaries count max", largeBinariesCountMax * 2L);
         storage.add("large binaries size threshold", largeBinarySizeThreshold);
         long largeBinariesSize = 0;
-        for(BinaryId id : largeBinaries) {
+        for (BinaryId id : largeBinaries) {
             largeBinariesSize += id.getLength();
         }
         storage.add("large binaries size", largeBinariesSize);
@@ -171,7 +167,8 @@ public class DistinctBinarySize implements StatsCollector {
         // this could have been a false positive.
         // So we multiply the fpp with the size of ignored entries,
         // and will get a good approximation of the missed size
-        double fpp = BloomFilter.calculateFpp(smallBinariesEstimatedCount, bloomFilter.getBitCount(), bloomFilter.getK());
+        double fpp = BloomFilter.calculateFpp(smallBinariesEstimatedCount,
+            bloomFilter.getBitCount(), bloomFilter.getK());
         long bloomFilterEstimatedSize = bloomFilterMinSize;
         bloomFilterEstimatedSize += fpp * bloomFilterIgnoredSize;
         storage.add("small binaries count", smallBinariesEstimatedCount);

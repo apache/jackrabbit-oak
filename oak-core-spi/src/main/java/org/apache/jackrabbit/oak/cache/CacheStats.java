@@ -20,10 +20,8 @@ package org.apache.jackrabbit.oak.cache;
 
 import java.util.Map;
 import java.util.Objects;
-
 import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.guava.common.cache.Weigher;
-
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -31,24 +29,25 @@ import org.jetbrains.annotations.Nullable;
  * Cache statistics.
  */
 public class CacheStats extends AbstractCacheStats {
+
     private final Cache<Object, Object> cache;
     private final Weigher<Object, Object> weigher;
     private final long maxWeight;
 
     /**
      * Construct the cache stats object.
-     * 
-     * @param cache the cache
-     * @param name the name of the cache
-     * @param weigher the weigher used to estimate the current weight
+     *
+     * @param cache     the cache
+     * @param name      the name of the cache
+     * @param weigher   the weigher used to estimate the current weight
      * @param maxWeight the maximum weight
      */
     @SuppressWarnings("unchecked")
     public CacheStats(
-            @NotNull Cache<?, ?> cache,
-            @NotNull String name,
-            @Nullable Weigher<?, ?> weigher,
-            long maxWeight) {
+        @NotNull Cache<?, ?> cache,
+        @NotNull String name,
+        @Nullable Weigher<?, ?> weigher,
+        long maxWeight) {
         super(name);
         this.cache = (Cache<Object, Object>) Objects.requireNonNull(cache);
         this.weigher = (Weigher<Object, Object>) weigher;

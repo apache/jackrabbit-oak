@@ -16,6 +16,24 @@
  */
 package org.apache.jackrabbit.oak.upgrade;
 
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.copyOf;
+import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
+import static org.apache.jackrabbit.guava.common.collect.Sets.union;
+import static org.apache.jackrabbit.oak.plugins.migration.NodeStateCopier.copyProperties;
+import static org.apache.jackrabbit.oak.plugins.migration.version.VersionCopier.copyVersionStorage;
+import static org.apache.jackrabbit.oak.plugins.migration.version.VersionHistoryUtil.getVersionStorage;
+import static org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants.NT_REP_PERMISSION_STORE;
+import static org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants.REP_PERMISSION_STORE;
+import static org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.DEFAULT_EXCLUDE_PATHS;
+import static org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.DEFAULT_INCLUDE_PATHS;
+import static org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.DEFAULT_MERGE_PATHS;
+import static org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.calculateEffectiveIncludePaths;
+import static org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.createIndexEditorProvider;
+import static org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.createTypeEditorProvider;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -23,13 +41,11 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import javax.jcr.RepositoryException;
-
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -39,6 +55,9 @@ import org.apache.jackrabbit.oak.plugins.migration.FilteringNodeState;
 import org.apache.jackrabbit.oak.plugins.migration.NodeStateCopier;
 import org.apache.jackrabbit.oak.plugins.migration.report.LoggingReporter;
 import org.apache.jackrabbit.oak.plugins.migration.report.ReportingNodeState;
+import org.apache.jackrabbit.oak.plugins.migration.version.VersionCopyConfiguration;
+import org.apache.jackrabbit.oak.plugins.migration.version.VersionHistoryUtil;
+import org.apache.jackrabbit.oak.plugins.migration.version.VersionableEditor;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
 import org.apache.jackrabbit.oak.plugins.version.Utils;
 import org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder;
@@ -61,30 +80,9 @@ import org.apache.jackrabbit.oak.upgrade.checkpoint.CheckpointRetriever;
 import org.apache.jackrabbit.oak.upgrade.cli.node.FileStoreUtils;
 import org.apache.jackrabbit.oak.upgrade.nodestate.MetadataExposingNodeState;
 import org.apache.jackrabbit.oak.upgrade.nodestate.NameFilteringNodeState;
-import org.apache.jackrabbit.oak.plugins.migration.version.VersionCopyConfiguration;
-import org.apache.jackrabbit.oak.plugins.migration.version.VersionHistoryUtil;
-import org.apache.jackrabbit.oak.plugins.migration.version.VersionableEditor;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.copyOf;
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
-import static org.apache.jackrabbit.guava.common.collect.Sets.union;
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
-import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
-import static org.apache.jackrabbit.oak.plugins.migration.NodeStateCopier.copyProperties;
-import static org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants.NT_REP_PERMISSION_STORE;
-import static org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants.REP_PERMISSION_STORE;
-import static org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.DEFAULT_EXCLUDE_PATHS;
-import static org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.DEFAULT_INCLUDE_PATHS;
-import static org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.DEFAULT_MERGE_PATHS;
-import static org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.calculateEffectiveIncludePaths;
-import static org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.createIndexEditorProvider;
-import static org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.createTypeEditorProvider;
-import static org.apache.jackrabbit.oak.plugins.migration.version.VersionCopier.copyVersionStorage;
-import static org.apache.jackrabbit.oak.plugins.migration.version.VersionHistoryUtil.getVersionStorage;
 
 public class RepositorySidegrade {
 
@@ -137,44 +135,37 @@ public class RepositorySidegrade {
     VersionCopyConfiguration versionCopyConfiguration = new VersionCopyConfiguration();
 
     /**
-     * Configures the version storage copy. Be default all versions are copied.
-     * One may disable it completely by setting {@code null} here or limit it to
-     * a selected date range: {@code <minDate, now()>}.
-     * 
-     * @param minDate
-     *            minimum date of the versions to copy or {@code null} to
-     *            disable the storage version copying completely. Default value:
-     *            {@code 1970-01-01 00:00:00}.
+     * Configures the version storage copy. Be default all versions are copied. One may disable it
+     * completely by setting {@code null} here or limit it to a selected date range:
+     * {@code <minDate, now()>}.
+     *
+     * @param minDate minimum date of the versions to copy or {@code null} to disable the storage
+     *                version copying completely. Default value: {@code 1970-01-01 00:00:00}.
      */
     public void setCopyVersions(Calendar minDate) {
         versionCopyConfiguration.setCopyVersions(minDate);
     }
 
     /**
-     * Configures copying of the orphaned version histories (eg. ones that are
-     * not referenced by the existing nodes). By default all orphaned version
-     * histories are copied. One may disable it completely by setting
-     * {@code null} here or limit it to a selected date range:
+     * Configures copying of the orphaned version histories (eg. ones that are not referenced by the
+     * existing nodes). By default all orphaned version histories are copied. One may disable it
+     * completely by setting {@code null} here or limit it to a selected date range:
      * {@code <minDate, now()>}. <br>
      * <br>
-     * Please notice, that this option is overriden by the
-     * {@link #setCopyVersions(Calendar)}. You can't copy orphaned versions
-     * older than set in {@link #setCopyVersions(Calendar)} and if you set
-     * {@code null} there, this option will be ignored.
-     * 
-     * @param minDate
-     *            minimum date of the orphaned versions to copy or {@code null}
-     *            to not copy them at all. Default value:
-     *            {@code 1970-01-01 00:00:00}.
+     * Please notice, that this option is overriden by the {@link #setCopyVersions(Calendar)}. You
+     * can't copy orphaned versions older than set in {@link #setCopyVersions(Calendar)} and if you
+     * set {@code null} there, this option will be ignored.
+     *
+     * @param minDate minimum date of the orphaned versions to copy or {@code null} to not copy them
+     *                at all. Default value: {@code 1970-01-01 00:00:00}.
      */
     public void setCopyOrphanedVersions(Calendar minDate) {
         versionCopyConfiguration.setCopyOrphanedVersions(minDate);
     }
 
     /**
-     * Creates a tool for copying the full contents of the source repository
-     * to the given target repository. Any existing content in the target
-     * repository will be overwritten.
+     * Creates a tool for copying the full contents of the source repository to the given target
+     * repository. Any existing content in the target repository will be overwritten.
      *
      * @param source source node store
      * @param target target node store
@@ -192,8 +183,8 @@ public class RepositorySidegrade {
     }
 
     /**
-     * Returns the list of custom CommitHooks to be applied before the final
-     * type validation, reference and indexing hooks.
+     * Returns the list of custom CommitHooks to be applied before the final type validation,
+     * reference and indexing hooks.
      *
      * @return the list of custom CommitHooks
      */
@@ -202,8 +193,8 @@ public class RepositorySidegrade {
     }
 
     /**
-     * Sets the list of custom CommitHooks to be applied before the final
-     * type validation, reference and indexing hooks.
+     * Sets the list of custom CommitHooks to be applied before the final type validation, reference
+     * and indexing hooks.
      *
      * @param customCommitHooks the list of custom CommitHooks
      */
@@ -212,8 +203,8 @@ public class RepositorySidegrade {
     }
 
     /**
-     * Sets the paths that should be included when the source repository
-     * is copied to the target repository.
+     * Sets the paths that should be included when the source repository is copied to the target
+     * repository.
      *
      * @param includes Paths to be included in the copy.
      */
@@ -222,8 +213,8 @@ public class RepositorySidegrade {
     }
 
     /**
-     * Sets the paths that should be excluded when the source repository
-     * is copied to the target repository.
+     * Sets the paths that should be excluded when the source repository is copied to the target
+     * repository.
      *
      * @param excludes Paths to be excluded from the copy.
      */
@@ -232,8 +223,8 @@ public class RepositorySidegrade {
     }
 
     /**
-     * Sets the paths that should be merged when the source repository
-     * is copied to the target repository.
+     * Sets the paths that should be merged when the source repository is copied to the target
+     * repository.
      *
      * @param merges Paths to be merged during copy.
      */
@@ -268,20 +259,21 @@ public class RepositorySidegrade {
     /**
      * Copies the full content from the source to the target repository.
      * <p>
-     * The source repository <strong>must not be modified</strong> while
-     * the copy operation is running to avoid an inconsistent copy.
+     * The source repository <strong>must not be modified</strong> while the copy operation is
+     * running to avoid an inconsistent copy.
      * <p>
-     * Note that both the source and the target repository must be closed
-     * during the copy operation as this method requires exclusive access
-     * to the repositories.
+     * Note that both the source and the target repository must be closed during the copy operation
+     * as this method requires exclusive access to the repositories.
      *
      * @throws RepositoryException if the copy operation fails
      */
     public void copy() throws RepositoryException {
         try {
             if (!onlyVerify) {
-                if (VersionHistoryUtil.getVersionStorage(target.getRoot()).exists() && !versionCopyConfiguration.skipOrphanedVersionsCopy()) {
-                    LOG.warn("The version storage on destination already exists. Orphaned version histories will be skipped.");
+                if (VersionHistoryUtil.getVersionStorage(target.getRoot()).exists()
+                    && !versionCopyConfiguration.skipOrphanedVersionsCopy()) {
+                    LOG.warn(
+                        "The version storage on destination already exists. Orphaned version histories will be skipped.");
                     versionCopyConfiguration.setCopyOrphanedVersions(null);
                 }
                 copyState();
@@ -322,7 +314,8 @@ public class RepositorySidegrade {
     }
 
     private boolean migrateWithCheckpoints() throws CommitFailedException, IOException {
-        List<CheckpointRetriever.Checkpoint> checkpoints = CheckpointRetriever.getCheckpoints(source);
+        List<CheckpointRetriever.Checkpoint> checkpoints = CheckpointRetriever.getCheckpoints(
+            source);
         if (checkpoints == null) {
             return false;
         }
@@ -347,12 +340,15 @@ public class RepositorySidegrade {
                 showDiff = true;
                 tracePaths = false;
             }
-            LOG.info("Checkpoint expiry time: {}, metadata: {}", checkpoint.getExpiryTime(), checkpointInfo);
+            LOG.info("Checkpoint expiry time: {}, metadata: {}", checkpoint.getExpiryTime(),
+                checkpointInfo);
 
-            targetRoot = copyDiffToTarget(previousRoot, checkpointRoot, targetRoot, tracePaths, showDiff);
+            targetRoot = copyDiffToTarget(previousRoot, checkpointRoot, targetRoot, tracePaths,
+                showDiff);
             previousRoot = checkpointRoot;
 
-            String newCheckpointName = target.checkpoint(checkpoint.getExpiryTime() - System.currentTimeMillis(), checkpointInfo);
+            String newCheckpointName = target.checkpoint(
+                checkpoint.getExpiryTime() - System.currentTimeMillis(), checkpointInfo);
             if (checkpointInfo.containsKey("name")) {
                 nameToRevision.put(checkpointInfo.get("name"), newCheckpointName);
             }
@@ -395,7 +391,8 @@ public class RepositorySidegrade {
         return true;
     }
 
-    private NodeState copyDiffToTarget(NodeState before, NodeState after, NodeState targetRoot, boolean tracePaths, boolean showDiff) throws IOException, CommitFailedException {
+    private NodeState copyDiffToTarget(NodeState before, NodeState after, NodeState targetRoot,
+        boolean tracePaths, boolean showDiff) throws IOException, CommitFailedException {
         NodeBuilder targetBuilder = targetRoot.builder();
         if (targetFileStore == null) {
             NodeState currentRoot = wrapNodeState(after, tracePaths, true);
@@ -406,7 +403,8 @@ public class RepositorySidegrade {
             NodeState currentRoot = wrapNodeState(after, false, true);
             NodeState baseRoot = wrapNodeState(before, false, true);
 
-            SegmentNodeState state = PersistingDiff.applyDiffOnNodeState(targetFileStore, baseRoot, currentRoot, targetRoot);
+            SegmentNodeState state = PersistingDiff.applyDiffOnNodeState(targetFileStore, baseRoot,
+                currentRoot, targetRoot);
             state.compareAgainstBaseState(targetRoot, new ApplyDiff(targetBuilder));
         }
         return target.merge(targetBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
@@ -430,9 +428,11 @@ public class RepositorySidegrade {
                 versionStorage = VersionHistoryUtil.createVersionStorage(targetRoot);
             }
             if (!versionCopyConfiguration.skipOrphanedVersionsCopy()) {
-                copyVersionStorage(targetRoot, getVersionStorage(sourceRoot), versionStorage, versionCopyConfiguration);
+                copyVersionStorage(targetRoot, getVersionStorage(sourceRoot), versionStorage,
+                    versionCopyConfiguration);
             }
-            hooks.add(new EditorHook(new VersionableEditor.Provider(sourceRoot, workspaceName, versionCopyConfiguration)));
+            hooks.add(new EditorHook(new VersionableEditor.Provider(sourceRoot, workspaceName,
+                versionCopyConfiguration)));
         }
 
         SecurityProvider security = SecurityProviderBuilder.newBuilder().build();
@@ -441,8 +441,8 @@ public class RepositorySidegrade {
         }
         // type validation, reference and indexing hooks
         hooks.add(new EditorHook(new CompositeEditorProvider(
-                createTypeEditorProvider(),
-                createIndexEditorProvider()
+            createTypeEditorProvider(),
+            createIndexEditorProvider()
         )));
         target.merge(targetRoot, new LoggingCompositeHook(hooks, null, false), CommitInfo.EMPTY);
         removeVersions();
@@ -450,9 +450,13 @@ public class RepositorySidegrade {
 
     private void removeVersions() throws CommitFailedException {
         NodeState root = target.getRoot();
-        NodeState wrappedRoot = FilteringNodeState.wrap(PathUtils.ROOT_PATH, root, includePaths, excludePaths, FilteringNodeState.NONE, FilteringNodeState.NONE, targetHasReferenceableFrozenNode);
+        NodeState wrappedRoot = FilteringNodeState.wrap(PathUtils.ROOT_PATH, root, includePaths,
+            excludePaths, FilteringNodeState.NONE, FilteringNodeState.NONE,
+            targetHasReferenceableFrozenNode);
         NodeState versionStorage = getVersionStorage(root);
-        List<String> versionablesToStrip = VersionHistoryUtil.getVersionableNodes(wrappedRoot, versionStorage, new TypePredicate(root, JcrConstants.MIX_VERSIONABLE), versionCopyConfiguration.getVersionsMinDate());
+        List<String> versionablesToStrip = VersionHistoryUtil.getVersionableNodes(wrappedRoot,
+            versionStorage, new TypePredicate(root, JcrConstants.MIX_VERSIONABLE),
+            versionCopyConfiguration.getVersionsMinDate());
         if (!versionablesToStrip.isEmpty()) {
             LOG.info("Removing version histories for included paths");
             NodeBuilder newRoot = VersionHistoryUtil.removeVersions(root, versionablesToStrip);
@@ -461,7 +465,8 @@ public class RepositorySidegrade {
     }
 
     private boolean isCompleteMigration() {
-        return includePaths.equals(DEFAULT_INCLUDE_PATHS) && excludePaths.equals(DEFAULT_EXCLUDE_PATHS) && mergePaths.equals(DEFAULT_MERGE_PATHS);
+        return includePaths.equals(DEFAULT_INCLUDE_PATHS) && excludePaths.equals(
+            DEFAULT_EXCLUDE_PATHS) && mergePaths.equals(DEFAULT_MERGE_PATHS);
     }
 
     private void copyWorkspace(NodeState sourceRoot, NodeBuilder targetRoot) {
@@ -475,10 +480,10 @@ public class RepositorySidegrade {
 
         final Set<String> merges = union(copyOf(this.mergePaths), of("/jcr:system"));
         NodeStateCopier.builder()
-            .include(includes)
-            .exclude(excludes.build())
-            .merge(merges)
-            .copy(sourceRoot, targetRoot);
+                       .include(includes)
+                       .exclude(excludes.build())
+                       .merge(merges)
+                       .copy(sourceRoot, targetRoot);
 
         if (includePaths.contains("/")) {
             copyProperties(sourceRoot, targetRoot);
@@ -493,19 +498,22 @@ public class RepositorySidegrade {
         } else if (StringUtils.isNotBlank(detectedName)) {
             return detectedName;
         } else {
-            throw new RepositoryException("Can't detect the workspace name. Please use the system property " + WORKSPACE_NAME_PROP + " to set it manually.");
+            throw new RepositoryException(
+                "Can't detect the workspace name. Please use the system property "
+                    + WORKSPACE_NAME_PROP + " to set it manually.");
         }
     }
 
     /**
-     * This method tries to derive the workspace name from the source repository. It uses the
-     * fact that the /jcr:system/rep:permissionStore usually contains just one child
-     * named after the workspace.
+     * This method tries to derive the workspace name from the source repository. It uses the fact
+     * that the /jcr:system/rep:permissionStore usually contains just one child named after the
+     * workspace.
      *
      * @return the workspace name or null if it can't be derived
      */
     private String deriveWorkspaceName() {
-        NodeState permissionStore = source.getRoot().getChildNode(JCR_SYSTEM).getChildNode(REP_PERMISSION_STORE);
+        NodeState permissionStore = source.getRoot().getChildNode(JCR_SYSTEM)
+                                          .getChildNode(REP_PERMISSION_STORE);
         List<String> nameCandidates = new ArrayList<String>();
         for (ChildNodeEntry e : permissionStore.getChildNodeEntries()) {
             String primaryType = e.getNodeState().getName(JCR_PRIMARYTYPE);
@@ -524,7 +532,8 @@ public class RepositorySidegrade {
         final NodeState sourceRoot = source.getRoot();
         final NodeState targetRoot = target.getRoot();
 
-        final NodeState reportingSource = ReportingNodeState.wrap(sourceRoot, new LoggingReporter(LOG, "Verifying", LOG_NODE_COPY, -1));
+        final NodeState reportingSource = ReportingNodeState.wrap(sourceRoot,
+            new LoggingReporter(LOG, "Verifying", LOG_NODE_COPY, -1));
 
         LOG.info("Verifying whether repositories are identical");
         if (targetRoot.compareAgainstBaseState(reportingSource, new LoggingEqualsDiff(LOG, "/"))) {
@@ -540,10 +549,12 @@ public class RepositorySidegrade {
             wrapped = MetadataExposingNodeState.wrap(wrapped);
         }
         if (!isCompleteMigration() && filterPaths) {
-            wrapped = FilteringNodeState.wrap("/", wrapped, includePaths, excludePaths, FilteringNodeState.NONE, FilteringNodeState.NONE, targetHasReferenceableFrozenNode);
+            wrapped = FilteringNodeState.wrap("/", wrapped, includePaths, excludePaths,
+                FilteringNodeState.NONE, FilteringNodeState.NONE, targetHasReferenceableFrozenNode);
         }
         if (tracePaths) {
-            wrapped = ReportingNodeState.wrap(wrapped, new LoggingReporter(LOG, "Copying", LOG_NODE_COPY, -1));
+            wrapped = ReportingNodeState.wrap(wrapped,
+                new LoggingReporter(LOG, "Copying", LOG_NODE_COPY, -1));
         }
         if (filterLongNames) {
             wrapped = NameFilteringNodeState.wrapRoot(wrapped);

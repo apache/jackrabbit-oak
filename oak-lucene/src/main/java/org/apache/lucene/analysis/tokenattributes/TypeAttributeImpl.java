@@ -27,57 +27,64 @@ package org.apache.lucene.analysis.tokenattributes;
 
 import org.apache.lucene.util.AttributeImpl;
 
-/** Default implementation of {@link TypeAttribute}. */
+/**
+ * Default implementation of {@link TypeAttribute}.
+ */
 public class TypeAttributeImpl extends AttributeImpl implements TypeAttribute, Cloneable {
-  private String type;
-  
-  /** Initialize this attribute with {@link TypeAttribute#DEFAULT_TYPE} */
-  public TypeAttributeImpl() {
-    this(DEFAULT_TYPE); 
-  }
-  
-  /** Initialize this attribute with <code>type</code> */
-  public TypeAttributeImpl(String type) {
-    this.type = type;
-  }
-  
-  @Override
-  public String type() {
-    return type;
-  }
 
-  @Override
-  public void setType(String type) {
-    this.type = type;
-  }
+    private String type;
 
-  @Override
-  public void clear() {
-    type = DEFAULT_TYPE;    
-  }
-
-  @Override
-  public boolean equals(Object other) {
-    if (other == this) {
-      return true;
+    /**
+     * Initialize this attribute with {@link TypeAttribute#DEFAULT_TYPE}
+     */
+    public TypeAttributeImpl() {
+        this(DEFAULT_TYPE);
     }
-    
-    if (other instanceof TypeAttributeImpl) {
-      final TypeAttributeImpl o = (TypeAttributeImpl) other;
-      return (this.type == null ? o.type == null : this.type.equals(o.type));
-    }
-    
-    return false;
-  }
 
-  @Override
-  public int hashCode() {
-    return (type == null) ? 0 : type.hashCode();
-  }
-  
-  @Override
-  public void copyTo(AttributeImpl target) {
-    TypeAttribute t = (TypeAttribute) target;
-    t.setType(type);
-  }
+    /**
+     * Initialize this attribute with <code>type</code>
+     */
+    public TypeAttributeImpl(String type) {
+        this.type = type;
+    }
+
+    @Override
+    public String type() {
+        return type;
+    }
+
+    @Override
+    public void setType(String type) {
+        this.type = type;
+    }
+
+    @Override
+    public void clear() {
+        type = DEFAULT_TYPE;
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        if (other == this) {
+            return true;
+        }
+
+        if (other instanceof TypeAttributeImpl) {
+            final TypeAttributeImpl o = (TypeAttributeImpl) other;
+            return (this.type == null ? o.type == null : this.type.equals(o.type));
+        }
+
+        return false;
+    }
+
+    @Override
+    public int hashCode() {
+        return (type == null) ? 0 : type.hashCode();
+    }
+
+    @Override
+    public void copyTo(AttributeImpl target) {
+        TypeAttribute t = (TypeAttribute) target;
+        t.setType(type);
+    }
 }

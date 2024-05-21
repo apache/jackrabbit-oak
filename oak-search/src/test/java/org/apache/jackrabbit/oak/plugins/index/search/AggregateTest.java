@@ -19,6 +19,24 @@
 
 package org.apache.jackrabbit.oak.plugins.index.search;
 
+import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.guava.common.collect.ImmutableList.of;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.toArray;
+import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.INDEX_RULES;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.hamcrest.CoreMatchers.hasItems;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.lessThanOrEqualTo;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.spy;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -27,12 +45,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
-
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.collect.ArrayListMultimap;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.ListMultimap;
-import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.Aggregate.NodeInclude;
@@ -42,24 +59,6 @@ import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
-
-import static org.apache.jackrabbit.guava.common.collect.ImmutableList.of;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.toArray;
-import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
-import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.INDEX_RULES;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.hamcrest.CoreMatchers.hasItems;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.lessThanOrEqualTo;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.spy;
 
 public class AggregateTest {
 
@@ -100,16 +99,17 @@ public class AggregateTest {
         NodeBuilder nb = newNode("nt:base");
         nb.child("a");
         for (int i = 0; i < 10; i++) {
-            nb.child("a"+i);
+            nb.child("a" + i);
         }
 
         NodeState state = nb.getNodeState();
         final AtomicInteger counter = new AtomicInteger();
-        Iterable<? extends ChildNodeEntry> countingIterator = Iterables.transform(state.getChildNodeEntries(),
-                (Function<ChildNodeEntry, ChildNodeEntry>) input -> {
-                    counter.incrementAndGet();
-                    return input;
-                });
+        Iterable<? extends ChildNodeEntry> countingIterator = Iterables.transform(
+            state.getChildNodeEntries(),
+            (Function<ChildNodeEntry, ChildNodeEntry>) input -> {
+                counter.incrementAndGet();
+                return input;
+            });
         NodeState mocked = spy(state);
         doReturn(countingIterator).when(mocked).getChildNodeEntries();
         ag.collectAggregates(mocked, col);
@@ -120,9 +120,9 @@ public class AggregateTest {
 
     @Test
     public void oneLevelTyped() {
-        Aggregate ag = new Aggregate("nt:base", of(ni("nt:resource","*", false)));
+        Aggregate ag = new Aggregate("nt:base", of(ni("nt:resource", "*", false)));
         NodeBuilder nb = newNode("nt:base");
-        nb.child("a").setProperty(JCR_PRIMARYTYPE,"nt:resource");
+        nb.child("a").setProperty(JCR_PRIMARYTYPE, "nt:resource");
         nb.child("b");
 
         ag.collectAggregates(nb.getNodeState(), col);
@@ -132,9 +132,10 @@ public class AggregateTest {
 
     @Test
     public void oneLevelTypedMixin() {
-        Aggregate ag = new Aggregate("nt:base", of(ni("mix:title","*", false)));
+        Aggregate ag = new Aggregate("nt:base", of(ni("mix:title", "*", false)));
         NodeBuilder nb = newNode("nt:base");
-        nb.child("a").setProperty(JcrConstants.JCR_MIXINTYPES, Collections.singleton("mix:title"), Type.NAMES);
+        nb.child("a")
+          .setProperty(JcrConstants.JCR_MIXINTYPES, Collections.singleton("mix:title"), Type.NAMES);
         nb.child("b");
 
         ag.collectAggregates(nb.getNodeState(), col);
@@ -171,11 +172,11 @@ public class AggregateTest {
     @Test
     public void multiLevelTyped() {
         Aggregate ag = new Aggregate("nt:base", of(ni("a"),
-                ni("nt:resource", "d/*/*", false)));
+            ni("nt:resource", "d/*/*", false)));
         NodeBuilder nb = newNode("nt:base");
         nb.child("a").child("c");
         nb.child("b");
-        nb.child("d").child("e").child("f").setProperty(JCR_PRIMARYTYPE,"nt:resource");
+        nb.child("d").child("e").child("f").setProperty(JCR_PRIMARYTYPE, "nt:resource");
         nb.child("d").child("e").child("f2");
         nb.child("d").child("e2").child("f3").setProperty(JCR_PRIMARYTYPE, "nt:resource");
 
@@ -247,8 +248,8 @@ public class AggregateTest {
 
         String path = "";
         NodeBuilder fb = nb;
-        for (int i = 0; i < limit + 2; i++){
-            String name = "f "+ i;
+        for (int i = 0; i < limit + 2; i++) {
+            String name = "f " + i;
             path = PathUtils.concat(path, name);
             fb = fb.child(name);
             fb.setProperty(JCR_PRIMARYTYPE, "nt:file");
@@ -271,7 +272,8 @@ public class AggregateTest {
         assertTrue(ag.hasRelativeNodeInclude("foo/bar"));
         assertFalse(ag.hasRelativeNodeInclude("foo/bar/baz"));
 
-        Aggregate ag2 = new Aggregate("nt:base", of(ni(null, "foo", true), ni(null, "foo/*", true)));
+        Aggregate ag2 = new Aggregate("nt:base",
+            of(ni(null, "foo", true), ni(null, "foo/*", true)));
         assertTrue(ag2.hasRelativeNodeInclude("foo"));
         assertFalse(ag2.hasRelativeNodeInclude("bar"));
         assertTrue(ag2.hasRelativeNodeInclude("foo/bar"));
@@ -357,15 +359,16 @@ public class AggregateTest {
         assertEquals(1, col.getRelativeNodeResults("jcr:content", "jcr:content").size());
     }
 
-    private static void createFile(NodeBuilder nb, String fileName, String content){
+    private static void createFile(NodeBuilder nb, String fileName, String content) {
         nb.child(fileName).setProperty(JCR_PRIMARYTYPE, "nt:file")
-                .child("jcr:content").setProperty("jcr:data", content.getBytes());
+          .child("jcr:content").setProperty("jcr:data", content.getBytes());
     }
 
-    private static void createFileMixin(NodeBuilder nb, String fileName, String content){
+    private static void createFileMixin(NodeBuilder nb, String fileName, String content) {
         //Abusing mix:title as it's registered by default
-        nb.child(fileName).setProperty(JCR_MIXINTYPES, Collections.singleton("mix:title"), Type.NAMES)
-                .child("jcr:content").setProperty("jcr:data", content.getBytes());
+        nb.child(fileName)
+          .setProperty(JCR_MIXINTYPES, Collections.singleton("mix:title"), Type.NAMES)
+          .child("jcr:content").setProperty("jcr:data", content.getBytes());
     }
 
     //~---------------------------------< Prop Includes >
@@ -375,7 +378,7 @@ public class AggregateTest {
         NodeBuilder rules = builder.child(INDEX_RULES);
         rules.child("nt:folder");
         child(rules, "nt:folder/properties/p1")
-                .setProperty(FulltextIndexConstants.PROP_NAME, "a/p1");
+            .setProperty(FulltextIndexConstants.PROP_NAME, "a/p1");
 
         IndexDefinition defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
         Aggregate ag = defn.getApplicableIndexingRule("nt:folder").getAggregate();
@@ -395,8 +398,8 @@ public class AggregateTest {
         NodeBuilder rules = builder.child(INDEX_RULES);
         rules.child("nt:folder");
         child(rules, "nt:folder/properties/p1")
-                .setProperty(FulltextIndexConstants.PROP_NAME, "a/foo.*")
-                .setProperty(FulltextIndexConstants.PROP_IS_REGEX, true);
+            .setProperty(FulltextIndexConstants.PROP_NAME, "a/foo.*")
+            .setProperty(FulltextIndexConstants.PROP_IS_REGEX, true);
 
         IndexDefinition defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
         Aggregate ag = defn.getApplicableIndexingRule("nt:folder").getAggregate();
@@ -417,8 +420,8 @@ public class AggregateTest {
         NodeBuilder rules = builder.child(INDEX_RULES);
         rules.child("nt:folder");
         child(rules, "nt:folder/properties/p1")
-                .setProperty(FulltextIndexConstants.PROP_NAME, "a/.*")
-                .setProperty(FulltextIndexConstants.PROP_IS_REGEX, true);
+            .setProperty(FulltextIndexConstants.PROP_NAME, "a/.*")
+            .setProperty(FulltextIndexConstants.PROP_IS_REGEX, true);
 
         IndexDefinition defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
         Aggregate ag = defn.getApplicableIndexingRule("nt:folder").getAggregate();
@@ -463,11 +466,11 @@ public class AggregateTest {
         assertNotNull(agg);
         assertEquals(42, agg.reAggregationLimit);
         assertEquals(1, agg.getIncludes().size());
-        assertEquals("nt:file", ((NodeInclude)agg.getIncludes().get(0)).primaryType);
-        assertTrue(((NodeInclude)agg.getIncludes().get(0)).relativeNode);
+        assertEquals("nt:file", ((NodeInclude) agg.getIncludes().get(0)).primaryType);
+        assertTrue(((NodeInclude) agg.getIncludes().get(0)).relativeNode);
     }
 
-    private static NodeBuilder newNode(String typeName){
+    private static NodeBuilder newNode(String typeName) {
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.setProperty(JCR_PRIMARYTYPE, typeName);
         return builder;
@@ -480,17 +483,19 @@ public class AggregateTest {
         return nb;
     }
 
-    private Aggregate.Include ni(String pattern){
+    private Aggregate.Include ni(String pattern) {
         return new NodeInclude(mapper, pattern);
     }
 
-    private Aggregate.Include ni(String type, String pattern, boolean relativeNode){
+    private Aggregate.Include ni(String type, String pattern, boolean relativeNode) {
         return new NodeInclude(mapper, type, pattern, relativeNode);
     }
 
     private static class TestCollector implements Aggregate.ResultCollector {
+
         final ListMultimap<String, NodeIncludeResult> nodeResults = ArrayListMultimap.create();
         final Map<String, PropertyIncludeResult> propResults = new HashMap<>();
+
         @Override
         public void onResult(NodeIncludeResult result) {
             nodeResults.put(result.nodePath, result);
@@ -502,24 +507,24 @@ public class AggregateTest {
 
         }
 
-        public Collection<String> getNodePaths(){
+        public Collection<String> getNodePaths() {
             return nodeResults.keySet();
         }
 
-        public Collection<String> getPropPaths(){
+        public Collection<String> getPropPaths() {
             return propResults.keySet();
         }
 
-        public void reset(){
+        public void reset() {
             nodeResults.clear();
             propResults.clear();
         }
 
-        public List<NodeIncludeResult> getRelativeNodeResults(String path, String rootIncludePath){
+        public List<NodeIncludeResult> getRelativeNodeResults(String path, String rootIncludePath) {
             List<NodeIncludeResult> result = new ArrayList<>();
 
-            for (NodeIncludeResult nr : nodeResults.get(path)){
-                if (rootIncludePath.equals(nr.rootIncludePath)){
+            for (NodeIncludeResult nr : nodeResults.get(path)) {
+                if (rootIncludePath.equals(nr.rootIncludePath)) {
                     result.add(nr);
                 }
             }
@@ -529,6 +534,7 @@ public class AggregateTest {
     }
 
     private static class SimpleMapper implements Aggregate.AggregateMapper {
+
         final Map<String, Aggregate> mapping = new HashMap<>();
 
         @Override
@@ -536,7 +542,7 @@ public class AggregateTest {
             return mapping.get(nodeTypeName);
         }
 
-        public void add(String type, Aggregate agg){
+        public void add(String type, Aggregate agg) {
             mapping.put(type, agg);
         }
     }

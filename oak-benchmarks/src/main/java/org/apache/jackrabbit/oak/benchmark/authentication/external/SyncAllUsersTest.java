@@ -19,9 +19,7 @@ package org.apache.jackrabbit.oak.benchmark.authentication.external;
 import static org.junit.Assert.assertEquals;
 
 import java.util.List;
-
 import javax.security.auth.login.Configuration;
-
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.ConfigurationUtil;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.jmx.SyncMBeanImpl;
@@ -36,8 +34,9 @@ public class SyncAllUsersTest extends AbstractExternalTest {
     private final int expectedUpdates;
     private SynchronizationMBean bean;
 
-    public SyncAllUsersTest(int numberOfUsers, int numberOfGroups, long expTime, boolean dynamicMembership,
-            @NotNull List<String> autoMembership) {
+    public SyncAllUsersTest(int numberOfUsers, int numberOfGroups, long expTime,
+        boolean dynamicMembership,
+        @NotNull List<String> autoMembership) {
         super(numberOfUsers, numberOfGroups, expTime, dynamicMembership, autoMembership);
         if (dynamicMembership) {
             expectedUpdates = numberOfUsers;
@@ -54,8 +53,9 @@ public class SyncAllUsersTest extends AbstractExternalTest {
     @Override
     protected void beforeSuite() throws Exception {
         super.beforeSuite();
-        bean = new SyncMBeanImpl(getContentRepository(), getSecurityProvider(), syncManager, "default", idpManager,
-                idp.getName());
+        bean = new SyncMBeanImpl(getContentRepository(), getSecurityProvider(), syncManager,
+            "default", idpManager,
+            idp.getName());
         bean.syncAllExternalUsers();
     }
 

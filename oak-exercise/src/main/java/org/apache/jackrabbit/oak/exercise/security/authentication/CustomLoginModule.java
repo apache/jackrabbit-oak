@@ -21,12 +21,11 @@ import javax.security.auth.Subject;
 import javax.security.auth.callback.CallbackHandler;
 import javax.security.auth.login.LoginException;
 import javax.security.auth.spi.LoginModule;
-
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 
 /**
  * A custom login module for test purposes.
- *
+ * <p>
  * EXERCISE: complete the implementation
  */
 public class CustomLoginModule implements LoginModule {
@@ -42,7 +41,8 @@ public class CustomLoginModule implements LoginModule {
     }
 
     @Override
-    public void initialize(Subject subject, CallbackHandler callbackHandler, Map<String, ?> sharedState, Map<String, ?> options) {
+    public void initialize(Subject subject, CallbackHandler callbackHandler,
+        Map<String, ?> sharedState, Map<String, ?> options) {
         if (options != null) {
             ConfigurationParameters opts = ConfigurationParameters.of(options);
             config = (config == null) ? opts : ConfigurationParameters.of(config, opts);

@@ -21,14 +21,12 @@ import static org.apache.jackrabbit.guava.common.base.MoreObjects.toStringHelper
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
-
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
-
-import org.apache.jackrabbit.guava.common.base.Objects;
 import org.apache.jackrabbit.api.ReferenceBinary;
 import org.apache.jackrabbit.api.binary.BinaryDownload;
 import org.apache.jackrabbit.api.binary.BinaryDownloadOptions;
+import org.apache.jackrabbit.guava.common.base.Objects;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -40,6 +38,7 @@ import org.slf4j.LoggerFactory;
  * TODO document
  */
 class BinaryImpl implements ReferenceBinary, BinaryDownload {
+
     private static final Logger LOG = LoggerFactory.getLogger(BinaryImpl.class);
 
     private final ValueImpl value;
@@ -75,12 +74,12 @@ class BinaryImpl implements ReferenceBinary, BinaryDownload {
     @Override
     public long getSize() throws RepositoryException {
         switch (value.getType()) {
-        case PropertyType.NAME:
-        case PropertyType.PATH:
-            // need to respect namespace remapping
-            return value.getString().length();
-        default:
-            return value.getBlob().length();
+            case PropertyType.NAME:
+            case PropertyType.PATH:
+                // need to respect namespace remapping
+                return value.getString().length();
+            default:
+                return value.getBlob().length();
         }
     }
 
@@ -92,7 +91,7 @@ class BinaryImpl implements ReferenceBinary, BinaryDownload {
     @Nullable
     @Override
     public URI getURI(@NotNull BinaryDownloadOptions downloadOptions)
-            throws RepositoryException {
+        throws RepositoryException {
         ValueImpl v = getBinaryValue();
         if (v == null || v.getBlob().isInlined()) {
             // property is not a binary, or it is inlined
@@ -113,7 +112,8 @@ class BinaryImpl implements ReferenceBinary, BinaryDownload {
 
     //---------------------------------------------------< ReferenceBinary >--
 
-    @Override @Nullable
+    @Override
+    @Nullable
     public String getReference() {
         try {
             return value.getBlob().getReference();

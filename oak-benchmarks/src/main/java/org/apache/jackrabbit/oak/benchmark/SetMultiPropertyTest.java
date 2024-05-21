@@ -23,10 +23,11 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
 /**
- * Test for measuring the performance of setting a single multi valued property and
- * saving the change.
+ * Test for measuring the performance of setting a single multi valued property and saving the
+ * change.
  */
 public class SetMultiPropertyTest extends AbstractTest {
+
     private static final String[] VALUES = createValues(100);
 
     private static String[] createValues(int count) {
@@ -40,7 +41,7 @@ public class SetMultiPropertyTest extends AbstractTest {
     private Session session;
 
     private Node node;
-    
+
     String testNodeName = "test" + TEST_ID;
 
     @Override

@@ -22,8 +22,8 @@ import java.io.IOException;
 import java.util.List;
 
 /**
- * This type abstracts the {@code gc.log} file, used to save information about
- * the segment garbage collection. Each record is represented by a single string.
+ * This type abstracts the {@code gc.log} file, used to save information about the segment garbage
+ * collection. Each record is represented by a single string.
  * <br><br>
  * The implementation <b>doesn't need to be</b> thread-safe.
  */
@@ -32,15 +32,14 @@ public interface GCJournalFile {
     /**
      * Write the new line to the GC journal file.
      *
-     * @param line the line to write. It should contain neither special characters
-     *             nor the newline {@code \n}.
+     * @param line the line to write. It should contain neither special characters nor the newline
+     *             {@code \n}.
      * @throws IOException
      */
     void writeLine(String line) throws IOException;
 
     /**
-     * Return the list of all written records in the same order as they were
-     * written.
+     * Return the list of all written records in the same order as they were written.
      *
      * @return the list of all written lines
      * @throws IOException

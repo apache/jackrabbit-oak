@@ -18,6 +18,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import java.io.File;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.StrictPathRestriction;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
@@ -29,11 +32,8 @@ import org.junit.After;
 import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
 
-import java.io.File;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-
-public class LuceneStrictPathRestrictionEnableCommonTest extends StrictPathRestrictionEnableCommonTest {
+public class LuceneStrictPathRestrictionEnableCommonTest extends
+    StrictPathRestrictionEnableCommonTest {
 
     private ExecutorService executorService = Executors.newFixedThreadPool(2);
     @Rule
@@ -47,7 +47,8 @@ public class LuceneStrictPathRestrictionEnableCommonTest extends StrictPathRestr
 
     @Override
     protected ContentRepository createRepository() {
-        LuceneTestRepositoryBuilder luceneTestRepositoryBuilder = new LuceneTestRepositoryBuilder(executorService, temporaryFolder);
+        LuceneTestRepositoryBuilder luceneTestRepositoryBuilder = new LuceneTestRepositoryBuilder(
+            executorService, temporaryFolder);
         QueryEngineSettings queryEngineSettings = new QueryEngineSettings();
         queryEngineSettings.setStrictPathRestriction(StrictPathRestriction.ENABLE.name());
         luceneTestRepositoryBuilder.setQueryEngineSettings(queryEngineSettings);

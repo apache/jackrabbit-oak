@@ -19,10 +19,8 @@ package org.apache.jackrabbit.oak.plugins.nodetype.constraint;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
-
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

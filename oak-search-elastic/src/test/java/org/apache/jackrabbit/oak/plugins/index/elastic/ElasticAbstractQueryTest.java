@@ -16,8 +16,19 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider.compose;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition.BULK_FLUSH_INTERVAL_MS_DEFAULT;
+import static org.junit.Assert.assertEquals;
+
+import co.elastic.clients.elasticsearch._types.ElasticsearchException;
+import co.elastic.clients.elasticsearch.core.CountRequest;
 import co.elastic.clients.elasticsearch.core.GetRequest;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import java.io.IOException;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.Oak;
@@ -46,18 +57,6 @@ import org.junit.ClassRule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import co.elastic.clients.elasticsearch._types.ElasticsearchException;
-import co.elastic.clients.elasticsearch.core.CountRequest;
-import java.io.IOException;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider.compose;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition.BULK_FLUSH_INTERVAL_MS_DEFAULT;
-import static org.junit.Assert.assertEquals;
-
 public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
 
     protected static final Logger LOG = LoggerFactory.getLogger(ElasticAbstractQueryTest.class);
@@ -67,7 +66,8 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
     // key_id and key_secret are optional in case the ES server
     // needs authentication
     // Do not set this if docker is running and you want to run the tests on docker instead.
-    private static final String elasticConnectionString = System.getProperty("elasticConnectionString");
+    private static final String elasticConnectionString = System.getProperty(
+        "elasticConnectionString");
     protected ElasticConnection esConnection;
 
     // This is instantiated during repo creation but not hooked up to the async indexing lane
@@ -78,18 +78,20 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
     protected int DEFAULT_ASYNC_INDEXING_TIME_IN_SECONDS = 5;
 
     @ClassRule
-    public static ElasticConnectionRule elasticRule = new ElasticConnectionRule(elasticConnectionString);
+    public static ElasticConnectionRule elasticRule = new ElasticConnectionRule(
+        elasticConnectionString);
 
     @After
     public void tearDown() throws IOException {
         if (esConnection != null) {
-        	esConnection.getClient().indices().delete(i->i
-        	        .index(esConnection.getIndexPrefix() + "*"));
+            esConnection.getClient().indices().delete(i -> i
+                .index(esConnection.getIndexPrefix() + "*"));
             esConnection.close();
         }
     }
 
-    protected AsyncIndexUpdate getAsyncIndexUpdate(String asyncName, NodeStore store, IndexEditorProvider editorProvider) {
+    protected AsyncIndexUpdate getAsyncIndexUpdate(String asyncName, NodeStore store,
+        IndexEditorProvider editorProvider) {
         return new AsyncIndexUpdate(asyncName, store, editorProvider);
     }
 
@@ -133,36 +135,39 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
 
     protected ElasticConnection getElasticConnection() {
         return elasticRule.useDocker() ? elasticRule.getElasticConnectionForDocker() :
-                elasticRule.getElasticConnectionFromString();
+            elasticRule.getElasticConnectionFromString();
     }
 
     @Override
     protected ContentRepository createRepository() {
         esConnection = getElasticConnection();
-        ElasticIndexTracker indexTracker = new ElasticIndexTracker(esConnection, getMetricHandler());
-        ElasticIndexEditorProvider editorProvider = new ElasticIndexEditorProvider(indexTracker, esConnection,
-                new ExtractedTextCache(10 * FileUtils.ONE_MB, 100));
+        ElasticIndexTracker indexTracker = new ElasticIndexTracker(esConnection,
+            getMetricHandler());
+        ElasticIndexEditorProvider editorProvider = new ElasticIndexEditorProvider(indexTracker,
+            esConnection,
+            new ExtractedTextCache(10 * FileUtils.ONE_MB, 100));
         ElasticIndexProvider indexProvider = new ElasticIndexProvider(indexTracker);
 
         nodeStore = getNodeStore();
 
         asyncIndexUpdate = getAsyncIndexUpdate("async", nodeStore, compose(newArrayList(
-                editorProvider,
-                new NodeCounterEditorProvider()
+            editorProvider,
+            new NodeCounterEditorProvider()
         )));
 
         TrackingCorruptIndexHandler trackingCorruptIndexHandler = new TrackingCorruptIndexHandler();
-        trackingCorruptIndexHandler.setCorruptInterval(INDEX_CORRUPT_INTERVAL_IN_MILLIS, TimeUnit.MILLISECONDS);
+        trackingCorruptIndexHandler.setCorruptInterval(INDEX_CORRUPT_INTERVAL_IN_MILLIS,
+            TimeUnit.MILLISECONDS);
         asyncIndexUpdate.setCorruptIndexHandler(trackingCorruptIndexHandler);
 
         Oak oak = new Oak(nodeStore)
-                .with(getInitialContent())
-                .with(new OpenSecurityProvider())
-                .with(editorProvider)
-                .with(indexTracker)
-                .with(indexProvider)
-                .with(new PropertyIndexEditorProvider())
-                .with(new NodeTypeIndexProvider());
+            .with(getInitialContent())
+            .with(new OpenSecurityProvider())
+            .with(editorProvider)
+            .with(indexTracker)
+            .with(indexProvider)
+            .with(new PropertyIndexEditorProvider())
+            .with(new NodeTypeIndexProvider());
 
         if (useAsyncIndexing()) {
             oak = addAsyncIndexingLanesToOak(oak);
@@ -176,14 +181,16 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
 
     protected void assertEventually(Runnable r) {
         ElasticTestUtils.assertEventually(r,
-                ((useAsyncIndexing() ? DEFAULT_ASYNC_INDEXING_TIME_IN_SECONDS * 1000L : 0) + BULK_FLUSH_INTERVAL_MS_DEFAULT) * 5);
+            ((useAsyncIndexing() ? DEFAULT_ASYNC_INDEXING_TIME_IN_SECONDS * 1000L : 0)
+                + BULK_FLUSH_INTERVAL_MS_DEFAULT) * 5);
     }
 
     protected IndexDefinitionBuilder createIndex(String... propNames) {
         return createIndex(true, "nt:base", propNames);
     }
 
-    protected IndexDefinitionBuilder createIndex(boolean isPropertyIndex, String nodeType, String... propNames) {
+    protected IndexDefinitionBuilder createIndex(boolean isPropertyIndex, String nodeType,
+        String... propNames) {
         IndexDefinitionBuilder builder = new ElasticIndexDefinitionBuilder();
         if (!useAsyncIndexing()) {
             builder = builder.noAsync();
@@ -222,9 +229,9 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
 
         try {
             return esConnection.getClient().indices()
-                    .exists(i -> i
-                            .index(esIdxDef.getIndexAlias()))
-                    .value();
+                               .exists(i -> i
+                                   .index(esIdxDef.getIndexAlias()))
+                               .value();
         } catch (IOException e) {
             return false;
         }
@@ -232,22 +239,22 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
 
     protected long countDocuments(Tree index) {
         ElasticIndexDefinition esIdxDef = getElasticIndexDefinition(index);
-        
-        CountRequest count = CountRequest.of( r -> r
-                .index(esIdxDef.getIndexAlias()));
+
+        CountRequest count = CountRequest.of(r -> r
+            .index(esIdxDef.getIndexAlias()));
         try {
-			return esConnection.getClient().count(count).count();
-		} catch (ElasticsearchException | IOException e) {
-			throw new IllegalStateException(e);
-		}
+            return esConnection.getClient().count(count).count();
+        } catch (ElasticsearchException | IOException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     protected ObjectNode getDocument(Tree index, String id) {
         ElasticIndexDefinition esIdxDef = getElasticIndexDefinition(index);
 
         GetRequest get = GetRequest.of(r -> r
-                .index(esIdxDef.getIndexAlias())
-                .id(id));
+            .index(esIdxDef.getIndexAlias())
+            .id(id));
         try {
             return esConnection.getClient().get(get, ObjectNode.class).source();
         } catch (ElasticsearchException | IOException e) {
@@ -257,10 +264,10 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
 
     protected ElasticIndexDefinition getElasticIndexDefinition(Tree index) {
         return new ElasticIndexDefinition(
-                nodeStore.getRoot(),
-                nodeStore.getRoot().getChildNode(INDEX_DEFINITIONS_NAME).getChildNode(index.getName()),
-                index.getPath(),
-                esConnection.getIndexPrefix());
+            nodeStore.getRoot(),
+            nodeStore.getRoot().getChildNode(INDEX_DEFINITIONS_NAME).getChildNode(index.getName()),
+            index.getPath(),
+            esConnection.getIndexPrefix());
     }
 
     protected void assertOrderedQuery(String sql, List<String> paths) {

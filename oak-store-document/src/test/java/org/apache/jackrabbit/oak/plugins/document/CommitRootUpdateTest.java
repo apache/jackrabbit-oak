@@ -48,10 +48,10 @@ public class CommitRootUpdateTest {
         MemoryDocumentStore store = new MemoryDocumentStore() {
             @Override
             public <T extends Document> T findAndUpdate(Collection<T> collection,
-                                                        UpdateOp update) {
+                UpdateOp update) {
                 T doc = super.findAndUpdate(collection, update);
                 if (isFinalCommitRootUpdate(update) &&
-                        throwAfterUpdate.compareAndSet(true, false)) {
+                    throwAfterUpdate.compareAndSet(true, false)) {
                     throw new RuntimeException("communication failure");
                 }
                 return doc;
@@ -59,7 +59,8 @@ public class CommitRootUpdateTest {
         };
 
         DocumentNodeStore ns = builderProvider.newBuilder()
-                .setDocumentStore(store).setAsyncDelay(0).getNodeStore();
+                                              .setDocumentStore(store).setAsyncDelay(0)
+                                              .getNodeStore();
         NodeBuilder b = ns.getRoot().builder();
         b.child("foo");
         b.child("bar");
@@ -94,10 +95,10 @@ public class CommitRootUpdateTest {
         MemoryDocumentStore store = new MemoryDocumentStore(true) {
             @Override
             public <T extends Document> T findAndUpdate(Collection<T> collection,
-                                                        UpdateOp update) {
+                UpdateOp update) {
                 T doc = super.findAndUpdate(collection, update);
                 if (isCommitRootUpdate(update) &&
-                        throwAfterUpdate.compareAndSet(true, false)) {
+                    throwAfterUpdate.compareAndSet(true, false)) {
                     throw new DocumentStoreException("communication failure");
                 }
                 return doc;
@@ -117,7 +118,8 @@ public class CommitRootUpdateTest {
         };
 
         DocumentNodeStore ns = builderProvider.newBuilder()
-                .setDocumentStore(store).setAsyncDelay(0).getNodeStore();
+                                              .setDocumentStore(store).setAsyncDelay(0)
+                                              .getNodeStore();
         NodeBuilder b = ns.getRoot().builder();
         b.child("foo");
         merge(ns, b);
@@ -125,8 +127,8 @@ public class CommitRootUpdateTest {
         throwAfterUpdate.set(true);
         boolean success = false;
         Commit c = ns.newCommit(
-                changes -> changes.updateProperty(Path.fromString("/foo"), "p", "1"),
-                ns.getHeadRevision(), null);
+            changes -> changes.updateProperty(Path.fromString("/foo"), "p", "1"),
+            ns.getHeadRevision(), null);
         try {
             c.apply();
             success = true;
@@ -144,7 +146,7 @@ public class CommitRootUpdateTest {
     }
 
     private NodeState merge(NodeStore store, NodeBuilder builder)
-            throws Exception {
+        throws Exception {
         return store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 }

@@ -43,31 +43,31 @@ public class LiteralImpl extends StaticOperandImpl implements Literal {
     public String toString() {
         try {
             switch (value.getType()) {
-            case PropertyType.BINARY:
-                return cast("BINARY");
-            case PropertyType.BOOLEAN:
-                return cast("BOOLEAN");
-            case PropertyType.DATE:
-                return cast("DATE");
-            case PropertyType.DECIMAL:
-                return cast("DECIMAL");
-            case PropertyType.DOUBLE:
-            case PropertyType.LONG:
-                return value.getString();
-            case PropertyType.NAME:
-                return cast("NAME");
-            case PropertyType.PATH:
-                return cast("PATH");
-            case PropertyType.REFERENCE:
-                return cast("REFERENCE");
-            case PropertyType.STRING:
-                return escape(value.getString());
-            case PropertyType.URI:
-                return cast("URI");
-            case PropertyType.WEAKREFERENCE:
-                return cast("WEAKREFERENCE");
-            default:
-                return escape(value.getString());
+                case PropertyType.BINARY:
+                    return cast("BINARY");
+                case PropertyType.BOOLEAN:
+                    return cast("BOOLEAN");
+                case PropertyType.DATE:
+                    return cast("DATE");
+                case PropertyType.DECIMAL:
+                    return cast("DECIMAL");
+                case PropertyType.DOUBLE:
+                case PropertyType.LONG:
+                    return value.getString();
+                case PropertyType.NAME:
+                    return cast("NAME");
+                case PropertyType.PATH:
+                    return cast("PATH");
+                case PropertyType.REFERENCE:
+                    return cast("REFERENCE");
+                case PropertyType.STRING:
+                    return escape(value.getString());
+                case PropertyType.URI:
+                    return cast("URI");
+                case PropertyType.WEAKREFERENCE:
+                    return cast("WEAKREFERENCE");
+                default:
+                    return escape(value.getString());
             }
         } catch (RepositoryException e) {
             return value.toString();

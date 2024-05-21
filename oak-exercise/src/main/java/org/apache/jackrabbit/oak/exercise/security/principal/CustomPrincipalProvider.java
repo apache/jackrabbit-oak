@@ -26,9 +26,9 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Custom principal provider that only knows of a predefined set of principals
- * and their group membership.
- *
+ * Custom principal provider that only knows of a predefined set of principals and their group
+ * membership.
+ * <p>
  * EXERCISE: complete the implemenation
  */
 class CustomPrincipalProvider implements PrincipalProvider {

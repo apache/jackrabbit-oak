@@ -16,31 +16,35 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
-import org.jetbrains.annotations.NotNull;
-
-import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants.VALUE_PROTECT_EXTERNAL_IDENTITIES_PROTECTED;
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants.VALUE_PROTECT_EXTERNAL_IDENTITIES_NONE;
+import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants.VALUE_PROTECT_EXTERNAL_IDENTITIES_PROTECTED;
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants.VALUE_PROTECT_EXTERNAL_IDENTITIES_WARN;
 
+import org.jetbrains.annotations.NotNull;
+
 enum IdentityProtectionType {
-    
+
     NONE(VALUE_PROTECT_EXTERNAL_IDENTITIES_NONE),
     WARN(VALUE_PROTECT_EXTERNAL_IDENTITIES_WARN),
     PROTECTED(VALUE_PROTECT_EXTERNAL_IDENTITIES_PROTECTED);
 
     final String label;
-    
+
     IdentityProtectionType(@NotNull String label) {
         this.label = label;
     }
-    
+
     static IdentityProtectionType fromLabel(@NotNull String label) {
         switch (label) {
-            case VALUE_PROTECT_EXTERNAL_IDENTITIES_NONE: return NONE;
-            case VALUE_PROTECT_EXTERNAL_IDENTITIES_WARN : return WARN;
-            case VALUE_PROTECT_EXTERNAL_IDENTITIES_PROTECTED : return PROTECTED;
-            default: throw new IllegalArgumentException("unsupported label "+label);
+            case VALUE_PROTECT_EXTERNAL_IDENTITIES_NONE:
+                return NONE;
+            case VALUE_PROTECT_EXTERNAL_IDENTITIES_WARN:
+                return WARN;
+            case VALUE_PROTECT_EXTERNAL_IDENTITIES_PROTECTED:
+                return PROTECTED;
+            default:
+                throw new IllegalArgumentException("unsupported label " + label);
         }
     }
-    
+
 }

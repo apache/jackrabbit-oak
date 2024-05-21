@@ -16,18 +16,20 @@
  */
 package org.apache.jackrabbit.oak.exercise.security.authorization.advanced;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import java.security.Principal;
 import java.util.List;
 import java.util.Set;
 import javax.jcr.GuestCredentials;
 import javax.jcr.Session;
 import javax.jcr.security.Privilege;
-
+import org.apache.jackrabbit.api.JackrabbitSession;
+import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.api.JackrabbitSession;
-import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -56,9 +58,6 @@ import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.util.Text;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
-
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 /**
  * <pre>
@@ -152,8 +151,9 @@ import static org.junit.Assert.assertTrue;
  */
 public class L5_CustomPermissionEvaluationTest extends AbstractSecurityTest {
 
-    private static final String[] ACTION_NAMES = new String[] {
-            Session.ACTION_READ, Session.ACTION_ADD_NODE, Session.ACTION_SET_PROPERTY, Session.ACTION_REMOVE
+    private static final String[] ACTION_NAMES = new String[]{
+        Session.ACTION_READ, Session.ACTION_ADD_NODE, Session.ACTION_SET_PROPERTY,
+        Session.ACTION_REMOVE
     };
 
     private List<Tree> trees;
@@ -164,16 +164,16 @@ public class L5_CustomPermissionEvaluationTest extends AbstractSecurityTest {
         AuthorizationConfiguration ac = new PredefinedAuthorizationConfiguration();
 
         return SecurityProviderBuilder.newBuilder().with(
-                new AuthenticationConfigurationImpl(), ConfigurationParameters.EMPTY,
-                new PrivilegeConfigurationImpl(), ConfigurationParameters.EMPTY,
-                new UserConfigurationImpl(), ConfigurationParameters.EMPTY,
-                ac, ConfigurationParameters.EMPTY,
-                new PrincipalConfigurationImpl(), ConfigurationParameters.EMPTY,
-                new TokenConfigurationImpl(), ConfigurationParameters.EMPTY)
-                .with(getSecurityConfigParameters())
-                .withRootProvider(getRootProvider())
-                .withTreeProvider(getTreeProvider())
-                .build();
+                                          new AuthenticationConfigurationImpl(), ConfigurationParameters.EMPTY,
+                                          new PrivilegeConfigurationImpl(), ConfigurationParameters.EMPTY,
+                                          new UserConfigurationImpl(), ConfigurationParameters.EMPTY,
+                                          ac, ConfigurationParameters.EMPTY,
+                                          new PrincipalConfigurationImpl(), ConfigurationParameters.EMPTY,
+                                          new TokenConfigurationImpl(), ConfigurationParameters.EMPTY)
+                                      .with(getSecurityConfigParameters())
+                                      .withRootProvider(getRootProvider())
+                                      .withTreeProvider(getTreeProvider())
+                                      .build();
     }
 
     @Override
@@ -182,20 +182,23 @@ public class L5_CustomPermissionEvaluationTest extends AbstractSecurityTest {
 
         prop = PropertyStates.createProperty("prop", "value");
 
-        Tree testTree = TreeUtil.addChild(root.getTree("/"), "contentA", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        Tree testTree = TreeUtil.addChild(root.getTree("/"), "contentA",
+            NodeTypeConstants.NT_OAK_UNSTRUCTURED);
         Tree aTree = TreeUtil.addChild(testTree, "a", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
         aTree.setProperty(prop);
 
         Tree aaTree = TreeUtil.addChild(aTree, "a", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
         aaTree.setProperty(prop);
 
-        Tree bTree = TreeUtil.addChild(root.getTree("/"), "contentB", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        Tree bTree = TreeUtil.addChild(root.getTree("/"), "contentB",
+            NodeTypeConstants.NT_OAK_UNSTRUCTURED);
         bTree.setProperty(prop);
 
         Tree bbTree = TreeUtil.addChild(bTree, "b", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
         bbTree.setProperty(prop);
 
-        Tree cTree = TreeUtil.addChild(root.getTree("/"), "contentC", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        Tree cTree = TreeUtil.addChild(root.getTree("/"), "contentC",
+            NodeTypeConstants.NT_OAK_UNSTRUCTURED);
         cTree.setProperty(prop);
 
         Tree ccTree = TreeUtil.addChild(cTree, "c", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
@@ -203,12 +206,14 @@ public class L5_CustomPermissionEvaluationTest extends AbstractSecurityTest {
 
         root.commit();
 
-        trees = ImmutableList.<Tree>builder().add(root.getTree("/")).add(testTree).add(aTree).add(aaTree).add(bTree).add(bbTree).add(cTree).add(ccTree).build();
+        trees = ImmutableList.<Tree>builder().add(root.getTree("/")).add(testTree).add(aTree)
+                             .add(aaTree).add(bTree).add(bbTree).add(cTree).add(ccTree).build();
 
     }
 
     private PermissionProvider getPermissionProvider(@NotNull Set<Principal> principals) {
-        return getConfig(AuthorizationConfiguration.class).getPermissionProvider(root, adminSession.getWorkspaceName(), principals);
+        return getConfig(AuthorizationConfiguration.class).getPermissionProvider(root,
+            adminSession.getWorkspaceName(), principals);
     }
 
     private Iterable<String> getTreePaths() {
@@ -270,30 +275,38 @@ public class L5_CustomPermissionEvaluationTest extends AbstractSecurityTest {
     @Test
     public void testWriteAccess() throws Exception {
         List<Set<Principal>> editors = ImmutableList.<Set<Principal>>of(
-                ImmutableSet.<Principal>of(new Editor("ida")),
-                ImmutableSet.<Principal>of(EveryonePrincipal.getInstance(), new Editor("amanda")),
-                ImmutableSet.<Principal>of(getTestUser().getPrincipal(),new Editor("susi")),
-                ImmutableSet.<Principal>builder().addAll(getGuestPrincipals()).add(new Editor("naima")).build()
+            ImmutableSet.<Principal>of(new Editor("ida")),
+            ImmutableSet.<Principal>of(EveryonePrincipal.getInstance(), new Editor("amanda")),
+            ImmutableSet.<Principal>of(getTestUser().getPrincipal(), new Editor("susi")),
+            ImmutableSet.<Principal>builder().addAll(getGuestPrincipals()).add(new Editor("naima"))
+                        .build()
         );
 
         for (Set<Principal> principals : editors) {
             PermissionProvider pp = getPermissionProvider(principals);
             for (Tree t : trees) {
-                assertTrue(pp.hasPrivileges(t, PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_WRITE));
+                assertTrue(
+                    pp.hasPrivileges(t, PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_WRITE));
 
-                assertFalse(pp.hasPrivileges(t, PrivilegeConstants.JCR_WRITE, PrivilegeConstants.JCR_NODE_TYPE_MANAGEMENT));
-                assertFalse(pp.hasPrivileges(t, PrivilegeConstants.JCR_READ_ACCESS_CONTROL, PrivilegeConstants.JCR_MODIFY_ACCESS_CONTROL, PrivilegeConstants.REP_USER_MANAGEMENT));
+                assertFalse(pp.hasPrivileges(t, PrivilegeConstants.JCR_WRITE,
+                    PrivilegeConstants.JCR_NODE_TYPE_MANAGEMENT));
+                assertFalse(pp.hasPrivileges(t, PrivilegeConstants.JCR_READ_ACCESS_CONTROL,
+                    PrivilegeConstants.JCR_MODIFY_ACCESS_CONTROL,
+                    PrivilegeConstants.REP_USER_MANAGEMENT));
                 assertFalse(pp.hasPrivileges(t, PrivilegeConstants.JCR_ALL));
 
                 assertTrue(pp.isGranted(t, null, Permissions.WRITE | Permissions.READ));
-                assertTrue(pp.isGranted(t, prop, Permissions.WRITE|Permissions.READ));
+                assertTrue(pp.isGranted(t, prop, Permissions.WRITE | Permissions.READ));
 
                 assertFalse(pp.isGranted(t, null, Permissions.ALL));
                 assertFalse(pp.isGranted(t, prop, Permissions.ALL));
 
-                assertFalse(pp.isGranted(t, null, Permissions.READ_ACCESS_CONTROL|Permissions.MODIFY_ACCESS_CONTROL|Permissions.USER_MANAGEMENT));
-                assertFalse(pp.isGranted(t, prop, Permissions.READ_ACCESS_CONTROL | Permissions.MODIFY_ACCESS_CONTROL | Permissions.USER_MANAGEMENT));
-
+                assertFalse(pp.isGranted(t, null,
+                    Permissions.READ_ACCESS_CONTROL | Permissions.MODIFY_ACCESS_CONTROL
+                        | Permissions.USER_MANAGEMENT));
+                assertFalse(pp.isGranted(t, prop,
+                    Permissions.READ_ACCESS_CONTROL | Permissions.MODIFY_ACCESS_CONTROL
+                        | Permissions.USER_MANAGEMENT));
 
                 for (String action : ACTION_NAMES) {
                     String treePath = t.getPath();
@@ -301,7 +314,10 @@ public class L5_CustomPermissionEvaluationTest extends AbstractSecurityTest {
                     assertTrue(pp.isGranted(PathUtils.concat(treePath, prop.getName()), action));
                 }
 
-                String deniedActions = Text.implode(new String[] {JackrabbitSession.ACTION_MODIFY_ACCESS_CONTROL, JackrabbitSession.ACTION_READ_ACCESS_CONTROL, JackrabbitSession.ACTION_USER_MANAGEMENT}, ",");
+                String deniedActions = Text.implode(
+                    new String[]{JackrabbitSession.ACTION_MODIFY_ACCESS_CONTROL,
+                        JackrabbitSession.ACTION_READ_ACCESS_CONTROL,
+                        JackrabbitSession.ACTION_USER_MANAGEMENT}, ",");
                 assertFalse(pp.isGranted(t.getPath(), deniedActions));
             }
         }
@@ -310,20 +326,23 @@ public class L5_CustomPermissionEvaluationTest extends AbstractSecurityTest {
     @Test
     public void testReadAccess() throws Exception {
         List<Set<Principal>> readers = ImmutableList.<Set<Principal>>of(
-                ImmutableSet.<Principal>of(new Reader("ida")),
-                ImmutableSet.<Principal>of(EveryonePrincipal.getInstance(), new Reader("fairuz")),
-                ImmutableSet.<Principal>of(getTestUser().getPrincipal(),new Editor("juni")),
-                ImmutableSet.<Principal>builder().addAll(getGuestPrincipals()).add(new Editor("ale")).build()
+            ImmutableSet.<Principal>of(new Reader("ida")),
+            ImmutableSet.<Principal>of(EveryonePrincipal.getInstance(), new Reader("fairuz")),
+            ImmutableSet.<Principal>of(getTestUser().getPrincipal(), new Editor("juni")),
+            ImmutableSet.<Principal>builder().addAll(getGuestPrincipals()).add(new Editor("ale"))
+                        .build()
         );
 
         PrivilegeManager privilegeManager = getPrivilegeManager(root);
         Privilege all = privilegeManager.getPrivilege(PrivilegeConstants.JCR_ALL);
-        Set<String> readPrivNames = ImmutableSet.of(PrivilegeConstants.JCR_READ, PrivilegeConstants.REP_READ_NODES, PrivilegeConstants.REP_READ_PROPERTIES);
+        Set<String> readPrivNames = ImmutableSet.of(PrivilegeConstants.JCR_READ,
+            PrivilegeConstants.REP_READ_NODES, PrivilegeConstants.REP_READ_PROPERTIES);
 
         for (Set<Principal> principals : readers) {
             PermissionProvider pp = getPermissionProvider(principals);
             for (Tree t : trees) {
-                assertTrue(pp.hasPrivileges(t, readPrivNames.toArray(new String[readPrivNames.size()])));
+                assertTrue(
+                    pp.hasPrivileges(t, readPrivNames.toArray(new String[readPrivNames.size()])));
 
                 for (Privilege p : all.getAggregatePrivileges()) {
                     String pName = p.getName();
@@ -333,7 +352,8 @@ public class L5_CustomPermissionEvaluationTest extends AbstractSecurityTest {
                         assertFalse(pp.hasPrivileges(t, pName));
                     }
                 }
-                assertFalse(pp.hasPrivileges(t, PrivilegeConstants.JCR_ALL, PrivilegeConstants.JCR_READ));
+                assertFalse(
+                    pp.hasPrivileges(t, PrivilegeConstants.JCR_ALL, PrivilegeConstants.JCR_READ));
 
                 assertTrue(pp.isGranted(t, null, Permissions.READ));
                 assertTrue(pp.isGranted(t, null, Permissions.READ_NODE));
@@ -342,14 +362,20 @@ public class L5_CustomPermissionEvaluationTest extends AbstractSecurityTest {
                 assertFalse(pp.isGranted(t, null, Permissions.ALL));
                 assertFalse(pp.isGranted(t, prop, Permissions.ALL));
 
-                assertFalse(pp.isGranted(t, null, Permissions.WRITE|Permissions.VERSION_MANAGEMENT|Permissions.READ_ACCESS_CONTROL));
-                assertFalse(pp.isGranted(t, prop, Permissions.SET_PROPERTY|Permissions.VERSION_MANAGEMENT|Permissions.READ_ACCESS_CONTROL));
+                assertFalse(pp.isGranted(t, null, Permissions.WRITE | Permissions.VERSION_MANAGEMENT
+                    | Permissions.READ_ACCESS_CONTROL));
+                assertFalse(pp.isGranted(t, prop,
+                    Permissions.SET_PROPERTY | Permissions.VERSION_MANAGEMENT
+                        | Permissions.READ_ACCESS_CONTROL));
 
                 String treePath = t.getPath();
                 assertTrue(pp.isGranted(treePath, Session.ACTION_READ));
-                assertTrue(pp.isGranted(PathUtils.concat(treePath, prop.getName()), Session.ACTION_READ));
+                assertTrue(
+                    pp.isGranted(PathUtils.concat(treePath, prop.getName()), Session.ACTION_READ));
 
-                String deniedActions = Text.implode(new String[] {Session.ACTION_ADD_NODE, Session.ACTION_SET_PROPERTY, Session.ACTION_REMOVE, JackrabbitSession.ACTION_READ_ACCESS_CONTROL}, ",");
+                String deniedActions = Text.implode(
+                    new String[]{Session.ACTION_ADD_NODE, Session.ACTION_SET_PROPERTY,
+                        Session.ACTION_REMOVE, JackrabbitSession.ACTION_READ_ACCESS_CONTROL}, ",");
                 assertFalse(pp.isGranted(t.getPath(), deniedActions));
             }
 

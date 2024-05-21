@@ -21,7 +21,6 @@ import java.util.ArrayList;
 import java.util.List;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
-
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.AuthorizableExistsException;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -69,15 +68,16 @@ public class CreateGroupTest extends AbstractUserTest {
 
         assertNotNull(gr.getID());
         assertEquals(p.getName(), gr.getPrincipal().getName());
-        assertFalse("A new group must not have members.",gr.getMembers().hasNext());
+        assertFalse("A new group must not have members.", gr.getMembers().hasNext());
     }
 
     /**
-     * @since OAK 1.0 In contrast to Jackrabbit core the intermediate path may
-     * not be an absolute path in OAK.
+     * @since OAK 1.0 In contrast to Jackrabbit core the intermediate path may not be an absolute
+     * path in OAK.
      */
     @Test
-    public void testCreateGroupWithAbsolutePath() throws RepositoryException, NotExecutableException {
+    public void testCreateGroupWithAbsolutePath()
+        throws RepositoryException, NotExecutableException {
         Principal p = getTestPrincipal();
         try {
             Group gr = createGroup(p, "/any/path/to/the/new/group");
@@ -89,7 +89,8 @@ public class CreateGroupTest extends AbstractUserTest {
     }
 
     @Test
-    public void testCreateGroupWithAbsolutePath2() throws RepositoryException, NotExecutableException {
+    public void testCreateGroupWithAbsolutePath2()
+        throws RepositoryException, NotExecutableException {
         Principal p = getTestPrincipal();
 
         String groupRoot = UserConstants.DEFAULT_GROUP_PATH;
@@ -101,7 +102,8 @@ public class CreateGroupTest extends AbstractUserTest {
     }
 
     @Test
-    public void testCreateGroupWithRelativePath() throws RepositoryException, NotExecutableException {
+    public void testCreateGroupWithRelativePath()
+        throws RepositoryException, NotExecutableException {
         Principal p = getTestPrincipal();
         Group gr = createGroup(p, "any/path");
         createdGroups.add(gr);
@@ -140,7 +142,8 @@ public class CreateGroupTest extends AbstractUserTest {
         try {
             Group gr2 = createGroup(p);
             createdGroups.add(gr2);
-            fail("Creating 2 groups with the same Principal should throw AuthorizableExistsException.");
+            fail(
+                "Creating 2 groups with the same Principal should throw AuthorizableExistsException.");
         } catch (AuthorizableExistsException e) {
             // success.
         }

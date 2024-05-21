@@ -21,7 +21,8 @@ import org.jetbrains.annotations.NotNull;
 
 final class Utils {
 
-    private Utils() {}
+    private Utils() {
+    }
 
     static boolean isSupportedPath(@NotNull String configuredPath, @NotNull String path) {
         return Text.isDescendantOrEqual(configuredPath, path);

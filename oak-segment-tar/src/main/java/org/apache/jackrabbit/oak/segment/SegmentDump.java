@@ -25,9 +25,8 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.function.Consumer;
-
-import org.apache.jackrabbit.guava.common.base.Charsets;
 import org.apache.commons.io.output.WriterOutputStream;
+import org.apache.jackrabbit.guava.common.base.Charsets;
 import org.apache.jackrabbit.oak.segment.RecordNumbers.Entry;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 
@@ -37,7 +36,9 @@ class SegmentDump {
         return length - (MAX_SEGMENT_SIZE - offset);
     }
 
-    static String dumpSegment(SegmentId id, int length, String segmentInfo, GCGeneration generation, SegmentReferences segmentReferences, RecordNumbers recordNumbers, Consumer<OutputStream> dumper) {
+    static String dumpSegment(SegmentId id, int length, String segmentInfo, GCGeneration generation,
+        SegmentReferences segmentReferences, RecordNumbers recordNumbers,
+        Consumer<OutputStream> dumper) {
         StringWriter string = new StringWriter();
         try (PrintWriter writer = new PrintWriter(string)) {
             writer.format("Segment %s (%d bytes)%n", id, length);
@@ -45,7 +46,8 @@ class SegmentDump {
                 writer.format("Info: %s, Generation: %s%n", segmentInfo, generation);
             }
             if (id != null && id.isDataSegmentId()) {
-                writer.println("--------------------------------------------------------------------------");
+                writer.println(
+                    "--------------------------------------------------------------------------");
                 int i = 1;
                 for (SegmentId segmentId : segmentReferences) {
                     writer.format("reference %02x: %s%n", i++, segmentId);
@@ -53,12 +55,15 @@ class SegmentDump {
                 for (Entry entry : recordNumbers) {
                     int offset = entry.getOffset();
                     writer.format("%10s record %08x: %08x @ %08x%n",
-                        entry.getType(), entry.getRecordNumber(), offset, getAddress(length, offset));
+                        entry.getType(), entry.getRecordNumber(), offset,
+                        getAddress(length, offset));
                 }
             }
-            writer.println("--------------------------------------------------------------------------");
+            writer.println(
+                "--------------------------------------------------------------------------");
             dumper.accept(new WriterOutputStream(writer, Charsets.UTF_8));
-            writer.println("--------------------------------------------------------------------------");
+            writer.println(
+                "--------------------------------------------------------------------------");
         }
         return string.toString();
     }

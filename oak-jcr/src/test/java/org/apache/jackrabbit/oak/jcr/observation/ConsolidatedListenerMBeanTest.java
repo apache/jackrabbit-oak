@@ -26,13 +26,11 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import javax.jcr.observation.EventIterator;
 import javax.jcr.observation.EventListener;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 import javax.management.openmbean.TabularData;
-
 import org.apache.jackrabbit.api.jmx.EventListenerMBean;
 import org.apache.jackrabbit.commons.observation.ListenerTracker;
 import org.junit.Test;
@@ -44,7 +42,8 @@ public class ConsolidatedListenerMBeanTest {
         ConsolidatedListenerMBeanImpl consolidatedListener = new ConsolidatedListenerMBeanImpl();
 
         EventListener listener = new Listener(new AtomicInteger());
-        EventListenerMBean mbean = new ListenerTracker(listener, 0, "/", false, null, null, false).getListenerMBean();
+        EventListenerMBean mbean = new ListenerTracker(listener, 0, "/", false, null, null,
+            false).getListenerMBean();
 
         Map<String, ObjectName> config = new HashMap<>();
         config.put("jmx.objectname", new ObjectName("*:*"));
@@ -75,11 +74,13 @@ public class ConsolidatedListenerMBeanTest {
 
     @Test(expected = NullPointerException.class)
     public void testGetConfigNameInvalidValue() {
-        final Map<String, Object> properties = Collections.singletonMap("jmx.objectname", Boolean.TRUE);
+        final Map<String, Object> properties = Collections.singletonMap("jmx.objectname",
+            Boolean.TRUE);
         ConsolidatedListenerMBeanImpl.getObjectName(properties);
     }
 
     private static class Listener implements EventListener {
+
         private final AtomicInteger eventCount;
 
         Listener(AtomicInteger eventCount) {

@@ -23,7 +23,6 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
-
 import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.guava.common.cache.CacheBuilder;
 import org.apache.jackrabbit.guava.common.cache.Weigher;
@@ -32,6 +31,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class CacheStatsTest {
+
     private static final String NAME = "cache stats";
     private static final int KEYS = 100;
 
@@ -43,13 +43,13 @@ public class CacheStatsTest {
     };
 
     private final Cache<Integer, Integer> cache = CacheBuilder.newBuilder()
-                .recordStats()
-                .maximumWeight(Long.MAX_VALUE)
-                .weigher(weigher)
-                .build();
+                                                              .recordStats()
+                                                              .maximumWeight(Long.MAX_VALUE)
+                                                              .weigher(weigher)
+                                                              .build();
 
     private final CacheStats cacheStats =
-            new CacheStats(cache, NAME, weigher, Long.MAX_VALUE);
+        new CacheStats(cache, NAME, weigher, Long.MAX_VALUE);
 
     private int misses;
     private int fails;
@@ -82,7 +82,8 @@ public class CacheStatsTest {
 
                     }
                 });
-            } catch (ExecutionException ignore) { }
+            } catch (ExecutionException ignore) {
+            }
         }
     }
 
@@ -103,7 +104,8 @@ public class CacheStatsTest {
 
     @Test
     public void getHitRate() {
-        assertEquals((KEYS - (double) misses - fails)/KEYS, cacheStats.getHitRate(), Double.MIN_VALUE);
+        assertEquals((KEYS - (double) misses - fails) / KEYS, cacheStats.getHitRate(),
+            Double.MIN_VALUE);
     }
 
     @Test
@@ -113,7 +115,7 @@ public class CacheStatsTest {
 
     @Test
     public void getMissRate() {
-        assertEquals(((double)misses + fails)/KEYS, cacheStats.getMissRate(), Double.MIN_VALUE);
+        assertEquals(((double) misses + fails) / KEYS, cacheStats.getMissRate(), Double.MIN_VALUE);
     }
 
     @Test
@@ -133,7 +135,8 @@ public class CacheStatsTest {
 
     @Test
     public void getLoadExceptionRate() {
-        assertEquals((double)fails/(misses + fails), cacheStats.getLoadExceptionRate(), Double.MIN_VALUE);
+        assertEquals((double) fails / (misses + fails), cacheStats.getLoadExceptionRate(),
+            Double.MIN_VALUE);
     }
 
     @Test
@@ -143,7 +146,7 @@ public class CacheStatsTest {
 
     @Test
     public void getAverageLoadPenalty() {
-        assertTrue(((double)loadTime/(misses + fails)) <= cacheStats.getAverageLoadPenalty());
+        assertTrue(((double) loadTime / (misses + fails)) <= cacheStats.getAverageLoadPenalty());
     }
 
     @Test

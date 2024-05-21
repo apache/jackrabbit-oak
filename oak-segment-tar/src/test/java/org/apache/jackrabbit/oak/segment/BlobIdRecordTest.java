@@ -27,7 +27,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
-
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
 import org.apache.jackrabbit.oak.segment.Segment.RecordConsumer;
@@ -132,7 +131,8 @@ public class BlobIdRecordTest {
         try (FileStore ss = newFileStore(new ShortIdMappingBlobStore())) {
             SegmentWriter sw = defaultSegmentWriterBuilder("test").build(ss);
             byte[] content = new byte[Segment.MEDIUM_LIMIT + 1];
-            SegmentBlob sb = new SegmentBlob(ss.getBlobStore(), sw.writeBlob(new ArrayBasedBlob(content)));
+            SegmentBlob sb = new SegmentBlob(ss.getBlobStore(),
+                sw.writeBlob(new ArrayBasedBlob(content)));
             assertRecordTypeEquals(sb, RecordType.BLOB_ID);
             assertFalse(sb.isInlined());
         }
@@ -143,7 +143,8 @@ public class BlobIdRecordTest {
         try (FileStore ss = newFileStore(new LongIdMappingBlobStore())) {
             SegmentWriter sw = defaultSegmentWriterBuilder("test").build(ss);
             byte[] content = new byte[Segment.MEDIUM_LIMIT + 1];
-            SegmentBlob sb = new SegmentBlob(ss.getBlobStore(), sw.writeBlob(new ArrayBasedBlob(content)));
+            SegmentBlob sb = new SegmentBlob(ss.getBlobStore(),
+                sw.writeBlob(new ArrayBasedBlob(content)));
             assertRecordTypeEquals(sb, RecordType.BLOB_ID);
             assertFalse(sb.isInlined());
         }
